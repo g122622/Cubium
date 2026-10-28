@@ -23,6 +23,7 @@
 
 #include "world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/math/random/Random.hpp"
@@ -120,9 +121,9 @@ public:
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
+    [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override
     {
-        return isWithinWorldBounds(x, y, z);
+        return worldBorder().isWithinBounds(BlockPos(x, y, z));
     }
 
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
@@ -250,13 +251,10 @@ public:
         return false;
     }
 
-    [[nodiscard]] bool isSolidSide(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState&) const override
     {
-        (void)state;
-        (void)world;
-        (void)pos;
-        return side == Direction::Up;
+        static const auto shape = CollisionShape::fullBlock();
+        return shape;
     }
 };
 
@@ -273,6 +271,7 @@ protected:
     {
         // 初始化注册表
         VanillaBlocks::initialize();
+        BlockTags::initialize();
         world::spawn::EntitySpawnPlacementRegistry::initializeDefaults();
     }
 };
@@ -556,10 +555,9 @@ TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnRejectsBarrierLikeBlocks)
 {
     SpawnPlacementTestWorld world;
     SupportBlock supportBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
-    blocks::BarrierBlock barrierBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     world.setBlockState(0, 63, 0, &supportBlock.defaultState());
-    world.setBlockState(0, 64, 0, &barrierBlock.defaultState());
+    world.setBlockState(0, 64, 0, &VanillaBlocks::BARRIER->defaultState());
 
     EXPECT_FALSE(world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
         world::spawn::PlacementType::OnGround, world, Vector3i(0, 64, 0), "minecraft:pig"));

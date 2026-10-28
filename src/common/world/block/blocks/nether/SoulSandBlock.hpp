@@ -51,6 +51,12 @@ class SoulSandBlock : public Block {
 public:
     explicit SoulSandBlock(BlockProperties properties);
 
+    /** @brief 碰撞面比方块顶部低两像素。 */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /** @brief 附着与生成使用完整的支撑形状。 */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
+
     /**
      * @brief 方块被添加时
      *

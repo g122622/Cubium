@@ -529,7 +529,7 @@
 
             ## #ISpawnWorldReader 接口 -
             定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口 -
-            主要方法： - `getBlockState(x, y, z)` - 获取方块状态 - `isInWorldBounds(x, y, z)` -
+            主要方法： - `getBlockState(x, y, z)` - 获取方块状态 - `isWithinWorldBorder(x, y, z)` -
             检查位置是否在世界范围内 - `getHeight(type, x, z)` - 获取高度图值 - `getBiome(x, y, z)` -
             获取生物群系ID - `seed()` - 获取世界种子（史莱姆区块判断等确定性生成条件） - `difficulty()` -
             获取世界难度（和平难度拒绝怪物生成） - `dayTime()` -

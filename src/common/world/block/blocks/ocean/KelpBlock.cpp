@@ -37,6 +37,8 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>
@@ -77,6 +79,11 @@ KelpBlock::KelpBlock(const BlockProperties& properties)
 i32 KelpBlock::getAge(const BlockState& state) const
 {
     return state.get(BlockStateProperties::AGE_0_25());
+}
+
+const fluid::FluidState* KelpBlock::getFluidState(const BlockState&) const
+{
+    return &fluid::Fluids::WATER()->defaultState();
 }
 
 BlockState KelpBlock::withAge(i32 age) const

@@ -43,6 +43,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <string>
 #include <string_view>
 
@@ -82,22 +83,21 @@ int runList(const mc::diff::Probe& probe)
 
 int runInput(const mc::diff::Probe& probe, const char* inputPath, const char* outputPath)
 {
-    std::FILE* in = openFile(inputPath, "rb");
-    if (in == nullptr) {
+    std::ifstream in(inputPath, std::ios::binary);
+    if (!in) {
+        std::fprintf(stderr, "diff probe: cannot open '%s' (errno %d)\n", inputPath, errno);
         return 1;
     }
     std::FILE* out = openFile(outputPath, "wb");
     if (out == nullptr) {
-        std::fclose(in);
         return 1;
     }
 
     std::string line;
     line.reserve(512);
-    char buffer[4096];
     unsigned long long lineNumber = 0;
-    while (std::fgets(buffer, sizeof(buffer), in) != nullptr) {
-        line.assign(buffer);
+    // JSONL 中的一条用例可包含完整场景集，不能把固定大小的读取片段当作完整 JSON。
+    while (std::getline(in, line)) {
         while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) {
             line.pop_back();
         }
@@ -118,9 +118,9 @@ int runInput(const mc::diff::Probe& probe, const char* inputPath, const char* ou
         std::fprintf(out, "%s\n", result.c_str());
     }
 
-    std::fclose(in);
-    const bool ok = std::fclose(out) == 0;
-    return ok ? 0 : 1;
+    const bool readOk = !in.bad();
+    const bool writeOk = std::fclose(out) == 0;
+    return readOk && writeOk ? 0 : 1;
 }
 
 } // namespace

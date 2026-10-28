@@ -43,6 +43,9 @@ class KelpPlantBlock : public SimpleBlock, public ILiquidSealed {
 public:
     explicit KelpPlantBlock(BlockProperties properties);
     ~KelpPlantBlock() override = default;
+
+    /** @brief 海带茎部始终携带水源流体。 */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 };
 
 } // namespace blocks

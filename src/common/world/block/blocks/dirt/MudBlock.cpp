@@ -42,6 +42,12 @@ const CollisionShape& MudBlock::getCollisionShape(const BlockState& state) const
     return m_collisionShape;
 }
 
+const CollisionShape& MudBlock::getBlockSupportShape(const BlockState&) const
+{
+    static const auto shape = CollisionShape::fullBlock();
+    return shape;
+}
+
 bool MudBlock::allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);

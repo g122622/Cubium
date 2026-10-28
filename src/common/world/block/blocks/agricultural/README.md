@@ -191,3 +191,7 @@ Block
 **收获**：`FarmerWorkGoal::_isCropMatureAt()` 通过 `dynamic_cast<CropBlock*>` 判断可收获方块，因此村民**仅收获 `CropBlock` 子类的作物**（小麦、胡萝卜、马铃薯、甜菜根、火把花作物）。瓶草作物继承自 `DoublePlantBlock` 而非 `CropBlock`，村民**不会收获**——这与 MC 1.21.11 原版行为一致（`HarvestFarmland` 通过 `instanceof CropBlock` 判断）。
 
 **设计说明**：`PitcherCropBlock::getCropItem()` / `getSeedItem()` 当前未被 `FarmerWorkGoal` 调用，保留供未来扩展使用（例如其他 AI 或统计需要查询作物产物）。瓶草作物的掉落由战利品表驱动（`minecraft:blocks/pitcher_crop`）。
+
+### 耕地形状
+
+耕地的渲染与碰撞形状均为 15/16 格高，顶面不能作为普通生物的生成支撑面。

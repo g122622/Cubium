@@ -141,11 +141,6 @@ public:
         return false;
     }
 
-    /**
-     * @brief 获取碰撞形状（树叶无碰撞）
-     */
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
     // ========== 含水接口 ==========
 
     /**

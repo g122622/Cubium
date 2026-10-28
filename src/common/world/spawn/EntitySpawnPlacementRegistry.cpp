@@ -25,15 +25,20 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "entity/core/EntityRegistry.hpp"
+#include "entity/core/EntityType.hpp"
+#include "entity/vehicle/DismountHelper.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/IRandom.hpp"
-#include "world/IWorld.hpp"
 #include "world/WorldConstants.hpp"
 #include "world/biome/BiomeTags.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/Material.hpp"
+#include "world/block/blocks/ice/SnowBlock.hpp"
 #include "world/block/registry/VanillaBlocks.hpp"
+#include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidTags.hpp"
 #include "world/lighting/InternalLightUtils.hpp"
 #include "world/spawn/SlimeChunkChecker.hpp"
 #include <string>
@@ -45,6 +50,64 @@ namespace mc::world::spawn {
 // 静态成员定义
 std::unordered_map<std::string, EntitySpawnPlacementRegistry::PlacementEntry> EntitySpawnPlacementRegistry::s_registry;
 bool EntitySpawnPlacementRegistry::s_initialized = false;
+
+namespace {
+
+bool _fireImmune(const std::string& id)
+{
+    const auto* type = entity::EntityRegistry::instance().getType(id);
+    return type != nullptr && type->immuneToFire();
+}
+
+bool _isValidSpawnSurface(const BlockState& state, const std::string& id)
+{
+    if (state.is(VanillaBlocks::MAGMA)) {
+        return _fireImmune(id);
+    }
+    if (BlockTags::LEAVES().contains(state)) {
+        return id == "minecraft:ocelot" || id == "minecraft:parrot";
+    }
+    if (state.is(VanillaBlocks::ICE) || state.is(VanillaBlocks::FROSTED_ICE)) {
+        return id == "minecraft:polar_bear";
+    }
+    const auto& name = state.blockLocation().path();
+    if (name.ends_with("glass") || state.is(VanillaBlocks::BEDROCK) || state.is(VanillaBlocks::BARRIER) ||
+        name.ends_with("trapdoor")) {
+        return false;
+    }
+    if (state.is(VanillaBlocks::SNOW)) {
+        return state.get(blocks::SnowBlock::LAYERS()) == 8;
+    }
+    return Block::isFaceFull(state.getBlockSupportShape(), Direction::Up) && state.lightLevel() < 14;
+}
+
+bool _isRedstoneConductor(const BlockState& state)
+{
+    if (state.is(VanillaBlocks::MUD) || state.is(VanillaBlocks::SOUL_SAND)) {
+        return true;
+    }
+    const auto& name = state.blockLocation().path();
+    if (name.ends_with("glass") || BlockTags::LEAVES().contains(state) || state.is(VanillaBlocks::ICE) ||
+        state.is(VanillaBlocks::FROSTED_ICE) || state.is(VanillaBlocks::GLOWSTONE) ||
+        state.is(VanillaBlocks::SEA_LANTERN)) {
+        return false;
+    }
+    return state.getCollisionShape().coversFullBlock();
+}
+
+bool _isBlockDangerous(const BlockState& state, const std::string& id)
+{
+    // 实体的方块免疫先于火焰与通用危险检查。
+    if ((id == "minecraft:fox" && state.is(VanillaBlocks::SWEET_BERRY_BUSH)) ||
+        ((id == "minecraft:polar_bear" || id == "minecraft:snow_golem" || id == "minecraft:stray") &&
+            state.is(VanillaBlocks::POWDER_SNOW)) ||
+        ((id == "minecraft:wither" || id == "minecraft:wither_skeleton") && state.is(VanillaBlocks::WITHER_ROSE))) {
+        return false;
+    }
+    return DismountHelper::isBlockDangerous(state, _fireImmune(id));
+}
+
+} // namespace
 
 // ============================================================================
 // 注册方法
@@ -103,7 +166,7 @@ bool EntitySpawnPlacementRegistry::canSpawnAtLocation(
     }
 
     // 检查世界边界
-    if (!world.isInWorldBounds(pos.x, pos.y, pos.z)) {
+    if (!world.isWithinWorldBorder(pos.x, pos.y, pos.z)) {
         return false;
     }
 
@@ -157,21 +220,8 @@ bool EntitySpawnPlacementRegistry::canSpawnEntity(const std::string& entityTypeI
 bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
-    // 检查脚下方块是否允许生成
-    const Vector3i posBelow(pos.x, pos.y - 1, pos.z);
-    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(posBelow.x, posBelow.y, posBelow.z);
-    if (!belowState) {
-        return false;
-    }
-
-    bool hasSurfaceSupport = belowState->isSolid();
-
-    if (const IWorld* worldReader = dynamic_cast<const IWorld*>(&world)) {
-        hasSurfaceSupport = belowState->isSolidSide(const_cast<IWorld&>(*worldReader), belowPos, Direction::Up);
-    }
-
-    if (!hasSurfaceSupport) {
+    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    if (belowState == nullptr || !_isValidSpawnSurface(*belowState, entityTypeId)) {
         return false;
     }
 
@@ -190,106 +240,45 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
 }
 
 bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
-    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string&)
 {
-    // 当前位置必须是水
     const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
-    if (!currentState) {
+    if (currentState == nullptr) {
         return false;
     }
-
-    const Material& material = currentState->getMaterial();
-    if (!material.isLiquid()) {
+    const auto* fluid = currentState->getFluidState();
+    if (fluid == nullptr || !fluid::FluidTags::WATER().contains(fluid->getFluid())) {
         return false;
     }
-
-    // 检查是否是水材质（通过与 WATER 静态实例比较）
-    if (&material != &Material::WATER) {
-        return false;
-    }
-
-    // 下方位置也必须是水（确保足够深度）
-    const Vector3i posBelow(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(posBelow.x, posBelow.y, posBelow.z);
-    if (!belowState) {
-        return false;
-    }
-
-    const Material& belowMaterial = belowState->getMaterial();
-    if (!belowMaterial.isLiquid() || &belowMaterial != &Material::WATER) {
-        return false;
-    }
-
-    // 上方不能是实心方块
-    const Vector3i posAbove(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(posAbove.x, posAbove.y, posAbove.z);
-    if (aboveState && aboveState->isSolid()) {
-        return false;
-    }
-
-    return true;
+    const auto* above = world.getBlockState(pos.x, pos.y + 1, pos.z);
+    return above != nullptr && !_isRedstoneConductor(*above);
 }
 
 bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
-    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string&)
 {
-    // 当前位置必须是岩浆
     const BlockState* currentState = world.getBlockState(pos.x, pos.y, pos.z);
-    if (!currentState) {
-        return false;
-    }
-
-    const Material& material = currentState->getMaterial();
-    if (!material.isLiquid()) {
-        return false;
-    }
-
-    // 检查是否是岩浆材质（通过与 LAVA 静态实例比较）
-    if (&material != &Material::LAVA) {
-        return false;
-    }
-
-    return true;
+    const auto* fluid = currentState == nullptr ? nullptr : currentState->getFluidState();
+    return fluid != nullptr && fluid::FluidTags::LAVA().contains(fluid->getFluid());
 }
 
 bool EntitySpawnPlacementRegistry::_isValidSpawnBlock(
-    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& /*entityTypeId*/)
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
     const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
-    if (!state) {
-        return true; // 空气或未加载区域
-    }
-
-    // 不能是实心方块
-    if (state->isSolid()) {
+    if (state == nullptr) {
         return false;
     }
 
-    // 检查方块是否阻止生成
-    if (_blockPreventsSpawn(state)) {
+    if (state->getCollisionShape().coversFullBlock() || state->getBlock().canProvidePower(*state)) {
         return false;
     }
-
-    // 不能是流体
-    const Material& material = state->getMaterial();
-    if (material.isLiquid()) {
+    const auto* fluid = state->getFluidState();
+    if (fluid != nullptr && !fluid->isEmpty()) {
         return false;
     }
-
-    return true;
-}
-
-bool EntitySpawnPlacementRegistry::_blockPreventsSpawn(const BlockState* state)
-{
-    if (!state) {
-        return false;
-    }
-
-    if (state->isSolid()) {
-        return false;
-    }
-
-    return state->getShape().isFullBlock() || state->getCollisionShape().isFullBlock();
+    const auto* prevent = BlockTags::getTag(ResourceLocation("minecraft:prevent_mob_spawning_inside"));
+    return (prevent == nullptr || !prevent->contains(*state)) && !_isBlockDangerous(*state, entityTypeId);
 }
 
 // ============================================================================
@@ -297,6 +286,28 @@ bool EntitySpawnPlacementRegistry::_blockPreventsSpawn(const BlockState* state)
 // ============================================================================
 
 namespace {
+
+bool _canTaggedAnimalSpawn(
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& id, math::IRandom&, SpawnReason)
+{
+    // TODO: 谓词差分还需补齐未衰减的原始亮度读取，以及试炼刷怪笼的光照豁免。
+    const std::string tag = id == "minecraft:armadillo" ? "minecraft:armadillo_spawnable_on"
+        : id == "minecraft:camel"                       ? "minecraft:camels_spawnable_on"
+        : id == "minecraft:goat"                        ? "minecraft:goats_spawnable_on"
+                                                        : "minecraft:animals_spawnable_on";
+    const auto* surface = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    const auto* spawnable = BlockTags::getTag(ResourceLocation(tag));
+    return surface != nullptr && spawnable != nullptr && spawnable->contains(*surface) &&
+        world.getMaxLocalRawBrightness(pos.x, pos.y, pos.z) > 8;
+}
+
+bool _canAnyLightMonsterSpawn(
+    const ISpawnWorldReader& world, const Vector3i& pos, const std::string& id, math::IRandom&, SpawnReason reason)
+{
+    const auto* below = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    return world.difficulty() != Difficulty::Peaceful &&
+        (isSpawnerReason(reason) || (below != nullptr && _isValidSpawnSurface(*below, id)));
+}
 
 /**
  * @brief 青蛙生成条件检查
@@ -397,6 +408,7 @@ bool _canMonsterSpawnInLightPredicate(const ISpawnWorldReader& world,
     math::IRandom& random,
     SpawnReason /*reason*/)
 {
+    // TODO: 谓词差分需覆盖维度光照参数、难度、生成原因与随机采样顺序。
     if (world.getRawSkyLight(pos.x, pos.y, pos.z) > random.nextInt(32)) {
         return false;
     }
@@ -558,12 +570,12 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     // 鹦鹉螺：带 Y 范围 + 上下方块检查的生成规则（对应 MC AbstractNautilus.checkNautilusSpawnRules）
     registerPlacement(
         "minecraft:nautilus", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves, _canNautilusSpawn);
-    // 僵尸鹦鹉螺：MC 1.21.11 未在 SpawnPlacements 注册，仅作为溺尸骑乘者生成
-    // 这里注册为 InWater 仅用于刷怪蛋/命令生成场景
-    registerPlacement("minecraft:zombie_nautilus", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
 
     // ========== 陆生动物 ==========
     registerPlacement("minecraft:pig", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
+    for (const auto* id : {"minecraft:armadillo", "minecraft:camel", "minecraft:goat", "minecraft:happy_ghast"}) {
+        registerPlacement(id, PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canTaggedAnimalSpawn);
+    }
     registerPlacement("minecraft:cow", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:sheep", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:chicken", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
@@ -583,8 +595,7 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:mooshroom", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:turtle", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:trader_llama", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
-    registerPlacement(
-        "minecraft:wandering_trader", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
+    registerPlacement("minecraft:wandering_trader", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     // 骷髅马是生物分类，按地面 + 明亮光照生成。
     registerPlacement("minecraft:skeleton_horse", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
 
@@ -660,13 +671,21 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
         HeightmapType::MotionBlockingNoLeaves,
         _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:ravager",
-        PlacementType::NoRestrictions,
+        PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
         _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:pillager",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
         _canMonsterSpawnInLightPredicate);
+    for (const auto* id : {"minecraft:bogged", "minecraft:creaking", "minecraft:parched", "minecraft:camel_husk"}) {
+        // TODO: parched/camel_husk 还需要与通用怪物谓词一起补齐地表天空门槛。
+        registerPlacement(
+            id, PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canMonsterSpawnInLightPredicate);
+    }
+    for (const auto* id : {"minecraft:breeze", "minecraft:zoglin"}) {
+        registerPlacement(id, PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canAnyLightMonsterSpawn);
+    }
 
     // ========== 特殊怪物 ==========
     // 蝙蝠：需要光照 < 4

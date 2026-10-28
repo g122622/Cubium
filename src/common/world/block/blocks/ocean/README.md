@@ -140,3 +140,7 @@ if (VanillaBlocks::TALL_SEAGRASS == nullptr) {
 **解决方案**：四类方块都实现 `ILiquidSealed`（`canContainFluid`/`receiveFluid`/`containsFluid` 恒返 false），对齐原版 `LiquidBlockContainer` 中 `canPlaceLiquid`/`placeLiquid` 恒返 false 的水下植物。海带茎原本直接注册 `SimpleBlock`，为此新增了 `KelpPlantBlock`。
 
 注意只加 `.notSolid()` 或 `.replaceable()` 都不够：水流判定走的是 `ILiquidContainer` 动态转型，与 `canBeReplacedByFluid()` 无关。新增同类方块（水下装饰、含水植物）时务必一并实现该接口。详见 `world/block/README.md` 坑 #41 与 `tests/unit/common/world/fluid/SealedPlantLiquidTest.cpp`。
+
+### 水下植物的流体
+
+海带顶部与茎部均始终返回水源流体，无 `waterlogged` 属性；材质是否液体不能代替流体状态查询。

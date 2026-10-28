@@ -9,11 +9,9 @@
 #   - 每个「能力领域」是一个 probe（probes/<domain>.cpp + probes/<domain>.hpp）。
 #   - 所有 probe 共享同一入口 probes/runner_main.cpp，由编译期宏
 #     MC_DIFF_PROBE_DOMAIN 选择能力，避免每个能力复制一份 main。
-#   - Python 编排层在 harness/ 下：harness/runner.py 负责构建、生成输入、
-#     运行 probe、比对与写报告；harness/test_<domain>_parity.py 是具体 harness。
+#   - TypeScript 编排层位于 harness/，负责构造共同输入、运行两侧并保存报告。
 #
-# 全部目标标 EXCLUDE_FROM_ALL：不参与日常 `cmake --build`，须显式指定目标：
-#   cmake --build build --config RelWithDebInfo --target diff_probes
+# 开启 MC_BUILD_DIFF_PROBES 后，全部探针随常规构建更新。
 #
 # 为什么不是每能力一个独立 target：多个可执行文件都链同一个静态库 mc_common，
 # 拆成多个 target 只是多几行 CMake，但对增量构建没有区别；合并到一个 target 里
@@ -26,7 +24,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity advancement biome_spawns recipe)
+set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity advancement biome_spawns recipe spawn_placement)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/block_state_ids.cpp
@@ -51,8 +49,9 @@ set(MC_DIFF_PROBE_SOURCES
     probes/advancement.cpp
     probes/biome_spawns.cpp
     probes/recipe.cpp
+    probes/spawn_placement.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity advancement biome_spawns recipe)
+set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity advancement biome_spawns recipe spawn_placement)
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")

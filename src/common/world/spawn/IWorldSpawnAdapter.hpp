@@ -61,9 +61,9 @@ public:
         return m_world.getBlockState(BlockPos(x, y, z));
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
+    [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override
     {
-        return m_world.isWithinWorldBounds(x, y, z);
+        return m_world.worldBorder().isWithinBounds(BlockPos(x, y, z));
     }
 
     [[nodiscard]] i32 getHeight(chunk::HeightmapType type, i32 x, i32 z) const override

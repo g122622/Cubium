@@ -255,9 +255,9 @@ public:
     [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const = 0;
 
     /**
-     * @brief 检查位置是否在世界范围内
+     * @brief 检查方块位置是否在可配置的水平世界边界内，不检查建筑高度
      */
-    [[nodiscard]] virtual bool isInWorldBounds(i32 x, i32 y, i32 z) const = 0;
+    [[nodiscard]] virtual bool isWithinWorldBorder(i32 x, i32 y, i32 z) const = 0;
 
     /**
      * @brief 获取高度图值
@@ -458,7 +458,7 @@ public:
      * @brief 检查水中生成条件
      *
      * 检查实体是否可以在水中生成。
-     * 需要当前位置和下方位置都有水。
+     * 当前位置具有水流体，上方方块不导红石。
      *
      * @param world 世界读取器
      * @param pos 生成位置
@@ -508,16 +508,6 @@ private:
      */
     [[nodiscard]] static bool _isValidSpawnBlock(
         const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId);
-
-    /**
-     * @brief 检查方块是否阻止生成
-     *
-     * 某些方块（如红石、障碍物）会阻止生成
-     *
-     * @param state 方块状态
-     * @return 是否阻止生成
-     */
-    [[nodiscard]] static bool _blockPreventsSpawn(const BlockState* state);
 };
 
 } // namespace world::spawn

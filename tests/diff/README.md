@@ -46,6 +46,7 @@ tests/diff/
 │   ├── command_tree.cpp         # 命令图、参数编码、节点属性与完整协议字节
 │   ├── advancement.cpp          # 进度定义
 │   ├── biome_spawns.cpp         # 生物群系自然生成配置
+│   ├── spawn_placement.cpp      # 实体放置类型、高度图与受控方块柱中的位置判定
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -171,7 +172,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-二十二个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+以下能力已接入。结果描述最近一次验证；`spawn_placement` 单独比较实际位置判定，
+不把静态群系配置通过视为运行时生成规则通过。
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -197,7 +199,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 全部一致 | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
-| `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
+| `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
+| `recipe` | 原版 jar `RecipeOracle` | 1470 | 18 个纹饰配方结果存在差异 | 装配输入选取待核对 |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -395,7 +398,22 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 - **解码逻辑上移到 common**：`BiomeLoader` 与探针共用 `MobSpawnInfoJson`，探针测的就是
   服务端真正跑的那段代码。
 
-### 配方：全部一致
+### 生成位置：共同场景逐项比较
+
+沿用 Horizon 的 `tools/test_spawn_rules_parity.py` 与 `VanillaSpawnRulesOracle` 的方法：
+共同输入描述方块柱，两侧实际调用生产代码。`SpawnPlacementOracle` 直接调用 1.21.11 的
+`SpawnPlacements.isSpawnPositionOk`，不移植 26.3 的预期结果。
+
+全部 157 种实体均比较放置类型、高度图、332 种位置场景，合计 52,124 次判定。
+同一种方块状态分别放到脚下、脚部、头部和水面上方，覆盖半砖/楼梯、单箱/双箱、
+树叶、危险方块、信号源、禁入标签、流水、含水方块、水下植物、边界内外与建筑高度外位置。
+没有实体豁免。Java 世界只提供用例明确给出的数据，意外访问其他能力直接失败。
+
+该能力不调用生成谓词，因此不覆盖光照、难度、生成原因和随机数消耗；这些属于
+Horizon `checkSpawnRules` 与后续 `nextInt(1000)` 对应的另一层验证。
+公共探针入口使用完整 JSON 行读取，允许一条输入携带超过 4095 字节的共同场景集。
+
+### 配方：定义与装配结果
 
 `recipe` 把数据包 `recipe/*.json` 交给服务端的 `RecipeLoader::loadRecipeJson`，再从
 `RecipeManager` 按 ID 取回做结构化摘要，与原版 `RecipeManager#getRecipe` 的结果比对：

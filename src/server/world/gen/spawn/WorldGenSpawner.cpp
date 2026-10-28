@@ -65,9 +65,9 @@ public:
         return m_region.getBlockState(x, y, z);
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
+    [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override
     {
-        return world::isValidY(y);
+        return m_region.worldBorder().isWithinBounds(BlockPos(x, y, z));
     }
 
     [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override

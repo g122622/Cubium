@@ -25,6 +25,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/spawn/SlimeChunkChecker.hpp"
 #include "core/Types.hpp"
@@ -56,7 +57,7 @@ namespace test {
  * - dayTime: 游戏时间（影响月相和光照）
  * - biomeId: 指定位置的生物群系
  * - maxBrightness: 指定位置的最大原始亮度
- * - m_groundSolid: 控制脚下方块是否为实心（默认 true，用于 OnGround 放置检查）
+ * - m_blocks: 生成位置附近的显式方块状态
  *
  * 对于 OnGround 放置类型的实体（如史莱姆），canSpawnEntity 会先检查
  * checkOnGroundSpawn（需要脚下有实心方块、上方非实心），
@@ -74,18 +75,12 @@ public:
     BiomeId m_biomeId = Biomes::Plains;
     /// 返回的最大原始亮度
     i32 m_maxBrightness = 15;
-    /// 世界边界 Y 范围
-    i32 m_minY = -64;
-    i32 m_maxY = 320;
-    /// 脚下方块是否实心（OnGround 放置检查需要）
-    bool m_groundSolid = true;
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         // 对于 OnGround 生成检查：
         // checkOnGroundSpawn 检查 pos.y-1（脚下）、pos.y（生成位置）、pos.y+1（上方）
         // 脚下需要实心方块，生成位置和上方需要非实心、非流体、不阻止生成
-        // 使用自定义方块状态映射，如果没有设置则根据 m_groundSolid 返回默认值
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
             return it->second;
@@ -110,9 +105,9 @@ public:
         setBlockState(x, spawnY + 1, z, &VanillaBlocks::AIR->defaultState());
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32, i32 y, i32) const override
+    [[nodiscard]] bool isWithinWorldBorder(i32, i32, i32) const override
     {
-        return y >= m_minY && y < m_maxY;
+        return true;
     }
 
     [[nodiscard]] i32 getHeight(HeightmapType, i32, i32) const override
@@ -159,6 +154,7 @@ protected:
     {
         // 初始化方块注册（VanillaBlocks::STONE 等需要）
         VanillaBlocks::initialize();
+        BlockTags::initialize();
         // 初始化生物群系标签（沼泽 ALLOWS_SURFACE_SLIME_SPAWNS 需要此初始化）
         BiomeTags::initialize();
         // 初始化实体放置注册表

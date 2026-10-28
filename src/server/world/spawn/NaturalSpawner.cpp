@@ -760,9 +760,9 @@ bool NaturalSpawner::_canSpawnAt(
             return m_world.getBlockState(bx, by, bz);
         }
 
-        [[nodiscard]] bool isInWorldBounds(i32 bx, i32 by, i32 bz) const override
+        [[nodiscard]] bool isWithinWorldBorder(i32 bx, i32 by, i32 bz) const override
         {
-            return m_world.isWithinWorldBounds(bx, by, bz);
+            return m_world.worldBorder().isWithinBounds(BlockPos(bx, by, bz));
         }
 
         [[nodiscard]] i32 getHeight(HeightmapType type, i32 bx, i32 bz) const override

@@ -185,14 +185,6 @@ const CollisionShape& FarmlandBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
-const CollisionShape& FarmlandBlock::getCollisionShape(const BlockState& state) const
-{
-    // 碰撞箱是完整方块
-    MC_UNUSED(state);
-    static CollisionShape fullShape = CollisionShape::fullBlock();
-    return fullShape;
-}
-
 // ========== 其他重写 ==========
 
 bool FarmlandBlock::allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

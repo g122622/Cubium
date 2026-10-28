@@ -73,6 +73,9 @@ public:
      */
     explicit ChestBlock(const BlockProperties& properties);
 
+    /** @brief 单箱与连接箱均保留边缘空隙，碰撞高度为十四像素。 */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
     /**
      * @brief 析构函数
      */
