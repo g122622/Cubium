@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
+#include "server/bossbar/BossInfo.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include <string>
 
@@ -63,8 +64,8 @@ private:
     static i32 _removeBossBar(CommandContext<ServerCommandSource>& context);
     static i32 _listBossBars(CommandContext<ServerCommandSource>& context);
     static i32 _setName(CommandContext<ServerCommandSource>& context);
-    static i32 _setColor(CommandContext<ServerCommandSource>& context, const std::string& colorStr);
-    static i32 _setStyle(CommandContext<ServerCommandSource>& context, const std::string& styleStr);
+    static i32 _setColor(CommandContext<ServerCommandSource>& context, server::BossInfoColor color);
+    static i32 _setStyle(CommandContext<ServerCommandSource>& context, server::BossInfoOverlay overlay);
     static i32 _setValue(CommandContext<ServerCommandSource>& context);
     static i32 _setMax(CommandContext<ServerCommandSource>& context);
     static i32 _setVisible(CommandContext<ServerCommandSource>& context);

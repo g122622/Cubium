@@ -53,27 +53,14 @@ namespace command {
  */
 class ExecuteCommand {
 public:
+    /// 注册命令及执行上下文修改器。
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
-private:
-    // ========== 嵌套命令执行 ==========
-
-    /**
-     * @brief 执行嵌套命令
-     * @param source 修改后的命令源
-     * @param command 要执行的命令字符串
-     * @return 命令执行结果（成功返回结果值，失败返回 0）
-     */
-
-public:
     /// 执行一条嵌套命令（/execute run 与 /return run 共用）。
     static i32 executeNestedCommand(ServerCommandSource& source, const std::string& command);
 
 private:
-    // ========== 子命令执行 ==========
-
     static i32 _executeForwarded(CommandContext<ServerCommandSource>& context);
-    static i32 _executeRun(CommandContext<ServerCommandSource>& context);
 
     // ========== 条件求值（/execute if|unless） ==========
 

@@ -106,6 +106,18 @@ public:
      */
     [[nodiscard]] static std::unique_ptr<nbt::tags::tag> parseNbtValue(StringReader& reader);
 
+    /**
+     * @brief 按原版 {@code StringTagReader.readTag} 语义解析一段完整的 SNBT 标签
+     *
+     * 与 {@link parseNbtValue} 的区别：这是一个完整的标签（`{...}`、`[...]`、`"..."`、
+     * `1b`……），数字带完整前缀与指数解析、字符串按原版规则转义。`nbt_compound_tag` /
+     * `nbt_tag` 参数、实体 NBT 选择器、带 NBT 的实体参数都走这里。
+     *
+     * @param reader 字符串读取器（游标推进到标签之后）
+     * @return NBT 标签；输入为空或不是合法标签时抛出命令异常
+     */
+    [[nodiscard]] static std::unique_ptr<nbt::tags::tag> readNbtValue(StringReader& reader);
+
 private:
     /**
      * @brief 解析单个路径节点
@@ -146,6 +158,12 @@ private:
      * @return 读取的字符串
      */
     [[nodiscard]] static std::string _readNbtUnquotedValue(StringReader& reader);
+
+    /// 读取 SNBT 引号字符串（含原版转义规则）。
+    [[nodiscard]] static std::string _readQuotedString(StringReader& reader);
+
+    /// 读取 SNBT 数字的文本部分（可选符号、整数、小数、指数），不消费类型后缀。
+    [[nodiscard]] static std::string _readNbtNumber(StringReader& reader);
 };
 
 /**

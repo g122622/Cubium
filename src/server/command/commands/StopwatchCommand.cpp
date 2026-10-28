@@ -24,6 +24,7 @@
 #include "StopwatchCommand.hpp"
 
 #include "common/command/CommandNode.hpp"
+#include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
@@ -34,6 +35,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace mc::command {
@@ -70,14 +72,22 @@ void StopwatchCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // 四个子命令的参数节点结构完全相同，只是处理函数不同；依次构建。
     // suggestIds 对应原版 StopwatchCommand 的 .suggests(SUGGEST_STOPWATCHES)：query /
-    // restart / remove 声明了补全，create 没有。这个差异会体现在命令树里参数节点的
-    // 建议提供器标识上，因此逐个传入，不能统一标记。
+    // restart / remove 声明了补全，create 没有；差异体现在命令树里建议提供器位上。
     const auto addSubcommand = [&stopwatchNode](const char* name, auto handler, bool suggestIds) {
         auto subNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
         auto idArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-            "id", IdentifierArgumentType::identifier());
+            "id", ResourceLocationArgumentType::resourceLocation());
         if (suggestIds) {
             idArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+        }
+        // /stopwatch query <id> [<scale>]：原版 query 还有一个可选的换算倍数。
+        if (std::string_view(name) == "query") {
+            auto scaleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>(
+                "scale", DoubleArgumentType::doubleArg());
+            scaleArg->setCommand([handler](CommandContext<ServerCommandSource>& ctx) {
+                return handler(ctx);
+            });
+            idArg->addChild(scaleArg);
         }
         idArg->setCommand([handler](CommandContext<ServerCommandSource>& ctx) {
             return handler(ctx);
@@ -166,7 +176,10 @@ i32 StopwatchCommand::_query(CommandContext<ServerCommandSource>& context)
         return 0;
     }
     const i64 elapsed = static_cast<i64>(_currentTick(source)) - it->second.startTick;
-    source.sendMessage("Stopwatch '" + id.toString() + "' elapsed: " + std::to_string(elapsed) + " ticks");
+    // 原版 query 的 scale：把经过的 tick 换算成秒/分钟等（省略时为 1）。
+    const f64 scale = context.hasArgument("scale") ? context.getArgument<f64>("scale") : 1.0;
+    const f64 value = static_cast<f64>(elapsed) * scale;
+    source.sendMessage("Stopwatch '" + id.toString() + "' elapsed: " + std::to_string(value) + " ticks");
     return 1;
 }
 

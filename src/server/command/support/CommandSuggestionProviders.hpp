@@ -7,7 +7,6 @@
 #include <future>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace mc {
 namespace command {
@@ -29,7 +28,7 @@ namespace command {
  * 等）：它自身不产生候选，只负责让命令树带上 `ask_server` 标记，把补全请求正确地
  * 转给服务端。
  *
- * TODO: 真正的候选计算需要在 SaveSuggestionProvider 之外接入各子系统的注册表
+ * TODO: 真正的候选计算需要在 ServerSuggestionProvider 之外接入各子系统的注册表
  *   （Scoreboard / PlayerList / BossBarManager / TeamManager），
  *   目前只保证协议层的建议提供器标识与补全请求转发与原版一致。
  */
@@ -43,27 +42,22 @@ public:
 };
 
 /**
- * @brief 基于静态候选列表的建议提供器
- *
- * 用于候选集在注册期就固定的参数（如实体类型名、资源位置）。
+ * @brief 客户端按注册名解析的建议提供器
  */
 template <typename S>
-class StaticSuggestionProvider : public ISuggestionProvider<S> {
+class RegisteredSuggestionProvider : public ServerSuggestionProvider<S> {
 public:
-    explicit StaticSuggestionProvider(std::vector<std::string> candidates)
-        : m_candidates(std::move(candidates))
+    explicit RegisteredSuggestionProvider(std::string id)
+        : m_id(std::move(id))
     {}
 
-    std::future<Suggestions> getSuggestions(CommandContext<S>& /*context*/, SuggestionsBuilder& builder) override
+    [[nodiscard]] std::string_view getProviderId() const noexcept override
     {
-        for (const auto& candidate : m_candidates) {
-            builder.suggest(candidate);
-        }
-        return builder.buildFuture();
+        return m_id;
     }
 
 private:
-    std::vector<std::string> m_candidates;
+    std::string m_id;
 };
 
 } // namespace command

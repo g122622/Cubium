@@ -43,6 +43,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/data/DataAccessor.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/FunctionSuggestionProvider.hpp"
 #include "server/function/FunctionManager.hpp"
@@ -88,8 +89,9 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // with entity <target> [path]
     auto withEntityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
+    // 原版 with entity 的参数名是 source。
     auto withEntityTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "target", EntityArgumentType::entity());
+        "source", EntityArgumentType::entity());
     auto withEntityPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     withEntityPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -103,8 +105,9 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // with block <pos> [path]
     auto withBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
+    // 原版 with block 的参数名是 sourcePos。
     auto withBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "pos", BlockPosArgumentType::blockPos());
+        "sourcePos", BlockPosArgumentType::blockPos());
     auto withBlockPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     withBlockPathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -118,8 +121,11 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // with storage <id> [path]
     auto withStorageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("storage");
+    // 原版 with storage 的参数名是 source。
     auto withStorageIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "id", IdentifierArgumentType::identifier());
+        "source", ResourceLocationArgumentType::resourceLocation());
+    // 原版 with storage 的 source 挂了 suggestResource(STORAGE)。
+    withStorageIdArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     auto withStoragePathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     withStoragePathArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -163,7 +169,7 @@ i32 FunctionCommand::_runFunctionWithArguments(CommandContext<ServerCommandSourc
 i32 FunctionCommand::_runWithEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    EntitySelector selector = context.getArgument<EntitySelector>("target");
+    EntitySelector selector = context.getArgument<EntitySelector>("source");
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
         source.sendError("No entity matched the selector");
@@ -218,7 +224,7 @@ i32 FunctionCommand::_runWithBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", source);
+    Vector3i pos = BlockPosArgumentType::getBlockPos(context, "sourcePos", source);
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
@@ -270,7 +276,7 @@ i32 FunctionCommand::_runWithStorage(CommandContext<ServerCommandSource>& contex
         return 0;
     }
 
-    ResourceLocation id = context.getArgument<ResourceLocation>("id");
+    ResourceLocation id = context.getArgument<ResourceLocation>("source");
     CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 

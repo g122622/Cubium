@@ -158,22 +158,20 @@ TEST_F(StopSoundCommandTest, StopAllSoundsWithMultiplePlayers)
 
 // ========== /stopsound <player> * - 通配符测试 ==========
 
-TEST_F(StopSoundCommandTest, StopAllSoundsWithWildcardNoPlayer)
+TEST_F(StopSoundCommandTest, WildcardRequiresSoundWithoutPlayer)
 {
     const auto result = m_server.commandRegistry().execute("stopsound Steve *", m_console);
 
-    EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);
+    EXPECT_TRUE(result.failed());
 }
 
-TEST_F(StopSoundCommandTest, StopAllSoundsWithWildcardWithPlayer)
+TEST_F(StopSoundCommandTest, WildcardRequiresSoundWithPlayer)
 {
     m_server.addTestPlayer(1, "Steve");
 
     const auto result = m_server.commandRegistry().execute("stopsound Steve *", m_console);
 
-    EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(result.failed());
 }
 
 // ========== /stopsound <player> * <sound> - 通配符+声音ID ==========

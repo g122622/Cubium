@@ -129,6 +129,12 @@ public:
         return "function";
     }
 
+    /// 原版注册时给该参数挂了 {@code suggestResource} 一类的提供器。
+    [[nodiscard]] bool hasBuiltinSuggestions() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] std::vector<std::string> getExamples() const override
     {
         return {"foo", "foo:bar", "#foo"};

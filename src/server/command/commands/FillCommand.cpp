@@ -299,35 +299,36 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     });
 
     // /fill <from> <to> <block> replace <filter>
+    // 原版的过滤参数是 BlockPredicateArgument（block_predicate），不是 block_state。
     auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
-        "filter", BlockStateArgumentType::blockState());
+        "filter", BlockPredicateArgumentType::blockPredicate());
     filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        auto& source = ctx.getSource();
-        Vector3i from = BlockPosArgumentType::getBlockPos(ctx, "from", source);
-        Vector3i to = BlockPosArgumentType::getBlockPos(ctx, "to", source);
-
-        server::ServerWorld* world = source.world();
-        if (world == nullptr) {
-            source.sendError("commands.fill.failed.noWorld");
-            return 0;
-        }
-
-        i32 blockCount = calculateBlockCount(from, to);
-        if (blockCount > 32768) {
-            source.sendError("commands.fill.failed.tooManyBlocks");
-            return 0;
-        }
-
-        BlockStateInput filterInput = ctx.getArgument<BlockStateInput>("filter");
-        return executeFill(ctx, FillMode::Replace, filterInput.state());
+        return executeFill(ctx, FillMode::Replace, ctx.getArgument<BlockStateInput>("filter").state());
     });
 
+    // 过滤条件后的模式不再增加来源层，strict 也是这一层的终点。
+    for (const auto& [name, mode] : {std::pair<const char*, FillMode>{"destroy", FillMode::Destroy},
+             std::pair<const char*, FillMode>{"hollow", FillMode::Hollow},
+             std::pair<const char*, FillMode>{"outline", FillMode::Outline},
+             std::pair<const char*, FillMode>{"strict", FillMode::Replace}}) {
+        auto modeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
+        modeNode->setCommand([mode](CommandContext<ServerCommandSource>& ctx) {
+            // TODO: strict 需要通过方块更新标志抑制邻居更新。
+            return executeFill(ctx, mode, ctx.getArgument<BlockStateInput>("filter").state());
+        });
+        filterArg->addChild(modeNode);
+    }
     replaceNode->addChild(filterArg);
     blockArg->addChild(destroyNode);
     blockArg->addChild(hollowNode);
     blockArg->addChild(keepNode);
     blockArg->addChild(outlineNode);
     blockArg->addChild(replaceNode);
+
+    auto strictNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("strict");
+    // TODO: strict 需要通过方块更新标志抑制邻居更新。
+    strictNode->setCommand(blockArg->getCommand());
+    blockArg->addChild(strictNode);
     toArg->addChild(blockArg);
     fromArg->addChild(toArg);
     fillNode->addChild(fromArg);

@@ -26,6 +26,9 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -39,7 +42,7 @@ namespace mc::command {
 
 void DamageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
-    // 原版形状：/damage <target> <amount>（以及可选的伤害类型/来源分支，尚未实现）。
+    // 原版形状：/damage <target> <amount> [<damageType> [at <location>|by <entity> [from <cause>]]]。
     auto damageNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("damage");
     damageNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
@@ -54,6 +57,42 @@ void DamageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     amountArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _damage(ctx);
     });
+
+    // /damage <target> <amount> <damageType> [at <location>|by <entity> [from <cause>]]
+    auto damageTypeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "damageType", std::make_shared<ResourceArgumentType>("minecraft:damage_type", "resource"));
+    damageTypeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _damage(ctx);
+    });
+
+    auto atNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("at");
+    auto atLocationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "location", Vec3ArgumentType::vec3());
+    atLocationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _damage(ctx);
+    });
+    atNode->addChild(atLocationArg);
+
+    auto byNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("by");
+    auto byEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "entity", EntityArgumentType::entity());
+    byEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _damage(ctx);
+    });
+    auto fromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
+    auto fromCauseArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "cause", EntityArgumentType::entity());
+    fromCauseArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _damage(ctx);
+    });
+    fromNode->addChild(fromCauseArg);
+    byEntityArg->addChild(fromNode);
+    byNode->addChild(byEntityArg);
+
+    damageTypeArg->addChild(atNode);
+    damageTypeArg->addChild(byNode);
+
+    amountArg->addChild(damageTypeArg);
     targetArg->addChild(amountArg);
     damageNode->addChild(targetArg);
 

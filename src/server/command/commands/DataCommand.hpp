@@ -53,12 +53,9 @@ class IDataAccessor;
  * - /data get block <pos> [<path>] [<scale>]
  * - /data get entity <target> [<path>] [<scale>]
  * - /data get storage <id> [<path>] [<scale>]
- * - /data set block <pos> <path> <value>
- * - /data set entity <target> <path> <value>
- * - /data set storage <id> <path> <value>
- * - /data merge block <pos> <nbt>
- * - /data merge entity <target> <nbt>
- * - /data merge storage <id> <nbt>
+ * - /data modify <block <pos>|entity <target>|storage <id>> <path>  *       {set <value>|append|prepend|merge
+ * <value>|insert <index>}  *       [from <block <pos> <path>|entity <source> <path>|storage <source> <path>|nbt_tag>]
+ * *       [string <同上>]
  * - /data remove block <pos> <path>
  * - /data remove entity <target> <path>
  * - /data remove storage <id> <path>
@@ -68,6 +65,13 @@ class IDataAccessor;
 class DataCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
+
+    /**
+     * @brief `/data modify` 的写操作入口
+     *
+     * @param operation 0 = set，1 = append，2 = prepend，3 = merge，4 = insert（与原版 order 一致）
+     */
+    static i32 _modify(CommandContext<ServerCommandSource>& context, i32 operation);
 
 private:
     // ========== 具体目标类型的处理函数 ==========

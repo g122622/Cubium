@@ -101,8 +101,9 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /worldborder warning time <seconds>
     auto warningNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("warning");
     auto timeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("time");
+    // 原版 warning time 的参数名是 time（命令树里是 time 参数类型）。
     auto warnTimeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("seconds", TimeArgumentType::time());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
     warnTimeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setWarningTime(ctx);
     });
@@ -111,8 +112,9 @@ void WorldBorderCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /worldborder warning distance <blocks>
     auto distanceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("distance");
+    // 原版 warning distance 的参数名是 distance。
     auto warnDistArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("blocks", IntegerArgumentType::integer(0));
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("distance", IntegerArgumentType::integer(0));
     warnDistArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setWarningDistance(ctx);
     });
@@ -278,7 +280,7 @@ i32 WorldBorderCommand::_setWarningTime(CommandContext<ServerCommandSource>& con
     }
 
     auto& border = world->worldBorder();
-    const i32 seconds = context.getArgument<i32>("seconds");
+    const i32 seconds = context.getArgument<i32>("time");
 
     border.setWarningTime(seconds);
 
@@ -300,7 +302,7 @@ i32 WorldBorderCommand::_setWarningDistance(CommandContext<ServerCommandSource>&
     }
 
     auto& border = world->worldBorder();
-    const i32 blocks = context.getArgument<i32>("blocks");
+    const i32 blocks = context.getArgument<i32>("distance");
 
     border.setWarningDistance(blocks);
 

@@ -35,6 +35,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -107,6 +108,22 @@ public:
             throw std::out_of_range("Argument not found: " + name);
         }
         return std::any_cast<T>(it->second.value);
+    }
+
+    /**
+     * @brief 标记一个不带值的解析结果（如原版解析时就执行的 `string` 来源）
+     *
+     * 解析器没有自己的参数值时用它把「已经看过这一层」传给执行函数；标记与参数分开保存，
+     * 不会与同名参数冲突，也不会出现在参数表里。
+     */
+    void markParsed(const std::string& name)
+    {
+        m_parsedFlags.insert(name);
+    }
+
+    [[nodiscard]] bool hasParsed(const std::string& name) const
+    {
+        return m_parsedFlags.find(name) != m_parsedFlags.end();
     }
 
     /**
@@ -310,6 +327,17 @@ public:
         return m_pendingHandOff;
     }
 
+    /// 解析时已执行的命令的结果（见 CommandNode::Order::OnParse）。
+    void setExecutionResult(i32 result) noexcept
+    {
+        m_executionResult = result;
+    }
+
+    [[nodiscard]] std::optional<i32> getExecutionResult() const noexcept
+    {
+        return m_executionResult;
+    }
+
     // ========== 子上下文 ==========
 
     /**
@@ -323,10 +351,14 @@ public:
         copy.m_chainNodes = m_chainNodes;
         copy.m_callbackProvenance = m_callbackProvenance;
         copy.m_pendingHandOff = m_pendingHandOff;
+        copy.m_executionResult = m_executionResult;
+        copy.m_parsedFlags = m_parsedFlags;
         return copy;
     }
 
 private:
+    std::unordered_set<std::string> m_parsedFlags;
+
     struct Argument {
         std::any value;
         i32 cursor = -1; // 参数在输入中的位置
@@ -340,6 +372,8 @@ private:
     std::vector<NodePtr> m_chainNodes;
     CommandCallback<S> m_callbackProvenance;
     bool m_pendingHandOff = false;
+    /// 解析时执行的命令结果；无值表示命令还没执行。
+    std::optional<i32> m_executionResult;
 };
 
 /**

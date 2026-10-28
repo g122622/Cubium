@@ -4,6 +4,7 @@
 
 ```
 support/
+├── CommandSuggestionProviders.hpp  # 服务端建议标记及客户端具名建议提供器
 ├── PlayerResolver.hpp               # 玩家选择器解析接口（含 resolvePlayerName 辅助函数）
 ├── PlayerResolver.cpp               # 玩家选择器解析实现（@p/@a/@r/@s 及各种过滤条件）
 ├── EntityResolver.hpp               # 通用实体选择器解析接口（支持 @e 选择器和所有实体类型）

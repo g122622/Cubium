@@ -87,10 +87,9 @@ public:
     /// chain：前置修改器的索引；kTopLevel 表示 /execute 顶层 run。
     static constexpr i32 kTopLevel = -1;
 
-    ExecuteRunNode(i32 chain, CommandCallback<ServerCommandSource> command)
+    explicit ExecuteRunNode(i32 chain)
         : LiteralCommandNode<ServerCommandSource>("run")
         , m_chain(chain)
-        , m_command(std::move(command))
     {
         // 原版的 run 是字面量节点、其下没有 command 子节点（下一段命令由第二条 dispatcher
         // 派发）。Cubium 为了复用一次派发，在 run 下挂了 command 占位参数——它不属于协议里的
@@ -118,18 +117,6 @@ public:
             s_modifierIndices[modifiers[i]->getName()] = static_cast<i32>(i);
             s_modifiers.push_back(modifiers[i]);
         }
-    }
-
-    /// /execute 下那个不带前置修改器的 run（`execute run <command>`）。
-    ///
-    /// TODO: 目前只有写入、没有任何读取方——顶层 run 的解析走的是 m_chain == kTopLevel
-    ///   分支（见 currentChain / parse），并不需要回到节点本身。保留这个入口是为了后续
-    ///   需要「从静态上下文找回顶层 run 节点」时（例如补全要读取它的子节点）直接可用；
-    ///   若确定永不需要，可连同 s_topLevelRun 一起删除。
-    ///   这里存 weak_ptr 而非 shared_ptr：避免静态表把整棵 /execute 子树钉住形成泄漏。
-    static void setTopLevelRun(const std::shared_ptr<ExecuteRunNode>& run)
-    {
-        s_topLevelRun = run;
     }
 
     /// 取第 index 个修改器节点；命令树已析构（或索引越界）时返回 nullptr。
@@ -163,10 +150,15 @@ public:
 
             const i32 index = modifierIndex(token);
             // 命令树可能在 parse 期间已被析构（优雅关服竞态），lock 失败按「无此修改器」处理。
-            const std::shared_ptr<CommandNode<ServerCommandSource>> modifierNode =
-                index < 0 ? nullptr : modifierAt(static_cast<size_t>(index));
-            const std::shared_ptr<CommandNode<ServerCommandSource>> segmentNode =
-                modifierNode == nullptr ? nullptr : segmentFor(*modifierNode, std::to_string(index));
+            std::shared_ptr<CommandNode<ServerCommandSource>> segmentNode;
+            if (index >= 0) {
+                if (const auto modifierNode = modifierAt(static_cast<size_t>(index)); modifierNode != nullptr) {
+                    segmentNode = segmentFor(*modifierNode, std::to_string(index));
+                }
+            }
+            // 说明：if/unless 现已登记进 modifiers（见 ExecuteCommand 注册处），会走上面
+            // index >= 0 的正常分支。此前这里对未登记的条件名直接抛
+            // commands.execute.conditional.notImplemented，条件求值接入后该拦截已无必要。
             if (!segmentNode) {
                 reader.setCursor(tokenStart);
                 reader.skipWhitespace();
@@ -193,7 +185,7 @@ public:
                 break;
             }
             const std::string next = lookahead.readUnquotedString();
-            if (next != "run" && modifierIndex(next) < 0) {
+            if (next != "run" && modifierIndex(next) < 0 && next != "if" && next != "unless") {
                 break;
             }
         }
@@ -216,17 +208,6 @@ public:
     }
 
 private:
-    /// 该 run 节点自己的 command 子节点（读走嵌套命令原文的末端参数）。
-    [[nodiscard]] std::shared_ptr<CommandNode<ServerCommandSource>> runChildNode() const
-    {
-        for (const auto& name : getArguments()) {
-            if (auto child = getChild(name)) {
-                return child;
-            }
-        }
-        return nullptr;
-    }
-
     /// 本 run 已经选中过的修改器链（管道分隔）；顶层 run 为空。
     [[nodiscard]] std::string currentChain() const
     {
@@ -248,11 +229,6 @@ private:
             }
         }
         return modifier.getChild(name);
-    }
-
-    [[nodiscard]] static bool hasSegment(const CommandNode<ServerCommandSource>& modifier)
-    {
-        return true;
     }
 
     /**
@@ -382,11 +358,9 @@ private:
     }
 
     i32 m_chain;
-    CommandCallback<ServerCommandSource> m_command;
 
     static inline std::vector<std::weak_ptr<CommandNode<ServerCommandSource>>> s_modifiers;
     static inline std::unordered_map<std::string, i32> s_modifierIndices;
-    static inline std::weak_ptr<ExecuteRunNode> s_topLevelRun;
 };
 
 } // namespace command

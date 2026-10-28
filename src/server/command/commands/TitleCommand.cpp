@@ -162,8 +162,9 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // title <json> 子命令
     auto titleTextNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("title");
+    // 原版 title 的内容参数名是 title（类型 component）。
     auto titleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
-        "message", ComponentArgumentType::component());
+        "title", ComponentArgumentType::component());
     titleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setTitle(ctx);
     });
@@ -171,8 +172,9 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // subtitle <json> 子命令
     auto subtitleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("subtitle");
+    // 原版 subtitle 的内容参数名是 title（类型 component）。
     auto subtitleJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
-        "message", ComponentArgumentType::component());
+        "title", ComponentArgumentType::component());
     subtitleJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setSubtitle(ctx);
     });
@@ -180,8 +182,9 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
     // actionbar <json> 子命令
     auto actionbarNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("actionbar");
+    // 原版 actionbar 的内容参数名是 title（类型 component）。
     auto actionbarJsonNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
-        "message", ComponentArgumentType::component());
+        "title", ComponentArgumentType::component());
     actionbarJsonNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setActionbar(ctx);
     });
@@ -257,7 +260,7 @@ i32 TitleCommand::_setTitle(CommandContext<ServerCommandSource>& context)
     }
 
     // 获取JSON文本参数
-    const std::string jsonText = context.getArgument<ComponentTextPtr>("message")->text;
+    const std::string jsonText = context.getArgument<ComponentTextPtr>("title")->text;
 
     // 创建并广播主标题包
     auto packet = makeTitleTextPacket(jsonText);
@@ -276,7 +279,7 @@ i32 TitleCommand::_setSubtitle(CommandContext<ServerCommandSource>& context)
     }
 
     // 获取JSON文本参数
-    const std::string jsonText = context.getArgument<ComponentTextPtr>("message")->text;
+    const std::string jsonText = context.getArgument<ComponentTextPtr>("title")->text;
 
     // 创建并广播副标题包
     auto packet = makeSubtitleTextPacket(jsonText);
@@ -295,7 +298,7 @@ i32 TitleCommand::_setActionbar(CommandContext<ServerCommandSource>& context)
     }
 
     // 获取JSON文本参数
-    const std::string jsonText = context.getArgument<ComponentTextPtr>("message")->text;
+    const std::string jsonText = context.getArgument<ComponentTextPtr>("title")->text;
 
     // 创建并广播动作栏包
     auto packet = makeActionBarTextPacket(jsonText);

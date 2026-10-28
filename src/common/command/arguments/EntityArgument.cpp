@@ -24,12 +24,14 @@
 #include "EntityArgument.hpp"
 
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
+#include <cctype>
 #include <cstddef>
 #include <exception>
 #include <memory>
@@ -68,7 +70,7 @@ bool FloatRange::testAngle(f32 value) const noexcept
     }
 }
 
-EntitySelector EntityArgumentType::parse(StringReader& reader)
+EntitySelector EntityArgumentTypeBase::parse(StringReader& reader)
 {
     const i32 start = reader.getCursor();
 
@@ -80,7 +82,7 @@ EntitySelector EntityArgumentType::parse(StringReader& reader)
     return EntitySelector::byUsername(name);
 }
 
-EntitySelector EntityArgumentType::_parseSelector(StringReader& reader, i32 start)
+EntitySelector EntityArgumentTypeBase::_parseSelector(StringReader& reader, i32 start)
 {
     reader.skip();
 
@@ -126,7 +128,7 @@ EntitySelector EntityArgumentType::_parseSelector(StringReader& reader, i32 star
     return selector;
 }
 
-void EntityArgumentType::_parseSelectorArguments(StringReader& reader, EntitySelector& selector)
+void EntityArgumentTypeBase::_parseSelectorArguments(StringReader& reader, EntitySelector& selector)
 {
     reader.skip();
 
@@ -167,7 +169,7 @@ void EntityArgumentType::_parseSelectorArguments(StringReader& reader, EntitySel
     reader.skip();
 }
 
-void EntityArgumentType::_applySelectorArgument(
+void EntityArgumentTypeBase::_applySelectorArgument(
     EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor)
 {
     // limit / c - 结果数量限制
@@ -334,13 +336,9 @@ void EntityArgumentType::_applySelectorArgument(
         const bool negated = _shouldInvertValue(valueReader);
         valueReader.skipWhitespace();
 
-        // 解析 NBT 标签（Mojangson 格式）
+        // 解析 NBT 标签（与 /data 的 nbt_compound_tag 参数共用一套 SNBT 读取）
         try {
-            // 使用 std::stringstream 桥接 StringReader 和 NBT 解析器
-            std::istringstream nbtStream(valueReader.getRemaining());
-            nbtStream >> nbt::contexts::mojangson;
-
-            auto tag = nbt::tags::read(nbt::deduce_tag(nbtStream), nbtStream);
+            auto tag = NbtPathArgumentType::readNbtValue(valueReader);
             if (tag != nullptr && tag->id() == nbt::TagId::Compound) {
                 EntitySelector::NbtCondition condition;
                 condition.nbt =
@@ -539,7 +537,7 @@ void EntityArgumentType::_applySelectorArgument(
     throw CommandException(CommandErrorType::EntitySelectorInvalid, "Unknown selector argument: " + name, cursor);
 }
 
-void EntityArgumentType::_validateSelector(const EntitySelector& selector, i32 start)
+void EntityArgumentTypeBase::_validateSelector(const EntitySelector& selector, i32 start)
 {
     if (isPlayersOnly() && selector.includesNonPlayers() && !selector.isSelf()) {
         throw CommandException(CommandErrorType::EntitySelectorNotAllowed, "Only players can be selected here", start);
@@ -553,7 +551,7 @@ void EntityArgumentType::_validateSelector(const EntitySelector& selector, i32 s
     }
 }
 
-std::string EntityArgumentType::_readSelectorArgumentToken(StringReader& reader)
+std::string EntityArgumentTypeBase::_readSelectorArgumentToken(StringReader& reader)
 {
     const i32 start = reader.getCursor();
 
@@ -591,7 +589,7 @@ std::string EntityArgumentType::_readSelectorArgumentToken(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-std::string EntityArgumentType::_readScoresKey(StringReader& reader)
+std::string EntityArgumentTypeBase::_readScoresKey(StringReader& reader)
 {
     // 读取 scores 的目标名称，遇到 = 时停止
     // 目标名称格式：简单字符串（不含空格、等号、逗号、大括号）
@@ -609,7 +607,7 @@ std::string EntityArgumentType::_readScoresKey(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-std::string EntityArgumentType::_readAdvancementKey(StringReader& reader)
+std::string EntityArgumentTypeBase::_readAdvancementKey(StringReader& reader)
 {
     // 读取进度 ID (ResourceLocation)，遇到 = 时停止
     // ResourceLocation 格式：namespace:path 或 path（允许冒号）
@@ -627,7 +625,7 @@ std::string EntityArgumentType::_readAdvancementKey(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-std::string EntityArgumentType::_readCriteriaKey(StringReader& reader)
+std::string EntityArgumentTypeBase::_readCriteriaKey(StringReader& reader)
 {
     // 读取进度准则名称，遇到 = 时停止
     // 准则名称格式：简单字符串（允许冒号用于命名空间）
@@ -645,7 +643,7 @@ std::string EntityArgumentType::_readCriteriaKey(StringReader& reader)
     return std::string(reader.getString().substr(startIndex, endIndex - startIndex));
 }
 
-bool EntityArgumentType::_shouldInvertValue(StringReader& reader)
+bool EntityArgumentTypeBase::_shouldInvertValue(StringReader& reader)
 {
     if (reader.canRead() && reader.peek() == '!') {
         reader.skip();
@@ -654,7 +652,7 @@ bool EntityArgumentType::_shouldInvertValue(StringReader& reader)
     return false;
 }
 
-FloatRange EntityArgumentType::_parseFloatRange(StringReader& reader)
+FloatRange EntityArgumentTypeBase::_parseFloatRange(StringReader& reader)
 {
     FloatRange range;
 
@@ -744,7 +742,7 @@ FloatRange EntityArgumentType::_parseFloatRange(StringReader& reader)
     return range;
 }
 
-IntRange EntityArgumentType::_parseIntRange(StringReader& reader)
+IntRange EntityArgumentTypeBase::_parseIntRange(StringReader& reader)
 {
     IntRange range;
 
@@ -791,6 +789,60 @@ IntRange EntityArgumentType::_parseIntRange(StringReader& reader)
     }
 
     return range;
+}
+
+namespace {
+
+/// 把解析结果转成实体 NBT 条件；顶层不是复合标签时按原版报解析错误。
+EntitySelector::NbtCondition _compoundCondition(const std::unique_ptr<nbt::tags::tag>& tag, i32 start)
+{
+    if (tag == nullptr || tag->id() != nbt::TagId::Compound) {
+        throw CommandException(CommandErrorType::InvalidNbtPath, "Expected compound tag for entity NBT", start);
+    }
+    EntitySelector::NbtCondition condition;
+    condition.nbt =
+        std::shared_ptr<nbt::tags::compound_tag>(static_cast<nbt::tags::compound_tag*>(tag->copy().release()));
+    return condition;
+}
+
+} // namespace
+
+EntitySelectorWithNbt EntityArgumentWithNbtType::parse(StringReader& reader)
+{
+    const i32 start = reader.getCursor();
+
+    // 原版 EntitySelectorParser.parse：`{...}` 开头且不带 @ 时，选择器取默认（@e、当前维度），
+    // 后面紧跟的复合标签整体作为 NBT 条件。
+    if (reader.canRead() && reader.peek() == '{') {
+        EntitySelectorWithNbt result;
+        result.selector = EntitySelector::allEntities();
+        result.selector.setCurrentWorldOnly(true);
+        try {
+            result.nbt = _compoundCondition(NbtPathArgumentType::readNbtValue(reader), start);
+        }
+        catch (const std::exception&) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid NBT format", start);
+        }
+        return result;
+    }
+
+    EntitySelectorWithNbt result;
+    // 选择器语法与校验（@p/@a/@e/@r/@s、[参数]）与普通实体参数完全共用。
+    result.selector = m_selector.parse(reader);
+
+    // 原版允许在选择器后直接跟复合标签：`@e[type=pig]{NoAI:1b}`。
+    reader.skipWhitespace();
+    if (reader.canRead() && reader.peek() == '{') {
+        try {
+            result.nbt = _compoundCondition(NbtPathArgumentType::readNbtValue(reader), start);
+        }
+        catch (const std::exception&) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid NBT format", start);
+        }
+    }
+    return result;
 }
 
 } // namespace command

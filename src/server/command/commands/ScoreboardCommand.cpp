@@ -51,6 +51,16 @@
 namespace mc {
 namespace command {
 
+namespace {
+
+/// 原版这些分数持有者参数在注册时挂了 suggestScoreHolders()，命令树里带建议提供器位。
+void attachScoreHolderSuggestions(const std::shared_ptr<CommandNode<ServerCommandSource>>& node)
+{
+    node->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+}
+
+} // namespace
+
 // 使用 mc::server 命名空间中的 ServerScoreboard
 using ::mc::server::ServerScoreboard;
 
@@ -79,10 +89,12 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard objectives add <name> <criteria> [displayName]
     auto addObjectivesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
+    // 原版 objectives add 的 objective 参数是单字串（brigadier:string 的 SingleWord）。
     auto objNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "objective", ObjectiveNameArgumentType::objective());
+        "objective", StringArgumentType::word());
+    // 原版判据参数名 criteria，类型是 objective_criteria。
     auto criteriaArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "criteria", StringArgumentType::string());
+        "criteria", ObjectiveCriteriaArgumentType::objectiveCriteria());
     criteriaArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addObjective(ctx);
     });
@@ -108,7 +120,8 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto modifyObjectivesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("modify");
     auto modifyNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
-    auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
+    // 原版选项字面量是小写 displayname。
+    auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayname");
     auto modifyDisplayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "displayName", ComponentArgumentType::component());
     modifyDisplayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -116,6 +129,69 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     });
     displayNameNode->addChild(modifyDisplayNameArg);
     modifyNameArg->addChild(displayNameNode);
+
+    // /scoreboard objectives modify <objective> displayautoupdate <value>
+    auto displayAutoUpdateNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayautoupdate");
+    auto displayAutoUpdateArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
+    displayAutoUpdateArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        // TODO: 显示自动更新的写入尚未实现，形态已对齐原版。
+        ctx.getSource().sendError("commands.scoreboard.displayautoupdate.notImplemented");
+        return 0;
+    });
+    displayAutoUpdateNode->addChild(displayAutoUpdateArg);
+    modifyNameArg->addChild(displayAutoUpdateNode);
+
+    // /scoreboard objectives modify <objective> numberformat ...
+    // numberformat 本身可执行（等价于 blank），其下 fixed <contents> / styled <style> / blank。
+    auto numberFormatNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("numberformat");
+    numberFormatNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
+        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
+        return 0;
+    });
+    auto styleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("styled");
+    auto styleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "style", std::make_shared<StyleKeywordArgumentType>());
+    styleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
+        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
+        return 0;
+    });
+    styleNode->addChild(styleArg);
+    auto fixedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("fixed");
+    auto contentsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "contents", ComponentArgumentType::component());
+    contentsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
+        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
+        return 0;
+    });
+    fixedNode->addChild(contentsArg);
+    auto blankNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("blank");
+    blankNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
+        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
+        return 0;
+    });
+    numberFormatNode->addChild(styleNode);
+    numberFormatNode->addChild(fixedNode);
+    numberFormatNode->addChild(blankNode);
+    modifyNameArg->addChild(numberFormatNode);
+
+    // /scoreboard objectives modify <objective> rendertype (hearts|integer)
+    auto renderTypeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("rendertype");
+    for (const char* kind : {"hearts", "integer"}) {
+        auto kindNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(kind);
+        kindNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            // TODO: 渲染类型的写入尚未实现，形态已对齐原版。
+            ctx.getSource().sendError("commands.scoreboard.rendertype.notImplemented");
+            return 0;
+        });
+        renderTypeNode->addChild(kindNode);
+    }
+    modifyNameArg->addChild(renderTypeNode);
+
     modifyObjectivesNode->addChild(modifyNameArg);
     objectivesNode->addChild(modifyObjectivesNode);
 
@@ -197,26 +273,76 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     removeTargetArg->addChild(removeObjectiveArg);
     removePlayersNode->addChild(removeTargetArg);
 
-    // /scoreboard players display <targets> <objective>
+    // /scoreboard players display name|numberformat <target> <objective> ...
+    // 原版把 name / numberformat 两个字面量挂在 display 下，各自再挂 target / objective。
     auto displayPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("display");
-    auto displayTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder(true));
-    displayTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
-    auto displayObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "objective", ObjectiveNameArgumentType::objective());
-    displayObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _displayPlayerScore(ctx);
-    });
-    displayTargetArg->addChild(displayObjectiveArg);
-    displayPlayersNode->addChild(displayTargetArg);
+    const auto makeDisplayTarget = [] {
+        // 原版 display name / numberformat 的 targets 是多目标分数持有者。
+        auto targets = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "targets", ScoreHolderArgumentType::scoreHolder(true));
+        attachScoreHolderSuggestions(targets);
+        auto objective = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "objective", ObjectiveNameArgumentType::objective());
+        targets->addChild(objective);
+        return std::make_pair(targets, objective);
+    };
+
+    // display name <targets> <objective> [<name>]
+    auto playerDisplayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("name");
+    {
+        auto [targets, objective] = makeDisplayTarget();
+        // 原版 objective 本身可执行（清空该分数的自定义名），name <name> 覆盖显示名。
+        objective->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            // TODO: 分数持有者的显示设置尚未实现，形态已对齐原版。
+            ctx.getSource().sendError("commands.scoreboard.display.notImplemented");
+            return 0;
+        });
+        auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+            "name", ComponentArgumentType::component());
+        nameArg->setCommand(objective->getCommand());
+        objective->addChild(nameArg);
+        playerDisplayNameNode->addChild(targets);
+    }
+    displayPlayersNode->addChild(playerDisplayNameNode);
+
+    // display numberformat <targets> <objective> (blank | styled <style> | fixed <contents>)
+    auto displayNumberFormatNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("numberformat");
+    {
+        auto [targets, objective] = makeDisplayTarget();
+        // 原版 objective 本身可执行（等价于 blank），其下 blank / styled <style> / fixed <contents>。
+        auto displayFormatLeaf = [](CommandContext<ServerCommandSource>& ctx) {
+            // TODO: 分数持有者的显示设置尚未实现，形态已对齐原版。
+            ctx.getSource().sendError("commands.scoreboard.display.notImplemented");
+            return 0;
+        };
+        objective->setCommand(displayFormatLeaf);
+        auto blankNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("blank");
+        blankNode->setCommand(displayFormatLeaf);
+        auto styledNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("styled");
+        auto styleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "style", std::make_shared<StyleKeywordArgumentType>());
+        styleArg->setCommand(displayFormatLeaf);
+        styledNode->addChild(styleArg);
+        auto fixedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("fixed");
+        auto contentsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+            "contents", ComponentArgumentType::component());
+        contentsArg->setCommand(displayFormatLeaf);
+        fixedNode->addChild(contentsArg);
+        objective->addChild(blankNode);
+        objective->addChild(styledNode);
+        objective->addChild(fixedNode);
+        displayNumberFormatNode->addChild(targets);
+    }
+    displayPlayersNode->addChild(displayNumberFormatNode);
 
     // /scoreboard players operation <targets> <objective> <op> <source> <sourceObjective>
     auto operationPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("operation");
     auto operationTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
     operationTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+    // 原版顺序：operation <target> <targetObjective> <op> <source> <sourceObjective>。
     auto operationObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "objective", ObjectiveNameArgumentType::objective());
+        "targetObjective", ObjectiveNameArgumentType::objective());
     auto operationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "operation", ScoreOperationArgumentType::operation());
     auto operationSourceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
@@ -233,7 +359,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     operationTargetArg->addChild(operationObjectiveArg);
     operationPlayersNode->addChild(operationTargetArg);
 
-    // /scoreboard players reset <target> [objective]
+    // /scoreboard players reset <target> [objective]：原版这里是单个 target（不是 targets）。
     auto resetPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reset");
     auto resetTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "targets", ScoreHolderArgumentType::scoreHolder(true));
@@ -241,13 +367,21 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     resetTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _resetScore(ctx);
     });
+    // /scoreboard players reset <targets> [<objective>]
+    auto resetObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "objective", ObjectiveNameArgumentType::objective());
+    resetObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _resetScore(ctx);
+    });
+    resetTargetArg->addChild(resetObjectiveArg);
     resetPlayersNode->addChild(resetTargetArg);
 
-    // /scoreboard players get <target> <objective>
+    // /scoreboard players get <target> <objective>：原版参数名是 target。
     auto getPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
+    // 原版 get 的 target 是单目标分数持有者。
     auto getTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder(true));
-    getTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+        "target", ScoreHolderArgumentType::scoreHolder(false));
+    attachScoreHolderSuggestions(getTargetArg);
     auto getObjectiveArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "objective", ObjectiveNameArgumentType::objective());
     getObjectiveArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -273,9 +407,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /scoreboard players list [target]
     auto listPlayersNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("list");
+    // 原版 list 的 target 是单目标分数持有者。
     auto listTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "targets", ScoreHolderArgumentType::scoreHolder(true));
-    listTargetArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+        "target", ScoreHolderArgumentType::scoreHolder(false));
+    attachScoreHolderSuggestions(listTargetArg);
     listTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _listPlayers(ctx);
     });
@@ -422,7 +557,7 @@ i32 ScoreboardCommand::_listObjectives(CommandContext<ServerCommandSource>& cont
 i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("targets");
+    const std::string target = context.getArgument<std::string>("target");
     const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
@@ -468,7 +603,7 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("targets");
+    const std::string target = context.getArgument<std::string>("target");
     const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
@@ -515,7 +650,7 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("targets");
+    const std::string target = context.getArgument<std::string>("target");
     const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
@@ -571,11 +706,19 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // 重置玩家的所有分数
-    scoreboard->removeScore(target);
+    // 原版：带 <objective> 时只清该目标下的分数，否则清空所有分数。
+    if (context.hasArgument("objective")) {
+        const std::string objectiveName = context.getArgument<std::string>("objective");
+        auto* objective = scoreboard->getObjective(objectiveName);
+        if (objective != nullptr) {
+            scoreboard->removeScore(target, objective);
+        }
+    } else {
+        scoreboard->removeScore(target);
+    }
 
     std::ostringstream ss;
-    ss << "Reset all scores for " << target;
+    ss << "Reset scores for " << target;
     source.sendMessage(ss.str());
 
     return 1;
@@ -584,7 +727,7 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::_getScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("targets");
+    const std::string target = context.getArgument<std::string>("target");
     const std::string objectiveName = context.getArgument<std::string>("objective");
 
     // 获取记分板
@@ -670,7 +813,7 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
 i32 ScoreboardCommand::_listPlayers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("targets");
+    const std::string target = context.getArgument<std::string>("target");
 
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
@@ -810,8 +953,8 @@ i32 ScoreboardCommand::_displayPlayerScore(CommandContext<ServerCommandSource>& 
 i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string targets = context.getArgument<std::string>("targets");
-    const std::string objectiveName = context.getArgument<std::string>("objective");
+    const std::string targets = context.getArgument<std::string>("target");
+    const std::string objectiveName = context.getArgument<std::string>("targetObjective");
     const std::string operation = context.getArgument<std::string>("operation");
     const std::string sourceName = context.getArgument<std::string>("source");
     const std::string sourceObjectiveName = context.getArgument<std::string>("sourceObjective");

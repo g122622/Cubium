@@ -472,6 +472,12 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 
         bool permissionDenied = false;
 
+        // 常规节点在「读完输入 / 有重定向 / 有子节点 / 可执行」任一成立时算成功；
+        // 解析时执行（Order::OnParse）的节点只能在「读完输入」时成功，见下方。
+        const auto isExecutableNode = [](const NodePtr& node) {
+            return node && node->hasCommand();
+        };
+
         auto tryChild = [&](const std::string& childName) {
             auto child = currentNode->getChild(childName);
             if (!child) {
@@ -507,7 +513,45 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 child->parse(childReader, *childContext);
                 childContext->setCurrentNode(child);
 
-                if (child->hasRedirect()) {
+                // 解析时执行的参数（不可默认构造的值类型，见 CommandNode::Order::OnParse）：
+                // 这一层就是命令终点，立即执行；只有输入恰好读完才算成功候选，否则与
+                // brigadier 一致记为失败（剩余文本没有解析者）。
+                if (child->isOrderAhead()) {
+                    if (childReader.canRead()) {
+                        consider(ParseResults<S>(CommandException(CommandErrorType::DispatcherUnknownArgument,
+                                                     "Incorrect argument for command",
+                                                     childReader.getCursor())
+                                                     .withInput(currentContext->getInput()),
+                                     childReader.getCursor()),
+                            nullptr);
+                        return;
+                    }
+                    // 执行结果暂存在局部变量里：这一层只有在「读完、可重定向或本身是命令节点」
+                    // 时才算成功候选，被丢弃的候选不应该带出副作用。
+                    i32 executionResult = 0;
+                    try {
+                        executionResult = child->getCommand()(*childContext);
+                    }
+                    catch (const CommandException& e) {
+                        consider(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()), nullptr);
+                        return;
+                    }
+                    if (isExecutableNode(child) || currentNode->hasRedirect() || childReader.atEnd()) {
+                        childContext->setExecutionResult(executionResult);
+                        consider(ParseResults<S>(std::move(childContext), std::string()), child);
+                        return;
+                    }
+                    consider(ParseResults<S>(CommandException(CommandErrorType::DispatcherUnknownArgument,
+                                                 "Incorrect argument for command",
+                                                 childReader.getCursor())
+                                                 .withInput(currentContext->getInput()),
+                                 childReader.getCursor()),
+                        nullptr);
+                    return;
+                }
+
+                // execute/return 的本地子节点承载解析器，重定向同时用于客户端命令图。
+                if (child->hasRedirect() && child->getChildren().empty()) {
                     auto redirectTarget = child->getRedirect();
                     if (redirectTarget && redirectStack.insert(redirectTarget.get()).second) {
                         // 重定向目标同样受权限约束（/tp 只是 /teleport 的别名，原版在派发时
@@ -609,6 +653,11 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
                 return Error(ErrorCode::Unknown, e.message());
             }
         }
+    }
+
+    // 解析时已经执行过的命令（见 CommandNode::Order::OnParse）：直接回报其结果。
+    if (const auto executed = context->getExecutionResult(); executed.has_value()) {
+        return CommandResult::success(*executed);
     }
 
     auto node = context->getCurrentNode();

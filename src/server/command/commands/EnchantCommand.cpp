@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -65,7 +66,7 @@ void EnchantCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // /enchant <targets> <enchantment>：原版是 ResourceArgument.enchantment()（注册表资源，类型名 resource）。
     auto enchantmentNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "enchantment", EnchantmentResourceArgumentType::enchantment());
+        "enchantment", std::make_shared<ResourceArgumentType>("minecraft:enchantment", "resource"));
     enchantmentNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _enchantItem(ctx);
     });

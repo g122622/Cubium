@@ -319,5 +319,41 @@ private:
     }
 };
 
+// ========== 方块谓词 ==========
+
+/**
+ * @brief 方块谓词参数（原版 {@code BlockPredicateArgument}，命令树里叫 {@code block_predicate}）
+ *
+ * 与 {@link BlockStateArgumentType} 的语法相同：方块 id + 可选的 `[属性=值]` + 可选的方块实体
+ * NBT。区别在语义：谓词只要求「写出的属性匹配」，未写出的属性任意值都算命中（原版
+ * BlockStateParser.BlockResult 的匹配规则）。执行侧复用同一份 {@link BlockStateInput}
+ * （它已记录显式属性），类型名与网络 id 按谓词上报。
+ */
+class BlockPredicateArgumentType : public ArgumentType<BlockStateInput> {
+public:
+    [[nodiscard]] BlockStateInput parse(StringReader& reader) override
+    {
+        return m_states.parse(reader);
+    }
+
+    [[nodiscard]] std::string getTypeName() const noexcept override
+    {
+        return "block_predicate";
+    }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const noexcept override
+    {
+        return {"stone", "minecraft:oak_log[axis=y]", "#minecraft:logs"};
+    }
+
+    static std::shared_ptr<BlockPredicateArgumentType> blockPredicate()
+    {
+        return std::make_shared<BlockPredicateArgumentType>();
+    }
+
+private:
+    BlockStateArgumentType m_states;
+};
+
 } // namespace command
 } // namespace mc

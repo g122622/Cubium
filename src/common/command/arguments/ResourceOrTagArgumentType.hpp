@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "GameModeArgument.hpp"
+#include "ResourceArgument.hpp"
 
 #include <memory>
 #include <string>

@@ -19,7 +19,7 @@
 
 ```
 tests/diff/
-├── CMakeLists.txt               # probe 目标定义（EXCLUDE_FROM_ALL）
+├── CMakeLists.txt               # probe 目标定义（开启差分选项后随常规构建编译）
 ├── probes/                      # C++ 侧小程序，只链 mc_common
 │   ├── probe.hpp                # Probe 接口 + MC_DIFF_DEFINE_PROBE 宏
 │   ├── runner_main.cpp          # 所有 probe 共用的 main（命令行、IO、错误处理）
@@ -43,7 +43,7 @@ tests/diff/
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
 │   ├── command_argument.cpp     # 命令参数解析
-│   ├── command_tree.cpp         # 命令分发器树
+│   ├── command_tree.cpp         # 命令图、参数编码、节点属性与完整协议字节
 │   ├── advancement.cpp          # 进度定义
 │   ├── biome_spawns.cpp         # 生物群系自然生成配置
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
@@ -431,64 +431,30 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   用的方块指针在建表阶段还是空指针；现在与其它树种同一路径注册后，相关标签与配方才能
   正常展开。
 
-### 命令树：已对齐
+### 命令树的比较口径
 
-`command_tree` 注册全部内置命令后遍历分发器，与原版 `new Commands(DEDICATED, ...)` 的树
-逐节点比对（根命令集合 + 每个根命令的二级签名）。当前**全部一致**：原版 80 条根命令与
-Cubium 80 条逐一对应，形状与参数名/类型名都不再有差异。
+`command_tree` 使用原版 `Commands(DEDICATED, ...)` 注册入口，比较四组数据：
 
-对齐过程中修掉的真问题：
+| 字段 | 比较内容 |
+|---|---|
+| `tree` | 根命令及前两层名字、参数类型摘要 |
+| `arguments` | 每个参数的注册表数值 ID、properties 十六进制载荷、建议提供器 ID；仅叶子路径带类型后缀 |
+| `components` | 全部节点的类型、可执行性、受限性、重定向目标、修改器模式和建议提供器；路径不带类型后缀 |
+| `wire` | 完整命令包的字节数和十六进制字节；Java 侧另用原版 codec 解码验证 |
 
-- **`StringReader::canRead` 的边界**：`canRead(length)` 写成 `<=`，游标停在末尾时仍可读，
-  「输入已读完」永远走不到——`list extra` 这类残留文本会被当成成功执行。新增语义正确的
-  `atEnd()`，把 dispatcher 与各参数的「末尾判断」改用它；
-- **dispatcher 的末端可执行判定**：只剩文本、末端节点本身没有命令时不能算成功候选；
-  带命令的节点必须读到输入末尾（或可重定向）才算成功。修好 `list extra`、
-  `enchant @p sharpness -1`，同时不让 `say`/`tellraw` 的组件参数被误判；
-- **组件/消息参数**：命令链末端读整段原文（原版 MessageArgument 语义），开头是引号时
-  按引号串读取（`kick @a "some reason"`）；
-- **实现脚手架不进命令树**：/execute 链上的 `run` 链接、run 下的 `command` 占位参数、
-  `/return run command` 都不属于协议命令树，用 `CommandNode::setTreeHidden` 在快照与
-  probe 里跳过；
-- **兼容层命令不再默认注册**：`debugconfig`/`publish`/`replaceitem` 原版已移除，
-  需要时调用 `CommandRegistry::setRegisterCompatCommands(true)` 开启；
-- **`gamerule` 迁移到原版 1.21.11 规则集**：规则名改为注册表键（`keep_inventory` /
-  `advance_time` / `spawn_mobs` …，共 59 条），补上缺失的 12 条，短名与
-  `minecraft:` 全名都注册；`max_minecart_speed` 受原版 FeatureFlag 门控，不注册命令节点；
-- 形状修正：`clone` 用 `block_pos`、`execute rotated` 参数名 `rot`、`execute summon`、
-  `loot` 改成「目标 → 来源字段」、`data modify … set`、`locate poi`、`schedule clear`
-  用 `function:string`。
+完整字节比较前，两侧均按「字面量在前、参数在后，同类按名字」排序，再以 BFS 编号。
+只沿子节点收集规范路径，重定向保留为目标引用。无回调的相等字面量和 Brigadier
+基础参数可复用网络索引；不同执行修改器仍在原始节点属性中单独比较。
 
-### 为什么只比对名字不够：三个"看起来一致但协议已坏"的坑
+参数类型 ID 取自 `ArgumentTypeInfos.bootstrap` 的实际注册顺序，不能由类型名字猜测。
+`entity` 的单目标及玩家限制由 properties 标志决定；类型名一致不代表编码相同。
+建议提供器取真实注册名：声音为 `minecraft:available_sounds`，可召唤实体为
+`minecraft:summonable_entities`，其余自定义提供器为 `minecraft:ask_server`。
+Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节点。
 
-上面那一轮把树形对齐到了"80 条命令逐一对应、参数名与类型名零差异"，`command_tree`
-也报了全部一致。但 Java 客户端仍在 `clientbound/minecraft:commands` 包上解码失败。
-原因在于**类型名、参数名都相同的东西，网络字节可以不同**。harness 因此扩展为同时比对
-每个参数节点的 `typeId`、`payload`（十六进制）与建议提供器，并报告整树字节数。
-扩展后一次性暴露出三类问题，全部已修：
-
-1. **数值类型 id 手抄错**。`ArgumentTypeInfos.bootstrap` 的注册顺序才是协议里的 id，
-   树形比对完全不看它。原先 `particle` 写成 16（实际 27）、`resource` 写成 18（实际 46）、
-   `message` 写成 39（实际 20）等十余处全错。客户端按错 id 取参数类型，游标错位后把
-   后续字节读成 `minecraft:\u0000\u0004team`——这正是本次崩溃的直接原因。
-
-2. **`EntityArgument.players()` 与 `entities()` 在命令树里同名**。两者都叫 `entity`，
-   区别只在 payload 的标志字节：`players()` = `0x02`（bit1 playersOnly），
-   `entities()` = `0x00`。所以把 `players()` 改成 `entities()` **不会改变树形比对的任何
-   结果**，但语义上放宽了约束（`/gamemode creative @e[type=pig]` 从"找不到玩家"变成
-   能通过参数解析）。核对时必须以原版 `.java` 源码为准，例如
-   `GameModeCommand` 是 `players()`、`EnchantCommand` 是 `entities()`。
-
-3. **建议提供器标识决定客户端会不会请求补全**。原版用
-   `SuggestionProviders.getName(provider)` 得到标识，只有经 `SuggestionProviders.register`
-   包装过的提供器返回自己的名字，其余一律回退 `minecraft:ask_server`。
-   参数节点没挂 `.suggests(...)` 就不带这个标识，客户端 Tab 补全时**不会**向服务端请求。
-   反向的坑同样存在：多挂一个就会凭空写出 `ask_server`，例如 `execute in` 的 `dimension`
-   在原版里没有 `.suggests`，而 `/bossbar add` 的 `id` 也没有（只有 `remove`/`set` 有）。
-
-**结论**：改命令参数类型时，不能只看 `command_tree` 的树形输出，必须同时看
-`payload` 列；判断 `players()`/`entities()`/`player()`/`entity()` 用哪个，一律回到原版
-`.java` 源码确认，不能凭"都是 entity"就互换。
+`execute` 修改器及条件的目标是 `execute` 节点，`run` 的目标是根；修改器是否分叉
+取 `isFork()`，不能用回调实现类推断。注册图和协议一致不代表命令执行语义完整；
+执行语义的未完成部分仍由相应命令测试和源码 TODO 跟踪。
 
 **仍未实现（9 条，见 `known_missing_commands.ts`）**：`fetchprofile`、`fillbiome`、
 `item`、`place`、`random`、`test`、`tick`、`transfer`、`waypoint`。

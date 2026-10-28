@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "server/application/IServer.hpp"
@@ -60,6 +61,25 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     enableNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _enableDataPack(ctx);
     });
+    // 原版 enable 支持 first / last / before <existing> / after <existing>。
+    for (const char* position : {"first", "last"}) {
+        auto positionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(position);
+        positionNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _enableDataPack(ctx);
+        });
+        enableNameArg->addChild(positionNode);
+    }
+    for (const char* position : {"before", "after"}) {
+        auto positionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(position);
+        auto existingArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "existing", StringArgumentType::string());
+        existingArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+        existingArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _enableDataPack(ctx);
+        });
+        positionNode->addChild(existingArg);
+        enableNameArg->addChild(positionNode);
+    }
     enableNode->addChild(enableNameArg);
     datapackNode->addChild(enableNode);
 
@@ -80,9 +100,13 @@ void DataPackCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto createNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("create");
     auto createIdArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
-    createIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+    // 原版 create 可以再跟一个描述（聊天组件）。
+    auto createDescriptionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "description", ComponentArgumentType::component());
+    createDescriptionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _createDataPack(ctx);
     });
+    createIdArg->addChild(createDescriptionArg);
     createNode->addChild(createIdArg);
     datapackNode->addChild(createNode);
 

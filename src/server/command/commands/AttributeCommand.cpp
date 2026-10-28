@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
@@ -39,6 +40,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
 
 #include <memory>
@@ -168,7 +170,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /attribute <target> <attribute>
     // 原版是 ResourceArgument.attribute()（注册表资源，类型名 resource）。
     auto attributeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "attribute", AttributeResourceArgumentType::attribute());
+        "attribute", std::make_shared<ResourceArgumentType>("minecraft:attribute", "resource"));
 
     // ============================================================================
     // /attribute <target> <attribute> get [scale]
@@ -179,7 +181,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     });
 
     auto getScaleArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>("scale", DoubleArgumentType::doubleArg());
     getScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _getAttributeWithScale(ctx);
     });
@@ -194,7 +196,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /attribute <target> <attribute> base set <value>
     auto baseSetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("set");
     auto baseSetValueArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("value", FloatArgumentType::floatArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>("value", DoubleArgumentType::doubleArg());
     baseSetValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _setBaseValue(ctx);
     });
@@ -207,7 +209,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     });
 
     auto baseGetScaleArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>("scale", DoubleArgumentType::doubleArg());
     baseGetScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _getBaseValueWithScale(ctx);
     });
@@ -231,11 +233,12 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /attribute <target> <attribute> modifier add <id> <value> (add_value|add_multiplied_base|add_multiplied_total)
     auto modifierAddNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
 
-    auto modifierIdArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
+    // 原版 modifier add 的 id 没有 .suggests（remove / value get 才有）。
+    auto modifierIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "id", ResourceLocationArgumentType::resourceLocation());
 
     auto modifierValueArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("value", FloatArgumentType::floatArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>("value", DoubleArgumentType::doubleArg());
 
     auto addValueNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add_value");
     addValueNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -261,8 +264,9 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
     // /attribute <target> <attribute> modifier remove <id>
     auto modifierRemoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
 
-    auto removeIdArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
+    auto removeIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "id", ResourceLocationArgumentType::resourceLocation());
+    removeIdArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     removeIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _removeModifier(ctx);
     });
@@ -273,14 +277,15 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     auto modifierValueGetNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("get");
 
-    auto modifierValueGetIdArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("id", StringArgumentType::string());
+    auto modifierValueGetIdArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "id", ResourceLocationArgumentType::resourceLocation());
+    modifierValueGetIdArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     modifierValueGetIdArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _getModifierValue(ctx);
     });
 
     auto modifierValueGetScaleArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("scale", FloatArgumentType::floatArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f64>>("scale", DoubleArgumentType::doubleArg());
     modifierValueGetScaleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _getModifierValueWithScale(ctx);
     });
@@ -332,7 +337,7 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
 {
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
-    f32 scale = context.getArgument<f32>("scale");
+    const f64 scale = context.getArgument<f64>("scale");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
@@ -341,7 +346,7 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
     }
 
     f64 value = attrMap->getValue(attrName);
-    i32 result = static_cast<i32>(value * static_cast<f64>(scale));
+    i32 result = javaToInt(value * scale);
 
     std::ostringstream ss;
     ss << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
@@ -379,7 +384,7 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
 {
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
-    f32 scale = context.getArgument<f32>("scale");
+    const f64 scale = context.getArgument<f64>("scale");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
@@ -388,7 +393,7 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
     }
 
     f64 baseValue = attrMap->getBaseValue(attrName);
-    i32 result = static_cast<i32>(baseValue * static_cast<f64>(scale));
+    i32 result = javaToInt(baseValue * scale);
 
     std::ostringstream ss;
     ss << "Base value of " << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
@@ -405,7 +410,7 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
 {
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
-    f32 value = context.getArgument<f32>("value");
+    const f64 value = context.getArgument<f64>("value");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
@@ -415,14 +420,14 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
 
     // 检查值是否在有效范围内
     auto [minVal, maxVal] = _getAttributeRange(attrName);
-    if (static_cast<f64>(value) < minVal || static_cast<f64>(value) > maxVal) {
+    if (value < minVal || value > maxVal) {
         std::ostringstream ss;
         ss << "Value " << value << " is out of range [" << minVal << ", " << maxVal << "]";
         source.sendMessage(ss.str());
         return 0;
     }
 
-    instance->setBaseValue(static_cast<f64>(value));
+    instance->setBaseValue(value);
 
     std::ostringstream ss;
     ss << "Set base value of " << attrName << " to " << value << " for " << _getEntityDisplayName(livingEntity);
@@ -483,8 +488,8 @@ i32 AttributeCommand::_addModifierImpl(
 {
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
-    const std::string modifierId = context.getArgument<std::string>("id");
-    f32 value = context.getArgument<f32>("value");
+    const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
+    const f64 value = context.getArgument<f64>("value");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
@@ -500,7 +505,7 @@ i32 AttributeCommand::_addModifierImpl(
     }
 
     // 创建并添加修饰符
-    entity::attribute::AttributeModifier modifier(modifierId, modifierId, static_cast<f64>(value), operation);
+    entity::attribute::AttributeModifier modifier(modifierId, modifierId, value, operation);
     instance->addModifier(modifier);
 
     // 操作类型的可读名称
@@ -527,7 +532,7 @@ i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& conte
 {
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
-    const std::string modifierId = context.getArgument<std::string>("id");
+    const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
@@ -557,7 +562,7 @@ i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& con
 {
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
-    const std::string modifierId = context.getArgument<std::string>("id");
+    const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
@@ -586,8 +591,8 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
 {
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
-    const std::string modifierId = context.getArgument<std::string>("id");
-    f32 scale = context.getArgument<f32>("scale");
+    const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
+    const f64 scale = context.getArgument<f64>("scale");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
@@ -602,7 +607,7 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
     }
 
     f64 modifierValue = attrMap->getModifierValue(attrName, modifierId);
-    i32 result = static_cast<i32>(modifierValue * static_cast<f64>(scale));
+    i32 result = javaToInt(modifierValue * scale);
 
     std::ostringstream ss;
     ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << _getEntityDisplayName(livingEntity)

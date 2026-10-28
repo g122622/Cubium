@@ -81,7 +81,7 @@ void TeamMsgCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // 原版把 /tm 注册成 teammsg 的重定向节点。
     auto tmNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tm");
-    tmNode->setRedirect(teamMsgNode);
+    tmNode->setRedirect(teamMsgNode, RedirectModifier::None);
 
     dispatcher.registerCommand(teamMsgNode);
     dispatcher.registerCommand(tmNode);

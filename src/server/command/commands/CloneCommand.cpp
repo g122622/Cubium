@@ -30,6 +30,7 @@
 #include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/DimensionArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/IInventory.hpp"
@@ -47,6 +48,7 @@
 #include <algorithm>
 #include <cmath>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <sstream>
 #include <vector>
@@ -371,127 +373,89 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
             {},
             false));
 
-    // /clone <begin> <end> <destination>
-    // 原版 /clone 的三个坐标都是 BlockPosArgument（命令树里是 block_pos），不是 Vec3。
-    auto beginArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "begin", BlockPosArgumentType::blockPos());
+    const auto makeMode = [](const char* name, FilterMode filterMode, CloneMode cloneMode) {
+        auto node = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
+        node->setCommand([filterMode, cloneMode](CommandContext<ServerCommandSource>& ctx) {
+            return _doCloneStatic(ctx, filterMode, cloneMode);
+        });
+        return node;
+    };
+    const auto makeFilteredMode = [](const char* name, CloneMode cloneMode) {
+        auto node = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
+        node->setCommand([cloneMode](CommandContext<ServerCommandSource>& ctx) {
+            return _doCloneFilteredStatic(ctx, cloneMode);
+        });
+        return node;
+    };
 
-    auto endArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "end", BlockPosArgumentType::blockPos());
+    // 目的地之后的模式子树（replace / masked / filtered 各自展开，strict 再复制一份）。
+    // strict 下的子树与 destination 下同构（strict 只在 destination/begin/end 之后，不再嵌套）。
+    std::function<void(const std::shared_ptr<CommandNode<ServerCommandSource>>&, bool)> addModeChildren;
+    addModeChildren = [&](const std::shared_ptr<CommandNode<ServerCommandSource>>& parent, bool withStrict) {
+        for (const auto& [name, filterMode] : {
+                 std::pair<const char*, FilterMode>{"replace", FilterMode::Replace},
+                 std::pair<const char*, FilterMode>{"masked", FilterMode::Masked},
+             }) {
+            auto modeNode = makeMode(name, filterMode, CloneMode::Normal);
+            modeNode->addChild(makeMode("force", filterMode, CloneMode::Force));
+            modeNode->addChild(makeMode("move", filterMode, CloneMode::Move));
+            modeNode->addChild(makeMode("normal", filterMode, CloneMode::Normal));
+            parent->addChild(modeNode);
+        }
 
-    auto destArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "destination", BlockPosArgumentType::blockPos());
+        // filtered：过滤条件 → 三种模式；filtered 本身不可执行。
+        auto filteredNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("filtered");
+        auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
+            "filter", BlockPredicateArgumentType::blockPredicate());
+        filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _doCloneFilteredStatic(ctx, CloneMode::Normal);
+        });
+        filterArg->addChild(makeFilteredMode("force", CloneMode::Force));
+        filterArg->addChild(makeFilteredMode("move", CloneMode::Move));
+        filterArg->addChild(makeFilteredMode("normal", CloneMode::Normal));
+        filteredNode->addChild(filterArg);
+        parent->addChild(filteredNode);
 
-    // 默认执行：replace + normal
-    destArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneDefault(ctx);
-    });
+        // TODO: strict 需要通过方块更新标志抑制邻居更新。
+        if (withStrict) {
+            auto strictNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("strict");
+            strictNode->setCommand(makeMode("replace", FilterMode::Replace, CloneMode::Normal)->getCommand());
+            addModeChildren(strictNode, false);
+            parent->addChild(strictNode);
+        }
+    };
 
-    // ============ replace 模式 ============
-    auto replaceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("replace");
-    replaceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneDefault(ctx);
-    });
-
-    // /clone ... replace force
-    auto replaceForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
-    replaceForceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneStatic(ctx, FilterMode::Replace, CloneMode::Force);
-    });
-
-    // /clone ... replace move
-    auto replaceMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
-    replaceMoveNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneStatic(ctx, FilterMode::Replace, CloneMode::Move);
-    });
-
-    // /clone ... replace normal
-    auto replaceNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
-    replaceNormalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneStatic(ctx, FilterMode::Replace, CloneMode::Normal);
-    });
-
-    replaceNode->addChild(replaceForceNode);
-    replaceNode->addChild(replaceMoveNode);
-    replaceNode->addChild(replaceNormalNode);
-
-    // ============ masked 模式 ============
-    auto maskedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("masked");
-    maskedNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Normal);
-    });
-
-    // /clone ... masked force
-    auto maskedForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
-    maskedForceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Force);
-    });
-
-    // /clone ... masked move
-    auto maskedMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
-    maskedMoveNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Move);
-    });
-
-    // /clone ... masked normal
-    auto maskedNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
-    maskedNormalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneStatic(ctx, FilterMode::Masked, CloneMode::Normal);
-    });
-
-    maskedNode->addChild(maskedForceNode);
-    maskedNode->addChild(maskedMoveNode);
-    maskedNode->addChild(maskedNormalNode);
-
-    // ============ filtered 模式 ============
-    auto filteredNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("filtered");
-    auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
-        "filter", BlockStateArgumentType::blockState());
-    filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneFilteredStatic(ctx, CloneMode::Normal);
-    });
-
-    // /clone ... filtered <filter> force
-    auto filteredForceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
-    filteredForceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneFilteredStatic(ctx, CloneMode::Force);
-    });
-
-    // /clone ... filtered <filter> move
-    auto filteredMoveNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("move");
-    filteredMoveNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneFilteredStatic(ctx, CloneMode::Move);
-    });
-
-    // /clone ... filtered <filter> normal
-    auto filteredNormalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
-    filteredNormalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _doCloneFilteredStatic(ctx, CloneMode::Normal);
-    });
-
-    filterArg->addChild(filteredForceNode);
-    filterArg->addChild(filteredMoveNode);
-    filterArg->addChild(filteredNormalNode);
-    filteredNode->addChild(filterArg);
-
-    // ============ from <sourceDimension> 前缀（原版可跨维度克隆）============
-    // 原版的写法是 /clone [from <sourceDimension>] <begin> <end> <destination> ...：
-    // 有 from 时复制源区域来自另一个维度。Cubium 当前只支持同维度克隆，跨维度时在
-    // 执行阶段明确报错，而不是把参数丢掉让命令静默变成「同维度」。
-    auto fromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
-    auto fromDimArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, DimensionId>>(
+    const auto makeDestination = [&] {
+        auto destination = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+            "destination", BlockPosArgumentType::blockPos());
+        destination->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _doCloneDefault(ctx);
+        });
+        addModeChildren(destination, true);
+        return destination;
+    };
+    const auto makeBeginEnd = [&] {
+        auto begin = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+            "begin", BlockPosArgumentType::blockPos());
+        auto end = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+            "end", BlockPosArgumentType::blockPos());
+        end->addChild(makeDestination());
+        auto to = std::make_shared<LiteralCommandNode<ServerCommandSource>>("to");
+        auto dimension = std::make_shared<ArgumentCommandNode<ServerCommandSource, DimensionId>>(
+            "targetDimension", DimensionArgumentType::dimension());
+        dimension->addChild(makeDestination());
+        to->addChild(dimension);
+        end->addChild(to);
+        begin->addChild(end);
+        return begin;
+    };
+    auto from = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
+    auto dimension = std::make_shared<ArgumentCommandNode<ServerCommandSource, DimensionId>>(
         "sourceDimension", DimensionArgumentType::dimension());
-    fromNode->addChild(fromDimArg);
-
-    // 构建命令树
-    destArg->addChild(replaceNode);
-    destArg->addChild(maskedNode);
-    destArg->addChild(filteredNode);
-    endArg->addChild(destArg);
-    beginArg->addChild(endArg);
-    fromDimArg->addChild(beginArg);
-    cloneNode->addChild(fromNode);
-    cloneNode->addChild(beginArg);
+    dimension->addChild(makeBeginEnd());
+    from->addChild(dimension);
+    cloneNode->addChild(from);
+    cloneNode->addChild(makeBeginEnd());
 
     dispatcher.registerCommand(cloneNode);
 }
@@ -510,10 +474,10 @@ i32 CloneCommand::_doCloneStatic(
     CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode)
 {
     auto& source = context.getSource();
-    if (context.hasArgument("sourceDimension")) {
-        const DimensionId fromDimension = DimensionArgumentType::getDimension(context, "sourceDimension");
-        const DimensionId here = source.world() != nullptr ? source.world()->dimension() : DimensionId(0);
-        if (fromDimension != here) {
+    // TODO: 为源和目标分别解析世界并执行跨维度复制。
+    for (const char* name : {"sourceDimension", "targetDimension"}) {
+        if (context.hasArgument(name) &&
+            DimensionArgumentType::getDimension(context, name) != source.world()->dimension()) {
             source.sendError("Cross-dimension cloning is not supported");
             return 0;
         }
@@ -533,10 +497,10 @@ i32 CloneCommand::_doCloneStatic(
 i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode)
 {
     auto& source = context.getSource();
-    if (context.hasArgument("sourceDimension")) {
-        const DimensionId fromDimension = DimensionArgumentType::getDimension(context, "sourceDimension");
-        const DimensionId here = source.world() != nullptr ? source.world()->dimension() : DimensionId(0);
-        if (fromDimension != here) {
+    // TODO: 为源和目标分别解析世界并执行跨维度复制。
+    for (const char* name : {"sourceDimension", "targetDimension"}) {
+        if (context.hasArgument(name) &&
+            DimensionArgumentType::getDimension(context, name) != source.world()->dimension()) {
             source.sendError("Cross-dimension cloning is not supported");
             return 0;
         }

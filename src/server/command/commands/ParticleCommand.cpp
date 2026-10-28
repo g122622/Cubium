@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandSource.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
@@ -69,6 +70,43 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _spawnParticle(ctx);
     });
+
+    // /particle <name> <pos> <delta> <speed> <count> [force|normal] [<viewers>]
+    auto deltaArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("delta", Vec3ArgumentType::vec3());
+    auto speedArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("speed", FloatArgumentType::floatArg(0.0f));
+    auto countArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("count", IntegerArgumentType::integer(0));
+    auto forceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("force");
+    auto normalNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("normal");
+    auto viewersArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "viewers", EntityArgumentType::players());
+    // 原版把 viewers 挂在 speed / count / force / normal 之下（每个末端都能再接查看者）。
+    forceNode->addChild(viewersArg);
+    auto normalViewers = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "viewers", EntityArgumentType::players());
+    normalViewers->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _spawnParticle(ctx);
+    });
+    normalNode->addChild(normalViewers);
+    forceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _spawnParticle(ctx);
+    });
+    normalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _spawnParticle(ctx);
+    });
+    viewersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _spawnParticle(ctx);
+    });
+    countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _spawnParticle(ctx);
+    });
+    countArg->addChild(forceNode);
+    countArg->addChild(normalNode);
+    speedArg->addChild(countArg);
+    deltaArg->addChild(speedArg);
+    posArg->addChild(deltaArg);
 
     nameArg->addChild(posArg);
     particleNode->addChild(nameArg);

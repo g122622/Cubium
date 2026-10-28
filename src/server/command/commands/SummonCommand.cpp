@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -39,6 +40,7 @@
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -66,8 +68,9 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     // /summon <entity> - 在执行者位置生成
     auto entityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "entity", ResourceEntityArgumentType::entity());
-    entityArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+        "entity", std::make_shared<ResourceArgumentType>("minecraft:entity_type", "resource"));
+    entityArg->setCustomSuggestions(
+        std::make_shared<RegisteredSuggestionProvider<ServerCommandSource>>("minecraft:summonable_entities"));
     entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _summonEntity(ctx);
     });
@@ -80,6 +83,13 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         return _summonEntityAtPosition(ctx);
     });
 
+    // /summon <entity> [<pos> [<nbt>]]：原版在位置之后还可以跟复合标签。
+    auto nbtArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
+        "nbt", NbtCompoundArgumentType::nbtCompound());
+    nbtArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _summonEntityAtPosition(ctx);
+    });
+    posArg->addChild(nbtArg);
     entityArg->addChild(posArg);
     summonNode->addChild(entityArg);
 

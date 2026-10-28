@@ -28,6 +28,8 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/ResourceArgument.hpp"
+#include "common/command/arguments/TimeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp" // LivingEntity::addEffect/hasEffect/removeEffect（实体层效果）
 #include "common/entity/effect/EffectInstance.hpp"
@@ -82,7 +84,7 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     });
     support::applyMetadata(effectNode,
         support::makeMetadata("Gives or removes status effects from players.",
-            "/effect (give|clear) <player> [<effect>] [<seconds>] [<amplifier>] [<hideParticles>]",
+            "/effect (give|clear) <targets> <effect> [<seconds>] [<amplifier>] [<hideParticles>]",
             2,
             {},
             true));
@@ -93,22 +95,33 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
 
-    // 效果类型节点 - 使用字符串参数
-    auto effectNameNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("effect", StringArgumentType::word());
+    // 效果类型节点：原版是 ResourceArgument（mob_effect 注册表，命令树里叫 resource）。
+    auto effectNameNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "effect", std::make_shared<ResourceArgumentType>("minecraft:mob_effect", "resource"));
 
-    // 可选参数
+    // 可选参数。原版 /effect give 的顺序是 seconds|infinite → amplifier → hideParticles，
+    // 秒数参数叫 seconds、类型是 integer（单位 tick）。
     auto secondsNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
-        "seconds", IntegerArgumentType::integer(0, 1000000));
+        "seconds", IntegerArgumentType::integer(1, 1000000));
     secondsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _giveEffect(ctx);
     });
 
+    // infinite（不限时长）与 seconds 并列。
+    auto infiniteNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("infinite");
+    infiniteNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _giveEffect(ctx);
+    });
+
+    // 原版 amplifier 是 0..255 的 integer（放大等级上限）。
     auto amplifierNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "amplifier", IntegerArgumentType::integer(0, 255));
     amplifierNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _giveEffect(ctx);
     });
+    // infinite 是 effect 参数的直接子节点（与 seconds 并列），不是 seconds 的子节点。
+    effectNameNode->addChild(infiniteNode);
+    secondsNode->addChild(amplifierNode);
 
     auto hideParticlesNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("hideParticles", BoolArgumentType::boolArg());
@@ -122,13 +135,23 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     });
 
     amplifierNode->addChild(hideParticlesNode);
-    secondsNode->addChild(amplifierNode);
+    auto infiniteAmplifier = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
+        "amplifier", IntegerArgumentType::integer(0, 255));
+    infiniteAmplifier->setCommand(amplifierNode->getCommand());
+    auto infiniteParticles =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("hideParticles", BoolArgumentType::boolArg());
+    infiniteParticles->setCommand(hideParticlesNode->getCommand());
+    infiniteAmplifier->addChild(infiniteParticles);
+    infiniteNode->addChild(infiniteAmplifier);
     effectNameNode->addChild(secondsNode);
     playerNode->addChild(effectNameNode);
     giveNode->addChild(playerNode);
 
-    // /effect clear <player> [<effect>]
+    // /effect clear <player> [<effect>]：clear 本身可执行（不带目标时对命令源自身生效）。
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
+    clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _clearAllEffects(ctx);
+    });
 
     auto clearPlayerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
@@ -136,8 +159,8 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         return _clearAllEffects(ctx);
     });
 
-    auto clearEffectNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("effect", StringArgumentType::word());
+    auto clearEffectNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
+        "effect", std::make_shared<ResourceArgumentType>("minecraft:mob_effect", "resource"));
     clearEffectNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _clearSpecificEffect(ctx);
     });
@@ -162,7 +185,7 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const std::string& effectName = context.getArgument<std::string>("effect");
+    const std::string effectName = context.getArgument<ResourceLocation>("effect").toString();
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {
@@ -172,12 +195,15 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
     entity::effect::EffectType effectType = effectTypeOpt.value();
 
     // 获取可选参数
-    i32 seconds = 30;  // 默认30秒
+    // 时间是 tick（原版 TimeArgument 的单位是 s/d/t）；默认 30 秒。
+    i32 durationTicks = 600;
     i32 amplifier = 0; // 默认等级0
     bool hideParticles = false;
 
-    if (context.hasArgument("seconds")) {
-        seconds = context.getArgument<i32>("seconds");
+    if (context.hasArgument("infinite")) {
+        durationTicks = -1;
+    } else if (context.hasArgument("seconds")) {
+        durationTicks = context.getArgument<i32>("seconds");
     }
     if (context.hasArgument("amplifier")) {
         amplifier = context.getArgument<i32>("amplifier");
@@ -198,7 +224,7 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
         }
 
         // 添加效果：LivingEntity::addEffect 内部走 m_effectManager.addEffect（合并/覆盖同类型）。
-        entity::effect::EffectInstance effect(effectType, seconds * 20, amplifier, false, !hideParticles);
+        entity::effect::EffectInstance effect(effectType, durationTicks, amplifier, false, !hideParticles);
         player->addEffect(std::move(effect));
         successCount++;
     }
@@ -218,8 +244,13 @@ i32 EffectCommand::_clearAllEffects(CommandContext<ServerCommandSource>& context
 {
     auto& source = context.getSource();
 
-    const auto& selector = context.getArgument<EntitySelector>("targets");
-    auto playerIds = support::resolvePlayerIds(source, selector);
+    // 不带 targets 时对命令源自身生效（原版 clear 的隐式目标是 @s）。
+    std::vector<PlayerId> playerIds;
+    if (context.hasArgument("targets")) {
+        playerIds = support::resolvePlayerIds(source, context.getArgument<EntitySelector>("targets"));
+    } else if (source.isPlayer()) {
+        playerIds.push_back(source.playerId());
+    }
 
     if (playerIds.empty()) {
         source.sendError("No matching players were found");
@@ -256,7 +287,7 @@ i32 EffectCommand::_clearSpecificEffect(CommandContext<ServerCommandSource>& con
         return 0;
     }
 
-    const std::string& effectName = context.getArgument<std::string>("effect");
+    const std::string effectName = context.getArgument<ResourceLocation>("effect").toString();
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {
