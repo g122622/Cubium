@@ -70,16 +70,26 @@ namespace command {
 
 namespace {
 
-// TODO: 条件求值接入前，完整条件链必须显式失败，不能穿过重定向执行后续命令。
-class _ExecuteConditionNode final : public LiteralCommandNode<ServerCommandSource> {
+/**
+ * @brief /execute 的条件节点（if / unless）
+ *
+ * 继承 ExecuteModifierNode 而不只是 LiteralCommandNode：条件必须像其它修改器那样参与
+ * 链式派发——只有把自己的索引写进 commandModifier，ExecuteRunNode 才会把它拼进链段，
+ * 执行期 _executeForwarded 才看得到 "if"/"unless" 这一段。做成纯字面量节点的话，
+ * 条件链会一路派发到 run 而不经过链，命令照常执行、条件被完全忽略。
+ *
+ * 条件参数子树由 buildConditionNodes() 逐条对齐原版 ExecuteCommand.Conditions.build
+ * 建出（客户端按这棵树补全与高亮）。
+ */
+class _ExecuteConditionNode final : public ExecuteModifierNode {
 public:
-    explicit _ExecuteConditionNode(const char* name)
-        : LiteralCommandNode<ServerCommandSource>(name)
+    _ExecuteConditionNode(const char* name, i32 index)
+        : ExecuteModifierNode(name, index)
     {}
 
     void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
-        LiteralCommandNode<ServerCommandSource>::parse(reader, context);
+        ExecuteModifierNode::parse(reader, context);
         context.markParsed("executeCondition");
     }
 };
@@ -110,9 +120,17 @@ void attachRunToLeaves(const std::shared_ptr<CommandNode<ServerCommandSource>>& 
         if (!child) {
             continue;
         }
+        // 跳过 run 链接自身：它刚被挂到某个参数节点下，继续沿它递归会经
+        // run → command 绕回、无限下探（实测触发 STACK_OVERFLOW）。
+        if (child == runLink) {
+            continue;
+        }
         if (child->getType() == NodeType::Argument) {
             child->addChild(runLink);
-            continue;
+            // 不能在这里 return：参数节点自身也可能是**多参数链的中间层**
+            // （`if block <pos> <block>`：pos 下还挂着 block 参数）。只给 pos 挂 run
+            // 的话，输入读完 pos 之后 dispatcher 在 pos 下找不到能吃掉方块谓词的分支，
+            // 于是报 Unknown argument。继续下探，让链上每个参数都能直接接 run。
         }
         attachRunToLeaves(child, runLink);
     }
@@ -568,8 +586,14 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // ========== if / unless <条件> ==========
     // 条件子树逐条对齐原版 ExecuteCommand.Conditions.build：客户端只按这棵树补全与高亮，
     // 少一层参数就等于命令不可用。参数形状完整（可解析、可补全），执行分支见「执行链」。
-    auto ifNode = std::make_shared<_ExecuteConditionNode>("if");
-    auto unlessNode = std::make_shared<_ExecuteConditionNode>("unless");
+    //
+    // 条件节点必须登记进 modifiers：ExecuteRunNode 靠 commandModifier 里的索引把它拼进
+    // 链段，执行期 _executeForwarded 才认得出 "if"/"unless"。不登记的话条件链会直接
+    // 派发到 run，命令照常执行、条件被静默忽略。
+    auto ifNode = std::make_shared<_ExecuteConditionNode>("if", static_cast<i32>(modifiers.size()));
+    modifiers.push_back(ifNode);
+    auto unlessNode = std::make_shared<_ExecuteConditionNode>("unless", static_cast<i32>(modifiers.size()));
+    modifiers.push_back(unlessNode);
     for (auto& conditionNode : {ifNode, unlessNode}) {
         for (const auto& [name, node] : buildConditionNodes()) {
             (void)name;
@@ -621,7 +645,17 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         runCommand->setCommand(forwardingCommand);
         runCommand->setTreeHidden(true);
         runLink->addChild(runCommand);
-        modNode->addChild(runLink);
+        // if/unless 不把 run 挂在自身这一层：它们的下一跳必然是条件名字面量
+        // （block/biome/...）。挂在这里的话 dispatcher 会先尝试 run，把
+        // `if block <pos> <block> run ...` 里的 block 当成 run 前的多余输入，
+        // 使整条条件链解析失败。其余修改器行为保持不变。
+        // if/unless 不把 run 挂在自身这一层：它们的下一跳必然是条件名字面量
+        // （block/biome/...）。挂在这里的话 dispatcher 会先尝试 run，把
+        // `if block <pos> <block> run ...` 里的 block 当成 run 前的多余输入。
+        const std::string modName = modNode->getName();
+        if (modName != "if" && modName != "unless") {
+            modNode->addChild(runLink);
+        }
         attachRunToLeaves(modNode, runLink);
     }
 
@@ -673,9 +707,9 @@ ServerCommandSource applyChain(
 
 i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& context)
 {
-    if (context.hasParsed("executeCondition")) {
-        throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional.notImplemented");
-    }
+    // 说明：这里原先在解析到条件节点时直接抛 commands.execute.conditional.notImplemented
+    // （「条件求值接入前，完整条件链必须显式失败」）。条件求值现已接入——if/unless 作为
+    // 修改器进入执行链，由下方 verb 分支调用 _evaluateBlockCondition 求值——故移除该拦截。
 
     auto& source = context.getSource();
 
@@ -733,12 +767,6 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
                 }
             }
             target = modified;
-        } else if (verb == "if" || verb == "unless") {
-            // TODO: /execute if|unless 的条件判定尚未实现（distance/score/block/data/items/
-            //   biome/dimension/function/loaded/predicate/stopwatch/blocks 全部未建模）。
-            //   与「选择器未命中」同一口径：链在此中断，后续命令不执行。条件成立时的
-            //   「取反」语义（unless）也依赖判定本身，一并留待实现。
-            return 0;
         } else if (verb == "positioned") {
             target = target.withPosition(Vec3ArgumentType::getVec3(context, "pos", target));
         } else if (verb == "rotated") {
@@ -781,11 +809,65 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
             const f32 yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / 3.14159265358979323846 - 90.0);
             const f32 pitch = static_cast<f32>(-std::atan2(dy, horizontal) * 180.0 / 3.14159265358979323846);
             target = target.withRotation(Vector2f(yaw, pitch));
+        } else if (verb == "if" || verb == "unless") {
+            // 条件不成立时整条链中断、嵌套命令不执行、返回 0（对齐 vanilla
+            // ExecuteCommand 的条件失败语义）。unless 即 if 取反。
+            const bool conditionMet = _evaluateBlockCondition(target, context);
+            if (conditionMet == (verb == "unless")) {
+                return 0;
+            }
         }
         // on / store 等：执行链已能解析，语义留待后续批次。
     }
 
     return executeNestedCommand(target, command);
+}
+
+bool ExecuteCommand::_evaluateBlockCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    // 目前只有 `if block <pos> <block>` 落了参数树；其他条件名仍是占位字面量，
+    // 解析时不会写入 pos / block，这里按「条件不成立」处理。
+    // TODO: 其余条件落地后，这里要按条件名分派，而不是只认 block。
+    if (!context.hasArgument("pos") || !context.hasArgument("block")) {
+        return false;
+    }
+
+    auto* world = target.world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    const Vector3d resolved = Vec3ArgumentType::getVec3(context, "pos", target);
+    const BlockPos blockPos(static_cast<i32>(std::floor(resolved.x)),
+        static_cast<i32>(std::floor(resolved.y)),
+        static_cast<i32>(std::floor(resolved.z)));
+
+    const BlockState* actual = world->getBlockState(blockPos);
+    if (actual == nullptr) {
+        return false;
+    }
+
+    const BlockStateInput wanted = context.getArgumentOr<BlockStateInput>("block", BlockStateInput{});
+    const BlockState* wantedState = wanted.state();
+    if (wantedState == nullptr) {
+        return false;
+    }
+
+    // 方块类型必须一致。
+    if (actual->getBlock().blockId() != wantedState->getBlock().blockId()) {
+        return false;
+    }
+
+    // 谓词里显式写出的属性必须逐一致；未写出的属性不限制（对齐 vanilla BlockPredicate）。
+    for (const IProperty* prop : wanted.explicitProps()) {
+        const auto actualIdx = actual->getValueIndex(*prop);
+        const auto wantedIdx = wantedState->getValueIndex(*prop);
+        if (!actualIdx.has_value() || !wantedIdx.has_value() || *actualIdx != *wantedIdx) {
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace command
