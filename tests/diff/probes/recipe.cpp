@@ -47,6 +47,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/IRecipe.hpp"
 #include "common/item/crafting/Ingredient.hpp"
@@ -205,41 +206,32 @@ std::vector<std::string>& loadedIds()
     return result;
 }
 
-[[nodiscard]] json summariseSmithing(const crafting::SmithingTransformRecipe* recipe)
+template <typename Recipe>
+[[nodiscard]] json summariseSmithing(const Recipe& recipe, const json& slots)
 {
-    json result;
-    result["recipe"] = recipe->getId().toString();
-    result["type"] = crafting::recipeTypeToString(recipe->getType());
-    result["group"] = recipe->getGroup();
-    result["ingredients"] = summariseIngredients(recipe->getIngredients());
-    result["result"] = summariseStack(recipe->getResultItem());
-    return result;
-}
-
-/// 纹饰结果：原版 `SmithingTrimRecipe#assemble` 对「底材原料的首个物品 + 添加物原料的
-/// 首个物品」做真实合成——底材不是可纹饰盔甲、添加物不是纹饰材料时返回空。
-[[nodiscard]] json summariseTrimResult(const crafting::SmithingTrimRecipe& recipe)
-{
-    const auto baseItems = recipe.getBase().getAllMatchingItems();
-    const auto additionItems = recipe.getAddition().getAllMatchingItems();
-    if (baseItems.empty() || additionItems.empty()) {
-        return json(nullptr);
-    }
+    json result{{"recipe", recipe.getId().toString()},
+        {"type", crafting::recipeTypeToString(recipe.getType())},
+        {"group", recipe.getGroup()},
+        {"ingredients", summariseIngredients(recipe.getIngredients())},
+        {"assemblyInput", slots}};
     CraftingInventory inventory(1, 3);
-    inventory.setItem(0, ItemStack::EMPTY);
-    inventory.setItem(1, ItemStack(*baseItems.front(), 1));
-    inventory.setItem(2, ItemStack(*additionItems.front(), 1));
-    return summariseStack(recipe.assemble(inventory));
-}
-
-[[nodiscard]] json summariseSmithing(const crafting::SmithingTrimRecipe* recipe)
-{
-    json result;
-    result["recipe"] = recipe->getId().toString();
-    result["type"] = crafting::recipeTypeToString(recipe->getType());
-    result["group"] = recipe->getGroup();
-    result["ingredients"] = summariseIngredients(recipe->getIngredients());
-    result["result"] = summariseTrimResult(*recipe);
+    for (i32 slot = 0; slot < 3; ++slot) {
+        const auto& value = slots.at(static_cast<std::size_t>(slot));
+        if (value.is_null()) {
+            inventory.setItem(slot, ItemStack::EMPTY);
+            continue;
+        }
+        const auto id = value.at("id").get<std::string>();
+        const auto* item = ItemRegistry::instance().getItem(ResourceLocation(id));
+        if (item == nullptr) {
+            result["error"] = "Unregistered assembly item: " + id;
+            return result;
+        }
+        inventory.setItem(slot, ItemStack(*item, value.at("count").get<i32>()));
+    }
+    const bool matches = recipe.matches(inventory);
+    result["matches"] = matches;
+    result["result"] = matches ? summariseStack(recipe.assemble(inventory)) : json(nullptr);
     return result;
 }
 
@@ -313,12 +305,12 @@ std::string runLine(std::string_view inputLine)
     if (const crafting::SmithingTransformRecipe* recipe =
             crafting::RecipeManager::instance().getSmithingTransformRecipe(recipeId);
         recipe != nullptr) {
-        return summariseSmithing(recipe).dump();
+        return summariseSmithing(*recipe, input.at("assemblyInput")).dump();
     }
     if (const crafting::SmithingTrimRecipe* recipe =
             crafting::RecipeManager::instance().getSmithingTrimRecipe(recipeId);
         recipe != nullptr) {
-        return summariseSmithing(recipe).dump();
+        return summariseSmithing(*recipe, input.at("assemblyInput")).dump();
     }
     return json{{"recipe", id}, {"missing", true}}.dump();
 }

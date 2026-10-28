@@ -71,6 +71,16 @@ TEST_F(SlimeChunkCheckerTest, ComputeSlimeChunkSeedDifferentWorldSeeds)
     EXPECT_NE(seed1, seed2);
 }
 
+TEST_F(SlimeChunkCheckerTest, CoordinateProductsWrapBeforeLongPromotion)
+{
+    EXPECT_EQ(SlimeChunkChecker::computeSlimeChunkSeed(12345, 1000, -2000), 17573666629982ULL);
+    EXPECT_EQ(SlimeChunkChecker::computeSlimeChunkSeed(12345, -30000, 40000), 7028592340864950ULL);
+    EXPECT_EQ(SlimeChunkChecker::computeSlimeChunkSeed(12345, INT32_MAX, INT32_MIN), 18446744072722418235ULL);
+    EXPECT_FALSE(SlimeChunkChecker::isSlimeChunk(12345, 1000, -2000));
+    EXPECT_FALSE(SlimeChunkChecker::isSlimeChunk(12345, -30000, 40000));
+    EXPECT_FALSE(SlimeChunkChecker::isSlimeChunk(12345, INT32_MAX, INT32_MIN));
+}
+
 TEST_F(SlimeChunkCheckerTest, ComputeSlimeChunkSeedFormula)
 {
     // 手动验证种子公式：
@@ -142,44 +152,6 @@ TEST_F(SlimeChunkCheckerTest, IsSlimeChunkLargeSeed)
     // 大种子值应该正常工作
     const bool result = SlimeChunkChecker::isSlimeChunk(0xFFFFFFFFFFFFFFFFULL, 50, 50);
     (void)result;
-}
-
-// ============================================================================
-// 地表史莱姆生成概率测试
-// ============================================================================
-
-TEST_F(SlimeChunkCheckerTest, SurfaceSlimeSpawnChanceFullMoon)
-{
-    // 满月 (phase 0): 亮度 1.0, 概率 = 1.0 * 0.5 = 0.5
-    EXPECT_FLOAT_EQ(SlimeChunkChecker::getSurfaceSlimeSpawnChance(0), 0.5f);
-}
-
-TEST_F(SlimeChunkCheckerTest, SurfaceSlimeSpawnChanceNewMoon)
-{
-    // 新月 (phase 4): 亮度 0.0, 概率 = 0.0 * 0.5 = 0.0
-    EXPECT_FLOAT_EQ(SlimeChunkChecker::getSurfaceSlimeSpawnChance(4), 0.0f);
-}
-
-TEST_F(SlimeChunkCheckerTest, SurfaceSlimeSpawnChanceQuarterMoon)
-{
-    // 下弦月 (phase 2): 亮度 0.5, 概率 = 0.5 * 0.5 = 0.25
-    EXPECT_FLOAT_EQ(SlimeChunkChecker::getSurfaceSlimeSpawnChance(2), 0.25f);
-}
-
-TEST_F(SlimeChunkCheckerTest, SurfaceSlimeSpawnChanceAllPhases)
-{
-    // 验证所有月相的概率
-    constexpr f32 expected[8] = {0.5f, 0.375f, 0.25f, 0.125f, 0.0f, 0.125f, 0.25f, 0.375f};
-    for (i32 i = 0; i < 8; ++i) {
-        EXPECT_FLOAT_EQ(SlimeChunkChecker::getSurfaceSlimeSpawnChance(i), expected[i]);
-    }
-}
-
-TEST_F(SlimeChunkCheckerTest, SurfaceSlimeSpawnChanceModulo)
-{
-    // 月相索引应该对 8 取模
-    EXPECT_FLOAT_EQ(SlimeChunkChecker::getSurfaceSlimeSpawnChance(8), 0.5f);  // 等同于 phase 0
-    EXPECT_FLOAT_EQ(SlimeChunkChecker::getSurfaceSlimeSpawnChance(12), 0.0f); // 等同于 phase 4
 }
 
 // ============================================================================

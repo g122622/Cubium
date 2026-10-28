@@ -95,8 +95,6 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
-
     // ========== 移动和交互 ==========
 
     [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;

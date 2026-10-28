@@ -28,7 +28,6 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -38,6 +37,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -296,25 +296,9 @@ std::optional<BlockPos> VillageSiege::_findRandomSpawnPos(IWorld& world, const B
 
 bool VillageSiege::_canMonsterSpawnAt(IWorld& world, const BlockPos& pos)
 {
-    // 检查位置是否有固体方块作为地面
-    const BlockState* groundState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-    if (!groundState || !groundState->isSolid()) {
-        return false;
-    }
-
-    // 检查生成位置是否有足够的碰撞空间（2格高）
-    const BlockState* feetState = world.getBlockState(pos.x, pos.y, pos.z);
-    if (feetState && !feetState->isAir() && !feetState->isLiquid()) {
-        return false;
-    }
-
-    const BlockState* headState = world.getBlockState(pos.x, pos.y + 1, pos.z);
-    if (headState && !headState->isAir() && !headState->isLiquid()) {
-        return false;
-    }
-
-    // 检查光照条件
-    return MonsterEntity::isValidLightLevel(world, pos, m_random);
+    world::spawn::IWorldSpawnAdapter adapter(world);
+    return world::spawn::EntitySpawnPlacementRegistry::checkSpawnRules(
+        "minecraft:zombie", adapter, world::spawn::SpawnReason::Event, Vector3i(pos.x, pos.y, pos.z), m_random);
 }
 
 bool VillageSiege::_isMidnight(server::ServerWorld& world) const

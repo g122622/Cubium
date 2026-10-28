@@ -495,6 +495,8 @@ public:
      */
     [[nodiscard]] bool isCreakingActive(const BlockPos& pos) const override;
     [[nodiscard]] DimensionType getDimensionType() const;
+    /** @brief 当前区块生成器的海平面。 */
+    [[nodiscard]] i32 seaLevel() const override;
 
     [[nodiscard]] u64 seed() const noexcept override
     {

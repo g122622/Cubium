@@ -29,6 +29,7 @@
 #include "util/math/random/IRandom.hpp"
 #include "world/chunk/data/IChunk.hpp"
 #include <functional>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -99,7 +100,13 @@ enum class SpawnReason : u8 {
     Dispenser,
 
     /// 巡逻队 - 掠夺者巡逻队成员生成
-    Patrol
+    Patrol,
+    /// 试炼刷怪笼：忽略光照要求
+    TrialSpawner,
+    /// 存档加载
+    Load,
+    /// 跨维度移动
+    DimensionTravel
 };
 
 /**
@@ -113,7 +120,7 @@ enum class SpawnReason : u8 {
  */
 [[nodiscard]] inline bool isSpawnerReason(SpawnReason reason)
 {
-    return reason == SpawnReason::Spawner;
+    return reason == SpawnReason::Spawner || reason == SpawnReason::TrialSpawner;
 }
 
 /**
@@ -136,7 +143,7 @@ enum class SpawnReason : u8 {
         case SpawnReason::Breeding:
             return "breeding";
         case SpawnReason::MobSummons:
-            return "mob_summons";
+            return "mob_summoned";
         case SpawnReason::Jockey:
             return "jockey";
         case SpawnReason::Event:
@@ -146,17 +153,23 @@ enum class SpawnReason : u8 {
         case SpawnReason::Reinforcement:
             return "reinforcement";
         case SpawnReason::Trigger:
-            return "trigger";
+            return "triggered";
         case SpawnReason::Bucket:
             return "bucket";
         case SpawnReason::SpawnEgg:
-            return "spawn_egg";
+            return "spawn_item_use";
         case SpawnReason::Command:
             return "command";
         case SpawnReason::Dispenser:
             return "dispenser";
         case SpawnReason::Patrol:
             return "patrol";
+        case SpawnReason::TrialSpawner:
+            return "trial_spawner";
+        case SpawnReason::Load:
+            return "load";
+        case SpawnReason::DimensionTravel:
+            return "dimension_travel";
         default:
             return "unknown";
     }
@@ -166,9 +179,9 @@ enum class SpawnReason : u8 {
  * @brief 根据名称字符串获取生成原因
  *
  * @param name 名称字符串（如 "natural", "chunk_generation"）
- * @return 生成原因，如果名称无效返回 SpawnReason::Natural
+ * @return 生成原因，如果名称无效返回空值
  */
-[[nodiscard]] inline SpawnReason getSpawnReasonByName(const std::string& name)
+[[nodiscard]] inline std::optional<SpawnReason> getSpawnReasonByName(const std::string& name)
 {
     if (name == "natural") {
         return SpawnReason::Natural;
@@ -185,7 +198,7 @@ enum class SpawnReason : u8 {
     if (name == "breeding") {
         return SpawnReason::Breeding;
     }
-    if (name == "mob_summons") {
+    if (name == "mob_summoned") {
         return SpawnReason::MobSummons;
     }
     if (name == "jockey") {
@@ -200,13 +213,13 @@ enum class SpawnReason : u8 {
     if (name == "reinforcement") {
         return SpawnReason::Reinforcement;
     }
-    if (name == "trigger") {
+    if (name == "triggered") {
         return SpawnReason::Trigger;
     }
     if (name == "bucket") {
         return SpawnReason::Bucket;
     }
-    if (name == "spawn_egg") {
+    if (name == "spawn_item_use") {
         return SpawnReason::SpawnEgg;
     }
     if (name == "command") {
@@ -218,7 +231,16 @@ enum class SpawnReason : u8 {
     if (name == "patrol") {
         return SpawnReason::Patrol;
     }
-    return SpawnReason::Natural;
+    if (name == "trial_spawner") {
+        return SpawnReason::TrialSpawner;
+    }
+    if (name == "load") {
+        return SpawnReason::Load;
+    }
+    if (name == "dimension_travel") {
+        return SpawnReason::DimensionTravel;
+    }
+    return std::nullopt;
 }
 
 /**
@@ -240,6 +262,19 @@ enum class PlacementType : u8 {
     NoRestrictions
 };
 
+/** @brief 一次生成谓词读取的位置环境，不包含任何隐式默认值。 */
+struct SpawnEnvironment {
+    i32 skyLight;
+    i32 blockLight;
+    i32 skyDarkening;
+    bool thundering;
+    i32 seaLevel;
+    i32 monsterBlockLightLimit;
+    i32 monsterLightMinimum;
+    i32 monsterLightMaximum;
+    f32 surfaceSlimeSpawnChance;
+};
+
 /**
  * @brief 简化的世界读取接口
  *
@@ -255,9 +290,9 @@ public:
     [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const = 0;
 
     /**
-     * @brief 检查位置是否在世界范围内
+     * @brief 检查方块位置是否在可配置的水平世界边界内，不检查建筑高度
      */
-    [[nodiscard]] virtual bool isInWorldBounds(i32 x, i32 y, i32 z) const = 0;
+    [[nodiscard]] virtual bool isWithinWorldBorder(i32 x, i32 y, i32 z) const = 0;
 
     /**
      * @brief 获取高度图值
@@ -281,32 +316,11 @@ public:
      */
     [[nodiscard]] virtual Difficulty difficulty() const = 0;
 
-    /**
-     * @brief 获取游戏日时间（ticks）
-     *
-     * 用于月相计算等基于时间的生成条件。
-     */
-    [[nodiscard]] virtual i64 dayTime() const = 0;
+    /** @brief 获取生成位置的光照、维度门槛与环境属性。 */
+    [[nodiscard]] virtual SpawnEnvironment environment(const Vector3i& pos) const = 0;
 
-    /**
-     * @brief 获取指定位置的最大原始亮度
-     *
-     * 等效于 MC 的 World.getMaxLocalRawBrightness()，
-     * 返回方块光照和有效天空光照中的最大值。
-     */
-    [[nodiscard]] virtual i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const = 0;
-
-    /**
-     * @brief 获取指定位置的原始天空光（未经 dayTime 衰减）
-     *
-     * 对应 vanilla `isDarkEnoughToSpawn` 第一阶段使用的 `getSkyDarken` 之外的快速拒绝门：
-     * `skyLight > random(32)` 时直接判定过亮。默认实现返回 15（视为天空光充足、不拒绝），
-     * 无光照信息的生成期适配器可保持默认。
-     */
-    [[nodiscard]] virtual i32 getRawSkyLight(i32 x, i32 y, i32 z) const
-    {
-        return 15;
-    }
+    /** @brief 查询严格小于指定距离的非创造、非旁观玩家。 */
+    [[nodiscard]] virtual bool hasNearbyPlayer(const Vector3d& center, f64 distance) const = 0;
 };
 
 /**
@@ -351,22 +365,9 @@ public:
      * 存储单个实体类型的生成规则。
      */
     struct PlacementEntry {
-        /// 放置类型
-        PlacementType placementType = PlacementType::OnGround;
-
-        /// 高度图类型（用于获取生成高度）
-        HeightmapType heightmapType = HeightmapType::MotionBlockingNoLeaves;
-
-        /// 额外的放置条件检查函数
+        PlacementType placementType;
+        HeightmapType heightmapType;
         PlacementPredicate predicate;
-
-        PlacementEntry() = default;
-
-        PlacementEntry(PlacementType type, HeightmapType heightmap, PlacementPredicate pred = nullptr)
-            : placementType(type)
-            , heightmapType(heightmap)
-            , predicate(std::move(pred))
-        {}
     };
 
     /**
@@ -380,7 +381,7 @@ public:
     static void registerPlacement(const std::string& entityTypeId,
         PlacementType placementType,
         HeightmapType heightmapType,
-        PlacementPredicate predicate = nullptr);
+        PlacementPredicate predicate);
 
     /**
      * @brief 获取实体放置类型
@@ -435,7 +436,14 @@ public:
      * @return 是否可以生成
      */
     [[nodiscard]] static bool canSpawnEntity(const std::string& entityTypeId,
-        ISpawnWorldReader& world,
+        const ISpawnWorldReader& world,
+        SpawnReason reason,
+        const Vector3i& pos,
+        math::IRandom& random);
+
+    /** @brief 独立运行注册的生成谓词，不检查放置位置。 */
+    [[nodiscard]] static bool checkSpawnRules(const std::string& entityTypeId,
+        const ISpawnWorldReader& world,
         SpawnReason reason,
         const Vector3i& pos,
         math::IRandom& random);
@@ -458,7 +466,7 @@ public:
      * @brief 检查水中生成条件
      *
      * 检查实体是否可以在水中生成。
-     * 需要当前位置和下方位置都有水。
+     * 当前位置具有水流体，上方方块不导红石。
      *
      * @param world 世界读取器
      * @param pos 生成位置
@@ -508,16 +516,6 @@ private:
      */
     [[nodiscard]] static bool _isValidSpawnBlock(
         const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId);
-
-    /**
-     * @brief 检查方块是否阻止生成
-     *
-     * 某些方块（如红石、障碍物）会阻止生成
-     *
-     * @param state 方块状态
-     * @return 是否阻止生成
-     */
-    [[nodiscard]] static bool _blockPreventsSpawn(const BlockState* state);
 };
 
 } // namespace world::spawn

@@ -145,13 +145,6 @@ void LeavesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-const CollisionShape& LeavesBlock::getCollisionShape(const BlockState& state) const
-{
-    MC_UNUSED(state);
-    static const CollisionShape EMPTY_SHAPE;
-    return EMPTY_SHAPE;
-}
-
 const fluid::FluidState* LeavesBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);

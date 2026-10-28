@@ -23,6 +23,8 @@
 
 #include "KelpPlantBlock.hpp"
 
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include <utility>
 
 namespace mc {
@@ -32,6 +34,11 @@ namespace blocks {
 KelpPlantBlock::KelpPlantBlock(BlockProperties properties)
     : SimpleBlock(std::move(properties))
 {}
+
+const fluid::FluidState* KelpPlantBlock::getFluidState(const BlockState&) const
+{
+    return &fluid::Fluids::WATER()->defaultState();
+}
 
 } // namespace blocks
 } // namespace mc

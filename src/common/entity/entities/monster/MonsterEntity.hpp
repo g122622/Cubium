@@ -32,7 +32,6 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <optional>
 
 namespace mc {
@@ -43,9 +42,6 @@ class BlockPos;
 class Player;
 class ItemStack;
 class DamageSource;
-
-// 使用命名空间中的 SpawnReason
-using world::spawn::SpawnReason;
 
 /**
  * @brief 敌对生物基类
@@ -122,29 +118,6 @@ public:
      * @brief 受到伤害时的处理
      */
     bool hurt(DamageSource& source, f32 amount) override;
-
-    // ========== 生成条件 ==========
-
-    /**
-     * @brief 检查光照等级是否有效（用于怪物生成）
-     * @param world 世界
-     * @param pos 位置
-     * @param random 随机数生成器
-     * @return 如果光照条件允许生成返回true
-     */
-    [[nodiscard]] static bool isValidLightLevel(IWorld& world, const BlockPos& pos, math::IRandom& random);
-
-    /**
-     * @brief 检查怪物是否可以在指定位置生成（带光照检查）
-     */
-    [[nodiscard]] static bool canMonsterSpawnInLight(
-        IWorld& world, SpawnReason reason, const BlockPos& pos, math::IRandom& random);
-
-    /**
-     * @brief 检查怪物是否可以在指定位置生成（无光照检查）
-     */
-    [[nodiscard]] static bool canMonsterSpawn(
-        IWorld& world, SpawnReason reason, const BlockPos& pos, math::IRandom& random);
 
     // ========== 行为 ==========
 

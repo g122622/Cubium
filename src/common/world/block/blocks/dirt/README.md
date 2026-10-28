@@ -86,7 +86,7 @@ Block
 
 ### 2. DirtPathBlock 形状与转变泥土逻辑
 
-草径（dirt_path）的渲染形状与碰撞形状**均为 15/16 格高**（顶部矮 1 像素），与 FarmlandBlock 不同——FarmlandBlock 的碰撞形状是完整方块，只有渲染形状是 15/16。因碰撞箱矮，DirtPathBlock 同 MudBlock 一样必须显式重写 `allowsMovement` 返回 false，否则实体会把草径当可通过路径。
+草径（dirt_path）的渲染形状与碰撞形状**均为 15/16 格高**（顶部矮 1 像素），耕地的渲染和碰撞形状同样为 15/16。因碰撞箱矮，DirtPathBlock 同 MudBlock 一样必须显式重写 `allowsMovement` 返回 false，否则实体会把草径当可通过路径。
 
 上方存在固体方块（**栅栏门除外**）时草径无法存活，两条路径收敛为泥土：
 - **放置时**：`getStateForPlacement` 检测到上方固体，直接改放泥土（经 `Block::pushEntitiesUp` 推出嵌入新增碰撞形状的实体）；

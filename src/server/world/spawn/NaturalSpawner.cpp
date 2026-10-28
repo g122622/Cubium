@@ -22,7 +22,6 @@
  */
 
 #include "NaturalSpawner.hpp"
-#include "SpawnConditions.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
@@ -51,6 +50,7 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
@@ -747,150 +747,9 @@ bool NaturalSpawner::_canSpawnAt(
         return false;
     }
 
-    // 使用 EntitySpawnPlacementRegistry 检查放置条件
-    // 创建世界读取器适配器
-    class ServerWorldAdapter : public ISpawnWorldReader {
-    public:
-        explicit ServerWorldAdapter(mc::server::ServerWorld& w)
-            : m_world(w)
-        {}
-
-        [[nodiscard]] const BlockState* getBlockState(i32 bx, i32 by, i32 bz) const override
-        {
-            return m_world.getBlockState(bx, by, bz);
-        }
-
-        [[nodiscard]] bool isInWorldBounds(i32 bx, i32 by, i32 bz) const override
-        {
-            return m_world.isWithinWorldBounds(bx, by, bz);
-        }
-
-        [[nodiscard]] i32 getHeight(HeightmapType type, i32 bx, i32 bz) const override
-        {
-            ChunkCoord chunkX = world::toChunkCoord(bx);
-            ChunkCoord chunkZ = world::toChunkCoord(bz);
-            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
-            if (!chunk) {
-                return m_world.getHeight(bx, bz);
-            }
-            i32 localX = world::toLocalCoord(bx);
-            i32 localZ = world::toLocalCoord(bz);
-            return chunk->getTopBlockY(type, localX, localZ);
-        }
-
-        [[nodiscard]] BiomeId getBiome(i32 bx, i32 by, i32 bz) const override
-        {
-            ChunkCoord chunkX = world::toChunkCoord(bx);
-            ChunkCoord chunkZ = world::toChunkCoord(bz);
-            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
-            if (!chunk) {
-                return Biomes::Plains;
-            }
-            i32 localX = world::toLocalCoord(bx);
-            i32 localZ = world::toLocalCoord(bz);
-            return chunk->getBiomeAtBlock(localX, by, localZ);
-        }
-
-        [[nodiscard]] u64 seed() const override
-        {
-            return m_world.seed();
-        }
-
-        [[nodiscard]] Difficulty difficulty() const override
-        {
-            return m_world.difficulty();
-        }
-
-        [[nodiscard]] i64 dayTime() const override
-        {
-            return m_world.dayTime();
-        }
-
-        [[nodiscard]] i32 getMaxLocalRawBrightness(i32 bx, i32 by, i32 bz) const override
-        {
-            const u8 blockLight = m_world.getBlockLight(bx, by, bz);
-            const u8 skyLight = m_world.getSkyLight(bx, by, bz);
-            const i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(
-                m_world.dayTimeOfDay(), m_world.isRaining(), m_world.isThundering());
-            return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
-        }
-
-        [[nodiscard]] i32 getRawSkyLight(i32 bx, i32 by, i32 bz) const override
-        {
-            return m_world.getSkyLight(bx, by, bz);
-        }
-
-    private:
-        mc::server::ServerWorld& m_world;
-    };
-
-    ServerWorldAdapter adapter(world);
-    Vector3i pos(x, y, z);
-
-    // 放置类型检查 + 实体自身注册的放置谓词（史莱姆区块/沼泽、鹦鹉螺水深、恶魂空间、
-    // 疣猪兽诡异疣块、怪物光照等）。谓词与原始版一致，是实体生成规则的载体。
-    if (!EntitySpawnPlacementRegistry::canSpawnEntity(entry.entityTypeId, adapter, SpawnReason::Natural, pos, random)) {
-        return false;
-    }
-
-    // 已注册放置谓词的实体：光照等门槛由谓词自身负责（例如怪物谓词内含低光照判定，
-    // 疣猪兽谓词则完全没有光照判定），此处不再按分类重复追加，避免叠加出原始版没有的限制。
-    // 注意判定条件是「谓词存在」而非「放置条目存在」——绝大多数实体都注册了放置条目，
-    // 但只有部分实体带谓词（如 pig/cow 只有条目、无谓词），后者仍须走下面的分类兜底。
-    const auto* placementEntry = EntitySpawnPlacementRegistry::getPlacementEntry(entry.entityTypeId);
-    if (placementEntry != nullptr && placementEntry->predicate) {
-        return true;
-    }
-
-    // 未注册放置谓词的实体：按注册分类追加光照门槛作为兜底。
-    entity::EntityClassification classification = entityType->classification();
-
-    switch (classification) {
-        case entity::EntityClassification::Monster:
-            // 怪物需要低光照
-            return _checkLightLevel(world, x, y, z, true);
-
-        case entity::EntityClassification::Creature:
-            // 动物需要足够光照
-            return _checkLightLevel(world, x, y, z, false);
-
-        case entity::EntityClassification::Ambient:
-            // 环境生物（蝙蝠）需要低光照
-            return _checkLightLevel(world, x, y, z, true);
-
-        case entity::EntityClassification::WaterCreature:
-        case entity::EntityClassification::WaterAmbient:
-        case entity::EntityClassification::Axolotls:
-        case entity::EntityClassification::UndergroundWaterCreature:
-            // 水生生物需要在水中 - 已由 EntitySpawnPlacementRegistry::checkInWaterSpawn 处理
-            return true;
-
-        case entity::EntityClassification::Misc:
-            // 其他类型无特殊限制
-            return true;
-    }
-
-    return true;
-}
-
-bool NaturalSpawner::_checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster)
-{
-    // 对齐 vanilla Monster.isDarkEnoughToSpawn（Monster.java:84-98）：怪物生成光照门槛用
-    // getMaxLocalRawBrightness（含 skyDarkening 时间衰减），而非原始 skyLight。
-    //
-    // 根因：原实现用 world.getSkyLight（原始天空光，不减 skyDarkening），夜晚露天 skyLight 仍=15，
-    // 怪物光照门槛 max(skyLight,blockLight)<=7 恒拒（15>7）——致怪物永不在夜晚露天地表自然生成，
-    // 违反 vanilla（vanilla 夜晚 skyDarkening 使 getMaxLocalRawBrightness 衰减到 ~4<=7 通过）。
-    // 修复：改用 getMaxLocalRawBrightness(pos)（calculateRawBrightness(blockLight, skyLight, skyDarkening)，
-    // 含 dayTime 驱动的时间衰减），对齐 vanilla isDarkEnoughTospawn 的 maxLocalRawBrightness 判定。
-    //
-    // getMaxLocalRawBrightness 已含 blockLight，故传给 SpawnConditions::checkLightLevel 时 blockLight
-    // 传 0 避免重复 max（checkLightLevel 取 max(skyLight,blockLight)<=7，传 (maxLocalRawBrightness,0)
-    // 等价于 maxLocalRawBrightness<=7，即 vanilla 的 maxLocalRawBrightness<=monsterSpawnLightTest(7)）。
-    const i32 maxLocalRawBrightness = world.getMaxLocalRawBrightness(BlockPos(x, y, z));
-
-    // 使用 SpawnConditions 的光照检查
-    return SpawnConditions::checkLightLevel(maxLocalRawBrightness, 0, isMonster);
+    world::spawn::IWorldSpawnAdapter adapter(world);
+    return EntitySpawnPlacementRegistry::canSpawnEntity(
+        entry.entityTypeId, adapter, SpawnReason::Natural, Vector3i(x, y, z), random);
 }
 
 i32 NaturalSpawner::_getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType)

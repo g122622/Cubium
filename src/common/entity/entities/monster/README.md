@@ -6,7 +6,7 @@
 
 ```
 monster/
-├── MonsterEntity.hpp/cpp          # 敌对生物基类（阳光燃烧、生成条件、敌对行为）
+├── MonsterEntity.hpp/cpp          # 敌对生物基类（敌对行为与光照寻路权重）
 ├── undead/                        # 亡灵类（僵尸、骷髅、幻翼等）
 │   ├── AbstractSkeletonEntity.hpp/cpp  # 骷髅基类（远程/近战切换）
 │   ├── SkeletonEntity.hpp/cpp          # 骷髅
@@ -97,7 +97,7 @@ PhantomEntity (幻翼) 继承自 FlyingEntity（非直接继承 MonsterEntity）
 
 ## 内部模块关系
 
-- **MonsterEntity** 是所有敌对生物的基类，提供阳光燃烧、生成位置检查、敌对目标选择等基础设施
+- **MonsterEntity** 是所有敌对生物的基类，提供敌对目标选择、光照寻路权重等基础设施
 - **undead/**：亡灵类共享治疗药水伤害、伤害药水治疗、免疫中毒等特性
 - **arthropod/**：节肢类共享蜘蛛的攀爬能力、光照敏感攻击逻辑
 - **nether/**：下界生物多数具有火焰免疫，猪灵系有复杂的交易/仇恨机制
@@ -186,8 +186,8 @@ PhantomEntity (幻翼) 继承自 FlyingEntity（非直接继承 MonsterEntity）
 
 ### 光照与生成
 
-10. **光照等级 vs 亮度值**：`getLightSubtracted()` 返回 0-15 光照等级，`getBrightness()` 返回 0.0-1.0 亮度值。怪物生成条件是光照等级 < 7（约 0.47 亮度）
-11. **canMonsterSpawnInLight vs canMonsterSpawn**：前者检查光照，后者不检查（用于刷怪笼）
+10. **生成谓词由 `world/spawn/EntitySpawnPlacementRegistry` 统一注册**；敌对实体基类只保留行为与寻路权重。
+11. **刷怪笼仍受怪物光照门槛约束**，只有试炼刷怪笼原因忽略光照。
 12. **阳光燃烧检查**：`shouldBurnInDaylight()` 默认返回 `true`，蜘蛛等非亡灵类怪物需要重写返回 `false`
 
 ### 特殊行为

@@ -22,71 +22,28 @@
  */
 
 #include "SlimeChunkChecker.hpp"
-#include "common/core/Types.hpp"
-#include "util/assert/AssertAll.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include <bit>
 
 namespace mc::world::spawn {
 
-u64 SlimeChunkChecker::javaSetSeed(u64 seed)
-{
-    // Java: this.seed.set(seed ^ 0x5DEECE66DL) & ((1L << 48) - 1)
-    return (seed ^ JAVA_LCG_MULTIPLIER) & JAVA_LCG_MASK;
-}
-
-i32 SlimeChunkChecker::javaNext(u64& state, i32 bits)
-{
-    // Java: state = (state * multiplier + increment) & mask
-    state = (state * JAVA_LCG_MULTIPLIER + JAVA_LCG_INCREMENT) & JAVA_LCG_MASK;
-    // Java: return (i32)(state >>> (48 - bits))
-    return static_cast<i32>(state >> (48 - bits));
-}
-
-i32 SlimeChunkChecker::javaNextInt(u64& state, i32 bound)
-{
-    MC_ASSERT_RELEASE(bound > 0);
-
-    // 2 的幂次：直接用高位乘法
-    if ((bound & (bound - 1)) == 0) {
-        return static_cast<i32>((static_cast<u64>(bound) * static_cast<u32>(javaNext(state, 31))) >> 31);
-    }
-
-    // 非幂次：拒绝采样法保证均匀分布
-    i32 val;
-    i32 remainder;
-    do {
-        val = javaNext(state, 31);
-        remainder = val % bound;
-    } while (val - remainder + (bound - 1) < 0);
-
-    return remainder;
-}
-
 u64 SlimeChunkChecker::computeSlimeChunkSeed(u64 worldSeed, i32 chunkX, i32 chunkZ)
 {
-    // MC Java 版 WorldgenRandom.seedSlimeChunk 公式:
-    // seed = worldSeed + chunkX^2 * 4987142 + chunkX * 5947611
-    //      + chunkZ^2 * 4392871L + chunkZ * 389711
-    // 注意: Java 运算符优先级中 + 优先于 ^，所以先做所有加法再异或
-    const i64 cx = static_cast<i64>(chunkX);
-    const i64 cz = static_cast<i64>(chunkZ);
-
-    const u64 seed = static_cast<u64>(static_cast<i64>(worldSeed) + cx * cx * CHUNK_X_SQUARED_COEFF +
-        cx * CHUNK_X_COEFF + cz * cz * CHUNK_Z_SQUARED_COEFF + cz * CHUNK_Z_COEFF);
-
-    return seed ^ SLIME_CHUNK_SALT;
+    const auto x = static_cast<u32>(chunkX);
+    const auto z = static_cast<u32>(chunkZ);
+    const auto widen = [](u32 value) {
+        return static_cast<u64>(static_cast<i64>(std::bit_cast<i32>(value)));
+    };
+    // 三项在提升为 long 前先按 int 回绕，z² 同样先以 int 求值。
+    return (worldSeed + widen(x * x * 4987142U) + widen(x * 5947611U) + widen(z * z) * 4392871ULL +
+               widen(z * 389711U)) ^
+        987234911ULL;
 }
 
 bool SlimeChunkChecker::isSlimeChunk(u64 worldSeed, i32 chunkX, i32 chunkZ)
 {
-    const u64 chunkSeed = computeSlimeChunkSeed(worldSeed, chunkX, chunkZ);
-    u64 state = javaSetSeed(chunkSeed);
-    return javaNextInt(state, 10) == 0;
-}
-
-f32 SlimeChunkChecker::getSurfaceSlimeSpawnChance(i32 moonPhase)
-{
-    const i32 index = moonPhase % 8;
-    return MOON_BRIGHTNESS_PER_PHASE[index] * 0.5f;
+    math::JavaLegacyRandom random(computeSlimeChunkSeed(worldSeed, chunkX, chunkZ));
+    return random.nextInt(10) == 0;
 }
 
 } // namespace mc::world::spawn

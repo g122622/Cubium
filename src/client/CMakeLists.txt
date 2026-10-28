@@ -510,7 +510,6 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BlockLightEngine.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/SkyLightEngine.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/lighting/manager/WorldLightManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp

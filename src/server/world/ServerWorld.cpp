@@ -2937,6 +2937,11 @@ bool ServerWorld::isFlatWorld() const
     return m_chunkManager != nullptr && dynamic_cast<FlatChunkGenerator*>(m_chunkManager->generator()) != nullptr;
 }
 
+i32 ServerWorld::seaLevel() const
+{
+    return m_chunkManager->generator()->seaLevel();
+}
+
 DimensionType ServerWorld::getDimensionType() const
 {
     // 标准维度：主世界=0，下界=-1，末地=1

@@ -23,7 +23,9 @@
 
 #include "world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include "core/Constants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -46,6 +48,15 @@ namespace {
 
 class SpawnPlacementTestWorld final : public world::spawn::ISpawnWorldReader, public IWorld {
 public:
+    explicit SpawnPlacementTestWorld(i32 seaLevel)
+        : m_seaLevel(seaLevel)
+    {}
+
+    [[nodiscard]] i32 seaLevel() const override
+    {
+        return m_seaLevel;
+    }
+
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         const auto it = m_blocks.find(BlockPos(x, y, z));
@@ -120,9 +131,9 @@ public:
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
+    [[nodiscard]] bool isWithinWorldBorder(i32 x, i32 y, i32 z) const override
     {
-        return isWithinWorldBounds(x, y, z);
+        return worldBorder().isWithinBounds(BlockPos(x, y, z));
     }
 
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override
@@ -185,9 +196,14 @@ public:
         return Difficulty::Easy;
     }
 
-    [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override
+    [[nodiscard]] world::spawn::SpawnEnvironment environment(const Vector3i&) const override
     {
-        return 15;
+        return world::spawn::SpawnEnvironment{15, 0, 0, false, m_seaLevel, 0, 0, 7, 0};
+    }
+
+    [[nodiscard]] bool hasNearbyPlayer(const Vector3d&, f64) const override
+    {
+        return false;
     }
 
     [[nodiscard]] bool isClientSide() const override
@@ -236,6 +252,7 @@ private:
 
     std::unordered_map<BlockPos, const BlockState*> m_blocks;
     world::border::WorldBorder m_worldBorder;
+    i32 m_seaLevel;
 };
 
 class SupportBlock final : public Block {
@@ -250,13 +267,10 @@ public:
         return false;
     }
 
-    [[nodiscard]] bool isSolidSide(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState&) const override
     {
-        (void)state;
-        (void)world;
-        (void)pos;
-        return side == Direction::Up;
+        static const auto shape = CollisionShape::fullBlock();
+        return shape;
     }
 };
 
@@ -273,6 +287,7 @@ protected:
     {
         // 初始化注册表
         VanillaBlocks::initialize();
+        BlockTags::initialize();
         world::spawn::EntitySpawnPlacementRegistry::initializeDefaults();
     }
 };
@@ -328,8 +343,7 @@ TEST_F(EntitySpawnPlacementRegistryTest, GetHeightmapTypeForUnknownEntity)
 
 TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonValues)
 {
-    // 验证 SpawnReason 枚举值（与 MC 1.16.5 对齐）
-    // 参考: net.minecraft.entity.SpawnReason
+    // 验证持久化的生成原因枚举值
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Natural), 0);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::ChunkGeneration), 1);
     EXPECT_EQ(static_cast<int>(world::spawn::SpawnReason::Spawner), 2);
@@ -356,14 +370,14 @@ TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonNameConversion)
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Spawner), "spawner");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Structure), "structure");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Breeding), "breeding");
-    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::MobSummons), "mob_summons");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::MobSummons), "mob_summoned");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Jockey), "jockey");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Event), "event");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Conversion), "conversion");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Reinforcement), "reinforcement");
-    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Trigger), "trigger");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Trigger), "triggered");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Bucket), "bucket");
-    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::SpawnEgg), "spawn_egg");
+    EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::SpawnEgg), "spawn_item_use");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Command), "command");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Dispenser), "dispenser");
     EXPECT_STREQ(world::spawn::getSpawnReasonName(world::spawn::SpawnReason::Patrol), "patrol");
@@ -377,30 +391,30 @@ TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonFromName)
     EXPECT_EQ(world::spawn::getSpawnReasonByName("spawner"), world::spawn::SpawnReason::Spawner);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("structure"), world::spawn::SpawnReason::Structure);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("breeding"), world::spawn::SpawnReason::Breeding);
-    EXPECT_EQ(world::spawn::getSpawnReasonByName("mob_summons"), world::spawn::SpawnReason::MobSummons);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("mob_summoned"), world::spawn::SpawnReason::MobSummons);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("jockey"), world::spawn::SpawnReason::Jockey);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("event"), world::spawn::SpawnReason::Event);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("conversion"), world::spawn::SpawnReason::Conversion);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("reinforcement"), world::spawn::SpawnReason::Reinforcement);
-    EXPECT_EQ(world::spawn::getSpawnReasonByName("trigger"), world::spawn::SpawnReason::Trigger);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("triggered"), world::spawn::SpawnReason::Trigger);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("bucket"), world::spawn::SpawnReason::Bucket);
-    EXPECT_EQ(world::spawn::getSpawnReasonByName("spawn_egg"), world::spawn::SpawnReason::SpawnEgg);
+    EXPECT_EQ(world::spawn::getSpawnReasonByName("spawn_item_use"), world::spawn::SpawnReason::SpawnEgg);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("command"), world::spawn::SpawnReason::Command);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("dispenser"), world::spawn::SpawnReason::Dispenser);
     EXPECT_EQ(world::spawn::getSpawnReasonByName("patrol"), world::spawn::SpawnReason::Patrol);
 
-    // 测试无效名称返回默认值 Natural
-    EXPECT_EQ(world::spawn::getSpawnReasonByName("invalid"), world::spawn::SpawnReason::Natural);
-    EXPECT_EQ(world::spawn::getSpawnReasonByName(""), world::spawn::SpawnReason::Natural);
+    // 测试无效名称返回空值
+    EXPECT_FALSE(world::spawn::getSpawnReasonByName("invalid").has_value());
+    EXPECT_FALSE(world::spawn::getSpawnReasonByName("").has_value());
 }
 
 TEST_F(EntitySpawnPlacementRegistryTest, SpawnReasonRoundTrip)
 {
     // 测试名称转换的往返一致性
-    for (int i = 0; i <= 15; ++i) {
+    for (int i = 0; i <= 18; ++i) {
         auto reason = static_cast<world::spawn::SpawnReason>(i);
         const char* name = world::spawn::getSpawnReasonName(reason);
-        world::spawn::SpawnReason converted = world::spawn::getSpawnReasonByName(name);
+        const auto converted = world::spawn::getSpawnReasonByName(name);
         EXPECT_EQ(converted, reason) << "Failed for reason index " << i;
     }
 }
@@ -409,6 +423,7 @@ TEST_F(EntitySpawnPlacementRegistryTest, IsSpawnerReason)
 {
     // Spawner 应该返回 true
     EXPECT_TRUE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::Spawner));
+    EXPECT_TRUE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::TrialSpawner));
 
     // 其他生成原因应该返回 false
     EXPECT_FALSE(world::spawn::isSpawnerReason(world::spawn::SpawnReason::Natural));
@@ -538,7 +553,7 @@ TEST_F(EntitySpawnPlacementRegistryTest, SpawnCostsInvalidValues)
 
 TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnUsesSurfaceSupport)
 {
-    SpawnPlacementTestWorld world;
+    SpawnPlacementTestWorld world(63);
     SupportBlock supportBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     world.setBlockState(0, 63, 0, &supportBlock.defaultState());
@@ -554,15 +569,23 @@ TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnUsesSurfaceSupport)
 
 TEST_F(EntitySpawnPlacementRegistryTest, OnGroundSpawnRejectsBarrierLikeBlocks)
 {
-    SpawnPlacementTestWorld world;
+    SpawnPlacementTestWorld world(63);
     SupportBlock supportBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
-    blocks::BarrierBlock barrierBlock(BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     world.setBlockState(0, 63, 0, &supportBlock.defaultState());
-    world.setBlockState(0, 64, 0, &barrierBlock.defaultState());
+    world.setBlockState(0, 64, 0, &VanillaBlocks::BARRIER->defaultState());
 
     EXPECT_FALSE(world::spawn::EntitySpawnPlacementRegistry::canSpawnAtLocation(
         world::spawn::PlacementType::OnGround, world, Vector3i(0, 64, 0), "minecraft:pig"));
+}
+
+TEST_F(EntitySpawnPlacementRegistryTest, WorldAdapterReadsGeneratorSeaLevel)
+{
+    for (const i32 seaLevel : {-63, 0, 32, 128}) {
+        SpawnPlacementTestWorld world(seaLevel);
+        const world::spawn::IWorldSpawnAdapter adapter(world);
+        EXPECT_EQ(adapter.environment(Vector3i(0, 64, 0)).seaLevel, seaLevel);
+    }
 }
 
 } // namespace test

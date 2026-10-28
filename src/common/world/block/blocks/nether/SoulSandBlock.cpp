@@ -38,6 +38,18 @@ SoulSandBlock::SoulSandBlock(BlockProperties properties)
     : Block(std::move(properties))
 {}
 
+const CollisionShape& SoulSandBlock::getCollisionShape(const BlockState&) const
+{
+    static const auto shape = CollisionShape::fromPixelBox(0, 0, 0, 16, 14, 16);
+    return shape;
+}
+
+const CollisionShape& SoulSandBlock::getBlockSupportShape(const BlockState&) const
+{
+    static const auto shape = CollisionShape::fullBlock();
+    return shape;
+}
+
 void SoulSandBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 调度 tick 以检查上方水源并生成涌流气泡柱。

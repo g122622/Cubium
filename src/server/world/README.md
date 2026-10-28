@@ -6,7 +6,7 @@
 
 ```
 src/server/world/
-├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/chunkManager区块访问）
+├── ServerWorld.hpp/cpp              # 服务端世界核心类（生成器海平面/区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/chunkManager区块访问）
 ├── ServerLightQueue.hpp/cpp         # 运行时方块变更光照延迟队列（按区块分组去重，tick drain→submit worker 或 fallback 同步）
 ├── RuntimeLightingProvider.hpp/cpp  # 运行时/区块加载光照 worker provider（继承 StarLightLightingProvider；构造时 5×5 shared_ptr 保活；markLightChanged 收集 dirty section 而非回调）
 ├── RuntimeLightTask.hpp/cpp         # 运行时光照传播 worker 任务（继承 ITask；execute 经 TLS 引擎调 blocksChangedInChunk 传播→取 dirty→_enqueueLightFlush 入主线程 flush 队列）
@@ -34,7 +34,6 @@ src/server/world/
 │   └── README.md
 ├── spawn/
 │   ├── NaturalSpawner.hpp/cpp       # 自然生成器（怪物/动物/环境生物）
-│   ├── SpawnConditions.hpp/cpp      # 生成条件检查工具
 │   ├── DespawnManager.hpp/cpp       # 消失管理器（实体消失距离检查）
 │   ├── VillageSiege.hpp/cpp         # 村庄围攻事件
 │   └── README.md
@@ -70,7 +69,7 @@ LIGHT 票据释放由后续统一票据推进传播，避免批量发送区块�
          │                   │                                            │
          ▼                   ▼                                            ▼
 ┌─────────────────┐ ┌─────────────────┐                          ┌─────────────────┐
-│ChunkTaskScheduler│ │ItemPickupManager│                          │ SpawnConditions │
+│ChunkTaskScheduler│ │ItemPickupManager│                          │ 生成规则注册表 │
 │ (生成调度核心)   │ │  (物品拾取)      │                          │  (生成条件)      │
 └────────┬────────┘ └─────────────────┘                          └─────────────────┘
          │
@@ -93,7 +92,7 @@ LIGHT 票据释放由后续统一票据推进传播，避免批量发送区块�
 - `ServerChunkManager` 持有每世界独立的 `AreaTaskScheduler`；`ChunkTaskScheduler` 持有 `ReentrantAreaLock` 保护生成依赖图，并委托世界区域调度器分发任务，协调 `SingleChunkLifecycleManager` 的状态推进
 - `ChunkProgressionTask` 由 `ChunkTaskScheduler` 提交到 worker 池执行，构建 `WorldGenRegion`（邻居从 `StaticChunkCache2D<ChunkPrimer*>` 转换）并调用 `ServerChunkManager::_executeStepTask`
 - `EntityTracker` 与 `ItemPickupManager` 协同处理实体可见性和拾取
-- `NaturalSpawner` 依赖 `SpawnConditions` 进行生成位置检查
+- `NaturalSpawner` 通过公共生成注册表检查放置条件与实体谓词
 
 ## 上下游外部依赖关系
 

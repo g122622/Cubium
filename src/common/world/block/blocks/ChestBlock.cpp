@@ -64,11 +64,11 @@ namespace blocks {
 // ========== 常量 ==========
 
 namespace {
-// VoxelShape 碰撞箱
-constexpr f32 CHEST_WIDTH = 14.0f;
-constexpr f32 CHEST_HEIGHT = 14.0f;
-constexpr f32 CHEST_DEPTH = 14.0f;
-constexpr f32 CHEST_OFFSET = 1.0f;
+const auto _singleShape = CollisionShape::fromPixelBox(1, 0, 1, 15, 14, 15);
+const auto _northShape = CollisionShape::fromPixelBox(1, 0, 0, 15, 14, 15);
+const auto _southShape = CollisionShape::fromPixelBox(1, 0, 1, 15, 14, 16);
+const auto _westShape = CollisionShape::fromPixelBox(0, 0, 1, 15, 14, 15);
+const auto _eastShape = CollisionShape::fromPixelBox(1, 0, 1, 16, 14, 15);
 } // namespace
 
 // ========== 构造函数 ==========
@@ -97,6 +97,26 @@ ChestBlock::ChestBlock(const BlockProperties& properties)
 }
 
 // ========== 放置和更新 ==========
+
+const CollisionShape& ChestBlock::getShape(const BlockState& state) const
+{
+    if (state.get(BlockStateProperties::CHEST_TYPE()) == BlockStateProperties::ChestType::Single) {
+        return _singleShape;
+    }
+    switch (getConnectedDirection(state)) {
+        case Direction::North:
+            return _northShape;
+        case Direction::South:
+            return _southShape;
+        case Direction::West:
+            return _westShape;
+        case Direction::East:
+            return _eastShape;
+        default:
+            MC_ASSERT_RELEASE(false);
+            return _singleShape;
+    }
+}
 
 BlockState ChestBlock::getStateForPlacement(BlockItemUseContext& context)
 {

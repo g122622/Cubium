@@ -36,6 +36,7 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
@@ -54,25 +55,17 @@ namespace mc {
  * 将 WorldGenRegion 适配为 ISpawnWorldReader 接口，
  * 用于 EntitySpawnPlacementRegistry 的位置检查。
  */
-class WorldGenRegionAdapter : public world::spawn::ISpawnWorldReader {
+class WorldGenRegionAdapter final : public world::spawn::IWorldSpawnAdapter {
 public:
-    explicit WorldGenRegionAdapter(WorldGenRegion& region)
-        : m_region(region)
+    WorldGenRegionAdapter(WorldGenRegion& region, i32 seaLevel)
+        : IWorldSpawnAdapter(region)
+        , m_region(region)
+        , m_seaLevel(seaLevel)
     {}
-
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
-    {
-        return m_region.getBlockState(x, y, z);
-    }
-
-    [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
-    {
-        return world::isValidY(y);
-    }
 
     [[nodiscard]] i32 getHeight(HeightmapType type, i32 x, i32 z) const override
     {
-        return m_region.getTopBlockY(x, z, type);
+        return m_region.getTopBlockY(x, z, type) + 1;
     }
 
     [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override
@@ -80,37 +73,16 @@ public:
         return m_region.getBiome(x, y, z);
     }
 
-    [[nodiscard]] u64 seed() const override
+    [[nodiscard]] world::spawn::SpawnEnvironment environment(const Vector3i& pos) const override
     {
-        return m_region.seed();
-    }
-
-    [[nodiscard]] Difficulty difficulty() const override
-    {
-        return m_region.difficulty();
-    }
-
-    [[nodiscard]] i64 dayTime() const override
-    {
-        return m_region.dayTime();
-    }
-
-    [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
-    {
-        const u8 blockLight = m_region.getBlockLight(x, y, z);
-        const u8 skyLight = m_region.getSkyLight(x, y, z);
-        const i32 skyDarkening = InternalLightUtils::calculateSkyDarkening(
-            m_region.dayTimeOfDay(), m_region.isRaining(), m_region.isThundering());
-        return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
-    }
-
-    [[nodiscard]] i32 getRawSkyLight(i32 x, i32 y, i32 z) const override
-    {
-        return m_region.getSkyLight(x, y, z);
+        auto value = IWorldSpawnAdapter::environment(pos);
+        value.seaLevel = m_seaLevel;
+        return value;
     }
 
 private:
     WorldGenRegion& m_region;
+    i32 m_seaLevel;
 };
 
 // ============================================================================
@@ -130,7 +102,7 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
     const Biome& biome,
     i32 chunkX,
     i32 chunkZ,
-    IChunkGenerator& /*generator*/,
+    IChunkGenerator& generator,
     math::IRandom& random,
     std::vector<SpawnedEntityData>& outEntities)
 {
@@ -228,9 +200,9 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
             i32 spawned = _spawnGroup(region,
                 *entityType,
                 static_cast<f32>(groupX) + 0.5f,
-                static_cast<f32>(spawnY),
                 static_cast<f32>(groupZ) + 0.5f,
                 count,
+                generator.seaLevel(),
                 random,
                 outEntities);
 
@@ -257,9 +229,9 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
 i32 WorldGenSpawner::_spawnGroup(WorldGenRegion& region,
     const entity::EntityType& entityType,
     f32 x,
-    [[maybe_unused]] f32 y,
     f32 z,
     i32 count,
+    i32 seaLevel,
     math::IRandom& random,
     std::vector<SpawnedEntityData>& outEntities)
 {
@@ -312,7 +284,7 @@ i32 WorldGenSpawner::_spawnGroup(WorldGenRegion& region,
         }
 
         // 检查实体特定的生成规则（如蝙蝠需要光照<4等）
-        WorldGenRegionAdapter adapter(region);
+        WorldGenRegionAdapter adapter(region, seaLevel);
         const Vector3i checkPos(spawnXi, spawnY, spawnZi);
         if (!world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(
                 entityType.name(), adapter, world::spawn::SpawnReason::ChunkGeneration, checkPos, random)) {
@@ -418,7 +390,7 @@ bool WorldGenSpawner::_canSpawnAt(
         world::spawn::EntitySpawnPlacementRegistry::getPlacementType(entityType.name());
 
     // 创建适配器用于位置检查
-    WorldGenRegionAdapter adapter(region);
+    world::spawn::IWorldSpawnAdapter adapter(region);
     const Vector3i pos(x, y, z);
 
     // 使用 EntitySpawnPlacementRegistry 检查位置是否适合生成

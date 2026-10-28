@@ -365,12 +365,9 @@ if (entity->entityType() == entity::VanillaEntityTypeKeys::PIG) {
 
 `Entity::getRandom()` 返回 `math::Random&`（持久化引用），不再按值返回临时对象。旧 `MobEntity::getRandom()` 已移除。所有实体共享 `Entity` 基类的实现。使用引用赋值 `math::Random& rng = entity->getRandom()` 而非值赋值。详见 `core/README.md` 中的"实体随机数生成器"条目。
 
-### 24. MonsterEntity 光照等级检查 (isValidLightLevel)
+### 24. 生成光照与实体谓词
 
-`MonsterEntity::isValidLightLevel()` 实现了 MC 1.16.5 的两阶段光照检查：
-- 第一阶段：天空光照 > random(0-31) 则太亮
-- 第二阶段：综合光照 <= random(0-7) 则足够暗
-- 雷暴天气使用固定的天空减暗值 10，允许怪物在白天生成
+`world/spawn/EntitySpawnPlacementRegistry` 统一处理生成谓词：先检查难度，再按原因执行光照与脚下支撑条件。怪物光照包含天空光随机拒绝、维度方块光上限和亮度采样；普通刷怪笼保留光照要求，试炼刷怪笼忽略光照。
 
 ### 25. 步进高度（stepHeight）
 

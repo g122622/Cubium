@@ -51,9 +51,12 @@ public:
     /**
      * @brief 返回略矮的碰撞形状（14/16格高）
      *
-     * 实体会略微沉入泥巴中。支持形状和视觉形状仍为完整方块（使用默认实现）。
+     * 实体会略微沉入泥巴中。支撑形状和视觉形状仍为完整方块。
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /** @brief 支撑面保持完整立方体，不随下沉的碰撞形状降低。 */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
 
     /**
      * @brief 泥巴不可被路径寻找通过

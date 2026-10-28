@@ -46,6 +46,8 @@ tests/diff/
 │   ├── command_tree.cpp         # 命令图、参数编码、节点属性与完整协议字节
 │   ├── advancement.cpp          # 进度定义
 │   ├── biome_spawns.cpp         # 生物群系自然生成配置
+│   ├── spawn_placement.cpp      # 实体放置类型、高度图与受控方块柱中的位置判定
+│   ├── spawn_rules.cpp          # 生成谓词、位置检查与后续随机抽样
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -61,6 +63,7 @@ tests/diff/
     └── harnesses/               # 声明式 harness 与注册表
         ├── index.ts             # 注册表 + run all / run <name>
         ├── loot_context.ts      # 战利品三个探针的上下文模板与已知缺口
+        ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
         └── known_missing_items.ts   # 物品侧已知缺口清单
 ```
 
@@ -171,7 +174,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ## 当前状态
 
-二十二个能力已接入，`node tests/diff/harness/runner.ts run all` 退出码 0（全部一致）：
+以下能力已接入。结果描述最近一次验证；`spawn_placement` 单独比较实际位置判定，
+不把静态群系配置通过视为运行时生成规则通过。
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
@@ -197,6 +201,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 全部一致 | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
+| `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
+| `spawn_rules` | 原版 jar `SpawnRulesOracle` | 157 种实体 / 168,876 个场景 | 全部一致 | — |
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
@@ -395,13 +401,50 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 - **解码逻辑上移到 common**：`BiomeLoader` 与探针共用 `MobSpawnInfoJson`，探针测的就是
   服务端真正跑的那段代码。
 
-### 配方：全部一致
+### 生成位置：共同场景逐项比较
+
+沿用 Horizon 的 `tools/test_spawn_rules_parity.py` 与 `VanillaSpawnRulesOracle` 的方法：
+共同输入描述方块柱，两侧实际调用生产代码。`SpawnPlacementOracle` 直接调用 1.21.11 的
+`SpawnPlacements.isSpawnPositionOk`，不移植 26.3 的预期结果。
+
+全部 157 种实体均比较放置类型、高度图、332 种位置场景，合计 52,124 次判定。
+同一种方块状态分别放到脚下、脚部、头部和水面上方，覆盖半砖/楼梯、单箱/双箱、
+树叶、危险方块、信号源、禁入标签、流水、含水方块、水下植物、边界内外与建筑高度外位置。
+没有实体豁免。Java 世界只提供用例明确给出的数据，意外访问其他能力直接失败。
+
+该能力不调用生成谓词，因此不覆盖光照、难度、生成原因和随机数消耗；这些属于
+`spawn_rules` 中 Horizon `checkSpawnRules` 与后续 `nextInt(1000)` 对应的验证。
+公共探针入口使用完整 JSON 行读取，允许一条输入携带超过 4095 字节的共同场景集。
+
+### 生成谓词：结果与随机数消耗一起比较
+
+`spawn_rules` 沿用 Horizon 的受控 `ServerLevel`：从共同输入设置方块柱、光照、雷雨、
+海平面、世界种子、群系、地表史莱姆环境属性和附近玩家，直接运行 1.21.11 的
+`SpawnPlacements.checkSpawnRules`，随后记录同一随机源的 `nextInt(1000)`。
+位置检查独立运行，即使位置不合格也比较谓词，防止前置拒绝掩盖分支或随机消耗差异。
+
+覆盖全部 157 种实体、19 种原因、三种维度的光照门槛、四种难度、多个海平面边界与
+玩家 5 格距离边界。普通实体各 1,068 个场景；史莱姆与僵尸各追加 600 个区块坐标和世界种子
+场景，总计 168,876 个。原版世界使用显式环境属性值，群系标签在两侧都来自同一个数据包。
+输出完整比较 `positionOk`、`rulesOk`、`nextRandom`，不设置实体或字段豁免。
+
+生产代码将 82 个注册谓词与位置检查分开，运行期世界和生成区域共用读取逻辑。区块首次
+生成额外传入生成器的实际海平面；地表史莱姆读环境属性，区块史莱姆复用 JavaLegacyRandom，
+其种子计算保留 Java 在提升为 long 之前的 int 回绕。
+
+### 配方：定义与装配结果
 
 `recipe` 把数据包 `recipe/*.json` 交给服务端的 `RecipeLoader::loadRecipeJson`，再从
 `RecipeManager` 按 ID 取回做结构化摘要，与原版 `RecipeManager#getRecipe` 的结果比对：
 序列化器 ID（原版配方注册表的键）、分组、每个原料的候选物品集合（标签展开成成员，
 与原版 `Recipe#placementInfo().ingredients()` 同口径）、有序配方的宽高、结果物品与数量
 （原版侧跑一次真实 `assemble`）、烹饪时间/经验。
+
+锻造配方沿用 Horizon 的两阶段方法：先由 oracle 导出原料并选取资源 ID 最小的候选，
+再把同一份具体三槽输入写进共同 JSONL。30 个锻造配方比较输入、`matches` 和两侧实际
+`assemble` 的结果物品/数量，避免标签成员迭代顺序影响样本。原版直接复用已加载资源的
+注册表，无需构造世界；异常直接失败，不再转成空结果。结果摘要尚不比较数据组件，
+纹饰组件的写入仍由业务源码中的 TODO 跟踪。
 
 对齐过程中修掉的真问题：
 
@@ -424,9 +467,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   （`crafting_special_armordye`、`crafting_decorated_pot`……），Cubium 一律返回
   `minecraft:special`。`SpecialRecipe::getSerializerId` 由装载器按数据包写入；地图扩展的
   放置信息（3×3 外圈纸、正中已填充地图）由 `RecipeSerializers::placementIngredients` 给出；
-- **纹饰配方的合成结果**：原版对「底材原料的首个物品 + 添加物原料的首个物品」真的合成一次，
-  匹配不上时结果为空；Cubium 此前直接返回底材副本。`SmithingTrimRecipe::assemble` 现在
-  在底材为空时返回空（TRIM 组件的写入仍是 TODO，见源码）；
+- **纹饰配方的样本必须相同**：此前 Java 取标签首个物品为皮革靴，C++ 则可能取到钻石胸甲，
+  导致 18 个结果差异。现在三槽输入由同一份夹具给定，匹配失败时两侧都输出空结果；
 - **樱桃 / 红树 / 苍白橡木的原木在物品里缺失**：`BlockItemRegistry` 注册这三组原木时
   用的方块指针在建表阶段还是空指针；现在与其它树种同一路径注册后，相关标签与配方才能
   正常展开。

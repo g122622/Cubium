@@ -154,9 +154,9 @@ private:
      * @param region 世界生成区域
      * @param entityType 实体类型
      * @param x X 坐标
-     * @param y Y 坐标
      * @param z Z 坐标
      * @param count 生成数量
+     * @param seaLevel 区块生成器的海平面
      * @param random 随机数生成器
      * @param outEntities 输出：生成的实体数据
      * @return 实际生成的数量
@@ -164,9 +164,9 @@ private:
     i32 _spawnGroup(WorldGenRegion& region,
         const entity::EntityType& entityType,
         f32 x,
-        f32 y,
         f32 z,
         i32 count,
+        i32 seaLevel,
         math::IRandom& random,
         std::vector<SpawnedEntityData>& outEntities);
 

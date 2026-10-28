@@ -67,6 +67,9 @@ public:
     explicit KelpBlock(const BlockProperties& properties);
     ~KelpBlock() override = default;
 
+    /** @brief 海带占据水源，方块状态始终携带水流体。 */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     // ========== 状态属性 ==========
 
     /**

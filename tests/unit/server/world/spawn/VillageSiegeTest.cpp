@@ -258,35 +258,6 @@ TEST_F(VillageSiegeTest, VillageCondition_ProtectsEmptyVillages)
     EXPECT_NE(siege, nullptr);
 }
 
-// ========== 光照检查测试 ==========
-// 注意：光照检查委托给 MonsterEntity::isValidLightLevel
-// 这是完整的 MC 1.16.5 实现
-
-TEST_F(VillageSiegeTest, LightCheck_UsesMonsterEntityImplementation)
-{
-    // 光照检查使用 MonsterEntity::isValidLightLevel()
-    // 实现逻辑：
-    // 1. 天空光照 > random.nextInt(32) -> 不能生成
-    // 2. 方块光照 <= random.nextInt(8) -> 可以生成
-    //
-    // 集成测试场景：
-    // - 黑暗位置（天空光=0, 方块光=0）-> 允许生成
-    // - 明亮位置（天空光=15, 方块光=15）-> 不允许生成
-    // - 中等光照 -> 随机判定
-    EXPECT_NE(siege, nullptr);
-}
-
-TEST_F(VillageSiegeTest, LightCheck_RandomThreshold)
-{
-    // 光照阈值使用随机值，而非固定值
-    // 这使得低光照区域有更高概率生成怪物
-    //
-    // 阈值范围：
-    // - 天空光照阈值：0-31
-    // - 方块光照阈值：0-7
-    EXPECT_NE(siege, nullptr);
-}
-
 // ========== 难度检查测试 ==========
 
 TEST_F(VillageSiegeTest, DifficultyCheck_PeacefulPreventsSiege)
