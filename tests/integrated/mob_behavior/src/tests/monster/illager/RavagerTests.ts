@@ -208,9 +208,13 @@ function ravagerRoarDamagesNearbyEntities(test: Test): void {
     if (health === undefined) return false;
     return (health as any).currentValue < 8;
   }, {
-    startTick: 40,
-    // 每 tick 校正一次朝向：极兽的攻击冷却 20 tick，若校正滞后一个 10 tick 的轮询周期，
-    // 格挡判定的时刻，朝向就可能已经偏出格挡角，这次 50% 的眩晕抽签根本没走到。
+    // startTick 取 1 而不是 40：轮询回调同时承担「每 tick 重举盾 + 校正朝向」的职责，
+    // 若从 40 才开始，前 40 tick 玩家只有 tick 0 那一次 useItem 设的格挡，可能在劫掠兽
+    // 首次攻击之前就已自行结束（tick 0 的朝向也可能已被首轮击退打偏）。CI 上的表现正是
+    // 整条链一次都没走通（sheepHp=8），本地因调度差异恰好能过。
+    startTick: 1,
+    // 每 tick 校正一次朝向与格挡：劫掠兽攻击冷却 20 tick，校正若滞后一个 10 tick 周期，
+    // 格挡判定时刻的朝向就可能已经偏出格挡角，这次 50% 的眩晕抽签根本没走到。
     interval: 1,
     maxTick: 900,
     onTimeout: () => {
