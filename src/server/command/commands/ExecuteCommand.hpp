@@ -74,6 +74,23 @@ private:
 
     static i32 _executeForwarded(CommandContext<ServerCommandSource>& context);
     static i32 _executeRun(CommandContext<ServerCommandSource>& context);
+
+    // ========== 条件求值（/execute if|unless） ==========
+
+    /**
+     * @brief 求值 `if block <pos> <block>` 条件
+     *
+     * 判定 pos 处的方块是否匹配给定的方块谓词。谓词中显式写出的属性必须一致，
+     * 未写出的属性不做限制（对齐 vanilla 的 BlockPredicate 语义）。
+     *
+     * 若上下文里没有 pos / block 参数（说明走的是尚未落地的其他条件名），返回 false。
+     *
+     * @param target 当前命令源（用于解析相对坐标）
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateBlockCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

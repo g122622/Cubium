@@ -34,6 +34,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -288,6 +289,33 @@ private:
             }
             current = next.get();
         }
+
+        // 上面这条路径只适用于「修改器下直接挂参数」的形态（as/at/in）。
+        // 入口是**字面量**的修改器（if/unless：`if block <pos> <block>`）在第一步
+        // 就取不到参数子节点，path 为空、segment 建不出来，整条条件链因此永远解析失败。
+        // 这里为这类修改器补一条独立路径：在它的字面量子树里找到唯一一条「以参数结尾、
+        // 且沿途没有分叉到别的参数」的路径，并**把字面量也算进去**——派发时 `block`
+        // 本身就是输入的一部分，漏掉它会让重建的路径从 pos 开始，dispatcher 报
+        // "Unknown argument"。
+        //
+        // 只在 path 为空时启用，as/at/in/positioned 等原有形态完全不受影响。
+        if (path.empty()) {
+            const auto& literals = modifier.getLiterals();
+            for (const auto& literalName : literals) {
+                auto literalNode = modifier.getChild(literalName);
+                if (!literalNode) {
+                    continue;
+                }
+                std::vector<const CommandNode<ServerCommandSource>*> literalPath;
+                if (!buildLiteralPath(*literalNode, literalPath)) {
+                    continue;
+                }
+                path.push_back(literalNode.get());
+                path.insert(path.end(), literalPath.begin(), literalPath.end());
+                break;
+            }
+        }
+
         if (path.empty()) {
             return nullptr;
         }
@@ -313,6 +341,38 @@ private:
             }
         }
         return nullptr;
+    }
+
+    /**
+     * @brief 在字面量子树里找一条「参数串到底」的路径（不含入口字面量自身）
+     *
+     * 供 if/unless 这类「入口是字面量」的修改器使用：`block`(入口) 下挂着
+     * `pos`(参数) 与 `block`(参数)，本函数返回 [pos, block]。
+     *
+     * 规则：从 node 起，只要还能取到参数子节点就往里走一层；**参数名不重复**才算有效
+     * （重复说明绕回了同一个槽，说明这条路径不可用）。
+     *
+     * @return 找到返回 true 并填充 outPath；找不到返回 false
+     */
+    static bool buildLiteralPath(
+        const CommandNode<ServerCommandSource>& node, std::vector<const CommandNode<ServerCommandSource>*>& outPath)
+    {
+        const CommandNode<ServerCommandSource>* current = &node;
+        std::set<std::string> seen;
+        while (true) {
+            auto child = firstArgumentChild(*current);
+            if (!child) {
+                break;
+            }
+            if (!seen.insert(child->getName()).second) {
+                // 参数名重复：说明这条路会绕回已用过的槽，不可用。
+                outPath.clear();
+                return false;
+            }
+            outPath.push_back(child.get());
+            current = child.get();
+        }
+        return !outPath.empty();
     }
 
     [[nodiscard]] static i32 modifierIndex(const std::string& literal)

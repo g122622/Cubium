@@ -32,6 +32,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/DimensionArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
@@ -77,9 +78,17 @@ void attachRunToLeaves(const std::shared_ptr<CommandNode<ServerCommandSource>>& 
         if (!child) {
             continue;
         }
+        // 跳过 run 链接自身：它刚被挂到某个参数节点下，继续沿它递归会经
+        // run → command 绕回、无限下探（实测触发 STACK_OVERFLOW）。
+        if (child == runLink) {
+            continue;
+        }
         if (child->getType() == NodeType::Argument) {
             child->addChild(runLink);
-            continue;
+            // 不能在这里 return：参数节点自身也可能是**多参数链的中间层**
+            // （`if block <pos> <block>`：pos 下还挂着 block 参数）。只给 pos 挂 run
+            // 的话，输入读完 pos 之后 dispatcher 在 pos 下找不到能吃掉方块谓词的分支，
+            // 于是报 Unknown argument。继续下探，让链上每个参数都能直接接 run。
         }
         attachRunToLeaves(child, runLink);
     }
@@ -262,11 +271,34 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     executeNode->addChild(storeNode);
 
     // ========== if / unless <条件> ==========
-    // 条件列表与原版一致；条件的具体参数树尚未落地，先按字面量占位（执行时见 _executeCondition*）。
+    // if/unless 与其它修改器一样参与链式派发：它们是 ExecuteModifierNode，parse 时把
+    // 自身索引写进 commandModifier，由 ExecuteRunNode 拼成链段并在执行期求值。
+    //
+    // 与其它修改器的结构差异：入口是**条件名字面量**（block/biome/...），参数在字面量
+    // 之后。ExecuteRunNode::buildSegment 对这类形态有单独处理（见 buildLiteralPath）。
+    //
+    // 目前只落地了 block：`if block <pos> <block>`。其余条件名保留为占位字面量，
+    // 保证 `/execute if biome ...` 至少能解析到该字面量而不会报 Unknown argument。
+    //
+    // TODO: 补齐其余条件（biome/blocks/data/dimension/entity/function/items/loaded/
+    // predicate/score/stopwatch）的参数树与求值逻辑。
     for (const char* kind : {"if", "unless"}) {
-        auto conditionNode = child(kind);
-        for (const char* name : {"biome",
-                 "block",
+        auto conditionNode = modifier(kind);
+
+        // if block <pos> <block>：判定「指定位置是否是指定方块（谓词）」。
+        // 两个参数必须串成 pos → block 的父子链；挂成兄弟节点的话，pos 解析完
+        // dispatcher 在 pos 下只剩 run，会把后面的方块谓词当成多余输入。
+        auto blockCondNode = child("block");
+        auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+            "pos", Vec3ArgumentType::vec3());
+        posArg->addChild(std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
+            "block", BlockStateArgumentType::blockState()));
+        blockCondNode->addChild(posArg);
+        conditionNode->addChild(blockCondNode);
+
+        // 其余条件暂以占位字面量存在（参数树与求值均未实现，见上方 TODO）。
+        for (const char* name : {
+                 "biome",
                  "blocks",
                  "data",
                  "dimension",
@@ -276,7 +308,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
                  "loaded",
                  "predicate",
                  "score",
-                 "stopwatch"}) {
+                 "stopwatch",
+             }) {
             conditionNode->addChild(child(name));
         }
         executeNode->addChild(conditionNode);
@@ -297,7 +330,17 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         runCommand->setCommand(forwardingCommand);
         runCommand->setTreeHidden(true);
         runLink->addChild(runCommand);
-        modNode->addChild(runLink);
+        // if/unless 不把 run 挂在自身这一层：它们的下一跳必然是条件名字面量
+        // （block/biome/...）。挂在这里的话 dispatcher 会先尝试 run，把
+        // `if block <pos> <block> run ...` 里的 block 当成 run 前的多余输入，
+        // 使整条条件链解析失败。其余修改器行为保持不变。
+        // if/unless 不把 run 挂在自身这一层：它们的下一跳必然是条件名字面量
+        // （block/biome/...）。挂在这里的话 dispatcher 会先尝试 run，把
+        // `if block <pos> <block> run ...` 里的 block 当成 run 前的多余输入。
+        const std::string modName = modNode->getName();
+        if (modName != "if" && modName != "unless") {
+            modNode->addChild(runLink);
+        }
         attachRunToLeaves(modNode, runLink);
     }
 
@@ -458,11 +501,65 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
             const f32 yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / 3.14159265358979323846 - 90.0);
             const f32 pitch = static_cast<f32>(-std::atan2(dy, horizontal) * 180.0 / 3.14159265358979323846);
             target = target.withRotation(Vector2f(yaw, pitch));
+        } else if (verb == "if" || verb == "unless") {
+            // 条件不成立时整条链中断、嵌套命令不执行、返回 0（对齐 vanilla
+            // ExecuteCommand 的条件失败语义）。unless 即 if 取反。
+            const bool conditionMet = _evaluateBlockCondition(target, context);
+            if (conditionMet == (verb == "unless")) {
+                return 0;
+            }
         }
         // on / store 等：执行链已能解析，语义留待后续批次。
     }
 
     return executeNestedCommand(target, command);
+}
+
+bool ExecuteCommand::_evaluateBlockCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    // 目前只有 `if block <pos> <block>` 落了参数树；其他条件名仍是占位字面量，
+    // 解析时不会写入 pos / block，这里按「条件不成立」处理。
+    // TODO: 其余条件落地后，这里要按条件名分派，而不是只认 block。
+    if (!context.hasArgument("pos") || !context.hasArgument("block")) {
+        return false;
+    }
+
+    auto* world = target.world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    const Vector3d resolved = Vec3ArgumentType::getVec3(context, "pos", target);
+    const BlockPos blockPos(static_cast<i32>(std::floor(resolved.x)),
+        static_cast<i32>(std::floor(resolved.y)),
+        static_cast<i32>(std::floor(resolved.z)));
+
+    const BlockState* actual = world->getBlockState(blockPos);
+    if (actual == nullptr) {
+        return false;
+    }
+
+    const BlockStateInput wanted = context.getArgumentOr<BlockStateInput>("block", BlockStateInput{});
+    const BlockState* wantedState = wanted.state();
+    if (wantedState == nullptr) {
+        return false;
+    }
+
+    // 方块类型必须一致。
+    if (actual->getBlock().blockId() != wantedState->getBlock().blockId()) {
+        return false;
+    }
+
+    // 谓词里显式写出的属性必须逐一致；未写出的属性不限制（对齐 vanilla BlockPredicate）。
+    for (const IProperty* prop : wanted.explicitProps()) {
+        const auto actualIdx = actual->getValueIndex(*prop);
+        const auto wantedIdx = wantedState->getValueIndex(*prop);
+        if (!actualIdx.has_value() || !wantedIdx.has_value() || *actualIdx != *wantedIdx) {
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace command
