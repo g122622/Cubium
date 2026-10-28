@@ -172,6 +172,25 @@ TEST_F(ExecuteCommandTest, ExecuteIfBlockCommandNoWorld)
     EXPECT_TRUE(result.failed() || result.value() == 0);
 }
 
+TEST_F(ExecuteCommandTest, UnsupportedConditionsNeverExecuteFollowingCommand)
+{
+    mc::i32 executions = 0;
+    auto command = std::make_shared<mc::command::LiteralCommandNode<mc::command::ServerCommandSource>>("record");
+    command->setCommand([&executions](auto&) {
+        ++executions;
+        return 1;
+    });
+    m_server.commandRegistry().dispatcher().registerCommand(command);
+
+    for (const char* input : {"execute if block 0 0 0 stone run record",
+             "execute unless block 0 0 0 stone run record",
+             "execute positioned 0 0 0 if block 0 0 0 stone run record"}) {
+        const auto result = m_server.commandRegistry().execute(input, m_console);
+        EXPECT_TRUE(result.failed()) << input;
+        EXPECT_EQ(executions, 0) << input;
+    }
+}
+
 TEST_F(ExecuteCommandTest, ExecuteUnlessBlockCommandNoWorld)
 {
     const auto result = m_server.commandRegistry().execute("execute unless block 0 0 0 stone run help", m_console);

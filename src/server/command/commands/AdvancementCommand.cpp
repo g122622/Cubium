@@ -31,12 +31,14 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -205,16 +207,24 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /advancement grant <targets> only <advancement>
     auto onlyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("only");
     auto advancementArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     advancementArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _grantAdvancement(ctx, GrantMode::Only);
     });
+    // /advancement grant <targets> only <advancement> [<criterion>]：可选的条件名（贪心字符串）。
+    auto criterionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "criterion", StringArgumentType::greedyString());
+    criterionArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+    criterionArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _grantAdvancement(ctx, GrantMode::Only);
+    });
+    advancementArg->addChild(criterionArg);
     onlyNode->addChild(advancementArg);
 
     // /advancement grant <targets> from <advancement>
     auto fromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
     auto fromArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     fromArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _grantAdvancement(ctx, GrantMode::From);
     });
@@ -223,7 +233,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /advancement grant <targets> through <advancement>
     auto throughNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("through");
     auto throughArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     throughArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _grantAdvancement(ctx, GrantMode::Through);
     });
@@ -232,7 +242,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /advancement grant <targets> until <advancement>
     auto untilNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("until");
     auto untilArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     untilArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _grantAdvancement(ctx, GrantMode::Until);
     });
@@ -260,16 +270,24 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /advancement revoke <targets> only <advancement>
     auto revokeOnlyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("only");
     auto revokeOnlyArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     revokeOnlyArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _revokeAdvancement(ctx, GrantMode::Only);
     });
+    // 原版 revoke only 也接受可选的 criterion。
+    auto revokeCriterionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "criterion", StringArgumentType::greedyString());
+    revokeCriterionArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+    revokeCriterionArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
+        return _revokeAdvancement(ctx, GrantMode::Only);
+    });
+    revokeOnlyArg->addChild(revokeCriterionArg);
     revokeOnlyNode->addChild(revokeOnlyArg);
 
     // /advancement revoke <targets> from <advancement>
     auto revokeFromNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("from");
     auto revokeFromArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     revokeFromArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _revokeAdvancement(ctx, GrantMode::From);
     });
@@ -278,7 +296,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /advancement revoke <targets> through <advancement>
     auto revokeThroughNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("through");
     auto revokeThroughArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     revokeThroughArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _revokeAdvancement(ctx, GrantMode::Through);
     });
@@ -287,7 +305,7 @@ void AdvancementCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
     // /advancement revoke <targets> until <advancement>
     auto revokeUntilNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("until");
     auto revokeUntilArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "advancement", AdvancementResourceArgumentType::advancement());
+        "advancement", std::make_shared<ResourceKeyArgumentType>("minecraft:advancement"));
     revokeUntilArg->setCommand([=](CommandContext<ServerCommandSource>& ctx) {
         return _revokeAdvancement(ctx, GrantMode::Until);
     });

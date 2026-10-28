@@ -2,6 +2,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/GameModeArgument.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -16,13 +17,9 @@ namespace {
 i32 _show(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const auto& input = context.getArgument<std::string>("dialog");
-    auto definition = nlohmann::json::parse(input, nullptr, false);
-    auto packet = !input.empty() && input.front() == '{'
-        ? (definition.is_discarded()
-                  ? Result<mc::network::ir::IrPacket>(Error(ErrorCode::InvalidData, "Invalid dialog JSON"))
-                  : server::net::buildShowDialogIr(definition))
-        : server::net::resolveDialogIr(ResourceLocation(input));
+    // dialog 参数只接受注册表里的对话 id（原版 ResourceArgument<Dialog>）。
+    const ResourceLocation dialogId(context.getArgument<std::string>("dialog"));
+    auto packet = server::net::resolveDialogIr(dialogId);
     if (packet.failed()) {
         source.sendError(packet.error().message());
         return 0;
@@ -65,8 +62,9 @@ void DialogCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto show = std::make_shared<LiteralCommandNode<ServerCommandSource>>("show");
     auto targets = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
+    // 原版 dialog 展开口令取一个注册表里的对话 id（resource 参数，命令树类型名 `dialog`）。
     auto dialog = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "dialog", StringArgumentType::greedyString());
+        "dialog", KeywordArgumentType::resourceId("dialog"));
     dialog->setCommand(_show);
     targets->addChild(dialog);
     show->addChild(targets);

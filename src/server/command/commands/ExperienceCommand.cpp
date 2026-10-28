@@ -65,7 +65,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     xpNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
     });
-    xpNode->setRedirect(experienceNode);
+    xpNode->setRedirect(experienceNode, RedirectModifier::None);
 
     // /experience add <player> <amount> [points|levels]
     // 注意：amount 参数允许负值（原版 MC 支持）
@@ -125,9 +125,7 @@ void ExperienceCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     queryLevelsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return queryLevels(ctx);
     });
-    queryPlayerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return queryLevels(ctx);
-    });
+    // 原版 query <target> 必须是完整的：target 之后还要跟 points|levels。
     queryPlayerArg->addChild(queryPointsNode);
     queryPlayerArg->addChild(queryLevelsNode);
     queryNode->addChild(queryPlayerArg);

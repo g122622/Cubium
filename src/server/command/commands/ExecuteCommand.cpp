@@ -32,9 +32,13 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/DimensionArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/FunctionArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ItemArgument.hpp"
+#include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
@@ -55,11 +59,40 @@
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace command {
+
+namespace {
+
+// TODO: 条件求值接入前，完整条件链必须显式失败，不能穿过重定向执行后续命令。
+class _ExecuteConditionNode final : public LiteralCommandNode<ServerCommandSource> {
+public:
+    explicit _ExecuteConditionNode(const char* name)
+        : LiteralCommandNode<ServerCommandSource>(name)
+    {}
+
+    void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    {
+        LiteralCommandNode<ServerCommandSource>::parse(reader, context);
+        context.markParsed("executeCondition");
+    }
+};
+
+/// 原版 /execute 的条件参数（storage 的 id、function 的 name、score 的持有者、summon 的实体、
+/// store 的 bossbar/score/storage 目标）在注册时由命令自己挂了 suggestResource / suggestScoreHolders
+/// 一类的提供器，命令树里带建议提供器位；这里给参数节点挂上自定义提供器以对齐。
+void attachCommandSuggestions(const std::shared_ptr<CommandNode<ServerCommandSource>>& node)
+{
+    node->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+}
+
+} // namespace
 
 namespace {
 
@@ -83,6 +116,196 @@ void attachRunToLeaves(const std::shared_ptr<CommandNode<ServerCommandSource>>& 
         }
         attachRunToLeaves(child, runLink);
     }
+}
+
+/// 条件子树里的参数节点：名字 + 类型（值类型由参数类型自己决定）。
+///
+/// 原版只有「条件到此完整」的参数才挂命令（`if block <pos> <block>`、`if data ... <path>`），
+/// 中间的参数一律不可执行；可执行的参数到执行链上再判定条件是否成立。
+template <typename Type>
+std::shared_ptr<CommandNode<ServerCommandSource>> conditionArg(
+    const char* name, std::shared_ptr<Type> type, bool executable)
+{
+    auto node = std::make_shared<ArgumentCommandNode<ServerCommandSource, typename Type::Value>>(name, std::move(type));
+    if (executable) {
+        node->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
+            throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
+        });
+    }
+    return node;
+}
+
+/// 字面量条件节点（`if loaded <pos>` 之类）。
+std::shared_ptr<CommandNode<ServerCommandSource>> conditionLiteral(const char* name)
+{
+    return std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
+}
+
+/**
+ * @brief 构建 if / unless 的条件子树（对齐原版 ExecuteCommand.Conditions.build）
+ *
+ * 条件成立与否在执行链上判定。
+ * TODO: `/execute if` 的判定语义尚未实现，执行链目前把这类分支视为条件不成立。
+ */
+std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSource>>>> buildConditionNodes()
+{
+    using Node = std::shared_ptr<CommandNode<ServerCommandSource>>;
+    std::vector<std::pair<std::string, Node>> conditions;
+
+    // if|unless biome <pos> <biome>
+    {
+        auto biomeNode = conditionLiteral("biome");
+        auto pos = conditionArg("pos", BlockPosArgumentType::blockPos(), false);
+        pos->addChild(
+            conditionArg("biome", ResourceOrTagArgumentType::resourceOrTag("minecraft:worldgen/biome"), true));
+        biomeNode->addChild(pos);
+        conditions.emplace_back("biome", biomeNode);
+    }
+
+    // if|unless block <pos> <block>
+    {
+        auto blockNode = conditionLiteral("block");
+        auto pos = conditionArg("pos", BlockPosArgumentType::blockPos(), false);
+        pos->addChild(conditionArg("block", BlockPredicateArgumentType::blockPredicate(), true));
+        blockNode->addChild(pos);
+        conditions.emplace_back("block", blockNode);
+    }
+
+    // if|unless blocks <start> <end> <destination> [all|masked]
+    {
+        auto blocksNode = conditionLiteral("blocks");
+        auto from = conditionArg("start", BlockPosArgumentType::blockPos(), false);
+        auto to = conditionArg("end", BlockPosArgumentType::blockPos(), false);
+        auto destination = conditionArg("destination", BlockPosArgumentType::blockPos(), false);
+        for (const char* mode : {"all", "masked"}) {
+            auto modeNode = conditionLiteral(mode);
+            modeNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
+                throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
+            });
+            destination->addChild(modeNode);
+        }
+        to->addChild(destination);
+        from->addChild(to);
+        blocksNode->addChild(from);
+        conditions.emplace_back("blocks", blocksNode);
+    }
+
+    // if|unless data <block <sourcePos>|entity <source>|storage <source>> <path>
+    {
+        auto dataNode = conditionLiteral("data");
+
+        auto blockNode = conditionLiteral("block");
+        auto sourcePos = conditionArg("sourcePos", BlockPosArgumentType::blockPos(), false);
+        sourcePos->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
+        blockNode->addChild(sourcePos);
+
+        auto entityNode = conditionLiteral("entity");
+        auto source = conditionArg("source", EntityArgumentType::entity(), false);
+        source->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
+        entityNode->addChild(source);
+
+        auto storageNode = conditionLiteral("storage");
+        auto storageId = conditionArg("source", ResourceLocationArgumentType::resourceLocation(), false);
+        attachCommandSuggestions(storageId);
+        storageId->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
+        storageNode->addChild(storageId);
+
+        dataNode->addChild(blockNode);
+        dataNode->addChild(entityNode);
+        dataNode->addChild(storageNode);
+        conditions.emplace_back("data", dataNode);
+    }
+
+    // if|unless dimension <dimension>
+    {
+        auto dimensionNode = conditionLiteral("dimension");
+        dimensionNode->addChild(conditionArg("dimension", DimensionArgumentType::dimension(), true));
+        conditions.emplace_back("dimension", dimensionNode);
+    }
+
+    // if|unless entity <entities>
+    {
+        auto entityNode = conditionLiteral("entity");
+        entityNode->addChild(conditionArg("entities", EntityArgumentType::entities(), true));
+        conditions.emplace_back("entity", entityNode);
+    }
+
+    // if|unless function <name>
+    {
+        auto functionNode = conditionLiteral("function");
+        auto functionName = conditionArg("name", FunctionArgumentType::functions(), false);
+        attachCommandSuggestions(functionName);
+        functionNode->addChild(functionName);
+        conditions.emplace_back("function", functionNode);
+    }
+
+    // if|unless items <block <pos>|entity <entities>> <slots> <item_predicate>
+    {
+        auto itemsNode = conditionLiteral("items");
+
+        auto blockNode = conditionLiteral("block");
+        auto pos = conditionArg("pos", BlockPosArgumentType::blockPos(), false);
+        auto blockSlots = conditionArg("slots", ItemSlotsArgumentType::itemSlots(), false);
+        blockSlots->addChild(conditionArg("item_predicate", ItemPredicateArgumentType::itemPredicate(), true));
+        pos->addChild(blockSlots);
+        blockNode->addChild(pos);
+
+        auto entityNode = conditionLiteral("entity");
+        auto entities = conditionArg("entities", EntityArgumentType::entities(), false);
+        auto entitySlots = conditionArg("slots", ItemSlotsArgumentType::itemSlots(), false);
+        entitySlots->addChild(conditionArg("item_predicate", ItemPredicateArgumentType::itemPredicate(), true));
+        entities->addChild(entitySlots);
+        entityNode->addChild(entities);
+
+        itemsNode->addChild(blockNode);
+        itemsNode->addChild(entityNode);
+        conditions.emplace_back("items", itemsNode);
+    }
+
+    // if|unless loaded <pos>
+    {
+        auto loadedNode = conditionLiteral("loaded");
+        loadedNode->addChild(conditionArg("pos", BlockPosArgumentType::blockPos(), true));
+        conditions.emplace_back("loaded", loadedNode);
+    }
+
+    // if|unless predicate <predicate>
+    {
+        auto predicateNode = conditionLiteral("predicate");
+        predicateNode->addChild(conditionArg("predicate", KeywordArgumentType::resourceOrTag("loot_predicate"), true));
+        conditions.emplace_back("predicate", predicateNode);
+    }
+
+    // if|unless score <target> <targetObjective> <op> <source> <sourceObjective> | matches <range>
+    {
+        auto scoreNode = conditionLiteral("score");
+        auto target = conditionArg("target", ScoreHolderArgumentType::scoreHolder(false), false);
+        attachCommandSuggestions(target);
+        auto objective = conditionArg("targetObjective", ObjectiveNameArgumentType::objective(), false);
+        for (const char* op : {"<", "<=", "=", ">", ">="}) {
+            auto opNode = conditionLiteral(op);
+            auto source = conditionArg("source", ScoreHolderArgumentType::scoreHolder(false), false);
+            attachCommandSuggestions(source);
+            source->addChild(conditionArg("sourceObjective", ObjectiveNameArgumentType::objective(), true));
+            opNode->addChild(source);
+            objective->addChild(opNode);
+        }
+        auto matchesNode = conditionLiteral("matches");
+        matchesNode->addChild(conditionArg("range", NumericRangeArgumentType::of("int_range"), true));
+        objective->addChild(matchesNode);
+        target->addChild(objective);
+        scoreNode->addChild(target);
+        conditions.emplace_back("score", scoreNode);
+    }
+
+    auto stopwatch = conditionLiteral("stopwatch");
+    auto stopwatchId = conditionArg("id", ResourceLocationArgumentType::resourceLocation(), false);
+    attachCommandSuggestions(stopwatchId);
+    stopwatchId->addChild(conditionArg("range", NumericRangeArgumentType::of("float_range"), true));
+    stopwatch->addChild(stopwatchId);
+    conditions.emplace_back("stopwatch", stopwatch);
+
+    return conditions;
 }
 
 } // namespace
@@ -141,7 +364,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     };
 
     // ========== run <command> ==========
-    auto runNode = std::make_shared<ExecuteRunNode>(-1, forwardingCommand);
+    auto runNode = std::make_shared<ExecuteRunNode>(-1);
     // command 是「任何长度的剩余文本」（原版 run → command 的 greedyString）：链中间，run
     // 节点先按字面量继续读修改器链；链尾则由 run 节点把原文一次性交给这个子节点，它读走
     // 全部剩余文本，dispatcher 之后不会再把它当成新候选。
@@ -188,8 +411,6 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     for (const char* name :
         {"attacker", "controller", "leasher", "origin", "owner", "passengers", "target", "vehicle"}) {
         auto onTargetNode = child(name);
-        onTargetNode->addChild(std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-            "entity", EntityArgumentType::entity()));
         onNode->addChild(onTargetNode);
     }
 
@@ -200,8 +421,10 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         "targets", EntityArgumentType::entities()));
     positionedNode->addChild(positionedAsNode);
     auto positionedOverNode = child("over");
-    positionedOverNode->addChild(std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "heightmap", StringArgumentType::string()));
+    // 原版 positioned over <heightmap:block_pos> world_surface：heightmap 参数是方块位置语法
+    // 的类型别名，后面固定跟 world_surface 字面量。
+    auto heightmapArg = conditionArg("heightmap", PositionArgumentAliasType::of("heightmap"), false);
+    positionedOverNode->addChild(heightmapArg);
     positionedNode->addChild(positionedOverNode);
     // 注意：pos 必须放在 as / over 之后注册。Vec3ArgumentType 在输入为空时也返回「全部相对」
     // 的坐标（不抛异常），所以 `vector<arg>` 迭代器会把 `as` / `over` 交给 pos 的 parse，
@@ -237,8 +460,9 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto facingEntityNode = child("entity");
     auto facingTargetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
-    facingTargetsArg->addChild(child("eyes"));
-    facingTargetsArg->addChild(child("feet"));
+    // 原版 facing entity <targets> <anchor>：锚点是 entity_anchor 参数，不是字面量。
+    facingTargetsArg->addChild(std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "anchor", EntityAnchorArgumentType::entityAnchor()));
     facingEntityNode->addChild(facingTargetsArg);
     facingNode->addChild(facingEntityNode);
 
@@ -246,41 +470,141 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // 原版 /execute ... summon <entity>：在改写后的命令源位置生成实体，实体 id 参数是 resource。
     auto summonNode = child("summon");
     auto summonEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "entity", ResourceEntityArgumentType::entity());
-    summonEntityArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
-    summonEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return SummonCommand::summonAtSource(ctx);
-    });
+        "entity", std::make_shared<ResourceArgumentType>("minecraft:entity_type", "resource"));
+    // 原版为此参数挂的是 minecraft:summonable_entities（服务端只回可生成的实体类型）。
+    summonEntityArg->setCustomSuggestions(
+        std::make_shared<RegisteredSuggestionProvider<ServerCommandSource>>("minecraft:summonable_entities"));
     summonNode->addChild(summonEntityArg);
     executeNode->addChild(summonNode);
 
     // ========== store <result|success> <block|bossbar|entity|score|storage> ... ==========
-    // store 是单例节点：每层只有一个分支，没有可展开的子节点。
+    // 形状对齐原版 ExecuteCommand.addStoreArguments：
+    //   block <pos> <path> <类型> [<scale>]
+    //   bossbar <id> (value|max)
+    //   entity <target> <path> <类型> [<scale>]
+    //   score <targets> <objective>
+    //   storage <id> <path> <类型> [<scale>]
+    // 原版 store 子树没有任何可执行节点：命中 store 只表示「等下一条命令的结果」，链上还要
+    // 继续读 run。执行语义尚未接入，落到执行链时按「store 不完整」报错，不静默成功。
     auto storeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("store");
-    storeNode->addChild(child("result"));
-    storeNode->addChild(child("success"));
+    for (const char* kind : {"result", "success"}) {
+        auto kindNode = child(kind);
+
+        // block <targetPos> <path> <类型> [<scale>]
+        {
+            auto blockNode = child("block");
+            auto pos = conditionArg("targetPos", BlockPosArgumentType::blockPos(), false);
+            auto path = conditionArg("path", NbtPathArgumentType::nbtPath(), false);
+            for (const char* type : {"byte", "short", "int", "long", "float", "double"}) {
+                auto typeNode = child(type);
+                typeNode->addChild(conditionArg("scale", DoubleArgumentType::doubleArg(), false));
+                path->addChild(typeNode);
+            }
+            pos->addChild(path);
+            blockNode->addChild(pos);
+            kindNode->addChild(blockNode);
+        }
+
+        // bossbar <id> (value|max)
+        {
+            auto bossbarNode = child("bossbar");
+            auto id = conditionArg("id", ResourceLocationArgumentType::resourceLocation(), false);
+            attachCommandSuggestions(id);
+            for (const char* field : {"value", "max"}) {
+                auto fieldNode = child(field);
+                id->addChild(fieldNode);
+            }
+            bossbarNode->addChild(id);
+            kindNode->addChild(bossbarNode);
+        }
+
+        // entity <target> <path> <类型> [<scale>]
+        {
+            auto entityNode = child("entity");
+            // 原版 store entity 的 target 是单实体参数（网络上 single 位为 1）。
+            auto target = conditionArg("target", EntityArgumentType::entity(), false);
+            auto path = conditionArg("path", NbtPathArgumentType::nbtPath(), false);
+            for (const char* type : {"byte", "short", "int", "long", "float", "double"}) {
+                auto typeNode = child(type);
+                typeNode->addChild(conditionArg("scale", DoubleArgumentType::doubleArg(), false));
+                path->addChild(typeNode);
+            }
+            target->addChild(path);
+            entityNode->addChild(target);
+            kindNode->addChild(entityNode);
+        }
+
+        // score <targets> <objective>
+        {
+            auto scoreNode = child("score");
+            auto targets = conditionArg("targets", ScoreHolderArgumentType::scoreHolder(true), false);
+            attachCommandSuggestions(targets);
+            targets->addChild(conditionArg("objective", ObjectiveNameArgumentType::objective(), false));
+
+            scoreNode->addChild(targets);
+            kindNode->addChild(scoreNode);
+        }
+
+        // storage <target> <path> <类型> [<scale>]
+        {
+            auto storageNode = child("storage");
+            auto target = conditionArg("target", ResourceLocationArgumentType::resourceLocation(), false);
+            attachCommandSuggestions(target);
+            auto path = conditionArg("path", NbtPathArgumentType::nbtPath(), false);
+            for (const char* type : {"byte", "short", "int", "long", "float", "double"}) {
+                auto typeNode = child(type);
+                typeNode->addChild(conditionArg("scale", DoubleArgumentType::doubleArg(), false));
+                path->addChild(typeNode);
+            }
+            target->addChild(path);
+            storageNode->addChild(target);
+            kindNode->addChild(storageNode);
+        }
+
+        storeNode->addChild(kindNode);
+    }
     executeNode->addChild(storeNode);
 
     // ========== if / unless <条件> ==========
-    // 条件列表与原版一致；条件的具体参数树尚未落地，先按字面量占位（执行时见 _executeCondition*）。
-    for (const char* kind : {"if", "unless"}) {
-        auto conditionNode = child(kind);
-        for (const char* name : {"biome",
-                 "block",
-                 "blocks",
-                 "data",
-                 "dimension",
-                 "entity",
-                 "function",
-                 "items",
-                 "loaded",
-                 "predicate",
-                 "score",
-                 "stopwatch"}) {
-            conditionNode->addChild(child(name));
+    // 条件子树逐条对齐原版 ExecuteCommand.Conditions.build：客户端只按这棵树补全与高亮，
+    // 少一层参数就等于命令不可用。参数形状完整（可解析、可补全），执行分支见「执行链」。
+    auto ifNode = std::make_shared<_ExecuteConditionNode>("if");
+    auto unlessNode = std::make_shared<_ExecuteConditionNode>("unless");
+    for (auto& conditionNode : {ifNode, unlessNode}) {
+        for (const auto& [name, node] : buildConditionNodes()) {
+            (void)name;
+            conditionNode->addChild(node);
         }
         executeNode->addChild(conditionNode);
     }
+
+    // 重定向目标只观察已由分发器持有的节点，末端保留本地解析脚手架。
+    runNode->setRedirect(dispatcher.getRoot(), RedirectModifier::None);
+    const auto redirectLeaves = [&](const auto& self,
+                                    const std::shared_ptr<CommandNode<ServerCommandSource>>& node,
+                                    RedirectModifier mode) -> void {
+        if (node->getChildren().empty()) {
+            node->setRedirect(executeNode, mode);
+            return;
+        }
+        for (const auto& [name, next] : node->getChildren()) {
+            (void)name;
+            self(self, next, mode);
+        }
+    };
+    for (const auto& node : modifiers) {
+        const std::string name = node->getName();
+        redirectLeaves(redirectLeaves,
+            node,
+            name == "as" || name == "at" || name == "on" ? RedirectModifier::Fork : RedirectModifier::Single);
+    }
+    for (const std::shared_ptr<CommandNode<ServerCommandSource>>& node :
+        std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>>{
+            positionedAsNode, rotatedAsNode, facingEntityNode, ifNode, unlessNode}) {
+        redirectLeaves(redirectLeaves, node, RedirectModifier::Fork);
+    }
+    redirectLeaves(redirectLeaves, storeNode, RedirectModifier::Single);
+    summonEntityArg->setRedirect(executeNode, RedirectModifier::Single);
 
     // 每个修改器的末端只挂一个 run 节点；后面的修改器由 run 节点按「字面量 → 索引」自行
     // 解析（不挂成子节点，否则 dispatcher 会一路派发下去，分不清哪一段才是链尾）。
@@ -289,7 +613,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // 两条路径都能由 dispatcher 派发到。
     for (size_t i = 0; i < modifiers.size(); ++i) {
         auto& modNode = modifiers[i];
-        auto runLink = std::make_shared<ExecuteRunNode>(static_cast<i32>(i), forwardingCommand);
+        auto runLink = std::make_shared<ExecuteRunNode>(static_cast<i32>(i));
         // 原版把「下一个修改器 / run」挂成一个重定向节点，并不出现在快照里；这里挂在参数
         // 节点上的 run 链接纯属派发脚手架，快照与网络下发时跳过。
         runLink->setTreeHidden(true);
@@ -304,22 +628,11 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // run 节点在 parse 时才读取这两张表，注册结束后统一回填（表里存的是 shared_ptr，生命周期随命令树）。
     ExecuteRunNode::setModifiers(
         std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>>(modifiers.begin(), modifiers.end()));
-    ExecuteRunNode::setTopLevelRun(runNode);
 
     dispatcher.registerCommand(executeNode);
 }
 
 // ========== 子命令实现 ==========
-
-i32 ExecuteCommand::_executeRun(CommandContext<ServerCommandSource>& context)
-{
-    auto& source = context.getSource();
-    std::string command = context.getArgument<std::string>("command");
-
-    return executeNestedCommand(source, command);
-}
-
-// ========== 执行链 ==========
 
 namespace {
 
@@ -360,6 +673,10 @@ ServerCommandSource applyChain(
 
 i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& context)
 {
+    if (context.hasParsed("executeCondition")) {
+        throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional.notImplemented");
+    }
+
     auto& source = context.getSource();
 
     // 一次 /execute 只跑一遍：execute 下的 run 和每个修改器末端的 run 挂着同一个执行器，
@@ -416,6 +733,12 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
                 }
             }
             target = modified;
+        } else if (verb == "if" || verb == "unless") {
+            // TODO: /execute if|unless 的条件判定尚未实现（distance/score/block/data/items/
+            //   biome/dimension/function/loaded/predicate/stopwatch/blocks 全部未建模）。
+            //   与「选择器未命中」同一口径：链在此中断，后续命令不执行。条件成立时的
+            //   「取反」语义（unless）也依赖判定本身，一并留待实现。
+            return 0;
         } else if (verb == "positioned") {
             target = target.withPosition(Vec3ArgumentType::getVec3(context, "pos", target));
         } else if (verb == "rotated") {

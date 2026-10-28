@@ -29,6 +29,7 @@
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 
 #include <future>

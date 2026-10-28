@@ -26,8 +26,8 @@ package dev.horizonlab.diff;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.mojang.brigadier.arguments.ArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
@@ -35,20 +35,29 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.synchronization.ArgumentTypeInfo;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
 import net.minecraft.commands.synchronization.SuggestionProviders;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.permissions.PermissionSet;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.flag.FeatureFlags;
 import io.netty.buffer.Unpooled;
 
@@ -70,7 +79,7 @@ import io.netty.buffer.Unpooled;
  * {@code ArgumentType::getTypeName()} 同一套词汇。
  */
 public final class CommandTreeOracle {
-    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
 
     private CommandTreeOracle() {}
 
@@ -93,6 +102,18 @@ public final class CommandTreeOracle {
         System.exit(2);
     }
 
+    /** 满权限、无实体、无世界的命令源：只用来判定 {@code requires}，不会被真正执行。 */
+    private static final CommandSourceStack FULL_PERMISSION_SOURCE = new CommandSourceStack(
+            CommandSource.NULL,
+            Vec3.ZERO,
+            Vec2.ZERO,
+            null,
+            PermissionSet.ALL_PERMISSIONS,
+            "",
+            Component.empty(),
+            null,
+            null);
+
     private static void run(Path input, Path output, String skipSpec) throws IOException {
         DataPackRegistries registries = DataPackRegistries.load();
         CommandBuildContext context = CommandBuildContext.simple(registries.lookup, FeatureFlags.DEFAULT_FLAGS);
@@ -107,6 +128,8 @@ public final class CommandTreeOracle {
             }
         }
 
+        canonicaliseChildren(root, Collections.newSetFromMap(new IdentityHashMap<>()));
+
         List<String> lines = new ArrayList<>();
         for (CommandNode<CommandSourceStack> child : root.getChildren()) {
             lines.add(describeTree(child));
@@ -114,15 +137,22 @@ public final class CommandTreeOracle {
         lines.sort(String::compareTo);
 
         JsonObject arguments = describeArgumentWire(root);
+        JsonObject components = describeComponents(root);
 
         JsonObject result = new JsonObject();
+        result.addProperty("unit", "tree");
         result.add("tree", GSON.toJsonTree(lines));
         result.add("arguments", arguments);
+        result.add("components", components);
         // 整棵树按原版 ClientboundCommandsPacket 编码后的字节数。
         // 逐节点的 typeId/payload 只能发现「某个参数写错了」，发现不了节点顺序、节点计数、
         // 重定向下标等结构级偏差；总字节数可以对这类偏差做一次总量校验。
         JsonObject wire = new JsonObject();
-        wire.addProperty("byteLength", encodeTree(root).readableBytes());
+        FriendlyByteBuf encoded = encodeTree(root);
+        wire.addProperty("byteLength", encoded.readableBytes());
+        wire.addProperty("payload", hex(encoded));
+        ClientboundCommandsPacket.STREAM_CODEC.decode(encoded);
+        encoded.release();
         result.add("wire", wire);
         StringBuilder text = new StringBuilder();
         for (String line : Files.readAllLines(input, StandardCharsets.UTF_8)) {
@@ -161,9 +191,7 @@ public final class CommandTreeOracle {
 
                     @Override
                     public boolean isRestricted(CommandNode<CommandSourceStack> node) {
-                        // TODO: 原版专用服务器对受限命令会返回 true；这里恒为 false，
-                        //  若后续引入 requires 细分，需在此处补上判定。
-                        return false;
+                        return !node.getRequirement().test(FULL_PERMISSION_SOURCE);
                     }
                 };
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
@@ -172,10 +200,10 @@ public final class CommandTreeOracle {
     }
 
     /**
-     * 每个参数节点的网络编码，键与 probes/command_tree.cpp 一致（{@code 名字:序号}）。
+     * 每个参数节点的网络编码，键与 probes/command_tree.cpp 一致（从根到节点的路径，叶子参数带
+     * {@code :类型名} 后缀）。
      *
-     * <p>键里的序号取所有参数节点按遍历顺序（先字面量后参数，各自再按名字排序）的全局下标，
-     * 两侧用同一套遍历规则，因此序号可直接对齐。值为
+     * <p>子节点一律按名字排序遍历，两侧用同一套遍历规则，因此同一段路径的键可直接对齐。值为
      * {@code {typeId, payload, suggestions}}：typeId 是 COMMAND_ARGUMENT_TYPE 注册表里的数值 id，
      * payload 是序列化后的十六进制字节（不含名字），suggestions 是建议提供器 Identifier。
      */
@@ -191,14 +219,105 @@ public final class CommandTreeOracle {
      */
     private static void walkArguments(
             CommandNode<CommandSourceStack> node, String path, JsonObject out) {
-        for (CommandNode<CommandSourceStack> child : node.getChildren()) {
+        List<CommandNode<CommandSourceStack>> children = new ArrayList<>(node.getChildren());
+        // 子节点按名字排序后再遍历：Brigadier 的 children 是插入序（LinkedHashMap），
+        // Cubium 侧按名字排好序遍历，统一顺序才能让同一段路径的键对齐。
+        children.sort(Comparator.comparing(CommandNode::getName));
+        for (CommandNode<CommandSourceStack> child : children) {
             String childPath = path + " " + child.getName();
             if (child instanceof ArgumentCommandNode<CommandSourceStack, ?> argument) {
-                childPath += ":" + typeName(argument.getType());
+                // 带子节点的参数（filtered 的 filter、loot 的 loot_table）在路径里不带类型后缀:
+                // 与 probes/command_tree.cpp 的规则一致——它们的子参数续在父路径之后。
+                if (child.getChildren().isEmpty()) {
+                    childPath += ":" + typeName(argument.getType());
+                }
                 out.add(childPath, describeArgument(argument));
             }
             walkArguments(child, childPath, out);
         }
+    }
+
+    /**
+     * 每个节点的网络属性，键为从根到该节点的路径（参数节点不带 {@code :类型名} 后缀），
+     * 与 probes/command_tree.cpp 的 {@code components} 一致。
+     *
+     * <p>逐节点的 argument payload 只能比出「参数类型编码」，比不出节点语义：同一个通用类型
+     * （string、entity）在不同命令里承担不同角色时，可执行性、重定向方式、建议提供器都可能不同。
+     * 这里把 ClientboundCommandsPacket 里除名字与参数类型之外的字段全部摊平出来比对。
+     */
+    private static JsonObject describeComponents(CommandNode<CommandSourceStack> root) {
+        JsonObject result = new JsonObject();
+        Map<CommandNode<CommandSourceStack>, String> paths = new IdentityHashMap<>();
+        collectPaths(root, "", paths);
+        walkComponents(root, "", paths, result);
+        return result;
+    }
+
+    private static void canonicaliseChildren(CommandNode<CommandSourceStack> node, Set<CommandNode<CommandSourceStack>> visited) {
+        if (!visited.add(node)) {
+            return;
+        }
+        List<CommandNode<CommandSourceStack>> children = new ArrayList<>(node.getChildren());
+        children.sort(Comparator.<CommandNode<CommandSourceStack>, Boolean>comparing(child -> child instanceof ArgumentCommandNode)
+                .thenComparing(CommandNode::getName));
+        node.getChildren().clear();
+        for (CommandNode<CommandSourceStack> child : children) {
+            node.addChild(child);
+            canonicaliseChildren(child, visited);
+        }
+        if (node.getRedirect() != null) {
+            canonicaliseChildren(node.getRedirect(), visited);
+        }
+    }
+
+    private static void collectPaths(CommandNode<CommandSourceStack> node, String path,
+            Map<CommandNode<CommandSourceStack>, String> paths) {
+        if (paths.putIfAbsent(node, path) != null) {
+            return;
+        }
+        for (CommandNode<CommandSourceStack> child : node.getChildren()) {
+            collectPaths(child, path + " " + child.getName(), paths);
+        }
+    }
+
+    private static void walkComponents(
+            CommandNode<CommandSourceStack> node, String path,
+            Map<CommandNode<CommandSourceStack>, String> paths, JsonObject out) {
+        List<CommandNode<CommandSourceStack>> children = new ArrayList<>(node.getChildren());
+        children.sort(Comparator.comparing(CommandNode::getName));
+        for (CommandNode<CommandSourceStack> child : children) {
+            String childPath = path + " " + child.getName();
+            JsonObject component = new JsonObject();
+            component.addProperty("type", typeKind(child));
+            component.addProperty("executable", child.getCommand() != null);
+            // 与 encodeTree 里的 NodeInspector.isRestricted 同一口径：以满权限的控制台源判定 requires。
+            component.addProperty("restricted", !child.getRequirement().test(FULL_PERMISSION_SOURCE));
+            component.addProperty("redirectModifier", child.getRedirectModifier() == null ? "none" : child.isFork() ? "fork" : "single");
+            component.add("redirect", child.getRedirect() == null ? com.google.gson.JsonNull.INSTANCE : GSON.toJsonTree(paths.get(child.getRedirect())));
+            component.addProperty("suggestions", suggestionId(child));
+            out.add(childPath, component);
+            walkComponents(child, childPath, paths, out);
+        }
+    }
+
+    /** flags 的 bits 0-1：root / literal / argument，与 Cubium 的 NodeType 同名。 */
+    private static String typeKind(CommandNode<CommandSourceStack> node) {
+        if (node instanceof RootCommandNode) {
+            return "root";
+        }
+        if (node instanceof ArgumentCommandNode) {
+            return "argument";
+        }
+        return "literal";
+    }
+
+    /** 建议提供器 Identifier；未注册的 provider 与 ClientboundCommandsPacket 一样回退成 ask_server。 */
+    private static String suggestionId(CommandNode<CommandSourceStack> node) {
+        if (!(node instanceof ArgumentCommandNode<CommandSourceStack, ?> argument)) {
+            return "";
+        }
+        SuggestionProvider<CommandSourceStack> provider = argument.getCustomSuggestions();
+        return provider == null ? "" : SuggestionProviders.getName(provider).toString();
     }
 
     /** 单个参数节点的网络编码：{typeId, payload, suggestions}。 */
@@ -212,9 +331,8 @@ public final class CommandTreeOracle {
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
         serializeInfo(info, type, buffer);
         entry.addProperty("payload", hex(buffer));
-        // Cubium 侧对自定义建议提供器统一回落到 minecraft:ask_server（见命令树快照）。
-        entry.addProperty(
-                "suggestions", argument.getCustomSuggestions() != null ? "minecraft:ask_server" : "");
+        entry.addProperty("suggestions", suggestionId(argument));
+        buffer.release();
         return entry;
     }
 
@@ -229,19 +347,10 @@ public final class CommandTreeOracle {
     @SuppressWarnings("unchecked")
     private static void serializeInfo(
             ArgumentTypeInfo<?, ?> info, ArgumentType<?> type, FriendlyByteBuf buffer) {
-        try {
-            // 泛型在此处无法静态对齐（Template 的具体类型随 ArgumentTypeInfo 的子类变化），
-            // 故用「原始类型 + 强制转换」调用接口上的 unpack / serializeToNetwork 两个方法：
-            // 原版 ArgumentTypeInfo 的约定就是 unpack(type) 产出的 Template 可直接交给
-            // serializeToNetwork 写出网络载荷（ClientboundCommandsPacket:226 即此路径）。
-            ArgumentTypeInfo<ArgumentType<?>, ArgumentTypeInfo.Template<ArgumentType<?>>> typed =
-                    (ArgumentTypeInfo<ArgumentType<?>, ArgumentTypeInfo.Template<ArgumentType<?>>>) info;
-            ArgumentTypeInfo.Template<ArgumentType<?>> template = typed.unpack(type);
-            typed.serializeToNetwork(template, buffer);
-        } catch (RuntimeException e) {
-            // 该类型不支持往返序列化：留空载荷，但把原因打出来，避免静默失败。
-            System.err.println("serializeInfo failed: " + e);
-        }
+        ArgumentTypeInfo<ArgumentType<?>, ArgumentTypeInfo.Template<ArgumentType<?>>> typed =
+                (ArgumentTypeInfo<ArgumentType<?>, ArgumentTypeInfo.Template<ArgumentType<?>>>) info;
+        ArgumentTypeInfo.Template<ArgumentType<?>> template = typed.unpack(type);
+        typed.serializeToNetwork(template, buffer);
     }
 
     /**

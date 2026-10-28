@@ -92,18 +92,24 @@ void RotateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     // /rotate <target> facing <location> | facing entity <entity> [<anchor>]
     auto facingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("facing");
     auto locationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "location", Vec3ArgumentType::vec3());
+        "facingLocation", Vec3ArgumentType::vec3());
     locationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _rotateFacingLocation(ctx);
     });
     facingNode->addChild(locationArg);
 
     auto entityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
+    // 原版参数名：facingEntity / facingLocation / facingAnchor。
     auto facingTargetArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "entity", EntityArgumentType::entity());
+        "facingEntity", EntityArgumentType::entity());
     facingTargetArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _rotateFacingEntity(ctx);
     });
+    // 锚点可以单独给出（默认眼睛高度不写锚点时 facingEntity 自身就是完整命令）。
+    auto facingAnchorArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "facingAnchor", EntityAnchorArgumentType::entityAnchor());
+    facingAnchorArg->setCommand(facingTargetArg->getCommand());
+    facingTargetArg->addChild(facingAnchorArg);
     entityNode->addChild(facingTargetArg);
     facingNode->addChild(entityNode);
 
@@ -123,7 +129,7 @@ i32 RotateCommand::_rotateByCoordinates(CommandContext<ServerCommandSource>& con
 i32 RotateCommand::_rotateFacingLocation(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const Vector3d location = Vec3ArgumentType::getVec3(context, "location", source);
+    const Vector3d location = Vec3ArgumentType::getVec3(context, "facingLocation", source);
     Vector3d from = source.position();
     if (auto* entity = source.entity(); entity != nullptr) {
         from = Vector3d(entity->x(), entity->y() + static_cast<f64>(entity->eyeHeight()), entity->z());
@@ -136,13 +142,18 @@ i32 RotateCommand::_rotateFacingLocation(CommandContext<ServerCommandSource>& co
 i32 RotateCommand::_rotateFacingEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    Entity* target = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("entity"));
+    Entity* target =
+        support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("facingEntity"));
     if (target == nullptr) {
         source.sendError("No entity was found");
         return 0;
     }
+    // 锚点缺省为眼睛高度（原版朝实体看时默认瞄眼睛）。
+    const std::string anchor =
+        context.hasArgument("facingAnchor") ? context.getArgument<std::string>("facingAnchor") : std::string("eyes");
     const Vector3d from = source.position();
-    const Vector3d to(target->x(), target->y() + static_cast<f64>(target->eyeHeight()), target->z());
+    const f64 eyeOffset = anchor == "feet" ? 0.0 : static_cast<f64>(target->eyeHeight());
+    const Vector3d to(target->x(), target->y() + eyeOffset, target->z());
     return _applyRotation(source,
         support::EntityResolver::resolve(source, context.getArgument<EntitySelector>("target")),
         _lookAt(from, to));

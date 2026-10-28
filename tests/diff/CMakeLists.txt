@@ -56,7 +56,7 @@ set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_componen
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
-    add_executable(${targetName} EXCLUDE_FROM_ALL
+    add_executable(${targetName}
         probes/runner_main.cpp
         ${source}
     )

@@ -215,12 +215,11 @@ TEST_F(ExperienceCommandTest, QueryLevelsSyntax)
     EXPECT_EQ(result.value(), 0);
 }
 
-TEST_F(ExperienceCommandTest, QueryDefaultIsLevels)
+TEST_F(ExperienceCommandTest, QueryRequiresUnit)
 {
     const auto result = m_server.commandRegistry().execute("experience query @p", m_console);
 
-    EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);
+    EXPECT_TRUE(result.failed());
 }
 
 TEST_F(ExperienceCommandTest, SelectorWithNoPlayersReturnsZero)

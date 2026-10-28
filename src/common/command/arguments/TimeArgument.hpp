@@ -106,7 +106,7 @@ public:
         // 计算总 tick 数（四舍五入，与 MC Java 的 Math.round 一致）
         const f64 rawTicks = value * static_cast<f64>(multiplier);
         // 与 Java 的 (int) 强转一致：超出 i32 范围时截断到 INT_MIN/INT_MAX，不溢出回绕。
-        i32 ticks = javaToInt(std::round(rawTicks));
+        i32 ticks = command::javaToInt(std::round(rawTicks));
 
         // 检查最小值
         if (ticks < m_minimum) {
@@ -175,18 +175,6 @@ public:
     }
 
 private:
-    /// Java 的 (double → int) 窄化：NaN→0，越界饱和。
-    static i32 javaToInt(f64 value) noexcept
-    {
-        if (!(value > static_cast<f64>(INT32_MIN))) {
-            return value != value ? 0 : INT32_MIN;
-        }
-        if (value >= static_cast<f64>(INT32_MAX)) {
-            return INT32_MAX;
-        }
-        return static_cast<i32>(value);
-    }
-
     i32 m_minimum;
 
     /// 单位字符串到 tick 乘数的映射表（与 MC Java TimeArgument.UNITS 一致）

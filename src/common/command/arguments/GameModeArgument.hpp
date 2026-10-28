@@ -229,9 +229,7 @@ inline ResourceLocation readResourceLocationId(StringReader& reader)
 
 class ResourceLocationArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    explicit ResourceLocationArgumentType(std::string registryKey = "minecraft:resource")
-        : m_registryKey(std::move(registryKey))
-    {}
+    ResourceLocationArgumentType() = default;
 
     /// 解析资源位置（见 {@link readResourceLocationId}）。
     [[nodiscard]] ResourceLocation parse(StringReader& reader) override
@@ -239,30 +237,11 @@ public:
         return readResourceLocationId(reader);
     }
 
-    // 注意与下面的 IdentifierArgumentType 区分：原版命令树里 ResourceArgument 的注册名是
-    // `resource`（注册表资源，如 attribute/enchantment/sound），不是 `resource_location`。
+    /// 原版命令树里的注册名是 `resource_location`（只要求语法合法的 id）。
+    /// 绑定到注册表的单值资源用 {@link ResourceArgumentType}（注册名 `resource`）。
     [[nodiscard]] std::string getTypeName() const override
     {
-        return "resource";
-    }
-
-    /**
-     * @brief 网络序列化元数据
-     *
-     * 原版 ResourceArgument.Info.serializeToNetwork 写的是注册表键
-     * （`writeResourceKey(registryKey)`），客户端据此知道该参数要在哪个注册表里取值。
-     * 此前这里不输出任何字段，编码器因此写出空负载，客户端读到空的 ResourceKey，
-     * 参数类型信息与补全全部错乱。
-     */
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"registry", m_registryKey}};
-    }
-
-    /// 该参数绑定的注册表键（如 minecraft:attribute）。
-    [[nodiscard]] const std::string& registryKey() const noexcept
-    {
-        return m_registryKey;
+        return "resource_location";
     }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
@@ -270,12 +249,20 @@ public:
         return {"minecraft:stone", "stone", "minecraft:diamond_sword"};
     }
 
+    /// 原版 ResourceLocationArgument 没有内置建议：注册命令时由各命令自己决定挂不挂
+    /// {@code SharedSuggestionProvider.suggestResource(...)}（/bossbar、/playsound 挂了，
+    /// /data、/execute 下的没挂），所以这里恒为 false；挂了提供器的节点走
+    /// {@code CommandNode::hasCustomSuggestions()}。
+    [[nodiscard]] bool hasBuiltinSuggestions() const noexcept override
+    {
+        return false;
+    }
+
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<ResourceLocationArgumentType> resourceLocation(
-        std::string registryKey = "minecraft:resource")
+    static std::shared_ptr<ResourceLocationArgumentType> resourceLocation()
     {
-        return std::make_shared<ResourceLocationArgumentType>(std::move(registryKey));
+        return std::make_shared<ResourceLocationArgumentType>();
     }
 
     // ========== 静态获取方法 ==========
@@ -284,140 +271,6 @@ public:
     static ResourceLocation getResourceLocation(CommandContext<S>& context, const std::string& name)
     {
         return context.template getArgument<ResourceLocation>(name);
-    }
-
-private:
-    /// 该参数所属的注册表键，参与网络序列化。
-    std::string m_registryKey;
-};
-
-/**
- * @brief 资源位置参数（原版 {@code ResourceLocationArgument.id()} / {@code identifier}）
- *
- * 与原版 {@link ResourceLocationArgumentType} 解析同一套语法，但类型名是原版命令树里的
- * `identifier`。两者分开是因为原版把 `resource_location` 留给了「注册表里的资源」，
- * 而 `identifier`（如 /bossbar 的 id、/stopwatch 的 id）只要求语法合法。
- */
-class IdentifierArgumentType : public ArgumentType<ResourceLocation> {
-public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        return readResourceLocationId(reader);
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource_location";
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"minecraft:stone", "minecraft:custom_name", "foo"};
-    }
-
-    static std::shared_ptr<IdentifierArgumentType> identifier()
-    {
-        return std::make_shared<IdentifierArgumentType>();
-    }
-};
-
-/**
- * @brief 实体类型参数（原版 {@code ResourceArgument.entity()}，命令树里叫 {@code resource}）
- *
- * 与 {@link ResourceLocationArgumentType} 同一套语法；单独一个类只是为了在命令树/协议里
- * 能区分「这个资源名指向实体类型」的用法（/summon）。
- */
-class ResourceEntityArgumentType : public ArgumentType<ResourceLocation> {
-public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        return readResourceLocationId(reader);
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource";
-    }
-
-    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"registry", "minecraft:entity_type"}};
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"minecraft:zombie", "zombie", "minecraft:pig"};
-    }
-
-    static std::shared_ptr<ResourceEntityArgumentType> entity()
-    {
-        return std::make_shared<ResourceEntityArgumentType>();
-    }
-};
-
-/**
- * @brief 附魔类型参数（原版 {@code ResourceArgument.enchantment()}，命令树里同 {@link ResourceEntityArgumentType}
- *        一样叫 {@code resource}）。
- */
-class EnchantmentResourceArgumentType : public ArgumentType<ResourceLocation> {
-public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        return readResourceLocationId(reader);
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource";
-    }
-
-    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"registry", "minecraft:enchantment"}};
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"minecraft:sharpness", "sharpness"};
-    }
-
-    static std::shared_ptr<EnchantmentResourceArgumentType> enchantment()
-    {
-        return std::make_shared<EnchantmentResourceArgumentType>();
-    }
-};
-
-/**
- * @brief 属性类型参数（原版 {@code ResourceArgument.attribute()}，命令树里叫 {@code resource}）。
- */
-class AttributeResourceArgumentType : public ArgumentType<ResourceLocation> {
-public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        return readResourceLocationId(reader);
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource";
-    }
-
-    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"registry", "minecraft:attribute"}};
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"minecraft:generic.max_health"};
-    }
-
-    static std::shared_ptr<AttributeResourceArgumentType> attribute()
-    {
-        return std::make_shared<AttributeResourceArgumentType>();
     }
 };
 
@@ -670,6 +523,14 @@ public:
         return {"Steve", "*"};
     }
 
+    /// 原版 ScoreHolderArgument 没有内置建议。单目标（/execute if score、/scoreboard players get）
+    /// 命令行里没挂提供器；多目标（/scoreboard players set、/team join 等）在注册时由命令自己挂
+    /// {@code suggestScoreHolders()}——那属于 {@code CommandNode::hasCustomSuggestions()}。
+    [[nodiscard]] bool hasBuiltinSuggestions() const noexcept override
+    {
+        return m_multiple;
+    }
+
     static std::shared_ptr<ScoreHolderArgumentType> scoreHolder(bool multiple = false)
     {
         auto result = std::make_shared<ScoreHolderArgumentType>();
@@ -681,38 +542,6 @@ private:
     /// 原版 ScoreHolderArgument.Info 的 multiple 标志（bit0）：true 表示可一次给多个持有者。
     /// 它参与网络序列化，命令树里 `/scoreboard players *` 一类节点据此区分单/多目标。
     bool m_multiple = false;
-};
-
-/**
- * @brief 进度参数（原版 {@code ResourceArgument.advancement()}，命令树里叫 {@code resource}）。
- */
-class AdvancementResourceArgumentType : public ArgumentType<ResourceLocation> {
-public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        return readResourceLocationId(reader);
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource";
-    }
-
-    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"registry", "minecraft:advancement"}};
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"minecraft:story/mine_stone", "story/root"};
-    }
-
-    static std::shared_ptr<AdvancementResourceArgumentType> advancement()
-    {
-        return std::make_shared<AdvancementResourceArgumentType>();
-    }
 };
 
 /**
@@ -748,70 +577,6 @@ public:
     static std::shared_ptr<ObjectiveNameArgumentType> objective()
     {
         return std::make_shared<ObjectiveNameArgumentType>();
-    }
-};
-
-/**
- * @brief 战利品表参数（原版 {@code ResourceArgument} 注册 loot_table，命令树里叫 {@code resource}）。
- */
-class LootTableResourceArgumentType : public ArgumentType<ResourceLocation> {
-public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        return readResourceLocationId(reader);
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource";
-    }
-
-    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"registry", "minecraft:loot_table"}};
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"minecraft:chests/simple_dungeon", "chests/village/village_weaponsmith"};
-    }
-
-    static std::shared_ptr<LootTableResourceArgumentType> lootTable()
-    {
-        return std::make_shared<LootTableResourceArgumentType>();
-    }
-};
-
-/**
- * @brief 配方 id 参数（原版 {@code ResourceArgument} 注册 recipe，命令树里叫 {@code resource}）。
- */
-class RecipeIdArgumentType : public ArgumentType<ResourceLocation> {
-public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
-    {
-        return readResourceLocationId(reader);
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "resource";
-    }
-
-    /// 网络序列化：原版 ResourceArgument.Info 写注册表键，客户端据此定位取值注册表。
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"registry", "minecraft:recipe"}};
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"minecraft:crafting_table", "minecraft:stick"};
-    }
-
-    static std::shared_ptr<RecipeIdArgumentType> recipe()
-    {
-        return std::make_shared<RecipeIdArgumentType>();
     }
 };
 
@@ -925,9 +690,10 @@ public:
         return current;
     }
 
+    /// 原版 setdisplay 的槽位参数注册名是 scoreboard_slot。
     [[nodiscard]] std::string getTypeName() const override
     {
-        return "objective_criteria";
+        return "scoreboard_slot";
     }
 
     [[nodiscard]] std::vector<std::string> getExamples() const override
@@ -955,6 +721,81 @@ public:
     static bool isKnownDisplaySlot(const std::string& name)
     {
         return name == "list" || name == "sidebar" || name == "below_name" || name.rfind("sidebar.team.", 0) == 0;
+    }
+};
+
+/**
+ * @brief 动作槽位参数（原版 {@code OperationArgument} 的另一形态，命令树里叫 {@code operation}）
+ *
+ * 原版 ObjectiveCriteriaArgument 注册的是 objective_criteria，而 scoreboard 的判据在
+ * 1.21 里改用 OperationArgument（命令树类型名 operation，不建议）。这里单独表达。
+ */
+class OperationArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        return readWord(reader);
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "operation";
+    }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"dummy"};
+    }
+
+    static std::string readWord(StringReader& reader)
+    {
+        const i32 start = reader.getCursor();
+        std::string word = reader.readUnquotedString();
+        if (word.empty()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::StringExpected, "Expected word", start);
+        }
+        return word;
+    }
+};
+
+/**
+ * @brief 记分板判据参数（原版 {@code ObjectiveCriteriaArgument}，命令树里叫 {@code objective_criteria}）
+ */
+class ObjectiveCriteriaArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string result;
+        while (reader.canRead()) {
+            const char c = reader.peek();
+            if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '.' || c == ':' || c == '-')) {
+                break;
+            }
+            result.push_back(c);
+            reader.skip();
+        }
+        if (result.empty()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::Unknown, "Unknown criteria '" + result + "'", start);
+        }
+        return result;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "objective_criteria";
+    }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"dummy", "deathCount", "minecraft:player_kill_count"};
+    }
+
+    static std::shared_ptr<ObjectiveCriteriaArgumentType> objectiveCriteria()
+    {
+        return std::make_shared<ObjectiveCriteriaArgumentType>();
     }
 };
 
@@ -1559,6 +1400,293 @@ Vector3d _getAnchorPosition(const S& source)
     }
     return source.position();
 }
+
+// ========== 关键字参数 ==========
+
+/**
+ * @brief 单一取值的枚举型参数（高度图、颜色、对话框 id、战利品谓词……）
+ *
+ * 这些参数在原版里各有一个 `ArgumentTypeInfo`（类型名与网络 id 必须与之一致），但取值
+ * 只是一个词或一个资源位置。统一在这里声明类型名与「是否允许 `#` 前缀、是否要求资源
+ * 位置语法」，语法细节由调用方按原版词表解释。
+ */
+class KeywordArgumentType : public ArgumentType<std::string> {
+public:
+    enum class Syntax {
+        Word,         // 未加引号的词（如 heightmap 的 world_surface）
+        ResourceId,   // 资源位置（如 dialog 的 id）
+        ResourceOrTag // `#tag` 或词（如 loot_predicate）
+    };
+
+    KeywordArgumentType(std::string typeName, Syntax syntax)
+        : m_typeName(std::move(typeName))
+        , m_syntax(syntax)
+    {}
+
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        switch (m_syntax) {
+            case Syntax::Word: {
+                const i32 start = reader.getCursor();
+                std::string result;
+                while (reader.canRead() && !reader.isWhitespace(reader.peek())) {
+                    result.push_back(reader.peek());
+                    reader.skip();
+                }
+                if (result.empty()) {
+                    reader.setCursor(start);
+                    throw CommandException(CommandErrorType::StringExpected,
+                        "Expected " + m_typeName + " at position " + std::to_string(start),
+                        start);
+                }
+                return result;
+            }
+            case Syntax::ResourceId:
+                return readResourceLocationId(reader).toString();
+            case Syntax::ResourceOrTag: {
+                // `#tag`（标签）或单个资源：与 ResourceOrTagArgument 同一套语法。
+                bool tag = false;
+                if (reader.canRead() && reader.peek() == '#') {
+                    tag = true;
+                    reader.skip();
+                }
+                const std::string id = readResourceLocationId(reader).toString();
+                return tag ? "#" + id : id;
+            }
+        }
+        return {};
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return m_typeName;
+    }
+
+    /// 资源类关键字（`dialog`、`loot_predicate`……）在网络上要写所属注册表键。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        if (m_syntax == Syntax::Word) {
+            return nlohmann::json::object();
+        }
+        return nlohmann::json{{"registry", m_typeName}};
+    }
+
+    static std::shared_ptr<KeywordArgumentType> word(std::string typeName)
+    {
+        return std::make_shared<KeywordArgumentType>(std::move(typeName), Syntax::Word);
+    }
+
+    static std::shared_ptr<KeywordArgumentType> resourceId(std::string typeName)
+    {
+        return std::make_shared<KeywordArgumentType>(std::move(typeName), Syntax::ResourceId);
+    }
+
+    static std::shared_ptr<KeywordArgumentType> resourceOrTag(std::string typeName)
+    {
+        return std::make_shared<KeywordArgumentType>(std::move(typeName), Syntax::ResourceOrTag);
+    }
+
+private:
+    std::string m_typeName;
+    Syntax m_syntax;
+};
+
+/**
+ * @brief `style` 参数类型（原版 {@code StyleArgument}，命令树里叫 {@code style}）
+ */
+class StyleKeywordArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        const std::string word = reader.readUnquotedString();
+        if (word.empty()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::StringExpected, "Expected style", start);
+        }
+        return word;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "style";
+    }
+
+    /// 原版 StyleArgument 的 properties 是 Variant<String>：内置样式名写字符串，否则写资源位置。
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"values",
+            std::vector<std::string>{"bold", "italic", "underlined", "strikethrough", "obfuscated", "reset"}}};
+    }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"{color:red}", "{}"};
+    }
+};
+
+/**
+ * @brief 方块位置参数，但对外报告成另一个类型名（原版 {@code heightmap} / {@code item_slots}）
+ *
+ * 原版这两个参数各自有一个 ArgumentTypeInfo（`heightmap`、`item_slots`）：语法是一个方块
+ * 位置；后续允许的子节点（`heightmap` 要求再跟一个高度图名、`item_slots` 只是一个位置）
+ * 由调用方按原版形状挂接。这里复用 {@link BlockPosArgumentType} 的坐标解析，只替换类型名，
+ * 保证命令树里该节点的类型与网络 id 与原版一致。
+ */
+class PositionArgumentAliasType : public ArgumentType<Coordinates::Ptr> {
+public:
+    explicit PositionArgumentAliasType(std::string typeName)
+        : m_typeName(std::move(typeName))
+    {}
+
+    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    {
+        BlockPosArgumentType positions;
+        return positions.parse(reader);
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return m_typeName;
+    }
+
+    static std::shared_ptr<PositionArgumentAliasType> of(std::string typeName)
+    {
+        return std::make_shared<PositionArgumentAliasType>(std::move(typeName));
+    }
+
+private:
+    std::string m_typeName;
+};
+
+/**
+ * @brief 数值范围参数（原版 {@code int_range} / {@code float_range}）
+ *
+ * 语法与原版 AttributeArgument 共用的一套范围写法：`min..max`、`..max`、`min..`。
+ * 命令树只关心类型名与网络 id，值本身在执行时再按原版语义求值。
+ */
+class NumericRangeArgumentType : public ArgumentType<std::string> {
+public:
+    explicit NumericRangeArgumentType(std::string typeName)
+        : m_typeName(std::move(typeName))
+    {}
+
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        const std::string text = reader.readUnquotedString();
+        if (text.empty()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::FloatExpected, "Expected range", start);
+        }
+        return text;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return m_typeName;
+    }
+
+    static std::shared_ptr<NumericRangeArgumentType> of(std::string typeName)
+    {
+        return std::make_shared<NumericRangeArgumentType>(std::move(typeName));
+    }
+
+private:
+    std::string m_typeName;
+};
+
+// ========== NBT 路径 ==========
+
+/**
+ * @brief NBT 路径参数，但对外报告成 {@code nbt_selector}（/execute if ... 的条件）
+ *
+ * 与 {@link NbtPathArgumentType} 同一套语法，只是命令树里的类型名不同。
+ */
+class NbtSelectorArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string text;
+        while (reader.canRead() && !reader.isWhitespace(reader.peek())) {
+            text.push_back(reader.peek());
+            reader.skip();
+        }
+        if (text.empty()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Expected nbt_selector", start);
+        }
+        return text;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "nbt_selector";
+    }
+
+    static std::shared_ptr<NbtSelectorArgumentType> nbtSelector()
+    {
+        return std::make_shared<NbtSelectorArgumentType>();
+    }
+};
+
+/**
+ * @brief 物品槽位列表参数（原版 {@code item_slots}）
+ *
+ * 语法：`container.0`、`weapon.mainhand`、`*`、`*[a,b]`（列表槽位）。这里只校验语法形状，
+ * 槽位解释交给调用方（原版 SlotRanges）。
+ */
+class ItemSlotsArgumentType : public ArgumentType<std::string> {
+public:
+    [[nodiscard]] std::string parse(StringReader& reader) override
+    {
+        const i32 start = reader.getCursor();
+        std::string text;
+        if (reader.canRead() && reader.peek() == '*') {
+            text.push_back(reader.read());
+            if (reader.canRead() && reader.peek() == '[') {
+                i32 depth = 0;
+                while (reader.canRead()) {
+                    const char c = reader.read();
+                    text.push_back(c);
+                    if (c == '[') {
+                        ++depth;
+                    } else if (c == ']') {
+                        --depth;
+                        if (depth == 0) {
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            while (reader.canRead()) {
+                const char c = reader.peek();
+                if (reader.isWhitespace(c) || c == '[' || c == ']') {
+                    break;
+                }
+                text.push_back(c);
+                reader.skip();
+            }
+        }
+        if (text.empty()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::StringExpected, "Expected item slots", start);
+        }
+        return text;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "item_slots";
+    }
+
+    static std::shared_ptr<ItemSlotsArgumentType> itemSlots()
+    {
+        return std::make_shared<ItemSlotsArgumentType>();
+    }
+};
 
 } // namespace command
 } // namespace mc

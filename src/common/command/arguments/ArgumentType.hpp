@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -49,7 +50,44 @@ class CommandContext;
 template <typename T>
 class ArgumentType {
 public:
+    /// 该参数解析出的值类型（构造 ArgumentCommandNode 时需要）。
+    using Value = T;
+
     virtual ~ArgumentType() = default;
+
+    /**
+     * @brief 解析出的值能否默认构造
+     *
+     * 节点解析协议用返回「默认值」表示「这一层没有设置命令」：能默认构造的值类型，
+     * 位置参数默认返回默认值；不能默认构造的值（资源位置、物品栈、组件……）恒表示
+     * 这一层没有设置命令。命令树注册时据此跳过「本该执行、实际被默认返回顶替」的节点。
+     */
+    static constexpr bool kDefaultConstructible = std::is_default_constructible_v<T>;
+
+    [[nodiscard]] virtual bool isSetting() const noexcept
+    {
+        return kDefaultConstructible;
+    }
+
+    /// 解析后需要由本层自己继续读的参数名（原版 `command` lambda 里 getX 过的参数）。
+    [[nodiscard]] virtual const std::vector<std::string>& scopeArguments() const noexcept
+    {
+        static const std::vector<std::string> kEmpty;
+        return kEmpty;
+    }
+
+    /**
+     * @brief 该参数在客户端是否带自定义建议提供器
+     *
+     * 原版在注册命令时用 {@code SharedSuggestionProvider.suggestResource(...)} 给部分参数挂
+     * 提供器（注册表键、函数 id、玩家名……），命令树里表现为 `has_custom_suggestions` 位 +
+     * 提供器 Identifier。这与参数节点自带的 `setCustomSuggestions` 是两回事，前者属于参数
+     * 类型本身的语义。
+     */
+    [[nodiscard]] virtual bool hasBuiltinSuggestions() const noexcept
+    {
+        return false;
+    }
 
     /**
      * @brief 解析参数值
@@ -80,6 +118,62 @@ public:
     {
         return nlohmann::json::object();
     }
+};
+
+/**
+ * @brief Java 的 (double → int) 窄化转换：NaN→0，越界饱和到 INT32_MIN/INT32_MAX
+ *
+ * 原版命令里凡是 `(int)(double)` 的取值都走这条路（/attribute 的 scale 与 value 等），
+ * 直接 `static_cast` 在 NaN/越界时是未定义行为，且与 Java 的结果不一致。
+ */
+[[nodiscard]] inline i32 javaToInt(f64 value) noexcept
+{
+    if (!(value > static_cast<f64>(INT32_MIN))) {
+        return value != value ? 0 : INT32_MIN;
+    }
+    if (value >= static_cast<f64>(INT32_MAX)) {
+        return INT32_MAX;
+    }
+    return static_cast<i32>(value);
+}
+
+/**
+ * @brief 单个字符参数（原版 {@code StringArgumentType} 的字符形态，命令树里叫 {@code character}）
+ *
+ * 只读一个字符；原版 {@code CharacterArgument} 即此语义。
+ */
+class CharacterArgumentType : public ArgumentType<char> {
+public:
+    explicit CharacterArgumentType(std::string allowedCharacters)
+        : m_allowed(std::move(allowedCharacters))
+    {}
+
+    [[nodiscard]] char parse(StringReader& reader) override
+    {
+        if (!reader.canRead()) {
+            throw CommandException(CommandErrorType::StringExpected, "Invalid character", reader.getCursor());
+        }
+        const char c = reader.read();
+        if (m_allowed.find(c) == std::string::npos) {
+            throw CommandException(CommandErrorType::StringExpected,
+                "Invalid character '" + std::string(1, c) + "'",
+                reader.getCursor() - 1);
+        }
+        return c;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "character";
+    }
+
+    static std::shared_ptr<CharacterArgumentType> character(std::string allowedCharacters)
+    {
+        return std::make_shared<CharacterArgumentType>(std::move(allowedCharacters));
+    }
+
+private:
+    std::string m_allowed;
 };
 
 // ========== 字符串参数 ==========

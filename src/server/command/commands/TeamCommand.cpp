@@ -130,8 +130,9 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // 原版 /team add 的队伍名是普通 string（新建队伍时用），其余子命令才用 TeamArgument。
     auto teamNameArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::word());
-    auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "displayName", StringArgumentType::greedyString());
+    // 原版 /team add 的显示名是聊天组件。
+    auto displayNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+        "displayName", ComponentArgumentType::component());
     displayNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addTeam(ctx);
     });
@@ -187,6 +188,8 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     membersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _joinTeam(ctx);
     });
+    // 原版把命令挂在 team 参数本身：`/team join <team>` 不带成员即视为「自己加入」。
+    joinTeamArg->setCommand(membersArg->getCommand());
     joinTeamArg->addChild(membersArg);
     joinNode->addChild(joinTeamArg);
     teamNode->addChild(joinNode);
@@ -207,88 +210,106 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto modifyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("modify");
     auto modifyTeamArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", TeamNameArgumentType::team());
+    // 选项值参数：原版是 StringArgumentType.string()（类型名 string，允许引号）。
+    // 每个选项把自己的名字写进 teamOption 后再交给 _modifyTeam（原版是每个选项注册时
+    // 自带判定函数；这里用同一个执行入口按名字分派）。
+    auto makeOptionValueArg = [](const char* optionName) {
+        auto node = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+            "value", StringArgumentType::string());
+        const std::string option = optionName;
+        node->setCommand([option](CommandContext<ServerCommandSource>& ctx) {
+            ctx.setArgument("teamOption", option);
+            return _modifyTeam(ctx);
+        });
+        return node;
+    };
 
-    auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
-    auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "displayName", StringArgumentType::greedyString());
-    displayNameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    displayNameNode->addChild(displayNameValueArg);
-    modifyTeamArg->addChild(displayNameNode);
-
-    auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
-    auto colorArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("color", StringArgumentType::word());
-    colorArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    colorNode->addChild(colorArg);
-    modifyTeamArg->addChild(colorNode);
-
-    auto friendlyFireNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("friendlyFire");
-    auto friendlyFireArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("friendlyFire", BoolArgumentType::boolArg());
-    friendlyFireArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    friendlyFireNode->addChild(friendlyFireArg);
-    modifyTeamArg->addChild(friendlyFireNode);
-
-    auto seeFriendlyInvisiblesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("seeFriendlyInvisibles");
-    auto seeFriendlyInvisiblesArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
-        "seeFriendlyInvisibles", BoolArgumentType::boolArg());
-    seeFriendlyInvisiblesArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    seeFriendlyInvisiblesNode->addChild(seeFriendlyInvisiblesArg);
-    modifyTeamArg->addChild(seeFriendlyInvisiblesNode);
-
-    auto nametagVisibilityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("nametagVisibility");
-    auto nametagVisibilityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "nametagVisibility", StringArgumentType::string());
-    nametagVisibilityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    nametagVisibilityNode->addChild(nametagVisibilityArg);
-    modifyTeamArg->addChild(nametagVisibilityNode);
-
-    auto deathMessageVisibilityNode =
-        std::make_shared<LiteralCommandNode<ServerCommandSource>>("deathMessageVisibility");
-    auto deathMessageVisibilityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "deathMessageVisibility", StringArgumentType::string());
-    deathMessageVisibilityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    deathMessageVisibilityNode->addChild(deathMessageVisibilityArg);
-    modifyTeamArg->addChild(deathMessageVisibilityNode);
-
-    auto collisionRuleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("collisionRule");
-    auto collisionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "collisionRule", StringArgumentType::string());
-    collisionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    collisionRuleNode->addChild(collisionArg);
-    modifyTeamArg->addChild(collisionRuleNode);
-
-    auto prefixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("prefix");
-    auto prefixArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("prefix", StringArgumentType::string());
-    prefixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    prefixNode->addChild(prefixArg);
-    modifyTeamArg->addChild(prefixNode);
-
-    auto suffixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("suffix");
-    auto suffixArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("suffix", StringArgumentType::string());
-    suffixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _modifyTeam(ctx);
-    });
-    suffixNode->addChild(suffixArg);
-    modifyTeamArg->addChild(suffixNode);
+    // 原版 /team modify <team> <选项> <value>：每个选项是字面量，下面只挂一个 value 参数
+    // （StringArgumentType.string()），选项名由执行入口按字面量分派。
+    // 选项值类型（原版 genericOption 的 withValues）：
+    // displayName / prefix / suffix 是聊天组件；friendlyFire / seeFriendlyInvisibles 是 bool；
+    // 其余是普通字符串。
+    const auto addComponentOption = [&](const char* optionName) {
+        auto optionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(optionName);
+        auto valueNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+            "value", ComponentArgumentType::component());
+        const std::string option = optionName;
+        valueNode->setCommand([option](CommandContext<ServerCommandSource>& ctx) {
+            ctx.setArgument("teamOption", option);
+            return _modifyTeam(ctx);
+        });
+        optionNode->addChild(valueNode);
+        modifyTeamArg->addChild(optionNode);
+    };
+    const auto addBoolOption = [&](const char* optionName) {
+        auto optionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(optionName);
+        auto valueNode =
+            std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("allowed", BoolArgumentType::boolArg());
+        const std::string option = optionName;
+        valueNode->setCommand([option](CommandContext<ServerCommandSource>& ctx) {
+            ctx.setArgument("teamOption", option);
+            return _modifyTeam(ctx);
+        });
+        optionNode->addChild(valueNode);
+        modifyTeamArg->addChild(optionNode);
+    };
+    // 原版的 nametagVisibility / deathMessageVisibility / collisionRule 是小写开头的固定词表，
+    // 在该位置是字面量子节点（不是字符串参数）。
+    const auto addLiteralOption = [&](const char* optionName, std::initializer_list<const char*> choices) {
+        auto optionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(optionName);
+        const std::string option = optionName;
+        for (const char* choice : choices) {
+            auto choiceNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(choice);
+            choiceNode->setCommand([option, choice](CommandContext<ServerCommandSource>& ctx) {
+                ctx.setArgument("teamOption", option);
+                ctx.setArgument("teamOptionValue", std::string(choice));
+                return _modifyTeam(ctx);
+            });
+            optionNode->addChild(choiceNode);
+        }
+        modifyTeamArg->addChild(optionNode);
+    };
+    const auto addWordOption = [&](const char* optionName) {
+        auto optionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(optionName);
+        const std::string option = optionName;
+        std::shared_ptr<ArgumentType<std::string>> type = StringArgumentType::string();
+        if (option == "color") {
+            type = KeywordArgumentType::word("color");
+        }
+        auto valueNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", type);
+        valueNode->setCommand([option](CommandContext<ServerCommandSource>& ctx) {
+            ctx.setArgument("teamOption", option);
+            return _modifyTeam(ctx);
+        });
+        optionNode->addChild(valueNode);
+        modifyTeamArg->addChild(optionNode);
+    };
+    // 原版这三个选项的参数名与选项同名（displayName / prefix / suffix）。
+    const auto addNamedComponentOption = [&](const char* optionName) {
+        auto optionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(optionName);
+        auto valueNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
+            optionName, ComponentArgumentType::component());
+        const std::string option = optionName;
+        valueNode->setCommand([option](CommandContext<ServerCommandSource>& ctx) {
+            ctx.setArgument("teamOption", option);
+            return _modifyTeam(ctx);
+        });
+        optionNode->addChild(valueNode);
+        modifyTeamArg->addChild(optionNode);
+    };
+    for (const char* option : {"displayName", "prefix", "suffix"}) {
+        addNamedComponentOption(option);
+    }
+    for (const char* option : {"friendlyFire", "seeFriendlyInvisibles"}) {
+        addBoolOption(option);
+    }
+    for (const char* option : {"nametagVisibility", "deathMessageVisibility"}) {
+        addLiteralOption(option, {"always", "never", "hideForOtherTeams", "hideForOwnTeam"});
+    }
+    addLiteralOption("collisionRule", {"always", "never", "pushOtherTeams", "pushOwnTeam"});
+    for (const char* option : {"color"}) {
+        addWordOption(option);
+    }
 
     modifyNode->addChild(modifyTeamArg);
     teamNode->addChild(modifyNode);
@@ -327,7 +348,7 @@ i32 TeamCommand::_addTeam(CommandContext<ServerCommandSource>& context)
     // 显示名缺省为队伍名本身（vanilla createTeam 的二参版本传 Component.literal(name)）。
     if (context.hasArgument("displayName")) {
         team->setDisplayName(
-            std::make_unique<text::StringTextComponent>(context.getArgument<std::string>("displayName")));
+            std::make_unique<text::StringTextComponent>(context.getArgument<ComponentTextPtr>("displayName")->text));
     }
 
     source.sendMessage(_lang().get("commands.team.add.success", {_formattedTeamName(*team)}));
@@ -445,14 +466,20 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
     }
 
     const std::string teamName = context.getArgument<std::string>("team");
-    const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("members"));
 
     auto* team = _findTeam(source, *scoreboard, teamName);
     if (team == nullptr) {
         return 0;
     }
 
-    const auto playerIds = support::resolvePlayerIds(source, selector);
+    // 不带 members 时由命令源自己加入（原版 `team.join` 的隐式选择器是 @s）。
+    std::vector<PlayerId> playerIds;
+    if (context.hasArgument("members")) {
+        playerIds = support::resolvePlayerIds(
+            source, support::gameProfileSelector(context.getArgument<std::string>("members")));
+    } else if (source.isPlayer()) {
+        playerIds.push_back(source.playerId());
+    }
     if (playerIds.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
@@ -486,7 +513,14 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
     }
 
     const EntitySelector selector = support::gameProfileSelector(context.getArgument<std::string>("members"));
-    const auto playerIds = support::resolvePlayerIds(source, selector);
+    // 不带 members 时由命令源自己加入（原版 `team.join` 的隐式选择器是 @s）。
+    std::vector<PlayerId> playerIds;
+    if (context.hasArgument("members")) {
+        playerIds = support::resolvePlayerIds(
+            source, support::gameProfileSelector(context.getArgument<std::string>("members")));
+    } else if (source.isPlayer()) {
+        playerIds.push_back(source.playerId());
+    }
     if (playerIds.empty()) {
         source.sendError("No entities matched the selector");
         return 0;
@@ -525,8 +559,9 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
     }
     const std::string displayName = _formattedTeamName(*team);
 
-    if (context.hasArgument("color")) {
-        const std::string colorStr = context.getArgument<std::string>("color");
+    const std::string option = context.getArgumentOr<std::string>("teamOption", "");
+    if (option == "color") {
+        const std::string colorStr = context.getArgument<std::string>("value");
         const text::TextFormatting color = text::fromName(colorStr);
         if (color == text::TextFormatting::None) {
             source.sendError("Unknown color '" + colorStr + "'");
@@ -541,8 +576,8 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    if (context.hasArgument("friendlyFire")) {
-        const bool enabled = context.getArgument<bool>("friendlyFire");
+    if (option == "friendlyFire") {
+        const bool enabled = context.getArgument<bool>("allowed");
         if (team->getAllowFriendlyFire() == enabled) {
             source.sendError(_lang().get(enabled ? "commands.team.option.friendlyfire.alreadyEnabled"
                                                  : "commands.team.option.friendlyfire.alreadyDisabled"));
@@ -555,8 +590,8 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    if (context.hasArgument("seeFriendlyInvisibles")) {
-        const bool enabled = context.getArgument<bool>("seeFriendlyInvisibles");
+    if (option == "seeFriendlyInvisibles") {
+        const bool enabled = context.getArgument<bool>("allowed");
         if (team->canSeeFriendlyInvisibles() == enabled) {
             source.sendError(_lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.alreadyEnabled"
                                                  : "commands.team.option.seeFriendlyInvisibles.alreadyDisabled"));
@@ -569,8 +604,8 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    if (context.hasArgument("nametagVisibility")) {
-        const std::string visStr = context.getArgument<std::string>("nametagVisibility");
+    if (option == "nametagVisibility") {
+        const std::string visStr = context.getArgument<std::string>("teamOptionValue");
         const auto visibility = scoreboard::teamVisibilityFromString(visStr);
         // teamVisibilityFromString 对未知值回退 Always，用原字符串核对以拒绝非法输入。
         if (scoreboard::teamVisibilityToString(visibility) != visStr) {
@@ -588,8 +623,8 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    if (context.hasArgument("deathMessageVisibility")) {
-        const std::string visStr = context.getArgument<std::string>("deathMessageVisibility");
+    if (option == "deathMessageVisibility") {
+        const std::string visStr = context.getArgument<std::string>("teamOptionValue");
         const auto visibility = scoreboard::teamVisibilityFromString(visStr);
         if (scoreboard::teamVisibilityToString(visibility) != visStr) {
             source.sendError(
@@ -606,8 +641,8 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    if (context.hasArgument("collisionRule")) {
-        const std::string ruleStr = context.getArgument<std::string>("collisionRule");
+    if (option == "collisionRule") {
+        const std::string ruleStr = context.getArgument<std::string>("teamOptionValue");
         const auto rule = scoreboard::teamCollisionRuleFromString(ruleStr);
         if (scoreboard::teamCollisionRuleToString(rule) != ruleStr) {
             source.sendError(
@@ -624,22 +659,22 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    if (context.hasArgument("prefix")) {
-        const std::string prefix = context.getArgument<std::string>("prefix");
+    if (option == "prefix") {
+        const std::string prefix = context.getArgument<ComponentTextPtr>(option)->text;
         team->setPrefix(std::make_unique<text::StringTextComponent>(prefix));
         source.sendMessage(_lang().get("commands.team.option.prefix.success", {prefix}));
         return 1;
     }
 
-    if (context.hasArgument("suffix")) {
-        const std::string suffix = context.getArgument<std::string>("suffix");
+    if (option == "suffix") {
+        const std::string suffix = context.getArgument<ComponentTextPtr>(option)->text;
         team->setSuffix(std::make_unique<text::StringTextComponent>(suffix));
         source.sendMessage(_lang().get("commands.team.option.suffix.success", {suffix}));
         return 1;
     }
 
-    if (context.hasArgument("displayName")) {
-        const std::string newDisplayName = context.getArgument<std::string>("displayName");
+    if (option == "displayName") {
+        const std::string newDisplayName = context.getArgument<ComponentTextPtr>(option)->text;
         const text::ITextComponent* current = team->getDisplayName();
         if (current != nullptr && current->getFormattedText() == newDisplayName) {
             source.sendError(_lang().get("commands.team.option.name.unchanged"));

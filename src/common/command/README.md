@@ -72,9 +72,9 @@ EntityArgument.hpp / GameModeArgument.hpp / ItemArgument.hpp
 **依赖了谁（上游）：**
 - 无外部依赖，仅依赖标准库和项目基础类型
 
-## 设计参考
+## 命令框架关系
 
-本模块参考 Minecraft Java Edition 1.16.5 的 Brigadier 命令框架设计：
+命令节点、上下文和分发器分别承载注册结构、解析状态及执行调度：
 - `CommandDispatcher` ≈ `com.mojang.brigadier.CommandDispatcher`
 - `CommandNode` ≈ `com.mojang.brigadier.tree.CommandNode`
 - `LiteralCommandNode` / `ArgumentCommandNode` ≈ 同名类
@@ -112,7 +112,7 @@ i32 value = ctx.getArgument<i32>("value");  // 正确
 
 **问题**：复制子子树创建别名会导致命令树、帮助输出和建议不同步。
 
-**解决**：命令别名应使用 `CommandNode::setRedirect(...)` 而不是复制子子树。`/teleport` 和 `/xp` 现在依赖重定向，因此命令树、帮助输出和建议都保持同步。
+**解决**：命令别名应使用 `CommandNode::setRedirect(...)` 而不是复制子树。`/teleport` 和 `/xp` 现在依赖重定向，因此命令树、帮助输出和建议都保持同步。
 
 ### Tab 补全入口点
 
@@ -132,13 +132,11 @@ i32 value = ctx.getArgument<i32>("value");  // 正确
 
 **解决**：`CommandTreePacket` 是客户端的权威命令快照，必须正确处理重建和清除。
 
-### CommandTreePacket 封装
+### 命令图引用与网络编码
 
-**问题**：`CommandTreePacket` 只序列化包体，双重封装会导致内部头看起来像空 JSON 字符串。
-
-**解决**：
-- 旧 1.16.5 字节协议下服务器代码须用恰好一次包头封装；新网络层（IR + Java wire codec）已不再使用 12 字节头封装，命令树改走 `ir::play::Commands` codec
-- 客户端代码必须在调用 `handleCommandTree()` 之前剥离外部网络头（旧路径）
+重定向采用弱引用，父子节点的所有权只沿子节点方向传递。快照以 BFS 分配索引，编码器可以
+合并等价的网络条目；执行修改器等语义仍保留在原始快照。实现专用的隐藏子节点不下发。
+建议提供器通过 `getProviderId()` 声明客户端注册名，自定义提供器默认使用 ask_server。
 
 ### 异常处理
 

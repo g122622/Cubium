@@ -34,6 +34,13 @@
  *   中等深度的分支（如 `execute`）只展开一层——树的形状与参数类型是最容易分叉的部分，
  *   逐层展开会让报告淹没在细节里。
  *
+ * `arguments`：每个参数节点的网络编码 {typeId, payload, suggestions}，键是从根到该节点的路径
+ *   （`/execute as <targets:entity>` 这种叶子参数带 `:类型名` 后缀）；
+ * `components`：全部节点的 {type, executable, restricted, redirect, redirectModifier, suggestions}，key 同上
+ *   （参数节点的键不带类型后缀）——同一个通用参数类型在不同命令里承担不同角色、字面量的建议
+ *   提供器被误挂，都会在这里体现；
+ * `wire`：整棵树按 clientbound/minecraft:commands 编码后的完整字节和长度。
+ *
  * 命令树是 `/help`、Tab 补全、以及客户端命令补全列表的直接来源：某条命令在原版存在而这里
  * 没有、或参数名/类型不同，玩家与数据包立刻能感觉到。
  */
@@ -159,7 +166,7 @@ std::string toHex(const std::vector<u8>& bytes)
 /**
  * 一条参数节点的网络编码记录。
  *
- * 直接复用真实编码器（encodeSingleArgumentNode），因此这里产出的字节与客户端实际收到的
+ * 直接复用真实编码器（encodeArgumentPropertiesOnly），因此这里产出的字节与客户端实际收到的
  * 完全一致——数值 id、properties 载荷、建议提供器任一写错都会体现为字节差异。
  */
 void recordArgument(
@@ -200,29 +207,59 @@ std::string runLine(std::string_view)
     // 键用「从根到该参数节点的路径」（如 `/team add <team>`），两侧都按同一条路径对齐，
     // 不依赖各自内部的节点编号——编号本身是遍历顺序的副产物，不适合当比对键。
     nlohmann::json arguments = nlohmann::json::object();
+    nlohmann::json components = nlohmann::json::object();
 
     const auto snapshot = mc::command::buildCommandTreeSnapshot(registry.dispatcher());
     if (!snapshot.nodes.empty()) {
-        // 快照节点按 BFS 编号，children 存的是编号；这里从根回溯出每个参数节点的路径，
-        // 用「路径」而不是「编号」做比对键（编号是遍历产物，两侧不保证一致）。
-        std::function<void(u32, std::string)> walk = [&](u32 index, std::string path) {
-            const auto& node = snapshot.nodes[index];
-            if (node.type == mc::command::NodeType::Argument) {
-                recordArgument(node, path, arguments);
+        std::vector<std::optional<std::string>> paths(snapshot.nodes.size());
+        const auto collectPaths = [&](const auto& self, u32 index, const std::string& path) -> void {
+            if (paths[index].has_value()) {
+                return;
             }
-            for (const u32 childIndex : node.children) {
-                if (childIndex >= snapshot.nodes.size()) {
-                    continue;
-                }
-                const auto& child = snapshot.nodes[childIndex];
-                std::string childPath = path + " " + child.name;
-                if (child.type == mc::command::NodeType::Argument) {
-                    childPath += ":" + child.typeName;
-                }
-                walk(childIndex, childPath);
+            paths[index] = path;
+            for (const u32 child : snapshot.nodes[index].children) {
+                self(self, child, path + " " + snapshot.nodes[child].name);
             }
         };
-        walk(0, "");
+        collectPaths(collectPaths, 0, "");
+        // 快照节点按 BFS 编号，children 存的是编号；这里从根回溯出每个参数节点的路径，
+        // 用「路径」而不是「编号」做比对键（编号是遍历产物，两侧不保证一致）。
+        std::function<void(u32, std::string, std::string)> walk =
+            [&](u32 index, std::string path, std::string componentKey) {
+                const auto& node = snapshot.nodes[index];
+                if (!path.empty()) {
+                    // components 用规范键：参数节点不带类型后缀，与 arguments 的叶子键区分开。
+                    // 节点层面的差异：同一个通用参数类型在不同命令里承担不同角色（如 `<source>` 的 string
+                    // 单独作为字面量求值、还是作为 NBT 值），客户端拿到的 executable / redirectModifier /
+                    // 建议提供器都会不同。
+                    components[componentKey] = nlohmann::json{{"type", mc::command::detail::toString(node.type)},
+                        {"executable", node.executable},
+                        {"restricted", node.restricted},
+                        {"redirectModifier", mc::command::detail::toString(node.redirectModifier)},
+                        {"redirect",
+                            node.redirect.has_value() ? nlohmann::json(paths[*node.redirect].value())
+                                                      : nlohmann::json(nullptr)},
+                        {"suggestions", node.suggestionProviderId.value_or("")}};
+                }
+                if (node.type == mc::command::NodeType::Argument) {
+                    recordArgument(node, path, arguments);
+                }
+                for (const u32 childIndex : node.children) {
+                    if (childIndex >= snapshot.nodes.size()) {
+                        continue;
+                    }
+                    const auto& child = snapshot.nodes[childIndex];
+                    std::string childPath = path + " " + child.name;
+                    const std::string childComponentKey = componentKey + " " + child.name;
+                    // 带子节点的参数（filtered 的 filter、loot 的 loot_table）在路径里不带类型后缀：
+                    // 它们的子参数直接续在父路径上（oracle 的 `… filter:block_predicate` 落在父路径之后）。
+                    if (child.type == mc::command::NodeType::Argument && child.children.empty()) {
+                        childPath += ":" + child.typeName;
+                    }
+                    walk(childIndex, childPath, childComponentKey);
+                }
+            };
+        walk(0, "", "");
     }
 
     // 整棵树的编码结果也要能成功产出（未知类型名会在这里暴露），并给出字节总数，
@@ -231,11 +268,13 @@ std::string runLine(std::string_view)
     nlohmann::json wire = nlohmann::json::object();
     if (whole.success()) {
         wire["byteLength"] = whole.value().size();
+        wire["payload"] = toHex(whole.value());
     } else {
         wire["error"] = whole.error().toString();
     }
 
-    return json{{"tree", lines}, {"arguments", arguments}, {"wire", wire}}.dump();
+    return json{{"unit", "tree"}, {"tree", lines}, {"arguments", arguments}, {"components", components}, {"wire", wire}}
+        .dump();
 }
 
 } // namespace

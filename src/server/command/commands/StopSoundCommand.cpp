@@ -50,6 +50,18 @@ namespace mc {
 namespace command {
 
 namespace {
+
+/**
+ * @brief stopsound 的 sound 参数用它（原版 {@code minecraft:available_sounds}）
+ *
+ * 候选是实际播放的音效事件（排除只用于延迟播放的 static 事件），命令树里只体现为
+ * ask_server 标记：候选由服务端按已加载资源包计算，客户端发补全请求再取。
+ */
+std::shared_ptr<ISuggestionProvider<ServerCommandSource>> _nativeSuggestions()
+{
+    return std::make_shared<RegisteredSuggestionProvider<ServerCommandSource>>("minecraft:available_sounds");
+}
+
 /**
  * @brief 发送 StopSound IR 包给指定玩家
  */
@@ -121,12 +133,9 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     // /stopsound <player> * [<sound>] - 通配符：停止所有类别的声音
     auto wildcardNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("*");
-    wildcardNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _stopSounds(ctx, std::nullopt, std::nullopt);
-    });
     auto wildcardSoundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "sound", IdentifierArgumentType::identifier());
-    wildcardSoundNode->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+        "sound", ResourceLocationArgumentType::resourceLocation());
+    wildcardSoundNode->setCustomSuggestions(_nativeSuggestions());
     wildcardSoundNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
         return _stopSounds(ctx, std::nullopt, soundId);
@@ -148,8 +157,8 @@ void StopSoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
         // /stopsound <player> <source> <sound> - 停止特定声音
         auto soundNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-            "sound", IdentifierArgumentType::identifier());
-        soundNode->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+            "sound", ResourceLocationArgumentType::resourceLocation());
+        soundNode->setCustomSuggestions(_nativeSuggestions());
         soundNode->setCommand([category](CommandContext<ServerCommandSource>& ctx) {
             const ResourceLocation& soundId = ctx.getArgument<ResourceLocation>("sound");
             return _stopSounds(ctx, category, soundId);

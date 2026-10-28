@@ -603,3 +603,42 @@ TEST(CommandTreeEncoder, RealRegistryEncodesWithoutError)
     }
     EXPECT_TRUE(hasArgument) << "真实命令树应至少含一个 argument 节点";
 }
+
+// 子节点指向父节点的重定向不能延长整棵命令树的生命周期。
+TEST(CommandTreeEncoder, RedirectDoesNotOwnItsTarget)
+{
+    std::weak_ptr<CommandNode<int>> rootObserver;
+    std::weak_ptr<CommandNode<int>> childObserver;
+    {
+        CommandDispatcher<int> dispatcher;
+        auto root = dispatcher.getRoot();
+        auto child = std::make_shared<LiteralCommandNode<int>>("repeat");
+        root->addChild(child);
+        child->setRedirect(root, RedirectModifier::Fork);
+        rootObserver = root;
+        childObserver = child;
+        const auto snapshot = buildCommandTreeSnapshot(dispatcher);
+        ASSERT_EQ(snapshot.nodes.size(), 2U);
+        EXPECT_EQ(snapshot.nodes[1].redirect, 0U);
+        EXPECT_EQ(snapshot.nodes[1].redirectModifier, RedirectModifier::Fork);
+    }
+    EXPECT_TRUE(rootObserver.expired());
+    EXPECT_TRUE(childObserver.expired());
+}
+
+// 两个执行修改器可以产生同一个客户端重定向条目，原快照仍保留各自的语义。
+TEST(CommandTreeEncoder, EquivalentRedirectStubsShareWireIndex)
+{
+    CommandTreeSnapshot snapshot;
+    snapshot.nodes = {
+        makeRoot({1, 2}), makeLiteral("a", {3}), makeLiteral("b", {4}), makeLiteral("run"), makeLiteral("run")};
+    snapshot.nodes[3].redirect = 0;
+    snapshot.nodes[4].redirect = 0;
+    snapshot.nodes[3].redirectModifier = RedirectModifier::None;
+    snapshot.nodes[4].redirectModifier = RedirectModifier::Single;
+    const auto result = encodeCommandTree(snapshot);
+    ASSERT_TRUE(result.success()) << result.error().toString();
+    const std::vector<u8> expected = {4, 0, 2, 1, 2, 1, 1, 3, 1, 'a', 1, 1, 3, 1, 'b', 9, 0, 0, 3, 'r', 'u', 'n', 0};
+    EXPECT_EQ(result.value(), expected);
+    EXPECT_EQ(snapshot.nodes[4].redirectModifier, RedirectModifier::Single);
+}

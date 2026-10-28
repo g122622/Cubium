@@ -257,13 +257,44 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             true));
 
     auto tpNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tp");
-    tpNode->setRedirect(teleportNode);
+    tpNode->setRedirect(teleportNode, RedirectModifier::None);
 
     // /teleport <targets> <location>：位置是一个 Vec3Argument。
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
     auto locationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "location", Vec3ArgumentType::vec3NoCenter());
+    // /teleport <targets> <location> <rotation> / facing <entity> [<anchor>] / facing <pos>
+    auto rotationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "rotation", RotationArgumentType::rotation());
+    rotationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToPosition(ctx);
+    });
+    auto facingNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("facing");
+    // 原版 facing <pos> 的参数名是 facingLocation。
+    auto facingPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "facingLocation", Vec3ArgumentType::vec3());
+    facingPosArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToPosition(ctx);
+    });
+    auto facingEntityNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("entity");
+    // 原版参数名是 facingEntity / facingAnchor。
+    auto facingEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "facingEntity", EntityArgumentType::entity());
+    facingEntityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToPosition(ctx);
+    });
+    auto facingAnchorArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "facingAnchor", EntityAnchorArgumentType::entityAnchor());
+    facingAnchorArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _teleportTargetToPosition(ctx);
+    });
+    facingEntityArg->addChild(facingAnchorArg);
+    facingNode->addChild(facingPosArg);
+    facingNode->addChild(facingEntityNode);
+    facingEntityNode->addChild(facingEntityArg);
+    locationArg->addChild(rotationArg);
+    locationArg->addChild(facingNode);
     locationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _teleportTargetToPosition(ctx);
     });

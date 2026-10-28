@@ -817,26 +817,24 @@ private:
 };
 
 /**
- * @brief 实体参数类型。
+ * @brief 实体参数类型的公共部分：模式、类型名与网络元数据
  *
- * 支持完整的选择器语法。
+ * 原版只有一种 `minecraft:entity` 参数类型，单/多目标与「是否限玩家」由 flags
+ * 字节区分（bit0=single、bit1=playersOnly），类型名不随模式变化。带 NBT 的变体
+ * （{@link EntityArgumentWithNbtType}）在网络上多写一个 NBT 字节，类型名不变。
  */
-class EntityArgumentType : public ArgumentType<EntitySelector> {
+class EntityArgumentTypeBase : public ArgumentType<EntitySelector> {
 public:
     enum class Mode { SingleEntity, MultipleEntities, SinglePlayer, MultiplePlayers };
 
-    explicit EntityArgumentType(Mode mode = Mode::SinglePlayer)
+    explicit EntityArgumentTypeBase(Mode mode = Mode::SinglePlayer)
         : m_mode(mode)
     {}
 
     [[nodiscard]] EntitySelector parse(StringReader& reader) override;
 
     /**
-     * @brief 参数类型名（对齐原版命令树）
-     *
-     * 原版只有一种 `minecraft:entity` 参数类型，单/多目标与「是否限玩家」由 flags
-     * 字节区分（bit0=single、bit1=playersOnly），类型名不随模式变化。因此这里同样
-     * 只输出 `entity`；模式差异体现在 {@link serializeMetadata} 的 flags 上。
+     * @brief 参数类型名（对齐原版命令树）：单/多目标、NBT 变体都叫 `entity`
      */
     [[nodiscard]] std::string getTypeName() const override
     {
@@ -854,6 +852,65 @@ public:
     {
         return nlohmann::json{{"single", isSingle()}, {"playersOnly", isPlayersOnly()}};
     }
+
+    [[nodiscard]] bool isSingle() const noexcept
+    {
+        return m_mode == Mode::SingleEntity || m_mode == Mode::SinglePlayer;
+    }
+
+    [[nodiscard]] bool isPlayersOnly() const noexcept
+    {
+        return m_mode == Mode::SinglePlayer || m_mode == Mode::MultiplePlayers;
+    }
+
+    [[nodiscard]] Mode mode() const noexcept
+    {
+        return m_mode;
+    }
+
+protected:
+    [[nodiscard]] EntitySelector _parseSelector(StringReader& reader, i32 start);
+    void _parseSelectorArguments(StringReader& reader, EntitySelector& selector);
+    void _applySelectorArgument(
+        EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
+    void _validateSelector(const EntitySelector& selector, i32 start);
+
+    [[nodiscard]] static std::string _readSelectorArgumentToken(StringReader& reader);
+    [[nodiscard]] static std::string _readScoresKey(StringReader& reader);
+    [[nodiscard]] static std::string _readAdvancementKey(StringReader& reader);
+    [[nodiscard]] static std::string _readCriteriaKey(StringReader& reader);
+    [[nodiscard]] static bool _shouldInvertValue(StringReader& reader);
+    [[nodiscard]] FloatRange _parseFloatRange(StringReader& reader);
+    [[nodiscard]] IntRange _parseIntRange(StringReader& reader);
+
+    Mode m_mode;
+};
+
+/**
+ * @brief 带 NBT 的实体参数值：选择器 + 实体 NBT 匹配条件
+ *
+ * 对应原版 {@code EntitySelectorParser.Result}：先按选择器挑实体，再逐个按 NBT 匹配
+ * （原版在 {@code EntityArgument.getEntities} 里用 {@code NbtUtils.compareNbt} 判定）。
+ */
+struct EntitySelectorWithNbt {
+    EntitySelector selector;
+    /// 实体 NBT 条件；为空表示不额外过滤。`{...}` 简写时选择器为默认（@e）并限定当前维度。
+    std::optional<EntitySelector::NbtCondition> nbt;
+
+    [[nodiscard]] bool hasNbt() const noexcept
+    {
+        return nbt.has_value();
+    }
+};
+
+/**
+ * @brief 实体参数类型（原版 {@code EntityArgument.entity()} 等，不带 NBT）
+ */
+class EntityArgumentType : public EntityArgumentTypeBase {
+public:
+    explicit EntityArgumentType(Mode mode = Mode::SinglePlayer)
+        : EntityArgumentTypeBase(mode)
+    {}
 
     [[nodiscard]] static std::shared_ptr<EntityArgumentType> entity()
     {
@@ -874,38 +931,94 @@ public:
     {
         return std::make_shared<EntityArgumentType>(Mode::MultiplePlayers);
     }
+};
 
-    [[nodiscard]] bool isSingle() const noexcept
+/**
+ * @brief 带 NBT 的实体参数类型（原版 {@code EntityArgument.entity(CommandBuildContext)}）
+ *
+ * 参数值是一个 `{选择器, NBT}` 对：选中实体后再按 NBT 匹配，如
+ * `@e[type=pig]{NoAI:1b}`、`{CustomName:'"Boss"'}`。类型名与网络 id 同上，只是网络上
+ * 多一个「是否带 NBT」的字节（{@link serializeMetadata} 的 `withNbt`）。
+ */
+class EntityArgumentWithNbtType : public ArgumentType<EntitySelectorWithNbt> {
+public:
+    enum class Mode { SingleEntity, MultipleEntities, SinglePlayer, MultiplePlayers };
+
+    explicit EntityArgumentWithNbtType(Mode mode = Mode::SinglePlayer)
+        : m_selector(mode == Mode::SingleEntity    ? EntityArgumentTypeBase::Mode::SingleEntity
+                  : mode == Mode::MultipleEntities ? EntityArgumentTypeBase::Mode::MultipleEntities
+                  : mode == Mode::SinglePlayer     ? EntityArgumentTypeBase::Mode::SinglePlayer
+                                                   : EntityArgumentTypeBase::Mode::MultiplePlayers)
+    {}
+
+    [[nodiscard]] EntitySelectorWithNbt parse(StringReader& reader) override;
+
+    [[nodiscard]] std::string getTypeName() const override
     {
-        return m_mode == Mode::SingleEntity || m_mode == Mode::SinglePlayer;
+        return "entity";
     }
 
-    [[nodiscard]] bool isPlayersOnly() const noexcept
+    [[nodiscard]] std::vector<std::string> getExamples() const override
     {
-        return m_mode == Mode::SinglePlayer || m_mode == Mode::MultiplePlayers;
+        return {"@e", "@e[type=pig]{NoAI:1b}", "{CustomName:'\"Boss\"'}"};
     }
 
-    [[nodiscard]] Mode mode() const noexcept
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
     {
-        return m_mode;
+        return nlohmann::json{
+            {"single", m_selector.isSingle()}, {"playersOnly", m_selector.isPlayersOnly()}, {"withNbt", true}};
+    }
+
+    [[nodiscard]] static std::shared_ptr<EntityArgumentWithNbtType> entity()
+    {
+        return std::make_shared<EntityArgumentWithNbtType>(Mode::SingleEntity);
+    }
+
+    [[nodiscard]] static std::shared_ptr<EntityArgumentWithNbtType> entities()
+    {
+        return std::make_shared<EntityArgumentWithNbtType>(Mode::MultipleEntities);
     }
 
 private:
-    [[nodiscard]] EntitySelector _parseSelector(StringReader& reader, i32 start);
-    void _parseSelectorArguments(StringReader& reader, EntitySelector& selector);
-    void _applySelectorArgument(
-        EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
-    void _validateSelector(const EntitySelector& selector, i32 start);
+    /// 解析选择器与校验规则与普通实体参数共用；这里只保存模式供网络序列化。
+    EntityArgumentTypeBase m_selector;
+};
 
-    [[nodiscard]] static std::string _readSelectorArgumentToken(StringReader& reader);
-    [[nodiscard]] static std::string _readScoresKey(StringReader& reader);
-    [[nodiscard]] static std::string _readAdvancementKey(StringReader& reader);
-    [[nodiscard]] static std::string _readCriteriaKey(StringReader& reader);
-    [[nodiscard]] static bool _shouldInvertValue(StringReader& reader);
-    [[nodiscard]] FloatRange _parseFloatRange(StringReader& reader);
-    [[nodiscard]] IntRange _parseIntRange(StringReader& reader);
+/**
+ * @brief 实体选择器参数，但对外报告成另一个类型名（原版 {@code resource_selector}）
+ *
+ * 原版 `resource_selector` 是「选择器里必须写 type=」的实体参数，网络结构与其他实体参数
+ * 相同（flags 字节），只是类型 id 不同。
+ */
+class SelectorThenResourceArgumentType : public ArgumentType<EntitySelector> {
+public:
+    explicit SelectorThenResourceArgumentType(std::string typeName)
+        : m_typeName(std::move(typeName))
+    {}
 
-    Mode m_mode;
+    [[nodiscard]] EntitySelector parse(StringReader& reader) override
+    {
+        EntityArgumentType entities(EntityArgumentType::Mode::MultipleEntities);
+        return entities.parse(reader);
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return m_typeName;
+    }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"single", false}, {"playersOnly", false}};
+    }
+
+    static std::shared_ptr<SelectorThenResourceArgumentType> of(std::string typeName)
+    {
+        return std::make_shared<SelectorThenResourceArgumentType>(std::move(typeName));
+    }
+
+private:
+    std::string m_typeName;
 };
 
 } // namespace command

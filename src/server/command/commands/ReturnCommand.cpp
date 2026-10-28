@@ -53,14 +53,13 @@ void ReturnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     returnNode->addChild(valueArg);
 
     auto runNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
-    // 原版给 run 挂上一个「占位」命令：调用方（如 /execute if function）只要看到 run 节点
-    // 被选中，就知道这是一条转发命令，转而执行 run 的兄弟子节点。节点链的实际执行放到
-    // _returnRun 里，按解析好的 token 直接调用兄弟节点的命令，而不是把原始文本再解析一遍。
-    runNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
-        throw CommandException(CommandErrorType::Unknown, "commands.return.forward");
-    });
+    // 原版的 run 是重定向到根的转发节点，本身不可执行；节点链的实际执行放到 _returnRun 里，
+    // 按解析好的 token 直接调用命令，而不是把原始文本再解析一遍。
     auto runArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
+    // 原版的 run 是重定向到根的转发节点：命中后由 dispatcher 从根重新解析剩余文本。
+    // Cubium 的解析器不二次派发，这里把 run 重定向到根，让剩下的命令走同一套派发。
+    runNode->setRedirect(dispatcher.getRoot(), RedirectModifier::Single);
     runArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _returnRun(ctx);
     });

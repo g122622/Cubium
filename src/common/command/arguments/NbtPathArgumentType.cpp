@@ -479,17 +479,174 @@ std::shared_ptr<nbt::tags::compound_tag> NbtCompoundArgumentType::parse(StringRe
             reader.getCursor());
     }
 
-    // 复用 NbtPathArgumentType 的解析器
-    NbtPathArgumentType pathParser;
-    return pathParser.parseCompoundFilter(reader);
+    auto tag = NbtPathArgumentType::readNbtValue(reader);
+    if (tag == nullptr || tag->id() != nbt::TagId::Compound) {
+        throw CommandException(CommandErrorType::InvalidNbtPath,
+            "Expected compound tag at position " + std::to_string(reader.getCursor()),
+            reader.getCursor());
+    }
+    return std::shared_ptr<nbt::tags::compound_tag>(static_cast<nbt::tags::compound_tag*>(tag.release()));
 }
 
 // ========== NbtTagArgumentType 实现 ==========
 
 std::shared_ptr<nbt::tags::tag> NbtTagArgumentType::parse(StringReader& reader)
 {
-    NbtPathArgumentType pathParser;
-    return pathParser.parseNbtValue(reader);
+    return NbtPathArgumentType::readNbtValue(reader);
+}
+
+std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::readNbtValue(StringReader& reader)
+{
+    if (reader.atEnd()) {
+        throw CommandException(CommandErrorType::InvalidNbtPath,
+            "Expected value at position " + std::to_string(reader.getCursor()),
+            reader.getCursor());
+    }
+
+    const char c = reader.peek();
+
+    if (c == '"') {
+        return std::make_unique<nbt::tags::string_tag>(_readQuotedString(reader));
+    }
+    if (c == '{') {
+        return parseCompoundFilter(reader);
+    }
+    if (c == '[') {
+        return _parseListContent(reader);
+    }
+
+    // 原版 StringTagReader.readTag 的布尔分支：true/false 可带 f/d 后缀变成 1f/1d。
+    if (reader.tryRead("true")) {
+        if (reader.tryRead("f")) {
+            return std::make_unique<nbt::tags::float_tag>(1.0F);
+        }
+        if (reader.tryRead("d")) {
+            return std::make_unique<nbt::tags::double_tag>(1.0);
+        }
+        return std::make_unique<nbt::tags::byte_tag>(1);
+    }
+    if (reader.tryRead("false")) {
+        if (reader.tryRead("f")) {
+            return std::make_unique<nbt::tags::float_tag>(0.0F);
+        }
+        if (reader.tryRead("d")) {
+            return std::make_unique<nbt::tags::double_tag>(0.0);
+        }
+        return std::make_unique<nbt::tags::byte_tag>(0);
+    }
+
+    // 数字：先读完整数字文本，再按后缀决定类型（原版 NumericTagType.bySuffix）。
+    const i32 start = reader.getCursor();
+    const std::string number = _readNbtNumber(reader);
+    const bool hasSuffix = reader.canRead() && std::isalpha(static_cast<unsigned char>(reader.peek()));
+    char suffix = '\0';
+    if (hasSuffix) {
+        suffix = static_cast<char>(std::tolower(static_cast<unsigned char>(reader.read())));
+    }
+    if (number.empty()) {
+        throw CommandException(
+            CommandErrorType::InvalidNbtPath, "Invalid value at position " + std::to_string(start), start);
+    }
+
+    try {
+        if (suffix == 'b') {
+            return std::make_unique<nbt::tags::byte_tag>(static_cast<i8>(std::stoll(number)));
+        }
+        if (suffix == 's') {
+            return std::make_unique<nbt::tags::short_tag>(static_cast<i16>(std::stoll(number)));
+        }
+        if (suffix == 'l') {
+            return std::make_unique<nbt::tags::long_tag>(std::stoll(number));
+        }
+        if (suffix == 'f') {
+            return std::make_unique<nbt::tags::float_tag>(static_cast<f32>(std::stod(number)));
+        }
+        if (suffix == 'd') {
+            return std::make_unique<nbt::tags::double_tag>(std::stod(number));
+        }
+        // 无后缀：原版 readInt → readDouble 的顺序——带小数点或指数时是 double，否则截断为 int。
+        const bool decimal = number.find('.') != std::string::npos || number.find('e') != std::string::npos ||
+            number.find('E') != std::string::npos;
+        if (decimal) {
+            return std::make_unique<nbt::tags::double_tag>(std::stod(number));
+        }
+        return std::make_unique<nbt::tags::int_tag>(static_cast<i32>(std::stoll(number)));
+    }
+    catch (const std::exception&) {
+        reader.setCursor(start);
+        throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
+    }
+}
+
+std::string NbtPathArgumentType::_readQuotedString(StringReader& reader)
+{
+    reader.expect('"');
+    std::string result;
+    while (reader.canRead()) {
+        const char c = reader.read();
+        if (c == '"') {
+            return result;
+        }
+        if (c != '\\') {
+            result.push_back(c);
+            continue;
+        }
+        if (!reader.canRead()) {
+            break;
+        }
+        const char escaped = reader.read();
+        switch (escaped) {
+            case 'b':
+                result.push_back('\b');
+                break;
+            case 's':
+                result.push_back(' ');
+                break;
+            case 't':
+                result.push_back('\t');
+                break;
+            case 'n':
+                result.push_back('\n');
+                break;
+            case 'f':
+                result.push_back('\f');
+                break;
+            case 'r':
+                result.push_back('\r');
+                break;
+            default:
+                result.push_back(escaped);
+                break;
+        }
+    }
+    throw CommandException(CommandErrorType::InvalidNbtPath, "Unclosed quoted string", reader.getCursor());
+}
+
+std::string NbtPathArgumentType::_readNbtNumber(StringReader& reader)
+{
+    const i32 start = reader.getCursor();
+    if (reader.canRead() && (reader.peek() == '-' || reader.peek() == '+')) {
+        reader.skip();
+    }
+    while (reader.canRead() && StringReader::isDigit(reader.peek())) {
+        reader.skip();
+    }
+    if (reader.canRead() && reader.peek() == '.') {
+        reader.skip();
+        while (reader.canRead() && StringReader::isDigit(reader.peek())) {
+            reader.skip();
+        }
+    }
+    if (reader.canRead() && (reader.peek() == 'e' || reader.peek() == 'E')) {
+        reader.skip();
+        if (reader.canRead() && (reader.peek() == '-' || reader.peek() == '+')) {
+            reader.skip();
+        }
+        while (reader.canRead() && StringReader::isDigit(reader.peek())) {
+            reader.skip();
+        }
+    }
+    return reader.getRemaining().substr(0, static_cast<size_t>(reader.getCursor() - start));
 }
 
 } // namespace command

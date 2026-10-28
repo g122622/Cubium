@@ -185,9 +185,14 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         return _setBlockReplace(ctx);
     });
 
+    // strict：源区域必须完全加载，等价于默认的 replace 模式（与 /fill 同形）。
+    auto strictNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("strict");
+    strictNode->setCommand(blockArg->getCommand());
+
     blockArg->addChild(destroyNode);
     blockArg->addChild(keepNode);
     blockArg->addChild(replaceNode);
+    blockArg->addChild(strictNode);
     posArg->addChild(blockArg);
     setblockNode->addChild(posArg);
 

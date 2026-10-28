@@ -530,6 +530,9 @@ std::pair<i32, i32> GameRules::getIntRange(const std::string& ruleName)
         // 非整数规则（或规则不存在）：按无界处理，命令树据此注册不带边界的 integer 参数。
         return {IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX};
     }
+    // 按原始边界返回：命令树的 integer 参数把 INT32_MIN / INT32_MAX 当作「无界」，
+    // 恰好等于这两个值的边界（如 fire_spread_radius_around_player 的 [-1, INT32_MAX]）
+    // 会退化成无界写法——与原版一致（原版对 [min, INT32_MAX] 同样不写出 max）。
     return {it->second.getMinValue(), it->second.getMaxValue()};
 }
 

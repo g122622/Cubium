@@ -117,6 +117,40 @@ public:
         return getName();
     }
 
+    /// 该参数类型是否在解析后自行设置值（见 ArgumentCommandNode::isSetting）。
+    [[nodiscard]] virtual bool isSetting() const noexcept
+    {
+        return true;
+    }
+
+    /// 该参数是否带内置建议（影响协议里的建议提供器位）。
+    [[nodiscard]] virtual bool hasBuiltinSuggestions() const noexcept
+    {
+        return false;
+    }
+
+    /// 该参数在解析后是否把值留在上下文里（供 /execute run 链查找）。
+    [[nodiscard]] virtual const std::vector<std::string>& scopeArguments() const noexcept
+    {
+        static const std::vector<std::string> kEmpty;
+        return kEmpty;
+    }
+
+    /**
+     * @brief 命令的执行时机
+     *
+     * After：读完剩余输入后由末端节点执行（默认）。
+     * OnParse：解析完这一层立即执行——值类型不可默认构造的参数（资源位置、物品栈……）
+     *         没有默认值可写回，这一层就是命令终点。
+     */
+    enum class Order { After, OnParse };
+
+    /// 见 {@link Order}：这一层是否必须在解析完成时立即执行。
+    [[nodiscard]] bool isOrderAhead() const noexcept
+    {
+        return m_order == Order::OnParse;
+    }
+
     [[nodiscard]] virtual std::vector<std::string> getExamples() const
     {
         return {};
@@ -187,6 +221,20 @@ public:
 
     void setCommand(CommandCallback<S> command) noexcept
     {
+        if (!command) {
+            m_command = nullptr;
+            return;
+        }
+        if (!isSetting()) {
+            // 值类型不可默认构造的参数（资源位置、物品栈……）解析后没有默认值可写回，
+            // 这一层就是命令终点：解析完立即执行，见 Order。
+            auto inner = std::move(command);
+            m_command = [inner](CommandContext<S>& context) -> i32 {
+                return inner(context);
+            };
+            m_order = Order::OnParse;
+            return;
+        }
         m_command = std::move(command);
     }
 
@@ -259,6 +307,9 @@ public:
 
     void addChild(std::shared_ptr<CommandNode<S>> node)
     {
+        if (!node) {
+            return;
+        }
         m_children[node->getName()] = node;
         if (node->getType() == NodeType::Literal) {
             m_literals.insert(node->getName());
@@ -292,12 +343,12 @@ public:
 
     [[nodiscard]] std::shared_ptr<CommandNode<S>> getRedirect() const noexcept
     {
-        return m_redirect;
+        return m_redirect.lock();
     }
 
     [[nodiscard]] bool hasRedirect() const noexcept
     {
-        return static_cast<bool>(m_redirect);
+        return !m_redirect.expired();
     }
 
     [[nodiscard]] RedirectModifier getRedirectModifier() const noexcept
@@ -332,7 +383,7 @@ public:
     virtual bool equals(const CommandNode<S>& other) const noexcept
     {
         // 简化比较：只比较重定向和类型
-        return m_redirect == other.m_redirect && m_redirectModifier == other.m_redirectModifier &&
+        return getRedirect() == other.getRedirect() && m_redirectModifier == other.m_redirectModifier &&
             this->getType() == other.getType();
     }
 
@@ -347,6 +398,8 @@ protected:
     CommandNode() = default;
 
     CommandCallback<S> m_command;
+    /// 见 {@link Order}。
+    Order m_order = Order::After;
     RequirementPredicate<S> m_requirement = [](const S&) {
         return true;
     };
@@ -354,7 +407,8 @@ protected:
     std::unordered_map<std::string, std::shared_ptr<CommandNode<S>>> m_children;
     std::set<std::string> m_literals;
     std::set<std::string> m_arguments;
-    std::shared_ptr<CommandNode<S>> m_redirect;
+    // 重定向只观察树内节点，避免 execute 子节点指回父节点形成所有权环。
+    std::weak_ptr<CommandNode<S>> m_redirect;
     RedirectModifier m_redirectModifier = RedirectModifier::None;
     std::string m_usageText;
     Metadata m_metadataInfo;

@@ -127,50 +127,14 @@ TEST_F(LootCommandTest, LootCommandRequiresPermissionLevel2)
 
 TEST_F(LootCommandTest, LootSourceNodesExist)
 {
-    const auto& registry = m_server.commandRegistry();
-    const auto snapshot = registry.getCommandTreeSnapshot();
 
-    // 原版 1.21 的 /loot 形状是 loot → {give,spawn,insert,replace} → <目标字段> → 来源：
-    // 来源里只有 `loot` 可以直接接 loot 表（loot_table 参数），fish/mine 以 pos 参数开头、
-    // kill 以 target 参数开头，都不是字面量子命令。
-    bool foundLootSource = false;
-    bool foundFishPos = false;
-    bool foundKillTarget = false;
-    bool foundMinePos = false;
-    auto collectUnder = [&](const std::string& parentName, std::vector<std::string>& out) {
-        // 找出 parentName 节点，再收集它的子节点名字（只按快照里的一层）。
-        for (const auto& node : snapshot.nodes) {
-            if (node.name != parentName) {
-                continue;
-            }
-            for (const auto childId : node.children) {
-                out.push_back(snapshot.nodes[childId].name);
-            }
-        }
-    };
-
-    // 目标 give → players → …
-    std::vector<std::string> giveChildren;
-    std::vector<std::string> playersChildren;
-    collectUnder("give", giveChildren);
-    collectUnder("players", playersChildren);
-    foundLootSource = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
-        return n == "loot_table";
-    });
-    foundFishPos = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
-        return n == "pos";
-    });
-    foundKillTarget = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
-        return n == "target";
-    });
-    foundMinePos = std::any_of(playersChildren.begin(), playersChildren.end(), [](const std::string& n) {
-        return n == "pos";
-    });
-
-    EXPECT_TRUE(foundLootSource) << "give should accept a loot_table source";
-    EXPECT_TRUE(foundFishPos) << "give should accept a fish pos source";
-    EXPECT_TRUE(foundKillTarget) << "give should accept a kill target source";
-    EXPECT_TRUE(foundMinePos) << "give should accept a mine pos source";
+    const auto root = m_server.commandRegistry().dispatcher().getRoot();
+    const auto players = root->getChild("loot")->getChild("give")->getChild("players");
+    ASSERT_NE(players, nullptr);
+    EXPECT_NE(players->getChild("loot")->getChild("loot_table"), nullptr);
+    EXPECT_NE(players->getChild("fish")->getChild("loot_table")->getChild("pos"), nullptr);
+    EXPECT_NE(players->getChild("kill")->getChild("target"), nullptr);
+    EXPECT_NE(players->getChild("mine")->getChild("pos"), nullptr);
 }
 
 TEST_F(LootCommandTest, TargetNodesExist)

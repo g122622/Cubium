@@ -56,13 +56,12 @@ void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     support::applyMetadata(msgNode,
         support::makeMetadata("Sends a private message to another player.", "/msg <player> <message>", 0, {}, true));
 
-    // 别名 /tell
+    // 别名 /tell、/w (whisper)：原版同样是不带重定向修改器的裸重定向节点。
     auto tellNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("tell");
-    tellNode->setRedirect(msgNode);
+    tellNode->setRedirect(msgNode, RedirectModifier::None);
 
-    // 别名 /w (whisper)
     auto wNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("w");
-    wNode->setRedirect(msgNode);
+    wNode->setRedirect(msgNode, RedirectModifier::None);
 
     // /msg <player> <message>
     auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(

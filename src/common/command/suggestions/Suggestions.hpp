@@ -311,6 +311,12 @@ class ISuggestionProvider {
 public:
     virtual ~ISuggestionProvider() = default;
 
+    /// 客户端已注册的提供器标识；自定义候选由服务端处理。
+    [[nodiscard]] virtual std::string_view getProviderId() const noexcept
+    {
+        return "minecraft:ask_server";
+    }
+
     /**
      * @brief 提供自动补全建议
      * @param context 命令上下文

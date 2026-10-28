@@ -46,9 +46,13 @@ namespace command {
 
 void SpectateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
+    // 原版 /spectate 本身可执行：不带参数时「停止旁观自己的目标」。
     auto spectateNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spectate");
     spectateNode->setRequirement([](const ServerCommandSource& source) {
         return source.hasPermission(2);
+    });
+    spectateNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return _startSpectating(ctx);
     });
     support::applyMetadata(spectateNode,
         support::makeMetadata(
@@ -76,14 +80,6 @@ void SpectateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const EntitySelector& targetSelector = context.getArgument<EntitySelector>("target");
-
-    // 解析目标实体（使用 EntityResolver 以支持任意实体，不仅仅是玩家）
-    Entity* targetEntity = support::EntityResolver::resolveSingle(source, targetSelector);
-    if (targetEntity == nullptr) {
-        source.sendError("No entity matched the target selector");
-        return 0;
-    }
 
     // 获取旁观者（命令发送者或指定玩家）
     PlayerId spectatorId;
@@ -101,6 +97,20 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
             return 0;
         }
         spectatorId = source.playerId();
+    }
+
+    // 不带 target 时原版由 /spectate 自身停止旁观；停止旁观的执行语义尚未接入，明确报错。
+    if (!context.hasArgument("target")) {
+        source.sendError("commands.spectate.notInRange");
+        return 0;
+    }
+
+    // 解析目标实体（使用 EntityResolver 以支持任意实体，不仅仅是玩家）
+    const EntitySelector& targetSelector = context.getArgument<EntitySelector>("target");
+    Entity* targetEntity = support::EntityResolver::resolveSingle(source, targetSelector);
+    if (targetEntity == nullptr) {
+        source.sendError("No entity matched the target selector");
+        return 0;
     }
 
     // 获取旁观者的 ServerPlayerData 和 ServerPlayer 实体

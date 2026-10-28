@@ -33,6 +33,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include <memory>
 #include <set>
@@ -58,8 +59,9 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /tag <targets> add <tag>
     auto addNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("add");
+    // 原版 tag add 的 name 是单字串（不以引号开头）。
     auto tagArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::word());
     tagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _addTag(ctx);
     });
@@ -69,10 +71,12 @@ void TagCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // /tag <targets> remove <tag>
     auto removeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("remove");
     auto removeTagArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("tag", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::word());
     removeTagArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _removeTag(ctx);
     });
+    // 原版 tag remove 的 name 带实体标签建议。
+    removeTagArg->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
     removeNode->addChild(removeTagArg);
     targetsArg->addChild(removeNode);
 
@@ -108,7 +112,7 @@ i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const std::string tag = context.getArgument<std::string>("tag");
+    const std::string tag = context.getArgument<std::string>("name");
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
@@ -139,7 +143,7 @@ i32 TagCommand::_removeTag(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
-    const std::string tag = context.getArgument<std::string>("tag");
+    const std::string tag = context.getArgument<std::string>("name");
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {

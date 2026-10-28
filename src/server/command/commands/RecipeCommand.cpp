@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -65,7 +66,7 @@ void RecipeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
             "targets", EntityArgumentType::players());
         auto recipeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-            "recipe", RecipeIdArgumentType::recipe());
+            "recipe", std::make_shared<ResourceKeyArgumentType>("minecraft:recipe"));
         recipeArg->setCommand([give](CommandContext<ServerCommandSource>& ctx) {
             return give ? _giveRecipe(ctx) : _takeRecipe(ctx);
         });
