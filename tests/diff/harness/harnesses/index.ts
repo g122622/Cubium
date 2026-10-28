@@ -50,6 +50,7 @@ import { KNOWN_MISSING_COMMANDS } from "./known_missing_commands.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
 import { createRecipeHarness } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
+import { statusEffectInput, statusEffectUnits } from "./status_effect.ts";
 import { KNOWN_MISSING as entityAttributesKnownMissing } from "./known_missing_entity_attributes.ts";
 import {
     RUNTIME_DIVERGENT as entityAttributesRuntimeDivergent,
@@ -121,6 +122,13 @@ interface JavaHarness {
 }
 
 const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
+    () => ({
+        name: "status_effect",
+        oracle: "StatusEffectOracle",
+        units: statusEffectUnits,
+        input: statusEffectInput,
+        key: "unit",
+    }),
     () => {
         const spec = createItemSummaryHarness();
         return {

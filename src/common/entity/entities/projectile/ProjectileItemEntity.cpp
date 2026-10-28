@@ -608,13 +608,7 @@ void PotionEntity::onImpact(const RayTraceResult& result)
 
             // 添加药水效果到效果云（效果持续时间在区域效果云中为原持续时间的 1/4）
             for (const auto& effect : effects) {
-                entity::effect::EffectInstance cloudEffect(effect.type(),
-                    effect.duration() / 4,
-                    effect.amplifier(),
-                    effect.isAmbient(),
-                    effect.isVisible(),
-                    effect.showIcon());
-                cloud->addEffect(cloudEffect);
+                cloud->addEffect(effect.withScaledDuration(0.25F));
             }
 
             // 设置颜色（如果药水有自定义颜色）

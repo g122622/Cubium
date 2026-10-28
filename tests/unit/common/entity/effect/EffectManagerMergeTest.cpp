@@ -72,6 +72,54 @@ protected:
     }
 };
 
+TEST_F(EffectManagerMergeTest, HiddenEffectRestoresAttributesAndRecordsRefresh)
+{
+    auto& manager = m_entity->effectManager();
+    manager.addEffect(EffectInstance(EffectType::Strength, 8, 0), *m_entity);
+    manager.addEffect(EffectInstance(EffectType::Strength, 2, 1), *m_entity);
+    EXPECT_EQ(manager.takePendingChanges().size(), 1U);
+    manager.tick(*m_entity);
+    EXPECT_EQ(manager.getEffect(EffectType::Strength)->amplifier(), 1);
+    EXPECT_DOUBLE_EQ(getAttrValue(Attributes::ATTACK_DAMAGE, 0.0), 8.0);
+    manager.tick(*m_entity);
+    const auto* restored = manager.getEffect(EffectType::Strength);
+    ASSERT_NE(restored, nullptr);
+    EXPECT_EQ(restored->amplifier(), 0);
+    EXPECT_EQ(restored->duration(), 6);
+    EXPECT_DOUBLE_EQ(getAttrValue(Attributes::ATTACK_DAMAGE, 0.0), 5.0);
+    const auto changes = manager.takePendingChanges();
+    ASSERT_EQ(changes.size(), 1U);
+    EXPECT_TRUE(changes.front().added);
+    EXPECT_FALSE(changes.front().blend);
+}
+
+TEST_F(EffectManagerMergeTest, HiddenOnlyUpdatePreservesActiveAttributesAndDoesNotRecordChange)
+{
+    auto& manager = m_entity->effectManager();
+    manager.addEffect(EffectInstance(EffectType::Strength, 2, 1), *m_entity);
+    EXPECT_EQ(manager.takePendingChanges().size(), 1U);
+    EXPECT_FALSE(manager.addEffect(EffectInstance(EffectType::Strength, 8, 0), *m_entity));
+    EXPECT_TRUE(manager.takePendingChanges().empty());
+    EXPECT_DOUBLE_EQ(getAttrValue(Attributes::ATTACK_DAMAGE, 0.0), 8.0);
+    manager.tick(*m_entity);
+    manager.tick(*m_entity);
+    EXPECT_EQ(manager.getEffect(EffectType::Strength)->duration(), 6);
+    EXPECT_DOUBLE_EQ(getAttrValue(Attributes::ATTACK_DAMAGE, 0.0), 5.0);
+}
+
+TEST_F(EffectManagerMergeTest, ValueCopyPreservesHiddenChainButDetailsCopyDropsIt)
+{
+    EffectInstance instance(EffectType::Strength, 8, 0);
+    instance.merge(EffectInstance(EffectType::Strength, 2, 1));
+    EffectInstance valueCopy(instance);
+    const auto detailsCopy = instance.copyDetails();
+    ASSERT_NE(valueCopy.hiddenEffect(), nullptr);
+    EXPECT_EQ(valueCopy.hiddenEffect()->duration(), 8);
+    EXPECT_NE(valueCopy.hiddenEffect(), instance.hiddenEffect());
+    EXPECT_EQ(detailsCopy.hiddenEffect(), nullptr);
+    EXPECT_EQ(detailsCopy, instance);
+}
+
 // ============================================================================
 // 基础合并行为测试
 // ============================================================================

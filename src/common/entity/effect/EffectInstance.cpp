@@ -31,8 +31,10 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
+#include <bit>
 #include <memory>
 
 namespace mc {
@@ -79,7 +81,7 @@ constexpr const char* SHOW_ICON = "ShowIcon";
 EffectInstance::EffectInstance(EffectType type, i32 duration, i32 amplifier, bool ambient, bool visible, bool showIcon)
     : m_type(type)
     , m_duration(duration)
-    , m_amplifier(amplifier)
+    , m_amplifier(std::clamp(amplifier, 0, 255))
     , m_ambient(ambient)
     , m_visible(visible)
     , m_showIcon(showIcon)
@@ -111,78 +113,130 @@ EffectInstance& EffectInstance::operator=(const EffectInstance& other)
     return *this;
 }
 
-bool EffectInstance::tick(LivingEntity& entity)
+void EffectInstance::_setDetailsFrom(const EffectInstance& other)
 {
-    // 永久效果不减少持续时间
-    if (!isPermanent()) {
-        if (m_duration <= 0) {
-            // 效果已结束，移除属性修改
-            if (m_applied) {
-                remove(entity);
-            }
-            return false;
-        }
-    }
+    m_duration = other.m_duration;
+    m_amplifier = other.m_amplifier;
+    m_ambient = other.m_ambient;
+    m_visible = other.m_visible;
+    m_showIcon = other.m_showIcon;
+}
 
-    // 先用递减前的 m_duration 执行效果逻辑，再递减持续时间：
-    //   i32 i = this.duration;  // 递减前
-    //   if (effect.shouldApplyEffectTickThisTick(i, amplifier) && !effect.applyEffectTick(...)) return false;
-    //   this.tickDownDuration();  // 递减在作用之后
-    // 间隔型效果（凋零/中毒/再生）的 shouldApplyEffectTickThisTick 判定用 duration % interval == 0，
-    // 必须用递减前的 duration，否则"duration 恰为 interval 整数倍"的那次作用会因递减后判定错位而漏掉
-    // （例如凋零 duration=40/interval=40：递减前 40%40==0 命中首次伤害；若先递减成 39 再判定则永远不命中，
-    // 且归零 tick 的 return false 会再吞掉一次，整个生命周期 0 次伤害）。
+EffectInstance EffectInstance::copyDetails() const
+{
+    EffectInstance copy(m_type, 0, 0, false, true, true);
+    copy._setDetailsFrom(*this);
+    return copy;
+}
+
+EffectInstance EffectInstance::withScaledDuration(f32 factor) const
+{
+    auto copy = copyDetails();
+    copy.m_duration = copy.mapDuration([factor](i32 duration) {
+        const f32 scaled = static_cast<f32>(duration) * factor;
+        const i32 truncated = math::javaFloatToInt(scaled);
+        // 先饱和转换，再按比较结果减一；负无穷也保留 32 位回绕。
+        const i32 floored =
+            scaled < static_cast<f32>(truncated) ? std::bit_cast<i32>(static_cast<u32>(truncated) - 1U) : truncated;
+        return std::max(floored, 1);
+    });
+    return copy;
+}
+
+bool EffectInstance::operator==(const EffectInstance& other) const noexcept
+{
+    return m_type == other.m_type && m_duration == other.m_duration && m_amplifier == other.m_amplifier &&
+        m_ambient == other.m_ambient && m_visible == other.m_visible && m_showIcon == other.m_showIcon;
+}
+
+bool EffectInstance::_isShorterThan(const EffectInstance& other) const noexcept
+{
+    return !isPermanent() && (m_duration < other.m_duration || other.isPermanent());
+}
+
+void EffectInstance::_tickDownDuration()
+{
+    if (m_hiddenEffect) {
+        m_hiddenEffect->_tickDownDuration();
+    }
+    m_duration = mapDuration([](i32 duration) {
+        return std::bit_cast<i32>(static_cast<u32>(duration) - 1U);
+    });
+}
+
+EffectInstance::DurationTick EffectInstance::advanceDuration()
+{
+    if (isExpired()) {
+        return {false, false};
+    }
+    _tickDownDuration();
+    const bool downgraded = m_duration == 0 && m_hiddenEffect != nullptr;
+    if (downgraded) {
+        _setDetailsFrom(*m_hiddenEffect);
+        m_hiddenEffect = m_hiddenEffect->m_hiddenEffect;
+    }
+    return {!isExpired(), downgraded};
+}
+
+EffectInstance::DurationTick EffectInstance::tick(LivingEntity& entity)
+{
+    if (isExpired()) {
+        remove(entity);
+        return {false, false};
+    }
     _applyEffect(entity);
-
-    // 作用之后递减持续时间
-    if (!isPermanent()) {
-        if (m_duration > 0) {
-            --m_duration;
-        }
-        if (m_duration <= 0) {
-            // 效果结束，移除属性修改
-            if (m_applied) {
-                remove(entity);
-            }
-            return false;
-        }
+    const auto result = advanceDuration();
+    if (result.downgraded) {
+        remove(entity);
+        apply(entity);
     }
-
-    return true;
+    if (!result.active) {
+        remove(entity);
+    }
+    return result;
 }
 
 bool EffectInstance::merge(const EffectInstance& other)
 {
-    // 只能合并相同类型的效果
     if (m_type != other.m_type) {
-        return false;
+        spdlog::warn("Merging status effect instances with different types");
     }
 
-    // 比较效果强度
-    bool otherIsStronger = other.m_amplifier > m_amplifier;
-    bool sameAmplifier = other.m_amplifier == m_amplifier;
-    bool otherIsLonger = other.m_duration > m_duration;
-
-    if (otherIsStronger) {
-        // 新效果更强，完全替换
-        // 注意：属性修改器的更新需要由调用方（EffectManager）处理
-        // 因为这里没有实体的引用，无法直接操作属性系统
+    bool changed = false;
+    if (other.m_amplifier > m_amplifier) {
+        if (other._isShorterThan(*this)) {
+            auto hidden = std::make_shared<EffectInstance>(copyDetails());
+            hidden->m_hiddenEffect = m_hiddenEffect;
+            m_hiddenEffect = std::move(hidden);
+        }
         m_amplifier = other.m_amplifier;
         m_duration = other.m_duration;
-        m_ambient = other.m_ambient;
-        m_visible = other.m_visible;
-        m_showIcon = other.m_showIcon;
-        // 标记需要重新应用属性修改器
-        // 调用方会先 remove() 旧的再 apply() 新的
-        m_applied = false;
-        return true;
-    } else if (sameAmplifier && otherIsLonger) {
-        // 同级但更长，延长时间
-        m_duration = other.m_duration;
-        return true;
+        changed = true;
+    } else if (_isShorterThan(other)) {
+        if (other.m_amplifier == m_amplifier) {
+            m_duration = other.m_duration;
+            changed = true;
+        } else if (!m_hiddenEffect) {
+            m_hiddenEffect = std::make_shared<EffectInstance>(other.copyDetails());
+        } else {
+            m_hiddenEffect->merge(other);
+        }
     }
 
-    return false;
+    // 隐藏链更新不触发活动效果刷新；显示标志的变化则需要刷新。
+    if ((!other.m_ambient && m_ambient) || changed) {
+        m_ambient = other.m_ambient;
+        changed = true;
+    }
+    if (other.m_visible != m_visible) {
+        m_visible = other.m_visible;
+        changed = true;
+    }
+    if (other.m_showIcon != m_showIcon) {
+        m_showIcon = other.m_showIcon;
+        changed = true;
+    }
+    return changed;
 }
 
 void EffectInstance::apply(LivingEntity& entity)

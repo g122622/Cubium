@@ -42,6 +42,7 @@ tests/diff/
 │   ├── block_state_names.cpp    # 方块状态名全集
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
+│   ├── status_effect.cpp        # 效果实例操作、共享隐藏链与时长推进
 │   ├── command_argument.cpp     # 命令参数解析
 │   ├── command_tree.cpp         # 命令图、参数编码、节点属性与完整协议字节
 │   ├── advancement.cpp          # 进度定义
@@ -58,12 +59,14 @@ tests/diff/
     ├── vanilla.ts               # minecraft-data 读取（回退数据源）
     ├── oracle-env.ts            # 定位原版 jar + 依赖库，拼 classpath
     ├── java-oracle.ts           # 编译 oracle、两侧各跑一次、按 key 比对
+    ├── comparison.ts            # 共享字段投影，严格检查数组长度
     ├── runner.ts                # 构建 / 运行 / 比对 / 写报告；CLI 入口
     ├── test_text_encode_parity.ts   # 手写 harness（方块状态全集 + 摘要）
     └── harnesses/               # 声明式 harness 与注册表
         ├── index.ts             # 注册表 + run all / run <name>
         ├── loot_context.ts      # 战利品三个探针的上下文模板与已知缺口
         ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
+        ├── status_effect.ts     # 效果实例的共同边界语料和固定操作序列
         └── known_missing_items.ts   # 物品侧已知缺口清单
 ```
 
@@ -194,11 +197,12 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `block_tags` | 原版 jar `BlockTagOracle` | 204 | 全部一致 | — |
 | `item_tags` | 原版 jar `ItemTagOracle` | 198 | 全部一致 | 300 条成员引用了未注册物品 |
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
+| `status_effect` | 原版 jar `StatusEffectOracle` | 2430 个场景 / 48,822 次操作 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 162 | 全部一致 | — |
 | `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
 | `loot_table` | 原版 jar `LootTableOracle` | 1324 | 全部一致 | — |
 | `loot_table_block` | 原版 jar `LootTableBlockOracle` | 1324 | 全部一致 | — |
-| `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 全部一致 | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
+| `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 2 个差异（`magma_cube`、`pillager` 额外掉落） | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
@@ -321,7 +325,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   `#041F33`、沼泽水下雾 `#232817`→`#232317`、樱桃林水色改 `#5DB7EF`、
   红树林沼泽用的是另一套色（`#3A7A6A` / `#4D7A60` + 树叶 `#8DB127`）。
 
-### 战利品表：三个上下文全部对齐
+### 战利品表：三个上下文
 
 `loot_table` / `loot_table_block` / `loot_table_entity` 各自用同一批单元（数据包里
 1324 张表），区别只在上下文：最小上下文（`origin` + 中性方块状态 + 空工具）、挖掘
@@ -472,6 +476,25 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 - **樱桃 / 红树 / 苍白橡木的原木在物品里缺失**：`BlockItemRegistry` 注册这三组原木时
   用的方块指针在建表阶段还是空指针；现在与其它树种同一路径注册后，相关标签与配方才能
   正常展开。
+
+### 状态效果实例：操作序列与共享身份
+
+`status_effect` 沿用 Horizon `test_status_effect_parity.py` 的共同操作序列：构造、覆盖、复制、
+别名、缩放、相等、到期查询和时长回调。每一步比较返回值、回调次数及完整节点图，跨步骤保留
+身份编号，检查共享隐藏链、零和无限时长、等级夹取、整数回绕，以及 NaN / 无穷等浮点位模式。
+回调可以通过真实 update 修改自身别名后失败，失败前的修改仍须保留。
+
+Java 直接调用 1.21.11 实例 API；隐藏链由反射读取，纯时长推进调用服务端实际使用的
+`tickDownDuration` / `downgradeToHiddenEffect`。C++ 探针调用生产实例类，时长推进同时用于
+真实服务端 tick；隐藏效果恢复的属性重建和网络刷新由相关单测验证。
+两侧均不比较客户端 BlendState，也不模拟实体上的效果伤害、治疗等具体行为。
+未注入绕过构造器的原始字段；外部回调修改通过公开 update 完成。
+
+对象仅比较原版声明过的字段；数组必须等长。公共投影器不再截取数组前缀，避免漏报多出的
+隐藏节点、回调和操作步骤。
+
+严格数组校验后的 25 项回归中，24 项通过；`loot_table_entity` 的 `magma_cube`、`pillager`
+暴露额外掉落。此前原版的空数组会吞掉 probe 的非空结果，这两处差异仍保留在报告中。
 
 ### 命令树的比较口径
 

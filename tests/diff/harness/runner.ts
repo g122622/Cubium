@@ -44,6 +44,7 @@ import { pathToFileURL } from "node:url";
 
 import { vanillaDataPackDir } from "./oracle-env.ts";
 import { REPO_ROOT } from "./vanilla.ts";
+import { projectDeclaredFields } from "./comparison.ts";
 
 /** 一处单元级差异。 */
 export interface Difference {
@@ -175,33 +176,6 @@ function stableStringify(value: unknown): string {
 }
 
 /**
- * 把实际输出裁剪成「参照实现声明过的字段」的形状。
- *
- * 参照值是模板：对象只保留模板里出现过的键，数组只保留模板长度的前缀。
- * 这样参照没给的信息不会变成失败，而参照给了的字段一个都不能少、不能改。
- */
-function project(template: unknown, actual: unknown): unknown {
-    if (Array.isArray(template)) {
-        if (!Array.isArray(actual)) {
-            return actual;
-        }
-        return template.map((item, index) => project(item, actual[index]));
-    }
-    if (template !== null && typeof template === "object") {
-        if (actual === null || typeof actual !== "object" || Array.isArray(actual)) {
-            return actual;
-        }
-        const source = actual as Record<string, unknown>;
-        const result: Record<string, unknown> = {};
-        for (const [field, expected] of Object.entries(template as Record<string, unknown>)) {
-            result[field] = project(expected, source[field]);
-        }
-        return result;
-    }
-    return actual;
-}
-
-/**
  * 按 `key` 字段对齐两批 JSON 行并逐字段比较。
  *
  * 行序被刻意忽略：两侧遍历顺序（注册顺序、字典序）本来就可能不同，
@@ -246,7 +220,10 @@ export function compareByKey(
             differences.push({ key: unit, expected: "<absent in oracle>", actual: probeValue });
         } else if (probeValue === undefined) {
             differences.push({ key: unit, expected: oracleValue, actual: "<absent in probe>" });
-        } else if (stableStringify(project(oracleValue, oracleValue)) !== stableStringify(project(oracleValue, probeValue))) {
+        } else if (
+            stableStringify(projectDeclaredFields(oracleValue, oracleValue)) !==
+            stableStringify(projectDeclaredFields(oracleValue, probeValue))
+        ) {
             differences.push({ key: unit, expected: oracleValue, actual: probeValue });
         }
     }
