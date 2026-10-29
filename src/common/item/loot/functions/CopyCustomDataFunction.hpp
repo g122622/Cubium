@@ -44,7 +44,7 @@ namespace loot {
  * 支持三种合并策略：替换、追加、合并。
  *
  * NBT路径语法与MC命令 /data 中的路径语法一致，
- * 例如 "CustomName"、"Inventory[0].id"、"Attributes[{Name:\"generic.max_health\"}].Base"。
+ * 例如 "CustomName"、"Inventory[0].id"、"Attributes[{Name:\"minecraft:max_health\"}].Base"。
  */
 class CopyCustomDataFunction : public LootFunction {
 public:

@@ -1428,7 +1428,10 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 getOrCreateTag()["written_book_content"] = std::get<nlohmann::json>(entry.value);
                 break;
             case DataComponentType::BannerPatterns:
-                getOrCreateTag()["BlockEntityTag"]["Patterns"] = std::get<nlohmann::json>(entry.value);
+                // 与 toComponentPatch 的导出路径对称：图案归 `banner_patterns` 组件，落进
+                // rawComponents；旧存档的 `BlockEntityTag.Patterns` 只是早期写法，读取时由
+                // fromNbt 翻译回来，写入不再使用它。
+                _ensureExtras().rawComponents["minecraft:banner_patterns"] = std::get<nlohmann::json>(entry.value);
                 break;
             case DataComponentType::StoredEnchantments: {
                 auto stored = nlohmann::json::array();
@@ -1466,7 +1469,14 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             }
             case DataComponentType::Rarity: {
-                _ensureExtras().rarityOverride = std::get<ItemRarity>(entry.value);
+                if (std::holds_alternative<ItemRarity>(entry.value)) {
+                    _ensureExtras().rarityOverride = std::get<ItemRarity>(entry.value);
+                } else if (const auto& raw = std::get<nlohmann::json>(entry.value); raw.is_string()) {
+                    // 文档（JSON/NBT）形态的稀有度是名字字面量（"uncommon"），与枚举载荷同源异形。
+                    if (auto rarity = rarityFromName(raw.get<std::string>()); rarity.has_value()) {
+                        _ensureExtras().rarityOverride = *rarity;
+                    }
+                }
                 break;
             }
             case DataComponentType::Enchantable: {
@@ -1587,8 +1597,12 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 }
                 break;
             case DataComponentType::BannerPatterns:
-                if (m_extras && m_extras->customData.contains("BlockEntityTag")) {
-                    m_extras->customData["BlockEntityTag"].erase("Patterns");
+                if (m_extras) {
+                    // 旧存档把图案写在 BlockEntityTag.Patterns 下，两处都要清。
+                    if (m_extras->customData.contains("BlockEntityTag")) {
+                        m_extras->customData["BlockEntityTag"].erase("Patterns");
+                    }
+                    m_extras->rawComponents.erase("minecraft:banner_patterns");
                 }
                 break;
             case DataComponentType::StoredEnchantments:
@@ -1718,6 +1732,56 @@ const nlohmann::json* ItemStack::rawComponent(item::component::DataComponentType
     }
     const auto it = m_extras->rawComponents.find(std::string(*name));
     return it != m_extras->rawComponents.end() ? &*it : nullptr;
+}
+
+bool ItemStack::hasComponent(item::component::DataComponentType type) const
+{
+    using namespace item::component;
+    if (isEmpty()) {
+        return false;
+    }
+    if (rawComponent(type) != nullptr) {
+        return true;
+    }
+    // 结构化落地的组件各自有字段；未设置时 getter 会回退到物品默认值，所以这里必须直接
+    // 看字段本身，否则「染过色的旗子」会被当成「带图案的旗子」。
+    if (m_extras == nullptr) {
+        return false;
+    }
+    switch (type) {
+        case DataComponentType::Damage:
+            return m_damage > 0;
+        case DataComponentType::RepairCost:
+            return m_repairCost > 0;
+        case DataComponentType::CustomName:
+            return m_customName != nullptr;
+        case DataComponentType::Lore:
+            return !m_extras->lore.empty();
+        case DataComponentType::CustomData:
+            return !m_extras->customData.is_null() && !m_extras->customData.empty();
+        case DataComponentType::CustomModelData:
+            return !m_extras->customModelData.is_null() && !m_extras->customModelData.empty();
+        case DataComponentType::MaxStackSize:
+            return m_extras->maxStackSizeOverride.has_value();
+        case DataComponentType::MaxDamage:
+            return m_extras->maxDamageOverride.has_value();
+        case DataComponentType::Enchantable:
+            return m_extras->enchantableOverride.has_value();
+        case DataComponentType::ItemName:
+            return m_extras->itemName != nullptr;
+        case DataComponentType::ItemModel:
+            return m_extras->itemModel.has_value();
+        case DataComponentType::Rarity:
+            return m_extras->rarityOverride.has_value();
+        case DataComponentType::Unbreakable:
+            return m_extras->unbreakable;
+        case DataComponentType::EnchantmentGlintOverride:
+            return m_extras->enchantmentGlintOverride.has_value();
+        case DataComponentType::OminousBottleAmplifier:
+            return m_extras->ominousBottleAmplifier.has_value();
+        default:
+            return false;
+    }
 }
 
 std::optional<i32> ItemStack::chickenVariantId() const

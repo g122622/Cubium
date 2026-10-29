@@ -42,9 +42,9 @@ namespace mc::network::backend::java {
  * 是静态注册表，客户端启动期自行 bootstrap），真 Java 客户端使用其内置数据包注册的注册表，
  * id 即 vanilla 1.21.11 `Attributes.java` 的静态字段声明顺序（共 35 项）。
  *
- * 项目的属性名沿用 1.16.5 形式（`generic.max_health` 等），与 vanilla 的资源名
- * （`minecraft:max_health`）不同，故按名建立双向映射。项目自有的非 vanilla 属性
- * （`horse.jump_strength`、`generic.breath_max`）不在此表内——它们没有对应的 registry id。
+ * 项目的属性名已与 vanilla 资源名一致（`minecraft:max_health` 等），映射表同时充当
+ * 「项目是否实现该属性」的清单。项目自有的非 vanilla 属性（`horse.jump_strength`、
+ * `generic.breath_max`）不在此表内——它们没有对应的 registry id。
  *
  * 另有两条与 vanilla 的差异需要调用方知晓：
  *   - 项目属性集合小于 vanilla（缺 `block_break_speed`、`scale`、`sneaking_speed` 等 12 条），

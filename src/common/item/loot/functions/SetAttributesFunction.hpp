@@ -51,7 +51,7 @@ public:
      */
     struct Modifier {
         std::string name;               ///< 修饰符名称
-        std::string attributeId;        ///< 属性ID（如 "minecraft:generic.attack_damage"）
+        std::string attributeId;        ///< 属性ID（如 "minecraft:attack_damage"）
         math::RandomValueRange amount;  ///< 值范围（支持随机）
         u8 operation;                   ///< 操作类型（0=加法, 1=乘法基础, 2=乘法总计）
         std::vector<std::string> slots; ///< 装备槽位列表（运行时随机选择一个）

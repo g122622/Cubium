@@ -82,12 +82,35 @@ bool EntityPropertiesCondition::test(LootContext& context) const
     }
 
     // 使用 EntityPredicate 的 test(world, x, y, z, entity) 方法
-    // 位置使用实体的当前位置
+    // 位置使用实体的当前位置；附魔标签由上下文携带的解析器展开。
     return m_predicate.test(context.getWorld(),
         static_cast<f64>(entity->x()),
         static_cast<f64>(entity->y()),
         static_cast<f64>(entity->z()),
-        *entity);
+        *entity,
+        [&context](const ResourceLocation& tag) {
+            return context.getEnchantmentTagMembers(tag);
+        });
+}
+
+bool EntityPropertiesCondition::test(LootContext& context,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
+{
+    const Entity* entity = getConditionTargetEntity(context, m_target);
+    if (!entity) {
+        return false;
+    }
+
+    if (m_isAny) {
+        return true;
+    }
+
+    return m_predicate.test(context.getWorld(),
+        static_cast<f64>(entity->x()),
+        static_cast<f64>(entity->y()),
+        static_cast<f64>(entity->z()),
+        *entity,
+        enchantmentTagResolver);
 }
 
 std::unique_ptr<LootCondition> EntityPropertiesCondition::clone() const noexcept

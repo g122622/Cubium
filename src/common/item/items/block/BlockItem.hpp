@@ -54,6 +54,16 @@ public:
 
     ~BlockItem() override = default;
 
+    /**
+     * @brief 属性修饰符
+     *
+     * vanilla 的方块头颅物品额外带一条隐藏导航点的修饰符：戴在头上时把
+     * `waypoint_transmit_range` 乘成 0，其他玩家的定位条看不到你。原版由
+     * `Waypoint.addHideAttribute` 统一加上；雕刻南瓜不是方块头颅，由
+     * `items::CarvedPumpkinItem` 单独覆写。
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
+
     // ========== 基本属性 ==========
 
     /**

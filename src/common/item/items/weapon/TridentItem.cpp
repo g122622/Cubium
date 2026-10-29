@@ -24,7 +24,11 @@
 #include "TridentItem.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -58,6 +62,29 @@ constexpr f32 THROW_VELOCITY = 2.5f;    // 基础投掷速度
 TridentItem::TridentItem(const ItemProperties& properties)
     : Item(properties)
 {}
+
+// ========== 属性修饰符 ==========
+item::ItemAttributeModifiers TridentItem::getAttributeModifiers(i32 equipmentSlot) const
+{
+    if (equipmentSlot != static_cast<i32>(EquipmentSlot::MainHand)) {
+        return Item::getAttributeModifiers(equipmentSlot);
+    }
+    // 对齐 vanilla 三叉戟的默认组件：攻击伤害 +8、攻击速度 -2.9（均为基础加法修饰符）。
+    item::ItemAttributeModifiers modifiers;
+    modifiers.add(entity::attribute::Attributes::ATTACK_DAMAGE,
+        entity::attribute::AttributeModifier(entity::attribute::ids::ATTACK_DAMAGE_MODIFIER,
+            "Weapon modifier",
+            8.0,
+            entity::attribute::Operation::Addition),
+        equipmentSlot);
+    modifiers.add(entity::attribute::Attributes::ATTACK_SPEED,
+        entity::attribute::AttributeModifier(entity::attribute::ids::ATTACK_SPEED_MODIFIER,
+            "Weapon modifier",
+            -2.9000000953674316, // 原版取 f32 -2.9 后扩成 f64 的值
+            entity::attribute::Operation::Addition),
+        equipmentSlot);
+    return modifiers;
+}
 
 // ========== Item 接口重写 ==========
 
@@ -252,4 +279,5 @@ i32 TridentItem::_getRiptideLevel(const ItemStack& stack) noexcept
 }
 
 } // namespace item
+
 } // namespace mc

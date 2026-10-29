@@ -162,7 +162,7 @@ void putUuid(nbt::tags::compound_tag& tag, const std::string& uuid);
  * MC 1.16.5 格式:
  * [
  *   {
- *     "Name": "generic.max_health",
+ *     "Name": "minecraft:max_health",
  *     "Base": 20.0,
  *     "Modifiers": [
  *       { "UUIDMost": ..., "UUIDLeast": ..., "Name": "...", "Operation": 0, "Amount": 1.0 }

@@ -48,6 +48,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -298,6 +299,15 @@ private:
  */
 inline std::unique_ptr<Entity> createEntity(NullWorld& world, const std::string& typeName)
 {
+    // 玩家在实体注册表里没有工厂（构造需要用户名，服务端由登录流程直接 new），
+    // 但战利品/谓词等能力同样要把玩家当 this_entity / attacking_entity 用。
+    // 这里直接构造一个未登录的 Player 实例：与 oracle 侧 `new Player(...)` 同性质。
+    if (typeName == entity::EntityTypeKeys::PLAYER) {
+        auto player = std::make_unique<Player>(EntityInstanceId(0), "diff_probe", *world.entityRegistry());
+        player->setPosition(0.0f, 64.0f, 0.0f);
+        return player;
+    }
+
     const entity::EntityType* type = entity::EntityRegistry::instance().getType(typeName);
     if (type == nullptr || world.entityRegistry() == nullptr) {
         return nullptr;

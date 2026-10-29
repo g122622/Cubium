@@ -322,6 +322,21 @@ void SlimeEntity::updateSizeAttributes()
     m_experienceValue = m_size;
 }
 
+void SlimeEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    MonsterEntity::finalizeSpawn(world, difficulty, spawnReason);
+
+    // 对齐 MC 1.21.11 Slime.finalizeSpawn：先掷 0..2，再以「区域难度的特殊倍率 × 0.5」
+    // 的概率把较小的两档各抬一档，最终尺寸是 1 << i（1/2/4）。
+    math::IRandom& random = getRandom();
+    i32 exponent = random.nextInt(3);
+    if (exponent < 2 && random.nextFloat() < 0.5f * difficulty.getSpecialMultiplier()) {
+        ++exponent;
+    }
+    setSlimeSize(1 << exponent, true);
+}
+
 void SlimeEntity::onRemoval(RemovalReason reason)
 {
     // 在移除前尝试分裂。对齐 vanilla Slime.remove（Slime.java:201-204）：仅尺寸>1 且

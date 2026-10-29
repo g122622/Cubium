@@ -51,8 +51,10 @@ namespace item {
 
 // ========== 构造函数 ==========
 
-SpearItem::SpearItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties)
+SpearItem::SpearItem(const tier::IItemTier& tier, i32 attackDamage, f64 attackSpeed, ItemProperties properties)
     : tool::TieredItem(tier, properties)
+    // 原版长矛的攻击力全部来自材质（注册处的 attackDamage 为 0），此处保留「注册值 + 材质」
+    // 的合成方式，两者相加即原版数值。
     , m_attackDamage(static_cast<f32>(attackDamage) + tier.getAttackDamage())
     , m_attackSpeed(attackSpeed)
 {}
@@ -176,7 +178,7 @@ item::ItemAttributeModifiers SpearItem::getAttributeModifiers(i32 equipmentSlot)
         // 添加攻击速度修饰符
         auto attackSpeedModifier = entity::attribute::AttributeModifier(entity::attribute::ids::ATTACK_SPEED_MODIFIER,
             "Weapon modifier",
-            static_cast<f64>(m_attackSpeed),
+            m_attackSpeed,
             entity::attribute::Operation::Addition);
         modifiers.add(entity::attribute::Attributes::ATTACK_SPEED, attackSpeedModifier, equipmentSlot);
 

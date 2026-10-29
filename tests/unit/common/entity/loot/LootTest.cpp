@@ -1173,18 +1173,18 @@ TEST_F(LootTest, SetAttributesFunction_Creation)
 TEST_F(LootTest, SetAttributesFunction_AddModifier)
 {
     SetAttributesFunction func;
-    SetAttributesFunction::Modifier mod("generic.attack_damage", // name
-        "minecraft:generic.attack_damage",                       // attributeId
-        math::RandomValueRange(5.0f),                            // amount (fixed)
-        0,                                                       // operation (Addition)
-        std::vector<std::string>{"mainhand"},                    // slots
-        ""                                                       // uuid (auto-generated)
+    SetAttributesFunction::Modifier mod("attack_damage", // name
+        "minecraft:attack_damage",                       // attributeId
+        math::RandomValueRange(5.0f),                    // amount (fixed)
+        0,                                               // operation (Addition)
+        std::vector<std::string>{"mainhand"},            // slots
+        ""                                               // uuid (auto-generated)
     );
 
     func.addModifier(mod);
     EXPECT_EQ(1, func.getModifiers().size());
-    EXPECT_EQ("generic.attack_damage", func.getModifiers()[0].name);
-    EXPECT_EQ("minecraft:generic.attack_damage", func.getModifiers()[0].attributeId);
+    EXPECT_EQ("attack_damage", func.getModifiers()[0].name);
+    EXPECT_EQ("minecraft:attack_damage", func.getModifiers()[0].attributeId);
     EXPECT_TRUE(func.getModifiers()[0].amount.isFixed());
     EXPECT_FLOAT_EQ(5.0f, func.getModifiers()[0].amount.getMin());
 }
@@ -1193,12 +1193,12 @@ TEST_F(LootTest, SetAttributesFunction_Apply)
 {
     // 测试 SetAttributesFunction::apply() 方法
     SetAttributesFunction func;
-    SetAttributesFunction::Modifier mod("generic.attack_damage", // name
-        "minecraft:generic.attack_damage",                       // attributeId
-        math::RandomValueRange(5.0f, 10.0f),                     // amount (range)
-        0,                                                       // operation (Addition)
-        std::vector<std::string>{"mainhand", "offhand"},         // slots (multiple)
-        "d4d5c2a0-6b1c-4e3d-8f2a-1b2c3d4e5f6g"                   // uuid
+    SetAttributesFunction::Modifier mod("attack_damage", // name
+        "minecraft:attack_damage",                       // attributeId
+        math::RandomValueRange(5.0f, 10.0f),             // amount (range)
+        0,                                               // operation (Addition)
+        std::vector<std::string>{"mainhand", "offhand"}, // slots (multiple)
+        "d4d5c2a0-6b1c-4e3d-8f2a-1b2c3d4e5f6g"           // uuid
     );
     func.addModifier(mod);
 
@@ -1234,8 +1234,8 @@ TEST_F(LootTest, SetAttributesFunction_Apply)
 
     // 验证属性修饰符内容
     const auto& entry = attrModifiers[0];
-    EXPECT_EQ("minecraft:generic.attack_damage", entry["AttributeName"]);
-    EXPECT_EQ("generic.attack_damage", entry["Name"]);
+    EXPECT_EQ("minecraft:attack_damage", entry["AttributeName"]);
+    EXPECT_EQ("attack_damage", entry["Name"]);
     EXPECT_EQ(0, entry["Operation"]);
     EXPECT_EQ("d4d5c2a0-6b1c-4e3d-8f2a-1b2c3d4e5f6g", entry["UUID"]);
     // 金额应该在范围内
@@ -1252,8 +1252,8 @@ TEST_F(LootTest, SetAttributesFunction_MultipleModifiers)
     SetAttributesFunction func;
 
     // 添加攻击伤害修饰符
-    func.addModifier(SetAttributesFunction::Modifier("generic.attack_damage",
-        "minecraft:generic.attack_damage",
+    func.addModifier(SetAttributesFunction::Modifier("attack_damage",
+        "minecraft:attack_damage",
         math::RandomValueRange(4.0f),
         0,
         std::vector<std::string>{"mainhand"}));
@@ -1290,8 +1290,8 @@ TEST_F(LootTest, SetAttributesFunction_MultipleModifiers)
 TEST_F(LootTest, SetAttributesFunction_EmptyStack)
 {
     SetAttributesFunction func;
-    func.addModifier(SetAttributesFunction::Modifier("generic.attack_damage",
-        "minecraft:generic.attack_damage",
+    func.addModifier(SetAttributesFunction::Modifier("attack_damage",
+        "minecraft:attack_damage",
         math::RandomValueRange(5.0f),
         0,
         std::vector<std::string>{"mainhand"}));
@@ -1329,21 +1329,21 @@ TEST_F(LootTest, SetAttributesFunction_AllOperations)
 
     // Addition (0)
     func.addModifier(SetAttributesFunction::Modifier("addition_test",
-        "minecraft:generic.attack_damage",
+        "minecraft:attack_damage",
         math::RandomValueRange(10.0f),
         0, // Addition
         std::vector<std::string>{"mainhand"}));
 
     // MultiplyBase (1)
     func.addModifier(SetAttributesFunction::Modifier("multiply_base_test",
-        "minecraft:generic.attack_damage",
+        "minecraft:attack_damage",
         math::RandomValueRange(0.5f),
         1, // MultiplyBase
         std::vector<std::string>{"mainhand"}));
 
     // MultiplyTotal (2)
     func.addModifier(SetAttributesFunction::Modifier("multiply_total_test",
-        "minecraft:generic.attack_damage",
+        "minecraft:attack_damage",
         math::RandomValueRange(0.2f),
         2, // MultiplyTotal
         std::vector<std::string>{"mainhand"}));

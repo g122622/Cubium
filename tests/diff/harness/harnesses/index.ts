@@ -33,20 +33,31 @@
  *   - minecraft-data（回退）：原版 jar 不可用时的离线数据源，覆盖字段更少。
  */
 
-import { runJavaOracle } from "../java-oracle.ts";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+
+import { compileOracle, runJavaOracle } from "../java-oracle.ts";
+import { vanillaDataPackDir } from "../oracle-env.ts";
 import type { HarnessSpec } from "../runner.ts";
-import { runSpec } from "../runner.ts";
+import { resolveBuildDir, runSpec } from "../runner.ts";
 import { KNOWN_MISSING as enchantmentKnownMissing } from "./enchantment_table.ts";
 import { KNOWN_MISSING as entityKnownMissing, createEntityShapeHarness } from "./entity_shape.ts";
 import { createItemSummaryHarness } from "./item_summary.ts";
 import {
     ENTITY_ORACLE_MISSING,
+    ENTITY_SCENARIOS,
     lootTableBlockInput,
     lootTableEntityInput,
+    lootTableEntityUnit,
     lootTableInput,
 } from "./loot_context.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
-import { KNOWN_MISSING_COMMANDS } from "./known_missing_commands.ts";
+import {
+    dropProjectOnlyCommands,
+    KNOWN_MISSING_COMMANDS,
+    PROJECT_ONLY_COMMANDS,
+} from "./known_missing_commands.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
 import { createRecipeHarness } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
@@ -105,6 +116,40 @@ function canonicalSpawnCategories(value: unknown): unknown {
         sortedCategories[name] = { ...category, spawns };
     }
     return { ...record, categories: sortedCategories, creature_spawn_probability: probability };
+}
+
+/**
+ * 把对象里的浮点数按固定有效位舍入，供「浮点公式」类 harness 比对。
+ *
+ * 这类 harness 两侧算的是同一条公式，但 JVM 与 clang 对 f32 中间结果的求值方式不同
+ * （x87 式多余精度、先除后乘的舍入顺序），末位会差 1 ulp。那不是算法差异，而是两次
+ * 编译各自舍入；按绝对精度舍入后再比，才能让报告只剩真正的公式偏差。
+ */
+/**
+ * 按固定小数位舍入（不是有效位）：有效位舍入会让「……5」这类恰好落在进位边界上的值
+ * 因末位差 1 而翻到相邻的有效位，固定小数位则只会在真正的公式偏差上分开。
+ */
+function roundToDecimals(value: number, decimals = 4): number {
+    if (!Number.isFinite(value)) {
+        return value;
+    }
+    const scale = Math.pow(10, decimals);
+    return Math.round(value * scale) / scale;
+}
+
+function roundFloats(value: unknown): unknown {
+    if (typeof value === "number") {
+        return roundToDecimals(value);
+    }
+    if (value === null || typeof value !== "object") {
+        return value;
+    }
+    const record = value as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
+    for (const [key, field] of Object.entries(record)) {
+        result[key] = roundFloats(field);
+    }
+    return result;
 }
 
 const DATA_SPECS: ReadonlyArray<() => HarnessSpec> = [];
@@ -174,6 +219,34 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "block",
     }),
     () => ({
+        // 方块破坏经验：原版把区间登记在实体类里而不是数据包，手抄出错无从发现。
+        name: "block_experience",
+        oracle: "BlockExperienceOracle",
+        input: (unit: string) => ({ block: unit }),
+        key: "block",
+    }),
+    () => ({
+        // 物品提供的属性修饰符：武器伤害/攻速、盔甲护甲值/韧性，以及修饰符 ID
+        // （同槽位靠 ID 去重，ID 不一致会让装备叠加或互相覆盖）。
+        name: "item_attribute_modifiers",
+        oracle: "ItemAttributeModifiersOracle",
+        input: (unit: string) => ({ item: unit }),
+        key: "item",
+        oracleMissing: itemsKnownMissing,
+    }),
+    () => ({
+        // 护甲减伤：单元是「伤害 × 护甲 × 韧性」的组合，由 oracle 枚举（它负责挑样本），
+        // 两侧对每个组合算最终伤害（含破甲 1..4 级）。比对键是两侧各自写出的
+        // "damage/armor/toughness" 组合串：单看伤害值会让不同护甲的组合撞键。
+        name: "damage_reduction",
+        oracle: "DamageReductionOracle",
+        input: (unit: string) => JSON.parse(unit) as Record<string, unknown>,
+        key: "unit",
+        // 两侧末位相差 1 ulp（JVM 与 clang 的 f32 舍入顺序不同），按 6 位有效数字比对；
+        // 真正的公式偏差远大于这个量级，不会被掩掉。
+        normalise: (value: unknown) => roundFloats(value),
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),
@@ -207,6 +280,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         oracleMissing: KNOWN_MISSING_COMMANDS,
         // 这些命令不注册会让同一批节点（如 /give 的 item 参数）在两侧处于同一状态。
         oracleArgs: [KNOWN_MISSING_COMMANDS.join(",")],
+        // 本项目自研的调试命令（原版没有对应项），不属于「未对齐」。
+        projectOnly: {
+            field: "tree",
+            extra: PROJECT_ONLY_COMMANDS,
+            drop: (record, matches) => dropProjectOnlyCommands(record, matches),
+        },
     }),
     () => ({
         name: "command_argument",
@@ -280,13 +359,48 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         input: (unit: string) => lootTableBlockInput(unit),
         key: "table",
     }),
-    () => ({
-        name: "loot_table_entity",
-        oracle: "LootTableEntityOracle",
-        input: (unit: string) => lootTableEntityInput(unit),
-        key: "table",
-        oracleMissing: ENTITY_ORACLE_MISSING,
-    }),
+    () => {
+        // 单元键是「表 ID#场景」：oracle 枚举表，这里按场景展开成多行，
+        // 保证每张表都在全部场景下各掷一次。
+        const tables = (): string[] => {
+            const directory = path.join(resolveBuildDir(), "diff/loot_table_entity/java");
+            fs.mkdirSync(directory, { recursive: true });
+            // classes 目录排在前面：oracle 自己编出来的类只在那里。
+            const { classesDir, classpath } = compileOracle("LootTableEntityOracle", directory);
+            const classpathWithClasses = `${classesDir}${path.delimiter}${classpath}`;
+            const unitsPath = path.join(directory, "tables.txt");
+            fs.rmSync(unitsPath, { force: true });
+            execFileSync("java", ["-cp", classpathWithClasses, "dev.horizonlab.diff.LootTableEntityOracle", "list", unitsPath], {
+                cwd: directory,
+                env: { ...process.env, MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() },
+                stdio: ["ignore", "pipe", "pipe"],
+            });
+            const unitKeys: string[] = [];
+            for (const table of fs.readFileSync(unitsPath, "utf8").split(/\r?\n/).filter(Boolean)) {
+                if (ENTITY_ORACLE_MISSING.includes(table)) {
+                    continue;
+                }
+                for (const scenario of ENTITY_SCENARIOS) {
+                    unitKeys.push(lootTableEntityUnit(table, scenario.name));
+                }
+            }
+            return unitKeys;
+        };
+        const scenarioOf = (unit: string): { table: string; scenario: string } => {
+            const hash = unit.lastIndexOf("#");
+            return { table: unit.slice(0, hash), scenario: unit.slice(hash + 1) };
+        };
+        return {
+            name: "loot_table_entity",
+            oracle: "LootTableEntityOracle",
+            units: tables,
+            input: (unit: string) => {
+                const { table, scenario } = scenarioOf(unit);
+                return lootTableEntityInput(table, scenario);
+            },
+            key: "table",
+        };
+    },
     () => ({
         name: "item_components",
         oracle: "ItemComponentsOracle",

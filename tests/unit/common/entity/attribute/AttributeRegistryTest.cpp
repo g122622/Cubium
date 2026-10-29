@@ -135,11 +135,11 @@ TEST(AttributeRegistryTest, EntityGravityRangeSupportsNegativeValues)
 
 TEST(AttributeRegistryTest, BlockInteractionRangeDefinitionMatchesMC)
 {
-    // MC 1.21.11: generic.block_interaction_range 默认 4.5，范围 [0, 64]
+    // MC 1.21.11: minecraft:block_interaction_range 默认 4.5，范围 [0, 64]
     auto& registry = AttributeRegistry::instance();
     const auto* attr = registry.getAttribute(Attributes::BLOCK_INTERACTION_RANGE);
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "generic.block_interaction_range");
+    EXPECT_EQ(attr->registryName(), "minecraft:block_interaction_range");
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 4.5);
     EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 64.0);
@@ -147,11 +147,11 @@ TEST(AttributeRegistryTest, BlockInteractionRangeDefinitionMatchesMC)
 
 TEST(AttributeRegistryTest, EntityInteractionRangeDefinitionMatchesMC)
 {
-    // MC 1.21.11: generic.entity_interaction_range 默认 3.0，范围 [0, 64]
+    // MC 1.21.11: minecraft:entity_interaction_range 默认 3.0，范围 [0, 64]
     auto& registry = AttributeRegistry::instance();
     const auto* attr = registry.getAttribute(Attributes::ENTITY_INTERACTION_RANGE);
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "generic.entity_interaction_range");
+    EXPECT_EQ(attr->registryName(), "minecraft:entity_interaction_range");
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 3.0);
     EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 64.0);
@@ -159,11 +159,11 @@ TEST(AttributeRegistryTest, EntityInteractionRangeDefinitionMatchesMC)
 
 TEST(AttributeRegistryTest, SafeFallDistanceDefinitionMatchesMC)
 {
-    // generic.safe_fall_distance 默认 3.0，范围 [-1024, 1024]（允许负值，供修饰符使用）
+    // minecraft:safe_fall_distance 默认 3.0，范围 [-1024, 1024]（允许负值，供修饰符使用）
     auto& registry = AttributeRegistry::instance();
     const auto* attr = registry.getAttribute(Attributes::SAFE_FALL_DISTANCE);
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "generic.safe_fall_distance");
+    EXPECT_EQ(attr->registryName(), "minecraft:safe_fall_distance");
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 3.0);
     EXPECT_DOUBLE_EQ(attr->minValue(), -1024.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 1024.0);
@@ -171,11 +171,11 @@ TEST(AttributeRegistryTest, SafeFallDistanceDefinitionMatchesMC)
 
 TEST(AttributeRegistryTest, FallDamageMultiplierDefinitionMatchesMC)
 {
-    // generic.fall_damage_multiplier 默认 1.0，范围 [0, 100]（马类覆盖为 0.5）
+    // minecraft:fall_damage_multiplier 默认 1.0，范围 [0, 100]（马类覆盖为 0.5）
     auto& registry = AttributeRegistry::instance();
     const auto* attr = registry.getAttribute(Attributes::FALL_DAMAGE_MULTIPLIER);
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "generic.fall_damage_multiplier");
+    EXPECT_EQ(attr->registryName(), "minecraft:fall_damage_multiplier");
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 1.0);
     EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 100.0);
@@ -198,7 +198,7 @@ TEST(AttributeRegistryTest, GetAttributeReturnsCorrectDefinition)
     auto& registry = AttributeRegistry::instance();
     const auto* attr = registry.getAttribute(Attributes::MAX_HEALTH);
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "generic.max_health");
+    EXPECT_EQ(attr->registryName(), "minecraft:max_health");
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 20.0);
     EXPECT_DOUBLE_EQ(attr->minValue(), 1.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 1024.0);
@@ -238,34 +238,47 @@ TEST(AttributeRegistryTest, GetDefaultValueReturnsFallbackForUnknown)
 TEST(AttributeRegistryTest, NormalizeNameAddsGenericPrefix)
 {
     auto& registry = AttributeRegistry::instance();
-    EXPECT_EQ(registry.normalizeName("max_health"), "generic.max_health");
-    EXPECT_EQ(registry.normalizeName("movement_speed"), "generic.movement_speed");
-    EXPECT_EQ(registry.normalizeName("attack_damage"), "generic.attack_damage");
-    // jump_strength 短名现在匹配通用 generic.jump_strength（LivingEntity 跳跃力），
+    EXPECT_EQ(registry.normalizeName("max_health"), "minecraft:max_health");
+    EXPECT_EQ(registry.normalizeName("movement_speed"), "minecraft:movement_speed");
+    EXPECT_EQ(registry.normalizeName("attack_damage"), "minecraft:attack_damage");
+    // jump_strength 短名现在匹配通用 minecraft:jump_strength（LivingEntity 跳跃力），
     // 而非马族专用的 horse.jump_strength（待重构移除）。generic 命名空间优先于 horse。
-    EXPECT_EQ(registry.normalizeName("jump_strength"), "generic.jump_strength");
+    EXPECT_EQ(registry.normalizeName("jump_strength"), "minecraft:jump_strength");
 }
 
 TEST(AttributeRegistryTest, NormalizeNamePreservesExistingPrefix)
 {
     auto& registry = AttributeRegistry::instance();
-    EXPECT_EQ(registry.normalizeName("generic.max_health"), "generic.max_health");
+    EXPECT_EQ(registry.normalizeName("minecraft:max_health"), "minecraft:max_health");
     EXPECT_EQ(registry.normalizeName("horse.jump_strength"), "horse.jump_strength");
-    EXPECT_EQ(registry.normalizeName("zombie.spawn_reinforcements"), "zombie.spawn_reinforcements");
     EXPECT_EQ(registry.normalizeName("forge.entity_gravity"), "forge.entity_gravity");
+}
+
+TEST(AttributeRegistryTest, NormalizeNameAcceptsLegacyGenericPrefix)
+{
+    // 1.16.5 的 generic. 写法仍然可用，统一归到原版名上。
+    auto& registry = AttributeRegistry::instance();
+    EXPECT_EQ(registry.normalizeName("generic.max_health"), "minecraft:max_health");
+    EXPECT_EQ(registry.normalizeName("generic.attack_damage"), "minecraft:attack_damage");
+    // 没有同名原版属性的 generic.* 原样返回，由调用方报「未知属性」。
+    EXPECT_EQ(registry.normalizeName("generic.nonexistent"), "generic.nonexistent");
 }
 
 TEST(AttributeRegistryTest, NormalizeNameStripsMinecraftPrefix)
 {
     auto& registry = AttributeRegistry::instance();
-    EXPECT_EQ(registry.normalizeName("minecraft:generic.max_health"), "generic.max_health");
-    EXPECT_EQ(registry.normalizeName("minecraft:max_health"), "generic.max_health");
+    EXPECT_EQ(registry.normalizeName("minecraft:max_health"), "minecraft:max_health");
+    // 旧的「再补一次 minecraft:」写法只要看起来像已知属性也一样归一。
+    EXPECT_EQ(registry.normalizeName("minecraft:minecraft:max_health"), "minecraft:max_health");
 }
 
-TEST(AttributeRegistryTest, NormalizeNameAddsZombiePrefix)
+TEST(AttributeRegistryTest, NormalizeNameAddsMinecraftPrefix)
 {
+    // 原版的 spawn_reinforcements 在 minecraft 命名空间下；1.16.5 的 zombie. 写法由
+    // 「去掉前缀再查」的规则落在 minecraft:spawn_reinforcements 上（见下一条）。
     auto& registry = AttributeRegistry::instance();
-    EXPECT_EQ(registry.normalizeName("spawn_reinforcements"), "zombie.spawn_reinforcements");
+    EXPECT_EQ(registry.normalizeName("spawn_reinforcements"), "minecraft:spawn_reinforcements");
+    EXPECT_EQ(registry.normalizeName("zombie.spawn_reinforcements"), "minecraft:spawn_reinforcements");
 }
 
 TEST(AttributeRegistryTest, NormalizeNameAddsForgePrefix)
@@ -291,8 +304,8 @@ TEST(AttributeRegistryTest, GetAllNamesReturnsAllRegisteredAttributes)
     EXPECT_EQ(names.size(), registry.size());
 
     // 检查列表中包含几个关键属性
-    EXPECT_NE(std::find(names.begin(), names.end(), "generic.max_health"), names.end());
-    EXPECT_NE(std::find(names.begin(), names.end(), "generic.movement_speed"), names.end());
+    EXPECT_NE(std::find(names.begin(), names.end(), "minecraft:max_health"), names.end());
+    EXPECT_NE(std::find(names.begin(), names.end(), "minecraft:movement_speed"), names.end());
     EXPECT_NE(std::find(names.begin(), names.end(), "horse.jump_strength"), names.end());
 }
 

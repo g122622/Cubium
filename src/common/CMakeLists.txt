@@ -653,6 +653,7 @@ add_library(mc_common STATIC
     item/items/special/ItemFrameItem.cpp
     item/items/special/SpyglassItem.cpp
     item/items/special/FlintAndSteelItem.cpp
+    item/items/special/CarvedPumpkinItem.cpp
     item/items/special/HarnessItem.cpp
     item/items/special/HoneycombItem.cpp
     item/items/special/KnowledgeBookItem.cpp
@@ -835,6 +836,7 @@ add_library(mc_common STATIC
     world/block/ILiquidSealed.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
+    world/block/blocks/DropExperienceBlock.cpp
     world/block/blocks/FallingBlock.cpp
     world/block/blocks/ConcretePowderBlock.cpp
     world/block/blocks/RotatedPillarBlock.cpp

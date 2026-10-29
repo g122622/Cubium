@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/UseAction.hpp"
@@ -70,6 +71,14 @@ public:
     explicit TridentItem(const ItemProperties& properties);
 
     ~TridentItem() override = default;
+
+    /**
+     * @brief 主手提供的属性修饰符
+     *
+     * 对齐 vanilla 三叉戟组件：攻击伤害 +8、攻击速度 -2.9，修饰符 id 与剑等武器一致
+     * （`minecraft:base_attack_damage` / `minecraft:base_attack_speed`）。
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
 
     // ========== Item 接口重写 ==========
 

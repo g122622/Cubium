@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
@@ -72,9 +73,33 @@ public:
         return m_texturePath;
     }
 
+    /**
+     * @brief 身体护甲槽位提供的属性修饰符（护甲值 / 韧性 / 击退抗性）
+     *
+     * 对齐 vanilla 的护甲材质组件：马铠虽是普通物品，也照样登记一条韧性修饰符
+     * （0.0 也登记），下界合金额外给击退抗性。
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
+
+    /**
+     * @brief 设置韧性与击退抗性
+     *
+     * 马铠按护甲值单独注册，材质对象只在注册处短暂可用，故在注册后补写这两项。
+     * 这是临时形态：原版由材质统一提供，后续把马铠改为按材质注册时删除本方法与上面的
+     * 两个成员。
+     */
+    void setMaterialBonuses(f32 toughness, f32 knockbackResistance)
+    {
+        m_toughness = toughness;
+        m_knockbackResistance = knockbackResistance;
+    }
+
 private:
     i32 m_armorValue;
     ResourceLocation m_texturePath;
+    /// 材质给出的韧性与击退抗性（构造时取材质的默认值；马铠本身不带材质对象）。
+    f32 m_toughness = 0.0f;
+    f32 m_knockbackResistance = 0.0f;
 };
 
 } // namespace item::items

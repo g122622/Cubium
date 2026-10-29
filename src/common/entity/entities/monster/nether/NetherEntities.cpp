@@ -303,6 +303,11 @@ void GhastEntity::registerAttributes()
 {
     // 对齐原版 Ghast.createAttributes：生命值 10、追踪范围 100、飞行速度 0.06；
     // 它不覆盖移动速度，沿用 LivingEntity 默认的 0.7（飞行由 GhastMoveControl 驱动）。
+    //
+    // 必须先调父类：override 会整体替换 MobEntity 的注册，不调父类的后果是 follow_range
+    // 根本没有注册，下面的 setBaseValue 静默失败（属性缺失时按 0 取值），恶魂的追踪范围
+    // 一直是 0。
+    MobEntity::registerAttributes();
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
@@ -325,6 +330,10 @@ MagmaCubeEntity::MagmaCubeEntity(EntityInstanceId id, ecs::EntityRegistry& regis
     // 补调 registerAttributes：派生 override 永不执行（vtable 在基类构造期间指向基类），
     // 须在派生类构造显式调用。MagmaCube 无 registerGoals override（继承 Slime）。
     registerAttributes();
+    // registerAttributes 把尺寸重置成 1，但护甲不归它管：对外的尺寸语义必须与「尺寸 1」一致
+    // （对齐原版 MagmaCube.createAttributes 的 armor=3），否则刚创建、尚未 finalizeSpawn 的
+    // 岩浆怪会带着尺寸 1 的生命值却挂着默认尺寸 4 的护甲。
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(getSlimeSize() * 3));
 }
 
 void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
@@ -936,6 +945,10 @@ HoglinEntity::HoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
 {
     setBurnsInDaylight(false);
     registerAttributes();
+
+    // 猪灵兽本体不免疫火焰（免疫的是僵尸化后的僵尸猪灵）：被烧死的掉落才会经
+    // `furnace_smelt` 变成熟猪排。成员默认值曾误设为 true，导致被烧死时不出熟肉。
+    m_immuneToFire = false;
 
     // 补调 registerGoals：MonsterEntity 构造只调基类版（vtable 指向 MonsterEntity），派生 override
     // 永不执行，须在派生类构造显式调用。Hoglin 的 registerGoals 加专属近战 / 避排斥方块 / 激怒目标。

@@ -413,12 +413,12 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_ReplaceEffectWithWeaker_Attribute
     // 参考 MC Java: NBT 加载路径中，属性修改器完全由 Attributes NBT 字段决定。
 
     // 先记录基础攻击伤害（添加效果前）
-    const f64 baseAttackDamage = m_entity->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 baseAttackDamage = m_entity->attributes().getValue("minecraft:attack_damage", 0.0);
 
     m_entity->addEffect(EffectInstance(EffectType::Strength, 600, 1)); // Strength II
 
     // 验证 Strength II 已生效（增加 6.0 攻击伤害）
-    const f64 attackWithStrength = m_entity->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 attackWithStrength = m_entity->attributes().getValue("minecraft:attack_damage", 0.0);
     EXPECT_DOUBLE_EQ(attackWithStrength, baseAttackDamage + 6.0);
 
     // 合并只包含 Speed I 的 NBT（会替换所有效果）
@@ -554,11 +554,11 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectAttributeModifiersInNbt)
     // 3. 创建新实体，反序列化（readAttributeMap 从 NBT 恢复修改器）
     // 4. 验证属性修改器已正确恢复
 
-    const f64 baseAttackDamage = m_entity->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 baseAttackDamage = m_entity->attributes().getValue("minecraft:attack_damage", 0.0);
 
     // 添加 Strength II（amplifier=1，增加 6.0 攻击伤害 = 3.0 * (1+1)）
     m_entity->addEffect(EffectInstance(EffectType::Strength, 600, 1));
-    const f64 attackWithStrength = m_entity->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 attackWithStrength = m_entity->attributes().getValue("minecraft:attack_damage", 0.0);
     EXPECT_DOUBLE_EQ(attackWithStrength, baseAttackDamage + 6.0);
 
     // 序列化
@@ -589,7 +589,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectAttributeModifiersInNbt)
 
     // 验证属性修改器从 NBT 中恢复
     // readAttributeMap 清除旧修改器后从 NBT 重新加载，所以 Strength 修改器应该存在
-    const f64 loadedAttackDamage = entity2->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 loadedAttackDamage = entity2->attributes().getValue("minecraft:attack_damage", 0.0);
     EXPECT_DOUBLE_EQ(loadedAttackDamage, baseAttackDamage + 6.0)
         << "Strength attribute modifier should be restored from Attributes NBT";
 }
@@ -600,11 +600,11 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_AttributeModifiersClearedBeforeNb
     // NBT 加载属性时，先清除已有修改器，再从 NBT 加载。
     // 这防止了修改器的重复叠加。
 
-    const f64 baseAttackDamage = m_entity->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 baseAttackDamage = m_entity->attributes().getValue("minecraft:attack_damage", 0.0);
 
     // 添加 Strength II（应用 +6.0 修改器）
     m_entity->addEffect(EffectInstance(EffectType::Strength, 600, 1));
-    EXPECT_DOUBLE_EQ(m_entity->attributes().getValue("generic.attack_damage", 0.0), baseAttackDamage + 6.0);
+    EXPECT_DOUBLE_EQ(m_entity->attributes().getValue("minecraft:attack_damage", 0.0), baseAttackDamage + 6.0);
 
     // 序列化实体
     EntityDataAccessor accessor(m_entity.get());
@@ -620,8 +620,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_AttributeModifiersClearedBeforeNb
 
     // 手动添加一个修改器（模拟之前存在的修改器）
     entity2->attributes().addModifier(
-        "generic.attack_damage", AttributeModifier("test-modifier", "Test Modifier", 5.0, Operation::Addition));
-    const f64 attackBeforeMerge = entity2->attributes().getValue("generic.attack_damage", 0.0);
+        "minecraft:attack_damage", AttributeModifier("test-modifier", "Test Modifier", 5.0, Operation::Addition));
+    const f64 attackBeforeMerge = entity2->attributes().getValue("minecraft:attack_damage", 0.0);
     EXPECT_DOUBLE_EQ(attackBeforeMerge, baseAttackDamage + 5.0);
 
     // 反序列化：readAttributeMap 应先清除旧修改器（+5.0），再从 NBT 加载新修改器（+6.0）
@@ -629,7 +629,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_AttributeModifiersClearedBeforeNb
     accessor2.mergeData(*data);
 
     // 旧修改器（+5.0）应被清除，NBT 中的修改器（+6.0 Strength）应被加载
-    const f64 attackAfterMerge = entity2->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 attackAfterMerge = entity2->attributes().getValue("minecraft:attack_damage", 0.0);
     EXPECT_DOUBLE_EQ(attackAfterMerge, baseAttackDamage + 6.0)
         << "Old modifier should be cleared, NBT modifier should be loaded";
 }
@@ -645,11 +645,11 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectRemovedViaNbt_AttributeModi
     // 3. mergeData 替换效果
     // 4. 验证 Strength 修改器不再存在于属性中
 
-    const f64 baseAttackDamage = m_entity->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 baseAttackDamage = m_entity->attributes().getValue("minecraft:attack_damage", 0.0);
 
     // 添加 Strength II
     m_entity->addEffect(EffectInstance(EffectType::Strength, 600, 1));
-    EXPECT_DOUBLE_EQ(m_entity->attributes().getValue("generic.attack_damage", 0.0), baseAttackDamage + 6.0);
+    EXPECT_DOUBLE_EQ(m_entity->attributes().getValue("minecraft:attack_damage", 0.0), baseAttackDamage + 6.0);
 
     // 构造只有 Speed I 的 NBT（替换所有现有效果）
     nbt::tags::compound_tag data;
@@ -683,7 +683,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectRemovedViaNbt_AttributeModi
     // 在 MC Java 中，效果系统会在下一个 tick 重新同步属性修改器，
     // 移除不再需要的 Strength 修改器，添加 Speed 修改器。
     // 此处验证的是 NBT 加载路径的即时行为：
-    const f64 attackAfterMerge = m_entity->attributes().getValue("generic.attack_damage", 0.0);
+    const f64 attackAfterMerge = m_entity->attributes().getValue("minecraft:attack_damage", 0.0);
     // Attributes NBT 中仍包含 Strength 修改器（因为 mergeData 未修改 Attributes 字段）
     EXPECT_DOUBLE_EQ(attackAfterMerge, baseAttackDamage + 6.0)
         << "Attributes NBT still contains Strength modifier until effect system tick resyncs";

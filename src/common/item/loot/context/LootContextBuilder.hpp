@@ -26,6 +26,7 @@
 #include "LootParameterSet.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/loot/context/LootParameter.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <functional>
 #include <memory>
@@ -52,6 +53,8 @@ class LootContextBuilder {
 public:
     using LootTableResolver = std::function<const LootTable*(const std::string&)>;
     using PredicateResolver = std::function<const LootCondition*(const std::string&)>;
+    /// 附魔标签名 → 成员附魔 ID（未知名返回空）。
+    using EnchantmentTagResolver = std::function<std::vector<std::string>(const ResourceLocation&)>;
 
     explicit LootContextBuilder(IWorld& world);
 
@@ -136,6 +139,19 @@ public:
     }
 
     /**
+     * @brief 设置附魔标签解析器
+     *
+     * 实体条件里的装备谓词可以写 `#enchantment_tag`（例如「手持带
+     * `#minecraft:smelts_loot` 附魔的武器击杀则掉落熟肉」），原版按附魔标签注册表展开。
+     * 不提供时这类条件恒不成立。
+     */
+    LootContextBuilder& withEnchantmentTagResolver(EnchantmentTagResolver resolver)
+    {
+        m_enchantmentTagResolver = std::move(resolver);
+        return *this;
+    }
+
+    /**
      * @brief 构建掉落上下文
      */
     [[nodiscard]] std::unique_ptr<class LootContext> build(const LootParameterSet& paramSet = LootParameterSet());
@@ -150,6 +166,7 @@ private:
     std::vector<std::shared_ptr<void>> m_ownedValues; // 拥有所有权的值存储
     LootTableResolver m_lootTableResolver;
     PredicateResolver m_predicateResolver;
+    EnchantmentTagResolver m_enchantmentTagResolver;
 };
 
 } // namespace loot

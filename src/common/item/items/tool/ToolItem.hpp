@@ -60,7 +60,7 @@ class ToolItem : public TieredItem {
 public:
     /**
      * @brief 构造挖掘工具
-     * @param attackDamage 基础攻击伤害（层级加成会自动添加）
+     * @param attackDamage 最终的攻击伤害（原版物品属性里的绝对值，不再叠加层级加成）
      * @param attackSpeed 攻击速度修正（负值表示减速）
      * @param tier 工具层级
      * @param effectiveBlocks 有效方块集合（挖掘速度为效率值）

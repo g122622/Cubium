@@ -50,13 +50,10 @@ void equipLooting(Entity& attacker, i32 level, const std::string& enchantmentId,
     if (living == nullptr) {
         return;
     }
-    const auto* component = living->tryGetComponent<ecs::EquipmentComponent>();
-    if (component == nullptr) {
-        return;
-    }
-
+    // 经虚函数读槽位：玩家的装备在 PlayerInventory 里（Player 重写 getEquipment），
+    // 直接读 EquipmentComponent 对玩家恒为空，会把玩家的掠夺剑换成一把新的无附魔剑。
     // 副本上改完再写回：原版的 `setItemSlot` 同样触发 `ItemStack` 的复制语义。
-    ItemStack weapon = component->m_equipment[static_cast<size_t>(EquipmentSlot::MainHand)];
+    ItemStack weapon = living->getEquipment(EquipmentSlot::MainHand);
     if (weapon.isEmpty()) {
         if (auto parsed = ItemStack::fromJson(nlohmann::json{{"id", fallbackItemId}, {"Count", 1}}); parsed.success()) {
             weapon = std::move(parsed.value());

@@ -91,7 +91,9 @@ void CamelEntity::registerAttributes()
     AbstractHorseEntity::registerAttributes();
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 32.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.09);
-    attributes().setBaseValue("generic.jump_strength", 0.42);
+    attributes().setBaseValue(entity::attribute::Attributes::JUMP_STRENGTH, 0.42);
+    // TODO(attribute): 原版的 step_height 属性尚未在 Attributes 中登记，setBaseValue 目前
+    //  静默失败，骆驼的 1.5 格步高没有生效。补齐 step_height 后改成 Attributes::STEP_HEIGHT。
     attributes().setBaseValue("generic.step_height", 1.5);
     setHealth(maxHealth());
 }

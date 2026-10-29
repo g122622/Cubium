@@ -363,7 +363,7 @@ TEST_F(FoxEntityTest, Attributes_HasCorrectBaseValues)
     EXPECT_DOUBLE_EQ(fox.maxHealth(), 10.0);
 
     // 狐狸移动速度为 0.3
-    EXPECT_DOUBLE_EQ(fox.getAttributeValue("generic.movement_speed", 0.0), 0.3);
+    EXPECT_DOUBLE_EQ(fox.getAttributeValue("minecraft:movement_speed", 0.0), 0.3);
 }
 
 // 狐狸近战攻击伤害、安全摔落距离、跟随范围属性（Fox.createAttributes）。

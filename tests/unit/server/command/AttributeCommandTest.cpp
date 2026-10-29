@@ -229,7 +229,7 @@ TEST_F(AttributeCommandTest, AttributeCommandRequiresPermissionLevel2)
     bool permissionDenied = false;
     try {
         const auto result =
-            m_server.commandRegistry().execute("attribute @p minecraft:generic.max_health get", lowPermSource);
+            m_server.commandRegistry().execute("attribute @p minecraft:minecraft:max_health get", lowPermSource);
         permissionDenied = (result.value() == 0);
     }
     catch (...) {
@@ -245,7 +245,7 @@ TEST_F(AttributeCommandTest, AttributeCommandRequiresPermissionLevel2)
 
 TEST_F(AttributeCommandTest, GetAttributeWithNoPlayersReturnsZero)
 {
-    const auto result = m_server.commandRegistry().execute("attribute @p generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @p minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
@@ -253,7 +253,7 @@ TEST_F(AttributeCommandTest, GetAttributeWithNoPlayersReturnsZero)
 
 TEST_F(AttributeCommandTest, GetAttributeWithNoEntitiesReturnsZero)
 {
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
@@ -270,7 +270,7 @@ TEST_F(AttributeCommandTest, GetZombieMaxHealth)
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     // 僵尸默认 max_health 为 20
@@ -284,7 +284,8 @@ TEST_F(AttributeCommandTest, GetZombieMaxHealthWithScale)
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get 2", m_console);
+    const auto result =
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get 2", m_console);
 
     EXPECT_TRUE(result.success());
     // 20 * 2 = 40
@@ -299,12 +300,12 @@ TEST_F(AttributeCommandTest, SetZombieBaseMaxHealth)
     m_server.spawnEntity(std::move(zombie));
 
     const auto setResult =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base set 50", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base set 50", m_console);
     EXPECT_TRUE(setResult.success());
     EXPECT_EQ(setResult.value(), 1);
 
     const auto getResult =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base get", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base get", m_console);
     EXPECT_TRUE(getResult.success());
     EXPECT_EQ(getResult.value(), 50);
 }
@@ -317,7 +318,7 @@ TEST_F(AttributeCommandTest, GetZombieBaseMaxHealth)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base get", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base get", m_console);
 
     EXPECT_TRUE(result.success());
     // 僵尸默认 base max_health 为 20
@@ -332,7 +333,7 @@ TEST_F(AttributeCommandTest, GetZombieBaseMaxHealthWithScale)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base get 0.5", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base get 0.5", m_console);
 
     EXPECT_TRUE(result.success());
     // 20 * 0.5 = 10
@@ -347,17 +348,17 @@ TEST_F(AttributeCommandTest, ResetZombieBaseMaxHealth)
     m_server.spawnEntity(std::move(zombie));
 
     // 先设置一个不同的基础值
-    m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base set 50", m_console);
+    m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base set 50", m_console);
 
     // 重置为默认值
     const auto resetResult =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base reset", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base reset", m_console);
     EXPECT_TRUE(resetResult.success());
     EXPECT_EQ(resetResult.value(), 1);
 
     // 验证基础值已重置回默认值 20
     const auto getResult =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base get", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base get", m_console);
     EXPECT_TRUE(getResult.success());
     EXPECT_EQ(getResult.value(), 20);
 }
@@ -375,13 +376,13 @@ TEST_F(AttributeCommandTest, AddModifierToZombie)
 
     // 添加修饰符
     const auto addResult = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier add test_modifier 10 add_value", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier add test_modifier 10 add_value", m_console);
     EXPECT_TRUE(addResult.success());
     EXPECT_EQ(addResult.value(), 1);
 
     // 验证修饰符值
     const auto getResult = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier value get test_modifier", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier value get test_modifier", m_console);
     EXPECT_TRUE(getResult.success());
     EXPECT_EQ(getResult.value(), 10);
 }
@@ -395,11 +396,11 @@ TEST_F(AttributeCommandTest, AddModifierWithScale)
 
     // 添加修饰符
     m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier add test_mod 5 add_value", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier add test_mod 5 add_value", m_console);
 
     // 获取修饰符值并带缩放
     const auto getResult = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier value get test_mod 3", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier value get test_mod 3", m_console);
     EXPECT_TRUE(getResult.success());
     // 5 * 3 = 15
     EXPECT_EQ(getResult.value(), 15);
@@ -413,7 +414,7 @@ TEST_F(AttributeCommandTest, AddMultiplyBaseModifier)
     m_server.spawnEntity(std::move(zombie));
 
     const auto addResult = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier add mult_base_mod 0.5 add_multiplied_base", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier add mult_base_mod 0.5 add_multiplied_base", m_console);
     EXPECT_TRUE(addResult.success());
     EXPECT_EQ(addResult.value(), 1);
 }
@@ -426,7 +427,7 @@ TEST_F(AttributeCommandTest, AddMultiplyTotalModifier)
     m_server.spawnEntity(std::move(zombie));
 
     const auto addResult = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier add mult_total_mod 0.5 add_multiplied_total", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier add mult_total_mod 0.5 add_multiplied_total", m_console);
     EXPECT_TRUE(addResult.success());
     EXPECT_EQ(addResult.value(), 1);
 }
@@ -440,11 +441,11 @@ TEST_F(AttributeCommandTest, RemoveModifierFromZombie)
 
     // 先添加修饰符
     m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier add rem_mod 10 add_value", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier add rem_mod 10 add_value", m_console);
 
     // 移除修饰符
     const auto removeResult = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier remove rem_mod", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier remove rem_mod", m_console);
     EXPECT_TRUE(removeResult.success());
     EXPECT_EQ(removeResult.value(), 1);
 }
@@ -457,7 +458,7 @@ TEST_F(AttributeCommandTest, RemoveNonExistentModifierFails)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier remove nonexistent", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier remove nonexistent", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
 }
@@ -471,13 +472,13 @@ TEST_F(AttributeCommandTest, AddDuplicateModifierFails)
 
     // 第一次添加成功
     const auto addResult1 = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier add dup_mod 10 add_value", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier add dup_mod 10 add_value", m_console);
     EXPECT_TRUE(addResult1.success());
     EXPECT_EQ(addResult1.value(), 1);
 
     // 第二次添加同 ID 修饰符应失败
     const auto addResult2 = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier add dup_mod 20 add_value", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier add dup_mod 20 add_value", m_console);
     EXPECT_TRUE(addResult2.success());
     EXPECT_EQ(addResult2.value(), 0);
 }
@@ -490,7 +491,7 @@ TEST_F(AttributeCommandTest, GetNonExistentModifierValueFails)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.max_health modifier value get nonexistent", m_console);
+        "attribute @e[limit=1] minecraft:max_health modifier value get nonexistent", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
 }
@@ -507,7 +508,7 @@ TEST_F(AttributeCommandTest, AttributeOnNonLivingEntityReturnsError)
     item->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(item));
 
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     // 非 LivingEntity 应返回 0（命令失败，输出错误消息）
@@ -522,7 +523,7 @@ TEST_F(AttributeCommandTest, AttributeOnArmorStandReturnsError)
     armorStand->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(armorStand));
 
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
@@ -536,7 +537,7 @@ TEST_F(AttributeCommandTest, AttributeOnExperienceOrbReturnsError)
     orb->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(orb));
 
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
@@ -562,7 +563,7 @@ TEST_F(AttributeCommandTest, GetAttributeFromMixedEntitiesSelectsLivingEntity)
     // @e 不指定 type 过滤时，EntityResolver 可能选中任一实体
     // 使用 type=zombie 过滤确保选中僵尸
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:zombie,limit=1] generic.max_health get", m_console);
+        "attribute @e[type=minecraft:zombie,limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 20);
@@ -580,7 +581,7 @@ TEST_F(AttributeCommandTest, GetPigMaxHealth)
     m_server.spawnEntity(std::move(pig));
 
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:pig,limit=1] generic.max_health get", m_console);
+        "attribute @e[type=minecraft:pig,limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     // 猪默认 max_health 为 10
@@ -611,13 +612,13 @@ TEST_F(AttributeCommandTest, SetPigMaxHealthAndVerify)
 
     // 设置猪的最大生命值
     const auto setResult = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:pig,limit=1] generic.max_health base set 20", m_console);
+        "attribute @e[type=minecraft:pig,limit=1] minecraft:max_health base set 20", m_console);
     EXPECT_TRUE(setResult.success());
     EXPECT_EQ(setResult.value(), 1);
 
     // 验证设置后的值
     const auto getResult = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:pig,limit=1] generic.max_health get", m_console);
+        "attribute @e[type=minecraft:pig,limit=1] minecraft:max_health get", m_console);
     EXPECT_TRUE(getResult.success());
     EXPECT_EQ(getResult.value(), 20);
 }
@@ -633,7 +634,7 @@ TEST_F(AttributeCommandTest, GetAttributeWithoutNamespace)
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 20);
@@ -676,9 +677,9 @@ TEST_F(AttributeCommandTest, EntityLacksSpecificAttributeReturnsZero)
     pig->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(pig));
 
-    // 猪默认没有 zombie.spawn_reinforcements 属性
+    // 猪默认没有 spawn_reinforcements 属性
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:pig,limit=1] zombie.spawn_reinforcements get", m_console);
+        "attribute @e[type=minecraft:pig,limit=1] minecraft:spawn_reinforcements get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
@@ -697,7 +698,7 @@ TEST_F(AttributeCommandTest, SetBaseValueOutOfRangeFails)
 
     // max_health 范围为 [1.0, 1024.0]，设置 0 应该失败
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base set 0", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base set 0", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
 }
@@ -711,7 +712,7 @@ TEST_F(AttributeCommandTest, SetBaseValueAtMinBoundarySucceeds)
 
     // max_health 最小值为 1.0
     const auto setResult =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base set 1", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base set 1", m_console);
     EXPECT_TRUE(setResult.success());
     EXPECT_EQ(setResult.value(), 1);
 }
@@ -755,7 +756,7 @@ TEST_F(AttributeCommandTest, SelfSelectorWithServerPlayer)
     ServerCommandSource source(
         &m_server, serverPlayerPtr, 0, Vector3d(10.0, 64.0, 0.0), Vector2f(0.0f, 0.0f), 2, 42, "TestPlayer");
 
-    const auto result = m_server.commandRegistry().execute("attribute @s generic.max_health get", source);
+    const auto result = m_server.commandRegistry().execute("attribute @s minecraft:max_health get", source);
 
     EXPECT_TRUE(result.success());
     // Player 默认 max_health 为 20
@@ -775,12 +776,12 @@ TEST_F(AttributeCommandTest, SelfSelectorSetBaseHealth)
         &m_server, serverPlayerPtr, 0, Vector3d(10.0, 64.0, 0.0), Vector2f(0.0f, 0.0f), 2, 42, "TestPlayer");
 
     // 设置基础生命值
-    const auto setResult = m_server.commandRegistry().execute("attribute @s generic.max_health base set 30", source);
+    const auto setResult = m_server.commandRegistry().execute("attribute @s minecraft:max_health base set 30", source);
     EXPECT_TRUE(setResult.success());
     EXPECT_EQ(setResult.value(), 1);
 
     // 验证设置后的值
-    const auto getResult = m_server.commandRegistry().execute("attribute @s generic.max_health get", source);
+    const auto getResult = m_server.commandRegistry().execute("attribute @s minecraft:max_health get", source);
     EXPECT_TRUE(getResult.success());
     EXPECT_EQ(getResult.value(), 30);
 }
@@ -803,13 +804,13 @@ TEST_F(AttributeCommandTest, TypeFilterSelectsZombieNotPig)
 
     // 只选择僵尸
     const auto zombieResult = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:zombie,limit=1] generic.max_health get", m_console);
+        "attribute @e[type=minecraft:zombie,limit=1] minecraft:max_health get", m_console);
     EXPECT_TRUE(zombieResult.success());
     EXPECT_EQ(zombieResult.value(), 20); // 僵尸 max_health = 20
 
     // 只选择猪
     const auto pigResult = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:pig,limit=1] generic.max_health get", m_console);
+        "attribute @e[type=minecraft:pig,limit=1] minecraft:max_health get", m_console);
     EXPECT_TRUE(pigResult.success());
     EXPECT_EQ(pigResult.value(), 10); // 猪 max_health = 10
 }
@@ -823,7 +824,7 @@ TEST_F(AttributeCommandTest, TypeFilterWithoutNamespace)
 
     // 不带 minecraft: 前缀也应能匹配
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[type=zombie,limit=1] generic.max_health get", m_console);
+        m_server.commandRegistry().execute("attribute @e[type=zombie,limit=1] minecraft:max_health get", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 20);
 }
@@ -840,7 +841,7 @@ TEST_F(AttributeCommandTest, GetAttributeFeedbackContainsValue)
     m_server.spawnEntity(std::move(zombie));
 
     // 使用 @e 选择器获取属性，命令应成功执行
-    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health get", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 20);
@@ -854,7 +855,7 @@ TEST_F(AttributeCommandTest, BaseSetFeedback)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base set 30", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base set 30", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 }
@@ -867,11 +868,11 @@ TEST_F(AttributeCommandTest, BaseResetFeedback)
     m_server.spawnEntity(std::move(zombie));
 
     // 先设置
-    m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base set 50", m_console);
+    m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base set 50", m_console);
 
     // 重置
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.max_health base reset", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base reset", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 }
@@ -884,7 +885,7 @@ TEST_F(AttributeCommandTest, AllPlayersSelectorWithNoPlayersReturnsZero)
 {
     // @a 是多玩家选择器，在 entity() 参数位置不允许（要求单个实体）
     // 解析阶段就会报错，不是运行时返回 0
-    const auto result = m_server.commandRegistry().execute("attribute @a generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @a minecraft:max_health get", m_console);
 
     EXPECT_FALSE(result.success());
 }
@@ -903,7 +904,7 @@ TEST_F(AttributeCommandTest, AllEntitiesSelectorWithMultipleEntitiesFails)
     m_server.spawnEntity(std::move(zombie2));
 
     // @e 不带 limit 限制，选中多个实体应失败（EntityArgument 要求单个实体）
-    const auto result = m_server.commandRegistry().execute("attribute @e generic.max_health get", m_console);
+    const auto result = m_server.commandRegistry().execute("attribute @e minecraft:max_health get", m_console);
 
     EXPECT_FALSE(result.success());
 }
@@ -926,7 +927,7 @@ TEST_F(AttributeCommandTest, PlayerAttributeUsesUsername)
         &m_server, serverPlayerPtr, 0, Vector3d(10.0, 64.0, 0.0), Vector2f(0.0f, 0.0f), 2, 42, "Steve");
 
     // @s 选择自己，命令执行成功即可验证 Player 路径无崩溃
-    const auto result = m_server.commandRegistry().execute("attribute @s generic.max_health get", source);
+    const auto result = m_server.commandRegistry().execute("attribute @s minecraft:max_health get", source);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 20);
 }
@@ -942,7 +943,7 @@ TEST_F(AttributeCommandTest, CustomNameEntityAttribute)
 
     // 带 type 过滤确保选中该僵尸
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:zombie,limit=1] generic.max_health get", m_console);
+        "attribute @e[type=minecraft:zombie,limit=1] minecraft:max_health get", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 20);
 }
@@ -957,7 +958,7 @@ TEST_F(AttributeCommandTest, DefaultNameEntityAttribute)
     m_server.spawnEntity(std::move(pig));
 
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[type=minecraft:pig,limit=1] generic.max_health get", m_console);
+        "attribute @e[type=minecraft:pig,limit=1] minecraft:max_health get", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 10);
 }
@@ -974,7 +975,7 @@ TEST_F(AttributeCommandTest, SetAttributeWithFloatValue)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.movement_speed base set 0.15", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:movement_speed base set 0.15", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 }
@@ -987,7 +988,7 @@ TEST_F(AttributeCommandTest, SetKnockbackResistance)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result = m_server.commandRegistry().execute(
-        "attribute @e[limit=1] generic.knockback_resistance base set 0.5", m_console);
+        "attribute @e[limit=1] minecraft:knockback_resistance base set 0.5", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 }
@@ -1000,7 +1001,7 @@ TEST_F(AttributeCommandTest, SetArmor)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.armor base set 20.0", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:armor base set 20.0", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 }
@@ -1012,9 +1013,9 @@ TEST_F(AttributeCommandTest, SetLuck)
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    // 僵尸默认没有 generic.luck 属性，设置基础值应返回 0
+    // 僵尸默认没有 minecraft:luck 属性，设置基础值应返回 0
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] generic.luck base set 1024.0", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:luck base set 1024.0", m_console);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
 }
@@ -1031,7 +1032,7 @@ TEST_F(AttributeCommandTest, GetZombieSpawnReinforcements)
     m_server.spawnEntity(std::move(zombie));
 
     const auto result =
-        m_server.commandRegistry().execute("attribute @e[limit=1] zombie.spawn_reinforcements get", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:spawn_reinforcements get", m_console);
     EXPECT_TRUE(result.success());
     // 僵尸默认 spawn_reinforcements 为 0
     EXPECT_EQ(result.value(), 0);
@@ -1044,13 +1045,13 @@ TEST_F(AttributeCommandTest, SetZombieSpawnReinforcements)
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    const auto setResult =
-        m_server.commandRegistry().execute("attribute @e[limit=1] zombie.spawn_reinforcements base set 0.5", m_console);
+    const auto setResult = m_server.commandRegistry().execute(
+        "attribute @e[limit=1] minecraft:spawn_reinforcements base set 0.5", m_console);
     EXPECT_TRUE(setResult.success());
     EXPECT_EQ(setResult.value(), 1);
 
     const auto getResult =
-        m_server.commandRegistry().execute("attribute @e[limit=1] zombie.spawn_reinforcements base get", m_console);
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:spawn_reinforcements base get", m_console);
     EXPECT_TRUE(getResult.success());
     EXPECT_EQ(getResult.value(), 0); // 0.5 truncated to 0 as i32
 }

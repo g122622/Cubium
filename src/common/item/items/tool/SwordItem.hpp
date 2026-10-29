@@ -58,7 +58,7 @@ public:
     /**
      * @brief 构造剑
      * @param tier 工具层级
-     * @param attackDamage 基础攻击伤害（通常为 3）
+     * @param attackDamage 最终的攻击伤害（原版剑为木/金 3、石/铜 4、铁 5、钻 6、下界合金 7）
      * @param attackSpeed 攻击速度修正（通常为 -2.4）
      * @param properties 物品属性
      */

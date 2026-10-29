@@ -217,47 +217,47 @@ TEST_F(SpearItemTest, GetUseDuration_Returns72000)
 }
 
 // ============================================================================
-// 攻击伤害测试
+// 攻击伤害测试（原版：长矛注册值 0，攻击力 = 材质加成，木 0 / 石 1 / 铁 2 / 钻 3 / 下界合金 4）
 // ============================================================================
 
 TEST_F(SpearItemTest, WoodenSpear_AttackDamage)
 {
-    // 木长矛攻击伤害 = 基础值(3) + 木层级加成(0.0) = 3.0
+    // 木长矛攻击伤害 = 木层级加成(0)（原版长矛的攻击力全部来自材质）
     auto* spear = dynamic_cast<item::SpearItem*>(Items::WOODEN_SPEAR);
     ASSERT_NE(spear, nullptr);
-    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 3.0f);
+    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 0.0f);
 }
 
 TEST_F(SpearItemTest, StoneSpear_AttackDamage)
 {
-    // 石长矛攻击伤害 = 基础值(3) + 石层级加成(1.0) = 4.0
+    // 石长矛攻击伤害 = 石层级加成(1)
     auto* spear = dynamic_cast<item::SpearItem*>(Items::STONE_SPEAR);
     ASSERT_NE(spear, nullptr);
-    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 4.0f);
+    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 1.0f);
 }
 
 TEST_F(SpearItemTest, IronSpear_AttackDamage)
 {
-    // 铁长矛攻击伤害 = 基础值(3) + 铁层级加成(2.0) = 5.0
+    // 铁长矛攻击伤害 = 铁层级加成(2)
     auto* spear = dynamic_cast<item::SpearItem*>(Items::IRON_SPEAR);
     ASSERT_NE(spear, nullptr);
-    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 5.0f);
+    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 2.0f);
 }
 
 TEST_F(SpearItemTest, DiamondSpear_AttackDamage)
 {
-    // 钻石长矛攻击伤害 = 基础值(3) + 钻石层级加成(3.0) = 6.0
+    // 钻石长矛攻击伤害 = 钻石层级加成(3)
     auto* spear = dynamic_cast<item::SpearItem*>(Items::DIAMOND_SPEAR);
     ASSERT_NE(spear, nullptr);
-    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 6.0f);
+    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 3.0f);
 }
 
 TEST_F(SpearItemTest, NetheriteSpear_AttackDamage)
 {
-    // 下界合金长矛攻击伤害 = 基础值(3) + 下界合金层级加成(4.0) = 7.0
+    // 下界合金长矛攻击伤害 = 下界合金层级加成(4)
     auto* spear = dynamic_cast<item::SpearItem*>(Items::NETHERITE_SPEAR);
     ASSERT_NE(spear, nullptr);
-    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 7.0f);
+    EXPECT_FLOAT_EQ(spear->getAttackDamage(), 4.0f);
 }
 
 // ============================================================================
