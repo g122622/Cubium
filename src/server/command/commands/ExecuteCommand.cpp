@@ -113,7 +113,8 @@ namespace {
  * 但参数之后必须能继续（`as @p run`、`as @p at @s run`），所以参数节点统一挂上 run。
  */
 void attachRunToLeaves(const std::shared_ptr<CommandNode<ServerCommandSource>>& node,
-    const std::shared_ptr<CommandNode<ServerCommandSource>>& runLink)
+    const std::shared_ptr<CommandNode<ServerCommandSource>>& runLink,
+    const std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>>* modifiers)
 {
     for (const auto& [name, child] : node->getChildren()) {
         (void)name;
@@ -126,10 +127,10 @@ void attachRunToLeaves(const std::shared_ptr<CommandNode<ServerCommandSource>>& 
             continue;
         }
         if (child->getType() == NodeType::Argument) {
-            // 只给**参数链的末端**挂 run。若给中间参数也挂（`if block <pos> <block>` 的 pos），
+            // 只给**参数链的末端**挂接续入口。若给中间参数也挂（`if block <pos> <block>` 的 pos），
             // 输入读完 pos 后 dispatcher 会先匹配到 pos→run，把本该由 block 参数消费的方块谓词
             // 当成 run 之后的内容，于是 `execute ... if block 0 0 0 stone run ...` 报
-            // "Expected literal 'run'"。参数链继续下探时不在中间节点挂 run。
+            // "Expected literal 'run'"。参数链继续下探时不在中间节点挂接续入口。
             bool hasArgumentChild = false;
             for (const auto& [childName, grandChild] : child->getChildren()) {
                 (void)childName;
@@ -140,9 +141,28 @@ void attachRunToLeaves(const std::shared_ptr<CommandNode<ServerCommandSource>>& 
             }
             if (!hasArgumentChild) {
                 child->addChild(runLink);
+                // 参数末端除了 `run` 还要能直接接下一个修改器：`positioned 0 0 0 if block ... run ...`
+                // 里 pos 之后紧跟的是 `if` 而不是 `run`，若末端只有 run 子节点，dispatcher 试到
+                // run 就报 "Expected literal 'run'"，不会再有别的候选。原版 Brigadier 靠修改器
+                // 之间全局 `then` 互连实现这一点；这里给末端挂一个同名重定向节点指向对应修改器，
+                // 派发进入后由该修改器节点继续解析（修改器节点自身已有 run 与后续接续入口）。
+                if (modifiers != nullptr) {
+                    for (const auto& modifierNode : *modifiers) {
+                        if (!modifierNode || modifierNode == node || child->getChild(modifierNode->getName())) {
+                            continue;
+                        }
+                        // 桥是纯派发脚手架：同名重定向到对应修改器节点，自身不参与快照；
+                        // 不加子节点，避免与修改器之间形成父子环。
+                        auto bridge =
+                            std::make_shared<LiteralCommandNode<ServerCommandSource>>(modifierNode->getName());
+                        bridge->setRedirect(modifierNode, RedirectModifier::Single);
+                        bridge->setTreeHidden(true);
+                        child->addChild(bridge);
+                    }
+                }
             }
         }
-        attachRunToLeaves(child, runLink);
+        attachRunToLeaves(child, runLink, modifiers);
     }
 }
 
@@ -649,6 +669,14 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // 但「末端的参数」之后还能接下一个修改器：原版把下一个修改器挂在参数节点下，
     // 这里同样给每个参数节点（含字面量后的参数）接上 run，`as @p run` / `as @p at @s run`
     // 两条路径都能由 dispatcher 派发到。
+    // 参数末端的接续桥需要以基类指针集合的形式查阅全部修改器（含 if/unless），
+    // 这里先做一份视图；桥本身只是同名重定向字面量，不参与链索引。
+    std::vector<std::shared_ptr<CommandNode<ServerCommandSource>>> modifierViews;
+    modifierViews.reserve(modifiers.size());
+    for (const auto& mod : modifiers) {
+        modifierViews.push_back(mod);
+    }
+
     for (size_t i = 0; i < modifiers.size(); ++i) {
         auto& modNode = modifiers[i];
         auto runLink = std::make_shared<ExecuteRunNode>(static_cast<i32>(i));
@@ -670,7 +698,9 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         if (modName != "if" && modName != "unless") {
             modNode->addChild(runLink);
         }
-        attachRunToLeaves(modNode, runLink);
+        // 传入 modifierViews：参数末端除 run 外还要能直接接下一个修改器
+        // （`positioned 0 0 0 if block ... run ...`），此时视图已含 as/at/positioned/.../if/unless。
+        attachRunToLeaves(modNode, runLink, &modifierViews);
     }
 
     // run 节点在 parse 时才读取这两张表，注册结束后统一回填（表里存的是 shared_ptr，生命周期随命令树）。
