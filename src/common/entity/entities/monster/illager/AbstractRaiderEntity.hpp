@@ -154,6 +154,29 @@ public:
     }
 
     /**
+     * @brief 是否在袭击中（vanilla `Raider.hasRaid()`）。
+     *
+     * 原版除自身所属袭击外，还会查脚下位置有没有袭击（`ServerLevel.getRaidAt`）；
+     * 这一路查询需要世界侧支持，目前只覆盖「自身已加入某场袭击」。
+     * TODO(raider-has-raid): 补上「位置上的袭击」这一路，见 EntityPredicate 的同名 TODO。
+     */
+    [[nodiscard]] bool hasRaid() const
+    {
+        return m_raid != nullptr;
+    }
+
+    /**
+     * @brief 是否袭击队长（vanilla `Raider.isCaptain()`）。
+     *
+     * 原版要求两个条件同时成立：头戴不祥旗帜、且带巡逻队长标记。袭击波次里被指派
+     * 为队长的那一只（`Raid.spawnGroup`）同样会被打上巡逻队长标记并戴旗。
+     */
+    [[nodiscard]] bool isCaptain() const
+    {
+        return wearsOminousBanner() && isLeader();
+    }
+
+    /**
      * @brief 加入指定袭击。
      *
      * @param raid 目标袭击。

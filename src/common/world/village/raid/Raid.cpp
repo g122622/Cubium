@@ -184,6 +184,9 @@ void Raid::spawnRaiders(IWorld& world)
     waveData.waveNumber = m_wave;
     waveData.totalToSpawn = totalRaiders;
 
+    // 每波只有第一只够格的袭击者当队长（vanilla Raid.spawnGroup 的 flag 变量）。
+    bool leaderAssigned = false;
+
     for (i32 i = 0; i < totalRaiders; ++i) {
         const RaiderType type = _selectRaiderType(m_wave, i, totalRaiders);
         const f32 offsetX = (rng.nextFloat() - 0.5f) * 10.0f;
@@ -193,6 +196,18 @@ void Raid::spawnRaiders(IWorld& world)
 
         const EntityInstanceId raider = _spawnRaider(world, type, pos);
         if (raider != 0) {
+            // 对齐 vanilla Raid.spawnGroup：袭击波次的队长同样是「带巡逻队长标记 + 戴不祥旗帜」，
+            // 只有这两项同时成立，`Raider.isCaptain()`（战利品表与进度谓词用）才为真。
+            // TODO(raid-leader-bonus): 原版此时还会 setLeader(wave, raider) 记录队长供旗帜
+            //   争夺逻辑使用；Cubium 的袭掠者尚未实现拾取旗帜的 AI。
+            if (!leaderAssigned) {
+                if (auto* const leader = dynamic_cast<AbstractRaiderEntity*>(world.getEntity(raider));
+                    leader != nullptr && leader->canBeLeader()) {
+                    leader->setLeader(true);
+                    leader->equipOminousBanner();
+                    leaderAssigned = true;
+                }
+            }
             addRaider(raider);
             waveData.raiders.push_back(raider);
             ++waveData.spawnCount;

@@ -43,6 +43,7 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
@@ -127,12 +128,12 @@ std::string runLine(std::string_view inputLine)
         loot::equipLooting(*attacker, looting);
     }
 
-    // 队长判定在原版里是「头戴不祥旗帜」（`Raider.isCaptain`），不是独立标志位。
-    // TODO(ominous-banner): 不祥旗帜的物品/图案组件尚未实现，这里只能写队长标记；
-    //   旗帜落地后改为写入真正的不祥旗帜，使队长判定走与 oracle 相同的物品路径。
+    // 队长判定在原版里是两个条件同时成立：巡逻队长标记 + 头戴不祥旗帜
+    // （`Raider.isCaptain()`）。两侧都按这个口径构造，判定才走同一条路径。
     if (attackerCaptain) {
         if (auto* raider = dynamic_cast<AbstractRaiderEntity*>(attacker.get()); raider != nullptr) {
             raider->setLeader(true);
+            raider->equipOminousBanner();
         }
     }
 
@@ -155,7 +156,7 @@ std::string runLine(std::string_view inputLine)
     };
     if (attacker != nullptr) {
         providedParams.push_back(loot::LootParams::KILLER_ENTITY.getId());
-        if (attacker->entityType() != nullptr && attacker->entityType()->name() == "minecraft:player") {
+        if (dynamic_cast<const Player*>(attacker.get()) != nullptr) {
             providedParams.push_back(loot::LootParams::KILLER_PLAYER.getId());
         }
     }
@@ -175,9 +176,8 @@ std::string runLine(std::string_view inputLine)
         if (attacker != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_ENTITY, attacker.get());
         }
-        if (attacker != nullptr && attacker->entityType() != nullptr &&
-            attacker->entityType()->name() == "minecraft:player") {
-            builder.withParameter(loot::LootParams::KILLER_PLAYER, static_cast<Player*>(attacker.get()));
+        if (auto* attackerPlayer = dynamic_cast<Player*>(attacker.get()); attackerPlayer != nullptr) {
+            builder.withParameter(loot::LootParams::KILLER_PLAYER, attackerPlayer);
         }
     });
     return json{{"table", id}, {"samples", std::move(samples)}}.dump();

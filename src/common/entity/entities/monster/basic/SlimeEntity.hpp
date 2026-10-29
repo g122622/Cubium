@@ -306,6 +306,18 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 生成初始化（对齐 vanilla Slime.finalizeSpawn）
+     *
+     * 按 1 << i 选尺寸（i 在 0..2，区域难度的特殊倍率有一半机会再加一档），因此史莱姆与
+     * 岩浆怪在自然生成、刷怪笼、区块生成等入口都会得到一个 1/2/4 的随机尺寸。
+     * 不覆写的话它们永远停在默认尺寸 1，依赖尺寸的战利品条件（如岩浆怪的
+     * `type_specific.slime.size >= 2`）就永远不成立。
+     */
+    void finalizeSpawn(IWorld& world,
+        const entity::combat::DifficultyInstance& difficulty,
+        world::spawn::SpawnReason spawnReason) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;

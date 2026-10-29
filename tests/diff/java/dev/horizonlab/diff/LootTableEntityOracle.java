@@ -72,12 +72,8 @@ public final class LootTableEntityOracle {
         System.exit(2);
     }
 
-    /**
-     * 原版建不出实例的被击杀实体：玩家没有可供 {@code EntityType#create} 使用的工厂
-     * （服务端由登录流程构造 ServerPlayer，必须挂在真实服务端上），因此以玩家为
-     * this_entity 的表两侧都无从比较，直接跳过而不是伪造一个半初始化的玩家。
-     */
-    private static final java.util.Set<String> UNSPAWNABLE_VICTIMS = java.util.Set.of("minecraft:player");
+    /** 玩家没有 {@code EntityType#create} 工厂（{@code Player} 是抽象类），单独构造。 */
+    private static final String PLAYER_ID = "minecraft:player";
 
     private static void run(Path input, Path output) throws IOException {
         ServerLevel level = LootLevel.get().level;
@@ -86,10 +82,6 @@ public final class LootTableEntityOracle {
         // 所以由 harness 侧用参考表剔除（见 loot_context.ts 的 ENTITY_ORACLE_MISSING）。
         LootRoll.run(input, output, "table", (table, request, result) -> {
             String victimId = request.has("entity") ? request.get("entity").getAsString() : "minecraft:pig";
-            if (UNSPAWNABLE_VICTIMS.contains(victimId)) {
-                result.addProperty("missing", true);
-                return;
-            }
             Entity victim = spawn(victimId, level);
             if (victim == null) {
                 result.addProperty("missing", true);
@@ -114,12 +106,17 @@ public final class LootTableEntityOracle {
     }
 
     /**
-     * 让袭击者成为队长：原版 {@code Raider.isCaptain()} 的唯一判据就是「头戴不祥旗帜」，
-     * 这里写入的正是 {@code Raid.getOminousBannerInstance} 生成的那一份。
+     * 让袭击者成为队长：原版 {@code Raider.isCaptain()} 要求「巡逻队长标记 + 头戴不祥旗帜」
+     * 同时成立（见 Raider.java:149-155），两者缺一都不是队长。这里照原版
+     * {@code PatrollingMonster.finalizeSpawn} 的做法补齐这两项，旗帜取
+     * {@code Raid.getOminousBannerInstance} 生成的那一份。
      */
     private static void wearOminousBanner(Entity attacker) {
         if (!(attacker instanceof net.minecraft.world.entity.raid.Raider raider)) {
             return;
+        }
+        if (attacker instanceof net.minecraft.world.entity.monster.PatrollingMonster patroller) {
+            patroller.setPatrolLeader(true);
         }
         var banner = net.minecraft.world.entity.raid.Raid.getOminousBannerInstance(
                 LootServerData.get().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BANNER_PATTERN));
@@ -128,11 +125,32 @@ public final class LootTableEntityOracle {
 
     /** 按名字生成实体；位置固定在 (0.5, 64, 0.5)，与 C++ 探针一致。 */
     private static Entity spawn(String id, ServerLevel level) {
+        if (PLAYER_ID.equals(id)) {
+            return createPlayer(level);
+        }
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(id)).orElse(null);
         if (type == null) {
             return null;
         }
         return type.create(level, EntitySpawnReason.EVENT);
+    }
+
+    /**
+     * 造一个未登录的服务端玩家：与 C++ 探针侧 {@code new Player(...)} 同性质（都是「挂在世界
+     * 上、没连过网络」的玩家实体）。
+     *
+     * <p>原版 {@code Player} 是抽象类，服务端实现是 {@code ServerPlayer}；它的构造函数只要求
+     * 一个 {@code MinecraftServer}、一个 {@code ServerLevel}、一份档案与客户端信息，不需要登录。
+     * 早期版本以为必须走登录流程而豁免了玩家表，那是误判——玩家为 this_entity 的表（被玩家
+     * 击杀、被玩家吸引的怪物等）因此一直没有被比对过。
+     */
+    private static Entity createPlayer(ServerLevel level) {
+        var profile = new com.mojang.authlib.GameProfile(
+            java.util.UUID.nameUUIDFromBytes("diff-probe".getBytes(StandardCharsets.UTF_8)), "diff_probe");
+        var player = new net.minecraft.server.level.ServerPlayer(
+            level.getServer(), level, profile, net.minecraft.server.level.ClientInformation.createDefault());
+        player.setPos(0.5, 64.0, 0.5);
+        return player;
     }
 
     /** 把掠夺附魔写到击杀者主手上（原版 `enchanted_count_increase` 就是这么读的）。 */

@@ -61,13 +61,13 @@ i32 EnchantmentHelper::getEnchantmentLevel(const LivingEntity& entity, const std
     // TODO(enchantment-slots): 原版按附魔自身的 `definition.slots()` 过滤槽位；附魔定义
     // 目前不携带槽位表，这里退化为「遍历全部槽位取最大值」——主手上的附魔结果相同，
     // 只在副手/护甲上另有一把同名附魔时才会高估。
-    const auto* component = entity.tryGetComponent<ecs::EquipmentComponent>();
-    if (component == nullptr) {
-        return 0;
-    }
+    // 必须经虚函数 `getEquipment` 取槽位：玩家的装备存在 PlayerInventory 里（Player 重写了
+    // getEquipment/setEquipment），直接读 EquipmentComponent 对玩家恒为空槽，导致「玩家手持
+    // 掠夺附魔武器击杀」的掠夺加成全部落空。
     i32 best = 0;
-    for (const auto& stack : component->m_equipment) {
-        best = std::max(best, getEnchantmentLevel(stack, enchantmentId));
+    for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
+        best = std::max(
+            best, getEnchantmentLevel(entity.getEquipment(static_cast<EquipmentSlot>(slotIndex)), enchantmentId));
     }
     return best;
 }

@@ -325,6 +325,10 @@ MagmaCubeEntity::MagmaCubeEntity(EntityInstanceId id, ecs::EntityRegistry& regis
     // 补调 registerAttributes：派生 override 永不执行（vtable 在基类构造期间指向基类），
     // 须在派生类构造显式调用。MagmaCube 无 registerGoals override（继承 Slime）。
     registerAttributes();
+    // registerAttributes 把尺寸重置成 1，但护甲不归它管：对外的尺寸语义必须与「尺寸 1」一致
+    // （对齐原版 MagmaCube.createAttributes 的 armor=3），否则刚创建、尚未 finalizeSpawn 的
+    // 岩浆怪会带着尺寸 1 的生命值却挂着默认尺寸 4 的护甲。
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(getSlimeSize() * 3));
 }
 
 void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)

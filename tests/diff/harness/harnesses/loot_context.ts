@@ -52,9 +52,6 @@ export const BLOCK_CONTEXT = {
 export const ENTITY_ORACLE_MISSING: readonly string[] = [
     "minecraft:entities/creaking",
     "minecraft:entities/mannequin",
-    // 玩家没有可供原版 `EntityType#create` 使用的工厂（服务端由登录流程构造并挂在真实
-    // 服务端上），oracle 侧建不出 this_entity，两侧都无从比较。
-    "minecraft:entities/player",
 ];
 
 /**

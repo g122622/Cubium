@@ -1466,6 +1466,14 @@ public:
     [[nodiscard]] const nlohmann::json* rawComponent(item::component::DataComponentType type) const;
 
     /**
+     * @brief 本物品堆是否显式带有某个组件（覆盖或物品基础默认值）
+     *
+     * 按组件归口判断，不暴露存储形态：旗子上的 `banner_patterns` 既可能落在既有字段里，
+     * 也可能落在原始组件表里，调用方只关心「有没有」。
+     */
+    [[nodiscard]] bool hasComponent(item::component::DataComponentType type) const;
+
+    /**
      * @brief 读取 chicken/variant 组件（EitherHolder<ChickenVariant>）解析出的变种 id
      *
      * 返回 ChickenEntity.hpp 中 ChickenVariant 枚举值（Temperate=0/Warm=1/Cold=2）；

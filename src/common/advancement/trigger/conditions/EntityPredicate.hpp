@@ -69,8 +69,12 @@ struct EntityTypeSpecificPredicate {
     /// 史莱姆/岩浆怪尺寸（slime，按 min/max 区间）
     std::optional<i32> sizeMin;
     std::optional<i32> sizeMax;
-    /// 是否为袭击队长（raider）
+    /// 是否为袭击队长（raider）：头戴不祥旗帜且是巡逻队长（vanilla `Raider.isCaptain()`）
     std::optional<bool> isCaptain;
+    /// 是否处于袭击中（raider，vanilla `Raider.hasRaid()`）
+    // TODO(raider-has-raid): 目前只比对实体自身的袭击归属；原版还会在自身没有袭击时
+    //   查询「脚下位置是否有袭击」（`ServerLevel.getRaidAt`），该查询尚未接到谓词层。
+    std::optional<bool> hasRaid;
     /// 是否在开放水域（fishing_hook）
     std::optional<bool> inOpenWater;
 };
@@ -270,6 +274,9 @@ private:
 
     /// 检查类型专属谓词（对齐 vanilla EntityPredicate.type_specific）
     [[nodiscard]] bool _testTypeSpecific(const Entity& entity, const EntityTypeSpecificPredicate& specific) const;
+
+    /// 类型专属谓词 → JSON（与 fromJson 的解析互为逆运算）
+    [[nodiscard]] static nlohmann::json _typeSpecificToJson(const EntityTypeSpecificPredicate& specific);
 
     /// 检查单个数据组件过滤项（对齐 vanilla EntityPredicate.components）
     [[nodiscard]] bool _testComponent(const Entity& entity, const EntityComponentFilter& component) const;
