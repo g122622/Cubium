@@ -145,9 +145,16 @@ function beeDiesAfterSting(test: Test): void {
 
 // 在近战距离验证受击、反击和真实中毒，限制击退后的位移避免夹具变成寻路测试。
 function beeStingAppliesPoison(test: Test): void {
+  // 全封闭玻璃盒：四面墙 + 底板 + 顶盖。
+  //
+  // 原先只砌到 y=4 且没有顶盖，蜜蜂受击后由 BeeWanderGoal 接管，飞行寻路可以径直向上
+  // 越顶逃出（实测逃到 x=171 开外，早已出了 grass_pen 与查询区），此后 BeeStingGoal 的
+  // 寻路永远失败，poison 自然等不到——表现为约 1/3 概率的 bee_sting_applies_poison 超时。
+  // 顶盖把活动空间彻底锁死在盒内，攻击距离不受影响。
   for (let x = 2; x <= 5; x++) {
     for (let z = 2; z <= 4; z++) {
       test.setBlockType("minecraft:glass", { x, y: 1, z });
+      test.setBlockType("minecraft:glass", { x, y: 5, z });
       for (let y = 2; y <= 4; y++) {
         test.setBlockType(x === 2 || x === 5 || z === 2 || z === 4 ? "minecraft:glass" : "minecraft:air", { x, y, z });
       }
