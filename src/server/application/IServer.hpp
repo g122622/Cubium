@@ -50,6 +50,9 @@ class DataPackRepository;
 }
 
 namespace server {
+namespace console {
+class ServerConsole;
+} // namespace console
 class ServerPlayerEntityManager;
 class ServerWorld;
 } // namespace server
@@ -110,6 +113,21 @@ class InventoryManager;
 class IServer {
 public:
     virtual ~IServer() = default;
+
+    /**
+     * @brief 取交互式控制台（`--interactive` 启用时为非空，否则为 nullptr）
+     *
+     * 上提到接口是为了让只关心「有没有控制台面板」的调用方（/panel 命令）不必
+     * dynamic_cast 到 MinecraftServer。dynamic_cast 需要目标的 typeinfo，而 mc_benchmark
+     * 只为基准测试登记最小符号闭包、没有编入 MinecraftServer.cpp，Release 链接期会报
+     * 「undefined symbol: typeinfo for mc::server::MinecraftServer」。
+     *
+     * 默认返回 nullptr：非交互式服务端没有控制台，调用方按「无面板」处理即可。
+     */
+    [[nodiscard]] virtual console::ServerConsole* serverConsole() noexcept
+    {
+        return nullptr;
+    }
 
     // ========== 生命周期 ==========
 

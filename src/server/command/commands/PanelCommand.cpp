@@ -88,7 +88,9 @@ constexpr const char* NO_PANEL_HINT = "No interactive console is attached; start
  */
 PanelDetailStore* _panelStore(ServerCommandSource& source)
 {
-    auto* server = dynamic_cast<server::MinecraftServer*>(source.server());
+    // 走 IServer::serverConsole() 而不是 dynamic_cast 到 MinecraftServer：后者需要目标
+    // 的 typeinfo，而 mc_benchmark 没有编入 MinecraftServer.cpp，Release 链接期会失败。
+    server::IServer* server = source.server();
     if (server == nullptr) {
         return nullptr;
     }

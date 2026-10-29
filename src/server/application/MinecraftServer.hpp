@@ -84,6 +84,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+#include "server/application/console/ServerConsole.hpp"
 
 namespace mc::network::pipeline {
 class OutboundPacket;
@@ -230,7 +231,7 @@ public:
      *
      * @return 交互式终端；未启用 `--interactive`（含集成服、无头模式）时返回 nullptr
      */
-    [[nodiscard]] console::ServerConsole* serverConsole() noexcept
+    [[nodiscard]] console::ServerConsole* serverConsole() noexcept override
     {
         return m_serverConsole;
     }
