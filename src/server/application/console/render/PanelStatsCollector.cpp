@@ -28,7 +28,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
-#include "server/application/MinecraftServer.hpp"
+#include "server/application/IServer.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -69,7 +69,7 @@ constexpr i32 VERTICAL_SAMPLE_STEP = 4;
 
 } // namespace
 
-PanelStatsCollector::PanelStatsCollector(MinecraftServer& server, PanelStatsOptions options)
+PanelStatsCollector::PanelStatsCollector(IServer& server, PanelStatsOptions options)
     : m_server(server)
     , m_options(options)
 {}

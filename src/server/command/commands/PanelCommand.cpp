@@ -204,7 +204,10 @@ void PanelCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 i32 PanelCommand::_refresh(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = dynamic_cast<server::MinecraftServer*>(source.server());
+    // 直接用 IServer：PanelStatsCollector 只依赖 IServer::dimensionManager()，改成具体类型
+    // 会让 dynamic_cast 要求 MinecraftServer 的 typeinfo，而 mc_benchmark 并未编入
+    // MinecraftServer.cpp（它只为基准测试登记最小符号闭包），Release 链接期必然失败。
+    server::IServer* server = source.server();
     if (server == nullptr) {
         source.sendError("Server not available");
         return 0;
@@ -264,7 +267,10 @@ i32 PanelCommand::_describeBlock(CommandContext<ServerCommandSource>& context)
 i32 PanelCommand::_describePlaces(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = dynamic_cast<server::MinecraftServer*>(source.server());
+    // 直接用 IServer：PanelStatsCollector 只依赖 IServer::dimensionManager()，改成具体类型
+    // 会让 dynamic_cast 要求 MinecraftServer 的 typeinfo，而 mc_benchmark 并未编入
+    // MinecraftServer.cpp（它只为基准测试登记最小符号闭包），Release 链接期必然失败。
+    server::IServer* server = source.server();
     if (server == nullptr) {
         source.sendError("Server not available");
         return 0;

@@ -30,7 +30,7 @@
 #include <vector>
 
 namespace mc::server {
-class MinecraftServer;
+class IServer;
 class ServerWorld;
 } // namespace mc::server
 
@@ -60,7 +60,7 @@ public:
      * @param server 服务器实例（不得为空，且须在本次调用期间保持存活）
      * @param options 统计参数
      */
-    PanelStatsCollector(MinecraftServer& server, PanelStatsOptions options);
+    PanelStatsCollector(IServer& server, PanelStatsOptions options);
 
     /**
      * @brief 采集全部维度并生成面板行
@@ -87,7 +87,7 @@ private:
      */
     [[nodiscard]] ScanResult _scanWorld(ServerWorld& world);
 
-    MinecraftServer& m_server;
+    IServer& m_server;
     PanelStatsOptions m_options;
 };
 
