@@ -30,6 +30,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/AirBlock.hpp"
+#include "world/block/blocks/DropExperienceBlock.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
@@ -353,34 +354,48 @@ void registerBaseBlocks()
             BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
     // ========== 矿石方块 ==========
-    BaseBlocks::GOLD_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::IRON_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:iron_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::COAL_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:coal_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::DIAMOND_ORE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:diamond_ore"),
-        BlockProperties(Material::ROCK)
-            .hardness(3.0f)
-            .resistance(3.0f)
-            .harvestTool(HarvestTool::Pickaxe)
-            .harvestLevel(2)
-            .requiresTool());
+    BaseBlocks::GOLD_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
+        ResourceLocation("minecraft:gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 0, 0);
+    BaseBlocks::IRON_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
+        ResourceLocation("minecraft:iron_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 0, 0);
+    BaseBlocks::COAL_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
+        ResourceLocation("minecraft:coal_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 0, 2);
+    BaseBlocks::DIAMOND_ORE =
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:diamond_ore"),
+            BlockProperties(Material::ROCK)
+                .hardness(3.0f)
+                .resistance(3.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .harvestLevel(2)
+                .requiresTool(),
+            3,
+            7);
     BaseBlocks::DIAMOND_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:diamond_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
-    BaseBlocks::EMERALD_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:emerald_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::LAPIS_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:lapis_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    BaseBlocks::EMERALD_ORE =
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:emerald_ore"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f),
+            3,
+            7);
+    BaseBlocks::LAPIS_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
+        ResourceLocation("minecraft:lapis_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 2, 5);
     BaseBlocks::REDSTONE_ORE = &registry.registerBlock<blocks::RedstoneOreBlock>(
         ResourceLocation("minecraft:redstone_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::COPPER_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:copper_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    BaseBlocks::COPPER_ORE =
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:copper_ore"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f),
+            0,
+            0);
     BaseBlocks::NETHER_QUARTZ_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).noOcclusion());
-    BaseBlocks::NETHER_GOLD_ORE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:nether_gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).noOcclusion(),
+            2,
+            5);
+    BaseBlocks::NETHER_GOLD_ORE =
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:nether_gold_ore"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f),
+            0,
+            1);
     // 远古残骸：30 / 1200（原版；不是 50，也不是方解石那样的 0.75）。
     BaseBlocks::ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
         BlockProperties(Material::ROCK).hardness(30.0f).resistance(1200.0f));

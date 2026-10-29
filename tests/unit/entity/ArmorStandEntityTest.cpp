@@ -162,6 +162,8 @@ TEST_F(ArmorStandEntityTest, InteractAt_WithChestplate_CountGreaterThanOne_Moves
     ASSERT_EQ(ItemStack(*Items::IRON_CHESTPLATE, 3).getCount(), 3);
 
     ArmorStandTestWorld world;
+    // TODO(known-failure): 铁胸甲 maxStackSize 为 1，构造出的 ItemStack 数量已被裁剪成 1，
+    //   下面「手上剩 2 件」的断言恒失败。需要一个真正可堆叠的物品来重建该场景。
     auto stand = _makeArmorStand(world);
     auto player = _makePlayer(ItemStack(*Items::IRON_CHESTPLATE, 3));
 
