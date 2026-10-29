@@ -114,6 +114,40 @@ function canonicalSpawnCategories(value: unknown): unknown {
     return { ...record, categories: sortedCategories, creature_spawn_probability: probability };
 }
 
+/**
+ * 把对象里的浮点数按固定有效位舍入，供「浮点公式」类 harness 比对。
+ *
+ * 这类 harness 两侧算的是同一条公式，但 JVM 与 clang 对 f32 中间结果的求值方式不同
+ * （x87 式多余精度、先除后乘的舍入顺序），末位会差 1 ulp。那不是算法差异，而是两次
+ * 编译各自舍入；按绝对精度舍入后再比，才能让报告只剩真正的公式偏差。
+ */
+/**
+ * 按固定小数位舍入（不是有效位）：有效位舍入会让「……5」这类恰好落在进位边界上的值
+ * 因末位差 1 而翻到相邻的有效位，固定小数位则只会在真正的公式偏差上分开。
+ */
+function roundToDecimals(value: number, decimals = 4): number {
+    if (!Number.isFinite(value)) {
+        return value;
+    }
+    const scale = Math.pow(10, decimals);
+    return Math.round(value * scale) / scale;
+}
+
+function roundFloats(value: unknown): unknown {
+    if (typeof value === "number") {
+        return roundToDecimals(value);
+    }
+    if (value === null || typeof value !== "object") {
+        return value;
+    }
+    const record = value as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
+    for (const [key, field] of Object.entries(record)) {
+        result[key] = roundFloats(field);
+    }
+    return result;
+}
+
 const DATA_SPECS: ReadonlyArray<() => HarnessSpec> = [];
 
 /** 已登记、使用原版 Java oracle 的能力：oracle 类名 + 单元来源。 */
@@ -195,6 +229,18 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         input: (unit: string) => ({ item: unit }),
         key: "item",
         oracleMissing: itemsKnownMissing,
+    }),
+    () => ({
+        // 护甲减伤：单元是「伤害 × 护甲 × 韧性」的组合，由 oracle 枚举（它负责挑样本），
+        // 两侧对每个组合算最终伤害（含破甲 1..4 级）。比对键是两侧各自写出的
+        // "damage/armor/toughness" 组合串：单看伤害值会让不同护甲的组合撞键。
+        name: "damage_reduction",
+        oracle: "DamageReductionOracle",
+        input: (unit: string) => JSON.parse(unit) as Record<string, unknown>,
+        key: "unit",
+        // 两侧末位相差 1 ulp（JVM 与 clang 的 f32 舍入顺序不同），按 6 位有效数字比对；
+        // 真正的公式偏差远大于这个量级，不会被掩掉。
+        normalise: (value: unknown) => roundFloats(value),
     }),
     () => ({
         name: "enchantment_table",
