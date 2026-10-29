@@ -173,7 +173,11 @@ void TerminalUi::run(const std::shared_ptr<ftxui::ComponentBase>& component)
     constexpr auto ANIMATION_INTERVAL = std::chrono::milliseconds(100);
     auto lastAnimated = std::chrono::steady_clock::now();
 
-    u64 frames = 0;
+    // 帧计数只服务于末尾的 MC_TRACE_COUNTER。未启用追踪器时该宏展开为 ((void)0)，
+    // frames 就成了「只写不读」的变量，Release 预设的 -Wunused-but-set-variable 会把
+    // 它判成错误（-Werror）——CI 的 Release Build 正是因此编译失败。标 [[maybe_unused]]
+    // 保留计数器语义（追踪开启时照常上报），又不依赖构建配置。
+    [[maybe_unused]] u64 frames = 0;
     while (!loop.HasQuitted()) {
         {
             // RunOnceBlocking 处理已到达的全部任务与事件（含跨线程 Post 的重绘请求），

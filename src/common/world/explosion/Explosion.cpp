@@ -358,7 +358,10 @@ void Explosion::explode()
     }
 
     // 记录本次爆炸总耗时（微秒），便于在 Perfetto/Tracy UI 观察规模与耗时分布
-    const i64 totalUs = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t0).count();
+    // [[maybe_unused]]：totalUs 只服务于下面的 MC_TRACE_COUNTER，未启用追踪器时宏展开为
+    // ((void)0)，变量便只写不读，Release 预设的 -Wunused-but-set-variable 会判错（-Werror）。
+    [[maybe_unused]] const i64 totalUs =
+        std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t0).count();
     MC_TRACE_COUNTER(TraceEvents.Server.World, "Explosion.explode.totalUs", totalUs);
 }
 

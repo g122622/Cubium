@@ -559,9 +559,12 @@ void StandaloneServer::_mainLoop()
             const f64 tps = 1.0 / (std::chrono::duration<f64>(deltaTime).count());
             MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TPS", static_cast<i64>(tps));
             MC_TRACE_COUNTER(TraceEvents.Server.Tick, "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
-            i64 totalChunkCount = 0;
-            i64 totalLoadedChunkCount = 0;
-            i64 totalEntityCount = 0;
+            // 这三个计数只服务于下面的 MC_TRACE_COUNTER。未启用追踪器时该宏展开为
+            // ((void)0)，变量就只写不读，Release 预设的 -Wunused-but-set-variable 会把
+            // 它们判成错误（-Werror）。标 [[maybe_unused]] 保留原有语义。
+            [[maybe_unused]] i64 totalChunkCount = 0;
+            [[maybe_unused]] i64 totalLoadedChunkCount = 0;
+            [[maybe_unused]] i64 totalEntityCount = 0;
             m_dimensionManager->forEachDimension([&](Dimension& dim) {
                 auto* serverDim = static_cast<ServerDimension*>(&dim);
                 auto* world = serverDim->world();
