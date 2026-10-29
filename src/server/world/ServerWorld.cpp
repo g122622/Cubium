@@ -2141,6 +2141,19 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
         });
 }
 
+bool ServerWorld::hasNoCollisions(const AxisAlignedBB& box) const
+{
+    // 对齐 vanilla Level.hasNoCollisions(Entity, AABB)：该区域是否与任何方块碰撞箱相交。
+    //
+    // 基类 IWorld 的默认实现无条件返回 true（视为「无处不可通过」），只适用于不持有
+    // 方块存储的桩世界。ServerWorld 此前一直沿用该默认值，导致所有依赖它的 AI 判断
+    // 全部失效——最典型的是 GhastMovementController::_isPathSafe：它的每一步都问
+    // hasNoCollisions，永远得到 true，于是「路径安全检查」形同虚设，恶魂会穿过玻璃墙
+    // 与 y=0 的圆石地板一路掉到 y<0（实测掉到 y=-3.44 / y=-14.8），此后看不见玩家、
+    // 永不发射火球。TameableGoals、HuskEntity、AbstractArrowEntity 的同类判断也受影响。
+    return !hasBlockCollision(box);
+}
+
 std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& box) const
 {
     std::vector<AxisAlignedBB> collisions;

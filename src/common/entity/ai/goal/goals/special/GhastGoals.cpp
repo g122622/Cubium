@@ -32,11 +32,15 @@
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/entities/passive/happyghast/HappyGhastEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/core/CoordConverter.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/IChunkManager.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include <cmath>
 #include <optional>
 
@@ -118,6 +122,39 @@ void GhastRandomFlyGoal::startExecuting()
     f64 targetX = host->x() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
     f64 targetY = host->y() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
     f64 targetZ = host->z() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;
+
+    // 目标点落在地表以下时把高度折回当前位置附近——对齐 vanilla Ghast.RandomFloatAroundGoal
+    // 的 getSuitableFlyToPosition 末尾那段修正：
+    //
+    //   int j = level.getHeight(Heightmap.Types.MOTION_BLOCKING, blockpos.getX(), blockpos.getZ());
+    //   if (j < blockpos.getY() && j > level.getMinY()) {
+    //       vec31 = new Vec3(vec31.x(), p.getY() - Math.abs(p.getY() - vec31.y()), vec31.z());
+    //   }
+    //
+    // 缺这段修正时目标 Y 完全自由（y±16）：y=2 处的恶魂会抽到地板下方的点，飞行控制器
+    // 直接朝地下加速，穿过 y=0 的圆石地板一路掉到 y<0（实测掉到 y=-3.44），此后看不见
+    // 玩家、永不发射火球。原版靠这段修正把这类目标点折回当前位置附近，绕开地下。
+    //
+    // 高度取自 MOTION_BLOCKING 高度图（与 vanilla 同类型）：IWorld::getHeight 用的是
+    // WorldSurfaceWG，语义不同，不能替代。区块未加载时跳过修正，交给飞行控制器自行约束。
+    if (IWorld* world = host->world(); world != nullptr) {
+        const BlockPos targetPos(static_cast<i32>(std::floor(targetX)),
+            static_cast<i32>(std::floor(targetY)),
+            static_cast<i32>(std::floor(targetZ)));
+        auto* chunkManager = world->chunkManager();
+        ChunkData* chunk = chunkManager != nullptr
+            ? chunkManager->tryToGetChunkInMem(util::core::CoordConverter::blockToChunk(targetPos.x),
+                  util::core::CoordConverter::blockToChunk(targetPos.z))
+            : nullptr;
+        if (chunk != nullptr) {
+            const i32 localX = targetPos.x - util::core::CoordConverter::blockToChunk(targetPos.x) * 16;
+            const i32 localZ = targetPos.z - util::core::CoordConverter::blockToChunk(targetPos.z) * 16;
+            const i32 groundY = chunk->getTopBlockY(HeightmapType::MotionBlocking, localX, localZ);
+            if (groundY < targetPos.y && groundY > world->getMinBuildHeight()) {
+                targetY = host->y() - std::abs(host->y() - targetY);
+            }
+        }
+    }
 
     host->moveController()->setMoveTo(targetX, targetY, targetZ, 1.0);
 }
