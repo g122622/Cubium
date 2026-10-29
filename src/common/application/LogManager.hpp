@@ -26,9 +26,32 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <string_view>
 #include <thread>
+#include <spdlog/common.h>
+#include <spdlog/sinks/sink.h>
 
 namespace mc::application {
+
+/**
+ * @brief 可选的日志行消费者
+ *
+ * 供"把日志同时送往终端 UI"等场景使用：安装后，每条已格式化日志会额外回调一次
+ * OnLogLine，回调运行在 spdlog 的异步消费线程上，实现方**不得在此阻塞**（只做入队）。
+ *
+ * 未安装消费者时（客户端、单元测试、默认的独立服务端），日志链路与历史行为完全一致。
+ */
+class ILogLineConsumer {
+public:
+    virtual ~ILogLineConsumer() = default;
+
+    /**
+     * @brief 接收一行已格式化日志
+     * @param level 日志级别
+     * @param line 已格式化文本（与终端 sink 输出同格式，不含换行）
+     */
+    virtual void OnLogLine(spdlog::level::level_enum level, std::string_view line) = 0;
+};
 
 /**
  * @brief 异步日志管理器（spdlog 异步 logger + 溢出监控）
@@ -74,8 +97,28 @@ public:
      * @brief 关闭异步日志：停溢出监控线程 + spdlog::shutdown()（刷盘剩余日志）。
      *
      * 须在 ProfilerManager::shutdown() 之前调用。重复调用安全。
+     * 会先卸载已安装的日志行消费者（见 installLineConsumer）。
      */
     void shutdown();
+
+    /**
+     * @brief 安装可选的日志行消费者
+     *
+     * 向默认 logger 追加一个仅转发给消费者的 sink；现有的 stdout sink 保持不变，
+     * 因此终端输出不重复、不改变。消费者必须存活到 uninstallLineConsumer() /
+     * shutdown() 被调用为止。
+     *
+     * 须在 initialize() 之后调用，且只能安装一次（重复安装触发断言；先
+     * uninstallLineConsumer() 再安装）。
+     *
+     * @param consumer 消费者；传 nullptr 为空操作
+     */
+    static void installLineConsumer(std::shared_ptr<ILogLineConsumer> consumer);
+
+    /**
+     * @brief 卸载日志行消费者（移除转发 sink）。未安装时为空操作。
+     */
+    static void uninstallLineConsumer();
 
     static LogManager& instance();
 
@@ -99,6 +142,11 @@ private:
 
     /// 上次采样到的 overrun_counter 基线，用于算增量。
     size_t m_lastOverrun{0};
+
+    /// 已安装的日志行消费者（空 = 未安装）。
+    std::shared_ptr<ILogLineConsumer> m_lineConsumer;
+    /// 转发 consumer 的 sink；安装时追加到默认 logger，卸载时移除。
+    std::shared_ptr<spdlog::sinks::sink> m_lineSink;
 };
 
 } // namespace mc::application

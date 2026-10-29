@@ -91,6 +91,10 @@ private:
     /// --gametest：走 GameTestServer 无头批量自动跑门面。
     bool m_gametestMode{false};
 
+    /// --interactive：启动交互式终端（日志区 + 状态面板 + 命令输入框）。
+    /// 无头模式（--gametest / benchmark）下强制关闭；显式开启但非 TTY 时报错退出。
+    bool m_interactiveMode{false};
+
     /// --gametest-report：JUnit XML 输出路径（空=不写文件，仅 stdout 日志）。
     std::string m_gametestReportPath;
 

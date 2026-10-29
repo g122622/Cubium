@@ -34,6 +34,8 @@
 
 // GameTest 集成测试框架——仅 minecraft-server exe 编译（client exe 不链接 mc_test）。
 // 经此接入生产服务器的 /gametest 命令 + GameTestTicker 驱动 + @minecraft/server-gametest JS 模块。
+#include "server/application/console/ServerConsole.hpp"     // --interactive 终端门面
+#include "server/application/console/ui/TerminalUi.hpp"     // TTY 可用性检查
 #include "server/command/CommandRegistry.hpp"               // commandRegistry().dispatcher() 需完整类型
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->scriptManager().engine().addModuleFactory
 #include "server/test/facade/GameTestCommand.hpp"
@@ -52,6 +54,7 @@
 #include "server/world/ServerChunkManager.hpp"                // requestFullChunkSync/tick
 #include "server/world/ServerWorld.hpp"                       // spawnPosition()/chunkManager()
 #include "server/world/gen/feature/template/TemplateManager.hpp"
+#include "minecraft-reborn/version.h" // 终端标题/服务器信息展示的版本号
 
 namespace mc::server {
 
@@ -86,6 +89,11 @@ DEFINE_string(gametest_world,
     "parallel shard/rerun process an isolated world directory (saves/<name>), avoiding "
     "concurrent world write conflicts across processes.");
 DEFINE_string(gametest_shard, "", "Optional zero-based GameTest partition index/count (e.g. 0/24).");
+DEFINE_bool(interactive,
+    false,
+    "Run with an interactive terminal UI (scrolling log pane, live status panel and a "
+    "command input line at the bottom). Requires stdout and stdin to be a TTY; "
+    "ignored in headless modes (--gametest, --benchmark-exit-after-*).");
 DEFINE_bool(benchmark_exit_after_shell_init,
     false,
     "Benchmark mode: exit right after server shell initialization "
@@ -198,6 +206,14 @@ void ServerApplicationEntry::onFlagsParsed()
     if (m_benchmarkExitAfterWorldInit) {
         m_benchmarkExitAfterShellInit = true;
     }
+
+    // --interactive 只对在线生产路径有意义：无头模式（gametest / benchmark）强制关闭，
+    // 避免自动化跑批被 TUI 阻塞或污染 stdout。
+    m_interactiveMode = FLAGS_interactive;
+    if (m_interactiveMode && (m_gametestMode || m_benchmarkExitAfterShellInit)) {
+        spdlog::warn("--interactive is ignored in headless mode (--gametest / --benchmark-exit-after-*)");
+        m_interactiveMode = false;
+    }
 }
 
 void ServerApplicationEntry::prepareRun()
@@ -294,6 +310,31 @@ i32 ServerApplicationEntry::runApplication()
     // 仅 minecraft-server exe，须在 initialize 成功后（commandRegistry/scriptManager 已就绪）调用。
     _initializeServerGameTest(server);
 
+    // 交互式终端：须在 initialize 之后（命令树/玩家/维度就绪）、run() 之前接入，
+    // 使启动期日志也能进入终端日志区。显式要求交互但当前不是 TTY 时直接报错退出。
+    std::unique_ptr<mc::server::console::ServerConsole> console;
+    if (m_interactiveMode) {
+        std::string reason;
+        if (!mc::server::console::TerminalUi::isAvailable(reason)) {
+            spdlog::error("--interactive requires an interactive terminal, but {}", reason);
+            _cleanupServerGameTest();
+            server.stop();
+            return 1;
+        }
+
+        console::ServerConsoleOptions consoleOptions;
+        consoleOptions.serverName = "Cubium Server";
+        consoleOptions.version = MC_VERSION_STRING;
+        consoleOptions.worldName = server.settings().worldName.get();
+        consoleOptions.port = static_cast<u16>(server.settings().serverPort.get());
+        consoleOptions.logCapacity = console::LOG_LINE_CAPACITY;
+        consoleOptions.eventCapacity = console::EVENT_CAPACITY;
+        console = std::make_unique<console::ServerConsole>(std::move(consoleOptions));
+        console->attach(server);
+        console->start();
+        spdlog::info("Interactive terminal started");
+    }
+
     // --benchmark-exit-after-shell-init：shell 初始化（子系统构造、注册表、配置、
     // 网络监听就绪）完成即退出，不进入主循环。对应基准 server_initialize_shell。
     // 退出走 stop()（完整落盘收尾，与原 client benchmark 模式行为对齐），
@@ -359,12 +400,26 @@ i32 ServerApplicationEntry::runApplication()
     if (runResult.failed()) {
         spdlog::error("Failed to start server: {}", runResult.error().toString());
         _cleanupServerGameTest(); // server 即将析构销毁引擎，先清实例释放 JS 句柄
+        if (console != nullptr) {
+            console->stop();
+        }
         return 1;
     }
 
-    // 等待退出信号
-    while (!s_shouldExit && server.isRunning()) {
+    // 等待退出信号。交互模式下额外轮询终端的退出请求（Ctrl+Q / Ctrl+C）：
+    // UI 退出本身不停止服务端；非交互模式不会走到这里（console 为空）。
+    while (!s_shouldExit && server.isRunning() && (console == nullptr || !console->exitRequested())) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    // 关闭前先停终端：它会退出 FTXUI 循环并把控制台模式、光标恢复原状，
+    // 之后的关服日志重新回到普通 stdout。
+    if (console != nullptr) {
+        console->stop();
+        console.reset();
+        if (!s_shouldExit) {
+            spdlog::info("Interactive terminal closed");
+        }
     }
 
     // 关闭前清理 GameTest（实例持 JS Promise 句柄，须在脚本引擎销毁前析构）。

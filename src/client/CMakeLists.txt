@@ -555,6 +555,9 @@ add_executable(minecraft-client
     # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 minecraft-server / mc_benchmark 共用；
     # 含 P3 命令，内嵌服务端同样要链接全部 registerTo）
     ${MC_SERVER_COMMAND_SOURCES_ABS}
+    # /panel 命令用到的面板统计逻辑（纯逻辑，不依赖 FTXUI；server exe 在 console 段编译同一份源）
+    ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStats.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStatsCollector.cpp
     # 交互管理器
     ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp

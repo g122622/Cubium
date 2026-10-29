@@ -625,11 +625,9 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 template <typename S>
 Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
 {
-    {
-        auto ex = parse.getException();
-    }
     if (const auto exception = parse.getException(); exception.has_value()) {
-        return Error(ErrorCode::InvalidArgument, exception->message());
+        // 展示给调用方的是翻译后的文本（message 本身可能是翻译键）。
+        return Error(ErrorCode::InvalidArgument, exception->translatedMessage());
     }
 
     auto* context = parse.getContext();
@@ -650,7 +648,7 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
                 return CommandResult::success(result);
             }
             catch (const CommandException& e) {
-                return Error(ErrorCode::Unknown, e.message());
+                return Error(ErrorCode::Unknown, e.translatedMessage());
             }
         }
     }
@@ -670,7 +668,7 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
         return CommandResult::success(result);
     }
     catch (const CommandException& e) {
-        return Error(ErrorCode::Unknown, e.message());
+        return Error(ErrorCode::Unknown, e.translatedMessage());
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::Unknown, e.what());

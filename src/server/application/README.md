@@ -12,7 +12,8 @@ src/server/application/
 ├── StandaloneServer.hpp           # 独立服务器声明（多人模式）
 ├── StandaloneServer.cpp           # 独立服务器实现（TCP 网络通信）
 ├── ServerApplicationEntry.hpp     # 服务端进程入口（继承 common 的 BaseApplicationEntry，封装 main 启动流程 + GameTest 接入）
-└── ServerApplicationEntry.cpp     # StandaloneServer 生命周期 + 信号处理 + --gametest 门面 + gflags flag 定义
+├── ServerApplicationEntry.cpp     # StandaloneServer 生命周期 + 信号处理 + --gametest / --interactive 门面 + gflags flag 定义
+└── console/                       # 交互式终端（--interactive）：日志区 + 状态面板 + 命令输入框，详见其 README
 ```
 
 ## 内部模块关系
@@ -216,6 +217,22 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 `_refreshServerIcon()` 在 `initializeSharedStorage` 中从 `server-icon.png`（回落存档 `icon.png`）
 加载一次（须 64×64），缓存为 Data URL；玩家样本按上限 12 随机截取。JSON 组装在
 `ServerHandshake::_buildStatusJson`（空值字段省略而非 null）。
+
+### 14. 交互式终端（`--interactive`）的持有关系与反向引用
+
+终端门面 `console::ServerConsole` 由 `ServerApplicationEntry` 独占持有（服务端本身不拥有它，
+集成服/无头模式永远没有实例）。为了让 `/panel` 命令能写右侧面板，`MinecraftServer` 额外
+存了一个**非拥有**指针 `m_serverConsole`（`setServerConsole` / `serverConsole()`）：
+
+- `ServerConsole::attach()` 时绑定，`stop()` 的**第一步**解绑——解绑不受 `m_started` 门控，
+  因为 attach 之后即便从未 start，服务端也不得再持有即将析构的对象；
+- 命令侧一律通过 `serverConsole()` 判空（`nullptr` 即"无交互式终端"，命令照常执行、
+  只是回执进日志），不要假设它存在。
+
+同理，`/panel` 命令引用的 `application/console/render/*` 必须保持**不依赖 FTXUI**：
+`PanelCommand.cpp` 与 `CommandRegistry.cpp` 会编进 `minecraft-client`（内置服）与 `mc_tests`，
+它们不链接 FTXUI。新增面板统计代码时放在 `render/`，并同步登记到 `src/client/CMakeLists.txt`、
+`tests/unit/CMakeLists.txt`、`benchmark/CMakeLists.txt` 与命令树差分探针的例外清单。
 
 ### 发送执行上下文
 

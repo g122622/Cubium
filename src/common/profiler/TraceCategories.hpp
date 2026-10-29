@@ -75,6 +75,7 @@ inline constexpr struct TraceCategoriesTree {
         const char* const Entity = "server.entity";                 // 服务端实体更新
         const char* const Player = "server.player";                 // 服务端玩家管理
         const char* const Mining = "server.mining";                 // 服务端挖掘处理
+        const char* const Console = "server.console";               // 服务端交互式终端
     };
 
     // === 客户端 ===
@@ -187,6 +188,7 @@ PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("server.entity").SetDescription("服务端实体更新"),
     perfetto::Category("server.player").SetDescription("服务端玩家管理"),
     perfetto::Category("server.mining").SetDescription("服务端挖掘处理"),
+    perfetto::Category("server.console").SetDescription("服务端交互式终端（UI 线程与命令通路）"),
 
     // === 客户端 ===
     perfetto::Category("client.initialization").SetDescription("客户端初始化"),
