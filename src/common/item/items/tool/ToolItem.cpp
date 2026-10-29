@@ -30,8 +30,6 @@
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/item/enchantment/EnchantmentHelper.hpp"
-#include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
 #include "common/item/items/tool/TieredItem.hpp"
 #include "common/item/items/tool/ToolType.hpp"
 #include "common/item/tier/IItemTier.hpp"
@@ -64,24 +62,15 @@ ToolItem::ToolItem(f32 attackDamage,
 
 f32 ToolItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
 {
-    // 1. 检查材质有效性
-    f32 speed = 1.0f;
-    if (isEffectiveMaterial(state.getMaterial())) {
-        speed = m_efficiency;
-    } else if (isEffectiveBlock(state.owner())) {
-        // 2. 检查特定方块有效性
-        speed = m_efficiency;
+    (void)stack;
+    // 只返回工具自身的材质速度。效率附魔经 mining_efficiency 属性生效
+    // （对齐 vanilla Item.getDestroySpeed：物品侧只读 TOOL 组件的 miningSpeed，
+    // 效率加成由 Player.getDestroySpeed 在拿到属性值后叠加）。把加成放在物品侧会让
+    // 僵尸持附魔工具、掉落物、发射器等非玩家实体的挖掘速度也跟着变快，且无法叠加多件装备的修饰符。
+    if (isEffectiveMaterial(state.getMaterial()) || isEffectiveBlock(state.owner())) {
+        return m_efficiency;
     }
-
-    // 3. 应用效率附魔加成
-    if (speed > 1.0f) {
-        i32 efficiencyLevel = enchant::EnchantmentHelper::getEfficiencyLevel(stack);
-        if (efficiencyLevel > 0) {
-            speed += static_cast<f32>(enchant::EfficiencyEnchantment::getMiningSpeedBonus(efficiencyLevel));
-        }
-    }
-
-    return speed;
+    return 1.0f;
 }
 
 bool ToolItem::canHarvestBlock(const BlockState& state) const

@@ -157,6 +157,12 @@ f32 Enchantment::getDamageBonus(i32 level, const LivingEntity* target) const noe
     return 0.0f;
 }
 
+f32 Enchantment::getDamageBonusPerLevel(i32 level) const noexcept
+{
+    (void)level;
+    return 0.0f;
+}
+
 i32 Enchantment::getDamageProtection(i32 level, u32 damageType) const noexcept
 {
     (void)level;
@@ -167,7 +173,8 @@ i32 Enchantment::getDamageProtection(i32 level, u32 damageType) const noexcept
 item::ItemAttributeModifiers Enchantment::getAttributeModifiers(i32 level) const
 {
     (void)level;
-    // 默认附魔不提供属性修饰符（对齐 vanilla：仅 respiration 等少数附魔有 ATTRIBUTES 组件）
+    // 默认附魔不提供属性修饰符。对齐 vanilla：只有 JSON 里写了 `minecraft:attributes` 的附魔
+    // 才有这一项（水下速掘、效率、深海探索者、横扫之刃、迅捷潜行、爆炸/火焰保护、水下呼吸等）。
     return {};
 }
 

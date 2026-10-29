@@ -45,6 +45,7 @@ tests/diff/
 │   ├── gamerule.cpp             # 游戏规则的分类 / 类型 / 默认值 / 范围
 │   ├── armor_material.cpp       # 护甲材质的耐久 / 护甲值 / 韧性与附魔能力
 │   ├── tool_material.cpp        # 工具材质的耐久 / 效率 / 攻击伤害加成 / 附魔能力
+│   ├── enchantment_effects.cpp  # 附魔各等级的伤害加成 / 保护点数 / 属性修饰符
 │   ├── block_state_names.cpp    # 方块状态名全集
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
@@ -65,7 +66,7 @@ tests/diff/
     ├── vanilla.ts               # minecraft-data 读取（回退数据源）
     ├── oracle-env.ts            # 定位原版 jar + 依赖库，拼 classpath
     ├── java-oracle.ts           # 编译 oracle、两侧各跑一次、按 key 比对
-    ├── comparison.ts            # 共享字段投影，严格检查数组长度
+    ├── comparison.ts            # 共享字段投影：严格检查数组长度，仅显式声明为无序的数组才忽略顺序
     ├── runner.ts                # 构建 / 运行 / 比对 / 写报告；CLI 入口
     ├── test_text_encode_parity.ts   # 手写 harness（方块状态全集 + 摘要）
     └── harnesses/               # 声明式 harness 与注册表
@@ -220,6 +221,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `gamerule` | 原版 jar `GameRuleOracle` | 59 | 全部一致 | — |
 | `armor_material` | 原版 jar `ArmorMaterialOracle` | 9 种材质 × 5 槽位 | 全部一致 | — |
 | `tool_material` | 原版 jar `ToolMaterialOracle` | 7 | 全部一致 | 采集等级不比（原版用方块标签表达） |
+| `enchantment_effects` | 原版 jar `EnchantmentEffectsOracle` | 43 | 全部一致 | 宝藏枚举与附魔台代价由 `enchantment_table` 覆盖 |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -235,6 +237,23 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   - 台阶规则：原版沿用基方块硬度（石砖台阶除外，是 +0.5），此前按材质硬编码抵消；
   - 水/岩浆 0、刷怪笼 -1（生存模式永远挖不动）、命令/结构/拼图方块本应不可破坏；
   - 幽匿感测体与宝库的 1/6 级光照未注册、只有红蘑菇发光 1（红蘑菇被误设 1）。
+
+`enchantment_effects` 首轮查出并修掉的问题（附魔效果此前完全没有被比对过）：
+
+- 水下速掘、效率、深海探索者、横扫之刃、迅捷潜行**根本没有** `getAttributeModifiers`，
+  这五个附魔在游戏里只靠手写常量近似生效，属性面板、多件叠加、与原版逐位一致的数值
+  全都没有；它们的属性（`mining_efficiency`、`submerged_mining_speed`、
+  `water_movement_efficiency`、`sweeping_damage_ratio`、`sneaking_speed`）在项目中
+  也完全没有注册，因此补附魔修饰符之前先把属性补齐并接通消费点；
+- 效率加成写在`ToolItem::getDestroySpeed`里，导致持附魔工具的僵尸、掉落物、发射器
+  也挖得更快；原版只给玩家（`Player.getDestroySpeed` 读属性），已下移；
+- 深海探索者用两个手调常量近似（阻力增量 + 输入速度增量），改成原版的插值公式
+  `f += (0.54600006 - f) * efficiency`、`f1 += (getSpeed() - f1) * efficiency`；
+- 横扫比例从`EnchantmentHelper::getSweepingDamageRatio`（只看主手一件物品）改为读属性；
+- 爆炸保护与火焰保护漏了身体槽（马铠/狼铠/鹦鹉螺铠甲），原版的 `slots="armor"`
+  对 body 同样成立；
+- `AttributeInstance::addModifier` 原来是 `push_back` 不去重，而原版按 id 覆盖——
+  同一附魔在多件装备上会重复叠加（三件迅捷潜行 = +0.45 而不是 +0.15）。
 
 `entity_attributes` 首轮查出并修掉的属性错误（全部是手抄/想当然的默认值）：
 

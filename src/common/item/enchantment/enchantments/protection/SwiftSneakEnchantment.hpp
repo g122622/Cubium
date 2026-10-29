@@ -24,6 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include <string>
 
@@ -95,6 +99,32 @@ public:
     [[nodiscard]] static f32 getSneakingSpeedBonus(i32 level) noexcept
     {
         return 0.15f * static_cast<f32>(level);
+    }
+
+    /**
+     * @brief 迅捷潜行的属性修饰符
+     *
+     * 对齐 vanilla `data/minecraft/enchantment/swift_sneak.json`：
+     * 属性 `minecraft:sneaking_speed`、id `minecraft:enchantment.swift_sneak`、
+     * `add_value`、amount = linear(base 0.15, per_level 0.15)，作用槽位 = LEGS。
+     *
+     * sneaking_speed 的默认值是 0.3（潜行只有步行速度的 30%），III 级后为 0.75。
+     *
+     * @param level 附魔等级
+     * @return 腿部槽位的 sneaking_speed 修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        if (level > 0) {
+            modifiers.add(entity::attribute::Attributes::SNEAKING_SPEED,
+                entity::attribute::AttributeModifier("minecraft:enchantment.swift_sneak",
+                    "Swift Sneak",
+                    static_cast<f64>(getSneakingSpeedBonus(level)),
+                    entity::attribute::Operation::Addition),
+                static_cast<i32>(EquipmentSlot::Legs));
+        }
+        return modifiers;
     }
 };
 

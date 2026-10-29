@@ -40,3 +40,39 @@ test("隐藏节点、回调次数和操作轨迹不能通过数组前缀投影�
     assert.ok(!equal({ calls: [] }, { calls: [20] }));
     assert.ok(!equal({ trace: [{ result: true }] }, { trace: [{ result: true }, { result: false }] }));
 });
+
+test("默认有序：同样元素换顺序仍算差异", () => {
+    assert.ok(
+        !equal(
+            { levels: [{ attributes: [{ slot: "head" }, { slot: "feet" }] }] },
+            { levels: [{ attributes: [{ slot: "feet" }, { slot: "head" }] }] },
+        ),
+    );
+});
+
+test("显式声明为无序的路径：同样元素换顺序算一致，元素本身仍逐一比对", () => {
+    const unordered = (expected: unknown, actual: unknown): boolean =>
+        JSON.stringify(projectDeclaredFields(expected, expected, ["levels/attributes"])) ===
+        JSON.stringify(projectDeclaredFields(expected, actual, ["levels/attributes"]));
+    assert.ok(
+        unordered(
+            { levels: [{ attributes: [{ slot: "head" }, { slot: "feet" }] }] },
+            { levels: [{ attributes: [{ slot: "feet" }, { slot: "head", extra: 1 }] }] },
+        ),
+    );
+    assert.ok(
+        !unordered(
+            { levels: [{ attributes: [{ slot: "head" }, { slot: "feet" }] }] },
+            { levels: [{ attributes: [{ slot: "head" }, { slot: "chest" }] }] },
+        ),
+    );
+    // 无序不等于无约束：元素数量仍必须一致。
+    assert.ok(
+        !unordered(
+            { levels: [{ attributes: [{ slot: "head" }] }] },
+            { levels: [{ attributes: [{ slot: "head" }, { slot: "feet" }] }] },
+        ),
+    );
+    // 未声明的父路径数组保持有序。
+    assert.ok(!unordered({ levels: [{ attributes: [] }, { attributes: [] }] }, { levels: [{ attributes: [] }] }));
+});

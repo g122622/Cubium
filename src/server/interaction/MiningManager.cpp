@@ -25,7 +25,9 @@
 #include "InventoryManager.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -423,7 +425,7 @@ f32 MiningManager::_calculateMiningSpeed(ServerWorld& world, const BlockPos& pos
     }
 
     // 7. 计算挖掘速度倍率
-    f32 digSpeed = _calculateDigSpeedMultiplier(world, heldItem, *state, *playerData);
+    f32 digSpeed = _calculateDigSpeedMultiplier(world, heldItem, *state, *playerData, _findPlayer(world, playerId));
 
     // 8. 检查是否可以使用正确工具
     bool canHarvest = false;
@@ -446,22 +448,34 @@ f32 MiningManager::_calculateMiningSpeed(ServerWorld& world, const BlockPos& pos
     return relativeHardness;
 }
 
+Player* MiningManager::_findPlayer(ServerWorld& world, PlayerId playerId) const
+{
+    if (!m_entityIdResolver) {
+        return nullptr;
+    }
+    const EntityInstanceId entityId = m_entityIdResolver(playerId);
+    if (entityId == INVALID_ENTITY_ID) {
+        return nullptr;
+    }
+    return dynamic_cast<Player*>(world.getEntity(entityId));
+}
+
 f32 MiningManager::_calculateDigSpeedMultiplier(ServerWorld& world,
     const ItemStack& heldItem,
     const BlockState& blockState,
-    const ServerPlayerData& playerData) const
+    const ServerPlayerData& playerData,
+    const Player* player) const
 {
     // 1. 获取工具基础挖掘速度
     f32 speed = heldItem.isEmpty() ? 1.0f : heldItem.getDestroySpeed(blockState);
 
-    // 2. 效率附魔加成（仅当工具对当前方块有效时）
+    // 2. 挖掘效率属性加成（仅当工具对当前方块有效时），对齐 vanilla Player.getDestroySpeed：
+    // 效率附魔经 enchantment.efficiency 修饰符把 level² + 1 加到 mining_efficiency 属性。
+    // 拿不到玩家实体时按默认值 0 处理——该属性默认值就是 0，等价于「没有效率附魔」。
     if (speed > 1.0f) {
-        i32 efficiencyLevel = item::enchant::EnchantmentHelper::getEfficiencyLevel(heldItem);
-        if (efficiencyLevel > 0) {
-            // 效率附魔加成公式: level^2 + 1
-            // I: 2, II: 5, III: 10, IV: 17, V: 26
-            speed += static_cast<f32>(item::enchant::EfficiencyEnchantment::getMiningSpeedBonus(efficiencyLevel));
-        }
+        const f64 miningEfficiency =
+            player != nullptr ? player->getAttributeValue(entity::attribute::Attributes::MINING_EFFICIENCY, 0.0) : 0.0;
+        speed += static_cast<f32>(miningEfficiency);
     }
 
     // 3. 急迫效果和潮涌能量加成
@@ -472,9 +486,13 @@ f32 MiningManager::_calculateDigSpeedMultiplier(ServerWorld& world,
     f32 fatigueMultiplier = _calculateMiningFatigueMultiplier(playerData);
     speed *= fatigueMultiplier;
 
-    // 5. 水下挖掘惩罚（仅当眼睛在水中且没有水下速掘附魔）
-    if (_areEyesInWater(world, playerData) && !_hasAquaAffinity(playerData)) {
-        speed /= UNDERWATER_PENALTY;
+    // 5. 水下挖掘惩罚：拉开 submerged_mining_speed 属性（默认 0.2 = 陆地的 1/5），
+    // 水下速掘附魔把它乘到 1.0。拿不到玩家实体时退回到固定的 1/5。
+    if (_areEyesInWater(world, playerData)) {
+        const f64 submergedMiningSpeed = player != nullptr
+            ? player->getAttributeValue(entity::attribute::Attributes::SUBMERGED_MINING_SPEED, 0.2)
+            : 1.0 / static_cast<f64>(UNDERWATER_PENALTY);
+        speed *= static_cast<f32>(submergedMiningSpeed);
     }
 
     // 6. 空中挖掘惩罚

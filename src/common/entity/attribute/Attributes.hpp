@@ -372,6 +372,97 @@ inline std::unique_ptr<Attribute> explosionKnockbackResistance()
 }
 
 /**
+ * @brief 挖掘效率加成
+ *
+ * 对齐 vanilla 1.21.11 的 mining_efficiency 属性
+ *（Attributes.java:61-62，RangedAttribute("attribute.name.mining_efficiency", 0.0, 0.0, 1024.0)）。
+ *
+ * 消费点：挖掘速度计算（Player::getDigSpeed / MiningManager::_calculateDigSpeedMultiplier），
+ * 对齐 vanilla Player.getDestroySpeed 的「工具基础速度 > 1 时叠加本属性值」。
+ * 效率附魔通过 enchantment.efficiency 修饰符（Op0 ADD_VALUE，每级 amount = level² + 1）注入。
+ *
+ * 默认值: 0.0
+ * 范围: 0.0 ~ 1024.0
+ */
+inline std::unique_ptr<Attribute> miningEfficiency()
+{
+    return std::make_unique<Attribute>("minecraft:mining_efficiency", 0.0, 0.0, 1024.0);
+}
+
+/**
+ * @brief 水下挖掘速度乘数
+ *
+ * 对齐 vanilla 1.21.11 的 submerged_mining_speed 属性
+ *（Attributes.java:88-89，RangedAttribute("attribute.name.submerged_mining_speed", 0.2, 0.0, 20.0)）。
+ *
+ * 消费点：挖掘速度计算——眼睛在水中时，最终速度乘以本属性值
+ *（对齐 vanilla Player.getDestroySpeed 的 `f *= getAttribute(SUBMERGED_MINING_SPEED).getValue()`）。
+ * 默认 0.2 即水下挖掘只有陆地的 1/5；水下速掘附魔通过 enchantment.aqua_affinity 修饰符
+ * （Op2 MULTIPLY_TOTAL，+4.0）把该值抬到 1.0，恢复为陆地速度。
+ *
+ * 默认值: 0.2
+ * 范围: 0.0 ~ 20.0
+ */
+inline std::unique_ptr<Attribute> submergedMiningSpeed()
+{
+    return std::make_unique<Attribute>("minecraft:submerged_mining_speed", 0.2, 0.0, 20.0);
+}
+
+/**
+ * @brief 水中移动效率
+ *
+ * 对齐 vanilla 1.21.11 的 water_movement_efficiency 属性
+ *（Attributes.java:95-96，RangedAttribute("attribute.name.water_movement_efficiency", 0.0, 0.0, 1.0)）。
+ *
+ * 消费点：水中移动（LivingEntity::travelInWater，对齐 vanilla LivingEntity.java:2391-2401）：
+ * 本属性值 f2 在 [0,1] 内线性插值把水中阻尼与水中的最小移动速度推向陆地的取值。
+ * 深海探索者附魔通过 enchantment.depth_strider 修饰符（Op0 ADD_VALUE，每级 +0.33333334）注入。
+ *
+ * 默认值: 0.0
+ * 范围: 0.0 ~ 1.0
+ */
+inline std::unique_ptr<Attribute> waterMovementEfficiency()
+{
+    return std::make_unique<Attribute>("minecraft:water_movement_efficiency", 0.0, 0.0, 1.0);
+}
+
+/**
+ * @brief 潜行速度
+ *
+ * 对齐 vanilla 1.21.11 的 sneaking_speed 属性
+ *（Attributes.java:79-80，RangedAttribute("attribute.name.sneaking_speed", 0.3, 0.0, 1.0)）。
+ *
+ * 消费点：玩家潜行时的移动速度乘数（Player::_applyMovementSpeed / travel 内的潜行分支，
+ * 对齐 vanilla LocalPlayer.java:701 的 `f = getAttributeValue(SNEAKING_SPEED)`）。
+ * 迅捷潜行附魔通过 enchantment.swift_sneak 修饰符（Op0 ADD_VALUE，每级 +0.15）注入。
+ *
+ * 默认值: 0.3（潜行为步行速度的 30%，与旧的常量倍率一致）
+ * 范围: 0.0 ~ 1.0
+ */
+inline std::unique_ptr<Attribute> sneakingSpeed()
+{
+    return std::make_unique<Attribute>("minecraft:sneaking_speed", 0.3, 0.0, 1.0);
+}
+
+/**
+ * @brief 横扫伤害比例
+ *
+ * 对齐 vanilla 1.21.11 的 sweeping_damage_ratio 属性
+ *（Attributes.java:91-92，RangedAttribute("attribute.name.sweeping_damage_ratio", 0.0, 0.0, 1.0)）。
+ *
+ * 消费点：玩家横扫攻击伤害（Player::doSweepAttack，对齐 vanilla Player.doSweepAttack）：
+ *   sweepBase = 1.0 + SWEEPING_DAMAGE_RATIO 属性值 × 冷却后的基础伤害。
+ * 横扫之刃附魔通过 enchantment.sweeping_edge 修饰符（Op0 ADD_VALUE，amount = n/(n+1)）注入。
+ *
+ * 默认值: 0.0（无附魔时横扫只传递固定 1.0 基础伤害项）
+ * 范围: 0.0 ~ 1.0
+ */
+inline std::unique_ptr<Attribute> sweepingDamageRatio()
+{
+    return std::make_unique<Attribute>("minecraft:sweeping_damage_ratio", 0.0, 0.0, 1.0);
+}
+
+/**
  * @brief 方块交互距离
  *
  * 决定玩家与方块交互（破坏/使用/放置）的最大距离。
@@ -439,6 +530,11 @@ constexpr const char* ENTITY_INTERACTION_RANGE = "minecraft:entity_interaction_r
 constexpr const char* SAFE_FALL_DISTANCE = "minecraft:safe_fall_distance";
 constexpr const char* FALL_DAMAGE_MULTIPLIER = "minecraft:fall_damage_multiplier";
 constexpr const char* JUMP_STRENGTH = "minecraft:jump_strength";
+constexpr const char* MINING_EFFICIENCY = "minecraft:mining_efficiency";
+constexpr const char* SUBMERGED_MINING_SPEED = "minecraft:submerged_mining_speed";
+constexpr const char* WATER_MOVEMENT_EFFICIENCY = "minecraft:water_movement_efficiency";
+constexpr const char* SNEAKING_SPEED = "minecraft:sneaking_speed";
+constexpr const char* SWEEPING_DAMAGE_RATIO = "minecraft:sweeping_damage_ratio";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";

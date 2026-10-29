@@ -75,6 +75,8 @@ public:
 
     [[nodiscard]] f32 getDamageBonus(i32 level, const LivingEntity* target = nullptr) const noexcept override;
 
+    [[nodiscard]] f32 getDamageBonusPerLevel(i32 level) const noexcept override;
+
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;
 
     // ========== 伤害类特有方法 ==========

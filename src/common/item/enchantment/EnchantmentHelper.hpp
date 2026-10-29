@@ -312,6 +312,10 @@ public:
     /**
      * @brief 获取横扫之刃伤害比例
      *
+     * TODO: 已无生产调用方——横扫攻击改为读取 sweeping_damage_ratio 属性（修饰符由
+     * SweepingEnchantment::getAttributeModifiers 提供，多件装备按原版规则合并）。
+     * 保留仅为过渡，待确认无外部调用后连同 SweepingEnchantment::getSweepingDamageRatio 一并删除。
+     *
      * @param stack 物品堆
      * @return 横扫伤害比例（0.0-1.0）
      */
@@ -504,6 +508,10 @@ public:
      *
      * 仅应用槽位匹配的修饰符（Entry.equipmentSlot == slot），与物品固有修饰符过滤范式一致。
      * 同 id 修饰符先移除后添加，保证等级变化时更新而非叠加。
+     *
+     * 注意：附魔修饰符的 id 是「附魔名」而非「槽位名」（如 minecraft:enchantment.swift_sneak），
+     * 与 vanilla 一致——同一附魔在多件装备、多个槽位上只保留一条修饰符（AttributeInstance
+     * 按 id 覆盖），因此全身三件迅捷潜行加的是 0.15 而不是 0.45。
      *
      * @param entity 装备实体的实体
      * @param stack 装备的物品堆

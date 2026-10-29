@@ -78,26 +78,24 @@ public:
      * LevelBasedValue.perLevel(0.15F)，Operation.ADD_VALUE，装备槽位组=ARMOR）把每级 +0.15 的加法修饰符
      * 加到 EXPLOSION_KNOCKBACK_RESISTANCE 属性。
      *
-     * 装备槽位组 ARMOR 表示 4 个盔甲槽位任一激活即生效。Cubium 的附魔属性修饰符管线按单槽位过滤
+     * 装备槽位组 ARMOR 表示 5 个槽位（头/胸/腿/脚 + 身体槽）任一激活即生效。Cubium 的附魔属性修饰符管线按单槽位过滤
      *（EnchantmentHelper::applyEnchantmentAttributeModifiers 按 entry.equipmentSlot==slot 匹配），
-     * 无槽位组概念，故为 4 个盔甲槽位各注册一条同 id 修饰符。
+     * 无槽位组概念，故为这 5 个槽位各注册一条同 id 修饰符。
      *
      * EXPLOSION_KNOCKBACK_RESISTANCE 默认 0.0，爆炸保护 IV 单件 → 0.0 + 4×0.15 = 0.6，
      * 被爆炸击退时力度衰减为 40%（爆炸击退计算消费 finalKnockback *= (1 - 抗性)）。
      *
      * 多件爆炸保护盔甲的叠加语义（已实测验证，见 BlastProtectionAttributeTest）：
-     *   vanilla blast_protection.json 中 4 盔甲槽位共享同一 modifier id（"minecraft:enchantment.
+     *   vanilla blast_protection.json 中各槽位共享同一 modifier id（"minecraft:enchantment.
      *   blast_protection"），vanilla AttributeInstance 按 id 去重（Map<UUID,Modifier>），全套 IV
-     *   抗性 = 0.6（单条，非 4 件叠加的 2.4）。
-     *   Cubium AttributeInstance 用 vector+push_back 不去重，但 EnchantmentHelper::
-     *   applyEnchantmentAttributeModifiers 每 slot add 前调 removeModifier(id)（find_if 删第一条
-     *   同 id）。4 槽位顺序处理时，后槽位的 remove 删前槽位刚加的同 id 修饰符，最终 m_modifiers
-     *   只剩 1 条 0.6——恰好复现 vanilla 去重语义。故全套爆炸保护 IV 抗性 = 0.6，击退 ×0.4。
-     *   此"remove-first + add" 复现去重依赖 4 同 id 槽位在同一次 detectEquipmentUpdates 内顺序
-     *   处理，若未来 AttributeInstance 改为显式按 id 去重（add 时覆盖同 id），此行为不变。
+     *   抗性 = 0.6（单条，非多件叠加的 2.4）。
+     *   Cubium 的 AttributeInstance::addModifier 同样按 id 覆盖（见 AttributeInstance.hpp），
+     *   且 EnchantmentHelper::applyEnchantmentAttributeModifiers 每槽位 add 前先
+     *   removeModifier(id)，逐槽位顺序处理后只剩 1 条 0.6——与 vanilla 去重语义一致。
+     *   故全套爆炸保护 IV 抗性 = 0.6，击退 ×0.4。
      *
      * @param level 附魔等级
-     * @return 4 个盔甲槽位的 EXPLOSION_KNOCKBACK_RESISTANCE 修饰符
+     * @return 5 个槽位的 EXPLOSION_KNOCKBACK_RESISTANCE 修饰符
      */
     [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
     {
@@ -120,6 +118,11 @@ public:
             modifiers.add(entity::attribute::Attributes::EXPLOSION_KNOCKBACK_RESISTANCE,
                 modifier,
                 static_cast<i32>(EquipmentSlot::Head));
+            // 护甲槽位组还覆盖身体槽（马铠/狼铠/鹦鹉螺铠甲等）：原版的 slots="armor"
+            // 对 body 同样成立，漏掉它就等于穿着这套护甲骑乘时少一条修饰符。
+            modifiers.add(entity::attribute::Attributes::EXPLOSION_KNOCKBACK_RESISTANCE,
+                modifier,
+                static_cast<i32>(EquipmentSlot::Body));
         }
         return modifiers;
     }

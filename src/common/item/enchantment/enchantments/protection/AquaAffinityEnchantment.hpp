@@ -24,6 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include <string>
 
@@ -88,6 +92,32 @@ public:
     {
         (void)level;
         return 41;
+    }
+
+    /**
+     * @brief 水下速掘的属性修饰符
+     *
+     * 对齐 vanilla `data/minecraft/enchantment/aqua_affinity.json`：
+     * 属性 `minecraft:submerged_mining_speed`、id `minecraft:enchantment.aqua_affinity`、
+     * `add_multiplied_total`、amount = linear(base 4.0) = 4.0，作用槽位 = HEAD。
+     *
+     * 该属性的默认值是 0.2（水下挖掘为陆地的 1/5），+400% 后为 1.0，即水下与陆地同速。
+     *
+     * @param level 附魔等级（本附魔只有 1 级）
+     * @return 头部槽位的 submerged_mining_speed 修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        if (level > 0) {
+            modifiers.add(entity::attribute::Attributes::SUBMERGED_MINING_SPEED,
+                entity::attribute::AttributeModifier("minecraft:enchantment.aqua_affinity",
+                    "Aqua Affinity",
+                    4.0,
+                    entity::attribute::Operation::MultiplyTotal),
+                static_cast<i32>(EquipmentSlot::Head));
+        }
+        return modifiers;
     }
 };
 

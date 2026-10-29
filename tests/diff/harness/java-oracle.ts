@@ -139,6 +139,14 @@ export interface JavaOracleOptions {
      * 命令在同一套注册状态下比对。
      */
     readonly oracleArgs?: readonly string[];
+    /**
+     * 语义上无序的数组路径（`/` 连接字段名，根为 `""`）。列在这里的数组在比对前按规范序
+     * 重排，元素相同、顺序不同算一致。默认空：普通数组按顺序逐元素比较。
+     *
+     * 典型场景：属性修饰符按槽位展开成数组，展开顺序取决于注册顺序，不承载语义。
+     * 有顺序语义的数组（如命令树的遍历轨迹）不得列入。
+     */
+    readonly unorderedArrays?: readonly string[];
     readonly buildDir?: string;
     readonly samples?: number;
 }
@@ -337,7 +345,7 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
         if (dropped > 0) {
             console.log(`  另有 ${dropped} 个成员属于已知缺口（原版有、本项目尚未实现），未计入比对`);
         }
-        return finish(compareLines(expected, actualLines, options.key, options.normalise));
+        return finish(compareLines(expected, actualLines, options.key, options.normalise, options.unorderedArrays));
     }
     if (options.projectOnly !== undefined) {
         const { field, extra, drop } = options.projectOnly;
@@ -366,9 +374,9 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
         if (dropped > 0) {
             console.log(`  另有 ${dropped} 个成员属于本项目独有能力（原版没有），未计入比对`);
         }
-        return finish(compareLines(expected, actual, options.key, options.normalise));
+        return finish(compareLines(expected, actual, options.key, options.normalise, options.unorderedArrays));
     }
-    return finish(compareLines(expectedLines, actualLines, options.key, options.normalise));
+    return finish(compareLines(expectedLines, actualLines, options.key, options.normalise, options.unorderedArrays));
 }
 
 /**
@@ -381,6 +389,7 @@ function compareLines(
     actualLines: readonly string[],
     key: string,
     transform?: (value: unknown) => unknown,
+    unorderedArrays?: readonly string[],
 ): HarnessResult["differences"] extends readonly (infer D)[] ? D[] : never {
     type Difference = { key: string; expected: unknown; actual: unknown };
     const apply = transform ?? ((value: unknown) => value);
@@ -405,8 +414,8 @@ function compareLines(
         } else if (probeValue === undefined) {
             differences.push({ key: unit, expected: oracleValue, actual: "<absent in probe>" });
         } else if (
-            JSON.stringify(projectDeclaredFields(oracleValue, oracleValue)) !==
-            JSON.stringify(projectDeclaredFields(oracleValue, probeValue))
+            JSON.stringify(projectDeclaredFields(oracleValue, oracleValue, unorderedArrays)) !==
+            JSON.stringify(projectDeclaredFields(oracleValue, probeValue, unorderedArrays))
         ) {
             differences.push({ key: unit, expected: oracleValue, actual: probeValue });
         }
