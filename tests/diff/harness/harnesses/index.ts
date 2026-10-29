@@ -53,7 +53,11 @@ import {
     lootTableInput,
 } from "./loot_context.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
-import { KNOWN_MISSING_COMMANDS } from "./known_missing_commands.ts";
+import {
+    dropProjectOnlyCommands,
+    KNOWN_MISSING_COMMANDS,
+    PROJECT_ONLY_COMMANDS,
+} from "./known_missing_commands.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
 import { createRecipeHarness } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
@@ -276,6 +280,12 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         oracleMissing: KNOWN_MISSING_COMMANDS,
         // 这些命令不注册会让同一批节点（如 /give 的 item 参数）在两侧处于同一状态。
         oracleArgs: [KNOWN_MISSING_COMMANDS.join(",")],
+        // 本项目自研的调试命令（原版没有对应项），不属于「未对齐」。
+        projectOnly: {
+            field: "tree",
+            extra: PROJECT_ONLY_COMMANDS,
+            drop: (record, matches) => dropProjectOnlyCommands(record, matches),
+        },
     }),
     () => ({
         name: "command_argument",

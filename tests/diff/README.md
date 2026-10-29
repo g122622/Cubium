@@ -39,6 +39,9 @@ tests/diff/
 │   ├── vanilla_datapack.hpp     # 探针共用：定位原版数据包、初始化注册表、载入数据包标签
 │   ├── mob_category.cpp         # 生物分类的每区块上限 / 生成参数
 │   ├── block_properties.cpp     # 硬度 / 亮度 / 滑度 / 是否流体
+│   ├── block_experience.cpp     # 方块被破坏时掉落的经验（按区间采样序列）
+│   ├── item_attribute_modifiers.cpp # 物品按装备槽位提供的属性修饰符
+│   ├── damage_reduction.cpp     # 护甲减伤公式（含破甲附魔）
 │   ├── block_state_names.cpp    # 方块状态名全集
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
@@ -208,6 +211,9 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
 | `spawn_rules` | 原版 jar `SpawnRulesOracle` | 157 种实体 / 168,876 个场景 | 全部一致 | — |
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
+| `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
+| `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
+| `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -353,6 +359,39 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   {this_entity, origin, damage_source}、`FISHING` = {origin, tool}、`SELECTOR` =
   {origin, this_entity}。此前缺键只打警告，现在与原版 `LootParams.Builder#create`
   一样是硬校验。
+
+### 方块破坏经验与物品属性修饰符
+
+`block_experience` 比对的是**采样序列**而不是取值范围：固定值区间（原版 `ConstantInt`）
+不消耗随机数，闭区间（`UniformInt`）消耗一次，只比范围查不出「本该固定却写成了区间」。
+首轮对比暴露出原先的实现根本没走这条路——它用「坐标 + 玩家」拼出一个自造种子另起
+随机源，与该 tick 世界随机数的走向完全无关。现改为 `Block::dropExperience` 按方块
+登记的区间采样，16 个矿石与幽核照抄 `Blocks.java`。
+
+`item_attribute_modifiers` 首轮 1124 个物品里有 93 个与原版不一致，逐条对齐后归零。
+挖出的问题：
+
+- **属性名还停在 1.16.5 的 `generic.*`**：所有按名查找（数据组件、属性注册表、命令）
+  都与原版 `minecraft:*` 对不上。统一改名后 `normalizeName` 仍接受短名、`minecraft:`
+  前缀与旧的 `generic.` / `zombie.` 写法；
+- **攻击伤害被重复叠加**：注册处给基础值，构造期又加了一次材质加成。原版组件里就是
+  最终值，因此构造期不再叠加，注册处填原版绝对值（斧 6/8/8/8/6/8/9、镐 1..5、
+  锄全 0、长矛全 0 等一并修正）——这是一批**玩家实际感受到数值变化**的修正；
+- **漏掉的修饰符**：马铠/鹦鹉螺铠甲没有身体槽位的护甲与韧性条目（下界合金缺击退抗性）、
+  三叉戟没有武器条目、雕刻南瓜与各类头颅缺「隐藏导航点」条目；
+- **长矛攻速被存成 f32**：`-2.4615384340286255` 这类值过一趟 f32 就与原版对不上。
+
+顺带查出两个真缺陷：恶魂的 `registerAttributes` 覆写没调父类，`follow_range` 从未
+注册、`setBaseValue` 静默失败（追踪范围一直是 0）；骆驼的 `step_height` 属性同样没
+登记，已加 TODO 待补。
+
+### 护甲减伤
+
+`damage_reduction` 以「伤害 × 护甲 × 韧性」的乘积为单元（2415 个组合），比较最终伤害
+与破甲 1..4 级的结果。两侧末位会差 1 ulp：JVM 与 clang 对 f32 中间结果的求值顺序不同
+（先乘后除与先除后乘在 25 这类除数上会落到不同的 f32）。把中间结果逐步按 f32 舍入
+复算，结果与探针完全吻合，说明公式一致、差异只来自舍入，因此比对按固定 4 位小数进行
+（不能用有效位舍入：「……5」这类恰好落在进位边界上的值会因末位差 1 翻到相邻有效位）。
 
 ### 进度定义：1584 个全部对齐
 

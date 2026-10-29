@@ -119,6 +119,21 @@ export interface JavaOracleOptions {
      */
     readonly memberGaps?: { readonly field: string; readonly missing: readonly string[] };
     /**
+     * 本项目独有、原版没有的成员（例如自研的 `/panel` 命令）。
+     *
+     * 与 `memberGaps` 方向相反：`memberGaps` 剔除「原版有、项目没有」，这里剔除
+     * 「项目有、原版没有」，否则自研命令会永远表现为差异。必须显式登记，不能静默放过。
+     */
+    readonly projectOnly?: {
+        readonly field: string;
+        readonly extra: readonly string[];
+        /**
+         * 对象级清理：成员数组之外的派生字段（命令树里按节点路径索引的 `arguments` /
+         * `components`、以及整棵树编码后的 `wire`）也要同步摘掉，否则仍然对不上。
+         */
+        readonly drop?: (record: Record<string, unknown>, matches: (name: string) => boolean) => Record<string, unknown>;
+    };
+    /**
      * 传给 oracle `run` 的额外参数（原样追加在输入/输出路径之后）。命令树这类
      * 「注册会互相影响」的能力需要它：跳过原版有、项目尚未注册的命令，才能让其余
      * 命令在同一套注册状态下比对。
@@ -323,6 +338,35 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
             console.log(`  另有 ${dropped} 个成员属于已知缺口（原版有、本项目尚未实现），未计入比对`);
         }
         return finish(compareLines(expected, actualLines, options.key, options.normalise));
+    }
+    if (options.projectOnly !== undefined) {
+        const { field, extra, drop } = options.projectOnly;
+        const exemptMembers = new Set(extra);
+        // 「成员」指数组里以该名字开头的项（命令树的 `tree` 每项形如 "panel biome(pos:..)"）；
+        // 需要精确匹配时由调用方用 `drop` 自己处理对象里的其余字段。
+        const matches = (value: string): boolean =>
+            exemptMembers.has(value) || [...exemptMembers].some((name) => value.startsWith(`${name} `));
+        let dropped = 0;
+        // 只从探针一侧剔除：原版多出来的成员仍然算差异。
+        const actual = actualLines.map((line) => {
+            const parsed = JSON.parse(line) as Record<string, unknown>;
+            const values = parsed[field];
+            let next: Record<string, unknown> = parsed;
+            if (Array.isArray(values)) {
+                const kept = values.filter((value) => !matches(String(value)));
+                dropped += values.length - kept.length;
+                next = { ...next, [field]: kept };
+            }
+            return JSON.stringify(drop === undefined ? next : drop(next, matches));
+        });
+        // 派生字段要两侧一起清理：只清探针一侧会让原版那侧「独自存在」而报成缺席。
+        const expected = drop === undefined
+            ? expectedLines
+            : expectedLines.map((line) => JSON.stringify(drop(JSON.parse(line) as Record<string, unknown>, matches)));
+        if (dropped > 0) {
+            console.log(`  另有 ${dropped} 个成员属于本项目独有能力（原版没有），未计入比对`);
+        }
+        return finish(compareLines(expected, actual, options.key, options.normalise));
     }
     return finish(compareLines(expectedLines, actualLines, options.key, options.normalise));
 }
