@@ -133,6 +133,25 @@ public:
     bool attackEntityAsMob(LivingEntity& target) override;
 
     /**
+     * @brief 写存档（对齐 MC Java 1.21.11 Ravager.addAdditionalSaveData）
+     *
+     * 攻击/眩晕/咆哮三个 tick 计时器必须持久化：原版把它们写进
+     * AttackTick / StunTick / RoarTick，读档后状态机从中断处继续。
+     * 不存的话，一只正在咆哮的劫掠兽读档后会立刻恢复成静止状态。
+     *
+     * @param tag 待写入的 NBT compound
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 读存档（对齐 MC Java 1.21.11 Ravager.readAdditionalSaveData）
+     *
+     * @param tag 源 NBT compound
+     * @return 成功或错误
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
+    /**
      * @brief 构造击退向量
      *
      * 攻击目标后，有 50% 概率眩晕或发射目标

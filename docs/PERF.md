@@ -370,12 +370,21 @@ Perfetto UI 的 Info → Data Losses 页若出现非零计数，先分清两类�
 
 | 计数器 | 成因 | 处置 |
 |--------|------|------|
-| `traced_buf_chunks_overwritten` / `chunks_discarded` | 环形缓冲写满（回绕覆盖 / 丢弃） | 调大 `TraceConfig::bufferSizeKb`（当前 512MB） |
-| `traced_buf_data_loss_smb_full` / `sequence_packet_loss` | 生产者共享内存缓冲区（SMB）满 | 调大 `MC_TRACE_SHMEM_SIZE_KB`，**调环形缓冲无效** |
+| `traced_buf_chunks_overwritten` / `chunks_discarded` | 环形缓冲写满（回绕覆盖 / 丢弃） | 调大 `MC_TRACE_BUFFER_SIZE_KB`（默认 64MB） |
+| `traced_buf_data_loss_smb_full` / `sequence_packet_loss` | 生产者共享内存缓冲区（SMB）满 | 调大 `MC_TRACE_SHMEM_SIZE_KB`（默认 8MB），**调环形缓冲无效** |
 
-后者的机制是：写线程把写满的 chunk 提交到 SMB 由追踪服务搬走，SMB 默认仅 256KB，追踪服务线程稍有延迟（被抢占、调度延迟）生产者就拿不到空闲 chunk，而其默认耗尽策略是丢弃而非阻塞，于是静默丢包。因此**丢失未必出现在事件量峰值处**，而往往出现在排空侧卡顿的窗口。
+后者的机制是：写线程把写满的 chunk 提交到 SMB 由追踪服务搬走，SMB 默认仅 256KB（本项目调到 8MB），追踪服务线程稍有延迟（被抢占、调度延迟）生产者就拿不到空闲 chunk，而其默认耗尽策略是丢弃而非阻塞，于是静默丢包。因此**丢失未必出现在事件量峰值处**，而往往出现在排空侧卡顿的窗口。
 
-判读时注意两点噪声：每条写入序列的**首包**必然带 `previous_packet_dropped` 标记（服务端无法判断此前是否丢过），属固有伪标记；`.perfetto-trace` 内的时间戳是**增量时钟**（`is_incremental`），包内 timestamp 是相对前包的差值，手工解析时必须按序列累加才能还原时间轴。
+#### 用 `previous_packet_dropped` 计数判读会得到相反结论
+
+手工/脚本解析 `.perfetto-trace` 时，**每个包都带 `previous_packet_dropped=1` 是正常的**，不要据此认为数据全丢：
+
+- Perfetto SDK 对每条写入序列的**首包**必然置位该标记（服务端无法判断此前是否丢过），这是固有伪标记；
+- 更关键的是，本项目 trace 的时间戳走**增量时钟**（`is_incremental`）：`seq_incremental` 的时钟快照只在序列首包出现一次，其后各包的 `timestamp` 是相对上一个有效时刻的**增量**。累计增量超过 1 秒的包被 SDK 视为“时钟跳变”并重新置位 `previous_packet_dropped`。因此一个正常运行、每隔数百微秒写一条事件的服务端，其绝大多数包都会命中这一条。
+
+实测（一次约 20 分钟、519 万包的独立服 trace）：63 条写序列、519 万个事件包**全部**带该标记，而 begin/end 事件数完全相等、无截断、无非法编码，说明数据并未丢失。可靠判据仍是 **Info → Data Losses 页的两个计数器是否非零**，而不是这个布尔标记。
+
+手工解析还原时间轴时，必须按序列把 `timestamp` 累加（序列首包带时钟快照作为起点），否则时间全部塌缩到 0。
 
 ---
 

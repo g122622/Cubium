@@ -175,11 +175,11 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
 i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
 {
+
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
-
     if (playerIds.empty()) {
         source.sendError("No matching players were found");
         return 0;

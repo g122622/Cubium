@@ -10,7 +10,8 @@ server/
 │   ├── IServer.hpp       # 服务器接口定义
 │   ├── MinecraftServer.hpp/cpp  # 抽象基类，共享实现
 │   ├── IntegratedServer.hpp/cpp # 内置服务器（单机模式）
-│   └── StandaloneServer.hpp/cpp  # 独立服务器（多人模式）
+│   ├── StandaloneServer.hpp/cpp  # 独立服务器（多人模式）
+│   └── console/          # 交互式终端（--interactive），详见 console/README.md
 ├── core/                 # 核心管理器
 │   ├── ServerPlayerData.hpp   # 玩家数据
 │   ├── PlayerManager.hpp/cpp  # 玩家生命周期管理
@@ -91,6 +92,7 @@ server/
 | `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理）。不再持有 `m_world`、同步管理器和刷怪管理器，这些已下沉到 `ServerDimension` |
 | `IntegratedServer` | 内置服务器，使用 LocalTransport 与客户端同进程零拷贝直传 IR 包（单机模式） |
 | `StandaloneServer` | 独立服务器，使用 TCP 网络层（多人模式） |
+| `console::ServerConsole` | 交互式终端门面（`--interactive`）：日志区 + 状态面板 + 命令输入框。见 `application/console/README.md` |
 
 ### core/ - 核心管理器
 
@@ -201,6 +203,8 @@ server/
 - `/function` - 执行数据包函数
 - `/schedule` - 调度函数延迟执行（function/clear 模式）
 - `/attribute` - 查询和修改活体实体属性（支持所有 LivingEntity，使用 EntityResolver 选择器）
+- `/panel` - 刷新交互式终端右侧面板，并查看区块状态/方块分布/群系/方块实体（**非原版命令**，
+  只服务于 `--interactive`；见 `application/console/README.md`）
 
 命令建议现在直接从命令树生成，参数节点可以挂接自定义建议提供器，因此别名、重定向和未来的动态候选项都能统一走同一条补全路径。
 

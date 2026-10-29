@@ -87,6 +87,20 @@ function farmlandTrampledToDirtByFallingEntity(test: Test): void {
   test.setBlockType("minecraft:cobblestone", { x: 3, y: 0, z: 3 });
 
   // (3,1,3) 放耕地（defaultState moisture=0）。放置本身不退化（无上方固体，无实体踩踏）。
+// TODO: 本用例长期失败，已做系统性排查但仍未定位根因，需要后续深入。已确认的事实：
+//   - 坐标系统正常：探测 y=0 返回本用例自己写入的 cobblestone，无原点偏移；
+//   - 落管通畅：中心列 (3,*,3) 的 y=5/6/8/12 全部是 air，四面管壁 (2,6,3)/(3,6,2)/
+//     (4,6,3)/(3,6,4) 全部是 glass；
+//   - 猪水平居中（x=3.5/z=3.5，与 spawn 的 +0.5 一致），无漂移；
+//   - 猪无 setNoGravity，物理属性正常；
+//   - spawn 把猪放在 (3.5, 11, 3.5)（GameTestHelper::spawn 的 x+0.5 / z+0.5），
+//     但 t=1 读回的是 y=14.92——生成后一 tick 内上移约 4 格，spawnEntity 本身
+//     不做位置校正，上移发生在 addEntity 或首 tick 物理更新中；
+//   - t=40 起稳定停在 y=5.9375（farmland 换成 cobblestone 则停在 y=6），即被某个
+//     方块查询看不到的碰撞源托住，与方块类型无关；
+//   - 对照组 no_effect_takes_full_fall_damage 用同一 fall_tower、同一生成点、同一猪，
+//     却能正常落到 y=1 顶面——两者唯一差异是本用例覆写了 y=0 与 y=1 两层方块。
+//   下一步应从「覆写方块后该列的碰撞/支撑重算」入手，而不是继续在测试侧调整。
   test.setBlockType("minecraft:farmland", { x: 3, y: 1, z: 3 });
 
   // 猪 spawn 于 (3,11,3)，沿 fall_tower 1×1 玻璃管垂直自由落体到耕地顶（脚 y=2.0），fallDistance≈9。

@@ -8,8 +8,8 @@
 src/common/application/
 ├── BaseApplicationEntry.hpp   # 进程入口抽象基类（模板方法 run()）
 ├── BaseApplicationEntry.cpp   # 公共启动流程实现 + banner/buildInfo + 公共 gflags flag(--verbose/--profiler-enabled)
-├── LogManager.hpp             # 异步日志管理器单例声明
-├── LogManager.cpp             # spdlog async_logger(overrun_oldest) + 溢出监控线程
+├── LogManager.hpp             # 异步日志管理器单例声明 + ILogLineConsumer（可选日志行消费者）
+├── LogManager.cpp             # spdlog async_logger(overrun_oldest) + 溢出监控线程 + 消费者转发 sink
 └── README.md
 ```
 
@@ -61,3 +61,9 @@ StandaloneServer           ClientApplication
 
 ### 5. GameTest 接入不能上提到本模块
 `_initializeServerGameTest`/`_cleanupServerGameTest` 依赖 `mc_test` 符号，而 `mc_test` 仅 `minecraft-server` exe 链接，client exe 不链接。本模块编入 `mc_common`（两 exe 都链接），故 GameTest 接入必须留在 `server/application/ServerApplicationEntry.cpp`。详见 `server/application/README.md` 第 12 节。
+
+### 6. 日志行消费者只转发、不改变原有输出
+`LogManager::installLineConsumer()` 向默认 logger **追加**一个 sink，stdout sink 保持不变（终端输出不重复）。
+消费者在 spdlog 异步消费线程上被调用，实现方只应做入队级操作（例如服务端 TUI 写入环形缓冲并唤醒 UI）；
+`sink_it_` 与终端 sink 使用同一 pattern，因此 UI 中显示的文本与控制台一致。`shutdown()` 会先卸载消费者，
+再销毁 spdlog 全局状态，消费者的生命周期不得晚于 UI 对象。

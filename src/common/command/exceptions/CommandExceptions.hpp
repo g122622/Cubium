@@ -158,6 +158,17 @@ public:
         return m_message;
     }
 
+    /**
+     * @brief 取得面向用户的错误文本
+     *
+     * 命令实现经常直接抛出翻译键（如 "commands.execute.conditional"），message() 原样
+     * 保留以便日志排查；展示给玩家/控制台时应使用本方法：按当前语言解析成可读文本，
+     * 找不到翻译时回退原文。
+     *
+     * @return 翻译后的错误文本
+     */
+    [[nodiscard]] std::string translatedMessage() const;
+
     [[nodiscard]] i32 cursor() const noexcept
     {
         return m_cursor;

@@ -190,6 +190,8 @@ function ravagerRoarDamagesNearbyEntities(test: Test): void {
   // 轮询：咆哮对羊造成 6 伤害后羊 HP<8（满血 8）。
   // startTick=40 留劫掠兽选目标+首次攻击+眩晕+咆哮时序（首次攻击≈tick 20，50% 眩晕后 40+10=50 tick 咆哮）。
   // maxTick=900 吸收 50% 眩晕非确定性（最坏连续 7 次不眩晕≈140 tick + 第 8 次眩晕 60 tick）。
+  // TODO: 该用例依赖 50% 随机眩晕（vanilla Ravager.blockedByItem），在 CI 上存在固有抖动；
+  //   彻底确定化需要给 GameTest 框架加「固定随机种子」能力，待后续实现。
   pollUntilSucceed(test, () => {
     // 每步重新朝向劫掠兽：玩家连续被击中/击退后朝向可能偏出盾牌的水平格挡角，
     // 一旦偏出，后续每次攻击都判不中角度（canBlock=true 但 inAngle=false），
@@ -197,6 +199,10 @@ function ravagerRoarDamagesNearbyEntities(test: Test): void {
     player.lookAtLocation({ x: 2.5, y: 2, z: 3.5 });
     // 同时重举盾：useItem 设的一次性格挡会在若干 tick 后自行结束，
     // 必须每步重新置位，否则后半程玩家其实裸奔（isUsingItem=false）。
+    // 重设主手盾牌再举盾：CI 无头环境下玩家主手槽可能在并行 tick 间被重置，
+    // setItem 的 selectSlot=true 会一并把选中槽同步回主手，确保 onItemRightClick
+    // 读到的 getHeldItem(MainHand) 非空（空手时 setActiveHand 会早返回，格挡不成立）。
+    player.setItem(shield as unknown as Parameters<typeof player.setItem>[0], 0, true);
     (player as any).useItem(shield as unknown as Parameters<typeof player.setItem>[0]);
     const sheeps = test.getDimension().getEntities({
       type: sheepType,
@@ -208,9 +214,16 @@ function ravagerRoarDamagesNearbyEntities(test: Test): void {
     if (health === undefined) return false;
     return (health as any).currentValue < 8;
   }, {
-    startTick: 40,
-    // 每 tick 校正一次朝向：极兽的攻击冷却 20 tick，若校正滞后一个 10 tick 的轮询周期，
-    // 格挡判定的时刻，朝向就可能已经偏出格挡角，这次 50% 的眩晕抽签根本没走到。
+    // startTick 取 1 而不是 40：轮询回调同时承担「每 tick 重举盾 + 校正朝向」的职责，
+    // 若从 40 才开始，前 40 tick 玩家只有 tick 0 那一次 useItem 设的格挡，可能在劫掠兽
+    // 首次攻击之前就已自行结束（tick 0 的朝向也可能已被首轮击退打偏）。CI 上的表现正是
+    // 整条链一次都没走通（sheepHp=8），本地因调度差异恰好能过。
+    startTick: 1,
+    // 在 CI（无头 Linux、并行 shard、每帧调度与本地不同）上观察到整条链一次都没走通的
+    // 情况：sheepHp=8、ravagers=1，说明劫掠兽存在但格挡从未成立。格挡需要玩家处于
+    // Survival 且 activeHand 已置位，这两项在无头环境下每 tick 都要重新确认。
+    // 每 tick 校正一次朝向与格挡：劫掠兽攻击冷却 20 tick，校正若滞后一个 10 tick 周期，
+    // 格挡判定时刻的朝向就可能已经偏出格挡角，这次 50% 的眩晕抽签根本没走到。
     interval: 1,
     maxTick: 900,
     onTimeout: () => {

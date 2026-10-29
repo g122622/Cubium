@@ -25,12 +25,18 @@
 
 #include <spdlog/async.h>
 #include <spdlog/async_logger.h>
+#include <spdlog/sinks/base_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#include "common/util/assert/AssertAll.hpp"
+
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace mc::application {
 
@@ -38,6 +44,46 @@ namespace {
 
 /// 溢出监控线程的采样间隔。1s 足够及时告警，又不过频占用 CPU。
 constexpr auto kMonitorInterval = std::chrono::seconds(1);
+
+/**
+ * @brief 把已格式化日志转发给 ILogLineConsumer 的 sink
+ *
+ * 只在 spdlog 异步消费线程上被调用。格式化后立刻回调消费者；消费者约定只做入队，
+ * 因此这里没有额外缓冲。
+ */
+class LineConsumerSink final : public spdlog::sinks::base_sink<std::mutex> {
+public:
+    explicit LineConsumerSink(std::shared_ptr<ILogLineConsumer> consumer)
+        : m_consumer(std::move(consumer))
+    {
+        // 与默认 logger 的终端 sink 使用同一格式，保证 UI 中看到的文本与控制台一致。
+        this->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%t] %v");
+    }
+
+protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override
+    {
+        spdlog::memory_buf_t formatted;
+        this->formatter_->format(msg, formatted);
+
+        // 去掉格式化结果末尾的换行：消费者按"一行一条"存储。
+        // fmt::basic_memory_buffer 没有 empty()/back()，按 data()+size() 自行裁剪。
+        usize size = formatted.size();
+        char* data = formatted.data();
+        while (size > 0 && (data[size - 1] == '\n' || data[size - 1] == '\r')) {
+            --size;
+        }
+
+        if (m_consumer) {
+            m_consumer->OnLogLine(msg.level, std::string_view(data, size));
+        }
+    }
+
+    void flush_() override {}
+
+private:
+    std::shared_ptr<ILogLineConsumer> m_consumer;
+};
 
 } // namespace
 
@@ -88,8 +134,61 @@ void LogManager::initialize()
     m_initialized = true;
 }
 
+void LogManager::installLineConsumer(std::shared_ptr<ILogLineConsumer> consumer)
+{
+    if (consumer == nullptr) {
+        return;
+    }
+
+    LogManager& manager = instance();
+    std::lock_guard<std::mutex> lock(manager.m_mutex);
+
+    MC_ASSERT_RELEASE_MSG(manager.m_initialized, "LogManager::installLineConsumer requires initialize() first");
+    MC_ASSERT_RELEASE_MSG(manager.m_lineSink == nullptr, "LogManager line consumer already installed");
+
+    auto logger = spdlog::default_logger();
+    MC_ASSERT_RELEASE_MSG(logger != nullptr, "LogManager default logger missing");
+
+    manager.m_lineConsumer = std::move(consumer);
+    manager.m_lineSink = std::make_shared<LineConsumerSink>(manager.m_lineConsumer);
+    logger->sinks().push_back(manager.m_lineSink);
+}
+
+void LogManager::uninstallLineConsumer()
+{
+    LogManager& manager = instance();
+
+    // 先取出并置空成员，再在锁外从 logger 摘除：spdlog 异步 logger 的 sinks() 由 logger 自身
+    // 互斥保护，与 m_mutex 无关；此处也不依赖二者顺序。
+    std::shared_ptr<ILogLineConsumer> consumer;
+    std::shared_ptr<spdlog::sinks::sink> sink;
+    {
+        std::lock_guard<std::mutex> lock(manager.m_mutex);
+        consumer = std::move(manager.m_lineConsumer);
+        sink = std::move(manager.m_lineSink);
+    }
+    if (sink == nullptr) {
+        return;
+    }
+
+    auto logger = spdlog::default_logger();
+    if (logger != nullptr) {
+        auto& sinks = logger->sinks();
+        sinks.erase(std::remove_if(sinks.begin(),
+                        sinks.end(),
+                        [&sink](const std::shared_ptr<spdlog::sinks::sink>& candidate) {
+                            return candidate == sink;
+                        }),
+            sinks.end());
+    }
+    // sink/consumer 在函数返回时销毁，晚于从 logger 摘除：异步消费线程不会再访问它们。
+}
+
 void LogManager::shutdown()
 {
+    // 先卸载日志行消费者：消费者可能持有 UI 对象，须在 UI 销毁前停止接收日志。
+    uninstallLineConsumer();
+
     // 停溢出监控线程（须在 spdlog::shutdown 之前，避免监控线程访问已销毁的 thread_pool）。
     stopOverflowMonitor();
 

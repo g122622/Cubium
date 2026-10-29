@@ -277,6 +277,20 @@ mc_set_compiler_warnings(mc_gen)
 # minecraft-server 能链接 mc_server_storage。
 add_subdirectory(world/storage)
 
+# 交互式终端（--interactive）依赖 FTXUI。vcpkg 导出的是组件目标 ftxui::{screen,dom,component}，
+# 不含 umbrella 别名 ftxui::ftxui，故使用组件目标 ftxui::component（它公开依赖 ftxui::dom）。
+#
+# 注意：FTXUI 的导出配置在 Windows 上带 INTERFACE_COMPILE_OPTIONS "/utf-8"（MSVC 语法），
+# 而本项目用 clang++（GNU 风格参数），直接 link 会把 "/utf-8" 当成文件参数而报
+# "clang++: error: no such file or directory: '/utf-8'"。源码是纯 ASCII、项目其它目标
+# 均不依赖该选项，故清除它；其余 FTXUI 用法不受影响。
+find_package(ftxui CONFIG REQUIRED)
+foreach(_ftxui_target ftxui::screen ftxui::dom ftxui::component)
+    if(TARGET ${_ftxui_target})
+        set_property(TARGET ${_ftxui_target} PROPERTY INTERFACE_COMPILE_OPTIONS "")
+    endif()
+endforeach()
+
 add_executable(minecraft-server
     main.cpp
     # 数据包驱动的物品定义加载器（乐器；注册表与标签容器位于 common）
@@ -286,6 +300,26 @@ add_executable(minecraft-server
     application/IntegratedServer.cpp
     application/MinecraftServer.cpp
     application/ServerApplicationEntry.cpp
+    # 交互式终端（--interactive）：日志区 + 状态面板 + 命令输入框（FTXUI）
+    application/console/ServerConsole.cpp
+    application/console/ui/TerminalUi.cpp
+    application/console/ui/ConsoleLayout.cpp
+    application/console/ui/LogViewComponent.cpp
+    application/console/ui/StatusPanelComponent.cpp
+    application/console/ui/CommandLineComponent.cpp
+    application/console/ui/CompletionPopupComponent.cpp
+    application/console/buffer/LogRingBuffer.cpp
+    application/console/buffer/EventRingBuffer.cpp
+    application/console/bridge/ConsoleLogConsumer.cpp
+    application/console/bridge/GameEventFeed.cpp
+    application/console/bridge/TerminalCommandSource.cpp
+    application/console/bridge/ConsoleCommandQueue.cpp
+    application/console/bridge/CompletionRequestQueue.cpp
+    application/console/input/CommandCompletion.cpp
+    application/console/metrics/ServerMetricsSnapshot.cpp
+    application/console/render/LineWrapper.cpp
+    application/console/render/PanelStats.cpp
+    application/console/render/PanelStatsCollector.cpp
     settings/ServerSettings.cpp
     # 新网络层（1.21.11 IR）：连接基座 + 会话门面 + 握手/配置 + Play 入站 + 出站构造
     # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
@@ -454,6 +488,8 @@ target_link_libraries(minecraft-server
         mc_common
         mc_bedrock_addon
         nlohmann_json::nlohmann_json
+        # 交互式终端（--interactive）。仅服务端 exe 使用：mc_common/mc_tests 等不链接 FTXUI。
+        ftxui::component
 )
 
 if(WIN32)

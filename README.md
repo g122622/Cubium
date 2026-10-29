@@ -27,6 +27,21 @@
 ./build/bin/RelWithDebInfo/minecraft-server --help
 ```
 
+### 交互式终端
+
+加上 `--interactive` 可在终端里得到 Claude Code 式界面：左侧滚动日志、右侧实时状态面板、底部命令输入框
+（`/` 开头执行命令，其它文本视为聊天广播；Tab 补全、↑/↓ 历史、PgUp/PgDn 与滚轮回看日志、Ctrl+Q 退出）。
+右侧面板展示 TPS/tick 耗时/在线玩家/区块/实体与内存（一位小数 + MiB）；点击面板上的
+`[refresh panel]`（或输入 `/panel`）刷新世界状态摘要（区块状态、方块与群系分布），
+`/panel block|biome <x> <y> <z>`、`/panel places [数量]` 可查看具体方块/群系。
+
+```bash
+./build/bin/RelWithDebInfo/minecraft-server --interactive --profiler_enabled=false
+```
+
+该模式要求 stdin 与 stdout 都是交互式终端：显式开启但输出被重定向时报错退出（默认不带此 flag 时行为完全不变）。
+`--gametest` / `--benchmark-exit-after-*` 等无头模式会忽略该 flag。
+
 ### macOS
 
 macOS 上 Vulkan 加载器（vcpkg 打包的 `libvulkan`）默认不会发现 Homebrew 安装的 MoltenVK 驱动，必须通过 `VK_ICD_FILENAMES` 指向 ICD 清单，否则 `vkCreateInstance` 会返回 `-9`（`VK_ERROR_INCOMPATIBLE_DRIVER`）。启动命令：

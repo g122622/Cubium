@@ -782,6 +782,7 @@ add_library(mc_common STATIC
 
     # Command
     command/CommandTreeSnapshot.cpp
+    command/exceptions/CommandExceptions.cpp
     command/arguments/EntityArgument.cpp
     command/arguments/FunctionArgument.cpp
     command/arguments/ItemArgument.cpp

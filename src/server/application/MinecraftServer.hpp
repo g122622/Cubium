@@ -123,6 +123,10 @@ namespace sync {
 class WeatherSyncService;
 } // namespace sync
 
+namespace console {
+class ServerConsole;
+} // namespace console
+
 namespace net {
 class ServerClientConnection;
 class PlayerBroadcaster;
@@ -217,6 +221,29 @@ public:
      * 直接引用测试框架（会破坏 client build）。回调在调用线程同步执行。
      */
     void addPostTickCallback(std::function<void()> callback);
+
+    /**
+     * @brief 获取交互式终端门面（`--interactive` 启用后才有实例）
+     *
+     * 非拥有指针：实例由 `ServerApplicationEntry` 持有并驱动生命周期，服务端只在
+     * `/panel` 命令需要写右侧面板时读取它。
+     *
+     * @return 交互式终端；未启用 `--interactive`（含集成服、无头模式）时返回 nullptr
+     */
+    [[nodiscard]] console::ServerConsole* serverConsole() noexcept
+    {
+        return m_serverConsole;
+    }
+
+    /**
+     * @brief 绑定交互式终端门面（由 `ServerConsole::attach` 调用，解绑传 nullptr）
+     *
+     * @param console 交互式终端实例
+     */
+    void setServerConsole(console::ServerConsole* console) noexcept
+    {
+        m_serverConsole = console;
+    }
 
     // ========== 核心管理器 ==========
 
@@ -1780,6 +1807,10 @@ protected:
     // post-tick 回调列表（经 addPostTickCallback 注册，tick() 末尾同步触发）。
     // 供仅服务端编译的子系统（GameTest GameTestTicker）接入主循环，避免共享 TU 引用 mc_test。
     std::vector<std::function<void()>> m_postTickCallbacks;
+
+    // 交互式终端门面（`--interactive`；非拥有，由 ServerApplicationEntry 持有）。
+    // 仅为 `/panel` 命令写右侧面板而暴露，未启用时为 nullptr。
+    console::ServerConsole* m_serverConsole = nullptr;
 
     // 天气同步服务（影子状态 + 主世界天气广播，下沉自 sendWeatherUpdate）
     std::unique_ptr<sync::WeatherSyncService> m_weatherSyncService;

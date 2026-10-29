@@ -28,7 +28,8 @@
     "gflags",
     "asmjit",
     "benchmark",
-    "simdjson"
+    "simdjson",
+    "ftxui"
   ],
   "features": {
     "vulkan": {

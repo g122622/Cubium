@@ -458,6 +458,14 @@ public:
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override;
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override;
+    /**
+     * @brief 该 AABB 是否不与任何方块碰撞箱相交（对齐 vanilla Level.hasNoCollisions）
+     *
+     * 基类 IWorld 的默认实现无条件返回 true，仅适用于无方块存储的桩世界；
+     * ServerWorld 必须覆盖，否则依赖它的飞行/寻路/命中判断全部失效。
+     */
+    [[nodiscard]] bool hasNoCollisions(const AxisAlignedBB& box) const override;
+
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override;
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override;
     [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB& box, const Entity* except = nullptr) const override;

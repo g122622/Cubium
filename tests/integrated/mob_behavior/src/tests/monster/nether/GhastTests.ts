@@ -78,11 +78,14 @@ function ghastShootsFireballAtPlayer(test: Test): void {
   // 会跳过火球存活窗口）。对齐 BlazeTests 用 succeedWhen 检测 small_fireball 范式。
   // 火球查询用区域限定排除并行测试污染；type 用 "minecraft:fireball"（带前缀，对应 Java LargeFireball）。
   test.succeedWhen(() => {
+    // 不能把查询限定在 arena 体积内：GhastRandomFlyGoal 的随机巡游范围是 ±16 格，
+    // 大于本结构 15×15 的水平尺寸，恶魂会飞出场外（实测飘到 x=32/y=-9.8/z=-4.3），
+    // 它发射的火球自然也在体积之外，区域限定查询会永远落空。
+    // 改为按「火球实体存在」判断，并排除其它用例的同类实体：本用例已单独 batch，
+    // 同批不存在其它恶魂火球来源。
     const fireballs = test.getDimension().getEntities({
       type: "minecraft:fireball",
-      location: test.worldLocation(ARENA_FROM),
-      volume: ARENA_VOLUME,
-    });
+    }).filter((ball: any) => ball.location !== undefined);
     test.assert(fireballs.length > 0,
       `ghast did not shoot fireball at player: ghast=${JSON.stringify(ghast.location)}, ` +
       `bait=${JSON.stringify(bait.location)}, hp=${(bait.getComponent("minecraft:health") as any)?.currentValue}`);

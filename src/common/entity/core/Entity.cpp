@@ -1376,9 +1376,19 @@ void Entity::_handleLandingOnBlock()
     if (m_world == nullptr) {
         return;
     }
-    // 获取实体脚下方块
+    // 获取实体脚下方块——对齐 vanilla Entity.getOnPosLegacy()（= getOnPos(0.2F)，
+    // 其落点 Y 为 Mth.floor(position.y - 0.2F)）。
+    //
+    // 此前用的是 `floor(pos.y) - 1`：脚在 y=5.9375 时算出 y=4，而实体真正站在
+    // y=5 那个方块的顶面上（0.9375 是 farmland 类非完整方块的高度），于是落地回调
+    // 被派发给了下一层的方块。farmland 践踏用例因此永远踩不到耕地——猪确实落在了
+    // 耕地上，只是 onFallenUpon 问错了方块。
+    //
+    // 注意不能简单改用 floor(pos.y)：贴着完整方块顶面站立时 pos.y 恰为整数（如 6.0），
+    // floor 会得到 6 而不是脚下的 5。减 0.2 的容差正是 vanilla 用来区分这两种情形的。
+    constexpr f32 kOnPosTolerance = 0.2f;
     BlockPos landingPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
-        static_cast<i32>(m_builtIn.stateVector->m_pos.y) - 1,
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - kOnPosTolerance)),
         static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     const BlockState* state = m_world->getBlockState(landingPos);
     if (state != nullptr) {

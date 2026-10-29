@@ -40,6 +40,7 @@
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -266,6 +267,34 @@ void RavagerEntity::blockedByItem(LivingEntity& victim)
     //     施加 0.5 击退——劫掠兽有 75% 击退抗性，且 Java Ravager.blockedByItem 不调 super，
     //     故完全覆盖基类行为）。
     constructKnockBackVector(&victim);
+}
+
+// 存档：攻击/眩晕/咆哮三个计时器（对齐 vanilla Ravager.addAdditionalSaveData 的
+// AttackTick / StunTick / RoarTick）。不持久化的话，读档后正在进行的攻击动画、
+// 眩晕与咆哮会全部丢失，劫掠兽直接恢复静止，与原版行为不一致。
+void RavagerEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    AbstractRaiderEntity::addAdditionalSaveData(tag);
+
+    tag.put("AttackTick", m_attackTick);
+    tag.put("StunTick", m_stunTick);
+    tag.put("RoarTick", m_roarTick);
+}
+
+Result<void> RavagerEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(AbstractRaiderEntity::readAdditionalSaveData(tag));
+
+    if (auto val = entity::serialization::nbt_helper::tryGetInt(tag, "AttackTick")) {
+        m_attackTick = *val;
+    }
+    if (auto val = entity::serialization::nbt_helper::tryGetInt(tag, "StunTick")) {
+        m_stunTick = *val;
+    }
+    if (auto val = entity::serialization::nbt_helper::tryGetInt(tag, "RoarTick")) {
+        m_roarTick = *val;
+    }
+    return {};
 }
 
 void RavagerEntity::_roar()

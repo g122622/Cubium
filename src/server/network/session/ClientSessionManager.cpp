@@ -32,6 +32,8 @@
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/event/events/ServerEvents.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/network/handshake/LoginFlow.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
@@ -188,9 +190,13 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
         // hasConnection()（= connection && connection->isConnected()）此刻恒为 false，
         // 用它会让离场广播永不发出。
         std::optional<std::array<u8, 16>> departedUuid;
-        if (const auto* playerData = m_server.playerManager().getPlayer(playerId);
-            playerData != nullptr && !playerData->uuid.empty()) {
-            departedUuid = util::uuidFromString(playerData->uuid);
+        std::string departedName;
+        if (const auto* playerData = m_server.playerManager().getPlayer(playerId); playerData != nullptr) {
+            if (!playerData->uuid.empty()) {
+                departedUuid = util::uuidFromString(playerData->uuid);
+            }
+            // 玩家名同样必须在 removePlayer 之前取快照（之后数据即被销毁）。
+            departedName = playerData->username;
         }
 
         // 销毁背包菜单。须在移除实体之前——菜单销毁时会把光标上的物品归还玩家背包，
@@ -216,6 +222,11 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
             m_server.broadcastPacket(mc::network::ir::IrPacket{
                 mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{removal}});
         }
+
+        // 玩家离开事件：终端控制台、基岩脚本桥（playerLeave）等订阅方依赖它。
+        // 名字已在上方 removePlayer 之前取好快照。
+        event::ServerEventBus::instance().publish(
+            event::PlayerLogoutEvent(m_server.currentTick(), playerId, departedName, "disconnected"));
     }
 }
 

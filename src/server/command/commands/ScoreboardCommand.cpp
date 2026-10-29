@@ -557,7 +557,7 @@ i32 ScoreboardCommand::_listObjectives(CommandContext<ServerCommandSource>& cont
 i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("target");
+    const std::string target = context.getArgument<std::string>("targets");
     const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
@@ -603,7 +603,7 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("target");
+    const std::string target = context.getArgument<std::string>("targets");
     const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
@@ -650,7 +650,7 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("target");
+    const std::string target = context.getArgument<std::string>("targets");
     const std::string objectiveName = context.getArgument<std::string>("objective");
     const i32 score = context.getArgument<i32>("score");
 
@@ -727,7 +727,7 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::_getScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("target");
+    const std::string target = context.getArgument<std::string>("targets");
     const std::string objectiveName = context.getArgument<std::string>("objective");
 
     // 获取记分板
@@ -813,7 +813,7 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
 i32 ScoreboardCommand::_listPlayers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("target");
+    const std::string target = context.getArgument<std::string>("targets");
 
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
@@ -953,7 +953,7 @@ i32 ScoreboardCommand::_displayPlayerScore(CommandContext<ServerCommandSource>& 
 i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string targets = context.getArgument<std::string>("target");
+    const std::string targets = context.getArgument<std::string>("targets");
     const std::string objectiveName = context.getArgument<std::string>("targetObjective");
     const std::string operation = context.getArgument<std::string>("operation");
     const std::string sourceName = context.getArgument<std::string>("source");

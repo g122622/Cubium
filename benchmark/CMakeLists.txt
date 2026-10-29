@@ -78,6 +78,9 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
         # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 minecraft-server 共用）
         ${MC_SERVER_COMMAND_SOURCES_ABS}
+        # /panel 命令引用的面板统计逻辑（纯逻辑，不依赖 FTXUI）
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStats.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStatsCollector.cpp
         # 自然生成（ServerWorld::tick 引用）
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp

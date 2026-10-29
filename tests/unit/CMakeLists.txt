@@ -1075,6 +1075,11 @@ add_executable(mc_tests
     server/world/spawn/NaturalSpawnerCapTest.cpp
     # 数据包生成列表实体的分类黄金表（防止注册分类与数据包列表口径错配复发）
     server/world/spawn/SpawnListClassificationGoldenTest.cpp
+    # 交互式终端的基础设施（缓冲/命令队列/输入规范化/补全状态机）。
+    # 只测不依赖 FTXUI 的纯逻辑：UI 组件本身不做单测。
+    server/console/ConsoleBuffersTest.cpp
+    # 折行/宽度计算与面板统计文本格式化（同样是纯逻辑，不依赖 FTXUI）
+    server/console/ConsoleRenderTest.cpp
     server/command/CommandRegistryTest.cpp
     server/command/LocateCommandTest.cpp
     server/command/SetBlockCommandTest.cpp
@@ -2000,6 +2005,15 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
+        # 交互式终端中不依赖 FTXUI 的纯逻辑部分（缓冲/命令队列/输入规范化/补全状态机）。
+        # UI 组件依赖 FTXUI，仅 minecraft-server exe 链接，不在此编译。
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/buffer/LogRingBuffer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/buffer/EventRingBuffer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/bridge/ConsoleCommandQueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/input/CommandCompletion.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/LineWrapper.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStats.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStatsCollector.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
