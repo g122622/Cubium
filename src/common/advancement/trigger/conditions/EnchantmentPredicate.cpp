@@ -50,7 +50,7 @@ namespace {
 
 EnchantmentPredicate::EnchantmentPredicate(std::optional<ResourceLocation> enchantment, IntBounds levels)
     : m_enchantment(std::move(enchantment))
-    , m_levels(std::move(levels))
+    , m_levels(levels)
 {}
 
 std::optional<i32> EnchantmentPredicate::_findLevel(const item::enchant::EnchantmentContainer& enchantments,
@@ -161,7 +161,8 @@ Result<EnchantmentPredicate> EnchantmentPredicate::fromJson(const nlohmann::json
         }
     }
 
-    EnchantmentPredicate predicate(std::move(enchantment), std::move(levels));
+    // IntBounds 是可平凡拷贝的小值类型，按值传入即可，move 不会有任何效果。
+    EnchantmentPredicate predicate(std::move(enchantment), levels);
     predicate.m_enchantmentTag = std::move(enchantmentTag);
     return predicate;
 }
