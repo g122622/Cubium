@@ -401,6 +401,10 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
         }
 
         // 尝试找到可堆叠的槽位
+        // TODO: 对齐 vanilla org.bukkit.craftbukkit BaseContainerBlockEntity.unpackLootTable 的
+        //       setItem(slot, stack) 语义——原版这里不合并，第一个可用槽位直接放置整堆；
+        //       本实现会把同类物品并进已有槽位，箱子内容与散落方式因此与原版不同。
+        //       需要的校验：loot_table_container harness（把满载的箱子逐槽导出与 oracle 比对）。
         for (i32 slot = 0; slot < containerSize && !stack.isEmpty(); ++slot) {
             ItemStack existing = inventory->getItem(slot);
             if (!existing.isEmpty() && existing.canMergeWith(stack) &&

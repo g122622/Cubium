@@ -182,6 +182,10 @@ public:
         }
 
         // horse./forge. 是项目自定义命名空间，注册表里就是这个形态，原样返回。
+        // 例外：1.21 起重力是原版属性，旧的 forge.entity_gravity 要解析到 minecraft:gravity。
+        if (normalized == "forge.entity_gravity" && isKnown("minecraft:gravity")) {
+            return "minecraft:gravity";
+        }
         // zombie.spawn_reinforcements 是 1.16.5 的旧名，原版现在叫 minecraft:spawn_reinforcements，
         // 先按「去掉前缀再查」尝试，查不到才原样返回。
         if (normalized.starts_with("horse.") || normalized.starts_with("forge.")) {
@@ -197,8 +201,14 @@ public:
         if (isKnown(canonical)) {
             return canonical;
         }
-        // 项目自定义的非原版属性（如 entity_gravity → forge.entity_gravity）仍按项目命名空间
-        // 补全，保持命令里的短名可用。
+        // 1.21 起原版自带 minecraft:gravity，旧的 Forge 名 forge.entity_gravity 与短名
+        // entity_gravity 都应落到它上面（数据包与命令里两种写法都有）。
+        if (normalized == "entity_gravity" || normalized == "forge.entity_gravity") {
+            if (isKnown("minecraft:gravity")) {
+                return "minecraft:gravity";
+            }
+        }
+        // 其余项目自定义的非原版属性仍按项目命名空间补全，保持命令里的短名可用。
         const std::string withForge = "forge." + normalized;
         if (isKnown(withForge)) {
             return withForge;
@@ -252,6 +262,16 @@ private:
         registerAttribute(*Attributes::oxygenBonus());
         registerAttribute(*Attributes::burningTime());
         registerAttribute(*Attributes::explosionKnockbackResistance());
+        registerAttribute(*Attributes::blockBreakSpeed());
+        registerAttribute(*Attributes::stepHeight());
+        registerAttribute(*Attributes::scale());
+        registerAttribute(*Attributes::temptRange());
+        registerAttribute(*Attributes::cameraDistance());
+        registerAttribute(*Attributes::miningEfficiency());
+        registerAttribute(*Attributes::submergedMiningSpeed());
+        registerAttribute(*Attributes::waterMovementEfficiency());
+        registerAttribute(*Attributes::sneakingSpeed());
+        registerAttribute(*Attributes::sweepingDamageRatio());
     }
 
     std::unordered_map<std::string, std::unique_ptr<Attribute>> m_attributes;

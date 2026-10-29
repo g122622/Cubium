@@ -183,7 +183,9 @@ inline std::unique_ptr<Attribute> luck()
  */
 inline std::unique_ptr<Attribute> maxAbsorption()
 {
-    return std::make_unique<Attribute>("generic.max_absorption", 0.0, 0.0, 2048.0);
+    // 1.21 起原版注册名是 `minecraft:max_absorption`；沿用 `generic.` 会让按名查找与
+    // 数据组件、命令里的 `minecraft:max_absorption` 全部落空。
+    return std::make_unique<Attribute>("minecraft:max_absorption", 0.0, 0.0, 2048.0);
 }
 
 /**
@@ -203,12 +205,13 @@ inline std::unique_ptr<Attribute> breathMax()
  * @brief 跳跃力
  *
  * 决定实体起跳时的垂直初速度，由 getJumpPower() 消费。
- * 默认值: 0.42
+ * 默认值: 0.42f（原版是 RangedAttribute(..., 0.42F, 0.0, 32.0)，0.42 先过 f32 再拓宽成
+ *   double；直接写 0.42 会被当成 double 字面量，末位与原版差 1ulp）
  * 范围: 0.0 ~ 32.0
  */
 inline std::unique_ptr<Attribute> jumpStrength()
 {
-    return std::make_unique<Attribute>("minecraft:jump_strength", 0.42, 0.0, 32.0);
+    return std::make_unique<Attribute>("minecraft:jump_strength", static_cast<f64>(0.42f), 0.0, 32.0);
 }
 
 /**
@@ -246,17 +249,18 @@ inline std::unique_ptr<Attribute> zombieSpawnReinforcements()
 // ============================================================================
 
 /**
- * @brief 实体重力 (Forge 扩展)
+ * @brief 实体重力
  *
  * 决定实体受到的重力加速度（blocks/tick²）。
- * Forge 注册名: forge.entity_gravity
- * 默认值: 0.08 (MC 标准)
- * 范围: -8.0 ~ 8.0 (Forge 允许负重力)
- * 注意：缓降药水会修改此属性
+ * 1.21 起原版自带该属性（Attributes.java:45-47，
+ * RangedAttribute("attribute.name.gravity", 0.08, -1.0, 1.0)），注册名 `minecraft:gravity`；
+ * 旧实现沿用 Forge 的 `forge.entity_gravity` 并把范围写成 ±8，与 Java 客户端下发的
+ * 属性 id 对不上，按名查找 `minecraft:gravity` 也会落空。
+ * 默认值: 0.08，范围: -1.0 ~ 1.0
  */
 inline std::unique_ptr<Attribute> entityGravity()
 {
-    return std::make_unique<Attribute>("forge.entity_gravity", 0.08, -8.0, 8.0);
+    return std::make_unique<Attribute>("minecraft:gravity", 0.08, -1.0, 1.0);
 }
 
 /**
@@ -372,79 +376,6 @@ inline std::unique_ptr<Attribute> explosionKnockbackResistance()
 }
 
 /**
- * @brief 挖掘效率加成
- *
- * 对齐 vanilla 1.21.11 的 mining_efficiency 属性
- *（Attributes.java:61-62，RangedAttribute("attribute.name.mining_efficiency", 0.0, 0.0, 1024.0)）。
- *
- * 消费点：挖掘速度计算（Player::getDigSpeed / MiningManager::_calculateDigSpeedMultiplier），
- * 对齐 vanilla Player.getDestroySpeed 的「工具基础速度 > 1 时叠加本属性值」。
- * 效率附魔通过 enchantment.efficiency 修饰符（Op0 ADD_VALUE，每级 amount = level² + 1）注入。
- *
- * 默认值: 0.0
- * 范围: 0.0 ~ 1024.0
- */
-inline std::unique_ptr<Attribute> miningEfficiency()
-{
-    return std::make_unique<Attribute>("minecraft:mining_efficiency", 0.0, 0.0, 1024.0);
-}
-
-/**
- * @brief 水下挖掘速度乘数
- *
- * 对齐 vanilla 1.21.11 的 submerged_mining_speed 属性
- *（Attributes.java:88-89，RangedAttribute("attribute.name.submerged_mining_speed", 0.2, 0.0, 20.0)）。
- *
- * 消费点：挖掘速度计算——眼睛在水中时，最终速度乘以本属性值
- *（对齐 vanilla Player.getDestroySpeed 的 `f *= getAttribute(SUBMERGED_MINING_SPEED).getValue()`）。
- * 默认 0.2 即水下挖掘只有陆地的 1/5；水下速掘附魔通过 enchantment.aqua_affinity 修饰符
- * （Op2 MULTIPLY_TOTAL，+4.0）把该值抬到 1.0，恢复为陆地速度。
- *
- * 默认值: 0.2
- * 范围: 0.0 ~ 20.0
- */
-inline std::unique_ptr<Attribute> submergedMiningSpeed()
-{
-    return std::make_unique<Attribute>("minecraft:submerged_mining_speed", 0.2, 0.0, 20.0);
-}
-
-/**
- * @brief 水中移动效率
- *
- * 对齐 vanilla 1.21.11 的 water_movement_efficiency 属性
- *（Attributes.java:95-96，RangedAttribute("attribute.name.water_movement_efficiency", 0.0, 0.0, 1.0)）。
- *
- * 消费点：水中移动（LivingEntity::travelInWater，对齐 vanilla LivingEntity.java:2391-2401）：
- * 本属性值 f2 在 [0,1] 内线性插值把水中阻尼与水中的最小移动速度推向陆地的取值。
- * 深海探索者附魔通过 enchantment.depth_strider 修饰符（Op0 ADD_VALUE，每级 +0.33333334）注入。
- *
- * 默认值: 0.0
- * 范围: 0.0 ~ 1.0
- */
-inline std::unique_ptr<Attribute> waterMovementEfficiency()
-{
-    return std::make_unique<Attribute>("minecraft:water_movement_efficiency", 0.0, 0.0, 1.0);
-}
-
-/**
- * @brief 潜行速度
- *
- * 对齐 vanilla 1.21.11 的 sneaking_speed 属性
- *（Attributes.java:79-80，RangedAttribute("attribute.name.sneaking_speed", 0.3, 0.0, 1.0)）。
- *
- * 消费点：玩家潜行时的移动速度乘数（Player::_applyMovementSpeed / travel 内的潜行分支，
- * 对齐 vanilla LocalPlayer.java:701 的 `f = getAttributeValue(SNEAKING_SPEED)`）。
- * 迅捷潜行附魔通过 enchantment.swift_sneak 修饰符（Op0 ADD_VALUE，每级 +0.15）注入。
- *
- * 默认值: 0.3（潜行为步行速度的 30%，与旧的常量倍率一致）
- * 范围: 0.0 ~ 1.0
- */
-inline std::unique_ptr<Attribute> sneakingSpeed()
-{
-    return std::make_unique<Attribute>("minecraft:sneaking_speed", 0.3, 0.0, 1.0);
-}
-
-/**
  * @brief 横扫伤害比例
  *
  * 对齐 vanilla 1.21.11 的 sweeping_damage_ratio 属性
@@ -460,6 +391,168 @@ inline std::unique_ptr<Attribute> sneakingSpeed()
 inline std::unique_ptr<Attribute> sweepingDamageRatio()
 {
     return std::make_unique<Attribute>("minecraft:sweeping_damage_ratio", 0.0, 0.0, 1.0);
+}
+
+/**
+ * @brief 挖掘效率加成
+ *
+ * 对齐 vanilla 1.21.11 的 mining_efficiency 属性
+ *（Attributes.java:61-62，RangedAttribute("attribute.name.mining_efficiency", 0.0, 0.0, 1024.0)）。
+ *
+ * 消费点：挖掘速度——工具对目标方块有效时叠加到基础速度上（对齐 vanilla
+ * Player.getDestroySpeed 的 `if (f > 1.0F) f += getAttributeValue(MINING_EFFICIENCY)`）。
+ * 效率附魔通过 enchantment.efficiency 修饰符（Op0 ADD_VALUE，level² + 1）注入。
+ *
+ * 默认值: 0.0
+ * 范围: 0.0 ~ 1024.0
+ */
+inline std::unique_ptr<Attribute> miningEfficiency()
+{
+    return std::make_unique<Attribute>("minecraft:mining_efficiency", 0.0, 0.0, 1024.0);
+}
+
+/**
+ * @brief 水下挖掘速度乘数
+ *
+ * 对齐 vanilla 1.21.11 的 submerged_mining_speed 属性
+ *（Attributes.java:88-89，RangedAttribute("attribute.name.submerged_mining_speed", 0.2, 0.0, 20.0)）。
+ *
+ * 消费点：眼睛在水中时挖掘速度乘以本属性值。默认 0.2 即水下只有陆地的 1/5；
+ * 水下速掘附魔通过 enchantment.aqua_affinity 修饰符（Op2 MULTIPLY_TOTAL +4.0）把它抬到 1.0。
+ *
+ * 默认值: 0.2
+ * 范围: 0.0 ~ 20.0
+ */
+inline std::unique_ptr<Attribute> submergedMiningSpeed()
+{
+    return std::make_unique<Attribute>("minecraft:submerged_mining_speed", 0.2, 0.0, 20.0);
+}
+
+/**
+ * @brief 水中移动效率
+ *
+ * 对齐 vanilla 1.21.11 的 water_movement_efficiency 属性
+ *（Attributes.java:95-96，RangedAttribute("attribute.name.water_movement_efficiency", 0.0, 0.0, 1.0)）。
+ *
+ * 消费点：水中移动的阻力与输入速度插值（LivingEntity::travelInWater / Player::_handleWaterMovement）。
+ * 深海探索者附魔通过 enchantment.depth_strider 修饰符（Op0 ADD_VALUE，每级 0.33333334）注入。
+ *
+ * 默认值: 0.0
+ * 范围: 0.0 ~ 1.0
+ */
+inline std::unique_ptr<Attribute> waterMovementEfficiency()
+{
+    return std::make_unique<Attribute>("minecraft:water_movement_efficiency", 0.0, 0.0, 1.0);
+}
+
+/**
+ * @brief 潜行速度
+ *
+ * 对齐 vanilla 1.21.11 的 sneaking_speed 属性
+ *（Attributes.java:79-80，RangedAttribute("attribute.name.sneaking_speed", 0.3, 0.0, 1.0)）。
+ *
+ * 消费点：玩家潜行时的移动速度乘数（Player::_applyMovementSpeed / travel 的潜行分支）。
+ * 迅捷潜行附魔通过 enchantment.swift_sneak 修饰符（Op0 ADD_VALUE，每级 +0.15）注入。
+ *
+ * 默认值: 0.3
+ * 范围: 0.0 ~ 1.0
+ */
+inline std::unique_ptr<Attribute> sneakingSpeed()
+{
+    return std::make_unique<Attribute>("minecraft:sneaking_speed", 0.3, 0.0, 1.0);
+}
+
+/**
+ * @brief 方块破坏速度倍率
+ *
+ * 对齐 vanilla 1.21.11 的 block_break_speed 属性
+ *（Attributes.java:19-21，RangedAttribute("attribute.name.block_break_speed", 1.0, 0.0, 1024.0)）。
+ *
+ * 消费点：挖掘速度——最终速度乘以本属性值（对齐 vanilla Player.getDestroySpeed 的
+ * `f *= getAttributeValue(BLOCK_BREAK_SPEED)`）。默认 1.0 不改变速度；目前原版没有附魔或
+ * 效果修饰它，属于「给数据包/命令预留」的属性。
+ *
+ * TODO: 接通挖掘速度的消费点（Player::getDigSpeed / MiningManager::_calculateDigSpeedMultiplier），
+ *       当前只注册了定义，还没有任何代码读取它。
+ *
+ * 默认值: 1.0
+ * 范围: 0.0 ~ 1024.0
+ */
+inline std::unique_ptr<Attribute> blockBreakSpeed()
+{
+    return std::make_unique<Attribute>("minecraft:block_break_speed", 1.0, 0.0, 1024.0);
+}
+
+/**
+ * @brief 台阶高度
+ *
+ * 对齐 vanilla 1.21.11 的 step_height 属性
+ *（Attributes.java:85-87，RangedAttribute("attribute.name.step_height", 0.6, 0.0, 10.0)）。
+ *
+ * 决定实体不跳跃就能跨过的最大高度。马类与部分生物会把它调高。
+ *
+ * TODO: 接通消费点——移动与寻路里的台阶判定目前仍用固定 0.6，没有读这个属性。
+ *
+ * 默认值: 0.6
+ * 范围: 0.0 ~ 10.0
+ */
+inline std::unique_ptr<Attribute> stepHeight()
+{
+    return std::make_unique<Attribute>("minecraft:step_height", 0.6, 0.0, 10.0);
+}
+
+/**
+ * @brief 实体缩放
+ *
+ * 对齐 vanilla 1.21.11 的 scale 属性
+ *（Attributes.java:76-78，RangedAttribute("attribute.name.scale", 1.0, 0.0625, 16.0)）。
+ *
+ * 决定碰撞箱、渲染与视高的整体缩放比例（幼年生物、缩小/放大效果）。
+ *
+ * TODO: 接通消费点——实体尺寸目前由 EntitySize 直接给出，没有乘以本属性。
+ *
+ * 默认值: 1.0
+ * 范围: 0.0625 ~ 16.0
+ */
+inline std::unique_ptr<Attribute> scale()
+{
+    return std::make_unique<Attribute>("minecraft:scale", 1.0, 0.0625, 16.0);
+}
+
+/**
+ * @brief 视角距离
+ *
+ * 对齐 vanilla 1.21.11 的 camera_distance 属性
+ *（Attributes.java:28-30，RangedAttribute("attribute.name.camera_distance", 4.0, 0.0, 32.0)）。
+ *
+ * 决定第三人称视角相机与实体的距离（狼坐下、监听者等会调整）。
+ *
+ * TODO: 接通消费点——相机距离目前是客户端写死的常量，没有读这个属性。
+ *
+ * 默认值: 4.0
+ * 范围: 0.0 ~ 32.0
+ */
+inline std::unique_ptr<Attribute> cameraDistance()
+{
+    return std::make_unique<Attribute>("minecraft:camera_distance", 4.0, 0.0, 32.0);
+}
+
+/**
+ * @brief 吸引范围
+ *
+ * 对齐 vanilla 1.21.11 的 tempt_range 属性
+ *（Attributes.java:94，RangedAttribute("attribute.name.tempt_range", 10.0, 0.0, 2048.0)）。
+ *
+ * 决定手持诱饵物品时生物开始跟随的最大距离（猪/牛/羊/鸡等）。
+ *
+ * TODO: 接通消费点——TemptGoal 目前用的是写死的 10.0。
+ *
+ * 默认值: 10.0
+ * 范围: 0.0 ~ 2048.0
+ */
+inline std::unique_ptr<Attribute> temptRange()
+{
+    return std::make_unique<Attribute>("minecraft:tempt_range", 10.0, 0.0, 2048.0);
 }
 
 /**
@@ -537,13 +630,18 @@ constexpr const char* SNEAKING_SPEED = "minecraft:sneaking_speed";
 constexpr const char* SWEEPING_DAMAGE_RATIO = "minecraft:sweeping_damage_ratio";
 
 // 非原版属性（项目自定义或Forge扩展）
-constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
+constexpr const char* MAX_ABSORPTION = "minecraft:max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属性（控制最大氧气值），Java
                                                          // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
 constexpr const char* OXYGEN_BONUS = "minecraft:oxygen_bonus";
 constexpr const char* BURNING_TIME = "minecraft:burning_time";
 constexpr const char* EXPLOSION_KNOCKBACK_RESISTANCE = "minecraft:explosion_knockback_resistance";
-constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
+constexpr const char* ENTITY_GRAVITY = "minecraft:gravity";
+constexpr const char* BLOCK_BREAK_SPEED = "minecraft:block_break_speed";
+constexpr const char* STEP_HEIGHT = "minecraft:step_height";
+constexpr const char* SCALE = "minecraft:scale";
+constexpr const char* TEMPT_RANGE = "minecraft:tempt_range";
+constexpr const char* CAMERA_DISTANCE = "minecraft:camera_distance";
 
 } // namespace Attributes
 

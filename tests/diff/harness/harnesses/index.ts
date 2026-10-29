@@ -286,6 +286,20 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         unorderedArrays: ["levels/attributes"],
     }),
     () => ({
+        // 属性定义本身：注册名、默认值、取值上下限（按位输出，不做浮点规范化）。
+        name: "attribute_range",
+        oracle: "AttributeRangeOracle",
+        input: (unit: string) => ({ attribute: unit }),
+        key: "attribute",
+        // 项目自研的非原版属性（horse.jump_strength 等）：原版注册表里没有，取值范围无从比对，
+        // 只比原版有据可查的那部分。必须显式登记，不能静默放过。
+        projectOnly: {
+            field: "attribute",
+            extra: ["horse.jump_strength"],
+            drop: (record, matches) => (matches(String(record["attribute"])) ? {} : record),
+        },
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),

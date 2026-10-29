@@ -42,18 +42,18 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
-#include <string>
 #include <iterator>
+#include <string>
 #include <string_view>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/damage/DamageSource.hpp"
-#include "common/item/enchantment/Enchantment.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 
 #include "probe.hpp"
@@ -150,8 +150,10 @@ std::string runLine(std::string_view inputLine)
         // Cubium 的保护掩码是前缀匹配：泛保护（掩码 0）对每一类都返回同样的点数，
         // 原版则把泛保护写成「无条件的一条」，只算一次。两者表达的是同一件事，
         // 因此当各类取值与 none 完全相同时只保留 none（其余类别这时不携带额外信息）。
-        const bool allEqualNone = std::all_of(std::next(protectionPoints.begin()), protectionPoints.end(),
-            [&protectionPoints](i32 value) { return value == protectionPoints[0]; });
+        const bool allEqualNone =
+            std::all_of(std::next(protectionPoints.begin()), protectionPoints.end(), [&protectionPoints](i32 value) {
+                return value == protectionPoints[0];
+            });
         for (size_t index = 0; index < kCount; ++index) {
             protection[kProtectionCategories[index].name] = allEqualNone && index > 0 ? 0 : protectionPoints[index];
         }
@@ -167,8 +169,9 @@ std::string runLine(std::string_view inputLine)
                 {"id", entry.modifier.id()},
                 {"operation", operationText(entry.modifier.operation())},
                 {"amount", entry.modifier.amount()},
-                {"slot", entity::serialization::EquipmentSlotNames::toName(
-                             static_cast<EquipmentSlot>(entry.equipmentSlot))}});
+                {"slot",
+                    entity::serialization::EquipmentSlotNames::toName(
+                        static_cast<EquipmentSlot>(entry.equipmentSlot))}});
         }
         entry["attributes"] = std::move(attributes);
         levels.push_back(std::move(entry));

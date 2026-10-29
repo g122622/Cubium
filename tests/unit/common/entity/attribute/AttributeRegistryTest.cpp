@@ -62,7 +62,19 @@ TEST(AttributeRegistryTest, AllBuiltinAttributesAreRegistered)
     EXPECT_TRUE(registry.isKnown(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS));
 
     // Forge 扩展属性
+    // 1.21 起重力是原版属性 minecraft:gravity（旧的 forge.entity_gravity 已并入）。
     EXPECT_TRUE(registry.isKnown(Attributes::ENTITY_GRAVITY));
+    // 1.21 新增、此前缺失的原版属性。
+    EXPECT_TRUE(registry.isKnown(Attributes::BLOCK_BREAK_SPEED));
+    EXPECT_TRUE(registry.isKnown(Attributes::STEP_HEIGHT));
+    EXPECT_TRUE(registry.isKnown(Attributes::SCALE));
+    EXPECT_TRUE(registry.isKnown(Attributes::TEMPT_RANGE));
+    EXPECT_TRUE(registry.isKnown(Attributes::CAMERA_DISTANCE));
+    EXPECT_TRUE(registry.isKnown(Attributes::MINING_EFFICIENCY));
+    EXPECT_TRUE(registry.isKnown(Attributes::SUBMERGED_MINING_SPEED));
+    EXPECT_TRUE(registry.isKnown(Attributes::WATER_MOVEMENT_EFFICIENCY));
+    EXPECT_TRUE(registry.isKnown(Attributes::SNEAKING_SPEED));
+    EXPECT_TRUE(registry.isKnown(Attributes::SWEEPING_DAMAGE_RATIO));
 
     // MC 1.21+ 新增属性
     EXPECT_TRUE(registry.isKnown(Attributes::MOVEMENT_EFFICIENCY));
@@ -125,12 +137,15 @@ TEST(AttributeRegistryTest, ArmorRangeIsCorrect)
     EXPECT_DOUBLE_EQ(maxVal, 30.0);
 }
 
-TEST(AttributeRegistryTest, EntityGravityRangeSupportsNegativeValues)
+TEST(AttributeRegistryTest, EntityGravityRangeMatchesVanilla)
 {
+    // vanilla Attributes.java:45-47：gravity 默认 0.08，范围 [-1.0, 1.0]
+    // （旧实现沿用 Forge 的 ±8.0，与原版不一致）。
     auto& registry = AttributeRegistry::instance();
     auto [minVal, maxVal] = registry.getRange(Attributes::ENTITY_GRAVITY);
-    EXPECT_DOUBLE_EQ(minVal, -8.0);
-    EXPECT_DOUBLE_EQ(maxVal, 8.0);
+    EXPECT_DOUBLE_EQ(minVal, -1.0);
+    EXPECT_DOUBLE_EQ(maxVal, 1.0);
+    EXPECT_DOUBLE_EQ(registry.getDefaultValue(Attributes::ENTITY_GRAVITY, -1.0), 0.08);
 }
 
 TEST(AttributeRegistryTest, BlockInteractionRangeDefinitionMatchesMC)
@@ -251,7 +266,6 @@ TEST(AttributeRegistryTest, NormalizeNamePreservesExistingPrefix)
     auto& registry = AttributeRegistry::instance();
     EXPECT_EQ(registry.normalizeName("minecraft:max_health"), "minecraft:max_health");
     EXPECT_EQ(registry.normalizeName("horse.jump_strength"), "horse.jump_strength");
-    EXPECT_EQ(registry.normalizeName("forge.entity_gravity"), "forge.entity_gravity");
 }
 
 TEST(AttributeRegistryTest, NormalizeNameAcceptsLegacyGenericPrefix)
@@ -284,7 +298,9 @@ TEST(AttributeRegistryTest, NormalizeNameAddsMinecraftPrefix)
 TEST(AttributeRegistryTest, NormalizeNameAddsForgePrefix)
 {
     auto& registry = AttributeRegistry::instance();
-    EXPECT_EQ(registry.normalizeName("entity_gravity"), "forge.entity_gravity");
+    // 1.21 起重力是原版属性；短名与旧的 Forge 名都解析到 minecraft:gravity。
+    EXPECT_EQ(registry.normalizeName("entity_gravity"), "minecraft:gravity");
+    EXPECT_EQ(registry.normalizeName("forge.entity_gravity"), "minecraft:gravity");
 }
 
 TEST(AttributeRegistryTest, NormalizeNameReturnsUnknownAsIs)
