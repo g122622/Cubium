@@ -162,3 +162,17 @@ MerchantOffer 的 NBT 字段包括：`buyA`、`buyB`（可选第二支付，物�
 - 返回 `true` 表示成功扣除（物品数量已减少）
 - 返回 `false` 表示扣除失败（物品不匹配或数量不足）
 - `MerchantResultSlot::onTake()` 中会尝试两种顺序：`take(buyA, buyB)` 和 `take(buyB, buyA)`
+
+### 交易表构建依赖「方块物品」已注册
+`VillagerTrades::initialize()` 在首次生成交易/查询职业交易时惰性执行，直接把整张表构造出来。
+表里绝大多数物品走 `Items::XXX` 静态指针，但**方块类物品**（如石匠 3 级的 `minecraft:dripstone_block`）
+并不在 `Items::initialize()` 中登记——它们由 `BlockItemRegistry::initializeVanillaBlockItems()` 后置注册，
+且在 `ItemRegistry` 中以该方块物品自己的 ItemId 存在，**没有对应的 `Items::` 静态指针**。
+因此这里只能用 `_item("minecraft:xxx")` 按资源位置取。
+
+该注册表顺序（`VanillaBlocks::initialize()` → `Items::initialize()` → `BlockItemRegistry::initializeVanillaBlockItems()`）
+在服务端启动由 `RegistryBootstrap` 保障。任何**在 `BlockItemRegistry` 注册之前就触发交易表构建**的路径
+（例如只调了 `Items::ensureInitialized()` 的测试夹具）会让 `_item("minecraft:dripstone_block")` 返回 `nullptr`，
+随后 `_stackOf` 的 `MC_ASSERT_RELEASE` 直接中止进程——表现为用例在 SetUp 阶段崩溃、栈落在
+`VillagerTrades::generateOffers`，与用例自身逻辑无关。`tests/unit/main.cpp` 的全局测试环境已按服务端同序
+完成这三步注册，新增测试夹具无需重复调用。

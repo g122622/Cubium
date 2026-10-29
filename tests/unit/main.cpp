@@ -27,6 +27,8 @@
 #include "common/core/GameDirectory.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
@@ -74,6 +76,23 @@ public:
         // 环境根治此类 setup 陷阱，使依赖标签的测试自包含——与上方 ComponentSerializerRegistry 同模式。
         mc::DamageTypeTags::initialize();
 
+        // 初始化物品与方块物品注册表，按服务端启动序列（RegistryBootstrap::initializeAll）的
+        // 依赖拓扑：方块 → 物品 → 方块物品。
+        //
+        // 方块物品（BlockItem）不在 Items::initialize() 中登记，而由 BlockItemRegistry 的
+        // 后置步骤统一注册（Items 显式注册的物品会被复用，不重复注册）。原先此环境不执行该
+        // 步骤，导致进程内"方块物品不存在"：村民交易表在首次生成交易时构建，其中的石匠条目
+        // 直接按资源位置引用方块物品 minecraft:dripstone_block，取到 nullptr 后触发
+        // _stackOf 的 MC_ASSERT_RELEASE 断言，使所有进入村民交易/职业工作逻辑的用例崩溃。
+        //
+        // 必须放在数据包目录检查之前：方块物品的注册不依赖数据包，且任何用例（含数据包缺失的
+        // 非开发机）都期望以相同方式看到完整注册表。
+        // 幂等：VanillaBlocks 与 Items 各有 initializing 标志，BlockItemRegistry 以 m_initialized
+        // 守卫，用例夹具重复调用均无副作用。
+        mc::VanillaBlocks::initialize();
+        mc::Items::ensureInitialized();
+        mc::BlockItemRegistry::instance().initializeVanillaBlockItems();
+
         const auto dataPackDir = mc::GameDirectory::defaultDirectory().dataPacksDir();
         if (!std::filesystem::exists(dataPackDir)) {
             return;
@@ -84,9 +103,8 @@ public:
             return;
         }
         // noise_settings 的 JSON 解析会调 BlockStateParser::parse("minecraft:stone")，
-        // 依赖 BlockRegistry 已注册原版方块。VanillaBlocks::initialize() 幂等（s_initialized 守卫），
-        // 在此显式调用使本环境自包含——不依赖其它测试文件的静态全局 Environment 注册顺序。
-        mc::VanillaBlocks::initialize();
+        // 依赖 BlockRegistry 已注册原版方块（已由本环境上方的 VanillaBlocks::initialize 完成，
+        // 此处不再重复调用）。
 
         // Java wire codec 出站边界（BlockUpdate/AddEntity.data/EntityMetadata BlockState 字段）
         // 依赖 JavaBlockStateIdMap 做内部 stateId ↔ Java globalId 翻译。须在方块注册完成后
@@ -102,7 +120,7 @@ public:
         }
 
         // 加载顺序：noise → density_function → noise_settings → flat_level_generator_preset（依赖拓扑）。
-        // flat preset 依赖 BlockRegistry（层方块，已由 VanillaBlocks::initialize 注册）与
+        // flat preset 依赖 BlockRegistry（层方块，已由上方的 VanillaBlocks::initialize 注册）与
         // BiomeLoader::biomeIdByName（编译期静态 biome 名映射表），不依赖运行时 BiomeRegistry。
         mc::world::gen::noise::NoiseLoader::loadFromDataPackRepository(repo);
         mc::world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(repo);

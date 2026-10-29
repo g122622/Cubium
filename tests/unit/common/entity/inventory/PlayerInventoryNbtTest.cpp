@@ -201,7 +201,7 @@ TEST_F(PlayerInventoryNbtTest, ArmorSlots_DeserializeOldFormat)
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(103));
         itemTag.put("id", std::string("minecraft:diamond"));
-        itemTag.put("Count", static_cast<i8>(1));
+        itemTag.put("count", static_cast<i8>(1));
         invList->value.push_back(std::move(itemTag));
     }
 
@@ -210,7 +210,7 @@ TEST_F(PlayerInventoryNbtTest, ArmorSlots_DeserializeOldFormat)
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(-106));
         itemTag.put("id", std::string("minecraft:stone"));
-        itemTag.put("Count", static_cast<i8>(10));
+        itemTag.put("count", static_cast<i8>(10));
         invList->value.push_back(std::move(itemTag));
     }
 
@@ -376,14 +376,14 @@ TEST_F(PlayerEnderChestInventoryNbtTest, SlotIndices_0To26)
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(0));
         itemTag.put("id", std::string("minecraft:stone"));
-        itemTag.put("Count", static_cast<i8>(1));
+        itemTag.put("count", static_cast<i8>(1));
         itemsList->value.push_back(std::move(itemTag));
     }
     {
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(26));
         itemTag.put("id", std::string("minecraft:stone"));
-        itemTag.put("Count", static_cast<i8>(2));
+        itemTag.put("count", static_cast<i8>(2));
         itemsList->value.push_back(std::move(itemTag));
     }
 
@@ -413,7 +413,7 @@ TEST_F(PlayerEnderChestInventoryNbtTest, InvalidSlotIndex_Skipped)
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(5));
         itemTag.put("id", std::string("minecraft:stone"));
-        itemTag.put("Count", static_cast<i8>(1));
+        itemTag.put("count", static_cast<i8>(1));
         itemsList->value.push_back(std::move(itemTag));
     }
     // 无效槽位（超出范围）
@@ -421,7 +421,7 @@ TEST_F(PlayerEnderChestInventoryNbtTest, InvalidSlotIndex_Skipped)
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(27)); // 超出末影箱范围
         itemTag.put("id", std::string("minecraft:stone"));
-        itemTag.put("Count", static_cast<i8>(1));
+        itemTag.put("count", static_cast<i8>(1));
         itemsList->value.push_back(std::move(itemTag));
     }
     // 无效槽位（负数）
@@ -429,7 +429,7 @@ TEST_F(PlayerEnderChestInventoryNbtTest, InvalidSlotIndex_Skipped)
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(-1));
         itemTag.put("id", std::string("minecraft:stone"));
-        itemTag.put("Count", static_cast<i8>(1));
+        itemTag.put("count", static_cast<i8>(1));
         itemsList->value.push_back(std::move(itemTag));
     }
 
@@ -462,7 +462,7 @@ TEST_F(PlayerEnderChestInventoryNbtTest, ClearBeforeDeserialization)
         nbt::tags::compound_tag itemTag;
         itemTag.put("Slot", static_cast<i8>(10));
         itemTag.put("id", std::string("minecraft:stone"));
-        itemTag.put("Count", static_cast<i8>(1));
+        itemTag.put("count", static_cast<i8>(1));
         itemsList->value.push_back(std::move(itemTag));
     }
     tag.value.emplace(nbt_keys::ENDER_ITEMS, std::move(itemsList));
