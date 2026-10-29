@@ -42,6 +42,9 @@ tests/diff/
 │   ├── block_experience.cpp     # 方块被破坏时掉落的经验（按区间采样序列）
 │   ├── item_attribute_modifiers.cpp # 物品按装备槽位提供的属性修饰符
 │   ├── damage_reduction.cpp     # 护甲减伤公式（含破甲附魔）
+│   ├── gamerule.cpp             # 游戏规则的分类 / 类型 / 默认值 / 范围
+│   ├── armor_material.cpp       # 护甲材质的耐久 / 护甲值 / 韧性与附魔能力
+│   ├── tool_material.cpp        # 工具材质的耐久 / 效率 / 攻击伤害加成 / 附魔能力
 │   ├── block_state_names.cpp    # 方块状态名全集
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
@@ -205,7 +208,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
 | `loot_table` | 原版 jar `LootTableOracle` | 1324 | 全部一致 | — |
 | `loot_table_block` | 原版 jar `LootTableBlockOracle` | 1324 | 全部一致 | — |
-| `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 1324 | 2 个差异（`magma_cube`、`pillager` 额外掉落） | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
+| `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 5288（1324 张表 × 4 个场景） | 14 处差异（13 张表的 `#player` 场景 + `magma_cube`/`pillager`） | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
@@ -214,6 +217,9 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
+| `gamerule` | 原版 jar `GameRuleOracle` | 59 | 全部一致 | — |
+| `armor_material` | 原版 jar `ArmorMaterialOracle` | 9 种材质 × 5 槽位 | 全部一致 | — |
+| `tool_material` | 原版 jar `ToolMaterialOracle` | 7 | 全部一致 | 采集等级不比（原版用方块标签表达） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -359,6 +365,37 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   {this_entity, origin, damage_source}、`FISHING` = {origin, tool}、`SELECTOR` =
   {origin, this_entity}。此前缺键只打警告，现在与原版 `LootParams.Builder#create`
   一样是硬校验。
+
+### 已知未解决（带 TODO 标注）
+
+- **`loot_table_entity` 的 14 处 `#player` 差异**：13 张表在两套上下文下只差玩家相关条件
+  （`killed_by_player`、`direct_attacker` 的装备等）。两侧单独跑都自洽，只在 harness 环境里
+  分叉；根因疑似 oracle 侧未登录 `ServerPlayer` 的 `LAST_DAMAGE_PLAYER` 参数缺失，尚未定论。
+  代码里以 `TODO(known-failure)` 标注。
+- **三个「数量为 2 的不可堆叠物品」单元测试**（`ItemPredicateTest.CombinedCountAndPotion`、
+  `EquipItemIfPossibleTest.PickUpItem_LimitsArmorToSingleItem`、
+  `ArmorStandEntityTest.InteractAt_WithChestplate_CountGreaterThanOne_MovesOne`）：`ItemStack::setCount`
+  会把数量裁剪到最大堆叠数（对齐原版），「数量 2 的铁甲」构造出来只有 1 个，测试前提不成立。
+- **`DensityEnchantmentTest.Properties`**：`density` 的 `isTreasure` 与原版数据不符。
+
+### 游戏规则与材质表
+
+`gamerule` 与 `armor_material` / `tool_material` 比对的都是「手写常量表」——这类
+表写错不会报任何错，只会让游戏安静地按错误数值运行。首轮查出：
+
+- **`lava_source_conversion` 的默认值是错的**：原版默认 `false`（岩浆不会把旁边的流体
+  转化掉），Cubium 写成了 `true`——玩家建好的水池会被岩浆「吃掉」，这是直接改变玩法
+  的数值错误；
+- **三条规则的分类错位**：`allow_entering_nether_using_portals`（应为 misc）、
+  `mob_explosion_drop_decay` 与 `tnt_explosion_drop_decay`（应为 drops）。分类只影响
+  整理与未来 UI 分组，但这正是手抄表最容易漂移的地方；
+- **海龟壳材质缺防御值**：只登记了头盔 2，护腿/胸甲/靴子都是 0。原版
+  `makeDefense(2, 5, 6, 2, 5)` 覆盖全部槽位；
+- **犰狳鳞甲的胸甲与护腿值对调**：原版 `makeDefense(3, 6, 8, 3, 11)` 是
+  boots/leggings/chest/helmet/body 顺序，Cubium 按 chest=6、legs=8 登记，正好互换。
+
+`tool_material` 首轮即全部一致，说明工具材质表此前就是对的（此前修过的那批工具
+攻击伤害问题出在「注册处数值 + 构造期又加材质加成」的叠加，不是材质表本身）。
 
 ### 方块破坏经验与物品属性修饰符
 

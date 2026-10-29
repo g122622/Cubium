@@ -43,6 +43,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
+#include "server/application/console/ServerConsole.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/command/data/DataAccessor.hpp"
 #include "server/core/BannedIpList.hpp"
@@ -84,7 +85,6 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-#include "server/application/console/ServerConsole.hpp"
 
 namespace mc::network::pipeline {
 class OutboundPacket;

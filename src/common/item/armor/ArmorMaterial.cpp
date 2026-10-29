@@ -336,13 +336,22 @@ i32 TurtleArmorMaterial::getDurability(ArmorSlot slot) const
 
 i32 TurtleArmorMaterial::getDefense(ArmorSlot slot) const
 {
+    // 原版 ArmorMaterials.TURTLE_SCUTE 的防御表是 makeDefense(2, 5, 6, 2, 5)，即
+    // boots 2 / leggings 5 / chestplate 6 / helmet 2 / body 5。海龟壳目前只做成头盔，
+    // 但材质表本身仍按原版登记其余槽位——将来若加入其他海龟壳护甲，不必再改这里。
     switch (slot) {
+        case ArmorSlot::Feet:
+            return 2;
+        case ArmorSlot::Legs:
+            return 5;
+        case ArmorSlot::Chest:
+            return 6;
         case ArmorSlot::Head:
             return 2;
         case ArmorSlot::Body:
-            return 5; // MC 1.21.11 ArmorMaterials.TURTLE_SCUTE defense.body=5
+            return 5;
         default:
-            return 0; // 海龟壳只有头盔
+            return 0;
     }
 }
 
@@ -407,16 +416,16 @@ i32 ArmadilloScuteArmorMaterial::getDurability(ArmorSlot slot) const
 
 i32 ArmadilloScuteArmorMaterial::getDefense(ArmorSlot slot) const
 {
-    // MC 1.21.11: ARMADILLO_SCUTE 材质防御值
-    // HEAD=3, CHEST=6, LEGS=8, FEET=3, BODY=11
-    // 狼铠仅使用 BODY 槽位的 11 防御值，其他槽位不实际使用
+    // 原版 makeDefense(boots, leggings, chest, helmet, body) = (3, 6, 8, 3, 11)，即
+    // FEET=3 / LEGS=6 / CHEST=8 / HEAD=3 / BODY=11。此前把胸甲与护腿的值对调了。
+    // 狼铠只用 BODY 槽位的 11，其余槽位目前没有物品使用，但仍按原版登记。
     switch (slot) {
         case ArmorSlot::Head:
             return 3;
         case ArmorSlot::Chest:
-            return 6;
-        case ArmorSlot::Legs:
             return 8;
+        case ArmorSlot::Legs:
+            return 6;
         case ArmorSlot::Feet:
             return 3;
         case ArmorSlot::Body:

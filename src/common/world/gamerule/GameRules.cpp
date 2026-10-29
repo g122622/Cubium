@@ -105,7 +105,7 @@ struct RuleRegistry {
         // 玩家相关
         registerBoolean("advance_time", GameRuleCategory::Updates, true);
         registerBoolean("advance_weather", GameRuleCategory::Updates, true);
-        registerBoolean("allow_entering_nether_using_portals", GameRuleCategory::Player, true);
+        registerBoolean("allow_entering_nether_using_portals", GameRuleCategory::Misc, true);
         registerBoolean("block_drops", GameRuleCategory::Drops, true);
         registerBoolean("block_explosion_drop_decay", GameRuleCategory::Drops, true);
         registerBoolean("command_blocks_work", GameRuleCategory::Misc, true);
@@ -121,12 +121,13 @@ struct RuleRegistry {
         registerBoolean("global_sound_events", GameRuleCategory::Misc, true);
         registerBoolean("immediate_respawn", GameRuleCategory::Player, false);
         registerBoolean("keep_inventory", GameRuleCategory::Player, false);
-        registerBoolean("lava_source_conversion", GameRuleCategory::Updates, true);
+        // 原版默认 false：岩浆不会把旁边的流体变成石头（1.21.11 GameRules.java:37）。
+        registerBoolean("lava_source_conversion", GameRuleCategory::Updates, false);
         registerBoolean("limited_crafting", GameRuleCategory::Player, false);
         registerBoolean("locator_bar", GameRuleCategory::Player, true);
         registerBoolean("log_admin_commands", GameRuleCategory::Chat, true);
         registerBoolean("mob_drops", GameRuleCategory::Drops, true);
-        registerBoolean("mob_explosion_drop_decay", GameRuleCategory::Mobs, true);
+        registerBoolean("mob_explosion_drop_decay", GameRuleCategory::Drops, true);
         registerBoolean("mob_griefing", GameRuleCategory::Mobs, true);
         registerBoolean("natural_health_regeneration", GameRuleCategory::Player, true);
         registerBoolean("player_movement_check", GameRuleCategory::Player, true);
@@ -147,7 +148,7 @@ struct RuleRegistry {
         registerBoolean("spectators_generate_chunks", GameRuleCategory::Player, true);
         registerBoolean("spread_vines", GameRuleCategory::Updates, true);
         registerBoolean("tnt_explodes", GameRuleCategory::Misc, true);
-        registerBoolean("tnt_explosion_drop_decay", GameRuleCategory::Misc, false);
+        registerBoolean("tnt_explosion_drop_decay", GameRuleCategory::Drops, false);
         registerBoolean("universal_anger", GameRuleCategory::Mobs, false);
         registerBoolean("water_source_conversion", GameRuleCategory::Updates, true);
     }
@@ -232,15 +233,17 @@ const BooleanGameRuleKey FALL_DAMAGE("fall_damage", GameRuleCategory::Player);
 const BooleanGameRuleKey FIRE_DAMAGE("fire_damage", GameRuleCategory::Player);
 const BooleanGameRuleKey FREEZE_DAMAGE("freeze_damage", GameRuleCategory::Player);
 const BooleanGameRuleKey LIMITED_CRAFTING("limited_crafting", GameRuleCategory::Player);
+// 原版把这条归在 MISC 分类（1.21.11 GameRules.java:22），不是 PLAYER。
 const BooleanGameRuleKey ALLOW_ENTERING_NETHER_USING_PORTALS(
-    "allow_entering_nether_using_portals", GameRuleCategory::Player);
+    "allow_entering_nether_using_portals", GameRuleCategory::Misc);
 const BooleanGameRuleKey ENDER_PEARLS_VANISH_ON_DEATH("ender_pearls_vanish_on_death", GameRuleCategory::Player);
 const BooleanGameRuleKey PLAYER_MOVEMENT_CHECK("player_movement_check", GameRuleCategory::Player);
 const BooleanGameRuleKey PVP("pvp", GameRuleCategory::Player);
 
 // 生物相关
 const BooleanGameRuleKey MOB_GRIEFING("mob_griefing", GameRuleCategory::Mobs);
-const BooleanGameRuleKey MOB_EXPLOSION_DROP_DECAY("mob_explosion_drop_decay", GameRuleCategory::Mobs);
+// 原版归在 DROPS 分类（与 tnt_explosion_drop_decay 同组），此前误归 MOBS。
+const BooleanGameRuleKey MOB_EXPLOSION_DROP_DECAY("mob_explosion_drop_decay", GameRuleCategory::Drops);
 const IntegerGameRuleKey MAX_ENTITY_CRAMMING("max_entity_cramming", GameRuleCategory::Mobs);
 const BooleanGameRuleKey RAIDS("raids", GameRuleCategory::Mobs);
 const BooleanGameRuleKey FORGIVE_DEAD_PLAYERS("forgive_dead_players", GameRuleCategory::Mobs);
@@ -283,7 +286,8 @@ const BooleanGameRuleKey SHOW_ADVANCEMENT_MESSAGES("show_advancement_messages", 
 const BooleanGameRuleKey REDUCED_DEBUG_INFO("reduced_debug_info", GameRuleCategory::Misc);
 const BooleanGameRuleKey COMMAND_BLOCKS_WORK("command_blocks_work", GameRuleCategory::Misc);
 const BooleanGameRuleKey TNT_EXPLODES("tnt_explodes", GameRuleCategory::Misc);
-const BooleanGameRuleKey TNT_EXPLOSION_DROP_DECAY("tnt_explosion_drop_decay", GameRuleCategory::Misc);
+// 原版归在 DROPS 分类，此前误归 MISC。
+const BooleanGameRuleKey TNT_EXPLOSION_DROP_DECAY("tnt_explosion_drop_decay", GameRuleCategory::Drops);
 const BooleanGameRuleKey SPAWNER_BLOCKS_WORK("spawner_blocks_work", GameRuleCategory::Misc);
 const BooleanGameRuleKey GLOBAL_SOUND_EVENTS("global_sound_events", GameRuleCategory::Misc);
 const IntegerGameRuleKey MAX_COMMAND_SEQUENCE_LENGTH("max_command_sequence_length", GameRuleCategory::Misc);

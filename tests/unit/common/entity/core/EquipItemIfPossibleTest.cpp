@@ -304,6 +304,11 @@ TEST_F(EquipItemIfPossibleTest, PickUpItem_ShrinksAndRemovesEmptyItemEntity)
 }
 
 // 护甲槽容量为 1：拾取多件头盔时只吸收 1 件，其余数量保留在物品实体上。
+//
+// TODO(known-failure): 铁头盔的 maxStackSize 是 1，ItemStack::setCount 已经把「3 件」裁剪成
+//   1 件（对齐原版 ItemStack#setCount），物品实体里本来就只有 1 件，拾取后自然剩 0 而不是 2。
+//   要测「槽位只吃 1 件、其余留在实体上」需要一个能真正堆叠的護甲样例（Cubium 没有），或者
+//   绕开 setCount 直接构造数量。在修好之前不要把它当作回归信号。
 TEST_F(EquipItemIfPossibleTest, PickUpItem_LimitsArmorToSingleItem)
 {
     auto item = makeItemEntity(ItemStack(Items::IRON_HELMET, 3));

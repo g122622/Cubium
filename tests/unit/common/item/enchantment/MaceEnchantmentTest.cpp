@@ -219,6 +219,9 @@ protected:
 
 TEST_F(DensityEnchantmentTest, Properties)
 {
+    // TODO(known-failure): 密度附魔的 isTreasure() 与原版数据不一致（原版 density 不是宝藏附魔），
+    //   本用例最后的 EXPECT_FALSE(density.isTreasure()) 因此失败。需对照
+    //   data/minecraft/enchantment/density.json 修正附魔数据表。
     DensityEnchantment density;
     EXPECT_EQ(density.id(), "minecraft:density");
     EXPECT_EQ(density.minLevel(), 1);

@@ -247,6 +247,32 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         normalise: (value: unknown) => roundFloats(value),
     }),
     () => ({
+        // 游戏规则：名字、分类、类型、默认值与取值范围，全部是手写表里最易错的部分。
+        name: "gamerule",
+        oracle: "GameRuleOracle",
+        input: (unit: string) => ({ rule: unit }),
+        key: "rule",
+    }),
+    () => ({
+        // 护甲材质：耐久系数、护甲值、附魔能力、韧性、击退抗性，都是手写材质类里的常量。
+        name: "armor_material",
+        oracle: "ArmorMaterialOracle",
+        input: (unit: string) => ({ material: unit }),
+        key: "material",
+        // 击退抗性是 f32：Gson 写 0.1、nlohmann 写 0.10000000149011612，按固定小数位比对。
+        normalise: (value: unknown) => roundFloats(value),
+    }),
+    () => ({
+        // 工具材质：耐久、挖掘效率、攻击伤害加成、附魔能力。采集等级不比——原版用方块
+        // 标签表达「挖不动什么」，数字等级只是 Cubium 的实现细节。
+        name: "tool_material",
+        oracle: "ToolMaterialOracle",
+        input: (unit: string) => ({ material: unit }),
+        key: "material",
+        // 效率与伤害加成是 f32：按固定小数位比对，避免 2.0 与 2.0000000298 这类写法差异。
+        normalise: (value: unknown) => roundFloats(value),
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),

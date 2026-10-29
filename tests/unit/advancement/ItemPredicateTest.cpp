@@ -280,6 +280,10 @@ TEST_F(ItemPredicateTest, CombinedItemAndPotion)
 
 TEST_F(ItemPredicateTest, CombinedCountAndPotion)
 {
+    // TODO(known-failure): 本用例用「数量为 2 的药水」构造样本，但药水的 maxStackSize 是 1，
+    //   ItemStack::setCount 会把数量裁剪到 1（对齐原版 ItemStack#setCount），于是「数量为 2」
+    //   的前提根本不成立，断言恒失败。需要一个真正可堆叠到 2 的物品（或直接构造 count 字段的
+    //   测试辅助）来重建该组合场景；在修好之前不要把它当作回归信号。
     // 创建匹配数量2 + 治疗药水的谓词
     ResourceLocation healingId("minecraft", "healing");
     ItemPredicate predicate(std::nullopt, IntBounds::exactly(2), IntBounds{}, healingId, {}, {}, {});

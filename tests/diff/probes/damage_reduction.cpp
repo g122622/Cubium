@@ -55,11 +55,33 @@ namespace {
 
 using nlohmann::json;
 
-constexpr f32 kDamages[] = {0.0f, 0.5f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 8.0f, 10.0f, 12.0f, 15.0f, 20.0f, 30.0f, 50.0f};
+constexpr f32 kDamages[] = {
+    0.0f, 0.5f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 8.0f, 10.0f, 12.0f, 15.0f, 20.0f, 30.0f, 50.0f};
 
 /// 护甲取值：0 到 30（原版上限）逐点取值。
-constexpr f32 kArmors[] = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
-    9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.0f, 24.0f, 30.0f};
+constexpr f32 kArmors[] = {0.0f,
+    1.0f,
+    2.0f,
+    3.0f,
+    4.0f,
+    5.0f,
+    6.0f,
+    7.0f,
+    8.0f,
+    9.0f,
+    10.0f,
+    11.0f,
+    12.0f,
+    13.0f,
+    14.0f,
+    15.0f,
+    16.0f,
+    17.0f,
+    18.0f,
+    19.0f,
+    20.0f,
+    24.0f,
+    30.0f};
 
 /// 韧性取值：0（无护甲）、2（钻石全套）、3（下界合金全套）、4/8/20（附魔与极限情况）。
 constexpr f32 kToughnesses[] = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 8.0f, 20.0f};
@@ -103,10 +125,8 @@ std::string runLine(std::string_view inputLine)
 
     // 破甲附魔每级把「护甲有效率」压低 0.15（对齐 vanilla Breach），0 级即普通护甲减伤。
     // 比对键与 oracle 同构："damage/armor/toughness"。
-    json result{{"unit", unitText(damage, armor, toughness)},
-        {"damage", damage},
-        {"armor", armor},
-        {"toughness", toughness}};
+    json result{
+        {"unit", unitText(damage, armor, toughness)}, {"damage", damage}, {"armor", armor}, {"toughness", toughness}};
     result["absorb"] = entity::combat::CombatRules::getDamageAfterAbsorb(damage, armor, toughness);
     for (i32 breachLevel = 1; breachLevel <= 4; ++breachLevel) {
         result["absorbBreach" + std::to_string(breachLevel)] =
