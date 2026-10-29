@@ -82,10 +82,11 @@ TEST_F(WolfAndNautilusArmorTest, ArmadilloScuteArmorMaterial_GetDurability_Chest
     EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDurability(ArmorSlot::Chest), 64);
 }
 
-TEST_F(WolfAndNautilusArmorTest, ArmadilloScuteArmorMaterial_GetDefense_ChestSlot_Returns6)
+TEST_F(WolfAndNautilusArmorTest, ArmadilloScuteArmorMaterial_GetDefense_ChestSlot_Returns8)
 {
-    // 胸甲槽位防御值应为 6
-    EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Chest), 6);
+    // 对齐 vanilla ArmorMaterials.ARMADILLO_SCUTE = makeDefense(3, 6, 8, 3, 11)，
+    // 参数顺序为 BOOTS/LEGGINGS/CHESTPLATE/HELMET/BODY，故胸甲槽位防御值为 8。
+    EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Chest), 8);
 }
 
 TEST_F(WolfAndNautilusArmorTest, ArmadilloScuteArmorMaterial_GetToughness_Returns0)

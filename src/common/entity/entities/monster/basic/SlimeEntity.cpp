@@ -440,11 +440,10 @@ void SlimeEntity::performSplit()
         smallSlime->setPosition(spawnX, spawnY, spawnZ);
         smallSlime->setRotation(spawnYaw, 0.0f);
 
-        // 对分裂生成的小史莱姆调用 finalizeSpawn（使用位置感知的区域难度）
-        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world(),
-            BlockPos(
-                static_cast<i32>(std::floor(spawnX)), static_cast<i32>(spawnY), static_cast<i32>(std::floor(spawnZ))));
-        smallSlime->finalizeSpawn(*world(), difficultyInstance, world::spawn::SpawnReason::Reinforcement);
+        // 对齐 vanilla Slime.remove 的分裂路径：子实体只 setSize(j, true)（即上面的
+        // setSlimeSize(newSize, true)），**不调用 finalizeSpawn**。finalizeSpawn 会重新掷
+        // 随机尺寸（1/2/4），把刚设好的「父尺寸 / 2」覆盖掉，中型史莱姆会分裂出尺寸不符的
+        // 子实体（实测分裂出 size=4）。
 
         // 设置随机速度
         smallSlime->setVelocity(
