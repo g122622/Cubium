@@ -425,7 +425,15 @@ jobs:
         if: always()
         continue-on-error: true
         run: python3 scripts/ci/collect_runner_info.py --job workers --pool "${{ matrix.pool }}" --worker "${{ matrix.worker }}" --out "$RUNNER_TEMP/pococc-worker/runner-info.json"
+      # 性能上报步骤不得让 workflow 失败。
+      #
+      # worker-report 在 failed_compiles 非零或 probe_compiles 为空时会 raise，本意是
+      # 「编译健康度」告警。但它只是采集步骤：真正该判失败的，是主构建 job 有没有编译
+      # 出错。这里没有 continue-on-error 时，某个 worker 的 probe 不稳就会把整个 worker
+      # job 乃至依赖它的 Release Build / Summarize 一起拖红——历史上多次出现主构建本身
+      # 零错误、却因为这一行判 overall failure。诊断信息仍会随下方 artifact 一并上传。
       - name: Record worker compilation and compiler probes
+        continue-on-error: true
         run: |
           python3 scripts/ci/pococc_performance.py worker-report --pool "$POOL" --state "$RUNNER_TEMP/pococc-worker"
         env:
