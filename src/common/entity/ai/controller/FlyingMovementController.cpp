@@ -82,8 +82,16 @@ void FlyingMovementController::tick()
             f32 targetPitch = static_cast<f32>(-(std::atan2(dy, horizontalDist) * (180.0 / math::PI)));
             m_mob->setRotation(
                 m_mob->yaw(), math::clampedRotate(m_mob->pitch(), targetPitch, static_cast<f32>(m_maxTurn)));
-            // 根据俯仰方向设置上下移动输入
-            m_mob->setMoveForward(dy > 0.0 ? 1.0f : -1.0f);
+            // 前进输入恒为 1：实体的朝向（yaw）已在上方转向目标，MoveForward=1 即“朝目标飞”。
+            //
+            // 此前这里把垂直分量 dy 的符号当作前进方向：`setMoveForward(dy > 0 ? 1 : -1)`。
+            // 只要目标略低于实体（dy < 0），实体就收到 -1 的“后退”输入，朝背离目标的方向飞。
+            // 实测蜜蜂攻击玩家时目标在脚下方，dy 恒为负，于是蜜蜂一路朝反方向加速，
+            // 与玩家的距离从 4 格涨到 60 格开外（bee_retaliates_when_attacked 超时）。
+            //
+            // 对齐 vanilla FlyingMoveControl：垂直由 setYya 承载（本类无该输入通道，
+            // 垂直改由速度直接施加），setZza 只表示水平前进。
+            m_mob->setMoveForward(1.0f);
         }
     } else {
         // 无移动目标时
