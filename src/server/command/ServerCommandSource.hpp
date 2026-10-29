@@ -96,6 +96,16 @@ public:
      */
     void sendError(const std::string& message) override;
 
+    /**
+     * @brief 非玩家命令源的输出出口
+     *
+     * 在 sendMessage 完成 spdlog 记录后被调用，message 仍带 § 样式码（如错误消息的 §c 前缀）。
+     * 默认空实现；派生类（如终端控制台命令源）可覆写以把回执送入自定义输出目标。
+     *
+     * @param message 原始消息文本
+     */
+    virtual void onConsoleMessage(const std::string& message);
+
     bool shouldReceiveFeedback() const noexcept override;
     bool shouldReceiveErrors() const noexcept override;
     bool allowLogging() const noexcept override;
@@ -302,7 +312,23 @@ public:
      */
     static ServerCommandSource forConsole(server::IServer* server);
 
-private:
+protected:
+    /// 用给定上下文构造（供派生命令源共享基类状态，如终端控制台命令源）。
+    ServerCommandSource(server::IServer* server,
+        ServerPlayer* player,
+        Entity* entity,
+        PlayerId playerId,
+        DimensionId dimensionId,
+        const Vector3d& position,
+        const Vector2f& rotation,
+        i32 permissionLevel,
+        std::string name,
+        bool feedbackDisabled,
+        EntityAnchorType anchor);
+
+    // 状态字段对派生类可见：派生命令源（如终端控制台命令源）需要按字段改写上下文，
+    // 而不论私有与否都不应为其另开 friend。
+protected:
     server::IServer* m_server;
     ServerPlayer* m_player; ///< 关联的玩家指针（控制台时为 nullptr）
     Entity* m_entity;       ///< 执行实体。玩家执行时与 m_player 一致，

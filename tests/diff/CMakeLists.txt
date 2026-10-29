@@ -90,6 +90,19 @@ function(mc_add_diff_probe targetSuffix source domain)
         list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/tools?/")
         list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/main\.cpp$")
         list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/world/storage/")
+        # 交互式终端（application/console/）依赖 FTXUI，探针不测它：只注册并遍历命令树，
+        # 从不走 --interactive 入口。目录通配会带来两类问题：
+        #   1) console 的 .o 引用 FTXUI 符号，探针未链接 FTXUI，链接失败；
+        #   2) ServerApplicationEntry.cpp 引用 ServerConsole，若排除 console 而不排除入口，
+        #      又会缺符号。
+        # 故整体排除"进程入口 + 交互式终端"：二者都不属于命令树差分范围。
+        list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/application/console/")
+        list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/application/ServerApplicationEntry\\.cpp$")
+        # 唯一例外：/panel 命令（非原版命令，不参与本探针的树比对）引用的面板统计逻辑。
+        # 它们只依赖 mc_common 与已在链接行里的 ServerChunkManager/维度模块，不含 FTXUI。
+        list(APPEND _diff_cmd_sources
+            ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStats.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStatsCollector.cpp)
         # world/gen/feature 下按服务端目标自己的清单重新收集：目录通配会把「只登记在
         # 其它目标里」的文件也拉进来，而它们单独编译有既有的重定义问题。
         list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/world/gen/feature/")

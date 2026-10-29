@@ -58,6 +58,7 @@
 #include "commands/MeCommand.hpp"
 #include "commands/MessageCommand.hpp"
 #include "commands/OpCommand.hpp"
+#include "commands/PanelCommand.hpp"
 #include "commands/PardonCommand.hpp"
 #include "commands/PardonIpCommand.hpp"
 #include "commands/ParticleCommand.hpp"
@@ -248,6 +249,8 @@ void CommandRegistry::registerDefaults()
     RideCommand::registerTo(m_dispatcher);
     DamageCommand::registerTo(m_dispatcher);
     DebugCommand::registerTo(m_dispatcher);
+    // 非原版命令：只服务于交互式终端面板（--interactive），不参与命令树差分对比。
+    PanelCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

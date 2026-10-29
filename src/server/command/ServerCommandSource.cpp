@@ -76,6 +76,30 @@ ServerCommandSource::ServerCommandSource(server::IServer* server,
     }
 }
 
+ServerCommandSource::ServerCommandSource(server::IServer* server,
+    ServerPlayer* player,
+    Entity* entity,
+    PlayerId playerId,
+    DimensionId dimensionId,
+    const Vector3d& position,
+    const Vector2f& rotation,
+    i32 permissionLevel,
+    std::string name,
+    bool feedbackDisabled,
+    EntityAnchorType anchor)
+    : m_server(server)
+    , m_player(player)
+    , m_entity(entity)
+    , m_playerId(playerId)
+    , m_dimensionId(dimensionId)
+    , m_position(position)
+    , m_rotation(rotation)
+    , m_permissionLevel(permissionLevel)
+    , m_name(std::move(name))
+    , m_feedbackDisabled(feedbackDisabled)
+    , m_anchor(anchor)
+{}
+
 server::ServerWorld* ServerCommandSource::world() const noexcept
 {
     if (m_server == nullptr) {
@@ -109,8 +133,13 @@ void ServerCommandSource::sendMessage(const std::string& message, const std::opt
         return;
     }
 
+    // 非玩家命令源（控制台/RCON/命令方块外部入口）：写日志，并经虚函数出口暴露给派生类
+    // （终端控制台据此把回执送进自己的事件区）。
     spdlog::info("{}", message);
+    onConsoleMessage(message);
 }
+
+void ServerCommandSource::onConsoleMessage(const std::string& /*message*/) {}
 
 void ServerCommandSource::sendError(const std::string& message)
 {

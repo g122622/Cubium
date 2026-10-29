@@ -245,13 +245,15 @@ struct PlayerLoginEvent : ServerEvent {
  * @brief 玩家登出事件
  */
 struct PlayerLogoutEvent : ServerEvent {
-    PlayerId playerId;  ///< 玩家ID
-    std::string reason; ///< 登出原因
+    PlayerId playerId;    ///< 玩家ID
+    std::string username; ///< 玩家名（发布时从 PlayerManager 取快照，随后的 removePlayer 会销毁数据）
+    std::string reason;   ///< 登出原因
 
-    PlayerLogoutEvent(u64 tick, PlayerId pid, const std::string& r)
+    PlayerLogoutEvent(u64 tick, PlayerId pid, std::string name, std::string r)
         : ServerEvent(tick)
         , playerId(pid)
-        , reason(r)
+        , username(std::move(name))
+        , reason(std::move(r))
     {}
 };
 

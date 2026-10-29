@@ -44,6 +44,8 @@
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/event/events/ServerEvents.hpp"
 #include "server/network/outbound/AttributeSnapshotBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
@@ -307,6 +309,10 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
 
     result.success = true;
     spdlog::info("Player '{}' (PlayerId={}, EntityInstanceId={}) joined the game", username, playerId, result.entityId);
+
+    // 玩家加入事件：终端控制台、基岩脚本桥（playerJoin）等订阅方依赖它。
+    // 发布点在"玩家已进入在线列表且登录完成"之后，订阅方可以安全地查询该玩家。
+    event::ServerEventBus::instance().publish(event::PlayerLoginEvent(m_server.currentTick(), playerId, username));
     return result;
 }
 

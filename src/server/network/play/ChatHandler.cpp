@@ -37,6 +37,8 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/event/events/ServerEvents.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <string>
@@ -74,6 +76,11 @@ void ChatHandler::handleChatMessagePacket(PlayerId playerId, const mc::network::
         return;
     }
     spdlog::info("[Chat] {}: {}", player->username, message);
+
+    // 聊天事件：终端控制台与基岩脚本桥（chatSend / chatSendBeforeEvent）依赖它。
+    // 该字段名与语义为"发送者 + 消息"，发布时不访问世界状态，订阅方可安全处理。
+    event::ServerEventBus::instance().publish(
+        event::ChatEvent(m_server.currentTick(), playerId, message, player->username));
 
     // 广播给同一维度内的其他玩家。离线模式无签名链路，用 SystemChat(overlay=false) 把
     // 「<玩家名> 消息」送入聊天窗口（对齐 vanilla：ChatHandler 收到聊天后经 ChatType.Bound

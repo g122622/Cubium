@@ -91,6 +91,8 @@ set(MC_SERVER_COMMAND_SOURCES
     command/commands/ReplaceItemCommand.cpp
     command/commands/SpectateCommand.cpp
     command/commands/TriggerCommand.cpp
+    # 交互式终端面板（非原版命令，只服务于 --interactive，不参与命令树差分）
+    command/commands/PanelCommand.cpp
 )
 
 # 同一清单的绝对路径形式，供 benchmark 等不位于 src/server 目录下的 target 使用。
