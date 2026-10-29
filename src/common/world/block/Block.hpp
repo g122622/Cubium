@@ -1390,6 +1390,25 @@ public:
     virtual void spawnAfterBreak(
         IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, bool dropExp) const;
 
+    /**
+     * @brief 破坏方块应掉落的经验值（vanilla `DropExperienceBlock.tryDropExperience` 的采样部分）
+     *
+     * 原版把经验区间放在方块实例上（`DropExperienceBlock.xpRange`），挖掉时按区间采样。
+     * Cubium 的方块状态参数来自数据包，经验区间在注册期手工登记，因此这里只暴露
+     * 「按区间采样一次」的接口，由各矿物/幽匿方块覆写。
+     *
+     * 采样会消耗一次随机数（固定值区间不消耗），因此「有没有经验」会影响同一 tick
+     * 内后续随机数的走向，调用方必须按原版时机调用。
+     *
+     * @param random 采样用的随机源
+     * @return 应掉落的经验值；0 表示不掉落
+     */
+    [[nodiscard]] virtual i32 dropExperience(math::IRandom& random) const
+    {
+        (void)random;
+        return 0;
+    }
+
     // ========================================================================
     // 爆炸相关
     // ========================================================================

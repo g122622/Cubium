@@ -40,7 +40,9 @@
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/world/IWorld.hpp"
+#include <functional>
 #include <string>
 #include <nlohmann/json_fwd.hpp>
 
@@ -56,6 +58,14 @@ void EntityPredicate::_updateIsAny()
 }
 
 bool EntityPredicate::test(const Entity& entity) const
+{
+    return test(entity, [](const ResourceLocation&) {
+        return std::vector<std::string>{};
+    });
+}
+
+bool EntityPredicate::test(const Entity& entity,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
 {
     if (m_isAny) {
         return true;
@@ -85,7 +95,7 @@ bool EntityPredicate::test(const Entity& entity) const
     }
 
     // 5. 检查装备
-    if (!m_equipment.test(entity)) {
+    if (!m_equipment.test(entity, enchantmentTagResolver)) {
         return false;
     }
 
@@ -180,14 +190,19 @@ bool EntityPredicate::_testTypeSpecific(const Entity& entity, const EntityTypeSp
     }
 
     if (typeId == "minecraft:raider") {
-        // 对齐 vanilla Raider.isCaptain = 巡逻队长 && 头戴不祥旗帜。
-        // Cubium 尚未实现不祥旗帜（Ominous Banner）物品组件，故以巡逻队长标记近似；
-        // TODO(ominous-banner): 旗帜图案组件落地后改为"队长 && 头戴不祥旗帜"的精确判定。
+        // 原版 RaiderPredicate：`has_raid` 与 `is_captain` 都是「给定值就必须相等」，
+        // 缺省值在 codec 里是 false，而解析层只在 JSON 写了该字段时才填入。
         const auto* raider = dynamic_cast<const AbstractRaiderEntity*>(&entity);
         if (raider == nullptr) {
             return false;
         }
-        return !specific.isCaptain.has_value() || raider->isLeader() == specific.isCaptain.value();
+        if (specific.isCaptain.has_value() && raider->isCaptain() != specific.isCaptain.value()) {
+            return false;
+        }
+        if (specific.hasRaid.has_value() && (raider->getCurrentRaid() != nullptr) != specific.hasRaid.value()) {
+            return false;
+        }
+        return true;
     }
 
     return false;
@@ -195,10 +210,19 @@ bool EntityPredicate::_testTypeSpecific(const Entity& entity, const EntityTypeSp
 
 bool EntityPredicate::_testComponent(const Entity& entity, const EntityComponentFilter& component) const
 {
-    // 目前仅支持实体同步字段暴露为组件的场景（如青蛙变体 minecraft:frog/variant）。
+    // 目前仅支持实体同步字段暴露为组件的场景（青蛙变体、羊毛颜色）。
     const auto* frog = dynamic_cast<const FrogEntity*>(&entity);
     if (frog != nullptr && component.id.toString() == "minecraft:frog/variant") {
         return component.value == FrogEntity::variantIdName(frog->getVariant());
+    }
+    // 羊的羊毛颜色（vanilla `minecraft:sheep/color`）：战利品表按颜色逐项列出白/橙/…/黑，
+    // 未染色时是 white。漏掉这一项时所有未剪羊毛的羊都不掉羊毛。
+    const auto* sheep = dynamic_cast<const SheepEntity*>(&entity);
+    if (sheep != nullptr && component.id.toString() == "minecraft:sheep/color") {
+        const std::string_view expected = component.value.rfind("minecraft:", 0) == 0
+            ? std::string_view(component.value).substr(std::string_view("minecraft:").size())
+            : std::string_view(component.value);
+        return expected == dyeColorName(sheep->getFleeceColor());
     }
     // TODO(entity-components-predicate): 其余实体组件（如村名、熊猫基因）待组件读取接口
     //   统一暴露后接入；当前对未知组件按"不匹配"处理，避免谓词静默恒真。
@@ -206,6 +230,18 @@ bool EntityPredicate::_testComponent(const Entity& entity, const EntityComponent
 }
 
 bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entity& entity) const
+{
+    return test(world, x, y, z, entity, [](const ResourceLocation&) {
+        return std::vector<std::string>{};
+    });
+}
+
+bool EntityPredicate::test(const IWorld& world,
+    f64 x,
+    f64 y,
+    f64 z,
+    const Entity& entity,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
 {
     if (m_isAny) {
         return true;
@@ -249,11 +285,25 @@ bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entit
     }
 
     // 7. 检查装备
-    if (!m_equipment.test(entity)) {
+    if (!m_equipment.test(entity, enchantmentTagResolver)) {
         return false;
     }
 
-    // 8. 检查载具（vanilla vehicle：劫掠兽骑兵、骆驼尸壳骑兵等掉落判定依赖）
+    // 8. 类型专属谓词（vanilla type_specific）：这一重载此前漏掉了第 8/9 两步——战利品
+    //    条件全都走带世界位置的入口，于是 `type_specific`（史莱姆尺寸、袭击队长）与
+    //    `components`（青蛙变体）在所有战利品表里恒为真，岩浆怪/劫掠者掉落永远不判定。
+    if (m_typeSpecific.has_value() && !_testTypeSpecific(entity, *m_typeSpecific)) {
+        return false;
+    }
+
+    // 9. 检查数据组件（vanilla EntityPredicate.components）
+    for (const auto& component : m_components) {
+        if (!_testComponent(entity, component)) {
+            return false;
+        }
+    }
+
+    // 10. 检查载具（vanilla vehicle：劫掠兽骑兵、骆驼尸壳骑兵等掉落判定依赖）
     if (m_vehicle != nullptr) {
         const Entity* vehicle = world.getEntity(entity.getVehicle());
         if (vehicle == nullptr || !m_vehicle->test(*vehicle)) {
@@ -364,21 +414,29 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
         if (specific.contains("sheared")) {
             parsed.sheared = specific["sheared"].get<bool>();
         }
-        if (specific.contains("size") && specific["size"].is_object()) {
+        // `size` 是 vanilla `MinMaxBounds.Ints` 字段：数字是「恰好等于」，{min,max} 才是区间；
+        // 也能写成 {"min": 1, "max": 1} 与数字等价。此前把数字当成只填了下界的区间，
+        // 结果 `"size": 1` 会匹配所有尺寸 ≥1 的史莱姆（原版 slime 表正是这么写的）。
+        if (specific.contains("size")) {
             const auto& size = specific["size"];
-            if (size.contains("min")) {
-                parsed.sizeMin = size["min"].get<i32>();
+            if (size.is_object()) {
+                if (size.contains("min")) {
+                    parsed.sizeMin = size["min"].get<i32>();
+                }
+                if (size.contains("max")) {
+                    parsed.sizeMax = size["max"].get<i32>();
+                }
+            } else if (size.is_number_integer()) {
+                const i32 exact = size.get<i32>();
+                parsed.sizeMin = exact;
+                parsed.sizeMax = exact;
             }
-            if (size.contains("max")) {
-                parsed.sizeMax = size["max"].get<i32>();
-            }
-        } else if (specific.contains("size") && specific["size"].is_number_integer()) {
-            const i32 size = specific["size"].get<i32>();
-            parsed.sizeMin = size;
-            parsed.sizeMax = size;
         }
         if (specific.contains("is_captain")) {
             parsed.isCaptain = specific["is_captain"].get<bool>();
+        }
+        if (specific.contains("has_raid")) {
+            parsed.hasRaid = specific["has_raid"].get<bool>();
         }
         if (specific.contains("in_open_water")) {
             parsed.inOpenWater = specific["in_open_water"].get<bool>();
@@ -418,7 +476,46 @@ nlohmann::json EntityPredicate::toJson() const
     if (!m_equipment.isAny()) {
         json["equipment"] = m_equipment.toJson();
     }
+    // type_specific 此前整体漏写：带类型专属谓词的实体谓词序列化后变成「只留 type」，
+    // 读回去的语义与原对象不同（`size`/`is_captain` 等条件凭空消失）。
+    if (m_typeSpecific.has_value()) {
+        json["type_specific"] = _typeSpecificToJson(*m_typeSpecific);
+    }
 
+    return json;
+}
+
+nlohmann::json EntityPredicate::_typeSpecificToJson(const EntityTypeSpecificPredicate& specific)
+{
+    nlohmann::json json;
+    json["type"] = specific.type.toString();
+    if (specific.sheared.has_value()) {
+        json["sheared"] = specific.sheared.value();
+    }
+    if (specific.sizeMin.has_value() || specific.sizeMax.has_value()) {
+        // 上下界相等时写回标量：vanilla 的 MinMaxBounds.Ints 对「恰好等于」用的就是这个形态，
+        // 与数据包里 `"size": 1` 的写法一致。
+        if (specific.sizeMin.has_value() && specific.sizeMax.has_value() &&
+            specific.sizeMin.value() == specific.sizeMax.value()) {
+            json["size"] = specific.sizeMin.value();
+        } else {
+            if (specific.sizeMin.has_value()) {
+                json["size"]["min"] = specific.sizeMin.value();
+            }
+            if (specific.sizeMax.has_value()) {
+                json["size"]["max"] = specific.sizeMax.value();
+            }
+        }
+    }
+    if (specific.isCaptain.has_value()) {
+        json["is_captain"] = specific.isCaptain.value();
+    }
+    if (specific.hasRaid.has_value()) {
+        json["has_raid"] = specific.hasRaid.value();
+    }
+    if (specific.inOpenWater.has_value()) {
+        json["in_open_water"] = specific.inOpenWater.value();
+    }
     return json;
 }
 

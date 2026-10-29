@@ -24,6 +24,9 @@
 #include "BlockItem.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
@@ -457,6 +460,44 @@ const BlockState* BlockItem::applyBlockStateFromNBT(
     }
 
     return currentState;
+}
+
+item::ItemAttributeModifiers BlockItem::getAttributeModifiers(i32 equipmentSlot) const
+{
+    if (equipmentSlot != static_cast<i32>(EquipmentSlot::Head)) {
+        return Item::getAttributeModifiers(equipmentSlot);
+    }
+    // vanilla Waypoint.addHideAttribute：各类头颅戴在头上时，把导航点发送范围按 -100% 缩放
+    // （ADD_MULTIPLIED_TOTAL），其他玩家的定位条因此看不到穿戴者。雕刻南瓜由
+    // CarvedPumpkinItem 单独覆写。
+    static const char* const kHidingHeads[] = {
+        "minecraft:creeper_head",
+        "minecraft:dragon_head",
+        "minecraft:piglin_head",
+        "minecraft:player_head",
+        "minecraft:skeleton_skull",
+        "minecraft:wither_skeleton_skull",
+        "minecraft:zombie_head",
+    };
+    const std::string& name = itemLocation().toString();
+    bool hidesWaypoint = false;
+    for (const char* head : kHidingHeads) {
+        if (name == head) {
+            hidesWaypoint = true;
+            break;
+        }
+    }
+    if (!hidesWaypoint) {
+        return Item::getAttributeModifiers(equipmentSlot);
+    }
+    item::ItemAttributeModifiers modifiers;
+    modifiers.add(entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE,
+        entity::attribute::AttributeModifier("minecraft:waypoint_transmit_range_hide",
+            "Waypoint transmit range hide",
+            -1.0,
+            entity::attribute::Operation::MultiplyTotal),
+        equipmentSlot);
+    return modifiers;
 }
 
 } // namespace mc

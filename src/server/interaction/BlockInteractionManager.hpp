@@ -352,6 +352,14 @@ private:
         ServerWorld& world, const BlockPos& pos, const BlockState& state, PlayerId playerId, const ItemStack* tool);
 
     /**
+     * @brief 生成方块破坏经验（矿石、幽匿块等）
+     *
+     * 对齐原版 `Block.tryDropExperience` → `popExperience`：按方块登记的区间采样
+     * 一次，再拆成若干经验球。没有经验的方块不消耗随机数；工具带精准采集时不掉落。
+     */
+    void _dropBlockExperience(ServerWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool);
+
+    /**
      * @brief 处理告示牌命令执行
      *
      * 当玩家右键点击告示牌时，检查文本中的点击事件并执行命令。

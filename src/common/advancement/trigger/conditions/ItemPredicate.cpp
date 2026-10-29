@@ -39,6 +39,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -86,6 +87,16 @@ ItemPredicate::ItemPredicate(std::optional<ResourceLocation> item,
 }
 
 bool ItemPredicate::test(const ItemStack& stack) const
+{
+    // 不提供标签解析：`#tag` 形式的附魔谓词按「不匹配」处理（保守方向），
+    // 需要完整语义的调用方走带解析器的重载。
+    return test(stack, [](const ResourceLocation&) {
+        return std::vector<std::string>{};
+    });
+}
+
+bool ItemPredicate::test(const ItemStack& stack,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
 {
     if (m_isAny) {
         return true;
@@ -151,7 +162,7 @@ bool ItemPredicate::test(const ItemStack& stack) const
     }
 
     // 检查附魔
-    if (!_testEnchantments(m_enchantments, stack.getEnchantments())) {
+    if (!_testEnchantments(m_enchantments, stack.getEnchantments(), enchantmentTagResolver)) {
         return false;
     }
 
@@ -165,7 +176,7 @@ bool ItemPredicate::test(const ItemStack& stack) const
                 storedContainer.set(data.enchantment->id(), data.level);
             }
         }
-        if (!_testEnchantments(m_storedEnchantments, storedContainer)) {
+        if (!_testEnchantments(m_storedEnchantments, storedContainer, enchantmentTagResolver)) {
             return false;
         }
     }
@@ -430,10 +441,19 @@ void ItemPredicate::_updateIsAny()
 bool ItemPredicate::_testEnchantments(
     const std::vector<EnchantmentPredicate>& predicates, const item::enchant::EnchantmentContainer& enchantments)
 {
+    return _testEnchantments(predicates, enchantments, [](const ResourceLocation&) {
+        return std::vector<std::string>{};
+    });
+}
+
+bool ItemPredicate::_testEnchantments(const std::vector<EnchantmentPredicate>& predicates,
+    const item::enchant::EnchantmentContainer& enchantments,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver)
+{
     // 所有谓词都必须匹配（AND 语义）
     // 每个谓词检查附魔容器中是否存在满足条件的附魔
     for (const auto& pred : predicates) {
-        if (!pred.test(enchantments)) {
+        if (!pred.test(enchantments, enchantmentTagResolver)) {
             return false;
         }
     }

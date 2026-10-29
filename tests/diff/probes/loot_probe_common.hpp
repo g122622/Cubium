@@ -59,6 +59,7 @@
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootCallbackInvoker.hpp"
@@ -80,6 +81,7 @@
 
 #include "loot_world.hpp"
 #include "probe.hpp"
+#include "vanilla_datapack.hpp"
 
 namespace mc::diff::lootprobe {
 
@@ -166,6 +168,20 @@ inline LootEnv& environment()
             env.loadError += "乐器标签加载失败: " + tags.error().toString() + "\n";
         }
 
+        // 熔炼：`furnace_smelt` 函数按物品查熔炼配方（生肉 → 熟肉等）。配方表由
+        // 服务端同一个装载器从数据包构建，未加载时被烧死的掉落会停留在生物品上。
+        const auto recipeDir = root / "data" / "minecraft" / "recipe";
+        if (std::filesystem::exists(recipeDir)) {
+            mc::RecipeLoader recipeLoader;
+            if (auto recipes = recipeLoader.loadFromDirectory(recipeDir.generic_string()); recipes.failed()) {
+                env.loadError += "配方加载失败: " + recipes.error().toString() + "\n";
+            } else if (recipes.value().failedCount > 0) {
+                for (const auto& message : recipes.value().errors) {
+                    env.loadError += "recipe: " + message + "\n";
+                }
+            }
+        }
+
         const auto lootDir = root / "data" / "minecraft" / "loot_table";
         if (!std::filesystem::exists(lootDir)) {
             env.loadError = "找不到战利品表目录：" + lootDir.string();
@@ -195,6 +211,9 @@ inline LootEnv& environment()
         // 谓词：`minecraft:reference` 条件通过谓词管理器解析。
         // 谓词 ID 由路径里 `predicates/` 的位置推导；原版 1.21.11 数据包不带任何谓词
         // 文件（命名谓词是数据包功能），目录不存在时跳过即可。
+        // 附魔标签：装备谓词的 `#tag` 写法（原版 `#minecraft:smelts_loot` 等）靠它展开。
+        datapack::EnchantmentTags::load(root / "data" / "minecraft" / "tags" / "enchantment");
+
         const auto predicateDir = root / "data" / "minecraft" / "predicates";
         if (std::filesystem::exists(predicateDir)) {
             loot::LootPredicateLoader predicateLoader(env.predicates);
@@ -299,6 +318,9 @@ template <typename PrepareContext>
             .withPredicateResolver([&world](const std::string& id) -> const loot::LootCondition* {
                 const auto* manager = world.lootTableManager();
                 return manager != nullptr ? manager->getPredicate(id) : nullptr;
+            })
+            .withEnchantmentTagResolver([](const ResourceLocation& tag) {
+                return datapack::EnchantmentTags::members(tag.toString());
             });
         prepare(builder);
 

@@ -23,8 +23,10 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
@@ -77,6 +79,20 @@ public:
     EntityPropertiesCondition(EntityTarget target, advancement::EntityPredicate predicate);
 
     [[nodiscard]] bool test(LootContext& context) const override;
+
+    /**
+     * @brief 检查条件是否成立（装备槽位的附魔标签可解析）
+     *
+     * 原版实体谓词的装备字段里可以写 `#enchantment_tag`（例如「主手带
+     * `#minecraft:smelts_loot` 击杀则掉落熟肉」），解析器缺失时这类条件恒不成立。
+     *
+     * @param context 战利品上下文
+     * @param enchantmentTagResolver 附魔标签名 → 成员附魔 ID；未知标签返回空
+     * @return 是否成立
+     */
+    [[nodiscard]] bool test(LootContext& context,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const;
+
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
 
     [[nodiscard]] std::string getType() const override

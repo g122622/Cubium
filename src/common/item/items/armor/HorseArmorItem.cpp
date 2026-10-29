@@ -23,6 +23,10 @@
 
 #include "HorseArmorItem.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
@@ -34,6 +38,34 @@ HorseArmorItem::HorseArmorItem(const ItemProperties& properties, i32 armorValue,
     , m_armorValue(armorValue)
     , m_texturePath(texturePath)
 {}
+
+item::ItemAttributeModifiers HorseArmorItem::getAttributeModifiers(i32 equipmentSlot) const
+{
+    if (equipmentSlot != static_cast<i32>(EquipmentSlot::Body)) {
+        return Item::getAttributeModifiers(equipmentSlot);
+    }
+    // 对齐原版护甲材质的 `createAttributes(BODY)`：护甲值与韧性共用同一个修饰符 id，
+    // 韧性为 0 也照原版登记；击退抗性只在材质给出正值时登记。
+    item::ItemAttributeModifiers modifiers;
+    const char* modifierId = entity::attribute::ids::ARMOR_MODIFIER_BODY;
+    modifiers.add(entity::attribute::Attributes::ARMOR,
+        entity::attribute::AttributeModifier(
+            modifierId, "Armor modifier", static_cast<f64>(m_armorValue), entity::attribute::Operation::Addition),
+        equipmentSlot);
+    modifiers.add(entity::attribute::Attributes::ARMOR_TOUGHNESS,
+        entity::attribute::AttributeModifier(
+            modifierId, "Armor toughness", static_cast<f64>(m_toughness), entity::attribute::Operation::Addition),
+        equipmentSlot);
+    if (m_knockbackResistance > 0.0f) {
+        modifiers.add(entity::attribute::Attributes::KNOCKBACK_RESISTANCE,
+            entity::attribute::AttributeModifier(modifierId,
+                "Armor knockback resistance",
+                static_cast<f64>(m_knockbackResistance),
+                entity::attribute::Operation::Addition),
+            equipmentSlot);
+    }
+    return modifiers;
+}
 
 } // namespace item::items
 } // namespace mc

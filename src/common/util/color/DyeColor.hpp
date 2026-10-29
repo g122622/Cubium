@@ -24,7 +24,9 @@
 #pragma once
 
 #include "core/Types.hpp"
+#include <array>
 #include <optional>
+#include <string_view>
 
 namespace mc {
 
@@ -53,6 +55,34 @@ enum class DyeColor : u8 {
     Black = 15,
     Count = 16
 };
+
+/**
+ * @brief 染料的资源名（vanilla `DyeColor.getSerializedName()`）
+ *
+ * 16 种颜色的序号与枚举值一致（`0 = white … 15 = black`）；数据组件、旗帜图案层
+ * 与实体组件（如 `minecraft:sheep/color`）都用这同一套字面量。
+ */
+[[nodiscard]] constexpr std::string_view dyeColorName(DyeColor color) noexcept
+{
+    constexpr std::array<std::string_view, 16> NAMES{"white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red",
+        "black"};
+    const auto index = static_cast<usize>(color);
+    return index < NAMES.size() ? NAMES[index] : std::string_view{};
+}
 
 /**
  * @brief 染料对应的烟花色（vanilla DyeColor.getFireworkColor()）

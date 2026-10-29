@@ -30,7 +30,23 @@
 
 namespace mc::advancement {
 
+namespace {
+
+/// 不提供附魔标签解析时的解析器：任何标签都查不到成员（保守方向）。
+[[nodiscard]] std::vector<std::string> noEnchantmentTag(const ResourceLocation&)
+{
+    return {};
+}
+
+} // namespace
+
 bool EntityEquipmentPredicate::test(const Entity& entity) const
+{
+    return test(entity, &noEnchantmentTag);
+}
+
+bool EntityEquipmentPredicate::test(const Entity& entity,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
 {
     if (isAny()) {
         return true;
@@ -42,44 +58,53 @@ bool EntityEquipmentPredicate::test(const Entity& entity) const
         return false;
     }
 
-    return test(*living);
+    return test(*living, enchantmentTagResolver);
 }
 
 bool EntityEquipmentPredicate::test(const LivingEntity& entity) const
+{
+    return test(entity, &noEnchantmentTag);
+}
+
+bool EntityEquipmentPredicate::test(const LivingEntity& entity,
+    const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const
 {
     if (isAny()) {
         return true;
     }
 
     // 检查每个装备槽位
+    const auto matches = [&enchantmentTagResolver](const ItemPredicate& predicate, const ItemStack& stack) {
+        return predicate.test(stack, enchantmentTagResolver);
+    };
 
     // 检查头盔
-    if (!m_head.test(entity.getEquipment(EquipmentSlot::Head))) {
+    if (!matches(m_head, entity.getEquipment(EquipmentSlot::Head))) {
         return false;
     }
 
     // 检查胸甲
-    if (!m_chest.test(entity.getEquipment(EquipmentSlot::Chest))) {
+    if (!matches(m_chest, entity.getEquipment(EquipmentSlot::Chest))) {
         return false;
     }
 
     // 检查护腿
-    if (!m_legs.test(entity.getEquipment(EquipmentSlot::Legs))) {
+    if (!matches(m_legs, entity.getEquipment(EquipmentSlot::Legs))) {
         return false;
     }
 
     // 检查靴子
-    if (!m_feet.test(entity.getEquipment(EquipmentSlot::Feet))) {
+    if (!matches(m_feet, entity.getEquipment(EquipmentSlot::Feet))) {
         return false;
     }
 
     // 检查主手物品
-    if (!m_mainHand.test(entity.getEquipment(EquipmentSlot::MainHand))) {
+    if (!matches(m_mainHand, entity.getEquipment(EquipmentSlot::MainHand))) {
         return false;
     }
 
     // 检查副手物品
-    if (!m_offHand.test(entity.getEquipment(EquipmentSlot::OffHand))) {
+    if (!matches(m_offHand, entity.getEquipment(EquipmentSlot::OffHand))) {
         return false;
     }
 
@@ -158,7 +183,6 @@ nlohmann::json EntityEquipmentPredicate::toJson() const
     }
 
     nlohmann::json json;
-
     if (!m_head.isAny()) {
         json["head"] = m_head.toJson();
     }
@@ -177,7 +201,6 @@ nlohmann::json EntityEquipmentPredicate::toJson() const
     if (!m_offHand.isAny()) {
         json["offhand"] = m_offHand.toJson();
     }
-
     return json;
 }
 

@@ -30,6 +30,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/context/ItemUseContext.hpp"
@@ -37,6 +38,7 @@
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
@@ -942,6 +944,10 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     if (!isCreative) {
         // 生成掉落物
         _generateBlockDrops(*world, pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
+        // 方块经验（矿石、幽匿块等）：对齐原版 `spawnAfterBreak(dropExp=true)` 之后的
+        // `tryDropExperience`，在掉落物之后、方块移除之前结算。创造模式不掉，
+        // 与原版 `Player.destroyBlock` 里 `!isCreative` 的分支一致。
+        _dropBlockExperience(*world, pos, oldState, tool.isEmpty() ? nullptr : &tool);
     }
 
     // 调用工具的 onBlockDestroyed 回调（用于耐久消耗等）
@@ -1106,12 +1112,28 @@ void BlockInteractionManager::_generateBlockDrops(
         BlockDropHandler::spawnDrops(world, pos, drops, throwerUuid);
     }
 
-    // 处理矿石经验掉落
-    // 使用随机种子生成器
-    const u64 seed = static_cast<u64>(static_cast<u64>(pos.x)) ^ static_cast<u64>(static_cast<u64>(pos.y) << 1) ^
-        static_cast<u64>(static_cast<u64>(pos.z) << 2) ^ static_cast<u64>(std::hash<PlayerId>{}(playerId));
-    math::Random rng(seed);
-    BlockDropHandler::handleBlockBreakExperience(world, pos, state, tool, rng);
+    // 方块经验不在这里结算：原版由 `spawnAfterBreak(dropExp=true)` 统一处理（见
+    // `_dropBlockExperience`），那条路径同时覆盖方块移除后的时机，也带上精准采集判定。
+    // 此处曾经用「位置+玩家」拼出的种子自造随机源，与原版消耗世界随机数的行为不同。
+}
+
+void BlockInteractionManager::_dropBlockExperience(
+    ServerWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool)
+{
+    // 精准采集不掉经验（vanilla `EnchantmentHelper.processBlockExperience` 在工具带精准采集
+    // 且方块掉经验时返回 0）。
+    if (tool != nullptr && !tool->isEmpty() && item::enchant::EnchantmentHelper::hasSilkTouch(*tool)) {
+        return;
+    }
+    const i32 experience = state.getBlock().dropExperience(world.getRandom());
+    if (experience <= 0) {
+        return;
+    }
+    entity::ExperienceDropHandler::spawnExperienceOrbs(&world,
+        static_cast<f64>(pos.x) + 0.5,
+        static_cast<f64>(pos.y) + 0.5,
+        static_cast<f64>(pos.z) + 0.5,
+        experience);
 }
 
 bool BlockInteractionManager::_handleSignCommand(ServerWorld& world, const BlockPos& pos, mc::ServerPlayer& player)

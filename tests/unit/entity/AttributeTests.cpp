@@ -412,7 +412,7 @@ TEST(Attributes, KnockbackResistance)
 
 TEST(Attributes, Luck)
 {
-    // MC 1.16.5: generic.luck 属性
+    // MC 1.16.5: minecraft:luck 属性
     auto attr = Attributes::luck();
 
     EXPECT_EQ(attr->registryName(), Attributes::LUCK);

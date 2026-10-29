@@ -30,6 +30,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -132,6 +133,20 @@ public:
     [[nodiscard]] bool test(const ItemStack& stack) const;
 
     /**
+     * @brief 检查物品是否匹配（附魔集合支持标签）
+     *
+     * 原版附魔谓词的 `enchantments` 是 `HolderSet<Enchantment>`，可以写
+     * `#minecraft:smelts_loot` 这类附魔标签。不给解析器时标签写法一律不匹配，
+     * 只是保守而非正确；需要完整语义的调用方（战利品、进度）请用这个重载。
+     *
+     * @param stack 物品堆
+     * @param enchantmentTagResolver 附魔标签名 → 成员附魔 ID；未知标签返回空
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const ItemStack& stack,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const;
+
+    /**
      * @brief 检查是否匹配任意物品
      */
     [[nodiscard]] bool isAny() const noexcept;
@@ -216,6 +231,17 @@ private:
      */
     static bool _testEnchantments(
         const std::vector<EnchantmentPredicate>& predicates, const item::enchant::EnchantmentContainer& enchantments);
+
+    /**
+     * @brief 检查附魔谓词列表是否匹配附魔容器（附魔标签可解析）
+     * @param predicates 附魔谓词列表
+     * @param enchantments 附魔容器
+     * @param enchantmentTagResolver 附魔标签名 → 成员附魔 ID
+     * @return 是否匹配
+     */
+    static bool _testEnchantments(const std::vector<EnchantmentPredicate>& predicates,
+        const item::enchant::EnchantmentContainer& enchantments,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver);
 
     std::optional<ResourceLocation> m_item; ///< 物品ID
     std::optional<ResourceLocation> m_tag;  ///< 物品标签ID（与 m_item 互斥）

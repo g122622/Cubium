@@ -56,7 +56,7 @@ public:
     /**
      * @brief 构造斧
      * @param tier 工具层级
-     * @param attackDamage 基础攻击伤害（通常为 6.0 - tier.getAttackDamage()）
+     * @param attackDamage 最终的攻击伤害（原版即物品属性里的绝对值，不再叠加层级加成）
      * @param attackSpeed 攻击速度修正（通常为 -3.0）
      * @param properties 物品属性
      */

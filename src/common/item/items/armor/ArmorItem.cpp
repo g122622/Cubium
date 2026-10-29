@@ -127,17 +127,18 @@ void ArmorItem::_buildAttributeModifiers(i32 defense)
     i32 equipmentSlot = armorSlotToEquipmentSlot(m_slot);
     std::string modifierId = getArmorModifierId(m_slot);
 
-    // 1. 护甲值修饰符 (generic.armor)
+    // 1. 护甲值修饰符 (minecraft:armor)
     auto armorModifier = entity::attribute::AttributeModifier(
         modifierId, "Armor modifier", static_cast<f64>(defense), entity::attribute::Operation::Addition);
     m_attributeModifiers.add(entity::attribute::Attributes::ARMOR, armorModifier, equipmentSlot);
 
-    // 2. 护甲韧性修饰符 (generic.armor_toughness)
+    // 2. 护甲韧性修饰符 (minecraft:armor_toughness)。原版即使材质韧性为 0 也照常登记这一条，
+    //    条目本身就是「本槽位有护甲」的一部分，故不做零值跳过。
     auto toughnessModifier = entity::attribute::AttributeModifier(
         modifierId, "Armor toughness", static_cast<f64>(getToughness()), entity::attribute::Operation::Addition);
     m_attributeModifiers.add(entity::attribute::Attributes::ARMOR_TOUGHNESS, toughnessModifier, equipmentSlot);
 
-    // 3. 击退抗性修饰符 (generic.knockback_resistance) - 仅当有击退抗性时
+    // 3. 击退抗性修饰符 (minecraft:knockback_resistance) - 仅当有击退抗性时
     f32 knockbackRes = getKnockbackResistance();
     if (knockbackRes > 0.0f) {
         auto knockbackModifier = entity::attribute::AttributeModifier(modifierId,

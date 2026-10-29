@@ -155,7 +155,9 @@ final class LootRoll {
             String id = request.get(key).getAsString();
             JsonObject result = new JsonObject();
             result.addProperty(key, id);
-            LootTable table = data.table(id);
+            // 单元键可以带场景后缀（`表#场景`）：表名只取 `#` 之前的部分，键原样回写。
+            int separator = id.lastIndexOf('#');
+            LootTable table = data.table(separator < 0 ? id : id.substring(0, separator));
             if (table == null) {
                 result.addProperty("missing", true);
             } else {

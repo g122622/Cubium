@@ -27,6 +27,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
+#include "world/block/blocks/DropExperienceBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
@@ -196,80 +197,94 @@ void registerDeepslateBlocks()
 
     // 深板岩煤矿石 - harvestLevel 0
     DeepslateBlocks::DEEPSLATE_COAL_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_coal_ore"),
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_coal_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(0)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE),
+            0,
+            2);
 
     // 深板岩铁矿石 - harvestLevel 1
     DeepslateBlocks::DEEPSLATE_IRON_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_iron_ore"),
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_iron_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(1)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE),
+            0,
+            0);
 
     // 深板岩铜矿石 - harvestLevel 1
     DeepslateBlocks::DEEPSLATE_COPPER_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_copper_ore"),
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_copper_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(1)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE),
+            0,
+            0);
 
     // 深板岩金矿石 - harvestLevel 2
     DeepslateBlocks::DEEPSLATE_GOLD_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_gold_ore"),
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_gold_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(2)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE),
+            0,
+            0);
 
     // 深板岩钻石矿石 - harvestLevel 2
     DeepslateBlocks::DEEPSLATE_DIAMOND_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_diamond_ore"),
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_diamond_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(2)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE),
+            3,
+            7);
 
     // 深板岩青金石矿石 - harvestLevel 1
     DeepslateBlocks::DEEPSLATE_LAPIS_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_lapis_ore"),
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_lapis_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(1)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE),
+            2,
+            5);
 
     // 深板岩绿宝石矿石 - harvestLevel 2
     DeepslateBlocks::DEEPSLATE_EMERALD_ORE =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_emerald_ore"),
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_emerald_ore"),
             BlockProperties(Material::ROCK)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(2)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE),
+            3,
+            7);
 
     // 深板岩红石矿石 - RedstoneOreBlock, LIT属性控制发光
     DeepslateBlocks::DEEPSLATE_REDSTONE_ORE =

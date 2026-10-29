@@ -42,7 +42,7 @@ class Attribute {
 public:
     /**
      * @brief 构造属性
-     * @param registryName 注册名称（如 "generic.max_health"）
+     * @param registryName 注册名称（如 "minecraft:max_health"）
      * @param defaultValue 默认值
      * @param minValue 最小值
      * @param maxValue 最大值

@@ -386,7 +386,7 @@ TEST_F(BrushItemTest, ConstantValuesMatchMC)
     EXPECT_EQ(item::BrushItem::BRUSH_TICK_IN_CYCLE, 4);
     EXPECT_EQ(item::BrushItem::ARMADILLO_DURABILITY_COST, 16);
     // 注：BLOCK_INTERACTION_RANGE 已移除，改用 Player::blockInteractionRange()
-    // 该值由 generic.block_interaction_range 属性决定（生存/冒险 4.5，创造 5.0），
+    // 该值由 minecraft:block_interaction_range 属性决定（生存/冒险 4.5，创造 5.0），
     // 由 PlayerInteractionRange 测试覆盖
 }
 

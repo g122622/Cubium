@@ -25,9 +25,13 @@
 
 #include "ItemPredicate.hpp"
 #include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -57,6 +61,28 @@ public:
      * @return 是否匹配
      */
     [[nodiscard]] bool test(const Entity& entity) const;
+
+    /**
+     * @brief 检查实体装备是否匹配（槽位谓词里的附魔标签可解析）
+     *
+     * 例如「主手是否带 `#minecraft:smelts_loot`」这类写法要靠解析器判定；
+     * 不给解析器的重载对标签一律判不匹配（保守方向）。
+     *
+     * @param entity 被检查的实体
+     * @param enchantmentTagResolver 附魔标签名 → 成员附魔 ID；未知标签返回空
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const Entity& entity,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const;
+
+    /**
+     * @brief 检查 LivingEntity 装备是否匹配（槽位谓词里的附魔标签可解析）
+     * @param entity LivingEntity
+     * @param enchantmentTagResolver 附魔标签名 → 成员附魔 ID；未知标签返回空
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const LivingEntity& entity,
+        const std::function<std::vector<std::string>(const ResourceLocation&)>& enchantmentTagResolver) const;
 
     /**
      * @brief 检查 LivingEntity 装备是否匹配

@@ -44,7 +44,10 @@ namespace tool {
 
 SwordItem::SwordItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties)
     : TieredItem(tier, properties)
-    , m_attackDamage(static_cast<f32>(attackDamage) + tier.getAttackDamage())
+    // 攻击伤害按原版 1.21.11 登记：剑的词条已经是「材质加成之后」的最终值，不再叠加
+    // tier.getAttackDamage()。原版剑的伤害为木/金 3、石 4、铁 4、铜 3、钻 5、下界合金 6，
+    // 与材质加成无关（TieredItem 的加成只用于镐/锹/锄）。
+    , m_attackDamage(static_cast<f32>(attackDamage))
     , m_attackSpeed(attackSpeed)
 {}
 

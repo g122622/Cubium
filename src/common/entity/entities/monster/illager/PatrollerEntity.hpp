@@ -81,6 +81,18 @@ public:
         return m_isPatrolLeader;
     }
 
+    /**
+     * @brief 是否头戴不祥旗帜（vanilla `Raider.isCaptain()` 判据之一）。
+     *
+     * 原版把「戴不祥旗」与「巡逻队长标记」分开存放：{@code isPatrolLeader} 只说明它是
+     * 巡逻队/袭击波次的领队，{@code isCaptain} 才同时要求头戴不祥旗帜。两者的旗都来自
+     * `Raid#getOminousBannerInstance`，图案与颜色固定。
+     */
+    [[nodiscard]] bool wearsOminousBanner() const;
+
+    /// 把一份不祥旗帜写进头盔槽（原版 `Raid.assignOminousBanner` 的后半段）。
+    void equipOminousBanner();
+
     void resetPatrolTarget();
 
     [[nodiscard]] bool isPatrolling() const
@@ -93,8 +105,15 @@ public:
         m_isPatrolling = patrolling;
     }
 
+    void finalizeSpawn(IWorld& world,
+        const entity::combat::DifficultyInstance& difficulty,
+        world::spawn::SpawnReason spawnReason) override;
+
 protected:
     void registerGoals() override;
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
 private:
     std::optional<BlockPos> m_patrolTarget;

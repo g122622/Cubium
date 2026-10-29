@@ -43,8 +43,10 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/LootCallbackInvoker.hpp"
@@ -78,13 +80,25 @@ std::unique_ptr<Entity> createNamed(const json& input, const char* key)
     return lootworld::createEntity(*environment().world, input.at(key).get<std::string>());
 }
 
+/**
+ * @brief 从单元键里取出表名。
+ *
+ * 单元键是「表#场景」（编排层把每张表按场景展开成多行）；表名只取 `#` 之前的部分，
+ * 键本身原样回写，两侧按同一个键对齐。
+ */
+std::string tableNameOf(const std::string& unit)
+{
+    const size_t separator = unit.rfind('#');
+    return separator == std::string::npos ? unit : unit.substr(0, separator);
+}
+
 std::string runLine(std::string_view inputLine)
 {
     auto& env = environment();
     const json input = json::parse(inputLine);
     const std::string id = input.at("table").get<std::string>();
 
-    const loot::LootTable* table = env.tables.getTable(id);
+    const loot::LootTable* table = env.tables.getTable(tableNameOf(id));
     if (table == nullptr) {
         return json{{"table", id}, {"missing", true}}.dump();
     }
@@ -104,6 +118,7 @@ std::string runLine(std::string_view inputLine)
     const auto origin = parseOrigin(input);
     const i32 looting = input.value("looting", 0);
     const bool onFire = input.value("onFire", false);
+    const bool attackerCaptain = input.value("attackerCaptain", false);
 
     // 掠夺等级必须真实地"写在攻击者的主手武器上"：原版 `enchanted_count_increase`
     // 与 `random_chance_with_enchanted_bonus` 都从 ATTACKING_ENTITY 的装备读附魔，
@@ -111,6 +126,15 @@ std::string runLine(std::string_view inputLine)
     // 两侧形态必须一致。
     if (attacker != nullptr) {
         loot::equipLooting(*attacker, looting);
+    }
+
+    // 队长判定在原版里是两个条件同时成立：巡逻队长标记 + 头戴不祥旗帜
+    // （`Raider.isCaptain()`）。两侧都按这个口径构造，判定才走同一条路径。
+    if (attackerCaptain) {
+        if (auto* raider = dynamic_cast<AbstractRaiderEntity*>(attacker.get()); raider != nullptr) {
+            raider->setLeader(true);
+            raider->equipOminousBanner();
+        }
     }
 
     if (onFire) {
@@ -132,7 +156,7 @@ std::string runLine(std::string_view inputLine)
     };
     if (attacker != nullptr) {
         providedParams.push_back(loot::LootParams::KILLER_ENTITY.getId());
-        if (attacker->entityType() != nullptr && attacker->entityType()->name() == "minecraft:player") {
+        if (dynamic_cast<const Player*>(attacker.get()) != nullptr) {
             providedParams.push_back(loot::LootParams::KILLER_PLAYER.getId());
         }
     }
@@ -152,9 +176,8 @@ std::string runLine(std::string_view inputLine)
         if (attacker != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_ENTITY, attacker.get());
         }
-        if (attacker != nullptr && attacker->entityType() != nullptr &&
-            attacker->entityType()->name() == "minecraft:player") {
-            builder.withParameter(loot::LootParams::KILLER_PLAYER, static_cast<Player*>(attacker.get()));
+        if (auto* attackerPlayer = dynamic_cast<Player*>(attacker.get()); attackerPlayer != nullptr) {
+            builder.withParameter(loot::LootParams::KILLER_PLAYER, attackerPlayer);
         }
     });
     return json{{"table", id}, {"samples", std::move(samples)}}.dump();

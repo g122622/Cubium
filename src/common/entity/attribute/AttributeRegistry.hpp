@@ -152,54 +152,57 @@ public:
     /**
      * @brief 规范化属性名称
      *
-     * 自动为已知短名称添加 "generic." 前缀。
-     * 例如：输入 "max_health" 返回 "generic.max_health"。
-     * 如果名称已包含命名空间前缀（如 "generic."、"horse."、"zombie."、"forge."）则不做修改。
-     * 如果名称不是已知属性，也原样返回。
+     * 原版属性名是 `minecraft:<path>`，旧版本（1.16.5）是 `generic.<path>`，命令里还常省掉
+     * 命名空间。三种写法都接受，统一归一成注册表里的原版名：
+     *   - `max_health` / `minecraft:max_health` → `minecraft:max_health`
+     *   - `generic.max_health` → `minecraft:max_health`（1.16.5 写法，只有原版属性有这一层）
+     *   - `horse.jump_strength` / `zombie.spawn_reinforcements` → 不存在的原版属性，原样返回
+     *   - 未知名称原样返回（去掉 `minecraft:` 前缀），由调用方报「未知属性」。
      *
      * @param name 原始属性名称
      * @return 规范化后的属性名称
      */
     [[nodiscard]] std::string normalizeName(const std::string& name) const
     {
-        // 移除 minecraft: 前缀
         constexpr std::string_view minecraftPrefix = "minecraft:";
         std::string normalized = name;
         if (normalized.starts_with(minecraftPrefix)) {
             normalized = normalized.substr(minecraftPrefix.size());
         }
 
-        // 已包含已知命名空间前缀，直接返回
-        if (normalized.starts_with("generic.") || normalized.starts_with("horse.") ||
-            normalized.starts_with("zombie.") || normalized.starts_with("forge.")) {
+        // 1.16.5 风格的 `generic.<path>`：只有原版通用属性（不含 horse./zombie./forge.）有这一层，
+        // 换个前缀再查一次即可。
+        constexpr std::string_view legacyGenericPrefix = "generic.";
+        if (normalized.starts_with(legacyGenericPrefix)) {
+            const std::string candidate = std::string(minecraftPrefix) + normalized.substr(legacyGenericPrefix.size());
+            if (isKnown(candidate)) {
+                return candidate;
+            }
             return normalized;
         }
 
-        // 尝试添加 generic. 前缀看是否匹配已知属性
-        std::string withGeneric = "generic." + normalized;
-        if (isKnown(withGeneric)) {
-            return withGeneric;
+        // horse./forge. 是项目自定义命名空间，注册表里就是这个形态，原样返回。
+        // zombie.spawn_reinforcements 是 1.16.5 的旧名，原版现在叫 minecraft:spawn_reinforcements，
+        // 先按「去掉前缀再查」尝试，查不到才原样返回。
+        if (normalized.starts_with("horse.") || normalized.starts_with("forge.")) {
+            return normalized;
+        }
+        constexpr std::string_view legacyZombiePrefix = "zombie.";
+        if (normalized.starts_with(legacyZombiePrefix)) {
+            const std::string candidate = std::string(minecraftPrefix) + normalized.substr(legacyZombiePrefix.size());
+            return isKnown(candidate) ? candidate : normalized;
         }
 
-        // 尝试添加 horse. 前缀
-        std::string withHorse = "horse." + normalized;
-        if (isKnown(withHorse)) {
-            return withHorse;
+        const std::string canonical = std::string(minecraftPrefix) + normalized;
+        if (isKnown(canonical)) {
+            return canonical;
         }
-
-        // 尝试添加 zombie. 前缀
-        std::string withZombie = "zombie." + normalized;
-        if (isKnown(withZombie)) {
-            return withZombie;
-        }
-
-        // 尝试添加 forge. 前缀
-        std::string withForge = "forge." + normalized;
+        // 项目自定义的非原版属性（如 entity_gravity → forge.entity_gravity）仍按项目命名空间
+        // 补全，保持命令里的短名可用。
+        const std::string withForge = "forge." + normalized;
         if (isKnown(withForge)) {
             return withForge;
         }
-
-        // 无法匹配，原样返回
         return normalized;
     }
 

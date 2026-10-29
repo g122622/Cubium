@@ -59,6 +59,8 @@ namespace mc::diff::datapack {
 
 inline void loadDataPackItemTags(const std::filesystem::path& itemTagDirectory);
 
+class EnchantmentTags;
+
 /// 数据包根目录（含 `data/` 的那一层）。由 harness 通过环境变量传入。
 [[nodiscard]] inline std::filesystem::path root()
 {
@@ -90,6 +92,121 @@ inline void loadDataPackItemTags(const std::filesystem::path& itemTagDirectory);
 }
 
 /**
+ * @brief 数据包附魔标签表（`<pack>/data/minecraft/tags/enchantment`）。
+ *
+ * 原版 1.21 起附魔标签只存在于数据包里；条件谓词的 `#tag` 写法（例如
+ * `#minecraft:smelts_loot`）靠它判断成员。与服务端启动流程一致：先登记全部文件，
+ * 再统一展开 `#other_tag` 引用，最终得到传递闭包。
+ */
+class EnchantmentTags {
+public:
+    /// 从数据包目录载入；目录不存在时表为空（标签是可选数据，不报错）。
+    static void load(const std::filesystem::path& directory)
+    {
+        collect(directory);
+        for (const auto& [name, unused] : raw()) {
+            static_cast<void>(resolved(name));
+        }
+    }
+
+    /// 标签名 → 成员附魔 ID（已展开嵌套引用）；未知标签返回空。
+    [[nodiscard]] static std::vector<std::string> members(const std::string& tagId)
+    {
+        const auto iter = memberships().find(normalize(tagId));
+        return iter == memberships().end() ? std::vector<std::string>{} : iter->second;
+    }
+
+private:
+    /// 原始成员（可能含 `#tag` 引用）与「正在展开」标记（用于断开环）。
+    struct RawTag {
+        std::vector<std::string> entries;
+        bool resolving = false;
+    };
+
+    static std::unordered_map<std::string, std::vector<std::string>>& memberships()
+    {
+        static std::unordered_map<std::string, std::vector<std::string>> s_memberships;
+        return s_memberships;
+    }
+
+    static std::unordered_map<std::string, RawTag>& raw()
+    {
+        static std::unordered_map<std::string, RawTag> s_raw;
+        return s_raw;
+    }
+
+    static std::string normalize(const std::string& name)
+    {
+        return name.find(':') == std::string::npos ? "minecraft:" + name : name;
+    }
+
+    static void collect(const std::filesystem::path& directory)
+    {
+        for (const auto& file : jsonFiles(directory)) {
+            std::ifstream stream(file);
+            nlohmann::json contents;
+            try {
+                stream >> contents;
+            }
+            catch (const nlohmann::json::parse_error& error) {
+                std::fprintf(stderr, "enchantment tags: %s: %s\n", file.filename().string().c_str(), error.what());
+                continue;
+            }
+            if (!contents.contains("values") || !contents["values"].is_array()) {
+                continue;
+            }
+            std::string relative = std::filesystem::relative(file, directory).generic_string();
+            relative.resize(relative.size() - 5); // 去掉 ".json"
+            RawTag& tag = raw()[normalize("minecraft:" + relative)];
+            tag.entries.clear();
+            for (const auto& value : contents["values"]) {
+                // 成员既可以是字符串，也可以是 `{"id": ..., "required": false}` 对象。
+                std::string id;
+                if (value.is_string()) {
+                    id = value.get<std::string>();
+                } else if (value.is_object() && value.contains("id") && value["id"].is_string()) {
+                    id = value["id"].get<std::string>();
+                } else {
+                    continue;
+                }
+                if (!id.empty() && id.front() == '#') {
+                    tag.entries.push_back("#" + normalize(id.substr(1)));
+                } else {
+                    tag.entries.push_back(normalize(id));
+                }
+            }
+        }
+    }
+
+    /// 递归展开 `#tag` 引用；环上的边按空成员处理，保证结果确定。
+    static const std::vector<std::string>& resolved(const std::string& tagId)
+    {
+        const std::string normalized = normalize(tagId);
+        auto& cache = memberships();
+        if (const auto iter = cache.find(normalized); iter != cache.end()) {
+            return iter->second;
+        }
+        std::vector<std::string> flattened;
+        const auto rawIter = raw().find(normalized);
+        if (rawIter != raw().end() && !rawIter->second.resolving) {
+            rawIter->second.resolving = true;
+            for (const auto& entry : rawIter->second.entries) {
+                if (entry.empty() || entry.front() != '#') {
+                    flattened.push_back(entry);
+                    continue;
+                }
+                const auto& nested = resolved(entry.substr(1));
+                flattened.insert(flattened.end(), nested.begin(), nested.end());
+            }
+            rawIter->second.resolving = false;
+            std::sort(flattened.begin(), flattened.end());
+            flattened.erase(std::unique(flattened.begin(), flattened.end()), flattened.end());
+        }
+        return cache.emplace(normalized, std::move(flattened)).first->second;
+    }
+};
+
+/**
  * @brief 按 `RegistryBootstrap` 的顺序初始化静态注册表，并载入数据包标签
  *
  * 顺序有意义：方块物品要在物品注册后建立、物品标签要引用已注册的物品。
@@ -105,6 +222,7 @@ inline void initializeRegistries()
     entity::VanillaEntities::registerAll();
     // 数据包是物品标签的唯一来源（与服务端启动流程一致），不启用内置快照。
     loadDataPackItemTags(root() / "data" / "minecraft" / "tags" / "item");
+    EnchantmentTags::load(root() / "data" / "minecraft" / "tags" / "enchantment");
 }
 
 /**

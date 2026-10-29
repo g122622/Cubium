@@ -56,11 +56,11 @@ public:
      * @brief 槽位修饰符条目
      *
      * 存储属性修饰符及其对应的属性注册名和装备槽位。
-     * 使用属性注册名（如 "generic.armor"）而非 const Attribute* 指针，
+     * 使用属性注册名（如 "minecraft:armor"）而非 const Attribute* 指针，
      * 避免 Attribute 生命周期问题导致的悬挂指针。
      */
     struct Entry {
-        std::string attributeName; ///< 属性注册名（如 "generic.armor"）
+        std::string attributeName; ///< 属性注册名（如 "minecraft:armor"）
         entity::attribute::AttributeModifier modifier;
         i32 equipmentSlot; ///< 使用int代替EquipmentSlot避免循环依赖
 
@@ -73,7 +73,7 @@ public:
 
     /**
      * @brief 添加属性修饰符
-     * @param attributeName 属性注册名（如 "generic.armor"）
+     * @param attributeName 属性注册名（如 "minecraft:armor"）
      * @param modifier 修饰符
      * @param equipmentSlot 装备槽位
      */

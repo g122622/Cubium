@@ -342,7 +342,7 @@ TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues)
     EXPECT_DOUBLE_EQ(rabbit.maxHealth(), 3.0);
 
     // MC 1.16.5: 兔子移动速度为 0.3
-    EXPECT_DOUBLE_EQ(rabbit.getAttributeValue("generic.movement_speed", 0.0), 0.3);
+    EXPECT_DOUBLE_EQ(rabbit.getAttributeValue("minecraft:movement_speed", 0.0), 0.3);
 }
 
 // ========== 尺寸测试 ==========

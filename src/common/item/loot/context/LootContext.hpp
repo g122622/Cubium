@@ -31,6 +31,7 @@
 
 // LootContext class definition (also requires these directly)
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <functional>
 #include <memory>
@@ -216,6 +217,27 @@ public:
      */
     [[nodiscard]] const LootTable* getLootTable(const std::string& id) const noexcept;
 
+    // ========== 附魔标签 ==========
+
+    /**
+     * @brief 设置附魔标签解析器
+     *
+     * 实体条件里的装备谓词可以写 `#enchantment_tag`（如 `#minecraft:smelts_loot`），
+     * 未设置时这类条件恒不成立。
+     */
+    void setEnchantmentTagResolver(std::function<std::vector<std::string>(const ResourceLocation&)> resolver) noexcept
+    {
+        m_enchantmentTagResolver = std::move(resolver);
+    }
+
+    /**
+     * @brief 查附魔标签成员；未设置解析器或标签未知时返回空。
+     */
+    [[nodiscard]] std::vector<std::string> getEnchantmentTagMembers(const ResourceLocation& tag) const
+    {
+        return m_enchantmentTagResolver ? m_enchantmentTagResolver(tag) : std::vector<std::string>{};
+    }
+
     // ========== 循环检测 ==========
 
     /**
@@ -250,6 +272,7 @@ private:
     std::vector<std::shared_ptr<void>> m_ownedValues; // 拥有所有权的值存储
     LootTableResolver m_lootTableResolver;
     PredicateResolver m_predicateResolver;
+    std::function<std::vector<std::string>(const ResourceLocation&)> m_enchantmentTagResolver;
     std::vector<const LootTable*> m_visitedTables;         // 用于检测掉落表循环引用
     std::vector<const LootCondition*> m_visitedPredicates; // 用于检测谓词循环引用
 };
