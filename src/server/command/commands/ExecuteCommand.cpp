@@ -126,11 +126,21 @@ void attachRunToLeaves(const std::shared_ptr<CommandNode<ServerCommandSource>>& 
             continue;
         }
         if (child->getType() == NodeType::Argument) {
-            child->addChild(runLink);
-            // 不能在这里 return：参数节点自身也可能是**多参数链的中间层**
-            // （`if block <pos> <block>`：pos 下还挂着 block 参数）。只给 pos 挂 run
-            // 的话，输入读完 pos 之后 dispatcher 在 pos 下找不到能吃掉方块谓词的分支，
-            // 于是报 Unknown argument。继续下探，让链上每个参数都能直接接 run。
+            // 只给**参数链的末端**挂 run。若给中间参数也挂（`if block <pos> <block>` 的 pos），
+            // 输入读完 pos 后 dispatcher 会先匹配到 pos→run，把本该由 block 参数消费的方块谓词
+            // 当成 run 之后的内容，于是 `execute ... if block 0 0 0 stone run ...` 报
+            // "Expected literal 'run'"。参数链继续下探时不在中间节点挂 run。
+            bool hasArgumentChild = false;
+            for (const auto& [childName, grandChild] : child->getChildren()) {
+                (void)childName;
+                if (grandChild && grandChild != runLink && grandChild->getType() == NodeType::Argument) {
+                    hasArgumentChild = true;
+                    break;
+                }
+            }
+            if (!hasArgumentChild) {
+                child->addChild(runLink);
+            }
         }
         attachRunToLeaves(child, runLink);
     }
@@ -343,8 +353,12 @@ i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std:
         cmd = "/" + cmd;
     }
 
-    // 通过 CommandRegistry 执行嵌套命令
-    auto& registry = CommandRegistry::getGlobal();
+    // 嵌套命令必须在**命令源所属服务器**的注册表中解析执行，而不是进程全局单例。
+    // 全局单例只承载进程唯一的默认聚合注册表；一个服务器实例（含单元测试的 BaseTestServer、
+    // 以及未来同进程多服务器场景）可以持有自己的 CommandRegistry，并对其注册自定义命令。
+    // 此前固定走 getGlobal()，导致通过实例注册表注册的命令永远无法被 execute ... run 调用。
+    server::IServer* server = source.server();
+    auto& registry = (server != nullptr) ? server->commandRegistry() : CommandRegistry::getGlobal();
     auto result = registry.execute(cmd, source);
 
     if (result.failed()) {

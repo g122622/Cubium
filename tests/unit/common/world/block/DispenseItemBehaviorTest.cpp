@@ -1755,9 +1755,12 @@ TEST_F(DispenseBehaviorTest, ConsumeWithRemainder_MultipleItems_InventoryAccepts
         &VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::North);
     BlockPos dispenserPos(0, 0, 0);
 
-    if (Items::WATER_BUCKET != nullptr && Items::BUCKET != nullptr) {
-        ItemStack original(Items::WATER_BUCKET, 3);
-        ItemStack replacement(Items::BUCKET, 1);
+    if (Items::SNOWBALL != nullptr) {
+        // 不可堆叠物品（水桶 maxStackSize=1）在 ItemStack 构造期即被 limitSize 截为 1，
+        // 无法构造"剩余多个"的场景；这里改用可堆叠的雪球验证同一分支：
+        // 消耗 1 个后仍剩 2 个，替换物品（同样是雪球）应被放回库存。
+        ItemStack original(Items::SNOWBALL, 3);
+        ItemStack replacement(Items::SNOWBALL, 1);
         MockInventory inventory(9);
 
         ItemStack result = DefaultDispenseItemBehavior::consumeWithRemainder(
@@ -1766,20 +1769,20 @@ TEST_F(DispenseBehaviorTest, ConsumeWithRemainder_MultipleItems_InventoryAccepts
         // 原始物品减1后还剩2
         EXPECT_FALSE(original.isEmpty());
         EXPECT_EQ(original.getCount(), 2);
-        // 返回的是剩余的原始物品（2个水桶）
-        EXPECT_EQ(result.getItem(), Items::WATER_BUCKET);
+        // 返回的是剩余的原始物品（2个雪球）
+        EXPECT_EQ(result.getItem(), Items::SNOWBALL);
         EXPECT_EQ(result.getCount(), 2);
-        // 空桶应该被放入了库存的某个空槽位
-        bool foundEmptyBucket = false;
+        // 替换物品应该被放入了库存的某个空槽位
+        bool foundReplacement = false;
         for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
             ItemStack slotItem = inventory.getItem(i);
-            if (!slotItem.isEmpty() && slotItem.getItem() == Items::BUCKET) {
-                foundEmptyBucket = true;
+            if (!slotItem.isEmpty() && slotItem.getItem() == Items::SNOWBALL) {
+                foundReplacement = true;
                 EXPECT_EQ(slotItem.getCount(), 1);
                 break;
             }
         }
-        EXPECT_TRUE(foundEmptyBucket);
+        EXPECT_TRUE(foundReplacement);
     }
 }
 

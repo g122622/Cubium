@@ -646,7 +646,8 @@ std::string NbtPathArgumentType::_readNbtNumber(StringReader& reader)
             reader.skip();
         }
     }
-    return reader.getRemaining().substr(0, static_cast<size_t>(reader.getCursor() - start));
+    return std::string(reader.getString().substr(
+        static_cast<size_t>(start), static_cast<size_t>(reader.getCursor() - start)));
 }
 
 } // namespace command

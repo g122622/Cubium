@@ -413,8 +413,10 @@ TEST(ThrowablePortalTest, EndPortalBlock_NonPlayerDelegatesToWorldDimensionTrans
 
     // 测试世界未实现跨维度迁移：实体留在原维度。
     EXPECT_EQ(throwable.dimension(), 0);
-    // 但传送门冷却已生效，避免每帧重复触发。
-    EXPECT_GT(throwable.portalCooldown(), 0);
+    // 末地传送门在本项目只对玩家生效（非玩家实体不跨维度，见 EndPortalBlock::onEntityCollision），
+    // 传送冷却只在真正发生跨维度迁移时设置（原版 Entity.handlePortal 在 teleport 前
+    // setPortalCooldown），因此这里不应留下冷却。
+    EXPECT_EQ(throwable.portalCooldown(), 0);
 }
 
 TEST(ThrowablePortalTest, EndPortalBlockNotHandledByThrowable)

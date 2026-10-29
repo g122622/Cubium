@@ -64,6 +64,9 @@ protected:
         DamageTypeTags::initialize();
     }
 
+    // 注意：格挡判定与减伤发生在 LivingEntity::hurt 内（1.2 步），actuallyHurt 只做
+    // "未被格挡后的伤害结算"。所有验证"盾牌挡下伤害"的用例必须经 hurt() 入口。
+
     /// 举盾：主手放置盾牌并进入使用状态
     static void _equipRaisedShield(Player& player)
     {
@@ -85,21 +88,21 @@ TEST_F(ShieldBlockingAngleTest, EnemyInFrontIsBlocked)
     ShieldTestPlayer player;
     player.setWorld(&m_world);
     player.setPosition(0.0f, 64.0f, 0.0f);
-    // yaw=0 朝向 +X
+    // MC 约定：yaw=0 朝 +Z（视线水平分量为 (-sin yaw, cos yaw)）
     player.setRotation(0.0f, 0.0f);
     player.setRotationYawHead(0.0f);
     _equipRaisedShield(player);
 
     ShieldTestPlayer attacker;
     attacker.setWorld(&m_world);
-    attacker.setPosition(3.0f, 64.0f, 0.0f);
+    attacker.setPosition(0.0f, 64.0f, 3.0f); // 正前方（+Z）
 
     auto source = DamageSources::playerAttack(&attacker);
     ASSERT_TRUE(player.canBlockDamageSource(source));
     const auto angle = player.blockingSourceAngle(source);
     ASSERT_TRUE(angle.has_value());
     EXPECT_NEAR(*angle, 0.0f, 1.0e-4f);
-    player.actuallyHurt(source, 4.0f);
+    player.hurt(source, 4.0f);
     EXPECT_FLOAT_EQ(player.health(), player.maxHealth());
 }
 
@@ -108,14 +111,14 @@ TEST_F(ShieldBlockingAngleTest, EnemyBehindBreaksThrough)
     ShieldTestPlayer player;
     player.setWorld(&m_world);
     player.setPosition(0.0f, 64.0f, 0.0f);
-    player.setRotation(0.0f, 0.0f); // 朝 +X
+    player.setRotation(0.0f, 0.0f); // 朝 +Z
     player.setRotationYawHead(0.0f);
     _equipRaisedShield(player);
     const f32 healthBefore = player.health();
 
     ShieldTestPlayer attacker;
     attacker.setWorld(&m_world);
-    attacker.setPosition(-3.0f, 64.0f, 0.0f); // 正后方
+    attacker.setPosition(0.0f, 64.0f, -3.0f); // 正后方
 
     auto source = DamageSources::playerAttack(&attacker);
     ASSERT_TRUE(player.canBlockDamageSource(source));
@@ -123,7 +126,7 @@ TEST_F(ShieldBlockingAngleTest, EnemyBehindBreaksThrough)
     ASSERT_TRUE(angle.has_value());
     EXPECT_NEAR(*angle, static_cast<f32>(math::PI), 1.0e-4f);
     // 角度超出 90° 阻挡角：伤害照常结算，盾牌不扣耐久
-    player.actuallyHurt(source, 4.0f);
+    player.hurt(source, 4.0f);
     EXPECT_LT(player.health(), healthBefore);
 }
 
@@ -132,19 +135,19 @@ TEST_F(ShieldBlockingAngleTest, EnemySidewaysIsBlocked)
     ShieldTestPlayer player;
     player.setWorld(&m_world);
     player.setPosition(0.0f, 64.0f, 0.0f);
-    player.setRotation(0.0f, 0.0f); // 朝 +X
+    player.setRotation(0.0f, 0.0f); // 朝 +Z
     player.setRotationYawHead(0.0f);
     _equipRaisedShield(player);
 
     ShieldTestPlayer attacker;
     attacker.setWorld(&m_world);
-    attacker.setPosition(0.0f, 64.0f, 3.0f); // 正侧方，夹角 90°
+    attacker.setPosition(3.0f, 64.0f, 0.0f); // 正侧方（+X），夹角 90°
 
     auto source = DamageSources::playerAttack(&attacker);
     const auto angle = player.blockingSourceAngle(source);
     ASSERT_TRUE(angle.has_value());
     EXPECT_NEAR(*angle, static_cast<f32>(math::PI / 2.0), 1.0e-4f);
-    player.actuallyHurt(source, 4.0f);
+    player.hurt(source, 4.0f);
     EXPECT_FLOAT_EQ(player.health(), player.maxHealth());
 }
 
@@ -163,7 +166,7 @@ TEST_F(ShieldBlockingAngleTest, NoSourcePositionFallsBackToPiAngle)
     EXPECT_FALSE(player.blockingSourceAngle(source).has_value());
 
     const f32 healthBefore = player.health();
-    player.actuallyHurt(source, 4.0f);
+    player.hurt(source, 4.0f);
     EXPECT_LT(player.health(), healthBefore);
 }
 
@@ -220,7 +223,7 @@ TEST_F(ShieldBlockingAngleTest, HitFromBehindIsNotRecordedAsBlocked)
 
     ShieldTestPlayer attacker;
     attacker.setWorld(&m_world);
-    attacker.setPosition(-3.0f, 64.0f, 0.0f);
+    attacker.setPosition(0.0f, 64.0f, -3.0f); // yaw=0 朝 +Z，正后方为 -Z
 
     auto source = DamageSources::playerAttack(&attacker);
     player.hurt(source, 4.0f);

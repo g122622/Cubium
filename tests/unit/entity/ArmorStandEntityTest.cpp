@@ -154,8 +154,13 @@ TEST_F(ArmorStandEntityTest, InteractAt_WithChestplate_EquipsChestSlot)
     EXPECT_EQ(world.soundPlayCount(), 1);
 }
 
+// 护甲槽一次只移动 1 件：即使玩家手持数量 >1 的护甲堆，也只有 1 件被装备。
 TEST_F(ArmorStandEntityTest, InteractAt_WithChestplate_CountGreaterThanOne_MovesOne)
 {
+    ASSERT_NE(Items::IRON_CHESTPLATE, nullptr);
+    // 构造期不截断数量
+    ASSERT_EQ(ItemStack(*Items::IRON_CHESTPLATE, 3).getCount(), 3);
+
     ArmorStandTestWorld world;
     auto stand = _makeArmorStand(world);
     auto player = _makePlayer(ItemStack(*Items::IRON_CHESTPLATE, 3));
@@ -163,7 +168,9 @@ TEST_F(ArmorStandEntityTest, InteractAt_WithChestplate_CountGreaterThanOne_Moves
     const ActionResultType result = stand->applyPlayerInteraction(*player, Vector3(0.0f, 1.2f, 0.0f), Hand::MainHand);
 
     EXPECT_EQ(result, ActionResultType::SuccessServer);
+    EXPECT_EQ(stand->getEquipment(EquipmentSlot::Chest).getItem(), Items::IRON_CHESTPLATE);
     EXPECT_EQ(stand->getEquipment(EquipmentSlot::Chest).getCount(), 1);
+    // 剩余 2 件留在玩家主手
     EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 2);
 }
 

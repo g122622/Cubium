@@ -426,8 +426,9 @@ TEST_F(SelectorParameterSetTest, SelectorDoesNotContainDamageSource)
 TEST_F(SelectorParameterSetTest, SelectorValidateWithRequiredParams)
 {
     auto paramSet = loot::LootParameterSets::selector();
-    // 提供必需参数
+    // 1.21.11 SELECTOR 的必需参数是 {ORIGIN, THIS_ENTITY}，BLOCK_POS 等为可选
     std::vector<std::string> provided = {
+        loot::LootParams::ORIGIN.getId(),
         loot::LootParams::THIS_ENTITY.getId(),
         loot::LootParams::BLOCK_POS.getId(),
     };
@@ -437,9 +438,10 @@ TEST_F(SelectorParameterSetTest, SelectorValidateWithRequiredParams)
 TEST_F(SelectorParameterSetTest, SelectorValidateMissingRequiredParam)
 {
     auto paramSet = loot::LootParameterSets::selector();
-    // 缺少 BLOCK_POS
+    // 缺少必需参数 ORIGIN
     std::vector<std::string> provided = {
         loot::LootParams::THIS_ENTITY.getId(),
+        loot::LootParams::BLOCK_POS.getId(),
     };
     EXPECT_FALSE(paramSet.validate(provided));
 }

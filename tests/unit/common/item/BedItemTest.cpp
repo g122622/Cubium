@@ -330,8 +330,9 @@ TEST_F(BedItemPlacementTest, ReturnsNorthFacingWhenPlayerFacesNorth)
 
 TEST_F(BedItemPlacementTest, ReturnsEastFacingWhenPlayerFacesEast)
 {
-    // 面向东方（yaw=90），头部位置 (6,64,5) 为空气
-    auto context = makeContext(world, BlockPos(5, 64, 5), Direction::Up, 90.0f);
+    // 视线朝东对应 yaw=-90（MC 约定：视线单位向量 (-sin yaw, 0, cos yaw)），
+    // 头部位置为东侧 (6,64,5)
+    auto context = makeContext(world, BlockPos(5, 64, 5), Direction::Up, -90.0f);
     const BlockState* result = bedItem_->getStateForPlacement(context);
 
     ASSERT_NE(result, nullptr);
@@ -340,8 +341,8 @@ TEST_F(BedItemPlacementTest, ReturnsEastFacingWhenPlayerFacesEast)
 
 TEST_F(BedItemPlacementTest, ReturnsWestFacingWhenPlayerFacesWest)
 {
-    // 面向西方（yaw=-90 或 270），头部位置 (4,64,5) 为空气
-    auto context = makeContext(world, BlockPos(5, 64, 5), Direction::Up, -90.0f);
+    // 面向西方（yaw=90），头部位置为西侧 (4,64,5)
+    auto context = makeContext(world, BlockPos(5, 64, 5), Direction::Up, 90.0f);
     const BlockState* result = bedItem_->getStateForPlacement(context);
 
     ASSERT_NE(result, nullptr);
@@ -385,8 +386,8 @@ TEST_F(BedItemPlacementTest, AllFourDirectionsSuccess)
     TestCase cases[] = {
         {0.0f, Direction::South, BlockPos(0, 64, 1)},
         {180.0f, Direction::North, BlockPos(0, 64, -1)},
-        {90.0f, Direction::East, BlockPos(1, 64, 0)},
-        {-90.0f, Direction::West, BlockPos(-1, 64, 0)},
+        {-90.0f, Direction::East, BlockPos(1, 64, 0)},
+        {90.0f, Direction::West, BlockPos(-1, 64, 0)},
     };
 
     for (const auto& tc : cases) {

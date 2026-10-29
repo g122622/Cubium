@@ -129,27 +129,24 @@ protected:
 
 } // namespace
 
-// 候选朝向按视线排序：视线朝东、点击石头东面时，首个与放置位置对齐的方向即 East，
-// FACING 取其 Opposite = West（梯子倚靠石头）
+// 候选朝向按视线排序：点击面的反向会被提到首位（vanilla BlockPlaceContext
+// .getNearestLookingDirections），FACING 取该方向的反向，即梯子倚靠被点击的方块。
+// yaw=90 时视线朝西（-sin yaw），点击石头东面得到放置位置 (1,64,0) 与 FACING=East（倚靠石头）。
 TEST_F(LadderAttachmentTest, Placement_AdjacentToClickedFaceOpposite)
 {
     world.set(BlockPos(0, 64, 0), solidBlock());
 
-    // 玩家朝东（yaw=90）、水平视线点击石头东面：放置位置 (1,64,0)；首个与放置位置对齐的视线方向
-    // 为 Up（原版 getNearestLookingDirections 会把点击面反向提到首位），FACING=East 不可存活，
-    // 随后尝试 East→West（倚靠石头）可存活
+    // 玩家朝西（yaw=90）点击石头东面：放置位置 (1,64,0)，FACING=East 倚靠石头本身
     auto context = makeContext(world, BlockPos(0, 64, 0), Direction::East, 90.0f, 0.0f);
     ASSERT_EQ(context.placementPos(), BlockPos(1, 64, 0));
     const BlockState state = VanillaBlocks::LADDER->getStateForPlacement(context);
     EXPECT_EQ(&state.getBlock(), VanillaBlocks::LADDER);
-    EXPECT_EQ(facingOf(state), Direction::West);
+    EXPECT_EQ(facingOf(state), Direction::East);
     EXPECT_TRUE(
         VanillaBlocks::LADDER->isValidPosition(state, static_cast<IBlockReader&>(world), context.placementPos()));
 
-    // 玩家朝北、水平视线点击石头北面：放置位置 (0,64,-1)。FACING=South 不可存活后尝试 N/W/S，
-    // 最终 FACING=North（倚靠北侧 (0,64,-2) 的石块）可存活
-    world.set(BlockPos(0, 64, -2), solidBlock());
-    auto northContext = makeContext(world, BlockPos(0, 64, 0), Direction::North, 180.0f, 0.0f);
+    // 玩家朝南（yaw=0）点击石头北面：放置位置 (0,64,-1)，FACING=North 倚靠石头本身
+    auto northContext = makeContext(world, BlockPos(0, 64, 0), Direction::North, 0.0f, 0.0f);
     ASSERT_EQ(northContext.placementPos(), BlockPos(0, 64, -1));
     const BlockState northState = VanillaBlocks::LADDER->getStateForPlacement(northContext);
     EXPECT_EQ(facingOf(northState), Direction::North);
@@ -198,12 +195,13 @@ TEST_F(LadderAttachmentTest, CanSurvive_RequiresSolidAttachFace)
     EXPECT_FALSE(ladder.isValidPosition(state, reader, ladderPos));
 
     // 附着方块为石头：实心且带碰撞 → 可存活
-    // 注意：FACING=East 表示梯子倚靠东侧（X+）的方块，故附着位为 (2,64,0)，而非放置位置 (1,64,0) 自身
-    world.set(BlockPos(2, 64, 0), solidBlock());
+    // vanilla LadderBlock.canSurvive 用 pos.relative(FACING.getOpposite()) 取附着位：
+    // FACING=East 表示梯子面朝东，倚靠的是**西侧** (0,64,0) 的方块。
+    world.set(BlockPos(0, 64, 0), solidBlock());
     EXPECT_TRUE(ladder.isValidPosition(state, reader, ladderPos));
 
     // 附着方块为非实心方块（场景装饰类，无碰撞）→ 不可存活
-    world.set(BlockPos(2, 64, 0), VanillaBlocks::SHORT_GRASS->defaultState());
+    world.set(BlockPos(0, 64, 0), VanillaBlocks::SHORT_GRASS->defaultState());
     EXPECT_FALSE(ladder.isValidPosition(state, reader, ladderPos));
 }
 
@@ -213,8 +211,12 @@ TEST_F(LadderAttachmentTest, UpdatePostPlacement_AttachBlockRemovedDropsLadder)
     auto& ladder = *VanillaBlocks::LADDER;
     const BlockPos ladderPos(1, 64, 0);
 
+    // FACING=East 的梯子倚靠西侧 (0,64,0)：位置 (0,64,0) 从梯子看过去的方向就是 East。
+    // 本项目 updatePostPlacement 的 facing 参数是「从自身指向邻居」的方向，故此处传 East。
     BlockState state = ladder.defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
     world.set(BlockPos(0, 64, 0), solidBlock());
+    // 附着方块被移除
+    world.set(BlockPos(0, 64, 0), VanillaBlocks::AIR->defaultState());
 
     const BlockState* airState = &VanillaBlocks::AIR->defaultState();
     BlockState updated =

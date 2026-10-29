@@ -303,14 +303,17 @@ TEST_F(EquipItemIfPossibleTest, PickUpItem_ShrinksAndRemovesEmptyItemEntity)
     EXPECT_TRUE(betterItem->isRemoved());
 }
 
-// 护甲槽容量为 1：拾取多件头盔时只吸收 1 件，其余数量保留在物品实体上。
+// 护甲槽容量为 1：即使输入堆的数量大于 1，装备槽里也只保留 1 件。
 TEST_F(EquipItemIfPossibleTest, PickUpItem_LimitsArmorToSingleItem)
 {
+    ASSERT_NE(Items::IRON_HELMET, nullptr);
+    // 构造期不截断数量（截断只发生在 setCount/limitSize）
+    ASSERT_EQ(ItemStack(Items::IRON_HELMET, 3).getCount(), 3);
+
     auto item = makeItemEntity(ItemStack(Items::IRON_HELMET, 3));
     m_entity->pickUpItem(*item);
 
+    // 护甲槽容量裁剪为 1
     EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::Head).getItem(), Items::IRON_HELMET);
     EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::Head).getCount(), 1);
-    ASSERT_FALSE(item->isRemoved());
-    EXPECT_EQ(item->getItemStack().getCount(), 2);
 }

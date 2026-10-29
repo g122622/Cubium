@@ -214,8 +214,10 @@ TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_PartialRemoval)
 {
     ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
-    ASSERT_NE(Items::OAK_BOAT, nullptr);
-    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 5));
+    // 船是不可堆叠物品（maxStackSize=1），ItemStack 构造期即把数量 limitSize 到 1，
+    // 因此用可堆叠物品验证"部分移除"语义。
+    ASSERT_NE(Items::OAK_PLANKS, nullptr);
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_PLANKS, 5));
 
     // 部分移除
     ItemStack removed = chestBoat.removeInventoryItem(0, 2);
@@ -229,8 +231,8 @@ TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_FullRemoval)
 {
     ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
-    ASSERT_NE(Items::OAK_BOAT, nullptr);
-    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 3));
+    ASSERT_NE(Items::OAK_PLANKS, nullptr);
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_PLANKS, 3));
 
     // 全部移除
     ItemStack removed = chestBoat.removeInventoryItem(0, 3);

@@ -120,10 +120,13 @@ public:
 
     // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
 
-    /// DATA_BABY(id16) 由基类 AgeableEntity 提供（鱿鱼经 WaterMobEntity→AgeableEntity）。
+    /// DATA_BABY(id16) 由基类 AgeableWaterCreatureEntity 提供。
+    /// 注意：鱿鱼的继承链是 WaterMobEntity→AgeableWaterCreatureEntity，并不经过 AgeableEntity；
+    /// 两者各有一个独立的静态 DATA_BABY_PARAM，必须取本链上那一个，否则读到的是
+    /// AgeableEntity 那份从未分配的 id（kUnassignedId=65535）。
     [[nodiscard]] static u16 getBabyPlaceholderParamId()
     {
-        return AgeableEntity::getBabyParamId();
+        return AgeableWaterCreatureEntity::getBabyParamId();
     }
 
     // ========== 喷墨 ==========

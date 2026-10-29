@@ -727,7 +727,9 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
 i32 ScoreboardCommand::_getScore(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("targets");
+    // 参数名必须与节点注册一致：`/scoreboard players get <target> <objective>` 的节点名是
+    // "target"（见 getTargetArg），此前误读 "targets" 会抛 out_of_range。
+    const std::string target = context.getArgument<std::string>("target");
     const std::string objectiveName = context.getArgument<std::string>("objective");
 
     // 获取记分板
@@ -813,7 +815,10 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
 i32 ScoreboardCommand::_listPlayers(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string target = context.getArgument<std::string>("targets");
+    // 参数名必须与节点注册一致：`/scoreboard players list <target>` 的节点名是 "target"
+    // （见 listTargetArg）。此前读 "targets"，所有带目标的 list 调用都会抛
+    // out_of_range("Argument not found: targets")。
+    const std::string target = context.getArgument<std::string>("target");
 
     // 获取记分板
     auto* scoreboard = getScoreboard(source);

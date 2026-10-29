@@ -303,11 +303,16 @@ void GhastEntity::registerAttributes()
 {
     // 对齐原版 Ghast.createAttributes：生命值 10、追踪范围 100、飞行速度 0.06；
     // 它不覆盖移动速度，沿用 LivingEntity 默认的 0.7（飞行由 GhastMoveControl 驱动）。
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    //
+    // 注意：AttributeMap::setBaseValue 在实例不存在时静默返回 false（不建实例），
+    // 因此每个要设值的属性都必须先 registerAttribute。此前 FOLLOW_RANGE 漏了注册，
+    // 100 被静默丢弃，恶魂的追踪范围实际为 0（无法索敌）。
+    attributes().registerAttribute(*entity::attribute::Attributes::followRange());
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
     attributes().registerAttribute(*entity::attribute::Attributes::flyingSpeed());
     attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.06);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);
 }
 
 // MagmaCubeEntity

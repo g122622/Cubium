@@ -1698,9 +1698,12 @@ std::optional<f32> Player::blockingSourceAngle(const DamageSource& source) const
         return math::PI / 2.0f;
     }
     const Vector3f direction(offset.x / horizontalLength, 0.0f, offset.z / horizontalLength);
-    // 头部水平朝向（calculateViewVector(0, getYHeadRot()) 的水平分量，本项目 yaw 0 指向 +X）
+    // 头部水平朝向：对应 vanilla `calculateViewVector(0, getYHeadRot()).horizontal`。
+    // MC 的视线水平分量为 (-sin yaw, cos yaw)，即 yaw=0 朝 +Z、yaw=90 朝 -X。
+    // 此处原先写成 (cos yaw, sin yaw)，yaw 与方向相差一个符号，使盾牌在所有朝向下
+    // 都按"左右镜像"的朝向判定格挡：正对的攻击被判定为侧面、侧面的被判定为正面。
     const f32 yawRad = math::toRadians(rotationYawHead());
-    const Vector3f view(std::cos(yawRad), 0.0f, std::sin(yawRad));
+    const Vector3f view(-std::sin(yawRad), 0.0f, std::cos(yawRad));
     const f32 dot = std::clamp(direction.x * view.x + direction.z * view.z, -1.0f, 1.0f);
     return std::acos(dot);
 }

@@ -165,10 +165,12 @@ TEST_F(MutableEquipmentTest, GetMutableEquipmentInvalidSlotReturnsEmpty)
 
 TEST_F(MutableEquipmentTest, GetMutableEquipmentAllowsMutation)
 {
-    ASSERT_NE(Items::IRON_SWORD, nullptr);
+    // 铁剑不可堆叠（maxStackSize=1），setCount 会被 limitSize 截到 1，无法验证"数量可写"，
+    // 这里改用可堆叠的木板。
+    ASSERT_NE(Items::OAK_PLANKS, nullptr);
 
     // 通过 setEquipment 设置物品
-    m_living->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+    m_living->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::OAK_PLANKS, 1));
     EXPECT_EQ(m_living->getEquipment(EquipmentSlot::MainHand).getCount(), 1);
 
     // 通过 getMutableEquipment 可变引用修改物品数量

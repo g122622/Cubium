@@ -104,10 +104,10 @@ TEST_F(DecoratedPotRecipeTest, Matches_FourBricksInCross)
 {
     // 十字形排列4个砖块应该匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1)); // back
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1)); // left
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1)); // right
-    grid.setItemAt(1, 2, ItemStack(Items::BRICKS, 1)); // front
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1)); // back
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1)); // left
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1)); // right
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1)); // front
 
     EXPECT_TRUE(recipe->matches(grid));
 }
@@ -128,9 +128,9 @@ TEST_F(DecoratedPotRecipeTest, Matches_MixedBricksAndSherds)
 {
     // 混合砖块和陶片应该匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1));               // back
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));               // back
     grid.setItemAt(0, 1, ItemStack(Items::ANGLER_POTTERY_SHERD, 1)); // left
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1));               // right
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));               // right
     grid.setItemAt(1, 2, ItemStack(Items::HEART_POTTERY_SHERD, 1));  // front
 
     EXPECT_TRUE(recipe->matches(grid));
@@ -140,10 +140,10 @@ TEST_F(DecoratedPotRecipeTest, NoMatch_2x2Grid)
 {
     // 2x2网格不匹配
     CraftingInventory grid(2, 2);
-    grid.setItemAt(0, 0, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(1, 1, ItemStack(Items::BRICKS, 1));
+    grid.setItemAt(0, 0, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(1, 1, ItemStack(Items::BRICK, 1));
 
     EXPECT_FALSE(recipe->matches(grid));
 }
@@ -152,9 +152,9 @@ TEST_F(DecoratedPotRecipeTest, NoMatch_MissingPosition)
 {
     // 缺少某个位置的物品不匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1)); // back
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1)); // left
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1)); // right
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1)); // back
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1)); // left
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1)); // right
     // front (1,2) 缺失
 
     EXPECT_FALSE(recipe->matches(grid));
@@ -164,11 +164,11 @@ TEST_F(DecoratedPotRecipeTest, NoMatch_ExtraItemInCorner)
 {
     // 角落有额外物品不匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1)); // back
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1)); // left
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1)); // right
-    grid.setItemAt(1, 2, ItemStack(Items::BRICKS, 1)); // front
-    grid.setItemAt(0, 0, ItemStack(Items::BRICKS, 1)); // 左上角多余物品
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1)); // back
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1)); // left
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1)); // right
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1)); // front
+    grid.setItemAt(0, 0, ItemStack(Items::BRICK, 1)); // 左上角多余物品
 
     EXPECT_FALSE(recipe->matches(grid));
 }
@@ -177,11 +177,11 @@ TEST_F(DecoratedPotRecipeTest, NoMatch_ExtraItemInCenter)
 {
     // 中心有额外物品不匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1)); // back
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1)); // left
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1)); // right
-    grid.setItemAt(1, 2, ItemStack(Items::BRICKS, 1)); // front
-    grid.setItemAt(1, 1, ItemStack(Items::BRICKS, 1)); // 中心多余物品
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1)); // back
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1)); // left
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1)); // right
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1)); // front
+    grid.setItemAt(1, 1, ItemStack(Items::BRICK, 1)); // 中心多余物品
 
     EXPECT_FALSE(recipe->matches(grid));
 }
@@ -190,10 +190,10 @@ TEST_F(DecoratedPotRecipeTest, NoMatch_NonIngredientItem)
 {
     // 十字形排列但包含非 DECORATED_POT_INGREDIENTS 物品不匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1));               // back
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));               // back
     grid.setItemAt(0, 1, ItemStack(Items::ANGLER_POTTERY_SHERD, 1)); // left
     grid.setItemAt(2, 1, ItemStack(Items::STONE, 1));                // right - 石头不是陶罐原料
-    grid.setItemAt(1, 2, ItemStack(Items::BRICKS, 1));               // front
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1));               // front
 
     EXPECT_FALSE(recipe->matches(grid));
 }
@@ -216,10 +216,10 @@ TEST_F(DecoratedPotRecipeTest, Assemble_FourBricks)
 
     // 4个砖块应该产生全部为 Blank 图案的陶罐
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1)); // back
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1)); // left
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1)); // right
-    grid.setItemAt(1, 2, ItemStack(Items::BRICKS, 1)); // front
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1)); // back
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1)); // left
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1)); // right
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1)); // front
 
     ItemStack result = recipe->assemble(grid);
     ASSERT_FALSE(result.isEmpty());
@@ -246,9 +246,9 @@ TEST_F(DecoratedPotRecipeTest, Assemble_MixedBricksAndSherds)
 
     // 混合砖块和陶片应该产生对应图案的陶罐
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1));               // back = Blank
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));               // back = Blank
     grid.setItemAt(0, 1, ItemStack(Items::ANGLER_POTTERY_SHERD, 1)); // left = Angler
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1));               // right = Blank
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));               // right = Blank
     grid.setItemAt(1, 2, ItemStack(Items::HEART_POTTERY_SHERD, 1));  // front = Heart
 
     ItemStack result = recipe->assemble(grid);
@@ -327,10 +327,10 @@ TEST_F(DecoratedPotRecipeTest, GetRemainingItems_AllConsumed)
 {
     // 所有输入物品都被消耗，没有剩余
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(1, 2, ItemStack(Items::BRICKS, 1));
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1));
 
     auto remaining = recipe->getRemainingItems(grid);
     EXPECT_EQ(static_cast<i32>(remaining.size()), grid.getContainerSize());
@@ -347,10 +347,10 @@ TEST_F(DecoratedPotRecipeTest, NoMatch_WrongPositions)
 {
     // 4个砖块但不在十字形位置不匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(0, 0, ItemStack(Items::BRICKS, 1)); // 左上角
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1)); // 上中
-    grid.setItemAt(2, 0, ItemStack(Items::BRICKS, 1)); // 右上角
-    grid.setItemAt(1, 1, ItemStack(Items::BRICKS, 1)); // 中心
+    grid.setItemAt(0, 0, ItemStack(Items::BRICK, 1)); // 左上角
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1)); // 上中
+    grid.setItemAt(2, 0, ItemStack(Items::BRICK, 1)); // 右上角
+    grid.setItemAt(1, 1, ItemStack(Items::BRICK, 1)); // 中心
 
     EXPECT_FALSE(recipe->matches(grid));
 }
@@ -364,10 +364,10 @@ TEST_F(DecoratedPotRecipeTest, Assemble_ResultItemIsDecoratedPot)
 
     // 验证结果物品是饰纹陶罐
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(0, 1, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(2, 1, ItemStack(Items::BRICKS, 1));
-    grid.setItemAt(1, 2, ItemStack(Items::BRICKS, 1));
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(0, 1, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1));
 
     ItemStack result = recipe->assemble(grid);
     ASSERT_FALSE(result.isEmpty());

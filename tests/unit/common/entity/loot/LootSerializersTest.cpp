@@ -33,6 +33,8 @@
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/enchantment/EnchantmentRegistry.hpp"
+#include "item/instrument/InstrumentRegistry.hpp"
+#include "item/instrument/InstrumentTags.hpp"
 #include "item/loot/LootPool.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/StatePropertiesPredicate.hpp"
@@ -80,6 +82,11 @@ protected:
         Items::ensureInitialized();
         // set_enchantments 在加载期校验附魔注册表
         item::enchant::EnchantmentRegistry::initialize();
+        // set_instrument 的 options 标签必须在解析前登记（装配顺序见 item/instrument/README.md：
+        // InstrumentRegistry::initialize → initializeVanillaInstrumentTags → 数据包定义与标签 →
+        // 战利品表）。缺少占位登记会让所有带标签的 set_instrument 报 unknown instrument tag。
+        item::instrument::InstrumentRegistry::instance().initialize();
+        item::instrument::initializeVanillaInstrumentTags();
     }
 
     LootSerializersTestWorld m_world;

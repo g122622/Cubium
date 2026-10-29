@@ -737,33 +737,37 @@ TEST_F(TransportItemsGoalTestFixture, AddItemsToContainer_StacksOnExistingWhenNo
     const Item* stick = Items::STICK;
     ASSERT_NE(stick, nullptr);
 
-    // 主手有 70 个 STICK（超过最大堆叠 64）
-    golemPtr->setMainHandItem(ItemStack(*stick, 70));
+    // 主手有 64 个 STICK（一个满堆）
+    golemPtr->setMainHandItem(ItemStack(*stick, 64));
 
     entity::ai::goal::TransportItemsBetweenContainersGoal goal(golemPtr, 1.0);
     test::TransportItemsBetweenContainersGoalTestAccessor accessor(goal);
 
-    // 容器槽位 0 已有 60 个 STICK（可堆叠，剩余空间 4）
+    // 容器只留槽位 0 可堆叠（已有 60 个 STICK，剩余空间 4），槽位 1..26 全部用 DIRT 占满，
+    // 这样 addItemsToContainer 的单次遍历里既没有空槽，也不会走到空槽分支。
     blockentity::SimpleInventory container(27);
     container.setItem(0, ItemStack(*stick, 60));
+    const Item* dirt = Items::DIRT;
+    ASSERT_NE(dirt, nullptr);
+    for (i32 i = 1; i < container.getContainerSize(); ++i) {
+        container.setItem(i, ItemStack(*dirt, 1));
+    }
 
     accessor.addItemsToContainer(container);
 
-    // MC 原版顺序：先找空槽，但容器槽位 1..26 都是空槽 → 走空槽路径整堆放入
-    // 注：本项目实现中"先空槽后可堆叠"，空槽优先 → 若有空槽会先整堆放入空槽
-    // 这里容器槽位 1..26 都是空槽，所以主手 70 个 STICK 整堆放入槽位 1（但超过 maxStack=64，
-    // setItem 只会放入 70 个，不自动拆分，可能超过 maxStack）
-    // 验证总体行为：所有 70 个物品都应被放入容器，主手应清空
-    // 容器中总 STICK 数 = 原有 60 + 新增 70 = 130
-    i32 totalInContainer = 0;
+    // 只有槽位 0 能吸收物品：60 + 4 = 64（达到 maxStackSize 上限）
+    EXPECT_EQ(container.getItem(0).getCount(), 64);
+    // 主手剩余 60 个（64 - 4），未被完全清空
+    EXPECT_EQ(golemPtr->getMainHandItem().getCount(), 60);
+
+    i32 totalSticks = 0;
     for (i32 i = 0; i < container.getContainerSize(); ++i) {
         const ItemStack& s = container.getItem(i);
         if (!s.isEmpty() && s.getItem() == stick) {
-            totalInContainer += s.getCount();
+            totalSticks += s.getCount();
         }
     }
-    EXPECT_EQ(totalInContainer, 130);
-    EXPECT_TRUE(golemPtr->getMainHandItem().isEmpty());
+    EXPECT_EQ(totalSticks, 64);
 }
 
 TEST_F(TransportItemsGoalTestFixture, AddItemsToContainer_FullContainer_LeavesRemainingInHand)

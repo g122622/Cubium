@@ -42,14 +42,17 @@
 //
 // 观察手段：TestBlockingEntity override canBlockDamageSource→true（强制格挡）、damageShield→空
 // （避免盾牌物品栏依赖）、blockedByItem→设 m_blockedFlag（观察是否被回调）。attacker 也用
-// TestBlockingEntity，读其 m_blockedFlag 判定回调。actuallyHurt 直接调避开 hurt 入口门控。
+// TestBlockingEntity，读其 m_blockedFlag 判定回调。
+// 【重要】必须经 hurt() 入口触发：格挡判定（含 damageShield / blockedByItem 回调）位于
+// LivingEntity::hurt 的 1.2 步，actuallyHurt 只负责"未被格挡后的伤害结算"，直接调用
+// actuallyHurt 会绕过格挡分支，使格挡相关断言全部失效。
 //
 // 注：arrow(arrowEntity, shooter) 的 directSource=arrowEntity、getEntity=shooter。门控
 // !source.is(IS_PROJECTILE) 先判，Arrow 在标签→不进回调分支，directSource 不查。mobAttack
 // 的 directSource=attacker（EntityDamageSource.source=directSource=m_source）。
 //
 // Ref: vanilla LivingEntity.java:1306（applyItemBlocking IS_PROJECTILE 门控）
-// Ref: LivingEntity.cpp（actuallyHurt 格挡回调 directSource+IS_PROJECTILE 门控）
+// Ref: LivingEntity.cpp（hurt 中格挡分支的 directSource + IS_PROJECTILE 门控）
 // Ref: DamageTypeTags.cpp（IS_PROJECTILE 成员集）
 
 #include <gtest/gtest.h>
@@ -128,7 +131,7 @@ TEST_F(ProjectileBlockCallbackTest, ProjectileBlockDoesNotCallbackAttacker)
     // arrow(arrowEntity, shooter)：Arrow 在 IS_PROJECTILE，directSource=arrowEntity。
     // 用 attacker 近似 arrowEntity（门控先判 IS_PROJECTILE，不查 directSource）。
     auto source = DamageSources::arrow(&attacker, &attacker);
-    victim.actuallyHurt(source, 4.0f);
+    victim.hurt(source, 4.0f);
 
     // IS_PROJECTILE 门控挡住，不回调 attacker（m_blockedFlag==false）
     EXPECT_FALSE(attacker.m_blockedFlag);
@@ -147,7 +150,7 @@ TEST_F(ProjectileBlockCallbackTest, MeleeBlockCallbacksAttacker)
     attacker.setWorld(&m_world);
 
     auto source = DamageSources::mobAttack(&attacker); // MobAttack 非 IS_PROJECTILE，directSource=attacker
-    victim.actuallyHurt(source, 4.0f);
+    victim.hurt(source, 4.0f);
 
     // 近战 directSource=attacker 是 LivingEntity 且非 IS_PROJECTILE → 回调 attacker
     EXPECT_TRUE(attacker.m_blockedFlag);

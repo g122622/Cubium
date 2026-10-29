@@ -1059,8 +1059,10 @@ TEST(VanillaBlocksTest, Initialization)
     EXPECT_EQ(VanillaBlocks::WATER->defaultState().getOpacity(), 0);
     EXPECT_FALSE(VanillaBlocks::WATER->defaultState().propagatesSkylightDown());
 
-    EXPECT_EQ(VanillaBlocks::GLASS->defaultState().getOpacity(), 0);
-    EXPECT_TRUE(VanillaBlocks::GLASS->defaultState().propagatesSkylightDown());
+    // 玻璃：noOcclusion，但遮挡形状是完整立方体且未重写 getLightBlock，故
+    // propagatesSkylightDown=false、lightBlock=1（天空光衰减 1 级），不是 0。
+    EXPECT_EQ(VanillaBlocks::GLASS->defaultState().getOpacity(), 1);
+    EXPECT_FALSE(VanillaBlocks::GLASS->defaultState().propagatesSkylightDown());
 }
 
 TEST(BlockStateTest, Caching)
