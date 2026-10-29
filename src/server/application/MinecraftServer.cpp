@@ -2264,13 +2264,6 @@ void MinecraftServer::stopCore()
 
     spdlog::info("Stopping server core...");
 
-    // 停止 Worker 线程池，避免后续关服过程中继续提交任务
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::stopCore::ShutdownWorkerPools");
-        m_computationWorkerPool.shutdown();
-        m_ioWorkerPool.shutdown();
-    }
-
     // 断开所有玩家
     if (m_connectionManager) {
         m_connectionManager->disconnectAll("Server shutting down");
@@ -2278,6 +2271,24 @@ void MinecraftServer::stopCore()
 
     // 关闭管理器
     shutdownManagers();
+
+    // 停止 Worker 线程池——必须放在最后。
+    //
+    // 此前这里排在最前，理由是"避免后续关服过程中继续提交任务"。但那只是把问题换成了
+    // 另一个更糟的形态：disconnectAll 与 shutdownManagers 里的维度/区块管理器关闭过程
+    // 本来就会提交区块保存与卸载任务，池子先关掉后这些提交全部被拒，日志里刷出成片的
+    // 「task submitted while pool is stopped; task dropped」，而那些等待回调的代码永远
+    // 等不到结果，主线程就此挂死。线上表现：nightly 每个 GameTest shard 都跑满全部
+    // 用例（all finished: N/N passed, 0 failed），随后卡在 stopCore 直到 1800 秒总时限
+    // 被杀，被判 exit code 124 / null。本机单 shard 因在途任务少，几乎不触发。
+    //
+    // 正确顺序是先让所有提交方结束（断连 → 清管理器），再收池子。此时不应再有新提交，
+    // shutdown() 内部的 join 才能干净返回。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::stopCore::ShutdownWorkerPools");
+        m_computationWorkerPool.shutdown();
+        m_ioWorkerPool.shutdown();
+    }
 
     spdlog::info("Server core stopped.");
 }
