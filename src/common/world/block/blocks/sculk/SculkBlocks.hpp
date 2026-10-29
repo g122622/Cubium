@@ -67,6 +67,12 @@ public:
 
     ~SculkBlock() override = default;
 
+    /// 原版 SculkBlock 继承 DropExperienceBlock，挖掉固定掉 1 点经验（ConstantInt.of(1)）。
+    [[nodiscard]] i32 dropExperience(math::IRandom& /*random*/) const override
+    {
+        return 1;
+    }
+
     // ========== SculkBehaviour ==========
 
     /// MC SculkBlock.canChangeBlockStateOnSpread = false。

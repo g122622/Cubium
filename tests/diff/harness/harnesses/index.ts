@@ -181,6 +181,13 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "block",
     }),
     () => ({
+        // 方块破坏经验：原版把区间登记在实体类里而不是数据包，手抄出错无从发现。
+        name: "block_experience",
+        oracle: "BlockExperienceOracle",
+        input: (unit: string) => ({ block: unit }),
+        key: "block",
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),
