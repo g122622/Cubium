@@ -6,8 +6,9 @@
 //
 // 设计要点：
 //   1. AttributeCommand 经 LivingEntity::attributes().getInstance(attrName)->setBaseValue(value)
-//      修改属性基础值（非占位）。属性名经 AttributeRegistry::isKnown 校验，自动补 "generic." 前缀
-//      （输入 "max_health"/"movement_speed"/"generic.max_health" 均可）。@s 选择器经 source.entity()
+//      修改属性基础值（非占位）。属性名经 AttributeRegistry::isKnown 校验，短名 / minecraft: 前缀 /
+//      1.16.5 的 generic. 写法都归一到原版注册名（"max_health"、"minecraft:max_health"、
+//      "generic.max_health" 三者等价）。@s 选择器经 source.entity()
 //      返回 SimulatedPlayer 自身（Player : LivingEntity，是 LivingEntity 子类，属性命令适用）。
 //   2. 断言用已绑定的脚本组件读属性值（零新绑定）：
 //      - max_health base set → getComponent("minecraft:health").effectiveMax（living->maxHealth() 读 MAX_HEALTH 属性）
@@ -41,7 +42,7 @@ function assertApprox(test: Test, actual: number, expected: number, label: strin
     );
 }
 
-// /attribute @s generic.max_health base set 40 设置玩家最大生命基础值为 40，
+// /attribute @s minecraft:max_health base set 40 设置玩家最大生命基础值为 40，
 // 断言 health.effectiveMax≈40。
 // runOnFinish base reset 恢复 20。
 // Ref: wiki commands/attribute.txt（base set）
@@ -52,17 +53,17 @@ function attributeMaxHealthBaseSet(test: Test): void {
     test.assert(health !== undefined, "player has no health component");
     assertApprox(test, health.effectiveMax, DEFAULT_MAX_HEALTH, "default max_health");
 
-    player.chat("/attribute @s generic.max_health base set 40");
+    player.chat("/attribute @s minecraft:max_health base set 40");
 
     assertApprox(test, health.effectiveMax, 40, "after base set 40");
 
     test.runOnFinish(() => {
-        player.chat("/attribute @s generic.max_health base reset");
+        player.chat("/attribute @s minecraft:max_health base reset");
     });
     test.succeed();
 }
 
-// /attribute @s generic.movement_speed base set 0.5 设置玩家移动速度基础值为 0.5，
+// /attribute @s minecraft:movement_speed base set 0.5 设置玩家移动速度基础值为 0.5，
 // 断言 movement.currentValue≈0.5。
 // runOnFinish base reset 恢复 0.1。
 // Ref: wiki commands/attribute.txt（base set movement_speed）
@@ -73,12 +74,12 @@ function attributeMovementSpeedBaseSet(test: Test): void {
     test.assert(movement !== undefined, "player has no movement component");
     assertApprox(test, movement.currentValue, DEFAULT_MOVEMENT_SPEED, "default movement_speed");
 
-    player.chat("/attribute @s generic.movement_speed base set 0.5");
+    player.chat("/attribute @s minecraft:movement_speed base set 0.5");
 
     assertApprox(test, movement.currentValue, 0.5, "after base set 0.5");
 
     test.runOnFinish(() => {
-        player.chat("/attribute @s generic.movement_speed base reset");
+        player.chat("/attribute @s minecraft:movement_speed base reset");
     });
     test.succeed();
 }
@@ -90,24 +91,24 @@ function attributeBaseResetRestoresDefault(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const health = player.getComponent("minecraft:health") as any;
 
-    player.chat("/attribute @s generic.max_health base set 40");
+    player.chat("/attribute @s minecraft:max_health base set 40");
     assertApprox(test, health.effectiveMax, 40, "after base set 40");
 
-    player.chat("/attribute @s generic.max_health base reset");
+    player.chat("/attribute @s minecraft:max_health base reset");
     assertApprox(test, health.effectiveMax, DEFAULT_MAX_HEALTH, "after base reset");
 
     // 已恢复默认，无需 runOnFinish。
     test.succeed();
 }
 
-// 短名属性自动补 generic. 前缀：/attribute @s max_health base set 40（不带 generic. 前缀）
+// 短名属性自动补命名空间：/attribute @s max_health base set 40（不带 minecraft: 前缀）
 // 同样生效，断言 effectiveMax≈40。验证 AttributeRegistry 自动前缀补全。
-// Ref: wiki commands/attribute.txt（属性名可省略 generic. 前缀）
+// Ref: wiki commands/attribute.txt（属性名可省略 minecraft: 前缀）
 function attributeShortNameAutoPrefix(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const health = player.getComponent("minecraft:health") as any;
 
-    // 短名 "max_health"（不带 generic. 前缀），AttributeRegistry 自动补全为 "generic.max_health"。
+    // 短名 "max_health"（不带命名空间），AttributeRegistry 自动补全为 "minecraft:max_health"。
     player.chat("/attribute @s max_health base set 35");
 
     assertApprox(test, health.effectiveMax, 35, "short name max_health base set 35");

@@ -69,11 +69,11 @@ public:
     /**
      * @brief 构造长矛
      * @param tier 工具层级（木、石、铜、铁、金、钻石、下界合金）
-     * @param attackDamage 基础攻击伤害（通常为 3）
+     * @param attackDamage 最终的攻击伤害（原版长矛为 0，攻击力全部来自材质）
      * @param attackSpeed 攻击速度修正（通常为 -2.9）
      * @param properties 物品属性
      */
-    SpearItem(const tier::IItemTier& tier, i32 attackDamage, f32 attackSpeed, ItemProperties properties);
+    SpearItem(const tier::IItemTier& tier, i32 attackDamage, f64 attackSpeed, ItemProperties properties);
 
     ~SpearItem() override = default;
 
@@ -134,7 +134,7 @@ public:
     /**
      * @brief 获取攻击速度修正
      */
-    [[nodiscard]] f32 getAttackSpeed() const
+    [[nodiscard]] f64 getAttackSpeed() const
     {
         return m_attackSpeed;
     }
@@ -161,8 +161,10 @@ public:
     static constexpr f32 THROW_DAMAGE = 8.0f;
 
 private:
-    f32 m_attackDamage; // = attackDamage + tier.getAttackDamage()
-    f32 m_attackSpeed;
+    f32 m_attackDamage; // = attackDamage + tier.getAttackDamage()（原版长矛传入 0，故等于材质加成）
+    /// 用 f64 保存：原版的攻速条目是 double，值取自事件/材质公式（如 -2.4615384340286255），
+    /// 过一趟 f32 会丢掉末位，属性修饰符与原版对不上。
+    f64 m_attackSpeed;
 };
 
 } // namespace item

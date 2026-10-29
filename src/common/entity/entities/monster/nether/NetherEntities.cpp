@@ -303,6 +303,11 @@ void GhastEntity::registerAttributes()
 {
     // 对齐原版 Ghast.createAttributes：生命值 10、追踪范围 100、飞行速度 0.06；
     // 它不覆盖移动速度，沿用 LivingEntity 默认的 0.7（飞行由 GhastMoveControl 驱动）。
+    //
+    // 必须先调父类：override 会整体替换 MobEntity 的注册，不调父类的后果是 follow_range
+    // 根本没有注册，下面的 setBaseValue 静默失败（属性缺失时按 0 取值），恶魂的追踪范围
+    // 一直是 0。
+    MobEntity::registerAttributes();
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.7);

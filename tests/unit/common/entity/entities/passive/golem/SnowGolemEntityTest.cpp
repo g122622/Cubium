@@ -149,7 +149,7 @@ TEST_F(SnowGolemEntityTest, Attributes_HasCorrectBaseValues)
     EXPECT_DOUBLE_EQ(golem.maxHealth(), 4.0);
 
     // MC 1.16.5: 雪傀儡移动速度为 0.2
-    EXPECT_DOUBLE_EQ(golem.getAttributeValue("generic.movement_speed", 0.0), 0.2);
+    EXPECT_DOUBLE_EQ(golem.getAttributeValue("minecraft:movement_speed", 0.0), 0.2);
 }
 
 // ========== 尺寸测试 ==========

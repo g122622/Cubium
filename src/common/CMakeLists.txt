@@ -653,6 +653,7 @@ add_library(mc_common STATIC
     item/items/special/ItemFrameItem.cpp
     item/items/special/SpyglassItem.cpp
     item/items/special/FlintAndSteelItem.cpp
+    item/items/special/CarvedPumpkinItem.cpp
     item/items/special/HarnessItem.cpp
     item/items/special/HoneycombItem.cpp
     item/items/special/KnowledgeBookItem.cpp

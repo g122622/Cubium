@@ -55,7 +55,9 @@ ToolItem::ToolItem(f32 attackDamage,
     : TieredItem(tier, properties)
     , m_effectiveBlocks(std::move(effectiveBlocks))
     , m_toolType(toolType)
-    , m_attackDamage(attackDamage + tier.getAttackDamage())
+    // 与 SwordItem 同理：注册处的攻击伤害已含材质加成（斧/镐/锹/锄的原版数值各不相同），
+    // 这里不再重复叠加 tier.getAttackDamage()。
+    , m_attackDamage(attackDamage)
     , m_attackSpeed(attackSpeed)
     , m_efficiency(tier.getEfficiency())
 {}

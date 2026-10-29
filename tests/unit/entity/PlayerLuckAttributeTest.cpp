@@ -30,7 +30,7 @@
  * - 默认值为 0.0
  * - 受幸运/霉运药水效果影响
  *
- * 参考 MC 1.16.5: PlayerEntity.registerAttributes() 注册 generic.luck 属性
+ * 参考 MC 1.16.5: PlayerEntity.registerAttributes() 注册 minecraft:luck 属性
  */
 
 #include "common/TestWorldHelper.hpp"

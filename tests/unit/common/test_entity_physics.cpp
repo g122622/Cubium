@@ -303,7 +303,7 @@ TEST(EntityAttributes, KnockbackResistanceAttribute)
     // 确认击退抗性属性已定义
     auto attr = entity::attribute::Attributes::knockbackResistance();
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "generic.knockback_resistance");
+    EXPECT_EQ(attr->registryName(), "minecraft:knockback_resistance");
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 0.0f);
 }
 
@@ -312,7 +312,7 @@ TEST(EntityAttributes, MovementSpeedAttribute)
     // 确认移动速度属性已定义
     auto attr = entity::attribute::Attributes::movementSpeed();
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "generic.movement_speed");
+    EXPECT_EQ(attr->registryName(), "minecraft:movement_speed");
 }
 
 TEST(EntityAttributes, EntityGravityAttribute)

@@ -58,6 +58,7 @@
 #include "common/item/items/special/BoneMealItem.hpp"
 #include "common/item/items/special/BrushItem.hpp"
 #include "common/item/items/special/BucketItem.hpp"
+#include "common/item/items/special/CarvedPumpkinItem.hpp"
 #include "common/item/items/special/DebugStickItem.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/items/special/EndCrystalItem.hpp"
@@ -1867,31 +1868,31 @@ void Items::_registerTools()
     // ========================================================================
     DIAMOND_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:diamond_pickaxe"),
         item::tier::ItemTiers::DIAMOND(), // tier
-        1,                                // attackDamage
+        4,                                // attackDamage
         -2.8f,                            // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     DIAMOND_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:diamond_axe"),
         item::tier::ItemTiers::DIAMOND(), // tier
-        7.0f,                             // attackDamage
+        8.0f,                             // attackDamage
         -3.0f,                            // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     DIAMOND_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:diamond_shovel"),
         item::tier::ItemTiers::DIAMOND(), // tier
-        1.5f,                             // attackDamage
+        4.5f,                             // attackDamage
         -3.0f,                            // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     DIAMOND_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:diamond_hoe"),
         item::tier::ItemTiers::DIAMOND(), // tier
         0,                                // attackDamage
-        -3.0f,                            // attackSpeed
+        0.0f,                             // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     DIAMOND_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:diamond_sword"),
         item::tier::ItemTiers::DIAMOND(), // tier
-        3,                                // attackDamage
+        6,                                // attackDamage
         -2.4f,                            // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
@@ -1900,31 +1901,31 @@ void Items::_registerTools()
     // ========================================================================
     IRON_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:iron_pickaxe"),
         item::tier::ItemTiers::IRON(), // tier
-        1,                             // attackDamage
+        3,                             // attackDamage
         -2.8f,                         // attackSpeed
         ItemProperties());
 
     IRON_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:iron_axe"),
         item::tier::ItemTiers::IRON(), // tier
-        7.0f,                          // attackDamage
+        8.0f,                          // attackDamage
         -3.1f,                         // attackSpeed
         ItemProperties());
 
     IRON_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:iron_shovel"),
         item::tier::ItemTiers::IRON(), // tier
-        1.5f,                          // attackDamage
+        3.5f,                          // attackDamage
         -3.0f,                         // attackSpeed
         ItemProperties());
 
     IRON_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:iron_hoe"),
         item::tier::ItemTiers::IRON(), // tier
         0,                             // attackDamage
-        -2.0f,                         // attackSpeed
+        -1.0f,                         // attackSpeed
         ItemProperties());
 
     IRON_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:iron_sword"),
         item::tier::ItemTiers::IRON(), // tier
-        3,                             // attackDamage
+        5,                             // attackDamage
         -2.4f,                         // attackSpeed
         ItemProperties());
 
@@ -1933,7 +1934,7 @@ void Items::_registerTools()
     // ========================================================================
     STONE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:stone_pickaxe"),
         item::tier::ItemTiers::STONE(), // tier
-        1,                              // attackDamage
+        2,                              // attackDamage
         -2.8f,                          // attackSpeed
         ItemProperties());
 
@@ -1945,19 +1946,19 @@ void Items::_registerTools()
 
     STONE_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:stone_shovel"),
         item::tier::ItemTiers::STONE(), // tier
-        1.5f,                           // attackDamage
+        2.5f,                           // attackDamage
         -3.0f,                          // attackSpeed
         ItemProperties());
 
     STONE_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:stone_hoe"),
         item::tier::ItemTiers::STONE(), // tier
         0,                              // attackDamage
-        -1.0f,                          // attackSpeed
+        -2.0f,                          // attackSpeed
         ItemProperties());
 
     STONE_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:stone_sword"),
         item::tier::ItemTiers::STONE(), // tier
-        3,                              // attackDamage
+        4,                              // attackDamage
         -2.4f,                          // attackSpeed
         ItemProperties());
 
@@ -2005,7 +2006,7 @@ void Items::_registerTools()
 
     WOODEN_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:wooden_axe"),
         item::tier::ItemTiers::WOOD(), // tier
-        7.0f,                          // attackDamage
+        6.0f,                          // attackDamage
         -3.2f,                         // attackSpeed
         ItemProperties());
 
@@ -2018,7 +2019,7 @@ void Items::_registerTools()
     WOODEN_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:wooden_hoe"),
         item::tier::ItemTiers::WOOD(), // tier
         0,                             // attackDamage
-        0.0f,                          // attackSpeed
+        -3.0f,                         // attackSpeed
         ItemProperties());
 
     WOODEN_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:wooden_sword"),
@@ -2038,7 +2039,7 @@ void Items::_registerTools()
 
     GOLDEN_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:golden_axe"),
         item::tier::ItemTiers::GOLD(), // tier
-        7.0f,                          // attackDamage
+        6.0f,                          // attackDamage
         -3.0f,                         // attackSpeed
         ItemProperties());
 
@@ -2051,7 +2052,7 @@ void Items::_registerTools()
     GOLDEN_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:golden_hoe"),
         item::tier::ItemTiers::GOLD(), // tier
         0,                             // attackDamage
-        0.0f,                          // attackSpeed
+        -3.0f,                         // attackSpeed
         ItemProperties());
 
     GOLDEN_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:golden_sword"),
@@ -2065,31 +2066,31 @@ void Items::_registerTools()
     // ========================================================================
     NETHERITE_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:netherite_pickaxe"),
         item::tier::ItemTiers::NETHERITE(), // tier
-        1,                                  // attackDamage
+        5,                                  // attackDamage
         -2.8f,                              // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 
     NETHERITE_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:netherite_axe"),
         item::tier::ItemTiers::NETHERITE(), // tier
-        6.0f,                               // attackDamage
+        9.0f,                               // attackDamage
         -3.0f,                              // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 
     NETHERITE_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:netherite_shovel"),
         item::tier::ItemTiers::NETHERITE(), // tier
-        1.5f,                               // attackDamage
+        5.5f,                               // attackDamage
         -3.0f,                              // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 
     NETHERITE_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:netherite_hoe"),
         item::tier::ItemTiers::NETHERITE(), // tier
         0,                                  // attackDamage
-        -4.0f,                              // attackSpeed
+        0.0f,                               // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 
     NETHERITE_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:netherite_sword"),
         item::tier::ItemTiers::NETHERITE(), // tier
-        3,                                  // attackDamage
+        7,                                  // attackDamage
         -2.4f,                              // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 }
@@ -2327,6 +2328,11 @@ void Items::_registerArmor()
             ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
             19,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_netherite.png"));
+
+    // 原版马铠按护甲材质登记属性：韧性只有钻石（2）与下界合金（3）非零，击退抗性只有
+    // 下界合金（0.1）。马铠目前按护甲值逐个注册、没有材质对象，故在此把这两项回填。
+    static_cast<item::items::HorseArmorItem*>(DIAMOND_HORSE_ARMOR)->setMaterialBonuses(2.0f, 0.0f);
+    static_cast<item::items::HorseArmorItem*>(NETHERITE_HORSE_ARMOR)->setMaterialBonuses(3.0f, 0.1f);
 
     // ========================================================================
     // 狼铠 - MC 1.20.5+ 新增
@@ -3004,50 +3010,50 @@ void Items::_registerWeapons()
     // 木长矛
     WOODEN_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:wooden_spear"),
         item::tier::ItemTiers::WOOD(), // tier
-        3,                             // attackDamage（基础值）
-        -2.9f,                         // attackSpeed
+        0,                             // attackDamage（原版长矛的攻击力全部来自材质）
+        -2.4615384340286255,           // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     // 石长矛
     STONE_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:stone_spear"),
-        item::tier::ItemTiers::STONE(),
-        3,
-        -2.9f,
+        item::tier::ItemTiers::STONE(), // tier
+        0,                              // attackDamage（原版长矛的攻击力全部来自材质）
+        -2.666666626930237,             // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     // 铜长矛
     COPPER_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:copper_spear"),
-        item::tier::ItemTiers::COPPER(),
-        3,
-        -2.9f,
+        item::tier::ItemTiers::COPPER(), // tier
+        0,                               // attackDamage（原版长矛的攻击力全部来自材质）
+        -2.8235294818878174f,            // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     // 铁长矛
     IRON_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:iron_spear"),
-        item::tier::ItemTiers::IRON(),
-        3,
-        -2.9f,
+        item::tier::ItemTiers::IRON(), // tier
+        0,                             // attackDamage（原版长矛的攻击力全部来自材质）
+        -2.9473683834075928f,          // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     // 金长矛
     GOLDEN_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:golden_spear"),
-        item::tier::ItemTiers::GOLD(),
-        3,
-        -2.9f,
+        item::tier::ItemTiers::GOLD(), // tier
+        0,                             // attackDamage（原版长矛的攻击力全部来自材质）
+        -2.9473683834075928f,          // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     // 钻石长矛
     DIAMOND_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:diamond_spear"),
-        item::tier::ItemTiers::DIAMOND(),
-        3,
-        -2.9f,
+        item::tier::ItemTiers::DIAMOND(), // tier
+        0,                                // attackDamage（原版长矛的攻击力全部来自材质）
+        -3.0476189851760864,              // attackSpeed
         ItemProperties().rarity(ItemRarity::Common));
 
     // 下界合金长矛
     NETHERITE_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:netherite_spear"),
-        item::tier::ItemTiers::NETHERITE(),
-        3,
-        -2.9f,
+        item::tier::ItemTiers::NETHERITE(), // tier
+        0,                                  // attackDamage（原版长矛的攻击力全部来自材质）
+        -3.13043475151062f,                 // attackSpeed
         ItemProperties().rarity(ItemRarity::Rare));
 }
 
@@ -3969,8 +3975,10 @@ void Items::_registerBuildingBlocks()
     GLASS = &registerBlockBackedItem(registry, VanillaBlocks::GLASS, "glass", ItemProperties().maxStackSize(64));
     GLASS_PANE =
         &registerBlockBackedItem(registry, VanillaBlocks::GLASS_PANE, "glass_pane", ItemProperties().maxStackSize(64));
-    CARVED_PUMPKIN = &registerBlockBackedItem(
-        registry, VanillaBlocks::CARVED_PUMPKIN, "carved_pumpkin", ItemProperties().maxStackSize(64));
+    CARVED_PUMPKIN =
+        &registry.registerItem<item::items::CarvedPumpkinItem>(ResourceLocation("minecraft:carved_pumpkin"),
+            *VanillaBlocks::CARVED_PUMPKIN,
+            ItemProperties().maxStackSize(64));
     END_ROD = &registerBlockBackedItem(registry, VanillaBlocks::END_ROD, "end_rod", ItemProperties().maxStackSize(64));
     END_PORTAL_FRAME = &registerBlockBackedItem(
         registry, VanillaBlocks::END_PORTAL_FRAME, "end_portal_frame", ItemProperties().maxStackSize(64));

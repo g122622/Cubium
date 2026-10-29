@@ -26,7 +26,7 @@
  * @brief Player 交互距离属性测试
  *
  * 测试 Player 的方块/实体交互距离属性：
- * - registerAttributes() 注册 generic.block_interaction_range / generic.entity_interaction_range
+ * - registerAttributes() 注册 minecraft:block_interaction_range / minecraft:entity_interaction_range
  * - 生存/冒险模式默认值 4.5 / 3.0
  * - 创造模式通过修饰符 +0.5 / +2.0 达到 5.0 / 5.0
  * - setGameMode() 切换模式时刷新修饰符

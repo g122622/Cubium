@@ -940,9 +940,9 @@ TEST_F(ToolItemTest, CopperPickaxeAttackDamageAndSpeed)
 {
     auto* pickaxe = Items::COPPER_PICKAXE;
     ASSERT_NE(pickaxe, nullptr);
-    // 铜镐: 基础伤害2 + 层级加成1.0 = 总伤害3.0, 攻击速度-2.8
+    // 铜镐: 原版攻击伤害 2（注册值即最终值，不再叠加层级加成）, 攻击速度-2.8
     auto* toolItem = static_cast<item::tool::ToolItem*>(pickaxe);
-    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 3.0f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 2.0f);
     EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -2.8f);
 }
 
@@ -950,9 +950,9 @@ TEST_F(ToolItemTest, CopperAxeAttackDamageAndSpeed)
 {
     auto* axe = Items::COPPER_AXE;
     ASSERT_NE(axe, nullptr);
-    // 铜斧: 基础伤害8.0 + 层级加成1.0 = 总伤害9.0, 攻击速度-3.2
+    // 铜斧: 原版攻击伤害 8, 攻击速度-3.2
     auto* toolItem = static_cast<item::tool::ToolItem*>(axe);
-    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 9.0f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 8.0f);
     EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -3.2f);
 }
 
@@ -960,9 +960,9 @@ TEST_F(ToolItemTest, CopperShovelAttackDamageAndSpeed)
 {
     auto* shovel = Items::COPPER_SHOVEL;
     ASSERT_NE(shovel, nullptr);
-    // 铜铲: 基础伤害2.5 + 层级加成1.0 = 总伤害3.5, 攻击速度-3.0
+    // 铜铲: 原版攻击伤害 2.5, 攻击速度-3.0
     auto* toolItem = static_cast<item::tool::ToolItem*>(shovel);
-    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 3.5f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 2.5f);
     EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -3.0f);
 }
 
@@ -970,9 +970,9 @@ TEST_F(ToolItemTest, CopperHoeAttackDamageAndSpeed)
 {
     auto* hoe = Items::COPPER_HOE;
     ASSERT_NE(hoe, nullptr);
-    // 铜锄: 基础伤害0 + 层级加成1.0 = 总伤害1.0, 攻击速度-2.0
+    // 铜锄: 原版攻击伤害 0, 攻击速度-2.0
     auto* toolItem = static_cast<item::tool::ToolItem*>(hoe);
-    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 1.0f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 0.0f);
     EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -2.0f);
 }
 
@@ -980,9 +980,9 @@ TEST_F(ToolItemTest, CopperSwordAttackDamageAndSpeed)
 {
     auto* sword = Items::COPPER_SWORD;
     ASSERT_NE(sword, nullptr);
-    // 铜剑: 基础伤害4 + 层级加成1.0 = 总伤害5.0, 攻击速度-2.4
+    // 铜剑: 原版攻击伤害 4, 攻击速度-2.4
     auto* swordItem = static_cast<item::tool::SwordItem*>(sword);
-    EXPECT_FLOAT_EQ(swordItem->getAttackDamage(), 5.0f);
+    EXPECT_FLOAT_EQ(swordItem->getAttackDamage(), 4.0f);
     EXPECT_FLOAT_EQ(swordItem->getAttackSpeed(), -2.4f);
 }
 

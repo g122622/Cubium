@@ -877,7 +877,7 @@ TEST_F(BeeEntityTest, Attributes_HasCorrectBaseValues)
     EXPECT_DOUBLE_EQ(bee.maxHealth(), 10.0);
 
     // MC 1.16.5: 蜜蜂移动速度为 0.3
-    EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.movement_speed", 0.0), 0.3);
+    EXPECT_DOUBLE_EQ(bee.getAttributeValue("minecraft:movement_speed", 0.0), 0.3);
 }
 
 // ============================================================================
@@ -938,7 +938,7 @@ TEST_F(BeeEntityTest, Attributes_HasAttackDamage)
     // MC 1.16.5: 蜜蜂攻击伤害为 2.0
     // 注意：需要在构造函数中设置属性
     // 此测试验证属性已注册
-    EXPECT_GE(bee.getAttributeValue("generic.attack_damage", -1.0), 0.0);
+    EXPECT_GE(bee.getAttributeValue("minecraft:attack_damage", -1.0), 0.0);
 }
 
 TEST_F(BeeEntityTest, Attributes_HasFollowRange)
@@ -946,7 +946,7 @@ TEST_F(BeeEntityTest, Attributes_HasFollowRange)
     BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 1.21.11 Bee 用 Mob.createMobAttributes 的默认跟随范围 16（不是旧版的 48）。
-    EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.follow_range", 0.0), 16.0);
+    EXPECT_DOUBLE_EQ(bee.getAttributeValue("minecraft:follow_range", 0.0), 16.0);
 }
 
 TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
@@ -955,7 +955,7 @@ TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
 
     // MC 1.16.5: 蜜蜂飞行速度为 0.6
     // 属性值已经设置
-    EXPECT_GE(bee.getAttributeValue("generic.flying_speed", 0.0), 0.0);
+    EXPECT_GE(bee.getAttributeValue("minecraft:flying_speed", 0.0), 0.0);
 }
 
 // ============================================================================

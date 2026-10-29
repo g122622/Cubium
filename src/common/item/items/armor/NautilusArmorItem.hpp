@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
@@ -65,6 +66,14 @@ public:
      * @param material 盔甲材质（用于获取装备音效、修复材料和 Body 槽位护甲值）
      */
     NautilusArmorItem(const ItemProperties& properties, const armor::ArmorMaterial& material);
+
+    /**
+     * @brief 身体护甲槽位提供的属性修饰符（护甲值 / 韧性 / 击退抗性）
+     *
+     * 对齐 vanilla `Item.Properties.nautilusArmor`：由 `ArmorMaterial.createAttributes(BODY)`
+     * 生成，条目作用于 `EquipmentSlotGroup.BODY`，因此只有身体槽位查询时才返回。
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
 
     /**
      * @brief 获取护甲值

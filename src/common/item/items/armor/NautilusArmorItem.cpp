@@ -22,11 +22,22 @@
  */
 
 #include "NautilusArmorItem.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item::items {
+
+namespace {
+
+/// 身体护甲槽位。
+constexpr i32 kBodySlot = static_cast<i32>(EquipmentSlot::Body);
+
+} // namespace
 
 NautilusArmorItem::NautilusArmorItem(const ItemProperties& properties, const armor::ArmorMaterial& material)
     : Item(properties)
@@ -36,6 +47,37 @@ NautilusArmorItem::NautilusArmorItem(const ItemProperties& properties, const arm
     , m_equipSound(material.getEquipSound())
     , m_material(material)
 {}
+
+item::ItemAttributeModifiers NautilusArmorItem::getAttributeModifiers(i32 equipmentSlot) const
+{
+    if (equipmentSlot != kBodySlot) {
+        return Item::getAttributeModifiers(equipmentSlot);
+    }
+    // 对齐 vanilla `ArmorMaterial.createAttributes(ArmorType.BODY)`：身体护甲同样给
+    // 护甲值、韧性两条修饰符（韧性为 0 也照原版登记），三条共用同一个修饰符 id。
+    item::ItemAttributeModifiers modifiers;
+    const char* modifierId = entity::attribute::ids::ARMOR_MODIFIER_BODY;
+    modifiers.add(entity::attribute::Attributes::ARMOR,
+        entity::attribute::AttributeModifier(
+            modifierId, "Armor modifier", static_cast<f64>(m_armorValue), entity::attribute::Operation::Addition),
+        equipmentSlot);
+    modifiers.add(entity::attribute::Attributes::ARMOR_TOUGHNESS,
+        entity::attribute::AttributeModifier(modifierId,
+            "Armor toughness",
+            static_cast<f64>(m_material.getToughness()),
+            entity::attribute::Operation::Addition),
+        equipmentSlot);
+    const f32 knockbackResistance = m_material.getKnockbackResistance();
+    if (knockbackResistance > 0.0f) {
+        modifiers.add(entity::attribute::Attributes::KNOCKBACK_RESISTANCE,
+            entity::attribute::AttributeModifier(modifierId,
+                "Armor knockback resistance",
+                static_cast<f64>(knockbackResistance),
+                entity::attribute::Operation::Addition),
+            equipmentSlot);
+    }
+    return modifiers;
+}
 
 } // namespace item::items
 } // namespace mc

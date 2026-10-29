@@ -188,6 +188,15 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "block",
     }),
     () => ({
+        // 物品提供的属性修饰符：武器伤害/攻速、盔甲护甲值/韧性，以及修饰符 ID
+        // （同槽位靠 ID 去重，ID 不一致会让装备叠加或互相覆盖）。
+        name: "item_attribute_modifiers",
+        oracle: "ItemAttributeModifiersOracle",
+        input: (unit: string) => ({ item: unit }),
+        key: "item",
+        oracleMissing: itemsKnownMissing,
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),

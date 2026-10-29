@@ -50,7 +50,7 @@ namespace Attributes {
  */
 inline std::unique_ptr<Attribute> maxHealth()
 {
-    return std::make_unique<Attribute>("generic.max_health", 20.0, 1.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:max_health", 20.0, 1.0, 1024.0);
 }
 
 /**
@@ -62,7 +62,7 @@ inline std::unique_ptr<Attribute> maxHealth()
  */
 inline std::unique_ptr<Attribute> followRange()
 {
-    return std::make_unique<Attribute>("generic.follow_range", 32.0, 0.0, 2048.0);
+    return std::make_unique<Attribute>("minecraft:follow_range", 32.0, 0.0, 2048.0);
 }
 
 /**
@@ -75,7 +75,7 @@ inline std::unique_ptr<Attribute> followRange()
  */
 inline std::unique_ptr<Attribute> knockbackResistance()
 {
-    return std::make_unique<Attribute>("generic.knockback_resistance", 0.0, 0.0, 1.0);
+    return std::make_unique<Attribute>("minecraft:knockback_resistance", 0.0, 0.0, 1.0);
 }
 
 /**
@@ -87,7 +87,7 @@ inline std::unique_ptr<Attribute> knockbackResistance()
  */
 inline std::unique_ptr<Attribute> movementSpeed()
 {
-    return std::make_unique<Attribute>("generic.movement_speed", 0.7, 0.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:movement_speed", 0.7, 0.0, 1024.0);
 }
 
 /**
@@ -99,7 +99,7 @@ inline std::unique_ptr<Attribute> movementSpeed()
  */
 inline std::unique_ptr<Attribute> flyingSpeed()
 {
-    return std::make_unique<Attribute>("generic.flying_speed", 0.4, 0.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:flying_speed", 0.4, 0.0, 1024.0);
 }
 
 /**
@@ -111,7 +111,7 @@ inline std::unique_ptr<Attribute> flyingSpeed()
  */
 inline std::unique_ptr<Attribute> attackDamage()
 {
-    return std::make_unique<Attribute>("generic.attack_damage", 2.0, 0.0, 2048.0);
+    return std::make_unique<Attribute>("minecraft:attack_damage", 2.0, 0.0, 2048.0);
 }
 
 /**
@@ -123,7 +123,7 @@ inline std::unique_ptr<Attribute> attackDamage()
  */
 inline std::unique_ptr<Attribute> attackKnockback()
 {
-    return std::make_unique<Attribute>("generic.attack_knockback", 0.0, 0.0, 5.0);
+    return std::make_unique<Attribute>("minecraft:attack_knockback", 0.0, 0.0, 5.0);
 }
 
 /**
@@ -135,7 +135,7 @@ inline std::unique_ptr<Attribute> attackKnockback()
  */
 inline std::unique_ptr<Attribute> attackSpeed()
 {
-    return std::make_unique<Attribute>("generic.attack_speed", 4.0, 0.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:attack_speed", 4.0, 0.0, 1024.0);
 }
 
 /**
@@ -147,7 +147,7 @@ inline std::unique_ptr<Attribute> attackSpeed()
  */
 inline std::unique_ptr<Attribute> armor()
 {
-    return std::make_unique<Attribute>("generic.armor", 0.0, 0.0, 30.0);
+    return std::make_unique<Attribute>("minecraft:armor", 0.0, 0.0, 30.0);
 }
 
 /**
@@ -159,7 +159,7 @@ inline std::unique_ptr<Attribute> armor()
  */
 inline std::unique_ptr<Attribute> armorToughness()
 {
-    return std::make_unique<Attribute>("generic.armor_toughness", 0.0, 0.0, 20.0);
+    return std::make_unique<Attribute>("minecraft:armor_toughness", 0.0, 0.0, 20.0);
 }
 
 /**
@@ -171,7 +171,7 @@ inline std::unique_ptr<Attribute> armorToughness()
  */
 inline std::unique_ptr<Attribute> luck()
 {
-    return std::make_unique<Attribute>("generic.luck", 0.0, -1024.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:luck", 0.0, -1024.0, 1024.0);
 }
 
 /**
@@ -208,7 +208,7 @@ inline std::unique_ptr<Attribute> breathMax()
  */
 inline std::unique_ptr<Attribute> jumpStrength()
 {
-    return std::make_unique<Attribute>("generic.jump_strength", 0.42, 0.0, 32.0);
+    return std::make_unique<Attribute>("minecraft:jump_strength", 0.42, 0.0, 32.0);
 }
 
 /**
@@ -237,7 +237,7 @@ inline std::unique_ptr<Attribute> horseJumpStrength()
  */
 inline std::unique_ptr<Attribute> zombieSpawnReinforcements()
 {
-    return std::make_unique<Attribute>("zombie.spawn_reinforcements", 0.0, 0.0, 1.0);
+    return std::make_unique<Attribute>("minecraft:spawn_reinforcements", 0.0, 0.0, 1.0);
 }
 
 // ============================================================================
@@ -277,7 +277,7 @@ inline std::unique_ptr<Attribute> entityGravity()
  */
 inline std::unique_ptr<Attribute> movementEfficiency()
 {
-    return std::make_unique<Attribute>("generic.movement_efficiency", 0.0, 0.0, 1.0);
+    return std::make_unique<Attribute>("minecraft:movement_efficiency", 0.0, 0.0, 1.0);
 }
 
 /**
@@ -291,7 +291,7 @@ inline std::unique_ptr<Attribute> movementEfficiency()
  */
 inline std::unique_ptr<Attribute> safeFallDistance()
 {
-    return std::make_unique<Attribute>("generic.safe_fall_distance", 3.0, -1024.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:safe_fall_distance", 3.0, -1024.0, 1024.0);
 }
 
 /**
@@ -305,7 +305,7 @@ inline std::unique_ptr<Attribute> safeFallDistance()
  */
 inline std::unique_ptr<Attribute> fallDamageMultiplier()
 {
-    return std::make_unique<Attribute>("generic.fall_damage_multiplier", 1.0, 0.0, 100.0);
+    return std::make_unique<Attribute>("minecraft:fall_damage_multiplier", 1.0, 0.0, 100.0);
 }
 
 /**
@@ -326,7 +326,7 @@ inline std::unique_ptr<Attribute> fallDamageMultiplier()
  */
 inline std::unique_ptr<Attribute> oxygenBonus()
 {
-    return std::make_unique<Attribute>("generic.oxygen_bonus", 0.0, 0.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:oxygen_bonus", 0.0, 0.0, 1024.0);
 }
 
 /**
@@ -347,7 +347,7 @@ inline std::unique_ptr<Attribute> oxygenBonus()
  */
 inline std::unique_ptr<Attribute> burningTime()
 {
-    return std::make_unique<Attribute>("generic.burning_time", 1.0, 0.0, 1024.0);
+    return std::make_unique<Attribute>("minecraft:burning_time", 1.0, 0.0, 1024.0);
 }
 
 /**
@@ -368,7 +368,7 @@ inline std::unique_ptr<Attribute> burningTime()
  */
 inline std::unique_ptr<Attribute> explosionKnockbackResistance()
 {
-    return std::make_unique<Attribute>("generic.explosion_knockback_resistance", 0.0, 0.0, 1.0);
+    return std::make_unique<Attribute>("minecraft:explosion_knockback_resistance", 0.0, 0.0, 1.0);
 }
 
 /**
@@ -381,7 +381,7 @@ inline std::unique_ptr<Attribute> explosionKnockbackResistance()
  */
 inline std::unique_ptr<Attribute> blockInteractionRange()
 {
-    return std::make_unique<Attribute>("generic.block_interaction_range", 4.5, 0.0, 64.0);
+    return std::make_unique<Attribute>("minecraft:block_interaction_range", 4.5, 0.0, 64.0);
 }
 
 /**
@@ -394,57 +394,59 @@ inline std::unique_ptr<Attribute> blockInteractionRange()
  */
 inline std::unique_ptr<Attribute> entityInteractionRange()
 {
-    return std::make_unique<Attribute>("generic.entity_interaction_range", 3.0, 0.0, 64.0);
+    return std::make_unique<Attribute>("minecraft:entity_interaction_range", 3.0, 0.0, 64.0);
 }
 
 /** @brief 导航点发送范围，所有生物默认不发送。 */
 inline std::unique_ptr<Attribute> waypointTransmitRange()
 {
-    return std::make_unique<Attribute>("generic.waypoint_transmit_range", 0.0, 0.0, 60000000.0);
+    return std::make_unique<Attribute>("minecraft:waypoint_transmit_range", 0.0, 0.0, 60000000.0);
 }
 
 /** @brief 导航点接收范围。 */
 inline std::unique_ptr<Attribute> waypointReceiveRange()
 {
-    return std::make_unique<Attribute>("generic.waypoint_receive_range", 0.0, 0.0, 60000000.0);
+    return std::make_unique<Attribute>("minecraft:waypoint_receive_range", 0.0, 0.0, 60000000.0);
 }
 
 // ============================================================================
 // 属性名称常量
 // ============================================================================
 
-// MC 1.16.5 原版属性
-constexpr const char* MAX_HEALTH = "generic.max_health";
-constexpr const char* FOLLOW_RANGE = "generic.follow_range";
-constexpr const char* KNOCKBACK_RESISTANCE = "generic.knockback_resistance";
-constexpr const char* MOVEMENT_SPEED = "generic.movement_speed";
-constexpr const char* FLYING_SPEED = "generic.flying_speed";
-constexpr const char* ATTACK_DAMAGE = "generic.attack_damage";
-constexpr const char* ATTACK_KNOCKBACK = "generic.attack_knockback";
-constexpr const char* ATTACK_SPEED = "generic.attack_speed";
-constexpr const char* ARMOR = "generic.armor";
-constexpr const char* ARMOR_TOUGHNESS = "generic.armor_toughness";
-constexpr const char* LUCK = "generic.luck";
-constexpr const char* ZOMBIE_SPAWN_REINFORCEMENTS = "zombie.spawn_reinforcements";
+// 原版属性名一律使用 1.21.11 的注册名（`minecraft:<path>`）：`ItemAttributeModifiers` 等
+// 数据组件按这个名字与 Java 侧的 `BuiltInRegistries.ATTRIBUTE` 对应，沿用 1.16.5 的
+// `generic.` 前缀会让所有按名查找失效（同一件装备既查不到属性，也写不进组件）。
+constexpr const char* MAX_HEALTH = "minecraft:max_health";
+constexpr const char* FOLLOW_RANGE = "minecraft:follow_range";
+constexpr const char* KNOCKBACK_RESISTANCE = "minecraft:knockback_resistance";
+constexpr const char* MOVEMENT_SPEED = "minecraft:movement_speed";
+constexpr const char* FLYING_SPEED = "minecraft:flying_speed";
+constexpr const char* ATTACK_DAMAGE = "minecraft:attack_damage";
+constexpr const char* ATTACK_KNOCKBACK = "minecraft:attack_knockback";
+constexpr const char* ATTACK_SPEED = "minecraft:attack_speed";
+constexpr const char* ARMOR = "minecraft:armor";
+constexpr const char* ARMOR_TOUGHNESS = "minecraft:armor_toughness";
+constexpr const char* LUCK = "minecraft:luck";
+constexpr const char* ZOMBIE_SPAWN_REINFORCEMENTS = "minecraft:spawn_reinforcements";
 constexpr const char* HORSE_JUMP_STRENGTH = "horse.jump_strength";
 
 // MC 1.21+ 新增属性
-constexpr const char* WAYPOINT_TRANSMIT_RANGE = "generic.waypoint_transmit_range";
-constexpr const char* WAYPOINT_RECEIVE_RANGE = "generic.waypoint_receive_range";
-constexpr const char* MOVEMENT_EFFICIENCY = "generic.movement_efficiency";
-constexpr const char* BLOCK_INTERACTION_RANGE = "generic.block_interaction_range";
-constexpr const char* ENTITY_INTERACTION_RANGE = "generic.entity_interaction_range";
-constexpr const char* SAFE_FALL_DISTANCE = "generic.safe_fall_distance";
-constexpr const char* FALL_DAMAGE_MULTIPLIER = "generic.fall_damage_multiplier";
-constexpr const char* JUMP_STRENGTH = "generic.jump_strength";
+constexpr const char* WAYPOINT_TRANSMIT_RANGE = "minecraft:waypoint_transmit_range";
+constexpr const char* WAYPOINT_RECEIVE_RANGE = "minecraft:waypoint_receive_range";
+constexpr const char* MOVEMENT_EFFICIENCY = "minecraft:movement_efficiency";
+constexpr const char* BLOCK_INTERACTION_RANGE = "minecraft:block_interaction_range";
+constexpr const char* ENTITY_INTERACTION_RANGE = "minecraft:entity_interaction_range";
+constexpr const char* SAFE_FALL_DISTANCE = "minecraft:safe_fall_distance";
+constexpr const char* FALL_DAMAGE_MULTIPLIER = "minecraft:fall_damage_multiplier";
+constexpr const char* JUMP_STRENGTH = "minecraft:jump_strength";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属性（控制最大氧气值），Java
                                                          // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
-constexpr const char* OXYGEN_BONUS = "generic.oxygen_bonus";
-constexpr const char* BURNING_TIME = "generic.burning_time";
-constexpr const char* EXPLOSION_KNOCKBACK_RESISTANCE = "generic.explosion_knockback_resistance";
+constexpr const char* OXYGEN_BONUS = "minecraft:oxygen_bonus";
+constexpr const char* BURNING_TIME = "minecraft:burning_time";
+constexpr const char* EXPLOSION_KNOCKBACK_RESISTANCE = "minecraft:explosion_knockback_resistance";
 constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
 
 } // namespace Attributes
