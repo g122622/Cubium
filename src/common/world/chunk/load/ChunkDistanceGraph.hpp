@@ -27,6 +27,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <functional>
+#include <mutex>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
@@ -174,6 +175,10 @@ protected:
     }
 
 private:
+    /// 不加锁的读取实现。仅供已持有 m_mutex 的本类方法调用（processUpdates 的批处理循环）。
+    [[nodiscard]] i32 _getLevelLocked(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] i32 _getSourceLevelLocked(ChunkCoord x, ChunkCoord z) const;
+
     void _enqueueUpdate(ChunkCoord x, ChunkCoord z);
 
     /// 传播级别到相邻区块
@@ -214,6 +219,25 @@ private:
     /// TODO: 若该 ASAN 报告复现，需在 onLevelChanged 前后加宿主生命周期断言，确认回调
     /// 是否可能在 processUpdates 未返回时销毁 ChunkLoadTicketManager/本图。
     bool m_processing = false;
+
+    /// 并发保护。
+    ///
+    /// 本图按「仅主线程访问」的契约原本无锁，但 ServerChunkManager::_getOrCreateLifecycleManager
+    /// 会经 m_ticketManager.getChunkLevel 从 **worker 线程** 读 m_levels（栈：
+    /// ChunkTaskScheduler::checkNeighbour → getOrCreateHolder → getChunkLevel → getLevel），
+    /// 而主线程同时在 processUpdates 里写同一张表。unordered_map 插入触发 rehash 时会释放
+    /// 旧桶数组，worker 侧正在进行的 find 随即读到已释放内存——线上表现为 SIGSEGV at 0x8，
+    /// 栈顶落在 std::_Hashtable::_M_find_before_node。
+    ///
+    /// 该跨线程读取是必需的（worker 需要知道自己该以什么级别创建 holder），因此按本文件
+    /// 原有注释的指引补互斥量。
+    ///
+    /// 【重要】用普通 mutex 即可，但**回调必须在临界区之外调用**：processUpdates 的循环里
+    /// 会调用 onLevelChanged，该回调经票据/调度逻辑回到 ServerChunkManager，可能反向同步
+    /// 等待 worker 线程——而 worker 正在等这把锁，持锁调回调立刻死锁（实测：所有区块用例
+    /// 全部超时无输出）。因此循环内改用 _getLevelLocked/_getSourceLevelLocked 这类不加锁
+    /// 的内部实现，并只在需要时短暂加锁。
+    mutable std::mutex m_mutex;
 
     /// 级别改变回调
     ChunkCallback m_levelChangeCallback;

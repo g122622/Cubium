@@ -51,6 +51,7 @@ inline i32 clampLevel(i32 level)
 
 void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     const u64 key = posToKey(x, z);
     const i32 clampedLevel = clampLevel(level);
 
@@ -103,57 +104,73 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
 
     i32 processed = 0;
 
-    while (!m_updateQueue.empty() && processed < maxToProcess) {
-        const u64 key = m_updateQueue.front();
-        m_updateQueue.pop();
-        m_pendingKeys.erase(key);
-        ++processed;
-
+    while (true) {
         ChunkCoord x = 0;
         ChunkCoord z = 0;
-        keyToPos(key, x, z);
-        const i32 currentLevel = getLevel(x, z);
+        i32 currentLevel = 0;
+        i32 recomputedLevel = 0;
 
-        // 重新计算该区块的最优级别：min(自身源级别, 可传播邻居级别 + 1)。
-        // 【关键】只有级别 < MAX_LEVEL 的邻居才向外传播：MAX_LEVEL 是传播最外沿，
-        // 若最外沿也 +1 再封顶回 MAX_LEVEL，45 会沿连通区域无限扩散，"halo 最外沿"
-        // 与"传播范围之外"将无法区分（持有者回收判据随之失效）。
-        // 故 recomputedLevel 的取值范围是 [0, MAX_LEVEL]，无源且无可传播邻居时为
-        // UNREACHED_LEVEL（> MAX_LEVEL）。
-        i32 recomputedLevel = getSourceLevel(x, z);
+        // ---- 临界区：只做纯数据操作，绝不调用回调 ----
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_updateQueue.empty() || processed >= maxToProcess) {
+                break;
+            }
+            const u64 key = m_updateQueue.front();
+            m_updateQueue.pop();
+            m_pendingKeys.erase(key);
+            ++processed;
 
-        for (i32 dz = -1; dz <= 1; ++dz) {
-            for (i32 dx = -1; dx <= 1; ++dx) {
-                if (dx == 0 && dz == 0) {
-                    continue;
-                }
-                const i32 neighborLevel = getLevel(x + dx, z + dz);
-                if (neighborLevel >= MAX_LEVEL) {
-                    continue; // 最外沿/未触达的邻居不向外传播
-                }
-                const i32 propagatedLevel = neighborLevel + 1;
-                if (propagatedLevel < recomputedLevel) {
-                    recomputedLevel = propagatedLevel;
+            keyToPos(key, x, z);
+            currentLevel = _getLevelLocked(x, z);
+
+            // 重新计算该区块的最优级别：min(自身源级别, 可传播邻居级别 + 1)。
+            // 【关键】只有级别 < MAX_LEVEL 的邻居才向外传播：MAX_LEVEL 是传播最外沿，
+            // 若最外沿也 +1 再封顶回 MAX_LEVEL，45 会沿连通区域无限扩散，"halo 最外沿"
+            // 与"传播范围之外"将无法区分（持有者回收判据随之失效）。
+            // 故 recomputedLevel 的取值范围是 [0, MAX_LEVEL]，无源且无可传播邻居时为
+            // UNREACHED_LEVEL（> MAX_LEVEL）。
+            recomputedLevel = _getSourceLevelLocked(x, z);
+
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                for (i32 dx = -1; dx <= 1; ++dx) {
+                    if (dx == 0 && dz == 0) {
+                        continue;
+                    }
+                    const i32 neighborLevel = _getLevelLocked(x + dx, z + dz);
+                    if (neighborLevel >= MAX_LEVEL) {
+                        continue; // 最外沿/未触达的邻居不向外传播
+                    }
+                    const i32 propagatedLevel = neighborLevel + 1;
+                    if (propagatedLevel < recomputedLevel) {
+                        recomputedLevel = propagatedLevel;
+                    }
                 }
             }
-        }
 
-        if (recomputedLevel == currentLevel) {
-            continue;
-        }
+            if (recomputedLevel == currentLevel) {
+                continue;
+            }
 
-        // UNREACHED_LEVEL（无源且无可传播邻居）的条目从 m_levels 剪枝，保持映射有界；
-        // MAX_LEVEL（最外沿）正常存储——它是"仍被触达"的状态，必须能从表里读出。
-        if (recomputedLevel >= UNREACHED_LEVEL) {
-            m_levels.erase(key);
-        } else {
-            m_levels[key] = recomputedLevel;
-        }
+            // UNREACHED_LEVEL（无源且无可传播邻居）的条目从 m_levels 剪枝，保持映射有界；
+            // MAX_LEVEL（最外沿）正常存储——它是"仍被触达"的状态，必须能从表里读出。
+            if (recomputedLevel >= UNREACHED_LEVEL) {
+                m_levels.erase(posToKey(x, z));
+            } else {
+                m_levels[posToKey(x, z)] = recomputedLevel;
+            }
+        } // ---- 临界区结束 ----
 
+        // 回调必须在锁外调用：它会经票据/调度逻辑回到 ServerChunkManager，
+        // 后者可能反向同步等待正卡在本锁上的 worker 线程。持锁调回调即死锁。
         onLevelChanged(x, z, currentLevel, recomputedLevel);
 
-        // 当前节点级别变化后，邻居的最优值可能也会变化。
-        _propagateToNeighbors(x, z);
+        // 当前节点级别变化后，邻居的最优值可能也会变化。_propagateToNeighbors 自身只做
+        // 纯数据操作且会入队新更新，由外层循环（重新加锁）继续消费。
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            _propagateToNeighbors(x, z);
+        }
     }
 
     return processed;
@@ -161,7 +178,13 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
 
 i32 ChunkDistanceGraph::getLevel(ChunkCoord x, ChunkCoord z) const
 {
-    u64 key = posToKey(x, z);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return _getLevelLocked(x, z);
+}
+
+i32 ChunkDistanceGraph::_getLevelLocked(ChunkCoord x, ChunkCoord z) const
+{
+    const u64 key = posToKey(x, z);
     auto it = m_levels.find(key);
     if (it != m_levels.end()) {
         return it->second;
@@ -171,6 +194,7 @@ i32 ChunkDistanceGraph::getLevel(ChunkCoord x, ChunkCoord z) const
 
 void ChunkDistanceGraph::clear()
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     m_levels.clear();
     m_sourceLevels.clear();
     m_pendingKeys.clear();
@@ -180,6 +204,12 @@ void ChunkDistanceGraph::clear()
 }
 
 i32 ChunkDistanceGraph::getSourceLevel(ChunkCoord x, ChunkCoord z) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return _getSourceLevelLocked(x, z);
+}
+
+i32 ChunkDistanceGraph::_getSourceLevelLocked(ChunkCoord x, ChunkCoord z) const
 {
     const u64 key = posToKey(x, z);
     auto it = m_sourceLevels.find(key);
