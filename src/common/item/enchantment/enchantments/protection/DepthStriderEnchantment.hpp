@@ -24,6 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include <string>
 
@@ -98,6 +102,35 @@ public:
     {
         // 每级减少 1/3 的水下移动惩罚
         return static_cast<f32>(level) / 3.0f;
+    }
+
+    /**
+     * @brief 深海探索者的属性修饰符
+     *
+     * 对齐 vanilla `data/minecraft/enchantment/depth_strider.json`：
+     * 属性 `minecraft:water_movement_efficiency`、id `minecraft:enchantment.depth_strider`、
+     * `add_value`、amount = linear(base 0.33333334, per_level 0.33333334)，作用槽位 = FEET。
+     *
+     * 基础值刻意写成 f32 的 0.33333334（而不是 1.0/3.0 的 double 结果）：原版 JSON 里存的
+     * 就是这个十进制字面量，读完再转 float 后三级恰好得到 0.33333334 / 0.6666667 / 1.0，
+     * 用 1.0/3.0 会差 1ulp，与属性值逐位比对时会对不上。
+     *
+     * @param level 附魔等级
+     * @return 脚部槽位的 water_movement_efficiency 修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        if (level > 0) {
+            constexpr f64 kPerLevel = 0.33333334;
+            modifiers.add(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY,
+                entity::attribute::AttributeModifier("minecraft:enchantment.depth_strider",
+                    "Depth Strider",
+                    kPerLevel * static_cast<f64>(level),
+                    entity::attribute::Operation::Addition),
+                static_cast<i32>(EquipmentSlot::Feet));
+        }
+        return modifiers;
     }
 
     /**

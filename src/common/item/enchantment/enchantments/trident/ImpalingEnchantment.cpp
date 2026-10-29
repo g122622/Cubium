@@ -29,6 +29,12 @@ namespace mc {
 namespace item {
 namespace enchant {
 
+f32 ImpalingEnchantment::getDamageBonusPerLevel(i32 level) const noexcept
+{
+    // 每级 +2.5；「对谁生效」由 getDamageBonus 的 SENSITIVE_TO_IMPALING 标签判定负责。
+    return static_cast<f32>(level) * 2.5f;
+}
+
 f32 ImpalingEnchantment::getDamageBonus(i32 level, const LivingEntity* target) const noexcept
 {
     // 对齐 MC Java 1.21.11 Enchantments.java:989-996：穿刺额外伤害判定目标用
@@ -46,7 +52,7 @@ f32 ImpalingEnchantment::getDamageBonus(i32 level, const LivingEntity* target) c
         return 0.0f;
     }
     if (EntityTypeTags::SENSITIVE_TO_IMPALING().contains(target->getTypeId())) {
-        return static_cast<f32>(level) * 2.5f;
+        return getDamageBonusPerLevel(level);
     }
     return 0.0f;
 }

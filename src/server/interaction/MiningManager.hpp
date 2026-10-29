@@ -33,6 +33,7 @@
 namespace mc {
 class BlockState;
 class ItemStack;
+class Player;
 } // namespace mc
 
 namespace mc::server {
@@ -180,17 +181,32 @@ private:
     [[nodiscard]] f32 _calculateMiningSpeed(ServerWorld& world, const BlockPos& pos, PlayerId playerId) const;
 
     /**
+     * @brief 按会话 ID 找到玩家实体
+     *
+     * 挖掘速度需要读玩家的属性（mining_efficiency / submerged_mining_speed），而
+     * ServerPlayerData 只有会话数据。实体 ID 由 m_entityIdResolver 解析后从世界取回。
+     *
+     * @param world 玩家所在世界
+     * @param playerId 玩家会话 ID
+     * @return 玩家实体；解析器未注册或实体不存在时返回 nullptr
+     */
+    [[nodiscard]] Player* _findPlayer(ServerWorld& world, PlayerId playerId) const;
+
+    /**
      * @brief 计算玩家的挖掘速度倍率
      * @param world 世界引用（用于检测眼睛是否在水中）
      * @param heldItem 手持物品
      * @param blockState 目标方块状态
      * @param playerData 玩家数据（用于获取效果和状态）
+     * @param player 玩家实体，用于读取 mining_efficiency / submerged_mining_speed 属性；
+     *        为 nullptr 时按属性默认值折算（这两个属性的默认值都是 0，与非附魔情形等价）
      * @return 挖掘速度倍率
      */
     [[nodiscard]] f32 _calculateDigSpeedMultiplier(ServerWorld& world,
         const ItemStack& heldItem,
         const BlockState& blockState,
-        const ServerPlayerData& playerData) const;
+        const ServerPlayerData& playerData,
+        const Player* player) const;
 
     /**
      * @brief 计算急迫效果乘数

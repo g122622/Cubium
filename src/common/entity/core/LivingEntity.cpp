@@ -1406,6 +1406,10 @@ void LivingEntity::registerAttributes()
     // 爆炸保护魔咒通过 enchantment.blast_protection 修饰符（每级 +0.15 ADD_VALUE，4 盔甲槽位）
     // 增加此值，从而衰减被爆炸推开时的击退力度。
     attributes().registerAttribute(*entity::attribute::Attributes::explosionKnockbackResistance());
+    // 水中移动效率（默认 0.0），对齐 vanilla LivingEntity.createLivingAttributes()：由
+    // travelInWater 消费，深海探索者魔咒通过 enchantment.depth_strider 修饰符（每级 +0.33333334
+    // ADD_VALUE，FEET 槽位）注入。所有生物都具备该属性（原版如此），因此注册在基类。
+    attributes().registerAttribute(*entity::attribute::Attributes::waterMovementEfficiency());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -2602,17 +2606,18 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
             waterDrag = physics::DOLPHINS_GRACE_WATER_DRAG;
         }
 
-        // 深度守卫附魔减少水中阻力影响
-        const ItemStack& boots = getEquipment(EquipmentSlot::Feet);
-        if (!boots.isEmpty()) {
-            i32 depthStriderLevel =
-                item::enchant::EnchantmentHelper::getEnchantmentLevel(boots, "minecraft:depth_strider");
-            if (depthStriderLevel > 0) {
-                // 每级减少阻力差值的 1/3
-                // 阻力从 0.8 提升到 max 0.546
-                f32 dragReduction = static_cast<f32>(depthStriderLevel) * physics::DEPTH_STRIDER_SPEED_BONUS;
-                waterDrag = std::min(waterDrag + dragReduction * (1.0f - waterDrag), physics::DEPTH_STRIDER_MAX_DRAG);
-            }
+        // 水中移动效率（深海探索者）：对齐 vanilla LivingEntity.travelInWater
+        // 用属性值在「当前阻力」与「陆地上限 0.54600006」之间线性插值。
+        // TODO: 原版还会把输入速度（0.02）向 getSpeed() 插值，本函数只处理速度衰减，
+        // 移动输入在 Player::_handleWaterMovement 里单独算，非玩家生物的水中水平输入
+        // 尚未接入同一套插值（属于独立的「生物水中移动」缺口，不在本次附魔对齐范围内）。
+        f32 waterMovementEfficiency =
+            static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
+        if (!m_builtIn.physicsState->m_onGround) {
+            waterMovementEfficiency *= 0.5f;
+        }
+        if (waterMovementEfficiency > 0.0f) {
+            waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) * waterMovementEfficiency;
         }
 
         m_builtIn.velocity->m_velocity.x *= waterDrag;

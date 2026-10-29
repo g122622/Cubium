@@ -33,9 +33,11 @@
 #include "common/TempDirHelper.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -63,6 +65,9 @@ protected:
         // 初始化方块和物品
         VanillaBlocks::initialize();
         Items::ensureInitialized();
+        // 附魔注册表：真实服务端在 RegistryBootstrap 里初始化。没有它，
+        // EnchantmentHelper::getEnchantments 查不到附魔，附魔的属性修饰符就不会生效。
+        item::enchant::EnchantmentRegistry::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
@@ -111,21 +116,35 @@ protected:
         m_player->gameMode = GameMode::Survival;
         m_player->onGround = true;
 
-        // 创建物品栏管理器。物品栏的权威数据在玩家实体上，本管理器只做定位转发、不持有
-        // 副本；本测试只关心背包读写语义、不构造完整玩家实体，故注入一个测试持有的
-        // PlayerInventory 作为解析结果——仍然是单份数据。
-        m_testInventory = std::make_unique<PlayerInventory>(nullptr);
+        // 创建物品栏管理器。物品栏的权威数据在玩家实体上，本管理器只做定位转发、不持有副本。
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
         m_inventoryManager->setInventoryResolver([this](PlayerId /*playerId*/) -> PlayerInventory* {
-            return m_testInventory.get();
+            return m_playerEntity == nullptr ? nullptr : &m_playerEntity->inventory();
         });
 
         // 创建连接管理器
         m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
 
+        // 把玩家实体放进世界，并像真实服务端（MinecraftServer 注册的解析器）那样
+        // 把「会话 ID → 实体 ID」交给挖掘管理器。
+        // 挖掘速度现在要读玩家属性（mining_efficiency / submerged_mining_speed，附魔修饰符
+        // 挂在玩家实体上），拿不到实体就只剩属性默认值——水下速掘这类用例会因此失真。
+        // 玩家实体的装备直接读玩家自身背包（Player::getEquipment 重写），注入给物品栏管理器的
+        // 解析结果就是它的背包——两边看到的是同一份装备。
+        auto playerEntity =
+            std::make_unique<mc::Player>(EntityInstanceId(0), "MiningTester", *m_world->entityRegistry());
+        m_playerEntity = playerEntity.get();
+        playerEntity->setWorld(m_world.get());
+        playerEntity->setPosition(m_player->x, m_player->y, m_player->z);
+        const EntityInstanceId playerEntityId = m_world->spawnEntity(std::move(playerEntity));
+        ASSERT_NE(playerEntityId, INVALID_ENTITY_ID);
+
         // 创建挖掘管理器
         m_miningManager = std::make_unique<server::interaction::MiningManager>(*m_playerManager, *m_connectionManager);
         m_miningManager->setInventoryManager(m_inventoryManager.get());
+        m_miningManager->setEntityIdResolver([playerEntityId](PlayerId playerId) -> EntityInstanceId {
+            return playerId == m_playerId ? playerEntityId : INVALID_ENTITY_ID;
+        });
     }
 
     void TearDown() override
@@ -175,6 +194,19 @@ protected:
         return m_playerManager->getPlayer(m_playerId);
     }
 
+    /**
+     * @brief 让玩家实体重新采集装备，使附魔提供的属性修饰符生效
+     *
+     * 真实服务端每 tick 在 LivingEntity::tick 里调 detectEquipmentUpdates，装备变化时把附魔修饰符
+     * 加到实体属性上（水下速掘 → submerged_mining_speed ×5）。本夹具不跑实体 tick，只挖方块，
+     * 因此装备变更后要显式跑一次，等价于「玩家在这 tick 之前已经穿好这套装备」。
+     */
+    void refreshEquipment()
+    {
+        ASSERT_NE(m_playerEntity, nullptr);
+        m_playerEntity->detectEquipmentUpdates();
+    }
+
 protected:
     static constexpr PlayerId m_playerId = 1;
     static constexpr PlayerId m_inventoryId = m_playerId; // 同一个 ID
@@ -182,10 +214,11 @@ protected:
     std::unique_ptr<server::ServerWorld> m_world;
     std::unique_ptr<server::core::PlayerManager> m_playerManager;
     std::unique_ptr<server::core::ConnectionManager> m_connectionManager;
-    std::unique_ptr<PlayerInventory> m_testInventory;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
     std::unique_ptr<server::interaction::MiningManager> m_miningManager;
     server::ServerPlayerData* m_player = nullptr;
+    /// 玩家实体：挖掘管理器读属性（挖掘效率、水下挖掘速度）时的数据来源
+    mc::Player* m_playerEntity = nullptr;
 
     world::storage::SingleLevelStorageManager m_storage;
     std::filesystem::path m_testDir;
@@ -513,6 +546,7 @@ TEST_F(MiningManagerTest, AquaAffinityNegatesUnderwaterPenalty)
     ItemStack helmetStack(*diamondHelmet, 1);
     helmetStack.addEnchantment("minecraft:aqua_affinity", 1);
     inventory->setHelmet(helmetStack);
+    refreshEquipment();
 
     // 设置钻石镐
     const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
@@ -534,7 +568,7 @@ TEST_F(MiningManagerTest, AquaAffinityNegatesUnderwaterPenalty)
     m_miningManager->tick(*m_world);
     f32 underwaterWithAquaAffinity = m_miningManager->getMiningProgress(m_playerId);
 
-    // 有水下速掘附魔时，水下挖掘速度应该接近地面速度
+    // 有水下速掘附魔时，水下挖掘速度应该接近地面速度（附魔把 submerged_mining_speed 从 0.2 乘到 1.0）
     EXPECT_NEAR(underwaterWithAquaAffinity, groundProgress, 0.001f);
 }
 

@@ -104,7 +104,19 @@ public:
     void addModifier(const AttributeModifier& modifier)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_modifiers.push_back(modifier);
+        // 同 id 覆盖（对齐 vanilla AttributeInstance.modifierById 的 Map<UUID, AttributeModifier> 语义）。
+        // 原版一个修饰符 id 在一个属性实例上只允许存在一条：附魔修饰符的 id 是「附魔名」而不是
+        // 「槽位名」（如 minecraft:enchantment.swift_sneak），同一个附魔给一条属性加的修饰符
+        // 无论挂在哪几个槽位、几件装备、几级，都只有一条生效。若这里改成 push_back，
+        // 全身三件迅捷潜行就会叠成 +1.35 而不是 -/+0.15。
+        auto it = std::find_if(m_modifiers.begin(), m_modifiers.end(), [&modifier](const AttributeModifier& existing) {
+            return existing.id() == modifier.id();
+        });
+        if (it != m_modifiers.end()) {
+            *it = modifier;
+        } else {
+            m_modifiers.push_back(modifier);
+        }
         m_dirty = true;
     }
 

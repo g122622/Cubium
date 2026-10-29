@@ -52,6 +52,17 @@ public:
         return "minecraft:power";
     }
 
+    /**
+     * @brief 每级弓箭伤害加成（原版 1.21.11 的 DAMAGE 效果组件）
+     *
+     * 公式 0.5 × level + 0.5 此前直接写死在箭矢的伤害计算里；这里把它放回附魔本身上，
+     * 箭矢侧改为调用本函数，避免同一条公式在两处各写一遍。
+     */
+    [[nodiscard]] f32 getDamageBonusPerLevel(i32 level) const noexcept override
+    {
+        return static_cast<f32>(level) * 0.5f + 0.5f;
+    }
+
     [[nodiscard]] std::string getNameKey(i32 level) const noexcept override
     {
         (void)level;

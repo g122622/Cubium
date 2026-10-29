@@ -301,6 +301,21 @@ public:
     [[nodiscard]] virtual f32 getDamageBonus(i32 level, const LivingEntity* target = nullptr) const noexcept;
 
     /**
+     * @brief 附魔对一个命中可加成目标造成的额外伤害（与目标无关的「数值」部分）
+     *
+     * getDamageBonus 需要目标才能判断「这个目标吃不吃这个附魔」，因此没有目标时恒为 0；
+     * 而原版把「对谁生效」编码在效果条目的条件里，数值本身与目标无关。本函数返回该数值，
+     * 供差分测试比对与「每级加多少」这类展示逻辑使用。
+     *
+     * 对齐 vanilla 1.21.11 的 {@code EnchantmentEffectComponents.DAMAGE}（锋利/亡灵杀手/
+     * 节肢杀手/穿刺/力量）。
+     *
+     * @param level 附魔等级
+     * @return 命中时的额外伤害；无伤害效果的附魔返回 0
+     */
+    [[nodiscard]] virtual f32 getDamageBonusPerLevel(i32 level) const noexcept;
+
+    /**
      * @brief 计算保护加成
      * @param level 附魔等级
      * @param damageType 伤害类型

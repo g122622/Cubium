@@ -78,23 +78,23 @@ public:
      * LevelBasedValue.perLevel(-0.15F)，Operation.ADD_MULTIPLIED_BASE，装备槽位组=ARMOR）把每级 -0.15
      * 的基础乘法修饰符加到 BURNING_TIME 属性。
      *
-     * 装备槽位组 ARMOR 表示 4 个盔甲槽位任一激活即生效。Cubium 的附魔属性修饰符管线按单槽位过滤
+     * 装备槽位组 ARMOR 表示 5 个槽位（头/胸/腿/脚 + 身体槽）任一激活即生效。Cubium 的附魔属性修饰符管线按单槽位过滤
      *（EnchantmentHelper::applyEnchantmentAttributeModifiers 按 entry.equipmentSlot==slot 匹配），
-     * 无槽位组概念，故为 4 个盔甲槽位各注册一条同 id 修饰符。
+     * 无槽位组概念，故为这 5 个槽位各注册一条同 id 修饰符。
      *
      * BURNING_TIME 默认 1.0，火焰保护 IV 单件 → 1.0 + 1.0×(4×-0.15) = 0.4，
      * 被点燃时燃烧时间缩减为 40%（LivingEntity::igniteForTicks override 消费）。
      *
      * 多件火焰保护盔甲的叠加语义（已实测验证，见 FireProtectionBurningTimeTests 集成测试通过
-     * BURNING_TIME=0.4 即单条 -0.6 修饰符，非 4 件叠加的 -2.4）：
-     *   vanilla fire_protection.json 中 4 盔甲槽位共享同一 modifier id，vanilla AttributeInstance
-     *   按 id 去重。Cubium 虽用 vector+push_back 不去重，但 EnchantmentHelper::
-     *   applyEnchantmentAttributeModifiers 每 slot add 前调 removeModifier(id)（删第一条同 id），
-     *   4 槽位顺序处理时后槽位 remove 删前槽位刚加的同 id 修饰符，最终只剩 1 条 -0.6——
+     * BURNING_TIME=0.4 即单条 -0.6 修饰符，非多件叠加的 -2.4）：
+     *   vanilla fire_protection.json 中各槽位共享同一 modifier id，vanilla AttributeInstance
+     *   按 id 去重。Cubium 的 AttributeInstance::addModifier 也按 id 覆盖（见 AttributeInstance.hpp），且
+     *EnchantmentHelper:: applyEnchantmentAttributeModifiers 每 slot add 前调 removeModifier(id)（删第一条同 id），
+     *   逐槽位顺序处理时后一个槽位直接覆盖前一个槽位的同 id 修饰符，最终只剩 1 条 -0.6——
      *   恰好复现 vanilla 去重语义。故全套火焰保护 IV BURNING_TIME = 0.4（同单件）。
      *
      * @param level 附魔等级
-     * @return 4 个盔甲槽位的 BURNING_TIME 修饰符
+     * @return 5 个槽位的 BURNING_TIME 修饰符
      */
     [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
     {
@@ -110,6 +110,9 @@ public:
             modifiers.add(
                 entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Chest));
             modifiers.add(entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Head));
+            // 护甲槽位组还覆盖身体槽（马铠/狼铠/鹦鹉螺铠甲等）：原版的 slots="armor"
+            // 对 body 同样成立，漏掉它就等于穿着这套护甲骑乘时少一条修饰符。
+            modifiers.add(entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Body));
         }
         return modifiers;
     }

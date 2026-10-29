@@ -968,7 +968,9 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
         speedFactor *= physics::SPRINT_SPEED_MULTIPLIER;
     }
     if (sneaking && !m_abilities.flying) {
-        speedFactor *= physics::SNEAK_SPEED_MULTIPLIER;
+        // 潜行倍率取自 sneaking_speed 属性（默认 0.3），迅捷潜行附魔通过修饰符把它抬高。
+        speedFactor *= static_cast<f32>(
+            getAttributeValue(entity::attribute::Attributes::SNEAKING_SPEED, physics::SNEAK_SPEED_MULTIPLIER));
     }
     if (m_abilities.flying) {
         speedFactor = m_abilities.flySpeed * (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
@@ -1022,33 +1024,31 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
     // 4. 海豚的恩惠减少阻力
     // 5. 水中移动
 
-    // 基础水中游泳速度
+    // 基础水中游泳速度（移动输入速度），对齐 vanilla LivingEntity.travelInWater 的 f1 = 0.02F
     f32 swimSpeed = physics::SWIM_SPEED_BASE;
 
-    // 冲刺时增加速度
-    if (m_isSprinting) {
-        swimSpeed *= physics::SWIM_SPEED_SPRINT_MULTIPLIER;
-    }
-
-    // 深度守卫附魔加成
-    i32 depthStriderLevel = getDepthStriderLevel();
-    if (depthStriderLevel > 0) {
-        // 深度守卫效果：
-        // 1. 增加游泳速度
-        swimSpeed += depthStriderLevel * physics::DEPTH_STRIDER_SPEED_BONUS;
-        // 2. 速度上限
-        swimSpeed = std::min(swimSpeed, 0.1f);
-    }
-
-    // 海豚的恩惠药水效果
-    bool hasDolphinsGrace = hasEffect(entity::effect::EffectType::DolphinsGrace);
-
-    // 水中阻力
+    // 水中阻力（减速系数），对齐 vanilla 的 f = isSprinting ? 0.9F : getWaterSlowDown()
     f32 waterDrag = m_isSprinting ? physics::WATER_DRAG_SPRINT : physics::WATER_DRAG;
 
-    // 深度守卫对阻力的影响
-    if (depthStriderLevel > 0) {
-        waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) * static_cast<f32>(depthStriderLevel) / 3.0f;
+    // 海豚的恩惠药水效果
+    const bool hasDolphinsGrace = hasEffect(entity::effect::EffectType::DolphinsGrace);
+
+    // 水中移动效率（深海探索者）：对齐 vanilla LivingEntity.java:2391-2401
+    //   f2 = getAttributeValue(WATER_MOVEMENT_EFFICIENCY)（不在地面时减半）
+    //   f  += (0.54600006 - f)  * f2   —— 阻力向「陆地上限」插值
+    //   f1 += (getSpeed() - f1) * f2   —— 输入速度向陆地行走速度插值
+    // 原实现把深海探索者写成了两个手调常量（阻力增量 + 输入速度增量），既无法复现
+    // 原版的插值曲线，也绕开了属性修饰符的合并规则。
+    f32 waterMovementEfficiency =
+        static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
+    if (!m_builtIn.physicsState->m_onGround) {
+        waterMovementEfficiency *= 0.5f;
+    }
+    if (waterMovementEfficiency > 0.0f) {
+        waterDrag += (physics::DEPTH_STRIDER_MAX_DRAG - waterDrag) * waterMovementEfficiency;
+        swimSpeed +=
+            (static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.1)) - swimSpeed) *
+            waterMovementEfficiency;
     }
 
     // 海豚的恩惠大幅减少水中阻力
@@ -1407,7 +1407,9 @@ void Player::_applyMovementSpeed(f32& speed, bool sneaking) const
             speed *= physics::SPRINT_SPEED_MULTIPLIER;
         }
         if (sneaking) {
-            speed *= physics::SNEAK_SPEED_MULTIPLIER;
+            // 同 travel：潜行倍率取 sneaking_speed 属性（迅捷潜行附魔可抬高）。
+            speed *= static_cast<f32>(
+                getAttributeValue(entity::attribute::Attributes::SNEAKING_SPEED, physics::SNEAK_SPEED_MULTIPLIER));
         }
     }
 }
@@ -1539,14 +1541,11 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
     ItemStack heldItem = getHeldItem(Hand::MainHand);
     f32 speed = heldItem.isEmpty() ? 1.0f : heldItem.getDestroySpeed(state);
 
-    // 2. 效率附魔加成（仅当工具对当前方块有效时，即 speed > 1.0）
+    // 2. 挖掘效率属性加成（仅当工具对当前方块有效时，即 speed > 1.0）
+    // 对齐 vanilla Player.getDestroySpeed：效率附魔经 enchantment.efficiency 修饰符把
+    // level² + 1 加到 mining_efficiency 属性上（原版就是级联平方，见 efficiency.json 的 levels_squared）。
     if (speed > 1.0f) {
-        i32 efficiencyLevel = item::enchant::EnchantmentHelper::getEfficiencyLevel(heldItem);
-        if (efficiencyLevel > 0) {
-            // 效率附魔加成公式: level^2 + 1
-            // I: 2, II: 5, III: 10, IV: 17, V: 26
-            speed += static_cast<f32>(item::enchant::EfficiencyEnchantment::getMiningSpeedBonus(efficiencyLevel));
-        }
+        speed += static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MINING_EFFICIENCY, 0.0));
     }
 
     // 3. 急迫效果和潮涌能量加成
@@ -1583,13 +1582,11 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
         }
     }
 
-    // 5. 水下挖掘惩罚（仅当眼睛在水中且没有水下速掘附魔时）
+    // 5. 水下挖掘惩罚
+    // 对齐 vanilla Player.getDestroySpeed：眼睛在水中时速度乘以 submerged_mining_speed 属性
+    // （默认 0.2 = 陆地的 1/5），水下速掘附魔把该属性乘到 1.0（add_multiplied_total +4.0）。
     if (areEyesInWater()) {
-        // 检查头盔是否有水下速掘附魔
-        const ItemStack& helmet = m_inventory.getHelmet();
-        if (!item::enchant::EnchantmentHelper::hasAquaAffinity(helmet)) {
-            speed /= 5.0f;
-        }
+        speed *= static_cast<f32>(getAttributeValue(entity::attribute::Attributes::SUBMERGED_MINING_SPEED, 0.2));
     }
 
     // 6. 空中挖掘惩罚（不在地面时）
@@ -2304,6 +2301,15 @@ void Player::registerAttributes()
     attributes().setBaseValue(Attributes::WAYPOINT_TRANSMIT_RANGE, 60000000.0);
     attributes().setBaseValue(Attributes::WAYPOINT_RECEIVE_RANGE, 60000000.0);
 
+    // 挖掘/潜行/横扫相关属性（对应 MC 1.21.11 Player.createAttributes:207-225）。
+    // 这三类属性的消费点都在玩家身上（挖掘速度、潜行速度倍率、横扫伤害），
+    // 附魔修饰符通过 detectEquipmentUpdates → applyEnchantmentAttributeModifiers 注入。
+    // BLOCK_BREAK_SPEED 仍缺失，见下方 TODO。
+    attributes().registerAttribute(*Attributes::miningEfficiency());
+    attributes().registerAttribute(*Attributes::submergedMiningSpeed());
+    attributes().registerAttribute(*Attributes::sneakingSpeed());
+    attributes().registerAttribute(*Attributes::sweepingDamageRatio());
+
     // 设置玩家特有属性值
     attributes().setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
     attributes().setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);
@@ -2945,10 +2951,13 @@ void Player::attack(Entity& target)
                 // 对齐 vanilla Player.doSweepAttack:1143,1151：
                 //   sweepBase = 1.0 + SWEEPING_DAMAGE_RATIO属性值 * 冷却后基础伤害
                 //   sweepFinal = sweepBase * 冷却进度（getEnchantedDamage 默认返回 f，再乘 p_455105_=f1）
-                // Cubium 用 getSweepingDamageRatio(stack) 取横扫之刃附魔比例（无附魔返 0），
-                // 数值与 vanilla SWEEPING_DAMAGE_RATIO 属性（SweepingEdge 修饰符提供）一致。
+                // 比例直接读 sweeping_damage_ratio 属性（默认 0，横扫之刃经
+                // enchantment.sweeping_edge 修饰符注入 level/(level+1)）。
+                // 不再用 EnchantmentHelper::getSweepingDamageRatio 按物品堆现算：那样只统计主手一件
+                // 装备、也绕开了属性修饰符的合并规则，与原版的数值来源不一致。
                 // damage 为冷却二次缩放后的基础伤害（不含附魔伤害），对应 vanilla 传入的 f。
-                f32 sweepRatio = item::enchant::EnchantmentHelper::getSweepingDamageRatio(mainHand);
+                f32 sweepRatio =
+                    static_cast<f32>(getAttributeValue(entity::attribute::Attributes::SWEEPING_DAMAGE_RATIO, 0.0));
                 f32 sweepDamage = (1.0f + sweepRatio * damage) * cooldownProgress;
 
                 // 扫描目标周围 1x0.25x1 范围内的实体

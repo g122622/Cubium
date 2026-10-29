@@ -123,8 +123,8 @@ std::string runLine(std::string_view inputLine)
     // 槽位是对象：每个槽位同时报耐久（已含槽位倍率）与护甲值，两者都是玩家直接感知的量。
     json slots = json::object();
     for (const SlotEntry& slot : kSlots) {
-        slots[slot.name] = json{{"durability", material->getDurability(slot.slot)},
-            {"defense", material->getDefense(slot.slot)}};
+        slots[slot.name] =
+            json{{"durability", material->getDurability(slot.slot)}, {"defense", material->getDefense(slot.slot)}};
     }
 
     return json{{"material", requested},

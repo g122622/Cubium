@@ -728,7 +728,8 @@ void AbstractArrowEntity::applyBowEnchantments(LivingEntity& shooter)
     i32 powerLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
         shooter.getMainHandItem(), &item::enchant::AllEnchantments::POWER);
     if (powerLevel > 0) {
-        comp->m_damage += static_cast<f32>(powerLevel) * 0.5f + 0.5f;
+        // 公式归到附魔本体（PowerEnchantment::getDamageBonusPerLevel），避免两处各写一份。
+        comp->m_damage += item::enchant::AllEnchantments::POWER.getDamageBonusPerLevel(powerLevel);
     }
 
     // 冲击附魔增加击退（PunchEnchantment: 每级增加 1 点击退强度）

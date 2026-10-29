@@ -273,6 +273,19 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         normalise: (value: unknown) => roundFloats(value),
     }),
     () => ({
+        // 附魔效果本体：伤害加成、各类伤害的保护点数、等级提供的属性修饰符。
+        name: "enchantment_effects",
+        oracle: "EnchantmentEffectsOracle",
+        input: (unit: string) => ({ enchantment: unit }),
+        key: "enchantment",
+        oracleMissing: enchantmentKnownMissing,
+        // 伤害加成与保护点数都是 f32，按固定小数位比对。
+        normalise: (value: unknown) => roundFloats(value),
+        // 属性修饰符按槽位展开成数组（原版一条槽位组 → Cubium 逐槽位一条），
+        // 展开顺序取决于注册顺序而非语义，比对时按规范序对齐。
+        unorderedArrays: ["levels/attributes"],
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),

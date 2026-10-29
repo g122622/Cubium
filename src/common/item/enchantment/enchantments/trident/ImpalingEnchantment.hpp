@@ -124,6 +124,8 @@ public:
      * 实现在 ImpalingEnchantment.cpp（需 LivingEntity 完整定义查 getTypeId）。
      */
     [[nodiscard]] f32 getDamageBonus(i32 level, const LivingEntity* target = nullptr) const noexcept override;
+
+    [[nodiscard]] f32 getDamageBonusPerLevel(i32 level) const noexcept override;
 };
 
 } // namespace enchant

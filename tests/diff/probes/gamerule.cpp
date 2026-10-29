@@ -114,7 +114,9 @@ std::vector<RuleSummary> collectRules()
     });
     collector.rules.erase(std::unique(collector.rules.begin(),
                               collector.rules.end(),
-                              [](const RuleSummary& a, const RuleSummary& b) { return a.name == b.name; }),
+                              [](const RuleSummary& a, const RuleSummary& b) {
+                                  return a.name == b.name;
+                              }),
         collector.rules.end());
     return collector.rules;
 }

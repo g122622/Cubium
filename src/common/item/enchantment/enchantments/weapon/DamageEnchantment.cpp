@@ -55,6 +55,21 @@ i32 DamageEnchantment::getMaxCost(i32 level) const
     return getMinCost(level) + 20;
 }
 
+f32 DamageEnchantment::getDamageBonusPerLevel(i32 level) const noexcept
+{
+    // 附魔的「每级加多少」：锋利 0.5×level+0.5，亡灵杀手/节肢杀手 2.5×level。
+    // 目标是否吃这个加成由 getDamageBonus 的标签判定负责，与数值无关。
+    switch (m_damageType) {
+        case Type::All:
+            return static_cast<f32>(level) * 0.5f + 0.5f;
+        case Type::Undead:
+        case Type::Arthropods:
+            return static_cast<f32>(level) * 2.5f;
+        default:
+            return 0.0f;
+    }
+}
+
 f32 DamageEnchantment::getDamageBonus(i32 level, const LivingEntity* target) const noexcept
 {
     // 目标判定：对齐 MC Java 1.21.11，亡灵杀手/节肢杀手用 EntityTypeTags::SENSITIVE_TO_SMITE /

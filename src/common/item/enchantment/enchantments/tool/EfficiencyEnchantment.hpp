@@ -24,6 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include <string>
 
@@ -99,6 +103,33 @@ public:
         // 公式: level^2 + 1
         // I: 2, II: 5, III: 10, IV: 17, V: 26
         return level * level + 1;
+    }
+
+    /**
+     * @brief 效率的属性修饰符
+     *
+     * 对齐 vanilla `data/minecraft/enchantment/efficiency.json`：
+     * 属性 `minecraft:mining_efficiency`、id `minecraft:enchantment.efficiency`、
+     * `add_value`、amount = levels_squared(added 1.0) = level² + 1，作用槽位 = MAINHAND。
+     *
+     * 挖掘速度的消费点会跳过「基础速度 ≤ 1」的情况（不是合适工具时不加成），
+     * 与 vanilla Player.getDestroySpeed 的门控一致。
+     *
+     * @param level 附魔等级
+     * @return 主手槽位的 mining_efficiency 修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        if (level > 0) {
+            modifiers.add(entity::attribute::Attributes::MINING_EFFICIENCY,
+                entity::attribute::AttributeModifier("minecraft:enchantment.efficiency",
+                    "Efficiency",
+                    static_cast<f64>(getMiningSpeedBonus(level)),
+                    entity::attribute::Operation::Addition),
+                static_cast<i32>(EquipmentSlot::MainHand));
+        }
+        return modifiers;
     }
 };
 
