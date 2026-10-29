@@ -64,6 +64,16 @@ function beeRetaliatesWhenAttacked(test: Test): void {
   // 蜜蜂脚下 (2,1,3) 与玩家脚下 (5,1,3) 放 glass 支撑（grass_pen y=1 是内空气腔，需脚下方块防下落）。
   test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
   test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  // 盖住头顶整层：grass_pen 是 9×5×9 的**露天**围栏（y∈[0,4]，y=4 本身是空气层），
+  // 玻璃墙只挡四面，挡不住向上。蜜蜂受击后由 BeeWanderGoal 接管，飞行寻路可以直接
+  // 越顶飞到围栏外（bee_sting_applies_poison 的失败样本里蜜蜂跑到了 x=171），此后
+  // BeeStingGoal 永远找不到路径，反击判定必然超时——约 1/3 概率复现。
+  // 封顶后活动空间锁死在 y∈[1,3] 内，攻击距离不受影响。
+  for (let x = 1; x <= 7; x++) {
+    for (let z = 1; z <= 7; z++) {
+      test.setBlockType("minecraft:glass", { x, y: 4, z });
+    }
+  }
   const bee = test.spawn(beeType, { x: 2, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "attacker", 0 as any);
 
@@ -121,6 +131,16 @@ function beeDiesAfterSting(test: Test): void {
   // 脚下放 glass 支撑（grass_pen y=1 是内空气腔，需脚下方块防下落）。
   test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
   test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  // 盖住头顶整层：grass_pen 是 9×5×9 的**露天**围栏（y∈[0,4]，y=4 本身是空气层），
+  // 玻璃墙只挡四面，挡不住向上。蜜蜂受击后由 BeeWanderGoal 接管，飞行寻路可以直接
+  // 越顶飞到围栏外（bee_sting_applies_poison 的失败样本里蜜蜂跑到了 x=171），此后
+  // BeeStingGoal 永远找不到路径，反击判定必然超时——约 1/3 概率复现。
+  // 封顶后活动空间锁死在 y∈[1,3] 内，攻击距离不受影响。
+  for (let x = 1; x <= 7; x++) {
+    for (let z = 1; z <= 7; z++) {
+      test.setBlockType("minecraft:glass", { x, y: 4, z });
+    }
+  }
   const bee = test.spawn(beeType, { x: 2, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "attacker", 0 as any);
 
