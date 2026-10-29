@@ -490,6 +490,8 @@ TEST_F(DriedGhastBlockTest, Tick_Waterlogged_IncrementsHydrationAndPlaysTransiti
 
 TEST_F(DriedGhastBlockTest, Tick_Waterlogged_ReadyToSpawn_RemovesBlock)
 {
+    // 生成音效只在实体创建成功后播放，故先注册实体类型（与本组其他用例一致）。
+    entity::VanillaEntities::registerAll();
     const BlockPos pos(2, 1, 2);
     BlockState state = m_block->defaultState()
                            .with(BlockStateProperties::DRIED_GHAST_HYDRATION_LEVELS(), 3)
@@ -504,7 +506,7 @@ TEST_F(DriedGhastBlockTest, Tick_Waterlogged_ReadyToSpawn_RemovesBlock)
     const BlockState* after = world.getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(after, nullptr);
     EXPECT_TRUE(after->isAir());
-    // 播放幼年恶魂生成音效
+    // 播放幼年恶魂生成音效（vanilla spawnGhastling 在 addFreshEntity 之后 playSound）
     EXPECT_TRUE(world.hasPlayedSound(SoundEvents::GHASTLING_SPAWN));
 }
 

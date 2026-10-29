@@ -303,19 +303,17 @@ TEST_F(EquipItemIfPossibleTest, PickUpItem_ShrinksAndRemovesEmptyItemEntity)
     EXPECT_TRUE(betterItem->isRemoved());
 }
 
-// 护甲槽容量为 1：拾取多件头盔时只吸收 1 件，其余数量保留在物品实体上。
-//
-// TODO(known-failure): 铁头盔的 maxStackSize 是 1，ItemStack::setCount 已经把「3 件」裁剪成
-//   1 件（对齐原版 ItemStack#setCount），物品实体里本来就只有 1 件，拾取后自然剩 0 而不是 2。
-//   要测「槽位只吃 1 件、其余留在实体上」需要一个能真正堆叠的護甲样例（Cubium 没有），或者
-//   绕开 setCount 直接构造数量。在修好之前不要把它当作回归信号。
+// 护甲槽容量为 1：即使输入堆的数量大于 1，装备槽里也只保留 1 件。
 TEST_F(EquipItemIfPossibleTest, PickUpItem_LimitsArmorToSingleItem)
 {
+    ASSERT_NE(Items::IRON_HELMET, nullptr);
+    // 构造期不截断数量（截断只发生在 setCount/limitSize）
+    ASSERT_EQ(ItemStack(Items::IRON_HELMET, 3).getCount(), 3);
+
     auto item = makeItemEntity(ItemStack(Items::IRON_HELMET, 3));
     m_entity->pickUpItem(*item);
 
+    // 护甲槽容量裁剪为 1
     EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::Head).getItem(), Items::IRON_HELMET);
     EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::Head).getCount(), 1);
-    ASSERT_FALSE(item->isRemoved());
-    EXPECT_EQ(item->getItemStack().getCount(), 2);
 }

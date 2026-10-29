@@ -280,22 +280,27 @@ TEST_F(ItemPredicateTest, CombinedItemAndPotion)
 
 TEST_F(ItemPredicateTest, CombinedCountAndPotion)
 {
-    // TODO(known-failure): 本用例用「数量为 2 的药水」构造样本，但药水的 maxStackSize 是 1，
-    //   ItemStack::setCount 会把数量裁剪到 1（对齐原版 ItemStack#setCount），于是「数量为 2」
-    //   的前提根本不成立，断言恒失败。需要一个真正可堆叠到 2 的物品（或直接构造 count 字段的
-    //   测试辅助）来重建该组合场景；在修好之前不要把它当作回归信号。
-    // 创建匹配数量2 + 治疗药水的谓词
+    // 药水物品 maxStackSize=1，setCount(2) 会被截断回 1，无法构造"数量为 2 的药水"。
+    // 数量与药水条件的组合改为：可堆叠物品上验证数量条件生效，同时用 heal 药水验证药水条件。
     ResourceLocation healingId("minecraft", "healing");
-    ItemPredicate predicate(std::nullopt, IntBounds::exactly(2), IntBounds{}, healingId, {}, {}, {});
 
-    // 数量为2的治疗药水
-    ItemStack healing2 = potion::PotionUtils::createPotionItem(potion::Potions::HEALING);
-    healing2.setCount(2);
-    EXPECT_TRUE(predicate.test(healing2));
+    // 先确认：数量条件单独作用于可堆叠物品（雪球）时按数量判定
+    ASSERT_NE(Items::SNOWBALL, nullptr);
+    ItemPredicate countPredicate(std::nullopt, IntBounds::exactly(2), IntBounds{}, std::nullopt, {}, {}, {});
+    ItemStack twoSnowballs(*Items::SNOWBALL, 2);
+    EXPECT_TRUE(countPredicate.test(twoSnowballs));
+    ItemStack oneSnowball(*Items::SNOWBALL, 1);
+    EXPECT_FALSE(countPredicate.test(oneSnowball));
 
-    // 数量为1的治疗药水
+    // 药水条件与数量条件同时给出：药水堆数量恒为 1，故"数量必须为 1 且为治疗药水"成立
+    ItemPredicate potionPredicate(std::nullopt, IntBounds::exactly(1), IntBounds{}, healingId, {}, {}, {});
     ItemStack healing1 = potion::PotionUtils::createPotionItem(potion::Potions::HEALING);
-    EXPECT_FALSE(predicate.test(healing1));
+    EXPECT_EQ(healing1.getCount(), 1);
+    EXPECT_TRUE(potionPredicate.test(healing1));
+
+    // 同一谓词要求数量为 2 时，单件药水不满足
+    ItemPredicate potionTwoPredicate(std::nullopt, IntBounds::exactly(2), IntBounds{}, healingId, {}, {}, {});
+    EXPECT_FALSE(potionTwoPredicate.test(healing1));
 }
 
 // ========== JSON 解析测试 ==========

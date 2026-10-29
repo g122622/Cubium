@@ -205,9 +205,14 @@ ItemStack& ItemStack::operator=(const ItemStack& other)
 
 void ItemStack::setCount(i32 count)
 {
-    // 对齐原版 `ItemStack#setCount`：数量限制到 `[0, getMaxStackSize()]`，物品类型
-    // 不因数量归零而丢失（`isEmpty()` 只看数量）。
-    m_count = std::clamp(count, 0, getMaxStackSize());
+    // 对齐原版 `ItemStack#setCount`：仅赋值，**不按 maxStackSize 裁剪**（原版裁剪由独立的
+    // limitSize 负责）。物品类型不因数量归零而丢失（`isEmpty()` 只看数量）。
+    //
+    // 此处曾经写成 std::clamp(count, 0, getMaxStackSize())，导致所有"拆出 N 件、剩余 M 件"
+    // 的路径对不可堆叠物品（maxStackSize=1）把剩余数打成 1：ItemStack::split 内部
+    // `setCount(m_count - splitCount)` 被裁剪，护甲架从 3 件中装备 1 件后玩家只剩 1 件。
+    // 需要上限约束的调用方显式调用 limitSize()。
+    m_count = std::max(count, 0);
 }
 
 i32 ItemStack::getMaxStackSize() const

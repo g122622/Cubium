@@ -521,8 +521,8 @@ inline Direction fromDelta(i32 dx, i32 dy, i32 dz)
  * 点积 > 0 表示实体的视线方向与该方向同侧。
  *
  * @param dir 水平方向（仅对水平方向有效）
- * @param yaw 实体的偏航角（度），MC 约定：0=南，90=东，180=北，-90（或 270）=西；
- *            视线单位向量为 (cos yaw, 0, -sin yaw)
+ * @param yaw 实体的偏航角（度），MC 约定：0=南，90=西，180=北，-90（或 270）=东；
+ *            视线单位向量为 (-sin yaw, 0, cos yaw)
  * @return true 如果实体大致朝向该方向
  */
 inline bool isFacingAngle(Direction dir, f32 yaw)

@@ -53,6 +53,9 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     : Block(properties)
     , m_isIron(isIron)
 {
+    // 原版活板门全部注册 noOcclusion（Blocks 中每个 *_trapdoor 的 Properties 都调用 noOcclusion()）。
+    // 放在构造函数里而不是每个注册点，避免新增活板门时漏写。
+    m_canOcclude = false;
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())

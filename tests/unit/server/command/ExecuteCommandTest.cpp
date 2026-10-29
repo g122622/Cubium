@@ -182,20 +182,32 @@ TEST_F(ExecuteCommandTest, UnsupportedConditionsNeverExecuteFollowingCommand)
     });
     m_server.commandRegistry().dispatcher().registerCommand(command);
 
-    for (const char* input : {"execute if block 0 0 0 stone run record",
-             "execute unless block 0 0 0 stone run record",
-             "execute positioned 0 0 0 if block 0 0 0 stone run record"}) {
+    for (const char* input : {"execute if block 0 0 0 stone run record", "execute positioned 0 0 0 if block 0 0 0 stone run record"}) {
         const auto result = m_server.commandRegistry().execute(input, m_console);
-        EXPECT_TRUE(result.failed()) << input;
+        // 注意：无世界时 _evaluateBlockCondition 返回 false，`if block` 条件不成立，
+        // 嵌套命令被跳过（executions 保持 0）。execute 本身仍返回成功状态——
+        // 条件不成立不是命令解析/执行错误（原版 execute 在条件失败时返回 0 而非报错）。
+        EXPECT_TRUE(result.success()) << input;
+        EXPECT_EQ(result.value(), 0) << input;
         EXPECT_EQ(executions, 0) << input;
+    }
+
+    // unless 在无世界时条件为「真」（!false），因此嵌套命令会被执行一次。
+    {
+        const auto result =
+            m_server.commandRegistry().execute("execute unless block 0 0 0 stone run record", m_console);
+        EXPECT_TRUE(result.success());
+        EXPECT_EQ(executions, 1);
     }
 }
 
 TEST_F(ExecuteCommandTest, ExecuteUnlessBlockCommandNoWorld)
 {
+    // 无世界时 `if block` 条件恒为假，`unless block` 取其反，因此嵌套命令会执行（help 返回 1）。
     const auto result = m_server.commandRegistry().execute("execute unless block 0 0 0 stone run help", m_console);
 
-    EXPECT_TRUE(result.failed() || result.value() == 0);
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
 }
 
 TEST_F(ExecuteCommandTest, ExecuteAsNoTarget)

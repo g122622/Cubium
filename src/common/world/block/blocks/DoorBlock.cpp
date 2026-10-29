@@ -57,6 +57,10 @@ DoorBlock::DoorBlock(const BlockProperties& properties, bool isIron)
     : Block(properties)
     , m_isIron(isIron)
 {
+    // 原版门全部注册 noOcclusion（Blocks 中每个 *_door 的 Properties 都调用 noOcclusion()）。
+    // 放在构造函数里而不是每个注册点，避免新增门时漏写导致门被当成实心遮挡体
+    // （会错误地挡住天空光、影响面剔除与光照传播）。
+    m_canOcclude = false;
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::DOUBLE_BLOCK_HALF())

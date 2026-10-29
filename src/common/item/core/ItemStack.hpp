@@ -334,8 +334,25 @@ public:
      * @brief 设置数量
      * @param count 新数量
      * @note 数量<=0会使堆变为空
+     *
+     * 对齐原版 `ItemStack#setCount`：**不做 maxStackSize 裁剪**（原版 setCount 只赋值，
+     * 裁剪是独立的 `limitSize`）。这里的上限裁剪曾使 `split`/`shrink` 等"拆出 N 件、剩余 M 件"
+     * 的路径对不可堆叠物品（maxStackSize=1）错误地把剩余数裁成 1：
+     * 例如护甲架从 3 件胸甲中拆 1 件装备后，玩家手里应剩 2 件，却被打成 1 件。
+     * 需要按堆叠上限收敛的调用方请显式调用 limitSize(getMaxStackSize())。
      */
     void setCount(i32 count);
+
+    /**
+     * @brief 按给定上限裁剪数量（对齐原版 ItemStack#limitSize）
+     * @param limit 上限；仅当当前非空且数量 > limit 时裁剪
+     */
+    void limitSize(i32 limit)
+    {
+        if (!isEmpty() && m_count > limit) {
+            setCount(limit);
+        }
+    }
 
     /**
      * @brief 增加数量
