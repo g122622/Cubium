@@ -109,11 +109,13 @@ f64 JavaLegacyRandom::nextDouble()
 
 i64 JavaLegacyRandom::nextLong()
 {
-    // Java: return ((i64)next(32) << 32) + (i64)next(32);
-    // 按调用顺序抽取两个半部，低半部仍需符号扩展；最终加法按 64 位回绕。
-    const u64 hi = static_cast<u64>(next(32));
-    const u64 lo = static_cast<u64>(next(32));
-    return static_cast<i64>((hi << 32) + lo);
+    // Java: return ((long)next(32) << 32) + (long)next(32);
+    // next(32) 是带符号 int，转 long 时**符号扩展**：高半部左移 32 位后低半部再按有符号相加。
+    // 此前把两个半部都当 u64 处理（无符号扩展），只要任一半部为负结果就会与 Java 不同，
+    // WorldgenRandomVanillaGoldenTest 的 nextLong 金值因此全线错位。
+    const i64 hi = static_cast<i64>(next(32));
+    const i64 lo = static_cast<i64>(next(32));
+    return static_cast<i64>(static_cast<u64>(hi << 32) + static_cast<u64>(lo));
 }
 
 void JavaLegacyRandom::skip(u64 count)
