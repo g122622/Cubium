@@ -192,8 +192,13 @@ void* QuickJSBindingContext::createFunction(ScriptMethodCallback callback, const
 {
     i32 magic = static_cast<i32>(m_methodCallbacks.size());
     m_methodCallbacks.push_back(std::move(callback));
-    JSValue fn =
-        JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<i32>(length), JS_CFUNC_generic_magic, magic);
+    // 用 constructor_or_func 而非 generic：绑定层导出的既可能是普通方法，也可能是类构造函数，
+    // 而 generic 创建的 C 函数不带 is_constructor 位，脚本里 `new Xxx()` 会在
+    // JS_IsConstructor 检查处直接抛 "not a constructor"，根本进不了回调。
+    // constructor_or_func 两种用法都允许，调用方无需再补 JS_SetConstructorBit
+    // （setConstructor 里那次置位保留，作为幂等保险）。
+    JSValue fn = JS_NewCFunctionMagic(
+        m_ctx, methodTrampoline, name, static_cast<i32>(length), JS_CFUNC_constructor_or_func_magic, magic);
 
     return wrapValue(fn);
 }
