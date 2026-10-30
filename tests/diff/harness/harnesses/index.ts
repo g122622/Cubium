@@ -61,6 +61,8 @@ import { recipeDeclaration } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
 import { statusEffectInput, statusEffectUnits } from "./status_effect.ts";
+import { structureDensityDeclaration } from "./structure_density.ts";
+import { structureStartsDeclaration } from "./structure_starts.ts";
 import { textEncodeDeclaration } from "./text_encode.ts";
 import { KNOWN_MISSING as entityAttributesKnownMissing } from "./known_missing_entity_attributes.ts";
 import {
@@ -443,6 +445,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     lootContainerDeclaration(),
     { name: "item_components", probe: "item_components", oracle: "ItemComponentsOracle", key: "item", units: { kind: "listing" },
         input: (unit) => ({ item: unit }), oracleMissing: itemsKnownMissing },
+    structureDensityDeclaration(),
+    structureStartsDeclaration(),
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

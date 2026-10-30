@@ -49,7 +49,6 @@
 #include "structures/StrongholdStructure.hpp"
 #include "structures/SwampHutStructure.hpp"
 #include "structures/TrialChambersStructure.hpp"
-#include "structures/VillageStructure.hpp"
 #include "structures/WoodlandMansionStructure.hpp"
 #include <memory>
 #include <string>
@@ -140,30 +139,6 @@ JigsawConfig buildJigsawConfig(const StructureDefinition& def)
 }
 
 /**
- * @brief 从 def.id 路径段推断 VillageType
- *
- * Vanilla 5 个村庄 JSON：village_desert/village_plains/village_savanna/village_snowy/village_taiga。
- * def.id.path() 形如 "village_desert"。
- */
-VillageType villageTypeFromId(const ResourceLocation& id)
-{
-    const std::string& p = id.path();
-    if (p == "village_desert") {
-        return VillageType::Desert;
-    }
-    if (p == "village_savanna") {
-        return VillageType::Savanna;
-    }
-    if (p == "village_snowy") {
-        return VillageType::Snowy;
-    }
-    if (p == "village_taiga") {
-        return VillageType::Taiga;
-    }
-    return VillageType::Plains; // village_plains 及未知
-}
-
-/**
  * @brief 应用数据驱动覆盖字段到已构造的结构实例
  *
  * 注入 biomes/step/terrainAdaptation（覆盖子类硬编码默认）。spawn_overrides 暂缓：
@@ -189,9 +164,9 @@ void applyDefinitionOverrides(Structure& structure, const StructureDefinition& d
  * 按 def.id 分流：
  * - pillager_outpost / trial_chambers：委托子类（构造期硬编码 JigsawConfig + 特殊逻辑：
  *   村庄距离检查 / 池别名创建）。
- * - village_*：委托 VillageStructure（按 id 选 VillageType）。
  * - bastion_remnant：委托 BastionRemnantStructure（运行时加权选 4 种堡垒）。
- * - 其余 id（ancient_city / trail_ruins / 自定义）：裸 JigsawStructure，JigsawConfig 从 def 填充。
+ * - 其余 id（village_* / ancient_city / trail_ruins / 自定义）：裸 JigsawStructure，
+ *   JigsawConfig 从 def 填充。
  */
 Result<std::unique_ptr<Structure>> createJigsaw(const StructureDefinition& def)
 {
@@ -206,12 +181,14 @@ Result<std::unique_ptr<Structure>> createJigsaw(const StructureDefinition& def)
     if (p == "bastion_remnant") {
         return toBase(std::make_unique<BastionRemnantStructure>(def.id));
     }
-    if (p.rfind("village", 0) == 0) { // village / village_desert / ...
-        return toBase(std::make_unique<VillageStructure>(def.id, villageTypeFromId(def.id)));
-    }
-
     // 裸 JigsawStructure：必须提供 start_pool（默认 ResourceLocation 命名空间为 "minecraft"、
     // 路径为空，故以路径非空判定是否显式提供池）。
+    //
+    // 村庄同样走这条通用路径：它的结构定义 JSON（start_pool / size / start_height /
+    // project_start_to_heightmap / use_expansion_hack / terrain_adaptation）与拼图结构完全同构，
+    // 而只有通用路径会按 start_jigsaw_name 选出真正的起始连接点。早期给村庄单写了一套装配
+    // 流程，其中两处差异让整座村庄错位：起始旋转在抽起始块**之前**消耗随机数，且不按
+    // start_jigsaw_name 过滤起始块——两者叠加使选中的起始块与装配走向都偏离原版。
     if (def.startPool.path().empty()) {
         return Error(ErrorCode::InvalidData, "jigsaw structure '" + def.id.toString() + "' missing 'start_pool'");
     }

@@ -213,6 +213,17 @@ public:
     std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
+    /**
+     * @brief 在 generate() 内按真实候选生成点完成生物群系校验
+     *
+     * 候选点（起始块中心、投影后的地面线）只有抽出起始块之后才知道，调用方无法预先算出，
+     * 因此由本类在装配后校验，失败返回空起点，调用方继续用同一个随机源重抽其它条目。
+     */
+    [[nodiscard]] bool validatesBiomeOnCandidatePoint() const override
+    {
+        return true;
+    }
+
 protected:
     JigsawConfig m_config;   ///< Jigsaw 配置
     i32 m_startY;            ///< 起始 Y 坐标（简单模式）

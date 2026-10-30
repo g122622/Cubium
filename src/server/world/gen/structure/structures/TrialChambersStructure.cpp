@@ -199,7 +199,6 @@ bool TrialChambersStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
-    MC_UNUSED(rng);
 
     auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
     const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
@@ -207,65 +206,14 @@ bool TrialChambersStructure::canGenerate(
         return false;
     }
 
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 0, chunkZ * CHUNK_WIDTH + 8);
-    return isValidBiome(biome);
-}
-
-std::unique_ptr<StructureStart> TrialChambersStructure::generate(
-    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
-{
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
-
-    // 获取起始模板池
-    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
-    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
-
-    if (!startPool || startPool->isEmpty()) {
-        return start;
-    }
-
-    // 计算起始高度：Y=-40 到 Y=-20 之间的均匀分布
-    i32 startY = -30; // 默认高度
-    if (m_config.startHeight) {
-        valueprovider::WorldGenerationContext context(MIN_BUILD_HEIGHT, CHUNK_HEIGHT);
-        startY = m_config.startHeight->sample(rng, context);
-    }
-
-    // 确保起始高度在有效范围内
-    startY = std::clamp(startY, -40, -20);
-
-    const BlockPos startPos(chunkX * CHUNK_WIDTH + 8, startY, chunkZ * CHUNK_WIDTH + 8);
-
-    // 预解析池别名绑定（试炼密室刷怪笼类型随机化）。
-    // JigsawAssembler::assemble 内部用 PoolAliasLookup 一次性解析所有别名为不可变映射，
-    // 组装时将虚拟池名（如 spawner/contents/melee）替换为实际池名（如 spawner/melee/zombie）。
-    const jigsaw::PoolAliasBindings* aliases = m_config.poolAliases.empty() ? nullptr : &m_config.poolAliases;
-
-    // 使用 JigsawAssembler 组装试炼密室结构，maxDepth = 20
-    // 转发 maxDistanceFromCenter（配置为 116）用于初始化 freeShape 可放置空间。
-    const structure::MaxDistance* maxDistance =
-        m_config.maxDistanceFromCenter.has_value() ? &(*m_config.maxDistanceFromCenter) : nullptr;
-    auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry,
-        *startPool,
-        m_config.size,
-        startPos,
-        m_config.projectStartToHeightmap,
-        m_config.useExpansionHack,
-        rng,
-        generator,
-        aliases,
-        maxDistance,
-        &m_config.dimensionPadding);
-
-    // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
-    for (auto& placed : placedPieces) {
-        if (placed.piece && !placed.piece->isEmpty()) {
-            start->addPiece(std::make_unique<TrialChambersPlacedPieceAdapter>(std::move(placed)));
-        }
-    }
-
-    return start;
+    // 生物群系校验的采样点是候选生成点（起始块中心、投影后的地面线），不是区块中心：
+    // 区块中心取 y=0 会落到洞穴/深板岩群系上，把整片合法区块误判为群系不符。候选点依赖
+    // 起始块，只能由基类在装配后校验（JigsawStructure::generate + start_jigsaw_name）。
+    MC_UNUSED(generator);
+    MC_UNUSED(rng);
+    MC_UNUSED(chunkX);
+    MC_UNUSED(chunkZ);
+    return true;
 }
 
 } // namespace structure

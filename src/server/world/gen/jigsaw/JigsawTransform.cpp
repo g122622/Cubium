@@ -33,14 +33,16 @@ namespace world {
 namespace gen {
 namespace jigsaw {
 
-BlockPos JigsawTransform::transformPosition(const BlockPos& pos, Rotation rotation, Mirror mirror)
+BlockPos JigsawTransform::transformPosition(
+    const BlockPos& pos, Rotation rotation, Mirror mirror, const BlockPos& pivot)
 {
     // 对应 MC 1.21 StructureTemplate.transform(BlockPos, Mirror, Rotation, pivot)：
-    // **以模板原点角为轴**（pivot 恒为 BlockPos.ZERO），镜像先取负、再旋转：
-    //   CCW90 → (z, y, -x)     CW90 → (-z, y, x)     CW180 → (-x, y, -z)
-    // 旋转后坐标可能为负——这是原版语义（包围盒由两个对角点归一化得到），
-    // 与 Template::transformBlockPos 的方块放置变换必须保持同一约定，
-    // 否则"构件包围盒"描述的就不是方块实际落点。
+    // 镜像先取负、再绕 pivot 旋转：
+    //   CCW90 → (l - i1 + k, j, l + i1 - i)   CW90 → (l + i1 - k, j, i1 - l + i)
+    //   CW180 → (2l - i, j, 2i1 - k)
+    // 其中 (l, i1) = (pivot.x, pivot.z)；本项目两处调用（包围盒与连接点）都传原点。
+    // 旋转后坐标可能为负——这是原版语义，与 Template::transformBlockPos 的方块放置变换
+    // 必须保持同一约定，否则"构件包围盒"描述的就不是方块实际落点。
     i32 i = pos.x;
     i32 j = pos.y;
     i32 k = pos.z;
@@ -58,13 +60,15 @@ BlockPos JigsawTransform::transformPosition(const BlockPos& pos, Rotation rotati
             break;
     }
 
+    const i32 l = pivot.x;
+    const i32 i1 = pivot.z;
     switch (rotation) {
         case Rotation::CounterClockwise90:
-            return BlockPos(k, j, -i);
+            return BlockPos(l - i1 + k, j, l + i1 - i);
         case Rotation::Clockwise90:
-            return BlockPos(-k, j, i);
+            return BlockPos(l + i1 - k, j, i1 - l + i);
         case Rotation::Clockwise180:
-            return BlockPos(-i, j, -k);
+            return BlockPos(l + l - i, j, i1 + i1 - k);
         default:
             return mirrored ? BlockPos(i, j, k) : pos;
     }
@@ -76,9 +80,13 @@ std::vector<JigsawJoint> JigsawTransform::getTransformedJoints(
     std::vector<JigsawJoint> transformed;
     transformed.reserve(piece.getJoints().size());
 
+    // 连接点绕**模板原点角**旋转（枢轴为零），与原版 StructureTemplate.transform 的
+    // 方块坐标约定一致；包围盒也走同一枢轴，故位置变换在整条链路上只有一种约定。
+    const BlockPos origin(0, 0, 0);
+
     for (const auto& joint : piece.getJoints()) {
         JigsawJoint transformedJoint;
-        transformedJoint.sourcePos = transformPosition(joint.sourcePos, rotation, mirror) + position;
+        transformedJoint.sourcePos = transformPosition(joint.sourcePos, rotation, mirror, origin) + position;
         transformedJoint.sourceName = joint.sourceName;
         transformedJoint.targetPool = joint.targetPool;
         transformedJoint.targetName = joint.targetName;
@@ -110,8 +118,9 @@ structure::StructureBoundingBox JigsawTransform::calculateBoundingBox(
         return structure::StructureBoundingBox(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
     }
 
-    const BlockPos cornerA = transformPosition(BlockPos(0, 0, 0), rotation, Mirror::None);
-    const BlockPos cornerB = transformPosition(BlockPos(size.x - 1, size.y - 1, size.z - 1), rotation, Mirror::None);
+    const BlockPos cornerA = transformPosition(BlockPos(0, 0, 0), rotation, Mirror::None, BlockPos(0, 0, 0));
+    const BlockPos cornerB =
+        transformPosition(BlockPos(size.x - 1, size.y - 1, size.z - 1), rotation, Mirror::None, BlockPos(0, 0, 0));
 
     return structure::StructureBoundingBox(pos.x + std::min(cornerA.x, cornerB.x),
         pos.y + std::min(cornerA.y, cornerB.y),

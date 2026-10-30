@@ -22,6 +22,7 @@
  */
 
 #include "PillagerOutpostStructure.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -34,6 +35,7 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include <string>
 #include <utility>
 
@@ -51,9 +53,24 @@ const SpawnOverrides PillagerOutpostStructure::s_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
 
 PillagerOutpostStructure::PillagerOutpostStructure(ResourceLocation id)
-    : JigsawStructure(
-          std::move(id), JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"), 7), 0, true, true)
-{}
+    : JigsawStructure(std::move(id),
+          // 起始高度由结构 JSON 提供（start_height = absolute 0 + project_start_to_heightmap =
+          // WORLD_SURFACE_WG）。旧实现把这两个字段硬编码成"nearTerrain + 起始高度 0 或 64"，
+          // 只有 1/16 的情形恰好等于原版的"投影到地表"——前哨站因此常被放进地下或悬空。
+          JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"),
+              7,
+              valueprovider::ConstantHeight::create(valueprovider::VerticalAnchor::absolute(0)),
+              {},
+              MaxDistance(80),
+              DimensionPadding(),
+              LiquidSettings::IgnoreWaterlogging),
+          0,     // startY：由 startHeight 决定
+          false, // nearTerrain：投影由 project_start_to_heightmap 完成，不再走"贴近地形"分支
+          true)
+{
+    // 结构 JSON：project_start_to_heightmap = WORLD_SURFACE_WG
+    m_config.projectStartToHeightmap = true;
+}
 
 const biome::BiomeTag* PillagerOutpostStructure::defaultBiomeTag() const
 {
@@ -65,23 +82,24 @@ bool PillagerOutpostStructure::canGenerate(
 {
     MC_UNUSED(world);
 
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
-    if (isValidBiome(biome)) {
-        // 20% 的生成概率
-        i32 i = chunkX >> 4;
-        i32 j = chunkZ >> 4;
-        rng.setSeed(static_cast<i64>(i ^ j << 4) ^ static_cast<i64>(generator.seed()));
-        (void)rng.nextInt();
+    // 生物群系与地形高度都不在这里判定：原版只在候选生成点（起始块中心、投影后的地面线）
+    // 处校验群系，且前哨站没有额外的可生成性条件。区块中心 + 固定 y 的采样会在群系边界与
+    // 洞穴上方给出与原版相反的结论，把合法区块整片误杀。
+    MC_UNUSED(generator);
 
-        if (rng.nextInt(5) != 0) {
-            return false;
-        }
-
-        // 检查附近是否有村庄
-        return !_isNearVillage(generator, static_cast<i64>(generator.seed()), rng, chunkX, chunkZ);
+    // 20% 的生成概率：原版在 findGenerationPoint 里用 random.nextInt(5) != 0 淘汰。
+    // 注意此时起始旋转与起始块都还没抽，因此这次随机数必须在这里消耗，
+    // 不能挪到基类装配之后再判。
+    i32 i = chunkX >> 4;
+    i32 j = chunkZ >> 4;
+    rng.setSeed(static_cast<i64>(i ^ (j << 4)) ^ static_cast<i64>(generator.seed()));
+    (void)rng.nextInt();
+    if (rng.nextInt(5) != 0) {
+        return false;
     }
-    return false;
+
+    // 附近有村庄则让位（原版 PillagerOutpostStructure.isNearVillage）。
+    return !_isNearVillage(generator, static_cast<i64>(generator.seed()), rng, chunkX, chunkZ);
 }
 
 bool PillagerOutpostStructure::_isNearVillage(

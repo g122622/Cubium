@@ -96,13 +96,17 @@ const JigsawPiece* TemplatePool::getRandomPiece(math::IRandom& rng) const
     if (m_entries.empty() || m_totalWeight <= 0) {
         return nullptr;
     }
-    // 加权随机选择：生成 [0, m_totalWeight) 随机数，遍历累加权重定位条目。
+    // 对应 MC 1.21 StructureTemplatePool.getRandomTemplate：
+    //   templates.get(random.nextInt(templates.size()))
+    // templates 是按权重**逐份展开**的列表（权重 w 的条目在列表中连续出现 w 次、条目之间
+    // 不交错）。先取 [0, totalWeight) 的整数再按条目顺序累加权重定位，位次到条目的映射
+    // 与展开列表完全相同，因此不必真的展开。
     i32 target = rng.nextInt(m_totalWeight);
     for (const auto& entry : m_entries) {
-        target -= entry.weight;
-        if (target < 0) {
+        if (target < entry.weight) {
             return entry.piece;
         }
+        target -= entry.weight;
     }
     return m_entries.back().piece;
 }

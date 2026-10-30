@@ -45,6 +45,20 @@
 using namespace mc;
 using namespace mc::world::gen::density;
 
+namespace {
+/**
+ * BEARD_KERNEL 里存的高斯分量：exp(-(dx² + (dy+0.5)² + dz²) / 16)。
+ *
+ * 生产代码只保留预计算表，这张表就是它的定义式；测试用它验证表值与定义式一致。
+ */
+f64 gaussian(int dx, int dy, int dz)
+{
+    const f64 adjustedY = static_cast<f64>(dy) + 0.5;
+    const f64 distSq = static_cast<f64>(dx) * dx + adjustedY * adjustedY + static_cast<f64>(dz) * dz;
+    return std::exp(-distSq / 16.0);
+}
+} // namespace
+
 // ============================================================================
 // Beardifier BEARD_KERNEL 测试
 // ============================================================================
@@ -57,7 +71,7 @@ TEST(BeardifierTest, BeardKernelMatchesDynamicComputation)
     for (i32 dy = -12; dy <= 11; dy += 3) {
         for (i32 dx = -12; dx <= 11; dx += 3) {
             for (i32 dz = -12; dz <= 11; dz += 3) {
-                f64 dynamicVal = Beardifier::computeBeardContribution(dx, dy, dz);
+                f64 dynamicVal = gaussian(dx, dy, dz);
 
                 // getBeardContribution 返回 beard * gaussian，
                 // 不能直接与 computeBeardContribution (仅高斯) 比较
@@ -76,8 +90,8 @@ TEST(BeardifierTest, BeardKernelYAxisOffset)
     //   distSq = dx^2 + (dy+0.5)^2 + dz^2
     // 验证 Y 轴偏移 0.5 导致的不对称性
     // 在 (0, 0, 0) 和 (0, -1, 0) 处，由于 dy+0.5 偏移，高斯值应不同
-    f64 atY0 = Beardifier::computeBeardContribution(0, 0, 0);
-    f64 atYNeg1 = Beardifier::computeBeardContribution(0, -1, 0);
+    f64 atY0 = gaussian(0, 0, 0);
+    f64 atYNeg1 = gaussian(0, -1, 0);
 
     // (0, 0, 0): distSq = 0 + 0.25 + 0 = 0.25 → exp(-0.25/16) ≈ 0.9845
     // (0, -1, 0): distSq = 0 + 0.25 + 0 = 0.25 → exp(-0.25/16) ≈ 0.9845
@@ -85,8 +99,8 @@ TEST(BeardifierTest, BeardKernelYAxisOffset)
     EXPECT_NEAR(atY0, atYNeg1, 1e-10) << "Y=0 and Y=-1 with +0.5 offset should be symmetric";
 
     // (0, 1, 0) vs (0, -2, 0) — 由于 +0.5 偏移，不对称
-    f64 atY1 = Beardifier::computeBeardContribution(0, 1, 0);
-    f64 atYNeg2 = Beardifier::computeBeardContribution(0, -2, 0);
+    f64 atY1 = gaussian(0, 1, 0);
+    f64 atYNeg2 = gaussian(0, -2, 0);
     // (0, 1, 0): distSq = 0 + 2.25 + 0 = 2.25
     // (0, -2, 0): distSq = 0 + 2.25 + 0 = 2.25
     // 也对称
@@ -108,8 +122,8 @@ TEST(BeardifierTest, BeardKernelSymmetryXZ)
 {
     // X 和 Z 轴应该对称（因为 +0.5 只加在 Y 轴上）
     for (i32 d = -11; d <= 11; d += 4) {
-        f64 posX = Beardifier::computeBeardContribution(d, 0, 0);
-        f64 posZ = Beardifier::computeBeardContribution(0, 0, d);
+        f64 posX = gaussian(d, 0, 0);
+        f64 posZ = gaussian(0, 0, d);
         EXPECT_NEAR(posX, posZ, 1e-12) << "X/Z symmetry broken at d=" << d;
     }
 }
@@ -120,8 +134,8 @@ TEST(BeardifierTest, BeardKernelYAsymmetry)
     // computeBeardContribution(dx, dy, dz) 使用 (dy+0.5)^2
     // 所以 computeBeardContribution(0, 1, 0) 和 computeBeardContribution(0, -1, 0) 应该不同
     // 因为 (1+0.5)^2 = 2.25 而 (-1+0.5)^2 = 0.25
-    f64 atY1 = Beardifier::computeBeardContribution(0, 1, 0);
-    f64 atYNeg1 = Beardifier::computeBeardContribution(0, -1, 0);
+    f64 atY1 = gaussian(0, 1, 0);
+    f64 atYNeg1 = gaussian(0, -1, 0);
     EXPECT_NE(atY1, atYNeg1) << "Y=1 and Y=-1 should differ due to +0.5 offset";
     // Y=-1 更接近原点（0.5 vs 1.5），所以值更大
     EXPECT_GT(atYNeg1, atY1) << "Y=-1 should be closer to center due to +0.5 offset";
@@ -129,11 +143,11 @@ TEST(BeardifierTest, BeardKernelYAsymmetry)
 
 TEST(BeardifierTest, BeardContributionAtCenter)
 {
-    // computeBeardContribution 只计算高斯分量，中心点 (0, 0, 0) 应为正值
+    // gaussian() 只计算高斯分量，中心点 (0, 0, 0) 应为正值
     // distSq = 0 + 0.25 + 0 = 0.25 → exp(-0.25/16) ≈ 0.9845
-    f64 gaussian = Beardifier::computeBeardContribution(0, 0, 0);
-    EXPECT_GT(gaussian, 0.0);
-    EXPECT_LT(gaussian, 1.0); // 高斯值在 0 和 1 之间
+    f64 centerGaussian = gaussian(0, 0, 0);
+    EXPECT_GT(centerGaussian, 0.0);
+    EXPECT_LT(centerGaussian, 1.0); // 高斯值在 0 和 1 之间
 
     // getBeardContribution 包含 beard 因子，中心点应为负值（创建空腔）
     f64 beard = Beardifier::getBeardContribution(0, 0, 0, 0);
@@ -143,9 +157,9 @@ TEST(BeardifierTest, BeardContributionAtCenter)
 TEST(BeardifierTest, BeardContributionApproachesZeroWithDistance)
 {
     // 高斯分量随距离衰减趋近 0
-    f64 c0 = Beardifier::computeBeardContribution(0, 0, 0);
-    f64 c5 = Beardifier::computeBeardContribution(5, 0, 0);
-    f64 c10 = Beardifier::computeBeardContribution(10, 0, 0);
+    f64 c0 = gaussian(0, 0, 0);
+    f64 c5 = gaussian(5, 0, 0);
+    f64 c10 = gaussian(10, 0, 0);
 
     // 高斯值单调递减
     EXPECT_GT(c0, c5);

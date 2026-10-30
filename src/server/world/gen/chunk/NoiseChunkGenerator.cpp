@@ -164,39 +164,136 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 // 结构生成
 // ============================================================================
 
-bool NoiseChunkGenerator::_hasBiomesForStructureSet(const world::gen::structure::StructureSet& structureSet) const
+NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureStart(
+    const world::gen::structure::StructureSet& structureSet, i32 chunkX, i32 chunkZ)
 {
-    // 对齐 MC 1.21.11 ChunkGeneratorStructureState.hasBiomesForStructureSet()
-    // 检查 BiomeSource 的 possibleBiomes 是否与结构集中任意结构的 biomeTag 有交集。
-    // 这是一个快速的集合交集检查，如果完全无交集则整个结构集在当前维度中不可能生成。
-    const auto& possibleBiomes = m_biomeSource->possibleBiomes();
+    // 加权选择 + 失败回退重抽。
+    // 参考: ChunkGenerator.createStructures()
+    //   WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+    //   worldgenrandom.setLargeFeatureSeed(levelSeed, chunkpos.x, chunkpos.z);
+    // WorldgenRandom 包装 LegacyRandomSource：nextLong() 会拆成两次 next(32)，
+    // 与直接在 LegacyRandomSource 上调 nextLong() 等价（LegacyRandomSource.nextLong 也是
+    // (next(32)<<32)+next(32)），故这里的包装不改变数值，只是保持原版的类型形状。
+    math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
+    rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 
-    for (const auto& entry : structureSet.entries()) {
-        const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
+    // 【为何必须循环重抽】原版对多条目结构集是
+    //     while (!arraylist.isEmpty()) {
+    //         i32 j = worldgenrandom.nextInt(i);   // i = 当前剩余条目权重之和
+    //         for (entry : arraylist) { j -= entry.weight(); if (j < 0) break; k++; }
+    //         if (tryGenerateStructure(arraylist.get(k), ...)) return;   // 成功即止
+    //         arraylist.remove(k);
+    //         i -= selected.weight();
+    //     }
+    // 即：**某条目生成失败时，把它从候选里剔除并用同一个 RNG 继续重抽**。
+    // 只抽一次就放弃是错的——以 mineshafts 为例（mineshaft 与 mineshaft_mesa 各权重 1），
+    // 在非恶地群系里若先抽中 mineshaft_mesa，原版会回退到 mineshaft 并成功生成，
+    // 而"只抽一次"的实现在 isValidBiome 处直接 continue，导致该处**整片没有矿井**。
+    // 注意：RNG 在重试之间共享（不重新播种），总权重随移除递减。
+    // 【单条目不抽签】原版 `list.size() == 1` 时直接 tryGenerateStructure，**不消耗任何
+    // 抽签随机数**。这一点有可观测后果：多条目结构集的首次抽签会把世界生成随机源
+    // `setLargeFeatureSeed` 的初始状态推进一格，而 TheEnd 的岛屿群系判定（erosion 的
+    // 岛间噪声，见 `EndIslands`）对同一随机源是敏感的；抽签次数偏离原版时，
+    // 末地在群系层面就开始分叉。因此单条目必须走直接尝试，与多条目分开。
+    std::vector<const world::gen::structure::StructureSelectionEntry*> candidates;
+    candidates.reserve(structureSet.entries().size());
+    for (const auto& setEntry : structureSet.entries()) {
+        candidates.push_back(&setEntry);
+    }
+    i32 remainingWeight = structureSet.totalWeight();
+    const bool drawByWeight = candidates.size() > 1;
 
-        // 【必须断言，不得静默跳过】结构集引用的结构定义查不到，说明结构注册表没有
-        // 按数据驱动路径加载（只剩 StructureManager::initialize() 的兜底表，其键是
-        // 结构"类型基础名"如 minecraft:village，而 structure_set JSON 引用的是细分 id
-        // 如 minecraft:village_plains）。此时若 `continue`，本函数会对每个条目都查不到、
-        // 最终返回 false，于是**整个结构集被静默跳过**——村庄/海底废墟/古迹废墟/远古
-        // 城市永不生成，且不产生任何错误或日志，排查成本极高。
-        // 这是"兜底策略掩盖真实故障"的典型：宁可在此崩溃，也不要让世界悄悄缺内容。
+    while (!candidates.empty() && remainingWeight > 0) {
+        size_t chosen = 0;
+        if (drawByWeight) {
+            i32 roll = rng.nextInt(remainingWeight);
+            for (; chosen < candidates.size(); ++chosen) {
+                roll -= candidates[chosen]->weight;
+                if (roll < 0) {
+                    break;
+                }
+            }
+            if (chosen >= candidates.size()) {
+                chosen = candidates.size() - 1; // 权重配置异常时的兜底
+            }
+        }
+
+        const world::gen::structure::StructureSelectionEntry* entry = candidates[chosen];
+        const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
+
+        // 对齐 MC 1.21.11 StructurePlacement.isStructureChunk() 中的生物群系检查：
+        // 采样噪声生物群系，检查是否匹配该结构的 biomeTag。此处使用 getNoiseBiome()
+        // （四分坐标精度，无 Voronoi 缩放）。
+        // TODO: 采样点与原版不一致。原版在 Structure.findValidGenerationPoint 找到的
+        //   **候选生成点**（candidate generation point）处采样：
+        //     biomeSource.getNoiseBiome(QuartPos.fromBlock(pos.getX()),
+        //                               QuartPos.fromBlock(pos.getY()),
+        //                               QuartPos.fromBlock(pos.getZ()))
+        //   而本实现退化为"本区块中心"（block +8）这一固定近似点。二者在群系边界附近
+        //   会给出不同群系，进而使结构在边界处生成/不生成与原版不一致。
+        //   完整实现需先把生成点求出再回传校验，属于结构子系统改造，暂缓。
+        // 同 _hasBiomesForStructureSet：查不到结构定义属配置错误，不得静默跳过。
         if (structure == nullptr) {
             spdlog::critical("[STRUCT] structure_set '{}' references unregistered structure '{}'",
                 structureSet.id().toString(),
-                entry.structureId.toString());
+                entry->structureId.toString());
         }
         MC_ASSERT_RELEASE(structure != nullptr);
 
-        // 遍历 possibleBiomes，检查是否有任何一个存在于该结构的 biomeTag 中
-        for (BiomeId biomeId : possibleBiomes) {
-            if (structure->isValidBiome(biomeId)) {
-                return true;
+        // 生物群系校验。原版在"候选生成点已求出、构件尚未装配"时校验，采样点是候选点本身
+        // （jigsaw 结构为起始块中心、高度为投影后的地面线），而非区块中心。
+        // 候选点依赖随机数的结构（要先抽起始块）无法由调用方预先算出，改由结构自身在
+        // generate() 内校验并返回 nullptr——那种情况下这里跳过预检，避免重复消耗随机数
+        // 与用错误的采样点误杀。
+        bool biomeOk = true;
+        if (!structure->validatesBiomeOnCandidatePoint()) {
+            const BiomeId biomeAtCandidate =
+                getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
+            biomeOk = structure->isValidBiome(biomeAtCandidate);
+        }
+
+        if (biomeOk) {
+            // 【必须是独立的随机源】原版里"结构集内的条目选择"与"结构自身的生成"用的是
+            // **两个各自 setLargeFeatureSeed 同一种子的 WorldgenRandom 实例**：
+            //   - 条目选择：ChunkGenerator.createStructures 内 `wg.setLargeFeatureSeed(...)` 后
+            //     用 `wg.nextInt(权重和)` 轮盘抽签，失败重抽共用同一个 wg；
+            //   - 结构生成：Structure.GenerateContext.makeRandom 新建实例并
+            //     `setLargeFeatureSeed(seed, cx, cz)`，**每次都从同一个初始状态开始**。
+            // 若复用条目选择的那个实例，结构生成会从"抽过签"之后的状态起算，
+            // 起始旋转、起始块选择等全部错位——实测正是村庄起始构件与原版不符的根因。
+            math::WorldgenRandom structureRng(std::make_unique<math::JavaLegacyRandom>(0ULL));
+            structureRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
+
+            auto start = structure->generate(*this, structureRng, chunkX, chunkZ);
+            // 【必须判 isValid】原版只有 `start.isValid()` 才登记结构起点：空的
+            // StructureStart（构件数为 0，如起始模板池为空）不算生成成功，必须继续
+            // 用同一个随机源重抽其余条目；若把它当成成功，会静默吞掉该结构集在本区块的
+            // 其余候选，使结构整片缺失。
+            if (start && start->isValid()) {
+                return {entry->structureId, std::move(start)};
             }
         }
+
+        // 失败：剔除该条目并递减总权重，继续重抽。
+        remainingWeight -= entry->weight;
+        candidates.erase(candidates.begin() + static_cast<std::ptrdiff_t>(chosen));
     }
 
-    return false;
+    return {};
+}
+
+NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_generateStructureStartsForSet(
+    const world::gen::structure::StructurePlacementState& placementState,
+    const world::gen::structure::StructureSet& structureSet,
+    i32 chunkX,
+    i32 chunkZ)
+{
+    // 单条目结构集：原版直接尝试生成，不做加权抽签（也就不消耗抽签随机数）。
+    // 多条目结构集走 _selectStructureStart 的「抽签 — 失败剔除 — 重抽」。
+    if (!placementState.isStructureChunk(structureSet, chunkX, chunkZ)) {
+        return {};
+    }
+    return _selectStructureStart(structureSet, chunkX, chunkZ);
 }
 
 void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
@@ -211,43 +308,21 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     const ChunkCoord chunkX = chunk.x();
     const ChunkCoord chunkZ = chunk.z();
 
-    // MC 1.21.11: 遍历 StructureSet，按放置规则决定候选区块，按权重选择结构
+    // 结构集的可放置性（候选区块 / 频率 / 排斥区 / 同心环位置表）交给本维度的放置状态：
+    // 排斥区要问「另一个结构集在附近有没有落点」，单个放置规则看不到别的结构集。
+    world::gen::structure::StructurePlacementState placementState(*m_biomeSource, static_cast<i64>(m_seed));
     auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
-
-    // 【诊断】记录各关卡淘汰数，便于定位"结构完全不生成"卡在哪一环。
-    // 各计数含义：sets=注册表条目数；skipExisting=已有有效 start；
-    // skipBiomes=维度 possibleBiomes 与该结构集 biomeTag 无交集；
-    // skipPlacement=非候选区块（isStructureChunk 为假）；
-    // skipBiomeCheck=候选区块但中心点生物群系不匹配该条目；
-    // attempts=实际调用 generate() 次数；created=产出了有效 StructureStart 次数。
-    // i32 dbgSets = 0;
-    // i32 dbgSkipExisting = 0;
-    // i32 dbgSkipBiomes = 0;
-    // i32 dbgSkipPlacement = 0;
-    // i32 dbgSkipBiomeCheck = 0;
-    // i32 dbgAttempts = 0;
-    // i32 dbgCreated = 0;
-    std::vector<std::string> dbgBiomeSkippedSets;   ///< 被"维度无交集"整集跳过的 set id
-    std::vector<std::string> dbgBiomeRejectedPairs; ///< 因中心点群系不匹配被拒的 "set/结构" 对
-    std::vector<std::string> dbgCreatedIds;         ///< 实际产出 StructureStart 的 "set/结构" 对
-
     for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
-        if (!structureSetPtr) {
-            continue;
+        if (structureSetPtr) {
+            // 群系不相交的结构集在这里被滤掉，与原版的快速预过滤同一口径。
+            placementState.addStructureSet(*structureSetPtr);
         }
-        // ++dbgSets;
+    }
 
-        const auto& structureSet = *structureSetPtr;
-        const auto& placement = structureSet.placement();
-
-        // MC 1.21.11: 检查是否已有同 StructureSet 中的有效 StructureStart
-        // 参考: ChunkGenerator.createStructures()
-        //   for (StructureSet.StructureSelectionEntry entry : list) {
-        //       StructureStart start = structureManager.getStartForStructure(sectionpos, entry.structure().value(),
-        //       chunk); if (start != null && start.isValid()) return;
-        //   }
+    for (const auto* structureSet : placementState.structureSets()) {
+        // 已有同结构集的有效起点时不重复生成（原版 createStructures 开头的前置检查）。
         bool hasExistingStart = false;
-        for (const auto& entry : structureSet.entries()) {
+        for (const auto& entry : structureSet->entries()) {
             auto* existingStart = chunk.getStructureStart(entry.structureId);
             if (existingStart && existingStart->isValid()) {
                 hasExistingStart = true;
@@ -255,210 +330,15 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             }
         }
         if (hasExistingStart) {
-            // ++dbgSkipExisting;
             continue;
         }
 
-        // 对齐 MC 1.21.11: 结构集快速预过滤 — 如果当前维度的 possibleBiomes
-        // 与结构集中所有结构的 biomeTag 均无交集，则跳过整个结构集
-        if (!_hasBiomesForStructureSet(structureSet)) {
-            // ++dbgSkipBiomes;
-            if (dbgBiomeSkippedSets.size() < 12) {
-                dbgBiomeSkippedSets.push_back(structureSet.id().toString());
-            }
-            continue;
-        }
-
-        // 三步检查：1. 是否为候选区块
-        if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
-            // ++dbgSkipPlacement;
-            continue;
-        }
-
-        // === 加权选择 + 失败回退重抽 ===
-        // MC 1.21.11: 使用 setLargeFeatureSeed 而非 setLargeFeatureWithSalt
-        // 参考: ChunkGenerator.createStructures()
-        //   WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
-        //   worldgenrandom.setLargeFeatureSeed(levelSeed, chunkpos.x, chunkpos.z);
-        // WorldgenRandom 包装 LegacyRandomSource：nextLong() 会拆成两次 next(32)，
-        // 与直接在 LegacyRandomSource 上调 nextLong() 等价（LegacyRandomSource.nextLong 也是
-        // (next(32)<<32)+next(32)），故这里的包装不改变数值，只是保持原版的类型形状。
-        math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
-        rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
-
-        // 【为何必须循环重抽】原版对多条目结构集是
-        //     while (!arraylist.isEmpty()) {
-        //         i32 j = worldgenrandom.nextInt(i);   // i = 当前剩余条目权重之和
-        //         for (entry : arraylist) { j -= entry.weight(); if (j < 0) break; k++; }
-        //         if (tryGenerateStructure(arraylist.get(k), ...)) return;   // 成功即止
-        //         arraylist.remove(k);
-        //         i -= selected.weight();
-        //     }
-        // 即：**某条目生成失败时，把它从候选里剔除并用同一个 RNG 继续重抽**。
-        // 只抽一次就放弃是错的——以 mineshafts 为例（mineshaft 与 mineshaft_mesa 各权重 1），
-        // 在非恶地群系里若先抽中 mineshaft_mesa，原版会回退到 mineshaft 并成功生成，
-        // 而"只抽一次"的实现在 isValidBiome 处直接 continue，导致该处**整片没有矿井**。
-        // 注意：RNG 在重试之间共享（不重新播种），总权重随移除递减。
-        // 单条目结构集（list.size()==1）原版直接 tryGenerateStructure 不消耗随机数；
-        // 本实现统一走循环，首次迭代的 nextInt(1) 恒为 0、结果与直接尝试一致（仅多消耗
-        // 一个随机数），而该 rng 每次进入本结构集都会重新播种、且失败路径不再复用，
-        // 故不影响其余结构。
-        std::vector<const world::gen::structure::StructureSelectionEntry*> candidates;
-        candidates.reserve(structureSet.entries().size());
-        for (const auto& setEntry : structureSet.entries()) {
-            candidates.push_back(&setEntry);
-        }
-        i32 remainingWeight = structureSet.totalWeight();
-
-        while (!candidates.empty() && remainingWeight > 0) {
-            i32 roll = rng.nextInt(remainingWeight);
-            size_t chosen = 0;
-            for (; chosen < candidates.size(); ++chosen) {
-                roll -= candidates[chosen]->weight;
-                if (roll < 0) {
-                    break;
-                }
-            }
-            if (chosen >= candidates.size()) {
-                chosen = candidates.size() - 1; // 权重配置异常时的兜底
-            }
-
-            const world::gen::structure::StructureSelectionEntry* entry = candidates[chosen];
-            const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
-
-            // 对齐 MC 1.21.11 StructurePlacement.isStructureChunk() 中的生物群系检查：
-            // 采样噪声生物群系，检查是否匹配该结构的 biomeTag。此处使用 getNoiseBiome()
-            // （四分坐标精度，无 Voronoi 缩放）。
-            // TODO: 采样点与原版不一致。原版在 Structure.findValidGenerationPoint 找到的
-            //   **候选生成点**（candidate generation point）处采样：
-            //     biomeSource.getNoiseBiome(QuartPos.fromBlock(pos.getX()),
-            //                               QuartPos.fromBlock(pos.getY()),
-            //                               QuartPos.fromBlock(pos.getZ()))
-            //   而本实现退化为"本区块中心"（block +8）这一固定近似点。二者在群系边界附近
-            //   会给出不同群系，进而使结构在边界处生成/不生成与原版不一致。
-            //   完整实现需先把生成点求出再回传校验，属于结构子系统改造，暂缓。
-            // 同 _hasBiomesForStructureSet：查不到结构定义属配置错误，不得静默跳过。
-            if (structure == nullptr) {
-                spdlog::critical("[STRUCT] structure_set '{}' references unregistered structure '{}'",
-                    structureSet.id().toString(),
-                    entry->structureId.toString());
-            }
-            MC_ASSERT_RELEASE(structure != nullptr);
-
-            bool placed = false;
-            // ++dbgAttempts;
-
-            // 生物群系校验。原版在"候选生成点已求出、构件尚未装配"时校验，采样点是候选点本身
-            // （jigsaw 结构为起始块中心、高度为投影后的地面线），而非区块中心。
-            // 候选点依赖随机数的结构（要先抽起始块）无法由调用方预先算出，改由结构自身在
-            // generate() 内校验并返回 nullptr——那种情况下这里跳过预检，避免重复消耗随机数
-            // 与用错误的采样点误杀。
-            bool biomeOk = true;
-            if (!structure->validatesBiomeOnCandidatePoint()) {
-                const BiomeId biomeAtCandidate =
-                    getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
-                biomeOk = structure->isValidBiome(biomeAtCandidate);
-            }
-
-            if (biomeOk) {
-                // 【必须是独立的随机源】原版里"结构集内的条目选择"与"结构自身的生成"用的是
-                // **两个各自 setLargeFeatureSeed 同一种子的 WorldgenRandom 实例**：
-                //   - 条目选择：ChunkGenerator.createStructures 内 `wg.setLargeFeatureSeed(...)` 后
-                //     用 `wg.nextInt(权重和)` 轮盘抽签，失败重抽共用同一个 wg；
-                //   - 结构生成：Structure.GenerateContext.makeRandom 新建实例并
-                //     `setLargeFeatureSeed(seed, cx, cz)`，**每次都从同一个初始状态开始**。
-                // 若复用条目选择的那个实例，结构生成会从"抽过签"之后的状态起算，
-                // 起始旋转、起始块选择等全部错位——实测正是村庄起始构件与原版不符的根因。
-                math::WorldgenRandom structureRng(std::make_unique<math::JavaLegacyRandom>(0ULL));
-                structureRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
-
-                auto start = structure->generate(*this, structureRng, chunkX, chunkZ);
-                // 【必须判 isValid】原版只有 `start.isValid()` 才登记结构起点：空的
-                // StructureStart（构件数为 0，如起始模板池为空）不算生成成功，必须继续
-                // 用同一个随机源重抽其余条目；若把它当成成功，会静默吞掉该结构集在本区块的
-                // 其余候选，使结构整片缺失。
-                if (start && start->isValid()) {
-                    // 【诊断】构件数与包围盒必须在 std::move(start) **之前**读取——
-                    // 移动后 start 为空，再解引用即访问违例（此前正是这样崩溃的）。
-                    // 结构能否影响到远处区块完全取决于这两者：构件数为 0/1 或包围盒退化，
-                    // 都会使该结构只覆盖起点区块本身。
-                    {
-                        const auto& bbox = start->getBoundingBox();
-                        spdlog::info("[STRUCT-BOX] ({},{}) {} pieces={} bbox=x[{}..{}] y[{}..{}] z[{}..{}]",
-                            chunkX,
-                            chunkZ,
-                            entry->structureId.toString(),
-                            start->pieceCount(),
-                            bbox.minX(),
-                            bbox.maxX(),
-                            bbox.minY(),
-                            bbox.maxY(),
-                            bbox.minZ(),
-                            bbox.maxZ());
-                    }
-                    chunk.addStructureStart(entry->structureId,
-                        std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
-                    placed = true;
-                    // ++dbgCreated;
-                    if (dbgCreatedIds.size() < 8) {
-                        dbgCreatedIds.push_back(structureSet.id().toString() + " -> " + entry->structureId.toString());
-                    }
-                }
-            } else {
-                // ++dbgSkipBiomeCheck;
-                if (dbgBiomeRejectedPairs.size() < 8) {
-                    dbgBiomeRejectedPairs.push_back(
-                        structureSet.id().toString() + " -> " + entry->structureId.toString());
-                }
-            }
-            if (placed) {
-                break; // 对应原版的 return：成功生成后不再尝试其余条目
-            }
-
-            // 失败：剔除该条目并递减总权重，继续重抽。
-            remainingWeight -= entry->weight;
-            candidates.erase(candidates.begin() + static_cast<std::ptrdiff_t>(chosen));
+        auto selection = _generateStructureStartsForSet(placementState, *structureSet, chunkX, chunkZ);
+        if (selection.start != nullptr) {
+            chunk.addStructureStart(selection.structureId,
+                std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(selection.start)));
         }
     }
-
-    // 【诊断】仅在有结构集通过"非候选区块"关卡或产出结构时打印，避免刷屏。
-    // if (dbgSkipPlacement > 0 || dbgCreated > 0) {
-    //     std::string skipped;
-    //     for (const auto& s : dbgBiomeSkippedSets) {
-    //         skipped += s;
-    //         skipped += ' ';
-    //     }
-    //     std::string rejected;
-    //     for (const auto& s : dbgBiomeRejectedPairs) {
-    //         rejected += s;
-    //         rejected += ' ';
-    //     }
-    //     spdlog::info("[STRUCT] ({},{}) sets={} skipExisting={} skipBiomes={} skipPlacement={} "
-    //                  "skipBiomeCheck={} attempts={} created={}",
-    //         chunkX,
-    //         chunkZ,
-    //         dbgSets,
-    //         dbgSkipExisting,
-    //         dbgSkipBiomes,
-    //         dbgSkipPlacement,
-    //         dbgSkipBiomeCheck,
-    //         dbgAttempts,
-    //         dbgCreated);
-    //     if (!skipped.empty()) {
-    //         spdlog::info("[STRUCT]   skipBiomes-sets: {}", skipped);
-    //     }
-    //     if (!rejected.empty()) {
-    //         spdlog::info("[STRUCT]   biomeRejected: {}", rejected);
-    //     }
-    //     if (!dbgCreatedIds.empty()) {
-    //         std::string createdIds;
-    //         for (const auto& s2 : dbgCreatedIds) {
-    //             createdIds += s2;
-    //             createdIds += ' ';
-    //         }
-    //         spdlog::info("[STRUCT]   created: {}", createdIds);
-    //     }
-    // }
 
     // 通知 StructureCheck 缓存此区块的结构引用数据
     // 对齐 MC 1.21.11 ServerLevel.onStructureStartsAvailable() 通过 structureCheck.onStructureLoad() 的调用
@@ -1287,104 +1167,83 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 // Beardifier
 // ============================================================================
 
-world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRegion& region, ChunkPrimer& chunk) const
+world::gen::density::BeardifierData world::gen::density::collectBeardifierData(
+    const std::vector<std::pair<const world::gen::structure::StructureStart*, const world::gen::structure::Structure*>>&
+        starts,
+    i32 chunkMinX,
+    i32 chunkMinZ)
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildBeardifier", "x", chunk.x(), "z", chunk.z());
+    BeardifierData data;
 
-    std::vector<world::gen::density::Beardifier::Rigid> pieces;
-    std::vector<world::gen::jigsaw::JigsawJunction> junctions;
+    // 片段与连接点只有在「与当前区块的距离不超过核半径」时才参与：再远的位置核权重恒为 0，
+    // 提前过滤可以避免结构很大的时候把无关片段也带进遍历。
+    constexpr i32 KERNEL_RADIUS = 12;
+    const i32 maxX = chunkMinX + world::CHUNK_WIDTH - 1 + KERNEL_RADIUS;
+    const i32 maxZ = chunkMinZ + world::CHUNK_WIDTH - 1 + KERNEL_RADIUS;
 
-    const ChunkCoord chunkX = chunk.x();
-    const ChunkCoord chunkZ = chunk.z();
-    const i32 startX = chunkX * world::CHUNK_WIDTH;
-    const i32 startZ = chunkZ * world::CHUNK_WIDTH;
+    for (const auto& [start, structure] : starts) {
+        if (start == nullptr || !start->isValid()) {
+            continue;
+        }
 
-    // MC 1.21.11: Beardifier.forStructuresInChunk
-    // 通过 StructureManager.startsForStructure() 查询所有与当前区块相交的结构起点。
-    // 结构引用已在 STRUCTURE_REFERENCES 阶段填充，包含源自邻居区块但延伸到当前区块的结构。
-    // 遍历所有结构引用，从源区块获取 StructureStart，过滤 terrainAdaptation != None 的结构。
-
-    auto processStart = [&](const world::gen::structure::StructureStart& start,
-                            const world::gen::structure::Structure* structure) {
         const auto terrainAdaptation =
             (structure != nullptr) ? structure->terrainAdaptation() : TerrainAdaptation::None;
 
-        // MC 1.21: terrainAdaptation == None 的结构不影响地形，跳过整个 StructureStart
+        // 没有地形适配的结构不影响地形，整条结构起点都不参与。
         if (terrainAdaptation == TerrainAdaptation::None) {
-            return;
+            continue;
         }
 
-        for (const auto& piece : start.pieces()) {
+        for (const auto& piece : start->pieces()) {
             if (!piece) {
                 continue;
             }
 
-            // 检查片段是否在区块附近（Beardifier.BEARD_KERNEL_RADIUS = 12 格范围）
-            const auto& box = piece->getBoundingBox();
-            if (box.maxX() < startX - 12 || box.minX() > startX + world::CHUNK_WIDTH - 1 + 12 ||
-                box.maxZ() < startZ - 12 || box.minZ() > startZ + world::CHUNK_WIDTH - 1 + 12) {
+            const auto box = piece->getBoundingBox();
+            if (box.maxX() < chunkMinX - KERNEL_RADIUS || box.minX() > maxX || box.maxZ() < chunkMinZ - KERNEL_RADIUS ||
+                box.minZ() > maxZ) {
                 continue;
             }
 
-            // MC 1.21: Jigsaw 片段需要区分 RIGID 和 TERRAIN_MATCHING 投影
-            // RIGID 投影的片段作为 Rigid piece 添加到 Beardifier
-            // TERRAIN_MATCHING 投影的片段不添加为 Rigid piece（它们的地形会自适应）
-            // 非 Jigsaw 片段始终添加，groundLevelDelta = 0
-            bool isRigidJigsaw = false;
-            if (piece->isJigsawPiece()) {
-                // MC: PoolElementStructurePiece.getElement().getProjection()
-                // 只有 RIGID 投影的 Jigsaw 片段才作为 Rigid piece
-                isRigidJigsaw = (piece->getProjection() == StructurePieceProjection::Rigid);
+            // 地形匹配投影的 Jigsaw 片段由地面高度对齐，不作为固定体积，只贡献连接点；
+            // 刚性投影的 Jigsaw 片段与非 Jigsaw 片段都按固定体积参与，后者地面高度偏移恒为 0。
+            const bool jigsaw = piece->isJigsawPiece();
+            const bool rigidPiece = !jigsaw || piece->getProjection() == StructurePieceProjection::Rigid;
 
-                // 收集 JigsawJunction（仅 TERRAIN_MATCHING 类型的连接点）
-                // MC: TERRAIN_MATCHING 投影的 Jigsaw 片段的 junctions 参与 Beardifier 计算
-                if (piece->getProjection() == StructurePieceProjection::TerrainMatching) {
-                    for (const auto& junction : piece->getJunctions()) {
-                        const i32 jx = junction.getSourceX();
-                        const i32 jz = junction.getSourceZ();
-                        if (jx > startX - 12 && jx < startX + world::CHUNK_WIDTH - 1 + 12 && jz > startZ - 12 &&
-                            jz < startZ + world::CHUNK_WIDTH - 1 + 12) {
-                            junctions.push_back(junction);
-                        }
-                    }
-                }
+            if (rigidPiece) {
+                const i32 groundLevelDelta = jigsaw ? piece->getGroundLevelDelta() : 0;
+                data.pieces.push_back(Beardifier::Rigid{box, terrainAdaptation, groundLevelDelta});
             }
 
-            if (isRigidJigsaw || !piece->isJigsawPiece()) {
-                const i32 groundLevelDelta = isRigidJigsaw ? piece->getGroundLevelDelta() : 0;
-                pieces.push_back(world::gen::density::Beardifier::Rigid{box, terrainAdaptation, groundLevelDelta});
-            }
-
-            // RIGID Jigsaw 片段也收集 junctions
-            if (isRigidJigsaw) {
-                for (const auto& junction : piece->getJunctions()) {
-                    const i32 jx = junction.getSourceX();
-                    const i32 jz = junction.getSourceZ();
-                    if (jx > startX - 12 && jx < startX + world::CHUNK_WIDTH - 1 + 12 && jz > startZ - 12 &&
-                        jz < startZ + world::CHUNK_WIDTH - 1 + 12) {
-                        junctions.push_back(junction);
-                    }
+            for (const auto& junction : piece->getJunctions()) {
+                const i32 jx = junction.getSourceX();
+                const i32 jz = junction.getSourceZ();
+                if (jx > chunkMinX - KERNEL_RADIUS && jx < maxX && jz > chunkMinZ - KERNEL_RADIUS && jz < maxZ) {
+                    data.junctions.push_back(junction);
                 }
             }
         }
-    };
+    }
 
-    // MC 1.21.11: 使用跨区块结构引用收集 Beardifier 数据
-    // 对应 Java: StructureManager.startsForStructure(chunkPos, s -> s.terrainAdaptation() != NONE)
-    // 遍历当前区块的 structureReferences，从源区块获取 StructureStart
-    // MC 的 startsForStructure 已包含当前区块自身的结构起点（通过引用机制），
-    // 因此不需要额外遍历 structureStarts
+    return data;
+}
+
+world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRegion& region, ChunkPrimer& chunk) const
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildBeardifier", "x", chunk.x(), "z", chunk.z());
+
+    const i32 chunkMinX = chunk.x() * world::CHUNK_WIDTH;
+    const i32 chunkMinZ = chunk.z() * world::CHUNK_WIDTH;
+
+    // 结构引用已在 STRUCTURE_REFERENCES 阶段填充，包含源自邻居区块但延伸到当前区块的结构；
+    // 引用机制本身已包含当前区块的结构起点，因此不需要额外遍历 structureStarts。
+    std::vector<std::pair<const world::gen::structure::StructureStart*, const world::gen::structure::Structure*>>
+        starts;
     std::unordered_set<const world::gen::structure::StructureStart*> processedStarts;
 
     if (chunk.hasStructureReferences()) {
         for (const auto& [structureId, refs] : chunk.structureReferences()) {
             const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
-
-            // MC: predicate 过滤 terrainAdaptation != NONE
-            if (!structure || structure->terrainAdaptation() == TerrainAdaptation::None) {
-                continue;
-            }
-
             for (const auto& [refX, refZ] : refs) {
                 IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
                 if (!sourceChunk) {
@@ -1402,17 +1261,17 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRe
                 }
 
                 // 去重：同一个 StructureStart 可能通过多个引用条目被多次发现
-                if (processedStarts.count(start)) {
+                if (processedStarts.count(start) != 0) {
                     continue;
                 }
                 processedStarts.insert(start);
-
-                processStart(*start, structure);
+                starts.emplace_back(start, structure);
             }
         }
     }
 
-    return world::gen::density::Beardifier(std::move(pieces), std::move(junctions));
+    auto data = world::gen::density::collectBeardifierData(starts, chunkMinX, chunkMinZ);
+    return world::gen::density::Beardifier(std::move(data.pieces), std::move(data.junctions));
 }
 
 } // namespace mc
