@@ -45,6 +45,7 @@
 #include <utility>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace blockentity {
@@ -383,10 +384,17 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
         return lootTableManager.getPredicate(id);
     });
 
-    auto context = builder.build(loot::LootParameterSets::chest());
+    // 方块实体作为 `block_entity` 参数进上下文：掉落物的 `copy_components(source: block_entity)`
+    // 要从它身上抄自定义名、锁与容器内容。原版 `LootTable#fill` 的调用方
+    // `RandomizableContainer.unpackLootTable` 只给 ORIGIN（与 THIS_ENTITY），并没有单独传它；
+    // 原版是从「这个战利品表属于哪个方块实体」隐式拿到的，这里显式补上，
+    // 否则箱子掉出来会丢名字、潜影盒掉出来是空的。
+    builder.withParameter(loot::LootParams::BLOCK_ENTITY, static_cast<BlockEntity*>(this));
 
-    // 生成物品
-    std::vector<ItemStack> items = table->generate(*context);
+    auto context = builder.build(loot::LootParameterSets::chest());
+    if (context == nullptr) {
+        return false;
+    }
 
     // 填充到容器中
     IInventory* inventory = getInventory();
@@ -394,41 +402,86 @@ bool LootableContainerBlockEntity::fillWithLootFromTable(loot::LootTableManager&
         return false;
     }
 
-    i32 containerSize = inventory->getContainerSize();
-    for (ItemStack stack : items) {
-        if (stack.isEmpty()) {
-            continue;
-        }
+    // ===== 对齐 vanilla LootTable.fill:150-169 =====
+    // 1. 掷表；2. 收集当前「空槽位」并洗牌；3. 把大堆随机拆开、再整体洗牌；
+    // 4. 从洗好牌的空槽位表末尾逐个取出，把物品整堆放进去。
+    //
+    // 三步随机全都取自同一个上下文随机源，顺序不能换：换一步，箱子里的东西
+    // 就落到别的格子里去了。
+    std::vector<ItemStack> items = table->generate(*context);
+    math::IRandom& random = context->getRandom();
 
-        // 尝试找到可堆叠的槽位
-        // TODO: 对齐 vanilla org.bukkit.craftbukkit BaseContainerBlockEntity.unpackLootTable 的
-        //       setItem(slot, stack) 语义——原版这里不合并，第一个可用槽位直接放置整堆；
-        //       本实现会把同类物品并进已有槽位，箱子内容与散落方式因此与原版不同。
-        //       需要的校验：loot_table_container harness（把满载的箱子逐槽导出与 oracle 比对）。
-        for (i32 slot = 0; slot < containerSize && !stack.isEmpty(); ++slot) {
-            ItemStack existing = inventory->getItem(slot);
-            if (!existing.isEmpty() && existing.canMergeWith(stack) &&
-                existing.getCount() < existing.getMaxStackSize()) {
-                // 尝试堆叠
-                i32 space = existing.getMaxStackSize() - existing.getCount();
-                i32 toAdd = std::min(space, stack.getCount());
-                existing.grow(toAdd);
-                inventory->setItem(slot, existing);
-                stack.shrink(toAdd);
-            }
+    std::vector<i32> availableSlots;
+    const i32 containerSize = inventory->getContainerSize();
+    availableSlots.reserve(static_cast<usize>(containerSize));
+    for (i32 slot = 0; slot < containerSize; ++slot) {
+        if (inventory->getItem(slot).isEmpty()) {
+            availableSlots.push_back(slot);
         }
+    }
+    random.shuffle(availableSlots);
 
-        // 剩余物品放入空槽位
-        for (i32 slot = 0; slot < containerSize && !stack.isEmpty(); ++slot) {
-            if (inventory->getItem(slot).isEmpty()) {
-                inventory->setItem(slot, stack);
-                break;
-            }
+    _shuffleAndSplit(items, static_cast<i32>(availableSlots.size()), random);
+
+    for (ItemStack& stack : items) {
+        if (availableSlots.empty()) {
+            spdlog::warn("LootableContainerBlockEntity: 战利品超出容器容量，多余物品被丢弃");
+            break;
         }
+        const i32 slot = availableSlots.back();
+        availableSlots.pop_back();
+        inventory->setItem(slot, stack);
     }
 
     setChanged();
     return true;
+}
+
+void LootableContainerBlockEntity::_shuffleAndSplit(std::vector<ItemStack>& items, i32 slotCount, math::IRandom& random)
+{
+    // 对应 vanilla LootTable.shuffleAndSplitItems:171-201：
+    // 大堆（数量 > 1）会以随机概率被拆开，直到「物品堆数」填满可用槽位为止，
+    // 最后把整张列表洗牌。
+    std::vector<ItemStack> splittable;
+    std::vector<ItemStack> result;
+    result.reserve(items.size() * 2);
+    for (const ItemStack& stack : items) {
+        if (stack.isEmpty()) {
+            continue;
+        }
+        if (stack.getCount() > 1) {
+            splittable.push_back(stack);
+        } else {
+            result.push_back(stack);
+        }
+    }
+
+    while (
+        slotCount - static_cast<i32>(result.size()) - static_cast<i32>(splittable.size()) > 0 && !splittable.empty()) {
+        const i32 pick = random.nextInt(0, static_cast<i32>(splittable.size()) - 1);
+        ItemStack stack = splittable[static_cast<usize>(pick)];
+        splittable.erase(splittable.begin() + pick);
+
+        const i32 splitCount = random.nextInt(1, stack.getCount() / 2);
+        // 先拆再判：原版 `stack.split(i)` 把**拆出去的那 i 个**返回、把剩余留在 stack 上，
+        // 随后判的是「留在 stack 上的剩余」是否 > 1，写成 itemstack1 是拆走的部分。
+        ItemStack splitOff = stack.split(splitCount);
+
+        if (stack.getCount() > 1 && random.nextBoolean()) {
+            splittable.push_back(stack);
+        } else {
+            result.push_back(stack);
+        }
+        if (splitOff.getCount() > 1 && random.nextBoolean()) {
+            splittable.push_back(splitOff);
+        } else {
+            result.push_back(splitOff);
+        }
+    }
+
+    result.insert(result.end(), splittable.begin(), splittable.end());
+    random.shuffle(result);
+    items = std::move(result);
 }
 
 } // namespace blockentity

@@ -24,6 +24,7 @@
 package dev.horizonlab.diff;
 
 import com.mojang.serialization.Lifecycle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.core.LayeredRegistryAccess;
@@ -114,6 +115,32 @@ final class LootServerData {
             .map(key -> key.identifier().toString())
             .sorted()
             .toList();
+    }
+
+    /**
+     * 带 {@code random_sequence} 的表：原版只给这类表登记随机序列，容器战利品表就是这一类。
+     *
+     * <p>{@code LootTable.randomSequence} 是私有字段、没有公开访问器；用反射读它，
+     * 与 C++ 探针「直接读 JSON 的 random_sequence 键」是同一个判据。
+     */
+    List<String> containerTableIds() {
+        try {
+            var field = LootTable.class.getDeclaredField("randomSequence");
+            field.setAccessible(true);
+            List<String> ids = new ArrayList<>();
+            for (String id : tableIds()) {
+                LootTable table = table(id);
+                if (table == null) {
+                    continue;
+                }
+                if (field.get(table) instanceof java.util.Optional<?> optional && optional.isPresent()) {
+                    ids.add(id);
+                }
+            }
+            return ids;
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException("无法读取 LootTable#randomSequence：" + error, error);
+        }
     }
 
     /** 注册表访问（世界生成、生物群系等 oracle 复用）。 */

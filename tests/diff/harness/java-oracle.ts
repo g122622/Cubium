@@ -382,6 +382,32 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
 }
 
 /**
+ * 规范化后的 JSON 文本：对象键按字典序排列，数组保持原顺序。
+ *
+ * 比对两侧值时用它而不是直接 JSON.stringify——JSON 文本里的字段顺序取决于各自的
+ * 序列化实现（C++ 的 nlohmann 默认按 alphabetic 输出，Gson 按写入顺序），
+ * 键序不同而值相同的对象本来就不是差异。语义上的「数组是否有序」仍由
+ * {@link projectDeclaredFields} 的 unorderedArrays 决定，这里不额外排序数组。
+ */
+function stableStringify(value: unknown): string {
+    const normalise = (node: unknown): unknown => {
+        if (Array.isArray(node)) {
+            return node.map(normalise);
+        }
+        if (node !== null && typeof node === "object") {
+            const record = node as Record<string, unknown>;
+            const sorted: Record<string, unknown> = {};
+            for (const key of Object.keys(record).sort()) {
+                sorted[key] = normalise(record[key]);
+            }
+            return sorted;
+        }
+        return node;
+    };
+    return JSON.stringify(normalise(value));
+}
+
+/**
  * 逐行比对：oracle 的每一行都是模板，probe 必须声明同样的字段、同样的值。
  *
  * 与 runner.ts 的 compareByKey 同语义，但输入来自两个文件而不是内存数组。
@@ -416,8 +442,10 @@ function compareLines(
         } else if (probeValue === undefined) {
             differences.push({ key: unit, expected: oracleValue, actual: "<absent in probe>" });
         } else if (
-            JSON.stringify(projectDeclaredFields(oracleValue, oracleValue, unorderedArrays)) !==
-            JSON.stringify(projectDeclaredFields(oracleValue, probeValue, unorderedArrays))
+            // 先各自规范化（递归排序对象键）：两侧的键序不同不代表值不同，
+            // 直接对 JSON 文本显然会把「同一个对象、字段顺序相反」误报成差异。
+            stableStringify(projectDeclaredFields(oracleValue, oracleValue, unorderedArrays)) !==
+            stableStringify(projectDeclaredFields(oracleValue, probeValue, unorderedArrays))
         ) {
             differences.push({ key: unit, expected: oracleValue, actual: probeValue });
         }

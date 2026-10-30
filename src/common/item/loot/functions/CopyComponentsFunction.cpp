@@ -23,6 +23,7 @@
 
 #include "CopyComponentsFunction.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
@@ -30,9 +31,13 @@
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
+#include "common/world/blockentity/core/LockableBlockEntity.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace loot {
@@ -56,7 +61,7 @@ bool _shouldCopy(const CopyComponentsFunction& func, item::component::DataCompon
     return true;
 }
 
-/// 方块实体可导出的组件（项目以 JSON 快照承载方块实体数据，只支持已建模的少数组件）
+/// 方块实体可导出的组件（vanilla `BlockEntity#collectComponents` 的隐式组件部分）
 bool _blockEntityComponent(
     BlockEntity& blockEntity, item::component::DataComponentType type, item::component::DataComponentPayload& out)
 {
@@ -74,14 +79,64 @@ bool _blockEntityComponent(
                 std::make_unique<text::StringTextComponent>(name)};
             return true;
         }
-        case DataComponentType::Container: {
-            // 方块实体容器内容：BlockEntity 尚无统一的槽位快照接口，
-            //  由后续容器组件化工作补齐（见 docs 中 copy_components 说明）。
-            return false;
+        case DataComponentType::Lock: {
+            // vanilla `BaseContainerBlockEntity.collectImplicitComponents`：只有锁非空时才写，
+            // 空锁不产生组件（否则每个被撬开的箱子都会带上 lock 组件）。
+            const auto* lockable = dynamic_cast<const blockentity::LockableBlockEntity*>(&blockEntity);
+            if (lockable == nullptr || !lockable->isLocked()) {
+                return false;
+            }
+            out = DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::Json>, nlohmann::json{{"key", lockable->getLockKey()}}};
+            return true;
         }
+        case DataComponentType::ContainerLoot: {
+            // 只有「还没被打开过」的容器才带 container_loot：打开一次后战利品就摊进槽位，
+            // 再复制这个组件只会让掉落物重新挂上一张已经用掉的表。
+            const auto* container = dynamic_cast<const blockentity::LootableContainerBlockEntity*>(&blockEntity);
+            if (container == nullptr || !container->hasLootTable()) {
+                return false;
+            }
+            out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>,
+                nlohmann::json{
+                    {"loot_table", container->getLootTable().toString()}, {"seed", container->getLootTableSeed()}}};
+            return true;
+        }
+        case DataComponentType::Container:
+            // 载荷是物品堆列表，放不进 DataComponentPayload，由 _copyContainerComponent 处理。
+            return false;
         default:
             return false;
     }
+}
+
+/// 把方块实体的槽位内容写进物品的 `container` 组件（vanilla `ItemContainerContents.fromItems`）。
+void _copyContainerComponent(BlockEntity* blockEntity, ItemStack& stack)
+{
+    auto* container = dynamic_cast<ContainerBlockEntity*>(blockEntity);
+    if (container == nullptr) {
+        return;
+    }
+    IInventory* inventory = container->getInventory();
+    if (inventory == nullptr) {
+        return;
+    }
+
+    item::component::ItemContainerContentsPayload contents;
+    const i32 size = inventory->getContainerSize();
+    for (i32 slot = 0; slot < size; ++slot) {
+        ItemStack item = inventory->getItem(slot);
+        if (item.isEmpty()) {
+            continue;
+        }
+        contents.slots.push_back(
+            item::component::ItemContainerContentsPayload::Slot{slot, std::make_unique<ItemStack>(std::move(item))});
+    }
+    // 原版 `ItemContainerContents.fromItems` 在容器全空时返回 EMPTY，即不写组件。
+    if (contents.slots.empty()) {
+        return;
+    }
+    stack.setContainerContents(std::move(contents));
 }
 
 /// 实体可导出的组件（vanilla Entity#collectComponents）
@@ -131,6 +186,15 @@ ItemStack CopyComponentsFunction::run(ItemStack stack, LootContext& context) con
         if (!type.has_value() || !_shouldCopy(*this, *type)) {
             continue;
         }
+        // container 组件的载荷要持有整份物品堆列表，放不进 DataComponentPayload
+        // （该 variant 先于 ItemStack 定义，元素不能是 ItemStack），只能走 ItemStack
+        // 自己的独立字段，因此在这里单独处理。
+        if (m_source == Source::BlockEntity && *type == item::component::DataComponentType::Container) {
+            auto* blockEntity = context.get(LootParams::BLOCK_ENTITY);
+            _copyContainerComponent(blockEntity, stack);
+            continue;
+        }
+
         item::component::DataComponentPayload payload{};
         bool hasValue = false;
         if (m_source == Source::BlockEntity) {

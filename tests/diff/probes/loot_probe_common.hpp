@@ -44,6 +44,7 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -112,6 +113,8 @@ struct LootEnv {
     std::unique_ptr<Entity> attacker;
     /// 探针的 list 输出（排序后的表 ID）；加载完成时填好。
     std::vector<std::string> tableIds;
+    /// 带 `random_sequence` 的表：原版只给这类表登记随机序列，容器战利品表就是这一类。
+    std::vector<std::string> containerTableIds;
     /// 原版侧按表列出了哪些表在两侧都存在；探针只输出自己有的表。
     std::string loadError;
 };
@@ -205,8 +208,26 @@ inline LootEnv& environment()
                 // 加载失败的表不会出现在 list 里；原版侧输出同名单元时会以
                 // "<absent in probe>" 报出，缺口因此不会被静默吞掉。
                 env.loadError += file.generic_string() + ": " + result.error().toString() + "\n";
+                continue;
             }
+            // 带 `random_sequence` 的表才是能被随机容器/结构安全使用的战利品表：
+            // 原版只给这类表登记随机序列，结构生成、`LootRandomSequence` 都依赖它。
+            // 直接读一遍 JSON 而不是给 LootTable 加字段，是因为现有三个探针只要「表能掷」，
+            // 不需要为它们扩列类型。
+            std::ifstream stream(file, std::ios::binary);
+            if (!stream) {
+                continue;
+            }
+            const auto document = json::parse(stream, nullptr, false);
+            if (document.is_discarded() || !document.is_object() || !document.contains("random_sequence")) {
+                continue;
+            }
+            // 表 ID 取自加载器的路径推导规则，两侧因此对同一个文件得到同一个名字。
+            env.containerTableIds.push_back(loader.pathToLootTableId(file.generic_string()));
         }
+        std::sort(env.containerTableIds.begin(), env.containerTableIds.end());
+        env.containerTableIds.erase(
+            std::unique(env.containerTableIds.begin(), env.containerTableIds.end()), env.containerTableIds.end());
 
         // 谓词：`minecraft:reference` 条件通过谓词管理器解析。
         // 谓词 ID 由路径里 `predicates/` 的位置推导；原版 1.21.11 数据包不带任何谓词
