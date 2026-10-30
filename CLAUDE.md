@@ -166,6 +166,7 @@ Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
 （如果项目中代码是参考1.16.5的，必须迁移到1.21.11）
 Moonrise优化模组路径：E:\dev\MC\Mods\Moonrise
 ConcurrentUtil源码路径：D:\MiscProjects\ConcurrentUtil
+horizon harness：e:/dev/mc/thirdpartymc/horizon 在被要求编写harness对齐原版mc的时候必须参考这个项目的做法
 
 ### WSL
 

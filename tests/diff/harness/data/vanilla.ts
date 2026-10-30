@@ -46,7 +46,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const VANILLA_VERSION = "1.21.11";
 
 /** 仓库根（tests/diff/harness → tests/diff → tests → 根）。 */
-export const REPO_ROOT = path.resolve(HERE, "../../..");
+export const REPO_ROOT = path.resolve(HERE, "../../../..");
 
 /** minecraft-data 的加载器（复用 e2e bot 已安装的依赖，避免维护两份同版本数据）。 */
 const E2E_MODULE_DIR = path.join(REPO_ROOT, "tests/e2e/bot");

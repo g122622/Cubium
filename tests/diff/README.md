@@ -65,52 +65,123 @@ tests/diff/
 ├── java/dev/horizonlab/diff/    # 原版 Java oracle（直接调 1.21.11 服务端 jar）
 │   ├── DataPackRegistries.java  # 像服务端一样加载原版数据包（数据驱动注册表）
 │   ├── *Oracle.java / *Export.java
-└── harness/                     # TypeScript 编排层（Node 24 原生 type stripping）
-    ├── vanilla.ts               # minecraft-data 读取（回退数据源）
-    ├── oracle-env.ts            # 定位原版 jar + 依赖库，拼 classpath
-    ├── java-oracle.ts           # 编译 oracle、两侧各跑一次、按 key 比对
-    ├── comparison.ts            # 共享字段投影：严格检查数组长度，仅显式声明为无序的数组才忽略顺序
-    ├── runner.ts                # 构建 / 运行 / 比对 / 写报告；CLI 入口
-    ├── test_text_encode_parity.ts   # 手写 harness（方块状态全集 + 摘要）
-    └── harnesses/               # 声明式 harness 与注册表
-        ├── index.ts             # 注册表 + run all / run <name>
-        ├── loot_context.ts      # 战利品三个探针的上下文模板与已知缺口
-        ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
-        ├── status_effect.ts     # 效果实例的共同边界语料和固定操作序列
-        └── known_missing_items.ts   # 物品侧已知缺口清单
+├── harness/                     # TypeScript 编排层（Node 24 原生 type stripping）
+│   ├── runner.ts                # CLI 入口：run / build / graph，选择器、调度、状态
+│   ├── worker.ts                # 执行进程：一个能力一个进程，装模块追踪、跑、回报 JSON
+│   ├── core/                    # 与「怎么跑」无关的纯逻辑
+│   │   ├── comparison.ts        # 字段投影与比较（严格数组长度，仅声明为无序的才忽略顺序）
+│   │   ├── hash.ts              # 内容哈希（纳秒 mtime + 大小的缓存）
+│   │   └── types.ts             # 能力声明、运行上下文、共享输入清单
+│   ├── oracle/                  # 原版 Java 一侧
+│   │   ├── environment.ts       # 定位原版 jar、解包依赖库、拼 classpath
+│   │   └── cache.ts             # 原版输出缓存（键 = oracle 源码闭包 + 工具链 + argv + 单元 + 输入）
+│   ├── data/                    # 离线数据源
+│   │   ├── vanilla.ts           # minecraft-data（少数能力的参照数据）
+│   │   └── probes.ts            # 从 CMakeLists 读出探针清单（唯一事实来源）
+│   ├── harnesses/               # 声明式能力表（纯元数据）
+│   │   ├── index.ts             # HARNESSES 注册表 + 各能力的比对口径与已知缺口
+│   │   ├── text_encode.ts       # 方块状态文本与属性摘要
+│   │   ├── loot_context.ts      # 战利品三探针的上下文模板
+│   │   ├── loot_container.ts    # 容器战利品场景与已知缺口
+│   │   ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
+│   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
+│   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
+│   └── runner/                  # 运行层实现
+│       ├── layout.ts            # 构建目录、产物路径、ninja 位置、仓库根
+│       ├── graph.ts             # 依赖图：能力依赖哪些仓库文件、一次改动影响谁
+│       ├── state.ts             # 状态文件（内容摘要、依赖清单、上次结果）
+│       ├── select.ts            # 选择器：--all / --changed / --failed / 缺省增量
+│       ├── scheduler.ts         # 并行调度（每能力一进程、最长优先、互斥组）
+│       ├── session.ts           # 跑两侧、比对、写报告
+│       ├── build.ts             # 只构建本次要用的探针
+│       └── module-trace.ts      # 运行期模块追踪（记录能力实际加载了哪些 TS 文件）
+├── tools/
+│   ├── ninja.ts                 # 读 ninja 构建图：可执行文件的 .obj 闭包与逐目标依赖
+│   └── export_entity_attributes_reference.ts   # 用 oracle 重算生物属性参考表
 ```
 
-产物全部落在 `build/diff/<harness>/`：`inputs.jsonl`、`probe_outputs.jsonl`、`report.json`。
+运行产物全部落在 `build/diff/<能力>/`：
+
+| 路径 | 内容 |
+|---|---|
+| `run/inputs.jsonl` | 两侧共用的输入（每行一个单元） |
+| `run/probe_outputs.jsonl` | 探针输出 |
+| `run/report.json` | 比对报告：一致数、差异（裁剪到不相等的字段）、已知差异与理由 |
+| `java/` | oracle 的类目录与工作文件（也是依赖记录里的「构建产物」，不与 `run/` 混放） |
+| `../state/state.json` | 增量状态：每个能力的内容摘要、依赖清单、上次结论 |
+| `../state/oracle/` | 原版输出缓存（按内容摘要命名） |
 
 ---
 
 ## 运行
 
 ```bash
-# 全部 harness（Java oracle 部分需要 JDK，见下方「前置」）
-node tests/diff/harness/runner.ts run all
+# 缺省：只跑「依赖内容与上次不同」的能力（增量；全部已通过时几秒内结束）
+node tests/diff/harness/runner.ts
 
-# 单个
-node tests/diff/harness/runner.ts run item_components
-node tests/diff/harness/runner.ts run text_encode
+# 全部能力，忽略通过记录
+node tests/diff/harness/runner.ts --all
 
-# 只构建全部 probe / 单个 probe
+# 单个 / 几个
+node tests/diff/harness/runner.ts item_components
+node tests/diff/harness/runner.ts command_tree loot_table_entity
+
+# 只跑受某次改动影响的能力（先看会跑哪些用 --list）
+node tests/diff/harness/runner.ts --changed origin/main
+node tests/diff/harness/runner.ts --changed-files changed.txt --list
+
+# 只跑上次没通过的；查看每个能力上次的结论
+node tests/diff/harness/runner.ts --failed
+node tests/diff/harness/runner.ts --status
+
+# 不复用原版输出缓存
+node tests/diff/harness/runner.ts --all --fresh
+
+# 只构建全部 / 指定的 probe
 node tests/diff/harness/runner.ts build
 node tests/diff/harness/runner.ts build item_components
 
-# 手写 harness（方块状态全集 + 摘要，比 runner 多一层全集核对）
-node tests/diff/harness/test_text_encode_parity.ts --no-build
+# 打印依赖图（每个能力依赖多少仓库文件、多少运行期模块）
+node tests/diff/harness/runner.ts graph
 
 # 指定其它构建目录（默认 <仓库>/build）
-MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/runner.ts run all
+MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/runner.ts --all
 ```
 
-退出码：`0` 全部一致；`1` 存在差异；`2` 环境问题（缺 probe、构建失败、缺原版数据）。
+常用参数：`-j <n>` 并发度（默认 CPU 核心数/3、上限 8）、`--no-build` 跳过构建、
+`--timeout <秒>` 单能力超时（默认 1800）、`--samples <n>` 终端里展示的差异条数（默认 5）。
+
+退出码：`0` 无意外差异（含「只有已登记的已知差异」）；`1` 存在意外差异；
+`2` 环境问题（缺 probe、构建失败、缺原版数据）。
+
+### 增量、缓存与选择
+
+编排层的设计目标是「改了什么就跑什么，没改就不跑，跑过的不重跑」：
+
+1. **内容摘要**：每个能力一份依赖清单（probe 的链接闭包 + oracle 源码闭包 + 运行期实际加载
+   的 TS 模块 + probe 产物 + 环境指纹），按文件内容哈希成一个摘要写进
+   `build/diff/state/state.json`。摘要没变且上次通过 → 直接跳过。
+2. **快速路径**：缺省选择只哈希「上次记下的依赖清单」（有缓存时约 0.1 秒）；只有摘要变了才去
+   建图（`ninja -t compdb` + 逐目标 `-t deps`，本机约 35 秒）。
+3. **原版输出缓存**：oracle 的输出按 `oracle 源码闭包 + jar/依赖库 + argv + 单元 + 输入` 缓存，
+   缓存命中时只跑探针。**命中却出现差异时不会直接采信**——会重跑一次 oracle，重跑仍不一致
+   才算真差异，一致则判定缓存被污染并删除该键。
+4. **只构建要用的探针**：`build <name>` 只构建该能力对应的 `diff_<探针>` 目标。
+5. **选择器**（`runner/select.ts`）：`--changed` 用依赖图判定「哪些能力依赖改动的文件」，
+   并且**不**用通过记录过滤——显式给出一批改动时，用户就是在要求验证它们。
+   注意依赖图是**刻意过宽**的：C++ 侧按静态库边界展开，改一个 `mc_common` 的头会让所有
+   probe 重跑；这比用符号表反推「真正被引用」稳，误触发的代价只是慢几十秒。
+6. **并行**：一个能力一个子进程（模块解析钩子是进程级的，且能把崩溃/OOM 隔离在这一个能力里），
+   上次耗时长的先跑。`exclusiveGroup` 声明的能力互不并发——战利品族 oracle 要在
+   `java.io.tmpdir` 建原版服务端世界并持有区域文件锁，并行会直接锁死。
+
+本机实测（28 核，Windows）：全量 37 个能力 `-j 8` 约 3 分 20 秒；无改动重跑约 3 秒
+（`--all` 会全部重跑，约 3 分 20 秒）；改动一个 probe 源文件只跑该能力。
 
 **前置**：
 
-1. `MC_BUILD_DIFF_PROBES` 默认为 `OFF`，构建脚本会自动打开它；Windows 上构建必须经过
-   `scripts/configure.sh`（注入 VS 环境），`runner.ts` 已经这样调用。
+1. `MC_BUILD_DIFF_PROBES` 默认为 `OFF`，`runner.ts build` 会自动打开它；Windows 上它通过
+   `scripts/configure.bat` 注入 VS 环境后再调 `cmake --build`，与人工构建共用同一个构建目录。
 2. **JDK 21+**（`javac`/`java` 在 PATH 上）。Java oracle 直接拿原版 jar 当参照实现，
    不需要 Gradle。
 3. 原版 jar 与依赖库。默认从 fabric-loom 缓存找：
@@ -123,7 +194,7 @@ MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/runner.ts run all
    找不到时用环境变量显式指定：`MC_VANILLA_MERGED_JAR`（反混淆 merged jar）、
    `MC_VANILLA_SERVER_JAR`（bundler，用于解出 39 个依赖库），或直接给
    `MC_VANILLA_LIBRARIES`（已解包的依赖目录）。
-4. `text_encode` 用 minecraft-data 作参照：`tests/e2e/bot/node_modules/minecraft-data`，
+4. `item_summary` 用 minecraft-data 作参照：`tests/e2e/bot/node_modules/minecraft-data`，
    未安装时 `cd tests/e2e/bot && npm install`。
 
 ---
@@ -137,15 +208,38 @@ diff_<domain> list                          # 每行一个单元（方块状态�
 diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 输出
 ```
 
-`list` 枚举「可被枚举的全集」，`run` 按方块出摘要，两者不必是同一个集合——比对什么由
-harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、比对、写报告。
+`list` 枚举「这个能力能提供的全部单元」，`run` 按单元出结果，两者不必是同一个集合——
+比对什么由能力声明决定。运行层负责按 `key` 对齐两侧输出、规范化、比对、写报告。
 
-**规范化必须在两侧都做**（`compareTransform`）。当前做了三件事：
+**比较口径**（`core/comparison.ts`）：
 
-1. 属性按名字排序 —— vanilla 的 `StateHolder#toString` 按名字字典序输出，注册顺序不是语义；
-2. 取值域排序 —— minecraft-data 给字符串序（`"1","10","2"`），Cubium 给枚举声明序；
-3. `DirectionProperty` 归一到 `EnumProperty` —— 前者是后者的子类，vanilla 的 `facing` 就是
-   `EnumProperty<Direction>`。**只归一类型名，不放开取值比较**。
+- 只比参照实现声明过的字段：参照没给的信息是「没得比」，不是「不一致」；
+- 数组必须等长；只有能力显式声明为无语义的路径（`unorderedArrays`）才按规范序重排；
+- 对象键序不参与比较（同一次判定同时接受 `{"a":1,"b":2}` 与 `{"b":2,"a":1}`）；
+- 浮点的写法差异（Gson 写 f32 最短表示 `0.485`，nlohmann 写 `0.48500001430511475`）由能力的
+  `normalise` 处理，**且只在被测一侧做**：运行层会校验规范化对参照侧是恒等映射
+  （`normalisationIsFaithful`），防止「两侧都经过它」把真差异一起抹掉；
+- 报告里的差异只保留**不相等的字段**（递归裁剪到第一层不等处、等长数组逐个对齐），
+  否则命令树的 `wire` 一条就能刷掉几十 KB。
+
+**已知缺口必须显式登记**，四档，按粒度从粗到细：
+
+| 声明 | 含义 | 报告里的表现 |
+|---|---|---|
+| `oracleMissing` | 整条单元不参与比较（原版有、本项目没实现） | 只报条数 |
+| `memberGaps` | 从**原版一侧**剔除某些成员（未注册的物品等） | 只报条数 |
+| `projectOnly` | 从**被测一侧**剔除本项目独有的成员（自研命令等） | 只报条数 |
+| `knownDifferences` | 差异照常产生，但登记在案、不判失败 | 条数 + 每条的理由 |
+
+`knownDifferences` 的匹配规则：单元键完全相同（或用 `*` 表示所有单元），且（若给了
+`field`）差异的顶层字段包含它。`*` 必须带 `field`——整单元放行的通配等于关掉整个能力，
+不允许。已登记的已知差异在结果行里也会点名：
+
+```
+[36/37] loot_container   通过   116.3s  0/5296 一致；5296 处已登记的已知差异
+```
+
+一旦这条缺口被修好，必须删掉对应登记，否则新缺陷会被一并吞掉。
 
 ---
 
@@ -170,15 +264,27 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
    ```
 
 3. 在 `java/dev/horizonlab/diff/` 写 `<Domain>Oracle.java`（`list` / `run` 两个子命令），
-   在 `harness/harnesses/index.ts` 的 `JAVA_HARNESSES` 里登记 oracle 类名、输入模板与
-   比对键。`.java` 由 `java-oracle.ts` 在运行前编译，不需要额外构建步骤。
+   在 `harness/harnesses/index.ts` 的 `HARNESSES` 表里加一条声明：
 
-   读数据包的能力（战利品表、进度、群系生成、配方）：把域名加进 `runner.ts` 的
-   `DATAPACK_DOMAINS`，探针就能从 `MC_DIFF_VANILLA_DATAPACK` 拿到与 oracle 同一个
-   数据包目录；探针共用的注册表初始化与数据包标签加载在 `probes/vanilla_datapack.hpp`。
+   ```ts
+   { name: "block_flags", probe: "block_flags", oracle: "BlockFlagsOracle", key: "block",
+     units: { kind: "listing" }, input: (unit) => ({ block: unit }) }
+   ```
 
-   原版有、本项目尚未实现的单元登记进 `oracleMissing`（整条单元）或
-   `memberGaps`（只从原版一侧剔除某些成员），报告里会单独说明条数。
+   `.java` 由 `oracle/environment.ts` + `runner/session.ts` 在运行前编译（javac 幂等），
+   不需要额外构建步骤；oracle 的同包 import 闭包会被依赖图自动追踪。
+
+   声明的其余字段按需使用：`normalise`（浮点比较等）、`unorderedArrays`、`memberGaps`、
+   `projectOnly`、`knownDifferences`、`oracleMissing`、`oracleArgs`（追加给 oracle 的参数，
+   用于让参照侧跳过已知缺口）、`beforeUnits`（枚举单元前导出夹具，见 `recipe.ts`）、
+   `exclusiveGroup`（与占用同一进程外资源的能力互斥，见上方「增量、缓存与选择」）。
+
+   `units` 默认 `listing`（有 oracle 时由 oracle 的 `list` 枚举，否则由探针枚举）；
+   两侧枚举口径不同时用 `computed` 自己组合（`text_encode` 用探针的状态全集提炼方块名，
+   再用 oracle 的状态全集判定「原版有没有」）。
+
+   读数据包的能力（战利品表、进度、群系生成、配方）：探针从 `MC_DIFF_VANILLA_DATAPACK`
+   拿到与 oracle 同一个数据包目录，共用初始化在 `probes/vanilla_datapack.hpp`。
 
 **确定性是硬要求**：同一输入必须永远产出同一输出。涉及无序容器、随机数、时间、
 地址的，probe 必须在写出前自行收敛（排序、固定种子、去掉地址），否则差分没有意义。
@@ -192,7 +298,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
-| `text_encode` | minecraft-data | 1166 个方块 / 29671 条状态文本 | 全部一致 | — |
+| `text_encode` | 原版 jar `BlockStateOracle` | 1166 个方块（状态全集 29671 条由各自的 `list` 枚举） | 全部一致 | 原版没有、Cubium 多注册的方块会被列为「probe 侧多出」 |
 | `item_summary` | 原版 jar `ItemSummaryOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `item_components` | 原版 jar `ItemComponentsOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `entity_shape` | 原版 jar `EntityShapeOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
@@ -209,10 +315,11 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `random_sequence` | 原版 jar `RandomSequenceOracle` | 24 | 全部一致 | — |
 | `status_effect` | 原版 jar `StatusEffectOracle` | 2430 个场景 / 48,822 次操作 | 全部一致 | — |
 | `command_argument` | 原版 jar `CommandArgumentOracle` | 162 | 全部一致 | — |
-| `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| 全部一致 | 9 条命令未实现（见下） |
+| `command_tree` | 原版 jar `CommandTreeOracle` | 1（全部根命令）| `tree`/`arguments`/`components` 一致；`wire` 为已登记的已知差异 | 9 条命令未实现（见下）；`/panel` 使整棵树编码不可比（见下） |
 | `loot_table` | 原版 jar `LootTableOracle` | 1324 | 全部一致 | — |
 | `loot_table_block` | 原版 jar `LootTableBlockOracle` | 1324 | 全部一致 | — |
-| `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 5288（1324 张表 × 4 个场景） | 14 处差异（13 张表的 `#player` 场景 + `magma_cube`/`pillager`） | 2 张表的实体类型建不出来（`creaking`、`mannequin`） |
+| `loot_table_entity` | 原版 jar `LootTableEntityOracle` | 5288（1324 张表 × 4 个场景） | 5274 一致；14 处为已登记的已知差异（13 张表的 `#player` + `zombie_nautilus`） | 2 张表的实体类型建不出来（`creaking`、`mannequin`），探针注释待核对 |
+| `loot_container` | 原版 jar `LootContainerOracle` | 5296（1324 张表 × 4 个场景） | 两段均为已登记的已知差异（见下） | `slots` 随机源未对齐、`drop` 字段集不一致 |
 | `advancement` | 原版 jar `AdvancementOracle` | 1584 | 全部一致 | — |
 | `biome_spawns` | 原版 jar `BiomeSpawnsOracle` | 65 | 全部一致 | — |
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
@@ -367,8 +474,8 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 - 甜浆果丛可种植地面改用原版 `VegetationBlock.mayPlaceOn` 的语义：`#dirt` 或耕地。
 
 `item_tags` 的差异全部来自 381 个尚未注册的物品，逐条列进 `known_missing_items.ts` 既写不全
-也读不出重点；`java-oracle.ts` 因此新增 `memberGaps` 选项，按成员名从**原版一侧**剔除并报告
-条数（probe 多出来的成员永远算差异）。
+也读不出重点；因此能力声明里有 `memberGaps` 选项，按成员名从**原版一侧**剔除并报告条数
+（probe 多出来的成员永远算差异）。
 
 ### `biome_climate`：首轮只有 9/65 一致
 
@@ -420,10 +527,17 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 
 ### 已知未解决（带 TODO 标注）
 
-- **`loot_table_entity` 的 14 处 `#player` 差异**：13 张表在两套上下文下只差玩家相关条件
-  （`killed_by_player`、`direct_attacker` 的装备等）。两侧单独跑都自洽，只在 harness 环境里
-  分叉；根因疑似 oracle 侧未登录 `ServerPlayer` 的 `LAST_DAMAGE_PLAYER` 参数缺失，尚未定论。
-  代码里以 `TODO(known-failure)` 标注。
+- **`loot_table_entity` 的 14 处 `#player` 差异**：这 14 种生物在「击杀者是玩家」的上下文里
+  Cubium 多掉一部分物品（蜘蛛眼、幻翼膜、吹风机碎片、湿海绵……），换成 `#default`
+  （击杀者是僵尸）就一致；根因未定位。已在 `harnesses/index.ts` 的
+  `ENTITY_LOOT_KNOWN_GAPS` 登记为已知差异（逐单元 + `samples` 字段），修好后整段删除。
+- **`loot_container` 的两段已知差异**：`slots` 的随机源未对齐 `random_sequence` 派生；
+  `drop` 段 oracle 只导出 `id/count` 而探针多导出了 `customName/container`（探针注释判断为
+  oracle 加载旧字节码，尚未查清）。两条都在 `harnesses/loot_container.ts` 的 `KNOWN_GAPS`
+  里登记，并在探针文件头以 `TODO` 说明修法。
+- **`command_tree` 的 `wire`**：`/panel` 这个自研命令改变了整棵树的编码字节，使逐字节比对
+  恒不相等。`tree`/`arguments`/`components` 三组已全部一致，`wire` 登记为已知差异；
+  修复方向是让自研命令不进入可编码的命令集合。
 - **三个「数量为 2 的不可堆叠物品」单元测试**（`ItemPredicateTest.CombinedCountAndPotion`、
   `EquipItemIfPossibleTest.PickUpItem_LimitsArmorToSingleItem`、
   `ArmorStandEntityTest.InteractAt_WithChestplate_CountGreaterThanOne_MovesOne`）：`ItemStack::setCount`
@@ -650,7 +764,14 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 执行语义的未完成部分仍由相应命令测试和源码 TODO 跟踪。
 
 **仍未实现（9 条，见 `known_missing_commands.ts`）**：`fetchprofile`、`fillbiome`、
-`item`、`place`、`random`、`test`、`tick`、`transfer`、`waypoint`。
+`item`、`place`、`random`、`test`、`tick`、`transfer`、`waypoint`。这 9 条通过
+`oracleArgs` 让原版在注册阶段就跳过——它们的子节点会把同一批参数类型节点撑成不同形状，
+留在参照侧会让其余节点也变成伪差异。
+
+**`wire` 目前是已登记的已知差异**：`/panel` 是自研命令，原版没有，它会让整棵树的编码
+字节整体不同。`tree`/`arguments`/`components` 三组已经全部一致，因此结构级偏差（节点顺序、
+重定向下标）仍被覆盖；`wire` 恢复可比需要让自研命令不进入可编码集合（见
+`harnesses/index.ts` 的 TODO）。
 
 ### 已知缺口清单
 
@@ -665,7 +786,14 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 - **协议通道不能用 stdout/stderr**：原版 log4j 的配置会把 stdout 拿去记日志，`System.err`
   也会被套成 `[time] [main/INFO]: [STDERR]: ` 前缀行。所以 `list` 子命令把单元写到
-  文件（`units.txt`），`run` 则写输出文件。
+  参数给定的文件（`list <units.txt>`）——**唯一例外**是 `BlockStateOracle`：它没有文件参数、
+  直接写 stdout，运行层在文件不存在时读 stdout（只认 `minecraft:` 开头的行）。
+  `run` 一律写输出文件。
+- **进程外固定资源要声明互斥**：需要在 `java.io.tmpdir` 下建服务端世界、或占用固定端口/
+  固定目录的 oracle，必须给能力声明 `exclusiveGroup`，否则并行运行时会互相锁死
+  （战利品族在 Windows 上实测会报 `another process has locked a portion of the file`）。
+- **错误要带上 stdout**：JVM 的异常栈常写在 stdout，只截 stderr 会只剩半句
+  `Exception in thread "main"`。运行层已经两侧都带。
 - **数据包注册表**：1.21 起附魔、生物变种等不再写在代码里。只调 `Bootstrap.bootStrap()`
   拿不到它们，要像服务端启动那样加载原版数据包——见 `DataPackRegistries.java`
   （内部使用 `RegistryDataLoader` + `ReloadableServerRegistries`；Java 类名对应 1.21.11
@@ -723,8 +851,10 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 - 表外的生物（例如 Cubium 有、原版没有的类型）仍由 oracle 的默认供应器兜底；
 - 只比较两侧都建模的 6 个属性（生命/移速/跟随/攻击/护甲/击退抗性）；原版别的属性
   （`SPAWN_REINFORCEMENTS_CHANCE`、`ATTACK_KNOCKBACK`……）Cubium 尚未建模，不混入比对；
-- 表面数据可用 `node tests/diff/harness/scripts/export_entity_attributes_reference.ts`
-  用 oracle 重新导出（不带 `--write` 只打印，便于 diff）。
+- 表面数据可用 `node tests/diff/tools/export_entity_attributes_reference.ts` 用 oracle
+  重新导出（不带 `--write` 只打印，便于 diff；带 `--write` 只改数据段，注释与
+  `RUNTIME_DIVERGENT` 原样保留）。`RUNTIME_DIVERGENT` 与实现缺口清单里的静态条目在
+  oracle 侧没有输出，导出时沿用旧值。
 
 ## 下一步候选能力
 
