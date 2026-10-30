@@ -79,6 +79,9 @@ EvokerEntity::EvokerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
     setBurnsInDaylight(false);
 
+    // 对齐 vanilla Evoker.java:49：xpReward = 10（基类 Monster 给的是 5）。
+    setExperienceValue(10);
+
     registerAttributes();
 
     // 补调 registerGoals：基类构造期间 vtable 指向基类，派生 override 永不执行，须在派生类构造

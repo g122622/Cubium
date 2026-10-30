@@ -317,10 +317,12 @@ TEST(EntityAttributes, MovementSpeedAttribute)
 
 TEST(EntityAttributes, EntityGravityAttribute)
 {
-    // 确认重力属性已定义 (Forge 扩展)
+    // 1.21 起重力是原版属性（Attributes.java:45-47），范围 ±1.0。
     auto attr = entity::attribute::Attributes::entityGravity();
     ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "forge.entity_gravity");
+    EXPECT_EQ(attr->registryName(), "minecraft:gravity");
+    EXPECT_DOUBLE_EQ(attr->minValue(), -1.0);
+    EXPECT_DOUBLE_EQ(attr->maxValue(), 1.0);
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 0.08f);
 }
 

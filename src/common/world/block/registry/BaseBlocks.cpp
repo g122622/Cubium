@@ -291,8 +291,8 @@ void registerBaseBlocks()
     // 玻璃：vanilla Blocks.GLASS 注册 noOcclusion()，且其方块类（TransparentBlock/HalfTransparentBlock）
     // 未重写 getLightBlock / propagatesSkylightDown。遮挡形状仍是完整立方体，故
     // propagatesSkylightDown=false、lightBlock=1（天空光衰减 1 级），而不是 0。
-    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion());
+    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:glass"), BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion());
 
     // 下界岩
     // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩

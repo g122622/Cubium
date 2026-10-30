@@ -46,6 +46,9 @@ tests/diff/
 │   ├── armor_material.cpp       # 护甲材质的耐久 / 护甲值 / 韧性与附魔能力
 │   ├── tool_material.cpp        # 工具材质的耐久 / 效率 / 攻击伤害加成 / 附魔能力
 │   ├── enchantment_effects.cpp  # 附魔各等级的伤害加成 / 保护点数 / 属性修饰符
+│   ├── attribute_range.cpp      # 属性的默认值与取值上下限
+│   ├── mob_experience.cpp       # 生物死亡掉落的基础经验值
+│   ├── block_destroy_progress.cpp # 方块破坏速度与每 tick 进度（正确/错误工具）
 │   ├── block_state_names.cpp    # 方块状态名全集
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
@@ -222,6 +225,9 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `armor_material` | 原版 jar `ArmorMaterialOracle` | 9 种材质 × 5 槽位 | 全部一致 | — |
 | `tool_material` | 原版 jar `ToolMaterialOracle` | 7 | 全部一致 | 采集等级不比（原版用方块标签表达） |
 | `enchantment_effects` | 原版 jar `EnchantmentEffectsOracle` | 43 | 全部一致 | 宝藏枚举与附魔台代价由 `enchantment_table` 覆盖 |
+| `attribute_range` | 原版 jar `AttributeRangeOracle` | 35 | 全部一致 | 项目自研属性 `horse.jump_strength` 原版没有 |
+| `mob_experience` | 原版 jar `MobExperienceOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
+| `block_destroy_progress` | 原版 jar `BlockDestroyProgressOracle` | 971 | 705 个一致 | 461 个方块的采集工具/requiresTool 未声明（见 `known_missing_block_tools.ts`） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -254,6 +260,33 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   对 body 同样成立；
 - `AttributeInstance::addModifier` 原来是 `push_back` 不去重，而原版按 id 覆盖——
   同一附魔在多件装备上会重复叠加（三件迅捷潜行 = +0.45 而不是 +0.15）。
+
+`mob_experience` 首轮查出并修掉的经验值问题（7 处）：
+
+- 守卫者、远古守卫者、唤魔者经验值停在基类 Monster 的 5（原版 10）；
+- 恼鬼 5 → 3；猪灵蛮兵 5 → 20；
+- 史莱姆与岩浆怪：原版只在 `setSize` 里写 `xpReward`，构造函数只定义初始尺寸，
+  因此「刚建出来、还没生成」的史莱姆经验值是 0；Cubium 在建属性时就写了 1，
+  且 `setSlimeSize` 在尺寸未变时直接返回，导致 `setSlimeSize(1)` 拿不到经验值；
+- 顺带查出分裂逻辑的错误：子史莱姆调用了 `finalizeSpawn`，尺寸被重新随机成
+  1/2/4，而原版 `convertTo` 只执行 AfterConversion（`setSize(parent/2)`），
+  分裂出来的小史莱姆可能和父体一样大。
+
+`attribute_range` 首轮查出并修掉的属性定义问题（13 处，全部是属性表本身写错）：
+
+- **12 个原版属性根本没有注册**（`block_break_speed`、`camera_distance`、`gravity`、
+  `max_absorption`、`mining_efficiency`、`scale`、`sneaking_speed`、`step_height`、
+  `submerged_mining_speed`、`sweeping_damage_ratio`、`tempt_range`、
+  `water_movement_efficiency`）——按名查找、`/attribute` 命令、附魔修饰符注入
+  在这些属性上全部静默失效；
+- `max_absorption` 仍用 1.16.5 的 `generic.` 前缀（属性常量与工厂函数都是），
+  按 `minecraft:max_absorption` 查找落空；
+- `jump_strength` 默认值写成 double 字面量 `0.42`，原版是 `0.42F` 再拓宽，
+  差 1ulp；
+- 重力沿用 Forge 的 `forge.entity_gravity` 且范围 ±8.0，原版 1.21 起是
+  `minecraft:gravity`、范围 ±1.0；
+- 补注册的 5 个属性（`block_break_speed` / `step_height` / `scale` / `tempt_range` /
+  `camera_distance`）尚无消费点，已就地加 `TODO` 注明接入位置。
 
 `entity_attributes` 首轮查出并修掉的属性错误（全部是手抄/想当然的默认值）：
 

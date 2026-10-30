@@ -182,7 +182,8 @@ TEST_F(ExecuteCommandTest, UnsupportedConditionsNeverExecuteFollowingCommand)
     });
     m_server.commandRegistry().dispatcher().registerCommand(command);
 
-    for (const char* input : {"execute if block 0 0 0 stone run record", "execute positioned 0 0 0 if block 0 0 0 stone run record"}) {
+    for (const char* input :
+        {"execute if block 0 0 0 stone run record", "execute positioned 0 0 0 if block 0 0 0 stone run record"}) {
         const auto result = m_server.commandRegistry().execute(input, m_console);
         // 注意：无世界时 _evaluateBlockCondition 返回 false，`if block` 条件不成立，
         // 嵌套命令被跳过（executions 保持 0）。execute 本身仍返回成功状态——

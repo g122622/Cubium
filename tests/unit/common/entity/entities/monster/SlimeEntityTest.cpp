@@ -438,7 +438,10 @@ TEST_F(SlimeEntityTest, ExperienceValue_EqualsSize)
     SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
-    // 注意：setSlimeSize 会设置经验值等于尺寸
+    // 原版构造期不调 setSize，xpReward 保持 0（Slime.java:93 只定义 ID_SIZE，:109 才写经验值）。
+    EXPECT_EQ(slime.experienceValue(), 0);
+
+    // setSlimeSize 才会把经验值设成尺寸
     slime.setSlimeSize(1, true);
     EXPECT_EQ(slime.experienceValue(), 1);
 

@@ -52,6 +52,7 @@ import {
     lootTableEntityUnit,
     lootTableInput,
 } from "./loot_context.ts";
+import { KNOWN_MISSING as blockToolsKnownMissing } from "./known_missing_block_tools.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import {
     dropProjectOnlyCommands,
@@ -284,6 +285,39 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         // 属性修饰符按槽位展开成数组（原版一条槽位组 → Cubium 逐槽位一条），
         // 展开顺序取决于注册顺序而非语义，比对时按规范序对齐。
         unorderedArrays: ["levels/attributes"],
+    }),
+    () => ({
+        // 属性定义本身：注册名、默认值、取值上下限（按位输出，不做浮点规范化）。
+        name: "attribute_range",
+        oracle: "AttributeRangeOracle",
+        input: (unit: string) => ({ attribute: unit }),
+        key: "attribute",
+        // 项目自研的非原版属性（horse.jump_strength 等）：原版注册表里没有，取值范围无从比对，
+        // 只比原版有据可查的那部分。必须显式登记，不能静默放过。
+        projectOnly: {
+            field: "attribute",
+            extra: ["horse.jump_strength"],
+            drop: (record, matches) => (matches(String(record["attribute"])) ? {} : record),
+        },
+    }),
+    () => ({
+        // 生物死亡经验：每种生物构造函数里写死的 xpReward。
+        name: "mob_experience",
+        oracle: "MobExperienceOracle",
+        input: (unit: string) => ({ entity: unit }),
+        key: "entity",
+        // 原版能建、项目尚未注册的生物（以及 construct 失败的个别实体）按已知缺口登记。
+        oracleMissing: entityKnownMissing,
+    }),
+    () => ({
+        // 方块破坏进度：destroySpeed（界面硬度）与两种工具情形下每 tick 的进度。
+        name: "block_destroy_progress",
+        oracle: "BlockDestroyProgressOracle",
+        input: (unit: string) => ({ block: unit }),
+        key: "block",
+        // Cubium 未声明采集工具/未标 requiresTool 的方块：差异确定是「方块数据缺口」，
+        // 不是公式问题（公式已与 vanilla BlockBehaviour.getDestroyProgress 逐项对齐）。
+        oracleMissing: blockToolsKnownMissing,
     }),
     () => ({
         name: "enchantment_table",

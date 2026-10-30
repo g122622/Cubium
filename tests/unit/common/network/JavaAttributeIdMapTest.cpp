@@ -94,8 +94,7 @@ TEST_F(JavaAttributeIdMapTest, ReverseLookupRoundTrips)
     ASSERT_TRUE(healthId.has_value());
     EXPECT_EQ(map().fromJavaRegistryId(*healthId), std::string(Attributes::MAX_HEALTH));
 
-    // 未映射的 id 返回空串（而非悬垂引用）。5 是 vanilla 的 block_break_speed，项目未实现。
-    EXPECT_TRUE(map().fromJavaRegistryId(5).empty());
+    // 未映射的 id 返回空串（而非悬垂引用）。原版属性现已全部实现，用越界 id 验证。
     EXPECT_TRUE(map().fromJavaRegistryId(9999).empty());
 }
 
@@ -120,6 +119,6 @@ TEST_F(JavaAttributeIdMapTest, ClientSyncableMatchesVanilla)
         EXPECT_TRUE(map().isClientSyncable(id)) << "registry id " << id << " 应同步";
     }
 
-    // 项目未实现的属性即使 vanilla 可同步也不下发（5 = block_break_speed）。
-    EXPECT_FALSE(map().isClientSyncable(5));
+    // 项目已实现的原版属性按 vanilla 的 setSyncable 语义下发（5 = block_break_speed）。
+    EXPECT_TRUE(map().isClientSyncable(5));
 }
