@@ -658,15 +658,23 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 `random_sequence` 直接比对两个**内层**生成器（`Xoroshiro128ppRandom`、
 `JavaLegacyRandom`）的接口序列，全部逐位一致。上层的 `WorldgenRandom`（原版把它包在
-生成器外面、用自己的 `next(bits)` 重写所有抽取）目前只保证：
+生成器外面、用自己的 `next(bits)` 重写所有抽取）现在全部路径都与原版逐位一致：
 
 | 路径 | 状态 |
 |---|---|
 | `nextInt(bound)` / `nextFloat` / `nextDouble` | 与原版逐位一致（golden 测试通过） |
-| 裸 `nextLong()` / `nextInt()` | **未对齐**：与原版存在逐位差异，导致 `setDecorationSeed` 偏移 |
+| 裸 `nextLong()` / `nextInt()` | 与原版逐位一致（`WorldgenRandomVanillaGoldenTest` 全绿） |
 
-后者只影响世界生成的放置种子，已由 `WorldgenRandomVanillaGoldenTest` /
-`BlendedNoiseVanillaGoldenTest` 的红灯标出（这两个测试在本轮 harness 之前就已失败）。
+此前 `nextLong()` 与装饰种子存在逐位差异，根因有两处，均已修复：
+
+1. `nextLong()` 把两个半部按 `u64` 拼接。原版是
+   `((long) next(32) << 32) + next(32)`，而 `next(32)` 返回带符号 `int`，两半都要**符号扩展**。
+2. `IRandom::nextBits` 对 `bits >= 32` 特判成截断取低位，与
+   `BitRandomSource.next(bits) = (i32)(nextLong() >>> (64 - bits))` 的取高位语义相反。
+
+`BlendedNoiseVanillaGoldenTest` / `DensityAstBaselineTest` 仍有约 1e-7 量级残余差异，
+已与随机序列无关（修复前误差在 1e-6 量级且量级随种子放大），属噪声求值的浮点精度缺口，
+待单独排查。
 
 ### `entity_attributes` 的比对基准
 
