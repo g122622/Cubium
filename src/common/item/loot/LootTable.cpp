@@ -104,29 +104,30 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const
 {
     std::vector<ItemStack> items;
 
-    // 处理物品堆叠
+    // 收集产出的物品堆。
+    //
+    // 对齐原版 `LootTable.createStackSplitter`：
+    //   - 空堆丢弃；
+    //   - 数量小于「最大堆叠数」的堆原样保留；
+    //   - 超出一组上限的堆按上限**拆成多组**（不跨产出合并）。
+    // 早先把同类物品并进已有的堆，与原版不同——原版从不跨产出合并，只会在单堆
+    // 过大时切开。合并会把「箱子里两组 5 个火把」变成「一组 10 个火把」，
+    // 而原版 `LootTable.fill` 是按堆逐个摆进槽位的，并堆等于少摆一格。
     auto collected = [&items](const ItemStack& stack) {
-        if (!stack.isEmpty()) {
-            // 尝试合并到现有堆
-            for (auto& existing : items) {
-                if (existing.canMergeWith(stack)) {
-                    i32 space = existing.getMaxStackSize() - existing.getCount();
-                    if (space > 0) {
-                        i32 toAdd = std::min(space, stack.getCount());
-                        existing.grow(toAdd);
-                        if (toAdd >= stack.getCount()) {
-                            return; // 完全合并
-                        }
-                        // 部分合并，创建新堆
-                        ItemStack remaining(stack.copy());
-                        remaining.shrink(toAdd);
-                        items.push_back(remaining);
-                        return;
-                    }
-                }
-            }
-            // 无法合并，添加新堆
+        if (stack.isEmpty()) {
+            return;
+        }
+        const i32 maxStack = stack.getMaxStackSize();
+        if (maxStack <= 0 || stack.getCount() < maxStack) {
             items.push_back(stack);
+            return;
+        }
+        i32 remaining = stack.getCount();
+        while (remaining > 0) {
+            ItemStack piece(stack);
+            piece.setCount(std::min(maxStack, remaining));
+            remaining -= piece.getCount();
+            items.push_back(std::move(piece));
         }
     };
 

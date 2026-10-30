@@ -53,6 +53,11 @@ import {
     lootTableInput,
 } from "./loot_context.ts";
 import { KNOWN_MISSING as blockToolsKnownMissing } from "./known_missing_block_tools.ts";
+import {
+    LOOT_CONTAINER_SCENARIO_NAMES,
+    lootContainerInput,
+    lootContainerUnit,
+} from "./loot_container.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import {
     dropProjectOnlyCommands,
@@ -472,6 +477,43 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
                 return lootTableEntityInput(table, scenario);
             },
             key: "table",
+        };
+    },
+    () => {
+        // 容器战利品：箱子被打开后逐槽的内容（掷骰 + 落位 + copy_components(block_entity)）。
+        // 单元是「表 ID#场景」：oracle 枚举带 random_sequence 的表，这里按场景展开。
+        const tables = (): string[] => {
+            const directory = path.join(resolveBuildDir(), "diff/loot_container/java");
+            fs.mkdirSync(directory, { recursive: true });
+            const { classesDir, classpath } = compileOracle("LootContainerOracle", directory);
+            const classpathWithClasses = `${classesDir}${path.delimiter}${classpath}`;
+            const unitsPath = path.join(directory, "tables.txt");
+            fs.rmSync(unitsPath, { force: true });
+            execFileSync(
+                "java",
+                ["-cp", classpathWithClasses, "dev.horizonlab.diff.LootContainerOracle", "list", unitsPath],
+                {
+                    cwd: directory,
+                    env: { ...process.env, MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() },
+                    stdio: ["ignore", "pipe", "pipe"],
+                },
+            );
+            const unitKeys: string[] = [];
+            for (const table of fs.readFileSync(unitsPath, "utf8").split(/\r?\n/).filter(Boolean)) {
+                for (const scenario of LOOT_CONTAINER_SCENARIO_NAMES) {
+                    unitKeys.push(lootContainerUnit(table, scenario));
+                }
+            }
+            return unitKeys;
+        };
+        return {
+            name: "loot_container",
+            oracle: "LootContainerOracle",
+            units: tables,
+            input: (unit: string) => lootContainerInput(unit),
+            key: "table",
+            // 掉落物里的物品顺序来自掷骰后的合并顺序，不承载语义；按规范序对齐后再比。
+            unorderedArrays: ["drop/items"],
         };
     },
     () => ({

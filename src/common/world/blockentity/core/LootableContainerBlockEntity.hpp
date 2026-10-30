@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "item/core/ItemStack.hpp"
@@ -301,6 +302,18 @@ protected:
      * @return 是否成功填充
      */
     bool fillWithLootFromTable(loot::LootTableManager& lootTableManager, Player* player);
+
+    /**
+     * @brief 把掷出的物品拆分成能填满槽位的堆数，并洗牌
+     *
+     * 对齐 vanilla `LootTable.shuffleAndSplitItems`：数量大于 1 的堆会被随机拆开，
+     * 直到「堆数」达到可用槽位数；每一步都从同一个随机源取数，与原版逐次对齐。
+     *
+     * @param items 掷出的物品（就地变换为洗牌后的结果，空堆已被剔除）
+     * @param slotCount 可用空槽位数
+     * @param random 上下文随机源
+     */
+    static void _shuffleAndSplit(std::vector<ItemStack>& items, i32 slotCount, math::IRandom& random);
 
 private:
     bool m_hasLootTable = false;       ///< 是否设置了战利品表

@@ -114,6 +114,32 @@ final class LootRoll {
         return samples;
     }
 
+    /**
+     * 按原版 `LootTable.createStackSplitter` 的口径合并物品堆：超出一组上限的大堆会被
+     * 拆成多组。C++ 探针的 `LootTable::generate` 用的是同一口径，两侧因此可比。
+     *
+     * <p>与 `getRandomItems` 的唯一区别是不在这里按堆排序：排序由调用方按需做。
+     */
+    static List<ItemStack> splitIntoStacks(List<ItemStack> stacks) {
+        List<ItemStack> result = new ArrayList<>();
+        for (ItemStack stack : stacks) {
+            if (stack.isEmpty()) {
+                continue;
+            }
+            if (stack.getCount() < stack.getMaxStackSize()) {
+                result.add(stack);
+                continue;
+            }
+            int remaining = stack.getCount();
+            while (remaining > 0) {
+                ItemStack piece = stack.copyWithCount(Math.min(stack.getMaxStackSize(), remaining));
+                remaining -= piece.getCount();
+                result.add(piece);
+            }
+        }
+        return result;
+    }
+
     /** 第 index 个样本使用的随机源：同一种子起始，再推进 index × SAMPLE_STRIDE 步。 */
     static RandomSource randomForSample(int index) {
         RandomSource random = new XoroshiroRandomSource(ROLL_SEED);
