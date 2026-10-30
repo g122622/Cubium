@@ -409,6 +409,10 @@ void ServerWorld::shutdown()
     // 再清理村庄管理器
     m_villageManager.reset();
 
+    // 丢弃未执行的跨维度迁移回调：它们按引用捕获源/目标 EntityManager，本世界销毁后
+    // 这些引用全部悬垂，若残留到下一个世界 tick 才执行必然崩溃。
+    m_entityManager.discardPendingDimensionTransfers();
+
     // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
     if (m_chunkManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::ShutdownChunkManager");

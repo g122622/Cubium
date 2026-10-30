@@ -318,6 +318,16 @@ public:
      */
     void requestDimensionTransfer(std::function<void()> transferAction);
 
+    /**
+     * @brief 丢弃尚未执行的跨维度迁移回调
+     *
+     * 迁移回调按引用捕获源/目标 `EntityManager`（见 ServerWorld::transferEntityToDimension
+     * 与 ServerPlayer::_performDimensionTransfer）。世界关闭或维度卸载后，这些引用全部悬垂；
+     * 若此时仍有残留回调（例如入队后本 tick 未走完就关服），下次执行必然访问已析构对象
+     * （实测末地传送门用例在关第三个世界时 0xC0000005）。世界 shutdown 必须先调用本方法。
+     */
+    void discardPendingDimensionTransfers();
+
 private:
     // 所属 ECS 实体注册表（非拥有，引用 ServerWorld 持有的 m_entityRegistry）。
     ecs::EntityRegistry& m_registry;

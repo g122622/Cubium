@@ -162,6 +162,11 @@ TEST(ScriptBindingHandleLifetimeTest, WrappedInstancesCarryOpaqueWhenClassRegist
     // 以它为原型的实例同为普通对象，JS_SetOpaque 对内置类对象静默失败，opaque 永远为 NULL。
     // 该缺陷只在"类注册晚于原型创建"时暴露，因此本用例故意不先注册类：
     // createClassProto 必须让原型自带目标 class，构造出的实例才可能承载 opaque。
+    //
+    // 另一个前置条件：createFunction 产出的 C 函数必须可被 `new`。QuickJS 的
+    // JS_CFUNC_generic_magic 不带 is_constructor 位，脚本侧 `new Xxx()` 会在
+    // JS_IsConstructor 检查处直接抛 "not a constructor"，根本进不了构造回调；
+    // bindings 层因此改用 JS_CFUNC_constructor_or_func_magic（见 QuickJSBindingContext::createFunction）。
     auto engine = createScriptEngine();
     ASSERT_NE(engine, nullptr);
     ASSERT_TRUE(engine->initialize());
@@ -170,6 +175,12 @@ TEST(ScriptBindingHandleLifetimeTest, WrappedInstancesCarryOpaqueWhenClassRegist
     auto& bindings = context->bindingContext();
 
     const mc::u64 classId = bindings.allocateClassId();
+    // 必须先做引擎侧类注册（JS_NewClass + finalizer）：createClassProto 用
+    // JS_NewObjectProtoClass(..., classId) 构建原型，要求该 classId 已在 QuickJS 注册，
+    // 否则得到的原型挂在一个未注册的类上，上下文销毁时遍历这条链路会访问到无效对象
+    // （表现为 0xC0000005）。只调 classRegistry().registerClass 只是登记 C++ 侧查找表，
+    // 不注册引擎类——同文件其它用例都是先 bindings.registerClass 再建原型。
+    ASSERT_TRUE(bindings.registerClass(classId, "OpaqueProbeClass", true));
     bindings.classRegistry().registerClass(classId, bindings.createClassProto(classId), "OpaqueProbeClass");
     const mc::u64 resolvedClassId = bindings.classRegistry().classIdByName("OpaqueProbeClass");
     void* proto = bindings.classRegistry().proto(resolvedClassId);
@@ -201,6 +212,10 @@ TEST(ScriptBindingHandleLifetimeTest, WrappedInstancesCarryOpaqueWhenClassRegist
     EXPECT_NE(bindings.getOpaque(instance, resolvedClassId), nullptr)
         << "class 注册晚于原型创建时，实例 opaque 为空（内置 Object 类不允许挂 opaque）";
     bindings.releaseValue(instance);
+    // getGlobalObject 返回的是**新句柄**（内部 wrapValue(JS_GetGlobalObject)），所有权归调用方，
+    // 须显式释放（同生产路径 ScriptEventBinding::_same）。不释放会让句柄活到
+    // JS_FreeContext 之后，表现为 shutdown 阶段的间歇性 0xC0000005。
+    bindings.releaseValue(global);
 
     engine->shutdown();
 }

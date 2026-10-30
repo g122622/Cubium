@@ -193,6 +193,13 @@ void EntityManager::requestDimensionTransfer(std::function<void()> transferActio
     m_pendingDimensionTransfers.push_back(std::move(transferAction));
 }
 
+void EntityManager::discardPendingDimensionTransfers()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // 回调按引用捕获 EntityManager，世界销毁后不可再执行，直接丢弃。
+    m_pendingDimensionTransfers.clear();
+}
+
 bool EntityManager::hasEntity(EntityInstanceId id) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);

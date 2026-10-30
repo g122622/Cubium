@@ -1409,13 +1409,15 @@ TEST_F(EnderDragonEntityTest, CheckCrystals_HealsEveryTenTicksWhileNotFull)
     crystal->setPosition(dragon.x() + 4.0f, dragon.y(), dragon.z());
     m_world->spawnEntity(std::move(crystal));
 
-    // 首次搜索有 1/10 概率命中，跑若干 tick 确保绑定到水晶。
+    // 首次搜索有 1/10 概率命中（vanilla getRandom().nextInt(10) == 0），重试到绑定为止。
+    // 实体随机源由系统熵播种（与原版 RandomSource.create() 一致），单次运行不可复现，
+    // 因此给足重试次数：n 次全部不命中的概率是 0.9^n，n=200 时约 7e-10。
     entity::EnderCrystalEntity* bound = nullptr;
-    for (i32 i = 0; i < 40 && bound == nullptr; ++i) {
+    for (i32 i = 0; i < 200 && bound == nullptr; ++i) {
         dragon.tick();
         bound = dragon.closestEnderCrystal();
     }
-    ASSERT_NE(bound, nullptr) << "龙应在半径 32 内绑定最近的水晶";
+    ASSERT_NE(bound, nullptr) << "龙应在半径 32 内绑定最近的水晶（200 tick 内几乎必然命中 1/10 概率）";
 
     // 绑定后按 tickCount % 10 回血：每 10 tick 恰好 +1。
     const f32 before = dragon.health();
@@ -1437,10 +1439,10 @@ TEST_F(EnderDragonEntityTest, CheckCrystals_NoHealWhenFullHealth)
     crystal->setPosition(dragon.x() + 2.0f, dragon.y(), dragon.z());
     m_world->spawnEntity(std::move(crystal));
 
-    for (i32 i = 0; i < 40 && dragon.closestEnderCrystal() == nullptr; ++i) {
+    for (i32 i = 0; i < 200 && dragon.closestEnderCrystal() == nullptr; ++i) {
         dragon.tick();
     }
-    ASSERT_NE(dragon.closestEnderCrystal(), nullptr);
+    ASSERT_NE(dragon.closestEnderCrystal(), nullptr) << "200 tick 内几乎必然命中 1/10 的水晶搜索概率";
 
     for (i32 i = 0; i < 30; ++i) {
         dragon.tick();
@@ -1461,10 +1463,10 @@ TEST_F(EnderDragonEntityTest, CheckCrystals_ClearsRemovedCrystal)
     crystal->setPosition(dragon.x() + 2.0f, dragon.y(), dragon.z());
     m_world->spawnEntity(std::move(crystal));
 
-    for (i32 i = 0; i < 40 && dragon.closestEnderCrystal() == nullptr; ++i) {
+    for (i32 i = 0; i < 200 && dragon.closestEnderCrystal() == nullptr; ++i) {
         dragon.tick();
     }
-    ASSERT_EQ(dragon.closestEnderCrystal(), crystalPtr);
+    ASSERT_EQ(dragon.closestEnderCrystal(), crystalPtr) << "200 tick 内几乎必然命中 1/10 的水晶搜索概率";
 
     crystalPtr->remove();
     // 绑定清除需要一次 tick；随后即使 tick 数满足 %10 也不再回血。
