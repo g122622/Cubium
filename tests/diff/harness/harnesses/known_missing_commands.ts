@@ -78,26 +78,31 @@ export function dropProjectOnlyCommands(
     record: Record<string, unknown>,
     matches: (name: string) => boolean,
 ): Record<string, unknown> {
-    const withoutKey = (value: unknown): unknown => {
-        if (value === null || typeof value !== "object" || Array.isArray(value)) {
-            return value;
-        }
-        const result: Record<string, unknown> = {};
-        for (const [key, field] of Object.entries(value as Record<string, unknown>)) {
-            const root = key.trimStart().split(" ")[0];
-            if (!matches(root)) {
-                result[key] = field;
-            }
-        }
-        return result;
-    };
+    // `matches` 接受「成员名」或「成员名 + 空格 + 起始路径」，见 known_missing_commands.ts 的导出约定。
+    // 这里按**成员根名**精确过滤：派生字段（`arguments` / `components`）以「成员根名 + 路径」为键，
+    // 一个不带空格的成员名（例如 `item`）以无限定名的形式同样会命中通用前缀规则——所以
+    // 先用不含空格的成员做精确匹配，再对含空格的成员按前缀匹配。
+    const roots = new Set(PROJECT_ONLY_COMMANDS);
+    const matchesRoot = (value: string): boolean => roots.has(value) || matches(value);
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(record)) {
         if (key === "wire") {
             // 整棵树编码后的字节：两侧命令集合不同就必然不同，没有「摘掉一部分」可言。
             continue;
         }
-        result[key] = key === "tree" || key === "unit" ? value : withoutKey(value);
+        if (value === null || typeof value !== "object" || Array.isArray(value)) {
+            result[key] = value;
+            continue;
+        }
+        // 派生字段（arguments / components）：键是「根命令名 + 空格 + 节点路径」。
+        // 只摘以自研命令为根的键，其余原样保留。
+        const kept: Record<string, unknown> = {};
+        for (const [path, child] of Object.entries(value as Record<string, unknown>)) {
+            if (!matchesRoot(path.trimStart().split(" ")[0])) {
+                kept[path] = child;
+            }
+        }
+        result[key] = kept;
     }
     return result;
 }

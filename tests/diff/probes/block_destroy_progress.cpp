@@ -83,7 +83,7 @@ void ensureBlocks()
     if (!s_initialized) {
         VanillaBlocks::initialize();
         // 工具速度要用真实的钻石镐物品堆来计算，物品注册表必须先就绪
-        //（不初始化时 Items::DIAMOND_PICKAXE 是空指针）。
+        // （不初始化时 Items::DIAMOND_PICKAXE 是空指针）。
         Items::initialize();
         s_initialized = true;
     }

@@ -33,7 +33,7 @@
  * @brief 差分探针（differential probe）的公共接口。
  *
  * 一个 probe 是一段「读输入 → 调用被测能力 → 写输出」的纯函数式小程序，它只链接
- * mc_common，不启动服务端、不连网络、不创建世界。Python 编排层（harness/runner.py）
+ * mc_common，不启动服务端、不连网络、不创建世界。TypeScript 编排层（harness/runner.ts）
  * 负责给它生成输入、运行它，并与参照实现（原版数据或 Java oracle）的输出逐字节比对。
  *
  * 协议（两个子命令）：

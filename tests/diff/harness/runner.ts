@@ -22,463 +22,527 @@
  */
 
 /*
- * runner.ts — 差分测试的编排层：构建 probe、运行、比对、写报告。
+ * runner.ts — 差分测试的编排入口。
  *
- * 一个 harness 的完整流程：
- *   1. 构建 probe（cmake --target diff_<domain>，已构建过则跳过）
- *   2. 为每个单元生成一行输入 → 跑 probe
- *   3. 把 probe 输出与参照实现的输出按 key 对齐、逐字段比较
- *   4. 写 report.json 与差异样本
+ * 编排层要回答的只有三个问题：**这次该跑哪些能力**（select.ts）、**该构建哪些探针**
+ * （build.ts）、**怎么并行跑完并记账**（scheduler.ts + state.ts）。每个能力自己怎么跑
+ * 在执行进程里（worker.ts → runner/session.ts），主进程从不加载能力声明之外的业务代码。
  *
- * 比对语义：两侧同一 key 的输出必须是完全相同的 JSON 对象（键顺序无关，值严格相等）。
- * 本能力没有浮点数，因此不做容差；将来加物理类能力时，容差应由该能力自己的
- * comparator 决定，而不是在这里全局放宽。
+ * 一个能力的完整流程：
+ *   1. 依赖图给出它依赖的仓库文件（C++ 链接闭包 + oracle 源码 + 运行期模块）；
+ *   2. 把这些文件的内容摘要与上次的通过记录比较：一致就跳过，不一致才重跑；
+ *   3. 重跑时执行进程先问原版 oracle（可命中 oracle/cache.ts 的缓存），再跑探针，比对、写报告；
+ *   4. 结果与「这次实际读了哪些模块」一起写回状态文件，供下次与 `--changed` 使用。
  *
- * 退出码：0 全部一致；1 存在差异；2 环境问题（缺 probe、构建失败）。
+ * 用法（详见 README）：
+ *   node tests/diff/harness/runner.ts                  # 只跑输入变过的（全绿时几乎立即结束）
+ *   node tests/diff/harness/runner.ts run item_summary # 运行指定能力
+ *   node tests/diff/harness/runner.ts --list           # 看会跑哪些，不运行
+ *   node tests/diff/harness/runner.ts --changed origin/main   # 只跑 PR 改动影响到的
+ *   node tests/diff/harness/runner.ts --status         # 每个能力上次的结果
+ *   node tests/diff/harness/runner.ts build [probe...] # 只构建探针
+ *
+ * 退出码：0 全部通过；1 存在差异；2 环境问题（缺 probe、构建失败、缺原版数据）。
  */
 
-import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { vanillaDataPackDir } from "./oracle-env.ts";
-import { REPO_ROOT } from "./vanilla.ts";
-import { projectDeclaredFields } from "./comparison.ts";
+import type { RunOutcome } from "./core/types.ts";
+import { digestOf, hashFiles, type HashCache } from "./core/hash.ts";
+import { SHARED_INPUTS } from "./core/types.ts";
+import { findHarness, HARNESSES } from "./harnesses/index.ts";
+import type { DependencyEntry } from "./runner/graph.ts";
+import { buildGraph, digestsFromRecords, entryDigest } from "./runner/graph.ts";
+import { buildProbes } from "./runner/build.ts";
+import type { ProjectLayout } from "./runner/layout.ts";
+import { cpuCount, probeArtifact, projectLayout, REPO_ROOT } from "./runner/layout.ts";
+import { runAll, defaultJobs, freeMemoryMiB, type ScheduledHarness, type WorkerResult } from "./runner/scheduler.ts";
+import { isFresh, select } from "./runner/select.ts";
+import type { HarnessRecord, RunSummary, RunnerState } from "./runner/state.ts";
+import { buildRecord, loadState, saveState, statePath } from "./runner/state.ts";
 
-/** 一处单元级差异。 */
-export interface Difference {
-    readonly key: string;
-    readonly expected: unknown;
-    readonly actual: unknown;
-}
-
-/** 一次 harness 运行的结果。 */
-export interface HarnessResult {
-    readonly harness: string;
-    readonly domain: string;
-    readonly units: number;
-    readonly matched: number;
-    readonly differences: readonly Difference[];
-    readonly elapsedSeconds: number;
-    readonly reportPath: string;
-}
-
-/**
- * 构建目录：显式参数 > MC_DIFF_BUILD_DIR > 仓库根的 build/。
- *
- * 产物路径由 CMake 的 RUNTIME_OUTPUT_DIRECTORY 决定（bin/diff），这里只拼这一层，
- * 不自己去猜 MSVC/多配置生成器的层级。
- */
-export function resolveBuildDir(explicit?: string): string {
-    return explicit ?? process.env.MC_DIFF_BUILD_DIR ?? path.join(REPO_ROOT, "build");
-}
-
-/** 本 harness 使用的构建配置，与 runner 调用 cmake 时传的 --config 一致。 */
-export const BUILD_CONFIG = "RelWithDebInfo";
-
-/**
- * 定位构建出的 probe 可执行文件。
- *
- * 候选路径按 configure 方式依次尝试：先多配置生成器的 bin/<Config>/diff，
- * 再单配置生成器的 bin/diff。不靠猜生成器，直接看文件在不在。
- */
-export function probeExecutable(domain: string, buildDir?: string): string {
-    const name = `diff_${domain}${process.platform === "win32" ? ".exe" : ""}`;
-    const root = resolveBuildDir(buildDir);
-    const candidates = [
-        // 顶层 CMakeLists 把 CMAKE_RUNTIME_OUTPUT_DIRECTORY 设为 bin/，多配置生成器会
-        // 再追加 <Config>/ 一层，而 RUNTIME_OUTPUT_DIRECTORY_<Config> 的赋值会**整体覆盖**
-        // 该属性（不叠加），所以 probe 最终落在 bin/<Config>/，而不是 bin/<Config>/diff/。
-        path.join(root, "bin", BUILD_CONFIG, name),
-        path.join(root, "bin", BUILD_CONFIG, "diff", name),
-        path.join(root, "bin", name),
-        path.join(root, "bin", "diff", name),
-    ];
-    for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) {
-            return candidate;
-        }
-    }
-    throw new Error(
-        `找不到 probe 可执行文件（已查找 ${candidates.join("、")}）；` +
-            "先运行 `node tests/diff/harness/runner.ts build`，或确认 MC_DIFF_BUILD_DIR 指向正确的构建目录",
-    );
-}
-
-/** 运行子命令；失败时把 stdout/stderr 带进异常，便于一眼看到原因。 */
-function run(command: string[], args: string[], env?: NodeJS.ProcessEnv): string {
-    try {
-        return execFileSync(command[0], args, {
-            cwd: REPO_ROOT,
-            encoding: "utf8",
-            stdio: ["ignore", "pipe", "pipe"],
-            maxBuffer: 1024 * 1024 * 1024,
-            // 额外的环境变量（如探针要读的数据包目录）只在宿主环境上叠加，不覆盖。
-            env: env === undefined ? process.env : { ...process.env, ...env },
-        });
-    } catch (error) {
-        const failure = error as { status?: number; stdout?: string; stderr?: string; message?: string };
-        throw new Error(
-            `命令失败（${failure.status ?? "?"}）：${command.join(" ")} ${args.join(" ")}\n` +
-                `stdout:\n${(failure.stdout ?? "").slice(-4000)}\nstderr:\n${(failure.stderr ?? "").slice(-4000)}`,
-        );
-    }
-}
-
-/**
- * 用 CMake 构建差分探针。
- *
- * MC_BUILD_DIFF_PROBES 默认 OFF，因此这里显式打开；重复 configure 幂等
- * （CMake 复用缓存），其代价远小于一次完整构建。
- *
- * 在 Windows 上必须先通过 scripts/configure.sh 注入 Visual Studio 开发环境：
- * vcpkg 的 manifest 安装要调 vswhere 找 MSVC，脱离 VS 环境直接跑 `cmake` 会报
- * "Unable to find a valid Visual Studio instance"，并把失败的配置写进缓存。
- * 其余平台的 configure.sh 走 preset，参数透传给 cmake。
- */
-export function buildProbes(domain?: string, buildDir?: string): void {
-    const resolved = resolveBuildDir(buildDir);
-    const target = domain === undefined ? "diff_probes" : `diff_${domain}`;
-    if (process.platform === "win32") {
-        const configure = path.join(REPO_ROOT, "scripts", "configure.sh");
-        // configure.bat 把额外参数原样透传给 cmake，所以 preset 名 + -D 一起给。
-        run(["bash"], [configure, "--preset", "windows-clang-relwithdebinfo", "-DMC_BUILD_DIFF_PROBES=ON"]);
-    } else {
-        run(["cmake"], ["-S", REPO_ROOT, "-B", resolved, "-DMC_BUILD_DIFF_PROBES=ON"]);
-    }
-    run(["cmake"], ["--build", resolved, "--config", BUILD_CONFIG, "--target", target]);
-}
-
-/** 读非空文本行。 */
-function readLines(file: string): string[] {
-    return fs.readFileSync(file, "utf8").split(/\r?\n/).filter((line) => line.length > 0);
-}
-
-/** JSON 规范化：对象键排序，数组保持顺序（数组顺序是否是语义由调用方负责）。 */
-function normalise(value: unknown): unknown {
-    if (Array.isArray(value)) {
-        return value.map(normalise);
-    }
-    if (value !== null && typeof value === "object") {
-        const source = value as Record<string, unknown>;
-        const result: Record<string, unknown> = {};
-        for (const key of Object.keys(source).sort()) {
-            result[key] = normalise(source[key]);
-        }
-        return result;
-    }
-    return value;
-}
-
-function stableStringify(value: unknown): string {
-    return JSON.stringify(normalise(value));
-}
-
-/**
- * 按 `key` 字段对齐两批 JSON 行并逐字段比较。
- *
- * 行序被刻意忽略：两侧遍历顺序（注册顺序、字典序）本来就可能不同，
- * 要验的是「同一个单元，两侧说法一致」。
- *
- * **只比参照实现声明过的字段**：参照数据没有的信息（比如 minecraft-data 不给实体
- * 眼睛高度）不是「不一致」，而是「没得比」。要求整个对象相等，会让「对方没给这个
- * 字段」也变成失败，进而逼着人去伪造对侧输出。
- */
-export function compareByKey(
-    expectedLines: readonly string[],
-    actualLines: readonly string[],
-    key: string,
-    compareTransform: (value: unknown) => unknown = (value) => value,
-): Difference[] {
-    const index = (lines: readonly string[], side: string): Map<string, unknown> => {
-        const map = new Map<string, unknown>();
-        lines.forEach((line, index) => {
-            let parsed: unknown;
-            try {
-                parsed = JSON.parse(line);
-            } catch {
-                throw new Error(`${side} 第 ${index + 1} 行不是合法 JSON：${line.slice(0, 200)}`);
-            }
-            const unit = (parsed as Record<string, unknown>)[key];
-            if (typeof unit !== "string") {
-                throw new Error(`${side} 第 ${index + 1} 行缺少字符串字段 ${JSON.stringify(key)}：${line.slice(0, 200)}`);
-            }
-            map.set(unit, compareTransform(parsed));
-        });
-        return map;
-    };
-
-    const expected = index(expectedLines, "参照实现");
-    const actual = index(actualLines, "probe");
-    const differences: Difference[] = [];
-    const units = [...new Set([...expected.keys(), ...actual.keys()])].sort();
-    for (const unit of units) {
-        const oracleValue = expected.get(unit);
-        const probeValue = actual.get(unit);
-        if (oracleValue === undefined) {
-            differences.push({ key: unit, expected: "<absent in oracle>", actual: probeValue });
-        } else if (probeValue === undefined) {
-            differences.push({ key: unit, expected: oracleValue, actual: "<absent in probe>" });
-        } else if (
-            stableStringify(projectDeclaredFields(oracleValue, oracleValue)) !==
-            stableStringify(projectDeclaredFields(oracleValue, probeValue))
-        ) {
-            differences.push({ key: unit, expected: oracleValue, actual: probeValue });
-        }
-    }
-    return differences;
-}
-
-export interface HarnessOptions {
-    readonly harness: string;
-    readonly domain: string;
-    /** probe `run` 的输入单元（每单元一行）。 */
-    readonly units: readonly string[];
-    /** 与 `units` 一一对应的参照实现输出（JSON 文本）。 */
-    readonly oracleOutputs: readonly string[];
-    /** 输出里标识单元的字段名，如 "block"。 */
-    readonly key: string;
-    /** 把单元转换成 probe 的一行输入。默认 {"<key>": unit}。 */
-    readonly inputPayload?: (unit: string) => unknown;
-    /** 比对前对两侧输出做的规范化（例如排序值域、归一化等价类型名）。不改变 key。 */
-    readonly compareTransform?: (value: unknown) => unknown;
+/** 命令行选项。 */
+interface Options {
+    readonly command: "run" | "build" | "graph";
+    readonly names: string[];
+    readonly list: boolean;
+    readonly status: boolean;
+    readonly failed: boolean;
+    readonly all: boolean;
+    readonly fresh: boolean;
+    readonly changedRef?: string;
+    readonly changedFiles?: string;
+    readonly jobs?: number;
+    readonly noBuild: boolean;
+    readonly timeoutSeconds: number;
+    readonly samples: number;
     readonly buildDir?: string;
 }
 
-const DEFAULT_INPUT = (key: string) => (unit: string) => ({ [key]: unit });
+const USAGE = `用法：
+  node tests/diff/harness/runner.ts [run] [能力...]       运行（缺省：只跑输入变过的）
+  node tests/diff/harness/runner.ts build [probe...]      只构建探针
+  node tests/diff/harness/runner.ts graph                 打印能力依赖图摘要
 
-/**
- * 跑一次差分 harness。
- *
- * 参照输出由各 harness 自己准备好（目前来自 minecraft-data；将来接 Java oracle 时，
- * 改为把同一批输入交给 Java 主类并读其输出，本函数不变）。
- */
-/**
- * 需要读数据包目录的能力：战利品表、进度（advancement）、配方这类内容都是数据包 JSON，
- * 探针通过 `MC_DIFF_VANILLA_DATAPACK` 拿到与 Java oracle 完全相同的目录。
- */
-const DATAPACK_DOMAINS: readonly string[] =
-    ["loot_table", "loot_table_block", "loot_table_entity", "advancement", "biome_spawns", "recipe", "spawn_rules"];
+选择方式（互斥）：
+  --all                   全部运行，忽略通过记录
+  --failed                只跑上次失败的
+  --changed <ref>         只跑受 merge base 以来改动影响的（例如 origin/main）
+  --changed-files <file>  同上，改动清单来自文件（没有 git 历史的副本）
+  --list                  只列出会跑哪些能力，不运行
+  --status                打印每个能力上次的结果
 
-/**
- * 探针运行时的额外环境变量。
- */
-function probeEnvironment(domain: string): NodeJS.ProcessEnv {
-    if (DATAPACK_DOMAINS.includes(domain)) {
-        return { MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() };
-    }
-    return {};
-}
+其它：
+  -j, --jobs <n>          同时运行的能力数（默认 CPU 核心数的三分之一，可用 MC_DIFF_JOBS 覆盖）
+  --fresh                 不复用原版 oracle 的缓存结果
+  --no-build              跳过构建（假定探针已构建）
+  --timeout <sec>         单个能力超时（默认 1800）
+  --samples <n>           终端里展示的差异样本条数（默认 5）
+  --build-dir <dir>       构建目录（默认 <仓库>/build，可用 MC_DIFF_BUILD_DIR）`;
 
-/**
- * 跑探针的 `run` 子命令。
- *
- * 与 {@link run} 的区别：探针把诊断信息（数据包里的加载失败等）写 stderr、
- * 退出码用于区分「有表没加载」这类非零状态，但 stdout 文件仍然完整。
- * 直接按失败处理会让所有差异变成「探针整个跑挂了」，掩盖真正的原因；
- * 所以这里保留输出、只在没有任何输出时才算失败。
- */
-function runProbe(domain: string, executable: string, inputsPath: string, outputsPath: string): void {
-    const result = spawnSync(executable, ["run", inputsPath, outputsPath], {
-        encoding: "utf8",
-        env: { ...process.env, ...probeEnvironment(domain) },
-        maxBuffer: 64 * 1024 * 1024,
-    });
-    if (result.error !== undefined && result.error !== null) {
-        throw new Error(`探针 ${executable} 启动失败：${result.error.message}`);
-    }
-    const produced = fs.existsSync(outputsPath);
-    if (result.status !== 0) {
-        const detail = `exit=${String(result.status)}
-stderr:
-${(result.stderr ?? "").slice(-8000)}`;
-        if (!produced) {
-            throw new Error(`探针 ${executable} 运行失败（${detail}）`);
+function parseArguments(argv: readonly string[]): Options {
+    let command: Options["command"] = "run";
+    const names: string[] = [];
+    let list = false;
+    let status = false;
+    let failed = false;
+    let all = false;
+    let fresh = false;
+    let changedRef: string | undefined;
+    let changedFiles: string | undefined;
+    let jobs: number | undefined;
+    let noBuild = false;
+    let timeoutSeconds = 1800;
+    let samples = 5;
+    let buildDir: string | undefined;
+    let index = 0;
+    const next = (flag: string): string => {
+        const value = argv[++index];
+        if (value === undefined) {
+            throw new Error(`${flag} 需要一个参数`);
         }
-        // 有输出就继续比对，把探针自身的诊断一并带出来。
-        console.warn(`[${domain}] 探针退出码非零（${detail}）`);
-    }
-    const stderrText = (result.stderr ?? "").trim();
-    if (stderrText.length > 0) {
-        console.warn(`[${domain}] 探针 stderr：
-${stderrText}`);
-    }
-}
-
-export function runHarness(options: HarnessOptions): HarnessResult {
-    const started = process.hrtime.bigint();
-    const executable = probeExecutable(options.domain, options.buildDir);
-    const outDir = path.join(resolveBuildDir(options.buildDir), "diff", options.harness);
-    fs.mkdirSync(outDir, { recursive: true });
-
-    const inputPayload = options.inputPayload ?? DEFAULT_INPUT(options.key);
-    const inputsPath = path.join(outDir, "inputs.jsonl");
-    fs.writeFileSync(inputsPath, options.units.map((unit) => JSON.stringify(inputPayload(unit))).join("\n") + "\n");
-
-    const outputsPath = path.join(outDir, "probe_outputs.jsonl");
-    runProbe(options.domain, executable, inputsPath, outputsPath);
-    const probeOutputs = readLines(outputsPath);
-
-    const differences = compareByKey(options.oracleOutputs, probeOutputs, options.key, options.compareTransform);
-    const differing = new Set(differences.map((difference) => difference.key));
-    const matched = options.units.length - differing.size;
-    const elapsedSeconds = Number(process.hrtime.bigint() - started) / 1e9;
-
-    const reportPath = path.join(outDir, "report.json");
-    fs.writeFileSync(
-        reportPath,
-        `${JSON.stringify(
-            {
-                harness: options.harness,
-                domain: options.domain,
-                ok: differences.length === 0,
-                units: options.units.length,
-                matched,
-                differenceCount: differences.length,
-                differences: differences.slice(0, 200),
-                elapsedSeconds: Number(elapsedSeconds.toFixed(3)),
-                platform: process.platform,
-                node: process.version,
-            },
-            null,
-            2,
-        )}\n`,
-    );
-
-    return {
-        harness: options.harness,
-        domain: options.domain,
-        units: options.units.length,
-        matched,
-        differences,
-        elapsedSeconds,
-        reportPath,
+        return value;
     };
+    while (index < argv.length) {
+        const argument = argv[index];
+        if (argument === "run") {
+            command = "run";
+        } else if (argument === "build") {
+            command = "build";
+        } else if (argument === "graph") {
+            command = "graph";
+        } else if (argument === "--list") {
+            list = true;
+        } else if (argument === "--status") {
+            status = true;
+        } else if (argument === "--failed") {
+            failed = true;
+        } else if (argument === "--all") {
+            all = true;
+        } else if (argument === "--fresh") {
+            fresh = true;
+        } else if (argument === "--no-build") {
+            noBuild = true;
+        } else if (argument === "--changed") {
+            changedRef = next(argument);
+        } else if (argument === "--changed-files") {
+            changedFiles = next(argument);
+        } else if (argument === "-j" || argument === "--jobs") {
+            jobs = Number(next(argument));
+        } else if (argument === "--timeout") {
+            timeoutSeconds = Number(next(argument));
+        } else if (argument === "--samples") {
+            samples = Number(next(argument));
+        } else if (argument === "--build-dir") {
+            buildDir = next(argument);
+        } else if (argument === "-h" || argument === "--help") {
+            console.log(USAGE);
+            process.exit(0);
+        } else if (argument.startsWith("-")) {
+            throw new Error(`未知选项：${argument}\n\n${USAGE}`);
+        } else {
+            names.push(argument);
+        }
+        index++;
+    }
+    return { command, names, list, status, failed, all, fresh, changedRef, changedFiles, jobs, noBuild, timeoutSeconds, samples, buildDir };
 }
 
-/** 把结果渲染成一段终端友好的文本。 */
-export function render(result: HarnessResult, samples = 5): string {
-    const lines = [
-        `[${result.harness}] ${result.units} 个单元，${result.matched} 个一致，` +
-            `${result.differences.length} 个不一致，耗时 ${result.elapsedSeconds.toFixed(2)}s`,
-    ];
-    for (const difference of result.differences.slice(0, samples)) {
-        lines.push(`  - ${difference.key}`);
-        lines.push(`      oracle: ${JSON.stringify(difference.expected)}`);
-        lines.push(`      probe : ${JSON.stringify(difference.actual)}`);
-    }
-    if (result.differences.length > samples) {
-        lines.push(`  ... 另有 ${result.differences.length - samples} 处，见 ${result.reportPath}`);
-    }
-    return lines.join("\n");
+/** 环境指纹：依赖摘要的一部分，工具链变化时让所有能力重跑。 */
+function environmentDigest(layout: ProjectLayout): string {
+    return digestOf(
+        new Map([
+            ["<config>", layout.config],
+            ["<ninja>", layout.ninja],
+            ["<node>", process.version],
+            ["<platform>", `${process.platform}-${process.arch}`],
+        ]),
+    );
 }
-
-// ============================================================================
-// HarnessSpec：声明式的 harness，新增能力时不必写一份完整的 main。
-// ============================================================================
 
 /**
- * 一个声明式 harness 的描述。
+ * 建立依赖图。
  *
- * `units()` 给出 probe `run` 的输入单元；`oracle(unit)` 给出参照实现的输出。
- * probe 侧的输出按 `key` 与参照实现对齐后逐字段比较，比较前两侧都会经过
- * `normalise`（可选的比较规范化）。
+ * 失败（找不到 ninja、探针未构建、依赖日志缺失）时返回原因：调用方把全部能力当作「必须运行」，
+ * 并在摘要里点名——绝不把「没有依赖」当成「永远通过」。
  */
-export interface HarnessSpec {
-    readonly name: string;
-    readonly domain: string;
-    /** 输出中标识单元的字段名，如 "item"。 */
-    readonly key: string;
-    /** probe `run` 的输入单元（每单元一行）。 */
-    readonly units: () => string[];
-    /** 单元 → probe 的一行输入。 */
-    readonly input: (unit: string) => unknown;
-    /** 单元 → 参照实现的输出（对象，序列化后参与比较）。 */
-    readonly oracle: (unit: string) => unknown;
-    /** 比较前对两侧输出的规范化。默认只做键排序。 */
-    readonly normalise?: (value: unknown) => unknown;
-    /**
-     * 参照数据缺失、但被测实现有的单元。这些单元不参与比较，并在报告里单列条数。
-     * 与 ORACLE_MISSING_BLOCKS 同理：每次运行都核对「参照补齐后必须删掉」，防止永久豁免。
-     */
-    readonly oracleMissing?: readonly string[];
+function buildDependencyEntries(layout: ProjectLayout, state: RunnerState): { entries: Map<string, DependencyEntry>; reason?: string } {
+    try {
+        const { loadNinjaModel, executableObjects } = requireNinja();
+        const model = loadNinjaModel(layout.buildDir, layout.implConfig, layout.ninja);
+        const probes = new Map(HARNESSES.map((declaration) => [declaration.name, declaration.probe ?? declaration.name]));
+        const oracles = new Map(
+            HARNESSES.filter((declaration) => declaration.oracle !== undefined).map((declaration) => [declaration.name, declaration.oracle as string]),
+        );
+        const objects = new Map<string, { objects: readonly string[]; missing: readonly string[] }>();
+        for (const probe of new Set(probes.values())) {
+            objects.set(probe, executableObjects(model, probeArtifact(probe, layout)));
+        }
+        const previous = new Map<string, DependencyEntry>();
+        for (const [name, record] of Object.entries(state.harnesses)) {
+            previous.set(name, { files: record.files, artifacts: record.artifacts, modules: record.modules });
+        }
+        const entries = buildGraph({ layout, model, probes, oracles, objects, previous });
+        return { entries };
+    } catch (error) {
+        return { entries: new Map(), reason: (error as Error).message };
+    }
 }
 
-/** 一个 harness 的执行结果（含退出码）。 */
-export interface HarnessOutcome {
-    readonly spec: HarnessSpec;
-    readonly result: HarnessResult;
-    readonly exitCode: number;
+let ninjaModule: typeof import("../tools/ninja.ts") | undefined;
+
+/** 延迟加载构建图解析器：`--status` 这类命令完全不需要它。 */
+function requireNinja(): typeof import("../tools/ninja.ts") {
+    if (ninjaModule === undefined) {
+        throw new Error("内部错误：ninja 模块尚未加载");
+    }
+    return ninjaModule;
 }
 
 /**
- * 跑一个声明式 harness。
+ * 每个能力当前的依赖摘要；依赖图不可用时为空。
  *
- * 规范化两侧都做：只在一侧做会让差异永远消不掉（等于没比）。
+ * 共享输入（编排层自身代码、构建入口、版本锁定文件）只哈希一次：它们是所有能力的共同依赖，
+ * 逐个能力重算会重复读同一批文件，而缓存查不到时读盘正是最贵的一步。
  */
-export function runSpec(spec: HarnessSpec, options: { samples?: number } = {}): HarnessOutcome {
-    const all = spec.units();
-    const missing = new Set(spec.oracleMissing ?? []);
-    const units = all.filter((unit) => !missing.has(unit));
-    const exempted = all.length - units.length;
+function computeDigests(
+    entries: ReadonlyMap<string, DependencyEntry>,
+    cache: HashCache,
+    environment: string,
+    layout: ProjectLayout,
+): Map<string, string> {
+    const sharedFiles = hashFiles(SHARED_INPUTS.map((file) => path.join(REPO_ROOT, ...file.split("/"))), cache);
+    const digests = new Map<string, string>();
+    for (const [name, entry] of entries) {
+        digests.set(name, entryDigest(layout, entry, cache, environment, sharedFiles));
+    }
+    return digests;
+}
 
-    const result = runHarness({
-        harness: spec.name,
-        domain: spec.domain,
-        units,
-        oracleOutputs: units.map((unit) => JSON.stringify(spec.oracle(unit))),
-        key: spec.key,
-        inputPayload: spec.input,
-        compareTransform: spec.normalise,
+/** 可运行的能力名（声明表顺序）。 */
+function availableHarnesses(): string[] {
+    return HARNESSES.map((declaration) => declaration.name);
+}
+
+/** 打印选择结果。 */
+function printSelection(notes: readonly string[], selected: readonly string[], available: readonly string[]): void {
+    for (const note of notes) {
+        console.log(`  ${note}`);
+    }
+    if (selected.length === 0) {
+        console.log(`没有需要运行的能力（共 ${available.length} 个，全部在各自输入下通过过）`);
+        return;
+    }
+    console.log(`本次运行 ${selected.length}/${available.length} 个能力：${selected.join("、")}`);
+}
+
+/**
+ * 从上次记录取出调度用的耗时，并带上能力声明里的互斥组。
+ *
+ * 互斥组由能力自己声明（`declaration.exclusiveGroup`）：oracle 会占用进程外固定资源的能力
+ * 必须串行，见 runner/scheduler.ts 的说明。
+ */
+function scheduled(selected: readonly string[], state: RunnerState): ScheduledHarness[] {
+    return selected.map((name) => ({
+        name,
+        seconds: state.harnesses[name]?.seconds,
+        exclusiveGroup: findHarness(name)?.exclusiveGroup,
+    }));
+}
+
+/** 把执行结果转成状态记录。 */
+function recordOutcome(entry: DependencyEntry | undefined, digest: string, outcome: RunOutcome, graphReason?: string): HarnessRecord {
+    const base = entry ?? { files: [], artifacts: [], modules: outcome.modules };
+    return buildRecord(base, {
+        status: outcome.status,
+        digest,
+        oracleKey: outcome.oracleKey,
+        units: outcome.units,
+        matched: outcome.matched,
+        knownDifferences: outcome.knownDifferences,
+        seconds: Number(outcome.seconds.toFixed(1)),
+        finished: new Date().toISOString(),
+        failure: outcome.failure,
+        graph: graphReason,
+        modules: outcome.modules,
     });
-
-    console.log(render(result, options.samples ?? 5));
-    if (exempted > 0) {
-        // 只报条数和前几项：缺口清单可能有上百条，全打出来会把摘要淹掉。
-        const sample = [...missing].slice(0, 3).join("、");
-        const more = exempted > 3 ? " 等" : "";
-        console.log(`  另有 ${exempted} 个单元属于参照数据缺失项，未计入：${sample}${more}`);
-    }
-    return { spec, result, exitCode: result.differences.length === 0 ? 0 : 1 };
 }
 
-/**
- * 命令行入口：
- *   node tests/diff/harness/runner.ts build [domain]
- *   node tests/diff/harness/runner.ts run <harness|all>
- */
-function main(argv: string[]): number | Promise<number> {
-    const [command, argument] = argv;
-    if (command === "build") {
-        buildProbes(argument);
+async function main(argv: readonly string[]): Promise<number> {
+    const options = parseArguments(argv);
+    const layout = projectLayout(options.buildDir);
+    const state = loadState(layout.stateDirectory);
+    ninjaModule = await import("../tools/ninja.ts");
+
+    if (options.command === "graph") {
+        const { entries, reason } = buildDependencyEntries(layout, state);
+        if (reason !== undefined) {
+            console.log(`依赖图不可用：${reason}`);
+            return 2;
+        }
+        const lines = [...entries.entries()]
+            .map(([name, entry]) => `${name.padEnd(28)} 代码依赖 ${String(entry.files.length).padStart(5)}  模块 ${String(entry.modules.length).padStart(3)}`)
+            .sort();
+        console.log("能力".padEnd(28) + " 依赖规模");
+        for (const line of lines) {
+            console.log(line);
+        }
         return 0;
     }
-    if (command === "run") {
-        // 用动态 import 而不是静态 import：harnesses/index.ts 会反向 import 本文件的
-        // runSpec，静态互相 import 会在模块图里形成环。动态 import 在入口文件的顶层
-        // await 路径下不会结算（Node 24 的格式探测阶段会把入口按 CommonJS 解析一遍），
-        // 所以这里把整个 run 分支放进一个自执行的异步闭包，顶层只等这一个 Promise。
-        return (async () => {
-            const { runAll, runNamed } = await import("./harnesses/index.ts");
-            if (argument === undefined || argument === "all") {
-                return runAll();
-            }
-            return runNamed(argument);
-        })();
+
+    if (options.command === "build") {
+        buildProbes(layout, options.names.length > 0 ? options.names : undefined);
+        return 0;
     }
-    console.log("用法：\n  node tests/diff/harness/runner.ts build [domain]\n  node tests/diff/harness/runner.ts run <harness|all>");
-    return 2;
+
+    // ---- run ----
+    const available = availableHarnesses();
+    const environment = environmentDigest(layout);
+    const sharedFiles = hashFiles(SHARED_INPUTS.map((file) => path.join(REPO_ROOT, ...file.split("/"))), state.hashes);
+    const request = {
+        names: options.names,
+        changedRef: options.changedRef,
+        changedFiles: options.changedFiles,
+        failed: options.failed,
+        all: options.all,
+    };
+
+    if (options.status) {
+        const records = new Map<string, DependencyEntry>();
+        for (const [name, record] of Object.entries(state.harnesses)) {
+            records.set(name, { files: record.files, artifacts: record.artifacts, modules: record.modules });
+        }
+        const recorded = digestsFromRecords(layout, state, state.hashes, environment, sharedFiles);
+        for (const name of available) {
+            const record = state.harnesses[name];
+            const fresh = record !== undefined && record.status === "pass" && record.graph === undefined &&
+                recorded.get(name) === record.digest;
+            const label = record === undefined ? "从未运行" : record.status === "pass" ? (fresh ? "通过（可复用）" : "通过（输入已变）") : record.status === "fail" ? "存在差异" : "运行错误";
+            const seconds = record?.seconds === undefined ? "" : `${record.seconds.toFixed(1)}s`;
+            console.log(`${name.padEnd(28)} ${label.padEnd(16)} ${seconds}`);
+        }
+        return 0;
+    }
+
+    // 快速路径：只看上次记下的依赖清单。建图要十几秒（compdb + 几千次 deps 查询），而绝大多数
+    // 情况下答案都是「不用重跑」——那就只哈希一遍已记录的依赖（有缓存时约 0.3 秒）。
+    let entries: Map<string, DependencyEntry> = new Map();
+    let reason: string | undefined;
+    let digests = digestsFromRecords(layout, state, state.hashes, environment, sharedFiles);
+    let selection = select(request, { available, entries, digests, records: state.harnesses, graphAvailable: true });
+    // 快速路径只能回答「摘要是否一致」。`--changed` 需要依赖图才能回答「改动影响谁」，
+    // 在空图下它必然选中 0 个——那不是「无需运行」，是「还算不出来」。
+    const needsGraph = selection.selected.length > 0 || request.changedRef !== undefined || request.changedFiles !== undefined;
+    if (needsGraph || selection.probes.length > 0) {
+        ({ entries, reason } = buildDependencyEntries(layout, state));
+        digests = reason === undefined
+            ? computeDigests(entries, state.hashes, environment, layout)
+            : new Map();
+        selection = select(request, { available, entries, digests, records: state.harnesses, graphAvailable: reason === undefined });
+    }
+    if (options.list) {
+        printSelection(selection.notes, selection.selected, available);
+        return 0;
+    }
+    if (selection.selected.length === 0) {
+        console.log(`全部 ${available.length} 个能力都已在当前输入下通过，无需运行。`);
+        return 0;
+    }
+
+    // 需要运行：先构建缺失/过期的探针，再重建依赖图（探针重建后依赖列表与产物哈希都会变）。
+    if (!options.noBuild) {
+        const probesToBuild = selection.probes.length > 0
+            ? [...new Set(selection.probes.map((name) => HARNESSES.find((declaration) => declaration.name === name)?.probe ?? name))]
+            : undefined;
+        buildProbes(layout, probesToBuild);
+        ({ entries, reason } = buildDependencyEntries(layout, state));
+        digests = reason === undefined ? computeDigests(entries, state.hashes, environment, layout) : new Map();
+        // 建图后重新算一次选择：构建可能让「输入已变」的能力重新变成「可复用」。
+        selection = select(request, { available, entries, digests, records: state.harnesses, graphAvailable: reason === undefined });
+        if (selection.selected.length === 0) {
+            console.log(`全部 ${available.length} 个能力都已在当前输入下通过，无需运行。`);
+            return 0;
+        }
+    }
+    if (reason !== undefined) {
+        console.warn(`[diff] 依赖图不可用（${reason}）：本次运行的全部能力都无法复用通过记录`);
+    }
+    printSelection(selection.notes, selection.selected, available);
+
+    const jobs = options.jobs ?? defaultJobs();
+    const memoryMiB = freeMemoryMiB();
+    console.log(`并行 ${jobs} 个（CPU ${cpuCount()} 核，可用内存 ${memoryMiB} MiB），单个超时 ${options.timeoutSeconds}s`);
+
+    const started = process.hrtime.bigint();
+    const outcomes = new Map<string, RunOutcome>();
+    const errors = new Map<string, string>();
+    let finishedCount = 0;
+    const total = selection.selected.length;
+    const record = (name: string): void => {
+        finishedCount++;
+        const outcome = outcomes.get(name);
+        const label = outcome?.status === "pass" ? "通过" : outcome?.status === "fail" ? "差异" : "错误";
+        const seconds = outcome === undefined ? "" : `${outcome.seconds.toFixed(1)}s`;
+        const gaps = outcome?.knownDifferences;
+        // 已知缺口必须在结果行里点名：否则「通过」和「闸门被放宽」看起来一模一样。
+        const detail = outcome === undefined
+            ? errors.get(name) ?? ""
+            : `${outcome.status === "pass" ? `${outcome.matched}/${outcome.units} 一致` : outcome.failure ?? ""}` +
+                `${gaps !== undefined && gaps > 0 ? `；${gaps} 处已登记的已知差异` : ""}`;
+        console.log(`[${String(finishedCount).padStart(String(total).length)}/${total}] ${name.padEnd(28)} ${label.padEnd(4)} ${seconds.padStart(7)}  ${detail}`);
+        if (outcome !== undefined && outcome.status !== "pass" && options.samples > 0) {
+            for (const line of renderSamples(outcome.reportPath, options.samples)) {
+                console.log(`        ${line}`);
+            }
+        }
+        if (outcome === undefined && errors.has(name)) {
+            console.log(`        ${errors.get(name)}`);
+        }
+    };
+    await runAll(
+        scheduled(selection.selected, state),
+        {
+            jobs,
+            timeoutSeconds: options.timeoutSeconds,
+            payload: (harness) => ({ harness: harness.name, buildDir: layout.buildDir, fresh: options.fresh }),
+        },
+        (harness: ScheduledHarness, result: WorkerResult) => {
+            if (result.outcome !== undefined) {
+                outcomes.set(harness.name, result.outcome);
+                // 运行期模块写回依赖条目：下次 --changed 靠它判断「改动是否影响这个能力」。
+                const entry = entries.get(harness.name);
+                if (entry !== undefined) {
+                    entries.set(harness.name, { ...entry, modules: [...new Set(result.outcome.modules)].sort() });
+                }
+            } else {
+                errors.set(harness.name, result.error ?? "执行进程失败");
+                if (result.stderr.trim().length > 0) {
+                    console.error(`[diff] ${harness.name} 执行进程 stderr：\n${result.stderr.slice(-4000)}`);
+                }
+            }
+            const digest = digests.get(harness.name) ?? "";
+            const entry = entries.get(harness.name);
+            const outcome = result.outcome;
+            state.harnesses[harness.name] = outcome === undefined
+                ? buildRecord(entry ?? { files: [], artifacts: [], modules: [] }, {
+                    status: "error",
+                    digest,
+                    failure: errors.get(harness.name),
+                    graph: reason,
+                    finished: new Date().toISOString(),
+                })
+                : recordOutcome(entry, digest, outcome, reason);
+            record(harness.name);
+            // 每完成一个就落盘：中途中断时，已完成的结论不会丢。
+            saveState(layout.stateDirectory, state, liveHashPaths(entries));
+        },
+    );
+
+    const elapsedSeconds = Number(process.hrtime.bigint() - started) / 1e9;
+    const failures = selection.selected.filter((name) => outcomes.get(name)?.status === "fail");
+    const errored = selection.selected.filter((name) => outcomes.get(name) === undefined || outcomes.get(name)?.status === "error");
+    const summary: RunSummary = {
+        total: selection.selected.length,
+        passed: selection.selected.length - failures.length - errored.length,
+        failed: failures,
+        errored,
+        skipped: available.length - selection.selected.length,
+        seconds: elapsedSeconds,
+    };
+    state.lastRun = { failures: [...failures, ...errored], finished: new Date().toISOString(), seconds: elapsedSeconds };
+    saveState(layout.stateDirectory, state, liveHashPaths(entries));
+    printSummary(summary, layout);
+    return failures.length === 0 && errored.length === 0 ? 0 : 1;
 }
 
-// 不用 `import.meta.main`：Node 24 在本文件同时存在顶层 await 时，会把入口模块
-// 先按 CommonJS 解析一遍做格式探测，`import.meta.main` 在该阶段为 false，
-// 顶层 await 又永远不会结算，进程最终以 13 退出且不产生任何输出。
-// 直接比较 argv[1] 与 import.meta.url 更稳定，也与项目里 e2e/run.ts 的写法一致。
+/** 哈希缓存要保留的路径集合。 */
+function liveHashPaths(entries: ReadonlyMap<string, DependencyEntry>): Set<string> {
+    const live = new Set<string>();
+    for (const file of SHARED_INPUTS) {
+        live.add(path.join(REPO_ROOT, ...file.split("/")));
+    }
+    for (const entry of entries.values()) {
+        for (const file of [...entry.files, ...entry.modules]) {
+            live.add(path.join(REPO_ROOT, ...file.split("/")));
+        }
+    }
+    return live;
+}
+
+/** 从报告里取前 N 条差异，渲染成终端行。 */
+function renderSamples(reportPath: string, samples: number): string[] {
+    try {
+        const report = JSON.parse(fs.readFileSync(reportPath, "utf8")) as {
+            differences?: Array<{ key: string; expected: unknown; actual: unknown }>;
+            error?: string;
+        };
+        if (report.error !== undefined) {
+            return [report.error];
+        }
+        const lines: string[] = [];
+        for (const difference of (report.differences ?? []).slice(0, samples)) {
+            lines.push(`- ${difference.key}`);
+            lines.push(`    oracle: ${JSON.stringify(difference.expected)}`);
+            lines.push(`    probe : ${JSON.stringify(difference.actual)}`);
+        }
+        return lines;
+    } catch {
+        return [];
+    }
+}
+
+/** 打印整体摘要。 */
+function printSummary(summary: RunSummary, layout: ProjectLayout): void {
+    const parts = [
+        `运行 ${summary.total} 个`,
+        `通过 ${summary.passed}`,
+        `差异 ${summary.failed.length}`,
+        `错误 ${summary.errored.length}`,
+        `跳过 ${summary.skipped}`,
+        `耗时 ${summary.seconds.toFixed(1)}s`,
+    ];
+    console.log(`\n${parts.join("，")}`);
+    for (const name of summary.failed) {
+        console.log(`  差异：${name}  报告：${path.join(layout.buildDir, "diff", name, "run", "report.json")}`);
+    }
+    for (const name of summary.errored) {
+        console.log(`  错误：${name}`);
+    }
+    console.log(`状态文件：${statePath(layout.stateDirectory)}`);
+}
+
+// 入口判定与 tests/e2e/bot 的 run.ts 保持一致：比较 argv[1] 与 import.meta.url。
 const entryUrl = process.argv[1] === undefined ? "" : pathToFileURL(process.argv[1]).href;
 if (import.meta.url === entryUrl) {
-    // 同步路径（build / 帮助）直接返回数字，异步路径（run）返回 Promise；统一 await 一次。
-    Promise.resolve(main(process.argv.slice(2))).then((code) => process.exit(code));
+    void main(process.argv.slice(2))
+        .then((code) => process.exit(code))
+        .catch((error: Error) => {
+            console.error(error.message);
+            process.exit(2);
+        });
 }
 
 export { main };
+export type { Options };

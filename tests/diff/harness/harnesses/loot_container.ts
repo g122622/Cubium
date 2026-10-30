@@ -61,6 +61,25 @@ export const LOOT_CONTAINER_SCENARIO_NAMES: readonly string[] = LOOT_CONTAINER_S
 );
 
 /**
+ * 已知缺口：本能力目前必然报差异的两段。原因写在探针文件头（probes/loot_container.cpp 的
+ * TODO 段）。这里显式登记，让摘要把它们与「新出现的差异」分开——不登记就成了静默豁免；
+ * 登记后报告仍会点名条数与原因。修好任何一条都要删掉对应登记，否则新缺陷会被吞掉。
+ */
+export const KNOWN_GAPS: readonly { readonly field: string; readonly reason: string }[] = [
+    {
+        field: "slots",
+        reason:
+            "容器填充的随机源未对齐 random_sequence 派生（探针按裸种子掷，原版随后再从序列派生一条）",
+    },
+    {
+        field: "drop",
+        reason:
+            "oracle 的 drop 只导出 id/count，探针额外导出 customName/container（探针注释判断为 " +
+            "oracle 加载旧字节码，尚未查清）",
+    },
+];
+
+/**
  * 单元键：`表 ID#场景名`。
  *
  * 两侧都用同一个键对齐；表名从 `#` 之前的部分取。

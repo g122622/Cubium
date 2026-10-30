@@ -21,50 +21,66 @@
  *
  */
 
+/*
+ * recipe.ts — 配方：定义与装配结果。
+ *
+ * 参照实现是原版 `RecipeOracle`：先从它导出「具体三槽输入」夹具（`dump` 子命令），再让两侧
+ * 用同一份输入做 `matches` / `assemble`。
+ *
+ * 为什么必须导出夹具：锻造配方的原料是标签，两侧各自从标签里取一个成员会得到不同的具体输入
+ * （例如一侧取皮革靴、另一侧取钻石胸甲），比的是「标签成员顺序」而不是配方逻辑。夹具让样本
+ * 由同一份数据决定。
+ *
+ * 夹具在 `beforeUnits` 里导出：它是单元枚举的输入，不是比对的一部分。
+ */
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { oracleClasspath, prepareOracle, vanillaDataPackDir } from "../oracle-env.ts";
-import { resolveBuildDir } from "../runner.ts";
+
+import type { HarnessContext, HarnessDeclaration } from "../core/types.ts";
 
 interface RecipeFixture {
     readonly recipe: string;
-    readonly assemblyInput?: readonly ({ readonly id: string; readonly count: number } | null)[];
+    readonly assemblyInput?: readonly unknown[];
 }
 
-/** 先由原版导出具体三槽输入，再将同一份输入交给两侧。 */
-export function createRecipeHarness() {
+/** 配方能力的声明；导出夹具的状态放在闭包里（每个执行进程只运行一个能力）。 */
+export function recipeDeclaration(): HarnessDeclaration {
     const fixtures = new Map<string, RecipeFixture>();
     return {
         name: "recipe",
+        probe: "recipe",
         oracle: "RecipeOracle",
         key: "recipe",
-        units: (): string[] => {
-            // runJavaOracle 在枚举单元之前已编译 oracle，此处只运行导出命令。
-            const directory = path.join(resolveBuildDir(), "diff/recipe/java");
-            const environment = prepareOracle(directory);
-            const output = path.join(directory, "fixtures.jsonl");
-            execFileSync("java", [
-                "-cp", environment.classesDir + path.delimiter + oracleClasspath(environment),
-                "dev.horizonlab.diff.RecipeOracle", "dump", output,
-            ], {
-                cwd: directory,
-                env: { ...process.env, MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() },
-                stdio: ["ignore", "pipe", "pipe"],
-            });
-            fixtures.clear();
-            for (const line of fs.readFileSync(output, "utf8").split(/\r?\n/).filter(Boolean)) {
-                const fixture = JSON.parse(line) as RecipeFixture;
-                fixtures.set(fixture.recipe, fixture);
-            }
-            return [...fixtures.keys()].sort();
-        },
+        units: { kind: "computed", units: () => [...fixtures.keys()].sort() },
         input: (recipe: string): RecipeFixture => {
             const fixture = fixtures.get(recipe);
             if (fixture === undefined) {
                 throw new Error(`No recipe fixture: ${recipe}`);
             }
             return fixture;
+        },
+        beforeUnits: (context: HarnessContext): void => {
+            const directory = context.outputDirectory("recipe", "oracle");
+            context.compileOracle("RecipeOracle", "recipe");
+            const output = path.join(directory, "fixtures.jsonl");
+            execFileSync(
+                "java",
+                [
+                    "-cp",
+                    context.oracleClasspath(context.classesDirectory("recipe")),
+                    "dev.horizonlab.diff.RecipeOracle",
+                    "dump",
+                    output,
+                ],
+                { cwd: directory, env: context.environment, stdio: ["ignore", "pipe", "pipe"] },
+            );
+            fixtures.clear();
+            for (const line of fs.readFileSync(output, "utf8").split(/\r?\n/).filter(Boolean)) {
+                const fixture = JSON.parse(line) as RecipeFixture;
+                fixtures.set(fixture.recipe, fixture);
+            }
         },
     };
 }
