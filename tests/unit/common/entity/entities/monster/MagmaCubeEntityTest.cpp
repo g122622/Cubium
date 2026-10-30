@@ -563,6 +563,9 @@ TEST_F(MagmaCubeEntityTest, ExperienceValue_EqualsSize)
     MagmaCubeEntity magmaCube(EntityInstanceId(1), mc::test::testEcsRegistry());
     magmaCube.setWorld(&m_world);
 
+    // 原版构造期不写 xpReward（Slime.java:109 只在 setSize 里赋值），刚建出来是 0。
+    EXPECT_EQ(magmaCube.experienceValue(), 0);
+
     // 经验值继承自史莱姆，等于尺寸
     magmaCube.setSlimeSize(1, true);
     EXPECT_EQ(magmaCube.experienceValue(), 1);

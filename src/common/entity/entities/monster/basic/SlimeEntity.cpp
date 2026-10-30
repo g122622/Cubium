@@ -74,11 +74,10 @@ std::unique_ptr<Entity> SlimeEntity::create(IWorld* /*world*/, ecs::EntityRegist
 
 void SlimeEntity::setSlimeSize(i32 size, bool resetHealth)
 {
+    // 尺寸没变也要走完整流程：原版 setSize 每次都重设属性、刷新碰撞箱并重写 xpReward
+    // （Slime.java:97-111），没有「相同就跳过」的短路。短路会让「先构造（经验值 0）再
+    // setSlimeSize(1, true)」拿不到经验值，与原版行为不一致。
     i32 clampedSize = std::clamp(size, 1, 4);
-    if (m_size == clampedSize) {
-        return;
-    }
-
     m_size = clampedSize;
     updateSizeAttributes();
     refreshDimensions();
@@ -299,9 +298,11 @@ void SlimeEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    // 默认尺寸为1
+    // 默认尺寸为 1。原版构造期只把 ID_SIZE 定义成 1，不调用 setSize，因此经验值仍是 0；
+    // 这里显式清掉基类给的经验值，保持「未生成过的史莱姆不掉经验」这一语义。
     m_size = 1;
     updateSizeAttributes();
+    m_experienceValue = 0;
 }
 
 void SlimeEntity::updateSizeAttributes()
@@ -318,7 +319,7 @@ void SlimeEntity::updateSizeAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, damage);
 
-    // 经验值等于尺寸
+    // 经验值等于尺寸（原版 Slime.setSize:109）。
     m_experienceValue = m_size;
 }
 
@@ -440,11 +441,10 @@ void SlimeEntity::performSplit()
         smallSlime->setPosition(spawnX, spawnY, spawnZ);
         smallSlime->setRotation(spawnYaw, 0.0f);
 
-        // 对分裂生成的小史莱姆调用 finalizeSpawn（使用位置感知的区域难度）
-        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world(),
-            BlockPos(
-                static_cast<i32>(std::floor(spawnX)), static_cast<i32>(spawnY), static_cast<i32>(std::floor(spawnZ))));
-        smallSlime->finalizeSpawn(*world(), difficultyInstance, world::spawn::SpawnReason::Reinforcement);
+        // 不调 finalizeSpawn：原版分裂走 convertTo（Mob.java:1189-1209），只执行
+        // ConversionParams 的 AfterConversion（Slime.remove 里就是 setSize + snapTo），
+        // 不会再随机一次尺寸。此前这里调了 finalizeSpawn，子史莱姆的尺寸被重新掷成
+        // 1/2/4，分裂出来的可能和父体一样大。
 
         // 设置随机速度
         smallSlime->setVelocity(

@@ -128,9 +128,9 @@ TEST_F(DecoratedPotRecipeTest, Matches_MixedBricksAndSherds)
 {
     // 混合砖块和陶片应该匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));               // back
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));                // back
     grid.setItemAt(0, 1, ItemStack(Items::ANGLER_POTTERY_SHERD, 1)); // left
-    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));               // right
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));                // right
     grid.setItemAt(1, 2, ItemStack(Items::HEART_POTTERY_SHERD, 1));  // front
 
     EXPECT_TRUE(recipe->matches(grid));
@@ -190,10 +190,10 @@ TEST_F(DecoratedPotRecipeTest, NoMatch_NonIngredientItem)
 {
     // 十字形排列但包含非 DECORATED_POT_INGREDIENTS 物品不匹配
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));               // back
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));                // back
     grid.setItemAt(0, 1, ItemStack(Items::ANGLER_POTTERY_SHERD, 1)); // left
     grid.setItemAt(2, 1, ItemStack(Items::STONE, 1));                // right - 石头不是陶罐原料
-    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1));               // front
+    grid.setItemAt(1, 2, ItemStack(Items::BRICK, 1));                // front
 
     EXPECT_FALSE(recipe->matches(grid));
 }
@@ -246,9 +246,9 @@ TEST_F(DecoratedPotRecipeTest, Assemble_MixedBricksAndSherds)
 
     // 混合砖块和陶片应该产生对应图案的陶罐
     CraftingInventory grid(3, 3);
-    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));               // back = Blank
+    grid.setItemAt(1, 0, ItemStack(Items::BRICK, 1));                // back = Blank
     grid.setItemAt(0, 1, ItemStack(Items::ANGLER_POTTERY_SHERD, 1)); // left = Angler
-    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));               // right = Blank
+    grid.setItemAt(2, 1, ItemStack(Items::BRICK, 1));                // right = Blank
     grid.setItemAt(1, 2, ItemStack(Items::HEART_POTTERY_SHERD, 1));  // front = Heart
 
     ItemStack result = recipe->assemble(grid);

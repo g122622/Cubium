@@ -64,6 +64,9 @@ GuardianEntity::GuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registr
 
     // 对齐 vanilla Guardian 构造：moveControl = new GuardianMoveControl(this)
     m_moveController = std::make_unique<entity::ai::controller::GuardianMoveControl>(this);
+
+    // 对齐 vanilla Guardian.java:63：xpReward = 10（基类 Monster 给的是 5）。
+    setExperienceValue(10);
 }
 
 void GuardianEntity::setMoving(bool moving)

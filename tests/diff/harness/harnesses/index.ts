@@ -300,6 +300,15 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         },
     }),
     () => ({
+        // 生物死亡经验：每种生物构造函数里写死的 xpReward。
+        name: "mob_experience",
+        oracle: "MobExperienceOracle",
+        input: (unit: string) => ({ entity: unit }),
+        key: "entity",
+        // 原版能建、项目尚未注册的生物（以及 construct 失败的个别实体）按已知缺口登记。
+        oracleMissing: entityKnownMissing,
+    }),
+    () => ({
         name: "enchantment_table",
         oracle: "EnchantmentExport",
         input: (unit: string) => ({ enchantment: unit, levels: [1, 1] }),

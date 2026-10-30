@@ -40,6 +40,10 @@ ElderGuardianEntity::ElderGuardianEntity(EntityInstanceId id, ecs::EntityRegistr
 {
     // 注册属性
     registerAttributes();
+
+    // 远古守卫者继承守卫者的经验值（vanilla Guardian.java:63 的 xpReward = 10），
+    // 子类构造里基类已设过，这里显式重申以免将来基类改动后静默漂移。
+    setExperienceValue(10);
 }
 
 std::unique_ptr<Entity> ElderGuardianEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)

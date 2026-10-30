@@ -47,6 +47,7 @@ tests/diff/
 │   ├── tool_material.cpp        # 工具材质的耐久 / 效率 / 攻击伤害加成 / 附魔能力
 │   ├── enchantment_effects.cpp  # 附魔各等级的伤害加成 / 保护点数 / 属性修饰符
 │   ├── attribute_range.cpp      # 属性的默认值与取值上下限
+│   ├── mob_experience.cpp       # 生物死亡掉落的基础经验值
 │   ├── block_state_names.cpp    # 方块状态名全集
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
@@ -224,6 +225,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `tool_material` | 原版 jar `ToolMaterialOracle` | 7 | 全部一致 | 采集等级不比（原版用方块标签表达） |
 | `enchantment_effects` | 原版 jar `EnchantmentEffectsOracle` | 43 | 全部一致 | 宝藏枚举与附魔台代价由 `enchantment_table` 覆盖 |
 | `attribute_range` | 原版 jar `AttributeRangeOracle` | 35 | 全部一致 | 项目自研属性 `horse.jump_strength` 原版没有 |
+| `mob_experience` | 原版 jar `MobExperienceOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -256,6 +258,17 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
   对 body 同样成立；
 - `AttributeInstance::addModifier` 原来是 `push_back` 不去重，而原版按 id 覆盖——
   同一附魔在多件装备上会重复叠加（三件迅捷潜行 = +0.45 而不是 +0.15）。
+
+`mob_experience` 首轮查出并修掉的经验值问题（7 处）：
+
+- 守卫者、远古守卫者、唤魔者经验值停在基类 Monster 的 5（原版 10）；
+- 恼鬼 5 → 3；猪灵蛮兵 5 → 20；
+- 史莱姆与岩浆怪：原版只在 `setSize` 里写 `xpReward`，构造函数只定义初始尺寸，
+  因此「刚建出来、还没生成」的史莱姆经验值是 0；Cubium 在建属性时就写了 1，
+  且 `setSlimeSize` 在尺寸未变时直接返回，导致 `setSlimeSize(1)` 拿不到经验值；
+- 顺带查出分裂逻辑的错误：子史莱姆调用了 `finalizeSpawn`，尺寸被重新随机成
+  1/2/4，而原版 `convertTo` 只执行 AfterConversion（`setSize(parent/2)`），
+  分裂出来的小史莱姆可能和父体一样大。
 
 `attribute_range` 首轮查出并修掉的属性定义问题（13 处，全部是属性表本身写错）：
 

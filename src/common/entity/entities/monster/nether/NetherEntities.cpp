@@ -820,6 +820,9 @@ PiglinBruteEntity::PiglinBruteEntity(EntityInstanceId id, ecs::EntityRegistry& r
     // 随机行走 / 看向目标。
     registerGoals();
     registerAttributes();
+
+    // 对齐 vanilla PiglinBrute.java:65：xpReward = 20（基类 Monster 给的是 5）。
+    setExperienceValue(20);
 }
 
 void PiglinBruteEntity::registerGoals()
