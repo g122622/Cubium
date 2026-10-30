@@ -48,6 +48,7 @@ tests/diff/
 │   ├── enchantment_effects.cpp  # 附魔各等级的伤害加成 / 保护点数 / 属性修饰符
 │   ├── attribute_range.cpp      # 属性的默认值与取值上下限
 │   ├── mob_experience.cpp       # 生物死亡掉落的基础经验值
+│   ├── block_destroy_progress.cpp # 方块破坏速度与每 tick 进度（正确/错误工具）
 │   ├── block_state_names.cpp    # 方块状态名全集
 │   ├── entity_attributes.cpp    # 生物属性默认值
 │   ├── random_sequence.cpp      # Xoroshiro / JavaLegacy 随机数接口序列
@@ -226,6 +227,7 @@ harness 决定。`runner.ts` 负责按 `key` 对齐两侧输出、规范化、�
 | `enchantment_effects` | 原版 jar `EnchantmentEffectsOracle` | 43 | 全部一致 | 宝藏枚举与附魔台代价由 `enchantment_table` 覆盖 |
 | `attribute_range` | 原版 jar `AttributeRangeOracle` | 35 | 全部一致 | 项目自研属性 `horse.jump_strength` 原版没有 |
 | `mob_experience` | 原版 jar `MobExperienceOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
+| `block_destroy_progress` | 原版 jar `BlockDestroyProgressOracle` | 971 | 705 个一致 | 461 个方块的采集工具/requiresTool 未声明（见 `known_missing_block_tools.ts`） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 

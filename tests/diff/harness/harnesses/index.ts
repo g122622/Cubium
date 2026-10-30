@@ -52,6 +52,7 @@ import {
     lootTableEntityUnit,
     lootTableInput,
 } from "./loot_context.ts";
+import { KNOWN_MISSING as blockToolsKnownMissing } from "./known_missing_block_tools.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import {
     dropProjectOnlyCommands,
@@ -307,6 +308,16 @@ const JAVA_HARNESSES: ReadonlyArray<() => JavaHarness> = [
         key: "entity",
         // 原版能建、项目尚未注册的生物（以及 construct 失败的个别实体）按已知缺口登记。
         oracleMissing: entityKnownMissing,
+    }),
+    () => ({
+        // 方块破坏进度：destroySpeed（界面硬度）与两种工具情形下每 tick 的进度。
+        name: "block_destroy_progress",
+        oracle: "BlockDestroyProgressOracle",
+        input: (unit: string) => ({ block: unit }),
+        key: "block",
+        // Cubium 未声明采集工具/未标 requiresTool 的方块：差异确定是「方块数据缺口」，
+        // 不是公式问题（公式已与 vanilla BlockBehaviour.getDestroyProgress 逐项对齐）。
+        oracleMissing: blockToolsKnownMissing,
     }),
     () => ({
         name: "enchantment_table",

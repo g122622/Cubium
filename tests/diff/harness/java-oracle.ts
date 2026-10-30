@@ -295,7 +295,9 @@ export function runJavaOracle(options: JavaOracleOptions): JavaOracleOutcome {
                     ok: differences.length === 0,
                     units: units.length,
                     differenceCount: differences.length,
-                    differences: differences.slice(0, 200),
+                    // 报告保留全部差异：harness 的已知缺口清单需要完整集合，
+                    // 截断会让清单漏项、差异在下一轮又「新出现」。数量大时报告文件会变长，可接受。
+                    differences,
                     elapsedSeconds: Number(elapsedSeconds.toFixed(3)),
                 },
                 null,
