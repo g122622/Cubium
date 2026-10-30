@@ -400,11 +400,20 @@ TEST_F(AddonRuntimeContractTest, StartupExposesRegistriesOwnedByCurrentContext)
 
 TEST_F(AddonRuntimeContractTest, PlayerPrototypeInheritsEntityPrototype)
 {
+    // 官方 @minecraft/server 的 GameMode 是**字符串枚举**，键名与值都是全小写
+    // （`creative = 'creative'`，见 index.d.ts）。此前实现与用例都写成首字母大写，
+    // 导致 `GameMode.survival` 取到 undefined、spawnSimulatedPlayer 静默落回 Creative。
     evaluate(R"(
         import { Player, Entity, GameMode } from '@minecraft/server';
         globalThis.inherits = Object.getPrototypeOf(Player.prototype) === Entity.prototype ? 1 : 0;
-        globalThis.creative = GameMode.Creative === 'Creative' ? 1 : 0;
+        globalThis.creative = GameMode.creative === 'creative' ? 1 : 0;
+        globalThis.survival = GameMode.survival === 'survival' ? 1 : 0;
+        globalThis.adventure = GameMode.adventure === 'adventure' ? 1 : 0;
+        globalThis.spectator = GameMode.spectator === 'spectator' ? 1 : 0;
     )");
     EXPECT_EQ(number("inherits"), 1);
     EXPECT_EQ(number("creative"), 1);
+    EXPECT_EQ(number("survival"), 1);
+    EXPECT_EQ(number("adventure"), 1);
+    EXPECT_EQ(number("spectator"), 1);
 }

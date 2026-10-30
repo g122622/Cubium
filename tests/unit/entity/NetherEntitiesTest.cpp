@@ -300,8 +300,10 @@ TEST_F(HoglinEntityTest, FireImmunity)
     auto* hoglin = dynamic_cast<HoglinEntity*>(entity.get());
     ASSERT_NE(hoglin, nullptr);
 
-    // 疣猪兽应该对火焰免疫
-    EXPECT_TRUE(hoglin->isImmuneToFire());
+    // 对齐 vanilla：疣猪兽**不**免疫火焰（Hoglin 未被标记为火焰免疫，只有僵尸疣猪兽 Zoglin
+    // 由 ZombifiedEntity 层获得该特性）。疣猪兽在阳光下会转化为僵尸疣猪兽，
+    // 但被火点燃时仍会正常燃烧。
+    EXPECT_FALSE(hoglin->isImmuneToFire());
 }
 
 /**

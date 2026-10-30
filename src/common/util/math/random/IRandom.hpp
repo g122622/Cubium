@@ -91,12 +91,12 @@ public:
      */
     [[nodiscard]] virtual i32 nextBits(i32 bits)
     {
-        if (bits >= 32) {
-            // 原版 BitRandomSource.next(32) = (i32) nextLong()：取**低** 32 位。
-            // 右移 64 - bits 取的是高位，与截断取低位不是同一个值；32 位这里按原版截断。
-            // 注意不能写 nextLong()：WorldgenRandom 覆写了它（两次 next(32)），会多推进状态。
-            return static_cast<i32>(nextU64());
-        }
+        // 原版 BitRandomSource.next(bits) = (i32)(nextLong() >>> (64 - bits))，即**取高位**，
+        // bits == 32 也不例外（>> 32 取高 32 位）。此前对 bits >= 32 特判成截断取低位，
+        // 与同一条公式不一致：WorldgenRandom::nextLong 由此拼出的高低半部都错，
+        // 装饰种子与 placed_feature 的 setFeatureSeed 种子随之整体偏移。
+        // 注意不能写 nextLong()：子类可能覆写它（WorldgenRandom 用两次 next(32) 拼接），
+        // 那会多推进状态；这里基于单次 nextU64()。
         return static_cast<i32>(static_cast<u64>(nextU64()) >> (64 - bits));
     }
 

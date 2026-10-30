@@ -570,9 +570,11 @@ TEST(LivingEntityTest, AttributeModifier)
 TEST(LivingEntityTest, JumpStrength_RegisteredWithDefault)
 {
     TestLivingEntity entity;
-    // JUMP_STRENGTH 由 LivingEntity::registerAttributes 注册，默认 0.42
+    // JUMP_STRENGTH 由 LivingEntity::registerAttributes 注册，默认 0.42。
+    // 默认值以 f32 存储（0.42f），提升到 f64 后是 0.41999998688697815，与字面量 0.42
+    // 并不精确相等，故用浮点容差比较而不是 EXPECT_DOUBLE_EQ。
     EXPECT_TRUE(entity.attributes().hasAttribute(Attributes::JUMP_STRENGTH));
-    EXPECT_DOUBLE_EQ(entity.getAttributeValue(Attributes::JUMP_STRENGTH), 0.42);
+    EXPECT_NEAR(entity.getAttributeValue(Attributes::JUMP_STRENGTH), 0.42, 1e-6);
 }
 
 TEST(LivingEntityTest, GetJumpPower_DefaultNoEffect)

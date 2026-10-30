@@ -130,10 +130,12 @@ TEST_F(ArmorMaterialBodySlotTest, NetheriteDefenseAllSlots)
 TEST_F(ArmorMaterialBodySlotTest, ArmadilloScuteDefenseAllSlots)
 {
     // 犰狳鳞甲材质所有槽位防御值
-    // HEAD=3, CHEST=6, LEGS=8, FEET=3, BODY=11
+    // 对齐 vanilla ArmorMaterials.ARMADILLO_SCUTE：
+    // makeDefense(BOOTS, LEGGINGS, CHESTPLATE, HELMET, BODY) = makeDefense(3, 6, 8, 3, 11)
+    // → 靴子=3、护腿=6、胸甲=8、头盔=3、身体=11。
     EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Head), 3);
-    EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Chest), 6);
-    EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Legs), 8);
+    EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Chest), 8);
+    EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Legs), 6);
     EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Feet), 3);
     EXPECT_EQ(ArmorMaterials::ARMADILLO_SCUTE.getDefense(ArmorSlot::Body), 11);
 }

@@ -690,8 +690,15 @@ TEST_F(NetworkTestBase, BannerLayersUseHolderOffsetAndDyeVarInt)
     EXPECT_EQ(view.componentsPatch, (std::vector<u8>{1, 0, 70, 1, 27, 14}));
     auto restored = fromItemStackView(view);
     ASSERT_TRUE(restored.success());
-    EXPECT_EQ(restored.value().getTag()->at("BlockEntityTag").at("Patterns"),
-        banner.getTag()->at("BlockEntityTag").at("Patterns"));
+    // 图案已归 minecraft:banner_patterns 组件（vanilla 1.20.5+ 的组件化语义），
+    // 往返后不再落回 BlockEntityTag.Patterns；这里比较组件原值。
+    const nlohmann::json expectedPatterns = nlohmann::json::array({{{"Pattern", "bl"}, {"Color", 14}}});
+    EXPECT_EQ(restored.value().rawComponent(item::component::DataComponentType::BannerPatterns) != nullptr
+            ? *restored.value().rawComponent(item::component::DataComponentType::BannerPatterns)
+            : nlohmann::json(),
+        expectedPatterns);
+    // 还原后的物品再导出应得到完全相同的组件补丁
+    EXPECT_EQ(toItemStackView(restored.value()).componentsPatch, view.componentsPatch);
     nbt::tags::compound_tag saved;
     banner.toNbt(saved);
     const auto loaded = ItemStack::fromNbt(saved);
@@ -962,7 +969,10 @@ TEST_F(NetworkTestBase, SavedBannerLayersDiscardInvalidEntriesBeforeSaveAndWireS
     ASSERT_EQ(patch.added().size(), 1u);
     ItemStack banner(Items::WHITE_BANNER, 1);
     banner.applyComponentPatch(patch);
-    const auto& layers = banner.getTag()->at("BlockEntityTag").at("Patterns");
+    // 图案落在 minecraft:banner_patterns 组件（组件化语义），不再写 BlockEntityTag.Patterns。
+    const auto* layersPtr = banner.rawComponent(item::component::DataComponentType::BannerPatterns);
+    ASSERT_NE(layersPtr, nullptr);
+    const auto& layers = *layersPtr;
     ASSERT_EQ(layers.size(), 2u);
     EXPECT_EQ(layers[0].at("Color"), 14);
     EXPECT_EQ(layers[1].at("Color"), 11);
@@ -973,9 +983,12 @@ TEST_F(NetworkTestBase, SavedBannerLayersDiscardInvalidEntriesBeforeSaveAndWireS
     const auto view = toItemStackView(restored.value());
     auto wire = fromItemStackView(view);
     ASSERT_TRUE(wire.success());
-    EXPECT_EQ(wire.value().getTag()->at("BlockEntityTag").at("Patterns"), layers);
+    const auto* wireLayers = wire.value().rawComponent(item::component::DataComponentType::BannerPatterns);
+    ASSERT_NE(wireLayers, nullptr);
+    EXPECT_EQ(*wireLayers, layers);
     const auto malformed = nbt::jsonToNbt(nlohmann::json{{"minecraft:banner_patterns", "invalid"}});
     const auto emptyPatch = item::component::readPatchFromNbt(*malformed);
     banner.applyComponentPatch(emptyPatch);
-    EXPECT_TRUE(banner.getTag()->at("BlockEntityTag").at("Patterns").empty());
+    const auto* clearedLayers = banner.rawComponent(item::component::DataComponentType::BannerPatterns);
+    EXPECT_TRUE(clearedLayers == nullptr || clearedLayers->empty());
 }

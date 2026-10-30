@@ -128,13 +128,13 @@ public:
     /// ((long)next(32) << 32) + next(32)
     [[nodiscard]] i64 nextLong() override
     {
-        // 保留低半部的符号扩展，并在加法后解释为有符号结果。
-        // TODO(random)：裸 nextLong() 与原版 WorldgenRandom 仍有逐位差异（装饰种子因此
-        // 偏移），见 tests/diff/README.md「未对齐项」。draw 路径（nextInt(bound)/
-        // nextFloat/nextDouble）已由 random_sequence harness 逐位对齐。
-        const u64 hi = static_cast<u64>(nextBits(32));
-        const u64 lo = static_cast<u64>(nextBits(32));
-        return static_cast<i64>((hi << 32) + lo);
+        // 对齐原版 BitRandomSource.nextLong()：`((long) next(32) << 32) + next(32)`。
+        // next(32) 返回的是**带符号 int**，转 long 时两半都要符号扩展；此前按 u64 拼接，
+        // 任一半部为负就与原版不同，导致装饰种子（setDecorationSeed 连续取两次
+        // nextLong()|1）与所有 placed_feature 的 setFeatureSeed 种子逐位偏移。
+        const i64 high = static_cast<i64>(nextBits(32));
+        const i64 low = static_cast<i64>(nextBits(32));
+        return static_cast<i64>(static_cast<u64>(high << 32) + static_cast<u64>(low));
     }
 
     /// nextBits 直接转发给内层，以保留内层的状态推进语义（Legacy 只推进一次 LCG）

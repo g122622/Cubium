@@ -41,7 +41,9 @@
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include <filesystem>
+#include <atomic>
 #include <thread>
+#include <tuple>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -417,14 +419,21 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess)
 
     std::vector<std::thread> threads;
 
-    // 多线程同时访问区块
-    for (int i = 0; i < 10; ++i) {
-        threads.emplace_back([this, i]() {
-            for (int j = 0; j < 100; ++j) {
-                int x = (i * 100 + j) % 20 - 10;
-                int z = (i * 100 + j + 50) % 20 - 10;
-                world->chunkManager()->requestFullChunkSync(x, z);
-                world->chunkManager()->hasChunkInMem(x, z);
+    // 多线程并发请求区块。注意 requestFullChunkSync / requestChunkSync 的契约是
+    // 「仅可在主线程调用」（它们在主线程阻塞等待期间主动 pump m_pendingLoadCompletes，
+    // 且 _onChunkLoadComplete 断言 m_drainingLoadCompletes），worker 线程必须走
+    // requestChunkAsync。这里验证的是异步入口在并发压力下的线程安全性。
+    constexpr int kThreads = 10;
+    constexpr int kRequests = 100;
+    std::atomic<int> submitted{0};
+    for (int i = 0; i < kThreads; ++i) {
+        threads.emplace_back([this, i, &submitted]() {
+            for (int j = 0; j < kRequests; ++j) {
+                const int x = (i * kRequests + j) % 20 - 10;
+                const int z = (i * kRequests + j + 50) % 20 - 10;
+                std::ignore = world->chunkManager()->requestChunkAsync(x, z, world::chunk::ChunkStatuses::FULL);
+                std::ignore = world->chunkManager()->hasChunkInMem(x, z);
+                submitted.fetch_add(1, std::memory_order_relaxed);
             }
         });
     }
@@ -433,7 +442,9 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess)
         thread.join();
     }
 
-    // 如果没有崩溃或死锁，测试通过
+    // 如果没有崩溃或死锁，且全部请求都提交成功，测试通过
+    EXPECT_EQ(submitted.load(), kThreads * kRequests);
+    world->chunkManager()->tick();
     EXPECT_GT(world->chunkCount(), 0);
 }
 

@@ -34,6 +34,13 @@ ItemCost::ItemCost(ItemStack stack, i32 count)
     : m_stack(std::move(stack))
     , m_count(count)
 {
+    // 模板为空（无物品）时不要写入数量：否则会得到「物品为空、数量为 1」的畸形堆。
+    // ItemStack::isEmpty() 只看数量，这种堆不会被判空，于是 MerchantOffer 默认构造出的
+    // getBuyA() 就不再是空堆。空模板按「零代价」处理。
+    if (m_stack.isEmpty()) {
+        m_count = 0;
+        return;
+    }
     m_stack.setCount(count);
 }
 
