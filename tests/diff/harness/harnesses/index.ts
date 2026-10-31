@@ -74,6 +74,7 @@ import { enchantmentProviderInput, enchantmentProviderUnits } from "./enchantmen
 import { trialSpawnerConfigInput, trialSpawnerConfigUnits } from "./trial_spawner_config.ts";
 import { dimensionTypeInput } from "./dimension_type.ts";
 import { explosionRayInput, explosionRayUnits } from "./explosion_ray.ts";
+import { explosionDamageInput } from "./explosion_damage.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -612,6 +613,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "explosion_ray", probe: "explosion_ray", oracle: "ExplosionRayOracle",
         key: "scene", units: { kind: "computed", units: explosionRayUnits },
         input: explosionRayInput },
+    // 爆炸伤害与击退：半径 × 距离 × 可见度 × 击退抗性，纯计算。
+    { name: "explosion_damage", probe: "explosion_damage", oracle: "ExplosionDamageOracle",
+        key: "radius", units: { kind: "listing" }, input: explosionDamageInput },
+
 
 
 
