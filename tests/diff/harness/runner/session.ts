@@ -172,8 +172,12 @@ export class HarnessSession implements HarnessContext {
     /** 探针的 `list` 子命令：枚举被测侧的单元。 */
     listProbeUnits(probe: string): string[] {
         const executable = probeExecutable(probe, this.layout);
+        // 与 `run` 用同一套环境变量：有些探针的 `list` 要读数据包才知道自己有哪些单元
+        // （配方按文件枚举、战利品表按目录扫描）。此前这里没传，这类探针的 `list` 会以
+        // 「MC_DIFF_VANILLA_DATAPACK 未设置」失败，看起来像能力本身坏了。
         const output = execFileSync(executable, ["list"], {
             encoding: "utf8",
+            env: this.environment,
             maxBuffer: 1024 * 1024 * 1024,
             stdio: ["ignore", "pipe", "pipe"],
         });

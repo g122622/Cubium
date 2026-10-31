@@ -63,6 +63,7 @@ tests/diff/
 │   ├── spawn_placement.cpp      # 实体放置类型、高度图与受控方块柱中的位置判定
 │   ├── spawn_rules.cpp          # 生成谓词、位置检查与后续随机抽样
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
+│   ├── crafting_match.cpp       # 合成配方在固定网格语料下的匹配与产出
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -94,6 +95,7 @@ tests/diff/
 │   │   ├── loot_container.ts    # 容器战利品场景与已知缺口
 │   │   ├── loot_function.ts     # 战利品函数逐个场景（输入物品 / 函数 JSON / 上下文）
 │   │   ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
+│   │   ├── crafting_match.ts    # 合成配方的摆法语料（原样 / 放大 / 平移 / 反例）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -338,6 +340,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
 | `spawn_rules` | 原版 jar `SpawnRulesOracle` | 157 种实体 / 168,876 个场景 | 全部一致 | — |
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
+| `crafting_match` | 原版 jar `CraftingMatchOracle` | 4068（有序/无形状配方 × 6 种摆法） | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -453,6 +456,31 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 - **文本组件的样式是两态而非三态**：`Style` 用 `bool` 记 bold/italic 等，无法区分「显式 false」
   与「未设置」。原版是 `Optional<Boolean>`：前者要写出 `italic:0b`，后者省略；继承时也只看
   子样式是否显式给出（`子 || 父` 会让显式 false 盖不住父样式的 true）。改为 `std::optional<bool>`。
+
+`crafting_match` 比的是**合成配方的匹配与产出**：每个有序/无形状配方配 6 种摆法
+（原样、数量放大、平移、多一个物品、少一个物品、空网格），两侧用同一份网格各自调
+`matches` / `assemble`。`recipe` 能力只比「配方加载成了什么」，且仅对锻造配方做过匹配；
+玩家最常触碰的有序合成与无形状合成此前从未比过。
+
+摆法由 oracle 的 `dump` 子命令导出（尺寸 + 逐格首选物品）后由 harness 展开：标签原料
+在两侧的成员顺序可能不同，各取各的会把差异引到标签上，因此「一格放什么」只留一个答案。
+
+**为什么不直接把网格喂给 `matches`**：原版玩家摆东西时，网格先过
+`CraftingInput.ofPositioned` 裁掉四周空行空列，`ShapedRecipePattern.matches` 再要求
+包围盒与配方尺寸**严格相等**。oracle 若不裁剪，2×2 配方摆在 3×3 网格里会被判否——
+那是 oracle 自己造出来的假差异。两侧都用裁剪后的输入，口径才一致。
+
+首轮跑通就查出一个会导致崩溃的缺陷：
+
+- **有序配方的原料表被压紧，匹配时越界读取**：`_parsePatternIngredients` 只收录
+  pattern 里的非空格原料（原意是让配方书拿到「非空序列」），而
+  `ShapedRecipe::_checkMatch` 按 `relX + relY * m_width` 的下标取原料——下标基准是
+  完整图案宽度。`m_ingredients` 因此比 `m_width * m_height` 短，**任何含空格的图案
+  （镐、剑、弓、盔甲……）都会读到 vector 尾部之外**，表现为随机崩溃、凭空匹配成功，
+  或「摆对了却合不出来」。修复是让原料表与 pattern 逐格对齐、空格填
+  `Ingredient::EMPTY`；想拿非空序列的调用方自己过滤 `isEmpty()`。
+  回归用例：`ShapedRecipeTest.Matches_PatternWithHole_RequiresHoleEmpty` 与
+  `Matches_OneByTwoPattern_SlidesAcrossGrid`。
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 

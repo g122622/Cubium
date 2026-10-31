@@ -25,6 +25,8 @@
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/crafting/RecipeManager.hpp"
+#include <utility>
+#include <vector>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -372,4 +374,84 @@ TEST_F(ShapedRecipeTest, GetRecipeFromManager_CorrectType)
     const CraftingRecipe* found = RecipeManager::instance().getRecipe(ResourceLocation("test", "shaped_recipe"));
     ASSERT_NE(found, nullptr);
     EXPECT_EQ(found->getType(), RecipeType::ShapedCrafting);
+}
+
+// ========== 原料表的逐格布局（回归） ==========
+
+// 有序配方的原料表必须与 pattern **逐格对齐**，空格位置放 `Ingredient::EMPTY`。
+//
+// `_checkMatch` 按 `relX + relY * m_width` 的下标取原料；若原料表被压紧（只放非空格
+// 原料），任何含空格的图案——镐、剑、弓这些绝大多数配方——都会越界读取 `m_ingredients`，
+// 表现为随机崩溃或凭空匹配成功。这里用「3×3、中心一格为空」的图案固定这个不变量：
+// 正确实现下中心必须**不能**被填上任何物品。
+TEST_F(ShapedRecipeTest, Matches_PatternWithHole_RequiresHoleEmpty)
+{
+    Item* planks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_planks"));
+    if (!planks) {
+        GTEST_SKIP() << "Oak planks not registered";
+    }
+
+    const Ingredient planksIng = Ingredient::fromItem(*planks);
+    // 图案：
+    //   # # #
+    //   #   #     ← 正中一格是空格
+    //   # # #
+    std::vector<Ingredient> ingredients;
+    for (i32 slot = 0; slot < 9; ++slot) {
+        ingredients.push_back(slot == 4 ? Ingredient::EMPTY : planksIng);
+    }
+    auto recipe = std::make_unique<ShapedRecipe>(
+        ResourceLocation("test", "ring_recipe"), 3, 3, std::move(ingredients), ItemStack(*planks, 1));
+
+    // 空洞填满：必须不匹配。
+    CraftingInventory filled(3, 3);
+    for (i32 slot = 0; slot < 9; ++slot) {
+        filled.setItem(slot, ItemStack(*planks, 1));
+    }
+    EXPECT_FALSE(recipe->matches(filled));
+
+    // 空洞真的空着：必须匹配。
+    CraftingInventory holed(3, 3);
+    for (i32 slot = 0; slot < 9; ++slot) {
+        if (slot != 4) {
+            holed.setItem(slot, ItemStack(*planks, 1));
+        }
+    }
+    EXPECT_TRUE(recipe->matches(holed));
+}
+
+// 同一个不变量在「图案比网格小」时的表现：2×1 的图案放进 3×3 网格，滑窗到每个位置
+// 都必须正确判定。这里只验证「摆对了就匹配、摆歪一格就不匹配」，越界读取在这种输入下
+// 会直接崩或给出随机答案。
+TEST_F(ShapedRecipeTest, Matches_OneByTwoPattern_SlidesAcrossGrid)
+{
+    Item* planks = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_planks"));
+    if (!planks) {
+        GTEST_SKIP() << "Oak planks not registered";
+    }
+
+    const Ingredient planksIng = Ingredient::fromItem(*planks);
+    auto recipe = std::make_unique<ShapedRecipe>(ResourceLocation("test", "pressure_plate"),
+        2,
+        1,
+        std::vector<Ingredient>{planksIng, planksIng},
+        ItemStack(*planks, 1));
+
+    // 网格第 1、2 格（同一行相邻）：匹配。
+    CraftingInventory adjacent(3, 3);
+    adjacent.setItemAt(1, 0, ItemStack(*planks, 1));
+    adjacent.setItemAt(2, 0, ItemStack(*planks, 1));
+    EXPECT_TRUE(recipe->matches(adjacent));
+
+    // 同上但中间隔一格（第 0 与第 2 格）：不匹配。
+    CraftingInventory separated(3, 3);
+    separated.setItemAt(0, 0, ItemStack(*planks, 1));
+    separated.setItemAt(2, 0, ItemStack(*planks, 1));
+    EXPECT_FALSE(recipe->matches(separated));
+
+    // 竖直相邻（相邻但不同行）：不匹配。
+    CraftingInventory vertical(3, 3);
+    vertical.setItemAt(0, 0, ItemStack(*planks, 1));
+    vertical.setItemAt(0, 1, ItemStack(*planks, 1));
+    EXPECT_FALSE(recipe->matches(vertical));
 }
