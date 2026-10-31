@@ -194,7 +194,8 @@ const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPosition
         const auto& seed = seeds[static_cast<size_t>(index)];
         // 原版 `LegacyRandomSource.fork()` 就是 `new LegacyRandomSource(nextLong())`。
         auto fork = std::make_unique<math::JavaLegacyRandom>(static_cast<u64>(rng.nextLong()));
-        const auto found = _findBiomeHorizontal(seed.x * 16 + 8, 0, seed.z * 16 + 8, 112, preferred, *fork);
+        // 结构生成走的是 8 参数重载，它内部固定步长 1、findClosest = false。
+        const auto found = _findBiomeHorizontal(seed.x * 16 + 8, 0, seed.z * 16 + 8, 112, 1, preferred, *fork);
         if (found.has_value()) {
             result.emplace_back(static_cast<i32>(found->x >> 4), static_cast<i32>(found->z >> 4));
         } else {
@@ -213,11 +214,35 @@ const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPosition
     return stored;
 }
 
-std::optional<BlockPos> StructurePlacementState::_findBiomeHorizontal(
-    i32 centerX, i32 centerY, i32 centerZ, i32 radius, const std::vector<BiomeId>& preferred, math::IRandom& rng) const
+std::optional<BlockPos> StructurePlacementState::_findBiomeHorizontal(i32 centerX,
+    i32 centerY,
+    i32 centerZ,
+    i32 radius,
+    i32 spread,
+    const std::vector<BiomeId>& preferred,
+    math::IRandom& rng) const
 {
-    // 原版 `BiomeSource.findBiomeHorizontal`：以 quart 坐标做螺旋扫描，
-    // 每命中一个候选就用蓄水池抽样随机保留一个（`nextInt(seen + 1) == 0`）。
+    // 逐行对照原版 `BiomeSource.findBiomeHorizontal`（结构生成走的是
+    // `findClosest = false` 的那个重载，即最后一个布尔参数为 false）：
+    //
+    //   int i  = QuartPos.fromBlock(centerX);
+    //   int j  = QuartPos.fromBlock(centerZ);
+    //   int k  = QuartPos.fromBlock(radius);
+    //   int l  = QuartPos.fromBlock(centerY);
+    //   int j1 = findClosest ? 0 : k;          // <- false 时**从最大半径开始**
+    //   int k1 = j1;
+    //   while (k1 <= k) {
+    //       for (int l1 = -k1; l1 <= k1; l1 += spread)
+    //           for (int i2 = -k1; i2 <= k1; i2 += spread) {
+    //               if (findClosest) { ...只扫边缘... }   // <- false 时不筛，扫满整个方形
+    //               ...
+    //           }
+    //       k1 += spread;                       // <- 步长是 spread，不是 1
+    //   }
+    //
+    // 这里此前有三处偏差：环从 0 向外递增（应是从最大半径向内递减）、
+    // 只扫环边缘（findClosest=false 时应扫满整个方形）、步长固定为 1（应为 spread）。
+    // 三者叠加使采样顺序与原版完全不同，蓄水池抽样最终选出的坐标自然也完全不同。
     if (preferred.empty()) {
         return std::nullopt;
     }
@@ -230,18 +255,16 @@ std::optional<BlockPos> StructurePlacementState::_findBiomeHorizontal(
     const i32 centerQuartZ = centerZ >> 2;
     const i32 quartY = centerY >> 2;
     const i32 quartRadius = radius >> 2;
+    // 原版结构生成的步长就是 placement 的 spread（要塞为 3）。防御性地取至少 1，
+    // 避免配置异常时死循环。
+    const i32 step = spread > 0 ? spread : 1;
 
     std::optional<BlockPos> chosen;
     i32 seen = 0;
 
-    for (i32 ring = 0; ring <= quartRadius; ring += 1) {
-        for (i32 dz = -ring; dz <= ring; dz += 1) {
-            const bool onZEdge = std::abs(dz) == ring;
-            for (i32 dx = -ring; dx <= ring; dx += 1) {
-                // 只扫描环的边缘：内部格子已在上一次更小的 ring 里扫过。
-                if (!onZEdge && std::abs(dx) != ring) {
-                    continue;
-                }
+    for (i32 ring = quartRadius; ring >= 0; ring -= step) {
+        for (i32 dz = -ring; dz <= ring; dz += step) {
+            for (i32 dx = -ring; dx <= ring; dx += step) {
                 const i32 quartX = centerQuartX + dx;
                 const i32 quartZ = centerQuartZ + dz;
                 if (!isPreferred(m_biomeSource.getNoiseBiome(quartX, quartY, quartZ))) {

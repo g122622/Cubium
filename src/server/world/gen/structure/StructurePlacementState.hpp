@@ -140,6 +140,7 @@ private:
         i32 centerY,
         i32 centerZ,
         i32 radius,
+        i32 spread,
         const std::vector<BiomeId>& preferred,
         math::IRandom& rng) const;
 

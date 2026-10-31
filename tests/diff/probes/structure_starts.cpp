@@ -333,6 +333,7 @@ std::string runLine(std::string_view inputLine)
     }
 
     json starts = json::array();
+
     for (const auto* structureSet : placementState.structureSets()) {
         NoiseChunkGenerator::StructureSelection selection =
             generator._generateStructureStartsForSet(placementState, *structureSet, chunkX, chunkZ);
