@@ -376,6 +376,9 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `jukebox_song` | 原版 jar `JukeboxSongOracle` | 21 首唱片机歌曲 | 全部一致 | — |
 | `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
+| `armor_trim` | 原版 jar `ArmorTrimOracle` | 18 个纹饰图案 + 11 种纹饰材料 | 全部一致 | — |
+| `animal_variant` | 原版 jar `AnimalVariantOracle` | 32 个变体（狼 9 / 猫 11 / 蛙·牛·鸡·猪 各 3） | 全部一致 | — |
+| `instrument` | 原版 jar `InstrumentOracle` | 8 种山羊角音色 | 全部一致 | — |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1207,6 +1210,150 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 一次静默失效：CMake 三张列表错位让 6 个能力链接到了别的探针
+
+`structure_starts` 长期报 `key 'origin' not found`，看起来像是探针自身的缺陷。实际根因
+在 `tests/diff/CMakeLists.txt`：
+
+三张列表按**相同索引**配对，构建时用 `list(GET ...)` 取同一位置的 suffix 与源文件：
+
+```cmake
+list(GET MC_DIFF_PROBE_SUFFIXES ${index} targetSuffix)
+```
+
+历史上有一次提交在追加新能力时把 `structure_density` / `structure_starts` /
+`villager_trades` 三项插在了 `walk_path_type` **前面**（SUFFIXES 里在**后面**），
+于是从第 37 项起两者错开 3 位：
+
+| 索引 | SUFFIXES（命名） | SOURCES（实际编译） |
+|---|---|---|
+| 37 | `walk_path_type` | `structure_density` |
+| 38 | `path_finder` | `structure_starts` |
+| 39 | `fly_path_finder` | `villager_trades` |
+| 40 | `structure_density` | `walk_path_type` |
+| 41 | `structure_starts` | `path_finder` |
+| 42 | `villager_trades` | `fly_path_finder` |
+
+后果是这 6 个可执行文件**各自链接了别人的探针源文件**。错位不会产生任何编译错误或
+警告，只表现为「某个能力报了一个与它无关的错误」。`structure_starts` 之所以报
+`origin`，是因为它当时跑的是别的探针的代码。
+
+对齐后 6 项全部恢复正常：`structure_starts` 从「完全无法运行」变成 542 个单元、47 处差异；
+`walk_path_type` / `path_finder` / `fly_path_finder` 各 282/282 全部一致。
+
+**教训**：这组列表的正确性完全依赖三张列表的**顺序**，靠肉眼维护。新增能力时若只往
+SUFFIXES 和 DOMAINS 尾部追加、却把源文件插到别处，就会静默错位。
+`MC_DIFF_PROBE_COUNT` 只校验了长度相同，没有校验顺序对应关系。
+TODO: 在 CMake 里加一条配置期断言，逐索引比对 `MC_DIFF_PROBE_SUFFIXES[i]` 与
+`MC_DIFF_PROBE_SOURCES[i]` 的文件名主干是否一致，把这类错位在配置阶段就拦下来。
+### 乐器：浮点字段与两个派生值，8/8 全一致
+
+`instrument` 比对 8 种山羊角音色：音效 ID、吹奏时长、可听距离、描述翻译键，外加两个
+**派生值**——`useDurationTicks` 与 `volume`。一次通过 **8/8**。
+
+原版 `record Instrument(Holder<SoundEvent> soundEvent, float useDuration, float range,
+Component description)` 只有四个字段，派生值不在记录里，但在 `InstrumentItem` 里各占
+一行换算：
+
+```java
+getUseDuration -> Mth.floor(useDuration * 20.0F)
+play           -> range / 16.0F
+```
+
+Cubium 侧同样实现了这两个派生（`useDurationTicks()` / `volume()`），把它们也纳入比对，
+是因为**换算口径本身会错**：秒与 tick 的换算、范围与音量的比例，这两处一旦写错，
+只比原始字段是发现不了的。
+
+#### 浮点输出口径
+
+三个浮点字段（`useDuration` / `range` / `volume`）在两侧都按「6 位有效数字，去掉尾随零」
+格式化成**字符串**输出。这是 `food_properties` 与 `jukebox_song` 两个能力踩过同一个坑之后
+定下的规矩：C++ 的 `%.6g` 与 Java 的 `%g` 行为不同——`178.0f` 一边给 `178`，另一边给
+`178.000`。若直接按数字输出，Gson 与 nlohmann 的打印差异还会再叠一层
+（`0.3` vs `0.30000001192092896`）。
+
+#### 一个初始化顺序的坑
+
+探针首轮 8 个单元全部返回 `missing`，注册表为空。原因是服务端 `RegistryBootstrap` 里
+这个注册表有三步：
+
+```
+clear()                     -> 清掉可能残留的旧条目
+initialize()                -> 登记写死的内置条目（8 种山羊角）
+loadFromDataPackRepository  -> 用数据包覆盖同名条目
+```
+
+探针最初只做了第三步。数据包里的条目其实能注册成功，但 `get()` 走的是另一条路径，
+表现为「找不到」。补齐前三步的顺序后立刻 8/8。
+
+这提示了一个更一般的规律：**差分能力复刻的是原版的运行时状态，不是原版的输入数据**。
+凡是注册表，都要照抄服务端的初始化顺序，而不是只加载数据包。### 动物变体：六类变体的出生条件，32/32 一次收敛
+
+`animal_variant` 比对狼 / 猫 / 蛙 / 牛 / 鸡 / 猪六类变体，共 32 个单元。首轮 32 处全差，
+排查后收敛到 **32/32 全一致**。
+
+六类变体此前在 Cubium 中都没有实现，变体的贴图与出生条件全都无处可查。
+
+#### 数据形状
+
+六类的形状高度一致，因此共用一套加载器（`AnimalVariants`），差异由 `AssetField` 承载：
+
+| 类别 | 贴图字段 | `model` 字段 | 数量 |
+|---|---|---|---|
+| `wolf_variant` | `assets: { wild, tame, angry }`（三张） | 无 | 9 |
+| `cat_variant` / `frog_variant` | `asset_id`（一张） | 无 | 11 / 3 |
+| `cow_variant` / `chicken_variant` / `pig_variant` | `asset_id`（一张） | 有，缺省 `normal` | 各 3 |
+
+出生条件是 `spawn_conditions: [{ condition, priority }]`，条件只有三种：
+
+- `biome` → `BiomeCheck(HolderSet<Biome>)`，字段 `biomes`
+- `structure` → `StructureCheck(HolderSet<Structure>)`，字段 `structures`
+- `moon_brightness` → `MoonBrightnessCheck(MinMaxBounds.Doubles)`，字段 `range: { min, max }`
+
+#### 首轮全差的三个根因
+
+| 现象 | 根因 |
+|---|---|
+| `entries` 全为空、`rangeMin` 全丢失 | 数据文件里 `type` 写作 `minecraft:structure`，而原版注册名是 `structure`。字符串比较不相等，整个条件解析分支被跳过 |
+| 贴图 ID 两侧对不上 | 原版 `ClientAsset.ResourceTexture` 的构造器把 `asset_id` 变换成 `textures/` + path + `.png`。数据文件写 `entity/cat/all_black`，原版暴露 `textures/entity/cat/all_black.png` |
+| `model` 为空 vs `normal` | 原版是 `optionalFieldOf("model", ModelType.NORMAL)`，缺省取 `normal`。但只有牛 / 鸡 / 猪三类有 model 概念，狼 / 猫 / 蛙必须保持空串 |
+
+第一条尤其典型：`type` 带不带命名空间前缀是**数据文件写法**与**注册表 key** 的差异，
+单看任何一侧都发现不了，只有两侧对着比才会暴露。
+
+#### 两处刻意的口径
+
+- **`entries` 保留 `#` 前缀**：原版 `HolderSet` 的标签引用与内联元素语义不等价
+  （标签会随数据包内容变化），比对必须能区分。
+- **狼的 `assets` 按 `AssetInfo(wild, tame, angry)` 的字段顺序输出**，而不是按 JSON 对象的
+  遍历顺序；`selectors` 也保持数组原顺序——优先级链的书写顺序有语义。
+### 盔甲纹饰：两类数据包注册表，一次通过
+
+`armor_trim` 一次性比对 18 个纹饰图案与 11 种纹饰材料，**29/29 全一致**。
+
+这个能力顺带补上了 Cubium 的一处空白：此前**完全没有** `trim_pattern` /
+`trim_material` 这两层注册表——`ArmorTrim` 只以物品组件和数据组件类型枚举的形式存在，
+图案的贴图 ID、描述、是否贴花，材料的贴图后缀、描述颜色、覆盖装备材质表全都无处可查。
+本次新增 `TrimPattern`/`TrimPatterns`、`TrimMaterial`/`TrimMaterials` 两对类，
+按 `PaintingVariants` 的既有模式从数据包加载。
+
+比对项与原版结构的对应关系：
+
+| 单元 | 比什么 | 对应原版结构 |
+|---|---|---|
+| `pattern/<id>` | 贴图 ID / 描述翻译键 / 是否贴花 | `record TrimPattern(Identifier assetId, Component description, boolean decal)` |
+| `material/<id>` | 贴图后缀 / 描述翻译键 / 描述颜色 / 覆盖装备材质表 | `record TrimMaterial(MaterialAssetGroup assets, Component description)` |
+
+两处沿用了此前踩过的坑的结论：
+
+- **描述比翻译键而非渲染文本**（`TranslatableContents.getKey()`），这是唱片机歌曲能力里
+  踩过 `getString()` 返回已渲染文本的坑之后定下的口径。
+- **`overrides` 是无序表**（原版是 `Map<ResourceKey<EquipmentAsset>, AssetInfo>`），
+  两侧都按装备材质键排序后输出，并额外用 `unorderedArrays` 声明一次，让比较器不依赖顺序。
+
+`asset_name` + `override_armor_assets` 对应原版 `MaterialAssetGroup` 的
+`base`（`AssetInfo`）与 `overrides`；`override_armor_assets` 在数据文件里是可缺省字段，
+缺省即空表，与 `optionalFieldOf(..., Map.of())` 一致。
 ### 附魔适用性：枚举归纳 vs 标签判定（28 → 0）
 
 `enchantment_applicability` 对每个附魔逐个物品问「能不能附上去」，比的是**最终物品集合**。

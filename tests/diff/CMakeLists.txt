@@ -24,7 +24,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match single_item_recipe recipe_book_category fuel_values)
+set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe recipe_book_category fuel_values)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/block_state_ids.cpp
@@ -63,12 +63,12 @@ set(MC_DIFF_PROBE_SOURCES
     probes/attribute_range.cpp
     probes/mob_experience.cpp
     probes/block_destroy_progress.cpp
-    probes/structure_density.cpp
-    probes/structure_starts.cpp
-    probes/villager_trades.cpp
     probes/walk_path_type.cpp
     probes/path_finder.cpp
     probes/fly_path_finder.cpp
+    probes/structure_density.cpp
+    probes/structure_starts.cpp
+    probes/villager_trades.cpp
     probes/piston_movement.cpp
     probes/experience.cpp
     probes/potion.cpp
@@ -86,12 +86,14 @@ set(MC_DIFF_PROBE_SOURCES
     probes/stack_codec.cpp
     probes/loot_function.cpp
     probes/crafting_match.cpp
+    probes/armor_trim.cpp
+    probes/animal_variant.cpp
+    probes/instrument.cpp
     probes/single_item_recipe.cpp
     probes/recipe_book_category.cpp
     probes/fuel_values.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match single_item_recipe recipe_book_category fuel_values)
-
+set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe recipe_book_category fuel_values)
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
     add_executable(${targetName}
@@ -287,6 +289,14 @@ function(mc_add_diff_probe targetSuffix source domain)
     # 拼图模板。这些都住在 mc_gen（OBJECT 库）里，因此按 command_tree 的办法重新收集
     # 世界生成的源码，而不是链接该 OBJECT 库——后者会把雕刻、装饰、后处理的整条管线
     # 一并塞进链接行，其中不少编译单元单独编译有既有的重定义问题。
+    # 乐器：注册表本体在 mc_common 里，只有数据包加载器在服务端目录下。
+    # 这里只补这一个源文件，而不是通配整个 src/server——后者会把整条服务端管线
+    # 拉进链接行，构建代价远超本能力所需。
+    if(targetSuffix STREQUAL "instrument")
+        target_sources(${targetName} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp)
+    endif()
+
     if(targetSuffix STREQUAL "structure_starts")
         target_link_options(${targetName} PRIVATE "-Xlinker" "/ERRORLIMIT:0")
         file(GLOB_RECURSE _diff_gen_sources CONFIGURE_DEPENDS
@@ -381,6 +391,24 @@ if(NOT MC_DIFF_PROBE_COUNT EQUAL MC_DIFF_PROBE_SOURCE_COUNT
     message(FATAL_ERROR "tests/diff: 三张能力清单长度不一致（后缀 ${MC_DIFF_PROBE_COUNT}，"
         "源文件 ${MC_DIFF_PROBE_SOURCE_COUNT}，宏名 ${MC_DIFF_PROBE_DOMAIN_COUNT}）")
 endif()
+
+# 光校验长度不够：下面按**相同索引**取后缀与源文件，两张列表一旦顺序错开，可执行文件
+# 就会链接到别人的探针源文件——不报编译错误、不报警告，只表现为「某个能力报了一个与它
+# 无关的错误」。历史上已经因此让 6 个能力静默失效过，这里逐索引把后缀与源文件名主干
+# 比一遍，把这类错位在配置阶段就拦下来。
+set(MC_DIFF_PROBE_INDEX 0)
+foreach(probeSuffix ${MC_DIFF_PROBE_SUFFIXES})
+    list(GET MC_DIFF_PROBE_SOURCES ${MC_DIFF_PROBE_INDEX} probeSource)
+    list(GET MC_DIFF_PROBE_DOMAINS ${MC_DIFF_PROBE_INDEX} probeDomain)
+    get_filename_component(probeSourceStem "${probeSource}" NAME_WE)
+    if(NOT probeSourceStem STREQUAL probeSuffix OR NOT probeDomain STREQUAL probeSuffix)
+        message(FATAL_ERROR
+            "tests/diff: 能力清单第 ${MC_DIFF_PROBE_INDEX} 项顺序错位——"
+            "后缀 '${probeSuffix}' 对应的源文件是 '${probeSource}'、宏名是 '${probeDomain}'。"
+            "三张清单必须逐项同序。")
+    endif()
+    math(EXPR MC_DIFF_PROBE_INDEX "${MC_DIFF_PROBE_INDEX} + 1")
+endforeach()
 
 # 聚合目标：`--target diff_probes` 一次构建全部 probe。
 add_custom_target(diff_probes)

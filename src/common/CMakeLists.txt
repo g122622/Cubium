@@ -725,6 +725,12 @@ add_library(mc_common STATIC
     item/enchantment/Enchantment.cpp
     item/enchantment/EnchantmentTag.cpp
     item/enchantment/EnchantmentTags.cpp
+    item/armortrim/TrimPattern.cpp
+    item/armortrim/TrimPatterns.cpp
+    item/armortrim/TrimMaterial.cpp
+    item/armortrim/TrimMaterials.cpp
+    entity/variant/AnimalVariant.cpp
+    entity/variant/AnimalVariants.cpp
     item/enchantment/EnchantmentRegistry.cpp
     item/enchantment/EnchantmentContainer.cpp
     item/enchantment/EnchantmentHelper.cpp
