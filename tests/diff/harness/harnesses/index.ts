@@ -57,6 +57,7 @@ import {
     PROJECT_ONLY_COMMANDS,
 } from "./known_missing_commands.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
+import { blockSupportInput } from "./block_support.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -495,6 +496,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "potion_brewing", probe: "potion_brewing", oracle: "PotionBrewingOracle", key: "unit",
         units: { kind: "computed", units: potionBrewingUnits },
         input: potionBrewingInput },
+    // 方块支撑判定：每个方块 × 26 种典型底座，比对「能否站上去」。
+    // 只读计算（`isValidPosition` 只查邻域方块），与寻路的 SceneRegion 同一形态。
+    { name: "block_support", probe: "block_support", oracle: "BlockSupportOracle", key: "block",
+        units: { kind: "listing" }, input: blockSupportInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

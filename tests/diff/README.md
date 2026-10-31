@@ -353,6 +353,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `experience` | 原版 jar `ExperienceOracle` | 440 个操作序列（公式阶梯 / 单次加点 / 扣点 / 加减等级 / 随机） | 全部一致 | — |
 | `potion` | 原版 jar `PotionOracle` | 46 种药水（基础名 / 效果列表 / 瞬时效果 / 三种前缀翻译键） | 全部一致 | — |
 | `potion_brewing` | 原版 jar `PotionBrewingOracle` | 874（46 种药水 × 19 种试剂） | 全部一致 | — |
+| `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文 | 部分（见「已知缺口」） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -950,6 +951,44 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 把 `PotionBrewing::initialize()` 移到 `_registerTrialChamberItems()` 之后，874/874 一致。
 这类缺陷没有任何编译期或运行期提示：只有配方表少了一条，微风棒静静地「不是酿造材料」。
+
+### 方块支撑判定：一类「根本没写」的功能缺失
+
+`block_support` 对 1166 个方块、每个配 23 种底座，比较「能否留在这个位置」
+（原版 `BlockState#canSurvive` ↔ Cubium `Block::isValidPosition`）。
+
+场景摆放有一个容易摆错的地方：附着方式有**两类**，底座必须同时放在正下方与四个水平
+侧面。只放下方的话，墙上悬挂告示牌、墙面头颅、按钮、火把、灯笼、珊瑚这些侧挂方块
+会整体被判成「不支持」——那是探针没摆对场景，不是实现差异。两侧必须用完全相同的摆法。
+
+首轮 1166 个单元里 211 处差异。修掉三处后（按钮、压力板、苔藓材质）差异降到 218 处，
+但统计口径给出了本轮最有用的结论：
+
+- **在 12 种完整方块底座上，没有任何一个方块存在差异**——正常情况全部正确；
+- 218 处差异**全部**落在台阶、栅栏、漏斗、箱子、地毯、耕地、水、岩浆、空气这些
+  「不能支撑」的底座上。
+
+也就是说，问题不是「判定算错」，而是**大量方块根本没有实现支撑判定**，继承了
+`Block::isValidPosition` 的默认实现（永远返回 true）。这一点用单个方块的用例很难发现。
+
+已修复的三处（都是「缺失」而非「算错」）：
+
+- **按钮**：`AbstractButtonBlock` 有 `getAttachDirection` 等辅助方法，但从未覆写
+  `isValidPosition`，按钮能悬浮在空气中。按原版
+  `FaceAttachedHorizontalDirectionalBlock#canSurvive` 补上（`isFaceSturdy(FULL)`）；
+- **压力板**：同样缺失。按原版 `BasePressurePlateBlock#canSurvive` 补上
+  （`canSupportRigidBlock || canSupportCenter(UP)`）；
+- **苔藓块材质**：`makeMossMaterial()` 写的是 `solid(false)`，而苔藓块与苍白苔藓块都是
+  完整固体方块。这让 `BlockState::isSolid()` 为 false，所有用 `isSolid()` 判支撑的方块
+  （站立告示牌等）都认为苔藓块撑不住——单这一项就贡献了 179 处差异；
+- **站立告示牌**：判定写成 `isSolidSide(world, below, UP)`，比原版
+  `getBlockState(below).isSolid()` 严格一档，玻璃、箱子这类「有碰撞但上表面不完整」的
+  方块撑不住告示牌。
+
+已确认但**未修**的全局议题：原版 `isSolid()` 由 `calculateSolid()` 从碰撞形状推导
+（碰撞盒体积 ≥ 0.729 或 Y ≥ 1.0），Cubium 靠注册时手写 `notSolid()`（全项目 234 处）。
+玻璃、树叶、冰这类「有整格碰撞却被标成非固体」的方块因此与原版不一致。修它要动全部
+234 个调用点，属于独立议题。TODO: 对齐 `calculateSolid` 后把玻璃/树叶/冰加回底座清单。
 
 ## 下一步候选能力
 

@@ -121,6 +121,20 @@ public:
      */
     [[nodiscard]] static BlockState withPowered(BlockState state, bool powered);
 
+    /**
+     * @brief 检查压力板能否留在当前位置（对应原版 `BasePressurePlateBlock#canSurvive`）。
+     *
+     * 原版：`canSupportRigidBlock(world, pos.below()) || canSupportCenter(world, pos.below(), UP)`。
+     * 此前没有覆写，压力板因此能悬浮在空气中（由差分能力 block_support 查出）。
+     *
+     * @param state 方块状态
+     * @param world 方块读取器
+     * @param pos 压力板位置
+     * @return true 如下方能提供支撑
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
 protected:
     /**
      * @brief 计算当前信号强度

@@ -235,5 +235,14 @@ void AbstractPressurePlateBlock::updateState(IWorld& world, const BlockPos& pos,
     }
 }
 
+bool AbstractPressurePlateBlock::isValidPosition(
+    const BlockState& /*state*/, IBlockReader& world, const BlockPos& pos) const
+{
+    // 对应原版 BasePressurePlateBlock#canSurvive：
+    //   canSupportRigidBlock(world, pos.below()) || canSupportCenter(world, pos.below(), UP)
+    const BlockPos below = pos.down();
+    return Block::canSupportRigidBlock(world, below) || Block::canSupportCenter(world, below, Direction::Up);
+}
+
 } // namespace blocks
 } // namespace mc

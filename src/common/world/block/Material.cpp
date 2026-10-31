@@ -294,7 +294,16 @@ Material makeNetherWoodMaterial()
 
 Material makeMossMaterial()
 {
-    return MaterialBuilder().solid(false).replaceable().opaque(false).build();
+    // 苔藓块与苍白苔藓块都是**完整固体方块**：玩家能站在上面，原版
+    // `moss_block` 的 `legacySolid` 为 true（碰撞形状是整格，`calculateSolid` 判定成立）。
+    //
+    // 这里原先是 `solid(false)`，于是 `BlockState::isSolid()` 为 false，任何用
+    // `isSolid()` 做支撑判定的方块（例如站立告示牌）都判定苔藓块撑不住
+    // （由差分能力 block_support 查出：苔藓块底座上有 179 处方块被判为不可存活）。
+    //
+    // `replaceable()` 与 `opaque(false)` 保持不变：苔藓块可被骨粉/树苗替换，
+    // 且不属于不透明遮挡方块（原版 occlusionShape 为空）。
+    return MaterialBuilder().solid(true).replaceable().opaque(false).build();
 }
 
 Material makeSculkMaterial()

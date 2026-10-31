@@ -37,6 +37,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -419,6 +420,23 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
 
     // 调度弹起
     world.tickManager().scheduleBlockTick(pos, *this, m_ticksToStayPressed, world::tick::TickPriority::High);
+}
+
+bool AbstractButtonBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 对应原版 FaceAttachedHorizontalDirectionalBlock#canSurvive：
+    //   canAttach(world, pos, getConnectedDirection(state).getOpposite())
+    // 即「附着方块的、朝向按钮的那一面是否坚固」。此前这里沿用 Block 的默认实现（永远 true），
+    // 按钮因此能悬浮在空中（由差分能力 block_support 查出）。
+    const Direction attach = getAttachDirection(state);
+    const BlockPos supportPos = pos.offset(attach);
+    const BlockState* support = world.getBlockState(supportPos.x, supportPos.y, supportPos.z);
+    if (support == nullptr) {
+        return false;
+    }
+    // 附着面 = 从支撑方块看向按钮的方向，即 attach 的反方向。
+    return support->isFaceSturdy(
+        static_cast<IWorld&>(world), supportPos, Directions::opposite(attach), SupportType::Full);
 }
 
 bool AbstractButtonBlock::canAttachToFace(Direction facing) const

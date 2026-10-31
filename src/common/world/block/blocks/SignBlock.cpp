@@ -252,13 +252,18 @@ BlockState StandingSignBlock::getStateForPlacement(BlockItemUseContext& context)
 bool StandingSignBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
 
+    // 对应原版 StandingSignBlock#canSurvive：`world.getBlockState(pos.below()).isSolid()`。
+    //
+    // 这里原先用 `isSolidSide(world, below, UP)`，比原版严格一档：它要求下表面的碰撞形状
+    // 铺满整格，而 `isSolid()` 只要求「有一点碰撞、不算流体、不是空气」。于是玻璃、苔藓块、
+    // 箱子这类有碰撞但上表面不完整的方块，在原版能撑住告示牌、在 Cubium 撑不住
+    // （由差分能力 block_support 查出）。
     MC_UNUSED(state);
 
-    // 需要下方有固体支撑
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
-    return belowState != nullptr && belowState->isSolidSide(world, belowPos, Direction::Up);
+    return belowState != nullptr && belowState->isSolid();
 }
 
 const BlockState& StandingSignBlock::rotate(const BlockState& state, Rotation rotation) const

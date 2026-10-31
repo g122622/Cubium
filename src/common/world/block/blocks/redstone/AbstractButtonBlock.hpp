@@ -156,6 +156,22 @@ public:
     [[nodiscard]] static Direction getAttachDirection(const BlockState& state) noexcept;
 
     /**
+     * @brief 检查按钮能否留在当前位置（原版 `ButtonBlock` 经
+     * `FaceAttachedHorizontalDirectionalBlock#canSurvive` 继承的实现）。
+     *
+     * 按钮只能贴在附着方块「朝向按钮的那一面」坚固的位置上：墙按钮要求侧面坚固，
+     * 地板按钮要求上方坚固，天花板按钮要求下方坚固。此前没有覆写，按钮因此能悬浮在
+     * 空气中（由差分能力 block_support 查出）。
+     *
+     * @param state 方块状态
+     * @param world 方块读取器
+     * @param pos 按钮位置
+     * @return true 如果附着面坚固
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
+    /**
      * @brief 获取按钮信号输出所面向的方向（原版 getConnectedDirection）
      *
      * 与附着方向相反：地板按钮输出到 Up，天花板按钮输出到 Down，墙按钮输出到 FACING 的反方向。
