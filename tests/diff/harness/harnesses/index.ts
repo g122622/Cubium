@@ -59,6 +59,7 @@ import {
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { blockSupportInput } from "./block_support.ts";
 import { foodPropertiesInput } from "./food_properties.ts";
+import { ENTITY_TYPE_TAGS, ENTITY_TYPE_TAGS_UNORDERED, entityTypeTagsInput } from "./entity_type_tags.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -504,6 +505,11 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 食物属性：饥饿值 / 饱和度修正 / 能否饱腹后继续吃。纯数据查表。
     { name: "food_properties", probe: "food_properties", oracle: "FoodPropertiesOracle", key: "item",
         units: { kind: "listing" }, input: foodPropertiesInput },
+    // 实体类型标签：每个标签包含哪些实体类型（集合语义）。纯数据查表。
+    { name: "entity_type_tags", probe: "entity_type_tags", oracle: "EntityTypeTagsOracle", key: "tag",
+        units: { kind: "computed", units: () => [...ENTITY_TYPE_TAGS] },
+        input: entityTypeTagsInput,
+        unorderedArrays: ENTITY_TYPE_TAGS_UNORDERED },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
