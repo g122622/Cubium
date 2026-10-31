@@ -71,6 +71,7 @@ import { animalVariantInput } from "./animal_variant.ts";
 import { instrumentInput } from "./instrument.ts";
 import { bannerPatternInput } from "./banner_pattern.ts";
 import { enchantmentProviderInput, enchantmentProviderUnits } from "./enchantment_provider.ts";
+import { trialSpawnerConfigInput, trialSpawnerConfigUnits } from "./trial_spawner_config.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -598,6 +599,11 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "enchantment_provider", probe: "enchantment_provider", oracle: "EnchantmentProviderOracle",
         key: "provider", units: { kind: "computed", units: enchantmentProviderUnits },
         input: enchantmentProviderInput },
+    // 试炼刷怪笼配置：28 项 × 9 种玩家数，重点比派生刷怪数量（f32 + floor）。
+    { name: "trial_spawner_config", probe: "trial_spawner_config", oracle: "TrialSpawnerConfigOracle",
+        key: "config", units: { kind: "computed", units: trialSpawnerConfigUnits },
+        input: trialSpawnerConfigInput },
+
 
     // 伤害类型标签：每个标签包含哪些伤害类型（集合语义）。纯数据查表。
     { name: "damage_type_tags", probe: "damage_type_tags", oracle: "DamageTypeTagsOracle", key: "tag",

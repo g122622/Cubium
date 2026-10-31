@@ -375,6 +375,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `instrument` | 原版 jar `InstrumentOracle` | 8 种山羊角音色 | 全部一致 | — |
 | `banner_pattern` | 原版 jar `BannerPatternOracle` | 43 | 全部一致 | Cubium 仍是硬编码枚举，探针直接读数据包（见下文） |
 | `enchantment_provider` | 原版 jar `EnchantmentProviderOracle` | 7 项 × 7 种难度乘数 = 49 | 全部一致 | Cubium 未实现，探针直接读数据包（见下文） |
+| `trial_spawner_config` | 原版 jar `TrialSpawnerConfigOracle` | 28 项 × 9 种玩家数 = 252 | 全部一致 | Cubium 用整数 Config，探针直接读数据包（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1167,6 +1168,62 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 新能力 trial_spawner_config：一次跑出两处真实差异
+
+第 70 个能力，28 项 × 9 种玩家数 = 252 个单元，全部一致。它一上来就抓到了两处问题。
+
+#### 差异一：四个数值字段被声明成整数
+
+Cubium 的 `TrialSpawnerBlockEntity::Config`：
+
+```cpp
+i32 totalMobs = 6;
+i32 totalMobsAddedPerPlayer = 2;
+i32 baseSimultaneousMobs = 3;
+i32 simultaneousMobsAddedPerPlayer = 1;   // <- 数据包里全是 0.5
+```
+
+而原版是 `f32`。数据包 28 项里 `simultaneous_mobs_added_per_player` **无一例外都是
+`0.5`**，整数字段根本装不下。
+
+这个偏差会直接改变刷怪数量，因为原版的派生方法是：
+
+```java
+calculateTargetSimultaneousMobs(n) = (int) Math.floor(simultaneousMobs + simultaneousMobsAddedPerPlayer * n)
+```
+
+乘数 0.5、玩家数 3 时：`1 + 0.5 * 3 = 2.5` → floor 得 **2**。若按整数加法先算成
+`1 + 0 = 1`，就少一只。能力输出的实测值：
+
+```json
+{"config":"minecraft:trial_chamber/breeze/normal","playerCount":3,
+ "simultaneousMobs":"1","simultaneousMobsAddedPerPlayer":"0.5","targetSimultaneousMobs":2}
+```
+
+本能力因此在 9 种玩家数下各算一遍，专门压这条边界。
+
+#### 差异二：缺省字段的默认值不是空
+
+探针第一次跑就报了：
+
+```
+oracle: {"lootTableCount":2}
+probe : {"lootTableCount":0}
+```
+
+原版 `loot_tables_to_eject` 的缺省值来自 `DEFAULT.lootTablesToEject`，而那是个**含 2 项的
+WeightedList**（`spawner_trial_chamber_consumables` 与 `spawner_trial_chamber_key`），
+不是空列表。14 个配置没写这个字段，全都要回退到这两项。
+
+这条比「字段缺失就按空处理」更容易错——空列表看起来是最自然的中性默认值，但原版不是。
+
+#### 一条被验证的假设
+
+`spawn_range` 在全部 28 项里都没有出现，必须回退到 `Builder` 的默认值 4。这条假设成立，
+252 行里 `spawnRange` 全部为 4。
+
+TODO 与 `banner_pattern` / `enchantment_provider` 一致：待 Cubium 改为数据包驱动后，
+探针应改为读注册表。
 ### 新能力 enchantment_provider：把「类型分派 + 代价截断」单独钉住
 
 第 69 个能力。数据包 `enchantment_provider/` 下 7 项，Cubium **一项都没有加载**
