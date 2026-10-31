@@ -24,7 +24,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability)
+set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/block_state_ids.cpp
@@ -82,8 +82,11 @@ set(MC_DIFF_PROBE_SOURCES
     probes/damage_type_tags.cpp
     probes/enchantment_cost.cpp
     probes/enchantment_applicability.cpp
+    probes/item_component_nbt.cpp
+    probes/stack_codec.cpp
+    probes/loot_function.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability)
+set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function)
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
@@ -260,7 +263,7 @@ function(mc_add_diff_probe targetSuffix source domain)
     # 战利品表要按资源名解析「乐器标签」（`set_instrument` 函数），乐器与乐器标签的
     # 数据包加载器在 src/server/item/instrument 下。那里只有这两个加载器，不牵出
     # 服务端其它子系统，因此只给战利品探针单独补上，避免所有探针都链接服务端。
-    if(targetSuffix MATCHES "^loot_table" OR targetSuffix STREQUAL "loot_container")
+    if(targetSuffix MATCHES "^loot_table" OR targetSuffix STREQUAL "loot_container" OR targetSuffix STREQUAL "loot_function")
         target_sources(${targetName} PRIVATE
             ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
             ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp

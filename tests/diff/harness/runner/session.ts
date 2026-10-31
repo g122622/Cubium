@@ -200,17 +200,24 @@ export function runDeclaration(session: HarnessSession, declaration: HarnessDecl
 
         // 1. 单元：由 oracle 枚举（它决定「原版有哪些」）、由探针枚举，或由能力自己计算。
         // 默认以 oracle 为准：它决定「原版有哪些」。两侧枚举口径不同时能力改用 computed。
-            const enumerated = declaration.units.kind === "computed"
-                ? declaration.units.units().sort()
-                : declaration.oracle !== undefined
-                    ? session.listOracleUnits(declaration.oracle, declaration.name)
-                    : declaration.probe !== undefined
-                        ? session.listProbeUnits(declaration.probe)
-                        : (() => {
-                            throw new Error("能力既没有 oracle 也没有 probe，且没有给出单元列表");
-                        })();
+        const listed = declaration.units.kind === "computed"
+            ? declaration.units.units().sort()
+            : declaration.oracle !== undefined
+                ? session.listOracleUnits(declaration.oracle, declaration.name)
+                : declaration.probe !== undefined
+                    ? session.listProbeUnits(declaration.probe)
+                    : (() => {
+                        throw new Error("能力既没有 oracle 也没有 probe，且没有给出单元列表");
+                    })();
+        const enumerated = listed;
         // 2. 已知缺口：从比对集剔除，报告里点名（避免变成静默豁免）。
-        const exempt = new Set(declaration.oracleMissing ?? []);
+        // 显式清单优先；没有给时可由能力按两侧实际枚举的单元推导（静态清单会滞后于注册表）。
+        const exempt = new Set(
+            declaration.oracleMissing ??
+                (declaration.deriveMissing !== undefined && declaration.probe !== undefined
+                    ? declaration.deriveMissing(listed, session.listProbeUnits(declaration.probe))
+                    : []),
+        );
         const units = enumerated.filter((unit) => !exempt.has(unit));
         if (units.length === 0) {
             throw new Error("没有可比较的单元（全部被列为已知缺口）");
@@ -538,9 +545,21 @@ function normalisationIsFaithful(
     if (options.normalise === undefined) {
         return undefined;
     }
+    // 规范形变换（canonicalising）本来就会改写参照侧，恒等校验对它不适用；对它要求的是
+    // **确定性**：同一输入连续应用两次结果不变。否则两侧各自落到的写法可能不同，比较失去意义。
+    const canonicalising = options.normalise.canonicalising === true;
     for (const line of lines.slice(0, limit)) {
         const parsed = JSON.parse(line) as Record<string, unknown>;
         const normalised = options.normalise(parsed, parsed) as Record<string, unknown>;
+        if (canonicalising) {
+            const twice = options.normalise(parsed, normalised) as Record<string, unknown>;
+            const once = stableStringify(projectDeclaredFields(parsed, normalised, options.unorderedArrays));
+            const again = stableStringify(projectDeclaredFields(parsed, twice, options.unorderedArrays));
+            if (once !== again) {
+                return String(parsed[options.key]);
+            }
+            continue;
+        }
         const before = stableStringify(projectDeclaredFields(parsed, parsed, options.unorderedArrays));
         const after = stableStringify(projectDeclaredFields(parsed, normalised, options.unorderedArrays));
         if (before !== after) {

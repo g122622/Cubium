@@ -158,53 +158,86 @@ public:
     [[nodiscard]] u32 getColorARGB() const noexcept;
 
     // ========== 样式标志 ==========
+    //
+    // 五个标志都是**三态**（未设置 / true / false），与 vanilla `Style` 的
+    // `@Nullable Boolean` 一致。三态是必须的：序列化时「显式写成 false」与「没写」在原版
+    // 存档里是两种不同的值（前者要写出 `italic:0b`，后者省略），判定父子样式继承时也
+    // 只看子样式是否**显式**给出。用 bool 会把这两者并成一种，界面看不出差别，
+    // 存档与网络字节却与原版不同。
 
-    [[nodiscard]] bool isBold() const noexcept
+    /** 粗体：nullopt = 未设置（继承父样式）。 */
+    [[nodiscard]] std::optional<bool> bold() const noexcept
     {
         return m_bold;
     }
 
-    void setBold(bool bold) noexcept
+    /** 语义同 {@link bold}：是否**确定为**粗体（未设置也算否）。 */
+    [[nodiscard]] bool isBold() const noexcept
+    {
+        return m_bold.value_or(false);
+    }
+
+    void setBold(std::optional<bool> bold) noexcept
     {
         m_bold = bold;
     }
 
-    [[nodiscard]] bool isItalic() const noexcept
+    [[nodiscard]] std::optional<bool> italic() const noexcept
     {
         return m_italic;
     }
 
-    void setItalic(bool italic) noexcept
+    [[nodiscard]] bool isItalic() const noexcept
+    {
+        return m_italic.value_or(false);
+    }
+
+    void setItalic(std::optional<bool> italic) noexcept
     {
         m_italic = italic;
     }
 
-    [[nodiscard]] bool isUnderlined() const noexcept
+    [[nodiscard]] std::optional<bool> underlined() const noexcept
     {
         return m_underlined;
     }
 
-    void setUnderlined(bool underlined) noexcept
+    [[nodiscard]] bool isUnderlined() const noexcept
+    {
+        return m_underlined.value_or(false);
+    }
+
+    void setUnderlined(std::optional<bool> underlined) noexcept
     {
         m_underlined = underlined;
     }
 
-    [[nodiscard]] bool isStrikethrough() const noexcept
+    [[nodiscard]] std::optional<bool> strikethrough() const noexcept
     {
         return m_strikethrough;
     }
 
-    void setStrikethrough(bool strikethrough) noexcept
+    [[nodiscard]] bool isStrikethrough() const noexcept
+    {
+        return m_strikethrough.value_or(false);
+    }
+
+    void setStrikethrough(std::optional<bool> strikethrough) noexcept
     {
         m_strikethrough = strikethrough;
     }
 
-    [[nodiscard]] bool isObfuscated() const noexcept
+    [[nodiscard]] std::optional<bool> obfuscated() const noexcept
     {
         return m_obfuscated;
     }
 
-    void setObfuscated(bool obfuscated) noexcept
+    [[nodiscard]] bool isObfuscated() const noexcept
+    {
+        return m_obfuscated.value_or(false);
+    }
+
+    void setObfuscated(std::optional<bool> obfuscated) noexcept
     {
         m_obfuscated = obfuscated;
     }
@@ -297,11 +330,11 @@ public:
 
 private:
     std::optional<TextFormatting> m_color;
-    bool m_bold = false;
-    bool m_italic = false;
-    bool m_underlined = false;
-    bool m_strikethrough = false;
-    bool m_obfuscated = false;
+    std::optional<bool> m_bold;
+    std::optional<bool> m_italic;
+    std::optional<bool> m_underlined;
+    std::optional<bool> m_strikethrough;
+    std::optional<bool> m_obfuscated;
     std::optional<ClickEvent> m_clickEvent;
     std::optional<HoverEvent> m_hoverEvent;
 };

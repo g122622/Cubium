@@ -150,6 +150,15 @@ struct ItemExtras {
     nlohmann::json blockEntityData; // block_entity_data 组件（放置时写入方块实体）
     nlohmann::json rawComponents;   // 未落地结构组件的原始 JSON（以资源位置为键）
 
+    /**
+     * 被**显式移除**的组件（存档 components 段里 `"!name"` 形式的键）。
+     *
+     * 与「没有设置」是两种状态：前者是「覆盖掉物品原型自带的默认值并置空」，后者是
+     * 「沿用原型的值」。原版 `DataComponentPatch` 有 added/removed 两半，这里必须同样记录，
+     * 否则 `set_components` / `copy_components` 里的移除会在写回时消失。
+     */
+    std::vector<i32> removedComponents;
+
     ItemExtras() = default;
 
     /// 深拷贝：lore / itemName 内的文本组件必须逐项 deepCopy，不能共享 unique_ptr
@@ -176,6 +185,7 @@ struct ItemExtras {
         , stewEffects(other.stewEffects)
         , deathProtection(other.deathProtection)
         , rawComponents(other.rawComponents)
+        , removedComponents(other.removedComponents)
     {
         lore.reserve(other.lore.size());
         for (const auto& line : other.lore) {
@@ -209,6 +219,7 @@ struct ItemExtras {
             deathProtection = other.deathProtection;
             blockEntityData = other.blockEntityData;
             rawComponents = other.rawComponents;
+            removedComponents = other.removedComponents;
             lore.clear();
             lore.reserve(other.lore.size());
             for (const auto& line : other.lore) {
@@ -224,7 +235,7 @@ struct ItemExtras {
         return maxStackSizeOverride.has_value() || maxDamageOverride.has_value() || unbreakable ||
             itemName != nullptr || itemModel.has_value() || rarityOverride.has_value() ||
             enchantableOverride.has_value() || attackRange.has_value() || fireworkExplosion.has_value() ||
-            fireworks.has_value();
+            fireworks.has_value() || !removedComponents.empty();
     }
 };
 
