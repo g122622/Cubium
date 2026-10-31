@@ -294,6 +294,9 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 **确定性是硬要求**：同一输入必须永远产出同一输出。涉及无序容器、随机数、时间、
 地址的，probe 必须在写出前自行收敛（排序、固定种子、去掉地址），否则差分没有意义。
 
+完整的作业流程（含探针/oracle 骨架、已知缺口四档如何选、构建与收敛步骤、收尾清单与常见陷阱）
+见 skill `mc-add-diff-test`（`.agents/skills/mc-add-diff-test/SKILL.md`）。
+
 ---
 
 ## 当前状态
