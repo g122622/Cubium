@@ -371,6 +371,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
 | `armor_trim` | 原版 jar `ArmorTrimOracle` | 18 个纹饰图案 + 11 种纹饰材料 | 全部一致 | — |
+| `animal_variant` | 原版 jar `AnimalVariantOracle` | 32 个变体（狼 9 / 猫 11 / 蛙·牛·鸡·猪 各 3） | 全部一致 | — |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1163,6 +1164,46 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 动物变体：六类变体的出生条件，32/32 一次收敛
+
+`animal_variant` 比对狼 / 猫 / 蛙 / 牛 / 鸡 / 猪六类变体，共 32 个单元。首轮 32 处全差，
+排查后收敛到 **32/32 全一致**。
+
+六类变体此前在 Cubium 中都没有实现，变体的贴图与出生条件全都无处可查。
+
+#### 数据形状
+
+六类的形状高度一致，因此共用一套加载器（`AnimalVariants`），差异由 `AssetField` 承载：
+
+| 类别 | 贴图字段 | `model` 字段 | 数量 |
+|---|---|---|---|
+| `wolf_variant` | `assets: { wild, tame, angry }`（三张） | 无 | 9 |
+| `cat_variant` / `frog_variant` | `asset_id`（一张） | 无 | 11 / 3 |
+| `cow_variant` / `chicken_variant` / `pig_variant` | `asset_id`（一张） | 有，缺省 `normal` | 各 3 |
+
+出生条件是 `spawn_conditions: [{ condition, priority }]`，条件只有三种：
+
+- `biome` → `BiomeCheck(HolderSet<Biome>)`，字段 `biomes`
+- `structure` → `StructureCheck(HolderSet<Structure>)`，字段 `structures`
+- `moon_brightness` → `MoonBrightnessCheck(MinMaxBounds.Doubles)`，字段 `range: { min, max }`
+
+#### 首轮全差的三个根因
+
+| 现象 | 根因 |
+|---|---|
+| `entries` 全为空、`rangeMin` 全丢失 | 数据文件里 `type` 写作 `minecraft:structure`，而原版注册名是 `structure`。字符串比较不相等，整个条件解析分支被跳过 |
+| 贴图 ID 两侧对不上 | 原版 `ClientAsset.ResourceTexture` 的构造器把 `asset_id` 变换成 `textures/` + path + `.png`。数据文件写 `entity/cat/all_black`，原版暴露 `textures/entity/cat/all_black.png` |
+| `model` 为空 vs `normal` | 原版是 `optionalFieldOf("model", ModelType.NORMAL)`，缺省取 `normal`。但只有牛 / 鸡 / 猪三类有 model 概念，狼 / 猫 / 蛙必须保持空串 |
+
+第一条尤其典型：`type` 带不带命名空间前缀是**数据文件写法**与**注册表 key** 的差异，
+单看任何一侧都发现不了，只有两侧对着比才会暴露。
+
+#### 两处刻意的口径
+
+- **`entries` 保留 `#` 前缀**：原版 `HolderSet` 的标签引用与内联元素语义不等价
+  （标签会随数据包内容变化），比对必须能区分。
+- **狼的 `assets` 按 `AssetInfo(wild, tame, angry)` 的字段顺序输出**，而不是按 JSON 对象的
+  遍历顺序；`selectors` 也保持数组原顺序——优先级链的书写顺序有语义。
 ### 盔甲纹饰：两类数据包注册表，一次通过
 
 `armor_trim` 一次性比对 18 个纹饰图案与 11 种纹饰材料，**29/29 全一致**。
