@@ -24,7 +24,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant single_item_recipe)
+set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/block_state_ids.cpp
@@ -88,9 +88,10 @@ set(MC_DIFF_PROBE_SOURCES
     probes/crafting_match.cpp
     probes/armor_trim.cpp
     probes/animal_variant.cpp
+    probes/instrument.cpp
     probes/single_item_recipe.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant single_item_recipe)
+set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe)
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
@@ -287,6 +288,14 @@ function(mc_add_diff_probe targetSuffix source domain)
     # 拼图模板。这些都住在 mc_gen（OBJECT 库）里，因此按 command_tree 的办法重新收集
     # 世界生成的源码，而不是链接该 OBJECT 库——后者会把雕刻、装饰、后处理的整条管线
     # 一并塞进链接行，其中不少编译单元单独编译有既有的重定义问题。
+    # 乐器：注册表本体在 mc_common 里，只有数据包加载器在服务端目录下。
+    # 这里只补这一个源文件，而不是通配整个 src/server——后者会把整条服务端管线
+    # 拉进链接行，构建代价远超本能力所需。
+    if(targetSuffix STREQUAL "instrument")
+        target_sources(${targetName} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp)
+    endif()
+
     if(targetSuffix STREQUAL "structure_starts")
         target_link_options(${targetName} PRIVATE "-Xlinker" "/ERRORLIMIT:0")
         file(GLOB_RECURSE _diff_gen_sources CONFIGURE_DEPENDS

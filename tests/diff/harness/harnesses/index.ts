@@ -68,6 +68,7 @@ import { ENCHANTMENT_TAGS_UNORDERED, enchantmentTagsInput } from "./enchantment_
 import { paintingVariantInput } from "./painting_variant.ts";
 import { ARMOR_TRIM_UNORDERED, armorTrimInput } from "./armor_trim.ts";
 import { animalVariantInput } from "./animal_variant.ts";
+import { instrumentInput } from "./instrument.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -585,6 +586,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 动物变体：六类变体的贴图资源、模型名与带优先级的出生条件。纯数据包注册表。
     { name: "animal_variant", probe: "animal_variant", oracle: "AnimalVariantOracle", key: "unit",
         units: { kind: "listing" }, input: animalVariantInput },
+    // 乐器：音效 ID / 吹奏时长 / 可听距离 / 描述翻译键，以及 tick 数与音量两个派生值。
+    { name: "instrument", probe: "instrument", oracle: "InstrumentOracle", key: "instrument",
+        units: { kind: "listing" }, input: instrumentInput },
     // 伤害类型标签：每个标签包含哪些伤害类型（集合语义）。纯数据查表。
     { name: "damage_type_tags", probe: "damage_type_tags", oracle: "DamageTypeTagsOracle", key: "tag",
         units: { kind: "listing" }, input: damageTypeTagsInput,

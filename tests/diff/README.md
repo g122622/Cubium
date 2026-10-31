@@ -372,6 +372,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
 | `armor_trim` | 原版 jar `ArmorTrimOracle` | 18 个纹饰图案 + 11 种纹饰材料 | 全部一致 | — |
 | `animal_variant` | 原版 jar `AnimalVariantOracle` | 32 个变体（狼 9 / 猫 11 / 蛙·牛·鸡·猪 各 3） | 全部一致 | — |
+| `instrument` | 原版 jar `InstrumentOracle` | 8 种山羊角音色 | 全部一致 | — |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1164,7 +1165,48 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
-### 动物变体：六类变体的出生条件，32/32 一次收敛
+### 乐器：浮点字段与两个派生值，8/8 全一致
+
+`instrument` 比对 8 种山羊角音色：音效 ID、吹奏时长、可听距离、描述翻译键，外加两个
+**派生值**——`useDurationTicks` 与 `volume`。一次通过 **8/8**。
+
+原版 `record Instrument(Holder<SoundEvent> soundEvent, float useDuration, float range,
+Component description)` 只有四个字段，派生值不在记录里，但在 `InstrumentItem` 里各占
+一行换算：
+
+```java
+getUseDuration -> Mth.floor(useDuration * 20.0F)
+play           -> range / 16.0F
+```
+
+Cubium 侧同样实现了这两个派生（`useDurationTicks()` / `volume()`），把它们也纳入比对，
+是因为**换算口径本身会错**：秒与 tick 的换算、范围与音量的比例，这两处一旦写错，
+只比原始字段是发现不了的。
+
+#### 浮点输出口径
+
+三个浮点字段（`useDuration` / `range` / `volume`）在两侧都按「6 位有效数字，去掉尾随零」
+格式化成**字符串**输出。这是 `food_properties` 与 `jukebox_song` 两个能力踩过同一个坑之后
+定下的规矩：C++ 的 `%.6g` 与 Java 的 `%g` 行为不同——`178.0f` 一边给 `178`，另一边给
+`178.000`。若直接按数字输出，Gson 与 nlohmann 的打印差异还会再叠一层
+（`0.3` vs `0.30000001192092896`）。
+
+#### 一个初始化顺序的坑
+
+探针首轮 8 个单元全部返回 `missing`，注册表为空。原因是服务端 `RegistryBootstrap` 里
+这个注册表有三步：
+
+```
+clear()                     -> 清掉可能残留的旧条目
+initialize()                -> 登记写死的内置条目（8 种山羊角）
+loadFromDataPackRepository  -> 用数据包覆盖同名条目
+```
+
+探针最初只做了第三步。数据包里的条目其实能注册成功，但 `get()` 走的是另一条路径，
+表现为「找不到」。补齐前三步的顺序后立刻 8/8。
+
+这提示了一个更一般的规律：**差分能力复刻的是原版的运行时状态，不是原版的输入数据**。
+凡是注册表，都要照抄服务端的初始化顺序，而不是只加载数据包。### 动物变体：六类变体的出生条件，32/32 一次收敛
 
 `animal_variant` 比对狼 / 猫 / 蛙 / 牛 / 鸡 / 猪六类变体，共 32 个单元。首轮 32 处全差，
 排查后收敛到 **32/32 全一致**。
