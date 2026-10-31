@@ -66,6 +66,7 @@ tests/diff/
 │   ├── crafting_match.cpp       # 合成配方在固定网格语料下的匹配与产出
 │   ├── single_item_recipe.cpp   # 单物品配方的查询语义（熔炼/高炉/烟熏/营火/切石）
 │   ├── recipe_book_category.cpp # 每条配方落在配方书的哪个页签（类型 + 分类 → 归属）
+│   ├── fuel_values.cpp          # 每种物品作为燃料的燃烧时长
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -100,6 +101,7 @@ tests/diff/
 │   │   ├── crafting_match.ts    # 合成配方的摆法语料（原样 / 放大 / 平移 / 反例）
 │   │   ├── single_item_recipe.ts # 单物品配方查询的比对口径（补齐五个结果键）
 │   │   ├── recipe_book_category.ts # 配方书页签归属的比对口径（补齐 type/page）
+│   │   ├── fuel_values.ts       # 燃料燃烧时长的比对口径（0 表示不是燃料）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -347,6 +349,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `crafting_match` | 原版 jar `CraftingMatchOracle` | 4068（有序/无形状配方 × 6 种摆法） | 全部一致 | 见下文 |
 | `single_item_recipe` | 原版 jar `SingleItemRecipeOracle` | 202 个输入物品（熔炼/高炉/烟熏/营火/切石） | 全部一致 | 见下文 |
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470（每条配方一项） | 全部一致 | 见下文 |
+| `fuel_values` | 原版 jar `FuelValuesOracle` | 1505（全部已注册物品） | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -462,6 +465,24 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 - **文本组件的样式是两态而非三态**：`Style` 用 `bool` 记 bold/italic 等，无法区分「显式 false」
   与「未设置」。原版是 `Optional<Boolean>`：前者要写出 `italic:0b`，后者省略；继承时也只看
   子样式是否显式给出（`子 || 父` 会让显式 false 盖不住父样式的 true）。改为 `std::optional<bool>`。
+
+`fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
+单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。
+
+燃料表是「物品种类 → tick 数」的一张表，玩家对它的容错极低：少一种木材就烧不着，
+数值差一倍整组矿的烧制时间就不对，而且这类错误不会崩溃也不会报错。原版 1.21.11 用
+**标签聚合**表达这张表（`ItemTags.LOGS` 一条覆盖全部原木变体，末尾再
+`.remove(NON_FLAMMABLE_WOOD)` 剔除绯红/诡异木），Cubium 侧是逐物品的 if 链——所有
+乘除都作用在 **200 的基准**上而不是中间值，这是最容易抄错的地方。
+
+首轮跑通查出 14 处差异，全部修掉：
+
+- **12 种木质架子烧得太久（450 → 300）**：原版 `200 * 3 / 2 = 300`，Cubium 写成
+  「基础木质 300 × 1.5 = 450」——拿已放大的 300 当基准再乘一次，凭空多出 150 tick。
+- **绯红 / 诡异架子被误判为燃料**：这两族属于 `NON_FLAMMABLE_WOOD`，原版在表尾显式
+  移除，Cubium 把它们一起算进了木质架子。
+- **木长矛不认作燃料**：`Items.WOODEN_SPEAR` → 200，Cubium 的木制工具组里漏了它。
+- **`minecraft:air` 被判成合法物品**：探针侧要按原版口径把它当作未注册。
 
 `recipe_book_category` 比的是**每条配方落在配方书的哪个页签**。这个归属由两个维度
 合成：配方**类型**（熔炼 / 高炉 / 烟熏 / 营火 / 切石 / 锻造各有一套页签）与数据包里的

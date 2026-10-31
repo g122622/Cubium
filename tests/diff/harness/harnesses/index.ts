@@ -78,6 +78,7 @@ import { recipeDeclaration } from "./recipe.ts";
 import { craftingMatchDeclaration } from "./crafting_match.ts";
 import { singleItemRecipeDeclaration } from "./single_item_recipe.ts";
 import { recipeBookCategoryDeclaration } from "./recipe_book_category.ts";
+import { fuelValuesDeclaration } from "./fuel_values.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
 import { statusEffectInput, statusEffectUnits } from "./status_effect.ts";
@@ -457,6 +458,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     craftingMatchDeclaration(),
     singleItemRecipeDeclaration(),
     recipeBookCategoryDeclaration(),
+    fuelValuesDeclaration(),
     { name: "spawn_rules", probe: "spawn_rules", oracle: "SpawnRulesOracle", key: "entity", units: { kind: "listing" },
         input: spawnRulesInput },
     { name: "spawn_placement", probe: "spawn_placement", oracle: "SpawnPlacementOracle", key: "entity", units: { kind: "listing" },
