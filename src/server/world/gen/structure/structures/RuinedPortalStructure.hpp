@@ -113,6 +113,25 @@ public:
         return m_templateName;
     }
 
+    /**
+     * @brief 模板是否已成功加载
+     *
+     * 模板缺失时包围盒退化到单点、generate 不写任何方块，但结构起点仍会被登记。
+     * 调用方应在登记起点前用它断言，把"缺模板"暴露成错误而不是静默的空结构。
+     */
+    [[nodiscard]] bool hasLoadedTemplate() const
+    {
+        return m_template != nullptr;
+    }
+
+    /** @brief 立即加载模板并据此算出真实包围盒（幂等）。登记起点前必须调用。 */
+    void loadTemplateNow()
+    {
+        if (m_template == nullptr) {
+            _loadTemplate();
+        }
+    }
+
     [[nodiscard]] RuinedPortalLocation location() const
     {
         return m_location;

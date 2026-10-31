@@ -60,6 +60,7 @@ tests/diff/
 │   ├── spawn_placement.cpp      # 实体放置类型、高度图与受控方块柱中的位置判定
 │   ├── spawn_rules.cpp          # 生成谓词、位置检查与后续随机抽样
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
+│   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
 │   ├── path_scene.hpp           # 寻路探针共用的内存方块表区域与受控实体
@@ -339,6 +340,12 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `attribute_range` | 原版 jar `AttributeRangeOracle` | 35 | 全部一致 | 项目自研属性 `horse.jump_strength` 原版没有 |
 | `mob_experience` | 原版 jar `MobExperienceOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
 | `block_destroy_progress` | 原版 jar `BlockDestroyProgressOracle` | 971 | 705 个一致 | 461 个方块的采集工具/requiresTool 未声明（见 `known_missing_block_tools.ts`） |
+| `structure_density` | 原版 jar `StructureDensityOracle` | 采样点集 | 全部一致 | 覆盖 Beardifier 的四种地形适配（bury / beard_thin / beard_box / encapsulate） |
+| `structure_starts` | 原版 jar `StructureStartsOracle` | 542 个区块（候选区块 + 邻居 + 空白区块，两个种子 × 主世界/末地） | 494 个单元逐片段一致；528/540 个单元选中同一结构 | 见下方「结构起点：已查出的问题」 |
+| `villager_list` | 原版 jar `VillagerTradesOracle` | 13（每职业整张交易表，5 个等级的全部条目） | 全部一致 | — |
+| `villager_price` | 原版 jar `VillagerTradesOracle` | 1137（基础代价 × 需求 × 乘数 × 特殊价格） | 全部一致 | — |
+| `villager_restock` | 原版 jar `VillagerTradesOracle` | 600（单条交易 + 多条交易） | 全部一致 | — |
+| `villager_gen` | 原版 jar `VillagerTradesOracle` | 390（13 职业 × 5 等级 × 6 种子） | 355/390 一致；35 个附魔内容差异已登记 | 见下方「村民交易：已查出的问题」 |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -869,3 +876,79 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
    树逐节点比对；`command_argument` 已经把参数层对齐了；
 3. **实体 / 附魔缺失项** —— 补齐 `KNOWN_MISSING` 里那 3 个附魔与 32 个实体类型，
    清单随之删条目。
+
+## 结构起点：已查出的问题
+
+`structure_starts` 首轮跑通就查出并修掉的结构生成缺陷（每一条都对着原版源码核实过）：
+
+- **结构集条目抽签不是加权轮盘**：原版 `StructureTemplatePool.getRandomTemplate` 是在
+  **按权重逐份展开**的列表上取下标，Cubium 原来用的是"随机数落在哪个权重区间"的另一种
+  抽法——起始块因此选错（村庄整座偏移十几格）。现已按下标语义重写；
+- **单条目结构集不得消耗抽签随机数**：原版 `list.size() == 1` 时直接生成，Cubium 原来
+  一律走抽签，多消耗一次随机数，末地城等结构随之整体错位；
+- **村庄不该有专用装配流程**：村庄的结构定义 JSON 与拼图结构完全同构，原版也走同一条
+  `JigsawPlacement.addPieces`（含 `start_jigsaw_name` 起始连接点选择）。Cubium 单写的
+  `VillageStructure` 先抽旋转再抽起始块、且不按名字过滤起始块，起始块与装配走向都错。
+  该类已删除，村庄改走通用 `JigsawStructure`；
+- **拼图结构的生物群系校验要用候选生成点**：原版在 `GenerationStub` 的位置（起始块中心、
+  投影后的地面线）采样，Cubium 在区块中心 + y=0 采样，群系边界处会把合法结构整片误杀
+  （古代城市首轮被误杀就是这个原因）。裸 `JigsawStructure` / 试炼密室 / 前哨站现均按
+  候选点校验，且校验位于装配之后（与原版 `findValidGenerationPoint` 的调用位置一致）；
+- **掠夺者前哨站的起始高度**：原版是 `start_height: absolute 0` + `project_start_to_heightmap:
+  WORLD_SURFACE_WG`，Cubium 原来硬编码成 `nearTerrain` 特判（起始高度 0 或 64），
+  只有 1/16 的情形恰好等于投影结果；
+- **废弃传送门的模板要在登记起点前加载**：原来模板由 `generate` 惰性加载，起点先登记，
+  包围盒于是退化成单点；现在登记前加载并断言模板存在，缺模板会直接报错而不是静默消失。
+
+仍未对齐（各自已是独立的结构实现缺口，不属于装配框架问题）：
+
+- **要塞**：`ConcentricRingsStructurePlacement` 只是按固定环数硬编码落点，没有原版按
+  群系搜索后还要求"不是海洋"的那一步；语料里的要塞单元全部缺失；
+- **废弃矿井 / 试炼密室 / 末地城 / 海底废墟 / 埋藏宝藏**：构件生成逻辑与原版不同
+  （矿井的起始房间与分段规则、海底废墟的模板选取、末地城的塔楼递归），需要逐个按
+  1.21.11 重写；
+- **村庄 / 古代城市 / 前哨站的构件数已一致，但个别连接点取值仍有差异**（`structure_starts`
+  逐片段比对可直接定位）。
+
+`structure_starts` 的探针与 oracle 都只读"本区块内的结构起点"，不写方块、不依赖邻区，
+因此可以逐区块独立复算；语料由 oracle 按原版放置规则枚举候选区块后等距取样，再补每格的
+邻居区块与若干空白区块，用来覆盖"候选判定不通过"这条路径。
+
+## 村民交易：已查出的问题
+
+村民交易拆成四个能力，各管一段：
+
+- `villager_list` 导出**整张交易表**（每职业 5 个等级的全部条目）。它不经过抽签，所以每一处
+  差异都能定位到"哪一级、第几条、哪个字段"，是查表数据最快的手段；
+- `villager_gen` 验证**抽取过程**：同一 seed 下抽中哪两条、每条内部抽到什么；
+- `villager_price` 单独验证 `MerchantOffer.getAdjustedBuyPrice()` 的价格公式；
+- `villager_restock` 单独验证 `VillagerEntity::restock()` 的先更新需求再重置用量。
+
+`villager_list` 首轮跑通就查出并修掉的交易表数据错误（都对着 1.21.11 的 `VillagerTrades` 核实过）：
+
+- 农民的面包 / 南瓜派 / 曲奇 / 蛋糕、牧师的萤石、牧羊人的剪刀：`maxUses` 用了 16，
+  原版这几个是 `DEFAULT_SUPPLY`（12）；
+- 屠夫的煤炭：经验记为"卖"档，原版是 `XP_LEVEL_1_BUY`（2）；
+- 制图师的探险地图装饰类型：`village` / `ocean_explorer` 之类的自造 id 换成原版的
+  `village_plains` / `village_desert` / `village_savanna` / `village_taiga` / `village_snowy` /
+  `monument` / `mansion` / `jungle_temple` / `swamp_hut` / `trial_chambers`。
+
+`villager_gen` 在表数据对齐之后，又暴露出随机序列的四处错位，同样已修：
+
+- **整批交易共用一条随机流**：原版 `addOffersFromItemListings` 把同一个 `RandomSource` 既用于
+  "抽哪一条"、又传给条目的 `getOffer`。项目原来给每条派生独立子流，两段随机互相独立，
+  抽取序列整体不同；现在整批共用一条；
+- **离线随机源必须是 `RandomSource.create(seed)` 对应的 `LegacyRandomSource`**（Java 48 位
+  LCG），不是 Xoroshiro；
+- **附魔池的顺序就是标签的声明顺序**：原版按下标取标签内容，项目早先按 id 排序过一遍，同一
+  随机数抽到了别的附魔；`non_treasure` / `on_traded_equipment` 的顺序本身是数据驱动写死的，
+  不能重排；
+- **附魔书的价格公式**：`2 + nextInt(5 + level*10) + 3*level`，命中
+  `#double_trade_price`（经验修补）再翻倍、封顶 64。
+
+仍未对齐：**附魔装备 / 附魔书的附魔内容**（390 个单元里的 35 个）。根因是原版逐附魔维护
+`supported_items` / `primary_items` / `exclusive_set` / `weight` 四个数据字段，而项目把附魔
+写死在代码里、只有粗粒度的 `EnchantmentType` 分类，于是候选列表（哪些附魔可能出现在这件
+装备上）与各附魔的等级区间都和原版不同。修法是把附魔定义搬成数据驱动（或至少补齐这四张表），
+属于独立的一轮工作；这些单元已在 `villager_gen` 里登记为已知差异，抽取序列、价格、次数、
+经验仍然逐字段严格比对。

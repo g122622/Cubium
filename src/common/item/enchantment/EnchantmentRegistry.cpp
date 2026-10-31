@@ -45,8 +45,15 @@ namespace enchant {
 
 // 静态成员定义
 std::unordered_map<std::string, std::unique_ptr<Enchantment>> EnchantmentRegistry::s_enchantments;
+std::vector<const Enchantment*> EnchantmentRegistry::s_registrationOrder;
 bool EnchantmentRegistry::s_initialized = false;
 std::recursive_mutex EnchantmentRegistry::s_mutex;
+
+const std::vector<const Enchantment*>& EnchantmentRegistry::allInRegistrationOrder()
+{
+    std::lock_guard<std::recursive_mutex> lock(s_mutex);
+    return s_registrationOrder;
+}
 
 // ============================================================================
 // EnchantmentRegistry 实现
@@ -111,6 +118,9 @@ bool EnchantmentRegistry::registerEnchantmentInternal(std::unique_ptr<Enchantmen
     }
 
     s_enchantments[id] = std::move(enchantment);
+    // 另记一份注册顺序：`s_enchantments` 是哈希表，遍历顺序不等于注册顺序，
+    // 而原版所有"按下标抽附魔"的逻辑都依赖注册表的内容顺序。
+    s_registrationOrder.push_back(s_enchantments[id].get());
     return true;
 }
 
@@ -181,6 +191,7 @@ void EnchantmentRegistry::clear()
 {
     std::lock_guard<std::recursive_mutex> lock(s_mutex);
     s_enchantments.clear();
+    s_registrationOrder.clear();
     s_enchantmentRefs.clear();
     s_initialized = false;
 }

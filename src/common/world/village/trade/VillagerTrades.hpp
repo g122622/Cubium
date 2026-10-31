@@ -41,6 +41,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 namespace mc {
 namespace world {
 namespace village {
@@ -71,6 +73,38 @@ public:
      */
     [[nodiscard]] virtual std::unique_ptr<MerchantOffer> getOffer(
         const TradeContext& ctx, TradeRandomSource& random) const = 0;
+
+    /**
+     * @brief 导出交易表条目的数据视图，供差分测试使用
+     *
+     * 条目生成的交易里，代价、成交物、次数、经验、价格乘数是静态的；只有附魔、染料颜色、
+     * 寻宝地图目标等随随机数或世界变化。此方法把静态部分导出，随机部分则连同"它的输入参数"
+     * （例如附魔书允许的附魔标签与等级区间）一并导出，使交易表数据本身能与原版逐条比对，
+     * 而不必依赖随机数序列对齐。
+     *
+     * @param deterministicRandom 确定性随机源（恒返回 0）。条目如果需要"重放一次看结果"，
+     *        必须只用它，保证导出值与随机数序列无关。
+     * @param ctx 生成上下文；只提供与"表格数据"有关的部分（附魔标签解析器），
+     *        世界与卖家为空
+     * @return 条目描述；默认实现返回空对象，条目类按需覆写
+     */
+    [[nodiscard]] virtual nlohmann::json describe(TradeRandomSource& deterministicRandom, const TradeContext& ctx) const
+    {
+        static_cast<void>(deterministicRandom);
+        static_cast<void>(ctx);
+        return nlohmann::json::object();
+    }
+
+    /**
+     * @brief 条目种类名，对应原版 `VillagerTrades.ItemListing` 的具体实现类名
+     *
+     * 差分测试用它区分条目种类：只比字段不分类名时，"用另一种条目凑出相同字段"会被漏掉。
+     * 生产代码不调用。
+     */
+    [[nodiscard]] virtual const char* describeType() const
+    {
+        return "Unknown";
+    }
 };
 
 /// 单个等级的交易条目列表
@@ -154,15 +188,47 @@ public:
     [[nodiscard]] static bool hasTrades(entity::VillagerProfession profession);
 
     /**
+     * @brief 注册附魔标签解析器（服务端启动时由资源层注入）
+     *
+     * 附魔书条目从数据包标签取附魔池，双倍价格判定也用标签。标签表属于资源管理，
+     * 交易层不持有它，只保存一个解析回调：未注册时视为所有标签为空集合，
+     * 附魔书条目退化为卖普通书（不会崩溃，但与原版不一致）。
+     *
+     * 该回调在调用 `generateOffers` 之前生效，且只被读取，可在启动期一次性设置。
+     */
+    static void setEnchantmentTagResolver(TradeContext::EnchantmentTagResolver resolver);
+
+    /**
+     * @brief 获取当前注册的附魔标签解析器（未注册时为空）
+     */
+    [[nodiscard]] static TradeContext::EnchantmentTagResolver enchantmentTagResolver();
+
+    /**
      * @brief 获取职业的交易等级总数
      * @param profession 职业
      * @return 有交易的等级个数
      */
     [[nodiscard]] static i32 getTradeLevelCount(entity::VillagerProfession profession);
 
+    /**
+     * @brief 导出某职业完整交易表（等级 → 条目数据视图）
+     *
+     * 每项是 `TradeListing::describe()` 的结果：静态字段直接给出，随机字段给出"它的输入参数"。
+     * 仅供差分测试，生产代码不调用。
+     *
+     * @param profession 职业
+     * @param ctx 生成上下文；只用到其中的附魔标签解析器（附魔书条目要靠它取附魔池），
+     *        世界与卖家可为空
+     * @return `{"1": [条目, ...], "2": [...], ...}`；该等级没有条目时省略
+     */
+    [[nodiscard]] static nlohmann::json describeTrades(entity::VillagerProfession profession, const TradeContext& ctx);
+
 private:
     /// 某职业的全部等级条目表（按等级下标索引）
     using LevelTrades = std::array<TradeListingList, MAX_LEVEL + LEVEL_OFFSET>;
+
+    /// 附魔标签解析器（进程内唯一，启动期注册；见 setEnchantmentTagResolver）
+    static TradeContext::EnchantmentTagResolver s_enchantmentTags;
 
     /**
      * @brief 获取（必要时创建）某职业的等级条目表

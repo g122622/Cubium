@@ -24,7 +24,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder)
+set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/block_state_ids.cpp
@@ -63,11 +63,14 @@ set(MC_DIFF_PROBE_SOURCES
     probes/attribute_range.cpp
     probes/mob_experience.cpp
     probes/block_destroy_progress.cpp
+    probes/structure_density.cpp
+    probes/structure_starts.cpp
+    probes/villager_trades.cpp
     probes/walk_path_type.cpp
     probes/path_finder.cpp
     probes/fly_path_finder.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder)
+set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades)
 
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
@@ -249,6 +252,92 @@ function(mc_add_diff_probe targetSuffix source domain)
             ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
             ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp
         )
+    endif()
+
+    # 结构地形适配（Beardifier）的实现位于 mc_gen（OBJECT 库，会把整个世界生成的目标文件
+    # 无条件塞进链接行）。这里只补上探针真正用到的那个编译单元：Beardifier 自身只依赖
+    # mc_common 的包围盒与 JigsawJunction，不牵出区块生成器。
+    if(targetSuffix STREQUAL "structure_density")
+        target_sources(${targetName} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/density/Beardifier.cpp
+        )
+    endif()
+
+    # 结构起点（STRUCTURE_STARTS）要跑真实的世界生成管线：生成器、群系源、结构集装配、
+    # 拼图模板。这些都住在 mc_gen（OBJECT 库）里，因此按 command_tree 的办法重新收集
+    # 世界生成的源码，而不是链接该 OBJECT 库——后者会把雕刻、装饰、后处理的整条管线
+    # 一并塞进链接行，其中不少编译单元单独编译有既有的重定义问题。
+    if(targetSuffix STREQUAL "structure_starts")
+        target_link_options(${targetName} PRIVATE "-Xlinker" "/ERRORLIMIT:0")
+        file(GLOB_RECURSE _diff_gen_sources CONFIGURE_DEPENDS
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/*.cpp)
+        # 与 command_tree 相同的排除：feature 子树只登记在服务端自己的源清单里，目录通配会把它
+        # 的依赖一起拉进来又编译不成。结构装配会经由片段回调间接引用地物、规则测试与方块
+        # 谓词，因此下面按服务端清单补上「结构装配真正会调用」的那一批。
+        list(FILTER _diff_gen_sources EXCLUDE REGEX "/src/server/world/gen/feature/")
+        target_sources(${targetName} PRIVATE ${_diff_gen_sources})
+        # 拼图装配与模板池：结构定义加载时就要读 `.nbt` 模板，缺了它们结构全部退化。
+        target_sources(${targetName} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/Template.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateLoader.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateManager.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateManagerHostBinding.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/RuleTest.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/CappedStructureProcessor.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/ProtectedBlocksProcessor.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/FeatureSorter.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ConfiguredFeatureRegistry.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ConfiguredFeatureLoader.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/FeatureTypeRegistry.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/BlockStateParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/parser/RuleTestParser.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/Feature.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/FeatureSpread.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/spawn/WorldGenSpawner.cpp
+        )
+        # 结构模板里嵌着「放置配置化地物」的片段，结构定义装配期就要把对应地物类构造出来；
+        # 这些地物分散在 feature/ 的各个子目录里，逐个登记会持续漂移，这里按目录整体收集。
+        # 它们只被"构造出来"，不会执行 place，因此不会触碰世界状态。
+        file(GLOB_RECURSE _diff_feature_sources CONFIGURE_DEPENDS
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*.cpp)
+        list(FILTER _diff_feature_sources EXCLUDE REGEX "/src/server/world/gen/feature/template/")
+        # 目录里有两种「不是独立编译单元」的文件，必须整份剔除：
+        #   1) 聚合单元（*Placers / *Decorators / *Generators / BlockPredicate），它们直接
+        #      #include 同目录的兄弟 .cpp；
+        #   2) 反过来被聚合单元包含的兄弟文件（只存在于树装饰器目录）。
+        # 两条规则同时生效才不会与兄弟文件重复定义，聚合单元本身也不需要——
+        # 结构装配只构造模板片段，从不解析树或巨型蘑菇的配置。
+        file(GLOB_RECURSE _diff_aggregate_units CONFIGURE_DEPENDS
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*Placers.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*Decorators.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*Generators.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/predicate/BlockPredicate.cpp)
+        list(REMOVE_ITEM _diff_feature_sources ${_diff_aggregate_units})
+        set(_diff_decorator_dir ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/decorator)
+        list(REMOVE_ITEM _diff_feature_sources
+            ${_diff_decorator_dir}/AttachToLogsDecorator.cpp
+            ${_diff_decorator_dir}/PlaceOnGroundDecorator.cpp
+            ${_diff_decorator_dir}/SimpleTreeDecorators.cpp)
+        target_sources(${targetName} PRIVATE ${_diff_feature_sources})
+        # 地物类型的注册表在解析树配置时会按名构造装饰器，因此装饰器目录必须整体编入。
+        # 这三个文件不在任何聚合单元里，是独立的实现单元。
+        target_sources(${targetName} PRIVATE
+            ${_diff_decorator_dir}/TreeDecorator.cpp
+            ${_diff_decorator_dir}/SimpleTreeDecorators.cpp
+            ${_diff_decorator_dir}/TrunkVineDecorator.cpp
+            ${_diff_decorator_dir}/AttachToLogsDecorator.cpp
+            ${_diff_decorator_dir}/PlaceOnGroundDecorator.cpp)
+        # 方块谓词的注册表与「是否需要加载区块」的实现住在 storage 流程里，其中一处又反向
+        # 引用计分板数据管理器；计分板本身不在本探针的测试范围内，但链路上绕不开。
+        target_sources(${targetName} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardDataManager.cpp
+            ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp)
+        # 结构定义装配会就地构造各结构类型的对象（村庄、要塞、试炼密室……），这些实现在
+        # feature/ 之外的 structures 子目录，必须一并收入。
+        file(GLOB_RECURSE _diff_structure_sources CONFIGURE_DEPENDS
+            ${CMAKE_SOURCE_DIR}/src/server/world/gen/structure/structures/*.cpp)
+        target_sources(${targetName} PRIVATE ${_diff_structure_sources})
+        target_link_libraries(${targetName} PRIVATE mc_server_storage)
     endif()
 
     if(WIN32)

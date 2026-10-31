@@ -25,6 +25,11 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/tool/ToolItem.hpp"
+#include "common/item/items/weapon/BowItem.hpp"
+#include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/item/items/weapon/FishingRodItem.hpp"
+#include "common/item/items/weapon/TridentItem.hpp"
 #include <string>
 
 namespace mc {
@@ -58,9 +63,76 @@ bool Enchantment::canApply(const ItemStack& stack) const
 
 bool Enchantment::canApplyAtEnchantingTable(const ItemStack& stack) const
 {
-    (void)stack;
-    // 默认实现：宝藏附魔不能在附魔台获得
-    return !isTreasure();
+    // 宝藏附魔不能在附魔台获得
+    if (isTreasure()) {
+        return false;
+    }
+    return canApplyToItem(stack);
+}
+
+bool Enchantment::canApplyToItem(const ItemStack& stack) const
+{
+    // 对应原版 1.21 `Enchantment.isSupportedItem`（`supported_items` 标签）。
+    // 项目里附魔定义是硬编码的，没有 `supported_items` 字段，改用等价的
+    // `EnchantmentType` 分类判定：这个枚举本身就是从原版各附魔的 supported_items 归纳出来的。
+    //
+    // 关键点：这层判定**必须先于**"是否在附魔池标签里"。原版
+    // `getAvailableEnchantmentResults` 是 `filter(isPrimaryItem || isBook)`，先按物品过滤，
+    // 再在剩下的里面找等级区间；缺了这一步，"铁镐附力量"这类不支持的组合会混进交易。
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+
+    switch (type()) {
+        case EnchantmentType::All:
+            return true;
+        case EnchantmentType::Armor:
+        case EnchantmentType::ArmorHead:
+        case EnchantmentType::ArmorChest:
+        case EnchantmentType::ArmorLegs:
+        case EnchantmentType::ArmorFeet:
+            return item->isArmor();
+        case EnchantmentType::Weapon: {
+            const auto* toolItem = dynamic_cast<const item::tool::ToolItem*>(item);
+            return dynamic_cast<const item::TridentItem*>(item) != nullptr ||
+                (toolItem != nullptr && toolItem->getToolType() == item::tool::ToolType::Sword);
+        }
+        case EnchantmentType::Digger: {
+            // 原版 `#minecraft:enchantable/mining` = 镐 / 斧 / 铲 / 锄 / 剪刀
+            const auto* toolItem = dynamic_cast<const item::tool::ToolItem*>(item);
+            if (toolItem == nullptr) {
+                return false;
+            }
+            switch (toolItem->getToolType()) {
+                case item::tool::ToolType::Pickaxe:
+                case item::tool::ToolType::Axe:
+                case item::tool::ToolType::Shovel:
+                case item::tool::ToolType::Hoe:
+                case item::tool::ToolType::Shears:
+                    return true;
+                case item::tool::ToolType::None:
+                case item::tool::ToolType::Sword:
+                    return false;
+            }
+            return false;
+        }
+        case EnchantmentType::FishingRod:
+            return dynamic_cast<const item::FishingRodItem*>(item) != nullptr;
+        case EnchantmentType::Bow:
+            return dynamic_cast<const item::BowItem*>(item) != nullptr;
+        case EnchantmentType::Crossbow:
+            return dynamic_cast<const item::CrossbowItem*>(item) != nullptr;
+        case EnchantmentType::Trident:
+            return dynamic_cast<const item::TridentItem*>(item) != nullptr;
+        case EnchantmentType::Breakable:
+        case EnchantmentType::Wearable:
+        case EnchantmentType::Vanishable:
+            // 「可损坏 / 可穿戴 / 可消失」在原版是物品标签，不是附魔的 supported_items；
+            // 作为附魔分类时这三种只用于"能附到任何这类物品上"，这里按最大集合放行。
+            return true;
+    }
+    return true;
 }
 
 bool Enchantment::isCompatibleWith(const Enchantment& other) const

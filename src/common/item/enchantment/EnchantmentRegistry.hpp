@@ -113,6 +113,17 @@ public:
     [[nodiscard]] static const std::unordered_map<std::string, std::unique_ptr<Enchantment>>& all();
 
     /**
+     * @brief 获取所有已注册的附魔（按**注册顺序**，与 vanilla 注册表迭代顺序一致）
+     *
+     * `all()` 是哈希表，遍历顺序既不稳定也不等于注册顺序。凡是"按下标抽一个附魔"的逻辑
+     * （村民交易、附魔台、战利品）都必须用这个顺序——原版取的是注册表内容列表的下标，
+     * 换了顺序抽到的附魔就整体错位。
+     *
+     * @return 附魔指针列表（注册顺序）
+     */
+    [[nodiscard]] static const std::vector<const Enchantment*>& allInRegistrationOrder();
+
+    /**
      * @brief 按类型获取附魔列表
      *
      * @param type 附魔类型
@@ -150,6 +161,9 @@ private:
     static bool registerEnchantmentInternal(std::unique_ptr<Enchantment> enchantment);
 
     static std::unordered_map<std::string, std::unique_ptr<Enchantment>> s_enchantments;
+
+    /// 注册顺序表（与 vanilla 注册表迭代顺序一致，见 allInRegistrationOrder）
+    static std::vector<const Enchantment*> s_registrationOrder;
     static bool s_initialized;
     // 使用递归互斥锁以支持 initialize() 内部批量注册时的同线程重入
     static std::recursive_mutex s_mutex;

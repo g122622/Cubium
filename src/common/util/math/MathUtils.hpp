@@ -283,20 +283,28 @@ template <typename T>
 }
 
 /**
- * @brief 快速逆平方根
+ * @brief 快速逆平方根（一次位模式初猜 + 一次牛顿迭代）
  *
- * 计算 $1 / \sqrt{x}$ 的值。
+ * 计算 $1 / \sqrt{x}$ 的近似值，相对误差约 1e-4 量级——它**不是**正确舍入的结果，
+ * 也不能用 `1.0f / std::sqrt(x)` 替代：
  *
- * 历史上使用著名的"卡马克快速逆平方根"算法（0x5f3759df 魔数），
- * 但现代 CPU 有硬件指令（rsqrtss）和优化的 sqrt 实现，编译器
- * 会自动生成高效的代码，因此直接使用 `1.0f / std::sqrt(value)` 即可。
+ * - 结构地形适配（Beardifier 的胡须曲线）直接使用本近似值参与乘除，原版也如此；
+ *   换成精确值会让结构边缘的密度贡献相差千分之一量级；
+ * - 必须用 double 的位模式与魔数 `6910469410427058090`（即原版 Mth.fastInvSqrt 的常量），
+ *   换成 float 版本（0x5f3759df）会得到另一个近似值。
  *
  * @param value 正数输入值
- * @return $1 / \sqrt{value}$
+ * @return $1 / \sqrt{value}$ 的近似值
  */
-[[nodiscard]] inline f32 fastInverseSqrt(f32 value) noexcept
+[[nodiscard]] inline f64 fastInvSqrt(f64 value) noexcept
 {
-    return 1.0f / std::sqrt(value);
+    const f64 half = 0.5 * value;
+    u64 bits = 0;
+    std::memcpy(&bits, &value, sizeof(bits));
+    bits = 6910469410427058090ULL - (bits >> 1); // 位模式魔数：把「除法」变成「减去指数的一半」
+    f64 estimate = 0.0;
+    std::memcpy(&estimate, &bits, sizeof(estimate));
+    return estimate * (1.5 - half * estimate * estimate); // 一次牛顿迭代
 }
 
 /**

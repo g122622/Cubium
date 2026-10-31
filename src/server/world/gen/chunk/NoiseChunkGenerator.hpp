@@ -46,8 +46,10 @@
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/settings/NoiseSettings.hpp"
+#include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/StructureCheck.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
+#include "server/world/gen/structure/StructurePlacementState.hpp"
 #include "server/world/gen/structure/StructureSet.hpp"
 #include "server/world/gen/surface/SurfaceRules.hpp"
 #include <memory>
@@ -86,6 +88,54 @@ public:
         std::shared_ptr<world::gen::RandomState> randomState);
 
     ~NoiseChunkGenerator() override;
+
+    /**
+     * @brief 一个结构集在某区块择出的结构起点
+     *
+     * 结构集里可能有多个条目（同一主题的若干变体），择出哪一个由加权抽签决定；
+     * `start` 为空表示整个结构集在该区块都没有产出有效起点。
+     */
+    struct StructureSelection {
+        ResourceLocation structureId;                                 ///< 被选中条目引用的结构
+        std::unique_ptr<world::gen::structure::StructureStart> start; ///< 该结构产出的起点
+    };
+
+    /**
+     * @brief 为一个结构集在某区块择出结构起点
+     *
+     * 对应原版 `ChunkGenerator.createStructures` 中「加权抽签 — 尝试生成 — 失败剔除重抽」
+     * 的那一段：抽签与结构生成各用一个独立播种的随机源，某条目生成失败时把它从候选里
+     * 剔除并继续用同一个抽签随机源重抽，直到产出有效起点或候选耗尽。
+     *
+     * 调用方负责前置的候选区块判定（`StructurePlacement::isStructureChunk`）与维度群系
+     * 预过滤；本函数只做「在一个已确认可放置的结构集里选哪一个」。
+     *
+     * @param structureSet 目标结构集
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @return 被选中的结构与其起点；没有产出时 `start` 为空
+     */
+    [[nodiscard]] StructureSelection _selectStructureStart(
+        const world::gen::structure::StructureSet& structureSet, i32 chunkX, i32 chunkZ);
+
+    /**
+     * @brief 为单个结构集跑完整的「放置判定 + 择出起点」
+     *
+     * 与 `generateStructureStarts` 里逐个结构集做的是同一件事，区别只在于「放置状态由谁
+     * 提供」：生产路径现场用本维度群系源建一份；探针（以及结构起点差分）可以传入自己
+     * 维护的那一份，从而在不生成区块的前提下复现同一段判定。
+     *
+     * @param placementState 本维度的结构放置状态（含群系预过滤、排斥区、同心环位置表）
+     * @param structureSet 目标结构集
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @return 被选中的结构与其起点；结构集在此不落点或没有产出时 `start` 为空
+     */
+    [[nodiscard]] StructureSelection _generateStructureStartsForSet(
+        const world::gen::structure::StructurePlacementState& placementState,
+        const world::gen::structure::StructureSet& structureSet,
+        i32 chunkX,
+        i32 chunkZ);
 
     // === IChunkGenerator 接口 ===
 
@@ -207,18 +257,6 @@ private:
 
     // === MC 1.21 全局流体选择器（缓存，避免每次创建）===
     world::gen::aquifer::FluidPicker m_globalFluidPicker;
-
-    /**
-     * @brief 检查结构集中的任何结构是否可能与当前维度的生物群系兼容
-     *
-     * 对齐 MC 1.21.11 ChunkGeneratorStructureState.hasBiomesForStructureSet()，
-     * 检查 BiomeSource 的 possibleBiomes 是否与结构集中任意结构的 biomeTag 有交集。
-     * 如果没有交集，则该结构集在当前维度中永远不可能生成，可以跳过。
-     *
-     * @param structureSet 结构集
-     * @return 是否可能生成
-     */
-    [[nodiscard]] bool _hasBiomesForStructureSet(const world::gen::structure::StructureSet& structureSet) const;
 
     // === 核心生成方法 ===
 

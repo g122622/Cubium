@@ -545,6 +545,15 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     auto piece =
         std::make_unique<RuinedPortalPiece>(*templateName, BlockPos(x, y, z), rotation, mirror, location, props);
     piece->setTemplateManager(templateManager);
+    // 析构时的包围盒来自这里的尺寸：模板要在登记起点**之前**加载，
+    // 否则起点包围盒退化成单点（模板本身由 generate 惰性复用同一份缓存）。
+    piece->loadTemplateNow();
+
+    // 【模板必须真的加载到】模板缺失时片段会退化成包围盒为单点、不写任何方块的空片段，
+    // 而起点仍然会被登记、isValid() 只按片段数判定——结果是整座传送门凭空消失且没有任何
+    // 报错。这里显式失败，让"缺模板"第一时间暴露成可定位的错误，而不是静默的空结构。
+    MC_ASSERT_RELEASE_MSG(piece->hasLoadedTemplate(),
+        fmt::format("ruined_portal: template '{}' not found in datapacks", *templateName).c_str());
 
     start->addPiece(std::move(piece));
     start->recalculateStructureSize();
