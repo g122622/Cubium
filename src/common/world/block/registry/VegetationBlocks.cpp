@@ -276,7 +276,8 @@ void registerVegetationBlocks()
         ResourceLocation("minecraft:dark_oak_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
 
     // 竹子属性：可被岩浆点燃（对齐 vanilla）
-    BlockProperties bambooProps = BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid().ignitedByLava();
+    BlockProperties bambooProps =
+        BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid().ignitedByLava().soundType(BlockSoundTypes::BAMBOO);
 
     // 竹子
     VegetationBlocks::BAMBOO =
@@ -289,7 +290,8 @@ void registerVegetationBlocks()
                                              .notSolid()
                                              .hardness(1.0f)
                                              .resistance(1.0f)
-                                             .ignitedByLava();
+                                             .ignitedByLava()
+                                             .soundType(BlockSoundTypes::BAMBOO_SAPLING);
 
     // 竹子幼苗
     VegetationBlocks::BAMBOO_SAPLING = &registry.registerBlock<blocks::BambooSaplingBlock>(
@@ -298,8 +300,9 @@ void registerVegetationBlocks()
     // ========== 南瓜和西瓜系列 ==========
 
     // 先注册雕刻南瓜 - 有朝向属性，可生成傀儡
-    VegetationBlocks::CARVED_PUMPKIN = &registry.registerBlock<blocks::CarvedPumpkinBlock>(
-        ResourceLocation("minecraft:carved_pumpkin"), BlockProperties(Material::EARTH).hardness(1.0f));
+    VegetationBlocks::CARVED_PUMPKIN =
+        &registry.registerBlock<blocks::CarvedPumpkinBlock>(ResourceLocation("minecraft:carved_pumpkin"),
+            BlockProperties(Material::EARTH).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
 
     // 南瓜 - 可用剪刀雕刻成雕刻南瓜
     // 注意：stem 和 attachedStem 由于循环依赖，构造时传入 nullptr，在下方茎方块注册后通过 setStem/setAttachedStem 回填
@@ -307,40 +310,40 @@ void registerVegetationBlocks()
         nullptr,                          // stem - 下方 PUMPKIN_STEM 注册后回填
         nullptr,                          // attachedStem - 下方 ATTACHED_PUMPKIN_STEM 注册后回填
         VegetationBlocks::CARVED_PUMPKIN, // carvedPumpkin - 已注册的雕刻南瓜
-        BlockProperties(Material::EARTH).hardness(1.0f));
+        BlockProperties(Material::EARTH).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
 
     // 西瓜方块
     // 注意：stem 和 attachedStem 由于循环依赖，构造时传入 nullptr，在下方茎方块注册后通过 setStem/setAttachedStem 回填
     VegetationBlocks::MELON = &registry.registerBlock<blocks::MelonBlock>(ResourceLocation("minecraft:melon"),
         nullptr, // stem - 下方 MELON_STEM 注册后回填
         nullptr, // attachedStem - 下方 ATTACHED_MELON_STEM 注册后回填
-        BlockProperties(Material::EARTH).hardness(1.0f));
+        BlockProperties(Material::EARTH).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
 
     // 注册茎方块（可以引用已注册的果实方块）
 
     // 南瓜茎
-    VegetationBlocks::PUMPKIN_STEM =
-        &registry.registerBlock<blocks::PumpkinStemBlock>(ResourceLocation("minecraft:pumpkin_stem"),
-            static_cast<const blocks::StemGrownBlock*>(VegetationBlocks::PUMPKIN), // 果实已注册
-            BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
+    VegetationBlocks::PUMPKIN_STEM = &registry.registerBlock<blocks::PumpkinStemBlock>(
+        ResourceLocation("minecraft:pumpkin_stem"),
+        static_cast<const blocks::StemGrownBlock*>(VegetationBlocks::PUMPKIN), // 果实已注册
+        BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid().soundType(BlockSoundTypes::HARD_CROP));
 
     // 连接南瓜茎（南瓜生成后茎变成的方块）
     VegetationBlocks::ATTACHED_PUMPKIN_STEM =
         &registry.registerBlock<blocks::PumpkinAttachedStemBlock>(ResourceLocation("minecraft:attached_pumpkin_stem"),
             static_cast<const blocks::StemGrownBlock*>(VegetationBlocks::PUMPKIN), // 果实已注册
-            BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
+            BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid().soundType(BlockSoundTypes::WOOD));
 
     // 西瓜茎
-    VegetationBlocks::MELON_STEM =
-        &registry.registerBlock<blocks::MelonStemBlock>(ResourceLocation("minecraft:melon_stem"),
-            static_cast<const blocks::StemGrownBlock*>(VegetationBlocks::MELON), // 果实已注册
-            BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
+    VegetationBlocks::MELON_STEM = &registry.registerBlock<blocks::MelonStemBlock>(
+        ResourceLocation("minecraft:melon_stem"),
+        static_cast<const blocks::StemGrownBlock*>(VegetationBlocks::MELON), // 果实已注册
+        BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid().soundType(BlockSoundTypes::HARD_CROP));
 
     // 连接西瓜茎（西瓜生成后茎变成的方块）
     VegetationBlocks::ATTACHED_MELON_STEM =
         &registry.registerBlock<blocks::MelonAttachedStemBlock>(ResourceLocation("minecraft:attached_melon_stem"),
             static_cast<const blocks::StemGrownBlock*>(VegetationBlocks::MELON), // 果实已注册
-            BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
+            BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid().soundType(BlockSoundTypes::WOOD));
 
     // 更新果实方块的茎指针（解决循环依赖）
     static_cast<blocks::PumpkinBlock*>(VegetationBlocks::PUMPKIN)->setStem(VegetationBlocks::PUMPKIN_STEM);

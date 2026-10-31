@@ -116,6 +116,14 @@ public:
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
+    /**
+     * @brief 饰纹陶罐的声音组随 `CRACKED` 状态切换。
+     *
+     * 对齐原版 `DecoratedPotBlock#getSoundType`：陶罐被投射物打破后进入 `CRACKED` 状态，
+     * 此后的破坏声改为碎裂声（`block.decorated_pot.shatter`），其余四种不变。
+     */
+    [[nodiscard]] const BlockSoundType& getSoundType(const BlockState& state) const noexcept override;
+
     // ========== 方块实体 ==========
 
     [[nodiscard]] bool hasBlockEntity() const noexcept override

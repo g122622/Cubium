@@ -240,7 +240,12 @@ void registerBaseBlocks()
                 BaseBlocks::WATER =
                     &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
                         *flowingWater,
-                        BlockProperties(Material::WATER).noCollision().notSolid().opacity(0).hardness(100.0f));
+                        BlockProperties(Material::WATER)
+                            .noCollision()
+                            .notSolid()
+                            .opacity(0)
+                            .hardness(100.0f)
+                            .soundType(BlockSoundTypes::AIR));
             }
         }
     }
@@ -253,7 +258,12 @@ void registerBaseBlocks()
             if (flowingLava != nullptr) {
                 BaseBlocks::LAVA = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:lava"),
                     *flowingLava,
-                    BlockProperties(Material::LAVA).noCollision().notSolid().lightLevel(15).hardness(100.0f));
+                    BlockProperties(Material::LAVA)
+                        .noCollision()
+                        .notSolid()
+                        .lightLevel(15)
+                        .hardness(100.0f)
+                        .soundType(BlockSoundTypes::AIR));
             }
         }
     }
@@ -267,8 +277,8 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:sand"), BlockProperties(Material::SAND).hardness(0.5f));
 
     // 砾石
-    BaseBlocks::GRAVEL = &registry.registerBlock<blocks::FallingBlock>(
-        ResourceLocation("minecraft:gravel"), BlockProperties(Material::SAND).hardness(0.6f));
+    BaseBlocks::GRAVEL = &registry.registerBlock<blocks::FallingBlock>(ResourceLocation("minecraft:gravel"),
+        BlockProperties(Material::SAND).hardness(0.6f).soundType(BlockSoundTypes::GRAVEL));
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
@@ -297,8 +307,8 @@ void registerBaseBlocks()
     // 下界岩
     // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩
     // （绯红菌岩/诡异菌岩）。详见 NetherrackBlock.cpp。
-    BaseBlocks::NETHERRACK = &registry.registerBlock<blocks::NetherrackBlock>(
-        ResourceLocation("minecraft:netherrack"), BlockProperties(Material::ROCK).hardness(0.4f));
+    BaseBlocks::NETHERRACK = &registry.registerBlock<blocks::NetherrackBlock>(ResourceLocation("minecraft:netherrack"),
+        BlockProperties(Material::ROCK).hardness(0.4f).soundType(BlockSoundTypes::NETHERRACK));
 
     // 荧石
     BaseBlocks::GLOWSTONE = &registry.registerBlock<SimpleBlock>(
@@ -370,8 +380,8 @@ void registerBaseBlocks()
                 .requiresTool(),
             3,
             7);
-    BaseBlocks::DIAMOND_BLOCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:diamond_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
+    BaseBlocks::DIAMOND_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:diamond_block"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).soundType(BlockSoundTypes::METAL));
     BaseBlocks::EMERALD_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:emerald_ore"),
             BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f),
@@ -388,17 +398,21 @@ void registerBaseBlocks()
             0);
     BaseBlocks::NETHER_QUARTZ_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).noOcclusion(),
+            BlockProperties(Material::ROCK)
+                .hardness(3.0f)
+                .resistance(3.0f)
+                .noOcclusion()
+                .soundType(BlockSoundTypes::NETHER_ORE),
             2,
             5);
     BaseBlocks::NETHER_GOLD_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:nether_gold_ore"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_GOLD_ORE),
             0,
             1);
     // 远古残骸：30 / 1200（原版；不是 50，也不是方解石那样的 0.75）。
     BaseBlocks::ANCIENT_DEBRIS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ancient_debris"),
-        BlockProperties(Material::ROCK).hardness(30.0f).resistance(1200.0f));
+        BlockProperties(Material::ROCK).hardness(30.0f).resistance(1200.0f).soundType(BlockSoundTypes::ANCIENT_DEBRIS));
 
     // ========== 矿物方块 ==========
     BaseBlocks::COAL_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:coal_block"),
@@ -408,27 +422,29 @@ void registerBaseBlocks()
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(1)
             .requiresTool());
-    BaseBlocks::GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:gold_block"), BlockProperties(Material::IRON).hardness(3.0f).resistance(6.0f));
-    BaseBlocks::IRON_BLOCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:iron_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
-    BaseBlocks::LAPIS_BLOCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:lapis_block"), BlockProperties(Material::IRON).hardness(3.0f).resistance(3.0f));
-    BaseBlocks::EMERALD_BLOCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:emerald_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
+    BaseBlocks::GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gold_block"),
+        BlockProperties(Material::IRON).hardness(3.0f).resistance(6.0f).soundType(BlockSoundTypes::METAL));
+    BaseBlocks::IRON_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:iron_block"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).soundType(BlockSoundTypes::IRON));
+    BaseBlocks::LAPIS_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lapis_block"),
+        BlockProperties(Material::IRON).hardness(3.0f).resistance(3.0f).soundType(BlockSoundTypes::STONE));
+    BaseBlocks::EMERALD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:emerald_block"),
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).soundType(BlockSoundTypes::METAL));
     // 红石块须注册为 RedstoneBlock（而非 SimpleBlock）才能输出强度 15 的红石信号（getWeakPower/
     // getStrongPower 全向返回 MAX_POWER）。此前误注册为 SimpleBlock 导致其 getBlock() 返回基类、
     // 虚函数分发到 Block::getWeakPower 默认实现返回 0，红石块实际不供电——无法激活相邻红石灯等
     // 机械元件。RedstoneBlock.hpp/.cpp 此前为死代码，本次启用。
-    BaseBlocks::REDSTONE_BLOCK = &registry.registerBlock<blocks::RedstoneBlock>(
-        ResourceLocation("minecraft:redstone_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
+    BaseBlocks::REDSTONE_BLOCK =
+        &registry.registerBlock<blocks::RedstoneBlock>(ResourceLocation("minecraft:redstone_block"),
+            BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).soundType(BlockSoundTypes::METAL));
     BaseBlocks::NETHERITE_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:netherite_block"),
         BlockProperties(Material::IRON)
             .hardness(50.0f)
             .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(3)
-            .requiresTool());
+            .requiresTool()
+            .soundType(BlockSoundTypes::NETHERITE));
 
     // ========== 原木和树叶 ==========
     BlockProperties logProps =

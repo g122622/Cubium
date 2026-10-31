@@ -200,7 +200,7 @@ const Material& BlockState::getMaterial() const
 
 const BlockSoundType& BlockState::getSoundType() const
 {
-    return m_owner->getSoundType();
+    return m_owner->getSoundType(*this);
 }
 
 std::string BlockState::toModelKey() const

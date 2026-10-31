@@ -348,7 +348,7 @@ extern const BlockSoundType NYLIUM;
 extern const BlockSoundType FUNGUS;
 
 // 菌索
-extern const BlockSoundType ROOT;
+extern const BlockSoundType ROOTS;
 
 // 菌光体
 extern const BlockSoundType SHROOMLIGHT;
@@ -464,6 +464,9 @@ extern const BlockSoundType SUSPICIOUS_GRAVEL;
 
 // 装饰
 extern const BlockSoundType DECORATED_POT;
+
+// 饰纹陶罐（CRACKED 状态，破坏声为碎裂声）
+extern const BlockSoundType DECORATED_POT_CRACKED;
 extern const BlockSoundType CHISELED_BOOKSHELF;
 
 // 植物
@@ -491,6 +494,7 @@ extern const BlockSoundType CRAFTER;
 // ========================================================================
 
 extern const BlockSoundType PALE_MOSS;
+extern const BlockSoundType PALE_MOSS_CARPET;
 extern const BlockSoundType PALE_HANGING_MOSS;
 extern const BlockSoundType CREAKING_HEART;
 extern const BlockSoundType RESIN;
@@ -511,6 +515,46 @@ extern const BlockSoundType CANDLE;
 
 // 干燥恶魂（break/step/fall 有音效，place/hit 为空）
 extern const BlockSoundType DRIED_GHAST;
+
+// ========================================================================
+// 补齐：此前误用通用声音组的方块（各木质变体与 1.20/1.21 新方块）
+// ========================================================================
+
+// 悬挂告示牌（橡木类通用组；绯红/诡异、竹、樱花各有专用组）
+extern const BlockSoundType HANGING_SIGN;
+
+// 绯红/诡异悬挂告示牌
+extern const BlockSoundType NETHER_WOOD_HANGING_SIGN;
+
+// 竹悬挂告示牌
+extern const BlockSoundType BAMBOO_WOOD_HANGING_SIGN;
+
+// 樱花悬挂告示牌
+extern const BlockSoundType CHERRY_WOOD_HANGING_SIGN;
+
+// 珊瑚块（脑纹/气泡/火/鹿角珊瑚共用）
+extern const BlockSoundType CORAL_BLOCK;
+
+// 硬质作物（甘蔗、竹子以外的木质茎作物：可可豆、南瓜/西瓜梗等）
+extern const BlockSoundType HARD_CROP;
+
+// 睡莲（放置声与别的植物不同）
+extern const BlockSoundType LILY_PAD;
+
+// 蜘蛛网
+extern const BlockSoundType COBWEB;
+
+// 刷怪笼
+extern const BlockSoundType SPAWNER;
+
+// 铁质方块（铁块、铁栏杆、铁门等；与 METAL 音调不同）
+extern const BlockSoundType IRON;
+
+// 铜傀儡雕像（1.21.9+）
+extern const BlockSoundType COPPER_GOLEM_STATUE;
+
+// 洼苔（1.21.5+，与 MOSS 事件不同）
+extern const BlockSoundType LEAF_LITTER;
 
 /**
  * @brief 初始化预定义声音类型

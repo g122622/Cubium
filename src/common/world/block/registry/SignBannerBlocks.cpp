@@ -129,8 +129,27 @@ void registerSignBannerBlocks()
     BlockProperties signProps =
         BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid().ignitedByLava().noOcclusion();
     // 下界木（crimson/warped）告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
-    BlockProperties netherSignProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).noCollision().notSolid().noOcclusion();
+    BlockProperties netherSignProps = BlockProperties(Material::NETHER_WOOD)
+                                          .hardness(1.0f)
+                                          .noCollision()
+                                          .notSolid()
+                                          .noOcclusion()
+                                          .soundType(BlockSoundTypes::NETHER_WOOD);
+    // 竹/樱花告示牌：原版 `WoodType.BAMBOO/CHERRY.soundType()`，与通用木质声不同
+    BlockProperties bambooSignProps = BlockProperties(Material::WOOD)
+                                          .hardness(1.0f)
+                                          .noCollision()
+                                          .notSolid()
+                                          .ignitedByLava()
+                                          .noOcclusion()
+                                          .soundType(BlockSoundTypes::BAMBOO_WOOD);
+    BlockProperties cherrySignProps = BlockProperties(Material::WOOD)
+                                          .hardness(1.0f)
+                                          .noCollision()
+                                          .notSolid()
+                                          .ignitedByLava()
+                                          .noOcclusion()
+                                          .soundType(BlockSoundTypes::CHERRY_WOOD);
 
     // 注册各木材类型的告示牌
     // 橡木
@@ -189,15 +208,15 @@ void registerSignBannerBlocks()
 
     // 樱花木（1.20）
     SignBannerBlocks::CHERRY_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
-        ResourceLocation("minecraft:cherry_sign"), signProps, blocks::WoodType::Cherry);
+        ResourceLocation("minecraft:cherry_sign"), cherrySignProps, blocks::WoodType::Cherry);
     SignBannerBlocks::CHERRY_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
-        ResourceLocation("minecraft:cherry_wall_sign"), signProps, blocks::WoodType::Cherry);
+        ResourceLocation("minecraft:cherry_wall_sign"), cherrySignProps, blocks::WoodType::Cherry);
 
     // 竹木（1.20）
     SignBannerBlocks::BAMBOO_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
-        ResourceLocation("minecraft:bamboo_sign"), signProps, blocks::WoodType::Bamboo);
+        ResourceLocation("minecraft:bamboo_sign"), bambooSignProps, blocks::WoodType::Bamboo);
     SignBannerBlocks::BAMBOO_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
-        ResourceLocation("minecraft:bamboo_wall_sign"), signProps, blocks::WoodType::Bamboo);
+        ResourceLocation("minecraft:bamboo_wall_sign"), bambooSignProps, blocks::WoodType::Bamboo);
 
     // 苍白橡木（1.21.2）
     SignBannerBlocks::PALE_OAK_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
@@ -206,12 +225,34 @@ void registerSignBannerBlocks()
         ResourceLocation("minecraft:pale_oak_wall_sign"), signProps, blocks::WoodType::PaleOak);
 
     // ========== 悬挂告示牌注册（1.20 Trails & Tales）==========
-    // 悬挂告示牌使用与普通告示牌相同的材质属性；木质可被岩浆点燃（对齐 vanilla）
-    BlockProperties hangingSignProps =
-        BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid().ignitedByLava();
+    // 悬挂告示牌使用与普通告示牌相同的材质属性；木质可被岩浆点燃（对齐 vanilla）。
+    // 声音组取原版 `WoodType.HANGING_SIGN`（`block.hanging_sign.*`），不是普通木质声。
+    BlockProperties hangingSignProps = BlockProperties(Material::WOOD)
+                                           .hardness(1.0f)
+                                           .noCollision()
+                                           .notSolid()
+                                           .ignitedByLava()
+                                           .soundType(BlockSoundTypes::HANGING_SIGN);
     // 下界木（crimson/warped）悬挂告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
-    BlockProperties netherHangingSignProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).noCollision().notSolid();
+    BlockProperties netherHangingSignProps = BlockProperties(Material::NETHER_WOOD)
+                                                 .hardness(1.0f)
+                                                 .noCollision()
+                                                 .notSolid()
+                                                 .soundType(BlockSoundTypes::NETHER_WOOD_HANGING_SIGN);
+    // 竹悬挂告示牌属性：原版 `WoodType.BAMBOO.hangingSignSoundType()`
+    BlockProperties bambooHangingSignProps = BlockProperties(Material::WOOD)
+                                                 .hardness(1.0f)
+                                                 .noCollision()
+                                                 .notSolid()
+                                                 .ignitedByLava()
+                                                 .soundType(BlockSoundTypes::BAMBOO_WOOD_HANGING_SIGN);
+    // 樱花悬挂告示牌属性：原版 `WoodType.CHERRY.hangingSignSoundType()`
+    BlockProperties cherryHangingSignProps = BlockProperties(Material::WOOD)
+                                                 .hardness(1.0f)
+                                                 .noCollision()
+                                                 .notSolid()
+                                                 .ignitedByLava()
+                                                 .soundType(BlockSoundTypes::CHERRY_WOOD_HANGING_SIGN);
 
     // 橡木悬挂告示牌
     SignBannerBlocks::OAK_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
@@ -269,15 +310,15 @@ void registerSignBannerBlocks()
 
     // 樱花木悬挂告示牌（1.20）
     SignBannerBlocks::CHERRY_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
-        ResourceLocation("minecraft:cherry_hanging_sign"), hangingSignProps, blocks::WoodType::Cherry);
+        ResourceLocation("minecraft:cherry_hanging_sign"), cherryHangingSignProps, blocks::WoodType::Cherry);
     SignBannerBlocks::CHERRY_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
-        ResourceLocation("minecraft:cherry_wall_hanging_sign"), hangingSignProps, blocks::WoodType::Cherry);
+        ResourceLocation("minecraft:cherry_wall_hanging_sign"), cherryHangingSignProps, blocks::WoodType::Cherry);
 
     // 竹木悬挂告示牌（1.20）
     SignBannerBlocks::BAMBOO_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
-        ResourceLocation("minecraft:bamboo_hanging_sign"), hangingSignProps, blocks::WoodType::Bamboo);
+        ResourceLocation("minecraft:bamboo_hanging_sign"), bambooHangingSignProps, blocks::WoodType::Bamboo);
     SignBannerBlocks::BAMBOO_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
-        ResourceLocation("minecraft:bamboo_wall_hanging_sign"), hangingSignProps, blocks::WoodType::Bamboo);
+        ResourceLocation("minecraft:bamboo_wall_hanging_sign"), bambooHangingSignProps, blocks::WoodType::Bamboo);
 
     // 苍白橡木悬挂告示牌（1.21.2）
     SignBannerBlocks::PALE_OAK_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(

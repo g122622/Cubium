@@ -109,7 +109,7 @@ void registerDeepslateBlocks()
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(0)
                 .requiresTool()
-                .soundType(BlockSoundTypes::COBBLED_DEEPSLATE));
+                .soundType(BlockSoundTypes::DEEPSLATE));
 
     // 磨制深板岩
     DeepslateBlocks::POLISHED_DEEPSLATE =
@@ -304,7 +304,7 @@ void registerDeepslateBlocks()
                                                 .harvestTool(HarvestTool::Pickaxe)
                                                 .harvestLevel(0)
                                                 .requiresTool()
-                                                .soundType(BlockSoundTypes::COBBLED_DEEPSLATE);
+                                                .soundType(BlockSoundTypes::DEEPSLATE);
 
     DeepslateBlocks::COBBLED_DEEPSLATE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:cobbled_deepslate_stairs"),
