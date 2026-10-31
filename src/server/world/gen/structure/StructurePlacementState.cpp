@@ -22,6 +22,10 @@
  */
 
 #include "StructurePlacementState.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
+#include <algorithm>
+#include <cmath>
 
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
@@ -71,8 +75,8 @@ void StructurePlacementState::addStructureSet(const StructureSet& structureSet)
         return;
     }
     m_structureSets.push_back(&structureSet);
-    if (const auto* concentric = dynamic_cast<const placement::ConcentricRingsStructurePlacement*>(
-            &structureSet.placement())) {
+    if (const auto* concentric =
+            dynamic_cast<const placement::ConcentricRingsStructurePlacement*>(&structureSet.placement())) {
         m_concentric.emplace(&structureSet, concentric);
     }
 }
@@ -139,7 +143,149 @@ bool StructurePlacementState::hasStructureChunkInRange(
 const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPositions(
     const placement::ConcentricRingsStructurePlacement& concentric) const
 {
-    return concentric.getRingPositions(m_worldSeed);
+    // 原版 `ChunkGeneratorStructureState.generateRingPositions` 分两步：
+    //
+    //   1. 用 **常量 0L** 作种子（`createForNormal` 传的 concentricRingsSeed）
+    //      算出每个要塞的搜索起点 (chunkX, chunkZ)；
+    //   2. 对每个起点做一次生物群系搜索，找到就把坐标改写过去：
+    //        Pair<BlockPos, Holder<Biome>> pair = biomeSource.findBiomeHorizontal(
+    //            chunkX << 4 + 8, 0, chunkZ << 4 + 8, 112,
+    //            preferredBiomes::contains, randomsource.fork(), randomState.sampler());
+    //        return pair != null ? new ChunkPos(pair.first) : new ChunkPos(chunkX, chunkZ);
+    //
+    // 第 1 步的种子恒为 0，所以**所有种子下的搜索起点完全相同**；要塞最终位置的种子
+    // 相关性全部来自第 2 步——`randomsource` 在生成起点的过程中已经按世界种子推进过，
+    // 它的 fork 因此随种子变化。差分比对证实了这个分工：种子 0 与 9248738493917 的
+    // 要塞位置完全不重合，但两者的搜索起点相同。
+    //
+    // 缓存在本状态里，键是放置规则指针。
+    const auto cached = m_ringPositions.find(&concentric);
+    if (cached != m_ringPositions.end()) {
+        return cached->second;
+    }
+
+    // 放置规则自带一份按世界种子缓存的最终坐标表。原版把 `List<ChunkPos>` 缓存在
+    // `ChunkGeneratorStructureState.ringPositions` 里，与放置规则同生命周期；
+    // 而 `StructurePlacementState` 每个区块（探针里是每个单元）都会新建一个，
+    // 只靠本实例的缓存会让 128 次螺旋扫描在每个单元重跑一遍——实测单个单元 2.3 秒，
+    // 542 个单元直接跑不完。
+    if (const auto* resolved = concentric.resolvedRingPositions(m_worldSeed); resolved != nullptr) {
+        auto& stored = m_ringPositions[&concentric];
+        stored = *resolved;
+        return stored;
+    }
+
+    const auto& layout = concentric.generateRingLayout(0);
+    const auto& preferred = concentric.preferredBiomes();
+
+    // 原版 `ChunkGeneratorStructureState.generateRingPositions` 在**同一条随机流**里
+    // 边算起点边 fork：
+    //
+    //   RandomSource randomsource = RandomSource.create();
+    //   randomsource.setSeed(concentricRingsSeed);   // 常量 0
+    //   double d0 = randomsource.nextDouble() * PI * 2.0;
+    //   for (...) {
+    //       double d1 = ... randomsource.nextDouble() ...;   // 半径扰动
+    //       RandomSource randomsource1 = randomsource.fork();// <- 同一个流上 fork
+    //       ... 用 randomsource1 做生物群系搜索 ...
+    //       d0 += (PI * 2) / k;
+    //       if (换环) d0 += randomsource.nextDouble() * PI * 2.0;
+    //   }
+    //
+    // fork 序列因此取决于「此前每个起点消耗了多少随机数」。此前这里把半径/角度扰动
+    // 留在 `generateRingPositions` 内部、又在外面新建一条 rng 来 fork，两条流并不
+    // 相干，fork 到的随机源与原版完全不同。
+    //
+    // 现在由 `generateRingLayout` 在同一条流上取 fork 种子并随起点一起带出。
+    std::vector<world::chunk::ChunkPos> result;
+    result.reserve(layout.size());
+    for (const auto& entry : layout) {
+        // 原版 `LegacyRandomSource.fork()` 就是 `new LegacyRandomSource(nextLong())`。
+        math::JavaLegacyRandom fork(entry.forkSeed);
+        // 结构生成走的是 8 参数重载，它内部固定步长 1、findClosest = false。
+        const auto found =
+            _findBiomeHorizontal(entry.chunk.x * 16 + 8, 0, entry.chunk.z * 16 + 8, 112, 1, preferred, fork);
+        if (found.has_value()) {
+            result.emplace_back(static_cast<i32>(found->x >> 4), static_cast<i32>(found->z >> 4));
+        } else {
+            result.push_back(entry.chunk);
+        }
+    }
+
+    // 回填到放置规则，让后续新建的判定状态直接复用（见上面的缓存读取）。
+    concentric.setResolvedRingPositions(m_worldSeed, result);
+
+    auto& stored = m_ringPositions[&concentric];
+    stored = std::move(result);
+    return stored;
+}
+
+std::optional<BlockPos> StructurePlacementState::_findBiomeHorizontal(i32 centerX,
+    i32 centerY,
+    i32 centerZ,
+    i32 radius,
+    i32 spread,
+    const std::vector<BiomeId>& preferred,
+    math::IRandom& rng) const
+{
+    // 逐行对照原版 `BiomeSource.findBiomeHorizontal`（结构生成走的是
+    // `findClosest = false` 的那个重载，即最后一个布尔参数为 false）：
+    //
+    //   int i  = QuartPos.fromBlock(centerX);
+    //   int j  = QuartPos.fromBlock(centerZ);
+    //   int k  = QuartPos.fromBlock(radius);
+    //   int l  = QuartPos.fromBlock(centerY);
+    //   int j1 = findClosest ? 0 : k;          // <- false 时**从最大半径开始**
+    //   int k1 = j1;
+    //   while (k1 <= k) {
+    //       for (int l1 = -k1; l1 <= k1; l1 += spread)
+    //           for (int i2 = -k1; i2 <= k1; i2 += spread) {
+    //               if (findClosest) { ...只扫边缘... }   // <- false 时不筛，扫满整个方形
+    //               ...
+    //           }
+    //       k1 += spread;                       // <- 步长是 spread，不是 1
+    //   }
+    //
+    // 这里此前有三处偏差：环从 0 向外递增（应是从最大半径向内递减）、
+    // 只扫环边缘（findClosest=false 时应扫满整个方形）、步长固定为 1（应为 spread）。
+    // 三者叠加使采样顺序与原版完全不同，蓄水池抽样最终选出的坐标自然也完全不同。
+    if (preferred.empty()) {
+        return std::nullopt;
+    }
+
+    auto isPreferred = [&preferred](BiomeId id) {
+        return std::find(preferred.begin(), preferred.end(), id) != preferred.end();
+    };
+
+    const i32 centerQuartX = centerX >> 2;
+    const i32 centerQuartZ = centerZ >> 2;
+    const i32 quartY = centerY >> 2;
+    const i32 quartRadius = radius >> 2;
+    // 原版结构生成的步长就是 placement 的 spread（要塞为 3）。防御性地取至少 1，
+    // 避免配置异常时死循环。
+    const i32 step = spread > 0 ? spread : 1;
+
+    std::optional<BlockPos> chosen;
+    i32 seen = 0;
+
+    for (i32 ring = quartRadius; ring >= 0; ring -= step) {
+        for (i32 dz = -ring; dz <= ring; dz += step) {
+            for (i32 dx = -ring; dx <= ring; dx += step) {
+                const i32 quartX = centerQuartX + dx;
+                const i32 quartZ = centerQuartZ + dz;
+                if (!isPreferred(m_biomeSource.getNoiseBiome(quartX, quartY, quartZ))) {
+                    continue;
+                }
+                if (!chosen.has_value() || rng.nextInt(seen + 1) == 0) {
+                    chosen = BlockPos(static_cast<BlockCoord>(quartX << 2),
+                        static_cast<BlockCoord>(centerY),
+                        static_cast<BlockCoord>(quartZ << 2));
+                }
+                ++seen;
+            }
+        }
+    }
+    return chosen;
 }
 
 } // namespace mc::world::gen::structure

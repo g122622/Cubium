@@ -32,6 +32,7 @@
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/structure/placement/StructurePlacement.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <memory>
@@ -63,8 +64,20 @@ ConcentricRingsStructurePlacement::ConcentricRingsStructurePlacement(
 
 std::vector<world::chunk::ChunkPos> ConcentricRingsStructurePlacement::generateRingPositions(i64 worldSeed) const
 {
+    const auto full = generateRingLayout(worldSeed);
     std::vector<world::chunk::ChunkPos> positions;
-    positions.reserve(static_cast<size_t>(m_count));
+    positions.reserve(full.size());
+    for (const auto& entry : full) {
+        positions.push_back(entry.chunk);
+    }
+    return positions;
+}
+
+std::vector<ConcentricRingsStructurePlacement::RingEntry> ConcentricRingsStructurePlacement::generateRingLayout(
+    i64 worldSeed) const
+{
+    std::vector<RingEntry> result;
+    result.reserve(static_cast<size_t>(m_count));
 
     // 原版 ChunkGeneratorStructureState.generateRingPositions 用 RandomSource.create()
     // （即 LegacyRandomSource）再 setSeed(concentricRingsSeed)。
@@ -72,71 +85,58 @@ std::vector<world::chunk::ChunkPos> ConcentricRingsStructurePlacement::generateR
     rng.setSeed(static_cast<u64>(worldSeed));
 
     // 同心环参数
-    // MC 1.21+ 的环分布：
-    // 每个环的基数: 3, 6, 10, 15, 21, 28, 36, 9 (共 128)
-    // 距离乘数: 环索引从 0 开始
-    i32 remainingCount = m_count;
-    i32 currentRing = 0;
-    f64 distanceMultiplier = 1.0; // 距离乘数，随环数递增
+    // 原版 ChunkGeneratorStructureState.generateRingPositions：
+    //
+    //   int j = count(); int i = distance(); int k = spread();
+    //   double d0 = rng.nextDouble() * PI * 2.0;   // 起始角度
+    //   int l = 0, i1 = 0;                          // i1 = 当前环索引
+    //   for (int j1 = 0; j1 < j; j1++) {
+    //       double d1 = 4*i + i*i1*6 + (rng.nextDouble() - 0.5) * (i*2.5);
+    //       ...
+    //       d0 += (PI * 2) / k;
+    //       if (++l == k) {                       // 本环放满了
+    //           i1++; l = 0;
+    //           k += 2 * k / (i1 + 1);            // 环容量动态扩张
+    //           k = Math.min(k, j - j1);
+    //           d0 += rng.nextDouble() * PI * 2.0; // 环间角度随机扰动
+    //       }
+    //   }
+    //
+    // 此前这里是硬编码的环容量表（3,6,10,15,21,28,36,9），且半径公式少了开头的
+    // `4*i` 系数、缺少环间角度扰动——三者叠加使整个要塞分布与原版完全不同
+    // （由差分能力 structure_starts 查出：9 个要塞单元在原版有、Cubium 完全没有）。
+    const f64 baseDistance = static_cast<f64>(m_distance);
+    i32 ringCapacity = m_spread;
+    f64 angle = rng.nextDouble() * 2.0 * math::PI_DOUBLE;
+    i32 inRing = 0;
+    i32 ringIndex = 0;
 
-    while (remainingCount > 0) {
-        // 当前环的要塞数量
-        // MC 1.21 的环数量规律：第 n 环的数量 = (n+2)(n+3)/2 - (n+1)(n+2)/2 = n+2
-        // 但实际 MC 使用固定分配
-        i32 ringCount;
-        if (currentRing == 0) {
-            ringCount = 3;
-        } else if (currentRing == 1) {
-            ringCount = 6;
-        } else if (currentRing == 2) {
-            ringCount = 10;
-        } else if (currentRing == 3) {
-            ringCount = 15;
-        } else if (currentRing == 4) {
-            ringCount = 21;
-        } else if (currentRing == 5) {
-            ringCount = 28;
-        } else if (currentRing == 6) {
-            ringCount = 36;
-        } else {
-            // 第 7+ 环把剩余的全部分配
-            ringCount = remainingCount;
+    for (i32 index = 0; index < m_count; ++index) {
+        const f64 radius = (4.0 * baseDistance) + (baseDistance * static_cast<f64>(ringIndex) * 6.0) +
+            (rng.nextDouble() - 0.5) * (baseDistance * 2.5);
+        const f64 chunkX = std::round(std::cos(angle) * radius);
+        const f64 chunkZ = std::round(std::sin(angle) * radius);
+
+        // 原版紧接在算出 (k1, l1) 之后、角度步进之前调用 `randomsource.fork()`，
+        // 即 `RandomSource.create(nextLong())`。fork 必须与半径/角度扰动消耗**同一个**
+        // 随机源，否则 fork 序列反映不了前面已经发生的消耗。这里把该种子一并带出去，
+        // 交给调用方构造生物群系搜索用的随机源。
+        RingEntry entry;
+        entry.chunk = world::chunk::ChunkPos(static_cast<i32>(chunkX), static_cast<i32>(chunkZ));
+        entry.forkSeed = static_cast<u64>(rng.nextLong());
+        result.push_back(entry);
+
+        angle += (2.0 * math::PI_DOUBLE) / static_cast<f64>(ringCapacity);
+        if (++inRing == ringCapacity) {
+            ++ringIndex;
+            inRing = 0;
+            ringCapacity += (2 * ringCapacity) / (ringIndex + 1);
+            ringCapacity = std::min(ringCapacity, m_count - index);
+            angle += rng.nextDouble() * 2.0 * math::PI_DOUBLE;
         }
-
-        if (ringCount > remainingCount) {
-            ringCount = remainingCount;
-        }
-
-        // 起始角度随机
-        f64 angle = rng.nextDouble() * 2.0 * math::PI_DOUBLE;
-
-        for (i32 i = 0; i < ringCount; ++i) {
-            // 计算环的半径
-            // radius = baseDistance + baseDistance * distanceMultiplier * 6 + (random - 0.5) * baseDistance * 2.5
-            f64 radius = static_cast<f64>(m_distance) + static_cast<f64>(m_distance) * distanceMultiplier * 6.0 +
-                (rng.nextDouble() - 0.5) * static_cast<f64>(m_distance) * 2.5;
-
-            // 确保半径不为负
-            if (radius < 1.0) {
-                radius = 1.0;
-            }
-
-            // 计算区块坐标
-            f64 chunkX = std::round(std::cos(angle) * radius);
-            f64 chunkZ = std::round(std::sin(angle) * radius);
-
-            positions.emplace_back(static_cast<i32>(chunkX), static_cast<i32>(chunkZ));
-
-            // 每个要塞之间均匀分布角度
-            angle += 2.0 * math::PI_DOUBLE / static_cast<f64>(ringCount);
-        }
-
-        remainingCount -= ringCount;
-        ++currentRing;
-        distanceMultiplier += 1.0;
     }
 
-    return positions;
+    return result;
 }
 
 const std::vector<world::chunk::ChunkPos>& ConcentricRingsStructurePlacement::getRingPositions(i64 worldSeed) const
@@ -173,6 +173,23 @@ bool ConcentricRingsStructurePlacement::isStructureChunk(i64 worldSeed, i32 chun
     }
 
     return false;
+}
+
+void ConcentricRingsStructurePlacement::setResolvedRingPositions(
+    i64 worldSeed, std::vector<world::chunk::ChunkPos> positions) const
+{
+    std::lock_guard<std::mutex> lock(m_cacheMutex);
+    m_resolvedPositions = std::move(positions);
+    m_resolvedSeed = worldSeed;
+}
+
+const std::vector<world::chunk::ChunkPos>* ConcentricRingsStructurePlacement::resolvedRingPositions(i64 worldSeed) const
+{
+    std::lock_guard<std::mutex> lock(m_cacheMutex);
+    if (m_resolvedPositions.has_value() && m_resolvedSeed == worldSeed) {
+        return &m_resolvedPositions.value();
+    }
+    return nullptr;
 }
 
 std::unique_ptr<StructurePlacement> ConcentricRingsStructurePlacement::clone() const

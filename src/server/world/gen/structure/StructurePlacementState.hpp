@@ -25,13 +25,16 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/world/biome/BiomeSource.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/structure/StructureSet.hpp"
 #include "server/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
 #include "server/world/gen/structure/placement/StructurePlacement.hpp"
 
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -115,17 +118,40 @@ private:
     /**
      * @brief 同心环位置表（惰性生成并按放置规则缓存）
      *
-     * 键是指向放置规则的指针——放置规则由结构集拥有，结构集由注册表拥有，
-     * 在状态存活期间地址稳定。
+     * 返回的是**经生物群系搜索改写后**的最终要塞区块坐标，不是搜索起点。
+     * 结果缓存在 `m_ringPositions` 里，键是指向放置规则的指针——放置规则由结构集
+     * 拥有，结构集由注册表拥有，在状态存活期间地址稳定。
      */
     [[nodiscard]] const std::vector<world::chunk::ChunkPos>& ringPositions(
         const placement::ConcentricRingsStructurePlacement& concentric) const;
+
+    /**
+     * @brief 复刻原版 `BiomeSource.findBiomeHorizontal`
+     *
+     * 以 quart 坐标做螺旋扫描，每命中一个偏好生物群系就用蓄水池抽样随机保留一个。
+     *
+     * @param centerX / centerY / centerZ 搜索中心（方块坐标）
+     * @param radius 搜索半径（方块）
+     * @param preferred 偏好的生物群系集合
+     * @param rng 该次搜索专用的随机源（原版对每个要塞 fork 一次）
+     * @return 命中的方块坐标，未命中返回空
+     */
+    [[nodiscard]] std::optional<BlockPos> _findBiomeHorizontal(i32 centerX,
+        i32 centerY,
+        i32 centerZ,
+        i32 radius,
+        i32 spread,
+        const std::vector<BiomeId>& preferred,
+        math::IRandom& rng) const;
 
     const biome::IBiomeSource& m_biomeSource;
     i64 m_worldSeed;
     std::vector<const StructureSet*> m_structureSets;
     /// 结构集 → 是否含同心环放置（判定时省一次 dynamic_cast）
     std::unordered_map<const StructureSet*, const placement::ConcentricRingsStructurePlacement*> m_concentric;
+    /// 同心环放置 → 已经过生物群系搜索改写的最终坐标表
+    mutable std::unordered_map<const placement::ConcentricRingsStructurePlacement*, std::vector<world::chunk::ChunkPos>>
+        m_ringPositions;
 };
 
 } // namespace mc::world::gen::structure

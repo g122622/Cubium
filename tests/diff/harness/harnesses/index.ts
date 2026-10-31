@@ -69,6 +69,16 @@ import { paintingVariantInput } from "./painting_variant.ts";
 import { ARMOR_TRIM_UNORDERED, armorTrimInput } from "./armor_trim.ts";
 import { animalVariantInput } from "./animal_variant.ts";
 import { instrumentInput } from "./instrument.ts";
+import { bannerPatternInput } from "./banner_pattern.ts";
+import { enchantmentProviderInput, enchantmentProviderUnits } from "./enchantment_provider.ts";
+import { trialSpawnerConfigInput, trialSpawnerConfigUnits } from "./trial_spawner_config.ts";
+import { dimensionTypeInput } from "./dimension_type.ts";
+import { explosionRayInput, explosionRayUnits } from "./explosion_ray.ts";
+import { explosionDamageInput } from "./explosion_damage.ts";
+import { explosionSeenGridInput } from "./explosion_seen_grid.ts";
+import { entityDimensionsInput } from "./entity_dimensions.ts";
+import { mobEffectMergeInput } from "./mob_effect_merge.ts";
+import { foodStatsInput } from "./food_stats.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -595,6 +605,48 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 乐器：音效 ID / 吹奏时长 / 可听距离 / 描述翻译键，以及 tick 数与音量两个派生值。
     { name: "instrument", probe: "instrument", oracle: "InstrumentOracle", key: "instrument",
         units: { kind: "listing" }, input: instrumentInput },
+    // 旗帜图案：数据包驱动的注册表（原版 43 项）。
+    { name: "banner_pattern", probe: "banner_pattern", oracle: "BannerPatternOracle", key: "pattern",
+        units: { kind: "listing" }, input: bannerPatternInput },
+    // 附魔提供器：7 项定义 × 7 种难度乘数，重点比 by_cost_with_difficulty 的代价区间。
+    { name: "enchantment_provider", probe: "enchantment_provider", oracle: "EnchantmentProviderOracle",
+        key: "provider", units: { kind: "computed", units: enchantmentProviderUnits },
+        input: enchantmentProviderInput },
+    // 试炼刷怪笼配置：28 项 × 9 种玩家数，重点比派生刷怪数量（f32 + floor）。
+    { name: "trial_spawner_config", probe: "trial_spawner_config", oracle: "TrialSpawnerConfigOracle",
+        key: "config", units: { kind: "computed", units: trialSpawnerConfigUnits },
+        input: trialSpawnerConfigInput },
+    // 维度类型：高度三项、坐标缩放、天空盒、刷怪光照与 attributes 计数。
+    { name: "dimension_type", probe: "dimension_type", oracle: "DimensionTypeOracle",
+        key: "dimensionType", units: { kind: "listing" }, input: dimensionTypeInput },
+    // 爆炸射线破坏判定：6 个场景 × 8 个种子，纯计算，复刻 ServerExplosion 的射线步进。
+    { name: "explosion_ray", probe: "explosion_ray", oracle: "ExplosionRayOracle",
+        key: "scene", units: { kind: "computed", units: explosionRayUnits },
+        input: explosionRayInput },
+    // 爆炸伤害与击退：半径 × 距离 × 可见度 × 击退抗性，纯计算。
+    { name: "explosion_damage", probe: "explosion_damage", oracle: "ExplosionDamageOracle",
+        key: "radius", units: { kind: "listing" }, input: explosionDamageInput },
+    // 爆炸可见度采样网格：碰撞箱 → 步长 / 偏移 / 采样点数与坐标序列，纯计算。
+    { name: "explosion_seen_grid", probe: "explosion_seen_grid", oracle: "ExplosionSeenGridOracle",
+        key: "unit", units: { kind: "listing" }, input: explosionSeenGridInput },
+    // 实体尺寸与包围盒：眼睛高度比例、缩放规则、包围盒展开，纯计算。
+    { name: "entity_dimensions", probe: "entity_dimensions", oracle: "EntityDimensionsOracle",
+        key: "unit", units: { kind: "listing" }, input: entityDimensionsInput },
+    // 药水效果叠加合并：三层分支 + hiddenEffect 降级回退，纯计算。
+    { name: "mob_effect_merge", probe: "mob_effect_merge", oracle: "MobEffectMergeOracle",
+        key: "unit", units: { kind: "listing" }, input: mobEffectMergeInput },
+    // 饥饿值与饱和度：两次 clamp 的顺序、下界钳制、exhaustion 上限，纯计算。
+    { name: "food_stats", probe: "food_stats", oracle: "FoodStatsOracle",
+        key: "unit", units: { kind: "listing" }, input: foodStatsInput },
+
+
+
+
+
+
+
+
+
     // 伤害类型标签：每个标签包含哪些伤害类型（集合语义）。纯数据查表。
     { name: "damage_type_tags", probe: "damage_type_tags", oracle: "DamageTypeTagsOracle", key: "tag",
         units: { kind: "listing" }, input: damageTypeTagsInput,

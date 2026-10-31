@@ -382,6 +382,16 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `armor_trim` | 原版 jar `ArmorTrimOracle` | 18 个纹饰图案 + 11 种纹饰材料 | 全部一致 | — |
 | `animal_variant` | 原版 jar `AnimalVariantOracle` | 32 个变体（狼 9 / 猫 11 / 蛙·牛·鸡·猪 各 3） | 全部一致 | — |
 | `instrument` | 原版 jar `InstrumentOracle` | 8 种山羊角音色 | 全部一致 | — |
+| `banner_pattern` | 原版 jar `BannerPatternOracle` | 43 | 全部一致 | Cubium 仍是硬编码枚举，探针直接读数据包（见下文） |
+| `enchantment_provider` | 原版 jar `EnchantmentProviderOracle` | 7 项 × 7 种难度乘数 = 49 | 全部一致 | Cubium 未实现，探针直接读数据包（见下文） |
+| `trial_spawner_config` | 原版 jar `TrialSpawnerConfigOracle` | 28 项 × 9 种玩家数 = 252 | 全部一致 | Cubium 用整数 Config，探针直接读数据包（见下文） |
+| `dimension_type` | 原版 jar `DimensionTypeOracle` | 4 个维度类型 | 全部一致 | Cubium 无数据包加载器，探针直接读数据包（见下文） |
+| `explosion_ray` | 原版 jar `ExplosionRayOracle` | 6 个场景 × 8 个种子 = 48 | 全部一致 | 纯计算，不依赖世界（见下文） |
+| `explosion_damage` | 原版 jar `ExplosionDamageOracle` | 6 半径 × 8 距离 × 5 可见度 × 2 抗性 = 480 | 全部一致 | 纯计算，暴露两处口径差异（见下文） |
+| `explosion_seen_grid` | 原版 jar `ExplosionSeenGridOracle` | 10 种碰撞箱 | 全部一致 | 纯计算，绕开 `-ffast-math`（见下文） |
+| `entity_dimensions` | 原版 jar `EntityDimensionsOracle` | 12 种尺寸 × 位置组合 | 全部一致 | 纯计算，Cubium 无此类（见下文） |
+| `mob_effect_merge` | 原版 jar `MobEffectMergeOracle` | 16 种叠加组合 | 全部一致 | 纯计算，Cubium 无 `update()`（见下文） |
+| `food_stats` | 原版 jar `FoodStatsOracle` | 20 种变化组合 | 全部一致 | 纯计算，暴露一处下界钳制差异（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1238,6 +1248,569 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 新能力 food_stats：一处下界钳制差异，与一次被源码纠正的误判
+
+第 77 个能力，20 种变化组合全部一致。
+
+#### 差异：`add` 缺少下界钳制
+
+原版 `FoodData.add`：
+
+```java
+this.foodLevel       = Mth.clamp(food + this.foodLevel, 0, 20);
+this.saturationLevel = Mth.clamp(saturation + this.saturationLevel, 0.0F, (float) this.foodLevel);
+```
+
+Cubium 的 `FoodStats::addStats` 写的是 `std::min(m_foodLevel + food, MAX_FOOD_LEVEL)`——
+**只钳上界，没有下界**。`food + foodLevel < 0` 时会得到负饥饿值，而原版是 0。
+
+实测 `add|-25|0|10|3` 得到 `foodLevel=0, saturationLevel=0`，正是下界把它抬回来的结果。
+
+#### 另一处差异：两次 clamp 的顺序
+
+饱和度上界用的是**刚更新过的** `foodLevel`，不是旧的。先算饱和度再更新饥饿值会得到不同
+结果。场景表里的 `add|-20|5|10|3` 专门压这条：饥饿值先被钳到 0，饱和度上界随之变成 0。
+
+#### 一次被源码纠正的误判
+
+我最初只读到 `addExhaustion` 的一段片段，据此写下「原版没有上限，Cubium 加了 `min(x, 40)`
+是多余限制」。后来完整读 `FoodData.java` 才发现原版那一行就是：
+
+```java
+public void addExhaustion(float e) {
+    this.exhaustionLevel = Math.min(this.exhaustionLevel + e, 40.0F);
+}
+```
+
+**Cubium 在这里是对的**，是我的片段阅读出了错。探针注释已改正。
+
+这是这一系列工作中第三次出现「只读片段就下结论」的问题（前两次分别是要塞的常量种子与
+扫描步长）。**读源码必须读完整的方法体**，否则「发现差异」本身可能是幻觉。
+
+### 新能力 mob_effect_merge：`hiddenEffect` 的降级回退
+
+第 76 个能力，16 种叠加组合全部一致。Cubium 的 `EffectInstance` **没有 `update()`**，
+本能力因此直接按原版公式计算，输出的是待实现的行为基准。
+
+#### 三层分支里最容易漏的两处
+
+原版 `MobEffectInstance.update()` 的分支耦合度很高，本轮实测踩到其中一个：
+
+**1. 等级更高时无条件采用新时长**，哪怕新的更短——此时旧效果被压进 `hiddenEffect`，
+等新效果过期后重新生效。
+
+| 输入 | 结果 | hiddenEffect |
+|---|---|---|
+| `1|300` ← `2|100` | `amplifier=2, duration=100` | `1|300` |
+| `2|300` ← `1|500` | 不变（`changed=false`） | `1|500` |
+
+第二行是反向情形：等级更低时**只把新值放进 hiddenEffect**，当前值完全不动。
+
+**2. ambient 更新时也会置 `flag = true`**——这是本轮发现的一处真实偏差。
+
+原版这段的末尾有一句 `flag = true;`：
+
+```java
+if (!incoming.ambient && this.ambient || flag) {
+    this.ambient = incoming.ambient;
+    flag = true;          // <- 容易看漏
+}
+```
+
+我第一版按「ambient 只影响 ambient 字段」实现，结果 `1|200|true` ← `1|100|false`
+（等级相同时长更短、只有 ambient 变）被判成 `changed=false`，而原版是 `true`。
+差分比对直接把这行漏掉的分支指出来了。
+
+#### 一处 Java 侧的技术处理
+
+`hiddenEffect` 是包内可见的私有字段，没有公开访问器，oracle 里用反射读取。不读它就无法
+验证上面第一条「降级回退」——而这恰恰是最容易写错的一支。
+
+### 新能力 entity_dimensions：三条容易写错的公式
+
+第 75 个能力，12 种「尺寸 × 缩放 × 位置」组合全部一致。Cubium 目前**没有**
+`EntityDimensions` 也没有 `EntityAttachments`，所以探针自带一份实现——本能力覆盖的是
+**公式**（眼睛高度比例、缩放规则、包围盒展开），而不是「实体的宽高表是否正确」。
+
+#### 三条容易写错的公式
+
+**1. 眼睛高度只按高度缩放。** 原版：
+
+```java
+public EntityDimensions scale(float w, float h) {
+    return new EntityDimensions(this.width * w, this.height * h,
+                                this.eyeHeight * h, ...);   // <- 乘 h，不是 w
+}
+```
+
+写成 `eyeHeight * w` 在宽高比不等于 1 的实体上立刻出错。实测验证：
+
+| 输入 | `scaledEyeHeight` |
+|---|---|
+| `0.6 / 1.8` 只缩宽 0.5 | **1.53**（不变） |
+| `0.6 / 1.8` 只缩高 0.5 | **0.765**（减半） |
+
+**2. 包围盒以中心为基准，不是脚底某角。** X/Z 是 `x ± width/2`，Y 是 `[y, y + height]`
+（脚底在 y）。宽扁体 `4 × 0.5` 的实测结果是 `bboxMinX=-2, bboxMaxX=2`——半径是
+`width/2 = 2`，若误用 `width` 会得到 ±4。
+
+**3. 默认眼睛高度 = `height * 0.85F`**，在构造器里算好，`scale` 时再按高度乘一次。
+
+#### 一处精度细节
+
+`f = width / 2.0F` 是 **float**，而位置 `x` 是 **double**。`x - f` 里 `f` 先提升到 double
+再相减。C++ 侧必须保持同样的提升顺序，否则在大坐标（如 `-1234.5`）下会差 ulp。
+场景表里专门放了两个大坐标用例来压这一点。
+
+### 新能力 explosion_seen_grid：`-ffast-math` 与 2.78e-17
+
+第 74 个能力，10 种碰撞箱全部一致。它是上一个能力 TODO 的直接延伸：`getSeenPercent`
+的**采样网格生成**是纯计算，只有射线检测那一半需要世界。
+
+#### 网格本身值得单独钉住的理由
+
+采样点数 = `floor(1 / step) + 1`，这个「+1」在 `f` 的浮点累加误差下可能少一次或多一次。
+Cubium 的 `Explosion::_getBlockDensity` 用 `f32` 做这一步，原版用 `double`——同样的碰撞箱
+会得到不同点数，可见度分母随之改变，最终伤害也跟着变。
+
+#### 一个花了不少时间的坑
+
+网格逻辑照抄无误，但 `offsetX` 上持续差 `2.77556e-17`：
+
+```
+oracle: {"offsetX":"0",    "firstSample":[["0",...]]}
+probe : {"offsetX":"2.77556e-17","firstSample":[["2.77556e-17",...]]}
+```
+
+`offsetX` 来自 `(1.0 - floor(1/step) * step) / 2.0`。只影响 `step` 恰为 1/3、1/6 的两个
+箱子（完整方块与大尺寸）。我单独写了一个小程序验证 `1.0/3.0` 的往返，得到精确 `0`——
+说明表达式本身没问题，是**编译环境**的差异。
+
+根因是项目根 CMakeLists 全局开了 `-ffast-math`（`-fno-finite-math-only` 保留 NaN 语义，
+但重结合仍被允许）。它可以把 `floor(1/step) * step` 折叠成 `(1/step) * step`，后者不保证
+等于 1。
+
+试过两条路都失败：
+
+- `#pragma float_control(precise, on, push/pop)`——`push/pop` 只能出现在文件或命名空间作用域；
+- 换成函数内 `on`——clang 在 `-ffast-math` 下对该 pragma 不生效。
+
+最终改法是把判据显式写出来：
+
+```cpp
+const f64 covered = gridCount * step;
+const f64 remainder = std::abs(covered - 1.0) < 1e-12 ? 0.0 : (1.0 - covered);
+```
+
+这与原版语义一致（能整除时余数就是 0），且不依赖编译器的浮点策略。
+
+#### 教训
+
+**「表达式与 Java 完全一致」不足以保证结果一致**，编译选项会改变求值结果。差分测试的价值
+正在于此——它不需要我预先知道哪里有陷阱，只要两侧用同一份输入跑，差异自己会浮出来。
+### 新能力 explosion_damage：两处口径差异，差 295 倍
+
+第 73 个能力，6 半径 × 8 距离 × 5 可见度 × 2 击退抗性 = 480 个单元，全部一致。
+它一建立就暴露出 Cubium 与原生版的**两处口径差异**。
+
+#### 差异一：距离比例被钳制
+
+原版 `ExplosionDamageCalculator.getEntityDamageAmount`：
+
+```java
+float f = explosion.radius() * 2.0F;
+double d0 = Math.sqrt(entity.distanceToSqr(center)) / f;   // 裸比值，不钳制
+double d1 = (1.0 - d0) * seenPercent;
+return (float) ((d1 * d1 + d1) / 2.0 * 7.0 * f + 1.0);
+```
+
+Cubium 写的是 `std::min(1.0f, std::sqrt(distSq) / damageRadius)`。
+
+「跳过超距实体」这件事在**调用方**完成（`ServerExplosion` 里的 `if (!(d0 > 1.0))`），
+不在公式里。Cubium 把这道闸门前移进了公式，后果是超距实体不再得到「越过 0 之后
+重新上升」的伤害：
+
+| 输入 | 原版 | 若按钳制 |
+|---|---|---|
+| radius 1、distance 16、seen 1 | `ratio=8`、**damage=295** | `ratio=1` → `d1=0` → **damage=1** |
+
+相差 295 倍。这只是公式层的复刻差异——是否真的打到这个伤害由调用方的 `inRange`
+决定，而本能力把 `inRange` 单独输出，正是为了让「公式」与「闸门」的分工可验证。
+
+#### 差异二：返回值被取整
+
+原版是 `(float)` 直接转换，保留小数；Cubium 用了 `std::floor`。实测输出里
+`damage="11.0898"`，取整后会是 `11`——几乎所有输入下两者都不同。
+
+#### 单元设计
+
+480 个组合刻意跨越 `distance == radius * 2` 这条边界（`inRange` 的分界），
+并包含多个超距值。只有把超距值放进表里，差异一才会显示出来——如果只测射程内的
+实体，两处实现是完全一致的。
+### 新能力 explosion_ray：纯计算，一个「取错坐标」的 bug
+
+第 72 个能力，6 个场景 × 8 个种子 = 48 个单元，全部一致。它是第一个**完全不依赖
+数据包、不依赖世界**的能力：复刻 `ServerExplosion.calculateExplodedPositions()` 的
+射线步进，用「以爆炸中心为原点的同心抗性壳」代替真实世界。
+
+#### 把 world 型问题化成纯计算
+
+原版这一步只依赖三样东西：爆炸中心、半径、每个方块位置的抗性。只要把「每个位置的
+抗性」换成一张同心壳表，世界依赖就消失了。代价是不覆盖「方块抗性表本身是否与原版
+一致」，但那部分由 `block_properties` 等能力从别的角度覆盖。
+
+#### 一路踩到的四个坑
+
+调试过程是有价值的，四处错误**每一处都让差异变小一点**：
+
+| 顺序 | 错误 | 症状 |
+|---|---|---|
+| 1 | 射线位置用 `f32` 累积 | 探针系统性偏大（703 vs 678） |
+| 2 | 抗性按**射线浮点位置**取，而不是方块坐标 | 边界方块被归到相邻层（162 vs 152） |
+| 3 | 空气位置（抗性 0）被计入破坏集合 | 有空气层的场景偏大（206 vs 205） |
+| 4 | `sqrt` 前用了 f32 平方和 | 与 Java 侧 `(double) x * x` 精度不一致 |
+
+其中**第 2 条最关键**：原版查的是 `level.getBlockState(blockpos)`，`blockpos` 已经
+`floor` 过。我用射线的浮点位置算距离，于是射线在 `(-2.9, …)` 时 `floor` 得方块 `-3`，
+但距离按 2.9 判定，把这个方块归到了错误的抗性层。
+
+`tnt_air` 场景（全空气，无抗性）**从一开始就完全一致**（1097 = 1097），正是这条
+线索把问题范围从「射线步进」缩小到了「抗性取址」。
+
+#### 三个容易写错的常量
+
+- `0.22500001F` 不是 `0.225F`；
+- `0.3F` 同时用于射线步长与抗性公式 `(res + 0.3) * 0.3`；
+- 初始强度 `radius * (0.7 + rand * 0.6)`，每条射线各消耗一次 `nextFloat()`
+  （1352 条射线 = 16³ − 14³，只取 16×16×16 网格的外壳）。
+### 新能力 dimension_type：旧字段模型 vs attributes 映射
+
+第 71 个能力，4 个维度类型全部一致。它有别于前三个能力的地方在于：Cubium **有**
+`DimensionType` 类，但用的是**旧版字段模型**。
+
+| 项目 | 原版 1.21.11 | Cubium |
+|---|---|---|
+| 游戏规则 | `attributes` 映射（`gameplay/bed_rule`、`gameplay/piglins_zombify`…） | 独立布尔字段（`ultraWarm` / `natural` / `bedWorks` / `piglinSafe`…） |
+| `coordinate_scale` | `double` | `f32` |
+| 数据包加载 | `data/<ns>/dimension_type/*.json` | **无加载器**，只有硬编码实现 |
+
+全仓库搜不到任何读取 `dimension_type` 数据包的代码。因此本探针同样直接解析 JSON，
+并把 `attributeCount` 作为可比量——这一项直接反映新旧模型的差距：主世界 9 个、
+末地 8 个、下界 13 个，而旧模型的独立字段各维度都是固定那几个。
+
+#### 三个踩到的格式坑
+
+1. **`infiniburn` 的 `#` 前缀**。JSON 写 `"#minecraft:infiniburn_overworld"`，但原版
+   `DimensionType.infiniburn()` 返回 `TagKey<Block>`，`location()` **不带** `#`。
+   直接比原始字符串会让 4 个维度全部差一个字符。
+
+2. **`monster_spawn_light_level` 的多态**。原版是 `IntProvider.codec(0, 15)`，既能写
+   整数也能写带 `type` 的对象。原先打算「原样 dump JSON」，但 nlohmann 与 Gson 的键
+   顺序不同会误报，改成固定格式 `类型[下界,上界]` 之后才稳定。
+
+3. **`timelines` 是 `Either<TagKey, List<Holder>>`**。`unwrap()` 返回的 `Either` 没有
+   `size()`，要分左右支取数。
+
+#### 顺带验证的东西
+
+原版 `createDirectCodec` 有三条校验（`height % 16 == 0`、`min_y % 16 == 0`、
+`logical_height <= height`）。本能力把三条校验的结果也输出成字段，让「数据是否合法」
+本身成为可比量——4 个维度全部通过，说明数据包与两侧的解析口径都自洽。
+
+TODO 与前几个能力一致：待 Cubium 加入数据包加载器后，探针应改为读注册表。
+### 新能力 trial_spawner_config：一次跑出两处真实差异
+
+第 70 个能力，28 项 × 9 种玩家数 = 252 个单元，全部一致。它一上来就抓到了两处问题。
+
+#### 差异一：四个数值字段被声明成整数
+
+Cubium 的 `TrialSpawnerBlockEntity::Config`：
+
+```cpp
+i32 totalMobs = 6;
+i32 totalMobsAddedPerPlayer = 2;
+i32 baseSimultaneousMobs = 3;
+i32 simultaneousMobsAddedPerPlayer = 1;   // <- 数据包里全是 0.5
+```
+
+而原版是 `f32`。数据包 28 项里 `simultaneous_mobs_added_per_player` **无一例外都是
+`0.5`**，整数字段根本装不下。
+
+这个偏差会直接改变刷怪数量，因为原版的派生方法是：
+
+```java
+calculateTargetSimultaneousMobs(n) = (int) Math.floor(simultaneousMobs + simultaneousMobsAddedPerPlayer * n)
+```
+
+乘数 0.5、玩家数 3 时：`1 + 0.5 * 3 = 2.5` → floor 得 **2**。若按整数加法先算成
+`1 + 0 = 1`，就少一只。能力输出的实测值：
+
+```json
+{"config":"minecraft:trial_chamber/breeze/normal","playerCount":3,
+ "simultaneousMobs":"1","simultaneousMobsAddedPerPlayer":"0.5","targetSimultaneousMobs":2}
+```
+
+本能力因此在 9 种玩家数下各算一遍，专门压这条边界。
+
+#### 差异二：缺省字段的默认值不是空
+
+探针第一次跑就报了：
+
+```
+oracle: {"lootTableCount":2}
+probe : {"lootTableCount":0}
+```
+
+原版 `loot_tables_to_eject` 的缺省值来自 `DEFAULT.lootTablesToEject`，而那是个**含 2 项的
+WeightedList**（`spawner_trial_chamber_consumables` 与 `spawner_trial_chamber_key`），
+不是空列表。14 个配置没写这个字段，全都要回退到这两项。
+
+这条比「字段缺失就按空处理」更容易错——空列表看起来是最自然的中性默认值，但原版不是。
+
+#### 一条被验证的假设
+
+`spawn_range` 在全部 28 项里都没有出现，必须回退到 `Builder` 的默认值 4。这条假设成立，
+252 行里 `spawnRange` 全部为 4。
+
+TODO 与 `banner_pattern` / `enchantment_provider` 一致：待 Cubium 改为数据包驱动后，
+探针应改为读注册表。
+### 新能力 enchantment_provider：把「类型分派 + 代价截断」单独钉住
+
+第 69 个能力。数据包 `enchantment_provider/` 下 7 项，Cubium **一项都没有加载**
+（全仓库搜不到任何实现）。原版有三种类型：
+
+```java
+single                  → record SingleEnchantment(Holder<Enchantment>, IntProvider level)
+by_cost                 → record EnchantmentsByCost(HolderSet<Enchantment>, IntProvider cost)
+by_cost_with_difficulty → record EnchantmentsByCostWithDifficulty(HolderSet, int minCost, int maxCostSpan)
+```
+
+#### 范围界定：只比到「代价区间」为止
+
+原版 `enchant()` 的后半段是 `EnchantmentHelper.selectEnchantment(...)`，那属于附魔选择
+算法，已由 `enchantment_applicability` 与 `enchantment_cost` 从别的角度覆盖。本能力聚焦
+提供器**自身**那一层：JSON 的 `type` 分派到哪个实现类，以及代价区间的算法。
+
+后者值得单独钉住，因为原版是：
+
+```java
+int i = Mth.randomBetweenInclusive(rng, minCost, minCost + (int)(f * maxCostSpan));
+```
+
+`(int)` 是**截断而非四舍五入**，且下界不随难度变化。乘数取 0.25 时
+`5 + (int)(0.25 * 17) = 9`，取 0.5 时是 `13`——写错成四舍五入会得到 9 和 14，
+差异一眼可见。
+
+#### 单元数不等于 `list` 行数
+
+本能力用「提供器 × 难度乘数」的笛卡尔积，7 个提供器 × 7 个乘数 = 49 个单元。
+`computed` 单元拿不到 `list` 的输出，所以单元生成函数直接扫数据包目录；
+它用的是 oracle 侧的 `vanillaDataPackDir()` 而不是直接读环境变量——**`computed`
+单元在 runner 注入 `MC_DIFF_VANILLA_DATAPACK` 之前就会求值**，这里踩过一次。
+
+注意报告里的 `units: 7` 是按比较键（`provider`）去重后的数，49 行输入实际逐行比过。
+
+#### 结果
+
+49 行全部一致。TODO 与 `banner_pattern` 相同：待 Cubium 实现该注册表后，
+探针应改为读注册表而不是直接解析 JSON。
+### 新能力 banner_pattern：绕开注册表直接读数据包
+
+`banner_pattern` 是第 68 个能力，43 项全部一致。它有一个特殊的处理方式值得记录。
+
+原版 1.21.11 已把旗帜图案改成数据包驱动的注册表：
+
+```java
+public record BannerPattern(Identifier assetId, String translationKey)
+// Registries.BANNER_PATTERN，数据包 data/<ns>/banner_pattern/*.json
+```
+
+Cubium 侧却仍是写死的枚举：
+
+```cpp
+enum class BannerPatternType : u8 {
+    Base = 0, SquareBottomLeft = 1, ...   // 43 个固定值
+};
+```
+
+如果探针去读那个枚举，比对就退化成「枚举与枚举自己比」——数据包里改一个 `asset_id`，
+Cubium 不跟随，这个能力也发现不了。所以这里**绕开 Cubium 的注册表，直接解析数据包
+JSON**，与原版 oracle 走同一份数据源。
+
+代价是：本能力当前只能验证「数据包内容与解析口径」，无法覆盖「注册表装载顺序」
+「运行时覆盖」这类偏差。已在探针头部记 TODO：待 Cubium 迁移到数据包驱动注册表后，
+探针应改回读注册表。
+
+这也是一次有意为之的取舍：**先让能力跑起来并锁住数据基线**，而不是等 Cubium 完成
+架构迁移。43 项全部一致意味着至少确认了「数据包里的 43 个图案能被正确解析并与原版
+一一对应」，这是一个真实的、可回归的保证。
+### 要塞：合并随机源后仍未命中，转向新增能力
+
+上一轮记录的怀疑点是「`generateRingPositions` 内部的 rng 与外层 fork 用的 rng 不是同一个」。
+原版确实在同一条流里边算起点边 fork：
+
+```java
+RandomSource randomsource = RandomSource.create();
+randomsource.setSeed(concentricRingsSeed);
+double d0 = randomsource.nextDouble() * PI * 2.0;
+for (...) {
+    double d1 = ... randomsource.nextDouble() ...;    // 半径扰动
+    RandomSource randomsource1 = randomsource.fork(); // <- 同一个流上 fork
+    d0 += (PI * 2) / k;
+    if (换环) d0 += randomsource.nextDouble() * PI * 2.0;
+}
+```
+
+已按此改造：`generateRingLayout` 在同一条随机流上取 fork 种子并随起点一起带出，
+`StructurePlacementState` 直接用它构造搜索随机源。
+
+**结果：仍是 47 处差异，要塞依然一个都不生成。**
+
+到此为止，要塞问题已经排除了五个方向：
+
+| 方向 | 结论 |
+|---|---|
+| 环容量递推 / 半径公式 | 正确（序列 3,6,10,15,21 正确，半径 107~1507 与原版量级一致） |
+| `preferredBiomes` | 已修复（37 个，ID 空间一致且能命中） |
+| 群系采样 `getNoiseBiome` | 已验证返回正确群系 |
+| 扫描参数（方向 / 步长 / 边缘） | 已按 8 参数重载修正 |
+| fork 随机源是否同一流 | 已合并，无变化 |
+
+`structure_starts` 的要塞部分到此**暂停深挖**，改为记录状态、转向新增能力。理由：连续三轮
+都在这一个能力上深挖，每轮都修掉真实缺陷，但差异数没有动过。持续新增能力才是这个任务的
+本意，继续单点深挖的投入产出比已经不划算。
+
+要塞仍然是一个明确的缺口，留给后续单独处理。
+### 要塞搜索：三个参数猜错，逐一被源码否证
+
+上一轮记下的 TODO 是「`k1` 的递增步长应为 `spread` 而非 1」。本轮逐参数对照原版
+`BiomeSource.findBiomeHorizontal`，三处猜测逐一验证：
+
+| 猜测 | 实际 | 结论 |
+|---|---|---|
+| 步长应为 `spread`（3） | 结构生成走**8 参数重载**，内部固定 `p_220565_ = 1` | **猜错**，改回 1 |
+| 应从最大半径向内递减 | `j1 = findClosest ? 0 : k`，`findClosest = false` 时确实从 `k` 开始 | 已按此修正 |
+| 只扫环边缘即可 | `if (findClosest) { ...只扫边缘... }`，`false` 时**扫满整个方形** | 已按此修正 |
+
+三处修完后半径分布正确（107 ~ 1507 区块，与原版量级一致），坐标也从「几乎等于搜索
+起点」变成有明显偏移。但 `(-524,-678)` 这个具体位置仍未命中——最近的候选是
+`(-530,-410)` 与 `(-360,-655)`，同一象限、距离数百区块。
+
+已确认不是以下原因：
+
+- 环容量递推（按 `k += 2*k/(i1+1)` 复刻，序列 3,6,10,15,21,... 正确）
+- 半径公式（`4*distance + distance*ringIndex*6 + ...`，最大半径 1507 与 128 个要塞匹配）
+- `preferredBiomes`（37 个，已验证群系 ID 空间一致且能命中）
+- 群系采样（`getNoiseBiome` 返回正确的群系）
+
+剩下最可能的是**蓄水池抽样的随机数消耗时机**：原版对每个要塞 `fork()` 一次，
+而 fork 的种子来自「此前所有起点已经消耗过随机数」的那个 `randomsource`。
+我的复刻里 `generateRingPositions` 内部自己持有一个 rng（用于半径与角度扰动），
+外面又新建了一个用于 fork，**两者不是同一个随机源**——这是一个明确的、可验证的怀疑点。
+
+TODO: 把半径/角度扰动的 rng 与 fork 用的 rng 合并成同一个实例，让 fork 序列反映
+起点生成过程中已经发生的消耗。
+
+**教训（本轮第二次）**：上一轮我依据「原版有两个 `nextDouble` 调用」推断步长应为
+spread，并写进了 TODO。实际那个参数由重载固定为 1，`spread` 在结构生成路径上根本不
+参与。**读源码时推断出的结论，必须回到具体调用点确认参数值**，不能只看到形参名就下判断。
+### 要塞：生物群系标签没加载 + 搜索太慢，两处基础设施缺陷
+
+接着上一轮的要塞问题往下查，又发现两处**与算法无关**的基础设施缺陷。
+
+#### 一、探针从未加载生物群系标签
+
+`preferred_biomes` 引用 `#minecraft:stronghold_biased_to`（37 个群系），由
+`StructureSetLoader` 去 `BiomeTags` 里查。探针的初始化序列里**没有**
+`BiomeTagLoader::loadFromDataPackRepository`，于是：
+
+```
+[ss] strongholds preferredBiomes = 0    // 应为 37
+```
+
+`preferredBiomes` 恒为空 → `findBiomeHorizontal` 直接返回空 → 要塞永远退回原始环坐标。
+这与上一轮修的环算法无关，是另一条独立的失效路径。
+
+补上标签加载后 `preferredBiomes = 37`，并验证了后续链路可用：
+
+```
+[ss] 采样 quart(-33,0,-20) 群系 id = 4
+[ss] 该群系是否在 preferred 中: 1        // 命中
+[ss] preferred 前 5 个 id: 1 129 12 140 4
+```
+
+群系 ID 空间在两侧一致，`getNoiseBiome` 采样正常。
+
+#### 二、128 次螺旋扫描被每个区块重跑一次
+
+补上搜索后整个能力**跑不完**（1800 秒超时）。实测单个单元 2.3 秒——每个单元都要
+跑 128 个要塞 × 29×29 个 quart 的螺旋扫描。
+
+根因是缓存位置：原版把 `List<ChunkPos>` 缓存在 `ChunkGeneratorStructureState` 里，
+**与放置规则同生命周期**；而 `StructurePlacementState` 是每个区块（探针里是每个单元）
+新建的，只靠它的实例缓存等于没缓存。
+
+改法：把改写后的最终坐标表回填到 `ConcentricRingsStructurePlacement` 上（按世界种子
+缓存）。3 个单元从 6.9 秒降到 2.58 秒，542 个单元回到 170 秒量级。
+
+#### 仍然存在的差距
+
+要塞依然一个都不生成。已排除的原因：
+
+- 环算法（上一轮已按原版修正三处）
+- `preferredBiomes` 为空（本轮已修，37 个）
+- 群系采样失效（已验证返回正确群系且命中偏好集）
+- 搜索性能（已用缓存解决）
+
+剩下的可能是**搜索结果的坐标与原版差一个数量级**：542 个候选单元来自原版 oracle
+（原版能找到要塞的区块），如果我们的 `findBiomeHorizontal` 复刻有细节偏差（例如扫描
+顺序、蓄水池抽样的调用时机），算出的坐标就会系统性偏离，从而全部错过这批候选。
+
+TODO: 逐参数对照原版 `findBiomeHorizontal` 的扫描顺序——特别是 `k1` 的递增步长
+（原版是 `k1 += spread`，而非 1）与内层 `l1`/`i2` 的起始值。
+### 要塞环算法：三处偏差已修，生物群系搜索仍缺失
+
+`structure_starts` 恢复运行后，47 处差异里最大的一块是**要塞**：9 个单元在原版有、
+Cubium 完全没有。追下去发现 `ConcentricRingsStructurePlacement` 的环位置生成与原版
+（`ChunkGeneratorStructureState.generateRingPositions`）有三处实质偏差：
+
+| 项目 | 原版 | 修复前 | 状态 |
+|---|---|---|---|
+| 半径公式 | `4*distance + distance*ringIndex*6 + ...` | `distance + distance*ringIndex*6 + ...`（少了开头的 4 倍） | 已修 |
+| 环容量递推 | `k += 2*k/(ringIndex+1)`，动态扩张 | 硬编码表 `3,6,10,15,21,28,36,9` | 已修 |
+| 环间角度扰动 | 每换环再 `angle += random*2π` | 无 | 已修 |
+| 生物群系搜索 | `findBiomeHorizontal(..., 112, ...)` 把要塞挪到 `#stronghold_biased_to` | 无 | **未修** |
+
+三处都修完之后要塞仍然一个都不生成，说明**最后一项才是决定性的**：原版算出的环坐标
+只是搜索起点，真正的要塞位置由半径 112 区块的生物群系搜索决定。
+
+#### 一次被数据否定的猜想
+
+读原版源码时发现 `createForNormal` 传入的 `concentricRingsSeed` 是**常量 0L** 而不是
+世界种子，我据此判断「要塞分布与种子无关」，改成了常量并重新测——差异数纹丝不动。
+
+然后我用 oracle 的输出证伪了这个猜想：
+
+```
+种子 0              : (-524,-678) (-573,1114) (1113,567) (612,910)
+种子 9248738493917  : (-295,91) (-705,79) (1005,747) (174,-1053) (763,-1043) ...
+```
+
+两个种子的要塞位置**完全不重合**。如果种子恒为 0 且没有生物群系搜索，两者必须落在
+同一批坐标上。所以常量 0 只用于生成「搜索起点」，最终坐标由生物群系搜索（其 fork
+随机源来自世界种子）改写。改动已回退。
+
+**教训**：只读源码得出的结论必须用数据验证。这次如果我停在「已按源码改成常量」，
+就会写下一段看起来有依据、实际上使行为变差的改动。
+
+TODO: 补齐生物群系搜索需要把 `IBiomeSource` 传进 `StructurePlacementState::ringPositions`，
+算出每个环坐标后复刻 `findBiomeHorizontal(半径 112, preferredBiomes, fork 随机源)` 并改写
+坐标。这是要塞对齐的最后一块拼图。
+
+#### 其余差异
+
+47 处差异的构成：要塞 9 处（完全缺失）、矿井 13 处（片段数普遍只有原版的 1/3~1/10）、
+试炼密室 5 处、前哨站 / 海底废墟等各若干处。矿井片段数偏少是下一个独立问题。
 ### 一次静默失效：CMake 三张列表错位让 6 个能力链接到了别的探针
 
 `structure_starts` 长期报 `key 'origin' not found`，看起来像是探针自身的缺陷。实际根因
