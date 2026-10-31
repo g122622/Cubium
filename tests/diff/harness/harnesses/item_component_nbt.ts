@@ -124,6 +124,16 @@ export const SUITE_COMPONENTS: Readonly<Record<string, unknown>> = {
 };
 
 /**
+ * 「壳」用的最小组件集：栈编解码（stack_codec）只关心 `components` 段在不在、
+ * 长什么样，不需要整张组件表。取三项最容易解出文本、且所有物品能承载的组件。
+ */
+export const SHELL_COMPONENTS: Readonly<Record<string, unknown>> = {
+    "minecraft:damage": 7,
+    "minecraft:rarity": "epic",
+    "minecraft:custom_data": { DiffProbe: { level: 3, tag: "suite" } },
+};
+
+/**
  * removed 变体在 suite 之上额外移除的组件。
  *
  * 取所有物品原型都会带的几项：组件的「移除」在存档里写作 `"!name"`，与「没有这个组件」

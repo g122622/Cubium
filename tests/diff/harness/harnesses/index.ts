@@ -57,6 +57,7 @@ import {
     PROJECT_ONLY_COMMANDS,
 } from "./known_missing_commands.ts";
 import { itemComponentStackInput, normaliseComponentSnbt } from "./item_component_nbt.ts";
+import { missingLabelStackCodec, normaliseStackCodec, stackCodecInput } from "./stack_codec.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { blockSupportInput } from "./block_support.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
@@ -473,6 +474,30 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         // 缺失物品展开成三个变体——`oracleMissing` 按完整单元键匹配。
         oracleMissing: ["plain", "suite", "removed"].flatMap((variant) =>
             itemsKnownMissing.map((item) => `${item}#${variant}`)) },
+    // 物品堆的整壳编解码（原版 `ItemStack.CODEC`）：id / count / components 三个字段、
+    // count 的 1..99 区间、空堆的表示、components 段的省略、以及解码应当失败的场合。
+    // item_component_nbt 比组件载荷本身，这里比包着组件的那层壳——壳写错不会报错，
+    // 只会让存档里的数量被截断、坏数据被静默接受。
+    { name: "stack_codec", probe: "stack_codec", oracle: "StackCodecOracle", key: "unit",
+        // 单元 = 物品×变体（两侧的 list 枚举）+ 固定场景（两侧的 list 各写一份同名标记，
+        // 场景取值本身只在 stack_codec.ts 里有一份，见 stackCodecInput）。
+        units: { kind: "listing" },
+        input: stackCodecInput,
+        // 两侧的 SNBT / NBT 打印器不同（引号风格、浮点后缀、顶层键序），统一成规范形再比。
+        normalise: normaliseStackCodec,
+        // 物品×变体单元里，Cubium 未注册的物品在探针侧输出 missing（场景单元与物品无关）。
+        // 缺口由探针自己的 `list` 推出来：静态清单（known_missing_items.ts）会滞后于注册表，
+        // 拿它当唯一判据会把已经支持的物品也剔出去。
+        deriveMissing: missingLabelStackCodec,
+        // 原版 `count` 的 codec 是 `intRange(1, 99).orElse(1)`，而 `orElse` 对越界是宽容的：
+        // 0 / 100 / -1 都退回 1 而不是报错。Cubium 按 Java 源码的字面语义（越界即失败）实现，
+        // 两者因此在这三个取值上分叉。要让本侧也「宽容」，需要先确认 COUNT_OVERFLOW 在
+        // 数据包校验（DataFixer 的版本包装）里没有另外一层约束；在此之前保持严格。
+        knownDifferences: [
+            { key: "count#zero", reason: "原版 orElse(1) 对越界数量宽容，Cubium 判为无效" },
+            { key: "count#over", reason: "同上" },
+            { key: "count#negative", reason: "同上" },
+        ] },
     // 寻路：两个能力读同一份场景库（path_scenes.ts），只是比对的口径不同。
     // 逐格路径类型是「求值器判定」的完整快照：任一格的三层类型不一致都会点名到格。
     { name: "walk_path_type", probe: "walk_path_type", oracle: "WalkPathTypeOracle", key: "unit",

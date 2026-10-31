@@ -133,8 +133,15 @@ export interface HarnessDeclaration {
      * 也处于不同状态。把这些命令名传给 oracle，它会在注册阶段就跳过它们，两侧从此可比。
      */
     readonly oracleArgs?: readonly string[];
-    /** 原版有、本项目尚未实现的单元（显式缺口）。 */
+    /**
+     * 原版有、本项目尚未实现的单元（显式缺口）。
+     *
+     * 明确给定的数组优先；没有给时，若声明里给了 `deriveMissing` 则由它按两侧实际列出的
+     * 单元推导（用于「静态缺口清单会滞后于注册表」的场合）。
+     */
     readonly oracleMissing?: readonly string[];
+    /** 由两侧实际列出的单元推导缺口（`oracleMissing` 缺省时生效）。 */
+    readonly deriveMissing?: (oracleUnits: readonly string[], probeUnits: readonly string[]) => string[];
     /** 成员级缺口：从原版一侧剔除的成员。 */
     readonly memberGaps?: { readonly field: string; readonly missing: readonly string[] };
     /**

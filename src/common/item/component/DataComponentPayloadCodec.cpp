@@ -134,6 +134,58 @@ constexpr std::array<std::string_view, 16> _colorNames{"white",
     return result;
 }
 
+/// 读列表里的全部字符串元素（紧凑的 `string_list_tag` 与通用 `tag_list_tag` 都认）。
+///
+/// 同一个组件的 NBT 标签，来源不同承载类型也不同：数据包加载器与 `join` 构造出来的是紧凑
+/// 的 `string_list_tag`，而存档 / 网络读进来的是通用列表。按 `element_id()` 判断后再
+/// `dynamic_cast` 到紧凑类型会在后者上抛 `std::bad_cast`——整条物品堆因此读不回来。
+[[nodiscard]] std::vector<std::string> _readStrings(const nbt::tags::tag& tag)
+{
+    std::vector<std::string> result;
+    const auto* list = dynamic_cast<const nbt::tags::list_tag*>(&tag);
+    if (list == nullptr) {
+        return result;
+    }
+    if (const auto* strings = dynamic_cast<const string_list_tag*>(list); strings != nullptr) {
+        return strings->value;
+    }
+    if (const auto* generic = dynamic_cast<const nbt::tags::tag_list_tag*>(list); generic != nullptr) {
+        result.reserve(generic->value.size());
+        for (const auto& element : generic->value) {
+            if (element != nullptr && element->id() == TagId::String) {
+                result.push_back(dynamic_cast<const string_tag&>(*element).value);
+            }
+        }
+    }
+    return result;
+}
+
+/// 读列表里的全部 compound 元素（紧凑的 `compound_list_tag` 与通用 `tag_list_tag` 都认）。
+[[nodiscard]] std::vector<const compound_tag*> _readCompounds(const nbt::tags::tag& tag)
+{
+    std::vector<const compound_tag*> result;
+    const auto* list = dynamic_cast<const nbt::tags::list_tag*>(&tag);
+    if (list == nullptr) {
+        return result;
+    }
+    if (const auto* compounds = dynamic_cast<const nbt::tags::compound_list_tag*>(list); compounds != nullptr) {
+        result.reserve(compounds->value.size());
+        for (const auto& element : compounds->value) {
+            result.push_back(&element);
+        }
+        return result;
+    }
+    if (const auto* generic = dynamic_cast<const nbt::tags::tag_list_tag*>(list); generic != nullptr) {
+        result.reserve(generic->value.size());
+        for (const auto& element : generic->value) {
+            if (const auto* compound = dynamic_cast<const compound_tag*>(element.get()); compound != nullptr) {
+                result.push_back(compound);
+            }
+        }
+    }
+    return result;
+}
+
 /// 读 compound 中名为 key 的布尔值（Byte 语义：非 0 即真；缺省/类型不符返回 false）。
 [[nodiscard]] bool _readBool(const compound_tag& compound, const char* key)
 {
@@ -565,32 +617,36 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 const auto& c = dynamic_cast<const compound_tag&>(tag);
                 auto rulesIt = c.value.find("rules");
                 if (rulesIt != c.value.end() && rulesIt->second->id() == TagId::List) {
-                    if (const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(rulesIt->second.get())) {
-                        for (const auto& ruleTag : list->value) {
-                            ToolRule rule{};
-                            auto blocksIt = ruleTag.value.find("blocks");
-                            if (blocksIt != ruleTag.value.end() && blocksIt->second->id() == TagId::List) {
-                                const auto& sl = dynamic_cast<const string_list_tag&>(*blocksIt->second);
-                                for (const auto& entry : sl.value) {
-                                    // "#namespace:path" 为标签引用，否则为方块 ID
-                                    if (!entry.empty() && entry[0] == '#') {
-                                        rule.blocks.push_back(ResourceLocation::parse(entry.substr(1)));
-                                    } else {
-                                        rule.blocks.push_back(ResourceLocation::parse(entry));
-                                    }
+                    // 列表的承载类型取决于来源：数据包加载器造 compound_list_tag，存档与
+                    // 网络读进来的通用列表是 tag_list_tag；blocks 同理（string_list_tag 或
+                    // tag_list_tag）。两者都按「统一取出 std::string」处理。
+                    for (const nbt::tags::compound_tag* rulePtr : _readCompounds(*rulesIt->second)) {
+                        if (rulePtr == nullptr) {
+                            continue;
+                        }
+                        const auto& ruleTag = *rulePtr;
+                        ToolRule rule{};
+                        auto blocksIt = ruleTag.value.find("blocks");
+                        if (blocksIt != ruleTag.value.end() && blocksIt->second->id() == TagId::List) {
+                            for (const auto& entry : _readStrings(*blocksIt->second)) {
+                                // "#namespace:path" 为标签引用，否则为方块 ID
+                                if (!entry.empty() && entry[0] == '#') {
+                                    rule.blocks.push_back(ResourceLocation::parse(entry.substr(1)));
+                                } else {
+                                    rule.blocks.push_back(ResourceLocation::parse(entry));
                                 }
                             }
-                            auto speedIt = ruleTag.value.find("speed");
-                            if (speedIt != ruleTag.value.end() && speedIt->second->id() == TagId::Float) {
-                                rule.speed = dynamic_cast<const float_tag&>(*speedIt->second).value;
-                            }
-                            auto dropsIt = ruleTag.value.find("correct_for_drops");
-                            if (dropsIt != ruleTag.value.end() && dropsIt->second->id() == TagId::Byte) {
-                                rule.correctForDrops =
-                                    dynamic_cast<const nbt::tags::byte_tag&>(*dropsIt->second).value != 0;
-                            }
-                            tool.rules.push_back(std::move(rule));
                         }
+                        auto speedIt = ruleTag.value.find("speed");
+                        if (speedIt != ruleTag.value.end() && speedIt->second->id() == TagId::Float) {
+                            rule.speed = dynamic_cast<const float_tag&>(*speedIt->second).value;
+                        }
+                        auto dropsIt = ruleTag.value.find("correct_for_drops");
+                        if (dropsIt != ruleTag.value.end() && dropsIt->second->id() == TagId::Byte) {
+                            rule.correctForDrops =
+                                dynamic_cast<const nbt::tags::byte_tag&>(*dropsIt->second).value != 0;
+                        }
+                        tool.rules.push_back(std::move(rule));
                     }
                 }
                 auto speedIt = c.value.find("default_mining_speed");
@@ -741,11 +797,25 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         case DataComponentType::Lore: {
             std::vector<std::unique_ptr<text::ITextComponent>> lines;
             if (tag.id() == TagId::List) {
+                // 列表的承载类型取决于元素怎么构造：`join`/数据包加载器造的是紧凑的
+                // string_list_tag，而存档与网络读进来的通用列表是 tag_list_tag。两者
+                // element_id() 都报 String，按 element_id 判断后强行 dynamic_cast 到
+                // string_list_tag 会在后者上抛出 std::bad_cast——整条物品堆从存档里读不回来。
                 const auto& list = dynamic_cast<const list_tag&>(tag);
                 if (list.element_id() == TagId::String) {
-                    const auto& sl = dynamic_cast<const string_list_tag&>(list);
-                    for (const auto& s : sl.value) {
-                        lines.push_back(text::ITextComponent::fromJson(nlohmann::json::parse(s)));
+                    if (const auto* sl = dynamic_cast<const nbt::tags::string_list_tag*>(&list); sl != nullptr) {
+                        for (const auto& s : sl->value) {
+                            lines.push_back(text::ITextComponent::fromJson(nlohmann::json::parse(s)));
+                        }
+                    } else if (const auto* generic = dynamic_cast<const nbt::tags::tag_list_tag*>(&list);
+                        generic != nullptr) {
+                        for (const auto& element : generic->value) {
+                            if (element == nullptr || element->id() != TagId::String) {
+                                continue;
+                            }
+                            const auto& text = dynamic_cast<const string_tag&>(*element).value;
+                            lines.push_back(text::ITextComponent::fromJson(nlohmann::json::parse(text)));
+                        }
                     }
                 }
             }
@@ -790,16 +860,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         }
         case DataComponentType::CanPlaceOn:
         case DataComponentType::CanBreak: {
-            std::vector<std::string> preds;
-            if (tag.id() == TagId::List) {
-                const auto& list = dynamic_cast<const list_tag&>(tag);
-                if (list.element_id() == TagId::String) {
-                    const auto& sl = dynamic_cast<const string_list_tag&>(list);
-                    for (const auto& s : sl.value) {
-                        preds.push_back(s);
-                    }
-                }
-            }
+            const std::vector<std::string> preds = _readStrings(tag);
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::AdventurePredicate>,
                 AdventureModePredicate(std::move(preds))};
         }
