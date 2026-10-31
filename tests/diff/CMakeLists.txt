@@ -63,12 +63,12 @@ set(MC_DIFF_PROBE_SOURCES
     probes/attribute_range.cpp
     probes/mob_experience.cpp
     probes/block_destroy_progress.cpp
-    probes/structure_density.cpp
-    probes/structure_starts.cpp
-    probes/villager_trades.cpp
     probes/walk_path_type.cpp
     probes/path_finder.cpp
     probes/fly_path_finder.cpp
+    probes/structure_density.cpp
+    probes/structure_starts.cpp
+    probes/villager_trades.cpp
     probes/piston_movement.cpp
     probes/experience.cpp
     probes/potion.cpp
@@ -390,6 +390,24 @@ if(NOT MC_DIFF_PROBE_COUNT EQUAL MC_DIFF_PROBE_SOURCE_COUNT
     message(FATAL_ERROR "tests/diff: 三张能力清单长度不一致（后缀 ${MC_DIFF_PROBE_COUNT}，"
         "源文件 ${MC_DIFF_PROBE_SOURCE_COUNT}，宏名 ${MC_DIFF_PROBE_DOMAIN_COUNT}）")
 endif()
+
+# 光校验长度不够：下面按**相同索引**取后缀与源文件，两张列表一旦顺序错开，可执行文件
+# 就会链接到别人的探针源文件——不报编译错误、不报警告，只表现为「某个能力报了一个与它
+# 无关的错误」。历史上已经因此让 6 个能力静默失效过，这里逐索引把后缀与源文件名主干
+# 比一遍，把这类错位在配置阶段就拦下来。
+set(MC_DIFF_PROBE_INDEX 0)
+foreach(probeSuffix ${MC_DIFF_PROBE_SUFFIXES})
+    list(GET MC_DIFF_PROBE_SOURCES ${MC_DIFF_PROBE_INDEX} probeSource)
+    list(GET MC_DIFF_PROBE_DOMAINS ${MC_DIFF_PROBE_INDEX} probeDomain)
+    get_filename_component(probeSourceStem "${probeSource}" NAME_WE)
+    if(NOT probeSourceStem STREQUAL probeSuffix OR NOT probeDomain STREQUAL probeSuffix)
+        message(FATAL_ERROR
+            "tests/diff: 能力清单第 ${MC_DIFF_PROBE_INDEX} 项顺序错位——"
+            "后缀 '${probeSuffix}' 对应的源文件是 '${probeSource}'、宏名是 '${probeDomain}'。"
+            "三张清单必须逐项同序。")
+    endif()
+    math(EXPR MC_DIFF_PROBE_INDEX "${MC_DIFF_PROBE_INDEX} + 1")
+endforeach()
 
 # 聚合目标：`--target diff_probes` 一次构建全部 probe。
 add_custom_target(diff_probes)

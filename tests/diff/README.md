@@ -1165,6 +1165,42 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 一次静默失效：CMake 三张列表错位让 6 个能力链接到了别的探针
+
+`structure_starts` 长期报 `key 'origin' not found`，看起来像是探针自身的缺陷。实际根因
+在 `tests/diff/CMakeLists.txt`：
+
+三张列表按**相同索引**配对，构建时用 `list(GET ...)` 取同一位置的 suffix 与源文件：
+
+```cmake
+list(GET MC_DIFF_PROBE_SUFFIXES ${index} targetSuffix)
+```
+
+历史上有一次提交在追加新能力时把 `structure_density` / `structure_starts` /
+`villager_trades` 三项插在了 `walk_path_type` **前面**（SUFFIXES 里在**后面**），
+于是从第 37 项起两者错开 3 位：
+
+| 索引 | SUFFIXES（命名） | SOURCES（实际编译） |
+|---|---|---|
+| 37 | `walk_path_type` | `structure_density` |
+| 38 | `path_finder` | `structure_starts` |
+| 39 | `fly_path_finder` | `villager_trades` |
+| 40 | `structure_density` | `walk_path_type` |
+| 41 | `structure_starts` | `path_finder` |
+| 42 | `villager_trades` | `fly_path_finder` |
+
+后果是这 6 个可执行文件**各自链接了别人的探针源文件**。错位不会产生任何编译错误或
+警告，只表现为「某个能力报了一个与它无关的错误」。`structure_starts` 之所以报
+`origin`，是因为它当时跑的是别的探针的代码。
+
+对齐后 6 项全部恢复正常：`structure_starts` 从「完全无法运行」变成 542 个单元、47 处差异；
+`walk_path_type` / `path_finder` / `fly_path_finder` 各 282/282 全部一致。
+
+**教训**：这组列表的正确性完全依赖三张列表的**顺序**，靠肉眼维护。新增能力时若只往
+SUFFIXES 和 DOMAINS 尾部追加、却把源文件插到别处，就会静默错位。
+`MC_DIFF_PROBE_COUNT` 只校验了长度相同，没有校验顺序对应关系。
+TODO: 在 CMake 里加一条配置期断言，逐索引比对 `MC_DIFF_PROBE_SUFFIXES[i]` 与
+`MC_DIFF_PROBE_SOURCES[i]` 的文件名主干是否一致，把这类错位在配置阶段就拦下来。
 ### 乐器：浮点字段与两个派生值，8/8 全一致
 
 `instrument` 比对 8 种山羊角音色：音效 ID、吹奏时长、可听距离、描述翻译键，外加两个

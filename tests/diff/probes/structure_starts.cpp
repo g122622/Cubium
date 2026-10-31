@@ -68,16 +68,16 @@
 #include "server/world/gen/carver/ConfiguredCarverLoader.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/density/DensityFunctionLoader.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureLoader.hpp"
 #include "server/world/gen/feature/FeatureTypeRegistry.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/feature/template/TemplateManagerHostBinding.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/jigsaw/ProcessorListLoader.hpp"
+#include "server/world/gen/noise/NoiseLoader.hpp"
 #include "server/world/gen/placement/PlacedFeatureLoader.hpp"
 #include "server/world/gen/placement/PlacementRegistry.hpp"
-#include "server/world/gen/density/DensityFunctionLoader.hpp"
-#include "server/world/gen/noise/NoiseLoader.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/settings/NoiseSettingsLoader.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -125,10 +125,11 @@ resource::DataPackRepository& dataPackRepository()
         // 模板是按路径逐个读取的非 JSON 资源：这里先抽查一个必定存在的模板，把「仓库能扫到
         // 数据包」与「仓库能读到包内资源」两件事分开验证——否则一处路径写错会让全部拼图
         // 结构静默退化成空模板（连接点为空、尺寸为 0），差分只会表现为构件数量对不上。
-        const auto probeTemplate = repo->readResource("minecraft/structure/village/plains/town_centers/plains_meeting_point_1.nbt");
+        const auto probeTemplate =
+            repo->readResource("minecraft/structure/village/plains/town_centers/plains_meeting_point_1.nbt");
         if (!probeTemplate.success() || probeTemplate.value().empty()) {
-            throw std::runtime_error("structure_starts: 数据包里读不到结构模板，仓库路径可能配错：" +
-                dataPackRoot().string());
+            throw std::runtime_error(
+                "structure_starts: 数据包里读不到结构模板，仓库路径可能配错：" + dataPackRoot().string());
         }
         return repo;
     }();
@@ -182,7 +183,6 @@ void initializeRegistries()
         world::gen::noise::NoiseLoader::loadFromDataPackRepository(repo);
         world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(repo);
         world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(repo);
-
         world::gen::structure::pools::Pools::initialize();
         world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(repo);
         world::gen::structure::StructureRegistry::clear();
@@ -206,7 +206,6 @@ void initializeRegistries()
 // ============================================================================
 // 维度
 // ============================================================================
-
 
 /**
  * @brief 按维度名构造维度设置与随机状态
@@ -282,8 +281,9 @@ json summarisePiece(const world::gen::structure::StructurePiece& piece)
             {"z", junction.getSourceZ()},
             {"deltaY", junction.getDeltaY()},
             {"dest",
-                    junction.getDestProjection() == world::gen::jigsaw::JigsawPlacementBehaviour::Rigid ? "rigid"
-                                                                                                               : "terrain_matching"}});
+                junction.getDestProjection() == world::gen::jigsaw::JigsawPlacementBehaviour::Rigid
+                    ? "rigid"
+                    : "terrain_matching"}});
     }
     return json{{"box", {box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()}},
         {"rotation", rotationName(piece.getRotation())},
@@ -315,8 +315,7 @@ std::string runLine(std::string_view inputLine)
 
     // 放置状态要看到本维度的群系源，生成器自己持有同一份：这里从生成器重建一份用于判定的
     // 状态即可（判定只读群系源与结构集），二者必须是同一套群系。
-    world::gen::structure::StructurePlacementState placementState(
-        *generator.getBiomeSource(), static_cast<i64>(seed));
+    world::gen::structure::StructurePlacementState placementState(*generator.getBiomeSource(), static_cast<i64>(seed));
     auto& registry = world::gen::structure::StructureSetRegistry::instance();
     for (const auto& structureSetPtr : registry.getAll()) {
         if (structureSetPtr) {
