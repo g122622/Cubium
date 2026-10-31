@@ -70,6 +70,7 @@ import { ARMOR_TRIM_UNORDERED, armorTrimInput } from "./armor_trim.ts";
 import { animalVariantInput } from "./animal_variant.ts";
 import { instrumentInput } from "./instrument.ts";
 import { bannerPatternInput } from "./banner_pattern.ts";
+import { enchantmentProviderInput, enchantmentProviderUnits } from "./enchantment_provider.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -593,6 +594,11 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 旗帜图案：数据包驱动的注册表（原版 43 项）。
     { name: "banner_pattern", probe: "banner_pattern", oracle: "BannerPatternOracle", key: "pattern",
         units: { kind: "listing" }, input: bannerPatternInput },
+    // 附魔提供器：7 项定义 × 7 种难度乘数，重点比 by_cost_with_difficulty 的代价区间。
+    { name: "enchantment_provider", probe: "enchantment_provider", oracle: "EnchantmentProviderOracle",
+        key: "provider", units: { kind: "computed", units: enchantmentProviderUnits },
+        input: enchantmentProviderInput },
+
     // 伤害类型标签：每个标签包含哪些伤害类型（集合语义）。纯数据查表。
     { name: "damage_type_tags", probe: "damage_type_tags", oracle: "DamageTypeTagsOracle", key: "tag",
         units: { kind: "listing" }, input: damageTypeTagsInput,

@@ -374,6 +374,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `animal_variant` | 原版 jar `AnimalVariantOracle` | 32 个变体（狼 9 / 猫 11 / 蛙·牛·鸡·猪 各 3） | 全部一致 | — |
 | `instrument` | 原版 jar `InstrumentOracle` | 8 种山羊角音色 | 全部一致 | — |
 | `banner_pattern` | 原版 jar `BannerPatternOracle` | 43 | 全部一致 | Cubium 仍是硬编码枚举，探针直接读数据包（见下文） |
+| `enchantment_provider` | 原版 jar `EnchantmentProviderOracle` | 7 项 × 7 种难度乘数 = 49 | 全部一致 | Cubium 未实现，探针直接读数据包（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1166,6 +1167,46 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 新能力 enchantment_provider：把「类型分派 + 代价截断」单独钉住
+
+第 69 个能力。数据包 `enchantment_provider/` 下 7 项，Cubium **一项都没有加载**
+（全仓库搜不到任何实现）。原版有三种类型：
+
+```java
+single                  → record SingleEnchantment(Holder<Enchantment>, IntProvider level)
+by_cost                 → record EnchantmentsByCost(HolderSet<Enchantment>, IntProvider cost)
+by_cost_with_difficulty → record EnchantmentsByCostWithDifficulty(HolderSet, int minCost, int maxCostSpan)
+```
+
+#### 范围界定：只比到「代价区间」为止
+
+原版 `enchant()` 的后半段是 `EnchantmentHelper.selectEnchantment(...)`，那属于附魔选择
+算法，已由 `enchantment_applicability` 与 `enchantment_cost` 从别的角度覆盖。本能力聚焦
+提供器**自身**那一层：JSON 的 `type` 分派到哪个实现类，以及代价区间的算法。
+
+后者值得单独钉住，因为原版是：
+
+```java
+int i = Mth.randomBetweenInclusive(rng, minCost, minCost + (int)(f * maxCostSpan));
+```
+
+`(int)` 是**截断而非四舍五入**，且下界不随难度变化。乘数取 0.25 时
+`5 + (int)(0.25 * 17) = 9`，取 0.5 时是 `13`——写错成四舍五入会得到 9 和 14，
+差异一眼可见。
+
+#### 单元数不等于 `list` 行数
+
+本能力用「提供器 × 难度乘数」的笛卡尔积，7 个提供器 × 7 个乘数 = 49 个单元。
+`computed` 单元拿不到 `list` 的输出，所以单元生成函数直接扫数据包目录；
+它用的是 oracle 侧的 `vanillaDataPackDir()` 而不是直接读环境变量——**`computed`
+单元在 runner 注入 `MC_DIFF_VANILLA_DATAPACK` 之前就会求值**，这里踩过一次。
+
+注意报告里的 `units: 7` 是按比较键（`provider`）去重后的数，49 行输入实际逐行比过。
+
+#### 结果
+
+49 行全部一致。TODO 与 `banner_pattern` 相同：待 Cubium 实现该注册表后，
+探针应改为读注册表而不是直接解析 JSON。
 ### 新能力 banner_pattern：绕开注册表直接读数据包
 
 `banner_pattern` 是第 68 个能力，43 项全部一致。它有一个特殊的处理方式值得记录。
