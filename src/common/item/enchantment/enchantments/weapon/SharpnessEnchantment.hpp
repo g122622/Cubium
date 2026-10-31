@@ -65,6 +65,18 @@ public:
     {
         return EnchantmentRarity::Common;
     }
+
+    /**
+     * @brief 附魔适用类型：剑、矛、斧（不含重锤）
+     *
+     * 原版 `supported_items` 是 `#minecraft:enchantable/sharp_weapon`
+     * （= melee_weapon ∪ axes）。父类 `DamageEnchantment` 给的是 `Weapon`，
+     * 那个集合多含重锤（由差分能力 enchantment_applicability 查出）。
+     */
+    [[nodiscard]] EnchantmentType type() const noexcept override
+    {
+        return EnchantmentType::SharpWeapon;
+    }
 };
 
 } // namespace enchant

@@ -77,7 +77,7 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override
     {
-        return EnchantmentType::Digger;
+        return EnchantmentType::DiggerLoot;
     }
 
     [[nodiscard]] EnchantmentRarity rarity() const noexcept override

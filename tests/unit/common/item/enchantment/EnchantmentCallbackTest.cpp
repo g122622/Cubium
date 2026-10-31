@@ -377,7 +377,7 @@ TEST_F(ThornsEnchantmentTest, Properties)
     EXPECT_EQ(thorns.id(), "minecraft:thorns");
     EXPECT_EQ(thorns.minLevel(), 1);
     EXPECT_EQ(thorns.maxLevel(), 3);
-    EXPECT_EQ(thorns.type(), EnchantmentType::ArmorChest);
+    EXPECT_EQ(thorns.type(), EnchantmentType::Armor);
     EXPECT_EQ(thorns.rarity(), EnchantmentRarity::VeryRare);
 }
 
@@ -678,7 +678,7 @@ TEST_F(EnchantmentHelperNewMethodsTest, ThornsEnchantmentProperties)
     ASSERT_NE(thorns, nullptr);
 
     // 验证荆棘附魔属性
-    EXPECT_EQ(thorns->type(), EnchantmentType::ArmorChest);
+    EXPECT_EQ(thorns->type(), EnchantmentType::Armor);
     EXPECT_EQ(thorns->rarity(), EnchantmentRarity::VeryRare);
 
     // 验证伤害加成（荆棘对玩家攻击者有反伤效果）

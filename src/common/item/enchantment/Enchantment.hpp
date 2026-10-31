@@ -48,21 +48,28 @@ namespace enchant {
  * 定义附魔可以应用的物品类型。
  */
 enum class EnchantmentType : u8 {
-    Armor,      ///< 护甲（头盔、胸甲、护腿、靴子）
-    ArmorFeet,  ///< 靴子
-    ArmorLegs,  ///< 护腿
-    ArmorHead,  ///< 头盔
-    ArmorChest, ///< 胸甲
-    Weapon,     ///< 武器（剑）
-    Digger,     ///< 挖掘工具（镐、斧、铲、锄）
-    FishingRod, ///< 钓鱼竿
-    Breakable,  ///< 可破坏物品
-    Bow,        ///< 弓
-    Wearable,   ///< 可穿戴物品
-    Crossbow,   ///< 弩
-    Trident,    ///< 三叉戟
-    Vanishable, ///< 可消失物品
-    All         ///< 所有物品
+    Armor,            ///< 护甲（头盔、胸甲、护腿、靴子）
+    ArmorFeet,        ///< 靴子
+    ArmorLegs,        ///< 护腿
+    ArmorHead,        ///< 头盔
+    ArmorChest,       ///< 胸甲
+    Weapon,           ///< 武器（剑 + 矛 + 斧 + 重锤）——原版 `#enchantable/weapon`
+    SharpWeapon,      ///< 锐利武器（剑 + 矛 + 斧，**不含重锤**）——原版 `#enchantable/sharp_weapon`
+    MeleeWeapon,      ///< 近战武器（剑 + 矛）——原版 `#enchantable/melee_weapon`
+    FireAspectWeapon, ///< 火焰附加（剑 + 矛 + 重锤）——原版 `#enchantable/fire_aspect`
+    SweepingWeapon,   ///< 横扫（**仅剑**）——原版 `#enchantable/sweeping`
+    LungeWeapon,      ///< 突刺（**仅矛**）——原版 `#enchantable/lunge`
+    Digger,           ///< 挖掘工具（镐、斧、铲、锄、剪刀）——原版 `#enchantable/mining`
+    DiggerLoot,       ///< 挖掘掉落类（镐、斧、铲、锄，**不含剪刀**）——原版 `#enchantable/mining_loot`
+    FishingRod,       ///< 钓鱼竿
+    Breakable,        ///< 可破坏物品
+    Bow,              ///< 弓
+    Wearable,         ///< 可穿戴物品
+    Crossbow,         ///< 弩
+    Trident,          ///< 三叉戟
+    Vanishable,       ///< 可消失物品
+    Mace,             ///< 重锤（`#enchantable/mace`，破甲/密度/风爆专用）
+    All               ///< 所有物品
 };
 
 /**

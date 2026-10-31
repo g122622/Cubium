@@ -68,7 +68,7 @@ TEST_F(EnchantmentRegistryTest, GetFortuneEnchantment)
     EXPECT_EQ(fortune->id(), "minecraft:fortune");
     EXPECT_EQ(fortune->minLevel(), 1);
     EXPECT_EQ(fortune->maxLevel(), 3);
-    EXPECT_EQ(fortune->type(), EnchantmentType::Digger);
+    EXPECT_EQ(fortune->type(), EnchantmentType::DiggerLoot);
     EXPECT_EQ(fortune->rarity(), EnchantmentRarity::Rare);
 }
 
@@ -79,7 +79,7 @@ TEST_F(EnchantmentRegistryTest, GetSilkTouchEnchantment)
     EXPECT_EQ(silkTouch->id(), "minecraft:silk_touch");
     EXPECT_EQ(silkTouch->minLevel(), 1);
     EXPECT_EQ(silkTouch->maxLevel(), 1); // 精准采集只有 I 级
-    EXPECT_EQ(silkTouch->type(), EnchantmentType::Digger);
+    EXPECT_EQ(silkTouch->type(), EnchantmentType::DiggerLoot);
     EXPECT_EQ(silkTouch->rarity(), EnchantmentRarity::VeryRare);
 }
 
@@ -230,7 +230,7 @@ TEST(SilkTouchEnchantmentTest, Properties)
     EXPECT_EQ(silkTouch.id(), "minecraft:silk_touch");
     EXPECT_EQ(silkTouch.minLevel(), 1);
     EXPECT_EQ(silkTouch.maxLevel(), 1);
-    EXPECT_EQ(silkTouch.type(), EnchantmentType::Digger);
+    EXPECT_EQ(silkTouch.type(), EnchantmentType::DiggerLoot);
     EXPECT_EQ(silkTouch.rarity(), EnchantmentRarity::VeryRare);
 }
 
@@ -358,7 +358,7 @@ TEST_F(EnchantmentContainerTest, HasEnchantmentType)
 
     container.set("minecraft:fortune", 3);
 
-    EXPECT_TRUE(container.hasType(EnchantmentType::Digger));
+    EXPECT_TRUE(container.hasType(EnchantmentType::DiggerLoot));
     EXPECT_FALSE(container.hasType(EnchantmentType::Weapon));
 }
 

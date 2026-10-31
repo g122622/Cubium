@@ -226,7 +226,7 @@ TEST_F(DensityEnchantmentTest, Properties)
     EXPECT_EQ(density.id(), "minecraft:density");
     EXPECT_EQ(density.minLevel(), 1);
     EXPECT_EQ(density.maxLevel(), 5);
-    EXPECT_EQ(density.type(), EnchantmentType::Weapon);
+    EXPECT_EQ(density.type(), EnchantmentType::Mace);
     // weight=5 → Uncommon（见原版 data/minecraft/enchantment/density.json）
     EXPECT_EQ(density.rarity(), EnchantmentRarity::Uncommon);
     EXPECT_FALSE(density.isTreasure());
