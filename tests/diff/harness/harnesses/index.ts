@@ -72,6 +72,7 @@ import { instrumentInput } from "./instrument.ts";
 import { bannerPatternInput } from "./banner_pattern.ts";
 import { enchantmentProviderInput, enchantmentProviderUnits } from "./enchantment_provider.ts";
 import { trialSpawnerConfigInput, trialSpawnerConfigUnits } from "./trial_spawner_config.ts";
+import { dimensionTypeInput } from "./dimension_type.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -603,6 +604,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "trial_spawner_config", probe: "trial_spawner_config", oracle: "TrialSpawnerConfigOracle",
         key: "config", units: { kind: "computed", units: trialSpawnerConfigUnits },
         input: trialSpawnerConfigInput },
+    // 维度类型：高度三项、坐标缩放、天空盒、刷怪光照与 attributes 计数。
+    { name: "dimension_type", probe: "dimension_type", oracle: "DimensionTypeOracle",
+        key: "dimensionType", units: { kind: "listing" }, input: dimensionTypeInput },
+
 
 
     // 伤害类型标签：每个标签包含哪些伤害类型（集合语义）。纯数据查表。
