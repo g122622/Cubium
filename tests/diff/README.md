@@ -382,6 +382,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `explosion_seen_grid` | 原版 jar `ExplosionSeenGridOracle` | 10 种碰撞箱 | 全部一致 | 纯计算，绕开 `-ffast-math`（见下文） |
 | `entity_dimensions` | 原版 jar `EntityDimensionsOracle` | 12 种尺寸 × 位置组合 | 全部一致 | 纯计算，Cubium 无此类（见下文） |
 | `mob_effect_merge` | 原版 jar `MobEffectMergeOracle` | 16 种叠加组合 | 全部一致 | 纯计算，Cubium 无 `update()`（见下文） |
+| `food_stats` | 原版 jar `FoodStatsOracle` | 20 种变化组合 | 全部一致 | 纯计算，暴露一处下界钳制差异（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1173,6 +1174,45 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 新能力 food_stats：一处下界钳制差异，与一次被源码纠正的误判
+
+第 77 个能力，20 种变化组合全部一致。
+
+#### 差异：`add` 缺少下界钳制
+
+原版 `FoodData.add`：
+
+```java
+this.foodLevel       = Mth.clamp(food + this.foodLevel, 0, 20);
+this.saturationLevel = Mth.clamp(saturation + this.saturationLevel, 0.0F, (float) this.foodLevel);
+```
+
+Cubium 的 `FoodStats::addStats` 写的是 `std::min(m_foodLevel + food, MAX_FOOD_LEVEL)`——
+**只钳上界，没有下界**。`food + foodLevel < 0` 时会得到负饥饿值，而原版是 0。
+
+实测 `add|-25|0|10|3` 得到 `foodLevel=0, saturationLevel=0`，正是下界把它抬回来的结果。
+
+#### 另一处差异：两次 clamp 的顺序
+
+饱和度上界用的是**刚更新过的** `foodLevel`，不是旧的。先算饱和度再更新饥饿值会得到不同
+结果。场景表里的 `add|-20|5|10|3` 专门压这条：饥饿值先被钳到 0，饱和度上界随之变成 0。
+
+#### 一次被源码纠正的误判
+
+我最初只读到 `addExhaustion` 的一段片段，据此写下「原版没有上限，Cubium 加了 `min(x, 40)`
+是多余限制」。后来完整读 `FoodData.java` 才发现原版那一行就是：
+
+```java
+public void addExhaustion(float e) {
+    this.exhaustionLevel = Math.min(this.exhaustionLevel + e, 40.0F);
+}
+```
+
+**Cubium 在这里是对的**，是我的片段阅读出了错。探针注释已改正。
+
+这是这一系列工作中第三次出现「只读片段就下结论」的问题（前两次分别是要塞的常量种子与
+扫描步长）。**读源码必须读完整的方法体**，否则「发现差异」本身可能是幻觉。
 
 ### 新能力 mob_effect_merge：`hiddenEffect` 的降级回退
 

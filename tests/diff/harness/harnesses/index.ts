@@ -78,6 +78,7 @@ import { explosionDamageInput } from "./explosion_damage.ts";
 import { explosionSeenGridInput } from "./explosion_seen_grid.ts";
 import { entityDimensionsInput } from "./entity_dimensions.ts";
 import { mobEffectMergeInput } from "./mob_effect_merge.ts";
+import { foodStatsInput } from "./food_stats.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -628,6 +629,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 药水效果叠加合并：三层分支 + hiddenEffect 降级回退，纯计算。
     { name: "mob_effect_merge", probe: "mob_effect_merge", oracle: "MobEffectMergeOracle",
         key: "unit", units: { kind: "listing" }, input: mobEffectMergeInput },
+    // 饥饿值与饱和度：两次 clamp 的顺序、下界钳制、exhaustion 上限，纯计算。
+    { name: "food_stats", probe: "food_stats", oracle: "FoodStatsOracle",
+        key: "unit", units: { kind: "listing" }, input: foodStatsInput },
+
 
 
 
