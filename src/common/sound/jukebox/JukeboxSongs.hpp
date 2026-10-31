@@ -26,6 +26,7 @@
 #include "JukeboxSong.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -73,6 +74,16 @@ public:
      * @return 歌曲指针，如果未找到返回 nullptr
      */
     [[nodiscard]] static const JukeboxSong* getSongBySoundEvent(const ResourceLocation& soundEventId);
+
+    /**
+     * @brief 遍历全部已注册的歌曲
+     *
+     * 供差分测试（`jukebox_song` 能力）枚举全集使用：注册表内部是无序 map，
+     * 调用方需要自行排序后再比较。
+     *
+     * @param callback 对每首歌曲的 ID 与对象调用
+     */
+    static void forEachSong(const std::function<void(const ResourceLocation&, const JukeboxSong&)>& callback);
 
     /**
      * @brief 检查注册表是否已初始化

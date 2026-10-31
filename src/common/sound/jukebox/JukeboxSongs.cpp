@@ -159,6 +159,13 @@ const JukeboxSong* JukeboxSongs::getSongBySoundEvent(const ResourceLocation& sou
     return getSong(it->second);
 }
 
+void JukeboxSongs::forEachSong(const std::function<void(const ResourceLocation&, const JukeboxSong&)>& callback)
+{
+    for (const auto& [id, song] : s_songs) {
+        callback(id, song);
+    }
+}
+
 void JukeboxSongs::registerSong(const ResourceLocation& songId,
     const ResourceLocation& soundEventId,
     std::string descriptionKey,

@@ -60,6 +60,7 @@ import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { blockSupportInput } from "./block_support.ts";
 import { foodPropertiesInput } from "./food_properties.ts";
 import { ENTITY_TYPE_TAGS, ENTITY_TYPE_TAGS_UNORDERED, entityTypeTagsInput } from "./entity_type_tags.ts";
+import { jukeboxSongInput } from "./jukebox_song.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -510,6 +511,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         units: { kind: "computed", units: () => [...ENTITY_TYPE_TAGS] },
         input: entityTypeTagsInput,
         unorderedArrays: ENTITY_TYPE_TAGS_UNORDERED },
+    // 唱片机歌曲：声音事件 / 翻译键 / 时长 / 比较器输出。纯数据查表。
+    { name: "jukebox_song", probe: "jukebox_song", oracle: "JukeboxSongOracle", key: "song",
+        units: { kind: "listing" }, input: jukeboxSongInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

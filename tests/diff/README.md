@@ -356,6 +356,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文（218 → 75 处） | 部分（见「已知缺口」） |
 | `food_properties` | 原版 jar `FoodPropertiesOracle` | 44 种带食物的物品 | 全部一致 | — |
 | `entity_type_tags` | 原版 jar `EntityTypeTagsOracle` | 46 个实体类型标签 | 全部一致 | — |
+| `jukebox_song` | 原版 jar `JukeboxSongOracle` | 21 首唱片机歌曲 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1017,6 +1018,21 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 唱片机歌曲：两处「比较口径」而非数据缺陷
+
+`jukebox_song` 比较 21 首歌的声音事件、描述翻译键、时长、比较器输出。首轮 21/21
+全差异，但**没有一处是数据错的**，全是比较口径没对齐：
+
+1. **描述该取翻译键而不是渲染结果**。我最初用 `Component.getString()`，它会把组件
+   解析成当前语言下的显示文本（`"C418 - 11"`），而 Cubium 存的是原始键
+   `jukebox_song.minecraft.11`。本能力比的是数据本身，不是渲染结果，改为取
+   `TranslatableContents.getKey()`。
+
+2. **`%g` 在两个语言里的尾零处理不同**。同一个 `178.0f`，C++ 的 `%.6g` 打成 `"178"`，
+   Java 的却打成 `"178.000"`。统一为「6 位有效数字再去掉尾随零」，即 Java
+   `Float.toString` 的口径。这个坑在 `food_properties` 里已经踩过一次，这里是同一个
+   问题换了个字段——凡是比较 f32 的地方都得留意。
 
 ### 方块支撑：用「探针直接打印」代替几何推理
 
