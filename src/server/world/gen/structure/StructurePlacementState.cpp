@@ -175,35 +175,41 @@ const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPosition
         return stored;
     }
 
-    const auto& seeds = concentric.getRingPositions(0);
+    const auto& layout = concentric.generateRingLayout(0);
     const auto& preferred = concentric.preferredBiomes();
 
-    // 原版 `ChunkGeneratorStructureState.generateRingPositions`：先用常量种子 0 的
-    // LegacyRandomSource 算出每个要塞的搜索起点，再**边算边 fork**——fork 出的随机源
-    // 用于该要塞的生物群系搜索，因此它反映了此前所有起点消耗掉的随机数。
+    // 原版 `ChunkGeneratorStructureState.generateRingPositions` 在**同一条随机流**里
+    // 边算起点边 fork：
     //
-    // 注意这里的 rng 必须用 concentricRingsSeed（常量 0）初始化，而不是世界种子：
-    // fork 序列只取决于消耗了几个随机数，与种子无关。要塞的种子相关性完全来自
-    // 「搜索到的生物群系位置」——不同种子下群系不同，改写后的坐标自然不同。
-    math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
-    rng.setSeed(0);
-
+    //   RandomSource randomsource = RandomSource.create();
+    //   randomsource.setSeed(concentricRingsSeed);   // 常量 0
+    //   double d0 = randomsource.nextDouble() * PI * 2.0;
+    //   for (...) {
+    //       double d1 = ... randomsource.nextDouble() ...;   // 半径扰动
+    //       RandomSource randomsource1 = randomsource.fork();// <- 同一个流上 fork
+    //       ... 用 randomsource1 做生物群系搜索 ...
+    //       d0 += (PI * 2) / k;
+    //       if (换环) d0 += randomsource.nextDouble() * PI * 2.0;
+    //   }
+    //
+    // fork 序列因此取决于「此前每个起点消耗了多少随机数」。此前这里把半径/角度扰动
+    // 留在 `generateRingPositions` 内部、又在外面新建一条 rng 来 fork，两条流并不
+    // 相干，fork 到的随机源与原版完全不同。
+    //
+    // 现在由 `generateRingLayout` 在同一条流上取 fork 种子并随起点一起带出。
     std::vector<world::chunk::ChunkPos> result;
-    result.reserve(seeds.size());
-    for (i32 index = 0; index < static_cast<i32>(seeds.size()); ++index) {
-        const auto& seed = seeds[static_cast<size_t>(index)];
+    result.reserve(layout.size());
+    for (const auto& entry : layout) {
         // 原版 `LegacyRandomSource.fork()` 就是 `new LegacyRandomSource(nextLong())`。
-        auto fork = std::make_unique<math::JavaLegacyRandom>(static_cast<u64>(rng.nextLong()));
+        math::JavaLegacyRandom fork(entry.forkSeed);
         // 结构生成走的是 8 参数重载，它内部固定步长 1、findClosest = false。
-        const auto found = _findBiomeHorizontal(seed.x * 16 + 8, 0, seed.z * 16 + 8, 112, 1, preferred, *fork);
+        const auto found =
+            _findBiomeHorizontal(entry.chunk.x * 16 + 8, 0, entry.chunk.z * 16 + 8, 112, 1, preferred, fork);
         if (found.has_value()) {
             result.emplace_back(static_cast<i32>(found->x >> 4), static_cast<i32>(found->z >> 4));
         } else {
-            result.push_back(seed);
+            result.push_back(entry.chunk);
         }
-        // 原版的 rng 在生成起点时已经推进过，这里模拟同样的推进量：每个起点消耗
-        // 一次 nextDouble（半径扰动）+ 一次 nextDouble（换环时的角度扰动）。
-        (void)rng.nextDouble();
     }
 
     // 回填到放置规则，让后续新建的判定状态直接复用（见上面的缓存读取）。

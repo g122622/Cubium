@@ -125,6 +125,25 @@ public:
      */
     const std::vector<world::chunk::ChunkPos>& getRingPositions(i64 worldSeed) const;
 
+    /**
+     * @brief 一个要塞的「搜索起点 + 该点专用的 fork 种子」
+     *
+     * 原版在算出每个起点的同时就对同一个 `randomsource` 调一次 `fork()`，把结果交给
+     * 该起点的生物群系搜索。`forkSeed` 就是那次 `fork()` 取走的 `nextLong()`。
+     */
+    struct RingEntry {
+        world::chunk::ChunkPos chunk;
+        u64 forkSeed = 0;
+    };
+
+    /**
+     * @brief 生成全部要塞的搜索起点与各自的 fork 种子
+     *
+     * 与 `generateRingPositions` 是同一套算法，额外带出 fork 种子，供调用方复刻
+     * 原版「同一条随机流里边算起点边 fork」的消耗顺序。
+     */
+    [[nodiscard]] std::vector<RingEntry> generateRingLayout(i64 worldSeed) const;
+
 private:
     /**
      * @brief 生成所有环形位置

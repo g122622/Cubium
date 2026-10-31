@@ -1165,6 +1165,43 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 要塞：合并随机源后仍未命中，转向新增能力
+
+上一轮记录的怀疑点是「`generateRingPositions` 内部的 rng 与外层 fork 用的 rng 不是同一个」。
+原版确实在同一条流里边算起点边 fork：
+
+```java
+RandomSource randomsource = RandomSource.create();
+randomsource.setSeed(concentricRingsSeed);
+double d0 = randomsource.nextDouble() * PI * 2.0;
+for (...) {
+    double d1 = ... randomsource.nextDouble() ...;    // 半径扰动
+    RandomSource randomsource1 = randomsource.fork(); // <- 同一个流上 fork
+    d0 += (PI * 2) / k;
+    if (换环) d0 += randomsource.nextDouble() * PI * 2.0;
+}
+```
+
+已按此改造：`generateRingLayout` 在同一条随机流上取 fork 种子并随起点一起带出，
+`StructurePlacementState` 直接用它构造搜索随机源。
+
+**结果：仍是 47 处差异，要塞依然一个都不生成。**
+
+到此为止，要塞问题已经排除了五个方向：
+
+| 方向 | 结论 |
+|---|---|
+| 环容量递推 / 半径公式 | 正确（序列 3,6,10,15,21 正确，半径 107~1507 与原版量级一致） |
+| `preferredBiomes` | 已修复（37 个，ID 空间一致且能命中） |
+| 群系采样 `getNoiseBiome` | 已验证返回正确群系 |
+| 扫描参数（方向 / 步长 / 边缘） | 已按 8 参数重载修正 |
+| fork 随机源是否同一流 | 已合并，无变化 |
+
+`structure_starts` 的要塞部分到此**暂停深挖**，改为记录状态、转向新增能力。理由：连续三轮
+都在这一个能力上深挖，每轮都修掉真实缺陷，但差异数没有动过。持续新增能力才是这个任务的
+本意，继续单点深挖的投入产出比已经不划算。
+
+要塞仍然是一个明确的缺口，留给后续单独处理。
 ### 要塞搜索：三个参数猜错，逐一被源码否证
 
 上一轮记下的 TODO 是「`k1` 的递增步长应为 `spread` 而非 1」。本轮逐参数对照原版

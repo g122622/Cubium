@@ -64,8 +64,20 @@ ConcentricRingsStructurePlacement::ConcentricRingsStructurePlacement(
 
 std::vector<world::chunk::ChunkPos> ConcentricRingsStructurePlacement::generateRingPositions(i64 worldSeed) const
 {
+    const auto full = generateRingLayout(worldSeed);
     std::vector<world::chunk::ChunkPos> positions;
-    positions.reserve(static_cast<size_t>(m_count));
+    positions.reserve(full.size());
+    for (const auto& entry : full) {
+        positions.push_back(entry.chunk);
+    }
+    return positions;
+}
+
+std::vector<ConcentricRingsStructurePlacement::RingEntry> ConcentricRingsStructurePlacement::generateRingLayout(
+    i64 worldSeed) const
+{
+    std::vector<RingEntry> result;
+    result.reserve(static_cast<size_t>(m_count));
 
     // 原版 ChunkGeneratorStructureState.generateRingPositions 用 RandomSource.create()
     // （即 LegacyRandomSource）再 setSeed(concentricRingsSeed)。
@@ -104,7 +116,15 @@ std::vector<world::chunk::ChunkPos> ConcentricRingsStructurePlacement::generateR
             (rng.nextDouble() - 0.5) * (baseDistance * 2.5);
         const f64 chunkX = std::round(std::cos(angle) * radius);
         const f64 chunkZ = std::round(std::sin(angle) * radius);
-        positions.emplace_back(static_cast<i32>(chunkX), static_cast<i32>(chunkZ));
+
+        // 原版紧接在算出 (k1, l1) 之后、角度步进之前调用 `randomsource.fork()`，
+        // 即 `RandomSource.create(nextLong())`。fork 必须与半径/角度扰动消耗**同一个**
+        // 随机源，否则 fork 序列反映不了前面已经发生的消耗。这里把该种子一并带出去，
+        // 交给调用方构造生物群系搜索用的随机源。
+        RingEntry entry;
+        entry.chunk = world::chunk::ChunkPos(static_cast<i32>(chunkX), static_cast<i32>(chunkZ));
+        entry.forkSeed = static_cast<u64>(rng.nextLong());
+        result.push_back(entry);
 
         angle += (2.0 * math::PI_DOUBLE) / static_cast<f64>(ringCapacity);
         if (++inRing == ringCapacity) {
@@ -116,13 +136,7 @@ std::vector<world::chunk::ChunkPos> ConcentricRingsStructurePlacement::generateR
         }
     }
 
-    // TODO: 原版在算出 (chunkX, chunkZ) 之后还会用 `biomeSource.findBiomeHorizontal(..., 112, ...)`
-    // 在半径 112 区块内搜索 `preferredBiomes`，找到就把要塞挪到该生物群系，找不到才用原坐标。
-    // 本类目前没有生物群系源，这一步尚未实现——要塞会落在坐标算出来的位置，而不是
-    // 像原版那样偏向 `#minecraft:stronghold_biased_to` 指定的生物群系。
-    // 补齐需要把 IBiomeSource 传进放置器，并复刻 findBiomeHorizontal 的采样顺序。
-
-    return positions;
+    return result;
 }
 
 const std::vector<world::chunk::ChunkPos>& ConcentricRingsStructurePlacement::getRingPositions(i64 worldSeed) const
