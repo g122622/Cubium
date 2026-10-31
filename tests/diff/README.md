@@ -380,6 +380,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `explosion_ray` | 原版 jar `ExplosionRayOracle` | 6 个场景 × 8 个种子 = 48 | 全部一致 | 纯计算，不依赖世界（见下文） |
 | `explosion_damage` | 原版 jar `ExplosionDamageOracle` | 6 半径 × 8 距离 × 5 可见度 × 2 抗性 = 480 | 全部一致 | 纯计算，暴露两处口径差异（见下文） |
 | `explosion_seen_grid` | 原版 jar `ExplosionSeenGridOracle` | 10 种碰撞箱 | 全部一致 | 纯计算，绕开 `-ffast-math`（见下文） |
+| `entity_dimensions` | 原版 jar `EntityDimensionsOracle` | 12 种尺寸 × 位置组合 | 全部一致 | 纯计算，Cubium 无此类（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1171,6 +1172,42 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 新能力 entity_dimensions：三条容易写错的公式
+
+第 75 个能力，12 种「尺寸 × 缩放 × 位置」组合全部一致。Cubium 目前**没有**
+`EntityDimensions` 也没有 `EntityAttachments`，所以探针自带一份实现——本能力覆盖的是
+**公式**（眼睛高度比例、缩放规则、包围盒展开），而不是「实体的宽高表是否正确」。
+
+#### 三条容易写错的公式
+
+**1. 眼睛高度只按高度缩放。** 原版：
+
+```java
+public EntityDimensions scale(float w, float h) {
+    return new EntityDimensions(this.width * w, this.height * h,
+                                this.eyeHeight * h, ...);   // <- 乘 h，不是 w
+}
+```
+
+写成 `eyeHeight * w` 在宽高比不等于 1 的实体上立刻出错。实测验证：
+
+| 输入 | `scaledEyeHeight` |
+|---|---|
+| `0.6 / 1.8` 只缩宽 0.5 | **1.53**（不变） |
+| `0.6 / 1.8` 只缩高 0.5 | **0.765**（减半） |
+
+**2. 包围盒以中心为基准，不是脚底某角。** X/Z 是 `x ± width/2`，Y 是 `[y, y + height]`
+（脚底在 y）。宽扁体 `4 × 0.5` 的实测结果是 `bboxMinX=-2, bboxMaxX=2`——半径是
+`width/2 = 2`，若误用 `width` 会得到 ±4。
+
+**3. 默认眼睛高度 = `height * 0.85F`**，在构造器里算好，`scale` 时再按高度乘一次。
+
+#### 一处精度细节
+
+`f = width / 2.0F` 是 **float**，而位置 `x` 是 **double**。`x - f` 里 `f` 先提升到 double
+再相减。C++ 侧必须保持同样的提升顺序，否则在大坐标（如 `-1234.5`）下会差 ulp。
+场景表里专门放了两个大坐标用例来压这一点。
 
 ### 新能力 explosion_seen_grid：`-ffast-math` 与 2.78e-17
 

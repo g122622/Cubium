@@ -76,6 +76,7 @@ import { dimensionTypeInput } from "./dimension_type.ts";
 import { explosionRayInput, explosionRayUnits } from "./explosion_ray.ts";
 import { explosionDamageInput } from "./explosion_damage.ts";
 import { explosionSeenGridInput } from "./explosion_seen_grid.ts";
+import { entityDimensionsInput } from "./entity_dimensions.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -620,6 +621,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 爆炸可见度采样网格：碰撞箱 → 步长 / 偏移 / 采样点数与坐标序列，纯计算。
     { name: "explosion_seen_grid", probe: "explosion_seen_grid", oracle: "ExplosionSeenGridOracle",
         key: "unit", units: { kind: "listing" }, input: explosionSeenGridInput },
+    // 实体尺寸与包围盒：眼睛高度比例、缩放规则、包围盒展开，纯计算。
+    { name: "entity_dimensions", probe: "entity_dimensions", oracle: "EntityDimensionsOracle",
+        key: "unit", units: { kind: "listing" }, input: entityDimensionsInput },
+
 
 
 
