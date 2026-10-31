@@ -361,6 +361,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
+| `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 见下文（28 处） | 部分（见「已知缺口」） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1022,6 +1023,37 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 附魔适用性：枚举归纳 vs 标签判定，28 个附魔对不上
+
+`enchantment_applicability` 对每个附魔逐个物品问「能不能附上去」，比的是**最终物品集合**。
+43 个附魔里 **28 个与原版不符**——这是目前发现的最大一处系统性偏差。
+
+根因在表示方式：原版直接读数据包的 `supported_items` 物品标签引用（如
+`#minecraft:enchantable/sharp_weapon`）；Cubium 的附魔定义是硬编码的，没有这个字段，
+改用 `EnchantmentType` 枚举**归纳**原版标签，再由 `canApplyToItem` 按物品类型判定。
+
+差异分四类：
+
+| 模式 | 附魔 | 规模 | 根因 |
+|---|---|---|---|
+| 过度宽泛 | `binding_curse`、`vanishing_curse`、`mending`、`unbreaking` | 仅 Cubium 有 1000+ | `EnchantmentType::All` 直接 `return true` |
+| 漏掉武器 | `sharpness`、`smite`、`bane_of_arthropods`、`fire_aspect`、`knockback`、`looting` | 仅原版有 ~14-22 | `Weapon` 只认剑与三叉戟，不认斧、矛 |
+| 护甲细分未落实 | `aqua_affinity`、`respiration`（应限头盔）；`depth_strider`、`frost_walker`、`soul_speed`、`swift_sneak`（应限靴子） | 仅 Cubium 有 ~22-23 | 统一按「是护甲」放行 |
+| 少量偏差 | `breach`、`density`、`wind_burst`、`efficiency`、四种保护 | 各 1 | 个别物品判定 |
+
+前两类的玩法后果很直观：
+
+- **给任意物品都能附耐久/经验修补/诅咒**——包括泥土、空气、刷怪蛋。原版里这些只能附在
+  可损坏物品上。
+- **斧子附不了锋利**。原版 `#enchantable/melee_weapon` 含斧与矛，Cubium 的 `Weapon`
+  类型只匹配剑和三叉戟。
+
+修这一类需要把 `EnchantmentType` 枚举换成真实的 `supported_items` 物品标签引用，
+是附魔系统的结构性改动，会波及附魔台、铁砧、交易、战利品等所有调用方。
+
+TODO: 按上表四类逐步替换 `canApplyToItem` 的类型判定为标签判定。优先级：先修
+`EnchantmentType::All` 的兜底（影响面最大），再补武器类，最后处理护甲细分。
 
 ### 附魔代价曲线：43 个附魔逐级比对，全对
 

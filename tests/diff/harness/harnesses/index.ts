@@ -65,6 +65,7 @@ import { ENCHANTMENT_TAGS_UNORDERED, enchantmentTagsInput } from "./enchantment_
 import { paintingVariantInput } from "./painting_variant.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
+import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -532,6 +533,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 附魔等级与代价曲线：最高等级 / 铁砧代价 / 每级的附魔台等级区间。
     { name: "enchantment_cost", probe: "enchantment_cost", oracle: "EnchantmentCostOracle", key: "enchantment",
         units: { kind: "listing" }, input: enchantmentCostInput },
+    // 附魔适用性：每个附魔能附到哪些物品上（集合语义）。
+    { name: "enchantment_applicability", probe: "enchantment_applicability", oracle: "EnchantmentApplicabilityOracle",
+        key: "enchantment", units: { kind: "listing" }, input: enchantmentApplicabilityInput,
+        unorderedArrays: ENCHANTMENT_APPLICABILITY_UNORDERED },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
