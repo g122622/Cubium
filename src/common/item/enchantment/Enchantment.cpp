@@ -26,6 +26,7 @@
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
+#include "common/item/items/tool/ShearsItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
 #include "common/item/items/tool/ToolItem.hpp"
 #include "common/item/items/trial/MaceItem.hpp"
@@ -74,6 +75,27 @@ bool Enchantment::canApplyAtEnchantingTable(const ItemStack& stack) const
     return canApplyToItem(stack);
 }
 
+namespace {
+
+/**
+ * @brief 是否为动物铠甲（马铠 / 狼铠 / 鹦鹉螺铠）
+ *
+ * 它们都是 `ArmorItem` 且带耐久，但原版**不在任何 enchantable 标签里**，
+ * 因此不能附保护、耐久、经验修补、消失诅咒等附魔。
+ * 目前按物品 ID 后缀近似判定；接入物品标签后可替换。
+ *
+ * TODO: 接入 `#minecraft:enchantable/` 系列与 `#minecraft:horse_armors` 等标签后
+ * 删除这段按 ID 后缀的近似判定。
+ */
+bool _isAnimalArmor(const Item& item)
+{
+    const auto& id = item.itemLocation().path();
+    return (id.size() > 11 && id.substr(id.size() - 11) == "_horse_armor") || id == "wolf_armor" ||
+        (id.size() > 13 && id.substr(id.size() - 13) == "_nautilus_armor");
+}
+
+} // namespace
+
 bool Enchantment::canApplyToItem(const ItemStack& stack) const
 {
     // 对应原版 1.21 `Enchantment.isSupportedItem`（`supported_items` 标签）。
@@ -86,6 +108,44 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
     const Item* item = stack.getItem();
     if (item == nullptr) {
         return false;
+    }
+
+    // 武器类附魔先统一判定，避免在 switch 里跨 case 定义局部变量。
+    // 三种武器物品的继承链各不相同，无法靠 `ToolItem` 统一识别：
+    //   - 剑 `SwordItem : public TieredItem`（不继承 ToolItem）
+    //   - 重锤 `MaceItem : public Item`（不继承 ToolItem）
+    //   - 矛 `SpearItem : public tool::TieredItem`（独立类）
+    // 斧走正常的 `ToolItem`。此前代码假设「剑走 ToolItem」，导致锋利等附魔
+    // 根本识别不到剑（由差分能力 enchantment_applicability 查出）。
+    {
+        const bool isSword = dynamic_cast<const item::tool::SwordItem*>(item) != nullptr;
+        const bool isSpear = dynamic_cast<const item::SpearItem*>(item) != nullptr;
+        const bool isMace = dynamic_cast<const item::MaceItem*>(item) != nullptr;
+        const auto* weaponTool = dynamic_cast<const item::tool::ToolItem*>(item);
+        const bool isAxe = weaponTool != nullptr && weaponTool->getToolType() == item::tool::ToolType::Axe;
+
+        switch (type()) {
+            // 原版 `#enchantable/weapon` = 剑 ∪ 矛 ∪ 斧 ∪ 重锤
+            case EnchantmentType::Weapon:
+                return isSword || isSpear || isAxe || isMace;
+            // 原版 `#enchantable/sharp_weapon` = 剑 ∪ 矛 ∪ 斧（**不含重锤**）
+            case EnchantmentType::SharpWeapon:
+                return isSword || isSpear || isAxe;
+            // 原版 `#enchantable/melee_weapon` = 剑 ∪ 矛
+            case EnchantmentType::MeleeWeapon:
+                return isSword || isSpear;
+            // 原版 `#enchantable/fire_aspect` = 剑 ∪ 矛 ∪ 重锤（**不含斧**）
+            case EnchantmentType::FireAspectWeapon:
+                return isSword || isSpear || isMace;
+            // 原版 `#enchantable/sweeping` = 仅剑
+            case EnchantmentType::SweepingWeapon:
+                return isSword;
+            // 原版 `#enchantable/lunge` = 仅矛
+            case EnchantmentType::LungeWeapon:
+                return isSpear;
+            default:
+                break;
+        }
     }
 
     switch (type()) {
@@ -128,32 +188,15 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
                     return false;
             }
         }
-        case EnchantmentType::Weapon: {
-            // 原版 `#enchantable/sharp_weapon` = `#enchantable/melee_weapon` ∪ `#axes`
-            //                          = (剑 ∪ 矛) ∪ 斧
-            // 此前这里只认剑与三叉戟：斧与矛被漏掉（导致「斧子附不了锋利」），
-            // 三叉戟则被误收（三叉戟属于 `#enchantable/trident`，有自己的附魔池）。
-            // 由差分能力 enchantment_applicability 查出：sharpness / smite /
-            // bane_of_arthropods / fire_aspect / knockback / looting 各差 14-22 个物品。
-            if (dynamic_cast<const item::SpearItem*>(item) != nullptr) {
-                return true;
-            }
-            // 剑不继承 `ToolItem`（`SwordItem : public TieredItem`），因此必须按类型
-            // 直接判定；此前走 `dynamic_cast<ToolItem*>` 永远拿到 nullptr，
-            // 导致「锋利附不到剑上」。
-            if (dynamic_cast<const item::tool::SwordItem*>(item) != nullptr) {
-                return true;
-            }
-            // 重锤 `MaceItem` 直接继承 `Item`，不是 `ToolItem`，必须单独判类型。
-            // 它属于 `#enchantable/weapon`（= sharp_weapon ∪ mace）。
-            if (dynamic_cast<const item::MaceItem*>(item) != nullptr) {
-                return true;
-            }
-            const auto* toolItem = dynamic_cast<const item::tool::ToolItem*>(item);
-            return toolItem != nullptr && toolItem->getToolType() == item::tool::ToolType::Axe;
-        }
         case EnchantmentType::Digger: {
             // 原版 `#minecraft:enchantable/mining` = 镐 / 斧 / 铲 / 锄 / 剪刀
+            //
+            // 剪刀 `ShearsItem` 直接继承 `Item`，不是 `ToolItem`，必须单独判类型——
+            // 否则「效率附不到剪刀上」。这是本项目里同一模式的第三例
+            // （前两例是 `SwordItem` 与 `MaceItem`）。
+            if (dynamic_cast<const item::tool::ShearsItem*>(item) != nullptr) {
+                return true;
+            }
             const auto* toolItem = dynamic_cast<const item::tool::ToolItem*>(item);
             if (toolItem == nullptr) {
                 return false;
@@ -171,6 +214,18 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
             }
             return false;
         }
+        case EnchantmentType::DiggerLoot: {
+            // 原版 `#enchantable/mining_loot` = 镐 / 斧 / 铲 / 锄，**不含剪刀**。
+            // 时运与精准采集用它；效率用 `Digger`（`#enchantable/mining`，含剪刀）。
+            // 此前三者共用一个类型，导致剪刀被误判为可附时运/精准采集。
+            const auto* toolItem = dynamic_cast<const item::tool::ToolItem*>(item);
+            if (toolItem == nullptr) {
+                return false;
+            }
+            const auto toolType = toolItem->getToolType();
+            return toolType == item::tool::ToolType::Pickaxe || toolType == item::tool::ToolType::Axe ||
+                toolType == item::tool::ToolType::Shovel || toolType == item::tool::ToolType::Hoe;
+        }
         case EnchantmentType::FishingRod:
             return dynamic_cast<const item::FishingRodItem*>(item) != nullptr;
         case EnchantmentType::Bow:
@@ -179,11 +234,20 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
             return dynamic_cast<const item::CrossbowItem*>(item) != nullptr;
         case EnchantmentType::Trident:
             return dynamic_cast<const item::TridentItem*>(item) != nullptr;
+        case EnchantmentType::Mace:
+            // 原版 `#enchantable/mace` 只含重锤。破甲、密度、风爆三个附魔属于这里，
+            // 此前它们被标成 `Weapon`，于是斧、剑、矛全都能附（各多判 21 个物品）。
+            return dynamic_cast<const item::MaceItem*>(item) != nullptr;
         case EnchantmentType::Breakable:
             // 原版 `#enchantable/durability`：有耐久的物品。
             // 此前这里直接 `return true`，导致经验修补、耐久能附到泥土、空气、
             // 刷怪蛋等任意物品上（每种差 1124 个物品）。
-            return item->isDamageable();
+            //
+            // 但**动物铠甲**（马铠、狼铠、鹦鹉螺铠）虽然也有耐久，却不在该标签里
+            // （由差分能力 enchantment_applicability 查出：`wolf_armor` 被误判为
+            // 可附 mending / unbreaking / vanishing_curse）。它们不在任何
+            // `#enchantable/*` 标签中，因此这里统一排除。
+            return item->isDamageable() && !_isAnimalArmor(*item);
         case EnchantmentType::Wearable: {
             // 原版 `#enchantable/equippable` = 护甲四部件 ∪ 鞘翅 ∪ `#minecraft:skulls` ∪ 雕刻南瓜。
             // 这里覆盖护甲四部件与鞘翅；头颅与雕刻南瓜需要物品标签支持，
@@ -202,7 +266,8 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
         case EnchantmentType::Vanishable: {
             // 原版 `#enchantable/vanishing` = `#enchantable/durability` ∪ 指南针 ∪
             // 雕刻南瓜 ∪ `#minecraft:skulls`。
-            if (item->isDamageable()) {
+            // 动物铠甲不算 `durability`，与上面 Breakable 保持同一口径。
+            if (item->isDamageable() && !_isAnimalArmor(*item)) {
                 return true;
             }
             const auto itemId = item->itemLocation().path();
@@ -211,6 +276,14 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
                 (itemId.size() > 5 && itemId.substr(itemId.size() - 5) == "_head") ||
                 (itemId.size() > 6 && itemId.substr(itemId.size() - 6) == "_skull");
         }
+        // 武器类六种类型已在函数开头统一处理，这里不会走到。
+        case EnchantmentType::Weapon:
+        case EnchantmentType::SharpWeapon:
+        case EnchantmentType::MeleeWeapon:
+        case EnchantmentType::FireAspectWeapon:
+        case EnchantmentType::SweepingWeapon:
+        case EnchantmentType::LungeWeapon:
+            return false;
     }
     return true;
 }

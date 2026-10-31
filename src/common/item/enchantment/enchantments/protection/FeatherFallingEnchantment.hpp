@@ -65,6 +65,19 @@ public:
     {
         return EnchantmentRarity::Uncommon;
     }
+
+    /**
+     * @brief 附魔适用类型：只有靴子
+     *
+     * 原版 `supported_items` 是 `#minecraft:enchantable/foot_armor`。
+     * 此前没有覆写，继承了父类 `ProtectionEnchantment` 的 `Armor`，
+     * 于是头盔、胸甲、护腿也都能附（由差分能力 enchantment_applicability 查出：
+     * 多判 22 个物品）。
+     */
+    [[nodiscard]] EnchantmentType type() const noexcept override
+    {
+        return EnchantmentType::ArmorFeet;
+    }
 };
 
 } // namespace enchant

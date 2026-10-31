@@ -64,7 +64,7 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override
     {
-        return EnchantmentType::ArmorChest;
+        return EnchantmentType::Armor;
     }
 
     [[nodiscard]] i32 minLevel() const noexcept override

@@ -86,7 +86,7 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override
     {
-        return EnchantmentType::Weapon;
+        return EnchantmentType::Mace;
     }
 
     [[nodiscard]] EnchantmentRarity rarity() const noexcept override

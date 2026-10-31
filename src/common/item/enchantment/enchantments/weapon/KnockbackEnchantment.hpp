@@ -64,7 +64,7 @@ public:
 
     [[nodiscard]] EnchantmentType type() const override
     {
-        return EnchantmentType::Weapon;
+        return EnchantmentType::MeleeWeapon;
     }
 
     [[nodiscard]] i32 minLevel() const noexcept override
