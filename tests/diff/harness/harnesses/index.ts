@@ -61,6 +61,7 @@ import { blockSupportInput } from "./block_support.ts";
 import { foodPropertiesInput } from "./food_properties.ts";
 import { ENTITY_TYPE_TAGS, ENTITY_TYPE_TAGS_UNORDERED, entityTypeTagsInput } from "./entity_type_tags.ts";
 import { jukeboxSongInput } from "./jukebox_song.ts";
+import { ENCHANTMENT_TAGS_UNORDERED, enchantmentTagsInput } from "./enchantment_tags.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -514,6 +515,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 唱片机歌曲：声音事件 / 翻译键 / 时长 / 比较器输出。纯数据查表。
     { name: "jukebox_song", probe: "jukebox_song", oracle: "JukeboxSongOracle", key: "song",
         units: { kind: "listing" }, input: jukeboxSongInput },
+    // 附魔标签：每个标签包含哪些附魔（集合语义）。纯数据查表。
+    { name: "enchantment_tags", probe: "enchantment_tags", oracle: "EnchantmentTagsOracle", key: "tag",
+        units: { kind: "listing" }, input: enchantmentTagsInput,
+        unorderedArrays: ENCHANTMENT_TAGS_UNORDERED },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

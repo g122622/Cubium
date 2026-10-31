@@ -720,6 +720,8 @@ add_library(mc_common STATIC
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp
+    item/enchantment/EnchantmentTag.cpp
+    item/enchantment/EnchantmentTags.cpp
     item/enchantment/EnchantmentRegistry.cpp
     item/enchantment/EnchantmentContainer.cpp
     item/enchantment/EnchantmentHelper.cpp

@@ -357,6 +357,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `food_properties` | 原版 jar `FoodPropertiesOracle` | 44 种带食物的物品 | 全部一致 | — |
 | `entity_type_tags` | 原版 jar `EntityTypeTagsOracle` | 46 个实体类型标签 | 全部一致 | — |
 | `jukebox_song` | 原版 jar `JukeboxSongOracle` | 21 首唱片机歌曲 | 全部一致 | — |
+| `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1018,6 +1019,32 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 附魔标签：补上了一个结构性缺口
+
+`entity_type_tags` 那次是「探针漏了初始化」的假缺陷，`enchantment_tags` 这次则是**真的缺东西**：
+Cubium 原先只用 `Enchantment::isTreasure()` / `isCurse()` 两个硬编码虚函数表达标签语义，
+等于把数据包里的 22 个标签压成了 2 个开关。其余 20 个——附魔台能不能刷出
+（`in_enchanting_table`）、能不能交易（`tradeable`）、战利品与生物装备各自允许哪些、
+`exclusive_set/*` 的互斥组——都没有对应物。
+
+本能力为此新建了 `EnchantmentTags` 注册表，直接复用通用的两阶段加载器
+（`GenericTagLoader`），后者已经处理好了 `#` 引用的递归展开与循环依赖检测：
+
+```
+double_trade_price.json = { "values": ["#minecraft:treasure"] }
+```
+
+补完之后 **22/22 一致**，一个成员都没错。
+
+过程中确认了一件值得记的事：`exclusive_set/` 是**子目录**，第一次用
+`Get-ChildItem -Filter *.json` 只列了顶层 15 个文件，误以为全集就是 15 个。
+`GenericTagLoader` 是递归扫描的，那 7 个互斥组标签被自动发现并创建——
+这反过来验证了「加载器遇到未预注册的标签要按需 `registerTag`」这条改动是必要的：
+没有它，这 7 个标签即使文件在也永远是 `missing`。
+
+TODO: `tooltip_order` 的**顺序**语义当前没有承载（成员集是无序 set）。它决定提示框里
+附魔的排列次序，与其它标签的集合语义不同，若后续要用到需另存一份有序数组。
 
 ### 唱片机歌曲：两处「比较口径」而非数据缺陷
 
