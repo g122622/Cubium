@@ -40,7 +40,7 @@ namespace mc {
 namespace math {
 
 /**
- * @brief 对齐 Java 的 `(int) floatValue`：向零截断，超出 int32 范围时饱和。
+ * @brief 对齐 Java 的 `(int) floatValue`：**向零取整**（截断小数），超出 int32 范围时饱和。
  *
  * C++ 的 `static_cast<i32>(f32)` 对越界值是未定义行为，clamp 成 `INT_MIN` 之类的
  * 结果；Java 规范则明确规定饱和到 `Integer.MIN_VALUE` / `Integer.MAX_VALUE`。
@@ -59,6 +59,21 @@ namespace math {
         return -2147483648;
     }
     return static_cast<i32>(value);
+}
+
+/**
+ * @brief 对齐 Java 的 `Math.round(float)`：四舍五入到最近整数，恰好 .5 时向正无穷。
+ *
+ * 与原版 `NumberProvider#getInt`（`Math.round(getFloat(...))`）一致。注意它在两个方向上都
+ * 与截断不同：`Math.round(-1.5f) == -1`，而 `(int) -1.5f == -1` 恰好相同、`(int) 1.5f == 1`
+ * 则比四舍五入少 1。战利品表里 `{"min": 1.5, "max": 4.5}` 这类小数端点会被整体上移一格。
+ */
+[[nodiscard]] inline i32 javaRoundToInt(f32 value)
+{
+    if (std::isnan(value)) {
+        return 0;
+    }
+    return static_cast<i32>(std::floor(value + 0.5f));
 }
 
 /**
@@ -156,10 +171,12 @@ public:
      */
     [[nodiscard]] i32 generateInt(math::IRandom& random) const override
     {
+        // 端点走 Math.round（原版 `ConstantValue` 的 getInt 由 NumberProvider 默认实现给出），
+        // 不是截断：1.5 端点进的是 2，截断会得到 1，整段因此偏一格。
         if (m_min == m_max) {
-            return javaFloatToInt(m_min);
+            return javaRoundToInt(m_min);
         }
-        return random.nextInt(javaFloatToInt(m_min), javaFloatToInt(m_max));
+        return random.nextInt(javaRoundToInt(m_min), javaRoundToInt(m_max));
     }
 
     /**

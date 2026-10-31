@@ -38,6 +38,7 @@ tests/diff/
 │   ├── loot_table.cpp           # 战利品表掷骰（最小上下文：origin / 中性方块 / 空工具）
 │   ├── loot_table_block.cpp     # 战利品表掷骰（挖掘上下文：方块状态 + 时运工具）
 │   ├── loot_table_entity.cpp    # 战利品表掷骰（击杀上下文：this_entity + 攻击者 + 掠夺）
+│   ├── loot_function.cpp        # 战利品函数逐函数比对（单池单条目 + 表级单函数）
 │   ├── vanilla_datapack.hpp     # 探针共用：定位原版数据包、初始化注册表、载入数据包标签
 │   ├── mob_category.cpp         # 生物分类的每区块上限 / 生成参数
 │   ├── block_properties.cpp     # 硬度 / 亮度 / 滑度 / 是否流体
@@ -91,6 +92,7 @@ tests/diff/
 │   │   ├── text_encode.ts       # 方块状态文本与属性摘要
 │   │   ├── loot_context.ts      # 战利品三探针的上下文模板
 │   │   ├── loot_container.ts    # 容器战利品场景与已知缺口
+│   │   ├── loot_function.ts     # 战利品函数逐个场景（输入物品 / 函数 JSON / 上下文）
 │   │   ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
@@ -359,6 +361,45 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文 | 部分（见「已知缺口」） |
 | `item_component_nbt` | 原版 jar `ItemComponentNbtOracle` | 1124 物品 × 3 变体（plain / suite / removed） | 3372/3372 一致 | 381 个物品未注册（方块物品，同 `known_missing_items.ts`） |
 | `stack_codec` | 原版 jar `StackCodecOracle` | 3021 单元（1124 物品 × base / suite + 11 个数量与坏数据场景） | 2256/2259 一致；3 处已登记的已知差异 | 见下文 |
+| `loot_function` | 原版 jar `LootFunctionOracle` | 41 个单函数场景（随机值域 / 时运加成 / 截断 / 伤害 / 附魔 / 组件 / 组合） | 全部一致 | 见下文 |
+
+`loot_function` 把范围从「整张表掷出来什么」收窄到**单个函数**：两侧各现场造一张「1 个池
++ 1 个必定产出一条物品」的表，表级只挂一个函数，然后在同一批种子上掷 4 次。差异因此只
+可能来自函数本身，而函数恰好是战利品体系里唯一大量消费随机源的一层——**取数顺序错一位**
+（先判断再取数、区间端点写反）就会让整条链偏移，这类错误在手写期望值里几乎不可能发现。
+
+参数集两侧都用 `block`（原版 `LootContextParamSets.BLOCK`，Cubium 侧
+`LootParameterSets::block()`）：它是唯一同时允许 `tool` 与 `explosion_radius`、又不必造
+玩家/伤害来源桩值的参数集。
+
+- **不能改用 `entity`**：它不允许这两个键出现，而 `apply_bonus` 要从 `tool` 读附魔等级、
+  `explosion_decay` 要读半径，两者都是「键在就执行、不在就原样返回」——oracle 侧会静默
+  不执行，差异指向的是 oracle 缺键而不是 Cubium。
+- **不能改用 `generic` / `ALL_PARAMS`**：原版把它十项全部登记为**必需**，`withParameter`
+  传 `null` 会被直接拒绝，必须造出 `ServerPlayer` 与 `BlockEntity` 的桩值。
+
+所谓「掠夺等级」就落在 `tool` 这个键上（原版 `ApplyBonusCount` 从
+`getOptionalParameter(TOOL)` 取附魔等级），两侧都给一把带 `looting` 附魔的铁剑。
+
+首轮跑通查出 41 处差异，逐个收敛到 0：
+
+- **`set_count#uniform_float_bounds` 差一格**：原版 `UniformGenerator.getInt` 是
+  `Mth.nextInt(rand, min.getInt(), max.getInt())`，端点走 `Math.round`（四舍五入），
+  而 Cubium 的 `RandomValueRange::generateInt` 用的是截断。已在 `RandomRanges.hpp` 新增
+  `javaRoundToInt` 并对齐——这不只是取整口径，它会平移整段随机数的取值区间。
+- **`apply_bonus#binomial_with_bonus` 与 `explosion_decay#plain` 两侧产出不同**：如上，oracle
+  原来用 `entity` 参数集，读不到 `tool` / `explosion_radius`，这两条函数静默不执行。改
+  `block` 后两侧在同一批种子上逐位一致。
+- **`set_custom_data` 解析失败**：原版这一项的 codec 是 `TagParser.LENIENT_CODEC`，字段
+  形态是 **SNBT 文本**（`"{DiffProbe:{level:3}}"`），不是 JSON 对象。
+- **`set_instrument` 标签查不到**：`goat_horn_sounds` 不存在，改用数据包里真实存在的
+  `#minecraft:goat_horns`；同时给探针环境补上 `initializeVanillaInstrumentTags()`（内置
+  标签必须先于从数据包补充的标签就位，否则加载器因「成员未知」整批失败）。
+- **`filtered` / `set_lore` / `set_contents` / `set_loot_table` 解析失败**：字段名分别是
+  `item_filter`（不是 `modifier`）、`mode`、`component`、`type`（后三者必填）。
+- **条目数量多叠一层 `set_count`**：条目数量直接取输入 `count`，不再额外套
+  `SetItemCountFunction`——多一层会让每个场景凭空多消费一次随机数，后面所有函数的取数
+  全部错位。
 
 `stack_codec` 首轮跑通共 7 处差异，修掉前三条后剩 3 处（数量越界，已登记为已知差异——原版
 `orElse(1)` 对越界宽容，Cubium 按源码字面语义判为无效）。修掉的是「读存档时该失败的

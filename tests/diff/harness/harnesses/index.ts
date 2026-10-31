@@ -58,6 +58,7 @@ import {
 } from "./known_missing_commands.ts";
 import { itemComponentStackInput, normaliseComponentSnbt } from "./item_component_nbt.ts";
 import { missingLabelStackCodec, normaliseStackCodec, stackCodecInput } from "./stack_codec.ts";
+import { lootFunctionInput, normaliseLootFunction } from "./loot_function.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { blockSupportInput } from "./block_support.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
@@ -498,6 +499,13 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
             { key: "count#over", reason: "同上" },
             { key: "count#negative", reason: "同上" },
         ] },
+    // 战利品函数逐函数比对：现场造「1 池 + 1 个必定产出的条目」的表，表级只挂一个函数，
+    // 在固定种子下掷骰。现有 loot_table* 三个能力比的是整张表的结果，一张表的差异可能
+    // 来自池、条目、条件或函数任何一层；这里把范围收窄到函数本身。
+    { name: "loot_function", probe: "loot_function", oracle: "LootFunctionOracle", key: "unit",
+        units: { kind: "listing" }, input: lootFunctionInput, normalise: normaliseLootFunction,
+        // oracle 要在 java.io.tmpdir 里建原版服务端世界并持有区域锁：同组必须串行。
+        exclusiveGroup: "loot-world" },
     // 寻路：两个能力读同一份场景库（path_scenes.ts），只是比对的口径不同。
     // 逐格路径类型是「求值器判定」的完整快照：任一格的三层类型不一致都会点名到格。
     { name: "walk_path_type", probe: "walk_path_type", oracle: "WalkPathTypeOracle", key: "unit",
