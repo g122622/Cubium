@@ -58,6 +58,7 @@ import {
 } from "./known_missing_commands.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { blockSupportInput } from "./block_support.ts";
+import { foodPropertiesInput } from "./food_properties.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -500,6 +501,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 只读计算（`isValidPosition` 只查邻域方块），与寻路的 SceneRegion 同一形态。
     { name: "block_support", probe: "block_support", oracle: "BlockSupportOracle", key: "block",
         units: { kind: "listing" }, input: blockSupportInput },
+    // 食物属性：饥饿值 / 饱和度修正 / 能否饱腹后继续吃。纯数据查表。
+    { name: "food_properties", probe: "food_properties", oracle: "FoodPropertiesOracle", key: "item",
+        units: { kind: "listing" }, input: foodPropertiesInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

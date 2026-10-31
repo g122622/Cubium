@@ -354,6 +354,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `potion` | 原版 jar `PotionOracle` | 46 种药水（基础名 / 效果列表 / 瞬时效果 / 三种前缀翻译键） | 全部一致 | — |
 | `potion_brewing` | 原版 jar `PotionBrewingOracle` | 874（46 种药水 × 19 种试剂） | 全部一致 | — |
 | `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文（218 → 75 处） | 部分（见「已知缺口」） |
+| `food_properties` | 原版 jar `FoodPropertiesOracle` | 44 种带食物的物品 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1015,6 +1016,27 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 食物属性：同一个量放在了两套字段语义里
+
+`food_properties` 比较 44 种食物物品的饥饿值、饱和度修正、能否饱腹后继续吃。全绿，
+但过程里踩了三个坑，都属于**比较口径**而非实现缺陷：
+
+1. **字段语义不同**。原版 `FoodProperties.saturation` 存的是**已经换算过的饱和值**
+   （1.21 组件化后直接写死乘积），Cubium 的 `Food::getSaturationModifier()` 存的是
+   **修正系数**，换算发生在 `FoodStats::addStats`（`food × modifier × 2`，与原版
+   `FoodConstants.saturationByModifier` 一致）。两侧「吃下去会怎样」完全相同，只是把
+   同一个量放在了不同字段里。在探针侧正算 `nutrition × modifier × 2` 会与两侧写死的
+   f32 常量差最后一个 ulp（`2.4f` vs `2.4000001f`），最终改为**直接比系数**。
+
+2. **f32 的打印精度**。同一个 `0.3f`，Java 经 Gson 输出 `0.3`，C++ 经 nlohmann 输出
+   `0.30000001192092896`。统一按 6 位有效数字输出。
+
+3. **`%.6g` 在两侧语义不同**。C++ 的 `%.6g` 把 0.3 打成 `"0.3"`，Java 的却打成
+   `"0.300000"`。统一为「6 位有效数字再去掉尾随零」，即 Java `Float.toString` 的口径。
+
+经验：**先确认两侧比较的是同一个量**，再谈数值相等。这三步里前两步如果没拆开排查，
+很容易误判成「Cubium 食物数据全错」。
 
 ### 一个经验：先用「完整方块底座」把真实缺陷筛出来
 
