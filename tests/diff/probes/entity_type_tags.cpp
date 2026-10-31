@@ -37,6 +37,10 @@
  */
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -45,8 +49,10 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/tag/EntityTypeTag.hpp"
+#include "common/entity/tag/EntityTypeTagLoader.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 
 #include "probe.hpp"
 
@@ -56,18 +62,38 @@ namespace {
 using nlohmann::json;
 
 /**
- * @brief 确保实体类型标签已初始化。
+ * @brief 确保实体类型标签已初始化并**从数据包填充成员**。
  *
- * `EntityTypeTags::initialize()` 负责把内置标签（`#minecraft:undead` 等）建出来。
- * 不调用它的话 `forEachTag` 是空的，`list` 会输出 0 个单元。
+ * 只调 `EntityTypeTags::initialize()` 不够：它只把内建的若干标签对象建出来，成员集来自
+ * 数据包文件（`data/minecraft/tags/entity_type/*.json`）。服务端启动时
+ * `RegistryBootstrap` 会在 `initialize()` 之后接着调 `EntityTypeTagLoader`，
+ * 探针必须复现同样两步，否则拿到的标签成员是空的——表现为「能力通过但毫无信息量」。
  */
 void ensureTags()
 {
     static bool s_initialized = false;
-    if (!s_initialized) {
-        EntityTypeTags::initialize();
-        s_initialized = true;
+    if (s_initialized) {
+        return;
     }
+    EntityTypeTags::initialize();
+
+    const char* root = std::getenv("MC_DIFF_VANILLA_DATAPACK");
+    if (root == nullptr || *root == '\0') {
+        throw std::runtime_error("MC_DIFF_VANILLA_DATAPACK 未设置：需要指向原版数据包根目录（含 data/ 的那一层）");
+    }
+    // 仓库扫描的是「包含若干数据包的目录」，环境变量给的是数据包本身那一层，故取上一级。
+    const std::filesystem::path packRoot(root);
+    auto repository = std::make_unique<resource::DataPackRepository>();
+    const auto scanResult = repository->scanDirectory(packRoot.parent_path());
+    if (!scanResult.success() || scanResult.value() == 0) {
+        throw std::runtime_error("entity_type_tags: 数据包扫描失败：" + packRoot.string());
+    }
+
+    const auto loadResult = EntityTypeTagLoader::loadFromDataPackRepository(*repository);
+    if (loadResult.failed()) {
+        throw std::runtime_error("entity_type_tags: 实体标签加载失败：" + loadResult.error().toString());
+    }
+    s_initialized = true;
 }
 
 void writeList(FILE* out)

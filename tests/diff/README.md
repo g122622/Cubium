@@ -355,7 +355,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `potion_brewing` | 原版 jar `PotionBrewingOracle` | 874（46 种药水 × 19 种试剂） | 全部一致 | — |
 | `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文（218 → 75 处） | 部分（见「已知缺口」） |
 | `food_properties` | 原版 jar `FoodPropertiesOracle` | 44 种带食物的物品 | 全部一致 | — |
-| `entity_type_tags` | 原版 jar `EntityTypeTagsOracle` | 46 个实体类型标签 | 见下文（14 处） | 部分（见「已知缺口」） |
+| `entity_type_tags` | 原版 jar `EntityTypeTagsOracle` | 46 个实体类型标签 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1018,31 +1018,37 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
-### 实体类型标签：13 个标签整体缺位
+### 实体类型标签：一次「假缺陷」
 
-`entity_type_tags` 比较 46 个实体类型标签各自包含哪些实体。首轮 14 处差异，**没有任何
-一处是"多出成员"，全部是"成员缺失"**——Cubium 只声明了 33 个标签，原版是 46 个：
+`entity_type_tags` 比较 46 个实体类型标签各自包含哪些实体。第二轮迭代后才全绿，中间
+那版曾得出一个**错误结论**，值得记下来。
 
-```
-axolotl_always_hostiles    axolotl_hunt_targets    boat
-can_equip_saddle           can_float_while_ridden  can_turn_in_boats
-can_wear_horse_armor       can_wear_nautilus_armor cannot_be_pushed_onto_boats
-followable_friendly_mobs   illager_friends         nautilus_hostiles
-non_controlling_rider
-```
+首版 14 处差异全部是「成员缺失」，缺了 13 个标签（`boat`、`can_equip_saddle`、
+`followable_friendly_mobs`、`illager_friends`、`non_controlling_rider`…），看起来
+就是 Cubium 少声明了一大批标签。我一度据此写下「补齐这 13 个标签」的 TODO。
 
-（第 14 处是 `can_breathe_under_water` 少了 `camel_husk`、`parched` 两个新实体。）
+真正的根因在**探针自己身上**：它只调了 `EntityTypeTags::initialize()`，而这个函数
+只负责把内建的若干标签对象建出来；**成员集来自数据包文件**
+（`data/minecraft/tags/entity_type/*.json`）。服务端启动时 `RegistryBootstrap`
+会在 `initialize()` 之后接着调 `EntityTypeTagLoader`——探针漏了第二步。
 
-这类缺口在单点测试里几乎不可能发现：不会有任何东西报错，只是"某个本应被识别的实体
-没被识别"。例如 `illager_friends` 缺失意味着灾厄村民的某些互动判定永远走不到分支。
+于是同一个现象有两层成因：
 
-一处踩坑记录：全集**不能**用 oracle 的 `list` 枚举。原版
+- 数据包里的 46 个文件都在，但没被加载；
+- 即便加载，`resolveEntityTypeTagWithDependencies` 里是
+  `auto* tag = getTag(location); if (tag != nullptr) {...}`——**找不到就静默跳过**，
+  不会按需创建。这条在加载器里也补了（改为 `getTag` 空则 `registerTag`），
+  属于真实健壮性缺陷，但不是本次差异的主因。
+
+补上数据包加载后 46/46 一致，13 个标签一个不少。
+
+教训：**先确认探针和被测系统走的是同一条初始化路径**，再谈「被测系统有缺陷」。
+这条能力里，探针漏一步初始化就会凭空造出 13 个「缺陷」。
+
+另一个独立踩坑：全集**不能**用 oracle 的 `list` 枚举。原版
 `BuiltInRegistries.ENTITY_TYPE.getTags()` 在只 Bootstrap、未加载数据包时只返回 4 个
-内联标签，拿它当全集会让能力只覆盖那一小撮。正确做法是走 `DataPackRegistries`，
-或者像本能力这样在 TS 侧显式列出原版的 46 个标签。
-
-TODO: 补齐上述 13 个标签。它们涉及 `nautilus`、`camel_husk`、`parched` 等 1.21.11
-新增实体，需先确认这些实体在 Cubium 中的注册状态再逐条对齐成员。
+内联标签，拿它当全集会让能力只覆盖那一小撮（表现为「4 个单元全部差异」）。
+本能力在 TS 侧显式列出原版的 46 个标签。
 
 ### 食物属性：同一个量放在了两套字段语义里
 
