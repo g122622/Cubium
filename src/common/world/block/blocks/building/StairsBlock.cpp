@@ -164,9 +164,21 @@ static const std::array<CollisionShape, 16> SLAB_TOP_SHAPES =
  * 将 (shape.ordinal() * 4 + facing.getHorizontalIndex()) 映射到形状数组索引。
  * 顺序: STRAIGHT(4) + INNER_LEFT(4) + INNER_RIGHT(4) + OUTER_LEFT(4) + OUTER_RIGHT(4)
  * 每组按 NORTH(0), SOUTH(1), WEST(2), EAST(3) 排列
+ *
+ * STRAIGHT 段原先是 `{12, 5, 3, 10}`，把「上半层那半个角块」放到了错误的方位：
+ * `facing=north` 给的是 `12 = SW+SE`（南半侧），而原版
+ * `SHAPE_BOTTOM_STRAIGHT = rotateHorizontal(SHAPE_STRAIGHT)` 在 NORTH 下是**北半侧**
+ * （`SHAPE_OUTER = column(16,0,8) ∪ box(0,8,0, 8,16,8)` 再并上它的 Y 轴 90 度旋转，
+ * 合起来覆盖 z∈[0,8] 的上半层）。
+ *
+ * 方位整体错开后，北侧面只有下半格、判成不坚固，于是墙火把、墙上海扇、墙面头颅
+ * 这些「贴台阶侧面」的方块全被判定为无法存活
+ * （由差分能力 block_support 查出：台阶底座上有 24 处 exp=true / act=false）。
+ *
+ * 正确值：NORTH=0b0011=3(NW+NE)、SOUTH=12(SW+SE)、WEST=5(NW+SW)、EAST=10(NE+SE)。
  */
 static constexpr std::array<i32, 20> SHAPE_INDEX_MAP = {
-    12, 5, 3, 10, 14, 13, 7, 11, 13, 7, 11, 14, 8, 4, 1, 2, 4, 1, 2, 8};
+    3, 12, 5, 10, 14, 13, 7, 11, 13, 7, 11, 14, 8, 4, 1, 2, 4, 1, 2, 8};
 
 // ========== 构造函数 ==========
 

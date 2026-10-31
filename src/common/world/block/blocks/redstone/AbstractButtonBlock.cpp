@@ -426,17 +426,22 @@ bool AbstractButtonBlock::isValidPosition(const BlockState& state, IBlockReader&
 {
     // 对应原版 FaceAttachedHorizontalDirectionalBlock#canSurvive：
     //   canAttach(world, pos, getConnectedDirection(state).getOpposite())
-    // 即「附着方块的、朝向按钮的那一面是否坚固」。此前这里沿用 Block 的默认实现（永远 true），
-    // 按钮因此能悬浮在空中（由差分能力 block_support 查出）。
-    const Direction attach = getAttachDirection(state);
-    const BlockPos supportPos = pos.offset(attach);
+    //
+    // `getConnectedDirection` 返回「从方块指向附着面」的方向（WALL 时就是 FACING），
+    // 取反之后才是「从方块指向支撑方块」的方向。`getAttachDirection` 给的正是
+    // `getConnectedDirection`，因此这里必须再 `opposite` 一次。
+    //
+    // 此前缺了那次取反，按钮去检查的是**背面**的方块：facing=north 的按钮本该贴在南边
+    // 的支撑上，却去问北边谁坚固。表现在差分能力 block_support 上，就是「贴在台阶上的
+    // 按钮」全部判错——台阶南北两侧的坚固性不同，方向一反就对不上。
+    const Direction connected = getAttachDirection(state);
+    const BlockPos supportPos = pos.offset(Directions::opposite(connected));
     const BlockState* support = world.getBlockState(supportPos.x, supportPos.y, supportPos.z);
     if (support == nullptr) {
         return false;
     }
-    // 附着面 = 从支撑方块看向按钮的方向，即 attach 的反方向。
-    return support->isFaceSturdy(
-        static_cast<IWorld&>(world), supportPos, Directions::opposite(attach), SupportType::Full);
+    // 附着面 = 支撑方块朝向按钮的那一面，即 connected 本身。
+    return support->isFaceSturdy(static_cast<IWorld&>(world), supportPos, connected, SupportType::Full);
 }
 
 bool AbstractButtonBlock::canAttachToFace(Direction facing) const
