@@ -538,9 +538,21 @@ function normalisationIsFaithful(
     if (options.normalise === undefined) {
         return undefined;
     }
+    // 规范形变换（canonicalising）本来就会改写参照侧，恒等校验对它不适用；对它要求的是
+    // **确定性**：同一输入连续应用两次结果不变。否则两侧各自落到的写法可能不同，比较失去意义。
+    const canonicalising = options.normalise.canonicalising === true;
     for (const line of lines.slice(0, limit)) {
         const parsed = JSON.parse(line) as Record<string, unknown>;
         const normalised = options.normalise(parsed, parsed) as Record<string, unknown>;
+        if (canonicalising) {
+            const twice = options.normalise(parsed, normalised) as Record<string, unknown>;
+            const once = stableStringify(projectDeclaredFields(parsed, normalised, options.unorderedArrays));
+            const again = stableStringify(projectDeclaredFields(parsed, twice, options.unorderedArrays));
+            if (once !== again) {
+                return String(parsed[options.key]);
+            }
+            continue;
+        }
         const before = stableStringify(projectDeclaredFields(parsed, parsed, options.unorderedArrays));
         const after = stableStringify(projectDeclaredFields(parsed, normalised, options.unorderedArrays));
         if (before !== after) {

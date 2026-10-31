@@ -78,21 +78,18 @@ void writeStyleToCompound(nbt::tags::compound_tag& comp, const Style& style)
     if (const auto color = style.getColor(); color.has_value() && *color != TextFormatting::None) {
         comp.put("color", ::mc::text::toName(*color));
     }
-    if (style.isBold()) {
-        comp.put("bold", static_cast<std::int8_t>(1));
-    }
-    if (style.isItalic()) {
-        comp.put("italic", static_cast<std::int8_t>(1));
-    }
-    if (style.isUnderlined()) {
-        comp.put("underlined", static_cast<std::int8_t>(1));
-    }
-    if (style.isStrikethrough()) {
-        comp.put("strikethrough", static_cast<std::int8_t>(1));
-    }
-    if (style.isObfuscated()) {
-        comp.put("obfuscated", static_cast<std::int8_t>(1));
-    }
+    // 三态：显式 false 也要写成 0b。原版 `Style.Serializer` 用 Optional<Boolean>，
+    // 「显式 false」与「未设置」在存档与网络里是两种值。
+    const auto putFlag = [&comp](const char* key, const std::optional<bool>& value) {
+        if (value.has_value()) {
+            comp.put(key, static_cast<std::int8_t>(*value ? 1 : 0));
+        }
+    };
+    putFlag("bold", style.bold());
+    putFlag("italic", style.italic());
+    putFlag("underlined", style.underlined());
+    putFlag("strikethrough", style.strikethrough());
+    putFlag("obfuscated", style.obfuscated());
 }
 
 /// 把不可折叠组件递归序列化为 compound_tag（contents + style + extra）。

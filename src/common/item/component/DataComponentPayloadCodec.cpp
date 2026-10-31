@@ -32,6 +32,8 @@
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/item/instrument/InstrumentDefinition.hpp"
+#include "common/item/instrument/InstrumentRegistry.hpp"
 #include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -83,7 +85,11 @@ constexpr std::array<std::string_view, 16> _colorNames{"white",
     "red",
     "black"};
 
-/// 读 compound 中名为 key 的 i32 列表（缺省/类型不符返回空列表）。
+/// 读 compound 中名为 key 的整数列表（缺省/类型不符返回空列表）。
+///
+/// 三种列表类型都要认：`[I; ...]`、`[L; ...]` 与逐元素的通用 `list_tag`。早先只认
+/// `int_list_tag`，别的形态一律当作空列表——`firework_explosion.colors` 一旦落成其它
+/// 整数宽度就会被静默清空，而原版读的是 `List<Integer>`，只在宽度不符时报错。
 [[nodiscard]] std::vector<i32> _readIntList(const compound_tag& compound, const char* key)
 {
     std::vector<i32> result;
@@ -91,9 +97,39 @@ constexpr std::array<std::string_view, 16> _colorNames{"white",
     if (it == compound.value.end() || it->second->id() != TagId::List) {
         return result;
     }
-    const auto* list = dynamic_cast<const nbt::tags::int_list_tag*>(it->second.get());
-    if (list != nullptr) {
-        result = list->value;
+    const auto& tag = *it->second;
+    if (const auto* ints = dynamic_cast<const nbt::tags::int_list_tag*>(&tag); ints != nullptr) {
+        return ints->value;
+    }
+    if (const auto* longs = dynamic_cast<const nbt::tags::long_list_tag*>(&tag); longs != nullptr) {
+        result.reserve(longs->value.size());
+        for (i64 value : longs->value) {
+            result.push_back(static_cast<i32>(value));
+        }
+        return result;
+    }
+    if (const auto* generic = dynamic_cast<const nbt::tags::tag_list_tag*>(&tag); generic != nullptr) {
+        for (const auto& element : generic->value) {
+            if (element == nullptr) {
+                continue;
+            }
+            switch (element->id()) {
+                case TagId::Int:
+                    result.push_back(dynamic_cast<const int_tag&>(*element).value);
+                    break;
+                case TagId::Long:
+                    result.push_back(static_cast<i32>(dynamic_cast<const nbt::tags::long_tag&>(*element).value));
+                    break;
+                case TagId::Short:
+                    result.push_back(dynamic_cast<const short_tag&>(*element).value);
+                    break;
+                case TagId::Byte:
+                    result.push_back(dynamic_cast<const nbt::tags::byte_tag&>(*element).value);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
     return result;
 }
@@ -119,10 +155,18 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
         case DataComponentType::Damage:
         case DataComponentType::RepairCost:
         case DataComponentType::MaxStackSize:
-        case DataComponentType::MaxDamage:
-        case DataComponentType::Enchantable: {
+        case DataComponentType::MaxDamage: {
             const auto* p = std::get_if<i32>(&payload);
             return std::make_unique<nbt::tags::int_tag>(p ? *p : 0);
+        }
+        case DataComponentType::Enchantable: {
+            // vanilla Enchantable.CODEC 是 record {value: int}，持久形态必须是复合对象
+            // （裸 int 读回来会被判定为「不是 map」，组件整体丢失）。
+            // 注意：网络协议上它仍是裸 VarInt，见 DataComponentPatchWire。
+            const auto* p = std::get_if<i32>(&payload);
+            auto compound = std::make_unique<compound_tag>();
+            compound->put("value", p ? *p : 0);
+            return compound;
         }
         case DataComponentType::Unbreakable: {
             // Unit 组件：NBT 写空 compound（vanilla Unit.CODEC = MapCodec.unit）
@@ -156,14 +200,22 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             return ench.toNbt();
         }
         case DataComponentType::AttackRange: {
+            // 六个字段在原版都是 optionalFieldOf，**等于默认值就省略**（0 / 3 / 0 / 5 / 0.3 / 1）。
+            // 注意：读回时 max_creative_reach 缺省取 5.0，所以「输入 5.0」与「不写」等价。
             const auto& ar = std::get<AttackRange>(payload);
             auto compound = std::make_unique<compound_tag>();
-            compound->put("min_reach", static_cast<f32>(ar.minRange));
-            compound->put("max_reach", static_cast<f32>(ar.maxRange));
-            compound->put("min_creative_reach", static_cast<f32>(ar.minCreativeRange));
-            compound->put("max_creative_reach", static_cast<f32>(ar.maxCreativeRange));
-            compound->put("hitbox_margin", static_cast<f32>(ar.hitboxMargin));
-            compound->put("mob_factor", static_cast<f32>(ar.mobFactor));
+            // 六个字段在原版都是 optionalFieldOf，**等于默认值就省略**（0 / 3 / 0 / 5 / 0.3 / 1）。
+            const auto putIfNotDefault = [&compound](const char* key, f32 value, f32 defaultValue) {
+                if (value != defaultValue) {
+                    compound->put(key, value);
+                }
+            };
+            putIfNotDefault("min_reach", static_cast<f32>(ar.minRange), 0.0f);
+            putIfNotDefault("max_reach", static_cast<f32>(ar.maxRange), 3.0f);
+            putIfNotDefault("min_creative_reach", static_cast<f32>(ar.minCreativeRange), 0.0f);
+            putIfNotDefault("max_creative_reach", static_cast<f32>(ar.maxCreativeRange), 5.0f);
+            putIfNotDefault("hitbox_margin", static_cast<f32>(ar.hitboxMargin), 0.3f);
+            putIfNotDefault("mob_factor", static_cast<f32>(ar.mobFactor), 1.0f);
             return compound;
         }
         case DataComponentType::PotionContents: {
@@ -232,8 +284,11 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
         case DataComponentType::CustomData: {
             const auto& j = std::get<nlohmann::json>(payload);
             if (j.is_object() && !j.empty()) {
-                auto nbt = nbt::jsonToNbt(j);
-                if (nbt != nullptr) {
+                // 整数必须落 Int：`jsonToNbt` 按值域把 3 缩成 Byte（`3f` 的意图是 Float，
+                // 但 `{"level": 3}` 是整数），原版的 custom_data 是**原样**的 NBT，
+                // 存档里写的是 `3`（Int）而不是 `3b`。用严格整数转换保持宽度。
+                auto nbt = nbt::jsonToNbtStrictInt(j);
+                if (nbt != nullptr && nbt->id() == nbt::TagId::Compound) {
                     return nbt;
                 }
             }
@@ -242,15 +297,26 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
         case DataComponentType::FireworkExplosion: {
             // vanilla FireworkExplosion.CODEC：shape(默认 small_ball) + colors/fade_colors
             // (int 列表，默认空) + has_trail/has_twinkle(默认 false)，全部 optionalFieldOf。
+            // 四个可选字段（colors / fade_colors / has_trail / has_twinkle）原版都是
+            // optionalFieldOf：**等于默认值就省略**。全写出来会让字节与原版不同（语义相同，
+            // 但存档/网络逐字节比对会判不一致），因此只写非默认值。
             const auto& explosion = std::get<FireworkExplosion>(payload);
             auto compound = std::make_unique<compound_tag>();
             compound->put("shape", std::string(fireworkShapeName(explosion.shape)));
-            auto colors = std::make_unique<nbt::tags::int_list_tag>(explosion.colors);
-            compound->value.emplace("colors", std::move(colors));
-            auto fadeColors = std::make_unique<nbt::tags::int_list_tag>(explosion.fadeColors);
-            compound->value.emplace("fade_colors", std::move(fadeColors));
-            compound->put("has_trail", static_cast<i8>(explosion.hasTrail ? 1 : 0));
-            compound->put("has_twinkle", static_cast<i8>(explosion.hasTwinkle ? 1 : 0));
+            if (!explosion.colors.empty()) {
+                auto colors = std::make_unique<nbt::tags::int_list_tag>(explosion.colors);
+                compound->value.emplace("colors", std::move(colors));
+            }
+            if (!explosion.fadeColors.empty()) {
+                auto fadeColors = std::make_unique<nbt::tags::int_list_tag>(explosion.fadeColors);
+                compound->value.emplace("fade_colors", std::move(fadeColors));
+            }
+            if (explosion.hasTrail) {
+                compound->put("has_trail", static_cast<i8>(1));
+            }
+            if (explosion.hasTwinkle) {
+                compound->put("has_twinkle", static_cast<i8>(1));
+            }
             return compound;
         }
         case DataComponentType::CustomModelData: {
@@ -258,15 +324,33 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             // 未设置的子字段不写出，与表驱动组件的省略语义一致。
             const auto& modelData = std::get<nlohmann::json>(payload);
             auto compound = std::make_unique<compound_tag>();
-            for (const char* key : {"floats", "flags", "strings"}) {
+            for (const char* key : {"floats", "colors"}) {
                 auto it = modelData.find(key);
                 if (it == modelData.end() || it->is_null()) {
                     continue;
                 }
+                // floats/colors 是数值列表（Float / RGB 整数），保持元素原类型。
                 auto encoded = nbt::jsonToNbtStrictInt(*it);
                 if (encoded != nullptr) {
                     compound->value.emplace(key, std::move(encoded));
                 }
+            }
+            // flags 是 BOOL 列表：原版 codec 读 `List<Boolean>`，NBT 上必须是逐元素 byte
+            // 的字节列表。jsonToNbtStrictInt 对布尔数组会走「通用列表」，元素是 byte_tag，
+            // 但外层是 tag_list_tag——读回时类型对不上，原版整组读空。这里显式构造字节列表。
+            if (auto flagsIt = modelData.find("flags"); flagsIt != modelData.end() && flagsIt->is_array()) {
+                auto flags = std::make_unique<nbt::tags::byte_list_tag>();
+                for (const auto& flag : *flagsIt) {
+                    flags->value.push_back(flag.is_boolean() && flag.get<bool>() ? 1 : 0);
+                }
+                compound->value.emplace("flags", std::move(flags));
+            }
+            if (auto stringsIt = modelData.find("strings"); stringsIt != modelData.end() && stringsIt->is_array()) {
+                auto strings = std::make_unique<nbt::tags::string_list_tag>();
+                for (const auto& text : *stringsIt) {
+                    strings->value.push_back(text.is_string() ? text.get<std::string>() : std::string{});
+                }
+                compound->value.emplace("strings", std::move(strings));
             }
             return compound;
         }
@@ -276,8 +360,33 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             return std::make_unique<nbt::tags::byte_tag>(static_cast<i8>((value != nullptr && *value) ? 1 : 0));
         }
         case DataComponentType::Instrument: {
+            // 持久形态是 Holder<Instrument> 的完整定义（sound_event / use_duration / range /
+            // description），不是资源位置字符串。写成字符串能被写进存档，但读回来
+            // EitherHolder 会当成「只有注册名、没有内联定义」，与原版存档互不兼容。
             const auto& instrument = std::get<InstrumentPayload>(payload);
-            return std::make_unique<string_tag>(instrument.instrumentId);
+            const item::instrument::InstrumentDefinition* definition =
+                item::instrument::InstrumentRegistry::instance().get(ResourceLocation::parse(instrument.instrumentId));
+            if (definition == nullptr) {
+                // 注册表里没有该乐器：只能退回资源位置字符串，避免丢掉「引用了哪个乐器」。
+                // TODO: 数据包把乐器定义内联进组件时（EitherHolder 的左值分支），需要在这里
+                //       序列化内联定义，而不是依赖注册表命中。
+                return std::make_unique<string_tag>(instrument.instrumentId);
+            }
+            // 四个字段的类型逐一对照 vanilla Instrument.DIRECT_CODEC：
+            //   sound_event -> SoundEvent.CODEC，持久形态是 {sound_id: "..."} 复合对象
+            //                  （不是裸字符串）；
+            //   description -> ComponentSerialization，文本组件对象（不是 JSON 字符串）；
+            //   use_duration / range -> 裸 float。
+            auto compound = std::make_unique<compound_tag>();
+            auto soundEvent = std::make_unique<compound_tag>();
+            soundEvent->put("sound_id", definition->soundEvent().toString());
+            compound->value.emplace("sound_event", std::move(soundEvent));
+            compound->put("use_duration", definition->useDuration());
+            compound->put("range", definition->range());
+            if (definition->description() != nullptr) {
+                compound->value.emplace("description", nbt::jsonToNbtStrictInt(definition->description()->toJson()));
+            }
+            return compound;
         }
         case DataComponentType::Tool: {
             // vanilla Tool.CODEC：rules 必填；default_mining_speed(默认 1.0) /
@@ -352,20 +461,25 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
         case DataComponentType::Fireworks: {
             // vanilla Fireworks.CODEC：flight_duration(UNSIGNED_BYTE，默认 0，NBT 上是 byte)
             // + explosions(FireworkExplosion 列表，上限 256，默认空)。
+            // flight_duration 与 explosions 同样是 optionalFieldOf：0 与空列表省略。
             const auto& fireworks = std::get<Fireworks>(payload);
             auto compound = std::make_unique<compound_tag>();
-            compound->put("flight_duration", static_cast<i8>(fireworks.flightDuration));
-            auto explosions = std::make_unique<nbt::tags::compound_list_tag>();
-            for (const auto& explosion : fireworks.explosions) {
-                auto element = std::make_unique<nbt::tags::compound_tag>();
-                auto encoded = payloadToNbt(DataComponentType::FireworkExplosion,
-                    DataComponentPayload{std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, explosion});
-                if (encoded != nullptr && encoded->id() == TagId::Compound) {
-                    *element = dynamic_cast<const compound_tag&>(*encoded);
-                }
-                explosions->value.push_back(std::move(*element));
+            if (fireworks.flightDuration != 0) {
+                compound->put("flight_duration", static_cast<i8>(fireworks.flightDuration));
             }
-            compound->value.emplace("explosions", std::move(explosions));
+            if (!fireworks.explosions.empty()) {
+                auto explosions = std::make_unique<nbt::tags::compound_list_tag>();
+                for (const auto& explosion : fireworks.explosions) {
+                    auto element = std::make_unique<nbt::tags::compound_tag>();
+                    auto encoded = payloadToNbt(DataComponentType::FireworkExplosion,
+                        DataComponentPayload{std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, explosion});
+                    if (encoded != nullptr && encoded->id() == TagId::Compound) {
+                        *element = dynamic_cast<const compound_tag&>(*encoded);
+                    }
+                    explosions->value.push_back(std::move(*element));
+                }
+                compound->value.emplace("explosions", std::move(explosions));
+            }
             return compound;
         }
         default:
@@ -383,6 +497,15 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         case DataComponentType::MaxStackSize:
         case DataComponentType::MaxDamage:
         case DataComponentType::Enchantable: {
+            // Enchantable 的持久形态是 {value: n}，其它四个是裸整数；两者都接受。
+            if (tag.id() == TagId::Compound) {
+                const auto& compound = dynamic_cast<const compound_tag&>(tag);
+                auto it = compound.value.find("value");
+                if (it != compound.value.end() && it->second->id() == TagId::Int) {
+                    return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Int>,
+                        dynamic_cast<const int_tag&>(*it->second).value};
+                }
+            }
             if (tag.id() == TagId::Int) {
                 return DataComponentPayload{
                     std::in_place_index<ComponentPayloadIndex::Int>, dynamic_cast<const int_tag&>(tag).value};
@@ -395,7 +518,15 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         }
         case DataComponentType::CustomModelData: {
             if (tag.id() == TagId::Compound) {
-                return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, nbt::nbtToJson(tag)};
+                auto decoded = nbt::nbtToJson(tag);
+                // flags 在 NBT 上是字节列表，nbtToJson 会把它解成 [1,0]；原版语义是布尔，
+                // 载荷里必须还原成 [true,false]，否则读回后再编码会把「true」写成 0。
+                if (auto flagsIt = decoded.find("flags"); flagsIt != decoded.end() && flagsIt->is_array()) {
+                    for (auto& flag : *flagsIt) {
+                        flag = flag.is_number() && flag.get<double>() != 0;
+                    }
+                }
+                return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(decoded)};
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, nlohmann::json::object()};
         }
@@ -412,9 +543,18 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Bool>, value};
         }
         case DataComponentType::Instrument: {
+            // 两种形态都要认：字符串是「只给注册名」，compound 是内联的完整定义
+            // （sound_event / use_duration / range / description），见 payloadToNbt。
             std::string instrument;
             if (tag.id() == TagId::String) {
                 instrument = dynamic_cast<const string_tag&>(tag).value;
+            } else if (tag.id() == TagId::Compound) {
+                // TODO: 内联定义目前无法反查到注册名——InstrumentPayload 只承载资源位置。
+                //       要支持内联定义，需要让载荷也能持有完整定义（而不是只记一个 id）。
+                //       在此之前按「空引用」处理，至少不会把 player 侧的随机记忆带进结果。
+                const auto& c = dynamic_cast<const compound_tag&>(tag);
+                auto sound = c.value.find("sound_event");
+                static_cast<void>(sound);
             }
             return DataComponentPayload{
                 std::in_place_index<ComponentPayloadIndex::Instrument>, InstrumentPayload{std::move(instrument)}};
@@ -454,8 +594,18 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                     }
                 }
                 auto speedIt = c.value.find("default_mining_speed");
-                if (speedIt != c.value.end() && speedIt->second->id() == TagId::Float) {
-                    tool.defaultMiningSpeed = dynamic_cast<const float_tag&>(*speedIt->second).value;
+                if (speedIt != c.value.end()) {
+                    // 数据包写整数（`default_mining_speed: 1`）时落成 IntTag，只认 Float 会
+                    // 把非默认值静默退回 1.0。
+                    if (speedIt->second->id() == TagId::Float) {
+                        tool.defaultMiningSpeed = dynamic_cast<const float_tag&>(*speedIt->second).value;
+                    } else if (speedIt->second->id() == TagId::Double) {
+                        tool.defaultMiningSpeed =
+                            static_cast<f32>(dynamic_cast<const nbt::tags::double_tag&>(*speedIt->second).value);
+                    } else if (speedIt->second->id() == TagId::Int) {
+                        tool.defaultMiningSpeed =
+                            static_cast<f32>(dynamic_cast<const int_tag&>(*speedIt->second).value);
+                    }
                 }
                 auto damageIt = c.value.find("damage_per_block");
                 if (damageIt != c.value.end() && damageIt->second->id() == TagId::Int) {
@@ -547,12 +697,23 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             AttackRange ar{};
             if (tag.id() == TagId::Compound) {
                 const auto& c = dynamic_cast<const compound_tag&>(tag);
+                // 三种数值宽度都接受：数据包写 `max_reach: 4`（整数字面量）时落成 IntTag，
+                // 只认 Float 会让这个字段静默回到默认值。
                 auto readF32 = [&c](const char* key, f32 fallback) -> f32 {
                     auto it = c.value.find(key);
-                    if (it != c.value.end() && it->second->id() == TagId::Float) {
-                        return dynamic_cast<const float_tag&>(*it->second).value;
+                    if (it == c.value.end()) {
+                        return fallback;
                     }
-                    return fallback;
+                    switch (it->second->id()) {
+                        case TagId::Float:
+                            return dynamic_cast<const float_tag&>(*it->second).value;
+                        case TagId::Double:
+                            return static_cast<f32>(dynamic_cast<const nbt::tags::double_tag&>(*it->second).value);
+                        case TagId::Int:
+                            return static_cast<f32>(dynamic_cast<const int_tag&>(*it->second).value);
+                        default:
+                            return fallback;
+                    }
                 };
                 ar.minRange = readF32("min_reach", ar.minRange);
                 ar.maxRange = readF32("max_reach", ar.maxRange);

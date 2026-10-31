@@ -51,6 +51,7 @@ export const SHARED_INPUTS: readonly string[] = [
     "tests/diff/harness/core/types.ts",
     "tests/diff/harness/core/hash.ts",
     "tests/diff/harness/core/comparison.ts",
+    "tests/diff/harness/core/snbt.ts",
     "tests/diff/harness/runner/session.ts",
     "tests/diff/harness/runner/graph.ts",
     "tests/diff/harness/runner/layout.ts",

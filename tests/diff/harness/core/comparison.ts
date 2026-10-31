@@ -129,7 +129,18 @@ export function stableStringify(value: unknown): string {
  *
  * 第一个参数是参照侧的值、第二个是被测侧的值，方便按「参照侧的精度」舍入被测侧而又不改动参照侧。
  */
-export type CompareTransform = (expected: unknown, actual: unknown) => unknown;
+export type CompareTransform = ((expected: unknown, actual: unknown) => unknown) & {
+    /**
+     * 标记「这个规范化把值改写成**唯一规范形**」，而不是「判断两侧是否近似相等」。
+     *
+     * 常规 compareTransform 的契约是「返回值与参照相等即通过」，参照侧因此必须保持原样
+     * （`normalisationIsFaithful` 会逐单元校验恒等）。但有些能力的差异纯粹是**表示法**：
+     * 同一个 NBT 标签，原版打印成 `'{"a":1}'`、被测侧打印成 `"{\"a\":1}"`。这时正确的做法
+     * 是把两侧都换成同一种规范写法；参照侧因此允许被改写，前提是变换确定且幂等
+     * （同一输入永远落到同一文本，再应用一次不变），并且两侧走的是同一个函数。
+     */
+    canonicalising?: boolean;
+};
 
 /** 比较选项，与 harness 定义一一对应。 */
 export interface CompareOptions {
@@ -306,7 +317,23 @@ export function compareLines(
             differences.push({ key: unit, expected: referenceValue, actual: "<absent in probe>" });
             continue;
         }
+        // 规范形变换会把参照侧也改写（两侧落在同一写法上），因此比较的两端都是变换之后的；
+        // 其余变换保持原契约：参照侧不动，只判断被测侧的返回值是否等价于参照。
         const transformed = transform === undefined ? observedValue : transform(referenceValue, observedValue);
+        if (transform?.canonicalising === true) {
+            const canonicalReference = transform(referenceValue, referenceValue);
+            if (projection(referenceValue, canonicalReference) === projection(referenceValue, transformed)) {
+                continue;
+            }
+            const expectedProjection = projectDeclaredFields(referenceValue, canonicalReference, options.unorderedArrays);
+            const actualProjection = projectDeclaredFields(referenceValue, transformed, options.unorderedArrays);
+            differences.push({
+                key: unit,
+                expected: differingFields(expectedProjection, actualProjection),
+                actual: differingFields(actualProjection, expectedProjection),
+            });
+            continue;
+        }
         if (projection(referenceValue, referenceValue) === projection(referenceValue, transformed)) {
             continue;
         }

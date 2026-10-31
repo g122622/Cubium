@@ -31,6 +31,7 @@ tests/diff/
 │   ├── item_tags.cpp            # 物品标签展开后的成员
 │   ├── item_summary.cpp         # 堆叠上限 / 食物属性
 │   ├── item_components.cpp      # 耐久 / 稀有度 / 附魔能力
+│   ├── item_component_nbt.cpp   # 物品组件补丁的 NBT 表示（逐组件 SNBT 比对）
 │   ├── entity_shape.cpp         # 实体尺寸 / 分类
 │   ├── enchantment_table.cpp    # 附魔等级与附魔台代价
 │   ├── loot_table.cpp           # 战利品表掷骰（最小上下文：origin / 中性方块 / 空工具）
@@ -75,6 +76,7 @@ tests/diff/
 │   ├── worker.ts                # 执行进程：一个能力一个进程，装模块追踪、跑、回报 JSON
 │   ├── core/                    # 与「怎么跑」无关的纯逻辑
 │   │   ├── comparison.ts        # 字段投影与比较（严格数组长度，仅声明为无序的才忽略顺序）
+│   │   ├── snbt.ts              # SNBT 文本的规范形（引号风格 / 浮点后缀 / 键序）
 │   │   ├── hash.ts              # 内容哈希（纳秒 mtime + 大小的缓存）
 │   │   └── types.ts             # 能力声明、运行上下文、共享输入清单
 │   ├── oracle/                  # 原版 Java 一侧
@@ -354,6 +356,32 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `potion` | 原版 jar `PotionOracle` | 46 种药水（基础名 / 效果列表 / 瞬时效果 / 三种前缀翻译键） | 全部一致 | — |
 | `potion_brewing` | 原版 jar `PotionBrewingOracle` | 874（46 种药水 × 19 种试剂） | 全部一致 | — |
 | `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文 | 部分（见「已知缺口」） |
+| `item_component_nbt` | 原版 jar `ItemComponentNbtOracle` | 1124 物品 × 3 变体（plain / suite / removed） | 3372/3372 一致 | 381 个物品未注册（方块物品，同 `known_missing_items.ts`） |
+
+`item_component_nbt` 首轮跑通查出并修掉的组件编码问题（全部是「能写进存档、但字节与原版不同」
+或「读回来就丢」的静默错误）：
+
+- **整数标量被窄化成 Byte**：组件载荷解析对非对象值走 `jsonToNbt`，它会按值域把 `7` 缩成
+  `7b`，而 `minecraft:damage` 用的是 `Codec.INT`——整个组件因此被丢掉。改为统一的严格整数转换。
+- **整数列表被提升成 double**：`_normalizeNumbers` 把所有数字一律转 double，`firework_explosion`
+  的 `colors`/`fade_colors` 于是在 NBT 上变成 `[D; ...]`，原版按 `List<Integer>` 读，整组读空
+  ——烟花颜色、渐变色的自定义数据在存档里静默消失。改为整数保持整数。
+- **`custom_model_data` 的 `flags`**：布尔列表要落成字节列表；读回时还要还原成布尔，否则
+  下一次编码会把 `true` 写成 0。
+- **`enchantable` 的持久形态**：原版是 `{value: n}`，Cubium 写成裸整数，读回来判为「不是 map」。
+- **`instrument` 的持久形态**：原版是 Holder 的完整定义（`sound_event` / `use_duration` /
+  `range` / `description`），Cubium 只写资源位置字符串；`sound_event` 还是 `{sound_id: ...}`
+  复合对象，`description` 是文本组件对象。
+- **`custom_data` 里混入 `CustomPotionColor` / `CustomPotionEffects`**：PotionUtils 把药水的
+  自定义颜色寄存在自定义数据里，导出组件补丁时没有剔除，存档因此多出原版没有的键。
+- **`attack_range` / `firework_explosion` / `fireworks`**：原版都是 `optionalFieldOf`，
+  等于默认值就省略；Cubium 一律写全，字节与原版不同。
+- **组件的「显式移除」被丢弃**：`ItemStack` 只记录了「有值」的组件，`toComponentPatch` 从不
+  产出 removed 半边，`set_components` / `copy_components` 里的 `"!name"` 写回时消失。
+  载荷新增 `removedComponents` 记录这一状态。
+- **文本组件的样式是两态而非三态**：`Style` 用 `bool` 记 bold/italic 等，无法区分「显式 false」
+  与「未设置」。原版是 `Optional<Boolean>`：前者要写出 `italic:0b`，后者省略；继承时也只看
+  子样式是否显式给出（`子 || 父` 会让显式 false 盖不住父样式的 true）。改为 `std::optional<bool>`。
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 

@@ -56,6 +56,7 @@ import {
     KNOWN_MISSING_COMMANDS,
     PROJECT_ONLY_COMMANDS,
 } from "./known_missing_commands.ts";
+import { itemComponentStackInput, normaliseComponentSnbt } from "./item_component_nbt.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { blockSupportInput } from "./block_support.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
@@ -460,6 +461,18 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     villagerTradesDeclaration("gen"),
     villagerTradesDeclaration("price"),
     villagerTradesDeclaration("restock"),
+    // 物品组件补丁的 NBT 表示：单元是「物品#变体」，三个变体的组件取值由 item_component_nbt.ts
+    // 统一定义，两侧读同一条输入。它覆盖的是「物品栈的可变状态」这一整层——现有的
+    // item_components 只比三张静态表（耐久 / 稀有度 / 附魔能力），组件本身从未被比对过。
+    { name: "item_component_nbt", probe: "item_component_nbt", oracle: "ItemComponentNbtOracle", key: "unit",
+        units: { kind: "listing" }, input: itemComponentStackInput,
+        // 两侧的 SNBT 打印器不同（引号风格、浮点后缀），比对前统一成规范形。
+        normalise: normaliseComponentSnbt,
+        // 单元由 oracle 按**原版**物品表枚举；Cubium 未注册的物品（全是方块物品，见
+        // known_missing_items.ts）在探针侧输出 missing。单元键带 `#变体` 后缀，所以要把
+        // 缺失物品展开成三个变体——`oracleMissing` 按完整单元键匹配。
+        oracleMissing: ["plain", "suite", "removed"].flatMap((variant) =>
+            itemsKnownMissing.map((item) => `${item}#${variant}`)) },
     // 寻路：两个能力读同一份场景库（path_scenes.ts），只是比对的口径不同。
     // 逐格路径类型是「求值器判定」的完整快照：任一格的三层类型不一致都会点名到格。
     { name: "walk_path_type", probe: "walk_path_type", oracle: "WalkPathTypeOracle", key: "unit",

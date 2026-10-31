@@ -165,12 +165,16 @@ Style Style::mergeWithParent(const Style& parent) const noexcept
     // 颜色：子样式优先
     result.m_color = m_color.has_value() ? m_color : parent.m_color;
 
-    // 样式标志：子样式优先（OR 逻辑）
-    result.m_bold = m_bold || parent.m_bold;
-    result.m_italic = m_italic || parent.m_italic;
-    result.m_underlined = m_underlined || parent.m_underlined;
-    result.m_strikethrough = m_strikethrough || parent.m_strikethrough;
-    result.m_obfuscated = m_obfuscated || parent.m_obfuscated;
+    // 样式标志：子样式**显式**给出就优先，否则继承父样式（三态语义）。
+    // 这里不能写 `子 || 父`：子样式显式写 false 时要盖掉父样式的 true。
+    const auto pick = [](const std::optional<bool>& child, const std::optional<bool>& parent) {
+        return child.has_value() ? child : parent;
+    };
+    result.m_bold = pick(m_bold, parent.m_bold);
+    result.m_italic = pick(m_italic, parent.m_italic);
+    result.m_underlined = pick(m_underlined, parent.m_underlined);
+    result.m_strikethrough = pick(m_strikethrough, parent.m_strikethrough);
+    result.m_obfuscated = pick(m_obfuscated, parent.m_obfuscated);
 
     // 事件：子样式优先
     result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : parent.m_clickEvent;
@@ -181,8 +185,10 @@ Style Style::mergeWithParent(const Style& parent) const noexcept
 
 bool Style::isEmpty() const noexcept
 {
-    return !m_color.has_value() && !m_bold && !m_italic && !m_underlined && !m_strikethrough && !m_obfuscated &&
-        !m_clickEvent.has_value() && !m_hoverEvent.has_value();
+    // 三态：任一标志被显式设置（true 或 false）就不算空样式。
+    return !m_color.has_value() && !m_bold.has_value() && !m_italic.has_value() && !m_underlined.has_value() &&
+        !m_strikethrough.has_value() && !m_obfuscated.has_value() && !m_clickEvent.has_value() &&
+        !m_hoverEvent.has_value();
 }
 
 nlohmann::json Style::toJson() const
@@ -192,20 +198,21 @@ nlohmann::json Style::toJson() const
     if (m_color.has_value()) {
         json["color"] = toName(*m_color);
     }
-    if (m_bold) {
-        json["bold"] = true;
+    // 三态：显式 false 也要写出来（`"italic": false`）。原版存档里它与「没写」是两种值。
+    if (m_bold.has_value()) {
+        json["bold"] = *m_bold;
     }
-    if (m_italic) {
-        json["italic"] = true;
+    if (m_italic.has_value()) {
+        json["italic"] = *m_italic;
     }
-    if (m_underlined) {
-        json["underlined"] = true;
+    if (m_underlined.has_value()) {
+        json["underlined"] = *m_underlined;
     }
-    if (m_strikethrough) {
-        json["strikethrough"] = true;
+    if (m_strikethrough.has_value()) {
+        json["strikethrough"] = *m_strikethrough;
     }
-    if (m_obfuscated) {
-        json["obfuscated"] = true;
+    if (m_obfuscated.has_value()) {
+        json["obfuscated"] = *m_obfuscated;
     }
     if (m_clickEvent.has_value()) {
         json["clickEvent"] = m_clickEvent->toJson();

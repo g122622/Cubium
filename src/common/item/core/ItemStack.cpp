@@ -1224,6 +1224,12 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
     }
     if (hasTag()) {
         auto custom = _dataRef();
+        // 药水的自定义颜色 / 自定义效果是 potion_contents 组件的子字段，历史上由 PotionUtils
+        // 寄存在自定义数据的 CustomPotionColor / CustomPotionEffects 两个键里。导出组件补丁时
+        // 必须把它们移出自定义数据：同一份信息若同时出现在 custom_data 与 potion_contents，
+        // 存档里就会多出原版没有的自定义数据键。
+        custom.erase("CustomPotionColor");
+        custom.erase("CustomPotionEffects");
         if (custom.contains("BundleContents")) {
             auto contents = custom["BundleContents"];
             contents.erase("selected");
@@ -1348,6 +1354,16 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
                 patch.add(*type, DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, value});
             }
         }
+        // 显式移除的组件：与「有值」互斥，added 里已有的不再报移除。
+        for (i32 typeId : m_extras->removedComponents) {
+            const bool alreadyAdded =
+                std::any_of(patch.added().begin(), patch.added().end(), [typeId](const auto& entry) {
+                    return entry.typeId == typeId;
+                });
+            if (!alreadyAdded) {
+                patch.remove(typeId);
+            }
+        }
     }
     return patch;
 }
@@ -1355,7 +1371,9 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
 void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& patch)
 {
     using namespace item::component;
-    // custom_data 可位于任意注册序位置，先应用以免覆盖随后还原的结构化组件。
+    // custom_data 必须先应用：它承载的键可能被后面的结构化组件覆盖（原版的补丁 map 一项一个值，
+    // 结构化组件与 custom_data 不会并存；Cubium 的 custom_data 是「其余所有键」的容器，
+    // 后写的结构化组件应当赢）。
     for (const auto& entry : patch.added()) {
         if (entry.typeId == componentTypeId(DataComponentType::CustomData)) {
             _ensureExtras().customData = std::get<nlohmann::json>(entry.value);
@@ -1365,6 +1383,12 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
         auto type = componentTypeById(entry.typeId);
         if (!type.has_value()) {
             continue;
+        }
+        // 同一个组件被重新赋值时，撤销之前的「显式移除」：added 与 removed 在 patch 里
+        // 一项只有一个值，后写的那一份生效。
+        if (m_extras != nullptr) {
+            auto& removed = m_extras->removedComponents;
+            removed.erase(std::remove(removed.begin(), removed.end(), entry.typeId), removed.end());
         }
         switch (*type) {
             case DataComponentType::Damage: {
@@ -1560,6 +1584,12 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
         auto type = componentTypeById(typeId);
         if (!type.has_value()) {
             continue;
+        }
+        // 记录「显式移除」本身：存档里的 `"!name"` 键、原版 patch 的 removed 半边都靠它，
+        // 不能只把字段清空——清空等于「沿用原型默认值」，与原版的语义不同。
+        auto& removed = _ensureExtras().removedComponents;
+        if (std::find(removed.begin(), removed.end(), typeId) == removed.end()) {
+            removed.push_back(typeId);
         }
         switch (*type) {
             case DataComponentType::Damage:
