@@ -64,6 +64,7 @@ tests/diff/
 │   ├── spawn_rules.cpp          # 生成谓词、位置检查与后续随机抽样
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── crafting_match.cpp       # 合成配方在固定网格语料下的匹配与产出
+│   ├── single_item_recipe.cpp   # 单物品配方的查询语义（熔炼/高炉/烟熏/营火/切石）
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -96,6 +97,7 @@ tests/diff/
 │   │   ├── loot_function.ts     # 战利品函数逐个场景（输入物品 / 函数 JSON / 上下文）
 │   │   ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
 │   │   ├── crafting_match.ts    # 合成配方的摆法语料（原样 / 放大 / 平移 / 反例）
+│   │   ├── single_item_recipe.ts # 单物品配方查询的比对口径（补齐五个结果键）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -341,6 +343,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `spawn_rules` | 原版 jar `SpawnRulesOracle` | 157 种实体 / 168,876 个场景 | 全部一致 | — |
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
 | `crafting_match` | 原版 jar `CraftingMatchOracle` | 4068（有序/无形状配方 × 6 种摆法） | 全部一致 | 见下文 |
+| `single_item_recipe` | 原版 jar `SingleItemRecipeOracle` | 202 个输入物品（熔炼/高炉/烟熏/营火/切石） | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -456,6 +459,22 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 - **文本组件的样式是两态而非三态**：`Style` 用 `bool` 记 bold/italic 等，无法区分「显式 false」
   与「未设置」。原版是 `Optional<Boolean>`：前者要写出 `italic:0b`，后者省略；继承时也只看
   子样式是否显式给出（`子 || 父` 会让显式 false 盖不住父样式的 true）。改为 `std::optional<bool>`。
+
+`single_item_recipe` 比的是**单物品配方的查询语义**：单元是输入物品而不是配方 ID，
+两侧各自回答「这个物品在熔炼炉 / 高炉 / 烟熏炉 / 营火里会烧出什么、切石机上有哪些选项」。
+
+与 `recipe` 能力的分工在于「查询」这一层，按 ID 的静态导出看不见这些：
+
+- **同一输入命中多条配方时实际返回哪一条**。查询走 findFirst，结果取决于注册顺序；
+  顺序一变玩家烧出来的就是别的东西，而每条配方单看都正确。
+- **配方有没有被装进正确的类型桶**。熔炼与烟熏的原料完全相同（都是生肉），只在
+  cookTime 上不同——桶装错的话，高炉里能烧出生肉。
+- **切石的可选产物漏没漏**。切石机界面列出该输入的全部产物，少一条就少一个选项，
+  因此这里比的是整张列表而不是单条。
+
+覆盖度：202 个输入物品中，156 个命中熔炼、62 个命中高炉、9 个命中烟熏、9 个命中营火，
+58 个有切石产物（共 254 条）。两侧口径逐项对齐：输入堆数量固定为 1（原版
+`SingleRecipeInput` 只取一个物品）；切石列表两侧都按配方 ID 排序后比对。
 
 `crafting_match` 比的是**合成配方的匹配与产出**：每个有序/无形状配方配 6 种摆法
 （原样、数量放大、平移、多一个物品、少一个物品、空网格），两侧用同一份网格各自调
