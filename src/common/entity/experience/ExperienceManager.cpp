@@ -29,6 +29,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <algorithm>
+#include <limits>
 
 namespace mc {
 namespace entity {
@@ -44,42 +45,32 @@ void ExperienceManager::addExperience(i32 amount)
         return;
     }
 
-    if (amount < 0) {
-        i32 capacity = getExperienceForNextLevel();
-        m_progress += static_cast<f32>(amount) / static_cast<f32>(capacity);
+    // 原版 `Player#giveExperiencePoints`：正负数量走**同一条**路径。累计经验是按
+    // `clamp(total + amount, 0, INT_MAX)` 累加的，不是用「等级起点 + 进度 × 容量」重算——
+    // 后者会因为进度条的 f32 舍入与实际投入的经验对不上。本方法原先给负数分支单独用了重算路径，
+    // 导致「加 N 点再扣 M 点」的累计经验与原版不一致（由差分能力 experience 查出）。
+    const f32 capacityBefore = static_cast<f32>(getExperienceForNextLevel());
+    m_progress += static_cast<f32>(amount) / capacityBefore;
+    m_totalExperience = static_cast<i32>(
+        std::clamp<i64>(static_cast<i64>(m_totalExperience) + amount, 0, std::numeric_limits<i32>::max()));
 
-        while (m_progress < 0.0f) {
-            if (m_level > 0) {
-                m_level--;
-                i32 newCapacity = getExperienceForNextLevel();
-                f32 deficit = m_progress * static_cast<f32>(newCapacity);
-                m_progress = 1.0f + deficit / static_cast<f32>(newCapacity);
-                _handleLevelDown();
-            } else {
-                m_progress = 0.0f;
-                m_totalExperience = 0;
-                break;
-            }
+    // 进度条低于 0：逐级下降，直到回到 0 级为止（0 级时直接清空进度）。
+    while (m_progress < 0.0f) {
+        const f32 deficit = m_progress * static_cast<f32>(getExperienceForNextLevel());
+        if (m_level > 0) {
+            addLevels(-1);
+            m_progress = 1.0f + deficit / static_cast<f32>(getExperienceForNextLevel());
+        } else {
+            addLevels(-1);
+            m_progress = 0.0f;
         }
+    }
 
-        capacity = getExperienceForNextLevel();
-        m_totalExperience = getExperienceForLevel(m_level) + static_cast<i32>(m_progress * static_cast<f32>(capacity));
-    } else {
-        m_totalExperience += amount;
-
-        i32 capacity = getExperienceForNextLevel();
-        m_progress += static_cast<f32>(amount) / static_cast<f32>(capacity);
-
-        while (m_progress >= 1.0f) {
-            f32 excessProgress = m_progress - 1.0f;
-            i32 oldCapacity = getExperienceForNextLevel();
-
-            m_level++;
-            _handleLevelUp();
-
-            i32 newCapacity = getExperienceForNextLevel();
-            m_progress = excessProgress * static_cast<f32>(oldCapacity) / static_cast<f32>(newCapacity);
-        }
+    // 进度条达到 1：逐级上升，先把溢出量折算回经验，再除以新等级容量。
+    while (m_progress >= 1.0f) {
+        m_progress = (m_progress - 1.0f) * static_cast<f32>(getExperienceForNextLevel());
+        addLevels(1);
+        m_progress = m_progress / static_cast<f32>(getExperienceForNextLevel());
     }
 
     _validateState();
@@ -186,23 +177,22 @@ void ExperienceManager::addLevels(i32 levels)
 
     i32 oldLevel = m_level;
 
-    m_level += levels;
+    // 原版 `Player#giveExperienceLevels` 用饱和加法（Guava `IntMath.saturatedAdd`）：
+    // 加完后越界就停在 int 边界，不回绕。这里用 i64 承接再做夹取。
+    const i64 sum = static_cast<i64>(m_level) + static_cast<i64>(levels);
+    m_level = static_cast<i32>(std::clamp<i64>(sum, std::numeric_limits<i32>::min(), std::numeric_limits<i32>::max()));
 
     if (m_level < 0) {
-        // 负等级时重置所有经验
+        // 负等级时重置所有经验（原版同样把等级、进度、累计经验一起归零）。
         m_level = 0;
         m_progress = 0.0f;
         m_totalExperience = 0;
-    } else {
-        // 正等级时不重新计算 totalExperience
-        // totalExperience 只在需要时才重新计算
     }
 
-    // 更新 totalExperience 以保持一致性
-    if (m_level > 0 || m_progress > 0.0f) {
-        m_totalExperience = getExperienceForLevel(m_level) +
-            static_cast<i32>(m_progress * static_cast<f32>(getExperienceForNextLevel()));
-    }
+    // 原版**不**在这里重算 totalExperience：它只由 gainExperience 与上面的归零分支改写。
+    // 本方法原先无条件重算（`getExperienceForLevel(level) + progress * capacity`），
+    // 使「只加减等级」也会把累计经验改写成「当前等级起点 + 进度」——与玩家实际获得的
+    // 经验不符，也与原版不一致（由差分能力 experience 查出）。
 
     _validateState();
     markDirty();
@@ -419,7 +409,13 @@ void ExperienceManager::_handleLevelDown()
 
 void ExperienceManager::_validateState()
 {
-    // 确保等级在有效范围
+    // 只做「越界夹取」。等级与进度的**正常推进**由 addExperience 的两段 while 完成
+    // （与原版 `Player#giveExperiencePoints` 逐行对应），这里不得参与换算。
+    //
+    // 原先这里有一段 `while (progress >= 1) { progress -= 1; level++; }`，把进度当成
+    // 「整级数量」扣除，而不是按容量折算；它作用在本已收敛的状态上，把 addExperience
+    // 刚算好的进度强行截断，导致每轮升级都凭空多升若干级——例如加 100 点会得到 94 级
+    // （原版是 7 级）。由差分能力 experience 查出。
     if (m_level < 0) {
         m_level = 0;
     }
@@ -427,32 +423,13 @@ void ExperienceManager::_validateState()
         m_level = constants::MAX_EXPERIENCE_LEVEL;
     }
 
-    // 确保进度在有效范围
     if (m_progress < 0.0f) {
-        _handleLevelDown();
-    }
-    if (m_progress >= 1.0f) {
-        while (m_progress >= 1.0f) {
-            m_progress -= 1.0f;
-            m_level++;
-            _handleLevelUp();
-        }
+        m_progress = 0.0f;
     }
 
-    // 确保进度在 [0, 1) 范围
-    m_progress = std::clamp(m_progress, 0.0f, 0.9999f);
-
-    // 确保总经验非负
     if (m_totalExperience < 0) {
         m_totalExperience = 0;
     }
-
-    // 检查总经验与等级/进度的一致性（可选，调试时使用）
-    // i32 expectedTotal = getExperienceForLevel(m_level) +
-    //                     static_cast<i32>(m_progress * getExperienceForNextLevel());
-    // if (m_totalExperience != expectedTotal) {
-    //     // 可以选择修正或警告
-    // }
 }
 
 } // namespace experience

@@ -350,6 +350,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `villager_restock` | 原版 jar `VillagerTradesOracle` | 600（单条交易 + 多条交易） | 全部一致 | — |
 | `villager_gen` | 原版 jar `VillagerTradesOracle` | 390（13 职业 × 5 等级 × 6 种子） | 355/390 一致；35 个附魔内容差异已登记 | 见下方「村民交易：已查出的问题」 |
 | `piston_movement` | 原版 jar `PistonMovementOracle` | 523 个场景（链条 / 粘性分支 / 随机混合台 / 收回） | 全部一致 | — |
+| `experience` | 原版 jar `ExperienceOracle` | 440 个操作序列（公式阶梯 / 单次加点 / 扣点 / 加减等级 / 随机） | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -893,6 +894,34 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 三处修好后 523/523 全部一致。这个例子说明：**手写的材质表里漏一个字段，不会有任何编译期提示，
 只会让游戏安静地按错误规则运行**。
+
+### 玩家经验值：公式与状态机的两处错位
+
+`experience` 覆盖三层语义：等级 ↔ 累计经验的换算公式、加点/扣点的状态机（原版
+`Player#giveExperiencePoints` 的两段 while）、以及进度条这个 f32 字段的逐位比较。
+
+首轮 455 个单元里有 333 处差异，收敛后全部一致。查出两个缺陷，都不是「公式抄错」，
+而是**状态维护路径**出了问题：
+
+- **`_validateState()` 越权重算等级**：它在末尾有 `while (progress >= 1) { progress -= 1; level++; }`，
+  把进度当成「整级数量」扣除，而不是按容量折算。这个函数本应只做越界夹取，却作用在
+  `addExperience` 刚算好的、已经收敛的状态上，把合法进度强行截断。后果很重：**加 100 点
+  会得到 94 级，而原版是 7 级**；
+- **`addLevels` 无条件重算累计经验**：方法的注释写着「正等级时不重新计算
+  `totalExperience`」，下一段却无条件用 `getExperienceForLevel(level) + progress × capacity`
+  重算。原版 `giveExperienceLevels` **从不**改写 `totalExperience`（它只由加点与归零分支
+  改写），于是「只加减等级」也会把累计经验改成与玩家实际获得经验不符的值。
+
+另外，`addExperience` 原本给负数数量单独写了一套「用等级起点 + 进度重算 `total`」的路径，
+与正数分支的累加路径并存且互斥。现在两者合并为原版的单一路径：
+`clamp(total + amount, 0, INT_MAX)`。
+
+修复后 440/440 一致；`ExperienceManagerTest`、`VillagerTradeXpTest` 等 184 个单测全绿。
+
+### 一个注意事项：单次加点量要落在合理范围
+
+加点会**逐级**推进（每次 1 级），单次给出 `2147483647` 点会让两侧都陷入数千万次循环——
+那是输入不合理，不是行为差异。场景里把单次加点上限设为 10000（覆盖击杀经验的量级）。
 
 ## 下一步候选能力
 

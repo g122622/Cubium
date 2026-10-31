@@ -57,6 +57,7 @@ import {
     PROJECT_ONLY_COMMANDS,
 } from "./known_missing_commands.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
+import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
 import { recipeDeclaration } from "./recipe.ts";
@@ -479,6 +480,11 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "piston_movement", probe: "piston_movement", oracle: "PistonMovementOracle", key: "unit",
         units: { kind: "computed", units: pistonSceneNames },
         input: pistonMovementInput },
+    // 玩家经验值：等级换算公式 + 加点/扣点的状态机。
+    // 进度条是 f32，探针与 oracle 都输出位模式，逐位比较。
+    { name: "experience", probe: "experience", oracle: "ExperienceOracle", key: "unit",
+        units: { kind: "computed", units: experienceSceneNames },
+        input: experienceInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
