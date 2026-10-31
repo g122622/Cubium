@@ -641,9 +641,9 @@ void ServerPlayer::unlockRecipe(const ResourceLocation& recipeId)
         }
     }
 
-    // 更新配方书
-    m_recipeBook.unlock(recipeId);
-    m_recipeBook.markNew(recipeId);
+    // 更新配方书：`add` 同时插入已解锁集合与高亮集合（对应原版
+    // `ServerRecipeBook#addRecipes` 里的 add + addHighlight 两步）。
+    m_recipeBook.add(recipeId);
 }
 
 size_t ServerPlayer::unlockRecipes(const std::vector<ResourceLocation>& recipes)

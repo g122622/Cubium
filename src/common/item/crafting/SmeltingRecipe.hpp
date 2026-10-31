@@ -64,7 +64,10 @@ public:
         const Ingredient& ingredient,
         const ItemStack& result,
         f32 experience,
-        i32 cookTime);
+        i32 cookTime,
+        // 配方书页签名。原版 `AbstractCookingRecipe` 用
+        // `CookingBookCategory.CODEC.optionalFieldOf("category", MISC)`。
+        CookingBookCategory bookCategory = CookingBookCategory::Misc);
 
     ~SmeltingRecipe() override = default;
 
@@ -135,6 +138,12 @@ public:
      * @brief 获取熔炼时间
      * @return 熔炼时间（tick）
      */
+    /// 配方书页签名（`food` / `blocks` / `misc`）。
+    [[nodiscard]] CookingBookCategory getCookingBookCategory() const override
+    {
+        return m_bookCategory;
+    }
+
     [[nodiscard]] i32 getCookTime() const
     {
         return m_cookTime;
@@ -156,6 +165,7 @@ protected:
     ItemStack m_result;
     f32 m_experience;
     i32 m_cookTime;
+    CookingBookCategory m_bookCategory = CookingBookCategory::Misc;
     mutable std::vector<Ingredient> m_ingredients; ///< 缓存的原料列表
 };
 

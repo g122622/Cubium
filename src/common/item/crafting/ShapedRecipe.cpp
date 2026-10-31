@@ -40,13 +40,15 @@ ShapedRecipe::ShapedRecipe(const ResourceLocation& id,
     i32 height,
     std::vector<Ingredient> ingredients,
     ItemStack result,
-    const std::string& group)
+    const std::string& group,
+    CraftingBookCategory bookCategory)
     : m_id(id)
     , m_width(width)
     , m_height(height)
     , m_ingredients(std::move(ingredients))
     , m_result(std::move(result))
     , m_group(group)
+    , m_bookCategory(bookCategory)
 {}
 
 bool ShapedRecipe::matches(const CraftingInventory& inventory) const noexcept

@@ -95,8 +95,14 @@ void _copyPlayerState(Player& target, const Player& source)
     if (source.getEnteredNetherPosition().has_value()) {
         target.setEnteredNetherPosition(*source.getEnteredNetherPosition());
     }
-    if (source.getRecipeBook() != nullptr && target.getRecipeBook() != nullptr) {
-        target.getRecipeBook()->copyFrom(*source.getRecipeBook());
+    // 对齐原版 `ServerRecipeBook#copyOverData`：把整份打包状态（设置 + 已解锁 + 高亮）
+    // 覆盖到目标。重生时配方书必须整体搬过去，而不是只拷设置。
+    if (const auto* sourceBook = dynamic_cast<const crafting::ServerRecipeBook*>(source.getRecipeBook());
+        sourceBook != nullptr) {
+        if (auto* targetBook = dynamic_cast<crafting::ServerRecipeBook*>(target.getRecipeBook());
+            targetBook != nullptr) {
+            targetBook->apply(sourceBook->pack());
+        }
     }
 }
 

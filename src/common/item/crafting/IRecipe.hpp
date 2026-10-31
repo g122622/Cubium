@@ -27,6 +27,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "core/Result.hpp"
 #include "item/crafting/Ingredient.hpp"
+#include "item/crafting/RecipeBookCategories.hpp"
 #include "resource/ResourceLocation.hpp"
 #include <cstddef>
 #include <memory>
@@ -171,6 +172,98 @@ public:
      */
     [[nodiscard]] virtual RecipeType getType() const = 0;
 
+    /**
+     * @brief 配方在配方书里的页签名（工作台侧）。
+     *
+     * 对齐原版 `Recipe#recipeBookCategory()`：有序 / 无形状合成返回自己的
+     * `CraftingBookCategory`；其余类型（熔炼、切石、锻造……）没有工作台页签，返回
+     * `Misc` 占位——调用方按 `getType()` 决定该去问 {@link getCookingBookCategory}。
+     */
+    [[nodiscard]] virtual CraftingBookCategory getCraftingBookCategory() const
+    {
+        return CraftingBookCategory::Misc;
+    }
+
+    /**
+     * @brief 配方在配方书里的页签名（熔炉侧）。
+     *
+     * 对齐原版 `AbstractCookingRecipe#getCookingBookCategory`：熔炼 / 高炉 / 烟熏 / 营火
+     * 各自带 `CookingBookCategory`；其余类型返回 `Misc`。
+     */
+    [[nodiscard]] virtual CookingBookCategory getCookingBookCategory() const
+    {
+        return CookingBookCategory::Misc;
+    }
+
+    /**
+     * @brief 配方在配方书里的**最终归属**（类型 + 页签分类压成一个资源位置）。
+     *
+     * 直接对齐原版 `Recipe#recipeBookCategory()` 的 switch：它把两个维度映射成
+     * `RecipeBookCategories` 注册表里的常量。客户端渲染配方书时用的就是这个键，
+     * 所以比「分类枚举取值」更接近玩家看到的结果——分类解析正确、类型映射错误
+     * （把烟熏炉算成熔炉）会在这里暴露。
+     */
+    [[nodiscard]] virtual RecipeBookPage recipeBookPage() const
+    {
+        switch (getType()) {
+            case RecipeType::Smelting:
+                return cookingPage(getCookingBookCategory(),
+                    RecipeBookPage::FurnaceFood,
+                    RecipeBookPage::FurnaceBlocks,
+                    RecipeBookPage::FurnaceMisc);
+            case RecipeType::Blasting:
+                // 高炉只有「方块」与「杂项」两页；食物类一律落到杂项。
+                return getCookingBookCategory() == CookingBookCategory::Blocks ? RecipeBookPage::BlastFurnaceBlocks
+                                                                               : RecipeBookPage::BlastFurnaceMisc;
+            case RecipeType::Smoking:
+                // 烟熏炉只有「食物」一页，分类字段在这里不影响归属。
+                return RecipeBookPage::SmokerFood;
+            case RecipeType::CampfireCooking:
+                return RecipeBookPage::Campfire;
+            case RecipeType::Stonecutting:
+                return RecipeBookPage::Stonecutter;
+            case RecipeType::Smithing:
+            case RecipeType::SmithingTransform:
+            case RecipeType::SmithingTrim:
+                return RecipeBookPage::Smithing;
+            default:
+                return craftingPage(getCraftingBookCategory());
+        }
+    }
+
+private:
+    /// 工作台页签分类 → 最终的页签归属。
+    [[nodiscard]] static RecipeBookPage craftingPage(CraftingBookCategory category) noexcept
+    {
+        switch (category) {
+            case CraftingBookCategory::Building:
+                return RecipeBookPage::CraftingBuildingBlocks;
+            case CraftingBookCategory::Redstone:
+                return RecipeBookPage::CraftingRedstone;
+            case CraftingBookCategory::Equipment:
+                return RecipeBookPage::CraftingEquipment;
+            case CraftingBookCategory::Misc:
+            default:
+                return RecipeBookPage::CraftingMisc;
+        }
+    }
+
+    /// 熔炼页签分类 → 最终的页签归属。
+    [[nodiscard]] static RecipeBookPage cookingPage(
+        CookingBookCategory category, RecipeBookPage food, RecipeBookPage blocks, RecipeBookPage misc) noexcept
+    {
+        switch (category) {
+            case CookingBookCategory::Food:
+                return food;
+            case CookingBookCategory::Blocks:
+                return blocks;
+            case CookingBookCategory::Misc:
+            default:
+                return misc;
+        }
+    }
+
+public:
     /**
      * @brief 检查配方是否需要特殊条件才能使用
      * @return 如果配方可以在普通工作台使用返回true

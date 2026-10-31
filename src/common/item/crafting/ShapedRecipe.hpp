@@ -80,7 +80,10 @@ public:
         i32 height,
         std::vector<Ingredient> ingredients,
         ItemStack result,
-        const std::string& group = "");
+        const std::string& group = "",
+        // 配方书页签名。数据包里是 optional，缺省 MISC——原版
+        // `CraftingBookCategory.CODEC.fieldOf("category").orElse(MISC)`。
+        CraftingBookCategory bookCategory = CraftingBookCategory::Misc);
 
     /**
      * @brief 检查配方是否匹配给定容器
@@ -118,6 +121,11 @@ public:
      * @brief 获取配方分组
      * @return 分组名，如果无分组返回空字符串
      */
+    [[nodiscard]] CraftingBookCategory getCraftingBookCategory() const override
+    {
+        return m_bookCategory;
+    }
+
     [[nodiscard]] const std::string& getGroup() const noexcept override
     {
         return m_group;
@@ -196,6 +204,7 @@ private:
     std::vector<Ingredient> m_ingredients;
     ItemStack m_result;
     std::string m_group;
+    CraftingBookCategory m_bookCategory = CraftingBookCategory::Misc;
 };
 
 } // namespace crafting

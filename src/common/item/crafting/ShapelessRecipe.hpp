@@ -74,7 +74,9 @@ public:
     ShapelessRecipe(const ResourceLocation& id,
         std::vector<Ingredient> ingredients,
         ItemStack result,
-        const std::string& group = "");
+        const std::string& group = "",
+        // 配方书页签名（缺省 MISC，同 ShapedRecipe）。
+        CraftingBookCategory bookCategory = CraftingBookCategory::Misc);
 
     /**
      * @brief 检查配方是否匹配给定容器
@@ -115,6 +117,12 @@ public:
     [[nodiscard]] const std::string& getGroup() const override
     {
         return m_group;
+    }
+
+    /// 配方书页签名（`building` / `redstone` / `equipment` / `misc`）。
+    [[nodiscard]] CraftingBookCategory getCraftingBookCategory() const override
+    {
+        return m_bookCategory;
     }
 
     /**
@@ -177,6 +185,7 @@ private:
     std::vector<Ingredient> m_ingredients;
     ItemStack m_result;
     std::string m_group;
+    CraftingBookCategory m_bookCategory = CraftingBookCategory::Misc;
     bool m_isSimple = true; ///< 是否为简单配方（所有原料都不包含可损坏物品）
 };
 

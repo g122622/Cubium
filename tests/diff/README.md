@@ -65,6 +65,7 @@ tests/diff/
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── crafting_match.cpp       # 合成配方在固定网格语料下的匹配与产出
 │   ├── single_item_recipe.cpp   # 单物品配方的查询语义（熔炼/高炉/烟熏/营火/切石）
+│   ├── recipe_book_category.cpp # 每条配方落在配方书的哪个页签（类型 + 分类 → 归属）
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -98,6 +99,7 @@ tests/diff/
 │   │   ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
 │   │   ├── crafting_match.ts    # 合成配方的摆法语料（原样 / 放大 / 平移 / 反例）
 │   │   ├── single_item_recipe.ts # 单物品配方查询的比对口径（补齐五个结果键）
+│   │   ├── recipe_book_category.ts # 配方书页签归属的比对口径（补齐 type/page）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -344,6 +346,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
 | `crafting_match` | 原版 jar `CraftingMatchOracle` | 4068（有序/无形状配方 × 6 种摆法） | 全部一致 | 见下文 |
 | `single_item_recipe` | 原版 jar `SingleItemRecipeOracle` | 202 个输入物品（熔炼/高炉/烟熏/营火/切石） | 全部一致 | 见下文 |
+| `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470（每条配方一项） | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -459,6 +462,27 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 - **文本组件的样式是两态而非三态**：`Style` 用 `bool` 记 bold/italic 等，无法区分「显式 false」
   与「未设置」。原版是 `Optional<Boolean>`：前者要写出 `italic:0b`，后者省略；继承时也只看
   子样式是否显式给出（`子 || 父` 会让显式 false 盖不住父样式的 true）。改为 `std::optional<bool>`。
+
+`recipe_book_category` 比的是**每条配方落在配方书的哪个页签**。这个归属由两个维度
+合成：配方**类型**（熔炼 / 高炉 / 烟熏 / 营火 / 切石 / 锻造各有一套页签）与数据包里的
+`category` 字段（有序合成是 building / redstone / equipment / misc，烧制是 food /
+blocks / misc）。原版 `Recipe#recipeBookCategory()` 把它们压成一个注册表键，例如
+`minecraft:crafting_equipment`、`minecraft:smoker_food`。
+
+只比这一个字段，就能同时发现两类错误：分类字段解析错了，以及类型映射错了。两个**不是**
+机械对应的地方尤其值得压——烟熏炉只有「食物」一页（分类写 blocks 也落 `smoker_food`），
+高炉没有食物页（食物类落 `blast_furnace_misc` 而不是凭空的 `blast_furnace_food`）。
+
+首轮跑通查出 30 处差异，全部修掉：
+
+- **12 种特殊配方的类型被笼统写成 `special`**：原版把它们注册成各自的序列化器
+  （`crafting_special_armordye`、`crafting_special_bookcloning`……）。Cubium 的
+  `SpecialRecipe` 其实已经持有精确 ID（`getSerializerId()`），只是探针没用它。
+- **16 个收纳袋从装备页掉进杂项页**：`crafting_transmute` 的 `category: equipment`
+  没有被解析——`TransmuteRecipe` 也是 `CraftingRecipe` 的实现，走同一套分类。
+- **2 条红石高炉配方从 blocks 掉进 misc**：`parseBlastingRecipe` 等三个转换函数在
+  「熔炼配方 → 高炉/烟熏/营火配方」的二次构造里**丢掉了分类**，`category` 字段因此
+  在转换时消失。这一处是重构 RecipeBook 时才暴露的——旧模型根本没有分类这回事。
 
 `single_item_recipe` 比的是**单物品配方的查询语义**：单元是输入物品而不是配方 ID，
 两侧各自回答「这个物品在熔炼炉 / 高炉 / 烟熏炉 / 营火里会烧出什么、切石机上有哪些选项」。

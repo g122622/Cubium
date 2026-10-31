@@ -39,13 +39,15 @@ SmeltingRecipe::SmeltingRecipe(const ResourceLocation& id,
     const Ingredient& ingredient,
     const ItemStack& result,
     f32 experience,
-    i32 cookTime)
+    i32 cookTime,
+    CookingBookCategory bookCategory)
     : m_id(id)
     , m_group(group)
     , m_ingredient(ingredient)
     , m_result(result)
     , m_experience(experience)
     , m_cookTime(cookTime)
+    , m_bookCategory(bookCategory)
 {
     m_ingredients.push_back(m_ingredient);
 }

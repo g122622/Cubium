@@ -86,7 +86,10 @@ public:
         Ingredient input,
         Ingredient material,
         ItemStack result,
-        const std::string& group = "");
+        const std::string& group = "",
+        // 配方书页签名（缺省 MISC）。`crafting_transmute` 在数据包里带 category
+        // （收纳袋是 equipment），丢掉它会让 16 个收纳袋从装备页掉进杂项页。
+        CraftingBookCategory bookCategory = CraftingBookCategory::Misc);
 
     /**
      * @brief 检查配方是否匹配给定容器
@@ -144,6 +147,12 @@ public:
     /**
      * @brief 获取配方分组
      */
+    /// 配方书页签名（`building` / `redstone` / `equipment` / `misc`）。
+    [[nodiscard]] CraftingBookCategory getCraftingBookCategory() const override
+    {
+        return m_bookCategory;
+    }
+
     [[nodiscard]] const std::string& getGroup() const override
     {
         return m_group;
@@ -208,6 +217,7 @@ private:
     Ingredient m_material;
     ItemStack m_result;
     std::string m_group;
+    CraftingBookCategory m_bookCategory = CraftingBookCategory::Misc;
     std::vector<Ingredient> m_ingredients; ///< getIngredients() 返回的列表（input + material）
 
     /**

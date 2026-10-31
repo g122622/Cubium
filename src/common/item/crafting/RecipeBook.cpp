@@ -22,313 +22,269 @@
  */
 
 #include "RecipeBook.hpp"
+
 #include "RecipeManager.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
-#include <cstddef>
+
+#include <algorithm>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace mc {
 namespace crafting {
 
-// ========== RecipeBookCategory ==========
+// ========== RecipeBookType ==========
 
-const char* recipeBookCategoryToString(RecipeBookCategory category) noexcept
+const char* recipeBookTypeToString(RecipeBookType type) noexcept
 {
-    switch (category) {
-        case RecipeBookCategory::Crafting:
+    switch (type) {
+        case RecipeBookType::Crafting:
             return "crafting";
-        case RecipeBookCategory::Furnace:
+        case RecipeBookType::Furnace:
             return "furnace";
-        case RecipeBookCategory::BlastFurnace:
+        case RecipeBookType::BlastFurnace:
             return "blast_furnace";
-        case RecipeBookCategory::Smoker:
+        case RecipeBookType::Smoker:
             return "smoker";
         default:
             return "unknown";
     }
 }
 
-std::optional<RecipeBookCategory> recipeBookCategoryFromString(const std::string& str) noexcept
+std::optional<RecipeBookType> recipeBookTypeFromString(const std::string& str) noexcept
 {
+    // 数据包里这两种写法都出现过：NBT 用裸名，资源位置带命名空间。
     if (str == "crafting" || str == "minecraft:crafting") {
-        return RecipeBookCategory::Crafting;
+        return RecipeBookType::Crafting;
     }
     if (str == "furnace" || str == "minecraft:furnace") {
-        return RecipeBookCategory::Furnace;
+        return RecipeBookType::Furnace;
     }
     if (str == "blast_furnace" || str == "minecraft:blast_furnace") {
-        return RecipeBookCategory::BlastFurnace;
+        return RecipeBookType::BlastFurnace;
     }
     if (str == "smoker" || str == "minecraft:smoker") {
-        return RecipeBookCategory::Smoker;
+        return RecipeBookType::Smoker;
     }
     return std::nullopt;
 }
 
-// ========== RecipeBookStatus ==========
+// ========== RecipeBookSettings ==========
 
-RecipeBookStatus::RecipeBookStatus()
+namespace {
+
+/// 类型的下标；越界时按 Crafting 处理并断言。
+[[nodiscard]] size_t typeIndex(RecipeBookType type) noexcept
 {
-    // 默认构造：所有分类状态为 false
-    for (size_t i = 0; i < static_cast<size_t>(RecipeBookCategory::Count); ++i) {
-        m_status[i] = CategoryStatus(false, false);
-    }
+    const size_t index = static_cast<size_t>(type);
+    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookType::Count));
+    return index < static_cast<size_t>(RecipeBookType::Count) ? index : 0;
 }
 
-bool RecipeBookStatus::isGuiOpen(RecipeBookCategory category) const noexcept
+} // namespace
+
+bool RecipeBookSettings::isOpen(RecipeBookType type) const noexcept
 {
-    const size_t index = static_cast<size_t>(category);
-    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
-    return m_status[index].guiOpen;
+    return m_settings[typeIndex(type)].open;
 }
 
-void RecipeBookStatus::setGuiOpen(RecipeBookCategory category, bool open) noexcept
+bool RecipeBookSettings::isFiltering(RecipeBookType type) const noexcept
 {
-    const size_t index = static_cast<size_t>(category);
-    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
-    m_status[index].guiOpen = open;
+    return m_settings[typeIndex(type)].filtering;
 }
 
-bool RecipeBookStatus::isFilteringCraftable(RecipeBookCategory category) const noexcept
+void RecipeBookSettings::setOpen(RecipeBookType type, bool open) noexcept
 {
-    const size_t index = static_cast<size_t>(category);
-    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
-    return m_status[index].filteringCraftable;
+    m_settings[typeIndex(type)].open = open;
 }
 
-void RecipeBookStatus::setFilteringCraftable(RecipeBookCategory category, bool filtering) noexcept
+void RecipeBookSettings::setFiltering(RecipeBookType type, bool filtering) noexcept
 {
-    const size_t index = static_cast<size_t>(category);
-    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
-    m_status[index].filteringCraftable = filtering;
+    m_settings[typeIndex(type)].filtering = filtering;
 }
 
-void RecipeBookStatus::setCategoryStatus(RecipeBookCategory category, bool open, bool filtering) noexcept
+void RecipeBookSettings::set(RecipeBookType type, bool open, bool filtering) noexcept
 {
-    const size_t index = static_cast<size_t>(category);
-    MC_ASSERT_RELEASE(index < static_cast<size_t>(RecipeBookCategory::Count));
-    m_status[index].guiOpen = open;
-    m_status[index].filteringCraftable = filtering;
+    TypeSettings& settings = m_settings[typeIndex(type)];
+    settings.open = open;
+    settings.filtering = filtering;
 }
 
-void RecipeBookStatus::copyFrom(const RecipeBookStatus& other) noexcept
+RecipeBookSettings::TypeSettings RecipeBookSettings::get(RecipeBookType type) const noexcept
 {
-    for (size_t i = 0; i < static_cast<size_t>(RecipeBookCategory::Count); ++i) {
-        m_status[i] = other.m_status[i].copy();
-    }
+    return m_settings[typeIndex(type)];
 }
 
-RecipeBookStatus RecipeBookStatus::copy() const noexcept
+void RecipeBookSettings::replaceFrom(const RecipeBookSettings& other) noexcept
 {
-    RecipeBookStatus result;
-    result.copyFrom(*this);
-    return result;
+    m_settings = other.m_settings;
 }
 
-bool RecipeBookStatus::operator==(const RecipeBookStatus& other) const noexcept
+RecipeBookSettings RecipeBookSettings::copy() const noexcept
 {
-    for (size_t i = 0; i < static_cast<size_t>(RecipeBookCategory::Count); ++i) {
-        if (!(m_status[i] == other.m_status[i])) {
+    return *this;
+}
+
+bool RecipeBookSettings::operator==(const RecipeBookSettings& other) const noexcept
+{
+    for (size_t index = 0; index < m_settings.size(); ++index) {
+        if (!(m_settings[index] == other.m_settings[index])) {
             return false;
         }
     }
     return true;
 }
 
-// ========== RecipeBook ==========
-
-void RecipeBook::unlock(const ResourceLocation& recipeId)
-{
-    m_recipes.insert(recipeId);
-}
-
-void RecipeBook::lock(const ResourceLocation& recipeId)
-{
-    m_recipes.erase(recipeId);
-    m_newRecipes.erase(recipeId);
-}
-
-bool RecipeBook::isUnlocked(const ResourceLocation& recipeId) const noexcept
-{
-    return m_recipes.contains(recipeId);
-}
-
-bool RecipeBook::isBookRecipe(const ResourceLocation& recipeId) const noexcept
-{
-    // 未解锁的配方不在配方书中
-    if (!m_recipes.contains(recipeId)) {
-        return false;
-    }
-
-    // 动态配方不在配方书中显示
-    // 参考 MC 1.21.1: ServerRecipeBook.addRecipes() 中的 !recipe.isSpecial() 过滤逻辑
-    // 动态配方（染色、修复、书本复制等）虽然可以合成，但不列入配方书
-    if (ServerRecipeBook::isDynamicRecipe(recipeId)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool RecipeBook::isNew(const ResourceLocation& recipeId) const noexcept
-{
-    return m_newRecipes.contains(recipeId);
-}
-
-void RecipeBook::markNew(const ResourceLocation& recipeId)
-{
-    m_newRecipes.insert(recipeId);
-}
-
-void RecipeBook::markSeen(const ResourceLocation& recipeId)
-{
-    m_newRecipes.erase(recipeId);
-}
-
-void RecipeBook::copyFrom(const RecipeBook& other)
-{
-    m_recipes = other.m_recipes;
-    m_newRecipes = other.m_newRecipes;
-    m_status.copyFrom(other.m_status);
-}
-
-void RecipeBook::clear() noexcept
-{
-    m_recipes.clear();
-    m_newRecipes.clear();
-}
-
 // ========== ServerRecipeBook ==========
 
-bool ServerRecipeBook::isDynamicRecipe(const ResourceLocation& recipeId)
+void ServerRecipeBook::add(const ResourceLocation& recipeId)
+{
+    // 原版 `addRecipes`：新解锁的同时插入 highlight，两集合同步增长。
+    m_known.insert(recipeId);
+    m_highlight.insert(recipeId);
+}
+
+bool ServerRecipeBook::contains(const ResourceLocation& recipeId) const noexcept
+{
+    return m_known.contains(recipeId);
+}
+
+void ServerRecipeBook::remove(const ResourceLocation& recipeId)
+{
+    // 原版 `remove` 同时清两个集合：配方要是还在高亮里，界面上会残留一个点不了的页签。
+    m_known.erase(recipeId);
+    m_highlight.erase(recipeId);
+}
+
+void ServerRecipeBook::removeHighlight(const ResourceLocation& recipeId)
+{
+    m_highlight.erase(recipeId);
+}
+
+bool ServerRecipeBook::isHighlighted(const ResourceLocation& recipeId) const noexcept
+{
+    return m_highlight.contains(recipeId);
+}
+
+bool ServerRecipeBook::isSpecialRecipe(const ResourceLocation& recipeId)
 {
     const CraftingRecipe* recipe = RecipeManager::instance().getRecipe(recipeId);
     return recipe != nullptr && recipe->isDynamic();
 }
 
+void ServerRecipeBook::clearRecipes() noexcept
+{
+    m_known.clear();
+    m_highlight.clear();
+}
+
+ServerRecipeBook::Packed ServerRecipeBook::pack() const
+{
+    Packed packed;
+    packed.settings = m_settings.copy();
+    packed.known.assign(m_known.begin(), m_known.end());
+    packed.highlight.assign(m_highlight.begin(), m_highlight.end());
+    // 集合是无序的，打出来的顺序必须稳定：存档里的列表顺序变化会让「保存后内容不变」
+    // 的判定失效（读写往返比对会凭空多出差异）。
+    std::sort(packed.known.begin(), packed.known.end());
+    std::sort(packed.highlight.begin(), packed.highlight.end());
+    return packed;
+}
+
+void ServerRecipeBook::apply(const Packed& packed)
+{
+    m_settings.replaceFrom(packed.settings);
+    m_known.clear();
+    m_highlight.clear();
+    m_known.insert(packed.known.begin(), packed.known.end());
+    m_highlight.insert(packed.highlight.begin(), packed.highlight.end());
+}
+
+namespace {
+
+/// 读一个布尔字段：缺省或类型不符时按原版 `optionalFieldOf(name, false)` 取 false。
+[[nodiscard]] bool readBool(const nbt::tags::compound_tag& tag, const std::string& key) noexcept
+{
+    const auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return false;
+    }
+    const auto* byteTag = dynamic_cast<const nbt::tags::byte_tag*>(it->second.get());
+    return byteTag != nullptr && byteTag->value != 0;
+}
+
+} // namespace
+
 nbt::tags::compound_tag ServerRecipeBook::write() const
 {
     nbt::tags::compound_tag tag;
 
-    // 写入 GUI 状态
-    // Crafting
-    tag.put("isGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::Crafting)));
-    tag.put("isFilteringCraftable", static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::Crafting)));
+    // 四个类型的设置平铺在顶层，键名与原版 `RecipeBookSettings` 的四个 MAP_CODEC 一致。
+    const auto writeType = [&tag, this](RecipeBookType type, const char* openKey, const char* filteringKey) {
+        tag.put(openKey, static_cast<i8>(m_settings.isOpen(type)));
+        tag.put(filteringKey, static_cast<i8>(m_settings.isFiltering(type)));
+    };
+    writeType(RecipeBookType::Crafting, "isGuiOpen", "isFilteringCraftable");
+    writeType(RecipeBookType::Furnace, "isFurnaceGuiOpen", "isFurnaceFilteringCraftable");
+    writeType(RecipeBookType::BlastFurnace, "isBlastingFurnaceGuiOpen", "isBlastingFurnaceFilteringCraftable");
+    writeType(RecipeBookType::Smoker, "isSmokerGuiOpen", "isSmokerFilteringCraftable");
 
-    // Furnace
-    tag.put("isFurnaceGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::Furnace)));
-    tag.put("isFurnaceFilteringCraftable", static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::Furnace)));
-
-    // Blast Furnace
-    tag.put("isBlastingFurnaceGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::BlastFurnace)));
-    tag.put("isBlastingFurnaceFilteringCraftable",
-        static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::BlastFurnace)));
-
-    // Smoker
-    tag.put("isSmokerGuiOpen", static_cast<i8>(m_status.isGuiOpen(RecipeBookCategory::Smoker)));
-    tag.put("isSmokerFilteringCraftable", static_cast<i8>(m_status.isFilteringCraftable(RecipeBookCategory::Smoker)));
-
-    // 写入已解锁配方列表
-    auto recipesList = std::make_unique<nbt::tags::string_list_tag>();
-    recipesList->value.reserve(m_recipes.size());
-    for (const auto& recipeId : m_recipes) {
-        recipesList->value.push_back(recipeId.toString());
-    }
-    tag.value["recipes"] = std::move(recipesList);
-
-    // 写入新解锁配方列表（待显示）
-    auto newRecipesList = std::make_unique<nbt::tags::string_list_tag>();
-    newRecipesList->value.reserve(m_newRecipes.size());
-    for (const auto& recipeId : m_newRecipes) {
-        newRecipesList->value.push_back(recipeId.toString());
-    }
-    tag.value["toBeDisplayed"] = std::move(newRecipesList);
+    const Packed packed = pack();
+    const auto writeList = [&tag](const char* key, const std::vector<ResourceLocation>& ids) {
+        auto list = std::make_unique<nbt::tags::string_list_tag>();
+        list->value.reserve(ids.size());
+        for (const auto& id : ids) {
+            list->value.push_back(id.toString());
+        }
+        tag.value[key] = std::move(list);
+    };
+    // `recipes` 是已解锁集合，`toBeDisplayed` 是尚未看过的高亮集合——原版
+    // `Packed.CODEC` 里 `known` → `recipes`、`highlight` → `toBeDisplayed`。
+    writeList("recipes", packed.known);
+    writeList("toBeDisplayed", packed.highlight);
 
     return tag;
 }
 
-void ServerRecipeBook::read(const nbt::tags::compound_tag& tag)
+void ServerRecipeBook::read(
+    const nbt::tags::compound_tag& tag, const std::function<bool(const ResourceLocation&)>& known)
 {
-    // 读取 GUI 状态
-    // 使用 try-catch 或检查键是否存在
-    auto tryGetBool = [&tag](const std::string& key) -> bool {
-        auto it = tag.value.find(key);
-        if (it != tag.value.end()) {
-            auto* byteTag = dynamic_cast<const nbt::tags::byte_tag*>(it->second.get());
-            if (byteTag) {
-                return byteTag->value != 0;
+    m_settings.set(RecipeBookType::Crafting, readBool(tag, "isGuiOpen"), readBool(tag, "isFilteringCraftable"));
+    m_settings.set(
+        RecipeBookType::Furnace, readBool(tag, "isFurnaceGuiOpen"), readBool(tag, "isFurnaceFilteringCraftable"));
+    m_settings.set(RecipeBookType::BlastFurnace,
+        readBool(tag, "isBlastingFurnaceGuiOpen"),
+        readBool(tag, "isBlastingFurnaceFilteringCraftable"));
+    m_settings.set(
+        RecipeBookType::Smoker, readBool(tag, "isSmokerGuiOpen"), readBool(tag, "isSmokerFilteringCraftable"));
+
+    m_known.clear();
+    m_highlight.clear();
+
+    // 原版 `loadUntrusted` 会丢弃「不认识的配方」并记日志；这里把判定交给调用方，
+    // 因为「认识」取决于各自的配方注册表（探针与游戏拥有的配方并不相同）。
+    const auto readList = [&tag, &known](const char* key, std::unordered_set<ResourceLocation>& into) {
+        const auto it = tag.value.find(key);
+        if (it == tag.value.end()) {
+            return;
+        }
+        const auto* list = dynamic_cast<const nbt::tags::string_list_tag*>(it->second.get());
+        if (list == nullptr) {
+            return;
+        }
+        for (const auto& recipeStr : list->value) {
+            ResourceLocation recipeId(recipeStr);
+            if (known(recipeId)) {
+                into.insert(std::move(recipeId));
             }
         }
-        return false;
     };
-
-    // Crafting
-    m_status.setCategoryStatus(
-        RecipeBookCategory::Crafting, tryGetBool("isGuiOpen"), tryGetBool("isFilteringCraftable"));
-
-    // Furnace
-    m_status.setCategoryStatus(
-        RecipeBookCategory::Furnace, tryGetBool("isFurnaceGuiOpen"), tryGetBool("isFurnaceFilteringCraftable"));
-
-    // Blast Furnace
-    m_status.setCategoryStatus(RecipeBookCategory::BlastFurnace,
-        tryGetBool("isBlastingFurnaceGuiOpen"),
-        tryGetBool("isBlastingFurnaceFilteringCraftable"));
-
-    // Smoker
-    m_status.setCategoryStatus(
-        RecipeBookCategory::Smoker, tryGetBool("isSmokerGuiOpen"), tryGetBool("isSmokerFilteringCraftable"));
-
-    // 读取已解锁配方列表
-    // 参考 MC 1.21.11 ServerRecipeBook.addRecipes()：动态配方（isSpecial 等价物）
-    // 不进入配方书，加载时同样排除。
-    m_recipes.clear();
-    auto recipesIt = tag.value.find("recipes");
-    if (recipesIt != tag.value.end()) {
-        auto* recipesList = dynamic_cast<const nbt::tags::string_list_tag*>(recipesIt->second.get());
-        if (recipesList) {
-            for (const auto& recipeStr : recipesList->value) {
-                ResourceLocation recipeId(recipeStr);
-                if (!isDynamicRecipe(recipeId)) {
-                    m_recipes.insert(std::move(recipeId));
-                }
-            }
-        }
-    }
-
-    // 读取新解锁配方列表
-    m_newRecipes.clear();
-    auto newRecipesIt = tag.value.find("toBeDisplayed");
-    if (newRecipesIt != tag.value.end()) {
-        auto* newRecipesList = dynamic_cast<const nbt::tags::string_list_tag*>(newRecipesIt->second.get());
-        if (newRecipesList) {
-            for (const auto& recipeStr : newRecipesList->value) {
-                ResourceLocation recipeId(recipeStr);
-                if (!isDynamicRecipe(recipeId)) {
-                    m_newRecipes.insert(std::move(recipeId));
-                }
-            }
-        }
-    }
-}
-
-std::vector<ResourceLocation> ServerRecipeBook::consumeNewRecipes()
-{
-    std::vector<ResourceLocation> result(m_newRecipes.begin(), m_newRecipes.end());
-    m_newRecipes.clear();
-    return result;
-}
-
-std::vector<ResourceLocation> ServerRecipeBook::getAllUnlockedRecipes() const
-{
-    return std::vector<ResourceLocation>(m_recipes.begin(), m_recipes.end());
+    readList("recipes", m_known);
+    readList("toBeDisplayed", m_highlight);
 }
 
 } // namespace crafting
