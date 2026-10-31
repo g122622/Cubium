@@ -361,7 +361,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
-| `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 见下文（28 处） | 部分（见「已知缺口」） |
+| `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 见下文（28 → 15 处） | 部分（见「已知缺口」） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1024,36 +1024,52 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
-### 附魔适用性：枚举归纳 vs 标签判定，28 个附魔对不上
+### 附魔适用性：枚举归纳 vs 标签判定（28 → 15）
 
 `enchantment_applicability` 对每个附魔逐个物品问「能不能附上去」，比的是**最终物品集合**。
-43 个附魔里 **28 个与原版不符**——这是目前发现的最大一处系统性偏差。
+首次运行暴露出 **28 个附魔与原版不符**，修复后降到 **15**。
 
 根因在表示方式：原版直接读数据包的 `supported_items` 物品标签引用（如
 `#minecraft:enchantable/sharp_weapon`）；Cubium 的附魔定义是硬编码的，没有这个字段，
 改用 `EnchantmentType` 枚举**归纳**原版标签，再由 `canApplyToItem` 按物品类型判定。
 
-差异分四类：
+#### 已修的五处
 
-| 模式 | 附魔 | 规模 | 根因 |
-|---|---|---|---|
-| 过度宽泛 | `binding_curse`、`vanishing_curse`、`mending`、`unbreaking` | 仅 Cubium 有 1000+ | `EnchantmentType::All` 直接 `return true` |
-| 漏掉武器 | `sharpness`、`smite`、`bane_of_arthropods`、`fire_aspect`、`knockback`、`looting` | 仅原版有 ~14-22 | `Weapon` 只认剑与三叉戟，不认斧、矛 |
-| 护甲细分未落实 | `aqua_affinity`、`respiration`（应限头盔）；`depth_strider`、`frost_walker`、`soul_speed`、`swift_sneak`（应限靴子） | 仅 Cubium 有 ~22-23 | 统一按「是护甲」放行 |
-| 少量偏差 | `breach`、`density`、`wind_burst`、`efficiency`、四种保护 | 各 1 | 个别物品判定 |
+| 问题 | 表现 | 修法 |
+|---|---|---|
+| `Breakable`/`Vanishable` 直接 `return true` | 经验修补、耐久能附到泥土、空气、刷怪蛋（各 1124 个物品） | 改用 `isDamageable()`，并补上指南针、雕刻南瓜、头颅 |
+| 四个护甲部位分支全都 `return item->isArmor()` | 水下速掘/呼吸能附在靴上，深海漫游/冰霜行者能附在头盔上 | 按 `ArmorItem::isHelmet/isChestplate/isLeggings/isBoots` 真正分部位 |
+| `Weapon` 只认剑与三叉戟 | 斧、矛附不了锋利；三叉戟反而被误收（它有自己的 `#enchantable/trident`） | 按 `SpearItem`、`SwordItem`、`ToolType::Axe` 判定 |
+| **剑识别完全失效** | `SwordItem : public TieredItem`，**不继承 `ToolItem`**，`dynamic_cast<ToolItem*>` 永远为 null | 直接用 `dynamic_cast<SwordItem*>` |
+| `isArmor()` 把狼铠算进护甲 | `wolf_armor` 被误判可附保护类附魔 | 护甲只认玩家四部件 |
+| `MaceItem` 不继承 `ToolItem` | 重锤附不了锋利/亡灵杀手/节肢杀手 | 单列一条 `dynamic_cast<MaceItem*>` |
 
-前两类的玩法后果很直观：
+其中「剑识别完全失效」最隐蔽：`getToolType() == ToolType::Sword` 这行代码看上去完全
+正常，只有做差分才暴露出**它永远不成立**——剑根本不走 `ToolItem` 这条继承链。同类问题
+在 `MaceItem` 上重演了一次。
 
-- **给任意物品都能附耐久/经验修补/诅咒**——包括泥土、空气、刷怪蛋。原版里这些只能附在
-  可损坏物品上。
-- **斧子附不了锋利**。原版 `#enchantable/melee_weapon` 含斧与矛，Cubium 的 `Weapon`
-  类型只匹配剑和三叉戟。
+#### 剩余 15 处
 
-修这一类需要把 `EnchantmentType` 枚举换成真实的 `supported_items` 物品标签引用，
-是附魔系统的结构性改动，会波及附魔台、铁砧、交易、战利品等所有调用方。
+都是标签细粒度差异，且规模很小：
 
-TODO: 按上表四类逐步替换 `canApplyToItem` 的类型判定为标签判定。优先级：先修
-`EnchantmentType::All` 的兜底（影响面最大），再补武器类，最后处理护甲细分。
+| 附魔 | 差异 |
+|---|---|
+| `bane_of_arthropods`、`smite`、`efficiency` | 缺/多个别物品 |
+| `mending`、`unbreaking`、`vanishing_curse` | 多 1 个 |
+| `fire_aspect`、`knockback`、`looting` | 多 7 个（斧/剑的 `#enchantable/fire_aspect` 细分） |
+| `lunge`、`sweeping_edge` | 多 14 个（矛的归属） |
+| `breach`、`density`、`wind_burst`、`feather_falling` | 多 21-22 个 |
+| `thorns` | 缺 22 个 |
+
+TODO: 彻底对齐需要把 `EnchantmentType` 枚举换成真实的 `supported_items` 物品标签引用
+（接入 `#minecraft:enchantable/*` 全套标签），这是附魔系统的结构性改动，会波及附魔台、
+铁砧、交易、战利品等所有调用方，需独立评估。
+
+#### 一处方法论收益
+
+修完这几处之后，`ContainerRequestTest.EnchantmentButtonRejectsInsufficientLevelAndCreativeDoesNotConsumeLapis`
+这个**卡了好几轮的存量失败自己消失了**——它测的是附魔台按钮的等级判定，而按钮能否点
+正是由「这个物品能不能附这个魔」推导出来的。枚举判定错误一直在污染下游行为。
 
 ### 附魔代价曲线：43 个附魔逐级比对，全对
 

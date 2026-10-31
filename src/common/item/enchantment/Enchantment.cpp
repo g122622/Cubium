@@ -25,10 +25,14 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
+#include "common/item/items/tool/SwordItem.hpp"
 #include "common/item/items/tool/ToolItem.hpp"
+#include "common/item/items/trial/MaceItem.hpp"
 #include "common/item/items/weapon/BowItem.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/item/items/weapon/FishingRodItem.hpp"
+#include "common/item/items/weapon/SpearItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
 #include <string>
 
@@ -87,16 +91,66 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
     switch (type()) {
         case EnchantmentType::All:
             return true;
-        case EnchantmentType::Armor:
+        case EnchantmentType::Armor: {
+            // 原版 `#enchantable/armor` = 头盔 ∪ 胸甲 ∪ 护腿 ∪ 靴子，**只含玩家护甲四部件**。
+            // 马铠、狼铠、鹦鹉螺铠虽然也是 `ArmorItem`，但它们不在该标签里，
+            // 不能附保护类附魔（由差分能力 enchantment_applicability 查出：
+            // 此前 `wolf_armor` 被误判为可附 protection / mending / unbreaking）。
+            const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(item);
+            if (armorItem == nullptr) {
+                return false;
+            }
+            return armorItem->isHelmet() || armorItem->isChestplate() || armorItem->isLeggings() ||
+                armorItem->isBoots();
+        }
         case EnchantmentType::ArmorHead:
         case EnchantmentType::ArmorChest:
         case EnchantmentType::ArmorLegs:
-        case EnchantmentType::ArmorFeet:
-            return item->isArmor();
+        case EnchantmentType::ArmorFeet: {
+            // 原版按 `#enchantable/head_armor` 等物品标签细分部位。这里必须真正区分，
+            // 不能统一回落到 `isArmor()`：此前四个部位分支全部 `return item->isArmor()`，
+            // 导致「水下速掘」「水下呼吸」能附在靴子上、「深海漫游」「冰霜行者」能附在
+            // 头盔上（由差分能力 enchantment_applicability 查出，各差 22-23 个物品）。
+            const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(item);
+            if (armorItem == nullptr) {
+                return false;
+            }
+            switch (type()) {
+                case EnchantmentType::ArmorHead:
+                    return armorItem->isHelmet();
+                case EnchantmentType::ArmorChest:
+                    return armorItem->isChestplate();
+                case EnchantmentType::ArmorLegs:
+                    return armorItem->isLeggings();
+                case EnchantmentType::ArmorFeet:
+                    return armorItem->isBoots();
+                default:
+                    return false;
+            }
+        }
         case EnchantmentType::Weapon: {
+            // 原版 `#enchantable/sharp_weapon` = `#enchantable/melee_weapon` ∪ `#axes`
+            //                          = (剑 ∪ 矛) ∪ 斧
+            // 此前这里只认剑与三叉戟：斧与矛被漏掉（导致「斧子附不了锋利」），
+            // 三叉戟则被误收（三叉戟属于 `#enchantable/trident`，有自己的附魔池）。
+            // 由差分能力 enchantment_applicability 查出：sharpness / smite /
+            // bane_of_arthropods / fire_aspect / knockback / looting 各差 14-22 个物品。
+            if (dynamic_cast<const item::SpearItem*>(item) != nullptr) {
+                return true;
+            }
+            // 剑不继承 `ToolItem`（`SwordItem : public TieredItem`），因此必须按类型
+            // 直接判定；此前走 `dynamic_cast<ToolItem*>` 永远拿到 nullptr，
+            // 导致「锋利附不到剑上」。
+            if (dynamic_cast<const item::tool::SwordItem*>(item) != nullptr) {
+                return true;
+            }
+            // 重锤 `MaceItem` 直接继承 `Item`，不是 `ToolItem`，必须单独判类型。
+            // 它属于 `#enchantable/weapon`（= sharp_weapon ∪ mace）。
+            if (dynamic_cast<const item::MaceItem*>(item) != nullptr) {
+                return true;
+            }
             const auto* toolItem = dynamic_cast<const item::tool::ToolItem*>(item);
-            return dynamic_cast<const item::TridentItem*>(item) != nullptr ||
-                (toolItem != nullptr && toolItem->getToolType() == item::tool::ToolType::Sword);
+            return toolItem != nullptr && toolItem->getToolType() == item::tool::ToolType::Axe;
         }
         case EnchantmentType::Digger: {
             // 原版 `#minecraft:enchantable/mining` = 镐 / 斧 / 铲 / 锄 / 剪刀
@@ -126,11 +180,37 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
         case EnchantmentType::Trident:
             return dynamic_cast<const item::TridentItem*>(item) != nullptr;
         case EnchantmentType::Breakable:
-        case EnchantmentType::Wearable:
-        case EnchantmentType::Vanishable:
-            // 「可损坏 / 可穿戴 / 可消失」在原版是物品标签，不是附魔的 supported_items；
-            // 作为附魔分类时这三种只用于"能附到任何这类物品上"，这里按最大集合放行。
-            return true;
+            // 原版 `#enchantable/durability`：有耐久的物品。
+            // 此前这里直接 `return true`，导致经验修补、耐久能附到泥土、空气、
+            // 刷怪蛋等任意物品上（每种差 1124 个物品）。
+            return item->isDamageable();
+        case EnchantmentType::Wearable: {
+            // 原版 `#enchantable/equippable` = 护甲四部件 ∪ 鞘翅 ∪ `#minecraft:skulls` ∪ 雕刻南瓜。
+            // 这里覆盖护甲四部件与鞘翅；头颅与雕刻南瓜需要物品标签支持，
+            // 目前只按物品 ID 前缀近似判定（比全放行或全拒绝更接近原版）。
+            const auto* armorItem = dynamic_cast<const item::items::ArmorItem*>(item);
+            if (armorItem != nullptr) {
+                return armorItem->isHelmet() || armorItem->isChestplate() || armorItem->isLeggings() ||
+                    armorItem->isBoots();
+            }
+            const auto itemId = item->itemLocation().path();
+            // TODO: 接入 `#minecraft:skulls` 物品标签后删除这段按 ID 后缀的近似判定。
+            return itemId == "elytra" || itemId == "carved_pumpkin" ||
+                (itemId.size() > 5 && itemId.substr(itemId.size() - 5) == "_head") ||
+                (itemId.size() > 6 && itemId.substr(itemId.size() - 6) == "_skull");
+        }
+        case EnchantmentType::Vanishable: {
+            // 原版 `#enchantable/vanishing` = `#enchantable/durability` ∪ 指南针 ∪
+            // 雕刻南瓜 ∪ `#minecraft:skulls`。
+            if (item->isDamageable()) {
+                return true;
+            }
+            const auto itemId = item->itemLocation().path();
+            // TODO: 接入 `#minecraft:skulls` 物品标签后删除这段按 ID 后缀的近似判定。
+            return itemId == "compass" || itemId == "carved_pumpkin" ||
+                (itemId.size() > 5 && itemId.substr(itemId.size() - 5) == "_head") ||
+                (itemId.size() > 6 && itemId.substr(itemId.size() - 6) == "_skull");
+        }
     }
     return true;
 }
