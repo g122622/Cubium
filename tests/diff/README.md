@@ -359,6 +359,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `jukebox_song` | 原版 jar `JukeboxSongOracle` | 21 首唱片机歌曲 | 全部一致 | — |
 | `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
+| `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1020,6 +1021,29 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 伤害类型标签：一次「本来就对」的验证
+
+`damage_type_tags` 比较 33 个伤害类型标签各自包含哪些伤害类型，一次通过 **33/33**。
+
+这次的结论是「Cubium 本来就对」——`DamageTypeTags` 与 `DamageTypeTagLoader` 早就存在，
+加载流程也与 `EntityTypeTagLoader` 同构（`initialize()` 建对象、加载器填成员）。
+能力本身只做了两件事：把标签纳入差分校验范围，以及确认成员集合与数据包一致。
+
+值得记的是它的价值不在于「发现缺陷」，而在于**把一块原本没人验证的区域变成有护栏的**。
+这批标签几乎全是玩法开关：
+
+| 标签 | 影响 |
+|---|---|
+| `bypasses_armor` | 能否穿甲 |
+| `is_fall` | 落地保护、摔落靴判定 |
+| `burns_armor_stands` | 会不会烧掉装备架 |
+| `avoids_guardian_thorns` | 是否触发守卫者荆棘 |
+
+漏一个成员就有一类伤害行为走偏，而且不会有任何东西报错。之前它们没有任何自动化覆盖。
+
+顺带记一个 API 细节：原版 `TagKey` 用 `location()`，而 `ResourceKey` 用 `identifier()`，
+两者在同一个方法体里一起出现时很容易写混（这次就写错了一次，javac 直接报出来）。
 
 ### 画变体：纯数据包注册表，加载路径踩了两个坑
 

@@ -63,6 +63,7 @@ import { ENTITY_TYPE_TAGS, ENTITY_TYPE_TAGS_UNORDERED, entityTypeTagsInput } fro
 import { jukeboxSongInput } from "./jukebox_song.ts";
 import { ENCHANTMENT_TAGS_UNORDERED, enchantmentTagsInput } from "./enchantment_tags.ts";
 import { paintingVariantInput } from "./painting_variant.ts";
+import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -523,6 +524,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 画变体：宽高 / 贴图 / 标题与作者的翻译键。纯数据包注册表。
     { name: "painting_variant", probe: "painting_variant", oracle: "PaintingVariantOracle", key: "variant",
         units: { kind: "listing" }, input: paintingVariantInput },
+    // 伤害类型标签：每个标签包含哪些伤害类型（集合语义）。纯数据查表。
+    { name: "damage_type_tags", probe: "damage_type_tags", oracle: "DamageTypeTagsOracle", key: "tag",
+        units: { kind: "listing" }, input: damageTypeTagsInput,
+        unorderedArrays: DAMAGE_TYPE_TAGS_UNORDERED },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
