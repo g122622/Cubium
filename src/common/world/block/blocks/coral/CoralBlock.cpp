@@ -264,11 +264,17 @@ bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direct
         return false;
     }
 
-    // 对应原版 CoralFanBlock 的 canSurvive：adjState.isFaceSturdy(world, adjPos, direction)
-    // （默认 SupportType.FULL）。原先用 isSolidSide，它只判「是固体且有碰撞」而不看面是否
-    // 铺满整格，于是箱子、漏斗这类侧面不满的方块被当成能附着珊瑚
-    // （由差分能力 block_support 查出）。
-    return adjState->isFaceSturdy(static_cast<IWorld&>(world), adjPos, direction, SupportType::Full);
+    // 对应原版 CoralFanBlock 的 canSurvive：
+    //   world.getBlockState(pos.below()).isFaceSturdy(world, pos.below(), Direction.UP)
+    //
+    // 注意 `direction` 是「从珊瑚指向底座」的方向（下方珊瑚传入 Down），而底座朝向珊瑚的
+    // 那一面是它的反方向（即 UP）。这里原先直接传 `direction`，于是检查成了底座的**下表面**，
+    // 上下半砖的结果完全颠倒（由差分能力 block_support 查出）。
+    //
+    // 另外原先用 isSolidSide，它只判「是固体且有碰撞」而不看面是否铺满整格，
+    // 于是箱子、漏斗这类侧面不满的方块也被当成能附着珊瑚。
+    const Direction supportingFace = Directions::opposite(direction);
+    return adjState->isFaceSturdy(static_cast<IWorld&>(world), adjPos, supportingFace, SupportType::Full);
 }
 
 // ========== IWaterLoggable 接口实现 ==========
@@ -423,8 +429,10 @@ bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Di
         return false;
     }
 
-    // 同 CoralFanBlock：原版用 isFaceSturdy(FULL)，不是 isSolidSide。
-    return adjState->isFaceSturdy(static_cast<IWorld&>(world), adjPos, direction, SupportType::Full);
+    // 同 CoralFanBlock：检查底座朝向珊瑚的那一面（direction 的反方向），且用
+    // isFaceSturdy(FULL) 而非 isSolidSide。
+    return adjState->isFaceSturdy(
+        static_cast<IWorld&>(world), adjPos, Directions::opposite(direction), SupportType::Full);
 }
 
 // ========== IWaterLoggable 接口实现 ==========
@@ -544,8 +552,10 @@ bool CoralPlantBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Dire
         return false;
     }
 
-    // 同 CoralFanBlock：原版用 isFaceSturdy(FULL)，不是 isSolidSide。
-    return adjState->isFaceSturdy(static_cast<IWorld&>(world), adjPos, direction, SupportType::Full);
+    // 同 CoralFanBlock：检查底座朝向珊瑚的那一面（direction 的反方向），且用
+    // isFaceSturdy(FULL) 而非 isSolidSide。
+    return adjState->isFaceSturdy(
+        static_cast<IWorld&>(world), adjPos, Directions::opposite(direction), SupportType::Full);
 }
 
 // ========== IWaterLoggable 接口实现 ==========
