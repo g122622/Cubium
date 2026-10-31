@@ -488,7 +488,7 @@ f64 TransportItemsBetweenContainersGoal::_getInteractionRange() const
         return CLOSE_ENOUGH_TO_START_INTERACTING_DISTANCE;
     }
     const pathfinding::Path* path = mob->navigator()->getPath();
-    const bool hasFinishedPath = (path != nullptr) && !path->empty() && path->isFinished();
+    const bool hasFinishedPath = (path != nullptr) && !path->empty() && path->isDone();
     return hasFinishedPath ? CLOSE_ENOUGH_TO_START_INTERACTING_WITH_TARGET_PATH_END_DISTANCE
                            : CLOSE_ENOUGH_TO_START_INTERACTING_DISTANCE;
 }
@@ -588,7 +588,7 @@ void TransportItemsBetweenContainersGoal::_startQueuing()
     // 停止寻路并停留在原地，等待目标容器空闲
     auto* mob = dynamic_cast<MobEntity*>(m_golem);
     if (mob != nullptr && mob->navigator() != nullptr) {
-        mob->navigator()->clearPath();
+        mob->navigator()->stop();
     }
 
     m_state = TransportState::Queuing;
@@ -619,7 +619,7 @@ void TransportItemsBetweenContainersGoal::_startInteracting()
     // 取消寻路（交互期间不再移动）
     auto* mob = dynamic_cast<MobEntity*>(m_golem);
     if (mob != nullptr && mob->navigator() != nullptr) {
-        mob->navigator()->clearPath();
+        mob->navigator()->stop();
     }
 }
 
@@ -879,7 +879,7 @@ void TransportItemsBetweenContainersGoal::_resetTransportState()
     // 取消寻路
     auto* mob = dynamic_cast<MobEntity*>(m_golem);
     if (mob != nullptr && mob->navigator() != nullptr) {
-        mob->navigator()->clearPath();
+        mob->navigator()->stop();
     }
 
     // 清除打开位置 + 重置行为状态

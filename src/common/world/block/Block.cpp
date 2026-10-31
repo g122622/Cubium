@@ -428,6 +428,14 @@ bool Block::isOpaque(const BlockState& state) const
     return m_material->isOpaque();
 }
 
+bool Block::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 默认实现对齐原版 `Block#isPathfindable`：陆地看碰撞形状是否为空，
+    // 水中与空中则一律按「无碰撞即可穿过」处理（原版分别由水生方块与飞行求值器覆写）。
+    MC_UNUSED(type);
+    return state.getCollisionShape().isEmpty();
+}
+
 f32 Block::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
     MC_UNUSED(world);

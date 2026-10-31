@@ -40,7 +40,7 @@ SwimGoal::SwimGoal(MobEntity* mob)
     // 设置导航器可以游泳
     if (m_mob) {
         if (auto* nav = m_mob->navigator()) {
-            nav->setCanSwim(true);
+            nav->setCanFloat(true);
         }
     }
 }

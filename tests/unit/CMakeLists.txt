@@ -976,7 +976,7 @@ add_executable(mc_tests
     # LlamaFollowCaravanGoal 商队跟随目标测试
     entity/LlamaFollowCaravanGoalTest.cpp
     entity/PathfindingTests.cpp
-    entity/WalkNodeProcessorTests.cpp
+    entity/WalkNodeEvaluatorTests.cpp
     common/entity/ai/pathfinding/PathNavigatorTest.cpp
     entity/RandomWalkingGoalTest.cpp
     common/entity/MoveToLavaGoalTest.cpp

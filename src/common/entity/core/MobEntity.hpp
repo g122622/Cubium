@@ -29,7 +29,8 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
-#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/NodeEvaluator.hpp"
+#include "common/entity/ai/pathfinding/PathType.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -100,7 +101,7 @@ struct LeashDelayInfo {
  * 所有 AI 生物的基类，包括怪物和动物。
  * 提供 AI 目标系统、控制器、寻路等功能。
  */
-class MobEntity : public LivingEntity {
+class MobEntity : public LivingEntity, public entity::ai::pathfinding::PathfindingEntity {
 public:
     /**
      * @brief 构造函数
@@ -436,43 +437,36 @@ public:
     // ========== 寻路惩罚值 (Pathfinding Malus) ==========
 
     /**
-     * @brief 设置指定路径节点类型的寻路惩罚值
+     * @brief 设置指定路径类型的寻路代价
      *
-     * 对应 Minecraft 原版的 Mob.setPathfindingMalus(PathType, f32)。
-     * 用于在实体构造函数中声明实体对特定地形（水、岩浆、火焰等）的
-     * 寻路代价偏好。WalkNodeProcessor 在创建节点时会读取此值覆盖默认代价。
+     * 用于在实体构造函数中声明它对该类地形的偏好：水、岩浆、火、蜂蜜块等。
+     * 求值器在给节点打分时读取此表，覆盖 `getPathMalus` 的默认值。
      *
-     * 惩罚值语义：
-     * - 负值（如 -1.0F）：完全不可通行，节点会被排除出寻路
-     * - 0.0F：无惩罚，按默认路径类型代价处理
-     * - 正值（如 8.0F/16.0F）：高代价但可通行，A* 会优先选择更便宜的路径
+     * 语义：
+     * - 负值（如 -1.0F）：完全不可通行，该格不会进入搜索
+     * - 0.0F：无额外代价
+     * - 正值（如 8.0F / 16.0F）：可通行但更贵，A* 会绕开
      *
-     * @param pathType 路径节点类型
-     * @param malus 惩罚值
+     * @param pathType 路径类型
+     * @param malus 代价
      */
-    void setPathfindingMalus(entity::ai::pathfinding::PathNodeType pathType, f32 malus) noexcept
+    void setPathfindingMalus(entity::ai::pathfinding::PathType pathType, f32 malus) noexcept
     {
         m_pathfindingMalus[static_cast<size_t>(pathType)] = malus;
     }
 
     /**
-     * @brief 获取指定路径节点类型的寻路惩罚值
+     * @brief 读取指定路径类型对本实体的代价
      *
-     * 对应 Minecraft 原版的 Mob.getPathfindingMalus(PathType)。
+     * 乘客继承：若骑乘在 `shouldPassengersInheritMalus()` 为真的载具上（如炽足兽），
+     * 回报载具的代价表，使骑乘者也能驶入载具适配的地形（岩浆）。
      *
-     * 乘客继承逻辑：若当前实体骑乘在重写了 shouldPassengersInheritMalus()
-     * 返回 true 的 Mob 载具上（如炽足兽 Strider），则返回载具的 malus 值；
-     * 否则返回自身的 malus 值。这与 MC Java 中"乘客使用载具的 malus"
-     * 的行为一致，使骑乘者也能在载具适配的地形（如岩浆）上寻路。
+     * 未显式设置的条目回退到该类型的默认代价 `getPathMalus`。
      *
-     * 默认值回退：若未通过 setPathfindingMalus() 显式设置该类型，
-     * 回退到 PathNodeType 的默认惩罚值（getPathCostPenalty(pathType)，
-     * 对应 MC Java 的 PathType.getMalus()）。
-     *
-     * @param pathType 路径节点类型
-     * @return 惩罚值（负值表示不可通行）
+     * @param pathType 路径类型
+     * @return 代价；负值表示不可通行
      */
-    [[nodiscard]] f32 getPathfindingMalus(entity::ai::pathfinding::PathNodeType pathType) const noexcept;
+    [[nodiscard]] f32 getPathfindingMalus(entity::ai::pathfinding::PathType pathType) const noexcept;
 
     /**
      * @brief 乘客是否继承载具的寻路惩罚值
@@ -542,6 +536,63 @@ public:
      * 安全地清除导航器的路径，内部处理空指针检查。
      */
     void clearNavigation();
+
+    // ========== 寻路求值器契约 ==========
+
+    [[nodiscard]] f32 pathfindingWidth() const override
+    {
+        return width();
+    }
+
+    [[nodiscard]] f32 pathfindingHeight() const override
+    {
+        return height();
+    }
+
+    /**
+     * @brief 抬脚高度
+     *
+     * 寻路用它决定一次跳跃最多能跨多高（跳跃上限 = max(1.125, 本值)），
+     * 移动控制器用它决定何时起跳。
+     */
+    [[nodiscard]] f32 pathfindingStepHeight() const override
+    {
+        return stepHeight();
+    }
+
+    /**
+     * @brief 寻路允许的最大下落深度
+     *
+     * 有攻击目标时考验的是「能不能安全地冲过去」：血量越低、难度越高，可接受的下落越浅。
+     * 无目标时退回默认安全高度。
+     */
+    [[nodiscard]] i32 pathfindingMaxFallDistance() const override;
+
+    [[nodiscard]] f32 pathfindingMalus(entity::ai::pathfinding::PathType type) const override
+    {
+        return getPathfindingMalus(type);
+    }
+
+    [[nodiscard]] AxisAlignedBB pathfindingBoundingBox() const override;
+
+    [[nodiscard]] bool pathfindingOnGround() const override
+    {
+        return onGround();
+    }
+
+    [[nodiscard]] bool pathfindingInWater() const override
+    {
+        return isInWater();
+    }
+
+    /**
+     * @brief 能否直接站在这片流体上（炽足兽站在岩浆上、某些生物站在水上）
+     */
+    [[nodiscard]] bool pathfindingCanStandOnFluid(const fluid::FluidState* fluidState) const override
+    {
+        MC_UNUSED(fluidState);
+        return false;
+    }
 
     /**
      * @brief 看向指定实体
@@ -1555,9 +1606,8 @@ protected:
     std::optional<BlockPos> m_leashFencePos;      // 拴绳目标栅栏柱坐标（拴在栅栏上时）
     LeashDelayInfo m_leashDelayInfo;              // 延迟绑定信息（NBT 加载后尚未解析时使用）
 
-    // 寻路惩罚值表（按 PathNodeType 索引，NaN 表示未设置，回退到默认惩罚值）
-    // 对应 MC Java Mob.pathfindingMalus: EnumMap<PathType, Float>
-    std::array<f32, entity::ai::pathfinding::pathNodeTypeCount()> m_pathfindingMalus{};
+    // 寻路代价表（按 PathType 索引，NaN 表示未设置，回退到该类型的默认代价）
+    std::array<f32, entity::ai::pathfinding::pathTypeCount()> m_pathfindingMalus{};
 
     // ========== 装备附魔辅助方法 ==========
 

@@ -728,7 +728,7 @@ void InteractableDoorsSensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
-    if (!navigator->canEnterDoors()) {
+    if (!navigator->canPassDoors()) {
         brain.removeMemory(memory::MemoryModuleTypes::INTERACTABLE_DOORS);
         return;
     }

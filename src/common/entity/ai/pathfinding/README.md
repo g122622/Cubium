@@ -1,46 +1,43 @@
-#Pathfinding 寻路系统
+# Pathfinding 寻路系统
 
-寻路系统实现了 A* 算法，为游戏中的实体提供智能路径规划能力。该系统参考 Minecraft 1.16.5 的寻路架构设计。
+寻路系统实现 Minecraft 1.21.11 的 A* 寻路与路径跟随，为生物实体提供「从当前位置走到目标」的能力。
+
+本目录的每个类都与原版 `net.minecraft.world.level.pathfinder` 包中的同名类一一对应（`NodeEvaluator` ↔ `NodeEvaluator`、`WalkNodeEvaluator` ↔ `WalkNodeEvaluator`、`PathFinder` ↔ `PathFinder`、`Path` ↔ `Path`、`PathNavigator` ↔ `PathNavigation`/`GroundPathNavigation`），
+行为细节（代价表、判定顺序、边界条件）以原版为准。**修改本目录时必须以原版源码为对照，不得凭直觉调整常数或判定顺序**，因为很多看起来任意的细节（枚举次序、循环顺序、`>=` 与 `>`）会直接改变 A* 的取舍结果。
 
 ## 目录结构
 
 ```
 src/common/entity/ai/pathfinding/
-├── FlaggedPathPoint.hpp        # 带标记的路径点（多目标寻路）
-├── NodeProcessor.hpp           # 节点处理器基类
-├── Path.hpp                    # 路径对象
-├── Path.cpp                    # 路径对象实现
-├── PathFinder.hpp              # 寻路器（A*算法核心）
-├── PathFinder.cpp              # 寻路器实现
-├── PathHeap.hpp                # 路径点最小堆（A*开放列表）
-├── PathNavigator.hpp           # 路径导航器（路径跟随）
-├── PathNavigator.cpp           # 路径导航器实现
-├── PathNodeType.hpp            # 路径节点类型枚举
-├── PathPoint.hpp               # 路径点（A*节点）
-├── PathPoint.cpp               # 路径点实现
-├── RavagerNodeProcessor.hpp    # 劫掠兽节点处理器（可穿过树叶）
-├── RavagerNodeProcessor.cpp    # 劫掠兽节点处理器实现
-├── Region.hpp                  # 世界区域访问接口
-├── Region.cpp                  # 世界区域访问实现
-├── WalkNodeProcessor.hpp       # 行走节点处理器
-└── WalkNodeProcessor.cpp       # 行走节点处理器实现
+├── GroundPathNavigator.hpp/.cpp  # 地面导航器（对应原版 GroundPathNavigation）
+├── FlyNodeEvaluator.hpp/.cpp     # 飞行求值器（26 方向立体移动）
+├── NodeEvaluator.hpp/.cpp        # 求值器基类、PathfindingEntity 契约、PathfindingContext
+├── Path.hpp/.cpp                 # 路径对象（节点序列 + 游标）
+├── PathFinder.hpp/.cpp           # A* 寻路器（开放集、启发式、回溯）
+├── PathHeap.hpp                  # 二叉堆（A* 开放集，对应原版 BinaryHeap）
+├── PathNavigator.hpp/.cpp        # 导航器基类（建路径、跟随、卡住检测）
+├── PathPoint.hpp                 # 路径节点（对应原版 Node）
+├── PathType.hpp                  # 路径类型枚举 + 默认代价表
+├── Region.hpp                    # 寻路只读世界视图（对应原版 CollisionGetter 子集）
+├── Target.hpp                    # 目标节点（对应原版 Target）
+├── WalkNodeEvaluator.hpp/.cpp    # 地面求值器（跳跃、跌落、门、栅栏、窄实体）
+└── WorldRegion.hpp               # 基于 IWorld 的 Region 实现
 ```
 
 ## 内部模块关系
 
 ```
-PathNavigator（路径导航器，路径跟随）
-    └── PathFinder（寻路器，A*算法核心）
-        ├── NodeProcessor（节点处理器基类）
-        │   ├── WalkNodeProcessor（行走处理器，支持跳跃/攀爬/游泳）
-        │   │   └── RavagerNodeProcessor（劫掠兽处理器，可穿过树叶）
-        │   └── Region（世界区域访问接口）
-        ├── PathHeap（优先队列）
-        └── Path（路径对象）
-            └── PathPoint（路径点/A*节点）
-                └── PathNodeType（节点类型枚举）
-
-FlaggedPathPoint（多目标寻路辅助类，独立使用）
+PathNavigator（导航器基类：建路径 / 跟随 / 卡住检测）
+├── GroundPathNavigator（地面导航：地表吸附、阳光避让）
+└── PathFinder（A* 核心）
+    ├── NodeEvaluator（求值器基类：节点缓存、能力开关、会话管理）
+    │   ├── WalkNodeEvaluator（地面：8 方向 + 跳跃/跌落 + 门/栅栏/铁轨/窄实体规则）
+    │   └── FlyNodeEvaluator（飞行：26 方向立体移动）
+    ├── PathHeap（开放集）
+    ├── Region（世界只读视图，会话期间有效）
+    │   └── WorldRegion（IWorld 适配）
+    └── Path（结果）
+        └── PathPoint / PathType
 ```
 
 ## 上下游外部依赖关系
@@ -49,120 +46,113 @@ FlaggedPathPoint（多目标寻路辅助类，独立使用）
 
 | 依赖项 | 用途 |
 |--------|------|
-| `Entity` / `LivingEntity` / `MobEntity` | 实体基类，获取位置和属性 |
-| `MovementController` | 移动控制器，执行实际移动 |
-| `core/Types.hpp` | 基础类型定义 |
-| `goal/GoalConstants.hpp` | AI目标相关常量 |
-| `BlockState` / `BlockTags` | 方块状态和标签检测 |
-| `math/MathConstants.hpp` | 数学常量（如SQRT2） |
+| `MobEntity` | 实现 `PathfindingEntity` 契约：尺寸、抬脚高度、下落距离、代价表、包围盒、地面/水中状态 |
+| `IWorld` | `WorldRegion` 从中读方块、流体、碰撞与建造高度 |
+| `BlockState` / `BlockTags` / `FluidTags` | 判定方块所属的路径类型 |
+| `MovementController` | 导航器每 tick 把下一个路径点交给它，由它负责实际移动 |
 
 ### 下游依赖（使用本目录的模块）
 
 | 模块 | 使用方式 |
 |------|----------|
-| `MobEntity` | 持有 PathNavigator，调用 moveTo() 进行导航 |
-| `AI Goal 系统` | 通过实体获取导航器，设置移动目标 |
-| `ServerWorld` | 提供 Region 实现供寻路器访问世界数据 |
+| `MobEntity` | 持有 `PathNavigator`，通过 `navigator()->moveTo(...)` 发起寻路 |
+| AI Goal / Brain Task | 读 `hasPath()` / `noPath()` / `isDone()` 决定目标是否继续 |
+| `MovementController::canWalkAt` | 在会话之外现建 `WorldRegion` + `PathfindingContext` 求值 |
+
+## 求值器契约：PathfindingEntity
+
+求值器**不认识** `MobEntity`，只通过 `PathfindingEntity` 的九个纯虚函数读实体属性：
+`pathfindingWidth/Height/StepHeight/MaxFallDistance/Malus/BoundingBox/OnGround/InWater/CanStandOnFluid`。
+这样差分探针可以喂入**受控的**实体参数，把「求值器算得对不对」与「某个具体生物配置得对不对」分开验证。
+
+生产实现就是 `MobEntity` 自己（在 `MobEntity.hpp` 中直接实现）。非 `MobEntity` 的调用方
+（单元测试、差分探针）自己写一个轻量实现即可。
 
 ## 容易踩的坑
 
-### 1. 忘记设置 Region
+### 1. 会话生命周期
 
-寻路前必须通过 `setRegion()` 设置世界区域，否则所有节点返回 `Blocked`，导致寻路失败。
+`prepare()` 打开会话、`done()` 关闭会话。会话期间求值器持有 `Region` 与实体的**裸指针**，
+关闭后不得再调用 `getPathType` / `getNeighbors`。`PathFinder::findPath` 内部已保证成对调用。
 
-### 2. NodeProcessor 生命周期
+### 2. 求值器缓存在会话之间必须清空
 
-`PathFinder` 接管 `NodeProcessor` 的所有权后，原始指针变为 nullptr。如需访问，使用 `finder.getNodeProcessor()`。
+`m_pathTypeCache` / `m_collisionCache` / 节点表都只在一个会话内有效。`prepare()` 与 `done()`
+都会清空它们；如果需要长时间持有求值器（导航器就是这样），不要跨世界复用同一个会话。
 
-### 3. 坐标类型混淆
+### 3. 路径必须按值拷贝
 
-实体位置是 `f64`，而寻路使用 `i32` 块坐标。调用寻路接口前需要用 `std::floor()` 转换。
+`Path` 持有的是 `std::vector<PathPoint>` 的值拷贝，而不是指向求值器节点缓存里那批
+`PathPoint` 的指针——因为 `done()` 会释放那批节点。任何「返回节点指针」的写法都会悬垂。
 
-### 4. Path 对象生命周期
+### 4. `PathType` 的枚举次序是语义的一部分
 
-`PathNavigator` 持有 `Path` 的所有权，调用 `clearPath()` 或新的 `moveTo()` 会释放旧路径。获取 `getPath()` 后不要再修改导航状态。
+`getPathTypeOfMob` 在多个格子类型同代价时「后遍历者胜出」，而原版用 `EnumSet`
+（按枚举序号升序）遍历。因此这里用 `std::set<PathType>` 而不是 `unordered_set`：
 
-### 5. 实体尺寸未设置
+- 改成 `unordered_set` 会让 `OPEN` 与 `WALKABLE`（代价都是 0）的胜负随机，
+  表现为**实体找不到起点**（起点被判成 `OPEN` → 没有可展开的邻居 → 路径为空）。
 
-必须通过 `setEntitySize()` 设置正确的实体宽度和高度，否则碰撞检测不准确，可能导致穿墙或卡住。
+### 5. 窄实体规则只改写空气类类型
 
-### 6. 搜索距离过大
+`getPathTypeOfMob` 末尾的「宽 <= 1 格 + 代价 0 + 该格本身是 OPEN → 返回 OPEN」是原版的
+边缘规则，用来处理「站在台阶边缘」。它绝不能把 `WALKABLE` 改写成 `OPEN`，
+否则实体永远找不到可起步的落脚点。实现里已把改写范围限定为 `TRAPDOOR` / `POWDER_SNOW`。
 
-`setMaxSearchDistance(1000)` 或 `setMaxNodes(50000)` 会导致性能问题甚至内存爆炸。推荐值：距离 100，节点 2000。
+### 6. `WALKABLE` 需要脚下有碰撞形状
 
-### 6.5. maxVisitedNodesMultiplier 已访问节点倍率
+`getPathTypeStatic` 只有在 `y - 1` 那格的碰撞形状**非空**时才返回 `WALKABLE`。
+所以自定义 `Region` 必须让 `getBlockState()` 返回真实的方块状态（`STONE` 是可碰撞的），
+而不是返回一个「什么都没有」的占位状态。
 
-`PathNavigator::setMaxVisitedNodesMultiplier(float)` 对应 MC Java 的 `PathNavigation.setMaxVisitedNodesMultiplier()`。
-此倍率与 PathFinder 的 `m_maxNodes`（默认 2000）相乘，得到实际 A* 搜索节点上限：
-- 默认值 `1.0F`：正常搜索上限为 2000 个节点
-- `0.5F`：搜索上限减半为 1000 个节点（蜜蜂漂移飞行时降低寻路开销）
-- `10.0F`：搜索上限扩大 10 倍为 20000 个节点（蜜蜂精确导航时提高寻路精度）
+### 7. 不可达时仍会返回路径
 
-`resetMaxVisitedNodesMultiplier()` 将倍率重置为默认值 1.0F，通常在 AI Goal 的 `resetTask()` 中调用，确保倍率不会影响后续不相关的寻路请求。
+与原版一致：一个目标都没到达时，`PathFinder` 返回「走得最远」的那条路径，只是
+`Path::canReach()` 为 `false`。判断「能不能到」请用 `canReach()`，不要用 `has_value()`。
 
-**注意**：此倍率仅影响下一次 `moveTo()` 调用中的寻路搜索，不会持久修改 PathFinder 的 `m_maxNodes` 基础值。
+### 8. 节点上限是取节点之前自增
 
-### 7. 对角线移动被阻挡
+```
+if (++searched >= limit) break;
+```
 
-对角线移动需要两个相邻方向都可通行。WalkNodeProcessor 会自动检查，但如果自定义处理器需注意此逻辑。
+`limit = maxVisitedNodes * multiplier`。当 `limit <= 1` 时一个节点都不展开。
+`PathNavigator::setMaxVisitedNodesMultiplier` 影响的是**下一次** `moveTo`，
+`resetMaxVisitedNodesMultiplier()` 恢复 1.0。
 
-### 8. m_distanceToNext 存储的是 h*1.5
+### 9. 门 / 栅栏 / 铁轨 / 窄实体的规则位置
 
-PathPoint 的 `m_distanceToNext` 字段存储的是 `启发式值 * 1.5`（MC 1.16.5 的 distanceToNext），不是到下一个点的实际距离。这是 A* 算法的优化，避免重复计算。
+| 规则 | 位置 |
+|------|------|
+| 关闭木门 + `canOpenDoors` + `canPassDoors` → `WALKABLE_DOOR` | `pathTypeWithinMobBb` |
+| 打开的门 + `!canPassDoors` → `BLOCKED` | `pathTypeWithinMobBb` |
+| 铁轨未与实体当前位置（或其下一格）对齐 → `UNPASSABLE_RAIL` | `pathTypeWithinMobBb` |
+| 集合里出现 `FENCE` → 整格按 `FENCE` 处理 | `getPathTypeOfMob` |
+| 对角线不允许穿过 `WALKABLE_DOOR` | `isDiagonalValid` |
+| 宽 < 0.5 格可挤过两根栅栏柱 | `isDiagonalValid` |
 
-### 9. 门和栅栏门的路径类型识别
+门能力的设置入口是导航器（`setCanPassDoors` / `setCanOpenDoors` / `setCanFloat` /
+`setCanWalkOverFences`），它们转发到当前挂载的 `NodeEvaluator`。注意求值器是按值挂载在
+`PathFinder` 里的，所以这些开关必须在导航器存活期间设置。
 
-`WalkNodeProcessor` 已实现 DoorBlock 和 FenceGateBlock 的路径类型识别，对应 MC Java 的 `WalkNodeEvaluator.getPathTypeFromState()` 和 `getPathTypeWithinMobBB()`：
+### 10. 最大下落距离由实体决定
 
-| 方块 | PathNodeType | 代价 | 可行走 |
-|------|-------------|------|--------|
-| 打开的门 | `DoorOpen` | 0.0 | ✓ |
-| 关闭的木门 | `DoorWoodClosed` | -1.0 | ✗ |
-| 关闭的铁门 | `DoorIronClosed` | -1.0 | ✗ |
-| 关闭木门 + canOpenDoors + canEnterDoors | `WalkableDoor` | 0.0 | ✓ |
-| 打开的门 + !canEnterDoors | `Blocked` | -1.0 | ✗ |
-| 打开的栅栏门 | `FenceGate` | 0.0 | ✓ |
-| 关闭的栅栏门 | `Fence` | -1.0 | ✗ |
+`pathfindingMaxFallDistance()` 不是常数 3：有攻击目标时按「剩余血量 + 难度」折算，
+无目标时才退回默认值。搜索过程中由 `WalkNodeEvaluator::tryFindFirstGroundNodeBelow`
+读取它来截断下跌搜索。
 
-**传播机制**：`PathNavigator::setCanOpenDoors()` 和 `PathNavigator::setCanEnterDoors()` 会将设置传播到关联的 `WalkNodeProcessor`（参照 `setAvoidSunPathing` 模式，通过 `dynamic_cast<WalkNodeProcessor*>` 实现）。
+### 11. 阳光避让
 
-**默认值**：`m_canOpenDoors` 默认为 `false`，`m_canEnterDoors` 默认为 `true`（对齐 MC 的 `canPassDoors = true`）。
+`GroundPathNavigator::_trimPath` 先做锅（cauldron）路径点抬高，再做阳光截断。
+截断只在 `avoidsSun()` 为真时生效（`RestrictSunGoal` 通过 `setAvoidSun(true)` 设置），
+且实体自身已经暴露在阳光下时不截断，否则它会连逃离的路径都没有。
 
-**路径展开**：门能力转换必须同时用于类型检测和邻居展开，否则具备开门能力的实体仍找不到跨关闭木门的路径。
+### 12. 时间量用内部 tick 计数
 
-**对角线移动**：禁止对角线穿过 `WalkableDoor` 节点。
+`PathNavigator` 用自增的 `m_tick` 而不是 `world->getGameTime()`，这样同一套逻辑
+在无世界的单元测试与差分探针里也能确定性地运行。
 
-**使用方**：`ZombieEntity` 通过 `nav->setCanOpenDoors(canBreak)` 设置僵尸开门能力，`VindicatorEntity`（卫道士）通过 `nav->setCanOpenDoors(true)` 设置破门能力，`DoorInteractGoal` 通过 `navigator->canOpenDoors()` 检查实体是否具备开门能力。
+### 13. 飞行求值器的起点枚举是确定性的
 
-`PathNodeType` 中其余类型（如 `Trapdoor`, `Leaves`, `Rail`, `StickyHoney`, `Cocoa`, `Climbable`）的方块到类型映射尚未在 `getNodeType()` 中实现，使用前需确认具体实现。
-
-### 10. Region 接口需要完整实现
-
-自定义 Region 时，`getBlockStateId()`、`isLoaded()` 和 `canSeeSky()` 是核心方法，必须正确实现。默认的 `getBlockState()` 依赖 `getBlockStateId()`。`canSeeSky()` 用于阳光避让路径截断，返回位置上方是否有遮挡方块（天空光照>=15）。
-
-### 10.5. getNodeType 节点位置语义：脚部空间，支撑在下方
-
-`getNodeType(x,y,z)` 描述的是**实体脚部所在的空间**（空气或可穿过方块），不是实心方块本身——对应 MC Java `WalkNodeEvaluator.getPathTypeStatic` 的"OPEN 节点 + 下方实心 → WALKABLE"语义。判定顺序：
-1. 实心方块（`Region::isWalkable` 为 true）→ `Blocked`（实体无法站进实心方块）。
-2. 可穿过空间且正下方 `(x,y-1,z)` 实心 → `Walkable`（可站立节点）。
-3. 可穿过空间但下方无直接支撑：向下搜地面，超出 `m_maxFallDistance` → `DangerFall`（Cubium 扩展类型，MC 1.21.11 无此类型，跌落限制本应在 `getNeighbors` 处理）；否则 → `Open`。
-
-`Region::isWalkable(x,y,z)` 的契约是"该位置方块是实心可站立支撑"（空气为 false，石头为 true），勿与按 `PathNodeType` 取值的自由函数 `isWalkable(PathNodeType)` 混淆。
-
-### 11. 阳光避让路径截断
-
-`PathNavigator::_trimPath()` 实现了阳光避让逻辑（对应 MC Java 的 `GroundPathNavigation.trimPath()`）。当 `m_avoidSun` 为 true 时（由 `RestrictSunGoal` 通过 `setAvoidSunPathing(true)` 设置），路径计算完成后会遍历所有节点，在第一个暴露在阳光下的节点处截断路径。如果实体当前已在阳光下，则保留完整路径（实体需要移动来逃离阳光）。此逻辑不修改 WalkNodeProcessor 的节点代价，而是通过路径后处理实现阳光避让。
-
-### 12. 寻路惩罚值（Pathfinding Malus）
-
-`MobEntity` 提供了 `setPathfindingMalus(PathNodeType, float)` / `getPathfindingMalus(PathNodeType)` 接口，对应 MC Java `Mob.setPathfindingMalus` / `Mob.getPathfindingMalus`：
-
-- **存储**：`MobEntity` 内部使用 `std::array<f32, pathNodeTypeCount()>` 存储，初始化为 NaN 表示"未设置"。
-- **默认值回退**：若某类型未通过 `setPathfindingMalus` 显式设置，`getPathfindingMalus` 回退到 `getPathCostPenalty(type)`（对应 MC Java 的 `PathType.getMalus()`）。
-- **乘客继承**：`shouldPassengersInheritMalus()` 默认返回 `false`。当实体骑乘在重写此方法返回 `true` 的载具上时（如炽足兽 Strider），`getPathfindingMalus` 返回载具的 malus 值。此逻辑通过 `getVehicle()` + `world()->getEntity()` 解引用载具实现。
-- **集成点**：`WalkNodeProcessor::createNode()` 和 `_addNeighbor()` 在创建/更新节点时调用 `mob.getPathfindingMalus(type)` 设置 `PathPoint::costMalus`，对应 MC Java `WalkNodeEvaluator` 中的 `node.costMalus = mob.getPathfindingMalus(type)`。
-
-**典型用例**：
-- `CopperGolemEntity` 构造函数设置 `DANGER_FIRE=16.0`、`DANGER_OTHER=16.0`、`DAMAGE_FIRE=-1.0`（对应 MC 1.21.11 `CopperGolem.java:91-93`），使铜傀儡避开火焰周边但可在紧急时穿过。
-- 其他实体（如僵尸、骷髅）可在各自构造函数或 AI 初始化时按需调用 `setPathfindingMalus` 自定义路径偏好。
-
+`FlyNodeEvaluator::getStart` 用固定的候选列枚举代替原版的随机采样。
+这是一处**有意的偏差**：非确定性会让差分对比失去意义。其余逻辑与原版一致。

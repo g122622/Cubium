@@ -67,18 +67,15 @@ bool DoorInteractGoal::shouldExecute()
 
     // 沿路径节点查找门
     const pathfinding::Path* path = navigator->getPath();
-    if (path && !path->isFinished()) {
-        i32 currentIndex = path->getCurrentIndex();
-        i32 endIndex = std::min(currentIndex + 2, static_cast<i32>(path->length()) - 1);
+    if (path && !path->isDone()) {
+        i32 currentIndex = path->nextNodeIndex();
+        i32 endIndex = std::min(currentIndex + 2, static_cast<i32>(path->nodeCount()) - 1);
 
         for (i32 i = currentIndex; i <= endIndex; ++i) {
-            const pathfinding::PathPoint* point = path->getPoint(static_cast<size_t>(i));
-            if (!point) {
-                continue;
-            }
+            const pathfinding::PathPoint& point = path->node(static_cast<size_t>(i));
 
             // 检查路径节点上方是否有木门（门的下半部分在节点Y+1）
-            BlockPos doorCandidate(point->x(), point->y() + 1, point->z());
+            BlockPos doorCandidate(point.x(), point.y() + 1, point.z());
 
             // 计算生物到门位置的水平距离（1.5方块以内）
             f32 distSq = math::distanceHorizontalSq(m_mob->position().x,

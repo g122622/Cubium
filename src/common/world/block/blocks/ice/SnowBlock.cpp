@@ -263,6 +263,12 @@ const CollisionShape& SnowBlock::getCollisionShape(const BlockState& state) cons
     return SHAPES[static_cast<size_t>(state.get(LAYERS())) - 1];
 }
 
+bool SnowBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 对齐原版：陆地计算类型下层数小于 5 可穿过，其余计算类型一律不可穿过。
+    return type == PathComputationType::Land && state.get(LAYERS()) < HEIGHT_IMPASSABLE;
+}
+
 const CollisionShape& SnowBlock::getBlockSupportShape(const BlockState& state) const
 {
     // 支撑形状与渲染形状一致

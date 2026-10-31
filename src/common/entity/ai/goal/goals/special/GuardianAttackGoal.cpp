@@ -109,7 +109,7 @@ void GuardianAttackGoal::startExecuting()
     m_isElder = (m_guardian->entityType() == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN);
 
     // 清除路径
-    m_guardian->navigator()->clearPath();
+    m_guardian->navigator()->stop();
 
     // 看向目标
     if (m_target != nullptr) {
@@ -146,7 +146,7 @@ void GuardianAttackGoal::tick()
     }
 
     // 清除路径
-    m_guardian->navigator()->clearPath();
+    m_guardian->navigator()->stop();
 
     // 看向目标
     m_guardian->lookController()->setLookPosition(m_target->x(),

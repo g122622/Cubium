@@ -62,6 +62,10 @@ tests/diff/
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
+│   ├── path_scene.hpp           # 寻路探针共用的内存方块表区域与受控实体
+│   ├── walk_path_type.cpp       # 逐格路径类型（方块规则 / 脚下+邻域 / 实体包围盒三层）
+│   ├── path_finder.cpp          # 地面 A*：起点、邻居枚举、完整路径与可达性
+│   ├── fly_path_finder.cpp      # 飞行 A*：26 邻居与飞行起点枚举
 ├── java/dev/horizonlab/diff/    # 原版 Java oracle（直接调 1.21.11 服务端 jar）
 │   ├── DataPackRegistries.java  # 像服务端一样加载原版数据包（数据驱动注册表）
 │   ├── *Oracle.java / *Export.java

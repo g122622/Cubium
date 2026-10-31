@@ -238,11 +238,11 @@ bool DolphinEntity::closeToTarget() const
     }
 
     const entity::ai::pathfinding::Path* path = nav->getPath();
-    if (path == nullptr || path->isFinished()) {
+    if (path == nullptr || path->isDone()) {
         return false;
     }
 
-    BlockPos targetPos = path->getTarget();
+    BlockPos targetPos = path->target();
     if (targetPos.x == 0 && targetPos.y == 0 && targetPos.z == 0) {
         return false;
     }
@@ -267,7 +267,7 @@ void DolphinEntity::clearNavigationPath()
 {
     auto* nav = navigator();
     if (nav != nullptr) {
-        nav->clearPath();
+        nav->stop();
     }
 }
 

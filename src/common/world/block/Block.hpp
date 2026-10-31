@@ -30,6 +30,7 @@
 #include "Material.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/pathfinding/PathComputationType.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
@@ -1153,6 +1154,19 @@ public:
      * @param state 方块状态
      */
     [[nodiscard]] virtual bool isOpaque(const BlockState& state) const;
+
+    /**
+     * @brief 该状态的方块能否被指定计算类型穿过
+     *
+     * 对齐原版 `Block#isPathfindable(BlockState, PathComputationType)`：寻路判定问的是
+     * 「这一格能不能让身体过去」，它与「有没有碰撞」并不等价——雪层碰撞形状非空，但
+     * 只有层数 >= 5 才不可穿过；铁轨没有碰撞，却也不是可替换方块。默认实现对应
+     * `PathComputationType.LAND` 下「无碰撞即可穿过」。
+     *
+     * @param state 方块状态
+     * @param type 计算类型
+     */
+    [[nodiscard]] virtual bool isPathfindable(const BlockState& state, PathComputationType type) const;
 
     /**
      * @brief 该方块是否参与遮挡计算（vanilla `BlockState#canOcclude`）

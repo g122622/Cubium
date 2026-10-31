@@ -22,530 +22,471 @@
  */
 
 #include "PathNavigator.hpp"
-#include "WalkNodeProcessor.hpp"
+#include "WalkNodeEvaluator.hpp"
 #include "WorldRegion.hpp"
-#include "common/entity/ai/pathfinding/Path.hpp"
-#include "common/entity/ai/pathfinding/PathFinder.hpp"
-#include "common/entity/ai/pathfinding/PathPoint.hpp"
-#include "common/entity/core/DataParameter.hpp"
-#include "common/entity/core/EntitySize.hpp"
-#include "common/entity/core/EntityType.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/profiler/TraceEvents.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "entity/ai/controller/MovementController.hpp"
-#include "entity/core/LivingEntity.hpp"
-#include "entity/core/MobEntity.hpp"
-#include "util/TimeUtils.hpp"
-#include "util/math/MathUtils.hpp"
-#include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockPos.hpp"
 #include <algorithm>
+#include <bit>
 #include <cmath>
-#include <cstddef>
-#include <limits>
-#include <memory>
-#include <utility>
+#include <cstring>
 
 namespace mc::entity::ai::pathfinding {
 
-using namespace goal::constants;
-using namespace mc::util;
-using namespace mc::math;
+namespace {
 
-PathNavigator::PathNavigator(std::unique_ptr<PathFinder> finder)
-    : m_pathFinder(std::move(finder))
-{}
+/// 建路径时世界区域的水平半径（原版在 `createPath` 里为地面导航硬编码 8）。
+constexpr i32 GROUND_SEARCH_RANGE = 8;
 
-PathNavigator::PathNavigator(MobEntity* mob)
-    : m_pathFinder(nullptr)
-    , m_entity(mob)
+/// 走到实体时的到达半径（原版 `EntityPathNavigation.createPath(Entity, int)` 传 16）。
+constexpr i32 ENTITY_REACH_RANGE = 16;
+
+/// 走不到目标时「尽力而为」路径的终点离目标至少要小于这个距离才算有效
+constexpr f64 MIN_PROGRESS = 1.0e-5;
+
+} // namespace
+
+PathNavigator::PathNavigator(MobEntity* mob, std::unique_ptr<PathFinder> pathFinder)
+    : m_mob(mob)
+    , m_pathFinder(std::move(pathFinder))
 {
-    // PathFinder 需要后续设置或使用默认
+    MC_ASSERT_RELEASE(mob != nullptr);
+    MC_ASSERT_RELEASE(m_pathFinder != nullptr);
+    // 原版在构造时按 `FOLLOW_RANGE * 16` 初始化访问节点上限，并在跟随范围变化时更新。
+    m_pathFinder->setMaxVisitedNodes(static_cast<i32>(std::floor(16.0f * 16.0f)));
 }
 
-bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
+NodeEvaluator* PathNavigator::nodeEvaluator() noexcept
 {
-    m_targetX = x;
-    m_targetY = y;
-    m_targetZ = z;
-    m_speed = speed;
-
-    if (!m_pathFinder || !m_entity) {
-        return false;
-    }
-
-    // 重置卡住检测
-    m_stuckTimer = 0;
-    m_isStuck = false;
-    m_lastPosX = m_entity->x();
-    m_lastPosY = m_entity->y();
-    m_lastPosZ = m_entity->z();
-
-    // 计算路径
-    i32 startX = floorTo<i32>(m_entity->x());
-    i32 startY = floorTo<i32>(m_entity->y());
-    i32 startZ = floorTo<i32>(m_entity->z());
-    i32 targetXi = floorTo<i32>(x);
-    i32 targetYi = floorTo<i32>(y);
-    i32 targetZi = floorTo<i32>(z);
-
-    // 寻路前注入世界区域：Region 是寻路器访问方块的适配层，历史全仓无具体实现，
-    // m_region 恒 nullptr 致 getNodeType 恒 Blocked、findPath 返回空。每次寻路用实体
-    // 当前 world 栈上构造 WorldRegion 并 setRegion（委托 IWorld）。对应 vanilla
-    // PathNavigation 在路径计算前刷新区域缓存。
-    // 注意：region 作用域必须覆盖整个 findPath 调用（NodeProcessor 持 m_region 裸指针），
-    // 早期版本误把 region 声明在 if 块内，致 findPath 时 region 已析构、m_region 悬垂，
-    // 虚调用 isWalkable 解引用已释放栈内存段错误。
-    IWorld* world = m_entity->world();
-    if (world == nullptr) {
-        return false;
-    }
-    WorldRegion region(*world);
-    m_pathFinder->setRegion(&region);
-
-    m_path = std::make_unique<Path>(m_pathFinder->findPath(
-        startX, startY, startZ, targetXi, targetYi, targetZi, m_maxDistance, m_maxVisitedNodesMultiplier));
-
-    _trimPath();
-
-    // 寻路结束后立即清空 region 指针：region 是本函数栈对象，返回后即析构。
-    // NodeProcessor::m_region 是裸指针且 setRegion 不做所有权管理，若不清空将悬垂。
-    // 后续 MovementController::canWalkAt(Strafe 分支)会调 NodeProcessor::getNodeType
-    // 解引用 m_region，悬垂虚调用(isLoaded)会跳到已释放栈内存的虚表槽致 SEGV。
-    // 此处置空后，getNodeType 内的 !m_region 守卫会返回 Blocked，canWalkAt 走兜底。
-    // 对应 vanilla PathFinder.findPath 末尾的 nodeEvaluator.done()。
-    _endPathfindingSession();
-
-    return hasPath();
+    return &m_pathFinder->evaluator();
 }
 
-bool PathNavigator::moveTo(const Entity& target, f64 speed)
+// ===========================================================================
+// 配置
+// ===========================================================================
+
+void PathNavigator::setRequiredPathLength(f32 length) noexcept
 {
-    return moveTo(target.x(), target.y(), target.z(), speed);
+    m_requiredPathLength = length;
 }
 
-bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed)
+void PathNavigator::setCanFloat(bool canFloat)
 {
-    m_targetX = x;
-    m_targetY = y;
-    m_targetZ = z;
-    m_speed = speed;
-
-    if (!m_pathFinder || !m_entity) {
-        return false;
-    }
-
-    i32 startX = floorTo<i32>(m_entity->x());
-    i32 startY = floorTo<i32>(m_entity->y());
-    i32 startZ = floorTo<i32>(m_entity->z());
-    i32 targetXi = floorTo<i32>(x);
-    i32 targetYi = floorTo<i32>(y);
-    i32 targetZi = floorTo<i32>(z);
-
-    // 寻路前注入世界区域（同 moveTo，详见其注释；region 作用域须覆盖 findPathToRange）。
-    IWorld* world = m_entity->world();
-    if (world == nullptr) {
-        return false;
-    }
-    WorldRegion region(*world);
-    m_pathFinder->setRegion(&region);
-
-    m_path = std::make_unique<Path>(m_pathFinder->findPathToRange(
-        startX, startY, startZ, targetXi, targetYi, targetZi, static_cast<i32>(range), m_maxVisitedNodesMultiplier));
-
-    _trimPath();
-
-    // 寻路结束后清空 region 指针避免悬垂（详见 moveTo 末尾同名注释）。
-    _endPathfindingSession();
-
-    return hasPath();
+    nodeEvaluator()->setCanFloat(canFloat);
 }
 
-i32 PathNavigator::getCurrentIndex() const
+bool PathNavigator::canFloat() const
 {
-    return m_path ? m_path->getCurrentIndex() : -1;
+    return const_cast<PathNavigator*>(this)->nodeEvaluator()->canFloat();
 }
 
-bool PathNavigator::recomputePath()
+void PathNavigator::setCanPassDoors(bool canPassDoors)
 {
-    if (!m_path || m_retryTimer > 0) {
-        return false;
-    }
-
-    m_retryTimer = m_retryInterval;
-    return moveTo(m_targetX, m_targetY, m_targetZ, m_speed);
+    nodeEvaluator()->setCanPassDoors(canPassDoors);
 }
 
-void PathNavigator::tick()
+bool PathNavigator::canPassDoors() const
 {
-    if (!hasPath() || !m_entity) {
-        return;
-    }
-
-    // 增加总计时
-    ++m_ticksSinceLastPath;
-
-    // 更新重试计时器
-    if (m_retryTimer > 0) {
-        --m_retryTimer;
-    }
-
-    // 沿路径移动
-    _followPath();
-
-    // 卡住检测
-    _checkForStuck();
-
-    // 检查是否需要重新计算
-    if (_shouldRecomputePath()) {
-        (void)recomputePath();
-    }
-}
-
-void PathNavigator::_followPath()
-{
-    if (!m_path || m_path->empty() || !m_entity) {
-        return;
-    }
-
-    const PathPoint* waypoint = _getCurrentWaypoint();
-    if (!waypoint) {
-        return;
-    }
-
-    // 检查是否到达当前路径点
-    if (_isAtCurrentWaypoint()) {
-        _advanceToNextWaypoint();
-        waypoint = _getCurrentWaypoint();
-
-        if (!waypoint) {
-            // 路径完成
-            clearPath();
-            return;
-        }
-    }
-
-    // 移动向目标路径点
-    // 通过 MovementController 控制移动
-    // 需要将 LivingEntity 转换为 MobEntity 来访问 moveController
-    if (auto* mob = dynamic_cast<MobEntity*>(m_entity)) {
-        if (auto* moveCtrl = mob->moveController()) {
-            moveCtrl->setMoveTo(waypoint->x() + 0.5, _getGroundY(*waypoint), waypoint->z() + 0.5, m_speed);
-        }
-    }
-}
-
-f64 PathNavigator::_getGroundY(const PathPoint& waypoint) const
-{
-    // 对应 vanilla PathNavigation.getGroundY(Vec3)：
-    //   BlockPos pos = BlockPos.containing(vec3);
-    //   return level.getBlockState(pos.below()).isAir()
-    //       ? vec3.y
-    //       : WalkNodeEvaluator.getFloorLevel(level, pos);
-    // getFloorLevel：pos.below() 碰撞形状为空时取 pos.below().y，否则取该 Y + 碰撞形状 Y 方向最大值。
-    IWorld* world = m_entity != nullptr ? m_entity->world() : nullptr;
-    if (world == nullptr) {
-        return static_cast<f64>(waypoint.y());
-    }
-    const WorldRegion region(*world);
-    return _getGroundY(region, waypoint);
-}
-
-f64 PathNavigator::_getGroundY(const Region& region, const PathPoint& waypoint) const
-{
-    const BlockState* below = region.getBlockState(waypoint.x(), waypoint.y() - 1, waypoint.z());
-    if (below == nullptr || below->isAir()) {
-        return static_cast<f64>(waypoint.y());
-    }
-
-    const CollisionShape& shape = below->getCollisionShape();
-    if (shape.isEmpty()) {
-        return static_cast<f64>(waypoint.y() - 1);
-    }
-    f32 top = 0.0f;
-    for (const AxisAlignedBB& box : shape.boxes()) {
-        top = std::max(top, box.maxY);
-    }
-    return static_cast<f64>(waypoint.y() - 1) + static_cast<f64>(top);
-}
-
-f64 PathNavigator::groundYForTest(const IWorld& world, const PathPoint& waypoint) const
-{
-    const WorldRegion region(world);
-    return _getGroundY(region, waypoint);
-}
-
-void PathNavigator::_endPathfindingSession()
-{
-    if (m_pathFinder) {
-        m_pathFinder->setRegion(nullptr);
-    }
-}
-
-void PathNavigator::_checkForStuck()
-{
-    if (!m_entity || !hasPath()) {
-        return;
-    }
-
-    // 检测卡住
-    if (m_ticksSinceLastPath > 100) {
-        f64 dx = m_entity->x() - m_lastPosX;
-        f64 dy = m_entity->y() - m_lastPosY;
-        f64 dz = m_entity->z() - m_lastPosZ;
-        f64 distSq = dx * dx + dy * dy + dz * dz;
-
-        if (distSq < 2.25) {
-            m_isStuck = true;
-            clearPath();
-            _resetTimeout();
-            return;
-        }
-        m_isStuck = false;
-
-        // 更新上次位置
-        m_lastPosX = m_entity->x();
-        m_lastPosY = m_entity->y();
-        m_lastPosZ = m_entity->z();
-        m_ticksSinceLastPath = 0;
-    }
-
-    // 超时检测
-    if (m_path && !m_path->isFinished()) {
-        const PathPoint* waypoint = _getCurrentWaypoint();
-        if (waypoint) {
-            i32 nodeX = waypoint->x();
-            i32 nodeY = waypoint->y();
-            i32 nodeZ = waypoint->z();
-
-            if (nodeX == m_timeoutCachedNodeX && nodeY == m_timeoutCachedNodeY && nodeZ == m_timeoutCachedNodeZ) {
-                // 同一个节点，累加时间
-                i64 currentTime = TimeUtils::getCurrentTimeMs();
-                m_timeoutTimer += currentTime - m_lastTimeoutCheck;
-                m_lastTimeoutCheck = currentTime;
-            } else {
-                // 新节点，重置计时器
-                m_timeoutCachedNodeX = nodeX;
-                m_timeoutCachedNodeY = nodeY;
-                m_timeoutCachedNodeZ = nodeZ;
-
-                // 计算超时限制
-                f64 dx = m_entity->x() - (nodeX + 0.5);
-                f64 dz = m_entity->z() - (nodeZ + 0.5);
-                f64 dist = std::sqrt(dx * dx + dz * dz);
-
-                f32 moveSpeed = 0.0f;
-                if (auto* mob = dynamic_cast<MobEntity*>(m_entity)) {
-                    if (auto* moveCtrl = mob->moveController()) {
-                        moveSpeed = static_cast<f32>(moveCtrl->speed());
-                    }
-                }
-                m_timeoutLimit = moveSpeed > 0.0f ? dist / moveSpeed * 1000.0 : 0.0;
-                m_timeoutTimer = 0;
-                m_lastTimeoutCheck = TimeUtils::getCurrentTimeMs();
-            }
-
-            // 如果超时超过限制的3倍，清除路径
-            if (m_timeoutLimit > 0.0 && static_cast<f64>(m_timeoutTimer) > m_timeoutLimit * 3.0) {
-                _resetTimeout();
-                clearPath();
-            }
-        }
-    }
-}
-
-void PathNavigator::_trimPath()
-{
-    // 处理炼药锅等特殊方块的路径
-    // 当实体在炼药锅中时会调整路径点
-    if (!m_path || m_path->empty() || !m_entity) {
-        return;
-    }
-
-    // 获取世界
-    IWorld* world = m_entity->world();
-    if (world == nullptr) {
-        return;
-    }
-
-    // 遍历路径中的每个点
-    for (size_t i = 0; i < m_path->length(); ++i) {
-        const PathPoint* point = m_path->getPoint(i);
-        if (point == nullptr) {
-            continue;
-        }
-
-        // 获取下一个路径点（如果存在）
-        const PathPoint* nextPoint = m_path->getPoint(i + 1);
-
-        // 获取当前位置的方块状态
-        BlockPos pos(point->x(), point->y(), point->z());
-        const BlockState* state = world->getBlockState(pos);
-
-        // 检查是否为炼药锅（空炼药锅、水炼药锅、岩浆炼药锅均需路径上移）
-        if (state != nullptr &&
-            (state->is(VanillaBlocks::CAULDRON) || state->is(VanillaBlocks::WATER_CAULDRON) ||
-                state->is(VanillaBlocks::LAVA_CAULDRON))) {
-            // 炼药锅是一个凹陷的方块，实体在里面时需要将路径点上移
-            PathPoint newPoint = point->cloneMove(point->x(), point->y() + 1, point->z());
-            m_path->setPoint(i, newPoint);
-
-            // 如果下一个路径点的 Y 坐标不高于当前点（修正后的坐标），
-            // 也需要将下一个点上移
-            if (nextPoint != nullptr && nextPoint->y() <= point->y()) {
-                PathPoint newNextPoint = nextPoint->cloneMove(nextPoint->x(), point->y() + 1, nextPoint->z());
-                m_path->setPoint(i + 1, newNextPoint);
-            }
-        }
-    }
-
-    // 阳光避让路径截断
-    // 当 m_avoidSun 为 true 时，遍历路径节点，如果在阴影中的实体
-    // 发现路径经过阳光直射区域，则在该节点处截断路径。
-    // 这对应 MC Java 版的 GroundPathNavigation.trimPath() 逻辑。
-    if (m_avoidSun) {
-        // 如果实体当前已在阳光下，保留完整路径——实体需要移动来逃离阳光
-        if (world->canSeeSky(BlockPos(
-                floorTo<i32>(m_entity->x()), floorTo<i32>(m_entity->y() + 0.5), floorTo<i32>(m_entity->z())))) {
-            return;
-        }
-
-        // 遍历路径节点，找到第一个暴露在阳光下的节点并截断
-        for (i32 i = 0; i < static_cast<i32>(m_path->length()); ++i) {
-            const PathPoint* point = m_path->getPoint(static_cast<size_t>(i));
-            if (point == nullptr) {
-                continue;
-            }
-
-            if (world->canSeeSky(BlockPos(point->x(), point->y(), point->z()))) {
-                // 在第一个阳光暴露节点处截断路径
-                m_path->truncateNodes(i);
-                break;
-            }
-        }
-    }
-}
-
-void PathNavigator::_resetTimeout()
-{
-    m_timeoutCachedNodeX = 0;
-    m_timeoutCachedNodeY = 0;
-    m_timeoutCachedNodeZ = 0;
-    m_timeoutTimer = 0;
-    m_lastTimeoutCheck = 0;
-    m_timeoutLimit = 0.0;
-    m_isStuck = false;
-}
-
-bool PathNavigator::_shouldRecomputePath() const
-{
-    if (!m_path || m_path->empty()) {
-        return false;
-    }
-
-    // 检查目标位置是否变化太多
-    if (m_path->getEnd()) {
-        // 使用 distanceToSq(x, y, z) 重载避免创建临时 PathPoint 对象
-        f32 distSq = m_path->getEnd()->distanceToSq(
-            static_cast<i32>(m_targetX), static_cast<i32>(m_targetY), static_cast<i32>(m_targetZ));
-        if (distSq > 16.0f) { // 目标移动超过4格
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool PathNavigator::_isAtCurrentWaypoint() const
-{
-    const PathPoint* waypoint = _getCurrentWaypoint();
-    if (!waypoint || !m_entity) {
-        return true;
-    }
-
-    // 检查水平和垂直距离
-    f64 dx = waypoint->x() + 0.5 - m_entity->x();
-    f64 dz = waypoint->z() + 0.5 - m_entity->z();
-    f64 distSq = dx * dx + dz * dz;
-
-    // maxDistanceToWaypoint 根据实体宽度调整
-    f32 width = m_entity->width();
-    f32 maxDist = width > 0.75f ? width / 2.0f : 0.75f - width / 2.0f;
-
-    // 检查水平距离和垂直距离
-    f64 dy = std::abs(m_entity->y() - waypoint->y());
-
-    return distSq < static_cast<f64>(maxDist * maxDist) && dy < 1.0;
-}
-
-void PathNavigator::_advanceToNextWaypoint()
-{
-    if (m_path) {
-        m_path->advance();
-    }
-}
-
-f32 PathNavigator::_getDistanceToTarget() const
-{
-    if (!m_entity) {
-        return std::numeric_limits<f32>::max();
-    }
-
-    f64 dx = m_targetX - m_entity->x();
-    f64 dy = m_targetY - m_entity->y();
-    f64 dz = m_targetZ - m_entity->z();
-
-    return static_cast<f32>(std::sqrt(dx * dx + dy * dy + dz * dz));
-}
-
-const PathPoint* PathNavigator::_getCurrentWaypoint() const
-{
-    return m_path ? m_path->getCurrentTarget() : nullptr;
-}
-
-void PathNavigator::setAvoidSunPathing(bool avoidSun)
-{
-    m_avoidSun = avoidSun;
-
-    if (m_pathFinder) {
-        auto* nodeProcessor = m_pathFinder->getNodeProcessor();
-        if (nodeProcessor != nullptr) {
-            auto* walkNodeProcessor = dynamic_cast<WalkNodeProcessor*>(nodeProcessor);
-            if (walkNodeProcessor != nullptr) {
-                walkNodeProcessor->setAvoidSun(avoidSun);
-            }
-        }
-    }
+    return const_cast<PathNavigator*>(this)->nodeEvaluator()->canPassDoors();
 }
 
 void PathNavigator::setCanOpenDoors(bool canOpenDoors)
 {
-    m_canOpenDoors = canOpenDoors;
+    nodeEvaluator()->setCanOpenDoors(canOpenDoors);
+}
 
-    if (m_pathFinder) {
-        auto* nodeProcessor = m_pathFinder->getNodeProcessor();
-        if (nodeProcessor != nullptr) {
-            auto* walkNodeProcessor = dynamic_cast<WalkNodeProcessor*>(nodeProcessor);
-            if (walkNodeProcessor != nullptr) {
-                walkNodeProcessor->setCanOpenDoors(canOpenDoors);
-            }
+bool PathNavigator::canOpenDoors() const
+{
+    return const_cast<PathNavigator*>(this)->nodeEvaluator()->canOpenDoors();
+}
+
+void PathNavigator::setCanWalkOverFences(bool canWalkOverFences)
+{
+    nodeEvaluator()->setCanWalkOverFences(canWalkOverFences);
+}
+
+// ===========================================================================
+// 建路径
+// ===========================================================================
+
+std::optional<Path> PathNavigator::_createPath(const BlockPos& target, i32 reachRange, f32 maxPathLength)
+{
+    return _createPath(std::vector<BlockPos>{target}, GROUND_SEARCH_RANGE, false, reachRange, maxPathLength);
+}
+
+std::optional<Path> PathNavigator::_createPath(const std::vector<BlockPos>& targets,
+    i32 searchRange,
+    bool above,
+    i32 reachRange,
+    f32 maxPathLength)
+{
+    if (targets.empty()) {
+        return std::nullopt;
+    }
+
+    const IWorld* world = m_mob->world();
+    if (world == nullptr) {
+        return std::nullopt;
+    }
+    // 目标集合里已经有当前目标、且路径还没走完：沿用旧路径，不做重复搜索。
+    if (m_path.has_value() && !m_path->isDone() && m_targetPos.has_value()) {
+        const bool stillTargeted =
+            std::any_of(targets.begin(), targets.end(), [this](const BlockPos& pos) { return pos == *m_targetPos; });
+        if (stillTargeted) {
+            return m_path;
+        }
+    }
+
+    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathNavigator::createPath");
+
+    // 区域只需要覆盖实体周围：求值器的查询范围由行走距离上限与搜索半径共同决定，
+    // 而世界读取本身不按区域裁剪，因此这里不再手工圈定半径。
+    // 目标若远在区域之外，A* 仍会沿「行走距离」边界把搜索停住并返回「尽力而为」的路径。
+    MC_UNUSED(searchRange);
+    BlockPos origin(static_cast<i32>(std::floor(m_mob->x())),
+        static_cast<i32>(std::floor(m_mob->y())),
+        static_cast<i32>(std::floor(m_mob->z())));
+    if (above) {
+        origin = BlockPos(origin.x, origin.y + 1, origin.z);
+    }
+    WorldRegion region(*world);
+
+    auto path = m_pathFinder->findPath(region,
+        *m_mob,
+        Vector3d(static_cast<f64>(m_mob->x()), static_cast<f64>(m_mob->y()), static_cast<f64>(m_mob->z())),
+        targets,
+        maxPathLength,
+        reachRange,
+        m_maxVisitedNodesMultiplier);
+    if (path.has_value()) {
+        m_targetPos = path->target();
+        m_reachRange = reachRange;
+        _resetStuckTimeout();
+    }
+    return path;
+}
+
+bool PathNavigator::moveTo(f64 x, f64 y, f64 z, i32 reachRange, f64 speed)
+{
+    return moveTo(_createPath(BlockPos(static_cast<i32>(std::floor(x)), static_cast<i32>(std::floor(y)), static_cast<i32>(std::floor(z))), reachRange, 16.0f), speed);
+}
+
+bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
+{
+    return moveTo(x, y, z, 1, speed);
+}
+
+bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, i32 reachRange, f64 speed)
+{
+    return moveTo(x, y, z, reachRange, speed);
+}
+
+bool PathNavigator::moveTo(const LivingEntity& target, f64 speed)
+{
+    const BlockPos pos(static_cast<i32>(std::floor(target.x())),
+        static_cast<i32>(std::floor(target.y())),
+        static_cast<i32>(std::floor(target.z())));
+    return moveTo(_createPath(pos, ENTITY_REACH_RANGE, 16.0f), speed);
+}
+
+bool PathNavigator::moveTo(std::optional<Path> path, f64 speed)
+{
+    if (!path.has_value()) {
+        m_path.reset();
+        return false;
+    }
+    if (!path->sameAs(m_path.has_value() ? &*m_path : nullptr)) {
+        m_path = std::move(path);
+    }
+    if (isDone()) {
+        return false;
+    }
+    _trimPath();
+    if (m_path->nodeCount() == 0) {
+        return false;
+    }
+    m_speed = speed;
+    m_lastStuckCheck = static_cast<i32>(m_tick);
+    m_lastStuckCheckPos = _getTempMobPosition();
+    return true;
+}
+
+void PathNavigator::recomputePath()
+{
+    if (m_tick - m_timeLastRecompute > MAX_TIME_RECOMPUTE) {
+        if (m_targetPos.has_value()) {
+            m_path.reset();
+            m_path = _createPath(*m_targetPos, m_reachRange, m_requiredPathLength);
+            m_timeLastRecompute = m_tick;
+            m_hasDelayedRecomputation = false;
+        }
+        return;
+    }
+    // 刚算过就又要重算：留到下一个 tick，避免每 tick 都跑一次 A*。
+    m_hasDelayedRecomputation = true;
+}
+
+// ===========================================================================
+// 跟随
+// ===========================================================================
+
+void PathNavigator::tick()
+{
+    ++m_tick;
+    if (m_hasDelayedRecomputation) {
+        recomputePath();
+    }
+
+    if (isDone()) {
+        return;
+    }
+
+    if (_canUpdatePath()) {
+        _followThePath();
+    } else if (m_path.has_value() && !m_path->isDone()) {
+        // 无法跟随（例如正在下落）时，如果实体已经在下一路径点的正上方，就直接跳过它，
+        // 免得落地后回头再走一遍。
+        const Vector3d position = _getTempMobPosition();
+        const Vector3d next = m_path->nextEntityPos(m_mob->width());
+        if (position.y > next.y && m_mob->onGround() && std::floor(position.x) == std::floor(next.x) &&
+            std::floor(position.z) == std::floor(next.z)) {
+            m_path->advance();
+        }
+    }
+
+    if (isDone()) {
+        return;
+    }
+    const Vector3d next = m_path->nextEntityPos(m_mob->width());
+    m_mob->moveController()->setMoveTo(next.x, _getGroundY(next), next.z, m_speed);
+}
+
+void PathNavigator::_followThePath()
+{
+    const Vector3d position = _getTempMobPosition();
+    // 到达当前路径点的判定半径随实体宽度变化：宽实体能有更宽的「到达」窗口。
+    m_maxDistanceToWaypoint =
+        m_mob->width() > 0.75f ? m_mob->width() / 2.0f : 0.75f - m_mob->width() / 2.0f;
+
+    const BlockPos nextPos = m_path->nextNodePos();
+    const f64 dx = std::abs(m_mob->x() - (static_cast<f64>(nextPos.x) + 0.5));
+    const f64 dy = std::abs(m_mob->y() - static_cast<f64>(nextPos.y));
+    const f64 dz = std::abs(m_mob->z() - (static_cast<f64>(nextPos.z) + 0.5));
+    const bool arrived = dx < m_maxDistanceToWaypoint && dz < m_maxDistanceToWaypoint && dy < 1.0;
+
+    if (arrived || (canCutCorner(m_path->nextNode().type()) && _shouldTargetNextNodeInDirection(position))) {
+        m_path->advance();
+    }
+
+    _doStuckDetection(position);
+}
+
+bool PathNavigator::canCutCorner(PathType type) const
+{
+    // 危险地形与「需要开门的门格」不允许抄近路：抄近路意味着实体不等走到格子中心就拐弯。
+    return type != PathType::DangerFire && type != PathType::DangerOther && type != PathType::WalkableDoor;
+}
+
+bool PathNavigator::_shouldTargetNextNodeInDirection(const Vector3d& position) const
+{
+    if (m_path->nextNodeIndex() + 1 >= static_cast<i32>(m_path->nodeCount())) {
+        return false;
+    }
+    const BlockPos next = m_path->nextNodePos();
+    const Vector3d nextCentre(static_cast<f64>(next.x) + 0.5, static_cast<f64>(next.y), static_cast<f64>(next.z) + 0.5);
+    if (position.distanceSquared(nextCentre) >= 4.0) {
+        return false;
+    }
+    if (_canMoveDirectly(position, m_path->nextEntityPos(m_mob->width()))) {
+        return true;
+    }
+
+    // 不能直走时，比较「朝当前路径点」和「朝再下一个路径点」两个方向的夹角：
+    // 如果再下一个路径点其实更靠前（夹角超过 90°），说明当前路径点已经绕远，直接跳过。
+    const BlockPos afterNext = m_path->nodePos(static_cast<size_t>(m_path->nextNodeIndex() + 1));
+    const Vector3d afterCentre(
+        static_cast<f64>(afterNext.x) + 0.5, static_cast<f64>(afterNext.y), static_cast<f64>(afterNext.z) + 0.5);
+    const Vector3d toNext = nextCentre - position;
+    const Vector3d toAfter = afterCentre - position;
+    const f64 nextLengthSqr = toNext.lengthSquared();
+    const f64 afterLengthSqr = toAfter.lengthSquared();
+    const bool afterIsCloser = afterLengthSqr < nextLengthSqr;
+    const bool nextIsNearby = nextLengthSqr < 0.5;
+    if (!afterIsCloser && !nextIsNearby) {
+        return false;
+    }
+    return toAfter.normalized().dot(toNext.normalized()) < 0.0;
+}
+
+void PathNavigator::_doStuckDetection(const Vector3d& position)
+{
+    const i32 tick = static_cast<i32>(m_tick);
+    if (tick - m_lastStuckCheck > STUCK_CHECK_INTERVAL) {
+        const f32 speed = m_mob->aiMoveSpeed();
+        // 移动慢的实体平方衰减：慢速生物在 100 tick 里本来就走不了多远。
+        const f32 effective = speed >= 1.0f ? speed : speed * speed;
+        const f32 threshold = effective * static_cast<f32>(STUCK_CHECK_INTERVAL) * STUCK_THRESHOLD_DISTANCE_FACTOR;
+        if (position.distanceSquared(m_lastStuckCheckPos) < static_cast<f64>(threshold) * threshold) {
+            m_isStuck = true;
+            stop();
+        } else {
+            m_isStuck = false;
+        }
+        m_lastStuckCheck = tick;
+        m_lastStuckCheckPos = position;
+    }
+
+    if (m_path.has_value() && !m_path->isDone()) {
+        const BlockPos next = m_path->nextNodePos();
+        if (next == m_timeoutCachedNode) {
+            m_timeoutTimer += m_tick - m_lastTimeoutCheck;
+        } else {
+            m_timeoutCachedNode = next;
+            // 预计耗时：按当前速度走到该路径点需要多少 tick。
+            const Vector3d centre(
+                static_cast<f64>(next.x) + 0.5, static_cast<f64>(next.y), static_cast<f64>(next.z) + 0.5);
+            const f64 speed = m_mob->aiMoveSpeed();
+            m_timeoutLimit =
+                speed > 0.0 ? position.distance(centre) / speed * static_cast<f64>(20.0) : 0.0;
+        }
+
+        // 在同一个路径点上徘徊超过预计耗时的 3 倍：判定为走不到，放弃当前路径。
+        if (m_timeoutLimit > 0.0 && static_cast<f64>(m_timeoutTimer) > m_timeoutLimit * 3.0) {
+            _resetStuckTimeout();
+            stop();
+        }
+        m_lastTimeoutCheck = m_tick;
+    }
+}
+
+void PathNavigator::_resetStuckTimeout()
+{
+    m_timeoutCachedNode = BlockPos(0, 0, 0);
+    m_timeoutTimer = 0;
+    m_timeoutLimit = 0.0;
+    m_isStuck = false;
+}
+
+// ===========================================================================
+// 位置与地面高度
+// ===========================================================================
+
+bool PathNavigator::_canUpdatePath() const
+{
+    return m_mob->onGround() || m_mob->isInWater() || m_mob->hasPassengers();
+}
+
+Vector3d PathNavigator::_getTempMobPosition() const
+{
+    return Vector3d(m_mob->x(), _getGroundY(Vector3d(m_mob->x(), m_mob->y(), m_mob->z())), m_mob->z());
+}
+
+f64 PathNavigator::_getGroundY(const Vector3d& position) const
+{
+    const IWorld* world = m_mob->world();
+    MC_ASSERT_RELEASE(world != nullptr);
+    WorldRegion region(*world);
+    return groundYAt(region, position);
+}
+
+f64 PathNavigator::groundYAt(const Region& region, const Vector3d& position)
+{
+    const i32 x = static_cast<i32>(std::floor(position.x));
+    const i32 y = static_cast<i32>(std::floor(position.y));
+    const i32 z = static_cast<i32>(std::floor(position.z));
+    if (region.getBlockState(x, y - 1, z)->isAir()) {
+        return position.y;
+    }
+    return WalkNodeEvaluator::getFloorLevel(region, x, y, z);
+}
+
+void PathNavigator::_trimPath()
+{
+    if (!m_path.has_value()) {
+        return;
+    }
+    const IWorld* world = m_mob->world();
+    MC_ASSERT_RELEASE(world != nullptr);
+    WorldRegion region(*world);
+    // 锅（炼药锅 / 细雪锅）的碰撞形状不满足寻路「可站立」判定，路径点会落在锅里；
+    // 把落在锅里的路径点整体抬高一层，实体才能走过去。
+    for (size_t index = 0; index < m_path->nodeCount(); ++index) {
+        const PathPoint& node = m_path->node(index);
+        const PathPoint* after = index + 1 < m_path->nodeCount() ? &m_path->node(index + 1) : nullptr;
+        if (!BlockTags::CAULDRONS().contains(&region.getBlockState(node.x(), node.y(), node.z())->getBlock())) {
+            continue;
+        }
+        PathPoint raised(node.x(), node.y() + 1, node.z());
+        m_path->replaceNode(index, raised);
+        if (after != nullptr && node.y() >= after->y()) {
+            m_path->replaceNode(index + 1, PathPoint(after->x(), node.y() + 1, after->z()));
         }
     }
 }
 
-void PathNavigator::setCanEnterDoors(bool canEnterDoors)
+void PathNavigator::_trimPathSun()
 {
-    m_canEnterDoors = canEnterDoors;
-
-    if (m_pathFinder) {
-        auto* nodeProcessor = m_pathFinder->getNodeProcessor();
-        if (nodeProcessor != nullptr) {
-            auto* walkNodeProcessor = dynamic_cast<WalkNodeProcessor*>(nodeProcessor);
-            if (walkNodeProcessor != nullptr) {
-                walkNodeProcessor->setCanEnterDoors(canEnterDoors);
-            }
+    if (!m_avoidSun || !m_path.has_value()) {
+        return;
+    }
+    const IWorld* world = m_mob->world();
+    MC_ASSERT_RELEASE(world != nullptr);
+    // 实体自己已经暴露在阳光下：不截断，否则它会连逃离的路径都没有。
+    const i32 mobX = static_cast<i32>(std::floor(m_mob->x()));
+    const i32 mobZ = static_cast<i32>(std::floor(m_mob->z()));
+    if (world->canSeeSky(BlockPos(mobX, static_cast<i32>(std::floor(m_mob->y() + 0.5)), mobZ))) {
+        return;
+    }
+    for (size_t index = 0; index < m_path->nodeCount(); ++index) {
+        const PathPoint& node = m_path->node(index);
+        if (world->canSeeSky(BlockPos(node.x(), node.y(), node.z()))) {
+            m_path->truncateNodes(static_cast<i32>(index));
+            return;
         }
     }
+}
+
+bool PathNavigator::shouldRecomputePath(const BlockPos& pos) const
+{
+    if (m_hasDelayedRecomputation) {
+        return false;
+    }
+    if (!m_path.has_value() || m_path->isDone() || m_path->nodeCount() == 0) {
+        return false;
+    }
+    const PathPoint* end = m_path->endNode();
+    const Vector3d centre((static_cast<f64>(end->x()) + m_mob->x()) / 2.0,
+        (static_cast<f64>(end->y()) + m_mob->y()) / 2.0,
+        (static_cast<f64>(end->z()) + m_mob->z()) / 2.0);
+    const f64 blockCentreX = static_cast<f64>(pos.x) + 0.5;
+    const f64 blockCentreY = static_cast<f64>(pos.y) + 0.5;
+    const f64 blockCentreZ = static_cast<f64>(pos.z) + 0.5;
+    const f64 dx = blockCentreX - centre.x;
+    const f64 dy = blockCentreY - centre.y;
+    const f64 dz = blockCentreZ - centre.z;
+    const f64 allowed = static_cast<f64>(m_path->nodeCount() - m_path->nextNodeIndex());
+    return dx * dx + dy * dy + dz * dz < allowed * allowed;
+}
+
+bool PathNavigator::isStableDestination(const BlockPos& pos) const
+{
+    const IWorld* world = m_mob->world();
+    MC_ASSERT_RELEASE(world != nullptr);
+    return world->getBlockState(pos.x, pos.y - 1, pos.z)->isSolidRender();
+}
+
+bool PathNavigator::_canMoveDirectly(const Vector3d& from, const Vector3d& to) const
+{
+    // 地面实体不能「直线穿越」：必须沿路径点走，所以默认返回 false。
+    MC_UNUSED(from);
+    MC_UNUSED(to);
+    return false;
 }
 
 } // namespace mc::entity::ai::pathfinding

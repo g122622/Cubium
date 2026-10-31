@@ -64,9 +64,10 @@
 
 #include "common/core/Result.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/GroundPathNavigator.hpp"
 #include "common/entity/ai/pathfinding/PathFinder.hpp"
-#include "common/entity/ai/pathfinding/PathNodeType.hpp"
-#include "common/entity/ai/pathfinding/WalkNodeProcessor.hpp"
+#include "common/entity/ai/pathfinding/PathType.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
@@ -86,20 +87,15 @@
 
 namespace mc {
 
-// 创建 MobEntity 默认寻路器：WalkNodeProcessor → PathFinder → PathNavigator，并绑定实体。
-// 修复历史 bug：原构造 m_navigator(std::make_unique<PathNavigator>(this)) 走 PathNavigator(MobEntity*)
-// 构造分支，m_pathFinder 永远为 nullptr，致 PathNavigator::moveTo 在 !m_pathFinder 处早退返回 false，
-// 全仓所有 MobEntity 的主动寻路（MeleeAttackGoal/FoxFollowTargetGoal/RandomWalkingGoal 等）全部失效，
-// 实体 attackTarget 设了却永不移动。子类（如 RavagerEntity）可自行覆盖 m_navigator 用定制 NodeProcessor。
-// 对应 vanilla Mob.createNavigation() → GroundPathNavigation(new WalkNodeProcessor())。
+// 创建 MobEntity 默认导航器：地面寻路求值器 + A* 寻路器 + 导航器，并把实体绑定上去。
+// 子类（如劫掠兽、蜜蜂）可以通过自己的构造函数替换 m_navigator，改用飞行 / 能过树叶的求值器。
 namespace {
-std::unique_ptr<entity::ai::pathfinding::PathNavigator> _createDefaultNavigator(LivingEntity* mob)
+std::unique_ptr<entity::ai::pathfinding::PathNavigator> _createDefaultNavigator(MobEntity* mob)
 {
-    auto nodeProcessor = std::make_unique<entity::ai::pathfinding::WalkNodeProcessor>();
-    auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(std::move(nodeProcessor));
-    auto navigator = std::make_unique<entity::ai::pathfinding::PathNavigator>(std::move(pathFinder));
-    navigator->setEntity(mob);
-    return navigator;
+    auto evaluator = std::make_unique<entity::ai::pathfinding::WalkNodeEvaluator>();
+    auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(
+        std::move(evaluator), entity::ai::pathfinding::PathFinder::DEFAULT_VISITED_NODES);
+    return std::make_unique<entity::ai::pathfinding::GroundPathNavigator>(mob, std::move(pathFinder));
 }
 } // namespace
 
@@ -126,7 +122,7 @@ MobEntity::MobEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 初始化装备掉落概率为默认值
     m_equipmentDropChances.fill(DEFAULT_EQUIPMENT_DROP_CHANCE);
 
-    // 初始化寻路惩罚值表为 NaN（表示"未设置"，回退到 PathNodeType 默认代价）
+    // 初始化寻路代价表为 NaN（表示"未设置"，回退到该 PathType 的默认代价）
     // 对应 MC Java 的 EnumMap<PathType, Float>：get() 返回 null 时回退到 getMalus()
     m_pathfindingMalus.fill(std::numeric_limits<f32>::quiet_NaN());
 
@@ -213,20 +209,11 @@ const entity::ai::EntitySenses* MobEntity::senses() const
     return m_senses.get();
 }
 
-f32 MobEntity::getPathfindingMalus(entity::ai::pathfinding::PathNodeType pathType) const noexcept
+f32 MobEntity::getPathfindingMalus(entity::ai::pathfinding::PathType pathType) const noexcept
 {
-    // 对应 MC Java Mob.getPathfindingMalus(PathType)：
-    //   if (this.getControlledVehicle() instanceof Mob mob1 && mob1.shouldPassengersInheritMalus()) {
-    //       mob = mob1;
-    //   } else {
-    //       mob = this;
-    //   }
-    //   Float f = mob.pathfindingMalus.get(p_326934_);
-    //   return f == null ? p_326934_.getMalus() : f;
-    //
-    // 项目无 getControlledVehicle()，使用 getVehicle() + world()->getEntity() 解引用，
-    // 与 MobEntity.cpp::isInDaylight() 中既有的解引用模式一致。
-
+    // 乘客继承：骑乘在「乘客沿用载具代价」的载具上时（炽足兽走岩浆），用载具的代价表。
+    // 项目没有 getControlledVehicle()，用 getVehicle() + world()->getEntity() 解引用，
+    // 与 isInDaylight() 等处既有的解引用模式一致。
     const MobEntity* malusSource = this;
 
     const EntityInstanceId vehicleId = getVehicle();
@@ -240,10 +227,30 @@ f32 MobEntity::getPathfindingMalus(entity::ai::pathfinding::PathNodeType pathTyp
 
     const f32 stored = malusSource->m_pathfindingMalus[static_cast<size_t>(pathType)];
     if (std::isnan(stored)) {
-        // 未显式设置，回退到 PathNodeType 默认代价（对应 MC 的 PathType.getMalus()）
-        return entity::ai::pathfinding::getPathCostPenalty(pathType);
+        return entity::ai::pathfinding::getPathMalus(pathType);
     }
     return stored;
+}
+
+i32 MobEntity::pathfindingMaxFallDistance() const
+{
+    // 有目标时按「还能承受多少伤害」折算：血量每低于最大血量的 33% 一档、难度每差一档，
+    // 可接受的下落就减 4 格。无目标时用默认安全高度。
+    if (attackTarget() == nullptr) {
+        return static_cast<i32>(std::floor(3.0f));
+    }
+    const f32 affordable = health() - maxHealth() * 0.33f;
+    const i32 difficultyId = static_cast<i32>(m_world->difficulty());
+    f32 depth = affordable - static_cast<f32>((3 - difficultyId) * 4);
+    if (depth < 0.0f) {
+        depth = 0.0f;
+    }
+    return static_cast<i32>(std::floor(depth + 3.0f));
+}
+
+AxisAlignedBB MobEntity::pathfindingBoundingBox() const
+{
+    return boundingBox();
 }
 
 bool MobEntity::isBeingRidden() const
@@ -253,9 +260,7 @@ bool MobEntity::isBeingRidden() const
 
 void MobEntity::clearNavigation()
 {
-    if (m_navigator) {
-        m_navigator->clearPath();
-    }
+    m_navigator->stop();
 }
 
 void MobEntity::playAmbientSound()
@@ -421,7 +426,7 @@ void MobEntity::tick()
         }
 
         // 4. 导航器更新
-        if (m_navigator) {
+        {
             MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::navigation");
             m_navigator->tick();
         }

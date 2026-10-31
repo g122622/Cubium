@@ -112,14 +112,18 @@ src/common/entity/
 │   │
 │   └── pathfinding/                # 寻路系统
 │       ├── Path.hpp                # 路径表示
-│       ├── PathPoint.hpp/cpp       # 路径点
-│       ├── PathHeap.hpp            # 路径堆（A* 算法）
+│       ├── PathPoint.hpp           # 路径点
+│       ├── PathHeap.hpp            # 开放集二叉堆（A* 算法）
 │       ├── PathFinder.hpp/cpp      # A* 寻路器
-│       ├── PathNavigator.hpp/cpp   # 路径导航器
-│       ├── PathNodeType.hpp        # 路径节点类型
-│       ├── NodeProcessor.hpp       # 节点处理器接口
-│       ├── WalkNodeProcessor.hpp/cpp # 行走节点处理器
-│       └── Region.hpp              # 世界区域接口
+│       ├── PathNavigator.hpp/cpp   # 导航器基类
+│       ├── GroundPathNavigator.hpp/cpp # 地面导航器
+│       ├── PathType.hpp            # 路径类型与默认代价表
+│       ├── NodeEvaluator.hpp/cpp   # 求值器基类与寻路实体契约
+│       ├── WalkNodeEvaluator.hpp/cpp # 地面求值器
+│       ├── FlyNodeEvaluator.hpp/cpp  # 飞行求值器
+│       ├── Target.hpp              # 目标节点
+│       ├── Region.hpp              # 世界只读视图接口
+│       └── WorldRegion.hpp         # 基于 IWorld 的 Region 实现
 │
 ├── attribute/                     # 属性系统
 │   ├── Attribute.hpp              # 属性定义

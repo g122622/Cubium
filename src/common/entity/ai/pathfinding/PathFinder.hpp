@@ -21,293 +21,155 @@
  *
  */
 
+/**
+ * @file PathFinder.hpp
+ * @brief A* 寻路器（对应原版 `PathFinder`）。
+ *
+ * 与教科书 A* 的三处关键差异，都是原版刻意的设计，必须照做：
+ *
+ *   1. **启发式放大 1.5 倍**（`FUDGING`）：`h = 最近目标距离 * 1.5`，因此搜索不保证
+ *      最优路径，但会显著偏向目标方向；
+ *   2. **多目标与「尽力而为」**：目标是一个集合，任何一个被判定「到达」（曼哈顿距离
+ *      小于到达半径）就立刻停止；若一个都没到达，则用每个目标的 `bestNode` 回溯，
+ *      取「离目标最近、其次节点最少」的那条——因此**永远**会返回一条路径（除非起点都
+ *      不存在），`canReach()` 区分「真到达」与「尽量靠近」；
+ *   3. **访问节点上限**：`maxVisitedNodes * multiplier`，且计数在**取出节点之前**自增，
+ *      上限为 1 时一个节点都不会展开。
+ *
+ * 搜索距离上限是「沿搜索树的行走距离」（`walkedDistance`），不是直线距离。
+ */
+
 #pragma once
 
-#include "NodeProcessor.hpp"
+#include "NodeEvaluator.hpp"
 #include "Path.hpp"
 #include "PathHeap.hpp"
 #include "PathPoint.hpp"
-#include "Region.hpp"
+#include "Target.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/math/MathConstants.hpp"
-#include <algorithm>
-#include <cmath>
-#include <cstdlib>
 #include <memory>
-#include <utility>
 #include <vector>
 
 namespace mc::entity::ai::pathfinding {
 
 /**
- * @brief 寻路器
- *
- * 实现 A* 算法寻找从起点到终点的最优路径。
+ * @brief A* 寻路器
  */
 class PathFinder {
 public:
+    /// 启发式放大倍数（原版 `FUDGING`）。
+    static constexpr f32 FUDGING = 1.5f;
+
+    /// 一次搜索默认允许展开的节点数上限。
+    static constexpr i32 DEFAULT_VISITED_NODES = 16 * 16;
+
     /**
-     * @brief 构造函数
-     * @param processor 节点处理器
+     * @brief 构造
+     * @param evaluator 求值器（接管所有权）
+     * @param maxVisitedNodes 一次搜索的最大访问节点数
      */
-    explicit PathFinder(std::unique_ptr<NodeProcessor> processor)
-        : m_nodeProcessor(std::move(processor))
+    PathFinder(std::unique_ptr<NodeEvaluator> evaluator, i32 maxVisitedNodes)
+        : m_maxVisitedNodes(maxVisitedNodes)
+        , m_evaluator(std::move(evaluator))
     {}
 
-    ~PathFinder() = default;
+    virtual ~PathFinder() = default;
 
-    // 禁止拷贝
     PathFinder(const PathFinder&) = delete;
     PathFinder& operator=(const PathFinder&) = delete;
-
-    // 允许移动
-    PathFinder(PathFinder&&) noexcept = default;
-    PathFinder& operator=(PathFinder&&) noexcept = default;
-
-    // ========== 配置 ==========
+    PathFinder(PathFinder&&) = delete;
+    PathFinder& operator=(PathFinder&&) = delete;
 
     /**
-     * @brief 设置世界区域
+     * @brief 求解一条路径
+     *
+     * @param region 世界区域（必须覆盖起点到目标的范围，且比目标多出至少一个区块）
+     * @param entity 发起寻路的实体
+     * @param entityPosition 实体位置
+     * @param targets 目标方块坐标集合；必须非空
+     * @param maxPathLength 允许的最大行走距离
+     * @param reachRange 判定「到达」的曼哈顿距离半径
+     * @param maxVisitedNodesMultiplier 访问节点上限倍率（蜜蜂等实体会临时调整）
+     * @return 路径；连起点都无法确定时返回空 optional
      */
-    void setRegion(const Region* region)
+    [[nodiscard]] std::optional<Path> findPath(const Region& region,
+        const PathfindingEntity& entity,
+        const Vector3d& entityPosition,
+        const std::vector<BlockPos>& targets,
+        f32 maxPathLength,
+        i32 reachRange,
+        f32 maxVisitedNodesMultiplier);
+
+    /**
+     * @brief 直接调整访问节点上限
+     */
+    void setMaxVisitedNodes(i32 maxVisitedNodes)
     {
-        if (m_nodeProcessor) {
-            m_nodeProcessor->setRegion(region);
-        }
+        m_maxVisitedNodes = maxVisitedNodes;
     }
 
-    /**
-     * @brief 设置实体尺寸
-     */
-    void setEntitySize(f32 width, f32 height)
+    [[nodiscard]] i32 maxVisitedNodes() const
     {
-        if (m_nodeProcessor) {
-            m_nodeProcessor->setEntitySize(width, height);
-        }
+        return m_maxVisitedNodes;
     }
 
-    /**
-     * @brief 设置最大搜索距离
-     */
-    void setMaxSearchDistance(i32 distance)
+    [[nodiscard]] NodeEvaluator& evaluator()
     {
-        m_maxSearchDistance = distance;
+        return *m_evaluator;
     }
 
-    /**
-     * @brief 设置最大搜索节点数
-     */
-    void setMaxNodes(i32 maxNodes)
+    [[nodiscard]] const NodeEvaluator& evaluator() const
     {
-        m_maxNodes = maxNodes;
-    }
-
-    /**
-     * @brief 设置搜索范围（用于性能优化）
-     */
-    void setSearchRange(i32 range)
-    {
-        m_searchRange = range;
-    }
-
-    // ========== 寻路 ==========
-
-    /**
-     * @brief 寻找到坐标的路径
-     * @param startX 起点X
-     * @param startY 起点Y
-     * @param startZ 起点Z
-     * @param targetX 终点X
-     * @param targetY 终点Y
-     * @param targetZ 终点Z
-     * @return 找到的路径，如果找不到返回空路径
-     */
-    [[nodiscard]] Path findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ)
-    {
-        return findPath(startX, startY, startZ, targetX, targetY, targetZ, m_maxSearchDistance);
-    }
-
-    /**
-     * @brief 寻找到坐标的路径（带最大距离）
-     * @param startX 起点X
-     * @param startY 起点Y
-     * @param startZ 起点Z
-     * @param targetX 终点X
-     * @param targetY 终点Y
-     * @param targetZ 终点Z
-     * @param maxDistance 最大搜索距离
-     * @param visitedNodesMultiplier 已访问节点数倍率（默认1.0F），与 m_maxNodes 相乘得到实际搜索节点上限
-     * @return 找到的路径，如果找不到返回空路径
-     */
-    [[nodiscard]] Path findPath(i32 startX,
-        i32 startY,
-        i32 startZ,
-        i32 targetX,
-        i32 targetY,
-        i32 targetZ,
-        i32 maxDistance,
-        f32 visitedNodesMultiplier = 1.0f);
-
-    /**
-     * @brief 寻找到目标范围的路径
-     * @param startX 起点X
-     * @param startY 起点Y
-     * @param startZ 起点Z
-     * @param targetX 目标中心X
-     * @param targetY 目标中心Y
-     * @param targetZ 目标中心Z
-     * @param range 目标范围（到达范围内任意点即成功）
-     * @param visitedNodesMultiplier 已访问节点数倍率（默认1.0F）
-     * @return 找到的路径
-     */
-    [[nodiscard]] Path findPathToRange(i32 startX,
-        i32 startY,
-        i32 startZ,
-        i32 targetX,
-        i32 targetY,
-        i32 targetZ,
-        i32 range,
-        f32 visitedNodesMultiplier = 1.0f);
-
-    // ========== 多目标寻路 ==========
-
-    /**
-     * @brief 目标点结构（用于多目标寻路）
-     */
-    struct TargetPoint {
-        i32 x, y, z;
-
-        TargetPoint(i32 x_, i32 y_, i32 z_)
-            : x(x_)
-            , y(y_)
-            , z(z_)
-        {}
-    };
-
-    /**
-     * @brief 寻找到多个目标中最近一个的路径
-     * @param startX 起点X
-     * @param startY 起点Y
-     * @param startZ 起点Z
-     * @param targets 目标点列表
-     * @param maxDistance 最大搜索距离
-     * @param visitedNodesMultiplier 已访问节点数倍率（默认1.0F）
-     * @return 找到的路径
-     */
-    [[nodiscard]] Path findPathToClosest(i32 startX,
-        i32 startY,
-        i32 startZ,
-        const std::vector<TargetPoint>& targets,
-        i32 maxDistance,
-        f32 visitedNodesMultiplier = 1.0f);
-
-    // ========== 调试 ==========
-
-    /**
-     * @brief 获取节点处理器
-     */
-    [[nodiscard]] NodeProcessor* getNodeProcessor()
-    {
-        return m_nodeProcessor.get();
-    }
-
-    /**
-     * @brief 获取最后搜索的节点数
-     */
-    [[nodiscard]] i32 getLastSearchedNodes() const
-    {
-        return m_lastSearchedNodes;
+        return *m_evaluator;
     }
 
 private:
-    std::unique_ptr<NodeProcessor> m_nodeProcessor;
+    /**
+     * @brief 核心搜索（起点已确定）
+     *
+     * @param start 起点节点
+     * @param targets 目标方块坐标集合（非空）
+     * @param maxPathLength 允许的最大行走距离
+     * @param reachRange 判定到达的曼哈顿半径
+     * @param maxVisitedNodesMultiplier 访问节点上限倍率
+     */
+    [[nodiscard]] std::optional<Path> search(PathPoint* start,
+        const std::vector<BlockPos>& targets,
+        f32 maxPathLength,
+        i32 reachRange,
+        f32 maxVisitedNodesMultiplier);
+
+    /**
+     * @brief 从某个节点回溯出路径
+     */
+    [[nodiscard]] Path reconstructPath(PathPoint* from, const BlockPos& target, bool reached) const;
+
+    /**
+     * @brief 两个节点之间的移动代价（原版 `distance`，虚方法，供子类改写）
+     */
+    [[nodiscard]] virtual f32 distance(const PathPoint& from, const PathPoint& to) const;
+
+    /**
+     * @brief 到最近目标的启发式，并顺带刷新各目标的 `bestNode`
+     *
+     * 目标记录「见过的最近节点」是原版的核心记账方式：搜索结束时即使没有目标被判定
+     * 到达，也能从这些记录回溯出「尽力而为」的路径。
+     */
+    [[nodiscard]] f32 bestHeuristic(PathPoint& point, std::vector<Target>& targets) const;
+
+    i32 m_maxVisitedNodes;
+    std::unique_ptr<NodeEvaluator> m_evaluator;
     PathHeap m_openSet;
-    i32 m_maxSearchDistance = 100;
-    i32 m_maxNodes = 2000;
-    i32 m_searchRange = 32;
+    std::array<PathPoint*, NodeEvaluator::maxNeighbors()> m_neighbors{};
+
+    /// 最近一次搜索实际展开的节点数（诊断 / 性能观测用）。
     i32 m_lastSearchedNodes = 0;
 
-    // ========== 内部方法 ==========
-
-    /**
-     * @brief 启发式乘数
-     * 计算启发式后会乘以 1.5，存储在 distanceToNext 字段中
-     */
-    static constexpr f32 HEURISTIC_MULTIPLIER = 1.5f;
-
-    /**
-     * @brief 启发式函数：估算从当前点到目标的代价
-     * 使用直线距离（欧几里得距离）
-     *
-     * 注意：此函数直接计算距离，避免创建临时对象
-     */
-    [[nodiscard]] static f32 _heuristic(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
+public:
+    /// 最近一次搜索展开的节点数。
+    [[nodiscard]] i32 lastSearchedNodes() const
     {
-        f32 dx = static_cast<f32>(point.x() - targetX);
-        f32 dy = static_cast<f32>(point.y() - targetY);
-        f32 dz = static_cast<f32>(point.z() - targetZ);
-        return std::sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
-    /**
-     * @brief 计算到目标的平方距离（用于比较，避免sqrt）
-     */
-    [[nodiscard]] static f32 _heuristicSq(const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ)
-    {
-        f32 dx = static_cast<f32>(point.x() - targetX);
-        f32 dy = static_cast<f32>(point.y() - targetY);
-        f32 dz = static_cast<f32>(point.z() - targetZ);
-        return dx * dx + dy * dy + dz * dz;
-    }
-
-    /**
-     * @brief 计算两点间的移动代价
-     * 考虑对角线移动和垂直移动的实际代价
-     */
-    [[nodiscard]] static f32 _getMovementCost(const PathPoint& from, const PathPoint& to)
-    {
-        i32 dx = std::abs(to.x() - from.x());
-        i32 dy = std::abs(to.y() - from.y());
-        i32 dz = std::abs(to.z() - from.z());
-
-        // 移动代价：水平直线 = 1.0, 水平对角线 = sqrt(2), 垂直移动 = 1.0
-        constexpr f32 VERTICAL_COST = 1.0f;
-
-        i32 horizMoves = dx + dz;
-        i32 diagonalMoves = std::min(dx, dz);
-        i32 straightMoves = horizMoves - 2 * diagonalMoves;
-
-        f32 horizCost = static_cast<f32>(straightMoves) + math::SQRT2 * static_cast<f32>(diagonalMoves);
-        f32 vertCost = static_cast<f32>(dy) * VERTICAL_COST;
-
-        return horizCost + vertCost;
-    }
-
-    /**
-     * @brief 检查是否到达目标
-     */
-    [[nodiscard]] static bool _isTargetReached(
-        const PathPoint& point, i32 targetX, i32 targetY, i32 targetZ, i32 tolerance = 0)
-    {
-        return std::abs(point.x() - targetX) <= tolerance && std::abs(point.y() - targetY) <= tolerance &&
-            std::abs(point.z() - targetZ) <= tolerance;
-    }
-
-    /**
-     * @brief 检查节点是否在搜索范围内
-     */
-    [[nodiscard]] bool _isInSearchRange(
-        i32 x, i32 y, i32 z, i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ) const
-    {
-        // 检查节点是否在起点和终点之间的范围内
-        i32 minX = std::min(startX, targetX) - m_searchRange;
-        i32 maxX = std::max(startX, targetX) + m_searchRange;
-        i32 minY = std::min(startY, targetY) - m_searchRange / 2;
-        i32 maxY = std::max(startY, targetY) + m_searchRange / 2;
-        i32 minZ = std::min(startZ, targetZ) - m_searchRange;
-        i32 maxZ = std::max(startZ, targetZ) + m_searchRange;
-
-        return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
+        return m_lastSearchedNodes;
     }
 };
 

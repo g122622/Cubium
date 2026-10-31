@@ -21,446 +21,227 @@
  *
  */
 
+/**
+ * @file Path.hpp
+ * @brief 一条寻路结果（对应原版 `Path`）。
+ *
+ * 路径是**快照**：一旦生成就不再改动（`trimPath` 是对它的显式后处理），因此节点以值
+ * 的形式持有拷贝，而不是指向 `NodeEvaluator` 缓存里的对象——后者只活一次寻路会话。
+ *
+ * 路径与实体是解耦的：`getEntityPosAtNode` 需要实体的碰撞箱宽度来决定「走到节点中心」
+ * 还是「贴着节点边缘」，因此调用时要传入宽度。
+ */
+
 #pragma once
 
 #include "PathPoint.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include <algorithm>
 #include <cstddef>
-#include <optional>
+#include <limits>
 #include <utility>
 #include <vector>
 
-namespace mc {
-
-// 前向声明
-class Entity;
-
-namespace entity::ai::pathfinding {
+namespace mc::entity::ai::pathfinding {
 
 /**
- * @brief 路径对象
- *
- * 表示从起点到终点的完整路径，包含所有路径点。
+ * @brief 一条寻路结果
  */
 class Path {
 public:
     Path() = default;
 
     /**
-     * @brief 拷贝构造函数
+     * @brief 用节点序列构造路径
+     * @param nodes 节点序列（起点在前）
+     * @param target 本次寻路的目标方块坐标
+     * @param reached 是否真的到达了目标
      */
-    Path(const Path& other) = default;
-
-    /**
-     * @brief 移动构造函数
-     */
-    Path(Path&& other) noexcept
-        : m_points(std::move(other.m_points))
-        , m_target(other.m_target)
-        , m_distToTarget(other.m_distToTarget)
-        , m_reachesTarget(other.m_reachesTarget)
-        , m_currentIndex(other.m_currentIndex)
-    {
-        other.m_distToTarget = 0.0f;
-        other.m_reachesTarget = false;
-        other.m_currentIndex = 0;
-    }
-
-    /**
-     * @brief 拷贝赋值运算符
-     */
-    Path& operator=(const Path& other) = default;
-
-    /**
-     * @brief 移动赋值运算符
-     */
-    Path& operator=(Path&& other) noexcept
-    {
-        if (this != &other) {
-            m_points = std::move(other.m_points);
-            m_target = other.m_target;
-            m_distToTarget = other.m_distToTarget;
-            m_reachesTarget = other.m_reachesTarget;
-            m_currentIndex = other.m_currentIndex;
-            other.m_distToTarget = 0.0f;
-            other.m_reachesTarget = false;
-            other.m_currentIndex = 0;
-        }
-        return *this;
-    }
-
-    /**
-     * @brief 析构函数
-     */
-    ~Path() = default;
-
-    /**
-     * @brief 构造函数
-     * @param points 路径点数组
-     */
-    explicit Path(std::vector<PathPoint>&& points)
-        : m_points(std::move(points))
-    {}
-
-    /**
-     * @brief 完整构造函数
-     * @param points 路径点数组
-     * @param target 目标位置
-     * @param reachesTarget 是否到达目标
-     */
-    Path(std::vector<PathPoint>&& points, const BlockPos& target, bool reachesTarget)
-        : m_points(std::move(points))
+    Path(std::vector<PathPoint> nodes, const BlockPos& target, bool reached)
+        : m_nodes(std::move(nodes))
         , m_target(target)
-        , m_reachesTarget(reachesTarget)
+        , m_reached(reached)
+        , m_distanceToTarget(m_nodes.empty() ? std::numeric_limits<f32>::max()
+                                             : m_nodes.back().distanceManhattan(m_target.x, m_target.y, m_target.z))
     {}
 
-    // ========== 路径信息 ==========
+    // ========== 状态 ==========
 
-    /**
-     * @brief 获取路径长度
-     */
-    [[nodiscard]] size_t length() const
+    [[nodiscard]] const std::vector<PathPoint>& nodes() const
     {
-        return m_points.size();
+        return m_nodes;
     }
 
-    /**
-     * @brief 检查路径是否为空
-     */
+    [[nodiscard]] size_t nodeCount() const
+    {
+        return m_nodes.size();
+    }
+
     [[nodiscard]] bool empty() const
     {
-        return m_points.empty();
+        return m_nodes.empty();
     }
 
     /**
-     * @brief 获取路径终点
-     * @return 终点路径点，如果路径为空返回nullptr
+     * @brief 读取指定下标的节点
+     * @param index 下标；调用方保证在范围内（原版同样不做边界检查）
      */
-    [[nodiscard]] const PathPoint* getEnd() const
+    [[nodiscard]] const PathPoint& node(size_t index) const
     {
-        return m_points.empty() ? nullptr : &m_points.back();
+        return m_nodes[index];
     }
 
-    /**
-     * @brief 获取路径起点
-     * @return 起点路径点，如果路径为空返回nullptr
-     */
-    [[nodiscard]] const PathPoint* getStart() const
+    /// 终点节点；空路径返回 nullptr。
+    [[nodiscard]] const PathPoint* endNode() const
     {
-        return m_points.empty() ? nullptr : &m_points.front();
+        return m_nodes.empty() ? nullptr : &m_nodes.back();
     }
 
-    /**
-     * @brief 获取目标位置
-     */
-    [[nodiscard]] const BlockPos& getTarget() const
+    /// 本次寻路的目标坐标。
+    [[nodiscard]] const BlockPos& target() const
     {
         return m_target;
     }
 
-    /**
-     * @brief 设置目标位置
-     */
-    void setTarget(const BlockPos& target)
+    /// 是否真的到达了目标（false 表示这是「尽可能靠近」的路径）。
+    [[nodiscard]] bool canReach() const
     {
-        m_target = target;
+        return m_reached;
+    }
+
+    /// 终点到目标的曼哈顿距离；空路径为 f32 最大值。
+    [[nodiscard]] f32 distanceToTarget() const
+    {
+        return m_distanceToTarget;
+    }
+
+    // ========== 游标 ==========
+
+    [[nodiscard]] i32 nextNodeIndex() const
+    {
+        return m_nextNodeIndex;
+    }
+
+    void setNextNodeIndex(i32 index)
+    {
+        m_nextNodeIndex = index;
+    }
+
+    [[nodiscard]] bool notStarted() const
+    {
+        return m_nextNodeIndex <= 0;
+    }
+
+    [[nodiscard]] bool isDone() const
+    {
+        return m_nextNodeIndex >= static_cast<i32>(m_nodes.size());
+    }
+
+    /// 前进到下一个节点。
+    void advance()
+    {
+        ++m_nextNodeIndex;
+    }
+
+    /// 下一个节点；调用方保证 `!isDone()`。
+    [[nodiscard]] const PathPoint& nextNode() const
+    {
+        return m_nodes[static_cast<size_t>(m_nextNodeIndex)];
+    }
+
+    /// 下一个节点的方块坐标；调用方保证 `!isDone()`。
+    [[nodiscard]] BlockPos nextNodePos() const
+    {
+        const PathPoint& point = nextNode();
+        return BlockPos(point.x(), point.y(), point.z());
+    }
+
+    /// 上一个节点；还没开始时返回 nullptr。
+    [[nodiscard]] const PathPoint* previousNode() const
+    {
+        return m_nextNodeIndex > 0 ? &m_nodes[static_cast<size_t>(m_nextNodeIndex - 1)] : nullptr;
     }
 
     /**
-     * @brief 检查是否到达目标
-     */
-    [[nodiscard]] bool reachesTarget() const
-    {
-        return m_reachesTarget;
-    }
-
-    /**
-     * @brief 设置是否到达目标
-     */
-    void setReachesTarget(bool reaches)
-    {
-        m_reachesTarget = reaches;
-    }
-
-    /**
-     * @brief 获取到目标的距离
-     */
-    [[nodiscard]] f32 getDistToTarget() const
-    {
-        return m_distToTarget;
-    }
-
-    /**
-     * @brief 设置到目标的距离
-     */
-    void setDistToTarget(f32 dist)
-    {
-        m_distToTarget = dist;
-    }
-
-    // ========== 路径点访问 ==========
-
-    /**
-     * @brief 获取指定索引的路径点
-     * @param index 索引
-     * @return 路径点指针，如果索引无效返回nullptr
-     */
-    [[nodiscard]] const PathPoint* getPoint(size_t index) const
-    {
-        if (index >= m_points.size()) {
-            return nullptr;
-        }
-        return &m_points[index];
-    }
-
-    /**
-     * @brief 获取所有路径点
-     */
-    [[nodiscard]] const std::vector<PathPoint>& getPoints() const
-    {
-        return m_points;
-    }
-
-    // ========== 路径导航 ==========
-
-    /**
-     * @brief 获取当前目标路径点
-     * @return 当前目标路径点，如果已到达终点返回nullptr
-     */
-    [[nodiscard]] const PathPoint* getCurrentTarget() const
-    {
-        if (m_points.empty() || m_currentIndex >= static_cast<i32>(m_points.size())) {
-            return nullptr;
-        }
-        return &m_points[static_cast<size_t>(m_currentIndex)];
-    }
-
-    /**
-     * @brief 获取当前路径点索引
-     */
-    [[nodiscard]] i32 getCurrentIndex() const
-    {
-        return m_currentIndex;
-    }
-
-    /**
-     * @brief 前进到下一个路径点
-     * @return 是否还有下一个路径点
-     */
-    bool advance()
-    {
-        ++m_currentIndex;
-        return m_currentIndex < static_cast<i32>(m_points.size());
-    }
-
-    /**
-     * @brief 检查是否已到达终点
-     */
-    [[nodiscard]] bool isFinished() const
-    {
-        return m_points.empty() || m_currentIndex >= static_cast<i32>(m_points.size());
-    }
-
-    /**
-     * @brief 重置路径进度
-     */
-    void reset()
-    {
-        m_currentIndex = 0;
-    }
-
-    /**
-     * @brief 设置当前索引
-     */
-    void setCurrentIndex(i32 index)
-    {
-        m_currentIndex = std::max(0, std::min(index, static_cast<i32>(m_points.size()) - 1));
-    }
-
-    /**
-     * @brief 设置路径长度（裁剪）
-     * @param length 新的路径长度
-     */
-    void setCurrentPathLength(i32 length)
-    {
-        if (length >= 0 && length < static_cast<i32>(m_points.size())) {
-            m_points.resize(static_cast<size_t>(length));
-        }
-    }
-
-    /**
-     * @brief 设置指定索引的路径点
-     * @param index 索引
-     * @param point 新的路径点
-     */
-    void setPoint(size_t index, const PathPoint& point)
-    {
-        if (index < m_points.size()) {
-            m_points[index] = point;
-        }
-    }
-
-    /**
-     * @brief 设置指定索引的路径点（移动语义）
-     * @param index 索引
-     * @param point 新的路径点
-     */
-    void setPoint(size_t index, PathPoint&& point)
-    {
-        if (index < m_points.size()) {
-            m_points[index] = std::move(point);
-        }
-    }
-
-    // ========== 路径操作 ==========
-
-    /**
-     * @brief 添加路径点（用于路径构建）
-     */
-    void addPoint(const PathPoint& point)
-    {
-        m_points.push_back(point);
-    }
-
-    /**
-     * @brief 添加路径点（移动语义）
-     */
-    void addPoint(PathPoint&& point)
-    {
-        m_points.push_back(std::move(point));
-    }
-
-    /**
-     * @brief 从终点反向构建路径
-     * @param end 终点路径点（通过parent链回溯）
-     * @return 构建的路径
-     */
-    static Path buildFromEnd(const PathPoint* end)
-    {
-        // 先计算路径长度以预留空间
-        size_t count = 0;
-        const PathPoint* current = end;
-        while (current != nullptr) {
-            ++count;
-            current = current->parent();
-        }
-
-        std::vector<PathPoint> points;
-        points.reserve(count);
-
-        // 回溯父节点
-        current = end;
-        while (current != nullptr) {
-            points.push_back(current->clone());
-            current = current->parent();
-        }
-
-        // 反转路径（起点在前）
-        std::reverse(points.begin(), points.end());
-
-        return Path(std::move(points));
-    }
-
-    /**
-     * @brief 裁剪路径起点
-     * @param count 要移除的起点数量
-     */
-    void trimStart(size_t count)
-    {
-        if (count >= m_points.size()) {
-            m_points.clear();
-            m_currentIndex = 0;
-        } else {
-            m_points.erase(m_points.begin(), m_points.begin() + static_cast<i32>(count));
-            m_currentIndex = std::max(0, m_currentIndex - static_cast<i32>(count));
-        }
-    }
-
-    /**
-     * @brief 从指定索引处截断路径
+     * @brief 实体走到指定节点时应处的坐标
      *
-     * 移除从 index 开始到末尾的所有路径点。
-     * 用于阳光避让逻辑：当寻路路径中某个节点暴露在阳光下时，
-     * 在该节点处截断路径，使实体只在阴影区域移动。
+     * 原版 `Path.getEntityPosAtNode`：半格偏移量为 `floor(宽度 + 1) / 2`，
+     * 因此窄实体（宽度 < 1）走格子中心，宽实体走格子中心偏右半格（与它们碰撞箱的
+     * 横向偏移一致）。两侧必须用同一个公式，否则路径跟随会系统性偏移。
      *
-     * @param index 截断起始索引（该索引及之后的节点将被移除）
+     * @param width 实体碰撞箱宽度
+     * @param index 节点下标
      */
-    void truncateNodes(i32 index)
+    [[nodiscard]] Vector3d entityPosAtNode(f32 width, size_t index) const;
+
+    /// 下一个节点对应的实体坐标；调用方保证 `!isDone()`。
+    [[nodiscard]] Vector3d nextEntityPos(f32 width) const;
+
+    /// 实体坐标所处节点（原版 `Path.getNodePos`）。
+    [[nodiscard]] BlockPos nodePos(size_t index) const
     {
-        if (index >= 0 && index < static_cast<i32>(m_points.size())) {
-            m_points.resize(static_cast<size_t>(index));
-            // 如果当前索引超出新的路径长度，调整到末尾
-            if (m_currentIndex >= static_cast<i32>(m_points.size())) {
-                m_currentIndex = std::max(0, static_cast<i32>(m_points.size()) - 1);
-            }
+        const PathPoint& point = m_nodes[index];
+        return BlockPos(point.x(), point.y(), point.z());
+    }
+
+    // ========== 后处理 ==========
+
+    /**
+     * @brief 截断到指定长度
+     * @param count 保留的节点数（从起点数起）
+     */
+    void truncateNodes(i32 count)
+    {
+        if (static_cast<i32>(m_nodes.size()) > count) {
+            m_nodes.resize(static_cast<size_t>(count < 0 ? 0 : count));
         }
     }
 
-    // ========== 状态检查 ==========
+    /**
+     * @brief 替换指定下标的节点
+     * @param index 下标
+     * @param point 新节点
+     */
+    void replaceNode(size_t index, const PathPoint& point)
+    {
+        m_nodes[index] = point;
+    }
 
     /**
-     * @brief 检查路径是否到达了目标位置
-     * @param x 目标X坐标
-     * @param y 目标Y坐标
-     * @param z 目标Z坐标
-     * @param tolerance 位置容差
+     * @brief 两个路径是否由同一串节点构成
+     *
+     * 只比较坐标：游标、代价与调试信息都不参与。原版 `Path.sameAs` 依赖 `Node.equals`，
+     * 而 `Node.equals` 只比较坐标，语义一致。
      */
-    [[nodiscard]] bool reachesTarget(i32 x, i32 y, i32 z, f32 tolerance = 1.0f) const
+    [[nodiscard]] bool sameAs(const Path* other) const
     {
-        if (m_points.empty()) {
+        if (other == nullptr || m_nodes.size() != other->m_nodes.size()) {
             return false;
         }
-
-        const PathPoint& end = m_points.back();
-        f32 dx = static_cast<f32>(end.x() - x);
-        f32 dy = static_cast<f32>(end.y() - y);
-        f32 dz = static_cast<f32>(end.z() - z);
-
-        return (dx * dx + dy * dy + dz * dz) <= tolerance * tolerance;
-    }
-
-    /**
-     * @brief 获取路径点位置的向量（考虑实体宽度）
-     * @param entity 实体
-     * @param index 路径点索引
-     * @return 位置向量
-     */
-    [[nodiscard]] Vector3d getVectorFromIndex(const Entity* entity, i32 index) const;
-
-    /**
-     * @brief 获取当前位置向量
-     * @param entity 实体
-     * @return 当前目标位置向量
-     */
-    [[nodiscard]] Vector3d getPosition(const Entity* entity) const;
-
-    /**
-     * @brief 检查两个路径是否相同
-     * @param other 另一个路径
-     */
-    [[nodiscard]] bool isSamePath(const Path& other) const
-    {
-        if (m_points.size() != other.m_points.size()) {
-            return false;
-        }
-        for (size_t i = 0; i < m_points.size(); ++i) {
-            if (!m_points[i].equals(other.m_points[i])) {
+        for (size_t index = 0; index < m_nodes.size(); ++index) {
+            const PathPoint& left = m_nodes[index];
+            const PathPoint& right = other->m_nodes[index];
+            if (left.x() != right.x() || left.y() != right.y() || left.z() != right.z()) {
                 return false;
             }
         }
         return true;
     }
 
+    /// 复制一条路径（连同游标），对应原版 `Path.copy()`。
+    [[nodiscard]] Path copy() const
+    {
+        Path copy = *this;
+        return copy;
+    }
+
 private:
-    std::vector<PathPoint> m_points;
-    BlockPos m_target;            // 目标位置
-    f32 m_distToTarget = 0.0f;    // 到目标的距离
-    bool m_reachesTarget = false; // 是否到达目标
-    i32 m_currentIndex = 0;       // 当前路径点索引
+    std::vector<PathPoint> m_nodes;
+    BlockPos m_target;
+    bool m_reached = false;
+    f32 m_distanceToTarget = std::numeric_limits<f32>::max();
+    i32 m_nextNodeIndex = 0;
 };
 
-} // namespace entity::ai::pathfinding
-} // namespace mc
+} // namespace mc::entity::ai::pathfinding

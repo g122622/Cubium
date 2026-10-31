@@ -21,223 +21,180 @@
  *
  */
 
+/**
+ * @file PathHeap.hpp
+ * @brief A* 开放集（二叉堆，对应原版 `BinaryHeap`）。
+ *
+ * 排序键是节点的 `f`（`g + h * 1.5`），严格按 `<` 比较。堆的**结构**必须与原版一致：
+ * A* 在 `f` 相等时按出堆顺序打破平局，而平局在网格搜索里非常常见（大量对称路径
+ * 代价完全相同）。只要上浮/下沉的一步选择不同，最终选出的路径就可能不同，
+ * 因此这里的实现逐行对齐原版的比较与推进方式，而不是"写出一个正确的最小堆"。
+ *
+ * 使用约定：
+ *   - 插入前节点的 `heapIndex` 必须是 -1（不在堆中）；
+ *   - `pop` 之后节点被移出堆，`heapIndex` 回到 -1；
+ *   - 修改节点 `f` 后必须调用 `changeCost` 恢复堆序。
+ */
+
 #pragma once
 
 #include "PathPoint.hpp"
-#include "core/Types.hpp"
-#include <cstddef>
-#include <functional>
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include <limits>
 #include <vector>
 
 namespace mc::entity::ai::pathfinding {
 
 /**
- * @brief 路径点最小堆
- *
- * 用于 A* 算法的开放列表，按总代价排序。
+ * @brief 开放集：按节点总代价排序的二叉堆
  */
 class PathHeap {
 public:
     PathHeap() = default;
 
     /**
-     * @brief 构造函数，预分配容量
-     * @param capacity 初始容量
+     * @brief 插入节点并返回它
+     * @param node 尚未在堆中的节点
      */
-    explicit PathHeap(size_t capacity)
+    PathPoint* insert(PathPoint* node)
     {
-        m_heap.reserve(capacity);
+        MC_ASSERT_RELEASE_MSG(!node->inOpenSet(), "PathHeap::insert received a node already in the heap");
+        m_heap.push_back(node);
+        node->setHeapIndex(static_cast<i32>(m_heap.size() - 1));
+        _upHeap(static_cast<i32>(m_heap.size() - 1));
+        return node;
     }
 
-    // ========== 堆操作 ==========
-
-    /**
-     * @brief 将路径点插入堆中
-     * @param point 要插入的路径点
-     */
-    void insert(PathPoint* point)
-    {
-        m_heap.push_back(point);
-        const size_t index = m_heap.size() - 1;
-        point->setHeapIndex(static_cast<i32>(index));
-        _siftUp(index);
-    }
-
-    /**
-     * @brief 弹出堆顶元素（最小代价）
-     * @return 堆顶的路径点，如果堆为空返回nullptr
-     */
-    PathPoint* pop()
-    {
-        if (m_heap.empty()) {
-            return nullptr;
-        }
-
-        PathPoint* result = m_heap[0];
-        result->setHeapIndex(-1);
-
-        if (m_heap.size() == 1) {
-            m_heap.pop_back();
-            return result;
-        }
-
-        // 将最后一个元素移到堆顶
-        m_heap[0] = m_heap.back();
-        m_heap[0]->setHeapIndex(0);
-        m_heap.pop_back();
-
-        // 下沉调整
-        _siftDown(0);
-
-        return result;
-    }
-
-    /**
-     * @brief 更新路径点的位置（代价改变后）
-     *
-     * 当代价改变时，需要根据代价变化方向决定上浮还是下沉：
-     * - 代价减小：上浮
-     * - 代价增大：下沉
-     *
-     * 由于 PathPoint 的代价修改是通过 setter 直接进行的，
-     * 本方法采用同时尝试上浮和下沉的方式，只有实际需要的操作会生效。
-     *
-     * @param point 要更新的路径点
-     */
-    void update(PathPoint* point)
-    {
-        i32 index = point->heapIndex();
-        if (index < 0 || index >= static_cast<i32>(m_heap.size())) {
-            return;
-        }
-
-        // 尝试上浮（如果代价减小）
-        _siftUp(static_cast<size_t>(index));
-        // 尝试下沉（如果代价增大）
-        // 当上浮成功时，节点已经移动到正确位置，下沉不会执行任何操作
-        // 当上浮没有执行任何操作时（代价增大或已经在正确位置），尝试下沉
-        _siftDown(static_cast<size_t>(index));
-    }
-
-    /**
-     * @brief 检查堆是否为空
-     */
-    [[nodiscard]] bool empty() const
-    {
-        return m_heap.empty();
-    }
-
-    /**
-     * @brief 获取堆中元素数量
-     */
-    [[nodiscard]] size_t size() const
-    {
-        return m_heap.size();
-    }
-
-    /**
-     * @brief 清空堆
-     */
+    /** 清空堆（不移除各节点的下标，因此只应在重新搜索前调用）。 */
     void clear()
     {
         m_heap.clear();
     }
 
-    /**
-     * @brief 获取堆顶元素（不弹出）
-     */
+    /** 堆顶（不弹出）；堆为空时不得调用。 */
     [[nodiscard]] PathPoint* peek() const
     {
-        return m_heap.empty() ? nullptr : m_heap[0];
+        return m_heap.front();
     }
 
-    // ========== 调试方法 ==========
+    /**
+     * @brief 弹出并返回代价最小的节点
+     *
+     * 把最后一个元素搬到堆顶再下沉。注意原版在 `size == 0` 时仍然会做
+     * 「`heap[0] = heap[-1]`」这一步（此时它写进的是已经读出的那个元素本身），
+     * 因此这里先取出最后元素、给出节点后再在下标 0 写入最后一个元素，顺序等价。
+     */
+    PathPoint* pop()
+    {
+        PathPoint* node = m_heap.front();
+        m_heap.front() = m_heap.back();
+        m_heap.pop_back();
+        if (!m_heap.empty()) {
+            _downHeap(0);
+        }
+        node->setHeapIndex(-1);
+        return node;
+    }
 
     /**
-     * @brief 检查堆属性是否有效
+     * @brief 修改节点的排序键并恢复堆序
+     * @param node 已在堆中的节点
+     * @param cost 新的总代价
      */
-    [[nodiscard]] bool isValidHeap() const
+    void changeCost(PathPoint* node, f32 cost)
     {
-        for (size_t i = 0; i < m_heap.size(); ++i) {
-            size_t left = 2 * i + 1;
-            size_t right = 2 * i + 2;
-
-            if (left < m_heap.size() && !_compare(m_heap[i], m_heap[left])) {
-                return false;
-            }
-            if (right < m_heap.size() && !_compare(m_heap[i], m_heap[right])) {
-                return false;
-            }
+        const f32 previous = node->totalCost();
+        node->setTotalCost(cost);
+        const i32 index = node->heapIndex();
+        if (cost < previous) {
+            _upHeap(index);
+        } else {
+            _downHeap(index);
         }
-        return true;
+    }
+
+    [[nodiscard]] bool empty() const
+    {
+        return m_heap.empty();
+    }
+
+    [[nodiscard]] size_t size() const
+    {
+        return m_heap.size();
     }
 
 private:
-    std::vector<PathPoint*> m_heap;
-
     /**
-     * @brief 比较两个路径点的代价
-     * @return true 如果 a 的代价小于 b
+     * @brief 上浮
+     *
+     * 先把待上浮节点提到局部变量，再在循环里「空位下沉到父结点」，最后写回。
+     * 与交换式写法相比，这决定了 `f` 相等时节点落在哪个下标，从而影响出堆顺序。
      */
-    [[nodiscard]] static bool _compare(const PathPoint* a, const PathPoint* b)
+    void _upHeap(i32 index)
     {
-        return a->totalCost() < b->totalCost();
-    }
-
-    /**
-     * @brief 上浮调整
-     */
-    void _siftUp(size_t index)
-    {
+        PathPoint* node = m_heap[static_cast<size_t>(index)];
+        const f32 cost = node->totalCost();
         while (index > 0) {
-            size_t parent = (index - 1) / 2;
-            if (_compare(m_heap[index], m_heap[parent])) {
-                _swap(index, parent);
-                index = parent;
-            } else {
+            const i32 parentIndex = (index - 1) >> 1;
+            PathPoint* parent = m_heap[static_cast<size_t>(parentIndex)];
+            if (!(cost < parent->totalCost())) {
                 break;
             }
+            m_heap[static_cast<size_t>(index)] = parent;
+            parent->setHeapIndex(index);
+            index = parentIndex;
         }
+        m_heap[static_cast<size_t>(index)] = node;
+        node->setHeapIndex(index);
     }
 
     /**
-     * @brief 下沉调整
+     * @brief 下沉
+     *
+     * 先比较左右孩子（`f1 < f2` 取左，否则取右且右侧越界记为 +∞），再与当前节点的代价比较。
      */
-    void _siftDown(size_t index)
+    void _downHeap(i32 index)
     {
+        PathPoint* node = m_heap[static_cast<size_t>(index)];
+        const f32 cost = node->totalCost();
         while (true) {
-            size_t left = 2 * index + 1;
-            size_t right = 2 * index + 2;
-            size_t smallest = index;
-
-            if (left < m_heap.size() && _compare(m_heap[left], m_heap[smallest])) {
-                smallest = left;
-            }
-            if (right < m_heap.size() && _compare(m_heap[right], m_heap[smallest])) {
-                smallest = right;
-            }
-
-            if (smallest != index) {
-                _swap(index, smallest);
-                index = smallest;
-            } else {
+            const i32 leftIndex = 1 + (index << 1);
+            const i32 rightIndex = leftIndex + 1;
+            if (leftIndex >= static_cast<i32>(m_heap.size())) {
                 break;
             }
+
+            PathPoint* left = m_heap[static_cast<size_t>(leftIndex)];
+            const f32 leftCost = left->totalCost();
+            PathPoint* right = nullptr;
+            f32 rightCost = std::numeric_limits<f32>::infinity();
+            if (rightIndex < static_cast<i32>(m_heap.size())) {
+                right = m_heap[static_cast<size_t>(rightIndex)];
+                rightCost = right->totalCost();
+            }
+
+            if (leftCost < rightCost) {
+                if (!(leftCost < cost)) {
+                    break;
+                }
+                m_heap[static_cast<size_t>(index)] = left;
+                left->setHeapIndex(index);
+                index = leftIndex;
+            } else {
+                if (!(rightCost < cost)) {
+                    break;
+                }
+                m_heap[static_cast<size_t>(index)] = right;
+                right->setHeapIndex(index);
+                index = rightIndex;
+            }
         }
+        m_heap[static_cast<size_t>(index)] = node;
+        node->setHeapIndex(index);
     }
 
-    /**
-     * @brief 交换两个元素
-     */
-    void _swap(size_t i, size_t j)
-    {
-        PathPoint* temp = m_heap[i];
-        m_heap[i] = m_heap[j];
-        m_heap[j] = temp;
-
-        m_heap[i]->setHeapIndex(static_cast<i32>(i));
-        m_heap[j]->setHeapIndex(static_cast<i32>(j));
-    }
+    std::vector<PathPoint*> m_heap;
 };
 
 } // namespace mc::entity::ai::pathfinding

@@ -28,9 +28,10 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/special/RavagerGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/ai/pathfinding/GroundPathNavigator.hpp"
 #include "common/entity/ai/pathfinding/PathFinder.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/ai/pathfinding/RavagerNodeProcessor.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -82,12 +83,14 @@ RavagerEntity::RavagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 劫掠兽可以走上1格高的方块
     setStepHeight(1.0f);
 
-    // 创建使用 RavagerNodeProcessor 的自定义导航器
-    // 劫掠兽可以穿过树叶
-    auto nodeProcessor = std::make_unique<entity::ai::pathfinding::RavagerNodeProcessor>();
-    auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(std::move(nodeProcessor));
-    m_navigator = std::make_unique<entity::ai::pathfinding::PathNavigator>(std::move(pathFinder));
-    m_navigator->setEntity(this);
+    // 劫掠兽默认导航器（地面求值器）即可：它能撞开树叶，因此不需要单独的「可穿树叶」求值器，
+    // 树叶在本体寻路里是否可走由它自己的寻路代价决定（见 setPathfindingMalus）。
+    {
+        auto evaluator = std::make_unique<entity::ai::pathfinding::WalkNodeEvaluator>();
+        auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(
+            std::move(evaluator), entity::ai::pathfinding::PathFinder::DEFAULT_VISITED_NODES);
+        m_navigator = std::make_unique<entity::ai::pathfinding::GroundPathNavigator>(this, std::move(pathFinder));
+    }
 
     // 注册 AI 目标
     registerGoals();

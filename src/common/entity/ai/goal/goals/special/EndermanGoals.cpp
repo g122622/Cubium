@@ -104,7 +104,7 @@ bool EndermanStareGoal::shouldExecute()
 void EndermanStareGoal::startExecuting()
 {
     // 清除导航路径
-    m_enderman->navigator()->clearPath();
+    m_enderman->navigator()->stop();
 }
 
 void EndermanStareGoal::resetTask()

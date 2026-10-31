@@ -190,7 +190,7 @@ protected:
                 // 检查目标是否变化超过2格曼哈顿距离
                 const auto* path = navigator->getPath();
                 if (path && !path->empty()) {
-                    const auto& pathTarget = path->getTarget();
+                    const auto& pathTarget = path->target();
                     i32 manhattan = std::abs(static_cast<i32>(targetPos.x) - pathTarget.x) +
                         std::abs(static_cast<i32>(targetPos.y) - pathTarget.y) +
                         std::abs(static_cast<i32>(targetPos.z) - pathTarget.z);
@@ -226,7 +226,7 @@ protected:
     {
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
 
         auto& brain = owner->brain();
@@ -603,7 +603,7 @@ protected:
     {
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
         // 不清除 HIDING_PLACE 记忆，让其他逻辑决定何时清除
     }
@@ -805,7 +805,7 @@ protected:
     {
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
         // 清除逃避目标记忆
         owner->brain().template removeMemory<EntityInstanceId>(MemoryModuleTypes::AVOID_TARGET);

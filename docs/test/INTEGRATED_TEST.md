@@ -590,7 +590,7 @@ cp tests/integrated/mob_behavior/structures/gametests/glass_pit.mcstructure \
 测试用鸡（mob）作主角，依赖鸡 `RandomWalking` 自主穿越灌木带触发伤害。但这存在固有非确定性：
 
 - **Cubium 端**：单只鸡 800 tick 内通过率约 2/3（偶发鸡始终在草地侧游荡不进灌木带 → 超时 hp=4）。改用 **4 只鸡 + maxTicks=1200** 后稳定通过（实测 4/4）。
-- **基岩 BDS 端**：鸡 AI 寻路严格避开甜浆果灌木（`WalkNodeProcessor` 将灌木格判为 `DamageOther`，A* 不接纳其为邻居），鸡在灌木带内长时间静止，偶发移动时逃出灌木带，1200 tick 内大概率不触发"在灌木格内水平移动"→ 超时 hp=4。**基岩端不可靠**。
+- **基岩 BDS 端**：鸡 AI 寻路严格避开甜浆果灌木（`WalkNodeEvaluator` 把灌木周边判成 `DangerOther`、灌木格本身判成 `DamageOther`，A* 都不接纳），鸡在灌木带内长时间静止，偶发移动时逃出灌木带，1200 tick 内大概率不触发"在灌木格内水平移动"→ 超时 hp=4。**基岩端不可靠**。
 
 **无法用确定性强制移动绕过**（基岩端 GameTest 无脚本级强制位移 API）：
 - `teleport` 不走 `travel`/`doBlockCollisions`，不触发 `onEntityCollision`。
@@ -598,7 +598,7 @@ cp tests/integrated/mob_behavior/structures/gametests/glass_pit.mcstructure \
 
 **结论**：damages 测试保留 Cubium 端验证价值（多鸡稳定通过，确证 Cubium 甜浆果伤害机制正确），基岩端对比归类为 `one-sided`（仅 Cubium 跑）。这是测试设计层面的固有限制，非 Cubium 机制缺陷（Cubium 端机制与基岩一致：age>0 + 水平移动才伤害）。spare_age0（AGE=0 不伤）两端均通过，确证 age 阈值。
 
-> 排查要点：伤害类测试在基岩首 tick 立即 FAIL → 检查是否误用 `succeedWhen+assert`，改 `pollUntilSucceed`。Cubium 端伤害测试偶发超时 → 检查是否依赖 Mob 自主移动触发，增多 Mob + 延长 maxTicks。基岩端 Mob 不进入某方块 → 检查该方块是否被 `WalkNodeProcessor` 判为 `DamageOther`/`DANGER`（Mob AI 避开），此类"需 Mob 自主穿越危险方块"的测试在基岩端固有不可靠。
+> 排查要点：伤害类测试在基岩首 tick 立即 FAIL → 检查是否误用 `succeedWhen+assert`，改 `pollUntilSucceed`。Cubium 端伤害测试偶发超时 → 检查是否依赖 Mob 自主移动触发，增多 Mob + 延长 maxTicks。基岩端 Mob 不进入某方块 → 检查该方块是否被 `WalkNodeEvaluator` 判为 `DamageOther`/`Danger*`（Mob AI 避开），此类"需 Mob 自主穿越危险方块"的测试在基岩端固有不可靠。
 
 ---
 

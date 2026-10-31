@@ -252,7 +252,7 @@ void CatRelaxOnOwnerGoal::resetTask()
 
     // 停止导航
     if (m_cat->navigator() != nullptr) {
-        m_cat->navigator()->clearPath();
+        m_cat->navigator()->stop();
     }
 }
 

@@ -484,15 +484,15 @@ add_library(mc_common STATIC
     # Entity - Villager
     entity/entities/villager/ProfessionMapping.cpp
     entity/ai/brain/schedule/Activity.cpp
-    entity/ai/pathfinding/PathPoint.cpp
     entity/ai/pathfinding/Path.cpp
-    entity/ai/pathfinding/Region.cpp
-    entity/ai/pathfinding/WorldRegion.cpp
-    entity/ai/pathfinding/WalkNodeProcessor.cpp
-    entity/ai/pathfinding/FlyingNodeProcessor.cpp
-    entity/ai/pathfinding/RavagerNodeProcessor.cpp
+    # WorldRegion 全部内联在头文件里：它是差分探针唯一被链入的 pathfinding 实现，
+    # 没有独立的 .cpp（详见 WorldRegion.hpp 的说明）。
+    entity/ai/pathfinding/NodeEvaluator.cpp
+    entity/ai/pathfinding/WalkNodeEvaluator.cpp
+    entity/ai/pathfinding/FlyNodeEvaluator.cpp
     entity/ai/pathfinding/PathFinder.cpp
     entity/ai/pathfinding/PathNavigator.cpp
+    entity/ai/pathfinding/GroundPathNavigator.cpp
     entity/ai/util/PiglinAi.cpp
     entity/ai/util/RandomPositionGenerator.cpp
     entity/inventory/IInventory.cpp
