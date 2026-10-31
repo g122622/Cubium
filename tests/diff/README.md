@@ -377,6 +377,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `enchantment_provider` | 原版 jar `EnchantmentProviderOracle` | 7 项 × 7 种难度乘数 = 49 | 全部一致 | Cubium 未实现，探针直接读数据包（见下文） |
 | `trial_spawner_config` | 原版 jar `TrialSpawnerConfigOracle` | 28 项 × 9 种玩家数 = 252 | 全部一致 | Cubium 用整数 Config，探针直接读数据包（见下文） |
 | `dimension_type` | 原版 jar `DimensionTypeOracle` | 4 个维度类型 | 全部一致 | Cubium 无数据包加载器，探针直接读数据包（见下文） |
+| `explosion_ray` | 原版 jar `ExplosionRayOracle` | 6 个场景 × 8 个种子 = 48 | 全部一致 | 纯计算，不依赖世界（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1169,6 +1170,42 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 新能力 explosion_ray：纯计算，一个「取错坐标」的 bug
+
+第 72 个能力，6 个场景 × 8 个种子 = 48 个单元，全部一致。它是第一个**完全不依赖
+数据包、不依赖世界**的能力：复刻 `ServerExplosion.calculateExplodedPositions()` 的
+射线步进，用「以爆炸中心为原点的同心抗性壳」代替真实世界。
+
+#### 把 world 型问题化成纯计算
+
+原版这一步只依赖三样东西：爆炸中心、半径、每个方块位置的抗性。只要把「每个位置的
+抗性」换成一张同心壳表，世界依赖就消失了。代价是不覆盖「方块抗性表本身是否与原版
+一致」，但那部分由 `block_properties` 等能力从别的角度覆盖。
+
+#### 一路踩到的四个坑
+
+调试过程是有价值的，四处错误**每一处都让差异变小一点**：
+
+| 顺序 | 错误 | 症状 |
+|---|---|---|
+| 1 | 射线位置用 `f32` 累积 | 探针系统性偏大（703 vs 678） |
+| 2 | 抗性按**射线浮点位置**取，而不是方块坐标 | 边界方块被归到相邻层（162 vs 152） |
+| 3 | 空气位置（抗性 0）被计入破坏集合 | 有空气层的场景偏大（206 vs 205） |
+| 4 | `sqrt` 前用了 f32 平方和 | 与 Java 侧 `(double) x * x` 精度不一致 |
+
+其中**第 2 条最关键**：原版查的是 `level.getBlockState(blockpos)`，`blockpos` 已经
+`floor` 过。我用射线的浮点位置算距离，于是射线在 `(-2.9, …)` 时 `floor` 得方块 `-3`，
+但距离按 2.9 判定，把这个方块归到了错误的抗性层。
+
+`tnt_air` 场景（全空气，无抗性）**从一开始就完全一致**（1097 = 1097），正是这条
+线索把问题范围从「射线步进」缩小到了「抗性取址」。
+
+#### 三个容易写错的常量
+
+- `0.22500001F` 不是 `0.225F`；
+- `0.3F` 同时用于射线步长与抗性公式 `(res + 0.3) * 0.3`；
+- 初始强度 `radius * (0.7 + rand * 0.6)`，每条射线各消耗一次 `nextFloat()`
+  （1352 条射线 = 16³ − 14³，只取 16×16×16 网格的外壳）。
 ### 新能力 dimension_type：旧字段模型 vs attributes 映射
 
 第 71 个能力，4 个维度类型全部一致。它有别于前三个能力的地方在于：Cubium **有**

@@ -73,6 +73,7 @@ import { bannerPatternInput } from "./banner_pattern.ts";
 import { enchantmentProviderInput, enchantmentProviderUnits } from "./enchantment_provider.ts";
 import { trialSpawnerConfigInput, trialSpawnerConfigUnits } from "./trial_spawner_config.ts";
 import { dimensionTypeInput } from "./dimension_type.ts";
+import { explosionRayInput, explosionRayUnits } from "./explosion_ray.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -607,6 +608,11 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 维度类型：高度三项、坐标缩放、天空盒、刷怪光照与 attributes 计数。
     { name: "dimension_type", probe: "dimension_type", oracle: "DimensionTypeOracle",
         key: "dimensionType", units: { kind: "listing" }, input: dimensionTypeInput },
+    // 爆炸射线破坏判定：6 个场景 × 8 个种子，纯计算，复刻 ServerExplosion 的射线步进。
+    { name: "explosion_ray", probe: "explosion_ray", oracle: "ExplosionRayOracle",
+        key: "scene", units: { kind: "computed", units: explosionRayUnits },
+        input: explosionRayInput },
+
 
 
 
