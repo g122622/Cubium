@@ -367,6 +367,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `jukebox_song` | 原版 jar `JukeboxSongOracle` | 21 首唱片机歌曲 | 全部一致 | — |
 | `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
+| `armor_trim` | 原版 jar `ArmorTrimOracle` | 18 个纹饰图案 + 11 种纹饰材料 | 全部一致 | — |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1143,6 +1144,33 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 盔甲纹饰：两类数据包注册表，一次通过
+
+`armor_trim` 一次性比对 18 个纹饰图案与 11 种纹饰材料，**29/29 全一致**。
+
+这个能力顺带补上了 Cubium 的一处空白：此前**完全没有** `trim_pattern` /
+`trim_material` 这两层注册表——`ArmorTrim` 只以物品组件和数据组件类型枚举的形式存在，
+图案的贴图 ID、描述、是否贴花，材料的贴图后缀、描述颜色、覆盖装备材质表全都无处可查。
+本次新增 `TrimPattern`/`TrimPatterns`、`TrimMaterial`/`TrimMaterials` 两对类，
+按 `PaintingVariants` 的既有模式从数据包加载。
+
+比对项与原版结构的对应关系：
+
+| 单元 | 比什么 | 对应原版结构 |
+|---|---|---|
+| `pattern/<id>` | 贴图 ID / 描述翻译键 / 是否贴花 | `record TrimPattern(Identifier assetId, Component description, boolean decal)` |
+| `material/<id>` | 贴图后缀 / 描述翻译键 / 描述颜色 / 覆盖装备材质表 | `record TrimMaterial(MaterialAssetGroup assets, Component description)` |
+
+两处沿用了此前踩过的坑的结论：
+
+- **描述比翻译键而非渲染文本**（`TranslatableContents.getKey()`），这是唱片机歌曲能力里
+  踩过 `getString()` 返回已渲染文本的坑之后定下的口径。
+- **`overrides` 是无序表**（原版是 `Map<ResourceKey<EquipmentAsset>, AssetInfo>`），
+  两侧都按装备材质键排序后输出，并额外用 `unorderedArrays` 声明一次，让比较器不依赖顺序。
+
+`asset_name` + `override_armor_assets` 对应原版 `MaterialAssetGroup` 的
+`base`（`AssetInfo`）与 `overrides`；`override_armor_assets` 在数据文件里是可缺省字段，
+缺省即空表，与 `optionalFieldOf(..., Map.of())` 一致。
 ### 附魔适用性：枚举归纳 vs 标签判定（28 → 0）
 
 `enchantment_applicability` 对每个附魔逐个物品问「能不能附上去」，比的是**最终物品集合**。
