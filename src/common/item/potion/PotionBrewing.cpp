@@ -86,6 +86,23 @@ void PotionBrewing::initialize()
     // 水瓶 + 岩浆膏 → 平凡的药水
     _addMix(Potions::WATER, Items::MAGMA_CREAM, Potions::MUNDANE);
 
+    // ========== 起始酿造（原版 `PotionBrewing.Builder#addStartMix`） ==========
+    // 原版这类材料同时注册两条规则：`水 + 材料 → 平凡` 与 `尴尬 + 材料 → 目标药水`。
+    // 之前这一整组缺失，导致「微风棒 / 黏液块 / 石头 / 蛛网」既不是酿造材料，
+    // 也无法酿出蓄风、黏稠、盘丝、渗浆四种药水（由差分能力 potion_brewing 查出）。
+    // 岩浆膏的起始酿造两条规则已在上方「从水瓶酿造」与「从尴尬药水酿造」中登记。
+    _addMix(Potions::WATER, Items::BREEZE_ROD, Potions::MUNDANE);
+    _addMix(Potions::AWKWARD, Items::BREEZE_ROD, Potions::WIND_CHARGED);
+
+    _addMix(Potions::WATER, Items::SLIME_BLOCK, Potions::MUNDANE);
+    _addMix(Potions::AWKWARD, Items::SLIME_BLOCK, Potions::OOZING);
+
+    _addMix(Potions::WATER, Items::STONE, Potions::MUNDANE);
+    _addMix(Potions::AWKWARD, Items::STONE, Potions::INFESTED);
+
+    _addMix(Potions::WATER, Items::COBWEB, Potions::MUNDANE);
+    _addMix(Potions::AWKWARD, Items::COBWEB, Potions::WEAVING);
+
     // 水瓶 + 荧石粉 → 浓稠的药水
     _addMix(Potions::WATER, Items::GLOWSTONE_DUST, Potions::THICK);
 
@@ -120,10 +137,9 @@ void PotionBrewing::initialize()
     // 尴尬的药水 + 烈焰粉 → 力量药水
     _addMix(Potions::AWKWARD, Items::BLAZE_POWDER, Potions::STRENGTH);
 
-    // 尴尬的药水 + 发酵蛛眼 → 虚弱药水
-    _addMix(Potions::AWKWARD, Items::FERMENTED_SPIDER_EYE, Potions::WEAKNESS);
-
     // 水瓶 + 发酵蛛眼 → 虚弱药水
+    // 注意：原版**没有**「尴尬药水 + 发酵蛛眼」这条规则，只有水瓶这一条。
+    // 多出的那条会让玩家凭空调出虚弱药水（由差分能力 potion_brewing 查出）。
     _addMix(Potions::WATER, Items::FERMENTED_SPIDER_EYE, Potions::WEAKNESS);
 
     // 尴尬的药水 + 幻翼膜 → 缓降药水

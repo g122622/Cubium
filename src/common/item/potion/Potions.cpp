@@ -120,29 +120,29 @@ void Potions::initialize() noexcept
     auto& registry = PotionRegistry::instance();
 
     // 基础药水（无效果）
-    EMPTY = _registerPotion("empty", Potion());
-    WATER = _registerPotion("water", Potion());
-    MUNDANE = _registerPotion("mundane", Potion());
-    THICK = _registerPotion("thick", Potion());
-    AWKWARD = _registerPotion("awkward", Potion());
+    EMPTY = _registerPotion("empty", Potion("empty"));
+    WATER = _registerPotion("water", Potion("water"));
+    MUNDANE = _registerPotion("mundane", Potion("mundane"));
+    THICK = _registerPotion("thick", Potion("thick"));
+    AWKWARD = _registerPotion("awkward", Potion("awkward"));
 
     // 夜视药水
     // 夜视 (3:00 = 3600 tick)
-    NIGHT_VISION = _registerPotion(
-        "night_vision", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::NightVision, 3600)}));
+    NIGHT_VISION = _registerPotion("night_vision",
+        Potion("night_vision", {entity::effect::EffectInstance(entity::effect::EffectType::NightVision, 3600)}));
     // 夜视延长 (8:00 = 9600 tick)
     LONG_NIGHT_VISION = _registerPotion("long_night_vision",
         Potion("night_vision", {entity::effect::EffectInstance(entity::effect::EffectType::NightVision, 9600)}));
 
     // 隐身药水
-    INVISIBILITY = _registerPotion(
-        "invisibility", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Invisibility, 3600)}));
+    INVISIBILITY = _registerPotion("invisibility",
+        Potion("invisibility", {entity::effect::EffectInstance(entity::effect::EffectType::Invisibility, 3600)}));
     LONG_INVISIBILITY = _registerPotion("long_invisibility",
         Potion("invisibility", {entity::effect::EffectInstance(entity::effect::EffectType::Invisibility, 9600)}));
 
     // 跳跃提升药水
     LEAPING = _registerPotion(
-        "leaping", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 3600)}));
+        "leaping", Potion("leaping", {entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 3600)}));
     LONG_LEAPING = _registerPotion("long_leaping",
         Potion("leaping", {entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 9600)}));
     STRONG_LEAPING = _registerPotion("strong_leaping",
@@ -150,13 +150,13 @@ void Potions::initialize() noexcept
 
     // 防火药水
     FIRE_RESISTANCE = _registerPotion("fire_resistance",
-        Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 3600)}));
+        Potion("fire_resistance", {entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 3600)}));
     LONG_FIRE_RESISTANCE = _registerPotion("long_fire_resistance",
         Potion("fire_resistance", {entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 9600)}));
 
     // 速度药水
     SWIFTNESS = _registerPotion(
-        "swiftness", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Speed, 3600)}));
+        "swiftness", Potion("swiftness", {entity::effect::EffectInstance(entity::effect::EffectType::Speed, 3600)}));
     LONG_SWIFTNESS = _registerPotion("long_swiftness",
         Potion("swiftness", {entity::effect::EffectInstance(entity::effect::EffectType::Speed, 9600)}));
     STRONG_SWIFTNESS = _registerPotion("strong_swiftness",
@@ -164,7 +164,7 @@ void Potions::initialize() noexcept
 
     // 缓慢药水
     SLOWNESS = _registerPotion(
-        "slowness", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 1800)}));
+        "slowness", Potion("slowness", {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 1800)}));
     LONG_SLOWNESS = _registerPotion("long_slowness",
         Potion("slowness", {entity::effect::EffectInstance(entity::effect::EffectType::Slowness, 4800)}));
     STRONG_SLOWNESS = _registerPotion("strong_slowness",
@@ -186,33 +186,33 @@ void Potions::initialize() noexcept
 
     // 水下呼吸药水
     WATER_BREATHING = _registerPotion("water_breathing",
-        Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::WaterBreathing, 3600)}));
+        Potion("water_breathing", {entity::effect::EffectInstance(entity::effect::EffectType::WaterBreathing, 3600)}));
     LONG_WATER_BREATHING = _registerPotion("long_water_breathing",
         Potion("water_breathing", {entity::effect::EffectInstance(entity::effect::EffectType::WaterBreathing, 9600)}));
 
     // 瞬间治疗药水
     HEALING = _registerPotion(
-        "healing", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::InstantHealth, 1)}));
+        "healing", Potion("healing", {entity::effect::EffectInstance(entity::effect::EffectType::InstantHealth, 1)}));
     STRONG_HEALING = _registerPotion("strong_healing",
         Potion("healing", {entity::effect::EffectInstance(entity::effect::EffectType::InstantHealth, 1, 1)}));
 
     // 瞬间伤害药水
     HARMING = _registerPotion(
-        "harming", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::InstantDamage, 1)}));
+        "harming", Potion("harming", {entity::effect::EffectInstance(entity::effect::EffectType::InstantDamage, 1)}));
     STRONG_HARMING = _registerPotion("strong_harming",
         Potion("harming", {entity::effect::EffectInstance(entity::effect::EffectType::InstantDamage, 1, 1)}));
 
     // 中毒药水
     POISON = _registerPotion(
-        "poison", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 900)}));
+        "poison", Potion("poison", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 900)}));
     LONG_POISON = _registerPotion(
         "long_poison", Potion("poison", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 1800)}));
     STRONG_POISON = _registerPotion("strong_poison",
         Potion("poison", {entity::effect::EffectInstance(entity::effect::EffectType::Poison, 432, 1)}));
 
     // 生命恢复药水
-    REGENERATION = _registerPotion(
-        "regeneration", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 900)}));
+    REGENERATION = _registerPotion("regeneration",
+        Potion("regeneration", {entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 900)}));
     LONG_REGENERATION = _registerPotion("long_regeneration",
         Potion("regeneration", {entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 1800)}));
     STRONG_REGENERATION = _registerPotion("strong_regeneration",
@@ -220,7 +220,7 @@ void Potions::initialize() noexcept
 
     // 力量药水
     STRENGTH = _registerPotion(
-        "strength", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Strength, 3600)}));
+        "strength", Potion("strength", {entity::effect::EffectInstance(entity::effect::EffectType::Strength, 3600)}));
     LONG_STRENGTH = _registerPotion("long_strength",
         Potion("strength", {entity::effect::EffectInstance(entity::effect::EffectType::Strength, 9600)}));
     STRONG_STRENGTH = _registerPotion("strong_strength",
@@ -228,7 +228,7 @@ void Potions::initialize() noexcept
 
     // 虚弱药水
     WEAKNESS = _registerPotion(
-        "weakness", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::Weakness, 1800)}));
+        "weakness", Potion("weakness", {entity::effect::EffectInstance(entity::effect::EffectType::Weakness, 1800)}));
     LONG_WEAKNESS = _registerPotion("long_weakness",
         Potion("weakness", {entity::effect::EffectInstance(entity::effect::EffectType::Weakness, 4800)}));
 
@@ -237,8 +237,8 @@ void Potions::initialize() noexcept
         "luck", Potion("luck", {entity::effect::EffectInstance(entity::effect::EffectType::Luck, 6000)}));
 
     // 缓降药水
-    SLOW_FALLING = _registerPotion(
-        "slow_falling", Potion("", {entity::effect::EffectInstance(entity::effect::EffectType::SlowFalling, 1800)}));
+    SLOW_FALLING = _registerPotion("slow_falling",
+        Potion("slow_falling", {entity::effect::EffectInstance(entity::effect::EffectType::SlowFalling, 1800)}));
     LONG_SLOW_FALLING = _registerPotion("long_slow_falling",
         Potion("slow_falling", {entity::effect::EffectInstance(entity::effect::EffectType::SlowFalling, 4800)}));
 

@@ -351,6 +351,8 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `villager_gen` | 原版 jar `VillagerTradesOracle` | 390（13 职业 × 5 等级 × 6 种子） | 355/390 一致；35 个附魔内容差异已登记 | 见下方「村民交易：已查出的问题」 |
 | `piston_movement` | 原版 jar `PistonMovementOracle` | 523 个场景（链条 / 粘性分支 / 随机混合台 / 收回） | 全部一致 | — |
 | `experience` | 原版 jar `ExperienceOracle` | 440 个操作序列（公式阶梯 / 单次加点 / 扣点 / 加减等级 / 随机） | 全部一致 | — |
+| `potion` | 原版 jar `PotionOracle` | 46 种药水（基础名 / 效果列表 / 瞬时效果 / 三种前缀翻译键） | 全部一致 | — |
+| `potion_brewing` | 原版 jar `PotionBrewingOracle` | 874（46 种药水 × 19 种试剂） | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -922,6 +924,32 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 加点会**逐级**推进（每次 1 级），单次给出 `2147483647` 点会让两侧都陷入数千万次循环——
 那是输入不合理，不是行为差异。场景里把单次加点上限设为 10000（覆盖击杀经验的量级）。
+
+### 药水与酿造：名前缀缺失 + 初始化顺序
+
+`potion` 比较 46 种药水的基础名、效果列表（两侧都先按效果 ID 排序——原版存的是 `List`，
+顺序没有玩法语义）、是否含瞬时效果，以及三种前缀下的翻译键。首轮 18 处差异，全部是
+**`baseName` 为空**：`Potions.cpp` 里短变体药水一律写成 `Potion("", {...})`，翻译键退化成
+`".effect.minecraft."`。14 处显式空串 + `empty/water/mundane/thick/awkward` 五个无参构造，
+补上自身 ID 后 46/46 一致。
+
+`potion_brewing` 比较「药水 × 试剂」的笛卡尔积（874 组），每个单元回答三件事：试剂是不是
+酿造材料、能否酿造、酿造出哪种药水。首轮 93 处差异，查出两个缺陷：
+
+- **多出一条原版没有的规则**：`尴尬药水 + 发酵蛛眼 → 虚弱`。原版只有「水瓶 + 发酵蛛眼」，
+  多出的这条让玩家能凭空调出虚弱药水；
+- **整组起始酿造缺失**：原版的 `PotionBrewing.Builder#addStartMix` 会为每种材料同时注册
+  `水 + 材料 → 平凡` 与 `尴尬 + 材料 → 目标`，共 5 组（微风棒 / 黏液块 / 石头 / 蛛网 /
+  岩浆膏）。Cubium 只登记了岩浆膏那一组，蓄风、黏稠、盘丝、渗浆四种药水**完全酿不出来**。
+
+补齐后仍剩 46 处（全部是 `breeze_rod`），根因埋在**初始化顺序**里：
+
+> `Items::initialize()` 里 `PotionBrewing::initialize()` 排在 `_registerPotions()` 之后、
+> `_registerTrialChamberItems()` 之前。而「微风棒」正是试炼密室物品，注册得比酿造配方晚
+> 24 步——配方注册时 `Items::BREEZE_ROD` 还是 `nullptr`，`_addMix` 直接静默丢弃了这条规则。
+
+把 `PotionBrewing::initialize()` 移到 `_registerTrialChamberItems()` 之后，874/874 一致。
+这类缺陷没有任何编译期或运行期提示：只有配方表少了一条，微风棒静静地「不是酿造材料」。
 
 ## 下一步候选能力
 

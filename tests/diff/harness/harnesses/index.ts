@@ -60,6 +60,8 @@ import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
+import { POTION_UNORDERED, potionInput } from "./potion.ts";
+import { potionBrewingInput, potionBrewingUnits } from "./potion_brewing.ts";
 import { recipeDeclaration } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
@@ -485,6 +487,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "experience", probe: "experience", oracle: "ExperienceOracle", key: "unit",
         units: { kind: "computed", units: experienceSceneNames },
         input: experienceInput },
+    // 药水定义：基础名、效果列表（按效果 ID 排序后比较）、是否含瞬时效果、三种前缀的翻译键。
+    // 纯查表与字符串拼接，不触碰世界。
+    { name: "potion", probe: "potion", oracle: "PotionOracle", key: "potion",
+        units: { kind: "listing" }, input: potionInput, unorderedArrays: POTION_UNORDERED },
+    // 酿造配方：药水 × 试剂的笛卡尔积，比对「是否材料 / 能否酿造 / 输出药水」。
+    { name: "potion_brewing", probe: "potion_brewing", oracle: "PotionBrewingOracle", key: "unit",
+        units: { kind: "computed", units: potionBrewingUnits },
+        input: potionBrewingInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

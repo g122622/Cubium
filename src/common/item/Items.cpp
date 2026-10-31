@@ -1606,7 +1606,6 @@ void Items::initialize()
     // （配方引用 Potions::WATER 等）+ Items::POTION 已注册，故在 _registerPotions() 之后调用。
     // 顺序：_registerPotions()(物品) → Potions::initialize()(类型) → PotionBrewing::initialize()(配方)。
     potion::Potions::initialize();
-    potion::PotionBrewing::initialize();
     _registerWeapons();      // 武器和弹药
     _registerThrowables();   // 投掷物品
     _registerBuckets();      // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
@@ -1631,11 +1630,19 @@ void Items::initialize()
     _registerCoral();
     _registerDoorsFencesStairs();
     _registerTrialChamberItems(); // 试炼密室物品
-    _registerMusicDiscs();        // 音乐唱片
-    _registerSkulls();            // 头颅物品
-    _registerHarnesses();         // 欢乐诡鬼装备 (16色)
-    _registerBundles();           // 收纳袋 (1 无色 + 16 色)
-    _registerSpawnEggs();         // 刷怪蛋 (67 种)
+
+    // 酿造配方必须等**全部**试剂都注册完才能初始化：原版的 `addStartMix` 会用到
+    // `BREEZE_ROD`（试炼密室物品），而它比 `_registerPotions()` 晚注册。此前把
+    // `PotionBrewing::initialize()` 放在药水类型之后、此处之前，`Items::BREEZE_ROD` 还是
+    // nullptr，`_addMix` 会静默丢弃这条规则，导致「微风棒」既不算酿造材料、也酿不出蓄风药水
+    // （由差分能力 potion_brewing 查出）。
+    potion::PotionBrewing::initialize();
+
+    _registerMusicDiscs(); // 音乐唱片
+    _registerSkulls();     // 头颅物品
+    _registerHarnesses();  // 欢乐诡鬼装备 (16色)
+    _registerBundles();    // 收纳袋 (1 无色 + 16 色)
+    _registerSpawnEggs();  // 刷怪蛋 (67 种)
 
     // 初始化堆肥物品注册表（必须在 Items 注册完成后）
     blocks::CompostableItems::initialize();
