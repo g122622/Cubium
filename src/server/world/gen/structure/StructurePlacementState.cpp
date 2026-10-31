@@ -22,6 +22,10 @@
  */
 
 #include "StructurePlacementState.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
+#include <algorithm>
+#include <cmath>
 
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
@@ -139,25 +143,120 @@ bool StructurePlacementState::hasStructureChunkInRange(
 const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPositions(
     const placement::ConcentricRingsStructurePlacement& concentric) const
 {
-    // 原版 `ChunkGeneratorStructureState.createForNormal` 里 `concentricRingsSeed` 传的
-    // 是常量 0L，但**环位置随后会被生物群系搜索改写**：
+    // 原版 `ChunkGeneratorStructureState.generateRingPositions` 分两步：
     //
-    //   Pair<BlockPos, Holder<Biome>> pair = biomeSource.findBiomeHorizontal(
-    //       chunkX << 4 + 8, 0, chunkZ << 4 + 8, 112, preferredBiomes::contains,
-    //       randomsource.fork(), randomState.sampler());
-    //   return pair != null ? new ChunkPos(...pair.first...) : new ChunkPos(chunkX, chunkZ);
+    //   1. 用 **常量 0L** 作种子（`createForNormal` 传的 concentricRingsSeed）
+    //      算出每个要塞的搜索起点 (chunkX, chunkZ)；
+    //   2. 对每个起点做一次生物群系搜索，找到就把坐标改写过去：
+    //        Pair<BlockPos, Holder<Biome>> pair = biomeSource.findBiomeHorizontal(
+    //            chunkX << 4 + 8, 0, chunkZ << 4 + 8, 112,
+    //            preferredBiomes::contains, randomsource.fork(), randomState.sampler());
+    //        return pair != null ? new ChunkPos(pair.first) : new ChunkPos(chunkX, chunkZ);
     //
-    // 兜底值（找不到生物群系时）才等于常量种子算出的坐标。差分比对证实了这一点：
-    // 种子 0 与种子 9248738493917 下的要塞位置完全不重合——若种子真的恒为 0 且
-    // 没有生物群系搜索，两者应当落在同一批坐标上。
+    // 第 1 步的种子恒为 0，所以**所有种子下的搜索起点完全相同**；要塞最终位置的种子
+    // 相关性全部来自第 2 步——`randomsource` 在生成起点的过程中已经按世界种子推进过，
+    // 它的 fork 因此随种子变化。差分比对证实了这个分工：种子 0 与 9248738493917 的
+    // 要塞位置完全不重合，但两者的搜索起点相同。
     //
-    // 因此这里仍传世界种子：`generateRingPositions` 内部用它初始化 rng，
-    // 环位置随种子变化（虽然与原版「常量种子 + 生物群系搜索」的路径不同，
-    // 但至少保留了种子相关性）。
+    // 缓存在本状态里，键是放置规则指针。
+    const auto cached = m_ringPositions.find(&concentric);
+    if (cached != m_ringPositions.end()) {
+        return cached->second;
+    }
+
+    // 放置规则自带一份按世界种子缓存的最终坐标表。原版把 `List<ChunkPos>` 缓存在
+    // `ChunkGeneratorStructureState.ringPositions` 里，与放置规则同生命周期；
+    // 而 `StructurePlacementState` 每个区块（探针里是每个单元）都会新建一个，
+    // 只靠本实例的缓存会让 128 次螺旋扫描在每个单元重跑一遍——实测单个单元 2.3 秒，
+    // 542 个单元直接跑不完。
+    if (const auto* resolved = concentric.resolvedRingPositions(m_worldSeed); resolved != nullptr) {
+        auto& stored = m_ringPositions[&concentric];
+        stored = *resolved;
+        return stored;
+    }
+
+    const auto& seeds = concentric.getRingPositions(0);
+    const auto& preferred = concentric.preferredBiomes();
+
+    // 原版 `ChunkGeneratorStructureState.generateRingPositions`：先用常量种子 0 的
+    // LegacyRandomSource 算出每个要塞的搜索起点，再**边算边 fork**——fork 出的随机源
+    // 用于该要塞的生物群系搜索，因此它反映了此前所有起点消耗掉的随机数。
     //
-    // TODO: 要真正对齐，需要把这个函数改成吃 IBiomeSource，在算出每个环位置后
-    // 复刻一次 findBiomeHorizontal(半径 112) 搜索 preferredBiomes 并改写坐标。
-    return concentric.getRingPositions(m_worldSeed);
+    // 注意这里的 rng 必须用 concentricRingsSeed（常量 0）初始化，而不是世界种子：
+    // fork 序列只取决于消耗了几个随机数，与种子无关。要塞的种子相关性完全来自
+    // 「搜索到的生物群系位置」——不同种子下群系不同，改写后的坐标自然不同。
+    math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
+    rng.setSeed(0);
+
+    std::vector<world::chunk::ChunkPos> result;
+    result.reserve(seeds.size());
+    for (i32 index = 0; index < static_cast<i32>(seeds.size()); ++index) {
+        const auto& seed = seeds[static_cast<size_t>(index)];
+        // 原版 `LegacyRandomSource.fork()` 就是 `new LegacyRandomSource(nextLong())`。
+        auto fork = std::make_unique<math::JavaLegacyRandom>(static_cast<u64>(rng.nextLong()));
+        const auto found = _findBiomeHorizontal(seed.x * 16 + 8, 0, seed.z * 16 + 8, 112, preferred, *fork);
+        if (found.has_value()) {
+            result.emplace_back(static_cast<i32>(found->x >> 4), static_cast<i32>(found->z >> 4));
+        } else {
+            result.push_back(seed);
+        }
+        // 原版的 rng 在生成起点时已经推进过，这里模拟同样的推进量：每个起点消耗
+        // 一次 nextDouble（半径扰动）+ 一次 nextDouble（换环时的角度扰动）。
+        (void)rng.nextDouble();
+    }
+
+    // 回填到放置规则，让后续新建的判定状态直接复用（见上面的缓存读取）。
+    concentric.setResolvedRingPositions(m_worldSeed, result);
+
+    auto& stored = m_ringPositions[&concentric];
+    stored = std::move(result);
+    return stored;
+}
+
+std::optional<BlockPos> StructurePlacementState::_findBiomeHorizontal(
+    i32 centerX, i32 centerY, i32 centerZ, i32 radius, const std::vector<BiomeId>& preferred, math::IRandom& rng) const
+{
+    // 原版 `BiomeSource.findBiomeHorizontal`：以 quart 坐标做螺旋扫描，
+    // 每命中一个候选就用蓄水池抽样随机保留一个（`nextInt(seen + 1) == 0`）。
+    if (preferred.empty()) {
+        return std::nullopt;
+    }
+
+    auto isPreferred = [&preferred](BiomeId id) {
+        return std::find(preferred.begin(), preferred.end(), id) != preferred.end();
+    };
+
+    const i32 centerQuartX = centerX >> 2;
+    const i32 centerQuartZ = centerZ >> 2;
+    const i32 quartY = centerY >> 2;
+    const i32 quartRadius = radius >> 2;
+
+    std::optional<BlockPos> chosen;
+    i32 seen = 0;
+
+    for (i32 ring = 0; ring <= quartRadius; ring += 1) {
+        for (i32 dz = -ring; dz <= ring; dz += 1) {
+            const bool onZEdge = std::abs(dz) == ring;
+            for (i32 dx = -ring; dx <= ring; dx += 1) {
+                // 只扫描环的边缘：内部格子已在上一次更小的 ring 里扫过。
+                if (!onZEdge && std::abs(dx) != ring) {
+                    continue;
+                }
+                const i32 quartX = centerQuartX + dx;
+                const i32 quartZ = centerQuartZ + dz;
+                if (!isPreferred(m_biomeSource.getNoiseBiome(quartX, quartY, quartZ))) {
+                    continue;
+                }
+                if (!chosen.has_value() || rng.nextInt(seen + 1) == 0) {
+                    chosen = BlockPos(static_cast<BlockCoord>(quartX << 2),
+                        static_cast<BlockCoord>(centerY),
+                        static_cast<BlockCoord>(quartZ << 2));
+                }
+                ++seen;
+            }
+        }
+    }
+    return chosen;
 }
 
 } // namespace mc::world::gen::structure

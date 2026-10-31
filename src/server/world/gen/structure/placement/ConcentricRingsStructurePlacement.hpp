@@ -152,6 +152,30 @@ private:
     mutable i64 m_cachedSeed = 0;
     /// 保护缓存生成的互斥锁
     mutable std::mutex m_cacheMutex;
+
+    /// 经生物群系搜索改写后的最终坐标表（按世界种子缓存）
+    mutable std::optional<std::vector<world::chunk::ChunkPos>> m_resolvedPositions;
+    /// 该表对应的世界种子
+    mutable i64 m_resolvedSeed = 0;
+
+public:
+    /**
+     * @brief 设置经生物群系搜索改写后的最终候选区块表（按世界种子缓存）
+     *
+     * 原版把 `List<ChunkPos>` 缓存在 `ChunkGeneratorStructureState.ringPositions` 里，
+     * 与放置规则同生命周期；`StructurePlacementState` 每次判定都新建，因此它算出的
+     * 结果必须回填到这里，否则每个区块都要重跑 128 次螺旋扫描。
+     *
+     * @param worldSeed 世界种子（作为缓存键）
+     * @param positions 最终坐标表
+     */
+    void setResolvedRingPositions(i64 worldSeed, std::vector<world::chunk::ChunkPos> positions) const;
+
+    /**
+     * @brief 取经生物群系搜索改写后的最终候选区块表
+     * @return 命中缓存的表指针；未计算过返回 nullptr
+     */
+    [[nodiscard]] const std::vector<world::chunk::ChunkPos>* resolvedRingPositions(i64 worldSeed) const;
 };
 
 } // namespace mc::world::gen::structure::placement

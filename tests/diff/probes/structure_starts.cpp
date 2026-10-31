@@ -63,6 +63,7 @@
 #include "probe.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
+#include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "server/world/gen/biome/source/EndBiomeSource.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/carver/ConfiguredCarverLoader.hpp"
@@ -192,6 +193,14 @@ void initializeRegistries()
         world::gen::jigsaw::ProcessorListLoader::loadFromDataPackRepository(repo);
         if (!world::gen::structure::StructureTagLoader::loadFromDataPackRepository(repo).success()) {
             throw std::runtime_error("structure_starts: 结构标签加载失败");
+        }
+        // 生物群系标签必须先于结构集加载：同心环放置的 `preferred_biomes` 引用了
+        // `#minecraft:stronghold_biased_to`，StructureSetLoader 会去 BiomeTags 里查它。
+        // 缺了这一步 preferredBiomes 恒为空，要塞就退化成「不做生物群系搜索」，
+        // 最终坐标与原版完全不同（由差分能力 structure_starts 查出：9 个要塞单元
+        // 在原版有、Cubium 完全没有）。
+        if (!world::biome::BiomeTagLoader::loadFromDataPackRepository(repo).success()) {
+            throw std::runtime_error("structure_starts: 生物群系标签加载失败");
         }
         world::gen::structure::StructureSetRegistry::instance().clear();
         if (!world::gen::structure::StructureSetLoader::loadFromDataPackRepository(repo).success()) {

@@ -1165,6 +1165,60 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 要塞：生物群系标签没加载 + 搜索太慢，两处基础设施缺陷
+
+接着上一轮的要塞问题往下查，又发现两处**与算法无关**的基础设施缺陷。
+
+#### 一、探针从未加载生物群系标签
+
+`preferred_biomes` 引用 `#minecraft:stronghold_biased_to`（37 个群系），由
+`StructureSetLoader` 去 `BiomeTags` 里查。探针的初始化序列里**没有**
+`BiomeTagLoader::loadFromDataPackRepository`，于是：
+
+```
+[ss] strongholds preferredBiomes = 0    // 应为 37
+```
+
+`preferredBiomes` 恒为空 → `findBiomeHorizontal` 直接返回空 → 要塞永远退回原始环坐标。
+这与上一轮修的环算法无关，是另一条独立的失效路径。
+
+补上标签加载后 `preferredBiomes = 37`，并验证了后续链路可用：
+
+```
+[ss] 采样 quart(-33,0,-20) 群系 id = 4
+[ss] 该群系是否在 preferred 中: 1        // 命中
+[ss] preferred 前 5 个 id: 1 129 12 140 4
+```
+
+群系 ID 空间在两侧一致，`getNoiseBiome` 采样正常。
+
+#### 二、128 次螺旋扫描被每个区块重跑一次
+
+补上搜索后整个能力**跑不完**（1800 秒超时）。实测单个单元 2.3 秒——每个单元都要
+跑 128 个要塞 × 29×29 个 quart 的螺旋扫描。
+
+根因是缓存位置：原版把 `List<ChunkPos>` 缓存在 `ChunkGeneratorStructureState` 里，
+**与放置规则同生命周期**；而 `StructurePlacementState` 是每个区块（探针里是每个单元）
+新建的，只靠它的实例缓存等于没缓存。
+
+改法：把改写后的最终坐标表回填到 `ConcentricRingsStructurePlacement` 上（按世界种子
+缓存）。3 个单元从 6.9 秒降到 2.58 秒，542 个单元回到 170 秒量级。
+
+#### 仍然存在的差距
+
+要塞依然一个都不生成。已排除的原因：
+
+- 环算法（上一轮已按原版修正三处）
+- `preferredBiomes` 为空（本轮已修，37 个）
+- 群系采样失效（已验证返回正确群系且命中偏好集）
+- 搜索性能（已用缓存解决）
+
+剩下的可能是**搜索结果的坐标与原版差一个数量级**：542 个候选单元来自原版 oracle
+（原版能找到要塞的区块），如果我们的 `findBiomeHorizontal` 复刻有细节偏差（例如扫描
+顺序、蓄水池抽样的调用时机），算出的坐标就会系统性偏离，从而全部错过这批候选。
+
+TODO: 逐参数对照原版 `findBiomeHorizontal` 的扫描顺序——特别是 `k1` 的递增步长
+（原版是 `k1 += spread`，而非 1）与内层 `l1`/`i2` 的起始值。
 ### 要塞环算法：三处偏差已修，生物群系搜索仍缺失
 
 `structure_starts` 恢复运行后，47 处差异里最大的一块是**要塞**：9 个单元在原版有、

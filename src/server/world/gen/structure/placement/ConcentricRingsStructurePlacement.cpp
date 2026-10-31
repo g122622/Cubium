@@ -161,6 +161,23 @@ bool ConcentricRingsStructurePlacement::isStructureChunk(i64 worldSeed, i32 chun
     return false;
 }
 
+void ConcentricRingsStructurePlacement::setResolvedRingPositions(
+    i64 worldSeed, std::vector<world::chunk::ChunkPos> positions) const
+{
+    std::lock_guard<std::mutex> lock(m_cacheMutex);
+    m_resolvedPositions = std::move(positions);
+    m_resolvedSeed = worldSeed;
+}
+
+const std::vector<world::chunk::ChunkPos>* ConcentricRingsStructurePlacement::resolvedRingPositions(i64 worldSeed) const
+{
+    std::lock_guard<std::mutex> lock(m_cacheMutex);
+    if (m_resolvedPositions.has_value() && m_resolvedSeed == worldSeed) {
+        return &m_resolvedPositions.value();
+    }
+    return nullptr;
+}
+
 std::unique_ptr<StructurePlacement> ConcentricRingsStructurePlacement::clone() const
 {
     return std::make_unique<ConcentricRingsStructurePlacement>(
