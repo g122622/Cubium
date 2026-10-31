@@ -190,6 +190,7 @@ add_library(mc_gen OBJECT
     world/gen/structure/StructureDefinitionLoader.cpp
     world/gen/structure/StructureCheck.cpp
     world/gen/structure/StructureManager.cpp
+    world/gen/structure/StructurePlacementState.cpp
     world/gen/structure/StructureSet.cpp
     world/gen/structure/StructureSetLoader.cpp
     world/gen/structure/StructureTag.cpp
@@ -202,7 +203,6 @@ add_library(mc_gen OBJECT
     world/gen/structure/structures/RuinedPortalStructure.cpp
     world/gen/structure/structures/BuriedTreasureStructure.cpp
     world/gen/structure/structures/MineshaftStructure.cpp
-    world/gen/structure/structures/VillageStructure.cpp
     world/gen/structure/structures/StrongholdStructure.cpp
     world/gen/structure/structures/StrongholdPieces.cpp
     world/gen/structure/structures/DesertPyramidStructure.cpp

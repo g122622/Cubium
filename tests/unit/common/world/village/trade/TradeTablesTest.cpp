@@ -32,6 +32,7 @@
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/village/trade/ItemCost.hpp"
 #include "common/world/village/trade/Merchant.hpp"
@@ -85,7 +86,43 @@ protected:
         TradeContext ctx;
         ctx.traderSeed = seed;
         ctx.sequence = sequence;
+        // 附魔池来自数据包标签：这些用例断言的是附魔书 / 附魔装备的内容，必须给出解析器，
+        // 否则候选池为空、条目退化成"卖普通书"（生产环境由服务端启动时注入同一份标签）。
+        // 这里用注册顺序近似 `#minecraft:tradeable` 与 `#minecraft:on_traded_equipment`。
+        ctx.enchantmentTags = [](const ResourceLocation& tag) {
+            const std::string name = tag.toString();
+            std::vector<std::string> members;
+            if (name == "minecraft:tradeable" || name == "minecraft:on_traded_equipment") {
+                for (const auto* enchantment : item::enchant::EnchantmentRegistry::allInRegistrationOrder()) {
+                    if (enchantment != nullptr) {
+                        members.push_back(enchantment->id());
+                    }
+                }
+            }
+            return members;
+        };
         return ctx;
+    }
+
+    /**
+     * @brief 把同一等级在多个种子下生成的交易拼在一起
+     *
+     * 原版每次升级只从该等级**抽**两条交易（`addOffersFromItemListings(..., 2)`），所以想覆盖
+     * 一个等级的全部条目，只能换种子多抽几轮。这里按种子顺序拼接，作为后续断言的语料。
+     */
+    static MerchantOffers collectLevelEntries(VillagerProfession profession, i32 level, u64 firstSeed, u64 seedCount)
+    {
+        MerchantOffers collected;
+        for (u64 seed = firstSeed; seed < firstSeed + seedCount; ++seed) {
+            auto offers = VillagerTrades::generateOffers(profession, level, offlineContext(seed));
+            for (std::size_t i = 0; i < offers->size(); ++i) {
+                const MerchantOffer* offer = offers->getOffer(i);
+                if (offer != nullptr) {
+                    collected.addOffer(std::make_unique<MerchantOffer>(*offer));
+                }
+            }
+        }
+        return collected;
     }
 
     /**
@@ -160,18 +197,26 @@ TEST_F(TradeTablesTest, InitializationRegistersAllProfessions)
 
 TEST_F(TradeTablesTest, FarmerLevelOneMatchesVanillaEntries)
 {
-    auto offers = VillagerTrades::generateOffers(VillagerProfession::Farmer, 1, offlineContext(42));
-    ASSERT_EQ(offers->size(), 5u);
+    const auto offers = collectLevelEntries(VillagerProfession::Farmer, 1, 1, 12);
 
-    // 原版农民 1 级：小麦/马铃薯/胡萝卜/甜菜根换绿宝石 + 面包
-    EXPECT_EQ(countSellItem(*offers, Items::EMERALD), 4);
-    EXPECT_EQ(countSellItem(*offers, Items::WHEAT), 0);
-    EXPECT_EQ(countSellItem(*offers, Items::BREAD), 1);
+    // 原版农民 1 级：小麦 / 马铃薯 / 胡萝卜 / 甜菜根各换绿宝石，外加"6 面包换 1 绿宝石"。
+    i32 cropCount = 0;
+    for (std::size_t i = 0; i < offers.size(); ++i) {
+        const MerchantOffer* offer = offers.getOffer(i);
+        const Item* cost = offer->getCostA().templateStack().getItem();
+        if (cost == Items::WHEAT || cost == Items::POTATO || cost == Items::CARROT || cost == Items::BEETROOT) {
+            ++cropCount;
+            EXPECT_EQ(offer->getSell().getItem(), Items::EMERALD);
+            EXPECT_EQ(offer->getSell().getCount(), 1);
+        }
+    }
+    EXPECT_GT(cropCount, 0);
+    EXPECT_GT(countSellItem(offers, Items::BREAD), 0);
 
     // 小麦交易：20 个小麦换 1 个绿宝石，供应 16 次，经验 2
     const MerchantOffer* wheatOffer = nullptr;
-    for (std::size_t i = 0; i < offers->size(); ++i) {
-        const MerchantOffer* offer = offers->getOffer(i);
+    for (std::size_t i = 0; i < offers.size(); ++i) {
+        const MerchantOffer* offer = offers.getOffer(i);
         if (offer->getCostA().templateStack().getItem() == Items::WHEAT) {
             wheatOffer = offer;
         }
@@ -186,13 +231,11 @@ TEST_F(TradeTablesTest, FarmerLevelOneMatchesVanillaEntries)
 
 TEST_F(TradeTablesTest, FishermanRepairsTradesUseTwoCosts)
 {
-    auto offers = VillagerTrades::generateOffers(VillagerProfession::Fisherman, 1, offlineContext(7));
-    ASSERT_EQ(offers->size(), 4u);
+    const auto offers = collectLevelEntries(VillagerProfession::Fisherman, 1, 1, 12);
 
-    // 原版 1 级渔夫：线/煤炭换绿宝石、生鳕鱼 + 绿宝石换熟鳕鱼、鳕鱼桶
     const MerchantOffer* cookedCodOffer = nullptr;
-    for (std::size_t i = 0; i < offers->size(); ++i) {
-        const MerchantOffer* offer = offers->getOffer(i);
+    for (std::size_t i = 0; i < offers.size(); ++i) {
+        const MerchantOffer* offer = offers.getOffer(i);
         if (offer->getSell().getItem() == Items::COOKED_COD) {
             cookedCodOffer = offer;
         }
@@ -207,13 +250,11 @@ TEST_F(TradeTablesTest, FishermanRepairsTradesUseTwoCosts)
 
 TEST_F(TradeTablesTest, LibrarianSellsEnchantedBooks)
 {
-    auto offers = VillagerTrades::generateOffers(VillagerProfession::Librarian, 1, offlineContext(99));
-    ASSERT_EQ(offers->size(), 3u);
+    const auto offers = collectLevelEntries(VillagerProfession::Librarian, 1, 1, 12);
 
-    // 1 级图书管理员：纸 / 附魔书 / 书架
     const MerchantOffer* bookOffer = nullptr;
-    for (std::size_t i = 0; i < offers->size(); ++i) {
-        const MerchantOffer* offer = offers->getOffer(i);
+    for (std::size_t i = 0; i < offers.size(); ++i) {
+        const MerchantOffer* offer = offers.getOffer(i);
         if (offer->getSell().getItem() == Items::ENCHANTED_BOOK) {
             bookOffer = offer;
         }
@@ -231,7 +272,7 @@ TEST_F(TradeTablesTest, LibrarianSellsEnchantedBooks)
 
 TEST_F(TradeTablesTest, EnchantedItemTradesScalePriceWithLevel)
 {
-    // 盔甲匠 4 级：两条附魔钻石甲交易
+    // 盔甲匠 4 级：两条附魔钻石甲交易（每轮换种子重抽）
     for (u64 seed = 1; seed <= 8; ++seed) {
         auto offers = VillagerTrades::generateOffers(VillagerProfession::Armorer, 4, offlineContext(seed));
         ASSERT_EQ(offers->size(), 2u);
@@ -250,29 +291,27 @@ TEST_F(TradeTablesTest, EnchantedItemTradesScalePriceWithLevel)
 
 TEST_F(TradeTablesTest, LeatherworkerTradesAreDyed)
 {
-    auto offers = VillagerTrades::generateOffers(VillagerProfession::Leatherworker, 1, offlineContext(3));
-    ASSERT_EQ(offers->size(), 3u);
+    const auto offers = collectLevelEntries(VillagerProfession::Leatherworker, 1, 1, 12);
 
     i32 dyedCount = 0;
-    for (std::size_t i = 0; i < offers->size(); ++i) {
-        const MerchantOffer* offer = offers->getOffer(i);
+    for (std::size_t i = 0; i < offers.size(); ++i) {
+        const MerchantOffer* offer = offers.getOffer(i);
         if (offer->getSell().getItem() == Items::LEATHER_LEGGINGS ||
             offer->getSell().getItem() == Items::LEATHER_CHESTPLATE) {
             ++dyedCount;
             EXPECT_TRUE(item::items::DyeableArmorItem::hasColor(offer->getSell()));
         }
     }
-    EXPECT_EQ(dyedCount, 2);
+    EXPECT_GT(dyedCount, 0);
 }
 
 TEST_F(TradeTablesTest, FarmerStewTradesCarryEffects)
 {
-    auto offers = VillagerTrades::generateOffers(VillagerProfession::Farmer, 4, offlineContext(11));
-    ASSERT_EQ(offers->size(), 7u);
+    const auto offers = collectLevelEntries(VillagerProfession::Farmer, 4, 1, 24);
 
     i32 stewCount = 0;
-    for (std::size_t i = 0; i < offers->size(); ++i) {
-        const MerchantOffer* offer = offers->getOffer(i);
+    for (std::size_t i = 0; i < offers.size(); ++i) {
+        const MerchantOffer* offer = offers.getOffer(i);
         if (offer->getSell().getItem() == Items::SUSPICIOUS_STEW) {
             ++stewCount;
             const auto* effects = offer->getSell().getStewEffects();
@@ -281,7 +320,7 @@ TEST_F(TradeTablesTest, FarmerStewTradesCarryEffects)
             EXPECT_GT((*effects)[0].duration(), 0);
         }
     }
-    EXPECT_EQ(stewCount, 6);
+    EXPECT_GT(stewCount, 0);
 }
 
 TEST_F(TradeTablesTest, GenerationIsDeterministicForSameSeed)

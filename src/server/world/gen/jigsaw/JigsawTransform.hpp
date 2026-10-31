@@ -56,7 +56,7 @@ public:
      * @param mirror 镜像模式
      * @return 变换后的位置
      */
-    static BlockPos transformPosition(const BlockPos& pos, Rotation rotation, Mirror mirror);
+    static BlockPos transformPosition(const BlockPos& pos, Rotation rotation, Mirror mirror, const BlockPos& pivot);
 
     /**
      * @brief 获取已变换的连接点列表

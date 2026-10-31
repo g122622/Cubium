@@ -24,9 +24,13 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace mc {
 
@@ -53,6 +57,9 @@ namespace trade {
  * 显式传入而不再用默认参数，避免"值从哪来"的歧义。
  */
 struct TradeContext {
+    /// 附魔标签解析器：标签名（含命名空间，不含 `#`）→ 成员附魔 id
+    using EnchantmentTagResolver = std::function<std::vector<std::string>(const ResourceLocation&)>;
+
     /// 世界（可为 nullptr，表示离线生成）
     IWorld* world = nullptr;
 
@@ -64,6 +71,15 @@ struct TradeContext {
 
     /// 交易生成序号（同一实体的不同生成批次使用不同值，避免同种子重复）
     std::size_t sequence = 0;
+
+    /**
+     * 附魔标签解析器（可为空）
+     *
+     * 附魔书条目从数据包标签（`tradeable` / `trades_swamp_special` / `trades_taiga_special`）
+     * 取随机附魔，双倍价格判定也用标签。标签的加载属于资源管理，交易层不持有全局表，
+     * 由调用方（服务端 / 测试）注入；为空时所有标签都视为空集合，附魔书条目退化为卖普通书。
+     */
+    EnchantmentTagResolver enchantmentTags;
 };
 
 /**

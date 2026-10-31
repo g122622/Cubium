@@ -126,7 +126,6 @@ public:
      */
     void setExclusionZoneChecker(std::function<bool(const ResourceLocation&, i32, i32, i64)> callback);
 
-protected:
     /**
      * @brief 频率缩减检查
      *
@@ -139,6 +138,18 @@ protected:
      */
     bool applyAdditionalChunkRestrictions(i32 chunkX, i32 chunkZ, i64 worldSeed) const;
 
+    /**
+     * @brief 排斥区配置（可选）
+     *
+     * 排斥区要求「另一个结构集在附近没有落点」，这个判断只有看得见整张结构集表的调用方
+     * 才能完成（见 `StructurePlacementState`）；本类只保管配置。
+     */
+    [[nodiscard]] const std::optional<ExclusionZone>& exclusionZone() const noexcept
+    {
+        return m_exclusionZone;
+    }
+
+protected:
     /**
      * @brief 排斥区检查
      *

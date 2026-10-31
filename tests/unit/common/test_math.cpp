@@ -43,7 +43,7 @@ using mc::u64;
 using mc::math::approxEqual;
 using mc::math::clamp;
 using mc::math::exponentialDecayFactor;
-using mc::math::fastInverseSqrt;
+using mc::math::fastInvSqrt;
 using mc::math::HALF_PI;
 using mc::math::isZero;
 using mc::math::lerp;
@@ -133,9 +133,12 @@ TEST(MathUtils, ApproxEqual)
 
 TEST(MathUtils, FastInverseSqrt)
 {
-    EXPECT_NEAR(fastInverseSqrt(1.0f), 1.0f, 0.01f);
-    EXPECT_NEAR(fastInverseSqrt(4.0f), 0.5f, 0.01f);
-    EXPECT_NEAR(fastInverseSqrt(9.0f), 1.0f / 3.0f, 0.01f);
+    // 一次位模式初猜 + 一次牛顿迭代：不是正确舍入的值，但必须落在原版同一个近似上。
+    EXPECT_NE(fastInvSqrt(1.0), 1.0);
+    EXPECT_NEAR(fastInvSqrt(1.0), 1.0, 1e-3);
+    EXPECT_NEAR(fastInvSqrt(4.0), 0.5, 1e-3);
+    EXPECT_NEAR(fastInvSqrt(9.0), 1.0 / 3.0, 1e-3);
+    EXPECT_NEAR(fastInvSqrt(2.0), 0.70710678, 1e-2);
 }
 
 TEST(MathUtils, ChunkCoordConversion)

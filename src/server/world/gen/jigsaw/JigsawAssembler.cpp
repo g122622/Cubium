@@ -295,7 +295,8 @@ void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
 
         // 父连接点的世界位置与"连接面"（连接点朝向前方一格）
         const BlockPos parentJointPos =
-            JigsawTransform::transformPosition(parentJoint.sourcePos, rotation, Mirror::None) + position;
+            JigsawTransform::transformPosition(parentJoint.sourcePos, rotation, Mirror::None, BlockPos(0, 0, 0)) +
+            position;
         const BlockPos jointSurface(parentJointPos.x + getStepX(parentFacing),
             parentJointPos.y + getStepY(parentFacing),
             parentJointPos.z + getStepZ(parentFacing));
@@ -366,8 +367,8 @@ void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
 
                 for (const JigsawJoint& candidateJoint : candidateJoints) {
                     // 候选连接点在该旋转下的局部位置与朝向
-                    const BlockPos candidateJointPos =
-                        JigsawTransform::transformPosition(candidateJoint.sourcePos, candidateRotation, Mirror::None);
+                    const BlockPos candidateJointPos = JigsawTransform::transformPosition(
+                        candidateJoint.sourcePos, candidateRotation, Mirror::None, BlockPos(0, 0, 0));
                     const JigsawOrientation candidateOrientation =
                         JigsawOrientations::rotate(candidateJoint.orientation, candidateRotation);
 
@@ -504,7 +505,8 @@ i32 JigsawAssembler::estimateExpansionHeight(TemplatePoolRegistry& poolRegistry,
     for (const auto& joint : joints) {
         // 连接面 = 连接点位置 + 朝向步进；只有落在候选块包围盒内部的接点才算"朝内"，
         // 朝外的接点通向结构外部，其高度不受本构件容纳能力约束。
-        const BlockPos jointPos = JigsawTransform::transformPosition(joint.sourcePos, rotation, Mirror::None);
+        const BlockPos jointPos =
+            JigsawTransform::transformPosition(joint.sourcePos, rotation, Mirror::None, BlockPos(0, 0, 0));
         const Direction facing = JigsawOrientations::getFacing(JigsawOrientations::rotate(joint.orientation, rotation));
         const BlockPos surface(
             jointPos.x + getStepX(facing), jointPos.y + getStepY(facing), jointPos.z + getStepZ(facing));

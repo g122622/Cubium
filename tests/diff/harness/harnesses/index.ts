@@ -62,6 +62,9 @@ import { recipeDeclaration } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
 import { statusEffectInput, statusEffectUnits } from "./status_effect.ts";
+import { structureDensityDeclaration } from "./structure_density.ts";
+import { structureStartsDeclaration } from "./structure_starts.ts";
+import { villagerTradesDeclaration } from "./villager_trades.ts";
 import { textEncodeDeclaration } from "./text_encode.ts";
 import { KNOWN_MISSING as entityAttributesKnownMissing } from "./known_missing_entity_attributes.ts";
 import {
@@ -446,6 +449,12 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     lootContainerDeclaration(),
     { name: "item_components", probe: "item_components", oracle: "ItemComponentsOracle", key: "item", units: { kind: "listing" },
         input: (unit) => ({ item: unit }), oracleMissing: itemsKnownMissing },
+    structureDensityDeclaration(),
+    structureStartsDeclaration(),
+    villagerTradesDeclaration("list"),
+    villagerTradesDeclaration("gen"),
+    villagerTradesDeclaration("price"),
+    villagerTradesDeclaration("restock"),
     // 寻路：两个能力读同一份场景库（path_scenes.ts），只是比对的口径不同。
     // 逐格路径类型是「求值器判定」的完整快照：任一格的三层类型不一致都会点名到格。
     { name: "walk_path_type", probe: "walk_path_type", oracle: "WalkPathTypeOracle", key: "unit",

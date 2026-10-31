@@ -33,11 +33,24 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/density/Beardifier.hpp"
 
+#include <cmath>
 #include <memory>
 #include <vector>
 
 namespace mc {
 namespace {
+
+/**
+ * @brief BEARD_KERNEL 里存的高斯分量：exp(-(dx² + (dy+0.5)² + dz²) / 16)
+ *
+ * 生产代码只保留预计算表，这张表就是它的定义式。
+ */
+f64 gaussian(int dx, int dy, int dz)
+{
+    const f64 adjustedY = static_cast<f64>(dy) + 0.5;
+    const f64 distSq = static_cast<f64>(dx) * dx + adjustedY * adjustedY + static_cast<f64>(dz) * dz;
+    return std::exp(-distSq / 16.0);
+}
 
 /**
  * @brief NoiseChunkGenerator 雕刻阶段一致性测试
@@ -253,30 +266,30 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
 }
 
 /**
- * @brief Beardifier::computeBeardContribution 高斯核测试
+ * @brief BEARD_KERNEL 的高斯分量测试
  *
- * computeBeardContribution 是纯高斯核函数（exp(-distSq/16)），始终返回正值 [0,1]。
- * 它用于预计算 BEARD_KERNEL 查找表。
+ * 核表里存的是纯高斯分量 exp(-distSq/16)，始终为正；生产代码只保留预计算表，
+ * 这里用同一张定义式复算。
  *
  * 注意：产生负密度偏移的是 getBeardContribution，它在核值基础上乘以 beard 因子。
  */
 TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues)
 {
     // 中心点 (0,0,0)：Y+0.5 → distSq = 0.25 → exp(-0.25/16) ≈ 0.9845
-    f64 centerOffset = world::gen::density::Beardifier::computeBeardContribution(0, 0, 0);
+    f64 centerOffset = gaussian(0, 0, 0);
     EXPECT_GT(centerOffset, 0.0) << "Gaussian kernel should be positive at center";
     EXPECT_LT(centerOffset, 1.0) << "Gaussian kernel at (0,0,0) with Y+0.5 should be < 1.0";
     EXPECT_NEAR(centerOffset, 0.9845, 0.01) << "Center offset should match MC Gaussian value";
 
     // 远距离点应该趋近于零
-    f64 farOffset = world::gen::density::Beardifier::computeBeardContribution(50, 50, 50);
+    f64 farOffset = gaussian(50, 50, 50);
     EXPECT_NEAR(farOffset, 0.0, 0.001) << "Far distance should have near-zero offset";
 
     // 对称性：相同距离的点应该产生相同的影响（X和Z轴对称）
-    f64 offset1 = world::gen::density::Beardifier::computeBeardContribution(5, 3, 7);
-    f64 offset2 = world::gen::density::Beardifier::computeBeardContribution(-5, 3, 7);
-    f64 offset3 = world::gen::density::Beardifier::computeBeardContribution(5, 3, -7);
-    f64 offset4 = world::gen::density::Beardifier::computeBeardContribution(-5, 3, -7);
+    f64 offset1 = gaussian(5, 3, 7);
+    f64 offset2 = gaussian(-5, 3, 7);
+    f64 offset3 = gaussian(5, 3, -7);
+    f64 offset4 = gaussian(-5, 3, -7);
 
     // X 和 Z 的对称性（高斯核是距离的函数，X/Z对称）
     EXPECT_NEAR(offset1, offset2, 0.0001) << "X-axis symmetry should hold";
@@ -284,14 +297,14 @@ TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues)
     EXPECT_NEAR(offset1, offset4, 0.0001) << "XZ diagonal symmetry should hold";
 
     // Y 轴偏移影响距离（Y+0.5），但高斯核始终为正
-    // computeBeardContribution 对 Y 也有对称性（因为 Y+0.5 后取平方）
-    f64 belowOffset = world::gen::density::Beardifier::computeBeardContribution(0, -5, 0);
-    f64 aboveOffset = world::gen::density::Beardifier::computeBeardContribution(0, 5, 0);
+    // 高斯分量对 Y 偏移 0.5 后不再对称（因为 Y+0.5 后取平方）
+    f64 belowOffset = gaussian(0, -5, 0);
+    f64 aboveOffset = gaussian(0, 5, 0);
     EXPECT_GT(belowOffset, 0.0) << "Gaussian kernel is always positive";
     EXPECT_GT(aboveOffset, 0.0) << "Gaussian kernel is always positive";
     // Y=-5 和 Y=5 的偏移应相等（(|-5|+0.5)^2 = (5+0.5)^2 不对称，但 Y 方向无额外对称性）
-    // 实际上 computeBeardContribution(0,-5,0) 使用 adjustedY=-4.5, distSq=20.25
-    //         computeBeardContribution(0, 5,0) 使用 adjustedY= 5.5, distSq=30.25
+    // 实际上 gaussian(0,-5,0) 使用 adjustedY=-4.5, distSq=20.25
+    //         gaussian(0, 5,0) 使用 adjustedY= 5.5, distSq=30.25
     EXPECT_GT(belowOffset, aboveOffset) << "Closer Y should have larger Gaussian value (|-5|+0.5 < 5+0.5)";
 }
 
@@ -307,15 +320,15 @@ TEST(NoiseChunkGeneratorDensityTest, GaussianLUTBoundaryCheck)
         for (i32 dy = -12; dy < 12; ++dy) {
             for (i32 dz = -12; dz < 12; ++dz) {
                 // 应该不崩溃
-                f64 offset = world::gen::density::Beardifier::computeBeardContribution(dx, dy, dz);
+                f64 offset = gaussian(dx, dy, dz);
                 (void)offset; // 仅验证计算能完成
             }
         }
     }
 
     // 边界外点应该返回接近零的值
-    f64 outsideOffset = world::gen::density::Beardifier::computeBeardContribution(15, 15, 15);
-    // computeBeardContribution 在远处自然衰减，这里只验证函数能正常执行
+    f64 outsideOffset = gaussian(15, 15, 15);
+    // 高斯分量在远处自然衰减，这里只验证函数能正常执行
     (void)outsideOffset;
     SUCCEED() << "Boundary calculations completed without crash";
 }

@@ -221,6 +221,19 @@ public:
     [[nodiscard]] virtual bool canApplyAtEnchantingTable(const ItemStack& stack) const;
 
     /**
+     * @brief 该附魔可否应用于此物品（对应原版 `Enchantment.isSupportedItem`）
+     *
+     * 原版判定来源是各附魔的 `supported_items` 标签；项目里附魔定义是硬编码的，
+     * 用等价的 `EnchantmentType` 分类表达。`canApplyAtEnchantingTable` =
+     * 非宝藏附魔 && 本判定，对应原版 `getAvailableEnchantmentResults` 的
+     * `isPrimaryItem || isBook` 过滤。
+     *
+     * @param stack 物品堆
+     * @return 支持返回 true
+     */
+    [[nodiscard]] virtual bool canApplyToItem(const ItemStack& stack) const;
+
+    /**
      * @brief 检查是否可以出现在村民交易中
      * @return 如果可以出现在村民交易返回true
      */

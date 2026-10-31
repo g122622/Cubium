@@ -52,7 +52,6 @@
 #include "server/world/gen/structure/structures/StrongholdStructure.hpp"
 #include "server/world/gen/structure/structures/SwampHutStructure.hpp"
 #include "server/world/gen/structure/structures/TrialChambersStructure.hpp"
-#include "server/world/gen/structure/structures/VillageStructure.hpp"
 #include "server/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
 #include <gtest/gtest.h>
@@ -269,28 +268,24 @@ TEST_F(StructureTypeRegistryTest, JigsawDispatchesToSpecializedSubclasses)
     }
 }
 
-TEST_F(StructureTypeRegistryTest, JigsawVillageDispatchesByVillageType)
+TEST_F(StructureTypeRegistryTest, JigsawVillageUsesGenericPath)
 {
     auto& reg = StructureTypeRegistry::instance();
 
-    // 5 个村庄 id 均应分派到 VillageStructure（变体类型存于私有 m_config，
-    // 无公开访问器；此处验证分派正确性，VillageType 映射为工厂内部查表）。
+    // 5 个村庄 id 都走通用 JigsawStructure：结构 JSON 与拼图结构完全同构，专用装配流程
+    // 会漏掉 start_jigsaw_name 起始连接点选择与随机数顺序，导致整座村庄与原版错位。
     for (const auto& idPath :
         {"village_plains", "village_desert", "village_savanna", "village_snowy", "village_taiga"}) {
         auto def = makeJigsawDef(idPath);
         auto result = reg.create("jigsaw", def);
         ASSERT_TRUE(result.success()) << "id=" << idPath;
-        auto* village = dynamic_cast<VillageStructure*>(result.value().get());
-        ASSERT_NE(village, nullptr) << "id=" << idPath << " not a VillageStructure";
-        // 不应为带专属子类的 jigsaw 类型
-        EXPECT_EQ(dynamic_cast<PillagerOutpostStructure*>(result.value().get()), nullptr);
+        auto* structure = result.value().get();
+        ASSERT_NE(dynamic_cast<JigsawStructure*>(structure), nullptr) << "id=" << idPath;
+        // 不应落到任何带专属子类的类型
+        EXPECT_EQ(dynamic_cast<PillagerOutpostStructure*>(structure), nullptr);
+        EXPECT_EQ(dynamic_cast<TrialChambersStructure*>(structure), nullptr);
+        EXPECT_EQ(dynamic_cast<BastionRemnantStructure*>(structure), nullptr);
     }
-
-    // 单独 "village"（无后缀）也应分派到 VillageStructure（默认 Plains）
-    auto def = makeJigsawDef("village");
-    auto result = reg.create("jigsaw", def);
-    ASSERT_TRUE(result.success());
-    EXPECT_NE(dynamic_cast<VillageStructure*>(result.value().get()), nullptr);
 }
 
 TEST_F(StructureTypeRegistryTest, JigsawBareStructureForUnknownId)
@@ -310,7 +305,6 @@ TEST_F(StructureTypeRegistryTest, JigsawBareStructureForUnknownId)
         EXPECT_EQ(dynamic_cast<PillagerOutpostStructure*>(structure.get()), nullptr);
         EXPECT_EQ(dynamic_cast<TrialChambersStructure*>(structure.get()), nullptr);
         EXPECT_EQ(dynamic_cast<BastionRemnantStructure*>(structure.get()), nullptr);
-        EXPECT_EQ(dynamic_cast<VillageStructure*>(structure.get()), nullptr);
     }
 }
 

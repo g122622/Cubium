@@ -23,7 +23,11 @@
 
 package dev.horizonlab.diff;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import net.minecraft.resources.ResourceKey;
+import java.util.stream.Stream;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
@@ -59,9 +63,28 @@ public final class DataPackRegistries {
     /** 合并后的查找视图（带标签）。 */
     public final HolderLookup.Provider lookup;
 
-    private DataPackRegistries(RegistryAccess access, HolderLookup.Provider lookup) {
+    /**
+     * 原版数据包本身。
+     *
+     * 结构模板（`.nbt`）与其它非 JSON 资源不在注册表里，只能按路径从数据包读；
+     * 结构生成的参照实现靠它构造模板管理器。
+     */
+    public final MultiPackResourceManager resourceManager;
+
+    /**
+     * 世界生成层单独加载的那一份注册表。
+     *
+     * 结构生成会从 {@code RegistryAccess} 里反复取模板池、结构处理器等注册表；同步层与
+     * 可重载层都不含它们，只有这份 WORLDGEN 层视图才有。
+     */
+    public final RegistryAccess worldGenAccess;
+
+    private DataPackRegistries(RegistryAccess access, HolderLookup.Provider lookup,
+            MultiPackResourceManager resourceManager, RegistryAccess worldGenAccess) {
         this.access = access;
         this.lookup = lookup;
+        this.resourceManager = resourceManager;
+        this.worldGenAccess = worldGenAccess;
     }
 
     /** 按服务端启动的方式加载原版数据包。只应调用一次。 */
@@ -77,10 +100,20 @@ public final class DataPackRegistries {
         var staticTags = TagLoader.loadTagsForExistingRegistries(resources, layers.getLayer(RegistryLayer.STATIC));
         var context = TagLoader.buildUpdatedLookups(layers.getAccessForLoading(RegistryLayer.WORLDGEN), staticTags);
         RegistryAccess.Frozen world = RegistryDataLoader.load(resources, context, RegistryDataLoader.SYNCHRONIZED_REGISTRIES);
+        // 世界生成层（结构集、模板池……）不在同步层里，要按 WORLDGEN 层单独加载一次；
+        // 可重载层只含战利品、配方等。参照实现会同时用到两层，因此合并成一份查找视图。
+        RegistryAccess.Frozen worldGen =
+                RegistryDataLoader.load(resources, context, RegistryDataLoader.WORLDGEN_REGISTRIES);
         var worldLayers = layers.replaceFrom(RegistryLayer.WORLDGEN, world);
         var reloaded = ReloadableServerRegistries.reload(worldLayers, staticTags, resources, Runnable::run).join();
-        var lookup = reloaded.lookupWithUpdatedTags();
+        var reloadedLookup = reloaded.lookupWithUpdatedTags();
+        var worldGenLookup = TagLoader.buildUpdatedLookups(worldGen, staticTags);
+        Map<ResourceKey<?>, HolderLookup.RegistryLookup<?>> merged = new LinkedHashMap<>();
+        reloadedLookup.listRegistries().forEach(registry -> merged.put(registry.key(), registry));
+        // 世界生成层优先：同一注册表两层都有时，取带世界生成内容的那一份。
+        worldGenLookup.forEach(registry -> merged.put(registry.key(), registry));
+        var lookup = HolderLookup.Provider.create(merged.values().stream());
         staticTags.forEach(Registry.PendingTags::apply);
-        return new DataPackRegistries(reloaded.layers().compositeAccess(), lookup);
+        return new DataPackRegistries(reloaded.layers().compositeAccess(), lookup, resources, worldGen);
     }
 }

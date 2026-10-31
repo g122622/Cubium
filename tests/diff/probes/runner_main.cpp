@@ -50,6 +50,7 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include "common/util/assert/CrashHandler.hpp"
 #include "probe.hpp"
 
 namespace mc::diff {
@@ -129,6 +130,7 @@ int main(int argc, char** argv)
 {
     // stdout 是**协议通道**（list 每行一个单元），任何日志写进去都会被当成数据。
     // 方块注册表初始化会打 info 日志，这里在初始化前就把级别压到 error 及以上。
+    mc::assert::CrashHandler::install();
     spdlog::set_level(spdlog::level::err);
 
     const mc::diff::Probe& probe = mc::diff::currentProbe();

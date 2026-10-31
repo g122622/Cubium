@@ -48,37 +48,34 @@ const BeardifierMarker BeardifierMarker::INSTANCE;
 // ============================================================================
 
 /**
- * MC 1.21.11 预计算 BEARD_KERNEL[24][24][24] 查找表。
+ * @brief BEARD_KERNEL 的第 (dx, dy, dz) 个高斯分量，偏移已限制在核的 24³ 范围内
  *
- * MC Java 的 BEARD_KERNEL 存储布局：
- *   BEARD_KERNEL[i * 24 * 24 + j * 24 + k] = computeBeardContribution(j-12, k-12, i-12)
- * 其中 computeBeardContribution 的第二个参数 (k-12) 获得 +0.5 偏移。
+ * 即 exp(-(dx² + (dy+0.5)² + dz²) / 16)，其中 +0.5 加在 Y 轴（与竖直采样点落在格中心
+ * 的约定一致）。核表与「无表」路径都从这里取值，两条路径因此逐位相同。
+ */
+static f64 kernelGaussian(i32 dx, i32 dy, i32 dz)
+{
+    const f64 adjustedY = static_cast<f64>(dy) + 0.5;
+    const f64 distSq = static_cast<f64>(dx) * dx + adjustedY * adjustedY + static_cast<f64>(dz) * dz;
+    return std::exp(-distSq / 16.0);
+}
+
+/**
+ * @brief 预计算的高斯核查找表（数组是扁平的，按 [[[i]][j]][k] 索引）
  *
- * 在 getBeardContribution 的查找中：
- *   i = dx+12 (X), j = dy+12 (Y), k = dz+12 (Z)
- *   BEARD_KERNEL[k * 24 * 24 + i * 24 + j]  →  [Z+12][X+12][Y+12]
+ * 布局与查找方式必须保持同步：原版按 `BEARD_KERNEL[k * 24 * 24 + i * 24 + j]` 取值，
+ * 其中 i 是 X 偏移、j 是 Y 偏移、k 是 Z 偏移，而填表时写入的是
+ * `kernel[i][j][k] = gaussian(j-12, k-12, i-12)`，两边的轴次序不同；填表必须逐字复刻，
+ * 否则各个偏移会读到别的轴上的值（表现为结构边缘的密度贡献整体对不上）。
  *
- * 因此预计算循环变量映射为：
- *   外循环 i → 对应查找的 k → Z 轴
- *   中循环 j → 对应查找的 i → X 轴
- *   内循环 k → 对应查找的 j → Y 轴
- *
- * MC 的 computeBeardContribution(j-12, k-12, i-12) 对第二个参数 (k-12) +0.5，
- * 即对 Y 轴偏移加 0.5。在内循环变量中 k 对应 Y 轴，因此 +0.5 应加在 dz (=k-12) 上。
+ * 核值是 f32：原版把它存成 float 数组，取值时再拓宽成 double 参与后续乘除。
  */
 static const std::array<f32, 24 * 24 * 24> BEARD_KERNEL = []() {
     std::array<f32, 24 * 24 * 24> kernel{};
     for (i32 i = 0; i < 24; ++i) {
         for (i32 j = 0; j < 24; ++j) {
             for (i32 k = 0; k < 24; ++k) {
-                const i32 dx = j - 12;     // X 偏移（中循环 j → 查找 i → X）
-                const i32 dz_pre = i - 12; // Z 偏移（外循环 i → 查找 k → Z）
-                const i32 dy_pre = k - 12; // Y 偏移（内循环 k → 查找 j → Y）
-                // MC: +0.5 应用于第二个参数 (k-12)，即 Y 轴偏移
-                const f64 adjustedY = static_cast<f64>(dy_pre) + 0.5;
-                const f64 distSq =
-                    static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz_pre * dz_pre);
-                kernel[i * 24 * 24 + j * 24 + k] = static_cast<f32>(std::exp(-distSq / 16.0));
+                kernel[i * 24 * 24 + j * 24 + k] = static_cast<f32>(kernelGaussian(j - 12, k - 12, i - 12));
             }
         }
     }
@@ -107,14 +104,23 @@ Beardifier::Beardifier(std::vector<Rigid> pieces, std::vector<jigsaw::JigsawJunc
     , m_affectedBox(computeAffectedBox())
 {}
 
+Beardifier Beardifier::fromRigidPieces(std::vector<Rigid> pieces,
+    std::vector<jigsaw::JigsawJunction> junctions,
+    std::optional<StructureBoundingBox> affectedBox)
+{
+    Beardifier result(std::move(pieces), std::move(junctions));
+    result.m_affectedBox = std::move(affectedBox);
+    return result;
+}
+
 // ============================================================================
-// Beardifier::compute — MC 1.21 Beardifier.compute
+// Beardifier::compute — 结构地形平滑的密度贡献
 // ============================================================================
 
 f64 Beardifier::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
-    // MC 1.21: affectedBox 早期退出优化
-    // 如果查询点在所有结构的影响范围之外，直接返回 0
+    // affectedBox 早期退出：查询点在所有结构的影响范围之外时直接返回 0。
+    // 包围盒为空（没有任何片段与连接点）同样恒为 0。
     if (m_affectedBox.has_value()) {
         const auto& box = *m_affectedBox;
         if (blockX < box.minX() || blockX > box.maxX() || blockY < box.minY() || blockY > box.maxY() ||
@@ -132,9 +138,10 @@ f64 Beardifier::compute(i32 blockX, i32 blockY, i32 blockZ) const
     for (const auto& rigid : m_pieces) {
         const auto& box = rigid.box;
 
-        // 计算到包围盒边界的距离
+        // 计算到包围盒边界的水平距离（盒内为 0）
         const i32 dx = std::max(0, std::max(box.minX() - blockX, blockX - box.maxX()));
         const i32 dz = std::max(0, std::max(box.minZ() - blockZ, blockZ - box.maxZ()));
+        // 地面线：片段最低点 + 地面高度偏移；查询点相对地面线的竖直偏移就是胡须曲线的基准。
         const i32 baseY = box.minY() + rigid.groundLevelDelta;
         const i32 dy = blockY - baseY;
 
@@ -148,17 +155,23 @@ f64 Beardifier::compute(i32 blockX, i32 blockY, i32 blockZ) const
 
             case TerrainAdaptation::BeardThin:
             case TerrainAdaptation::BeardBox: {
-                const i32 i2 = (rigid.terrainAdaptation == TerrainAdaptation::BeardBox)
+                // 核的竖直偏移：薄胡须直接用查询点相对地面线的偏移；方盒胡须用「地面线」
+                // 与包围盒顶部构成竖直范围，盒外只按超出该范围的那部分计。下限取地面线
+                // （包围盒最低点 + 地面高度偏移）而非包围盒最低点本身，两者相差
+                // groundLevelDelta。
+                const i32 vertical = (rigid.terrainAdaptation == TerrainAdaptation::BeardBox)
                     ? std::max(0, std::max(baseY - blockY, blockY - box.maxY()))
                     : dy;
-                d0 += getBeardContribution(dx, i2, dz, dy) * 0.8;
+                d0 += getBeardContribution(dx, vertical, dz, dy) * 0.8;
                 break;
             }
 
             case TerrainAdaptation::Encapsulate: {
-                const i32 i2 = std::max(0, std::max(box.minY() - blockY, blockY - box.maxY()));
+                // 完全包裹：以包围盒自身的竖直范围（不含地面高度偏移）算竖直偏移，
+                // 再按半分辨率做埋入衰减。
+                const i32 vertical = std::max(0, std::max(box.minY() - blockY, blockY - box.maxY()));
                 d0 += getBuryContribution(
-                          static_cast<f64>(dx) / 2.0, static_cast<f64>(i2) / 2.0, static_cast<f64>(dz) / 2.0) *
+                          static_cast<f64>(dx) / 2.0, static_cast<f64>(vertical) / 2.0, static_cast<f64>(dz) / 2.0) *
                     0.8;
                 break;
             }
@@ -182,23 +195,27 @@ f64 Beardifier::compute(i32 blockX, i32 blockY, i32 blockZ) const
 
 f64 Beardifier::getBeardContribution(i32 dx, i32 dy, i32 dz, i32 baseDy)
 {
-    // MC 1.21: Beardifier.getBeardContribution(dx, dy, dz, baseDy)
-    //
     // 使用 BEARD_KERNEL 查找高斯分量（以 dy 为 Y 索引），
     // 然后乘以 beard 因子（以 baseDy 计算）。
     //
     // 核查找范围: dx, dy, dz 都在 [-12, 11] 时直接查表，
     // 否则返回 0.0（BeardThin/BeardBox 模式下核值在范围外衰减为 0）。
     //
-    // MC Java 逻辑:
     //   i = dx + 12, j = dy + 12, k = dz + 12
     //   if (isInKernelRange(i) && isInKernelRange(j) && isInKernelRange(k)):
     //     d0 = baseDy + 0.5
     //     d1 = lengthSquared(dx, d0, dz)
-    //     d2 = -d0 * fastInvSqrt(d1 / 2.0) / 2.0
+    //     d2 = -d0 * invSqrt(d1 / 2.0) / 2.0
     //     return d2 * BEARD_KERNEL[k * 24 * 24 + i * 24 + j]
     //   else:
     //     return 0.0
+    //
+    // invSqrt 这一项是 Mth.fastInvSqrt：一次位模式初猜 + 一次牛顿迭代的近似，相对误差约
+    // 1e-4 量级，**不是**正确舍入的 1/sqrt。原版用近似值参与乘除、结果全程是 f64，
+    // 不能换成精确逆平方根——两者在结构边缘的贡献上会相差千分之一量级。
+    //
+    // 注意 d1 里的 0.5 是核中心在 Y 方向的半个格偏移，与核表无关：核表查的是 dy 处的
+    // 高斯分量，beard 因子才用 baseDy 计算。两者在 BeardThin 下相同，在 BeardBox 下不同。
 
     const i32 i = dx + 12;
     const i32 j = dy + 12;
@@ -206,9 +223,9 @@ f64 Beardifier::getBeardContribution(i32 dx, i32 dy, i32 dz, i32 baseDy)
 
     if (i >= 0 && i < 24 && j >= 0 && j < 24 && k >= 0 && k < 24) {
         const f64 adjustedY = static_cast<f64>(baseDy) + 0.5;
-        const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
+        const f64 distSq = static_cast<f64>(dx) * dx + adjustedY * adjustedY + static_cast<f64>(dz) * dz;
         const f64 gaussian = static_cast<f64>(BEARD_KERNEL[static_cast<size_t>(k * 24 * 24 + i * 24 + j)]);
-        const f64 beard = -adjustedY * math::fastInverseSqrt(static_cast<f32>(distSq / 2.0)) / 2.0;
+        const f64 beard = -adjustedY * math::fastInvSqrt(distSq / 2.0) / 2.0;
         return beard * gaussian;
     }
 
@@ -228,17 +245,6 @@ f64 Beardifier::getBuryContribution(f64 dx, f64 dy, f64 dz)
         return 1.0;
     }
     return (6.0 - distance) / 6.0;
-}
-
-f64 Beardifier::computeBeardContribution(i32 dx, i32 dy, i32 dz)
-{
-    // MC 1.21: Beardifier.computeBeardContribution(dx, dy, dz)
-    // computeBeardContribution(i32, i32, i32) 调用 computeBeardContribution(i32, f64, i32)
-    // 对第二个参数（Y 轴）加 0.5
-    // 注意：此方法现在仅作为备用，BEARD_KERNEL 已直接在初始化时计算。
-    const f64 adjustedY = static_cast<f64>(dy) + 0.5;
-    const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
-    return std::exp(-distSq / 16.0);
 }
 
 // ============================================================================

@@ -114,6 +114,17 @@ public:
         return true;
     }
 
+    /**
+     * @brief 片段来源的模板（或地物）标识
+     *
+     * 仅用于诊断与差分：只比包围盒无法区分"装配选错了模板"与"摆放位置有偏差"。
+     * 地物池元素没有模板文件，其标识取被放置的地物 id。
+     */
+    [[nodiscard]] std::string_view templateLocation() const noexcept override
+    {
+        return m_placed.piece ? std::string_view(m_placed.piece->getName()) : std::string_view();
+    }
+
     [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
     {
         return (m_placed.projection == mc::world::gen::jigsaw::JigsawPlacementBehaviour::TerrainMatching)
@@ -225,6 +236,11 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     //   缺省时 JigsawAssembler 内部使用 MC 默认值 MaxDistance(80)。
     const structure::MaxDistance* maxDistance =
         m_config.maxDistanceFromCenter.has_value() ? &(*m_config.maxDistanceFromCenter) : nullptr;
+
+    // 装配先于群系校验：候选生成点（起始块中心 + 投影后的地面线）只有抽出起始块之后才知道，
+    // JigsawAssembler 内部按"先起始旋转、后起始块"的顺序消耗随机数，外部无法重复这些抽取。
+    // 因此只能整体装配完再按候选点校验（对齐原版 Structure.findValidGenerationPoint），
+    // 校验不通过时丢弃已装配的构件——已消耗的随机数与装配结果都不再回滚，与原版一致。
     auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry,
         *startPool,
         m_config.size,
@@ -236,6 +252,19 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
         aliases,
         maxDistance,
         &m_config.dimensionPadding);
+
+    // 生物群系校验：采样原版候选生成点。原版 GenerationStub 的位置是
+    // `startPos.offset(0, groundLevelDelta - 1, 0)`——起始块投影后的地面线（包围盒最低面）
+    // 而非装配后整个结构的中心。装配后的整体包围盒被所有向外延伸的构件撑大，中心会偏离
+    // 起始块几十格，在群系边界处给出与原版相反的结论（例如整座古代城市被误判淘汰）。
+    if (!placedPieces.empty()) {
+        const auto& startBox = placedPieces.front().boundingBox;
+        const BlockPos candidatePoint(
+            (startBox.minX() + startBox.maxX()) / 2, startBox.minY(), (startBox.minZ() + startBox.maxZ()) / 2);
+        if (!isValidBiomeAt(generator, candidatePoint)) {
+            return start;
+        }
+    }
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // MC 1.21.11: 结构起点只创建片段，不写入方块

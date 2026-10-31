@@ -637,7 +637,7 @@ i32 EnchantmentHelper::calcItemStackEnchantability(
 }
 
 std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmentDatas(
-    i32 level, const ItemStack& stack, bool allowTreasure)
+    i32 level, const ItemStack& stack, bool allowTreasure, const std::vector<std::string>* allowedEnchantments)
 {
 
     std::vector<EnchantmentData> result;
@@ -653,8 +653,32 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmen
 
     bool isBook = item == Items::BOOK;
 
-    // 遍历所有注册的附魔
-    for (const auto& [id, enchantment] : EnchantmentRegistry::all()) {
+    // 附魔池为空时没有可选项（原版 `HolderSet` 为空即空集合，不是"全部"）。
+    if (allowedEnchantments != nullptr && allowedEnchantments->empty()) {
+        return result;
+    }
+
+    // 遍历附魔池。给了池子就按池子里的 id 顺序（调用方已排序，保证可复现）；
+    // 没给就按注册表的遍历顺序——原版这里是附魔注册表的顺序。
+    std::vector<std::pair<std::string, const Enchantment*>> candidates;
+    if (allowedEnchantments != nullptr) {
+        candidates.reserve(allowedEnchantments->size());
+        for (const auto& enchantmentId : *allowedEnchantments) {
+            if (const Enchantment* enchantment = EnchantmentRegistry::get(enchantmentId); enchantment != nullptr) {
+                candidates.emplace_back(enchantmentId, enchantment);
+            }
+        }
+    } else {
+        // 无池子时也必须用注册顺序：`all()` 是哈希表，遍历顺序与 vanilla 注册表不同，
+        // 会让"按下标抽"的结果整体错位（村民交易、战利品、附魔台都受影响）。
+        for (const auto* enchantment : EnchantmentRegistry::allInRegistrationOrder()) {
+            if (enchantment != nullptr) {
+                candidates.emplace_back(enchantment->id(), enchantment);
+            }
+        }
+    }
+
+    for (const auto& [id, enchantment] : candidates) {
         if (enchantment == nullptr) {
             continue;
         }
@@ -683,7 +707,7 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmen
             i32 maxCost = enchantment->getMaxEnchantability(lvl);
 
             if (level >= minCost && level <= maxCost) {
-                result.emplace_back(enchantment.get(), lvl);
+                result.emplace_back(enchantment, lvl);
                 break; // 只添加最高有效等级
             }
         }
@@ -692,8 +716,11 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmen
     return result;
 }
 
-std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantmentList(
-    math::IRandom& random, const ItemStack& stack, i32 level, bool allowTreasure)
+std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantmentList(math::IRandom& random,
+    const ItemStack& stack,
+    i32 level,
+    bool allowTreasure,
+    const std::vector<std::string>* allowedEnchantments)
 {
 
     std::vector<EnchantmentData> result;
@@ -712,16 +739,18 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantm
         return result;
     }
 
-    // MC 1.16.5: 等级调整
-    // level = level + 1 + rand(enchantability/4+1) + rand(enchantability/4+1)
+    // 对应 1.21.11 `EnchantmentHelper.selectEnchantment` 的等级调整：
+    //   cost += 1 + nextInt(enchantability/4+1) + nextInt(enchantability/4+1)
+    //   f = (nextFloat() + nextFloat() - 1) * 0.15
+    //   cost = clamp(round(cost + cost * f), 1, MAX_INT)
     level = level + 1 + random.nextInt(enchantability / 4 + 1) + random.nextInt(enchantability / 4 + 1);
 
-    // 随机波动 -15% 到 +15%
-    f32 f = (random.nextFloat() + random.nextFloat() - 1.0f) * 0.15f;
-    level = std::max(1, static_cast<i32>(level + level * f));
+    // 随机波动 -15% 到 +15%；原版用 Math.round（.5 向上），不是截断。
+    const f32 f = (random.nextFloat() + random.nextFloat() - 1.0f) * 0.15f;
+    level = std::max(1, static_cast<i32>(std::lround(static_cast<f64>(level) * (1.0 + static_cast<f64>(f)))));
 
     // 获取可用附魔列表
-    std::vector<EnchantmentData> available = getEnchantmentDatas(level, stack, allowTreasure);
+    std::vector<EnchantmentData> available = getEnchantmentDatas(level, stack, allowTreasure, allowedEnchantments);
 
     if (available.empty()) {
         return result;
@@ -734,8 +763,9 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantm
     }
     result.push_back(firstEnchant);
 
-    // 后续附魔：概率 = level/50
-    while (random.nextInt(50) < level) {
+    // 后续附魔：`while (nextInt(50) <= cost)`——原版是「小于等于」，且每轮必然折半。
+    // 1.16.5 的写法是 `< cost` 且只在成功追加时折半，会让整个随机数序列与原版错位。
+    while (random.nextInt(50) <= level) {
         // 移除与已选附魔不兼容的
         removeIncompatible(available, result.back().enchantment);
 
@@ -802,7 +832,11 @@ EnchantmentHelper::EnchantmentData EnchantmentHelper::getRandomEnchantment(
     return list.back();
 }
 
-ItemStack EnchantmentHelper::addRandomEnchantment(math::IRandom& random, ItemStack stack, i32 level, bool allowTreasure)
+ItemStack EnchantmentHelper::addRandomEnchantment(math::IRandom& random,
+    ItemStack stack,
+    i32 level,
+    bool allowTreasure,
+    const std::vector<std::string>* allowedEnchantments)
 {
     if (stack.isEmpty()) {
         return stack;
@@ -810,7 +844,8 @@ ItemStack EnchantmentHelper::addRandomEnchantment(math::IRandom& random, ItemSta
 
     // MC 1.16.5: EnchantmentHelper.addRandomEnchantment
     // 生成附魔列表
-    std::vector<EnchantmentData> enchantments = buildEnchantmentList(random, stack, level, allowTreasure);
+    std::vector<EnchantmentData> enchantments =
+        buildEnchantmentList(random, stack, level, allowTreasure, allowedEnchantments);
 
     if (enchantments.empty()) {
         return stack;

@@ -45,6 +45,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/color/DyedItemColor.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -54,6 +55,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <optional>
 #include <string>
@@ -74,6 +76,9 @@ namespace {
  *
  * 原版交易条目几乎都以这几个字面量构造，集中命名避免同类数字散落。
  */
+/// 每个等级最多生成几条交易（原版 Villager.updateTrades 传 2）
+constexpr i32 MAX_OFFERS_PER_LEVEL = 2;
+
 constexpr i32 DEFAULT_SUPPLY = 12;
 constexpr i32 COMMON_ITEMS_SUPPLY = 16;
 constexpr i32 XP_LEVEL_1_SELL = 1;
@@ -133,11 +138,170 @@ ItemCost _emeralds(i32 count)
     return ItemCost(ItemStack(*emerald, count), count);
 }
 
+// ========== 条目数据导出（供 TradeListing::describe 使用） ==========
+//
+// 这些函数只在差分测试读取交易表时被调用，生产路径不经过它们：把「静态字段」的
+// 拼装集中在一处，条目类只需回答"我的静态字段有哪些"。
+
+/**
+ * @brief 物品 id（空堆返回空串）
+ * @param stack 物品堆
+ * @return 资源位置字符串
+ */
+std::string _itemId(const ItemStack& stack)
+{
+    if (stack.isEmpty() || stack.getItem() == nullptr) {
+        return {};
+    }
+    return stack.getItem()->toString();
+}
+
+/**
+ * @brief 支付代价摘要
+ * @param cost 支付代价
+ * @return `{item, count}`
+ */
+nlohmann::json _summariseCost(const ItemCost& cost)
+{
+    return nlohmann::json{{"item", _itemId(cost.templateStack())}, {"count", cost.count()}};
+}
+
+/**
+ * @brief 成交物摘要的公共部分
+ * @param stack 成交物模板
+ * @return `{item, count}`
+ */
+nlohmann::json _summariseStack(const ItemStack& stack)
+{
+    return nlohmann::json{{"item", _itemId(stack)}, {"count", stack.getCount()}};
+}
+
+/// 全部村民类型的枚举顺序（导出 TypeSpecificListing 时按此顺序枚举，与原版一致）。
+constexpr entity::VillagerType ALL_VILLAGER_TYPES[] = {entity::VillagerType::Desert,
+    entity::VillagerType::Jungle,
+    entity::VillagerType::Plains,
+    entity::VillagerType::Savanna,
+    entity::VillagerType::Snow,
+    entity::VillagerType::Swamp,
+    entity::VillagerType::Taiga};
+
+/**
+ * @brief 村民类型的资源位置
+ * @param type 村民类型
+ * @return `minecraft:xxx`
+ */
+std::string villagerTypeId(entity::VillagerType type)
+{
+    switch (type) {
+        case entity::VillagerType::Desert:
+            return "minecraft:desert";
+        case entity::VillagerType::Jungle:
+            return "minecraft:jungle";
+        case entity::VillagerType::Plains:
+            return "minecraft:plains";
+        case entity::VillagerType::Savanna:
+            return "minecraft:savanna";
+        case entity::VillagerType::Snow:
+            return "minecraft:snow";
+        case entity::VillagerType::Swamp:
+            return "minecraft:swamp";
+        case entity::VillagerType::Taiga:
+            return "minecraft:taiga";
+    }
+    return {};
+}
+
+/**
+ * @brief 固定字段条目的公共描述
+ * @param buyA 第一支付的摘要
+ * @param sell 成交物摘要（至少含 `item`）
+ * @param maxUses 最大使用次数
+ * @param xp 经验
+ * @param priceMultiplier 价格乘数
+ * @return 条目描述对象
+ */
+nlohmann::json describeFixed(nlohmann::json buyA, nlohmann::json sell, i32 maxUses, i32 xp, f32 priceMultiplier)
+{
+    nlohmann::json result = nlohmann::json::object();
+    result["buyA"] = std::move(buyA);
+    result["sell"] = std::move(sell);
+    result["maxUses"] = maxUses;
+    result["xp"] = xp;
+    // 价格乘数按 f32 提升到 f64 输出：原版 oracle 侧读到的就是这个值，
+    // 两侧用同一表示，避免 0.05f 的最短十进制表示（0.05）与提升后的值
+    // （0.05000000074505806）被当成差异。
+    result["priceMultiplier"] = static_cast<double>(priceMultiplier);
+    return result;
+}
+
+/**
+ * @brief 确定性随机源：所有取数方法都返回 0
+ *
+ * 差分测试导出交易表时用它在条目上"重放一次"，使随机量（附魔等级、染料颜色）固定为
+ * 下界。原版 oracle 用 `RandomSource.create(0L)` 做同样的事，两侧结果直接可比；
+ * 条目里的价格公式若写错，重放结果会立刻偏离。
+ */
+class ZeroRandom final : public TradeRandomSource {
+public:
+    void setSeed(u64) override {}
+
+    [[nodiscard]] u64 nextU64() override
+    {
+        return 0;
+    }
+
+    /// 恒返回区间下界：标准库重载把 `nextInt(bound)` 实现为 `nextU32() % bound`，
+    /// 而 `nextU32()` 默认取 `nextU64()` 的高 32 位（同样为 0），结果一致。
+    [[nodiscard]] i32 nextInt(i32) override
+    {
+        return 0;
+    }
+
+    [[nodiscard]] i32 nextInt(i32 min, i32) override
+    {
+        return min;
+    }
+
+    [[nodiscard]] f32 nextFloat() override
+    {
+        return 0.0f;
+    }
+
+    [[nodiscard]] math::PositionalRandomFactory forkPositional() override
+    {
+        return math::PositionalRandomFactory(u64{0});
+    }
+};
+
+/**
+ * @brief 由一次重放结果拼装条目描述（供可变条目使用）
+ * @param offer 重放得到的交易
+ * @param sell 成交物摘要（已按需要剥掉随机部分）
+ * @return 条目描述对象
+ */
+nlohmann::json describeOffer(const MerchantOffer& offer, nlohmann::json sell)
+{
+    return describeFixed(_summariseCost(offer.getCostA()),
+        std::move(sell),
+        offer.getMaxUses(),
+        offer.getXp(),
+        offer.getPriceMultiplier());
+}
+
 /**
  * @brief 交易上下文中的随机源访问
  *
- * 有世界时使用世界随机流（与村民 tick 共享，重放一致）；离线场景回退到由种子
- * 构造的独立随机树。每条交易条目生成前都会 fork 一次，互不干扰。
+ * 有世界时使用世界随机流（与村民 tick 共享，重放一致）；离线场景回退到由种子构造的
+ * 独立随机树。
+ *
+ * 【一条流贯穿整批】原版 `AbstractVillager.addOffersFromItemListings` 把**同一个**
+ * `RandomSource` 既用于"抽哪一条"、又传给条目自身的 `getOffer`，所以"抽中哪条"与
+ * "条目内部抽到什么"共享同一条序列。这里保持同样的语义：整批交易只用一条流，
+ * 不再为每条派生独立子流（派生会让两段随机互相独立，与原版错位）。
+ *
+ * 【离线算法】离线流用 `JavaLegacyRandom`（Java 的 48 位 LCG），对应原版
+ * `RandomSource.create(seed)` → `LegacyRandomSource`。项目内另有 Xoroshiro 实现，
+ * 但原版只有 `createThreadLocalInstance` 等路径才用它，与"以种子建交易流"无关。
  */
 class RandomSourceView {
 public:
@@ -150,23 +314,29 @@ public:
     {}
 
     /**
-     * @brief 获取本次交易条目专属的随机流
-     * @return 随机流（生命周期覆盖单次 getOffer 调用）
+     * @brief 获取整批交易共用的随机流
+     * @return 随机流
      */
     [[nodiscard]] TradeRandomSource& next()
     {
         if (m_ctx.world != nullptr) {
             return m_ctx.world->getRandom();
         }
-        // 离线：以 (种子, 序号) 构造独立随机树，保证同一上下文的多次生成可复现且互不相同
-        m_offline.emplace(m_ctx.traderSeed + m_ctx.sequence * 0x9E3779B97F4A7C15ULL + m_index++);
+        // 离线：对应原版 `RandomSource.create(seed)`，它构造的是 **LegacyRandomSource**
+        // （Java 的 48 位 LCG），不是 Xoroshiro。用 Xoroshiro 会让整条随机序列与原版不同，
+        // 同一 seed 下抽到的条目、条目内部抽到的附魔等级都会整体错位。
+        //
+        // 也不再叠加序号：原版就是"以某个种子建一条流"，需要区分批次时由调用方给不同的
+        // traderSeed（服务端用「世界种子 + 实体 id」派生，与这里无关）。
+        if (!m_offline.has_value()) {
+            m_offline.emplace(m_ctx.traderSeed);
+        }
         return *m_offline;
     }
 
 private:
     const TradeContext& m_ctx;
-    std::optional<TradeRandom> m_offline;
-    u64 m_index = 0;
+    std::optional<math::JavaLegacyRandom> m_offline;
 };
 
 /**
@@ -195,12 +365,30 @@ public:
         return std::make_unique<MerchantOffer>(m_costA, m_sell.copy(), m_maxUses, m_xp, m_priceMultiplier);
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        return describeFixed(_summariseCost(m_costA), _summariseStack(m_sell), m_maxUses, m_xp, m_priceMultiplier);
+    }
+
 private:
     ItemCost m_costA;
     ItemStack m_sell;
     i32 m_maxUses;
     i32 m_xp;
     f32 m_priceMultiplier;
+
+public:
+    /**
+     * @brief 条目种类名（原版把这两种形态分成 `EmeraldForItems` 与 `ItemsForEmeralds`）
+     *
+     * 项目用同一个类承载两者，按「成交物是否为绿宝石」区分：卖绿宝石的是收购型条目，
+     * 其余是出售型条目。
+     */
+    [[nodiscard]] const char* describeType() const override
+    {
+        return _itemId(m_sell) == "minecraft:emerald" ? "EmeraldForItems" : "ItemsForEmeralds";
+    }
 };
 
 /**
@@ -233,6 +421,17 @@ public:
             _emeralds(m_emeraldCost), m_fromItem, m_toItem.copy(), m_maxUses, m_xp, m_priceMultiplier);
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        nlohmann::json result = describeFixed(
+            _summariseCost(_emeralds(m_emeraldCost)), _summariseStack(m_toItem), m_maxUses, m_xp, m_priceMultiplier);
+        if (m_fromItem.has_value()) {
+            result["buyB"] = _summariseCost(*m_fromItem);
+        }
+        return result;
+    }
+
 private:
     i32 m_emeraldCost;
     std::optional<ItemCost> m_fromItem;
@@ -240,6 +439,12 @@ private:
     i32 m_maxUses;
     i32 m_xp;
     f32 m_priceMultiplier;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return "ItemsAndEmeraldsToItems";
+    }
 };
 
 /**
@@ -253,9 +458,13 @@ public:
     /**
      * @brief 构造
      * @param listings 村民类型 → 条目
+     * @param kind 条目种类名（差分测试用）：原版把「按类型给不同物品」拆成
+     *        `TypeSpecificTrade`（给整条交易）与 `EmeraldsForVillagerTypeItem`（只给物品）两族
      */
-    explicit TypeSpecificListing(std::unordered_map<entity::VillagerType, std::shared_ptr<TradeListing>> listings)
+    explicit TypeSpecificListing(std::unordered_map<entity::VillagerType, std::shared_ptr<TradeListing>> listings,
+        const char* kind = "TypeSpecificTrade")
         : m_listings(std::move(listings))
+        , m_kind(kind)
     {}
 
     [[nodiscard]] std::unique_ptr<MerchantOffer> getOffer(
@@ -272,8 +481,33 @@ public:
         return found->second->getOffer(ctx, random);
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        // 原版 TypeSpecificTrade 记录的是一张「村民类型 → 条目」表；导出为有序数组
+        // （按 `VillagerType` 枚举顺序），与 oracle 侧枚举 7 种类型的顺序一致。
+        nlohmann::json byType = nlohmann::json::array();
+        for (entity::VillagerType type : ALL_VILLAGER_TYPES) {
+            auto found = m_listings.find(type);
+            if (found == m_listings.end() || found->second == nullptr) {
+                continue;
+            }
+            nlohmann::json entry = found->second->describe(deterministicRandom, ctx);
+            entry["type"] = found->second->describeType();
+            byType.push_back(nlohmann::json{{"type", villagerTypeId(type)}, {"listing", std::move(entry)}});
+        }
+        return nlohmann::json{{"byType", std::move(byType)}};
+    }
+
 private:
     std::unordered_map<entity::VillagerType, std::shared_ptr<TradeListing>> m_listings;
+    const char* m_kind;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return m_kind;
+    }
 };
 
 /**
@@ -299,13 +533,38 @@ public:
         , m_priceMultiplier(priceMultiplier)
     {}
 
-    [[nodiscard]] std::unique_ptr<MerchantOffer> getOffer(const TradeContext&, TradeRandomSource& random) const override
+    [[nodiscard]] std::unique_ptr<MerchantOffer> getOffer(
+        const TradeContext& ctx, TradeRandomSource& random) const override
     {
         const i32 level = 5 + random.nextInt(15);
         ItemStack stack = _stackOf(m_item, 1);
-        stack = item::enchant::EnchantmentHelper::addRandomEnchantment(random, stack, level, false);
+        // 原版只从 `ON_TRADED_EQUIPMENT` 标签的附魔里挑（如锋利、保护），不会出现
+        // "钻石护腿附锋利"这种物品本身不支持的附魔。标签由调用方注入。
+        std::vector<std::string> allowed;
+        if (ctx.enchantmentTags) {
+            // 保留标签自身的声明顺序：候选列表按下标抽取（与原版 `getRandomElementOf` 一致），
+            // 排序会让同一个随机数抽到别的附魔。
+            allowed = ctx.enchantmentTags(ResourceLocation("minecraft:on_traded_equipment"));
+        }
+        stack = item::enchant::EnchantmentHelper::addRandomEnchantment(random, stack, level, false, &allowed);
         const i32 cost = std::min(m_baseEmeraldCost + level, 64);
         return std::make_unique<MerchantOffer>(_emeralds(cost), stack, m_maxUses, m_xp, m_priceMultiplier);
+    }
+
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        // 价格与附魔随随机数变化：用确定性随机源重放一次 getOffer。
+        //
+        // 原版 `EnchantedItemForEmeralds.getOffer` 以 `5 + random.nextInt(15)` 作为附魔等级，
+        // 价格 = min(基础价格 + 该等级, 64)。随机数恒为 0 时等级恰为 5、价格 = 基础 + 5；
+        // oracle 侧用 `RandomSource.create(0L)` 做同样的事，两侧结果可直接比对，
+        // 基础价格写错会立刻显现。附魔内容本身随机，只导出"附魔池"标签。
+        ZeroRandom random;
+        auto offer = getOffer(ctx, random);
+        nlohmann::json sell = _summariseStack(_stackOf(m_item, 1));
+        sell["enchantmentTag"] = std::string("minecraft:on_traded_equipment");
+        return describeOffer(*offer, std::move(sell));
     }
 
 private:
@@ -314,6 +573,12 @@ private:
     i32 m_maxUses;
     i32 m_xp;
     f32 m_priceMultiplier;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return "EnchantedItemForEmeralds";
+    }
 };
 
 /**
@@ -327,41 +592,63 @@ public:
     /**
      * @brief 构造
      * @param xp 经验
+     * @param enchantmentTag 附魔标签（不含 `#` 前缀与命名空间，例如 `tradeable`）
+     * @param minLevel 附魔等级下界（0 表示不限）
+     * @param maxLevel 附魔等级上界（0 表示不限）
      */
-    explicit EnchantBookListing(i32 xp)
+    EnchantBookListing(i32 xp, std::string enchantmentTag = "tradeable", i32 minLevel = 0, i32 maxLevel = 0)
         : m_xp(xp)
+        , m_enchantmentTag(std::move(enchantmentTag))
+        , m_minLevel(minLevel)
+        , m_maxLevel(maxLevel)
     {}
 
-    [[nodiscard]] std::unique_ptr<MerchantOffer> getOffer(const TradeContext&, TradeRandomSource& random) const override
+    [[nodiscard]] std::unique_ptr<MerchantOffer> getOffer(
+        const TradeContext& ctx, TradeRandomSource& random) const override
     {
-        // 收集所有允许出现在交易中的附魔（对齐 TRADEABLE 标签：宝藏附魔不出现）
+        // 附魔池来自数据包标签（普通村民 `tradeable`，沼泽/针叶林专用村民各有一个专用标签），
+        // 与原版 `getRandomElementOf(TagKey)` 一致：只在该标签的成员里均匀抽取。
         std::vector<const item::enchant::Enchantment*> candidates;
-        for (const auto& [id, enchantment] : item::enchant::EnchantmentRegistry::all()) {
-            if (enchantment != nullptr && enchantment->canVillagerTrade()) {
-                candidates.push_back(enchantment.get());
+        if (ctx.enchantmentTags) {
+            // 原版 `getRandomElementOf(TagKey)` 的下标落在**标签内容列表**上，该列表按附魔注册表
+            // 的 holder 顺序生成（实测：protection、fire_protection……mending，与项目注册顺序一致）。
+            // 因此候选顺序必须是注册顺序——不能按 id 排序，也不能用标签解析器返回的任意顺序
+            // （哈希表遍历顺序不稳定）。排序会让 nextInt(size) 抽到别的附魔。
+            std::vector<std::string> members = ctx.enchantmentTags(ResourceLocation("minecraft:" + m_enchantmentTag));
+            const auto contains = [&members](const std::string& id) {
+                return std::find(members.begin(), members.end(), id) != members.end();
+            };
+            for (const auto* enchantment : item::enchant::EnchantmentRegistry::allInRegistrationOrder()) {
+                if (enchantment != nullptr && contains(enchantment->id())) {
+                    candidates.push_back(enchantment);
+                }
             }
         }
 
         const Item* book = _item("minecraft:book");
-        const Item* emerald = _item("minecraft:emerald");
-        MC_ASSERT_RELEASE(book != nullptr && emerald != nullptr);
+        MC_ASSERT_RELEASE(book != nullptr);
 
         ItemStack itemStack;
         i32 price = 1;
         if (!candidates.empty()) {
+            // 原版 `getRandomElementOf` 均匀抽取（不是按权重），与这里一致。
             const auto& enchantment =
                 *candidates[static_cast<size_t>(random.nextInt(static_cast<i32>(candidates.size())))];
-            const i32 minLevel = enchantment.minLevel();
-            const i32 maxLevel = enchantment.maxLevel();
+            const i32 minLevel = std::max(enchantment.minLevel(), m_minLevel);
+            const i32 maxLevel =
+                m_maxLevel <= 0 ? enchantment.maxLevel() : std::min(enchantment.maxLevel(), m_maxLevel);
             const i32 level = minLevel >= maxLevel ? minLevel : random.nextInt(minLevel, maxLevel);
 
             itemStack = ItemStack(*_item("minecraft:enchanted_book"), 1);
             item::items::EnchantedBookItem::addEnchantment(itemStack, enchantment, level);
 
             price = 2 + random.nextInt(5 + level * 10) + 3 * level;
-            // 双倍价格：交易表中的该类附魔（如经验修补）翻倍
-            if (enchantment.canVillagerTrade() && enchantment.isTreasure()) {
-                price *= 2;
+            // 双倍价格：原版按 `DOUBLE_TRADE_PRICE` 标签判定（例如经验修补）
+            if (ctx.enchantmentTags) {
+                const auto doublePrice = ctx.enchantmentTags(ResourceLocation("minecraft:double_trade_price"));
+                if (std::find(doublePrice.begin(), doublePrice.end(), enchantment.id()) != doublePrice.end()) {
+                    price *= 2;
+                }
             }
             price = std::min(price, 64);
         } else {
@@ -372,8 +659,40 @@ public:
             _emeralds(price), ItemCost(ItemStack(*book, 1)), itemStack, 12, m_xp, HIGH_TIER_PRICE_MULTIPLIER);
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        // 附魔内容与价格都随随机数变化：用确定性随机源重放一次 getOffer。
+        // TODO: 这里不带 TradeContext，附魔池解析器为空 → 只能导出"卖普通书"的价格。
+        //   待 TradeListing::describe 增加上下文参数后再导出真实附魔池与价格，见
+        //   VillagerTrades::describeTrades 的说明。
+        ZeroRandom random;
+        auto offer = getOffer(ctx, random);
+        nlohmann::json sell = nlohmann::json{{"item", std::string("minecraft:enchanted_book")},
+            {"count", 1},
+            {"enchantmentTag", "minecraft:" + m_enchantmentTag},
+            {"minLevel", m_minLevel},
+            {"maxLevel", m_maxLevel}};
+        nlohmann::json result = describeOffer(*offer, std::move(sell));
+        // 第一支付（成交价）完全取决于随机抽中的附魔与等级，不承载表数据；
+        // 静态部分是「第二支付恒为 1 本书」与上面的附魔池 + 等级区间。
+        // 成交价的正确性由 gen 层验证。
+        result.erase("buyA");
+        result["buyB"] = _summariseCost(ItemCost(_stackOf(_item("minecraft:book"), 1)));
+        return result;
+    }
+
 private:
     i32 m_xp;
+    std::string m_enchantmentTag;
+    i32 m_minLevel;
+    i32 m_maxLevel;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return "EnchantBookForEmeralds";
+    }
 };
 
 /**
@@ -418,6 +737,16 @@ public:
             _emeralds(m_emeraldCost), stack, m_maxUses, m_xp, HIGH_TIER_PRICE_MULTIPLIER);
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        // 颜色随机（1~3 种染料混合），静态部分只有物品与价格。
+        nlohmann::json sell = _summariseStack(_stackOf(m_item, 1));
+        sell["dyed"] = true;
+        return describeFixed(
+            _summariseCost(_emeralds(m_emeraldCost)), std::move(sell), m_maxUses, m_xp, HIGH_TIER_PRICE_MULTIPLIER);
+    }
+
 private:
     /**
      * @brief 随机取一种染料的纹理漫反射色
@@ -434,6 +763,12 @@ private:
     i32 m_emeraldCost;
     i32 m_maxUses;
     i32 m_xp;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return "DyedArmorForEmeralds";
+    }
 };
 
 /**
@@ -464,10 +799,25 @@ public:
         return std::make_unique<MerchantOffer>(_emeralds(1), stack, 12, m_xp, LOW_TIER_PRICE_MULTIPLIER);
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        nlohmann::json sell = nlohmann::json{{"item", std::string("minecraft:suspicious_stew")},
+            {"count", 1},
+            {"effect", entity::effect::getEffectResourceLocation(m_effectType).toString()}};
+        return describeFixed(_summariseCost(_emeralds(1)), std::move(sell), 12, m_xp, LOW_TIER_PRICE_MULTIPLIER);
+    }
+
 private:
     entity::effect::EffectType m_effectType;
     i32 m_duration;
     i32 m_xp;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return "SuspiciousStewForEmerald";
+    }
 };
 
 /**
@@ -532,6 +882,21 @@ public:
         return nullptr;
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        // TODO: 地图创建落地后，成交物应导出带 `treasureMap` 目标结构标签与装饰类型的
+        //   filled_map；当前生产路径恒返回空交易（见 getOffer 的 TODO），导出值只用于
+        //   比对"这张表里登记了哪些地图条目"，不能让地图类条目通过一致性判定。
+        nlohmann::json sell = nlohmann::json{{"item", std::string("minecraft:filled_map")},
+            {"count", 1},
+            {"targetTag", m_structureTag.toString()},
+            {"displayName", std::string(m_displayNameKey != nullptr ? m_displayNameKey : "")},
+            {"decorationType", std::string(m_decoration.id != nullptr ? m_decoration.id : "")}};
+        return describeFixed(
+            _summariseCost(_emeralds(m_emeraldCost)), std::move(sell), m_maxUses, m_xp, LOW_TIER_PRICE_MULTIPLIER);
+    }
+
 private:
     i32 m_emeraldCost;
     ResourceLocation m_structureTag;
@@ -539,6 +904,12 @@ private:
     MapDecoration m_decoration;
     i32 m_maxUses;
     i32 m_xp;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return "TreasureMapForEmeralds";
+    }
 };
 
 /**
@@ -594,6 +965,19 @@ public:
             LOW_TIER_PRICE_MULTIPLIER);
     }
 
+    [[nodiscard]] nlohmann::json describe(
+        TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
+    {
+        // 药水随机，静态部分是两侧物品与数量；成交物标记为"带药水的药箭"。
+        nlohmann::json result = describeFixed(_summariseCost(_emeralds(m_emeraldCost)),
+            _summariseStack(_stackOf(m_toItem, m_toCount)),
+            m_maxUses,
+            m_xp,
+            LOW_TIER_PRICE_MULTIPLIER);
+        result["buyB"] = _summariseCost(ItemCost(_stackOf(m_fromItem, m_fromCount)));
+        return result;
+    }
+
 private:
     Item* m_fromItem;
     i32 m_fromCount;
@@ -602,6 +986,12 @@ private:
     i32 m_emeraldCost;
     i32 m_maxUses;
     i32 m_xp;
+
+public:
+    [[nodiscard]] const char* describeType() const override
+    {
+        return "TippedArrowForItemsAndEmeralds";
+    }
 };
 
 /**
@@ -647,6 +1037,21 @@ public:
     {
         return std::make_unique<SimpleListing>(
             _emeralds(emeraldCost), _stackOf(sellItem, sellCount), maxUses, xp, priceMultiplier);
+    }
+
+    /**
+     * @brief 以绿宝石买物品（原版 `new ItemsForEmeralds(item, emeraldCost, count, maxUses, xp)`）
+     *
+     * 参数顺序与原版源码**逐位对应**。项目里另有一个把物品数量放在第二位、
+     * 绿宝石价格放在第三位的变体，两者顺序相反，抄原版表时极易写反，
+     * 因此这里用独立名字单独固化原版顺序：绿宝石价格在前、成交数量在后，
+     * 价格乘数固定 0.05（原版该构造器的默认值）。
+     */
+    static std::unique_ptr<TradeListing> itemsForEmeraldsByPrice(
+        Item* item, i32 emeraldCost, i32 itemCount, i32 maxUses, i32 xp)
+    {
+        return std::make_unique<SimpleListing>(
+            _emeralds(emeraldCost), _stackOf(item, itemCount), maxUses, xp, LOW_TIER_PRICE_MULTIPLIER);
     }
 
     /**
@@ -766,10 +1171,21 @@ ItemStack makeStack(const char* itemId, i32 count)
 std::unordered_map<entity::VillagerProfession, VillagerTrades::LevelTrades, std::hash<entity::VillagerProfession>>
     VillagerTrades::s_trades;
 bool VillagerTrades::s_initialized = false;
+TradeContext::EnchantmentTagResolver VillagerTrades::s_enchantmentTags;
 
 // ============================================================================
 // 初始化与查询
 // ============================================================================
+
+void VillagerTrades::setEnchantmentTagResolver(TradeContext::EnchantmentTagResolver resolver)
+{
+    s_enchantmentTags = std::move(resolver);
+}
+
+TradeContext::EnchantmentTagResolver VillagerTrades::enchantmentTagResolver()
+{
+    return s_enchantmentTags;
+}
 
 void VillagerTrades::initialize()
 {
@@ -806,7 +1222,7 @@ void VillagerTrades::_add(entity::VillagerProfession profession, i32 level, std:
 }
 
 std::unique_ptr<MerchantOffers> VillagerTrades::generateOffers(
-    entity::VillagerProfession profession, i32 level, const TradeContext& ctx)
+    entity::VillagerProfession profession, i32 level, const TradeContext& incomingCtx)
 {
     auto offers = std::make_unique<MerchantOffers>();
 
@@ -822,11 +1238,38 @@ std::unique_ptr<MerchantOffers> VillagerTrades::generateOffers(
         return offers;
     }
 
-    RandomSourceView randomView(ctx);
+    // 附魔标签由调用方（服务端资源层 / 测试探针）注入；调用方没有显式给出时，
+    // 退回进程内注册的那份（见 setEnchantmentTagResolver）。
+    TradeContext ctx = incomingCtx;
+    if (!ctx.enchantmentTags) {
+        ctx.enchantmentTags = s_enchantmentTags;
+    }
+
+    // 对应原版 AbstractVillager.addOffersFromItemListings(..., offeredCount = 2)：
+    // 从该等级的条目里**随机抽取**若干条，而不是把整级条目全部转成交易。原版复制一份列表，
+    // 每次 `remove(random.nextInt(size))` 取出一条；抽中的条目 getOffer 返回空时不计数、
+    // 继续抽其余条目，直到凑够 offeredCount 或列表用尽。
+    //
+    // 【随机数】条目选择与条目内部的随机抽取共用同一条随机流（原版传的就是 this.random），
+    // 因此这里把同一条流交给 getOffer，而不是给每条派生独立子流——派生会让"抽中哪条"与
+    // "条目内部抽到什么"互相独立，随机数消耗顺序与原版完全不同。
+    std::vector<TradeListing*> remaining;
     for (const auto& listing : found->second[static_cast<size_t>(level)]) {
-        auto offer = listing->getOffer(ctx, randomView.next());
+        remaining.push_back(listing.get());
+    }
+
+    RandomSourceView randomView(ctx);
+    i32 drawn = 0;
+    while (drawn < MAX_OFFERS_PER_LEVEL && !remaining.empty()) {
+        TradeRandomSource& random = randomView.next();
+        const size_t index = static_cast<size_t>(random.nextInt(static_cast<i32>(remaining.size())));
+        TradeListing* listing = remaining[index];
+        remaining.erase(remaining.begin() + static_cast<std::ptrdiff_t>(index));
+
+        auto offer = listing->getOffer(ctx, random);
         if (offer != nullptr) {
             offers->addOffer(std::move(offer));
+            ++drawn;
         }
     }
 
@@ -866,6 +1309,36 @@ i32 VillagerTrades::getTradeLevelCount(entity::VillagerProfession profession)
         }
     }
     return count;
+}
+
+nlohmann::json VillagerTrades::describeTrades(entity::VillagerProfession profession, const TradeContext& ctx)
+{
+    if (!s_initialized) {
+        initialize();
+    }
+    nlohmann::json result = nlohmann::json::object();
+    auto found = s_trades.find(profession);
+    if (found == s_trades.end()) {
+        return result;
+    }
+    // 每条条目都从同一个零值随机源开始重放：随机量固定取下界，导出值与序列无关。
+    ZeroRandom deterministicRandom;
+    for (size_t index = 0; index < found->second.size(); ++index) {
+        const auto& levelList = found->second[index];
+        if (levelList.empty()) {
+            continue;
+        }
+        nlohmann::json listings = nlohmann::json::array();
+        for (const auto& listing : levelList) {
+            nlohmann::json entry = listing->describe(deterministicRandom, ctx);
+            // `type` 由具体条目类声明（对应原版 ItemListing 的类名），是区分条目种类的主键：
+            // 只比字段不分类名，"用另一种条目凑出同样的字段"会被漏过去。
+            entry["type"] = listing->describeType();
+            listings.push_back(std::move(entry));
+        }
+        result[std::to_string(index)] = std::move(listings);
+    }
+    return result;
 }
 
 // ============================================================================
@@ -957,7 +1430,7 @@ void VillagerTrades::_registerFishermanTrades()
             Entry::emeraldForItems(Items::ACACIA_BOAT, 1, DEFAULT_SUPPLY, XP_LEVEL_5_TRADE));
         boats.emplace(entity::VillagerType::Swamp,
             Entry::emeraldForItems(Items::DARK_OAK_BOAT, 1, DEFAULT_SUPPLY, XP_LEVEL_5_TRADE));
-        _add(P::Fisherman, 5, std::make_unique<TypeSpecificListing>(std::move(boats)));
+        _add(P::Fisherman, 5, std::make_unique<TypeSpecificListing>(std::move(boats), "EmeraldsForVillagerTypeItem"));
     }
 }
 
@@ -973,7 +1446,7 @@ void VillagerTrades::_registerShepherdTrades()
     _add(P::Shepherd, 1, Entry::emeraldForItems(Items::BROWN_WOOL, 18, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
     _add(P::Shepherd, 1, Entry::emeraldForItems(Items::BLACK_WOOL, 18, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
     _add(P::Shepherd, 1, Entry::emeraldForItems(Items::GRAY_WOOL, 18, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
-    _add(P::Shepherd, 1, Entry::itemsForEmeralds(Items::SHEARS, 1, 2, 1, XP_LEVEL_1_SELL));
+    _add(P::Shepherd, 1, Entry::itemsForEmeralds(Items::SHEARS, 1, 2, DEFAULT_SUPPLY, XP_LEVEL_1_SELL));
 
     _add(P::Shepherd, 2, Entry::emeraldForItems(Items::WHITE_DYE, 12, COMMON_ITEMS_SUPPLY, XP_LEVEL_2_BUY));
     _add(P::Shepherd, 2, Entry::emeraldForItems(Items::GRAY_DYE, 12, COMMON_ITEMS_SUPPLY, XP_LEVEL_2_BUY));
@@ -1034,7 +1507,7 @@ void VillagerTrades::_registerFletcherTrades()
     _add(P::Fletcher, 5, Entry::emeraldForItems(Items::TRIPWIRE_HOOK, 8, DEFAULT_SUPPLY, XP_LEVEL_5_TRADE));
     _add(P::Fletcher,
         5,
-        std::make_unique<EnchantedItemListing>(Items::CROSSBOW, 3, 3, XP_LEVEL_5_TRADE, LOW_TIER_PRICE_MULTIPLIER));
+        std::make_unique<EnchantedItemListing>(Items::CROSSBOW, 3, 3, XP_LEVEL_4_SELL, LOW_TIER_PRICE_MULTIPLIER));
     _add(P::Fletcher,
         5,
         std::make_unique<TippedArrowListing>(
@@ -1088,7 +1561,7 @@ void VillagerTrades::_registerCartographerTrades()
         8,
         "minecraft:on_taiga_village_maps",
         "filled_map.village_taiga",
-        "minecraft:taiga_village",
+        "minecraft:village_taiga",
         XP_LEVEL_2_SELL,
         {entity::VillagerType::Swamp, entity::VillagerType::Snow, entity::VillagerType::Plains});
     _addTreasureMap(P::Cartographer,
@@ -1104,7 +1577,7 @@ void VillagerTrades::_registerCartographerTrades()
         8,
         "minecraft:on_snowy_village_maps",
         "filled_map.village_snowy",
-        "minecraft:snowy_village",
+        "minecraft:village_snowy",
         XP_LEVEL_2_SELL,
         {entity::VillagerType::Taiga, entity::VillagerType::Swamp});
     _addTreasureMap(P::Cartographer,
@@ -1112,7 +1585,7 @@ void VillagerTrades::_registerCartographerTrades()
         8,
         "minecraft:on_savanna_village_maps",
         "filled_map.village_savanna",
-        "minecraft:savanna_village",
+        "minecraft:village_savanna",
         XP_LEVEL_2_SELL,
         {entity::VillagerType::Plains, entity::VillagerType::Jungle, entity::VillagerType::Desert});
     _addTreasureMap(P::Cartographer,
@@ -1120,7 +1593,7 @@ void VillagerTrades::_registerCartographerTrades()
         8,
         "minecraft:on_plains_village_maps",
         "filled_map.village_plains",
-        "minecraft:plains_village",
+        "minecraft:village_plains",
         XP_LEVEL_2_SELL,
         {entity::VillagerType::Taiga,
             entity::VillagerType::Snow,
@@ -1139,7 +1612,7 @@ void VillagerTrades::_registerCartographerTrades()
         8,
         "minecraft:on_desert_village_maps",
         "filled_map.village_desert",
-        "minecraft:desert_village",
+        "minecraft:village_desert",
         XP_LEVEL_2_SELL,
         {entity::VillagerType::Savanna, entity::VillagerType::Jungle});
 
@@ -1149,7 +1622,7 @@ void VillagerTrades::_registerCartographerTrades()
         13,
         "minecraft:on_ocean_explorer_maps",
         "filled_map.monument",
-        "minecraft:ocean_monument",
+        "minecraft:monument",
         XP_LEVEL_3_SELL,
         {});
     _addTreasureMap(P::Cartographer,
@@ -1250,7 +1723,7 @@ void VillagerTrades::_registerCartographerTrades()
         14,
         "minecraft:on_woodland_explorer_maps",
         "filled_map.mansion",
-        "minecraft:woodland_mansion",
+        "minecraft:mansion",
         XP_LEVEL_5_TRADE,
         {});
 }
@@ -1264,7 +1737,7 @@ void VillagerTrades::_registerClericTrades()
     using P = entity::VillagerProfession;
 
     _add(P::Cleric, 1, Entry::emeraldForItems(Items::ROTTEN_FLESH, 32, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
-    _add(P::Cleric, 1, Entry::itemsForEmeralds(Items::REDSTONE, 2, 1, 1, XP_LEVEL_1_SELL));
+    _add(P::Cleric, 1, Entry::itemsForEmeralds(Items::REDSTONE, 2, 1, DEFAULT_SUPPLY, XP_LEVEL_1_SELL));
 
     _add(P::Cleric, 2, Entry::emeraldForItems(Items::GOLD_INGOT, 3, DEFAULT_SUPPLY, XP_LEVEL_2_BUY));
     _add(P::Cleric, 2, Entry::itemsForEmeralds(Items::LAPIS_LAZULI, 1, 1, DEFAULT_SUPPLY, XP_LEVEL_2_SELL));
@@ -1462,9 +1935,9 @@ void VillagerTrades::_registerButcherTrades()
     _add(P::Butcher, 1, Entry::emeraldForItems(Items::CHICKEN, 14, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
     _add(P::Butcher, 1, Entry::emeraldForItems(Items::PORKCHOP, 7, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
     _add(P::Butcher, 1, Entry::emeraldForItems(Items::RABBIT, 4, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
-    _add(P::Butcher, 1, Entry::itemsForEmeralds(Items::RABBIT_STEW, 1, 1, 1, XP_LEVEL_1_SELL));
+    _add(P::Butcher, 1, Entry::itemsForEmeralds(Items::RABBIT_STEW, 1, 1, DEFAULT_SUPPLY, XP_LEVEL_1_SELL));
 
-    _add(P::Butcher, 2, Entry::emeraldForItems(Items::COAL, 15, COMMON_ITEMS_SUPPLY, XP_LEVEL_2_BUY));
+    _add(P::Butcher, 2, Entry::emeraldForItems(Items::COAL, 15, COMMON_ITEMS_SUPPLY, XP_LEVEL_1_BUY));
     _add(P::Butcher, 2, Entry::itemsForEmeralds(Items::COOKED_PORKCHOP, 5, 1, COMMON_ITEMS_SUPPLY, XP_LEVEL_2_SELL));
     _add(P::Butcher, 2, Entry::itemsForEmeralds(Items::COOKED_CHICKEN, 8, 1, COMMON_ITEMS_SUPPLY, XP_LEVEL_2_SELL));
 
