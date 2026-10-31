@@ -360,6 +360,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
 | `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
+| `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1021,6 +1022,27 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 附魔代价曲线：43 个附魔逐级比对，全对
+
+`enchantment_cost` 比较 43 个附魔的最大等级、铁砧代价，以及**每一级**的附魔台等级
+区间（`minCost` / `maxCost`）。一次通过 **43/43**。
+
+这条曲线来自数据包的 `min_cost` / `max_cost`：
+
+```json
+"min_cost": { "base": 1,  "per_level_above_first": 11 }
+```
+
+即第 L 级（从 1 起）的代价是 `base + per_level_above_first * (L - 1)`。Cubium 的
+`Enchantment::getMinCost(level)` / `getMaxCost(level)` 与之逐级吻合，包括
+`sharpness` 这种 5 级附魔的完整 5 个采样点。
+
+附魔台"刷不刷得出"、铁砧"能不能合"全由这几个数决定，写错一处就会让某些附魔在特定
+等级下永远刷不出来——而且不会报错。此前没有任何自动化覆盖。
+
+比对时**按等级顺序**取值（数组有序，不能声明为无序）：代价曲线的形状本身就是要验证
+的东西，排序会把它抹平。
 
 ### 伤害类型标签：一次「本来就对」的验证
 

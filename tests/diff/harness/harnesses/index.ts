@@ -64,6 +64,7 @@ import { jukeboxSongInput } from "./jukebox_song.ts";
 import { ENCHANTMENT_TAGS_UNORDERED, enchantmentTagsInput } from "./enchantment_tags.ts";
 import { paintingVariantInput } from "./painting_variant.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
+import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -528,6 +529,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "damage_type_tags", probe: "damage_type_tags", oracle: "DamageTypeTagsOracle", key: "tag",
         units: { kind: "listing" }, input: damageTypeTagsInput,
         unorderedArrays: DAMAGE_TYPE_TAGS_UNORDERED },
+    // 附魔等级与代价曲线：最高等级 / 铁砧代价 / 每级的附魔台等级区间。
+    { name: "enchantment_cost", probe: "enchantment_cost", oracle: "EnchantmentCostOracle", key: "enchantment",
+        units: { kind: "listing" }, input: enchantmentCostInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
