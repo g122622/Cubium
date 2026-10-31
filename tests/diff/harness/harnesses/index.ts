@@ -77,6 +77,7 @@ import { explosionRayInput, explosionRayUnits } from "./explosion_ray.ts";
 import { explosionDamageInput } from "./explosion_damage.ts";
 import { explosionSeenGridInput } from "./explosion_seen_grid.ts";
 import { entityDimensionsInput } from "./entity_dimensions.ts";
+import { mobEffectMergeInput } from "./mob_effect_merge.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -624,6 +625,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 实体尺寸与包围盒：眼睛高度比例、缩放规则、包围盒展开，纯计算。
     { name: "entity_dimensions", probe: "entity_dimensions", oracle: "EntityDimensionsOracle",
         key: "unit", units: { kind: "listing" }, input: entityDimensionsInput },
+    // 药水效果叠加合并：三层分支 + hiddenEffect 降级回退，纯计算。
+    { name: "mob_effect_merge", probe: "mob_effect_merge", oracle: "MobEffectMergeOracle",
+        key: "unit", units: { kind: "listing" }, input: mobEffectMergeInput },
+
 
 
 

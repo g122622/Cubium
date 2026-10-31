@@ -381,6 +381,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `explosion_damage` | 原版 jar `ExplosionDamageOracle` | 6 半径 × 8 距离 × 5 可见度 × 2 抗性 = 480 | 全部一致 | 纯计算，暴露两处口径差异（见下文） |
 | `explosion_seen_grid` | 原版 jar `ExplosionSeenGridOracle` | 10 种碰撞箱 | 全部一致 | 纯计算，绕开 `-ffast-math`（见下文） |
 | `entity_dimensions` | 原版 jar `EntityDimensionsOracle` | 12 种尺寸 × 位置组合 | 全部一致 | 纯计算，Cubium 无此类（见下文） |
+| `mob_effect_merge` | 原版 jar `MobEffectMergeOracle` | 16 种叠加组合 | 全部一致 | 纯计算，Cubium 无 `update()`（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1172,6 +1173,45 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 新能力 mob_effect_merge：`hiddenEffect` 的降级回退
+
+第 76 个能力，16 种叠加组合全部一致。Cubium 的 `EffectInstance` **没有 `update()`**，
+本能力因此直接按原版公式计算，输出的是待实现的行为基准。
+
+#### 三层分支里最容易漏的两处
+
+原版 `MobEffectInstance.update()` 的分支耦合度很高，本轮实测踩到其中一个：
+
+**1. 等级更高时无条件采用新时长**，哪怕新的更短——此时旧效果被压进 `hiddenEffect`，
+等新效果过期后重新生效。
+
+| 输入 | 结果 | hiddenEffect |
+|---|---|---|
+| `1|300` ← `2|100` | `amplifier=2, duration=100` | `1|300` |
+| `2|300` ← `1|500` | 不变（`changed=false`） | `1|500` |
+
+第二行是反向情形：等级更低时**只把新值放进 hiddenEffect**，当前值完全不动。
+
+**2. ambient 更新时也会置 `flag = true`**——这是本轮发现的一处真实偏差。
+
+原版这段的末尾有一句 `flag = true;`：
+
+```java
+if (!incoming.ambient && this.ambient || flag) {
+    this.ambient = incoming.ambient;
+    flag = true;          // <- 容易看漏
+}
+```
+
+我第一版按「ambient 只影响 ambient 字段」实现，结果 `1|200|true` ← `1|100|false`
+（等级相同时长更短、只有 ambient 变）被判成 `changed=false`，而原版是 `true`。
+差分比对直接把这行漏掉的分支指出来了。
+
+#### 一处 Java 侧的技术处理
+
+`hiddenEffect` 是包内可见的私有字段，没有公开访问器，oracle 里用反射读取。不读它就无法
+验证上面第一条「降级回退」——而这恰恰是最容易写错的一支。
 
 ### 新能力 entity_dimensions：三条容易写错的公式
 
