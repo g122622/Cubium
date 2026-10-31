@@ -32,6 +32,7 @@
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/structure/placement/StructurePlacement.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <memory>
@@ -72,69 +73,54 @@ std::vector<world::chunk::ChunkPos> ConcentricRingsStructurePlacement::generateR
     rng.setSeed(static_cast<u64>(worldSeed));
 
     // 同心环参数
-    // MC 1.21+ 的环分布：
-    // 每个环的基数: 3, 6, 10, 15, 21, 28, 36, 9 (共 128)
-    // 距离乘数: 环索引从 0 开始
-    i32 remainingCount = m_count;
-    i32 currentRing = 0;
-    f64 distanceMultiplier = 1.0; // 距离乘数，随环数递增
+    // 原版 ChunkGeneratorStructureState.generateRingPositions：
+    //
+    //   int j = count(); int i = distance(); int k = spread();
+    //   double d0 = rng.nextDouble() * PI * 2.0;   // 起始角度
+    //   int l = 0, i1 = 0;                          // i1 = 当前环索引
+    //   for (int j1 = 0; j1 < j; j1++) {
+    //       double d1 = 4*i + i*i1*6 + (rng.nextDouble() - 0.5) * (i*2.5);
+    //       ...
+    //       d0 += (PI * 2) / k;
+    //       if (++l == k) {                       // 本环放满了
+    //           i1++; l = 0;
+    //           k += 2 * k / (i1 + 1);            // 环容量动态扩张
+    //           k = Math.min(k, j - j1);
+    //           d0 += rng.nextDouble() * PI * 2.0; // 环间角度随机扰动
+    //       }
+    //   }
+    //
+    // 此前这里是硬编码的环容量表（3,6,10,15,21,28,36,9），且半径公式少了开头的
+    // `4*i` 系数、缺少环间角度扰动——三者叠加使整个要塞分布与原版完全不同
+    // （由差分能力 structure_starts 查出：9 个要塞单元在原版有、Cubium 完全没有）。
+    const f64 baseDistance = static_cast<f64>(m_distance);
+    i32 ringCapacity = m_spread;
+    f64 angle = rng.nextDouble() * 2.0 * math::PI_DOUBLE;
+    i32 inRing = 0;
+    i32 ringIndex = 0;
 
-    while (remainingCount > 0) {
-        // 当前环的要塞数量
-        // MC 1.21 的环数量规律：第 n 环的数量 = (n+2)(n+3)/2 - (n+1)(n+2)/2 = n+2
-        // 但实际 MC 使用固定分配
-        i32 ringCount;
-        if (currentRing == 0) {
-            ringCount = 3;
-        } else if (currentRing == 1) {
-            ringCount = 6;
-        } else if (currentRing == 2) {
-            ringCount = 10;
-        } else if (currentRing == 3) {
-            ringCount = 15;
-        } else if (currentRing == 4) {
-            ringCount = 21;
-        } else if (currentRing == 5) {
-            ringCount = 28;
-        } else if (currentRing == 6) {
-            ringCount = 36;
-        } else {
-            // 第 7+ 环把剩余的全部分配
-            ringCount = remainingCount;
+    for (i32 index = 0; index < m_count; ++index) {
+        const f64 radius = (4.0 * baseDistance) + (baseDistance * static_cast<f64>(ringIndex) * 6.0) +
+            (rng.nextDouble() - 0.5) * (baseDistance * 2.5);
+        const f64 chunkX = std::round(std::cos(angle) * radius);
+        const f64 chunkZ = std::round(std::sin(angle) * radius);
+        positions.emplace_back(static_cast<i32>(chunkX), static_cast<i32>(chunkZ));
+
+        angle += (2.0 * math::PI_DOUBLE) / static_cast<f64>(ringCapacity);
+        if (++inRing == ringCapacity) {
+            ++ringIndex;
+            inRing = 0;
+            ringCapacity += (2 * ringCapacity) / (ringIndex + 1);
+            ringCapacity = std::min(ringCapacity, m_count - index);
+            angle += rng.nextDouble() * 2.0 * math::PI_DOUBLE;
         }
-
-        if (ringCount > remainingCount) {
-            ringCount = remainingCount;
-        }
-
-        // 起始角度随机
-        f64 angle = rng.nextDouble() * 2.0 * math::PI_DOUBLE;
-
-        for (i32 i = 0; i < ringCount; ++i) {
-            // 计算环的半径
-            // radius = baseDistance + baseDistance * distanceMultiplier * 6 + (random - 0.5) * baseDistance * 2.5
-            f64 radius = static_cast<f64>(m_distance) + static_cast<f64>(m_distance) * distanceMultiplier * 6.0 +
-                (rng.nextDouble() - 0.5) * static_cast<f64>(m_distance) * 2.5;
-
-            // 确保半径不为负
-            if (radius < 1.0) {
-                radius = 1.0;
-            }
-
-            // 计算区块坐标
-            f64 chunkX = std::round(std::cos(angle) * radius);
-            f64 chunkZ = std::round(std::sin(angle) * radius);
-
-            positions.emplace_back(static_cast<i32>(chunkX), static_cast<i32>(chunkZ));
-
-            // 每个要塞之间均匀分布角度
-            angle += 2.0 * math::PI_DOUBLE / static_cast<f64>(ringCount);
-        }
-
-        remainingCount -= ringCount;
-        ++currentRing;
-        distanceMultiplier += 1.0;
     }
+
+    // TODO: 原版在算出 (chunkX, chunkZ) 之后还会用 `biomeSource.findBiomeHorizontal(..., 112, ...)`
+    // 在半径 112 区块内搜索 `preferredBiomes`，找到就把要塞挪到该生物群系，找不到才用原坐标。
+    // 本类目前没有生物群系源，这一步尚未实现——要塞会落在坐标算出来的位置，而不是
+    // 像原版那样偏向 `#minecraft:stronghold_biased_to` 指定的生物群系。
+    // 补齐需要把 IBiomeSource 传进放置器，并复刻 findBiomeHorizontal 的采样顺序。
 
     return positions;
 }

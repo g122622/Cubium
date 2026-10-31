@@ -71,8 +71,8 @@ void StructurePlacementState::addStructureSet(const StructureSet& structureSet)
         return;
     }
     m_structureSets.push_back(&structureSet);
-    if (const auto* concentric = dynamic_cast<const placement::ConcentricRingsStructurePlacement*>(
-            &structureSet.placement())) {
+    if (const auto* concentric =
+            dynamic_cast<const placement::ConcentricRingsStructurePlacement*>(&structureSet.placement())) {
         m_concentric.emplace(&structureSet, concentric);
     }
 }
@@ -139,6 +139,24 @@ bool StructurePlacementState::hasStructureChunkInRange(
 const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPositions(
     const placement::ConcentricRingsStructurePlacement& concentric) const
 {
+    // 原版 `ChunkGeneratorStructureState.createForNormal` 里 `concentricRingsSeed` 传的
+    // 是常量 0L，但**环位置随后会被生物群系搜索改写**：
+    //
+    //   Pair<BlockPos, Holder<Biome>> pair = biomeSource.findBiomeHorizontal(
+    //       chunkX << 4 + 8, 0, chunkZ << 4 + 8, 112, preferredBiomes::contains,
+    //       randomsource.fork(), randomState.sampler());
+    //   return pair != null ? new ChunkPos(...pair.first...) : new ChunkPos(chunkX, chunkZ);
+    //
+    // 兜底值（找不到生物群系时）才等于常量种子算出的坐标。差分比对证实了这一点：
+    // 种子 0 与种子 9248738493917 下的要塞位置完全不重合——若种子真的恒为 0 且
+    // 没有生物群系搜索，两者应当落在同一批坐标上。
+    //
+    // 因此这里仍传世界种子：`generateRingPositions` 内部用它初始化 rng，
+    // 环位置随种子变化（虽然与原版「常量种子 + 生物群系搜索」的路径不同，
+    // 但至少保留了种子相关性）。
+    //
+    // TODO: 要真正对齐，需要把这个函数改成吃 IBiomeSource，在算出每个环位置后
+    // 复刻一次 findBiomeHorizontal(半径 112) 搜索 preferredBiomes 并改写坐标。
     return concentric.getRingPositions(m_worldSeed);
 }
 
