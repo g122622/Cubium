@@ -379,6 +379,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `dimension_type` | 原版 jar `DimensionTypeOracle` | 4 个维度类型 | 全部一致 | Cubium 无数据包加载器，探针直接读数据包（见下文） |
 | `explosion_ray` | 原版 jar `ExplosionRayOracle` | 6 个场景 × 8 个种子 = 48 | 全部一致 | 纯计算，不依赖世界（见下文） |
 | `explosion_damage` | 原版 jar `ExplosionDamageOracle` | 6 半径 × 8 距离 × 5 可见度 × 2 抗性 = 480 | 全部一致 | 纯计算，暴露两处口径差异（见下文） |
+| `explosion_seen_grid` | 原版 jar `ExplosionSeenGridOracle` | 10 种碰撞箱 | 全部一致 | 纯计算，绕开 `-ffast-math`（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1171,6 +1172,52 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
 
+### 新能力 explosion_seen_grid：`-ffast-math` 与 2.78e-17
+
+第 74 个能力，10 种碰撞箱全部一致。它是上一个能力 TODO 的直接延伸：`getSeenPercent`
+的**采样网格生成**是纯计算，只有射线检测那一半需要世界。
+
+#### 网格本身值得单独钉住的理由
+
+采样点数 = `floor(1 / step) + 1`，这个「+1」在 `f` 的浮点累加误差下可能少一次或多一次。
+Cubium 的 `Explosion::_getBlockDensity` 用 `f32` 做这一步，原版用 `double`——同样的碰撞箱
+会得到不同点数，可见度分母随之改变，最终伤害也跟着变。
+
+#### 一个花了不少时间的坑
+
+网格逻辑照抄无误，但 `offsetX` 上持续差 `2.77556e-17`：
+
+```
+oracle: {"offsetX":"0",    "firstSample":[["0",...]]}
+probe : {"offsetX":"2.77556e-17","firstSample":[["2.77556e-17",...]]}
+```
+
+`offsetX` 来自 `(1.0 - floor(1/step) * step) / 2.0`。只影响 `step` 恰为 1/3、1/6 的两个
+箱子（完整方块与大尺寸）。我单独写了一个小程序验证 `1.0/3.0` 的往返，得到精确 `0`——
+说明表达式本身没问题，是**编译环境**的差异。
+
+根因是项目根 CMakeLists 全局开了 `-ffast-math`（`-fno-finite-math-only` 保留 NaN 语义，
+但重结合仍被允许）。它可以把 `floor(1/step) * step` 折叠成 `(1/step) * step`，后者不保证
+等于 1。
+
+试过两条路都失败：
+
+- `#pragma float_control(precise, on, push/pop)`——`push/pop` 只能出现在文件或命名空间作用域；
+- 换成函数内 `on`——clang 在 `-ffast-math` 下对该 pragma 不生效。
+
+最终改法是把判据显式写出来：
+
+```cpp
+const f64 covered = gridCount * step;
+const f64 remainder = std::abs(covered - 1.0) < 1e-12 ? 0.0 : (1.0 - covered);
+```
+
+这与原版语义一致（能整除时余数就是 0），且不依赖编译器的浮点策略。
+
+#### 教训
+
+**「表达式与 Java 完全一致」不足以保证结果一致**，编译选项会改变求值结果。差分测试的价值
+正在于此——它不需要我预先知道哪里有陷阱，只要两侧用同一份输入跑，差异自己会浮出来。
 ### 新能力 explosion_damage：两处口径差异，差 295 倍
 
 第 73 个能力，6 半径 × 8 距离 × 5 可见度 × 2 击退抗性 = 480 个单元，全部一致。
