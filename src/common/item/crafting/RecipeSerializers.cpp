@@ -233,14 +233,10 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
         group = json["group"].get<std::string>();
     }
 
-    // 原料表按原版 `ShapedRecipePattern#ingredients` 的布局：逐格扫描 pattern，空格
-    // 跳过（不占原料槽，原版 `Ingredient#EMPTY` 在 placementInfo 里也不出现）。配方
-    // 的匹配不看原槽位（空格永不匹配），所以这里不保留占位元素；装配、配方书与
-    // 邻接表因此面对的是一致的「非空原料序列」。
-    auto ingredients = std::move(ingredientsResult.value());
-    ingredients.erase(std::remove(ingredients.begin(), ingredients.end(), Ingredient::EMPTY), ingredients.end());
-
-    return std::make_unique<ShapedRecipe>(id, width, height, std::move(ingredients), resultStack.value(), group);
+    // 原料表与 pattern **逐格对齐**（空格是 `Ingredient::EMPTY` 占位）。
+    // `ShapedRecipe::_checkMatch` 按下标访问，布局一旦被压紧就是越界读取。
+    return std::make_unique<ShapedRecipe>(
+        id, width, height, std::move(ingredientsResult.value()), resultStack.value(), group);
 }
 
 Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe(
@@ -634,11 +630,19 @@ Result<std::vector<Ingredient>> RecipeSerializers::_parsePatternIngredients(
         }
     }
 
-    // 按行列顺序解析原料：只收录 pattern 里实际用到的符号，空格不产生原料
-    // （原版 `ShapedRecipePattern#ingredients` 同样跳过空格）。
+    // 按行列顺序解析原料：**逐格保留位置**，空格写成 `Ingredient::EMPTY`。
+    //
+    // 位置必须保留：`ShapedRecipe::_checkMatch` 按 `relX + relY * m_width` 的下标取原料，
+    // 下标基准就是完整图案的宽度。只收录非空格原料会让 `m_ingredients` 比
+    // `m_width * m_height` 短，任何含空格的图案（镐、剑、弓……）都会越界读取——表现为
+    // 随机崩溃或凭空匹配成功。原版 `ShapedRecipePattern#ingredients` 同样是逐格的
+    // `List<Optional<Ingredient>>`。
+    //
+    // 想拿「非空原料序列」的调用方（配方书、邻接表）自己过滤 `isEmpty()` 即可。
     for (const std::string& row : pattern) {
         for (char c : row) {
             if (c == ' ') {
+                ingredients.push_back(Ingredient::EMPTY);
                 continue;
             }
             auto it = keyMap.find(c);

@@ -62,6 +62,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/instrument/InstrumentTags.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootCallbackInvoker.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
@@ -164,6 +165,10 @@ inline LootEnv& environment()
             // （含 pack.mcmeta），所以这里传的不是数据包根而是它的父目录。
             packs.scanDirectory(root.parent_path());
         }
+        // 标签注册表的**内置**成员必须先就位：数据包里的 tags/instrument 只是把内置标签
+        // 重新声明一遍（内容指向乐器），空表状态下加载器会因为「成员未知」而整批失败。
+        // 与 RegistryBootstrap 的顺序一致（先内置、再从数据包补充）。
+        mc::item::instrument::initializeVanillaInstrumentTags();
         if (auto loaded = server::item::InstrumentLoader::loadFromDataPackRepository(packs); loaded.failed()) {
             env.loadError += "乐器加载失败: " + loaded.error().toString() + "\n";
         }

@@ -105,6 +105,12 @@ std::vector<std::string>& loadedIds()
 {
     json result = json::array();
     for (const auto& ingredient : ingredients) {
+        // 有序配方的原料表与 pattern 逐格对齐，空格是 `Ingredient::EMPTY` 占位。
+        // 原版比对的 `placementInfo().ingredients()` 不含空位，这里同样跳过——占位
+        // 元素只服务于 `ShapedRecipe::_checkMatch` 的下标访问。
+        if (ingredient.isEmpty()) {
+            continue;
+        }
         result.push_back(summariseIngredient(ingredient));
     }
     return result;

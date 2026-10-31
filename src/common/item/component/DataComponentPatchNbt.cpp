@@ -112,12 +112,21 @@ std::string _normalizeId(const std::string& text)
     return text.find(':') == std::string::npos ? "minecraft:" + text : text;
 }
 
-/// 把 JSON 中数值字段整体转为 double。
-/// nbt::jsonToNbt* 的数值分派只接受 double（整数类型会落到未处理分支返回 nullptr），
-/// 而 vanilla Codec.INT / Codec.FLOAT 的 JSON 形态是普通整数，故转换前统一提升。
+/// JSON 数值的通用归一化：**整数保持整数**，只有原本就是 JSON 浮点的值才转成 double。
+///
+/// 早先这里把所有数字一律提升成 double，理由是 `jsonToNbt` 的数值分派只认浮点；代价是
+/// 整数列表（`firework_explosion.colors`、`custom_model_data.flags` 这类）在 NBT 上变成
+/// `[D; 16711680, 65280]`。原版 codec 读的是 `List<Integer>` / `List<Boolean>`，类型不符
+/// 就整组读空——存档里的烟花颜色、渐变色的自定义数据因此会静默丢失。
 nlohmann::json _normalizeNumbers(const nlohmann::json& value)
 {
-    if (value.is_number_integer() || value.is_number_unsigned()) {
+    if (value.is_number_unsigned()) {
+        return value.get<u64>();
+    }
+    if (value.is_number_integer()) {
+        return value.get<i64>();
+    }
+    if (value.is_number_float()) {
         return value.get<f64>();
     }
     if (value.is_array()) {
@@ -280,6 +289,24 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
         }
         case DataComponentType::ItemModel:
             return _readResourceId(json, out);
+        case DataComponentType::Enchantable: {
+            // vanilla Enchantable.CODEC 是 record {value: int}，持久形态必须是复合对象。
+            // 早先按裸整数解析：数据包写 `{"value": 17}` 时整体解析失败，组件被丢掉。
+            // 裸整数仍然接受，兼容旧数据与命令写法。
+            if (json.is_number_integer()) {
+                out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Int>, json.get<i32>()};
+                return true;
+            }
+            if (!json.is_object()) {
+                return false;
+            }
+            auto it = json.find("value");
+            if (it == json.end() || !it->is_number_integer()) {
+                return false;
+            }
+            out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Int>, it->get<i32>()};
+            return true;
+        }
         case DataComponentType::Enchantments:
         case DataComponentType::StoredEnchantments:
             return _readEnchantments(json, out);
@@ -326,11 +353,15 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
     if (json.is_object() || json.is_array()) {
         tag = nbt::jsonToNbtStrictInt(_normalizeNumbers(json));
     } else {
-        auto compound = nbt::jsonToNbt(nlohmann::json::object({{"v", json}}));
+        // 标量（`minecraft:damage: 7`、`minecraft:unbreakable: {}` 之外的布尔/字符串）直接走
+        // 与对象分支同一套严格转换：包一层单键 compound 再取出来，整数因此仍落 Int。
+        // 早先走 jsonToNbt 会按值域把 7 缩成 Byte，Codec.INT 读不了，整个组件被丢掉。
+        auto wrapper = nbt::jsonToNbtStrictInt(nlohmann::json::object({{"v", _normalizeNumbers(json)}}));
+        const auto* compound = dynamic_cast<const nbt::tags::compound_tag*>(wrapper.get());
         if (compound != nullptr) {
             auto it = compound->value.find("v");
             if (it != compound->value.end()) {
-                tag = std::move(it->second);
+                tag = it->second->copy();
             }
         }
     }

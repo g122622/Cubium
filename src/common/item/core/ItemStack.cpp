@@ -1224,6 +1224,12 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
     }
     if (hasTag()) {
         auto custom = _dataRef();
+        // 药水的自定义颜色 / 自定义效果是 potion_contents 组件的子字段，历史上由 PotionUtils
+        // 寄存在自定义数据的 CustomPotionColor / CustomPotionEffects 两个键里。导出组件补丁时
+        // 必须把它们移出自定义数据：同一份信息若同时出现在 custom_data 与 potion_contents，
+        // 存档里就会多出原版没有的自定义数据键。
+        custom.erase("CustomPotionColor");
+        custom.erase("CustomPotionEffects");
         if (custom.contains("BundleContents")) {
             auto contents = custom["BundleContents"];
             contents.erase("selected");
@@ -1282,7 +1288,10 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
             patch.add(
                 DataComponentType::ItemModel, DataComponentPayload{std::in_place_index<10>, *m_extras->itemModel});
         }
-        if (m_extras->rarityOverride.has_value()) {
+        // rarity 的值等于物品原型自带的稀有度时，原版补丁里根本不会出现这个键
+        // （`asPatch()` 只报相对原型的差异）。照搬原型值写进去会让补丁凭空多一项——
+        // 对命令方块、鞘翅、龙头这类本来就「非 common」的物品尤其明显。
+        if (m_extras->rarityOverride.has_value() && m_extras->rarityOverride != m_item->rarity()) {
             patch.add(
                 DataComponentType::Rarity, DataComponentPayload{std::in_place_index<9>, *m_extras->rarityOverride});
         }
@@ -1348,6 +1357,16 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
                 patch.add(*type, DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, value});
             }
         }
+        // 显式移除的组件：与「有值」互斥，added 里已有的不再报移除。
+        for (i32 typeId : m_extras->removedComponents) {
+            const bool alreadyAdded =
+                std::any_of(patch.added().begin(), patch.added().end(), [typeId](const auto& entry) {
+                    return entry.typeId == typeId;
+                });
+            if (!alreadyAdded) {
+                patch.remove(typeId);
+            }
+        }
     }
     return patch;
 }
@@ -1355,7 +1374,9 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
 void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& patch)
 {
     using namespace item::component;
-    // custom_data 可位于任意注册序位置，先应用以免覆盖随后还原的结构化组件。
+    // custom_data 必须先应用：它承载的键可能被后面的结构化组件覆盖（原版的补丁 map 一项一个值，
+    // 结构化组件与 custom_data 不会并存；Cubium 的 custom_data 是「其余所有键」的容器，
+    // 后写的结构化组件应当赢）。
     for (const auto& entry : patch.added()) {
         if (entry.typeId == componentTypeId(DataComponentType::CustomData)) {
             _ensureExtras().customData = std::get<nlohmann::json>(entry.value);
@@ -1365,6 +1386,12 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
         auto type = componentTypeById(entry.typeId);
         if (!type.has_value()) {
             continue;
+        }
+        // 同一个组件被重新赋值时，撤销之前的「显式移除」：added 与 removed 在 patch 里
+        // 一项只有一个值，后写的那一份生效。
+        if (m_extras != nullptr) {
+            auto& removed = m_extras->removedComponents;
+            removed.erase(std::remove(removed.begin(), removed.end(), entry.typeId), removed.end());
         }
         switch (*type) {
             case DataComponentType::Damage: {
@@ -1560,6 +1587,12 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
         auto type = componentTypeById(typeId);
         if (!type.has_value()) {
             continue;
+        }
+        // 记录「显式移除」本身：存档里的 `"!name"` 键、原版 patch 的 removed 半边都靠它，
+        // 不能只把字段清空——清空等于「沿用原型默认值」，与原版的语义不同。
+        auto& removed = _ensureExtras().removedComponents;
+        if (std::find(removed.begin(), removed.end(), typeId) == removed.end()) {
+            removed.push_back(typeId);
         }
         switch (*type) {
             case DataComponentType::Damage:
@@ -1848,9 +1881,14 @@ i32 ItemStack::_itemDefaultOminousBottleAmplifier() const
 
 void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 {
+    // 空堆写作空气 + 数量 1。原版 `ItemStack.CODEC` 的 count 是 intRange(1, 99)，写 0
+    // 之后再读回来会直接失败——空堆因此必须落在区间内，靠 id=air 表达「空」。
+    // TODO: 原版 `ItemStack.CODEC` 其实拒绝 air（"Item must not be minecraft:air"），
+    //       空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`。这里沿用 air+1 是因为
+    //       存档里空槽另有约定，改动牵涉存档格式；需要与存档层一起调整。
     if (isEmpty()) {
         tag.put(nbt_keys::ID, std::string("minecraft:air"));
-        tag.put(nbt_keys::COUNT, static_cast<i32>(0));
+        tag.put(nbt_keys::COUNT, static_cast<i32>(1));
         return;
     }
 
@@ -1880,25 +1918,44 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
 
     std::string itemId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
 
-    // 查找物品
+    // 查找物品。原版 `ItemStack.CODEC` 明确拒绝空气（"Item must not be minecraft:air"）：
+    // 空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`，而不是一个 id 为 air 的物品堆。
+    // 未知物品同理——查不到注册项就是解码失败，而不是静默变成空堆，否则坏存档会被吞掉。
     ResourceLocation itemLocation(itemId);
     const Item* item = ItemRegistry::instance().getItem(itemLocation);
+    if (item == nullptr) {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT has unknown item '" + itemId + "'");
+    }
+    if (itemLocation == ResourceLocation("minecraft:air")) {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT must not be minecraft:air");
+    }
 
-    // 数量：1.21.11 键名 "count"。vanilla 的 Codec.INT 在 NbtOps 下接受任意数值型标签
-    // （Byte/Short/Int/Long），故此处同样接受 Byte 与 Int 两种承载。
+    // 数量：1.21.11 键名 "count"，原版是 `ExtraCodecs.intRange(1, 99).orElse(1)`
+    // ——缺省按 1，越界整条失败。vanilla 的 Codec.INT 在 NbtOps 下接受任意数值型标签
+    // （Byte/Short/Int/Long），因此这四种承载都认。
     i32 count = 1;
     auto countIt = tag.value.find(nbt_keys::COUNT);
     if (countIt != tag.value.end()) {
-        if (countIt->second->id() == nbt::TagId::Byte) {
-            count = dynamic_cast<const nbt::tags::byte_tag&>(*countIt->second).value;
-        } else if (countIt->second->id() == nbt::TagId::Int) {
-            count = dynamic_cast<const nbt::tags::int_tag&>(*countIt->second).value;
+        const auto& countTag = *countIt->second;
+        switch (countTag.id()) {
+            case nbt::TagId::Byte:
+                count = dynamic_cast<const nbt::tags::byte_tag&>(countTag).value;
+                break;
+            case nbt::TagId::Short:
+                count = dynamic_cast<const nbt::tags::short_tag&>(countTag).value;
+                break;
+            case nbt::TagId::Int:
+                count = dynamic_cast<const nbt::tags::int_tag&>(countTag).value;
+                break;
+            case nbt::TagId::Long:
+                count = static_cast<i32>(dynamic_cast<const nbt::tags::long_tag&>(countTag).value);
+                break;
+            default:
+                return Error(ErrorCode::InvalidData, "ItemStack NBT 'count' must be an integer");
         }
     }
-
-    // 如果物品不存在或数量为0，返回空物品
-    if (item == nullptr || count <= 0) {
-        return EMPTY;
+    if (count < 1 || count > 99) {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT 'count' out of range 1..99");
     }
 
     ItemStack stack(item, count);

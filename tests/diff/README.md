@@ -31,11 +31,14 @@ tests/diff/
 │   ├── item_tags.cpp            # 物品标签展开后的成员
 │   ├── item_summary.cpp         # 堆叠上限 / 食物属性
 │   ├── item_components.cpp      # 耐久 / 稀有度 / 附魔能力
+│   ├── item_component_nbt.cpp   # 物品组件补丁的 NBT 表示（逐组件 SNBT 比对）
+│   ├── stack_codec.cpp          # 物品堆整体编解码（id / count / components 与失败边界）
 │   ├── entity_shape.cpp         # 实体尺寸 / 分类
 │   ├── enchantment_table.cpp    # 附魔等级与附魔台代价
 │   ├── loot_table.cpp           # 战利品表掷骰（最小上下文：origin / 中性方块 / 空工具）
 │   ├── loot_table_block.cpp     # 战利品表掷骰（挖掘上下文：方块状态 + 时运工具）
 │   ├── loot_table_entity.cpp    # 战利品表掷骰（击杀上下文：this_entity + 攻击者 + 掠夺）
+│   ├── loot_function.cpp        # 战利品函数逐函数比对（单池单条目 + 表级单函数）
 │   ├── vanilla_datapack.hpp     # 探针共用：定位原版数据包、初始化注册表、载入数据包标签
 │   ├── mob_category.cpp         # 生物分类的每区块上限 / 生成参数
 │   ├── block_properties.cpp     # 硬度 / 亮度 / 滑度 / 是否流体
@@ -60,6 +63,7 @@ tests/diff/
 │   ├── spawn_placement.cpp      # 实体放置类型、高度图与受控方块柱中的位置判定
 │   ├── spawn_rules.cpp          # 生成谓词、位置检查与后续随机抽样
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
+│   ├── crafting_match.cpp       # 合成配方在固定网格语料下的匹配与产出
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -75,6 +79,7 @@ tests/diff/
 │   ├── worker.ts                # 执行进程：一个能力一个进程，装模块追踪、跑、回报 JSON
 │   ├── core/                    # 与「怎么跑」无关的纯逻辑
 │   │   ├── comparison.ts        # 字段投影与比较（严格数组长度，仅声明为无序的才忽略顺序）
+│   │   ├── snbt.ts              # SNBT 文本的规范形（引号风格 / 浮点后缀 / 键序）
 │   │   ├── hash.ts              # 内容哈希（纳秒 mtime + 大小的缓存）
 │   │   └── types.ts             # 能力声明、运行上下文、共享输入清单
 │   ├── oracle/                  # 原版 Java 一侧
@@ -88,7 +93,9 @@ tests/diff/
 │   │   ├── text_encode.ts       # 方块状态文本与属性摘要
 │   │   ├── loot_context.ts      # 战利品三探针的上下文模板
 │   │   ├── loot_container.ts    # 容器战利品场景与已知缺口
+│   │   ├── loot_function.ts     # 战利品函数逐个场景（输入物品 / 函数 JSON / 上下文）
 │   │   ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
+│   │   ├── crafting_match.ts    # 合成配方的摆法语料（原样 / 放大 / 平移 / 反例）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -333,6 +340,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `spawn_placement` | 原版 jar `SpawnPlacementOracle` | 157 种实体 × 332 场景 | 全部一致 | — |
 | `spawn_rules` | 原版 jar `SpawnRulesOracle` | 157 种实体 / 168,876 个场景 | 全部一致 | — |
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
+| `crafting_match` | 原版 jar `CraftingMatchOracle` | 4068（有序/无形状配方 × 6 种摆法） | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -362,6 +370,117 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
+| `item_component_nbt` | 原版 jar `ItemComponentNbtOracle` | 1124 物品 × 3 变体（plain / suite / removed） | 3372/3372 一致 | 381 个物品未注册（方块物品，同 `known_missing_items.ts`） |
+| `stack_codec` | 原版 jar `StackCodecOracle` | 3021 单元（1124 物品 × base / suite + 11 个数量与坏数据场景） | 2256/2259 一致；3 处已登记的已知差异 | 见下文 |
+| `loot_function` | 原版 jar `LootFunctionOracle` | 41 个单函数场景（随机值域 / 时运加成 / 截断 / 伤害 / 附魔 / 组件 / 组合） | 全部一致 | 见下文 |
+
+`loot_function` 把范围从「整张表掷出来什么」收窄到**单个函数**：两侧各现场造一张「1 个池
++ 1 个必定产出一条物品」的表，表级只挂一个函数，然后在同一批种子上掷 4 次。差异因此只
+可能来自函数本身，而函数恰好是战利品体系里唯一大量消费随机源的一层——**取数顺序错一位**
+（先判断再取数、区间端点写反）就会让整条链偏移，这类错误在手写期望值里几乎不可能发现。
+
+参数集两侧都用 `block`（原版 `LootContextParamSets.BLOCK`，Cubium 侧
+`LootParameterSets::block()`）：它是唯一同时允许 `tool` 与 `explosion_radius`、又不必造
+玩家/伤害来源桩值的参数集。
+
+- **不能改用 `entity`**：它不允许这两个键出现，而 `apply_bonus` 要从 `tool` 读附魔等级、
+  `explosion_decay` 要读半径，两者都是「键在就执行、不在就原样返回」——oracle 侧会静默
+  不执行，差异指向的是 oracle 缺键而不是 Cubium。
+- **不能改用 `generic` / `ALL_PARAMS`**：原版把它十项全部登记为**必需**，`withParameter`
+  传 `null` 会被直接拒绝，必须造出 `ServerPlayer` 与 `BlockEntity` 的桩值。
+
+所谓「掠夺等级」就落在 `tool` 这个键上（原版 `ApplyBonusCount` 从
+`getOptionalParameter(TOOL)` 取附魔等级），两侧都给一把带 `looting` 附魔的铁剑。
+
+首轮跑通查出 41 处差异，逐个收敛到 0：
+
+- **`set_count#uniform_float_bounds` 差一格**：原版 `UniformGenerator.getInt` 是
+  `Mth.nextInt(rand, min.getInt(), max.getInt())`，端点走 `Math.round`（四舍五入），
+  而 Cubium 的 `RandomValueRange::generateInt` 用的是截断。已在 `RandomRanges.hpp` 新增
+  `javaRoundToInt` 并对齐——这不只是取整口径，它会平移整段随机数的取值区间。
+- **`apply_bonus#binomial_with_bonus` 与 `explosion_decay#plain` 两侧产出不同**：如上，oracle
+  原来用 `entity` 参数集，读不到 `tool` / `explosion_radius`，这两条函数静默不执行。改
+  `block` 后两侧在同一批种子上逐位一致。
+- **`set_custom_data` 解析失败**：原版这一项的 codec 是 `TagParser.LENIENT_CODEC`，字段
+  形态是 **SNBT 文本**（`"{DiffProbe:{level:3}}"`），不是 JSON 对象。
+- **`set_instrument` 标签查不到**：`goat_horn_sounds` 不存在，改用数据包里真实存在的
+  `#minecraft:goat_horns`；同时给探针环境补上 `initializeVanillaInstrumentTags()`（内置
+  标签必须先于从数据包补充的标签就位，否则加载器因「成员未知」整批失败）。
+- **`filtered` / `set_lore` / `set_contents` / `set_loot_table` 解析失败**：字段名分别是
+  `item_filter`（不是 `modifier`）、`mode`、`component`、`type`（后三者必填）。
+- **条目数量多叠一层 `set_count`**：条目数量直接取输入 `count`，不再额外套
+  `SetItemCountFunction`——多一层会让每个场景凭空多消费一次随机数，后面所有函数的取数
+  全部错位。
+
+`stack_codec` 首轮跑通共 7 处差异，修掉前三条后剩 3 处（数量越界，已登记为已知差异——原版
+`orElse(1)` 对越界宽容，Cubium 按源码字面语义判为无效）。修掉的是「读存档时该失败的
+地方没失败」：
+
+- **count 越界被静默接受**（0 / 100 / -1）：`count <= 0 → 空堆` 让 100 与 -1 都能读进来。
+  已按 1..99 校验（原版 `orElse` 是宽容的，两侧因此在这三个取值上仍分叉，见上）。
+- **未知物品变成空堆**：原版 `Item.CODEC` 查不到注册项就是解码失败；Cubium 原来返回 `EMPTY`，
+  坏存档会静默变成空气。已改为返回错误。
+- **空气被当作合法物品堆**：原版 `ItemStack.CODEC` 明确拒绝 `minecraft:air`。已改为失败；
+  `toNbt` 对空堆改写 `id=air, count=1`（count 0 在区间外，读回来必然失败）。
+
+同一轮还修掉了两个组件层的崩溃/丢数据缺陷（都在 `DataComponentPayloadCodec` 与 `ItemStack`）：
+
+- **lore / tool / can_place_on / can_break 从存档读不回来**：这些列表的承载类型取决于来源，
+  数据包加载器造紧凑列表（`string_list_tag` / `compound_list_tag`），存档与网络读进来的是
+  通用 `tag_list_tag`。代码按 `element_id()` 判断后强行 `dynamic_cast`，在后者上抛出
+  `std::bad_cast`——整条物品堆读不回来。改为两种承载都认。
+- **rarity 等于原型值时仍写进补丁**：原版 `asPatch()` 只报相对原型的差异，命令方块、鞘翅、
+  龙头这类本来就非 common 的物品因此凭空多出一项 `minecraft:rarity`。改为与原型比较后再写。
+
+`item_component_nbt` 首轮跑通查出并修掉的组件编码问题（全部是「能写进存档、但字节与原版不同」
+或「读回来就丢」的静默错误）：
+
+- **整数标量被窄化成 Byte**：组件载荷解析对非对象值走 `jsonToNbt`，它会按值域把 `7` 缩成
+  `7b`，而 `minecraft:damage` 用的是 `Codec.INT`——整个组件因此被丢掉。改为统一的严格整数转换。
+- **整数列表被提升成 double**：`_normalizeNumbers` 把所有数字一律转 double，`firework_explosion`
+  的 `colors`/`fade_colors` 于是在 NBT 上变成 `[D; ...]`，原版按 `List<Integer>` 读，整组读空
+  ——烟花颜色、渐变色的自定义数据在存档里静默消失。改为整数保持整数。
+- **`custom_model_data` 的 `flags`**：布尔列表要落成字节列表；读回时还要还原成布尔，否则
+  下一次编码会把 `true` 写成 0。
+- **`enchantable` 的持久形态**：原版是 `{value: n}`，Cubium 写成裸整数，读回来判为「不是 map」。
+- **`instrument` 的持久形态**：原版是 Holder 的完整定义（`sound_event` / `use_duration` /
+  `range` / `description`），Cubium 只写资源位置字符串；`sound_event` 还是 `{sound_id: ...}`
+  复合对象，`description` 是文本组件对象。
+- **`custom_data` 里混入 `CustomPotionColor` / `CustomPotionEffects`**：PotionUtils 把药水的
+  自定义颜色寄存在自定义数据里，导出组件补丁时没有剔除，存档因此多出原版没有的键。
+- **`attack_range` / `firework_explosion` / `fireworks`**：原版都是 `optionalFieldOf`，
+  等于默认值就省略；Cubium 一律写全，字节与原版不同。
+- **组件的「显式移除」被丢弃**：`ItemStack` 只记录了「有值」的组件，`toComponentPatch` 从不
+  产出 removed 半边，`set_components` / `copy_components` 里的 `"!name"` 写回时消失。
+  载荷新增 `removedComponents` 记录这一状态。
+- **文本组件的样式是两态而非三态**：`Style` 用 `bool` 记 bold/italic 等，无法区分「显式 false」
+  与「未设置」。原版是 `Optional<Boolean>`：前者要写出 `italic:0b`，后者省略；继承时也只看
+  子样式是否显式给出（`子 || 父` 会让显式 false 盖不住父样式的 true）。改为 `std::optional<bool>`。
+
+`crafting_match` 比的是**合成配方的匹配与产出**：每个有序/无形状配方配 6 种摆法
+（原样、数量放大、平移、多一个物品、少一个物品、空网格），两侧用同一份网格各自调
+`matches` / `assemble`。`recipe` 能力只比「配方加载成了什么」，且仅对锻造配方做过匹配；
+玩家最常触碰的有序合成与无形状合成此前从未比过。
+
+摆法由 oracle 的 `dump` 子命令导出（尺寸 + 逐格首选物品）后由 harness 展开：标签原料
+在两侧的成员顺序可能不同，各取各的会把差异引到标签上，因此「一格放什么」只留一个答案。
+
+**为什么不直接把网格喂给 `matches`**：原版玩家摆东西时，网格先过
+`CraftingInput.ofPositioned` 裁掉四周空行空列，`ShapedRecipePattern.matches` 再要求
+包围盒与配方尺寸**严格相等**。oracle 若不裁剪，2×2 配方摆在 3×3 网格里会被判否——
+那是 oracle 自己造出来的假差异。两侧都用裁剪后的输入，口径才一致。
+
+首轮跑通就查出一个会导致崩溃的缺陷：
+
+- **有序配方的原料表被压紧，匹配时越界读取**：`_parsePatternIngredients` 只收录
+  pattern 里的非空格原料（原意是让配方书拿到「非空序列」），而
+  `ShapedRecipe::_checkMatch` 按 `relX + relY * m_width` 的下标取原料——下标基准是
+  完整图案宽度。`m_ingredients` 因此比 `m_width * m_height` 短，**任何含空格的图案
+  （镐、剑、弓、盔甲……）都会读到 vector 尾部之外**，表现为随机崩溃、凭空匹配成功，
+  或「摆对了却合不出来」。修复是让原料表与 pattern 逐格对齐、空格填
+  `Ingredient::EMPTY`；想拿非空序列的调用方自己过滤 `isEmpty()`。
+  回归用例：`ShapedRecipeTest.Matches_PatternWithHole_RequiresHoleEmpty` 与
+  `Matches_OneByTwoPattern_SlidesAcrossGrid`。
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
