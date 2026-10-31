@@ -75,6 +75,8 @@ add_library(mc_common STATIC
 
     # Entity Core
     entity/core/Entity.cpp
+    entity/decoration/PaintingVariant.cpp
+    entity/decoration/PaintingVariants.cpp
     entity/core/ConversionParams.cpp
     entity/utils/EntityUtils.cpp
     entity/utils/ItemDropHelper.cpp

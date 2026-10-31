@@ -358,6 +358,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `entity_type_tags` | 原版 jar `EntityTypeTagsOracle` | 46 个实体类型标签 | 全部一致 | — |
 | `jukebox_song` | 原版 jar `JukeboxSongOracle` | 21 首唱片机歌曲 | 全部一致 | — |
 | `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
+| `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -1019,6 +1020,27 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 画变体：纯数据包注册表，加载路径踩了两个坑
+
+Cubium 原先完全没有画变体这一层（`painting_variant` 只在物品组件里作为一个类型枚举出现），
+画的尺寸、贴图、标题、作者全都无处可查。本能力为此新建了 `PaintingVariants` 注册表，
+从数据包 `painting_variant/` 读取全部 51 种，结果 **51/51 一致**。
+
+加载器本身不难，但踩了两个坑，都属于「路径拼错就静默零结果」：
+
+1. **`listResourceStacks` 的目录参数必须带命名空间前缀**。我一开始传的是
+   `"painting_variant"`，一个文件都列不到；正确写法是遍历
+   `getResourceNamespaces()`，对每个命名空间传 `"<ns>/painting_variant"`。
+   参考 `GenericTagLoader` 才发现的。
+
+2. **`ResourceVersion` 是结构体而非字符串**。它是
+   `{ packName, content }`，`nlohmann::json::parse` 不能直接吃它，要取
+   `.content`；多数据包叠加时优先级最高的是**末尾**那个（`versions.back()`，
+   与 `GenericTagLoader` 的 `rbegin()` 一致）。
+
+两个坑的共同表现都是「注册表为空 → 探针全部 missing → 51 处差异」，而不是报错。
+这类静默失败在差分能力里很容易被误读成「数据全错」。
 
 ### 附魔标签：补上了一个结构性缺口
 

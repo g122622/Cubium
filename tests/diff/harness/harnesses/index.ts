@@ -62,6 +62,7 @@ import { foodPropertiesInput } from "./food_properties.ts";
 import { ENTITY_TYPE_TAGS, ENTITY_TYPE_TAGS_UNORDERED, entityTypeTagsInput } from "./entity_type_tags.ts";
 import { jukeboxSongInput } from "./jukebox_song.ts";
 import { ENCHANTMENT_TAGS_UNORDERED, enchantmentTagsInput } from "./enchantment_tags.ts";
+import { paintingVariantInput } from "./painting_variant.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -519,6 +520,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "enchantment_tags", probe: "enchantment_tags", oracle: "EnchantmentTagsOracle", key: "tag",
         units: { kind: "listing" }, input: enchantmentTagsInput,
         unorderedArrays: ENCHANTMENT_TAGS_UNORDERED },
+    // 画变体：宽高 / 贴图 / 标题与作者的翻译键。纯数据包注册表。
+    { name: "painting_variant", probe: "painting_variant", oracle: "PaintingVariantOracle", key: "variant",
+        units: { kind: "listing" }, input: paintingVariantInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
