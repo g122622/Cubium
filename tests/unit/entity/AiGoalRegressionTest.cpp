@@ -33,7 +33,9 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/special/EndermanGoals.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
+#include "common/entity/ai/pathfinding/PathFinder.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -205,8 +207,13 @@ public:
 
     void setActivePath()
     {
-        m_path = std::make_unique<entity::ai::pathfinding::Path>(
-            std::vector<entity::ai::pathfinding::PathPoint>{{0, 64, 0}, {5, 64, 0}});
+        m_path = entity::ai::pathfinding::Path(
+            std::vector<entity::ai::pathfinding::PathPoint>{{0, 64, 0}, {5, 64, 0}}, BlockPos(5, 64, 0), true);
+    }
+
+    [[nodiscard]] bool canNavigateGround() const override
+    {
+        return true;
     }
 };
 
@@ -221,7 +228,10 @@ public:
 
     void setActivePath()
     {
-        auto navigator = std::make_unique<_TestPathNavigator>(this);
+        auto evaluator = std::make_unique<entity::ai::pathfinding::WalkNodeEvaluator>();
+        auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(
+            std::move(evaluator), entity::ai::pathfinding::PathFinder::DEFAULT_VISITED_NODES);
+        auto navigator = std::make_unique<_TestPathNavigator>(this, std::move(pathFinder));
         navigator->setActivePath();
         m_navigator = std::move(navigator);
     }
@@ -621,7 +631,7 @@ TEST(AiGoalRegressionTest, MeleeAttackGoal_ContinuesActivePathDuringStartupCoold
     goal.setCachedTarget(&target);
     EXPECT_TRUE(goal.shouldContinueExecuting());
     EXPECT_TRUE(goal.shouldContinueExecuting());
-    creature.navigator()->clearPath();
+    creature.navigator()->stop();
     EXPECT_FALSE(goal.shouldContinueExecuting());
 }
 

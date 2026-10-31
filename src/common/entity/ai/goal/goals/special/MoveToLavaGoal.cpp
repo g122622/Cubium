@@ -120,7 +120,7 @@ void MoveToBlockGoal::resetTask()
     if (m_creature != nullptr) {
         auto* mob = dynamic_cast<MobEntity*>(m_creature);
         if (mob != nullptr && mob->navigator() != nullptr) {
-            mob->navigator()->clearPath();
+            mob->navigator()->stop();
         }
     }
 }

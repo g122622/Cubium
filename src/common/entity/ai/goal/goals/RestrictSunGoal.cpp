@@ -70,7 +70,7 @@ void RestrictSunGoal::startExecuting()
     // 暴露在阳光下的路径部分，使实体只在阴影区域移动
     auto* nav = m_creature->navigator();
     if (nav != nullptr) {
-        nav->setAvoidSunPathing(true);
+        nav->setAvoidSun(true);
     }
 }
 
@@ -79,7 +79,7 @@ void RestrictSunGoal::resetTask()
     // 恢复路径导航器正常路径规划
     auto* nav = m_creature->navigator();
     if (nav != nullptr) {
-        nav->setAvoidSunPathing(false);
+        nav->setAvoidSun(false);
     }
 }
 

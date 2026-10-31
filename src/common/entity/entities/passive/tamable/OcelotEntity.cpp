@@ -528,7 +528,7 @@ void OcelotAttackGoal::resetTask()
 {
     m_target = nullptr;
     if (m_ocelot->navigator()) {
-        m_ocelot->navigator()->clearPath();
+        m_ocelot->navigator()->stop();
     }
 }
 

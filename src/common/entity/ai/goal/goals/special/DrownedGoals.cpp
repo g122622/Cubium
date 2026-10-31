@@ -121,7 +121,7 @@ void DrownedGoToWaterGoal::tick()
     if (m_drowned->isInWater()) {
         auto* mob = dynamic_cast<MobEntity*>(m_drowned);
         if (mob != nullptr && mob->navigator() != nullptr) {
-            mob->navigator()->clearPath();
+            mob->navigator()->stop();
         }
         m_foundWater = false;
     }

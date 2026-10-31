@@ -22,43 +22,24 @@
  */
 
 #include "Path.hpp"
-#include "common/entity/ai/pathfinding/PathPoint.hpp"
-#include "common/entity/core/DataParameter.hpp"
-#include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntitySize.hpp"
-#include <cstddef>
+#include <cmath>
 
 namespace mc::entity::ai::pathfinding {
 
-Vector3d Path::getVectorFromIndex(const Entity* entity, i32 index) const
+Vector3d Path::entityPosAtNode(f32 width, size_t index) const
 {
-    if (index < 0 || index >= static_cast<i32>(m_points.size())) {
-        return Vector3d(0.0, 0.0, 0.0);
-    }
-
-    const PathPoint& point = m_points[static_cast<size_t>(index)];
-
-    // 如果实体宽度大于1，需要调整位置到方块中心
-    if (entity && entity->width() > 1.0f) {
-        // 对于宽实体，将路径点位置调整到方块中心
-        // 这确保宽实体能够正确导航通过狭窄空间
-        f32 halfWidth = entity->width() / 2.0f;
-        return Vector3d(
-            static_cast<f64>(point.x()) + 0.5, static_cast<f64>(point.y()), static_cast<f64>(point.z()) + 0.5);
-    }
-
-    // 普通实体：返回路径点中心位置
-    return Vector3d(static_cast<f64>(point.x()) + 0.5, static_cast<f64>(point.y()), static_cast<f64>(point.z()) + 0.5);
+    const PathPoint& point = m_nodes[index];
+    // 半格偏移取 floor(宽度 + 1) * 0.5：宽度 < 1 的实体偏移 0.5（走格子中心），
+    // 宽度 >= 1 的实体偏移 1.0（格子中心再右移半格，抵消它们碰撞箱的横向扩展）。
+    const f64 centre = static_cast<f64>(static_cast<i32>(std::floor(width + 1.0f))) * 0.5;
+    return Vector3d(static_cast<f64>(point.x()) + centre,
+        static_cast<f64>(point.y()),
+        static_cast<f64>(point.z()) + centre);
 }
 
-Vector3d Path::getPosition(const Entity* entity) const
+Vector3d Path::nextEntityPos(f32 width) const
 {
-    const PathPoint* currentTarget = getCurrentTarget();
-    if (!currentTarget) {
-        return Vector3d(0.0, 0.0, 0.0);
-    }
-
-    return getVectorFromIndex(entity, m_currentIndex);
+    return entityPosAtNode(width, static_cast<size_t>(m_nextNodeIndex));
 }
 
 } // namespace mc::entity::ai::pathfinding

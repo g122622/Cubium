@@ -135,7 +135,7 @@
     ## #劫掠兽
 
     9. *
-    *自定义寻路 * *：RavagerEntity 使用 `RavagerNodeProcessor`，将树叶视为开放区域，可穿过树叶 10. * *攻击状态机 *
+    *自定义寻路 * *：RavagerEntity 使用默认的地面求值器，靠自身寻路代价表决定能否穿过树叶 10. * *攻击状态机 *
     *：攻击->眩晕(50 % 概率)->咆哮，三个状态通过 tick 计时器管理 11. * *眩晕粒子 *
     *：`_spawnStunParticles()` 在眩晕期间以 1 /
     6 概率生成 `EntityEffect` 粒子，颜色通过 velocity 向量传递（灰色 R = 0.498,

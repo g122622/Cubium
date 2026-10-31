@@ -304,7 +304,7 @@ void BeePollinateGoal::resetTask()
 
     // 清除路径
     if (auto* nav = m_bee->navigator()) {
-        nav->clearPath();
+        nav->stop();
     }
 
     // 设置花朵冷却（200 tick）
@@ -380,7 +380,7 @@ void BeePollinateGoal::tick()
             m_hoverPos.x = flowerCenter.x + _hoverOffset();
             m_hoverPos.z = flowerCenter.z + _hoverOffset();
             if (auto* nav = m_bee->navigator()) {
-                nav->clearPath();
+                nav->stop();
             }
             _setWantedPos();
         }
@@ -730,7 +730,7 @@ bool BeeFindHiveGoal::_hasReachedTarget(const BlockPos& pos) const
     // 最后一段路径的终点即蜂巢且已完成（对齐 vanilla path.getTarget().equals(pos) && canReach && isDone）
     if (auto* nav = m_bee->navigator()) {
         const pathfinding::Path* path = nav->getPath();
-        if (path != nullptr && path->getTarget() == pos && path->reachesTarget() && nav->isDone()) {
+        if (path != nullptr && path->target() == pos && path->canReach() && nav->isDone()) {
             return true;
         }
     }
@@ -824,7 +824,7 @@ void BeeFindHiveGoal::tick()
                     // 每 2 tick 评估一次下 60 次约合 120 tick，超过即丢弃蜂巢。
                     std::vector<BlockPos> currentPath;
                     if (const pathfinding::Path* path = nav->getPath(); path != nullptr) {
-                        const std::vector<pathfinding::PathPoint>& points = path->getPoints();
+                        const std::vector<pathfinding::PathPoint>& points = path->nodes();
                         currentPath.reserve(points.size());
                         for (const pathfinding::PathPoint& point : points) {
                             currentPath.push_back(BlockPos(point.x(), point.y(), point.z()));

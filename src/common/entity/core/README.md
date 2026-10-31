@@ -1041,24 +1041,26 @@
 
 ### 核心接口
 
-- **`setPathfindingMalus(PathNodeType pathType, f32 malus)`**：设置指定路径节点类型的惩罚值。
+- **`setPathfindingMalus(PathType pathType, f32 malus)`**：设置指定路径类型的代价。
   - 负值（如 `-1.0F`）：完全不可通行，节点会被排除出寻路
-  - `0.0F`：无惩罚，按默认路径类型代价处理
+  - `0.0F`：无额外代价，按默认路径类型代价处理
   - 正值（如 `8.0F`/`16.0F`）：高代价但可通行，A* 会优先选择更便宜的路径
 
-- **`getPathfindingMalus(PathNodeType pathType) const`**：查询指定类型的惩罚值。
-  - **默认值回退**：若未通过 `setPathfindingMalus` 显式设置，回退到 `getPathCostPenalty(pathType)`（对应 MC Java 的 `PathType.getMalus()`）。
-  - **乘客继承**：若当前实体骑乘在重写 `shouldPassengersInheritMalus()` 返回 `true` 的 Mob 载具上（如炽足兽 Strider），返回载具的 malus 值；否则返回自身的 malus 值。载具通过 `getVehicle()` + `world()->getEntity()` 解引用（与 `MobEntity::isInDaylight()` 既有模式一致）。
+- **`getPathfindingMalus(PathType pathType) const`**：查询指定类型的代价。
+  - **默认值回退**：若未通过 `setPathfindingMalus` 显式设置，回退到 `getPathMalus(pathType)`（对应 MC Java 的 `PathType.getMalus()`）。
+  - **乘客继承**：若当前实体骑乘在重写 `shouldPassengersInheritMalus()` 返回 `true` 的 Mob 载具上（如炽足兽 Strider），返回载具的代价；否则返回自身的代价。载具通过 `getVehicle()` + `world()->getEntity()` 解引用（与 `MobEntity::isInDaylight()` 既有模式一致）。
 
-- **`shouldPassengersInheritMalus() const`**（虚方法）：乘客是否继承载具的寻路惩罚值。默认返回 `false`。炽足兽（Strider）等载具重写为 `true`，使骑乘者能在岩浆上寻路。
+- **`shouldPassengersInheritMalus() const`**（虚方法）：乘客是否继承载具的寻路代价。默认返回 `false`。炽足兽（Strider）等载具重写为 `true`，使骑乘者能在岩浆上寻路。
 
 ### 存储实现
 
-`MobEntity` 内部使用 `std::array<f32, pathNodeTypeCount()>` 存储（`pathNodeTypeCount()` 定义于 `PathNodeType.hpp`，因枚举底层类型 `u8` 最大 255，Count 值 256 必须独立于枚举之外）。构造时填充 NaN 表示"未设置"，`getPathfindingMalus` 通过 `std::isnan(stored)` 判断是否回退到默认值，对应 MC Java `EnumMap<PathType, Float>` 的 `get()` 返回 `null` 时回退到 `getMalus()` 的语义。
+`MobEntity` 内部使用 `std::array<f32, pathTypeCount()>` 存储（`pathTypeCount()` 定义于 `PathType.hpp`，值为 26，即原版 `PathType` 的枚举项数）。构造时填充 NaN 表示"未设置"，`getPathfindingMalus` 通过 `std::isnan(stored)` 判断是否回退到默认值，对应 MC Java `EnumMap<PathType, Float>` 的 `get()` 返回 `null` 时回退到 `getMalus()` 的语义。
 
-### 与 WalkNodeProcessor 的集成
+### 与 WalkNodeEvaluator 的集成
 
-`WalkNodeProcessor::createNode()` 创建新节点时调用 `mob->getPathfindingMalus(type)` 设置 `PathPoint::costMalus`；`_addNeighbor()` 在节点类型变更时以 `std::max(node->costMalus(), newCostMalus)` 更新（对应 MC Java `WalkNodeEvaluator.getNodeAndUpdateCostToMax` 的 `Math.max` 语义——保守保留较高代价，避免后续更"便宜"的类型判定削弱已有的危险标记）。
+`MobEntity` 直接实现寻路求值器所需的 `PathfindingEntity` 契约（尺寸、抬脚高度、最大下落距离、代价表、包围盒、地面/水中状态），因此求值器不需要认识 `MobEntity` 就能取到这些信息。求值器在打分时通过 `pathfindingMalus(type)` 读这张表；节点代价一旦写入就用 `std::max` 抬到不小于新值（对应 MC Java `WalkNodeEvaluator.getNodeAndUpdateCostToMax` 的 `Math.max` 语义——保守保留较高代价，避免后续更"便宜"的类型判定削弱已有的危险标记）。
+
+最大下落距离（`pathfindingMaxFallDistance`）不是常数：有攻击目标时按「剩余血量 + 难度」折算，无目标时才退回默认安全高度，对应 MC 1.21.11 `Mob.getMaxFallDistance()`。
 
 ### 典型用例
 

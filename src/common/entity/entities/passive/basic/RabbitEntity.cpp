@@ -359,14 +359,11 @@ f32 RabbitEntity::getRabbitJumpScale() const
         scale = 0.2f;
     }
 
-    // 路径下一节点高于当前位置 0.5 格：需要跳上台阶（vanilla path.getNextEntityPos）。
+    // 路径下一节点高于当前位置 0.5 格：需要跳上台阶。
     if (const auto* nav = navigator(); nav != nullptr && !nav->isDone()) {
-        if (const entity::ai::pathfinding::Path* path = nav->getPath(); path != nullptr) {
-            if (const entity::ai::pathfinding::PathPoint* next = path->getCurrentTarget(); next != nullptr) {
-                if (static_cast<f64>(next->y()) > y() + 0.5) {
-                    scale = 0.5f;
-                }
-            }
+        const entity::ai::pathfinding::Path* path = nav->getPath();
+        if (path != nullptr && !path->isDone() && static_cast<f64>(path->nextNode().y()) > y() + 0.5) {
+            scale = 0.5f;
         }
     }
 
@@ -514,9 +511,9 @@ void RabbitEntity::updateAITasks()
                 auto* nav = navigator();
                 if (nav != nullptr) {
                     const auto* path = nav->getPath();
-                    if (path != nullptr && !path->isFinished()) {
-                        // 对应 MC path.getNextEntityPos(this)
-                        Vector3d nextPos = path->getPosition(this);
+                    if (path != nullptr && !path->isDone()) {
+                        // 下一个路径点对应的实体坐标
+                        Vector3d nextPos = path->nextEntityPos(width());
                         targetX = nextPos.x;
                         targetZ = nextPos.z;
                     }

@@ -89,7 +89,7 @@ BreakDoorGoal 使用 `DifficultyPredicate` 判断是否允许破门。默认谓�
 
 ### 2. BreakDoorGoal 需要导航器设置 canOpenDoors
 
-DoorInteractGoal::shouldExecute() 会检查 `navigator->canOpenDoors()`。如果实体的导航器没有启用开门能力，破门目标不会激活。僵尸和卫道士需要确保导航器的 `setCanOpenDoors(true)` 和 `setCanEnterDoors(true)` 被调用。
+DoorInteractGoal::shouldExecute() 会检查 `navigator->canOpenDoors()`。如果实体的导航器没有启用开门能力，破门目标不会激活。僵尸和卫道士需要确保导航器的 `setCanOpenDoors(true)`（以及默认为 `true` 的 `setCanPassDoors(true)`）被调用。
 
 ### 3. DoorInteractGoal 的 passed 检测
 

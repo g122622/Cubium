@@ -21,112 +21,89 @@
  *
  */
 
-#include "core/Types.hpp"
-#include "entity/ai/pathfinding/Path.hpp"
-#include "entity/ai/pathfinding/PathHeap.hpp"
-#include "entity/ai/pathfinding/PathNodeType.hpp"
-#include "entity/ai/pathfinding/PathPoint.hpp"
-#include <cstdlib>
+/**
+ * @file PathfindingTests.cpp
+ * @brief 寻路基础数据结构的单元测试
+ *
+ * 覆盖 `PathType` 的代价表、`PathPoint` 的距离 / 状态语义、`PathHeap` 的二叉堆行为，
+ * 以及 `Path` 的游标推进与裁剪。这些是与原版 1.21.11 一一对应的最小单元，
+ * 上面的求值器与 A* 都建立在它们之上。
+ */
+
+#include "common/core/Types.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
+#include "common/entity/ai/pathfinding/PathHeap.hpp"
+#include "common/entity/ai/pathfinding/PathPoint.hpp"
+#include "common/entity/ai/pathfinding/PathType.hpp"
+#include <memory>
+#include <vector>
 #include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::entity::ai::pathfinding;
 
-// ==================== PathNodeType Tests ====================
+// ==================== PathType ====================
 
-TEST(PathNodeTypeTest, GetCostPenalty)
+TEST(PathTypeTest, DefaultMalus)
 {
-    // 阻塞类型代价为-1（不可通行）- MC 1.16.5: BLOCKED priority = -1.0F
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::Blocked), -1.0f);
+    // 可走 / 空着的地形没有额外代价。
+    EXPECT_EQ(getPathMalus(PathType::Open), 0.0f);
+    EXPECT_EQ(getPathMalus(PathType::Walkable), 0.0f);
+    EXPECT_EQ(getPathMalus(PathType::WalkableDoor), 0.0f);
 
-    // 可行走类型无惩罚 - MC 1.16.5: WALKABLE priority = 0.0F
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::Walkable), 0.0f);
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::WalkableDoor), 0.0f);
+    // 彻底不可通行。
+    EXPECT_LT(getPathMalus(PathType::Blocked), 0.0f);
+    EXPECT_LT(getPathMalus(PathType::Lava), 0.0f);
+    EXPECT_LT(getPathMalus(PathType::PowderSnow), 0.0f);
+    EXPECT_LT(getPathMalus(PathType::Fence), 0.0f);
+    EXPECT_LT(getPathMalus(PathType::DoorWoodClosed), 0.0f);
+    EXPECT_LT(getPathMalus(PathType::UnpassableRail), 0.0f);
+    EXPECT_LT(getPathMalus(PathType::DamageOther), 0.0f);
+    EXPECT_LT(getPathMalus(PathType::Leaves), 0.0f);
 
-    // 危险区域有高代价（但不禁止通行） - MC 1.16.5: DANGER_* priority = 8.0F
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::DangerFire), 8.0f);
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::DangerCactus), 8.0f);
-
-    // 岩浆完全禁止 - MC 1.16.5: LAVA priority = -1.0F
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::Lava), -1.0f);
-
-    // 伤害类型完全禁止 - MC 1.16.5: DAMAGE_CACTUS priority = -1.0F
-    EXPECT_EQ(getPathCostPenalty(PathNodeType::DamageCactus), -1.0f);
+    // 可通行但昂贵或会造成伤害：A* 会绕开但不会完全排除。
+    EXPECT_GT(getPathMalus(PathType::Water), 0.0f);
+    EXPECT_GT(getPathMalus(PathType::DangerFire), 0.0f);
+    EXPECT_GT(getPathMalus(PathType::DangerOther), 0.0f);
+    EXPECT_GT(getPathMalus(PathType::StickyHoney), 0.0f);
+    // 站在火上比靠近火更贵。
+    EXPECT_GT(getPathMalus(PathType::DamageFire), getPathMalus(PathType::DangerFire));
 }
 
-TEST(PathNodeTypeTest, IsWalkable)
+TEST(PathTypeTest, EnumOrderMatchesVanilla)
 {
-    EXPECT_TRUE(isWalkable(PathNodeType::Walkable));
-    EXPECT_TRUE(isWalkable(PathNodeType::WalkableDoor));
-    EXPECT_TRUE(isWalkable(PathNodeType::Water));
-    EXPECT_TRUE(isWalkable(PathNodeType::Climbable));
-
-    EXPECT_FALSE(isWalkable(PathNodeType::Blocked));
-    EXPECT_FALSE(isWalkable(PathNodeType::Open));
-    EXPECT_FALSE(isWalkable(PathNodeType::Lava));
+    // 顺序本身就是 A* 取舍的一部分（同代价时按枚举顺序比较），因此必须与原版一致。
+    EXPECT_EQ(static_cast<u8>(PathType::Blocked), 0u);
+    EXPECT_EQ(static_cast<u8>(PathType::Open), 1u);
+    EXPECT_EQ(static_cast<u8>(PathType::Walkable), 2u);
+    EXPECT_EQ(static_cast<u8>(PathType::UnpassableRail), 12u);
+    EXPECT_EQ(pathTypeCount(), 26u);
 }
 
-// ==================== PathPoint Tests ====================
+// ==================== PathPoint ====================
 
 TEST(PathPointTest, Construction)
 {
-    PathPoint point(10, 64, -5);
+    const PathPoint point(10, 64, -5);
 
     EXPECT_EQ(point.x(), 10);
     EXPECT_EQ(point.y(), 64);
     EXPECT_EQ(point.z(), -5);
-    // MC 1.16.5: 默认节点类型是BLOCKED，由NodeProcessor设置实际类型
-    EXPECT_EQ(point.nodeType(), PathNodeType::Blocked);
+    EXPECT_EQ(point.type(), PathType::Blocked);
     EXPECT_EQ(point.heapIndex(), -1);
-    EXPECT_FALSE(point.isVisited());
+    EXPECT_FALSE(point.inOpenSet());
+    EXPECT_FALSE(point.closed());
 }
 
 TEST(PathPointTest, DistanceCalculation)
 {
-    PathPoint p1(0, 0, 0);
-    PathPoint p2(3, 4, 0);
+    const PathPoint p1(0, 0, 0);
+    const PathPoint p2(3, 4, 0);
 
-    // 直线距离 (MC 1.16.5: distanceTo)
     EXPECT_FLOAT_EQ(p1.distanceTo(p2), 5.0f);
-
-    // 直线距离平方
-    EXPECT_FLOAT_EQ(p1.distanceToSq(p2), 25.0f);
-
-    // 曼哈顿距离 (MC 1.16.5: func_224757_c)
-    EXPECT_EQ(p1.distanceManhattan(p2), 7);
-}
-
-TEST(PathPointTest, EqualityAndHash)
-{
-    PathPoint p1(10, 20, 30);
-    PathPoint p2(10, 20, 30);
-    PathPoint p3(10, 21, 30);
-
-    EXPECT_TRUE(p1.equals(p2));
-    EXPECT_FALSE(p1.equals(p3));
-    EXPECT_EQ(p1.hash(), p2.hash());
-    EXPECT_NE(p1.hash(), p3.hash());
-}
-
-TEST(PathPointTest, Clone)
-{
-    PathPoint original(5, 10, 15);
-    original.setNodeType(PathNodeType::Water);
-    original.setCostMalus(0.5f);
-    original.setCostFromStart(10.0f);
-    original.setHeapIndex(3);
-
-    PathPoint clone = original.clone();
-
-    EXPECT_EQ(clone.x(), 5);
-    EXPECT_EQ(clone.y(), 10);
-    EXPECT_EQ(clone.z(), 15);
-    EXPECT_EQ(clone.nodeType(), PathNodeType::Water);
-    EXPECT_FLOAT_EQ(clone.costMalus(), 0.5f);
-
-    // 克隆不复制寻路状态
-    EXPECT_EQ(clone.heapIndex(), -1);
-    EXPECT_EQ(clone.costFromStart(), 0.0f);
+    EXPECT_FLOAT_EQ(p1.distanceTo(3, 4, 0), 5.0f);
+    // 曼哈顿距离按原版口径逐分量取绝对值后相加（结果仍是 f32）。
+    EXPECT_FLOAT_EQ(p1.distanceManhattan(p2), 7.0f);
 }
 
 TEST(PathPointTest, CostCalculation)
@@ -135,13 +112,25 @@ TEST(PathPointTest, CostCalculation)
 
     point.setCostFromStart(10.0f);
     point.setHeuristic(5.0f);
-    point.updateTotalCost();
+    point.setTotalCost(point.costFromStart() + point.heuristic());
 
     // f = g + h
     EXPECT_FLOAT_EQ(point.totalCost(), 15.0f);
 }
 
-// ==================== PathHeap Tests ====================
+TEST(PathPointTest, OpenSetTracking)
+{
+    PathPoint point(0, 0, 0);
+    EXPECT_FALSE(point.inOpenSet());
+
+    point.setHeapIndex(3);
+    EXPECT_TRUE(point.inOpenSet());
+
+    point.setHeapIndex(-1);
+    EXPECT_FALSE(point.inOpenSet());
+}
+
+// ==================== PathHeap ====================
 
 TEST(PathHeapTest, EmptyHeap)
 {
@@ -149,7 +138,6 @@ TEST(PathHeapTest, EmptyHeap)
 
     EXPECT_TRUE(heap.empty());
     EXPECT_EQ(heap.size(), 0u);
-    EXPECT_EQ(heap.pop(), nullptr);
 }
 
 TEST(PathHeapTest, InsertAndPop)
@@ -159,189 +147,137 @@ TEST(PathHeapTest, InsertAndPop)
     PathPoint p2(0, 0, 0);
     PathPoint p3(0, 0, 0);
 
-    p1.setCostFromStart(0.0f);
-    p1.setHeuristic(10.0f);
-    p1.updateTotalCost();
-
-    p2.setCostFromStart(0.0f);
-    p2.setHeuristic(5.0f);
-    p2.updateTotalCost();
-
-    p3.setCostFromStart(0.0f);
-    p3.setHeuristic(15.0f);
-    p3.updateTotalCost();
+    p1.setTotalCost(10.0f);
+    p2.setTotalCost(5.0f);
+    p3.setTotalCost(15.0f);
 
     heap.insert(&p1);
     heap.insert(&p2);
     heap.insert(&p3);
 
     EXPECT_EQ(heap.size(), 3u);
+    EXPECT_EQ(heap.peek(), &p2);
 
-    // 应该按代价从小到大弹出
-    EXPECT_EQ(heap.pop(), &p2); // cost=5
-    EXPECT_EQ(heap.pop(), &p1); // cost=10
-    EXPECT_EQ(heap.pop(), &p3); // cost=15
+    // 按代价从小到大弹出。
+    EXPECT_EQ(heap.pop(), &p2);
+    EXPECT_EQ(heap.pop(), &p1);
+    EXPECT_EQ(heap.pop(), &p3);
     EXPECT_TRUE(heap.empty());
 }
 
-TEST(PathHeapTest, Update)
+TEST(PathHeapTest, ChangeCostMovesNodeUp)
 {
     PathHeap heap;
     PathPoint p1(0, 0, 0);
     PathPoint p2(0, 0, 0);
 
-    p1.setCostFromStart(0.0f);
-    p1.setHeuristic(10.0f);
-    p1.updateTotalCost();
-
-    p2.setCostFromStart(0.0f);
-    p2.setHeuristic(5.0f);
-    p2.updateTotalCost();
-
+    p1.setTotalCost(10.0f);
+    p2.setTotalCost(5.0f);
     heap.insert(&p1);
     heap.insert(&p2);
 
-    // 更新p1的代价使其变为最小
-    p1.setHeuristic(2.0f);
-    p1.updateTotalCost();
-    heap.update(&p1);
-
-    // p1现在应该是最小的
+    // 把 p1 的代价调小后它应当浮到堆顶。
+    heap.changeCost(&p1, 2.0f);
     EXPECT_EQ(heap.pop(), &p1);
 }
 
 TEST(PathHeapTest, HeapProperty)
 {
     PathHeap heap;
-
-    // 创建指向堆的指针数组，避免vector重分配导致指针失效
     std::vector<std::unique_ptr<PathPoint>> points;
 
-    // 插入有序代价的点
     for (int i = 0; i < 20; ++i) {
         points.push_back(std::make_unique<PathPoint>(i, 0, 0));
-        points.back()->setCostFromStart(0.0f);
-        points.back()->setHeuristic(static_cast<f32>(i * 10));
-        points.back()->updateTotalCost();
+        points.back()->setTotalCost(static_cast<f32>(i * 10));
         heap.insert(points.back().get());
     }
 
-    EXPECT_TRUE(heap.isValidHeap());
-
-    // 弹出应该按代价排序
     f32 lastCost = -1.0f;
     while (!heap.empty()) {
-        PathPoint* p = heap.pop();
-        EXPECT_GE(p->totalCost(), lastCost);
-        lastCost = p->totalCost();
+        const PathPoint* point = heap.pop();
+        EXPECT_GE(point->totalCost(), lastCost);
+        lastCost = point->totalCost();
     }
 }
 
-// ==================== Path Tests ====================
+// ==================== Path ====================
 
-TEST(PathTest, EmptyPath)
+namespace {
+
+/// 造一条沿 +X 方向、Y=0 的直线路径。
+Path makeLinePath(i32 count)
 {
-    Path path;
+    std::vector<PathPoint> nodes;
+    nodes.reserve(static_cast<size_t>(count));
+    for (i32 index = 0; index < count; ++index) {
+        nodes.emplace_back(index, 0, 0);
+    }
+    return Path(std::move(nodes), BlockPos(count - 1, 0, 0), true);
+}
+
+} // namespace
+
+TEST(PathCursorTest, EmptyPath)
+{
+    const Path path;
 
     EXPECT_TRUE(path.empty());
-    EXPECT_EQ(path.length(), 0u);
-    EXPECT_EQ(path.getStart(), nullptr);
-    EXPECT_EQ(path.getEnd(), nullptr);
-    EXPECT_TRUE(path.isFinished());
+    EXPECT_EQ(path.nodeCount(), 0u);
+    EXPECT_EQ(path.endNode(), nullptr);
+    EXPECT_TRUE(path.isDone());
 }
 
-TEST(PathTest, AddPoints)
+TEST(PathTest, NodesAndCursor)
 {
-    Path path;
+    Path path = makeLinePath(3);
 
-    path.addPoint(PathPoint(0, 0, 0));
-    path.addPoint(PathPoint(1, 0, 0));
-    path.addPoint(PathPoint(2, 0, 0));
-
-    EXPECT_EQ(path.length(), 3u);
+    EXPECT_EQ(path.nodeCount(), 3u);
     EXPECT_FALSE(path.empty());
-    EXPECT_FALSE(path.isFinished());
+    EXPECT_FALSE(path.isDone());
+    EXPECT_TRUE(path.notStarted());
+    EXPECT_EQ(path.target(), BlockPos(2, 0, 0));
+    EXPECT_TRUE(path.canReach());
 
-    // 验证起点和终点
-    EXPECT_NE(path.getStart(), nullptr);
-    EXPECT_EQ(path.getStart()->x(), 0);
-    EXPECT_NE(path.getEnd(), nullptr);
-    EXPECT_EQ(path.getEnd()->x(), 2);
+    EXPECT_EQ(path.nextNode().x(), 0);
+    EXPECT_EQ(path.nextNodePos(), BlockPos(0, 0, 0));
+
+    path.advance();
+    EXPECT_EQ(path.nextNode().x(), 1);
+
+    path.advance();
+    EXPECT_EQ(path.nextNode().x(), 2);
+
+    // 越过最后一个节点后路径就算走完。
+    path.advance();
+    EXPECT_TRUE(path.isDone());
 }
 
-TEST(PathTest, Navigation)
+TEST(PathCursorTest, TruncateNodes)
 {
-    Path path;
-    path.addPoint(PathPoint(0, 0, 0));
-    path.addPoint(PathPoint(1, 0, 0));
-    path.addPoint(PathPoint(2, 0, 0));
+    Path path = makeLinePath(4);
+    EXPECT_EQ(path.endNode()->x(), 3);
 
-    // 初始索引为0
-    EXPECT_EQ(path.getCurrentIndex(), 0);
-    EXPECT_EQ(path.getCurrentTarget()->x(), 0);
-
-    // 前进
-    EXPECT_TRUE(path.advance());
-    EXPECT_EQ(path.getCurrentIndex(), 1);
-    EXPECT_EQ(path.getCurrentTarget()->x(), 1);
-
-    EXPECT_TRUE(path.advance());
-    EXPECT_EQ(path.getCurrentIndex(), 2);
-    EXPECT_EQ(path.getCurrentTarget()->x(), 2);
-
-    // 到达终点后无法再前进
-    EXPECT_FALSE(path.advance());
-    EXPECT_TRUE(path.isFinished());
-
-    // 重置
-    path.reset();
-    EXPECT_EQ(path.getCurrentIndex(), 0);
-    EXPECT_FALSE(path.isFinished());
+    path.truncateNodes(2);
+    EXPECT_EQ(path.nodeCount(), 2u);
+    EXPECT_EQ(path.endNode()->x(), 1);
 }
 
-TEST(PathTest, BuildFromEnd)
+TEST(PathTest, SameAsComparesCoordinates)
 {
-    // 创建一个简单的路径点链：0 -> 1 -> 2 -> 3
-    PathPoint p0(0, 0, 0);
-    PathPoint p1(1, 0, 0);
-    PathPoint p2(2, 0, 0);
-    PathPoint p3(3, 0, 0);
+    Path left = makeLinePath(3);
+    Path right = makeLinePath(3);
+    EXPECT_TRUE(left.sameAs(&right));
 
-    p0.setParent(nullptr);
-    p1.setParent(&p0);
-    p2.setParent(&p1);
-    p3.setParent(&p2);
-
-    Path path = Path::buildFromEnd(&p3);
-
-    EXPECT_EQ(path.length(), 4u);
-    EXPECT_EQ(path.getStart()->x(), 0);
-    EXPECT_EQ(path.getEnd()->x(), 3);
+    right.truncateNodes(2);
+    EXPECT_FALSE(left.sameAs(&right));
 }
 
-TEST(PathTest, ReachesTarget)
+TEST(PathCursorTest, EntityPosAtNodeCentresOnBlock)
 {
-    Path path;
-    path.addPoint(PathPoint(0, 0, 0));
-    path.addPoint(PathPoint(5, 10, 15));
+    const Path path = makeLinePath(2);
 
-    EXPECT_TRUE(path.reachesTarget(5, 10, 15, 0.0f));
-    EXPECT_TRUE(path.reachesTarget(5, 10, 15, 1.0f));
-    EXPECT_TRUE(path.reachesTarget(6, 10, 15, 2.0f)); // 在容差范围内
-    EXPECT_FALSE(path.reachesTarget(10, 10, 15, 1.0f));
-}
-
-TEST(PathTest, TrimStart)
-{
-    Path path;
-    path.addPoint(PathPoint(0, 0, 0));
-    path.addPoint(PathPoint(1, 0, 0));
-    path.addPoint(PathPoint(2, 0, 0));
-    path.addPoint(PathPoint(3, 0, 0));
-
-    path.trimStart(2);
-
-    EXPECT_EQ(path.length(), 2u);
-    EXPECT_EQ(path.getStart()->x(), 2);
-    EXPECT_EQ(path.getEnd()->x(), 3);
+    // 宽度 0.6 的实体站在方块中心：中心偏移为 floor(1.6) * 0.5 = 0.5。
+    const Vector3d pos = path.entityPosAtNode(0.6f, 0);
+    EXPECT_FLOAT_EQ(static_cast<f32>(pos.x), 0.5f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(pos.z), 0.5f);
 }

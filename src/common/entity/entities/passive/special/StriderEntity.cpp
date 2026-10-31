@@ -76,10 +76,10 @@ StriderEntity::StriderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AnimalEntity(id, registry)
 {
     // 设置 AI 导航优先级
-    // this.setPathPriority(PathNodeType.WATER, -1.0F);
-    // this.setPathPriority(PathNodeType.LAVA, 0.0F);
-    // this.setPathPriority(PathNodeType.DANGER_FIRE, 0.0F);
-    // this.setPathPriority(PathNodeType.DAMAGE_FIRE, 0.0F);
+    // this.setPathfindingMalus(PathType.WATER, -1.0F);
+    // this.setPathfindingMalus(PathType.LAVA, 0.0F);
+    // this.setPathfindingMalus(PathType.DANGER_FIRE, 0.0F);
+    // this.setPathfindingMalus(PathType.DAMAGE_FIRE, 0.0F);
     registerGoals();
 
     // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），派生 override

@@ -406,7 +406,7 @@ protected:
 
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
 
         m_spawnBabyTime = 0;
@@ -682,7 +682,7 @@ protected:
         // 清除导航路径
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
 
         // 清除行走目标和注视目标

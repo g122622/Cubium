@@ -24,101 +24,68 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 
-// 前向声明
 namespace mc {
+
 class BlockState;
+namespace fluid {
+class FluidState;
 }
 
-namespace mc::entity::ai::pathfinding {
-
 /**
- * @brief 世界区域访问接口
+ * @brief 寻路可见的世界视图
  *
- * 提供寻路算法对世界区块的有限访问。
- * 这是一个抽象接口，允许不同实现（服务端世界、客户端世界等）。
+ * 寻路只通过这一个窄接口读世界：方块状态、流体状态、建造高度与碰撞查询。
+ * 把「读世界」和「判定方块属于哪类节点」分开，是因为后者必须与实体无关
+ * （同一格对任何实体都是同一个路径类型），只有前者随世界实现变化。
+ *
+ * 原版对应的就是 `CollisionGetter` 在 `PathNavigationRegion` 上的那张脸：
+ * 只读、只覆盖以实体为中心的一块区域、外加 `noCollision(AABB)`。
+ *
+ * 生命周期：由 `PathNavigator` 在每次寻路时于栈上构造，寻路结束后随栈帧析构；
+ * 求值器（`NodeEvaluator`）只持有它的裸指针，会话结束时必须置空。
  */
 class Region {
 public:
     virtual ~Region() = default;
 
     /**
-     * @brief 获取指定位置的方块状态ID
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
-     * @return 方块状态ID，如果位置无效返回0（空气）
+     * @brief 读方块状态
+     * @param x, y, z 方块坐标
+     * @return 方块状态；超出建造高度时返回空气
      */
-    [[nodiscard]] virtual u32 getBlockStateId(i32 x, i32 y, i32 z) const = 0;
+    [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const = 0;
 
     /**
-     * @brief 获取指定位置的方块状态
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
-     * @return 方块状态指针，如果位置无效或为空气返回nullptr
+     * @brief 读流体状态
+     * @param x, y, z 方块坐标
+     * @return 流体状态；超出建造高度时返回空流体
      */
-    [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] virtual const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const = 0;
 
     /**
-     * @brief 检查位置是否在加载范围内
-     */
-    [[nodiscard]] virtual bool isLoaded(i32 x, i32 z) const = 0;
-
-    /**
-     * @brief 获取最高方块Y坐标
-     * @param x X坐标
-     * @param z Z坐标
-     * @return 最高方块Y坐标
-     */
-    [[nodiscard]] virtual i32 getHeight(i32 x, i32 z) const = 0;
-
-    /**
-     * @brief 检查位置是否可通行
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
-     * @return 是否可通行
-     */
-    [[nodiscard]] virtual bool isWalkable(i32 x, i32 y, i32 z) const = 0;
-
-    /**
-     * @brief 检查位置是否是水
-     */
-    [[nodiscard]] virtual bool isWater(i32 x, i32 y, i32 z) const = 0;
-
-    /**
-     * @brief 检查位置是否是岩浆
-     */
-    [[nodiscard]] virtual bool isLava(i32 x, i32 y, i32 z) const = 0;
-
-    /**
-     * @brief 获取方块顶部高度（考虑台阶、楼梯等）
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
-     * @return 顶部高度偏移（通常为0或0.5）
-     */
-    [[nodiscard]] virtual f32 getBlockTopY(i32 /*x*/, i32 y, i32 /*z*/) const
-    {
-        // 默认实现
-        return static_cast<f32>(y) + 1.0f;
-    }
-
-    /**
-     * @brief 检查指定位置是否能看到天空
+     * @brief 给定盒子是否与实体发生了碰撞
      *
-     * 用于寻路中的阳光避让逻辑。位置上方无遮挡方块（天空光照为最大值）时认为可以看到天空。
+     * 原版 `CollisionGetter.noCollision(Entity, AABB)` 的反面：只考虑方块碰撞形状，
+     * 不含流体形状（细雪与水的流体形状另算）。
      *
-     * 当前唯一消费点是 PathNavigator::_trimPath：路径计算完成后截断暴露在阳光下的路径段
-     * （对应 GroundPathNavigation.trimPath）。节点级阳光代价（节点处理器内部查询本接口）尚未实现。
-     *
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
-     * @return 是否能看到天空
+     * @param entity 参与碰撞判定的实体（可能为 nullptr，表示不带实体上下文）
+     * @param box 世界坐标下的盒子
+     * @return true 表示有碰撞
      */
-    [[nodiscard]] virtual bool canSeeSky(i32 x, i32 y, i32 z) const = 0;
+    [[nodiscard]] virtual bool hasCollision(const void* entity, const AxisAlignedBB& box) const = 0;
+
+    /**
+     * @brief 世界最低建造高度（该 Y 之下不可放置方块）
+     */
+    [[nodiscard]] virtual i32 minBuildHeight() const = 0;
+
+    /**
+     * @brief 世界最高建造高度（该 Y 之上不可放置方块）
+     */
+    [[nodiscard]] virtual i32 maxBuildHeight() const = 0;
 };
 
-} // namespace mc::entity::ai::pathfinding
+} // namespace mc

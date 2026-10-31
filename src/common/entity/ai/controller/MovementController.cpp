@@ -25,7 +25,8 @@
 #include "JumpController.hpp"
 #include "common/entity/ai/pathfinding/PathFinder.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/PathType.hpp"
+#include "common/entity/ai/pathfinding/WorldRegion.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -238,35 +239,19 @@ void MovementController::tick()
 
 bool MovementController::canWalkAt(f64 x, f64 z) const
 {
-    if (!m_mob) {
-        return true; // 无法检查时默认可行走
-    }
-
-    // 使用 NodeProcessor.getPathNodeType 检查目标位置是否可行走
-    auto* navigator = m_mob->navigator();
-    if (navigator && navigator->getPathFinder()) {
-        auto* nodeProcessor = navigator->getPathFinder()->getNodeProcessor();
-        if (nodeProcessor) {
-            // NodeProcessor::m_region 仅在 PathNavigator::moveTo 执行期间有效（栈上 WorldRegion），
-            // 寻路结束后立即被置空。此 canWalkAt 在 MovementController::tick 的 Strafe 分支每帧
-            // 调用，此时 region 必然已为 nullptr。无有效 region 时不可做节点可行性判断，
-            // 默认返回 true 走原有 strafe 逻辑（vanilla MoveControl 本就不在 strafe 时查节点），
-            // 避免把 getNodeType 的 Blocked 守卫返回值误判为"真不可走"导致实体卡住。
-            if (!nodeProcessor->hasRegion()) {
-                return true;
-            }
-
-            i32 blockX = floorTo<i32>(x);
-            i32 blockY = floorTo<i32>(m_mob->y());
-            i32 blockZ = floorTo<i32>(z);
-
-            auto nodeType = nodeProcessor->getNodeType(blockX, blockY, blockZ);
-            return nodeType == pathfinding::PathNodeType::Walkable;
-        }
-    }
-
-    // 如果没有 NodeProcessor，默认返回 true
-    return true;
+    // 横移前确认「走到这一步会不会踩进非可走地形」。求值器只在一次寻路会话内绑定世界
+    // （会话结束即解绑），而横移发生在会话之外，所以这里现建一个只读区域视图、当场求值，
+    // 不去读求值器的会话状态。
+    auto* evaluator = m_mob->navigator()->nodeEvaluator();
+    const IWorld* world = m_mob->world();
+    MC_ASSERT_RELEASE(world != nullptr);
+    pathfinding::WorldRegion region(*world);
+    pathfinding::PathfindingContext context(region,
+        *m_mob,
+        Vector3d(static_cast<f64>(m_mob->x()), static_cast<f64>(m_mob->y()), static_cast<f64>(m_mob->z())));
+    const pathfinding::PathType type =
+        evaluator->getPathTypeOfMob(context, floorTo<i32>(x), floorTo<i32>(m_mob->y()), floorTo<i32>(z));
+    return type == pathfinding::PathType::Walkable;
 }
 
 } // namespace mc::entity::ai::controller

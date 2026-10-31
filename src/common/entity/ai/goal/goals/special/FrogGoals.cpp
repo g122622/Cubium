@@ -236,7 +236,7 @@ bool FrogTongueGoal::_canPathfindToTarget(LivingEntity& target) const
         if (path == nullptr) {
             return false;
         }
-        return path->getDistToTarget() < EATING_DISTANCE;
+        return path->distanceToTarget() < EATING_DISTANCE;
     }
     return false;
 }

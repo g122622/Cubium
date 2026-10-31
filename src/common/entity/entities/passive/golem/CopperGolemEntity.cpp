@@ -31,7 +31,7 @@
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/special/CopperGolemGoals.hpp"
-#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/PathType.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/golem/GolemEntity.hpp"
@@ -81,9 +81,9 @@ CopperGolemEntity::CopperGolemEntity(EntityInstanceId id, ecs::EntityRegistry& r
     //   setPathfindingMalus(DAMAGE_FIRE, -1.0F);
     // DANGER_FIRE/DANGER_OTHER 设为 16.0F：高代价但可通行（铜傀儡会避开火焰周边）
     // DAMAGE_FIRE 设为 -1.0F：禁止踏入火焰方块本身
-    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::DangerFire, 16.0f);
-    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::DangerOther, 16.0f);
-    setPathfindingMalus(entity::ai::pathfinding::PathNodeType::DamageFire, -1.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathType::DangerFire, 16.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathType::DangerOther, 16.0f);
+    setPathfindingMalus(entity::ai::pathfinding::PathType::DamageFire, -1.0f);
 
     // 铜傀儡可以走上1格高的方块（MC: STEP_HEIGHT=1.0）
     setStepHeight(1.0f);

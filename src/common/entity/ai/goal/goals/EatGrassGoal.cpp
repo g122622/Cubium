@@ -104,7 +104,7 @@ void EatGrassGoal::startExecuting()
     // 清除导航路径
     if (m_mob) {
         if (auto* nav = m_mob->navigator()) {
-            nav->clearPath();
+            nav->stop();
         }
     }
 

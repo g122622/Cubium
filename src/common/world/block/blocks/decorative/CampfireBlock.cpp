@@ -93,8 +93,8 @@ CampfireBlock::CampfireBlock(BlockProperties properties, u8 lightValue)
             .with(BlockStateProperties::WATERLOGGED(), false)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
-    // 营火形状（略小于完整方块）
-    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 7.0f, 16.0f);
+    // 营火形状（略小于完整方块）：原版高度为 7/16 格，坐标为方块坐标而非像素坐标。
+    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 7.0f / 16.0f, 1.0f);
 }
 
 BlockState CampfireBlock::getStateForPlacement(BlockItemUseContext& context)

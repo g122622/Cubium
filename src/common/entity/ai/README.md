@@ -109,18 +109,20 @@
 │           ├── CongregateGoal.hpp / cpp #聚集互动
 │           ├── ShareItemsGoal.hpp / cpp #分享物品
 │           └── LookAtEntitiesGoal.hpp / cpp #看向实体
-├── pathfinding / #寻路系统（A* 算法）
-│   ├── FlaggedPathPoint.hpp #带标志的路径点
-│   ├── NodeProcessor.hpp #节点处理器基类
+├── pathfinding / #寻路系统（A* 算法，对齐原版 1.21.11）
+│   ├── FlyNodeEvaluator.hpp / cpp #飞行求值器（26 方向立体移动）
+│   ├── GroundPathNavigator.hpp / cpp #地面导航器（地表吸附、阳光避让）
+│   ├── NodeEvaluator.hpp / cpp #求值器基类、PathfindingEntity 契约、寻路上下文
 │   ├── Path.hpp / cpp #路径对象
 │   ├── PathFinder.hpp / cpp #A* 寻路器
-│   ├── PathHeap.hpp #路径点最小堆
-│   ├── PathNavigator.hpp / cpp #路径导航器（含setAvoidSunPathing阳光避让接口）
-│   ├── PathNodeType.hpp #路径节点类型（Walkable / Water / Lava等）
-│   ├── PathPoint.hpp / cpp #路径点（代价、父节点等）
-│   ├── RavagerNodeProcessor.hpp / cpp #劫掠兽节点处理器
-│   ├── Region.hpp / cpp #世界区域访问接口
-│   └── WalkNodeProcessor.hpp / cpp #行走节点处理器（含setAvoidSun阳光避让标志）
+│   ├── PathHeap.hpp #路径点最小堆（开放集）
+│   ├── PathNavigator.hpp / cpp #导航器基类（建路径 / 跟随 / 卡住检测）
+│   ├── PathPoint.hpp #路径节点（代价、父节点等）
+│   ├── PathType.hpp #路径类型枚举与默认代价表
+│   ├── Region.hpp #世界只读视图接口
+│   ├── Target.hpp #目标节点
+│   ├── WalkNodeEvaluator.hpp / cpp #地面求值器（跳跃、跌落、门、栅栏、窄实体规则）
+│   └── WorldRegion.hpp #基于 IWorld 的 Region 实现
 └── util / #AI工具类
     ├── RandomPositionGenerator.hpp /
             cpp #随机位置生成器
@@ -240,7 +242,7 @@
 
 ### 9. 特殊节点处理器
 
-**注意**：`RavagerNodeProcessor` 是专门为劫掠兽设计的节点处理器，它可以破坏某些方块。普通实体使用 `WalkNodeProcessor`。
+**注意**：普通实体使用 `WalkNodeEvaluator`（`MobEntity` 的默认导航器）。飞行实体（如蜜蜂）在构造函数里把导航器换成挂 `FlyNodeEvaluator` 的 `GroundPathNavigator`；劫掠兽同样使用地面求值器，只是靠自身的寻路代价表决定能否穿过树叶。求值器的选择是构造期一次性决定的，不要在运行期替换。
 
 ### 10. GoalConstants 使用
 

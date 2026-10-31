@@ -21,312 +21,230 @@
  *
  */
 
+/**
+ * @file PathPoint.hpp
+ * @brief A* 搜索节点（对应原版 `Node`）。
+ *
+ * 一个方块坐标上的节点，携带搜索状态：代价（g/h/f）、父节点、是否已取出于开放集、
+ * 本节点的路径类型与代价惩罚。节点的身份由世界坐标决定，由 `NodeEvaluator` 统一分配
+ * 并在一次寻路会话内复用，因此同一格在搜索中只存在一个对象，指针可以直接当身份用。
+ */
+
 #pragma once
 
-#include "PathNodeType.hpp"
-#include "core/Types.hpp"
-#include "world/WorldConstants.hpp"
+#include "PathType.hpp"
+#include "common/core/Types.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::pathfinding {
 
 /**
- * @brief 路径点
- *
- * 表示寻路网格中的一个节点，包含位置和寻路信息。
+ * @brief A* 搜索节点
  */
 class PathPoint {
 public:
     /**
-     * @brief 默认构造函数
-     * 用于std::vector等容器
+     * @brief 构造一个位于原点的节点
+     *
+     * 供容器使用（裁剪路径、预分配缓冲区），不参与搜索。
      */
-    PathPoint() = default;
+    PathPoint() noexcept = default;
 
     /**
-     * @brief 构造函数
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
+     * @brief 构造一个位于给定方块坐标的节点
+     * @param x, y, z 方块坐标
      */
-    PathPoint(i32 x, i32 y, i32 z);
+    PathPoint(i32 x, i32 y, i32 z) noexcept
+        : m_x(x)
+        , m_y(y)
+        , m_z(z)
+    {}
 
-    // ========== 位置访问 ==========
+    // ========== 位置 ==========
 
-    [[nodiscard]] i32 x() const
+    [[nodiscard]] i32 x() const noexcept
     {
         return m_x;
     }
 
-    [[nodiscard]] i32 y() const
+    [[nodiscard]] i32 y() const noexcept
     {
         return m_y;
     }
 
-    [[nodiscard]] i32 z() const
+    [[nodiscard]] i32 z() const noexcept
     {
         return m_z;
     }
 
-    // ========== 寻路属性 ==========
+    // ========== 搜索状态 ==========
 
-    [[nodiscard]] f32 costMalus() const
-    {
-        return m_costMalus;
-    }
-
-    void setCostMalus(f32 malus)
-    {
-        m_costMalus = malus;
-    }
-
-    /**
-     * @brief 获取从起点到当前节点的代价（g值）
-     */
-    [[nodiscard]] f32 costFromStart() const
+    /// 从起点走到本节点的累计代价（原版 `Node.g`）。
+    [[nodiscard]] f32 costFromStart() const noexcept
     {
         return m_costFromStart;
     }
 
-    void setCostFromStart(f32 cost)
+    void setCostFromStart(f32 cost) noexcept
     {
         m_costFromStart = cost;
-        updateTotalCost();
     }
 
-    /**
-     * @brief 获取启发式代价（h值，到目标的估算代价）
-     */
-    [[nodiscard]] f32 heuristic() const
+    /// 到最近目标的启发式估值，尚未乘 1.5（原版 `Node.h`）。
+    [[nodiscard]] f32 heuristic() const noexcept
     {
         return m_heuristic;
     }
 
-    void setHeuristic(f32 h)
+    void setHeuristic(f32 heuristic) noexcept
     {
-        m_heuristic = h;
-        updateTotalCost();
+        m_heuristic = heuristic;
     }
 
-    /**
-     * @brief 获取总代价（f值 = g + h）
-     */
-    [[nodiscard]] f32 totalCost() const
+    /// 开放集排序键（原版 `Node.f = g + h * 1.5`）。
+    [[nodiscard]] f32 totalCost() const noexcept
     {
         return m_totalCost;
     }
 
-    void updateTotalCost()
+    void setTotalCost(f32 total) noexcept
     {
-        m_totalCost = m_costFromStart + m_heuristic;
+        m_totalCost = total;
     }
 
-    /**
-     * @brief 获取到下一个路径点的距离
-     */
-    [[nodiscard]] f32 distanceToNext() const
-    {
-        return m_distanceToNext;
-    }
-
-    void setDistanceToNext(f32 distance)
-    {
-        m_distanceToNext = distance;
-    }
-
-    /**
-     * @brief 获取行走距离
-     * 用于追踪实际行走的距离
-     */
-    [[nodiscard]] f32 walkedDistance() const
+    /// 从起点沿搜索树走过的几何距离（原版 `Node.walkedDistance`），用于限制搜索范围。
+    [[nodiscard]] f32 walkedDistance() const noexcept
     {
         return m_walkedDistance;
     }
 
-    void setWalkedDistance(f32 distance)
+    void setWalkedDistance(f32 distance) noexcept
     {
         m_walkedDistance = distance;
     }
 
-    [[nodiscard]] PathNodeType nodeType() const
+    /// 本节点的路径类型（原版 `Node.type`）。
+    [[nodiscard]] PathType type() const noexcept
     {
-        return m_nodeType;
+        return m_type;
     }
 
-    void setNodeType(PathNodeType type)
+    void setType(PathType type) noexcept
     {
-        m_nodeType = type;
+        m_type = type;
     }
 
-    // ========== 闭合列表 ==========
-
-    [[nodiscard]] bool isVisited() const
+    /// 本节点对该实体的代价惩罚（原版 `Node.costMalus`）。
+    [[nodiscard]] f32 costMalus() const noexcept
     {
-        return m_visited;
+        return m_costMalus;
     }
 
-    void setVisited(bool visited)
+    void setCostMalus(f32 malus) noexcept
     {
-        m_visited = visited;
+        m_costMalus = malus;
     }
 
-    /**
-     * @brief 检查是否已被分配到堆中
-     */
-    [[nodiscard]] bool isAssigned() const
+    /// 是否已经从开放集中取出（原版 `Node.closed`）：取出后不再作为邻居加入。
+    [[nodiscard]] bool closed() const noexcept
     {
-        return m_heapIndex >= 0;
+        return m_closed;
     }
 
-    // ========== 父节点 ==========
-
-    /**
-     * @brief 获取父节点（用于重建路径）
-     */
-    [[nodiscard]] PathPoint* parent()
+    void setClosed(bool closed) noexcept
     {
-        return m_parent;
+        m_closed = closed;
     }
 
-    [[nodiscard]] const PathPoint* parent() const
+    /// 搜索树的父节点。
+    [[nodiscard]] PathPoint* cameFrom() const noexcept
     {
-        return m_parent;
+        return m_cameFrom;
     }
 
-    void setParent(PathPoint* parent)
+    void setCameFrom(PathPoint* parent) noexcept
     {
-        m_parent = parent;
+        m_cameFrom = parent;
     }
 
-    // ========== 堆索引 ==========
-
-    [[nodiscard]] i32 heapIndex() const
+    /// 开放集（二叉堆）中的下标；-1 表示不在开放集内。
+    [[nodiscard]] i32 heapIndex() const noexcept
     {
         return m_heapIndex;
     }
 
-    void setHeapIndex(i32 index)
+    void setHeapIndex(i32 index) noexcept
     {
         m_heapIndex = index;
     }
 
-    // ========== 工具方法 ==========
+    /// 是否在开放集内（原版 `Node.inOpenSet()`）。
+    [[nodiscard]] bool inOpenSet() const noexcept
+    {
+        return m_heapIndex >= 0;
+    }
+
+    // ========== 距离 ==========
 
     /**
-     * @brief 计算到另一个点的直线距离（欧几里得距离）
+     * @brief 到另一节点的欧氏距离
+     *
+     * 原版用 `Mth.sqrt`，即 f32 的 sqrt；这里逐字相同，避免 double 往返带来 ulp 差。
      */
-    [[nodiscard]] f32 distanceTo(const PathPoint& other) const
+    [[nodiscard]] f32 distanceTo(const PathPoint& other) const noexcept
     {
-        f32 dx = static_cast<f32>(m_x - other.m_x);
-        f32 dy = static_cast<f32>(m_y - other.m_y);
-        f32 dz = static_cast<f32>(m_z - other.m_z);
+        const f32 dx = static_cast<f32>(other.m_x - m_x);
+        const f32 dy = static_cast<f32>(other.m_y - m_y);
+        const f32 dz = static_cast<f32>(other.m_z - m_z);
         return std::sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     /**
-     * @brief 计算到另一个点的曼哈顿距离
+     * @brief 到给定方块坐标的欧氏距离
      */
-    [[nodiscard]] i32 distanceManhattan(const PathPoint& other) const
+    [[nodiscard]] f32 distanceTo(i32 x, i32 y, i32 z) const noexcept
     {
-        return std::abs(m_x - other.m_x) + std::abs(m_y - other.m_y) + std::abs(m_z - other.m_z);
+        const f32 dx = static_cast<f32>(x - m_x);
+        const f32 dy = static_cast<f32>(y - m_y);
+        const f32 dz = static_cast<f32>(z - m_z);
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     /**
-     * @brief 计算到另一个点的直线距离平方
+     * @brief 到另一节点的曼哈顿距离
      */
-    [[nodiscard]] f32 distanceToSq(const PathPoint& other) const
+    [[nodiscard]] f32 distanceManhattan(const PathPoint& other) const noexcept
     {
-        f32 dx = static_cast<f32>(m_x - other.m_x);
-        f32 dy = static_cast<f32>(m_y - other.m_y);
-        f32 dz = static_cast<f32>(m_z - other.m_z);
-        return dx * dx + dy * dy + dz * dz;
+        const f32 dx = static_cast<f32>(std::abs(other.m_x - m_x));
+        const f32 dy = static_cast<f32>(std::abs(other.m_y - m_y));
+        const f32 dz = static_cast<f32>(std::abs(other.m_z - m_z));
+        return dx + dy + dz;
     }
 
     /**
-     * @brief 计算到指定坐标的直线距离平方
-     * 避免创建临时 PathPoint 对象
+     * @brief 到给定方块坐标的曼哈顿距离
      */
-    [[nodiscard]] f32 distanceToSq(i32 x, i32 y, i32 z) const
+    [[nodiscard]] f32 distanceManhattan(i32 x, i32 y, i32 z) const noexcept
     {
-        f32 dx = static_cast<f32>(m_x - x);
-        f32 dy = static_cast<f32>(m_y - y);
-        f32 dz = static_cast<f32>(m_z - z);
-        return dx * dx + dy * dy + dz * dz;
-    }
-
-    /**
-     * @brief 检查是否与另一个点位置相同
-     */
-    [[nodiscard]] bool equals(const PathPoint& other) const
-    {
-        return m_x == other.m_x && m_y == other.m_y && m_z == other.m_z;
-    }
-
-    /**
-     * @brief 克隆此节点（不复制寻路状态）
-     */
-    [[nodiscard]] PathPoint clone() const
-    {
-        PathPoint copy(m_x, m_y, m_z);
-        copy.m_nodeType = m_nodeType;
-        copy.m_costMalus = m_costMalus;
-        return copy;
-    }
-
-    /**
-     * @brief 创建移动克隆
-     * 创建一个新位置的克隆，保留所有寻路状态字段。
-     */
-    [[nodiscard]] PathPoint cloneMove(i32 newX, i32 newY, i32 newZ) const
-    {
-        PathPoint copy(newX, newY, newZ);
-        copy.m_heapIndex = m_heapIndex;
-        copy.m_costFromStart = m_costFromStart;
-        copy.m_heuristic = m_heuristic;
-        copy.m_distanceToNext = m_distanceToNext;
-        copy.m_totalCost = m_totalCost;
-        copy.m_parent = m_parent;
-        copy.m_visited = m_visited;
-        copy.m_walkedDistance = m_walkedDistance;
-        copy.m_costMalus = m_costMalus;
-        copy.m_nodeType = m_nodeType;
-        return copy;
-    }
-
-    /**
-     * @brief 创建一个哈希值用于缓存
-     */
-    [[nodiscard]] u32 hash() const
-    {
-        // Y 坐标掩码：假设世界高度范围在 0 到 MAX_BUILD_HEIGHT-1
-        constexpr u32 Y_MASK = static_cast<u32>(world::MAX_BUILD_HEIGHT - 1);
-        u32 hash = static_cast<u32>(m_y) & Y_MASK;
-        hash |= static_cast<u32>(m_x & 32767) << 8;
-        hash |= static_cast<u32>(m_z & 32767) << 24;
-        // 处理负数的符号位
-        if (m_x < 0) {
-            hash |= 0x80000000;
-        }
-        if (m_z < 0) {
-            hash |= 0x00008000;
-        }
-        return hash;
+        const f32 dx = static_cast<f32>(std::abs(x - m_x));
+        const f32 dy = static_cast<f32>(std::abs(y - m_y));
+        const f32 dz = static_cast<f32>(std::abs(z - m_z));
+        return dx + dy + dz;
     }
 
 private:
-    i32 m_x;
-    i32 m_y;
-    i32 m_z;
-    f32 m_costMalus = 0.0f;                          // 代价惩罚（来自节点类型）
-    f32 m_costFromStart = 0.0f;                      // 从起点的代价（g值）
-    f32 m_heuristic = 0.0f;                          // 启发式代价（h值）
-    f32 m_totalCost = 0.0f;                          // 总代价（f值 = g + h）
-    f32 m_walkedDistance = 0.0f;                     // 行走距离
-    f32 m_distanceToNext = 0.0f;                     // 到下一个路径点的距离
-    PathNodeType m_nodeType = PathNodeType::Blocked; // 默认BLOCKED
-    bool m_visited = false;                          // 是否已访问（在闭合列表中）
-    PathPoint* m_parent = nullptr;                   // 父节点（用于重建路径）
-    i32 m_heapIndex = -1;                            // 在堆中的索引（用于优先队列）
+    i32 m_x = 0;
+    i32 m_y = 0;
+    i32 m_z = 0;
+    f32 m_costFromStart = 0.0f;
+    f32 m_heuristic = 0.0f;
+    f32 m_totalCost = 0.0f;
+    f32 m_walkedDistance = 0.0f;
+    f32 m_costMalus = 0.0f;
+    PathType m_type = PathType::Blocked;
+    bool m_closed = false;
+    PathPoint* m_cameFrom = nullptr;
+    i32 m_heapIndex = -1;
 };
 
 } // namespace mc::entity::ai::pathfinding

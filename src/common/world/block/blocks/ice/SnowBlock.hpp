@@ -167,6 +167,18 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     /**
+     * @brief 该层数的雪能否被陆地寻路穿过
+     *
+     * 对齐原版 `SnowLayerBlock#isPathfindable`：陆地计算类型下层数小于 5 可穿过，
+     * 其余计算类型一律不可。注意这与碰撞形状无关——layers=1 虽然碰撞为空，
+     * 但 layers=8 的碰撞高度只有 14 像素、事实上仍是不可穿过的实心层。
+     */
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
+
+    /// 陆地寻路的层数阈值：达到该层数后雪层视为不可穿过（对齐原版 `HEIGHT_IMPASSABLE`）。
+    static constexpr i32 HEIGHT_IMPASSABLE = 5;
+
+    /**
      * @brief 获取方块支撑形状
      *
      * 与渲染形状一致（按 LAYERS 高度）。

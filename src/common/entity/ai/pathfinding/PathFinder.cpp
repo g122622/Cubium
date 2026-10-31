@@ -22,431 +22,170 @@
  */
 
 #include "PathFinder.hpp"
-#include "common/core/Types.hpp"
-#include "common/entity/ai/pathfinding/Path.hpp"
-#include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <limits>
-#include <vector>
 
 namespace mc::entity::ai::pathfinding {
 
-namespace {
-
-/// 寻路会话开始：清空节点处理器缓存（含大型垂滴叶等会话局部分类）。
-/// 对应 vanilla PathFinder.findPath → nodeEvaluator.prepare(...)：每次寻路都重置评估器状态。
-void _beginPathfindingSession(NodeProcessor* nodeProcessor) noexcept
-{
-    if (nodeProcessor != nullptr) {
-        nodeProcessor->clear();
-    }
-}
-
-} // namespace
-
-Path PathFinder::findPath(i32 startX,
-    i32 startY,
-    i32 startZ,
-    i32 targetX,
-    i32 targetY,
-    i32 targetZ,
-    i32 maxDistance,
-    f32 visitedNodesMultiplier)
+std::optional<Path> PathFinder::findPath(const Region& region,
+    const PathfindingEntity& entity,
+    const Vector3d& entityPosition,
+    const std::vector<BlockPos>& targets,
+    f32 maxPathLength,
+    i32 reachRange,
+    f32 maxVisitedNodesMultiplier)
 {
     MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPath");
-    // 清除上次搜索的缓存（寻路会话开始）
-    _beginPathfindingSession(m_nodeProcessor.get());
+    MC_ASSERT_RELEASE_MSG(!targets.empty(), "PathFinder::findPath requires at least one target");
+
     m_openSet.clear();
-    m_lastSearchedNodes = 0;
+    m_neighbors.fill(nullptr);
 
-    if (!m_nodeProcessor) {
-        return Path();
+    m_evaluator->prepare(region, entity, entityPosition);
+    PathPoint* start = m_evaluator->getStart();
+    if (start == nullptr) {
+        m_evaluator->done();
+        return std::nullopt;
     }
 
-    // 获取起始节点
-    PathPoint* startNode = m_nodeProcessor->getStartNode(startX, startY, startZ);
-    if (!startNode) {
-        return Path();
-    }
-
-    // 检查起点是否就是终点
-    if (_isTargetReached(*startNode, targetX, targetY, targetZ)) {
-        Path path;
-        path.addPoint(startNode->clone());
-        return path;
-    }
-
-    // 设置起始节点的代价值
-    // totalPathDistance = 0
-    // distanceToNext = heuristic * HEURISTIC_MULTIPLIER
-    // distanceToTarget = totalPathDistance + distanceToNext (即 f = g + h*1.5)
-    startNode->setCostFromStart(0.0f);
-    f32 h = _heuristic(*startNode, targetX, targetY, targetZ);
-    startNode->setDistanceToNext(h * HEURISTIC_MULTIPLIER);
-    startNode->setHeuristic(h);
-    startNode->updateTotalCost();
-
-    // 将起点加入开放列表
-    m_openSet.insert(startNode);
-
-    // 计算实际最大搜索节点数：基础值 * 倍率
-    // 对应 vanilla PathFinder.findPath(PathNavigationRegion, Mob, Set<BlockPos>, float, int, float)：
-    //   int j = (int)(this.maxVisitedNodes * p_164722_);
-    //   while (!openSet.isEmpty()) { if (++i >= j) break; ... }
-    // 注意 pre-increment：上限比较发生在取出节点之前，j=1 时一个节点都不会被展开。
-    i32 effectiveMaxNodes = static_cast<i32>(static_cast<f32>(m_maxNodes) * visitedNodesMultiplier);
-    if (effectiveMaxNodes < 1) {
-        effectiveMaxNodes = 1;
-    }
-
-    // A* 搜索
-    i32 searchedNodes = 0;
-    const PathPoint* bestNode = nullptr;
-    f32 bestDistance = std::numeric_limits<f32>::max();
-
-    // 上限判定与 vanilla 一致：先 ++searchedNodes，再与上限比较，达到上限即停止展开。
-    while (!m_openSet.empty()) {
-        // 已达上限：不再取出/展开新节点（对齐 vanilla 在取出节点前比较上限）。
-        if (++searchedNodes >= effectiveMaxNodes) {
-            break;
-        }
-
-        // 取出代价最小的节点
-        PathPoint* current = m_openSet.pop();
-        if (!current) {
-            break;
-        }
-
-        current->setVisited(true);
-
-        // 检查是否到达目标
-        if (_isTargetReached(*current, targetX, targetY, targetZ)) {
-            m_lastSearchedNodes = searchedNodes;
-            return Path::buildFromEnd(current);
-        }
-
-        // 记录最近的节点（如果找不到精确路径）
-        f32 currentDist = _heuristic(*current, targetX, targetY, targetZ);
-        if (currentDist < bestDistance) {
-            bestDistance = currentDist;
-            bestNode = current;
-        }
-
-        // 检查是否超出搜索距离
-        if (current->costFromStart() > static_cast<f32>(maxDistance)) {
-            continue;
-        }
-
-        // 扩展相邻节点
-        std::vector<PathPoint*> neighbors = m_nodeProcessor->getNeighbors(current);
-
-        for (PathPoint* neighbor : neighbors) {
-            if (neighbor->isVisited()) {
-                continue;
-            }
-
-            // 计算从起点经过当前节点到邻居的代价
-            f32 distance = _getMovementCost(*current, *neighbor);
-
-            // walkedDistance 用于限制搜索范围
-            f32 newWalkedDistance = current->walkedDistance() + distance;
-
-            // totalPathDistance = previous.totalPathDistance + distance + costMalus
-            f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
-
-            // 检查 walkedDistance 是否超出搜索范围
-            if (newWalkedDistance > static_cast<f32>(maxDistance)) {
-                continue;
-            }
-
-            // 如果找到更短的路径
-            if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
-                neighbor->setParent(current);
-                neighbor->setWalkedDistance(newWalkedDistance);
-                neighbor->setCostFromStart(newCostFromStart);
-                // distanceToNext = heuristic * HEURISTIC_MULTIPLIER
-                f32 neighborH = _heuristic(*neighbor, targetX, targetY, targetZ);
-                neighbor->setDistanceToNext(neighborH * HEURISTIC_MULTIPLIER);
-                neighbor->setHeuristic(neighborH);
-                neighbor->updateTotalCost();
-
-                if (neighbor->heapIndex() == -1) {
-                    // 新节点，加入开放列表
-                    m_openSet.insert(neighbor);
-                } else {
-                    // 已在开放列表中，更新位置
-                    m_openSet.update(neighbor);
-                }
-            }
-        }
-    }
-
-    // 没有找到精确路径，返回到最近节点的路径
-    m_lastSearchedNodes = searchedNodes;
-
-    if (bestNode && bestDistance < static_cast<f32>(maxDistance)) {
-        return Path::buildFromEnd(bestNode);
-    }
-
-    return Path();
+    auto path = search(start, targets, maxPathLength, reachRange, maxVisitedNodesMultiplier);
+    // 会话到此结束：求值器内部缓存在这次搜索之后失效，因此路径必须是节点的拷贝。
+    m_evaluator->done();
+    return path;
 }
 
-Path PathFinder::findPathToRange(
-    i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range, f32 visitedNodesMultiplier)
+std::optional<Path> PathFinder::search(PathPoint* start,
+    const std::vector<BlockPos>& targets,
+    f32 maxPathLength,
+    i32 reachRange,
+    f32 maxVisitedNodesMultiplier)
 {
-    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPathToRange");
-    // 与基本寻路相同，但到达范围内任意点即成功
-    _beginPathfindingSession(m_nodeProcessor.get());
+    // 目标本身也是节点：它们既用于「到达判定」，也参与启发式计算。
+    std::vector<Target> targetNodes;
+    targetNodes.reserve(targets.size());
+    for (const auto& target : targets) {
+        targetNodes.emplace_back(target.x, target.y, target.z);
+    }
+
+    start->setCostFromStart(0.0f);
+    start->setHeuristic(bestHeuristic(*start, targetNodes));
+    start->setTotalCost(start->heuristic());
     m_openSet.clear();
-    m_lastSearchedNodes = 0;
+    m_openSet.insert(start);
 
-    if (!m_nodeProcessor) {
-        return Path();
-    }
+    // 上限在取出节点之前自增：multiplier 使上限变成 0 时一个节点都不展开。
+    const i32 limit = static_cast<i32>(static_cast<f32>(m_maxVisitedNodes) * maxVisitedNodesMultiplier);
+    i32 searched = 0;
+    std::vector<Target*> reachedTargets;
 
-    PathPoint* startNode = m_nodeProcessor->getStartNode(startX, startY, startZ);
-    if (!startNode) {
-        return Path();
-    }
-
-    // 检查起点是否已经在范围内
-    if (_isTargetReached(*startNode, targetX, targetY, targetZ, range)) {
-        Path path;
-        path.addPoint(startNode->clone());
-        return path;
-    }
-
-    // 设置起始节点代价
-    startNode->setCostFromStart(0.0f);
-    f32 h = _heuristic(*startNode, targetX, targetY, targetZ);
-    startNode->setDistanceToNext(h * HEURISTIC_MULTIPLIER);
-    startNode->setHeuristic(h);
-    startNode->updateTotalCost();
-
-    m_openSet.insert(startNode);
-
-    // 计算实际最大搜索节点数：基础值 * 倍率
-    i32 effectiveMaxNodes = static_cast<i32>(static_cast<f32>(m_maxNodes) * visitedNodesMultiplier);
-    if (effectiveMaxNodes < 1) {
-        effectiveMaxNodes = 1;
-    }
-
-    i32 searchedNodes = 0;
-
-    // 上限判定与 vanilla 一致：先 ++searchedNodes，再与上限比较，达到上限即停止展开。
     while (!m_openSet.empty()) {
-        // 已达上限：不再取出/展开新节点（对齐 vanilla 在取出节点前比较上限）。
-        if (++searchedNodes >= effectiveMaxNodes) {
+        if (++searched >= limit) {
             break;
         }
 
-        PathPoint* current = m_openSet.pop();
-        if (!current) {
+        PathPoint* node = m_openSet.pop();
+        node->setClosed(true);
+
+        for (auto& target : targetNodes) {
+            if (node->distanceManhattan(target) <= static_cast<f32>(reachRange)) {
+                target.setReached();
+                reachedTargets.push_back(&target);
+            }
+        }
+        if (!reachedTargets.empty()) {
             break;
         }
 
-        current->setVisited(true);
-
-        // 检查是否在目标范围内
-        if (_isTargetReached(*current, targetX, targetY, targetZ, range)) {
-            m_lastSearchedNodes = searchedNodes;
-            return Path::buildFromEnd(current);
-        }
-
-        if (current->costFromStart() > static_cast<f32>(m_maxSearchDistance)) {
+        // 超过行走距离上限就不再展开邻居（但节点本身已标记为已取出于开放集）。
+        if (node->walkedDistance() >= maxPathLength) {
             continue;
         }
 
-        std::vector<PathPoint*> neighbors = m_nodeProcessor->getNeighbors(current);
-
-        for (PathPoint* neighbor : neighbors) {
-            if (neighbor->isVisited()) {
+        const i32 neighborCount = m_evaluator->getNeighbors(m_neighbors.data(), node);
+        for (i32 index = 0; index < neighborCount; ++index) {
+            PathPoint* neighbor = m_neighbors[static_cast<size_t>(index)];
+            const f32 step = distance(*node, *neighbor);
+            neighbor->setWalkedDistance(node->walkedDistance() + step);
+            const f32 tentative = node->costFromStart() + step + neighbor->costMalus();
+            if (neighbor->walkedDistance() >= maxPathLength) {
                 continue;
             }
-
-            // 计算距离
-            f32 distance = _getMovementCost(*current, *neighbor);
-            f32 newWalkedDistance = current->walkedDistance() + distance;
-
-            // 检查 walkedDistance 是否超出搜索范围
-            if (newWalkedDistance > static_cast<f32>(m_maxSearchDistance)) {
+            if (neighbor->inOpenSet() && tentative >= neighbor->costFromStart()) {
                 continue;
             }
-
-            f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
-
-            if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
-                neighbor->setParent(current);
-                neighbor->setWalkedDistance(newWalkedDistance);
-                neighbor->setCostFromStart(newCostFromStart);
-                f32 neighborH = _heuristic(*neighbor, targetX, targetY, targetZ);
-                neighbor->setDistanceToNext(neighborH * HEURISTIC_MULTIPLIER);
-                neighbor->setHeuristic(neighborH);
-                neighbor->updateTotalCost();
-
-                if (neighbor->heapIndex() == -1) {
-                    m_openSet.insert(neighbor);
-                } else {
-                    m_openSet.update(neighbor);
-                }
+            neighbor->setCameFrom(node);
+            neighbor->setCostFromStart(tentative);
+            const f32 heuristic = bestHeuristic(*neighbor, targetNodes);
+            neighbor->setHeuristic(heuristic);
+            if (neighbor->inOpenSet()) {
+                m_openSet.changeCost(neighbor, neighbor->costFromStart() + heuristic * FUDGING);
+            } else {
+                neighbor->setTotalCost(neighbor->costFromStart() + heuristic * FUDGING);
+                m_openSet.insert(neighbor);
             }
         }
     }
 
-    m_lastSearchedNodes = searchedNodes;
-    return Path();
+    m_lastSearchedNodes = searched;
+
+    if (!reachedTargets.empty()) {
+        // 有目标被判定到达：取节点数最少的那条，并标记为「真的到达」。
+        std::optional<Path> best;
+        for (const Target* target : reachedTargets) {
+            const BlockPos& targetPos = targets[static_cast<size_t>(target - targetNodes.data())];
+            Path candidate = reconstructPath(target->bestNode(), targetPos, true);
+            if (!best.has_value() || candidate.nodeCount() < best->nodeCount()) {
+                best = std::move(candidate);
+            }
+        }
+        return best;
+    }
+
+    // 一个都没到达：为每个目标回溯「最靠近」的路径，取离目标最近、其次节点最少的。
+    std::optional<Path> best;
+    f32 bestDistance = std::numeric_limits<f32>::max();
+    size_t bestNodes = 0;
+    for (size_t index = 0; index < targetNodes.size(); ++index) {
+        Path candidate = reconstructPath(targetNodes[index].bestNode(), targets[index], false);
+        if (!best.has_value() || candidate.distanceToTarget() < bestDistance ||
+            (candidate.distanceToTarget() == bestDistance && candidate.nodeCount() < bestNodes)) {
+            bestDistance = candidate.distanceToTarget();
+            bestNodes = candidate.nodeCount();
+            best = std::move(candidate);
+        }
+    }
+    return best;
 }
 
-Path PathFinder::findPathToClosest(i32 startX,
-    i32 startY,
-    i32 startZ,
-    const std::vector<TargetPoint>& targets,
-    i32 maxDistance,
-    f32 visitedNodesMultiplier)
+Path PathFinder::reconstructPath(PathPoint* from, const BlockPos& target, bool reached) const
 {
-    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPathToClosest");
-    // 多目标寻路 - 对每个目标点设置标志，搜索时只需到达任意一个目标
+    // 起点本身就可能没有 bestNode（目标离实体太近、根节点尚未参与启发式更新），
+    // 此时路径退化为只有一个节点。
+    MC_ASSERT_RELEASE_MSG(from != nullptr, "PathFinder::reconstructPath received a null node");
 
-    if (targets.empty()) {
-        return Path();
+    std::vector<PathPoint> nodes;
+    for (const PathPoint* node = from; node != nullptr; node = node->cameFrom()) {
+        nodes.push_back(*node);
     }
+    std::reverse(nodes.begin(), nodes.end());
+    return Path(nodes, target, reached);
+}
 
-    // 清除上次搜索的缓存（寻路会话开始）
-    _beginPathfindingSession(m_nodeProcessor.get());
-    m_openSet.clear();
-    m_lastSearchedNodes = 0;
+f32 PathFinder::distance(const PathPoint& from, const PathPoint& to) const
+{
+    return from.distanceTo(to);
+}
 
-    if (!m_nodeProcessor) {
-        return Path();
+f32 PathFinder::bestHeuristic(PathPoint& point, std::vector<Target>& targets) const
+{
+    f32 best = std::numeric_limits<f32>::max();
+    for (auto& target : targets) {
+        const f32 distance = point.distanceTo(target);
+        target.updateBest(distance, &point);
+        best = std::min(distance, best);
     }
-
-    // 获取起始节点
-    PathPoint* startNode = m_nodeProcessor->getStartNode(startX, startY, startZ);
-    if (!startNode) {
-        return Path();
-    }
-
-    // 检查起点是否就是某个目标
-    for (const auto& target : targets) {
-        if (_isTargetReached(*startNode, target.x, target.y, target.z)) {
-            Path path;
-            path.addPoint(startNode->clone());
-            return path;
-        }
-    }
-
-    // 计算到最近目标的启发式
-    f32 bestHeuristic = std::numeric_limits<f32>::max();
-    for (const auto& target : targets) {
-        f32 h = _heuristic(*startNode, target.x, target.y, target.z);
-        if (h < bestHeuristic) {
-            bestHeuristic = h;
-        }
-    }
-
-    startNode->setCostFromStart(0.0f);
-    startNode->setDistanceToNext(bestHeuristic * HEURISTIC_MULTIPLIER);
-    startNode->setHeuristic(bestHeuristic);
-    startNode->updateTotalCost();
-
-    m_openSet.insert(startNode);
-
-    // 计算实际最大搜索节点数：基础值 * 倍率
-    i32 effectiveMaxNodes = static_cast<i32>(static_cast<f32>(m_maxNodes) * visitedNodesMultiplier);
-    if (effectiveMaxNodes < 1) {
-        effectiveMaxNodes = 1;
-    }
-
-    i32 searchedNodes = 0;
-    const PathPoint* bestNode = nullptr;
-    f32 bestDistance = std::numeric_limits<f32>::max();
-
-    // 上限判定与 vanilla 一致：先 ++searchedNodes，再与上限比较，达到上限即停止展开。
-    while (!m_openSet.empty()) {
-        // 已达上限：不再取出/展开新节点（对齐 vanilla 在取出节点前比较上限）。
-        if (++searchedNodes >= effectiveMaxNodes) {
-            break;
-        }
-
-        PathPoint* current = m_openSet.pop();
-        if (!current) {
-            break;
-        }
-
-        current->setVisited(true);
-
-        // 检查是否到达任意目标，同时记录最近距离（单次遍历）
-        for (const auto& target : targets) {
-            if (_isTargetReached(*current, target.x, target.y, target.z)) {
-                m_lastSearchedNodes = searchedNodes;
-                return Path::buildFromEnd(current);
-            }
-            f32 currentDist = _heuristic(*current, target.x, target.y, target.z);
-            if (currentDist < bestDistance) {
-                bestDistance = currentDist;
-                bestNode = current;
-            }
-        }
-
-        // 检查是否超出搜索距离
-        if (current->costFromStart() > static_cast<f32>(maxDistance)) {
-            continue;
-        }
-
-        // 扩展相邻节点
-        std::vector<PathPoint*> neighbors = m_nodeProcessor->getNeighbors(current);
-
-        for (PathPoint* neighbor : neighbors) {
-            if (neighbor->isVisited()) {
-                continue;
-            }
-
-            // 计算距离和行走距离
-            f32 distance = _getMovementCost(*current, *neighbor);
-            f32 newWalkedDistance = current->walkedDistance() + distance;
-
-            // 检查 walkedDistance 是否超出搜索范围
-            if (newWalkedDistance > static_cast<f32>(maxDistance)) {
-                continue;
-            }
-
-            f32 newCostFromStart = current->costFromStart() + distance + neighbor->costMalus();
-
-            // 计算到最近目标的启发式
-            f32 bestNeighborHeuristic = std::numeric_limits<f32>::max();
-            for (const auto& target : targets) {
-                f32 h = _heuristic(*neighbor, target.x, target.y, target.z);
-                if (h < bestNeighborHeuristic) {
-                    bestNeighborHeuristic = h;
-                }
-            }
-
-            if (newCostFromStart < neighbor->costFromStart() || neighbor->heapIndex() == -1) {
-                neighbor->setParent(current);
-                neighbor->setWalkedDistance(newWalkedDistance);
-                neighbor->setCostFromStart(newCostFromStart);
-                // distanceToNext = heuristic * HEURISTIC_MULTIPLIER
-                neighbor->setDistanceToNext(bestNeighborHeuristic * HEURISTIC_MULTIPLIER);
-                neighbor->setHeuristic(bestNeighborHeuristic);
-                neighbor->updateTotalCost();
-
-                if (neighbor->heapIndex() == -1) {
-                    m_openSet.insert(neighbor);
-                } else {
-                    m_openSet.update(neighbor);
-                }
-            }
-        }
-    }
-
-    // 没有找到精确路径，返回到最近节点的路径
-    m_lastSearchedNodes = searchedNodes;
-
-    if (bestNode && bestDistance < static_cast<f32>(maxDistance)) {
-        return Path::buildFromEnd(bestNode);
-    }
-
-    return Path();
+    return best;
 }
 
 } // namespace mc::entity::ai::pathfinding

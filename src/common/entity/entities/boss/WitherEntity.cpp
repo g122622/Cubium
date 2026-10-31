@@ -125,7 +125,7 @@ WitherEntity::WitherEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
 
     // 设置导航器可以游泳
     if (auto* nav = navigator()) {
-        nav->setCanSwim(true);
+        nav->setCanFloat(true);
     }
 
     registerData();

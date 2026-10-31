@@ -409,7 +409,11 @@ protected:
             if (distSq > m_stopDistance * m_stopDistance) {
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*ownerPlayer, static_cast<f64>(m_speed));
+                    const Entity& targetEntity = *ownerPlayer;
+                    navigator->moveTo(static_cast<f64>(targetEntity.x()),
+                        static_cast<f64>(targetEntity.y()),
+                        static_cast<f64>(targetEntity.z()),
+                        static_cast<f64>(m_speed));
                 }
             }
         }
@@ -419,7 +423,7 @@ protected:
     {
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
     }
 
@@ -455,7 +459,7 @@ private:
                     owner->setPosition(targetX, testY, targetZ);
                     auto* navigator = owner->navigator();
                     if (navigator) {
-                        navigator->clearPath();
+                        navigator->stop();
                     }
                     return true;
                 }
@@ -608,7 +612,11 @@ protected:
         if (distSq > goal::constants::MELEE_ATTACK_STOP_DISTANCE * goal::constants::MELEE_ATTACK_STOP_DISTANCE) {
             auto* navigator = owner->navigator();
             if (navigator) {
-                navigator->moveTo(*target, static_cast<f64>(m_speed));
+                const Entity& targetEntity = *target;
+                navigator->moveTo(static_cast<f64>(targetEntity.x()),
+                    static_cast<f64>(targetEntity.y()),
+                    static_cast<f64>(targetEntity.z()),
+                    static_cast<f64>(m_speed));
             }
         }
     }
@@ -706,7 +714,11 @@ protected:
             if (wantedEntity != nullptr && wantedEntity->isAlive()) {
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*wantedEntity, static_cast<f64>(m_speed));
+                    const Entity& targetEntity = *wantedEntity;
+                    navigator->moveTo(static_cast<f64>(targetEntity.x()),
+                        static_cast<f64>(targetEntity.y()),
+                        static_cast<f64>(targetEntity.z()),
+                        static_cast<f64>(m_speed));
                 }
             }
         }
@@ -750,7 +762,11 @@ protected:
                 m_pathRecalcCounter = 10;
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*item, static_cast<f64>(m_speed));
+                    const Entity& targetEntity = *item;
+                    navigator->moveTo(static_cast<f64>(targetEntity.x()),
+                        static_cast<f64>(targetEntity.y()),
+                        static_cast<f64>(targetEntity.z()),
+                        static_cast<f64>(m_speed));
                 }
             }
         }
@@ -760,7 +776,7 @@ protected:
     {
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
     }
 
@@ -865,7 +881,11 @@ protected:
             if (parentEntity != nullptr && parentEntity->isAlive()) {
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*parentEntity, static_cast<f64>(m_speed));
+                    const Entity& target = *parentEntity;
+                    navigator->moveTo(static_cast<f64>(target.x()),
+                        static_cast<f64>(target.y()),
+                        static_cast<f64>(target.z()),
+                        static_cast<f64>(m_speed));
                 }
             }
         }
@@ -904,12 +924,16 @@ protected:
             if (distSq > followDistSq) {
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*parent, static_cast<f64>(m_speed));
+                    const Entity& targetEntity = *parent;
+                    navigator->moveTo(static_cast<f64>(targetEntity.x()),
+                        static_cast<f64>(targetEntity.y()),
+                        static_cast<f64>(targetEntity.z()),
+                        static_cast<f64>(m_speed));
                 }
             } else {
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->clearPath();
+                    navigator->stop();
                 }
             }
         }
@@ -919,7 +943,7 @@ protected:
     {
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
     }
 
@@ -1006,7 +1030,11 @@ protected:
             if (playerEntity != nullptr && playerEntity->isAlive()) {
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*playerEntity, static_cast<f64>(m_speed));
+                    const Entity& target = *playerEntity;
+                    navigator->moveTo(static_cast<f64>(target.x()),
+                        static_cast<f64>(target.y()),
+                        static_cast<f64>(target.z()),
+                        static_cast<f64>(m_speed));
                 }
             }
         }
@@ -1042,14 +1070,18 @@ protected:
         if (distSq <= closeDistSq) {
             auto* navigator = owner->navigator();
             if (navigator) {
-                navigator->clearPath();
+                navigator->stop();
             }
         } else {
             if (--m_pathRecalcCounter <= 0) {
                 m_pathRecalcCounter = 10;
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*player, static_cast<f64>(m_speed));
+                    const Entity& targetEntity = *player;
+                    navigator->moveTo(static_cast<f64>(targetEntity.x()),
+                        static_cast<f64>(targetEntity.y()),
+                        static_cast<f64>(targetEntity.z()),
+                        static_cast<f64>(m_speed));
                 }
             }
         }
@@ -1059,7 +1091,7 @@ protected:
     {
         auto* navigator = owner->navigator();
         if (navigator) {
-            navigator->clearPath();
+            navigator->stop();
         }
 
         owner->brain().template removeMemory<EntityInstanceId>(MemoryModuleTypes::TEMPTING_PLAYER);

@@ -75,12 +75,16 @@ src/common/
 │   │       ├── Path.hpp
 │   │       ├── PathFinder.hpp
 │   │       ├── PathNavigator.hpp
+│   │       ├── GroundPathNavigator.hpp
 │   │       ├── PathPoint.hpp
 │   │       ├── PathHeap.hpp
-│   │       ├── PathNodeType.hpp
-│   │       ├── NodeProcessor.hpp
-│   │       ├── WalkNodeProcessor.hpp
-│   │       └── Region.hpp
+│   │       ├── PathType.hpp
+│   │       ├── NodeEvaluator.hpp
+│   │       ├── WalkNodeEvaluator.hpp
+│   │       ├── FlyNodeEvaluator.hpp
+│   │       ├── Target.hpp
+│   │       ├── Region.hpp
+│   │       └── WorldRegion.hpp
 │   ├── animal/               # 动物实体
 │   │   ├── AnimalEntity.hpp
 │   │   ├── PigEntity.hpp

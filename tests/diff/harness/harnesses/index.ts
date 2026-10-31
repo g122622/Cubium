@@ -57,6 +57,7 @@ import {
     PROJECT_ONLY_COMMANDS,
 } from "./known_missing_commands.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
+import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { recipeDeclaration } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
@@ -441,6 +442,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "loot_table", probe: "loot_table", oracle: "LootTableOracle", key: "table", units: { kind: "listing" },
         input: (unit) => lootTableInput(unit) },
     { name: "loot_table_block", probe: "loot_table_block", oracle: "LootTableBlockOracle", key: "table", units: { kind: "listing" },
+        // 与 loot_table_entity / loot_container 共用 LootLevel 的存档目录与区域锁：必须同组串行。
+        exclusiveGroup: "loot-world",
         input: (unit) => lootTableBlockInput(unit) },
     lootTableEntityDeclaration(),
     lootContainerDeclaration(),
@@ -452,6 +455,23 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     villagerTradesDeclaration("gen"),
     villagerTradesDeclaration("price"),
     villagerTradesDeclaration("restock"),
+    // 寻路：两个能力读同一份场景库（path_scenes.ts），只是比对的口径不同。
+    // 逐格路径类型是「求值器判定」的完整快照：任一格的三层类型不一致都会点名到格。
+    { name: "walk_path_type", probe: "walk_path_type", oracle: "WalkPathTypeOracle", key: "unit",
+        units: { kind: "computed", units: pathSceneNames },
+        input: (unit) => walkPathTypeInput(unit),
+        // oracle 要在 java.io.tmpdir 里建原版世界并持有区域锁：同组必须串行。
+        exclusiveGroup: "path-world" },
+    // A* 是「求值器 + 搜索 + 回溯」的整体：路径节点序列必须逐项一致。
+    { name: "path_finder", probe: "path_finder", oracle: "PathFinderOracle", key: "unit",
+        units: { kind: "computed", units: pathSceneNames },
+        input: (unit) => pathFinderInput(unit),
+        exclusiveGroup: "path-world" },
+    // 飞行寻路：同一份地形，换成 26 邻居的飞行求值器。
+    { name: "fly_path_finder", probe: "fly_path_finder", oracle: "FlyPathfinderOracle", key: "unit",
+        units: { kind: "computed", units: pathSceneNames },
+        input: (unit) => pathFinderInput(unit),
+        exclusiveGroup: "path-world" },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

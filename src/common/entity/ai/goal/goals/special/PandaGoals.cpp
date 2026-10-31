@@ -383,7 +383,10 @@ void PandaSitGoal::startExecuting()
                 const auto* itemEntity = dynamic_cast<const ItemEntity*>(entity);
                 if (itemEntity != nullptr && itemEntity->isAlive() &&
                     m_panda->isBreedingItem(itemEntity->getItemStack())) {
-                    (void)m_panda->navigator()->moveTo(*itemEntity, 1.2);
+                    (void)m_panda->navigator()->moveTo(static_cast<f64>(itemEntity->onPos().x),
+                        static_cast<f64>(itemEntity->onPos().y),
+                        static_cast<f64>(itemEntity->onPos().z),
+                        1.2);
                     break;
                 }
             }

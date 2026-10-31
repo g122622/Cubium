@@ -293,7 +293,7 @@ TEST_F(RestrictSunGoalTest, StartAndResetDoNotCrash)
 TEST_F(RestrictSunGoalTest, StartSetsAvoidSunPathing)
 {
     // 验证 startExecuting 和 resetTask 不崩溃
-    // setAvoidSunPathing 转发到 WalkNodeProcessor，即使 PathFinder 为 null 也不崩溃
+    // setAvoidSun 只改导航器自身的标志位，不依赖寻路器是否存在
     goal->startExecuting();
     EXPECT_TRUE(true); // 不崩溃即通过
 

@@ -23,20 +23,30 @@
 
 /**
  * @file PathNavigatorTest.cpp
- * @brief PathNavigator 和相关类的单元测试
+ * @brief 路径导航器与 A* 寻路器的单元测试
  *
- * 主要测试 Path::setPoint 方法和 PathPoint::cloneMove 方法，
- * 以及 PathNavigator::trimPath 的基本功能。
+ * 覆盖三块内容：
+ *   1. `Path` 的游标 / 裁剪 / 替换语义；
+ *   2. `PathHeap` 按键值弹出（A* 的开放集）；
+ *   3. 一个由方块表驱动的内存区域上，`PathFinder` 端到端算出的路径形状
+ *      （直线、绕墙、爬台阶、拒绝跨越负代价地形、节点上限）。
  */
 
-#include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/TestWorldHelper.hpp"
+#include "common/entity/ai/pathfinding/GroundPathNavigator.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
-#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/PathFinder.hpp"
+#include "common/entity/ai/pathfinding/PathHeap.hpp"
 #include "common/entity/ai/pathfinding/PathPoint.hpp"
+#include "common/entity/ai/pathfinding/PathType.hpp"
+#include "common/entity/ai/pathfinding/Region.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include <memory>
 #include <unordered_map>
+#include <vector>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -44,647 +54,463 @@ using namespace mc::entity::ai::pathfinding;
 
 namespace {
 
-/**
- * @brief 测试 Path::setPoint 方法 - 基本功能
- */
-TEST(PathSetPointTest, SetPointModifiesPath)
-{
-    // 创建路径点数组
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-    points.emplace_back(2, 0, 2);
-
-    // 创建路径
-    Path path(std::move(points));
-
-    // 验证初始路径点
-    const PathPoint* p0 = path.getPoint(0);
-    ASSERT_NE(p0, nullptr);
-    EXPECT_EQ(p0->x(), 0);
-    EXPECT_EQ(p0->y(), 0);
-    EXPECT_EQ(p0->z(), 0);
-
-    // 修改第一个路径点
-    PathPoint newPoint(5, 5, 5);
-    path.setPoint(0, newPoint);
-
-    // 验证修改后的路径点
-    const PathPoint* modified = path.getPoint(0);
-    ASSERT_NE(modified, nullptr);
-    EXPECT_EQ(modified->x(), 5);
-    EXPECT_EQ(modified->y(), 5);
-    EXPECT_EQ(modified->z(), 5);
-
-    // 验证其他路径点未改变
-    const PathPoint* p1 = path.getPoint(1);
-    ASSERT_NE(p1, nullptr);
-    EXPECT_EQ(p1->x(), 1);
-    EXPECT_EQ(p1->y(), 0);
-    EXPECT_EQ(p1->z(), 1);
-}
+// ============================================================================
+// 测试地形
+// ============================================================================
 
 /**
- * @brief 测试 Path::setPoint 方法 - 边界检查
- */
-TEST(PathSetPointTest, SetPointIndexOutOfRangeDoesNotCrash)
-{
-    // 创建路径点数组
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-
-    Path path(std::move(points));
-
-    // 尝试设置超出范围的索引 - 不应该崩溃
-    PathPoint newPoint(10, 10, 10);
-    EXPECT_NO_THROW(path.setPoint(5, newPoint));   // 索引 5 超出范围
-    EXPECT_NO_THROW(path.setPoint(100, newPoint)); // 更大的索引
-
-    // 验证原路径点未改变
-    const PathPoint* p0 = path.getPoint(0);
-    ASSERT_NE(p0, nullptr);
-    EXPECT_EQ(p0->x(), 0);
-    EXPECT_EQ(p0->y(), 0);
-    EXPECT_EQ(p0->z(), 0);
-}
-
-/**
- * @brief 测试 Path::setPoint 方法 - 移动语义
- */
-TEST(PathSetPointTest, SetPointWithMoveSemantics)
-{
-    // 创建路径点数组
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-
-    Path path(std::move(points));
-
-    // 使用移动语义设置路径点
-    PathPoint newPoint(10, 20, 30);
-    path.setPoint(0, std::move(newPoint));
-
-    // 验证修改后的路径点
-    const PathPoint* modified = path.getPoint(0);
-    ASSERT_NE(modified, nullptr);
-    EXPECT_EQ(modified->x(), 10);
-    EXPECT_EQ(modified->y(), 20);
-    EXPECT_EQ(modified->z(), 30);
-}
-
-/**
- * @brief 测试 Path::setPoint 方法 - 空路径
- */
-TEST(PathSetPointTest, SetPointOnEmptyPath)
-{
-    // 创建空路径
-    Path path;
-
-    // 尝试设置路径点 - 不应该崩溃
-    PathPoint newPoint(10, 10, 10);
-    EXPECT_NO_THROW(path.setPoint(0, newPoint));
-}
-
-/**
- * @brief 测试 PathPoint::cloneMove 方法 - 保留状态
- */
-TEST(PathPointCloneMoveTest, CloneMovePreservesState)
-{
-    // 创建原始路径点
-    PathPoint original(10, 20, 30);
-    original.setCostMalus(2.5f);
-    original.setNodeType(PathNodeType::Walkable);
-    original.setCostFromStart(5.0f);
-    original.setHeuristic(3.0f);
-
-    // 克隆到新位置
-    PathPoint cloned = original.cloneMove(100, 200, 300);
-
-    // 验证新位置
-    EXPECT_EQ(cloned.x(), 100);
-    EXPECT_EQ(cloned.y(), 200);
-    EXPECT_EQ(cloned.z(), 300);
-
-    // 验证状态被保留
-    EXPECT_EQ(cloned.costMalus(), original.costMalus());
-    EXPECT_EQ(cloned.nodeType(), original.nodeType());
-    EXPECT_EQ(cloned.costFromStart(), original.costFromStart());
-    EXPECT_EQ(cloned.heuristic(), original.heuristic());
-    EXPECT_EQ(cloned.totalCost(), original.totalCost());
-}
-
-/**
- * @brief 测试 PathPoint::cloneMove 方法 - 多次克隆
- */
-TEST(PathPointCloneMoveTest, MultipleCloneMoves)
-{
-    // 创建原始路径点
-    PathPoint original(0, 0, 0);
-    original.setNodeType(PathNodeType::Water);
-
-    // 第一次克隆
-    PathPoint first = original.cloneMove(10, 5, 10);
-    EXPECT_EQ(first.x(), 10);
-    EXPECT_EQ(first.y(), 5);
-    EXPECT_EQ(first.z(), 10);
-    EXPECT_EQ(first.nodeType(), PathNodeType::Water);
-
-    // 第二次克隆（从克隆点）
-    PathPoint second = first.cloneMove(20, 10, 20);
-    EXPECT_EQ(second.x(), 20);
-    EXPECT_EQ(second.y(), 10);
-    EXPECT_EQ(second.z(), 20);
-    EXPECT_EQ(second.nodeType(), PathNodeType::Water);
-}
-
-/**
- * @brief 测试 PathPoint::cloneMove 方法 - 负坐标
- */
-TEST(PathPointCloneMoveTest, CloneMoveWithNegativeCoordinates)
-{
-    PathPoint original(0, 0, 0);
-    original.setCostMalus(1.0f);
-
-    // 克隆到负坐标
-    PathPoint cloned = original.cloneMove(-100, -50, -200);
-
-    EXPECT_EQ(cloned.x(), -100);
-    EXPECT_EQ(cloned.y(), -50);
-    EXPECT_EQ(cloned.z(), -200);
-    EXPECT_EQ(cloned.costMalus(), 1.0f);
-}
-
-/**
- * @brief 测试 Path::setPoint 与 trimPath 场景模拟
+ * @brief 方块表驱动的内存区域
  *
- * 模拟 trimPath 对炼药锅的处理场景：
- * 当路径点位于炼药锅位置时，需要将其 Y 坐标 +1
+ * 未设置的格子是空气。`fillFloor` 铺一层石头地板，其余按需摆放方块。
  */
-TEST(PathTrimPathScenarioTest, SimulateTrimPathCauldronScenario)
-{
-    // 创建一个穿过炼药锅的路径
-    // 假设 (5, 10, 5) 是炼药锅位置
-    std::vector<PathPoint> points;
-    points.emplace_back(5, 9, 5);  // 炼药锅下方
-    points.emplace_back(5, 10, 5); // 炼药锅位置 - 需要上移
-    points.emplace_back(5, 11, 5); // 炼药锅上方
-
-    Path path(std::move(points));
-
-    // 模拟 trimPath 对炼药锅的处理
-    // MC 1.16.5: 如果路径点在炼药锅位置，将其 Y+1
-    const PathPoint* cauldronPoint = path.getPoint(1);
-    ASSERT_NE(cauldronPoint, nullptr);
-    EXPECT_EQ(cauldronPoint->y(), 10);
-
-    // 使用 cloneMove 创建新的路径点
-    PathPoint newPoint = cauldronPoint->cloneMove(cauldronPoint->x(),
-        cauldronPoint->y() + 1, // Y+1
-        cauldronPoint->z());
-
-    // 设置新路径点
-    path.setPoint(1, newPoint);
-
-    // 验证修改后的路径点
-    const PathPoint* modified = path.getPoint(1);
-    ASSERT_NE(modified, nullptr);
-    EXPECT_EQ(modified->x(), 5);
-    EXPECT_EQ(modified->y(), 11); // Y 已上移
-    EXPECT_EQ(modified->z(), 5);
-}
-
-/**
- * @brief 测试 Path::length 方法
- */
-TEST(PathBasicTest, LengthMethod)
-{
-    // 空路径
-    Path emptyPath;
-    EXPECT_EQ(emptyPath.length(), 0);
-
-    // 有路径点的路径
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-    points.emplace_back(2, 0, 2);
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 3);
-}
-
-/**
- * @brief 测试 Path::empty 方法
- */
-TEST(PathBasicTest, EmptyMethod)
-{
-    Path emptyPath;
-    EXPECT_TRUE(emptyPath.empty());
-
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    Path path(std::move(points));
-    EXPECT_FALSE(path.empty());
-}
-
-/**
- * @brief 测试 PathNavigator 基本构造
- */
-TEST(PathNavigatorBasicTest, ConstructorWithNullPathFinder)
-{
-    // 使用空寻路器构造
-    PathNavigator navigator(nullptr);
-    EXPECT_FALSE(navigator.hasPath());
-    EXPECT_TRUE(navigator.noPath());
-}
-
-/**
- * @brief 测试 PathNavigator 基本状态
- */
-TEST(PathNavigatorBasicTest, BasicState)
-{
-    PathNavigator navigator(nullptr);
-
-    // 初始状态检查
-    EXPECT_FALSE(navigator.hasPath());
-    EXPECT_TRUE(navigator.noPath());
-    EXPECT_TRUE(navigator.isDone());
-
-    // 清除路径（应该不崩溃）
-    EXPECT_NO_THROW(navigator.clearPath());
-    EXPECT_NO_THROW(navigator.stop());
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 基本截断
- */
-TEST(PathTruncateNodesTest, BasicTruncation)
-{
-    // 创建包含5个路径点的路径
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-    points.emplace_back(2, 0, 2);
-    points.emplace_back(3, 0, 3);
-    points.emplace_back(4, 0, 4);
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 5);
-
-    // 在索引2处截断（保留索引0和1）
-    path.truncateNodes(2);
-    EXPECT_EQ(path.length(), 2);
-
-    // 验证保留的路径点
-    const PathPoint* p0 = path.getPoint(0);
-    ASSERT_NE(p0, nullptr);
-    EXPECT_EQ(p0->x(), 0);
-
-    const PathPoint* p1 = path.getPoint(1);
-    ASSERT_NE(p1, nullptr);
-    EXPECT_EQ(p1->x(), 1);
-
-    // 被截断的路径点应不存在
-    EXPECT_EQ(path.getPoint(2), nullptr);
-    EXPECT_EQ(path.getPoint(3), nullptr);
-    EXPECT_EQ(path.getPoint(4), nullptr);
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 索引0处截断（清空路径）
- */
-TEST(PathTruncateNodesTest, TruncateAtZero)
-{
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 2);
-
-    // 在索引0处截断（清空路径）
-    path.truncateNodes(0);
-    EXPECT_EQ(path.length(), 0);
-    EXPECT_TRUE(path.empty());
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 索引超出范围（不做任何操作）
- */
-TEST(PathTruncateNodesTest, TruncateIndexOutOfRange)
-{
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 2);
-
-    // 索引超出范围，不做任何操作
-    path.truncateNodes(5);
-    EXPECT_EQ(path.length(), 2);
-
-    // 负数索引也不做操作
-    path.truncateNodes(-1);
-    EXPECT_EQ(path.length(), 2);
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 当前索引调整
- *
- * 当截断发生在当前索引之前时，当前索引应被调整到新的末尾
- */
-TEST(PathTruncateNodesTest, CurrentIndexAdjustment)
-{
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 0, 0);
-    points.emplace_back(1, 0, 1);
-    points.emplace_back(2, 0, 2);
-    points.emplace_back(3, 0, 3);
-
-    Path path(std::move(points));
-
-    // 将当前索引设置到3
-    path.setCurrentIndex(3);
-    EXPECT_EQ(path.getCurrentIndex(), 3);
-
-    // 在索引2处截断
-    path.truncateNodes(2);
-    EXPECT_EQ(path.length(), 2);
-
-    // 当前索引3超出了新的路径长度2，应被调整到1（最后的有效索引）
-    EXPECT_EQ(path.getCurrentIndex(), 1);
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 模拟阳光避让场景
- *
- * 模拟 trimPath 的阳光避让逻辑：
- * 路径包含5个节点，其中第3个节点暴露在阳光下，
- * 截断应发生在第3个节点处，保留前2个节点（阴影中的路径）
- */
-TEST(PathTruncateNodesTest, SimulateSunAvoidanceTruncation)
-{
-    // 创建路径：5个节点，从阴影区域穿越到阳光区域
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 64, 0); // 阴影中
-    points.emplace_back(1, 64, 1); // 阴影中
-    points.emplace_back(2, 64, 2); // 阳光下 <- 截断点
-    points.emplace_back(3, 64, 3); // 阳光下
-    points.emplace_back(4, 64, 4); // 阳光下
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 5);
-
-    // 模拟阳光避让：在第3个节点（索引2）处截断
-    // 对应 MC Java 版：遍历路径，在第一个 canSeeSky 为 true 的节点处截断
-    path.truncateNodes(2);
-    EXPECT_EQ(path.length(), 2);
-
-    // 验证保留的节点都在阴影中
-    const PathPoint* p0 = path.getPoint(0);
-    ASSERT_NE(p0, nullptr);
-    EXPECT_EQ(p0->x(), 0);
-    EXPECT_EQ(p0->z(), 0);
-
-    const PathPoint* p1 = path.getPoint(1);
-    ASSERT_NE(p1, nullptr);
-    EXPECT_EQ(p1->x(), 1);
-    EXPECT_EQ(p1->z(), 1);
-
-    // 路径终点应在阴影区域
-    const PathPoint* end = path.getEnd();
-    ASSERT_NE(end, nullptr);
-    EXPECT_EQ(end->x(), 1);
-    EXPECT_EQ(end->z(), 1);
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 阳光避让：全阴影路径不截断
- *
- * 当路径中所有节点都在阴影中时，不需要截断。
- * 对应 MC Java 版：如果路径中没有 canSeeSky 为 true 的节点，
- * trimPath 不会调用 truncateNodes。
- */
-TEST(PathTruncateNodesTest, AllShadedPathNoTruncation)
-{
-    // 创建路径：5个节点，全部在阴影中
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 64, 0); // 阴影中
-    points.emplace_back(1, 64, 1); // 阴影中
-    points.emplace_back(2, 64, 2); // 阴影中
-    points.emplace_back(3, 64, 3); // 阴影中
-    points.emplace_back(4, 64, 4); // 阴影中
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 5);
-
-    // 没有阳光暴露节点，不截断
-    // （在实际 _trimPath 中，遍历所有节点后不调用 truncateNodes）
-    // 这里通过不调用 truncateNodes 来验证路径保持完整
-    EXPECT_EQ(path.length(), 5);
-    EXPECT_EQ(path.getEnd()->x(), 4);
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 阳光避让：实体在阳光下不截断
- *
- * 对应 MC Java 版的 GroundPathNavigation.trimPath() 逻辑：
- * 如果实体当前位置已在阳光下（canSeeSky 为 true），则保留完整路径。
- * 因为实体已经在阳光下，需要保留完整路径才能移动到安全区域。
- * 此测试验证 truncateNodes 在此场景下不会被调用（路径保持完整）。
- */
-TEST(PathTruncateNodesTest, EntityInSunlightPathPreserved)
-{
-    // 创建路径：5个节点，从阳光区域移动到阴影区域
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 64, 0); // 阳光下（实体当前位置）
-    points.emplace_back(1, 64, 1); // 阳光下
-    points.emplace_back(2, 64, 2); // 阳光下
-    points.emplace_back(3, 64, 3); // 阴影中
-    points.emplace_back(4, 64, 4); // 阴影中
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 5);
-
-    // 在 MC Java 版中，如果实体已在阳光下，trimPath 不截断路径
-    // 因为实体需要完整路径才能移动到阴影区域
-    // 路径保持完整
-    EXPECT_EQ(path.length(), 5);
-    EXPECT_EQ(path.getEnd()->x(), 4);
-}
-
-/**
- * @brief 测试 Path::truncateNodes 方法 - 阳光避让：第一个节点就在阳光下
- *
- * 当路径的第一个节点就暴露在阳光下时，路径应截断为空。
- * 对应 MC Java 版：遍历路径时第一个节点 canSeeSky 为 true，
- * 调用 truncateNodes(0) 清空路径。
- */
-TEST(PathTruncateNodesTest, FirstNodeInSunlightTruncateToEmpty)
-{
-    // 创建路径：第一个节点就在阳光下
-    std::vector<PathPoint> points;
-    points.emplace_back(0, 64, 0); // 阳光下 <- 截断点（索引0）
-    points.emplace_back(1, 64, 1); // 阴影中
-    points.emplace_back(2, 64, 2); // 阴影中
-
-    Path path(std::move(points));
-    EXPECT_EQ(path.length(), 3);
-
-    // 在第一个节点处截断（索引0），路径变为空
-    path.truncateNodes(0);
-    EXPECT_EQ(path.length(), 0);
-    EXPECT_TRUE(path.empty());
-}
-
-/**
- * @brief 测试 PathNavigator::setAvoidSunPathing 属性传播
- *
- * 验证 setAvoidSunPathing 正确设置 avoidSun 标志，
- * 该标志在 _trimPath 中用于阳光避让路径截断。
- */
-TEST(PathNavigatorBasicTest, SetAvoidSunPathingWithNullPathFinder)
-{
-    PathNavigator navigator(nullptr);
-
-    // 使用空 PathFinder 构造的导航器，setAvoidSunPathing 不应崩溃
-    EXPECT_NO_THROW(navigator.setAvoidSunPathing(true));
-    EXPECT_NO_THROW(navigator.setAvoidSunPathing(false));
-}
-
-/**
- * @brief 测试 PathNavigator::setCanOpenDoors 在空 PathFinder 下不崩溃
- *
- * 验证 setCanOpenDoors 在没有 PathFinder 时也能正常调用。
- */
-TEST(PathNavigatorBasicTest, SetCanOpenDoorsWithNullPathFinder)
-{
-    PathNavigator navigator(nullptr);
-
-    EXPECT_NO_THROW(navigator.setCanOpenDoors(true));
-    EXPECT_NO_THROW(navigator.setCanOpenDoors(false));
-}
-
-/**
- * @brief 测试 PathNavigator::setCanEnterDoors 在空 PathFinder 下不崩溃
- *
- * 验证 setCanEnterDoors 在没有 PathFinder 时也能正常调用。
- */
-TEST(PathNavigatorBasicTest, SetCanEnterDoorsWithNullPathFinder)
-{
-    PathNavigator navigator(nullptr);
-
-    EXPECT_NO_THROW(navigator.setCanEnterDoors(true));
-    EXPECT_NO_THROW(navigator.setCanEnterDoors(false));
-}
-
-/**
- * @brief 测试 PathNavigator 门属性默认值
- *
- * 验证 canOpenDoors 默认为 false，canEnterDoors 默认为 true（对齐 MC 的 canPassDoors）。
- */
-TEST(PathNavigatorBasicTest, DoorPropertyDefaults)
-{
-    PathNavigator navigator(nullptr);
-
-    // canOpenDoors 默认为 false（MC 中默认不能开门）
-    EXPECT_FALSE(navigator.canOpenDoors());
-
-    // canEnterDoors 默认为 true（MC 中 canPassDoors 默认为 true）
-    EXPECT_TRUE(navigator.canEnterDoors());
-}
-
-/**
- * @brief 测试 PathNavigator 门属性 getter/setter
- */
-TEST(PathNavigatorBasicTest, DoorPropertyGettersSetters)
-{
-    PathNavigator navigator(nullptr);
-
-    // 测试 canOpenDoors
-    navigator.setCanOpenDoors(true);
-    EXPECT_TRUE(navigator.canOpenDoors());
-    navigator.setCanOpenDoors(false);
-    EXPECT_FALSE(navigator.canOpenDoors());
-
-    // 测试 canEnterDoors
-    navigator.setCanEnterDoors(false);
-    EXPECT_FALSE(navigator.canEnterDoors());
-    navigator.setCanEnterDoors(true);
-    EXPECT_TRUE(navigator.canEnterDoors());
-}
-
-/**
- * @brief 测试 PathNavigator::setMaxVisitedNodesMultiplier / resetMaxVisitedNodesMultiplier
- *
- * 验证 maxVisitedNodesMultiplier 的默认值、设置和重置。
- */
-TEST(PathNavigatorBasicTest, MaxVisitedNodesMultiplier)
-{
-    PathNavigator navigator(nullptr);
-
-    // 默认值应为 1.0F
-    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 1.0f);
-
-    // 设置为 0.5F（蜜蜂漂移飞行时降低寻路开销）
-    navigator.setMaxVisitedNodesMultiplier(0.5f);
-    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 0.5f);
-
-    // 设置为 10.0F（蜜蜂精确导航时提高寻路精度）
-    navigator.setMaxVisitedNodesMultiplier(10.0f);
-    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 10.0f);
-
-    // 重置为默认值 1.0F
-    navigator.resetMaxVisitedNodesMultiplier();
-    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 1.0f);
-}
-
-/**
- * @brief 路径点地面 Y 坐标修正（对应 vanilla PathNavigation.getGroundY → WalkNodeEvaluator.getFloorLevel）
- *
- * 移动目标 Y 取路径点下方方块碰撞形状的顶面：整格方块 = 格子底部；半砖 = 格子底部 + 0.5；
- * 下方是空气 = 直接沿用路径点 Y。若不修正（直接传 waypoint->y()），实体目标 Y 会落在非整格
- * 方块底端，表现为浮在台阶/铁砧等方块下方。
- */
-class GroundYTestWorld final : public test::BaseTestWorld {
+class FlatRegion final : public Region {
 public:
+    static u64 key(i32 x, i32 y, i32 z)
+    {
+        return (static_cast<u64>(static_cast<u32>(x)) << 42) ^ (static_cast<u64>(static_cast<u32>(y)) << 21) ^
+            static_cast<u64>(static_cast<u32>(z));
+    }
+
     void setBlock(i32 x, i32 y, i32 z, const BlockState* state)
     {
-        m_blocks[BlockPos(x, y, z)] = state;
+        m_blocks[key(x, y, z)] = state;
+    }
+
+    /// 在 y = floorY 铺一层石头（可指定范围）。
+    void fillFloor(i32 floorY, i32 radius)
+    {
+        for (i32 x = -radius; x <= radius; ++x) {
+            for (i32 z = -radius; z <= radius; ++z) {
+                setBlock(x, floorY, z, &VanillaBlocks::STONE->defaultState());
+            }
+        }
     }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        const auto it = m_blocks.find(BlockPos(x, y, z));
-        return it != m_blocks.end() ? it->second : nullptr;
+        const auto found = m_blocks.find(key(x, y, z));
+        return found != m_blocks.end() ? found->second : &VanillaBlocks::AIR->defaultState();
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        return getBlockState(x, y, z)->getFluidState();
+    }
+
+    [[nodiscard]] bool hasCollision(const void* /*entity*/, const AxisAlignedBB& box) const override
+    {
+        const i32 minX = static_cast<i32>(std::floor(box.minX));
+        const i32 maxX = static_cast<i32>(std::ceil(box.maxX) - 1);
+        const i32 minY = static_cast<i32>(std::floor(box.minY));
+        const i32 maxY = static_cast<i32>(std::ceil(box.maxY) - 1);
+        const i32 minZ = static_cast<i32>(std::floor(box.minZ));
+        const i32 maxZ = static_cast<i32>(std::ceil(box.maxZ) - 1);
+        for (i32 x = minX; x <= maxX; ++x) {
+            for (i32 y = minY; y <= maxY; ++y) {
+                for (i32 z = minZ; z <= maxZ; ++z) {
+                    const BlockState* state = getBlockState(x, y, z);
+                    if (!state->isAir() && !state->canBeReplaced()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    [[nodiscard]] i32 minBuildHeight() const override
+    {
+        return -64;
+    }
+
+    [[nodiscard]] i32 maxBuildHeight() const override
+    {
+        return 320;
     }
 
 private:
-    std::unordered_map<BlockPos, const BlockState*> m_blocks;
+    std::unordered_map<u64, const BlockState*> m_blocks;
 };
 
-TEST(PathNavigatorGroundYTest, FloorsAtCollisionShapeTop)
+/**
+ * @brief 受控的寻路实体（与生产 `MobEntity` 解耦，便于把结论钉在求值器上）
+ */
+class FakeEntity final : public PathfindingEntity {
+public:
+    FakeEntity(f32 width, f32 height, f32 stepHeight = 0.6f)
+        : m_width(width)
+        , m_height(height)
+        , m_stepHeight(stepHeight)
+    {
+        m_malus.fill(UNSET);
+    }
+
+    void setMalus(PathType type, f32 malus)
+    {
+        m_malus[static_cast<size_t>(type)] = malus;
+    }
+
+    void setPosition(f64 x, f64 y, f64 z)
+    {
+        m_posX = x;
+        m_posY = y;
+        m_posZ = z;
+    }
+
+    [[nodiscard]] f32 pathfindingWidth() const override
+    {
+        return m_width;
+    }
+
+    [[nodiscard]] f32 pathfindingHeight() const override
+    {
+        return m_height;
+    }
+
+    [[nodiscard]] f32 pathfindingStepHeight() const override
+    {
+        return m_stepHeight;
+    }
+
+    [[nodiscard]] i32 pathfindingMaxFallDistance() const override
+    {
+        return 3;
+    }
+
+    [[nodiscard]] f32 pathfindingMalus(PathType type) const override
+    {
+        const f32 stored = m_malus[static_cast<size_t>(type)];
+        return stored == UNSET ? getPathMalus(type) : stored;
+    }
+
+    [[nodiscard]] AxisAlignedBB pathfindingBoundingBox() const override
+    {
+        const f32 half = m_width / 2.0f;
+        return AxisAlignedBB(static_cast<f32>(m_posX) - half,
+            static_cast<f32>(m_posY),
+            static_cast<f32>(m_posZ) - half,
+            static_cast<f32>(m_posX) + half,
+            static_cast<f32>(m_posY) + m_height,
+            static_cast<f32>(m_posZ) + half);
+    }
+
+    [[nodiscard]] bool pathfindingOnGround() const override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool pathfindingInWater() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool pathfindingCanStandOnFluid(const fluid::FluidState* /*fluidState*/) const override
+    {
+        return false;
+    }
+
+private:
+    static constexpr f32 UNSET = 12345.0f;
+
+    f32 m_width;
+    f32 m_height;
+    f32 m_stepHeight;
+    f64 m_posX = 0.5;
+    f64 m_posY = 0.0;
+    f64 m_posZ = 0.5;
+    std::array<f32, pathTypeCount()> m_malus{};
+};
+
+/**
+ * @brief 在地板上跑一次 A*
+ *
+ * @param region 地形（调用方负责铺好 `floorY` 的一层地板）
+ * @param entity 寻路实体（位置默认落在 (0.5, floorY+1, 0.5)）
+ * @param target 目标方块坐标
+ * @param floorY 地板所在的 Y
+ * @return 搜索出的路径；不连通时为空
+ */
+std::optional<Path> findPathOn(
+    FlatRegion& region, FakeEntity& entity, const BlockPos& target, i32 floorY, i32 maxVisitedNodes = 512)
 {
-    VanillaBlocks::initialize();
-    ASSERT_NE(VanillaBlocks::STONE, nullptr);
-    ASSERT_NE(VanillaBlocks::STONE_SLAB, nullptr);
-
-    GroundYTestWorld world;
-    PathPoint waypoint(0, 64, 0);
-
-    PathNavigator navigator(nullptr);
-
-    // 下方是空气：直接沿用路径点 Y。
-    EXPECT_DOUBLE_EQ(navigator.groundYForTest(world, waypoint), 64.0);
-
-    // 下方是整格石头：目标 Y = 方块底部（64 - 1 + 1.0）。
-    world.setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
-    EXPECT_NEAR(navigator.groundYForTest(world, waypoint), 64.0, 1e-4);
-
-    // 下方是下半砖：目标 Y = 方块底部 + 0.5。
-    world.setBlock(0, 63, 0, &VanillaBlocks::STONE_SLAB->defaultState());
-    EXPECT_NEAR(navigator.groundYForTest(world, waypoint), 63.5, 1e-4);
+    entity.setPosition(0.5, static_cast<f64>(floorY + 1), 0.5);
+    WalkNodeEvaluator evaluator;
+    PathFinder finder(std::make_unique<WalkNodeEvaluator>(), maxVisitedNodes);
+    const Vector3d startPosition(0.5, static_cast<f64>(floorY + 1), 0.5);
+    return finder.findPath(region, entity, startPosition, {target}, 64.0f, 1, 1.0f);
 }
 
-} // anonymous namespace
+} // namespace
+
+// ============================================================================
+// Path
+// ============================================================================
+
+namespace {
+
+Path makeLinePath(i32 count)
+{
+    std::vector<PathPoint> nodes;
+    nodes.reserve(static_cast<size_t>(count));
+    for (i32 index = 0; index < count; ++index) {
+        nodes.emplace_back(index, 0, 0);
+    }
+    return Path(std::move(nodes), BlockPos(count - 1, 0, 0), true);
+}
+
+} // namespace
+
+TEST(NavigatorPathTest, EmptyPath)
+{
+    const Path path;
+
+    EXPECT_TRUE(path.empty());
+    EXPECT_EQ(path.nodeCount(), 0u);
+    EXPECT_TRUE(path.isDone());
+}
+
+TEST(PathTest, NodeAccess)
+{
+    const Path path = makeLinePath(3);
+
+    EXPECT_EQ(path.node(0).x(), 0);
+    EXPECT_EQ(path.node(2).x(), 2);
+    EXPECT_EQ(path.nodePos(1), BlockPos(1, 0, 0));
+}
+
+TEST(PathTest, ReplaceNode)
+{
+    Path path = makeLinePath(3);
+
+    path.replaceNode(1, PathPoint(7, 8, 9));
+    EXPECT_EQ(path.node(1).x(), 7);
+    EXPECT_EQ(path.node(1).y(), 8);
+    EXPECT_EQ(path.node(1).z(), 9);
+
+    // 其他节点不受影响。
+    EXPECT_EQ(path.node(0).x(), 0);
+    EXPECT_EQ(path.node(2).x(), 2);
+}
+
+TEST(PathTest, ReplaceNodeOutOfRangeIsNoOp)
+{
+    Path path = makeLinePath(2);
+
+    path.replaceNode(5, PathPoint(10, 10, 10));
+    EXPECT_EQ(path.nodeCount(), 2u);
+    EXPECT_EQ(path.node(1).x(), 1);
+}
+
+TEST(NavigatorPathTest, TruncateNodes)
+{
+    Path path = makeLinePath(5);
+    EXPECT_EQ(path.nodeCount(), 5u);
+
+    path.truncateNodes(2);
+    EXPECT_EQ(path.nodeCount(), 2u);
+    EXPECT_EQ(path.node(1).x(), 1);
+}
+
+TEST(PathTest, TruncateToZeroEmptiesPath)
+{
+    Path path = makeLinePath(4);
+
+    path.truncateNodes(0);
+    EXPECT_TRUE(path.empty());
+    EXPECT_EQ(path.endNode(), nullptr);
+}
+
+TEST(PathTest, TruncateBeyondSizeKeepsPath)
+{
+    Path path = makeLinePath(3);
+
+    path.truncateNodes(10);
+    EXPECT_EQ(path.nodeCount(), 3u);
+}
+
+TEST(PathTest, CopyIsIndependent)
+{
+    const Path original = makeLinePath(3);
+    Path copy = original.copy();
+
+    copy.truncateNodes(1);
+    EXPECT_EQ(copy.nodeCount(), 1u);
+    EXPECT_EQ(original.nodeCount(), 3u);
+}
+
+TEST(NavigatorPathTest, EntityPosAtNodeCentresOnBlock)
+{
+    const Path path = makeLinePath(2);
+    const Vector3d pos = path.entityPosAtNode(0.6f, 0);
+
+    // 宽度 0.6：中心偏移 floor(0.6 + 1) * 0.5 = 0.5。
+    EXPECT_FLOAT_EQ(static_cast<f32>(pos.x), 0.5f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(pos.z), 0.5f);
+}
+
+// ============================================================================
+// PathHeap（A* 开放集）
+// ============================================================================
+
+TEST(NavigatorPathHeapTest, PopsInCostOrder)
+{
+    PathHeap heap;
+    std::vector<std::unique_ptr<PathPoint>> points;
+
+    const f32 costs[5] = {7.0f, 1.0f, 9.0f, 3.0f, 5.0f};
+    for (i32 index = 0; index < 5; ++index) {
+        points.push_back(std::make_unique<PathPoint>(index, 0, 0));
+        points.back()->setTotalCost(costs[index]);
+        heap.insert(points.back().get());
+    }
+
+    f32 previous = -1.0f;
+    while (!heap.empty()) {
+        const PathPoint* point = heap.pop();
+        EXPECT_GE(point->totalCost(), previous);
+        previous = point->totalCost();
+    }
+}
+
+TEST(NavigatorPathHeapTest, ChangeCostReorders)
+{
+    PathHeap heap;
+    PathPoint first(0, 0, 0);
+    PathPoint second(0, 0, 0);
+    first.setTotalCost(10.0f);
+    second.setTotalCost(5.0f);
+    heap.insert(&first);
+    heap.insert(&second);
+
+    heap.changeCost(&first, 1.0f);
+    EXPECT_EQ(heap.pop(), &first);
+}
+
+// ============================================================================
+// A* 端到端
+// ============================================================================
+
+class PathFinderTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool initialized = false;
+        if (!initialized) {
+            VanillaBlocks::initialize();
+            initialized = true;
+        }
+    }
+};
+
+TEST_F(PathFinderTest, StraightLineOnFlatGround)
+{
+    FlatRegion region;
+    region.fillFloor(-1, 8);
+    FakeEntity entity(0.6f, 1.8f);
+
+    const auto path = findPathOn(region, entity, BlockPos(4, 0, 0), -1);
+    ASSERT_TRUE(path.has_value());
+    EXPECT_TRUE(path->canReach());
+    // 起点 (0,0,0)、终点 (4,0,0)：路径终点必须正好落在目标上，节点数不超过曼哈顿步数 + 1。
+    EXPECT_LE(path->nodeCount(), 5u);
+    // 到达判定用曼哈顿距离 <= reachRange(1)，因此终点可能停在目标相邻的一格上。
+    EXPECT_LE(path->endNode()->distanceManhattan(PathPoint(4, 0, 0)), 1.0f);
+    EXPECT_EQ(path->target(), BlockPos(4, 0, 0));
+}
+
+TEST_F(PathFinderTest, WallForcesDetour)
+{
+    FlatRegion region;
+    region.fillFloor(-1, 8);
+    // 在 x = 2 处立一堵墙，只留 z = 2 的缺口。
+    for (i32 z = -3; z <= 3; ++z) {
+        if (z == 2) {
+            continue;
+        }
+        region.setBlock(2, 0, z, &VanillaBlocks::STONE->defaultState());
+        region.setBlock(2, 1, z, &VanillaBlocks::STONE->defaultState());
+    }
+    FakeEntity entity(0.6f, 1.8f);
+
+    const auto path = findPathOn(region, entity, BlockPos(5, 0, 0), -1);
+    ASSERT_TRUE(path.has_value());
+    EXPECT_TRUE(path->canReach());
+    // 必须绕过墙：路径里应出现 z 不为 0 的节点。
+    bool hasDetour = false;
+    for (const PathPoint& node : path->nodes()) {
+        if (node.z() != 0) {
+            hasDetour = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasDetour);
+}
+
+TEST_F(PathFinderTest, StepUpIsAllowed)
+{
+    FlatRegion region;
+    region.fillFloor(-1, 8);
+    // 在 x >= 3 放一层台阶面（y = 0 的实心方块）。
+    for (i32 x = 3; x <= 8; ++x) {
+        for (i32 z = -8; z <= 8; ++z) {
+            region.setBlock(x, 0, z, &VanillaBlocks::STONE->defaultState());
+        }
+    }
+    FakeEntity entity(0.6f, 1.8f);
+
+    const auto path = findPathOn(region, entity, BlockPos(5, 1, 0), -1);
+    ASSERT_TRUE(path.has_value());
+    EXPECT_TRUE(path->canReach());
+    EXPECT_EQ(path->endNode()->y(), 1);
+}
+
+TEST_F(PathFinderTest, NegativeMalusAreaIsAvoided)
+{
+    FlatRegion region;
+    region.fillFloor(-1, 8);
+    // 把 x = 2 一整列设为水；实体声明水与水边缘都不可通行。
+    for (i32 z = -8; z <= 8; ++z) {
+        region.setBlock(2, 0, z, &VanillaBlocks::WATER->defaultState());
+    }
+    FakeEntity entity(0.6f, 1.8f);
+    entity.setMalus(PathType::Water, -1.0f);
+    entity.setMalus(PathType::WaterBorder, -1.0f);
+
+    // 目标在水的另一侧：因为整列被封死，只能返回「尽力而为」的路径（未到达），
+    // 且路径绝不能踏进水格。
+    const auto path = findPathOn(region, entity, BlockPos(5, 0, 0), -1);
+    ASSERT_TRUE(path.has_value());
+    EXPECT_FALSE(path->canReach());
+    for (const PathPoint& node : path->nodes()) {
+        EXPECT_NE(node.x(), 2);
+    }
+}
+
+TEST_F(PathFinderTest, VisitedNodeLimitStopsSearch)
+{
+    FlatRegion region;
+    region.fillFloor(-1, 8);
+    FakeEntity entity(0.6f, 1.8f);
+    entity.setPosition(0.5, 0.0, 0.5);
+
+    // 只给 1 个节点的预算：循环在取出起点之前就达到上限，展开的节点数为 0。
+    PathFinder finder(std::make_unique<WalkNodeEvaluator>(), 1);
+    const auto path = finder.findPath(region, entity, Vector3d(0.5, 0.0, 0.5), {BlockPos(6, 0, 0)}, 64.0f, 1, 1.0f);
+    ASSERT_TRUE(path.has_value());
+    EXPECT_FALSE(path->canReach());
+    EXPECT_EQ(finder.lastSearchedNodes(), 1);
+}
+
+TEST_F(PathFinderTest, UnreachableTargetYieldsPartialPath)
+{
+    FlatRegion region;
+    region.fillFloor(-1, 3);
+    // 地板只有 [-3, 3]，目标在远处没有地面的位置：走不过去。
+    FakeEntity entity(0.6f, 1.8f);
+
+    const auto path = findPathOn(region, entity, BlockPos(40, 0, 0), -1);
+    // 与原版一致：未到达时仍返回「走得最远」的那条路径，只是 canReach() 为 false。
+    ASSERT_TRUE(path.has_value());
+    EXPECT_FALSE(path->canReach());
+    EXPECT_LT(path->distanceToTarget(), 40.0f);
+}

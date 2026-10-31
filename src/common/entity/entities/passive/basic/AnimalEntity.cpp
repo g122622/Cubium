@@ -76,8 +76,8 @@ AnimalEntity::AnimalEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     registerAttributes();
 
     // 设置路径优先级
-    // setPathPriority(PathNodeType.DANGER_FIRE, 16.0F);
-    // setPathPriority(PathNodeType.DAMAGE_FIRE, -1.0F);
+    // setPathfindingMalus(PathType.DANGER_FIRE, 16.0F);
+    // setPathfindingMalus(PathType.DAMAGE_FIRE, -1.0F);
 }
 
 bool AnimalEntity::isBreedingItem(const ItemStack& itemStack) const

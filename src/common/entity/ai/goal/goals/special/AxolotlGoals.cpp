@@ -66,7 +66,7 @@ void AxolotlPlayDeadGoal::startExecuting()
     // 装死开始 - 清除导航路径
     auto* nav = m_axolotl->navigator();
     if (nav != nullptr) {
-        nav->clearPath();
+        nav->stop();
     }
 
     // 给予自身 Regeneration I 效果（200 tick = 10 秒）
