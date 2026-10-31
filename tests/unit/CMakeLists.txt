@@ -978,6 +978,7 @@ add_executable(mc_tests
     entity/PathfindingTests.cpp
     entity/WalkNodeEvaluatorTests.cpp
     common/entity/ai/pathfinding/PathNavigatorTest.cpp
+    common/entity/ai/pathfinding/WorldRegionTest.cpp
     entity/RandomWalkingGoalTest.cpp
     common/entity/MoveToLavaGoalTest.cpp
     common/entity/ai/goal/goals/special/TriggerSkeletonTrapGoalTest.cpp

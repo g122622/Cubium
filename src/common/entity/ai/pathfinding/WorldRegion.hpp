@@ -23,11 +23,10 @@
 
 /**
  * @file WorldRegion.hpp
- * @brief 以 `IWorld` 为后端的 `Region`（对应原版 `PathNavigationRegion`）。
+ * @brief 以 `IWorld` 为后端的寻路区域。
  *
- * 寻路只看世界的一小块方形区域。原版为此专门建了 `PathNavigationRegion`（按区块切片的
- * 快照）；本实现直接委托 `IWorld`，因为两者的可观测差异只有「未加载区域读什么」：
- * 原版对未加载区块返回空气与空流体，这里的 `IWorld` 对越界坐标同样返回空气。
+ * 委托 `IWorld` 读取已加载地形，并将未加载区块、空区块段及建造高度之外的查询
+ * 转换为空气与空流体，保证求值器始终拿到有效状态。
  *
  * 生命周期：由 `PathNavigator` 在每次寻路 / 每次地面高度查询时于栈上构造，随栈帧析构；
  * 求值器只持有裸指针，会话结束时必须失效（见 `NodeEvaluator::done`）。
@@ -38,7 +37,9 @@
 #include "Region.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 
 namespace mc::entity::ai::pathfinding {
 
@@ -53,12 +54,23 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        return m_world->getBlockState(x, y, z);
+        if (y < minBuildHeight() || y >= maxBuildHeight()) {
+            return &VanillaBlocks::AIR->defaultState();
+        }
+
+        // 世界接口允许用空指针表示缺失地形，寻路区域则必须提供可解引用的空气状态。
+        const BlockState* state = m_world->getBlockState(x, y, z);
+        return state != nullptr ? state : &VanillaBlocks::AIR->defaultState();
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
-        return m_world->getFluidState(x, y, z);
+        if (y < minBuildHeight() || y >= maxBuildHeight()) {
+            return &fluid::Fluids::EMPTY()->defaultState();
+        }
+
+        const fluid::FluidState* state = m_world->getFluidState(x, y, z);
+        return state != nullptr ? state : &fluid::Fluids::EMPTY()->defaultState();
     }
 
     [[nodiscard]] bool hasCollision(const void* entity, const AxisAlignedBB& box) const override
@@ -71,12 +83,12 @@ public:
 
     [[nodiscard]] i32 minBuildHeight() const override
     {
-        return world::MIN_BUILD_HEIGHT;
+        return m_world->getMinBuildHeight();
     }
 
     [[nodiscard]] i32 maxBuildHeight() const override
     {
-        return world::MAX_BUILD_HEIGHT;
+        return m_world->getMaxBuildHeight();
     }
 
 private:

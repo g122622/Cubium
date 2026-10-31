@@ -30,6 +30,7 @@
 namespace mc {
 
 class BlockState;
+
 namespace fluid {
 class FluidState;
 }
@@ -54,14 +55,14 @@ public:
     /**
      * @brief 读方块状态
      * @param x, y, z 方块坐标
-     * @return 方块状态；超出建造高度时返回空气
+     * @return 非空方块状态；未加载区块、空区块段及建造高度之外返回空气
      */
     [[nodiscard]] virtual const BlockState* getBlockState(i32 x, i32 y, i32 z) const = 0;
 
     /**
      * @brief 读流体状态
      * @param x, y, z 方块坐标
-     * @return 流体状态；超出建造高度时返回空流体
+     * @return 非空流体状态；未加载区块、空区块段及建造高度之外返回空流体
      */
     [[nodiscard]] virtual const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const = 0;
 
@@ -83,7 +84,7 @@ public:
     [[nodiscard]] virtual i32 minBuildHeight() const = 0;
 
     /**
-     * @brief 世界最高建造高度（该 Y 之上不可放置方块）
+     * @brief 世界最高建造高度（独占上界，该 Y 及以上不可放置方块）
      */
     [[nodiscard]] virtual i32 maxBuildHeight() const = 0;
 };
