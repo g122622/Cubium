@@ -353,7 +353,24 @@ VoxelShape VoxelShape::_calculateFace(Direction dir) const
     const i32 sliceIndex = findIndex(axis, testCoord);
 
     // 创建切片形状
-    return Shapes::slice(*this, axis, sliceIndex);
+    const VoxelShape slice = Shapes::slice(*this, axis, sliceIndex);
+
+    // 对齐原版 VoxelShape#calculateFace 的两个分支：
+    //
+    //   SliceShape sliceshape = new SliceShape(this, axis, i);
+    //   if (sliceshape.isEmpty()) return Shapes.empty();
+    //   return sliceshape.isCubeLike() ? Shapes.block() : sliceshape;
+    //
+    // 第二个分支尤其关键：切片若在另外两个轴上铺满，就等价于**整个方块**。
+    // 缺少它时，投影结果会退化成「单层薄片」，凡是拿它做
+    // `SupportType.FULL` / `SupportType.CENTER` 判定的调用都会得出错误结论——
+    // 例如下半砖的顶面本是完整的 16×16，却被当成不满的面
+    // （由差分能力 block_support 查出：灯笼、紫水晶簇等「需下方坚固」的方块
+    // 在原版撑不住下半砖，Cubium 却判成撑得住）。
+    if (slice.isEmpty()) {
+        return Shapes::empty();
+    }
+    return slice.isCubeLike() ? Shapes::block() : slice;
 }
 
 bool VoxelShape::isCubeLikeAlong(Axis axis) const
