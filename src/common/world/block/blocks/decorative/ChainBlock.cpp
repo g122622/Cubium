@@ -63,11 +63,11 @@ ChainBlock::ChainBlock(const BlockProperties& properties)
 
     // 创建形状 - 锁链是细长的柱子
     // Y轴：垂直锁链
-    m_yShape = CollisionShape::box(6.0f, 0.0f, 6.0f, 10.0f, 16.0f, 10.0f);
+    m_yShape = CollisionShape::fromPixelBox(6.0f, 0.0f, 6.0f, 10.0f, 16.0f, 10.0f);
     // X轴：水平锁链（东西方向）
-    m_xShape = CollisionShape::box(0.0f, 6.0f, 6.0f, 16.0f, 10.0f, 10.0f);
+    m_xShape = CollisionShape::fromPixelBox(0.0f, 6.0f, 6.0f, 16.0f, 10.0f, 10.0f);
     // Z轴：水平锁链（南北方向）
-    m_zShape = CollisionShape::box(6.0f, 6.0f, 0.0f, 10.0f, 10.0f, 16.0f);
+    m_zShape = CollisionShape::fromPixelBox(6.0f, 6.0f, 0.0f, 10.0f, 10.0f, 16.0f);
 }
 
 BlockState ChainBlock::getStateForPlacement(BlockItemUseContext& context)

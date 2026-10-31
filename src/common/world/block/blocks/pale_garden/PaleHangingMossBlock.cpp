@@ -67,9 +67,9 @@ PaleHangingMossBlock::PaleHangingMossBlock(const BlockProperties& properties)
 
     // 创建形状
     // 非末端：box(2, 0, 2, 14, 16, 14)
-    m_bodyShape = CollisionShape::box(2.0f, 0.0f, 2.0f, 14.0f, 16.0f, 14.0f);
+    m_bodyShape = CollisionShape::fromPixelBox(2.0f, 0.0f, 2.0f, 14.0f, 16.0f, 14.0f);
     // 末端：box(2, 0, 2, 14, 10, 14)
-    m_tipShape = CollisionShape::box(2.0f, 0.0f, 2.0f, 14.0f, 10.0f, 14.0f);
+    m_tipShape = CollisionShape::fromPixelBox(2.0f, 0.0f, 2.0f, 14.0f, 10.0f, 14.0f);
 }
 
 bool PaleHangingMossBlock::isTip(const BlockState& state) const noexcept

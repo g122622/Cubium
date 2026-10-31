@@ -73,9 +73,9 @@ ShelfBlock::ShelfBlock(const BlockProperties& properties)
     // 顶部横条：(0, 12, 11) - (16, 16, 13)
     // 背板：(0, 0, 13) - (16, 16, 16)
     // 底部横条：(0, 0, 11) - (16, 4, 13)
-    CollisionShape northTop = CollisionShape::box(0.0f, 12.0f, 11.0f, 16.0f, 16.0f, 13.0f);
-    CollisionShape northBack = CollisionShape::box(0.0f, 0.0f, 13.0f, 16.0f, 16.0f, 16.0f);
-    CollisionShape northBottom = CollisionShape::box(0.0f, 0.0f, 11.0f, 16.0f, 4.0f, 13.0f);
+    CollisionShape northTop = CollisionShape::fromPixelBox(0.0f, 12.0f, 11.0f, 16.0f, 16.0f, 13.0f);
+    CollisionShape northBack = CollisionShape::fromPixelBox(0.0f, 0.0f, 13.0f, 16.0f, 16.0f, 16.0f);
+    CollisionShape northBottom = CollisionShape::fromPixelBox(0.0f, 0.0f, 11.0f, 16.0f, 4.0f, 13.0f);
     CollisionShape northShape = CollisionShape::combine(northTop, northBack, CollisionShape::CombineOp::OR);
     northShape = CollisionShape::combine(northShape, northBottom, CollisionShape::CombineOp::OR);
 
@@ -83,25 +83,25 @@ ShelfBlock::ShelfBlock(const BlockProperties& properties)
     m_shapesByDirection[Direction::North] = northShape;
 
     // South: 顶部(0,12,3,16,16,5) 背板(0,0,0,16,16,3) 底部(0,0,3,16,4,5)
-    CollisionShape southTop = CollisionShape::box(0.0f, 12.0f, 3.0f, 16.0f, 16.0f, 5.0f);
-    CollisionShape southBack = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f);
-    CollisionShape southBottom = CollisionShape::box(0.0f, 0.0f, 3.0f, 16.0f, 4.0f, 5.0f);
+    CollisionShape southTop = CollisionShape::fromPixelBox(0.0f, 12.0f, 3.0f, 16.0f, 16.0f, 5.0f);
+    CollisionShape southBack = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f);
+    CollisionShape southBottom = CollisionShape::fromPixelBox(0.0f, 0.0f, 3.0f, 16.0f, 4.0f, 5.0f);
     CollisionShape southShape = CollisionShape::combine(southTop, southBack, CollisionShape::CombineOp::OR);
     southShape = CollisionShape::combine(southShape, southBottom, CollisionShape::CombineOp::OR);
     m_shapesByDirection[Direction::South] = southShape;
 
     // East: 顶部(3,12,0,5,16,16) 背板(0,0,0,3,16,16) 底部(3,0,0,5,4,16)
-    CollisionShape eastTop = CollisionShape::box(3.0f, 12.0f, 0.0f, 5.0f, 16.0f, 16.0f);
-    CollisionShape eastBack = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
-    CollisionShape eastBottom = CollisionShape::box(3.0f, 0.0f, 0.0f, 5.0f, 4.0f, 16.0f);
+    CollisionShape eastTop = CollisionShape::fromPixelBox(3.0f, 12.0f, 0.0f, 5.0f, 16.0f, 16.0f);
+    CollisionShape eastBack = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
+    CollisionShape eastBottom = CollisionShape::fromPixelBox(3.0f, 0.0f, 0.0f, 5.0f, 4.0f, 16.0f);
     CollisionShape eastShape = CollisionShape::combine(eastTop, eastBack, CollisionShape::CombineOp::OR);
     eastShape = CollisionShape::combine(eastShape, eastBottom, CollisionShape::CombineOp::OR);
     m_shapesByDirection[Direction::East] = eastShape;
 
     // West: 顶部(11,12,0,13,16,16) 背板(13,0,0,16,16,16) 底部(11,0,0,13,4,16)
-    CollisionShape westTop = CollisionShape::box(11.0f, 12.0f, 0.0f, 13.0f, 16.0f, 16.0f);
-    CollisionShape westBack = CollisionShape::box(13.0f, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
-    CollisionShape westBottom = CollisionShape::box(11.0f, 0.0f, 0.0f, 13.0f, 4.0f, 16.0f);
+    CollisionShape westTop = CollisionShape::fromPixelBox(11.0f, 12.0f, 0.0f, 13.0f, 16.0f, 16.0f);
+    CollisionShape westBack = CollisionShape::fromPixelBox(13.0f, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
+    CollisionShape westBottom = CollisionShape::fromPixelBox(11.0f, 0.0f, 0.0f, 13.0f, 4.0f, 16.0f);
     CollisionShape westShape = CollisionShape::combine(westTop, westBack, CollisionShape::CombineOp::OR);
     westShape = CollisionShape::combine(westShape, westBottom, CollisionShape::CombineOp::OR);
     m_shapesByDirection[Direction::West] = westShape;
