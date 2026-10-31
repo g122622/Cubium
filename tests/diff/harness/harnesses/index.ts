@@ -81,6 +81,7 @@ import { mobEffectMergeInput } from "./mob_effect_merge.ts";
 import { foodStatsInput } from "./food_stats.ts";
 import { foodTickInput } from "./food_tick.ts";
 import { enchantmentSelectionInput, enchantmentSelectionUnits } from "./enchantment_selection.ts";
+import { repairCostInput } from "./repair_cost.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -707,6 +708,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
             { key: "minecraft:trident|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
             { key: "minecraft:trident|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
         ] },
+    // 铁砧修复代价：取 max + 反直觉的跳过增长条件 + 32 位截断，纯计算。
+    { name: "repair_cost", probe: "repair_cost", oracle: "RepairCostOracle",
+        key: "unit", units: { kind: "listing" }, input: repairCostInput },
+
 
 
 
