@@ -65,6 +65,15 @@ public:
 
     // ========== Block 接口实现 ==========
 
+    /**
+     * @brief 检查墙上红石火把能否留在当前位置（原版 `WallTorchBlock#canSurvive`：
+     * 附着方块的、朝向火把的那一面坚固）。
+     *
+     * 此前没有覆写，墙上红石火把能悬浮在空气中（由差分能力 block_support 查出）。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     void neighborChanged(

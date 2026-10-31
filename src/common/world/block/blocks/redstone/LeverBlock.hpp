@@ -94,6 +94,16 @@ public:
         return true;
     }
 
+    /**
+     * @brief 检查拉杆能否留在当前位置（原版 `LeverBlock` 经
+     * `FaceAttachedHorizontalDirectionalBlock#canSurvive` 继承的实现）。
+     *
+     * 与按钮同源：拉杆只能贴在附着方块「朝向它的那一面」坚固的位置上。
+     * 此前没有覆写，拉杆能悬浮在空气中（由差分能力 block_support 查出）。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 

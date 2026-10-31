@@ -61,6 +61,15 @@ public:
 
     // ========== Block 接口实现 ==========
 
+    /**
+     * @brief 检查红石火把能否留在当前位置（原版 `BaseTorchBlock#canSurvive`：
+     * `canSupportCenter(world, pos.below(), UP)`）。
+     *
+     * 此前没有覆写，红石火把能悬浮在空气中（由差分能力 block_support 查出）。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 

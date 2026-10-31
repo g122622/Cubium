@@ -43,6 +43,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -216,9 +217,14 @@ bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
 {
     BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
     if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
+        // 对应原版 DoorBlock#canSurvive 的下半分支：
+        //   below.isFaceSturdy(world, belowPos, Direction.UP)   // 默认 SupportType.FULL
+        // 原先用 isSolidSide(UP)，那只是「是固体且有碰撞」，箱子/漏斗这类上表面不满
+        // 14/16 的方块会被误判成能支撑门（由差分能力 block_support 查出）。
         const BlockPos belowPos = pos.down();
         const BlockState* belowState = world.getBlockState(belowPos);
-        return belowState != nullptr && belowState->isSolidSide(world, belowPos, Direction::Up);
+        return belowState != nullptr &&
+            belowState->isFaceSturdy(static_cast<IWorld&>(world), belowPos, Direction::Up, SupportType::Full);
     }
 
     const BlockState* belowState = world.getBlockState(pos.down());

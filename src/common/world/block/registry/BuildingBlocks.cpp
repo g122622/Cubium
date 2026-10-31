@@ -250,8 +250,12 @@ void registerBuildingBlocks()
             BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid().lightLevel(7).noOcclusion());
 
     // 箱子 - 含水方块
+    //
+    // 不再标记 `notSolid()`：原版箱子的 `legacySolid` 为 true（注册时带 forceSolidOn），
+    // 因此它能撑住站立告示牌。之前标成非固体，凡是靠 `isSolid()` 判支撑的方块
+    // 都认为箱子撑不住（由差分能力 block_support 查出）。
     BuildingBlocks::CHEST = &registry.registerBlock<blocks::ChestBlock>(ResourceLocation("minecraft:chest"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable().ignitedByLava());
+        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 梯子 - 含水方块（vanilla 不设置 ignitedByLava）
     BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(

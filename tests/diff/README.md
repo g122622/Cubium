@@ -353,7 +353,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `experience` | 原版 jar `ExperienceOracle` | 440 个操作序列（公式阶梯 / 单次加点 / 扣点 / 加减等级 / 随机） | 全部一致 | — |
 | `potion` | 原版 jar `PotionOracle` | 46 种药水（基础名 / 效果列表 / 瞬时效果 / 三种前缀翻译键） | 全部一致 | — |
 | `potion_brewing` | 原版 jar `PotionBrewingOracle` | 874（46 种药水 × 19 种试剂） | 全部一致 | — |
-| `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文 | 部分（见「已知缺口」） |
+| `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文（218 → 85 处） | 部分（见「已知缺口」） |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -989,6 +989,38 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 （碰撞盒体积 ≥ 0.729 或 Y ≥ 1.0），Cubium 靠注册时手写 `notSolid()`（全项目 234 处）。
 玻璃、树叶、冰这类「有整格碰撞却被标成非固体」的方块因此与原版不一致。修它要动全部
 234 个调用点，属于独立议题。TODO: 对齐 `calculateSolid` 后把玻璃/树叶/冰加回底座清单。
+
+### 第二轮：把 218 处差异压到 85
+
+第一轮修完之后，差异的分布指向一个更具体的病灶——**`isSolidSide` 与 `isFaceSturdy`
+被混用**。前者只判「是固体且有碰撞」，后者判「这一面在形状上铺满整格」。原版里需要
+「面坚固」的地方几乎都用后者，Cubium 却常常用前者，于是任何侧面不满的方块
+（箱子、漏斗）在所有方向上都被当成坚固。
+
+这一轮修掉的六处：
+
+- **箱子**：注册时带 `notSolid()`，但原版箱子的 `legacySolid` 为 true（forceSolidOn），
+  它能撑住站立告示牌。去掉多余的 `notSolid()`；
+- **红石火把 / 墙上红石火把 / 拉杆 / 钟**：都没有 `isValidPosition`，能悬浮在空中。
+  按原版 `BaseTorchBlock`、`WallTorchBlock`、`FaceAttachedHorizontalDirectionalBlock`、
+  `BellBlock` 的对应实现补上；
+- **门**：下半部分支撑判定用 `isSolidSide(UP)`，原版是 `isFaceSturdy(UP)`；
+- **珊瑚 / 珊瑚扇 / 墙上海扇**：三处 `canAttachTo` 都用了 `isSolidSide`，原版是
+  `isFaceSturdy(FULL)`；
+- **漏斗形状**：这是本轮最隐蔽的一处。原版顶部是
+  `Shapes.join(column(16,10,16) ∪ column(8,4,10), column(12,11,16), ONLY_FIRST)`，
+  `ONLY_FIRST` 即「a 减 b」，所以顶部不是实心 16×16，而是**外框 16×16、中间挖空
+  12×12 的环形**。Cubium 写成了实心全宽，于是上表面被当成完整面——凡是「下方需坚固」
+  的方块（门、蜡烛、花、海龟蛋）都能悬在漏斗上。单这一项贡献了 108 处误判。
+
+顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
+既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 一个经验：先用「完整方块底座」把真实缺陷筛出来
+
+218 处差异里，只有 12 个方块在完整的固体底座上也出错，其余 188 个只在
+台阶、栅栏、漏斗、箱子这类「不能支撑」的底座上出错。这个切分很有用：它把
+**「判定算错」**与**「根本没实现判定」**分开了。前者要读逻辑，后者只要照原版补方法。
 
 ## 下一步候选能力
 

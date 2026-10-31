@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <cstddef>
@@ -263,7 +264,11 @@ bool CoralFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direct
         return false;
     }
 
-    return adjState->isSolidSide(world, adjPos, direction);
+    // 对应原版 CoralFanBlock 的 canSurvive：adjState.isFaceSturdy(world, adjPos, direction)
+    // （默认 SupportType.FULL）。原先用 isSolidSide，它只判「是固体且有碰撞」而不看面是否
+    // 铺满整格，于是箱子、漏斗这类侧面不满的方块被当成能附着珊瑚
+    // （由差分能力 block_support 查出）。
+    return adjState->isFaceSturdy(static_cast<IWorld&>(world), adjPos, direction, SupportType::Full);
 }
 
 // ========== IWaterLoggable 接口实现 ==========
@@ -418,7 +423,8 @@ bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Di
         return false;
     }
 
-    return adjState->isSolidSide(world, adjPos, direction);
+    // 同 CoralFanBlock：原版用 isFaceSturdy(FULL)，不是 isSolidSide。
+    return adjState->isFaceSturdy(static_cast<IWorld&>(world), adjPos, direction, SupportType::Full);
 }
 
 // ========== IWaterLoggable 接口实现 ==========
@@ -538,7 +544,8 @@ bool CoralPlantBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Dire
         return false;
     }
 
-    return adjState->isSolidSide(world, adjPos, direction);
+    // 同 CoralFanBlock：原版用 isFaceSturdy(FULL)，不是 isSolidSide。
+    return adjState->isFaceSturdy(static_cast<IWorld&>(world), adjPos, direction, SupportType::Full);
 }
 
 // ========== IWaterLoggable 接口实现 ==========

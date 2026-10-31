@@ -35,6 +35,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -201,6 +202,12 @@ void RedstoneTorchBlock::updateState(IWorld& world, const BlockPos& pos, const B
         world.tickManager().scheduleBlockTick(
             pos, *this, world::REDSTONE_DELAY, world::tick::TickPriority::ExtremelyHigh);
     }
+}
+
+bool RedstoneTorchBlock::isValidPosition(const BlockState& /*state*/, IBlockReader& world, const BlockPos& pos) const
+{
+    // 原版 BaseTorchBlock#canSurvive：canSupportCenter(world, pos.below(), UP)
+    return Block::canSupportCenter(world, pos.down(), Direction::Up);
 }
 
 } // namespace blocks

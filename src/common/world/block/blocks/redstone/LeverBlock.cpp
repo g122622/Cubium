@@ -35,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -278,5 +279,29 @@ void LeverBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos, const Bloc
     // 强充能附着后，附着另一侧的消费者也必须收到更新。
     world.updateNeighbors(supportPos, block);
 }
+
+bool LeverBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 对应原版 LeverBlock 经 FaceAttachedHorizontalDirectionalBlock#canSurvive 的实现：
+    //   canAttach(world, pos, getConnectedDirection(state).getOpposite())
+    // getConnectedDirection 为 Floor→Up、Ceiling→Down、Wall→HORIZONTAL_FACING 的反向，
+    // 故附着方向（指向支撑方块）正好是 Floor→Down、Ceiling→Up、Wall→HORIZONTAL_FACING。
+    const AttachFace face = state.get(BlockStateProperties::ATTACH_FACE());
+    Direction attach = getFacing(state);
+    if (face == AttachFace::Floor) {
+        attach = Direction::Down;
+    } else if (face == AttachFace::Ceiling) {
+        attach = Direction::Up;
+    }
+
+    const BlockPos supportPos = pos.offset(attach);
+    const BlockState* support = world.getBlockState(supportPos);
+    if (support == nullptr) {
+        return false;
+    }
+    return support->isFaceSturdy(
+        static_cast<IWorld&>(world), supportPos, Directions::opposite(attach), SupportType::Full);
+}
+
 } // namespace blocks
 } // namespace mc
