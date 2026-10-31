@@ -576,10 +576,15 @@ public:
      * @param level 附魔等级
      * @param stack 物品堆
      * @param allowTreasure 是否允许宝藏附魔
+     * @param allowedEnchantments 附魔池（附魔 id，已排序）；为 nullptr 时遍历全部已注册附魔，
+     *        非空时只在其成员中挑选。对应原版 `getAvailableEnchantmentResults` 的
+     *        `Stream<Holder<Enchantment>>` 参数
      * @return 可用附魔列表
      */
-    [[nodiscard]] static std::vector<EnchantmentData> getEnchantmentDatas(
-        i32 level, const ItemStack& stack, bool allowTreasure);
+    [[nodiscard]] static std::vector<EnchantmentData> getEnchantmentDatas(i32 level,
+        const ItemStack& stack,
+        bool allowTreasure,
+        const std::vector<std::string>* allowedEnchantments = nullptr);
 
     /**
      * @brief 构建附魔列表
@@ -593,8 +598,11 @@ public:
      * @param allowTreasure 是否允许宝藏附魔
      * @return 附魔列表
      */
-    [[nodiscard]] static std::vector<EnchantmentData> buildEnchantmentList(
-        math::IRandom& random, const ItemStack& stack, i32 level, bool allowTreasure);
+    [[nodiscard]] static std::vector<EnchantmentData> buildEnchantmentList(math::IRandom& random,
+        const ItemStack& stack,
+        i32 level,
+        bool allowTreasure,
+        const std::vector<std::string>* allowedEnchantments = nullptr);
 
     /**
      * @brief 移除与指定附魔不兼容的附魔
@@ -631,9 +639,14 @@ public:
      * @param stack 物品堆（会被修改）
      * @param level 附魔等级
      * @param allowTreasure 是否允许宝藏附魔
+     * @param allowedEnchantments 附魔池（附魔 id，已排序）；见 getEnchantmentDatas
      * @return 添加了附魔的物品（可能是新的附魔书物品）
      */
-    static ItemStack addRandomEnchantment(math::IRandom& random, ItemStack stack, i32 level, bool allowTreasure);
+    static ItemStack addRandomEnchantment(math::IRandom& random,
+        ItemStack stack,
+        i32 level,
+        bool allowTreasure,
+        const std::vector<std::string>* allowedEnchantments = nullptr);
 
 private:
     EnchantmentHelper() = delete; // 禁止实例化

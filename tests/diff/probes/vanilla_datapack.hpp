@@ -199,8 +199,16 @@ private:
                 flattened.insert(flattened.end(), nested.begin(), nested.end());
             }
             rawIter->second.resolving = false;
-            std::sort(flattened.begin(), flattened.end());
-            flattened.erase(std::unique(flattened.begin(), flattened.end()), flattened.end());
+            // 只去重、不排序：原版标签的成员顺序就是数据包里声明的顺序（嵌套引用在出现的位置展开），
+            // 而 `getRandomElementOf(tag)` 之类的逻辑按下标抽取成员，排序会让抽取结果整体错位。
+            std::vector<std::string> unique;
+            unique.reserve(flattened.size());
+            for (auto& member : flattened) {
+                if (std::find(unique.begin(), unique.end(), member) == unique.end()) {
+                    unique.push_back(std::move(member));
+                }
+            }
+            flattened = std::move(unique);
         }
         return cache.emplace(normalized, std::move(flattened)).first->second;
     }
