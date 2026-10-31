@@ -253,11 +253,18 @@ static void resolveEntityTypeTagWithDependencies(const ResourceLocation& locatio
         }
     }
 
-    // 所有依赖已解析，现在解析当前标签
+    // 所有依赖已解析，现在解析当前标签。
+    //
+    // 标签对象可能在数据包加载前还没被创建（`EntityTypeTags` 里只有内建的若干
+    // 静态访问器，其余标签仅存在于数据包文件中）。这里必须按需注册，否则
+    // `getTag` 返回空，整条标签被**静默跳过**——数据文件明明在，运行时却查不到。
+    // 实测原版 46 个实体标签里，缺失的那 13 个正是这样丢掉的
+    // （由差分能力 entity_type_tags 查出：Cubium 只认得 33 个）。
     auto* tag = EntityTypeTags::getTag(location);
-    if (tag != nullptr) {
-        resolveAndFillEntityTypeTag(location, data, *tag);
+    if (tag == nullptr) {
+        tag = &EntityTypeTags::registerTag(location);
     }
+    resolveAndFillEntityTypeTag(location, data, *tag);
 
     resolving.erase(location);
     resolved.insert(location);

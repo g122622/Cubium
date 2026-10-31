@@ -61,6 +61,14 @@ import { missingLabelStackCodec, normaliseStackCodec, stackCodecInput } from "./
 import { lootFunctionInput, normaliseLootFunction } from "./loot_function.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { blockSupportInput } from "./block_support.ts";
+import { foodPropertiesInput } from "./food_properties.ts";
+import { ENTITY_TYPE_TAGS, ENTITY_TYPE_TAGS_UNORDERED, entityTypeTagsInput } from "./entity_type_tags.ts";
+import { jukeboxSongInput } from "./jukebox_song.ts";
+import { ENCHANTMENT_TAGS_UNORDERED, enchantmentTagsInput } from "./enchantment_tags.ts";
+import { paintingVariantInput } from "./painting_variant.ts";
+import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
+import { enchantmentCostInput } from "./enchantment_cost.ts";
+import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
 import { experienceInput, experienceSceneNames } from "./experience.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
 import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
@@ -546,6 +554,35 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 只读计算（`isValidPosition` 只查邻域方块），与寻路的 SceneRegion 同一形态。
     { name: "block_support", probe: "block_support", oracle: "BlockSupportOracle", key: "block",
         units: { kind: "listing" }, input: blockSupportInput },
+    // 食物属性：饥饿值 / 饱和度修正 / 能否饱腹后继续吃。纯数据查表。
+    { name: "food_properties", probe: "food_properties", oracle: "FoodPropertiesOracle", key: "item",
+        units: { kind: "listing" }, input: foodPropertiesInput },
+    // 实体类型标签：每个标签包含哪些实体类型（集合语义）。纯数据查表。
+    { name: "entity_type_tags", probe: "entity_type_tags", oracle: "EntityTypeTagsOracle", key: "tag",
+        units: { kind: "computed", units: () => [...ENTITY_TYPE_TAGS] },
+        input: entityTypeTagsInput,
+        unorderedArrays: ENTITY_TYPE_TAGS_UNORDERED },
+    // 唱片机歌曲：声音事件 / 翻译键 / 时长 / 比较器输出。纯数据查表。
+    { name: "jukebox_song", probe: "jukebox_song", oracle: "JukeboxSongOracle", key: "song",
+        units: { kind: "listing" }, input: jukeboxSongInput },
+    // 附魔标签：每个标签包含哪些附魔（集合语义）。纯数据查表。
+    { name: "enchantment_tags", probe: "enchantment_tags", oracle: "EnchantmentTagsOracle", key: "tag",
+        units: { kind: "listing" }, input: enchantmentTagsInput,
+        unorderedArrays: ENCHANTMENT_TAGS_UNORDERED },
+    // 画变体：宽高 / 贴图 / 标题与作者的翻译键。纯数据包注册表。
+    { name: "painting_variant", probe: "painting_variant", oracle: "PaintingVariantOracle", key: "variant",
+        units: { kind: "listing" }, input: paintingVariantInput },
+    // 伤害类型标签：每个标签包含哪些伤害类型（集合语义）。纯数据查表。
+    { name: "damage_type_tags", probe: "damage_type_tags", oracle: "DamageTypeTagsOracle", key: "tag",
+        units: { kind: "listing" }, input: damageTypeTagsInput,
+        unorderedArrays: DAMAGE_TYPE_TAGS_UNORDERED },
+    // 附魔等级与代价曲线：最高等级 / 铁砧代价 / 每级的附魔台等级区间。
+    { name: "enchantment_cost", probe: "enchantment_cost", oracle: "EnchantmentCostOracle", key: "enchantment",
+        units: { kind: "listing" }, input: enchantmentCostInput },
+    // 附魔适用性：每个附魔能附到哪些物品上（集合语义）。
+    { name: "enchantment_applicability", probe: "enchantment_applicability", oracle: "EnchantmentApplicabilityOracle",
+        key: "enchantment", units: { kind: "listing" }, input: enchantmentApplicabilityInput,
+        unorderedArrays: ENCHANTMENT_APPLICABILITY_UNORDERED },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

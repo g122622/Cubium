@@ -33,6 +33,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/blocks/redstone/RedstoneTorchBlock.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -260,6 +261,20 @@ void RedstoneWallTorchBlock::_updateState(IWorld& world, const BlockPos& pos, co
         // 调度更新（使用2 tick延迟）
         world.tickManager().scheduleBlockTick(pos, *this, 2, world::tick::TickPriority::ExtremelyHigh);
     }
+}
+
+bool RedstoneWallTorchBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 原版 WallTorchBlock#canSurvive：附着方块朝向火把的那一面必须坚固。
+    // 墙上火把的 FACING 就是它朝外的方向，因此附着方向是 FACING 的反向。
+    const Direction attach = Directions::opposite(getFacing(state));
+    const BlockPos supportPos = pos.offset(attach);
+    const BlockState* support = world.getBlockState(supportPos);
+    if (support == nullptr) {
+        return false;
+    }
+    return support->isFaceSturdy(
+        static_cast<IWorld&>(world), supportPos, Directions::opposite(attach), SupportType::Full);
 }
 
 } // namespace blocks

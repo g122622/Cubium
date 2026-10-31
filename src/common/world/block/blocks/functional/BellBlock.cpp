@@ -44,6 +44,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -260,7 +261,7 @@ BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
     // 参考: net.minecraft.world.level.block.BellBlock#getStateForPlacement
     // 与 MC 1.21.11 一致：
     // - Y 轴点击：FLOOR（顶面）或 CEILING（底面），通过 canSurvive 判定
-    //   canSurvive 中 CEILING 走 Block.canSupportCenter(world, pos.above(), DOWN) 中心支撑判定
+    //   canSurvive 中 CEILING 走 Block.canSupportCenter(world, pos.up(), DOWN) 中心支撑判定
     //   FLOOR 与 WALL 走 FaceAttachedHorizontalDirectionalBlock.canAttach（基于 isFaceSturdy(FULL)）
     // - 侧面点击：优先双面墙，回退到单面墙；若仍不可存活则尝试 FLOOR，再回退 CEILING
     const Direction clickedFace = context.getClickedFace();
@@ -279,7 +280,7 @@ BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
                                .with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection());
         // canSurvive 判定：
         // - FLOOR: canAttach(world, pos, DOWN) = isFaceSturdy(world, pos.below(), UP, FULL)
-        // - CEILING: canSupportCenter(world, pos.above(), DOWN)
+        // - CEILING: canSupportCenter(world, pos.up(), DOWN)
         const BlockPos supportPos = clickedPos.offset(isFloor ? Direction::Down : Direction::Up);
         const Direction supportDir = isFloor ? Direction::Up : Direction::Down;
         const bool canSurvive = isFloor ? Block::hasEnoughSolidSide(world, supportPos, supportDir)
@@ -580,6 +581,36 @@ bool BellBlock::_isProperHit(const BlockState& state, Direction direction, f64 h
         default:
             return false;
     }
+}
+
+bool BellBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 对应原版 BellBlock#canSurvive：
+    //   Direction dir = getConnectedDirection(state).getOpposite();
+    //   dir == UP ? Block.canSupportCenter(world, pos.up(), DOWN)
+    //            : FaceAttachedHorizontalDirectionalBlock.canAttach(world, pos, dir);
+    // 其中 getConnectedDirection：FLOOR→UP、CEILING→DOWN，其余取 FACING 的相反方向。
+    const auto attachment = state.get(BlockStateProperties::BELL_ATTACHMENT());
+    Direction connected = Direction::Up;
+    if (attachment == BlockStateProperties::BellAttachment::Ceiling) {
+        connected = Direction::Down;
+    } else if (attachment != BlockStateProperties::BellAttachment::Floor) {
+        connected = Directions::opposite(state.get(BlockStateProperties::HORIZONTAL_FACING()));
+    }
+
+    const Direction attach = Directions::opposite(connected);
+    if (attach == Direction::Up) {
+        return Block::canSupportCenter(world, pos.up(), Direction::Down);
+    }
+
+    // canAttach：附着方块的、朝向钟的那一面是否坚固。
+    const BlockPos supportPos = pos.offset(attach);
+    const BlockState* support = world.getBlockState(supportPos);
+    if (support == nullptr) {
+        return false;
+    }
+    return support->isFaceSturdy(
+        static_cast<IWorld&>(world), supportPos, Directions::opposite(attach), SupportType::Full);
 }
 
 } // namespace blocks

@@ -161,6 +161,10 @@ public:
             }
         }
         // AND 和 NOT 操作暂不实现（需要更复杂的几何运算）
+        // TODO: 补全 CombineOp::AND / CombineOp::NOT。当前传这两个值会**静默返回空形状**，
+        // 调用方拿到的碰撞箱为零，既不报错也没有任何提示。原版 Shapes.join(a, b, op) 的
+        // ONLY_FIRST(即 a-b) 与 AND 在多处方块形状中被使用（例如漏斗顶部环形、
+        // Sculk/GlowLichen 的面组合），Cubium 现在只能用多个并集手工拼出等价形状。
 
         return result;
     }

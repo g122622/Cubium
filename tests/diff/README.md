@@ -358,7 +358,15 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `experience` | 原版 jar `ExperienceOracle` | 440 个操作序列（公式阶梯 / 单次加点 / 扣点 / 加减等级 / 随机） | 全部一致 | — |
 | `potion` | 原版 jar `PotionOracle` | 46 种药水（基础名 / 效果列表 / 瞬时效果 / 三种前缀翻译键） | 全部一致 | — |
 | `potion_brewing` | 原版 jar `PotionBrewingOracle` | 874（46 种药水 × 19 种试剂） | 全部一致 | — |
-| `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文 | 部分（见「已知缺口」） |
+| `block_support` | 原版 jar `BlockSupportOracle` | 1166 个方块 × 23 种底座 | 见下文（218 → 75 处） | 部分（见「已知缺口」） |
+| `food_properties` | 原版 jar `FoodPropertiesOracle` | 44 种带食物的物品 | 全部一致 | — |
+| `entity_type_tags` | 原版 jar `EntityTypeTagsOracle` | 46 个实体类型标签 | 全部一致 | — |
+| `jukebox_song` | 原版 jar `JukeboxSongOracle` | 21 首唱片机歌曲 | 全部一致 | — |
+| `enchantment_tags` | 原版 jar `EnchantmentTagsOracle` | 22 个附魔标签 | 全部一致 | — |
+| `painting_variant` | 原版 jar `PaintingVariantOracle` | 51 种画变体 | 全部一致 | — |
+| `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
+| `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
+| `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 见下文（28 处） | 部分（见「已知缺口」） |
 | `item_component_nbt` | 原版 jar `ItemComponentNbtOracle` | 1124 物品 × 3 变体（plain / suite / removed） | 3372/3372 一致 | 381 个物品未注册（方块物品，同 `known_missing_items.ts`） |
 | `stack_codec` | 原版 jar `StackCodecOracle` | 3021 单元（1124 物品 × base / suite + 11 个数量与坏数据场景） | 2256/2259 一致；3 处已登记的已知差异 | 见下文 |
 | `loot_function` | 原版 jar `LootFunctionOracle` | 41 个单函数场景（随机值域 / 时运加成 / 截断 / 伤害 / 附魔 / 组件 / 组合） | 全部一致 | 见下文 |
@@ -1080,6 +1088,288 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 （碰撞盒体积 ≥ 0.729 或 Y ≥ 1.0），Cubium 靠注册时手写 `notSolid()`（全项目 234 处）。
 玻璃、树叶、冰这类「有整格碰撞却被标成非固体」的方块因此与原版不一致。修它要动全部
 234 个调用点，属于独立议题。TODO: 对齐 `calculateSolid` 后把玻璃/树叶/冰加回底座清单。
+
+### 第二轮：把 218 处差异压到 85
+
+第一轮修完之后，差异的分布指向一个更具体的病灶——**`isSolidSide` 与 `isFaceSturdy`
+被混用**。前者只判「是固体且有碰撞」，后者判「这一面在形状上铺满整格」。原版里需要
+「面坚固」的地方几乎都用后者，Cubium 却常常用前者，于是任何侧面不满的方块
+（箱子、漏斗）在所有方向上都被当成坚固。
+
+这一轮修掉的六处：
+
+- **箱子**：注册时带 `notSolid()`，但原版箱子的 `legacySolid` 为 true（forceSolidOn），
+  它能撑住站立告示牌。去掉多余的 `notSolid()`；
+- **红石火把 / 墙上红石火把 / 拉杆 / 钟**：都没有 `isValidPosition`，能悬浮在空中。
+  按原版 `BaseTorchBlock`、`WallTorchBlock`、`FaceAttachedHorizontalDirectionalBlock`、
+  `BellBlock` 的对应实现补上；
+- **门**：下半部分支撑判定用 `isSolidSide(UP)`，原版是 `isFaceSturdy(UP)`；
+- **珊瑚 / 珊瑚扇 / 墙上海扇**：三处 `canAttachTo` 都用了 `isSolidSide`，原版是
+  `isFaceSturdy(FULL)`；
+- **漏斗形状**：这是本轮最隐蔽的一处。原版顶部是
+  `Shapes.join(column(16,10,16) ∪ column(8,4,10), column(12,11,16), ONLY_FIRST)`，
+  `ONLY_FIRST` 即「a 减 b」，所以顶部不是实心 16×16，而是**外框 16×16、中间挖空
+  12×12 的环形**。Cubium 写成了实心全宽，于是上表面被当成完整面——凡是「下方需坚固」
+  的方块（门、蜡烛、花、海龟蛋）都能悬在漏斗上。单这一项贡献了 108 处误判。
+
+顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
+既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 附魔适用性：枚举归纳 vs 标签判定，28 个附魔对不上
+
+`enchantment_applicability` 对每个附魔逐个物品问「能不能附上去」，比的是**最终物品集合**。
+43 个附魔里 **28 个与原版不符**——这是目前发现的最大一处系统性偏差。
+
+根因在表示方式：原版直接读数据包的 `supported_items` 物品标签引用（如
+`#minecraft:enchantable/sharp_weapon`）；Cubium 的附魔定义是硬编码的，没有这个字段，
+改用 `EnchantmentType` 枚举**归纳**原版标签，再由 `canApplyToItem` 按物品类型判定。
+
+差异分四类：
+
+| 模式 | 附魔 | 规模 | 根因 |
+|---|---|---|---|
+| 过度宽泛 | `binding_curse`、`vanishing_curse`、`mending`、`unbreaking` | 仅 Cubium 有 1000+ | `EnchantmentType::All` 直接 `return true` |
+| 漏掉武器 | `sharpness`、`smite`、`bane_of_arthropods`、`fire_aspect`、`knockback`、`looting` | 仅原版有 ~14-22 | `Weapon` 只认剑与三叉戟，不认斧、矛 |
+| 护甲细分未落实 | `aqua_affinity`、`respiration`（应限头盔）；`depth_strider`、`frost_walker`、`soul_speed`、`swift_sneak`（应限靴子） | 仅 Cubium 有 ~22-23 | 统一按「是护甲」放行 |
+| 少量偏差 | `breach`、`density`、`wind_burst`、`efficiency`、四种保护 | 各 1 | 个别物品判定 |
+
+前两类的玩法后果很直观：
+
+- **给任意物品都能附耐久/经验修补/诅咒**——包括泥土、空气、刷怪蛋。原版里这些只能附在
+  可损坏物品上。
+- **斧子附不了锋利**。原版 `#enchantable/melee_weapon` 含斧与矛，Cubium 的 `Weapon`
+  类型只匹配剑和三叉戟。
+
+修这一类需要把 `EnchantmentType` 枚举换成真实的 `supported_items` 物品标签引用，
+是附魔系统的结构性改动，会波及附魔台、铁砧、交易、战利品等所有调用方。
+
+TODO: 按上表四类逐步替换 `canApplyToItem` 的类型判定为标签判定。优先级：先修
+`EnchantmentType::All` 的兜底（影响面最大），再补武器类，最后处理护甲细分。
+
+### 附魔代价曲线：43 个附魔逐级比对，全对
+
+`enchantment_cost` 比较 43 个附魔的最大等级、铁砧代价，以及**每一级**的附魔台等级
+区间（`minCost` / `maxCost`）。一次通过 **43/43**。
+
+这条曲线来自数据包的 `min_cost` / `max_cost`：
+
+```json
+"min_cost": { "base": 1,  "per_level_above_first": 11 }
+```
+
+即第 L 级（从 1 起）的代价是 `base + per_level_above_first * (L - 1)`。Cubium 的
+`Enchantment::getMinCost(level)` / `getMaxCost(level)` 与之逐级吻合，包括
+`sharpness` 这种 5 级附魔的完整 5 个采样点。
+
+附魔台"刷不刷得出"、铁砧"能不能合"全由这几个数决定，写错一处就会让某些附魔在特定
+等级下永远刷不出来——而且不会报错。此前没有任何自动化覆盖。
+
+比对时**按等级顺序**取值（数组有序，不能声明为无序）：代价曲线的形状本身就是要验证
+的东西，排序会把它抹平。
+
+### 伤害类型标签：一次「本来就对」的验证
+
+`damage_type_tags` 比较 33 个伤害类型标签各自包含哪些伤害类型，一次通过 **33/33**。
+
+这次的结论是「Cubium 本来就对」——`DamageTypeTags` 与 `DamageTypeTagLoader` 早就存在，
+加载流程也与 `EntityTypeTagLoader` 同构（`initialize()` 建对象、加载器填成员）。
+能力本身只做了两件事：把标签纳入差分校验范围，以及确认成员集合与数据包一致。
+
+值得记的是它的价值不在于「发现缺陷」，而在于**把一块原本没人验证的区域变成有护栏的**。
+这批标签几乎全是玩法开关：
+
+| 标签 | 影响 |
+|---|---|
+| `bypasses_armor` | 能否穿甲 |
+| `is_fall` | 落地保护、摔落靴判定 |
+| `burns_armor_stands` | 会不会烧掉装备架 |
+| `avoids_guardian_thorns` | 是否触发守卫者荆棘 |
+
+漏一个成员就有一类伤害行为走偏，而且不会有任何东西报错。之前它们没有任何自动化覆盖。
+
+顺带记一个 API 细节：原版 `TagKey` 用 `location()`，而 `ResourceKey` 用 `identifier()`，
+两者在同一个方法体里一起出现时很容易写混（这次就写错了一次，javac 直接报出来）。
+
+### 画变体：纯数据包注册表，加载路径踩了两个坑
+
+Cubium 原先完全没有画变体这一层（`painting_variant` 只在物品组件里作为一个类型枚举出现），
+画的尺寸、贴图、标题、作者全都无处可查。本能力为此新建了 `PaintingVariants` 注册表，
+从数据包 `painting_variant/` 读取全部 51 种，结果 **51/51 一致**。
+
+加载器本身不难，但踩了两个坑，都属于「路径拼错就静默零结果」：
+
+1. **`listResourceStacks` 的目录参数必须带命名空间前缀**。我一开始传的是
+   `"painting_variant"`，一个文件都列不到；正确写法是遍历
+   `getResourceNamespaces()`，对每个命名空间传 `"<ns>/painting_variant"`。
+   参考 `GenericTagLoader` 才发现的。
+
+2. **`ResourceVersion` 是结构体而非字符串**。它是
+   `{ packName, content }`，`nlohmann::json::parse` 不能直接吃它，要取
+   `.content`；多数据包叠加时优先级最高的是**末尾**那个（`versions.back()`，
+   与 `GenericTagLoader` 的 `rbegin()` 一致）。
+
+两个坑的共同表现都是「注册表为空 → 探针全部 missing → 51 处差异」，而不是报错。
+这类静默失败在差分能力里很容易被误读成「数据全错」。
+
+### 附魔标签：补上了一个结构性缺口
+
+`entity_type_tags` 那次是「探针漏了初始化」的假缺陷，`enchantment_tags` 这次则是**真的缺东西**：
+Cubium 原先只用 `Enchantment::isTreasure()` / `isCurse()` 两个硬编码虚函数表达标签语义，
+等于把数据包里的 22 个标签压成了 2 个开关。其余 20 个——附魔台能不能刷出
+（`in_enchanting_table`）、能不能交易（`tradeable`）、战利品与生物装备各自允许哪些、
+`exclusive_set/*` 的互斥组——都没有对应物。
+
+本能力为此新建了 `EnchantmentTags` 注册表，直接复用通用的两阶段加载器
+（`GenericTagLoader`），后者已经处理好了 `#` 引用的递归展开与循环依赖检测：
+
+```
+double_trade_price.json = { "values": ["#minecraft:treasure"] }
+```
+
+补完之后 **22/22 一致**，一个成员都没错。
+
+过程中确认了一件值得记的事：`exclusive_set/` 是**子目录**，第一次用
+`Get-ChildItem -Filter *.json` 只列了顶层 15 个文件，误以为全集就是 15 个。
+`GenericTagLoader` 是递归扫描的，那 7 个互斥组标签被自动发现并创建——
+这反过来验证了「加载器遇到未预注册的标签要按需 `registerTag`」这条改动是必要的：
+没有它，这 7 个标签即使文件在也永远是 `missing`。
+
+TODO: `tooltip_order` 的**顺序**语义当前没有承载（成员集是无序 set）。它决定提示框里
+附魔的排列次序，与其它标签的集合语义不同，若后续要用到需另存一份有序数组。
+
+### 唱片机歌曲：两处「比较口径」而非数据缺陷
+
+`jukebox_song` 比较 21 首歌的声音事件、描述翻译键、时长、比较器输出。首轮 21/21
+全差异，但**没有一处是数据错的**，全是比较口径没对齐：
+
+1. **描述该取翻译键而不是渲染结果**。我最初用 `Component.getString()`，它会把组件
+   解析成当前语言下的显示文本（`"C418 - 11"`），而 Cubium 存的是原始键
+   `jukebox_song.minecraft.11`。本能力比的是数据本身，不是渲染结果，改为取
+   `TranslatableContents.getKey()`。
+
+2. **`%g` 在两个语言里的尾零处理不同**。同一个 `178.0f`，C++ 的 `%.6g` 打成 `"178"`，
+   Java 的却打成 `"178.000"`。统一为「6 位有效数字再去掉尾随零」，即 Java
+   `Float.toString` 的口径。这个坑在 `food_properties` 里已经踩过一次，这里是同一个
+   问题换了个字段——凡是比较 f32 的地方都得留意。
+
+### 方块支撑：用「探针直接打印」代替几何推理
+
+`block_support` 从 218 处一路收敛，其中台阶侧面那 54 处卡了很久：我反复读源码推导
+`isFaceSturdy` 该不该为真，始终不得要领。转折点是**放弃推理、让探针把判定矩阵打出来**——
+把同一批方块摆到 `facing=north` 与 `facing=south` 两种台阶上，一眼就能看出是哪一侧判反了。
+
+这一步之后连查出两个独立的方位错误：
+
+- **楼梯形状方位整体错开**。`SHAPE_INDEX_MAP` 的 STRAIGHT 段是 `{12, 5, 3, 10}`，
+  而原版 `SHAPE_BOTTOM_STRAIGHT` 在 NORTH 下是北半侧。方位错开后北侧面只剩半格，
+  贴上去的墙火把、墙上海扇、墙面头颅全被判为无法存活。
+- **按钮附着方向反了**。`canSurvive` 是 `canAttach(world, pos, getConnectedDirection(state).getOpposite())`，
+  Cubium 少做一次取反，`facing=north` 的按钮去问了北边的方块，而它实际贴在南边。
+
+两处修完 75 → 61。值得记的是第二个错误**只有在第一个修好之后才浮出来**：台阶两侧
+坚固性不同，方向一反就对不上，而先前台阶形状本身就错，掩盖了它。
+
+### 已定位但未修的根因：VoxelShape 的坐标压缩方式与原版不同
+
+`block_support` 剩下的主要差异（箱子 42、下半砖 41、耕地 40、漏斗 39、地毯 38）
+指向同一个底层问题。
+
+原版 `VoxelShape` 的坐标集来自**形状实际用到的边界**并补上 padding：
+
+```
+箱子 column(14,0,14) 的 Y 坐标集 = [0, 0.875, 1.0]（尺寸 2）
+findIndex(Y, 0.9999999) -> 1
+SliceShape 取 [p_83179_, p_83179_+1] = [0.875, 1.0]
+```
+
+Cubium 的 `VoxelShape(std::shared_ptr<DiscreteVoxelShape>)` 把坐标点按 `i / size`
+**均匀分布**，同一个箱子得到 14 个 Y 层，`findIndex` 返回 13，切片变成第 13 层。
+
+层数不同导致 `getFaceShape` 取到的切片范围不同，进而 `SupportType.CENTER`
+（`Block.column(2.0, 0.0, 10.0)`）是否被完全包含的结论也不同。这解释了为什么灯笼、
+紫水晶簇这类「只需中心一小块坚固」的方块会在箱子、耕地、半砖上判错，而完整方块上正常。
+
+TODO: 让 `VoxelShape` 的坐标集改用「实际边界 + padding」而非均匀分布。这是
+`VoxelShape` 的根基改动，影响光照遮挡、形状布尔运算等所有使用方，需要独立评估与
+全量回归，不适合夹在差分能力的迭代里做。
+
+### 实体类型标签：一次「假缺陷」
+
+`entity_type_tags` 比较 46 个实体类型标签各自包含哪些实体。第二轮迭代后才全绿，中间
+那版曾得出一个**错误结论**，值得记下来。
+
+首版 14 处差异全部是「成员缺失」，缺了 13 个标签（`boat`、`can_equip_saddle`、
+`followable_friendly_mobs`、`illager_friends`、`non_controlling_rider`…），看起来
+就是 Cubium 少声明了一大批标签。我一度据此写下「补齐这 13 个标签」的 TODO。
+
+真正的根因在**探针自己身上**：它只调了 `EntityTypeTags::initialize()`，而这个函数
+只负责把内建的若干标签对象建出来；**成员集来自数据包文件**
+（`data/minecraft/tags/entity_type/*.json`）。服务端启动时 `RegistryBootstrap`
+会在 `initialize()` 之后接着调 `EntityTypeTagLoader`——探针漏了第二步。
+
+于是同一个现象有两层成因：
+
+- 数据包里的 46 个文件都在，但没被加载；
+- 即便加载，`resolveEntityTypeTagWithDependencies` 里是
+  `auto* tag = getTag(location); if (tag != nullptr) {...}`——**找不到就静默跳过**，
+  不会按需创建。这条在加载器里也补了（改为 `getTag` 空则 `registerTag`），
+  属于真实健壮性缺陷，但不是本次差异的主因。
+
+补上数据包加载后 46/46 一致，13 个标签一个不少。
+
+教训：**先确认探针和被测系统走的是同一条初始化路径**，再谈「被测系统有缺陷」。
+这条能力里，探针漏一步初始化就会凭空造出 13 个「缺陷」。
+
+另一个独立踩坑：全集**不能**用 oracle 的 `list` 枚举。原版
+`BuiltInRegistries.ENTITY_TYPE.getTags()` 在只 Bootstrap、未加载数据包时只返回 4 个
+内联标签，拿它当全集会让能力只覆盖那一小撮（表现为「4 个单元全部差异」）。
+本能力在 TS 侧显式列出原版的 46 个标签。
+
+### 食物属性：同一个量放在了两套字段语义里
+
+`food_properties` 比较 44 种食物物品的饥饿值、饱和度修正、能否饱腹后继续吃。全绿，
+但过程里踩了三个坑，都属于**比较口径**而非实现缺陷：
+
+1. **字段语义不同**。原版 `FoodProperties.saturation` 存的是**已经换算过的饱和值**
+   （1.21 组件化后直接写死乘积），Cubium 的 `Food::getSaturationModifier()` 存的是
+   **修正系数**，换算发生在 `FoodStats::addStats`（`food × modifier × 2`，与原版
+   `FoodConstants.saturationByModifier` 一致）。两侧「吃下去会怎样」完全相同，只是把
+   同一个量放在了不同字段里。在探针侧正算 `nutrition × modifier × 2` 会与两侧写死的
+   f32 常量差最后一个 ulp（`2.4f` vs `2.4000001f`），最终改为**直接比系数**。
+
+2. **f32 的打印精度**。同一个 `0.3f`，Java 经 Gson 输出 `0.3`，C++ 经 nlohmann 输出
+   `0.30000001192092896`。统一按 6 位有效数字输出。
+
+3. **`%.6g` 在两侧语义不同**。C++ 的 `%.6g` 把 0.3 打成 `"0.3"`，Java 的却打成
+   `"0.300000"`。统一为「6 位有效数字再去掉尾随零」，即 Java `Float.toString` 的口径。
+
+经验：**先确认两侧比较的是同一个量**，再谈数值相等。这三步里前两步如果没拆开排查，
+很容易误判成「Cubium 食物数据全错」。
+
+### 一个经验：先用「完整方块底座」把真实缺陷筛出来
+
+218 处差异里，只有 12 个方块在完整的固体底座上也出错，其余 188 个只在
+台阶、栅栏、漏斗、箱子这类「不能支撑」的底座上出错。这个切分很有用：它把
+**「判定算错」**与**「根本没实现判定」**分开了。前者要读逻辑，后者只要照原版补方法。
+
+### 第三轮：方向传反（85 → 75）
+
+珊瑚的 `canAttachTo(world, pos, direction)` 里，`direction` 是**从珊瑚指向底座**的
+方向（下方珊瑚传 `Down`）。但检查时直接把 `direction` 当成了「底座朝向珊瑚的面」，
+于是实际查的是底座的**下表面**。后果是上下半砖的结果完全颠倒：
+
+| 底座 | 原版 | 修复前 |
+|---|---|---|
+| `oak_slab[type=top]` | 撑得住（真） | 撑不住 |
+| `oak_slab[type=bottom]` | 撑不住 | 撑得住 |
+
+改成 `Directions::opposite(direction)` 后 85 → 75。这类「方向取反」的错很难靠读代码
+发现——两个方向都"看起来合理"，只有把上下半砖这种**镜像底座**摆进用例才暴露。
+
+剩余 75 处集中在台阶侧面（54）与箱子/漏斗（42/39，彼此有重叠）。已确认其中一部分是
+`CollisionShape::getFaceShape` 的问题：它对「触碰该面」的判定用 `maxCoord ≈ 1.0`，
+而原版会把触碰面的盒子**投影成满格**再判完整。台阶这类分段拼接的形状因此判错。
+TODO: 对齐 `getFaceShape` 的投影语义后继续收敛。
 
 ## 下一步候选能力
 

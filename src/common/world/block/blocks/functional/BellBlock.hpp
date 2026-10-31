@@ -99,6 +99,15 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 检查钟能否留在当前位置（原版 `BellBlock#canSurvive`）。
+     *
+     * 地板钟要求上方中心可支撑；其余（天花板、单/双面墙挂）要求附着面坚固。
+     * 此前没有覆写，钟能悬浮在空气中（由差分能力 block_support 查出）。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override

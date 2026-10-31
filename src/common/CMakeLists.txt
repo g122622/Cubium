@@ -75,6 +75,8 @@ add_library(mc_common STATIC
 
     # Entity Core
     entity/core/Entity.cpp
+    entity/decoration/PaintingVariant.cpp
+    entity/decoration/PaintingVariants.cpp
     entity/core/ConversionParams.cpp
     entity/utils/EntityUtils.cpp
     entity/utils/ItemDropHelper.cpp
@@ -720,6 +722,8 @@ add_library(mc_common STATIC
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp
+    item/enchantment/EnchantmentTag.cpp
+    item/enchantment/EnchantmentTags.cpp
     item/enchantment/EnchantmentRegistry.cpp
     item/enchantment/EnchantmentContainer.cpp
     item/enchantment/EnchantmentHelper.cpp
