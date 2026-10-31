@@ -891,9 +891,12 @@ i32 Block::getComparatorInputOverride(const BlockState& state, IWorld& world, co
 
 Material::PushReaction Block::getPushReaction(const BlockState& state) const
 {
-    // 默认实现：正常推动
+    // 原版 `BlockBehaviour#getPistonPushReaction` 返回方块登记时写下的 pushReaction；
+    // Cubium 把它登记在材质上（`Material::m_pushReaction`），这里必须读材质而不是恒返回 Normal。
+    // 恒返回 Normal 会让火把、树苗、铁轨等 `Destroy` 类方块被活塞「推着走」而不是被破坏
+    // （由差分能力 piston_movement 查出）。
     (void)state;
-    return Material::PushReaction::Normal;
+    return material().getPushReaction();
 }
 
 // ============================================================================

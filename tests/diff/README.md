@@ -349,6 +349,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `villager_price` | 原版 jar `VillagerTradesOracle` | 1137（基础代价 × 需求 × 乘数 × 特殊价格） | 全部一致 | — |
 | `villager_restock` | 原版 jar `VillagerTradesOracle` | 600（单条交易 + 多条交易） | 全部一致 | — |
 | `villager_gen` | 原版 jar `VillagerTradesOracle` | 390（13 职业 × 5 等级 × 6 种子） | 355/390 一致；35 个附魔内容差异已登记 | 见下方「村民交易：已查出的问题」 |
+| `piston_movement` | 原版 jar `PistonMovementOracle` | 523 个场景（链条 / 粘性分支 / 随机混合台 / 收回） | 全部一致 | — |
 
 第一次跑通就查出并修掉的实打实的错误（都是手抄数据/公式出错）：
 
@@ -869,6 +870,29 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
   重新导出（不带 `--write` 只打印，便于 diff；带 `--write` 只改数据段，注释与
   `RUNTIME_DIVERGENT` 原样保留）。`RUNTIME_DIVERGENT` 与实现缺口清单里的静态条目在
   oracle 侧没有输出，导出时沿用旧值。
+
+### 活塞推动结构：一次推动的纯计算
+
+`piston_movement` 覆盖的是**一次推动的结构求解**：给定一小块方块台、活塞位置、朝向与是否伸出，
+比较「能否推动」「移动链」「破坏链」。它调用 Cubium 的 `PistonStructureHelper`（只读世界）与原版
+`PistonStructureResolver`，两侧读同一份方块描述字符串。
+
+逐刻动画（`MovingPistonBlock` 推进、方块实体 tick、收回阶段）必须真实驱动世界，属于 world 型
+能力，当前不可行，仍由 `block_behavior` 的 GameTest 覆盖。判据见 skill `mc-add-diff-test` 的
+「world 型能力当前不可行」一节。
+
+首轮 523 个场景中有 61 处差异，全部指向同一类问题——**方块的「推动反应」（pushReaction）没被读取**：
+
+- **`Block::getPushReaction` 恒返回 `Normal`**：Cubium 把 pushReaction 登记在材质上
+  （`Material::m_pushReaction`），但基类实现直接 `return Normal`，从不读材质。于是火把、树苗、
+  铁轨等原版登记为 `DESTROY` 的方块，被活塞推着走而不是被破坏；
+- **`Material::REPLACEABLE_PLANT` 漏登记 `Destroy`**：修好基类读取后，植物类材质本身的值仍是
+  默认 `Normal`，树苗继续被推动；
+- **水/岩浆登记成 `Block`**：原版流体是 `DESTROY`，活塞推到水应当把它破坏掉；登记成 `Block`
+  会让活塞被水完全挡住。
+
+三处修好后 523/523 全部一致。这个例子说明：**手写的材质表里漏一个字段，不会有任何编译期提示，
+只会让游戏安静地按错误规则运行**。
 
 ## 下一步候选能力
 

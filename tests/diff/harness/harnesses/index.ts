@@ -58,6 +58,7 @@ import {
 } from "./known_missing_commands.ts";
 import { itemSummaryReference, itemSummaryUnits } from "./item_summary.ts";
 import { PATH_SCENES, pathFinderInput, pathSceneNames, walkPathTypeInput } from "./path_scenes.ts";
+import { pistonMovementInput, pistonSceneNames } from "./piston_movement.ts";
 import { recipeDeclaration } from "./recipe.ts";
 import { spawnPlacementInput } from "./spawn_placement.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
@@ -472,6 +473,12 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         units: { kind: "computed", units: pathSceneNames },
         input: (unit) => pathFinderInput(unit),
         exclusiveGroup: "path-world" },
+    // 活塞推动结构：一次推动的可推动性、移动链与破坏链。
+    // 这是**纯计算**能力——结构求解只读世界、不推进刻度（逐刻动画属于 world 型，见 skill
+    // `mc-add-diff-test`）。场景由 piston_movement.ts 用固定种子生成，两侧消费同一份输入。
+    { name: "piston_movement", probe: "piston_movement", oracle: "PistonMovementOracle", key: "unit",
+        units: { kind: "computed", units: pistonSceneNames },
+        input: pistonMovementInput },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

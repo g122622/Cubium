@@ -133,17 +133,27 @@ Material makePlantMaterial()
 
 Material makeReplaceablePlantMaterial()
 {
-    return MaterialBuilder().solid(false).flammable().replaceable().blocksMovement(false).build();
+    // 植物类方块（树苗、花、蘑菇……）在原版登记为 pushReaction=DESTROY：活塞推到时
+    // 直接破坏而不是被推着走。
+    return MaterialBuilder()
+        .solid(false)
+        .flammable()
+        .replaceable()
+        .blocksMovement(false)
+        .pushReaction(Material::PushReaction::Destroy)
+        .build();
 }
 
 Material makeWaterMaterial()
 {
-    return MaterialBuilder().liquid().replaceable().pushReaction(Material::PushReaction::Block).build();
+    // 原版流体登记为 pushReaction=DESTROY：活塞推到水/岩浆时把它破坏掉，而不是被挡住。
+    // 差分为此给出 `canMove=true, toDestroy=[活塞前方格]`（由 piston_movement 查出）。
+    return MaterialBuilder().liquid().replaceable().pushReaction(Material::PushReaction::Destroy).build();
 }
 
 Material makeLavaMaterial()
 {
-    return MaterialBuilder().liquid().replaceable().pushReaction(Material::PushReaction::Block).build();
+    return MaterialBuilder().liquid().replaceable().pushReaction(Material::PushReaction::Destroy).build();
 }
 
 Material makeLeavesMaterial()
