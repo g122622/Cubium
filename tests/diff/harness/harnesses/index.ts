@@ -79,6 +79,7 @@ import { explosionSeenGridInput } from "./explosion_seen_grid.ts";
 import { entityDimensionsInput } from "./entity_dimensions.ts";
 import { mobEffectMergeInput } from "./mob_effect_merge.ts";
 import { foodStatsInput } from "./food_stats.ts";
+import { foodTickInput } from "./food_tick.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -632,6 +633,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 饥饿值与饱和度：两次 clamp 的顺序、下界钳制、exhaustion 上限，纯计算。
     { name: "food_stats", probe: "food_stats", oracle: "FoodStatsOracle",
         key: "unit", units: { kind: "listing" }, input: foodStatsInput },
+    // 饥饿值每 tick 状态机：exhaustion 消耗 + 快/慢再生 + 饥饿伤害四个互斥分支，纯计算。
+    { name: "food_tick", probe: "food_tick", oracle: "FoodTickOracle",
+        key: "unit", units: { kind: "listing" }, input: foodTickInput },
+
 
 
 

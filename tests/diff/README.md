@@ -383,6 +383,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `entity_dimensions` | 原版 jar `EntityDimensionsOracle` | 12 种尺寸 × 位置组合 | 全部一致 | 纯计算，Cubium 无此类（见下文） |
 | `mob_effect_merge` | 原版 jar `MobEffectMergeOracle` | 16 种叠加组合 | 全部一致 | 纯计算，Cubium 无 `update()`（见下文） |
 | `food_stats` | 原版 jar `FoodStatsOracle` | 20 种变化组合 | 全部一致 | 纯计算，暴露一处下界钳制差异（见下文） |
+| `food_tick` | 原版 jar `FoodTickOracle` | 21 种状态 × 难度组合 | 全部一致 | 纯计算，四个互斥分支（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1174,6 +1175,50 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 新能力 food_tick：四个互斥分支与两个阈值
+
+第 78 个能力，21 种「状态 × 难度」组合全部一致。上一轮的 `food_stats` 覆盖了
+`add`/`eat`/`addExhaustion`，本能力补上 `FoodData.tick` 的状态机。
+
+#### 分支结构
+
+```
+1) exhaustionLevel > 4.0F  ->  -=4.0F，然后扣饱和（有）或扣饥饿（无饱和且非 PEACEFUL）
+2) regen && sat>0 && hurt && food>=20  -> 每 10 tick 回 min(sat,6)/6 点，加等量 exhaustion
+3) regen && food>=18 && hurt           -> 每 80 tick 回 1 点，加 6 exhaustion
+4) food<=0                             -> 每 80 tick 判定一次是否造成 1 点饥饿伤害
+5) 以上都不满足                        -> tickTimer 归零
+```
+
+三个容易写错的地方：
+
+**1. exhaustion 消耗在所有分支之前，且只判定一次。** 它不是 `while` 循环——即使
+`exhaustionLevel` 是 100，一次 tick 也只减 4。
+
+**2. 饥饿伤害是否真的扣血取决于生命值与难度的组合**：
+
+```java
+health > 10.0F || difficulty == HARD || (health > 1.0F && difficulty == NORMAL)
+```
+
+实测对照：生命 1 + NORMAL 得 `damage=0`，生命 1 + HARD 得 `damage=1`。这个组合条件
+写成「生命低于某值就扣血」会全错。
+
+**3. 默认分支会把 tickTimer 归零。** 条件不满足时计时器**不保留**——这意味着再生
+条件一旦中断，之前的累积就白费。实测 `15|2|0|50` 输入得到 `tickTimer=0`。
+
+#### 一个跨分支的时序陷阱
+
+快再生的 `addExhaustion(min(sat, 6))` 会立刻抬高 exhaustion，**下一次 tick** 就可能
+触发最上面的消耗分支，从而把饱和扣掉。也就是说「回血」与「扣饱和」在连续两个 tick
+里是联动的。场景表最后一条（`20|8|3|9`）就是压这种同一 tick 内多分支叠加的情形。
+
+#### 为什么用复算而不是直接调用原版
+
+`FoodData.tick` 需要真实的 `ServerPlayer`（读难度、游戏规则、受伤状态、生命值，并调用
+`heal`/`hurtServer`），而 `exhaustionLevel` 只有私有字段没有公开写访问器。因此 oracle
+按原版方法体逐行复算，把玩家侧的可变因素作为输入显式传入。
 
 ### 新能力 food_stats：一处下界钳制差异，与一次被源码纠正的误判
 
