@@ -164,6 +164,7 @@ import { plainTextContentsInput } from "./plain_text_contents.ts";
 import { mthAbsMaxInput } from "./mth_absmax.ts";
 import { displaySlotInput } from "./display_slot.ts";
 import { objectiveCriteriaInput } from "./objective_criteria.ts";
+import { teamRuleInput } from "./team_rule.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1074,6 +1075,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 计分判据：camelCase 名、EXPERIENCE 叫 xp、只有血量用 hearts。
     { name: "objective_criteria", probe: "objective_criteria", oracle: "ObjectiveCriteriaOracle",
         key: "unit", units: { kind: "listing" }, input: objectiveCriteriaInput },
+    // 队伍规则：序列化名混合全小写与驼峰、两个枚举翻译键前缀不同。
+    { name: "team_rule", probe: "team_rule", oracle: "TeamRuleOracle",
+        key: "unit", units: { kind: "listing" }, input: teamRuleInput },
+
 
 
 
