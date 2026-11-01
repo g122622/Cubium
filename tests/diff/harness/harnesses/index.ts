@@ -134,6 +134,7 @@ import { fluidHeightInput } from "./fluid_height.ts";
 import { mthInverseLerpInput } from "./mth_inverse_lerp.ts";
 import { mthAngleLerpInput } from "./mth_angle_lerp.ts";
 import { mthWaveformInput } from "./mth_waveform.ts";
+import { mthHsvInput } from "./mth_hsv.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -950,6 +951,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 波形与缓动：triangleWave 负输入越界、smoothstep 不 clamp。
     { name: "mth_waveform", probe: "mth_waveform", oracle: "MthWaveformOracle",
         key: "unit", units: { kind: "listing" }, input: mthWaveformInput },
+    // HSV 转换：hue=1.0 回绕到红色、分量截断不四舍五入、alpha 恒 0。
+    { name: "mth_hsv", probe: "mth_hsv", oracle: "MthHsvOracle",
+        key: "unit", units: { kind: "listing" }, input: mthHsvInput },
+
 
 
 
