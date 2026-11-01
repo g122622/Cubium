@@ -526,3 +526,43 @@ case "ownHeight" -> amount / (float) FluidState.AMOUNT_MAX;   // 分母取自原
 
 **规则**：当被验证的公式产出 `float`（而非 `double`）时，格式化位数必须足以区分 `float` 与
 `double` 的差异——`%.9g` 是安全的，`%.6g` 不够。
+## 二十二、`EnumCodec.byName` 有三个重载，反序列化失败行为必须看字节码
+
+`StringRepresentable.EnumCodec` 提供三个同名的 `byName`：
+
+```java
+public E byName(String);                              // 未知 → null
+public E byName(String, E fallback);                  // 未知 → fallback
+public E byName(String, Supplier<? extends E>);       // 未知 → supplier.get()
+```
+
+**两个相邻的枚举可能用不同的重载，结论完全相反。**
+
+| 枚举 | 原版代码 | 未知输入 |
+|---|---|---|
+| `Team.Visibility` | `CODEC.byName(input)` | **`null`** |
+| `ObjectiveCriteria.RenderType` | `CODEC.byName(input, INTEGER)` | **`INTEGER`** |
+
+### 必须反编译确认
+
+```powershell
+javap -cp <jar> -p -c 'net.minecraft.world.scores.criteria.ObjectiveCriteria$RenderType'
+```
+
+```
+  3: aload_0             // input
+  4: getstatic     #64   // Field INTEGER      ← 第二个参数，说明是双参数重载
+  7: invokevirtual #68   // EnumCodec.byName:(Ljava/lang/String;Ljava/lang/Enum;)Ljava/lang/Enum;
+```
+
+**方法名 `byId` / `byName` 完全不提示用的是哪个重载。**
+
+### 实际踩过的坑
+
+- [`team_rule_strings`](./team_rule_strings.md)：发现 Cubium 的 `fromString` 未知输入回退 `Always`，
+  判定为缺陷并改为严格解析——**这是对的**（原版用单参数重载返回 `null`）。
+- [`render_type_strings`](./render_type_strings.md)：最初照搬上一轮结论，假设未知输入应返回 `null`，
+  探针调用严格解析，产生 **5 处假差异**。反编译后才发现原版用的是双参数重载，**Cubium 的宽松入口才是对的**。
+
+**教训：不能把「未知输入应返回 null」当作全局规律推广到所有枚举。**
+每个枚举都必须独立核对原版实际调用的重载。

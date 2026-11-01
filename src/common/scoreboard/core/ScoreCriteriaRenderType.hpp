@@ -55,17 +55,36 @@ enum class RenderType : u8 {
 }
 
 /**
- * @brief 从字符串解析 RenderType
+ * @brief 严格解析 RenderType（对应原版 ObjectiveCriteria.RenderType.byId）
+ *
+ * 与原版 `CODEC.byName` 语义一致：未知输入返回 std::nullopt，**不回退**。
+ * 存档读取等需要「显式拒绝/保留原值」的场景应使用本函数。
+ *
+ * @param str 字符串表示
+ * @return 解析成功返回枚举值，失败返回 std::nullopt
+ */
+[[nodiscard]] inline std::optional<RenderType> renderTypeParse(const std::string& str) noexcept
+{
+    if (str == "integer") {
+        return RenderType::Integer;
+    }
+    if (str == "hearts") {
+        return RenderType::Hearts;
+    }
+    return std::nullopt;
+}
+
+/**
+ * @brief 从字符串解析 RenderType（宽松入口）
+ *
+ * **未知输入回退到 Integer**——调用方若需要拒绝非法输入，请改用 renderTypeParse。
  *
  * @param str 字符串表示
  * @return 渲染类型枚举值，解析失败返回 Integer
  */
 [[nodiscard]] inline RenderType renderTypeFromString(const std::string& str) noexcept
 {
-    if (str == "hearts") {
-        return RenderType::Hearts;
-    }
-    return RenderType::Integer;
+    return renderTypeParse(str).value_or(RenderType::Integer);
 }
 
 /**

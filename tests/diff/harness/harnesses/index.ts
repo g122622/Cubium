@@ -173,6 +173,7 @@ import { textFormattingColorInput } from "./text_formatting_color.ts";
 import { textFormattingNameInput } from "./text_formatting_name.ts";
 import { styleTristateInput } from "./style_tristate.ts";
 import { teamRuleStringsInput } from "./team_rule_strings.ts";
+import { renderTypeStringsInput } from "./render_type_strings.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1112,6 +1113,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 队伍规则字符串：**探针对接 Cubium 的 teamVisibilityToString 等**。
     { name: "team_rule_strings", probe: "team_rule_strings", oracle: "TeamRuleStringsOracle",
         key: "unit", units: { kind: "listing" }, input: teamRuleStringsInput },
+    // 渲染类型字符串：**探针对接 Cubium 的 renderTypeParse**。
+    { name: "render_type_strings", probe: "render_type_strings", oracle: "RenderTypeStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: renderTypeStringsInput },
+
 
 
 
