@@ -175,6 +175,7 @@ import { styleTristateInput } from "./style_tristate.ts";
 import { teamRuleStringsInput } from "./team_rule_strings.ts";
 import { renderTypeStringsInput } from "./render_type_strings.ts";
 import { uuidStringsInput } from "./uuid_strings.ts";
+import { gameTypeInput } from "./game_type.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1140,6 +1141,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
 
 
 
+
+    // 游戏模式：**探针对接 Cubium 的 GameMode 枚举**。
+    { name: "game_type", probe: "game_type", oracle: "GameTypeOracle",
+        key: "unit", units: { kind: "listing" }, input: gameTypeInput },
 
 
 
