@@ -149,6 +149,7 @@ import { blockPosIterateInput } from "./blockpos_iterate.ts";
 import { blockPosSpiralInput } from "./blockpos_spiral.ts";
 import { aabbFactoryInput } from "./aabb_factory.ts";
 import { frontAndTopInput } from "./front_and_top.ts";
+import { structureOrientInput } from "./structure_orient.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1014,6 +1015,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // FrontAndTop：构造函数参数是 (name, front, top)，36 种组合只有 12 种合法。
     { name: "front_and_top", probe: "front_and_top", oracle: "FrontAndTopOracle",
         key: "unit", units: { kind: "listing" }, input: frontAndTopInput },
+    // 结构朝向：UP/DOWN 走 default 分支（同 SOUTH）、WEST/EAST 交换 X 与 Z 的角色。
+    { name: "structure_orient", probe: "structure_orient", oracle: "StructureOrientOracle",
+        key: "unit", units: { kind: "listing" }, input: structureOrientInput },
+
 
 
 
