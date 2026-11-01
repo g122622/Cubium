@@ -119,6 +119,7 @@ import { enchantmentCompatInput, listEnchantmentCompatUnits } from "./enchantmen
 import { sectionPosInput } from "./section_pos.ts";
 import { levelHeightInput } from "./level_height.ts";
 import { chunkPosInput } from "./chunk_pos.ts";
+import { mthClampInput } from "./mth_clamp.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -890,6 +891,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 区块坐标：32 位无符号拼接、区域 32 区块、Z 先异或魔数，纯计算。
     { name: "chunk_pos", probe: "chunk_pos", oracle: "ChunkPosOracle",
         key: "unit", units: { kind: "listing" }, input: chunkPosInput },
+    // Mth 钳制族：浮点 clamp 用 < 而非 Math.max、短路上下界，纯计算。
+    { name: "mth_clamp", probe: "mth_clamp", oracle: "MthClampOracle",
+        key: "unit", units: { kind: "listing" }, input: mthClampInput },
+
 
 
 
