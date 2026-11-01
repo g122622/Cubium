@@ -104,6 +104,7 @@ import { mthSinInput } from "./mth_sin.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
+import { enchantmentStorageInput } from "./enchantment_storage.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -830,6 +831,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // BlockPos 距离与包围盒迭代：distManhattan 用 float 累加、迭代 X 最内层，纯计算。
     { name: "blockpos_dist", probe: "blockpos_dist", oracle: "BlockPosDistOracle",
         key: "unit", units: { kind: "listing" }, input: blockposDistInput },
+    // 附魔存储：set 对 <=0 删除、upgrade 对 <=0 不做事，两者相反，纯计算。
+    { name: "enchantment_storage", probe: "enchantment_storage", oracle: "EnchantmentStorageOracle",
+        key: "unit", units: { kind: "listing" }, input: enchantmentStorageInput },
+
 
 
 
