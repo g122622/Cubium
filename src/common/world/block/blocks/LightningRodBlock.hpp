@@ -111,12 +111,6 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     // ========== 旋转和镜像 ==========
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;

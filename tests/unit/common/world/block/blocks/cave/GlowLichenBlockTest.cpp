@@ -508,14 +508,13 @@ TEST_F(GlowLichenBlockTest, IsWaterlogged_WhenSetTrue)
 // useShapeForLightOcclusion 测试
 // ============================================================================
 
-TEST_F(GlowLichenBlockTest, UseShapeForLightOcclusion_AlwaysTrue)
+TEST_F(GlowLichenBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
+    // 原版 1.21.11 的 glow_lichen 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
     const BlockState& state = block_->defaultState();
-    EXPECT_TRUE(block_->useShapeForLightOcclusion(state));
-
-    auto stateWithFaces =
-        block_->defaultState().with(BlockStateProperties::NORTH(), true).with(BlockStateProperties::UP(), true);
-    EXPECT_TRUE(block_->useShapeForLightOcclusion(stateWithFaces));
+    EXPECT_FALSE(block_->useShapeForLightOcclusion(state));
 }
 
 // ============================================================================

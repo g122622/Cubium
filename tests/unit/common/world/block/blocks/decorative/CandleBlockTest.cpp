@@ -540,11 +540,13 @@ TEST_F(CandleBlockTest, IsOpaque_ReturnsFalse)
     EXPECT_FALSE(candle_->isOpaque(state));
 }
 
-TEST_F(CandleBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+TEST_F(CandleBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
-    // 蜡烛使用形状来遮挡光线
+    // 原版 1.21.11 的 candle 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
     const BlockState& state = candle_->defaultState();
-    EXPECT_TRUE(candle_->useShapeForLightOcclusion(state));
+    EXPECT_FALSE(candle_->useShapeForLightOcclusion(state));
 }
 
 // ============================================================================

@@ -409,10 +409,13 @@ TEST_F(DecoratedPotBlockTest, HasComparatorInputOverride_ReturnsTrue)
     EXPECT_TRUE(pot_->hasComparatorInputOverride(state));
 }
 
-TEST_F(DecoratedPotBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+TEST_F(DecoratedPotBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
-    const auto& state = pot_->defaultState();
-    EXPECT_TRUE(pot_->useShapeForLightOcclusion(state));
+    // 原版 1.21.11 的 decorated_pot 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
+    const BlockState& state = pot_->defaultState();
+    EXPECT_FALSE(pot_->useShapeForLightOcclusion(state));
 }
 
 TEST_F(DecoratedPotBlockTest, GetPushReaction_ReturnsDestroy)

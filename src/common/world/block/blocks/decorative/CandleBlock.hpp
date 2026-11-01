@@ -229,12 +229,6 @@ public:
         return false;
     }
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     // ========== IWaterLoggable 接口实现 ==========
 
     /**

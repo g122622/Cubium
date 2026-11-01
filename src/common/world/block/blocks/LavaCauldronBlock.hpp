@@ -185,15 +185,6 @@ public:
 
     // ========== 方块状态 ==========
 
-    /**
-     * @brief 岩浆炼药锅没有水位属性，不需要额外状态
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
 private:
     /// 炼药锅外部形状（与普通炼药锅共享）
     CollisionShape m_outerShape;

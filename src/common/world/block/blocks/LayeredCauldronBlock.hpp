@@ -267,15 +267,6 @@ public:
 
     // ========== 方块状态 ==========
 
-    /**
-     * @brief 分层炼药锅需要形状遮挡检测
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
 private:
     /**
      * @brief 处理水桶交互

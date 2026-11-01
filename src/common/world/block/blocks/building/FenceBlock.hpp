@@ -83,17 +83,6 @@ public:
 
     [[nodiscard]] const CollisionShape& getOcclusionShape(const BlockState& state) const override;
 
-    /**
-     * @brief 是否使用形状进行光照遮挡检测
-     *
-     * 栅栏有复杂的形状，需要精确的形状遮挡检测。
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     // ========== IWaterLoggable 接口实现 ==========
 
     /**

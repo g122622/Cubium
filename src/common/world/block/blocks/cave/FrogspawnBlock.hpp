@@ -82,12 +82,6 @@ public:
     /// 下落方块落入时击碎青蛙卵
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
 private:
     /// 在 pos 周围生成 2~5 只蝌蚪（位置在 0.2~0.8 方块内随机偏移，随机朝向）
     static void _spawnTadpoles(IWorld& world, const BlockPos& pos, math::IRandom& random);

@@ -52,12 +52,6 @@ public:
 
     // ========== 形状与光照 ==========
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     [[nodiscard]] u8 getLightLevel(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
     {

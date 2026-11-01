@@ -100,9 +100,12 @@ TEST_F(BlockOcclusionTest, LeavesKeepSkylightPropagation)
     ASSERT_NE(VanillaBlocks::OAK_LEAVES, nullptr);
     const BlockState& state = VanillaBlocks::OAK_LEAVES->defaultState();
 
-    // 树叶 noOcclusion 且 getShape 非完整 → 透传天空光，光衰减 1 级
+    // 树叶是 noOcclusion（不参与遮挡），但遮挡形状是完整立方体：原版既没有重写
+    // propagatesSkylightDown，注册属性里也没有 propagatesSkylightDown()，默认公式给出
+    // false——天空光穿过树叶衰减 1 级（lightBlock=1），而不是无衰减直通。
+    // 实测原版 1.21.11：oak_leaves 全部状态 propagatesSkylightDown=false、lightBlock=1。
     EXPECT_FALSE(state.canOcclude());
-    EXPECT_TRUE(state.propagatesSkylightDown());
+    EXPECT_FALSE(state.propagatesSkylightDown());
     EXPECT_EQ(state.getOpacity(), 1);
 }
 

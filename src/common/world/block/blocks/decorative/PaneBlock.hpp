@@ -89,19 +89,6 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
-     * @brief 是否使用形状进行光照遮挡检测
-     *
-     * 对齐 vanilla `IronBarsBlock`：其遮挡形状即栅栏板形状（OCCLUSION_SHAPE，非完整立方体），
-     * 故 `propagatesSkylightDown = !isShapeFullBlock(getShape())` = true，光衰减为 0（玻璃板/铁栏杆透光）。
-     * 注意不能用 useShapeForLightOcclusion 参与 pSD 判定（该形状并非完整遮挡面）。
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
-    /**
      * @brief 获取光照遮挡形状（vanilla `IronBarsBlock#getOcclusionShape`）
      *
      * 对齐 vanilla：返回栅栏板形状（中心柱 + 已连接方向的侧板），而非默认的完整方块形状。

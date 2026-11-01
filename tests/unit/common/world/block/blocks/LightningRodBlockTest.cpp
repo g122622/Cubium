@@ -225,10 +225,13 @@ TEST_F(LightningRodBlockTest, GetWeakPower_Powered_OutputOnFacingDirection_North
     EXPECT_EQ(lightningRod_->getWeakPower(state, world_, BlockPos(0, 64, 0), Direction::Up), 0);
 }
 
-TEST_F(LightningRodBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+TEST_F(LightningRodBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
-    const auto& state = lightningRod_->defaultState();
-    EXPECT_TRUE(lightningRod_->useShapeForLightOcclusion(state));
+    // 原版 1.21.11 的 lightning_rod 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
+    const BlockState& state = lightningRod_->defaultState();
+    EXPECT_FALSE(lightningRod_->useShapeForLightOcclusion(state));
 }
 
 TEST_F(LightningRodBlockTest, IsWaterlogged_DefaultFalse)

@@ -367,10 +367,13 @@ TEST_F(LayeredCauldronBlockTest, GetEntityInsideCollisionShape_FilledShapeContai
     }
 }
 
-TEST_F(LayeredCauldronBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+TEST_F(LayeredCauldronBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
-    const auto& state = waterCauldron_->defaultState();
-    EXPECT_TRUE(waterCauldron_->useShapeForLightOcclusion(state));
+    // 原版 1.21.11 的 cauldron 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
+    const BlockState& state = waterCauldron_->defaultState();
+    EXPECT_FALSE(waterCauldron_->useShapeForLightOcclusion(state));
 }
 
 // ============================================================================

@@ -74,12 +74,6 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
