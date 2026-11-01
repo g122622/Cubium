@@ -140,6 +140,7 @@ import { directionNearestInput } from "./direction_nearest.ts";
 import { mthSeedInput } from "./mth_seed.ts";
 import { mthPackDegreesInput } from "./mth_pack_degrees.ts";
 import { mthDegreesInput } from "./mth_degrees.ts";
+import { mthFracInput } from "./mth_frac.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -978,6 +979,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 角度差与朝向平滑：rotateIfNecessary 从 target 反推、absMax 在 MIN_VALUE 溢出。
     { name: "mth_degrees", probe: "mth_degrees", oracle: "MthDegreesOracle",
         key: "unit", units: { kind: "listing" }, input: mthDegreesInput },
+    // 小数部分：frac(float) 的 floor 是 int，大输入会饱和失效。
+    { name: "mth_frac", probe: "mth_frac", oracle: "MthFracOracle",
+        key: "unit", units: { kind: "listing" }, input: mthFracInput },
+
 
 
 
