@@ -103,6 +103,7 @@ import { mthRotInput } from "./mth_rot.ts";
 import { mthSinInput } from "./mth_sin.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
+import { blockposDistInput } from "./blockpos_dist.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -826,6 +827,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 区域文件扇区寻址：负坐标 >> 与 / 不同、偏移值 24+8 位打包，纯计算。
     { name: "region_sector", probe: "region_sector", oracle: "RegionSectorOracle",
         key: "unit", units: { kind: "listing" }, input: regionSectorInput },
+    // BlockPos 距离与包围盒迭代：distManhattan 用 float 累加、迭代 X 最内层，纯计算。
+    { name: "blockpos_dist", probe: "blockpos_dist", oracle: "BlockPosDistOracle",
+        key: "unit", units: { kind: "listing" }, input: blockposDistInput },
+
 
 
 
