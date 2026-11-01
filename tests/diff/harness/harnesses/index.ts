@@ -174,6 +174,7 @@ import { textFormattingNameInput } from "./text_formatting_name.ts";
 import { styleTristateInput } from "./style_tristate.ts";
 import { teamRuleStringsInput } from "./team_rule_strings.ts";
 import { renderTypeStringsInput } from "./render_type_strings.ts";
+import { uuidStringsInput } from "./uuid_strings.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1116,6 +1117,26 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 渲染类型字符串：**探针对接 Cubium 的 renderTypeParse**。
     { name: "render_type_strings", probe: "render_type_strings", oracle: "RenderTypeStringsOracle",
         key: "unit", units: { kind: "listing" }, input: renderTypeStringsInput },
+    // UUID 解析：**探针对接 Cubium 的 util::uuidFromString**。
+    // 差异已登记：Cubium 内部统一用 32 位无连字符字符串存 UUID（见 Entity.cpp 的
+    // 注释与 generateRandomUuid 的用法），因此 uuidFromString 接受 32 位是刻意的
+    // 架构选择，不属于缺陷。原版 JDK 的 UUID.fromString 只接受 36 位带连字符格式。
+    { name: "uuid_strings", probe: "uuid_strings", oracle: "UuidStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: uuidStringsInput,
+        knownDifferences: [
+            { key: "parse|069a79f444e94726a5befca90e38aaf5",
+              reason: "Cubium 架构上使用 32 位无连字符 UUID 字符串（内部存储格式），刻意接受；"
+                  + "JDK UUID.fromString 拒绝。内部调用方全部传 32/36 位内部字符串，无外部输入风险" },
+            { key: "parse|", reason: "原版抛 IllegalArgumentException，Cubium 返回全零 UUID 哨兵值" },
+            { key: "parse|dunno", reason: "同上" },
+            { key: "parse|-069a79f4-44e9-4726-a5be-fca90e38aaf5", reason: "同上" },
+            { key: "parse|069a79f444e94726a5befca90e38aaf5-", reason: "同上" },
+            { key: "parse|069a79f4_44e9_4726_a5be_fca90e38aaf5", reason: "同上" },
+            { key: "parse|069a79f4-44e9-4726-a5be-fca90e38aaf",
+              reason: "JDK 对短段向前补零（35 位→补成 0fca...），Cubium 直接判为失败返回全零；"
+                  + "属 JDK 边缘行为，Cubium 内部不产生此类残缺字符串" },
+        ] },
+
 
 
 
