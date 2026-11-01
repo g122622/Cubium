@@ -91,6 +91,44 @@ import { beaconEffectsInput } from "./beacon_effects.ts";
 import { hopperCooldownInput } from "./hopper_cooldown.ts";
 import { spawnerDelayInput } from "./spawner_delay.ts";
 import { mthRoundingInput } from "./mth_rounding.ts";
+import { mthModuloInput } from "./mth_modulo.ts";
+import { directionRotateInput } from "./direction_rotate.ts";
+import { aabbOpsInput } from "./aabb_ops.ts";
+import { vec3MathInput } from "./vec3_math.ts";
+import { blockposCodecInput } from "./blockpos_codec.ts";
+import { axisPlaneInput } from "./axis_plane.ts";
+import { mthLerpInput } from "./mth_lerp.ts";
+import { mthBitInput } from "./mth_bit.ts";
+import { mthRotInput } from "./mth_rot.ts";
+import { mthSinInput } from "./mth_sin.ts";
+import { mthApproachInput } from "./mth_approach.ts";
+import { regionSectorInput } from "./region_sector.ts";
+import { blockposDistInput } from "./blockpos_dist.ts";
+import { enchantmentStorageInput } from "./enchantment_storage.ts";
+import { collideSweepInput } from "./collide_sweep.ts";
+import { shapesBooleanInput } from "./shapes_boolean.ts";
+import { fluidSpreadInput } from "./fluid_spread.ts";
+import { fluidSpreadDirInput } from "./fluid_spread_dir.ts";
+import { blockposBfsInput } from "./blockpos_bfs.ts";
+import { scheduledTickInput } from "./scheduled_tick.ts";
+import { randomTickPosInput } from "./random_tick_pos.ts";
+import { mthColorInput } from "./mth_color.ts";
+import { blockTransformInput } from "./block_transform.ts";
+import { boundingBoxInput } from "./bounding_box.ts";
+import { enchantmentCompatInput, listEnchantmentCompatUnits } from "./enchantment_compat.ts";
+import { sectionPosInput } from "./section_pos.ts";
+import { levelHeightInput } from "./level_height.ts";
+import { chunkPosInput } from "./chunk_pos.ts";
+import { mthClampInput } from "./mth_clamp.ts";
+import { chatFormattingInput } from "./chat_formatting.ts";
+import { dyeColorInput } from "./dye_color.ts";
+import { equipmentSlotInput } from "./equipment_slot.ts";
+import { heightmapTypesInput } from "./heightmap_types.ts";
+import { mthIntDivInput } from "./mth_int_div.ts";
+import { directionPlaneInput } from "./direction_plane.ts";
+import { rotationInfoInput } from "./rotation_info.ts";
+import { blockPosGeomInput } from "./blockpos_geom.ts";
+import { vec3iArithInput } from "./vec3i_arith.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -782,6 +820,158 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
             { key: "-3000000000", field: "floorF", reason: "同上" },
             { key: "-3000000000", field: "floorD", reason: "同上" }
         ] },
+    // Mth.positiveModulo 与 Mth.wrapDegrees：区间端点不对称、% 的结果范围前提，纯计算。
+    { name: "mth_modulo", probe: "mth_modulo", oracle: "MthModuloOracle",
+        key: "unit", units: { kind: "listing" }, input: mthModuloInput },
+    // Direction 旋转与 Y 轴角度：轴向旋转对垂直方向返回自身、南为 0 度，纯计算。
+    { name: "direction_rotate", probe: "direction_rotate", oracle: "DirectionRotateOracle",
+        key: "unit", units: { kind: "listing" }, input: directionRotateInput },
+    // AABB 几何运算：intersects 用严格不等号（接触不算相交）、minmax 是并集，纯计算。
+    { name: "aabb_ops", probe: "aabb_ops", oracle: "AabbOpsOracle",
+        key: "unit", units: { kind: "listing" }, input: aabbOpsInput },
+    // Vec3 向量运算：normalize 的 1e-5F 短路阈值 + 除法归一化，纯计算。
+    { name: "vec3_math", probe: "vec3_math", oracle: "Vec3MathOracle",
+        key: "unit", units: { kind: "listing" }, input: vec3MathInput },
+    // BlockPos 位打包：X/Z 各 26 位、Y 12 位，超范围静默截断，纯计算。
+    { name: "blockpos_codec", probe: "blockpos_codec", oracle: "BlockPosCodecOracle",
+        key: "unit", units: { kind: "listing" }, input: blockposCodecInput },
+    // Direction.Axis 与 Plane 判定：Z 轴正方向是 SOUTH、Plane.test(null) 为 false，纯计算。
+    { name: "axis_plane", probe: "axis_plane", oracle: "AxisPlaneOracle",
+        key: "unit", units: { kind: "listing" }, input: axisPlaneInput },
+    // Mth 插值函数族：clampedLerp 越界返回精确端点、lerpInt 用 floor，纯计算。
+    { name: "mth_lerp", probe: "mth_lerp", oracle: "MthLerpOracle",
+        key: "unit", units: { kind: "listing" }, input: mthLerpInput },
+    // Mth 整数位运算：smallestEncompassingPowerOfTwo 对非正输入返回 0，纯计算。
+    { name: "mth_bit", probe: "mth_bit", oracle: "MthBitOracle",
+        key: "unit", units: { kind: "listing" }, input: mthBitInput },
+    // Mth 旋转插值：rotLerp 走最短弧、rotLerpRad 用 while 循环，纯计算。
+    { name: "mth_rot", probe: "mth_rot", oracle: "MthRotOracle",
+        key: "unit", units: { kind: "listing" }, input: mthRotInput },
+    // Mth.sin / cos 查表：65536 项表由 Math.sin 构造，索引 & 65535，纯计算。
+    { name: "mth_sin", probe: "mth_sin", oracle: "MthSinOracle",
+        key: "unit", units: { kind: "listing" }, input: mthSinInput },
+    // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
+    { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
+        key: "unit", units: { kind: "listing" }, input: mthApproachInput },
+    // 区域文件扇区寻址：负坐标 >> 与 / 不同、偏移值 24+8 位打包，纯计算。
+    { name: "region_sector", probe: "region_sector", oracle: "RegionSectorOracle",
+        key: "unit", units: { kind: "listing" }, input: regionSectorInput },
+    // BlockPos 距离与包围盒迭代：distManhattan 用 float 累加、迭代 X 最内层，纯计算。
+    { name: "blockpos_dist", probe: "blockpos_dist", oracle: "BlockPosDistOracle",
+        key: "unit", units: { kind: "listing" }, input: blockposDistInput },
+    // 附魔存储：set 对 <=0 删除、upgrade 对 <=0 不做事，两者相反，纯计算。
+    { name: "enchantment_storage", probe: "enchantment_storage", oracle: "EnchantmentStorageOracle",
+        key: "unit", units: { kind: "listing" }, input: enchantmentStorageInput },
+    // 实体碰撞扫描：Y 轴永远第一、主轴最后推进、1e-7 容差，纯计算。
+    { name: "collide_sweep", probe: "collide_sweep", oracle: "CollideSweepOracle",
+        key: "unit", units: { kind: "listing" }, input: collideSweepInput },
+    // VoxelShape 布尔组合：16 种 BooleanOp 的逐格语义，TRUE 被断言拒绝，纯计算。
+    { name: "shapes_boolean", probe: "shapes_boolean", oracle: "ShapesBooleanOracle",
+        key: "unit", units: { kind: "listing" }, input: shapesBooleanInput },
+    // 流体扩散：高度 amount/9、下落等级固定 7、坡度上限按流体区分，纯计算。
+    { name: "fluid_spread", probe: "fluid_spread", oracle: "FluidSpreadOracle",
+        key: "unit", units: { kind: "listing" }, input: fluidSpreadInput },
+    // 流体扩散方向选择：就近全保留、best 无条件赋值，纯计算。
+    { name: "fluid_spread_dir", probe: "fluid_spread_dir", oracle: "FluidSpreadDirOracle",
+        key: "unit", units: { kind: "listing" }, input: fluidSpreadDirInput },
+    // BFS 遍历：去重在状态判断前、STOP 中断、计数先自增后比较，纯计算。
+    { name: "blockpos_bfs", probe: "blockpos_bfs", oracle: "BlockPosBfsOracle",
+        key: "unit", units: { kind: "listing" }, input: blockposBfsInput },
+    // 调度排序与去重：DRAIN_ORDER 三级、INTRA 忽略 tick、去重只认 type+pos，纯计算。
+    { name: "scheduled_tick", probe: "scheduled_tick", oracle: "ScheduledTickOracle",
+        key: "unit", units: { kind: "listing" }, input: scheduledTickInput },
+    // 随机刻坐标采样：独立 LCG（x*3+1013904223）、算术右移，纯计算。
+    { name: "random_tick_pos", probe: "random_tick_pos", oracle: "RandomTickPosOracle",
+        key: "unit", units: { kind: "listing" }, input: randomTickPosInput },
+    // HSV 转 RGB 与 murmur3 混合：截断取整、逻辑右移，纯计算。
+    { name: "mth_color", probe: "mth_color", oracle: "MthColorOracle",
+        key: "unit", units: { kind: "listing" }, input: mthColorInput },
+    // Rotation/Mirror 变换：Y 轴不受旋转、镜像只翻转垂直轴，纯计算。
+    { name: "block_transform", probe: "block_transform", oracle: "BlockTransformOracle",
+        key: "unit", units: { kind: "listing" }, input: blockTransformInput },
+    // 包围盒判定：闭区间相交、构造器自动归一化、move 原地修改，纯计算。
+    { name: "bounding_box", probe: "bounding_box", oracle: "BoundingBoxOracle",
+        key: "unit", units: { kind: "listing" }, input: boundingBoxInput },
+    // 附魔互斥性：同一附魔不兼容、双向或关系，纯计算。
+    { name: "enchantment_compat", probe: "enchantment_compat", oracle: "EnchantmentCompatOracle",
+        key: "unit", units: { kind: "computed", units: listEnchantmentCompatUnits }, input: enchantmentCompatInput },
+    // 区块坐标换算：算术右移、22/20 位编码，纯计算。
+    { name: "section_pos", probe: "section_pos", oracle: "SectionPosOracle",
+        key: "unit", units: { kind: "listing" }, input: sectionPosInput },
+    // 高度范围：maxY 含上界、分区索引从 minSectionY 起算，纯计算。
+    { name: "level_height", probe: "level_height", oracle: "LevelHeightOracle",
+        key: "unit", units: { kind: "listing" }, input: levelHeightInput },
+    // 区块坐标：32 位无符号拼接、区域 32 区块、Z 先异或魔数，纯计算。
+    { name: "chunk_pos", probe: "chunk_pos", oracle: "ChunkPosOracle",
+        key: "unit", units: { kind: "listing" }, input: chunkPosInput },
+    // Mth 钳制族：浮点 clamp 用 < 而非 Math.max、短路上下界，纯计算。
+    { name: "mth_clamp", probe: "mth_clamp", oracle: "MthClampOracle",
+        key: "unit", units: { kind: "listing" }, input: mthClampInput },
+    // 格式码：strip 字符集有限、getById 负数返回 RESET，纯计算。
+    { name: "chat_formatting", probe: "chat_formatting", oracle: "ChatFormattingOracle",
+        key: "unit", units: { kind: "listing" }, input: chatFormattingInput },
+    // 染料颜色：byId 越界返回 WHITE、三个颜色字段互不相同，纯计算。
+    { name: "dye_color", probe: "dye_color", oracle: "DyeColorOracle",
+        key: "unit", units: { kind: "listing" }, input: dyeColorInput },
+    // 装备槽位：isArmor 含 BODY 不含 SADDLE、id 有空洞，纯计算。
+    { name: "equipment_slot", probe: "equipment_slot", oracle: "EquipmentSlotOracle",
+        key: "unit", units: { kind: "listing" }, input: equipmentSlotInput },
+    // 高度图：液体算 MOTION_BLOCKING 不算 OCEAN_FLOOR，纯计算。
+    { name: "heightmap_types", probe: "heightmap_types", oracle: "HeightmapTypesOracle",
+        key: "unit", units: { kind: "listing" }, input: heightmapTypesInput },
+    // 整数除法与 2 的幂：floorDiv 向下取整、smallest(0)=0，纯计算。
+    { name: "mth_int_div", probe: "mth_int_div", oracle: "MthIntDivOracle",
+        key: "unit", units: { kind: "listing" }, input: mthIntDivInput },
+    // 方向数据值：2D id 与 3D id 顺序相反、负数 id 取绝对值回绕，纯计算。
+    { name: "direction_plane", probe: "direction_plane", oracle: "DirectionPlaneOracle",
+        key: "unit", units: { kind: "listing" }, input: directionPlaneInput },
+    // 旋转枚举：CLOCKWISE_180 序列化名是 "180"、BY_ID 用 WRAP，纯计算。
+    { name: "rotation_info", probe: "rotation_info", oracle: "RotationInfoOracle",
+        key: "unit", units: { kind: "listing" }, input: rotationInfoInput },
+    // 方块坐标几何：containing 向负无穷取整、rotate 不对称，纯计算。
+    { name: "blockpos_geom", probe: "blockpos_geom", oracle: "BlockPosGeomOracle",
+        key: "unit", units: { kind: "listing" }, input: blockPosGeomInput },
+    // 整数向量：compareTo 优先级 Y→Z→X、distManhattan 用 float，纯计算。
+    { name: "vec3i_arith", probe: "vec3i_arith", oracle: "Vec3iArithOracle",
+        key: "unit", units: { kind: "listing" }, input: vec3iArithInput },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

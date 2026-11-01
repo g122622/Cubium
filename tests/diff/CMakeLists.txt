@@ -24,7 +24,7 @@
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
-set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe banner_pattern enchantment_provider trial_spawner_config dimension_type explosion_ray explosion_damage explosion_seen_grid entity_dimensions mob_effect_merge food_stats food_tick enchantment_selection repair_cost anvil_durability item_stackable item_same_components furnace_tick brewing_tick beacon_effects hopper_cooldown spawner_delay mth_rounding block_sound_type crop_growth redstone_signal)
+set(MC_DIFF_PROBE_SUFFIXES text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe banner_pattern enchantment_provider trial_spawner_config dimension_type explosion_ray explosion_damage explosion_seen_grid entity_dimensions mob_effect_merge food_stats food_tick enchantment_selection repair_cost anvil_durability item_stackable item_same_components furnace_tick brewing_tick beacon_effects hopper_cooldown spawner_delay mth_rounding mth_modulo direction_rotate aabb_ops vec3_math blockpos_codec axis_plane mth_lerp mth_bit mth_rot mth_sin mth_approach region_sector blockpos_dist enchantment_storage collide_sweep shapes_boolean fluid_spread fluid_spread_dir blockpos_bfs scheduled_tick random_tick_pos mth_color block_transform bounding_box enchantment_compat section_pos level_height chunk_pos mth_clamp chat_formatting dye_color equipment_slot heightmap_types direction_plane rotation_info blockpos_geom vec3i_arith mth_int_div fuel_values recipe_book_category block_sound_type redstone_signal)
 set(MC_DIFF_PROBE_SOURCES
     probes/text_encode.cpp
     probes/block_state_ids.cpp
@@ -112,11 +112,50 @@ set(MC_DIFF_PROBE_SOURCES
     probes/hopper_cooldown.cpp
     probes/spawner_delay.cpp
     probes/mth_rounding.cpp
+    probes/mth_modulo.cpp
+    probes/direction_rotate.cpp
+    probes/aabb_ops.cpp
+    probes/vec3_math.cpp
+    probes/blockpos_codec.cpp
+    probes/axis_plane.cpp
+    probes/mth_lerp.cpp
+    probes/mth_bit.cpp
+    probes/mth_rot.cpp
+    probes/mth_sin.cpp
+    probes/mth_approach.cpp
+    probes/region_sector.cpp
+    probes/blockpos_dist.cpp
+    probes/enchantment_storage.cpp
+    probes/collide_sweep.cpp
+    probes/shapes_boolean.cpp
+    probes/fluid_spread.cpp
+    probes/fluid_spread_dir.cpp
+    probes/blockpos_bfs.cpp
+    probes/scheduled_tick.cpp
+    probes/random_tick_pos.cpp
+    probes/mth_color.cpp
+    probes/block_transform.cpp
+    probes/bounding_box.cpp
+    probes/enchantment_compat.cpp
+    probes/section_pos.cpp
+    probes/level_height.cpp
+    probes/chunk_pos.cpp
+    probes/mth_clamp.cpp
+    probes/chat_formatting.cpp
+    probes/dye_color.cpp
+    probes/equipment_slot.cpp
+    probes/heightmap_types.cpp
+    probes/direction_plane.cpp
+    probes/rotation_info.cpp
+    probes/blockpos_geom.cpp
+    probes/vec3i_arith.cpp
+    probes/mth_int_div.cpp
+    probes/fuel_values.cpp
+    probes/recipe_book_category.cpp
     probes/block_sound_type.cpp
-    probes/crop_growth.cpp
     probes/redstone_signal.cpp
 )
-set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe banner_pattern enchantment_provider trial_spawner_config dimension_type explosion_ray explosion_damage explosion_seen_grid entity_dimensions mob_effect_merge food_stats food_tick enchantment_selection repair_cost anvil_durability item_stackable item_same_components furnace_tick brewing_tick beacon_effects hopper_cooldown spawner_delay mth_rounding block_sound_type crop_growth redstone_signal)
+set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe banner_pattern enchantment_provider trial_spawner_config dimension_type explosion_ray explosion_damage explosion_seen_grid entity_dimensions mob_effect_merge food_stats food_tick enchantment_selection repair_cost anvil_durability item_stackable item_same_components furnace_tick brewing_tick beacon_effects hopper_cooldown spawner_delay mth_rounding mth_modulo direction_rotate aabb_ops vec3_math blockpos_codec axis_plane mth_lerp mth_bit mth_rot mth_sin mth_approach region_sector blockpos_dist enchantment_storage collide_sweep shapes_boolean fluid_spread fluid_spread_dir blockpos_bfs scheduled_tick random_tick_pos mth_color block_transform bounding_box enchantment_compat section_pos level_height chunk_pos mth_clamp chat_formatting dye_color equipment_slot heightmap_types direction_plane rotation_info blockpos_geom vec3i_arith mth_int_div fuel_values recipe_book_category block_sound_type redstone_signal)
 function(mc_add_diff_probe targetSuffix source domain)
     set(targetName "diff_${targetSuffix}")
     add_executable(${targetName}
