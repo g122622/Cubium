@@ -89,10 +89,21 @@ const FormattingInfo* findFormattingInfo(TextFormatting formatting) noexcept
 
 // ========== TextFormatting 工具函数 ==========
 
+std::optional<u32> findFormattingARGB(TextFormatting formatting) noexcept
+{
+    // 对应原版 ChatFormatting#getColor()：样式码没有颜色（返回 null）。
+    if (!isColor(formatting)) {
+        return std::nullopt;
+    }
+    const auto* info = findFormattingInfo(formatting);
+    return info ? std::optional<u32>{info->color} : std::nullopt;
+}
+
 u32 getFormattingColor(TextFormatting formatting) noexcept
 {
-    const auto* info = findFormattingInfo(formatting);
-    return info ? info->color : 0xFFFFFFFF;
+    // 渲染便捷入口：无颜色时退化为白色，与既有调用方（如 FontRenderer 的
+    // 默认文字色）保持一致。需要区分「无颜色」与「白色」请用 findFormattingARGB。
+    return findFormattingARGB(formatting).value_or(0xFFFFFFFF);
 }
 
 bool isColor(TextFormatting formatting) noexcept
