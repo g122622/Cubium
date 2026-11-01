@@ -414,3 +414,54 @@ probes/*.cpp  ⊆  CMake 三张列表  ⊆  index.ts 注册  ⊆  README 状态�
 **额外注意 `Mth.positiveModulo` 与 Java `%` 的区别**：`Rotation.rotate(int,int)` 用的是普通
 `%`（向零截断），`value` 为负时**结果可以为负**；而 `positiveModulo` 恒非负。两者在同一份源码
 里并存。
+
+---
+
+## 二十、返回 `int` 的方法内部可能用 `float`/`double`，必须读方法体
+
+**已发生的问题**：`Vec3i.distManhattan` 的签名是：
+
+```java
+public int distManhattan(Vec3i other)
+```
+
+参数是 `Vec3i`（全整数），返回是 `int`。从签名看，实现理应是纯整数运算。**但方法体内部用了三个
+`float` 局部变量**：
+
+```java
+float f  = Math.abs(other.getX() - this.getX());   // int → float
+float f1 = Math.abs(other.getY() - this.getY());
+float f2 = Math.abs(other.getZ() - this.getZ());
+return (int) (f + f1 + f2);
+```
+
+实测差异：
+
+```text
+manhattan|0,0,0|16777217,0,0  ->  16777216     （纯整数应为 16777217，少 1）
+```
+
+`float` 只有 24 位尾数，`2^24 = 16777216` 是可精确表示的最大整数，`16777217` 被舍入。
+
+**同一个类里的 `distChessboard` 却全程用 `int`**：
+
+```java
+int i = Math.abs(this.getX() - other.getX());
+...
+return Math.max(i, Math.max(j, k));
+```
+
+**两个语义相近的距离方法，数值类型不同，大数结果不同。**
+
+**做法**：
+
+1. **不要只读签名就推定数值类型。** 必须读方法体，特别是出现 `Math.abs`、除法、累加的地方——
+   这些是「顺手用浮点」的高发位置。
+2. **对每个涉及距离/坐标/力量的 `int` 返回方法，主动构造超过 `2^24`（约 1677 万）的用例。**
+   这是 `float` 精度丢失的阈值。
+3. **原版的精度丢失是真实行为，不是 bug。** 若目标是逐字节对齐，Cubium 也必须复刻同样的浮点
+   中间量；「修正」成纯整数反而会产生差异。
+
+**适用面**：任何「整数进、整数出」但内部经过 `float`/`double` 的原版方法。已覆盖的能力中
+`Mth.roundToward` 是纯整数（`positiveCeilDiv` 用 `Math.floorDiv`），而 `Vec3i.distManhattan`
+是浮点——两者从签名完全看不出区别。

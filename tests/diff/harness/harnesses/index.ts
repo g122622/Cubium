@@ -128,6 +128,7 @@ import { mthIntDivInput } from "./mth_int_div.ts";
 import { directionPlaneInput } from "./direction_plane.ts";
 import { rotationInfoInput } from "./rotation_info.ts";
 import { blockPosGeomInput } from "./blockpos_geom.ts";
+import { vec3iArithInput } from "./vec3i_arith.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -926,6 +927,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 方块坐标几何：containing 向负无穷取整、rotate 不对称，纯计算。
     { name: "blockpos_geom", probe: "blockpos_geom", oracle: "BlockPosGeomOracle",
         key: "unit", units: { kind: "listing" }, input: blockPosGeomInput },
+    // 整数向量：compareTo 优先级 Y→Z→X、distManhattan 用 float，纯计算。
+    { name: "vec3i_arith", probe: "vec3i_arith", oracle: "Vec3iArithOracle",
+        key: "unit", units: { kind: "listing" }, input: vec3iArithInput },
+
 
 
 
