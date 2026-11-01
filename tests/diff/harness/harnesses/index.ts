@@ -83,6 +83,7 @@ import { foodTickInput } from "./food_tick.ts";
 import { enchantmentSelectionInput, enchantmentSelectionUnits } from "./enchantment_selection.ts";
 import { repairCostInput } from "./repair_cost.ts";
 import { anvilDurabilityInput } from "./anvil_durability.ts";
+import { itemStackableInput } from "./item_stackable.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -721,6 +722,23 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 铁砧合并耐久：先乘后除 + 有改善才计入 + 溢出边界，纯计算。
     { name: "anvil_durability", probe: "anvil_durability", oracle: "AnvilDurabilityOracle",
         key: "unit", units: { kind: "listing" }, input: anvilDurabilityInput },
+    // 物品能否堆叠：MAX_STACK_SIZE 默认 1、可损坏与已损伤的组合，纯计算。
+    { name: "item_stackable", probe: "item_stackable", oracle: "ItemStackableOracle",
+        key: "unit", units: { kind: "listing" },
+        input: itemStackableInput,
+        knownDifferences: [{
+            key: "minecraft:air|0",
+            field: "empty",
+            reason: "Cubium 用 nullptr 表示空栈、原版用 Items.AIR 物品表示；构造 ItemStack(air) 在 Cubium 侧得到非空栈"
+        }, {
+            key: "minecraft:air|0",
+            field: "maxStackSize",
+            reason: "同上：air 在 Cubium 侧不是空栈，因此读到 MAX_STACK_SIZE=64 而非空栈的 1"
+        }, {
+            key: "minecraft:air|0",
+            field: "stackable",
+            reason: "同上：air 在 Cubium 侧不是空栈，因此被判为可堆叠"
+        }] },
 
 
 
