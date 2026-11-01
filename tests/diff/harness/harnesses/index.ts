@@ -163,6 +163,7 @@ import { identifierResolveInput } from "./identifier_resolve.ts";
 import { plainTextContentsInput } from "./plain_text_contents.ts";
 import { mthAbsMaxInput } from "./mth_absmax.ts";
 import { displaySlotInput } from "./display_slot.ts";
+import { objectiveCriteriaInput } from "./objective_criteria.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1070,6 +1071,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 计分板显示槽：团队槽用点分隔、越界 byId 返回 LIST、RESET 不是颜色。
     { name: "display_slot", probe: "display_slot", oracle: "DisplaySlotOracle",
         key: "unit", units: { kind: "listing" }, input: displaySlotInput },
+    // 计分判据：camelCase 名、EXPERIENCE 叫 xp、只有血量用 hearts。
+    { name: "objective_criteria", probe: "objective_criteria", oracle: "ObjectiveCriteriaOracle",
+        key: "unit", units: { kind: "listing" }, input: objectiveCriteriaInput },
+
 
 
 
