@@ -147,6 +147,7 @@ import { identifierParseInput } from "./identifier_parse.ts";
 import { identifierPathInput } from "./identifier_path.ts";
 import { blockPosIterateInput } from "./blockpos_iterate.ts";
 import { blockPosSpiralInput } from "./blockpos_spiral.ts";
+import { aabbFactoryInput } from "./aabb_factory.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1006,6 +1007,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 螺旋遍历：radius=0 只给中心、段长 leg/2+1 且成对、first/second 交换会镜像。
     { name: "blockpos_spiral", probe: "blockpos_spiral", oracle: "BlockPosSpiralOracle",
         key: "unit", units: { kind: "listing" }, input: blockPosSpiralInput },
+    // AABB 工厂：+1 只在 max 侧、getCenter 走 Mth.lerp、intersect 不相交时返回负尺寸盒。
+    { name: "aabb_factory", probe: "aabb_factory", oracle: "AabbFactoryOracle",
+        key: "unit", units: { kind: "listing" }, input: aabbFactoryInput },
+
 
 
 
