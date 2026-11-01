@@ -111,6 +111,7 @@ import { fluidSpreadInput } from "./fluid_spread.ts";
 import { fluidSpreadDirInput } from "./fluid_spread_dir.ts";
 import { blockposBfsInput } from "./blockpos_bfs.ts";
 import { scheduledTickInput } from "./scheduled_tick.ts";
+import { randomTickPosInput } from "./random_tick_pos.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -858,6 +859,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 调度排序与去重：DRAIN_ORDER 三级、INTRA 忽略 tick、去重只认 type+pos，纯计算。
     { name: "scheduled_tick", probe: "scheduled_tick", oracle: "ScheduledTickOracle",
         key: "unit", units: { kind: "listing" }, input: scheduledTickInput },
+    // 随机刻坐标采样：独立 LCG（x*3+1013904223）、算术右移，纯计算。
+    { name: "random_tick_pos", probe: "random_tick_pos", oracle: "RandomTickPosOracle",
+        key: "unit", units: { kind: "listing" }, input: randomTickPosInput },
+
 
 
 
