@@ -122,6 +122,7 @@ import { chunkPosInput } from "./chunk_pos.ts";
 import { mthClampInput } from "./mth_clamp.ts";
 import { chatFormattingInput } from "./chat_formatting.ts";
 import { dyeColorInput } from "./dye_color.ts";
+import { equipmentSlotInput } from "./equipment_slot.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -902,6 +903,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 染料颜色：byId 越界返回 WHITE、三个颜色字段互不相同，纯计算。
     { name: "dye_color", probe: "dye_color", oracle: "DyeColorOracle",
         key: "unit", units: { kind: "listing" }, input: dyeColorInput },
+    // 装备槽位：isArmor 含 BODY 不含 SADDLE、id 有空洞，纯计算。
+    { name: "equipment_slot", probe: "equipment_slot", oracle: "EquipmentSlotOracle",
+        key: "unit", units: { kind: "listing" }, input: equipmentSlotInput },
+
 
 
 
