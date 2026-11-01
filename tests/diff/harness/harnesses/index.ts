@@ -124,6 +124,7 @@ import { chatFormattingInput } from "./chat_formatting.ts";
 import { dyeColorInput } from "./dye_color.ts";
 import { equipmentSlotInput } from "./equipment_slot.ts";
 import { heightmapTypesInput } from "./heightmap_types.ts";
+import { mthIntDivInput } from "./mth_int_div.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -910,6 +911,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 高度图：液体算 MOTION_BLOCKING 不算 OCEAN_FLOOR，纯计算。
     { name: "heightmap_types", probe: "heightmap_types", oracle: "HeightmapTypesOracle",
         key: "unit", units: { kind: "listing" }, input: heightmapTypesInput },
+    // 整数除法与 2 的幂：floorDiv 向下取整、smallest(0)=0，纯计算。
+    { name: "mth_int_div", probe: "mth_int_div", oracle: "MthIntDivOracle",
+        key: "unit", units: { kind: "listing" }, input: mthIntDivInput },
+
 
 
 
