@@ -179,6 +179,7 @@ import { gameTypeInput } from "./game_type.ts";
 import { mapDecorationTypeInput } from "./map_decoration_type.ts";
 import { blockStateEnumStringsInput } from "./block_state_enum_strings.ts";
 import { blockStateEnumStrings2Input } from "./block_state_enum_strings_2.ts";
+import { blockStateEnumStrings3Input } from "./block_state_enum_strings_3.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1163,6 +1164,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 第二组方块状态枚举：PistonType.DEFAULT 序列化名是 normal。
     { name: "block_state_enum_strings_2", probe: "block_state_enum_strings_2", oracle: "BlockStateEnumStrings2Oracle",
         key: "unit", units: { kind: "listing" }, input: blockStateEnumStrings2Input },
+    // 第三组方块状态枚举：NoteBlockInstrument 有 23 项。
+    { name: "block_state_enum_strings_3", probe: "block_state_enum_strings_3", oracle: "BlockStateEnumStrings3Oracle",
+        key: "unit", units: { kind: "listing" }, input: blockStateEnumStrings3Input },
+
 
 
 
