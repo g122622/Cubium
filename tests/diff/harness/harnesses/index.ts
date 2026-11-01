@@ -110,6 +110,7 @@ import { shapesBooleanInput } from "./shapes_boolean.ts";
 import { fluidSpreadInput } from "./fluid_spread.ts";
 import { fluidSpreadDirInput } from "./fluid_spread_dir.ts";
 import { blockposBfsInput } from "./blockpos_bfs.ts";
+import { scheduledTickInput } from "./scheduled_tick.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -854,6 +855,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // BFS 遍历：去重在状态判断前、STOP 中断、计数先自增后比较，纯计算。
     { name: "blockpos_bfs", probe: "blockpos_bfs", oracle: "BlockPosBfsOracle",
         key: "unit", units: { kind: "listing" }, input: blockposBfsInput },
+    // 调度排序与去重：DRAIN_ORDER 三级、INTRA 忽略 tick、去重只认 type+pos，纯计算。
+    { name: "scheduled_tick", probe: "scheduled_tick", oracle: "ScheduledTickOracle",
+        key: "unit", units: { kind: "listing" }, input: scheduledTickInput },
+
 
 
 
