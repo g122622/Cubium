@@ -246,3 +246,37 @@ Cubium 恒为 false、在原版恒为 true。必须**先判「两个都空」**�
    结构上打补丁**。
 
 这条与第十条（三张列表同长同序）配套：第十条讲「改对之后要验证」，本条讲「怎么改才安全」。
+
+---
+
+## 十五、查重前必须让状态表与探针列表对得上
+
+**已发生的问题**：计划新增 `spawner_delay` 时，我先在 `README.md` 的状态表里搜这一行，没搜到，
+据此判定「未覆盖」。实际它早在第 90 个能力时就已经实现并有文档，**我差点重复实现一遍**。
+
+排查后发现状态表有 17 个能力缺行（`walk_path_type`、`aabb_ops`、`mth_rounding` 等），
+另有过时的 `villager_*` 6 行指向不存在的探针。
+
+**查重的正确方法**（不要只查 README）：
+
+```powershell
+# 1. 以 CMakeLists 的探针列表为唯一事实来源
+$probes = @(); foreach ($ln in (Get-Content "tests/diff/CMakeLists.txt")) {
+    if ($ln -match "^\s+probes/([a-z_0-9]+)\.cpp\s*$" -and $Matches[1] -ne "runner_main") {
+        $probes += $Matches[1] } }
+$probes.Count
+
+# 2. 再查文件是否已存在（最直接的判据）
+Test-Path "tests/diff/probes/<name>.cpp"
+```
+
+**新增能力后必须同步三处**，缺一处就会误导下一个人：
+
+1. `probes/<name>.cpp` + `java/.../<Name>Oracle.java` + `harness/harnesses/<name>.ts`
+2. 三张 CMake 列表（且同长同序）
+3. `README.md` 的**状态表行** + 索引区的**文档链接**
+
+**定期自检**：状态表的能力行数应等于探针数。不相等就说明有遗漏或冗余。
+
+这条与第十条（三张列表同长同序）、第十四条（索引文件先备份）共同构成「新增能力的完整性
+契约」。

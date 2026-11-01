@@ -350,8 +350,6 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
 | `crafting_match` | 原版 jar `CraftingMatchOracle` | 4068（有序/无形状配方 × 6 种摆法） | 全部一致 | 见下文 |
 | `single_item_recipe` | 原版 jar `SingleItemRecipeOracle` | 202 个输入物品（熔炼/高炉/烟熏/营火/切石） | 全部一致 | 见下文 |
-| `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470（每条配方一项） | 全部一致 | 见下文 |
-| `fuel_values` | 原版 jar `FuelValuesOracle` | 1505（全部已注册物品） | 全部一致 | 见下文 |
 | `block_sound_type` | 原版 jar `BlockSoundTypeOracle` | 1167（全部方块 + 饰纹陶罐裂纹状态） | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
@@ -365,10 +363,6 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `block_destroy_progress` | 原版 jar `BlockDestroyProgressOracle` | 971 | 705 个一致 | 461 个方块的采集工具/requiresTool 未声明（见 `known_missing_block_tools.ts`） |
 | `structure_density` | 原版 jar `StructureDensityOracle` | 采样点集 | 全部一致 | 覆盖 Beardifier 的四种地形适配（bury / beard_thin / beard_box / encapsulate） |
 | `structure_starts` | 原版 jar `StructureStartsOracle` | 542 个区块（候选区块 + 邻居 + 空白区块，两个种子 × 主世界/末地） | 494 个单元逐片段一致；528/540 个单元选中同一结构 | 见下方「结构起点：已查出的问题」 |
-| `villager_list` | 原版 jar `VillagerTradesOracle` | 13（每职业整张交易表，5 个等级的全部条目） | 全部一致 | — |
-| `villager_price` | 原版 jar `VillagerTradesOracle` | 1137（基础代价 × 需求 × 乘数 × 特殊价格） | 全部一致 | — |
-| `villager_restock` | 原版 jar `VillagerTradesOracle` | 600（单条交易 + 多条交易） | 全部一致 | — |
-| `villager_gen` | 原版 jar `VillagerTradesOracle` | 390（13 职业 × 5 等级 × 6 种子） | 355/390 一致；35 个附魔内容差异已登记 | 见下方「村民交易：已查出的问题」 |
 | `piston_movement` | 原版 jar `PistonMovementOracle` | 523 个场景（链条 / 粘性分支 / 随机混合台 / 收回） | 全部一致 | — |
 | `experience` | 原版 jar `ExperienceOracle` | 440 个操作序列（公式阶梯 / 单次加点 / 扣点 / 加减等级 / 随机） | 全部一致 | — |
 | `potion` | 原版 jar `PotionOracle` | 46 种药水（基础名 / 效果列表 / 瞬时效果 / 三种前缀翻译键） | 全部一致 | — |
@@ -423,6 +417,24 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `enchantment_compat` | 原版 jar `EnchantmentCompatOracle` | 155 个附魔配对 | 全部一致 | 纯计算，附魔互斥性（`areCompatible`） |
 | `section_pos` | 原版 jar `SectionPosOracle` | 40 个坐标换算用例 | 全部一致 | 纯计算，`>>4` 向下取整、22/20 位编码 |
 | `level_height` | 原版 jar `LevelHeightOracle` | 41 个高度范围用例 | 全部一致 | 纯计算，maxY 含上界、分区数按跨区块算 |
+| `walk_path_type` | 原版 jar | — | — | 缺少文档，待补 |
+| `path_finder` | 原版 jar | — | — | 缺少文档，待补 |
+| `fly_path_finder` | 原版 jar | — | — | 缺少文档，待补 |
+| `villager_trades` | 原版 jar | — | — | 缺少文档，待补 |
+| `enchantment_selection` | 原版 jar `EnchantmentSelectionOracle` | 168 个单元 | 105 一致，63 已知差异 | 附魔选择 |
+| `repair_cost` | 原版 jar `RepairCostOracle` | 14 种代价组合 | 全部一致 | 纯计算，铁砧修复代价 |
+| `anvil_durability` | 原版 jar `AnvilDurabilityOracle` | 16 种耐久组合 | 全部一致 | 纯计算，铁砧合并耐久 |
+| `item_stackable` | 原版 jar `ItemStackableOracle` | 23 个「物品 × 损伤」 | 22 一致，1 已知差异 | 可堆叠判定 |
+| `item_same_components` | 原版 jar `ItemSameComponentsOracle` | 12 组配对 | 全部一致 | 组件相等判定 |
+| `furnace_tick` | 原版 jar `FurnaceTickOracle` | 12 种状态组合 | 全部一致 | 纯计算，熔炉状态机 |
+| `brewing_tick` | 原版 jar `BrewingTickOracle` | 12 种状态组合 | 全部一致 | 纯计算，酿造台状态机 |
+| `beacon_effects` | 原版 jar `BeaconEffectsOracle` | 10 种层级 × 效果 | 全部一致 | 信标效果 |
+| `hopper_cooldown` | 原版 jar `HopperCooldownOracle` | 10 种冷却状态 | 全部一致 | 纯计算，漏斗冷却时序 |
+| `mth_rounding` | 原版 jar `MthRoundingOracle` | 21 个取整输入 | 19 一致，2 已知差异 | 纯计算，`Mth` 取整 |
+| `mth_modulo` | 原版 jar `MthModuloOracle` | 31 个取模/角度输入 | 全部一致 | 纯计算，`Mth` 取模 |
+| `direction_rotate` | 原版 jar `DirectionRotateOracle` | 43 个方向/角度输入 | 全部一致 | 纯计算，方向旋转 |
+| `aabb_ops` | 原版 jar `AabbOpsOracle` | 19 个几何运算 | 全部一致 | 纯计算（Cubium 无 AABB 类） |
+| `spawner_delay` | 原版 jar `SpawnerDelayOracle` | 15 种延迟状态组合 | 全部一致 | 纯计算，`-1` 哨兵、区间退化 |
 
 `loot_function` 把范围从「整张表掷出来什么」收窄到**单个函数**：两侧各现场造一张「1 个池
 + 1 个必定产出一条物品」的表，表级只挂一个函数，然后在同一批种子上掷 4 次。差异因此只
