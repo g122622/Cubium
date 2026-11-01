@@ -155,6 +155,7 @@ import { chunkRegionInput } from "./chunk_region.ts";
 import { portalRelativeInput } from "./portal_relative.ts";
 import { relativeMaskInput } from "./relative_mask.ts";
 import { positionMoveRotationInput } from "./position_move_rotation.ts";
+import { styleApplyInput } from "./style_apply.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1038,6 +1039,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 传送目标计算：相对/绝对语义、xRot 钳到 ±90、ROTATE_DELTA 旋转速度。
     { name: "position_move_rotation", probe: "position_move_rotation", oracle: "PositionMoveRotationOracle",
         key: "unit", units: { kind: "listing" }, input: positionMoveRotationInput },
+    // Style 应用：applyFormat 换色保格式、applyLegacyFormat 换色清格式、applyTo 是 this 优先。
+    { name: "style_apply", probe: "style_apply", oracle: "StyleApplyOracle",
+        key: "unit", units: { kind: "listing" }, input: styleApplyInput },
+
 
 
 
