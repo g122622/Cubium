@@ -120,6 +120,7 @@ import { sectionPosInput } from "./section_pos.ts";
 import { levelHeightInput } from "./level_height.ts";
 import { chunkPosInput } from "./chunk_pos.ts";
 import { mthClampInput } from "./mth_clamp.ts";
+import { chatFormattingInput } from "./chat_formatting.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -894,6 +895,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth 钳制族：浮点 clamp 用 < 而非 Math.max、短路上下界，纯计算。
     { name: "mth_clamp", probe: "mth_clamp", oracle: "MthClampOracle",
         key: "unit", units: { kind: "listing" }, input: mthClampInput },
+    // 格式码：strip 字符集有限、getById 负数返回 RESET，纯计算。
+    { name: "chat_formatting", probe: "chat_formatting", oracle: "ChatFormattingOracle",
+        key: "unit", units: { kind: "listing" }, input: chatFormattingInput },
+
 
 
 
