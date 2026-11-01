@@ -148,6 +148,7 @@ import { identifierPathInput } from "./identifier_path.ts";
 import { blockPosIterateInput } from "./blockpos_iterate.ts";
 import { blockPosSpiralInput } from "./blockpos_spiral.ts";
 import { aabbFactoryInput } from "./aabb_factory.ts";
+import { frontAndTopInput } from "./front_and_top.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1010,6 +1011,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // AABB 工厂：+1 只在 max 侧、getCenter 走 Mth.lerp、intersect 不相交时返回负尺寸盒。
     { name: "aabb_factory", probe: "aabb_factory", oracle: "AabbFactoryOracle",
         key: "unit", units: { kind: "listing" }, input: aabbFactoryInput },
+    // FrontAndTop：构造函数参数是 (name, front, top)，36 种组合只有 12 种合法。
+    { name: "front_and_top", probe: "front_and_top", oracle: "FrontAndTopOracle",
+        key: "unit", units: { kind: "listing" }, input: frontAndTopInput },
+
 
 
 
