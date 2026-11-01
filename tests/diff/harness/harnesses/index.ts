@@ -123,6 +123,7 @@ import { mthClampInput } from "./mth_clamp.ts";
 import { chatFormattingInput } from "./chat_formatting.ts";
 import { dyeColorInput } from "./dye_color.ts";
 import { equipmentSlotInput } from "./equipment_slot.ts";
+import { heightmapTypesInput } from "./heightmap_types.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -906,6 +907,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 装备槽位：isArmor 含 BODY 不含 SADDLE、id 有空洞，纯计算。
     { name: "equipment_slot", probe: "equipment_slot", oracle: "EquipmentSlotOracle",
         key: "unit", units: { kind: "listing" }, input: equipmentSlotInput },
+    // 高度图：液体算 MOTION_BLOCKING 不算 OCEAN_FLOOR，纯计算。
+    { name: "heightmap_types", probe: "heightmap_types", oracle: "HeightmapTypesOracle",
+        key: "unit", units: { kind: "listing" }, input: heightmapTypesInput },
+
 
 
 

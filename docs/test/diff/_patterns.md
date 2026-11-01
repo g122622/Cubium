@@ -306,3 +306,40 @@ Test-Path "tests/diff/probes/<name>.cpp"
 **排查提示**：看到 `hex escape sequence out of range` 就去找十六进制转义后面的十六进制字符。
 
 另注：`\xc2` 与 `\xa7` 之间不需要隔开——`\xc2` 之后的 `\` 不是十六进制字符，自然终止。
+
+---
+
+## 十七、合成测试数据必须自校验「它对应真实对象」
+
+当探针用**构造的抽象属性**描述原版对象（而不是直接引用真实数据）时，oracle 需要把这些属性
+映射回真实对象才能调用原版方法。**这段映射必须自校验**。
+
+**已发生的问题**：`heightmap_types` 用 `<air>|<blocksMotion>|<hasFluid>|<isLeaves>` 四元组
+描述方块。我假设「树叶不阻挡移动」，写了 `0001`（`motion=0`）。实际 `OAK_LEAVES` 的
+`blocksMotion()` 返回 **`true`**。
+
+若没有校验，两侧会**一致地**使用我编造的错误属性，测试「通过」但毫无意义——这是最危险的
+假绿。
+
+**做法**：在 oracle 的映射函数里，构造出真实对象后立刻回读它的全部相关属性，与输入四元组
+逐项比对，不符就抛异常：
+
+```java
+BlockState state = block.defaultBlockState();
+boolean actualMotion = state.blocksMotion();
+boolean actualFluid  = !state.getFluidState().isEmpty();
+boolean actualLeaves = block instanceof LeavesBlock;
+if (actualAir != air || actualMotion != blocksMotion || ...) {
+    throw new IllegalStateException("方块的属性与四元组不符：" + unit + " -> " + key);
+}
+```
+
+**收益**：这条校验在第一次运行就报出了我的错误假设，并指明了不匹配的具体方块
+（`minecraft:oak_leaves`）。
+
+**适用场景**：任何「探针侧用简化描述、oracle 侧需还原为原版对象」的能力。若无法还原为真实
+对象（原版根本没有这种组合），**应当删掉该用例**，而不是登记为「已知缺口」——测一个不存在的
+情况没有意义。
+
+这条与第五条（只读源码片段导致误判）、第九条（错误路径也会被框架捕获）互补：那两条讲「实现
+错」，本条讲「测试数据本身错」。
