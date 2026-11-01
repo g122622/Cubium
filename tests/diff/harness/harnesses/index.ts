@@ -154,6 +154,7 @@ import { boundingBoxEncapInput } from "./bounding_box_encap.ts";
 import { chunkRegionInput } from "./chunk_region.ts";
 import { portalRelativeInput } from "./portal_relative.ts";
 import { relativeMaskInput } from "./relative_mask.ts";
+import { positionMoveRotationInput } from "./position_move_rotation.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1034,6 +1035,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Relative 位掩码：rotation 首个参数是 Y_ROT、Y_ROT 的位是 8（X_ROT 是 16）、忽略高位。
     { name: "relative_mask", probe: "relative_mask", oracle: "RelativeMaskOracle",
         key: "unit", units: { kind: "listing" }, input: relativeMaskInput },
+    // 传送目标计算：相对/绝对语义、xRot 钳到 ±90、ROTATE_DELTA 旋转速度。
+    { name: "position_move_rotation", probe: "position_move_rotation", oracle: "PositionMoveRotationOracle",
+        key: "unit", units: { kind: "listing" }, input: positionMoveRotationInput },
+
 
 
 
