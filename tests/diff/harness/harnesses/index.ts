@@ -141,6 +141,7 @@ import { mthSeedInput } from "./mth_seed.ts";
 import { mthPackDegreesInput } from "./mth_pack_degrees.ts";
 import { mthDegreesInput } from "./mth_degrees.ts";
 import { mthFracInput } from "./mth_frac.ts";
+import { mthSqrtInput } from "./mth_sqrt.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -982,6 +983,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 小数部分：frac(float) 的 floor 是 int，大输入会饱和失效。
     { name: "mth_frac", probe: "mth_frac", oracle: "MthFracOracle",
         key: "unit", units: { kind: "listing" }, input: mthFracInput },
+    // 平方根：fastInvSqrt 是近似算法且无特殊值保护，sqrt 走 double 再降 float。
+    { name: "mth_sqrt", probe: "mth_sqrt", oracle: "MthSqrtOracle",
+        key: "unit", units: { kind: "listing" }, input: mthSqrtInput },
+
 
 
 
