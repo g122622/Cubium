@@ -106,6 +106,7 @@ import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
 import { enchantmentStorageInput } from "./enchantment_storage.ts";
 import { collideSweepInput } from "./collide_sweep.ts";
+import { shapesBooleanInput } from "./shapes_boolean.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -838,6 +839,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 实体碰撞扫描：Y 轴永远第一、主轴最后推进、1e-7 容差，纯计算。
     { name: "collide_sweep", probe: "collide_sweep", oracle: "CollideSweepOracle",
         key: "unit", units: { kind: "listing" }, input: collideSweepInput },
+    // VoxelShape 布尔组合：16 种 BooleanOp 的逐格语义，TRUE 被断言拒绝，纯计算。
+    { name: "shapes_boolean", probe: "shapes_boolean", oracle: "ShapesBooleanOracle",
+        key: "unit", units: { kind: "listing" }, input: shapesBooleanInput },
+
 
 
 
