@@ -108,6 +108,7 @@ import { enchantmentStorageInput } from "./enchantment_storage.ts";
 import { collideSweepInput } from "./collide_sweep.ts";
 import { shapesBooleanInput } from "./shapes_boolean.ts";
 import { fluidSpreadInput } from "./fluid_spread.ts";
+import { fluidSpreadDirInput } from "./fluid_spread_dir.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -846,6 +847,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 流体扩散：高度 amount/9、下落等级固定 7、坡度上限按流体区分，纯计算。
     { name: "fluid_spread", probe: "fluid_spread", oracle: "FluidSpreadOracle",
         key: "unit", units: { kind: "listing" }, input: fluidSpreadInput },
+    // 流体扩散方向选择：就近全保留、best 无条件赋值，纯计算。
+    { name: "fluid_spread_dir", probe: "fluid_spread_dir", oracle: "FluidSpreadDirOracle",
+        key: "unit", units: { kind: "listing" }, input: fluidSpreadDirInput },
+
 
 
 
