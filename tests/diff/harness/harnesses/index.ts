@@ -85,6 +85,7 @@ import { repairCostInput } from "./repair_cost.ts";
 import { anvilDurabilityInput } from "./anvil_durability.ts";
 import { itemStackableInput } from "./item_stackable.ts";
 import { itemSameComponentsInput } from "./item_same_components.ts";
+import { furnaceTickInput } from "./furnace_tick.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -744,6 +745,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 同物品且同组件：两空视为相同、matches 额外要求数量相等，纯计算。
     { name: "item_same_components", probe: "item_same_components", oracle: "ItemSameComponentsOracle",
         key: "unit", units: { kind: "listing" }, input: itemSameComponentsInput },
+    // 熔炉每 tick 状态机：燃烧计时 + 烹饪计时，熄灭后进度减 2 而非归零，纯计算。
+    { name: "furnace_tick", probe: "furnace_tick", oracle: "FurnaceTickOracle",
+        key: "unit", units: { kind: "listing" }, input: furnaceTickInput },
+
 
 
 
