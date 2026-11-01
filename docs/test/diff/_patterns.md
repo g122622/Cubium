@@ -181,3 +181,23 @@ Cubium 恒为 false、在原版恒为 true。必须**先判「两个都空」**�
 6. 检查是否涉及浮点中间值比较 → 若是，先考虑 `-ffast-math` 改写；
 7. 检查是否有构造函数带归一化 → 若是，用工厂函数统一复刻；
 8. 判断差异是「实现缺陷」还是「语言语义差异」→ 后者登记 `knownDifferences`。
+## 十二、回调收到的是可变对象，不能存引用
+
+原版的遍历/访问类 API（`BlockPos.breadthFirstTraversal`、`BlockPos.betweenClosed` 等）大量
+复用**可变**的位置对象。若在回调里把接收到的对象直接存进列表：
+
+```java
+(pos, consumer) -> { order.add(pos); }   // 错：所有条目指向同一个可变实例
+```
+
+最终列表里每个元素的内容都会变成**最后一次写入**的坐标。即使调 `pos.immutable()` 也可能
+无效——`pos` 传进回调时其内容已经可能与调用时的逻辑位置不一致。
+
+**正确做法**：在**更早**的回调里取值（例如 `BlockPos.breadthFirstTraversal` 的 `nodeStatus`
+在 `consumer` 之前调用），或立刻把内容复制成不可变值（`pos.asLong()`、新建常量对象）。
+
+**这个坑在 `blockpos_bfs` 上实际发生过**：`count` 全部正确、`order` 却只记录到 1~7 个元素，
+看起来像「遍历提前结束」，实际是引用复用。
+
+---
+

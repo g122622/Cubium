@@ -109,6 +109,7 @@ import { collideSweepInput } from "./collide_sweep.ts";
 import { shapesBooleanInput } from "./shapes_boolean.ts";
 import { fluidSpreadInput } from "./fluid_spread.ts";
 import { fluidSpreadDirInput } from "./fluid_spread_dir.ts";
+import { blockposBfsInput } from "./blockpos_bfs.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -850,6 +851,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 流体扩散方向选择：就近全保留、best 无条件赋值，纯计算。
     { name: "fluid_spread_dir", probe: "fluid_spread_dir", oracle: "FluidSpreadDirOracle",
         key: "unit", units: { kind: "listing" }, input: fluidSpreadDirInput },
+    // BFS 遍历：去重在状态判断前、STOP 中断、计数先自增后比较，纯计算。
+    { name: "blockpos_bfs", probe: "blockpos_bfs", oracle: "BlockPosBfsOracle",
+        key: "unit", units: { kind: "listing" }, input: blockposBfsInput },
+
 
 
 
