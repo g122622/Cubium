@@ -159,6 +159,7 @@ import { styleApplyInput } from "./style_apply.ts";
 import { textColorInput } from "./text_color.ts";
 import { clickEventInput } from "./click_event.ts";
 import { hoverEventInput } from "./hover_event.ts";
+import { identifierResolveInput } from "./identifier_resolve.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1054,6 +1055,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 悬停事件：三个动作全部允许来自服务端（与 click_event 的 OPEN_FILE 对照）。
     { name: "hover_event", probe: "hover_event", oracle: "HoverEventOracle",
         key: "unit", units: { kind: "listing" }, input: hoverEventInput },
+    // Identifier 构造入口：withDefaultNamespace 不解析冒号（整个串当路径）。
+    { name: "identifier_resolve", probe: "identifier_resolve", oracle: "IdentifierResolveOracle",
+        key: "unit", units: { kind: "listing" }, input: identifierResolveInput },
+
 
 
 
