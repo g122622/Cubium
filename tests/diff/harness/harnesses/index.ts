@@ -145,6 +145,7 @@ import { mthSqrtInput } from "./mth_sqrt.ts";
 import { stringUtilInput } from "./string_util.ts";
 import { identifierParseInput } from "./identifier_parse.ts";
 import { identifierPathInput } from "./identifier_path.ts";
+import { blockPosIterateInput } from "./blockpos_iterate.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -998,6 +999,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 标识符派生：toLanguageKey 保留 /、toDebugFileName 保留点、withPrefix 会重新校验。
     { name: "identifier_path", probe: "identifier_path", oracle: "IdentifierPathOracle",
         key: "unit", units: { kind: "listing" }, input: identifierPathInput },
+    // 区间遍历：x 最快、z 最慢；六参版本不归一化，两参版本会归一化。
+    { name: "blockpos_iterate", probe: "blockpos_iterate", oracle: "BlockPosIterateOracle",
+        key: "unit", units: { kind: "listing" }, input: blockPosIterateInput },
+
 
 
 
