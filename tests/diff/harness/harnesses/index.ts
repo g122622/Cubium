@@ -181,6 +181,7 @@ import { blockStateEnumStringsInput } from "./block_state_enum_strings.ts";
 import { blockStateEnumStrings2Input } from "./block_state_enum_strings_2.ts";
 import { blockStateEnumStrings3Input } from "./block_state_enum_strings_3.ts";
 import { booleanPropertyIndexInput } from "./boolean_property_index.ts";
+import { enumPropertyOrderInput } from "./enum_property_order.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1171,6 +1172,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 布尔属性内部值顺序：原版 true 在 false 之前，Cubium 相反（无害，见文档）。
     { name: "boolean_property_index", probe: "boolean_property_index", oracle: "BooleanPropertyIndexOracle",
         key: "unit", units: { kind: "listing" }, input: booleanPropertyIndexInput },
+    // 枚举属性值顺序：原版 FACING 是显式列表 NORTH,EAST,SOUTH,WEST,UP,DOWN。
+    { name: "enum_property_order", probe: "enum_property_order", oracle: "EnumPropertyOrderOracle",
+        key: "unit", units: { kind: "listing" }, input: enumPropertyOrderInput },
+
 
 
 

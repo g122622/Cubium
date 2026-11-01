@@ -328,19 +328,45 @@ public:
 
     /**
      * @brief 朝向属性（所有6个方向）
+     *
+     * 对齐 MC 1.21.11 的 `BlockStateProperties.FACING`，**用显式列表而不是枚举声明顺序**：
+     *
+     * ```java
+     * public static final EnumProperty<Direction> FACING = EnumProperty.create(
+     *     "facing", Direction.class,
+     *     Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST,
+     *     Direction.UP, Direction.DOWN);
+     * ```
+     *
+     * 这个顺序决定了**调试棒**点击一次后的演化路径（`DebugStickItem` 的 `getRelative`
+     * 基于 `getPossibleValues()` 的索引），也决定了内部状态调色板的偏移。
      */
     static const DirectionProperty& FACING()
     {
-        static auto prop = DirectionProperty::create("facing");
+        static auto prop = DirectionProperty::create("facing",
+            {Direction::North, Direction::East, Direction::South, Direction::West, Direction::Up, Direction::Down});
         return *prop;
     }
 
     /**
      * @brief 朝向属性（仅水平方向）
+     *
+     * 对齐 MC 1.21.11 的 `BlockStateProperties.HORIZONTAL_FACING`，它取
+     * `Direction.Plane.HORIZONTAL`，即按 `Direction.data2d` 升序排序：
+     *
+     * | 方向 | data2d |
+     * |---|---|
+     * | `SOUTH` | 0 |
+     * | `WEST` | 1 |
+     * | `NORTH` | 2 |
+     * | `EAST` | 3 |
+     *
+     * 注意：**不能**用 `Directions::horizontal()`（那是 `NORTH, EAST, SOUTH, WEST`）。
      */
     static const DirectionProperty& HORIZONTAL_FACING()
     {
-        static auto prop = DirectionProperty::createHorizontal("facing");
+        static auto prop =
+            DirectionProperty::create("facing", {Direction::North, Direction::South, Direction::West, Direction::East});
         return *prop;
     }
 
