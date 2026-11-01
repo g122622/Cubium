@@ -113,6 +113,7 @@ import { blockposBfsInput } from "./blockpos_bfs.ts";
 import { scheduledTickInput } from "./scheduled_tick.ts";
 import { randomTickPosInput } from "./random_tick_pos.ts";
 import { mthColorInput } from "./mth_color.ts";
+import { blockTransformInput } from "./block_transform.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -866,6 +867,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // HSV 转 RGB 与 murmur3 混合：截断取整、逻辑右移，纯计算。
     { name: "mth_color", probe: "mth_color", oracle: "MthColorOracle",
         key: "unit", units: { kind: "listing" }, input: mthColorInput },
+    // Rotation/Mirror 变换：Y 轴不受旋转、镜像只翻转垂直轴，纯计算。
+    { name: "block_transform", probe: "block_transform", oracle: "BlockTransformOracle",
+        key: "unit", units: { kind: "listing" }, input: blockTransformInput },
+
 
 
 
