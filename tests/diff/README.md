@@ -69,6 +69,7 @@ tests/diff/
 │   ├── fuel_values.cpp          # 每种物品作为燃料的燃烧时长
 │   ├── block_sound_type.cpp     # 方块声音组（五个音效事件 + 音量 + 音调）
 │   ├── crop_growth.cpp          # 作物一次随机刻（生长速率 / 抽芽 / 结果 / 耕地保墒）
+│   ├── redstone_signal.cpp      # 红石信号（六方向 × 强 / 弱 × 关掉自我屏蔽）
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -106,6 +107,7 @@ tests/diff/
 │   │   ├── fuel_values.ts       # 燃料燃烧时长的比对口径（0 表示不是燃料）
 │   │   ├── block_sound_type.ts  # 方块声音组的比对口径（补齐七个字段）
 │   │   ├── crop_growth.ts       # 作物随机刻的比对口径（速率 / 结果 / 邻居 / 脚下）
+│   │   ├── redstone_signal.ts   # 红石信号的比对口径（方向表统一键序）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -356,6 +358,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505（全部已注册物品） | 全部一致 | 见下文 |
 | `block_sound_type` | 原版 jar `BlockSoundTypeOracle` | 1167（全部方块 + 饰纹陶罐裂纹状态） | 全部一致 | 见下文 |
 | `crop_growth` | 原版 jar `CropGrowthOracle` | 26 个手工地形场景 | 全部一致 | 见下文 |
+| `redstone_signal` | 原版 jar `RedstoneSignalOracle` | 41 个手工地形场景 | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -531,6 +534,43 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 - **天空光照在临时世界里恒为 0**（线程化光照引擎不跑 tick、`runLightUpdates` 直接抛
   异常）。光照是环境输入而非被测逻辑，所以场景不靠光照区分明暗，而是用「上方盖一块
   实心方块」表达暗处——两侧同一条约定。
+
+`redstone_signal` 比的是**红石信号**：给定同一片地形，某个方块朝六个方向各输出多少
+强度。单元是 41 个手工编的场景（拉杆的八种附着方式、红石块、红石火把、观察者、
+石头 / 玻璃 / 台阶三种「导体候选」、红石线的八种邻里关系），每个场景给一片 5×5×3 的
+薄片，主语固定在中心格，紧贴它的六个邻居随场景变化。
+
+为什么值得比：红石是一套「方块问邻居要信号」的协议，强度、方向、强 / 弱之分，任何
+一处与原版不一致，玩家搭出来的电路就会整体失灵——中继器不亮、门不开、活塞不推。
+它不会崩溃、不会报错，只是「做得和原版不一样」。
+
+字段严格对应原版的三条查询入口，不自创口径：
+
+- `signal` → `SignalGetter#getSignal`：先问方块自己，若它是红石导体再叠加
+  `getDirectSignalTo`。**这是电路真正「看到」的那个值**。
+- `weak` → `BlockBehaviour#getSignal`（常说的「弱信号」）。
+- `strong` → `BlockBehaviour#getDirectSignal`（常说的「强信号」）。
+
+三者不是同一件事的不同名字：红石块 `weak` 处处 15 而 `strong` 处处 0；被火把点亮
+的石头 `weak` 处处 0 而 `strong` 处处 15。电路失效恰恰常发生在这两个混淆上。
+
+首轮跑通查出三处差异，全部修掉：
+
+- **红石导体判据**：Cubium 原用「实体且不透明」，把单层台阶、楼梯误判为导体，于是
+  「火把在台阶正下方」时凭空向四周输出满功率（原版此处为 0）。改为「碰撞形状完整覆盖
+  整格 **且** 不透明」——两个判据缺一不可（只看形状会把玻璃、红石块误判为导体，原版
+  对这两者都显式注册成 never）。
+- **场景地形的坐标约定**：两侧的测试地形最初把邻居写在「相对中心偏移两格」的位置，
+  与探针的约定差一格，邻居实际不在主语的六个方向上，答案全是 0。
+
+另外两处是实现上的坑，记下来供后续能力复用：
+
+- **临时世界的地形必须直写区块存储，且要跳过方块回调**。红石线的 `onPlace` 会走
+  `updatePowerStrength`，而它第一条判定就是「脚下有没有支撑」——地形逐格铺时支撑可能
+  还没摆上，红石线会被自己判为非法、原地变回空气。oracle 用
+  `Block.UPDATE_SKIP_ALL_SIDEEFFECTS` 直写存储。
+- **清空范围必须比地形本身更大一圈**。下层中心格在 y=-2、上层在 y=+2，清到 y∈[-2,1]
+  会把上一次场景遗留的上层方块留在原地，个别场景因此莫名其妙地不一致。
 
 `fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
 单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。
