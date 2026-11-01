@@ -125,6 +125,7 @@ import { dyeColorInput } from "./dye_color.ts";
 import { equipmentSlotInput } from "./equipment_slot.ts";
 import { heightmapTypesInput } from "./heightmap_types.ts";
 import { mthIntDivInput } from "./mth_int_div.ts";
+import { directionPlaneInput } from "./direction_plane.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -914,6 +915,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 整数除法与 2 的幂：floorDiv 向下取整、smallest(0)=0，纯计算。
     { name: "mth_int_div", probe: "mth_int_div", oracle: "MthIntDivOracle",
         key: "unit", units: { kind: "listing" }, input: mthIntDivInput },
+    // 方向数据值：2D id 与 3D id 顺序相反、负数 id 取绝对值回绕，纯计算。
+    { name: "direction_plane", probe: "direction_plane", oracle: "DirectionPlaneOracle",
+        key: "unit", units: { kind: "listing" }, input: directionPlaneInput },
+
 
 
 
