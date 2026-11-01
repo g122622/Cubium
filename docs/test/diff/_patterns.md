@@ -465,3 +465,64 @@ return Math.max(i, Math.max(j, k));
 **适用面**：任何「整数进、整数出」但内部经过 `float`/`double` 的原版方法。已覆盖的能力中
 `Mth.roundToward` 是纯整数（`positiveCeilDiv` 用 `Math.floorDiv`），而 `Vec3i.distManhattan`
 是浮点——两者从签名完全看不出区别。
+
+---
+
+## 二十一、原版对象可能根本没有「可构造的工厂」，此时只能退回常量基准
+
+**已发生的问题**：`fluid_height` 想让 oracle 直接调用 `FluidState.getAmount()`，用
+`Blocks.WATER.defaultBlockState().setValue(LEVEL, n)` 构造任意等级的流体状态。
+
+第一次运行即失败：
+
+```text
+IllegalArgumentException: Cannot set property IntegerProperty{name=level, ..., values=[1..8]}
+as it does not exist in Block{minecraft:water}
+```
+
+原因有两层：
+
+1. **`LEVEL` 挂在流体状态上，不在方块状态上。** `FlowingFluid.LEVEL` 等于
+   `BlockStateProperties.LEVEL_FLOWING`，而 `Blocks.WATER` 的**方块状态**没有 `level` 属性。
+2. **`FluidState` 没有公开的、可指定 level 的工厂。** 它是 `StateHolder`，只能由世界在实际流动
+   中产生。
+
+**因此「调用原版实现」这条路根本走不通**——不是参数写错，而是原版不提供这种构造能力。
+
+### 处理方式：退回常量基准，并如实标注
+
+oracle 改用原版**公开常量**作为计算基准：
+
+```java
+case "ownHeight" -> amount / (float) FluidState.AMOUNT_MAX;   // 分母取自原版常量
+```
+
+**关键点：分母取自 `FluidState.AMOUNT_MAX` 而非字面量 `9`。** 这样若原版修改该常量，oracle 会
+自动跟随，探针侧的硬编码 `9.0F` 就会暴露差异。
+
+### 能锁定与不能锁定
+
+| | 内容 |
+|---|---|
+| **能锁定** | 公式数值结果、`AMOUNT_MAX`/`AMOUNT_FULL` 取值、8 个离散高度的精确 `float` 表示 |
+| **不能锁定** | `getAmount()` 在真实世界中的取值逻辑（源头返回 8、流动返回 LEVEL）|
+
+**必须在能力文档与状态表中写明这个边界**，不能让它看起来像「完整验证了原版实现」。
+
+### 检出方法
+
+写 oracle 前先确认：**目标方法所在的类，是否有能构造出「任意参数组合」的公开途径？**
+
+- 枚举 / 静态表 / 公开构造器 → 可以直接构造 ✅
+- 需要世界（`BlockGetter` / `Level` / `ChunkAccess`）→ world 型，标注不可行
+- 只由世界内部产生的状态对象（`FluidState`）→ **退回常量基准**
+
+### 与「格式化精度」的交叉陷阱
+
+本能力还有一处必须注意的地方：`n / 9.0F` 的 `float` 结果末位与 `double` 不同
+（`8/9` 是 `0.888888896` 而非 `0.888888889`）。
+
+**若用 `%.6g`，这个差异会被格式化截断掩盖，形成假一致。** 本能力因此改用 `%.9g`。
+
+**规则**：当被验证的公式产出 `float`（而非 `double`）时，格式化位数必须足以区分 `float` 与
+`double` 的差异——`%.9g` 是安全的，`%.6g` 不够。
