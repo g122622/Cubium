@@ -116,6 +116,7 @@ import { mthColorInput } from "./mth_color.ts";
 import { blockTransformInput } from "./block_transform.ts";
 import { boundingBoxInput } from "./bounding_box.ts";
 import { enchantmentCompatInput, listEnchantmentCompatUnits } from "./enchantment_compat.ts";
+import { sectionPosInput } from "./section_pos.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -878,6 +879,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 附魔互斥性：同一附魔不兼容、双向或关系，纯计算。
     { name: "enchantment_compat", probe: "enchantment_compat", oracle: "EnchantmentCompatOracle",
         key: "unit", units: { kind: "computed", units: listEnchantmentCompatUnits }, input: enchantmentCompatInput },
+    // 区块坐标换算：算术右移、22/20 位编码，纯计算。
+    { name: "section_pos", probe: "section_pos", oracle: "SectionPosOracle",
+        key: "unit", units: { kind: "listing" }, input: sectionPosInput },
+
 
 
 
