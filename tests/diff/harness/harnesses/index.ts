@@ -84,6 +84,7 @@ import { enchantmentSelectionInput, enchantmentSelectionUnits } from "./enchantm
 import { repairCostInput } from "./repair_cost.ts";
 import { anvilDurabilityInput } from "./anvil_durability.ts";
 import { itemStackableInput } from "./item_stackable.ts";
+import { itemSameComponentsInput } from "./item_same_components.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -739,6 +740,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
             field: "stackable",
             reason: "同上：air 在 Cubium 侧不是空栈，因此被判为可堆叠"
         }] },
+
+    // 同物品且同组件：两空视为相同、matches 额外要求数量相等，纯计算。
+    { name: "item_same_components", probe: "item_same_components", oracle: "ItemSameComponentsOracle",
+        key: "unit", units: { kind: "listing" }, input: itemSameComponentsInput },
 
 
 
