@@ -92,6 +92,7 @@ import { hopperCooldownInput } from "./hopper_cooldown.ts";
 import { spawnerDelayInput } from "./spawner_delay.ts";
 import { mthRoundingInput } from "./mth_rounding.ts";
 import { mthModuloInput } from "./mth_modulo.ts";
+import { directionRotateInput } from "./direction_rotate.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -782,6 +783,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth.positiveModulo 与 Mth.wrapDegrees：区间端点不对称、% 的结果范围前提，纯计算。
     { name: "mth_modulo", probe: "mth_modulo", oracle: "MthModuloOracle",
         key: "unit", units: { kind: "listing" }, input: mthModuloInput },
+    // Direction 旋转与 Y 轴角度：轴向旋转对垂直方向返回自身、南为 0 度，纯计算。
+    { name: "direction_rotate", probe: "direction_rotate", oracle: "DirectionRotateOracle",
+        key: "unit", units: { kind: "listing" }, input: directionRotateInput },
+
 
 
 
