@@ -160,6 +160,7 @@ import { textColorInput } from "./text_color.ts";
 import { clickEventInput } from "./click_event.ts";
 import { hoverEventInput } from "./hover_event.ts";
 import { identifierResolveInput } from "./identifier_resolve.ts";
+import { plainTextContentsInput } from "./plain_text_contents.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1058,6 +1059,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Identifier 构造入口：withDefaultNamespace 不解析冒号（整个串当路径）。
     { name: "identifier_resolve", probe: "identifier_resolve", oracle: "IdentifierResolveOracle",
         key: "unit", units: { kind: "listing" }, input: identifierResolveInput },
+    // 纯文本内容：空串折叠为 EMPTY 单例，toString 是裸词 empty（不是 literal{}）。
+    { name: "plain_text_contents", probe: "plain_text_contents", oracle: "PlainTextContentsOracle",
+        key: "unit", units: { kind: "listing" }, input: plainTextContentsInput },
+
 
 
 
