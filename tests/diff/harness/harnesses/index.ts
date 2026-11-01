@@ -178,6 +178,7 @@ import { uuidStringsInput } from "./uuid_strings.ts";
 import { gameTypeInput } from "./game_type.ts";
 import { mapDecorationTypeInput } from "./map_decoration_type.ts";
 import { blockStateEnumStringsInput } from "./block_state_enum_strings.ts";
+import { blockStateEnumStrings2Input } from "./block_state_enum_strings_2.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1159,6 +1160,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 方块状态枚举字符串：**探针对接 Cubium 的 EnumProperty Traits**。
     { name: "block_state_enum_strings", probe: "block_state_enum_strings", oracle: "BlockStateEnumStringsOracle",
         key: "unit", units: { kind: "listing" }, input: blockStateEnumStringsInput },
+    // 第二组方块状态枚举：PistonType.DEFAULT 序列化名是 normal。
+    { name: "block_state_enum_strings_2", probe: "block_state_enum_strings_2", oracle: "BlockStateEnumStrings2Oracle",
+        key: "unit", units: { kind: "listing" }, input: blockStateEnumStrings2Input },
+
 
 
 
