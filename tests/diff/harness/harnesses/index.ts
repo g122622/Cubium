@@ -135,6 +135,7 @@ import { mthInverseLerpInput } from "./mth_inverse_lerp.ts";
 import { mthAngleLerpInput } from "./mth_angle_lerp.ts";
 import { mthWaveformInput } from "./mth_waveform.ts";
 import { mthHsvInput } from "./mth_hsv.ts";
+import { argbOpsInput } from "./argb_ops.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -954,6 +955,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // HSV 转换：hue=1.0 回绕到红色、分量截断不四舍五入、alpha 恒 0。
     { name: "mth_hsv", probe: "mth_hsv", oracle: "MthHsvOracle",
         key: "unit", units: { kind: "listing" }, input: mthHsvInput },
+    // ARGB 通道与混合：alpha 用无符号右移、三参 color 的 alpha 是 255。
+    { name: "argb_ops", probe: "argb_ops", oracle: "ArgbOpsOracle",
+        key: "unit", units: { kind: "listing" }, input: argbOpsInput },
+
 
 
 
