@@ -90,6 +90,7 @@ import { brewingTickInput } from "./brewing_tick.ts";
 import { beaconEffectsInput } from "./beacon_effects.ts";
 import { hopperCooldownInput } from "./hopper_cooldown.ts";
 import { spawnerDelayInput } from "./spawner_delay.ts";
+import { mthRoundingInput } from "./mth_rounding.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -764,7 +765,19 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 刷怪笼生成延迟：-1 哨兵重置 + 区间退化取 min + 玩家范围前置条件，纯计算。
     { name: "spawner_delay", probe: "spawner_delay", oracle: "SpawnerDelayOracle",
         key: "unit", units: { kind: "listing" }, input: spawnerDelayInput },
-
+    // Mth.floor / Mth.ceil 取整语义：向零截断后比较，非 std::floor，纯计算。
+    { name: "mth_rounding", probe: "mth_rounding", oracle: "MthRoundingOracle",
+        key: "unit", units: { kind: "listing" },
+        input: mthRoundingInput,
+        // 超界输入：Java 的 (int) 转换对超界值饱和到 Integer.MAX_VALUE，而 C++ 的
+        // static_cast<i32>(double) 对超界值是未定义行为（本平台实测为 MIN_VALUE）。
+        // 这是语言层面的差异，不属于可修复的实现缺陷，因此登记为已知差异。
+        knownDifferences: [
+            { key: "3000000000", field: "floorF", reason: "Java (int) 饱和到 MAX_VALUE，C++ 转换超界为未定义行为" },
+            { key: "3000000000", field: "floorD", reason: "同上" },
+            { key: "-3000000000", field: "floorF", reason: "同上" },
+            { key: "-3000000000", field: "floorD", reason: "同上" }
+        ] },
 
 
 
