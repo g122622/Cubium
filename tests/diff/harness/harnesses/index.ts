@@ -170,6 +170,7 @@ import { soundSourceInput } from "./sound_source.ts";
 import { difficultyInput } from "./difficulty.ts";
 import { permissionLevelInput } from "./permission_level.ts";
 import { textFormattingColorInput } from "./text_formatting_color.ts";
+import { textFormattingNameInput } from "./text_formatting_name.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1098,6 +1099,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // ChatFormatting 颜色查询：**探针直接调用 Cubium 的 text::getFormattingColor 等**。
     { name: "text_formatting_color", probe: "text_formatting_color", oracle: "TextFormattingColorOracle",
         key: "unit", units: { kind: "listing" }, input: textFormattingColorInput },
+    // ChatFormatting 名字映射：**探针直接调用 Cubium 的 text::toName / fromName**。
+    { name: "text_formatting_name", probe: "text_formatting_name", oracle: "TextFormattingNameOracle",
+        key: "unit", units: { kind: "listing" }, input: textFormattingNameInput },
+
 
 
 
