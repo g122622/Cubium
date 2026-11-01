@@ -180,6 +180,7 @@ import { mapDecorationTypeInput } from "./map_decoration_type.ts";
 import { blockStateEnumStringsInput } from "./block_state_enum_strings.ts";
 import { blockStateEnumStrings2Input } from "./block_state_enum_strings_2.ts";
 import { blockStateEnumStrings3Input } from "./block_state_enum_strings_3.ts";
+import { booleanPropertyIndexInput } from "./boolean_property_index.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1167,6 +1168,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 第三组方块状态枚举：NoteBlockInstrument 有 23 项。
     { name: "block_state_enum_strings_3", probe: "block_state_enum_strings_3", oracle: "BlockStateEnumStrings3Oracle",
         key: "unit", units: { kind: "listing" }, input: blockStateEnumStrings3Input },
+    // 布尔属性内部值顺序：原版 true 在 false 之前，Cubium 相反（无害，见文档）。
+    { name: "boolean_property_index", probe: "boolean_property_index", oracle: "BooleanPropertyIndexOracle",
+        key: "unit", units: { kind: "listing" }, input: booleanPropertyIndexInput },
+
 
 
 
