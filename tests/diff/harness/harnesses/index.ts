@@ -133,6 +133,7 @@ import { aabbContainsInput } from "./aabb_contains.ts";
 import { fluidHeightInput } from "./fluid_height.ts";
 import { mthInverseLerpInput } from "./mth_inverse_lerp.ts";
 import { mthAngleLerpInput } from "./mth_angle_lerp.ts";
+import { mthWaveformInput } from "./mth_waveform.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -946,6 +947,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 角度插值：wrapDegrees 区间 (-180,180]、rotLerp 走短路、catmullrom 会过冲。
     { name: "mth_angle_lerp", probe: "mth_angle_lerp", oracle: "MthAngleLerpOracle",
         key: "unit", units: { kind: "listing" }, input: mthAngleLerpInput },
+    // 波形与缓动：triangleWave 负输入越界、smoothstep 不 clamp。
+    { name: "mth_waveform", probe: "mth_waveform", oracle: "MthWaveformOracle",
+        key: "unit", units: { kind: "listing" }, input: mthWaveformInput },
+
 
 
 
