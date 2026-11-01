@@ -172,6 +172,7 @@ import { permissionLevelInput } from "./permission_level.ts";
 import { textFormattingColorInput } from "./text_formatting_color.ts";
 import { textFormattingNameInput } from "./text_formatting_name.ts";
 import { styleTristateInput } from "./style_tristate.ts";
+import { teamRuleStringsInput } from "./team_rule_strings.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1108,6 +1109,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Style 三态序列化：**探针对接 Cubium 的 Style::toJson**，显式 false 必须写出。
     { name: "style_tristate", probe: "style_tristate", oracle: "StyleTristateOracle",
         key: "unit", units: { kind: "listing" }, input: styleTristateInput },
+    // 队伍规则字符串：**探针对接 Cubium 的 teamVisibilityToString 等**。
+    { name: "team_rule_strings", probe: "team_rule_strings", oracle: "TeamRuleStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: teamRuleStringsInput },
+
 
 
 

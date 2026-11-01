@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <optional>
 #include <string>
 
 namespace mc::scoreboard {
@@ -89,21 +90,39 @@ enum class TeamCollisionRule : u8 {
 }
 
 /**
- * @brief 从字符串解析 TeamVisibility
+ * @brief 严格解析 TeamVisibility（对应原版 CODEC.byName）
+ *
+ * 与原版语义一致：未知输入返回 std::nullopt，**不回退**。
+ * 存档读取等需要「显式拒绝/保留原值」的场景应使用本函数。
  *
  * @param str 字符串表示
- * @return 可见性枚举值，解析失败返回 Always
+ * @return 解析成功返回枚举值，失败返回 std::nullopt
  */
-[[nodiscard]] inline TeamVisibility teamVisibilityFromString(const std::string& str) noexcept
+[[nodiscard]] inline std::optional<TeamVisibility> teamVisibilityParse(const std::string& str) noexcept
 {
-    if (str == "never") {
+    if (str == "always") {
+        return TeamVisibility::Always;
+    } else if (str == "never") {
         return TeamVisibility::Never;
     } else if (str == "hideForOtherTeams") {
         return TeamVisibility::HideForOtherTeams;
     } else if (str == "hideForOwnTeam") {
         return TeamVisibility::HideForOwnTeam;
     }
-    return TeamVisibility::Always;
+    return std::nullopt;
+}
+
+/**
+ * @brief 从字符串解析 TeamVisibility（宽松入口）
+ *
+ * **未知输入回退到 Always**——调用方若需要拒绝非法输入，请改用 teamVisibilityParse。
+ *
+ * @param str 字符串表示
+ * @return 可见性枚举值，解析失败返回 Always
+ */
+[[nodiscard]] inline TeamVisibility teamVisibilityFromString(const std::string& str) noexcept
+{
+    return teamVisibilityParse(str).value_or(TeamVisibility::Always);
 }
 
 /**
@@ -129,21 +148,34 @@ enum class TeamCollisionRule : u8 {
 }
 
 /**
- * @brief 从字符串解析 TeamCollisionRule
+ * @brief 严格解析 TeamCollisionRule（对应原版 CODEC.byName）
  *
  * @param str 字符串表示
- * @return 碰撞规则枚举值，解析失败返回 Always
+ * @return 解析成功返回枚举值，失败返回 std::nullopt
  */
-[[nodiscard]] inline TeamCollisionRule teamCollisionRuleFromString(const std::string& str) noexcept
+[[nodiscard]] inline std::optional<TeamCollisionRule> teamCollisionRuleParse(const std::string& str) noexcept
 {
-    if (str == "never") {
+    if (str == "always") {
+        return TeamCollisionRule::Always;
+    } else if (str == "never") {
         return TeamCollisionRule::Never;
     } else if (str == "pushOtherTeams") {
         return TeamCollisionRule::PushOtherTeams;
     } else if (str == "pushOwnTeam") {
         return TeamCollisionRule::PushOwnTeam;
     }
-    return TeamCollisionRule::Always;
+    return std::nullopt;
+}
+
+/**
+ * @brief 从字符串解析 TeamCollisionRule（宽松入口）
+ *
+ * @param str 字符串表示
+ * @return 碰撞规则枚举值，解析失败返回 Always
+ */
+[[nodiscard]] inline TeamCollisionRule teamCollisionRuleFromString(const std::string& str) noexcept
+{
+    return teamCollisionRuleParse(str).value_or(TeamCollisionRule::Always);
 }
 
 } // namespace mc::scoreboard
