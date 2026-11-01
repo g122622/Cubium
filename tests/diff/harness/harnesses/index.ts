@@ -138,6 +138,7 @@ import { mthHsvInput } from "./mth_hsv.ts";
 import { argbOpsInput } from "./argb_ops.ts";
 import { directionNearestInput } from "./direction_nearest.ts";
 import { mthSeedInput } from "./mth_seed.ts";
+import { mthPackDegreesInput } from "./mth_pack_degrees.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -970,6 +971,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 坐标哈希：x 乘法是 int 溢出、z 是 long 乘法、y 只做裸异或。
     { name: "mth_seed", probe: "mth_seed", oracle: "MthSeedOracle",
         key: "unit", units: { kind: "listing" }, input: mthSeedInput },
+    // 角度单字节压缩：packDegrees 不 clamp，180 回绕成 -128。
+    { name: "mth_pack_degrees", probe: "mth_pack_degrees", oracle: "MthPackDegreesOracle",
+        key: "unit", units: { kind: "listing" }, input: mthPackDegreesInput },
+
 
 
 
