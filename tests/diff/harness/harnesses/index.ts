@@ -143,6 +143,7 @@ import { mthDegreesInput } from "./mth_degrees.ts";
 import { mthFracInput } from "./mth_frac.ts";
 import { mthSqrtInput } from "./mth_sqrt.ts";
 import { stringUtilInput } from "./string_util.ts";
+import { identifierParseInput } from "./identifier_parse.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -990,6 +991,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 字符串工具：截断的 maxLength>3 条件、lineCount 只认 \\r\\n 与 \\v。
     { name: "string_util", probe: "string_util", oracle: "StringUtilOracle",
         key: "unit", units: { kind: "listing" }, input: stringUtilInput },
+    // 标识符解析：命名空间不允许 /、空串合法、bySeparator 只看第一个分隔符。
+    { name: "identifier_parse", probe: "identifier_parse", oracle: "IdentifierParseOracle",
+        key: "unit", units: { kind: "listing" }, input: identifierParseInput },
+
 
 
 
