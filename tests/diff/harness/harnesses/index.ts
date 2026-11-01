@@ -127,6 +127,7 @@ import { heightmapTypesInput } from "./heightmap_types.ts";
 import { mthIntDivInput } from "./mth_int_div.ts";
 import { directionPlaneInput } from "./direction_plane.ts";
 import { rotationInfoInput } from "./rotation_info.ts";
+import { blockPosGeomInput } from "./blockpos_geom.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -922,6 +923,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 旋转枚举：CLOCKWISE_180 序列化名是 "180"、BY_ID 用 WRAP，纯计算。
     { name: "rotation_info", probe: "rotation_info", oracle: "RotationInfoOracle",
         key: "unit", units: { kind: "listing" }, input: rotationInfoInput },
+    // 方块坐标几何：containing 向负无穷取整、rotate 不对称，纯计算。
+    { name: "blockpos_geom", probe: "blockpos_geom", oracle: "BlockPosGeomOracle",
+        key: "unit", units: { kind: "listing" }, input: blockPosGeomInput },
+
 
 
 
