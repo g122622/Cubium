@@ -68,6 +68,7 @@ tests/diff/
 │   ├── recipe_book_category.cpp # 每条配方落在配方书的哪个页签（类型 + 分类 → 归属）
 │   ├── fuel_values.cpp          # 每种物品作为燃料的燃烧时长
 │   ├── block_sound_type.cpp     # 方块声音组（五个音效事件 + 音量 + 音调）
+│   ├── crop_growth.cpp          # 作物一次随机刻（生长速率 / 抽芽 / 结果 / 耕地保墒）
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -104,6 +105,7 @@ tests/diff/
 │   │   ├── recipe_book_category.ts # 配方书页签归属的比对口径（补齐 type/page）
 │   │   ├── fuel_values.ts       # 燃料燃烧时长的比对口径（0 表示不是燃料）
 │   │   ├── block_sound_type.ts  # 方块声音组的比对口径（补齐七个字段）
+│   │   ├── crop_growth.ts       # 作物随机刻的比对口径（速率 / 结果 / 邻居 / 脚下）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -353,6 +355,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470（每条配方一项） | 全部一致 | 见下文 |
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505（全部已注册物品） | 全部一致 | 见下文 |
 | `block_sound_type` | 原版 jar `BlockSoundTypeOracle` | 1167（全部方块 + 饰纹陶罐裂纹状态） | 全部一致 | 见下文 |
+| `crop_growth` | 原版 jar `CropGrowthOracle` | 26 个手工地形场景 | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -506,6 +509,27 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 
 音量/音调是 f32：`0.3f` 提升成 double 会写成 `0.30000001192092896`，与原版的
 `0.3` 文本不同。探针输出前统一收窄到「最短往返十进制」，让两侧写法一致。
+
+`crop_growth` 比的是**作物一次随机刻的结果**：生长速率、是否抽芽、梗是否结果、
+耕地保墒。单元是 26 个手工编的场景——每场景给一片 7×7 地形（行优先，中心是作物），
+两侧按同一份字符表重建世界，跑一次随机刻，再比对作物本体、上方、四个水平邻居与脚下耕地。
+
+为什么必须手工编地形：生长速率不是方块自己的属性，而是**周围 3×3 地形**的函数——脚下
+九格的耕地与湿度、左右前后有没有同类作物、四个斜角有没有。这类错误不报错、不崩溃，
+只是「这块地的作物长得比原版慢」。地形用字符编码（`.` 空气、`0`-`7` 耕地带湿度、
+`c` 同种作物、`b` 竹子），两侧各自写死同一张表，任何一侧改了地形都会立刻暴露。
+
+随机数两侧同算法同种子（LCG），所以「这一次到底长没长」是确定的——不一致意味着掷骰
+顺序或分支条件与原版不同，而不只是运气。
+
+实现上有两处值得记下来的坑：
+
+- **临时世界的方块写入会被判非法**：走 `Level.setBlock` 会先过 `updateShape` 的合法性
+  判断，地形逐格铺时顺序稍不对（耕地先于地基）整块就会被回滚成空气。oracle 改用
+  `LevelChunk#setBlockState` 直写区块存储，绕开校验。
+- **天空光照在临时世界里恒为 0**（线程化光照引擎不跑 tick、`runLightUpdates` 直接抛
+  异常）。光照是环境输入而非被测逻辑，所以场景不靠光照区分明暗，而是用「上方盖一块
+  实心方块」表达暗处——两侧同一条约定。
 
 `fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
 单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。
