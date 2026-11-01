@@ -24,11 +24,12 @@
 #pragma once
 
 #include "core/Types.hpp"
+#include "item/crafting/RecipeBookCategories.hpp"
 #include "resource/ResourceLocation.hpp"
+#include <array>
 #include <cstddef>
 #include <functional>
 #include <optional>
-#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -44,329 +45,225 @@ struct compound_tag;
 
 namespace crafting {
 
-// 前向声明
-class IRecipeBase;
+/**
+ * @file RecipeBook.hpp
+ * @brief 配方书（玩家已解锁的配方 + 各界面配方书的 GUI 状态）。
+ *
+ * 对齐 MC 1.21.11 的 `net.minecraft.stats.RecipeBook` / `RecipeBookSettings` /
+ * `ServerRecipeBook`。
+ *
+ * ## 1.16.5 → 1.21.11 的两处语义变更
+ *
+ * **一、GUI 状态按「配方书类型」寻址，不是按「物品分类」。**
+ * 1.16.5 的 `RecipeBookCategory`（crafting / furnace / blast_furnace / smoker）**名字**像
+ * 类型，但它同时被当作「界面里那一排分类页签」使用，两者混为一谈。1.21.11 把概念拆成
+ * 两层：
+ *
+ * - {@link RecipeBookType}：**哪个界面**（工作台 / 熔炉 / 高炉 / 烟熏炉）。只有它能打开
+ *   或关闭配方书、能过滤为「只看可合成的」。`RecipeBookSettings` 就是这四个各一对布尔。
+ * - {@link CraftingBookCategory} / {@link CookingBookCategory}：**配方在界面里归到哪个
+ *   页签**（建筑 / 红石 / 装备 / 杂项，食物 / 方块 / 杂项）。它是配方数据的属性，写在
+ *   JSON 的 `category` 字段里，与「配方书开没开」无关。
+ *
+ * 混用会造成一个具体的错：按分类存 GUI 状态时，「工作台配方书开着」这个状态挂在
+ * `Crafting` 上，而 `Crafting` 同时还想表示「建筑类页签」——于是打开建筑页签会连带
+ * 把整个工作台配方书算成打开。1.21.11 的四类型 × 两类别的正交结构没有这个问题。
+ *
+ * **二、解锁集合与「新配方高亮」是两个独立集合。**
+ * 1.16.5 把「待显示」当解锁的附属状态（markNew / markSeen 一对方法）。1.21.11 的
+ * `ServerRecipeBook` 直接持有 `known` 与 `highlight` 两个集合：解锁时同时插入两者，
+ * 玩家看过（或重进游戏）后只从 `highlight` 移除，`known` 不受影响。
+ * `Packed` 结构把两者与设置一起打包，用于重生 / 换维度时的整体转移。
+ */
 
 /**
- * @brief 配方书分类枚举
+ * @brief 配方书类型：**哪个界面**有配方书。
  *
- * 参考 MC 1.16.5: net.minecraft.item.crafting.RecipeBookCategory
- * 用于区分不同类型的合成界面的配方书状态。
+ * 对齐 MC 1.21.11 的 `net.minecraft.world.inventory.RecipeBookType`。
+ * 它是 {@link RecipeBookSettings} 的索引——GUI 打开状态与「只看可合成」按它分开存。
  */
-enum class RecipeBookCategory : u8 {
-    Crafting,     ///< 工作台合成
+enum class RecipeBookType : u8 {
+    Crafting,     ///< 工作台（3×3 与玩家自带 2×2）
     Furnace,      ///< 熔炉
     BlastFurnace, ///< 高炉
     Smoker,       ///< 烟熏炉
 
-    Count ///< 分类数量
+    Count ///< 类型数量
 };
 
 /**
- * @brief 获取 RecipeBookCategory 的字符串表示
- * @param category 配方书分类
- * @return 分类的字符串名称
+ * @brief 配方书类型的字符串表示（NBT / 命令里的写法）。
+ * @return 小写下划线形式，例如 `blast_furnace`
  */
-[[nodiscard]] const char* recipeBookCategoryToString(RecipeBookCategory category) noexcept;
+[[nodiscard]] const char* recipeBookTypeToString(RecipeBookType type) noexcept;
 
 /**
- * @brief 从字符串解析 RecipeBookCategory
- * @param str 分类的字符串名称
- * @return 配方书分类，如果无法识别返回 std::nullopt
+ * @brief 从字符串解析配方书类型。
+ * @param str 类型名，可带 `minecraft:` 前缀
+ * @return 类型；无法识别时为空
  */
-[[nodiscard]] std::optional<RecipeBookCategory> recipeBookCategoryFromString(const std::string& str) noexcept;
+[[nodiscard]] std::optional<RecipeBookType> recipeBookTypeFromString(const std::string& str) noexcept;
 
 /**
- * @brief 配方书GUI状态
+ * @brief 配方书界面设置：每类配方书一对「是否打开 / 是否过滤可合成」。
  *
- * 存储每个配方书分类的GUI状态（是否打开、是否过滤可合成）。
- * 参考 MC 1.16.5: net.minecraft.item.crafting.RecipeBookStatus
+ * 对齐 MC 1.21.11 的 `net.minecraft.stats.RecipeBookSettings`。
+ *
+ * 注意这里**没有**按物品分类寻址的接口：页签分类（{@link CraftingBookCategory} 等）
+ * 不参与界面状态，混用会得出「打开建筑页签 = 打开工作台配方书」这类错误结论。
  */
-class RecipeBookStatus {
+class RecipeBookSettings {
 public:
-    /**
-     * @brief 单个分类的状态
-     */
-    struct CategoryStatus {
-        bool guiOpen = false;            ///< GUI是否打开
-        bool filteringCraftable = false; ///< 是否过滤为可合成物品
+    /// 单个配方书类型的状态。
+    struct TypeSettings {
+        bool open = false;      ///< 配方书是否展开
+        bool filtering = false; ///< 是否过滤为「只看现在能合成的」
 
-        CategoryStatus() = default;
-
-        CategoryStatus(bool open, bool filtering)
-            : guiOpen(open)
-            , filteringCraftable(filtering)
-        {}
-
-        [[nodiscard]] bool operator==(const CategoryStatus& other) const noexcept
+        [[nodiscard]] bool operator==(const TypeSettings& other) const noexcept
         {
-            return guiOpen == other.guiOpen && filteringCraftable == other.filteringCraftable;
-        }
-
-        [[nodiscard]] CategoryStatus copy() const noexcept
-        {
-            return *this;
+            return open == other.open && filtering == other.filtering;
         }
     };
 
-    RecipeBookStatus();
+    RecipeBookSettings() = default;
 
-    /**
-     * @brief 获取指定分类的GUI打开状态
-     * @param category 配方书分类
-     * @return GUI是否打开
-     */
-    [[nodiscard]] bool isGuiOpen(RecipeBookCategory category) const noexcept;
+    /// 指定类型的打开状态。
+    [[nodiscard]] bool isOpen(RecipeBookType type) const noexcept;
 
-    /**
-     * @brief 设置指定分类的GUI打开状态
-     * @param category 配方书分类
-     * @param open 是否打开
-     */
-    void setGuiOpen(RecipeBookCategory category, bool open) noexcept;
+    /// 指定类型的过滤状态。
+    [[nodiscard]] bool isFiltering(RecipeBookType type) const noexcept;
 
-    /**
-     * @brief 获取指定分类的过滤状态
-     * @param category 配方书分类
-     * @return 是否过滤为可合成物品
-     */
-    [[nodiscard]] bool isFilteringCraftable(RecipeBookCategory category) const noexcept;
+    /// 设置打开状态。
+    void setOpen(RecipeBookType type, bool open) noexcept;
 
-    /**
-     * @brief 设置指定分类的过滤状态
-     * @param category 配方书分类
-     * @param filtering 是否过滤
-     */
-    void setFilteringCraftable(RecipeBookCategory category, bool filtering) noexcept;
+    /// 设置过滤状态。
+    void setFiltering(RecipeBookType type, bool filtering) noexcept;
 
-    /**
-     * @brief 设置指定分类的完整状态
-     * @param category 配方书分类
-     * @param open GUI是否打开
-     * @param filtering 是否过滤
-     */
-    void setCategoryStatus(RecipeBookCategory category, bool open, bool filtering) noexcept;
+    /// 同时设置打开与过滤（对应原版 `RecipeBook#setBookSetting`）。
+    void set(RecipeBookType type, bool open, bool filtering) noexcept;
 
-    /**
-     * @brief 从另一个状态复制
-     * @param other 源状态
-     */
-    void copyFrom(const RecipeBookStatus& other) noexcept;
+    /// 读取某类型的整对状态。
+    [[nodiscard]] TypeSettings get(RecipeBookType type) const noexcept;
 
-    /**
-     * @brief 创建副本
-     * @return 当前状态的副本
-     */
-    [[nodiscard]] RecipeBookStatus copy() const noexcept;
+    /// 原地替换全部四个类型的状态（原版 `replaceFrom`）。
+    void replaceFrom(const RecipeBookSettings& other) noexcept;
 
-    /**
-     * @brief 相等比较
-     */
-    [[nodiscard]] bool operator==(const RecipeBookStatus& other) const noexcept;
+    /// 复制一份（原版 `copy()`）。
+    [[nodiscard]] RecipeBookSettings copy() const noexcept;
+
+    [[nodiscard]] bool operator==(const RecipeBookSettings& other) const noexcept;
 
 private:
-    CategoryStatus m_status[static_cast<size_t>(RecipeBookCategory::Count)];
+    std::array<TypeSettings, static_cast<size_t>(RecipeBookType::Count)> m_settings{};
 };
 
 /**
- * @brief 配方书基类
+ * @brief 配方书基类：持有界面设置，并提供按类型读写打开 / 过滤状态的方法。
  *
- * 存储玩家已解锁的配方列表和新解锁的配方列表。
- * 参考 MC 1.16.5: net.minecraft.item.crafting.RecipeBook
+ * 对齐 MC 1.21.11 的 `net.minecraft.stats.RecipeBook`（该类只负责设置；解锁集合在
+ * {@link ServerRecipeBook} 里）。
  */
 class RecipeBook {
 public:
     RecipeBook() = default;
     virtual ~RecipeBook() = default;
 
-    // ========== 配方解锁/锁定 ==========
-
-    /**
-     * @brief 解锁配方
-     *
-     * 如果配方不是动态配方，将其添加到已解锁列表。
-     *
-     * @param recipeId 配方资源位置
-     */
-    void unlock(const ResourceLocation& recipeId);
-
-    /**
-     * @brief 锁定配方
-     *
-     * 从已解锁列表和新配方列表中移除配方。
-     *
-     * @param recipeId 配方资源位置
-     */
-    void lock(const ResourceLocation& recipeId);
-
-    /**
-     * @brief 检查配方是否已解锁
-     * @param recipeId 配方资源位置
-     * @return 是否已解锁
-     */
-    [[nodiscard]] bool isUnlocked(const ResourceLocation& recipeId) const noexcept;
-
-    /**
-     * @brief 检查配方是否在配方书中显示
-     *
-     * 动态配方（如染色、修复等特殊配方）虽然可以合成，
-     * 但不会出现在配方书中。此方法检查配方是否已解锁且非动态。
-     * 参考 MC 1.21.1: ServerRecipeBook 中的 isSpecial 过滤逻辑。
-     *
-     * @param recipeId 配方资源位置
-     * @return 是否在配方书中（已解锁且非动态配方）
-     */
-    [[nodiscard]] bool isBookRecipe(const ResourceLocation& recipeId) const noexcept;
-
-    // ========== 新配方管理 ==========
-
-    /**
-     * @brief 检查配方是否为新解锁（未查看）
-     * @param recipeId 配方资源位置
-     * @return 是否为新配方
-     */
-    [[nodiscard]] bool isNew(const ResourceLocation& recipeId) const noexcept;
-
-    /**
-     * @brief 标记配方为新解锁
-     *
-     * 新解锁的配方会在配方书UI中高亮显示。
-     *
-     * @param recipeId 配方资源位置
-     */
-    void markNew(const ResourceLocation& recipeId);
-
-    /**
-     * @brief 标记配方为已查看
-     *
-     * 玩家在配方书中查看配方后调用，将配方从新配方列表移除。
-     *
-     * @param recipeId 配方资源位置
-     */
-    void markSeen(const ResourceLocation& recipeId);
-
-    // ========== 配方列表访问 ==========
-
-    /**
-     * @brief 获取所有已解锁的配方ID
-     * @return 已解锁配方ID集合
-     */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getUnlockedRecipes() const noexcept
+    [[nodiscard]] bool isOpen(RecipeBookType type) const noexcept
     {
-        return m_recipes;
+        return m_settings.isOpen(type);
     }
 
-    /**
-     * @brief 获取所有新解锁的配方ID
-     * @return 新解锁配方ID集合
-     */
-    [[nodiscard]] const std::unordered_set<ResourceLocation>& getNewRecipes() const noexcept
+    void setOpen(RecipeBookType type, bool open) noexcept
     {
-        return m_newRecipes;
+        m_settings.setOpen(type, open);
     }
 
-    // ========== 状态管理 ==========
-
-    /**
-     * @brief 获取配方书GUI状态
-     * @return GUI状态引用
-     */
-    [[nodiscard]] RecipeBookStatus& getStatus() noexcept
+    [[nodiscard]] bool isFiltering(RecipeBookType type) const noexcept
     {
-        return m_status;
+        return m_settings.isFiltering(type);
     }
 
-    [[nodiscard]] const RecipeBookStatus& getStatus() const noexcept
+    void setFiltering(RecipeBookType type, bool filtering) noexcept
     {
-        return m_status;
+        m_settings.setFiltering(type, filtering);
     }
 
-    /**
-     * @brief 设置配方书GUI状态
-     * @param status 新状态
-     */
-    void setStatus(const RecipeBookStatus& status) noexcept
+    /// 同时设置打开与过滤（原版 `RecipeBook#setBookSetting`）。
+    void setBookSetting(RecipeBookType type, bool open, bool filtering) noexcept
     {
-        m_status.copyFrom(status);
+        m_settings.set(type, open, filtering);
     }
 
-    /**
-     * @brief 从另一个配方书复制状态
-     * @param other 源配方书
-     */
-    void copyFrom(const RecipeBook& other);
-
-    /**
-     * @brief 清空所有配方
-     */
-    void clear() noexcept;
-
-    // ========== 数量查询 ==========
-
-    /**
-     * @brief 获取已解锁配方数量
-     * @return 已解锁配方数量
-     */
-    [[nodiscard]] size_t getUnlockedCount() const noexcept
+    [[nodiscard]] const RecipeBookSettings& getBookSettings() const noexcept
     {
-        return m_recipes.size();
+        return m_settings;
     }
 
-    /**
-     * @brief 获取新配方数量
-     * @return 新配方数量
-     */
-    [[nodiscard]] size_t getNewCount() const noexcept
+    /// 原地替换全部设置（原版 `RecipeBook#setBookSettings`）。
+    void setBookSettings(const RecipeBookSettings& settings) noexcept
     {
-        return m_newRecipes.size();
+        m_settings.replaceFrom(settings);
     }
 
 protected:
-    std::unordered_set<ResourceLocation> m_recipes;    ///< 已解锁的配方
-    std::unordered_set<ResourceLocation> m_newRecipes; ///< 新解锁的配方（待显示）
-    RecipeBookStatus m_status;                         ///< GUI状态
+    RecipeBookSettings m_settings; ///< 各个界面配方书的 GUI 状态
 };
 
 /**
- * @brief 服务端配方书
+ * @brief 服务端配方书：已解锁配方 + 新解锁高亮 + 界面设置。
  *
- * 扩展 RecipeBook，添加服务端特有的功能：
- * - 批量添加/移除配方
- * - 成就触发
- * - 网络同步
- * - NBT序列化
+ * 对齐 MC 1.21.11 的 `net.minecraft.stats.ServerRecipeBook`。
  *
- * 参考 MC 1.16.5: net.minecraft.item.crafting.ServerRecipeBook
+ * 两个集合的语义：
+ *
+ * - `known`：玩家已解锁的配方。`doLimitedCrafting` 开启时，不在其中的配方不能合成。
+ * - `highlight`：**新解锁、尚未在界面上看过**的配方（原版字段名就叫 highlight）。
+ *   解锁时与 `known` 一起插入；玩家看过或重新登录后移除，`known` 不受影响。
+ *
+ * 两者独立，是 1.21.11 相对 1.16.5 的改动。1.16.5 把「待显示」做成解锁的附属状态
+ * （markNew / markSeen），分离后「移除高亮」不再有「顺手把配方也锁了」的风险。
  */
 class ServerRecipeBook : public RecipeBook {
 public:
     ServerRecipeBook() = default;
 
-    // ========== 批量操作 ==========
+    // ========== 单条解锁 / 锁定 ==========
+
+    /// 解锁一条配方（同时标记为新解锁，等待高亮）。
+    void add(const ResourceLocation& recipeId);
+
+    /// 该配方是否已解锁。
+    [[nodiscard]] bool contains(const ResourceLocation& recipeId) const noexcept;
+
+    /// 锁定一条配方：同时从 `known` 与 `highlight` 移除。
+    void remove(const ResourceLocation& recipeId);
+
+    /// 只移除高亮（玩家看过之后），配方保持解锁。
+    void removeHighlight(const ResourceLocation& recipeId);
+
+    /// 该配方是否仍处于「新解锁待高亮」状态。
+    [[nodiscard]] bool isHighlighted(const ResourceLocation& recipeId) const noexcept;
+
+    // ========== 批量解锁 / 锁定 ==========
 
     /**
-     * @brief 检查配方是否为动态配方
+     * @brief 检查配方是否为「特殊配方」（不进入配方书）。
      *
-     * 动态配方（染色、修复、书本复制等特殊配方）不会出现在配方书中。
-     * 参考 MC 1.21.1: ServerRecipeBook.addRecipes() 中 !recipe.isSpecial() 过滤逻辑。
-     *
-     * @param recipeId 配方资源位置
-     * @return 如果是动态配方返回 true，否则返回 false
+     * 原版 `ServerRecipeBook#addRecipes` 用 `!recipe.isSpecial()` 挡掉染色、修复、书本
+     * 复制这类按物品外观动态匹配的配方：它们没有固定原料，列进配方书既无法展示也无法
+     * 点击合成。
      */
-    [[nodiscard]] static bool isDynamicRecipe(const ResourceLocation& recipeId);
+    [[nodiscard]] static bool isSpecialRecipe(const ResourceLocation& recipeId);
 
     /**
-     * @brief 批量添加（解锁）配方
+     * @brief 批量解锁。
      *
-     * 解锁配方、标记为新配方、触发成就、发送网络包。
-     * 动态配方（isDynamic() == true）会被自动过滤，不会添加到配方书中。
-     * 参考 MC 1.21.1: ServerRecipeBook.addRecipes() 中的 !recipe.isSpecial() 过滤。
+     * 跳过特殊配方与已解锁配方；新解锁的同时插入高亮集合。
      *
-     * @tparam RecipeIter 配方迭代器类型
-     * @param begin 配方ID迭代器起始
-     * @param end 配方ID迭代器结束
-     * @param onUnlock 配方解锁回调（参数：配方ID）
-     * @return 成功解锁的配方数量
+     * @param begin 配方 ID 迭代器起始
+     * @param end 配方 ID 迭代器结束
+     * @param onUnlock 每条成功解锁的回调（用于触发进度）
+     * @return 本次真正解锁的条数（= 新插入 `known` 的条数）
      */
     template <typename RecipeIter>
     size_t add(RecipeIter begin, RecipeIter end, std::function<void(const ResourceLocation&)> onUnlock = nullptr)
@@ -374,23 +271,14 @@ public:
         size_t added = 0;
         for (auto it = begin; it != end; ++it) {
             const ResourceLocation& recipeId = *it;
-
-            // 动态配方不添加到配方书
-            if (isDynamicRecipe(recipeId)) {
+            if (isSpecialRecipe(recipeId)) {
                 continue;
             }
-
-            // 检查是否已解锁
-            if (m_recipes.contains(recipeId)) {
+            if (m_known.contains(recipeId)) {
                 continue;
             }
-
-            // 解锁配方
-            unlock(recipeId);
-            markNew(recipeId);
-            added++;
-
-            // 触发回调（用于触发成就）
+            add(recipeId);
+            ++added;
             if (onUnlock) {
                 onUnlock(recipeId);
             }
@@ -399,59 +287,85 @@ public:
     }
 
     /**
-     * @brief 批量移除（锁定）配方
-     *
-     * 锁定配方、发送网络包。
-     *
-     * @tparam RecipeIter 配方迭代器类型
-     * @param begin 配方ID迭代器起始
-     * @param end 配方ID迭代器结束
-     * @return 成功锁定的配方数量
+     * @brief 批量锁定。
+     * @return 本次真正移除的条数
      */
     template <typename RecipeIter>
     size_t remove(RecipeIter begin, RecipeIter end)
     {
         size_t removed = 0;
         for (auto it = begin; it != end; ++it) {
-            const ResourceLocation& recipeId = *it;
-            if (m_recipes.contains(recipeId)) {
-                lock(recipeId);
-                removed++;
+            if (m_known.contains(*it)) {
+                remove(*it);
+                ++removed;
             }
         }
         return removed;
     }
 
-    // ========== NBT序列化 ==========
+    // ========== 集合访问 ==========
+
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& knownRecipes() const noexcept
+    {
+        return m_known;
+    }
+
+    [[nodiscard]] const std::unordered_set<ResourceLocation>& highlightedRecipes() const noexcept
+    {
+        return m_highlight;
+    }
+
+    [[nodiscard]] size_t knownCount() const noexcept
+    {
+        return m_known.size();
+    }
+
+    [[nodiscard]] size_t highlightCount() const noexcept
+    {
+        return m_highlight.size();
+    }
+
+    /// 清空解锁集合与高亮（不动界面设置）。
+    void clearRecipes() noexcept;
+
+    // ========== 打包转移（重生 / 换维度） ==========
+
+    /// `known` / `highlight` / 设置的快照（原版 `ServerRecipeBook.Packed`）。
+    struct Packed {
+        RecipeBookSettings settings;
+        std::vector<ResourceLocation> known;
+        std::vector<ResourceLocation> highlight;
+    };
+
+    /// 打包当前状态。
+    [[nodiscard]] Packed pack() const;
+
+    /// 用另一份打包状态整体覆盖本实例（原版 `copyOverData`）。
+    void apply(const Packed& packed);
+
+    // ========== 持久化 ==========
 
     /**
-     * @brief 将配方书状态写入NBT
-     * @return NBT复合标签
+     * @brief 写入 `player.dat` 的 `recipeBook` 复合标签。
+     *
+     * 布局与原版 `ServerRecipeBook.Packed.CODEC` 一致：
+     * 顶层直接展开四个类型的设置（`isGuiOpen` / `isFurnaceGuiOpen` / …），
+     * 再加 `recipes`（`known`）与 `toBeDisplayed`（`highlight`）两个字符串列表。
      */
     [[nodiscard]] nbt::tags::compound_tag write() const;
 
     /**
-     * @brief 从NBT读取配方书状态
-     * @param tag NBT复合标签
-     */
-    void read(const nbt::tags::compound_tag& tag);
-
-    // ========== 网络同步数据 ==========
-
-    /**
-     * @brief 获取需要同步到客户端的新解锁配方列表
+     * @brief 从 `recipeBook` 复合标签读入。
      *
-     * 调用后清空新配方列表。
-     *
-     * @return 新解锁的配方ID列表
+     * @param tag 复合标签
+     * @param known 查询「该配方存不存在」的谓词；原版会丢弃无法识别的配方并记日志，
+     *              这里由调用方决定（探针 / 游戏各有自己的注册表）。
      */
-    [[nodiscard]] std::vector<ResourceLocation> consumeNewRecipes();
+    void read(const nbt::tags::compound_tag& tag, const std::function<bool(const ResourceLocation&)>& known);
 
-    /**
-     * @brief 获取所有已解锁配方列表（用于初始化同步）
-     * @return 已解锁配方ID列表
-     */
-    [[nodiscard]] std::vector<ResourceLocation> getAllUnlockedRecipes() const;
+private:
+    std::unordered_set<ResourceLocation> m_known;     ///< 已解锁的配方
+    std::unordered_set<ResourceLocation> m_highlight; ///< 新解锁、尚未看过的配方
 };
 
 } // namespace crafting

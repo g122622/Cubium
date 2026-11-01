@@ -268,7 +268,7 @@ void registerPaleGardenBlocks()
                 .hardness(0.1f)
                 .resistance(0.1f)
                 .harvestTool(HarvestTool::Hoe)
-                .soundType(BlockSoundTypes::PALE_MOSS)
+                .soundType(BlockSoundTypes::MOSS)
                 .ignitedByLava());
 
     // 苍白苔藓地毯（BOTTOM + 四方向 WALL_HEIGHT 属性，可贴墙贴地）。可被岩浆点燃（对齐 vanilla）
@@ -279,7 +279,7 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.1f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::PALE_MOSS)
+                .soundType(BlockSoundTypes::MOSS_CARPET)
                 .ignitedByLava());
 
     // 苍白垂苔 - TIP属性。可被岩浆点燃（对齐 vanilla）
@@ -291,7 +291,7 @@ void registerPaleGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .propagatesSkylightDown()
-                .soundType(BlockSoundTypes::PALE_HANGING_MOSS)
+                .soundType(BlockSoundTypes::MOSS_CARPET)
                 .ignitedByLava());
 
     // ============================================================================
@@ -320,7 +320,7 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::EYEBLOSSOM),
+                .soundType(BlockSoundTypes::GRASS),
             blocks::EyeblossomBlock::Type::Open,
             static_cast<u32>(entity::effect::EffectType::Blindness),
             11);
@@ -333,7 +333,7 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::EYEBLOSSOM),
+                .soundType(BlockSoundTypes::GRASS),
             blocks::EyeblossomBlock::Type::Closed,
             static_cast<u32>(entity::effect::EffectType::Nausea),
             7);

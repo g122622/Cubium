@@ -282,7 +282,7 @@ TEST_F(IRecipeHolderTest, LimitedCraftingOn_UnlockedRecipe_ReturnsTrue)
     ServerPlayer player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 解锁配方
-    player.serverRecipeBook().unlock(normalRecipe_->getId());
+    player.serverRecipeBook().add(normalRecipe_->getId());
 
     bool result = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
     EXPECT_TRUE(result);
@@ -309,7 +309,7 @@ TEST_F(IRecipeHolderTest, LimitedCraftingOn_PartiallyUnlockedRecipes)
     ServerPlayer player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 只解锁 normalRecipe_，anotherRecipe_ 未解锁
-    player.serverRecipeBook().unlock(normalRecipe_->getId());
+    player.serverRecipeBook().add(normalRecipe_->getId());
 
     // 已解锁的配方应该可用
     bool result1 = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
@@ -331,9 +331,9 @@ TEST_F(IRecipeHolderTest, MultipleUnlocks_StillWorks)
     ServerPlayer player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 多次解锁
-    player.serverRecipeBook().unlock(normalRecipe_->getId());
-    player.serverRecipeBook().unlock(normalRecipe_->getId());
-    player.serverRecipeBook().unlock(normalRecipe_->getId());
+    player.serverRecipeBook().add(normalRecipe_->getId());
+    player.serverRecipeBook().add(normalRecipe_->getId());
+    player.serverRecipeBook().add(normalRecipe_->getId());
 
     bool result = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
     EXPECT_TRUE(result);
@@ -346,11 +346,11 @@ TEST_F(IRecipeHolderTest, LockAfterUnlock_BlocksRecipe)
     ServerPlayer player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 解锁然后锁定
-    player.serverRecipeBook().unlock(normalRecipe_->getId());
-    EXPECT_TRUE(player.serverRecipeBook().isUnlocked(normalRecipe_->getId()));
+    player.serverRecipeBook().add(normalRecipe_->getId());
+    EXPECT_TRUE(player.serverRecipeBook().contains(normalRecipe_->getId()));
 
-    player.serverRecipeBook().lock(normalRecipe_->getId());
-    EXPECT_FALSE(player.serverRecipeBook().isUnlocked(normalRecipe_->getId()));
+    player.serverRecipeBook().remove(normalRecipe_->getId());
+    EXPECT_FALSE(player.serverRecipeBook().contains(normalRecipe_->getId()));
 
     // 现在应该不可用
     bool result = holder_->canUseRecipe(*world_, player, normalRecipe_.get());
@@ -410,7 +410,7 @@ TEST_F(IRecipeHolderTest, MultipleRecipes_MixedUnlockState)
     ServerPlayer player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 只解锁 normalRecipe_
-    player.serverRecipeBook().unlock(normalRecipe_->getId());
+    player.serverRecipeBook().add(normalRecipe_->getId());
 
     // 测试所有配方
     EXPECT_TRUE(holder_->canUseRecipe(*world_, player, normalRecipe_.get()));

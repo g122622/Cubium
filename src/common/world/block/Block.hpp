@@ -958,6 +958,24 @@ public:
         return *m_soundType;
     }
 
+    /**
+     * @brief 获取该方块状态下的声音类型（虚函数入口）
+     *
+     * 对齐原版 `BlockBehaviour#getSoundType(BlockState)`：绝大多数方块与状态无关，直接用
+     * 属性里配置的那一份；个别方块按状态切换（饰纹陶罐 `CRACKED` 时破坏声变为碎裂声）。
+     *
+     * 需要按状态区分声音的子类应重写本函数，而**不要**重写无参的
+     * {@code getSoundType()}——无参版本拿不到状态，调用方已经全部改为传状态。
+     *
+     * @param state 方块状态
+     * @return 声音类型的常量引用
+     */
+    [[nodiscard]] virtual const BlockSoundType& getSoundType(const BlockState& state) const noexcept
+    {
+        MC_UNUSED(state);
+        return *m_soundType;
+    }
+
     // ========== 掉落表 ==========
 
     /**

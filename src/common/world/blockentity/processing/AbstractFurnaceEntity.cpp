@@ -280,7 +280,14 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     if (isBlockItem(item, VanillaBlocks::CHISELED_BOOKSHELF)) {
         return 300;
     }
-    // 木质书架（SHELF）— 燃烧时间 = 基础木质(300) × 1.5 = 450
+    // 木质书架（SHELF）。
+    //
+    // 原版是 `ItemTags.WOODEN_SHELVES` → `200 * 3 / 2` = **300**，然后在末尾
+    // `.remove(ItemTags.NON_FLAMMABLE_WOOD)` 里把绯红 / 诡异两族剔除 —— 那两个架子
+    // 根本不能当燃料。
+    //
+    // 这里原来写成「基础木质 300 × 1.5 = 450」：拿 300 当中转值再乘，而原版的乘除
+    // 全部作用在 200 的基准上，结果凭空多了 150 tick。而且绯红 / 诡异架子也被算了进去。
     if (isBlockInList(item,
             {VanillaBlocks::OAK_SHELF,
                 VanillaBlocks::SPRUCE_SHELF,
@@ -291,11 +298,10 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
                 VanillaBlocks::MANGROVE_SHELF,
                 VanillaBlocks::CHERRY_SHELF,
                 VanillaBlocks::PALE_OAK_SHELF,
-                VanillaBlocks::BAMBOO_SHELF,
-                VanillaBlocks::CRIMSON_SHELF,
-                VanillaBlocks::WARPED_SHELF})) {
-        return 450;
+                VanillaBlocks::BAMBOO_SHELF})) {
+        return 300;
     }
+
     // 音符盒
     if (isBlockItem(item, VanillaBlocks::NOTE_BLOCK)) {
         return 300;
@@ -376,8 +382,9 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 木制工具 (200 tick = 10 秒) ==========
+    // 原版把 `Items.WOODEN_SPEAR` 单列一条，值同样是 200，这里并入同一组。
     if (item == Items::WOODEN_PICKAXE || item == Items::WOODEN_AXE || item == Items::WOODEN_SHOVEL ||
-        item == Items::WOODEN_HOE || item == Items::WOODEN_SWORD) {
+        item == Items::WOODEN_HOE || item == Items::WOODEN_SWORD || item == Items::WOODEN_SPEAR) {
         return 200;
     }
 

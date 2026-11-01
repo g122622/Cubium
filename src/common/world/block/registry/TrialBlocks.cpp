@@ -88,7 +88,7 @@ void registerTrialBlocks()
             .resistance(3.5f)
             .harvestTool(HarvestTool::Pickaxe)
             .requiresTool()
-            .soundType(BlockSoundTypes::CRAFTER)
+            .soundType(BlockSoundTypes::STONE)
             .noOcclusion());
 
     // 重质核心 - 重质盾牌的核心材料，支持含水

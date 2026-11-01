@@ -82,24 +82,33 @@ void registerMudBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mud_bricks"), mudBricksProps);
 
     // 泥砖楼梯属性 - ROCK材质, 镐有效, 硬度1.5, 抗性3.0
-    BlockProperties mudBrickStairsProps =
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f).harvestTool(HarvestTool::Pickaxe);
+    BlockProperties mudBrickStairsProps = BlockProperties(Material::ROCK)
+                                              .hardness(1.5f)
+                                              .resistance(3.0f)
+                                              .harvestTool(HarvestTool::Pickaxe)
+                                              .soundType(BlockSoundTypes::MUD_BRICKS);
 
     // 泥砖楼梯 - 使用泥砖作为源方块
     MudBlocks::MUD_BRICK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
         ResourceLocation("minecraft:mud_brick_stairs"), MudBlocks::MUD_BRICKS->defaultState(), mudBrickStairsProps);
 
     // 泥砖台阶属性 - ROCK材质, 镐有效, 硬度1.5, 抗性3.0
-    BlockProperties mudBrickSlabProps =
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f).harvestTool(HarvestTool::Pickaxe);
+    BlockProperties mudBrickSlabProps = BlockProperties(Material::ROCK)
+                                            .hardness(1.5f)
+                                            .resistance(3.0f)
+                                            .harvestTool(HarvestTool::Pickaxe)
+                                            .soundType(BlockSoundTypes::MUD_BRICKS);
 
     // 泥砖台阶
     MudBlocks::MUD_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:mud_brick_slab"), mudBrickSlabProps);
 
     // 泥砖墙属性 - ROCK材质, 镐有效, 硬度1.5, 抗性3.0
-    BlockProperties mudBrickWallProps =
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f).harvestTool(HarvestTool::Pickaxe);
+    BlockProperties mudBrickWallProps = BlockProperties(Material::ROCK)
+                                            .hardness(1.5f)
+                                            .resistance(3.0f)
+                                            .harvestTool(HarvestTool::Pickaxe)
+                                            .soundType(BlockSoundTypes::MUD_BRICKS);
 
     // 泥砖墙
     MudBlocks::MUD_BRICK_WALL =

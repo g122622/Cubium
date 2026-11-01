@@ -55,6 +55,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
@@ -226,6 +227,12 @@ const CollisionShape& DecoratedPotBlock::getShape(const BlockState& state) const
 const fluid::FluidState* DecoratedPotBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);
+}
+
+const BlockSoundType& DecoratedPotBlock::getSoundType(const BlockState& state) const noexcept
+{
+    return state.get(BlockStateProperties::CRACKED()) ? BlockSoundTypes::DECORATED_POT_CRACKED
+                                                      : BlockSoundTypes::DECORATED_POT;
 }
 
 std::unique_ptr<BlockEntity> DecoratedPotBlock::createBlockEntity(const BlockPos& pos)

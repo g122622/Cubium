@@ -88,7 +88,7 @@ void registerGardenBlocks()
                 .replaceable()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::GRASS));
+                .soundType(BlockSoundTypes::LEAF_LITTER));
 
     // ============================================================================
     // 干草系列

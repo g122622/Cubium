@@ -132,7 +132,7 @@ void registerCaveBlocks()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
                 .resistance(1.5f)
-                .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
+                .soundType(BlockSoundTypes::SMALL_AMETHYST_BUD)
                 .lightLevel(1),
             2.0f,
             4.0f);
@@ -146,7 +146,7 @@ void registerCaveBlocks()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
                 .resistance(1.5f)
-                .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
+                .soundType(BlockSoundTypes::LARGE_AMETHYST_BUD)
                 .lightLevel(2),
             4.0f,
             6.0f);
@@ -160,7 +160,7 @@ void registerCaveBlocks()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
                 .resistance(1.5f)
-                .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
+                .soundType(BlockSoundTypes::MEDIUM_AMETHYST_BUD)
                 .lightLevel(4),
             5.0f,
             8.0f);

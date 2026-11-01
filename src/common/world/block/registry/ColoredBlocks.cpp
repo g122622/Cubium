@@ -468,7 +468,9 @@ void registerColoredBlocks()
 
     // ========== 床注册 (16色) ==========
     // 床：羊毛材质，硬度0.2，不阻挡光线，可被 lava 点燃，被活塞推动时销毁
-    BlockProperties bedProps = BlockProperties(Material::WOOL).hardness(0.2f).notSolid().ignitedByLava();
+    // 床的声音组取自原版 `SoundType.WOOD`（材质虽是羊毛，但床铺的是木头声）
+    BlockProperties bedProps =
+        BlockProperties(Material::WOOL).hardness(0.2f).notSolid().ignitedByLava().soundType(BlockSoundTypes::WOOD);
 
     ColoredBlocks::WHITE_BED =
         &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:white_bed"), DyeColor::White, bedProps);
@@ -505,7 +507,9 @@ void registerColoredBlocks()
 
     // ========== 潜影盒注册 (16色) ==========
     // 潜影盒：木质材质，硬度2.0，抗爆2.0，非固体（动态碰撞箱）
-    BlockProperties shulkerBoxProps = BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid();
+    // 潜影盒用原版 `SoundType.STONE`
+    BlockProperties shulkerBoxProps =
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().soundType(BlockSoundTypes::STONE);
 
     ColoredBlocks::WHITE_SHULKER_BOX = &registry.registerBlock<blocks::ShulkerBoxBlock>(
         ResourceLocation("minecraft:white_shulker_box"), DyeColor::White, shulkerBoxProps);

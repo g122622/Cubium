@@ -136,7 +136,7 @@ void registerTrailsBlocks()
             BlockProperties(Material::EARTH)
                 .hardness(0.5f)
                 .resistance(0.5f)
-                .soundType(BlockSoundTypes::SNIFFER_EGG)
+                .soundType(BlockSoundTypes::METAL)
                 .noOcclusion());
 
     // ============================================================================
@@ -162,7 +162,7 @@ void registerTrailsBlocks()
     // 骨粉可催熟火把花作物为火把花；无支撑方块时自动掉落
     // potted_torchflower 方块在 FlowerPotBlocks.cpp 中注册
     TrailsBlocks::TORCHFLOWER = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:torchflower"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::TORCHFLOWER),
+        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::GRASS),
         static_cast<u32>(entity::effect::EffectType::NightVision),
         8);
 

@@ -181,12 +181,13 @@ void registerBuildingBlocks()
         BlockProperties(Material::WOOD).hardness(1.5f).flammable().ignitedByLava());
 
     // 海绵
-    BuildingBlocks::SPONGE = &registry.registerBlock<blocks::SpongeBlock>(
-        ResourceLocation("minecraft:sponge"), BlockProperties(Material::SPONGE).hardness(0.6f));
+    BuildingBlocks::SPONGE = &registry.registerBlock<blocks::SpongeBlock>(ResourceLocation("minecraft:sponge"),
+        BlockProperties(Material::SPONGE).hardness(0.6f).soundType(BlockSoundTypes::SPONGE));
 
     // 湿海绵
-    BuildingBlocks::WET_SPONGE = &registry.registerBlock<blocks::WetSpongeBlock>(
-        ResourceLocation("minecraft:wet_sponge"), BlockProperties(Material::SPONGE).hardness(0.6f));
+    BuildingBlocks::WET_SPONGE =
+        &registry.registerBlock<blocks::WetSpongeBlock>(ResourceLocation("minecraft:wet_sponge"),
+            BlockProperties(Material::SPONGE).hardness(0.6f).soundType(BlockSoundTypes::WET_SPONGE));
 
     // 工作台
     // 右键打开3x3合成界面，记录交互统计 INTERACT_WITH_CRAFTING_TABLE。
@@ -219,30 +220,35 @@ void registerBuildingBlocks()
 
     // 炼药锅（空）
     BuildingBlocks::CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(ResourceLocation("minecraft:cauldron"),
-        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid());
+        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().soundType(BlockSoundTypes::STONE));
 
     // 水炼药锅（分层，水位1-3）
     // 对应 MC 原版 LayeredCauldronBlock (WATER_CAULDRON)
     // 降水类型为 Rain，表示水炼药锅只在雨天被降水填充
-    BuildingBlocks::WATER_CAULDRON =
-        &registry.registerBlock<blocks::LayeredCauldronBlock>(ResourceLocation("minecraft:water_cauldron"),
-            BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid(),
-            world::biome::BiomeClimate::Precipitation::Rain);
+    BuildingBlocks::WATER_CAULDRON = &registry.registerBlock<blocks::LayeredCauldronBlock>(
+        ResourceLocation("minecraft:water_cauldron"),
+        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().soundType(BlockSoundTypes::STONE),
+        world::biome::BiomeClimate::Precipitation::Rain);
 
     // 岩浆炼药锅 - 始终满的炼药锅，发光等级15，实体进入受岩浆伤害
     // 参考: net.minecraft.world.level.block.LavaCauldronBlock
     BuildingBlocks::LAVA_CAULDRON =
         &registry.registerBlock<blocks::LavaCauldronBlock>(ResourceLocation("minecraft:lava_cauldron"),
-            BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().lightLevel(15));
+            BlockProperties(Material::IRON)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .notSolid()
+                .lightLevel(15)
+                .soundType(BlockSoundTypes::STONE));
 
     // 细雪炼药锅（分层，水位1-3）
     // 对应 MC 原版 LayeredCauldronBlock (POWDER_SNOW_CAULDRON)
     // 降水类型为 Snow，表示细雪炼药锅只在雪天被降水填充
     // 实体着火进入时会将细雪炼药锅转换为水炼药锅
-    BuildingBlocks::POWDER_SNOW_CAULDRON =
-        &registry.registerBlock<blocks::LayeredCauldronBlock>(ResourceLocation("minecraft:powder_snow_cauldron"),
-            BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid(),
-            world::biome::BiomeClimate::Precipitation::Snow);
+    BuildingBlocks::POWDER_SNOW_CAULDRON = &registry.registerBlock<blocks::LayeredCauldronBlock>(
+        ResourceLocation("minecraft:powder_snow_cauldron"),
+        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().soundType(BlockSoundTypes::STONE),
+        world::biome::BiomeClimate::Precipitation::Snow);
 
     // 附魔台
     BuildingBlocks::ENCHANTING_TABLE =
@@ -258,16 +264,17 @@ void registerBuildingBlocks()
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
     // 梯子 - 含水方块（vanilla 不设置 ignitedByLava）
-    BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(
-        ResourceLocation("minecraft:ladder"), BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable());
+    BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
+        BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable().soundType(BlockSoundTypes::LADDER));
 
     // 锁链 - 含水方块 (MC 1.21+ 重命名为 iron_chain)
     BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:iron_chain"),
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid());
+        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().soundType(BlockSoundTypes::CHAIN));
 
     // 脚手架 - 含水方块
-    BuildingBlocks::SCAFFOLDING = &registry.registerBlock<blocks::ScaffoldingBlock>(
-        ResourceLocation("minecraft:scaffolding"), BlockProperties(Material::DECORATION).hardness(0.0f).notSolid());
+    BuildingBlocks::SCAFFOLDING =
+        &registry.registerBlock<blocks::ScaffoldingBlock>(ResourceLocation("minecraft:scaffolding"),
+            BlockProperties(Material::DECORATION).hardness(0.0f).notSolid().soundType(BlockSoundTypes::SCAFFOLDING));
 
     // 玻璃板 - 含水方块
     BuildingBlocks::GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
@@ -278,7 +285,12 @@ void registerBuildingBlocks()
     // 铁栏杆材质为金属（不透明），只有 canOcclude=false 才能让 getLightBlock 走"非实体渲染"分支
     // 并得到 0（透光），否则会按材质误判为完全遮光。
     BuildingBlocks::IRON_BARS = &registry.registerBlock<blocks::PaneBlock>(ResourceLocation("minecraft:iron_bars"),
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).requiresTool().noOcclusion());
+        BlockProperties(Material::IRON)
+            .hardness(5.0f)
+            .resistance(6.0f)
+            .requiresTool()
+            .noOcclusion()
+            .soundType(BlockSoundTypes::IRON));
 
     // 陷阱箱 - 含水方块
     BuildingBlocks::TRAPPED_CHEST =
@@ -294,7 +306,12 @@ void registerBuildingBlocks()
     BuildingBlocks::SHULKER_BOX =
         &registry.registerBlock<blocks::ShulkerBoxBlock>(ResourceLocation("minecraft:shulker_box"),
             std::nullopt,
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().noOcclusion());
+            BlockProperties(Material::WOOD)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .notSolid()
+                .noOcclusion()
+                .soundType(BlockSoundTypes::STONE));
 
     // 织布机
     BuildingBlocks::LOOM = &registry.registerBlock<blocks::LoomBlock>(ResourceLocation("minecraft:loom"),
@@ -342,8 +359,8 @@ void registerBuildingBlocks()
         BlockProperties(Material::WOOD).hardness(0.6f).flammable().ignitedByLava());
 
     // 蛋糕
-    BuildingBlocks::CAKE = &registry.registerBlock<blocks::CakeBlock>(
-        ResourceLocation("minecraft:cake"), BlockProperties(Material::CAKE).hardness(0.5f).notSolid());
+    BuildingBlocks::CAKE = &registry.registerBlock<blocks::CakeBlock>(ResourceLocation("minecraft:cake"),
+        BlockProperties(Material::CAKE).hardness(0.5f).notSolid().soundType(BlockSoundTypes::WOOL));
 
     // 讲台
     BuildingBlocks::LECTERN = &registry.registerBlock<blocks::LecternBlock>(ResourceLocation("minecraft:lectern"),
@@ -354,8 +371,8 @@ void registerBuildingBlocks()
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(6.0f).flammable().ignitedByLava());
 
     // TNT - 可被岩浆点燃（对齐 vanilla）
-    BuildingBlocks::TNT = &registry.registerBlock<blocks::TNTBlock>(
-        ResourceLocation("minecraft:tnt"), BlockProperties(Material::TNT).hardness(0.0f).ignitedByLava());
+    BuildingBlocks::TNT = &registry.registerBlock<blocks::TNTBlock>(ResourceLocation("minecraft:tnt"),
+        BlockProperties(Material::TNT).hardness(0.0f).ignitedByLava().soundType(BlockSoundTypes::GRASS));
 
     // ========== 石砖系列 ==========
     // 石砖系列：方块/楼梯/墙 1.5，台阶 2.0（原版台阶在基方块硬度上 +0.5）。
@@ -395,9 +412,13 @@ void registerBuildingBlocks()
     // ========== 虫蚀方块系列 ==========
     // 虫蚀方块的硬度取自宿主石头（stone 0.75 / cobblestone 1.0 / stone_bricks 0.75 /
     // deepslate 1.5），抗性固定 0.75；下面按宿主分别给值。
-    BlockProperties infestedStoneProps = BlockProperties(Material::EARTH).hardness(0.75f).resistance(0.75f);
-    BlockProperties infestedCobblestoneProps = BlockProperties(Material::EARTH).hardness(1.0f).resistance(0.75f);
-    BlockProperties infestedDeepslateProps = BlockProperties(Material::EARTH).hardness(1.5f).resistance(0.75f);
+    // 虫蚀方块用原版 `SoundType.STONE`（材质写的泥土不能代表声音组）
+    BlockProperties infestedStoneProps =
+        BlockProperties(Material::EARTH).hardness(0.75f).resistance(0.75f).soundType(BlockSoundTypes::STONE);
+    BlockProperties infestedCobblestoneProps =
+        BlockProperties(Material::EARTH).hardness(1.0f).resistance(0.75f).soundType(BlockSoundTypes::STONE);
+    BlockProperties infestedDeepslateProps =
+        BlockProperties(Material::EARTH).hardness(1.5f).resistance(0.75f).soundType(BlockSoundTypes::DEEPSLATE);
 
     BuildingBlocks::INFESTED_STONE = &registry.registerBlock<blocks::InfestedBlock>(
         ResourceLocation("minecraft:infested_stone"), BaseBlocks::STONE->blockId(), infestedStoneProps);
@@ -510,13 +531,13 @@ void registerBuildingBlocks()
 
     // ========== 骨块和干草块 ==========
     // 骨块 - 有轴属性
-    BuildingBlocks::BONE_BLOCK = &registry.registerBlock<RotatedPillarBlock>(
-        ResourceLocation("minecraft:bone_block"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
+    BuildingBlocks::BONE_BLOCK = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:bone_block"),
+        BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::BONE));
 
     // 干草块 - 有轴属性。重写 onFallenUpon 以 0.2 乘数减伤 80%（对齐 Java HayBlock#fallOn）。（vanilla 不设置
     // ignitedByLava）
-    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<blocks::HayBlock>(
-        ResourceLocation("minecraft:hay_block"), BlockProperties(Material::EARTH).hardness(0.5f).flammable());
+    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<blocks::HayBlock>(ResourceLocation("minecraft:hay_block"),
+        BlockProperties(Material::EARTH).hardness(0.5f).flammable().soundType(BlockSoundTypes::GRASS));
 
     // ========== 铁砧系列 ==========
     // 铁砧属性: 硬度5.0, 爆炸抗性1200.0, 铁砧材质音效

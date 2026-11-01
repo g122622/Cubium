@@ -694,6 +694,7 @@ add_library(mc_common STATIC
 
     # Item - Crafting
     item/crafting/Ingredient.cpp
+    item/crafting/RecipeBookCategories.cpp
     item/crafting/RecipeBook.cpp
     item/crafting/RecipeType.cpp
     item/crafting/RecipeManager.cpp

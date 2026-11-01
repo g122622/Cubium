@@ -486,9 +486,9 @@ void registerBuildingVariantBlocks()
             BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 石化橡木台阶（vanilla 不设置 ignitedByLava）
-    BuildingVariantBlocks::PETRIFIED_OAK_SLAB =
-        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:petrified_oak_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable());
+    BuildingVariantBlocks::PETRIFIED_OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:petrified_oak_slab"),
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().soundType(BlockSoundTypes::STONE));
 
     // 海晶台阶
     BuildingBlocks::PRISMARINE_SLAB =
@@ -597,7 +597,9 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:dark_oak_trapdoor"), woodTrapdoorProps, false);
 
     // 下界木材活板门（不可燃）
-    BlockProperties netherWoodTrapdoorProps = BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f);
+    // 下界木的声音组是 `SoundType.NETHER_WOOD`，与普通木质声不同
+    BlockProperties netherWoodTrapdoorProps =
+        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD);
     BuildingVariantBlocks::CRIMSON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:crimson_trapdoor"), netherWoodTrapdoorProps, false);
     BuildingVariantBlocks::WARPED_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
@@ -606,7 +608,11 @@ void registerBuildingVariantBlocks()
     // 铁活板门
     BuildingVariantBlocks::IRON_TRAPDOOR =
         &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:iron_trapdoor"),
-            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).harvestTool(HarvestTool::Pickaxe),
+            BlockProperties(Material::IRON)
+                .hardness(5.0f)
+                .resistance(5.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .soundType(BlockSoundTypes::IRON),
             true);
 
     // ========== 门 ==========
@@ -619,7 +625,7 @@ void registerBuildingVariantBlocks()
     // 铁门
     BuildingVariantBlocks::IRON_DOOR =
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:iron_door"),
-            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid(),
+            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().soundType(BlockSoundTypes::IRON),
             true // 是铁门
         );
 
@@ -639,8 +645,11 @@ void registerBuildingVariantBlocks()
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:dark_oak_door"), woodDoorProps, false);
 
     // 下界木材门（不可燃）
-    BlockProperties netherWoodDoorProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).notSolid();
+    BlockProperties netherWoodDoorProps = BlockProperties(Material::NETHER_WOOD)
+                                              .hardness(3.0f)
+                                              .resistance(3.0f)
+                                              .notSolid()
+                                              .soundType(BlockSoundTypes::NETHER_WOOD);
     BuildingVariantBlocks::CRIMSON_DOOR = &registry.registerBlock<blocks::DoorBlock>(
         ResourceLocation("minecraft:crimson_door"), netherWoodDoorProps, false);
     BuildingVariantBlocks::WARPED_DOOR = &registry.registerBlock<blocks::DoorBlock>(
@@ -667,8 +676,11 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:dark_oak_fence_gate"), woodFenceGateProps);
 
     // 下界木材栅栏门（不可燃）
-    BlockProperties netherWoodFenceGateProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(2.0f).notSolid();
+    BlockProperties netherWoodFenceGateProps = BlockProperties(Material::NETHER_WOOD)
+                                                   .hardness(2.0f)
+                                                   .resistance(2.0f)
+                                                   .notSolid()
+                                                   .soundType(BlockSoundTypes::NETHER_WOOD);
     BuildingVariantBlocks::CRIMSON_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
         ResourceLocation("minecraft:crimson_fence_gate"), netherWoodFenceGateProps);
     BuildingVariantBlocks::WARPED_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
@@ -715,7 +727,11 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::SPAWNER =
         &registry.registerBlock<blocks::SpawnerBlock>(ResourceLocation("minecraft:spawner"),
             // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
-            BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f).noLootTable());
+            BlockProperties(Material::ROCK)
+                .hardness(5.0f)
+                .resistance(5.0f)
+                .noLootTable()
+                .soundType(BlockSoundTypes::SPAWNER));
 
     // 结构方块 - 创造模式专用，用于保存/加载结构
     BuildingVariantBlocks::STRUCTURE_BLOCK =

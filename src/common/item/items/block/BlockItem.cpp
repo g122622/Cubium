@@ -188,8 +188,8 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         }
     }
 
-    // 播放放置音效
-    const BlockSoundType& soundType = m_block->getSoundType();
+    // 播放放置音效（按放置后的实际状态取声音组，与原版 `BlockState#getSoundType` 一致）
+    const BlockSoundType& soundType = actualState->getSoundType();
     world.playSound(soundType.getPlaceSound(),
         sound::SoundCategory::Blocks,
         pos.center(),

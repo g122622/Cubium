@@ -1077,8 +1077,8 @@ void Block::harvestBlock(IWorld& world,
     BlockEntity* blockEntity,
     const ItemStack* stack)
 {
-    // 播放破坏音效
-    const BlockSoundType& soundType = state.owner().getSoundType();
+    // 播放破坏音效（按被破坏的状态取声音组：饰纹陶罐碎裂后改为碎裂声）
+    const BlockSoundType& soundType = state.getSoundType();
     world.playSound(soundType.getBreakSound(),
         sound::SoundCategory::Blocks,
         pos.center(),

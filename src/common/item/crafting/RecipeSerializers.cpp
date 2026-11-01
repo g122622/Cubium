@@ -233,10 +233,15 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
         group = json["group"].get<std::string>();
     }
 
+    // 配方书页签：原版 `CraftingBookCategory.CODEC` 的 optionalFieldOf + orElse(MISC)。
+    const CraftingBookCategory bookCategory = json.contains("category") && json["category"].is_string()
+        ? craftingBookCategoryFromString(json["category"].get<std::string>())
+        : CraftingBookCategory::Misc;
+
     // 原料表与 pattern **逐格对齐**（空格是 `Ingredient::EMPTY` 占位）。
     // `ShapedRecipe::_checkMatch` 按下标访问，布局一旦被压紧就是越界读取。
     return std::make_unique<ShapedRecipe>(
-        id, width, height, std::move(ingredientsResult.value()), resultStack.value(), group);
+        id, width, height, std::move(ingredientsResult.value()), resultStack.value(), group, bookCategory);
 }
 
 Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe(
@@ -287,7 +292,12 @@ Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe
         group = json["group"].get<std::string>();
     }
 
-    return std::make_unique<ShapelessRecipe>(id, std::move(ingredients), resultStack.value(), group);
+    // 配方书页签：原版 `CraftingBookCategory.CODEC` 的 optionalFieldOf + orElse(MISC)。
+    const CraftingBookCategory bookCategory = json.contains("category") && json["category"].is_string()
+        ? craftingBookCategoryFromString(json["category"].get<std::string>())
+        : CraftingBookCategory::Misc;
+
+    return std::make_unique<ShapelessRecipe>(id, std::move(ingredients), resultStack.value(), group, bookCategory);
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmeltingRecipe(
@@ -331,7 +341,13 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmeltingRecipe(
         cookTime = json["cookingtime"].get<i32>();
     }
 
-    return std::make_unique<SmeltingRecipe>(id, group, ingResult.value(), resultStack.value(), experience, cookTime);
+    // 配方书页签：原版 `CookingBookCategory.CODEC.optionalFieldOf("category", MISC)`。
+    const CookingBookCategory bookCategory = json.contains("category") && json["category"].is_string()
+        ? cookingBookCategoryFromString(json["category"].get<std::string>())
+        : CookingBookCategory::Misc;
+
+    return std::make_unique<SmeltingRecipe>(
+        id, group, ingResult.value(), resultStack.value(), experience, cookTime, bookCategory);
 }
 
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseBlastingRecipe(
@@ -350,7 +366,8 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseBlastingRecipe(
             smelting->getIngredient(),
             smelting->getResultItem(),
             smelting->getExperience(),
-            smelting->getCookTime());
+            smelting->getCookTime(),
+            smelting->getCookingBookCategory());
         return blasting;
     }
     return result;
@@ -372,7 +389,8 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmokingRecipe(
             smelting->getIngredient(),
             smelting->getResultItem(),
             smelting->getExperience(),
-            smelting->getCookTime());
+            smelting->getCookTime(),
+            smelting->getCookingBookCategory());
         return smoking;
     }
     return result;
@@ -394,7 +412,8 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseCampfireCookingR
             smelting->getIngredient(),
             smelting->getResultItem(),
             smelting->getExperience(),
-            smelting->getCookTime());
+            smelting->getCookTime(),
+            smelting->getCookingBookCategory());
         return campfire;
     }
     return result;
@@ -1021,8 +1040,14 @@ Result<std::unique_ptr<TransmuteRecipe>> RecipeSerializers::parseTransmuteRecipe
         return resultStack.error();
     }
 
+    // 配方书页签：原版 `TransmuteRecipe` 也是 `CraftingRecipe` 的实现，走同一套
+    // `category` 字段（收纳袋的 16 个染色变体都标着 equipment）。
+    const CraftingBookCategory bookCategory = json.contains("category") && json["category"].is_string()
+        ? craftingBookCategoryFromString(json["category"].get<std::string>())
+        : CraftingBookCategory::Misc;
+
     return std::make_unique<TransmuteRecipe>(
-        id, inputResult.value(), materialResult.value(), resultStack.value(), group);
+        id, inputResult.value(), materialResult.value(), resultStack.value(), group, bookCategory);
 }
 
 } // namespace crafting

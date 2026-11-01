@@ -43,6 +43,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/functional/TrailsBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -1445,4 +1446,27 @@ TEST_F(DecoratedPotBlockTest, BreaksDecoratedPotsTag_DoesNotContainDiamond)
     if (diamond != nullptr) {
         EXPECT_FALSE(breaksTag.contains(diamond));
     }
+}
+
+// ========== 按状态切换的声音组 ==========
+
+TEST_F(DecoratedPotBlockTest, GetSoundType_DefaultStateUsesDecoratedPotGroup)
+{
+    const BlockState& state = pot_->defaultState();
+    const BlockSoundType& sound = pot_->getSoundType(state);
+
+    EXPECT_EQ(sound.getBreakSound(), BlockSoundTypes::DECORATED_POT.getBreakSound());
+}
+
+TEST_F(DecoratedPotBlockTest, GetSoundType_CrackedStateUsesShatterSound)
+{
+    // 原版 DecoratedPotBlock#getSoundType：CRACKED 时破坏声换成碎裂声，其余四种不变。
+    const BlockState& cracked = pot_->defaultState().with(BlockStateProperties::CRACKED(), true);
+    const BlockSoundType& sound = pot_->getSoundType(cracked);
+
+    EXPECT_EQ(sound.getBreakSound(), ResourceLocation("minecraft:block.decorated_pot.shatter"));
+    EXPECT_EQ(sound.getStepSound(), BlockSoundTypes::DECORATED_POT.getStepSound());
+    EXPECT_EQ(sound.getPlaceSound(), BlockSoundTypes::DECORATED_POT.getPlaceSound());
+    EXPECT_EQ(sound.getHitSound(), BlockSoundTypes::DECORATED_POT.getHitSound());
+    EXPECT_EQ(sound.getFallSound(), BlockSoundTypes::DECORATED_POT.getFallSound());
 }

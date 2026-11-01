@@ -35,12 +35,16 @@
 namespace mc {
 namespace crafting {
 
-ShapelessRecipe::ShapelessRecipe(
-    const ResourceLocation& id, std::vector<Ingredient> ingredients, ItemStack result, const std::string& group)
+ShapelessRecipe::ShapelessRecipe(const ResourceLocation& id,
+    std::vector<Ingredient> ingredients,
+    ItemStack result,
+    const std::string& group,
+    CraftingBookCategory bookCategory)
     : m_id(id)
     , m_ingredients(std::move(ingredients))
     , m_result(std::move(result))
     , m_group(group)
+    , m_bookCategory(bookCategory)
 {
     // 计算是否为简单配方
     m_isSimple = true;

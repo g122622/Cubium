@@ -65,6 +65,9 @@ tests/diff/
 │   ├── recipe.cpp               # 配方表（类型 / 原料 / 结果 / 烹饪）
 │   ├── crafting_match.cpp       # 合成配方在固定网格语料下的匹配与产出
 │   ├── single_item_recipe.cpp   # 单物品配方的查询语义（熔炼/高炉/烟熏/营火/切石）
+│   ├── recipe_book_category.cpp # 每条配方落在配方书的哪个页签（类型 + 分类 → 归属）
+│   ├── fuel_values.cpp          # 每种物品作为燃料的燃烧时长
+│   ├── block_sound_type.cpp     # 方块声音组（五个音效事件 + 音量 + 音调）
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -98,6 +101,9 @@ tests/diff/
 │   │   ├── recipe.ts            # 导出配方夹具，生成两侧共用的锻造三槽输入
 │   │   ├── crafting_match.ts    # 合成配方的摆法语料（原样 / 放大 / 平移 / 反例）
 │   │   ├── single_item_recipe.ts # 单物品配方查询的比对口径（补齐五个结果键）
+│   │   ├── recipe_book_category.ts # 配方书页签归属的比对口径（补齐 type/page）
+│   │   ├── fuel_values.ts       # 燃料燃烧时长的比对口径（0 表示不是燃料）
+│   │   ├── block_sound_type.ts  # 方块声音组的比对口径（补齐七个字段）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -344,6 +350,9 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `recipe` | 原版 jar `RecipeOracle` | 1470 | 全部一致 | — |
 | `crafting_match` | 原版 jar `CraftingMatchOracle` | 4068（有序/无形状配方 × 6 种摆法） | 全部一致 | 见下文 |
 | `single_item_recipe` | 原版 jar `SingleItemRecipeOracle` | 202 个输入物品（熔炼/高炉/烟熏/营火/切石） | 全部一致 | 见下文 |
+| `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470（每条配方一项） | 全部一致 | 见下文 |
+| `fuel_values` | 原版 jar `FuelValuesOracle` | 1505（全部已注册物品） | 全部一致 | 见下文 |
+| `block_sound_type` | 原版 jar `BlockSoundTypeOracle` | 1167（全部方块 + 饰纹陶罐裂纹状态） | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -473,6 +482,70 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 - **文本组件的样式是两态而非三态**：`Style` 用 `bool` 记 bold/italic 等，无法区分「显式 false」
   与「未设置」。原版是 `Optional<Boolean>`：前者要写出 `italic:0b`，后者省略；继承时也只看
   子样式是否显式给出（`子 || 父` 会让显式 false 盖不住父样式的 true）。改为 `std::optional<bool>`。
+
+`block_sound_type` 比的是**每个方块的声音组**：破坏 / 踩踏 / 放置 / 击打 / 坠落五个
+音效事件，加上音量与音调。单元是方块 ID（取默认状态），另有
+`minecraft:decorated_pot#cracked=true` 这一个状态相关的变体。
+
+这类错误不会崩溃、不影响平衡，只会让玩家听到不该有的声音——木头踩出石头声、羊毛摔出
+金属声、陶罐碎了却还是普通破碎声。除了逐个方块比对，没有别的办法发现。
+
+原版声音组是「方块属性上的一个常量」，Cubium 拷贝的是一张手写的常量表，于是错的形状
+很集中：整族方块套了通用声音组（`Material` 默认值），以及几种「看着像 A 其实是 B」的
+细节。首轮跑通查出 **273 处差异**，分四类全部修掉：
+
+- **整族套错声音组**：木质告示牌/悬挂告示牌/木门/活板门/按钮/压力板按木种分（樱花、
+  竹子、绯红各有自己的组）、珊瑚与珊瑚块、铁质方块（`IRON` 音调 1.0，`METAL` 是 1.5）、
+  铁轨、下界砖、虫蚀方块、瓜梗……
+- **原版按状态切换声音组**：`DecoratedPotBlock#getSoundType(BlockState)` 在裂隙状态
+  用碎裂声。Cubium 的 `getSoundType()` 不带状态，整条链路缺失——本次给 `Block` 补了
+  虚函数 `getSoundType(const BlockState&)`，破坏/放置音效改走状态入口。
+- **空音效事件的名字**：`SoundEvents.EMPTY` 的注册名是 `minecraft:intentionally_empty`，
+  而 Cubium 自造的 `minecraft:block.air.ambient` / `minecraft:empty` 都不存在。
+- **物品音效写在方块命名空间下**：作物放置声是 `minecraft:item.crop.plant`、
+  下界疣是 `minecraft:item.nether_wart.plant`，不是 `block.*`。
+
+音量/音调是 f32：`0.3f` 提升成 double 会写成 `0.30000001192092896`，与原版的
+`0.3` 文本不同。探针输出前统一收窄到「最短往返十进制」，让两侧写法一致。
+
+`fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
+单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。
+
+燃料表是「物品种类 → tick 数」的一张表，玩家对它的容错极低：少一种木材就烧不着，
+数值差一倍整组矿的烧制时间就不对，而且这类错误不会崩溃也不会报错。原版 1.21.11 用
+**标签聚合**表达这张表（`ItemTags.LOGS` 一条覆盖全部原木变体，末尾再
+`.remove(NON_FLAMMABLE_WOOD)` 剔除绯红/诡异木），Cubium 侧是逐物品的 if 链——所有
+乘除都作用在 **200 的基准**上而不是中间值，这是最容易抄错的地方。
+
+首轮跑通查出 14 处差异，全部修掉：
+
+- **12 种木质架子烧得太久（450 → 300）**：原版 `200 * 3 / 2 = 300`，Cubium 写成
+  「基础木质 300 × 1.5 = 450」——拿已放大的 300 当基准再乘一次，凭空多出 150 tick。
+- **绯红 / 诡异架子被误判为燃料**：这两族属于 `NON_FLAMMABLE_WOOD`，原版在表尾显式
+  移除，Cubium 把它们一起算进了木质架子。
+- **木长矛不认作燃料**：`Items.WOODEN_SPEAR` → 200，Cubium 的木制工具组里漏了它。
+- **`minecraft:air` 被判成合法物品**：探针侧要按原版口径把它当作未注册。
+
+`recipe_book_category` 比的是**每条配方落在配方书的哪个页签**。这个归属由两个维度
+合成：配方**类型**（熔炼 / 高炉 / 烟熏 / 营火 / 切石 / 锻造各有一套页签）与数据包里的
+`category` 字段（有序合成是 building / redstone / equipment / misc，烧制是 food /
+blocks / misc）。原版 `Recipe#recipeBookCategory()` 把它们压成一个注册表键，例如
+`minecraft:crafting_equipment`、`minecraft:smoker_food`。
+
+只比这一个字段，就能同时发现两类错误：分类字段解析错了，以及类型映射错了。两个**不是**
+机械对应的地方尤其值得压——烟熏炉只有「食物」一页（分类写 blocks 也落 `smoker_food`），
+高炉没有食物页（食物类落 `blast_furnace_misc` 而不是凭空的 `blast_furnace_food`）。
+
+首轮跑通查出 30 处差异，全部修掉：
+
+- **12 种特殊配方的类型被笼统写成 `special`**：原版把它们注册成各自的序列化器
+  （`crafting_special_armordye`、`crafting_special_bookcloning`……）。Cubium 的
+  `SpecialRecipe` 其实已经持有精确 ID（`getSerializerId()`），只是探针没用它。
+- **16 个收纳袋从装备页掉进杂项页**：`crafting_transmute` 的 `category: equipment`
+  没有被解析——`TransmuteRecipe` 也是 `CraftingRecipe` 的实现，走同一套分类。
+- **2 条红石高炉配方从 blocks 掉进 misc**：`parseBlastingRecipe` 等三个转换函数在
+  「熔炼配方 → 高炉/烟熏/营火配方」的二次构造里**丢掉了分类**，`category` 字段因此
+  在转换时消失。这一处是重构 RecipeBook 时才暴露的——旧模型根本没有分类这回事。
 
 `single_item_recipe` 比的是**单物品配方的查询语义**：单元是输入物品而不是配方 ID，
 两侧各自回答「这个物品在熔炼炉 / 高炉 / 烟熏炉 / 营火里会烧出什么、切石机上有哪些选项」。

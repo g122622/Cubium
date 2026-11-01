@@ -36,13 +36,18 @@
 namespace mc {
 namespace crafting {
 
-TransmuteRecipe::TransmuteRecipe(
-    const ResourceLocation& id, Ingredient input, Ingredient material, ItemStack result, const std::string& group)
+TransmuteRecipe::TransmuteRecipe(const ResourceLocation& id,
+    Ingredient input,
+    Ingredient material,
+    ItemStack result,
+    const std::string& group,
+    CraftingBookCategory bookCategory)
     : m_id(id)
     , m_input(std::move(input))
     , m_material(std::move(material))
     , m_result(std::move(result))
     , m_group(group)
+    , m_bookCategory(bookCategory)
 {
     // 构造 getIngredients() 返回的列表（input + material）
     m_ingredients.reserve(2);

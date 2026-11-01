@@ -995,6 +995,7 @@ void registerCopperBlocks()
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(1)
+            .soundType(BlockSoundTypes::STONE)
             .requiresTool());
 
     CopperBlocks::RAW_COPPER_BLOCK =
@@ -1004,6 +1005,7 @@ void registerCopperBlocks()
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(1)
+                .soundType(BlockSoundTypes::STONE)
                 .requiresTool());
 
     CopperBlocks::RAW_GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_gold_block"),
@@ -1012,6 +1014,7 @@ void registerCopperBlocks()
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(2)
+            .soundType(BlockSoundTypes::STONE)
             .requiresTool());
 
     // ============================================================================
@@ -1036,7 +1039,7 @@ void registerCopperBlocks()
                                                  .harvestTool(HarvestTool::Pickaxe)
                                                  .requiresTool()
                                                  .noOcclusion()
-                                                 .soundType(BlockSoundTypes::COPPER);
+                                                 .soundType(BlockSoundTypes::COPPER_GOLEM_STATUE);
 
     // 基础铜傀儡雕像（Unaffected 等级，不氧化但处于氧化链最低位）
     auto* copperGolemStatue = &registry.registerBlock<blocks::CopperGolemStatueBlock>(

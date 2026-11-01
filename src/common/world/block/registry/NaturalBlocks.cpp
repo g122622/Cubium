@@ -182,8 +182,8 @@ void registerNaturalBlocks()
         BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS).noOcclusion());
 
     // 草径
-    NaturalBlocks::GRASS_PATH = &registry.registerBlock<blocks::DirtPathBlock>(
-        ResourceLocation("minecraft:dirt_path"), BlockProperties(Material::EARTH).hardness(0.65f));
+    NaturalBlocks::GRASS_PATH = &registry.registerBlock<blocks::DirtPathBlock>(ResourceLocation("minecraft:dirt_path"),
+        BlockProperties(Material::EARTH).hardness(0.65f).soundType(BlockSoundTypes::GRASS));
 
     // 浮冰 - 不透明，不融化
     NaturalBlocks::PACKED_ICE =
@@ -213,8 +213,8 @@ void registerNaturalBlocks()
     // Block 基类默认实现（getSlipperiness 返回 0.6、onFallenUpon multiplier=1.0 施加完整摔落伤害、
     // isStickyBlock 返回 false），SlimeBlock 子类沦为死代码——与红石块（BaseBlocks.cpp）同模式缺陷。
     // 参考: net.minecraft.world.level.block.SlimeBlock
-    NaturalBlocks::SLIME_BLOCK = &registry.registerBlock<blocks::SlimeBlock>(
-        ResourceLocation("minecraft:slime_block"), BlockProperties(Material::SLIME).hardness(0.0f).noOcclusion());
+    NaturalBlocks::SLIME_BLOCK = &registry.registerBlock<blocks::SlimeBlock>(ResourceLocation("minecraft:slime_block"),
+        BlockProperties(Material::SLIME).hardness(0.0f).noOcclusion().soundType(BlockSoundTypes::SLIME));
 
     // 蜂蜜块。须注册为 blocks::HoneyBlock（而非 SimpleBlock）才能启用摔落减伤（onFallenUpon
     // multiplier=0.2）、不弹跳着地（onLanded Y 速度归零）、减速（onEntityCollision 水平 ×0.4）、
@@ -223,12 +223,12 @@ void registerNaturalBlocks()
     // （onFallenUpon multiplier=1.0 完整摔落伤害、isStickyBlock/isOpaque 返回 false 碰巧部分一致但
     // 行为语义错误、getCollisionShape 返回满方块），HoneyBlock 子类沦为死代码——与红石块/粘液块
     // 同模式缺陷。参考: net.minecraft.world.level.block.HoneyBlock
-    NaturalBlocks::HONEY_BLOCK = &registry.registerBlock<blocks::HoneyBlock>(
-        ResourceLocation("minecraft:honey_block"), BlockProperties(Material::HONEY).hardness(0.0f).notSolid());
+    NaturalBlocks::HONEY_BLOCK = &registry.registerBlock<blocks::HoneyBlock>(ResourceLocation("minecraft:honey_block"),
+        BlockProperties(Material::HONEY).hardness(0.0f).notSolid().soundType(BlockSoundTypes::HONEY));
 
     // 仙人掌
-    NaturalBlocks::CACTUS = &registry.registerBlock<blocks::CactusBlock>(
-        ResourceLocation("minecraft:cactus"), BlockProperties(Material::PLANT).hardness(0.4f));
+    NaturalBlocks::CACTUS = &registry.registerBlock<blocks::CactusBlock>(ResourceLocation("minecraft:cactus"),
+        BlockProperties(Material::PLANT).hardness(0.4f).soundType(BlockSoundTypes::WOOL));
 
     // 枯萎灌木 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。
     // 改用 DryVegetationBlock 走 canSurvive 闸门，修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
@@ -239,16 +239,21 @@ void registerNaturalBlocks()
 
     // 睡莲 - 水生植物，下方须为水/冰且上方无流体。新建 WaterlilyBlock 走 canSurvive 闸门，
     // 修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
-    NaturalBlocks::LILY_PAD = &registry.registerBlock<blocks::WaterlilyBlock>(
-        ResourceLocation("minecraft:lily_pad"), BlockProperties(Material::PLANT).noCollision().notSolid());
+    NaturalBlocks::LILY_PAD = &registry.registerBlock<blocks::WaterlilyBlock>(ResourceLocation("minecraft:lily_pad"),
+        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::LILY_PAD));
 
     // 藤蔓 - 可被岩浆点燃（对齐 vanilla vine）
     NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
-        BlockProperties(Material::REPLACEABLE_PLANT).hardness(0.2f).noCollision().notSolid().ignitedByLava());
+        BlockProperties(Material::REPLACEABLE_PLANT)
+            .hardness(0.2f)
+            .noCollision()
+            .notSolid()
+            .ignitedByLava()
+            .soundType(BlockSoundTypes::VINE));
 
     // 蜘蛛网
-    NaturalBlocks::COBWEB = &registry.registerBlock<blocks::WebBlock>(
-        ResourceLocation("minecraft:cobweb"), BlockProperties(Material::WEB).hardness(4.0f).noCollision());
+    NaturalBlocks::COBWEB = &registry.registerBlock<blocks::WebBlock>(ResourceLocation("minecraft:cobweb"),
+        BlockProperties(Material::WEB).hardness(4.0f).noCollision().soundType(BlockSoundTypes::COBWEB));
 
     // 甘蔗
     NaturalBlocks::SUGAR_CANE =
@@ -271,29 +276,40 @@ void registerNaturalBlocks()
     // 海泡菜
     NaturalBlocks::SEA_PICKLE =
         &registry.registerBlock<blocks::SeaPickleBlock>(ResourceLocation("minecraft:sea_pickle"),
-            BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid().lightLevel(6));
+            BlockProperties(Material::OCEAN_PLANT)
+                .noCollision()
+                .notSolid()
+                .lightLevel(6)
+                .soundType(BlockSoundTypes::SLIME));
 
     // 海带顶部和海带茎
-    NaturalBlocks::KELP = &registry.registerBlock<blocks::KelpBlock>(
-        ResourceLocation("minecraft:kelp"), BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid());
-    NaturalBlocks::KELP_PLANT = &registry.registerBlock<blocks::KelpPlantBlock>(
-        ResourceLocation("minecraft:kelp_plant"), BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid());
+    NaturalBlocks::KELP = &registry.registerBlock<blocks::KelpBlock>(ResourceLocation("minecraft:kelp"),
+        BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::WET_GRASS));
+    NaturalBlocks::KELP_PLANT =
+        &registry.registerBlock<blocks::KelpPlantBlock>(ResourceLocation("minecraft:kelp_plant"),
+            BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::WET_GRASS));
 
     // 海草与高海草
-    NaturalBlocks::SEAGRASS = &registry.registerBlock<blocks::SeagrassBlock>(
-        ResourceLocation("minecraft:seagrass"), BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
-    NaturalBlocks::TALL_SEAGRASS = &registry.registerBlock<blocks::TallSeagrassBlock>(
-        ResourceLocation("minecraft:tall_seagrass"), BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
+    NaturalBlocks::SEAGRASS = &registry.registerBlock<blocks::SeagrassBlock>(ResourceLocation("minecraft:seagrass"),
+        BlockProperties(Material::SEA_GRASS).noCollision().notSolid().soundType(BlockSoundTypes::WET_GRASS));
+    NaturalBlocks::TALL_SEAGRASS =
+        &registry.registerBlock<blocks::TallSeagrassBlock>(ResourceLocation("minecraft:tall_seagrass"),
+            BlockProperties(Material::SEA_GRASS).noCollision().notSolid().soundType(BlockSoundTypes::WET_GRASS));
 
     // 气泡柱与海龟蛋
     // 气泡柱：水柱方块。BubbleColumnBlock::getFluidState 返回水（对齐 vanilla），propagatesSkylightDown
     // 走默认公式得 false（含水不透天空光）。opacity 显式设 0（透光，vanilla 亦为 0）。
     NaturalBlocks::BUBBLE_COLUMN =
         &registry.registerBlock<blocks::BubbleColumnBlock>(ResourceLocation("minecraft:bubble_column"),
-            BlockProperties(Material::WATER).noCollision().notSolid().opacity(0));
+            BlockProperties(Material::WATER).noCollision().notSolid().opacity(0).soundType(BlockSoundTypes::AIR));
     NaturalBlocks::TURTLE_EGG =
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
-            BlockProperties(Material::CORAL).hardness(0.5f).noCollision().notSolid().noOcclusion());
+            BlockProperties(Material::CORAL)
+                .hardness(0.5f)
+                .noCollision()
+                .notSolid()
+                .noOcclusion()
+                .soundType(BlockSoundTypes::METAL));
 
     // 蜜脾块 - 固体装饰方块（硬度 0.6，珊瑚块音效）
     NaturalBlocks::HONEYCOMB_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:honeycomb_block"),
@@ -358,9 +374,16 @@ void registerNaturalBlocks()
 
     // 珊瑚（补齐死亡变种，便于海洋废墟/暖海装饰复用）
     const u32 deadFallbackId = BaseBlocks::AIR ? BaseBlocks::AIR->blockId() : 0;
-    const BlockProperties coralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
-    const BlockProperties coralPlantProps =
-        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid().noOcclusion();
+    // 珊瑚块与珊瑚（活体）的声音组：方块体用 `SoundType.CORAL_BLOCK`，珊瑚/珊瑚扇用
+    // `SoundType.WET_GRASS`——原版它们都不走材质默认的石头声。
+    const BlockProperties coralBlockProps =
+        BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f).soundType(BlockSoundTypes::CORAL_BLOCK);
+    const BlockProperties coralPlantProps = BlockProperties(Material::CORAL)
+                                                .hardness(0.0f)
+                                                .noCollision()
+                                                .notSolid()
+                                                .noOcclusion()
+                                                .soundType(BlockSoundTypes::WET_GRASS);
     const BlockProperties deadCoralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
     const BlockProperties deadCoralPlantProps =
         BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid().noOcclusion();
@@ -548,19 +571,19 @@ void registerNaturalBlocks()
 
     // 潮涌核心 - 水下信标类方块，需要潮涌框架激活
     NaturalBlocks::CONDUIT = &registry.registerBlock<blocks::ConduitBlock>(ResourceLocation("minecraft:conduit"),
-        BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid());
+        BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid().soundType(BlockSoundTypes::STONE));
 
     // ========== 火把 ==========
     // 火把 - 发光等级14，生成火焰和烟雾粒子
     NaturalBlocks::TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14).soundType(BlockSoundTypes::WOOD),
         particle::ParticleTypeId::Flame);
 
     // 墙上的火把 - 附着在墙上，根据朝向有不同碰撞箱和粒子位置
-    NaturalBlocks::WALL_TORCH =
-        &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:wall_torch"),
-            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
-            particle::ParticleTypeId::Flame);
+    NaturalBlocks::WALL_TORCH = &registry.registerBlock<blocks::WallTorchBlock>(
+        ResourceLocation("minecraft:wall_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14).soundType(BlockSoundTypes::WOOD),
+        particle::ParticleTypeId::Flame);
 
     // ========== 蜂巢/蜂箱 ==========
     // 蜂巢 - 自然生成于树上，材质较软
