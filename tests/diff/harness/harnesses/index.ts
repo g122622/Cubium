@@ -146,6 +146,7 @@ import { stringUtilInput } from "./string_util.ts";
 import { identifierParseInput } from "./identifier_parse.ts";
 import { identifierPathInput } from "./identifier_path.ts";
 import { blockPosIterateInput } from "./blockpos_iterate.ts";
+import { blockPosSpiralInput } from "./blockpos_spiral.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1002,6 +1003,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 区间遍历：x 最快、z 最慢；六参版本不归一化，两参版本会归一化。
     { name: "blockpos_iterate", probe: "blockpos_iterate", oracle: "BlockPosIterateOracle",
         key: "unit", units: { kind: "listing" }, input: blockPosIterateInput },
+    // 螺旋遍历：radius=0 只给中心、段长 leg/2+1 且成对、first/second 交换会镜像。
+    { name: "blockpos_spiral", probe: "blockpos_spiral", oracle: "BlockPosSpiralOracle",
+        key: "unit", units: { kind: "listing" }, input: blockPosSpiralInput },
+
 
 
 
