@@ -97,6 +97,7 @@ import { aabbOpsInput } from "./aabb_ops.ts";
 import { vec3MathInput } from "./vec3_math.ts";
 import { blockposCodecInput } from "./blockpos_codec.ts";
 import { axisPlaneInput } from "./axis_plane.ts";
+import { mthLerpInput } from "./mth_lerp.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -802,6 +803,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Direction.Axis 与 Plane 判定：Z 轴正方向是 SOUTH、Plane.test(null) 为 false，纯计算。
     { name: "axis_plane", probe: "axis_plane", oracle: "AxisPlaneOracle",
         key: "unit", units: { kind: "listing" }, input: axisPlaneInput },
+    // Mth 插值函数族：clampedLerp 越界返回精确端点、lerpInt 用 floor，纯计算。
+    { name: "mth_lerp", probe: "mth_lerp", oracle: "MthLerpOracle",
+        key: "unit", units: { kind: "listing" }, input: mthLerpInput },
+
 
 
 
