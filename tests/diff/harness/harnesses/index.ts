@@ -79,6 +79,18 @@ import { explosionSeenGridInput } from "./explosion_seen_grid.ts";
 import { entityDimensionsInput } from "./entity_dimensions.ts";
 import { mobEffectMergeInput } from "./mob_effect_merge.ts";
 import { foodStatsInput } from "./food_stats.ts";
+import { foodTickInput } from "./food_tick.ts";
+import { enchantmentSelectionInput, enchantmentSelectionUnits } from "./enchantment_selection.ts";
+import { repairCostInput } from "./repair_cost.ts";
+import { anvilDurabilityInput } from "./anvil_durability.ts";
+import { itemStackableInput } from "./item_stackable.ts";
+import { itemSameComponentsInput } from "./item_same_components.ts";
+import { furnaceTickInput } from "./furnace_tick.ts";
+import { brewingTickInput } from "./brewing_tick.ts";
+import { beaconEffectsInput } from "./beacon_effects.ts";
+import { hopperCooldownInput } from "./hopper_cooldown.ts";
+import { spawnerDelayInput } from "./spawner_delay.ts";
+import { mthRoundingInput } from "./mth_rounding.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -640,6 +652,142 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 饥饿值与饱和度：两次 clamp 的顺序、下界钳制、exhaustion 上限，纯计算。
     { name: "food_stats", probe: "food_stats", oracle: "FoodStatsOracle",
         key: "unit", units: { kind: "listing" }, input: foodStatsInput },
+    // 饥饿值每 tick 状态机：exhaustion 消耗 + 快/慢再生 + 饥饿伤害四个互斥分支，纯计算。
+    { name: "food_tick", probe: "food_tick", oracle: "FoodTickOracle",
+        key: "unit", units: { kind: "listing" }, input: foodTickInput },
+    // 附魔台可选附魔列表：物品 × 附魔等级 -> 挑出哪些附魔、各几级，纯计算。
+    { name: "enchantment_selection", probe: "enchantment_selection", oracle: "EnchantmentSelectionOracle",
+        key: "unit", units: { kind: "computed", units: enchantmentSelectionUnits },
+        input: enchantmentSelectionInput,
+        knownDifferences: [
+
+            { key: "minecraft:bow|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:bow|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:bow|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:bow|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:bow|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|1", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|10", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|15", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|20", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|5", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_axe|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|10", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|100", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|15", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|20", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_boots|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|10", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|100", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|15", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|20", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_helmet|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_pickaxe|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_pickaxe|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_pickaxe|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_pickaxe|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_pickaxe|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_sword|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_sword|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_sword|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_sword|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:diamond_sword|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:elytra|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:elytra|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:elytra|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:elytra|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:elytra|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:fishing_rod|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:fishing_rod|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:fishing_rod|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:fishing_rod|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:fishing_rod|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:shield|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:shield|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:shield|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:shield|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:shield|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:trident|25", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:trident|30", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:trident|35", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:trident|40", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+            { key: "minecraft:trident|50", field: "results", reason: "Cubium 用粗粒度类型枚举代替原版的物品级主物品表，且把宝藏过滤内移到 canApplyAtEnchantingTable" },
+        ] },
+    // 铁砧修复代价：取 max + 反直觉的跳过增长条件 + 32 位截断，纯计算。
+    { name: "repair_cost", probe: "repair_cost", oracle: "RepairCostOracle",
+        key: "unit", units: { kind: "listing" }, input: repairCostInput },
+    // 铁砧合并耐久：先乘后除 + 有改善才计入 + 溢出边界，纯计算。
+    { name: "anvil_durability", probe: "anvil_durability", oracle: "AnvilDurabilityOracle",
+        key: "unit", units: { kind: "listing" }, input: anvilDurabilityInput },
+    // 物品能否堆叠：MAX_STACK_SIZE 默认 1、可损坏与已损伤的组合，纯计算。
+    { name: "item_stackable", probe: "item_stackable", oracle: "ItemStackableOracle",
+        key: "unit", units: { kind: "listing" },
+        input: itemStackableInput,
+        knownDifferences: [{
+            key: "minecraft:air|0",
+            field: "empty",
+            reason: "Cubium 用 nullptr 表示空栈、原版用 Items.AIR 物品表示；构造 ItemStack(air) 在 Cubium 侧得到非空栈"
+        }, {
+            key: "minecraft:air|0",
+            field: "maxStackSize",
+            reason: "同上：air 在 Cubium 侧不是空栈，因此读到 MAX_STACK_SIZE=64 而非空栈的 1"
+        }, {
+            key: "minecraft:air|0",
+            field: "stackable",
+            reason: "同上：air 在 Cubium 侧不是空栈，因此被判为可堆叠"
+        }] },
+
+    // 同物品且同组件：两空视为相同、matches 额外要求数量相等，纯计算。
+    { name: "item_same_components", probe: "item_same_components", oracle: "ItemSameComponentsOracle",
+        key: "unit", units: { kind: "listing" }, input: itemSameComponentsInput },
+    // 熔炉每 tick 状态机：燃烧计时 + 烹饪计时，熄灭后进度减 2 而非归零，纯计算。
+    { name: "furnace_tick", probe: "furnace_tick", oracle: "FurnaceTickOracle",
+        key: "unit", units: { kind: "listing" }, input: furnaceTickInput },
+    // 酿造台每 tick 状态机：燃料在开始酿造时扣、中途换试剂会取消，纯计算。
+    { name: "brewing_tick", probe: "brewing_tick", oracle: "BrewingTickOracle",
+        key: "unit", units: { kind: "listing" }, input: brewingTickInput },
+    // 信标效果范围与时长：半径 = 层级*10+10、时长基数 9 秒，纯计算。
+    { name: "beacon_effects", probe: "beacon_effects", oracle: "BeaconEffectsOracle",
+        key: "unit", units: { kind: "listing" }, input: beaconEffectsInput },
+    // 漏斗传输冷却时序：无条件递减 + 传输成功才设 8 tick 冷却，纯计算。
+    { name: "hopper_cooldown", probe: "hopper_cooldown", oracle: "HopperCooldownOracle",
+        key: "unit", units: { kind: "listing" }, input: hopperCooldownInput },
+    // 刷怪笼生成延迟：-1 哨兵重置 + 区间退化取 min + 玩家范围前置条件，纯计算。
+    { name: "spawner_delay", probe: "spawner_delay", oracle: "SpawnerDelayOracle",
+        key: "unit", units: { kind: "listing" }, input: spawnerDelayInput },
+    // Mth.floor / Mth.ceil 取整语义：向零截断后比较，非 std::floor，纯计算。
+    { name: "mth_rounding", probe: "mth_rounding", oracle: "MthRoundingOracle",
+        key: "unit", units: { kind: "listing" },
+        input: mthRoundingInput,
+        // 超界输入：Java 的 (int) 转换对超界值饱和到 Integer.MAX_VALUE，而 C++ 的
+        // static_cast<i32>(double) 对超界值是未定义行为（本平台实测为 MIN_VALUE）。
+        // 这是语言层面的差异，不属于可修复的实现缺陷，因此登记为已知差异。
+        knownDifferences: [
+            { key: "3000000000", field: "floorF", reason: "Java (int) 饱和到 MAX_VALUE，C++ 转换超界为未定义行为" },
+            { key: "3000000000", field: "floorD", reason: "同上" },
+            { key: "-3000000000", field: "floorF", reason: "同上" },
+            { key: "-3000000000", field: "floorD", reason: "同上" }
+        ] },
+
+
+
+
+
+
+
+
 
 
 

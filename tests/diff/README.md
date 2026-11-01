@@ -395,6 +395,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `entity_dimensions` | 原版 jar `EntityDimensionsOracle` | 12 种尺寸 × 位置组合 | 全部一致 | 纯计算，Cubium 无此类（见下文） |
 | `mob_effect_merge` | 原版 jar `MobEffectMergeOracle` | 16 种叠加组合 | 全部一致 | 纯计算，Cubium 无 `update()`（见下文） |
 | `food_stats` | 原版 jar `FoodStatsOracle` | 20 种变化组合 | 全部一致 | 纯计算，暴露一处下界钳制差异（见下文） |
+| `food_tick` | 原版 jar `FoodTickOracle` | 21 种状态 × 难度组合 | 全部一致 | 纯计算，四个互斥分支（见下文） |
 | `damage_type_tags` | 原版 jar `DamageTypeTagsOracle` | 33 个伤害类型标签 | 全部一致 | — |
 | `enchantment_cost` | 原版 jar `EnchantmentCostOracle` | 43 个附魔的等级代价曲线 | 全部一致 | — |
 | `enchantment_applicability` | 原版 jar `EnchantmentApplicabilityOracle` | 43 个附魔 × 全物品 | 全部一致（28 → 0） | — |
@@ -1271,6 +1272,687 @@ Oracle 序列化失败会直接终止，不删除 payload 字段或豁免该节�
 
 顺带发现 `CollisionShape::combine` 只实现了 `OR`，`AND` / `NOT` 会**静默返回空形状**，
 既不报错也无提示。已在源头补上 TODO；漏斗的环形改用四条边显式拼出，不依赖差集。
+
+### 新能力 mth_rounding：`Mth.floor` 不是 `std::floor`
+
+第 91 个能力，21 个取整输入。19 个一致，2 个记为已知差异。`Mth` 的取整函数被全项目
+广泛调用，但从未被系统性比对过。
+
+#### 原版实现
+
+```java
+public static int floor(float f)  { int i = (int) f; return f < i ? i - 1 : i; }
+public static int floor(double d) { int i = (int) d; return d < i ? i - 1 : i; }
+public static int ceil(float f)   { int i = (int) f; return f > i ? i + 1 : i; }
+public static int ceil(double d)  { int i = (int) d; return d > i ? i + 1 : i; }
+```
+
+**不是 `Math.floor`**，而是「先向零截断成 int，再比较」。在射程内两者结果相同，但：
+
+#### 负数的取整方向
+
+| 输入 | `floor` | `ceil` |
+|---|---|---|
+| `-0.5` | **-1** | **0** |
+| `-1.5` | **-2** | **-1** |
+| `-2.9` | **-3** | **-2** |
+
+常见错误写法是 `static_cast<i32>(x)`——它对负数**向零截断**，等价于 `ceil` 而不是
+`floor`。把 `floor` 写成它就是错的。
+
+#### 超界输入：语言层面的差异，不是实现缺陷
+
+| 输入 | 原版 | 探针 |
+|---|---|---|
+| `3000000000` | `2147483647` | `-2147483648` |
+| `-3000000000` | `2147483647` | `-2147483648` |
+
+- **Java** 的 `(int)` 转换对超界值是**饱和**的（一律 `Integer.MAX_VALUE`）
+- **C++** 的 `static_cast<i32>(double)` 对超界值是**未定义行为**（本平台实测得到 `MIN_VALUE`）
+
+这不是 Cubium 的实现缺陷——C++ 标准就没有定义这个行为。因此登记为**已知差异**而非待修
+问题。（注意 `-3000000000` 在 Java 侧也得到 `MAX_VALUE`，这是 `(int)` 饱和的规则，与符号
+无关。）
+
+#### 这条能力为什么值得存在
+
+`Mth.floor` / `ceil` 的正确性影响面极广（区块坐标转换、方块位置计算、渲染插值）。把
+21 个代表性输入的取整结果固定下来，可以在有人把它「优化」成 `std::floor` 时立刻发现。
+`std::floor(-0.5)` 得 `-1`（与 `Mth.floor` 相同），但 `std::floor` 的返回类型是浮点，
+`static_cast<i32>(std::floor(2.9))` 与 `Mth.floor(2.9f)` 在边界值上仍可能因浮点精度差异
+而不同。
+
+### 新能力 spawner_delay：`-1` 是哨兵值，「先重置再递减」
+
+第 90 个能力，15 种延迟状态组合全部一致。刷怪笼的生成延迟此前没有被比对过。
+
+#### 原版代码
+
+```java
+private void delay(Level level, BlockPos pos) {
+    if (this.maxSpawnDelay <= this.minSpawnDelay) {
+        this.spawnDelay = this.minSpawnDelay;                       // 区间退化
+    } else {
+        this.spawnDelay = this.minSpawnDelay
+            + level.random.nextInt(this.maxSpawnDelay - this.minSpawnDelay);
+    }
+}
+
+// serverTick
+if (isNearPlayer(...) && level.isSpawnerBlockEnabled()) {
+    if (this.spawnDelay == -1) { this.delay(level, pos); }
+    if (this.spawnDelay > 0) { this.spawnDelay--; }
+    else { ... 尝试生成 ... }
+}
+```
+
+#### 三个关键点
+
+**1. `-1` 是「需要重置」的哨兵值**，不是「还剩 -1 tick」。`spawnDelay == -1` 时先调
+`delay()` 取值，**然后继续走正常流程**——同一个 tick 内「先重置、再减 1」。实测
+`tick|-1|true|true|200|800|0` 得到 `reset=true` 且 `delay=199`（= 200 - 1）。
+
+**2. 区间退化时直接取 `minSpawnDelay`**，条件是 `maxSpawnDelay <= minSpawnDelay`
+（**包含相等**）。实测 `200|200` 得 200、`300|200` 也得 300，都不调用随机数。
+若写成 `<`，两者相等时会去调 `nextInt(0)`。
+
+**3. `nextInt` 的上界是 `max - min`**，即区间左闭右开 `[min, max)`。默认 200/800 时
+`roll=599` 得到 **799**——**永远取不到 800**。
+
+#### 前置条件是「整 tick 都不动」
+
+`isNearPlayer(...) && isSpawnerBlockEnabled()` 不满足时，**既不重置也不递减**：
+
+| 单元 | `delay` | `reset` | `decremented` |
+|---|---|---|---|
+| `tick\|-1\|false\|...` | **-1** | false | false |
+| `tick\|20\|true\|false\|...` | **20** | false | false |
+
+容易写成「玩家走远了仍然倒计时」或「−1 仍然会被重置」——两者都与原版不符。
+
+#### 一个 tick 内的动作次序
+
+| 单元 | `delay` | `decremented` | `shouldSpawn` |
+|---|---|---|---|
+| `tick\|1\|true\|...` | 0 | **true** | **false** |
+| `tick\|0\|true\|...` | 0 | false | **true** |
+
+减到 0 的那个 tick **不生成**，要等到下一个 tick 才生成。这与 `hopper_cooldown` 那轮的
+边界一致：递减在前、判定在后。
+
+#### 验证方法
+
+延续前三轮的做法，跑完逐条打印实际输出核对分支，15 条全部命中。
+
+#### 未覆盖范围
+
+实际生成（`spawnCount` 次尝试、`spawnRange` 内的位置随机、附近实体数量上限），需要世界
+与实体注册表。
+
+### 新能力 hopper_cooldown：递减发生在冷却判定之前
+
+第 89 个能力，10 种冷却状态组合全部一致。漏斗的传输冷却时序此前没有被比对过。
+
+#### 原版代码
+
+```java
+public static void pushItemsTick(...) {
+    hopper.cooldownTime--;                        // 无条件递减
+    hopper.tickedGameTime = level.getGameTime();
+    if (!hopper.isOnCooldown()) {
+        hopper.setCooldown(0);
+        tryMoveItems(level, pos, state, hopper, () -> suckInItems(level, hopper));
+    }
+}
+
+if (!hopper.isOnCooldown() && state.getValue(HopperBlock.ENABLED)) {
+    if (!hopper.isEmpty())  { flag = ejectItems(...); }
+    if (!hopper.inventoryFull()) { flag |= supplier.getAsBoolean(); }
+    if (flag) {
+        hopper.setCooldown(8);                    // MOVE_ITEM_SPEED
+    }
+}
+
+private boolean isOnCooldown() { return this.cooldownTime > 0; }
+```
+
+#### 三个关键点
+
+**1. 递减发生在「是否冷却」判定之前。** `cooldownTime == 1` 的那个 tick：先减到 0，
+然后 `isOnCooldown()` 为假，**本 tick 就能传输**。实测：
+
+| 单元 | `after` | `attempted` | `moved` |
+|---|---|---|---|
+| `1\|true\|true` | 8 | **true** | **true** |
+| `2\|true\|true` | 1 | **false** | false |
+
+也就是说「设置冷却 8」之后，第 2..8 个 tick 递减、第 9 个 tick 再次传输——间隔恰好 8 个 tick。
+
+**2. 传输成功才设置冷却。** `1|true|false`（无物品可动）得到 `after=0, cooldownSet=false`
+——没有传输就不设冷却，下一个 tick 会立刻再试。
+
+**3. 递减是无条件的**，`cooldownTime` 会一路减到 `-1` 并停在那里（`-1` 是构造器的初始值）。
+
+#### 一处「实现不同但行为等价」的差异
+
+Cubium 的 `HopperEntity::tick` 写的是：
+
+```cpp
+if (m_transferCooldown > 0) { --m_transferCooldown; }
+```
+
+原版是无条件的 `cooldownTime--`。差别在于冷却为 0 时：原版减到 -1，Cubium 停在 0。
+
+**行为上看不出区别**——因为 `isOnCooldown()` 只在 `> 0` 时为真，两者都不冷却。但 NBT 里
+存下的 `TransferCooldown` 值会不同（原版 -1、Cubium 0）。本能力比较的是内部状态值，因此
+这个差异在校验范围内被记录下来；它不影响玩法，但会影响存档数据的一致性。
+
+#### 验证方法
+
+延续前两轮的做法，跑完逐条打印实际输出核对分支，10 条全部命中（见上表前两行即为边界用例）。
+
+#### 未覆盖范围
+
+- `ejectItems` / `suckInItems` 各自的槽位遍历顺序与方向选取（需要世界与容器）
+
+### 新能力 beacon_effects：半径与时长两个容易记错的常数
+
+第 88 个能力，10 种层级 × 效果组合全部一致。Cubium 目前**只有客户端 `BeaconRenderer`**，
+没有服务端信标方块实体——本能力提供的是待实现的行为基准。
+
+#### 原版公式
+
+```java
+double d0 = levels * 10 + 10;                       // 范围半径
+int i = 0;
+if (levels >= 4 && Objects.equals(primary, secondary)) {
+    i = 1;                                          // 满级且主副相同 -> 主效果 II
+}
+int j = (9 + levels * 2) * 20;                      // 时长（tick）
+```
+
+#### 四个关键点
+
+**1. 半径 = `层数 × 10 + 10`**：1 级 20、2 级 30、3 级 40、4 级 50。写成 `层数 × 10`
+会整体少 10 格。
+
+**2. 时长基数 9**：`(9 + 层数 × 2) × 20` tick → 1 级 220、4 级 340。这个 9 容易记成 10。
+
+**3. 升到 II 级需要「满级且主副效果相同」**：只有 4 级才有 `amplifier = 1`，3 级及以下
+永远是 0。实测 `3|true|false` 得 `amp=0`，`4|true|false` 得 `amp=1`。
+
+**4. 副效果与「主效果升 II」互斥**：
+
+| 单元 | `amplifier` | `appliesSecondary` |
+|---|---|---|
+| `4\|true\|true`（主副相同、有副） | **1** | **false** |
+| `4\|false\|true`（主副不同、有副） | **0** | **true** |
+
+注意第一行：即使「有副效果」，只要主副相同就走升 II 那条路，**不再单独施加副效果**。
+`4|true|true` 与 `4|true|false` 的输出完全相同——这一条如果只凭规则描述去实现，很可能
+写成「有副就施加副」，从而让 4 级同效果的信标多施加一个 0 级效果。
+
+#### 验证方法
+
+延续上一轮的做法，跑完逐条打印实际输出核对分支。10 条全部命中：
+
+```
+0|false|false -> radius=10 dur=180 amp=0 secondary=False
+1|false|false -> radius=20 dur=220 amp=0 secondary=False
+4|true|true   -> radius=50 dur=340 amp=1 secondary=False   <- 互斥
+4|false|true  -> radius=50 dur=340 amp=0 secondary=True    <- 独立施加
+```
+
+#### 未覆盖范围
+
+- `updateBase` 的底座方块检测（需要世界）
+- 信标光束的可见性（纯渲染，属客户端）
+
+### 新能力 brewing_tick：四处口径差异，与烘焙台同类问题
+
+第 87 个能力，12 种状态组合全部一致。酿造台每 tick 的状态机此前没有被比对过。
+
+#### 原版状态机
+
+```java
+if (fuel <= 0 && fuelSlot.is(ItemTags.BREWING_FUEL)) {
+    fuel = 20;                       // 设为 20，不是加 20
+    消耗一个燃料;
+}
+
+boolean brewable = isBrewable(...);
+boolean brewing = brewTime > 0;
+if (brewing) {
+    brewTime--;
+    if (brewTime == 0 && brewable) {
+        doBrew(...);
+    } else if (!brewable || !ingredientSlot.is(this.ingredient)) {
+        brewTime = 0;                // 中途条件破坏 -> 取消
+    }
+} else if (brewable && fuel > 0) {
+    fuel--;                          // 开始酿造时就扣燃料
+    brewTime = 400;
+    this.ingredient = ingredientSlot.getItem();
+}
+```
+
+#### 四处差异
+
+Cubium 已有 `BrewingStandEntity::tick`，但结构与原版不同：
+
+| 项 | 原版 | Cubium |
+|---|---|---|
+| 燃料种类 | `ItemTags.BREWING_FUEL` 标签 | 硬编码 `Items::BLAZE_POWDER` |
+| 燃料补充方式 | `fuel = 20`（覆盖写） | `m_fuel += FUEL_PER_BREW`（累加） |
+| **燃料扣除时机** | **开始酿造时** `fuel--` | **酿造完成时** `_consumeFuel()` |
+| 不可酿造时 | 取消只发生在酿造中；未开始时什么都不做 | 开头直接 `m_brewTime = 0; return;` |
+
+第三条影响最实质：**若在完成时才扣燃料，中断的酿造不会消耗燃料**——玩家可以反复启动、取消来白嫖。原版在 `brewTime = 400` 的同时就扣掉了。
+
+第四条也有行为差异：原版在「未在酿造且不可酿造」时**不触碰** `brewTime`；Cubium 主动清零。
+
+#### 本轮的验证方法调整
+
+前两轮连续出现「用例看起来合理、实际没打到目标分支」（`99|50|99|50` 被钳到 0、`hasFuel` 字段位写错）。这轮改进了做法：**跑完后把每一条单元的实际输出逐条打出来，对照单元表注释核验它走了哪个分支**。
+
+12 条全部确认命中目标：
+
+| 单元 | 预期分支 | 实际输出 |
+|---|---|---|
+| `0 / 0 / true / true / true` | 补燃料后开始 | `fuelAdded=true, fuel=19` |
+| `0 / 10 / true / false / true` | 开始酿造 | `fuelConsumed=true, fuel=9, brewTime=400` |
+| `1 / 10 / true / false / true` | 本 tick 完成 | `brewed=true` |
+| `100 / 10 / true / false / false` | 换试剂取消 | `brewTime=0` |
+| `200 / ...` / `2 / ...` | 正常递减 | `199` / `1` |
+
+这一步成本很低（一条命令），但能直接暴露「单元没生效」的问题。后续新能力会固定带上这一步。
+
+#### 未覆盖范围
+
+- `doBrew` 的实际产物转换（属 `potion_brewing` 的职责）
+- 药水瓶位的 `HAS_BOTTLE` 方块状态同步（需要世界）
+
+### 新能力 furnace_tick：熄灭后进度是「减 2」不是「归零」
+
+第 86 个能力，12 种状态组合全部一致。熔炉每 tick 的状态机此完全没有被比对过。
+
+#### 状态机骨架
+
+```java
+boolean wasLit = isLit();
+if (isLit()) { litTimeRemaining--; }
+
+if (isLit() || hasFuel && hasInput) {
+    if (!isLit() && canBurn(...)) {          // 2a 点燃
+        litTimeRemaining = getBurnDuration(fuel);
+        litTotalTime = litTimeRemaining;
+    }
+    if (isLit() && canBurn(...)) {           // 2b 推进烹饪
+        cookingTimer++;
+        if (cookingTimer == cookingTotalTime) { cookingTimer = 0; 产出; }
+    } else {
+        cookingTimer = 0;                     // ← 块内：直接归零
+    }
+} else if (!isLit() && cookingTimer > 0) {
+    cookingTimer = Mth.clamp(cookingTimer - 2, 0, cookingTotalTime);   // ← 块外：减 2
+}
+```
+
+#### 四个易错点
+
+**1. 两条退进度路径的处理不同**，这是本轮最重要的发现：
+
+| 情形 | 走哪条 | `cookingTimer` |
+|---|---|---|
+| 燃烧中但条件不满足 | 块内 `else` | **归零** |
+| 完全熄火 | 块外 `else if` | **减 2** |
+
+实测 `0|0|10|200|...` 得到 `cookingTimer=8`（减 2），而 `100|200|5|200|false|...` 得到 `cookingTimer=0`（归零）。把两处合并成一处，熄火后的进度衰减会完全错掉——**减 2 意味着熄火后进度是缓慢回退，不是立刻清零**。
+
+**2. 点燃与烹饪在同一 tick 内可连续发生。** 两个 `if` 是顺序关系而非互斥。实测刚点燃的单元得到 `litTimeRemaining=200` 且 `cookingTimer=1`——点燃当 tick 就开始计进度。
+
+**3. 熄灭判定在读减之后。** `wasLit` 在 tick 开头记录，比较发生在末尾，用来决定方块状态是否更新。
+
+**4. `cookingTimer == cookingTotalTime` 是相等判断**，不是 `>=`。
+
+#### 又一次「用例写错导致分支没被覆盖」
+
+我设计单元表时给「点燃」那条写的是 `0|0|0|200|true|true|false|200`，注释写「有燃料有原料」——但字段顺序是 `canBurn|hasInput|hasFuel`，第七位 `false` 意味着 **`hasFuel=false`**，根本不会点燃。
+
+这条单元跑出来 `litTimeRemaining=0`、`stateChanged=false`，看起来「通过」了，实际上**点燃分支一次都没被执行**。是我核对输出时发现注释与结果对不上，才回头查出字段位置写错。
+
+修正为 `...|true|true|true|200` 后，得到 `litTimeRemaining=200, cookingTimer=1, stateChanged=true`，点燃分支才真正被覆盖。
+
+**这是连续第二轮遇到同一类问题**（上轮是 `99|50|99|50` 被钳到 0，这轮是字段位写错）。两次都是「用例看起来合理、实际没打到目标分支」。教训要再收紧一层：**单元表写完后必须逐条核对「这条单元预期走哪个分支」，而不是写完就算。**
+
+### 新能力 item_same_components：判空必须在比物品之后
+
+第 85 个能力，12 组配对全部一致。Cubium **没有** `isSameItemSameComponents`，最接近的是
+`ItemStack::canMergeWith`——后者语义不同，会影响容器合并、配方匹配、掉落物堆叠等多处。
+
+#### 原版逻辑
+
+```java
+public static boolean isSameItemSameComponents(ItemStack a, ItemStack b) {
+    if (!a.is(b.getItem())) {
+        return false;
+    }
+    return a.isEmpty() && b.isEmpty() ? true : Objects.equals(a.components, b.components);
+}
+
+public static boolean matches(ItemStack a, ItemStack b) {
+    if (a == b) {
+        return true;
+    }
+    return a.getCount() != b.getCount() ? false : isSameItemSameComponents(a, b);
+}
+```
+
+#### 三个关键点
+
+**1. 两个空栈被视为「相同」。** `a.isEmpty() && b.isEmpty()` 这一支返回 `true`——空栈之间
+没有组件可比，语义上就是相等。
+
+**2. `matches` 比 `isSameItemSameComponents` 多一道数量判定。** 实测：
+
+| 输入 | `sameItemSameComponents` | `matches` |
+|---|---|---|
+| 泥土 ×1 vs 泥土 ×5（同损伤） | **true** | **false** |
+| 钻石剑（损伤 0）vs 钻石剑（损伤 1） | false | false |
+| 空 vs 空 | **true** | **true** |
+
+两者用途不同：前者回答「能否堆叠到一起」，后者回答「是否完整相等」（如配方匹配）。
+
+**3. 组件相等是深比较。** 损伤值、附魔、自定义名称、lore 都属于组件；任意一项不同就不相等。
+「同物品、不同损伤」的两件钻石剑**不能**堆叠。
+
+#### 本轮自己踩的坑：判空顺序写反了
+
+我第一版探针是这么写的：
+
+```cpp
+const bool sameItem = !left.isEmpty() && !right.isEmpty() && left.getItem() == right.getItem();
+```
+
+它要求**两边都非空**才算「同物品」，于是「两空」这一支永远走不到，空栈配对得到 `false`。
+差分比对立刻把这个单元指出来了（原版 `true` / 探针 `false`）。
+
+正确写法是**先判两空**，再比物品：
+
+```cpp
+if (left.isEmpty() && right.isEmpty()) {
+    sameItemSameComponents = true;
+} else if (!left.isEmpty() && !right.isEmpty() && left.getItem() == right.getItem()) {
+    sameItemSameComponents = left.getDamage() == right.getDamage();
+}
+```
+
+原版之所以能写成那样，是因为在它那里「空栈的物品就是 AIR」，`a.is(b.getItem())` 对两个空栈
+天然为真，判空分支只是在短路组件比较。**Cubium 用 `nullptr` 表示空，这个前提不成立，直接
+照抄表达式就会错。** 这是表示法差异第一次真正影响到逻辑复刻——`item_stackable` 那轮只是
+输出值不同，这次是**控制流走错**。
+
+#### 与 Cubium 的口径差异
+
+`canMergeWith` 在任一为空时返回 `false`（原版两空为 `true`），且只比较了损伤、修复成本、
+名称、lore 等若干字段，不是完整的组件深比较。已在探针头记 TODO：待 Cubium 实现完整深比较后
+改为直接调用。
+
+### 新能力 item_stackable：可损坏 ≠ 不可堆叠
+
+第 84 个能力，23 个「物品 × 损伤」组合。22 个一致，1 个记为已知差异。
+
+#### 原版三段逻辑
+
+```java
+public int getMaxStackSize() {
+    return this.getOrDefault(DataComponents.MAX_STACK_SIZE, 1);   // 默认 1！
+}
+
+public boolean isDamageableItem() {
+    return this.has(DataComponents.MAX_DAMAGE)
+        && !this.has(DataComponents.UNBREAKABLE)
+        && this.has(DataComponents.DAMAGE);
+}
+
+public boolean isStackable() {
+    return this.getMaxStackSize() > 1 && (!this.isDamageableItem() || !this.isDamaged());
+}
+```
+
+#### 两个反直觉的结论
+
+**1. `MAX_STACK_SIZE` 的默认值是 1，不是 64。** 没有这个组件的物品（工具、盔甲）一律不可
+堆叠。默认值写成 64 会让所有工具都被判为可堆叠。
+
+**2. 可损坏 ≠ 不可堆叠。** 实测对照：
+
+| 物品 | 上限 | 可损坏 | 已损伤 | `stackable` |
+|---|---|---|---|---|
+| 泥土 | 64 | false | false | **true** |
+| 雪球 | 16 | false | false | **true** |
+| 钻石剑（未损伤） | 1 | true | false | **false** |
+| 钻石剑（已损伤） | 1 | true | true | **false** |
+
+钻石剑在「未损伤」时仍不可堆叠——因为 `maxStack > 1` 这一项就已经为假，`isDamageableItem`
+那半边根本没机会生效。**真正决定工具不可堆叠的是上限 1，不是「可损坏」这个属性。**
+
+**3.（未覆盖）`UNBREAKABLE` 会让物品重新变得可堆叠。** `isDamageableItem()` 里有
+`!has(UNBREAKABLE)`，不可破坏的钻石剑在组件层面不再是「可损坏物品」，于是
+`isStackable()` 直接放行。Cubium 的 `isDamageable()` 已经排除了 unbreakable，逻辑等价；
+但 `ItemStack` 目前没有设置该组件的公开入口，因此单元表无法覆盖这一支，已在探针头
+记 TODO。
+
+#### 一处表示法差异
+
+`minecraft:air` 单元暴露了空栈表示法的差异：
+
+| 字段 | 原版 | Cubium |
+|---|---|---|
+| `empty` | true | false |
+| `maxStackSize` | 1 | 64 |
+| `stackable` | false | true |
+
+根因是两边用**不同的东西**表示空栈：原版 `isEmpty()` 是
+`this == EMPTY || item == Items.AIR || count <= 0`，把 AIR 物品本身当作空；Cubium 用
+`nullptr` 表示空，`ItemStack(Items.AIR)` 是一个**非空的、装着空气的栈**。
+
+这是既有的设计选择（不是本能力引入的），因此登记为已知差异而非缺陷。但它提醒了一件事：
+**下游任何 `if (stack.isEmpty())` 的分支，在两边的边界行为并不相同**。
+
+### 新能力 anvil_durability：一个「测试用例本身不够敏感」的教训
+
+第 81 个能力，16 种耐久组合全部一致。与上一轮的 `repair_cost` 相邻，覆盖铁砧合并同物品时
+的耐久叠加。
+
+#### 原版代码
+
+```java
+int l  = itemstack.getMaxDamage()  - itemstack.getDamageValue();
+int i1 = itemstack2.getMaxDamage() - itemstack2.getDamageValue();
+int j1 = i1 + itemstack1.getMaxDamage() * 12 / 100;
+int k1 = l + j1;
+int l1 = itemstack1.getMaxDamage() - k1;
+if (l1 < 0) { l1 = 0; }
+if (l1 < itemstack1.getDamageValue()) {
+    itemstack1.setDamageValue(l1);
+    i += 2;
+}
+```
+
+#### 三个易错点
+
+**1. `* 12 / 100` 必须先乘后除。** 对钻石剑（1561）：正确得 187，先除后乘只得 180。
+
+**2. 「有改善」才计入。** `l1 < itemstack1.getDamageValue()` 为假时，损伤值不变、代价也
+不 +2。实测主物品满耐久（`1561|0`）得到 `repaired=false, costAdded=0`。
+
+**3. 新损伤值钳到 0**，不能取负。
+
+#### 本轮最大的教训：用例不够敏感会给出虚假的通过
+
+我最初选的顺序敏感用例是 `99|50|99|50`。它**确实**能区分「先乘后除（11）」与
+「先除后乘（0）」——但两侧都半损，总耐久远超上限，`newDamage` 一律被钳到 **0**。
+于是「算错」和「算对」得到同样的输出，这条用例**完全没有起到验证作用**。
+
+发现问题后我换成 `1561|1500|1561|1400`（主物品剩 61、副物品剩 161）：
+
+| 算法 | 加成 | `newDamage` |
+|---|---|---|
+| 先乘后除（正确） | 187 | **1152** |
+| 先除后乘（错误） | 180 | 1159 |
+
+两者都不到 0，**差异才显现出来**。实测输出 `1152`，确认了实现用的是正确顺序。
+
+这与之前 `explosion_damage` 那轮的教训是同一条：**测试输入必须避开被钳制/被短路吞掉
+差异的区间**，否则能力会给出虚假的通过。区别在于那次是「射程内输入测不出钳制差异」，
+这次是「钳到 0 吞掉了顺序差异」。
+
+#### 溢出边界
+
+`maxDamage * 12` 是 `int` 运算，理论上在 `maxDamage > 178956970` 时溢出。用例覆盖了
+`178956970`（界内）与 `178956971`（`2147483652`，仍小于 `INT_MAX`）两点，两侧一致。
+
+### 新能力 repair_cost：一个几乎无法从规则描述推出的条件
+
+第 80 个能力，14 种代价组合全部一致。铁砧的修复代价此前完全没有被比对过。
+
+#### 原版代码
+
+```java
+int i3 = itemstack1.getOrDefault(DataComponents.REPAIR_COST, 0);
+if (i3 < itemstack2.getOrDefault(DataComponents.REPAIR_COST, 0)) {
+    i3 = itemstack2.getOrDefault(DataComponents.REPAIR_COST, 0);
+}
+if (k != i || k == 0) {
+    i3 = calculateIncreasedRepairCost(i3);
+}
+
+public static int calculateIncreasedRepairCost(int cost) {
+    return (int) Math.min(cost * 2L + 1L, 2147483647L);
+}
+```
+
+`i` 是已消耗的修复材料数，`k` 是经验代价。
+
+#### 三个反直觉的点
+
+**1. 取两者中较大的代价**，不是相加。主物品与副物品的 `REPAIR_COST` 只取 `max`。
+
+**2. `k != i || k == 0` 会让代价「跳过增长」。** 当经验代价**恰好等于**消耗的材料数时，
+`k != i` 为假；若此时 `k` 也不是 0，整条判断为假，代价**不翻倍**。实测：
+
+| 输入 | `nextCost` | `increased` |
+|---|---|---|
+| `3\|0\|2\|2`（代价 3、材料 2、经验 2） | **3**（不变） | false |
+| `0\|0\|0\|0`（三者全 0） | **1**（仍增长） | true |
+
+第二行说明 `k == 0` 那一半是为了兜住「全都为 0」的情形——否则新物品永远拿不到代价 1。
+
+**3. 翻倍用 `long`，结果截断到 int 上限。** `cost * 2L + 1L` 是 64 位运算，再
+`Math.min(..., Integer.MAX_VALUE)`。用 32 位直接算会在 `cost > 1073741823` 时溢出成负数。
+实测 `1073741823` 得到 `2147483647`，正是截断的结果。
+
+#### 能力边界
+
+本能力只看**代价这一层**，不涉及 `createResult` 的其余部分（材料修复的伤害削减、同物品
+合并、附魔合并、重命名、`cost >= 40` 的封禁）。那些与槽位、附魔表强耦合，属另一层。
+
+### 新能力 enchantment_selection：同一类错误第三次出现
+
+第 79 个能力，14 物品 × 12 等级 = 168 个单元。105 个一致，63 个记为已知差异。
+
+附魔领域此前已有 7 个能力全部覆盖**定义层**（代价曲线、适用性、标签、效果、宝藏枚举）。
+本能力补上**选择逻辑**：给定物品与等级，最终挑出哪些附魔、各为几级。
+
+#### 原版逻辑
+
+```java
+stream.filter(e -> e.value().isPrimaryItem(stack) || flag)   // flag = 是不是书
+      .forEach(e -> {
+          for (int i = e.value().getMaxLevel(); i >= e.value().getMinLevel(); i--) {
+              if (level >= e.value().getMinCost(i) && level <= e.value().getMaxCost(i)) {
+                  list.add(new EnchantmentInstance(e, i));
+                  break;      // 每个附魔最多一项
+              }
+          }
+      });
+```
+
+#### 三类差异，同一根因
+
+| 差异 | 表现 | 根因 |
+|---|---|---|
+| 缺宝藏附魔 | `mending` / `vanishing_curse` / `binding_curse` / `frost_walker` / `soul_speed` 从不出现 | `canApplyAtEnchantingTable` 里硬编码了 `if (isTreasure()) return false;` |
+| 多 `thorns` | 盔甲类多处多出荆棘 | 荆棘的主物品判定被放宽 |
+| 多 `sharpness` 等 | `diamond_axe` 能出锋利 / 亡灵杀手 / 节肢杀手 | 斧被归入 `EnchantmentType::Weapon` 粗分类 |
+
+共同根因：**Cubium 用粗粒度类型枚举代替了原版的物品级主物品表**，并把原版由**调用方**
+负责的宝藏过滤内移到了被调方。
+
+#### 「闸门前移」是第三次出现
+
+原版 `getAvailableEnchantmentResults` 不判断宝藏——是否包含宝藏附魔由**传进来的
+`Stream<Holder<Enchantment>>`** 决定。Cubium 把这道闸门写进了
+`canApplyAtEnchantingTable`，于是任何调用方都拿不到宝藏附魔。
+
+这与前几轮的 `explosion_damage`（把调用方的 `inRange` 闸门前移进伤害公式）、
+`food_stats`（`add` 缺下界）属于同一类问题：**把「调用方的职责」内移到「被调方的
+公式/判定」里**。这类错误的共同特征是：
+
+- 单独看被调方，逻辑「看起来更自洽」；
+- 但对**所有**调用方都生效，而原版只对**部分**路径生效；
+- 差分测试是唯一能发现它的手段——因为没有哪个单点测试会同时覆盖两条调用路径。
+
+#### 顺序差异的处理
+
+原版返回顺序由附魔注册表决定，Cubium 的遍历顺序不同。顺序本身不是本能力要验证的口径
+（它属于注册表加载顺序，已有能力覆盖），因此探针与 oracle **两侧都按附魔 id 排序**后输出，
+让差异集中在「哪些附魔、各几级」上。
+
+### 新能力 food_tick：四个互斥分支与两个阈值
+
+第 78 个能力，21 种「状态 × 难度」组合全部一致。上一轮的 `food_stats` 覆盖了
+`add`/`eat`/`addExhaustion`，本能力补上 `FoodData.tick` 的状态机。
+
+#### 分支结构
+
+```
+1) exhaustionLevel > 4.0F  ->  -=4.0F，然后扣饱和（有）或扣饥饿（无饱和且非 PEACEFUL）
+2) regen && sat>0 && hurt && food>=20  -> 每 10 tick 回 min(sat,6)/6 点，加等量 exhaustion
+3) regen && food>=18 && hurt           -> 每 80 tick 回 1 点，加 6 exhaustion
+4) food<=0                             -> 每 80 tick 判定一次是否造成 1 点饥饿伤害
+5) 以上都不满足                        -> tickTimer 归零
+```
+
+三个容易写错的地方：
+
+**1. exhaustion 消耗在所有分支之前，且只判定一次。** 它不是 `while` 循环——即使
+`exhaustionLevel` 是 100，一次 tick 也只减 4。
+
+**2. 饥饿伤害是否真的扣血取决于生命值与难度的组合**：
+
+```java
+health > 10.0F || difficulty == HARD || (health > 1.0F && difficulty == NORMAL)
+```
+
+实测对照：生命 1 + NORMAL 得 `damage=0`，生命 1 + HARD 得 `damage=1`。这个组合条件
+写成「生命低于某值就扣血」会全错。
+
+**3. 默认分支会把 tickTimer 归零。** 条件不满足时计时器**不保留**——这意味着再生
+条件一旦中断，之前的累积就白费。实测 `15|2|0|50` 输入得到 `tickTimer=0`。
+
+#### 一个跨分支的时序陷阱
+
+快再生的 `addExhaustion(min(sat, 6))` 会立刻抬高 exhaustion，**下一次 tick** 就可能
+触发最上面的消耗分支，从而把饱和扣掉。也就是说「回血」与「扣饱和」在连续两个 tick
+里是联动的。场景表最后一条（`20|8|3|9`）就是压这种同一 tick 内多分支叠加的情形。
+
+#### 为什么用复算而不是直接调用原版
+
+`FoodData.tick` 需要真实的 `ServerPlayer`（读难度、游戏规则、受伤状态、生命值，并调用
+`heal`/`hurtServer`），而 `exhaustionLevel` 只有私有字段没有公开写访问器。因此 oracle
+按原版方法体逐行复算，把玩家侧的可变因素作为输入显式传入。
 
 ### 新能力 food_stats：一处下界钳制差异，与一次被源码纠正的误判
 
