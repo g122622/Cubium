@@ -142,6 +142,7 @@ import { mthPackDegreesInput } from "./mth_pack_degrees.ts";
 import { mthDegreesInput } from "./mth_degrees.ts";
 import { mthFracInput } from "./mth_frac.ts";
 import { mthSqrtInput } from "./mth_sqrt.ts";
+import { stringUtilInput } from "./string_util.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -986,6 +987,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 平方根：fastInvSqrt 是近似算法且无特殊值保护，sqrt 走 double 再降 float。
     { name: "mth_sqrt", probe: "mth_sqrt", oracle: "MthSqrtOracle",
         key: "unit", units: { kind: "listing" }, input: mthSqrtInput },
+    // 字符串工具：截断的 maxLength>3 条件、lineCount 只认 \\r\\n 与 \\v。
+    { name: "string_util", probe: "string_util", oracle: "StringUtilOracle",
+        key: "unit", units: { kind: "listing" }, input: stringUtilInput },
+
 
 
 
