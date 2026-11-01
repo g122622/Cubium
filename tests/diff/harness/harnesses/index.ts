@@ -98,6 +98,7 @@ import { vec3MathInput } from "./vec3_math.ts";
 import { blockposCodecInput } from "./blockpos_codec.ts";
 import { axisPlaneInput } from "./axis_plane.ts";
 import { mthLerpInput } from "./mth_lerp.ts";
+import { mthBitInput } from "./mth_bit.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -806,6 +807,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth 插值函数族：clampedLerp 越界返回精确端点、lerpInt 用 floor，纯计算。
     { name: "mth_lerp", probe: "mth_lerp", oracle: "MthLerpOracle",
         key: "unit", units: { kind: "listing" }, input: mthLerpInput },
+    // Mth 整数位运算：smallestEncompassingPowerOfTwo 对非正输入返回 0，纯计算。
+    { name: "mth_bit", probe: "mth_bit", oracle: "MthBitOracle",
+        key: "unit", units: { kind: "listing" }, input: mthBitInput },
+
 
 
 
