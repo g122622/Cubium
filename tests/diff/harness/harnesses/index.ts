@@ -112,6 +112,7 @@ import { fluidSpreadDirInput } from "./fluid_spread_dir.ts";
 import { blockposBfsInput } from "./blockpos_bfs.ts";
 import { scheduledTickInput } from "./scheduled_tick.ts";
 import { randomTickPosInput } from "./random_tick_pos.ts";
+import { mthColorInput } from "./mth_color.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -862,6 +863,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 随机刻坐标采样：独立 LCG（x*3+1013904223）、算术右移，纯计算。
     { name: "random_tick_pos", probe: "random_tick_pos", oracle: "RandomTickPosOracle",
         key: "unit", units: { kind: "listing" }, input: randomTickPosInput },
+    // HSV 转 RGB 与 murmur3 混合：截断取整、逻辑右移，纯计算。
+    { name: "mth_color", probe: "mth_color", oracle: "MthColorOracle",
+        key: "unit", units: { kind: "listing" }, input: mthColorInput },
+
 
 
 
