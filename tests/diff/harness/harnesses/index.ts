@@ -101,6 +101,7 @@ import { mthLerpInput } from "./mth_lerp.ts";
 import { mthBitInput } from "./mth_bit.ts";
 import { mthRotInput } from "./mth_rot.ts";
 import { mthSinInput } from "./mth_sin.ts";
+import { mthApproachInput } from "./mth_approach.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -818,6 +819,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth.sin / cos 查表：65536 项表由 Math.sin 构造，索引 & 65535，纯计算。
     { name: "mth_sin", probe: "mth_sin", oracle: "MthSinOracle",
         key: "unit", units: { kind: "listing" }, input: mthSinInput },
+    // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
+    { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
+        key: "unit", units: { kind: "listing" }, input: mthApproachInput },
+
 
 
 
