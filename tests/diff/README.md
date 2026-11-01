@@ -70,6 +70,7 @@ tests/diff/
 │   ├── block_sound_type.cpp     # 方块声音组（五个音效事件 + 音量 + 音调）
 │   ├── crop_growth.cpp          # 作物一次随机刻（生长速率 / 抽芽 / 结果 / 耕地保墒）
 │   ├── redstone_signal.cpp      # 红石信号（六方向 × 强 / 弱 × 关掉自我屏蔽）
+│   ├── light_occlusion.cpp      # 方块状态的光照阻挡属性（lightBlock 等四项）
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -108,6 +109,7 @@ tests/diff/
 │   │   ├── block_sound_type.ts  # 方块声音组的比对口径（补齐七个字段）
 │   │   ├── crop_growth.ts       # 作物随机刻的比对口径（速率 / 结果 / 邻居 / 脚下）
 │   │   ├── redstone_signal.ts   # 红石信号的比对口径（方向表统一键序）
+│   │   ├── light_occlusion.ts   # 光照阻挡的比对口径（状态表按键名重排）
 │   │   ├── status_effect.ts     # 效果实例的共同边界语料与固定操作序列
 │   │   └── known_missing_*.ts   # 实现缺口清单（物品 / 实体 / 方块工具 / 命令）
 │   └── runner/                  # 运行层实现
@@ -357,6 +359,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `block_sound_type` | 原版 jar `BlockSoundTypeOracle` | 1167（全部方块 + 饰纹陶罐裂纹状态） | 全部一致 | 见下文 |
 | `crop_growth` | 原版 jar `CropGrowthOracle` | 26 个手工地形场景 | 全部一致 | 见下文 |
 | `redstone_signal` | 原版 jar `RedstoneSignalOracle` | 41 个手工地形场景 | 全部一致 | 见下文 |
+| `light_occlusion` | 原版 jar `LightOcclusionOracle` | 1166 个方块 | 963 一致，203 处已登记缺口 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -624,6 +627,34 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
   `Block.UPDATE_SKIP_ALL_SIDEEFFECTS` 直写存储。
 - **清空范围必须比地形本身更大一圈**。下层中心格在 y=-2、上层在 y=+2，清到 y∈[-2,1]
   会把上一次场景遗留的上层方块留在原地，个别场景因此莫名其妙地不一致。
+
+`light_occlusion` 比的是**方块状态的光照阻挡属性**：`lightBlock`（每格衰减量）、
+`propagatesSkylightDown`（天空光直通）、`useShapeForLightOcclusion`（按形状遮挡）、
+`canOcclude`（遮挡总结开关）。单元是方块，每个方块一次返回它**全部状态**的取值。
+
+为什么值得比：光照引擎按这四个值决定「一束光走过这一格还剩多少」。它们都是纯数据，
+抄错没有编译期提示——多衰减一级屋子里就差一格看不清，树叶判成不透光树冠下就长不出草。
+与 `block_properties` 的分工：那个能力比方块级的硬度/亮度/滑度，并明确把光照阻挡排除在外；
+本能力专比状态级的这四个值。
+
+首轮跑通查出四处系统性偏差，全部修掉：
+
+- **树叶无衰减直通天空光**：`LeavesBlock` 重写 `propagatesSkylightDown()` 返回 true，注册属性
+  里也加了 `propagatesSkylightDown()`。原版两者都没有——树叶遮挡形状是完整立方体，默认
+  公式给出 false，天空光穿过衰减 1 级。早期实现让树冠下的地面比原版亮一级。
+- **台阶/楼梯完全不透光**：`Block::getOpacity` 用「canOcclude && 材质不透明」近似
+  `isSolidRender`，把单层台阶判成 15。原版判据是 `canOcclude && isShapeFullBlock(遮挡形状)`，
+  台阶形状不完整 → 0。同一判定还用在 `propagatesSkylightDown`，两处都改为精确的形状判定。
+- **37 个方块误加 `useShapeForLightOcclusion` 重写**：原版只有 15 个方块重写它，Cubium 有 46 个，
+  栅栏、活板门、按钮、压力板、告示牌等原版都走默认 false。多余重写已删除，固化了旧行为的
+  12 个单元测试同步改为断言默认值。
+- **`noCollision()` 没有同步关掉 `canOcclude`**：原版这个开关会同时置 `canOcclude=false`，
+  于是空气、花草这类无碰撞方块不会被当作遮挡体。
+
+剩余 203 处差异已登记为已知缺口，根因是「光照阻挡注册未逐方块对齐」：原版大量方块在注册时
+显式调用 `noOcclusion()`/`noCollision()`（旗帜、床、潜影盒、染色玻璃板、冰、炼药锅等），
+Cubium 只做了一部分。修法已写进 `light_occlusion.ts` 的 `GAP_REASON`，需要按原版逐个方块
+的 `register` 调用补齐——属于跨数十个方块的一轮独立工作。修好后必须连同登记清单一并删除。
 
 `fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
 单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。

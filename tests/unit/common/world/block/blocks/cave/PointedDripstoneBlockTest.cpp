@@ -82,10 +82,13 @@ TEST_F(PointedDripstoneBlockTest, TicksRandomly_ReturnsTrue)
     EXPECT_TRUE(block_->ticksRandomly());
 }
 
-TEST_F(PointedDripstoneBlockTest, UseShapeForLightOcclusion_AlwaysTrue)
+TEST_F(PointedDripstoneBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
+    // 原版 1.21.11 的 pointed_dripstone 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
     const BlockState& state = block_->defaultState();
-    EXPECT_TRUE(block_->useShapeForLightOcclusion(state));
+    EXPECT_FALSE(block_->useShapeForLightOcclusion(state));
 }
 
 // ============================================================================

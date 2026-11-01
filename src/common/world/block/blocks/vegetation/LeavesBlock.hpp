@@ -121,16 +121,15 @@ public:
     }
 
     /**
-     * @brief 是否传播天空光
+     * @brief 不重写 `propagatesSkylightDown`，走基类默认推导
+     *
+     * 原版 `LeavesBlock` 没有重写它，注册属性里也没有 `propagatesSkylightDown()`；默认公式
+     * 「遮挡形状非完整立方体 且 无流体」对本方块为 false——树叶的遮挡形状是完整立方体
+     * （原版 `noOcclusion()` 只关掉 canOcclude，不影响形状）。因此天空光穿过树叶会衰减
+     * 1 级（lightBlock=1），而不是无衰减直通。
+     *
+     * 早期实现这里返回 true，导致树冠下的地面比原版亮一级。
      */
-    [[nodiscard]] bool propagatesSkylightDown(
-        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
-    {
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(state);
-        return true;
-    }
 
     /**
      * @brief 是否不透明

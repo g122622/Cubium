@@ -62,12 +62,6 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     /**
      * @brief 检查是否可以放置（上方必须有实心方块）
      */

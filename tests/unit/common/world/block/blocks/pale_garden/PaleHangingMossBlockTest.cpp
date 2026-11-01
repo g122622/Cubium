@@ -502,13 +502,13 @@ TEST_F(PaleHangingMossBlockTest, GetCollisionShape_AlwaysEmpty)
 // 光照测试
 // ============================================================================
 
-TEST_F(PaleHangingMossBlockTest, UseShapeForLightOcclusion_AlwaysTrue)
+TEST_F(PaleHangingMossBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
-    auto tipState = moss_->defaultState().with(BlockStateProperties::TIP(), true);
-    auto bodyState = moss_->defaultState().with(BlockStateProperties::TIP(), false);
-
-    EXPECT_TRUE(moss_->useShapeForLightOcclusion(tipState));
-    EXPECT_TRUE(moss_->useShapeForLightOcclusion(bodyState));
+    // 原版 1.21.11 的 pale_hanging_moss 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
+    const BlockState& state = moss_->defaultState();
+    EXPECT_FALSE(moss_->useShapeForLightOcclusion(state));
 }
 
 TEST_F(PaleHangingMossBlockTest, IsOpaque_AlwaysFalse)

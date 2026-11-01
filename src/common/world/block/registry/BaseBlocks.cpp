@@ -449,14 +449,15 @@ void registerBaseBlocks()
     // ========== 原木和树叶 ==========
     BlockProperties logProps =
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava();
+    // 原版 leavesProperties 只注册 noOcclusion()，没有 propagatesSkylightDown()：树叶的遮挡形状
+    // 是完整立方体，默认推导给出 false，天空光穿过时衰减 1 级（opacity 1）。
     BlockProperties leavesProps = BlockProperties(Material::LEAVES)
                                       .hardness(0.2f)
                                       .flammable()
                                       .ignitedByLava()
                                       .notSolid()
                                       .noOcclusion()
-                                      .opacity(1)
-                                      .propagatesSkylightDown();
+                                      .opacity(1);
 
     BaseBlocks::OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_log"), logProps);
     BaseBlocks::OAK_LEAVES =

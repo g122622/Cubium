@@ -410,10 +410,13 @@ TEST_F(TorchBlockTest, Construction_HasFlameParticle)
     EXPECT_NE(torch_, nullptr);
 }
 
-TEST_F(TorchBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+TEST_F(TorchBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
+    // 原版 1.21.11 的 torch 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
     const BlockState& state = torch_->defaultState();
-    EXPECT_TRUE(torch_->useShapeForLightOcclusion(state));
+    EXPECT_FALSE(torch_->useShapeForLightOcclusion(state));
 }
 
 TEST_F(TorchBlockTest, GetShape_ReturnsNonEmptyShape)
@@ -567,10 +570,13 @@ TEST_F(WallTorchBlockTest, Construction_HasHorizontalFacingProperty)
     EXPECT_EQ(WallTorchBlock::getFacing(state), Direction::North);
 }
 
-TEST_F(WallTorchBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+TEST_F(WallTorchBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
+    // 原版 1.21.11 的 wall_torch 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
     const BlockState& state = wallTorch_->defaultState();
-    EXPECT_TRUE(wallTorch_->useShapeForLightOcclusion(state));
+    EXPECT_FALSE(wallTorch_->useShapeForLightOcclusion(state));
 }
 
 TEST_F(WallTorchBlockTest, WithFacing_ReturnsCorrectState)

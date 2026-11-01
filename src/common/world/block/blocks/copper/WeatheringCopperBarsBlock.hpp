@@ -91,15 +91,6 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
-     * @brief 是否使用形状进行光照遮挡检测
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
-    /**
      * @brief 判断与邻居方块之间的面是否应该跳过渲染
      *
      * 铜栏杆与铁栏杆或其他铜栏杆变体相邻时，如果双方都有对应方向的连接属性，
@@ -204,15 +195,6 @@ public:
      * @brief 获取形状（用于渲染）
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    /**
-     * @brief 是否使用形状进行光照遮挡检测
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
 
     /**
      * @brief 判断与邻居方块之间的面是否应该跳过渲染

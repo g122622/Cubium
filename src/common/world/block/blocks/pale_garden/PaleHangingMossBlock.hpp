@@ -82,12 +82,6 @@ public:
 
     // ========== 光照 ==========
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {
         MC_UNUSED(state);

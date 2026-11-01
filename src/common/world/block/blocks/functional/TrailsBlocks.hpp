@@ -64,12 +64,6 @@ public:
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 };
@@ -96,12 +90,6 @@ public:
         const BlockPos& facingPos) override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
     {
@@ -345,12 +333,6 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
 
     /**
      * @brief 方块放置时调度孵化 tick

@@ -84,15 +84,6 @@ public:
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    /**
-     * @brief 是否使用形状进行光照遮挡
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
-
     // ========== 更新 ==========
 
     /**
@@ -173,15 +164,6 @@ public:
      * @brief 获取形状
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    /**
-     * @brief 是否使用形状进行光照遮挡
-     */
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
 
     // ========== 更新 ==========
 

@@ -458,12 +458,13 @@ i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* po
     // - 其余方块：显式设置的 opacity 优先（BlockProperties::opacity），
     //   未设置（默认 15 作为哨兵）时有流体 -> 1，否则 propagatesSkylightDown ? 0 : 1
     //
-    // 15 分支的判定 = canOcclude && 材质不透明。
-    // vanilla 对应 BlockStateBase#solidRender = canOcclude && isShapeFullBlock(occlusionShape)；
-    // Cubium 目前以材质隐含不透明近似"实体渲染"（TODO: 改用遮挡形状完整判定）。
-    // noOcclusion（canOcclude=false）方块必须跳过该分支：铁栏杆（金属材质）、潜影盒（木质材质）
-    // 等 vanilla 注册 noOcclusion()，其 lightBlock 分别为 0 与 1，而非 15。
-    if (m_canOcclude && isOpaque(state)) {
+    // 15 分支的判定 = 实体渲染方块（vanilla BlockStateBase#solidRender）：
+    //   canOcclude && isShapeFullBlock(occlusionShape)
+    // 早期实现用「canOcclude && 材质不透明」近似，会把单层台阶、楼梯这类「材质不透明但形状
+    // 不完整」的方块判成 15，而原版是 0——光照引擎据此让整格完全挡光，台阶后面永远比原版暗。
+    // noOcclusion（canOcclude=false）方块已由 isSolidRender 内的 canOcclude 判定排除：
+    // 铁栏杆（金属材质）、树叶、门等原版 lightBlock 分别为 0 或 1，而非 15。
+    if (state.isSolidRender()) {
         return 15;
     }
 
@@ -503,7 +504,9 @@ bool Block::propagatesSkylightDown(const BlockState& state, IWorld* world, const
     // → 不透传天空光。因此在 canOcclude=false 时本方法直接按"完整形状→不通透"处理，不做形状遮挡
     // 判定；重写了 getShape 返回非完整形状的 noOcclusion 方块（树叶、门、活板门等）仍按形状透传。
     const CollisionShape& shape = getOcclusionShape(state);
-    if (shape.isFullBlock()) {
+    // 与 isSolidRender 用同一个精确判定（vanilla isShapeFullBlock），否则会出现
+    // 「算作实体渲染 → lightBlock 15」与「又判为透传天空光」自相矛盾的组合。
+    if (shape.coversFullBlock()) {
         return false;
     }
     const fluid::FluidState* fluidState = getFluidState(state);

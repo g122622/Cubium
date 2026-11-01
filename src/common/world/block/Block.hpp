@@ -202,11 +202,16 @@ public:
     }
 
     /**
-     * @brief 设置无碰撞
+     * @brief 设置无碰撞（对齐 vanilla `BlockBehaviour.Properties#noCollision`）
+     *
+     * 原版这个开关同时关掉 `canOcclude`：没有碰撞形状的方块不可能遮挡光线。
+     * 早期实现只清了 `m_hasCollision`，于是空气、花草这些无碰撞方块的 `canOcclude`
+     * 仍为 true，光照引擎会把它们当作遮挡体。
      */
     BlockProperties& noCollision() noexcept
     {
         m_hasCollision = false;
+        m_canOcclude = false;
         return *this;
     }
 

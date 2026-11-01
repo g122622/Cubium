@@ -115,10 +115,13 @@ TEST_F(LavaCauldronBlockTest, CanReceiveStalactiteDrip_AlwaysReturnsFalse)
     EXPECT_FALSE(LavaCauldronBlock::canReceiveStalactiteDrip(*fluid::Fluids::LAVA()));
 }
 
-TEST_F(LavaCauldronBlockTest, UseShapeForLightOcclusion_ReturnsTrue)
+TEST_F(LavaCauldronBlockTest, UseShapeForLightOcclusion_DefaultFalse)
 {
-    const auto& state = lavaCauldron_->defaultState();
-    EXPECT_TRUE(lavaCauldron_->useShapeForLightOcclusion(state));
+    // 原版 1.21.11 的 lava_cauldron 没有重写 useShapeForLightOcclusion，走 BlockBehaviour
+    // 默认实现返回 false。早期实现凭直觉返回 true，导致光照引擎按形状给整格打遮挡，
+    // 原版并不会——差分能力 light_occlusion 逐状态比对后发现，重写已删除。
+    const BlockState& state = lavaCauldron_->defaultState();
+    EXPECT_FALSE(lavaCauldron_->useShapeForLightOcclusion(state));
 }
 
 TEST_F(LavaCauldronBlockTest, GetShape_ReturnsValidShape)

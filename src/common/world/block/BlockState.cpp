@@ -131,7 +131,10 @@ bool BlockState::isSolidRender() const
     if (!m_canOccludeCache) {
         return false;
     }
-    return m_owner->getOcclusionShape(*this).isFullBlock();
+    // 用 coversFullBlock 而不是 isFullBlock：前者按形状覆盖整格做判定，等价于 vanilla
+    // isShapeFullBlock（joinIsNotEmpty + NOT_SAME）；后者只认「类型上就是完整立方体」，
+    // 对由多个方盒拼出的整格形状会漏判。
+    return m_owner->getOcclusionShape(*this).coversFullBlock();
 }
 
 bool BlockState::hasOpaqueCollisionShape() const
