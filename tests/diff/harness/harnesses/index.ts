@@ -176,6 +176,7 @@ import { teamRuleStringsInput } from "./team_rule_strings.ts";
 import { renderTypeStringsInput } from "./render_type_strings.ts";
 import { uuidStringsInput } from "./uuid_strings.ts";
 import { gameTypeInput } from "./game_type.ts";
+import { mapDecorationTypeInput } from "./map_decoration_type.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1145,6 +1146,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 游戏模式：**探针对接 Cubium 的 GameMode 枚举**。
     { name: "game_type", probe: "game_type", oracle: "GameTypeOracle",
         key: "unit", units: { kind: "listing" }, input: gameTypeInput },
+    // 地图装饰类型：**探针对接 Cubium 的 decorationTypeToString**。
+    { name: "map_decoration_type", probe: "map_decoration_type", oracle: "MapDecorationTypeOracle",
+        key: "unit", units: { kind: "listing" }, input: mapDecorationTypeInput,
+        knownDifferences: [
+            { key: "fromString|desert_village",
+              reason: "Cubium 额外接受纹理名（desert_village 等）以兼容旧数据包 JSON；"
+                  + "原版只认注册名 village_desert。属有意的向后兼容，不影响写出" },
+        ] },
+
 
 
 
