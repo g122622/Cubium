@@ -162,6 +162,7 @@ import { hoverEventInput } from "./hover_event.ts";
 import { identifierResolveInput } from "./identifier_resolve.ts";
 import { plainTextContentsInput } from "./plain_text_contents.ts";
 import { mthAbsMaxInput } from "./mth_absmax.ts";
+import { displaySlotInput } from "./display_slot.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1066,6 +1067,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth 绝对值与距离：absMax(MIN_VALUE) 溢出、chessboardDistance 是 2D。
     { name: "mth_absmax", probe: "mth_absmax", oracle: "MthAbsMaxOracle",
         key: "unit", units: { kind: "listing" }, input: mthAbsMaxInput },
+    // 计分板显示槽：团队槽用点分隔、越界 byId 返回 LIST、RESET 不是颜色。
+    { name: "display_slot", probe: "display_slot", oracle: "DisplaySlotOracle",
+        key: "unit", units: { kind: "listing" }, input: displaySlotInput },
+
 
 
 
