@@ -130,6 +130,7 @@ import { rotationInfoInput } from "./rotation_info.ts";
 import { blockPosGeomInput } from "./blockpos_geom.ts";
 import { vec3iArithInput } from "./vec3i_arith.ts";
 import { aabbContainsInput } from "./aabb_contains.ts";
+import { fluidHeightInput } from "./fluid_height.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -938,6 +939,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 包围盒包含：半开区间 [min,max)、contract 只改单侧，纯计算。
     { name: "aabb_contains", probe: "aabb_contains", oracle: "AabbContainsOracle",
         key: "unit", units: { kind: "listing" }, input: aabbContainsInput },
+    // 流体高度：getOwnHeight = amount/9，源头也只有 8/9，纯计算。
+    { name: "fluid_height", probe: "fluid_height", oracle: "FluidHeightOracle",
+        key: "unit", units: { kind: "listing" }, input: fluidHeightInput },
+
 
 
 
