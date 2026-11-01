@@ -102,6 +102,7 @@ import { mthBitInput } from "./mth_bit.ts";
 import { mthRotInput } from "./mth_rot.ts";
 import { mthSinInput } from "./mth_sin.ts";
 import { mthApproachInput } from "./mth_approach.ts";
+import { regionSectorInput } from "./region_sector.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -822,6 +823,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },
+    // 区域文件扇区寻址：负坐标 >> 与 / 不同、偏移值 24+8 位打包，纯计算。
+    { name: "region_sector", probe: "region_sector", oracle: "RegionSectorOracle",
+        key: "unit", units: { kind: "listing" }, input: regionSectorInput },
+
 
 
 
