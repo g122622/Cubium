@@ -158,6 +158,7 @@ import { positionMoveRotationInput } from "./position_move_rotation.ts";
 import { styleApplyInput } from "./style_apply.ts";
 import { textColorInput } from "./text_color.ts";
 import { clickEventInput } from "./click_event.ts";
+import { hoverEventInput } from "./hover_event.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1050,6 +1051,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 点击事件：OPEN_FILE 是唯一禁用的动作、页码从 1 开始。
     { name: "click_event", probe: "click_event", oracle: "ClickEventOracle",
         key: "unit", units: { kind: "listing" }, input: clickEventInput },
+    // 悬停事件：三个动作全部允许来自服务端（与 click_event 的 OPEN_FILE 对照）。
+    { name: "hover_event", probe: "hover_event", oracle: "HoverEventOracle",
+        key: "unit", units: { kind: "listing" }, input: hoverEventInput },
+
 
 
 
