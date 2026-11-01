@@ -168,6 +168,7 @@ import { teamRuleInput } from "./team_rule.ts";
 import { bossBarInput } from "./boss_bar.ts";
 import { soundSourceInput } from "./sound_source.ts";
 import { difficultyInput } from "./difficulty.ts";
+import { permissionLevelInput } from "./permission_level.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1092,6 +1093,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 难度：BY_ID 用 WRAP 回绕（不是 ZERO），info 键在末尾追加 .info。
     { name: "difficulty", probe: "difficulty", oracle: "DifficultyOracle",
         key: "unit", units: { kind: "listing" }, input: difficultyInput },
+    // 权限等级：CLAMP 越界策略（byId|5 钳到 OWNERS）、higher 是 >= 语义。
+    { name: "permission_level", probe: "permission_level", oracle: "PermissionLevelOracle",
+        key: "unit", units: { kind: "listing" }, input: permissionLevelInput },
+
 
 
 
