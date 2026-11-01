@@ -165,6 +165,7 @@ import { mthAbsMaxInput } from "./mth_absmax.ts";
 import { displaySlotInput } from "./display_slot.ts";
 import { objectiveCriteriaInput } from "./objective_criteria.ts";
 import { teamRuleInput } from "./team_rule.ts";
+import { bossBarInput } from "./boss_bar.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1078,6 +1079,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 队伍规则：序列化名混合全小写与驼峰、两个枚举翻译键前缀不同。
     { name: "team_rule", probe: "team_rule", oracle: "TeamRuleOracle",
         key: "unit", units: { kind: "listing" }, input: teamRuleInput },
+    // Boss 栏：PINK 对应 RED、RED 对应 DARK_RED、PURPLE 对应 DARK_BLUE。
+    { name: "boss_bar", probe: "boss_bar", oracle: "BossBarOracle",
+        key: "unit", units: { kind: "listing" }, input: bossBarInput },
+
 
 
 
