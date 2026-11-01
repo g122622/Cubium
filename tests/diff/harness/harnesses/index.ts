@@ -137,6 +137,7 @@ import { mthWaveformInput } from "./mth_waveform.ts";
 import { mthHsvInput } from "./mth_hsv.ts";
 import { argbOpsInput } from "./argb_ops.ts";
 import { directionNearestInput } from "./direction_nearest.ts";
+import { mthSeedInput } from "./mth_seed.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -966,6 +967,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 由向量反推方向：全零返回 north、平局由枚举顺序决定。
     { name: "direction_nearest", probe: "direction_nearest", oracle: "DirectionNearestOracle",
         key: "unit", units: { kind: "listing" }, input: directionNearestInput },
+    // 坐标哈希：x 乘法是 int 溢出、z 是 long 乘法、y 只做裸异或。
+    { name: "mth_seed", probe: "mth_seed", oracle: "MthSeedOracle",
+        key: "unit", units: { kind: "listing" }, input: mthSeedInput },
+
 
 
 
