@@ -1,0 +1,47 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+/**
+ * relative_mask.ts — `Relative` 位掩码能力的输入构造。
+ *
+ * 单元形如 `<模式>|<参数…>`，由探针与 oracle 的 `list` 各自枚举同一张表。
+ *
+ * 三组关键用例：
+ * - `rotation|true|false`：**第一个参数是 `Y_ROT`**，结果是 `y_rot` 而不是 `x_rot`。
+ * - `unpack|8`：**`Y_ROT` 的位是 8**（`X_ROT` 是 16）——名字里的 X/Y 与位序相反。
+ * - `unpack|1048576`：**超过 bit 8 的高位被静默忽略**，结果是 `-`（空集）。
+ */
+
+/** `Relative` 位掩码能力的一个单元。 */
+export interface RelativeMaskUnit {
+    readonly unit: string;
+}
+
+/**
+ * 单元字符串原样透传。
+ *
+ * 集合输出按枚举序数排序、逗号分隔；空集输出 `-`。
+ */
+export function relativeMaskInput(unit: string): RelativeMaskUnit {
+    return { unit };
+}
