@@ -383,3 +383,34 @@ probes/*.cpp  ⊆  CMake 三张列表  ⊆  index.ts 注册  ⊆  README 状态�
 ```
 
 四个集合必须**完全相等**。
+
+---
+
+## 十九、`ByIdMap` 的四种越界策略必须逐个确认，不能假定期望返回第 0 项
+
+原版 `ByIdMap.continuous(..., OutOfBoundsStrategy)` 有四种策略，**同一个看起来相似的 `byId(x)`
+在不同枚举上行为完全不同**。
+
+| 策略 | 实现 | `id = -1`（长度 4）| 已覆盖的能力 |
+|---|---|---|---|
+| `ZERO` | `id >= 0 && id < len ? at[id] : at[0]` | 第 0 项 | [`dye_color`](./dye_color.md)、[`equipment_slot`](./equipment_slot.md)、[`heightmap_types`](./heightmap_types.md) |
+| `WRAP` | `at[Mth.positiveModulo(id, len)]` | `positiveModulo(-1,4)=3` → 第 3 项 | **`rotation_info`** |
+| `CLAMP` | `at[Mth.clamp(id, 0, len-1)]` | 第 0 项 | 暂未遇到 |
+| （非 `ByIdMap`）| `BY[Mth.abs(id % len)]` | `abs(-1%4)=1` → 第 1 项 | [`direction_plane`](./direction_plane.md) |
+
+**关键差别**：`positiveModulo(-1, 4) = 3`，而 `abs(-1 % 4) = 1`。两者都「回绕」，但落在**不同的
+项**上。
+
+已实际触发的问题：
+
+- `rotation_info` 的 `byId(-1)` 期望 `COUNTERCLOCKWISE_90`（第 3 项）
+- `direction_plane` 的 `from3DDataValue(-1)` 期望 `UP`（第 1 项）
+
+若把两者写成同一种策略，其中一个必然错。
+
+**做法**：每新增一个带 `byId` 的能力，**先读原版那一行 `ByIdMap.continuous(...)` 的第三个参数**，
+不要沿用上一个能力的写法。同时至少放 `-1`、`len`、`2*len+1` 三个越界用例。
+
+**额外注意 `Mth.positiveModulo` 与 Java `%` 的区别**：`Rotation.rotate(int,int)` 用的是普通
+`%`（向零截断），`value` 为负时**结果可以为负**；而 `positiveModulo` 恒非负。两者在同一份源码
+里并存。

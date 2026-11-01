@@ -126,6 +126,7 @@ import { equipmentSlotInput } from "./equipment_slot.ts";
 import { heightmapTypesInput } from "./heightmap_types.ts";
 import { mthIntDivInput } from "./mth_int_div.ts";
 import { directionPlaneInput } from "./direction_plane.ts";
+import { rotationInfoInput } from "./rotation_info.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -918,6 +919,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 方向数据值：2D id 与 3D id 顺序相反、负数 id 取绝对值回绕，纯计算。
     { name: "direction_plane", probe: "direction_plane", oracle: "DirectionPlaneOracle",
         key: "unit", units: { kind: "listing" }, input: directionPlaneInput },
+    // 旋转枚举：CLOCKWISE_180 序列化名是 "180"、BY_ID 用 WRAP，纯计算。
+    { name: "rotation_info", probe: "rotation_info", oracle: "RotationInfoOracle",
+        key: "unit", units: { kind: "listing" }, input: rotationInfoInput },
+
 
 
 
