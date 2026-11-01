@@ -151,6 +151,7 @@ import { aabbFactoryInput } from "./aabb_factory.ts";
 import { frontAndTopInput } from "./front_and_top.ts";
 import { structureOrientInput } from "./structure_orient.ts";
 import { boundingBoxEncapInput } from "./bounding_box_encap.ts";
+import { chunkRegionInput } from "./chunk_region.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1022,6 +1023,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // BoundingBox 封装族：构造器反了才归一化、空集合返回 empty、起点是首点折叠盒。
     { name: "bounding_box_encap", probe: "bounding_box_encap", oracle: "BoundingBoxEncapOracle",
         key: "unit", units: { kind: "listing" }, input: boundingBoxEncapInput },
+    // 区块区域：算术右移对负数向下取整、按位与取非负余数。
+    { name: "chunk_region", probe: "chunk_region", oracle: "ChunkRegionOracle",
+        key: "unit", units: { kind: "listing" }, input: chunkRegionInput },
+
 
 
 
