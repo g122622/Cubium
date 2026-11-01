@@ -118,6 +118,7 @@ import { boundingBoxInput } from "./bounding_box.ts";
 import { enchantmentCompatInput, listEnchantmentCompatUnits } from "./enchantment_compat.ts";
 import { sectionPosInput } from "./section_pos.ts";
 import { levelHeightInput } from "./level_height.ts";
+import { chunkPosInput } from "./chunk_pos.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -886,6 +887,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 高度范围：maxY 含上界、分区索引从 minSectionY 起算，纯计算。
     { name: "level_height", probe: "level_height", oracle: "LevelHeightOracle",
         key: "unit", units: { kind: "listing" }, input: levelHeightInput },
+    // 区块坐标：32 位无符号拼接、区域 32 区块、Z 先异或魔数，纯计算。
+    { name: "chunk_pos", probe: "chunk_pos", oracle: "ChunkPosOracle",
+        key: "unit", units: { kind: "listing" }, input: chunkPosInput },
+
 
 
 
