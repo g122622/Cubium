@@ -93,6 +93,7 @@ import { spawnerDelayInput } from "./spawner_delay.ts";
 import { mthRoundingInput } from "./mth_rounding.ts";
 import { mthModuloInput } from "./mth_modulo.ts";
 import { directionRotateInput } from "./direction_rotate.ts";
+import { aabbOpsInput } from "./aabb_ops.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -786,6 +787,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Direction 旋转与 Y 轴角度：轴向旋转对垂直方向返回自身、南为 0 度，纯计算。
     { name: "direction_rotate", probe: "direction_rotate", oracle: "DirectionRotateOracle",
         key: "unit", units: { kind: "listing" }, input: directionRotateInput },
+    // AABB 几何运算：intersects 用严格不等号（接触不算相交）、minmax 是并集，纯计算。
+    { name: "aabb_ops", probe: "aabb_ops", oracle: "AabbOpsOracle",
+        key: "unit", units: { kind: "listing" }, input: aabbOpsInput },
+
 
 
 
