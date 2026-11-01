@@ -115,6 +115,7 @@ import { randomTickPosInput } from "./random_tick_pos.ts";
 import { mthColorInput } from "./mth_color.ts";
 import { blockTransformInput } from "./block_transform.ts";
 import { boundingBoxInput } from "./bounding_box.ts";
+import { enchantmentCompatInput, listEnchantmentCompatUnits } from "./enchantment_compat.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -874,6 +875,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 包围盒判定：闭区间相交、构造器自动归一化、move 原地修改，纯计算。
     { name: "bounding_box", probe: "bounding_box", oracle: "BoundingBoxOracle",
         key: "unit", units: { kind: "listing" }, input: boundingBoxInput },
+    // 附魔互斥性：同一附魔不兼容、双向或关系，纯计算。
+    { name: "enchantment_compat", probe: "enchantment_compat", oracle: "EnchantmentCompatOracle",
+        key: "unit", units: { kind: "computed", units: listEnchantmentCompatUnits }, input: enchantmentCompatInput },
+
 
 
 
