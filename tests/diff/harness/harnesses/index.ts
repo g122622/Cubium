@@ -96,6 +96,7 @@ import { directionRotateInput } from "./direction_rotate.ts";
 import { aabbOpsInput } from "./aabb_ops.ts";
 import { vec3MathInput } from "./vec3_math.ts";
 import { blockposCodecInput } from "./blockpos_codec.ts";
+import { axisPlaneInput } from "./axis_plane.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -798,6 +799,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // BlockPos 位打包：X/Z 各 26 位、Y 12 位，超范围静默截断，纯计算。
     { name: "blockpos_codec", probe: "blockpos_codec", oracle: "BlockPosCodecOracle",
         key: "unit", units: { kind: "listing" }, input: blockposCodecInput },
+    // Direction.Axis 与 Plane 判定：Z 轴正方向是 SOUTH、Plane.test(null) 为 false，纯计算。
+    { name: "axis_plane", probe: "axis_plane", oracle: "AxisPlaneOracle",
+        key: "unit", units: { kind: "listing" }, input: axisPlaneInput },
+
 
 
 
