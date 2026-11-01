@@ -94,6 +94,7 @@ import { mthRoundingInput } from "./mth_rounding.ts";
 import { mthModuloInput } from "./mth_modulo.ts";
 import { directionRotateInput } from "./direction_rotate.ts";
 import { aabbOpsInput } from "./aabb_ops.ts";
+import { vec3MathInput } from "./vec3_math.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -790,6 +791,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // AABB 几何运算：intersects 用严格不等号（接触不算相交）、minmax 是并集，纯计算。
     { name: "aabb_ops", probe: "aabb_ops", oracle: "AabbOpsOracle",
         key: "unit", units: { kind: "listing" }, input: aabbOpsInput },
+    // Vec3 向量运算：normalize 的 1e-5F 短路阈值 + 除法归一化，纯计算。
+    { name: "vec3_math", probe: "vec3_math", oracle: "Vec3MathOracle",
+        key: "unit", units: { kind: "listing" }, input: vec3MathInput },
+
 
 
 
