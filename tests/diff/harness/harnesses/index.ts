@@ -89,6 +89,7 @@ import { furnaceTickInput } from "./furnace_tick.ts";
 import { brewingTickInput } from "./brewing_tick.ts";
 import { beaconEffectsInput } from "./beacon_effects.ts";
 import { hopperCooldownInput } from "./hopper_cooldown.ts";
+import { spawnerDelayInput } from "./spawner_delay.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -760,6 +761,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 漏斗传输冷却时序：无条件递减 + 传输成功才设 8 tick 冷却，纯计算。
     { name: "hopper_cooldown", probe: "hopper_cooldown", oracle: "HopperCooldownOracle",
         key: "unit", units: { kind: "listing" }, input: hopperCooldownInput },
+    // 刷怪笼生成延迟：-1 哨兵重置 + 区间退化取 min + 玩家范围前置条件，纯计算。
+    { name: "spawner_delay", probe: "spawner_delay", oracle: "SpawnerDelayOracle",
+        key: "unit", units: { kind: "listing" }, input: spawnerDelayInput },
+
 
 
 
