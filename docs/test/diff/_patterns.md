@@ -222,3 +222,27 @@ Cubium 恒为 false、在原版恒为 true。必须**先判「两个都空」**�
    但用原版 `BlockPos` 构造结果，至少能捕获坐标加法的错误。
 
 **已用此方式的能力**：`random_tick_pos`（唯一的 4 行、零外部依赖的情况）。
+
+---
+
+## 十四、批量修改索引文件前必须先备份
+
+`tests/diff/CMakeLists.txt` 与 `harnesses/index.ts` 是**所有能力的中枢索引**，一处写坏就会让
+全部能力无法构建。
+
+**已发生的事故**：注册 `bounding_box` 时，PowerShell 脚本里把
+`[System.Collections.Generic.List[string]]` 写成了 `New-Object System.Collections.Generic.List[string]`，
+导致后续 `Set-Content` 对着 `$null` 执行，**467 行的 `CMakeLists.txt` 被写成 0 字节**。
+
+**必须遵守**：
+
+1. 改这两个文件前确认 `git status` 是干净的，或先 `Copy-Item` 备份；
+2. PowerShell 里用 `@()` 数组而不是泛型 `List`——`List` 的类型名写错会静默产生 `$null`，
+   而 `$null | Set-Content` 会清空文件；
+3. 修改后**立即校验**：
+   - `CMakeLists.txt`：三张列表长度相同（注意 `SOURCES` 不含共享的 `runner_main.cpp`）
+   - `index.ts`：`import` 数量与条目数量匹配
+4. 一旦发现被清空，立刻 `git checkout -- <文件>` 恢复，再从干净状态重做，**不要在残缺
+   结构上打补丁**。
+
+这条与第十条（三张列表同长同序）配套：第十条讲「改对之后要验证」，本条讲「怎么改才安全」。
