@@ -95,6 +95,7 @@ import { mthModuloInput } from "./mth_modulo.ts";
 import { directionRotateInput } from "./direction_rotate.ts";
 import { aabbOpsInput } from "./aabb_ops.ts";
 import { vec3MathInput } from "./vec3_math.ts";
+import { blockposCodecInput } from "./blockpos_codec.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -794,6 +795,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Vec3 向量运算：normalize 的 1e-5F 短路阈值 + 除法归一化，纯计算。
     { name: "vec3_math", probe: "vec3_math", oracle: "Vec3MathOracle",
         key: "unit", units: { kind: "listing" }, input: vec3MathInput },
+    // BlockPos 位打包：X/Z 各 26 位、Y 12 位，超范围静默截断，纯计算。
+    { name: "blockpos_codec", probe: "blockpos_codec", oracle: "BlockPosCodecOracle",
+        key: "unit", units: { kind: "listing" }, input: blockposCodecInput },
+
 
 
 
