@@ -150,6 +150,7 @@ import { blockPosSpiralInput } from "./blockpos_spiral.ts";
 import { aabbFactoryInput } from "./aabb_factory.ts";
 import { frontAndTopInput } from "./front_and_top.ts";
 import { structureOrientInput } from "./structure_orient.ts";
+import { boundingBoxEncapInput } from "./bounding_box_encap.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1018,6 +1019,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 结构朝向：UP/DOWN 走 default 分支（同 SOUTH）、WEST/EAST 交换 X 与 Z 的角色。
     { name: "structure_orient", probe: "structure_orient", oracle: "StructureOrientOracle",
         key: "unit", units: { kind: "listing" }, input: structureOrientInput },
+    // BoundingBox 封装族：构造器反了才归一化、空集合返回 empty、起点是首点折叠盒。
+    { name: "bounding_box_encap", probe: "bounding_box_encap", oracle: "BoundingBoxEncapOracle",
+        key: "unit", units: { kind: "listing" }, input: boundingBoxEncapInput },
+
 
 
 
