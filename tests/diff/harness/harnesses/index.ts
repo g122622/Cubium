@@ -133,6 +133,41 @@ import { aabbContainsInput } from "./aabb_contains.ts";
 import { fluidHeightInput } from "./fluid_height.ts";
 import { mthInverseLerpInput } from "./mth_inverse_lerp.ts";
 import { mthAngleLerpInput } from "./mth_angle_lerp.ts";
+import { mthWaveformInput } from "./mth_waveform.ts";
+import { mthHsvInput } from "./mth_hsv.ts";
+import { argbOpsInput } from "./argb_ops.ts";
+import { directionNearestInput } from "./direction_nearest.ts";
+import { mthSeedInput } from "./mth_seed.ts";
+import { mthPackDegreesInput } from "./mth_pack_degrees.ts";
+import { mthDegreesInput } from "./mth_degrees.ts";
+import { mthFracInput } from "./mth_frac.ts";
+import { mthSqrtInput } from "./mth_sqrt.ts";
+import { stringUtilInput } from "./string_util.ts";
+import { identifierParseInput } from "./identifier_parse.ts";
+import { identifierPathInput } from "./identifier_path.ts";
+import { blockPosIterateInput } from "./blockpos_iterate.ts";
+import { blockPosSpiralInput } from "./blockpos_spiral.ts";
+import { aabbFactoryInput } from "./aabb_factory.ts";
+import { frontAndTopInput } from "./front_and_top.ts";
+import { structureOrientInput } from "./structure_orient.ts";
+import { boundingBoxEncapInput } from "./bounding_box_encap.ts";
+import { chunkRegionInput } from "./chunk_region.ts";
+import { portalRelativeInput } from "./portal_relative.ts";
+import { relativeMaskInput } from "./relative_mask.ts";
+import { positionMoveRotationInput } from "./position_move_rotation.ts";
+import { styleApplyInput } from "./style_apply.ts";
+import { textColorInput } from "./text_color.ts";
+import { clickEventInput } from "./click_event.ts";
+import { hoverEventInput } from "./hover_event.ts";
+import { identifierResolveInput } from "./identifier_resolve.ts";
+import { plainTextContentsInput } from "./plain_text_contents.ts";
+import { mthAbsMaxInput } from "./mth_absmax.ts";
+import { displaySlotInput } from "./display_slot.ts";
+import { objectiveCriteriaInput } from "./objective_criteria.ts";
+import { teamRuleInput } from "./team_rule.ts";
+import { bossBarInput } from "./boss_bar.ts";
+import { soundSourceInput } from "./sound_source.ts";
+import { difficultyInput } from "./difficulty.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -952,6 +987,146 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 角度插值：wrapDegrees 区间 (-180,180]、rotLerp 走短路、catmullrom 会过冲。
     { name: "mth_angle_lerp", probe: "mth_angle_lerp", oracle: "MthAngleLerpOracle",
         key: "unit", units: { kind: "listing" }, input: mthAngleLerpInput },
+    // 波形与缓动：triangleWave 负输入越界、smoothstep 不 clamp。
+    { name: "mth_waveform", probe: "mth_waveform", oracle: "MthWaveformOracle",
+        key: "unit", units: { kind: "listing" }, input: mthWaveformInput },
+    // HSV 转换：hue=1.0 回绕到红色、分量截断不四舍五入、alpha 恒 0。
+    { name: "mth_hsv", probe: "mth_hsv", oracle: "MthHsvOracle",
+        key: "unit", units: { kind: "listing" }, input: mthHsvInput },
+    // ARGB 通道与混合：alpha 用无符号右移、三参 color 的 alpha 是 255。
+    { name: "argb_ops", probe: "argb_ops", oracle: "ArgbOpsOracle",
+        key: "unit", units: { kind: "listing" }, input: argbOpsInput },
+    // 由向量反推方向：全零返回 north、平局由枚举顺序决定。
+    { name: "direction_nearest", probe: "direction_nearest", oracle: "DirectionNearestOracle",
+        key: "unit", units: { kind: "listing" }, input: directionNearestInput },
+    // 坐标哈希：x 乘法是 int 溢出、z 是 long 乘法、y 只做裸异或。
+    { name: "mth_seed", probe: "mth_seed", oracle: "MthSeedOracle",
+        key: "unit", units: { kind: "listing" }, input: mthSeedInput },
+    // 角度单字节压缩：packDegrees 不 clamp，180 回绕成 -128。
+    { name: "mth_pack_degrees", probe: "mth_pack_degrees", oracle: "MthPackDegreesOracle",
+        key: "unit", units: { kind: "listing" }, input: mthPackDegreesInput },
+    // 角度差与朝向平滑：rotateIfNecessary 从 target 反推、absMax 在 MIN_VALUE 溢出。
+    { name: "mth_degrees", probe: "mth_degrees", oracle: "MthDegreesOracle",
+        key: "unit", units: { kind: "listing" }, input: mthDegreesInput },
+    // 小数部分：frac(float) 的 floor 是 int，大输入会饱和失效。
+    { name: "mth_frac", probe: "mth_frac", oracle: "MthFracOracle",
+        key: "unit", units: { kind: "listing" }, input: mthFracInput },
+    // 平方根：fastInvSqrt 是近似算法且无特殊值保护，sqrt 走 double 再降 float。
+    { name: "mth_sqrt", probe: "mth_sqrt", oracle: "MthSqrtOracle",
+        key: "unit", units: { kind: "listing" }, input: mthSqrtInput },
+    // 字符串工具：截断的 maxLength>3 条件、lineCount 只认 \\r\\n 与 \\v。
+    { name: "string_util", probe: "string_util", oracle: "StringUtilOracle",
+        key: "unit", units: { kind: "listing" }, input: stringUtilInput },
+    // 标识符解析：命名空间不允许 /、空串合法、bySeparator 只看第一个分隔符。
+    { name: "identifier_parse", probe: "identifier_parse", oracle: "IdentifierParseOracle",
+        key: "unit", units: { kind: "listing" }, input: identifierParseInput },
+    // 标识符派生：toLanguageKey 保留 /、toDebugFileName 保留点、withPrefix 会重新校验。
+    { name: "identifier_path", probe: "identifier_path", oracle: "IdentifierPathOracle",
+        key: "unit", units: { kind: "listing" }, input: identifierPathInput },
+    // 区间遍历：x 最快、z 最慢；六参版本不归一化，两参版本会归一化。
+    { name: "blockpos_iterate", probe: "blockpos_iterate", oracle: "BlockPosIterateOracle",
+        key: "unit", units: { kind: "listing" }, input: blockPosIterateInput },
+    // 螺旋遍历：radius=0 只给中心、段长 leg/2+1 且成对、first/second 交换会镜像。
+    { name: "blockpos_spiral", probe: "blockpos_spiral", oracle: "BlockPosSpiralOracle",
+        key: "unit", units: { kind: "listing" }, input: blockPosSpiralInput },
+    // AABB 工厂：+1 只在 max 侧、getCenter 走 Mth.lerp、intersect 不相交时返回负尺寸盒。
+    { name: "aabb_factory", probe: "aabb_factory", oracle: "AabbFactoryOracle",
+        key: "unit", units: { kind: "listing" }, input: aabbFactoryInput },
+    // FrontAndTop：构造函数参数是 (name, front, top)，36 种组合只有 12 种合法。
+    { name: "front_and_top", probe: "front_and_top", oracle: "FrontAndTopOracle",
+        key: "unit", units: { kind: "listing" }, input: frontAndTopInput },
+    // 结构朝向：UP/DOWN 走 default 分支（同 SOUTH）、WEST/EAST 交换 X 与 Z 的角色。
+    { name: "structure_orient", probe: "structure_orient", oracle: "StructureOrientOracle",
+        key: "unit", units: { kind: "listing" }, input: structureOrientInput },
+    // BoundingBox 封装族：构造器反了才归一化、空集合返回 empty、起点是首点折叠盒。
+    { name: "bounding_box_encap", probe: "bounding_box_encap", oracle: "BoundingBoxEncapOracle",
+        key: "unit", units: { kind: "listing" }, input: boundingBoxEncapInput },
+    // 区块区域：算术右移对负数向下取整、按位与取非负余数。
+    { name: "chunk_region", probe: "chunk_region", oracle: "ChunkRegionOracle",
+        key: "unit", units: { kind: "listing" }, input: chunkRegionInput },
+    // 传送门相对位置：宽度不足取 0.5、高度不足取 0.0（不对称）；z 分量是带符号绝对偏移。
+    { name: "portal_relative", probe: "portal_relative", oracle: "PortalRelativeOracle",
+        key: "unit", units: { kind: "listing" }, input: portalRelativeInput },
+    // Relative 位掩码：rotation 首个参数是 Y_ROT、Y_ROT 的位是 8（X_ROT 是 16）、忽略高位。
+    { name: "relative_mask", probe: "relative_mask", oracle: "RelativeMaskOracle",
+        key: "unit", units: { kind: "listing" }, input: relativeMaskInput },
+    // 传送目标计算：相对/绝对语义、xRot 钳到 ±90、ROTATE_DELTA 旋转速度。
+    { name: "position_move_rotation", probe: "position_move_rotation", oracle: "PositionMoveRotationOracle",
+        key: "unit", units: { kind: "listing" }, input: positionMoveRotationInput },
+    // Style 应用：applyFormat 换色保格式、applyLegacyFormat 换色清格式、applyTo 是 this 优先。
+    { name: "style_apply", probe: "style_apply", oracle: "StyleApplyOracle",
+        key: "unit", units: { kind: "listing" }, input: styleApplyInput },
+    // TextColor：#f00 不是 RGB 缩写（是 0x000F00）、具名色与十六进制值相等但 serialize 不同。
+    { name: "text_color", probe: "text_color", oracle: "TextColorOracle",
+        key: "unit", units: { kind: "listing" }, input: textColorInput },
+    // 点击事件：OPEN_FILE 是唯一禁用的动作、页码从 1 开始。
+    { name: "click_event", probe: "click_event", oracle: "ClickEventOracle",
+        key: "unit", units: { kind: "listing" }, input: clickEventInput },
+    // 悬停事件：三个动作全部允许来自服务端（与 click_event 的 OPEN_FILE 对照）。
+    { name: "hover_event", probe: "hover_event", oracle: "HoverEventOracle",
+        key: "unit", units: { kind: "listing" }, input: hoverEventInput },
+    // Identifier 构造入口：withDefaultNamespace 不解析冒号（整个串当路径）。
+    { name: "identifier_resolve", probe: "identifier_resolve", oracle: "IdentifierResolveOracle",
+        key: "unit", units: { kind: "listing" }, input: identifierResolveInput },
+    // 纯文本内容：空串折叠为 EMPTY 单例，toString 是裸词 empty（不是 literal{}）。
+    { name: "plain_text_contents", probe: "plain_text_contents", oracle: "PlainTextContentsOracle",
+        key: "unit", units: { kind: "listing" }, input: plainTextContentsInput },
+    // Mth 绝对值与距离：absMax(MIN_VALUE) 溢出、chessboardDistance 是 2D。
+    { name: "mth_absmax", probe: "mth_absmax", oracle: "MthAbsMaxOracle",
+        key: "unit", units: { kind: "listing" }, input: mthAbsMaxInput },
+    // 计分板显示槽：团队槽用点分隔、越界 byId 返回 LIST、RESET 不是颜色。
+    { name: "display_slot", probe: "display_slot", oracle: "DisplaySlotOracle",
+        key: "unit", units: { kind: "listing" }, input: displaySlotInput },
+    // 计分判据：camelCase 名、EXPERIENCE 叫 xp、只有血量用 hearts。
+    { name: "objective_criteria", probe: "objective_criteria", oracle: "ObjectiveCriteriaOracle",
+        key: "unit", units: { kind: "listing" }, input: objectiveCriteriaInput },
+    // 队伍规则：序列化名混合全小写与驼峰、两个枚举翻译键前缀不同。
+    { name: "team_rule", probe: "team_rule", oracle: "TeamRuleOracle",
+        key: "unit", units: { kind: "listing" }, input: teamRuleInput },
+    // Boss 栏：PINK 对应 RED、RED 对应 DARK_RED、PURPLE 对应 DARK_BLUE。
+    { name: "boss_bar", probe: "boss_bar", oracle: "BossBarOracle",
+        key: "unit", units: { kind: "listing" }, input: bossBarInput },
+    // 声音通道：RECORDS/BLOCKS/PLAYERS 三个复数枚举映射到单数名。
+    { name: "sound_source", probe: "sound_source", oracle: "SoundSourceOracle",
+        key: "unit", units: { kind: "listing" }, input: soundSourceInput },
+    // 难度：BY_ID 用 WRAP 回绕（不是 ZERO），info 键在末尾追加 .info。
+    { name: "difficulty", probe: "difficulty", oracle: "DifficultyOracle",
+        key: "unit", units: { kind: "listing" }, input: difficultyInput },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
