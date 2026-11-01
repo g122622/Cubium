@@ -125,6 +125,29 @@ public:
     // ========== 红石线特有方法 ==========
 
     /**
+     * @brief 打开 / 关闭红石线自身的信号输出（对齐原版 `shouldSignal` 字段）
+     *
+     * 原版在重算功率时先把自己关掉（`RedStoneWireBlock#getBlockSignal`），否则红石线会
+     * 用自己的旧功率回灌，算出永远不小于自身的循环值。差分探针复刻同一条查询路径，
+     * 因此需要能显式设置这个开关。
+     */
+    void setSelfSignalling(bool enabled) const noexcept
+    {
+        m_canProvidePower = enabled;
+    }
+
+    /**
+     * @brief 按「自己的输出已关闭」的前置条件计算输入功率
+     *
+     * 对齐原版 `RedStoneWireBlock#getBlockSignal`：关掉自身输出后取六邻居的最高信号。
+     * 调用方必须先 `setSelfSignalling(false)`。
+     */
+    [[nodiscard]] i32 calculateInputPowerForQuery(IWorld& world, const BlockPos& pos, const BlockState& state) const
+    {
+        return _calculateInputPower(world, pos, state);
+    }
+
+    /**
      * @brief 更新信号强度和连接状态
      */
     bool updatePower(IWorld& world, const BlockPos& pos);

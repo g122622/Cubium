@@ -52,19 +52,22 @@ bool RedstoneHelper::canConnectRedstone(const BlockState& state)
 
 bool RedstoneHelper::isRedstoneConductor(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 红石导体检查：
-    // 1. 必须是实体方块
-    // 2. 不阻挡红石信号传输
-
-    if (!isNormalCube(state)) {
-        return false;
-    }
-
-    // 某些特殊方块虽然不是红石导体（如观察者、红石块等）
-    // 这些需要单独检查
-
-    // 默认情况下，实体方块都是红石导体
-    return true;
+    // 对齐原版语义：BlockBehaviour 的默认判据是「碰撞形状完整覆盖整格」
+    // （isCollisionShapeFullBlock），随后由各方块注册时的 BlockProperties#isRedstoneConductor
+    // 逐个覆盖；原版 Blocks.java 里共 22 处显式覆盖，绝大多数是 Blocks::never。
+    //
+    // 两个判据缺一不可，任意单独使用都会出错：
+    // - 只看「isSolid && isOpaque」：单层台阶、楼梯碰撞形状不完整但材质不透明，会被误判为
+    //   导体，于是「火把在台阶正下方」时凭空向四周输出满功率（原版此处为 0）。
+    // - 只看「碰撞形状完整」：玻璃、红石块碰撞形状完整，但原版显式注册成 never，不是导体。
+    //
+    // TODO: 原版的显式 never 覆盖无法用「形状 + 不透明度」唯一表达（红石块是不透明且形状完整
+    //   却被排除）。目前这组判据恰好与已覆盖的方块一致；后续若发现新的不一致，需要为相应方块
+    //   引入与 BlockProperties#isRedstoneConductor 等价的逐方块覆盖，而不是继续堆砌特判。
+    //   已知原版为 never 的完整清单见 Blocks.java 中 22 处 isRedstoneConductor(...) 调用。
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return state.getCollisionShape().coversFullBlock() && state.isOpaque();
 }
 
 i32 RedstoneHelper::getEntitySignal(IWorld& world, const BlockPos& pos)
