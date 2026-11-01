@@ -177,6 +177,7 @@ import { renderTypeStringsInput } from "./render_type_strings.ts";
 import { uuidStringsInput } from "./uuid_strings.ts";
 import { gameTypeInput } from "./game_type.ts";
 import { mapDecorationTypeInput } from "./map_decoration_type.ts";
+import { blockStateEnumStringsInput } from "./block_state_enum_strings.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1153,7 +1154,12 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
             { key: "fromString|desert_village",
               reason: "Cubium 额外接受纹理名（desert_village 等）以兼容旧数据包 JSON；"
                   + "原版只认注册名 village_desert。属有意的向后兼容，不影响写出" },
+
         ] },
+    // 方块状态枚举字符串：**探针对接 Cubium 的 EnumProperty Traits**。
+    { name: "block_state_enum_strings", probe: "block_state_enum_strings", oracle: "BlockStateEnumStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: blockStateEnumStringsInput },
+
 
 
 
