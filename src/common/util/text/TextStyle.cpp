@@ -28,6 +28,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <iterator>
 #include <string>
 #include <nlohmann/json_fwd.hpp>
@@ -207,7 +209,14 @@ nlohmann::json Style::toJson() const
     nlohmann::json json = nlohmann::json::object();
 
     if (m_color.has_value()) {
-        json["color"] = toName(*m_color);
+        // 原版 Style.Serializer 把颜色写成 "#RRGGBB"（TextColor.Serializer），
+        // 不是颜色名。写成名字会让 Cubium 的存档/网络数据与原版无法互通。
+        const std::optional<u32> argb = findFormattingARGB(*m_color);
+        if (argb.has_value()) {
+            char buffer[8];
+            std::snprintf(buffer, sizeof(buffer), "#%06X", static_cast<unsigned>(*argb & 0xFFFFFFu));
+            json["color"] = buffer;
+        }
     }
     // 三态：显式 false 也要写出来（`"italic": false`）。原版存档里它与「没写」是两种值。
     if (m_bold.has_value()) {
@@ -240,7 +249,24 @@ Style Style::fromJson(const nlohmann::json& json)
     Style style;
 
     if (json.contains("color") && json["color"].is_string()) {
-        style.m_color = fromName(json["color"].get<std::string>());
+        const std::string text = json["color"].get<std::string>();
+        // 原版写 "#RRGGBB"；这里也接受颜色名，以便读取旧数据与手写 JSON。
+        if (!text.empty() && text.front() == '#' && text.size() == 7) {
+            const unsigned rgb = static_cast<unsigned>(std::strtoul(text.c_str() + 1, nullptr, 16));
+            // 把 RGB 反查回最接近的命名颜色（原版 TextColor 是任意 RGB，
+            // 但 Cubium 的 Style 只存格式化枚举，此处取精确匹配）。
+            style.m_color = std::nullopt;
+            for (const auto& entry : FORMATTING_TABLE) {
+                if ((entry.color & 0xFFFFFFu) == rgb) {
+                    style.m_color = entry.formatting;
+                    break;
+                }
+            }
+            // TODO: Cubium 的 Style 用 TextFormatting 枚举表达能力有限，
+            // 无法存储任意 RGB（如 "#123456"）。待 Style 改为持有 RGB 后再支持。
+        } else {
+            style.m_color = fromName(text);
+        }
     }
     if (json.contains("bold") && json["bold"].is_boolean()) {
         style.m_bold = json["bold"].get<bool>();
