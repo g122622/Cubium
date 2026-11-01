@@ -100,6 +100,7 @@ import { axisPlaneInput } from "./axis_plane.ts";
 import { mthLerpInput } from "./mth_lerp.ts";
 import { mthBitInput } from "./mth_bit.ts";
 import { mthRotInput } from "./mth_rot.ts";
+import { mthSinInput } from "./mth_sin.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -814,6 +815,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth 旋转插值：rotLerp 走最短弧、rotLerpRad 用 while 循环，纯计算。
     { name: "mth_rot", probe: "mth_rot", oracle: "MthRotOracle",
         key: "unit", units: { kind: "listing" }, input: mthRotInput },
+    // Mth.sin / cos 查表：65536 项表由 Math.sin 构造，索引 & 65535，纯计算。
+    { name: "mth_sin", probe: "mth_sin", oracle: "MthSinOracle",
+        key: "unit", units: { kind: "listing" }, input: mthSinInput },
+
 
 
 
