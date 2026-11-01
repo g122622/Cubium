@@ -343,3 +343,43 @@ if (actualAir != air || actualMotion != blocksMotion || ...) {
 
 这条与第五条（只读源码片段导致误判）、第九条（错误路径也会被框架捕获）互补：那两条讲「实现
 错」，本条讲「测试数据本身错」。
+
+---
+
+## 十八、「实现完整但未接线」比完全没做更危险
+
+**已发生的问题**：`fuel_values` 与 `recipe_book_category` 两个能力的探针、oracle、harness
+全部齐全且已提交，`index.ts` 里也有 `xxxDeclaration()` 注册条目——但**三张 CMake 列表里都没有
+它们**。
+
+后果：
+
+- 探针源码从未被编译过（可能有编译错误而无人知晓）
+- 能力从不参与任何测试运行
+- 状态表里也没有它们的行
+
+**从代码看像是「已完成」，实际是「从未运行过」。**
+
+**为什么危险**：完全没实现的能力，查重时一眼就能看出缺失；这种半成品反而会让人以为已经覆盖，
+不去重复实现，也不会发现它跑不起来。
+
+**检出方法**（应当成为常规自检）：
+
+```powershell
+# 找出有源码但不在 CMake 列表里的探针
+$probes = @(); foreach ($ln in (Get-Content "tests/diff/CMakeLists.txt")) {
+    if ($ln -match "^\s+probes/([a-z_0-9]+)\.cpp\s*$" -and $Matches[1] -ne "runner_main") {
+        $probes += $Matches[1] } }
+Get-ChildItem "tests/diff/probes" -Filter "*.cpp" |
+    Where-Object { $probes -notcontains $_.BaseName -and $_.BaseName -ne "runner_main" } |
+    ForEach-Object { "未注册: $($_.Name)" }
+```
+
+**结论**：`probes/` 目录下的每个 `.cpp`（除 `runner_main.cpp`）都必须出现在三张列表里。
+这条与第十五条（状态表与探针列表对得上）合并成完整的三方一致性检查：
+
+```text
+probes/*.cpp  ⊆  CMake 三张列表  ⊆  index.ts 注册  ⊆  README 状态表
+```
+
+四个集合必须**完全相等**。
