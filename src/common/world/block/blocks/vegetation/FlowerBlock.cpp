@@ -54,6 +54,12 @@ const CollisionShape& FlowerBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
+CollisionShape FlowerBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    const Vector3 offset = getOffset(pos);
+    return getShape(state).offset(offset.x, offset.y, offset.z);
+}
+
 // ========== LilacBlock ==========
 
 LilacBlock::LilacBlock(const BlockProperties& properties)

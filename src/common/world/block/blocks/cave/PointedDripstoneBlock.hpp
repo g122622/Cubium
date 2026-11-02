@@ -72,6 +72,11 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 按位置返回形状：本类带 `offsetType`，原版在 `getShape` 里叠加了位置偏移。
+     */
+    [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override

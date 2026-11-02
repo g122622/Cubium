@@ -31,9 +31,11 @@
 namespace mc {
 namespace blocks {
 
-DryVegetationBlock::DryVegetationBlock(const BlockProperties& properties)
+DryVegetationBlock::DryVegetationBlock(const BlockProperties& properties, const CollisionShape& shape)
     : BushBlock(properties)
-{}
+{
+    m_shape = shape;
+}
 
 bool DryVegetationBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {

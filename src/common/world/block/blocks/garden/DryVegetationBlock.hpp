@@ -43,9 +43,14 @@ class DryVegetationBlock : public BushBlock {
 public:
     /**
      * @brief 构造函数
+     *
+     * 干草两种高度的形状不同：矮干草是 `column(12, 0, 10)`，高干草是 `column(14, 0, 16)`，
+     * 因此由调用方传入形状，而不是在构造函数里写死。
+     *
      * @param properties 方块属性
+     * @param shape 该方块的形状
      */
-    explicit DryVegetationBlock(const BlockProperties& properties);
+    DryVegetationBlock(const BlockProperties& properties, const CollisionShape& shape);
 
     ~DryVegetationBlock() noexcept override = default;
 

@@ -232,7 +232,9 @@ void registerNaturalBlocks()
     // 可被岩浆点燃（对齐 vanilla dead_bush）
     NaturalBlocks::DEAD_BUSH =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:dead_bush"),
-            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava());
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava(),
+            // 原版 DryVegetationBlock.SHAPE = column(12.0, 0.0, 13.0) -> box(2, 0, 2, 14, 13, 14)
+            CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.8125f, 0.875f));
 
     // 睡莲 - 水生植物，下方须为水/冰且上方无流体。新建 WaterlilyBlock 走 canSurvive 闸门，
     // 修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
