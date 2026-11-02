@@ -76,16 +76,25 @@ const CollisionShape& _piglinSkullShape()
 /// 构造墙壁头颅的形状表（按 North/South/West/East 顺序，占据靠墙一侧 8/16 深度）
 void _buildWallShapes(CollisionShape out[4], f32 widthPixels)
 {
-    // vanilla WallSkullBlock: Shapes.rotateHorizontal(Block.boxZ(8.0, 8.0, 16.0))
-    //   boxZ(8.0, 8.0, 16.0) 表示 X 宽 8 居中、Y[8,16]、Z[0,8]
-    // 本项目 CollisionShape 用方块本地 0-1 坐标，故 /16。
+    // 原版墙壁头颅形状（实测 forAllBoxes）：
+    //
+    //   北向: box(0.25, 0.25, 0.5 -> 0.75, 0.75, 1.0)
+    //
+    // 即宽度居中、**Y 也居中**（4..12 像素）、深度占据靠墙一侧的一半。墙上的头颅朝向
+    // 与站立时一致，无需旋转 Y。
+    //
+    // 此前 Y 范围写成 8..16 像素（贴顶），头颅比原版高出一半的位置。
     const f32 half = widthPixels / 2.0f / 16.0f;
     const f32 cx = 0.5f;
-    // North: Z 靠 0 侧（贴北墙）；South: Z 靠 1 侧；West: X 靠 0 侧；East: X 靠 1 侧
-    out[0] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.0f, cx + half, 1.0f, 0.5f); // North
-    out[1] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.5f, cx + half, 1.0f, 1.0f); // South
-    out[2] = CollisionShape::box(0.0f, 8.0f / 16.0f, cx - half, 0.5f, 1.0f, cx + half); // West
-    out[3] = CollisionShape::box(0.5f, 8.0f / 16.0f, cx - half, 1.0f, 1.0f, cx + half); // East
+    constexpr f32 yMin = 4.0f / 16.0f;
+    constexpr f32 yMax = 12.0f / 16.0f;
+    // 朝向与占据侧的对应（依据原版实测）：
+    //   北向 -> Z 靠 1 侧；南向 -> Z 靠 0 侧；西向 -> X 靠 1 侧；东向 -> X 靠 0 侧
+    // 头颅的「面朝」方向与它贴附的墙面相反，因此占据的是远离 FACING 的那一半。
+    out[0] = CollisionShape::box(cx - half, yMin, 0.5f, cx + half, yMax, 1.0f); // North
+    out[1] = CollisionShape::box(cx - half, yMin, 0.0f, cx + half, yMax, 0.5f); // South
+    out[2] = CollisionShape::box(0.5f, yMin, cx - half, 1.0f, yMax, cx + half); // West
+    out[3] = CollisionShape::box(0.0f, yMin, cx - half, 0.5f, yMax, cx + half); // East
 }
 
 /// 方向到形状表下标（水平方向）

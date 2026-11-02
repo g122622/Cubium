@@ -353,7 +353,10 @@ void registerNaturalBlocks()
     // 把墙面头颅也注册成了无遮挡。
     const BlockProperties skullProps =
         BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid().noOcclusion();
-    const BlockProperties wallSkullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
+    // 墙壁头颅有碰撞箱（与原版一致）：Material::DECORATION 默认 blocksMovement 为 false，
+    // 必须显式 withCollision()。
+    const BlockProperties wallSkullProps =
+        BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid();
 
     NaturalBlocks::SKELETON_SKULL = &registry.registerBlock<blocks::SkullBlock>(
         ResourceLocation("minecraft:skeleton_skull"), blocks::SkullType::Skeleton, skullProps);

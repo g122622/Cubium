@@ -591,6 +591,47 @@ Cubium 写的是 `0.4375..0.5625`（宽 **2** 像素），原版是 `0.375..0.62
 **猜测**输入是像素还是归一化坐标，容易踩坑。
 
 修复后 12 处全部消除。
+## 继续用 `forAllBoxes` 收敛（110 → 95）
+
+### 铜链横截面宽了 1 像素（8 处）
+
+原版 `copper_chain` 是 `box(0.4063, 0, 0.4063 -> 0.5938, 1, 0.5938)`，即 `column(3.0, 0.0, 16.0)`
+——宽 **3** 像素（6.5..9.5）。Cubium 写的是 `6..10`（宽 **4** 像素）。三个轴向的形状都改了。
+
+### 墙壁头颅：Y 居中而非贴顶（8 处）
+
+原版 `creeper_wall_head`（北向）：
+
+```
+box(0.25, 0.25, 0.5 -> 0.75, 0.75, 1.0)
+```
+
+Y 是 `0.25..0.75`（4..12 像素，**居中**），Cubium 写的是 `8..16`（`0.5..1.0`，贴顶）。
+代码注释里写的 `boxZ(8.0, 8.0, 16.0)` 是错的，实测是 4..12。
+
+同时 North/South 的贴墙侧也是反的：**北向占据 Z 靠 1 侧**，而非靠 0 侧。
+
+### `piglin_head` 的 Z 宽度（1 处）
+
+原版 `box(0.1875, 0, 0.1875 -> 0.8125, 0.5, 0.8125)`，X 与 Z 都是 10 像素。
+Cubium 写成 `3..13, 0..8, 4..12`（X 宽 10、Z 深 8）。
+
+### `wallSkullProps` 漏了碰撞（7 处）
+
+```cpp
+// ❌ 无 withCollision
+const BlockProperties wallSkullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
+// ✅
+const BlockProperties wallSkullProps =
+    BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid();
+```
+
+`Material::DECORATION` 的 `blocksMovement()` 为 false，`BlockProperties` 会据此把 `m_hasCollision`
+初始化成 false，因此**必须显式补 `withCollision()`**。
+
+这是本能力里反复出现的同一类问题（此前 `skullProps`、`flowerProps` 都踩过）：
+**`Material` 的物理属性会决定默认碰撞状态**，改用 `DECORATION` / `PLANT` / `CAKE` 这类材质时，
+若方块实际有碰撞，一定要显式声明。
 ## 与其它能力的关系
 
 | 能力 | 关系 |
