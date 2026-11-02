@@ -19,7 +19,8 @@
 | 补全 `CombineOp::AND` / `NOT`，对齐 3 个炼药锅类 | 189 |
 | 旗帜补 `noCollision()`（支撑形状应为空）| 141 |
 | 悬挂告示牌补 `getBlockSupportShape` 覆写 + 修正形状 | 129 |
-| 蜡烛补 `withCollision()`（支撑形状应非空）| **95** |
+| 蜡烛补 `withCollision()`（支撑形状应非空）| 95 |
+| 吊挂告示牌按 `rotation` 区分形状 | **83** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -575,6 +576,89 @@ BlockProperties(Material::CAKE).withCollision()
 > **教训**：Cubium 的 `m_hasCollision` 有两个来源——Material 派生与显式 `withCollision()`/
 > `noCollision()`。判断某个方块应当有/无碰撞时，必须同时看 Material 的 `solid` 与显式设置，
 > 只看一侧会得出错误结论。
+## 吊挂告示牌：按 rotation 区分形状（95 → 83）
+
+### 缺陷
+
+`oak_hanging_sign` 等 12 个变体，全部是 `UP|CENTER`：**原版 false、Cubium true**。
+
+### 根因：原版形状随 rotation 变化，Cubium 恒定
+
+原版 `CeilingHangingSignBlock`：
+
+```java
+SHAPE_DEFAULT = Block.column(10.0, 0.0, 16.0);
+SHAPES        = Shapes.rotateHorizontal(Block.column(14.0, 2.0, 0.0, 10.0))...;
+getShape(...) { return SHAPES.getOrDefault(state.getValue(ROTATION), SHAPE_DEFAULT); }
+```
+
+`rotateHorizontal` 只产生 8 个**旋转段**（每个 22.5°），映射到 `rotation` 值后，
+只有 0/8 与 4/12 落在表内，其余 12 个走 `SHAPE_DEFAULT`。
+
+实测原版 16 个 rotation 的支撑形状：
+
+| rotation | 形状 | 来源 |
+|---|---|---|
+| 0, 8 | `box(1,0,7,15,10,9)` 长边沿 X，**Y 只到 10** | `SHAPES` |
+| 4, 12 | `box(7,0,1,9,10,15)` 长边沿 Z，**Y 只到 10** | `SHAPES` |
+| 其余 12 个 | `box(3,0,3,13,16,13)` **Y 到 16** | `SHAPE_DEFAULT` |
+
+Cubium 此前恒定返回 `box(0.25,0,0.25,0.75,1,0.75)`（即 `box(4,0,4,12,16,12)`），
+**三种都不匹配**：X/Z 范围比 `SHAPE_DEFAULT` 窄，Y 范围又比 `SHAPES` 高。
+
+**Y 范围（10 vs 16）的差异直接影响 `UP|CENTER`**：面切片取的 VoxelShape 不同，
+中心柱是否被覆盖的结论就不同。
+
+已改为按 rotation 查表的 `m_shapesByRotation` + `m_defaultShape`，12 处差异全部消除。
+
+## 未收敛：墙面悬挂告示牌的切片网格（12 处）
+
+`*_wall_hanging_sign` 仍剩 12 处。这一块的难点**不是形状外轮廓，而是离散网格的细分**。
+
+### 外轮廓已经查清
+
+```java
+getBlockSupportShape(...) { return this.getShape(state, level, pos, CollisionContext.empty()); }
+```
+
+实测原版（`getShape` 与支撑形状相同）：
+
+| FACING | 外轮廓 |
+|---|---|
+| NORTH / SOUTH | `box(0, 0, 6, 16, 16, 10)` X 满宽、Z 居中 2 像素、**Y 满高** |
+| EAST / WEST | `box(6, 0, 0, 10, 16, 16)` Z 满宽、X 居中 2 像素、**Y 满高** |
+
+### 但网格不是 2 个坐标
+
+原版形状来自 `Shapes.rotateHorizontalAxis(or(SHAPES_PLANK.get(Axis.Z), column(14.0, 2.0, 0.0, 10.0)))`，
+合并后的坐标列表被细分：
+
+```
+EAST 朝向  X = [0, 0.125, 0.25, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.75, 0.875, 1]
+           Z = [0, 0.0625, 0.9375, 1]
+```
+
+于是 `getFaceShape(EAST)` 取到的切片落在**没有体素的格子**里，返回空形状，
+原版的 `EAST|CENTER` 因此是 false。
+
+Cubium 用 `fromPixelBox(6,0,0,10,16,16)` 只有 2 个坐标，切片非空，误判为 true。
+
+### 尝试过的两条路（都不对）
+
+1. **按 `Block.column` 参数直接代入像素坐标**推出「横板 + 中心立柱」——
+   与实测外轮廓完全不符。`rotateHorizontalAxis` 的结果**不能**这样推断。
+2. **改用实测外轮廓的 2 坐标盒子**——外轮廓对了，但网格太粗，
+   `EAST|WEST|CENTER` 从 false 变 true，差异从 12 升到 24。
+
+本轮已回退到路径 1 的状态（保留 12 处差异），并把外轮廓与网格数据记入本文档。
+
+### 下一步
+
+需要复刻原版的**组合与网格细分**：先 `or(横板, 中心立柱)` 得到细分网格，再按
+axis 旋转。Cubium 的 `CollisionShape::combine(OR)` 会保留两盒的坐标并集，
+方向应当一致，只是需要喂入与原版相同的两个分量盒。
+
+`TODO` 已写入 `HangingSignBlock.cpp` 的相关位置。
 ## 与其它能力的关系
 
 | 能力 | 关系 |
