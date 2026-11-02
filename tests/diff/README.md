@@ -493,7 +493,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `boolean_property_index` | 原版 jar `BooleanPropertyIndexOracle` | 50 个布尔属性 × 7 单元 | 250 处差异（**已溯源，判定无害**）| Cubium 的 `allowedValues()` 是 `{false,true}`，原版是 `[true,false]`；网络层按状态名映射，不泄漏 |
 | `enum_property_order` | 原版 jar `EnumPropertyOrderOracle` | FACING × 2 属性共 36 单元 | 全一致，**修复 2 处缺陷** | `FACING`/`HORIZONTAL_FACING` 值顺序错，调试棒行为与 Java 版不符 |
 | `enum_property_order_all` | 原版 jar `EnumPropertyOrderAllOracle` | 全部 40 个枚举属性 × 3 单元 | 全一致，**修复 3 处缺陷** | `SLAB_TYPE`/`VERTICAL_DIRECTION`/`SIDE_CHAIN_PART` 顺序错，调试棒循环方向相反 |
-| `face_sturdy` | 原版 jar `FaceSturdyOracle` | 1166 方块 × 6 方向 × 3 类型 = 20988 | **部分通过**：625 → 141 处差异 | 已修 12 处方块形状缺陷；剩余主因是 `CollisionShape` 只能存轴对齐盒并集，无法表达带空洞拓扑（见下文）|
+| `face_sturdy` | 原版 jar `FaceSturdyOracle` | 1166 方块 × 6 方向 × 3 类型 = 20988 | **部分通过**：625 → 129 处差异 | 已修 12 处方块形状缺陷；剩余主因是 `CollisionShape` 只能存轴对齐盒并集，无法表达带空洞拓扑（见下文）|
 | `world_border` | 原版 jar `WorldBorderOracle` | 5 配置 × (1 extent + 10 block + 6 aabb) = 85 | 全部一致，**修复 3 处缺陷** | `setSize` 钳制、`contains` 下界开闭、`BlockPos` 重载多查 +1（见下文）|
 | `easing_type` | 原版 jar `EasingTypeOracle` | 32 种缓动 × 9 采样点 = 288 | 275 一致、13 处 1 ulp 差异 | **修复 3 处**（elastic 误用 `mthSin`）；剩余为 `-ffast-math` 的 FMA 收缩（见下文）|
 | `mth_interpolation` | 原版 jar `MthInterpolationOracle` | catmullrom 5 + smoothstep 7 = 12 | 全部一致 | Cubium 缺 `catmullrom`/`lerp2`，`smoothstep` 三参数版与 `Mth` 单参数版语义不同（见下文）|

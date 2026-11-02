@@ -17,7 +17,8 @@
 | 修复 `piston_head` / `enchanting_table` | 255 |
 | 修复 `moving_piston` / `azalea` 系列 | 249 |
 | 补全 `CombineOp::AND` / `NOT`，对齐 3 个炼药锅类 | 189 |
-| 旗帜补 `noCollision()`（支撑形状应为空）| **141** |
+| 旗帜补 `noCollision()`（支撑形状应为空）| 141 |
+| 悬挂告示牌补 `getBlockSupportShape` 覆写 + 修正形状 | **129** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
