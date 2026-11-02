@@ -1,0 +1,173 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+package dev.horizonlab.diff;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+
+/**
+ * 方块三种形状（外形 / 碰撞 / 支撑）的原版 oracle。
+ *
+ * <pre>
+ *   java dev.horizonlab.diff.BlockShapeOracle list &lt;units.txt&gt; | run &lt;input.jsonl&gt; &lt;output.jsonl&gt;
+ * </pre>
+ *
+ * <p>三种形状各自独立取样，用固定顺序拼成扁平字符串，便于逐字节比对。
+ */
+public final class BlockShapeOracle {
+    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+
+    private BlockShapeOracle() {}
+
+    /**
+     * 最小只读 {@code BlockGetter}：所有查询返回「无」。
+     *
+     * 形状计算大多不访问世界；少数会调 {@code getBlockEntity} / {@code getFluidState}，
+     * 给它一个恒空的实现比传 {@code null} 安全。
+     */
+    private static final BlockGetter EMPTY_LEVEL = new BlockGetter() {
+        @Override
+        public BlockEntity getBlockEntity(BlockPos pos) {
+            return null;
+        }
+
+        @Override
+        public BlockState getBlockState(BlockPos pos) {
+            return Blocks.AIR.defaultBlockState();
+        }
+
+        @Override
+        public FluidState getFluidState(BlockPos pos) {
+            return Fluids.EMPTY.defaultFluidState();
+        }
+
+        @Override
+        public int getMinY() {
+            return 0;
+        }
+
+        @Override
+        public int getHeight() {
+            return 1;
+        }
+    };
+
+    /** 与探针侧 {@code describe} 保持完全相同的格式：逐盒输出坐标。 */
+    private static String describe(VoxelShape shape) {
+        if (shape.isEmpty()) {
+            return "EMPTY";
+        }
+        List<AABB> boxes = new ArrayList<>();
+        shape.forAllBoxes((x1, y1, z1, x2, y2, z2) -> boxes.add(new AABB(x1, y1, z1, x2, y2, z2)));
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < boxes.size(); i++) {
+            if (i != 0) {
+                out.append(';');
+            }
+            AABB b = boxes.get(i);
+            out.append(String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f",
+                b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ));
+        }
+        return out.toString();
+    }
+
+    /** 形状盒子。 */
+    private record AABB(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {}
+
+    public static void main(String[] args) throws IOException {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        if (args.length == 2 && args[0].equals("list")) {
+            List<String> names = new ArrayList<>();
+            for (Block block : BuiltInRegistries.BLOCK) {
+                names.add(BuiltInRegistries.BLOCK.getKey(block).toString());
+            }
+            Collections.sort(names);
+            StringBuilder text = new StringBuilder();
+            for (String name : names) {
+                text.append(name).append('\n');
+            }
+            Files.writeString(Path.of(args[1]), text, StandardCharsets.UTF_8);
+            return;
+        }
+        if (args.length == 3 && args[0].equals("run")) {
+            run(Path.of(args[1]), Path.of(args[2]));
+            return;
+        }
+        System.err.println("usage: BlockShapeOracle list <units.txt> | run <input.jsonl> <output.jsonl>");
+        System.exit(2);
+    }
+
+    private static void run(Path input, Path output) throws IOException {
+        StringBuilder text = new StringBuilder();
+        for (String line : Files.readAllLines(input, StandardCharsets.UTF_8)) {
+            if (line.isBlank()) {
+                continue;
+            }
+            String name = JsonParser.parseString(line).getAsJsonObject().get("unit").getAsString();
+            Block block = BuiltInRegistries.BLOCK.get(Identifier.parse(name)).map(h -> h.value()).orElse(null);
+            if (block == null) {
+                throw new IllegalStateException("BlockShapeOracle: unknown block " + name);
+            }
+            BlockState state = block.defaultBlockState();
+
+            // 部分方块的形状实现会查询 BlockGetter（如 getBlockEntity），传 null 会崩溃。
+            // 用最小只读实现代替：所有查询都返回 null / 空气。
+            String result = "shape=" + describe(state.getShape(EMPTY_LEVEL, BlockPos.ZERO))
+                + "|collision=" + describe(state.getCollisionShape(EMPTY_LEVEL, BlockPos.ZERO, CollisionContext.empty()))
+                + "|support=" + describe(state.getBlockSupportShape(EMPTY_LEVEL, BlockPos.ZERO));
+
+            JsonObject row = new JsonObject();
+            row.addProperty("result", result);
+            row.addProperty("unit", name);
+            text.append(GSON.toJson(row)).append('\n');
+        }
+        Files.writeString(output, text, StandardCharsets.UTF_8);
+    }
+}
