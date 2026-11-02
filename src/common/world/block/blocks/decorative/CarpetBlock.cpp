@@ -47,9 +47,16 @@ const CollisionShape& CarpetBlock::getShape(const BlockState& state) const
 const CollisionShape& CarpetBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // 地毯没有碰撞箱（可以穿过）
-    static CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
+    // 对齐原版：CarpetBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape 的结果
+    // （`Block.column(16.0, 0.0, 1.0)`，即 1/16 厚的完整薄片）。
+    //
+    // 此前这里返回空形状，注释理由是「地毯没有碰撞箱（可以穿过）」——**这是错的**：
+    // 玩家能站在地毯上，它只是比完整方块矮。
+    //
+    // 连带后果：`Block::getBlockSupportShape` 默认返回 `getCollisionShape`，于是地毯的
+    // 支撑形状也变成空，`isFaceSturdy` 对地毯的任何面都判 false，导致
+    // 「地毯上能否放火把/灯笼」等一切判定都错。由差分能力 face_sturdy 查出。
+    return m_shape;
 }
 
 bool CarpetBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

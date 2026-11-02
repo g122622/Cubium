@@ -72,11 +72,14 @@ LavaCauldronBlock::LavaCauldronBlock(const BlockProperties& properties)
     // 炼药锅外部形状（与普通炼药锅完全相同）：
     // 底部: (0, 0, 0) -> (16, 3, 16)
     // 四面墙壁: 2像素厚，内部12x12空间
-    CollisionShape base = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 3.0f / 16.0f, 1.0f);
-    CollisionShape northWall = VoxelShapes::cube(0.0f, 3.0f / 16.0f, 0.0f, 1.0f, 1.0f, 2.0f / 16.0f);
-    CollisionShape southWall = VoxelShapes::cube(0.0f, 3.0f / 16.0f, 14.0f / 16.0f, 1.0f, 1.0f, 1.0f);
-    CollisionShape westWall = VoxelShapes::cube(0.0f, 3.0f / 16.0f, 2.0f / 16.0f, 2.0f / 16.0f, 1.0f, 14.0f / 16.0f);
-    CollisionShape eastWall = VoxelShapes::cube(14.0f / 16.0f, 3.0f / 16.0f, 2.0f / 16.0f, 1.0f, 1.0f, 14.0f / 16.0f);
+    // 对齐原版 `Shapes.join(Shapes.block(), Block.column(12.0, 4.0, 16.0), ONLY_FIRST)`：
+    // 实心部分 = 铺满到 4/16 的底座 + 从 4/16 起的四壁（此前底座写成 3/16，纵向差 1 像素）。
+    const f32 innerBottom = 4.0f / 16.0f;
+    CollisionShape base = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, innerBottom, 1.0f);
+    CollisionShape northWall = VoxelShapes::cube(0.0f, innerBottom, 0.0f, 1.0f, 1.0f, 2.0f / 16.0f);
+    CollisionShape southWall = VoxelShapes::cube(0.0f, innerBottom, 14.0f / 16.0f, 1.0f, 1.0f, 1.0f);
+    CollisionShape westWall = VoxelShapes::cube(0.0f, innerBottom, 2.0f / 16.0f, 2.0f / 16.0f, 1.0f, 14.0f / 16.0f);
+    CollisionShape eastWall = VoxelShapes::cube(14.0f / 16.0f, innerBottom, 2.0f / 16.0f, 1.0f, 1.0f, 14.0f / 16.0f);
 
     m_outerShape = CollisionShape::combine(base, northWall, CollisionShape::CombineOp::OR);
     m_outerShape = CollisionShape::combine(m_outerShape, southWall, CollisionShape::CombineOp::OR);

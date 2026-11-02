@@ -216,6 +216,26 @@ public:
     }
 
     /**
+     * @brief 恢复碰撞（覆盖由材质推导出的默认值）
+     *
+     * 材质（`Material`）会给出一个默认的碰撞开关，例如 `Material::PLANT` 经
+     * `makePlantMaterial()` 的 `.solid(false)` 推导出「无碰撞」。
+     *
+     * 但**材质不等于形状**：有些方块借用植物材质只是为了挖掘手感与可燃性，自身却是
+     * 完整的实心方块。典型例子是干海带块（`minecraft:dried_kelp_block`）——原版把它注册成
+     * 普通 `Block`，是完整方块，玩家能站上去；Cubium 却因为套用了植物材质而没有碰撞箱，
+     * 玩家会直接穿过去。由差分能力 `face_sturdy` 查出。
+     *
+     * 注意：这里**只恢复碰撞**，不改 `m_canOcclude`——遮挡与否由 `noOcclusion()` /
+     * `noCollision()` 显式控制，两者是独立的开关。
+     */
+    BlockProperties& withCollision() noexcept
+    {
+        m_hasCollision = true;
+        return *this;
+    }
+
+    /**
      * @brief 设置非固体
      */
     BlockProperties& notSolid() noexcept

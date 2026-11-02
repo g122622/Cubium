@@ -11,10 +11,19 @@
 | 初次运行 | **625** |
 | 修复 `LeavesBlock` | 427 |
 | 修复 `HoneyBlock` | 421 |
-| 修复 `FenceGateBlock` | **397** |
+| 修复 `FenceGateBlock` | 397 |
+| 修复 `CarpetBlock` / `LadderBlock` / `NetherWartBlock` | 344 |
+| 修复 `dried_kelp_block` / `ender_chest` / `daylight_detector` | 270 |
+| 修复 `piston_head` / `enchanting_table` | 255 |
+| 修复 `moving_piston` / `azalea` 系列 | **249** |
 
-仍有 81 个方块受影响——**本能力目前是「部分通过」状态**，剩余差异的主因是
-`VoxelShape` 的归一化缺口（见下文）。
+> **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
+> 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
+> 详见下方「地毯/梯子/下界疣：碰撞形状被错误设成空」。
+
+仍有 81 个方块受影响——**本能力目前是「部分通过」状态**。
+其中 `CarpetBlock` / `LadderBlock` / `NetherWartBlock` 的空碰撞形状已修复，
+剩余差异见下方「尚未修复」。
 
 ## 测的是什么
 
@@ -143,7 +152,107 @@ m_collisionShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f,
 
 效果：减少 **6 处差异**（蜂蜜块的 6 个方向判定全部纠正）。
 
-## 尚未修复：剩余 421 处差异
+## 地毯 / 梯子 / 下界疣：碰撞形状被错误设成空
+
+**这是本轮最有价值的发现，也推翻了本文档早先的一个错误判断。**
+
+### 症状
+
+地毯的 51 处差异（17 种地毯 × 3 种 SupportType）：
+
+```
+minecraft:black_carpet|DOWN|FULL:   原版=[true]  Cubium=[false]
+minecraft:black_carpet|DOWN|CENTER: 原版=[true]  Cubium=[false]
+minecraft:black_carpet|DOWN|RIGID:  原版=[true]  Cubium=[false]
+```
+
+### 排查过程
+
+第一步：比较形状定义，发现**两边完全一致**（`(0,0,0)-(1,1/16,1)`），于是怀疑
+是 `VoxelShape` 的坐标归一化（`VoxelShape.cpp:66` 的 TODO）导致 `getFaceShape` 切错层。
+
+第二步：写 Java 诊断程序，打印原版实际坐标集：
+
+```
+carpet.support = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 0.0625, 1.0]]
+   x=[0.0, 1.0] y=[0.0, 0.0625] z=[0.0, 1.0]
+faceShape(DOWN) = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]]
+isFaceFull(DOWN) = true
+```
+
+原版每个轴**只有 2 个坐标点**（`[min, max]`），因此 `isCubeLikeAlong` 判定为真、
+`getFaceShape` 直接返回自身。而 `findBits` 的循环上限是 `i <= 3`（最多 8 分格），
+`1/16 × 8 = 0.5` 不是整数，所以**返回 -1，走 `ArrayVoxelShape` 分支**，坐标集正是 `[min, max]`。
+
+第三步：写 C++ 诊断分支，打印 Cubium 侧的实际坐标点数：
+
+```
+minecraft:black_carpet|DOWN|DIAG -> counts:1,1,1 empty=T full=F boxes=0
+minecraft:stone|DOWN|DIAG        -> counts:2,2,2 empty=F full=T boxes=1
+```
+
+**地毯的支撑形状是 `empty`（空形状），只有 1 个坐标点。** 这与归一化无关——
+空形状根本没有几何体。
+
+### 根因
+
+```cpp
+// src/common/world/block/blocks/decorative/CarpetBlock.cpp（修复前）
+const CollisionShape& CarpetBlock::getCollisionShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 地毯没有碰撞箱（可以穿过）      ← 注释是错的
+    static CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
+}
+```
+
+原版 `CarpetBlock` **只覆写 `getShape`，不覆写 `getCollisionShape`**，因此碰撞形状等于
+`SHAPE = Block.column(16.0, 0.0, 1.0)`——**1/16 厚的完整薄片**。玩家能站在地毯上。
+
+Cubium 额外覆写并返回空，注释理由「地毯没有碰撞箱（可以穿过）」与事实不符。
+
+**连带后果**：`Block::getBlockSupportShape` 的默认实现转调 `getCollisionShape`，于是地毯的
+支撑形状也变成空，`isFaceSturdy` 对地毯的任何面都判 false。
+
+### 同类缺陷还有两个
+
+| 方块 | Cubium（修复前）| 原版 | 本能力差异 |
+|---|---|---|---|
+| `CarpetBlock` | 返回空 | 不覆写（=getShape）| 51 处 |
+| `LadderBlock` | 返回空，注释「梯子没有碰撞箱」| 不覆写（=getShape）| 3 处 |
+| `NetherWartBlock` | 返回空 | 不覆写（=getShape）| 0 处（形状极小，两种判定恰好都是 false）|
+
+`NetherWartBlock` 虽然没被本能力的默认状态用例检出，但语义同样是错的，一并修复。
+
+**梯子的碰撞箱虽薄但确实存在**——玩家撞上去会被挡住，只是能贴着它攀爬。
+「可以攀爬」不等于「没有碰撞」。
+
+### 如何避免同类错误
+
+判断某个方块在 Cubium 里是否应当返回空碰撞形状时，**不能凭直觉**，要回到原版源码确认：
+
+```
+grep "protected VoxelShape getCollisionShape" <Block>.java
+```
+
+- **有覆写** → 按原版分支实现；
+- **无覆写** → 碰撞形状 = `getShape` 的结果，**永远不要返回空**（除非 `getShape` 本身为空，
+  例如打开状态的活板门）。
+
+## 修正：早期对「归一化缺口」的误判
+
+本文档早期版本曾判断剩余差异的主因是 `VoxelShape` 的坐标归一化。**那个判断是错的。**
+
+误判的来源是把 `fence_gate` 的现象当成了通例：它的支撑形状 `y` 上界确实超出方块顶部
+（`24/16`），看起来像归一化问题。但对地毯做定量诊断后发现，**差异方块里绝大多数根本
+不是坐标精度问题，而是整个形状为空**。
+
+教训：**「看起来像某个已知缺口」不等于「就是那个缺口」。** 应当先写最小诊断、打印实际
+中间值（这里就是一个坐标点数 `1,1,1` vs `2,2,2`），再下结论。
+
+`VoxelShape` 的归一化缺口确实存在（`VoxelShape.cpp:66` 的 TODO），但它影响的是
+**非空形状的切片精度**，与「形状为空」是两回事。
 
 仍有 **80 个方块**受影响。差异分布：
 
@@ -193,48 +302,113 @@ private static final Map<Direction.Axis, VoxelShape> SHAPE_SUPPORT =
 
 修复后减少 **24 处差异**（421 → 397）。
 
-**二、剩余差异的绝大多数指向 `VoxelShape` 的归一化缺口，不是各自的方块实现错误。**
+**二、剩余 344 处差异**：
 
-`src/common/physics/shape/VoxelShape.cpp:66` 有一段已记录的 TODO：
-
-```
-TODO: 这里按 `i / size` **均匀分布**，与原版的坐标压缩方式不同。原版
-`VoxelShape` 的坐标集取「形状实际用到的边界 + padding」，例如箱子
-`column(14,0,14)` 的 Y 坐标集是 [0, 0.875, 1.0]（尺寸 2），而这里会生成
-14 层 [0, 1/14, ..., 1]。层数不同会让 `findIndex` 返回不同的索引，
-进而使 `getFaceShape` 切到不同的层——凡是用 `SupportType.CENTER`
-（`Block.column(2.0, 0.0, 10.0)`）判定「中心一小块是否被覆盖」的地方，
-结论都会不同。
-
-改成「实际边界 + padding」是 VoxelShape 的根基改动，会波及光照遮挡、
-形状布尔运算等所有使用方，需要独立评估与全量回归。
-```
-
-剩余 397 处差异分布：`FULL=38`、`CENTER=124`、`RIGID=38`。
-
-**`CENTER` 占 62%**，与上面的描述完全吻合——`SupportType.CENTER` 正是最依赖
-`getFaceShape` 切片精度的判定。
-
-已在几个方向上验证这是共同根因而非各自的形状定义错误：
-
-| 方块 | 现象 | 判定 |
-|---|---|---|
-| `black_carpet` | `DOWN\|FULL` 原版 true，Cubium false | 地毯形状两侧一致（`(0,0,0)-(1,1/16,1)`），底面几何上完整覆盖 1×1——**形状定义正确，是 `getFaceShape` 切薄片失准** |
-| `cauldron` | 四个侧面 `FULL` 原版 false，Cubium true | 炼药锅是底座 + 四壁的**并集**，两侧都用相同的分块定义——差异来自形状布尔运算后的面投影 |
-| `fence_gate` | `UP\|CENTER` 原版 true，Cubium false（7 处） | 支撑形状 `y` 上界是 `24/16`（**超出方块顶部**），归一化后 `y` 被压到 `[0,1]`，面投影退化 |
-
-**这三类都指向同一个底层缺口，而不是三个独立的方块 bug。**
+| `SupportType` | 差异数 |
+|---|---|
+| `CENTER` | 136 |
+| `FULL` | 32 |
+| `RIGID` | 32 |
 
 ### 下一步方向
 
-1. **优先**：评估 `VoxelShape` 改为「实际边界 + padding」坐标系的影响面
-   （光照遮挡、`shapes_boolean`、`collide_sweep` 都依赖它），这是剩余 397 处差异的主因；
+1. 继续用「打印实际中间值」的方式定位剩余差异（本轮正是靠坐标点数 `1,1,1` vs `2,2,2`
+   才找到空形状这个真因）；
 2. 补齐 `ShulkerBoxBlock` / `CeilingHangingSignBlock` / `WallHangingSignBlock` 的
    `getBlockSupportShape`；
 3. 定位 `SnowLayerBlock` 的 Cubium 实现（当前按文件名找不到）。
 
 **本能力维持「部分通过」状态是有意的**——它已经把根因从「625 处差异」收敛到
-「**1 个架构缺口 + 4 个缺失覆写**」，后续修复有明确方向。
+「**4 处空形状/缺失覆写 + 1 个待确认的形状精度缺口**」，后续修复有明确方向。
+
+## 后续批次修复（344 → 249）
+
+| 方块 | 问题 | 差异 |
+|---|---|---|
+| `dried_kelp_block` | `Material::PLANT` 推导出「无碰撞」，形状整个为空 | 18 |
+| `ender_chest` | 碰撞箱横向满宽（应为 14×14×14）| 17 |
+| `daylight_detector` | **完全无形状定义**（应为 16×6×16 薄板）| 15 |
+| `moving_piston` | 静态形状应为空（移动中无稳定形状）| 18 |
+| `piston_head` | **完全无形状定义**（平台 + 推杆，长杆到 20/16）| 15 |
+| `enchanting_table` | 两层拼合，与原文实心矮块完全不符 | 6 |
+| `azalea` / `flowering_azalea` | 同干海带块，材质短路了自定义形状 | 8 |
+
+### 关键教训：`Material` 不等于形状
+
+```cpp
+// BlockProperties 的构造
+m_hasCollision(material.blocksMovement())
+// Material::PLANT → makePlantMaterial().solid(false) → blocksMovement() == false
+```
+
+干海带块与杜鹃花借用植物材质**只为挖掘手感与可燃性**，自身却是实心方块：
+
+- 干海带块在原版注册成普通 `Block`，玩家能站上去；
+- 杜鹃花有上半叶 + 细杆的实际碰撞箱。
+
+但材质推导出的「无碰撞」会把 `m_hasCollision` 置为 false，`Block::getCollisionShape` 于是
+直接返回空——**连方块自己 `getShape` 定义的形状也会被整个短路**。
+
+为此新增 `BlockProperties::withCollision()` 显式覆盖材质推导值。
+
+### 教训：诊断必须打印实际中间值
+
+本轮所有定位都靠临时 `DIAG` 分支输出，而不是靠阅读代码猜测：
+
+```
+minecraft:dried_kelp_block|DOWN|DIAG -> col:empty sup:empty          ← 形状为空
+minecraft:cauldron|DOWN|DIAG          -> supBoxes=5 voxCoordsY=5     ← 坐标集偏少
+minecraft:stone|DOWN|DIAG             -> col:full sup:full          ← 正常
+```
+
+上一轮之所以误判成「归一化缺口」，就是因为只读代码没有打印实际值。
+
+## 剩余 249 处：炼药锅系列与 `CollisionShape` 的表达能力上限
+
+剩余差异中最大的一类是炼药锅：`cauldron` 15 + `lava_cauldron` 15 +
+`powder_snow_cauldron` 15 = **45 处**，占剩余量的绝大部分。
+
+### 原版的构造方式
+
+```java
+private static final VoxelShape SHAPE_INSIDE = Block.column(12.0, 4.0, 16.0);
+protected static final VoxelShape SHAPE =
+    Shapes.join(Shapes.block(), SHAPE_INSIDE, BooleanOp.ONLY_FIRST);   // 完整方块减去空腔
+```
+
+### 为什么 5 个盒子拼不出等价形状
+
+直觉上「完整方块减去中心空腔」= 底座 + 四壁，5 个盒子就够了。但把原版形状
+`toAabbs()` 打印出来，得到的是 **15 个盒子**：
+
+```
+AABB[0.0, 0.0, 0.0] -> [0.125, 1.0, 0.25]
+AABB[0.0, 0.0, 0.75] -> [0.125, 1.0, 1.0]
+...
+AABB[0.0, 0.1875, 0.25] -> [1.0, 0.25, 0.75]     ← 注意 0.1875
+...
+```
+
+原因是**离散网格把边界切碎了**：`Shapes.join` 会合并两个形状的坐标集，
+`column(12,4,16)` 的 y 坐标是 `[0, 0.25, 0.5, 0.75, 1.0]`，与 `block` 的 `[0, 1]` 合并后
+生成 `[0, 0.1875, 0.25, 0.5, 0.75, 1.0]`——多出一个 `0.1875`。
+
+而 `isFaceFull` 判的是**离散格子是否全填满**（原版 `isShapeFullBlock` → `isFullWide`），
+不是 AABB 覆盖。网格切分不同，判定结果就不同。
+
+### 无法在本层修复
+
+```cpp
+// src/common/physics/collision/CollisionShape.hpp
+enum class CombineOp : u8 { OR, AND, NOT };
+// AND 和 NOT 操作暂不实现（需要更复杂的几何运算）
+// TODO: 补全 CombineOp::AND / CombineOp::NOT。当前传这两个值会**静默返回空形状**
+```
+
+`CollisionShape` 只存**轴对齐盒的并集**，无法表达「带内部空洞的拓扑」，也存不下
+离散网格的坐标集。要真正收敛这 45 处，需要把 `CollisionShape` 的底层存储换成
+`VoxelShape`（或补全 `AND`/`NOT` 并保留精确坐标集）——这是架构级改造，
+会影响光照遮挡、碰撞检测、`shapes_boolean`、`collide_sweep` 等所有使用方。
 
 ## 单元格式
 

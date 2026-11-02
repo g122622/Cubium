@@ -275,7 +275,11 @@ void registerCaveBlocks()
             .hardness(0.0f)
             .resistance(0.0f)
             .soundType(BlockSoundTypes::AZALEA)
-            .noOcclusion());
+            .noOcclusion()
+            // 杜鹃花虽借用植物材质，但有**实际碰撞箱**（上半叶 + 细杆）。
+            // `Material::PLANT` 经 `.solid(false)` 推导出「无碰撞」，会把 AzaleaBlock
+            // 自己定义的形状整个短路成空。由差分能力 face_sturdy 查出。
+            .withCollision());
 
     // 开花的杜鹃花
     // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
@@ -286,7 +290,9 @@ void registerCaveBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::FLOWERING_AZALEA)
-                .noOcclusion());
+                .noOcclusion()
+                // 同杜鹃花：有实际碰撞箱，不能因植物材质被短路成空。
+                .withCollision());
 
     // 杜鹃花叶 - 树叶类方块，使用LeavesBlock实现距离衰减。可被岩浆点燃（对齐 vanilla）
     CaveBlocks::AZALEA_LEAVES =
