@@ -106,6 +106,20 @@ i32 JukeboxBlock::getComparatorInputOverride(const BlockState& state, IWorld& wo
     return 0;
 }
 
+i32 JukeboxBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+{
+    MC_UNUSED(state);
+    MC_UNUSED(side);
+    // vanilla JukeboxBlock#getSignal：正在播放唱片时输出 15，否则 0。
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Jukebox) {
+        auto* jukebox = static_cast<blockentity::JukeboxEntity*>(entity);
+        return jukebox->isPlaying() ? 15 : 0;
+    }
+    return 0;
+}
+
 BlockActionResult JukeboxBlock::useItemOn(ItemStack& stack,
     const BlockState& state,
     IWorld& world,

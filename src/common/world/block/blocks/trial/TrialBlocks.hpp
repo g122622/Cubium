@@ -144,10 +144,8 @@ public:
 
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
-    {
-        return true;
-    }
+    // 注意：vanilla CrafterBlock 没有重写 isSignalSource——合成器不是红石信号源。
+    // 它只重写 hasAnalogOutputSignal，把内部物品栏的填充率提供给比较器。
 
     [[nodiscard]] std::optional<ContainerType> getMenuProvider(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
@@ -160,6 +158,13 @@ public:
 
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
+
+    // 与读数成对：没有这个开关，比较器不会来问合成器要信号。
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
 
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;

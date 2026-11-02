@@ -271,6 +271,15 @@ public:
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
+    // 注意：这两个必须成对出现。只实现 getComparatorInputOverride 而没有
+    // hasComparatorInputOverride 时，原版与本项目的比较器都会先问「这格能不能读出信号」，
+    // 得到默认的 false 就直接跳过——实现写的读数永远不会被调用。
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
@@ -432,8 +441,7 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] i32 getComparatorInputOverride(
-        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+    // 不重写比较器相关方法：vanilla SculkCatalystBlock 不是 hasAnalogOutputSignal。
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

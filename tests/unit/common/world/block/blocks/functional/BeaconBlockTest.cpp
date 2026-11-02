@@ -231,10 +231,13 @@ TEST_F(BeaconBlockTest, IsOpaque_ReturnsFalse)
     EXPECT_FALSE(beacon_->isOpaque(state));
 }
 
-TEST_F(BeaconBlockTest, HasComparatorInputOverride_ReturnsTrue)
+TEST_F(BeaconBlockTest, HasComparatorInputOverride_ReturnsFalse)
 {
+    // vanilla BeaconBlock 既不是 isSignalSource，也没有重写 hasAnalogOutputSignal：
+    // 信标不向比较器输出读数（「输出金字塔等级」是常见误解）。
     const auto& state = beacon_->defaultState();
-    EXPECT_TRUE(beacon_->hasComparatorInputOverride(state));
+    EXPECT_FALSE(beacon_->hasComparatorInputOverride(state));
+    EXPECT_FALSE(beacon_->canProvidePower(state));
 }
 
 // ========== BeaconBlock 交互测试 ==========

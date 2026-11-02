@@ -58,7 +58,7 @@ u8 _stateFlags(u32 stateId, u8 fields)
     if ((fields & _blockFlag) != 0 && !state->isAir()) {
         flags |= _blockFlag;
     }
-    if ((fields & _tickFlag) != 0 && state->getBlock().ticksRandomly()) {
+    if ((fields & _tickFlag) != 0 && state->isRandomlyTicking()) {
         flags |= _tickFlag;
     }
     if ((fields & _fluidFlag) != 0) {

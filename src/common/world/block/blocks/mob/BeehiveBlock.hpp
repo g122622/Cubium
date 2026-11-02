@@ -63,6 +63,22 @@ public:
 
     [[nodiscard]] i32 getHoneyLevel(const BlockState& state) const;
 
+    // ========== 比较器 ==========
+
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
+     * @brief 比较器读数（对齐 vanilla `BeehiveBlock#getAnalogOutputSignal`）
+     *
+     * 原版直接返回 HONEY_LEVEL（0-5）——蜂巢蜂蜜越多，比较器读数越大。
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
     /**
      * @brief 在指定状态基础上设置蜂蜜等级
      * @param state 基础状态（保留FACING等其他属性）

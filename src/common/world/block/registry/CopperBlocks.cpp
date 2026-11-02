@@ -949,9 +949,13 @@ void registerCopperBlocks()
                                             .noOcclusion()
                                             .soundType(BlockSoundTypes::COPPER);
 
-    // 基础避雷针（未氧化，不参与氧化链 - MC 原版 LIGHTNING_ROD 是普通 LightningRodBlock）
-    CopperBlocks::LIGHTNING_ROD = &registry.registerBlock<blocks::LightningRodBlock>(
-        ResourceLocation("minecraft:lightning_rod"), lightningRodProps);
+    // 基础避雷针：氧化链的起点（Unaffected）。原版 lightning_rod 注册的是
+    // WeatheringLightningRodBlock 的未氧化实例，会随随机刻氧化成 exposed_lightning_rod。
+    // 早期注册成不可氧化的普通 LightningRodBlock，避雷针因此永远停在未氧化外观。
+    CopperBlocks::LIGHTNING_ROD =
+        &registry.registerBlock<blocks::WeatheringLightningRodBlock>(ResourceLocation("minecraft:lightning_rod"),
+            lightningRodProps,
+            BlockStateProperties::OxidationLevel::Unaffected);
 
     // 可氧化避雷针变种（Exposed, Weathered, Oxidized）
     auto* exposedLightningRod = &registry.registerBlock<blocks::WeatheringLightningRodBlock>(
@@ -1056,9 +1060,12 @@ void registerCopperBlocks()
                                                  .noOcclusion()
                                                  .soundType(BlockSoundTypes::COPPER_GOLEM_STATUE);
 
-    // 基础铜傀儡雕像（Unaffected 等级，不氧化但处于氧化链最低位）
-    auto* copperGolemStatue = &registry.registerBlock<blocks::CopperGolemStatueBlock>(
-        ResourceLocation("minecraft:copper_golem_statue"), copperGolemStatueProps);
+    // 基础铜傀儡雕像：氧化链的起点（Unaffected）。原版注册的是可氧化子类的未氧化实例，
+    // 会随随机刻氧化成 exposed_copper_golem_statue。「Unaffected」只是链条起点，并非不氧化。
+    auto* copperGolemStatue = &registry.registerBlock<blocks::WeatheringCopperGolemStatueBlock>(
+        ResourceLocation("minecraft:copper_golem_statue"),
+        copperGolemStatueProps,
+        BlockStateProperties::OxidationLevel::Unaffected);
 
     // 可氧化铜傀儡雕像变种（Exposed/Weathered/Oxidized）
     auto* exposedCopperGolemStatue = &registry.registerBlock<blocks::WeatheringCopperGolemStatueBlock>(
@@ -1141,12 +1148,14 @@ void registerCopperBlocks()
     // - Oxidized + 涂蜡变体 -> block.copper_chest_oxidized.open/close
     // 涂蜡变体复用对应氧化等级的声音（在构造时传入相同的声音引用）。
 
-    // 基础铜箱子（Unaffected 等级，不氧化但处于氧化链最低位）
-    auto* copperChest = &registry.registerBlock<blocks::CopperChestBlock>(ResourceLocation("minecraft:copper_chest"),
-        copperChestProps,
-        BlockStateProperties::OxidationLevel::Unaffected,
-        SoundEvents::BLOCK_COPPER_CHEST_OPEN,
-        SoundEvents::BLOCK_COPPER_CHEST_CLOSE);
+    // 基础铜箱子：氧化链的起点（Unaffected）。原版注册的是可氧化子类的未氧化实例，
+    // 会随随机刻氧化成 exposed_copper_chest。「Unaffected」只是链条起点，并非不氧化。
+    auto* copperChest =
+        &registry.registerBlock<blocks::WeatheringCopperChestBlock>(ResourceLocation("minecraft:copper_chest"),
+            copperChestProps,
+            BlockStateProperties::OxidationLevel::Unaffected,
+            SoundEvents::BLOCK_COPPER_CHEST_OPEN,
+            SoundEvents::BLOCK_COPPER_CHEST_CLOSE);
 
     // 可氧化铜箱子变种（Exposed/Weathered/Oxidized）
     // Exposed 复用 Unaffected 的 block.copper_chest.open/close 声音（与 MC Java 一致）

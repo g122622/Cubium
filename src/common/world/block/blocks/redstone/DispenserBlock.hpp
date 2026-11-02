@@ -107,6 +107,23 @@ public:
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
+    // ========== 比较器 ==========
+
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
+     * @brief 比较器读数（对齐 vanilla `DispenserBlock#getAnalogOutputSignal`）
+     *
+     * 原版返回 `AbstractContainerMenu.getRedstoneSignalFromBlockEntity(...)`，即按容器
+     * 填充率折算的信号强度。投掷器共用本类。
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
     // ========== 发射器特有方法 ==========
 
     /**

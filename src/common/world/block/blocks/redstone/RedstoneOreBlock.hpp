@@ -76,6 +76,17 @@ public:
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
+    /**
+     * @brief 该状态是否响应随机刻（对齐 vanilla `RedstoneOreBlock#isRandomlyTicking`）
+     *
+     * 原版返回 `state.getValue(LIT)`：被点亮的矿石才进入随机刻队列（用来熄灭），
+     * 未点亮的完全不参与。若一律开启，服务器每 tick 都会白白抽样所有红石矿。
+     */
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override
+    {
+        return state.get(BlockStateProperties::LIT());
+    }
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 

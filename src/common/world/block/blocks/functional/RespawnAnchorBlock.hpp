@@ -77,10 +77,8 @@ public:
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override
-    {
-        return true;
-    }
+    // 不重写 ticksRandomly：vanilla respawn_anchor 没有 randomTicks()，也没有重写
+    // isRandomlyTicking——它的爆炸判定走普通 tick / 交互路径，与随机刻无关。
 
     // ========== 形状 ==========
 

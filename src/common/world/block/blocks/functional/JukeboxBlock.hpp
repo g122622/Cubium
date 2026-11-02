@@ -88,6 +88,18 @@ public:
 
     // ========== 红石 ==========
 
+    /**
+     * @brief 是红石信号源（对齐 vanilla `JukeboxBlock#isSignalSource`，恒 true）
+     *
+     * 唱片机在播放唱片时向上方与四周输出强度 15 的弱信号（见 getWeakPower）。
+     * 早期漏了这个重写，唱片机因此在红石线计算里不被当作信号源。
+     */
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
@@ -96,6 +108,14 @@ public:
 
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    /**
+     * @brief 弱信号输出（对齐 vanilla `JukeboxBlock#getSignal`）
+     *
+     * 正在播放唱片时输出 15，否则 0。
+     */
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
     // ========== 交互 ==========
 

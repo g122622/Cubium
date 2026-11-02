@@ -71,6 +71,7 @@ tests/diff/
 │   ├── crop_growth.cpp          # 作物一次随机刻（生长速率 / 抽芽 / 结果 / 耕地保墒）
 │   ├── redstone_signal.cpp      # 红石信号（六方向 × 强 / 弱 × 关掉自我屏蔽）
 │   ├── light_occlusion.cpp      # 方块状态的光照阻挡属性（lightBlock 等四项）
+│   ├── block_movement.cpp       # 方块对移动的作用（速度/跳跃因子）与随机刻/红石开关
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -360,6 +361,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `crop_growth` | 原版 jar `CropGrowthOracle` | 26 个手工地形场景 | 全部一致 | 见下文 |
 | `redstone_signal` | 原版 jar `RedstoneSignalOracle` | 41 个手工地形场景 | 全部一致 | 见下文 |
 | `light_occlusion` | 原版 jar `LightOcclusionOracle` | 1166 个方块 | 全部一致 | 见下文 |
+| `block_movement` | 原版 jar `BlockMovementOracle` | 1166 个方块 | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -752,6 +754,51 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
   顺带修正了扭曲藤头部的高度（原写 9 像素，原版是 15 像素）。
 
 至此该能力的 `knownDifferences` 登记表已清空并删除。
+
+`block_movement` 比的是**方块对实体移动的作用**，外加三个决定「这格方块会不会自己
+变化」的开关：`speedFactor`（行走速度系数，原版 `Block#getSpeedFactor`）、`jumpFactor`
+（跳跃高度系数）、`ticksRandomly`（是否参与随机刻）、`signalSource`（是否输出红石信号）、
+`analogOutput`（比较器能否从它读数）。单元是方块，取默认状态。
+
+为什么值得比：这五项都是纯数据，抄错不会有编译期提示。少写一个 `jumpFactor(0.5)`
+玩家就会「在蜂蜜块上能正常跳」；漏标随机刻的作物永远不生长。这两类错误都不会崩溃、
+不会报错，只能逐条与原版比对发现。
+
+首轮跑通 1166 个单元，查出 46 处差异，全部修掉。其中最有价值的一处是**一个被同名重载
+遮蔽的虚函数**：
+
+- **`Block::ticksRandomly()` 定义了两次**——一次在属性访问区（非虚），一次在虚函数区。
+  非虚版本把虚函数**隐藏**了：`block->ticksRandomly()` 在静态类型是 `Block*` 时直接绑定
+  到非虚版本，只返回注册时写死的标志。于是所有「按状态决定随机刻」的子类和「用
+  `ticksRandomly()` 重写而不是 `BlockProperties::tickRandomly()` 注册」的方块，在随机刻
+  调度与区块序列化里全部失效。修法是删掉非虚版本，并补上带状态的
+  `BlockState::isRandomlyTicking()`（对齐原版 `BlockBehaviour.BlockStateBase`），把调度
+  路径改成走它。
+
+其余按类：
+
+- **红石矿按 LIT 决定随机刻**：原版 `RedstoneOreBlock#isRandomlyTicking` 返回
+  `state.getValue(LIT)`，只有被点亮的矿石才去随机刻熄灭。这也正是必须有状态参数的原因。
+- **蜡烛/营火/浮冰/重生锚/幽匿块被多标了随机刻**：原版这些方块都没有 `randomTicks()`，
+  也不重写 `isRandomlyTicking`。其中蜡烛与营火的「含水熄灭」走的是流体 tick。
+- **下界传送门与冰块缺随机刻**：两者原版都注册了 `randomTicks()`。传送门的随机刻用来
+  生成僵尸猪灵（Cubium 尚未实现该逻辑，已留 TODO）。
+- **「Unaffected」被误当成「不氧化」**：`copper_chest` / `copper_golem_statue` /
+  `lightning_rod` 三个基础方块原本注册成不可氧化的基类，但原版它们是
+  `WeatheringCopper*` 的未氧化实例——`WeatheringCopper.NEXT_BY_BLOCK` 的链条正是
+  Unaffected → Exposed → Weathered → Oxidized，「Unaffected」只是链条起点。
+- **铁轨/绊线/命令方块被错当成信号源**：铁轨只是「被充能后改变形状或启动矿车」，
+  并不向周围输出信号；而探测铁轨（`detector_rail`）恰恰相反，原版明确重写了
+  `isSignalSource`，之前跟着父类一起被删掉后又要补回来。
+- **唱片机漏了信号源与弱信号输出**：原版播放唱片时输出强度 15。
+- **信标与幽匿催化体多实现了比较器输出**：原版两者都没有 `hasAnalogOutputSignal`。
+  「信标输出金字塔等级」「催化体按 BLOOM 输出 15」都是常见误解。
+- **合成器被错当成信号源**：原版只重写了 `hasAnalogOutputSignal`。
+- **比较器「只实现读数、漏实现开关」**：幽匿感测体、雕纹书架、合成器都有
+  `getComparatorInputOverride`，但缺 `hasComparatorInputOverride`——比较器会先问
+  「这格能不能读」，默认 false 就直接跳过，读数实现写了也永远调不到。
+- **炼药锅/发射器/蜂巢/末地传送门框架缺比较器读数**：分别对应水位、容器填充率、
+  蜂蜜等级、是否放了末影之眼。
 
 `fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
 单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。

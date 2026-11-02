@@ -62,6 +62,22 @@ public:
     [[nodiscard]] bool hasEye(const BlockState& state) const noexcept;
     [[nodiscard]] Direction getFacing(const BlockState& state) const noexcept;
 
+    // ========== 比较器 ==========
+
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
+     * @brief 比较器读数（对齐 vanilla `EndPortalFrameBlock#getAnalogOutputSignal`）
+     *
+     * 放了末影之眼给 15，否则 0。
+     */
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
     // ========== 放置逻辑 ==========
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;

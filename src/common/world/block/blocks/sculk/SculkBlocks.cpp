@@ -608,12 +608,8 @@ const CollisionShape& SculkCatalystBlock::getShape(const BlockState& state) cons
     return m_shape;
 }
 
-i32 SculkCatalystBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
-{
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    return state.get(BlockStateProperties::BLOOM()) ? 15 : 0;
-}
+// 注意：vanilla SculkCatalystBlock 没有重写 hasAnalogOutputSignal——幽匿催化体不向
+// 比较器输出读数。早期在这里按 BLOOM 状态返回 15/0，那不是原版行为。
 
 // ============================================================================
 // SculkVeinBlock

@@ -207,19 +207,12 @@ public:
      * @brief 方块 tick
      *
      * 含水时自动熄灭蜡烛。
-     * 通过 ticksRandomly() 使随机刻系统调用此方法。
+     *
+     * 注意：原版蜡烛**不是**随机刻方块（vanilla AbstractCandleBlock 没有重写
+     * isRandomlyTicking）。含水蜡烛的熄灭由流体 tick 触发，本方法在该路径上被调用。
+     * 早期用 ticksRandomly() 恒 true 代替，会让每一支蜡烛都进入随机刻队列。
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-
-    /**
-     * @brief 是否响应随机刻
-     *
-     * 蜡烛需要响应随机刻以检测含水状态并熄灭。
-     */
-    [[nodiscard]] bool ticksRandomly() const noexcept override
-    {
-        return true;
-    }
 
     // ========== 渲染属性 ==========
 

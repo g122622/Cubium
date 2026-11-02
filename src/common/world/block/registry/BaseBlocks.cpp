@@ -297,7 +297,9 @@ void registerBaseBlocks()
             .notSolid()
             // 对齐 vanilla Blocks.ICE：注册 noOcclusion()，遮挡形状为完整立方体 →
             // propagatesSkylightDown=false → lightBlock=1，且不再按材质判定为实体渲染。
+            // 另外原版注册带 randomTicks()：冰块在光照下靠随机刻融化。
             .noOcclusion()
+            .tickRandomly()
             .slipperiness(physics::SLIPPERINESS_ICE));
 
     // 玻璃：vanilla Blocks.GLASS 注册 noOcclusion()，且其方块类（TransparentBlock/HalfTransparentBlock）

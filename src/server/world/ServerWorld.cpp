@@ -1641,7 +1641,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
 
                 if (blockState) {
                     // 执行方块随机刻
-                    if (blockState->getBlock().ticksRandomly()) {
+                    if (blockState->isRandomlyTicking()) {
                         Block& block = blockState->getBlockMutable();
                         block.randomTick(*this, pos, const_cast<BlockState&>(*blockState), m_random);
 

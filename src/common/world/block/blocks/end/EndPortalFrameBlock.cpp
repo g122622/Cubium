@@ -79,6 +79,14 @@ bool EndPortalFrameBlock::hasEye(const BlockState& state) const noexcept
     return state.get(BlockStateProperties::EYE());
 }
 
+i32 EndPortalFrameBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // vanilla EndPortalFrameBlock#getAnalogOutputSignal：有眼 15，无眼 0。
+    return hasEye(state) ? 15 : 0;
+}
+
 Direction EndPortalFrameBlock::getFacing(const BlockState& state) const noexcept
 {
     return state.get(BlockStateProperties::HORIZONTAL_FACING());

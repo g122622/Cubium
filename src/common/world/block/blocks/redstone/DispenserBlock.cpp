@@ -45,6 +45,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
+#include "common/world/redstone/RedstoneHelper.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -321,6 +322,21 @@ void DispenserBlock::spawnItemEntity(IWorld& world, const BlockPos& pos, Directi
 void DispenserBlock::playDispenseSound(IWorld& world, const BlockPos& pos)
 {
     world.playSound(SoundEvents::BLOCK_DISPENSER_DISPENSE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+}
+
+i32 DispenserBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+    // vanilla DispenserBlock#getAnalogOutputSignal：
+    //   AbstractContainerMenu.getRedstoneSignalFromBlockEntity(...)，即按容器填充率折算。
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity == nullptr ||
+        (entity->getType() != BlockEntityType::Dispenser && entity->getType() != BlockEntityType::Dropper)) {
+        return 0;
+    }
+    auto* container = static_cast<blockentity::DispenserBlockEntity*>(entity);
+    const IInventory* inventory = container->getInventory();
+    return inventory != nullptr ? world::redstone::RedstoneHelper::calcRedstoneFromInventory(*inventory) : 0;
 }
 
 std::unique_ptr<BlockEntity> DispenserBlock::createBlockEntity(const BlockPos& pos)
