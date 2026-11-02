@@ -190,6 +190,7 @@ import { mthInterpolationInput } from "./mth_interpolation.ts";
 import { legacyRandomInput } from "./legacy_random.ts";
 import { customStatsInput } from "./custom_stats.ts";
 import { soundEventsInput } from "./sound_events.ts";
+import { particleTypeInput } from "./particle_type.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1235,7 +1236,22 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         description: "SoundEvents 音效 ID 常量表（1637 项）；音效 ID 是资源路径键与网络包内容，"
             + "缺项会让对应行为完全无声。缺的音效以 MISSING 暴露",
         key: "unit", units: { kind: "listing" }, input: soundEventsInput },
-
+    {
+        name: "particle_type",
+        probe: "particle_type",
+        oracle: "ParticleTypeOracle",
+        description: "粒子类型的协议 ID 与注册表 ID 对齐（115 项）；枚举值直接就是网络协议 ID，"
+            + "错一位会让后续所有粒子错位且不报任何错误",
+        key: "unit", units: { kind: "listing" }, input: particleTypeInput,
+        // 以下 5 项是**命名差异**，不是协议错位：Cubium 用了旧版 MC 的枚举名，
+        // 而协议 ID（索引）与原版完全一致。名字只在本项目内部引用，不影响网络序列化。
+        knownDifferences: [
+            { key: "16|effect", field: "result", reason: "Cubium 枚举名为 Spell（旧版命名），索引一致" },
+            { key: "22|explosion_emitter", field: "result", reason: "Cubium 枚举名为 HugeExplosion（旧版命名），索引一致" },
+            { key: "46|instant_effect", field: "result", reason: "Cubium 枚举名为 InstantSpell（旧版命名），索引一致" },
+            { key: "75|campfire_cosy_smoke", field: "result", reason: "Cubium 枚举名为 CampfireCozy（cozy/cosy 拼写差异），索引一致" },
+            { key: "76|campfire_signal_smoke", field: "result", reason: "Cubium 枚举名为 CampfireSignal，索引一致" },
+        ] },
 
 
 
