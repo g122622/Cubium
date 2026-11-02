@@ -1,0 +1,285 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+/**
+ * @brief 差分能力：方块的**三种形状本身**（默认状态）。
+ *
+ * `list`：全部方块 ID（排序）
+ * `run` ：{ "block": "minecraft:oak_slab" } → 三种形状的坐标
+ *
+ * ## 测哪三种形状
+ *
+ * | 形状 | 原版接口 | 用途 |
+ * |---|---|---|
+ * | 外形 | `getShape` | 碰撞、视觉、选中框 |
+ * | 碰撞 | `getCollisionShape` | 实体移动阻挡 |
+ * | 支撑 | `getBlockSupportShape` | 附着型方块的存活判定 |
+ *
+ * 三者在原版是**各自独立**的：很多方块外形与碰撞不同（空气、水、火），
+ * 很多方块碰撞为转而支撑非空（灯笼、悬挂告示牌），也有反过来
+ * （下界疣：外形非空、碰撞与支撑皆空）。
+ *
+ * ## 为什么需要这个能力
+ *
+ * `face_sturdy` 只能看到支撑判定的**布尔结论**。一个方块报差异时，无法区分是
+ * 外形写错了、碰撞开关错了、还是支撑形状缺失——只能靠人肉逐个试。
+ *
+ * 本能力直接把三种形状的**坐标**摊开，于是：
+ *
+ * - 形状写错的，坐标一眼可见（例如 `cactus` 的 Y 上限 16 应为 15）；
+ * - 碰撞开关错的，碰撞形状为空但原版非空；
+ * - 支撑形状被覆写覆盖的，支撑形状与碰撞形状出现不该有的差异。
+ */
+
+/**
+ * @brief 差分能力：方块的**三种形状本身**（**全部状态**）。
+ *
+ * `list`：全部方块 ID（排序），每行一个方块
+ * `run` ：{ "unit": "minecraft:oak_slab[type=top,waterlogged=false]" } → 该状态的三种形状
+ *
+ * 与 `block_shape` 的关系：那个能力只测**默认状态**，覆盖了 1166 个单元；
+ * 本能力遍历每个方块的**所有属性组合**，共约 3 万个状态。两者互补——
+ * `block_shape` 快、聚焦；本能力能抓到「只在非默认状态下才出现的形状错误」
+ * （历史上有大量此类缺陷，例如 `nether_wart` 的四个 age、`mangrove_propagule`
+ * 的 hanging、`pale_hanging_moss` 的 tip）。
+ *
+ * ## 单元命名
+ *
+ * 采用原版状态表示法：`minecraft:name[key=value,key=value]`，属性按名字排序，
+ * 无属性时省略方括号。两侧用同一规则生成，因此可直接按字符串对齐。
+ *
+ * ## 三种形状
+ *
+ * | 形状 | 原版接口 | 用途 |
+ * |---|---|---|
+ * | 外形 | `getShape` | 碰撞、视觉、选中框 |
+ * | 碰撞 | `getCollisionShape` | 实体移动阻挡 |
+ * | 支撑 | `getBlockSupportShape` | 附着型方块的存活判定 |
+ */
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "probe.hpp"
+#include <algorithm>
+#include <array>
+#include <cstdio>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+#include <nlohmann/json.hpp>
+
+namespace mc::diff {
+
+namespace {
+
+using nlohmann::json;
+
+void ensureBlocks()
+{
+    static bool s_initialized = false;
+    if (!s_initialized) {
+        VanillaBlocks::initialize();
+        s_initialized = true;
+    }
+}
+
+const BlockState* stateByName(const std::string& name)
+{
+    const Block* block = BlockRegistry::instance().getBlock(ResourceLocation(name));
+    if (block == nullptr) {
+        return nullptr;
+    }
+    return &block->defaultState();
+}
+
+/**
+ * @brief 把形状转成稳定字符串：空形状记作 `EMPTY`，否则输出各轴坐标列表。
+ *
+ * 与 `shape_face` 能力使用相同格式，便于跨能力对照。
+ */
+/// 16³ 体素网格。
+using Cardinal16 = std::array<std::array<std::array<bool, 16>, 16>, 16>;
+
+/**
+ * @brief 把形状体素化到 16³ 网格。
+ *
+ * 每个体素取其**中心点**做包含判断。这样同一几何的不同盒子拆分方式得到完全相同的结果，
+ * 而真正的形状差异（某个体素覆盖/未覆盖）一定被检出。
+ */
+Cardinal16 voxelize(const CollisionShape& shape)
+{
+    Cardinal16 grid{};
+    const auto& boxes = shape.boxes();
+    for (std::size_t y = 0; y < 16; ++y) {
+        for (std::size_t z = 0; z < 16; ++z) {
+            for (std::size_t x = 0; x < 16; ++x) {
+                const f32 px = (static_cast<f32>(x) + 0.5f) / 16.0f;
+                const f32 py = (static_cast<f32>(y) + 0.5f) / 16.0f;
+                const f32 pz = (static_cast<f32>(z) + 0.5f) / 16.0f;
+                for (const auto& box : boxes) {
+                    if (px > box.minX && px < box.maxX && py > box.minY && py < box.maxY && pz > box.minZ &&
+                        pz < box.maxZ) {
+                        grid[y][z][x] = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return grid;
+}
+
+std::string describe(const CollisionShape& shape)
+{
+    if (shape.isEmpty()) {
+        return "EMPTY";
+    }
+    // 体素化到 16³ 网格：形状的**语义**是「覆盖了方块内的哪些点」，
+    // 而不是「由几个盒子拼出来」。同一个形状可以有无数种盒子拆分方式
+    // （例如把 `box(0,0.5,0,1,1,0.5)` 拆成左右两个半盒），几何完全相同。
+    // 逐盒输出会把这类表示差异误报成不一致，掩盖真正的问题。
+    const Cardinal16 grid = voxelize(shape);
+    std::string out;
+    char buffer[8];
+    for (std::size_t y = 0; y < 16; ++y) {
+        for (std::size_t z = 0; z < 16; ++z) {
+            for (std::size_t x = 0; x < 16; ++x) {
+                out.push_back(grid[y][z][x] ? '1' : '0');
+            }
+        }
+    }
+    // 压缩：连续相同字符用 `<字符><次数>` 表示，避免每行 4096 字符。
+    std::string packed;
+    for (std::size_t i = 0; i < out.size();) {
+        char ch = out[i];
+        std::size_t run = 1;
+        while (i + run < out.size() && out[i + run] == ch) {
+            ++run;
+        }
+        packed.push_back(ch);
+        std::snprintf(buffer, sizeof(buffer), "%zu", run);
+        packed += buffer;
+        i += run;
+    }
+    return packed;
+}
+
+/**
+ * @brief 把方块状态渲染成原版表示法：`minecraft:name[key=value,...]`。
+ *
+ * 属性按名字字典序排序，保证两侧（Cubium 与原版）生成完全相同的字符串。
+ */
+std::string stateToString(const BlockState& state)
+{
+    std::string out = state.getBlock().blockLocation().toString();
+    std::vector<std::pair<std::string, std::string>> pairs;
+    for (const auto& entry : state.values()) {
+        pairs.emplace_back(entry.property->name(), entry.property->valueToString(entry.valueIndex));
+    }
+    if (pairs.empty()) {
+        return out;
+    }
+    std::sort(pairs.begin(), pairs.end());
+    out.push_back('[');
+    for (std::size_t i = 0; i < pairs.size(); ++i) {
+        if (i != 0) {
+            out.push_back(',');
+        }
+        out += pairs[i].first;
+        out.push_back('=');
+        out += pairs[i].second;
+    }
+    out.push_back(']');
+    return out;
+}
+
+/**
+ * @brief 在全部方块的全部状态中按字符串查找。
+ *
+ * 状态数量约 3 万，每次 `run` 都重建索引代价过高，故进程内缓存一次。
+ */
+const BlockState* stateByFullName(const std::string& name)
+{
+    static std::unordered_map<std::string, const BlockState*> index;
+    if (index.empty()) {
+        BlockRegistry::instance().forEachBlock([&](Block& block) {
+            for (const BlockState* state : block.defaultState().getAllStates()) {
+                index.emplace(stateToString(*state), state);
+            }
+        });
+    }
+    const auto iter = index.find(name);
+    return iter == index.end() ? nullptr : iter->second;
+}
+
+void writeList(FILE* out)
+{
+    ensureBlocks();
+    // 单元是「方块状态」而非「方块」：这里输出全部状态，两侧按同一规则枚举。
+    std::vector<std::string> units;
+    BlockRegistry::instance().forEachBlock([&](Block& block) {
+        for (const BlockState* state : block.defaultState().getAllStates()) {
+            units.push_back(stateToString(*state));
+        }
+    });
+    std::sort(units.begin(), units.end());
+    units.erase(std::unique(units.begin(), units.end()), units.end());
+    for (const auto& unit : units) {
+        std::fprintf(out, "%s\n", unit.c_str());
+    }
+}
+
+std::string runLine(std::string_view inputLine)
+{
+    ensureBlocks();
+
+    const std::string name = json::parse(inputLine).at("unit").get<std::string>();
+    const BlockState* state = stateByFullName(name);
+    if (state == nullptr) {
+        throw std::runtime_error("block_shape_all: unknown block state: " + name);
+    }
+
+    // 三种形状在固定位置求值，扁平字符串便于逐字节比对。
+    // 用 `*At` 与否由方块自身声明（`isCollisionShapePositionDependent`），探针不做业务判断。
+    const BlockPos probePos(0, 0, 0);
+    const bool positionDependent = state->isCollisionShapePositionDependent();
+    const CollisionShape collisionShape =
+        positionDependent ? state->getCollisionShapeAt(probePos) : state->getCollisionShape();
+    const CollisionShape supportShape =
+        positionDependent ? state->getBlockSupportShapeAt(probePos) : state->getBlockSupportShape();
+
+    const std::string result = "shape=" + describe(state->getShapeAt(probePos)) +
+        "|collision=" + describe(collisionShape) + "|support=" + describe(supportShape);
+
+    return json{{"unit", name}, {"result", result}}.dump();
+}
+
+} // namespace
+
+MC_DIFF_DEFINE_PROBE("block_shape_all", &writeList, &runLine)
+
+} // namespace mc::diff

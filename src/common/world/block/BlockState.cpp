@@ -111,6 +111,24 @@ CollisionShape BlockState::getBlockSupportShapeAt(const BlockPos& pos) const
     return m_owner->getBlockSupportShapeAt(*this, pos);
 }
 
+const std::vector<const BlockState*>& BlockState::getAllStates() const
+{
+    // 索引表与 BlockState 同生命周期且构造后不变，故首次转换后缓存复用，
+    // 避免每次调用都重建 vector。
+    static thread_local std::unordered_map<const std::vector<BlockState*>*, std::vector<const BlockState*>> cache;
+    const auto& slots = allStateSlots();
+    auto iter = cache.find(&slots);
+    if (iter == cache.end()) {
+        std::vector<const BlockState*> view;
+        view.reserve(slots.size());
+        for (const BlockState* state : slots) {
+            view.push_back(state);
+        }
+        iter = cache.emplace(&slots, std::move(view)).first;
+    }
+    return iter->second;
+}
+
 bool BlockState::isCollisionShapePositionDependent() const noexcept
 {
     return m_owner->isCollisionShapePositionDependent();

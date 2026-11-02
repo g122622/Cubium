@@ -193,6 +193,7 @@ import { soundEventsInput } from "./sound_events.ts";
 import { particleTypeInput } from "./particle_type.ts";
 import { shapeFaceInput } from "./shape_face.ts";
 import { blockShapeInput } from "./block_shape.ts";
+import { blockShapeAllInput } from "./block_shape_all.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1261,6 +1262,13 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         description: "VoxelShape 的面切片（15 种边界形状 × 6 方向）；把 slice / findIndex / "
             + "isCubeLikeAlong 单独拎出来比对，用于定位 face_sturdy 剩余差异的底层根因",
         key: "unit", units: { kind: "listing" }, input: shapeFaceInput },
+    {
+    name: "block_shape_all",
+    probe: "block_shape_all",
+    oracle: "BlockShapeAllOracle",
+    description: "方块三种形状的坐标（外形 / 碰撞 / 支撑，**全部属性组合**）；"
+    + "block_shape 只测默认状态，本能力遍历约 3 万个状态，用于抓只在非默认状态下出现的形状错误",
+    key: "unit", units: { kind: "listing" }, input: blockShapeAllInput },
     {
         name: "block_shape",
         probe: "block_shape",

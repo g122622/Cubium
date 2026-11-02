@@ -324,6 +324,17 @@ public:
     [[nodiscard]] CollisionShape getShapeAt(const BlockPos& pos) const;
 
     /**
+     * @brief 获取所属方块的全部状态（含自身）。
+     *
+     * 顺序由 `StateContainer` 构造时的枚举顺序决定，对所有状态恒定，可用于稳定遍历。
+     * 需要覆盖「非默认状态」的调用方（如遍历全部状态做差分校验）应使用本方法，
+     * 而不是只测 `defaultState()`。
+     *
+     * @return 全部状态的指针列表
+     */
+    [[nodiscard]] const std::vector<const BlockState*>& getAllStates() const;
+
+    /**
      * @brief 获取指定位置处的碰撞形状（世界坐标，已叠加 `offsetType` 偏移）。
      *
      * @param pos 方块位置
