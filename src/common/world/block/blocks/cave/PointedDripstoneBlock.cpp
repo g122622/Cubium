@@ -264,6 +264,15 @@ CollisionShape PointedDripstoneBlock::getShapeAt(const BlockState& state, const 
     return getShape(state).offset(offset.x, offset.y, offset.z);
 }
 
+CollisionShape PointedDripstoneBlock::getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    // 原版 `PointedDripstoneBlock` 未覆写 `getCollisionShape`，继承的默认实现是
+    // `hasCollision ? getShape(...) : empty()`，而 `getShape` 已带位置偏移，
+    // 所以碰撞形状也必须带偏移。
+    const Vector3 offset = getOffset(pos);
+    return getCollisionShape(state).offset(offset.x, offset.y, offset.z);
+}
+
 // ============================================================================
 // 流体状态
 // ============================================================================

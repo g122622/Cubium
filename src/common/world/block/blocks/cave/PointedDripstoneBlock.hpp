@@ -78,6 +78,13 @@ public:
     [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
 
     /**
+     * @brief 按位置返回碰撞形状：同样叠加 `offsetType` 偏移。
+     *
+     * 原版未覆写 `getCollisionShape`，继承的默认实现走 `getShape`，因此碰撞形状也带偏移。
+     */
+    [[nodiscard]] CollisionShape getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
+    /**
      * @brief 水平偏移上限。
      *
      * 原版取 `SHAPE_BASE`（最粗的那段，`column(12, 0, 16)`）的 min X = 2/16 = 0.125，

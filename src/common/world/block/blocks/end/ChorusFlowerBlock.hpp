@@ -87,6 +87,18 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 获取支撑形状。
+     *
+     * 原版 `ChorusFlowerBlock` 的支撑形状与外形**不同**：外形是满方块，
+     * 支撑形状是 `box(0.0625, 0, 0.0625 -> 0.9375, 0.9375, 0.9375)`（14×15×14 像素）。
+     * 实测原版 `getBlockSupportShape` 即为此值。
+     *
+     * @param state 方块状态
+     * @return 支撑形状
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
+
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {
         MC_UNUSED(state);

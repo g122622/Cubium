@@ -777,7 +777,7 @@ void registerNetherBlocks()
     NetherBlocks::CHORUS_FLOWER =
         &registry.registerBlock<blocks::ChorusFlowerBlock>(ResourceLocation("minecraft:chorus_flower"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+                .withCollision()
                 .hardness(0.4f)
                 .resistance(0.4f)
                 .soundType(BlockSoundTypes::WOOD));

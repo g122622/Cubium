@@ -158,6 +158,14 @@ void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockStat
     }
 }
 
+const CollisionShape& ChorusFlowerBlock::getBlockSupportShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 原版支撑形状：14×15×14 像素，比外形（满方块）小一圈。
+    static const CollisionShape supportShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f, 0.9375f);
+    return supportShape;
+}
+
 const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
 {
     i32 age = getAge(state);
