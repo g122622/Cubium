@@ -357,7 +357,8 @@ private:
             return 1.0f;
         }
         constexpr f32 C = static_cast<f32>(math::TWO_PI / 3.0);
-        return static_cast<f32>(-std::pow(2.0, 10.0 * f - 10.0) * math::mthSin((f * 10.0f - 10.75f) * C));
+        // 原版用的是 Math.sin（double 精度），不是 Mth.sin（查表近似）。
+        return static_cast<f32>(-std::pow(2.0, 10.0 * f - 10.0) * std::sin((f * 10.0 - 10.75) * C));
     }
 
     static f32 _inExpo(f32 f)
@@ -421,7 +422,7 @@ private:
         if (f == 1.0f) {
             return 1.0f;
         }
-        return static_cast<f32>(std::pow(2.0, -10.0 * f) * math::mthSin((f * 10.0f - 0.75f) * C) + 1.0);
+        return static_cast<f32>(std::pow(2.0, -10.0 * f) * std::sin((f * 10.0 - 0.75) * C) + 1.0);
     }
 
     static f32 _outExpo(f32 f)
@@ -493,7 +494,8 @@ private:
         if (f == 1.0f) {
             return 1.0f;
         }
-        const f32 d = math::mthSin((20.0f * f - 11.125f) * C);
+        // 原版是 Math.sin（double），见 Ease.inOutElastic。
+        const f64 d = std::sin((20.0 * f - 11.125) * C);
         if (f < 0.5f) {
             return static_cast<f32>(-(std::pow(2.0, 20.0 * f - 10.0) * d) / 2.0);
         }
