@@ -23,7 +23,8 @@
 | 吊挂告示牌按 `rotation` 区分形状 | 83 |
 | 墙面悬挂告示牌按原版方式合成细分网格 | 71 |
 | 中继器/比较器补 `withCollision()` | 65 |
-| 修复 6 处「像素值传给归一化 `box()`」+ 4 处方块碰撞状态 | **39** |
+| 修复 6 处「像素值传给归一化 `box()`」+ 4 处方块碰撞状态 | 39 |
+| 栅栏门支撑形状改用 `box()` 绕开坐标系启发式 | **27** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -779,6 +780,89 @@ m_standingShape = CollisionShape::combine(
 但 `getCollisionShape` 与 `getBlockSupportShape` **都是空**。此前代码的注释断言
 「碰撞形状等于 getShape」，与本能力实测的 `nether_wart|DOWN|CENTER` 原版 false / Cubium true
 直接矛盾。**注释中的推断不能替代实测。**
+## 栅栏门：坐标系启发式误判（39 → 27）
+
+### 现象
+
+12 个 `*_fence_gate`，全部是 `UP|CENTER`：原版 true、Cubium false。
+
+### 排查
+
+实测原版支撑形状：
+
+```
+north open=false -> AABB[0.0, 0.3125, 0.375] -> [1.0, 1.5, 0.625]
+north open=true  -> EMPTY
+```
+
+Cubium 的 `m_supportShapes` 写的正是 `box(0, 0.3125, 0.375, 1, 1.5, 0.625)`，**数值完全一致**。
+
+### 根因：`VoxelShapes::cube` 的坐标系启发式
+
+`VoxelShapes::cube` 为了同时兼容「像素坐标」和「归一化坐标」两种写法，用参数的最大值猜测：
+
+```cpp
+CollisionShape VoxelShapes::cube(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2)
+{
+    const f32 maxCoord = std::max({std::abs(x1), ..., std::abs(z2)});
+    if (maxCoord <= 1.0f) {
+        return CollisionShape::box(...);        // 当作归一化
+    }
+    // 否则当作像素，整体除以 16
+}
+```
+
+栅栏门支撑形状的 Y 上限是 **1.5**（原版 `SHAPE_SUPPORT = column(16.0, 4.0, 5.0, 24.0)`，
+Y 范围 5/16..**24/16**，故意超出方块顶部一格），`maxCoord = 1.5 > 1.0`，
+于是被当成像素坐标除以 16，实际形状缩成 `0..0.09375` —— `UP` 面自然覆盖不到中心。
+
+改用 `CollisionShape::box`（明确归一化）后 12 处全部消除。
+
+### 这个启发式的适用范围
+
+全项目扫描后，24 处归一化调用中只有栅栏门这一处越界失效——其余都用
+`14.0f / 16.0f` 这类表达式，结果 ≤ 1.0，能被正确识别。
+
+> **建议**：`VoxelShapes::cube` 的坐标系猜测是脆弱的接口设计。任何「归一化但某个分量
+> 故意超出 1.0」的形状（跨方块的支撑形状、合并后的复合形状）都会静默出错。
+> 新代码应直接用 `CollisionShape::box` 或 `fromPixelBox`，不要依赖这个猜测。
+> **TODO**：后续应考虑废除 `VoxelShapes::cube` 的双坐标系兼容，统一到两个显式接口。
+
+## 未收敛：脚手架（3 处，已回退两次）
+
+`scaffolding` 的 3 处是 `UP|CENTER` / `UP|FULL` / `UP|RIGID`：原版 true、Cubium false。
+
+### 实测数据
+
+```
+bottom=false -> support = AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]   实心
+bottom=true  -> support = AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]   实心
+
+isFaceSturdy(null, ZERO, UP):
+  up    FULL=true  CENTER=true  RIGID=true
+  down  FULL=false CENTER=false RIGID=false
+  north FULL=false CENTER=false RIGID=false
+```
+
+### 矛盾点
+
+支撑形状明明是**实心 1×1×1**，`UP` 三型全 true 符合预期，但 `DOWN` / `NORTH` **全为 false**
+—— 满方块在 `DOWN` 面和 `NORTH` 面本应同样判 true。
+
+这说明 `isFaceSturdy` 走的不是 `getBlockSupportShape` 的实时计算，而是
+`BlockStateBase.Cache` 里**方块初始化时预算好的缓存值**，而缓存计算时形状很可能为空
+（脚手架注册带 `noCollision()`，`hasCollision = false`）。
+
+### 两次失败的尝试
+
+1. 覆写 `getBlockSupportShape` 返回 `getShape`（平台 + 四角柱）→ 差异 3 → 15
+2. 覆写返回 `fullBlock()` → 差异 3 → 15，且 `DOWN`/`NORTH`/`EAST`/`WEST` 全部误判为 true
+
+### TODO
+
+需要先搞清楚 Cubium 的 `BlockStateBase.Cache` 等价物在什么时机、用什么 level 计算
+`isFaceSturdy` 缓存，再决定脚手架的支撑形状。直接覆写 `getBlockSupportShape` 会与
+缓存路径脱节，必然失败。
 ## 与其它能力的关系
 
 | 能力 | 关系 |
