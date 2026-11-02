@@ -187,6 +187,7 @@ import { faceSturdyInput } from "./face_sturdy.ts";
 import { worldBorderInput } from "./world_border.ts";
 import { easingTypeInput } from "./easing_type.ts";
 import { mthInterpolationInput } from "./mth_interpolation.ts";
+import { legacyRandomInput } from "./legacy_random.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1209,6 +1210,13 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         description: "Mth.lerp2/lerp3/catmullrom/smoothstep；lerp3 只接受单因子，"
             + "smoothstep 是单参数版本（x³(6x²-15x+10)），与 GLSL 三参数版本不同",
         key: "unit", units: { kind: "listing" }, input: mthInterpolationInput },
+    {
+        name: "legacy_random",
+        probe: "legacy_random",
+        oracle: "LegacyRandomOracle",
+        description: "LegacyRandomSource 的 48 位 LCG 序列；nextInt(bound) 是拒绝采样，"
+            + "2 的幂走快速路径，同 seed 下不同 bound 推进的步数不同",
+        key: "unit", units: { kind: "listing" }, input: legacyRandomInput },
 
 
 
