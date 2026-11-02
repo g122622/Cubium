@@ -20,7 +20,9 @@
 | 旗帜补 `noCollision()`（支撑形状应为空）| 141 |
 | 悬挂告示牌补 `getBlockSupportShape` 覆写 + 修正形状 | 129 |
 | 蜡烛补 `withCollision()`（支撑形状应非空）| 95 |
-| 吊挂告示牌按 `rotation` 区分形状 | **83** |
+| 吊挂告示牌按 `rotation` 区分形状 | 83 |
+| 墙面悬挂告示牌按原版方式合成细分网格 | 71 |
+| 中继器/比较器补 `withCollision()` | **65** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -611,7 +613,7 @@ Cubium 此前恒定返回 `box(0.25,0,0.25,0.75,1,0.75)`（即 `box(4,0,4,12,16,
 
 已改为按 rotation 查表的 `m_shapesByRotation` + `m_defaultShape`，12 处差异全部消除。
 
-## 未收敛：墙面悬挂告示牌的切片网格（12 处）
+## 墙面悬挂告示牌：网格细分必须按原版方式合成（83 → 71）
 
 `*_wall_hanging_sign` 仍剩 12 处。这一块的难点**不是形状外轮廓，而是离散网格的细分**。
 
@@ -652,13 +654,78 @@ Cubium 用 `fromPixelBox(6,0,0,10,16,16)` 只有 2 个坐标，切片非空，�
 
 本轮已回退到路径 1 的状态（保留 12 处差异），并把外轮廓与网格数据记入本文档。
 
-### 下一步
+### 最终解法（已实施）
 
-需要复刻原版的**组合与网格细分**：先 `or(横板, 中心立柱)` 得到细分网格，再按
-axis 旋转。Cubium 的 `CollisionShape::combine(OR)` 会保留两盒的坐标并集，
-方向应当一致，只是需要喂入与原版相同的两个分量盒。
+复刻原版的合成方式：先用 `Block.column` 的展开公式算出两个分量盒，再用 `combine(OR)`
+取坐标并集。
 
-`TODO` 已写入 `HangingSignBlock.cpp` 的相关位置。
+```cpp
+column(16.0, 4.0, 14.0, 16.0)  ->  box(0, 14, 6, 16, 16, 10)   顶部横板
+column(14.0, 2.0,  0.0, 10.0)  ->  box(1,  0, 7, 15, 10,  9)   中心立柱
+
+// Z 轴朝向：直接 OR
+alongZ = combine(plank, pillar, OR);
+// X 轴朝向：两个分量盒各绕 Y 轴转 90 度后再 OR
+alongX = combine(plankRot, pillarRot, OR);
+```
+
+得到的网格与原版完全一致：
+
+```
+X = [0, 0.0625, 0.9375, 1]                                       (3 格，中间那格大部分是空的)
+Z = [0, 0.125, 0.25, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.75, 0.875, 1]
+```
+
+**12 处差异全部消除。**
+
+> 教训：构造 VoxelShape 时**不能只对齐外轮廓**。原始形状由多个盒子 OR 而成时，
+> 其离散网格（坐标并集）才是决定面切片行为的关键，必须按同样的分量盒与顺序合成。
+
+## 中继器 / 比较器：补 `withCollision()`（71 → 65）
+
+`repeater` 与 `comparator` 各 3 处，全部是 `DOWN|CENTER` / `DOWN|FULL` / `DOWN|RIGID`：
+原版 true、Cubium false。
+
+这与蜡烛系列是**同一个根因**：两者都注册在 `Material::DECORATION` 上，而
+`makeDecorationMaterial()` 是 `.solid(false)`，`m_hasCollision = false`，
+支撑形状因此为空。
+
+```cpp
+BlockProperties(Material::DECORATION).withCollision().notSolid()
+```
+
+6 处差异全部消除。
+
+> 注意 `redstone_wire` 也用了 `Material::DECORATION`，但它同时显式写了 `.noCollision()`
+> ——后者覆盖前者，红石线确实没有碰撞形状，原版也是如此。判断这类方块时必须看
+> **最终生效的显式设置**，不能只看 Material。
+
+## 脚手架：尝试失败已回退（仍剩 3 处）
+
+`scaffolding` 的 3 处是 `UP|CENTER` / `UP|FULL` / `UP|RIGID`：原版 true、Cubium false。
+
+### 实测
+
+```java
+getShape(empty ctx) = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]]
+support             = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]]
+cshape(empty)       = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]]
+holdingItem(empty)  = false
+```
+
+原版脚手架**没有覆写** `getBlockSupportShape`，走基类链路
+`getCollisionShape(..., CollisionContext.empty())`。而 `CollisionContext.empty()` 让
+`isAbove(...)` 恒为 true、`isDescending()` 恒为 false，于是命中
+`isAbove(Shapes.block(), pos, true) && !isDescending()` 分支返回 `SHAPE_STABLE`。
+
+### 失败原因
+
+我给 Cubium 覆写 `getBlockSupportShape` 直接返回满方块，结果差异从 3 **升到 15**——
+说明并非所有状态都返回满方块。`SHAPE_STABLE` 名义上是「顶部平台 + 四角柱」，
+实测却给出满方块，两者不一致，说明我对该分支的实际走向判断有误。
+
+已回退。`TODO`：需要逐状态测出原版脚手架 8×`distance`×`bottom` 组合下的支撑形状，
+再决定 Cubium 的覆写策略，而不是一刀切返回满方块。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

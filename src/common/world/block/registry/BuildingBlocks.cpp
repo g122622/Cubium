@@ -303,6 +303,7 @@ void registerBuildingBlocks()
     BuildingBlocks::SCAFFOLDING =
         &registry.registerBlock<blocks::ScaffoldingBlock>(ResourceLocation("minecraft:scaffolding"),
             BlockProperties(Material::DECORATION)
+                .withCollision()
                 .hardness(0.0f)
                 .notSolid()
                 .soundType(BlockSoundTypes::SCAFFOLDING)

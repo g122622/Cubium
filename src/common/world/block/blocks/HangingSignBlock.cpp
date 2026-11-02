@@ -169,45 +169,48 @@ WallHangingSignBlock::WallHangingSignBlock(const BlockProperties& properties, Wo
 {
     // 墙面悬挂告示牌各方向的形状。
     //
-    // 对齐原版 `WallHangingSignBlock`：
+    // 原版：
     //
     //   SHAPES_PLANK = rotateHorizontalAxis(Block.column(16.0, 4.0, 14.0, 16.0));
     //   SHAPES       = rotateHorizontalAxis(Shapes.or(SHAPES_PLANK.get(Axis.Z),
     //                                                 Block.column(14.0, 2.0, 0.0, 10.0)));
+    //   getShape / getBlockSupportShape  ->  SHAPES.get(FACING.getAxis())
     //
-    // 实测原版 `getBlockSupportShape` 的**外轮廓**：
+    // `Block.column(w, d, yMin, yMax)` 的具体展开（见 Block.column 的源码：
+    // `box(8 - w/2, yMin, 8 - d/2, 8 + w/2, yMax, 8 + d/2)`，单位为像素）：
     //
-    //   FACING=NORTH / SOUTH -> box(0, 0, 6, 16, 16, 10)   X 满宽、Z 居中 2 像素、Y 满高
-    //   FACING=EAST  / WEST  -> box(6, 0, 0, 10, 16, 16)   Z 满宽、X 居中 2 像素、Y 满高
+    //   column(16.0, 4.0, 14.0, 16.0)  ->  box(0, 14,  6, 16, 16, 10)   顶部横板
+    //   column(14.0, 2.0,  0.0, 10.0)  ->  box(1,  0,  7, 15, 10,  9)   中心立柱
     //
-    // 但**仅有外轮廓不足以复现原版的面切片行为**。原版的离散网格来自
-    // `Shapes.rotateHorizontalAxis(or(SHAPES_PLANK.get(Axis.Z), column(14.0, 2.0, 0.0, 10.0)))`，
-    // 合并后的坐标列表被细分成 1/16 与 1/8 混合的网格，例如 EAST 朝向时
+    // **必须按原版的方式合成**：两个分量盒 OR 之后坐标列表取并集，得到细分的离散网格
     //
-    //   X = [0, 0.125, 0.25, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.75, 0.875, 1]
-    //   Z = [0, 0.0625, 0.9375, 1]
+    //   X = [0, 0.0625, 0.9375, 1]
+    //   Z = [0, 0.125, 0.25, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.75, 0.875, 1]
     //
-    // 于是 `getFaceShape(EAST)` 取到的切片落在没有体素的格子里，返回空形状，
-    // 原版的 `EAST|CENTER` 因此为 false。单纯用 `fromPixelBox` 构造的 2 坐标盒子
-    // 网格太粗，切片非空，会把该面误判为 true。
+    // 这个**网格密度**（而不只是外轮廓）决定了面切片的结果。举例：X 轴只有 3 格
+    // （0..0.0625、0.0625..0.9375、0.9375..1），中间那一格大部分是空的；对 EAST 面做
+    // `findIndex(X, 0.9999999)` 得到的切片落在没有体素的范围内，`getFaceShape` 返回空，
+    // 于是原版的 `EAST|CENTER` 为 false。
     //
-    // TODO: 要完全对齐，需要复刻原版的组合与网格细分（横板 OR 中心立柱后再旋转）。
-    //       当前的「横板 + 中心立柱」组合形状与原版外轮廓不符，仍剩 12 处
-    //       `UP|CENTER` / `EAST|WEST|CENTER` 差异，详见 docs/test/diff/face_sturdy.md。
+    // 若只用单个 `fromPixelBox` 画出外轮廓盒子，网格只有 2 个坐标、格子粗得多，
+    // 切片必然非空，该面就会被误判为 true。
     constexpr f32 P = 1.0f / 16.0f;
-    // 中心立柱（X/Z 两个朝向共用）
-    const CollisionShape pillar = CollisionShape::box(1.0f * P, 0.0f, 1.0f * P, 15.0f * P, 10.0f * P, 15.0f * P);
-    // Z 朝向：横板贴在 z=14..16
-    CollisionShape plankZ = CollisionShape::box(0.0f, 4.0f * P, 14.0f * P, 1.0f, 1.0f, 1.0f);
-    plankZ = CollisionShape::combine(plankZ, pillar, CollisionShape::CombineOp::OR);
-    // X 朝向：横板贴在 x=14..16
-    CollisionShape plankX = CollisionShape::box(14.0f * P, 4.0f * P, 0.0f, 1.0f, 1.0f, 1.0f);
-    plankX = CollisionShape::combine(plankX, pillar, CollisionShape::CombineOp::OR);
+    // 顶部横板：column(16.0, 4.0, 14.0, 16.0) -> box(0, 14, 6, 16, 16, 10)
+    const CollisionShape plank = CollisionShape::box(0.0f, 14.0f * P, 6.0f * P, 1.0f, 1.0f, 10.0f * P);
+    // 中心立柱：column(14.0, 2.0, 0.0, 10.0) -> box(1, 0, 7, 15, 10, 9)
+    const CollisionShape pillar = CollisionShape::box(1.0f * P, 0.0f, 7.0f * P, 15.0f * P, 10.0f * P, 9.0f * P);
 
-    m_shapesByDirection[Direction::North] = plankZ;
-    m_shapesByDirection[Direction::South] = plankZ;
-    m_shapesByDirection[Direction::East] = plankX;
-    m_shapesByDirection[Direction::West] = plankX;
+    // Z 轴朝向（FACING = NORTH / SOUTH）：先 OR 出细分网格
+    const CollisionShape alongZ = CollisionShape::combine(plank, pillar, CollisionShape::CombineOp::OR);
+    // X 轴朝向（FACING = EAST / WEST）：把上面两个分量盒绕 Y 轴旋转 90 度后再 OR
+    const CollisionShape plankRot = CollisionShape::box(6.0f * P, 14.0f * P, 0.0f, 10.0f * P, 1.0f, 1.0f);
+    const CollisionShape pillarRot = CollisionShape::box(7.0f * P, 0.0f, 1.0f * P, 9.0f * P, 10.0f * P, 15.0f * P);
+    const CollisionShape alongX = CollisionShape::combine(plankRot, pillarRot, CollisionShape::CombineOp::OR);
+
+    m_shapesByDirection[Direction::North] = alongZ;
+    m_shapesByDirection[Direction::South] = alongZ;
+    m_shapesByDirection[Direction::East] = alongX;
+    m_shapesByDirection[Direction::West] = alongX;
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
