@@ -48,8 +48,15 @@ HoneyBlock::HoneyBlock(const BlockProperties& properties)
     m_speedFactor = physics::HONEY_BLOCK_SPEED_FACTOR;
     m_jumpFactor = physics::HONEY_BLOCK_JUMP_FACTOR;
 
-    // 蜂蜜块碰撞箱稍小
-    m_collisionShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.9375f, 1.0f);
+    // 蜂蜜块碰撞箱：对齐原版 `Block.column(14.0, 0.0, 15.0)`。
+    //
+    // column(radius=14, yMin=0, yMax=15) 生成的是**横向 14/16、纵向 0..15/16** 的柱子，
+    // 即 x/z 从 1/16 到 15/16（各留 1 像素），不是完整的 0..1。
+    //
+    // 此前这里写成了 x/z 0..1、y 0..0.9375——纵向对了，但**横向是满宽**。
+    // 因为 `getBlockSupportShape` 默认返回碰撞形状，横向满宽会让四个侧面的
+    // `isFaceSturdy` 误判为「有坚固面」，于是火把等附着方块能贴在蜂蜜块侧面。
+    m_collisionShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f, 0.9375f);
 }
 
 void HoneyBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const

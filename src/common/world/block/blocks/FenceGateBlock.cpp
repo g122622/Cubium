@@ -84,6 +84,23 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     m_inWallClosedShapes[static_cast<size_t>(Direction::West)] =
         VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 0.8125f, 1.0f);
 
+    // 支撑形状：对齐原版 SHAPE_SUPPORT = rotateHorizontalAxis(Block.column(16.0, 4.0, 5.0, 24.0))。
+    //
+    // column(16, 4, 5, 24) → box(0, 5/16, 6/16, 1, 24/16, 10/16)：
+    //   x 满宽、z 厚 4/16（居中）、**y 从 5/16 到 24/16**。
+    // 碰撞形状用的是 column(16, 4, 0, 24)，两者只差纵向起点（0 对 5/16）。
+    //
+    // Z 轴（朝北/南）门板沿 X 延伸；X 轴（朝东/西）是同一形状绕 Y 旋 90°。
+    for (size_t i = 0; i < m_supportShapes.size(); ++i) {
+        m_supportShapes[i] = VoxelShapes::empty();
+    }
+    const CollisionShape supportZ = VoxelShapes::cube(0.0f, 0.3125f, 0.375f, 1.0f, 1.5f, 0.625f);
+    const CollisionShape supportX = VoxelShapes::cube(0.375f, 0.3125f, 0.0f, 0.625f, 1.5f, 1.0f);
+    m_supportShapes[static_cast<size_t>(Direction::North)] = supportZ;
+    m_supportShapes[static_cast<size_t>(Direction::South)] = supportZ;
+    m_supportShapes[static_cast<size_t>(Direction::East)] = supportX;
+    m_supportShapes[static_cast<size_t>(Direction::West)] = supportX;
+
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())
@@ -221,6 +238,23 @@ const CollisionShape& FenceGateBlock::getCollisionShape(const BlockState& state)
     }
 
     return inWall ? m_inWallClosedShapes[index] : m_closedShapes[index];
+}
+
+const CollisionShape& FenceGateBlock::getBlockSupportShape(const BlockState& state) const
+{
+    // 对齐原版：打开时无支撑面；关闭时按朝向取 SHAPE_SUPPORT。
+    // 注意原版的支撑形状**不看 IN_WALL**——墙内与墙外用的是同一个支撑形状。
+    if (state.get(BlockStateProperties::OPEN())) {
+        return VoxelShapes::empty();
+    }
+
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    size_t index = static_cast<size_t>(facing);
+    if (index >= Directions::COUNT || !Directions::isHorizontal(facing)) {
+        index = static_cast<size_t>(Direction::North);
+    }
+
+    return m_supportShapes[index];
 }
 
 const CollisionShape& FenceGateBlock::getOcclusionShape(const BlockState& state) const
