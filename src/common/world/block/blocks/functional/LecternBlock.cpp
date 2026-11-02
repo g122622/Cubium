@@ -102,25 +102,128 @@ LecternBlock::LecternBlock(const BlockProperties& properties)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::HAS_BOOK(), false));
 
-    constexpr f32 p = 1.0f / 16.0f;
+    // 讲台形状：直接按原版 `forAllBoxes` 的实测结果建模。
+    // 9~11 个盒子（书籍斜放 + 柱体 + 底座），坐标网格经 `Shapes.or` 细分后与此一致。
+    // 此前用的是「底座 + 柱子 + 顶板 + 单斜面」四件套，与原版差异很大。
 
-    const CollisionShape base = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * p, 2.0f * p, 16.0f * p);
-    const CollisionShape post = CollisionShape::box(4.0f * p, 2.0f * p, 4.0f * p, 12.0f * p, 14.0f * p, 12.0f * p);
-    const CollisionShape top = CollisionShape::box(0.0f, 15.0f * p, 0.0f, 16.0f * p, 15.0f * p, 16.0f * p);
+    // 碰撞与支撑形状：原版实测为【底座 + 柱体】两个盒子（不含书籍斜面）。
+    m_collisionShape = CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f),
+        CollisionShape::box(0.25f, 0.125f, 0.25f, 0.75f, 0.875f, 0.75f),
+        CollisionShape::CombineOp::OR);
 
-    m_collisionShape = CollisionShape::combine(CollisionShape::combine(base, post), top);
+    CollisionShape _lecNorth = CollisionShape::box(0.00000f, 0.00000f, 0.00000f, 1.00000f, 0.12500f, 1.00000f);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.25000f, 0.12500f, 0.25000f, 0.75000f, 0.87500f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.00000f, 0.62500f, 0.06250f, 0.25000f, 0.87500f, 0.33333f),
+        CollisionShape::CombineOp::OR);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.25000f, 0.62500f, 0.06250f, 1.00000f, 0.87500f, 0.25000f),
+        CollisionShape::CombineOp::OR);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.75000f, 0.62500f, 0.25000f, 1.00000f, 0.87500f, 0.33333f),
+        CollisionShape::CombineOp::OR);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.00000f, 0.75000f, 0.33333f, 0.25000f, 1.00000f, 0.60417f),
+        CollisionShape::CombineOp::OR);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.75000f, 0.75000f, 0.33333f, 1.00000f, 1.00000f, 0.60417f),
+        CollisionShape::CombineOp::OR);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.00000f, 0.87500f, 0.60417f, 1.00000f, 1.12500f, 0.87500f),
+        CollisionShape::CombineOp::OR);
+    _lecNorth = CollisionShape::combine(_lecNorth,
+        CollisionShape::box(0.25000f, 0.87500f, 0.33333f, 0.75000f, 1.00000f, 0.60417f),
+        CollisionShape::CombineOp::OR);
+    m_shapesByFacing[static_cast<size_t>(Direction::North)] = _lecNorth;
 
-    const CollisionShape slopeN = CollisionShape::box(1.0f * p, 10.0f * p, 0.0f, 14.0f * p, 18.0f * p, 16.0f * p);
-    m_shapesByFacing[static_cast<size_t>(Direction::North)] = CollisionShape::combine(m_collisionShape, slopeN);
+    CollisionShape _lecEast = CollisionShape::box(0.00000f, 0.00000f, 0.00000f, 1.00000f, 0.12500f, 1.00000f);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.25000f, 0.12500f, 0.25000f, 0.75000f, 0.87500f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.66667f, 0.62500f, 0.00000f, 0.93750f, 0.87500f, 0.25000f),
+        CollisionShape::CombineOp::OR);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.66667f, 0.62500f, 0.75000f, 0.93750f, 0.87500f, 1.00000f),
+        CollisionShape::CombineOp::OR);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.75000f, 0.62500f, 0.25000f, 0.93750f, 0.87500f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.39583f, 0.75000f, 0.00000f, 0.66667f, 1.00000f, 0.25000f),
+        CollisionShape::CombineOp::OR);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.39583f, 0.75000f, 0.75000f, 0.66667f, 1.00000f, 1.00000f),
+        CollisionShape::CombineOp::OR);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.12500f, 0.87500f, 0.00000f, 0.39583f, 1.12500f, 1.00000f),
+        CollisionShape::CombineOp::OR);
+    _lecEast = CollisionShape::combine(_lecEast,
+        CollisionShape::box(0.39583f, 0.87500f, 0.25000f, 0.66667f, 1.00000f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    m_shapesByFacing[static_cast<size_t>(Direction::East)] = _lecEast;
 
-    const CollisionShape slopeS = CollisionShape::box(1.0f * p, 10.0f * p, 0.0f, 14.0f * p, 18.0f * p, 16.0f * p);
-    m_shapesByFacing[static_cast<size_t>(Direction::South)] = CollisionShape::combine(m_collisionShape, slopeS);
+    CollisionShape _lecSouth = CollisionShape::box(0.00000f, 0.00000f, 0.00000f, 1.00000f, 0.12500f, 1.00000f);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.25000f, 0.12500f, 0.25000f, 0.75000f, 0.87500f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.00000f, 0.62500f, 0.66667f, 0.25000f, 0.87500f, 0.93750f),
+        CollisionShape::CombineOp::OR);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.25000f, 0.62500f, 0.75000f, 1.00000f, 0.87500f, 0.93750f),
+        CollisionShape::CombineOp::OR);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.75000f, 0.62500f, 0.66667f, 1.00000f, 0.87500f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.00000f, 0.75000f, 0.39583f, 0.25000f, 1.00000f, 0.66667f),
+        CollisionShape::CombineOp::OR);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.75000f, 0.75000f, 0.39583f, 1.00000f, 1.00000f, 0.66667f),
+        CollisionShape::CombineOp::OR);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.00000f, 0.87500f, 0.12500f, 1.00000f, 1.12500f, 0.39583f),
+        CollisionShape::CombineOp::OR);
+    _lecSouth = CollisionShape::combine(_lecSouth,
+        CollisionShape::box(0.25000f, 0.87500f, 0.39583f, 0.75000f, 1.00000f, 0.66667f),
+        CollisionShape::CombineOp::OR);
+    m_shapesByFacing[static_cast<size_t>(Direction::South)] = _lecSouth;
 
-    const CollisionShape slopeW = CollisionShape::box(0.0f, 10.0f * p, 1.0f * p, 16.0f * p, 18.0f * p, 14.0f * p);
-    m_shapesByFacing[static_cast<size_t>(Direction::West)] = CollisionShape::combine(m_collisionShape, slopeW);
-
-    const CollisionShape slopeE = CollisionShape::box(0.0f, 10.0f * p, 1.0f * p, 16.0f * p, 18.0f * p, 14.0f * p);
-    m_shapesByFacing[static_cast<size_t>(Direction::East)] = CollisionShape::combine(m_collisionShape, slopeE);
+    CollisionShape _lecWest = CollisionShape::box(0.00000f, 0.00000f, 0.00000f, 1.00000f, 0.12500f, 1.00000f);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.25000f, 0.12500f, 0.25000f, 0.75000f, 0.87500f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.06250f, 0.62500f, 0.00000f, 0.25000f, 0.87500f, 1.00000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.25000f, 0.62500f, 0.00000f, 0.33333f, 0.87500f, 0.25000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.25000f, 0.62500f, 0.75000f, 0.33333f, 0.87500f, 1.00000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.33333f, 0.75000f, 0.00000f, 0.60417f, 1.00000f, 0.25000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.33333f, 0.75000f, 0.75000f, 0.60417f, 1.00000f, 1.00000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.33333f, 0.87500f, 0.25000f, 0.87500f, 1.00000f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.60417f, 0.87500f, 0.00000f, 0.87500f, 1.12500f, 0.25000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.60417f, 0.87500f, 0.75000f, 0.87500f, 1.12500f, 1.00000f),
+        CollisionShape::CombineOp::OR);
+    _lecWest = CollisionShape::combine(_lecWest,
+        CollisionShape::box(0.60417f, 1.00000f, 0.25000f, 0.87500f, 1.12500f, 0.75000f),
+        CollisionShape::CombineOp::OR);
+    m_shapesByFacing[static_cast<size_t>(Direction::West)] = _lecWest;
 }
 
 BlockState LecternBlock::getStateForPlacement(BlockItemUseContext& context)

@@ -73,25 +73,37 @@ ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
     // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充（详见其它方块注释）：
     // createBlockState 触发 _cacheProperties→propagatesSkylightDown→getOcclusionShape→getShape，
     // 构造期回调 getShape 需 m_topShape/m_fullShape 等已就绪，否则依赖空 shape 的脆弱巧合。
-    // 创建形状
-    // 顶部平台：边框形状 (field_220121_d)
-    // 四个角的支柱 + 顶部边缘
-    m_topShape = CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f);
+    // 原版脚手架形状（实测 forAllBoxes）由 **7 个盒子**组成：
+    //
+    //   [0.000, 0.000, 0.000 -> 0.125, 1.000, 0.125]   西北角柱（贯穿整格）
+    //   [0.000, 0.000, 0.875 -> 0.125, 1.000, 1.000]   西南角柱
+    //   [0.875, 0.000, 0.000 -> 1.000, 1.000, 0.125]   东北角柱
+    //   [0.875, 0.000, 0.875 -> 1.000, 1.000, 1.000]   东南角柱
+    //   [0.000, 0.875, 0.125 -> 1.000, 1.000, 0.875]   顶部横杆（东西向）
+    //   [0.125, 0.875, 0.000 -> 0.875, 1.000, 0.125]   顶部横杆（南北向）
+    //   [0.125, 0.875, 0.875 -> 0.875, 1.000, 1.000]   顶部横杆（南北向）
+    //
+    // 注意顶部**不是一整块平台**，而是三根横杆围出的框；中央 `0.125..0.875` 的
+    // 水平区域在 y=0.875..1 之间是空的——玩家可以从中穿过。
+    const CollisionShape scCornerNW = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.125f, 1.0f, 0.125f);
+    const CollisionShape scCornerSW = CollisionShape::box(0.0f, 0.0f, 0.875f, 0.125f, 1.0f, 1.0f);
+    const CollisionShape scCornerNE = CollisionShape::box(0.875f, 0.0f, 0.0f, 1.0f, 1.0f, 0.125f);
+    const CollisionShape scCornerSE = CollisionShape::box(0.875f, 0.0f, 0.875f, 1.0f, 1.0f, 1.0f);
+    const CollisionShape scBarX = CollisionShape::box(0.0f, 0.875f, 0.125f, 1.0f, 1.0f, 0.875f);
+    const CollisionShape scBarZNorth = CollisionShape::box(0.125f, 0.875f, 0.0f, 0.875f, 1.0f, 0.125f);
+    const CollisionShape scBarZSouth = CollisionShape::box(0.125f, 0.875f, 0.875f, 0.875f, 1.0f, 1.0f);
+
+    m_topShape = CollisionShape::combine(scBarX, scBarZNorth, CollisionShape::CombineOp::OR);
+    m_topShape = CollisionShape::combine(m_topShape, scBarZSouth, CollisionShape::CombineOp::OR);
 
     // 底部平台 (field_220123_f)
     m_baseShape = CollisionShape::box(0.0f, BOTTOM_Y_MIN, 0.0f, 1.0f, BOTTOM_Y_MAX, 1.0f);
 
-    // 完整形状 (field_220122_e)
-    // 包含顶部平台、四个角支柱、底部平台
-    m_fullShape = CollisionShape::combine(
-        CollisionShape::combine(CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f), // 顶部平台
-            CollisionShape::box(0.0f, 0.0f, 0.0f, CORNER_SIZE, 1.0f, CORNER_SIZE)                  // 西北角
-            ),
-        CollisionShape::combine(CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, CORNER_SIZE), // 东北角
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 1.0f - CORNER_SIZE, CORNER_SIZE, 1.0f, 1.0f),       // 西南角
-                CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f) // 东南角
-                )));
+    // 完整形状 (field_220122_e)：四角柱 + 三根顶部横杆
+    m_fullShape = CollisionShape::combine(scCornerNW, scCornerSW, CollisionShape::CombineOp::OR);
+    m_fullShape = CollisionShape::combine(m_fullShape, scCornerNE, CollisionShape::CombineOp::OR);
+    m_fullShape = CollisionShape::combine(m_fullShape, scCornerSE, CollisionShape::CombineOp::OR);
+    m_fullShape = CollisionShape::combine(m_fullShape, m_topShape, CollisionShape::CombineOp::OR);
 
     // 空形状用于碰撞检测
     m_emptyShape = CollisionShape::empty();
@@ -260,28 +272,22 @@ bool ScaffoldingBlock::isValidPosition(const BlockState& state, IBlockReader& wo
 const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);
-    // 当 bottom=true 时返回完整形状，否则返回顶部平台
-    if (state.get(BlockStateProperties::BOTTOM())) {
-        return m_fullShape;
-    }
-    return m_topShape;
+    // 原版 `getShape` 无论 `bottom` 取值都返回完整形状（四角柱 + 三根顶部横杆）。
+    // 实测 `bottom=false`（默认）与 `bottom=true` 的 `getShape` 完全相同。
+    // 此前按 `bottom` 分支返回 `m_topShape`，导致默认状态只覆盖顶部三根横杆。
+    return m_fullShape;
 }
 
 const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& state) const noexcept
 {
-    // 脚手架的碰撞形状比较特殊：
-    // - 当 distance != 0 且 bottom=true 时，玩家可以站在底部平台上
-    // - 其他情况下，玩家可以穿过脚手架
-    i32 distance = state.get(BlockStateProperties::DISTANCE_0_7());
-    bool bottom = state.get(BlockStateProperties::BOTTOM());
-
-    if (distance != 0 && bottom) {
-        // 返回底部平台形状，允许玩家站在上面
-        return m_baseShape;
-    }
-
-    // 无碰撞，玩家可以穿过
-    return m_emptyShape;
+    MC_UNUSED(state);
+    // 原版脚手架没有覆写 `getCollisionShape`，继承的默认实现就是
+    // `hasCollision ? getShape(...) : empty()`；而脚手架**有**碰撞，
+    // 因此碰撞形状等于 `getShape`（四角柱 + 三根顶部横杆）。
+    //
+    // 此前按 distance/bottom 分支判断，默认状态（distance=7, bottom=false）返回空，
+    // 导致脚手架完全没有碰撞、玩家可以直接穿过。
+    return m_fullShape;
 }
 
 // ========== IWaterLoggable 接口实现 ==========

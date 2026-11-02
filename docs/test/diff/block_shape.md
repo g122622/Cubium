@@ -1130,6 +1130,54 @@ Shapes.or(Block.column(16.0, 8.0, 16.0), Block.column(4.0, 0.0, 8.0))
 ```
 
 **7 处**，初始 306 处的 2.3%。
+## 讲台 / 脚手架（7 → 5）
+
+### `lectern`：碰撞形状不含书籍
+
+原版 `getCollisionShape` 只返回 **底座 + 柱体** 两个盒子，`getShape` 才是完整的 9~11 个盒子
+（含斜放的书籍）。Cubium 两者共用了同一个 `m_collisionShape`，导致碰撞把书籍也算进去。
+
+已拆成两套：
+
+```cpp
+m_collisionShape = combine(base, post);          // 碰撞/支撑用
+m_shapesByFacing[dir] = 底座 + 柱体 + 书籍…;      // 外形用
+```
+
+### `scaffolding`：两个独立的状态分支错误
+
+**错误一**：`getShape` 按 `bottom` 分支
+
+```cpp
+❌ return state.get(BOTTOM) ? m_fullShape : m_topShape;
+✅ return m_fullShape;
+```
+
+原版实测 `bottom=false`（默认）与 `bottom=true` 的 `getShape` **完全相同**。
+
+**错误二**：`getCollisionShape` 按 `distance/bottom` 分支
+
+```cpp
+❌ if (distance != 0 && bottom) return m_baseShape;  return m_emptyShape;
+✅ return m_fullShape;
+```
+
+原版脚手架**没有覆写** `getCollisionShape`，继承的默认实现是 `hasCollision ? getShape : empty`，
+而脚手架有碰撞，所以碰撞形状 = 外形。
+
+> 结果非常严重：默认状态（`distance=7, bottom=false`）下 Cubium 的脚手架**完全没有碰撞**，
+> 玩家可以直接穿过。这是本轮发现的、影响游戏实际行为最明显的一个缺陷。
+
+同时把形状常量本身也修正了：原版顶部是**三根横杆围成的框**（中央 `0.125..0.875` 在
+`y=0.875..1` 之间是空的），不是一整块平台。
+
+## 累计进度
+
+```
+306 → ... → 14 → 10 → 7 → 5
+```
+
+**5 处**，初始 306 处的 1.6%。
 ## 与其它能力的关系
 
 | 能力 | 关系 |
