@@ -3,8 +3,8 @@
 > 由 `tests/diff/README.md` 拆分而来，记录该能力的实现要点、踩坑与验证结论。
 > 跨能力共性规律见 [`_patterns.md`](./_patterns.md)。
 
-第 196 个能力。1166 个单元，首次运行报出 **306 处差异**（146 collision + 54 support，其余为
-报告上限截断）。
+第 196 个能力。1166 个单元。首次运行报出 306 处差异；改为**体素化表示**后降到 **175 处**
+——其中约 130 处原本是「同一几何的冗余盒子拆分」，属于误报。
 
 ## 测什么
 
@@ -43,21 +43,76 @@ acacia_sapling
 这些差异在 `face_sturdy` 里**完全不可见**（树苗的支撑形状双方都为空），但它们确实是缺陷——
 影响碰撞手感与选中框。
 
-## 关键点一：逐盒输出，不要用坐标列表
+## 关键点一：必须体素化，不能逐盒输出
 
-`CollisionShape` 的多盒形状（楼梯、栅栏、告示牌）如果用「各轴坐标列表」描述，会丢失盒子归属：
+**这是本能力最重要的设计决定，也是我第一版做错的地方。**
 
-```
-X[0,1]Y[0,0.5]Z[0,1] + X[0,0.5]Y[0.5,1]Z[0,1]
-```
-
-这串坐标无法还原成「两个盒子还是一个盒子」。改为逐个盒子输出：
+第一版逐盒输出坐标（每盒 6 个数，多盒用 `;` 分隔）。运行后 306 处差异，看似很多问题。
+但抽样核对后发现绝大多数是**同一几何的不同拆分方式**：
 
 ```
-0,0,0,1,0.5,1;0,0.5,0,0.5,1,1
+acacia_stairs
+  原版  (2 盒): 0,0,0,1,0.5,1 ; 0,0.5,0,1,1,0.5
+  Cubium(3 盒): 0,0,0,1,0.5,1 ; 0,0.5,0,0.5,1,0.5 ; 0.5,0.5,0,1,1,0.5
 ```
 
-既精确又便于对比。
+后两个盒子左右相邻，合并后恰好等于原版那一个盒子——**几何完全相同**。
+
+写脚本把两侧形状都体素化到 16³ 网格逐点比对，200 条样本里 **199 条几何等价，只有 1 条真不同**。
+
+形状的语义是「覆盖了方块内的哪些点」，不是「由几个盒子拼出来」。改为体素化后：
+
+```cpp
+Cardinal16 voxelize(const CollisionShape& shape)  // 每体素取中心点做包含判断
+```
+
+差异从 294 降到 **175**。这 175 处才是真正的覆盖差异。
+
+> **踩坑**：逐盒输出把「表示差异」和「语义差异」混在一起，会淹没真问题。
+> 判断一个比较维度是否合适，标准是：**该维度上的差异是否都对应真实的行为差异**。
+> 盒子拆分方式不满足这条，体素覆盖满足。
+
+## 关键点二：oracle 不能传 `null` 作为 BlockGetter
+
+首次运行报：
+
+```
+NullPointerException: Cannot invoke "BlockGetter.getBlockEntity" ...
+```
+
+部分方块的形状实现会查询世界（例如需要 BlockEntity 的方块）。传 `null` 直接崩溃。
+
+改用最小的只读实现：
+
+```java
+private static final BlockGetter EMPTY_LEVEL = new BlockGetter() {
+    public BlockEntity getBlockEntity(BlockPos pos) { return null; }
+    public BlockState getBlockState(BlockPos pos) { return Blocks.AIR.defaultBlockState(); }
+    public FluidState getFluidState(BlockPos pos) { return Fluids.EMPTY.defaultFluidState(); }
+    public int getMinY() { return 0; }
+    public int getHeight() { return 1; }
+};
+```
+
+> **踩坑**：`BlockGetter` 只声明了 `getBlockEntity` / `getBlockState` / `getFluidState` 三个
+> 抽象方法（外加继承自 `LevelHeightAccessor` 的 `getMinY` / `getHeight`）。
+> 我一开始多写了 `getHeight(Heightmap.Types, int, int)`，编译报
+> `method does not override or implement a method from a supertype`。
+
+## 本轮修复的形状缺陷
+
+体素化后的差异里，已修复 4 处：
+
+| 方块 | 原版 | Cubium 原值 |
+|---|---|---|
+| `FlowerBlock` | `column(6, 0, 10)` → Y 上限 `0.625` | Y 上限 `0.375` |
+| `SaplingBlock` | `column(12, 0, 12)` → `0.125..0.875`, Y `0.75` | `0.25..0.75`, Y `0.5` |
+| `MushroomBlock` | `column(6, 0, 6)` → `0.3125..0.6875`, Y `0.375` | `0.25..0.75`, Y `0.5` |
+| `BushBlock` | `column(16, 0, 13)` → 满宽, Y `0.8125` | `fullBlock()` |
+
+> **注意 `cactus`**：本能力显示原版 `getShape` 的 Y 上限是 `1.0`（`column(14, 0, 16)`），
+> 而 `face_sturdy` 那轮我把 Cubium 改成了 `0.9375`。两者并不矛盾——**外形与支撑形状在原版
+> 是两回事**。已把 `cactus` 的 `getShape` 改回 `1.0`。这也说明单一能力容易得出片面结论。
 
 ## 关键点二：oracle 不能传 `null` 作为 BlockGetter
 
@@ -89,10 +144,11 @@ private static final BlockGetter EMPTY_LEVEL = new BlockGetter() {
 ## 输出格式
 
 ```
-shape=<盒子列表>|collision=<盒子列表>|support=<盒子列表>
+shape=<体素串>|collision=<体素串>|support=<体素串>
 ```
 
-空形状记作 `EMPTY`，多盒用 `;` 分隔，每盒 6 个坐标（`%.6f`）。
+空形状记作 `EMPTY`。体素串是 16×16×16 网格按 `y→z→x` 展开的 4096 个 `0/1`，
+再做**游程压缩**（`<字符><次数>`，如 `0316`）以控制体积。
 
 ## 未覆盖范围
 

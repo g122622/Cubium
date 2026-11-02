@@ -103,22 +103,40 @@ public final class BlockShapeOracle {
         if (shape.isEmpty()) {
             return "EMPTY";
         }
-        List<AABB> boxes = new ArrayList<>();
-        shape.forAllBoxes((x1, y1, z1, x2, y2, z2) -> boxes.add(new AABB(x1, y1, z1, x2, y2, z2)));
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < boxes.size(); i++) {
-            if (i != 0) {
-                out.append(';');
+        // 体素化到 16³ 网格：形状的语义是「覆盖了方块内的哪些点」，而不是「由几个盒子拼出来」。
+        // 同一几何可以有无数种盒子拆分方式，逐盒输出会把表示差异误报成不一致。
+        boolean[] grid = new boolean[16 * 16 * 16];
+        for (int y = 0; y < 16; y++) {
+            for (int z = 0; z < 16; z++) {
+                for (int x = 0; x < 16; x++) {
+                    double px = (x + 0.5) / 16.0;
+                    double py = (y + 0.5) / 16.0;
+                    double pz = (z + 0.5) / 16.0;
+                    final double fx = px;
+                    final double fy = py;
+                    final double fz = pz;
+                    final int idx = (y * 16 + z) * 16 + x;
+                    shape.forAllBoxes((x1, y1, z1, x2, y2, z2) -> {
+                        if (fx > x1 && fx < x2 && fy > y1 && fy < y2 && fz > z1 && fz < z2) {
+                            grid[idx] = true;
+                        }
+                    });
+                }
             }
-            AABB b = boxes.get(i);
-            out.append(String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f",
-                b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ));
         }
-        return out.toString();
+        // 与探针侧相同的游程压缩。
+        StringBuilder packed = new StringBuilder();
+        for (int i = 0; i < grid.length; ) {
+            boolean ch = grid[i];
+            int run = 1;
+            while (i + run < grid.length && grid[i + run] == ch) {
+                run++;
+            }
+            packed.append(ch ? '1' : '0').append(run);
+            i += run;
+        }
+        return packed.toString();
     }
-
-    /** 形状盒子。 */
-    private record AABB(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {}
 
     public static void main(String[] args) throws IOException {
         SharedConstants.tryDetectVersion();

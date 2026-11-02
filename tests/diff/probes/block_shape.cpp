@@ -58,6 +58,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "probe.hpp"
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <string>
 #include <string_view>
@@ -93,33 +94,71 @@ const BlockState* stateByName(const std::string& name)
  *
  * 与 `shape_face` 能力使用相同格式，便于跨能力对照。
  */
+/// 16³ 体素网格。
+using Cardinal16 = std::array<std::array<std::array<bool, 16>, 16>, 16>;
+
+/**
+ * @brief 把形状体素化到 16³ 网格。
+ *
+ * 每个体素取其**中心点**做包含判断。这样同一几何的不同盒子拆分方式得到完全相同的结果，
+ * 而真正的形状差异（某个体素覆盖/未覆盖）一定被检出。
+ */
+Cardinal16 voxelize(const CollisionShape& shape)
+{
+    Cardinal16 grid{};
+    const auto& boxes = shape.boxes();
+    for (std::size_t y = 0; y < 16; ++y) {
+        for (std::size_t z = 0; z < 16; ++z) {
+            for (std::size_t x = 0; x < 16; ++x) {
+                const f32 px = (static_cast<f32>(x) + 0.5f) / 16.0f;
+                const f32 py = (static_cast<f32>(y) + 0.5f) / 16.0f;
+                const f32 pz = (static_cast<f32>(z) + 0.5f) / 16.0f;
+                for (const auto& box : boxes) {
+                    if (px > box.minX && px < box.maxX && py > box.minY && py < box.maxY && pz > box.minZ &&
+                        pz < box.maxZ) {
+                        grid[y][z][x] = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return grid;
+}
+
 std::string describe(const CollisionShape& shape)
 {
     if (shape.isEmpty()) {
         return "EMPTY";
     }
-    // 输出全部盒子的坐标：多盒形状（楼梯、栅栏等）用坐标列表会丢失盒子归属，
-    // 而逐盒输出能精确表达形状结构。
-    const auto& boxes = shape.boxes();
+    // 体素化到 16³ 网格：形状的**语义**是「覆盖了方块内的哪些点」，
+    // 而不是「由几个盒子拼出来」。同一个形状可以有无数种盒子拆分方式
+    // （例如把 `box(0,0.5,0,1,1,0.5)` 拆成左右两个半盒），几何完全相同。
+    // 逐盒输出会把这类表示差异误报成不一致，掩盖真正的问题。
+    const Cardinal16 grid = voxelize(shape);
     std::string out;
-    char buffer[128];
-    for (std::size_t i = 0; i < boxes.size(); ++i) {
-        if (i != 0) {
-            out.push_back(';');
+    char buffer[8];
+    for (std::size_t y = 0; y < 16; ++y) {
+        for (std::size_t z = 0; z < 16; ++z) {
+            for (std::size_t x = 0; x < 16; ++x) {
+                out.push_back(grid[y][z][x] ? '1' : '0');
+            }
         }
-        const auto& box = boxes[i];
-        std::snprintf(buffer,
-            sizeof(buffer),
-            "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f",
-            box.minX,
-            box.minY,
-            box.minZ,
-            box.maxX,
-            box.maxY,
-            box.maxZ);
-        out += buffer;
     }
-    return out;
+    // 压缩：连续相同字符用 `<字符><次数>` 表示，避免每行 4096 字符。
+    std::string packed;
+    for (std::size_t i = 0; i < out.size();) {
+        char ch = out[i];
+        std::size_t run = 1;
+        while (i + run < out.size() && out[i + run] == ch) {
+            ++run;
+        }
+        packed.push_back(ch);
+        std::snprintf(buffer, sizeof(buffer), "%zu", run);
+        packed += buffer;
+        i += run;
+    }
+    return packed;
 }
 
 void writeList(FILE* out)

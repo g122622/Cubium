@@ -42,7 +42,10 @@ FlowerBlock::FlowerBlock(const BlockProperties& properties, u32 suspiciousStewEf
 {
 
     // 花朵形状：小型，偏移中心
-    m_shape = CollisionShape::box(0.3125f, 0.0f, 0.3125f, 0.6875f, 0.375f, 0.6875f);
+    // 原版 FlowerBlock.SHAPE = Block.column(6.0, 0.0, 10.0)
+    //   = box(5, 0, 5, 11, 10, 11) -> X/Z 0.3125..0.6875，Y 上限 10/16 = 0.625。
+    // 此前 Y 上限写成 0.375（6/16），矮了 4 像素，选中框明显偏小。
+    m_shape = CollisionShape::box(0.3125f, 0.0f, 0.3125f, 0.6875f, 0.625f, 0.6875f);
 }
 
 const CollisionShape& FlowerBlock::getShape(const BlockState& state) const

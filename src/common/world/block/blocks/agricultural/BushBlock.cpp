@@ -38,7 +38,7 @@ namespace blocks {
 
 BushBlock::BushBlock(const BlockProperties& properties)
     : Block(properties)
-    , m_shape(CollisionShape::fullBlock())
+    , m_shape(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.8125f, 1.0f))
 {}
 
 // ========== 放置逻辑 ==========

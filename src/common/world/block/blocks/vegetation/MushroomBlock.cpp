@@ -79,7 +79,9 @@ MushroomBlock::MushroomBlock(BigMushroomGenerator bigMushroomGenerator, const Bl
 {
 
     // 蘑菇形状：小型圆形
-    m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.5f, 0.75f);
+    // 原版 MushroomBlock.SHAPE = Block.column(6.0, 0.0, 6.0)
+    //   = box(5, 0, 5, 11, 6, 11)。此前写成 0.25..0.75 / Y 0.5，宽高都偏大。
+    m_shape = CollisionShape::box(0.3125f, 0.0f, 0.3125f, 0.6875f, 0.375f, 0.6875f);
 }
 
 BlockState MushroomBlock::getStateForPlacement(BlockItemUseContext& context)
