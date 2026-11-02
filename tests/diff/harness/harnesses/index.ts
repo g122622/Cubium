@@ -188,6 +188,7 @@ import { worldBorderInput } from "./world_border.ts";
 import { easingTypeInput } from "./easing_type.ts";
 import { mthInterpolationInput } from "./mth_interpolation.ts";
 import { legacyRandomInput } from "./legacy_random.ts";
+import { customStatsInput } from "./custom_stats.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1217,6 +1218,13 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         description: "LegacyRandomSource 的 48 位 LCG 序列；nextInt(bound) 是拒绝采样，"
             + "2 的幂走快速路径，同 seed 下不同 bound 推进的步数不同",
         key: "unit", units: { kind: "listing" }, input: legacyRandomInput },
+    {
+        name: "custom_stats",
+        probe: "custom_stats",
+        oracle: "CustomStatsOracle",
+        description: "自定义统计常量表（77 项）；统计 ID 是存档持久键，"
+            + "缺项会让对应行为无法记录。缺的统计以 MISSING 暴露",
+        key: "unit", units: { kind: "listing" }, input: customStatsInput },
 
 
 
