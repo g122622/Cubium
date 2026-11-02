@@ -126,6 +126,17 @@ private:
      */
     [[nodiscard]] std::optional<BlockPos> getSpreadableNeighbourPos(
         IBlockReader& world, const BlockPos& pos, const std::array<Direction, 4>& directions) const;
+
+    /**
+     * @brief 获取形状。
+     *
+     * 原版 `firefly_bush` 的形状是**满方块** `0..1`，而不是父类 `BushBlock` 的
+     * `0..0.8125`（13/16 高）。实测原版 `getShape` 返回 `box(0, 0, 0, 1, 1, 1)`。
+     *
+     * @param state 方块状态
+     * @return 满方块形状
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 };
 
 } // namespace blocks

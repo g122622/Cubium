@@ -96,12 +96,16 @@ PitcherCropBlock::PitcherCropBlock(const BlockProperties& properties)
 
     // 轮廓形状：按半部分和年龄索引
     // Lower: [age][0], Upper: [age][1]
-    constexpr f32 bulbRadius = 6.0f * P;             // AGE 0 的半径
-    constexpr f32 cropRadius = 10.0f * P;            // AGE 1-4 的半径
-    constexpr f32 bulbMinXZ = 8.0f * P - bulbRadius; // 0.125
-    constexpr f32 bulbMaxXZ = 8.0f * P + bulbRadius; // 0.875
-    constexpr f32 cropMinXZ = 8.0f * P - cropRadius; // 0.0 + 3/16
-    constexpr f32 cropMaxXZ = 8.0f * P + cropRadius; // 1.0 - 3/16
+    // 原版 column 的第一个参数是**宽度像素数**，不是半径：
+    //   AGE 0   : 宽 6  像素 -> X/Z 5..11   （0.3125..0.6875）
+    //   AGE 1-4 : 宽 10 像素 -> X/Z 3..13   （0.1875..0.8125）
+    // 此前把 6 / 10 当作半径，算出 0.125..0.875 与 0..1，宽度翻倍。
+    constexpr f32 bulbHalfWidth = 3.0f * P;
+    constexpr f32 cropHalfWidth = 5.0f * P;
+    constexpr f32 bulbMinXZ = 0.5f - bulbHalfWidth; // 5/16  = 0.3125
+    constexpr f32 bulbMaxXZ = 0.5f + bulbHalfWidth; // 11/16 = 0.6875
+    constexpr f32 cropMinXZ = 0.5f - cropHalfWidth; // 3/16  = 0.1875
+    constexpr f32 cropMaxXZ = 0.5f + cropHalfWidth; // 13/16 = 0.8125
 
     // MC Java 的轮廓形状计算：
     // 年龄对应的总高度像素值: {0, 9, 11, 22, 26}
@@ -115,7 +119,6 @@ PitcherCropBlock::PitcherCropBlock(const BlockProperties& properties)
 
     for (i32 age = 0; age <= MAX_AGE; ++age) {
         i32 baseHeight = (age == 0) ? bulbBaseHeight : cropBaseHeight;
-        f32 radius = (age == 0) ? bulbRadius : cropRadius;
         f32 minXZ = (age == 0) ? bulbMinXZ : cropMinXZ;
         f32 maxXZ = (age == 0) ? bulbMaxXZ : cropMaxXZ;
 

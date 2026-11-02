@@ -1023,6 +1023,60 @@ Cubium 只建了主体，漏掉小柱——灯笼比原版矮 2 像素。
 ```
 
 **14 处**，初始 306 处的 4.6%。
+## 火把花 / 猪笼草 / 萤火虫灌木 / 猪灵头颅（14 → 10）
+
+### 一个反复出现的错误：把 `Block.column` 的第一个参数当成半径
+
+原版 `Block.column(width, yMin, yMax)` 的第一个参数是**宽度像素数**：
+
+```java
+box(8 - width/2, yMin, 8 - width/2, 8 + width/2, yMax, 8 + width/2)
+```
+
+`TorchflowerCropBlock` 与 `PitcherCropBlock` 都把它当成了半径：
+
+```cpp
+❌ constexpr f32 radius = 6.0f * P;
+   constexpr f32 minXZ = 8.0f * P - radius;   // 0.125，宽度变成 12 像素
+✅ constexpr f32 halfWidth = 3.0f * P;
+   constexpr f32 minXZ = 0.5f - halfWidth;    // 0.3125，宽度正确为 6 像素
+```
+
+结果两者宽度都是原版的**两倍**。修正后：
+
+| 方块 | 原版宽度 | Cubium（错） |
+|---|---|---|
+| `torchflower_crop` | 6 像素 | 12 像素 |
+| `pitcher_crop` age 0 | 6 像素 | 12 像素 |
+| `pitcher_crop` age 1-4 | 10 像素 | 16 像素 |
+
+> 这已经是本项目**第 4 次**在 `column` 的语义上出错（之前是 `cactus`、`flower`、`coral_fan`）。
+> 应当把这条写进 `Block.column` 的文档注释里，作为新代码的提示。
+
+### `firefly_bush`：不该继承 `BushBlock` 的形状
+
+`FireflyBushBlock : public BushBlock`，于是继承了 `BushBlock` 的 13/16 高形状。
+但原版 `firefly_bush` 的形状是**满方块**。已补 `getShape` 覆写。
+
+> 继承带来形状是**常见的隐性错误源**：类继承看起来合理（都是植物），
+> 但原版里它们的形状常量各自独立。
+
+### `piglin_head`：Z 方向窄了 2 像素
+
+```cpp
+❌ fromPixelBox(3, 0, 4, 13, 8, 12)     // X 宽 10、Z 深 8
+✅ fromPixelBox(3, 0, 3, 13, 8, 13)     // X、Z 都是 10
+```
+
+（上一轮我尝试改过这一行，但替换未生效，本轮用 `edit` 工具确认改到。）
+
+## 累计进度
+
+```
+306 → ... → 23 → 14 → 10
+```
+
+**10 处**，初始 306 处的 3.3%。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

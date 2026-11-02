@@ -66,10 +66,11 @@ const CollisionShape& _skullShape()
     return shape;
 }
 
-/// 猪灵站立头颅碰撞形状：中心 10x8 像素、高 8 像素
+/// 猪灵站立头颅形状：原版实测 box(0.1875, 0, 0.1875 -> 0.8125, 0.5, 0.8125)。
+/// X 与 Z 都是 10 像素宽（3..13），高 8 像素。此前 Z 只有 8 像素（4..12）。
 const CollisionShape& _piglinSkullShape()
 {
-    static const CollisionShape shape = CollisionShape::fromPixelBox(3.0f, 0.0f, 4.0f, 13.0f, 8.0f, 12.0f);
+    static const CollisionShape shape = CollisionShape::fromPixelBox(3.0f, 0.0f, 3.0f, 13.0f, 8.0f, 13.0f);
     return shape;
 }
 
