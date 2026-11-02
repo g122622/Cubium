@@ -6,7 +6,15 @@
 **首个系统性暴露 `getBlockSupportShape` 缺失的能力。** 20988 个单元
 （1166 个方块 × 6 方向 × 3 种 `SupportType`），初次运行 **625 处差异**。
 
-本轮修复 2 处后降到 **421 处**，仍有 80 个方块受影响——**本能力目前是「部分通过」状态**。
+| 阶段 | 差异数 |
+|---|---|
+| 初次运行 | **625** |
+| 修复 `LeavesBlock` | 427 |
+| 修复 `HoneyBlock` | 421 |
+| 修复 `FenceGateBlock` | **397** |
+
+仍有 81 个方块受影响——**本能力目前是「部分通过」状态**，剩余差异的主因是
+`VoxelShape` 的归一化缺口（见下文）。
 
 ## 测的是什么
 
@@ -147,12 +155,12 @@ m_collisionShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f,
 
 ### 已定位的两个根因
 
-**一、原版有 8 个方块覆写了 `getBlockSupportShape`，Cubium 缺 5 个。**
+**一、原版有 8 个方块覆写了 `getBlockSupportShape`，Cubium 缺 4 个。**
 
 | 原版类 | Cubium 状态 | 原版实现 |
 |---|---|---|
-| `LeavesBlock` | ✅ 本轮修复 | `Shapes.empty()` |
-| `FenceGateBlock` | ❌ **缺失** | 关闭时返回门板形状，打开时 `Shapes.empty()` |
+| `LeavesBlock` | ✅ 已修复 | `Shapes.empty()` |
+| `FenceGateBlock` | ✅ 已修复 | 关闭时 `SHAPE_SUPPORT`，打开时 `Shapes.empty()` |
 | `ShulkerBoxBlock` | ❌ **缺失** | 关闭时 `Shapes.block()`，打开时返回倾斜形状 |
 | `CeilingHangingSignBlock` | ❌ **缺失** | `this.getShape(...)` |
 | `WallHangingSignBlock` | ❌ **缺失** | `this.getShape(...)` |
@@ -160,19 +168,73 @@ m_collisionShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f,
 | `SoulSandBlock` | ✅ 有覆写 | — |
 | `SnowLayerBlock` | ❌ **文件未找到** | 按层数 |
 
-**二、部分方块的碰撞形状与原版不符。**
+### `FenceGateBlock` 的支撑形状与碰撞形状只差纵向起点
 
-例如 `DriedKelpBlock`：原版 `FULL=true`，Cubium `FULL=false`——Cubium 的碰撞形状比完整方块小，
-但原版没有覆写（应当是全方块）。
+这是本轮最有价值的发现：
+
+```java
+private static final Map<Direction.Axis, VoxelShape> SHAPE_COLLISION =
+    Shapes.rotateHorizontalAxis(Block.column(16.0, 4.0, 0.0, 24.0));
+private static final Map<Direction.Axis, VoxelShape> SHAPE_SUPPORT =
+    Shapes.rotateHorizontalAxis(Block.column(16.0, 4.0, 5.0, 24.0));
+//                                                        ^ 只有这一个数字不同
+```
+
+`Block.column(xzWidth, xzDepth, yMin, yMax)` 的参数含义：
+
+| 参数 | 值 | 含义 |
+|---|---|---|
+| `xzWidth` | `16.0` | x 向满宽 |
+| `xzDepth` | `4.0` | z 向厚 4/16（居中，即 `6/16..10/16`）|
+| `yMin` | `0` / **`5`** | **纵向起点：碰撞 0，支撑 5/16** |
+| `yMax` | `24.0` | 纵向终点 24/16（超出方块顶）|
+
+**支撑面比碰撞面高 5/16。** 若把支撑形状也写成从 `y=0` 起，下方 `y=0` 处的火把会被误判为「有支撑」。
+
+修复后减少 **24 处差异**（421 → 397）。
+
+**二、剩余差异的绝大多数指向 `VoxelShape` 的归一化缺口，不是各自的方块实现错误。**
+
+`src/common/physics/shape/VoxelShape.cpp:66` 有一段已记录的 TODO：
+
+```
+TODO: 这里按 `i / size` **均匀分布**，与原版的坐标压缩方式不同。原版
+`VoxelShape` 的坐标集取「形状实际用到的边界 + padding」，例如箱子
+`column(14,0,14)` 的 Y 坐标集是 [0, 0.875, 1.0]（尺寸 2），而这里会生成
+14 层 [0, 1/14, ..., 1]。层数不同会让 `findIndex` 返回不同的索引，
+进而使 `getFaceShape` 切到不同的层——凡是用 `SupportType.CENTER`
+（`Block.column(2.0, 0.0, 10.0)`）判定「中心一小块是否被覆盖」的地方，
+结论都会不同。
+
+改成「实际边界 + padding」是 VoxelShape 的根基改动，会波及光照遮挡、
+形状布尔运算等所有使用方，需要独立评估与全量回归。
+```
+
+剩余 397 处差异分布：`FULL=38`、`CENTER=124`、`RIGID=38`。
+
+**`CENTER` 占 62%**，与上面的描述完全吻合——`SupportType.CENTER` 正是最依赖
+`getFaceShape` 切片精度的判定。
+
+已在几个方向上验证这是共同根因而非各自的形状定义错误：
+
+| 方块 | 现象 | 判定 |
+|---|---|---|
+| `black_carpet` | `DOWN\|FULL` 原版 true，Cubium false | 地毯形状两侧一致（`(0,0,0)-(1,1/16,1)`），底面几何上完整覆盖 1×1——**形状定义正确，是 `getFaceShape` 切薄片失准** |
+| `cauldron` | 四个侧面 `FULL` 原版 false，Cubium true | 炼药锅是底座 + 四壁的**并集**，两侧都用相同的分块定义——差异来自形状布尔运算后的面投影 |
+| `fence_gate` | `UP\|CENTER` 原版 true，Cubium false（7 处） | 支撑形状 `y` 上界是 `24/16`（**超出方块顶部**），归一化后 `y` 被压到 `[0,1]`，面投影退化 |
+
+**这三类都指向同一个底层缺口，而不是三个独立的方块 bug。**
 
 ### 下一步方向
 
-1. 补齐 `FenceGateBlock` / `ShulkerBoxBlock` / 悬挂告示牌的 `getBlockSupportShape`；
-2. 逐个核对剩余 80 个方块的碰撞形状是否与原版一致；
-3. 全部修完后本能力应能跑通。
+1. **优先**：评估 `VoxelShape` 改为「实际边界 + padding」坐标系的影响面
+   （光照遮挡、`shapes_boolean`、`collide_sweep` 都依赖它），这是剩余 397 处差异的主因；
+2. 补齐 `ShulkerBoxBlock` / `CeilingHangingSignBlock` / `WallHangingSignBlock` 的
+   `getBlockSupportShape`；
+3. 定位 `SnowLayerBlock` 的 Cubium 实现（当前按文件名找不到）。
 
 **本能力维持「部分通过」状态是有意的**——它已经把根因从「625 处差异」收敛到
-「5 个缺失覆写 + 若干碰撞形状不符」，后续修复有明确方向。
+「**1 个架构缺口 + 4 个缺失覆写**」，后续修复有明确方向。
 
 ## 单元格式
 

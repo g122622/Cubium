@@ -144,6 +144,20 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     /**
+     * @brief 获取支撑形状
+     *
+     * 对齐原版 `FenceGateBlock#getBlockSupportShape`：
+     *
+     * ```java
+     * Direction.Axis axis = state.getValue(FACING).getAxis();
+     * return state.getValue(OPEN) ? Shapes.empty() : SHAPE_SUPPORT.get(axis);
+     * ```
+     *
+     * 注意支撑形状的纵向起点是 `5/16`，比碰撞形状的 `0` 高——见 `m_supportShapes` 的注释。
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
+
+    /**
      * @brief 获取遮挡形状
      * @param state 方块状态
      * @return 形状引用
@@ -223,6 +237,19 @@ private:
 
     /// 墙内关闭状态各朝向形状缓存
     std::array<CollisionShape, 6> m_inWallClosedShapes;
+
+    /**
+     * @brief 关闭状态各朝向的**支撑**形状缓存
+     *
+     * 对齐原版 `SHAPE_SUPPORT = Shapes.rotateHorizontalAxis(Block.column(16.0, 4.0, 5.0, 24.0))`。
+     *
+     * 与碰撞形状 `SHAPE_COLLISION = ...column(16.0, 4.0, 0.0, 24.0)` 的区别**只在纵向起点**：
+     * 碰撞箱从 `y=0` 起（脚能碰到门板底部），而支撑面从 `y=5/16` 起。
+     *
+     * 这个差异有实际后果：`canSurvive` 用支撑形状判定，若支撑面也写成从 `y=0` 起，
+     * 那么放在栅栏门下方 `y=0` 处的火把会被误判为「有支撑」。
+     */
+    std::array<CollisionShape, 6> m_supportShapes;
 };
 
 } // namespace blocks
