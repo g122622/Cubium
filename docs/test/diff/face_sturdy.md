@@ -25,7 +25,8 @@
 | 中继器/比较器补 `withCollision()` | 65 |
 | 修复 6 处「像素值传给归一化 `box()`」+ 4 处方块碰撞状态 | 39 |
 | 栅栏门支撑形状改用 `box()` 绕开坐标系启发式 | 27 |
-| 5 个方块补 `withCollision()` | **22** |
+| 5 个方块补 `withCollision()` | 22 |
+| 修正 cactus / conduit / bamboo 的形状坐标 | **20** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -888,6 +889,60 @@ isFaceSturdy(null, ZERO, UP):
 > 这是本能力里第二次遇到「补碰撞反而恶化」。判据是：**补碰撞后若差异从 1 变成十几处，
 > 说明该方块自身的形状实现有误**，碰撞开关只是把它暴露出来。修复顺序应当是
 > 「先修形状，再开碰撞」。
+## 形状坐标错误：cactus / conduit / bamboo（22 → 20）
+
+### cactus：Y 上限多了 1 像素
+
+```cpp
+// ❌ Y 上限写成 1.0（满高）
+CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
+
+// ✅ 原版 SHAPE = box(1, 0, 1, 15, 15, 15)，Y 上限 15/16 = 0.9375
+CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f, 0.9375f);
+```
+
+差别只有一像素，但**决定了 UP 面切片是否铺满整层**：Y 到 1.0 时切片覆盖完整、`UP|CENTER`
+误判为 true；Y 到 0.9375 时顶面不完整，判 false。
+
+### conduit：Y 起点错成 0
+
+```cpp
+// ❌ 贴地柱 box(5,0,5,11,6,11)
+fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 6.0f, 11.0f);
+
+// ✅ 原版 SHAPE = Block.cube(6.0)，居中立方体 box(5,5,5,11,11,11)
+fromPixelBox(5.0f, 5.0f, 5.0f, 11.0f, 11.0f, 11.0f);
+```
+
+### bamboo：三个形状的值整体错位
+
+原版：
+
+```java
+SHAPE_SMALL     = column(6.0, 0.0, 16.0);   // box(5, 0, 5, 11, 16, 11)
+SHAPE_LARGE     = column(10.0, 0.0, 16.0);  // box(3, 0, 3, 13, 16, 13)
+SHAPE_COLLISION = column(3.0, 0.0, 16.0);   // box(6.5, 0, 6.5, 9.5, 16, 9.5)
+```
+
+Cubium 把 `normalShape` 写成了 `SHAPE_LARGE` 的值，`collisionShape` 也用了 `SHAPE_LARGE` 的值。
+已按上表更正。
+
+### 一个尚未解释的现象：bamboo 的 -0.25 偏移
+
+实测 `Blocks.BAMBOO` 默认状态：
+
+```
+shape     = AABB[0.0625, 0.0, 0.0625] -> [0.4375, 1.0, 0.4375]     即像素 1..7
+collision = AABB[0.15625, 0.0, 0.15625] -> [0.34375, 1.0, 0.34375] 即像素 2.5..5.5
+```
+
+而 `Block.column(6.0, 0.0, 16.0)` 单独求值得 `AABB[0.3125,0,0.3125] -> [0.6875,1,0.6875]`（5..11）。
+
+两者相差 **-0.25**。`BambooStalkBlock` 没有覆写 `getOffset`，`BlockBehaviour.getOffset` 在
+`offsetFunction == null` 时返回 `Vec3.ZERO`——所以偏移不来自 offset 函数。
+
+`TODO`：这个偏移的来源尚未查清（可能是注册时的 `offsetType`），导致 `bamboo` 仍有 2 处
+`UP|CENTER` / `DOWN|CENTER` 差异。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

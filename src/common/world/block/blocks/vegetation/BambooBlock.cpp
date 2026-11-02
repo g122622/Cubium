@@ -79,13 +79,16 @@ BambooBlock::BambooBlock(const BlockProperties& properties)
 
     // 创建形状
     // 正常形状：稍小的方块（类似甘蔗）
-    m_normalShape = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 1.0f, 0.8125f);
+    // 原版 SHAPE_SMALL = column(6.0, 0.0, 16.0) -> box(5, 0, 5, 11, 16, 11)
+    m_normalShape = CollisionShape::box(0.3125f, 0.0f, 0.3125f, 0.6875f, 1.0f, 0.6875f);
 
     // 大叶子形状：带叶子的竹子有更大的碰撞箱
-    m_largeLeavesShape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 1.0f, 0.875f);
+    // 原版 SHAPE_LARGE = column(10.0, 0.0, 16.0) -> box(3, 0, 3, 13, 16, 13)
+    m_largeLeavesShape = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 1.0f, 0.8125f);
 
     // 碰撞形状：与其他方块相同，用于碰撞检测
-    m_collisionShape = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 1.0f, 0.8125f);
+    // 原版 SHAPE_COLLISION = column(3.0, 0.0, 16.0) -> box(6.5, 0, 6.5, 9.5, 16, 9.5)
+    m_collisionShape = CollisionShape::box(0.40625f, 0.0f, 0.40625f, 0.59375f, 1.0f, 0.59375f);
 }
 
 const EnumProperty<BlockStateProperties::BambooLeaves>& BambooBlock::BAMBOO_LEAVES_PROP()
