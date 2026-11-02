@@ -184,6 +184,7 @@ import { booleanPropertyIndexInput } from "./boolean_property_index.ts";
 import { enumPropertyOrderInput } from "./enum_property_order.ts";
 import { enumPropertyOrderAllInput } from "./enum_property_order_all.ts";
 import { faceSturdyInput } from "./face_sturdy.ts";
+import { worldBorderInput } from "./world_border.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1183,6 +1184,13 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 面朝支撑判定：所有附着型方块存活判定的公共底层。
     { name: "face_sturdy", probe: "face_sturdy", oracle: "FaceSturdyOracle",
         key: "unit", units: { kind: "listing" }, input: faceSturdyInput },
+    {
+        name: "world_border",
+        probe: "world_border",
+        oracle: "WorldBorderOracle",
+        description: "WorldBorder 的边界判定：isWithinBounds(BlockPos) 只看方块西北角，"
+            + "下界 >= / 上界 < 不对称；isWithinBounds(AABB) 的 1.0E-5F 是 float 字面量",
+        key: "unit", units: { kind: "listing" }, input: worldBorderInput },
 
 
 

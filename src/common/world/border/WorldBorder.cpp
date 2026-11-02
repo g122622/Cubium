@@ -433,7 +433,12 @@ void WorldBorder::setWarningDistance(i32 warningDistance)
 
 void WorldBorder::setSize(f64 size)
 {
-    size = std::clamp(size, 1.0, MAX_SIZE);
+    // 对齐原版 `WorldBorder#setSize`：**不做任何钳制**，直接采用传入尺寸。
+    //
+    // 此前这里是 `std::clamp(size, 1.0, MAX_SIZE)`——强制最小 1.0，与原版不符：
+    // 原版允许尺寸小于 1（甚至负值），边界判定按实际半宽计算。把 0.3 钳成 1.0 会让
+    // 一个边长 0.3 的边界被算成边长 1.0，界内/界外判定与 getMinX/getMaxX 全部错位。
+    // 由差分能力 world_border 查出（extent 用例）。
     m_state = std::make_unique<StationaryBorderState>(size, m_centerX, m_centerZ);
     _notifySizeChanged(size);
 }
@@ -466,7 +471,17 @@ void WorldBorder::setCenter(f64 x, f64 z)
 
 bool WorldBorder::contains(f64 x, f64 z) const
 {
-    return x > getMinX() && x < getMaxX() && z > getMinZ() && z < getMaxZ();
+    // 对齐原版 `WorldBorder#isWithinBounds(double, double, double)`：
+    //
+    //     x >= getMinX() - padding && x <  getMaxX() + padding &&
+    //     z >= getMinZ() - padding && z <  getMaxZ() + padding
+    //
+    // **下界是闭区间（>=），上界是开区间（<）**——这个不对称是有意的：边界覆盖
+    // [min, max)，正好落在 min 上的坐标属于界内，正好落在 max 上的不属于。
+    //
+    // 此前两端都写成严格比较（> 与 <），于是正好贴着下边界的方块被误判为界外。
+    // 由差分能力 world_border 查出（block|0,0|100|-50,-50 用例）。
+    return x >= getMinX() && x < getMaxX() && z >= getMinZ() && z < getMaxZ();
 }
 
 bool WorldBorder::contains(const BlockPos& pos) const
@@ -494,8 +509,13 @@ bool WorldBorder::isWithinBounds(const AxisAlignedBB& box) const
 
 bool WorldBorder::isWithinBounds(const BlockPos& pos) const
 {
-    return contains(static_cast<f64>(pos.x), static_cast<f64>(pos.z)) &&
-        contains(static_cast<f64>(pos.x + 1), static_cast<f64>(pos.z + 1));
+    // 对齐原版 `WorldBorder#isWithinBounds(BlockPos)`：**只检查方块的西北角 (x, z)**，
+    // 不检查 (x+1, z+1)。
+    //
+    // 方块占 [x, x+1) 的半开区间，右边界不属于自己；因此紧贴上边界的那一格仍算界内。
+    // 此前额外检查了 (x+1, z+1)，会把贴着上边界的整列/整行方块误判为界外。
+    // 由差分能力 world_border 查出。
+    return contains(static_cast<f64>(pos.x), static_cast<f64>(pos.z));
 }
 
 bool WorldBorder::intersectsChunk(i32 chunkX, i32 chunkZ) const
