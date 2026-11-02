@@ -312,6 +312,18 @@ public:
     [[nodiscard]] const CollisionShape& getShape() const;
 
     /**
+     * @brief 获取指定位置处的渲染形状（已叠加 `offsetType` 的位置偏移）。
+     *
+     * `getShape()` 返回方块的**模型坐标**形状，与方块所在位置无关。
+     * 带 `offsetType` 的方块（花、作物、树苗等）在不同坐标处会轻微移动，
+     * 需要世界坐标下的形状时应当用本方法。
+     *
+     * @param pos 方块位置
+     * @return 平移后的形状（按值返回，因为每个位置的偏移不同）
+     */
+    [[nodiscard]] CollisionShape getShapeAt(const BlockPos& pos) const;
+
+    /**
      * @brief 获取遮挡形状
      */
     [[nodiscard]] const CollisionShape& getOcclusionShape() const;

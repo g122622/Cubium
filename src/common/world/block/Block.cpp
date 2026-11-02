@@ -57,6 +57,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/StateContainer.hpp"
@@ -332,6 +333,34 @@ const CollisionShape& Block::getCollisionShape(const BlockState& state) const
         return VoxelShapes::empty();
     }
     return getShape(state);
+}
+
+Vector3 Block::getOffset(const BlockPos& pos) const noexcept
+{
+    if (m_offsetType == BlockProperties::OffsetType::None) {
+        return Vector3(0.0f, 0.0f, 0.0f);
+    }
+
+    // 偏移量来自坐标哈希。`y` 固定取 0，使同一水平位置的所有高度得到相同偏移。
+    const i64 seed = math::mthGetSeed(pos.x, 0, pos.z);
+
+    // 两个低半字节各自映射到 [-0.25, 0.25) 再乘 0.5，最后 clamp 到 ±上限。
+    const f32 maxHorizontal = getMaxHorizontalOffset();
+    const auto horizontal = [&](i64 nibble) {
+        const f32 raw = (static_cast<f32>(nibble & 15LL) / 15.0f - 0.5f) * 0.5f;
+        return static_cast<f64>(math::clamp(raw, -maxHorizontal, maxHorizontal));
+    };
+
+    const f64 offsetX = horizontal(seed);
+    const f64 offsetZ = horizontal(seed >> 8);
+
+    if (m_offsetType == BlockProperties::OffsetType::XZ) {
+        return Vector3(static_cast<f32>(offsetX), 0.0f, static_cast<f32>(offsetZ));
+    }
+
+    // XYZ：竖直分量只向下偏移，取值 [-(maxVertical), 0]。
+    const f32 verticalRaw = (static_cast<f32>(seed >> 4 & 15LL) / 15.0f - 1.0f) * getMaxVerticalOffset();
+    return Vector3(static_cast<f32>(offsetX), verticalRaw, static_cast<f32>(offsetZ));
 }
 
 const CollisionShape& Block::getCollisionShapeForEntity(

@@ -96,6 +96,17 @@ const CollisionShape& BlockState::getShape() const
     return m_owner->getShape(*this);
 }
 
+CollisionShape BlockState::getShapeAt(const BlockPos& pos) const
+{
+    const CollisionShape& base = m_owner->getShape(*this);
+    // 无偏移方块占绝大多数，直接返回副本而不必逐盒平移。
+    if (m_owner->getOffsetType() == BlockProperties::OffsetType::None) {
+        return base;
+    }
+    const Vector3 offset = m_owner->getOffset(pos);
+    return base.offset(offset.x, offset.y, offset.z);
+}
+
 bool BlockState::isRandomlyTicking() const
 {
     // 对齐 vanilla BlockBehaviour.BlockStateBase#isRandomlyTicking：带状态的判断，

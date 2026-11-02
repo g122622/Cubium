@@ -1758,6 +1758,39 @@ public:
     }
 
     /**
+     * @brief 方块形状在给定位置的随机偏移。
+     *
+     * 花、作物、树苗等方块带 `offsetType`，同一方块在不同坐标处会轻微移动位置，
+     * 避免整片同种方块看起来完全一致。偏移量由**坐标哈希**决定，必须逐坐标计算，
+     * 不能当作常量。
+     *
+     * 取值范围：水平 `±getMaxHorizontalOffset()`（默认 0.25），
+     * 竖直 `-getMaxVerticalOffset()..0`（默认 0.2）。
+     *
+     * @param pos 方块位置
+     * @return 偏移向量，`OffsetType::None` 时为零向量
+     */
+    [[nodiscard]] Vector3 getOffset(const BlockPos& pos) const noexcept;
+
+    /**
+     * @brief 水平偏移量上限。
+     *
+     * 偏移公式把它作为 clamp 的边界；个别方块会覆写（例如更高的作物）。
+     */
+    [[nodiscard]] virtual f32 getMaxHorizontalOffset() const noexcept
+    {
+        return 0.25f;
+    }
+
+    /**
+     * @brief 竖直偏移量上限（只向下偏移，故实际范围是 `-该值..0`）。
+     */
+    [[nodiscard]] virtual f32 getMaxVerticalOffset() const noexcept
+    {
+        return 0.2f;
+    }
+
+    /**
      * @brief 获取音符盒乐器
      *
      * 当音符盒放置在此方块上方时演奏的乐器。显式设置的属性优先（如头颅、熔炉）；

@@ -155,6 +155,31 @@ public:
      * 注意 `NOT` 的结果盒数可能显著增加：一个盒子被 n 个盒子切分后最多产生 6n 个碎块。
      * 这对形状判定是正确的（判定按点是否落在任一盒内），但会放大后续遍历开销。
      */
+    /**
+     * @brief 整体平移形状。
+     *
+     * 用于 `offsetType` 方块：同一方块在不同坐标处有微小位置偏移（花、作物等），
+     * 形状需要跟着平移。空形状平移后仍为空。
+     *
+     * @param dx X 方向平移量
+     * @param dy Y 方向平移量
+     * @param dz Z 方向平移量
+     * @return 平移后的新形状
+     */
+    [[nodiscard]] CollisionShape offset(f32 dx, f32 dy, f32 dz) const
+    {
+        if (m_boxes.empty()) {
+            return *this;
+        }
+        std::vector<AxisAlignedBB> shifted;
+        shifted.reserve(m_boxes.size());
+        for (const auto& box : m_boxes) {
+            shifted.emplace_back(
+                box.minX + dx, box.minY + dy, box.minZ + dz, box.maxX + dx, box.maxY + dy, box.maxZ + dz);
+        }
+        return _fromBoxes(std::move(shifted));
+    }
+
     [[nodiscard]] static CollisionShape combine(
         const CollisionShape& a, const CollisionShape& b, CombineOp op = CombineOp::OR)
     {
