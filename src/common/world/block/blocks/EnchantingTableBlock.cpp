@@ -47,16 +47,10 @@ namespace blocks {
 EnchantingTableBlock::EnchantingTableBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 附魔台形状：桌面略大于基座
-    // 底座: (1, 0, 1) -> (15, 2, 15)
-    // 桌面: (0, 2, 0) -> (16, 14, 16)
-
-    CollisionShape base =
-        VoxelShapes::cube(1.0f / 16.0f, 0.0f, 1.0f / 16.0f, 15.0f / 16.0f, 2.0f / 16.0f, 15.0f / 16.0f);
-
-    CollisionShape top = VoxelShapes::cube(0.0f, 2.0f / 16.0f, 0.0f, 1.0f, 14.0f / 16.0f, 1.0f);
-
-    m_shape = CollisionShape::combine(base, top, CollisionShape::CombineOp::OR);
+    // vanilla EnchantingTableBlock#SHAPE = Block.column(16.0, 0.0, 12.0)：
+    // 整格宽、12 像素高的台子。此前用「窄基座 + 桌面到 14 像素」的拼合形状，
+    // 与实际不符，也让光照引擎算出不同的遮挡结果。
+    m_shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 12.0f / 16.0f, 1.0f);
 }
 
 // ========== 方块实体 ==========
@@ -102,12 +96,9 @@ const CollisionShape& EnchantingTableBlock::getShape(const BlockState& state) co
     return m_shape;
 }
 
-const CollisionShape& EnchantingTableBlock::getOcclusionShape(const BlockState& state) const
-{
-    MC_UNUSED(state);
-    // 附魔台不阻挡光线（用于渲染）
-    return VoxelShapes::empty();
-}
+// 注意：vanilla 没有重写 EnchantingTableBlock#getOcclusionShape，遮挡形状即为 getShape()。
+// 早期这里返回空形状（并据此把注册属性写成 noOcclusion()），使附魔台既不产生 AO 阴影
+// 也不按形状遮挡；原版附魔台 canOcclude=true，遮挡形状就是那个 12 像素高的台子。
 
 // ========== 放置和更新 ==========
 

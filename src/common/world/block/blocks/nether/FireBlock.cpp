@@ -96,8 +96,10 @@ FireBlock::FireBlock(const BlockProperties& properties, i32 fireDamage)
             .with(BlockStateProperties::WEST(), false)
             .with(BlockStateProperties::UP(), false));
 
-    // 火焰形状（无碰撞）
-    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    // 火焰形状（无碰撞）：vanilla BaseFireBlock#SHAPE = Block.column(16.0, 0.0, 1.0)，
+    // 即贴地只有 1 像素厚的一层，不是整格。此前误用整格立方体，火焰因此被当成完全挡光
+    // （lightBlock=1），实际原版是 0——火焰往上不遮天空光，也不额外衰减光照。
+    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
 }
 
 i32 FireBlock::getAge(const BlockState& state) const

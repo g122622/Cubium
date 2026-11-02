@@ -237,13 +237,15 @@ void registerBaseBlocks()
         if (waterFluid != nullptr) {
             auto* flowingWater = dynamic_cast<fluid::FlowingFluid*>(waterFluid);
             if (flowingWater != nullptr) {
+                // 原版 LiquidBlock 显式 `getLightBlock -> 1`（水每格衰减 1 级天空光），
+                // 这里不能再用 .opacity(0) 固定成 0：那会让整池水的内部比原版亮一级。
+                // 不设显式 opacity 时，默认公式按「含流体 -> 1」给出正确的 1。
                 BaseBlocks::WATER =
                     &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
                         *flowingWater,
                         BlockProperties(Material::WATER)
                             .noCollision()
                             .notSolid()
-                            .opacity(0)
                             .hardness(100.0f)
                             .soundType(BlockSoundTypes::AIR));
             }
@@ -282,7 +284,7 @@ void registerBaseBlocks()
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
-        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.1f).notSolid().noOcclusion());
+        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.1f).notSolid());
 
     // 雪块
     BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
@@ -301,8 +303,8 @@ void registerBaseBlocks()
     // 玻璃：vanilla Blocks.GLASS 注册 noOcclusion()，且其方块类（TransparentBlock/HalfTransparentBlock）
     // 未重写 getLightBlock / propagatesSkylightDown。遮挡形状仍是完整立方体，故
     // propagatesSkylightDown=false、lightBlock=1（天空光衰减 1 级），而不是 0。
-    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:glass"), BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion());
+    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
+        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().propagatesSkylightDown());
 
     // 下界岩
     // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩
@@ -315,8 +317,8 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:glowstone"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
 
     // 末地石
-    BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone"),
-        BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f).noOcclusion());
+    BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(
+        ResourceLocation("minecraft:end_stone"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
 
     // 黑曜石
     BaseBlocks::OBSIDIAN = &registry.registerBlock<SimpleBlock>(
@@ -401,7 +403,7 @@ void registerBaseBlocks()
             BlockProperties(Material::ROCK)
                 .hardness(3.0f)
                 .resistance(3.0f)
-                .noOcclusion()
+
                 .soundType(BlockSoundTypes::NETHER_ORE),
             2,
             5);

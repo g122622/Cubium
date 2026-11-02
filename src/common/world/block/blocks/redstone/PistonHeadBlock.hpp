@@ -155,7 +155,31 @@ public:
      * @param baseState 待检查的方块状态
      * @return true 如果是匹配的已伸出活塞基座
      */
-    [[nodiscard]] static bool isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept;
+    [[nodiscard]] static bool isFittingBase(const BlockState& headState,
+        const BlockState&
+            baseState) noexcept; /**
+                                  * @brief 使用形状进行光照遮挡（对齐原版 `PistonHeadBlock` 的同名重写）
+                                  *
+                                  * 原版这个方块的重写返回 true，光照引擎据此按实际形状做面遮挡，而不是当作整格挡光。
+                                  */
+
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
+     * @brief 活塞头形状（对齐 vanilla `PistonHeadBlock#SHAPES`）
+     *
+     * vanilla：
+     *   SHAPE_PLATFORM = boxZ(16.0, 0.0, 4.0)                       → 平台，贴活塞外侧 4 像素厚
+     *   SHAPES_SHORT   = SHAPES.or(SHAPE_PLATFORM, boxZ(4.0, 4.0, 16.0))
+     *   SHAPES         = SHAPES.or(SHAPE_PLATFORM, boxZ(4.0, 4.0, 20.0))
+     * 再按 FACING 旋转。它不是整格，所以天空光可穿过（lightBlock=0）。早期未重写 getShape，
+     * 退回整格立方体，活塞头被误判为完全挡光。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 };
 
 } // namespace blocks

@@ -138,6 +138,16 @@ public:
     [[nodiscard]] static Direction getFacing(const BlockState& state);
 
     /**
+     * @brief 拉杆形状（对齐 vanilla `LeverBlock#getShape`）
+     *
+     * vanilla：`Shapes.rotateAttachFace(Block.boxZ(6.0, 8.0, 10.0, 16.0))`——基准为贴墙的
+     * 6×8×6 像素拉杆，再按 ATTACH_FACE（墙/地/天花板）与水平朝向组合旋转。它不是整格，
+     * 所以天空光可穿过（lightBlock=0）。早期未重写 getShape，退回整格立方体，
+     * 拉杆因此被误判为完全挡光。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
      * @brief 切换拉杆状态
      *
      * @param world 世界引用

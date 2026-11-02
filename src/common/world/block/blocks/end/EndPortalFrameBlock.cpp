@@ -64,10 +64,14 @@ EndPortalFrameBlock::EndPortalFrameBlock(const BlockProperties& properties)
             .with(BlockStateProperties::EYE(), false)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
-    // 框架高度 13/16 = 0.8125（即 13 像素高，MC 中末地传送门框架的标准高度）
+    // vanilla：
+    //   SHAPE_EMPTY = Block.column(16.0, 0.0, 13.0)                 → 整格宽、13 像素高的底座
+    //   SHAPE_FULL  = Shapes.or(SHAPE_EMPTY, Block.column(8, 13, 16)) → 底座 + 中央 8×8×3 的凸起
+    // 有眼状态不是「整个方块变成 16 像素高的立方体」，而是底座之上多出一个窄凸起——
+    // 此前写成整格立方体，导致有眼框架被算作完全实心、天空光透传判定翻转。
     m_frameShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.8125f, 1.0f);
-    // 放入末影之眼后高度变为完整的 1.0（16 像素）
-    m_frameWithEyeShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    m_frameWithEyeShape =
+        CollisionShape::combine(m_frameShape, CollisionShape::box(0.25f, 0.8125f, 0.25f, 0.75f, 1.0f, 0.75f));
 }
 
 bool EndPortalFrameBlock::hasEye(const BlockState& state) const noexcept

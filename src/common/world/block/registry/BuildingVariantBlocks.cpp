@@ -687,7 +687,7 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:warped_fence_gate"), netherWoodFenceGateProps);
 
     // ========== 染色玻璃板（16色）==========
-    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid();
+    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion();
 
     BuildingVariantBlocks::WHITE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:white_stained_glass_pane"), stainedGlassPaneProps);
@@ -730,6 +730,7 @@ void registerBuildingVariantBlocks()
             BlockProperties(Material::ROCK)
                 .hardness(5.0f)
                 .resistance(5.0f)
+                .noOcclusion()
                 .noLootTable()
                 .soundType(BlockSoundTypes::SPAWNER));
 
@@ -752,7 +753,7 @@ void registerBuildingVariantBlocks()
     // 屏障 - 不可见的不可破坏方块
     BuildingVariantBlocks::BARRIER =
         &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
-            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable().noOcclusion());
 
     // 命令方块 - 红石触发型，需要管理员权限
     BuildingVariantBlocks::COMMAND_BLOCK =
@@ -791,9 +792,12 @@ void registerBuildingVariantBlocks()
             BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 
     // 测试实例方块 - 标记测试实例结构位置，无遮挡
+    // 原版只有 noOcclusion()，形状沿用 BaseEntityBlock 的整格立方体：canOcclude=false 使其
+    // 不参与遮挡，但默认公式因形状为整格给出 propagatesSkylightDown=false、lightBlock=1。
+    // 早期多写了 .opacity(0)，把光照衰减抹成 0，与原版不符。
     BuildingVariantBlocks::TEST_INSTANCE_BLOCK =
         &registry.registerBlock<blocks::TestInstanceBlock>(ResourceLocation("minecraft:test_instance_block"),
-            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable().opacity(0));
+            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable().noOcclusion());
 }
 
 } // namespace block_registry

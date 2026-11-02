@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
@@ -205,6 +206,62 @@ BlockActionResult LeverBlock::useWithoutItem(
         toggle(world, pos, state);
     }
     return ActionResultType::Success;
+}
+
+const CollisionShape& LeverBlock::getShape(const BlockState& state) const
+{
+    // vanilla LeverBlock：SHAPES = Shapes.rotateAttachFace(Block.boxZ(6.0, 8.0, 10.0, 16.0))。
+    // 三参 boxZ 会级联到五参版本，展开后基准形状（WALL + 朝北）为 box(5, 4, 10, 11, 12, 16)：
+    // 6 像素宽、8 像素高，贴着 +z 面（背后是墙、向前伸出 6 像素）。
+    // 再按 AttachFace 与水平朝向旋转，共 3×4 = 12 种形状。
+    //
+    // 索引方式：行 = AttachFace（0=Floor, 1=Wall, 2=Ceiling），列 = 水平朝向
+    //   （0=North, 1=East, 2=South, 3=West）。
+    static const CollisionShape shapes[3][4] = {
+        // Floor：贴地，向上立起
+        {
+            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // North
+            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // East
+            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // South
+            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // West
+        },
+        // Wall：贴墙
+        {
+            CollisionShape::fromPixelBox(5, 4, 10, 11, 12, 16), // North（形状贴 +z，即朝北侧有墙）
+            CollisionShape::fromPixelBox(0, 4, 5, 6, 12, 11),   // East
+            CollisionShape::fromPixelBox(5, 4, 0, 11, 12, 6),   // South
+            CollisionShape::fromPixelBox(10, 4, 5, 16, 12, 11), // West
+        },
+        // Ceiling：贴天花板，倒挂
+        {
+            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // North
+            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // East
+            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // South
+            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // West
+        },
+    };
+
+    const auto face = state.get(BlockStateProperties::ATTACH_FACE());
+    const size_t faceIndex = static_cast<size_t>(face);
+    // 水平朝向在 HORIZONTAL_FACING 中按 North/South/West/East 编码，
+    // 这里换算成 North/East/South/West 的列下标。
+    size_t col = 0;
+    switch (getFacing(state)) {
+        case Direction::East:
+            col = 1;
+            break;
+        case Direction::South:
+            col = 2;
+            break;
+        case Direction::West:
+            col = 3;
+            break;
+        case Direction::North:
+        default:
+            col = 0;
+            break;
+    }
+    return shapes[faceIndex][col];
 }
 
 i32 LeverBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept

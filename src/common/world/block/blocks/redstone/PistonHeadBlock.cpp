@@ -38,6 +38,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/redstone/MovingPistonBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <array>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -133,6 +134,52 @@ PistonHeadBlock::Type PistonHeadBlock::getType(const BlockState& state) noexcept
 BlockState PistonHeadBlock::withType(BlockState state, Type type) noexcept
 {
     return state.with(TYPE_PROP(), type);
+}
+
+const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
+{
+    // vanilla PistonHeadBlock：
+    //   SHAPE_PLATFORM = boxZ(16.0, 0.0, 4.0)  = box(0, 0, 0, 16, 16, 4)
+    //   SHAPES_SHORT   = SHAPE_PLATFORM | boxZ(4, 4, 16) = platform | box(6, 6, 4, 10, 10, 16)
+    //   SHAPES         = SHAPE_PLATFORM | boxZ(4, 4, 20) = platform | box(6, 6, 4, 10, 10, 20)
+    // 基准姿态朝 NORTH（平台贴在 +z 端、细杆向 -z 伸出），再按 FACING 旋转。
+    // 平台 + 细杆的并集不覆盖整格，所以天空光可穿过（lightBlock=0）。早期未重写 getShape，
+    // 退回整格立方体，活塞头被误判为完全挡光（lightBlock=15）。
+    static const std::array<std::array<CollisionShape, 6>, 2> shapes = {
+        std::array<CollisionShape, 6>{
+            // 短臂
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
+                CollisionShape::fromPixelBox(6, 0, 6, 10, 12, 10)), // Down
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
+                CollisionShape::fromPixelBox(6, 4, 6, 10, 16, 10)), // Up
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
+                CollisionShape::fromPixelBox(6, 6, 0, 10, 10, 12)), // North
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
+                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 16)), // South
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 4, 16, 16),
+                CollisionShape::fromPixelBox(4, 6, 6, 16, 10, 10)), // West
+            CollisionShape::combine(CollisionShape::fromPixelBox(12, 0, 0, 16, 16, 16),
+                CollisionShape::fromPixelBox(0, 6, 6, 12, 10, 10)), // East
+        },
+        std::array<CollisionShape, 6>{
+            // 长臂（细杆超出方块本地范围，与原版一致）
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
+                CollisionShape::fromPixelBox(6, -4, 6, 10, 12, 10)), // Down
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
+                CollisionShape::fromPixelBox(6, 4, 6, 10, 20, 10)), // Up
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
+                CollisionShape::fromPixelBox(6, 6, -4, 10, 10, 12)), // North
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
+                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 20)), // South
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 4, 16, 16),
+                CollisionShape::fromPixelBox(4, 6, 6, 20, 10, 10)), // West
+            CollisionShape::combine(CollisionShape::fromPixelBox(12, 0, 0, 16, 16, 16),
+                CollisionShape::fromPixelBox(-4, 6, 6, 12, 10, 10)), // East
+        },
+    };
+
+    const bool shortArm = state.get(BlockStateProperties::SHORT());
+    return shapes[shortArm ? 0 : 1][static_cast<size_t>(getFacing(state))];
 }
 
 bool PistonHeadBlock::isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept

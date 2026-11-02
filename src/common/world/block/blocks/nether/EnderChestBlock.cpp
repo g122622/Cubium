@@ -75,8 +75,10 @@ EnderChestBlock::EnderChestBlock(const BlockProperties& properties)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 末影箱形状：14x14底部（与普通箱子相同）
-    m_shape = CollisionShape::fullBlock();
+    // 末影箱形状：vanilla EnderChestBlock#SHAPE = Block.column(14.0, 0.0, 14.0)，
+    // 即 14×14 像素宽、14 像素高的小箱子，不是整格立方体。此前误用 fullBlock()，
+    // 末影箱因此被算作完全挡光（lightBlock=15），原版是 0。
+    m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.875f, 0.9375f);
 }
 
 BlockState EnderChestBlock::getStateForPlacement(BlockItemUseContext& context)

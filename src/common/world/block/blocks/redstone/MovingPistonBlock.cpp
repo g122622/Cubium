@@ -23,6 +23,7 @@
 
 #include "MovingPistonBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
@@ -122,6 +123,14 @@ const EnumProperty<PistonHeadBlock::Type>& MovingPistonBlock::_getTypeProperty()
 {
     // 返回 PistonHeadBlock 的 TYPE_PROP
     return PistonHeadBlock::getTypeProperty();
+}
+
+const CollisionShape& MovingPistonBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // vanilla MovingPistonBlock#getShape：return Shapes.empty();
+    static const CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
 }
 
 } // namespace blocks

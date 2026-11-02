@@ -115,6 +115,17 @@ public:
         Player& player,
         const BlockRaycastResult& hit) override;
 
+    /**
+     * @brief 使用形状进行光照遮挡（对齐原版 \`StonecutterBlock\` 的同名重写）
+     *
+     * 原版这个方块的重写返回 true，光照引擎据此按实际形状做面遮挡，而不是当作整格挡光。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
 protected:
     /// 切石机形状
     CollisionShape m_shape;

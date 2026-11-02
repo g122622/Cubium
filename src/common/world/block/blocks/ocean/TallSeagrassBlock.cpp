@@ -34,6 +34,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/PlantType.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -163,6 +164,17 @@ const CollisionShape& TallSeagrassBlock::getCollisionShape(const BlockState& sta
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
+}
+
+const fluid::FluidState* TallSeagrassBlock::getFluidState(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 对齐 vanilla TallSeagrassBlock#getFluidState：无条件返回水源（getSource(false)）。
+    fluid::Fluid* waterFluid = waterloggable::getWaterFluid();
+    if (waterFluid != nullptr) {
+        return &waterFluid->defaultState();
+    }
+    return nullptr;
 }
 
 // ========== IPlantable 接口实现 ==========

@@ -107,6 +107,15 @@ public:
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
+    /**
+     * @brief 菌株形状（对齐 vanilla FungusBlock#getShape）
+     *
+     * vanilla：`Block.column(8.0, 0.0, 9.0)`，即 8×8 像素、自底向上 9 像素高的细柱，
+     * 不是整格，所以天空光可穿过（lightBlock=0）。早期未重写 getShape，退回整格立方体，
+     * 导致下界菌被误判为完全挡光。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
 private:
     /// 真菌类型
     FungusType m_fungusType;

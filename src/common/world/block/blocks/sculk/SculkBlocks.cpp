@@ -968,10 +968,41 @@ BlockState SculkShriekerBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-const CollisionShape& SculkShriekerBlock::getShape(const BlockState& state) const
+const CollisionShape& SculkShriekerBlock::getCollisionShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // vanilla SculkShriekerBlock 只把碰撞形状与遮挡形状覆盖成 SHAPE_COLLISION（8 像素高的台子），
+    // getShape 仍继承 BaseEntityBlock 的整格立方体。
+    return m_shape;
+}
+
+const CollisionShape& SculkShriekerBlock::getOcclusionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
     return m_shape;
+}
+
+const CollisionShape& SculkShriekerBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // vanilla 未重写 getShape：仍是整格立方体。这一点直接决定光照——propagatesSkylightDown
+    // 的默认公式按形状判「整格 → 不透传」。早期把 getShape 也改成 8 像素台子，幽匿尖啸体
+    // 因此被误判为天空光直通格（lightBlock=0），原版是 1。
+    static const CollisionShape fullShape = CollisionShape::fullBlock();
+    return fullShape;
+}
+
+bool SculkShriekerBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 按 vanilla 默认公式原样求值（形状取 getShape，而不是本项目默认公式用的 getOcclusionShape）：
+    // getShape 是整格 → false；含水时同样不通透。
+    if (getShape(state).coversFullBlock()) {
+        return false;
+    }
+    const fluid::FluidState* fluidState = getFluidState(state);
+    return fluidState == nullptr || fluidState->isEmpty();
 }
 
 const fluid::FluidState* SculkShriekerBlock::getFluidState(const BlockState& state) const

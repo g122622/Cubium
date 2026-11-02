@@ -220,15 +220,25 @@ void registerBuildingBlocks()
 
     // 炼药锅（空）
     BuildingBlocks::CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(ResourceLocation("minecraft:cauldron"),
-        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().soundType(BlockSoundTypes::STONE));
+        BlockProperties(Material::IRON)
+            .hardness(2.0f)
+            .resistance(2.0f)
+            .notSolid()
+            .soundType(BlockSoundTypes::STONE)
+            .noOcclusion());
 
     // 水炼药锅（分层，水位1-3）
     // 对应 MC 原版 LayeredCauldronBlock (WATER_CAULDRON)
     // 降水类型为 Rain，表示水炼药锅只在雨天被降水填充
-    BuildingBlocks::WATER_CAULDRON = &registry.registerBlock<blocks::LayeredCauldronBlock>(
-        ResourceLocation("minecraft:water_cauldron"),
-        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().soundType(BlockSoundTypes::STONE),
-        world::biome::BiomeClimate::Precipitation::Rain);
+    BuildingBlocks::WATER_CAULDRON =
+        &registry.registerBlock<blocks::LayeredCauldronBlock>(ResourceLocation("minecraft:water_cauldron"),
+            BlockProperties(Material::IRON)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .notSolid()
+                .soundType(BlockSoundTypes::STONE)
+                .noOcclusion(),
+            world::biome::BiomeClimate::Precipitation::Rain);
 
     // 岩浆炼药锅 - 始终满的炼药锅，发光等级15，实体进入受岩浆伤害
     // 参考: net.minecraft.world.level.block.LavaCauldronBlock
@@ -239,21 +249,29 @@ void registerBuildingBlocks()
                 .resistance(2.0f)
                 .notSolid()
                 .lightLevel(15)
-                .soundType(BlockSoundTypes::STONE));
+                .soundType(BlockSoundTypes::STONE)
+                .noOcclusion());
 
     // 细雪炼药锅（分层，水位1-3）
     // 对应 MC 原版 LayeredCauldronBlock (POWDER_SNOW_CAULDRON)
     // 降水类型为 Snow，表示细雪炼药锅只在雪天被降水填充
     // 实体着火进入时会将细雪炼药锅转换为水炼药锅
-    BuildingBlocks::POWDER_SNOW_CAULDRON = &registry.registerBlock<blocks::LayeredCauldronBlock>(
-        ResourceLocation("minecraft:powder_snow_cauldron"),
-        BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().soundType(BlockSoundTypes::STONE),
-        world::biome::BiomeClimate::Precipitation::Snow);
+    BuildingBlocks::POWDER_SNOW_CAULDRON =
+        &registry.registerBlock<blocks::LayeredCauldronBlock>(ResourceLocation("minecraft:powder_snow_cauldron"),
+            BlockProperties(Material::IRON)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .notSolid()
+                .soundType(BlockSoundTypes::STONE)
+                .noOcclusion(),
+            world::biome::BiomeClimate::Precipitation::Snow);
 
     // 附魔台
+    // 原版 enchanting_table 不走 noOcclusion()（它的遮挡形状是整格立方体），只是 notSolid()——
+    // 玩家仍可与书互动穿过它。因此 canOcclude 为 true、lightBlock 按其形状判定。
     BuildingBlocks::ENCHANTING_TABLE =
         &registry.registerBlock<blocks::EnchantingTableBlock>(ResourceLocation("minecraft:enchanting_table"),
-            BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid().lightLevel(7).noOcclusion());
+            BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid().lightLevel(7));
 
     // 箱子 - 含水方块
     //
@@ -265,20 +283,34 @@ void registerBuildingBlocks()
 
     // 梯子 - 含水方块（vanilla 不设置 ignitedByLava）
     BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
-        BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable().soundType(BlockSoundTypes::LADDER));
+        BlockProperties(Material::WOOD)
+            .hardness(0.4f)
+            .notSolid()
+            .flammable()
+            .soundType(BlockSoundTypes::LADDER)
+            .noOcclusion());
 
     // 锁链 - 含水方块 (MC 1.21+ 重命名为 iron_chain)
     BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:iron_chain"),
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().soundType(BlockSoundTypes::CHAIN));
+        BlockProperties(Material::IRON)
+            .hardness(5.0f)
+            .resistance(5.0f)
+            .notSolid()
+            .soundType(BlockSoundTypes::CHAIN)
+            .noOcclusion());
 
     // 脚手架 - 含水方块
     BuildingBlocks::SCAFFOLDING =
         &registry.registerBlock<blocks::ScaffoldingBlock>(ResourceLocation("minecraft:scaffolding"),
-            BlockProperties(Material::DECORATION).hardness(0.0f).notSolid().soundType(BlockSoundTypes::SCAFFOLDING));
+            BlockProperties(Material::DECORATION)
+                .hardness(0.0f)
+                .notSolid()
+                .soundType(BlockSoundTypes::SCAFFOLDING)
+                .noOcclusion());
 
     // 玻璃板 - 含水方块
-    BuildingBlocks::GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
-        ResourceLocation("minecraft:glass_pane"), BlockProperties(Material::GLASS).hardness(0.3f).notSolid());
+    BuildingBlocks::GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(ResourceLocation("minecraft:glass_pane"),
+        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion());
 
     // 铁栏杆 - 含水方块
     // 对齐 vanilla Blocks.IRON_BARS：requiresCorrectToolForDrops + strength(5,6) + SoundType.IRON + noOcclusion()。

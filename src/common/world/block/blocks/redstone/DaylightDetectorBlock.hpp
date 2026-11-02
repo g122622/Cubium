@@ -140,6 +140,25 @@ public:
      */
     static void toggleMode(IWorld& world, const BlockPos& pos, const BlockState& state);
 
+    /**
+     * @brief 使用形状进行光照遮挡（对齐原版 `DaylightDetectorBlock` 的同名重写）
+     *
+     * 原版这个方块的重写返回 true，光照引擎据此按实际形状做面遮挡，而不是当作整格挡光。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
+     * @brief 形状（对齐 vanilla `DaylightDetectorBlock#SHAPE = Block.column(16.0, 0.0, 6.0)`）
+     *
+     * 整格宽、6 像素高的薄板。此前没有重写 getShape，退回整格立方体，光照引擎按整格
+     * 判定形状遮挡，日光探测器因此被算成完全挡光（lightBlock=15），原版是 0。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
 private:
     /// 更新延迟（tick）
     static constexpr i32 UPDATE_DELAY = 20;

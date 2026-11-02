@@ -38,6 +38,10 @@ class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
 
+namespace fluid {
+class FluidState;
+}
+
 namespace blocks {
 
 /**
@@ -93,6 +97,18 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    // ========== 流体状态 ==========
+
+    /**
+     * @brief 高海草始终含水（对齐 vanilla TallSeagrassBlock#getFluidState）
+     *
+     * vanilla 直接 `return Fluids.WATER.getSource(false);`，既用于放置检查，也参与
+     * `propagatesSkylightDown` 的默认公式：含流体的方块即使形状不完整也不透传天空光，
+     * 因此 lightBlock=1（每格衰减 1 级）。早期缺少此重写，高海草被算成天空光直通格
+     * （lightBlock=0），水下照进来的光线每穿过一格海草就少衰减了一级。
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
     // ========== IPlantable 接口 ==========
 

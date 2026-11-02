@@ -359,7 +359,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `block_sound_type` | 原版 jar `BlockSoundTypeOracle` | 1167（全部方块 + 饰纹陶罐裂纹状态） | 全部一致 | 见下文 |
 | `crop_growth` | 原版 jar `CropGrowthOracle` | 26 个手工地形场景 | 全部一致 | 见下文 |
 | `redstone_signal` | 原版 jar `RedstoneSignalOracle` | 41 个手工地形场景 | 全部一致 | 见下文 |
-| `light_occlusion` | 原版 jar `LightOcclusionOracle` | 1166 个方块 | 963 一致，203 处已登记缺口 | 见下文 |
+| `light_occlusion` | 原版 jar `LightOcclusionOracle` | 1166 个方块 | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -687,10 +687,56 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 - **`noCollision()` 没有同步关掉 `canOcclude`**：原版这个开关会同时置 `canOcclude=false`，
   于是空气、花草这类无碰撞方块不会被当作遮挡体。
 
-剩余 203 处差异已登记为已知缺口，根因是「光照阻挡注册未逐方块对齐」：原版大量方块在注册时
-显式调用 `noOcclusion()`/`noCollision()`（旗帜、床、潜影盒、染色玻璃板、冰、炼药锅等），
-Cubium 只做了一部分。修法已写进 `light_occlusion.ts` 的 `GAP_REASON`，需要按原版逐个方块
-的 `register` 调用补齐——属于跨数十个方块的一轮独立工作。修好后必须连同登记清单一并删除。
+随后按根因逐类修复，一致数从 963 提升到 1166，全部对齐：
+
+- **`refreshLightCache` 漏刷新 `useShapeForLightOcclusion`**：这是影响面最广的一处。三个
+  光照属性都是由虚函数在状态构造期算出来的，而状态建表发生在方块对象构造完成之前——
+  子类重写要等到构造之后才生效。缓存刷新函数只重算了 `opacity` 与 `propagatesSkylightDown`，
+  漏掉的那一个让土径、耕地、讲台、切石机、附魔台、末地传送门框等所有重写该方法的方块
+  运行时都退回默认值 false。补上后这些方块一次性对齐。
+- **约 40 个方块缺 `noOcclusion()`**：旗帜、床、潜影盒、染色玻璃板、铜栏杆/锁链/灯笼/
+  避雷针、铁链、梯子、脚手架、漏斗、炼药锅、遮光玻璃、宝库等，原版注册时都调用了这个开关。
+  它们多为共用一份属性变量的染色体，改一处批量生效。
+- **约 20 个实心方块被误加 `noOcclusion()`**：末地石、方解石、蘑菇柄、下界石英矿、
+  蛙明灯、红石灯、加固深板岩等原版根本没有这个开关，Cubium 多加了，导致它们不再遮挡光线。
+  这批问题此前一直被「`noCollision()` 不生效」掩盖，修好那个开关后才暴露出来。
+- **墙面头颅错误继承 `noOcclusion()`**：原版墙面变体走 `Blocks.wallVariant(...)`，只继承
+  掉落表与描述，不继承这个开关，因此它们的 `canOcclude` 保持 true。
+- **铜箱子被错注成无遮挡**：注册处注释写着「vanilla 铜箱子注册 noOcclusion()」，但原版只注册了
+  mapColor/strength/sound/requiresCorrectToolForDrops，`canOcclude` 保持默认 true。
+- **玻璃缺天空光直通**：原版 `glass` 是 `TransparentBlock`，重写 `propagatesSkylightDown` 返回
+  true（`lightBlock=0`）；Cubium 只注册了 `noOcclusion()`，让完整立方体的遮挡形状把天空光挡成
+  1 级。注意染色玻璃板相反——原版它们不透光（`lightBlock=1`）。
+- **六个方块缺 `useShapeForLightOcclusion` 重写**：讲台、切石机、末地传送门框、附魔台、
+  白天探测器、活塞头，原版都返回 true。
+
+第二轮清掉了收尾的 31 处，两类根因：
+
+- **未重写 `getShape`，退回整格立方体**（多数）：原版为这些方块返回细柱、扁平、十字等
+  非整格形状，光照引擎据此判 `propagatesSkylightDown=true` 与更小的 `lightBlock`。
+  涉及末地烛、下界菌、火焰/灵魂火、拉杆、活塞/活塞头/移动中的活塞、末影箱、附魔台、
+  白天探测器、高海葵、潮涌核心、遮光玻璃、两种下界藤的茎段等。修法是按原版源码里的
+  `Shapes.box/column/boxZ` 尺寸逐个换算成像素盒——注意 `Block.boxZ(w, y1, y2)` 与
+  `column(d, y1, y2)` 都靠居中计算展开，直接照抄参数会得到完全不同的盒子。
+- **注册属性写错，与形状无关**：气泡柱与水把 `lightBlock` 显式写成 0（原版是 1，含流体
+  的方块每格衰减 1 级）；浮冰多写了 `propagatesSkylightDown()`；遮光玻璃的 `opacity(15)`
+  与默认哨兵值相同因而无效，必须靠专用子类给出 15；中继器/比较器/苔藓地毯多写了
+  `noCollision()`，而它会连带清掉 `canOcclude`；幽匿脉络多写了
+  `useShapeForLightOcclusion`。
+
+两处需要额外说明的语义陷阱：
+
+- **幽匿尖啸体**：原版只把碰撞形状与遮挡形状覆盖成 8 像素台子，`getShape` 仍是整格，
+  而 `propagatesSkylightDown` 的默认公式取的是 `getShape`。Cubium 的默认公式为了绕开
+  `getShape` 不看 `hasCollision` 的问题而改取 `getOcclusionShape`，在这里会算出相反结果，
+  因此该方块必须自己重写 `propagatesSkylightDown`。把默认公式整体改成 `getShape` 或
+  `getCollisionShape` 都会破坏另外十个方块（蜘蛛网、蜂蜜块、雪、泥巴、细雪等），已验证不可行。
+- **两种下界藤的茎段**：原来用 `SimpleBlock` 注册，除了形状是整格外，还丢掉了「头部断裂
+  时茎段变回头部」的行为。改为新增的 `TwistingVinesPlantBlock`/`WeepingVinesPlantBlock`
+  （继承 `GrowingPlantBodyBlock`），形状分别为 `column(8,0,16)` 与 `column(14,0,16)`。
+  顺带修正了扭曲藤头部的高度（原写 9 像素，原版是 15 像素）。
+
+至此该能力的 `knownDifferences` 登记表已清空并删除。
 
 `fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
 单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。

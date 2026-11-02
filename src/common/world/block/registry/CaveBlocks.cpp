@@ -29,6 +29,7 @@
 #include "world/block/HarvestTool.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/building/TintedGlassBlock.hpp"
 #include "world/block/blocks/cave/AmethystBlock.hpp"
 #include "world/block/blocks/cave/AmethystClusterBlock.hpp"
 #include "world/block/blocks/cave/AzaleaBlock.hpp"
@@ -120,8 +121,7 @@ void registerCaveBlocks()
                 .harvestTool(HarvestTool::Pickaxe)
                 .requiresTool()
                 .soundType(BlockSoundTypes::AMETHYST)
-                .tickRandomly()
-                .noOcclusion());
+                .tickRandomly());
 
     // 小紫水晶芽 - 发光等级1，FACING+WATERLOGGED，高度2像素宽度4像素
     CaveBlocks::SMALL_AMETHYST_BUD =
@@ -204,7 +204,8 @@ void registerCaveBlocks()
                 .hardness(1.5f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::POINTED_DRIPSTONE)
-                .tickRandomly());
+                .tickRandomly()
+                .noOcclusion());
 
     // ============================================================================
     // 方解石
@@ -216,15 +217,24 @@ void registerCaveBlocks()
             .resistance(0.75f)
             .harvestTool(HarvestTool::Pickaxe)
             .requiresTool()
-            .soundType(BlockSoundTypes::CALCITE)
-            .noOcclusion());
+            .soundType(BlockSoundTypes::CALCITE));
 
     // ============================================================================
     // 遮光玻璃 - 透明但不透光（阻挡所有光线，不传播天空光）
     // ============================================================================
 
-    CaveBlocks::TINTED_GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:tinted_glass"),
-        BlockProperties(Material::GLASS).hardness(0.3f).resistance(0.3f).notSolid().soundType(BlockSoundTypes::GLASS));
+    //   原版 TintedGlassBlock 重写 propagatesSkylightDown -> false 且 getLightBlock -> 15：
+    //   它虽然 noOcclusion（不参与面遮挡），但形状是整格立方体，天空光完全无法穿过，
+    //   每格衰减 15 级。这两个值都必须靠专用子类给出——注册属性里的 opacity(15) 与默认
+    //   哨兵值相同，写入后仍会落入默认公式得到 1。
+    CaveBlocks::TINTED_GLASS =
+        &registry.registerBlock<blocks::TintedGlassBlock>(ResourceLocation("minecraft:tinted_glass"),
+            BlockProperties(Material::GLASS)
+                .hardness(0.3f)
+                .resistance(0.3f)
+                .notSolid()
+                .soundType(BlockSoundTypes::GLASS)
+                .noOcclusion());
 
     // ============================================================================
     // 苔藓系列
@@ -244,9 +254,10 @@ void registerCaveBlocks()
     // 使 Block::propagatesSkylightDown 默认公式得 true，对齐 vanilla MossyCarpetBlock#propagatesSkylightDown=true
     // （苔藓地毯透传天空光，opacity=0）。此前误用 SimpleBlock（getShape=fullBlock）致默认公式得 false、
     // 天空光被错误阻断。
+    // 另外不能写 noCollision()：原版 moss_carpet 只有 strength/sound，canOcclude 为 true
+    // （低矮由形状表达）；而 noCollision() 会连带清掉 canOcclude。
     CaveBlocks::MOSS_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:moss_carpet"),
         BlockProperties(Material::PLANT)
-            .noCollision()
             .notSolid()
             .hardness(0.1f)
             .resistance(0.0f)
@@ -398,7 +409,8 @@ void registerCaveBlocks()
                 .replaceable()
                 .hardness(0.25f)
                 .resistance(0.25f)
-                .soundType(BlockSoundTypes::POWDER_SNOW));
+                .soundType(BlockSoundTypes::POWDER_SNOW)
+                .noOcclusion());
 }
 
 } // namespace block_registry

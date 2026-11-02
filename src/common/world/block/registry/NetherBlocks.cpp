@@ -64,7 +64,9 @@
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
 #include "world/block/blocks/nether/SoulSandBlock.hpp"
 #include "world/block/blocks/nether/TwistingVinesBlock.hpp"
+#include "world/block/blocks/nether/TwistingVinesPlantBlock.hpp"
 #include "world/block/blocks/nether/WeepingVinesBlock.hpp"
+#include "world/block/blocks/nether/WeepingVinesPlantBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -355,12 +357,12 @@ void registerNetherBlocks()
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::NETHER_VINE));
 
     // 垂泪藤植株 - 垂泪藤的茎部分（不生长）
-    NetherBlocks::WEEPING_VINES_PLANT = &registry.registerBlock<SimpleBlock>(
+    NetherBlocks::WEEPING_VINES_PLANT = &registry.registerBlock<blocks::WeepingVinesPlantBlock>(
         ResourceLocation("minecraft:weeping_vines_plant"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::NETHER_VINE));
 
     // 扭曲藤植株 - 扭曲藤的茎部分（不生长）
-    NetherBlocks::TWISTING_VINES_PLANT = &registry.registerBlock<SimpleBlock>(
+    NetherBlocks::TWISTING_VINES_PLANT = &registry.registerBlock<blocks::TwistingVinesPlantBlock>(
         ResourceLocation("minecraft:twisting_vines_plant"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::NETHER_VINE));
 
@@ -703,7 +705,8 @@ void registerNetherBlocks()
             .resistance(4.8f)
             .harvestTool(HarvestTool::Pickaxe)
             .soundType(BlockSoundTypes::METAL)
-            .requiresTool());
+            .requiresTool()
+            .noOcclusion());
 
     // 钟 - 村庄报时方块
     NetherBlocks::BELL = &registry.registerBlock<blocks::BellBlock>(ResourceLocation("minecraft:bell"),
@@ -712,7 +715,7 @@ void registerNetherBlocks()
             .resistance(5.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .requiresTool()
-            .noOcclusion()
+
             .soundType(BlockSoundTypes::ANVIL));
 
     // ============================================================================
@@ -772,7 +775,7 @@ void registerNetherBlocks()
 
     // 信标 - 发光15级（通过 getLightLevel）
     NetherBlocks::BEACON = &registry.registerBlock<blocks::BeaconBlock>(ResourceLocation("minecraft:beacon"),
-        BlockProperties(Material::GLASS).hardness(3.0f).soundType(BlockSoundTypes::STONE));
+        BlockProperties(Material::GLASS).hardness(3.0f).soundType(BlockSoundTypes::STONE).noOcclusion());
 
     // 酿造台 - 发光1级（通过 getLightLevel）
     NetherBlocks::BREWING_STAND =

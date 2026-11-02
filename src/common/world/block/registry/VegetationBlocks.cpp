@@ -243,9 +243,8 @@ void registerVegetationBlocks()
         ResourceLocation("minecraft:red_mushroom_block"), hugeMushroomProps);
 
     // 蘑菇柄
-    VegetationBlocks::MUSHROOM_STEM =
-        &registry.registerBlock<blocks::HugeMushroomBlock>(ResourceLocation("minecraft:mushroom_stem"),
-            BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava().noOcclusion());
+    VegetationBlocks::MUSHROOM_STEM = &registry.registerBlock<blocks::HugeMushroomBlock>(
+        ResourceLocation("minecraft:mushroom_stem"), BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava());
 
     // 棕色蘑菇
     // 传入空 generator，由 server 侧 ServerBigMushroomGenerators::injectAll() 后置注入
@@ -276,8 +275,12 @@ void registerVegetationBlocks()
         ResourceLocation("minecraft:dark_oak_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
 
     // 竹子属性：可被岩浆点燃（对齐 vanilla）
-    BlockProperties bambooProps =
-        BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid().ignitedByLava().soundType(BlockSoundTypes::BAMBOO);
+    BlockProperties bambooProps = BlockProperties(Material::BAMBOO)
+                                      .hardness(1.0f)
+                                      .notSolid()
+                                      .noOcclusion()
+                                      .ignitedByLava()
+                                      .soundType(BlockSoundTypes::BAMBOO);
 
     // 竹子
     VegetationBlocks::BAMBOO =

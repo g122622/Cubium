@@ -51,8 +51,11 @@ namespace blocks {
 // ============================================================================
 
 namespace {
-/// 潮涌核心的碰撞箱形状 (5x5x5 到 11x11x11)
-static const CollisionShape CONDUIT_SHAPE = CollisionShape::box(5.0f, 5.0f, 5.0f, 11.0f, 11.0f, 11.0f);
+// vanilla ConduitBlock：SHAPE = Block.cube(6.0) = column(6, 6, 0, 6)
+//   = box(5, 0, 5, 11, 6, 11)，即 x/z 各 6 像素宽、贴地高 6 像素的盒子。
+// 早期写成了居中立方体 (5,5,5)-(11,11,11)：横截面虽相同，但整体上抬了 5 像素，
+// 不仅落地判定偏移，还把「贴地摆放」的房间光照挡住的范围算错了一格。
+static const CollisionShape CONDUIT_SHAPE = CollisionShape::box(5.0f, 0.0f, 5.0f, 11.0f, 6.0f, 11.0f);
 } // namespace
 
 ConduitBlock::ConduitBlock(BlockProperties properties)
@@ -134,6 +137,17 @@ const CollisionShape& ConduitBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
     return CONDUIT_SHAPE;
+}
+
+const fluid::FluidState* ConduitBlock::getFluidState(const BlockState& state) const
+{
+    // 对齐 vanilla ConduitBlock#getFluidState：含水时返回水源，否则走基类（空流体）。
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        if (fluid::Fluid* waterFluid = waterloggable::getWaterFluid()) {
+            return &waterFluid->defaultState();
+        }
+    }
+    return Block::getFluidState(state);
 }
 
 } // namespace blocks

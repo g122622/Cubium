@@ -27,6 +27,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -240,6 +241,14 @@ void DaylightDetectorBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos)
             neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
         }
     }
+}
+
+const CollisionShape& DaylightDetectorBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // vanilla DaylightDetectorBlock：SHAPE = Block.column(16.0, 0.0, 6.0)。
+    static const CollisionShape shape = CollisionShape::fromPixelBox(0, 0, 0, 16, 6, 16);
+    return shape;
 }
 
 } // namespace blocks

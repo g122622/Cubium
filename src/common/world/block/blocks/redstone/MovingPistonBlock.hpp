@@ -70,6 +70,15 @@ public:
     // ========== Block 接口实现 ==========
 
     /**
+     * @brief 空形状（对齐 vanilla `MovingPistonBlock#getShape`）
+     *
+     * vanilla 直接 `return Shapes.empty();`：移动中的活塞只是占位方块，实际渲染与碰撞由
+     * PistonBlockEntity 负责，因此天空光完全直通（lightBlock=0）。早期未重写 getShape，
+     * 退回整格立方体，把正在移动的方块位置误判为挡光格。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
      * @brief 方块被移除时调用
      *
      * 清理 PistonBlockEntity。

@@ -87,6 +87,23 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    /**
+     * @brief 底座形状（对齐 vanilla `PistonBaseBlock#getShape`）
+     *
+     * vanilla：`Shapes.rotateAll(Block.boxZ(16.0, 4.0, 16))`。基准姿态朝 NORTH 时是
+     * x/z 整格、y 从 4 到 16 的方块，再按 FACING 旋转（EAST/SOUTH/WEST 绕 Y 轴
+     * 90/180/270 度，UP/DOWN 绕 X 轴 270/90 度）。它不是整格，所以天空光可穿过。
+     * 早期未重写 getShape，退回整格立方体，活塞底座被误判为完全挡光（lightBlock=15）。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 是否按形状做光照遮挡（对齐 vanilla `PistonBaseBlock#useShapeForLightOcclusion`）
+     *
+     * vanilla 返回 `state.getValue(EXTENDED)`：只有伸出的活塞才按形状遮挡。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override;
+
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
