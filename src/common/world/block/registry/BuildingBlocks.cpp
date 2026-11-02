@@ -393,7 +393,7 @@ void registerBuildingBlocks()
 
     // 蛋糕
     BuildingBlocks::CAKE = &registry.registerBlock<blocks::CakeBlock>(ResourceLocation("minecraft:cake"),
-        BlockProperties(Material::CAKE).hardness(0.5f).notSolid().soundType(BlockSoundTypes::WOOL));
+        BlockProperties(Material::CAKE).withCollision().hardness(0.5f).notSolid().soundType(BlockSoundTypes::WOOL));
 
     // 讲台
     BuildingBlocks::LECTERN = &registry.registerBlock<blocks::LecternBlock>(ResourceLocation("minecraft:lectern"),

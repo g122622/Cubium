@@ -52,6 +52,10 @@ AzaleaBlock::AzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockP
 {
     // MC 1.21.11: Shapes.or(Block.column(16.0, 8.0, 16.0), Block.column(4.0, 0.0, 8.0))
     // 上半部分：16x8像素（从Y=8到Y=16），底部茎干：4x8像素（从Y=0到Y=8）
+    // TODO: 原版 azalea / flowering_azalea 的 getShape 实测是**完整方块**（bounds 0..1），
+    // 但直接改成满方块会让差异从 1 处涨到 13 处（EAST/WEST/NORTH/SOUTH 的 FULL/CENTER/RIGID
+    // 全部误判为 true），说明 AzaleaBlock 还有其它形状/碰撞逻辑未对齐。
+    // 当前保留上半部形状（0..16, 8..16, 0..16），仅剩 DOWN|CENTER 一处差异。
     m_shape = CollisionShape::fromPixelBox(0, 8, 0, 16, 16, 16);
     m_shape.addBox(6, 0, 6, 10, 8, 10);
 }

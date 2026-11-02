@@ -41,7 +41,9 @@ LilyPadBlock::LilyPadBlock(const BlockProperties& properties)
 {
 
     // 睡莲形状：扁平的圆形，略微高于水面
-    m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.015625f, 0.9375f);
+    // 原版 SHAPE = box(1, 0, 1, 15, 1.5, 15)：Y 上限 1.5/16 = 0.09375。
+    // 此前写成 0.015625（1/64），只有原版的六分之一，DOWN 面的切片落不到中心。
+    m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.09375f, 0.9375f);
 }
 
 BlockState LilyPadBlock::getStateForPlacement(BlockItemUseContext& context)

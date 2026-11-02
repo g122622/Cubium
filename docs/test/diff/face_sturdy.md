@@ -26,7 +26,8 @@
 | 修复 6 处「像素值传给归一化 `box()`」+ 4 处方块碰撞状态 | 39 |
 | 栅栏门支撑形状改用 `box()` 绕开坐标系启发式 | 27 |
 | 5 个方块补 `withCollision()` | 22 |
-| 修正 cactus / conduit / bamboo 的形状坐标 | **20** |
+| 修正 cactus / conduit / bamboo 的形状坐标 | 20 |
+| 头部方块补碰撞 + 修正 lily_pad/heavy_core 形状 | **10** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -943,6 +944,49 @@ collision = AABB[0.15625, 0.0, 0.15625] -> [0.34375, 1.0, 0.34375] 即像素 2.5
 
 `TODO`：这个偏移的来源尚未查清（可能是注册时的 `offsetType`），导致 `bamboo` 仍有 2 处
 `UP|CENTER` / `DOWN|CENTER` 差异。
+## 头部方块 + 三处形状（20 → 10）
+
+### `*_head` / `*_skull` 系列：7 处
+
+`skullProps` 用的是 `Material::DECORATION`（`solid(false)`），碰撞被关掉，支撑形状为空。
+
+```cpp
+const BlockProperties skullProps =
+    BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid().noOcclusion();
+```
+
+7 个方块（`player_head`、`skeleton_skull`、`wither_skeleton_skull`、`zombie_head`、`creeper_head`、
+`dragon_head`、`piglin_head`）的 `DOWN|CENTER` 全部消除。
+
+### `heavy_core`：Y 上限写成满高
+
+```cpp
+❌ fromPixelBox(4, 0, 4, 12, 16, 12)
+✅ fromPixelBox(4, 0, 4, 12,  8, 12)   原版 SHAPE = box(4, 0, 4, 12, 8, 12)
+```
+
+### `lily_pad` / `cake` / `dried_ghast`：碰撞开关
+
+| 方块 | 问题 |
+|---|---|
+| `lily_pad` | `.noCollision()` 与 `.notSolid()` 写在同一行，前几轮按行匹配 `^\s+\.noCollision\(\)\s*$` 时遗漏 |
+| `cake` | 用 `Material::CAKE`（`solid(false)`），补 `.withCollision()` |
+| `dried_ghast` | 显式 `.noCollision()`，改 `.withCollision()` |
+
+### `azalea` / `flowering_azalea`：改成满方块反而恶化，已回退
+
+原版 `getShape` 实测 bounds 是 `0..1`（完整方块），Cubium 写的是 `0..16, 8..16, 0..16`
+（只有上半部）。但把 Cubium 改成满方块后，差异从 **1 处涨到 13 处**——
+
+```
+EAST/WEST/NORTH/SOUTH 的 FULL / CENTER / RIGID 全部从 false 变成 true
+```
+
+说明 `AzaleaBlock` 还有其它形状/碰撞逻辑未对齐，满方块只是把问题放大。已回退并留下 `TODO`。
+
+> 这是本能力里第三次遇到「修改后差异反而增多」。三次的共同判据：
+> **如果一处的修复让另外十几个面同时变成差异，说明该方块还有更底层的问题没有对齐**，
+> 应当先保留现状，把现象记录下来，而不是反复试。
 ## 与其它能力的关系
 
 | 能力 | 关系 |
