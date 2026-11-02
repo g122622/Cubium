@@ -12,7 +12,10 @@
 | 修复 `LeavesBlock` | 427 |
 | 修复 `HoneyBlock` | 421 |
 | 修复 `FenceGateBlock` | 397 |
-| 修复 `CarpetBlock` / `LadderBlock` / `NetherWartBlock` | **344** |
+| 修复 `CarpetBlock` / `LadderBlock` / `NetherWartBlock` | 344 |
+| 修复 `dried_kelp_block` / `ender_chest` / `daylight_detector` | 270 |
+| 修复 `piston_head` / `enchanting_table` | 255 |
+| 修复 `moving_piston` / `azalea` 系列 | **249** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -317,6 +320,95 @@ private static final Map<Direction.Axis, VoxelShape> SHAPE_SUPPORT =
 
 **本能力维持「部分通过」状态是有意的**——它已经把根因从「625 处差异」收敛到
 「**4 处空形状/缺失覆写 + 1 个待确认的形状精度缺口**」，后续修复有明确方向。
+
+## 后续批次修复（344 → 249）
+
+| 方块 | 问题 | 差异 |
+|---|---|---|
+| `dried_kelp_block` | `Material::PLANT` 推导出「无碰撞」，形状整个为空 | 18 |
+| `ender_chest` | 碰撞箱横向满宽（应为 14×14×14）| 17 |
+| `daylight_detector` | **完全无形状定义**（应为 16×6×16 薄板）| 15 |
+| `moving_piston` | 静态形状应为空（移动中无稳定形状）| 18 |
+| `piston_head` | **完全无形状定义**（平台 + 推杆，长杆到 20/16）| 15 |
+| `enchanting_table` | 两层拼合，与原文实心矮块完全不符 | 6 |
+| `azalea` / `flowering_azalea` | 同干海带块，材质短路了自定义形状 | 8 |
+
+### 关键教训：`Material` 不等于形状
+
+```cpp
+// BlockProperties 的构造
+m_hasCollision(material.blocksMovement())
+// Material::PLANT → makePlantMaterial().solid(false) → blocksMovement() == false
+```
+
+干海带块与杜鹃花借用植物材质**只为挖掘手感与可燃性**，自身却是实心方块：
+
+- 干海带块在原版注册成普通 `Block`，玩家能站上去；
+- 杜鹃花有上半叶 + 细杆的实际碰撞箱。
+
+但材质推导出的「无碰撞」会把 `m_hasCollision` 置为 false，`Block::getCollisionShape` 于是
+直接返回空——**连方块自己 `getShape` 定义的形状也会被整个短路**。
+
+为此新增 `BlockProperties::withCollision()` 显式覆盖材质推导值。
+
+### 教训：诊断必须打印实际中间值
+
+本轮所有定位都靠临时 `DIAG` 分支输出，而不是靠阅读代码猜测：
+
+```
+minecraft:dried_kelp_block|DOWN|DIAG -> col:empty sup:empty          ← 形状为空
+minecraft:cauldron|DOWN|DIAG          -> supBoxes=5 voxCoordsY=5     ← 坐标集偏少
+minecraft:stone|DOWN|DIAG             -> col:full sup:full          ← 正常
+```
+
+上一轮之所以误判成「归一化缺口」，就是因为只读代码没有打印实际值。
+
+## 剩余 249 处：炼药锅系列与 `CollisionShape` 的表达能力上限
+
+剩余差异中最大的一类是炼药锅：`cauldron` 15 + `lava_cauldron` 15 +
+`powder_snow_cauldron` 15 = **45 处**，占剩余量的绝大部分。
+
+### 原版的构造方式
+
+```java
+private static final VoxelShape SHAPE_INSIDE = Block.column(12.0, 4.0, 16.0);
+protected static final VoxelShape SHAPE =
+    Shapes.join(Shapes.block(), SHAPE_INSIDE, BooleanOp.ONLY_FIRST);   // 完整方块减去空腔
+```
+
+### 为什么 5 个盒子拼不出等价形状
+
+直觉上「完整方块减去中心空腔」= 底座 + 四壁，5 个盒子就够了。但把原版形状
+`toAabbs()` 打印出来，得到的是 **15 个盒子**：
+
+```
+AABB[0.0, 0.0, 0.0] -> [0.125, 1.0, 0.25]
+AABB[0.0, 0.0, 0.75] -> [0.125, 1.0, 1.0]
+...
+AABB[0.0, 0.1875, 0.25] -> [1.0, 0.25, 0.75]     ← 注意 0.1875
+...
+```
+
+原因是**离散网格把边界切碎了**：`Shapes.join` 会合并两个形状的坐标集，
+`column(12,4,16)` 的 y 坐标是 `[0, 0.25, 0.5, 0.75, 1.0]`，与 `block` 的 `[0, 1]` 合并后
+生成 `[0, 0.1875, 0.25, 0.5, 0.75, 1.0]`——多出一个 `0.1875`。
+
+而 `isFaceFull` 判的是**离散格子是否全填满**（原版 `isShapeFullBlock` → `isFullWide`），
+不是 AABB 覆盖。网格切分不同，判定结果就不同。
+
+### 无法在本层修复
+
+```cpp
+// src/common/physics/collision/CollisionShape.hpp
+enum class CombineOp : u8 { OR, AND, NOT };
+// AND 和 NOT 操作暂不实现（需要更复杂的几何运算）
+// TODO: 补全 CombineOp::AND / CombineOp::NOT。当前传这两个值会**静默返回空形状**
+```
+
+`CollisionShape` 只存**轴对齐盒的并集**，无法表达「带内部空洞的拓扑」，也存不下
+离散网格的坐标集。要真正收敛这 45 处，需要把 `CollisionShape` 的底层存储换成
+`VoxelShape`（或补全 `AND`/`NOT` 并保留精确坐标集）——这是架构级改造，
+会影响光照遮挡、碰撞检测、`shapes_boolean`、`collide_sweep` 等所有使用方。
 
 ## 单元格式
 
