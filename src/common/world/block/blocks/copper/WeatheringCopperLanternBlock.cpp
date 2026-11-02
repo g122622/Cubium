@@ -68,11 +68,17 @@ WeatheringCopperLanternBlock::WeatheringCopperLanternBlock(
     setDefaultState(
         defaultState().with(BlockStateProperties::HANGING(), false).with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 创建形状 - 与普通灯笼相同
-    // 站立形状：底部到中部
-    m_standingShape = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
-    // 悬挂形状：顶部悬挂
-    m_hangingShape = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    // 原版铜灯笼与普通灯笼形状相同，都由**两个盒子** OR 而成：
+    //   站立：box(5, 0, 5 -> 11, 7, 11) 与 box(6, 7, 6 -> 10, 9, 10)
+    //   悬挂：box(5, 1, 5 -> 11, 8, 11) 与 box(6, 8, 6 -> 10, 10, 10)
+    // 此前只建了主体，漏掉了顶部/底部的小柱——灯笼比原版矮了 2 像素。
+    const CollisionShape standingBody = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
+    const CollisionShape standingCap = CollisionShape::fromPixelBox(6.0f, 7.0f, 6.0f, 10.0f, 9.0f, 10.0f);
+    m_standingShape = CollisionShape::combine(standingBody, standingCap, CollisionShape::CombineOp::OR);
+
+    const CollisionShape hangingBody = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    const CollisionShape hangingCap = CollisionShape::fromPixelBox(6.0f, 8.0f, 6.0f, 10.0f, 10.0f, 10.0f);
+    m_hangingShape = CollisionShape::combine(hangingBody, hangingCap, CollisionShape::CombineOp::OR);
 }
 
 void WeatheringCopperLanternBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
@@ -187,9 +193,14 @@ WaxedCopperLanternBlock::WaxedCopperLanternBlock(const BlockProperties& properti
     setDefaultState(
         defaultState().with(BlockStateProperties::HANGING(), false).with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 创建形状 - 与风化版本相同
-    m_standingShape = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
-    m_hangingShape = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    // 与风化版本相同：主体 + 顶部/底部小柱两个盒子的 OR。
+    const CollisionShape standingBody = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
+    const CollisionShape standingCap = CollisionShape::fromPixelBox(6.0f, 7.0f, 6.0f, 10.0f, 9.0f, 10.0f);
+    m_standingShape = CollisionShape::combine(standingBody, standingCap, CollisionShape::CombineOp::OR);
+
+    const CollisionShape hangingBody = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    const CollisionShape hangingCap = CollisionShape::fromPixelBox(6.0f, 8.0f, 6.0f, 10.0f, 10.0f, 10.0f);
+    m_hangingShape = CollisionShape::combine(hangingBody, hangingCap, CollisionShape::CombineOp::OR);
 }
 
 void WaxedCopperLanternBlock::fillStateContainer(StateContainer<Block, BlockState>& container)

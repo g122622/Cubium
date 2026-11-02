@@ -61,13 +61,13 @@ ChainBlock::ChainBlock(const BlockProperties& properties)
     setDefaultState(
         defaultState().with(BlockStateProperties::AXIS(), Axis::Y).with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 创建形状 - 锁链是细长的柱子
-    // Y轴：垂直锁链
-    m_yShape = CollisionShape::fromPixelBox(6.0f, 0.0f, 6.0f, 10.0f, 16.0f, 10.0f);
+    // 原版链的横截面是 Block.column(3.0, 0.0, 16.0)：宽 3 像素（6.5..9.5），
+    // 不是 4 像素（6..10）。此前铁链比原版粗 1 像素。
+    m_yShape = CollisionShape::fromPixelBox(6.5f, 0.0f, 6.5f, 9.5f, 16.0f, 9.5f);
     // X轴：水平锁链（东西方向）
-    m_xShape = CollisionShape::fromPixelBox(0.0f, 6.0f, 6.0f, 16.0f, 10.0f, 10.0f);
+    m_xShape = CollisionShape::fromPixelBox(0.0f, 6.5f, 6.5f, 16.0f, 9.5f, 9.5f);
     // Z轴：水平锁链（南北方向）
-    m_zShape = CollisionShape::fromPixelBox(6.0f, 6.0f, 0.0f, 10.0f, 10.0f, 16.0f);
+    m_zShape = CollisionShape::fromPixelBox(6.5f, 6.5f, 0.0f, 9.5f, 9.5f, 16.0f);
 }
 
 BlockState ChainBlock::getStateForPlacement(BlockItemUseContext& context)
