@@ -730,7 +730,7 @@ void registerNetherBlocks()
     // 末地烛 - 发光14级，6 向朝向
     NetherBlocks::END_ROD = &registry.registerBlock<blocks::EndRodBlock>(ResourceLocation("minecraft:end_rod"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .lightLevel(14)
             .noOcclusion()
             .soundType(BlockSoundTypes::WOOD));

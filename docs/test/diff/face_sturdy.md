@@ -22,7 +22,8 @@
 | 蜡烛补 `withCollision()`（支撑形状应非空）| 95 |
 | 吊挂告示牌按 `rotation` 区分形状 | 83 |
 | 墙面悬挂告示牌按原版方式合成细分网格 | 71 |
-| 中继器/比较器补 `withCollision()` | **65** |
+| 中继器/比较器补 `withCollision()` | 65 |
+| 修复 6 处「像素值传给归一化 `box()`」+ 4 处方块碰撞状态 | **39** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -726,6 +727,58 @@ holdingItem(empty)  = false
 
 已回退。`TODO`：需要逐状态测出原版脚手架 8×`distance`×`bottom` 组合下的支撑形状，
 再决定 Cubium 的覆写策略，而不是一刀切返回满方块。
+## 像素坐标误传给归一化 `box()`：一次清掉 17 处（65 → 48）
+
+### 发现方式
+
+按「`Material` 的 `solid` 决定碰撞」这条线索，扫描所有 `solid(false)` 材质的方块，
+但发现 `lantern` 用的是 `Material::IRON`（solid = true）也报差异——说明根因不止一处。
+
+于是改为扫描 `CollisionShape::box(...)` 的**数值范围**：归一化接口的参数必须落在 0..1，
+任何超过 1 的参数都是错误。
+
+### 查出的 6 处
+
+| 文件 | 错误代码 | 影响方块 |
+|---|---|---|
+| `LanternBlock.cpp:69,71` | `box(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f)` | `lantern` / `soul_lantern` |
+| `WeatheringCopperLanternBlock.cpp:73,75,191,192` | 同上 | 9 个 `*_copper_lantern` |
+| `CopperGolemStatueBlock.cpp:72` | `box(3.0f, 0.0f, 3.0f, 13.0f, 14.0f, 13.0f)` | 8 个 `*_golem_statue` |
+| `ConduitBlock.cpp:58` | `box(5.0f, 0.0f, 5.0f, 11.0f, 6.0f, 11.0f)` | `conduit` |
+
+```cpp
+// ❌ box() 收归一化坐标，传入像素值 5..11 会得到远超方块的形状
+m_standingShape = CollisionShape::box(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
+
+// ✅ 像素坐标要用 fromPixelBox
+m_standingShape = CollisionShape::combine(
+    CollisionShape::fromPixelBox(6.0f, 7.0f, 6.0f, 10.0f, 9.0f, 10.0f),   // 顶部小柱
+    CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f),    // 灯体
+    CollisionShape::CombineOp::OR);
+```
+
+同时按原版 `SHAPE_STANDING = or(column(4.0, 7.0, 9.0), column(6.0, 0.0, 7.0))` 补全了
+灯笼的「顶部小柱 + 灯体」两段结构（此前只画了灯体一段，Y 上限也写错成 7，应为 9）。
+
+**17 处差异一次性消除。**
+
+> 教训：`CollisionShape::box` 与 `fromPixelBox` 的坐标系完全不同，参数却都是 6 个 float，
+> 编译器无法区分。**建议在 review 时对所有 `box(...)` 调用检查参数是否 ≤ 1.0**——
+> 这条静态规则能直接抓出这一类缺陷。
+
+## 方块碰撞状态按实测逐个纠正（48 → 39）
+
+| 方块 | Cubium 原设置 | 原版实测 | 修正 |
+|---|---|---|---|
+| `small/medium/large_amethyst_bud` | `.noCollision()` | support 非空、collision 非空 | 改 `.withCollision()` |
+| `end_rod` | `.noCollision()` | support `box(6,0,6,10,16,10)` 非空 | 改 `.withCollision()` |
+| `pale_moss_carpet` | `.noCollision()` | support `box(0,0,0,16,1,16)` 非空 | 改 `.withCollision()` |
+| `nether_wart` | `getCollisionShape` 返回 `getShape` | **collision 与 support 均为空** | 改回返回空形状 |
+
+`nether_wart` 这一处尤其值得记录：原版 `getShape` 非空（`box(0,0,0,16,5,16)`，随 age 变化），
+但 `getCollisionShape` 与 `getBlockSupportShape` **都是空**。此前代码的注释断言
+「碰撞形状等于 getShape」，与本能力实测的 `nether_wart|DOWN|CENTER` 原版 false / Cubium true
+直接矛盾。**注释中的推断不能替代实测。**
 ## 与其它能力的关系
 
 | 能力 | 关系 |

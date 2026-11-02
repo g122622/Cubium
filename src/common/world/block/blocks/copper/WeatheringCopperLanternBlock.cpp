@@ -70,9 +70,9 @@ WeatheringCopperLanternBlock::WeatheringCopperLanternBlock(
 
     // 创建形状 - 与普通灯笼相同
     // 站立形状：底部到中部
-    m_standingShape = CollisionShape::box(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
+    m_standingShape = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
     // 悬挂形状：顶部悬挂
-    m_hangingShape = CollisionShape::box(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    m_hangingShape = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
 }
 
 void WeatheringCopperLanternBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
@@ -188,8 +188,8 @@ WaxedCopperLanternBlock::WaxedCopperLanternBlock(const BlockProperties& properti
         defaultState().with(BlockStateProperties::HANGING(), false).with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建形状 - 与风化版本相同
-    m_standingShape = CollisionShape::box(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
-    m_hangingShape = CollisionShape::box(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    m_standingShape = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
+    m_hangingShape = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
 }
 
 void WaxedCopperLanternBlock::fillStateContainer(StateContainer<Block, BlockState>& container)

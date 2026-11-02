@@ -127,7 +127,7 @@ void registerCaveBlocks()
     CaveBlocks::SMALL_AMETHYST_BUD =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:small_amethyst_bud"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
@@ -141,7 +141,7 @@ void registerCaveBlocks()
     CaveBlocks::MEDIUM_AMETHYST_BUD =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:medium_amethyst_bud"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
@@ -155,7 +155,7 @@ void registerCaveBlocks()
     CaveBlocks::LARGE_AMETHYST_BUD =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:large_amethyst_bud"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)

@@ -69,7 +69,7 @@ CopperGolemStatueBlock::CopperGolemStatueBlock(const BlockProperties& properties
 {
     // 铜傀儡雕像碰撞形状：圆柱形（直径10像素，高度14像素）
     // 对应 MC Java: Block.column(10.0, 0.0, 14.0) = box(3, 0, 3, 13, 14, 13)
-    m_shape = CollisionShape::box(3.0f, 0.0f, 3.0f, 13.0f, 14.0f, 13.0f);
+    m_shape = CollisionShape::fromPixelBox(3.0f, 0.0f, 3.0f, 13.0f, 14.0f, 13.0f);
 
     // 创建状态容器：HORIZONTAL_FACING + COPPER_GOLEM_POSE + WATERLOGGED
     auto container =
