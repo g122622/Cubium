@@ -142,31 +142,31 @@ public:
      * @brief 合并两个碰撞形状
      * @param a 第一个形状
      * @param b 第二个形状
-     * @param op 合并操作（目前只支持 OR）
+     * @param op 合并操作
      * @return 合并后的形状
+     *
+     * 三种操作都基于 AABB 列表实现：
+     *
+     * - `OR`：直接拼接两个列表（重复区域不影响判定）。
+     * - `AND`：两两求交，交集非空才保留。对应原版 `Shapes.join(a, b, BooleanOp.AND)`。
+     * - `NOT`：a 减去 b。逐个把 a 的盒子按 b 的盒子切分，切完后剩下的碎块保留。
+     *   对应原版 `Shapes.join(a, b, BooleanOp.ONLY_FIRST)`。
+     *
+     * 注意 `NOT` 的结果盒数可能显著增加：一个盒子被 n 个盒子切分后最多产生 6n 个碎块。
+     * 这对形状判定是正确的（判定按点是否落在任一盒内），但会放大后续遍历开销。
      */
     [[nodiscard]] static CollisionShape combine(
         const CollisionShape& a, const CollisionShape& b, CombineOp op = CombineOp::OR)
     {
-        CollisionShape result;
-
-        if (op == CombineOp::OR) {
-            // 并集：简单地复制所有碰撞盒
-            result.m_type =
-                (a.m_type == Type::FullBlock || b.m_type == Type::FullBlock) ? Type::FullBlock : Type::SimpleBox;
-
-            result.m_boxes = a.m_boxes;
-            for (const auto& box : b.m_boxes) {
-                result.m_boxes.push_back(box);
-            }
+        switch (op) {
+            case CombineOp::OR:
+                return _combineOr(a, b);
+            case CombineOp::AND:
+                return _combineAnd(a, b);
+            case CombineOp::NOT:
+                return _combineNot(a, b);
         }
-        // AND 和 NOT 操作暂不实现（需要更复杂的几何运算）
-        // TODO: 补全 CombineOp::AND / CombineOp::NOT。当前传这两个值会**静默返回空形状**，
-        // 调用方拿到的碰撞箱为零，既不报错也没有任何提示。原版 Shapes.join(a, b, op) 的
-        // ONLY_FIRST(即 a-b) 与 AND 在多处方块形状中被使用（例如漏斗顶部环形、
-        // Sculk/GlowLichen 的面组合），Cubium 现在只能用多个并集手工拼出等价形状。
-
-        return result;
+        return CollisionShape();
     }
 
     // 查询
@@ -371,6 +371,128 @@ public:
     [[nodiscard]] bool coversFullBlock() const;
 
 private:
+    /**
+     * @brief 由盒列表构造形状，自动判定 Empty / FullBlock / SimpleBox。
+     */
+    [[nodiscard]] static CollisionShape _fromBoxes(std::vector<AxisAlignedBB> boxes)
+    {
+        CollisionShape shape;
+        if (boxes.empty()) {
+            return shape; // Type::Empty
+        }
+        if (boxes.size() == 1) {
+            const AxisAlignedBB& only = boxes.front();
+            if (only.minX <= 0.0f && only.minY <= 0.0f && only.minZ <= 0.0f && only.maxX >= 1.0f && only.maxY >= 1.0f &&
+                only.maxZ >= 1.0f) {
+                shape.m_type = Type::FullBlock;
+                shape.m_boxes = std::move(boxes);
+                return shape;
+            }
+        }
+        shape.m_type = Type::SimpleBox;
+        shape.m_boxes = std::move(boxes);
+        return shape;
+    }
+
+    [[nodiscard]] static CollisionShape _combineOr(const CollisionShape& a, const CollisionShape& b)
+    {
+        if (a.m_boxes.empty()) {
+            return b;
+        }
+        if (b.m_boxes.empty()) {
+            return a;
+        }
+        std::vector<AxisAlignedBB> boxes = a.m_boxes;
+        boxes.insert(boxes.end(), b.m_boxes.begin(), b.m_boxes.end());
+        // 并集里出现完整方块时保持 FullBlock 标记，与原实现一致。
+        if (a.m_type == Type::FullBlock || b.m_type == Type::FullBlock) {
+            CollisionShape result;
+            result.m_type = Type::FullBlock;
+            result.m_boxes = std::move(boxes);
+            return result;
+        }
+        return _fromBoxes(std::move(boxes));
+    }
+
+    [[nodiscard]] static CollisionShape _combineAnd(const CollisionShape& a, const CollisionShape& b)
+    {
+        std::vector<AxisAlignedBB> boxes;
+        for (const AxisAlignedBB& lhs : a.m_boxes) {
+            for (const AxisAlignedBB& rhs : b.m_boxes) {
+                const f32 minX = std::max(lhs.minX, rhs.minX);
+                const f32 minY = std::max(lhs.minY, rhs.minY);
+                const f32 minZ = std::max(lhs.minZ, rhs.minZ);
+                const f32 maxX = std::min(lhs.maxX, rhs.maxX);
+                const f32 maxY = std::min(lhs.maxY, rhs.maxY);
+                const f32 maxZ = std::min(lhs.maxZ, rhs.maxZ);
+                // 退化的交集（某轴 max <= min）不含体积，丢弃。
+                if (maxX <= minX || maxY <= minY || maxZ <= minZ) {
+                    continue;
+                }
+                boxes.emplace_back(minX, minY, minZ, maxX, maxY, maxZ);
+            }
+        }
+        return _fromBoxes(std::move(boxes));
+    }
+
+    [[nodiscard]] static CollisionShape _combineNot(const CollisionShape& a, const CollisionShape& b)
+    {
+        std::vector<AxisAlignedBB> boxes = a.m_boxes;
+        for (const AxisAlignedBB& cutter : b.m_boxes) {
+            std::vector<AxisAlignedBB> next;
+            next.reserve(boxes.size());
+            for (const AxisAlignedBB& piece : boxes) {
+                _subtractBox(piece, cutter, next);
+            }
+            boxes = std::move(next);
+            if (boxes.empty()) {
+                break;
+            }
+        }
+        return _fromBoxes(std::move(boxes));
+    }
+
+    /**
+     * @brief 把 piece 减去 cutter，把剩余的碎块追加到 out。
+     *
+     * 按 X / Y / Z 三个方向依次切分，最多产生 6 个碎块（每个方向两侧各一块）。
+     * 与 cutter 无重叠时原样保留 piece。
+     */
+    static void _subtractBox(const AxisAlignedBB& piece, const AxisAlignedBB& cutter, std::vector<AxisAlignedBB>& out)
+    {
+        if (piece.maxX <= cutter.minX || piece.minX >= cutter.maxX || piece.maxY <= cutter.minY ||
+            piece.minY >= cutter.maxY || piece.maxZ <= cutter.minZ || piece.minZ >= cutter.maxZ) {
+            out.push_back(piece);
+            return;
+        }
+
+        // X 方向：左段、右段。
+        if (piece.minX < cutter.minX) {
+            out.emplace_back(piece.minX, piece.minY, piece.minZ, cutter.minX, piece.maxY, piece.maxZ);
+        }
+        if (piece.maxX > cutter.maxX) {
+            out.emplace_back(cutter.maxX, piece.minY, piece.minZ, piece.maxX, piece.maxY, piece.maxZ);
+        }
+        // Y 方向：只在 X 与 cutter 重叠的区间内切。
+        const f32 midMinX = std::max(piece.minX, cutter.minX);
+        const f32 midMaxX = std::min(piece.maxX, cutter.maxX);
+        if (piece.minY < cutter.minY) {
+            out.emplace_back(midMinX, piece.minY, piece.minZ, midMaxX, cutter.minY, piece.maxZ);
+        }
+        if (piece.maxY > cutter.maxY) {
+            out.emplace_back(midMinX, cutter.maxY, piece.minZ, midMaxX, piece.maxY, piece.maxZ);
+        }
+        // Z 方向：只在 X、Y 都与 cutter 重叠的区间内切。
+        const f32 midMinY = std::max(piece.minY, cutter.minY);
+        const f32 midMaxY = std::min(piece.maxY, cutter.maxY);
+        if (piece.minZ < cutter.minZ) {
+            out.emplace_back(midMinX, midMinY, piece.minZ, midMaxX, midMaxY, cutter.minZ);
+        }
+        if (piece.maxZ > cutter.maxZ) {
+            out.emplace_back(midMinX, midMinY, cutter.maxZ, midMaxX, midMaxY, piece.maxZ);
+        }
+    }
+
     Type m_type = Type::Empty;
     std::vector<AxisAlignedBB> m_boxes; // 方块本地坐标 (0-1范围)
 };
