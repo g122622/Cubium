@@ -49,7 +49,9 @@ namespace blocks {
 
 BigDripleafStemBlock::BigDripleafStemBlock(const BlockProperties& properties)
     : Block(BlockProperties(properties).noCollision())
-    , m_shape(CollisionShape::fromPixelBox(5, 0, 5, 11, 16, 11))
+    // 原版大垂滴叶茎：box(0.3125, 0, 0.5625 -> 0.6875, 1, 0.9375)。
+    // X 方向宽 6 像素居中（5..11），Z 方向偏南且更宽（9..15），并非关于中心对称。
+    , m_shape(CollisionShape::box(0.3125f, 0.0f, 0.5625f, 0.6875f, 1.0f, 0.9375f))
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

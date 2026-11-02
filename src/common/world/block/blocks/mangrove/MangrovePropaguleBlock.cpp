@@ -53,14 +53,17 @@ MangrovePropaguleBlock::MangrovePropaguleBlock(const BlockProperties& properties
     : Block(properties)
 {
     m_ticksRandomly = true;
-    // 非悬挂状态的碰撞形状（根据AGE变化高度）
-    // AGE 0: 4像素高, AGE 1: 6像素, AGE 2: 8像素, AGE 3: 10像素, AGE 4: 12像素
+    // 原版实测：**所有 age / stage 的形状都相同**，都是
+    //   box(0.1875, 0, 0.1875 -> 0.3125, 1, 0.3125)
+    // 即横截面只有 2 像素见方、高度贯穿整格。形状不随生长阶段变化。
+    //
+    // 此前按 age 递增高度（4..12 像素）、宽度 12 像素，两个维度都不对。
+    const CollisionShape propaguleShape = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.3125f, 1.0f, 0.3125f);
     for (i32 age = 0; age <= MAX_AGE; age++) {
-        i32 height = 4 + age * 2;
-        m_shapes.push_back(CollisionShape::fromPixelBox(2, 0, 2, 14, height, 14));
+        m_shapes.push_back(propaguleShape);
     }
-    // 悬挂状态的碰撞形状
-    m_hangingShape = CollisionShape::fromPixelBox(2, 0, 2, 14, 12, 14);
+    // 悬挂状态用同一形状
+    m_hangingShape = propaguleShape;
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
