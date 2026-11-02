@@ -175,9 +175,8 @@ private:
 std::string _runLine(std::string_view line)
 {
     static const bool initialized = [] {
-        VanillaBlocks::initialize();
-        BlockTags::initialize();
-        entity::VanillaEntities::registerAll();
+        // 与服务端同序：方块 → 物品 → 方块物品 → 数据包标签。
+        datapack::initializeRegistries();
         world::biome::BiomeRegistry::instance().initialize();
         world::biome::BiomeTags::initialize();
         _loadBiomeTags();
