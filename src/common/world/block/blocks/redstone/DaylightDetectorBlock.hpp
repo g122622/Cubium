@@ -67,6 +67,18 @@ public:
 
     // ========== Block 接口实现 ==========
 
+    /**
+     * @brief 渲染与碰撞形状：16×6×16 的薄板
+     *
+     * 对齐原版 `DaylightDetectorBlock.SHAPE = Block.column(16.0, 0.0, 6.0)`：
+     * x/z 满宽，**y 只有 0 ~ 6/16**（高 6 像素）。
+     *
+     * 缺失此覆写时继承 `Block::getShape`（完整方块），会导致：
+     * - 玩家能站在日照探测器上方 6/16 以上的悬空位置；
+     * - `isFaceSturdy` 对顶面与四个侧面误判为坚固（差分能力 face_sturdy 查出 15 处差异）。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
     /// 右键切换昼夜模式：对齐 vanilla DaylightDetectorBlock.use。
     /// 调用 toggleMode 翻转 INVERTED state 并重算 power，返回 Success。
     /// 不检查手持物（空手右键即可切换）。

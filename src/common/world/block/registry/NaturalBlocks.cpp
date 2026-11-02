@@ -269,9 +269,14 @@ void registerNaturalBlocks()
         ResourceLocation("minecraft:red_sand"), BlockProperties(Material::SAND).hardness(0.5f));
 
     // 干海带块
+    //
+    // 借用 `Material::PLANT` 只为挖掘手感与可燃性，但它在原版是**完整的实心方块**
+    // （注册成普通 `Block`，玩家能站在上面）。`Material::PLANT` 经 `.solid(false)`
+    // 推导出「无碰撞」，会把形状变成空——必须显式 `withCollision()` 恢复。
+    // 由差分能力 face_sturdy 查出（六个面全部判错）。
     NaturalBlocks::DRIED_KELP_BLOCK =
         &registry.registerBlock<blocks::DriedKelpBlock>(ResourceLocation("minecraft:dried_kelp_block"),
-            BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f).noOcclusion());
+            BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f).noOcclusion().withCollision());
 
     // 海泡菜
     NaturalBlocks::SEA_PICKLE =

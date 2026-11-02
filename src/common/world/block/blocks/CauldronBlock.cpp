@@ -78,14 +78,28 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
         });
     createBlockState(std::move(container));
 
-    // 炼药锅外部形状（与 LayeredCauldronBlock 和 LavaCauldronBlock 共享相同几何）
-    // 底部: (0, 0, 0) -> (16, 3, 16)
-    // 壁: 2像素厚，内部12x12空间
-    CollisionShape base = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 3.0f / 16.0f, 1.0f);
-    CollisionShape northWall = VoxelShapes::cube(0.0f, 3.0f / 16.0f, 0.0f, 1.0f, 1.0f, 2.0f / 16.0f);
-    CollisionShape southWall = VoxelShapes::cube(0.0f, 3.0f / 16.0f, 14.0f / 16.0f, 1.0f, 1.0f, 1.0f);
-    CollisionShape westWall = VoxelShapes::cube(0.0f, 3.0f / 16.0f, 2.0f / 16.0f, 2.0f / 16.0f, 1.0f, 14.0f / 16.0f);
-    CollisionShape eastWall = VoxelShapes::cube(14.0f / 16.0f, 3.0f / 16.0f, 2.0f / 16.0f, 1.0f, 1.0f, 14.0f / 16.0f);
+    // 炼药锅外部形状（与 LayeredCauldronBlock 和 LavaCauldronBlock 共享相同几何）。
+    //
+    // 对齐原版 `AbstractCauldronBlock`：
+    //
+    //   private static final VoxelShape SHAPE_INSIDE = Block.column(12.0, 4.0, 16.0);
+    //   protected static final VoxelShape SHAPE =
+    //       Shapes.join(Shapes.block(), SHAPE_INSIDE, BooleanOp.ONLY_FIRST);
+    //
+    // 即**完整方块减去一个空腔**：空腔横向 12×12（`2/16..14/16`），纵向 `4/16..1`。
+    //
+    // 因此实心部分 = 底面铺满到 `y=4/16` + 四壁从 `y=4/16` 起到 `y=1`。
+    //
+    // 此前这里把底座写成 `y 0..3/16`（少了一层），四壁从 `3/16` 起——纵向整整差了 1 像素。
+    // 由于 `SupportType.FULL` 至少要求面被完整覆盖，底面虽然仍是满的，但下表面在
+    // `CENTER` / `RIGID` 上会因为空腔起点不同而得到不同结论。
+    // 由差分能力 face_sturdy 查出（CauldronBlock 系列共 41 处差异）。
+    const f32 innerBottom = 4.0f / 16.0f;
+    CollisionShape base = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, innerBottom, 1.0f);
+    CollisionShape northWall = VoxelShapes::cube(0.0f, innerBottom, 0.0f, 1.0f, 1.0f, 2.0f / 16.0f);
+    CollisionShape southWall = VoxelShapes::cube(0.0f, innerBottom, 14.0f / 16.0f, 1.0f, 1.0f, 1.0f);
+    CollisionShape westWall = VoxelShapes::cube(0.0f, innerBottom, 2.0f / 16.0f, 2.0f / 16.0f, 1.0f, 14.0f / 16.0f);
+    CollisionShape eastWall = VoxelShapes::cube(14.0f / 16.0f, innerBottom, 2.0f / 16.0f, 1.0f, 1.0f, 14.0f / 16.0f);
 
     m_outerShape = CollisionShape::combine(base, northWall, CollisionShape::CombineOp::OR);
     m_outerShape = CollisionShape::combine(m_outerShape, southWall, CollisionShape::CombineOp::OR);

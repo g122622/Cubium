@@ -75,8 +75,16 @@ EnderChestBlock::EnderChestBlock(const BlockProperties& properties)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 末影箱形状：14x14底部（与普通箱子相同）
-    m_shape = CollisionShape::fullBlock();
+    // 末影箱形状：14×14×14，三轴各留 1 像素。
+    //
+    // 对齐原版 `EnderChestBlock.SHAPE = Block.column(14.0, 0.0, 14.0)`。
+    // 三参数版 `column(radius, yMin, yMax)` 会转调四参数版
+    // `column(radius, radius, yMin, yMax)`，因此 x/z 都是 `1/16..15/16`，
+    // **y 是 `0 .. 14/16`**（顶部留 2 像素，不是满高）。
+    //
+    // 此前这里是 `CollisionShape::fullBlock()`——注释「14x14底部（与普通箱子相同）」
+    // 与代码自相矛盾。由差分能力 face_sturdy 查出（17 处差异）。
+    m_shape = CollisionShape::box(1.0f / 16.0f, 0.0f, 1.0f / 16.0f, 15.0f / 16.0f, 14.0f / 16.0f, 15.0f / 16.0f);
 }
 
 BlockState EnderChestBlock::getStateForPlacement(BlockItemUseContext& context)

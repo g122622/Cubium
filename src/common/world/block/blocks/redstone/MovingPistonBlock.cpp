@@ -23,6 +23,7 @@
 
 #include "MovingPistonBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
@@ -68,6 +69,15 @@ MovingPistonBlock::MovingPistonBlock(const BlockProperties& properties)
     setDefaultState(defaultState()
             .with(BlockStateProperties::FACING(), Direction::North)
             .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal));
+}
+
+const CollisionShape& MovingPistonBlock::getShape(const BlockState& state) const
+{
+    // 对齐原版：移动中的活塞没有稳定的静态形状，恒为空。
+    // 具体渲染什么取决于相邻方块实体记录的运动进度。
+    (void)state;
+    static const CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
 }
 
 // ============================================================================

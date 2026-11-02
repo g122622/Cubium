@@ -70,6 +70,29 @@ public:
     // ========== Block 接口实现 ==========
 
     /**
+     * @brief 静态形状恒为空
+     *
+     * 对齐原版 `MovingPistonBlock#getShape`：
+     *
+     * ```java
+     * protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
+     *     return Shapes.empty();
+     * }
+     * ```
+     *
+     * 移动中的活塞本体没有任何稳定的静态形状——它渲染什么完全取决于相邻方块实体
+     * 记录的运动进度。缺失此覆写时会退化成完整方块，导致 `isFaceSturdy` 的全部六个面
+     * 都误判为坚固（差分能力 face_sturdy 查出 18 处差异）。
+     *
+     * 注意：原版的**碰撞**形状来自 `PistonMovingBlockEntity#getCollisionShape`，与静态形状
+     * 不是一回事。
+     *
+     * TODO: Cubium 目前尚未实现 `MovingPistonBlockEntity` 的碰撞形状转发，因此
+     * `getCollisionShape` 仍需单独对齐；本覆写只修正静态 `getShape`。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
      * @brief 方块被移除时调用
      *
      * 清理 PistonBlockEntity。

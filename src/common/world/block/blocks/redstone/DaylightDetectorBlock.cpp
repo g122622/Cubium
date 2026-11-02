@@ -75,6 +75,15 @@ DaylightDetectorBlock::DaylightDetectorBlock(const BlockProperties& properties)
         defaultState().with(BlockStateProperties::POWER_0_15(), 0).with(BlockStateProperties::INVERTED(), false));
 }
 
+const CollisionShape& DaylightDetectorBlock::getShape(const BlockState& state) const
+{
+    // 对齐原版 `Block.column(16.0, 0.0, 6.0)`：x/z 满宽，y 只有 0 ~ 6/16 高。
+    // 形状与 POWER / INVERTED 状态无关。
+    (void)state;
+    static const CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 6.0f / 16.0f, 1.0f);
+    return shape;
+}
+
 i32 DaylightDetectorBlock::getPower(const BlockState& state)
 {
     return state.get(BlockStateProperties::POWER_0_15());
