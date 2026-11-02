@@ -99,7 +99,19 @@ void registerVegetationBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 草和蕨的属性：可被岩浆点燃（对齐 vanilla）
-    BlockProperties grassProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava();
+    // 矮草与蕨带**三轴**随机偏移（竖直分量可见，草叶会略微下移）；高草只有水平偏移，
+    // 因此两者不能共用同一个属性对象。
+    BlockProperties grassProps = BlockProperties(Material::REPLACEABLE_PLANT)
+                                     .noCollision()
+                                     .notSolid()
+                                     .ignitedByLava()
+                                     .offsetType(BlockProperties::OffsetType::XYZ);
+
+    BlockProperties tallGrassProps = BlockProperties(Material::REPLACEABLE_PLANT)
+                                         .noCollision()
+                                         .notSolid()
+                                         .ignitedByLava()
+                                         .offsetType(BlockProperties::OffsetType::XZ);
 
     // 矮草
     VegetationBlocks::SHORT_GRASS =
@@ -107,7 +119,7 @@ void registerVegetationBlocks()
 
     // 高草（双格植物，half 属性区分上下半部分）
     VegetationBlocks::TALL_GRASS =
-        &registry.registerBlock<blocks::DoublePlantBlock>(ResourceLocation("minecraft:tall_grass"), grassProps);
+        &registry.registerBlock<blocks::DoublePlantBlock>(ResourceLocation("minecraft:tall_grass"), tallGrassProps);
 
     // 蕨
     VegetationBlocks::FERN = &registry.registerBlock<blocks::FernBlock>(ResourceLocation("minecraft:fern"), grassProps);
@@ -203,9 +215,12 @@ void registerVegetationBlocks()
             static_cast<u32>(entity::effect::EffectType::Wither),
             6);
 
-    // 高花属性（双高植物）：可被岩浆点燃（对齐 vanilla）
-    BlockProperties tallFlowerProps =
-        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava();
+    // 高花属性（双高植物）：可被岩浆点燃，带水平随机偏移。
+    BlockProperties tallFlowerProps = BlockProperties(Material::REPLACEABLE_PLANT)
+                                          .noCollision()
+                                          .notSolid()
+                                          .ignitedByLava()
+                                          .offsetType(BlockProperties::OffsetType::XZ);
 
     // 向日葵
     VegetationBlocks::SUNFLOWER =
@@ -284,6 +299,7 @@ void registerVegetationBlocks()
                                       .notSolid()
                                       .noOcclusion()
                                       .ignitedByLava()
+                                      .offsetType(BlockProperties::OffsetType::XZ)
                                       .soundType(BlockSoundTypes::BAMBOO);
 
     // 竹子
@@ -298,6 +314,7 @@ void registerVegetationBlocks()
                                              .hardness(1.0f)
                                              .resistance(1.0f)
                                              .ignitedByLava()
+                                             .offsetType(BlockProperties::OffsetType::XZ)
                                              .soundType(BlockSoundTypes::BAMBOO_SAPLING);
 
     // 竹子幼苗

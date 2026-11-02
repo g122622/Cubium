@@ -153,7 +153,9 @@ namespace {
 [[nodiscard]] bool _traceBlockShapeHitOnly(
     const BlockState& state, i32 blockX, i32 blockY, i32 blockZ, const Vector3& adjustedStart, const Vector3& ddaDelta)
 {
-    const CollisionShape& shape = state.getShape();
+    // 用世界坐标下的形状（含 offsetType 偏移）：花、作物等方块的形状随位置微移，
+    // 取模型坐标的形状会使爆炸对这些方块的遮挡判定偏离原版。
+    const CollisionShape shape = state.getShapeAt(BlockPos(blockX, blockY, blockZ));
     if (shape.isEmpty()) {
         return false;
     }

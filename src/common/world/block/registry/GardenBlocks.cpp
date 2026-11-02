@@ -103,6 +103,7 @@ void registerGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::GRASS)
+                .offsetType(BlockProperties::OffsetType::XYZ)
                 .ignitedByLava());
 
     // 高干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。可被岩浆点燃（对齐 vanilla）
@@ -114,6 +115,7 @@ void registerGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::GRASS)
+                .offsetType(BlockProperties::OffsetType::XYZ)
                 .ignitedByLava());
 
     // ============================================================================
@@ -163,6 +165,7 @@ void registerGardenBlocks()
             .hardness(0.0f)
             .resistance(0.0f)
             .soundType(BlockSoundTypes::GRASS)
+            .offsetType(BlockProperties::OffsetType::XZ)
             .ignitedByLava());
 }
 

@@ -188,12 +188,14 @@ bool traceShapeBoxes(const CollisionShape& shape,
     Direction& outFace,
     f32& outDistance)
 {
-    const CollisionShape& shape = state.getShape();
+    // 用世界坐标下的形状（含 offsetType 偏移）：花、作物等方块的形状随位置微移，
+    // 取模型坐标的形状会让射线与这些方块的判定偏掉。
+    const BlockPos pos(blockX, blockY, blockZ);
+    const CollisionShape shape = state.getShapeAt(pos);
     if (shape.isEmpty()) {
         return false;
     }
-    return traceShapeBoxes(
-        shape, BlockPos(blockX, blockY, blockZ), adjustedStart, delta, originalStart, outHitPos, outFace, outDistance);
+    return traceShapeBoxes(shape, pos, adjustedStart, delta, originalStart, outHitPos, outFace, outDistance);
 }
 
 } // anonymous namespace
