@@ -24,6 +24,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/EnumProperty.hpp"
@@ -32,6 +33,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
+#include <array>
 
 namespace mc {
 
@@ -71,6 +73,32 @@ public:
     explicit PistonHeadBlock(const BlockProperties& properties);
 
     // ========== Block 接口实现 ==========
+
+    /**
+     * @brief 渲染与碰撞形状：平台 + 中间推杆
+     *
+     * 对齐原版 `PistonHeadBlock`：
+     *
+     * ```java
+     * private static final VoxelShape SHAPE_PLATFORM = Block.boxZ(16.0, 0.0, 4.0);
+     * private static final Map<Direction, VoxelShape> SHAPES_SHORT =
+     *     Shapes.rotateAll(Shapes.or(SHAPE_PLATFORM, Block.boxZ(4.0, 4.0, 16.0)));
+     * private static final Map<Direction, VoxelShape> SHAPES =
+     *     Shapes.rotateAll(Shapes.or(SHAPE_PLATFORM, Block.boxZ(4.0, 4.0, 20.0)));
+     * ```
+     *
+     * `boxZ(width, zMin, zMax)` 生成「x 居中宽 `width`/16、**y 满高**、z 从 `zMin` 到 `zMax`」
+     * 的盒子。因此 +Z(NORTH) 朝向的形状是：
+     *
+     * - 平台：x `0..1`、y `0..1`、z `0..4/16`
+     * - 推杆：x `6/16..10/16`、y `0..1`、z `4/16..16/16`（短推杆）或 `4/16..20/16`（长推杆）
+     *
+     * 长推杆的 z 上界 `20/16` **超出方块范围**——这是活塞伸出时推杆会探入相邻方块的原因。
+     *
+     * 缺失此覆写时会继承 `Block::getShape`（完整方块），导致活塞头的六个面全部误判为坚固
+     * （差分能力 face_sturdy 查出 15 处差异）。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
@@ -156,6 +184,13 @@ public:
      * @return true 如果是匹配的已伸出活塞基座
      */
     [[nodiscard]] static bool isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept;
+
+private:
+    /// 按 FACING 索引的短推杆形状（对应原版 `SHAPES_SHORT`）
+    std::array<CollisionShape, 6> m_shapesShort;
+
+    /// 按 FACING 索引的长推杆形状（对应原版 `SHAPES`，推杆伸出到 20/16）
+    std::array<CollisionShape, 6> m_shapes;
 };
 
 } // namespace blocks

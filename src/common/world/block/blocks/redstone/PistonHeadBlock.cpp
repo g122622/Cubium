@@ -118,6 +118,72 @@ PistonHeadBlock::PistonHeadBlock(const BlockProperties& properties)
             .with(BlockStateProperties::FACING(), Direction::North)
             .with(BlockStateProperties::SHORT(), false)
             .with(TYPE_PROP(), Type::Normal));
+
+    // 形状：对齐原版 SHAPES_SHORT / SHAPES = Shapes.rotateAll(Shapes.or(SHAPE_PLATFORM, 推杆))。
+    //
+    // 原版以 +Z（即 NORTH）为基准：
+    //   平台 = boxZ(16, 0, 4)  → x 0..1、y 0..1、z 0..4/16
+    //   推杆 = boxZ(4, 4, 16)  → x 6/16..10/16、y 0..1、z 4/16..16/16（短）
+    //          boxZ(4, 4, 20)  → 同上但 z 上界 20/16（长，探入相邻方块）
+    //
+    // 其余朝向都是把该基准形状旋转得到：EAST 绕 Y 90°、SOUTH 180°、WEST 270°，
+    // UP 绕 X 轴 -90°（+Z 转向 +Y），DOWN 绕 X 轴 +90°（+Z 转向 -Y）。
+    const f32 t4 = 4.0f / 16.0f;
+    const f32 t6 = 6.0f / 16.0f;
+    const f32 t10 = 10.0f / 16.0f;
+    const f32 t16 = 1.0f;
+    const f32 t20 = 20.0f / 16.0f;
+
+    for (size_t i = 0; i < 6; ++i) {
+        m_shapesShort[i] = CollisionShape::empty();
+        m_shapes[i] = CollisionShape::empty();
+    }
+    auto build =
+        [this](
+            size_t idx, const CollisionShape& platform, const CollisionShape& rodShort, const CollisionShape& rodLong) {
+            m_shapesShort[idx] = CollisionShape::combine(platform, rodShort, CollisionShape::CombineOp::OR);
+            m_shapes[idx] = CollisionShape::combine(platform, rodLong, CollisionShape::CombineOp::OR);
+        };
+    // NORTH：+Z
+    build(static_cast<size_t>(Direction::North),
+        VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, t4),
+        VoxelShapes::cube(t6, 0.0f, t4, t10, 1.0f, t16),
+        VoxelShapes::cube(t6, 0.0f, t4, t10, 1.0f, t20));
+    // SOUTH：-Z（平台贴 z=1，推杆伸向 z=0）
+    build(static_cast<size_t>(Direction::South),
+        VoxelShapes::cube(0.0f, 0.0f, 1.0f - t4, 1.0f, 1.0f, 1.0f),
+        VoxelShapes::cube(t6, 0.0f, 0.0f, t10, 1.0f, 1.0f - t4),
+        VoxelShapes::cube(t6, 0.0f, -t4, t10, 1.0f, 1.0f - t4));
+    // EAST：+X（平台贴 x=0，推杆伸向 x=1）
+    build(static_cast<size_t>(Direction::East),
+        VoxelShapes::cube(0.0f, 0.0f, 0.0f, t4, 1.0f, 1.0f),
+        VoxelShapes::cube(t4, t6, 0.0f, t16, t10, 1.0f),
+        VoxelShapes::cube(t4, t6, 0.0f, t20, t10, 1.0f));
+    // WEST：-X（平台贴 x=1，推杆伸向 x=0）
+    build(static_cast<size_t>(Direction::West),
+        VoxelShapes::cube(1.0f - t4, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f),
+        VoxelShapes::cube(0.0f, t6, 0.0f, 1.0f - t4, t10, 1.0f),
+        VoxelShapes::cube(-t4, t6, 0.0f, 1.0f - t4, t10, 1.0f));
+    // UP：+Y（平台贴 y=0，推杆伸向 y=1）
+    build(static_cast<size_t>(Direction::Up),
+        VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, t4, 1.0f),
+        VoxelShapes::cube(t6, t4, t6, t10, t16, t10),
+        VoxelShapes::cube(t6, t4, t6, t10, t20, t10));
+    // DOWN：-Y（平台贴 y=1，推杆伸向 y=0）
+    build(static_cast<size_t>(Direction::Down),
+        VoxelShapes::cube(0.0f, 1.0f - t4, 0.0f, 1.0f, 1.0f, 1.0f),
+        VoxelShapes::cube(t6, 0.0f, t6, t10, 1.0f - t4, t10),
+        VoxelShapes::cube(t6, -t4, t6, t10, 1.0f - t4, t10));
+}
+
+const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
+{
+    const Direction facing = state.get(BlockStateProperties::FACING());
+    size_t index = static_cast<size_t>(facing);
+    if (index >= 6) {
+        index = static_cast<size_t>(Direction::North);
+    }
+    return state.get(BlockStateProperties::SHORT()) ? m_shapesShort[index] : m_shapes[index];
 }
 
 Direction PistonHeadBlock::getFacing(const BlockState& state) noexcept

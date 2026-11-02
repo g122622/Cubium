@@ -47,16 +47,15 @@ namespace blocks {
 EnchantingTableBlock::EnchantingTableBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 附魔台形状：桌面略大于基座
-    // 底座: (1, 0, 1) -> (15, 2, 15)
-    // 桌面: (0, 2, 0) -> (16, 14, 16)
-
-    CollisionShape base =
-        VoxelShapes::cube(1.0f / 16.0f, 0.0f, 1.0f / 16.0f, 15.0f / 16.0f, 2.0f / 16.0f, 15.0f / 16.0f);
-
-    CollisionShape top = VoxelShapes::cube(0.0f, 2.0f / 16.0f, 0.0f, 1.0f, 14.0f / 16.0f, 1.0f);
-
-    m_shape = CollisionShape::combine(base, top, CollisionShape::CombineOp::OR);
+    // 附魔台形状：对齐原版 `Block.column(16.0, 0.0, 12.0)`。
+    //
+    // 三参数版 `column(radius, yMin, yMax)` 会转调 `column(radius, radius, yMin, yMax)`，
+    // 因此 x/z **都满宽**，y 是 `0 .. 12/16`——一个完整的实心矮块，没有基座/桌面的分层。
+    //
+    // 此前这里写成「底座 (1,0,1)-(15,2,15) + 桌面 (0,2,0)-(16,14,16)」的两层拼合：
+    // 底座横向内缩了 1 像素、顶面高到 14/16，与原文的形状完全不是一回事。
+    // 由差分能力 face_sturdy 查出（6 处差异）。
+    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 12.0f / 16.0f, 1.0f);
 }
 
 // ========== 方块实体 ==========
