@@ -205,7 +205,9 @@ f64 sampleWithExactKernel(const Scene& scene, i32 blockX, i32 blockY, i32 blockZ
             }
             case TerrainAdaptation::Encapsulate: {
                 const i32 vertical = std::max(0, std::max(rigidBox.minY() - blockY, blockY - rigidBox.maxY()));
-                total += bury(static_cast<f64>(dx) / 2.0, static_cast<f64>(vertical) / 2.0, static_cast<f64>(dz) / 2.0) * 0.8;
+                total +=
+                    bury(static_cast<f64>(dx) / 2.0, static_cast<f64>(vertical) / 2.0, static_cast<f64>(dz) / 2.0) *
+                    0.8;
                 break;
             }
         }

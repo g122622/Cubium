@@ -158,6 +158,15 @@ void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockStat
     }
 }
 
+const CollisionShape& ChorusFlowerBlock::getBlockSupportShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 原版固定 column(14.0, 0.0, 15.0)：中心 14 像素宽、高 15 像素的柱。
+    static const CollisionShape kSupportShape =
+        CollisionShape::box(1.0f / 16.0f, 0.0f, 1.0f / 16.0f, 15.0f / 16.0f, 15.0f / 16.0f, 15.0f / 16.0f);
+    return kSupportShape;
+}
+
 const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
 {
     i32 age = getAge(state);

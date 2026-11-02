@@ -120,11 +120,8 @@ std::optional<Path> PathNavigator::_createPath(const BlockPos& target, i32 reach
     return _createPath(std::vector<BlockPos>{target}, GROUND_SEARCH_RANGE, false, reachRange, maxPathLength);
 }
 
-std::optional<Path> PathNavigator::_createPath(const std::vector<BlockPos>& targets,
-    i32 searchRange,
-    bool above,
-    i32 reachRange,
-    f32 maxPathLength)
+std::optional<Path> PathNavigator::_createPath(
+    const std::vector<BlockPos>& targets, i32 searchRange, bool above, i32 reachRange, f32 maxPathLength)
 {
     if (targets.empty()) {
         return std::nullopt;
@@ -136,8 +133,9 @@ std::optional<Path> PathNavigator::_createPath(const std::vector<BlockPos>& targ
     }
     // 目标集合里已经有当前目标、且路径还没走完：沿用旧路径，不做重复搜索。
     if (m_path.has_value() && !m_path->isDone() && m_targetPos.has_value()) {
-        const bool stillTargeted =
-            std::any_of(targets.begin(), targets.end(), [this](const BlockPos& pos) { return pos == *m_targetPos; });
+        const bool stillTargeted = std::any_of(targets.begin(), targets.end(), [this](const BlockPos& pos) {
+            return pos == *m_targetPos;
+        });
         if (stillTargeted) {
             return m_path;
         }
@@ -174,7 +172,12 @@ std::optional<Path> PathNavigator::_createPath(const std::vector<BlockPos>& targ
 
 bool PathNavigator::moveTo(f64 x, f64 y, f64 z, i32 reachRange, f64 speed)
 {
-    return moveTo(_createPath(BlockPos(static_cast<i32>(std::floor(x)), static_cast<i32>(std::floor(y)), static_cast<i32>(std::floor(z))), reachRange, 16.0f), speed);
+    return moveTo(
+        _createPath(
+            BlockPos(static_cast<i32>(std::floor(x)), static_cast<i32>(std::floor(y)), static_cast<i32>(std::floor(z))),
+            reachRange,
+            16.0f),
+        speed);
 }
 
 bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
@@ -271,8 +274,7 @@ void PathNavigator::_followThePath()
 {
     const Vector3d position = _getTempMobPosition();
     // 到达当前路径点的判定半径随实体宽度变化：宽实体能有更宽的「到达」窗口。
-    m_maxDistanceToWaypoint =
-        m_mob->width() > 0.75f ? m_mob->width() / 2.0f : 0.75f - m_mob->width() / 2.0f;
+    m_maxDistanceToWaypoint = m_mob->width() > 0.75f ? m_mob->width() / 2.0f : 0.75f - m_mob->width() / 2.0f;
 
     const BlockPos nextPos = m_path->nextNodePos();
     const f64 dx = std::abs(m_mob->x() - (static_cast<f64>(nextPos.x) + 0.5));
@@ -352,8 +354,7 @@ void PathNavigator::_doStuckDetection(const Vector3d& position)
             const Vector3d centre(
                 static_cast<f64>(next.x) + 0.5, static_cast<f64>(next.y), static_cast<f64>(next.z) + 0.5);
             const f64 speed = m_mob->aiMoveSpeed();
-            m_timeoutLimit =
-                speed > 0.0 ? position.distance(centre) / speed * static_cast<f64>(20.0) : 0.0;
+            m_timeoutLimit = speed > 0.0 ? position.distance(centre) / speed * static_cast<f64>(20.0) : 0.0;
         }
 
         // 在同一个路径点上徘徊超过预计耗时的 3 倍：判定为走不到，放弃当前路径。

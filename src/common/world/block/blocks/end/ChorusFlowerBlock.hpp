@@ -87,6 +87,14 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 获取支撑形状
+     *
+     * 原版 ChorusFlowerBlock#getBlockSupportShape 固定返回 column(14.0, 0.0, 15.0)，
+     * 与凋灵花的分龄碰撞形状无关——方块能否被放在紫颂花上只看这一个形状。
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
+
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {
         MC_UNUSED(state);

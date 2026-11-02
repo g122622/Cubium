@@ -1812,7 +1812,12 @@ public:
     /**
      * @brief 获取指定位置处的支撑形状（世界坐标）。
      *
-     * 默认与 `getBlockSupportShape` 一致地转调碰撞形状，只是带上位置偏移。
+     * 默认转调**无位置的** `getBlockSupportShape` 再加偏移，而不是转调 `getCollisionShapeAt`：
+     * 支撑形状是独立概念，树叶的碰撞形状是完整方块但支撑形状恒空，卡片/梯子等也各自
+     * 覆写了空支撑形状。转调碰撞形状会把那些覆写全部绕过。
+     *
+     * 偏移取自 `getOffsetAt`，默认转调 `getOffset`；只有真正按位置变化支撑形状的方块
+     * （目前没有）才需要覆写本方法。
      *
      * @param state 方块状态
      * @param pos 方块位置
@@ -1820,7 +1825,12 @@ public:
      */
     [[nodiscard]] virtual CollisionShape getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const
     {
-        return getCollisionShapeAt(state, pos);
+        const CollisionShape base = getBlockSupportShape(state);
+        const Vector3 offset = getOffset(pos);
+        if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
+            return base;
+        }
+        return base.offset(offset.x, offset.y, offset.z);
     }
 
     /**

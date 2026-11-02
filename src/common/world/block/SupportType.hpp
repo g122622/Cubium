@@ -64,6 +64,11 @@ public:
     using IsSupportingFn = bool (*)(const BlockState& state, IWorld& world, const BlockPos& pos, Direction direction);
 
     /**
+     * @brief 带位置偏移的判定函数签名
+     */
+    using IsSupportingAtFn = bool (*)(const BlockState& state, IWorld& world, const BlockPos& pos, Direction direction);
+
+    /**
      * @brief Full 支撑类型
      *
      * 方块面投影必须覆盖整个 1×1 面。
@@ -93,8 +98,9 @@ public:
      * @brief 构造支撑类型
      * @param fn 判定函数
      */
-    constexpr explicit SupportType(IsSupportingFn fn) noexcept
+    constexpr SupportType(IsSupportingFn fn, IsSupportingAtFn fnAt) noexcept
         : m_fn(fn)
+        , m_fnAt(fnAt)
     {}
 
     /**
@@ -112,8 +118,29 @@ public:
         return m_fn(state, world, pos, direction);
     }
 
+    /**
+     * @brief 世界查询专用：支撑形状带上位置偏移后再判定
+     *
+     * 支撑形状取 `state.getBlockSupportShapeAt(pos)`，使带 `offsetType` 的方块
+     * （竹子、花、滴水石锥）先叠加坐标哈希偏移。无位置的 `isSupporting` 只用于
+     * 「同一状态恒得到同一答案」的场景，世界里的附着判定必须走本重载，否则
+     * 中心的 2×2 柱会因忽略偏移而判定翻转。
+     *
+     * @param state 待判定的方块状态
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @param direction 检查的面方向
+     * @return 如果提供支撑返回 true
+     */
+    [[nodiscard]] bool isSupportingAt(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction direction) const
+    {
+        return m_fnAt(state, world, pos, direction);
+    }
+
 private:
     IsSupportingFn m_fn;
+    IsSupportingAtFn m_fnAt;
 };
 
 namespace support_type_detail {
@@ -158,6 +185,17 @@ namespace support_type_detail {
  * 等价于 !Shapes.joinIsNotEmpty(faceShape, RIGID_SUPPORT_SHAPE, BooleanOp.ONLY_SECOND)。
  */
 [[nodiscard]] bool isSupportingRigid(const BlockState& state, IWorld& world, const BlockPos& pos, Direction direction);
+
+/// 带位置偏移的 Full 判定（支撑形状取 `getBlockSupportShapeAt(pos)`）
+[[nodiscard]] bool isSupportingFullAt(const BlockState& state, IWorld& world, const BlockPos& pos, Direction direction);
+
+/// 带位置偏移的 Center 判定（支撑形状取 `getBlockSupportShapeAt(pos)`）
+[[nodiscard]] bool isSupportingCenterAt(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction direction);
+
+/// 带位置偏移的 Rigid 判定（支撑形状取 `getBlockSupportShapeAt(pos)`）
+[[nodiscard]] bool isSupportingRigidAt(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction direction);
 
 } // namespace support_type_detail
 

@@ -140,6 +140,13 @@ public:
      */
     [[nodiscard]] CollisionShape getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const override;
 
+    /**
+     * @brief 按位置返回支撑形状：原版支撑形状就是碰撞形状（更细的 `SHAPE_COLLISION` 加偏移）。
+     *
+     * 基类默认用**外形**叠加偏移，竹子必须改用更细的碰撞柱，否则中心柱判定会偏宽。
+     */
+    [[nodiscard]] CollisionShape getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const noexcept override

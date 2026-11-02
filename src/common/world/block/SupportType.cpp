@@ -124,14 +124,67 @@ bool isSupportingRigid(const BlockState& state, IWorld& /*world*/, const BlockPo
     return !Shapes::joinIsNotEmpty(faceShape, rigidSupportShape(), BooleanOps::OnlySecond());
 }
 
+// ============================================================================
+// 带位置偏移的支撑判定（世界查询路径）
+// ============================================================================
+
+namespace {
+/// 取带位置偏移的支撑形状；`getBlockSupportShapeAt` 按值返回，故在此持有一份。
+[[nodiscard]] CollisionShape supportShapeAt(const BlockState& state, const BlockPos& pos)
+{
+    return state.getBlockSupportShapeAt(pos);
+}
+} // namespace
+
+bool isSupportingFullAt(const BlockState& state, IWorld& /*world*/, const BlockPos& pos, Direction direction)
+{
+    return Block::isFaceFull(supportShapeAt(state, pos), direction);
+}
+
+bool isSupportingCenterAt(const BlockState& state, IWorld& /*world*/, const BlockPos& pos, Direction direction)
+{
+    const CollisionShape supportShape = supportShapeAt(state, pos);
+    if (supportShape.isEmpty()) {
+        return false;
+    }
+    if (supportShape.isFullBlock()) {
+        return true;
+    }
+    const VoxelShape supportVoxel = Shapes::fromCollisionShape(supportShape);
+    const VoxelShape faceShape = supportVoxel.getFaceShape(direction);
+    if (faceShape.isEmpty()) {
+        return false;
+    }
+    return !Shapes::joinIsNotEmpty(faceShape, centerSupportShape(), BooleanOps::OnlySecond());
+}
+
+bool isSupportingRigidAt(const BlockState& state, IWorld& /*world*/, const BlockPos& pos, Direction direction)
+{
+    const CollisionShape supportShape = supportShapeAt(state, pos);
+    if (supportShape.isEmpty()) {
+        return false;
+    }
+    if (supportShape.isFullBlock()) {
+        return true;
+    }
+    const VoxelShape supportVoxel = Shapes::fromCollisionShape(supportShape);
+    const VoxelShape faceShape = supportVoxel.getFaceShape(direction);
+    if (faceShape.isEmpty()) {
+        return false;
+    }
+    return !Shapes::joinIsNotEmpty(faceShape, rigidSupportShape(), BooleanOps::OnlySecond());
+}
+
 } // namespace support_type_detail
 
 // ============================================================================
 // SupportType 静态实例
 // ============================================================================
 
-const SupportType SupportType::Full(&support_type_detail::isSupportingFull);
-const SupportType SupportType::Center(&support_type_detail::isSupportingCenter);
-const SupportType SupportType::Rigid(&support_type_detail::isSupportingRigid);
+const SupportType SupportType::Full(&support_type_detail::isSupportingFull, &support_type_detail::isSupportingFullAt);
+const SupportType SupportType::Center(
+    &support_type_detail::isSupportingCenter, &support_type_detail::isSupportingCenterAt);
+const SupportType SupportType::Rigid(
+    &support_type_detail::isSupportingRigid, &support_type_detail::isSupportingRigidAt);
 
 } // namespace mc

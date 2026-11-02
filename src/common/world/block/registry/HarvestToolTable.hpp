@@ -44,11 +44,13 @@ namespace block_registry {
 struct HarvestToolRuleSet {
     /// 有效条目数；最多 4 条（镐/斧/锹/锄），原版数据包中同一方块可同时属于多个 mineable 标签。
     u8 count = 0;
+
     /// 工具类型（HarvestTool 常量）→ 挖动所需的最低工具档位。
     struct Entry {
         u8 tool = 0;
         i32 level = 0;
     };
+
     Entry entries[4] = {};
 };
 

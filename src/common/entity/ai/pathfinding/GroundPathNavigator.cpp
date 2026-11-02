@@ -117,5 +117,4 @@ void GroundPathNavigator::_trimPath()
     _trimPathSun();
 }
 
-
 } // namespace mc::entity::ai::pathfinding

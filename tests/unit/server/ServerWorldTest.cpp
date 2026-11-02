@@ -40,8 +40,8 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
-#include <filesystem>
 #include <atomic>
+#include <filesystem>
 #include <thread>
 #include <tuple>
 #include <gtest/gtest.h>

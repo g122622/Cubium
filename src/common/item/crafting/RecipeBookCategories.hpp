@@ -105,6 +105,5 @@ enum class RecipeBookPage : unsigned char {
 /// 页签归属的资源路径（不含 `minecraft:` 前缀）。
 [[nodiscard]] const char* recipeBookPageToPath(RecipeBookPage page) noexcept;
 
-
 } // namespace crafting
 } // namespace mc

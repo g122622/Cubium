@@ -51,8 +51,8 @@
 #include "common/world/block/BlockPos.hpp"
 #include <array>
 #include <cstddef>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
 
 namespace mc::entity::ai::pathfinding {
 
@@ -102,8 +102,7 @@ public:
      * @brief 3×3×3 邻域危险检查（原版 `checkNeighbourBlocks`）
      * @param fallback 邻域内没有任何危险时返回的类型
      */
-    [[nodiscard]] static PathType checkNeighbourBlocks(
-        const Region& region, i32 x, i32 y, i32 z, PathType fallback);
+    [[nodiscard]] static PathType checkNeighbourBlocks(const Region& region, i32 x, i32 y, i32 z, PathType fallback);
 
     /**
      * @brief 某坐标是否为燃烧方块（原版 `NodeEvaluator.isBurningBlock`）
@@ -187,8 +186,7 @@ protected:
     /**
      * @brief 实体包围盒覆盖的全部格子类型（原版 `getPathTypeWithinMobBB`）
      */
-    [[nodiscard]] std::set<PathType> pathTypeWithinMobBb(
-        const PathfindingContext& context, i32 x, i32 y, i32 z) const;
+    [[nodiscard]] std::set<PathType> pathTypeWithinMobBb(const PathfindingContext& context, i32 x, i32 y, i32 z) const;
 
     /**
      * @brief 盒子是否与实体碰撞（原版 `hasCollisions`，带 AABB 缓存）

@@ -210,14 +210,12 @@ public:
     /**
      * @brief 与实体尺寸无关的单格路径类型
      */
-    [[nodiscard]] virtual PathType getPathType(
-        const PathfindingContext& context, i32 x, i32 y, i32 z) const = 0;
+    [[nodiscard]] virtual PathType getPathType(const PathfindingContext& context, i32 x, i32 y, i32 z) const = 0;
 
     /**
      * @brief 考虑实体尺寸后的路径类型（原版 `getPathTypeOfMob`）
      */
-    [[nodiscard]] virtual PathType getPathTypeOfMob(
-        const PathfindingContext& context, i32 x, i32 y, i32 z) const = 0;
+    [[nodiscard]] virtual PathType getPathTypeOfMob(const PathfindingContext& context, i32 x, i32 y, i32 z) const = 0;
 
     // ========== 能力开关 ==========
 
@@ -309,10 +307,12 @@ protected:
     {
         return m_entityWidth;
     }
+
     [[nodiscard]] i32 entityHeightCells() const
     {
         return m_entityHeight;
     }
+
     [[nodiscard]] i32 entityDepthCells() const
     {
         return m_entityDepth;

@@ -104,8 +104,7 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     // 此前画了四条腿，床底多出两块。
     const CollisionShape legNW = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 3.0f * P, 3.0f * P);
     const CollisionShape legNE = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f * P, 3.0f * P, 3.0f * P);
-    const CollisionShape bedShape =
-        CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE);
+    const CollisionShape bedShape = CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE);
 
     // 四个朝向共用同一形状（原版 rotateHorizontal 后形状不变，因为整体绕 Y 轴旋转对称）
     m_shapesByFacing[static_cast<size_t>(Direction::North)] = bedShape;

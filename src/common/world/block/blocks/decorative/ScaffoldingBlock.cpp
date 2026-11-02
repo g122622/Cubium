@@ -81,7 +81,18 @@ ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
     // 底部平台 (field_220123_f)
     m_baseShape = CollisionShape::box(0.0f, BOTTOM_Y_MIN, 0.0f, 1.0f, BOTTOM_Y_MAX, 1.0f);
 
-    // 完整形状 (field_220122_e)
+    // 稳定形状（SHAPE_STABLE）：顶部平台 + 四个角支柱
+    m_stableShape =
+        CollisionShape::combine(CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f),         // 顶部平台
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, CORNER_SIZE, 1.0f, CORNER_SIZE), // 西北角
+                CollisionShape::combine(
+                    CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, CORNER_SIZE), // 东北角
+                    CollisionShape::combine(
+                        CollisionShape::box(0.0f, 0.0f, 1.0f - CORNER_SIZE, CORNER_SIZE, 1.0f, 1.0f),       // 西南角
+                        CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f) // 东南角
+                        ))));
+
+    // 不稳定形状（SHAPE_UNSTABLE）：稳定形状 + 底部平台
     // 包含顶部平台、四个角支柱、底部平台
     m_fullShape = CollisionShape::combine(
         CollisionShape::combine(CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f), // 顶部平台
@@ -260,18 +271,25 @@ bool ScaffoldingBlock::isValidPosition(const BlockState& state, IBlockReader& wo
 const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);
-    // 当 bottom=true 时返回完整形状，否则返回顶部平台
+    // 原版 SHAPE_STABLE：顶部平台 + 四角支柱（SHAPE_UNSTABLE 再加底部平台）。
+    // 顶部平台在 UP 面铺满 16×16，因此脚手架的顶面是完整支撑面——这是玩家与
+    // 其它方块"站在脚手架/放在脚手架顶"判定的依据。
     if (state.get(BlockStateProperties::BOTTOM())) {
         return m_fullShape;
     }
-    return m_topShape;
+    return m_stableShape;
 }
 
 const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& state) const noexcept
 {
-    // 脚手架的碰撞形状比较特殊：
-    // - 当 distance != 0 且 bottom=true 时，玩家可以站在底部平台上
-    // - 其他情况下，玩家可以穿过脚手架
+    // 原版 getCollisionShape：
+    //   - 放置上下文 → 空（放置时不与自身碰撞）
+    //   - 上方是完整方块且非下落中 → SHAPE_STABLE
+    //   - 否则 distance != 0 && bottom && 下方一格是完整方块 → SHAPE_UNSTABLE_BOTTOM
+    //   - 其余 → 空
+    // 下方路径需要实体上下文（CollisionContext），Cubium 的接口不带上下文，按
+    // 「非放置、上方无完整方块」的默认情形落到 stable，与差分探针的空世界一致。
+    // TODO: 接入实体上下文后补全放置 / 下落 / 底部平台三个分支。
     i32 distance = state.get(BlockStateProperties::DISTANCE_0_7());
     bool bottom = state.get(BlockStateProperties::BOTTOM());
 
@@ -280,8 +298,8 @@ const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& stat
         return m_baseShape;
     }
 
-    // 无碰撞，玩家可以穿过
-    return m_emptyShape;
+    // 默认情形：顶部平台 + 四角支柱（原版 SHAPE_STABLE）。
+    return m_stableShape;
 }
 
 // ========== IWaterLoggable 接口实现 ==========

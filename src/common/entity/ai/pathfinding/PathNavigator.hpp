@@ -329,11 +329,8 @@ protected:
      * @param reachRange 判定到达的曼哈顿半径
      * @param maxPathLength 允许的最大行走距离
      */
-    [[nodiscard]] std::optional<Path> _createPath(const std::vector<BlockPos>& targets,
-        i32 searchRange,
-        bool above,
-        i32 reachRange,
-        f32 maxPathLength);
+    [[nodiscard]] std::optional<Path> _createPath(
+        const std::vector<BlockPos>& targets, i32 searchRange, bool above, i32 reachRange, f32 maxPathLength);
 
     /**
      * @brief 用单个方块建路径
