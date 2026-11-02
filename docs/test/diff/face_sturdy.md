@@ -28,7 +28,8 @@
 | 5 个方块补 `withCollision()` | 22 |
 | 修正 cactus / conduit / bamboo 的形状坐标 | 20 |
 | 头部方块补碰撞 + 修正 lily_pad/heavy_core 形状 | 10 |
-| 修正 pointed_dripstone 五种厚度的宽度 | **9** |
+| 修正 pointed_dripstone 五种厚度的宽度 | 9 |
+| `BushBlock::getCollisionShape` 尊重 `m_hasCollision` | **8** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -1045,6 +1046,75 @@ Cubium  DOWN -> EMPTY
 `TODO`：这一处需要逐行对照 `SliceShape.makeSlice` 的 `choose()` 与
 `BitSetDiscreteVoxelShape.isFull` 的越界行为，再决定 Cubium 的 `slice` 是否要放宽守卫。
 Cubium 当前的守卫是为了防越界崩溃而加的，直接删除会有风险。
+## `BushBlock::getCollisionShape` 无条件返回空（9 → 8）
+
+### 排查过程
+
+`lily_pad` 的 `DOWN|CENTER` 一直是「原版 true / Cubium false」，而它的形状早在前几轮就
+align 好了。这一轮我在探针里加了诊断，直接打印支撑形状：
+
+```
+[DIAG] lily_pad dir=0 boxes=0 empty=1
+```
+
+**支撑形状是空的（0 个 box）**。但 `LilyPadBlock` 明明有 `getCollisionShape` 返回 `m_shape`。
+
+给 `LilyPadBlock::getCollisionShape` 再加一层诊断，结果 `DIAG2` **一行都没打印**——
+说明它根本没被调用。
+
+再去查注册处，才发现真正的问题：
+
+```cpp
+NaturalBlocks::LILY_PAD = &registry.registerBlock<blocks::WaterlilyBlock>(
+    ResourceLocation("minecraft:lily_pad"), ...);
+```
+
+**`lily_pad` 注册的是 `WaterlilyBlock`，不是 `LilyPadBlock`**。前几轮我一直在改一个
+从未被实例化的类。
+
+### 真正的根因
+
+`WaterlilyBlock` 继承 `BushBlock`，而：
+
+```cpp
+const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 植物无碰撞
+    static CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
+}
+```
+
+**无条件返回空形状**，完全忽略 `m_hasCollision`。于是：
+
+- `getBlockSupportShape`（默认转调 `getCollisionShape`）恒为空；
+- 之前几轮给注册处加的 `.withCollision()` **全部无效**，因为覆写不读这个标志。
+
+### 修复
+
+```cpp
+const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const
+{
+    if (!m_hasCollision) {
+        static const CollisionShape emptyShape = CollisionShape::empty();
+        return emptyShape;
+    }
+    return getShape(state);
+}
+```
+
+同时给 `WaterlilyBlock` 补上原版形状 `box(1, 0, 1, 15, 1.5, 15)`（它此前从未设置过
+`m_shape`，一直沿用 `BushBlock` 构造的 `fullBlock()`）。
+
+### 影响面
+
+这一处修复不只解决 `lily_pad`——**所有继承 `BushBlock` 且需要碰撞的方块都受影响**。
+之前几轮里「加了 `withCollision()` 却没效果」的现象，很可能有多个来源就是它。
+
+> **教训**：修改一个类之前，先确认**它到底有没有被实例化**。我是靠「诊断代码不打印」
+> 才发现改错了对象——如果只靠读代码推断，这个错误几乎不可能被发现。
+> **诊断不触发，优先怀疑对象/分支没走到，而不是表达式写错。**
 ## 与其它能力的关系
 
 | 能力 | 关系 |

@@ -35,7 +35,14 @@ namespace blocks {
 
 WaterlilyBlock::WaterlilyBlock(const BlockProperties& properties)
     : BushBlock(properties)
-{}
+{
+    // 原版 WaterlilyBlock.SHAPE = Block.box(1, 0, 1, 15, 1.5, 15)：
+    // X/Z 内缩 1 像素、Y 上限 1.5/16 = 0.09375。
+    //
+    // 注意 `lily_pad` 实际注册的是本类，而不是 `LilyPadBlock`——后者是未被使用的同名实现。
+    // 形状必须设在这里，否则会沿用 `BushBlock` 构造的 `fullBlock()`。
+    m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.09375f, 0.9375f);
+}
 
 bool WaterlilyBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {

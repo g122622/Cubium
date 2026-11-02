@@ -98,6 +98,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include "probe.hpp"
+#include <typeinfo>
 
 namespace mc::diff {
 namespace {
