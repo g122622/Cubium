@@ -92,22 +92,29 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     // 床的形状：主体 + 四个床腿
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 主体形状 (高度9像素，从Y=3开始)
-    CollisionShape baseShape = CollisionShape::box(0.0f, 3.0f * P, 0.0f, 16.0f * P, 9.0f * P, 16.0f * P);
-
-    // 床腿：原版只有**两条**，位于对角。
+    // 床的形状：原版由三块 OR 而成，再整体 rotateHorizontal：
     //
     //   leg      = Block.box(0, 0, 0, 3, 3, 3);
     //   legRot90 = Shapes.rotate(leg, BLOCK_ROT_Y_90);   // -> box(13, 0, 0, 16, 3, 3)
     //   SHAPES   = rotateHorizontal(Shapes.or(Block.column(16, 3, 9), leg, legRot90));
     //
-    // 此前画了四条腿，床底多出两块。
-    const CollisionShape legNW = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 3.0f * P, 3.0f * P);
-    const CollisionShape legNE = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f * P, 3.0f * P, 3.0f * P);
-    const CollisionShape bedShape =
-        CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE);
+    // 旋转后两条腿落在 **Z 方向**，实测原版 `forAllBoxes` 得到 4 个盒子：
+    //
+    //   box(0,     0,     0.8125 -> 0.1875, 0.5625, 1.0     )   左下腿
+    //   box(0.8125, 0,    0.8125 -> 1.0,    0.5625, 1.0     )   右下腿
+    //   box(0,     0.1875, 0     -> 1.0,    0.5625, 0.8125  )   床垫主体
+    //   box(0.1875, 0.1875, 0.8125 -> 0.8125, 0.5625, 1.0   )   床垫延伸段
+    //
+    // 此前画了四条腿并铺满整个 Z 范围，床底与床尾都比原版大。
+    const CollisionShape legLeft = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 3.0f * P, 9.0f * P, 1.0f);
+    const CollisionShape legRight = CollisionShape::box(13.0f * P, 0.0f, 13.0f * P, 1.0f, 9.0f * P, 1.0f);
+    const CollisionShape mattress = CollisionShape::box(0.0f, 3.0f * P, 0.0f, 1.0f, 9.0f * P, 13.0f * P);
+    const CollisionShape mattressEnd =
+        CollisionShape::box(3.0f * P, 3.0f * P, 13.0f * P, 13.0f * P, 9.0f * P, 1.0f);
+    const CollisionShape bedShape = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::combine(legLeft, legRight), mattress), mattressEnd);
 
-    // 四个朝向共用同一形状（原版 rotateHorizontal 后形状不变，因为整体绕 Y 轴旋转对称）
+    // 四个朝向共用同一形状（原版 rotateHorizontal 后绕 Y 轴旋转对称）
     m_shapesByFacing[static_cast<size_t>(Direction::North)] = bedShape;
     m_shapesByFacing[static_cast<size_t>(Direction::South)] = bedShape;
     m_shapesByFacing[static_cast<size_t>(Direction::West)] = bedShape;

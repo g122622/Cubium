@@ -62,9 +62,14 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     // "空 shape 恰好非 full block"的脆弱巧合。先填 shape 再 createBlockState，保证构造期
     // getShape/getOcclusionShape 返回真实形状。对齐 PointedDripstoneBlock /
     // AmethystClusterBlock 的正确构造顺序。
-    m_closedShape = VoxelShapes::cube(0.0f, 0.0f, 0.4375f, 1.0f, 1.0f, 0.5625f);
+    // 原版关闭状态的形状是单一盒子：
+    //   SHAPE_CLOSED   = Block.column(4.0, 0.0, 16.0)  -> box(0, 0, 6, 16, 16, 10)
+    //   SHAPE_IN_WALL  = Block.column(4.0, 0.0, 13.0)  -> box(0, 0, 6, 16, 13, 10)
+    // 此前 Z 范围写成 0.4375..0.5625（宽 2 像素），只有原版的一半，
+    // 栅栏门的门板比原版窄。
+    m_closedShape = CollisionShape::box(0.0f, 0.0f, 0.375f, 1.0f, 1.0f, 0.625f);
     m_openShape = VoxelShapes::empty();
-    m_inWallClosedShape = VoxelShapes::cube(0.0f, 0.0f, 0.4375f, 1.0f, 0.8125f, 0.5625f);
+    m_inWallClosedShape = CollisionShape::box(0.0f, 0.0f, 0.375f, 1.0f, 0.8125f, 0.625f);
 
     m_closedShapes[static_cast<size_t>(Direction::North)] = m_closedShape;
     m_openShapes[static_cast<size_t>(Direction::North)] = m_openShape;
