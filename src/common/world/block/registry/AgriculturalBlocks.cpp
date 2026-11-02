@@ -67,10 +67,10 @@ void registerAgriculturalBlocks()
         &registry.registerBlock<blocks::BeetrootBlock>(ResourceLocation("minecraft:beetroots"), cropProps);
 
     // 可可豆 - 3个生长阶段（AGE_0_2），附着在丛林原木侧面
-    // MC原版属性：Plant材质、无碰撞、非固体、硬度0.2/爆炸抗性3.0、随机tick、WOOD音效
+    // MC原版属性：Plant材质、有碰撞、非固体、硬度0.2/爆炸抗性3.0、随机tick、WOOD音效
     AgriculturalBlocks::COCOA = &registry.registerBlock<blocks::CocoaBlock>(ResourceLocation("minecraft:cocoa"),
         BlockProperties(Material::PLANT)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .hardness(0.2f)
             .resistance(3.0f)

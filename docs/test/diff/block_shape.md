@@ -459,6 +459,57 @@ protected float getMaxHorizontalOffset() { return MAX_HORIZONTAL_OFFSET; }
 Cubium 已加 `Block::getCollisionShapeAt` / `getBlockSupportShapeAt`，但**尚未在探针中启用**：
 试过之后差异从 153 涨到 218——大量方块的碰撞形状与外形本就不同（如栅栏、台阶），
 统一按「外形 + 偏移」推导会破坏它们。需要逐类判断哪些方块真正让碰撞形状跟随外形偏移。
+## 逐类修正碰撞形状（153 → 138）
+
+上一轮尝试「统一让碰撞形状跟随外形偏移」失败（153 → 218）。本轮改为**逐类核对原版**，
+只修明确了的三类。
+
+### `WallHangingSignBlock`：碰撞只取横板（12 处）
+
+原版：
+
+```java
+private static final Map<Direction.Axis, VoxelShape> SHAPES_PLANK =
+    Shapes.rotateHorizontalAxis(Block.column(16.0, 4.0, 14.0, 16.0));
+
+protected VoxelShape getCollisionShape(BlockState state, ...) {
+    return SHAPES_PLANK.get(state.getValue(FACING).getAxis());   // 只有横板，不含立柱
+}
+```
+
+**碰撞形状与支撑形状不同**：支撑用 `SHAPES`（横板 + 立柱），碰撞只用 `SHAPES_PLANK`。
+玩家能穿过立柱，但撞得到横板。
+
+Cubium 此前没有覆写 `getCollisionShape`，而注册时用了 `.noCollision()`，于是碰撞恒为空。
+已新增 `m_plankShapes` 成员与 `getCollisionShape` 覆写。
+
+### `CactusBlock`：碰撞比外形矮 1 像素
+
+```java
+private static final VoxelShape SHAPE          = Block.column(14.0, 0.0, 16.0);   // Y 到 1.0
+private static final VoxelShape SHAPE_COLLISION = Block.column(14.0, 0.0, 15.0);  // Y 到 0.9375
+```
+
+Cubium 的 `getCollisionShape` 此前直接返回 `getShape`。已改为独立的静态碰撞形状。
+
+> 这解释了 `face_sturdy` 那一轮的困惑：当时我把 `cactus` 的 `getShape` Y 上限改成 `0.9375`，
+> 结果 `block_shape` 报错；后来改回 `1.0`，`face_sturdy` 又报错。真相是**两个形状本来就不同**，
+> 应该分开定义，而不是在同一个常量上反复改。
+
+### `cocoa` / `chorus_plant`：误设 `noCollision()`
+
+两者注册时写了 `.noCollision()`，但原版都有非空碰撞形状。形状已经正确，只需改碰撞开关。
+
+### 剩余 3 处（TODO）
+
+| 方块 | 差异 |
+|---|---|
+| `bamboo` | 原版碰撞 = `column(3,0,16)` + 偏移 `-0.25`；需在 `getCollisionShapeAt` 中生效 |
+| `pointed_dripstone` | 原版碰撞随 `getShape` 一起偏移（未覆写 `getCollisionShape`）|
+| `chorus_flower` | 待查 |
+
+这三处需要探针走 `getCollisionShapeAt`，但**不能全局启用**——上一轮的 218 处证明那样会
+破坏大量本来就不同的方块。可行的做法是让探针按方块逐类判断，而不是在公共层统一推导。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

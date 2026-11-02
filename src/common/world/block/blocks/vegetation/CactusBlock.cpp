@@ -62,6 +62,7 @@ CactusBlock::CactusBlock(const BlockProperties& properties)
     // 原版 SHAPE = box(1, 0, 1, 15, 15, 15) 像素，Y 上限为 15/16 = 0.9375，**不到顶部**。
     // 此前写成 1.0（满高），会让 UP 面的切片铺满整层，UP|CENTER 被误判为 true。
     CollisionShape cactusShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
+
     for (std::size_t i = 0; i < m_shapesByAge.size(); ++i) {
         m_shapesByAge[i] = cactusShape;
     }
@@ -224,7 +225,12 @@ const CollisionShape& CactusBlock::getShape(const BlockState& state) const
 
 const CollisionShape& CactusBlock::getCollisionShape(const BlockState& state) const
 {
-    return getShape(state);
+    MC_UNUSED(state);
+    // 原版有独立的碰撞形状 SHAPE_COLLISION = column(14.0, 0.0, 15.0)：比外形矮 1 像素，
+    // 站在仙人掌上时脚底高度与原版一致。
+    static const CollisionShape collisionShape =
+        CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f, 0.9375f);
+    return collisionShape;
 }
 
 // ========== 实体交互 ==========

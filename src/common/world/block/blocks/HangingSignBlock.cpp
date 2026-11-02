@@ -212,6 +212,12 @@ WallHangingSignBlock::WallHangingSignBlock(const BlockProperties& properties, Wo
     m_shapesByDirection[Direction::East] = alongX;
     m_shapesByDirection[Direction::West] = alongX;
 
+    // 碰撞形状只取顶部横板（原版 SHAPES_PLANK），不含中心立柱。
+    m_plankShapes[Direction::North] = plank;
+    m_plankShapes[Direction::South] = plank;
+    m_plankShapes[Direction::East] = plankRot;
+    m_plankShapes[Direction::West] = plankRot;
+
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())
@@ -285,6 +291,17 @@ const CollisionShape& WallHangingSignBlock::getShape(const BlockState& state) co
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     auto it = m_shapesByDirection.find(facing);
     if (it != m_shapesByDirection.end()) {
+        return it->second;
+    }
+    static CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
+}
+
+const CollisionShape& WallHangingSignBlock::getCollisionShape(const BlockState& state) const
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    auto it = m_plankShapes.find(facing);
+    if (it != m_plankShapes.end()) {
         return it->second;
     }
     static CollisionShape emptyShape = CollisionShape::empty();
