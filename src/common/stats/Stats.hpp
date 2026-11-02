@@ -180,5 +180,46 @@ inline constexpr const char* AVIATE_ONE_CM = "minecraft:aviate_one_cm";
 /// 骑鹦鹉螺距离（厘米）
 inline constexpr const char* NAUTILUS_ONE_CM = "minecraft:nautilus_one_cm";
 
+// ========== 动作计数统计 ==========
+//
+// 以下常量此前缺失，由差分能力 custom_stats 查出（原版 77 项 vs Cubium 63 项）。
+// 统计 ID 是**存档里的持久键**（`stats/<uuid>.json` 的字段名），缺一个常量意味着
+// 对应行为无法被记录，且玩家已有的该项统计在读取时会被丢弃。
+
+/// 跳跃次数
+inline constexpr const char* JUMP = "minecraft:jump";
+/// 丢弃物品次数
+inline constexpr const char* DROP = "minecraft:drop";
+
+// ========== 伤害统计（数值为实际伤害的十倍，显示时除以十）==========
+
+/// 造成伤害
+inline constexpr const char* DAMAGE_DEALT = "minecraft:damage_dealt";
+/// 造成并被吸收的伤害
+inline constexpr const char* DAMAGE_DEALT_ABSORBED = "minecraft:damage_dealt_absorbed";
+/// 造成并被抵抗的伤害
+inline constexpr const char* DAMAGE_DEALT_RESISTED = "minecraft:damage_dealt_resisted";
+/// 受到伤害
+inline constexpr const char* DAMAGE_TAKEN = "minecraft:damage_taken";
+/// 被盾牌格挡的伤害
+inline constexpr const char* DAMAGE_BLOCKED_BY_SHIELD = "minecraft:damage_blocked_by_shield";
+/// 被吸收的伤害
+inline constexpr const char* DAMAGE_ABSORBED = "minecraft:damage_absorbed";
+/// 被抵抗的伤害
+inline constexpr const char* DAMAGE_RESISTED = "minecraft:damage_resisted";
+
+// ========== 交互与世界统计 ==========
+
+/// 繁殖动物次数
+inline constexpr const char* ANIMALS_BRED = "minecraft:animals_bred";
+/// 钓鱼数量
+inline constexpr const char* FISH_CAUGHT = "minecraft:fish_caught";
+/// 与村民交谈次数
+inline constexpr const char* TALKED_TO_VILLAGER = "minecraft:talked_to_villager";
+/// 与村民交易次数
+inline constexpr const char* TRADED_WITH_VILLAGER = "minecraft:traded_with_villager";
+/// 吃掉蛋糕片数
+inline constexpr const char* EAT_CAKE_SLICE = "minecraft:eat_cake_slice";
+
 } // namespace stats
 } // namespace mc

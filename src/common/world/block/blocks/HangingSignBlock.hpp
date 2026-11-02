@@ -61,6 +61,27 @@ public:
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 支撑形状**直接返回 getShape**，绕过 hasCollision 判定
+     *
+     * 对齐原版 `WallHangingSignBlock` / `CeilingHangingSignBlock` 的覆写：
+     *
+     * ```java
+     * protected VoxelShape getBlockSupportShape(BlockState state, BlockGetter level, BlockPos pos) {
+     *     return this.getShape(state, level, pos, CollisionContext.empty());
+     * }
+     * ```
+     *
+     * 悬挂告示牌的 `hasCollision` 是 false（玩家可以穿过），若走基类默认实现
+     * `getCollisionShape` 就会得到空形状，于是 `SupportType.CENTER` 在所有面上都判 false，
+     * 告示牌无法承托任何附着物。原版显式覆写正是为了绕开这一点。
+     * 由差分能力 face_sturdy 查出。
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override
+    {
+        return getShape(state);
+    }
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
@@ -98,6 +119,27 @@ public:
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 支撑形状**直接返回 getShape**，绕过 hasCollision 判定
+     *
+     * 对齐原版 `WallHangingSignBlock` / `CeilingHangingSignBlock` 的覆写：
+     *
+     * ```java
+     * protected VoxelShape getBlockSupportShape(BlockState state, BlockGetter level, BlockPos pos) {
+     *     return this.getShape(state, level, pos, CollisionContext.empty());
+     * }
+     * ```
+     *
+     * 悬挂告示牌的 `hasCollision` 是 false（玩家可以穿过），若走基类默认实现
+     * `getCollisionShape` 就会得到空形状，于是 `SupportType.CENTER` 在所有面上都判 false，
+     * 告示牌无法承托任何附着物。原版显式覆写正是为了绕开这一点。
+     * 由差分能力 face_sturdy 查出。
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override
+    {
+        return getShape(state);
+    }
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

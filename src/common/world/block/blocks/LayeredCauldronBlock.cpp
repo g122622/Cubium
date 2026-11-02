@@ -88,22 +88,37 @@ LayeredCauldronBlock::LayeredCauldronBlock(
     // 默认水位为 1（最低有效水位）
     setDefaultState(defaultState().with(BlockStateProperties::LEVEL_1_3(), 1));
 
-    // 炼药锅外部形状（与空炼药锅和岩浆炼药锅共享相同的几何形状）
-    // 底部: (0, 0, 0) -> (16, 3, 16)
-    // 壁: 2像素厚，内部12x12空间
-    // 对齐原版 `Shapes.join(Shapes.block(), Block.column(12.0, 4.0, 16.0), ONLY_FIRST)`：
-    // 实心部分 = 铺满到 4/16 的底座 + 从 4/16 起的四壁（此前底座写成 3/16，纵向差 1 像素）。
-    const f32 innerBottom = 4.0f / 16.0f;
-    CollisionShape base = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, innerBottom, 1.0f);
-    CollisionShape northWall = VoxelShapes::cube(0.0f, innerBottom, 0.0f, 1.0f, 1.0f, 2.0f / 16.0f);
-    CollisionShape southWall = VoxelShapes::cube(0.0f, innerBottom, 14.0f / 16.0f, 1.0f, 1.0f, 1.0f);
-    CollisionShape westWall = VoxelShapes::cube(0.0f, innerBottom, 2.0f / 16.0f, 2.0f / 16.0f, 1.0f, 14.0f / 16.0f);
-    CollisionShape eastWall = VoxelShapes::cube(14.0f / 16.0f, innerBottom, 2.0f / 16.0f, 1.0f, 1.0f, 14.0f / 16.0f);
+    // 炼药锅外部形状（与空炼药锅和岩浆炼药锅共享相同的几何形状）。
+    //
+    // 对齐原版 `AbstractCauldronBlock`：
+    //
+    //   SHAPE = Shapes.join(Shapes.block(),
+    //       Shapes.or(Block.column(16.0, 8.0, 0.0, 3.0),
+    //                 Block.column(8.0, 16.0, 0.0, 3.0),
+    //                 Block.column(12.0, 0.0, 3.0),
+    //                 Block.column(12.0, 4.0, 16.0)),
+    //       BooleanOp.ONLY_FIRST);
+    //
+    // 即完整方块减去并集。四个被减形状（像素坐标）：
+    //   box(0, 0, 4, 16, 3, 12)   底部十字凹槽（X 向）
+    //   box(4, 0, 0, 12, 3, 16)   底部十字凹槽（Z 向）
+    //   box(2, 0, 2, 14, 3, 14)   锅腔下段
+    //   box(2, 4, 2, 14, 16, 14)  锅腔上段
+    //
+    // 此前手工拼「底座 + 四壁」的并集，漏掉了底部两个十字凹槽。
+    constexpr f32 P = 1.0f / 16.0f;
+    CollisionShape carved = VoxelShapes::cube(0.0f * P, 0.0f * P, 4.0f * P, 16.0f * P, 3.0f * P, 12.0f * P);
+    carved = CollisionShape::combine(carved,
+        VoxelShapes::cube(4.0f * P, 0.0f * P, 0.0f * P, 12.0f * P, 3.0f * P, 16.0f * P),
+        CollisionShape::CombineOp::OR);
+    carved = CollisionShape::combine(carved,
+        VoxelShapes::cube(2.0f * P, 0.0f * P, 2.0f * P, 14.0f * P, 3.0f * P, 14.0f * P),
+        CollisionShape::CombineOp::OR);
+    carved = CollisionShape::combine(carved,
+        VoxelShapes::cube(2.0f * P, 4.0f * P, 2.0f * P, 14.0f * P, 16.0f * P, 14.0f * P),
+        CollisionShape::CombineOp::OR);
 
-    m_outerShape = CollisionShape::combine(base, northWall, CollisionShape::CombineOp::OR);
-    m_outerShape = CollisionShape::combine(m_outerShape, southWall, CollisionShape::CombineOp::OR);
-    m_outerShape = CollisionShape::combine(m_outerShape, westWall, CollisionShape::CombineOp::OR);
-    m_outerShape = CollisionShape::combine(m_outerShape, eastWall, CollisionShape::CombineOp::OR);
+    m_outerShape = CollisionShape::combine(CollisionShape::fullBlock(), carved, CollisionShape::CombineOp::NOT);
 
     // 内容形状（水位 1-3）
     //   BASE_CONTENT_HEIGHT = 6, HEIGHT_PER_LEVEL = 3

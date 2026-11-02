@@ -149,11 +149,37 @@ const ResourceLocation& CeilingHangingSignBlock::getWaxedInteractFailSound() con
 WallHangingSignBlock::WallHangingSignBlock(const BlockProperties& properties, WoodType woodType)
     : AbstractSignBlock(properties, woodType)
 {
-    // 墙面悬挂告示牌各方向的碰撞形状（贴在墙面的薄板，比普通墙面告示牌更宽更矮）
-    m_shapesByDirection[Direction::North] = CollisionShape::box(0.0f, 0.0f, 0.875f, 1.0f, 1.0f, 1.0f);
-    m_shapesByDirection[Direction::South] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.125f);
-    m_shapesByDirection[Direction::East] = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.125f, 1.0f, 1.0f);
-    m_shapesByDirection[Direction::West] = CollisionShape::box(0.875f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    // 墙面悬挂告示牌各方向的形状。
+    //
+    // 对齐原版 `WallHangingSignBlock`：
+    //
+    //   SHAPES_PLANK = rotateHorizontalAxis(Block.column(16.0, 4.0, 14.0, 16.0));
+    //   SHAPES       = rotateHorizontalAxis(Shapes.or(SHAPES_PLANK.get(Axis.Z),
+    //                                                 Block.column(14.0, 2.0, 0.0, 10.0)));
+    //
+    // `Block.column(xzW, xzD, yMin, yMax)` 以方块中心为原点，因此：
+    //   column(16.0, 4.0, 14.0, 16.0) -> box(0,  4, 14, 16, 16, 16)   顶部横板（Z 朝向）
+    //   column(14.0, 2.0, 0.0, 10.0)  -> box(1,  0,  1, 15, 10, 15)   中心立柱
+    //
+    // 绕 Y 轴转 90° 得到 X 朝向的横板 box(14, 4, 0, 16, 16, 16)，中心立柱不变。
+    //
+    // 此前的实现写成满高（Y 0..1）、2 像素厚的薄板，与原版差异很大：
+    // 原版的板只在 y 4..16、贴着墙面，同时中心立柱伸到 y 0..10，
+    // 这使得 DOWN/UP 面都能覆盖中心 2×2 区域（`SupportType.CENTER` 判定为 true）。
+    constexpr f32 P = 1.0f / 16.0f;
+    // 中心立柱（X/Z 两个朝向共用）
+    const CollisionShape pillar = CollisionShape::box(1.0f * P, 0.0f, 1.0f * P, 15.0f * P, 10.0f * P, 15.0f * P);
+    // Z 朝向：横板贴在 z=14..16
+    CollisionShape plankZ = CollisionShape::box(0.0f, 4.0f * P, 14.0f * P, 1.0f, 1.0f, 1.0f);
+    plankZ = CollisionShape::combine(plankZ, pillar, CollisionShape::CombineOp::OR);
+    // X 朝向：横板贴在 x=14..16
+    CollisionShape plankX = CollisionShape::box(14.0f * P, 4.0f * P, 0.0f, 1.0f, 1.0f, 1.0f);
+    plankX = CollisionShape::combine(plankX, pillar, CollisionShape::CombineOp::OR);
+
+    m_shapesByDirection[Direction::North] = plankZ;
+    m_shapesByDirection[Direction::South] = plankZ;
+    m_shapesByDirection[Direction::East] = plankX;
+    m_shapesByDirection[Direction::West] = plankX;
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

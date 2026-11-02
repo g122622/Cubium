@@ -83,28 +83,42 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
     // 对齐原版 `AbstractCauldronBlock`：
     //
     //   private static final VoxelShape SHAPE_INSIDE = Block.column(12.0, 4.0, 16.0);
-    //   protected static final VoxelShape SHAPE =
-    //       Shapes.join(Shapes.block(), SHAPE_INSIDE, BooleanOp.ONLY_FIRST);
+    //   protected static final VoxelShape SHAPE = Util.make(() -> {
+    //       return Shapes.join(
+    //           Shapes.block(),
+    //           Shapes.or(Block.column(16.0, 8.0, 0.0, 3.0),
+    //                     Block.column(8.0, 16.0, 0.0, 3.0),
+    //                     Block.column(12.0, 0.0, 3.0),
+    //                     SHAPE_INSIDE),
+    //           BooleanOp.ONLY_FIRST);
+    //   });
     //
-    // 即**完整方块减去一个空腔**：空腔横向 12×12（`2/16..14/16`），纵向 `4/16..1`。
+    // 即**完整方块减去一个并集**。`Block.column(xzW, xzD, yMin, yMax)` 以方块中心为原点，
+    // 因此四个被减去的形状（像素坐标）是：
     //
-    // 因此实心部分 = 底面铺满到 `y=4/16` + 四壁从 `y=4/16` 起到 `y=1`。
+    //   column(16.0, 8.0, 0.0, 3.0)  ->  box(0,  0, 4, 16, 3,  12)
+    //   column(8.0, 16.0, 0.0, 3.0)  ->  box(4,  0, 0, 12, 3,  16)
+    //   column(12.0, 0.0, 3.0)       ->  box(2,  0, 2, 14, 3,  14)   (三参版 radius=12)
+    //   SHAPE_INSIDE                 ->  box(2,  4, 2, 14, 16, 14)   (column(12.0, 4.0, 16.0))
     //
-    // 此前这里把底座写成 `y 0..3/16`（少了一层），四壁从 `3/16` 起——纵向整整差了 1 像素。
-    // 由于 `SupportType.FULL` 至少要求面被完整覆盖，底面虽然仍是满的，但下表面在
-    // `CENTER` / `RIGID` 上会因为空腔起点不同而得到不同结论。
-    // 由差分能力 face_sturdy 查出（CauldronBlock 系列共 41 处差异）。
-    const f32 innerBottom = 4.0f / 16.0f;
-    CollisionShape base = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, innerBottom, 1.0f);
-    CollisionShape northWall = VoxelShapes::cube(0.0f, innerBottom, 0.0f, 1.0f, 1.0f, 2.0f / 16.0f);
-    CollisionShape southWall = VoxelShapes::cube(0.0f, innerBottom, 14.0f / 16.0f, 1.0f, 1.0f, 1.0f);
-    CollisionShape westWall = VoxelShapes::cube(0.0f, innerBottom, 2.0f / 16.0f, 2.0f / 16.0f, 1.0f, 14.0f / 16.0f);
-    CollisionShape eastWall = VoxelShapes::cube(14.0f / 16.0f, innerBottom, 2.0f / 16.0f, 1.0f, 1.0f, 14.0f / 16.0f);
+    // 前两个是底部十字交叉的凹槽（Y 只到 3、X/Z 未铺满），后两个是锅腔。
+    //
+    // 此前的实现手工拼了「底座 + 四壁」的并集，**漏掉了那两个十字凹槽**，而且没有
+    // 使用差集，导致 15 个朝向面上的 isFaceFull 判定与原版不一致。
+    // 由差分能力 face_sturdy 查出（CauldronBlock 系列共 45 处）。
+    constexpr f32 P = 1.0f / 16.0f;
+    CollisionShape carved = VoxelShapes::cube(0.0f * P, 0.0f * P, 4.0f * P, 16.0f * P, 3.0f * P, 12.0f * P);
+    carved = CollisionShape::combine(carved,
+        VoxelShapes::cube(4.0f * P, 0.0f * P, 0.0f * P, 12.0f * P, 3.0f * P, 16.0f * P),
+        CollisionShape::CombineOp::OR);
+    carved = CollisionShape::combine(carved,
+        VoxelShapes::cube(2.0f * P, 0.0f * P, 2.0f * P, 14.0f * P, 3.0f * P, 14.0f * P),
+        CollisionShape::CombineOp::OR);
+    carved = CollisionShape::combine(carved,
+        VoxelShapes::cube(2.0f * P, 4.0f * P, 2.0f * P, 14.0f * P, 16.0f * P, 14.0f * P),
+        CollisionShape::CombineOp::OR);
 
-    m_outerShape = CollisionShape::combine(base, northWall, CollisionShape::CombineOp::OR);
-    m_outerShape = CollisionShape::combine(m_outerShape, southWall, CollisionShape::CombineOp::OR);
-    m_outerShape = CollisionShape::combine(m_outerShape, westWall, CollisionShape::CombineOp::OR);
-    m_outerShape = CollisionShape::combine(m_outerShape, eastWall, CollisionShape::CombineOp::OR);
+    m_outerShape = CollisionShape::combine(CollisionShape::fullBlock(), carved, CollisionShape::CombineOp::NOT);
 }
 
 // ========== 放置和更新 ==========

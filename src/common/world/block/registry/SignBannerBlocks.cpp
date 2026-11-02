@@ -327,9 +327,22 @@ void registerSignBannerBlocks()
         ResourceLocation("minecraft:pale_oak_wall_hanging_sign"), hangingSignProps, blocks::WoodType::PaleOak);
 
     // ========== 旗帜注册 ==========
+    //
+    // 对齐原版：旗帜的 `hasCollision` 为 **false**。
+    //
+    // 原版 `BlockBehaviour#getBlockSupportShape` 默认返回
+    // `getCollisionShape(..., CollisionContext.empty())`，而 `getCollisionShape` 的默认实现是
+    // `hasCollision ? getShape() : Shapes.empty()`。因此旗帜的**支撑形状是空的**，
+    // 尽管 `getShape()` 返回 8×16×8 的柱体。
+    //
+    // 缺了 `noCollision()` 时支撑形状退化成 `getShape()`，`SupportType.CENTER` 会在
+    // 六个面上都判为 true（banner 的 4..12 投影完整包住了中心 2×2 柱），
+    // 于是旗帜被当成可以承托火把/灯笼的方块。
+    // 由差分能力 face_sturdy 查出（banner 系列共 48 处）。
     BlockProperties bannerProps = BlockProperties(Material::WOOD)
                                       .hardness(1.0f)
                                       .resistance(1.0f)
+                                      .noCollision()
                                       .notSolid()
                                       .noOcclusion()
                                       .soundType(BlockSoundTypes::WOOD)

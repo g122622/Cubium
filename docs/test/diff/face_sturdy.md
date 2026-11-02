@@ -15,7 +15,10 @@
 | 修复 `CarpetBlock` / `LadderBlock` / `NetherWartBlock` | 344 |
 | 修复 `dried_kelp_block` / `ender_chest` / `daylight_detector` | 270 |
 | 修复 `piston_head` / `enchanting_table` | 255 |
-| 修复 `moving_piston` / `azalea` 系列 | **249** |
+| 修复 `moving_piston` / `azalea` 系列 | 249 |
+| 补全 `CombineOp::AND` / `NOT`，对齐 3 个炼药锅类 | 189 |
+| 旗帜补 `noCollision()`（支撑形状应为空）| 141 |
+| 悬挂告示牌补 `getBlockSupportShape` 覆写 + 修正形状 | **129** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -363,7 +366,9 @@ minecraft:stone|DOWN|DIAG             -> col:full sup:full          ← 正常
 
 上一轮之所以误判成「归一化缺口」，就是因为只读代码没有打印实际值。
 
-## 剩余 249 处：炼药锅系列与 `CollisionShape` 的表达能力上限
+## 炼药锅系列：45 处已收敛（249 → 189）
+
+> **本节保留原始分析以供追溯，但结论已被下一节推翻。**
 
 剩余差异中最大的一类是炼药锅：`cauldron` 15 + `lava_cauldron` 15 +
 `powder_snow_cauldron` 15 = **45 处**，占剩余量的绝大部分。
@@ -375,6 +380,64 @@ private static final VoxelShape SHAPE_INSIDE = Block.column(12.0, 4.0, 16.0);
 protected static final VoxelShape SHAPE =
     Shapes.join(Shapes.block(), SHAPE_INSIDE, BooleanOp.ONLY_FIRST);   // 完整方块减去空腔
 ```
+
+### 实际原因：漏掉了底部的十字凹槽
+
+上面引用的 `Shapes.join(Shapes.block(), SHAPE_INSIDE, ONLY_FIRST)` 是**旧版**写法。
+1.21.11 的 `AbstractCauldronBlock` 已经在被减集合里**多加了三块**：
+
+```java
+return Shapes.join(
+    Shapes.block(),
+    Shapes.or(Block.column(16.0, 8.0, 0.0, 3.0),   // 底部 X 向凹槽
+              Block.column(8.0, 16.0, 0.0, 3.0),   // 底部 Z 向凹槽
+              Block.column(12.0, 0.0, 3.0),        // 锅腔下段
+              SHAPE_INSIDE),                       // 锅腔上段
+    BooleanOp.ONLY_FIRST);
+```
+
+`Block.column(xzW, xzD, yMin, yMax)` 以方块中心为原点，展开成像素坐标是：
+
+| 调用 | 展开 |
+|---|---|
+| `column(16.0, 8.0, 0.0, 3.0)` | `box(0, 0, 4, 16, 3, 12)` |
+| `column(8.0, 16.0, 0.0, 3.0)` | `box(4, 0, 0, 12, 3, 16)` |
+| `column(12.0, 0.0, 3.0)` | `box(2, 0, 2, 14, 3, 14)` |
+| `SHAPE_INSIDE` | `box(2, 4, 2, 14, 16, 14)` |
+
+Cubium 三个炼药锅类都手工拼「底座 + 四壁」的并集，**漏掉了前两个十字凹槽**——
+它们在 Y 只到 3、X/Z 未铺满，是锅底向外的两条凹槽。
+
+### 根因：`CombineOp::AND` / `NOT` 静默返回空形状
+
+```cpp
+// 修复前 src/common/physics/collision/CollisionShape.hpp
+if (op == CombineOp::OR) {
+    ...
+}
+// AND 和 NOT 操作暂不实现（需要更复杂的几何运算）
+return result;   // ← 空形状，不报错
+```
+
+只要传 `AND` 或 `NOT` 就拿到一个空形状，**既不报错也没有任何提示**。因此在表达
+「完整方块减去某集合」时无法使用 `Shapes.join`，只能手工拼并集，于是漏项。
+
+本轮补全了这两个操作：
+
+- **`AND`**：两个盒列表两两求交，交集非空才保留。
+- **`NOT`**：逐个把 a 的盒子按 b 的盒子切分（X / Y / Z 三向各切两侧，最多 6 个碎块）。
+
+修改后三个炼药锅类都改为与原版同构的 `combine(fullBlock(), carved, NOT)` 写法，
+45 处差异**全部消除**。
+
+```cpp
+// TODO: CombineOp::NOT 的结果盒数可能显著增加（1 个盒被 n 个盒切分后最多 6n 个碎块）。
+// 当前按点是否落在任一盒内判定，语义正确但会放大遍历开销。若后续出现性能问题，
+// 可考虑引入 VoxelShape 式的离散网格存储。
+```
+
+> **教训**：把「未实现」写成静默返回空值，会把一个立即暴露的缺失变成难以察觉的数据错误。
+> 这类地方应当断言或显式标注，而不是悄悄返回一个合法但错误的值。
 
 ### 为什么 5 个盒子拼不出等价形状
 

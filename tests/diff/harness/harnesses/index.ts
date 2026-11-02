@@ -184,6 +184,12 @@ import { booleanPropertyIndexInput } from "./boolean_property_index.ts";
 import { enumPropertyOrderInput } from "./enum_property_order.ts";
 import { enumPropertyOrderAllInput } from "./enum_property_order_all.ts";
 import { faceSturdyInput } from "./face_sturdy.ts";
+import { worldBorderInput } from "./world_border.ts";
+import { easingTypeInput } from "./easing_type.ts";
+import { mthInterpolationInput } from "./mth_interpolation.ts";
+import { legacyRandomInput } from "./legacy_random.ts";
+import { customStatsInput } from "./custom_stats.ts";
+import { soundEventsInput } from "./sound_events.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1187,6 +1193,48 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 面朝支撑判定：所有附着型方块存活判定的公共底层。
     { name: "face_sturdy", probe: "face_sturdy", oracle: "FaceSturdyOracle",
         key: "unit", units: { kind: "listing" }, input: faceSturdyInput },
+    {
+        name: "world_border",
+        probe: "world_border",
+        oracle: "WorldBorderOracle",
+        description: "WorldBorder 的边界判定：isWithinBounds(BlockPos) 只看方块西北角，"
+            + "下界 >= / 上界 < 不对称；isWithinBounds(AABB) 的 1.0E-5F 是 float 字面量",
+        key: "unit", units: { kind: "listing" }, input: worldBorderInput },
+    {
+        name: "easing_type",
+        probe: "easing_type",
+        oracle: "EasingTypeOracle",
+        description: "缓动函数 EasingType/Ease 的 32 个具名实现；全程 float 运算但 "
+            + "Math.pow/sqrt/sin 走 double，inElastic 两端有硬编码短路",
+        key: "unit", units: { kind: "listing" }, input: easingTypeInput },
+    {
+        name: "mth_interpolation",
+        probe: "mth_interpolation",
+        oracle: "MthInterpolationOracle",
+        description: "Mth.lerp2/lerp3/catmullrom/smoothstep；lerp3 只接受单因子，"
+            + "smoothstep 是单参数版本（x³(6x²-15x+10)），与 GLSL 三参数版本不同",
+        key: "unit", units: { kind: "listing" }, input: mthInterpolationInput },
+    {
+        name: "legacy_random",
+        probe: "legacy_random",
+        oracle: "LegacyRandomOracle",
+        description: "LegacyRandomSource 的 48 位 LCG 序列；nextInt(bound) 是拒绝采样，"
+            + "2 的幂走快速路径，同 seed 下不同 bound 推进的步数不同",
+        key: "unit", units: { kind: "listing" }, input: legacyRandomInput },
+    {
+        name: "custom_stats",
+        probe: "custom_stats",
+        oracle: "CustomStatsOracle",
+        description: "自定义统计常量表（77 项）；统计 ID 是存档持久键，"
+            + "缺项会让对应行为无法记录。缺的统计以 MISSING 暴露",
+        key: "unit", units: { kind: "listing" }, input: customStatsInput },
+    {
+        name: "sound_events",
+        probe: "sound_events",
+        oracle: "SoundEventsOracle",
+        description: "SoundEvents 音效 ID 常量表（1637 项）；音效 ID 是资源路径键与网络包内容，"
+            + "缺项会让对应行为完全无声。缺的音效以 MISSING 暴露",
+        key: "unit", units: { kind: "listing" }, input: soundEventsInput },
 
 
 
