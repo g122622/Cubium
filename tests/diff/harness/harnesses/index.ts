@@ -186,6 +186,7 @@ import { enumPropertyOrderAllInput } from "./enum_property_order_all.ts";
 import { faceSturdyInput } from "./face_sturdy.ts";
 import { worldBorderInput } from "./world_border.ts";
 import { easingTypeInput } from "./easing_type.ts";
+import { mthInterpolationInput } from "./mth_interpolation.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1199,6 +1200,13 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         description: "缓动函数 EasingType/Ease 的 32 个具名实现；全程 float 运算但 "
             + "Math.pow/sqrt/sin 走 double，inElastic 两端有硬编码短路",
         key: "unit", units: { kind: "listing" }, input: easingTypeInput },
+    {
+        name: "mth_interpolation",
+        probe: "mth_interpolation",
+        oracle: "MthInterpolationOracle",
+        description: "Mth.lerp2/lerp3/catmullrom/smoothstep；lerp3 只接受单因子，"
+            + "smoothstep 是单参数版本（x³(6x²-15x+10)），与 GLSL 三参数版本不同",
+        key: "unit", units: { kind: "listing" }, input: mthInterpolationInput },
 
 
 
