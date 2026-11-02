@@ -24,6 +24,7 @@
 #include "EndRodBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
@@ -107,6 +108,25 @@ const BlockState& EndRodBlock::mirror(const BlockState& state, Mirror mirror) co
     Direction facing = state.get(BlockStateProperties::FACING());
     Rotation rot = Directions::mirrorToRotation(mirror, facing);
     return state.with(BlockStateProperties::FACING(), Directions::rotateDirection(facing, rot));
+}
+
+const CollisionShape& EndRodBlock::getShape(const BlockState& state) const
+{
+    // vanilla RodBlock：SHAPES = Shapes.rotateAllAxis(Block.cube(4.0, 4.0, 16.0))，按 FACING 的轴取值。
+    // 立方体 4×4 像素、沿轴贯穿 16 像素；旋转到 X/Z 轴后仍是同样尺寸，只是贯穿方向不同。
+    static const CollisionShape yShape = CollisionShape::fromPixelBox(6, 0, 6, 10, 16, 10);
+    static const CollisionShape xShape = CollisionShape::fromPixelBox(0, 6, 6, 16, 10, 10);
+    static const CollisionShape zShape = CollisionShape::fromPixelBox(6, 6, 0, 10, 10, 16);
+
+    switch (Directions::getAxis(state.get(BlockStateProperties::FACING()))) {
+        case Axis::X:
+            return xShape;
+        case Axis::Z:
+            return zShape;
+        case Axis::Y:
+        default:
+            return yShape;
+    }
 }
 
 } // namespace blocks

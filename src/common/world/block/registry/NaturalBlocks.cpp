@@ -179,28 +179,25 @@ void registerNaturalBlocks()
 
     // 菌丝
     NaturalBlocks::MYCELIUM = &registry.registerBlock<blocks::MyceliumBlock>(ResourceLocation("minecraft:mycelium"),
-        BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS).noOcclusion());
+        BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
 
     // 草径
     NaturalBlocks::GRASS_PATH = &registry.registerBlock<blocks::DirtPathBlock>(ResourceLocation("minecraft:dirt_path"),
         BlockProperties(Material::EARTH).hardness(0.65f).soundType(BlockSoundTypes::GRASS));
 
     // 浮冰 - 不透明，不融化
+    // 原版 packed_ice 用最普通的 Blocks.register(name, properties) 注册（普通 Block，无子类），
+    // 属性里既没有 noOcclusion() 也没有状态自定义，因此 canOcclude=true、形状为整格，
+    // propagatesSkylightDown 取默认公式得 false——天空光每穿过一格浮冰衰减 1 级。
+    // 早期显式调用了 propagatesSkylightDown() 且把 opacity 设成 2，两个值都与原版不符
+    // （实测原版 1.21.11：propagatesSkylightDown=false、lightBlock=1）。
     NaturalBlocks::PACKED_ICE =
         &registry.registerBlock<blocks::PackedIceBlock>(ResourceLocation("minecraft:packed_ice"),
-            BlockProperties(Material::ICE)
-                .hardness(0.5f)
-                .opacity(2)
-                .propagatesSkylightDown()
-                .slipperiness(physics::SLIPPERINESS_ICE));
+            BlockProperties(Material::ICE).hardness(0.5f).slipperiness(physics::SLIPPERINESS_ICE));
 
     // 蓝冰 - 最滑的方块
     NaturalBlocks::BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(ResourceLocation("minecraft:blue_ice"),
-        BlockProperties(Material::ICE)
-            .hardness(2.8f)
-            .resistance(2.8f)
-            .slipperiness(physics::SLIPPERINESS_BLUE_ICE)
-            .noOcclusion());
+        BlockProperties(Material::ICE).hardness(2.8f).resistance(2.8f).slipperiness(physics::SLIPPERINESS_BLUE_ICE));
 
     // 霜冰 - 由冰霜行者附魔生成的临时冰
     NaturalBlocks::FROSTED_ICE = &registry.registerBlock<blocks::FrostedIceBlock>(
@@ -224,7 +221,7 @@ void registerNaturalBlocks()
     // 行为语义错误、getCollisionShape 返回满方块），HoneyBlock 子类沦为死代码——与红石块/粘液块
     // 同模式缺陷。参考: net.minecraft.world.level.block.HoneyBlock
     NaturalBlocks::HONEY_BLOCK = &registry.registerBlock<blocks::HoneyBlock>(ResourceLocation("minecraft:honey_block"),
-        BlockProperties(Material::HONEY).hardness(0.0f).notSolid().soundType(BlockSoundTypes::HONEY));
+        BlockProperties(Material::HONEY).hardness(0.0f).notSolid().soundType(BlockSoundTypes::HONEY).noOcclusion());
 
     // 仙人掌
     NaturalBlocks::CACTUS = &registry.registerBlock<blocks::CactusBlock>(ResourceLocation("minecraft:cactus"),
@@ -271,12 +268,13 @@ void registerNaturalBlocks()
     // 干海带块
     //
     // 借用 `Material::PLANT` 只为挖掘手感与可燃性，但它在原版是**完整的实心方块**
-    // （注册成普通 `Block`，玩家能站在上面）。`Material::PLANT` 经 `.solid(false)`
-    // 推导出「无碰撞」，会把形状变成空——必须显式 `withCollision()` 恢复。
+    // （注册成普通 `Block`，玩家能站在上面）。
+    // `Material::PLANT` 经 `.solid(false)` 推导出「无碰撞」，会把形状整个短路成空，
+    // 必须显式 `withCollision()` 恢复。
     // 由差分能力 face_sturdy 查出（六个面全部判错）。
     NaturalBlocks::DRIED_KELP_BLOCK =
         &registry.registerBlock<blocks::DriedKelpBlock>(ResourceLocation("minecraft:dried_kelp_block"),
-            BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f).noOcclusion().withCollision());
+            BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f).withCollision());
 
     // 海泡菜
     NaturalBlocks::SEA_PICKLE =
@@ -303,10 +301,12 @@ void registerNaturalBlocks()
 
     // 气泡柱与海龟蛋
     // 气泡柱：水柱方块。BubbleColumnBlock::getFluidState 返回水（对齐 vanilla），propagatesSkylightDown
-    // 走默认公式得 false（含水不透天空光）。opacity 显式设 0（透光，vanilla 亦为 0）。
+    // 走默认公式得 false（含水不透天空光）。因此 lightBlock 必须由默认公式得 1，不能显式设 0：
+    // vanilla bubble_column 的 getShape 是空形状、不是实体渲染方块，但它含水源，
+    // 天空光每穿过一格衰减 1 级（实测原版 1.21.11 lightBlock=1）。
     NaturalBlocks::BUBBLE_COLUMN =
         &registry.registerBlock<blocks::BubbleColumnBlock>(ResourceLocation("minecraft:bubble_column"),
-            BlockProperties(Material::WATER).noCollision().notSolid().opacity(0).soundType(BlockSoundTypes::AIR));
+            BlockProperties(Material::WATER).noCollision().notSolid().soundType(BlockSoundTypes::AIR));
     NaturalBlocks::TURTLE_EGG =
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
             BlockProperties(Material::CORAL)
@@ -337,10 +337,12 @@ void registerNaturalBlocks()
     // 头颅作为音符盒乐器：NoteBlock::resolveInstrument 经 headInstrumentAbove 识别上述头颅方块，
     //   映射为对应 MOB_HEAD/CUSTOM 乐器（骷髅/凋灵骷髅/僵尸/苦力怕/龙/猪灵/玩家头）。
     // ============================================================================
-    // vanilla 头颅注册属性含 noOcclusion()
+    // 立式头颅（_head）注册了 noOcclusion()；墙面变体（_wall_head / _wall_skull）走原版
+    // `Blocks.wallVariant(...)`，只继承掉落表与描述，**不继承** noOcclusion()，
+    // 因此它们的 canOcclude 保持默认 true。早期实现让两者共用同一份属性，
+    // 把墙面头颅也注册成了无遮挡。
     const BlockProperties skullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid().noOcclusion();
-    const BlockProperties wallSkullProps =
-        BlockProperties(Material::DECORATION).hardness(1.0f).notSolid().noOcclusion();
+    const BlockProperties wallSkullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
 
     NaturalBlocks::SKELETON_SKULL = &registry.registerBlock<blocks::SkullBlock>(
         ResourceLocation("minecraft:skeleton_skull"), blocks::SkullType::Skeleton, skullProps);
@@ -576,7 +578,12 @@ void registerNaturalBlocks()
 
     // 潮涌核心 - 水下信标类方块，需要潮涌框架激活
     NaturalBlocks::CONDUIT = &registry.registerBlock<blocks::ConduitBlock>(ResourceLocation("minecraft:conduit"),
-        BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid().soundType(BlockSoundTypes::STONE));
+        BlockProperties(Material::GLASS)
+            .hardness(3.0f)
+            .resistance(3.0f)
+            .notSolid()
+            .soundType(BlockSoundTypes::STONE)
+            .noOcclusion());
 
     // ========== 火把 ==========
     // 火把 - 发光等级14，生成火焰和烟雾粒子

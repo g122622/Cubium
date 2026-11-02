@@ -136,15 +136,19 @@ void registerRedstoneBlocks()
     // 红石灯
     RedstoneBlocks::REDSTONE_LAMP =
         &registry.registerBlock<blocks::RedstoneLampBlock>(ResourceLocation("minecraft:redstone_lamp"),
-            BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f).noOcclusion().soundType(BlockSoundTypes::GLASS));
+            BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f).soundType(BlockSoundTypes::GLASS));
 
     // 红石中继器
+    // 原版只用 instabreak() + sound()，既没有 noCollision() 也没有 noOcclusion()：
+    // 低矮形状由 getShape/getCollisionShape 表达，canOcclude 保持 true。
+    // 早期多写了 noCollision()，而它（与原版一致）会连带清掉 canOcclude，
+    // 使中继器完全不参与遮挡计算。
     RedstoneBlocks::REDSTONE_REPEATER = &registry.registerBlock<blocks::RedstoneRepeaterBlock>(
-        ResourceLocation("minecraft:repeater"), BlockProperties(Material::DECORATION).noCollision().notSolid());
+        ResourceLocation("minecraft:repeater"), BlockProperties(Material::DECORATION).notSolid());
 
-    // 红石比较器
+    // 红石比较器（同上）
     RedstoneBlocks::REDSTONE_COMPARATOR = &registry.registerBlock<blocks::RedstoneComparatorBlock>(
-        ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).noCollision().notSolid());
+        ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).notSolid());
 
     // 侦测器
     RedstoneBlocks::OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
@@ -520,7 +524,7 @@ void registerRedstoneBlocks()
     // 移动中的活塞
     RedstoneBlocks::MOVING_PISTON =
         &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
-            BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable());
+            BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable().noOcclusion());
 
     // 发射器
     RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(

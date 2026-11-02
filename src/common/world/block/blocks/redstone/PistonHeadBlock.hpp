@@ -24,7 +24,6 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
-#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/EnumProperty.hpp"
@@ -33,7 +32,6 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
-#include <array>
 
 namespace mc {
 
@@ -73,32 +71,6 @@ public:
     explicit PistonHeadBlock(const BlockProperties& properties);
 
     // ========== Block 接口实现 ==========
-
-    /**
-     * @brief 渲染与碰撞形状：平台 + 中间推杆
-     *
-     * 对齐原版 `PistonHeadBlock`：
-     *
-     * ```java
-     * private static final VoxelShape SHAPE_PLATFORM = Block.boxZ(16.0, 0.0, 4.0);
-     * private static final Map<Direction, VoxelShape> SHAPES_SHORT =
-     *     Shapes.rotateAll(Shapes.or(SHAPE_PLATFORM, Block.boxZ(4.0, 4.0, 16.0)));
-     * private static final Map<Direction, VoxelShape> SHAPES =
-     *     Shapes.rotateAll(Shapes.or(SHAPE_PLATFORM, Block.boxZ(4.0, 4.0, 20.0)));
-     * ```
-     *
-     * `boxZ(width, zMin, zMax)` 生成「x 居中宽 `width`/16、**y 满高**、z 从 `zMin` 到 `zMax`」
-     * 的盒子。因此 +Z(NORTH) 朝向的形状是：
-     *
-     * - 平台：x `0..1`、y `0..1`、z `0..4/16`
-     * - 推杆：x `6/16..10/16`、y `0..1`、z `4/16..16/16`（短推杆）或 `4/16..20/16`（长推杆）
-     *
-     * 长推杆的 z 上界 `20/16` **超出方块范围**——这是活塞伸出时推杆会探入相邻方块的原因。
-     *
-     * 缺失此覆写时会继承 `Block::getShape`（完整方块），导致活塞头的六个面全部误判为坚固
-     * （差分能力 face_sturdy 查出 15 处差异）。
-     */
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
@@ -183,14 +155,31 @@ public:
      * @param baseState 待检查的方块状态
      * @return true 如果是匹配的已伸出活塞基座
      */
-    [[nodiscard]] static bool isFittingBase(const BlockState& headState, const BlockState& baseState) noexcept;
+    [[nodiscard]] static bool isFittingBase(const BlockState& headState,
+        const BlockState&
+            baseState) noexcept; /**
+                                  * @brief 使用形状进行光照遮挡（对齐原版 `PistonHeadBlock` 的同名重写）
+                                  *
+                                  * 原版这个方块的重写返回 true，光照引擎据此按实际形状做面遮挡，而不是当作整格挡光。
+                                  */
 
-private:
-    /// 按 FACING 索引的短推杆形状（对应原版 `SHAPES_SHORT`）
-    std::array<CollisionShape, 6> m_shapesShort;
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
 
-    /// 按 FACING 索引的长推杆形状（对应原版 `SHAPES`，推杆伸出到 20/16）
-    std::array<CollisionShape, 6> m_shapes;
+    /**
+     * @brief 活塞头形状（对齐 vanilla `PistonHeadBlock#SHAPES`）
+     *
+     * vanilla：
+     *   SHAPE_PLATFORM = boxZ(16.0, 0.0, 4.0)                       → 平台，贴活塞外侧 4 像素厚
+     *   SHAPES_SHORT   = SHAPES.or(SHAPE_PLATFORM, boxZ(4.0, 4.0, 16.0))
+     *   SHAPES         = SHAPES.or(SHAPE_PLATFORM, boxZ(4.0, 4.0, 20.0))
+     * 再按 FACING 旋转。它不是整格，所以天空光可穿过（lightBlock=0）。早期未重写 getShape，
+     * 退回整格立方体，活塞头被误判为完全挡光。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 };
 
 } // namespace blocks

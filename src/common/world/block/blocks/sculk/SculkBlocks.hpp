@@ -156,11 +156,9 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
+    // 注意：vanilla SculkVeinBlock 及其父类 MultifaceBlock 都没有重写
+    // useShapeForLightOcclusion，取 BlockBehaviour 的默认值 false。早期这里照抄了
+    // SculkSensorBlock 的写法返回 true，把幽匿脉络的按形状面遮挡逻辑错误打开。
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
@@ -474,7 +472,22 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    // 与 vanilla 一致：碰撞形状与遮挡形状都是 8 像素高的台子，但 getShape 仍为整格。
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    [[nodiscard]] const CollisionShape& getOcclusionShape(const BlockState& state) const override;
+
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 天空光直通判定（对齐 vanilla 默认公式，即按 getShape 求值）
+     *
+     * Cubium 的默认公式基于 getOcclusionShape，而这个方块的遮挡形状是 8 像素台子、
+     * getShape 才是整格。原版拿到整格形状后判「不透传」，默认公式会给出相反的结果，
+     * 因此这里按原版语义直接按 getShape 求值。
+     */
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
     {

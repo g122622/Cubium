@@ -487,22 +487,20 @@ bool Block::propagatesSkylightDown(const BlockState& state, IWorld* world, const
 
     // 对齐 vanilla BlockBehaviour#propagatesSkylightDown 默认实现：
     //   !Block.isShapeFullBlock(state.getShape(EmptyBlockGetter, ZERO)) && state.getFluidState().isEmpty()
-    // 即"碰撞/遮挡形状非完整立方体 且 无流体"时透传天空光（propagatesSkylightDown=true）。
+    // 即"形状非完整立方体 且 无流体"时透传天空光（propagatesSkylightDown=true）。
     //
-    // Cubium 用 getOcclusionShape 而非 getShape：vanilla 的 getShape 在 noCollission 方块上返回空形状
-    // （hasCollision ? blockShape : empty），而 Cubium 的 getShape 默认返回 fullBlock（不看碰撞），
-    // 与 vanilla 语义不符。Cubium 的 getOcclusionShape 在透光/非碰撞方块上返回空（如花草、栅栏），
-    // 更接近 vanilla getShape 的光照语义。CollisionShape::isFullBlock() 等价于 vanilla isShapeFullBlock
-    // 对 FullBlock 类型的判定。
+    // Cubium 用 getOcclusionShape 近似 vanilla 的 getShape：vanilla 的 getShape 在
+    // noCollision 方块上返回空形状（getCollisionShape 里的 hasCollision 短路），而 Cubium 的
+    // getShape 默认返回 fullBlock、不看碰撞；getOcclusionShape 在透光/非碰撞方块上返回空
+    // （如花草、栅栏），更接近 vanilla getShape 的光照语义。
+    //
+    // 注意这不是严格等价：把 getOcclusionShape 覆盖成非整格、而 getShape 仍是整格的方块
+    // （如幽匿尖啸体）会与原版判定相反。这类方块必须自己重写 propagatesSkylightDown，
+    // 见 SculkShriekerBlock。
     //
     // 流体判定：getFluidState 返回指针可能为 nullptr（无流体状态）或 EmptyFluid（isEmpty=true），
     // 两者均视为"无流体"→透传。含水方块（如含水栅栏）getFluidState 返回水→isEmpty=false→不透传，
     // 对齐 vanilla CrossCollisionBlock/WallBlock 的 !WATERLOGGED 语义。
-    //
-    // noOcclusion 方块（canOcclude=false）在 vanilla 中遮挡形状为空，但 propagatesSkylightDown 基于
-    // getShape（不受 canOcclude 影响）：铁栏杆这类未重写 getShape 的方块原版同样得到 shape=完整立方体
-    // → 不透传天空光。因此在 canOcclude=false 时本方法直接按"完整形状→不通透"处理，不做形状遮挡
-    // 判定；重写了 getShape 返回非完整形状的 noOcclusion 方块（树叶、门、活板门等）仍按形状透传。
     const CollisionShape& shape = getOcclusionShape(state);
     // 与 isSolidRender 用同一个精确判定（vanilla isShapeFullBlock），否则会出现
     // 「算作实体渲染 → lightBlock 15」与「又判为透传天空光」自相矛盾的组合。

@@ -228,12 +228,15 @@ TEST_F(EnchantingTableBlockTest, GetShape_ReturnsValidShape)
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(EnchantingTableBlockTest, GetOcclusionShape_CanBeEmpty)
+TEST_F(EnchantingTableBlockTest, GetOcclusionShape_FollowsShapeLikeVanilla)
 {
+    // vanilla 的 EnchantingTableBlock 没有重写 getOcclusionShape，遮挡形状就是 getShape()：
+    // 整格宽、12 像素高的台子。附魔台虽然 notSolid()（玩家可以从桌面上方按下使用界面），
+    // 但它 canOcclude=true，会按这个形状参与光照遮挡与 AO 阴影。
     const auto& state = enchantingTable_->defaultState();
     const auto& shape = enchantingTable_->getOcclusionShape(state);
-    // 附魔台是非固体方块，遮挡形状可以为空
-    EXPECT_TRUE(shape.isEmpty());
+    EXPECT_FALSE(shape.isEmpty());
+    EXPECT_FALSE(shape.coversFullBlock());
 }
 
 TEST_F(EnchantingTableBlockTest, GetPushReaction_ReturnsBlock)

@@ -45,9 +45,9 @@ using namespace mc; // Bring BlockStateProperties into scope
 
 TwistingVinesBlock::TwistingVinesBlock(const BlockProperties& properties)
     : GrowingPlantHeadBlock(properties,
-          Direction::Up,                                    // 向上生长
-          CollisionShape::fromPixelBox(4, 0, 4, 12, 9, 12), // MC column(8,0,9)
-          0.1f)                                             // MC 1.21.11: growPerTickProbability = 0.1
+          Direction::Up,                                     // 向上生长
+          CollisionShape::fromPixelBox(4, 0, 4, 12, 15, 12), // MC column(8,0,15)
+          0.1f)                                              // MC 1.21.11: growPerTickProbability = 0.1
 {
     // 创建状态容器：AGE_0_25
     auto container =

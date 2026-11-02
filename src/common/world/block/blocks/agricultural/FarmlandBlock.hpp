@@ -95,6 +95,18 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 是否按形状做光照遮挡（对齐 vanilla `FarmBlock#useShapeForLightOcclusion`）
+     *
+     * vanilla 返回 true：耕地比整格矮 1 像素，光照引擎据此按实际形状做面遮挡，
+     * 而不是把整格当作挡光。早期缺少这个重写，耕地退回默认值 false。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     // ========== 移动和交互 ==========
 
     [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;

@@ -21,10 +21,12 @@
  */
 
 #include "FungusBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -102,6 +104,14 @@ void FungusBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos
 
     // 调用巨型真菌生成器（lambda 内部会将 IWorld& 转为 WorldGenRegion&）
     m_fungusGrower(*region, pos, rng);
+}
+
+const CollisionShape& FungusBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // vanilla FungusBlock：SHAPE = Block.column(8.0, 0.0, 9.0)。
+    static const CollisionShape shape = CollisionShape::fromPixelBox(4, 0, 4, 12, 9, 12);
+    return shape;
 }
 
 } // namespace blocks

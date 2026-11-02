@@ -31,6 +31,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
@@ -459,6 +460,35 @@ Material::PushReaction PistonBlock::_getBlockPushReaction(const BlockState& stat
         return Material::PushReaction::Block;
     }
     return Material::PushReaction::Normal;
+}
+
+const CollisionShape& PistonBlock::getShape(const BlockState& state) const
+{
+    // vanilla PistonBaseBlock#getShape：
+    //   return EXTENDED ? SHAPES.get(FACING) : Shapes.block();
+    // SHAPES = Shapes.rotateAll(Block.boxZ(16.0, 4.0, 16.0))，基准姿态（NORTH）为
+    //   box(0, 0, 4, 16, 16, 16)——整格但在面向活塞头的一侧留出 4 像素缺口。
+    // 未伸出时是完整立方体，因此只有 extended=true 的活塞才透传天空光。
+    if (!isExtended(state)) {
+        static const CollisionShape fullShape = CollisionShape::fullBlock();
+        return fullShape;
+    }
+
+    static const CollisionShape shapes[6] = {
+        CollisionShape::fromPixelBox(0, 0, 0, 16, 12, 16), // Down
+        CollisionShape::fromPixelBox(0, 4, 0, 16, 16, 16), // Up
+        CollisionShape::fromPixelBox(0, 0, 4, 16, 16, 16), // North
+        CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 12), // South
+        CollisionShape::fromPixelBox(4, 0, 0, 16, 16, 16), // West
+        CollisionShape::fromPixelBox(0, 0, 0, 12, 16, 16), // East
+    };
+    return shapes[static_cast<size_t>(getFacing(state))];
+}
+
+bool PistonBlock::useShapeForLightOcclusion(const BlockState& state) const
+{
+    // 对齐 vanilla PistonBaseBlock#useShapeForLightOcclusion：只有伸出的活塞按形状遮挡。
+    return isExtended(state);
 }
 
 } // namespace blocks

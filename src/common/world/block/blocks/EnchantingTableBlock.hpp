@@ -130,12 +130,7 @@ public:
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    /**
-     * @brief 获取遮挡形状
-     * @param state 方块状态
-     * @return 形状引用
-     */
-    [[nodiscard]] const CollisionShape& getOcclusionShape(const BlockState& state) const override;
+    // 不重写 getOcclusionShape：vanilla 的遮挡形状直接沿用 getShape()。
 
     // ========== 放置和更新 ==========
 
@@ -190,6 +185,17 @@ public:
     {
         MC_UNUSED(state);
         return Material::PushReaction::Block;
+    }
+
+    /**
+     * @brief 使用形状进行光照遮挡（对齐原版 `EnchantingTableBlock` 的同名重写）
+     *
+     * 原版这个方块的重写返回 true，光照引擎据此按实际形状做面遮挡，而不是当作整格挡光。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
     }
 
 private:

@@ -128,13 +128,14 @@ void registerBambooBlocks()
     BambooBlocks::BAMBOO_MOSAIC_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:bamboo_mosaic_stairs"),
             BambooBlocks::BAMBOO_MOSAIC->defaultState(),
+            // 原版 registerLegacyStair(名字, 基材) 只继承基材的默认状态，不调用 noOcclusion()，
+            // 因此 bamboo_mosaic_stairs 的 canOcclude 为 true（与所有木质楼梯一致）。
             BlockProperties(Material::WOOD)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
                 .flammable()
-                .ignitedByLava()
-                .noOcclusion());
+                .ignitedByLava());
 
     // ============================================================================
     // 竹木台阶

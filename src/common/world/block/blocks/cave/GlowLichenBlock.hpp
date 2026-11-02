@@ -67,6 +67,19 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
+    /**
+     * @brief 天空光直通判定（对齐 vanilla GlowLichenBlock#propagatesSkylightDown）
+     *
+     * vanilla 只判 `state.getFluidState().isEmpty()`，完全不看形状（父类默认公式里的
+     * 「形状是否整格」这一条被这个重写整体覆盖）：无水 → true（lightBlock=0），
+     * waterlogged → false（lightBlock=1）。
+     *
+     * 早期没有这个重写，走默认公式（形状非整格 → true），于是 waterlogged 状态被
+     * 算成零衰减，水下发光地衣所在的格子比原版少衰减了一级天空光。
+     */
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());

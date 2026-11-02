@@ -184,7 +184,7 @@ void registerDeepslateBlocks()
                 .hardness(55.0f)
                 .resistance(1200.0f)
                 .soundType(BlockSoundTypes::DEEPSLATE)
-                .noOcclusion()
+
                 .noLootTable());
 
     // ========== 深板岩矿石变种 ==========

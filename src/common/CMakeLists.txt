@@ -881,6 +881,7 @@ add_library(mc_common STATIC
 
     # World - Block - Building
     world/block/blocks/building/StairsBlock.cpp
+    world/block/blocks/building/TintedGlassBlock.cpp
     world/block/blocks/building/SlabBlock.cpp
     world/block/blocks/building/WallBlock.cpp
     world/block/blocks/building/FenceBlock.cpp
@@ -1049,7 +1050,9 @@ add_library(mc_common STATIC
     world/block/blocks/nether/SoulSandBlock.cpp
     world/block/blocks/nether/NyliumBlock.cpp
     world/block/blocks/nether/TwistingVinesBlock.cpp
+    world/block/blocks/nether/TwistingVinesPlantBlock.cpp
     world/block/blocks/nether/WeepingVinesBlock.cpp
+    world/block/blocks/nether/WeepingVinesPlantBlock.cpp
 
     # World - Block - End
     world/block/blocks/end/EndPortalBlock.cpp

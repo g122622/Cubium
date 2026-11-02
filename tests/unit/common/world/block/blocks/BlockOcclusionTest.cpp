@@ -141,11 +141,13 @@ TEST_F(BlockOcclusionTest, IceAttenuatesLightByOne)
 
 TEST_F(BlockOcclusionTest, GlassAttenuatesLightLikeVanilla)
 {
-    // vanilla glass 注册 noOcclusion() 且未重写 getLightBlock：遮挡形状为完整立方体 →
-    // propagatesSkylightDown=false → lightBlock=1（衰减 1 级天空光）。
+    // 原版 glass 是 TransparentBlock，重写了 propagatesSkylightDown 返回 true，
+    // 因此 lightBlock = 0（天空光无衰减直通）。早期实现只注册了 noOcclusion()，
+    // 让遮挡形状（完整立方体）把天空光挡成 1 级——实测原版 1.21.11 为 0。
     ASSERT_NE(VanillaBlocks::GLASS, nullptr);
     const BlockState& state = VanillaBlocks::GLASS->defaultState();
     EXPECT_FALSE(state.canOcclude());
     EXPECT_FALSE(state.isSolidRender());
-    EXPECT_EQ(state.getOpacity(), 1);
+    EXPECT_TRUE(state.propagatesSkylightDown());
+    EXPECT_EQ(state.getOpacity(), 0);
 }

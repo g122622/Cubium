@@ -290,6 +290,8 @@ void registerCopperBlocks()
                                            .harvestTool(HarvestTool::Pickaxe)
                                            .requiresTool()
                                            .notSolid()
+                                           .noOcclusion()
+                                           .propagatesSkylightDown()
                                            .soundType(BlockSoundTypes::COPPER_GRATE);
 
     // 铜灯属性: Material::IRON, 硬度3.0, 抗爆6.0
@@ -759,8 +761,12 @@ void registerCopperBlocks()
     // ============================================================================
     // 1.21 铜扩展：铜栏杆（8个）
     // ============================================================================
-    auto copperBarsProps =
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().soundType(BlockSoundTypes::COPPER);
+    auto copperBarsProps = BlockProperties(Material::IRON)
+                               .hardness(5.0f)
+                               .resistance(5.0f)
+                               .notSolid()
+                               .noOcclusion()
+                               .soundType(BlockSoundTypes::COPPER);
 
     auto* copperBars = &registry.registerBlock<blocks::WeatheringCopperBarsBlock>(
         ResourceLocation("minecraft:copper_bars"), copperBarsProps, BlockStateProperties::OxidationLevel::Unaffected);
@@ -806,8 +812,12 @@ void registerCopperBlocks()
     // ============================================================================
     // 1.21 铜扩展：铜链（8个）
     // ============================================================================
-    auto copperChainProps =
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid().soundType(BlockSoundTypes::CHAIN);
+    auto copperChainProps = BlockProperties(Material::IRON)
+                                .hardness(5.0f)
+                                .resistance(5.0f)
+                                .notSolid()
+                                .noOcclusion()
+                                .soundType(BlockSoundTypes::CHAIN);
 
     auto* copperChain = &registry.registerBlock<blocks::WeatheringCopperChainBlock>(
         ResourceLocation("minecraft:copper_chain"), copperChainProps, BlockStateProperties::OxidationLevel::Unaffected);
@@ -853,8 +863,12 @@ void registerCopperBlocks()
     // ============================================================================
     // 1.21 铜扩展：铜灯笼（8个）
     // ============================================================================
-    auto copperLanternProps =
-        BlockProperties(Material::IRON).hardness(3.5f).resistance(3.5f).notSolid().soundType(BlockSoundTypes::LANTERN);
+    auto copperLanternProps = BlockProperties(Material::IRON)
+                                  .hardness(3.5f)
+                                  .resistance(3.5f)
+                                  .notSolid()
+                                  .noOcclusion()
+                                  .soundType(BlockSoundTypes::LANTERN);
 
     auto* copperLantern =
         &registry.registerBlock<blocks::WeatheringCopperLanternBlock>(ResourceLocation("minecraft:copper_lantern"),
@@ -932,6 +946,7 @@ void registerCopperBlocks()
                                             .harvestTool(HarvestTool::Pickaxe)
                                             .requiresTool()
                                             .notSolid()
+                                            .noOcclusion()
                                             .soundType(BlockSoundTypes::COPPER);
 
     // 基础避雷针（未氧化，不参与氧化链 - MC 原版 LIGHTNING_ROD 是普通 LightningRodBlock）
@@ -1116,13 +1131,9 @@ void registerCopperBlocks()
     // 铜箱子基础属性：与普通箱子一致（WOOD 材质，硬度 2.5，可燃），但使用铜的声音类型
     BlockProperties copperChestProps =
         // 铜箱：3 / 6（与铜块一致），不是木头箱子的 2.5。
-        // vanilla 铜箱子注册 noOcclusion()
-        BlockProperties(Material::WOOD)
-            .hardness(3.0f)
-            .resistance(6.0f)
-            .notSolid()
-            .noOcclusion()
-            .soundType(BlockSoundTypes::COPPER);
+        // 原版铜箱子只注册 mapColor/strength/sound/requiresCorrectToolForDrops，
+        // 没有 noOcclusion()——canOcclude 保持默认 true（与木头箱子一致）。
+        BlockProperties(Material::WOOD).hardness(3.0f).resistance(6.0f).notSolid().soundType(BlockSoundTypes::COPPER);
 
     // 开合音效按氧化等级映射（与 MC Java 1.21.11 一致）：
     // - Unaffected/Exposed + 涂蜡变体 -> block.copper_chest.open/close

@@ -71,15 +71,6 @@ MovingPistonBlock::MovingPistonBlock(const BlockProperties& properties)
             .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal));
 }
 
-const CollisionShape& MovingPistonBlock::getShape(const BlockState& state) const
-{
-    // 对齐原版：移动中的活塞没有稳定的静态形状，恒为空。
-    // 具体渲染什么取决于相邻方块实体记录的运动进度。
-    (void)state;
-    static const CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
-}
-
 // ============================================================================
 // Block 接口实现
 // ============================================================================
@@ -132,6 +123,14 @@ const EnumProperty<PistonHeadBlock::Type>& MovingPistonBlock::_getTypeProperty()
 {
     // 返回 PistonHeadBlock 的 TYPE_PROP
     return PistonHeadBlock::getTypeProperty();
+}
+
+const CollisionShape& MovingPistonBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // vanilla MovingPistonBlock#getShape：return Shapes.empty();
+    static const CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
 }
 
 } // namespace blocks

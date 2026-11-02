@@ -36,6 +36,10 @@ class IWorld;
 class BlockPos;
 class BlockState;
 
+namespace fluid {
+class FluidState;
+}
+
 namespace blocks {
 
 /**
@@ -67,6 +71,16 @@ public:
      * @brief 检查是否含水
      */
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const;
+
+    /**
+     * @brief 流体状态（对齐 vanilla `ConduitBlock#getFluidState`）
+     *
+     * vanilla：`WATERLOGGED ? Fluids.WATER.getSource(false) : super.getFluidState(state)`。
+     * 含水时返回水源，既参与放置检查，也决定 propagatesSkylightDown：含流体的方块即使
+     * 形状不完整也不透传天空光，lightBlock=1。早期缺少这个重写，含水潮涌核心被算成
+     * 天空光直通格（lightBlock=0）。
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
     /**
      * @brief 创建方块实体

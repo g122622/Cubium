@@ -122,6 +122,11 @@ void BlockState::refreshLightCache()
 {
     m_opacity = m_owner->getOpacity(*this, nullptr, nullptr);
     m_propagatesSkylightDown = m_owner->propagatesSkylightDown(*this, nullptr, nullptr);
+    // useShapeForLightOcclusion 与另外两个一样是虚函数结果，必须在方块构造完成后再取一次：
+    // 状态构造期（StateContainer 建表）里取到的是基类默认值 false，子类重写要等到方块对象
+    // 完全构造之后才生效。早期这里漏了这一行，凡是在子类里重写该方法做形状遮挡的方块
+    // （土径、耕地、讲台、切石机等）运行时都退回成了默认值。
+    m_useShapeForLightOcclusion = m_owner->useShapeForLightOcclusion(*this);
 }
 
 bool BlockState::isSolidRender() const

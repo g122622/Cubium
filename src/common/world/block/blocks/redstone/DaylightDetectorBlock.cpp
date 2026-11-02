@@ -27,6 +27,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -73,15 +74,6 @@ DaylightDetectorBlock::DaylightDetectorBlock(const BlockProperties& properties)
     // 设置默认状态
     setDefaultState(
         defaultState().with(BlockStateProperties::POWER_0_15(), 0).with(BlockStateProperties::INVERTED(), false));
-}
-
-const CollisionShape& DaylightDetectorBlock::getShape(const BlockState& state) const
-{
-    // 对齐原版 `Block.column(16.0, 0.0, 6.0)`：x/z 满宽，y 只有 0 ~ 6/16 高。
-    // 形状与 POWER / INVERTED 状态无关。
-    (void)state;
-    static const CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 6.0f / 16.0f, 1.0f);
-    return shape;
 }
 
 i32 DaylightDetectorBlock::getPower(const BlockState& state)
@@ -249,6 +241,14 @@ void DaylightDetectorBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos)
             neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
         }
     }
+}
+
+const CollisionShape& DaylightDetectorBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // vanilla DaylightDetectorBlock：SHAPE = Block.column(16.0, 0.0, 6.0)。
+    static const CollisionShape shape = CollisionShape::fromPixelBox(0, 0, 0, 16, 6, 16);
+    return shape;
 }
 
 } // namespace blocks

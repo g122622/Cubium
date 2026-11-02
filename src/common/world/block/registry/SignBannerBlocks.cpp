@@ -331,6 +331,7 @@ void registerSignBannerBlocks()
                                       .hardness(1.0f)
                                       .resistance(1.0f)
                                       .notSolid()
+                                      .noOcclusion()
                                       .soundType(BlockSoundTypes::WOOD)
                                       .ignitedByLava();
 

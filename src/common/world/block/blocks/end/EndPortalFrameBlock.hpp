@@ -104,6 +104,17 @@ public:
      */
     [[nodiscard]] static std::unique_ptr<blockpattern::BlockPattern> getOrCreatePortalShape();
 
+    /**
+     * @brief 使用形状进行光照遮挡（对齐原版 `EndPortalFrameBlock` 的同名重写）
+     *
+     * 原版这个方块的重写返回 true，光照引擎据此按实际形状做面遮挡，而不是当作整格挡光。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
 private:
     CollisionShape m_frameShape;
     CollisionShape m_frameWithEyeShape;

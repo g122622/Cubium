@@ -76,6 +76,7 @@ void registerTrialBlocks()
             .harvestLevel(2)
             .requiresTool()
             .soundType(BlockSoundTypes::VAULT)
+            .noOcclusion()
             // 宝库自带 6 级光照（原版注册值）。
             .lightLevel(6)
             .notSolid());
@@ -88,8 +89,7 @@ void registerTrialBlocks()
             .resistance(3.5f)
             .harvestTool(HarvestTool::Pickaxe)
             .requiresTool()
-            .soundType(BlockSoundTypes::STONE)
-            .noOcclusion());
+            .soundType(BlockSoundTypes::STONE));
 
     // 重质核心 - 重质盾牌的核心材料，支持含水
     // 材质为铁，硬度10，抗爆1200，碰撞箱为小型柱状

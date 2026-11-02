@@ -59,6 +59,15 @@ public:
 
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
+    /**
+     * @brief 细杆形状（对齐 vanilla RodBlock#getShape）
+     *
+     * vanilla：`Shapes.rotateAllAxis(Block.cube(4.0, 4.0, 16.0))`，按 FACING 所在轴取形状——
+     * 横截面固定 4×4 像素、沿轴方向贯穿整格。不是整格，所以天空光可穿过（lightBlock=0）。
+     * 早期实现没有重写 getShape，退回整格立方体，导致末地烛被误判为完全挡光。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 };

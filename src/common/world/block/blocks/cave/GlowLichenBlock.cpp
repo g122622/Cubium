@@ -166,6 +166,15 @@ const fluid::FluidState* GlowLichenBlock::getFluidState(const BlockState& state)
     return waterloggable::getWaterFluidState(state);
 }
 
+bool GlowLichenBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 对齐 vanilla GlowLichenBlock#propagatesSkylightDown：只看有没有流体，不看形状。
+    const fluid::FluidState* fluidState = getFluidState(state);
+    return fluidState == nullptr || fluidState->isEmpty();
+}
+
 u8 GlowLichenBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
     MC_UNUSED(world);
