@@ -18,7 +18,8 @@
 | 修复 `moving_piston` / `azalea` 系列 | 249 |
 | 补全 `CombineOp::AND` / `NOT`，对齐 3 个炼药锅类 | 189 |
 | 旗帜补 `noCollision()`（支撑形状应为空）| 141 |
-| 悬挂告示牌补 `getBlockSupportShape` 覆写 + 修正形状 | **129** |
+| 悬挂告示牌补 `getBlockSupportShape` 覆写 + 修正形状 | 129 |
+| 蜡烛补 `withCollision()`（支撑形状应非空）| **95** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -513,6 +514,67 @@ import net.minecraft.world.level.block.state.properties.SupportType;   // ✗ �
 
 `SupportType` 在 `block` 包下，**不在** `state.properties` 下——与大部分 `EnumProperty` 的枚举不同。
 
+## 蜡烛系列：32 处已收敛（129 → 95）
+
+### 现象
+
+`candle` / `candle_cake` 各 16 处，全部是 `DOWN|CENTER`：**原版 true、Cubium false**。
+
+### 排查
+
+第一步实测原版蜡烛的支撑形状：
+
+```
+support bounds = AABB[0.4375, 0.0, 0.4375] -> [0.5625, 0.375, 0.5625]
+shape bounds   = AABB[0.4375, 0.0, 0.4375] -> [0.5625, 0.375, 0.5625]
+```
+
+**支撑形状非空**，而且 x/z 范围 `0.4375..0.5625` 与 `CENTER_SUPPORT_SHAPE`
+（`column(2.0, 0.0, 10.0)` → `box(7,0,7,9,10,9)` = `0.4375..0.5625`）**完全吻合**。
+所以 `DOWN|CENTER` 判 true 是正确的。
+
+Cubium 的蜡烛形状本身是对的：
+
+```cpp
+m_shapesByCount[0] = CollisionShape::fromPixelBox(7.0f, 0.0f, 7.0f, 9.0f, 6.0f, 9.0f);
+```
+
+### 根因：`Material::DECORATION.solid(false)` 让碰撞被关掉
+
+Cubium 的 `BlockProperties` 用 **Material 的 `blocksMovement`** 初始化 `m_hasCollision`：
+
+```cpp
+m_hasCollision(material.blocksMovement())
+```
+
+而 `makeDecorationMaterial()` 是 `.solid(false)`，于是 `m_hasCollision = false`，
+`getCollisionShape` 走 `!m_hasCollision → VoxelShapes::empty()`，
+支撑形状因此为空。
+
+**这是架构差异**：原版 `hasCollision` 是独立的方块属性（默认 true，用 `.noCollision()`
+关闭）；Cubium 从 Material 的 `solid` 派生。
+
+### 弯路：先删了 `noCollision()`，没用
+
+第一次尝试是删掉 `CandleBlocks.cpp` 里的 `.noCollision()`。结果差异从 32 **升到 34**——
+因为 `DECORATION` 的 `solid(false)` 已经让 `m_hasCollision` 为 false，显式删不删都无所谓。
+
+### 正确修复：显式 `withCollision()`
+
+```cpp
+BlockProperties(Material::DECORATION).withCollision()
+BlockProperties(Material::CAKE).withCollision()
+```
+
+`withCollision()` 是本次会话早先为 `dried_kelp_block` / `azalea` 新增的，
+用来在 Material 派生之外**显式打开**碰撞。
+
+蜡烛本体用 `Material::DECORATION`（17 处）、蜡烛蛋糕用 `Material::CAKE`（17 处），
+两类分别补上后 **32 处差异全部消除**。
+
+> **教训**：Cubium 的 `m_hasCollision` 有两个来源——Material 派生与显式 `withCollision()`/
+> `noCollision()`。判断某个方块应当有/无碰撞时，必须同时看 Material 的 `solid` 与显式设置，
+> 只看一侧会得出错误结论。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

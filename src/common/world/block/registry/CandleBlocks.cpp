@@ -87,7 +87,7 @@ void registerCandleBlocks()
 
     CandleBlocks::CANDLE = &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:candle"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .soundType(BlockSoundTypes::CANDLE)
             .hardness(0.1f)
@@ -96,7 +96,7 @@ void registerCandleBlocks()
     CandleBlocks::WHITE_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:white_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -105,7 +105,7 @@ void registerCandleBlocks()
     CandleBlocks::ORANGE_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:orange_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -114,7 +114,7 @@ void registerCandleBlocks()
     CandleBlocks::MAGENTA_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:magenta_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -123,7 +123,7 @@ void registerCandleBlocks()
     CandleBlocks::LIGHT_BLUE_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:light_blue_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -132,7 +132,7 @@ void registerCandleBlocks()
     CandleBlocks::YELLOW_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:yellow_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -140,7 +140,7 @@ void registerCandleBlocks()
 
     CandleBlocks::LIME_CANDLE = &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:lime_candle"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .soundType(BlockSoundTypes::CANDLE)
             .hardness(0.1f)
@@ -148,7 +148,7 @@ void registerCandleBlocks()
 
     CandleBlocks::PINK_CANDLE = &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:pink_candle"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .soundType(BlockSoundTypes::CANDLE)
             .hardness(0.1f)
@@ -156,7 +156,7 @@ void registerCandleBlocks()
 
     CandleBlocks::GRAY_CANDLE = &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:gray_candle"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .soundType(BlockSoundTypes::CANDLE)
             .hardness(0.1f)
@@ -165,7 +165,7 @@ void registerCandleBlocks()
     CandleBlocks::LIGHT_GRAY_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:light_gray_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -173,7 +173,7 @@ void registerCandleBlocks()
 
     CandleBlocks::CYAN_CANDLE = &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:cyan_candle"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .soundType(BlockSoundTypes::CANDLE)
             .hardness(0.1f)
@@ -182,7 +182,7 @@ void registerCandleBlocks()
     CandleBlocks::PURPLE_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:purple_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -190,7 +190,7 @@ void registerCandleBlocks()
 
     CandleBlocks::BLUE_CANDLE = &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:blue_candle"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .soundType(BlockSoundTypes::CANDLE)
             .hardness(0.1f)
@@ -199,7 +199,7 @@ void registerCandleBlocks()
     CandleBlocks::BROWN_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:brown_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -208,7 +208,7 @@ void registerCandleBlocks()
     CandleBlocks::GREEN_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:green_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -216,7 +216,7 @@ void registerCandleBlocks()
 
     CandleBlocks::RED_CANDLE = &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:red_candle"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .soundType(BlockSoundTypes::CANDLE)
             .hardness(0.1f)
@@ -225,7 +225,7 @@ void registerCandleBlocks()
     CandleBlocks::BLACK_CANDLE =
         &registry.registerBlock<blocks::CandleBlock>(ResourceLocation("minecraft:black_candle"),
             BlockProperties(Material::DECORATION)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::CANDLE)
                 .hardness(0.1f)
@@ -236,90 +236,175 @@ void registerCandleBlocks()
     // CandleCakeBlock构造函数第二个参数为关联的蜡烛方块
     // ============================================================================
 
-    CandleBlocks::CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::CANDLE);
+    CandleBlocks::CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::CANDLE);
 
-    CandleBlocks::WHITE_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:white_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::WHITE_CANDLE);
+    CandleBlocks::WHITE_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:white_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::WHITE_CANDLE);
 
-    CandleBlocks::ORANGE_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:orange_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::ORANGE_CANDLE);
+    CandleBlocks::ORANGE_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:orange_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::ORANGE_CANDLE);
 
-    CandleBlocks::MAGENTA_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:magenta_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::MAGENTA_CANDLE);
+    CandleBlocks::MAGENTA_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:magenta_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::MAGENTA_CANDLE);
 
-    CandleBlocks::LIGHT_BLUE_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:light_blue_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::LIGHT_BLUE_CANDLE);
+    CandleBlocks::LIGHT_BLUE_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:light_blue_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::LIGHT_BLUE_CANDLE);
 
-    CandleBlocks::YELLOW_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:yellow_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::YELLOW_CANDLE);
+    CandleBlocks::YELLOW_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:yellow_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::YELLOW_CANDLE);
 
-    CandleBlocks::LIME_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:lime_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::LIME_CANDLE);
+    CandleBlocks::LIME_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:lime_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::LIME_CANDLE);
 
-    CandleBlocks::PINK_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:pink_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::PINK_CANDLE);
+    CandleBlocks::PINK_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:pink_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::PINK_CANDLE);
 
-    CandleBlocks::GRAY_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:gray_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::GRAY_CANDLE);
+    CandleBlocks::GRAY_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:gray_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::GRAY_CANDLE);
 
-    CandleBlocks::LIGHT_GRAY_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:light_gray_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::LIGHT_GRAY_CANDLE);
+    CandleBlocks::LIGHT_GRAY_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:light_gray_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::LIGHT_GRAY_CANDLE);
 
-    CandleBlocks::CYAN_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:cyan_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::CYAN_CANDLE);
+    CandleBlocks::CYAN_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:cyan_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::CYAN_CANDLE);
 
-    CandleBlocks::PURPLE_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:purple_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::PURPLE_CANDLE);
+    CandleBlocks::PURPLE_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:purple_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::PURPLE_CANDLE);
 
-    CandleBlocks::BLUE_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:blue_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::BLUE_CANDLE);
+    CandleBlocks::BLUE_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:blue_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::BLUE_CANDLE);
 
-    CandleBlocks::BROWN_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:brown_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::BROWN_CANDLE);
+    CandleBlocks::BROWN_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:brown_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::BROWN_CANDLE);
 
-    CandleBlocks::GREEN_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:green_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::GREEN_CANDLE);
+    CandleBlocks::GREEN_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:green_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::GREEN_CANDLE);
 
-    CandleBlocks::RED_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:red_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::RED_CANDLE);
+    CandleBlocks::RED_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:red_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::RED_CANDLE);
 
-    CandleBlocks::BLACK_CANDLE_CAKE = &registry.registerBlock<blocks::CandleCakeBlock>(
-        ResourceLocation("minecraft:black_candle_cake"),
-        BlockProperties(Material::CAKE).notSolid().soundType(BlockSoundTypes::CLOTH).hardness(0.5f).resistance(0.5f),
-        CandleBlocks::BLACK_CANDLE);
+    CandleBlocks::BLACK_CANDLE_CAKE =
+        &registry.registerBlock<blocks::CandleCakeBlock>(ResourceLocation("minecraft:black_candle_cake"),
+            BlockProperties(Material::CAKE)
+                .withCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CLOTH)
+                .hardness(0.5f)
+                .resistance(0.5f),
+            CandleBlocks::BLACK_CANDLE);
 }
 
 } // namespace block_registry
