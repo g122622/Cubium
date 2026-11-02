@@ -183,6 +183,7 @@ import { blockStateEnumStrings3Input } from "./block_state_enum_strings_3.ts";
 import { booleanPropertyIndexInput } from "./boolean_property_index.ts";
 import { enumPropertyOrderInput } from "./enum_property_order.ts";
 import { enumPropertyOrderAllInput } from "./enum_property_order_all.ts";
+import { faceSturdyInput } from "./face_sturdy.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1179,6 +1180,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 全部 40 个枚举属性的值顺序（enum_property_order 的扩展版）。
     { name: "enum_property_order_all", probe: "enum_property_order_all", oracle: "EnumPropertyOrderAllOracle",
         key: "unit", units: { kind: "listing" }, input: enumPropertyOrderAllInput },
+    // 面朝支撑判定：所有附着型方块存活判定的公共底层。
+    { name: "face_sturdy", probe: "face_sturdy", oracle: "FaceSturdyOracle",
+        key: "unit", units: { kind: "listing" }, input: faceSturdyInput },
+
 
 
 
