@@ -37,8 +37,9 @@ namespace blocks {
 EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 传送门没有碰撞箱
-    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.75f, 1.0f);
+    // 原版末地传送门形状：box(0, 0.375, 0 -> 1, 0.75, 1)，
+    // 即一块悬在方块中部的薄层（Y 6/16..12/16），而非从底部起始。
+    m_shape = CollisionShape::box(0.0f, 0.375f, 0.0f, 1.0f, 0.75f, 1.0f);
 }
 
 void EndPortalBlock::onEntityCollision(

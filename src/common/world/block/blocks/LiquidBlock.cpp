@@ -96,6 +96,14 @@ const mc::fluid::FluidState* LiquidBlock::getFluidState(const BlockState& state)
     return &m_fluidStateCache[blockLevel];
 }
 
+const CollisionShape& LiquidBlock::getShape(const BlockState& state) const
+{
+    // 原版流体的初始形状是空（Shapes.empty()），实测 water / lava 的 getShape 均为空。
+    // 基类默认返回满方块，会让流体的选中框覆盖整个方块，与流体的实际渲染不符。
+    (void)state;
+    return VoxelShapes::empty();
+}
+
 const CollisionShape& LiquidBlock::getCollisionShape(const BlockState& state) const
 {
     // 液体方块没有碰撞形状

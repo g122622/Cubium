@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
@@ -166,6 +168,13 @@ private:
     CollisionShape m_southShape;
     CollisionShape m_eastShape;
     CollisionShape m_westShape;
+
+    /// 按方向属性组合预计算的形状表。
+    ///
+    /// 5 个布尔属性（north/south/east/west/up）共 32 种组合，索引位序为
+    /// `north<<0 | south<<1 | east<<2 | west<<3 | up<<4`。索引 0 表示全部为 false，
+    /// 按原版行为填入满方块。
+    std::array<CollisionShape, 32> m_shapesByDirections;
 };
 
 } // namespace blocks
