@@ -250,8 +250,9 @@ const BlockState& CoralFanBlock::mirror(const BlockState& state, Mirror mirror) 
 const CollisionShape& CoralFanBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // 珊瑚扇是薄层
-    static CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    // 原版地面珊瑚扇：box(0.125, 0, 0.125 -> 0.875, 0.25, 0.875)，即 column(12, 0, 4)——
+    // 宽 12 像素居中、高 4 像素。此前写成整格宽、1 像素厚，面积和厚度都不对。
+    static CollisionShape shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.25f, 0.875f);
     return shape;
 }
 
@@ -398,19 +399,21 @@ const CollisionShape& CoralWallFanBlock::getShape(const BlockState& state) const
     // 根据朝向返回不同形状
     switch (facing) {
         case Direction::North: {
-            static CollisionShape northShape = CollisionShape::box(0.0f, 0.0f, 0.9375f, 1.0f, 1.0f, 1.0f);
+            // 原版各朝向墙扇：占据靠墙侧的 11/16 深度，Y 居中（0.25..0.75）。
+            // 北向: box(0, 0.25, 0.3125 -> 1, 0.75, 1)
+            static CollisionShape northShape = CollisionShape::box(0.0f, 0.25f, 0.3125f, 1.0f, 0.75f, 1.0f);
             return northShape;
         }
         case Direction::South: {
-            static CollisionShape southShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0625f);
+            static CollisionShape southShape = CollisionShape::box(0.0f, 0.25f, 0.0f, 1.0f, 0.75f, 0.6875f);
             return southShape;
         }
         case Direction::East: {
-            static CollisionShape eastShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.0625f, 1.0f, 1.0f);
+            static CollisionShape eastShape = CollisionShape::box(0.0f, 0.25f, 0.0f, 0.6875f, 0.75f, 1.0f);
             return eastShape;
         }
         case Direction::West: {
-            static CollisionShape westShape = CollisionShape::box(0.9375f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+            static CollisionShape westShape = CollisionShape::box(0.3125f, 0.25f, 0.0f, 1.0f, 0.75f, 1.0f);
             return westShape;
         }
         default: {
