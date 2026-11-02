@@ -111,6 +111,11 @@ CollisionShape BlockState::getBlockSupportShapeAt(const BlockPos& pos) const
     return m_owner->getBlockSupportShapeAt(*this, pos);
 }
 
+bool BlockState::isCollisionShapePositionDependent() const noexcept
+{
+    return m_owner->isCollisionShapePositionDependent();
+}
+
 bool BlockState::isRandomlyTicking() const
 {
     // 对齐 vanilla BlockBehaviour.BlockStateBase#isRandomlyTicking：带状态的判断，

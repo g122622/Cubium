@@ -164,14 +164,30 @@ const CollisionShape& BigDripleafBlock::getShape(const BlockState& state) const
 
 std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
 {
-    // 叶片薄层（按 tilt 顺序：None/Unstable/Partial/Full），对齐 SHAPE_LEAF。
-    const CollisionShape leafNone = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 15.0f, 16.0f);
-    const CollisionShape leafPartial = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 13.0f, 16.0f);
+    // 原版大垂滴叶（北向、tilt=none）实测为 **5 个盒子**：
+    //
+    //   [0.3125, 0.0000, 0.5625 -> 0.6875, 0.9375, 0.9375]   茎（x 5..11，z 9..15）
+    //   [0.0000, 0.6875, 0.0000 -> 0.3125, 0.9375, 1.0000]   叶·西
+    //   [0.3125, 0.6875, 0.0000 -> 1.0000, 0.9375, 0.5625]   叶·南
+    //   [0.3125, 0.6875, 0.9375 -> 1.0000, 0.9375, 1.0000]   叶·东
+    //   [0.6875, 0.6875, 0.5625 -> 1.0000, 0.9375, 0.9375]   叶·北
+    //
+    // 要点：
+    //   * 茎在 x 5..11、z 9..15——**在 Z 方向偏南**，不是居中；
+    //   * 叶片只覆盖 y 0.6875..0.9375（11..15 像素）且**呈十字形**，四角是空的。
+    // 此前按「整格薄片 + 居中茎」建模，两个轴的分布都不对。
+    const CollisionShape leafNone = CollisionShape::empty();
+    const CollisionShape leafPartial = CollisionShape::empty();
     const CollisionShape leafFull = VoxelShapes::empty();
-    const std::array<CollisionShape, 4> leafByTilt = {leafNone, leafNone, leafPartial, leafFull};
+    MC_UNUSED(leafNone);
+    MC_UNUSED(leafPartial);
+    const std::array<CollisionShape, 4> leafByTilt = {leafFull, leafFull, leafFull, leafFull};
 
-    // 茎连接基础形状（NORTH）：x∈[0,6], z∈[4,10], y∈[0,13] 像素。
-    const CollisionShape stemNorth = CollisionShape::fromPixelBox(0.0f, 0.0f, 4.0f, 6.0f, 13.0f, 10.0f);
+    const CollisionShape stemNorth = CollisionShape::box(0.3125f, 0.0f, 0.5625f, 0.6875f, 0.9375f, 0.9375f);
+    const CollisionShape bladeWest = CollisionShape::box(0.0f, 0.6875f, 0.0f, 0.3125f, 0.9375f, 1.0f);
+    const CollisionShape bladeSouth = CollisionShape::box(0.3125f, 0.6875f, 0.0f, 1.0f, 0.9375f, 0.5625f);
+    const CollisionShape bladeEast = CollisionShape::box(0.3125f, 0.6875f, 0.9375f, 1.0f, 0.9375f, 1.0f);
+    const CollisionShape bladeNorth = CollisionShape::box(0.6875f, 0.6875f, 0.5625f, 1.0f, 0.9375f, 0.9375f);
 
     // 按水平方向旋转（对齐 Shapes.rotateHorizontal）：NORTH=原形，EAST/SOUTH/WEST 依次绕 Y 转 90/180/270°。
     std::array<CollisionShape, 6> stemByFacing{};
@@ -180,11 +196,24 @@ std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
     stemByFacing[static_cast<std::size_t>(Direction::East)] = _rotateShapeY(stemNorth, Rotation::Clockwise90);
     stemByFacing[static_cast<std::size_t>(Direction::West)] = _rotateShapeY(stemNorth, Rotation::CounterClockwise90);
 
+    std::array<CollisionShape, 6> bladesByFacing{};
+    bladesByFacing[static_cast<std::size_t>(Direction::North)] =
+        CollisionShape::combine(CollisionShape::combine(bladeWest, bladeSouth, CollisionShape::CombineOp::OR),
+            CollisionShape::combine(bladeEast, bladeNorth, CollisionShape::CombineOp::OR),
+            CollisionShape::CombineOp::OR);
+    bladesByFacing[static_cast<std::size_t>(Direction::South)] =
+        _rotateShapeY(bladesByFacing[static_cast<std::size_t>(Direction::North)], Rotation::Clockwise180);
+    bladesByFacing[static_cast<std::size_t>(Direction::East)] =
+        _rotateShapeY(bladesByFacing[static_cast<std::size_t>(Direction::North)], Rotation::Clockwise90);
+    bladesByFacing[static_cast<std::size_t>(Direction::West)] =
+        _rotateShapeY(bladesByFacing[static_cast<std::size_t>(Direction::North)], Rotation::CounterClockwise90);
+
     std::array<std::array<CollisionShape, 6>, 4> shapes{};
     for (std::size_t t = 0; t < 4; ++t) {
         for (const Direction dir : {Direction::North, Direction::South, Direction::West, Direction::East}) {
             const auto f = static_cast<std::size_t>(dir);
             shapes[t][f] = CollisionShape::combine(leafByTilt[t], stemByFacing[f], CollisionShape::CombineOp::OR);
+            shapes[t][f] = CollisionShape::combine(shapes[t][f], bladesByFacing[f], CollisionShape::CombineOp::OR);
         }
     }
     return shapes;

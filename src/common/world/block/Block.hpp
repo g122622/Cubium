@@ -1824,6 +1824,21 @@ public:
     }
 
     /**
+     * @brief 碰撞形状是否随方块位置变化。
+     *
+     * 绝大多数方块的碰撞形状与位置无关，`getCollisionShapeAt` 与 `getCollisionShape` 等价。
+     * 只有原版在 `getCollisionShape` 里叠加了位置偏移的方块才覆写本方法返回 `true`
+     * （目前是带 `offsetType` 且原版未另有碰撞形状的 `BambooBlock` 与 `PointedDripstoneBlock`）。
+     *
+     * 需要按位置查询碰撞形状的调用方（如差分探针）应据此选择 `getCollisionShapeAt` 或
+     * `getCollisionShape`，而不是无条件使用前者。
+     */
+    [[nodiscard]] virtual bool isCollisionShapePositionDependent() const noexcept
+    {
+        return false;
+    }
+
+    /**
      * @brief 水平偏移量上限。
      *
      * 偏移公式把它作为 clamp 的边界；个别方块会覆写（例如更高的作物）。
