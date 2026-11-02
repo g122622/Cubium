@@ -125,9 +125,12 @@ const CollisionShape& NetherWartBlock::getShape(const BlockState& state) const
 
 const CollisionShape& NetherWartBlock::getCollisionShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    static CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
+    // 对齐原版：NetherWartBlock **没有**覆写 getCollisionShape，碰撞形状等于 getShape。
+    //
+    // 此前返回空形状，会让 `Block::getBlockSupportShape`（默认转调 getCollisionShape）
+    // 也变成空，下界疣无法充当附着面。虽然本能力的默认状态用例恰好没暴露差异
+    // （下界疣形状极小，两种判定都落到 false），但语义是错的。
+    return getShape(state);
 }
 
 PlantType NetherWartBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const

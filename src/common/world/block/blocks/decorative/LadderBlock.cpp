@@ -234,10 +234,16 @@ const CollisionShape& LadderBlock::getShape(const BlockState& state) const
 
 const CollisionShape& LadderBlock::getCollisionShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    // 梯子没有碰撞箱
-    static CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
+    // 对齐原版：LadderBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape
+    // （贴着墙的薄板，厚 3/16）。
+    //
+    // 此前这里返回空形状，注释理由是「梯子没有碰撞箱」——**这是错的**：梯子的碰撞箱虽薄
+    // 但确实存在（玩家撞上去会被挡住，只是能贴着它攀爬）。
+    //
+    // 连带后果：`Block::getBlockSupportShape` 默认返回 `getCollisionShape`，于是梯子的
+    // 支撑形状也变成空，`isFaceSturdy` 对梯子的任何面都判 false——梯子无法充当
+    // 火把、告示牌等的附着面。由差分能力 face_sturdy 查出。
+    return getShape(state);
 }
 
 // ========== IWaterLoggable 接口实现 ==========

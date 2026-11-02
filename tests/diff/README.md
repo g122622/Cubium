@@ -491,7 +491,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `boolean_property_index` | 原版 jar `BooleanPropertyIndexOracle` | 50 个布尔属性 × 7 单元 | 250 处差异（**已溯源，判定无害**）| Cubium 的 `allowedValues()` 是 `{false,true}`，原版是 `[true,false]`；网络层按状态名映射，不泄漏 |
 | `enum_property_order` | 原版 jar `EnumPropertyOrderOracle` | FACING × 2 属性共 36 单元 | 全一致，**修复 2 处缺陷** | `FACING`/`HORIZONTAL_FACING` 值顺序错，调试棒行为与 Java 版不符 |
 | `enum_property_order_all` | 原版 jar `EnumPropertyOrderAllOracle` | 全部 40 个枚举属性 × 3 单元 | 全一致，**修复 3 处缺陷** | `SLAB_TYPE`/`VERTICAL_DIRECTION`/`SIDE_CHAIN_PART` 顺序错，调试棒循环方向相反 |
-| `face_sturdy` | 原版 jar `FaceSturdyOracle` | 1166 方块 × 6 方向 × 3 类型 = 20988 | **部分通过**：625 → 397 处差异，已修 3 处 | 已修 `LeavesBlock` 支撑形状、`HoneyBlock` 碰撞箱、`FenceGateBlock` 支撑形状；剩余主因是 `VoxelShape` 归一化缺口（19% 是 4 个缺失覆写）|
+| `face_sturdy` | 原版 jar `FaceSturdyOracle` | 1166 方块 × 6 方向 × 3 类型 = 20988 | **部分通过**：625 → 344 处差异，已修 6 处 | 已修 `LeavesBlock`/`CarpetBlock`/`LadderBlock`/`NetherWartBlock` 的支撑或碰撞形状、`HoneyBlock` 碰撞箱、`FenceGateBlock` 支撑形状 |
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505 个物品的燃料时长 | 全部一致 | 需服务端世界，独占组 `loot-world` |
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470 个配方的分页 | 全部一致 | 配方书分类页归属 |
 | `walk_path_type` | 原版 jar | — | — | 缺少文档，待补 |

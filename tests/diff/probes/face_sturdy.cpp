@@ -424,6 +424,7 @@ std::string runLine(std::string_view inputLine)
 
     static FaceWorld world;
     const BlockPos pos(0, 0, 0);
+
     const bool result = state->isFaceSturdy(world, pos, dir->value, support->accessor());
 
     return json{{"unit", unit}, {"value", result ? "true" : "false"}}.dump();
