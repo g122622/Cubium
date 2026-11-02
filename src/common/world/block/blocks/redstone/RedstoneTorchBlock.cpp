@@ -187,7 +187,9 @@ i32 RedstoneTorchBlock::getStrongPower(
 const CollisionShape& RedstoneTorchBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    static const CollisionShape torchShape = CollisionShape::fromPixelBox(7.0f, 0.0f, 7.0f, 9.0f, 10.0f, 9.0f);
+    // 原版红石火把 SHAPE = Block.column(4.0, 0.0, 10.0) -> box(6, 0, 6, 10, 10, 10)，
+    // 宽 4 像素（此前写成 7..9，只有 2 像素）。
+    static const CollisionShape torchShape = CollisionShape::fromPixelBox(6.0f, 0.0f, 6.0f, 10.0f, 10.0f, 10.0f);
     return torchShape;
 }
 

@@ -94,24 +94,22 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isS
 {
     // 初始化形状
     // 直轨形状：平坦的条状
-    m_shapes[static_cast<size_t>(RailShape::NorthSouth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::EastWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::NorthSouth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::EastWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
 
     // 斜轨形状：一端抬升
-    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::AscendingNorth)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::AscendingSouth)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
 
     // 弯轨形状
-    m_shapes[static_cast<size_t>(RailShape::SouthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::SouthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::NorthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::NorthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::SouthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::SouthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::NorthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::NorthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
 }
 
 BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
