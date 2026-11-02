@@ -510,6 +510,37 @@ Cubium 的 `getCollisionShape` 此前直接返回 `getShape`。已改为独立�
 
 这三处需要探针走 `getCollisionShapeAt`，但**不能全局启用**——上一轮的 218 处证明那样会
 破坏大量本来就不同的方块。可行的做法是让探针按方块逐类判断，而不是在公共层统一推导。
+## 床：腿数从 4 改成 2（16 处，差异数未变）
+
+原版：
+
+```java
+VoxelShape leg      = Block.box(0.0, 0.0, 0.0, 3.0, 3.0, 3.0);
+VoxelShape legRot90 = Shapes.rotate(leg, OctahedralGroup.BLOCK_ROT_Y_90);   // -> box(13,0,0,16,3,3)
+SHAPES = rotateHorizontal(Shapes.or(Block.column(16.0, 3.0, 9.0), leg, legRot90));
+```
+
+**只有两条腿**，位于对角。Cubium 此前画了四条（`legNW`/`legNE`/`legSW`/`legSE`），
+床底多出两块。
+
+已改为两条腿。
+
+### 但差异数没有变化，原因待查
+
+两种都试过了——「两条腿分成三个盒子」和「合并成单一 `box(0,0,0,1,0.5625,1)`」——
+`block_shape` 的差异数都保持 138，`_bed` 仍是 16 处。
+
+说明差异**不在形状数值**上。体素化后两者的覆盖应该相同，差异只能来自：
+
+- `describe` 遍历 `boxes()` 时的盒子集合不同；或
+- 原版 `VoxelShape` 的内部网格（`DiscreteVoxelShape` 的坐标细分）与
+  `CollisionShape` 的盒子列表在体素化时得到了不同结果。
+
+`TODO`：需要把探针收到的实际形状（盒子列表与各轴坐标）打印出来，与原版的
+`discreteVoxelShape` 逐格对比，才能定位。当前没有做这一步，因此**床的修复只有代码层面的
+依据（原版确实只有两条腿），尚未被差分验证**。
+
+> 这一点必须如实标注：**改了但没验证通过**，与「改了并验证通过」是两回事。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

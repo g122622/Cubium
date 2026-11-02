@@ -95,31 +95,23 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     // 主体形状 (高度9像素，从Y=3开始)
     CollisionShape baseShape = CollisionShape::box(0.0f, 3.0f * P, 0.0f, 16.0f * P, 9.0f * P, 16.0f * P);
 
-    // 床腿形状
-    CollisionShape legNW = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 3.0f * P, 3.0f * P);
-    CollisionShape legNE = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f * P, 3.0f * P, 3.0f * P);
-    CollisionShape legSW = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 3.0f * P, 3.0f * P, 16.0f * P);
-    CollisionShape legSE = CollisionShape::box(13.0f * P, 0.0f, 13.0f * P, 16.0f * P, 3.0f * P, 16.0f * P);
+    // 床腿：原版只有**两条**，位于对角。
+    //
+    //   leg      = Block.box(0, 0, 0, 3, 3, 3);
+    //   legRot90 = Shapes.rotate(leg, BLOCK_ROT_Y_90);   // -> box(13, 0, 0, 16, 3, 3)
+    //   SHAPES   = rotateHorizontal(Shapes.or(Block.column(16, 3, 9), leg, legRot90));
+    //
+    // 此前画了四条腿，床底多出两块。
+    const CollisionShape legNW = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 3.0f * P, 3.0f * P);
+    const CollisionShape legNE = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f * P, 3.0f * P, 3.0f * P);
+    const CollisionShape bedShape =
+        CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE);
 
-    // 北朝向形状 (头部在南)
-    m_shapesByFacing[static_cast<size_t>(Direction::North)] =
-        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
-            CollisionShape::combine(legSW, legSE));
-
-    // 南朝向形状 (头部在北)
-    m_shapesByFacing[static_cast<size_t>(Direction::South)] =
-        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
-            CollisionShape::combine(legSW, legSE));
-
-    // 西朝向形状 (头部在东)
-    m_shapesByFacing[static_cast<size_t>(Direction::West)] =
-        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
-            CollisionShape::combine(legSW, legSE));
-
-    // 东朝向形状 (头部在西)
-    m_shapesByFacing[static_cast<size_t>(Direction::East)] =
-        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE),
-            CollisionShape::combine(legSW, legSE));
+    // 四个朝向共用同一形状（原版 rotateHorizontal 后形状不变，因为整体绕 Y 轴旋转对称）
+    m_shapesByFacing[static_cast<size_t>(Direction::North)] = bedShape;
+    m_shapesByFacing[static_cast<size_t>(Direction::South)] = bedShape;
+    m_shapesByFacing[static_cast<size_t>(Direction::West)] = bedShape;
+    m_shapesByFacing[static_cast<size_t>(Direction::East)] = bedShape;
 }
 
 BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)
