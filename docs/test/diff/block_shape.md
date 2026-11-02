@@ -170,7 +170,48 @@ shape=<体素串>|collision=<体素串>|support=<体素串>
 `TODO`：按 collision / support 两类分批收敛。这批差异比 `face_sturdy` 剩余的 8 处更有价值——
 它们中的大多数在支撑判定里完全不可见，却直接影响碰撞与选中框。
 
-## 与其它能力的关系
+## 根因定位：`offsetFunction` 未实现（影响花类、竹类等多处方块）
+
+`allium` 在修好 `FlowerBlock` 形状后**仍然报差异**。解码体素串对比：
+
+```
+原版   : 0×17, 1, 0×6, ...       首个覆盖在索引 17
+Cubium : 0×85, 1, 0×6, ...       首个覆盖在索引 85
+```
+
+按 `y→z→x` 展开，索引 17 = `(x=1, y=0, z=1)`，索引 85 = `(x=5, y=0, z=5)`。
+即原版形状**从像素 (1,1) 开始**，Cubium 从 (5,5) 开始——整体偏移了 4 像素。
+
+原版实测：
+
+```
+allium       offsetFn=true  bounds=AABB[0.0625, 0.0, 0.0625] -> [0.4375, 0.625, 0.4375]
+poppy        offsetFn=true  bounds=AABB[0.0625, 0.0, 0.0625] -> [0.4375, 0.625, 0.4375]
+azure_bluet  offsetFn=true  bounds=AABB[0.0625, 0.0, 0.0625] -> [0.4375, 0.625, 0.4375]
+```
+
+`hasOffsetFunction() == true`：**所有花类都带 `offsetType`**。`FlowerBlock.SHAPE` 本身是
+`column(6.0, 0.0, 10.0)`（居中，`0.3125..0.6875`），但 `getShape` 里做了
+`voxelshape.move(getOffset(pos))`，在 `BlockPos.ZERO` 处偏移量为 `(-0.25, 0, -0.25)`。
+
+这解释了至少三类现象：
+
+| 现象 | 出处 |
+|---|---|
+| 花类 `0.0625..0.4375` vs `0.3125..0.6875` | 本能力（143 处「other」里的一大类）|
+| `bamboo` 的 `-0.25` 偏移 | `face_sturdy` 那一轮的未解之谜 |
+| `azalea` 等灌木的偏移 | `face_sturdy` 剩余差异 |
+
+Cubium 有 `BlockProperties::getOffsetType()`，但**没有 `BlockState::getOffset(pos)`，
+也没有把偏移应用到 `getShape`**。`TODO`：需要实现
+
+```cpp
+Vec3 BlockState::getOffset(const BlockPos& pos) const;   // 按 offsetType 与 pos 计算
+VoxelShape Block::getShape(...)                          // 叠加 getOffset(pos)
+```
+
+这是一处**系统性缺失**，一次性影响花、作物、竹子、灌木等大量方块的形状位置。修好它预计能
+清掉本能力剩余差异中的很大一部分，同时也能解决 `face_sturdy` 剩余的 `bamboo` 与 `azalea`。## 与其它能力的关系
 
 | 能力 | 关系 |
 |---|---|
