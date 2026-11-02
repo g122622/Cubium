@@ -69,13 +69,8 @@ public:
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    /**
-     * @brief 是否响应随机刻
-     */
-    [[nodiscard]] bool ticksRandomly() const noexcept override
-    {
-        return true;
-    }
+    // 不重写 ticksRandomly：vanilla frosted_ice 没有 randomTicks()，也没有重写
+    // isRandomlyTicking。霜冰的融化与修复走的是它自己的 tick 调度，不是随机刻。
 };
 
 /**
@@ -146,14 +141,6 @@ public:
      * 在光源附近融化
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-
-    /**
-     * @brief 是否响应随机刻
-     */
-    [[nodiscard]] bool ticksRandomly() const noexcept override
-    {
-        return true;
-    }
 
     /**
      * @brief 获取 AGE 属性

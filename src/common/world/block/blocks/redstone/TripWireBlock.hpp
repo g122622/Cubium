@@ -74,11 +74,9 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
+    // 不重写 canProvidePower：原版 TripWireBlock 没有重写 isSignalSource（只有绊线钩
+    // TripWireHookBlock 是信号源）。绊线自身只把「被踩到」的状态报告给钩子，不直接向
+    // 相邻方块输出红石信号；早期写成恒 true，使绊线格被当作信号源参与红石线计算。
 
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;

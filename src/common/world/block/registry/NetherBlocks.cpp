@@ -251,11 +251,16 @@ void registerNetherBlocks()
     NetherBlocks::NETHER_PORTAL =
         &registry.registerBlock<blocks::NetherPortalBlock>(ResourceLocation("minecraft:nether_portal"),
             // 传送门不可破坏：原版硬度 -1（不是 0，0 会让它被瞬间破坏）。
+            // 原版注册带 randomTicks()：传送门的 randomTick 用来在门内生成僵尸猪灵
+            // （难度越高概率越大——条件满足时按 1/2000·难度 触发）。
+            // TODO: Cubium 侧尚未实现 NetherPortalBlock::randomTick 的猪灵生成逻辑，
+            //       这里只先对齐「是随机刻方块」这一属性。
             BlockProperties(Material::PORTAL)
                 .noCollision()
                 .hardness(-1.0f)
                 .lightLevel(11)
                 .noLootTable()
+                .tickRandomly()
                 .soundType(BlockSoundTypes::GLASS));
 
     // 下界疣 - 作物方块

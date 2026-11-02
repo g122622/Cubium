@@ -106,6 +106,27 @@ public:
     void handlePrecipitation(
         IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation) override;
 
+    // ========== 比较器 ==========
+
+    // vanilla AbstractCauldronBlock 重写了 hasAnalogOutputSignal（恒 true），因此所有炼药锅
+    // 变体都可被比较器读取。空炼药锅本身没有内容，读数保持 0。
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override
+    {
+        // vanilla AbstractCauldronBlock 没有实现 getAnalogOutputSignal（即读数 0），
+        // 读数由分层炼药锅与岩浆炼药锅各自给出。
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return 0;
+    }
+
     // ========== 交互 ==========
 
     /**

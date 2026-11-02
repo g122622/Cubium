@@ -88,6 +88,18 @@ public:
     // ========== 红石 ==========
 
     /**
+     * @brief 是红石信号源（对齐 vanilla `DetectorRailBlock#isSignalSource`）
+     *
+     * 探测铁轨与其它铁轨不同：原版明确重写了 isSignalSource 返回 true，
+     * 因为它要向上方的方块与红石线供能。父类 AbstractRailBlock 保持默认 false。
+     */
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    /**
      * @brief 获取弱信号
      */
     [[nodiscard]] i32 getWeakPower(

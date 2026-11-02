@@ -96,11 +96,8 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
+    // 不重写 canProvidePower：原版 CommandBlock 只重写了 hasAnalogOutputSignal
+    // （「成功执行次数」由比较器读取），没有重写 isSignalSource——命令方块并不是红石信号源。
 
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;

@@ -157,14 +157,10 @@ public:
 
     // ========== 红石 ==========
 
-    /**
-     * @brief 是否可以提供红石信号
-     */
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return m_isPowered;
-    }
+    // 不重写 canProvidePower：原版 BaseRailBlock/PoweredRailBlock/ActivatorRailBlock 都没有
+    // 重写 isSignalSource，铁轨只是「被充能后自己变形状/启动矿车」，并不向周围输出红石信号。
+    // 早期把「被充能」误当成「输出信号」返回 m_isPowered，铁轨因此在红石线计算里被当成
+    // 信号源——一条被充能的动力铁轨会凭空给相邻红石线供能。
 
     // ========== 属性访问 ==========
 

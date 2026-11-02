@@ -97,10 +97,10 @@ void ChunkSection::_updateCounters(u32 oldStateId, u32 newStateId)
         --m_blockCount;
     }
 
-    if (oldState && oldState->getBlock().ticksRandomly()) {
+    if (oldState && oldState->isRandomlyTicking()) {
         --m_blockTickRefCount;
     }
-    if (newState && newState->getBlock().ticksRandomly()) {
+    if (newState && newState->isRandomlyTicking()) {
         ++m_blockTickRefCount;
     }
 
@@ -179,7 +179,7 @@ void ChunkSection::rebuildTickCounters()
         if (state == nullptr) {
             return;
         }
-        if (!state->isAir() && state->getBlock().ticksRandomly()) {
+        if (!state->isAir() && state->isRandomlyTicking()) {
             ++m_blockTickRefCount;
         }
         const fluid::FluidState* fluidState = state->getFluidState();

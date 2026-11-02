@@ -258,6 +258,15 @@ public:
     }
 
     /**
+     * @brief 该状态是否参与随机刻（对齐 vanilla `BlockBehaviour.BlockStateBase#isRandomlyTicking`）
+     *
+     * 原版这个判断带状态：例如红石矿只在被点亮（LIT=true）时才响应随机刻。
+     * 随机刻调度必须走这个入口，而不是 `Block::ticksRandomly()`——后者拿不到状态，
+     * 只能返回方块级的固定标志。
+     */
+    [[nodiscard]] bool isRandomlyTicking() const;
+
+    /**
      * @brief 获取硬度
      */
     [[nodiscard]] f32 hardness() const

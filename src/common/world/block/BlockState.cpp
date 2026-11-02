@@ -98,6 +98,13 @@ const CollisionShape& BlockState::getShape() const
     return m_owner->getShape(*this);
 }
 
+bool BlockState::isRandomlyTicking() const
+{
+    // 对齐 vanilla BlockBehaviour.BlockStateBase#isRandomlyTicking：带状态的判断，
+    // 随机刻调度与存档的 tick 标志都必须用它，而不是方块级的 Block::ticksRandomly()。
+    return m_owner->isRandomlyTicking(*this);
+}
+
 const CollisionShape& BlockState::getOcclusionShape() const
 {
     return m_owner->getOcclusionShape(*this);

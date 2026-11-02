@@ -90,6 +90,14 @@ i32 BeehiveBlock::getHoneyLevel(const BlockState& state) const
     return state.get(BlockStateProperties::HONEY_LEVEL_0_5());
 }
 
+i32 BeehiveBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // vanilla BeehiveBlock#getAnalogOutputSignal：直接返回 HONEY_LEVEL（0-5）。
+    return getHoneyLevel(state);
+}
+
 BlockState BeehiveBlock::withHoneyLevel(const BlockState& state, i32 level) const
 {
     return state.with(BlockStateProperties::HONEY_LEVEL_0_5(), std::clamp(level, 0, 5));

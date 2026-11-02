@@ -358,6 +358,10 @@ public:
      */
     [[nodiscard]] bool ticksRandomly() const noexcept override
     {
+        // vanilla WeatheringCopperChestBlock#isRandomlyTicking：getNext(block).isPresent()。
+        // WeatheringCopper 的 NEXT_BY_BLOCK 链条是 Unaffected → Exposed → Weathered → Oxidized，
+        // 「Unaffected」只是链条的起点（名字有误导性），它同样会被随机刻氧化。
+        // 因此这里只排除已达顶点的 Oxidized。
         return m_oxidationLevel != BlockStateProperties::OxidationLevel::Oxidized;
     }
 

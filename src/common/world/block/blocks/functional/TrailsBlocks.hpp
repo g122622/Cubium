@@ -61,6 +61,16 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    // ========== 红石比较器 ==========
+
+    // 必须与下面的读数成对出现：比较器会先问 hasComparatorInputOverride，
+    // 默认 false 就直接跳过，读数实现再正确也永远调不到。
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 

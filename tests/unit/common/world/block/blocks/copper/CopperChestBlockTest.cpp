@@ -416,12 +416,13 @@ TEST_F(CopperChestBlockTestFixture, OxidationChain_OxidizedNextIsNull)
     EXPECT_EQ(oxidized->getNextOxidationBlock(), nullptr);
 }
 
-TEST_F(CopperChestBlockTestFixture, OxidationChain_BaseNotOxidizable)
+TEST_F(CopperChestBlockTestFixture, OxidationChain_BaseIsOxidizable)
 {
-    // 基础 copper_chest 是 CopperChestBlock（不实现 IOxidizableBlock），
-    // 不参与氧化 tick，处于氧化链的 Unaffected 位置但不向前氧化
+    // 原版 copper_chest 注册的是可氧化子类的未氧化（Unaffected）实例，
+    // 「Unaffected」只是氧化链起点，会向前氧化成 exposed_copper_chest。
     auto* base = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::COPPER_CHEST);
-    EXPECT_EQ(base, nullptr);
+    EXPECT_NE(base, nullptr);
+    EXPECT_EQ(base->getOxidationLevel(), BlockStateProperties::OxidationLevel::Unaffected);
 }
 
 // ---------- 氧化链反向（斧头刮削） ----------
@@ -457,10 +458,10 @@ TEST_F(CopperChestBlockTestFixture, DynamicCast_WeatheringVariantsAreOxidizable)
     EXPECT_NE(dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::OXIDIZED_COPPER_CHEST), nullptr);
 }
 
-TEST_F(CopperChestBlockTestFixture, DynamicCast_BaseAndWaxedNotOxidizable)
+TEST_F(CopperChestBlockTestFixture, DynamicCast_BaseOxidizableWaxedNot)
 {
-    // 基础 + 涂蜡变体不实现 IOxidizableBlock
-    EXPECT_EQ(dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::COPPER_CHEST), nullptr);
+    // 基础铜箱子可氧化；涂蜡变体不实现 IOxidizableBlock
+    EXPECT_NE(dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::COPPER_CHEST), nullptr);
     EXPECT_EQ(dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WAXED_COPPER_CHEST), nullptr);
     EXPECT_EQ(dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WAXED_EXPOSED_COPPER_CHEST), nullptr);
     EXPECT_EQ(dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WAXED_WEATHERED_COPPER_CHEST), nullptr);
@@ -513,10 +514,10 @@ TEST_F(CopperChestBlockTestFixture, TicksRandomly_OxidizedReturnsFalse)
     EXPECT_FALSE(VanillaBlocks::OXIDIZED_COPPER_CHEST->ticksRandomly());
 }
 
-TEST_F(CopperChestBlockTestFixture, TicksRandomly_BaseReturnsFalse)
+TEST_F(CopperChestBlockTestFixture, TicksRandomly_BaseReturnsTrue)
 {
-    // 基础 copper_chest 不实现 IOxidizableBlock，不参与氧化 tick
-    EXPECT_FALSE(VanillaBlocks::COPPER_CHEST->ticksRandomly());
+    // 未氧化的铜箱子会随随机刻氧化成 exposed_copper_chest
+    EXPECT_TRUE(VanillaBlocks::COPPER_CHEST->ticksRandomly());
 }
 
 TEST_F(CopperChestBlockTestFixture, TicksRandomly_WaxedVariantsReturnFalse)

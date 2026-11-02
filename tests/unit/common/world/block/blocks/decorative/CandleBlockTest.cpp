@@ -523,10 +523,11 @@ TEST_F(CandleBlockTest, UpdatePostPlacement_SideUpdate_ReturnsSameState)
 // ticksRandomly 测试
 // ============================================================================
 
-TEST_F(CandleBlockTest, TicksRandomly_ReturnsTrue)
+TEST_F(CandleBlockTest, TicksRandomly_ReturnsFalse)
 {
-    // 蜡烛需要响应随机刻以检测含水状态并熄灭
-    EXPECT_TRUE(candle_->ticksRandomly());
+    // vanilla AbstractCandleBlock 没有重写 isRandomlyTicking：蜡烛不是随机刻方块。
+    // 含水蜡烛的熄灭由流体 tick 触发（放水时流体调度自身 tick），与随机刻无关。
+    EXPECT_FALSE(candle_->ticksRandomly());
 }
 
 // ============================================================================

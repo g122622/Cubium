@@ -80,21 +80,9 @@ const CollisionShape& BeaconBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
-i32 BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
-{
-    MC_UNUSED(state);
-
-    // 从信标方块实体获取比较器信号
-    // 信标的比较器输出等于金字塔等级 (1-4层 = 信号强度 1-4)
-    // 如果信标未激活（等级为0），则返回0
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity != nullptr && entity->getType() == BlockEntityType::Beacon) {
-        auto* beacon = static_cast<blockentity::BeaconEntity*>(entity);
-        return beacon->getLevel();
-    }
-
-    return 0;
-}
+// 注意：vanilla BeaconBlock 既没有重写 isSignalSource，也没有重写 hasAnalogOutputSignal
+// ——信标不向比较器输出任何读数（「信标输出金字塔等级」是个常见的误解）。早期这里实现了
+// 返回金字塔等级的比较器输出，但那不是原版行为，已由差分能力 block_movement 查出并移除。
 
 std::unique_ptr<BlockEntity> BeaconBlock::createBlockEntity(const BlockPos& pos)
 {

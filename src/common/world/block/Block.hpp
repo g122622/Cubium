@@ -633,10 +633,12 @@ public:
         return m_jumpFactor;
     }
 
-    [[nodiscard]] bool ticksRandomly() const noexcept
-    {
-        return m_ticksRandomly;
-    }
+    // ticksRandomly() 只在下面（虚函数区）定义一次。早期这里还有一个同名的非虚重载，
+    // 它把虚函数「隐藏」了：`block->ticksRandomly()` 在静态类型是 Block* 时直接绑定到
+    // 非虚版本，只返回注册时写死的 m_ticksRandomly 标志。于是所有按状态动态决定随机刻
+    // 的子类（铜箱子/铜雕像按氧化等级、花盆按内容物等）——以及通过 ticksRandomly()
+    // 重写而非 BlockProperties::tickRandomly() 注册的方块（蜡烛、营火、浮冰等）——
+    // 在随机刻调度与区块序列化里全部失效。
 
     [[nodiscard]] world::map::MaterialColorId mapColor() const noexcept
     {
@@ -1715,6 +1717,18 @@ public:
     [[nodiscard]] virtual bool ticksRandomly() const noexcept
     {
         return m_ticksRandomly;
+    }
+
+    /**
+     * @brief 指定状态是否响应随机刻（对齐 vanilla `BlockBehaviour#isRandomlyTicking(BlockState)`）
+     *
+     * 随机刻调度的正确入口。默认沿用方块级的 `ticksRandomly()`，需要按状态决定的方块
+     * （红石矿只在 LIT 时随机刻）重写本方法。
+     */
+    [[nodiscard]] virtual bool isRandomlyTicking(const BlockState& state) const noexcept
+    {
+        MC_UNUSED(state);
+        return ticksRandomly();
     }
 
     /**

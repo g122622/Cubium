@@ -102,10 +102,8 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    [[nodiscard]] bool ticksRandomly() const noexcept override
-    {
-        return true;
-    }
+    // 不重写 ticksRandomly：vanilla campfire / soul_campfire 既没有 randomTicks()，
+    // 也没有重写 isRandomlyTicking。营火的水浸熄灭走流体 tick，与随机刻无关。
 
     // ========== 方块实体 ==========
 

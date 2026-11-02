@@ -50,6 +50,8 @@ void registerSculkBlocks()
 
     // 幽匿块 - Material::SCULK, 锄有效, 硬度0.2, 抗性0.2, 随机刻, 无掉落表(精确采集掉落经验)
     // 深暗之域的主要构成方块，会被幽匿催化体蔓延
+    // 注意：vanilla sculk 没有 randomTicks()，也不重写 isRandomlyTicking——幽匿块的
+    // 扩散由幽匿催化体的电荷驱动，与随机刻无关。
     SculkBlocks::SCULK = &registry.registerBlock<blocks::SculkBlock>(ResourceLocation("minecraft:sculk"),
         BlockProperties(Material::SCULK)
             .hardness(0.2f)
@@ -57,7 +59,6 @@ void registerSculkBlocks()
             .harvestTool(HarvestTool::Hoe)
             .requiresTool()
             .soundType(BlockSoundTypes::SCULK)
-            .tickRandomly()
             .noLootTable());
 
     // 幽匿脉络 - Material::SCULK, 无碰撞, 非固体, 锄有效, 硬度0.2, 抗性0.2

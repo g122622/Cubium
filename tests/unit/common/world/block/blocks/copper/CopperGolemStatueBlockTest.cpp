@@ -534,15 +534,17 @@ TEST_F(CopperGolemStatueBlockTestFixture, OxidationLevel_OxidizedIsOxidized)
     EXPECT_EQ(weatheringBlock->getOxidationLevel(), BlockStateProperties::OxidationLevel::Oxidized);
 }
 
-TEST_F(CopperGolemStatueBlockTestFixture, OxidationLevel_BaseStatueNotOxidizable)
+TEST_F(CopperGolemStatueBlockTestFixture, OxidationLevel_BaseStatueIsOxidizable)
 {
     if (!VanillaBlocks::COPPER_GOLEM_STATUE) {
         GTEST_SKIP() << "COPPER_GOLEM_STATUE not registered";
     }
 
-    // 基础版 copper_golem_statue 是 CopperGolemStatueBlock（非 Weathering），不实现 IOxidizableBlock
+    // 原版 copper_golem_statue 注册的是可氧化子类的未氧化（Unaffected）实例，
+    // 「Unaffected」只是氧化链起点，并非不可氧化。
     const auto* weatheringBlock = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::COPPER_GOLEM_STATUE);
-    EXPECT_EQ(weatheringBlock, nullptr);
+    EXPECT_NE(weatheringBlock, nullptr);
+    EXPECT_EQ(weatheringBlock->getOxidationLevel(), BlockStateProperties::OxidationLevel::Unaffected);
 }
 
 // ---------- 氧化链 ----------
@@ -630,14 +632,14 @@ TEST_F(CopperGolemStatueBlockTestFixture, TicksRandomly_OnlyWhenNotFullyOxidized
     EXPECT_FALSE(VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE->ticksRandomly());
 }
 
-TEST_F(CopperGolemStatueBlockTestFixture, TicksRandomly_BaseStatueDoesNotTick)
+TEST_F(CopperGolemStatueBlockTestFixture, TicksRandomly_BaseStatueTicks)
 {
     if (!VanillaBlocks::COPPER_GOLEM_STATUE) {
         GTEST_SKIP() << "COPPER_GOLEM_STATUE not registered";
     }
 
-    // 基础版 copper_golem_statue 是 CopperGolemStatueBlock（非 Weathering），不响应随机刻
-    EXPECT_FALSE(VanillaBlocks::COPPER_GOLEM_STATUE->ticksRandomly());
+    // 未氧化的铜傀儡雕像会随随机刻氧化成 exposed 变体，因此响应随机刻。
+    EXPECT_TRUE(VanillaBlocks::COPPER_GOLEM_STATUE->ticksRandomly());
 }
 
 // ---------- 涂蜡版本 ----------
