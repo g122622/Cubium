@@ -180,7 +180,11 @@ std::string describe(const CollisionShape& shape)
         while (i + run < out.size() && out[i + run] == ch) {
             ++run;
         }
+        // 用 `<字符>:<计数>` 分隔：计数可能是多位数（最大 4096），
+        // 不加分隔符时无法判断 `0` 后面的 `516` 是一个计数还是 `5` 和 `16` 两段，
+        // 会让离线分析工具解不开。
         packed.push_back(ch);
+        packed.push_back(':');
         std::snprintf(buffer, sizeof(buffer), "%zu", run);
         packed += buffer;
         i += run;

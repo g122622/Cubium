@@ -132,7 +132,7 @@ public final class BlockShapeOracle {
             while (i + run < grid.length && grid[i + run] == ch) {
                 run++;
             }
-            packed.append(ch ? '1' : '0').append(run);
+            packed.append(ch ? '1' : '0').append(':').append(run);
             i += run;
         }
         return packed.toString();
