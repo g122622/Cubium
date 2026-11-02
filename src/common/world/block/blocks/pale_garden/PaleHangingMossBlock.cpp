@@ -65,11 +65,12 @@ PaleHangingMossBlock::PaleHangingMossBlock(const BlockProperties& properties)
     // 原版苍白垂苔默认是顶端（tip=true）。
     setDefaultState(defaultState().with(BlockStateProperties::TIP(), true));
 
-    // 创建形状
-    // 非末端：box(2, 0, 2, 14, 16, 14)
-    m_bodyShape = CollisionShape::fromPixelBox(2.0f, 0.0f, 2.0f, 14.0f, 16.0f, 14.0f);
-    // 末端：box(2, 0, 2, 14, 10, 14)
-    m_tipShape = CollisionShape::fromPixelBox(2.0f, 0.0f, 2.0f, 14.0f, 10.0f, 14.0f);
+    // 原版实测（forAllBoxes）：
+    //   非末端（tip=false）：box(0.0625, 0, 0.0625 -> 0.9375, 1, 0.9375)
+    //   末端  （tip=true） ：box(0.0625, 0.125, 0.0625 -> 0.9375, 1, 0.9375)
+    // 宽 14 像素居中；末端底部抬起 2 像素。
+    m_bodyShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
+    m_tipShape = CollisionShape::box(0.0625f, 0.125f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
 }
 
 bool PaleHangingMossBlock::isTip(const BlockState& state) const noexcept

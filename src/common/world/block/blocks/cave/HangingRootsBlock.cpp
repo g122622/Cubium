@@ -43,8 +43,9 @@ namespace blocks {
 HangingRootsBlock::HangingRootsBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 碰撞箱: 2x6x2像素（居中，悬挂在底部）
-    m_shape = CollisionShape::fromPixelBox(2, 0, 2, 14, 10, 14);
+    // 原版垂根形状：box(0.125, 0.625, 0.125 -> 0.875, 1, 0.875)，即宽 12 像素居中、
+    // 贴顶部向下垂 6 像素（0.625..1）。此前写成贴底部向上生长，Y 轴方向反了。
+    m_shape = CollisionShape::box(0.125f, 0.625f, 0.125f, 0.875f, 1.0f, 0.875f);
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
