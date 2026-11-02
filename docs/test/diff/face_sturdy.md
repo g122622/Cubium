@@ -27,7 +27,8 @@
 | 栅栏门支撑形状改用 `box()` 绕开坐标系启发式 | 27 |
 | 5 个方块补 `withCollision()` | 22 |
 | 修正 cactus / conduit / bamboo 的形状坐标 | 20 |
-| 头部方块补碰撞 + 修正 lily_pad/heavy_core 形状 | **10** |
+| 头部方块补碰撞 + 修正 lily_pad/heavy_core 形状 | 10 |
+| 修正 pointed_dripstone 五种厚度的宽度 | **9** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -987,6 +988,63 @@ EAST/WEST/NORTH/SOUTH 的 FULL / CENTER / RIGID 全部从 false 变成 true
 > 这是本能力里第三次遇到「修改后差异反而增多」。三次的共同判据：
 > **如果一处的修复让另外十几个面同时变成差异，说明该方块还有更底层的问题没有对齐**，
 > 应当先保留现状，把现象记录下来，而不是反复试。
+## pointed_dripstone：五种厚度全部宽了 2 像素（10 → 9）
+
+原版每种厚度都是一个 `Block.column(w, ...)`，全部以方块中心为轴：
+
+```java
+SHAPE_TIP_MERGE = column(6.0,  0.0, 16.0);   // box(5,  0, 5, 11, 16, 11)
+SHAPE_TIP_UP    = column(6.0,  0.0, 11.0);   // box(5,  0, 5, 11, 11, 11)
+SHAPE_TIP_DOWN  = column(6.0,  5.0, 16.0);   // box(5,  5, 5, 11, 16, 11)
+SHAPE_FRUSTUM   = column(8.0,  0.0, 16.0);   // box(4,  0, 4, 12, 16, 12)
+SHAPE_MIDDLE    = column(10.0, 0.0, 16.0);   // box(3,  0, 3, 13, 16, 13)
+SHAPE_BASE      = column(12.0, 0.0, 16.0);   // box(2,  0, 2, 14, 16, 14)
+```
+
+Cubium 只有 `TipMerge` 写对，其余每个都**宽 2 像素**：
+
+| 厚度 | Cubium 原值 | 应为 |
+|---|---|---|
+| `Tip` | `4..12` | `5..11` |
+| `Frustum` | `3..13` | `4..12` |
+| `Middle` | `2..14` | `3..13` |
+| `Base` | `1..15` | `2..14` |
+| `tipDownShape` | `4..12, y 0..11` | `5..11, y 5..16` |
+
+`tipDownShape` 的问题最严重：不只是宽度多 2 像素，**Y 方向还整个反了**（原版尖端朝下，
+形状从 y=5 到 16；Cubium 写成了从 y=0 到 11）。
+
+## 未收敛：`lily_pad` 的切片语义（1 处）
+
+形状已完全对齐：
+
+```
+原版    Y = [0.0, 0.09375]    X = [0.0625, 0.9375]
+Cubium  Y = [0.0, 0.09375]    X = [0.0625, 0.9375]    完全一致
+```
+
+但 `getFaceShape(DOWN)` 的结果不同：
+
+```
+原版    DOWN -> AABB[0.0625, 0.0, 0.0625] -> [0.9375, 1.0, 0.9375]   非空
+        UP   -> EMPTY
+Cubium  DOWN -> EMPTY
+```
+
+对 DOWN 面，`findIndex(Y, 1.0E-7)` 两边都得到 **-1**（形状 Y 从 0 开始，`0 < 1.0E-7`
+在第一个坐标处即为真，二分返回 0，减 1 得 -1）。
+
+关键差异在负索引的处理：
+
+- **Cubium** `Shapes::slice` 有守卫 `if (index < 0 || index >= size) return empty();`
+- **原版** 没有守卫，交给 `SliceShape.makeSlice` → `SubShape` 处理
+
+理论上原版读 `parent.isFull(x, -1, z)` 的负行也应为 false，但实测原版返回**非空**，
+说明 `SubShape` / `BitSetDiscreteVoxelShape` 在越界索引上还有我没看到的处理。
+
+`TODO`：这一处需要逐行对照 `SliceShape.makeSlice` 的 `choose()` 与
+`BitSetDiscreteVoxelShape.isFull` 的越界行为，再决定 Cubium 的 `slice` 是否要放宽守卫。
+Cubium 当前的守卫是为了防越界崩溃而加的，直接删除会有风险。
 ## 与其它能力的关系
 
 | 能力 | 关系 |
