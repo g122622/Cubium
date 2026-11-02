@@ -1791,6 +1791,39 @@ public:
     }
 
     /**
+     * @brief 获取指定位置处的碰撞形状（世界坐标）。
+     *
+     * 原版 `getCollisionShape` 的默认实现是 `hasCollision ? getShape(...) : empty()`，
+     * 而 `getShape` 已带位置偏移，所以碰撞形状也应带偏移。这里默认转调 `getShapeAt`。
+     * 碰撞形状与外形不同的方块（竹子用更细的 `SHAPE_COLLISION`）覆写本方法。
+     *
+     * @param state 方块状态
+     * @param pos 方块位置
+     * @return 碰撞形状
+     */
+    [[nodiscard]] virtual CollisionShape getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const
+    {
+        if (!m_hasCollision) {
+            return VoxelShapes::empty();
+        }
+        return getShapeAt(state, pos);
+    }
+
+    /**
+     * @brief 获取指定位置处的支撑形状（世界坐标）。
+     *
+     * 默认与 `getBlockSupportShape` 一致地转调碰撞形状，只是带上位置偏移。
+     *
+     * @param state 方块状态
+     * @param pos 方块位置
+     * @return 支撑形状
+     */
+    [[nodiscard]] virtual CollisionShape getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const
+    {
+        return getCollisionShapeAt(state, pos);
+    }
+
+    /**
      * @brief 水平偏移量上限。
      *
      * 偏移公式把它作为 clamp 的边界；个别方块会覆写（例如更高的作物）。

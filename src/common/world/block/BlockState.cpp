@@ -101,6 +101,16 @@ CollisionShape BlockState::getShapeAt(const BlockPos& pos) const
     return m_owner->getShapeAt(*this, pos);
 }
 
+CollisionShape BlockState::getCollisionShapeAt(const BlockPos& pos) const
+{
+    return m_owner->getCollisionShapeAt(*this, pos);
+}
+
+CollisionShape BlockState::getBlockSupportShapeAt(const BlockPos& pos) const
+{
+    return m_owner->getBlockSupportShapeAt(*this, pos);
+}
+
 bool BlockState::isRandomlyTicking() const
 {
     // 对齐 vanilla BlockBehaviour.BlockStateBase#isRandomlyTicking：带状态的判断，

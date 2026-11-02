@@ -77,6 +77,17 @@ public:
      */
     [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
 
+    /**
+     * @brief 水平偏移上限。
+     *
+     * 原版取 `SHAPE_BASE`（最粗的那段，`column(12, 0, 16)`）的 min X = 2/16 = 0.125，
+     * 使最粗的滴水石锥也不会因偏移而突出方块边界。
+     */
+    [[nodiscard]] f32 getMaxHorizontalOffset() const noexcept override
+    {
+        return 0.125f;
+    }
+
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
