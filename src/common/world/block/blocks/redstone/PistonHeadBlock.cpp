@@ -162,19 +162,23 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
                 CollisionShape::fromPixelBox(0, 6, 6, 12, 10, 10)), // East
         },
         std::array<CollisionShape, 6>{
-            // 长臂（细杆超出方块本地范围，与原版一致）
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, -4, 6, 10, 12, 10)), // Down
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
-                CollisionShape::fromPixelBox(6, 4, 6, 10, 20, 10)), // Up
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
-                CollisionShape::fromPixelBox(6, 6, -4, 10, 10, 12)), // North
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 20)), // South
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 4, 16, 16),
-                CollisionShape::fromPixelBox(4, 6, 6, 20, 10, 10)), // West
-            CollisionShape::combine(CollisionShape::fromPixelBox(12, 0, 0, 16, 16, 16),
-                CollisionShape::fromPixelBox(-4, 6, 6, 12, 10, 10)), // East
+            // 长臂：细杆沿 FACING 方向伸出方块边界（原版实测）。
+            // 平台始终贴在 FACING 的**对侧**（如 facing=north 时平台在 z 0..0.25），
+            // 细杆从平台起沿 FACING 延伸。此前细杆方向整体反了。
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.25f, 1.0f),
+                CollisionShape::box(0.375f, 0.25f, 0.375f, 0.625f, 1.25f, 0.625f)), // Down
+            // Up: 平台是整格上半的四块（Shapes.or 细分后的形态），细杆向上伸出
+            CollisionShape::combine(CollisionShape::box(0.375f, -0.25f, 0.375f, 0.625f, 1.0f, 0.625f),
+                CollisionShape::combine(CollisionShape::box(0.0f, 0.75f, 0.0f, 0.375f, 1.0f, 1.0f),
+                    CollisionShape::box(0.375f, 0.75f, 0.0f, 1.0f, 1.0f, 0.375f))),
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.25f),
+                CollisionShape::box(0.375f, 0.375f, 0.25f, 0.625f, 0.625f, 1.25f)), // North
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.75f, 1.0f, 1.0f, 1.0f),
+                CollisionShape::box(0.375f, 0.375f, -0.25f, 0.625f, 0.625f, 0.75f)), // South
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 0.25f, 1.0f, 1.0f),
+                CollisionShape::box(0.25f, 0.375f, 0.375f, 1.25f, 0.625f, 0.625f)), // West
+            CollisionShape::combine(CollisionShape::box(0.75f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f),
+                CollisionShape::box(-0.25f, 0.375f, 0.375f, 0.75f, 0.625f, 0.625f)), // East
         },
     };
 
