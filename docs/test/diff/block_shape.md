@@ -287,6 +287,59 @@ short_grass   offset(ZERO) = (-0.25, -0.20000000298023224,  -0.25)   ← XYZ 类
 - **`Raycast` / `Explosion` 应改用 `getShapeAt(pos)`**：它们有 `pos`，当前用的
   `getShape()` 不含偏移，射线与爆炸对花类的判定会偏。
 - **客户端 5 处调用**同样应改，但客户端已停止维护，暂不处理。
+## 续：`offsetType` 批量补齐与逻辑接入（162 → 170）
+
+### 1. 射线与爆炸接入 `getShapeAt(pos)`
+
+这是上一轮遗留的**游戏逻辑偏差**，不只是数据差异：
+
+```cpp
+// Raycast.cpp
+const BlockPos pos(blockX, blockY, blockZ);
+const CollisionShape shape = state.getShapeAt(pos);
+
+// Explosion.cpp
+const CollisionShape shape = state.getShapeAt(BlockPos(blockX, blockY, blockZ));
+```
+
+两处原本都用 `getShape()`（模型坐标，不含偏移），射线与爆炸对花、草类方块的判定会偏离原版。
+
+### 2. 从原版枚举出全部带偏移的方块
+
+用 oracle 侧遍历注册表，按 `getOffset(ZERO).y != 0` 区分类型，得到权威清单：**XZ 32 个 +
+XYZ 5 个 = 37 个**。
+
+已补：
+
+| 属性对象 | 类型 | 覆盖方块 |
+|---|---|---|
+| `flowerProps` | XZ | 蒲公英、虞美人、蓝花美耳草、绒球葱等全部单格花 |
+| `grassProps` | **XYZ** | `short_grass`、`fern` |
+| `tallGrassProps`（新增） | XZ | `tall_grass` |
+| `tallFlowerProps` | XZ | 向日葵、丁香、玫瑰丛、牡丹、大型蕨 |
+| `bambooProps` / `bambooSaplingProps` | XZ | `bamboo`、`bamboo_sapling` |
+| 下界、洞穴、苍白花园、花园、红树的若干内联属性 | XZ / XYZ | 菌索、下界苗、滴水石锥、垂根、眼眸花、干草、`bush` |
+
+> **关键发现**：`short_grass`/`fern` 是 **XYZ**（有竖直偏移），而 `tall_grass` 是 **XZ**。
+> 原版它们共用 `BushBlock` 但注册属性不同，**不能共用同一个 `BlockProperties` 对象**。
+> 我最初给 `grassProps` 加 XYZ 后直接影响到 `tall_grass`，后来拆出 `tallGrassProps` 才正确。
+
+> **另一个陷阱**：`bush` 用 XYZ 会让它从 0 处变成有差异——原版 `bush` 是 **XZ**。
+> 补偏移时**必须逐方块确认类型**，不能按「看起来像草」归类。
+
+### 3. 差异数升到 170 的原因
+
+补完偏移后 `block_shape` 从 162 变成 **170**，看似退步，实际是**暴露了原本被掩盖的问题**：
+
+```
+short_grass  原版 shape = AABB[0.125, 0.0, 0.125] -> [0.875, 0.8125, 0.875]
+```
+
+X/Z 是 `0.125..0.875`（`column(12, 0, ...)`），而 Cubium 用的是 `BushBlock` 的满宽
+`0..1`。**这些方块的形状本身就不对**，此前偏移为 0 时两个错误恰好部分抵消。
+
+> **教训**：差异数回升不一定代表退步。当一处改动让原本「碰巧对上」的错误不再对上时，
+> 数字会变差，但问题是被**暴露**而非**引入**。判断依据应是逐项核对原因，而不是只看总数。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

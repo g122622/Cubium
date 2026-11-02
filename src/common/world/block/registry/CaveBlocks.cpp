@@ -205,6 +205,7 @@ void registerCaveBlocks()
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::POINTED_DRIPSTONE)
                 .tickRandomly()
+                .offsetType(BlockProperties::OffsetType::XZ)
                 .noOcclusion());
 
     // ============================================================================

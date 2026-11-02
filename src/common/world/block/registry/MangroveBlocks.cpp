@@ -122,7 +122,11 @@ void registerMangroveBlocks()
     // 红树胎生苗 - AGE_0_4 + HANGING + WATERLOGGED，悬挂时可生长
     MangroveBlocks::MANGROVE_PROPAGULE =
         &registry.registerBlock<blocks::MangrovePropaguleBlock>(ResourceLocation("minecraft:mangrove_propagule"),
-            BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::PLANT));
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .offsetType(BlockProperties::OffsetType::XZ)
+                .soundType(BlockSoundTypes::PLANT));
 
     // 红树根 - WATERLOGGED属性，非固体，可燃
     MangroveBlocks::MANGROVE_ROOTS =

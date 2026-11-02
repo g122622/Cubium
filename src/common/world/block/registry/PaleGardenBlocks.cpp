@@ -320,6 +320,7 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
+                .offsetType(BlockProperties::OffsetType::XZ)
                 .soundType(BlockSoundTypes::GRASS),
             blocks::EyeblossomBlock::Type::Open,
             static_cast<u32>(entity::effect::EffectType::Blindness),
@@ -333,6 +334,7 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
+                .offsetType(BlockProperties::OffsetType::XZ)
                 .soundType(BlockSoundTypes::GRASS),
             blocks::EyeblossomBlock::Type::Closed,
             static_cast<u32>(entity::effect::EffectType::Nausea),

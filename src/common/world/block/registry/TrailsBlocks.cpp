@@ -162,7 +162,11 @@ void registerTrailsBlocks()
     // 骨粉可催熟火把花作物为火把花；无支撑方块时自动掉落
     // potted_torchflower 方块在 FlowerPotBlocks.cpp 中注册
     TrailsBlocks::TORCHFLOWER = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:torchflower"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::GRASS),
+        BlockProperties(Material::PLANT)
+            .noCollision()
+            .notSolid()
+            .offsetType(BlockProperties::OffsetType::XZ)
+            .soundType(BlockSoundTypes::GRASS),
         static_cast<u32>(entity::effect::EffectType::NightVision),
         8);
 
@@ -173,7 +177,12 @@ void registerTrailsBlocks()
     // 瓶草 - 双层植物。可被岩浆点燃（对齐 vanilla）
     TrailsBlocks::PITCHER_PLANT =
         &registry.registerBlock<blocks::DoublePlantBlock>(ResourceLocation("minecraft:pitcher_plant"),
-            BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::CROP).ignitedByLava());
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .offsetType(BlockProperties::OffsetType::XZ)
+                .soundType(BlockSoundTypes::CROP)
+                .ignitedByLava());
 
     // ============================================================================
     // 作物方块

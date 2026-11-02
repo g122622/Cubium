@@ -294,10 +294,18 @@ void registerNaturalBlocks()
 
     // 海草与高海草
     NaturalBlocks::SEAGRASS = &registry.registerBlock<blocks::SeagrassBlock>(ResourceLocation("minecraft:seagrass"),
-        BlockProperties(Material::SEA_GRASS).noCollision().notSolid().soundType(BlockSoundTypes::WET_GRASS));
+        BlockProperties(Material::SEA_GRASS)
+            .noCollision()
+            .notSolid()
+            .offsetType(BlockProperties::OffsetType::XZ)
+            .soundType(BlockSoundTypes::WET_GRASS));
     NaturalBlocks::TALL_SEAGRASS =
         &registry.registerBlock<blocks::TallSeagrassBlock>(ResourceLocation("minecraft:tall_seagrass"),
-            BlockProperties(Material::SEA_GRASS).noCollision().notSolid().soundType(BlockSoundTypes::WET_GRASS));
+            BlockProperties(Material::SEA_GRASS)
+                .noCollision()
+                .notSolid()
+                .offsetType(BlockProperties::OffsetType::XZ)
+                .soundType(BlockSoundTypes::WET_GRASS));
 
     // 气泡柱与海龟蛋
     // 气泡柱：水柱方块。BubbleColumnBlock::getFluidState 返回水（对齐 vanilla），propagatesSkylightDown

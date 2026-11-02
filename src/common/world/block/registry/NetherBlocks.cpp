@@ -374,12 +374,20 @@ void registerNetherBlocks()
     // 绯红菌索 - 下界装饰植物
     NetherBlocks::CRIMSON_ROOTS =
         &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:crimson_roots"),
-            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::ROOTS));
+            BlockProperties(Material::REPLACEABLE_PLANT)
+                .noCollision()
+                .notSolid()
+                .offsetType(BlockProperties::OffsetType::XZ)
+                .soundType(BlockSoundTypes::ROOTS));
 
     // 诡异菌索 - 下界装饰植物
     NetherBlocks::WARPED_ROOTS =
         &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:warped_roots"),
-            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().soundType(BlockSoundTypes::ROOTS));
+            BlockProperties(Material::REPLACEABLE_PLANT)
+                .noCollision()
+                .notSolid()
+                .offsetType(BlockProperties::OffsetType::XZ)
+                .soundType(BlockSoundTypes::ROOTS));
 
     // 下界苗 - 下界矮小装饰植物
     NetherBlocks::NETHER_SPROUTS =
@@ -769,7 +777,7 @@ void registerNetherBlocks()
     NetherBlocks::CHORUS_FLOWER =
         &registry.registerBlock<blocks::ChorusFlowerBlock>(ResourceLocation("minecraft:chorus_flower"),
             BlockProperties(Material::PLANT)
-            .noCollision()
+                .noCollision()
                 .hardness(0.4f)
                 .resistance(0.4f)
                 .soundType(BlockSoundTypes::WOOD));
