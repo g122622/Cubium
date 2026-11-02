@@ -258,6 +258,12 @@ const CollisionShape& PointedDripstoneBlock::getShape(const BlockState& state) c
     return m_shapes.at(BlockStateProperties::DripstoneThickness::Tip);
 }
 
+CollisionShape PointedDripstoneBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    const Vector3 offset = getOffset(pos);
+    return getShape(state).offset(offset.x, offset.y, offset.z);
+}
+
 // ============================================================================
 // 流体状态
 // ============================================================================

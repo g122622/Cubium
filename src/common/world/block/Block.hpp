@@ -1773,6 +1773,24 @@ public:
     [[nodiscard]] Vector3 getOffset(const BlockPos& pos) const noexcept;
 
     /**
+     * @brief 获取指定位置处的形状（世界坐标，可能含 `offsetType` 偏移）。
+     *
+     * **默认实现不应用偏移**：原版只有少数方块（`FlowerBlock`、`BambooStalkBlock`、
+     * `PointedDripstoneBlock`）在 `getShape` 里调用了 `move(getOffset(pos))`，
+     * 草、树苗、蘑菇等虽有 `offsetType` 但 `getShape` 仍返回固定形状。
+     * 需要偏移的方块覆写本方法。
+     *
+     * @param state 方块状态
+     * @param pos 方块位置
+     * @return 形状（按值返回，因为每个位置的偏移不同）
+     */
+    [[nodiscard]] virtual CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const
+    {
+        MC_UNUSED(pos);
+        return getShape(state);
+    }
+
+    /**
      * @brief 水平偏移量上限。
      *
      * 偏移公式把它作为 clamp 的边界；个别方块会覆写（例如更高的作物）。

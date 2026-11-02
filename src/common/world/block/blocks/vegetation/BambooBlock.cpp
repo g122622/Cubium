@@ -247,6 +247,12 @@ const CollisionShape& BambooBlock::getShape(const BlockState& state) const noexc
     return m_normalShape;
 }
 
+CollisionShape BambooBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    const Vector3 offset = getOffset(pos);
+    return getShape(state).offset(offset.x, offset.y, offset.z);
+}
+
 const CollisionShape& BambooBlock::getCollisionShape(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);
@@ -439,6 +445,12 @@ const CollisionShape& BambooSaplingBlock::getShape(const BlockState& state) cons
 {
     MC_UNUSED(state);
     return m_shape;
+}
+
+CollisionShape BambooSaplingBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    const Vector3 offset = getOffset(pos);
+    return getShape(state).offset(offset.x, offset.y, offset.z);
 }
 
 void BambooSaplingBlock::_growBamboo(IWorld& world, const BlockPos& pos)

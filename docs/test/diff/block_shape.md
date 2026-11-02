@@ -340,6 +340,72 @@ X/Z 是 `0.125..0.875`（`column(12, 0, ...)`），而 Cubium 用的是 `BushBlo
 
 > **教训**：差异数回升不一定代表退步。当一处改动让原本「碰巧对上」的错误不再对上时，
 > 数字会变差，但问题是被**暴露**而非**引入**。判断依据应是逐项核对原因，而不是只看总数。
+## 修正偏移的**应用范围**：只有三个类在 `getShape` 里应用偏移
+
+上一轮我在 `BlockState::getShapeAt` 里统一应用了 `offsetType` 偏移，**这是错的**。
+
+逐一核对原版各类的 `getShape` 实现，只有三个类调用了 `move(getOffset(pos))`：
+
+| 类 | `getShape` 里调用了 `move(getOffset)` |
+|---|---|
+| `FlowerBlock` | ✅ |
+| `BambooStalkBlock` | ✅ |
+| `PointedDripstoneBlock` | ✅ |
+| `BambooSaplingBlock` | ✅ |
+| `TallGrassBlock` | ❌ 直接返回 `SHAPE` |
+| `BushBlock` | ❌ 直接返回 `SHAPE` |
+| `DoublePlantBlock` | ❌ 直接返回 `SHAPE` |
+| `SaplingBlock` / `MushroomBlock` / `DryVegetationBlock` 等 | ❌ |
+
+所以「有 `offsetType`」≠「形状会偏移」。偏移是否生效取决于该类有没有主动调用 `move`。
+
+### 改法
+
+`Block::getShapeAt` 改成**默认不应用偏移**的虚函数：
+
+```cpp
+[[nodiscard]] virtual CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    MC_UNUSED(pos);
+    return getShape(state);      // 默认：与 getShape 相同，不含偏移
+}
+```
+
+只在那四个类里覆写：
+
+```cpp
+CollisionShape FlowerBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    const Vector3 offset = getOffset(pos);
+    return getShape(state).offset(offset.x, offset.y, offset.z);
+}
+```
+
+> **教训**：上一轮我看到「37 个方块有 `offsetType`」，就假定它们都有偏移效果，并在公共层统一应用。
+> 实际上 `offsetType` 只是**元数据**，真正决定行为的是各类 `getShape` 有没有用它。
+> **看到元数据存在，不等于该元数据被消费**。
+
+## 形状修复（`TallGrassBlock` / `DryVegetationBlock`）
+
+| 方块 | 原版形状 | Cubium 原值 |
+|---|---|---|
+| `short_grass` / `fern` | `column(12, 0, 13)` → Y `0.8125` | Y `1.0` |
+| `dead_bush` | `column(12, 0, 13)` → `0.125..0.875`, Y `0.8125` | 满宽 `0..1` |
+| `short_dry_grass` | `column(12, 0, 10)` → `0.125..0.875`, Y `0.625` | 与高干草共用同一形状 |
+| `tall_dry_grass` | `column(14, 0, 16)` → `0.0625..0.9375`, Y `1.0` | 与矮干草共用同一形状 |
+
+`short_dry_grass` 与 `tall_dry_grass` 原版是**两个不同的类**（`ShortDryGrassBlock` /
+`TallDryGrassBlock`），形状不同，Cubium 却让它们共用 `DryVegetationBlock` 的固定形状。
+已把形状改成构造参数：
+
+```cpp
+DryVegetationBlock(const BlockProperties& properties, const CollisionShape& shape);
+```
+
+### 结果
+
+`short_grass`、`fern`、`tall_grass`、`large_fern`、`bush`、`dead_bush`、`short_dry_grass`、
+`tall_dry_grass` **全部一致**。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

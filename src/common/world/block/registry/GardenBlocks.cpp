@@ -95,6 +95,7 @@ void registerGardenBlocks()
     // ============================================================================
 
     // 矮干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。可被岩浆点燃（对齐 vanilla）
+    // 形状：原版 ShortDryGrassBlock.SHAPE = column(12.0, 0.0, 10.0) -> box(2, 0, 2, 14, 10, 14)
     GardenBlocks::SHORT_DRY_GRASS =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:short_dry_grass"),
             BlockProperties(Material::REPLACEABLE_PLANT)
@@ -104,9 +105,11 @@ void registerGardenBlocks()
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::GRASS)
                 .offsetType(BlockProperties::OffsetType::XYZ)
-                .ignitedByLava());
+                .ignitedByLava(),
+            CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.625f, 0.875f));
 
     // 高干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。可被岩浆点燃（对齐 vanilla）
+    // 形状：原版 TallDryGrassBlock.SHAPE = column(14.0, 0.0, 16.0) -> box(1, 0, 1, 15, 16, 15)
     GardenBlocks::TALL_DRY_GRASS =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:tall_dry_grass"),
             BlockProperties(Material::REPLACEABLE_PLANT)
@@ -116,7 +119,8 @@ void registerGardenBlocks()
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::GRASS)
                 .offsetType(BlockProperties::OffsetType::XYZ)
-                .ignitedByLava());
+                .ignitedByLava(),
+            CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f));
 
     // ============================================================================
     // 仙人掌花

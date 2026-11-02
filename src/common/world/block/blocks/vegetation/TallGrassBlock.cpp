@@ -37,7 +37,10 @@ TallGrassBlock::TallGrassBlock(const BlockProperties& properties)
     : BushBlock(properties)
 {
     // 高草形状：薄的一层
-    m_shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 1.0f, 0.875f);
+    // 原版 TallGrassBlock.SHAPE = Block.column(12.0, 0.0, 13.0)
+    //   = box(2, 0, 2, 14, 13, 14) -> X/Z 0.125..0.875，Y 上限 13/16 = 0.8125。
+    // 此前 Y 上限写成 1.0（满高），草叶覆盖整个方块高度。
+    m_shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.8125f, 0.875f);
 }
 
 const CollisionShape& TallGrassBlock::getShape(const BlockState& state) const

@@ -128,6 +128,11 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const noexcept override;
 
+    /**
+     * @brief 按位置返回形状：本类带 `offsetType`，原版在 `getShape` 里叠加了位置偏移。
+     */
+    [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override;
 
     // ========== 渲染属性 ==========
@@ -217,6 +222,11 @@ public:
     // ========== IPlantable 接口 ==========
 
     [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
+
+    /**
+     * @brief 按位置返回形状：本类带 `offsetType`，原版在 `getShape` 里叠加了位置偏移。
+     */
+    [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
     [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 形状 ==========
