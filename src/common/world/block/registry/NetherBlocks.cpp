@@ -730,7 +730,7 @@ void registerNetherBlocks()
     // 末地烛 - 发光14级，6 向朝向
     NetherBlocks::END_ROD = &registry.registerBlock<blocks::EndRodBlock>(ResourceLocation("minecraft:end_rod"),
         BlockProperties(Material::DECORATION)
-            .noCollision()
+            .withCollision()
             .lightLevel(14)
             .noOcclusion()
             .soundType(BlockSoundTypes::WOOD));
@@ -769,7 +769,7 @@ void registerNetherBlocks()
     NetherBlocks::CHORUS_FLOWER =
         &registry.registerBlock<blocks::ChorusFlowerBlock>(ResourceLocation("minecraft:chorus_flower"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+            .noCollision()
                 .hardness(0.4f)
                 .resistance(0.4f)
                 .soundType(BlockSoundTypes::WOOD));

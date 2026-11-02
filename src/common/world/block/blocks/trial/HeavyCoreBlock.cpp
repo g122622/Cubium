@@ -48,7 +48,9 @@ HeavyCoreBlock::HeavyCoreBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 碰撞箱: 4x0x4 到 12x16x12（像素坐标），小型柱状
-    m_shape = CollisionShape::fromPixelBox(4, 0, 4, 12, 16, 12);
+    // 原版 SHAPE = box(4, 0, 4, 12, 8, 12)：Y 上限 8 像素。
+    // 此前写成 16（到顶），UP 面切片铺满整层，UP|CENTER 被误判为 true。
+    m_shape = CollisionShape::fromPixelBox(4, 0, 4, 12, 8, 12);
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

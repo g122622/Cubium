@@ -275,7 +275,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_MOSS_CARPET =
         &registry.registerBlock<blocks::MossyCarpetBlock>(ResourceLocation("minecraft:pale_moss_carpet"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .hardness(0.1f)
                 .resistance(0.0f)

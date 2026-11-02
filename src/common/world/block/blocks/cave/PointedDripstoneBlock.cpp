@@ -75,20 +75,25 @@ using namespace mc; // 将 BlockStateProperties 引入作用域
 PointedDripstoneBlock::PointedDripstoneBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 创建各厚度的碰撞形状
-    // TipMerge: 半径6像素，全高
+    // 原版（PointedDripstoneBlock）：
+    //
+    //   SHAPE_TIP_MERGE = column(6.0, 0.0, 16.0)  -> box(5,  0, 5, 11, 16, 11)
+    //   SHAPE_TIP_UP    = column(6.0, 0.0, 11.0)  -> box(5,  0, 5, 11, 11, 11)
+    //   SHAPE_TIP_DOWN  = column(6.0, 5.0, 16.0)  -> box(5,  5, 5, 11, 16, 11)
+    //   SHAPE_FRUSTUM   = column(8.0, 0.0, 16.0)  -> box(4,  0, 4, 12, 16, 12)
+    //   SHAPE_MIDDLE    = column(10.0, 0.0, 16.0) -> box(3,  0, 3, 13, 16, 13)
+    //   SHAPE_BASE      = column(12.0, 0.0, 16.0) -> box(2,  0, 2, 14, 16, 14)
+    //
+    // 此前除 TipMerge 外每个都比原版**宽 2 像素**（Tip 用了 4..12 应为 5..11，
+    // Frustum 用了 3..13 应为 4..12，Middle 用了 2..14 应为 3..13，Base 用了 1..15 应为 2..14）。
     m_shapes[BlockStateProperties::DripstoneThickness::TipMerge] = CollisionShape::fromPixelBox(5, 0, 5, 11, 16, 11);
-    // Tip 朝上: 半径6像素，底部到11像素高（尖端在上方）
-    m_shapes[BlockStateProperties::DripstoneThickness::Tip] = CollisionShape::fromPixelBox(4, 0, 4, 12, 16, 12);
-    // Frustum: 半径8像素，全高
-    m_shapes[BlockStateProperties::DripstoneThickness::Frustum] = CollisionShape::fromPixelBox(3, 0, 3, 13, 16, 13);
-    // Middle: 半径10像素，全高
-    m_shapes[BlockStateProperties::DripstoneThickness::Middle] = CollisionShape::fromPixelBox(2, 0, 2, 14, 16, 14);
-    // Base: 半径12像素，全高
-    m_shapes[BlockStateProperties::DripstoneThickness::Base] = CollisionShape::fromPixelBox(1, 0, 1, 15, 16, 15);
+    m_shapes[BlockStateProperties::DripstoneThickness::Tip] = CollisionShape::fromPixelBox(5, 0, 5, 11, 11, 11);
+    m_shapes[BlockStateProperties::DripstoneThickness::Frustum] = CollisionShape::fromPixelBox(4, 0, 4, 12, 16, 12);
+    m_shapes[BlockStateProperties::DripstoneThickness::Middle] = CollisionShape::fromPixelBox(3, 0, 3, 13, 16, 13);
+    m_shapes[BlockStateProperties::DripstoneThickness::Base] = CollisionShape::fromPixelBox(2, 0, 2, 14, 16, 14);
 
-    // 朝下尖端的特殊形状：尖端在下方（5像素到顶部）
-    m_tipDownShape = CollisionShape::fromPixelBox(4, 0, 4, 12, 11, 12);
+    // 朝下尖端：SHAPE_TIP_DOWN = column(6.0, 5.0, 16.0) -> box(5, 5, 5, 11, 16, 11)
+    m_tipDownShape = CollisionShape::fromPixelBox(5, 5, 5, 11, 16, 11);
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

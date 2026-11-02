@@ -38,7 +38,7 @@ namespace blocks {
 
 BushBlock::BushBlock(const BlockProperties& properties)
     : Block(properties)
-    , m_shape(CollisionShape::fullBlock())
+    , m_shape(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.8125f, 1.0f))
 {}
 
 // ========== 放置逻辑 ==========
@@ -102,10 +102,14 @@ const CollisionShape& BushBlock::getShape(const BlockState& state) const
 
 const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    // 植物无碰撞
-    static CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
+    // 大多数植物无碰撞，但 `m_hasCollision` 为 true 的个体（睡莲、滴水石芽等）有碰撞箱。
+    // 此前无条件返回空形状，导致注册时写了 `.withCollision()` 也不生效，
+    // `getBlockSupportShape`（默认转调本函数）因此恒为空。
+    if (!m_hasCollision) {
+        static const CollisionShape emptyShape = CollisionShape::empty();
+        return emptyShape;
+    }
+    return getShape(state);
 }
 
 const CollisionShape& BushBlock::getOcclusionShape(const BlockState& state) const

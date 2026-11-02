@@ -70,7 +70,10 @@ SaplingBlock::SaplingBlock(TreeGenerator treeGenerator, const BlockProperties& p
     setDefaultState(defaultState().with(BlockStateProperties::STAGE_0_1(), 0));
 
     // 树苗形状：小型植物
-    m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.5f, 0.75f);
+    // 原版 SaplingBlock.SHAPE = Block.column(12.0, 0.0, 12.0)
+    //   = box(2, 0, 2, 14, 12, 14) -> X/Z 0.125..0.875，Y 上限 12/16 = 0.75。
+    // 此前写成 0.25..0.75 / Y 0.5，宽高都只有原版的一半。
+    m_shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.75f, 0.875f);
 }
 
 // ========== 状态属性 ==========

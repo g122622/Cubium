@@ -91,7 +91,30 @@ protected:
     [[nodiscard]] const ResourceLocation& getWaxedInteractFailSound() const override;
 
 private:
-    CollisionShape m_shape;
+    /**
+     * @brief 按 `rotation`（0..15）索引的形状。
+     *
+     * 对齐原版 `CeilingHangingSignBlock`：
+     *
+     * ```java
+     * SHAPE_DEFAULT = Block.column(10.0, 0.0, 16.0);          // box(3,0,3,13,16,13)
+     * SHAPES        = rotateHorizontal(Block.column(14.0, 2.0, 0.0, 10.0))
+     *                     .entrySet().stream()
+     *                     .collect(toMap(RotationSegment::convertToSegment, Entry::getValue));
+     * getShape(...) { return SHAPES.getOrDefault(state.getValue(ROTATION), SHAPE_DEFAULT); }
+     * ```
+     *
+     * `rotateHorizontal` 只给出 8 个「旋转段」（每个 22.5°），映射到 `rotation` 值后
+     * 只有 0/8 与 4/12 落在其中，其余 12 个 rotation 走 `SHAPE_DEFAULT`。
+     *
+     * 实测原版三种结果：
+     *   rotation 0, 8   -> box(1,0,7,15,10,9)    长边沿 X，Y 只到 10
+     *   rotation 4, 12  -> box(7,0,1,9,10,15)    长边沿 Z，Y 只到 10
+     *   其余 12 个       -> box(3,0,3,13,16,13)  SHAPE_DEFAULT，Y 到 16
+     */
+    std::unordered_map<i32, CollisionShape> m_shapesByRotation;
+    /// `SHAPE_DEFAULT`：rotation 不在 `m_shapesByRotation` 中时使用。
+    CollisionShape m_defaultShape;
 };
 
 /**

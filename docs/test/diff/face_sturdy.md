@@ -19,7 +19,17 @@
 | 补全 `CombineOp::AND` / `NOT`，对齐 3 个炼药锅类 | 189 |
 | 旗帜补 `noCollision()`（支撑形状应为空）| 141 |
 | 悬挂告示牌补 `getBlockSupportShape` 覆写 + 修正形状 | 129 |
-| 蜡烛补 `withCollision()`（支撑形状应非空）| **95** |
+| 蜡烛补 `withCollision()`（支撑形状应非空）| 95 |
+| 吊挂告示牌按 `rotation` 区分形状 | 83 |
+| 墙面悬挂告示牌按原版方式合成细分网格 | 71 |
+| 中继器/比较器补 `withCollision()` | 65 |
+| 修复 6 处「像素值传给归一化 `box()`」+ 4 处方块碰撞状态 | 39 |
+| 栅栏门支撑形状改用 `box()` 绕开坐标系启发式 | 27 |
+| 5 个方块补 `withCollision()` | 22 |
+| 修正 cactus / conduit / bamboo 的形状坐标 | 20 |
+| 头部方块补碰撞 + 修正 lily_pad/heavy_core 形状 | 10 |
+| 修正 pointed_dripstone 五种厚度的宽度 | 9 |
+| `BushBlock::getCollisionShape` 尊重 `m_hasCollision` | **8** |
 
 > **注意**：早期版本本文档曾判断剩余差异的主因是 `VoxelShape` 的归一化缺口。
 > 那个判断是**错的**——深入排查后发现真正原因是若干方块把碰撞形状错误地设成了空。
@@ -575,6 +585,536 @@ BlockProperties(Material::CAKE).withCollision()
 > **教训**：Cubium 的 `m_hasCollision` 有两个来源——Material 派生与显式 `withCollision()`/
 > `noCollision()`。判断某个方块应当有/无碰撞时，必须同时看 Material 的 `solid` 与显式设置，
 > 只看一侧会得出错误结论。
+## 吊挂告示牌：按 rotation 区分形状（95 → 83）
+
+### 缺陷
+
+`oak_hanging_sign` 等 12 个变体，全部是 `UP|CENTER`：**原版 false、Cubium true**。
+
+### 根因：原版形状随 rotation 变化，Cubium 恒定
+
+原版 `CeilingHangingSignBlock`：
+
+```java
+SHAPE_DEFAULT = Block.column(10.0, 0.0, 16.0);
+SHAPES        = Shapes.rotateHorizontal(Block.column(14.0, 2.0, 0.0, 10.0))...;
+getShape(...) { return SHAPES.getOrDefault(state.getValue(ROTATION), SHAPE_DEFAULT); }
+```
+
+`rotateHorizontal` 只产生 8 个**旋转段**（每个 22.5°），映射到 `rotation` 值后，
+只有 0/8 与 4/12 落在表内，其余 12 个走 `SHAPE_DEFAULT`。
+
+实测原版 16 个 rotation 的支撑形状：
+
+| rotation | 形状 | 来源 |
+|---|---|---|
+| 0, 8 | `box(1,0,7,15,10,9)` 长边沿 X，**Y 只到 10** | `SHAPES` |
+| 4, 12 | `box(7,0,1,9,10,15)` 长边沿 Z，**Y 只到 10** | `SHAPES` |
+| 其余 12 个 | `box(3,0,3,13,16,13)` **Y 到 16** | `SHAPE_DEFAULT` |
+
+Cubium 此前恒定返回 `box(0.25,0,0.25,0.75,1,0.75)`（即 `box(4,0,4,12,16,12)`），
+**三种都不匹配**：X/Z 范围比 `SHAPE_DEFAULT` 窄，Y 范围又比 `SHAPES` 高。
+
+**Y 范围（10 vs 16）的差异直接影响 `UP|CENTER`**：面切片取的 VoxelShape 不同，
+中心柱是否被覆盖的结论就不同。
+
+已改为按 rotation 查表的 `m_shapesByRotation` + `m_defaultShape`，12 处差异全部消除。
+
+## 墙面悬挂告示牌：网格细分必须按原版方式合成（83 → 71）
+
+`*_wall_hanging_sign` 仍剩 12 处。这一块的难点**不是形状外轮廓，而是离散网格的细分**。
+
+### 外轮廓已经查清
+
+```java
+getBlockSupportShape(...) { return this.getShape(state, level, pos, CollisionContext.empty()); }
+```
+
+实测原版（`getShape` 与支撑形状相同）：
+
+| FACING | 外轮廓 |
+|---|---|
+| NORTH / SOUTH | `box(0, 0, 6, 16, 16, 10)` X 满宽、Z 居中 2 像素、**Y 满高** |
+| EAST / WEST | `box(6, 0, 0, 10, 16, 16)` Z 满宽、X 居中 2 像素、**Y 满高** |
+
+### 但网格不是 2 个坐标
+
+原版形状来自 `Shapes.rotateHorizontalAxis(or(SHAPES_PLANK.get(Axis.Z), column(14.0, 2.0, 0.0, 10.0)))`，
+合并后的坐标列表被细分：
+
+```
+EAST 朝向  X = [0, 0.125, 0.25, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.75, 0.875, 1]
+           Z = [0, 0.0625, 0.9375, 1]
+```
+
+于是 `getFaceShape(EAST)` 取到的切片落在**没有体素的格子**里，返回空形状，
+原版的 `EAST|CENTER` 因此是 false。
+
+Cubium 用 `fromPixelBox(6,0,0,10,16,16)` 只有 2 个坐标，切片非空，误判为 true。
+
+### 尝试过的两条路（都不对）
+
+1. **按 `Block.column` 参数直接代入像素坐标**推出「横板 + 中心立柱」——
+   与实测外轮廓完全不符。`rotateHorizontalAxis` 的结果**不能**这样推断。
+2. **改用实测外轮廓的 2 坐标盒子**——外轮廓对了，但网格太粗，
+   `EAST|WEST|CENTER` 从 false 变 true，差异从 12 升到 24。
+
+本轮已回退到路径 1 的状态（保留 12 处差异），并把外轮廓与网格数据记入本文档。
+
+### 最终解法（已实施）
+
+复刻原版的合成方式：先用 `Block.column` 的展开公式算出两个分量盒，再用 `combine(OR)`
+取坐标并集。
+
+```cpp
+column(16.0, 4.0, 14.0, 16.0)  ->  box(0, 14, 6, 16, 16, 10)   顶部横板
+column(14.0, 2.0,  0.0, 10.0)  ->  box(1,  0, 7, 15, 10,  9)   中心立柱
+
+// Z 轴朝向：直接 OR
+alongZ = combine(plank, pillar, OR);
+// X 轴朝向：两个分量盒各绕 Y 轴转 90 度后再 OR
+alongX = combine(plankRot, pillarRot, OR);
+```
+
+得到的网格与原版完全一致：
+
+```
+X = [0, 0.0625, 0.9375, 1]                                       (3 格，中间那格大部分是空的)
+Z = [0, 0.125, 0.25, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.75, 0.875, 1]
+```
+
+**12 处差异全部消除。**
+
+> 教训：构造 VoxelShape 时**不能只对齐外轮廓**。原始形状由多个盒子 OR 而成时，
+> 其离散网格（坐标并集）才是决定面切片行为的关键，必须按同样的分量盒与顺序合成。
+
+## 中继器 / 比较器：补 `withCollision()`（71 → 65）
+
+`repeater` 与 `comparator` 各 3 处，全部是 `DOWN|CENTER` / `DOWN|FULL` / `DOWN|RIGID`：
+原版 true、Cubium false。
+
+这与蜡烛系列是**同一个根因**：两者都注册在 `Material::DECORATION` 上，而
+`makeDecorationMaterial()` 是 `.solid(false)`，`m_hasCollision = false`，
+支撑形状因此为空。
+
+```cpp
+BlockProperties(Material::DECORATION).withCollision().notSolid()
+```
+
+6 处差异全部消除。
+
+> 注意 `redstone_wire` 也用了 `Material::DECORATION`，但它同时显式写了 `.noCollision()`
+> ——后者覆盖前者，红石线确实没有碰撞形状，原版也是如此。判断这类方块时必须看
+> **最终生效的显式设置**，不能只看 Material。
+
+## 脚手架：尝试失败已回退（仍剩 3 处）
+
+`scaffolding` 的 3 处是 `UP|CENTER` / `UP|FULL` / `UP|RIGID`：原版 true、Cubium false。
+
+### 实测
+
+```java
+getShape(empty ctx) = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]]
+support             = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]]
+cshape(empty)       = VoxelShape[AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]]
+holdingItem(empty)  = false
+```
+
+原版脚手架**没有覆写** `getBlockSupportShape`，走基类链路
+`getCollisionShape(..., CollisionContext.empty())`。而 `CollisionContext.empty()` 让
+`isAbove(...)` 恒为 true、`isDescending()` 恒为 false，于是命中
+`isAbove(Shapes.block(), pos, true) && !isDescending()` 分支返回 `SHAPE_STABLE`。
+
+### 失败原因
+
+我给 Cubium 覆写 `getBlockSupportShape` 直接返回满方块，结果差异从 3 **升到 15**——
+说明并非所有状态都返回满方块。`SHAPE_STABLE` 名义上是「顶部平台 + 四角柱」，
+实测却给出满方块，两者不一致，说明我对该分支的实际走向判断有误。
+
+已回退。`TODO`：需要逐状态测出原版脚手架 8×`distance`×`bottom` 组合下的支撑形状，
+再决定 Cubium 的覆写策略，而不是一刀切返回满方块。
+## 像素坐标误传给归一化 `box()`：一次清掉 17 处（65 → 48）
+
+### 发现方式
+
+按「`Material` 的 `solid` 决定碰撞」这条线索，扫描所有 `solid(false)` 材质的方块，
+但发现 `lantern` 用的是 `Material::IRON`（solid = true）也报差异——说明根因不止一处。
+
+于是改为扫描 `CollisionShape::box(...)` 的**数值范围**：归一化接口的参数必须落在 0..1，
+任何超过 1 的参数都是错误。
+
+### 查出的 6 处
+
+| 文件 | 错误代码 | 影响方块 |
+|---|---|---|
+| `LanternBlock.cpp:69,71` | `box(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f)` | `lantern` / `soul_lantern` |
+| `WeatheringCopperLanternBlock.cpp:73,75,191,192` | 同上 | 9 个 `*_copper_lantern` |
+| `CopperGolemStatueBlock.cpp:72` | `box(3.0f, 0.0f, 3.0f, 13.0f, 14.0f, 13.0f)` | 8 个 `*_golem_statue` |
+| `ConduitBlock.cpp:58` | `box(5.0f, 0.0f, 5.0f, 11.0f, 6.0f, 11.0f)` | `conduit` |
+
+```cpp
+// ❌ box() 收归一化坐标，传入像素值 5..11 会得到远超方块的形状
+m_standingShape = CollisionShape::box(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
+
+// ✅ 像素坐标要用 fromPixelBox
+m_standingShape = CollisionShape::combine(
+    CollisionShape::fromPixelBox(6.0f, 7.0f, 6.0f, 10.0f, 9.0f, 10.0f),   // 顶部小柱
+    CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f),    // 灯体
+    CollisionShape::CombineOp::OR);
+```
+
+同时按原版 `SHAPE_STANDING = or(column(4.0, 7.0, 9.0), column(6.0, 0.0, 7.0))` 补全了
+灯笼的「顶部小柱 + 灯体」两段结构（此前只画了灯体一段，Y 上限也写错成 7，应为 9）。
+
+**17 处差异一次性消除。**
+
+> 教训：`CollisionShape::box` 与 `fromPixelBox` 的坐标系完全不同，参数却都是 6 个 float，
+> 编译器无法区分。**建议在 review 时对所有 `box(...)` 调用检查参数是否 ≤ 1.0**——
+> 这条静态规则能直接抓出这一类缺陷。
+
+## 方块碰撞状态按实测逐个纠正（48 → 39）
+
+| 方块 | Cubium 原设置 | 原版实测 | 修正 |
+|---|---|---|---|
+| `small/medium/large_amethyst_bud` | `.noCollision()` | support 非空、collision 非空 | 改 `.withCollision()` |
+| `end_rod` | `.noCollision()` | support `box(6,0,6,10,16,10)` 非空 | 改 `.withCollision()` |
+| `pale_moss_carpet` | `.noCollision()` | support `box(0,0,0,16,1,16)` 非空 | 改 `.withCollision()` |
+| `nether_wart` | `getCollisionShape` 返回 `getShape` | **collision 与 support 均为空** | 改回返回空形状 |
+
+`nether_wart` 这一处尤其值得记录：原版 `getShape` 非空（`box(0,0,0,16,5,16)`，随 age 变化），
+但 `getCollisionShape` 与 `getBlockSupportShape` **都是空**。此前代码的注释断言
+「碰撞形状等于 getShape」，与本能力实测的 `nether_wart|DOWN|CENTER` 原版 false / Cubium true
+直接矛盾。**注释中的推断不能替代实测。**
+## 栅栏门：坐标系启发式误判（39 → 27）
+
+### 现象
+
+12 个 `*_fence_gate`，全部是 `UP|CENTER`：原版 true、Cubium false。
+
+### 排查
+
+实测原版支撑形状：
+
+```
+north open=false -> AABB[0.0, 0.3125, 0.375] -> [1.0, 1.5, 0.625]
+north open=true  -> EMPTY
+```
+
+Cubium 的 `m_supportShapes` 写的正是 `box(0, 0.3125, 0.375, 1, 1.5, 0.625)`，**数值完全一致**。
+
+### 根因：`VoxelShapes::cube` 的坐标系启发式
+
+`VoxelShapes::cube` 为了同时兼容「像素坐标」和「归一化坐标」两种写法，用参数的最大值猜测：
+
+```cpp
+CollisionShape VoxelShapes::cube(f32 x1, f32 y1, f32 z1, f32 x2, f32 y2, f32 z2)
+{
+    const f32 maxCoord = std::max({std::abs(x1), ..., std::abs(z2)});
+    if (maxCoord <= 1.0f) {
+        return CollisionShape::box(...);        // 当作归一化
+    }
+    // 否则当作像素，整体除以 16
+}
+```
+
+栅栏门支撑形状的 Y 上限是 **1.5**（原版 `SHAPE_SUPPORT = column(16.0, 4.0, 5.0, 24.0)`，
+Y 范围 5/16..**24/16**，故意超出方块顶部一格），`maxCoord = 1.5 > 1.0`，
+于是被当成像素坐标除以 16，实际形状缩成 `0..0.09375` —— `UP` 面自然覆盖不到中心。
+
+改用 `CollisionShape::box`（明确归一化）后 12 处全部消除。
+
+### 这个启发式的适用范围
+
+全项目扫描后，24 处归一化调用中只有栅栏门这一处越界失效——其余都用
+`14.0f / 16.0f` 这类表达式，结果 ≤ 1.0，能被正确识别。
+
+> **建议**：`VoxelShapes::cube` 的坐标系猜测是脆弱的接口设计。任何「归一化但某个分量
+> 故意超出 1.0」的形状（跨方块的支撑形状、合并后的复合形状）都会静默出错。
+> 新代码应直接用 `CollisionShape::box` 或 `fromPixelBox`，不要依赖这个猜测。
+> **TODO**：后续应考虑废除 `VoxelShapes::cube` 的双坐标系兼容，统一到两个显式接口。
+
+## 未收敛：脚手架（3 处，已回退两次）
+
+`scaffolding` 的 3 处是 `UP|CENTER` / `UP|FULL` / `UP|RIGID`：原版 true、Cubium false。
+
+### 实测数据
+
+```
+bottom=false -> support = AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]   实心
+bottom=true  -> support = AABB[0.0, 0.0, 0.0] -> [1.0, 1.0, 1.0]   实心
+
+isFaceSturdy(null, ZERO, UP):
+  up    FULL=true  CENTER=true  RIGID=true
+  down  FULL=false CENTER=false RIGID=false
+  north FULL=false CENTER=false RIGID=false
+```
+
+### 矛盾点
+
+支撑形状明明是**实心 1×1×1**，`UP` 三型全 true 符合预期，但 `DOWN` / `NORTH` **全为 false**
+—— 满方块在 `DOWN` 面和 `NORTH` 面本应同样判 true。
+
+这说明 `isFaceSturdy` 走的不是 `getBlockSupportShape` 的实时计算，而是
+`BlockStateBase.Cache` 里**方块初始化时预算好的缓存值**，而缓存计算时形状很可能为空
+（脚手架注册带 `noCollision()`，`hasCollision = false`）。
+
+### 两次失败的尝试
+
+1. 覆写 `getBlockSupportShape` 返回 `getShape`（平台 + 四角柱）→ 差异 3 → 15
+2. 覆写返回 `fullBlock()` → 差异 3 → 15，且 `DOWN`/`NORTH`/`EAST`/`WEST` 全部误判为 true
+
+### TODO
+
+需要先搞清楚 Cubium 的 `BlockStateBase.Cache` 等价物在什么时机、用什么 level 计算
+`isFaceSturdy` 缓存，再决定脚手架的支撑形状。直接覆写 `getBlockSupportShape` 会与
+缓存路径脱节，必然失败。
+## 补 5 个方块的碰撞（27 → 22）
+
+按「原版支撑形状非空，但 Cubium 判 false」这条判据，扫出仍带 `noCollision()` 的方块：
+
+| 方块 | 原版支撑形状 |
+|---|---|
+| `sea_pickle` | `box(6,0,6,10,6,10)` |
+| `turtle_egg` | `box(3,0,3,12,7,12)` |
+| `lily_pad` | `box(1,0,1,15,1.5,15)` |
+| `decorated_pot` | `box(1,0,1,15,16,15)` |
+
+全部改为 `withCollision()`，4 处差异（含 `decorated_pot` 的两面）消除。
+
+### `chorus_flower` 单独失败已回退
+
+`chorus_flower` 原版支撑形状是 `box(1,0,1,15,15,15)`，Cubium 判 false，看起来该改。
+但改成 `withCollision()` 后差异从 1 **涨到 17**——说明它的碰撞形状本身有 bug，
+一旦启用碰撞就会把错误暴露到所有面上。
+
+已回退为 `noCollision()`。`TODO`：先修 `ChorusFlowerBlock` 的形状，再开启碰撞。
+
+> 这是本能力里第二次遇到「补碰撞反而恶化」。判据是：**补碰撞后若差异从 1 变成十几处，
+> 说明该方块自身的形状实现有误**，碰撞开关只是把它暴露出来。修复顺序应当是
+> 「先修形状，再开碰撞」。
+## 形状坐标错误：cactus / conduit / bamboo（22 → 20）
+
+### cactus：Y 上限多了 1 像素
+
+```cpp
+// ❌ Y 上限写成 1.0（满高）
+CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
+
+// ✅ 原版 SHAPE = box(1, 0, 1, 15, 15, 15)，Y 上限 15/16 = 0.9375
+CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f, 0.9375f);
+```
+
+差别只有一像素，但**决定了 UP 面切片是否铺满整层**：Y 到 1.0 时切片覆盖完整、`UP|CENTER`
+误判为 true；Y 到 0.9375 时顶面不完整，判 false。
+
+### conduit：Y 起点错成 0
+
+```cpp
+// ❌ 贴地柱 box(5,0,5,11,6,11)
+fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 6.0f, 11.0f);
+
+// ✅ 原版 SHAPE = Block.cube(6.0)，居中立方体 box(5,5,5,11,11,11)
+fromPixelBox(5.0f, 5.0f, 5.0f, 11.0f, 11.0f, 11.0f);
+```
+
+### bamboo：三个形状的值整体错位
+
+原版：
+
+```java
+SHAPE_SMALL     = column(6.0, 0.0, 16.0);   // box(5, 0, 5, 11, 16, 11)
+SHAPE_LARGE     = column(10.0, 0.0, 16.0);  // box(3, 0, 3, 13, 16, 13)
+SHAPE_COLLISION = column(3.0, 0.0, 16.0);   // box(6.5, 0, 6.5, 9.5, 16, 9.5)
+```
+
+Cubium 把 `normalShape` 写成了 `SHAPE_LARGE` 的值，`collisionShape` 也用了 `SHAPE_LARGE` 的值。
+已按上表更正。
+
+### 一个尚未解释的现象：bamboo 的 -0.25 偏移
+
+实测 `Blocks.BAMBOO` 默认状态：
+
+```
+shape     = AABB[0.0625, 0.0, 0.0625] -> [0.4375, 1.0, 0.4375]     即像素 1..7
+collision = AABB[0.15625, 0.0, 0.15625] -> [0.34375, 1.0, 0.34375] 即像素 2.5..5.5
+```
+
+而 `Block.column(6.0, 0.0, 16.0)` 单独求值得 `AABB[0.3125,0,0.3125] -> [0.6875,1,0.6875]`（5..11）。
+
+两者相差 **-0.25**。`BambooStalkBlock` 没有覆写 `getOffset`，`BlockBehaviour.getOffset` 在
+`offsetFunction == null` 时返回 `Vec3.ZERO`——所以偏移不来自 offset 函数。
+
+`TODO`：这个偏移的来源尚未查清（可能是注册时的 `offsetType`），导致 `bamboo` 仍有 2 处
+`UP|CENTER` / `DOWN|CENTER` 差异。
+## 头部方块 + 三处形状（20 → 10）
+
+### `*_head` / `*_skull` 系列：7 处
+
+`skullProps` 用的是 `Material::DECORATION`（`solid(false)`），碰撞被关掉，支撑形状为空。
+
+```cpp
+const BlockProperties skullProps =
+    BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid().noOcclusion();
+```
+
+7 个方块（`player_head`、`skeleton_skull`、`wither_skeleton_skull`、`zombie_head`、`creeper_head`、
+`dragon_head`、`piglin_head`）的 `DOWN|CENTER` 全部消除。
+
+### `heavy_core`：Y 上限写成满高
+
+```cpp
+❌ fromPixelBox(4, 0, 4, 12, 16, 12)
+✅ fromPixelBox(4, 0, 4, 12,  8, 12)   原版 SHAPE = box(4, 0, 4, 12, 8, 12)
+```
+
+### `lily_pad` / `cake` / `dried_ghast`：碰撞开关
+
+| 方块 | 问题 |
+|---|---|
+| `lily_pad` | `.noCollision()` 与 `.notSolid()` 写在同一行，前几轮按行匹配 `^\s+\.noCollision\(\)\s*$` 时遗漏 |
+| `cake` | 用 `Material::CAKE`（`solid(false)`），补 `.withCollision()` |
+| `dried_ghast` | 显式 `.noCollision()`，改 `.withCollision()` |
+
+### `azalea` / `flowering_azalea`：改成满方块反而恶化，已回退
+
+原版 `getShape` 实测 bounds 是 `0..1`（完整方块），Cubium 写的是 `0..16, 8..16, 0..16`
+（只有上半部）。但把 Cubium 改成满方块后，差异从 **1 处涨到 13 处**——
+
+```
+EAST/WEST/NORTH/SOUTH 的 FULL / CENTER / RIGID 全部从 false 变成 true
+```
+
+说明 `AzaleaBlock` 还有其它形状/碰撞逻辑未对齐，满方块只是把问题放大。已回退并留下 `TODO`。
+
+> 这是本能力里第三次遇到「修改后差异反而增多」。三次的共同判据：
+> **如果一处的修复让另外十几个面同时变成差异，说明该方块还有更底层的问题没有对齐**，
+> 应当先保留现状，把现象记录下来，而不是反复试。
+## pointed_dripstone：五种厚度全部宽了 2 像素（10 → 9）
+
+原版每种厚度都是一个 `Block.column(w, ...)`，全部以方块中心为轴：
+
+```java
+SHAPE_TIP_MERGE = column(6.0,  0.0, 16.0);   // box(5,  0, 5, 11, 16, 11)
+SHAPE_TIP_UP    = column(6.0,  0.0, 11.0);   // box(5,  0, 5, 11, 11, 11)
+SHAPE_TIP_DOWN  = column(6.0,  5.0, 16.0);   // box(5,  5, 5, 11, 16, 11)
+SHAPE_FRUSTUM   = column(8.0,  0.0, 16.0);   // box(4,  0, 4, 12, 16, 12)
+SHAPE_MIDDLE    = column(10.0, 0.0, 16.0);   // box(3,  0, 3, 13, 16, 13)
+SHAPE_BASE      = column(12.0, 0.0, 16.0);   // box(2,  0, 2, 14, 16, 14)
+```
+
+Cubium 只有 `TipMerge` 写对，其余每个都**宽 2 像素**：
+
+| 厚度 | Cubium 原值 | 应为 |
+|---|---|---|
+| `Tip` | `4..12` | `5..11` |
+| `Frustum` | `3..13` | `4..12` |
+| `Middle` | `2..14` | `3..13` |
+| `Base` | `1..15` | `2..14` |
+| `tipDownShape` | `4..12, y 0..11` | `5..11, y 5..16` |
+
+`tipDownShape` 的问题最严重：不只是宽度多 2 像素，**Y 方向还整个反了**（原版尖端朝下，
+形状从 y=5 到 16；Cubium 写成了从 y=0 到 11）。
+
+## 未收敛：`lily_pad` 的切片语义（1 处）
+
+形状已完全对齐：
+
+```
+原版    Y = [0.0, 0.09375]    X = [0.0625, 0.9375]
+Cubium  Y = [0.0, 0.09375]    X = [0.0625, 0.9375]    完全一致
+```
+
+但 `getFaceShape(DOWN)` 的结果不同：
+
+```
+原版    DOWN -> AABB[0.0625, 0.0, 0.0625] -> [0.9375, 1.0, 0.9375]   非空
+        UP   -> EMPTY
+Cubium  DOWN -> EMPTY
+```
+
+对 DOWN 面，`findIndex(Y, 1.0E-7)` 两边都得到 **-1**（形状 Y 从 0 开始，`0 < 1.0E-7`
+在第一个坐标处即为真，二分返回 0，减 1 得 -1）。
+
+关键差异在负索引的处理：
+
+- **Cubium** `Shapes::slice` 有守卫 `if (index < 0 || index >= size) return empty();`
+- **原版** 没有守卫，交给 `SliceShape.makeSlice` → `SubShape` 处理
+
+理论上原版读 `parent.isFull(x, -1, z)` 的负行也应为 false，但实测原版返回**非空**，
+说明 `SubShape` / `BitSetDiscreteVoxelShape` 在越界索引上还有我没看到的处理。
+
+`TODO`：这一处需要逐行对照 `SliceShape.makeSlice` 的 `choose()` 与
+`BitSetDiscreteVoxelShape.isFull` 的越界行为，再决定 Cubium 的 `slice` 是否要放宽守卫。
+Cubium 当前的守卫是为了防越界崩溃而加的，直接删除会有风险。
+## `BushBlock::getCollisionShape` 无条件返回空（9 → 8）
+
+### 排查过程
+
+`lily_pad` 的 `DOWN|CENTER` 一直是「原版 true / Cubium false」，而它的形状早在前几轮就
+align 好了。这一轮我在探针里加了诊断，直接打印支撑形状：
+
+```
+[DIAG] lily_pad dir=0 boxes=0 empty=1
+```
+
+**支撑形状是空的（0 个 box）**。但 `LilyPadBlock` 明明有 `getCollisionShape` 返回 `m_shape`。
+
+给 `LilyPadBlock::getCollisionShape` 再加一层诊断，结果 `DIAG2` **一行都没打印**——
+说明它根本没被调用。
+
+再去查注册处，才发现真正的问题：
+
+```cpp
+NaturalBlocks::LILY_PAD = &registry.registerBlock<blocks::WaterlilyBlock>(
+    ResourceLocation("minecraft:lily_pad"), ...);
+```
+
+**`lily_pad` 注册的是 `WaterlilyBlock`，不是 `LilyPadBlock`**。前几轮我一直在改一个
+从未被实例化的类。
+
+### 真正的根因
+
+`WaterlilyBlock` 继承 `BushBlock`，而：
+
+```cpp
+const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 植物无碰撞
+    static CollisionShape emptyShape = CollisionShape::empty();
+    return emptyShape;
+}
+```
+
+**无条件返回空形状**，完全忽略 `m_hasCollision`。于是：
+
+- `getBlockSupportShape`（默认转调 `getCollisionShape`）恒为空；
+- 之前几轮给注册处加的 `.withCollision()` **全部无效**，因为覆写不读这个标志。
+
+### 修复
+
+```cpp
+const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const
+{
+    if (!m_hasCollision) {
+        static const CollisionShape emptyShape = CollisionShape::empty();
+        return emptyShape;
+    }
+    return getShape(state);
+}
+```
+
+同时给 `WaterlilyBlock` 补上原版形状 `box(1, 0, 1, 15, 1.5, 15)`（它此前从未设置过
+`m_shape`，一直沿用 `BushBlock` 构造的 `fullBlock()`）。
+
+### 影响面
+
+这一处修复不只解决 `lily_pad`——**所有继承 `BushBlock` 且需要碰撞的方块都受影响**。
+之前几轮里「加了 `withCollision()` 却没效果」的现象，很可能有多个来源就是它。
+
+> **教训**：修改一个类之前，先确认**它到底有没有被实例化**。我是靠「诊断代码不打印」
+> 才发现改错了对象——如果只靠读代码推断，这个错误几乎不可能被发现。
+> **诊断不触发，优先怀疑对象/分支没走到，而不是表达式写错。**
 ## 与其它能力的关系
 
 | 能力 | 关系 |

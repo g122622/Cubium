@@ -118,20 +118,29 @@ void registerRedstoneBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 红石线
-    RedstoneBlocks::REDSTONE_WIRE = &registry.registerBlock<blocks::RedstoneWireBlock>(
-        ResourceLocation("minecraft:redstone_wire"), BlockProperties(Material::DECORATION).noCollision().notSolid());
+    RedstoneBlocks::REDSTONE_WIRE =
+        &registry.registerBlock<blocks::RedstoneWireBlock>(ResourceLocation("minecraft:redstone_wire"),
+            BlockProperties(Material::DECORATION).withCollision().noCollision().notSolid());
 
     // 红石火把
     // 发光等级随 LIT 状态动态变化（点亮7/熄灭0），由 RedstoneTorchBlock::getLightLevel override 提供，
     // 不在注册期设静态 lightLevel（静态值会使熄灭火把仍发光，与原版不符）。
     RedstoneBlocks::REDSTONE_TORCH =
         &registry.registerBlock<blocks::RedstoneTorchBlock>(ResourceLocation("minecraft:redstone_torch"),
-            BlockProperties(Material::DECORATION).noCollision().notSolid().soundType(BlockSoundTypes::WOOD));
+            BlockProperties(Material::DECORATION)
+                .withCollision()
+                .noCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::WOOD));
 
     // 墙上的红石火把（继承 RedstoneTorchBlock，复用 getLightLevel override）
     RedstoneBlocks::REDSTONE_WALL_TORCH =
         &registry.registerBlock<blocks::RedstoneWallTorchBlock>(ResourceLocation("minecraft:redstone_wall_torch"),
-            BlockProperties(Material::DECORATION).noCollision().notSolid().soundType(BlockSoundTypes::WOOD));
+            BlockProperties(Material::DECORATION)
+                .withCollision()
+                .noCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::WOOD));
 
     // 红石灯
     RedstoneBlocks::REDSTONE_LAMP =
@@ -144,11 +153,11 @@ void registerRedstoneBlocks()
     // 早期多写了 noCollision()，而它（与原版一致）会连带清掉 canOcclude，
     // 使中继器完全不参与遮挡计算。
     RedstoneBlocks::REDSTONE_REPEATER = &registry.registerBlock<blocks::RedstoneRepeaterBlock>(
-        ResourceLocation("minecraft:repeater"), BlockProperties(Material::DECORATION).notSolid());
+        ResourceLocation("minecraft:repeater"), BlockProperties(Material::DECORATION).withCollision().notSolid());
 
     // 红石比较器（同上）
     RedstoneBlocks::REDSTONE_COMPARATOR = &registry.registerBlock<blocks::RedstoneComparatorBlock>(
-        ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).notSolid());
+        ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).withCollision().notSolid());
 
     // 侦测器
     RedstoneBlocks::OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
@@ -156,7 +165,7 @@ void registerRedstoneBlocks()
 
     // 拉杆
     RedstoneBlocks::LEVER = &registry.registerBlock<blocks::LeverBlock>(ResourceLocation("minecraft:lever"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().hardness(0.5f).resistance(0.5f));
+        BlockProperties(Material::DECORATION).withCollision().noCollision().notSolid().hardness(0.5f).resistance(0.5f));
 
     // 石头按钮
     RedstoneBlocks::STONE_BUTTON =
@@ -543,17 +552,22 @@ void registerRedstoneBlocks()
         BlockProperties(Material::WOOL).hardness(0.5f).soundType(BlockSoundTypes::GRASS));
 
     // 绊线
-    RedstoneBlocks::TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(
-        ResourceLocation("minecraft:tripwire"), BlockProperties(Material::DECORATION).noCollision().notSolid());
+    RedstoneBlocks::TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(ResourceLocation("minecraft:tripwire"),
+        BlockProperties(Material::DECORATION).withCollision().noCollision().notSolid());
 
     // 绊线钩
     RedstoneBlocks::TRIPWIRE_HOOK =
         &registry.registerBlock<blocks::TripWireHookBlock>(ResourceLocation("minecraft:tripwire_hook"),
-            BlockProperties(Material::DECORATION).noCollision().notSolid().soundType(BlockSoundTypes::WOOD));
+            BlockProperties(Material::DECORATION)
+                .withCollision()
+                .noCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::WOOD));
 
     // 普通铁轨
     RedstoneBlocks::RAIL = &registry.registerBlock<blocks::RailBlock>(ResourceLocation("minecraft:rail"),
         BlockProperties(Material::DECORATION)
+            .withCollision()
             .noCollision()
             .notSolid()
             .hardness(0.7f)
@@ -563,6 +577,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::POWERED_RAIL =
         &registry.registerBlock<blocks::PoweredRailBlock>(ResourceLocation("minecraft:powered_rail"),
             BlockProperties(Material::DECORATION)
+                .withCollision()
                 .noCollision()
                 .notSolid()
                 .hardness(0.7f)
@@ -572,6 +587,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::DETECTOR_RAIL =
         &registry.registerBlock<blocks::DetectorRailBlock>(ResourceLocation("minecraft:detector_rail"),
             BlockProperties(Material::DECORATION)
+                .withCollision()
                 .noCollision()
                 .notSolid()
                 .hardness(0.7f)
@@ -581,6 +597,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::ACTIVATOR_RAIL =
         &registry.registerBlock<blocks::ActivatorRailBlock>(ResourceLocation("minecraft:activator_rail"),
             BlockProperties(Material::DECORATION)
+                .withCollision()
                 .noCollision()
                 .notSolid()
                 .hardness(0.7f)

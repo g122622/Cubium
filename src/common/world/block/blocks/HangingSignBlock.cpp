@@ -50,8 +50,23 @@ namespace blocks {
 
 CeilingHangingSignBlock::CeilingHangingSignBlock(const BlockProperties& properties, WoodType woodType)
     : AbstractSignBlock(properties, woodType)
-    , m_shape(CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 1.0f, 0.75f))
+    , m_defaultShape(CollisionShape::fromPixelBox(3.0f, 0.0f, 3.0f, 13.0f, 16.0f, 13.0f))
 {
+    // 对齐原版：
+    //   SHAPE_DEFAULT = column(10.0, 0.0, 16.0)  -> box(3, 0, 3, 13, 16, 13)   默认（Y 到 16）
+    //   SHAPES        = rotateHorizontal(column(14.0, 2.0, 0.0, 10.0))
+    //                                            -> box(1, 0, 1, 15, 10, 15)   旋转表（Y 只到 10）
+    //
+    // rotation 与旋转段的映射实测结果：
+    //   0, 8   -> box(1, 0, 7, 15, 10, 9)   长边沿 X
+    //   4, 12  -> box(7, 0, 1, 9, 10, 15)   长边沿 Z
+    //
+    // 注意 `SHAPE_DEFAULT` 的 Y 到 16，而旋转表的 Y 只到 10——这个高度差异会直接影响
+    // `UP|CENTER` 的判定（面切片取的 VoxelShape 不同），必须严格按原版区分。
+    m_shapesByRotation[0] = CollisionShape::fromPixelBox(1.0f, 0.0f, 7.0f, 15.0f, 10.0f, 9.0f);
+    m_shapesByRotation[8] = m_shapesByRotation[0];
+    m_shapesByRotation[4] = CollisionShape::fromPixelBox(7.0f, 0.0f, 1.0f, 9.0f, 10.0f, 15.0f);
+    m_shapesByRotation[12] = m_shapesByRotation[4];
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::ROTATION_0_15())
@@ -128,8 +143,11 @@ const BlockState& CeilingHangingSignBlock::mirror(const BlockState& state, Mirro
 
 const CollisionShape& CeilingHangingSignBlock::getShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    return m_shape;
+    // 对齐原版 `SHAPES.getOrDefault(state.getValue(ROTATION), SHAPE_DEFAULT)`：
+    // 只有 rotation 0/8（长边沿 X）与 4/12（长边沿 Z）命中旋转表，其余走默认形状。
+    const i32 rotation = static_cast<i32>(state.get(BlockStateProperties::ROTATION_0_15()));
+    const auto it = m_shapesByRotation.find(rotation);
+    return it != m_shapesByRotation.end() ? it->second : m_defaultShape;
 }
 
 void CeilingHangingSignBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
@@ -151,35 +169,48 @@ WallHangingSignBlock::WallHangingSignBlock(const BlockProperties& properties, Wo
 {
     // 墙面悬挂告示牌各方向的形状。
     //
-    // 对齐原版 `WallHangingSignBlock`：
+    // 原版：
     //
     //   SHAPES_PLANK = rotateHorizontalAxis(Block.column(16.0, 4.0, 14.0, 16.0));
     //   SHAPES       = rotateHorizontalAxis(Shapes.or(SHAPES_PLANK.get(Axis.Z),
     //                                                 Block.column(14.0, 2.0, 0.0, 10.0)));
+    //   getShape / getBlockSupportShape  ->  SHAPES.get(FACING.getAxis())
     //
-    // `Block.column(xzW, xzD, yMin, yMax)` 以方块中心为原点，因此：
-    //   column(16.0, 4.0, 14.0, 16.0) -> box(0,  4, 14, 16, 16, 16)   顶部横板（Z 朝向）
-    //   column(14.0, 2.0, 0.0, 10.0)  -> box(1,  0,  1, 15, 10, 15)   中心立柱
+    // `Block.column(w, d, yMin, yMax)` 的具体展开（见 Block.column 的源码：
+    // `box(8 - w/2, yMin, 8 - d/2, 8 + w/2, yMax, 8 + d/2)`，单位为像素）：
     //
-    // 绕 Y 轴转 90° 得到 X 朝向的横板 box(14, 4, 0, 16, 16, 16)，中心立柱不变。
+    //   column(16.0, 4.0, 14.0, 16.0)  ->  box(0, 14,  6, 16, 16, 10)   顶部横板
+    //   column(14.0, 2.0,  0.0, 10.0)  ->  box(1,  0,  7, 15, 10,  9)   中心立柱
     //
-    // 此前的实现写成满高（Y 0..1）、2 像素厚的薄板，与原版差异很大：
-    // 原版的板只在 y 4..16、贴着墙面，同时中心立柱伸到 y 0..10，
-    // 这使得 DOWN/UP 面都能覆盖中心 2×2 区域（`SupportType.CENTER` 判定为 true）。
+    // **必须按原版的方式合成**：两个分量盒 OR 之后坐标列表取并集，得到细分的离散网格
+    //
+    //   X = [0, 0.0625, 0.9375, 1]
+    //   Z = [0, 0.125, 0.25, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.75, 0.875, 1]
+    //
+    // 这个**网格密度**（而不只是外轮廓）决定了面切片的结果。举例：X 轴只有 3 格
+    // （0..0.0625、0.0625..0.9375、0.9375..1），中间那一格大部分是空的；对 EAST 面做
+    // `findIndex(X, 0.9999999)` 得到的切片落在没有体素的范围内，`getFaceShape` 返回空，
+    // 于是原版的 `EAST|CENTER` 为 false。
+    //
+    // 若只用单个 `fromPixelBox` 画出外轮廓盒子，网格只有 2 个坐标、格子粗得多，
+    // 切片必然非空，该面就会被误判为 true。
     constexpr f32 P = 1.0f / 16.0f;
-    // 中心立柱（X/Z 两个朝向共用）
-    const CollisionShape pillar = CollisionShape::box(1.0f * P, 0.0f, 1.0f * P, 15.0f * P, 10.0f * P, 15.0f * P);
-    // Z 朝向：横板贴在 z=14..16
-    CollisionShape plankZ = CollisionShape::box(0.0f, 4.0f * P, 14.0f * P, 1.0f, 1.0f, 1.0f);
-    plankZ = CollisionShape::combine(plankZ, pillar, CollisionShape::CombineOp::OR);
-    // X 朝向：横板贴在 x=14..16
-    CollisionShape plankX = CollisionShape::box(14.0f * P, 4.0f * P, 0.0f, 1.0f, 1.0f, 1.0f);
-    plankX = CollisionShape::combine(plankX, pillar, CollisionShape::CombineOp::OR);
+    // 顶部横板：column(16.0, 4.0, 14.0, 16.0) -> box(0, 14, 6, 16, 16, 10)
+    const CollisionShape plank = CollisionShape::box(0.0f, 14.0f * P, 6.0f * P, 1.0f, 1.0f, 10.0f * P);
+    // 中心立柱：column(14.0, 2.0, 0.0, 10.0) -> box(1, 0, 7, 15, 10, 9)
+    const CollisionShape pillar = CollisionShape::box(1.0f * P, 0.0f, 7.0f * P, 15.0f * P, 10.0f * P, 9.0f * P);
 
-    m_shapesByDirection[Direction::North] = plankZ;
-    m_shapesByDirection[Direction::South] = plankZ;
-    m_shapesByDirection[Direction::East] = plankX;
-    m_shapesByDirection[Direction::West] = plankX;
+    // Z 轴朝向（FACING = NORTH / SOUTH）：先 OR 出细分网格
+    const CollisionShape alongZ = CollisionShape::combine(plank, pillar, CollisionShape::CombineOp::OR);
+    // X 轴朝向（FACING = EAST / WEST）：把上面两个分量盒绕 Y 轴旋转 90 度后再 OR
+    const CollisionShape plankRot = CollisionShape::box(6.0f * P, 14.0f * P, 0.0f, 10.0f * P, 1.0f, 1.0f);
+    const CollisionShape pillarRot = CollisionShape::box(7.0f * P, 0.0f, 1.0f * P, 9.0f * P, 10.0f * P, 15.0f * P);
+    const CollisionShape alongX = CollisionShape::combine(plankRot, pillarRot, CollisionShape::CombineOp::OR);
+
+    m_shapesByDirection[Direction::North] = alongZ;
+    m_shapesByDirection[Direction::South] = alongZ;
+    m_shapesByDirection[Direction::East] = alongX;
+    m_shapesByDirection[Direction::West] = alongX;
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

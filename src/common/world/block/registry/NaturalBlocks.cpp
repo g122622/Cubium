@@ -237,13 +237,13 @@ void registerNaturalBlocks()
     // 睡莲 - 水生植物，下方须为水/冰且上方无流体。新建 WaterlilyBlock 走 canSurvive 闸门，
     // 修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
     NaturalBlocks::LILY_PAD = &registry.registerBlock<blocks::WaterlilyBlock>(ResourceLocation("minecraft:lily_pad"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::LILY_PAD));
+        BlockProperties(Material::PLANT).withCollision().notSolid().soundType(BlockSoundTypes::LILY_PAD));
 
     // 藤蔓 - 可被岩浆点燃（对齐 vanilla vine）
     NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
         BlockProperties(Material::REPLACEABLE_PLANT)
             .hardness(0.2f)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .ignitedByLava()
             .soundType(BlockSoundTypes::VINE));
@@ -280,7 +280,7 @@ void registerNaturalBlocks()
     NaturalBlocks::SEA_PICKLE =
         &registry.registerBlock<blocks::SeaPickleBlock>(ResourceLocation("minecraft:sea_pickle"),
             BlockProperties(Material::OCEAN_PLANT)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .lightLevel(6)
                 .soundType(BlockSoundTypes::SLIME));
@@ -311,7 +311,7 @@ void registerNaturalBlocks()
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
             BlockProperties(Material::CORAL)
                 .hardness(0.5f)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .noOcclusion()
                 .soundType(BlockSoundTypes::METAL));
@@ -325,7 +325,7 @@ void registerNaturalBlocks()
         &registry.registerBlock<blocks::DriedGhastBlock>(ResourceLocation("minecraft:dried_ghast"),
             BlockProperties(Material::ORGANIC)
                 .hardness(0.0f)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .tickRandomly()
                 .soundType(BlockSoundTypes::DRIED_GHAST));
@@ -341,7 +341,8 @@ void registerNaturalBlocks()
     // `Blocks.wallVariant(...)`，只继承掉落表与描述，**不继承** noOcclusion()，
     // 因此它们的 canOcclude 保持默认 true。早期实现让两者共用同一份属性，
     // 把墙面头颅也注册成了无遮挡。
-    const BlockProperties skullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid().noOcclusion();
+    const BlockProperties skullProps =
+        BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid().noOcclusion();
     const BlockProperties wallSkullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
 
     NaturalBlocks::SKELETON_SKULL = &registry.registerBlock<blocks::SkullBlock>(

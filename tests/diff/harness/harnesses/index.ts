@@ -191,6 +191,8 @@ import { legacyRandomInput } from "./legacy_random.ts";
 import { customStatsInput } from "./custom_stats.ts";
 import { soundEventsInput } from "./sound_events.ts";
 import { particleTypeInput } from "./particle_type.ts";
+import { shapeFaceInput } from "./shape_face.ts";
+import { blockShapeInput } from "./block_shape.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1252,6 +1254,20 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
             { key: "75|campfire_cosy_smoke", field: "result", reason: "Cubium 枚举名为 CampfireCozy（cozy/cosy 拼写差异），索引一致" },
             { key: "76|campfire_signal_smoke", field: "result", reason: "Cubium 枚举名为 CampfireSignal，索引一致" },
         ] },
+    {
+        name: "shape_face",
+        probe: "shape_face",
+        oracle: "ShapeFaceOracle",
+        description: "VoxelShape 的面切片（15 种边界形状 × 6 方向）；把 slice / findIndex / "
+            + "isCubeLikeAlong 单独拎出来比对，用于定位 face_sturdy 剩余差异的底层根因",
+        key: "unit", units: { kind: "listing" }, input: shapeFaceInput },
+    {
+        name: "block_shape",
+        probe: "block_shape",
+        oracle: "BlockShapeOracle",
+        description: "方块三种形状的坐标（外形 / 碰撞 / 支撑，默认状态）；"
+            + "face_sturdy 只看布尔结论，本能力直接摊开坐标，用于定位形状写错还是碰撞开关错",
+        key: "unit", units: { kind: "listing" }, input: blockShapeInput },
 
 
 

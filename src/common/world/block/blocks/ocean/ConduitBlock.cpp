@@ -55,7 +55,9 @@ namespace {
 //   = box(5, 0, 5, 11, 6, 11)，即 x/z 各 6 像素宽、贴地高 6 像素的盒子。
 // 早期写成了居中立方体 (5,5,5)-(11,11,11)：横截面虽相同，但整体上抬了 5 像素，
 // 不仅落地判定偏移，还把「贴地摆放」的房间光照挡住的范围算错了一格。
-static const CollisionShape CONDUIT_SHAPE = CollisionShape::box(5.0f, 0.0f, 5.0f, 11.0f, 6.0f, 11.0f);
+// 原版 SHAPE = Block.cube(6.0)，即居中的 6x6x6 立方体：box(5, 5, 5, 11, 11, 11)。
+// 此前写成 y 0..6（贴地柱），Y 起点错成 0，导致 UP/DOWN 面的切片判定与原版不符。
+static const CollisionShape CONDUIT_SHAPE = CollisionShape::fromPixelBox(5.0f, 5.0f, 5.0f, 11.0f, 11.0f, 11.0f);
 } // namespace
 
 ConduitBlock::ConduitBlock(BlockProperties properties)

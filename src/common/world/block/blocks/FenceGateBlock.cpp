@@ -94,8 +94,10 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     for (size_t i = 0; i < m_supportShapes.size(); ++i) {
         m_supportShapes[i] = VoxelShapes::empty();
     }
-    const CollisionShape supportZ = VoxelShapes::cube(0.0f, 0.3125f, 0.375f, 1.0f, 1.5f, 0.625f);
-    const CollisionShape supportX = VoxelShapes::cube(0.375f, 0.3125f, 0.0f, 0.625f, 1.5f, 1.0f);
+    // 必须用 box()：VoxelShapes::cube 用 maxCoord <= 1.0 猜测坐标系，而本形状的 Y 上限是 1.5
+    // （原版 SHAPE_SUPPORT 的 Y 范围 5/16..24/16 超出方块顶部），会被误判成像素坐标。
+    const CollisionShape supportZ = CollisionShape::box(0.0f, 0.3125f, 0.375f, 1.0f, 1.5f, 0.625f);
+    const CollisionShape supportX = CollisionShape::box(0.375f, 0.3125f, 0.0f, 0.625f, 1.5f, 1.0f);
     m_supportShapes[static_cast<size_t>(Direction::North)] = supportZ;
     m_supportShapes[static_cast<size_t>(Direction::South)] = supportZ;
     m_supportShapes[static_cast<size_t>(Direction::East)] = supportX;

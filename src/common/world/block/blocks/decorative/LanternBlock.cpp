@@ -64,11 +64,25 @@ LanternBlock::LanternBlock(BlockProperties properties, u8 lightValue)
     setDefaultState(
         defaultState().with(BlockStateProperties::HANGING(), false).with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 创建形状
-    // 站立形状：底部到中部
-    m_standingShape = CollisionShape::box(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
-    // 悬挂形状：顶部悬挂
-    m_hangingShape = CollisionShape::box(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    // 创建形状。原版：
+    //
+    //   SHAPE_STANDING = or(Block.column(4.0, 7.0, 9.0), Block.column(6.0, 0.0, 7.0));
+    //   SHAPE_HANGING  = SHAPE_STANDING.move(0.0, 0.0625, 0.0).optimize();
+    //
+    // 展开成像素坐标：
+    //   column(4.0, 7.0, 9.0) -> box(6, 7, 6, 10,  9, 10)   顶部小柱
+    //   column(6.0, 0.0, 7.0) -> box(5, 0, 5, 11,  7, 11)   灯体
+    //   合并外轮廓              box(5, 0, 5, 11,  9, 11)
+    //   悬挂 = 站立整体上移 1 像素   box(5, 1, 5, 11, 10, 11)
+    //
+    // 注意必须用 fromPixelBox：`CollisionShape::box` 接收的是**归一化 0..1 坐标**，
+    // 直接把像素值（5..11）传进去会得到远超方块的形状。
+    m_standingShape = CollisionShape::combine(CollisionShape::fromPixelBox(6.0f, 7.0f, 6.0f, 10.0f, 9.0f, 10.0f),
+        CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f),
+        CollisionShape::CombineOp::OR);
+    m_hangingShape = CollisionShape::combine(CollisionShape::fromPixelBox(6.0f, 8.0f, 6.0f, 10.0f, 10.0f, 10.0f),
+        CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f),
+        CollisionShape::CombineOp::OR);
 }
 
 BlockState LanternBlock::getStateForPlacement(BlockItemUseContext& context)
