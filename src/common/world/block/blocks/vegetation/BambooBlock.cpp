@@ -253,6 +253,12 @@ CollisionShape BambooBlock::getShapeAt(const BlockState& state, const BlockPos& 
     return getShape(state).offset(offset.x, offset.y, offset.z);
 }
 
+CollisionShape BambooBlock::getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    const Vector3 offset = getOffset(pos);
+    return getCollisionShape(state).offset(offset.x, offset.y, offset.z);
+}
+
 const CollisionShape& BambooBlock::getCollisionShape(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);
@@ -357,8 +363,10 @@ BambooSaplingBlock::BambooSaplingBlock(const BlockProperties& properties)
         });
     createBlockState(std::move(container));
 
-    // 幼苗形状
-    m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.3125f, 0.75f);
+    // 原版 BambooSaplingBlock.SHAPE = Block.column(8.0, 0.0, 12.0)
+    //   = box(4, 0, 4, 12, 12, 12) -> X/Z 0.25..0.75，Y 上限 12/16 = 0.75。
+    // 此前 Y 上限写成 0.3125（5/16），幼苗矮了将近一半。
+    m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.75f, 0.75f);
 }
 
 bool BambooSaplingBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

@@ -135,6 +135,11 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override;
 
+    /**
+     * @brief 按位置返回碰撞形状：原版用更细的 `SHAPE_COLLISION` 并叠加位置偏移。
+     */
+    [[nodiscard]] CollisionShape getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const noexcept override

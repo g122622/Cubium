@@ -406,6 +406,59 @@ DryVegetationBlock(const BlockProperties& properties, const CollisionShape& shap
 
 `short_grass`、`fern`、`tall_grass`、`large_fern`、`bush`、`dead_bush`、`short_dry_grass`、
 `tall_dry_grass` **全部一致**。
+## 探针改用 `getShapeAt`，修 pointed_dripstone / bamboo 系列（170 → 153）
+
+### 关键澄清：`getShape` 的返回值是否含偏移，取决于方块类
+
+上一轮把探针改回 `getShape()` 后，`allium` 又出现差异。原因是：
+
+- 原版 `getShape(state, level, pos, ctx)` 对 `FlowerBlock` 等**在内部调用了
+  `move(getOffset(pos))`**，返回值**已含偏移**；
+- 对 `TallGrassBlock` 等则直接返回固定 `SHAPE`，**不含偏移**。
+
+所以探针应当调用语义等价于「带 pos 的 getShape」的入口——即 `getShapeAt(pos)`，
+它默认不偏移、只在四个类里覆写。这样两类方块都能自动对上。
+
+> 教训：这一层语义绕了两圈。第一轮我以为「有 offsetType 就要偏移」（错），第二轮改成
+> 「getShape 一律不偏移」（也不完整）。**正确理解是：偏移由各类 getShape 自己决定**，
+> 查询入口必须能反映这一点。
+
+### `pointed_dripstone` 的 `maxHorizontalOffset` 是 0.125
+
+原版：
+
+```java
+private static final float MAX_HORIZONTAL_OFFSET = (float)SHAPE_BASE.min(Direction.Axis.X);
+protected float getMaxHorizontalOffset() { return MAX_HORIZONTAL_OFFSET; }
+```
+
+`SHAPE_BASE = column(12, 0, 16)`，其 `min(X) = 2/16 = 0.125`。实测偏移确实是 `-0.125`
+而非默认的 `-0.25`。已在 Cubium 覆写 `getMaxHorizontalOffset()` 返回 `0.125f`。
+
+### `bamboo_sapling` 高度错了一半
+
+```cpp
+❌ box(0.25, 0, 0.25, 0.75, 0.3125, 0.75)     Y 上限 5/16
+✅ box(0.25, 0, 0.25, 0.75, 0.75,   0.75)    原版 column(8, 0, 12) -> Y 上限 12/16
+```
+
+### 结果
+
+`allium`、`bamboo`、`bamboo_sapling`、`pointed_dripstone`、`short_grass`、`tall_grass`、
+`dead_bush`、`bush`、`short_dry_grass`、`tall_dry_grass` 的 **shape 字段全部一致**。
+
+`bamboo` 与 `pointed_dripstone` 仍有 `collision` / `support` 差异（原版这两个形状也带偏移，
+详见下节）。
+
+### TODO：碰撞/支撑形状的偏移
+
+原版 `BambooStalkBlock` 覆写了 `getCollisionShape`：`SHAPE_COLLISION.move(getOffset(pos))`。
+`PointedDripstoneBlock` 未覆写，继承默认的 `hasCollision ? getShape(...) : empty()`，
+而 `getShape` 已带偏移，所以碰撞形状**也有偏移**。
+
+Cubium 已加 `Block::getCollisionShapeAt` / `getBlockSupportShapeAt`，但**尚未在探针中启用**：
+试过之后差异从 153 涨到 218——大量方块的碰撞形状与外形本就不同（如栅栏、台阶），
+统一按「外形 + 偏移」推导会破坏它们。需要逐类判断哪些方块真正让碰撞形状跟随外形偏移。
 ## 与其它能力的关系
 
 | 能力 | 关系 |

@@ -190,7 +190,9 @@ std::string runLine(std::string_view inputLine)
     // PointedDripstoneBlock 在 getShape 里应用了 offsetType 偏移，其余方块（草、树苗、
     // 蘑菇等）虽然有 offsetType，getShape 仍直接返回固定形状。偏移由方块自身的
     // getShapeAt 决定，探针不需要在这一层额外处理。
-    const std::string result = "shape=" + describe(state->getShape()) +
+    // 用 getShapeAt 而非 getShape：前者会按方块自身是否在 getShape 里应用偏移来返回，
+    // 与原版 `getShape(state, level, pos, ctx)` 的语义一致。
+    const std::string result = "shape=" + describe(state->getShapeAt(BlockPos(0, 0, 0))) +
         "|collision=" + describe(state->getCollisionShape()) + "|support=" + describe(state->getBlockSupportShape());
 
     return json{{"unit", name}, {"result", result}}.dump();

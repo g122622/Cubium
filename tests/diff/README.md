@@ -504,7 +504,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `sound_events` | 原版 jar `SoundEventsOracle`（反射枚举）| 1637 个音效 ID | 全部一致，**补齐 549 个缺失 ID** | 音效 ID 是 sounds.json 键与网络包内容，缺项会让行为完全无声 |
 | `particle_type` | 原版 jar `ParticleTypeOracle`（注册表顺序）| 115 个粒子类型 | 110 一致、5 处已登记命名差异 | 枚举值直接是网络协议 ID，错一位会让后续全部错位且不报错；**索引已验证完全对齐** |
 | `shape_face` | 原版 jar `ShapeFaceOracle` | 15 种边界形状 × 6 方向 | 全部一致 | 把 slice/findIndex/isCubeLikeAlong 单独拎出来验证；**结论：切片机制本身正确**，face_sturdy 剩余差异在方块侧 |
-| `block_shape` | 原版 jar `BlockShapeOracle` | 1166 个方块 × 三种形状 | **170 处差异** | 体素化 16³ 输出三种形状；逐盒输出会误报盒子拆分差异，必须体素化 |
+| `block_shape` | 原版 jar `BlockShapeOracle` | 1166 个方块 × 三种形状 | **153 处差异** | 体素化 16³ 输出三种形状；逐盒输出会误报盒子拆分差异，必须体素化 |
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505 个物品的燃料时长 | 全部一致 | 需服务端世界，独占组 `loot-world` |
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470 个配方的分页 | 全部一致 | 配方书分类页归属 |
 | `walk_path_type` | 原版 jar | — | — | 缺少文档，待补 |

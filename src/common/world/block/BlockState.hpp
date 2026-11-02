@@ -324,6 +324,22 @@ public:
     [[nodiscard]] CollisionShape getShapeAt(const BlockPos& pos) const;
 
     /**
+     * @brief 获取指定位置处的碰撞形状（世界坐标，已叠加 `offsetType` 偏移）。
+     *
+     * @param pos 方块位置
+     * @return 碰撞形状
+     */
+    [[nodiscard]] CollisionShape getCollisionShapeAt(const BlockPos& pos) const;
+
+    /**
+     * @brief 获取指定位置处的支撑形状（世界坐标，已叠加 `offsetType` 偏移）。
+     *
+     * @param pos 方块位置
+     * @return 支撑形状
+     */
+    [[nodiscard]] CollisionShape getBlockSupportShapeAt(const BlockPos& pos) const;
+
+    /**
      * @brief 获取遮挡形状
      */
     [[nodiscard]] const CollisionShape& getOcclusionShape() const;
