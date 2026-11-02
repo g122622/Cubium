@@ -109,6 +109,7 @@ WallBlock::WallBlock(const BlockProperties& properties)
 
                         if (up != 0) {
                             shape = m_pillarShape;
+                            // 侧柱：宽度 0.3125..0.6875，向方块外缘延伸，深度只到 0.25。
                             if (north > 0) {
                                 const f32 height = (north == 2) ? 16.0f : 14.0f;
                                 shape = CollisionShape::combine(
@@ -129,27 +130,63 @@ WallBlock::WallBlock(const BlockProperties& properties)
                                 shape = CollisionShape::combine(
                                     shape, CollisionShape::box(0.0f, 0.0f, 5.0f * P, 0.25f, height * P, 11.0f * P));
                             }
-                        } else {
-                            // up=false：无中心柱，侧柱从方块边缘一直伸到中心线（0.5）。
-                            if (north > 0) {
-                                const f32 height = (north == 2) ? 16.0f : 14.0f;
+
+                            // `low` 柱（y 只到 0.875）会沿**垂直于自身**的方向拉成一条带子，
+                            // 与中心柱连成一片。实测原版：
+                            //   四侧皆 low              -> [0,0,0.3125 -> 1,0.875,0.6875]   东西整条
+                            //   N=tall,S=tall,W=low     -> [0,0,0.3125 -> 0.75,0.875,0.6875] 只连到西半
+                            //   并各自附带 [0.25,0.875,0.3125 -> 0.75,1,0.6875] 的顶部横梁
+                            // 少了这条带子，两段 low 墙之间的缝隙会被判成可穿过。
+                            const bool northLow = (north == 1);
+                            const bool southLow = (south == 1);
+                            const bool westLow = (west == 1);
+                            const bool eastLow = (east == 1);
+                            if (westLow) {
                                 shape = CollisionShape::combine(
-                                    shape, CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, height * P, 0.5f));
+                                    shape, CollisionShape::box(0.0f, 0.0f, 0.3125f, 0.75f, 0.875f, 0.6875f));
+                            }
+                            if (eastLow) {
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.25f, 0.0f, 0.3125f, 1.0f, 0.875f, 0.6875f));
+                            }
+                            if (northLow) {
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.3125f, 0.0f, 0.0f, 0.6875f, 0.875f, 0.75f));
+                            }
+                            if (southLow) {
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.3125f, 0.0f, 0.25f, 0.6875f, 0.875f, 1.0f));
+                            }
+                            if (northLow || southLow || westLow || eastLow) {
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.25f, 0.875f, 0.3125f, 0.75f, 1.0f, 0.6875f));
+                            }
+                        } else {
+                            // up=false：没有中心柱。每根侧柱是宽度 0.3125..0.6875、从方块边缘
+                            // 一直延伸到 0.6875 处的 L 形盒。实测（forAllBoxes）：
+                            //   north=low             -> [0.3125,0,0 -> 0.6875,0.875,0.6875]
+                            //   north=low + south=low -> [0.3125,0,0 -> 0.6875,0.875,1.0]
+                            //   四侧皆 low             -> 三条盒（见 WallBlock 形状文档）
+                            constexpr f32 kEdge = 0.6875f;
+                            if (north > 0) {
+                                const f32 height = (north == 2) ? 1.0f : 0.875f;
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.3125f, 0.0f, 0.0f, 0.6875f, height, kEdge));
                             }
                             if (south > 0) {
-                                const f32 height = (south == 2) ? 16.0f : 14.0f;
+                                const f32 height = (south == 2) ? 1.0f : 0.875f;
                                 shape = CollisionShape::combine(
-                                    shape, CollisionShape::box(5.0f * P, 0.0f, 0.5f, 11.0f * P, height * P, 16.0f * P));
+                                    shape, CollisionShape::box(0.3125f, 0.0f, 1.0f - kEdge, 0.6875f, height, 1.0f));
                             }
                             if (east > 0) {
-                                const f32 height = (east == 2) ? 16.0f : 14.0f;
+                                const f32 height = (east == 2) ? 1.0f : 0.875f;
                                 shape = CollisionShape::combine(
-                                    shape, CollisionShape::box(0.5f, 0.0f, 5.0f * P, 16.0f * P, height * P, 11.0f * P));
+                                    shape, CollisionShape::box(1.0f - kEdge, 0.0f, 0.3125f, 1.0f, height, 0.6875f));
                             }
                             if (west > 0) {
-                                const f32 height = (west == 2) ? 16.0f : 14.0f;
+                                const f32 height = (west == 2) ? 1.0f : 0.875f;
                                 shape = CollisionShape::combine(
-                                    shape, CollisionShape::box(0.0f, 0.0f, 5.0f * P, 0.5f, height * P, 11.0f * P));
+                                    shape, CollisionShape::box(0.0f, 0.0f, 0.3125f, kEdge, height, 0.6875f));
                             }
                         }
 
