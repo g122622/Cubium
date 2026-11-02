@@ -69,12 +69,11 @@ SeaPickleBlock::SeaPickleBlock(const BlockProperties& properties)
     setDefaultState(
         defaultState().with(BlockStateProperties::PICKLES_1_4(), 1).with(BlockStateProperties::WATERLOGGED(), true));
 
-    // 创建各数量的形状
-    // 1个：小型，2个：中型，3个：大型，4个：最大
-    m_shapesByCount[0] = CollisionShape::box(0.375f, 0.0f, 0.375f, 0.625f, 0.3125f, 0.625f);
-    m_shapesByCount[1] = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.375f, 0.75f);
-    m_shapesByCount[2] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.4375f, 0.8125f);
-    m_shapesByCount[3] = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.5f, 0.875f);
+    // 原版海泡菜各档都是整格高度 6/16（count=4 时 7/16），宽度按档递增。
+    m_shapesByCount[0] = CollisionShape::box(0.375f, 0.0f, 0.375f, 0.625f, 0.375f, 0.625f);
+    m_shapesByCount[1] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.375f, 0.8125f);
+    m_shapesByCount[2] = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.375f, 0.875f);
+    m_shapesByCount[3] = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.4375f, 0.875f);
 }
 
 i32 SeaPickleBlock::getPickles(const BlockState& state) const

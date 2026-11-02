@@ -65,11 +65,12 @@ NetherWartBlock::NetherWartBlock(const BlockProperties& properties)
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::AGE_0_3(), 0));
 
-    // 创建各年龄的形状
-    m_shapesByAge[0] = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.25f, 0.75f);
-    m_shapesByAge[1] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.375f, 0.8125f);
-    m_shapesByAge[2] = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.5f, 0.875f);
-    m_shapesByAge[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.625f, 0.9375f);
+    // 原版各生长阶段都是整格宽，只是高度不同：5/16、8/16、11/16、14/16。
+    // 此前写成逐渐收缩的锥形，方向完全错了。
+    m_shapesByAge[0] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.3125f, 1.0f);
+    m_shapesByAge[1] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapesByAge[2] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.6875f, 1.0f);
+    m_shapesByAge[3] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.875f, 1.0f);
 }
 
 i32 NetherWartBlock::getAge(const BlockState& state) const noexcept
