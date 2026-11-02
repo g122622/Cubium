@@ -182,6 +182,7 @@ import { blockStateEnumStrings2Input } from "./block_state_enum_strings_2.ts";
 import { blockStateEnumStrings3Input } from "./block_state_enum_strings_3.ts";
 import { booleanPropertyIndexInput } from "./boolean_property_index.ts";
 import { enumPropertyOrderInput } from "./enum_property_order.ts";
+import { enumPropertyOrderAllInput } from "./enum_property_order_all.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1175,6 +1176,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 枚举属性值顺序：原版 FACING 是显式列表 NORTH,EAST,SOUTH,WEST,UP,DOWN。
     { name: "enum_property_order", probe: "enum_property_order", oracle: "EnumPropertyOrderOracle",
         key: "unit", units: { kind: "listing" }, input: enumPropertyOrderInput },
+    // 全部 40 个枚举属性的值顺序（enum_property_order 的扩展版）。
+    { name: "enum_property_order_all", probe: "enum_property_order_all", oracle: "EnumPropertyOrderAllOracle",
+        key: "unit", units: { kind: "listing" }, input: enumPropertyOrderAllInput },
+
 
 
 
