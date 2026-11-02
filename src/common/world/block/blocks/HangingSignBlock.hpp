@@ -164,6 +164,13 @@ public:
         return getShape(state);
     }
 
+    /**
+     * @brief 碰撞形状只取顶部横板，不含中心立柱。
+     *
+     * 原版 `SHAPES_PLANK.get(FACING.getAxis())`——玩家能穿过立柱但撞得到横板。
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
@@ -174,6 +181,9 @@ protected:
 
 private:
     std::unordered_map<Direction, CollisionShape> m_shapesByDirection;
+
+    /// 各朝向下的顶部横板形状（碰撞用，不含立柱）。
+    std::unordered_map<Direction, CollisionShape> m_plankShapes;
 };
 
 } // namespace blocks

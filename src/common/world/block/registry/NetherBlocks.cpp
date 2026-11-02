@@ -767,7 +767,7 @@ void registerNetherBlocks()
         // 紫颂植物/花：0.4 / 0.4（原版不是 0；0 会让它瞬间被破坏、且无法抗爆）。
         ResourceLocation("minecraft:chorus_plant"),
         BlockProperties(Material::PLANT)
-            .noCollision()
+            .withCollision()
             .hardness(0.4f)
             .resistance(0.4f)
             .noOcclusion()

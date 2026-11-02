@@ -459,6 +459,88 @@ protected float getMaxHorizontalOffset() { return MAX_HORIZONTAL_OFFSET; }
 Cubium 已加 `Block::getCollisionShapeAt` / `getBlockSupportShapeAt`，但**尚未在探针中启用**：
 试过之后差异从 153 涨到 218——大量方块的碰撞形状与外形本就不同（如栅栏、台阶），
 统一按「外形 + 偏移」推导会破坏它们。需要逐类判断哪些方块真正让碰撞形状跟随外形偏移。
+## 逐类修正碰撞形状（153 → 138）
+
+上一轮尝试「统一让碰撞形状跟随外形偏移」失败（153 → 218）。本轮改为**逐类核对原版**，
+只修明确了的三类。
+
+### `WallHangingSignBlock`：碰撞只取横板（12 处）
+
+原版：
+
+```java
+private static final Map<Direction.Axis, VoxelShape> SHAPES_PLANK =
+    Shapes.rotateHorizontalAxis(Block.column(16.0, 4.0, 14.0, 16.0));
+
+protected VoxelShape getCollisionShape(BlockState state, ...) {
+    return SHAPES_PLANK.get(state.getValue(FACING).getAxis());   // 只有横板，不含立柱
+}
+```
+
+**碰撞形状与支撑形状不同**：支撑用 `SHAPES`（横板 + 立柱），碰撞只用 `SHAPES_PLANK`。
+玩家能穿过立柱，但撞得到横板。
+
+Cubium 此前没有覆写 `getCollisionShape`，而注册时用了 `.noCollision()`，于是碰撞恒为空。
+已新增 `m_plankShapes` 成员与 `getCollisionShape` 覆写。
+
+### `CactusBlock`：碰撞比外形矮 1 像素
+
+```java
+private static final VoxelShape SHAPE          = Block.column(14.0, 0.0, 16.0);   // Y 到 1.0
+private static final VoxelShape SHAPE_COLLISION = Block.column(14.0, 0.0, 15.0);  // Y 到 0.9375
+```
+
+Cubium 的 `getCollisionShape` 此前直接返回 `getShape`。已改为独立的静态碰撞形状。
+
+> 这解释了 `face_sturdy` 那一轮的困惑：当时我把 `cactus` 的 `getShape` Y 上限改成 `0.9375`，
+> 结果 `block_shape` 报错；后来改回 `1.0`，`face_sturdy` 又报错。真相是**两个形状本来就不同**，
+> 应该分开定义，而不是在同一个常量上反复改。
+
+### `cocoa` / `chorus_plant`：误设 `noCollision()`
+
+两者注册时写了 `.noCollision()`，但原版都有非空碰撞形状。形状已经正确，只需改碰撞开关。
+
+### 剩余 3 处（TODO）
+
+| 方块 | 差异 |
+|---|---|
+| `bamboo` | 原版碰撞 = `column(3,0,16)` + 偏移 `-0.25`；需在 `getCollisionShapeAt` 中生效 |
+| `pointed_dripstone` | 原版碰撞随 `getShape` 一起偏移（未覆写 `getCollisionShape`）|
+| `chorus_flower` | 待查 |
+
+这三处需要探针走 `getCollisionShapeAt`，但**不能全局启用**——上一轮的 218 处证明那样会
+破坏大量本来就不同的方块。可行的做法是让探针按方块逐类判断，而不是在公共层统一推导。
+## 床：腿数从 4 改成 2（16 处，差异数未变）
+
+原版：
+
+```java
+VoxelShape leg      = Block.box(0.0, 0.0, 0.0, 3.0, 3.0, 3.0);
+VoxelShape legRot90 = Shapes.rotate(leg, OctahedralGroup.BLOCK_ROT_Y_90);   // -> box(13,0,0,16,3,3)
+SHAPES = rotateHorizontal(Shapes.or(Block.column(16.0, 3.0, 9.0), leg, legRot90));
+```
+
+**只有两条腿**，位于对角。Cubium 此前画了四条（`legNW`/`legNE`/`legSW`/`legSE`），
+床底多出两块。
+
+已改为两条腿。
+
+### 但差异数没有变化，原因待查
+
+两种都试过了——「两条腿分成三个盒子」和「合并成单一 `box(0,0,0,1,0.5625,1)`」——
+`block_shape` 的差异数都保持 138，`_bed` 仍是 16 处。
+
+说明差异**不在形状数值**上。体素化后两者的覆盖应该相同，差异只能来自：
+
+- `describe` 遍历 `boxes()` 时的盒子集合不同；或
+- 原版 `VoxelShape` 的内部网格（`DiscreteVoxelShape` 的坐标细分）与
+  `CollisionShape` 的盒子列表在体素化时得到了不同结果。
+
+`TODO`：需要把探针收到的实际形状（盒子列表与各轴坐标）打印出来，与原版的
+`discreteVoxelShape` 逐格对比，才能定位。当前没有做这一步，因此**床的修复只有代码层面的
+依据（原版确实只有两条腿），尚未被差分验证**。
+
+> 这一点必须如实标注：**改了但没验证通过**，与「改了并验证通过」是两回事。
 ## 与其它能力的关系
 
 | 能力 | 关系 |
