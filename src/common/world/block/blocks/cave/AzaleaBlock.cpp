@@ -50,14 +50,28 @@ AzaleaBlock::AzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockP
     , IGrowable()
     , m_treeGenerator(std::move(treeGenerator))
 {
-    // MC 1.21.11: Shapes.or(Block.column(16.0, 8.0, 16.0), Block.column(4.0, 0.0, 8.0))
-    // 上半部分：16x8像素（从Y=8到Y=16），底部茎干：4x8像素（从Y=0到Y=8）
-    // TODO: 原版 azalea / flowering_azalea 的 getShape 实测是**完整方块**（bounds 0..1），
-    // 但直接改成满方块会让差异从 1 处涨到 13 处（EAST/WEST/NORTH/SOUTH 的 FULL/CENTER/RIGID
-    // 全部误判为 true），说明 AzaleaBlock 还有其它形状/碰撞逻辑未对齐。
-    // 当前保留上半部形状（0..16, 8..16, 0..16），仅剩 DOWN|CENTER 一处差异。
-    m_shape = CollisionShape::fromPixelBox(0, 8, 0, 16, 16, 16);
-    m_shape.addBox(6, 0, 6, 10, 8, 10);
+    // 原版：Shapes.or(Block.column(16.0, 8.0, 16.0), Block.column(4.0, 0.0, 8.0))
+    //
+    // 直接读原版 `forAllBoxes` 得到的是 **5 个盒子**（or 之后坐标网格被细分）：
+    //
+    //   [0.375, 0.0,   0.375 -> 0.625, 1.0,   0.625]   中心柱（贯穿整格）
+    //   [0.0,   0.5,   0.0   -> 0.375, 1.0,   1.0  ]   西侧
+    //   [0.375, 0.5,   0.0   -> 1.0,   1.0,   0.375]   南侧
+    //   [0.375, 0.5,   0.625 -> 1.0,   1.0,   1.0  ]   东侧
+    //   [0.625, 0.5,   0.375 -> 1.0,   1.0,   0.625]   北侧
+    //
+    // 注意「上半部分是整格」这个直觉是错的：四角（如 x<0.375 且 z<0.375）在
+    // y>=0.5 处并不被覆盖。此前按「上半整格 + 底部小柱」建模，几何范围偏大。
+    const CollisionShape centerPost = CollisionShape::box(0.375f, 0.0f, 0.375f, 0.625f, 1.0f, 0.625f);
+    const CollisionShape westLeaf = CollisionShape::box(0.0f, 0.5f, 0.0f, 0.375f, 1.0f, 1.0f);
+    const CollisionShape southLeaf = CollisionShape::box(0.375f, 0.5f, 0.0f, 1.0f, 1.0f, 0.375f);
+    const CollisionShape eastLeaf = CollisionShape::box(0.375f, 0.5f, 0.625f, 1.0f, 1.0f, 1.0f);
+    const CollisionShape northLeaf = CollisionShape::box(0.625f, 0.5f, 0.375f, 1.0f, 1.0f, 0.625f);
+
+    m_shape = CollisionShape::combine(centerPost, westLeaf, CollisionShape::CombineOp::OR);
+    m_shape = CollisionShape::combine(m_shape, southLeaf, CollisionShape::CombineOp::OR);
+    m_shape = CollisionShape::combine(m_shape, eastLeaf, CollisionShape::CombineOp::OR);
+    m_shape = CollisionShape::combine(m_shape, northLeaf, CollisionShape::CombineOp::OR);
 }
 
 const CollisionShape& AzaleaBlock::getShape(const BlockState& state) const
