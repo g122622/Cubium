@@ -72,6 +72,7 @@ void registerAgriculturalBlocks()
         BlockProperties(Material::PLANT)
             .withCollision()
             .notSolid()
+            .noOcclusion()
             .hardness(0.2f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::WOOD));

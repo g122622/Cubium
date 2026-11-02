@@ -239,7 +239,7 @@ void registerNaturalBlocks()
     // 睡莲 - 水生植物，下方须为水/冰且上方无流体。新建 WaterlilyBlock 走 canSurvive 闸门，
     // 修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
     NaturalBlocks::LILY_PAD = &registry.registerBlock<blocks::WaterlilyBlock>(ResourceLocation("minecraft:lily_pad"),
-        BlockProperties(Material::PLANT).withCollision().notSolid().soundType(BlockSoundTypes::LILY_PAD));
+        BlockProperties(Material::PLANT).withCollision().notSolid().noOcclusion().soundType(BlockSoundTypes::LILY_PAD));
 
     // 藤蔓 - 可被岩浆点燃（对齐 vanilla vine）
     NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
@@ -247,6 +247,7 @@ void registerNaturalBlocks()
             .hardness(0.2f)
             .withCollision()
             .notSolid()
+            .noOcclusion()
             .ignitedByLava()
             .soundType(BlockSoundTypes::VINE));
 
@@ -284,6 +285,7 @@ void registerNaturalBlocks()
             BlockProperties(Material::OCEAN_PLANT)
                 .withCollision()
                 .notSolid()
+                .noOcclusion()
                 .lightLevel(6)
                 .soundType(BlockSoundTypes::SLIME));
 
@@ -337,6 +339,7 @@ void registerNaturalBlocks()
                 .hardness(0.0f)
                 .withCollision()
                 .notSolid()
+                .noOcclusion()
                 .tickRandomly()
                 .soundType(BlockSoundTypes::DRIED_GHAST));
 
