@@ -211,7 +211,83 @@ VoxelShape Block::getShape(...)                          // 叠加 getOffset(pos
 ```
 
 这是一处**系统性缺失**，一次性影响花、作物、竹子、灌木等大量方块的形状位置。修好它预计能
-清掉本能力剩余差异中的很大一部分，同时也能解决 `face_sturdy` 剩余的 `bamboo` 与 `azalea`。## 与其它能力的关系
+清掉本能力剩余差异中的很大一部分，同时也能解决 `face_sturdy` 剩余的 `bamboo` 与 `azalea`。## 已实现：`offsetFunction`（175 → 162）
+
+上一轮定位到花类差异来自 `offsetType`。本轮补齐了整条链路：
+
+### 1. `Block::getOffset(pos)`
+
+完整照搬原版公式，不做近似：
+
+```cpp
+const i64 seed = math::mthGetSeed(pos.x, 0, pos.z);   // y 固定取 0
+const auto horizontal = [&](i64 nibble) {
+    const f32 raw = (static_cast<f32>(nibble & 15LL) / 15.0f - 0.5f) * 0.5f;
+    return static_cast<f64>(math::clamp(raw, -maxHorizontal, maxHorizontal));
+};
+const f64 offsetX = horizontal(seed);
+const f64 offsetZ = horizontal(seed >> 8);
+// XYZ 另有竖直分量：(seed >> 4 & 15) / 15 - 1) * maxVertical
+```
+
+`getMaxHorizontalOffset()` / `getMaxVerticalOffset()` 做成虚函数（默认 0.25 / 0.2），
+与原版一致，供个别方块覆写。
+
+> **关键**：偏移依赖 `pos` 的哈希，**不能硬编码成 `(-0.25, 0, -0.25)`**。
+> `BlockPos.ZERO` 处恰好是这个值只是巧合，换个坐标就不成立。
+
+### 2. `CollisionShape::offset(dx, dy, dz)`
+
+新增整体平移方法，逐盒平移后重建形状。
+
+### 3. `BlockState::getShapeAt(pos)`
+
+```cpp
+CollisionShape BlockState::getShapeAt(const BlockPos& pos) const
+{
+    const CollisionShape& base = m_owner->getShape(*this);
+    if (m_owner->getOffsetType() == BlockProperties::OffsetType::None) {
+        return base;                       // 绝大多数方块，直接返回副本
+    }
+    const Vector3 offset = m_owner->getOffset(pos);
+    return base.offset(offset.x, offset.y, offset.z);
+}
+```
+
+保留原有 `getShape()`（模型坐标，无偏移）不动——159 处覆写无需修改。
+
+### 4. 注册处补 `offsetType`
+
+发现**注册处从未调用过 `offsetType()`**：`BlockProperties` 有该方法也有 `m_offsetType`
+成员，但全部方块都取了默认的 `None`。已给花类补上 `XZ`：
+
+```cpp
+BlockProperties flowerProps = BlockProperties(Material::REPLACEABLE_PLANT)
+                                  .noCollision()
+                                  .notSolid()
+                                  .offsetType(BlockProperties::OffsetType::XZ);
+```
+
+### 验证
+
+原版实测：
+
+```
+allium        offset(ZERO) = (-0.25,  0.0,                  -0.25)
+bamboo        offset(ZERO) = (-0.25,  0.0,                  -0.25)
+short_grass   offset(ZERO) = (-0.25, -0.20000000298023224,  -0.25)   ← XYZ 类型
+```
+
+`block_shape` 从 175 降到 **162**，`allium` 消除。
+
+### TODO
+
+- **其余方块仍需补 `offsetType`**：`bamboo`（XZ）、`short_grass` 等灌木（XYZ）、
+  各类作物。原版 `Blocks.java` 里逐个核对最可靠，不要凭经验猜。
+- **`Raycast` / `Explosion` 应改用 `getShapeAt(pos)`**：它们有 `pos`，当前用的
+  `getShape()` 不含偏移，射线与爆炸对花类的判定会偏。
+- **客户端 5 处调用**同样应改，但客户端已停止维护，暂不处理。
+## 与其它能力的关系
 
 | 能力 | 关系 |
 |---|---|

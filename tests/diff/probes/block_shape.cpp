@@ -186,7 +186,9 @@ std::string runLine(std::string_view inputLine)
     }
 
     // 三种形状用固定顺序拼接，扁平字符串便于逐字节比对。
-    const std::string result = "shape=" + describe(state->getShape()) +
+    // 形状按 BlockPos.ZERO 求值：带 offsetType 的方块（花、作物、树苗等）需要叠加位置偏移，
+    // 否则会与其它方块一样被当作固定形状，产生系统性差异。
+    const std::string result = "shape=" + describe(state->getShapeAt(BlockPos(0, 0, 0))) +
         "|collision=" + describe(state->getCollisionShape()) + "|support=" + describe(state->getBlockSupportShape());
 
     return json{{"unit", name}, {"result", result}}.dump();

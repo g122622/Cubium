@@ -113,7 +113,11 @@ void registerVegetationBlocks()
     VegetationBlocks::FERN = &registry.registerBlock<blocks::FernBlock>(ResourceLocation("minecraft:fern"), grassProps);
 
     // 花朵属性
-    BlockProperties flowerProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
+    // 花带水平随机偏移：同一片花园里的同种花会各自微移，避免视觉上完全一致。
+    BlockProperties flowerProps = BlockProperties(Material::REPLACEABLE_PLANT)
+                                      .noCollision()
+                                      .notSolid()
+                                      .offsetType(BlockProperties::OffsetType::XZ);
 
     // 蒲公英 → 饱和 0.35秒（7 tick，瞬间效果）
     VegetationBlocks::DANDELION = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:dandelion"),
