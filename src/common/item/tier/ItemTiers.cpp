@@ -188,15 +188,22 @@ void ItemTiers::initialize()
         diamondRepair);
 
     // 金制工具 - 使用金锭修复
+    //
+    // harvestLevel = 0，与木镐同档。原版 INCORRECT_FOR_GOLD_TOOL 的成员是
+    // needs_diamond + needs_iron + needs_stone，与 INCORRECT_FOR_WOODEN_TOOL 完全相同：
+    // 金镐只挖得动「不需要特定档位」的方块（mineable/pickaxe 中不在 needs_* 里的那些），
+    // 挖不动 needs_stone_tool 那一档（铁矿、青金石矿、铜块系列等）——与石镐不同。
     static crafting::Ingredient goldRepair = crafting::Ingredient::fromItems({Items::GOLD_INGOT});
     s_gold = std::make_unique<ItemTierImpl>(32, // maxUses - 极低耐久
         12.0f,                                  // efficiency - 最高效率
         0.0f,                                   // attackDamage
-        0,                                      // harvestLevel - 与木相同
+        0,                                      // harvestLevel - 与木同档（见上）
         22,                                     // enchantability - 最高附魔能力
         goldRepair);
 
     // 下界合金工具 - 使用下界合金锭修复
+    // 原版 INCORRECT_FOR_NETHERITE_TOOL 为空集，故拿任何方块都不缺等级；
+    // 这里的 4 只是沿用旧值，实际判定以 needs_iron_tool 为最高门槛（等级 2）即可满足。
     static crafting::Ingredient netheriteRepair = crafting::Ingredient::fromItems({Items::NETHERITE_INGOT});
     s_netherite = std::make_unique<ItemTierImpl>(2031, // maxUses - 最高耐久
         9.0f,                                          // efficiency

@@ -719,9 +719,7 @@ private:
     bool m_useShapeForLightOcclusion = false; // 是否使用形状进行光照遮挡
     bool m_canOccludeCache = true;            // 是否参与遮挡计算（vanilla canOcclude，构造期即为最终值）
     u8 m_lightLevel = 0;
-    u8 m_harvestTool = 0; // HarvestTool::None
-    i32 m_opacity = 15;   // 默认完全不透明
-    i32 m_harvestLevel = 0;
+    i32 m_opacity = 15; // 默认完全不透明
     f32 m_hardness = 0.0f;
     f32 m_resistance = 0.0f;
     u32 m_blockId = 0;

@@ -61,6 +61,17 @@ public:
     ~ShearsItem() override = default;
 
     /**
+     * @brief 检查是否能采集方块
+     *
+     * 剪刀的采集规则同样由数据包标签决定（原版 Tool.Rule 中 shears 的规则表），
+     * 因此这里与其它工具一致，查 HarvestToolTable 而不是硬编码方块名单。
+     *
+     * @param state 目标方块状态
+     * @return 如果可以采集返回 true
+     */
+    [[nodiscard]] bool canHarvestBlock(const BlockState& state) const override;
+
+    /**
      * @brief 获取挖掘速度
      *
      * 对蜘蛛网和树叶返回 15.0（高效率）
@@ -72,16 +83,6 @@ public:
      * @return 挖掘速度倍率
      */
     [[nodiscard]] f32 getDestroySpeed(const ItemStack& stack, const BlockState& state) const override;
-
-    /**
-     * @brief 检查是否能采集方块
-     *
-     * 剪刀可以采集：蜘蛛网、红石线、绊线
-     *
-     * @param state 目标方块状态
-     * @return 如果可以采集返回 true
-     */
-    [[nodiscard]] bool canHarvestBlock(const BlockState& state) const override;
 
     /**
      * @brief 破坏方块时调用

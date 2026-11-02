@@ -34,8 +34,10 @@
 #include "common/item/tier/IItemTier.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/HarvestTool.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "world/block/registry/HarvestToolTable.hpp"
 #include <string>
 
 namespace mc {
@@ -73,13 +75,16 @@ f32 SwordItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) 
 
 bool SwordItem::canHarvestBlock(const BlockState& state) const
 {
-    // 剑只能采集蜘蛛网
-    if (VanillaBlocks::COBWEB && &state.owner() == VanillaBlocks::COBWEB) {
+    // 与 ToolItem 同口径：不要求工具的方块谁都能挖；要求工具时只认表中剑的规则
+    // （原版剑的 Tool.Rule 只对蜘蛛网 minesAndDrops，其余方块剑都不是「正确工具」）。
+    if (!state.requiresTool()) {
         return true;
     }
-
-    // 其他方块不能采集（除非不需要工具）
-    return state.getHarvestTool() == TOOL_TYPE_NONE;
+    const block_registry::HarvestToolRuleSet* rules = block_registry::harvestToolRuleSetFor(state.blockLocation());
+    if (rules == nullptr) {
+        return false;
+    }
+    return block_registry::harvestToolRuleLevel(*rules, HarvestTool::Sword) >= 0;
 }
 
 bool SwordItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker)

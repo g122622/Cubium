@@ -817,6 +817,7 @@ add_library(mc_common STATIC
     world/block/state/pattern/BlockPatternBuilder.cpp
     world/block/registry/AgriculturalBlocks.cpp
     world/block/registry/BaseBlocks.cpp
+    world/block/registry/HarvestToolTable.cpp
     world/block/registry/BuildingBlocks.cpp
     world/block/registry/BuildingVariantBlocks.cpp
     world/block/registry/ColoredBlocks.cpp

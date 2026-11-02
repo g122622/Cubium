@@ -78,8 +78,6 @@ void BlockState::_cacheProperties()
     m_hardness = m_owner->hardness();
     m_resistance = m_owner->resistance();
     m_blockId = m_owner->blockId();
-    m_harvestTool = m_owner->harvestTool();
-    m_harvestLevel = m_owner->harvestLevel();
     m_mapColor = m_owner->getMapColor(*this, nullptr, nullptr);
 }
 
@@ -259,12 +257,16 @@ std::string BlockState::ownerName() const
 
 u8 BlockState::getHarvestTool() const
 {
-    return m_harvestTool;
+    // 直接读方块，不缓存：采集工具与档位在全部方块注册完成后由
+    // BlockRegistry::applyHarvestToolTable() 依原版数据包标签统一校正，
+    // 构造期缓存会保留校正前的旧值（曾导致校正整体失效）。
+    return m_owner->harvestTool();
 }
 
 i32 BlockState::getHarvestLevel() const
 {
-    return m_harvestLevel;
+    // 同上，不缓存。
+    return m_owner->harvestLevel();
 }
 
 world::map::MaterialColorId BlockState::getMapColor(IWorld* world, const BlockPos* pos) const
@@ -275,11 +277,11 @@ world::map::MaterialColorId BlockState::getMapColor(IWorld* world, const BlockPo
 bool BlockState::isToolEffective(u8 toolType, i32 harvestLevel) const
 {
     // 检查工具类型是否匹配
-    if (m_harvestTool != toolType) {
+    if (m_owner->harvestTool() != toolType) {
         return false;
     }
     // 检查工具等级是否足够
-    return harvestLevel >= m_harvestLevel;
+    return harvestLevel >= m_owner->harvestLevel();
 }
 
 bool BlockState::requiresTool() const

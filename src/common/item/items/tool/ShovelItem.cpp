@@ -172,25 +172,6 @@ const Block* ShovelItem::getPathBlock(const Block* original)
     return nullptr;
 }
 
-bool ShovelItem::canHarvestBlock(const BlockState& state) const
-{
-    // 如果方块需要锹，检查挖掘等级
-    if (state.getHarvestTool() == TOOL_TYPE_SHOVEL) {
-        return m_tier.getHarvestLevel() >= state.getHarvestLevel();
-    }
-
-    // 锹对雪层(SNOW)和雪块(SNOW_BLOCK)总是可以采集
-    const Block& block = state.owner();
-    if (VanillaBlocks::SNOW && &block == VanillaBlocks::SNOW) {
-        return true;
-    }
-    if (VanillaBlocks::SNOW_BLOCK && &block == VanillaBlocks::SNOW_BLOCK) {
-        return true;
-    }
-
-    return false;
-}
-
 f32 ShovelItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
 {
     // 锹对泥土、沙子、雪材质有高效率

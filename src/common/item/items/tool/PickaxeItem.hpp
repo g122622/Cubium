@@ -62,18 +62,6 @@ public:
     ~PickaxeItem() override = default;
 
     /**
-     * @brief 检查是否能采集方块
-     *
-     * 镐的特殊逻辑：
-     * 1. 如果方块需要镐，检查挖掘等级
-     * 2. 如果方块材质是 ROCK/IRON/ANVIL，总是可以采集
-     *
-     * @param state 目标方块状态
-     * @return 如果可以采集返回 true
-     */
-    [[nodiscard]] bool canHarvestBlock(const BlockState& state) const override;
-
-    /**
      * @brief 获取挖掘速度
      *
      * 对 ROCK/IRON/ANVIL 材质返回效率值。

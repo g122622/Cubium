@@ -24,6 +24,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/FireInfoRegistry.hpp"
+#include "world/block/registry/HarvestToolTable.hpp"
 
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -192,6 +193,15 @@ void VanillaBlocks::initialize()
         spdlog::info("[VanillaBlocks] Initializing block tags...");
         BlockTags::initialize();
         spdlog::info("[VanillaBlocks] Block tags initialized");
+    }
+
+    // 按数据包标签（mineable/<tool>、needs_*_tool）与实测快照校正采集属性。
+    // 客户端只用到内置标签快照，这里即可得到完整结果；服务端在 BlockTagLoader
+    // 加载完数据包后会再次 rebuild 并重新应用，以数据包为准。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ApplyHarvestToolTable");
+        block_registry::HarvestToolTable::rebuild();
+        BlockRegistry::instance().applyHarvestToolTable();
     }
 
     // 初始化原版方块燃烧参数（必须在所有方块注册后）

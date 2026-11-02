@@ -46,23 +46,6 @@ PickaxeItem::PickaxeItem(const tier::IItemTier& tier, i32 attackDamage, f32 atta
           properties)
 {}
 
-bool PickaxeItem::canHarvestBlock(const BlockState& state) const
-{
-    // 1. 如果方块需要镐，检查挖掘等级
-    if (state.getHarvestTool() == TOOL_TYPE_PICKAXE) {
-        return m_tier.getHarvestLevel() >= state.getHarvestLevel();
-    }
-
-    // 2. 镐对 ROCK, IRON, ANVIL 材质总是可以采集
-    const Material& mat = state.getMaterial();
-    if (mat == Material::ROCK || mat == Material::IRON || mat == Material::ANVIL) {
-        return true;
-    }
-
-    // 其他材质无法采集
-    return false;
-}
-
 f32 PickaxeItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) const
 {
     // 镐对 ROCK, IRON, ANVIL 材质有高效率
