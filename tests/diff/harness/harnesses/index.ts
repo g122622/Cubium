@@ -169,6 +169,21 @@ import { bossBarInput } from "./boss_bar.ts";
 import { soundSourceInput } from "./sound_source.ts";
 import { difficultyInput } from "./difficulty.ts";
 import { permissionLevelInput } from "./permission_level.ts";
+import { textFormattingColorInput } from "./text_formatting_color.ts";
+import { textFormattingNameInput } from "./text_formatting_name.ts";
+import { styleTristateInput } from "./style_tristate.ts";
+import { teamRuleStringsInput } from "./team_rule_strings.ts";
+import { renderTypeStringsInput } from "./render_type_strings.ts";
+import { uuidStringsInput } from "./uuid_strings.ts";
+import { gameTypeInput } from "./game_type.ts";
+import { mapDecorationTypeInput } from "./map_decoration_type.ts";
+import { blockStateEnumStringsInput } from "./block_state_enum_strings.ts";
+import { blockStateEnumStrings2Input } from "./block_state_enum_strings_2.ts";
+import { blockStateEnumStrings3Input } from "./block_state_enum_strings_3.ts";
+import { booleanPropertyIndexInput } from "./boolean_property_index.ts";
+import { enumPropertyOrderInput } from "./enum_property_order.ts";
+import { enumPropertyOrderAllInput } from "./enum_property_order_all.ts";
+import { faceSturdyInput } from "./face_sturdy.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1096,6 +1111,88 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 权限等级：CLAMP 越界策略（byId|5 钳到 OWNERS）、higher 是 >= 语义。
     { name: "permission_level", probe: "permission_level", oracle: "PermissionLevelOracle",
         key: "unit", units: { kind: "listing" }, input: permissionLevelInput },
+    // ChatFormatting 颜色查询：**探针直接调用 Cubium 的 text::getFormattingColor 等**。
+    { name: "text_formatting_color", probe: "text_formatting_color", oracle: "TextFormattingColorOracle",
+        key: "unit", units: { kind: "listing" }, input: textFormattingColorInput },
+    // ChatFormatting 名字映射：**探针直接调用 Cubium 的 text::toName / fromName**。
+    { name: "text_formatting_name", probe: "text_formatting_name", oracle: "TextFormattingNameOracle",
+        key: "unit", units: { kind: "listing" }, input: textFormattingNameInput },
+    // Style 三态序列化：**探针对接 Cubium 的 Style::toJson**，显式 false 必须写出。
+    { name: "style_tristate", probe: "style_tristate", oracle: "StyleTristateOracle",
+        key: "unit", units: { kind: "listing" }, input: styleTristateInput },
+    // 队伍规则字符串：**探针对接 Cubium 的 teamVisibilityToString 等**。
+    { name: "team_rule_strings", probe: "team_rule_strings", oracle: "TeamRuleStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: teamRuleStringsInput },
+    // 渲染类型字符串：**探针对接 Cubium 的 renderTypeParse**。
+    { name: "render_type_strings", probe: "render_type_strings", oracle: "RenderTypeStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: renderTypeStringsInput },
+    // UUID 解析：**探针对接 Cubium 的 util::uuidFromString**。
+    // 差异已登记：Cubium 内部统一用 32 位无连字符字符串存 UUID（见 Entity.cpp 的
+    // 注释与 generateRandomUuid 的用法），因此 uuidFromString 接受 32 位是刻意的
+    // 架构选择，不属于缺陷。原版 JDK 的 UUID.fromString 只接受 36 位带连字符格式。
+    { name: "uuid_strings", probe: "uuid_strings", oracle: "UuidStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: uuidStringsInput,
+        knownDifferences: [
+            { key: "parse|069a79f444e94726a5befca90e38aaf5",
+              reason: "Cubium 架构上使用 32 位无连字符 UUID 字符串（内部存储格式），刻意接受；"
+                  + "JDK UUID.fromString 拒绝。内部调用方全部传 32/36 位内部字符串，无外部输入风险" },
+            { key: "parse|", reason: "原版抛 IllegalArgumentException，Cubium 返回全零 UUID 哨兵值" },
+            { key: "parse|dunno", reason: "同上" },
+            { key: "parse|-069a79f4-44e9-4726-a5be-fca90e38aaf5", reason: "同上" },
+            { key: "parse|069a79f444e94726a5befca90e38aaf5-", reason: "同上" },
+            { key: "parse|069a79f4_44e9_4726_a5be_fca90e38aaf5", reason: "同上" },
+            { key: "parse|069a79f4-44e9-4726-a5be-fca90e38aaf",
+              reason: "JDK 对短段向前补零（35 位→补成 0fca...），Cubium 直接判为失败返回全零；"
+                  + "属 JDK 边缘行为，Cubium 内部不产生此类残缺字符串" },
+        ] },
+
+
+
+
+
+    // 游戏模式：**探针对接 Cubium 的 GameMode 枚举**。
+    { name: "game_type", probe: "game_type", oracle: "GameTypeOracle",
+        key: "unit", units: { kind: "listing" }, input: gameTypeInput },
+    // 地图装饰类型：**探针对接 Cubium 的 decorationTypeToString**。
+    { name: "map_decoration_type", probe: "map_decoration_type", oracle: "MapDecorationTypeOracle",
+        key: "unit", units: { kind: "listing" }, input: mapDecorationTypeInput,
+        knownDifferences: [
+            { key: "fromString|desert_village",
+              reason: "Cubium 额外接受纹理名（desert_village 等）以兼容旧数据包 JSON；"
+                  + "原版只认注册名 village_desert。属有意的向后兼容，不影响写出" },
+
+        ] },
+    // 方块状态枚举字符串：**探针对接 Cubium 的 EnumProperty Traits**。
+    { name: "block_state_enum_strings", probe: "block_state_enum_strings", oracle: "BlockStateEnumStringsOracle",
+        key: "unit", units: { kind: "listing" }, input: blockStateEnumStringsInput },
+    // 第二组方块状态枚举：PistonType.DEFAULT 序列化名是 normal。
+    { name: "block_state_enum_strings_2", probe: "block_state_enum_strings_2", oracle: "BlockStateEnumStrings2Oracle",
+        key: "unit", units: { kind: "listing" }, input: blockStateEnumStrings2Input },
+    // 第三组方块状态枚举：NoteBlockInstrument 有 23 项。
+    { name: "block_state_enum_strings_3", probe: "block_state_enum_strings_3", oracle: "BlockStateEnumStrings3Oracle",
+        key: "unit", units: { kind: "listing" }, input: blockStateEnumStrings3Input },
+    // 布尔属性内部值顺序：原版 true 在 false 之前，Cubium 相反（无害，见文档）。
+    { name: "boolean_property_index", probe: "boolean_property_index", oracle: "BooleanPropertyIndexOracle",
+        key: "unit", units: { kind: "listing" }, input: booleanPropertyIndexInput },
+    // 枚举属性值顺序：原版 FACING 是显式列表 NORTH,EAST,SOUTH,WEST,UP,DOWN。
+    { name: "enum_property_order", probe: "enum_property_order", oracle: "EnumPropertyOrderOracle",
+        key: "unit", units: { kind: "listing" }, input: enumPropertyOrderInput },
+    // 全部 40 个枚举属性的值顺序（enum_property_order 的扩展版）。
+    { name: "enum_property_order_all", probe: "enum_property_order_all", oracle: "EnumPropertyOrderAllOracle",
+        key: "unit", units: { kind: "listing" }, input: enumPropertyOrderAllInput },
+    // 面朝支撑判定：所有附着型方块存活判定的公共底层。
+    { name: "face_sturdy", probe: "face_sturdy", oracle: "FaceSturdyOracle",
+        key: "unit", units: { kind: "listing" }, input: faceSturdyInput },
+
+
+
+
+
+
+
+
+
+
 
 
 

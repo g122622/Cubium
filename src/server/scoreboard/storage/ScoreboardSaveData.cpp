@@ -559,9 +559,19 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
         auto color = text::fromName(teamData.color);
         team->setColor(color);
 
-        team->setNameTagVisibility(teamVisibilityFromString(teamData.nameTagVisibility));
-        team->setDeathMessageVisibility(teamVisibilityFromString(teamData.deathMessageVisibility));
-        team->setCollisionRule(teamCollisionRuleFromString(teamData.collisionRule));
+        // 严格解析：原版 CODEC.byName 对未知值返回 null。这里只在解析成功时设置，
+        // 失败则保留队伍默认值——避免未知字符串被静默写成 Always。
+        // TODO: 原版在解析失败时会让整个存档读取报错；Cubium 目前静默跳过，
+        // 待存档读取的错误上报链路补齐后改为返回错误。
+        if (const auto visibility = teamVisibilityParse(teamData.nameTagVisibility)) {
+            team->setNameTagVisibility(*visibility);
+        }
+        if (const auto deathVisibility = teamVisibilityParse(teamData.deathMessageVisibility)) {
+            team->setDeathMessageVisibility(*deathVisibility);
+        }
+        if (const auto rule = teamCollisionRuleParse(teamData.collisionRule)) {
+            team->setCollisionRule(*rule);
+        }
         team->setAllowFriendlyFire(teamData.allowFriendlyFire);
         team->setSeeFriendlyInvisibles(teamData.seeFriendlyInvisibles);
 

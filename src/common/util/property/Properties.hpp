@@ -328,19 +328,45 @@ public:
 
     /**
      * @brief 朝向属性（所有6个方向）
+     *
+     * 对齐 MC 1.21.11 的 `BlockStateProperties.FACING`，**用显式列表而不是枚举声明顺序**：
+     *
+     * ```java
+     * public static final EnumProperty<Direction> FACING = EnumProperty.create(
+     *     "facing", Direction.class,
+     *     Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST,
+     *     Direction.UP, Direction.DOWN);
+     * ```
+     *
+     * 这个顺序决定了**调试棒**点击一次后的演化路径（`DebugStickItem` 的 `getRelative`
+     * 基于 `getPossibleValues()` 的索引），也决定了内部状态调色板的偏移。
      */
     static const DirectionProperty& FACING()
     {
-        static auto prop = DirectionProperty::create("facing");
+        static auto prop = DirectionProperty::create("facing",
+            {Direction::North, Direction::East, Direction::South, Direction::West, Direction::Up, Direction::Down});
         return *prop;
     }
 
     /**
      * @brief 朝向属性（仅水平方向）
+     *
+     * 对齐 MC 1.21.11 的 `BlockStateProperties.HORIZONTAL_FACING`，它取
+     * `Direction.Plane.HORIZONTAL`，即按 `Direction.data2d` 升序排序：
+     *
+     * | 方向 | data2d |
+     * |---|---|
+     * | `SOUTH` | 0 |
+     * | `WEST` | 1 |
+     * | `NORTH` | 2 |
+     * | `EAST` | 3 |
+     *
+     * 注意：**不能**用 `Directions::horizontal()`（那是 `NORTH, EAST, SOUTH, WEST`）。
      */
     static const DirectionProperty& HORIZONTAL_FACING()
     {
-        static auto prop = DirectionProperty::createHorizontal("facing");
+        static auto prop =
+            DirectionProperty::create("facing", {Direction::North, Direction::South, Direction::West, Direction::East});
         return *prop;
     }
 
@@ -353,9 +379,10 @@ public:
      */
     static const DirectionProperty& VERTICAL_DIRECTION()
     {
-        static auto prop = DirectionProperty::create("vertical_direction", [](Direction d) {
-            return d == Direction::Up || d == Direction::Down;
-        });
+        // 对齐原版显式列表 `EnumProperty.create("vertical_direction", Direction.class,
+        // Direction.UP, Direction.DOWN)`——**UP 在前**。谓词过滤走 Directions::all()
+        // 会得到 DOWN, UP，顺序相反。
+        static auto prop = DirectionProperty::create("vertical_direction", {Direction::Up, Direction::Down});
         return *prop;
     }
 
@@ -832,10 +859,16 @@ public:
 
     /**
      * @brief 台阶类型属性
+     *
+     * 对齐 MC 1.21.11 的 `BlockStateProperties.SLAB_TYPE`。原版 `SlabType` 的枚举声明顺序是
+     * **`TOP, BOTTOM, DOUBLE`**（注意 `TOP` 在前，与 `Half` 的 `TOP, BOTTOM` 恰好一致，
+     * 但与本文件之前的 `Bottom, Top, Double` 不同）。
+     *
+     * 这个顺序决定**调试棒**点击台阶时的演化路径，也决定内部状态调色板的偏移。
      */
     static const EnumProperty<SlabType>& SLAB_TYPE()
     {
-        static auto prop = EnumProperty<SlabType>::create("type", {SlabType::Bottom, SlabType::Top, SlabType::Double});
+        static auto prop = EnumProperty<SlabType>::create("type", {SlabType::Top, SlabType::Bottom, SlabType::Double});
         return *prop;
     }
 
@@ -1685,9 +1718,10 @@ public:
      */
     static const EnumProperty<SideChainPart>& SIDE_CHAIN_PART()
     {
-        // vanilla 1.21.11 属性名为 "side_chain"（枚举类型名 SideChainPart 保留）
+        // vanilla 1.21.11 属性名为 "side_chain"（枚举类型名 SideChainPart 保留）。
+        // 顺序对齐原版枚举声明：UNCONNECTED, RIGHT, CENTER, LEFT——**RIGHT 在 CENTER 之前**。
         static auto prop = EnumProperty<SideChainPart>::create("side_chain",
-            {SideChainPart::Unconnected, SideChainPart::Left, SideChainPart::Center, SideChainPart::Right});
+            {SideChainPart::Unconnected, SideChainPart::Right, SideChainPart::Center, SideChainPart::Left});
         return *prop;
     }
 

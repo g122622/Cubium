@@ -606,13 +606,14 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
 
     if (option == "nametagVisibility") {
         const std::string visStr = context.getArgument<std::string>("teamOptionValue");
-        const auto visibility = scoreboard::teamVisibilityFromString(visStr);
-        // teamVisibilityFromString 对未知值回退 Always，用原字符串核对以拒绝非法输入。
-        if (scoreboard::teamVisibilityToString(visibility) != visStr) {
+        // 严格解析（等价原版 CODEC.byName）：未知值返回 nullopt，直接拒绝非法输入。
+        const auto parsed = scoreboard::teamVisibilityParse(visStr);
+        if (!parsed) {
             source.sendError(
                 "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam");
             return 0;
         }
+        const auto visibility = *parsed;
         if (team->getNameTagVisibility() == visibility) {
             source.sendError(_lang().get("commands.team.option.nametagVisibility.unchanged"));
             return 0;
@@ -625,12 +626,14 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
 
     if (option == "deathMessageVisibility") {
         const std::string visStr = context.getArgument<std::string>("teamOptionValue");
-        const auto visibility = scoreboard::teamVisibilityFromString(visStr);
-        if (scoreboard::teamVisibilityToString(visibility) != visStr) {
+        // 严格解析（等价原版 CODEC.byName）：未知值返回 nullopt，直接拒绝非法输入。
+        const auto parsed = scoreboard::teamVisibilityParse(visStr);
+        if (!parsed) {
             source.sendError(
                 "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam");
             return 0;
         }
+        const auto visibility = *parsed;
         if (team->getDeathMessageVisibility() == visibility) {
             source.sendError(_lang().get("commands.team.option.deathMessageVisibility.unchanged"));
             return 0;
@@ -643,12 +646,14 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
 
     if (option == "collisionRule") {
         const std::string ruleStr = context.getArgument<std::string>("teamOptionValue");
-        const auto rule = scoreboard::teamCollisionRuleFromString(ruleStr);
-        if (scoreboard::teamCollisionRuleToString(rule) != ruleStr) {
+        // 严格解析（等价原版 CODEC.byName）：未知值返回 nullopt，直接拒绝非法输入。
+        const auto parsedRule = scoreboard::teamCollisionRuleParse(ruleStr);
+        if (!parsedRule) {
             source.sendError(
                 "Unknown collision rule '" + ruleStr + "'. Valid values: always, never, pushOtherTeams, pushOwnTeam");
             return 0;
         }
+        const auto rule = *parsedRule;
         if (team->getCollisionRule() == rule) {
             source.sendError(_lang().get("commands.team.option.collisionRule.unchanged"));
             return 0;

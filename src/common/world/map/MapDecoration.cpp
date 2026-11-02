@@ -297,15 +297,15 @@ const char* decorationTypeToString(DecorationType type) noexcept
         case DecorationType::RED_X:
             return "red_x";
         case DecorationType::DESERT_VILLAGE:
-            return "desert_village";
+            return "village_desert";
         case DecorationType::PLAINS_VILLAGE:
-            return "plains_village";
+            return "village_plains";
         case DecorationType::SAVANNA_VILLAGE:
-            return "savanna_village";
+            return "village_savanna";
         case DecorationType::SNOWY_VILLAGE:
-            return "snowy_village";
+            return "village_snowy";
         case DecorationType::TAIGA_VILLAGE:
-            return "taiga_village";
+            return "village_taiga";
         case DecorationType::JUNGLE_TEMPLE:
             return "jungle_temple";
         case DecorationType::SWAMP_HUT:

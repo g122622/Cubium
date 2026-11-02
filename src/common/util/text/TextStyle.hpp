@@ -70,9 +70,28 @@ enum class TextFormatting : u8 {
 };
 
 /**
+ * @brief 获取格式化类型的颜色值（ARGB格式），样式类型返回 std::nullopt
+ *
+ * 对应原版 `ChatFormatting#getColor()`：**只有 16 个颜色码有颜色**，
+ * 6 个样式码（obfuscated / bold / strikethrough / underline / italic / reset）
+ * 与原版一致返回「无颜色」。
+ *
+ * 需要「无颜色即白色」的渲染场景请用 getFormattingColor，但**判断某类型是否
+ * 真的带颜色必须用本函数或 isColor**，不能用 `getFormattingColor(x) != 0xFFFFFFFF`
+ * ——因为白色本身就是一个合法颜色（`TextFormatting::White`）。
+ *
+ * @param formatting 格式化类型
+ * @return 有颜色时返回 ARGB 值，样式类型返回 std::nullopt
+ */
+[[nodiscard]] std::optional<u32> findFormattingARGB(TextFormatting formatting) noexcept;
+
+/**
  * @brief 获取格式化类型的颜色值（ARGB格式）
  *
- * 仅对颜色类型有效，对样式类型返回白色。
+ * 仅对颜色类型有效，对样式类型返回白色（`0xFFFFFFFF`）。
+ *
+ * **这是渲染便捷入口，不表达能力语义**：如需区分「无颜色」与「白色」，
+ * 请改用 findFormattingARGB。
  *
  * @param formatting 格式化类型
  * @return ARGB颜色值
