@@ -73,6 +73,14 @@ LeavesBlock::LeavesBlock(const BlockProperties& properties)
             .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
+const CollisionShape& LeavesBlock::getBlockSupportShape(const BlockState& state) const
+{
+    // 对齐原版：树叶恒返回空支撑形状。碰撞形状虽为完整方块，但不提供任何可附着的面。
+    (void)state;
+    static const CollisionShape empty = CollisionShape::empty();
+    return empty;
+}
+
 BlockState LeavesBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // 玩家放置的树叶标记为持久

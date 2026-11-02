@@ -67,6 +67,24 @@ public:
     ~LeavesBlock() override = default;
 
     /**
+     * @brief 树叶不提供任何支撑面
+     *
+     * 对齐 MC 1.21.11 的 `LeavesBlock#getBlockSupportShape`：
+     *
+     * ```java
+     * @Override
+     * protected VoxelShape getBlockSupportShape(BlockState state, BlockGetter level, BlockPos pos) {
+     *     return Shapes.empty();
+     * }
+     * ```
+     *
+     * 树叶的碰撞形状是完整方块，但**支撑形状恒为空**——因此火把、藤蔓、梯子等
+     * 附着型方块无法贴在树叶上。若缺少这个覆写，`isFaceSturdy` 会按碰撞形状判定，
+     * 导致所有「能否附着在树叶上」的判断都错成 true。
+     */
+    [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
+
+    /**
      * @brief 获取放置状态
      *
      * 玩家放置的树叶会被标记为持久（PERSISTENT=true）

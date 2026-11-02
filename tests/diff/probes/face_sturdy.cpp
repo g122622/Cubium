@@ -88,8 +88,8 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
-#include "common/util/Direction.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -306,8 +306,12 @@ struct DirRef {
 };
 
 constexpr DirRef DIRECTIONS[] = {
-    {"DOWN", mc::Direction::Down},   {"UP", mc::Direction::Up},     {"NORTH", mc::Direction::North},
-    {"SOUTH", mc::Direction::South}, {"WEST", mc::Direction::West}, {"EAST", mc::Direction::East},
+    {"DOWN", mc::Direction::Down},
+    {"UP", mc::Direction::Up},
+    {"NORTH", mc::Direction::North},
+    {"SOUTH", mc::Direction::South},
+    {"WEST", mc::Direction::West},
+    {"EAST", mc::Direction::East},
 };
 
 struct SupportRef {
@@ -316,9 +320,18 @@ struct SupportRef {
 };
 
 constexpr SupportRef SUPPORT_TYPES[] = {
-    {"FULL", []() -> const mc::SupportType& { return mc::SupportType::Full; }},
-    {"CENTER", []() -> const mc::SupportType& { return mc::SupportType::Center; }},
-    {"RIGID", []() -> const mc::SupportType& { return mc::SupportType::Rigid; }},
+    {"FULL",
+        []() -> const mc::SupportType& {
+            return mc::SupportType::Full;
+        }},
+    {"CENTER",
+        []() -> const mc::SupportType& {
+            return mc::SupportType::Center;
+        }},
+    {"RIGID",
+        []() -> const mc::SupportType& {
+            return mc::SupportType::Rigid;
+        }},
 };
 
 const DirRef* findDir(const std::string& name)
