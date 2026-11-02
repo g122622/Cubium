@@ -176,9 +176,23 @@ static const std::array<CollisionShape, 16> SLAB_TOP_SHAPES =
  * （由差分能力 block_support 查出：台阶底座上有 24 处 exp=true / act=false）。
  *
  * 正确值：NORTH=0b0011=3(NW+NE)、SOUTH=12(SW+SE)、WEST=5(NW+SW)、EAST=10(NE+SE)。
+ *
+ * 【非 straight 四段的方位循环移位错误】
+ *
+ * 原版 NORTH 基准下各 shape 的上半层覆盖（实测 `forAllBoxes`，facing=north）：
+ *
+ *   straight    : 整条北半侧             -> NW+NE       = 3
+ *   inner_left  : 西半 X 全域 + 东半北侧  -> NW+NE+SW    = 7
+ *   inner_right : 东半 X 全域 + 西半南侧  -> NW+NE+SE    = 11
+ *   outer_left  : 单角 NW                                = 1
+ *   outer_right : 单角 NE                                = 2
+ *
+ * 此前这四段整体错开了一位（`inner_left` 写成 `14,13,7,11`，正好是把 NORTH 的 7
+ * 放到了 WEST 位置），导致所有木材的楼梯在非 straight 姿态下形状全错
+ * （由差分能力 block_shape_all 查出：每种木材 48 个状态不一致）。
  */
 static constexpr std::array<i32, 20> SHAPE_INDEX_MAP = {
-    3, 12, 5, 10, 14, 13, 7, 11, 13, 7, 11, 14, 8, 4, 1, 2, 4, 1, 2, 8};
+    3, 12, 5, 10, 7, 14, 13, 11, 11, 13, 7, 14, 1, 8, 4, 2, 2, 4, 1, 8};
 
 // ========== 构造函数 ==========
 

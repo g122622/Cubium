@@ -94,31 +94,63 @@ WallBlock::WallBlock(const BlockProperties& properties)
                             static_cast<BlockStateProperties::WallHeight>(south),
                             static_cast<BlockStateProperties::WallHeight>(west));
 
-                        CollisionShape shape = m_pillarShape;
-                        if (north > 0) {
-                            f32 height = (north == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, height * P, 8.0f * P));
-                        }
-                        if (south > 0) {
-                            f32 height = (south == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(5.0f * P, 0.0f, 8.0f * P, 11.0f * P, height * P, 16.0f * P));
-                        }
-                        if (east > 0) {
-                            f32 height = (east == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(8.0f * P, 0.0f, 5.0f * P, 16.0f * P, height * P, 11.0f * P));
-                        }
-                        if (west > 0) {
-                            f32 height = (west == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(0.0f, 0.0f, 5.0f * P, 8.0f * P, height * P, 11.0f * P));
-                        }
+                        // 原版墙的形状随 `up` 变化很大（实测 `forAllBoxes`）：
+                        //
+                        //   up=true  中心柱 box(0.25,0,0.25 -> 0.75,1,0.75)，侧柱从方块边缘伸到
+                        //            `0.25/0.75`（即 8/16 处），low=0.875 高、tall=1.0 高。
+                        //   up=false **没有中心柱**，侧柱各自延伸到中心线：
+                        //            north=low -> box(0.3125,0,0 -> 0.6875,0.875,0.6875)
+                        //            north=tall -> box(0.3125,0,0 -> 0.6875,1.0,0.6875)
+                        //            四侧皆 none 时形状为**空**。
+                        //
+                        // Cubium 此前无论 `up` 都恒定放中心柱，且侧柱只到 0.25/0.75，
+                        // 于是 up=false 的全部 162 个状态（×2 waterlogged）都算错。
+                        CollisionShape shape = CollisionShape::empty();
 
                         if (up != 0) {
-                            shape = CollisionShape::combine(shape,
-                                CollisionShape::box(4.0f * P, 14.0f * P, 4.0f * P, 12.0f * P, 16.0f * P, 12.0f * P));
+                            shape = m_pillarShape;
+                            if (north > 0) {
+                                const f32 height = (north == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, height * P, 0.25f));
+                            }
+                            if (south > 0) {
+                                const f32 height = (south == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(5.0f * P, 0.0f, 0.75f, 11.0f * P, height * P, 16.0f * P));
+                            }
+                            if (east > 0) {
+                                const f32 height = (east == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(0.75f, 0.0f, 5.0f * P, 16.0f * P, height * P, 11.0f * P));
+                            }
+                            if (west > 0) {
+                                const f32 height = (west == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.0f, 0.0f, 5.0f * P, 0.25f, height * P, 11.0f * P));
+                            }
+                        } else {
+                            // up=false：无中心柱，侧柱从方块边缘一直伸到中心线（0.5）。
+                            if (north > 0) {
+                                const f32 height = (north == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, height * P, 0.5f));
+                            }
+                            if (south > 0) {
+                                const f32 height = (south == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(5.0f * P, 0.0f, 0.5f, 11.0f * P, height * P, 16.0f * P));
+                            }
+                            if (east > 0) {
+                                const f32 height = (east == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.5f, 0.0f, 5.0f * P, 16.0f * P, height * P, 11.0f * P));
+                            }
+                            if (west > 0) {
+                                const f32 height = (west == 2) ? 16.0f : 14.0f;
+                                shape = CollisionShape::combine(
+                                    shape, CollisionShape::box(0.0f, 0.0f, 5.0f * P, 0.5f, height * P, 11.0f * P));
+                            }
                         }
 
                         m_shapes[idx] = shape;
