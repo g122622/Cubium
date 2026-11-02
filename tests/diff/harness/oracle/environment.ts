@@ -156,9 +156,12 @@ export function loadOracleEnvironment(layout: ProjectLayout): OracleEnvironment 
         }
         return unpackLibraries(bundler, path.join(workDir, "bundler"));
     })();
-    let variables: NodeJS.ProcessEnv = process.env;
+    // 探针与 oracle 必须读**同一份**数据包。oracle 通过 vanilla trusted repository 读 merged
+    // jar 内嵌的 data/；探针也读这个 jar，否则两侧数据不同（磁盘上的数据包目录可能是别的
+    // 构建），差分会把「数据版本差异」误报成「Cubium 实现缺陷」。
+    let variables: NodeJS.ProcessEnv = { ...process.env, MC_VANILLA_MERGED_JAR: minecraftJar };
     try {
-        variables = { ...process.env, MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() };
+        variables = { ...variables, MC_DIFF_VANILLA_DATAPACK: vanillaDataPackDir() };
     } catch {
         // 没有数据包目录时保持原环境：不读数据包的 oracle 仍然可用，读不到数据包的探针会
         // 自己报错（比在编排层提前失败更容易定位）。

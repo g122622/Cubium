@@ -237,13 +237,15 @@ export function compareLines(
 ): ComparisonSummary {
     const transform = options.compareTransform;
 
-    // 成员级缺口：只在参照一侧剔除；被测多出来的成员永远算差异。
+    // 成员级缺口：**两侧都剔除**。
+    //
+    // 缺口语义是「参照有、本项目尚未实现」——参照侧必须去掉，否则每个标签都因缺物品而
+    // 判差异；被测侧也必须去掉，否则那几天被测侧本就不可能有该成员，反而会被当成
+    // 「被测多出来」再记一次差异（同一缺口被计两次，且方向完全误导）。
+    // 这与 projectOnly「本项目独有」是互补的两类豁免：前者补在参照，后者补在本项目。
     let memberGapDropped = 0;
-    let expected = expectedLines;
-    if (options.memberGaps !== undefined) {
-        const { field, missing } = options.memberGaps;
-        const exempt = new Set(missing);
-        expected = expectedLines.map((line) => {
+    const dropMembers = (lines: readonly string[], field: string, exempt: ReadonlySet<string>): string[] =>
+        lines.map((line) => {
             const parsed = JSON.parse(line) as Record<string, unknown>;
             const values = parsed[field];
             if (!Array.isArray(values)) {
@@ -253,17 +255,25 @@ export function compareLines(
             memberGapDropped += values.length - kept.length;
             return JSON.stringify({ ...parsed, [field]: kept });
         });
+
+    let expected = expectedLines;
+    let actual = actualLines;
+    if (options.memberGaps !== undefined) {
+        const { field, missing } = options.memberGaps;
+        const exempt = new Set(missing);
+        expected = dropMembers(expectedLines, field, exempt);
+        actual = dropMembers(actualLines, field, exempt);
     }
 
     // 本项目独有能力：只从被测一侧剔除，派生字段两侧一起清理。
-    let actual = actualLines;
     let projectOnlyDropped = 0;
     if (options.projectOnly !== undefined) {
         const { field, extra, drop } = options.projectOnly;
         const exempt = new Set(extra);
         const matches = (value: string): boolean =>
             exempt.has(value) || [...exempt].some((name) => value.startsWith(`${name} `));
-        actual = actualLines.map((line) => {
+        // 基于 memberGaps 处理后的 actual 继续剔除，避免覆盖掉上一次的清理。
+        actual = actual.map((line) => {
             const parsed = JSON.parse(line) as Record<string, unknown>;
             const values = parsed[field];
             let next: Record<string, unknown> = parsed;

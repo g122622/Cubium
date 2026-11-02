@@ -1092,6 +1092,31 @@ blocks / misc）。原版 `Recipe#recipeBookCategory()` 把它们压成一个注
 | `opacity` / `opaque` | 半砖、门、栅栏等被当成 15 档全遮挡 | `m_opacity` 默认 15，未逐类设置 |
 | `solid` / `replaceable` | 门、栅栏门、树叶、植物等判定相反 | 取自材质 `m_isSolid` / `isReplaceable` |
 
+### 数据来源：探针与 oracle 必须读同一份数据包
+
+标签类能力（`block_tags`、`item_tags`、`can_harvest`……）两侧都读数据包。oracle 走原版
+`ServerPacksSource.createVanillaTrustedRepository()`，读的是 **merged jar 内嵌的 data/**。
+
+探针也必须读这个 jar（`vanilla_datapack.hpp` 的 `scanDataPack()` 把 jar 内的 `data/` 解到
+临时目录再当数据包加载）。曾经让探针读磁盘上的数据包目录，结果是两边数据版本不同：
+jar 里的 `small_flowers` 不含 `cactus_flower` / `wildflowers`，磁盘副本却含有，差分随即报出
+几十处「Cubium 多出成员」的假差异。**判据**：差异全部呈「被测多出、参照不少」时，先核对
+两侧数据源，再怀疑实现。
+
+配套的坑：
+- `DataPackRepository::scanDirectory` 的语义是「扫描一个**包含多个包**的目录」，传数据包
+  根会得到 0 个包且不报错；单个包要么 `addPack`，要么把包装进容器目录。
+- `ZipResourcePack::listResources` 传空目录名表示类型目录根；返回的路径已剥离 `data/`
+  前缀，落盘时要补回。
+- 两个探测位置都别复用过期结果：环境变量改变后 oracle 缓存键可能未覆盖，用 `--fresh` 复核。
+
+### `memberGaps` 必须两侧同时剔除
+
+`memberGaps.missing` 是「参照有、本项目尚未实现」的成员。比较时**两侧都要删掉**：只删参照侧
+会让这些成员在被测侧因「本就不可能有」而被记成**多出来**，同一个实现缺口被计两次差异，而且
+方向完全误导（看起来像本项目多实现了东西）。`projectOnly` 是互补的另一类豁免（本项目独有），
+两者都只在声明时生效，并在摘要里输出剔除条数。
+
 ### 实现缺口：`KNOWN_MISSING` 清单
 
 `known_missing_items.ts`、`entity_shape.ts`、`enchantment_table.ts`、

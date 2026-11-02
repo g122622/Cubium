@@ -30,6 +30,8 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 
+#include <spdlog/spdlog.h>
+
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -158,8 +160,14 @@ Result<size_t> BlockTagLoader::loadFromDataPackRepository(const resource::DataPa
     resource::tag::TagFiller fillTag;
     _buildCallbacks(pool, collector, resolveMember, readTag, fillTag);
 
-    return resource::tag::GenericTagLoader::loadFromDataPackRepository(
+    auto loaded = resource::tag::GenericTagLoader::loadFromDataPackRepository(
         dataPackList, BLOCK_TAG_DIRECTORY, resolveMember, readTag, fillTag);
+    // 空仓库会"成功"返回 0 个标签，使后续标签查询静默得到空集合——这不是正常状态。
+    if (loaded.success() && loaded.value() == 0) {
+        spdlog::warn("BlockTagLoader: no block tags found; the data pack repository is empty "
+                     "(data packs must be scanned before loading tags)");
+    }
+    return loaded;
 }
 
 Result<size_t> BlockTagLoader::loadFromResourcePack(const resource::IResourcePack& pack)

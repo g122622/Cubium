@@ -45,6 +45,7 @@
 #include "common/item/tag/ItemTags.hpp"
 
 #include "probe.hpp"
+#include "vanilla_datapack.hpp"
 
 namespace mc::diff {
 namespace {
@@ -58,9 +59,10 @@ void ensureTags()
 {
     static bool s_initialized = false;
     if (!s_initialized) {
-        // 物品标签按物品对象存储，必须先注册物品。
-        Items::initialize();
-        ItemTags::initialize();
+        // 与服务端 RegistryBootstrap 同序：方块 → 物品 → 方块物品 → 标签。
+        // 数据包物品标签引用了大量方块物品（candle、anvil、copper_block……），
+        // 方块物品未注册时这些成员会成为「未知物品」缺口，整个标签被拒绝。
+        datapack::initializeRegistries();
         s_initialized = true;
     }
 }

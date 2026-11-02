@@ -62,6 +62,7 @@
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTagLoader.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/HarvestToolTable.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -211,6 +212,8 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 并留下"该标签里没有这个物品"的永久空洞；标签表是一次性构建的，之后再补也不会回填。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::BlockTagLoader");
+        // 数据包是标签表的唯一来源：先清空，再由数据包重建（与物品标签同口径）。
+        BlockTags::clear();
         auto blockTagResult = BlockTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (blockTagResult.failed()) {
             spdlog::error("Failed to load block tags from data packs: {}", blockTagResult.error().toString());

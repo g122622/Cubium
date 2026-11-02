@@ -23,7 +23,7 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { projectDeclaredFields } from "./comparison.ts";
+import { compareLines, projectDeclaredFields } from "./comparison.ts";
 
 const equal = (expected: unknown, actual: unknown): boolean =>
     JSON.stringify(projectDeclaredFields(expected, expected)) === JSON.stringify(projectDeclaredFields(expected, actual));
@@ -75,4 +75,30 @@ test("显式声明为无序的路径：同样元素换顺序算一致，元素�
     );
     // 未声明的父路径数组保持有序。
     assert.ok(!unordered({ levels: [{ attributes: [] }, { attributes: [] }] }, { levels: [{ attributes: [] }] }));
+});
+
+test("memberGaps：两侧同时剔除已知缺口成员，不把参照缺口记成被测多出", () => {
+    // 参照有 {iron_chain, copper_chain}，被测只实现 {iron_chain}：copper_chain 是
+    // 「本项目尚未实现」的已知缺口，两侧都应剔除，剩下的部分一致。
+    const summary = compareLines(
+        [JSON.stringify({ tag: "minecraft:chains", values: ["minecraft:copper_chain", "minecraft:iron_chain"] })],
+        [JSON.stringify({ tag: "minecraft:chains", values: ["minecraft:iron_chain"] })],
+        {
+            key: "tag",
+            memberGaps: { field: "values", missing: ["minecraft:copper_chain"] },
+        },
+    );
+    assert.equal(summary.differences.length, 0);
+    // 两侧各剔除一次：参照 1 个 + 被测 0 个。
+    assert.equal(summary.memberGapDropped, 1);
+});
+
+test("memberGaps 只豁免登记的成员，别的缺失仍算差异", () => {
+    const summary = compareLines(
+        [JSON.stringify({ tag: "minecraft:x", values: ["minecraft:a", "minecraft:b"] })],
+        [JSON.stringify({ tag: "minecraft:x", values: ["minecraft:a"] })],
+        { key: "tag", memberGaps: { field: "values", missing: ["minecraft:a"] } },
+    );
+    // a 两侧都被剔除；参照剩 b、被测为空 → 仍是差异。
+    assert.equal(summary.differences.length, 1);
 });

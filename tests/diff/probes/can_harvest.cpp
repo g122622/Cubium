@@ -54,15 +54,14 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTagLoader.hpp"
 #include "common/world/block/registry/HarvestToolTable.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include "probe.hpp"
+#include "vanilla_datapack.hpp"
 
 namespace mc::diff {
 namespace {
@@ -76,26 +75,16 @@ void ensureInitialized()
         return;
     }
 
-    VanillaBlocks::initialize();
+    // 与服务端 RegistryBootstrap 同序初始化注册表（方块 → 物品 → 方块物品 → 标签）。
+    // Items::ensureInitialized 会补上 ensureRegistries 未覆盖的初始化，但必须在重建
+    // 规则表**之前**完成：BlockRegistry::applyHarvestToolTable 依赖方块对象已就位。
+    datapack::initializeRegistries();
     Items::ensureInitialized();
 
     // 采集规则（mineable/<tool> + needs_*_tool）来自数据包标签，与 Items/VanillaBlocks 一样
-    // 属于启动期数据。不加载数据包就会退回内置快照口径，测不出数据包与注册值的偏差。
-    const char* root = std::getenv("MC_DIFF_VANILLA_DATAPACK");
-    if (root == nullptr || *root == '\0') {
-        throw std::runtime_error("MC_DIFF_VANILLA_DATAPACK 未设置：需要指向原版数据包根目录（含 data/ 的那一层）");
-    }
-    const std::filesystem::path packRoot(root);
-    auto repository = std::make_unique<resource::DataPackRepository>();
-    const auto scanResult = repository->scanDirectory(packRoot.parent_path());
-    if (!scanResult.success() || scanResult.value() == 0) {
-        throw std::runtime_error("can_harvest: 数据包扫描失败：" + packRoot.string());
-    }
-    const auto tagResult = BlockTagLoader::loadFromDataPackRepository(*repository);
-    if (tagResult.failed()) {
-        throw std::runtime_error("can_harvest: 方块标签加载失败：" + tagResult.error().toString());
-    }
+    // 属于启动期数据，与服务端启动流程同一路径：数据包 → 标签表 → 规则表。
     block_registry::HarvestToolTable::rebuild();
+    BlockRegistry::instance().applyHarvestToolTable();
 
     s_initialized = true;
 }

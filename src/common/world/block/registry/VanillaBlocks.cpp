@@ -187,21 +187,13 @@ void VanillaBlocks::initialize()
         block.refreshLightCache();
     });
 
-    // 初始化方块标签（必须在所有方块注册后）
+    // 初始化方块标签表（必须在所有方块注册后）。标签内容本身来自数据包：客户端与服务端
+    // 都由各自的启动流程在方块注册完成后调用 BlockTagLoader 加载，这里只切换状态。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeBlockTags");
         spdlog::info("[VanillaBlocks] Initializing block tags...");
         BlockTags::initialize();
         spdlog::info("[VanillaBlocks] Block tags initialized");
-    }
-
-    // 按数据包标签（mineable/<tool>、needs_*_tool）与实测快照校正采集属性。
-    // 客户端只用到内置标签快照，这里即可得到完整结果；服务端在 BlockTagLoader
-    // 加载完数据包后会再次 rebuild 并重新应用，以数据包为准。
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "ApplyHarvestToolTable");
-        block_registry::HarvestToolTable::rebuild();
-        BlockRegistry::instance().applyHarvestToolTable();
     }
 
     // 初始化原版方块燃烧参数（必须在所有方块注册后）

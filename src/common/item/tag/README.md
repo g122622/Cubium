@@ -11,7 +11,7 @@ tag/
 ├── ItemTagLoader.hpp     # 物品标签 JSON 加载器（数据包加载）
 ├── ItemTagLoader.cpp     # 物品标签加载器实现
 ├── ItemTags.hpp          # 物品标签注册表（FLOWERS、CARPETS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、SWORDS、AXES、PICKAXES、SHOVELS、HOES、BREAKS_DECORATED_POTS、CHAINS、BARS、WOODEN_DOORS、DOORS、WOODEN_TRAPDOORS、TRAPDOORS、NON_FLAMMABLE_WOOD、WOODEN_SHELVES、SHULKER_BOXES、VILLAGER_PLANTABLE_SEEDS 等）
-├── ItemTags.cpp          # 内置标签初始化（硬编码默认值）
+├── ItemTags.cpp          # 标签表与便捷访问器（标签内容 100% 来自数据包）
 └── README.md             # 本文件
 ```
 
@@ -115,10 +115,11 @@ tag/
 
 ### 初始化流程
 
-1. 服务端启动时先调用 `ItemTags::initialize()` 注册内置标签的硬编码默认值
-2. 然后调用 `ItemTagLoader::loadFromDataPackRepository()` 从数据包加载标签
-3. 数据包加载会追加到（或替换）硬编码默认值
-4. 客户端仅使用硬编码默认值（客户端不加载数据包）
+1. `ItemTags::initialize()` 只把状态标记为已初始化——**标签内容 100% 来自数据包**，
+   不存在任何编译期快照
+2. 服务端 `RegistryBootstrap` 依次执行 `ItemTags::clear()` →
+   `ItemTagLoader::loadFromDataPackRepository()`，标签表整体由数据包重建
+3. 客户端不自行加载数据包：单人游戏由同进程的内置服务端加载
 
 ## 上下游外部依赖关系
 
@@ -152,17 +153,26 @@ tag/
 
 ### 1. 初始化顺序依赖
 
-`ItemTags::initialize()` **必须**在以下初始化之后调用：
+`ItemTagLoader::loadFromDataPackRepository()` **必须**在以下初始化之后调用，否则数据包里
+引用的方块物品尚未注册，会被判成「未知物品」，整个标签被拒绝：
 
 1. `VanillaBlocks::initialize()` - 方块注册
 2. `Items::initialize()` - 物品注册
 3. `BlockItemRegistry::instance().initializeVanillaBlockItems()` - 方块物品注册
 
-`ItemTagLoader::loadFromDataPackRepository()` 必须在 `ItemTags::initialize()` 之后调用。
+初始化入口：`RegistryBootstrap::initializeAll()`。
 
-初始化入口：
-- 客户端：`ClientApplication::initializeCoreRegistries()` — 仅硬编码默认值
-- 服务器：`MinecraftServer::initializeRegistries()` — 硬编码默认值 + 数据包加载
+### 1.1 便捷访问器的缓存指针会被 `clear()` 打失效
+
+`ItemTags::FLOWERS()` 等访问器把 `ItemTag*` 缓存在 static 局部变量里。`clear()` 释放标签
+对象后，旧指针既悬垂、又会让访问器永远返回过期内容。因此每个访问器都调用 `_isLive(tag)`
+复核指针仍指向标签表中的同一对象——新增访问器必须照抄这个守卫。
+
+### 1.2 不要内置标签快照
+
+历史上 `ItemTags::initialize()` 用 `VanillaItemTags.gen.cpp` 把数据包展开成编译期表，它与
+数据包会无声漂移（数据包含 cherry/copper 系物品，快照里没有），且玩家无法定制。该文件已
+删除：数据包是唯一来源。
 
 ### 2. 标签判断使用方式
 

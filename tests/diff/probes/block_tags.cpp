@@ -45,6 +45,7 @@
 #include "common/world/block/BlockTags.hpp"
 
 #include "probe.hpp"
+#include "vanilla_datapack.hpp"
 
 namespace mc::diff {
 namespace {
@@ -57,10 +58,12 @@ using mc::BlockTags;
 void ensureTags()
 {
     static bool s_initialized = false;
-    if (!s_initialized) {
-        BlockTags::initialize();
-        s_initialized = true;
+    if (s_initialized) {
+        return;
     }
+    // 与服务端 RegistryBootstrap 同序初始化注册表，标签成员随后从数据包载入。
+    datapack::initializeRegistries();
+    s_initialized = true;
 }
 
 std::string qualifiedTagName(const BlockTag& tag)

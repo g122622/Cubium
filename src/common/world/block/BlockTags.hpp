@@ -170,23 +170,6 @@ private:
 /**
  * @brief 内置方块标签集合
  */
-/**
- * @brief 原版方块标签表的一项（生成文件 VanillaBlockTags.gen.cpp 提供）。
- *
- * 成员已展开全部 `#tag` 引用，等价原版 `Tag#getValues()`。
- */
-struct VanillaBlockTagEntry {
-    const char* name;          ///< 标签名（无 minecraft: 前缀）
-    std::size_t count;         ///< 成员个数
-    const char* const* values; ///< 成员方块名（无 minecraft: 前缀）
-};
-
-/**
- * @brief 取原版方块标签表（静态存储，进程内指针恒定）。
- * @param count 输出表项数
- */
-const VanillaBlockTagEntry* vanillaBlockTagTable(size_t& count) noexcept;
-
 class BlockTags {
 public:
     // ========== 原木标签 ==========
@@ -722,11 +705,22 @@ public:
     static BlockTag& TRAPDOORS();
 
     /**
-     * @brief 初始化所有内置标签
+     * @brief 初始化标签表
      *
-     * 在 BlockRegistry::initialize() 之后调用
+     * 数据包是标签表的唯一来源：方块标签在启动期由
+     * {@link mc::BlockTagLoader::loadFromDataPackRepository} 从 `data/<ns>/tags/block/`
+     * 读取，本函数只把状态标记为已初始化。在 BlockRegistry 注册完成后调用；
+     * 未加载数据包的场景（单元测试）会得到空标签表，这与原版「标签只来自数据包」
+     * 的语义一致——测试需要标签时应显式加载数据包。
      */
     static void initialize();
+
+    /**
+     * @brief 清空标签表
+     *
+     * 数据包重载时调用：标签表由数据包构建，不保留任何编译期快照。
+     */
+    static void clear();
 
     /**
      * @brief 根据ID获取标签
@@ -769,6 +763,10 @@ private:
     BlockTags() = delete;
 
     static std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& _getTags();
+
+    /// 便捷访问器的缓存指针是否仍指向标签表中的同一对象（`clear()` 后旧指针会失效）。
+    [[nodiscard]] static bool _isLive(const BlockTag* tag);
+
     static bool s_initialized;
 };
 
