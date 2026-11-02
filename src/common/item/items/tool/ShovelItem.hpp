@@ -78,16 +78,6 @@ public:
     [[nodiscard]] ActionResultType onItemUse(ItemUseContext& context) override;
 
     /**
-     * @brief 检查是否能采集方块
-     *
-     * 锹对雪类方块有特殊处理。
-     *
-     * @param state 目标方块状态
-     * @return 如果可以采集返回 true
-     */
-    [[nodiscard]] bool canHarvestBlock(const BlockState& state) const override;
-
-    /**
      * @brief 获取挖掘速度
      *
      * 对 EARTH, SAND, SNOW 材质返回效率值。

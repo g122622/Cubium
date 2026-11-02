@@ -514,6 +514,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         input: (unit) => ({ block: unit }) },
     { name: "block_movement", probe: "block_movement", oracle: "BlockMovementOracle", key: "block", units: { kind: "listing" },
         input: (unit) => ({ block: unit }) },
+    { name: "can_harvest", probe: "can_harvest", oracle: "CanHarvestOracle", key: "block", units: { kind: "listing" },
+        input: (unit) => ({ block: unit }) },
     { name: "block_experience", probe: "block_experience", oracle: "BlockExperienceOracle", key: "block", units: { kind: "listing" },
         input: (unit) => ({ block: unit }) },
     { name: "item_attribute_modifiers", probe: "item_attribute_modifiers", oracle: "ItemAttributeModifiersOracle", key: "item",

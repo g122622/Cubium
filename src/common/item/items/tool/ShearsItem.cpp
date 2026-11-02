@@ -35,7 +35,9 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/HarvestTool.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "world/block/registry/HarvestToolTable.hpp"
 #include <utility>
 #include <vector>
 
@@ -72,19 +74,24 @@ f32 ShearsItem::getDestroySpeed(const ItemStack& stack, const BlockState& state)
 
 bool ShearsItem::canHarvestBlock(const BlockState& state) const
 {
-    // 剪刀可以采集蜘蛛网、红石线、绊线
-    if (VanillaBlocks::COBWEB && &state.owner() == VanillaBlocks::COBWEB) {
-        return true;
-    }
-    if (VanillaBlocks::REDSTONE_WIRE && &state.owner() == VanillaBlocks::REDSTONE_WIRE) {
-        return true;
-    }
-    if (VanillaBlocks::TRIPWIRE && &state.owner() == VanillaBlocks::TRIPWIRE) {
+    // 原版 DROPS 判定：方块不要求工具时，空手都能挖动，剪刀自然也行。
+    if (!state.requiresTool()) {
         return true;
     }
 
-    // 其他方块使用默认采集规则
-    return state.getHarvestTool() == TOOL_TYPE_NONE;
+    // 方块要求工具。原版数据包没有 mineable/shears 标签，剪刀的适用范围由 item 侧
+    // `#minecraft:shears_minable`（物品规则）给出，这里对齐为：蜘蛛网、红石线、绊线。
+    const Block& block = state.owner();
+    if (VanillaBlocks::COBWEB && &block == VanillaBlocks::COBWEB) {
+        return true;
+    }
+    if (VanillaBlocks::REDSTONE_WIRE && &block == VanillaBlocks::REDSTONE_WIRE) {
+        return true;
+    }
+    if (VanillaBlocks::TRIPWIRE && &block == VanillaBlocks::TRIPWIRE) {
+        return true;
+    }
+    return false;
 }
 
 bool ShearsItem::onBlockDestroyed(

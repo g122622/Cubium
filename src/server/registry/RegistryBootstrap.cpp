@@ -60,8 +60,10 @@
 #include "common/world/attribute/EnvironmentAttributeRegistry.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTagLoader.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
+#include "common/world/block/registry/HarvestToolTable.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
@@ -215,6 +217,15 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         } else {
             spdlog::info("Loaded {} block tags from data packs", blockTagResult.value());
         }
+    }
+
+    // 从刚加载的方块标签派生采集规则（mineable/<tool> + needs_*_tool），并校验注册处的
+    // requiresTool() 与标签并集一致。原版把「用什么工具、最低哪一档」放在数据包标签里，
+    // 这里与物品标签同口径：数据包是唯一来源，不保留任何编译期快照。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::HarvestToolTable");
+        block_registry::HarvestToolTable::rebuild();
+        BlockRegistry::instance().applyHarvestToolTable();
     }
 
     // 物品标签（必须在所有物品注册后）：数据包是标签表的唯一来源，与方块标签一致。

@@ -183,6 +183,17 @@ public:
     }
 
     /**
+     * @brief 用原版数据包标签校正所有方块的采集工具与最低档位
+     *
+     * 原版的「这个方块要用哪种工具、几档以上的工具才能挖动」由数据包标签
+     * `#minecraft:mineable/<tool>` 与 `#minecraft:needs_{stone,iron,diamond}_tool` 决定
+     * （`Tool.Rule`），并不写在方块属性里。本方法在全部方块注册完成后调用一次，把标签展开表
+     * （`HarvestToolTable.gen.cpp`）回灌进 `harvestTool`/`harvestLevel`，使手写注册值与
+     * 数据包保持一致；同时校验声明 requiresTool() 的方块集合与标签并集相等。
+     */
+    void applyHarvestToolTable();
+
+    /**
      * @brief 遍历所有方块
      */
     void forEachBlock(std::function<void(Block&)> callback)

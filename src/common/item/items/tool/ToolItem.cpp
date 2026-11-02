@@ -36,6 +36,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
+#include "world/block/registry/HarvestToolTable.hpp"
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -75,22 +76,33 @@ f32 ToolItem::getDestroySpeed(const ItemStack& stack, const BlockState& state) c
 
 bool ToolItem::canHarvestBlock(const BlockState& state) const
 {
-    // 获取工具类型的u8值
-    u8 toolTypeValue = static_cast<u8>(m_toolType);
+    // 对齐原版 `Tool.Rule`（ToolMaterial.applyToolProperties 生成的两条规则）：
+    //   1. deniesDrops(incorrect_for_<tier>_tool) —— 该档位挖不动的方块，返回 false；
+    //   2. minesAndDrops(mineable/<tool>, speed)   —— 属于该工具的方块，返回 true。
+    // 规则按**方块标签**匹配，而不是「方块属于哪个材质」。两者并不等价：绿宝石矿、
+    // 涂蜡铜块、深板岩矿石都只能用镐，但材质各不相同；反过来同材质的方块（如黏土）
+    // 又不需要工具。因此这里查数据包展开出的采集表，不再看 Material。
+    const block_registry::HarvestToolRuleSet* rules = block_registry::harvestToolRuleSetFor(state.blockLocation());
+    const u8 toolTypeValue = static_cast<u8>(m_toolType);
 
-    // 检查工具类型和挖掘等级
-    if (state.getHarvestTool() == toolTypeValue) {
-        return m_tier.getHarvestLevel() >= state.getHarvestLevel();
-    }
-
-    // 如果方块不需要工具，总是可以采集
-    if (state.getHarvestTool() == TOOL_TYPE_NONE) {
+    // 方块不强制要求正确工具：空手都能挖动，任何手持物都可以。
+    if (!state.requiresTool()) {
         return true;
     }
+    // 要求正确工具，却没有任何 mineable 规则（命令方块、结构方块、拼图方块等）：
+    // 原版这类方块在生存中谁挖都不掉落，因此这里返回 false 而不是放行。
+    if (rules == nullptr) {
+        return false;
+    }
 
-    // 如果方块需要工具但我们没有匹配的类型
-    // 默认情况下不能采集（但子类如镐可能有特殊逻辑）
-    return false;
+    // 方块需要工具，但要求的不是这一种：挖不动。
+    const i32 requiredLevel = block_registry::harvestToolRuleLevel(*rules, toolTypeValue);
+    if (requiredLevel < 0) {
+        return false;
+    }
+
+    // 工具种类匹配，再看档位：工具的 harvestLevel 必须不低于方块的最低档位。
+    return m_tier.getHarvestLevel() >= requiredLevel;
 }
 
 bool ToolItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker)

@@ -72,6 +72,7 @@ tests/diff/
 │   ├── redstone_signal.cpp      # 红石信号（六方向 × 强 / 弱 × 关掉自我屏蔽）
 │   ├── light_occlusion.cpp      # 方块状态的光照阻挡属性（lightBlock 等四项）
 │   ├── block_movement.cpp       # 方块对移动的作用（速度/跳跃因子）与随机刻/红石开关
+│   ├── can_harvest.cpp          # 每种手持工具能否获得方块掉落（requiresCorrectToolForDrops）
 │   ├── villager_trades.cpp      # 村民交易：整表导出 / 生成抽取 / 价格公式 / 补货
 │   ├── loot_world.hpp           # 战利品探针共用的空世界 / 掷骰入口
 │   └── loot_probe_common.hpp    # 战利品探针共用的样本循环与摘要
@@ -362,6 +363,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `redstone_signal` | 原版 jar `RedstoneSignalOracle` | 41 个手工地形场景 | 全部一致 | 见下文 |
 | `light_occlusion` | 原版 jar `LightOcclusionOracle` | 1166 个方块 | 全部一致 | 见下文 |
 | `block_movement` | 原版 jar `BlockMovementOracle` | 1166 个方块 | 全部一致 | 见下文 |
+| `can_harvest` | 原版 jar `CanHarvestOracle` | 1166 个方块 × 32 种手持工具 | 全部一致 | 见下文 |
 | `block_experience` | 原版 jar `BlockExperienceOracle` | 1166 | 全部一致 | — |
 | `item_attribute_modifiers` | 原版 jar `ItemAttributeModifiersOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `damage_reduction` | 原版 jar `DamageReductionOracle` | 2415 种伤害×护甲×韧性组合 | 全部一致（4 位小数） | — |
@@ -806,6 +808,37 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
   「这格能不能读」，默认 false 就直接跳过，读数实现写了也永远调不到。
 - **炼药锅/发射器/蜂巢/末地传送门框架缺比较器读数**：分别对应水位、容器填充率、
   蜂蜜等级、是否放了末影之眼。
+
+`can_harvest` 比的是**每种手持工具能否从方块上获得掉落**（原版
+`Player#hasCorrectToolForDrops`，即 `!requiresCorrectToolForDrops || isCorrectToolForDrops`）。
+单元是方块 × 32 种手持物（空手 + 6 档 × 5 类工具 + 剪刀）。
+
+为什么值得比：这是生存模式最直接的判定，抄错的表现是「白挖」——掉落为空、没有报错、
+没有崩溃。它同时依赖两半数据：方块声明「需要什么工具、哪一档」，工具声明「自己能挖什么」。
+原版这两半都放在**数据包标签**里（`mineable/<tool>` 与 `needs_{stone,iron,diamond}_tool`），
+由 `Tool.Rule` 按标签匹配求值。
+
+首轮跑通查出 1166 个单元全部判错。根因与修法：
+
+- **采集判定被写成了「材质硬编码」**：`PickaxeItem::canHarvestBlock` 原先是
+  「方块材质是 ROCK/IRON/ANVIL 就返回 true」。原版按**方块标签**匹配，两者不等价：
+  绿宝石矿、涂蜡铜块、深板岩矿石都只能镐挖，材质各不相同；反过来同材质方块
+  （黏土、泥土）却空手可挖。
+- **修法**：新增 `HarvestToolTable`，在**方块标签加载完成后**（服务端 `BlockTagLoader`
+  之后、客户端 `VanillaBlocks::initialize` 末尾）从数据包标签派生
+  「方块 → [(工具, 最低档位)]」，`ToolItem`/`SwordItem`/`ShearsItem` 统一查它。
+- **`requiresCorrectToolForDrops` 无法从数据包推导**：`mineable/*` 标签并集是 833 个方块，
+  其中只有 **411** 个真正要求正确工具，其余（按钮、门、活板门、泥土、树叶……）空手挖掉
+  照样掉落。该属性在原版是注册时硬编码的，数据包里没有文件表达它，因此以原版 jar 实测
+  快照内嵌在 `HarvestToolTable` 中，并在注释里说明原因与来源。
+- **金工具与木工具同档**：原版 `INCORRECT_FOR_GOLD_TOOL` == `INCORRECT_FOR_WOODEN_TOOL`
+  （都含 needs_stone + needs_iron + needs_diamond），金镐挖不动 needs_stone 那一档
+  （铁矿、青金石矿、铜块系列），与石镐不同。
+- **蜘蛛网只有剑能正确采**：剑的 `Tool.Rule` 里只有一条
+  `minesAndDrops(COBWEB, 15.0F)`，数据包里没有对应标签，因此以硬编码规则并入表。
+- **命令方块/结构方块/拼图方块**：要求正确工具、却不在任何 `mineable` 标签里，
+  原版表现为「任何工具都挖不动」。`ToolItem::canHarvestBlock` 对「要求工具但无规则」
+  必须返回 false，不能放行。
 
 `fuel_values` 比的是**每种物品作为燃料的燃烧时长**（原版 1.21.11 `FuelValues`）。
 单元是物品 ID，两侧都只输出一个 `burnTime`（0 表示不是燃料）。
