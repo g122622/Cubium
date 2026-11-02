@@ -169,7 +169,7 @@ void registerCaveBlocks()
     CaveBlocks::AMETHYST_CLUSTER =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:amethyst_cluster"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .hardness(1.5f)
                 .resistance(1.5f)

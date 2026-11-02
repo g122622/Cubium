@@ -243,7 +243,7 @@ void registerNaturalBlocks()
     NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
         BlockProperties(Material::REPLACEABLE_PLANT)
             .hardness(0.2f)
-            .noCollision()
+            .withCollision()
             .notSolid()
             .ignitedByLava()
             .soundType(BlockSoundTypes::VINE));
@@ -280,7 +280,7 @@ void registerNaturalBlocks()
     NaturalBlocks::SEA_PICKLE =
         &registry.registerBlock<blocks::SeaPickleBlock>(ResourceLocation("minecraft:sea_pickle"),
             BlockProperties(Material::OCEAN_PLANT)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .lightLevel(6)
                 .soundType(BlockSoundTypes::SLIME));
@@ -311,7 +311,7 @@ void registerNaturalBlocks()
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
             BlockProperties(Material::CORAL)
                 .hardness(0.5f)
-                .noCollision()
+                .withCollision()
                 .notSolid()
                 .noOcclusion()
                 .soundType(BlockSoundTypes::METAL));
