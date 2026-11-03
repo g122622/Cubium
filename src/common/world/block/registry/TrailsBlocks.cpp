@@ -79,22 +79,30 @@ void registerTrailsBlocks()
     // 可疑的沙 - 受重力影响，可以被刷子刷出物品，DUSTED属性(0-3)
     // 刷扫音效：BRUSH_SAND，完成音效：BRUSH_SAND_COMPLETED
     // 刷扫完成后转换为沙方块（对齐 MC 1.21.11 BrushableBlock.turns_into = sand）
-    TrailsBlocks::SUSPICIOUS_SAND = &registry.registerBlock<blocks::BrushableBlock>(
-        ResourceLocation("minecraft:suspicious_sand"),
-        BlockProperties(Material::SAND).hardness(0.25f).resistance(0.25f).soundType(BlockSoundTypes::SUSPICIOUS_SAND),
-        BaseBlocks::SAND,
-        SoundEvents::BRUSH_SAND,
-        SoundEvents::BRUSH_SAND_COMPLETED);
+    TrailsBlocks::SUSPICIOUS_SAND =
+        &registry.registerBlock<blocks::BrushableBlock>(ResourceLocation("minecraft:suspicious_sand"),
+            BlockProperties(Material::SAND)
+                .instrument(BlockProperties::Instrument::Snare)
+                .hardness(0.25f)
+                .resistance(0.25f)
+                .soundType(BlockSoundTypes::SUSPICIOUS_SAND),
+            BaseBlocks::SAND,
+            SoundEvents::BRUSH_SAND,
+            SoundEvents::BRUSH_SAND_COMPLETED);
 
     // 可疑的沙砾 - 受重力影响，可以被刷子刷出物品，DUSTED属性(0-3)
     // 刷扫音效：BRUSH_GRAVEL，完成音效：BRUSH_GRAVEL_COMPLETED
     // 刷扫完成后转换为沙砾方块（对齐 MC 1.21.11 BrushableBlock.turns_into = gravel）
-    TrailsBlocks::SUSPICIOUS_GRAVEL = &registry.registerBlock<blocks::BrushableBlock>(
-        ResourceLocation("minecraft:suspicious_gravel"),
-        BlockProperties(Material::SAND).hardness(0.25f).resistance(0.25f).soundType(BlockSoundTypes::SUSPICIOUS_GRAVEL),
-        BaseBlocks::GRAVEL,
-        SoundEvents::BRUSH_GRAVEL,
-        SoundEvents::BRUSH_GRAVEL_COMPLETED);
+    TrailsBlocks::SUSPICIOUS_GRAVEL =
+        &registry.registerBlock<blocks::BrushableBlock>(ResourceLocation("minecraft:suspicious_gravel"),
+            BlockProperties(Material::SAND)
+                .instrument(BlockProperties::Instrument::Snare)
+                .hardness(0.25f)
+                .resistance(0.25f)
+                .soundType(BlockSoundTypes::SUSPICIOUS_GRAVEL),
+            BaseBlocks::GRAVEL,
+            SoundEvents::BRUSH_GRAVEL,
+            SoundEvents::BRUSH_GRAVEL_COMPLETED);
 
     // ============================================================================
     // 雕书架
@@ -105,6 +113,7 @@ void registerTrailsBlocks()
     TrailsBlocks::CHISELED_BOOKSHELF =
         &registry.registerBlock<blocks::ChiseledBookshelfBlock>(ResourceLocation("minecraft:chiseled_bookshelf"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(1.5f)
                 .resistance(1.5f)
                 .harvestTool(HarvestTool::Axe)

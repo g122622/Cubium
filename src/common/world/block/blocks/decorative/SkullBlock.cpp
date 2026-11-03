@@ -248,10 +248,10 @@ AbstractSkullBlock::AbstractSkullBlock(SkullType type, const BlockProperties& pr
     : Block(properties)
     , m_type(type)
 {
-    // 头颅的乐器：音符盒放在其下方时演奏对应的生物头颅音色。
-    // 对齐 vanilla Blocks.SKULL 等注册时的 .instrument(NoteBlockInstrument.SKELETON/ZOMBIE/...)
-    // 与 .instrument(NoteBlockInstrument.CUSTOM)（玩家头）；两者均为 worksAboveNoteBlock 类。
-    setNonVirtualInstrument(_instrumentForSkullType(type));
+    // 乐器**只在站立头颅上设置**，见 SkullBlock 的构造函数：原版只有 `Blocks.SKELETON_SKULL`
+    // 这类站立头颅带 `.instrument(...)`，墙上的头颅（`*_wall_head` / `*_wall_skull`）
+    // 是普通方块，音符盒在它们上方演奏的是默认的竖琴，不是生物叫声。
+    // 早期写在这里，于是墙挂头颅也继承了生物乐器。
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -312,6 +312,12 @@ SkullBlock::SkullBlock(SkullType type, const BlockProperties& properties)
     , m_shape(_skullShape())
     , m_piglinShape(_piglinSkullShape())
 {
+    // 站立头颅的乐器：音符盒放在其上方时演奏对应的生物头颅音色。
+    // 原版 `Blocks.SKELETON_SKULL` 等注册时带 `.instrument(NoteBlockInstrument.SKELETON/ZOMBIE/...)`，
+    // 玩家头带 `.instrument(NoteBlockInstrument.CUSTOM)`；这些都属于 worksAboveNoteBlock 类。
+    // 墙挂头颅不带这个属性，所以这里只设在 SkullBlock 而非基类。
+    setNonVirtualInstrument(_instrumentForSkullType(type));
+
     // 站立头颅额外持有 ROTATION_0_15 属性
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

@@ -1024,6 +1024,7 @@ void registerCopperBlocks()
     // ============================================================================
     CopperBlocks::RAW_IRON_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_iron_block"),
         BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -1034,6 +1035,7 @@ void registerCopperBlocks()
     CopperBlocks::RAW_COPPER_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_copper_block"),
             BlockProperties(Material::IRON)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(5.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -1043,6 +1045,7 @@ void registerCopperBlocks()
 
     CopperBlocks::RAW_GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_gold_block"),
         BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)

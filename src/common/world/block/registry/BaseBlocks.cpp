@@ -200,6 +200,7 @@ void registerBaseBlocks()
     // 石头
     BaseBlocks::STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -215,12 +216,16 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:dirt"), BlockProperties(Material::EARTH).resistance(0.5f).hardness(0.5f));
 
     // 圆石
-    BaseBlocks::COBBLESTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:cobblestone"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+    BaseBlocks::COBBLESTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cobblestone"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(2.0f)
+            .resistance(6.0f));
 
     // 平滑石头（熔炉烧炼石头所得，用于合成平滑石头台阶等）
     BaseBlocks::SMOOTH_STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_stone"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(2.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -229,7 +234,12 @@ void registerBaseBlocks()
 
     // 橡木木板
     BaseBlocks::OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:oak_planks"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(3.0f)
+            .flammable()
+            .ignitedByLava());
 
     // 水
     {
@@ -276,15 +286,23 @@ void registerBaseBlocks()
 
     // 基岩
     BaseBlocks::BEDROCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bedrock"),
-        BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(-1.0f)
+            .resistance(3600000.0f)
+            .noLootTable());
 
     // 沙子
-    BaseBlocks::SAND = &registry.registerBlock<blocks::FallingBlock>(
-        ResourceLocation("minecraft:sand"), BlockProperties(Material::SAND).resistance(0.5f).hardness(0.5f));
+    BaseBlocks::SAND = &registry.registerBlock<blocks::FallingBlock>(ResourceLocation("minecraft:sand"),
+        BlockProperties(Material::SAND).instrument(BlockProperties::Instrument::Snare).resistance(0.5f).hardness(0.5f));
 
     // 砾石
     BaseBlocks::GRAVEL = &registry.registerBlock<blocks::FallingBlock>(ResourceLocation("minecraft:gravel"),
-        BlockProperties(Material::SAND).resistance(0.600000024f).hardness(0.6f).soundType(BlockSoundTypes::GRAVEL));
+        BlockProperties(Material::SAND)
+            .instrument(BlockProperties::Instrument::Snare)
+            .resistance(0.600000024f)
+            .hardness(0.6f)
+            .soundType(BlockSoundTypes::GRAVEL));
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(ResourceLocation("minecraft:snow"),
@@ -312,6 +330,7 @@ void registerBaseBlocks()
     // propagatesSkylightDown=false、lightBlock=1（天空光衰减 1 级），而不是 0。
     BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
         BlockProperties(Material::GLASS)
+            .instrument(BlockProperties::Instrument::Hat)
             .resistance(0.300000012f)
             .hardness(0.3f)
             .notSolid()
@@ -322,34 +341,66 @@ void registerBaseBlocks()
     // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩
     // （绯红菌岩/诡异菌岩）。详见 NetherrackBlock.cpp。
     BaseBlocks::NETHERRACK = &registry.registerBlock<blocks::NetherrackBlock>(ResourceLocation("minecraft:netherrack"),
-        BlockProperties(Material::ROCK).resistance(0.400000006f).hardness(0.4f).soundType(BlockSoundTypes::NETHERRACK));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .resistance(0.400000006f)
+            .hardness(0.4f)
+            .soundType(BlockSoundTypes::NETHERRACK));
 
     // 荧石
     BaseBlocks::GLOWSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glowstone"),
-        BlockProperties(Material::GLASS).resistance(0.300000012f).hardness(0.3f).lightLevel(15));
+        BlockProperties(Material::GLASS)
+            .instrument(BlockProperties::Instrument::Pling)
+            .resistance(0.300000012f)
+            .hardness(0.3f)
+            .lightLevel(15));
 
     // 末地石
-    BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:end_stone"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
+    BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.0f)
+            .resistance(9.0f));
 
     // 黑曜石
-    BaseBlocks::OBSIDIAN = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:obsidian"), BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
+    BaseBlocks::OBSIDIAN = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:obsidian"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(50.0f)
+            .resistance(1200.0f));
 
     // ========== 石头变种 ==========
-    BaseBlocks::GRANITE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:granite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
+    BaseBlocks::GRANITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:granite"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(1.5f)
+            .resistance(6.0f));
     BaseBlocks::POLISHED_GRANITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_granite"),
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    BaseBlocks::DIORITE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:diorite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(1.5f)
+            .resistance(6.0f));
+    BaseBlocks::DIORITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:diorite"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(1.5f)
+            .resistance(6.0f));
     BaseBlocks::POLISHED_DIORITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_diorite"),
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
-    BaseBlocks::ANDESITE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:andesite"), BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(1.5f)
+            .resistance(6.0f));
+    BaseBlocks::ANDESITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:andesite"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(1.5f)
+            .resistance(6.0f));
     BaseBlocks::POLISHED_ANDESITE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_andesite"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f));
 
     // ========== 泥土变种 ==========
     BaseBlocks::COARSE_DIRT = &registry.registerBlock<SimpleBlock>(
@@ -360,36 +411,76 @@ void registerBaseBlocks()
 
     // ========== 砂岩系列 ==========
     BaseBlocks::SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sandstone"),
-        BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .resistance(0.800000012f)
+            .hardness(0.8f));
     BaseBlocks::CHISELED_SANDSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_sandstone"),
-            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(0.800000012f)
+                .hardness(0.8f));
     BaseBlocks::CUT_SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cut_sandstone"),
-        BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .resistance(0.800000012f)
+            .hardness(0.8f));
     BaseBlocks::RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_sandstone"),
-        BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .resistance(0.800000012f)
+            .hardness(0.8f));
     BaseBlocks::SMOOTH_SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_sandstone"),
-        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(2.0f)
+            .resistance(6.0f));
     BaseBlocks::CHISELED_RED_SANDSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_red_sandstone"),
-            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(0.800000012f)
+                .hardness(0.8f));
     BaseBlocks::CUT_RED_SANDSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cut_red_sandstone"),
-            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(0.800000012f)
+                .hardness(0.8f));
     BaseBlocks::SMOOTH_RED_SANDSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_red_sandstone"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f));
 
     // ========== 矿石方块 ==========
-    BaseBlocks::GOLD_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
-        ResourceLocation("minecraft:gold_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 0, 0);
-    BaseBlocks::IRON_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
-        ResourceLocation("minecraft:iron_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 0, 0);
-    BaseBlocks::COAL_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
-        ResourceLocation("minecraft:coal_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 0, 2);
+    BaseBlocks::GOLD_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:gold_ore"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.0f)
+            .resistance(3.0f),
+        0,
+        0);
+    BaseBlocks::IRON_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:iron_ore"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.0f)
+            .resistance(3.0f),
+        0,
+        0);
+    BaseBlocks::COAL_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:coal_ore"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.0f)
+            .resistance(3.0f),
+        0,
+        2);
     BaseBlocks::DIAMOND_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:diamond_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -401,21 +492,38 @@ void registerBaseBlocks()
         BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).soundType(BlockSoundTypes::METAL));
     BaseBlocks::EMERALD_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:emerald_ore"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f),
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(3.0f)
+                .resistance(3.0f),
             3,
             7);
-    BaseBlocks::LAPIS_ORE = &registry.registerBlock<blocks::DropExperienceBlock>(
-        ResourceLocation("minecraft:lapis_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f), 2, 5);
-    BaseBlocks::REDSTONE_ORE = &registry.registerBlock<blocks::RedstoneOreBlock>(
-        ResourceLocation("minecraft:redstone_ore"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    BaseBlocks::LAPIS_ORE =
+        &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:lapis_ore"),
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(3.0f)
+                .resistance(3.0f),
+            2,
+            5);
+    BaseBlocks::REDSTONE_ORE =
+        &registry.registerBlock<blocks::RedstoneOreBlock>(ResourceLocation("minecraft:redstone_ore"),
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(3.0f)
+                .resistance(3.0f));
     BaseBlocks::COPPER_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:copper_ore"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f),
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(3.0f)
+                .resistance(3.0f),
             0,
             0);
     BaseBlocks::NETHER_QUARTZ_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:nether_quartz_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.0f)
                 .resistance(3.0f)
 
@@ -424,7 +532,11 @@ void registerBaseBlocks()
             5);
     BaseBlocks::NETHER_GOLD_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:nether_gold_ore"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_GOLD_ORE),
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(3.0f)
+                .resistance(3.0f)
+                .soundType(BlockSoundTypes::NETHER_GOLD_ORE),
             0,
             1);
     // 远古残骸：30 / 1200（原版；不是 50，也不是方解石那样的 0.75）。
@@ -434,19 +546,32 @@ void registerBaseBlocks()
     // ========== 矿物方块 ==========
     BaseBlocks::COAL_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:coal_block"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(1)
             .requiresTool());
     BaseBlocks::GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gold_block"),
-        BlockProperties(Material::IRON).hardness(3.0f).resistance(6.0f).soundType(BlockSoundTypes::METAL));
+        BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::Bell)
+            .hardness(3.0f)
+            .resistance(6.0f)
+            .soundType(BlockSoundTypes::METAL));
     BaseBlocks::IRON_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:iron_block"),
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).soundType(BlockSoundTypes::IRON));
+        BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::IronXylophone)
+            .hardness(5.0f)
+            .resistance(6.0f)
+            .soundType(BlockSoundTypes::IRON));
     BaseBlocks::LAPIS_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:lapis_block"),
         BlockProperties(Material::IRON).hardness(3.0f).resistance(3.0f).soundType(BlockSoundTypes::STONE));
     BaseBlocks::EMERALD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:emerald_block"),
-        BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f).soundType(BlockSoundTypes::METAL));
+        BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::Bit)
+            .hardness(5.0f)
+            .resistance(6.0f)
+            .soundType(BlockSoundTypes::METAL));
     // 红石块须注册为 RedstoneBlock（而非 SimpleBlock）才能输出强度 15 的红石信号（getWeakPower/
     // getStrongPower 全向返回 MAX_POWER）。此前误注册为 SimpleBlock 导致其 getBlock() 返回基类、
     // 虚函数分发到 Block::getWeakPower 默认实现返回 0，红石块实际不供电——无法激活相邻红石灯等
@@ -464,8 +589,12 @@ void registerBaseBlocks()
             .soundType(BlockSoundTypes::NETHERITE));
 
     // ========== 原木和树叶 ==========
-    BlockProperties logProps =
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava();
+    BlockProperties logProps = BlockProperties(Material::WOOD)
+                                   .hardness(2.0f)
+                                   .resistance(2.0f)
+                                   .flammable()
+                                   .ignitedByLava()
+                                   .instrument(BlockProperties::Instrument::Bass);
     // 原版 leavesProperties 只注册 noOcclusion()，没有 propagatesSkylightDown()：树叶的遮挡形状
     // 是完整立方体，默认推导给出 false，天空光穿过时衰减 1 级（opacity 1）。
     BlockProperties leavesProps = BlockProperties(Material::LEAVES)
@@ -541,8 +670,12 @@ void registerBaseBlocks()
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:dark_oak_leaves"), leavesProps);
 
     // ========== 木板变种 ==========
-    BlockProperties planksProps =
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava();
+    BlockProperties planksProps = BlockProperties(Material::WOOD)
+                                      .hardness(2.0f)
+                                      .resistance(3.0f)
+                                      .flammable()
+                                      .ignitedByLava()
+                                      .instrument(BlockProperties::Instrument::Bass);
     BaseBlocks::SPRUCE_PLANKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spruce_planks"), planksProps);
     BaseBlocks::BIRCH_PLANKS =

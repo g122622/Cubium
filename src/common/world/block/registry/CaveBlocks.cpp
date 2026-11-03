@@ -189,6 +189,7 @@ void registerCaveBlocks()
     // 滴水石块 - 由滴水石锥合成
     CaveBlocks::DRIPSTONE_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dripstone_block"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(1.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -204,6 +205,7 @@ void registerCaveBlocks()
     CaveBlocks::POINTED_DRIPSTONE =
         &registry.registerBlock<blocks::PointedDripstoneBlock>(ResourceLocation("minecraft:pointed_dripstone"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
 
                 .hardness(1.5f)
                 .resistance(3.0f)
@@ -219,6 +221,7 @@ void registerCaveBlocks()
 
     CaveBlocks::CALCITE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:calcite"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(0.75f)
             .resistance(0.75f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -236,6 +239,7 @@ void registerCaveBlocks()
     CaveBlocks::TINTED_GLASS =
         &registry.registerBlock<blocks::TintedGlassBlock>(ResourceLocation("minecraft:tinted_glass"),
             BlockProperties(Material::GLASS)
+                .instrument(BlockProperties::Instrument::Hat)
                 .hardness(0.3f)
                 .resistance(0.3f)
                 .notSolid()

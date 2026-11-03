@@ -70,6 +70,7 @@ void registerCherryBlocks()
     // 樱花原木
     CherryBlocks::CHERRY_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:cherry_log"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(2.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -79,6 +80,7 @@ void registerCherryBlocks()
     // 樱花木材
     CherryBlocks::CHERRY_WOOD = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:cherry_wood"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(2.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -89,6 +91,7 @@ void registerCherryBlocks()
     CherryBlocks::STRIPPED_CHERRY_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_cherry_log"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -99,6 +102,7 @@ void registerCherryBlocks()
     CherryBlocks::STRIPPED_CHERRY_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_cherry_wood"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -112,6 +116,7 @@ void registerCherryBlocks()
     // 樱花木板
     CherryBlocks::CHERRY_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cherry_planks"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -123,6 +128,7 @@ void registerCherryBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:cherry_stairs"),
             CherryBlocks::CHERRY_PLANKS->defaultState(),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -132,6 +138,7 @@ void registerCherryBlocks()
     // 樱花台阶
     CherryBlocks::CHERRY_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:cherry_slab"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -141,6 +148,7 @@ void registerCherryBlocks()
     // 樱花栅栏
     CherryBlocks::CHERRY_FENCE = &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:cherry_fence"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -151,6 +159,7 @@ void registerCherryBlocks()
     CherryBlocks::CHERRY_FENCE_GATE =
         &registry.registerBlock<blocks::FenceGateBlock>(ResourceLocation("minecraft:cherry_fence_gate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -161,6 +170,7 @@ void registerCherryBlocks()
     // 樱花门
     CherryBlocks::CHERRY_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:cherry_door"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(3.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -174,6 +184,7 @@ void registerCherryBlocks()
     CherryBlocks::CHERRY_TRAPDOOR =
         &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:cherry_trapdoor"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(3.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::CHERRY_WOOD)

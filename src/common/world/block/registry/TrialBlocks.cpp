@@ -57,6 +57,7 @@ void registerTrialBlocks()
     TrialBlocks::TRIAL_SPAWNER =
         &registry.registerBlock<blocks::TrialSpawnerBlock>(ResourceLocation("minecraft:trial_spawner"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .resistance(50.0f)
                 .hardness(50.0f)
 
@@ -71,6 +72,7 @@ void registerTrialBlocks()
     // VAULT_STATE + FACING + OMINOUS
     TrialBlocks::VAULT = &registry.registerBlock<blocks::VaultBlock>(ResourceLocation("minecraft:vault"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .resistance(50.0f)
             .hardness(50.0f)
 
@@ -97,6 +99,7 @@ void registerTrialBlocks()
     // 材质为铁，硬度10，抗爆1200，碰撞箱为小型柱状
     TrialBlocks::HEAVY_CORE = &registry.registerBlock<blocks::HeavyCoreBlock>(ResourceLocation("minecraft:heavy_core"),
         BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::Snare)
             .hardness(10.0f)
             .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)

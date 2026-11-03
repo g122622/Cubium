@@ -163,8 +163,11 @@ void registerRedstoneBlocks()
         ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).withCollision().notSolid());
 
     // 侦测器
-    RedstoneBlocks::OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
-        ResourceLocation("minecraft:observer"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    RedstoneBlocks::OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(ResourceLocation("minecraft:observer"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.0f)
+            .resistance(3.0f));
 
     // 拉杆
     RedstoneBlocks::LEVER = &registry.registerBlock<blocks::LeverBlock>(ResourceLocation("minecraft:lever"),
@@ -318,6 +321,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::STONE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::StonePressurePlateBlock>(ResourceLocation("minecraft:stone_pressure_plate"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -330,6 +334,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:oak_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -344,6 +349,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::SPRUCE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:spruce_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -358,6 +364,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::BIRCH_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:birch_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -372,6 +379,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::JUNGLE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:jungle_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -386,6 +394,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::ACACIA_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:acacia_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -400,6 +409,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::DARK_OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:dark_oak_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -414,6 +424,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::CRIMSON_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:crimson_pressure_plate"),
             BlockProperties(Material::NETHER_WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .resistance(0.5f)
                 .noCollision()
 
@@ -426,6 +437,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::WARPED_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:warped_pressure_plate"),
             BlockProperties(Material::NETHER_WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .resistance(0.5f)
                 .noCollision()
                 .notSolid()
@@ -438,6 +450,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::MANGROVE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:mangrove_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -452,6 +465,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::CHERRY_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:cherry_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -467,6 +481,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::BAMBOO_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:bamboo_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -482,6 +497,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::PALE_OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:pale_oak_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
 
                 .hardness(0.5f)
@@ -496,6 +512,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::POLISHED_BLACKSTONE_PRESSURE_PLATE = &registry.registerBlock<blocks::StonePressurePlateBlock>(
         ResourceLocation("minecraft:polished_blackstone_pressure_plate"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .noCollision()
 
             .hardness(0.5f)
@@ -533,7 +550,12 @@ void registerRedstoneBlocks()
     // 日光探测器
     RedstoneBlocks::DAYLIGHT_DETECTOR =
         &registry.registerBlock<blocks::DaylightDetectorBlock>(ResourceLocation("minecraft:daylight_detector"),
-            BlockProperties(Material::WOOD).resistance(0.200000003f).hardness(0.2f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(0.200000003f)
+                .hardness(0.2f)
+                .flammable()
+                .ignitedByLava());
 
     // 活塞
     RedstoneBlocks::PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:piston"),
@@ -559,16 +581,27 @@ void registerRedstoneBlocks()
         BlockProperties(Material::PISTON).resistance(0.0f).hardness(-1.0f).noLootTable().noOcclusion().forceSolidOn());
 
     // 发射器
-    RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(
-        ResourceLocation("minecraft:dispenser"), BlockProperties(Material::ROCK).hardness(3.5f).resistance(3.5f));
+    RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(ResourceLocation("minecraft:dispenser"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.5f)
+            .resistance(3.5f));
 
     // 投掷器
-    RedstoneBlocks::DROPPER = &registry.registerBlock<blocks::DropperBlock>(
-        ResourceLocation("minecraft:dropper"), BlockProperties(Material::ROCK).hardness(3.5f).resistance(3.5f));
+    RedstoneBlocks::DROPPER = &registry.registerBlock<blocks::DropperBlock>(ResourceLocation("minecraft:dropper"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.5f)
+            .resistance(3.5f));
 
     // 音符盒
     RedstoneBlocks::NOTE_BLOCK = &registry.registerBlock<blocks::NoteBlock>(ResourceLocation("minecraft:note_block"),
-        BlockProperties(Material::WOOD).resistance(0.800000012f).hardness(0.8f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .resistance(0.800000012f)
+            .hardness(0.8f)
+            .flammable()
+            .ignitedByLava());
 
     // 标靶
     RedstoneBlocks::TARGET = &registry.registerBlock<blocks::TargetBlock>(ResourceLocation("minecraft:target"),

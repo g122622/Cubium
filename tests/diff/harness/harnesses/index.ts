@@ -1451,6 +1451,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "replaceable 误真会让玩家的墙被随手放上的方块直接替换掉，solid 误真会让屋顶刷不出怪",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_instrument",
+        probe: "block_instrument",
+        oracle: "BlockInstrumentOracle",
+        description: "音符盒放在方块上方时演奏的乐器（BlockStateBase#instrument()）—— 每个方块一个单元；"
+        + "石头类给大鼓、沙类给小军鼓、玻璃给踩镲、木类给贝斯、泥土给长笛、金块给钟、羊毛给吉他、冰给风铃、骨块给木琴、"
+        + "铁块给铁琴、灵魂沙给牛铃、南瓜给迪吉里杜管、绿宝石块给电子音、干草块给班卓琴、萤石给电钢琴，头颅模仿生物叫声，"
+        + "其余竖琴。抄错不影响任何方块行为，只会让红石音乐作品听起来不对，只能逐方块比对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

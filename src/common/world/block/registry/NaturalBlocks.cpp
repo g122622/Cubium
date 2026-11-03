@@ -174,8 +174,11 @@ void registerNaturalBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 粘土
-    NaturalBlocks::CLAY = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:clay"), BlockProperties(Material::EARTH).resistance(0.600000024f).hardness(0.6f));
+    NaturalBlocks::CLAY = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:clay"),
+        BlockProperties(Material::EARTH)
+            .instrument(BlockProperties::Instrument::Flute)
+            .resistance(0.600000024f)
+            .hardness(0.6f));
 
     // 菌丝
     NaturalBlocks::MYCELIUM = &registry.registerBlock<blocks::MyceliumBlock>(ResourceLocation("minecraft:mycelium"),
@@ -193,7 +196,11 @@ void registerNaturalBlocks()
     // （实测原版 1.21.11：propagatesSkylightDown=false、lightBlock=1）。
     NaturalBlocks::PACKED_ICE =
         &registry.registerBlock<blocks::PackedIceBlock>(ResourceLocation("minecraft:packed_ice"),
-            BlockProperties(Material::ICE).resistance(0.5f).hardness(0.5f).slipperiness(physics::SLIPPERINESS_ICE));
+            BlockProperties(Material::ICE)
+                .instrument(BlockProperties::Instrument::Chime)
+                .resistance(0.5f)
+                .hardness(0.5f)
+                .slipperiness(physics::SLIPPERINESS_ICE));
 
     // 蓝冰 - 最滑的方块
     NaturalBlocks::BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(ResourceLocation("minecraft:blue_ice"),
@@ -277,8 +284,8 @@ void registerNaturalBlocks()
         BlockProperties(Material::EARTH).resistance(0.600000024f).hardness(0.6f));
 
     // 红沙
-    NaturalBlocks::RED_SAND = &registry.registerBlock<blocks::FallingBlock>(
-        ResourceLocation("minecraft:red_sand"), BlockProperties(Material::SAND).resistance(0.5f).hardness(0.5f));
+    NaturalBlocks::RED_SAND = &registry.registerBlock<blocks::FallingBlock>(ResourceLocation("minecraft:red_sand"),
+        BlockProperties(Material::SAND).instrument(BlockProperties::Instrument::Snare).resistance(0.5f).hardness(0.5f));
 
     // 干海带块
     //
@@ -417,17 +424,27 @@ void registerNaturalBlocks()
     const u32 deadFallbackId = BaseBlocks::AIR ? BaseBlocks::AIR->blockId() : 0;
     // 珊瑚块与珊瑚（活体）的声音组：方块体用 `SoundType.CORAL_BLOCK`，珊瑚/珊瑚扇用
     // `SoundType.WET_GRASS`——原版它们都不走材质默认的石头声。
-    const BlockProperties coralBlockProps =
-        BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f).soundType(BlockSoundTypes::CORAL_BLOCK);
+    const BlockProperties coralBlockProps = BlockProperties(Material::CORAL)
+                                                .hardness(1.5f)
+                                                .resistance(6.0f)
+                                                .soundType(BlockSoundTypes::CORAL_BLOCK)
+                                                .instrument(BlockProperties::Instrument::BaseDrum);
     const BlockProperties coralPlantProps = BlockProperties(Material::CORAL)
                                                 .hardness(0.0f)
                                                 .noCollision()
                                                 .notSolid()
                                                 .noOcclusion()
                                                 .soundType(BlockSoundTypes::WET_GRASS);
-    const BlockProperties deadCoralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
-    const BlockProperties deadCoralPlantProps =
-        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().noOcclusion().forceSolidOn();
+    const BlockProperties deadCoralBlockProps = BlockProperties(Material::CORAL)
+                                                    .hardness(1.5f)
+                                                    .resistance(6.0f)
+                                                    .instrument(BlockProperties::Instrument::BaseDrum);
+    const BlockProperties deadCoralPlantProps = BlockProperties(Material::CORAL)
+                                                    .hardness(0.0f)
+                                                    .noCollision()
+                                                    .noOcclusion()
+                                                    .forceSolidOn()
+                                                    .instrument(BlockProperties::Instrument::BaseDrum);
 
     NaturalBlocks::DEAD_TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:dead_tube_coral_block"), blocks::CoralColor::Tube, deadCoralBlockProps);
@@ -613,6 +630,7 @@ void registerNaturalBlocks()
     // 潮涌核心 - 水下信标类方块，需要潮涌框架激活
     NaturalBlocks::CONDUIT = &registry.registerBlock<blocks::ConduitBlock>(ResourceLocation("minecraft:conduit"),
         BlockProperties(Material::GLASS)
+            .instrument(BlockProperties::Instrument::Hat)
             .hardness(3.0f)
             .resistance(3.0f)
 
@@ -635,11 +653,17 @@ void registerNaturalBlocks()
     // ========== 蜂巢/蜂箱 ==========
     // 蜂巢 - 自然生成于树上，材质较软
     NaturalBlocks::BEE_NEST = &registry.registerBlock<blocks::BeehiveBlock>(ResourceLocation("minecraft:bee_nest"),
-        BlockProperties(Material::WOOD).hardness(0.3f).resistance(0.3f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(0.3f)
+            .resistance(0.3f)
+            .flammable()
+            .ignitedByLava());
 
     // 蜂箱 - 玩家合成，用木板制作，需要斧头加速挖掘
     NaturalBlocks::BEEHIVE = &registry.registerBlock<blocks::BeehiveBlock>(ResourceLocation("minecraft:beehive"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(0.6f)
             .resistance(0.6f)
             .flammable()

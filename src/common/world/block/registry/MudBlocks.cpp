@@ -75,7 +75,8 @@ void registerMudBlocks()
                                          .hardness(1.5f)
                                          .resistance(3.0f)
                                          .harvestTool(HarvestTool::Pickaxe)
-                                         .soundType(BlockSoundTypes::MUD_BRICKS);
+                                         .soundType(BlockSoundTypes::MUD_BRICKS)
+                                         .instrument(BlockProperties::Instrument::BaseDrum);
 
     // 泥砖 - 建筑材料
     MudBlocks::MUD_BRICKS =
@@ -86,7 +87,8 @@ void registerMudBlocks()
                                               .hardness(1.5f)
                                               .resistance(3.0f)
                                               .harvestTool(HarvestTool::Pickaxe)
-                                              .soundType(BlockSoundTypes::MUD_BRICKS);
+                                              .soundType(BlockSoundTypes::MUD_BRICKS)
+                                              .instrument(BlockProperties::Instrument::BaseDrum);
 
     // 泥砖楼梯 - 使用泥砖作为源方块
     MudBlocks::MUD_BRICK_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
@@ -97,7 +99,8 @@ void registerMudBlocks()
                                             .hardness(1.5f)
                                             .resistance(3.0f)
                                             .harvestTool(HarvestTool::Pickaxe)
-                                            .soundType(BlockSoundTypes::MUD_BRICKS);
+                                            .soundType(BlockSoundTypes::MUD_BRICKS)
+                                            .instrument(BlockProperties::Instrument::BaseDrum);
 
     // 泥砖台阶
     MudBlocks::MUD_BRICK_SLAB =
@@ -108,7 +111,8 @@ void registerMudBlocks()
                                             .hardness(1.5f)
                                             .resistance(3.0f)
                                             .harvestTool(HarvestTool::Pickaxe)
-                                            .soundType(BlockSoundTypes::MUD_BRICKS);
+                                            .soundType(BlockSoundTypes::MUD_BRICKS)
+                                            .instrument(BlockProperties::Instrument::BaseDrum);
 
     // 泥砖墙
     MudBlocks::MUD_BRICK_WALL =
