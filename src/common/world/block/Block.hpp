@@ -40,6 +40,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "world/biome/BiomeClimate.hpp"
+#include "world/block/registry/BlockMapColorTable.hpp"
 #include "world/map/MaterialColor.hpp"
 #include <array>
 #include <functional>
@@ -887,20 +888,22 @@ public:
      *
      * 参考: net.minecraft.block.Block#getDefaultMaterialColor
      *
-     * TODO(map-color): 项目当前没有任何方块注册点调用 BlockProperties::mapColor()，且
-     *   Material::materialColor 恒为 0（AIR），因此 getMapColor 对所有方块都返回 AIR，
-     *   填充地图不会渲染地表。align: 需按 vanilla 1.21.11 逐个方块补 mapColor（数据可从
-     *   net/minecraft/world/level/block/Blocks.java 的字节码注释中提取
-     *   `getstatic .../material/MapColor.XXX`），并为 RotatedPillarBlock（按轴）、
-     *   LeavesBlock（PLANT）等实现状态相关颜色，同时对草的生物群系染色走 getMapColor(state, world, pos)。
+     * 注册时显式设置过 `BlockProperties::mapColor()` 的方块用注册值；否则回退到
+     * 原版快照表（`lookupVanillaMapColor`）。快照由差分能力 block_map_color 逐方块实测
+     * 导出——地图颜色在原版是硬编码在注册调用里的，数据包里没有这项信息。
+     *
+     * TODO(map-color): 尚未实现状态相关颜色（RotatedPillarBlock 按轴、LeavesBlock 的
+     *   PLANT，以及草的生物群系染色）。当前按方块取默认状态的颜色。
      */
     [[nodiscard]] virtual world::map::MaterialColorId getMapColor(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
-        MC_UNUSED(state);
-        return m_mapColor;
+        if (m_hasMapColor) {
+            return m_mapColor;
+        }
+        return static_cast<world::map::MaterialColorId>(::mc::world::block::lookupVanillaMapColor(state.toString()));
     }
 
     /**

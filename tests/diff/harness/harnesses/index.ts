@@ -1417,6 +1417,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "抗性写成 0 的黑曜石会被一颗 TNT 清空。与 block_destroy_progress 互补：后者验公式，本条验公式的输入",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_map_color",
+        probe: "block_map_color",
+        oracle: "BlockMapColorOracle",
+        description: "全部方块状态的地图颜色（BlockBehaviour.getMapColor）—— 每个状态一个单元；"
+        + "地图上每一格的颜色都由它决定（再按高度套 4 级明暗）。只影响地图渲染、不影响任何游戏逻辑，"
+        + "所以抄错了既不崩溃也不会让玩家觉得哪里不对，直到有人做了张大地图、发现白羊毛屋顶在地图上是灰的。"
+        + "典型错误形态：16 种染色方块全指到同一颜色、陶瓦错指到 STONE",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

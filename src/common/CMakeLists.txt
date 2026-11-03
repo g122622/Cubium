@@ -810,6 +810,7 @@ add_library(mc_common STATIC
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
     world/block/VanillaBlockTags.gen.cpp
+    world/block/registry/BlockMapColorTable.gen.cpp
     world/block/BlockTagLoader.cpp
     world/block/SupportType.cpp
     world/block/state/pattern/BlockInWorld.cpp
