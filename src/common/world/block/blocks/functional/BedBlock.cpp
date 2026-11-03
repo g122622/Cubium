@@ -106,12 +106,7 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     //   box(0.1875, 0.1875, 0.8125 -> 0.8125, 0.5625, 1.0   )   床垫延伸段
     //
     // 此前画了四条腿并铺满整个 Z 范围，床底与床尾都比原版大。
-    const CollisionShape legLeft = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 3.0f * P, 9.0f * P, 1.0f);
-    const CollisionShape legRight = CollisionShape::box(13.0f * P, 0.0f, 13.0f * P, 1.0f, 9.0f * P, 1.0f);
-    const CollisionShape mattress = CollisionShape::box(0.0f, 3.0f * P, 0.0f, 1.0f, 9.0f * P, 13.0f * P);
-    const CollisionShape mattressEnd = CollisionShape::box(3.0f * P, 3.0f * P, 13.0f * P, 13.0f * P, 9.0f * P, 1.0f);
-    const CollisionShape bedShape = CollisionShape::combine(
-        CollisionShape::combine(CollisionShape::combine(legLeft, legRight), mattress), mattressEnd);
+
     // 四个朝向**不共用**同一形状：原版对每个 facing 做 rotateHorizontal，床腿始终在
     // 与 facing 相反的一侧。逐条按 forAllBoxes 实测（black_bed）：
     //
@@ -121,6 +116,13 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     //
     // 每个朝向都是「两条腿 + 床垫主体 + 床垫延伸段」四个盒子。此前四个朝向套用同一个
     // 「腿在 +z」的形状，床朝向东西时腿会跑到错误的边。
+    //
+    // 索引布局：`[0..3]` = head(north/south/west/east)，`[4..7]` = foot(同序)。
+    // **不能**用 `static_cast<size_t>(Direction::West) + 4`：`Direction` 枚举里
+    // Down=0/Up=1 占前两位，West=4，加 4 得 8，直接越过 8 项数组写入——构造期就堆损坏。
+
+    // 以下四个形状逐条照抄原版 forAllBoxes 的实测盒子（black_bed），单位为像素/16。
+    // 每个朝向都是「2 条腿 + 床垫主体 + 床垫延伸段」，合计 4 个盒子。
     constexpr f32 A = 0.0f;    // 0
     constexpr f32 B = 0.1875f; // 3 像素
     constexpr f32 C = 0.8125f; // 13 像素
@@ -129,52 +131,38 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     constexpr f32 Y1 = 0.5625f; // 9 像素
     constexpr f32 Y2 = 0.1875f; // 3 像素
 
-    const auto makeBed = [](f32 x1,
-                             f32 z1,
-                             f32 x2,
-                             f32 z2,
-                             f32 lx1,
-                             f32 lz1,
-                             f32 lx2,
-                             f32 lz2,
-                             f32 mx1,
-                             f32 mz1,
-                             f32 mx2,
-                             f32 mz2,
-                             f32 ex1,
-                             f32 ez1,
-                             f32 ex2,
-                             f32 ez2) {
-        return CollisionShape::combine(
-            CollisionShape::combine(CollisionShape::combine(CollisionShape::box(lx1, Y0, lz1, lx2, Y1, lz2),
-                                        CollisionShape::box(mx1, Y0, mz1, mx2, Y1, mz2)),
-                CollisionShape::box(ex1, Y2, ez1, ex2, Y1, ez2)),
-            CollisionShape::box(x1, Y0, z1, x2, Y0, z2));
-    };
-    MC_UNUSED(makeBed);
+    // head_north：腿在 z 13..16。
+    const CollisionShape headNorth = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::box(A, Y0, C, B, Y1, D), CollisionShape::box(C, Y0, C, D, Y1, D)),
+        CollisionShape::combine(CollisionShape::box(A, Y2, A, D, Y1, C), CollisionShape::box(B, Y2, C, C, Y1, D)));
 
-    // 腿在 +z 侧（head_north / foot_south）。
-    m_shapesByFacing[static_cast<size_t>(Direction::North)] = bedShape;
-    // 腿在 -z 侧（head_south / foot_north）：把 bedShape 的 z 坐标整体翻转。
-    m_shapesByFacing[static_cast<size_t>(Direction::South)] = CollisionShape::combine(
+    // head_south：腿在 z 0..3。
+    const CollisionShape headSouth = CollisionShape::combine(
         CollisionShape::combine(CollisionShape::box(A, Y0, A, B, Y1, B), CollisionShape::box(C, Y0, A, D, Y1, B)),
         CollisionShape::combine(CollisionShape::box(A, Y2, B, D, Y1, D), CollisionShape::box(B, Y2, A, C, Y1, B)));
-    // 腿在 +x 侧（head_east / foot_west）。
-    m_shapesByFacing[static_cast<size_t>(Direction::East)] = CollisionShape::combine(
+
+    // head_east：腿在 x 13..16。
+    const CollisionShape headEast = CollisionShape::combine(
         CollisionShape::combine(CollisionShape::box(C, Y0, A, D, Y1, B), CollisionShape::box(C, Y0, C, D, Y1, D)),
         CollisionShape::combine(CollisionShape::box(A, Y2, A, C, Y1, D), CollisionShape::box(C, Y2, B, D, Y1, C)));
-    // 腿在 -x 侧（head_west / foot_east）。
-    m_shapesByFacing[static_cast<size_t>(Direction::West)] = CollisionShape::combine(
-        CollisionShape::combine(CollisionShape::box(A, Y0, A, B, Y1, B), CollisionShape::box(A, Y0, C, B, Y1, D)),
-        CollisionShape::combine(CollisionShape::box(B, Y2, A, D, Y1, C), CollisionShape::box(A, Y2, B, D, Y1, C)));
 
-    // foot 与 head 的差别只是床腿在相反一侧。
-    m_shapesByFacing[static_cast<size_t>(Direction::North) + 4] =
-        m_shapesByFacing[static_cast<size_t>(Direction::South)];
-    m_shapesByFacing[static_cast<size_t>(Direction::South) + 4] =
-        m_shapesByFacing[static_cast<size_t>(Direction::North)];
-    m_shapesByFacing[static_cast<size_t>(Direction::East) + 4] = m_shapesByFacing[static_cast<size_t>(Direction::West)];
-    m_shapesByFacing[static_cast<size_t>(Direction::West) + 4] = m_shapesByFacing[static_cast<size_t>(Direction::East)];
+    // head_west：腿在 x 0..3。原版这块有 **5** 个盒子：床垫延伸段沿 z 被拆成两段。
+    const CollisionShape headWest = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::box(A, Y0, A, B, Y1, B), CollisionShape::box(A, Y0, C, B, Y1, D)),
+        CollisionShape::combine(
+            CollisionShape::combine(CollisionShape::box(A, Y2, B, D, Y1, C), CollisionShape::box(B, Y2, A, D, Y1, B)),
+            CollisionShape::box(B, Y2, C, D, Y1, D)));
+
+    m_shapesByFacing[0] = headNorth;
+    m_shapesByFacing[1] = headSouth;
+    m_shapesByFacing[2] = headWest;
+    m_shapesByFacing[3] = headEast;
+
+    // foot_X 恒等于 head_(X 的反向)：床腿落在相反一侧。
+    m_shapesByFacing[4] = headSouth;
+    m_shapesByFacing[5] = headNorth;
+    m_shapesByFacing[6] = headEast;
+    m_shapesByFacing[7] = headWest;
 }
 
 BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -224,9 +212,34 @@ BlockState BedBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& BedBlock::getShape(const BlockState& state) const
 {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    size_t index = static_cast<size_t>(facing);
-    MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+
+    // `Direction` 枚举是 Down=0/Up=1/North=2/South=3/West=4/East=5，
+    // **不能**直接当 `m_shapesByFacing` 的下标——必须以水平方向序号
+    // （north=0, south=1, west=2, east=3）索引，否则 West/East 会越过 8 项数组。
+    size_t column = 0;
+    switch (facing) {
+        case Direction::North:
+            column = 0;
+            break;
+        case Direction::South:
+            column = 1;
+            break;
+        case Direction::West:
+            column = 2;
+            break;
+        case Direction::East:
+            column = 3;
+            break;
+        default:
+            column = 0;
+            break;
+    }
+
+    // head 用 [0..3]，foot 用 [4..7]：两者床腿方向相反，形状不同。
+    const bool isFoot = state.get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Foot;
+    const size_t index = column + (isFoot ? 4u : 0u);
+    MC_ASSERT(index < m_shapesByFacing.size());
     return m_shapesByFacing[index];
 }
 

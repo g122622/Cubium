@@ -1812,7 +1812,14 @@ public:
     /**
      * @brief 获取指定位置处的支撑形状（世界坐标）。
      *
-     * 默认与 `getBlockSupportShape` 一致地转调碰撞形状，只是带上位置偏移。
+     * 语义是「`getBlockSupportShape` 的结果按该位置的 `getOffset` 平移」：
+     * 原版 `getBlockSupportShape(state, level, pos)` 默认转调
+     * `getCollisionShape(state, level, pos, CollisionContext.empty())`，
+     * 而带 `offsetType` 的方块（竹子、滴水石芽）正是在这一层叠加位置偏移的。
+     *
+     * **不要**直接转调 `getCollisionShapeAt`：那会丢掉子类对
+     * `getBlockSupportShape` 的覆写（树叶、泥巴、灵魂沙、蜂蜜块等十余类的支撑
+     * 形状都比碰撞形状特殊），回归时一次引入 381 处差异。
      *
      * @param state 方块状态
      * @param pos 方块位置
@@ -1820,7 +1827,12 @@ public:
      */
     [[nodiscard]] virtual CollisionShape getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const
     {
-        return getCollisionShapeAt(state, pos);
+        const CollisionShape& base = getBlockSupportShape(state);
+        const Vector3 offset = getOffset(pos);
+        if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
+            return base;
+        }
+        return base.offset(offset.x, offset.y, offset.z);
     }
 
     /**
