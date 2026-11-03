@@ -52,8 +52,10 @@ TEST(BooleanPropertyTest, AllowedValues)
 
     const auto& values = prop->allowedValues();
     ASSERT_EQ(values.size(), 2);
-    EXPECT_FALSE(values[0]); // false comes first
-    EXPECT_TRUE(values[1]);  // true comes second
+    // 原版 BooleanProperty.VALUES = List.of(true, false)：true 的索引是 0。
+    // 方块状态的属性值索引直接进 wire，顺序反了会让对端把 true/false 读反。
+    EXPECT_TRUE(values[0]);  // true comes first
+    EXPECT_FALSE(values[1]); // false comes second
 }
 
 TEST(BooleanPropertyTest, IndexOf)
@@ -65,16 +67,16 @@ TEST(BooleanPropertyTest, IndexOf)
 
     ASSERT_TRUE(falseIdx.has_value());
     ASSERT_TRUE(trueIdx.has_value());
-    EXPECT_EQ(falseIdx.value(), 0);
-    EXPECT_EQ(trueIdx.value(), 1);
+    EXPECT_EQ(trueIdx.value(), 0);
+    EXPECT_EQ(falseIdx.value(), 1);
 }
 
 TEST(BooleanPropertyTest, ValueAt)
 {
     auto prop = BooleanProperty::create("waterlogged");
 
-    EXPECT_FALSE(prop->valueAt(0));
-    EXPECT_TRUE(prop->valueAt(1));
+    EXPECT_TRUE(prop->valueAt(0));
+    EXPECT_FALSE(prop->valueAt(1));
 }
 
 TEST(BooleanPropertyTest, ValueToString)
@@ -83,8 +85,9 @@ TEST(BooleanPropertyTest, ValueToString)
 
     EXPECT_EQ(prop->valueToString(false), "false");
     EXPECT_EQ(prop->valueToString(true), "true");
-    EXPECT_EQ(prop->valueToString(0), "false");
-    EXPECT_EQ(prop->valueToString(1), "true");
+    // 索引重载与值重载并存：必须显式指定 size_t，否则 0/1 会按 bool 走值重载。
+    EXPECT_EQ(prop->valueToString(static_cast<size_t>(0)), "true");
+    EXPECT_EQ(prop->valueToString(static_cast<size_t>(1)), "false");
 }
 
 TEST(BooleanPropertyTest, ParseValue)
@@ -113,10 +116,10 @@ TEST(BooleanPropertyTest, ParseValueIndex)
     auto invalid = prop->parseValue(std::string_view("yes"));
 
     ASSERT_TRUE(trueIdx.has_value());
-    EXPECT_EQ(trueIdx.value(), 1);
+    EXPECT_EQ(trueIdx.value(), 0);
 
     ASSERT_TRUE(falseIdx.has_value());
-    EXPECT_EQ(falseIdx.value(), 0);
+    EXPECT_EQ(falseIdx.value(), 1);
 
     EXPECT_FALSE(invalid.has_value());
 }

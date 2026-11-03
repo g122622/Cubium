@@ -76,6 +76,10 @@ public:
         return m_values;
     }
 
+    // 派生类的 valueToString(const bool&) 会遮蔽基类的 valueToString(size_t)，
+    // 显式引入后者，否则 valueToString(0) 会被当成「false」。
+    using Property<bool>::valueToString;
+
     /**
      * @brief 将布尔值转换为字符串
      */
@@ -116,7 +120,10 @@ public:
 
 private:
     explicit BooleanProperty(const std::string& name)
-        : Property<bool>(name, {false, true})
+        // 原版 `BooleanProperty.VALUES = List.of(true, false)`：true 的索引是 0、false 是 1。
+        // 方块状态序列化（wire/存档的属性值索引）依赖这个顺序，颠倒会让对端把
+        // true/false 读反。
+        : Property<bool>(name, {true, false})
     {}
 };
 

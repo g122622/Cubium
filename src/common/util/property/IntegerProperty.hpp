@@ -104,6 +104,9 @@ public:
     /**
      * @brief 将整数值转换为字符串
      */
+    // 派生类的 valueToString(const T&) 会遮蔽基类的 valueToString(size_t)。
+    using Property<i32>::valueToString;
+
     [[nodiscard]] std::string valueToString(const i32& value) const override
     {
         return std::to_string(value);

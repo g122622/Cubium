@@ -74,6 +74,9 @@ public:
     /**
      * @brief 将枚举值转换为字符串
      */
+    // 派生类的 valueToString(const T&) 会遮蔽基类的 valueToString(size_t)。
+    using Property<E>::valueToString;
+
     [[nodiscard]] std::string valueToString(const E& value) const override
     {
         return Traits::toString(value);
