@@ -214,7 +214,7 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
         case DataComponentType::Enchantable: {
             // vanilla Enchantable.CODEC 是 record {value: int}，持久形态必须是复合对象
             // （裸 int 读回来会被判定为「不是 map」，组件整体丢失）。
-            // 注意：网络协议上它仍是裸 VarInt，见 DataComponentPatchWire。
+            // 注意：网络协议上它仍是裸 VarInt，见 network/backend/java/codecs/DataComponentPatchCodec。
             const auto* p = std::get_if<i32>(&payload);
             auto compound = std::make_unique<compound_tag>();
             compound->put("value", p ? *p : 0);

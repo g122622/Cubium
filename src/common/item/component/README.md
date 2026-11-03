@@ -6,9 +6,8 @@
 component/
 ├── DataComponentType.hpp/cpp         # 组件资源名与注册 ID
 ├── DataComponentMap.hpp              # 异构载荷与补丁
-├── DataComponentPatchWire.hpp/cpp    # 网络补丁及精确谓词
 ├── DataComponentPatchNbt.hpp/cpp     # 存档补丁
-├── DataComponentPayloadCodec.hpp/cpp # 存档载荷转换
+├── DataComponentPayloadCodec.hpp/cpp # 存档/数据包载荷 ↔ NBT 转换
 ├── AttackRange.hpp/cpp               # 攻击范围值类型
 ├── FireworkExplosion.hpp/cpp         # 单次烟花爆炸值类型（形状/颜色/拖尾/闪烁）
 └── Fireworks.hpp                     # 烟花火箭值类型（飞行时长 + 爆炸列表）
@@ -16,16 +15,20 @@ component/
 
 ## 内部模块关系
 
-类型表驱动载荷转换；补丁区分新增和移除。网络编码与存档编码共用载荷定义，分别执行字段编码。
+类型表驱动载荷转换；补丁区分新增和移除。本目录只负责组件的数据模型与存档（NBT）编码；
+Java wire 编码（标准补丁、交易精确谓词、HashedStack 组件哈希）属于 Java 后端线格式，
+实现在 `network/backend/java/codecs/DataComponentPatchCodec`，经 `ItemStackBridge` 与本目录的补丁类型互转。
 
 新增一个组件须同时改四处，缺一即静默失效（NBT 往返丢字段 / wire 读入报未知 typeId）：
 `DataComponentType` 枚举与 `_entries` 表、`DataComponentMap.hpp` 的 `DataComponentPayload` 备选项与
-`ComponentPayloadIndex` 索引、`DataComponentPayloadCodec` 的 NBT 双分支、`DataComponentPatchWire` 的 wire 双分支；
+`ComponentPayloadIndex` 索引、`DataComponentPayloadCodec` 的 NBT 双分支、
+`network/backend/java/codecs/DataComponentPatchCodec` 的 wire 双分支；
 再在 `ItemStack` 的 `ItemExtras`/`toComponentPatch`/`applyComponentPatch`/`toJson`/`fromJson`/`_componentOverridesEqual` 接线。
 
 ## 上下游外部依赖关系
 
-ItemStack 导出、应用补丁，IR 物品桥接和存档调用编码器。本目录依赖文本、NBT、附魔与效果值类型，以及 Java 注册序映射。
+ItemStack 导出、应用补丁，IR 物品桥接和存档调用编码器。本目录依赖文本、NBT、附魔与效果值类型；**不依赖网络层**，
+以免 common 内部出现环（wire 一侧由网络层反向依赖本目录）。
 
 ## 容易踩的坑
 

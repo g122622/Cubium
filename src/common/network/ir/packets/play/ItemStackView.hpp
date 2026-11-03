@@ -33,7 +33,7 @@ namespace mc::network::ir::play {
  *
  * 1.21.11 数据组件模型：count<=0 即空；否则 itemId(VarInt) + DataComponentPatch wire。
  * componentsPatch 承载 DataComponentPatch 的 1.21.11 wire 序列化字节（见
- * item/component/DataComponentPatchWire.hpp）；与业务侧 ItemStack 的双向转换由
+ * network/backend/java/codecs/DataComponentPatchCodec.hpp）；与业务侧 ItemStack 的双向转换由
  * network/ir/ItemStackBridge.hpp 提供。
  *
  * 独立成头是为了让 entity/core（EntityDataManager 的 DataValue variant）能以最小代价

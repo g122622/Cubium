@@ -68,6 +68,7 @@ add_library(mc_common STATIC
     network/backend/java/mappings/JavaPotionIdMap.cpp
     network/backend/java/mappings/JavaEnchantmentIdMap.cpp
     network/backend/java/handshake/JavaLoginHandshaker.cpp
+    network/backend/java/codecs/DataComponentPatchCodec.cpp
 
     # Network - Sync
     network/sync/ChunkSerializer.cpp
@@ -531,7 +532,6 @@ add_library(mc_common STATIC
     item/component/DataComponentPayloadCodec.cpp
     item/component/DataComponentPatchNbt.cpp
     item/component/BannerPatternLayers.cpp
-    item/component/DataComponentPatchWire.cpp
     item/component/FireworkExplosion.cpp
     item/component/DeathProtection.cpp
 

@@ -47,7 +47,7 @@ namespace mc::network::backend::java {
  * potion holder 是 potion 静态注册表的 VarInt id（JavaPotionIdMap 翻译）；项目以资源位置
  * 字符串承载，空串=无药水（potionId 为空时 present=false）。
  *
- * 供 DataComponentPatchWire 的 per-component codec（4c）在 POTION_CONTENTS 分支调用。
+ * 供 DataComponentPatchCodec 的 per-component codec（4c）在 POTION_CONTENTS 分支调用。
  */
 
 /// 写 PotionContents 载荷。
