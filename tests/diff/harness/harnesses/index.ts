@@ -1593,6 +1593,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "这是最难靠手动测试发现的一类缺陷。实测修复前 40 条里 35 条与原版不符",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "vibration_strength",
+        probe: "vibration_strength",
+        oracle: "VibrationStrengthOracle",
+        description: "振动距离到红石强度的换算（VibrationSystem#getRedstoneStrengthForDistance）—— 监听半径 x 距离 = 120 个单元；"
+        + "公式 max(1, 15 - floor(15/radius * distance))，是幽匿感测体给红石比较器的唯一输出值。"
+        + "三个容易写错的地方：除号内外（整数截断两次会差 1）、漏掉 max(1,...) 下限（远处给出 0 而非弱信号）、距离为 0 必须给 15；"
+        + "三个错都不崩不报错，只是读数差 1，而依赖精确读数的装置会整体失效",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
