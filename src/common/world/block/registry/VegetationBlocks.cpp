@@ -105,12 +105,14 @@ void registerVegetationBlocks()
                                      .noCollision()
                                      .notSolid()
                                      .ignitedByLava()
+                                     .replaceable()
                                      .offsetType(BlockProperties::OffsetType::XYZ);
 
     BlockProperties tallGrassProps = BlockProperties(Material::REPLACEABLE_PLANT)
                                          .noCollision()
                                          .notSolid()
                                          .ignitedByLava()
+                                         .replaceable()
                                          .offsetType(BlockProperties::OffsetType::XZ);
 
     // 矮草
@@ -239,8 +241,8 @@ void registerVegetationBlocks()
         &registry.registerBlock<blocks::PeonyBlock>(ResourceLocation("minecraft:peony"), tallFlowerProps);
 
     // 大型蕨 - 双格高的蕨类植物
-    VegetationBlocks::LARGE_FERN =
-        &registry.registerBlock<blocks::LargeFernBlock>(ResourceLocation("minecraft:large_fern"), tallFlowerProps);
+    VegetationBlocks::LARGE_FERN = &registry.registerBlock<blocks::LargeFernBlock>(
+        ResourceLocation("minecraft:large_fern"), BlockProperties(tallFlowerProps).replaceable());
 
     // 蘑菇属性
     BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
@@ -317,7 +319,8 @@ void registerVegetationBlocks()
                                              .resistance(1.0f)
                                              .ignitedByLava()
                                              .offsetType(BlockProperties::OffsetType::XZ)
-                                             .soundType(BlockSoundTypes::BAMBOO_SAPLING);
+                                             .soundType(BlockSoundTypes::BAMBOO_SAPLING)
+                                             .forceSolidOn();
 
     // 竹子幼苗
     VegetationBlocks::BAMBOO_SAPLING = &registry.registerBlock<blocks::BambooSaplingBlock>(

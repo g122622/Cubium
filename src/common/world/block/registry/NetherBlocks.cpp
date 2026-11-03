@@ -235,6 +235,7 @@ void registerNetherBlocks()
     // 火 - 普通火焰
     NetherBlocks::FIRE = &registry.registerBlock<blocks::FireBlock>(ResourceLocation("minecraft:fire"),
         BlockProperties(Material::FIRE)
+            .replaceable()
             .noCollision()
             .hardness(0.0f)
             .lightLevel(15)
@@ -244,6 +245,7 @@ void registerNetherBlocks()
     // 灵魂火 - 蓝色火焰，伤害更高
     NetherBlocks::SOUL_FIRE = &registry.registerBlock<blocks::SoulFireBlock>(ResourceLocation("minecraft:soul_fire"),
         BlockProperties(Material::FIRE)
+            .replaceable()
             .noCollision()
             .hardness(0.0f)
             .lightLevel(10)
@@ -383,6 +385,7 @@ void registerNetherBlocks()
     NetherBlocks::CRIMSON_ROOTS =
         &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:crimson_roots"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .offsetType(BlockProperties::OffsetType::XZ)
@@ -392,6 +395,7 @@ void registerNetherBlocks()
     NetherBlocks::WARPED_ROOTS =
         &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:warped_roots"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .offsetType(BlockProperties::OffsetType::XZ)
@@ -401,6 +405,7 @@ void registerNetherBlocks()
     NetherBlocks::NETHER_SPROUTS =
         &registry.registerBlock<blocks::NetherSproutsBlock>(ResourceLocation("minecraft:nether_sprouts"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::NETHER_SPROUT));
@@ -746,6 +751,7 @@ void registerNetherBlocks()
     // 末地烛 - 发光14级，6 向朝向
     NetherBlocks::END_ROD = &registry.registerBlock<blocks::EndRodBlock>(ResourceLocation("minecraft:end_rod"),
         BlockProperties(Material::DECORATION)
+            .forceSolidOff()
             .withCollision()
             .lightLevel(14)
             .noOcclusion()
@@ -795,6 +801,7 @@ void registerNetherBlocks()
     NetherBlocks::CHORUS_FLOWER =
         &registry.registerBlock<blocks::ChorusFlowerBlock>(ResourceLocation("minecraft:chorus_flower"),
             BlockProperties(Material::PLANT)
+                .forceSolidOff()
                 .withCollision()
                 .hardness(0.4f)
                 .resistance(0.4f)
@@ -834,7 +841,8 @@ void registerNetherBlocks()
             .hardness(3.5f)
             .resistance(3.5f)
             .noOcclusion()
-            .soundType(BlockSoundTypes::LANTERN),
+            .soundType(BlockSoundTypes::LANTERN)
+            .forceSolidOn(),
         15 // 光照等级
     );
 
@@ -845,7 +853,8 @@ void registerNetherBlocks()
                 .hardness(3.5f)
                 .resistance(3.5f)
                 .noOcclusion()
-                .soundType(BlockSoundTypes::LANTERN),
+                .soundType(BlockSoundTypes::LANTERN)
+                .forceSolidOn(),
             10 // 光照等级
         );
 

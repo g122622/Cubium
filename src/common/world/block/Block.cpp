@@ -182,7 +182,11 @@ BlockProperties::BlockProperties(const Material& material)
     , m_isSolid(material.isSolid())
     , m_isFlammable(material.isFlammable())
     , m_requiresTool(false)
-    , m_isReplaceable(material.isReplaceable())
+    // 可替换性**不从材质推导**：原版 `BlockBehaviour.Properties#replaceable()` 是个显式开关，
+    // 默认 false，只有 29 个方块显式开启（空气、水、草、藤蔓、雪层等）。
+    // 先前按材质推导会让整片借用植物材质的方块（花、树苗、作物、蘑菇）全部变成可替换，
+    // 玩家能把这些方块直接用手上的方块覆盖掉，而原版是「放不进去」。
+    , m_isReplaceable(false)
     , m_soundType(&getDefaultSoundType(material))
 {}
 

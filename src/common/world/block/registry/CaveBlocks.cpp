@@ -127,6 +127,7 @@ void registerCaveBlocks()
     CaveBlocks::SMALL_AMETHYST_BUD =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:small_amethyst_bud"),
             BlockProperties(Material::PLANT)
+                .forceSolidOn()
                 .withCollision()
 
                 .noOcclusion()
@@ -141,6 +142,7 @@ void registerCaveBlocks()
     CaveBlocks::MEDIUM_AMETHYST_BUD =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:medium_amethyst_bud"),
             BlockProperties(Material::PLANT)
+                .forceSolidOn()
                 .withCollision()
 
                 .noOcclusion()
@@ -155,6 +157,7 @@ void registerCaveBlocks()
     CaveBlocks::LARGE_AMETHYST_BUD =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:large_amethyst_bud"),
             BlockProperties(Material::PLANT)
+                .forceSolidOn()
                 .withCollision()
 
                 .noOcclusion()
@@ -169,6 +172,7 @@ void registerCaveBlocks()
     CaveBlocks::AMETHYST_CLUSTER =
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:amethyst_cluster"),
             BlockProperties(Material::PLANT)
+                .forceSolidOn()
                 .withCollision()
 
                 .noOcclusion()
@@ -206,7 +210,8 @@ void registerCaveBlocks()
                 .soundType(BlockSoundTypes::POINTED_DRIPSTONE)
                 .tickRandomly()
                 .offsetType(BlockProperties::OffsetType::XZ)
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // ============================================================================
     // 方解石
@@ -274,6 +279,7 @@ void registerCaveBlocks()
     CaveBlocks::AZALEA = &registry.registerBlock<blocks::AzaleaBlock>(ResourceLocation("minecraft:azalea"),
         blocks::SaplingBlock::TreeGenerator{},
         BlockProperties(Material::PLANT)
+            .forceSolidOff()
             .hardness(0.0f)
             .resistance(0.0f)
             .soundType(BlockSoundTypes::AZALEA)
@@ -289,6 +295,7 @@ void registerCaveBlocks()
         &registry.registerBlock<blocks::FloweringAzaleaBlock>(ResourceLocation("minecraft:flowering_azalea"),
             blocks::SaplingBlock::TreeGenerator{},
             BlockProperties(Material::PLANT)
+                .forceSolidOff()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::FLOWERING_AZALEA)
@@ -325,7 +332,11 @@ void registerCaveBlocks()
     // 大垂滴叶 - HORIZONTAL_FACING + TILT + WATERLOGGED
     CaveBlocks::BIG_DRIPLEAF =
         &registry.registerBlock<blocks::BigDripleafBlock>(ResourceLocation("minecraft:big_dripleaf"),
-            BlockProperties(Material::PLANT).hardness(0.1f).resistance(0.1f).soundType(BlockSoundTypes::BIG_DRIPLEAF));
+            BlockProperties(Material::PLANT)
+                .forceSolidOff()
+                .hardness(0.1f)
+                .resistance(0.1f)
+                .soundType(BlockSoundTypes::BIG_DRIPLEAF));
 
     // 大垂滴叶茎 - HORIZONTAL_FACING + WATERLOGGED，无碰撞
     CaveBlocks::BIG_DRIPLEAF_STEM =
@@ -355,6 +366,7 @@ void registerCaveBlocks()
     CaveBlocks::HANGING_ROOTS =
         &registry.registerBlock<blocks::HangingRootsBlock>(ResourceLocation("minecraft:hanging_roots"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .hardness(0.0f)
@@ -382,6 +394,7 @@ void registerCaveBlocks()
     CaveBlocks::GLOW_LICHEN =
         &registry.registerBlock<blocks::GlowLichenBlock>(ResourceLocation("minecraft:glow_lichen"),
             BlockProperties(Material::PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .hardness(0.2f)
@@ -414,7 +427,6 @@ void registerCaveBlocks()
         &registry.registerBlock<blocks::PowderSnowBlock>(ResourceLocation("minecraft:powder_snow"),
             BlockProperties(Material::POWDER_SNOW)
                 .notSolid()
-                .replaceable()
                 .hardness(0.25f)
                 .resistance(0.25f)
                 .soundType(BlockSoundTypes::POWDER_SNOW)

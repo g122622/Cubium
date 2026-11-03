@@ -149,11 +149,7 @@ void registerTrailsBlocks()
     // replaceable 标志允许同类型物品堆叠放置（isReplaceable 重写会检查物品类型）
     TrailsBlocks::PINK_PETALS =
         &registry.registerBlock<blocks::FlowerBedBlock>(ResourceLocation("minecraft:pink_petals"),
-            BlockProperties(Material::PLANT)
-                .noCollision()
-                .notSolid()
-                .replaceable()
-                .soundType(BlockSoundTypes::PINK_PETALS));
+            BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::PINK_PETALS));
 
     // ============================================================================
     // 火把花

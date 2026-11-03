@@ -744,7 +744,7 @@ void registerBuildingVariantBlocks()
     // 结构空位 - 结构生成时不会替换现有方块
     BuildingVariantBlocks::STRUCTURE_VOID =
         &registry.registerBlock<blocks::StructureVoidBlock>(ResourceLocation("minecraft:structure_void"),
-            BlockProperties(Material::STRUCTURE_VOID).noCollision().noLootTable());
+            BlockProperties(Material::STRUCTURE_VOID).noCollision().noLootTable().replaceable());
 
     // 拼图方块 - Jigsaw 结构生成系统核心
     BuildingVariantBlocks::JIGSAW = &registry.registerBlock<blocks::JigsawBlock>(ResourceLocation("minecraft:jigsaw"),

@@ -881,7 +881,8 @@ void registerCopperBlocks()
                                   .hardness(3.5f)
 
                                   .noOcclusion()
-                                  .soundType(BlockSoundTypes::LANTERN);
+                                  .soundType(BlockSoundTypes::LANTERN)
+                                  .forceSolidOn();
 
     auto* copperLantern =
         &registry.registerBlock<blocks::WeatheringCopperLanternBlock>(ResourceLocation("minecraft:copper_lantern"),

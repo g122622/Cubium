@@ -359,7 +359,8 @@ void registerPaleGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::RESIN)
-                .ignitedByLava());
+                .ignitedByLava()
+                .replaceable());
 
     // 树脂块（固体）
     // 树脂块：硬度 0（徒手瞬间破坏），抗性 3。

@@ -323,7 +323,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 橡木压力板
     RedstoneBlocks::OAK_PRESSURE_PLATE =
@@ -336,7 +337,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 云杉木压力板
     RedstoneBlocks::SPRUCE_PRESSURE_PLATE =
@@ -349,7 +351,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 白桦木压力板
     RedstoneBlocks::BIRCH_PRESSURE_PLATE =
@@ -362,7 +365,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 丛林木压力板
     RedstoneBlocks::JUNGLE_PRESSURE_PLATE =
@@ -375,7 +379,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 金合欢木压力板
     RedstoneBlocks::ACACIA_PRESSURE_PLATE =
@@ -388,7 +393,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 深色橡木压力板
     RedstoneBlocks::DARK_OAK_PRESSURE_PLATE =
@@ -401,7 +407,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 绯红木压力板
     RedstoneBlocks::CRIMSON_PRESSURE_PLATE =
@@ -412,7 +419,8 @@ void registerRedstoneBlocks()
 
                 .hardness(0.5f)
                 .noOcclusion()
-                .soundType(BlockSoundTypes::NETHER_WOOD));
+                .soundType(BlockSoundTypes::NETHER_WOOD)
+                .forceSolidOn());
 
     // 诡异木压力板
     RedstoneBlocks::WARPED_PRESSURE_PLATE =
@@ -423,7 +431,8 @@ void registerRedstoneBlocks()
                 .notSolid()
                 .hardness(0.5f)
                 .noOcclusion()
-                .soundType(BlockSoundTypes::NETHER_WOOD));
+                .soundType(BlockSoundTypes::NETHER_WOOD)
+                .forceSolidOn());
 
     // 红树木压力板
     RedstoneBlocks::MANGROVE_PRESSURE_PLATE =
@@ -436,7 +445,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 樱花木压力板
     RedstoneBlocks::CHERRY_PRESSURE_PLATE =
@@ -450,7 +460,8 @@ void registerRedstoneBlocks()
                 .flammable()
                 .ignitedByLava()
                 .noOcclusion()
-                .soundType(BlockSoundTypes::CHERRY_WOOD));
+                .soundType(BlockSoundTypes::CHERRY_WOOD)
+                .forceSolidOn());
 
     // 竹木压力板
     RedstoneBlocks::BAMBOO_PRESSURE_PLATE =
@@ -464,7 +475,8 @@ void registerRedstoneBlocks()
                 .flammable()
                 .ignitedByLava()
                 .noOcclusion()
-                .soundType(BlockSoundTypes::BAMBOO_WOOD));
+                .soundType(BlockSoundTypes::BAMBOO_WOOD)
+                .forceSolidOn());
 
     // 苍白橡木压力板
     RedstoneBlocks::PALE_OAK_PRESSURE_PLATE =
@@ -477,7 +489,8 @@ void registerRedstoneBlocks()
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 磨制黑石压力板
     RedstoneBlocks::POLISHED_BLACKSTONE_PRESSURE_PLATE = &registry.registerBlock<blocks::StonePressurePlateBlock>(
@@ -488,7 +501,8 @@ void registerRedstoneBlocks()
             .hardness(0.5f)
             .resistance(0.5f)
             .hardness(0.5f)
-            .noOcclusion());
+            .noOcclusion()
+            .forceSolidOn());
 
     // 轻质测重压力板
     RedstoneBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
@@ -499,7 +513,8 @@ void registerRedstoneBlocks()
 
             .hardness(0.5f)
             .noOcclusion()
-            .soundType(BlockSoundTypes::METAL),
+            .soundType(BlockSoundTypes::METAL)
+            .forceSolidOn(),
         blocks::WeightedPressurePlateBlock::Sensitivity::Light);
 
     // 重质测重压力板
@@ -511,7 +526,8 @@ void registerRedstoneBlocks()
 
             .hardness(0.5f)
             .noOcclusion()
-            .soundType(BlockSoundTypes::IRON),
+            .soundType(BlockSoundTypes::IRON)
+            .forceSolidOn(),
         blocks::WeightedPressurePlateBlock::Sensitivity::Heavy);
 
     // 日光探测器
@@ -538,9 +554,9 @@ void registerRedstoneBlocks()
             BlockProperties(Material::PISTON).hardness(1.5f).resistance(1.5f).noLootTable());
 
     // 移动中的活塞
-    RedstoneBlocks::MOVING_PISTON =
-        &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
-            BlockProperties(Material::PISTON).resistance(0.0f).hardness(-1.0f).noLootTable().noOcclusion());
+    RedstoneBlocks::MOVING_PISTON = &registry.registerBlock<blocks::MovingPistonBlock>(
+        ResourceLocation("minecraft:moving_piston"),
+        BlockProperties(Material::PISTON).resistance(0.0f).hardness(-1.0f).noLootTable().noOcclusion().forceSolidOn());
 
     // 发射器
     RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(

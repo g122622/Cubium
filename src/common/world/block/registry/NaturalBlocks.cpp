@@ -237,7 +237,7 @@ void registerNaturalBlocks()
     // 可被岩浆点燃（对齐 vanilla dead_bush）
     NaturalBlocks::DEAD_BUSH =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:dead_bush"),
-            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava(),
+            BlockProperties(Material::REPLACEABLE_PLANT).replaceable().noCollision().notSolid().ignitedByLava(),
             // 原版 DryVegetationBlock.SHAPE = column(12.0, 0.0, 13.0) -> box(2, 0, 2, 14, 13, 14)
             CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.8125f, 0.875f));
 
@@ -249,6 +249,7 @@ void registerNaturalBlocks()
     // 藤蔓 - 可被岩浆点燃（对齐 vanilla vine）
     NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
         BlockProperties(Material::REPLACEABLE_PLANT)
+            .replaceable()
             .resistance(0.200000003f)
             .hardness(0.2f)
             .withCollision()
@@ -260,6 +261,7 @@ void registerNaturalBlocks()
     // 蜘蛛网
     NaturalBlocks::COBWEB = &registry.registerBlock<blocks::WebBlock>(ResourceLocation("minecraft:cobweb"),
         BlockProperties(Material::WEB)
+            .forceSolidOn()
             .resistance(4.0f)
             .hardness(4.0f)
             .noCollision()
@@ -309,6 +311,7 @@ void registerNaturalBlocks()
     // 海草与高海草
     NaturalBlocks::SEAGRASS = &registry.registerBlock<blocks::SeagrassBlock>(ResourceLocation("minecraft:seagrass"),
         BlockProperties(Material::SEA_GRASS)
+            .replaceable()
             .noCollision()
             .notSolid()
             .offsetType(BlockProperties::OffsetType::XZ)
@@ -316,6 +319,7 @@ void registerNaturalBlocks()
     NaturalBlocks::TALL_SEAGRASS =
         &registry.registerBlock<blocks::TallSeagrassBlock>(ResourceLocation("minecraft:tall_seagrass"),
             BlockProperties(Material::SEA_GRASS)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .offsetType(BlockProperties::OffsetType::XZ)
@@ -328,7 +332,7 @@ void registerNaturalBlocks()
     // 天空光每穿过一格衰减 1 级（实测原版 1.21.11 lightBlock=1）。
     NaturalBlocks::BUBBLE_COLUMN =
         &registry.registerBlock<blocks::BubbleColumnBlock>(ResourceLocation("minecraft:bubble_column"),
-            BlockProperties(Material::WATER).noCollision().notSolid().soundType(BlockSoundTypes::AIR));
+            BlockProperties(Material::WATER).replaceable().noCollision().notSolid().soundType(BlockSoundTypes::AIR));
     NaturalBlocks::TURTLE_EGG =
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
             BlockProperties(Material::CORAL)
@@ -337,7 +341,8 @@ void registerNaturalBlocks()
                 .withCollision()
 
                 .noOcclusion()
-                .soundType(BlockSoundTypes::METAL));
+                .soundType(BlockSoundTypes::METAL)
+                .forceSolidOn());
 
     // 蜜脾块 - 固体装饰方块（硬度 0.6，珊瑚块音效）
     NaturalBlocks::HONEYCOMB_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:honeycomb_block"),
@@ -352,7 +357,8 @@ void registerNaturalBlocks()
 
                 .noOcclusion()
                 .tickRandomly()
-                .soundType(BlockSoundTypes::DRIED_GHAST));
+                .soundType(BlockSoundTypes::DRIED_GHAST)
+                .forceSolidOn());
 
     // ============================================================================
     // 生物头颅 / 头（站立 + 墙挂变体）
@@ -421,7 +427,7 @@ void registerNaturalBlocks()
                                                 .soundType(BlockSoundTypes::WET_GRASS);
     const BlockProperties deadCoralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
     const BlockProperties deadCoralPlantProps =
-        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().noOcclusion();
+        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().noOcclusion().forceSolidOn();
 
     NaturalBlocks::DEAD_TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:dead_tube_coral_block"), blocks::CoralColor::Tube, deadCoralBlockProps);
@@ -611,7 +617,8 @@ void registerNaturalBlocks()
             .resistance(3.0f)
 
             .soundType(BlockSoundTypes::STONE)
-            .noOcclusion());
+            .noOcclusion()
+            .forceSolidOn());
 
     // ========== 火把 ==========
     // 火把 - 发光等级14，生成火焰和烟雾粒子

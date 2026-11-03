@@ -2990,6 +2990,8 @@ protected:
     bool m_isSolid = true;
     bool m_forceSolidOn = false;  // 强制视为实体方块（覆盖 isSolid 的形状推断）
     bool m_forceSolidOff = false; // 强制不视为实体方块（覆盖 isSolid 的形状推断）
+
+protected:
     bool m_isFlammable = false;
     bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
     bool m_propagatesSkylightDown = false;

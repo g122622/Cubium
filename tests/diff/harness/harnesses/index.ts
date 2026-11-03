@@ -53,7 +53,6 @@ import { KNOWN_GAPS as lootContainerKnownGaps, LOOT_CONTAINER_SCENARIO_NAMES, lo
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import { KNOWN_MISSING as entityTypesKnownMissing } from "./known_missing_entity_types.ts";
 import { KNOWN_DISPENSE_GAPS } from "./known_dispense_gaps.ts";
-import { KNOWN_SOLIDITY_GAPS } from "./known_solidity_gaps.ts";
 import { KNOWN_POSE_GAPS } from "./known_pose_gaps.ts";
 import { KNOWN_DIMENSION_GAPS } from "./known_dimension_gaps.ts";
 import {
@@ -1446,12 +1445,6 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         name: "block_solidity",
         probe: "block_solidity",
         oracle: "BlockSolidityOracle",
-        knownDifferences: [...KNOWN_SOLIDITY_GAPS].flatMap((unit) =>
-            ["solid", "replaceable"].map((field) => ({
-                key: unit,
-                field,
-                reason: "存量注册里的 .notSolid() 与形状推断冲突（见 known_solidity_gaps.ts）",
-            }))),
         description: "方块的「可放置 / 可穿过」两态（isSolid 与 canBeReplaced）—— 每个方块一个单元；"
         + "solid 决定算不算实体方块（怪物能否在其上生成、玩家视线是否被挡），算法是 forceSolidOn→真 / forceSolidOff→假 / 否则看碰撞形状是否满格；"
         + "replaceable 决定能否被别的方块直接覆盖（草丛、雪层、空气可以，石头不行）。两个都是布尔量，抄错极隐蔽："

@@ -286,7 +286,7 @@ void registerBuildingBlocks()
 
     // 梯子 - 含水方块（vanilla 不设置 ignitedByLava）
     BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
-        BlockProperties(Material::WOOD)
+        BlockProperties(Material::WOOD).forceSolidOff()
             .resistance(0.400000006f)
             .hardness(0.4f)
             .notSolid()
@@ -307,7 +307,7 @@ void registerBuildingBlocks()
     // 脚手架 - 含水方块
     BuildingBlocks::SCAFFOLDING =
         &registry.registerBlock<blocks::ScaffoldingBlock>(ResourceLocation("minecraft:scaffolding"),
-            BlockProperties(Material::DECORATION)
+            BlockProperties(Material::DECORATION).forceSolidOff()
                 .withCollision()
                 .hardness(0.0f)
                 .notSolid()

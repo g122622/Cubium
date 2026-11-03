@@ -244,6 +244,7 @@ void registerBaseBlocks()
                     &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
                         *flowingWater,
                         BlockProperties(Material::WATER)
+                            .replaceable()
                             .resistance(100.0f)
                             .noCollision()
                             .notSolid()
@@ -262,6 +263,7 @@ void registerBaseBlocks()
                 BaseBlocks::LAVA = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:lava"),
                     *flowingLava,
                     BlockProperties(Material::LAVA)
+                        .replaceable()
                         .resistance(100.0f)
                         .noCollision()
                         .notSolid()
@@ -286,7 +288,7 @@ void registerBaseBlocks()
 
     // 雪层
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(ResourceLocation("minecraft:snow"),
-        BlockProperties(Material::SNOW).resistance(0.100000001f).hardness(0.1f).notSolid());
+        BlockProperties(Material::SNOW).replaceable().resistance(0.100000001f).hardness(0.1f).notSolid());
 
     // 雪块
     BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:snow_block"),

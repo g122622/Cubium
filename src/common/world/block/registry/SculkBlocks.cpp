@@ -71,7 +71,8 @@ void registerSculkBlocks()
             .resistance(0.2f)
             .harvestTool(HarvestTool::Hoe)
             .requiresTool()
-            .soundType(BlockSoundTypes::SCULK_VEIN));
+            .soundType(BlockSoundTypes::SCULK_VEIN)
+            .forceSolidOn());
 
     // 幽匿催化体 - Material::SCULK, 锄有效, 硬度3.0, 抗性3.0, 发光等级6
     // 生物在此附近死亡时会生成幽匿块，BLOOM属性标记脉冲状态
