@@ -22,12 +22,15 @@
  */
 
 #include "PistonBlock.hpp"
+
 #include "MovingPistonBlock.hpp"
 #include "PistonHeadBlock.hpp"
 #include "PistonStructureHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
@@ -40,6 +43,7 @@
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -295,6 +299,16 @@ bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& s
     world.setBlockState(
         pos, &newState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
+    // 音高带随机：原版是 `random.nextFloat() * 0.25F + 0.6F`，让连续伸缩的活塞声不完全一样。
+    world.playSound(SoundEvents::BLOCK_PISTON_EXTEND,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.5f,
+        world.getRandom().nextFloat() * 0.25f + 0.6f);
+
+    // 伸出是方块状态变化，要让附近幽匿感测体听到。
+    world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, &newState);
+
     return true;
 }
 
@@ -306,6 +320,16 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
     const BlockState& newState = withExtended(state, false);
     world.setBlockState(
         pos, &newState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
+
+    // 音高带随机：原版是 `random.nextFloat() * 0.15F + 0.6F`。
+    world.playSound(SoundEvents::BLOCK_PISTON_CONTRACT,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.5f,
+        world.getRandom().nextFloat() * 0.15f + 0.6f);
+
+    // 缩回同样要让附近幽匿感测体听到。
+    world.gameEvent(gameevent::GameEvents::BLOCK_DEACTIVATE, pos, &newState);
 
     if (m_sticky) {
         // 粘性活塞：尝试拉回方块
@@ -455,8 +479,8 @@ const CollisionShape& PistonBlock::getShape(const BlockState& state) const
         //   facing=down -> 缺口在下方，板占 y 4..16
         //   facing=up   -> 缺口在上方，板占 y 0..12
         // 此前 Down/Up 两条正好写反，伸出时活塞的缺口朝了错误的一边。
-        CollisionShape::fromPixelBox(0, 4, 0, 16, 16, 16),   // Down
-        CollisionShape::fromPixelBox(0, 0, 0, 16, 12, 16),   // Up
+        CollisionShape::fromPixelBox(0, 4, 0, 16, 16, 16), // Down
+        CollisionShape::fromPixelBox(0, 0, 0, 16, 12, 16), // Up
         CollisionShape::fromPixelBox(0, 0, 4, 16, 16, 16), // North
         CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 12), // South
         CollisionShape::fromPixelBox(4, 0, 0, 16, 16, 16), // West

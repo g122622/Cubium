@@ -1520,6 +1520,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "被堵住时既不出声也不发 NOTE_BLOCK_PLAY 事件 —— 事件必须发在判定之后。漏掉前置条件会让埋了方块的音符盒照样发声",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "piston_event",
+        probe: "piston_event",
+        oracle: "PistonEventOracle",
+        description: "活塞缩回时的音效与游戏事件（PistonBaseBlock#move）—— 2 种活塞 x 6 个朝向 = 12 个单元；"
+        + "缩回放 block.piston.contract（音量 0.5）并发 BLOCK_DEACTIVATE，伸出是 extend + BLOCK_ACTIVATE。"
+        + "漏掉音效时活塞完全无声、玩家判断不出装置有没有在工作；漏掉事件则活塞在幽匿电路里完全隐形",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
