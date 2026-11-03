@@ -458,6 +458,23 @@ BrushableBlock::BrushableBlock(const BlockProperties& properties,
     setDefaultState(defaultState().with(BlockStateProperties::DUSTED(), 0));
 }
 
+void BrushableBlock::onBroken(IWorld& world, const BlockPos& /*pos*/, entity::FallingBlockEntity& entity)
+{
+    // 原版 onBrokenAfterFall：以实体的包围盒中心为准（方块实体可能落在格子里偏一点），
+    // 先放破碎粒子，再发 block_destroy。
+    const Vector3 center = entity.position();
+    const BlockPos effectPos(static_cast<i32>(std::floor(center.x)),
+        static_cast<i32>(std::floor(center.y)),
+        static_cast<i32>(std::floor(center.z)));
+
+    world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, effectPos, 0);
+    // Cubium 的 gameEvent 只接受方块位置；原版这里传的是 Vec3 中心点，
+    // 在整数格坐标上与方块位置等价（周围一圈格子的振动半径远大于 1 格）。
+    const BlockState* fallingState = entity.getFallingState();
+    world.gameEvent(
+        gameevent::GameEvents::BLOCK_DESTROY, effectPos, fallingState != nullptr ? fallingState : &defaultState());
+}
+
 void BrushableBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
     MC_UNUSED(container);

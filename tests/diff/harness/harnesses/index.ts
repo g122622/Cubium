@@ -1629,6 +1629,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "修复前 Cubium 根本没有覆写 onEntityWalk，踩踏振动完全缺失",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "brushable_fall",
+        probe: "brushable_fall",
+        oracle: "BrushableFallOracle",
+        description: "可疑沙/沙砾坠落碎开时的效果与事件（BrushableBlock#onBrokenAfterFall）—— 方块种类 2 个单元；"
+        + "两个动作缺一不可：放方块破碎粒子（levelEvent 2001）、发 block_destroy 事件。"
+        + "只发粒子不发事件，坠落破碎在幽匿电路里隐形；只发事件不放粒子，玩家看不到摔碎的视觉反馈。"
+        + "修复前 Cubium 的 BrushableBlock 继承 FallingBlock 却没有覆写 onBroken，两者都没有",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
