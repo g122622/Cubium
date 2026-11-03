@@ -22,10 +22,13 @@
  */
 
 #include "TripWireBlock.hpp"
+
 #include "TripWireHookBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -43,6 +46,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
 #include <memory>
@@ -255,6 +259,20 @@ const CollisionShape& TripWireBlock::getShape(const BlockState& state) const
     static const CollisionShape detachedShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 8.0f / 16.0f, 1.0f);
 
     return state.get(BlockStateProperties::ATTACHED()) ? attachedShape : detachedShape;
+}
+
+void TripWireBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+{
+    // 手里拿剪刀拆绊线：先置 DISARMED，再交给基类 —— 基类会真正移除方块。
+    // 置 DISARMED 是为了让两端的钩子按「拆除」而不是「触发」处理。
+    if (!world.isClientSide() && !player.getMainHandItem().isEmpty() &&
+        player.getMainHandItem().getItem() == Items::SHEARS) {
+        BlockState disarmed = state.with(BlockStateProperties::DISARMED(), true);
+        world.setBlockState(pos, &disarmed, world::BlockUpdateFlags::UPDATE_ALL);
+        world.gameEvent(gameevent::GameEvents::SHEAR, pos, &disarmed);
+    }
+
+    Block::playerWillDestroy(world, pos, state, player);
 }
 
 void TripWireBlock::updateState(IWorld& world, const BlockPos& pos)

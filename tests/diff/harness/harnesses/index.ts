@@ -1560,6 +1560,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "换方块与发事件是两件事，幽匿感测体只认 gameEvent，不发就完全感知不到耕地被踩坏",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "tripwire_disarm",
+        probe: "tripwire_disarm",
+        oracle: "TripwireDisarmOracle",
+        description: "用剪刀拆绊线时的解除武装与事件（TripWireBlock#playerWillDestroy）—— 主手物品 3 种 = 3 个单元；"
+        + "手里是剪刀时先把绊线置成 DISARMED 再移除，两端钩子看到「已解除」走拆除路径而不是触发路径，并发 shear 事件。"
+        + "不置 DISARMED 的话，用剪刀拆陷阱反而会把它引爆一次 —— 正好是剪刀存在的意义（安全拆除）的反面",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

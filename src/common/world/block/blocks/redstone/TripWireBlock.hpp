@@ -67,6 +67,20 @@ public:
 
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
+    /**
+     * @brief 玩家破坏前的处理（原版 `TripWireBlock#playerWillDestroy`）
+     *
+     * 手里拿剪刀破坏绊线时，先把它设成 `DISARMED` 再拆 —— 这样绊线被「拆除」
+     * 而不是「触发」，两端钩子会走 BLOCK_DETACH 而不是 BLOCK_DEACTIVATE。
+     * 同时发 `shear` 事件（幽匿感测体把剪绊线归到剪切一类）。
+     *
+     * @param world 世界引用
+     * @param pos 绊线位置
+     * @param state 当前状态
+     * @param player 破坏者
+     */
+    void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player) override;
+
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
