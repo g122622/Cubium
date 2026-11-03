@@ -1536,6 +1536,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "只写 EAT 会让最后一片消失时幽匿电路少一次 destroy，只写 DESTROY 则前六片完全静默",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "lectern_book",
+        probe: "lectern_book",
+        oracle: "LecternBookOracle",
+        description: "讲台放书/取书时的状态复位与事件（LecternBlock#resetBookState）—— 初始 HAS_BOOK x POWERED x 目标 = 8 个单元；"
+        + "POWERED 一律复位为 false、HAS_BOOK 置为目标值、发 BLOCK_CHANGE。"
+        + "讲台翻页时会拉高一次 POWERED 当比较器脉冲，放书取书不清掉的话，取走书之后下游比较器会一直读到不该存在的信号",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

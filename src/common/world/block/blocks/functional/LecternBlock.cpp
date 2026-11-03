@@ -23,6 +23,8 @@
 
 #include "LecternBlock.hpp"
 
+#include "common/world/gameevent/GameEvents.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
@@ -434,6 +436,9 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, bool hasBook)
     BlockState updated =
         currentState->with(BlockStateProperties::HAS_BOOK(), hasBook).with(BlockStateProperties::POWERED(), false);
     world.setBlockState(pos, &updated, world::BlockUpdateFlags::UPDATE_ALL);
+
+    // 放书/取书是方块状态变化，要让附近幽匿感测体听到（原版 `resetBookState` 发 BLOCK_CHANGE）。
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &updated);
 
     // 通知下方方块红石更新（POWERED 状态可能改变）
     updateBelow(world, pos, updated.getBlockMutable());
