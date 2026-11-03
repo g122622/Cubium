@@ -149,26 +149,30 @@ void BellBlock::_initializeShapes()
     // Z 轴朝向：16×16×8（厚度在 Z 方向）
     m_floorShapeZ = CollisionShape::box(0.0f, 0.0f, 4.0f * P, 1.0f, 1.0f, 12.0f * P);
 
-    // 双面墙（按朝向轴区分）：BELL_SHAPE + 单侧连接柱 (2×2, Y=13-15)
-    // X 轴朝向：连接柱在 X 方向两侧
-    m_doubleWallShapeX = CollisionShape::combine(
-        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 7.0f * P, 9.0f * P, 15.0f * P, 9.0f * P));
-    // Z 轴朝向：相同（连接柱在 Z 方向两侧，但连接柱本身是中心对称的）
-    m_doubleWallShapeZ = m_doubleWallShapeX;
+    // 双面墙：BELL_SHAPE + 一条**贯穿整格**的横梁。
+    // 实测（bell，attachment=double_wall）：第三个盒子是
+    //   [0.4375, 0.8125, 0 -> 0.5625, 0.9375, 1]   （面朝南北）
+    //   [0, 0.8125, 0.4375 -> 1, 0.9375, 0.5625]   （面朝东西）
+    // 即横梁沿**垂直于 FACING 的轴**从一端的墙一直铺到另一端的墙。
+    // 此前只在中心 2x2 像素处放了一小段，两侧的梁缺失——
+    // 双面墙挂的钟看上去像悬在空中，没有横梁支撑。
+    m_doubleWallShapeX =
+        CollisionShape::combine(bellShape, CollisionShape::box(0.0f, 13.0f * P, 7.0f * P, 1.0f, 15.0f * P, 9.0f * P));
+    m_doubleWallShapeZ =
+        CollisionShape::combine(bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 0.0f, 9.0f * P, 15.0f * P, 1.0f));
 
-    // 单面墙（按 4 个朝向区分）：
-    // - North 朝向：连接柱在 Z=0 侧
-    // - South 朝向：连接柱在 Z=1 侧
-    // - East 朝向：连接柱在 X=1 侧
-    // - West 朝向：连接柱在 X=0 侧
+    // 单面墙：横梁从墙那一侧延伸到**钟体边缘**（不是只伸出 2 像素）。
+    // 实测（bell，attachment=single_wall）第三个盒子是
+    //   [0.4375, 0.8125, 0 -> 0.5625, 0.9375, 0.8125]   墙在 -z 侧
+    // 即横梁从方块边缘一直抵到钟体的 13/16 处。
     m_singleWallShapeNorth = CollisionShape::combine(
-        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 0.0f, 9.0f * P, 15.0f * P, 2.0f * P));
+        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 0.0f, 9.0f * P, 15.0f * P, 13.0f * P));
     m_singleWallShapeSouth = CollisionShape::combine(
-        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 14.0f * P, 9.0f * P, 15.0f * P, 1.0f));
+        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 3.0f * P, 9.0f * P, 15.0f * P, 1.0f));
     m_singleWallShapeEast = CollisionShape::combine(
-        bellShape, CollisionShape::box(14.0f * P, 13.0f * P, 7.0f * P, 1.0f, 15.0f * P, 9.0f * P));
+        bellShape, CollisionShape::box(3.0f * P, 13.0f * P, 7.0f * P, 1.0f, 15.0f * P, 9.0f * P));
     m_singleWallShapeWest = CollisionShape::combine(
-        bellShape, CollisionShape::box(0.0f, 13.0f * P, 7.0f * P, 2.0f * P, 15.0f * P, 9.0f * P));
+        bellShape, CollisionShape::box(0.0f, 13.0f * P, 7.0f * P, 13.0f * P, 15.0f * P, 9.0f * P));
 
     // 填充 m_shapesByState 缓存（按 (facing_index << 2) | attachment_index 索引）
     // HORIZONTAL_FACING 的 4 个值：North=0, East=1, South=2, West=3（按 Directions::horizontal 顺序）

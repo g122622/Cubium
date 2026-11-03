@@ -125,8 +125,29 @@ BlockState MangrovePropaguleBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& MangrovePropaguleBlock::getShape(const BlockState& state) const
 {
+    // 悬挂状态下 AGE 决定胚根的**长度**（顶部固定贴在天花板上、向下伸长）：
+    //
+    //   hanging=true, age=0 -> y 0.8125..1.0    (13/16 .. 1)
+    //   hanging=true, age=1 -> y 0.6250..1.0
+    //   hanging=true, age=2 -> y 0.4375..1.0
+    //   hanging=true, age=3 -> y 0.1875..1.0
+    //   hanging=true, age=4 -> y 0.0000..1.0
+    //
+    // 非悬挂状态 AGE 不影响形状（恒为 y 0..1 的细柱）。
+    //
+    // 此前悬挂状态无条件返回与地面状态相同的细柱，胚胎看起来像已经长到底了——
+    // 刚挂上去的胚根和成熟的一样长。
     if (state.get(BlockStateProperties::HANGING())) {
-        return m_hangingShape;
+        static const std::array<CollisionShape, 5> hangingShapes = {
+            CollisionShape::box(0.1875f, 0.8125f, 0.1875f, 0.3125f, 1.0f, 0.3125f),
+            CollisionShape::box(0.1875f, 0.6250f, 0.1875f, 0.3125f, 1.0f, 0.3125f),
+            CollisionShape::box(0.1875f, 0.4375f, 0.1875f, 0.3125f, 1.0f, 0.3125f),
+            CollisionShape::box(0.1875f, 0.1875f, 0.1875f, 0.3125f, 1.0f, 0.3125f),
+            CollisionShape::box(0.1875f, 0.0000f, 0.1875f, 0.3125f, 1.0f, 0.3125f),
+        };
+        const i32 hangingAge = state.get(BlockStateProperties::AGE_0_4());
+        MC_ASSERT(hangingAge >= 0 && hangingAge < static_cast<i32>(hangingShapes.size()));
+        return hangingShapes[static_cast<size_t>(hangingAge)];
     }
 
     i32 age = state.get(BlockStateProperties::AGE_0_4());

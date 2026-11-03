@@ -271,10 +271,18 @@ bool ScaffoldingBlock::isValidPosition(const BlockState& state, IBlockReader& wo
 
 const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const noexcept
 {
-    MC_UNUSED(state);
-    // 原版 `getShape` 无论 `bottom` 取值都返回完整形状（四角柱 + 三根顶部横杆）。
-    // 实测 `bottom=false`（默认）与 `bottom=true` 的 `getShape` 完全相同。
-    // 此前按 `bottom` 分支返回 `m_topShape`，导致默认状态只覆盖顶部三根横杆。
+    // 原版 `getShape` 分两支（`STABILITY_DISTANCE` 完全不参与几何）：
+    //
+    //   bottom=false -> 7 个盒子：四角柱（全高）+ 三根顶部横杆（y 0.875..1）
+    //   bottom=true  -> 上面 7 个 + 一块 **满格底板 `y 0..0.125`**
+    //
+    // 此前无条件返回 `m_fullShape`（7 盒），`bottom=true` 的 16 个状态缺底板——
+    // 双层脚手架的下层看起来没有落脚面。
+    if (state.get(BlockStateProperties::BOTTOM())) {
+        static const CollisionShape withBase = CollisionShape::combine(
+            m_fullShape, CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f), CollisionShape::CombineOp::OR);
+        return withBase;
+    }
     return m_fullShape;
 }
 

@@ -164,57 +164,69 @@ const CollisionShape& BigDripleafBlock::getShape(const BlockState& state) const
 
 std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
 {
-    // 原版大垂滴叶（北向、tilt=none）实测为 **5 个盒子**：
+    // 原版 TILT 对**外形**的影响（forAllBoxes 实测，big_dripleaf，北向）：
     //
-    //   [0.3125, 0.0000, 0.5625 -> 0.6875, 0.9375, 0.9375]   茎（x 5..11，z 9..15）
-    //   [0.0000, 0.6875, 0.0000 -> 0.3125, 0.9375, 1.0000]   叶·西
-    //   [0.3125, 0.6875, 0.0000 -> 1.0000, 0.9375, 0.5625]   叶·南
-    //   [0.3125, 0.6875, 0.9375 -> 1.0000, 0.9375, 1.0000]   叶·东
-    //   [0.6875, 0.6875, 0.5625 -> 1.0000, 0.9375, 0.9375]   叶·北
+    //   tilt=none      -> 5 盒：茎 + 4 片叶，全部止于 y 0.9375
+    //   tilt=unstable  -> 与 none 完全相同
+    //   tilt=partial   -> 5 盒：茎与叶片的上沿一起降到 y 0.8125
+    //   tilt=full      -> **1 盒**：只剩茎（叶片完全垂下消失）
     //
-    // 要点：
-    //   * 茎在 x 5..11、z 9..15——**在 Z 方向偏南**，不是居中；
-    //   * 叶片只覆盖 y 0.6875..0.9375（11..15 像素）且**呈十字形**，四角是空的。
-    // 此前按「整格薄片 + 居中茎」建模，两个轴的分布都不对。
-    const CollisionShape leafNone = CollisionShape::empty();
-    const CollisionShape leafPartial = CollisionShape::empty();
-    const CollisionShape leafFull = VoxelShapes::empty();
-    MC_UNUSED(leafNone);
-    MC_UNUSED(leafPartial);
-    const std::array<CollisionShape, 4> leafByTilt = {leafFull, leafFull, leafFull, leafFull};
-
+    // 此前把 leafByTilt 四项全设成空形状，等于所有 tilt 都只有茎——
+    // 正常站立的大垂滴叶看上去没有叶片。
+    //
+    // 叶片是十字形（四角是空的），茎在 x 5..11、z 9..15（Z 方向偏南，不居中）。
     const CollisionShape stemNorth = CollisionShape::box(0.3125f, 0.0f, 0.5625f, 0.6875f, 0.9375f, 0.9375f);
     const CollisionShape bladeWest = CollisionShape::box(0.0f, 0.6875f, 0.0f, 0.3125f, 0.9375f, 1.0f);
     const CollisionShape bladeSouth = CollisionShape::box(0.3125f, 0.6875f, 0.0f, 1.0f, 0.9375f, 0.5625f);
     const CollisionShape bladeEast = CollisionShape::box(0.3125f, 0.6875f, 0.9375f, 1.0f, 0.9375f, 1.0f);
     const CollisionShape bladeNorth = CollisionShape::box(0.6875f, 0.6875f, 0.5625f, 1.0f, 0.9375f, 0.9375f);
 
-    // 按水平方向旋转（对齐 Shapes.rotateHorizontal）：NORTH=原形，EAST/SOUTH/WEST 依次绕 Y 转 90/180/270°。
-    std::array<CollisionShape, 6> stemByFacing{};
-    stemByFacing[static_cast<std::size_t>(Direction::North)] = stemNorth;
-    stemByFacing[static_cast<std::size_t>(Direction::South)] = _rotateShapeY(stemNorth, Rotation::Clockwise180);
-    stemByFacing[static_cast<std::size_t>(Direction::East)] = _rotateShapeY(stemNorth, Rotation::Clockwise90);
-    stemByFacing[static_cast<std::size_t>(Direction::West)] = _rotateShapeY(stemNorth, Rotation::CounterClockwise90);
-
-    std::array<CollisionShape, 6> bladesByFacing{};
-    bladesByFacing[static_cast<std::size_t>(Direction::North)] =
+    const CollisionShape bladesNorth =
         CollisionShape::combine(CollisionShape::combine(bladeWest, bladeSouth, CollisionShape::CombineOp::OR),
             CollisionShape::combine(bladeEast, bladeNorth, CollisionShape::CombineOp::OR),
             CollisionShape::CombineOp::OR);
-    bladesByFacing[static_cast<std::size_t>(Direction::South)] =
-        _rotateShapeY(bladesByFacing[static_cast<std::size_t>(Direction::North)], Rotation::Clockwise180);
-    bladesByFacing[static_cast<std::size_t>(Direction::East)] =
-        _rotateShapeY(bladesByFacing[static_cast<std::size_t>(Direction::North)], Rotation::Clockwise90);
-    bladesByFacing[static_cast<std::size_t>(Direction::West)] =
-        _rotateShapeY(bladesByFacing[static_cast<std::size_t>(Direction::North)], Rotation::CounterClockwise90);
+
+    // 按水平方向旋转（对齐 Shapes.rotateHorizontal）：NORTH=原形，EAST/SOUTH/WEST 依次绕 Y 转 90/180/270°。
+    const auto rotateFor = [](const CollisionShape& northShape, Direction dir) {
+        switch (dir) {
+            case Direction::South:
+                return _rotateShapeY(northShape, Rotation::Clockwise180);
+            case Direction::East:
+                return _rotateShapeY(northShape, Rotation::Clockwise90);
+            case Direction::West:
+                return _rotateShapeY(northShape, Rotation::CounterClockwise90);
+            default:
+                return northShape;
+        }
+    };
+
+    // partial 把茎与叶片的上沿一起压到 0.8125。
+    const CollisionShape stemNorthPartial = CollisionShape::box(0.3125f, 0.0f, 0.5625f, 0.6875f, 0.8125f, 0.9375f);
+    const CollisionShape bladeWestPartial = CollisionShape::box(0.0f, 0.6875f, 0.0f, 0.3125f, 0.8125f, 1.0f);
+    const CollisionShape bladeSouthPartial = CollisionShape::box(0.3125f, 0.6875f, 0.0f, 1.0f, 0.8125f, 0.5625f);
+    const CollisionShape bladeEastPartial = CollisionShape::box(0.3125f, 0.6875f, 0.9375f, 1.0f, 0.8125f, 1.0f);
+    const CollisionShape bladeNorthPartial = CollisionShape::box(0.6875f, 0.6875f, 0.5625f, 1.0f, 0.8125f, 0.9375f);
+    const CollisionShape bladesNorthPartial = CollisionShape::combine(
+        CollisionShape::combine(bladeWestPartial, bladeSouthPartial, CollisionShape::CombineOp::OR),
+        CollisionShape::combine(bladeEastPartial, bladeNorthPartial, CollisionShape::CombineOp::OR),
+        CollisionShape::CombineOp::OR);
+
+    const auto makeShape = [&rotateFor](const CollisionShape& stem, const CollisionShape& blades, Direction dir) {
+        return CollisionShape::combine(rotateFor(stem, dir), rotateFor(blades, dir), CollisionShape::CombineOp::OR);
+    };
+
+    const CollisionShape noBlades = CollisionShape::empty();
 
     std::array<std::array<CollisionShape, 6>, 4> shapes{};
-    for (std::size_t t = 0; t < 4; ++t) {
-        for (const Direction dir : {Direction::North, Direction::South, Direction::West, Direction::East}) {
-            const auto f = static_cast<std::size_t>(dir);
-            shapes[t][f] = CollisionShape::combine(leafByTilt[t], stemByFacing[f], CollisionShape::CombineOp::OR);
-            shapes[t][f] = CollisionShape::combine(shapes[t][f], bladesByFacing[f], CollisionShape::CombineOp::OR);
-        }
+    for (const Direction dir : {Direction::North, Direction::South, Direction::West, Direction::East}) {
+        const auto f = static_cast<std::size_t>(dir);
+        // Tilt 枚举顺序：None=0, Unstable=1, Partial=2, Full=3。
+        shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::None)][f] = makeShape(stemNorth, bladesNorth, dir);
+        shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Unstable)][f] =
+            makeShape(stemNorth, bladesNorth, dir);
+        shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Partial)][f] =
+            makeShape(stemNorthPartial, bladesNorthPartial, dir);
+        shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Full)][f] = makeShape(stemNorth, noBlades, dir);
     }
     return shapes;
 }
