@@ -124,7 +124,8 @@ void registerTrailsBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::DECORATED_POT)
-                .withCollision());
+                .withCollision()
+                .noOcclusion());
 
     // ============================================================================
     // 监守者蛋

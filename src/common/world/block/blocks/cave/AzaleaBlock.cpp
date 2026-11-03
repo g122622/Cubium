@@ -50,28 +50,12 @@ AzaleaBlock::AzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockP
     , IGrowable()
     , m_treeGenerator(std::move(treeGenerator))
 {
-    // 原版：Shapes.or(Block.column(16.0, 8.0, 16.0), Block.column(4.0, 0.0, 8.0))
-    //
-    // 直接读原版 `forAllBoxes` 得到的是 **5 个盒子**（or 之后坐标网格被细分）：
-    //
-    //   [0.375, 0.0,   0.375 -> 0.625, 1.0,   0.625]   中心柱（贯穿整格）
-    //   [0.0,   0.5,   0.0   -> 0.375, 1.0,   1.0  ]   西侧
-    //   [0.375, 0.5,   0.0   -> 1.0,   1.0,   0.375]   南侧
-    //   [0.375, 0.5,   0.625 -> 1.0,   1.0,   1.0  ]   东侧
-    //   [0.625, 0.5,   0.375 -> 1.0,   1.0,   0.625]   北侧
-    //
-    // 注意「上半部分是整格」这个直觉是错的：四角（如 x<0.375 且 z<0.375）在
-    // y>=0.5 处并不被覆盖。此前按「上半整格 + 底部小柱」建模，几何范围偏大。
-    const CollisionShape centerPost = CollisionShape::box(0.375f, 0.0f, 0.375f, 0.625f, 1.0f, 0.625f);
-    const CollisionShape westLeaf = CollisionShape::box(0.0f, 0.5f, 0.0f, 0.375f, 1.0f, 1.0f);
-    const CollisionShape southLeaf = CollisionShape::box(0.375f, 0.5f, 0.0f, 1.0f, 1.0f, 0.375f);
-    const CollisionShape eastLeaf = CollisionShape::box(0.375f, 0.5f, 0.625f, 1.0f, 1.0f, 1.0f);
-    const CollisionShape northLeaf = CollisionShape::box(0.625f, 0.5f, 0.375f, 1.0f, 1.0f, 0.625f);
-
-    m_shape = CollisionShape::combine(centerPost, westLeaf, CollisionShape::CombineOp::OR);
-    m_shape = CollisionShape::combine(m_shape, southLeaf, CollisionShape::CombineOp::OR);
-    m_shape = CollisionShape::combine(m_shape, eastLeaf, CollisionShape::CombineOp::OR);
-    m_shape = CollisionShape::combine(m_shape, northLeaf, CollisionShape::CombineOp::OR);
+    // MC 1.21.11: Shapes.or(Block.column(16.0, 8.0, 16.0), Block.column(4.0, 0.0, 8.0))
+    // 上半部分：16x8像素（从Y=8到Y=16），底部茎干：4x8像素（从Y=0到Y=8）
+    // 两段都是像素坐标：addBox 接收的是方块坐标，必须自己换算，否则茎干会被
+    // 放大 16 倍（曾导致 DOWN|CENTER 判定失效：底面投影跑到方块外）。
+    m_shape = CollisionShape::fromPixelBox(0, 8, 0, 16, 16, 16);
+    m_shape.addBox(6.0f / 16.0f, 0.0f, 6.0f / 16.0f, 10.0f / 16.0f, 8.0f / 16.0f, 10.0f / 16.0f);
 }
 
 const CollisionShape& AzaleaBlock::getShape(const BlockState& state) const
@@ -96,18 +80,14 @@ bool AzaleaBlock::isValidPosition(const BlockState& state, IBlockReader& world, 
 
 bool AzaleaBlock::mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-
-    // MC 1.21.11: AzaleaBlock.mayPlaceOn 检查 CLAY 或 super.mayPlaceOn
-    // super.mayPlaceOn 是 VegetationBlock 的默认实现，检查下方方块是否可种植
-    // 此处简化为检查黏土或下方方块上表面坚固
+    // 原版 AzaleaBlock.mayPlaceOn 只放宽到 CLAY，其余沿 VegetationBlock 的默认实现：
+    // 下方方块属于 DIRT 标签或是耕地。不能退化成「上表面坚固」——那样石头、沙、
+    // 台阶都会错误地托起杜鹃，与原版判定相反。
     if (state.is(VanillaBlocks::CLAY)) {
         return true;
     }
 
-    // 检查下方方块是否有向上的坚固面（等价于 VegetationBlock 的默认 mayPlaceOn）
-    return state.isSolidSide(world, pos, Direction::Up);
+    return state.getBlock().canSustainPlant(state, world, pos, Direction::Up, *this);
 }
 
 bool AzaleaBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const

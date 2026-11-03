@@ -261,16 +261,6 @@ BlockState WallHangingSignBlock::getStateForPlacement(BlockItemUseContext& conte
     return defaultState();
 }
 
-bool WallHangingSignBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
-{
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction oppositeDir = Directions::opposite(facing);
-    BlockPos adjPos = pos.offset(oppositeDir);
-    const BlockState* adjState = world.getBlockState(adjPos);
-
-    return adjState != nullptr && adjState->isSolidSide(world, adjPos, facing);
-}
-
 const BlockState& WallHangingSignBlock::rotate(const BlockState& state, Rotation rotation) const
 {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());

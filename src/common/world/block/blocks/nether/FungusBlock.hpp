@@ -116,6 +116,15 @@ public:
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 检查下方方块能否托起菌株
+     *
+     * 只认下界菌岩、菌丝、灵魂土与泥土类方块；原版没有「上表面坚固即可」这一档，
+     * 石头、沙子、台阶都不能托起菌株。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
 private:
     /// 真菌类型
     FungusType m_fungusType;

@@ -440,41 +440,6 @@ const BlockState& WallSkullBlock::mirror(const BlockState& state, Mirror mirror)
         Directions::rotateDirection(facing, Directions::mirrorToRotation(mirror, facing)));
 }
 
-bool WallSkullBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
-{
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction attachDir = Directions::opposite(facing);
-    const BlockPos attachPos = pos.offset(attachDir);
-    const BlockState* attachState = world.getBlockState(attachPos);
-    if (attachState == nullptr || attachState->isAir()) {
-        return false;
-    }
-    return attachState->isFaceSturdy(world, attachPos, facing, SupportType::Full);
-}
-
-BlockState WallSkullBlock::updatePostPlacement(const BlockState& state,
-    Direction facing,
-    const BlockState& facingState,
-    IWorld& world,
-    const BlockPos& currentPos,
-    const BlockPos& facingPos)
-{
-    MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
-
-    // 附着面消失时自毁
-    Direction skullFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == Directions::opposite(skullFacing)) {
-        if (!isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
-            if (const BlockState* airState = BlockRegistry::instance().airState()) {
-                return *airState;
-            }
-        }
-    }
-
-    return Block::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
-}
-
 // ============================================================================
 // PlayerHeadBlock / PlayerWallHeadBlock
 // ============================================================================

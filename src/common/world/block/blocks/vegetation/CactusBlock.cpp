@@ -228,8 +228,7 @@ const CollisionShape& CactusBlock::getCollisionShape(const BlockState& state) co
     MC_UNUSED(state);
     // 原版有独立的碰撞形状 SHAPE_COLLISION = column(14.0, 0.0, 15.0)：比外形矮 1 像素，
     // 站在仙人掌上时脚底高度与原版一致。
-    static const CollisionShape collisionShape =
-        CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f, 0.9375f);
+    static const CollisionShape collisionShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.9375f, 0.9375f);
     return collisionShape;
 }
 

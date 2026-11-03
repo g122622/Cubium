@@ -48,7 +48,6 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
@@ -502,12 +501,10 @@ void EndermanTakeBlockGoal::tick()
         return;
     }
 
-    // 移除方块（设置空气）
-    const BlockState* airState = BlockRegistry::instance().airState();
-    if (airState == nullptr) {
+    // 移除方块：原版 EndermanTakeBlockGoal 使用 level.removeBlock(pos, false)，无掉落/破坏粒子
+    if (!world->removeBlock(pos, false)) {
         return;
     }
-    world->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 发出方块破坏游戏事件
     world->gameEvent(gameevent::GameEvents::BLOCK_DESTROY,

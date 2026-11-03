@@ -1524,6 +1524,22 @@ public:
     static void dropResources(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
+     * @brief 在世界中生成方块的掉落物品（携带方块实体上下文）
+     *
+     * 与三参版本相同，但把方块实体作为掉落参数 `BLOCK_ENTITY` 传入，供
+     * `copy_components` / `copy_custom_data` 等掉落函数复制容器名称与组件。
+     * 必须在方块实体被移除之前调用。
+     *
+     * 参考: net.minecraft.block.Block.dropResources(BlockState, LevelAccessor, BlockPos, BlockEntity)
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 被破坏的方块状态
+     * @param blockEntity 该位置的方块实体（可为 nullptr）
+     */
+    static void dropResources(IWorld& world, const BlockPos& pos, const BlockState& state, BlockEntity* blockEntity);
+
+    /**
      * @brief 方块被爆炸破坏时的处理
      *
      * 当方块被爆炸破坏时调用。默认实现为空。
@@ -1815,14 +1831,12 @@ public:
     /**
      * @brief 获取指定位置处的支撑形状（世界坐标）。
      *
-     * 语义是「`getBlockSupportShape` 的结果按该位置的 `getOffset` 平移」：
-     * 原版 `getBlockSupportShape(state, level, pos)` 默认转调
-     * `getCollisionShape(state, level, pos, CollisionContext.empty())`，
-     * 而带 `offsetType` 的方块（竹子、滴水石芽）正是在这一层叠加位置偏移的。
+     * 默认转调**无位置的** `getBlockSupportShape` 再加偏移，而不是转调 `getCollisionShapeAt`：
+     * 支撑形状是独立概念，树叶的碰撞形状是完整方块但支撑形状恒空，卡片/梯子等也各自
+     * 覆写了空支撑形状。转调碰撞形状会把那些覆写全部绕过。
      *
-     * **不要**直接转调 `getCollisionShapeAt`：那会丢掉子类对
-     * `getBlockSupportShape` 的覆写（树叶、泥巴、灵魂沙、蜂蜜块等十余类的支撑
-     * 形状都比碰撞形状特殊），回归时一次引入 381 处差异。
+     * 偏移取自 `getOffsetAt`，默认转调 `getOffset`；只有真正按位置变化支撑形状的方块
+     * （目前没有）才需要覆写本方法。
      *
      * @param state 方块状态
      * @param pos 方块位置
@@ -1830,27 +1844,12 @@ public:
      */
     [[nodiscard]] virtual CollisionShape getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const
     {
-        const CollisionShape& base = getBlockSupportShape(state);
+        const CollisionShape base = getBlockSupportShape(state);
         const Vector3 offset = getOffset(pos);
         if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
             return base;
         }
         return base.offset(offset.x, offset.y, offset.z);
-    }
-
-    /**
-     * @brief 碰撞形状是否随方块位置变化。
-     *
-     * 绝大多数方块的碰撞形状与位置无关，`getCollisionShapeAt` 与 `getCollisionShape` 等价。
-     * 只有原版在 `getCollisionShape` 里叠加了位置偏移的方块才覆写本方法返回 `true`
-     * （目前是带 `offsetType` 且原版未另有碰撞形状的 `BambooBlock` 与 `PointedDripstoneBlock`）。
-     *
-     * 需要按位置查询碰撞形状的调用方（如差分探针）应据此选择 `getCollisionShapeAt` 或
-     * `getCollisionShape`，而不是无条件使用前者。
-     */
-    [[nodiscard]] virtual bool isCollisionShapePositionDependent() const noexcept
-    {
-        return false;
     }
 
     /**
@@ -2669,11 +2668,14 @@ public:
         const BlockState& state, IWorld& world, const BlockPos& pos);
 
     /**
-     * @brief 更新或销毁方块：新状态为空气时移除方块，否则写入新状态。
+     * @brief 更新或销毁方块：新状态为空气时摧毁方块，否则写入新状态。
      *
-     * 形状更新级联的统一出口。新状态为空气时移除该方块，且当 flags 含
-     * UPDATE_SUPPRESS_DROPS 时一并抑制移除带来的掉落（含容器内容物）；
-     * 新状态非空气时写入新状态，并剥掉该标志位以免语义泄漏到下游写入。
+     * 形状更新级联的统一出口。新状态为空气时调用 IWorld::destroyBlock：产生破坏粒子、
+     * dropBlock 为 true 时按掉落表生成掉落、发送 BLOCK_DESTROY 游戏事件；flags 含
+     * UPDATE_SUPPRESS_DROPS 时传 dropBlock=false 抑制掉落。新状态非空气时写入新状态，
+     * 并剥掉该标志位以免语义泄漏到下游写入。
+     *
+     * 等价于传入 BlockUpdateFlags::DEFAULT_DESTROY_RECURSION。
      *
      * @param oldState 变化前的方块状态
      * @param newState 变化后的方块状态
@@ -2683,6 +2685,26 @@ public:
      */
     static void updateOrDestroy(
         const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags);
+
+    /**
+     * @brief 更新或销毁方块（指定形状更新递归预算）
+     *
+     * 对应 MC Java: Block.updateOrDestroy(oldState, newState, level, pos, flags, recursionLeft)。
+     * recursionLeft 是形状更新级联的深度预算，变空气时原样传给 IWorld::destroyBlock。
+     *
+     * @param oldState 变化前的方块状态
+     * @param newState 变化后的方块状态
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @param flags 更新标志
+     * @param recursionLeft 剩余的形状更新递归预算
+     */
+    static void updateOrDestroy(const BlockState& oldState,
+        const BlockState& newState,
+        IWorld& world,
+        const BlockPos& pos,
+        i32 flags,
+        i32 recursionLeft);
 
     // ========================================================================
     // 攻击和交互

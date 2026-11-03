@@ -29,6 +29,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "probe.hpp"
+#include "vanilla_datapack.hpp"
 #include <algorithm>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -105,9 +106,8 @@ private:
 void _initialize()
 {
     static const bool initialized = [] {
-        VanillaBlocks::initialize();
-        BlockTags::initialize();
-        entity::VanillaEntities::registerAll();
+        // 与服务端同序：方块 → 物品 → 方块物品 → 数据包标签。
+        datapack::initializeRegistries();
         EntitySpawnPlacementRegistry::initializeDefaults();
         return true;
     }();

@@ -45,15 +45,26 @@ import { REPO_ROOT } from "./layout.ts";
 /** Windows 预设名（与 configure.bat 使用的预设一致）。 */
 const WINDOWS_PRESET = "windows-clang-relwithdebinfo";
 
+/**
+ * 把命令包装成 `cmd /c` 的单行脚本。
+ *
+ * 整行是 cmd 自己的语法，反斜杠不是转义符，但 `path.join` 产出的 Windows 路径带反斜杠，
+ * 直接拼进 `cmd /c "..."` 会被 Node 的引号处理吃掉一层，路径静默退化成
+ * `E:devCubiumranch-1`。因此改用正斜杠（cmd 与 cmake 都接受），彻底绕开转义问题。
+ */
+function toCmdLine(parts: readonly string[]): string {
+    return parts.map((part) => part.split("\\").join("/")).join(" ");
+}
+
 /** 执行一条需要 VS 环境的命令；Windows 下先 call vsenv.bat 再执行。 */
 function execWithEnvironment(command: string, args: readonly string[]): void {
     if (process.platform !== "win32") {
         execFileSync(command, [...args], { cwd: REPO_ROOT, stdio: "inherit" });
         return;
     }
-    const vsenv = path.join(REPO_ROOT, "scripts", "vsenv.bat");
-    const line = [command, ...args.map((argument) => (argument.includes(" ") ? `"${argument}"` : argument))].join(" ");
-    execFileSync("cmd", ["/c", `call "${vsenv}" >nul 2>&1 && ${line}`], { cwd: REPO_ROOT, stdio: "inherit" });
+    const vsenv = toCmdLine([path.join(REPO_ROOT, "scripts", "vsenv.bat")]);
+    const line = toCmdLine([command, ...args.map((argument) => (argument.includes(" ") ? `"${argument}"` : argument))]);
+    execFileSync("cmd", ["/c", `call ${vsenv} >nul 2>&1 && ${line}`], { cwd: REPO_ROOT, stdio: "inherit" });
 }
 
 /** 构建指定探针（以及它们依赖的库目标）。 */

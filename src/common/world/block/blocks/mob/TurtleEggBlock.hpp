@@ -67,9 +67,6 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
-
     // ========== 堆叠替换 ==========
 
     // 对齐 vanilla Java 1.21 TurtleEggBlock.canBeReplaced（TurtleEggBlock.java:147-152）：手持海龟蛋物品

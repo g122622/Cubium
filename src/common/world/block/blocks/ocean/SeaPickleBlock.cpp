@@ -33,6 +33,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
@@ -115,16 +116,20 @@ bool SeaPickleBlock::isValidPosition(const BlockState& state, IBlockReader& worl
 
     MC_UNUSED(state);
 
-    // 检查下方是否有支撑
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    // 原版 SeaPickleBlock.mayPlaceOn：下方方块的顶面碰撞投影非空，或顶面提供实体支撑。
+    // 用 isSolid 会放过「有整格碰撞但顶面为空」的方块，也会拒掉顶面有碰撞的非固体方块。
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
     if (belowState == nullptr) {
         return false;
     }
 
-    // 需要固体支撑
-    return belowState->isSolid();
+    if (!belowState->getCollisionShape().getFaceShape(Direction::Up).isEmpty()) {
+        return true;
+    }
+
+    return belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full);
 }
 
 BlockState SeaPickleBlock::updatePostPlacement(const BlockState& state,

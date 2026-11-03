@@ -259,6 +259,13 @@ CollisionShape BambooBlock::getCollisionShapeAt(const BlockState& state, const B
     return getCollisionShape(state).offset(offset.x, offset.y, offset.z);
 }
 
+CollisionShape BambooBlock::getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    // 原版 getBlockSupportShape 默认转调带位置的 getCollisionShape；竹子没有单独覆写支撑形状，
+    // 因此支撑柱就是更细的 SHAPE_COLLISION。
+    return getCollisionShapeAt(state, pos);
+}
+
 const CollisionShape& BambooBlock::getCollisionShape(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);

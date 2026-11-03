@@ -283,9 +283,11 @@ bool FarmlandBlock::canSustainPlant(
         return false;
     }
 
-    // 耕地支持 Crop 类型（农作物）和 Plains 类型（花、树苗等可种植在耕地上的植物）
-    PlantType plantType = plant.getPlantType(const_cast<IBlockReader&>(world), pos);
-    return plantType == PlantType::Crop || plantType == PlantType::Plains;
+    // 原版 VegetationBlock.mayPlaceOn 是「DIRT 标签或 FARMLAND」，与植物类型无关：
+    // 凡是走 VegetationBlock 这条链的植物（含下界菌索与孢子）都接受耕地。
+    // 之前还按 PlantType 卡了一道，下界植物因此被误拒。
+    MC_UNUSED(plant);
+    return true;
 }
 
 } // namespace blocks

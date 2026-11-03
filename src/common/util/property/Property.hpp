@@ -24,6 +24,8 @@
 #pragma once
 
 #include "IProperty.hpp"
+
+#include "common/util/assert/AssertMacros.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <optional>
@@ -120,10 +122,10 @@ public:
      */
     [[nodiscard]] ValueReturnType valueAt(size_t index) const
     {
-        if (index >= m_values.size()) {
-            throw std::out_of_range("Property value index out of range: " + std::to_string(index));
-        }
-        return m_values[index];
+        MC_ASSERT_RELEASE_MSG(index < m_values.size(), "Property value index out of range");
+        // std::vector<bool> 的 operator[] 返回位代理，直接返回会在某些调用路径上取到
+        // 错误的值；先显式转成 bool 再返回。
+        return static_cast<ValueReturnType>(m_values[index]);
     }
 
     /**
@@ -132,6 +134,10 @@ public:
      * @return 字符串表示
      */
     [[nodiscard]] virtual std::string valueToString(const T& value) const = 0;
+
+    // 下面这个重载会被派生类里同名的「值 → 字符串」重写遮蔽（C++ 名字隐藏），
+    // 若不显式引入，调用方写 valueToString(0) 会解析成 T 版本并把 0 当成 bool。
+    using IProperty::valueToString;
 
     /**
      * @brief 将值索引转换为字符串表示
@@ -199,9 +205,10 @@ protected:
         : m_name(std::move(name))
         , m_values(std::move(values))
     {
-        // 构建值到索引的映射
+        // 构建值到索引的映射。std::vector<bool> 的 operator[] 返回位代理，
+        // 直接存进 unordered_map<bool, size_t> 会因代理的隐式转换产生错误的键。
         for (size_t i = 0; i < m_values.size(); ++i) {
-            m_valueToIndex[m_values[i]] = i;
+            m_valueToIndex[static_cast<T>(m_values[i])] = i;
         }
     }
 

@@ -42,23 +42,6 @@ namespace item::tag {
  *
  * 负责集中管理 ItemTag 的创建、查询和遍历。
  */
-/**
- * @brief 原版物品标签表的一项（生成文件 VanillaItemTags.gen.cpp 提供）。
- *
- * 成员与原版数据包逐条对应：以 `#` 开头的是嵌套标签引用，其余是物品名。
- */
-struct VanillaItemTagEntry {
-    const char* name;          ///< 标签名（无 minecraft: 前缀）
-    std::size_t count;         ///< 成员个数
-    const char* const* values; ///< 成员（物品名，或 `#` 开头的嵌套标签名，均无 minecraft: 前缀）
-};
-
-/**
- * @brief 取原版物品标签表（静态存储，进程内指针恒定）。
- * @param count 输出表项数
- */
-const VanillaItemTagEntry* vanillaItemTagTable(std::size_t& count) noexcept;
-
 class ItemTags {
 public:
     // ========== 内置物品标签 ==========
@@ -471,11 +454,13 @@ public:
     static ItemTag& CREEPER_IGNITERS();
 
     /**
-     * @brief 初始化所有内置物品标签
+     * @brief 初始化标签表
      *
-     * 必须在 ItemRegistry 初始化之后调用。标签的生成表按原版数据包导出，嵌套引用
-     * （`#minecraft:logs` → `#minecraft:oak_logs` 等）以 `#` 开头的成员原样保留，
-     * 由 {@link linkAndExpand} 展开——原版标签的成员集合本来就是传递闭包。
+     * 数据包是标签表的唯一来源：物品标签在启动期由
+     * {@link mc::item::tag::ItemTagLoader::loadFromDataPackRepository} 从
+     * `data/<ns>/tags/item/` 读取，本函数只把状态标记为已初始化。在 ItemRegistry
+     * 初始化之后调用；未加载数据包的场景（单元测试）会得到空标签表，需要标签的
+     * 测试应显式加载数据包。
      */
     static void initialize();
 
@@ -568,8 +553,8 @@ public:
     /**
      * @brief 检查物品标签系统是否已初始化
      *
-     * 在初始化之前调用标签访问方法会导致未定义行为。
-     * 可用于安全检查避免在初始化前访问标签。
+     * 初始化只置标志位，标签内容由数据包加载。未加载数据包时所有便捷访问器返回空标签
+     * （`contains()` 恒为 false），因此可用于区分「标签为空」与「标签内容确实不含该物品」。
      *
      * @return 是否已初始化
      */
@@ -612,6 +597,10 @@ private:
     [[nodiscard]] static Result<void> writeTagJson(const nlohmann::json& contents, ItemTag& tag);
 
     static std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>>& tags();
+
+    /// 便捷访问器的缓存指针是否仍指向标签表中的同一对象（`clear()` 后旧指针会失效）。
+    [[nodiscard]] static bool _isLive(const ItemTag* tag);
+
     static bool s_initialized;
 };
 

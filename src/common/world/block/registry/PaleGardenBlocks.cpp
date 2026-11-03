@@ -281,6 +281,7 @@ void registerPaleGardenBlocks()
                 // noCollision() 会让基类直接短路成空形状。
                 .withCollision()
                 .notSolid()
+                .noOcclusion()
                 .hardness(0.1f)
 
                 .soundType(BlockSoundTypes::MOSS_CARPET)

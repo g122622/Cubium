@@ -238,18 +238,14 @@ BlockState FireBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool FireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
     MC_UNUSED(state);
 
-    // 检查周围是否有可支撑的方块
-    for (Direction dir :
-        {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
-        BlockPos adjPos = pos.offset(dir);
-        const BlockState* adjState = world.getBlockState(adjPos);
-
-        if (adjState != nullptr && adjState->isSolid()) {
-            return true;
-        }
+    // 原版 FireBlock.canSurvive：下方方块顶面是实体面，或相邻存在可燃烧方块。
+    // 之前是「任一相邻方块为固体」，比原版宽松——四面墙夹着的一格空气也算可燃。
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState != nullptr && belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full)) {
+        return true;
     }
 
     return canBurn(world, pos);

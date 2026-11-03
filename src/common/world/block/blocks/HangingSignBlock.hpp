@@ -135,8 +135,6 @@ public:
     ~WallHangingSignBlock() override = default;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;

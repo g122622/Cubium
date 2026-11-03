@@ -37,6 +37,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -50,25 +51,112 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/ZipResourcePack.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
+#include "common/world/block/BlockTagLoader.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc::diff::datapack {
 
-inline void loadDataPackItemTags(const std::filesystem::path& itemTagDirectory);
+inline void loadDataPackItemTags();
+inline void loadDataPackBlockTags();
 
 class EnchantmentTags;
 
-/// 数据包根目录（含 `data/` 的那一层）。由 harness 通过环境变量传入。
+/// 数据包目录本身（含 `data/` 与 `pack.mcmeta` 的那一层）。由 harness 通过环境变量传入。
 [[nodiscard]] inline std::filesystem::path root()
 {
     const char* path = std::getenv("MC_DIFF_VANILLA_DATAPACK");
     if (path == nullptr || *path == '\0') {
-        throw std::runtime_error("MC_DIFF_VANILLA_DATAPACK 未设置：需要指向原版数据包根目录（含 data/ 的那一层）");
+        throw std::runtime_error(
+            "MC_DIFF_VANILLA_DATAPACK is not set: expected the vanilla data pack directory (the one with pack.mcmeta)");
     }
     return std::filesystem::path(path);
+}
+
+/**
+ * @brief 构建数据包仓库（来源与 Java oracle 完全一致：merged jar 内嵌的 data/）
+ *
+ * 必须与 oracle 读同一份数据。此前用 `MC_DIFF_VANILLA_DATAPACK`（磁盘上的数据包目录）时，
+ * 两侧数据不是同一构建：例如 jar 内 `small_flowers` 不含 cactus_flower / wildflowers，
+ * 磁盘副本却含有，于是差分报出大量「Cubium 多出成员」的假差异。
+ *
+ * merged jar 是普通 zip，`ZipResourcePack` 直接按 zip 根作为包根读取，无需解压。
+ */
+[[nodiscard]] inline std::unique_ptr<resource::DataPackRepository> scanDataPack()
+{
+    const char* jarPath = std::getenv("MC_VANILLA_MERGED_JAR");
+    if (jarPath == nullptr || *jarPath == '\0') {
+        throw std::runtime_error("MC_VANILLA_MERGED_JAR is not set: expected the deobfuscated merged jar that the "
+                                 "Java oracle also reads its data pack from");
+    }
+    const std::filesystem::path jar(jarPath);
+
+    // jar 不是数据包目录也不是 .zip：把其中的 data/ 解到一个稳定的缓存目录再当数据包加载。
+    // 目录名带 jar 的大小与修改时间，jar 换了就会重新解包。
+    const auto jarSize = std::filesystem::file_size(jar);
+    const auto jarTime = std::filesystem::last_write_time(jar).time_since_epoch().count();
+    const std::filesystem::path extractRoot = std::filesystem::temp_directory_path() /
+        ("cubium-diff-vanilla-" + std::to_string(static_cast<unsigned long long>(jarSize)) + "-" +
+            std::to_string(static_cast<long long>(jarTime)));
+
+    if (!std::filesystem::exists(extractRoot / "data" / "minecraft" / "tags")) {
+        auto zip = resource::ZipResourcePack::create(jar);
+        if (zip.failed()) {
+            throw std::runtime_error(
+                "failed to open the vanilla jar '" + jar.string() + "': " + zip.error().toString());
+        }
+        auto pack = std::move(zip).value();
+        if (const auto initialized = pack->initialize(); initialized.failed()) {
+            throw std::runtime_error(
+                "failed to initialize the vanilla jar '" + jar.string() + "': " + initialized.error().toString());
+        }
+        // 空目录 = 类型目录根（ZipResourcePack 会补成 "data/" 前缀后做前缀匹配）。
+        const auto entries = pack->listResources(resource::PackType::ServerData, "", ".json");
+        if (entries.failed()) {
+            throw std::runtime_error("failed to list the vanilla jar's data/: " + entries.error().toString());
+        }
+        std::size_t written = 0;
+        for (const std::string& relative : entries.value()) {
+            const auto contents = pack->readResource(resource::PackType::ServerData, relative);
+            if (contents.failed()) {
+                continue;
+            }
+            // listResources 返回的是相对类型目录（data/）的路径，落盘时补回 data/ 前缀。
+            const std::filesystem::path target = extractRoot / "data" / relative;
+            std::filesystem::create_directories(target.parent_path());
+            std::ofstream targetStream(target, std::ios::binary);
+            targetStream.write(reinterpret_cast<const char*>(contents.value().data()),
+                static_cast<std::streamsize>(contents.value().size()));
+            targetStream.close();
+            ++written;
+        }
+        if (written == 0) {
+            throw std::runtime_error("the vanilla jar contains no data/*.json entries (listed " +
+                std::to_string(entries.value().size()) + ")");
+        }
+        // 数据包目录必须有 pack.mcmeta 才会被识别为资源包。
+        std::ofstream(extractRoot / "pack.mcmeta")
+            << R"({"pack": {"description": "vanilla data extracted from the diff jar", "pack_format": 94}})";
+    }
+
+    // 解包目录本身就是数据包根（含 data/ 与 pack.mcmeta），直接作为包加入；
+    // scanDirectory 的语义是"扫描一个包含多个包的目录"，用在这里会漏掉它。
+    auto repository = std::make_unique<resource::DataPackRepository>();
+    const auto added = repository->addPack(extractRoot, true, 0);
+    if (added.failed()) {
+        throw std::runtime_error("failed to load the vanilla data pack extracted at '" + extractRoot.string() +
+            "': " + added.error().toString());
+    }
+    if (!added.value().initialized) {
+        throw std::runtime_error("the extracted vanilla data pack failed to initialize: " + extractRoot.string() +
+            " (" + added.value().error + ")");
+    }
+    return repository;
 }
 
 /**
@@ -222,53 +310,57 @@ private:
  */
 inline void initializeRegistries()
 {
+    // VanillaBlocks::initialize 内部已完成 BlockTags::initialize（标签表现已完全由数据包
+    // 构建，服务端在 RegistryBootstrap 中先 clear 再走 BlockTagLoader 重建）。
     VanillaBlocks::initialize();
-    BlockTags::initialize();
     Items::initialize();
     item::enchant::EnchantmentRegistry::initialize();
     BlockItemRegistry::instance().initializeVanillaBlockItems();
     entity::VanillaEntities::registerAll();
-    // 数据包是物品标签的唯一来源（与服务端启动流程一致），不启用内置快照。
-    loadDataPackItemTags(root() / "data" / "minecraft" / "tags" / "item");
+    // 与服务端一致：以上只注册了方块物品，另有大量普通物品只由 Items::initialize 覆盖。
+    // 数据包是标签表的唯一来源（与服务端启动流程一致），不启用内置快照。
+    loadDataPackBlockTags();
+    loadDataPackItemTags();
     EnchantmentTags::load(root() / "data" / "minecraft" / "tags" / "enchantment");
 }
 
 /**
- * @brief 载入数据包物品标签目录（`<pack>/data/minecraft/tags/item`）
+ * @brief 用数据包重建方块标签（`<pack>/data/<ns>/tags/block`）
  *
- * 与服务端 `ItemTagLoader` 走同一套合并 / 应用 / 展开逻辑：文件里的 `#tag` 引用、
- * `{id, required}` 对象、`replace` 语义都与运行时一致。
+ * 直接走运行时加载器 `BlockTagLoader`，成员校验、`#tag` 展开、`replace` 语义与
+ * 服务端启动流程完全一致。空结果视为失败：标签静默为空会让所有依赖标签的比对变成
+ * 「两边都空」的假通过。
  */
-inline void loadDataPackItemTags(const std::filesystem::path& itemTagDirectory)
+inline void loadDataPackBlockTags()
 {
-    std::unordered_map<ResourceLocation, nlohmann::json> compiled;
-    for (const auto& file : jsonFiles(itemTagDirectory)) {
-        std::ifstream stream(file);
-        std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
-        const std::string relative = std::filesystem::relative(file, itemTagDirectory).generic_string();
-        const ResourceLocation location("minecraft:" + relative.substr(0, relative.size() - 5));
-        auto tagJson = item::tag::ItemTags::compileTagJson(contents, location);
-        if (tagJson.failed()) {
-            std::fprintf(stderr, "item tags: %s\n", tagJson.error().message().c_str());
-            continue;
-        }
-        compiled[location] = std::move(tagJson).value();
+    const auto repository = scanDataPack();
+    // 数据包是标签表的唯一来源：清空后整体重建（与服务端 RegistryBootstrap 同口径）。
+    BlockTags::clear();
+    const auto loaded = BlockTagLoader::loadFromDataPackRepository(*repository);
+    if (loaded.failed()) {
+        throw std::runtime_error("block tags: " + loaded.error().toString());
     }
+    if (loaded.value() == 0) {
+        throw std::runtime_error("block tags: data pack contains no block tags");
+    }
+}
 
-    for (const auto& [location, unused] : compiled) {
-        if (item::tag::ItemTags::getTag(location) == nullptr) {
-            item::tag::ItemTags::registerTag(location);
-        }
+/**
+ * @brief 用数据包重建物品标签（`<pack>/data/<ns>/tags/item`）
+ *
+ * 直接走运行时加载器 `ItemTagLoader`：合并 / 应用 / 展开、`{id, required}` 对象与
+ * `replace` 语义都与服务端启动流程完全一致，探针不再自己复刻一份。
+ */
+inline void loadDataPackItemTags()
+{
+    const auto repository = scanDataPack();
+    item::tag::ItemTags::clear();
+    const auto loaded = item::tag::ItemTagLoader::loadFromDataPackRepository(*repository);
+    if (loaded.failed()) {
+        throw std::runtime_error("item tags: " + loaded.error().message());
     }
-    // 探针只注册数据包用得到的物品：未注册的必需成员在这里是预期内的缺口，记一条
-    // 错误（与原版重载失败同一口径）后继续——否则所有依赖标签的探针都会停摆。
-    for (const auto& [location, contents] : compiled) {
-        if (auto applied = item::tag::ItemTags::applyTagJson(contents, location); applied.failed()) {
-            std::fprintf(stderr, "item tags: %s\n", applied.error().message().c_str());
-        }
-    }
-    if (auto linked = item::tag::ItemTags::linkAndExpand(); linked.failed()) {
-        std::fprintf(stderr, "item tags: %s\n", linked.error().message().c_str());
+    if (loaded.value() == 0) {
+        throw std::runtime_error("item tags: data pack contains no item tags");
     }
 }
 

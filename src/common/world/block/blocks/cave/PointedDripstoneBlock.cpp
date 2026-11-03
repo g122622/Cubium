@@ -41,9 +41,9 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/block/blocks/LavaCauldronBlock.hpp"
@@ -184,7 +184,9 @@ bool PointedDripstoneBlock::isValidPosition(
         return false;
     }
 
-    if (supportState->isSolidSide(world, supportPos, tipDirection)) {
+    // 原版用 isFaceSturdy（该面铺满整格）；isSolidSide 只要求「有点碰撞」，
+    // 台阶、栅栏、漏斗都会被误当成能托起点状滴水石。
+    if (supportState->isFaceSturdy(world, supportPos, tipDirection, SupportType::Full)) {
         return true;
     }
     return isPointedDripstoneWithDirection(supportState, tipDirection);
@@ -315,12 +317,8 @@ void PointedDripstoneBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
 
     if (isStalagmite(state) &&
         !isValidPointedDripstonePlacement(world, pos, state.get(BlockStateProperties::VERTICAL_DIRECTION()))) {
-        // 石笋失去支撑：直接破坏并掉落物品
-        const BlockState* airState = BlockRegistry::instance().airState();
-        if (airState != nullptr) {
-            spawnAfterBreak(world, pos, state, nullptr, false);
-            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-        }
+        // 石笋失去支撑：摧毁并掉落物品（原版 tick 中的 serverLevel.destroyBlock(pos, true)）
+        world.destroyBlock(pos, true);
     } else if (isStalactite(state)) {
         // 钟乳石失去支撑：从最高处开始逐个生成掉落方块实体
         // 找到钟乳石柱的起始位置（最高处），然后逐个掉落
@@ -974,11 +972,6 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
 {
     // 从当前位置开始向下遍历，逐个生成掉落方块实体
     // 只有最底部的尖端（TIP 或 TIP_MERGE）会设置伤害参数
-    const BlockState* airState = BlockRegistry::instance().airState();
-    if (airState == nullptr) {
-        return;
-    }
-
     // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
     auto* registry = world.entityRegistry();
     if (registry == nullptr) {
@@ -991,19 +984,9 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
     while (currentState != nullptr && isStalactite(*currentState)) {
         BlockPos currentPos = mutablePos.toImmutable();
 
-        // 将当前位置替换为空气（含水则替换为流体方块）
-        const fluid::FluidState* fluidState = world.getFluidState(currentPos);
-        if (fluidState != nullptr && !fluidState->isEmpty()) {
-            // 含水滴石掉落时替换为流体对应的方块状态
-            const BlockState* fluidBlockState = fluidState->getBlockState();
-            if (fluidBlockState != nullptr) {
-                world.setBlockState(currentPos, fluidBlockState, world::BlockUpdateFlags::UPDATE_ALL);
-            } else {
-                world.setBlockState(currentPos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-            }
-        } else {
-            world.setBlockState(currentPos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-        }
+        // 移除钟乳石块（含水则写回流体遗留方块）。原版 FallingBlockEntity.fall 内部走
+        // removeBlock(pos, false)，不产生破坏粒子/掉落。
+        world.removeBlock(currentPos, false);
 
         // 创建掉落方块实体
         auto fallingEntity = std::make_unique<entity::FallingBlockEntity>(*registry);

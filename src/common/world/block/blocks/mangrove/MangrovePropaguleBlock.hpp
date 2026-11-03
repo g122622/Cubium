@@ -64,6 +64,16 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 检查放置位置能否托起胎生苗
+     *
+     * 原版 MangrovePropaguleBlock.canSurvive：悬挂态要求上方是红树树叶；
+     * 否则沿用 SaplingBlock（VegetationBlock）的判据——下方为 DIRT 标签或耕地。
+     * 缺了这条覆写会让胎生苗在空气里也判为可存活。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override

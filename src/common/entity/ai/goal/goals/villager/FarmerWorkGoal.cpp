@@ -38,7 +38,6 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
@@ -381,9 +380,6 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
         return;
     }
 
-    // 保存当前状态快照，因为后续操作可能改变方块状态
-    BlockState cropState = *state;
-
     // 收获掉落物处理：成熟时掉落作物和种子
     u32 cropItemId = cropBlock->getCropItem();
     u32 seedItemId = cropBlock->getSeedItem();
@@ -422,14 +418,9 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
         }
     }
 
-    // 通知方块即将被移除（触发 onBlockRemoved 回调，如耕地湿润度更新等）
-    cropBlock->onBlockRemoved(*world, pos, cropState, false);
-
-    // 将作物方块设为空气
-    const BlockState* airState = BlockRegistry::instance().airState();
-    if (airState) {
-        world->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-    }
+    // 移除作物方块（原版 destroyBlock 内部的 level.removeBlock(pos, false)）：
+    // 作物本体已进入村民背包，这里不再走掉落表，避免重复产出。
+    world->removeBlock(pos, false);
 }
 
 bool FarmerWorkGoal::_hasFarmSeeds() const

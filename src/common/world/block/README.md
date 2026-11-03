@@ -565,7 +565,9 @@ Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::o
 **调用场景**：
 
 - `SpongeBlock::absorb`：海绵吸收海带、海草等海洋植物时生成掉落物
-- 爆炸等其他非玩家破坏场景
+- `IWorld::destroyBlock` 的内部实现（非玩家破坏的统一入口）
+
+**注意**：常规"摧毁方块"不要直接调用它，统一走 `IWorld::destroyBlock(pos, true, entity)`——后者额外处理 2001 破坏粒子、写回流体遗留方块与 `BLOCK_DESTROY` 游戏事件。
 
 **实现细节**：
 
@@ -604,9 +606,11 @@ Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::o
 
 ### 34. BlockTag 数据驱动（BlockTagLoader）
 
-`BlockTags::initialize()`（随 `VanillaBlocks::initialize()` 调用）注册内置默认标签；随后 `BlockTagLoader::loadFromDataPackRepository()` 从数据包 `data/<ns>/tags/block/` 加载，在默认值之上追加或替换（`replace=true` 时先 `BlockTag::clear()` 再写入）。加载由通用骨架 `common/resource/tag/GenericTagLoader` 完成，成员为方块资源位置，经 `BlockRegistry::getBlock` 校验存在性（未注册的方块成员被跳过并告警）。数据包引用其他标签（`#minecraft:xxx`）由加载器按依赖顺序展开。
+方块标签**内容 100% 来自数据包**：`RegistryBootstrap` 在方块与方块物品注册完成后执行 `BlockTags::clear()` → `BlockTagLoader::loadFromDataPackRepository()`，从 `data/<ns>/tags/block/` 整体重建标签表。`BlockTags::initialize()` 只切换状态，不留任何编译期快照（数据包含 candle、copper_chain 等 Cubium 尚未实现的成员，快照会与数据包无声漂移）。加载由 `common/resource/tag/GenericTagLoader` 完成，成员为方块资源位置，经 `BlockRegistry::getBlock` 校验存在性（未注册的成员跳过并告警）。`#minecraft:xxx` 引用由加载器按依赖顺序展开。
 
-**依赖顺序**：`BlockTagLoader` 必须在 `VanillaBlocks::initialize()` 之后运行（`RegistryBootstrap::initializeAll` 已按此接线）。**新增方块标签成员**时，若该成员同时被硬编码在 `BlockTags::initialize()` 中，数据包加载会在其上追加，二者不冲突；但 `replace=true` 的数据包会清空硬编码默认值。
+**依赖顺序**：`BlockTagLoader` 必须在 `VanillaBlocks::initialize()`（即所有方块注册）之后运行。
+
+**便捷访问器**（`BlockTags::LOGS()` 等）缓存 `BlockTag*`，`clear()` 后旧指针失效；每个访问器都用 `_isLive(tag)` 复核，新增访问器必须照抄。
 
 **陷阱**：数据包中大量方块（coral、quartz_wall、light、test_block 等）在 Cubium 尚未实现，加载时会打印 `GenericTagLoader: unknown member ... (required), skipped` 告警并被跳过——这是预期行为（该方块本就无法放置），不是缺陷。判断"某标签是否被正确加载"应核对已实现方块，而非以告警数量为准。
 

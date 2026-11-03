@@ -408,13 +408,10 @@ void PitcherCropBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, con
         if (belowState != nullptr && belowState->is(this) && getHalf(*belowState) == DoubleBlockHalf::Lower) {
             // 创造模式下直接清除下半部分（不掉落）
             if (player.isCreative()) {
-                world.setBlockState(belowPos,
-                    BlockRegistry::instance().airState(),
-                    world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
+                world.destroyBlock(belowPos, false);
             } else {
                 // 生存模式：清除下半部分（触发掉落）
-                world.setBlockState(
-                    belowPos, BlockRegistry::instance().airState(), world::BlockUpdateFlags::UPDATE_ALL);
+                world.destroyBlock(belowPos, true);
             }
         }
     } else {
@@ -424,9 +421,7 @@ void PitcherCropBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, con
             const BlockState* aboveState = world.getBlockState(abovePos);
             if (aboveState != nullptr && aboveState->is(this) &&
                 aboveState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == DoubleBlockHalf::Upper) {
-                world.setBlockState(abovePos,
-                    BlockRegistry::instance().airState(),
-                    world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
+                world.destroyBlock(abovePos, false);
             }
         }
     }
@@ -454,20 +449,7 @@ void PitcherCropBlock::onEntityCollision(
     }
 
     // 破坏方块（对应 MC Java: serverLevel.destroyBlock(pos, true, entity)）
-    // 项目无 IWorld::destroyBlock，采用 setBlockState(air) + spawnAfterBreak 的等价模式，
-    // 与 RavagerEntity::_breakLeavesOnCollision / EnderDragonEntity::_destroyBlocksInAABB 一致：
-    // - setBlockState(pos, air, 3)：将方块设为空气并触发邻居更新
-    // - spawnAfterBreak：触发方块掉落物（由战利品表控制），第二个参数 true 表示掉落物品
-    const BlockState* airState = BlockRegistry::instance().airState();
-    if (airState == nullptr) {
-        return;
-    }
-
-    // 保存方块对象引用，因为 setBlockState 后 state 可能失效
-    const Block& brokenBlock = state.getBlock();
-
-    world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-    brokenBlock.spawnAfterBreak(world, pos, state, nullptr, true);
+    world.destroyBlock(pos, true, &entity);
 }
 
 bool PitcherCropBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const

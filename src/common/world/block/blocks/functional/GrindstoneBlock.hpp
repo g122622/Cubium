@@ -69,16 +69,6 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
-
-    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
-        Direction facing,
-        const BlockState& facingState,
-        IWorld& world,
-        const BlockPos& currentPos,
-        const BlockPos& facingPos) override;
-
     // ========== 旋转 ==========
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;

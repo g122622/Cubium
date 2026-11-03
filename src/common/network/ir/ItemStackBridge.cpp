@@ -25,10 +25,10 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/backend/java/codecs/DataComponentPatchCodec.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
@@ -58,7 +58,7 @@ play::ItemStackView toItemStackView(const class ::mc::ItemStack& stack)
     // 否则 wire 上会缺失 patch 区段，导致真 Java 客户端把后续字段误当 addedCount 解析而错位。
     auto patch = stack.toComponentPatch();
     buffer::ByteBuf buf;
-    auto writeResult = item::component::writePatchToWire(buf, patch);
+    auto writeResult = network::backend::java::writePatchToWire(buf, patch);
     if (writeResult.success()) {
         view.componentsPatch = buf.bytes();
     }
@@ -83,7 +83,7 @@ Result<class ::mc::ItemStack> fromItemStackView(const play::ItemStackView& view)
     // 反序列化组件补丁并应用
     if (!view.componentsPatch.empty()) {
         buffer::ByteBuf buf(view.componentsPatch.data(), view.componentsPatch.size());
-        auto patchResult = item::component::readPatchFromWire(buf);
+        auto patchResult = network::backend::java::readPatchFromWire(buf);
         if (patchResult.failed()) {
             return patchResult.error();
         }

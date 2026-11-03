@@ -144,8 +144,7 @@ VoxelShape parseShape(const std::string& spec)
             std::fprintf(stderr, "shape_face: 每个盒子应为 6 个坐标，实际 %zu：%s\n", coords.size(), part.c_str());
             std::exit(1);
         }
-        boxes.push_back(
-            Shapes::create(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]));
+        boxes.push_back(Shapes::create(coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]));
     }
 
     if (boxes.empty()) {

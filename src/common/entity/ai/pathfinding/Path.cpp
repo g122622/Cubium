@@ -32,9 +32,8 @@ Vector3d Path::entityPosAtNode(f32 width, size_t index) const
     // 半格偏移取 floor(宽度 + 1) * 0.5：宽度 < 1 的实体偏移 0.5（走格子中心），
     // 宽度 >= 1 的实体偏移 1.0（格子中心再右移半格，抵消它们碰撞箱的横向扩展）。
     const f64 centre = static_cast<f64>(static_cast<i32>(std::floor(width + 1.0f))) * 0.5;
-    return Vector3d(static_cast<f64>(point.x()) + centre,
-        static_cast<f64>(point.y()),
-        static_cast<f64>(point.z()) + centre);
+    return Vector3d(
+        static_cast<f64>(point.x()) + centre, static_cast<f64>(point.y()), static_cast<f64>(point.z()) + centre);
 }
 
 Vector3d Path::nextEntityPos(f32 width) const

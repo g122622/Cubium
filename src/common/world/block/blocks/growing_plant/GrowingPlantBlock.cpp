@@ -27,6 +27,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/SupportType.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,6 +39,12 @@ GrowingPlantBlock::GrowingPlantBlock(
     , m_shape(shape)
     , m_scheduleFluidTicks(scheduleFluidTicks)
 {}
+
+bool GrowingPlantBlock::canAttachTo(const BlockState& supportState) const
+{
+    MC_UNUSED(supportState);
+    return true;
+}
 
 bool GrowingPlantBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
@@ -61,8 +68,13 @@ bool GrowingPlantBlock::isValidPosition(const BlockState& state, IBlockReader& w
         return true;
     }
 
-    // 检查支撑面是否坚固
-    return supportState->isSolidSide(world, supportPos, m_growthDirection);
+    // 检查支撑面是否坚固。原版用 isFaceSturdy（该面铺满整格），不是 isSolidSide——
+    // 后者只要求「有点碰撞」，栅栏、台阶、楼梯、箱子都会被误当成能托起藤蔓。
+    if (!canAttachTo(*supportState)) {
+        return false;
+    }
+
+    return supportState->isFaceSturdy(world, supportPos, m_growthDirection, SupportType::Full);
 }
 
 BlockState GrowingPlantBlock::updatePostPlacement(const BlockState& state,

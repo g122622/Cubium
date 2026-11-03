@@ -83,6 +83,15 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    /**
+     * @brief 检查下方方块能否托起二极管
+     *
+     * 原版 DiodeBlock.canSurviveOn：下方方块顶面必须是 RIGID 支撑（外环铺满），
+     * 比 FULL 宽松——允许下方是零散的角、柱，但不允许台阶这类只覆盖中心的面。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 

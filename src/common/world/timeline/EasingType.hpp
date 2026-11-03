@@ -43,6 +43,290 @@ namespace timeline {
  * 具名缓动函数集合与 vanilla net.minecraft.util.Ease 逐一对齐；
  * 另支持携带四个控制点的三次贝塞尔（vanilla EasingType.CubicBezier）。
  */
+
+namespace easeDetail {
+
+// 与 vanilla net.minecraft.util.Ease 逐一对应，常数与运算顺序保持一致。
+//
+// 整段关闭浮点收缩（FMA）：-march=native 会把 a*b+c 融合成单条 fma，乘加的中间
+// 结果不再舍入到 float，与原版 JVM 的逐步舍入相差约 1e-7。缓动结果直接驱动动画
+// 插值，必须按 float 精度逐位复刻。
+#pragma clang fp contract(off)
+
+// 本地助手：math::square/cube 是外部已实例化的模板，其函数体不受本 pragma 约束。
+// 用 volatile 强制每次乘法的中间结果落回 float 存储，等价于 JVM 的逐步舍入。
+[[nodiscard]] inline f32 sq(f32 x) noexcept
+{
+    const volatile f32 t = x;
+    const volatile f32 r = t * t;
+    return r;
+}
+
+// 强制舍入的乘法 / 减法：a - b 的乘加融合会让结果偏离 JVM 的逐步舍入。
+[[nodiscard]] inline f32 mul(f32 a, f32 b) noexcept
+{
+    const volatile f32 x = a;
+    const volatile f32 y = b;
+    const volatile f32 r = x * y;
+    return r;
+}
+
+[[nodiscard]] inline f32 add(f32 a, f32 b) noexcept
+{
+    const volatile f32 x = a;
+    const volatile f32 y = b;
+    const volatile f32 r = x + y;
+    return r;
+}
+
+[[nodiscard]] inline f32 sub(f32 a, f32 b) noexcept
+{
+    const volatile f32 t = b;
+    const volatile f32 r = a - t;
+    return r;
+}
+
+[[nodiscard]] inline f32 cb(f32 x) noexcept
+{
+    const volatile f32 t = x * x;
+    const volatile f32 r = t * x;
+    return r;
+}
+
+inline f32 _inBack(f32 f)
+{
+    constexpr f32 C1 = 1.70158f;
+    constexpr f32 C2 = 2.70158f;
+    const volatile f32 s = sq(f);
+    const volatile f32 g = sub(mul(C2, f), C1);
+    return mul(s, g);
+}
+
+inline f32 _outBounce(f32 f)
+{
+    constexpr f32 N = 7.5625f;
+    if (f < 0.36363637f) {
+        return mul(N, sq(f));
+    }
+    if (f < 0.72727275f) {
+        const f32 g = sub(f, 0.54545456f);
+        return add(mul(N, sq(g)), 0.75f);
+    }
+    if (f < 0.9090909090909091) {
+        const f32 g = sub(f, 0.8181818f);
+        return add(mul(N, sq(g)), 0.9375f);
+    }
+    const f32 g = sub(f, 0.95454544f);
+    return add(mul(N, sq(g)), 0.984375f);
+}
+
+inline f32 _inBounce(f32 f)
+{
+    return sub(1.0f, _outBounce(sub(1.0f, f)));
+}
+
+inline f32 _inCubic(f32 f)
+{
+    return cb(f);
+}
+
+inline f32 _inElastic(f32 f)
+{
+    if (f == 0.0f) {
+        return 0.0f;
+    }
+    if (f == 1.0f) {
+        return 1.0f;
+    }
+    constexpr f32 C = static_cast<f32>(math::TWO_PI / 3.0);
+    // 原版用的是 Math.sin（double 精度），不是 Mth.sin（查表近似）。
+    return static_cast<f32>(-std::pow(2.0, 10.0 * static_cast<f64>(f) - 10.0) *
+        std::sin((10.0 * static_cast<f64>(f) - 10.75) * static_cast<f64>(C)));
+}
+
+inline f32 _inExpo(f32 f)
+{
+    return f == 0.0f ? 0.0f : static_cast<f32>(std::pow(2.0, 10.0 * static_cast<f64>(f) - 10.0));
+}
+
+inline f32 _inQuart(f32 f)
+{
+    return sq(sq(f));
+}
+
+inline f32 _inQuint(f32 f)
+{
+    const volatile f32 s = sq(sq(f));
+    return mul(s, f);
+}
+
+inline f32 _inSine(f32 f)
+{
+    return 1.0f - math::mthCos(f * math::HALF_PI);
+}
+
+inline f32 _inOutBounce(f32 f)
+{
+    if (f < 0.5f) {
+        return mul(sub(1.0f, _outBounce(sub(1.0f, mul(2.0f, f)))), 0.5f);
+    }
+    return mul(add(1.0f, _outBounce(sub(mul(2.0f, f), 1.0f))), 0.5f);
+}
+
+inline f32 _inOutCirc(f32 f)
+{
+    return f < 0.5f
+        ? static_cast<f32>((1.0 - std::sqrt(1.0 - std::pow(static_cast<f64>(2.0f * f), 2.0))) / 2.0)
+        : static_cast<f32>((std::sqrt(1.0 - std::pow(static_cast<f64>(-2.0f * f + 2.0f), 2.0)) + 1.0) / 2.0);
+}
+
+inline f32 _inOutCubic(f32 f)
+{
+    return f < 0.5f ? 4.0f * cb(f) : static_cast<f32>(1.0 - std::pow(static_cast<f64>(-2.0f * f + 2.0f), 3.0) / 2.0);
+}
+
+inline f32 _inOutQuad(f32 f)
+{
+    return f < 0.5f ? 2.0f * sq(f) : static_cast<f32>(1.0 - std::pow(static_cast<f64>(-2.0f * f + 2.0f), 2.0) / 2.0);
+}
+
+inline f32 _inOutQuart(f32 f)
+{
+    return f < 0.5f ? 8.0f * sq(sq(f))
+                    : static_cast<f32>(1.0 - std::pow(static_cast<f64>(-2.0f * f + 2.0f), 4.0) / 2.0);
+}
+
+inline f32 _inOutQuint(f32 f)
+{
+    if (f < 0.5f) {
+        // 原版逐次 float 乘法：16.0F * p * p * p * p * p。
+        const volatile f32 a = mul(16.0f, f);
+        const volatile f32 b = mul(a, f);
+        const volatile f32 c = mul(b, f);
+        const volatile f32 d = mul(c, f);
+        return mul(d, f);
+    }
+    return sub(1.0f, static_cast<f32>(std::pow(-2.0 * static_cast<f64>(f) + 2.0, 5.0) / 2.0));
+}
+
+inline f32 _outElastic(f32 f)
+{
+    constexpr f32 C = static_cast<f32>(math::TWO_PI / 3.0);
+    if (f == 0.0f) {
+        return 0.0f;
+    }
+    if (f == 1.0f) {
+        return 1.0f;
+    }
+    return static_cast<f32>(std::pow(2.0, -10.0 * static_cast<f64>(f)) *
+            std::sin((10.0 * static_cast<f64>(f) - 0.75) * static_cast<f64>(C)) +
+        1.0);
+}
+
+inline f32 _outExpo(f32 f)
+{
+    return f == 1.0f ? 1.0f : 1.0f - static_cast<f32>(std::pow(2.0, -10.0 * static_cast<f64>(f)));
+}
+
+inline f32 _outQuad(f32 f)
+{
+    return sub(1.0f, sq(sub(1.0f, f)));
+}
+
+inline f32 _outQuint(f32 f)
+{
+    // 原版是 1.0F - (float)Math.pow(1.0 - p, 5.0)，其中 1.0 - p 在 double 上算。
+    return sub(1.0f, static_cast<f32>(std::pow(1.0 - static_cast<f64>(f), 5.0)));
+}
+
+inline f32 _outSine(f32 f)
+{
+    return math::mthSin(f * math::HALF_PI);
+}
+
+inline f32 _inOutSine(f32 f)
+{
+    // 原版是 (float) Math.PI * p，乘积在 float 上算。
+    constexpr f32 PI_F = static_cast<f32>(math::PI);
+    return mul(-(sub(math::mthCos(mul(PI_F, f)), 1.0f)), 0.5f);
+}
+
+inline f32 _outBack(f32 f)
+{
+    constexpr f32 C1 = 1.70158f;
+    constexpr f32 C2 = 2.70158f;
+    const f32 d = sub(f, 1.0f);
+    const volatile f32 t2 = mul(C2, cb(d));
+    const volatile f32 t3 = mul(C1, sq(d));
+    return add(add(1.0f, t2), t3);
+}
+
+inline f32 _outQuart(f32 f)
+{
+    return sub(1.0f, sq(sq(sub(1.0f, f))));
+}
+
+inline f32 _outCubic(f32 f)
+{
+    return sub(1.0f, cb(sub(1.0f, f)));
+}
+
+inline f32 _inOutExpo(f32 f)
+{
+    if (f < 0.5f) {
+        return f == 0.0f ? 0.0f : static_cast<f32>(std::pow(2.0, 20.0 * static_cast<f64>(f) - 10.0) / 2.0);
+    }
+    return f == 1.0f ? 1.0f : static_cast<f32>((2.0 - std::pow(2.0, -20.0 * static_cast<f64>(f) + 10.0)) / 2.0);
+}
+
+inline f32 _inQuad(f32 f)
+{
+    return f * f;
+}
+
+inline f32 _outCirc(f32 f)
+{
+    return static_cast<f32>(std::sqrt(1.0 - static_cast<f64>(sq(f - 1.0f))));
+}
+
+inline f32 _inOutElastic(f32 f)
+{
+    constexpr f32 C = math::PI * 4.0f / 9.0f;
+    if (f == 0.0f) {
+        return 0.0f;
+    }
+    if (f == 1.0f) {
+        return 1.0f;
+    }
+    // 原版是 Math.sin（double），见 Ease.inOutElastic。
+    const f64 d = std::sin((20.0 * static_cast<f64>(f) - 11.125) * static_cast<f64>(C));
+    if (f < 0.5f) {
+        return static_cast<f32>(-(std::pow(2.0, 20.0 * static_cast<f64>(f) - 10.0) * d) / 2.0);
+    }
+    return static_cast<f32>(std::pow(2.0, -20.0 * static_cast<f64>(f) + 10.0) * d / 2.0 + 1.0);
+}
+
+inline f32 _inCirc(f32 f)
+{
+    return static_cast<f32>(-std::sqrt(1.0 - static_cast<f64>(f * f))) + 1.0f;
+}
+
+inline f32 _inOutBack(f32 f)
+{
+    constexpr f32 C2 = 2.5949094f;
+    if (f < 0.5f) {
+        // 原版写的是字面量 7.189819F，而不是 (C2 + 1.0F) * 2.0F：后者在 float 下先舍入成
+        // 7.1898189F 再乘 2，偏差被放大约 1e-6 量级。
+        const f32 g = sub(mul(7.189819f, f), C2);
+        return mul(mul(mul(4.0f, f), f), mul(g, 0.5f));
+    }
+    const f32 t = sub(mul(2.0f, f), 2.0f);
+    const f32 inner = add(mul(3.5949094f, t), C2);
+    return mul(add(mul(mul(t, t), inner), 2.0f), 0.5f);
+}
+
+} // namespace easeDetail
+
 class EasingType {
 public:
     /// 三次贝塞尔求解时 Newton-Raphson 的最大迭代次数（vanilla NEWTON_RAPHSON_ITERATIONS）
@@ -311,210 +595,156 @@ private:
         return 0.0f;
     }
 
-    // 以下函数体与 vanilla net.minecraft.util.Ease 逐一对应，常数与运算顺序保持一致。
+    // 函数体在类外的 easeDetail 命名空间中实现（见文件末尾的 namespace 之前），
+    // 这样整段可以关闭 FMA 收缩，逐位复刻原版的 float 舍入。
     static f32 _inBack(f32 f)
     {
-        constexpr f32 C1 = 1.70158f;
-        constexpr f32 C2 = 2.70158f;
-        return math::square(f) * (C2 * f - C1);
+        return easeDetail::_inBack(f);
     }
 
     static f32 _outBounce(f32 f)
     {
-        constexpr f32 N = 7.5625f;
-        constexpr f32 D = 2.75f;
-        if (f < 1.0f / D) {
-            return N * math::square(f);
-        }
-        if (f < 2.0f / D) {
-            f -= 1.5f / D;
-            return N * math::square(f) + 0.75f;
-        }
-        if (f < 2.5f / D) {
-            f -= 2.25f / D;
-            return N * math::square(f) + 0.9375f;
-        }
-        f -= 2.625f / D;
-        return N * math::square(f) + 0.984375f;
+        return easeDetail::_outBounce(f);
     }
 
     static f32 _inBounce(f32 f)
     {
-        return 1.0f - _outBounce(1.0f - f);
+        return easeDetail::_inBounce(f);
     }
 
     static f32 _inCubic(f32 f)
     {
-        return math::cube(f);
+        return easeDetail::_inCubic(f);
     }
 
     static f32 _inElastic(f32 f)
     {
-        if (f == 0.0f) {
-            return 0.0f;
-        }
-        if (f == 1.0f) {
-            return 1.0f;
-        }
-        constexpr f32 C = static_cast<f32>(math::TWO_PI / 3.0);
-        // 原版用的是 Math.sin（double 精度），不是 Mth.sin（查表近似）。
-        return static_cast<f32>(-std::pow(2.0, 10.0 * f - 10.0) * std::sin((f * 10.0 - 10.75) * C));
+        return easeDetail::_inElastic(f);
     }
 
     static f32 _inExpo(f32 f)
     {
-        return f == 0.0f ? 0.0f : static_cast<f32>(std::pow(2.0, 10.0 * f - 10.0));
+        return easeDetail::_inExpo(f);
     }
 
     static f32 _inQuart(f32 f)
     {
-        return math::square(math::square(f));
+        return easeDetail::_inQuart(f);
     }
 
     static f32 _inQuint(f32 f)
     {
-        return math::square(math::square(f)) * f;
+        return easeDetail::_inQuint(f);
     }
 
     static f32 _inSine(f32 f)
     {
-        return 1.0f - math::mthCos(f * math::HALF_PI);
+        return easeDetail::_inSine(f);
     }
 
     static f32 _inOutBounce(f32 f)
     {
-        return f < 0.5f ? (1.0f - _outBounce(1.0f - 2.0f * f)) / 2.0f : (1.0f + _outBounce(2.0f * f - 1.0f)) / 2.0f;
+        return easeDetail::_inOutBounce(f);
     }
 
     static f32 _inOutCirc(f32 f)
     {
-        return f < 0.5f ? static_cast<f32>((1.0 - std::sqrt(1.0 - std::pow(2.0 * f, 2.0))) / 2.0)
-                        : static_cast<f32>((std::sqrt(1.0 - std::pow(-2.0 * f + 2.0, 2.0)) + 1.0) / 2.0);
+        return easeDetail::_inOutCirc(f);
     }
 
     static f32 _inOutCubic(f32 f)
     {
-        return f < 0.5f ? 4.0f * math::cube(f) : static_cast<f32>(1.0 - std::pow(-2.0 * f + 2.0, 3.0) / 2.0);
+        return easeDetail::_inOutCubic(f);
     }
 
     static f32 _inOutQuad(f32 f)
     {
-        return f < 0.5f ? 2.0f * math::square(f) : static_cast<f32>(1.0 - std::pow(-2.0 * f + 2.0, 2.0) / 2.0);
+        return easeDetail::_inOutQuad(f);
     }
 
     static f32 _inOutQuart(f32 f)
     {
-        return f < 0.5f ? 8.0f * math::square(math::square(f))
-                        : static_cast<f32>(1.0 - std::pow(-2.0 * f + 2.0, 4.0) / 2.0);
+        return easeDetail::_inOutQuart(f);
     }
 
     static f32 _inOutQuint(f32 f)
     {
-        return f < 0.5f ? 16.0f * f * f * f * f * f : static_cast<f32>(1.0 - std::pow(-2.0 * f + 2.0, 5.0) / 2.0);
+        return easeDetail::_inOutQuint(f);
     }
 
     static f32 _outElastic(f32 f)
     {
-        constexpr f32 C = static_cast<f32>(math::TWO_PI / 3.0);
-        if (f == 0.0f) {
-            return 0.0f;
-        }
-        if (f == 1.0f) {
-            return 1.0f;
-        }
-        return static_cast<f32>(std::pow(2.0, -10.0 * f) * std::sin((f * 10.0 - 0.75) * C) + 1.0);
+        return easeDetail::_outElastic(f);
     }
 
     static f32 _outExpo(f32 f)
     {
-        return f == 1.0f ? 1.0f : 1.0f - static_cast<f32>(std::pow(2.0, -10.0 * f));
+        return easeDetail::_outExpo(f);
     }
 
     static f32 _outQuad(f32 f)
     {
-        return 1.0f - math::square(1.0f - f);
+        return easeDetail::_outQuad(f);
     }
 
     static f32 _outQuint(f32 f)
     {
-        return 1.0f - static_cast<f32>(std::pow(1.0 - f, 5.0));
+        return easeDetail::_outQuint(f);
     }
 
     static f32 _outSine(f32 f)
     {
-        return math::mthSin(f * math::HALF_PI);
+        return easeDetail::_outSine(f);
     }
 
     static f32 _inOutSine(f32 f)
     {
-        return -(math::mthCos(math::PI * f) - 1.0f) / 2.0f;
+        return easeDetail::_inOutSine(f);
     }
 
     static f32 _outBack(f32 f)
     {
-        constexpr f32 C1 = 1.70158f;
-        constexpr f32 C2 = 2.70158f;
-        return 1.0f + C2 * math::cube(f - 1.0f) + C1 * math::square(f - 1.0f);
+        return easeDetail::_outBack(f);
     }
 
     static f32 _outQuart(f32 f)
     {
-        return 1.0f - math::square(math::square(1.0f - f));
+        return easeDetail::_outQuart(f);
     }
 
     static f32 _outCubic(f32 f)
     {
-        return 1.0f - math::cube(1.0f - f);
+        return easeDetail::_outCubic(f);
     }
 
     static f32 _inOutExpo(f32 f)
     {
-        if (f < 0.5f) {
-            return f == 0.0f ? 0.0f : static_cast<f32>(std::pow(2.0, 20.0 * f - 10.0) / 2.0);
-        }
-        return f == 1.0f ? 1.0f : static_cast<f32>((2.0 - std::pow(2.0, -20.0 * f + 10.0)) / 2.0);
+        return easeDetail::_inOutExpo(f);
     }
 
     static f32 _inQuad(f32 f)
     {
-        return f * f;
+        return easeDetail::_inQuad(f);
     }
 
     static f32 _outCirc(f32 f)
     {
-        return static_cast<f32>(std::sqrt(1.0f - math::square(f - 1.0f)));
+        return easeDetail::_outCirc(f);
     }
 
     static f32 _inOutElastic(f32 f)
     {
-        constexpr f32 C = math::PI * 4.0f / 9.0f;
-        if (f == 0.0f) {
-            return 0.0f;
-        }
-        if (f == 1.0f) {
-            return 1.0f;
-        }
-        // 原版是 Math.sin（double），见 Ease.inOutElastic。
-        const f64 d = std::sin((20.0 * f - 11.125) * C);
-        if (f < 0.5f) {
-            return static_cast<f32>(-(std::pow(2.0, 20.0 * f - 10.0) * d) / 2.0);
-        }
-        return static_cast<f32>(std::pow(2.0, -20.0 * f + 10.0) * d / 2.0 + 1.0);
+        return easeDetail::_inOutElastic(f);
     }
 
     static f32 _inCirc(f32 f)
     {
-        return static_cast<f32>(-std::sqrt(1.0f - f * f)) + 1.0f;
+        return easeDetail::_inCirc(f);
     }
 
     static f32 _inOutBack(f32 f)
     {
-        constexpr f32 C2 = 2.5949094f;
-        if (f < 0.5f) {
-            return 4.0f * f * f * ((C2 + 1.0f) * 2.0f * f - C2) / 2.0f;
-        }
-        const f32 t = 2.0f * f - 2.0f;
-        return (t * t * ((C2 + 1.0f) * t + C2) + 2.0f) / 2.0f;
+        return easeDetail::_inOutBack(f);
     }
 };
 

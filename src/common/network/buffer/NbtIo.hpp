@@ -53,7 +53,7 @@ namespace nbt_io {
  *
  * 写入 compound body（entries + End），**不含**开头 0x0A 类型字节与 root name。
  * 与 readCompound 对称（readCompound 也不消费 0x0A 前缀）。调用方：
- * item/component/DataComponentPatchWire、backend/java/codecs/JavaPlayCodecsExtended 的 NBT
+ * backend/java/codecs/DataComponentPatchCodec、backend/java/codecs/JavaPlayCodecsExtended 的 NBT
  * payload 透传。
  */
 [[nodiscard]] Result<void> writeCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag);

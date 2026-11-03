@@ -224,7 +224,11 @@ bool BlockState::isFaceFull(Direction direction) const
 bool BlockState::isFaceSturdy(
     IWorld& world, const BlockPos& pos, Direction direction, const SupportType& supportType) const
 {
-    return supportType.isSupporting(*this, world, pos, direction);
+    // 原版 `isFaceSturdy` 取 `getBlockSupportShape(level, pos)`，其默认实现转调带位置、
+    // 空碰撞上下文的 `getCollisionShape(..., pos, ...)`；带 `offsetType` 的方块（竹子、
+    // 花、滴水石锥）会在其中叠加坐标哈希偏移。若走无位置版本，偏移被丢弃，中心柱
+    // 判定随之翻转。
+    return supportType.isSupportingAt(*this, world, pos, direction);
 }
 
 bool BlockState::isOpaqueCube(IWorld& world, const BlockPos& pos) const

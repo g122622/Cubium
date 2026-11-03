@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityPose.hpp"
-#include "common/item/component/DataComponentPatchWire.hpp"
+#include "common/network/backend/java/codecs/DataComponentPatchCodec.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
@@ -569,7 +569,7 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                     const i32 itemId = _readVarInt(data.data(), data.size(), offset);
                     // 用 ByteBuf 视图按 vanilla 自终止规则消费 patch 区段，原样取出字节。
                     buffer::ByteBuf patchBuf(data.data() + offset, data.size() - offset);
-                    auto patchBytesResult = ::mc::item::component::readPatchBytesFromWire(patchBuf);
+                    auto patchBytesResult = network::backend::java::readPatchBytesFromWire(patchBuf);
                     if (patchBytesResult.failed()) {
                         return false;
                     }

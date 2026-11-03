@@ -61,6 +61,7 @@
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include "probe.hpp"
+#include "vanilla_datapack.hpp"
 
 namespace mc::diff {
 namespace {
@@ -71,7 +72,8 @@ void ensureBlocks()
 {
     static bool s_initialized = false;
     if (!s_initialized) {
-        VanillaBlocks::initialize();
+        // 与服务端同序：方块 → 物品 → 方块物品 → 数据包标签。
+        datapack::initializeRegistries();
         s_initialized = true;
     }
 }

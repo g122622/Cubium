@@ -111,19 +111,12 @@ BlockState WeatheringCopperLanternBlock::getStateForPlacement(BlockItemUseContex
 bool WeatheringCopperLanternBlock::isValidPosition(
     const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    // 根据悬挂状态检查支撑方块
-    bool hanging = state.get(BlockStateProperties::HANGING());
-    // 悬挂时检查上方方块，站立时检查下方方块
-    Direction supportDir = hanging ? Direction::Up : Direction::Down;
-    BlockPos supportPos = pos.offset(supportDir);
-    const BlockState* supportState = world.getBlockState(supportPos);
-
-    if (supportState == nullptr || supportState->isAir()) {
-        return false;
-    }
-
-    // 检查支撑面是否为足够坚固的实体面
-    return supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir));
+    // 与原版 LanternBlock.canSurvive 同一判据：Block.canSupportCenter（CENTER 支撑）。
+    // 铜灯笼此前用 isSolidSide，只要求「有点碰撞」，地毯、漏斗、箱子都被当成能挂灯笼。
+    const bool hanging = state.get(BlockStateProperties::HANGING());
+    const Direction supportDir = hanging ? Direction::Up : Direction::Down;
+    const BlockPos supportPos = pos.offset(supportDir);
+    return Block::canSupportCenter(world, supportPos, Directions::opposite(supportDir));
 }
 
 BlockState WeatheringCopperLanternBlock::updatePostPlacement(const BlockState& state,
@@ -148,10 +141,7 @@ BlockState WeatheringCopperLanternBlock::updatePostPlacement(const BlockState& s
     if (facing == supportDir) {
         // 支撑方块发生变化，检查是否仍然有效
         BlockPos supportPos = currentPos.offset(supportDir);
-        const BlockState* supportState = world.getBlockState(supportPos);
-
-        if (supportState == nullptr || supportState->isAir() ||
-            !supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir))) {
+        if (!Block::canSupportCenter(world, supportPos, Directions::opposite(supportDir))) {
             return VanillaBlocks::AIR->defaultState();
         }
     }
@@ -232,19 +222,12 @@ BlockState WaxedCopperLanternBlock::getStateForPlacement(BlockItemUseContext& co
 
 bool WaxedCopperLanternBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    // 根据悬挂状态检查支撑方块
-    bool hanging = state.get(BlockStateProperties::HANGING());
-    // 悬挂时检查上方方块，站立时检查下方方块
-    Direction supportDir = hanging ? Direction::Up : Direction::Down;
-    BlockPos supportPos = pos.offset(supportDir);
-    const BlockState* supportState = world.getBlockState(supportPos);
-
-    if (supportState == nullptr || supportState->isAir()) {
-        return false;
-    }
-
-    // 检查支撑面是否为足够坚固的实体面
-    return supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir));
+    // 与原版 LanternBlock.canSurvive 同一判据：Block.canSupportCenter（CENTER 支撑）。
+    // 铜灯笼此前用 isSolidSide，只要求「有点碰撞」，地毯、漏斗、箱子都被当成能挂灯笼。
+    const bool hanging = state.get(BlockStateProperties::HANGING());
+    const Direction supportDir = hanging ? Direction::Up : Direction::Down;
+    const BlockPos supportPos = pos.offset(supportDir);
+    return Block::canSupportCenter(world, supportPos, Directions::opposite(supportDir));
 }
 
 BlockState WaxedCopperLanternBlock::updatePostPlacement(const BlockState& state,
@@ -269,10 +252,7 @@ BlockState WaxedCopperLanternBlock::updatePostPlacement(const BlockState& state,
     if (facing == supportDir) {
         // 支撑方块发生变化，检查是否仍然有效
         BlockPos supportPos = currentPos.offset(supportDir);
-        const BlockState* supportState = world.getBlockState(supportPos);
-
-        if (supportState == nullptr || supportState->isAir() ||
-            !supportState->isSolidSide(world, supportPos, Directions::opposite(supportDir))) {
+        if (!Block::canSupportCenter(world, supportPos, Directions::opposite(supportDir))) {
             return VanillaBlocks::AIR->defaultState();
         }
     }

@@ -69,6 +69,16 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 检查朝向侧能否托起晶芽
+     *
+     * 原版 AmethystClusterBlock.canSurvive：沿 FACING 反方向那一格的、朝向本方的面
+     * 必须是实体面（isFaceSturdy，默认 FULL 支撑类型）。缺了这条覆写会让晶芽在空气
+     * 和任何方块上都判定为可存活。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override

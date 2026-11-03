@@ -1115,13 +1115,16 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
                 continue;
             }
 
-            // 传给下游的 flags 剥掉 UPDATE_NEIGHBORS 与 UPDATE_SUPPRESS_DROPS，避免邻居通知
-            // 递归以及掉落抑制语义泄漏到级联写入。
+            // 传给下游的 flags 剥掉 UPDATE_NEIGHBORS 与 UPDATE_MOVE_BY_PISTON：级联写入自身
+            // 不再向外发邻居通知，避免同步递归过深；updateOrDestroy 按原版语义在变空气时
+            // 走 destroyBlock 并自带 2001 粒子/掉落/BLOCK_DESTROY 事件。
+            // UPDATE_SUPPRESS_DROPS 原样保留，由 updateOrDestroy 决定是否抑制脱落掉落。
             Block::updateOrDestroy(*neighborState,
                 updatedState,
                 *this,
                 neighborPos,
-                flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS & ~world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
+                flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS & ~world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON,
+                world::BlockUpdateFlags::DEFAULT_DESTROY_RECURSION);
         }
     }
 

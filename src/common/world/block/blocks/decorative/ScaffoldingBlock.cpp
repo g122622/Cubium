@@ -42,6 +42,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -73,37 +74,36 @@ ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
     // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充（详见其它方块注释）：
     // createBlockState 触发 _cacheProperties→propagatesSkylightDown→getOcclusionShape→getShape，
     // 构造期回调 getShape 需 m_topShape/m_fullShape 等已就绪，否则依赖空 shape 的脆弱巧合。
-    // 原版脚手架形状（实测 forAllBoxes）由 **7 个盒子**组成：
-    //
-    //   [0.000, 0.000, 0.000 -> 0.125, 1.000, 0.125]   西北角柱（贯穿整格）
-    //   [0.000, 0.000, 0.875 -> 0.125, 1.000, 1.000]   西南角柱
-    //   [0.875, 0.000, 0.000 -> 1.000, 1.000, 0.125]   东北角柱
-    //   [0.875, 0.000, 0.875 -> 1.000, 1.000, 1.000]   东南角柱
-    //   [0.000, 0.875, 0.125 -> 1.000, 1.000, 0.875]   顶部横杆（东西向）
-    //   [0.125, 0.875, 0.000 -> 0.875, 1.000, 0.125]   顶部横杆（南北向）
-    //   [0.125, 0.875, 0.875 -> 0.875, 1.000, 1.000]   顶部横杆（南北向）
-    //
-    // 注意顶部**不是一整块平台**，而是三根横杆围出的框；中央 `0.125..0.875` 的
-    // 水平区域在 y=0.875..1 之间是空的——玩家可以从中穿过。
-    const CollisionShape scCornerNW = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.125f, 1.0f, 0.125f);
-    const CollisionShape scCornerSW = CollisionShape::box(0.0f, 0.0f, 0.875f, 0.125f, 1.0f, 1.0f);
-    const CollisionShape scCornerNE = CollisionShape::box(0.875f, 0.0f, 0.0f, 1.0f, 1.0f, 0.125f);
-    const CollisionShape scCornerSE = CollisionShape::box(0.875f, 0.0f, 0.875f, 1.0f, 1.0f, 1.0f);
-    const CollisionShape scBarX = CollisionShape::box(0.0f, 0.875f, 0.125f, 1.0f, 1.0f, 0.875f);
-    const CollisionShape scBarZNorth = CollisionShape::box(0.125f, 0.875f, 0.0f, 0.875f, 1.0f, 0.125f);
-    const CollisionShape scBarZSouth = CollisionShape::box(0.125f, 0.875f, 0.875f, 0.875f, 1.0f, 1.0f);
-
-    m_topShape = CollisionShape::combine(scBarX, scBarZNorth, CollisionShape::CombineOp::OR);
-    m_topShape = CollisionShape::combine(m_topShape, scBarZSouth, CollisionShape::CombineOp::OR);
+    // 创建形状
+    // 顶部平台：边框形状 (field_220121_d)
+    // 四个角的支柱 + 顶部边缘
+    m_topShape = CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f);
 
     // 底部平台 (field_220123_f)
     m_baseShape = CollisionShape::box(0.0f, BOTTOM_Y_MIN, 0.0f, 1.0f, BOTTOM_Y_MAX, 1.0f);
 
-    // 完整形状 (field_220122_e)：四角柱 + 三根顶部横杆
-    m_fullShape = CollisionShape::combine(scCornerNW, scCornerSW, CollisionShape::CombineOp::OR);
-    m_fullShape = CollisionShape::combine(m_fullShape, scCornerNE, CollisionShape::CombineOp::OR);
-    m_fullShape = CollisionShape::combine(m_fullShape, scCornerSE, CollisionShape::CombineOp::OR);
-    m_fullShape = CollisionShape::combine(m_fullShape, m_topShape, CollisionShape::CombineOp::OR);
+    // 稳定形状（SHAPE_STABLE）：顶部平台 + 四个角支柱
+    m_stableShape =
+        CollisionShape::combine(CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f),         // 顶部平台
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, CORNER_SIZE, 1.0f, CORNER_SIZE), // 西北角
+                CollisionShape::combine(
+                    CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, CORNER_SIZE), // 东北角
+                    CollisionShape::combine(
+                        CollisionShape::box(0.0f, 0.0f, 1.0f - CORNER_SIZE, CORNER_SIZE, 1.0f, 1.0f),       // 西南角
+                        CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f) // 东南角
+                        ))));
+
+    // 不稳定形状（SHAPE_UNSTABLE）：稳定形状 + 底部平台
+    // 包含顶部平台、四个角支柱、底部平台
+    m_fullShape = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f), // 顶部平台
+            CollisionShape::box(0.0f, 0.0f, 0.0f, CORNER_SIZE, 1.0f, CORNER_SIZE)                  // 西北角
+            ),
+        CollisionShape::combine(CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, CORNER_SIZE), // 东北角
+            CollisionShape::combine(
+                CollisionShape::box(0.0f, 0.0f, 1.0f - CORNER_SIZE, CORNER_SIZE, 1.0f, 1.0f),       // 西南角
+                CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f) // 东南角
+                )));
 
     // 空形状用于碰撞检测
     m_emptyShape = CollisionShape::empty();
@@ -271,31 +271,36 @@ bool ScaffoldingBlock::isValidPosition(const BlockState& state, IBlockReader& wo
 
 const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const noexcept
 {
-    // 原版 `getShape` 分两支（`STABILITY_DISTANCE` 完全不参与几何）：
-    //
-    //   bottom=false -> 7 个盒子：四角柱（全高）+ 三根顶部横杆（y 0.875..1）
-    //   bottom=true  -> 上面 7 个 + 一块 **满格底板 `y 0..0.125`**
-    //
-    // 此前无条件返回 `m_fullShape`（7 盒），`bottom=true` 的 16 个状态缺底板——
-    // 双层脚手架的下层看起来没有落脚面。
+    MC_UNUSED(state);
+    // 原版 SHAPE_STABLE：顶部平台 + 四角支柱（SHAPE_UNSTABLE 再加底部平台）。
+    // 顶部平台在 UP 面铺满 16×16，因此脚手架的顶面是完整支撑面——这是玩家与
+    // 其它方块"站在脚手架/放在脚手架顶"判定的依据。
     if (state.get(BlockStateProperties::BOTTOM())) {
-        static const CollisionShape withBase = CollisionShape::combine(
-            m_fullShape, CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f), CollisionShape::CombineOp::OR);
-        return withBase;
+        return m_fullShape;
     }
-    return m_fullShape;
+    return m_stableShape;
 }
 
 const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& state) const noexcept
 {
-    MC_UNUSED(state);
-    // 原版脚手架没有覆写 `getCollisionShape`，继承的默认实现就是
-    // `hasCollision ? getShape(...) : empty()`；而脚手架**有**碰撞，
-    // 因此碰撞形状等于 `getShape`（四角柱 + 三根顶部横杆）。
-    //
-    // 此前按 distance/bottom 分支判断，默认状态（distance=7, bottom=false）返回空，
-    // 导致脚手架完全没有碰撞、玩家可以直接穿过。
-    return m_fullShape;
+    // 原版 getCollisionShape：
+    //   - 放置上下文 → 空（放置时不与自身碰撞）
+    //   - 上方是完整方块且非下落中 → SHAPE_STABLE
+    //   - 否则 distance != 0 && bottom && 下方一格是完整方块 → SHAPE_UNSTABLE_BOTTOM
+    //   - 其余 → 空
+    // 下方路径需要实体上下文（CollisionContext），Cubium 的接口不带上下文，按
+    // 「非放置、上方无完整方块」的默认情形落到 stable，与差分探针的空世界一致。
+    // TODO: 接入实体上下文后补全放置 / 下落 / 底部平台三个分支。
+    i32 distance = state.get(BlockStateProperties::DISTANCE_0_7());
+    bool bottom = state.get(BlockStateProperties::BOTTOM());
+
+    if (distance != 0 && bottom) {
+        // 返回底部平台形状，允许玩家站在上面
+        return m_baseShape;
+    }
+
+    // 默认情形：顶部平台 + 四角支柱（原版 SHAPE_STABLE）。
+    return m_stableShape;
 }
 
 // ========== IWaterLoggable 接口实现 ==========
@@ -321,8 +326,9 @@ i32 ScaffoldingBlock::calculateDistance(IWorld& world, const BlockPos& pos)
         if (isScaffolding(belowState)) {
             // 下方是脚手架，继承其距离
             minDistance = belowState->get(BlockStateProperties::DISTANCE_0_7());
-        } else if (belowState->isSolidSide(world, belowPos, Direction::Up)) {
-            // 下方方块的顶部是实体面，直接支撑
+        } else if (belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full)) {
+            // 下方方块的顶面铺满整格，直接支撑。原版用 isFaceSturdy；isSolidSide 只要求
+            // 「有点碰撞」，台阶、栅栏、箱子都会把距离错误地算成 0。
             return 0;
         }
     }

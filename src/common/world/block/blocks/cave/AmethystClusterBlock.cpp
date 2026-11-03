@@ -34,6 +34,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/cave/AmethystBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -108,6 +109,20 @@ BlockState AmethystClusterBlock::getStateForPlacement(BlockItemUseContext& conte
     }
 
     return state;
+}
+
+bool AmethystClusterBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 沿 FACING 反方向那一格，朝向本方的面必须铺满整格。
+    const Direction facing = state.get(BlockStateProperties::FACING());
+    const BlockPos supportPos = pos.offset(Directions::opposite(facing));
+    const BlockState* supportState = world.getBlockState(supportPos);
+
+    if (supportState == nullptr) {
+        return false;
+    }
+
+    return supportState->isFaceSturdy(world, supportPos, facing, SupportType::Full);
 }
 
 BlockState AmethystClusterBlock::updatePostPlacement(const BlockState& state,

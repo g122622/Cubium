@@ -89,6 +89,7 @@
 #include "probe.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -145,18 +146,20 @@ const EasingEntry EASINGS[] = {
 const char* SAMPLES[] = {"0", "0.1", "0.25", "0.3333", "0.5", "0.6667", "0.75", "0.9", "1"};
 
 /**
- * @brief 把 f32 用「能唯一还原该 float 的最短十进制」输出。
+ * @brief 把 f32 输出为其 32 位二进制模式的十六进制。
  *
- * 缓动函数全程 float 运算，两侧必须按 float 精度比较。用 `%.9g`（float 的往返位数）：
- * 6 位会把末位差异抹平，17 位（double 往返）会把 float 的二进制噪声也印出来。
+ * 缓动函数全程 float 运算，两侧必须按 float 精度逐位比较；十进制格式化会把
+ * 最后一位的差异掩盖或放大成格式化器噪声。
  */
 std::string formatFloat(float value)
 {
-    if (value == 0.0f) {
-        return "0";
-    }
-    char buffer[64];
-    std::snprintf(buffer, sizeof(buffer), "%.9g", static_cast<double>(value));
+    // 与 oracle 一致：输出 float 的 32 位二进制模式（8 位十六进制）。十进制格式化
+    // （C 的 %.9g 与 Java 的 %.9g）在「恰好卡在第 9 位中点」的值上舍入方向不同，
+    // 那属于格式化器差异；按位比较才能把被测算术的差异原样暴露出来。
+    u32 bits = 0;
+    std::memcpy(&bits, &value, sizeof(bits));
+    char buffer[16];
+    std::snprintf(buffer, sizeof(buffer), "%08x", bits);
     return std::string(buffer);
 }
 

@@ -263,6 +263,14 @@ private:
     void _destroyBlocks();
 
     /**
+     * @brief 移除单个被爆炸波及的方块
+     *
+     * 等价于原版 onExplosionHit 中的 setBlock(pos, AIR, 3)：写回流体遗留方块并通知邻居/客户端，
+     * 但不产生破坏粒子、掉落与 BLOCK_DESTROY 游戏事件（爆炸自身的掉落与事件另行处理）。
+     */
+    void _removeExplodedBlock(const BlockPos& pos);
+
+    /**
      * @brief 应用击退效果
      */
     void _applyKnockback();

@@ -143,22 +143,16 @@ public final class EasingTypeOracle {
         Files.writeString(output, text, StandardCharsets.UTF_8);
     }
 
-    /** 与探测侧一致：float 的 9 位有效数字往返表示。 */
+    /**
+     * float 的**按位精确**表示（32 位二进制模式的 8 位十六进制）。
+     *
+     * 十进制格式化（Java 的 %.{9}g 与 C 的 %.9g）在「恰好卡在第 9 位中点」的值上
+     * 舍入方向不同（同一 float 0.7626953125，Java 印 0.762695313、C 印 0.762695312），
+     * 这是格式化器差异而非被测算术差异。直接比较位模式，才能把缓动函数的实际结果
+     * 逐位对齐；真正不同时也只会在最后一位 ulp 上暴露，不会被抹平。
+     */
     private static String formatFloat(float value) {
-        if (value == 0.0F) {
-            return "0";
-        }
-        String text = String.format("%.9g", (double) value);
-        // 剥掉尾随零，与 C++ 的 %g 行为一致（C++ 自动剥离，Java 不剥）。
-        if (text.indexOf('e') < 0) {
-            while (text.endsWith("0") && text.indexOf('.') >= 0) {
-                text = text.substring(0, text.length() - 1);
-            }
-            if (text.endsWith(".")) {
-                text = text.substring(0, text.length() - 1);
-            }
-        }
-        return text;
+        return String.format("%08x", Float.floatToRawIntBits(value));
     }
 
     private static JsonObject summarise(String unit) {

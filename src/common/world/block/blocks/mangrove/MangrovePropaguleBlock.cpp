@@ -35,9 +35,12 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/MangroveBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <cstddef>
 #include <memory>
@@ -173,6 +176,30 @@ void MangrovePropaguleBlock::randomTick(IWorld& world, const BlockPos& pos, Bloc
             world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
+}
+
+bool MangrovePropaguleBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 原版 MangrovePropaguleBlock.canSurvive：悬挂态只认上方的红树树叶，
+    // 非悬挂态沿用 SaplingBlock（VegetationBlock）的「下方为 DIRT 标签或耕地」。
+    if (state.get(BlockStateProperties::HANGING())) {
+        const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+        const BlockState* aboveState = world.getBlockState(abovePos);
+        return aboveState != nullptr && block_registry::MangroveBlocks::MANGROVE_LEAVES != nullptr &&
+            aboveState->is(block_registry::MangroveBlocks::MANGROVE_LEAVES);
+    }
+
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState == nullptr) {
+        return false;
+    }
+
+    // 原版 MangrovePropaguleBlock.mayPlaceOn 在 VegetationBlock 的「DIRT 标签 / 耕地」之外
+    // 额外接受黏土。
+    return BlockTags::DIRT().contains(*belowState) ||
+        (VanillaBlocks::FARMLAND != nullptr && belowState->is(VanillaBlocks::FARMLAND)) ||
+        (VanillaBlocks::CLAY != nullptr && belowState->is(VanillaBlocks::CLAY));
 }
 
 // ========== IPlantable 接口实现 ==========

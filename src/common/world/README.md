@@ -383,3 +383,20 @@ world/
 **默认实现**：所有粒子虚方法在 `IWorld` 中提供默认空实现（no-op），`ClientWorld` 和 `ServerWorld` 按需覆写。`WorldGenRegion` 等只读快照实现继承默认空行为。
 
 **服务端广播链路**：`ServerWorld::addXxxParticle()` → `m_onBroadcastXxxParticle` 回调 → `MinecraftServer::broadcastXxxParticleInRange()` → 构造 `ir::play::LevelParticles` 广播给范围内玩家。回调在 `MinecraftServer::attachWorldBindings()` 中注册。详见 `src/server/application/README.md` 的「粒子广播链路」章节。
+
+### 18. 摧毁方块统一走 IWorld::destroyBlock / removeBlock
+
+`IWorld` 提供两个与原版 `Level` 一一对应的方块移除入口，**任何"让方块消失"的代码都必须使用它们**，禁止再手写 `setBlockState(air)` + `spawnAfterBreak` 组合：
+
+| 方法 | 语义 | 对应原版 |
+|------|------|---------|
+| `destroyBlock(pos, dropBlock[, entity])` | 2001 破坏粒子（火焰方块不发）→ 掉落表 → 写回流体遗留方块 → `BLOCK_DESTROY` 游戏事件 | `Level.destroyBlock` |
+| `removeBlock(pos, isMoving)` | 只写回该位置的流体遗留方块（无水则空气），无粒子/掉落/事件 | `Level.removeBlock` |
+
+要点：
+
+- **掉落只在 `destroyBlock(..., true)` 时产生**。`spawnAfterBreak` 本身不产出物品（只做蠹虫生成等额外效果），旧代码把它当"掉落"会静默丢物品。
+- 需要"破坏但不掉落"时用 `destroyBlock(pos, false)`（如投掷药水灭火、劫掠兽踩碎瓶草之外的选择）；连粒子/振动都不要时用 `removeBlock`（末影龙/凋灵穿墙、末影人取方块、爆炸移除）。
+- `Block::updateOrDestroy` 在形状更新导致方块变空气时已改走 `destroyBlock`：依附方块（火把、红石线、梯子、悬挂告示牌、藤蔓）脱落会正常掉落并产生 2001 粒子与 `BLOCK_DESTROY` 振动；`UPDATE_SUPPRESS_DROPS` 置位时降级为不掉落。
+- 玩家挖掘链路（`BlockInteractionManager`）保持独立：它需要工具附魔、经验、统计、`playerWillDestroy` 等上下文，**不要**改成调用 `destroyBlock`。
+- 爆炸（`Explosion`）自行合并掉落，只使用 `removeBlock` 移除方块。

@@ -95,6 +95,15 @@ public:
     /// MC MultifaceBlock.canAttachTo：相邻方块在 direction 反方向的面是否实心可附着。
     [[nodiscard]] static bool canAttachTo(IWorld& world, Direction direction, const BlockPos& neighborPos);
 
+    /**
+     * @brief 检查当前状态上已有的每一个面都还附着在实心面上
+     *
+     * 原版 MultifaceBlock.canSurvive：逐个已开启的面检查 canAttachTo，任一失效即整体失效；
+     * 一个面都没有时返回 false。缺了这条覆写会让发光地衣、树脂块、菌索在空气里也判为可存活。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     /// 默认全部朝向都受支持（对齐 MC MultifaceBlock.isFaceSupported）。
     [[nodiscard]] static bool isFaceSupported(Direction direction)
     {

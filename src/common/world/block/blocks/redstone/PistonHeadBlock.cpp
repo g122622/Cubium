@@ -23,12 +23,7 @@
 #include "PistonHeadBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/utils/ItemDropHelper.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/items/block/BlockItem.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
@@ -295,27 +290,9 @@ void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const B
     const BlockState* baseState = world.getBlockState(basePos);
 
     if (baseState != nullptr && isFittingBase(state, *baseState)) {
-        // 生成活塞基座的掉落物品
-        const Block& baseBlock = baseState->getBlock();
-        const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(baseBlock);
-        if (blockItem != nullptr) {
-            ItemStack dropStack(blockItem, 1);
-            math::Random rng;
-            ItemDropHelper::spawnItemEntity(&world,
-                dropStack,
-                static_cast<f64>(basePos.x) + 0.5,
-                static_cast<f64>(basePos.y) + 0.5,
-                static_cast<f64>(basePos.z) + 0.5,
-                rng);
-        }
-
-        // 将活塞基座设置为空气
-        if (auto* airState = BlockRegistry::instance().airState()) {
-            world.setBlockState(basePos, airState);
-        }
-
-        // 调用活塞基座的 spawnAfterBreak（如蠹虫生成等特殊逻辑）
-        baseBlock.spawnAfterBreak(world, basePos, *baseState, nullptr, false);
+        // 原版 affectNeighborsAfterRemoval 使用 serverLevel.destroyBlock(basePos, true)：
+        // 掉落表、破坏粒子与 BLOCK_DESTROY 事件由统一接口处理。
+        world.destroyBlock(basePos, true);
     }
 }
 
@@ -332,10 +309,8 @@ void PistonHeadBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, cons
     const BlockState* baseState = world.getBlockState(basePos);
 
     if (baseState != nullptr && isFittingBase(state, *baseState)) {
-        // 创造模式：销毁活塞基座但不产生掉落物
-        if (auto* airState = BlockRegistry::instance().airState()) {
-            world.setBlockState(basePos, airState);
-        }
+        // 创造模式：销毁活塞基座但不产生掉落物（原版 playerWillDestroy 的 destroyBlock(basePos, false)）
+        world.destroyBlock(basePos, false);
     }
 }
 

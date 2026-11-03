@@ -26,16 +26,11 @@
 #include "PistonHeadBlock.hpp"
 #include "PistonStructureHelper.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/items/block/BlockItem.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
@@ -370,28 +365,9 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
     // 先破坏需要破坏的方块（从远到近）
     for (auto it = toDestroy.rbegin(); it != toDestroy.rend(); ++it) {
         const BlockPos& destroyPos = *it;
-        const BlockState* destroyState = world.getBlockState(destroyPos);
-        if (destroyState && !destroyState->isAir()) {
-            // 破坏方块时掉落物品
-            const Block* destroyBlock = &destroyState->getBlock();
-            if (destroyBlock != nullptr) {
-                const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*destroyBlock);
-                if (blockItem != nullptr) {
-                    ItemStack dropStack(blockItem, 1);
-                    math::Random rng;
-                    ItemDropHelper::spawnItemEntity(&world,
-                        dropStack,
-                        static_cast<f64>(destroyPos.x) + 0.5,
-                        static_cast<f64>(destroyPos.y) + 0.5,
-                        static_cast<f64>(destroyPos.z) + 0.5,
-                        rng);
-                }
-            }
-            world.setBlockState(destroyPos,
-                nullptr,
-                world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            destroyBlock->spawnAfterBreak(world, destroyPos, *destroyState, nullptr, false);
-        }
+        // 原版活塞推开超限方块时调用 level.destroyBlock(pos, true)：掉落表、破坏粒子
+        // 与 BLOCK_DESTROY 事件统一由该接口处理。
+        world.destroyBlock(destroyPos, true);
     }
 
     // 移动方块（从远到近）

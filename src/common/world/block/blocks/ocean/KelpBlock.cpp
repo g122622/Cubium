@@ -36,6 +36,8 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
+#include "common/world/block/SupportType.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
@@ -100,10 +102,10 @@ BlockState KelpBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool KelpBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
     MC_UNUSED(state);
 
-    // 检查下方
+    // 原版 GrowingPlantBlock.canSurvive：上一格是海带头/海带茎，或该格顶面是完整支撑面。
+    // canAttachTo 排除岩浆块——岩浆方块顶面虽是整格，但海带无法附着在它上面。
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
@@ -111,7 +113,6 @@ bool KelpBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
         return false;
     }
 
-    // 可以放置在海带上方或固体方块上
     if (belowState->is(this)) {
         return true;
     }
@@ -120,7 +121,11 @@ bool KelpBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
         return true;
     }
 
-    return belowState->isSolid();
+    if (block_registry::NetherBlocks::MAGMA != nullptr && belowState->is(block_registry::NetherBlocks::MAGMA)) {
+        return false;
+    }
+
+    return belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full);
 }
 
 BlockState KelpBlock::updatePostPlacement(const BlockState& state,

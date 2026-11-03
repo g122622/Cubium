@@ -157,7 +157,9 @@ protected:
     CollisionShape m_baseShape;
     /// 顶部横杆形状
     CollisionShape m_topShape;
-    /// 完整形状（含支撑柱）
+    /// 稳定形状（顶部平台 + 四角支柱）
+    CollisionShape m_stableShape;
+    /// 不稳定形状（稳定形状 + 底部平台）
     CollisionShape m_fullShape;
     /// 无碰撞形状（当脚手架距离=0且有底部支撑时）
     CollisionShape m_emptyShape;
