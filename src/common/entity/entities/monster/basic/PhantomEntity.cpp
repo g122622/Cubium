@@ -90,9 +90,20 @@ void PhantomEntity::setPhantomSize(i32 size)
 
 entity::EntitySize PhantomEntity::getDimensions(EntityPose pose) const
 {
-    // 尺寸随幻翼大小变化
+    // 尺寸随幻翼大小变化。
+    //
+    // eyeHeight 必须显式传：3 参数重载会按 `height * 0.85` 自动算，而幻翼的眼睛高度
+    // 是**固定 0.175**（原版 Phantom 覆写 getEyeHeight 返回 0.175，不随体型缩放）。
+    // 此前走 3 参数重载，m_phantomSize 默认为 0 时算出 0.5 * 0.85 = 0.425——
+    // 幻翼的视线落点比实际高出一大截。由差分能力 entity_pose_dimensions 查出。
+    // 睡眠姿态走基类的固定尺寸 (0.2, 0.2, 0.2)，必须在体型计算之前返回——
+    // 否则覆写会完全绕过基类的睡眠特判，幻翼躺下时仍是站立尺寸。
+    if (pose == EntityPose::Sleeping) {
+        return Entity::getDimensions(pose);
+    }
+
     f32 scaleFactor = 1.0f + 0.15f * static_cast<f32>(m_phantomSize);
-    return entity::EntitySize::flexible(0.9f * scaleFactor, 0.5f * scaleFactor);
+    return entity::EntitySize(0.9f * scaleFactor, 0.5f * scaleFactor, 0.175f, false);
 }
 
 std::optional<ResourceLocation> PhantomEntity::getAmbientSound() const

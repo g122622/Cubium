@@ -122,7 +122,7 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override
     {
-        return 0.1f;
+        return 0.45f;
     }
 
     /**
@@ -153,7 +153,7 @@ public:
     /// 音量 0.1（对齐 vanilla Bat.getSoundVolume）
     [[nodiscard]] f32 getSoundVolume() const override
     {
-        return 0.1f;
+        return 0.45f;
     }
 
     /// 受击时若在休息则立即起飞（对齐 vanilla Bat.hurtServer）

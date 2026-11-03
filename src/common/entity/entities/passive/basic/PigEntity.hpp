@@ -232,10 +232,14 @@ protected:
 
     /**
      * @brief 获取眼睛高度
+     *
+     * 系数是 **0.85**（原版 `EntityDimensions.defaultEyeHeight(h) = h * 0.85F`），
+     * 此前写成了 0.4，于是猪的眼睛只有 0.36 高——视线判定、凝视检测、第三人称
+     * 相机落点全都偏低一大截。由差分能力 entity_pose_dimensions 查出。
      */
     [[nodiscard]] f32 eyeHeight() const override
     {
-        return 0.4f * height();
+        return 0.85f * height();
     }
 
 private:

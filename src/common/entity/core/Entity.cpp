@@ -31,6 +31,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MoverType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -359,9 +360,46 @@ void Entity::registerData()
     m_dataManager.registerParam(DATA_TICKS_FROZEN_PARAM, static_cast<i32>(0));
 }
 
+// 默认尺寸取注册表里该实体类型的尺寸（原版 `EntityType.getDimensions()`）。
+//
+// 这三个默认实现此前硬编码返回玩家尺寸 0.6 / 1.8 / 1.62，于是**任何没有覆写它们的
+// 生物**，碰撞箱都是玩家尺寸，与自己的注册尺寸无关。由差分能力 entity_pose_dimensions
+// 查出：allay 在全部 18 个姿态下都返回 0.6，而原版是 0.35。
+//
+// 查不到类型时（未注册的探针实体）退回玩家尺寸，与原版 EntityType 不可用时的行为一致。
+f32 Entity::width() const
+{
+    const entity::EntityType* type = entityType();
+    return type != nullptr ? type->size().width() : 0.6f;
+}
+
+f32 Entity::height() const
+{
+    const entity::EntityType* type = entityType();
+    return type != nullptr ? type->size().height() : 1.8f;
+}
+
+f32 Entity::eyeHeight() const
+{
+    const entity::EntityType* type = entityType();
+    return type != nullptr ? type->size().eyeHeight() : 1.62f;
+}
+
 entity::EntitySize Entity::getDimensions(EntityPose pose) const
 {
-    (void)pose;
+    // 睡眠姿态用**所有生物共用的固定尺寸** (0.2, 0.2, eye 0.2)。
+    //
+    // 原版 `LivingEntity.getDimensions(Pose)` 是 public final，睡眠分支直接返回
+    // `SLEEPING_DIMENSIONS = EntityDimensions.fixed(0.2, 0.2).withEyeHeight(0.2)`，
+    // **与实体类型、年龄、缩放全都无关**——子类改不了。
+    //
+    // 此前这里无条件返回 width()/height()/eyeHeight()，于是任何生物躺下后碰撞箱
+    // 仍是站立尺寸（例如悦灵躺下仍是 0.35 宽，末影龙躺下仍占据整片区域）。
+    // 由差分能力 entity_pose_dimensions 查出。
+    if (pose == EntityPose::Sleeping) {
+        return entity::EntitySize(0.2f, 0.2f, 0.2f, true);
+    }
+
     return entity::EntitySize(width(), height(), eyeHeight(), false);
 }
 

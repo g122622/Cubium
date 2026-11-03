@@ -53,6 +53,7 @@ import { KNOWN_GAPS as lootContainerKnownGaps, LOOT_CONTAINER_SCENARIO_NAMES, lo
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import { KNOWN_MISSING as entityTypesKnownMissing } from "./known_missing_entity_types.ts";
 import { KNOWN_DISPENSE_GAPS } from "./known_dispense_gaps.ts";
+import { KNOWN_POSE_GAPS } from "./known_pose_gaps.ts";
 import {
     dropProjectOnlyCommands,
     KNOWN_MISSING_COMMANDS,
@@ -1310,6 +1311,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "三个易错点：ADD_MULTIPLIED_BASE 乘的是经过 ADD_VALUE 之后的基数而非原始 base；"
         + "ADD_MULTIPLIED_TOTAL 必须逐个连乘 (1+amount) 而不是先相加；sanitizeValue 对 NaN 返回 minValue",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "entity_pose_dimensions",
+        probe: "entity_pose_dimensions",
+        oracle: "EntityPoseDimensionsOracle",
+        description: "实体在 18 个姿态下的宽 / 高 / 眼睛高度（16 类型 × 18 姿态 = 288 单元）；"
+        + "核心是 LivingEntity.getDimensions(Pose) 是 **public final**：SLEEPING 恒为 (0.2, 0.2, 0.2)，"
+        + "与实体类型、年龄、缩放全都无关；其余姿态走类型尺寸。漏掉这条会让所有生物躺下时碰撞箱还是站立的尺寸",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        knownDifferences: KNOWN_POSE_GAPS },
     {
         name: "block_shape",
         probe: "block_shape",

@@ -94,8 +94,13 @@ f32 PufferfishEntity::getPuffSize() const
     }
 }
 
-entity::EntitySize PufferfishEntity::getDimensions(EntityPose /*pose*/) const
+entity::EntitySize PufferfishEntity::getDimensions(EntityPose pose) const
 {
+    // 睡眠姿态走基类的固定尺寸 (0.2, 0.2, 0.2)，必须在膨胀计算之前返回。
+    if (pose == EntityPose::Sleeping) {
+        return Entity::getDimensions(pose);
+    }
+
     // 根据膨胀状态动态计算尺寸，基础尺寸 0.7 x 0.7
     f32 scale = getPuffSize();
     return entity::EntitySize::flexible(0.7f * scale, 0.7f * scale);

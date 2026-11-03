@@ -133,7 +133,7 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override
     {
-        return 2.4f;
+        return 2.465f;
     }
 
     // ========== LivingEntity 接口重写 ==========
