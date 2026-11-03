@@ -22,6 +22,7 @@
  */
 
 #include "AbstractPressurePlateBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
@@ -34,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -139,6 +141,11 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
 
         // 播放音效（按下/弹起切换时）
         playClickSound(world, pos, newSignal > 0);
+
+        // 踩下/离开是方块状态变化，要让附近幽匿感测体听到。
+        world.gameEvent(newSignal > 0 ? gameevent::GameEvents::BLOCK_ACTIVATE : gameevent::GameEvents::BLOCK_DEACTIVATE,
+            pos,
+            &newState);
 
         // 通知相邻方块更新
         for (Direction dir : Directions::all()) {

@@ -22,6 +22,7 @@
  */
 
 #include "AbstractButtonBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -38,6 +39,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -280,6 +282,10 @@ void AbstractButtonBlock::checkPressed(IWorld& world, const BlockPos& pos, const
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         _updateNeighbours(world, pos);
         playClickSound(world, pos, arrowInside);
+        // 按下/弹起是方块状态变化，要让附近幽匿感测体听到。
+        world.gameEvent(arrowInside ? gameevent::GameEvents::BLOCK_ACTIVATE : gameevent::GameEvents::BLOCK_DEACTIVATE,
+            pos,
+            &newState);
     }
 
     // 仍处于按下状态则续期，下一个计划刻再复查；否则本次即为弹起。
@@ -438,6 +444,9 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
 
     // 播放按下音效
     playClickSound(world, pos, true);
+
+    // 让附近幽匿感测体听到。
+    world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, &newState);
 
     // 通知相邻方块更新
     _updateNeighbours(world, pos);

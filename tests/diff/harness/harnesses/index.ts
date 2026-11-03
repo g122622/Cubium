@@ -1512,6 +1512,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "方块状态和音效都正常，只有红石侦测端完全没反应",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "note_block_event",
+        probe: "note_block_event",
+        oracle: "NoteBlockEventOracle",
+        description: "音符盒响不响、发不发事件（NoteBlock#playNote）—— 23 种乐器 x 上方是否被方块堵住 = 46 个单元；"
+        + "前置条件是「乐器 above-note-block 生效 或 上方是空气」：头颅类乐器不受上方方块影响，其余乐器上方必须为空。"
+        + "被堵住时既不出声也不发 NOTE_BLOCK_PLAY 事件 —— 事件必须发在判定之后。漏掉前置条件会让埋了方块的音符盒照样发声",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

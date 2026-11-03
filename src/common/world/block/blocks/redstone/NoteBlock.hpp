@@ -153,7 +153,7 @@ public:
      * @param pos 音符盒位置
      * @param state 当前方块状态
      */
-    void triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state);
+    static void triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 方块事件：在方块位置播放音符（原版 `NoteBlock#triggerEvent`）

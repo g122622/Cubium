@@ -22,6 +22,7 @@
  */
 
 #include "NoteBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -40,6 +41,7 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <algorithm>
@@ -391,9 +393,24 @@ BlockState NoteBlock::resolveInstrument(IWorld& world, const BlockPos& pos, cons
 
 void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
+    // 上方被方块堵住时，靠「上方方块乐器」发声的音符盒不响 —— 只有本身就是
+    // worksAboveNoteBlock 的乐器（头颅类）不受影响。原版 `NoteBlock#playNote` 的前置条件。
+    const i32 instrument = static_cast<i32>(state.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()));
+    if (!BlockStateProperties::noteBlockInstrumentWorksAboveNoteBlock(
+            static_cast<BlockStateProperties::NoteBlockInstrument>(instrument))) {
+        const BlockState* above = world.getBlockState(pos.x, pos.y + 1, pos.z);
+        if (above != nullptr && !above->isAir()) {
+            return;
+        }
+    }
+
     // 走方块事件而不是直接播放：事件由服务端广播给所有端，多人时附近玩家都能听到。
-    // 音符盒的 triggerEvent 恒返回 true，这里无需检查。
-    MC_UNUSED(triggerEvent(state, world, pos, 0, 0));
+    const auto& block = static_cast<const NoteBlock&>(state.getBlock());
+    MC_UNUSED(block.triggerEvent(state, world, pos, 0, 0));
+
+    // 让附近幽匿感测体听到。注意它发在上面的「让不让响」判定**之后**：
+    // 被堵住的音符盒既不出声也不发事件。
+    world.gameEvent(gameevent::GameEvents::NOTE_BLOCK_PLAY, pos, &state);
 }
 
 bool NoteBlock::triggerEvent(const BlockState& state, IWorld& world, const BlockPos& pos, i32 id, i32 type) const
