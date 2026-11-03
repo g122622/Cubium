@@ -1303,6 +1303,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
                 reason: "Cubium 尚未注册该类发射器行为（见 known_dispense_gaps.ts 的分组与修法）",
             }))) },
     {
+        name: "attribute_modifier_apply",
+        probe: "attribute_modifier_apply",
+        oracle: "AttributeModifierApplyOracle",
+        description: "属性修饰符三阶段计算（AttributeInstance.calculateValue）的最终值；"
+        + "三个易错点：ADD_MULTIPLIED_BASE 乘的是经过 ADD_VALUE 之后的基数而非原始 base；"
+        + "ADD_MULTIPLIED_TOTAL 必须逐个连乘 (1+amount) 而不是先相加；sanitizeValue 对 NaN 返回 minValue",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
