@@ -156,6 +156,23 @@ public:
     void triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
+     * @brief 方块事件：在方块位置播放音符（原版 `NoteBlock#triggerEvent`）
+     *
+     * 原版把播放放在**方块事件**里而不是直接调 `playNote`：服务端只广播事件，
+     * 收到事件的每一端各自播放，附近所有玩家都能听到。直接调 playNote 只会
+     * 在发起方本地出声，多人时其他人听不到。
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 音符盒位置
+     * @param id 事件 ID（音符盒只用 0）
+     * @param type 事件参数（音符盒不使用）
+     * @return 事件是否被处理
+     */
+    [[nodiscard]] bool triggerEvent(
+        const BlockState& state, IWorld& world, const BlockPos& pos, i32 id, i32 type) const override;
+
+    /**
      * @brief 按方块类型推导音符盒乐器（对齐 vanilla 1.20 及以前的 NoteBlockInstrument.byState）
      *
      * 1.21.11 起 vanilla 在各方块注册期显式给出 instrument 属性，规则与本表一致；
@@ -186,7 +203,7 @@ private:
      * @param instrument 乐器类型
      * @param note 音调
      */
-    void _playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note);
+    [[nodiscard]] bool _playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note) const;
 };
 
 } // namespace blocks

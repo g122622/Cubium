@@ -1469,6 +1469,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         ,
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "noteblock_trigger",
+        probe: "noteblock_trigger",
+        oracle: "NoteBlockTriggerOracle",
+        description: "音符盒被触发时播放的音效三元组（音效 id / 音量 / 音高）与音符粒子 —— 23 种乐器 x 3 个音符值 = 69 个单元；"
+        + "音量恒为 3.0，音高在可调音乐器上走 getPitchFromNote、头颅类固定 1.0，粒子只有可调音乐器才发（颜色偏移 note/24）。"
+        + "绑定在 Block::triggerEvent 上而不是直接调播放函数：原版正是靠方块事件广播让附近所有玩家都听到，直接播放只有发起方出声",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

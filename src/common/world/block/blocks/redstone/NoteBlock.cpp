@@ -391,11 +391,22 @@ BlockState NoteBlock::resolveInstrument(IWorld& world, const BlockPos& pos, cons
 
 void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    i32 note = getNote(state);
-    i32 instrument = _getInstrumentType(world, pos, state);
+    // 走方块事件而不是直接播放：事件由服务端广播给所有端，多人时附近玩家都能听到。
+    // 音符盒的 triggerEvent 恒返回 true，这里无需检查。
+    MC_UNUSED(triggerEvent(state, world, pos, 0, 0));
+}
 
-    // 播放音符
-    _playNote(world, pos, instrument, note);
+bool NoteBlock::triggerEvent(const BlockState& state, IWorld& world, const BlockPos& pos, i32 id, i32 type) const
+{
+    // 原版 `NoteBlock#triggerEvent`：id 恒为 0（原版 `levelEvent(null, 0, pos, 0)`）。
+    // 播放逻辑整体在这里：服务端广播方块事件，每个客户端收到后各自播放。
+    MC_UNUSED(id);
+    MC_UNUSED(type);
+
+    const i32 instrument = static_cast<i32>(state.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()));
+    const i32 note = state.get(BlockStateProperties::NOTE_0_24());
+
+    return _playNote(world, pos, instrument, note);
 }
 
 i32 NoteBlock::_getInstrumentType(IWorld& world, const BlockPos& pos, const BlockState& state) const
@@ -414,14 +425,21 @@ bool NoteBlock::_isTunableInstrument(i32 instrument)
     return BlockStateProperties::noteBlockInstrumentIsTunable(static_cast<Instrument>(instrument));
 }
 
-void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note)
+bool NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note) const
 {
-    // 转换乐器类型
-    auto instrumentEnum = static_cast<Instrument>(instrument);
+    const auto instrumentEnum = static_cast<Instrument>(instrument);
 
-    // 获取对应的声音事件
+    // 玩家头颅（CUSTOM 类）的声音来自**上方头颅方块实体的 note_block_sound**，不是固定的
+    // `ui.button.click`。原版 `NoteBlock#triggerEvent` 在取不到自定义音效时直接 `return false`，
+    // 一声不出——先前把 `ui.button.click` 当兜底，等于给所有普通玩家头颅配了个按钮音。
+    // TODO: Cubium 的 SkullBlockEntity 尚未保存 note_block_sound（数据组件已注册但无人读取），
+    //       该链路补齐后这里才能取到真实音效；在那之前如实按原版「无自定义音效」处理。
+    if (BlockStateProperties::noteBlockInstrumentHasCustomSound(
+            static_cast<BlockStateProperties::NoteBlockInstrument>(instrument))) {
+        return false;
+    }
+
     const ResourceLocation& soundEvent = getSoundEventForInstrument(instrumentEnum);
-
     // 对齐 vanilla NoteBlock.triggerEvent：仅可调音乐器（BASE_BLOCK 类）按音符值定音高并产生
     //   音符粒子；头颅类（MOB_HEAD/CUSTOM）音高固定 1.0 且不产生调音粒子。
     f32 pitch = 1.0f;
@@ -444,6 +462,7 @@ void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i3
         3.0f, // 音量
         pitch // 音高
     );
+    return true;
 }
 
 } // namespace blocks
