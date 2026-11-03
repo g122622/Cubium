@@ -22,6 +22,7 @@
  */
 
 #include "ComposterBlock.hpp"
+
 #include "CompostableItems.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
@@ -43,6 +44,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -132,6 +134,7 @@ void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state,
         // 播放堆肥完成音效
         if (!world.isClientSide()) {
             world.playSound(SoundEvents::BLOCK_COMPOSTER_READY, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
         }
     }
 }
@@ -188,6 +191,9 @@ BlockState ComposterBlock::attemptCompost(
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), newLevel);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
+        // 堆肥层数变了要让附近幽匿感测体知道。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
+
         // 通过 WorldEvent 广播堆肥成功事件（客户端同时播放音效和粒子效果）
         // data=1 表示成功升级，data=0 表示仅填充未升级
         if (!world.isClientSide()) {
@@ -241,6 +247,9 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
     // 重置为等级0
     BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 0);
     world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
+
+    // 清空也是一次方块状态变化。
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
 
     // 播放清空音效
     if (!world.isClientSide()) {

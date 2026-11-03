@@ -1528,6 +1528,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "漏掉音效时活塞完全无声、玩家判断不出装置有没有在工作；漏掉事件则活塞在幽匿电路里完全隐形",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "cake_eat",
+        probe: "cake_eat",
+        oracle: "CakeEatOracle",
+        description: "吃一片蛋糕时发出的游戏事件（CakeBlock#eat）—— 吃之前的 BITES 0..6 = 7 个单元；"
+        + "事件是叠加的：每一片都发 eat，若是最后一片（BITES 已是 6）额外发 block_destroy。"
+        + "只写 EAT 会让最后一片消失时幽匿电路少一次 destroy，只写 DESTROY 则前六片完全静默",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
