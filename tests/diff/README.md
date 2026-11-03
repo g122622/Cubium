@@ -515,6 +515,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `beacon_pyramid_level` | 原版 jar `BeaconPyramidLevelOracle` | 11 个金字塔布局 | **全部一致** | `BeaconBlockEntity.updateBase`。要点：第 j 层是 `(2j+1)²` 的**整片**而非只有边框、必须**连续**（某层一破即止）、**低于世界底即停止**。布局字符串可精确表达「整层缺一格」「层间不连续」「世界底截断」。**修复**：`_updateLevels` 缺 `getMinBuildHeight` 边界检查；`computeLevel` 抽成纯函数供世界读取与测试共用 |
 | `conduit_frame_level` | 原版 jar `ConduitFrameLevelOracle` | 8 个框架布局 | **全部一致** | `ConduitBlockEntity.updateShape`。要点：中心 3×3×3 必须**全是水**否则立刻失效、只认**框架环**（42 格）而非 5×5×5 整个外壳（98 格）、两档门槛 16 与 42。**重构**：`countFrameBlocks` 抽成纯函数供世界读取与测试共用 |
 | `campfire_cooking` | 数据包 JSON | 18 配方 + 17 查询 = 26 | **25/25 一致** | `campfire_cooking` 类型的全部配方。营火只认该类型，**不读熔炉/烟熏机配方**，三者数据文件独立。`cookTime` 就是营火实际烹饪耗时。**修复**：`addItem` 缺配方校验（原版 `placeFood` 查不到配方就拒绝放置），此前任意物品都能放上营火、永不熟且被销毁；`cookTime <= 0` 时改为取配方值，避免第一 tick 瞬熟 |
+| `cooking_recipe_types` | 数据包 JSON | 16 输入 × 4 设施 = 64 | **全部一致** | 四类烹饪配方的横向对照（熔炉/烟熏机/高炉/营火）。四套配方在数据包里各自独立、`cookingtime` 也写在 JSON 里。语义差异：熔炉通用、烟熏机只做食物且快一倍、高炉只做矿石且快一倍、营火只做食物且慢三倍。最容易出错的是**串配方**，不会崩溃只会让物品在错误设施里可加工或耗时差一倍。**注意 ingredient 可以是标签引用**（如玻璃配方用 `#minecraft:smelts_to_glass`），不展开会误判成"无配方" |
 | `block_shape` | 原版 jar `BlockShapeOracle` | 1166 个方块 × 三种形状 | **全部一致** | 体素化 16³ 输出三种形状；逐盒输出会误报盒子拆分差异，必须体素化 |
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505 个物品的燃料时长 | 全部一致 | 需服务端世界，独占组 `loot-world` |
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470 个配方的分页 | 全部一致 | 配方书分类页归属 |

@@ -1365,6 +1365,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "cookTime 就是营火的实际烹饪耗时（cookTick 每 tick 递增、达到即掉落），抄错任何一个都会让该物品熟得太早或太晚",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "cooking_recipe_types",
+        probe: "cooking_recipe_types",
+        oracle: "CookingRecipeTypesOracle",
+        description: "四类烹饪配方的横向对照（熔炉/烟熏机/高炉/营火）—— 16 输入 × 4 设施 = 64 单元；"
+        + "四套配方在数据包里各自独立、cookingtime 也写在 JSON 里。语义差异：熔炉通用、"
+        + "烟熏机只做食物且快一倍、高炉只做矿石且快一倍、营火只做食物且慢三倍。"
+        + "最容易出错的是**串配方**（smoking 走成 smelting 之类），不会崩溃、只会让某些物品在错误设施里可加工或耗时差一倍",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
