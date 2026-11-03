@@ -97,13 +97,13 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isS
     m_shapes[static_cast<size_t>(RailShape::NorthSouth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::EastWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
 
-    // 斜轨形状：一端抬升
-    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingNorth)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingSouth)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+    // 斜轨形状：原版 SHAPE_ASCENDING = Shapes.box(0, 0, 0, 1, 0.5, 1)，
+    // 高度是平轨（0.125）的四倍。此前沿用平轨高度，上坡轨在视觉与碰撞上都趴在地上，
+    // 矿车爬上坡时看起来像在穿模。
+    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingNorth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingSouth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
 
     // 弯轨形状
     m_shapes[static_cast<size_t>(RailShape::SouthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
