@@ -116,6 +116,20 @@ public:
     [[nodiscard]] static i32 getNote(const BlockState& state);
 
     /**
+     * @brief 由音符值计算播放音高（原版 `NoteBlock#getPitchFromNote`）
+     *
+     * `2^((note - 12) / 12)`：0 号音符比基准低一个八度，12 号是基准音，
+     * 24 号高一个八度。每 +1 升一个半音，每 +12 频率翻倍。
+     *
+     * 注意只有**可调音乐器**（BASE_BLOCK 类）才用它：头颅类（MOB_HEAD / CUSTOM）
+     * 的音高固定为 1.0。
+     *
+     * @param note 音调值（0-24）
+     * @return f32 播放音高
+     */
+    [[nodiscard]] static f32 calculatePitch(i32 note);
+
+    /**
      * @brief 设置音调
      * @param state 方块状态
      * @param note 音调值（0-24）

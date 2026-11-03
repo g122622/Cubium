@@ -137,20 +137,6 @@ BlockProperties::Instrument effectiveInstrument(const BlockState& state)
     return NoteBlock::blockInstrumentByType(&state.getBlock());
 }
 
-/**
- * @brief 根据音符值计算音高
- *
- * 音高计算公式: f = 2^((note - 12) / 12)
- * - 音符范围: 0-24 (共25个音高，对应两个八度)
- * - 基准音高: note = 12 时, f = 1.0 (标准音高)
- * - 每增加 1 个音符值，音高上升一个半音
- * - 每增加 12 个音符值，音高上升一个八度 (频率翻倍)
- */
-f32 calculatePitch(i32 note)
-{
-    return static_cast<f32>(std::pow(2.0, static_cast<f64>(note - 12) / 12.0));
-}
-
 } // anonymous namespace
 
 // ============================================================================
@@ -188,6 +174,13 @@ NoteBlock::NoteBlock(const BlockProperties& properties)
 i32 NoteBlock::getNote(const BlockState& state)
 {
     return state.get(BlockStateProperties::NOTE_0_24());
+}
+
+f32 NoteBlock::calculatePitch(i32 note)
+{
+    // 音高 = 2^((note - 12) / 12)。0 号比基准低一个八度，12 号是基准，24 号高一个八度。
+    // 必须走 f64 的 pow 再窄化成 f32：直接用 f32 会把中间结果丢掉低位，与原版差 1 ulp。
+    return static_cast<f32>(std::pow(2.0, static_cast<f64>(note - 12) / 12.0));
 }
 
 BlockState NoteBlock::withNote(const BlockState& state, i32 note)
@@ -433,7 +426,7 @@ void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i3
     //   音符粒子；头颅类（MOB_HEAD/CUSTOM）音高固定 1.0 且不产生调音粒子。
     f32 pitch = 1.0f;
     if (_isTunableInstrument(instrument)) {
-        pitch = calculatePitch(note);
+        pitch = NoteBlock::calculatePitch(note);
 
         // 生成音符粒子：位置为方块上方中心，颜色数据 note / 24.0
         world.addParticle(particle::ParticleTypeId::Note,

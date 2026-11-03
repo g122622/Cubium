@@ -1460,6 +1460,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "其余竖琴。抄错不影响任何方块行为，只会让红石音乐作品听起来不对，只能逐方块比对",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "noteblock_pitch",
+        probe: "noteblock_pitch",
+        oracle: "NoteBlockPitchOracle",
+        description: "音符盒的调音（音符值 0..24 的音高与循环）—— 25 个单元；"
+        + "pitch 是原版 getPitchFromNote = 2^((note-12)/12)，按 f32 位模式比（中间用 f32 还是 f64 会让结果差 1 ulp，"
+        + "听不出来但会让包络计算逐帧漂移）；cycled 是右键一次后的音符值，回绕点写错会让某些音根本弹不出来"
+        ,
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
