@@ -218,12 +218,12 @@ const CollisionShape& LeverBlock::getShape(const BlockState& state) const
     // 索引方式：行 = AttachFace（0=Floor, 1=Wall, 2=Ceiling），列 = 水平朝向
     //   （0=North, 1=East, 2=South, 3=West）。
     static const CollisionShape shapes[3][4] = {
-        // Floor：贴地，向上立起
+        // Floor：贴地，向上立起（y 0..6）
         {
-            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // North
-            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // East
-            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // South
-            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // West
+            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // North
+            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // East
+            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // South
+            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // West
         },
         // Wall：贴墙
         {
@@ -232,12 +232,12 @@ const CollisionShape& LeverBlock::getShape(const BlockState& state) const
             CollisionShape::fromPixelBox(5, 4, 0, 11, 12, 6),   // South
             CollisionShape::fromPixelBox(10, 4, 5, 16, 12, 11), // West
         },
-        // Ceiling：贴天花板，倒挂
+        // Ceiling：贴天花板，向下倒挂（y 10..16）
         {
-            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // North
-            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // East
-            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // South
-            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // West
+            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // North
+            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // East
+            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // South
+            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // West
         },
     };
 

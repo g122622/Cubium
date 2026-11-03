@@ -323,6 +323,14 @@ const CollisionShape& MossyCarpetBlock::getShape(const BlockState& state) const
     return m_shapes[index];
 }
 
+const CollisionShape& MossyCarpetBlock::getCollisionShape(const BlockState& state) const
+{
+    // 原版只按 BOTTOM 区分：有底座时碰撞就是底座薄层（与四侧高度无关），否则为空。
+    static const CollisionShape baseCollision = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+    static const CollisionShape emptyCollision = CollisionShape::empty();
+    return state.get(BlockStateProperties::BOTTOM()) ? baseCollision : emptyCollision;
+}
+
 size_t MossyCarpetBlock::_shapeIndex(bool bottom, WallHeight north, WallHeight east, WallHeight south, WallHeight west)
 {
     // bottom 占 2 种，每个方向高度占 3 种（None=0/Low=1/Tall=2）。
@@ -349,10 +357,17 @@ void MossyCarpetBlock::_initShapes()
                         const size_t idx =
                             _shapeIndex(bottom != 0, HEIGHTS[north], HEIGHTS[east], HEIGHTS[south], HEIGHTS[west]);
                         CollisionShape shape = CollisionShape::empty();
+                        const WallHeight heights[4] = {HEIGHTS[north], HEIGHTS[east], HEIGHTS[south], HEIGHTS[west]};
+                        const bool anySide = heights[0] != WallHeight::None || heights[1] != WallHeight::None ||
+                            heights[2] != WallHeight::None || heights[3] != WallHeight::None;
                         if (bottom != 0) {
                             shape = baseShape();
+                        } else if (!anySide) {
+                            // 没有底座、四侧也没有 LOW/TALL 时，原版形状是**满方块**
+                            // （实测 forAllBoxes 得到 box(0,0,0 -> 1,1,1)）。
+                            // 此前留空，导致孤立的一格苔藓地毯在视觉与选中框上都消失。
+                            shape = CollisionShape::fullBlock();
                         }
-                        const WallHeight heights[4] = {HEIGHTS[north], HEIGHTS[east], HEIGHTS[south], HEIGHTS[west]};
                         for (i32 d = 0; d < 4; ++d) {
                             if (heights[d] == WallHeight::Low) {
                                 shape = CollisionShape::combine(shape, lowShape(HORIZONTAL_DIRECTIONS[d]));

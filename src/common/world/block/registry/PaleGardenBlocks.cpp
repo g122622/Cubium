@@ -275,6 +275,9 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_MOSS_CARPET =
         &registry.registerBlock<blocks::MossyCarpetBlock>(ResourceLocation("minecraft:pale_moss_carpet"),
             BlockProperties(Material::PLANT)
+                // 碰撞形状由 MossyCarpetBlock::getCollisionShape 按 BOTTOM 决定：有底座时是
+                // 底座薄层，无底座时为空。这里必须 withCollision() 让覆写生效——
+                // noCollision() 会让基类直接短路成空形状。
                 .withCollision()
                 .notSolid()
                 .hardness(0.1f)

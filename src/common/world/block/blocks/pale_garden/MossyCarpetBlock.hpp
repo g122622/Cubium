@@ -108,6 +108,18 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 获取碰撞形状。
+     *
+     * 原版 `MossyCarpetBlock` 的碰撞形状与外形**不同**，且只取决于 `BOTTOM`：
+     *   `bottom=true`  -> 底座薄层 `box(0, 0, 0 -> 1, 0.0625, 1)`（与四侧高度无关）
+     *   `bottom=false` -> 空
+     *
+     * @param state 方块状态
+     * @return 碰撞形状
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
 private:
     /// 各水平方向到 WALL_HEIGHT 属性的映射（北/东/南/西）。
     static const EnumProperty<WallHeight>& _propertyForDirection(Direction direction);
