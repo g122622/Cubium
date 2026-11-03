@@ -51,6 +51,13 @@ SoulFireBlock::SoulFireBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 }
 
+const CollisionShape& SoulFireBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 灵魂火没有状态属性，形状恒为底面薄层；直接复用父类缓存的 m_shape。
+    return m_shape;
+}
+
 bool SoulFireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
 

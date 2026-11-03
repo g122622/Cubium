@@ -34,6 +34,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/Material.hpp"
+#include <array>
 
 // 测试 fixture 前向声明（全局命名空间，tests/common/world/block/blocks/FireBlockTest.cpp），
 // 供 FireBlock 经 friend 授权访问 protected getIncreasedFireBurnout 做偏差 #4 回退验证。
@@ -324,8 +325,12 @@ protected:
     /// 火焰伤害
     i32 m_fireDamage;
 
-    /// 火焰形状
+    /// 火焰形状（四周与上方都无连接时的底面薄层）
     CollisionShape m_shape;
+
+    /// 按连接位掩码（north<<0 | east<<1 | south<<2 | west<<3 | up<<4）预计算的形状。
+    /// 每个连接方向是一根 1 像素厚、贯穿整格的薄板；掩码 0 时即 `m_shape`。
+    std::array<CollisionShape, 32> m_shapesBySides;
 };
 
 } // namespace blocks
