@@ -351,7 +351,6 @@ public:
     [[nodiscard]] CollisionShape getBlockSupportShapeAt(const BlockPos& pos) const;
 
     /**
-    /**
      * @brief 获取遮挡形状
      */
     [[nodiscard]] const CollisionShape& getOcclusionShape() const;
