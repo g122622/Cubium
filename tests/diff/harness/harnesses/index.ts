@@ -1357,6 +1357,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "两档门槛 MIN_ACTIVE_SIZE=16 与 MIN_KILL_SIZE=42",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "campfire_cooking",
+        probe: "campfire_cooking",
+        oracle: "CampfireCookingOracle",
+        description: "营火烹饪配方表（campfire_cooking 类型的全部配方）；"
+        + "营火只认 CampfireCooking 类型，**不读熔炉或烟熏机配方**，三者数据文件独立，同一物品在三种设施下的可熔炼性与耗时都可能不同。"
+        + "cookTime 就是营火的实际烹饪耗时（cookTick 每 tick 递增、达到即掉落），抄错任何一个都会让该物品熟得太早或太晚",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
