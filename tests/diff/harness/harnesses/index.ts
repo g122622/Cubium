@@ -54,6 +54,7 @@ import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import { KNOWN_MISSING as entityTypesKnownMissing } from "./known_missing_entity_types.ts";
 import { KNOWN_DISPENSE_GAPS } from "./known_dispense_gaps.ts";
 import { KNOWN_POSE_GAPS } from "./known_pose_gaps.ts";
+import { KNOWN_DIMENSION_GAPS } from "./known_dimension_gaps.ts";
 import {
     dropProjectOnlyCommands,
     KNOWN_MISSING_COMMANDS,
@@ -1328,6 +1329,16 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "三个易错点：天空光与 nextInt(32) 的随机阈值比而非常量；方块光上限仅在 blockLightLimit<15 时才检查；"
         + "最后比的是综合亮度而非方块光。输出同时带 lightTest 采样值，便于区分「随机流不同」与「判定逻辑不同」",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "dimension_type_params",
+        probe: "dimension_type_params",
+        oracle: "DimensionTypeParamsOracle",
+        description: "维度类型参数（DimensionType 的 14 个字段 × 3 维度）；"
+        + "这是**数据包驱动的注册表**，每个字段都直接决定游戏行为且彼此独立：coordinate_scale 决定主世界与下界的坐标换算、"
+        + "ambient_light 决定无光照处底色、fixed_time 让末地永远停在黄昏、min_y/height/logical_height 决定建筑高度与传送门规则。"
+        + "抄错任何一项都不会崩溃，只会让某个维度的手感整体偏差——这是最难靠人工发现的一类数据错误",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        knownDifferences: KNOWN_DIMENSION_GAPS },
     {
         name: "block_shape",
         probe: "block_shape",
