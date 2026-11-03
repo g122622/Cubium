@@ -1349,6 +1349,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "布局字符串让「整层缺一格」「层间不连续」「世界底截断」三类错误都能精确表达",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "conduit_frame_level",
+        probe: "conduit_frame_level",
+        oracle: "ConduitFrameLevelOracle",
+        description: "潮涌核心框架等级（ConduitBlockEntity.updateShape）；"
+        + "要点：中心 3x3x3 必须**全是水**否则立刻失效、只认**框架环**（42 格）而非 5x5x5 整个外壳（98 格）、"
+        + "两档门槛 MIN_ACTIVE_SIZE=16 与 MIN_KILL_SIZE=42",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
