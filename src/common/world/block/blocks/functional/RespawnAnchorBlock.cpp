@@ -22,6 +22,7 @@
  */
 
 #include "RespawnAnchorBlock.hpp"
+
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/vehicle/DismountHelper.hpp"
@@ -44,6 +45,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/spawn/RespawnConfig.hpp"
 #include <array>
 #include <cmath>
@@ -141,7 +143,10 @@ BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockS
     if (charges < 4) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
-        // 注意：充能音效和粒子效果由调用方处理（useItemOn 中播放）
+
+        // 充能是方块状态变化（原版 `charge` 发 BLOCK_CHANGE）。
+        // 音效与粒子由调用方处理，事件在这里发 —— 和原版一致。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
         return newState;
     }
     return state;
@@ -153,6 +158,9 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
     if (charges > 0) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges - 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
+
+        // 消耗一层充能（每死一次掉一层）也是方块状态变化。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
 

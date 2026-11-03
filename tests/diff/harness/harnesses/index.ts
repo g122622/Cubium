@@ -1576,6 +1576,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "满阶段还发事件的话，一丛浆果能让附近幽匿感测体每 tick 醒一次",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "anchor_charge",
+        probe: "anchor_charge",
+        oracle: "AnchorChargeOracle",
+        description: "重生锚充能/放电时的层数变化与事件（RespawnAnchorBlock#charge）—— CHARGES 0..4 x 动作 = 10 个单元；"
+        + "充能 +1 上限 4、放电 -1 下限 0，都发 block_change；已满/已空时不变也不发事件。"
+        + "已达上限还继续加会让层数溢出到 5，光照等级 charges*3.75 算出 18 超出亮度上限",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

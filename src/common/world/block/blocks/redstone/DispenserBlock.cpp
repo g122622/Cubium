@@ -22,6 +22,7 @@
  */
 
 #include "DispenserBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
@@ -45,6 +46,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -192,7 +194,11 @@ bool DispenserBlock::tryDispense(IWorld& world, const BlockPos& pos, const Block
     // 使用储水池采样算法选择非空槽位
     i32 slot = dispenser->getDispenseSlot();
     if (slot < 0) {
-        return false; // 没有物品可发射
+        // 没有物品可发射时仍然发 BLOCK_ACTIVATE（原版这里也发）——
+        // 这是「空响」信号：发射器被红石激活了但没东西可发，侦测端要能听到。
+        // 真正发射物品时反而不发（原版只在 i < 0 分支发）。
+        world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, &state);
+        return false;
     }
 
     // 获取物品
