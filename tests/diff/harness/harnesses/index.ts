@@ -1434,6 +1434,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "灵魂沙改 speedFactor(0.4) 但不改 jumpFactor。只比 friction 会漏掉蜂蜜块与灵魂沙的大半行为，只比 speedFactor 会把冰判成普通方块",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_fire_info",
+        probe: "block_fire_info",
+        oracle: "BlockFireInfoOracle",
+        description: "方块的可燃性参数（FireBlock.setFlammable 的 encouragement/flammability）—— 每个方块一个单元；"
+        + "encouragement 是火焰蔓延到它的概率权重（木板 5、树叶 30），flammability 是它被烧毁的概率权重（木板 20、羊毛 60），两者独立："
+        + "树叶极易被点燃但烧尽速度和木板差不多。火焰传播是概率系统，抄错了不崩溃、只会让火势「感觉不太对」，只能逐方块比对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
