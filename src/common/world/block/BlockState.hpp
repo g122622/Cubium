@@ -351,12 +351,6 @@ public:
     [[nodiscard]] CollisionShape getBlockSupportShapeAt(const BlockPos& pos) const;
 
     /**
-     * @brief 碰撞形状是否随方块位置变化（转发自所属方块）。
-     *
-     * @return 需要按位置求值碰撞/支撑形状时返回 true
-     */
-    
-
     /**
      * @brief 获取遮挡形状
      */
