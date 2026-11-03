@@ -816,6 +816,28 @@ public:
     }
 
     /**
+     * @brief 速度倍率（原版 `Block#getSpeedFactor`）
+     *
+     * 玩家站在这块方块上时，水平移动速度乘以此值。蜂蜜块、灵魂沙为 0.4。
+     * 与摩擦系数是两套机制：摩擦决定「是否会打滑」，速度倍率决定「走得多快」。
+     */
+    [[nodiscard]] f32 speedFactor() const noexcept
+    {
+        return m_speedFactor;
+    }
+
+    /**
+     * @brief 跳跃倍率（原版 `Block#getJumpFactor`）
+     *
+     * 玩家从这块方块起跳时的初速度乘以此值。蜂蜜块为 0.5；灵魂沙是 1.0
+     * （灵魂沙只减速、不限制跳跃）。
+     */
+    [[nodiscard]] f32 jumpFactor() const noexcept
+    {
+        return m_jumpFactor;
+    }
+
+    /**
      * @brief 获取光照等级
      */
     [[nodiscard]] u8 lightLevel() const noexcept

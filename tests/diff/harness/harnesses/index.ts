@@ -1426,6 +1426,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "典型错误形态：16 种染色方块全指到同一颜色、陶瓦错指到 STONE",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_friction",
+        probe: "block_friction",
+        oracle: "BlockFrictionOracle",
+        description: "方块的移动手感三件套——摩擦、速度倍率、跳跃倍率（getFriction / getSpeedFactor / getJumpFactor）；"
+        + "三者互相替代，必须一起比：冰改的是 friction(0.98)、蜂蜜块不改 friction 而改 speedFactor(0.4)+jumpFactor(0.5)、"
+        + "灵魂沙改 speedFactor(0.4) 但不改 jumpFactor。只比 friction 会漏掉蜂蜜块与灵魂沙的大半行为，只比 speedFactor 会把冰判成普通方块",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
