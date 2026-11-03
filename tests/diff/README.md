@@ -506,6 +506,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `shape_face` | 原版 jar `ShapeFaceOracle` | 15 种边界形状 × 6 方向 | 全部一致 | 把 slice/findIndex/isCubeLikeAlong 单独拎出来验证；**结论：切片机制本身正确**，face_sturdy 剩余差异在方块侧 |
 | `block_shape_all` | 原版 jar `BlockShapeAllOracle` | 29671 个状态 × 三种形状 | **全部一致** | 遍历全部属性组合；`block_shape` 只测默认状态，本能力抓非默认状态下的形状错误。收敛路径 13612 → 0 |
 | `axis_cycle` | 原版 jar `AxisCycleOracle` | 75（3 循环 × 3 轴 + 3 inverse + 54 分量重排 + 9 between）| **全部一致** | `AxisCycle` 是 `VoxelShape.collide` 与 `DiscreteVoxelShape` 边/面遍历的底层坐标变换。**两个 `cycle` 重载语义不同**：`cycle(axis)` 推轴序（X→Y→Z），`cycle(x,y,z,axis)` 重排分量后取轴（FORWARD 时 X 取 z）。分量刻意取互不相等且含负数，取错分量会立即显形 |
+| `entity_type_size` | 原版 jar `EntityTypeSizeOracle` | 157 个实体类型（Cubium 已注册 126 个）| **全部一致**，31 个已知缺口 | 比对宽 / 高 / 眼睛高度 / 是否固定——这四项是原版硬编码在 `EntityType.Builder` 里的注册数据，不在数据包中。**浮点输出位模式**（`0x%08x` 的 IEEE-754），避开 Java `Float.toString` 与 C++ `%.6g` 的格式差异。缺口清单见 `known_missing_entity_types.ts`（船/筏 21、展示实体 3、marker/interaction 2、投掷药水 2、breeze_wind_charge/command_block_minecart/creaking/mannequin 4）|
 | `block_shape` | 原版 jar `BlockShapeOracle` | 1166 个方块 × 三种形状 | **全部一致** | 体素化 16³ 输出三种形状；逐盒输出会误报盒子拆分差异，必须体素化 |
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505 个物品的燃料时长 | 全部一致 | 需服务端世界，独占组 `loot-world` |
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470 个配方的分页 | 全部一致 | 配方书分类页归属 |

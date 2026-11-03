@@ -51,6 +51,7 @@ import {
 import { KNOWN_MISSING as blockToolsKnownMissing } from "./known_missing_block_tools.ts";
 import { KNOWN_GAPS as lootContainerKnownGaps, LOOT_CONTAINER_SCENARIO_NAMES, lootContainerInput, lootContainerUnit } from "./loot_container.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
+import { KNOWN_MISSING as entityTypesKnownMissing } from "./known_missing_entity_types.ts";
 import {
     dropProjectOnlyCommands,
     KNOWN_MISSING_COMMANDS,
@@ -1276,6 +1277,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         description: "AxisCycle 三轴循环映射（两个 cycle 重载 + inverse + between）；"
         + "这是 VoxelShape.collide、DiscreteVoxelShape 边/面遍历的底层坐标变换，错一个映射会让上层所有几何整体偏移",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "entity_type_size",
+        probe: "entity_type_size",
+        oracle: "EntityTypeSizeOracle",
+        description: "实体类型注册尺寸（宽 / 高 / 眼睛高度 / 是否固定）；"
+        + "这四项是原版硬编码在每个 EntityType.Builder 里的注册数据，不在数据包中，也没有别的机制能校验抄写是否正确。"
+        + "抄错一位小数不会报错，只会让实体卡进方块或视线落点差一格。浮点输出位模式以避开格式差异",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
     {
         name: "block_shape",
         probe: "block_shape",
