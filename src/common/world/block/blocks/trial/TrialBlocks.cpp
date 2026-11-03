@@ -128,6 +128,24 @@ i32 TrialSpawnerBlock::getComparatorInputOverride(const BlockState& state, IWorl
     }
 }
 
+u8 TrialSpawnerBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 原版按状态分级：待机 4、其余非 inactive 状态 8、inactive 熄灯。
+    // 由差分能力 block_light_emission 逐状态实测。
+    switch (state.get(BlockStateProperties::TRIAL_SPAWNER_STATE())) {
+        case BlockStateProperties::TrialSpawnerState::Inactive:
+        case BlockStateProperties::TrialSpawnerState::Cooldown:
+            return 0;
+        case BlockStateProperties::TrialSpawnerState::WaitingForPlayers:
+            return 4;
+        default:
+            return 8;
+    }
+}
+
 // ============================================================================
 // VaultBlock
 // ============================================================================
@@ -172,6 +190,16 @@ BlockState VaultBlock::getStateForPlacement(BlockItemUseContext& context)
         .with(FACING(), Directions::opposite(context.horizontalDirection()))
         .with(BlockStateProperties::VAULT_STATE(), BlockStateProperties::VaultState::Inactive)
         .with(BlockStateProperties::OMINOUS(), false);
+}
+
+u8 VaultBlock::getLightLevel(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 原版按状态分级：未激活 6、激活后（active / unlocking / ejecting）12。
+    // 由差分能力 block_light_emission 逐状态实测。
+    return state.get(BlockStateProperties::VAULT_STATE()) == BlockStateProperties::VaultState::Inactive ? 6 : 12;
 }
 
 // ============================================================================

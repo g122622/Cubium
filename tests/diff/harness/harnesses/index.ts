@@ -1400,6 +1400,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "而比较器读箱子时按 count/maxStackSize 折算占比，上限错会让**信号强度整体偏移**",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_light_emission",
+        probe: "block_light_emission",
+        oracle: "BlockLightEmissionOracle",
+        description: "方块状态的发光强度（BlockBehaviour.getLightEmission）—— 每个状态一个单元；"
+        + "与 light_occlusion 互补：后者量「光穿过这一格后还剩多少」，本条量「这一格自己发出多少光」。"
+        + "只测衰减时，一个本该发光却写成 0 的火把看起来「透光性完美」，但整间屋子不亮。"
+        + "原版用 MAX_LEVEL 截断，抄成 16 与 15 在游戏里看不出区别，只能靠比对发现",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
