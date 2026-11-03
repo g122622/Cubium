@@ -68,8 +68,6 @@ FlowerBedBlock::FlowerBedBlock(const BlockProperties& properties)
 
     // 默认状态：朝北、1个花瓣
     setDefaultState(defaultState().with(FACING(), Direction::North).with(AMOUNT(), 1));
-
-    _initShapes();
 }
 
 // ========== 放置逻辑 ==========
@@ -228,137 +226,47 @@ void FlowerBedBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& 
 
 const CollisionShape& FlowerBedBlock::getShape(const BlockState& state) const
 {
-    Direction facing = _getFacing(state);
-    i32 amount = _getAmount(state);
+    // 原版 `pink_petals` / `wildflowers` 的 getShape 与 leaf_litter 同构：
+    // 从 FACING 指向的那个角开始铺开。逐条实测（forAllBoxes）：
+    //
+    //   north n1 -> [0,0,0 -> .5,.19,.5]    n2 -> [0,0,0 -> .5,.19,1]
+    //   east  n1 -> [.5,0,0 -> 1,.19,.5]    n2 -> [0,0,0 -> 1,.19,.5]
+    //   south n1 -> [.5,0,.5 -> 1,.19,1]    n2 -> [.5,0,0 -> 1,.19,1]
+    //   west  n1 -> [0,0,.5 -> .5,.19,1]    n2 -> [0,0,.5 -> 1,.19,1]
+    //
+    // n3 / n4 一律满格。此前用的是四象限映射，与「从一角铺开」的语义无关。
+    const i32 amount = _getAmount(state);
+    const Direction facing = _getFacing(state);
+    MC_ASSERT(amount >= 1 && amount <= 4);
 
-    // 将 (facing, amount) 映射到索引
-    i32 facingIndex = 0;
-    switch (facing) {
-        case Direction::North:
-            facingIndex = 0;
-            break;
-        case Direction::East:
-            facingIndex = 1;
-            break;
-        case Direction::South:
-            facingIndex = 2;
-            break;
-        case Direction::West:
-            facingIndex = 3;
-            break;
-        default:
-            facingIndex = 0;
-            break;
-    }
-
-    i32 index = facingIndex * 4 + (amount - 1);
-    MC_ASSERT_RELEASE(index >= 0 && index < static_cast<i32>(m_shapes.size()));
-    return m_shapes[index];
-}
-
-// ========== 私有方法 ==========
-
-void FlowerBedBlock::_initShapes()
-{
-    // 预计算所有 4x4=16 种形状
-    m_shapes.resize(16);
-
-    static constexpr Direction FACINGS[4] = {
-        Direction::North,
-        Direction::East,
-        Direction::South,
-        Direction::West,
+    struct Entry {
+        Direction facing;
+        i32 amount;
+        CollisionShape shape;
     };
 
-    for (i32 facingIdx = 0; facingIdx < 4; ++facingIdx) {
-        for (i32 amount = 1; amount <= 4; ++amount) {
-            i32 index = facingIdx * 4 + (amount - 1);
-            m_shapes[index] = _calculateShape(FACINGS[facingIdx], amount);
+    static const std::array<Entry, 8> entries = {{
+        {Direction::North, 1, CollisionShape::box(0.0f, 0.0f, 0.0f, 0.5f, 0.1875f, 0.5f)},
+        {Direction::North, 2, CollisionShape::box(0.0f, 0.0f, 0.0f, 0.5f, 0.1875f, 1.0f)},
+        {Direction::East, 1, CollisionShape::box(0.5f, 0.0f, 0.0f, 1.0f, 0.1875f, 0.5f)},
+        {Direction::East, 2, CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.1875f, 0.5f)},
+        {Direction::South, 1, CollisionShape::box(0.5f, 0.0f, 0.5f, 1.0f, 0.1875f, 1.0f)},
+        {Direction::South, 2, CollisionShape::box(0.5f, 0.0f, 0.0f, 1.0f, 0.1875f, 1.0f)},
+        {Direction::West, 1, CollisionShape::box(0.0f, 0.0f, 0.5f, 0.5f, 0.1875f, 1.0f)},
+        {Direction::West, 2, CollisionShape::box(0.0f, 0.0f, 0.5f, 1.0f, 0.1875f, 1.0f)},
+    }};
+    static const CollisionShape fullShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.1875f, 1.0f);
+
+    if (amount >= 3) {
+        return fullShape;
+    }
+    for (const Entry& entry : entries) {
+        if (entry.facing == facing && entry.amount == amount) {
+            return entry.shape;
         }
     }
-}
-
-CollisionShape FlowerBedBlock::_calculateShape(Direction facing, i32 amount)
-{
-    // 花瓣床形状：每个花瓣段为 8x3x8 像素盒子
-    // 高度 3/16 = 0.1875
-    static constexpr f32 HEIGHT = 3.0f / 16.0f;
-
-    // 四个象限的盒子坐标（以 NORTH 朝向为基准）
-    // MC 源码中 SegmentableBlock 的形状计算：
-    // 基础盒子 box(0,0,0, 8,height,8) 旋转水平方向后得到各朝向的段0
-    // 然后逆时针旋转得到段1、段2、段3
-    //
-    // NORTH 朝向的段位置：
-    //   段0 (facing方向):     (0, 0, 0) - (0.5, H, 0.5)   NW象限
-    //   段1 (逆时针90度):    (0, 0, 0.5) - (0.5, H, 1)   SW象限
-    //   段2 (逆时针180度):   (0.5, 0, 0.5) - (1, H, 1)   SE象限
-    //   段3 (逆时针270度):   (0.5, 0, 0) - (1, H, 0.5)   NE象限
-
-    struct Box {
-        f32 x1, y1, z1, x2, y2, z2;
-    };
-
-    // 各朝向的段位置（通过旋转NORTH的段坐标得到）
-    // EAST: 旋转90度CW -> (z, x) 变换
-    // SOUTH: 旋转180度 -> (1-x, 1-z) 变换
-    // WEST: 旋转90度CCW -> (1-z, 1-x) 变换
-    static constexpr Box SEGMENTS[4][4] = {
-        // North: 段0(NW), 段1(SW), 段2(SE), 段3(NE)
-        {{0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f}},
-        // East: 段0(NE), 段1(NW), 段2(SW), 段3(SE)
-        {{0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f}},
-        // South: 段0(SE), 段1(NE), 段2(NW), 段3(SW)
-        {{0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f}},
-        // West: 段0(SW), 段1(SE), 段2(NE), 段3(NW)
-        {{0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f}},
-    };
-
-    i32 facingIdx = 0;
-    switch (facing) {
-        case Direction::North:
-            facingIdx = 0;
-            break;
-        case Direction::East:
-            facingIdx = 1;
-            break;
-        case Direction::South:
-            facingIdx = 2;
-            break;
-        case Direction::West:
-            facingIdx = 3;
-            break;
-        default:
-            facingIdx = 0;
-            break;
-    }
-
-    // 构建形状：叠加各个段的盒子
-    CollisionShape shape = CollisionShape::box(SEGMENTS[facingIdx][0].x1,
-        SEGMENTS[facingIdx][0].y1,
-        SEGMENTS[facingIdx][0].z1,
-        SEGMENTS[facingIdx][0].x2,
-        SEGMENTS[facingIdx][0].y2,
-        SEGMENTS[facingIdx][0].z2);
-
-    for (i32 i = 1; i < amount; ++i) {
-        const Box& seg = SEGMENTS[facingIdx][i];
-        shape.addBox(seg.x1, seg.y1, seg.z1, seg.x2, seg.y2, seg.z2);
-    }
-
-    return shape;
+    MC_ASSERT_RELEASE_MSG(false, "flower bed: no shape for the given facing/amount");
+    return fullShape;
 }
 
 i32 FlowerBedBlock::_getAmount(const BlockState& state) const

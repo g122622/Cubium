@@ -157,8 +157,28 @@ void BigDripleafStemBlock::tick(IWorld& world, const BlockPos& pos, BlockState& 
 
 const CollisionShape& BigDripleafStemBlock::getShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    return m_shape;
+    // 原版茎的 getShape 随 FACING 绕 Y 轴旋转（`Shapes.rotateHorizontal`）。
+    // 逐条按 forAllBoxes 实测（big_dripleaf_stem）：
+    //
+    //   north -> [0.3125,0,0.5625 -> 0.6875,1,0.9375]
+    //   east  -> [0.0625,0,0.3125 -> 0.4375,1,0.6875]
+    //   south -> [0.3125,0,0.0625 -> 0.6875,1,0.4375]
+    //   west  -> [0.5625,0,0.3125 -> 0.9375,1,0.6875]
+    //
+    // 此前无条件返回 NORTH 的 `m_shape`，四个朝向里三个是错的——
+    // 茎在朝东/南/西的大垂滴叶下方会明显错位。
+    static const std::array<CollisionShape, 6> shapes = {
+        CollisionShape::empty(),                                             // Down
+        CollisionShape::empty(),                                             // Up
+        CollisionShape::box(0.3125f, 0.0f, 0.5625f, 0.6875f, 1.0f, 0.9375f), // North
+        CollisionShape::box(0.3125f, 0.0f, 0.0625f, 0.6875f, 1.0f, 0.4375f), // South
+        CollisionShape::box(0.5625f, 0.0f, 0.3125f, 0.9375f, 1.0f, 0.6875f), // West
+        CollisionShape::box(0.0625f, 0.0f, 0.3125f, 0.4375f, 1.0f, 0.6875f), // East
+    };
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const auto index = static_cast<std::size_t>(facing);
+    MC_ASSERT(index < shapes.size() && Directions::isHorizontal(facing));
+    return shapes[index];
 }
 
 const fluid::FluidState* BigDripleafStemBlock::getFluidState(const BlockState& state) const

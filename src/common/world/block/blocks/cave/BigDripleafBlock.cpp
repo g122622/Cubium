@@ -216,6 +216,7 @@ std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
     };
 
     const CollisionShape noBlades = CollisionShape::empty();
+    MC_UNUSED(noBlades);
 
     std::array<std::array<CollisionShape, 6>, 4> shapes{};
     for (const Direction dir : {Direction::North, Direction::South, Direction::West, Direction::East}) {
@@ -226,7 +227,9 @@ std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
             makeShape(stemNorth, bladesNorth, dir);
         shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Partial)][f] =
             makeShape(stemNorthPartial, bladesNorthPartial, dir);
-        shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Full)][f] = makeShape(stemNorth, noBlades, dir);
+        // tilt=full：叶片完全垂下，只剩茎，且茎的上沿压到 0.8125。
+        const CollisionShape& fullStem = rotateFor(stemNorthPartial, dir);
+        shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Full)][f] = fullStem;
     }
     return shapes;
 }
