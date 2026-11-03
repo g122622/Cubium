@@ -1495,6 +1495,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "判定错不崩溃、不掉日志，只会让某些角度敲不响或不该响的地方能响",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "jukebox_insert",
+        probe: "jukebox_insert",
+        oracle: "JukeboxInsertOracle",
+        description: "唱片机的交互判定（JukeboxPlayable#tryInsertIntoJukebox 的分支表）—— 4 种手持物 x HAS_RECORD = 8 个单元；"
+        + "只有三种结果：insert（手里是唱片且机器空着）、eject（机器里有唱片，任何手持物都一样）、try_empty_hand（都不是）。"
+        + "陷阱是顺序：「机器里有唱片」优先于「手里拿什么」—— 拿着另一张唱片点也是先弹旧的，写反了旧唱片会凭空消失",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
