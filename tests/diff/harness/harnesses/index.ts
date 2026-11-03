@@ -1552,6 +1552,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "写成并列四个 if 会让一次扯断连发两个事件两个音效，幽匿感测体被连续唤醒、红石计时装置算错 tick。都不变时必须完全静默",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "farmland_decay",
+        probe: "farmland_decay",
+        oracle: "FarmlandDecayOracle",
+        description: "耕地退化时的方块替换与事件（FarmBlock#turnToDirt）—— 耕地 MOISTURE 0..7 = 8 个单元；"
+        + "被踩踏、缺水、上方被盖住三条路径都走 turnToDirt：换方块 + 发 block_change。"
+        + "换方块与发事件是两件事，幽匿感测体只认 gameEvent，不发就完全感知不到耕地被踩坏",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

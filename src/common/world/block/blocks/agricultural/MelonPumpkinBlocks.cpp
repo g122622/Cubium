@@ -22,6 +22,7 @@
  */
 
 #include "MelonPumpkinBlocks.hpp"
+
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
@@ -59,6 +60,7 @@
 #include "common/world/block/blocks/copper/CopperChestBlock.hpp"
 #include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <cstddef>
 #include <memory>
@@ -116,27 +118,12 @@ BlockActionResult PumpkinBlock::useItemOn(ItemStack& stack,
     }
 
     // 计算雕刻南瓜的朝向
+    // 点上下两面时朝向取玩家的反方向（原版 `player.getDirection().getOpposite()`）。
+    // 直接复用 `Directions::fromYRot` —— 它就是原版 `Direction.fromYRot` 的逐字对应，
+    // 手写四档 if 容易和它的边界（±45° 取最近象限）悄悄错开。
     Direction facing = hit.face();
     if (facing == Direction::Up || facing == Direction::Down) {
-        f32 yaw = player.yaw();
-        while (yaw < 0.0f) {
-            yaw += 360.0f;
-        }
-        while (yaw >= 360.0f) {
-            yaw -= 360.0f;
-        }
-
-        Direction playerFacing;
-        if (yaw < 45.0f || yaw >= 315.0f) {
-            playerFacing = Direction::South;
-        } else if (yaw < 135.0f) {
-            playerFacing = Direction::West;
-        } else if (yaw < 225.0f) {
-            playerFacing = Direction::North;
-        } else {
-            playerFacing = Direction::East;
-        }
-        facing = Directions::opposite(playerFacing);
+        facing = Directions::opposite(Directions::fromYRot(static_cast<f64>(player.yaw())));
     }
 
     // 播放雕刻音效
@@ -151,6 +138,10 @@ BlockActionResult PumpkinBlock::useItemOn(ItemStack& stack,
 
     // flag 11: 通知邻居 + 更新客户端
     world.setBlockState(pos, carvedState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
+
+    // 用剪刀雕刻是「剪」这个动作，发 SHEAR 而不是 BLOCK_CHANGE ——
+    // 幽匿感测体对剪切单独归类（和剪羊毛、剪蜂巢同一类）。
+    world.gameEvent(gameevent::GameEvents::SHEAR, pos, carvedState);
 
     // 生成南瓜种子（4个）
     math::Random rng(static_cast<u64>(pos.x ^ pos.y ^ pos.z));
