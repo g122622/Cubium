@@ -52,6 +52,7 @@ import { KNOWN_MISSING as blockToolsKnownMissing } from "./known_missing_block_t
 import { KNOWN_GAPS as lootContainerKnownGaps, LOOT_CONTAINER_SCENARIO_NAMES, lootContainerInput, lootContainerUnit } from "./loot_container.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
 import { KNOWN_MISSING as entityTypesKnownMissing } from "./known_missing_entity_types.ts";
+import { KNOWN_DISPENSE_GAPS } from "./known_dispense_gaps.ts";
 import {
     dropProjectOnlyCommands,
     KNOWN_MISSING_COMMANDS,
@@ -1286,6 +1287,21 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "抄错一位小数不会报错，只会让实体卡进方块或视线落点差一格。浮点输出位模式以避开格式差异",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
         oracleMissing: entityTypesKnownMissing },
+    {
+        name: "dispense_behavior",
+        probe: "dispense_behavior",
+        oracle: "DispenseBehaviorOracle",
+        description: "发射器行为表：每个物品是否注册了专用行为、是否为 OptionalDispenseItemBehavior；"
+        + "原版 169 条注册里 109 条是匿名子类（类名是 DispenserBlock$1 这种序号），跨实现不可比，"
+        + "因此比对归一化标签与 isSuccess() 初值——后者决定是否播发射音效、是否消耗物品",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: itemsKnownMissing,
+        knownDifferences: KNOWN_DISPENSE_GAPS.flatMap((unit) =>
+            ["registered", "kind", "successDefault"].map((field) => ({
+                key: unit,
+                field,
+                reason: "Cubium 尚未注册该类发射器行为（见 known_dispense_gaps.ts 的分组与修法）",
+            }))) },
     {
         name: "block_shape",
         probe: "block_shape",

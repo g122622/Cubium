@@ -553,7 +553,6 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
                     // 成功拾取流体，获取对应满桶
                     BucketItem* filledBucket = BucketItem::getFilledBucket(*pickedFluid);
                     if (filledBucket != nullptr) {
-                        _setSuccess(true);
                         _playSound(world, pos);
                         _spawnParticles(world, pos, direction);
 
@@ -575,7 +574,6 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
                         world.playSound(*pickupSound, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
                     }
 
-                    _setSuccess(true);
                     _playSound(world, pos);
                     _spawnParticles(world, pos, direction);
 
@@ -588,7 +586,6 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
     }
 
     // 目标不是可拾取流体的方块，回退到默认投掷行为
-    _setSuccess(false);
     return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
 }
 

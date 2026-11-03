@@ -260,7 +260,14 @@ protected:
 class OptionalDispenseItemBehavior : public DefaultDispenseItemBehavior {
 public:
     OptionalDispenseItemBehavior()
-        : m_success(true)
+        // 初值必须是 **false**：原版 `OptionalDispenseItemBehavior` 只有子类真正做成事时
+        // 才 `setSuccess(true)`，未置位就代表「这次没做成」。
+        //
+        // 这个标志决定**是否播发射音效、是否消耗物品**。初值写成 true 会让放置类行为
+        // （骨粉、打火石、TNT、潜影盒、桶…）在目标位置不可用时仍然消耗物品并播放成功音效。
+        // 由差分能力 dispense_behavior 查出：bone_meal / flint_and_steel / tnt 三项的
+        // isSuccess() 初值与原版相反。
+        : m_success(false)
     {}
 
     [[nodiscard]] bool isSuccess() const override
@@ -371,7 +378,11 @@ private:
  *
  * 从世界中收集流体（水、岩浆）或非流体内容物（细雪）到桶中。
  */
-class EmptyBucketDispenseBehavior : public OptionalDispenseItemBehavior {
+// 空桶用的是**普通** DefaultDispenseItemBehavior（`isSuccess()` 恒为 true），
+// 不是 Optional——原版那一段是 `new DefaultDispenseItemBehavior() { ... }`。
+// 用 Optional 会让「前方不是可舀取方块」这条路径被判为失败，从而少播一次发射音效。
+// 由差分能力 dispense_behavior 查出。
+class EmptyBucketDispenseBehavior : public DefaultDispenseItemBehavior {
 public:
     EmptyBucketDispenseBehavior() = default;
 
