@@ -495,7 +495,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `boolean_property_index` | 原版 jar `BooleanPropertyIndexOracle` | 50 个布尔属性 × 7 单元 | 250 处差异（**已溯源，判定无害**）| Cubium 的 `allowedValues()` 是 `{false,true}`，原版是 `[true,false]`；网络层按状态名映射，不泄漏 |
 | `enum_property_order` | 原版 jar `EnumPropertyOrderOracle` | FACING × 2 属性共 36 单元 | 全一致，**修复 2 处缺陷** | `FACING`/`HORIZONTAL_FACING` 值顺序错，调试棒行为与 Java 版不符 |
 | `enum_property_order_all` | 原版 jar `EnumPropertyOrderAllOracle` | 全部 40 个枚举属性 × 3 单元 | 全一致，**修复 3 处缺陷** | `SLAB_TYPE`/`VERTICAL_DIRECTION`/`SIDE_CHAIN_PART` 顺序错，调试棒循环方向相反 |
-| `face_sturdy` | 原版 jar `FaceSturdyOracle` | 1166 方块 × 6 方向 × 3 类型 = 20988 | **部分通过**：625 → 8 处差异 | 已修 12 处方块形状缺陷；剩余主因是 `CollisionShape` 只能存轴对齐盒并集，无法表达带空洞拓扑（见下文）|
+| `face_sturdy` | 原版 jar `FaceSturdyOracle` | 1166 方块 × 6 方向 × 3 类型 = 20988 | **全部一致**（625 → 0）| 已修 12 处方块形状缺陷；剩余差异随 `getBlockSupportShapeAt` 的位置偏移修正一并收敛 |
 | `world_border` | 原版 jar `WorldBorderOracle` | 5 配置 × (1 extent + 10 block + 6 aabb) = 85 | 全部一致，**修复 3 处缺陷** | `setSize` 钳制、`contains` 下界开闭、`BlockPos` 重载多查 +1（见下文）|
 | `easing_type` | 原版 jar `EasingTypeOracle` | 32 种缓动 × 9 采样点 = 288 | 275 一致、13 处 1 ulp 差异 | **修复 3 处**（elastic 误用 `mthSin`）；剩余为 `-ffast-math` 的 FMA 收缩（见下文）|
 | `mth_interpolation` | 原版 jar `MthInterpolationOracle` | catmullrom 5 + smoothstep 7 = 12 | 全部一致 | Cubium 缺 `catmullrom`/`lerp2`，`smoothstep` 三参数版与 `Mth` 单参数版语义不同（见下文）|
@@ -504,7 +504,8 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `sound_events` | 原版 jar `SoundEventsOracle`（反射枚举）| 1637 个音效 ID | 全部一致，**补齐 549 个缺失 ID** | 音效 ID 是 sounds.json 键与网络包内容，缺项会让行为完全无声 |
 | `particle_type` | 原版 jar `ParticleTypeOracle`（注册表顺序）| 115 个粒子类型 | 110 一致、5 处已登记命名差异 | 枚举值直接是网络协议 ID，错一位会让后续全部错位且不报错；**索引已验证完全对齐** |
 | `shape_face` | 原版 jar `ShapeFaceOracle` | 15 种边界形状 × 6 方向 | 全部一致 | 把 slice/findIndex/isCubeLikeAlong 单独拎出来验证；**结论：切片机制本身正确**，face_sturdy 剩余差异在方块侧 |
-| `block_shape_all` | 原版 jar `BlockShapeAllOracle` | 29671 个状态 × 三种形状 | **全部一致** | 遍历全部属性组合；`block_shape` 只测默认状态，本能力抓非默认状态下的形状错误 |
+| `block_shape_all` | 原版 jar `BlockShapeAllOracle` | 29671 个状态 × 三种形状 | **全部一致** | 遍历全部属性组合；`block_shape` 只测默认状态，本能力抓非默认状态下的形状错误。收敛路径 13612 → 0 |
+| `axis_cycle` | 原版 jar `AxisCycleOracle` | 75（3 循环 × 3 轴 + 3 inverse + 54 分量重排 + 9 between）| **全部一致** | `AxisCycle` 是 `VoxelShape.collide` 与 `DiscreteVoxelShape` 边/面遍历的底层坐标变换。**两个 `cycle` 重载语义不同**：`cycle(axis)` 推轴序（X→Y→Z），`cycle(x,y,z,axis)` 重排分量后取轴（FORWARD 时 X 取 z）。分量刻意取互不相等且含负数，取错分量会立即显形 |
 | `block_shape` | 原版 jar `BlockShapeOracle` | 1166 个方块 × 三种形状 | **全部一致** | 体素化 16³ 输出三种形状；逐盒输出会误报盒子拆分差异，必须体素化 |
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505 个物品的燃料时长 | 全部一致 | 需服务端世界，独占组 `loot-world` |
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470 个配方的分页 | 全部一致 | 配方书分类页归属 |

@@ -1270,6 +1270,13 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     + "block_shape 只测默认状态，本能力遍历约 3 万个状态，用于抓只在非默认状态下出现的形状错误",
     key: "unit", units: { kind: "listing" }, input: blockShapeAllInput },
     {
+        name: "axis_cycle",
+        probe: "axis_cycle",
+        oracle: "AxisCycleOracle",
+        description: "AxisCycle 三轴循环映射（两个 cycle 重载 + inverse + between）；"
+        + "这是 VoxelShape.collide、DiscreteVoxelShape 边/面遍历的底层坐标变换，错一个映射会让上层所有几何整体偏移",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
