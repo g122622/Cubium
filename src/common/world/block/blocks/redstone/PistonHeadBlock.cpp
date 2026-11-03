@@ -147,15 +147,21 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
     // 退回整格立方体，活塞头被误判为完全挡光（lightBlock=15）。
     static const std::array<std::array<CollisionShape, 6>, 2> shapes = {
         std::array<CollisionShape, 6>{
-            // 短臂
+            // 短臂：平台贴在 FACING 的**对侧**（厚度 4 像素），细杆从平台起沿 FACING
+            // 一直伸到方块另一端（16 像素）。逐条按 forAllBoxes 实测：
+            //   short+north -> 平台 z 0..4    杆 z 4..16   中心 4x4
+            //   short+south -> 平台 z 12..16  杆 z 0..12
+            //   short+west  -> 平台 x 0..4    杆 x 4..16
+            //   short+east  -> 平台 x 12..16  杆 x 0..12
+            // 此前每条的杆都从平台**起点**量到 12/16，方向反了——短臂活塞头看上去像根倒插的钉子。
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
                 CollisionShape::fromPixelBox(6, 0, 6, 10, 12, 10)), // Down
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
                 CollisionShape::fromPixelBox(6, 4, 6, 10, 16, 10)), // Up
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
-                CollisionShape::fromPixelBox(6, 6, 0, 10, 10, 12)), // North
+                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 16)), // North
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 16)), // South
+                CollisionShape::fromPixelBox(6, 6, 0, 10, 10, 12)), // South
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 4, 16, 16),
                 CollisionShape::fromPixelBox(4, 6, 6, 16, 10, 10)), // West
             CollisionShape::combine(CollisionShape::fromPixelBox(12, 0, 0, 16, 16, 16),

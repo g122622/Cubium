@@ -131,15 +131,15 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     constexpr f32 Y1 = 0.5625f; // 9 像素
     constexpr f32 Y2 = 0.1875f; // 3 像素
 
-    // head_north：腿在 z 13..16。
+    // head_north：腿在 **z 0..3**（原版实测 box z 0..0.1875）。
     const CollisionShape headNorth = CollisionShape::combine(
-        CollisionShape::combine(CollisionShape::box(A, Y0, C, B, Y1, D), CollisionShape::box(C, Y0, C, D, Y1, D)),
-        CollisionShape::combine(CollisionShape::box(A, Y2, A, D, Y1, C), CollisionShape::box(B, Y2, C, C, Y1, D)));
-
-    // head_south：腿在 z 0..3。
-    const CollisionShape headSouth = CollisionShape::combine(
         CollisionShape::combine(CollisionShape::box(A, Y0, A, B, Y1, B), CollisionShape::box(C, Y0, A, D, Y1, B)),
         CollisionShape::combine(CollisionShape::box(A, Y2, B, D, Y1, D), CollisionShape::box(B, Y2, A, C, Y1, B)));
+
+    // head_south：腿在 z 13..16。
+    const CollisionShape headSouth = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::box(A, Y0, C, B, Y1, D), CollisionShape::box(C, Y0, C, D, Y1, D)),
+        CollisionShape::combine(CollisionShape::box(A, Y2, A, D, Y1, C), CollisionShape::box(B, Y2, C, C, Y1, D)));
 
     // head_east：腿在 x 13..16。
     const CollisionShape headEast = CollisionShape::combine(

@@ -233,19 +233,42 @@ const CollisionShape& FenceGateBlock::getShape(const BlockState& state) const
 
 const CollisionShape& FenceGateBlock::getCollisionShape(const BlockState& state) const
 {
+    // 原版栅栏门的碰撞形状与外形**两回事**，逐条按实测（oak_fence_gate）：
+    //
+    //   open=false, in_wall=false   外形 y 0..1.0      碰撞 y 0..1.5
+    //   open=false, in_wall=true    外形 y 0..0.8125   碰撞 y 0..1.5
+    //   open=true  （两者皆同）      外形同上           碰撞 **空**
+    //
+    // 即：碰撞是一块固定的 1.5 高竖板，**不随 in_wall 削短**（扒在墙上拉门时
+    // 撞到的仍是整块）；而 open=true 时完全没有碰撞（拉下的门可穿过）。
+    //
+    // 此前 open=true 返回空是对的，但 in_wall=true 沿用了削短的 0.8125 高表，
+    // 门顶 13..16 那段凭空消失。
     if (state.get(BlockStateProperties::OPEN())) {
         return VoxelShapes::empty();
     }
 
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    bool inWall = state.get(BlockStateProperties::IN_WALL());
-
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
-    if (index >= Directions::COUNT || !Directions::isHorizontal(facing)) {
-        index = static_cast<size_t>(Direction::North);
-    }
+    MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
 
-    return inWall ? m_inWallClosedShapes[index] : m_closedShapes[index];
+    // m_closedShapes 是满高 1.0 的板；碰撞需要 1.5，统一抬高。
+    // 朝北/朝南时板沿 X 延伸、厚度在 Z（z 0.375..0.625）；
+    // 朝东/朝西时板沿 Z 延伸、厚度在 X（x 0.375..0.625）。
+    static const std::array<CollisionShape, 6> tallShapes = [] {
+        std::array<CollisionShape, 6> out;
+        constexpr f32 LO = 6.0f / 16.0f;  // 0.375
+        constexpr f32 HI = 10.0f / 16.0f; // 0.625
+        constexpr f32 TOP = 1.5f;
+        const CollisionShape alongZ = CollisionShape::box(0.0f, 0.0f, LO, 1.0f, TOP, HI);
+        const CollisionShape alongX = CollisionShape::box(LO, 0.0f, 0.0f, HI, TOP, 1.0f);
+        out[static_cast<size_t>(Direction::North)] = alongZ;
+        out[static_cast<size_t>(Direction::South)] = alongZ;
+        out[static_cast<size_t>(Direction::West)] = alongX;
+        out[static_cast<size_t>(Direction::East)] = alongX;
+        return out;
+    }();
+    return tallShapes[index];
 }
 
 const CollisionShape& FenceGateBlock::getBlockSupportShape(const BlockState& state) const
