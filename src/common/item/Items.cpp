@@ -1582,7 +1582,9 @@ void Items::initialize()
     auto& registry = ItemRegistry::instance();
 
     // 空气物品（ID 0）
-    AIR = &registry.registerItem(ResourceLocation("minecraft:air"), ItemProperties().maxStackSize(64));
+    // 空气物品的堆叠上限是 1（原版 ItemStack.getMaxStackSize() 对 minecraft:air 返回 1）。
+    // 空气不可获得，但它出现在物品栏占位与比较器读数据里，上限必须与其它不可堆叠物品一致。
+    AIR = &registry.registerItem(ResourceLocation("minecraft:air"), ItemProperties().maxStackSize(1));
 
     _registerMaterials();
     _registerMisc(); // 提前注册，因为工具层级需要木板等作为修复材料
@@ -3091,9 +3093,9 @@ void Items::_registerBuckets()
     // 空桶 - 用于装水/岩浆/牛奶
     BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:bucket"),
         nullptr, // 空桶没有流体
-        // 空桶**不可堆叠**（原版 bucket 的 maxStackSize 是 1）。此前写成 16，
-        // 于是 16 个空桶能挤进一格，且比较器读箱子时按 1/16 折算它们的占比。
-        ItemProperties().maxStackSize(1));
+        // 空桶可堆叠 16 个（原版 ItemStack.getMaxStackSize() 对 minecraft:bucket 返回 16，
+        // 由 item_max_stack_size 能力逐物品实测确认）。
+        ItemProperties().maxStackSize(16));
 
     // 水桶 - 装满水的桶
     // 水桶使用后返回空桶，所以 containerItem 设为 BUCKET

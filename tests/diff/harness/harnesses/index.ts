@@ -1391,6 +1391,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "`f > 0` 才 +1 所以非空最低为 1 而空箱为 0、先逐格累加再整体除以槽位数",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "item_max_stack_size",
+        probe: "item_max_stack_size",
+        oracle: "ItemMaxStackSizeOracle",
+        description: "全部物品的堆叠上限（ItemStack.getMaxStackSize 的默认值）—— 每个已注册物品一个单元；"
+        + "上限是散落在上千处物品注册调用里的小整数（64/16/1），抄错不会崩溃但会实实在在影响玩法："
+        + "本该 1 的桶会在一个格子叠一摞、本该 64 的食材会让物品栏凭空多占格子、"
+        + "而比较器读箱子时按 count/maxStackSize 折算占比，上限错会让**信号强度整体偏移**",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

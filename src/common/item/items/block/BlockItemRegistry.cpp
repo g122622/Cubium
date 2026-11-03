@@ -353,7 +353,11 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHEST, "chest");
     registerSimpleBlock(VanillaBlocks::TRAPPED_CHEST, "trapped_chest");
 
-    // 铁砧（最大堆叠数为1）
+    // 铁砧（可堆叠 64）
+    //
+    // 原版 ItemStack.getMaxStackSize() 对 anvil / chipped_anvil / damaged_anvil 都返回 64
+    // （由 item_max_stack_size 能力逐物品实测）。此前这里写成 1，于是铁砧在物品栏里
+    // 一格只能放一个，与其它方块类物品都不一致。
     {
         auto registerAnvilBlock = [this](Block* block, const std::string& name) {
             if (block == nullptr) {
@@ -372,7 +376,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
                 }
             } else {
                 registeredItem = &ItemRegistry::instance().registerItem<BlockItem>(
-                    itemLoc, *block, ItemProperties().maxStackSize(1));
+                    itemLoc, *block, ItemProperties().maxStackSize(64));
             }
             u32 blockId = block->blockId();
             ItemId itemId = registeredItem->itemId();
