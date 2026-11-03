@@ -22,6 +22,7 @@
  */
 
 #include "IWorld.hpp"
+#include "gameevent/GameEvents.hpp"
 #include "WorldEvents.hpp"
 #include "block/Block.hpp"
 #include "block/BlockRegistry.hpp"

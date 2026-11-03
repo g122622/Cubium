@@ -197,15 +197,11 @@ std::string runLine(std::string_view inputLine)
     // 用 getShapeAt 而非 getShape：前者会按方块自身是否在 getShape 里应用偏移来返回，
     // 与原版 `getShape(state, level, pos, ctx)` 的语义一致。
     //
-    // 碰撞/支撑形状同理：多数方块与位置无关，只有 `isCollisionShapePositionDependent()`
-    // 为真的方块（竹子、滴水石锥）才需要在指定位置求值。不能无条件走 `*At`——那会把
-    // 「碰撞形状 ≠ 外形」的几十种方块（栅栏、台阶、悬挂牌等）全部算错。
     const BlockPos probePos(0, 0, 0);
-    const bool positionDependent = state->isCollisionShapePositionDependent();
-    const CollisionShape collisionShape =
-        positionDependent ? state->getCollisionShapeAt(probePos) : state->getCollisionShape();
-    const CollisionShape supportShape =
-        positionDependent ? state->getBlockSupportShapeAt(probePos) : state->getBlockSupportShape();
+    // 位置偏移已内建进无位置版本（`getCollisionShape` 默认转调 `getShapeAt`），
+    // 因此这里统一走带位置的重载，不需要额外的「是否位置相关」判断。
+    const CollisionShape collisionShape = state->getCollisionShapeAt(probePos);
+    const CollisionShape supportShape = state->getBlockSupportShapeAt(probePos);
 
     const std::string result = "shape=" + describe(state->getShapeAt(probePos)) +
         "|collision=" + describe(collisionShape) + "|support=" + describe(supportShape);

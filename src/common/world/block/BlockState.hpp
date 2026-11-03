@@ -355,7 +355,7 @@ public:
      *
      * @return 需要按位置求值碰撞/支撑形状时返回 true
      */
-    [[nodiscard]] bool isCollisionShapePositionDependent() const noexcept;
+    
 
     /**
      * @brief 获取遮挡形状

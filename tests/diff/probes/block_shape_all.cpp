@@ -268,13 +268,11 @@ std::string runLine(std::string_view inputLine)
     }
 
     // 三种形状在固定位置求值，扁平字符串便于逐字节比对。
-    // 用 `*At` 与否由方块自身声明（`isCollisionShapePositionDependent`），探针不做业务判断。
+    // 位置偏移已内建进无位置版本（`getCollisionShape` 默认转调 `getShapeAt`），
+    // 因此这里统一走带位置的重载。
     const BlockPos probePos(0, 0, 0);
-    const bool positionDependent = state->isCollisionShapePositionDependent();
-    const CollisionShape collisionShape =
-        positionDependent ? state->getCollisionShapeAt(probePos) : state->getCollisionShape();
-    const CollisionShape supportShape =
-        positionDependent ? state->getBlockSupportShapeAt(probePos) : state->getBlockSupportShape();
+    const CollisionShape collisionShape = state->getCollisionShapeAt(probePos);
+    const CollisionShape supportShape = state->getBlockSupportShapeAt(probePos);
 
     const std::string result = "shape=" + describe(state->getShapeAt(probePos)) +
         "|collision=" + describe(collisionShape) + "|support=" + describe(supportShape);

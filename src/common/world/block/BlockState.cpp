@@ -132,11 +132,6 @@ const std::vector<const BlockState*>& BlockState::getAllStates() const
     return iter->second;
 }
 
-bool BlockState::isCollisionShapePositionDependent() const noexcept
-{
-    return m_owner->isCollisionShapePositionDependent();
-}
-
 bool BlockState::isRandomlyTicking() const
 {
     // 对齐 vanilla BlockBehaviour.BlockStateBase#isRandomlyTicking：带状态的判断，

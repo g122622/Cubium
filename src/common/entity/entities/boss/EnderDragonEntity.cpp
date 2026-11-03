@@ -43,6 +43,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"

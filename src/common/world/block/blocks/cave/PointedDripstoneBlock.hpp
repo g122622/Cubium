@@ -84,11 +84,6 @@ public:
      */
     [[nodiscard]] CollisionShape getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const override;
 
-    /// 碰撞形状随位置偏移：原版 `getCollisionShape` 未另有覆写，走带偏移的 `getShape`。
-    [[nodiscard]] bool isCollisionShapePositionDependent() const noexcept override
-    {
-        return true;
-    }
 
     /**
      * @brief 水平偏移上限。
