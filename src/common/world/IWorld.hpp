@@ -585,7 +585,7 @@ public:
      * @brief 获取最低建筑高度
      *
      * 对应 MC Java 版 LevelHeightAccessor.getMinY()。
-     * 主世界和末地返回 -64，下界返回 0。
+     * 取自维度类型：主世界 -64，下界 0，末地 0。
      */
     [[nodiscard]] virtual i32 getMinBuildHeight() const
     {
@@ -596,7 +596,7 @@ public:
      * @brief 获取最高建筑高度（不含）
      *
      * 对应 MC Java 版 LevelHeightAccessor.getMaxY() + 1。
-     * 主世界和末地返回 320，下界返回 128。
+     * 取自维度类型：主世界 320，下界 256，末地 256。
      * 注意：此值为独占上界，有效方块 Y 范围是 [getMinBuildHeight(), getMaxBuildHeight())。
      */
     [[nodiscard]] virtual i32 getMaxBuildHeight() const

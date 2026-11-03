@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -245,32 +245,46 @@ void BeaconEntity::tick(IWorld& world)
     }
 }
 
-void BeaconEntity::_updateLevels(IWorld& world)
+i32 BeaconEntity::computeLevel(
+    i32 x, i32 y, i32 z, i32 minBuildHeight, const std::function<bool(i32, i32, i32)>& isBaseBlock)
 {
-    // 金字塔检测不需要检查天空可见性
-    i32 newLevel = 0;
+    i32 result = 0;
 
     for (i32 level = 1; level <= MAX_LEVELS; ++level) {
-        const i32 y = m_pos.y - level;
-        bool levelValid = true;
+        const i32 layerY = y - level;
 
-        for (i32 dx = -level; dx <= level && levelValid; ++dx) {
+        // 低于世界底部时停止——原版 `updateBase` 在这里 break。
+        // 缺少它会在世界底部之下继续查方块，那些位置的方块状态不可信。
+        if (layerY < minBuildHeight) {
+            break;
+        }
+
+        bool layerValid = true;
+
+        for (i32 dx = -level; dx <= level && layerValid; ++dx) {
             for (i32 dz = -level; dz <= level; ++dz) {
-                const BlockPos basePos(m_pos.x + dx, y, m_pos.z + dz);
-                if (!isValidBeaconBaseBlock(world.getBlockState(basePos))) {
-                    levelValid = false;
+                if (!isBaseBlock(x + dx, layerY, z + dz)) {
+                    layerValid = false;
                     break;
                 }
             }
         }
 
-        if (!levelValid) {
+        if (!layerValid) {
             break;
         }
-        newLevel = level;
+        result = level;
     }
 
-    setLevel(newLevel);
+    return result;
+}
+
+void BeaconEntity::_updateLevels(IWorld& world)
+{
+    // 金字塔检测不需要检查天空可见性，只需要「这一格是不是底座方块」。
+    setLevel(computeLevel(m_pos.x, m_pos.y, m_pos.z, world.getMinBuildHeight(), [&world](i32 bx, i32 by, i32 bz) {
+        return isValidBeaconBaseBlock(world.getBlockState(bx, by, bz));
+    }));
 }
 
 bool BeaconEntity::_canSeeSky(IWorld& world) const

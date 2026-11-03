@@ -1340,6 +1340,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
         knownDifferences: KNOWN_DIMENSION_GAPS },
     {
+        name: "beacon_pyramid_level",
+        probe: "beacon_pyramid_level",
+        oracle: "BeaconPyramidLevelOracle",
+        description: "信标金字塔等级（BeaconBlockEntity.updateBase）；"
+        + "要点：第 j 层是 (2j+1)^2 的**整片**而非只有边框、必须**连续**（某层一破即止）、"
+        + "**低于世界底即停止**（世界底是维度参数而非常量：主世界 -64、下界与末地 0）。"
+        + "布局字符串让「整层缺一格」「层间不连续」「世界底截断」三类错误都能精确表达",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
