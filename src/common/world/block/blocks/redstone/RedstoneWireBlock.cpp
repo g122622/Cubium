@@ -191,9 +191,10 @@ bool RedstoneWireBlock::_canSurviveAt(IWorld& world, const BlockPos& pos) const
     if (belowState == nullptr) {
         return false;
     }
-    // vanilla canSurviveOn: isFaceSturdy(world, below, Direction.UP, SupportType.CENTER)
-    //                      || state.is(Blocks.HOPPER)
-    return belowState->isFaceSturdy(world, below, Direction::Up, SupportType::Center) ||
+    // vanilla canSurviveOn: isFaceSturdy(world, below, Direction.UP) || state.is(Blocks.HOPPER)
+    // 不传支撑类型的重载即 SupportType.FULL。CENTER 只要求中心 2×2 像素柱，
+    // 会让台阶、楼梯顶面错误地托起红石线。
+    return belowState->isFaceSturdy(world, below, Direction::Up, SupportType::Full) ||
         belowState->is(VanillaBlocks::HOPPER);
 }
 

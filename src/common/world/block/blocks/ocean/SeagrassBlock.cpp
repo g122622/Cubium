@@ -30,7 +30,9 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -55,34 +57,21 @@ BlockState SeagrassBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool SeagrassBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
     MC_UNUSED(state);
 
-    // 检查下方支撑
+    // 原版 SeagrassBlock.mayPlaceOn：下方方块的顶面是完整支撑面，且不是岩浆块。
+    // 用 isSolid 会放行栅栏、台阶等碰撞不满整格的方块，与原版判定不符。
+    //
+    // 这里只判支撑，不判「当前位置是水源」：原版 canSurvive 同样只看下方，
+    // 水下环境由放置与流体更新各自保证，重复在这里判会让判定与本格流体耦合。
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
 
-    if (belowState == nullptr || !belowState->isSolid()) {
+    if (belowState == nullptr || !belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full)) {
         return false;
     }
 
-    // 检查当前位置是否为水源方块
-    const fluid::FluidState* fluidState = world.getFluidState(pos);
-    if (fluidState == nullptr || fluidState->isEmpty()) {
-        return false;
-    }
-
-    // 必须是水且为完整水源方块
-    if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
-        return false;
-    }
-
-    // 检查流体是否为完整水源方块
-    if (fluidState->getLevel() != fluid::SOURCE_LEVEL) {
-        return false;
-    }
-
-    return true;
+    return !(block_registry::NetherBlocks::MAGMA != nullptr && belowState->is(block_registry::NetherBlocks::MAGMA));
 }
 
 const CollisionShape& SeagrassBlock::getShape(const BlockState& state) const

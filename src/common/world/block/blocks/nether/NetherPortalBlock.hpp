@@ -64,9 +64,6 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
-
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,

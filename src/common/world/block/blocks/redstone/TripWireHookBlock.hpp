@@ -69,6 +69,15 @@ public:
     // 枚举，不可写入 Up/Down（会越界），须先水平化收窄。
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    /**
+     * @brief 检查所贴墙面的朝向是否提供完整支撑
+     *
+     * 原版 TripWireHookBlock.canSurvive：沿 FACING 反方向那一格朝本方的面必须是实体面。
+     * 缺了这条覆写会让绊线钩在空气里也判为可放置。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     void neighborChanged(

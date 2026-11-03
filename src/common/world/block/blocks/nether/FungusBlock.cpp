@@ -28,6 +28,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -38,6 +39,28 @@ FungusBlock::FungusBlock(FungusType fungusType, const BlockProperties& propertie
     : SimpleBlock(properties)
     , m_fungusType(fungusType)
 {}
+
+bool FungusBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+
+    // 原版 FungusBlock 走 VegetationBlock.canSurvive → mayPlaceOn：菌岩、菌丝、
+    // 灵魂土，或 VegetationBlock 默认的「DIRT 标签 / 耕地」。没有「上表面坚固即可」
+    // 这一档——石头、沙子、台阶都托不起菌株。
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState == nullptr) {
+        return false;
+    }
+
+    if (belowState->is(VanillaBlocks::CRIMSON_NYLIUM) || belowState->is(VanillaBlocks::WARPED_NYLIUM) ||
+        belowState->is(VanillaBlocks::MYCELIUM) || belowState->is(VanillaBlocks::SOUL_SOIL)) {
+        return true;
+    }
+
+    return BlockTags::DIRT().contains(*belowState) ||
+        (VanillaBlocks::FARMLAND != nullptr && belowState->is(VanillaBlocks::FARMLAND));
+}
 
 // ========== IGrowable 接口实现 ==========
 

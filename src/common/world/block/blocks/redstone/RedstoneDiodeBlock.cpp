@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/blocks/redstone/RedstoneWireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
@@ -124,6 +125,17 @@ void RedstoneDiodeBlock::neighborChanged(
         return;
     }
     updateState(world, pos, *state);
+}
+
+bool RedstoneDiodeBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+
+    // 原版 DiodeBlock.canSurvive → canSurviveOn：下方方块顶面提供 RIGID 支撑。
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+
+    return belowState != nullptr && belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Rigid);
 }
 
 BlockState RedstoneDiodeBlock::updatePostPlacement(const BlockState& state,

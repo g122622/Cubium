@@ -23,6 +23,13 @@
 
 #include "KelpPlantBlock.hpp"
 
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/SupportType.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include <utility>
@@ -38,6 +45,33 @@ KelpPlantBlock::KelpPlantBlock(BlockProperties properties)
 const fluid::FluidState* KelpPlantBlock::getFluidState(const BlockState&) const
 {
     return &fluid::Fluids::WATER()->defaultState();
+}
+
+bool KelpPlantBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+
+    // 与 KelpBlock 同一条原版判据（GrowingPlantBlock.canSurvive + 海带头的 canAttachTo）。
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+
+    if (belowState == nullptr) {
+        return false;
+    }
+
+    if (VanillaBlocks::KELP != nullptr && belowState->is(VanillaBlocks::KELP)) {
+        return true;
+    }
+
+    if (belowState->is(this)) {
+        return true;
+    }
+
+    if (block_registry::NetherBlocks::MAGMA != nullptr && belowState->is(block_registry::NetherBlocks::MAGMA)) {
+        return false;
+    }
+
+    return belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full);
 }
 
 } // namespace blocks

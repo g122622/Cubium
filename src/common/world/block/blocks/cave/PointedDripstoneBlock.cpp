@@ -44,6 +44,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/block/blocks/LavaCauldronBlock.hpp"
@@ -184,7 +185,9 @@ bool PointedDripstoneBlock::isValidPosition(
         return false;
     }
 
-    if (supportState->isSolidSide(world, supportPos, tipDirection)) {
+    // 原版用 isFaceSturdy（该面铺满整格）；isSolidSide 只要求「有点碰撞」，
+    // 台阶、栅栏、漏斗都会被误当成能托起点状滴水石。
+    if (supportState->isFaceSturdy(world, supportPos, tipDirection, SupportType::Full)) {
         return true;
     }
     return isPointedDripstoneWithDirection(supportState, tipDirection);

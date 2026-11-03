@@ -341,10 +341,10 @@ bool LeverBlock::isValidPosition(const BlockState& state, IBlockReader& world, c
 {
     // 对应原版 LeverBlock 经 FaceAttachedHorizontalDirectionalBlock#canSurvive 的实现：
     //   canAttach(world, pos, getConnectedDirection(state).getOpposite())
-    // getConnectedDirection 为 Floor→Up、Ceiling→Down、Wall→HORIZONTAL_FACING 的反向，
-    // 故附着方向（指向支撑方块）正好是 Floor→Down、Ceiling→Up、Wall→HORIZONTAL_FACING。
+    // getConnectedDirection 为 Floor→Up、Ceiling→Down、Wall→HORIZONTAL_FACING，
+    // 取反后附着方向（指向支撑方块）是 Floor→Down、Ceiling→Up、Wall→HORIZONTAL_FACING 的反方向。
     const AttachFace face = state.get(BlockStateProperties::ATTACH_FACE());
-    Direction attach = getFacing(state);
+    Direction attach = Directions::opposite(getFacing(state));
     if (face == AttachFace::Floor) {
         attach = Direction::Down;
     } else if (face == AttachFace::Ceiling) {

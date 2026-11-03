@@ -186,6 +186,25 @@ bool MultifaceBlock::canAttachTo(IWorld& world, Direction direction, const Block
     return Block::isFaceFull(state->getCollisionShape(), opposite);
 }
 
+bool MultifaceBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 原版 MultifaceBlock.canSurvive：每个已开启的面都要附着在实心面上，一个都没有也算无效。
+    static constexpr Direction kFaces[] = {
+        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
+
+    bool hasAny = false;
+    for (const Direction direction : kFaces) {
+        if (!hasFace(state, direction)) {
+            continue;
+        }
+        if (!canAttachTo(world, direction, pos.offset(direction))) {
+            return false;
+        }
+        hasAny = true;
+    }
+    return hasAny;
+}
+
 void MultifaceBlock::buildMultifaceStateContainer()
 {
     auto container =

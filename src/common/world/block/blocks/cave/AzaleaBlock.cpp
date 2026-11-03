@@ -80,18 +80,14 @@ bool AzaleaBlock::isValidPosition(const BlockState& state, IBlockReader& world, 
 
 bool AzaleaBlock::mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-
-    // MC 1.21.11: AzaleaBlock.mayPlaceOn 检查 CLAY 或 super.mayPlaceOn
-    // super.mayPlaceOn 是 VegetationBlock 的默认实现，检查下方方块是否可种植
-    // 此处简化为检查黏土或下方方块上表面坚固
+    // 原版 AzaleaBlock.mayPlaceOn 只放宽到 CLAY，其余沿 VegetationBlock 的默认实现：
+    // 下方方块属于 DIRT 标签或是耕地。不能退化成「上表面坚固」——那样石头、沙、
+    // 台阶都会错误地托起杜鹃，与原版判定相反。
     if (state.is(VanillaBlocks::CLAY)) {
         return true;
     }
 
-    // 检查下方方块是否有向上的坚固面（等价于 VegetationBlock 的默认 mayPlaceOn）
-    return state.isSolidSide(world, pos, Direction::Up);
+    return state.getBlock().canSustainPlant(state, world, pos, Direction::Up, *this);
 }
 
 bool AzaleaBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const

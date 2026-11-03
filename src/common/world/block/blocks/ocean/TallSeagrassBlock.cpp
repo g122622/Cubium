@@ -34,7 +34,10 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/PlantType.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -105,10 +108,23 @@ bool TallSeagrassBlock::isValidPosition(const BlockState& state, IBlockReader& w
         return belowState != nullptr && belowState->is(this) &&
             belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == DoubleBlockHalf::Lower;
     } else {
-        // 下半部分需要支撑
-        BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+        // 原版下半部 = DoublePlantBlock.canSurvive（下方方块顶面是实体面）
+        //              && 本格是满量水源方块。
+        // 之前只判了「下方是固体」，且完全没检查本格流体，于是空气里的高海草也被判为可存活。
+        const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
         const BlockState* belowState = world.getBlockState(belowPos);
-        return belowState != nullptr && belowState->isSolid();
+        if (belowState == nullptr || !belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full)) {
+            return false;
+        }
+
+        const fluid::FluidState* fluidState = world.getFluidState(pos);
+        if (fluidState == nullptr || fluidState->isEmpty()) {
+            return false;
+        }
+        if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+            return false;
+        }
+        return fluidState->getLevel() == fluid::SOURCE_LEVEL;
     }
 }
 

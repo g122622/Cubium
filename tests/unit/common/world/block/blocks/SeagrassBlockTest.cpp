@@ -345,36 +345,22 @@ TEST_F(SeagrassBlockTest, IsValidPosition_RequiresSolidGround)
     // 没有下方支撑 - 应该无效
     EXPECT_FALSE(seagrass.isValidPosition(seagrass.defaultState(), static_cast<IBlockReader&>(world), pos));
 
-    // 有固体下方支撑
+    // 有固体下方支撑即有效：canSurvive 只看下方方块，不看本格流体
     world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
-
-    // 但没有水 - 仍然无效
-    EXPECT_FALSE(seagrass.isValidPosition(seagrass.defaultState(), static_cast<IBlockReader&>(world), pos));
-
-    // 添加水源
-    world.setWaterAt(pos);
-
-    // 现在应该有效
     EXPECT_TRUE(seagrass.isValidPosition(seagrass.defaultState(), static_cast<IBlockReader&>(world), pos));
 }
 
-TEST_F(SeagrassBlockTest, IsValidPosition_RequiresWater)
+TEST_F(SeagrassBlockTest, IsValidPosition_LosesSupportWhenGroundRemoved)
 {
     SeagrassBlock seagrass(BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     const BlockPos pos(5, 10, 5);
-
-    // 设置固体地面
     world.setBlockAt(pos.down(), &VanillaBlocks::SAND->defaultState());
-
-    // 没有水 - 无效
-    EXPECT_FALSE(seagrass.isValidPosition(seagrass.defaultState(), static_cast<IBlockReader&>(world), pos));
-
-    // 添加水源
-    world.setWaterAt(pos);
-
-    // 现在应该有效
     EXPECT_TRUE(seagrass.isValidPosition(seagrass.defaultState(), static_cast<IBlockReader&>(world), pos));
+
+    // 撤掉支撑后失效
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(seagrass.isValidPosition(seagrass.defaultState(), static_cast<IBlockReader&>(world), pos));
 }
 
 // ============================================================================

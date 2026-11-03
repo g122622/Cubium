@@ -128,22 +128,6 @@ BlockState TurtleEggBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-bool TurtleEggBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
-{
-    MC_UNUSED(state);
-
-    // 海龟蛋只能放在沙子类方块上
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos);
-
-    if (belowState == nullptr) {
-        return false;
-    }
-
-    // 检查是否为沙子类方块 (沙子、红沙、灵魂沙)
-    return BlockTags::SAND().contains(*belowState);
-}
-
 bool TurtleEggBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
     // 对齐 vanilla Java 1.21 TurtleEggBlock.canBeReplaced（TurtleEggBlock.java:147-152）：

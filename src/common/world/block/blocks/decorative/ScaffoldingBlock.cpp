@@ -42,6 +42,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -325,8 +326,9 @@ i32 ScaffoldingBlock::calculateDistance(IWorld& world, const BlockPos& pos)
         if (isScaffolding(belowState)) {
             // 下方是脚手架，继承其距离
             minDistance = belowState->get(BlockStateProperties::DISTANCE_0_7());
-        } else if (belowState->isSolidSide(world, belowPos, Direction::Up)) {
-            // 下方方块的顶部是实体面，直接支撑
+        } else if (belowState->isFaceSturdy(world, belowPos, Direction::Up, SupportType::Full)) {
+            // 下方方块的顶面铺满整格，直接支撑。原版用 isFaceSturdy；isSolidSide 只要求
+            // 「有点碰撞」，台阶、栅栏、箱子都会把距离错误地算成 0。
             return 0;
         }
     }

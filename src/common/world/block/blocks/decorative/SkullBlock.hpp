@@ -161,16 +161,6 @@ public:
 
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
-    [[nodiscard]] bool isValidPosition(
-        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
-
-    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
-        Direction facing,
-        const BlockState& facingState,
-        IWorld& world,
-        const BlockPos& currentPos,
-        const BlockPos& facingPos) override;
-
 protected:
     /// 获取指定朝向的碰撞形状
     [[nodiscard]] const CollisionShape& _shapeForFacing(Direction facing) const;

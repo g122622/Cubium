@@ -46,6 +46,15 @@ public:
 
     /** @brief 海带茎部始终携带水源流体。 */
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查上方一格能否托起海带茎
+     *
+     * 原版 KelpPlantBlock 继承 GrowingPlantBodyBlock.canSurvive，并转发海带头的
+     * canAttachTo（排除岩浆块）：上一格是海带头/海带茎，或顶面是完整支撑面。
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 };
 
 } // namespace blocks

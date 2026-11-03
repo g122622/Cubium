@@ -70,6 +70,15 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    /**
+     * @brief 判断能否附着在支撑方块上
+     *
+     * 原版默认接受一切支撑方块；海带一类需要排除岩浆块时覆写。
+     *
+     * @param supportState 生长方向反方向那一格的方块状态
+     */
+    [[nodiscard]] virtual bool canAttachTo(const BlockState& supportState) const;
+
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**

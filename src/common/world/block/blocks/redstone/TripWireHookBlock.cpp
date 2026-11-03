@@ -39,6 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -98,6 +99,20 @@ BlockState TripWireHookBlock::getStateForPlacement(BlockItemUseContext& context)
     Direction clickedFace = context.getClickedFace();
     Direction facing = Directions::isHorizontal(clickedFace) ? clickedFace : context.horizontalDirection();
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+}
+
+bool TripWireHookBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 沿 FACING 反方向那一格朝本方的面必须是实体面。
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const BlockPos supportPos = pos.offset(Directions::opposite(facing));
+    const BlockState* supportState = world.getBlockState(supportPos);
+
+    if (supportState == nullptr) {
+        return false;
+    }
+
+    return supportState->isFaceSturdy(world, supportPos, facing, SupportType::Full);
 }
 
 bool TripWireHookBlock::isPowered(const BlockState& state)

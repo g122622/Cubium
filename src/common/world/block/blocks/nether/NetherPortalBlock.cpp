@@ -85,11 +85,6 @@ BlockState NetherPortalBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
 }
 
-bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
-{
-    return PortalSize::isCompletePortal(world, pos, getAxis(state));
-}
-
 BlockState NetherPortalBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
