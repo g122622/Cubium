@@ -1638,6 +1638,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "修复前 Cubium 的 BrushableBlock 继承 FallingBlock 却没有覆写 onBroken，两者都没有",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "vibration_selector_nbt",
+        probe: "vibration_selector_nbt",
+        oracle: "VibrationSelectorNbtOracle",
+        description: "振动选择器的 NBT 结构与往返（VibrationSelector.CODEC）—— 无候选/有候选 2 个单元；"
+        + "只有两个字段：event（可选的 VibrationInfo 嵌套）与 tick（long）。"
+        + "无候选时 tick 必须写 -1 而不是省略字段（原版 orElse(-1L)，字段存在但值是哨兵），"
+        + "否则「读取失败」和「没有候选」语义混淆；event 存在但 tick < 0 时不能恢复候选，两字段是一对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
