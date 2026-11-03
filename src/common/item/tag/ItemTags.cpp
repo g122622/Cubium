@@ -95,12 +95,18 @@ void ItemTags::forEachTag(std::function<void(ItemTag&)> callback)
 // ============================================================================
 // 内置物品标签
 // ============================================================================
+//
+// 所有便捷访问器都必须走 `registerTag` 而非 `getTag`：标签内容来自数据包，在数据包
+// 加载之前（或纯单元测试环境下从未加载时）标签表里根本没有对应条目，`getTag` 会返回
+// nullptr，而访问器契约是「返回引用」，解引用即空指针崩溃。`registerTag` 在条目缺失时
+// 建立一个空标签，访问器始终返回有效引用，空的 `contains()` 恒为 false；数据包真正
+// 加载时 `writeTagJson` 会写入同一对象，语义不受影响。
 
 ItemTag& ItemTags::FLOWERS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "flowers"));
+        tag = &registerTag(ResourceLocation("minecraft", "flowers"));
     }
     return *tag;
 }
@@ -109,7 +115,7 @@ ItemTag& ItemTags::CARPETS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "carpets"));
+        tag = &registerTag(ResourceLocation("minecraft", "carpets"));
     }
     return *tag;
 }
@@ -118,7 +124,7 @@ ItemTag& ItemTags::BEDS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "beds"));
+        tag = &registerTag(ResourceLocation("minecraft", "beds"));
     }
     return *tag;
 }
@@ -127,7 +133,7 @@ ItemTag& ItemTags::DAMPENS_VIBRATIONS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "dampens_vibrations"));
+        tag = &registerTag(ResourceLocation("minecraft", "dampens_vibrations"));
     }
     return *tag;
 }
@@ -136,7 +142,7 @@ ItemTag& ItemTags::DECORATED_POT_SHERDS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "decorated_pot_sherds"));
+        tag = &registerTag(ResourceLocation("minecraft", "decorated_pot_sherds"));
     }
     return *tag;
 }
@@ -145,7 +151,7 @@ ItemTag& ItemTags::DECORATED_POT_INGREDIENTS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "decorated_pot_ingredients"));
+        tag = &registerTag(ResourceLocation("minecraft", "decorated_pot_ingredients"));
     }
     return *tag;
 }
@@ -154,7 +160,7 @@ ItemTag& ItemTags::SWORDS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "swords"));
+        tag = &registerTag(ResourceLocation("minecraft", "swords"));
     }
     return *tag;
 }
@@ -163,7 +169,7 @@ ItemTag& ItemTags::SKELETON_PREFERRED_WEAPONS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "skeleton_preferred_weapons"));
+        tag = &registerTag(ResourceLocation("minecraft", "skeleton_preferred_weapons"));
     }
     return *tag;
 }
@@ -172,7 +178,7 @@ ItemTag& ItemTags::PILLAGER_PREFERRED_WEAPONS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "pillager_preferred_weapons"));
+        tag = &registerTag(ResourceLocation("minecraft", "pillager_preferred_weapons"));
     }
     return *tag;
 }
@@ -181,7 +187,7 @@ ItemTag& ItemTags::DROWNED_PREFERRED_WEAPONS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "drowned_preferred_weapons"));
+        tag = &registerTag(ResourceLocation("minecraft", "drowned_preferred_weapons"));
     }
     return *tag;
 }
@@ -190,7 +196,7 @@ ItemTag& ItemTags::PIGLIN_PREFERRED_WEAPONS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "piglin_preferred_weapons"));
+        tag = &registerTag(ResourceLocation("minecraft", "piglin_preferred_weapons"));
     }
     return *tag;
 }
@@ -199,7 +205,7 @@ ItemTag& ItemTags::AXES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "axes"));
+        tag = &registerTag(ResourceLocation("minecraft", "axes"));
     }
     return *tag;
 }
@@ -208,7 +214,7 @@ ItemTag& ItemTags::PICKAXES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "pickaxes"));
+        tag = &registerTag(ResourceLocation("minecraft", "pickaxes"));
     }
     return *tag;
 }
@@ -217,7 +223,7 @@ ItemTag& ItemTags::SHOVELS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "shovels"));
+        tag = &registerTag(ResourceLocation("minecraft", "shovels"));
     }
     return *tag;
 }
@@ -226,7 +232,7 @@ ItemTag& ItemTags::HOES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "hoes"));
+        tag = &registerTag(ResourceLocation("minecraft", "hoes"));
     }
     return *tag;
 }
@@ -235,7 +241,7 @@ ItemTag& ItemTags::SPEARS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "spears"));
+        tag = &registerTag(ResourceLocation("minecraft", "spears"));
     }
     return *tag;
 }
@@ -244,7 +250,7 @@ ItemTag& ItemTags::BREAKS_DECORATED_POTS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "breaks_decorated_pots"));
+        tag = &registerTag(ResourceLocation("minecraft", "breaks_decorated_pots"));
     }
     return *tag;
 }
@@ -253,7 +259,7 @@ ItemTag& ItemTags::FREEZE_IMMUNE_WEARABLES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "freeze_immune_wearables"));
+        tag = &registerTag(ResourceLocation("minecraft", "freeze_immune_wearables"));
     }
     return *tag;
 }
@@ -262,7 +268,7 @@ ItemTag& ItemTags::CHAINS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "chains"));
+        tag = &registerTag(ResourceLocation("minecraft", "chains"));
     }
     return *tag;
 }
@@ -271,7 +277,7 @@ ItemTag& ItemTags::BARS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "bars"));
+        tag = &registerTag(ResourceLocation("minecraft", "bars"));
     }
     return *tag;
 }
@@ -280,7 +286,7 @@ ItemTag& ItemTags::WOODEN_DOORS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "wooden_doors"));
+        tag = &registerTag(ResourceLocation("minecraft", "wooden_doors"));
     }
     return *tag;
 }
@@ -289,7 +295,7 @@ ItemTag& ItemTags::DOORS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "doors"));
+        tag = &registerTag(ResourceLocation("minecraft", "doors"));
     }
     return *tag;
 }
@@ -298,7 +304,7 @@ ItemTag& ItemTags::WOODEN_TRAPDOORS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "wooden_trapdoors"));
+        tag = &registerTag(ResourceLocation("minecraft", "wooden_trapdoors"));
     }
     return *tag;
 }
@@ -307,7 +313,7 @@ ItemTag& ItemTags::TRAPDOORS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "trapdoors"));
+        tag = &registerTag(ResourceLocation("minecraft", "trapdoors"));
     }
     return *tag;
 }
@@ -316,7 +322,7 @@ ItemTag& ItemTags::NON_FLAMMABLE_WOOD()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "non_flammable_wood"));
+        tag = &registerTag(ResourceLocation("minecraft", "non_flammable_wood"));
     }
     return *tag;
 }
@@ -325,7 +331,7 @@ ItemTag& ItemTags::SHULKER_BOXES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "shulker_boxes"));
+        tag = &registerTag(ResourceLocation("minecraft", "shulker_boxes"));
     }
     return *tag;
 }
@@ -334,7 +340,7 @@ ItemTag& ItemTags::HARNESSES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "harnesses"));
+        tag = &registerTag(ResourceLocation("minecraft", "harnesses"));
     }
     return *tag;
 }
@@ -343,7 +349,7 @@ ItemTag& ItemTags::BUNDLES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "bundles"));
+        tag = &registerTag(ResourceLocation("minecraft", "bundles"));
     }
     return *tag;
 }
@@ -352,7 +358,7 @@ ItemTag& ItemTags::REPAIRS_WOLF_ARMOR()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "repairs_wolf_armor"));
+        tag = &registerTag(ResourceLocation("minecraft", "repairs_wolf_armor"));
     }
     return *tag;
 }
@@ -361,7 +367,7 @@ ItemTag& ItemTags::DYEABLE()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "dyeable"));
+        tag = &registerTag(ResourceLocation("minecraft", "dyeable"));
     }
     return *tag;
 }
@@ -370,7 +376,7 @@ ItemTag& ItemTags::GOLD_ORES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "gold_ores"));
+        tag = &registerTag(ResourceLocation("minecraft", "gold_ores"));
     }
     return *tag;
 }
@@ -379,7 +385,7 @@ ItemTag& ItemTags::COPPER_GOLEM_STATUES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "copper_golem_statues"));
+        tag = &registerTag(ResourceLocation("minecraft", "copper_golem_statues"));
     }
     return *tag;
 }
@@ -388,7 +394,7 @@ ItemTag& ItemTags::SHEARABLE_FROM_COPPER_GOLEM()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "shearable_from_copper_golem"));
+        tag = &registerTag(ResourceLocation("minecraft", "shearable_from_copper_golem"));
     }
     return *tag;
 }
@@ -397,7 +403,7 @@ ItemTag& ItemTags::COPPER_CHESTS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "copper_chests"));
+        tag = &registerTag(ResourceLocation("minecraft", "copper_chests"));
     }
     return *tag;
 }
@@ -406,7 +412,7 @@ ItemTag& ItemTags::PIGLIN_LOVED()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "piglin_loved"));
+        tag = &registerTag(ResourceLocation("minecraft", "piglin_loved"));
     }
     return *tag;
 }
@@ -415,7 +421,7 @@ ItemTag& ItemTags::VILLAGER_PLANTABLE_SEEDS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "villager_plantable_seeds"));
+        tag = &registerTag(ResourceLocation("minecraft", "villager_plantable_seeds"));
     }
     return *tag;
 }
@@ -459,7 +465,7 @@ ItemTag& ItemTags::CREEPER_IGNITERS()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "creeper_igniters"));
+        tag = &registerTag(ResourceLocation("minecraft", "creeper_igniters"));
     }
     return *tag;
 }
@@ -468,7 +474,7 @@ ItemTag& ItemTags::WOODEN_SHELVES()
 {
     static ItemTag* tag = nullptr;
     if (tag == nullptr || !_isLive(tag)) {
-        tag = getTag(ResourceLocation("minecraft", "wooden_shelves"));
+        tag = &registerTag(ResourceLocation("minecraft", "wooden_shelves"));
     }
     return *tag;
 }

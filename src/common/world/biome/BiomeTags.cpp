@@ -549,7 +549,7 @@ BiomeTag& BiomeTags::SPAWNS_COLD_VARIANT_FARM_ANIMALS()
 {
     static BiomeTag* tag = nullptr;
     if (tag == nullptr) {
-        tag = getTag(ResourceLocation("minecraft", "spawns_cold_variant_farm_animals"));
+        tag = &getOrCreateTag(ResourceLocation("minecraft", "spawns_cold_variant_farm_animals"));
     }
     return *tag;
 }
@@ -558,7 +558,7 @@ BiomeTag& BiomeTags::SPAWNS_WARM_VARIANT_FARM_ANIMALS()
 {
     static BiomeTag* tag = nullptr;
     if (tag == nullptr) {
-        tag = getTag(ResourceLocation("minecraft", "spawns_warm_variant_farm_animals"));
+        tag = &getOrCreateTag(ResourceLocation("minecraft", "spawns_warm_variant_farm_animals"));
     }
     return *tag;
 }
