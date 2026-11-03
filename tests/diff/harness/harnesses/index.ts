@@ -1383,6 +1383,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "抄成默认 16 不会崩溃，只会让监守者的尖啸只惊动半张地图。单元由 allGameEventIds() 生成，事件名集合的差异也会直接体现为单元缺失/多出",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "container_analog_signal",
+        probe: "container_analog_signal",
+        oracle: "ContainerAnalogSignalOracle",
+        description: "容器红石信号强度（AbstractContainerMenu.getRedstoneSignalFromContainer）—— 比较器读箱子时的强度换算；"
+        + "三个易错点：每格按**各自的 maxStackSize** 归一化而不是统一按 64（否则 16 个工具会被算成只装了 4%）、"
+        + "`f > 0` 才 +1 所以非空最低为 1 而空箱为 0、先逐格累加再整体除以槽位数",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

@@ -3091,7 +3091,9 @@ void Items::_registerBuckets()
     // 空桶 - 用于装水/岩浆/牛奶
     BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:bucket"),
         nullptr, // 空桶没有流体
-        ItemProperties().maxStackSize(16));
+        // 空桶**不可堆叠**（原版 bucket 的 maxStackSize 是 1）。此前写成 16，
+        // 于是 16 个空桶能挤进一格，且比较器读箱子时按 1/16 折算它们的占比。
+        ItemProperties().maxStackSize(1));
 
     // 水桶 - 装满水的桶
     // 水桶使用后返回空桶，所以 containerItem 设为 BUCKET
