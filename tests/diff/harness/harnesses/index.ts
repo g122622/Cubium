@@ -1611,6 +1611,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "Cubium 原来 source 就是 long、projectile_owner 整个缺失",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "vibration_selector",
+        probe: "vibration_selector",
+        oracle: "VibrationSelectorOracle",
+        description: "幽匿感测体的振动选优（VibrationSelector#shouldReplaceVibration）—— 事件 x 距离 x 时刻 = 24 个单元；"
+        + "同一时刻的多个振动要挑一个：距离近的优先，距离相同再比频率高的优先，不同时刻一律不替换。"
+        + "顺序不可颠倒 —— 先比频率再比距离，远处一次爆炸（频率 15）会盖掉近处的脚步声；"
+        + "允许跨 tick 替换则高频事件不断插队，低频事件永远得不到处理",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
