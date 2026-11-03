@@ -1620,6 +1620,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "允许跨 tick 替换则高频事件不断插队，低频事件永远得不到处理",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "sculk_sensor_step",
+        probe: "sculk_sensor_step",
+        oracle: "SculkSensorStepOracle",
+        description: "幽匿感测体被踩踏时是否发出 STEP 振动（SculkSensorBlock#stepOn）—— 相位 x 踩踏者 = 9 个单元；"
+        + "三个前置条件缺一不可：相位为 Inactive（否则站上去不走也会一直触发，感测体变压力板）、"
+        + "踩踏者不是监守者（同源自激）、踩踏者不在潜行（潜行绕过感测体是核心玩法）。"
+        + "修复前 Cubium 根本没有覆写 onEntityWalk，踩踏振动完全缺失",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

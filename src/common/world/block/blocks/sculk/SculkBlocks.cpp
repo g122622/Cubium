@@ -451,6 +451,27 @@ void SculkSensorBlock::activate(const Entity* sourceEntity,
     }
 }
 
+void SculkSensorBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    // 感测体自己被踩也产生一次 STEP 振动（原版 stepOn）。
+    // 三个前置条件缺一不可：
+    // 1. 相位为 Inactive —— 活跃/冷却期间不重复接收
+    // 2. 不是监守者 —— 监守者与感测体同源，踩上去不该自激
+    // 3. 非潜行 —— 潜行不会产生振动（由 STEP 的 ignore_vibrations_sneaking 标签决定）
+    //
+    // 走发游戏事件的路线而不是直接访问振动系统：监听器本来就在附近监听，
+    // 这样 common 层不必下转 ServerWorld，也和幽匿尖啸体的踩踏实现保持一致。
+    if (world.isClientSide() || !canActivate(state) || entity.getTypeId() == "minecraft:warden" ||
+        entity.isSteppingCarefully()) {
+        Block::onEntityWalk(state, world, pos, entity);
+        return;
+    }
+
+    world.gameEvent(gameevent::GameEvents::STEP, pos, gameevent::GameEvent::Context(&entity, &state));
+
+    Block::onEntityWalk(state, world, pos, entity);
+}
+
 void SculkSensorBlock::deactivate(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // 设置方块状态：Phase -> Cooldown, Power -> 0
