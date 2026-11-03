@@ -22,6 +22,7 @@
  */
 
 #include "FenceGateBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -42,6 +43,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/building/WallBlock.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
 #include <memory>
@@ -367,6 +369,11 @@ void FenceGateBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpeni
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
         1.0f,
         1.0f);
+
+    // 开/关是方块状态变化，要让附近幽匿感测体听到：开启发 BLOCK_OPEN、关闭发 BLOCK_CLOSE。
+    world.gameEvent(isOpening ? gameevent::GameEvents::BLOCK_OPEN : gameevent::GameEvents::BLOCK_CLOSE,
+        pos,
+        static_cast<const BlockState*>(nullptr));
 }
 
 } // namespace blocks

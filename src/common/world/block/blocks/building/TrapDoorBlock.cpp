@@ -22,6 +22,7 @@
  */
 
 #include "TrapDoorBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -40,6 +41,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
 #include <memory>
@@ -289,6 +291,11 @@ void TrapDoorBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpenin
     }
 
     world.playSound(ResourceLocation(soundId), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+
+    // 开/关是方块状态变化，要让附近幽匿感测体听到：开启发 BLOCK_OPEN、关闭发 BLOCK_CLOSE。
+    world.gameEvent(isOpening ? gameevent::GameEvents::BLOCK_OPEN : gameevent::GameEvents::BLOCK_CLOSE,
+        pos,
+        static_cast<const BlockState*>(nullptr));
 }
 
 size_t TrapDoorBlock::_getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half)

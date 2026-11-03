@@ -1503,6 +1503,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "陷阱是顺序：「机器里有唱片」优先于「手里拿什么」—— 拿着另一张唱片点也是先弹旧的，写反了旧唱片会凭空消失",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "lever_game_event",
+        probe: "lever_game_event",
+        oracle: "LeverGameEventOracle",
+        description: "拨动拉杆时发出的游戏事件与音效（LeverBlock#play）—— 拨动前 POWERED 的两态 = 2 个单元；"
+        + "规则是开启发 block_activate、关闭发 block_deactivate，音效恒为 block.lever.click。"
+        + "游戏事件是幽匿感测体、尖啸体、监守者、悦灵这些听声音机制的唯一输入；漏发不崩溃不掉日志，"
+        + "方块状态和音效都正常，只有红石侦测端完全没反应",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
