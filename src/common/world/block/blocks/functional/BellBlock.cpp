@@ -566,9 +566,10 @@ bool BellBlock::attemptToRing(Player* player, IWorld& world, const BlockPos& pos
     // 播放钟声（音量 2.0，音调 1.0）
     world.playSound(SoundEvents::BLOCK_BELL_USE, sound::SoundCategory::Blocks, pos.center(), 2.0f, 1.0f);
 
-    // 触发 BELL_HIT 游戏事件（通知附近幽匿感测体）
-    // 注意：MC Java 使用 BLOCK_CHANGE，但语义上是方块激活；本项目统一使用 BLOCK_ACTIVATE
-    world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, static_cast<const BlockState*>(nullptr));
+    // 触发 BLOCK_CHANGE 游戏事件（通知附近幽匿感测体）。原版 `BellBlock#attemptToRing`
+    // 发的是 `GameEvent.BLOCK_CHANGE` 而不是 `BLOCK_ACTIVATE`——两者虽同为 16 格半径，
+    // 但幽匿感测体按事件 id 区分响应频率，发错事件会让钟声在幽匿电路里被当成别的事件处理。
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, static_cast<const BlockState*>(nullptr));
 
     return true;
 }
@@ -582,7 +583,7 @@ bool BellBlock::onHit(
     const Vector3 hitLocation = hit.hitPosition();
     const f64 hitY = static_cast<f64>(hitLocation.y) - static_cast<f64>(blockPos.y);
 
-    const bool isProper = !isProjectile || _isProperHit(state, direction, hitY);
+    const bool isProper = !isProjectile || isProperHit(state, direction, hitY);
     if (!isProper) {
         return false;
     }
@@ -593,7 +594,7 @@ bool BellBlock::onHit(
     return true;
 }
 
-bool BellBlock::_isProperHit(const BlockState& state, Direction direction, f64 hitY)
+bool BellBlock::isProperHit(const BlockState& state, Direction direction, f64 hitY)
 {
     // 参考: net.minecraft.world.level.block.BellBlock#isProperHit
     // 若点击方向是 Y 轴，或点击位置 Y > 0.8124，则不是有效敲击

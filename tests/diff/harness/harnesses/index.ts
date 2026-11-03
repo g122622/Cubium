@@ -1486,6 +1486,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "双墙写成单墙会让钟只挂在一侧、朝向用点击面本身而非反方向会让钟面朝墙里，都不会崩溃只是看起来不对",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "bell_ring",
+        probe: "bell_ring",
+        oracle: "BellRingOracle",
+        description: "敲钟的「有效敲击」判定（BellBlock#isProperHit）—— 4 种附着方式 x 4 种钟朝向 x 6 种点击面 x 5 个点击高度 = 480 个单元；"
+        + "钟不是碰一下就响：点击面在 Y 轴永远不响、点击高度 > 0.8124 永远不响（敲钟帽不响），"
+        + "floor 要求点击面与钟朝向同轴，墙钟要求不同轴，ceiling 任何水平面都响。"
+        + "判定错不崩溃、不掉日志，只会让某些角度敲不响或不该响的地方能响",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

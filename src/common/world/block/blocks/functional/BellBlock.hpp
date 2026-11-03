@@ -84,6 +84,23 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     /**
+     * @brief 判定是否为「有效敲击方向」（原版 `BellBlock#isProperHit`）
+     *
+     * 钟不是碰一下就叫，原版按挂法与朝向决定从哪个面敲才响：
+     * - 点击面在 Y 轴（上下）永远不响 —— 从顶上或底下拍钟不响
+     * - 点击高度 > 0.8124 永远不响 —— 敲钟的「帽子」部分不响，只有钟体下半响
+     * - floor：点击面与钟朝向**同轴**才响（钟立着，正面/背面拍）
+     * - single_wall / double_wall：点击面与钟朝向**不同轴**才响（钟挂着，从左/右拍）
+     * - ceiling：任何水平面都响
+     *
+     * @param state 钟的状态（取 FACING 与 ATTACHMENT）
+     * @param direction 点击方向（射线检测的面方向）
+     * @param hitY 点击位置在方块内的 Y 坐标（0-1）
+     * @return 如果为有效敲击返回 true
+     */
+    [[nodiscard]] static bool isProperHit(const BlockState& state, Direction direction, f64 hitY);
+
+    /**
      * @brief 放置前的严格判定（原版 `BellBlock#getStateForPlacement` 返回 null 的放弃语义）
      *
      * 原版在四种挂法都不可存活时 `return null`，`BlockItem` 据此取消放置、**不消耗物品**。
@@ -272,18 +289,6 @@ protected:
      * @return 索引值（0-15）
      */
     [[nodiscard]] static size_t _shapeIndex(const BlockState& state);
-
-    /**
-     * @brief 判定是否为"有效敲击方向"
-     *
-     * 参考: net.minecraft.world.level.block.BellBlock#isProperHit
-     *
-     * @param state 方块状态
-     * @param direction 点击方向（射线检测的面方向）
-     * @param hitY 点击位置在方块内的 Y 坐标（0-1）
-     * @return 如果为有效敲击返回 true
-     */
-    [[nodiscard]] static bool _isProperHit(const BlockState& state, Direction direction, f64 hitY);
 };
 
 } // namespace blocks
