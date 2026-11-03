@@ -117,6 +117,38 @@ public:
     /**
      * @brief 受到伤害时的处理
      */
+    // ========== 生成光照判定 ==========
+
+    /**
+     * @brief 光照是否暗到足以让怪物生成（原版 `Monster.isDarkEnoughToSpawn`）
+     *
+     * 三段判定，每段都有容易写错的地方：
+     *
+     * 1. **天空光与 `nextInt(32)` 比**，不是与常量比。这等价于「天空光 0..31 的随机
+     *    阈值」，所以即使天空光不为 0 也大概率通过；简化成「天空光必须为 0」是常见错误。
+     * 2. **方块光上限只在该维度 `blockLightLimit < 15` 时才检查**。下界 limit 为 15，
+     *    这条完全不生效。
+     * 3. 最后比的是**综合亮度**（天空与方块取大，并受天气/时间衰减），不是单独的方块光。
+     *
+     * @param skyLight 该位置的天空光等级（0..15）
+     * @param blockLight 该位置的方块光等级（0..15）
+     * @param combinedLight 非雷暴时的综合亮度 `getMaxLocalRawBrightness(pos)`
+     * @param thunderCombinedLight 雷暴时的综合亮度 `getMaxLocalRawBrightness(pos, 10)`
+     * @param blockLightLimit 维度参数 `monster_spawn_block_light_limit`
+     * @param lightTestMin 维度参数 `monster_spawn_light_level` 的下界
+     * @param lightTestMax 维度参数 `monster_spawn_light_level` 的上界
+     * @param random 随机源，须与调用方的其余消耗顺序一致
+     * @return 是否暗到可以生成
+     */
+    [[nodiscard]] static bool isDarkEnoughToSpawn(i32 skyLight,
+        i32 blockLight,
+        i32 combinedLight,
+        i32 thunderCombinedLight,
+        i32 blockLightLimit,
+        i32 lightTestMin,
+        i32 lightTestMax,
+        math::IRandom& random);
+
     bool hurt(DamageSource& source, f32 amount) override;
 
     // ========== 行为 ==========

@@ -1321,6 +1321,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
         knownDifferences: KNOWN_POSE_GAPS },
     {
+        name: "mob_spawn_light_level",
+        probe: "mob_spawn_light_level",
+        oracle: "MobSpawnLightLevelOracle",
+        description: "怪物生成光照判定（Monster.isDarkEnoughToSpawn）的三段逻辑；"
+        + "三个易错点：天空光与 nextInt(32) 的随机阈值比而非常量；方块光上限仅在 blockLightLimit<15 时才检查；"
+        + "最后比的是综合亮度而非方块光。输出同时带 lightTest 采样值，便于区分「随机流不同」与「判定逻辑不同」",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

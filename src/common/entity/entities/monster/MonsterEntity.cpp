@@ -189,4 +189,30 @@ f32 MonsterEntity::getPathWeight(f32 x, f32 y, f32 z) const
     return 0.5f - brightness;
 }
 
+bool MonsterEntity::isDarkEnoughToSpawn(i32 skyLight,
+    i32 blockLight,
+    i32 combinedLight,
+    i32 thunderCombinedLight,
+    i32 blockLightLimit,
+    i32 lightTestMin,
+    i32 lightTestMax,
+    math::IRandom& random)
+{
+    // 第 1 段：天空光与 nextInt(32) 比。注意是**随机阈值**，不是常量比较。
+    if (skyLight > random.nextInt(32)) {
+        return false;
+    }
+
+    // 第 2 段：方块光上限，**仅在 limit < 15 时检查**。
+    if (blockLightLimit < 15 && blockLight > blockLightLimit) {
+        return false;
+    }
+
+    // 第 3 段：综合亮度与 lightTest 采样值比。雷暴时用 10 衰减的口径。
+    const bool thunder = thunderCombinedLight != combinedLight;
+    const i32 combined = thunder ? thunderCombinedLight : combinedLight;
+    const i32 sample = lightTestMin + random.nextInt(lightTestMax - lightTestMin + 1);
+    return combined <= sample;
+}
+
 } // namespace mc
