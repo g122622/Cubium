@@ -334,6 +334,36 @@ BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
+bool BellBlock::canPlaceAt(const BlockItemUseContext& context) const
+{
+    // 原版 `BellBlock#getStateForPlacement` 在四种挂法都不可存活时 `return null`，
+    // `BlockItem` 据此取消放置且不消耗物品。Cubium 的 `getStateForPlacement` 返回值类型，
+    // 只能退回 `defaultState()`，所以那条「全部不可用」的分支必须在这里拦下。
+    //
+    // 判定顺序与原版一致：先 Y 轴（FLOOR / CEILING），再侧墙（单/双墙），最后地面/天花板兜底。
+    const Direction clickedFace = context.getClickedFace();
+    const BlockPos clickedPos = context.placementPos();
+    IWorld& world = const_cast<IWorld&>(context.getWorld());
+
+    if (Directions::getAxis(clickedFace) == Axis::Y) {
+        const bool isFloor = (clickedFace == Direction::Up);
+        const BlockPos supportPos = clickedPos.offset(isFloor ? Direction::Down : Direction::Up);
+        const Direction supportDir = isFloor ? Direction::Up : Direction::Down;
+        return isFloor ? Block::hasEnoughSolidSide(world, supportPos, supportDir)
+                       : Block::canSupportCenter(world, supportPos, supportDir);
+    }
+
+    // 侧向点击：先看支撑墙，再看地面（下方恒需坚固）
+    const Direction supportDir = Directions::opposite(clickedFace);
+    if (Block::hasEnoughSolidSide(world, clickedPos.offset(supportDir), clickedFace)) {
+        return true;
+    }
+    if (Block::hasEnoughSolidSide(world, clickedPos.offset(Direction::Down), Direction::Up)) {
+        return true;
+    }
+    return Block::canSupportCenter(world, clickedPos.offset(Direction::Up), Direction::Down);
+}
+
 BlockState BellBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,

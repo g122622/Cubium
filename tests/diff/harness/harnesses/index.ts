@@ -1477,6 +1477,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "绑定在 Block::triggerEvent 上而不是直接调播放函数：原版正是靠方块事件广播让附近所有玩家都听到，直接播放只有发起方出声",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "bell_placement",
+        probe: "bell_placement",
+        oracle: "BellPlacementOracle",
+        description: "钟被放置时推导出的附着方式（BellBlock#getStateForPlacement）—— 6 种点击面 x 4 种玩家朝向 x 16 种四邻坚固性 = 384 个单元；"
+        + "钟是少数按摆放方式长出不同形状的方块：点顶面立在地上（floor）、点底面吊在天花板（ceiling）、"
+        + "点侧面且对向两侧都是墙就跨在两面墙之间（double_wall），否则单面挂（single_wall）。四种的碰撞形状与敲击范围都不同。"
+        + "双墙写成单墙会让钟只挂在一侧、朝向用点击面本身而非反方向会让钟面朝墙里，都不会崩溃只是看起来不对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

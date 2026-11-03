@@ -83,6 +83,19 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    /**
+     * @brief 放置前的严格判定（原版 `BellBlock#getStateForPlacement` 返回 null 的放弃语义）
+     *
+     * 原版在四种挂法都不可存活时 `return null`，`BlockItem` 据此取消放置、**不消耗物品**。
+     * Cubium 的 `getStateForPlacement` 返回的是值类型，只能退回 `defaultState()`——
+     * 那会把钟强行放到一个不可存活的位置（例如点底面而上方是空气时，钟照挂不误）。
+     * 该分支在 `getStateForPlacement` 之前由本方法拦下。
+     *
+     * @param context 放置上下文
+     * @return 任一种挂法可存活返回 true
+     */
+    [[nodiscard]] bool canPlaceAt(const BlockItemUseContext& context) const override;
+
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
