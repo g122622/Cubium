@@ -22,7 +22,9 @@
  */
 
 #include "SweetBerryBushBlock.hpp"
+
 #include "common/core/Constants.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -125,6 +127,7 @@ void SweetBerryBushBlock::randomTick(IWorld& world, const BlockPos& pos, BlockSt
     if (random.nextInt(5) == 0) {
         const BlockState& newState = withAge(state, age + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
 
@@ -158,6 +161,7 @@ void SweetBerryBushBlock::grow(IWorld& world, math::IRandom& random, const Block
     if (age < getMaxAge()) {
         const BlockState& newState = withAge(state, age + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
 
@@ -247,6 +251,9 @@ BlockActionResult SweetBerryBushBlock::useWithoutItem(
         // AGE 重置为 1
         const BlockState& newState = withAge(state, 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+        // 采摘让浆果丛退回幼株，是方块状态变化。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
 
         return ActionResultType::Success;
     }

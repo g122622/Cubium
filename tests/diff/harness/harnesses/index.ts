@@ -1568,6 +1568,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "不置 DISARMED 的话，用剪刀拆陷阱反而会把它引爆一次 —— 正好是剪刀存在的意义（安全拆除）的反面",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "berry_growth",
+        probe: "berry_growth",
+        oracle: "BerryGrowthOracle",
+        description: "甜浆果丛生长时的阶段推进与事件（SweetBerryBushBlock#randomTick）—— AGE 0..3 = 4 个单元；"
+        + "随机刻生长与骨粉催熟都让 AGE+1 并发 block_change。AGE 已是 3（满阶段）时不再生长也不发事件 ——"
+        + "满阶段还发事件的话，一丛浆果能让附近幽匿感测体每 tick 醒一次",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
