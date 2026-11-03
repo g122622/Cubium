@@ -90,8 +90,8 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     // 打开状态的碰撞形状（贴墙放置）
     CollisionShape openNorth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 1.0f, 1.0f, 1.0f);
     CollisionShape openSouth = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f * P);
-    CollisionShape openEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-    CollisionShape openWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 1.0f, 1.0f);
+    CollisionShape openEast = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 1.0f, 1.0f);
+    CollisionShape openWest = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 
     // 关闭状态的形状（上半和下半不同）
     m_shapes[_getShapeIndex(Direction::North, false, BlockStateProperties::Half::Bottom)] = closedBottom;

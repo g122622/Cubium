@@ -79,15 +79,15 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     m_openShapes[static_cast<size_t>(Direction::South)] = m_openShape;
     m_inWallClosedShapes[static_cast<size_t>(Direction::South)] = m_inWallClosedShape;
 
-    m_closedShapes[static_cast<size_t>(Direction::East)] = VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 1.0f, 1.0f);
+    m_closedShapes[static_cast<size_t>(Direction::East)] = VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 1.0f, 1.0f);
     m_openShapes[static_cast<size_t>(Direction::East)] = m_openShape;
     m_inWallClosedShapes[static_cast<size_t>(Direction::East)] =
-        VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 0.8125f, 1.0f);
+        VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 0.8125f, 1.0f);
 
-    m_closedShapes[static_cast<size_t>(Direction::West)] = VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 1.0f, 1.0f);
+    m_closedShapes[static_cast<size_t>(Direction::West)] = VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 1.0f, 1.0f);
     m_openShapes[static_cast<size_t>(Direction::West)] = m_openShape;
     m_inWallClosedShapes[static_cast<size_t>(Direction::West)] =
-        VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 0.8125f, 1.0f);
+        VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 0.8125f, 1.0f);
 
     // 支撑形状：对齐原版 SHAPE_SUPPORT = rotateHorizontalAxis(Block.column(16.0, 4.0, 5.0, 24.0))。
     //
@@ -221,9 +221,10 @@ const CollisionShape& FenceGateBlock::getShape(const BlockState& state) const
         index = static_cast<size_t>(Direction::North);
     }
 
-    if (open) {
-        return m_openShapes[index];
-    }
+    // 原版栅栏门的 getShape **不区分 open**：开与关都是同一块门板，
+    // open 只影响红石逻辑（以及音效/比较器），不改变几何。实测 16 种组合仅随
+    // facing 与 in_wall 变化。此前 open=true 返回空形状，导致打开的栅栏门凭空消失。
+    MC_UNUSED(open);
     if (inWall) {
         return m_inWallClosedShapes[index];
     }
