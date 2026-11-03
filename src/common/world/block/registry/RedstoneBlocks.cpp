@@ -319,7 +319,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::StonePressurePlateBlock>(ResourceLocation("minecraft:stone_pressure_plate"),
             BlockProperties(Material::ROCK)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -330,7 +330,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:oak_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -343,7 +343,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:spruce_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -356,7 +356,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:birch_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -369,7 +369,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:jungle_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -382,7 +382,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:acacia_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -395,7 +395,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:dark_oak_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -409,7 +409,7 @@ void registerRedstoneBlocks()
             BlockProperties(Material::NETHER_WOOD)
                 .resistance(0.5f)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .noOcclusion()
                 .soundType(BlockSoundTypes::NETHER_WOOD));
@@ -430,7 +430,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:mangrove_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -443,7 +443,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:cherry_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -457,7 +457,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:bamboo_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -471,7 +471,7 @@ void registerRedstoneBlocks()
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:pale_oak_pressure_plate"),
             BlockProperties(Material::WOOD)
                 .noCollision()
-                
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
@@ -484,7 +484,7 @@ void registerRedstoneBlocks()
         ResourceLocation("minecraft:polished_blackstone_pressure_plate"),
         BlockProperties(Material::ROCK)
             .noCollision()
-            
+
             .hardness(0.5f)
             .resistance(0.5f)
             .hardness(0.5f)
@@ -496,7 +496,7 @@ void registerRedstoneBlocks()
         BlockProperties(Material::IRON)
             .resistance(0.5f)
             .noCollision()
-            
+
             .hardness(0.5f)
             .noOcclusion()
             .soundType(BlockSoundTypes::METAL),
@@ -508,7 +508,7 @@ void registerRedstoneBlocks()
         BlockProperties(Material::IRON)
             .resistance(0.5f)
             .noCollision()
-            
+
             .hardness(0.5f)
             .noOcclusion()
             .soundType(BlockSoundTypes::IRON),

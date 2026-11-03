@@ -66,7 +66,7 @@ void registerSculkBlocks()
     SculkBlocks::SCULK_VEIN = &registry.registerBlock<blocks::SculkVeinBlock>(ResourceLocation("minecraft:sculk_vein"),
         BlockProperties(Material::SCULK)
             .noCollision()
-            
+
             .hardness(0.2f)
             .resistance(0.2f)
             .harvestTool(HarvestTool::Hoe)

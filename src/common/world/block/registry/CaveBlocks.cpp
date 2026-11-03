@@ -128,7 +128,7 @@ void registerCaveBlocks()
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:small_amethyst_bud"),
             BlockProperties(Material::PLANT)
                 .withCollision()
-                
+
                 .noOcclusion()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
@@ -142,7 +142,7 @@ void registerCaveBlocks()
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:medium_amethyst_bud"),
             BlockProperties(Material::PLANT)
                 .withCollision()
-                
+
                 .noOcclusion()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
@@ -156,7 +156,7 @@ void registerCaveBlocks()
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:large_amethyst_bud"),
             BlockProperties(Material::PLANT)
                 .withCollision()
-                
+
                 .noOcclusion()
                 // 原版紫水晶芽/簇：1.5 / 1.5（0 会让它们瞬间被破坏且无法抗爆）
                 .hardness(1.5f)
@@ -170,7 +170,7 @@ void registerCaveBlocks()
         &registry.registerBlock<blocks::AmethystClusterBlock>(ResourceLocation("minecraft:amethyst_cluster"),
             BlockProperties(Material::PLANT)
                 .withCollision()
-                
+
                 .noOcclusion()
                 .hardness(1.5f)
                 .resistance(1.5f)
@@ -200,7 +200,7 @@ void registerCaveBlocks()
     CaveBlocks::POINTED_DRIPSTONE =
         &registry.registerBlock<blocks::PointedDripstoneBlock>(ResourceLocation("minecraft:pointed_dripstone"),
             BlockProperties(Material::ROCK)
-                
+
                 .hardness(1.5f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::POINTED_DRIPSTONE)

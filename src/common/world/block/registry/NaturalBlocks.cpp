@@ -335,7 +335,7 @@ void registerNaturalBlocks()
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .withCollision()
-                
+
                 .noOcclusion()
                 .soundType(BlockSoundTypes::METAL));
 
@@ -349,7 +349,7 @@ void registerNaturalBlocks()
             BlockProperties(Material::ORGANIC)
                 .hardness(0.0f)
                 .withCollision()
-                
+
                 .noOcclusion()
                 .tickRandomly()
                 .soundType(BlockSoundTypes::DRIED_GHAST));
@@ -609,7 +609,7 @@ void registerNaturalBlocks()
         BlockProperties(Material::GLASS)
             .hardness(3.0f)
             .resistance(3.0f)
-            
+
             .soundType(BlockSoundTypes::STONE)
             .noOcclusion());
 
