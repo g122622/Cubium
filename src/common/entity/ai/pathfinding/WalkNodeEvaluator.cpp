@@ -420,26 +420,31 @@ PathPoint* WalkNodeEvaluator::getStart()
     //   2. 站在地面上：取脚下 0.5 格的位置（避免半砖 / 台阶把起点抬高半格）；
     //   3. 悬空：先向下找到第一个「不可穿过」的方块，再在其上方一格作为起点。
     if (!context.entity().pathfindingCanStandOnFluid(region.getFluidState(blockX, y, blockZ))) {
+        // 所有「沿 Y 扫描」的循环都必须带世界高度上界：原版 `LevelReader.getBlockState`
+        // 对越界坐标返回虚空/空气，循环会自然停下；本项目的 `Region` 实现（`WorldRegion`）
+        // 虽也做了越界兜底，但上界仍然必须显式给出——否则向上扫描会一路走到高度上限，
+        // 在悬空实体的起点推导上浪费几十次查询。
+        const i32 ceiling = region.maxBuildHeight();
         if (canFloat() && context.entity().pathfindingInWater()) {
-            while (fluidInTag(region.getFluidState(blockX, y, blockZ), fluid::FluidTags::WATER())) {
+            while (y < ceiling && fluidInTag(region.getFluidState(blockX, y, blockZ), fluid::FluidTags::WATER())) {
                 ++y;
             }
             --y;
         } else if (context.entity().pathfindingOnGround()) {
             y = static_cast<i32>(std::floor(position.y + 0.5));
         } else {
-            ++y;
+            // 悬空：从当前位置向下找第一个「不可穿过」的方块，找不到就停在最小建造高度。
             while (y > region.minBuildHeight()) {
                 --y;
                 state = region.getBlockState(blockX, y, blockZ);
                 if (!state->isAir() && !isPathfindable(*state)) {
                     break;
                 }
-                ++y;
             }
         }
     } else {
-        while (context.entity().pathfindingCanStandOnFluid(region.getFluidState(blockX, y, blockZ))) {
+        const i32 ceiling = region.maxBuildHeight();
+        while (y < ceiling && context.entity().pathfindingCanStandOnFluid(region.getFluidState(blockX, y, blockZ))) {
             ++y;
         }
         --y;
