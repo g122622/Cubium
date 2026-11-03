@@ -1544,6 +1544,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "讲台翻页时会拉高一次 POWERED 当比较器脉冲，放书取书不清掉的话，取走书之后下游比较器会一直读到不该存在的信号",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "tripwire_state",
+        probe: "tripwire_state",
+        oracle: "TripwireStateOracle",
+        description: "绊线钩状态变化时的音效与事件（TripWireHookBlock#emitState）—— 变化前 powered/attached x 变化后 = 16 个单元；"
+        + "四个分支互斥且按优先级：通电/断电优先于挂上/脱开。两者同时变化时只报电量那次；"
+        + "写成并列四个 if 会让一次扯断连发两个事件两个音效，幽匿感测体被连续唤醒、红石计时装置算错 tick。都不变时必须完全静默",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

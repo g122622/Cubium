@@ -158,6 +158,34 @@ public:
      */
     [[nodiscard]] static BlockState withConnected(BlockState state, bool connected);
 
+    /**
+     * @brief 钩子状态变化时发声与发事件（原版 `TripWireHookBlock#emitState`）
+     *
+     * 四分支互斥且按优先级排列：
+     * - 未通电 -> 通电：CLICK_ON 音效（音高 0.6）+ `block_activate`
+     * - 通电 -> 未通电：CLICK_OFF 音效（音高 0.5）+ `block_deactivate`
+     * - 未挂上 -> 挂上：ATTACH 音效（音高 0.7）+ `block_attach`
+     * - 挂上 -> 未挂：DETACH 音效（音高 `1.2/(random*0.2+0.9)`）+ `block_detach`
+     *
+     * 通电/断电优先于挂上/脱开 —— 两者同时变化时只报电量那次。
+     * 音量恒为 0.4。
+     *
+     * @param world 世界引用
+     * @param pos 钩子位置
+     * @param state 变化后的状态（事件携带的上下文）
+     * @param powered 变化后是否通电
+     * @param attached 变化后是否挂上
+     * @param wasPowered 变化前是否通电
+     * @param wasAttached 变化前是否挂上
+     */
+    static void emitState(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        bool powered,
+        bool attached,
+        bool wasPowered,
+        bool wasAttached);
+
 private:
     /**
      * @brief 计算并更新绊线钩状态

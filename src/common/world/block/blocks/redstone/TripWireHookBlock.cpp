@@ -22,6 +22,7 @@
  */
 
 #include "TripWireHookBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -29,6 +30,8 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
@@ -41,6 +44,7 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
 #include <memory>
@@ -365,6 +369,9 @@ bool TripWireHookBlock::_calculateState(
         newState = withConnected(newState, foundChain);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
+        // 状态变化要发声、发事件（原版 `emitState`）。
+        emitState(world, pos, newState, shouldPower, foundChain, wasPowered, wasConnected);
+
         // 通知相邻方块
         if (shouldTriggerOnChange && shouldPower != wasPowered) {
             world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
@@ -373,6 +380,35 @@ bool TripWireHookBlock::_calculateState(
     }
 
     return false;
+}
+
+void TripWireHookBlock::emitState(IWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    bool powered,
+    bool attached,
+    bool wasPowered,
+    bool wasAttached)
+{
+    // 四分支互斥且按优先级排列：通电/断电优先于挂上/脱开 —— 两个都给定时只报电量变化那次。
+    if (powered && !wasPowered) {
+        world.playSound(SoundEvents::BLOCK_TRIPWIRE_CLICK_ON, sound::SoundCategory::Blocks, pos.center(), 0.4f, 0.6f);
+        world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, &state);
+    } else if (!powered && wasPowered) {
+        world.playSound(SoundEvents::BLOCK_TRIPWIRE_CLICK_OFF, sound::SoundCategory::Blocks, pos.center(), 0.4f, 0.5f);
+        world.gameEvent(gameevent::GameEvents::BLOCK_DEACTIVATE, pos, &state);
+    } else if (attached && !wasAttached) {
+        world.playSound(SoundEvents::BLOCK_TRIPWIRE_ATTACH, sound::SoundCategory::Blocks, pos.center(), 0.4f, 0.7f);
+        world.gameEvent(gameevent::GameEvents::BLOCK_ATTACH, pos, &state);
+    } else if (!attached && wasAttached) {
+        // 脱开音高带随机，让连续拆绊线的声音不完全一致。
+        world.playSound(SoundEvents::BLOCK_TRIPWIRE_DETACH,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            0.4f,
+            1.2f / (world.getRandom().nextFloat() * 0.2f + 0.9f));
+        world.gameEvent(gameevent::GameEvents::BLOCK_DETACH, pos, &state);
+    }
 }
 
 bool TripWireHookBlock::_checkForTripwire(
