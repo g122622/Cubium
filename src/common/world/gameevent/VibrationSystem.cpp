@@ -65,76 +65,74 @@ namespace mc::gameevent {
  */
 static i32 getVibrationFrequencyForEvent(const char* eventId)
 {
-    // 步行/游泳/振翅 - 频率 1
-    if (std::strcmp(eventId, "step") == 0 || std::strcmp(eventId, "swim") == 0 || std::strcmp(eventId, "flap") == 0) {
+    // 步行 / 游泳 / 振翅 - 频率 1
+    if (std::strcmp(eventId, "flap") == 0 || std::strcmp(eventId, "step") == 0 || std::strcmp(eventId, "swim") == 0) {
         return 1;
     }
-    // 弹射物落地 - 频率 2
-    if (std::strcmp(eventId, "projectile_land") == 0) {
+    // 弹射物落地 / 落地 / 溅水 - 频率 2
+    if (std::strcmp(eventId, "hit_ground") == 0 || std::strcmp(eventId, "projectile_land") == 0 ||
+        std::strcmp(eventId, "splash") == 0) {
         return 2;
     }
-    // 方块失活/引信点燃 - 频率 3
-    if (std::strcmp(eventId, "block_deactivate") == 0 || std::strcmp(eventId, "prime_fuse") == 0) {
+    // 乐器演奏 / 物品交互完成 / 弹射物发射 - 频率 3
+    if (std::strcmp(eventId, "instrument_play") == 0 || std::strcmp(eventId, "item_interact_finish") == 0 ||
+        std::strcmp(eventId, "projectile_shoot") == 0) {
         return 3;
     }
-    // 实体动作/流体拾取/方块脱离 - 频率 4
-    if (std::strcmp(eventId, "entity_action") == 0 || std::strcmp(eventId, "fluid_pickup") == 0 ||
-        std::strcmp(eventId, "block_detach") == 0) {
+    // 鞘翅滑翔 / 实体动作 / 卸下装备 - 频率 4
+    if (std::strcmp(eventId, "elytra_glide") == 0 || std::strcmp(eventId, "entity_action") == 0 ||
+        std::strcmp(eventId, "unequip") == 0) {
         return 4;
     }
-    // 实体交互/方块激活/方块放置/流体放置/方块附着 - 频率 5
-    if (std::strcmp(eventId, "entity_interact") == 0 || std::strcmp(eventId, "block_activate") == 0 ||
-        std::strcmp(eventId, "block_place") == 0 || std::strcmp(eventId, "fluid_place") == 0 ||
-        std::strcmp(eventId, "block_attach") == 0) {
+    // 下坐骑 / 装备 - 频率 5
+    if (std::strcmp(eventId, "entity_dismount") == 0 || std::strcmp(eventId, "equip") == 0) {
         return 5;
     }
-    // 实体上坐骑/实体下坐骑 - 频率 6
-    if (std::strcmp(eventId, "entity_mount") == 0 || std::strcmp(eventId, "entity_dismount") == 0) {
+    // 实体交互 / 上坐骑 / 剪切 - 频率 6
+    if (std::strcmp(eventId, "entity_interact") == 0 || std::strcmp(eventId, "entity_mount") == 0 ||
+        std::strcmp(eventId, "shear") == 0) {
         return 6;
     }
-    // 方块变化/方块打开/方块关闭/容器打开/容器关闭 - 频率 7
-    if (std::strcmp(eventId, "block_change") == 0 || std::strcmp(eventId, "block_open") == 0 ||
-        std::strcmp(eventId, "block_close") == 0 || std::strcmp(eventId, "container_open") == 0 ||
-        std::strcmp(eventId, "container_close") == 0) {
+    // 实体受伤 - 频率 7
+    if (std::strcmp(eventId, "entity_damage") == 0) {
         return 7;
     }
-    // 方块销毁/饮用/进食 - 频率 8
-    if (std::strcmp(eventId, "block_destroy") == 0 || std::strcmp(eventId, "drink") == 0 ||
-        std::strcmp(eventId, "eat") == 0) {
+    // 饮用 / 进食 - 频率 8
+    if (std::strcmp(eventId, "drink") == 0 || std::strcmp(eventId, "eat") == 0) {
         return 8;
     }
-    // 幽匿感测体触须点击 - 频率 9
-    if (std::strcmp(eventId, "sculk_sensor_tendrils_clicking") == 0) {
+    // 容器关闭 / 方块失活 / 方块脱离 / 方块关闭 - 频率 9
+    if (std::strcmp(eventId, "block_close") == 0 || std::strcmp(eventId, "block_deactivate") == 0 ||
+        std::strcmp(eventId, "block_detach") == 0 || std::strcmp(eventId, "container_close") == 0) {
         return 9;
     }
-    // 弹射物发射/乐器演奏/音符盒演奏/剪切 - 频率 10
-    if (std::strcmp(eventId, "projectile_shoot") == 0 || std::strcmp(eventId, "instrument_play") == 0 ||
-        std::strcmp(eventId, "note_block_play") == 0 || std::strcmp(eventId, "shear") == 0) {
+    // 方块激活 / 方块附着 / 方块打开 / 容器打开 / 音符盒演奏 / 引信点燃 - 频率 10
+    if (std::strcmp(eventId, "block_activate") == 0 || std::strcmp(eventId, "block_attach") == 0 ||
+        std::strcmp(eventId, "block_open") == 0 || std::strcmp(eventId, "container_open") == 0 ||
+        std::strcmp(eventId, "note_block_play") == 0 || std::strcmp(eventId, "prime_fuse") == 0) {
         return 10;
     }
-    // 实体受伤/实体死亡/装备更换/卸下装备 - 频率 11
-    if (std::strcmp(eventId, "entity_damage") == 0 || std::strcmp(eventId, "entity_die") == 0 ||
-        std::strcmp(eventId, "equip") == 0 || std::strcmp(eventId, "unequip") == 0) {
+    // 方块变化 - 频率 11
+    if (std::strcmp(eventId, "block_change") == 0) {
         return 11;
     }
-    // 落地/溅水 - 频率 12
-    if (std::strcmp(eventId, "hit_ground") == 0 || std::strcmp(eventId, "splash") == 0) {
+    // 方块销毁 / 流体拾取 - 频率 12
+    if (std::strcmp(eventId, "block_destroy") == 0 || std::strcmp(eventId, "fluid_pickup") == 0) {
         return 12;
     }
-    // 唱片机播放/唱片机停止/物品交互开始/物品交互完成 - 频率 13
-    if (std::strcmp(eventId, "jukebox_play") == 0 || std::strcmp(eventId, "jukebox_stop_play") == 0 ||
-        std::strcmp(eventId, "item_interact_start") == 0 || std::strcmp(eventId, "item_interact_finish") == 0) {
+    // 方块放置 / 流体放置 - 频率 13
+    if (std::strcmp(eventId, "block_place") == 0 || std::strcmp(eventId, "fluid_place") == 0) {
         return 13;
     }
-    // 爆炸/闪电击中 - 频率 14
-    if (std::strcmp(eventId, "explode") == 0 || std::strcmp(eventId, "lightning_strike") == 0) {
+    // 放置实体 / 闪电击中 / 传送 - 频率 14
+    if (std::strcmp(eventId, "entity_place") == 0 || std::strcmp(eventId, "lightning_strike") == 0 ||
+        std::strcmp(eventId, "teleport") == 0) {
         return 14;
     }
-    // 尖啸 - 频率 15
-    if (std::strcmp(eventId, "shriek") == 0) {
+    // 实体死亡 / 爆炸 - 频率 15
+    if (std::strcmp(eventId, "entity_die") == 0 || std::strcmp(eventId, "explode") == 0) {
         return 15;
     }
-
     // 共鸣事件：频率等于事件编号
     for (i32 i = 1; i <= 15; ++i) {
         // 共鸣事件ID格式: "resonate_1" 到 "resonate_15"

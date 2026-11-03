@@ -1584,6 +1584,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "已达上限还继续加会让层数溢出到 5，光照等级 charges*3.75 算出 18 超出亮度上限",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "vibration_frequency",
+        probe: "vibration_frequency",
+        oracle: "VibrationFrequencyOracle",
+        description: "游戏事件到振动频率的映射（VibrationSystem.VIBRATION_FREQUENCY_FOR_EVENT）—— 全部 40 个事件；"
+        + "这张表把事件归入 1..15 的频段，频段决定红石比较器输出强度与紫水晶共振方块的 RESONATE_N 事件，"
+        + "表里没有的事件频率为 0 不产生振动。分组整体偏移不会崩也不会报错，只是所有振动装置读数同时「差不多」地错掉 ——"
+        + "这是最难靠手动测试发现的一类缺陷。实测修复前 40 条里 35 条与原版不符",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
