@@ -154,10 +154,15 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
             //   short+west  -> 平台 x 0..4    杆 x 4..16
             //   short+east  -> 平台 x 12..16  杆 x 0..12
             // 此前每条的杆都从平台**起点**量到 12/16，方向反了——短臂活塞头看上去像根倒插的钉子。
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, 0, 6, 10, 12, 10)), // Down
+            // Down：平台贴**下方**（y 0..4），杆向上伸到 y 16。
+            // 与原版实测一致：[0,0,0->1,.25,1] + [.375,.25,.375->.625,1,.625]。
+            // 注意活塞头与活塞底座**规则相反**（活塞头朝向哪边、杆就伸向哪边，
+            // 平台留在反侧），不要照搬 PistonBlock 的表。
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
-                CollisionShape::fromPixelBox(6, 4, 6, 10, 16, 10)), // Up
+                CollisionShape::fromPixelBox(6, 4, 6, 10, 16, 10)), // Down
+            // Up：平台贴**上方**（y 12..16），杆向下伸到 y 0。
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
+                CollisionShape::fromPixelBox(6, 0, 6, 10, 12, 10)), // Up
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
                 CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 16)), // North
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
@@ -173,10 +178,15 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
             // 细杆从平台起沿 FACING 延伸。此前细杆方向整体反了。
             CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.25f, 1.0f),
                 CollisionShape::box(0.375f, 0.25f, 0.375f, 0.625f, 1.25f, 0.625f)), // Down
-            // Up: 平台是整格上半的四块（Shapes.or 细分后的形态），细杆向上伸出
+            // Up: 平台是整格上半的四块（Shapes.or 细分后的形态），细杆向上伸出。
+            // 四块缺一不可：此前只写了前两块，x 6..16 / z 6..16 那一大片没有板
+            // ——朝上的长臂活塞头上半部分缺了一角。
             CollisionShape::combine(CollisionShape::box(0.375f, -0.25f, 0.375f, 0.625f, 1.0f, 0.625f),
-                CollisionShape::combine(CollisionShape::box(0.0f, 0.75f, 0.0f, 0.375f, 1.0f, 1.0f),
-                    CollisionShape::box(0.375f, 0.75f, 0.0f, 1.0f, 1.0f, 0.375f))),
+                CollisionShape::combine(
+                    CollisionShape::combine(CollisionShape::box(0.0f, 0.75f, 0.0f, 0.375f, 1.0f, 1.0f),
+                        CollisionShape::box(0.375f, 0.75f, 0.0f, 1.0f, 1.0f, 0.375f)),
+                    CollisionShape::combine(CollisionShape::box(0.375f, 0.75f, 0.625f, 1.0f, 1.0f, 1.0f),
+                        CollisionShape::box(0.625f, 0.75f, 0.375f, 1.0f, 1.0f, 0.625f)))),
             CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.25f),
                 CollisionShape::box(0.375f, 0.375f, 0.25f, 0.625f, 0.625f, 1.25f)), // North
             CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.75f, 1.0f, 1.0f, 1.0f),

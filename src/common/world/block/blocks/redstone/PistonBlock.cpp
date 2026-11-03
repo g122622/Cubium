@@ -475,8 +475,12 @@ const CollisionShape& PistonBlock::getShape(const BlockState& state) const
     }
 
     static const CollisionShape shapes[6] = {
-        CollisionShape::fromPixelBox(0, 0, 0, 16, 12, 16), // Down
-        CollisionShape::fromPixelBox(0, 4, 0, 16, 16, 16), // Up
+        // 伸出时缺口朝向 FACING（活塞头所在侧）：
+        //   facing=down -> 缺口在下方，板占 y 4..16
+        //   facing=up   -> 缺口在上方，板占 y 0..12
+        // 此前 Down/Up 两条正好写反，伸出时活塞的缺口朝了错误的一边。
+        CollisionShape::fromPixelBox(0, 4, 0, 16, 16, 16),   // Down
+        CollisionShape::fromPixelBox(0, 0, 0, 16, 12, 16),   // Up
         CollisionShape::fromPixelBox(0, 0, 4, 16, 16, 16), // North
         CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 12), // South
         CollisionShape::fromPixelBox(4, 0, 0, 16, 16, 16), // West

@@ -153,6 +153,32 @@ GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
     _gsWallEast = CollisionShape::combine(
         _gsWallEast, CollisionShape::box(0.0f, 0.375f, 0.75f, 0.4375f, 0.625f, 0.875f), CollisionShape::CombineOp::OR);
 
+    // Wall_South：与 North 沿 Z 轴镜像（主体移到 z 0.25..1，小盒换到 z 0..0.4375）。
+    CollisionShape _gsWallSouth = CollisionShape::box(0.25f, 0.125f, 0.25f, 0.75f, 0.875f, 1.0f);
+    _gsWallSouth = CollisionShape::combine(_gsWallSouth,
+        CollisionShape::box(0.125f, 0.3125f, 0.4375f, 0.25f, 0.6875f, 0.8125f),
+        CollisionShape::CombineOp::OR);
+    _gsWallSouth = CollisionShape::combine(_gsWallSouth,
+        CollisionShape::box(0.75f, 0.3125f, 0.4375f, 0.875f, 0.6875f, 0.8125f),
+        CollisionShape::CombineOp::OR);
+    _gsWallSouth = CollisionShape::combine(
+        _gsWallSouth, CollisionShape::box(0.125f, 0.375f, 0.0f, 0.25f, 0.625f, 0.4375f), CollisionShape::CombineOp::OR);
+    _gsWallSouth = CollisionShape::combine(
+        _gsWallSouth, CollisionShape::box(0.75f, 0.375f, 0.0f, 0.875f, 0.625f, 0.4375f), CollisionShape::CombineOp::OR);
+
+    // Wall_West：与 East 沿 X 轴镜像（主体移到 x 0..0.75，小盒换到 x 0.5625..1）。
+    CollisionShape _gsWallWest = CollisionShape::box(0.0f, 0.125f, 0.25f, 0.75f, 0.875f, 0.75f);
+    _gsWallWest = CollisionShape::combine(_gsWallWest,
+        CollisionShape::box(0.1875f, 0.3125f, 0.125f, 0.5625f, 0.6875f, 0.25f),
+        CollisionShape::CombineOp::OR);
+    _gsWallWest = CollisionShape::combine(_gsWallWest,
+        CollisionShape::box(0.1875f, 0.3125f, 0.75f, 0.5625f, 0.6875f, 0.875f),
+        CollisionShape::CombineOp::OR);
+    _gsWallWest = CollisionShape::combine(
+        _gsWallWest, CollisionShape::box(0.5625f, 0.375f, 0.125f, 1.0f, 0.625f, 0.25f), CollisionShape::CombineOp::OR);
+    _gsWallWest = CollisionShape::combine(
+        _gsWallWest, CollisionShape::box(0.5625f, 0.375f, 0.75f, 1.0f, 0.625f, 0.875f), CollisionShape::CombineOp::OR);
+
     // Ceiling_North
     CollisionShape _gsCeilingNorth = CollisionShape::box(0.25f, 0.0f, 0.125f, 0.75f, 0.75f, 0.875f);
     _gsCeilingNorth = CollisionShape::combine(_gsCeilingNorth,
@@ -187,9 +213,12 @@ GrindstoneBlock::GrindstoneBlock(const BlockProperties& properties)
     m_shapes[getShapeIndex(AttachFace::Floor, Direction::South)] = _gsFloorNorth;
     m_shapes[getShapeIndex(AttachFace::Floor, Direction::West)] = _gsFloorEast;
     m_shapes[getShapeIndex(AttachFace::Floor, Direction::East)] = _gsFloorEast;
+    // 贴墙的四个朝向**各不相同**：主体靠向墙那一侧，两个托架在反侧。
+    // 此前 South 直接复用 North、West 直接复用 East，于是朝南/朝西的磨石
+    // 主体停在错误的一边（托架穿进墙里、外侧却空着）。
     m_shapes[getShapeIndex(AttachFace::Wall, Direction::North)] = _gsWallNorth;
-    m_shapes[getShapeIndex(AttachFace::Wall, Direction::South)] = _gsWallNorth;
-    m_shapes[getShapeIndex(AttachFace::Wall, Direction::West)] = _gsWallEast;
+    m_shapes[getShapeIndex(AttachFace::Wall, Direction::South)] = _gsWallSouth;
+    m_shapes[getShapeIndex(AttachFace::Wall, Direction::West)] = _gsWallWest;
     m_shapes[getShapeIndex(AttachFace::Wall, Direction::East)] = _gsWallEast;
     m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::North)] = _gsCeilingNorth;
     m_shapes[getShapeIndex(AttachFace::Ceiling, Direction::South)] = _gsCeilingNorth;

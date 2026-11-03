@@ -85,7 +85,9 @@ TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
     // 创建各蛋数量的形状
     // 1个蛋: 3/16=0.1875, 12/16=0.75, 7/16=0.4375
     m_shapesByEggCount[0] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.75f, 0.4375f, 0.75f);     // 1 egg
-    m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.1875f, 0.9375f, 0.4375f, 0.75f);   // 2 eggs
+    // 2 个蛋起，形状在**两个轴**上都铺到 0.0625..0.9375（原版实测），
+    // 只有 1 个蛋时是缩在 (0.1875..0.75) 的小方块。
+    m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 2 eggs
     m_shapesByEggCount[2] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 3 eggs
     m_shapesByEggCount[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 4 eggs
 }

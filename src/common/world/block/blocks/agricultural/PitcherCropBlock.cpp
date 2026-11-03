@@ -330,12 +330,31 @@ void PitcherCropBlock::grow(IWorld& world, math::IRandom& random, const BlockPos
 
 const CollisionShape& PitcherCropBlock::getShape(const BlockState& state) const
 {
-    i32 age = getAge(state);
-    DoubleBlockHalf half = getHalf(state);
-    size_t halfIdx = (half == DoubleBlockHalf::Upper) ? 1 : 0;
-
+    // 原版上半部分的外形**随 AGE 变化**，并不是恒为空：
+    //
+    //   age=0/1/2 -> 空（植株还矮，够不到上半格）
+    //   age=3     -> box(0.1875, 0, 0.1875 -> 0.8125, 0.6875, 0.8125)
+    //   age=4     -> box(0.1875, 0, 0.1875 -> 0.8125, 0.9375, 0.8125)
+    //
+    // 此前上半一律返回 m_shapesByHalfAndAge[1][age]（那张表整列是满方块），
+    // 植株上方本该透明的小半格被当成一整块实心方块。
+    const i32 age = getAge(state);
     MC_ASSERT_RELEASE(age >= 0 && age <= MAX_AGE);
-    return m_shapesByHalfAndAge[halfIdx][age];
+
+    if (getHalf(state) == DoubleBlockHalf::Upper) {
+        static const CollisionShape emptyShape = CollisionShape::empty();
+        static const CollisionShape upperMid = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.6875f, 0.8125f);
+        static const CollisionShape upperTall = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.9375f, 0.8125f);
+        if (age == MAX_AGE) {
+            return upperTall;
+        }
+        if (age == MAX_AGE - 1) {
+            return upperMid;
+        }
+        return emptyShape;
+    }
+
+    return m_shapesByHalfAndAge[0][age];
 }
 
 const CollisionShape& PitcherCropBlock::getCollisionShape(const BlockState& state) const

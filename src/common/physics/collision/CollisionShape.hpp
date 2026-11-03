@@ -123,9 +123,16 @@ public:
     CollisionShape& addBox(f32 minX, f32 minY, f32 minZ, f32 maxX, f32 maxY, f32 maxZ)
     {
         m_boxes.emplace_back(minX, minY, minZ, maxX, maxY, maxZ);
-        if (m_boxes.size() > 1) {
-            m_type = Type::SimpleBox;
-        }
+        // **只要加进至少一个盒子，形状就不再是空**。
+        // 此前写成 `m_boxes.size() > 1`，于是「恰好一个盒子」的形状仍被标成 Type::Empty——
+        // 任何先默认构造、再 addBox 一次的形状都会静默丢失（isEmpty() 返回 true，
+        // 旋转/合并等操作的输入也据此短路）。由差分能力 block_shape_all 在
+        // big_dripleaf 的 tilt=full 上查出：该状态只剩一根单盒的茎，旋转后整格变成空形状。
+        //
+        // 单盒且恰为 0..1 满格时提升为 FullBlock，保持 `isFullBlock()` 等快速路径可用。
+        const bool singleUnitBox = m_boxes.size() == 1 && minX <= 0.0f && minY <= 0.0f && minZ <= 0.0f &&
+            maxX >= 1.0f && maxY >= 1.0f && maxZ >= 1.0f;
+        m_type = singleUnitBox ? Type::FullBlock : Type::SimpleBox;
         return *this;
     }
 

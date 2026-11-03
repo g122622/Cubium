@@ -228,7 +228,9 @@ std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
         shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Partial)][f] =
             makeShape(stemNorthPartial, bladesNorthPartial, dir);
         // tilt=full：叶片完全垂下，只剩茎，且茎的上沿压到 0.8125。
-        const CollisionShape& fullStem = rotateFor(stemNorthPartial, dir);
+        // **必须按值持有**：`rotateFor` 返回的是临时 CollisionShape，
+        // 用 const 引用绑定会立刻悬空，读出来是空形状。
+        const CollisionShape fullStem = rotateFor(stemNorthPartial, dir);
         shapes[static_cast<std::size_t>(BlockStateProperties::Tilt::Full)][f] = fullStem;
     }
     return shapes;
