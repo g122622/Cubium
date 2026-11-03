@@ -516,6 +516,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `conduit_frame_level` | 原版 jar `ConduitFrameLevelOracle` | 8 个框架布局 | **全部一致** | `ConduitBlockEntity.updateShape`。要点：中心 3×3×3 必须**全是水**否则立刻失效、只认**框架环**（42 格）而非 5×5×5 整个外壳（98 格）、两档门槛 16 与 42。**重构**：`countFrameBlocks` 抽成纯函数供世界读取与测试共用 |
 | `campfire_cooking` | 数据包 JSON | 18 配方 + 17 查询 = 26 | **25/25 一致** | `campfire_cooking` 类型的全部配方。营火只认该类型，**不读熔炉/烟熏机配方**，三者数据文件独立。`cookTime` 就是营火实际烹饪耗时。**修复**：`addItem` 缺配方校验（原版 `placeFood` 查不到配方就拒绝放置），此前任意物品都能放上营火、永不熟且被销毁；`cookTime <= 0` 时改为取配方值，避免第一 tick 瞬熟 |
 | `cooking_recipe_types` | 数据包 JSON | 16 输入 × 4 设施 = 64 | **全部一致** | 四类烹饪配方的横向对照（熔炉/烟熏机/高炉/营火）。四套配方在数据包里各自独立、`cookingtime` 也写在 JSON 里。语义差异：熔炉通用、烟熏机只做食物且快一倍、高炉只做矿石且快一倍、营火只做食物且慢三倍。最容易出错的是**串配方**，不会崩溃只会让物品在错误设施里可加工或耗时差一倍。**注意 ingredient 可以是标签引用**（如玻璃配方用 `#minecraft:smelts_to_glass`），不展开会误判成"无配方" |
+| `game_event_radius` | 原版 jar `GameEventRadiusOracle` | 60 个游戏事件 | **全部一致** | `GameEvent.notificationRadius`。60 个里 57 个是默认 16，只有 `jukebox_play`/`jukebox_stop_play`（10）与 `shriek`（32）不同。半径决定事件能被多远的监听器收到——幽匿感测体、尖啸体、监守者、悦灵这些「听声音」的机制全靠它，抄成默认 16 不会崩溃、只会让监守者的尖啸只惊动半张地图。单元由 `allGameEventIds()` 生成，**事件名集合的差异也会直接体现为单元缺失/多出** |
 | `block_shape` | 原版 jar `BlockShapeOracle` | 1166 个方块 × 三种形状 | **全部一致** | 体素化 16³ 输出三种形状；逐盒输出会误报盒子拆分差异，必须体素化 |
 | `fuel_values` | 原版 jar `FuelValuesOracle` | 1505 个物品的燃料时长 | 全部一致 | 需服务端世界，独占组 `loot-world` |
 | `recipe_book_category` | 原版 jar `RecipeBookCategoryOracle` | 1470 个配方的分页 | 全部一致 | 配方书分类页归属 |

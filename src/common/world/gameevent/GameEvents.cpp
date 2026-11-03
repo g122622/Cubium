@@ -24,8 +24,10 @@
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 
+#include <algorithm>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::gameevent {
 namespace GameEvents {
@@ -125,6 +127,17 @@ const GameEvent* getGameEventById(const std::string& id)
     const auto& map = getEventMap();
     auto it = map.find(id);
     return (it != map.end()) ? it->second : nullptr;
+}
+
+std::vector<std::string> allGameEventIds()
+{
+    std::vector<std::string> ids;
+    ids.reserve(getEventMap().size());
+    for (const auto& entry : getEventMap()) {
+        ids.push_back(entry.first);
+    }
+    std::sort(ids.begin(), ids.end());
+    return ids;
 }
 
 } // namespace GameEvents

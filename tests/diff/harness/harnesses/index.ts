@@ -1374,6 +1374,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "最容易出错的是**串配方**（smoking 走成 smelting 之类），不会崩溃、只会让某些物品在错误设施里可加工或耗时差一倍",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "game_event_radius",
+        probe: "game_event_radius",
+        oracle: "GameEventRadiusOracle",
+        description: "游戏事件的通知半径（GameEvent.notificationRadius）；"
+        + "60 个事件里 57 个是默认 16，只有 jukebox_play/jukebox_stop_play（10）与 shriek（32）不同。"
+        + "半径决定事件能被多远的监听器收到——幽匿感测体、尖啸体、监守者、悦灵这些「听声音」的机制全靠它；"
+        + "抄成默认 16 不会崩溃，只会让监守者的尖啸只惊动半张地图。单元由 allGameEventIds() 生成，事件名集合的差异也会直接体现为单元缺失/多出",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
