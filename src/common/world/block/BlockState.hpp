@@ -146,12 +146,13 @@ public:
     [[nodiscard]] bool isInvisibleRenderType() const;
 
     /**
-     * @brief 是否为固体
+     * @brief 是否为固体（原版 `BlockStateBase#isSolid`）
+     *
+     * **实时委托给所属方块**，不用构造期缓存：`isSolid` 由碰撞形状推断，而许多方块
+     * （门、台阶、栅栏门）的形状要到子类构造函数里才设置好，构造期拿到的还是空形状，
+     * 会被判成 false 并永久缓存下来。
      */
-    [[nodiscard]] bool isSolid() const
-    {
-        return m_isSolid;
-    }
+    [[nodiscard]] bool isSolid() const;
 
     /**
      * @brief 是否不透明

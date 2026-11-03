@@ -129,7 +129,7 @@ void registerSignBannerBlocks()
     BlockProperties signProps = BlockProperties(Material::WOOD)
                                     .hardness(1.0f)
                                     .noCollision()
-                                    .notSolid()
+                                    
                                     .ignitedByLava()
                                     .noOcclusion()
                                     .resistance(1.0f);
@@ -137,7 +137,7 @@ void registerSignBannerBlocks()
     BlockProperties netherSignProps = BlockProperties(Material::NETHER_WOOD)
                                           .hardness(1.0f)
                                           .noCollision()
-                                          .notSolid()
+                                          
                                           .noOcclusion()
                                           .soundType(BlockSoundTypes::NETHER_WOOD)
                                           .resistance(1.0f);
@@ -145,7 +145,7 @@ void registerSignBannerBlocks()
     BlockProperties bambooSignProps = BlockProperties(Material::WOOD)
                                           .hardness(1.0f)
                                           .noCollision()
-                                          .notSolid()
+                                          
                                           .ignitedByLava()
                                           .noOcclusion()
                                           .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -153,7 +153,7 @@ void registerSignBannerBlocks()
     BlockProperties cherrySignProps = BlockProperties(Material::WOOD)
                                           .hardness(1.0f)
                                           .noCollision()
-                                          .notSolid()
+                                          
                                           .ignitedByLava()
                                           .noOcclusion()
                                           .soundType(BlockSoundTypes::CHERRY_WOOD)
@@ -239,21 +239,21 @@ void registerSignBannerBlocks()
                                            .resistance(1.0f)
                                            .hardness(1.0f)
                                            .noCollision()
-                                           .notSolid()
+                                           
                                            .ignitedByLava()
                                            .soundType(BlockSoundTypes::HANGING_SIGN);
     // 下界木（crimson/warped）悬挂告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
     BlockProperties netherHangingSignProps = BlockProperties(Material::NETHER_WOOD)
                                                  .hardness(1.0f)
                                                  .noCollision()
-                                                 .notSolid()
+                                                 
                                                  .soundType(BlockSoundTypes::NETHER_WOOD_HANGING_SIGN)
                                                  .resistance(1.0f);
     // 竹悬挂告示牌属性：原版 `WoodType.BAMBOO.hangingSignSoundType()`
     BlockProperties bambooHangingSignProps = BlockProperties(Material::WOOD)
                                                  .hardness(1.0f)
                                                  .noCollision()
-                                                 .notSolid()
+                                                 
                                                  .ignitedByLava()
                                                  .soundType(BlockSoundTypes::BAMBOO_WOOD_HANGING_SIGN)
                                                  .resistance(1.0f);
@@ -261,7 +261,7 @@ void registerSignBannerBlocks()
     BlockProperties cherryHangingSignProps = BlockProperties(Material::WOOD)
                                                  .hardness(1.0f)
                                                  .noCollision()
-                                                 .notSolid()
+                                                 
                                                  .ignitedByLava()
                                                  .soundType(BlockSoundTypes::CHERRY_WOOD_HANGING_SIGN)
                                                  .resistance(1.0f);
@@ -355,7 +355,7 @@ void registerSignBannerBlocks()
                                       .hardness(1.0f)
                                       .resistance(1.0f)
                                       .noCollision()
-                                      .notSolid()
+                                      
                                       .noOcclusion()
                                       .soundType(BlockSoundTypes::WOOD)
                                       .ignitedByLava();

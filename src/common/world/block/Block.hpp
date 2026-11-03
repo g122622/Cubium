@@ -203,6 +203,29 @@ public:
     }
 
     /**
+     * @brief 强制视为实体方块（原版 `BlockBehaviour.Properties#forceSolidOn`）
+     *
+     * 覆盖 `isSolid` 的形状推断，直接返回 true。用于「碰撞形状不满整格、但语义上
+     * 算实体方块」的情况。
+     */
+    BlockProperties& forceSolidOn() noexcept
+    {
+        m_forceSolidOn = true;
+        return *this;
+    }
+
+    /**
+     * @brief 强制不视为实体方块（原版 `BlockBehaviour.Properties#forceSolidOff`）
+     *
+     * 覆盖 `isSolid` 的形状推断，直接返回 false。优先级低于 `forceSolidOn`。
+     */
+    BlockProperties& forceSolidOff() noexcept
+    {
+        m_forceSolidOff = true;
+        return *this;
+    }
+
+    /**
      * @brief 设置无碰撞（对齐 vanilla `BlockBehaviour.Properties#noCollision`）
      *
      * 原版这个开关同时关掉 `canOcclude`：没有碰撞形状的方块不可能遮挡光线。
@@ -676,9 +699,13 @@ private:
     u8 m_lightLevel;
     bool m_hasCollision;
     bool m_isSolid;
+    bool m_forceSolidOn = false;  ///< 强制视为实体方块（覆盖 `isSolid` 的形状推断）
+    bool m_forceSolidOff = false; ///< 强制不视为实体方块（覆盖 `isSolid` 的形状推断）
     bool m_isFlammable;
     bool m_requiresTool;
     bool m_isReplaceable;
+
+private:
     i32 m_opacity = 15;       // 默认完全不透明
     bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
     bool m_propagatesSkylightDown = false;
@@ -2961,6 +2988,8 @@ protected:
     i32 m_opacity = 15; // 默认完全不透明
     bool m_hasCollision = true;
     bool m_isSolid = true;
+    bool m_forceSolidOn = false;  // 强制视为实体方块（覆盖 isSolid 的形状推断）
+    bool m_forceSolidOff = false; // 强制不视为实体方块（覆盖 isSolid 的形状推断）
     bool m_isFlammable = false;
     bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
     bool m_propagatesSkylightDown = false;

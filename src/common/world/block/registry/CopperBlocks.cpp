@@ -880,7 +880,7 @@ void registerCopperBlocks()
                                   .resistance(3.5f)
                                   .hardness(3.5f)
 
-                                  .notSolid()
+                                  
                                   .noOcclusion()
                                   .soundType(BlockSoundTypes::LANTERN);
 

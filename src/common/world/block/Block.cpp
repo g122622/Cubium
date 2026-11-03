@@ -75,6 +75,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -222,6 +223,8 @@ Block::Block(BlockProperties properties)
     , m_opacity(properties.m_opacity)
     , m_hasCollision(properties.m_hasCollision)
     , m_isSolid(properties.m_isSolid)
+    , m_forceSolidOn(properties.m_forceSolidOn)
+    , m_forceSolidOff(properties.m_forceSolidOff)
     , m_isFlammable(properties.m_isFlammable)
     , m_canOcclude(properties.m_canOcclude)
     , m_propagatesSkylightDown(properties.m_propagatesSkylightDown)
@@ -447,8 +450,49 @@ bool Block::isAir(const BlockState& state) const
 
 bool Block::isSolid(const BlockState& state) const
 {
-    (void)state;
-    return m_isSolid;
+    // 原版 `BlockBehaviour.BlockStateBase#calculateSolid`：
+    //   forceSolidOn  -> true
+    //   forceSolidOff -> false
+    //   碰撞形状为空  -> false
+    //   否则按包围盒推断：
+    //     (x + y + z) / 3 >= 35/48  -> true
+    //     否则 y 尺寸 >= 1         -> true
+    //   其余 -> false
+    //
+    // 关键在最后一步：**不是**「是否占满整格」，而是「三轴平均够厚」或「整格高」。
+    // 因此门、栅栏门、告示牌这些碰撞形状远不满一格的方块，原版仍判为实体方块。
+    if (m_forceSolidOn) {
+        return true;
+    }
+    if (m_forceSolidOff) {
+        return false;
+    }
+
+    const CollisionShape& shape = getCollisionShape(state);
+    if (shape.isEmpty()) {
+        return false;
+    }
+
+    f32 minX = std::numeric_limits<f32>::max();
+    f32 minY = std::numeric_limits<f32>::max();
+    f32 minZ = std::numeric_limits<f32>::max();
+    f32 maxX = std::numeric_limits<f32>::lowest();
+    f32 maxY = std::numeric_limits<f32>::lowest();
+    f32 maxZ = std::numeric_limits<f32>::lowest();
+    for (const AxisAlignedBB& box : shape.boxes()) {
+        minX = std::min(minX, box.minX);
+        minY = std::min(minY, box.minY);
+        minZ = std::min(minZ, box.minZ);
+        maxX = std::max(maxX, box.maxX);
+        maxY = std::max(maxY, box.maxY);
+        maxZ = std::max(maxZ, box.maxZ);
+    }
+
+    const f32 size = ((maxX - minX) + (maxY - minY) + (maxZ - minZ)) / 3.0f;
+    if (size >= 35.0f / 48.0f) {
+        return true;
+    }
+    return (maxY - minY) >= 1.0f;
 }
 
 bool Block::isOpaque(const BlockState& state) const

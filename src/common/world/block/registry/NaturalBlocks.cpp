@@ -335,7 +335,7 @@ void registerNaturalBlocks()
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .withCollision()
-                .notSolid()
+                
                 .noOcclusion()
                 .soundType(BlockSoundTypes::METAL));
 
@@ -349,7 +349,7 @@ void registerNaturalBlocks()
             BlockProperties(Material::ORGANIC)
                 .hardness(0.0f)
                 .withCollision()
-                .notSolid()
+                
                 .noOcclusion()
                 .tickRandomly()
                 .soundType(BlockSoundTypes::DRIED_GHAST));
@@ -421,7 +421,7 @@ void registerNaturalBlocks()
                                                 .soundType(BlockSoundTypes::WET_GRASS);
     const BlockProperties deadCoralBlockProps = BlockProperties(Material::CORAL).hardness(1.5f).resistance(6.0f);
     const BlockProperties deadCoralPlantProps =
-        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().notSolid().noOcclusion();
+        BlockProperties(Material::CORAL).hardness(0.0f).noCollision().noOcclusion();
 
     NaturalBlocks::DEAD_TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:dead_tube_coral_block"), blocks::CoralColor::Tube, deadCoralBlockProps);
@@ -609,7 +609,7 @@ void registerNaturalBlocks()
         BlockProperties(Material::GLASS)
             .hardness(3.0f)
             .resistance(3.0f)
-            .notSolid()
+            
             .soundType(BlockSoundTypes::STONE)
             .noOcclusion());
 

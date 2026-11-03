@@ -170,6 +170,13 @@ void BlockState::refreshLightCache()
     m_useShapeForLightOcclusion = m_owner->useShapeForLightOcclusion(*this);
 }
 
+bool BlockState::isSolid() const
+{
+    // 实时委托给所属方块：isSolid 由碰撞形状推断，而许多方块（门、台阶、栅栏门）的形状
+    // 要到子类构造函数里才设置好，构造期缓存会拿到空形状并永久判成 false。
+    return m_owner->isSolid(*this);
+}
+
 bool BlockState::isSolidRender() const
 {
     // vanilla BlockStateBase：#501 occlusionShape = canOcclude ? owner.getOcclusionShape() : Shapes.empty()，
