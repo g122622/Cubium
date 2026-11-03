@@ -175,15 +175,15 @@ void registerNaturalBlocks()
 
     // 粘土
     NaturalBlocks::CLAY = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:clay"), BlockProperties(Material::EARTH).hardness(0.6f));
+        ResourceLocation("minecraft:clay"), BlockProperties(Material::EARTH).resistance(0.600000024f).hardness(0.6f));
 
     // 菌丝
     NaturalBlocks::MYCELIUM = &registry.registerBlock<blocks::MyceliumBlock>(ResourceLocation("minecraft:mycelium"),
-        BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::EARTH).resistance(0.600000024f).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
 
     // 草径
     NaturalBlocks::GRASS_PATH = &registry.registerBlock<blocks::DirtPathBlock>(ResourceLocation("minecraft:dirt_path"),
-        BlockProperties(Material::EARTH).hardness(0.65f).soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::EARTH).resistance(0.649999976f).hardness(0.65f).soundType(BlockSoundTypes::GRASS));
 
     // 浮冰 - 不透明，不融化
     // 原版 packed_ice 用最普通的 Blocks.register(name, properties) 注册（普通 Block，无子类），
@@ -193,16 +193,21 @@ void registerNaturalBlocks()
     // （实测原版 1.21.11：propagatesSkylightDown=false、lightBlock=1）。
     NaturalBlocks::PACKED_ICE =
         &registry.registerBlock<blocks::PackedIceBlock>(ResourceLocation("minecraft:packed_ice"),
-            BlockProperties(Material::ICE).hardness(0.5f).slipperiness(physics::SLIPPERINESS_ICE));
+            BlockProperties(Material::ICE).resistance(0.5f).hardness(0.5f).slipperiness(physics::SLIPPERINESS_ICE));
 
     // 蓝冰 - 最滑的方块
     NaturalBlocks::BLUE_ICE = &registry.registerBlock<blocks::BlueIceBlock>(ResourceLocation("minecraft:blue_ice"),
         BlockProperties(Material::ICE).hardness(2.8f).resistance(2.8f).slipperiness(physics::SLIPPERINESS_BLUE_ICE));
 
     // 霜冰 - 由冰霜行者附魔生成的临时冰
-    NaturalBlocks::FROSTED_ICE = &registry.registerBlock<blocks::FrostedIceBlock>(
-        ResourceLocation("minecraft:frosted_ice"),
-        BlockProperties(Material::ICE).hardness(0.5f).notSolid().noOcclusion().slipperiness(physics::SLIPPERINESS_ICE));
+    NaturalBlocks::FROSTED_ICE =
+        &registry.registerBlock<blocks::FrostedIceBlock>(ResourceLocation("minecraft:frosted_ice"),
+            BlockProperties(Material::ICE)
+                .resistance(0.5f)
+                .hardness(0.5f)
+                .notSolid()
+                .noOcclusion()
+                .slipperiness(physics::SLIPPERINESS_ICE));
 
     // 粘液块。须注册为 blocks::SlimeBlock（而非 SimpleBlock）才能启用弹跳（onLanded 反弹 Y 速度）、
     // 摔落免疫（onFallenUpon multiplier=0.0）、活塞粘连（isStickyBlock/canStickTo）与滑度 0.8
@@ -225,7 +230,7 @@ void registerNaturalBlocks()
 
     // 仙人掌
     NaturalBlocks::CACTUS = &registry.registerBlock<blocks::CactusBlock>(ResourceLocation("minecraft:cactus"),
-        BlockProperties(Material::PLANT).hardness(0.4f).soundType(BlockSoundTypes::WOOL));
+        BlockProperties(Material::PLANT).resistance(0.400000006f).hardness(0.4f).soundType(BlockSoundTypes::WOOL));
 
     // 枯萎灌木 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。
     // 改用 DryVegetationBlock 走 canSurvive 闸门，修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
@@ -244,6 +249,7 @@ void registerNaturalBlocks()
     // 藤蔓 - 可被岩浆点燃（对齐 vanilla vine）
     NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
         BlockProperties(Material::REPLACEABLE_PLANT)
+            .resistance(0.200000003f)
             .hardness(0.2f)
             .withCollision()
             .notSolid()
@@ -252,7 +258,11 @@ void registerNaturalBlocks()
 
     // 蜘蛛网
     NaturalBlocks::COBWEB = &registry.registerBlock<blocks::WebBlock>(ResourceLocation("minecraft:cobweb"),
-        BlockProperties(Material::WEB).hardness(4.0f).noCollision().soundType(BlockSoundTypes::COBWEB));
+        BlockProperties(Material::WEB)
+            .resistance(4.0f)
+            .hardness(4.0f)
+            .noCollision()
+            .soundType(BlockSoundTypes::COBWEB));
 
     // 甘蔗
     NaturalBlocks::SUGAR_CANE =
@@ -260,12 +270,12 @@ void registerNaturalBlocks()
             BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 耕地
-    NaturalBlocks::FARMLAND = &registry.registerBlock<blocks::FarmlandBlock>(
-        ResourceLocation("minecraft:farmland"), BlockProperties(Material::EARTH).hardness(0.6f));
+    NaturalBlocks::FARMLAND = &registry.registerBlock<blocks::FarmlandBlock>(ResourceLocation("minecraft:farmland"),
+        BlockProperties(Material::EARTH).resistance(0.600000024f).hardness(0.6f));
 
     // 红沙
     NaturalBlocks::RED_SAND = &registry.registerBlock<blocks::FallingBlock>(
-        ResourceLocation("minecraft:red_sand"), BlockProperties(Material::SAND).hardness(0.5f));
+        ResourceLocation("minecraft:red_sand"), BlockProperties(Material::SAND).resistance(0.5f).hardness(0.5f));
 
     // 干海带块
     //
@@ -276,7 +286,7 @@ void registerNaturalBlocks()
     // 由差分能力 face_sturdy 查出（六个面全部判错）。
     NaturalBlocks::DRIED_KELP_BLOCK =
         &registry.registerBlock<blocks::DriedKelpBlock>(ResourceLocation("minecraft:dried_kelp_block"),
-            BlockProperties(Material::PLANT).hardness(0.5f).resistance(0.5f).withCollision());
+            BlockProperties(Material::PLANT).resistance(2.5f).hardness(0.5f).withCollision());
 
     // 海泡菜
     NaturalBlocks::SEA_PICKLE =
@@ -320,6 +330,7 @@ void registerNaturalBlocks()
     NaturalBlocks::TURTLE_EGG =
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
             BlockProperties(Material::CORAL)
+                .resistance(0.5f)
                 .hardness(0.5f)
                 .withCollision()
                 .notSolid()
@@ -328,7 +339,7 @@ void registerNaturalBlocks()
 
     // 蜜脾块 - 固体装饰方块（硬度 0.6，珊瑚块音效）
     NaturalBlocks::HONEYCOMB_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:honeycomb_block"),
-        BlockProperties(Material::ORGANIC).hardness(0.6f).soundType(BlockSoundTypes::CORAL));
+        BlockProperties(Material::ORGANIC).resistance(0.600000024f).hardness(0.6f).soundType(BlockSoundTypes::CORAL));
 
     // 干燥恶魂 - 含水方块，遇水逐级提升湿润等级，满级孵化为幼年恶魂
     NaturalBlocks::DRIED_GHAST =
@@ -352,11 +363,11 @@ void registerNaturalBlocks()
     // 因此它们的 canOcclude 保持默认 true。早期实现让两者共用同一份属性，
     // 把墙面头颅也注册成了无遮挡。
     const BlockProperties skullProps =
-        BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid().noOcclusion();
+        BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid().noOcclusion().resistance(1.0f);
     // 墙壁头颅有碰撞箱（与原版一致）：Material::DECORATION 默认 blocksMovement 为 false，
     // 必须显式 withCollision()。
     const BlockProperties wallSkullProps =
-        BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid();
+        BlockProperties(Material::DECORATION).withCollision().hardness(1.0f).notSolid().resistance(1.0f);
 
     NaturalBlocks::SKELETON_SKULL = &registry.registerBlock<blocks::SkullBlock>(
         ResourceLocation("minecraft:skeleton_skull"), blocks::SkullType::Skeleton, skullProps);

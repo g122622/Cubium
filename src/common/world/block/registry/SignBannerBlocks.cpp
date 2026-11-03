@@ -126,15 +126,21 @@ void registerSignBannerBlocks()
 
     // ========== 告示牌注册 ==========
     // 木质告示牌属性：可被岩浆点燃（对齐 vanilla Blocks.register 木质告示牌链路）
-    BlockProperties signProps =
-        BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid().ignitedByLava().noOcclusion();
+    BlockProperties signProps = BlockProperties(Material::WOOD)
+                                    .hardness(1.0f)
+                                    .noCollision()
+                                    .notSolid()
+                                    .ignitedByLava()
+                                    .noOcclusion()
+                                    .resistance(1.0f);
     // 下界木（crimson/warped）告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
     BlockProperties netherSignProps = BlockProperties(Material::NETHER_WOOD)
                                           .hardness(1.0f)
                                           .noCollision()
                                           .notSolid()
                                           .noOcclusion()
-                                          .soundType(BlockSoundTypes::NETHER_WOOD);
+                                          .soundType(BlockSoundTypes::NETHER_WOOD)
+                                          .resistance(1.0f);
     // 竹/樱花告示牌：原版 `WoodType.BAMBOO/CHERRY.soundType()`，与通用木质声不同
     BlockProperties bambooSignProps = BlockProperties(Material::WOOD)
                                           .hardness(1.0f)
@@ -142,14 +148,16 @@ void registerSignBannerBlocks()
                                           .notSolid()
                                           .ignitedByLava()
                                           .noOcclusion()
-                                          .soundType(BlockSoundTypes::BAMBOO_WOOD);
+                                          .soundType(BlockSoundTypes::BAMBOO_WOOD)
+                                          .resistance(1.0f);
     BlockProperties cherrySignProps = BlockProperties(Material::WOOD)
                                           .hardness(1.0f)
                                           .noCollision()
                                           .notSolid()
                                           .ignitedByLava()
                                           .noOcclusion()
-                                          .soundType(BlockSoundTypes::CHERRY_WOOD);
+                                          .soundType(BlockSoundTypes::CHERRY_WOOD)
+                                          .resistance(1.0f);
 
     // 注册各木材类型的告示牌
     // 橡木
@@ -228,6 +236,7 @@ void registerSignBannerBlocks()
     // 悬挂告示牌使用与普通告示牌相同的材质属性；木质可被岩浆点燃（对齐 vanilla）。
     // 声音组取原版 `WoodType.HANGING_SIGN`（`block.hanging_sign.*`），不是普通木质声。
     BlockProperties hangingSignProps = BlockProperties(Material::WOOD)
+                                           .resistance(1.0f)
                                            .hardness(1.0f)
                                            .noCollision()
                                            .notSolid()
@@ -238,21 +247,24 @@ void registerSignBannerBlocks()
                                                  .hardness(1.0f)
                                                  .noCollision()
                                                  .notSolid()
-                                                 .soundType(BlockSoundTypes::NETHER_WOOD_HANGING_SIGN);
+                                                 .soundType(BlockSoundTypes::NETHER_WOOD_HANGING_SIGN)
+                                                 .resistance(1.0f);
     // 竹悬挂告示牌属性：原版 `WoodType.BAMBOO.hangingSignSoundType()`
     BlockProperties bambooHangingSignProps = BlockProperties(Material::WOOD)
                                                  .hardness(1.0f)
                                                  .noCollision()
                                                  .notSolid()
                                                  .ignitedByLava()
-                                                 .soundType(BlockSoundTypes::BAMBOO_WOOD_HANGING_SIGN);
+                                                 .soundType(BlockSoundTypes::BAMBOO_WOOD_HANGING_SIGN)
+                                                 .resistance(1.0f);
     // 樱花悬挂告示牌属性：原版 `WoodType.CHERRY.hangingSignSoundType()`
     BlockProperties cherryHangingSignProps = BlockProperties(Material::WOOD)
                                                  .hardness(1.0f)
                                                  .noCollision()
                                                  .notSolid()
                                                  .ignitedByLava()
-                                                 .soundType(BlockSoundTypes::CHERRY_WOOD_HANGING_SIGN);
+                                                 .soundType(BlockSoundTypes::CHERRY_WOOD_HANGING_SIGN)
+                                                 .resistance(1.0f);
 
     // 橡木悬挂告示牌
     SignBannerBlocks::OAK_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(

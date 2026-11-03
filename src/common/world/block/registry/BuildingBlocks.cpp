@@ -178,16 +178,19 @@ void registerBuildingBlocks()
 
     // 书架
     BuildingBlocks::BOOKSHELF = &registry.registerBlock<blocks::BookshelfBlock>(ResourceLocation("minecraft:bookshelf"),
-        BlockProperties(Material::WOOD).hardness(1.5f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD).resistance(1.5f).hardness(1.5f).flammable().ignitedByLava());
 
     // 海绵
     BuildingBlocks::SPONGE = &registry.registerBlock<blocks::SpongeBlock>(ResourceLocation("minecraft:sponge"),
-        BlockProperties(Material::SPONGE).hardness(0.6f).soundType(BlockSoundTypes::SPONGE));
+        BlockProperties(Material::SPONGE).resistance(0.600000024f).hardness(0.6f).soundType(BlockSoundTypes::SPONGE));
 
     // 湿海绵
     BuildingBlocks::WET_SPONGE =
         &registry.registerBlock<blocks::WetSpongeBlock>(ResourceLocation("minecraft:wet_sponge"),
-            BlockProperties(Material::SPONGE).hardness(0.6f).soundType(BlockSoundTypes::WET_SPONGE));
+            BlockProperties(Material::SPONGE)
+                .resistance(0.600000024f)
+                .hardness(0.6f)
+                .soundType(BlockSoundTypes::WET_SPONGE));
 
     // 工作台
     // 右键打开3x3合成界面，记录交互统计 INTERACT_WITH_CRAFTING_TABLE。
@@ -284,6 +287,7 @@ void registerBuildingBlocks()
     // 梯子 - 含水方块（vanilla 不设置 ignitedByLava）
     BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
         BlockProperties(Material::WOOD)
+            .resistance(0.400000006f)
             .hardness(0.4f)
             .notSolid()
             .flammable()
@@ -293,8 +297,9 @@ void registerBuildingBlocks()
     // 锁链 - 含水方块 (MC 1.21+ 重命名为 iron_chain)
     BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:iron_chain"),
         BlockProperties(Material::IRON)
+            .resistance(6.0f)
             .hardness(5.0f)
-            .resistance(5.0f)
+
             .notSolid()
             .soundType(BlockSoundTypes::CHAIN)
             .noOcclusion());
@@ -311,7 +316,7 @@ void registerBuildingBlocks()
 
     // 玻璃板 - 含水方块
     BuildingBlocks::GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(ResourceLocation("minecraft:glass_pane"),
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion());
+        BlockProperties(Material::GLASS).resistance(0.300000012f).hardness(0.3f).notSolid().noOcclusion());
 
     // 铁栏杆 - 含水方块
     // 对齐 vanilla Blocks.IRON_BARS：requiresCorrectToolForDrops + strength(5,6) + SoundType.IRON + noOcclusion()。
@@ -389,11 +394,16 @@ void registerBuildingBlocks()
 
     // 堆肥桶
     BuildingBlocks::COMPOSTER = &registry.registerBlock<blocks::ComposterBlock>(ResourceLocation("minecraft:composter"),
-        BlockProperties(Material::WOOD).hardness(0.6f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD).resistance(0.600000024f).hardness(0.6f).flammable().ignitedByLava());
 
     // 蛋糕
     BuildingBlocks::CAKE = &registry.registerBlock<blocks::CakeBlock>(ResourceLocation("minecraft:cake"),
-        BlockProperties(Material::CAKE).withCollision().hardness(0.5f).notSolid().soundType(BlockSoundTypes::WOOL));
+        BlockProperties(Material::CAKE)
+            .resistance(0.5f)
+            .withCollision()
+            .hardness(0.5f)
+            .notSolid()
+            .soundType(BlockSoundTypes::WOOL));
 
     // 讲台
     BuildingBlocks::LECTERN = &registry.registerBlock<blocks::LecternBlock>(ResourceLocation("minecraft:lectern"),
@@ -494,7 +504,7 @@ void registerBuildingBlocks()
     blocks::InfestedBlock::initializeMappings();
 
     // ========== 石英系列 ==========
-    BlockProperties quartzProps = BlockProperties(Material::ROCK).hardness(0.8f);
+    BlockProperties quartzProps = BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f);
 
     BuildingBlocks::QUARTZ_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:quartz_block"), quartzProps);
@@ -549,8 +559,8 @@ void registerBuildingBlocks()
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 海晶灯 - 发光15级
-    BuildingBlocks::SEA_LANTERN = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:sea_lantern"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
+    BuildingBlocks::SEA_LANTERN = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sea_lantern"),
+        BlockProperties(Material::GLASS).resistance(0.300000012f).hardness(0.3f).lightLevel(15));
 
     // ========== 紫珀系列 ==========
     BlockProperties purpurProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
@@ -570,7 +580,7 @@ void registerBuildingBlocks()
     // 干草块 - 有轴属性。重写 onFallenUpon 以 0.2 乘数减伤 80%（对齐 Java HayBlock#fallOn）。（vanilla 不设置
     // ignitedByLava）
     BuildingBlocks::HAY_BLOCK = &registry.registerBlock<blocks::HayBlock>(ResourceLocation("minecraft:hay_block"),
-        BlockProperties(Material::EARTH).hardness(0.5f).flammable().soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::EARTH).resistance(0.5f).hardness(0.5f).flammable().soundType(BlockSoundTypes::GRASS));
 
     // ========== 铁砧系列 ==========
     // 铁砧属性: 硬度5.0, 爆炸抗性1200.0, 铁砧材质音效

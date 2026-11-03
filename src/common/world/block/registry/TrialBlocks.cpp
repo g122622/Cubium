@@ -57,8 +57,9 @@ void registerTrialBlocks()
     TrialBlocks::TRIAL_SPAWNER =
         &registry.registerBlock<blocks::TrialSpawnerBlock>(ResourceLocation("minecraft:trial_spawner"),
             BlockProperties(Material::ROCK)
+                .resistance(50.0f)
                 .hardness(50.0f)
-                .resistance(1200.0f)
+
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(2)
                 .requiresTool()
@@ -70,8 +71,9 @@ void registerTrialBlocks()
     // VAULT_STATE + FACING + OMINOUS
     TrialBlocks::VAULT = &registry.registerBlock<blocks::VaultBlock>(ResourceLocation("minecraft:vault"),
         BlockProperties(Material::ROCK)
+            .resistance(50.0f)
             .hardness(50.0f)
-            .resistance(1200.0f)
+
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(2)
             .requiresTool()

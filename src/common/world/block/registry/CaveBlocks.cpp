@@ -255,9 +255,10 @@ void registerCaveBlocks()
     // （低矮由形状表达）；而 noCollision() 会连带清掉 canOcclude。
     CaveBlocks::MOSS_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:moss_carpet"),
         BlockProperties(Material::PLANT)
+            .resistance(0.100000001f)
             .notSolid()
             .hardness(0.1f)
-            .resistance(0.0f)
+
             .soundType(BlockSoundTypes::MOSS_CARPET));
 
     // ============================================================================

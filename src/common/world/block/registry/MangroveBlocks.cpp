@@ -132,6 +132,7 @@ void registerMangroveBlocks()
     MangroveBlocks::MANGROVE_ROOTS =
         &registry.registerBlock<blocks::MangroveRootsBlock>(ResourceLocation("minecraft:mangrove_roots"),
             BlockProperties(Material::WOOD)
+                .resistance(0.699999988f)
                 .notSolid()
                 .hardness(0.7f)
                 .harvestTool(HarvestTool::Axe)

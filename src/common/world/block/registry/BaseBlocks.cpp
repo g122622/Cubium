@@ -208,11 +208,11 @@ void registerBaseBlocks()
 
     // 草方块
     BaseBlocks::GRASS_BLOCK = &registry.registerBlock<blocks::GrassBlock>(ResourceLocation("minecraft:grass_block"),
-        BlockProperties(Material::EARTH).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::EARTH).resistance(0.600000024f).hardness(0.6f).soundType(BlockSoundTypes::GRASS));
 
     // 泥土
     BaseBlocks::DIRT = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:dirt"), BlockProperties(Material::EARTH).hardness(0.5f));
+        ResourceLocation("minecraft:dirt"), BlockProperties(Material::EARTH).resistance(0.5f).hardness(0.5f));
 
     // 圆石
     BaseBlocks::COBBLESTONE = &registry.registerBlock<SimpleBlock>(
@@ -244,6 +244,7 @@ void registerBaseBlocks()
                     &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:water"),
                         *flowingWater,
                         BlockProperties(Material::WATER)
+                            .resistance(100.0f)
                             .noCollision()
                             .notSolid()
                             .hardness(100.0f)
@@ -261,6 +262,7 @@ void registerBaseBlocks()
                 BaseBlocks::LAVA = &registry.registerBlock<::mc::block::LiquidBlock>(ResourceLocation("minecraft:lava"),
                     *flowingLava,
                     BlockProperties(Material::LAVA)
+                        .resistance(100.0f)
                         .noCollision()
                         .notSolid()
                         .lightLevel(15)
@@ -276,23 +278,24 @@ void registerBaseBlocks()
 
     // 沙子
     BaseBlocks::SAND = &registry.registerBlock<blocks::FallingBlock>(
-        ResourceLocation("minecraft:sand"), BlockProperties(Material::SAND).hardness(0.5f));
+        ResourceLocation("minecraft:sand"), BlockProperties(Material::SAND).resistance(0.5f).hardness(0.5f));
 
     // 砾石
     BaseBlocks::GRAVEL = &registry.registerBlock<blocks::FallingBlock>(ResourceLocation("minecraft:gravel"),
-        BlockProperties(Material::SAND).hardness(0.6f).soundType(BlockSoundTypes::GRAVEL));
+        BlockProperties(Material::SAND).resistance(0.600000024f).hardness(0.6f).soundType(BlockSoundTypes::GRAVEL));
 
     // 雪层
-    BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(
-        ResourceLocation("minecraft:snow"), BlockProperties(Material::SNOW).hardness(0.1f).notSolid());
+    BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(ResourceLocation("minecraft:snow"),
+        BlockProperties(Material::SNOW).resistance(0.100000001f).hardness(0.1f).notSolid());
 
     // 雪块
-    BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:snow_block"), BlockProperties(Material::SNOW).hardness(0.2f));
+    BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:snow_block"),
+        BlockProperties(Material::SNOW).resistance(0.200000003f).hardness(0.2f));
 
     // 冰
     BaseBlocks::ICE = &registry.registerBlock<blocks::IceBlock>(ResourceLocation("minecraft:ice"),
         BlockProperties(Material::ICE)
+            .resistance(0.5f)
             .hardness(0.5f)
             .notSolid()
             // 对齐 vanilla Blocks.ICE：注册 noOcclusion()，遮挡形状为完整立方体 →
@@ -306,17 +309,22 @@ void registerBaseBlocks()
     // 未重写 getLightBlock / propagatesSkylightDown。遮挡形状仍是完整立方体，故
     // propagatesSkylightDown=false、lightBlock=1（天空光衰减 1 级），而不是 0。
     BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().propagatesSkylightDown());
+        BlockProperties(Material::GLASS)
+            .resistance(0.300000012f)
+            .hardness(0.3f)
+            .notSolid()
+            .noOcclusion()
+            .propagatesSkylightDown());
 
     // 下界岩
     // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩
     // （绯红菌岩/诡异菌岩）。详见 NetherrackBlock.cpp。
     BaseBlocks::NETHERRACK = &registry.registerBlock<blocks::NetherrackBlock>(ResourceLocation("minecraft:netherrack"),
-        BlockProperties(Material::ROCK).hardness(0.4f).soundType(BlockSoundTypes::NETHERRACK));
+        BlockProperties(Material::ROCK).resistance(0.400000006f).hardness(0.4f).soundType(BlockSoundTypes::NETHERRACK));
 
     // 荧石
-    BaseBlocks::GLOWSTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:glowstone"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
+    BaseBlocks::GLOWSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glowstone"),
+        BlockProperties(Material::GLASS).resistance(0.300000012f).hardness(0.3f).lightLevel(15));
 
     // 末地石
     BaseBlocks::END_STONE = &registry.registerBlock<SimpleBlock>(
@@ -343,26 +351,29 @@ void registerBaseBlocks()
 
     // ========== 泥土变种 ==========
     BaseBlocks::COARSE_DIRT = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:coarse_dirt"), BlockProperties(Material::EARTH).hardness(0.5f));
+        ResourceLocation("minecraft:coarse_dirt"), BlockProperties(Material::EARTH).resistance(0.5f).hardness(0.5f));
     // podzol 持有 SNOWY 属性（原版 SnowyDirtBlock，不蔓延），故用 SnowyDirtBlock 而非 SimpleBlock
     BaseBlocks::PODZOL = &registry.registerBlock<blocks::SnowyDirtBlock>(
-        ResourceLocation("minecraft:podzol"), BlockProperties(Material::EARTH).hardness(0.5f));
+        ResourceLocation("minecraft:podzol"), BlockProperties(Material::EARTH).resistance(0.5f).hardness(0.5f));
 
     // ========== 砂岩系列 ==========
-    BaseBlocks::SANDSTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
-    BaseBlocks::CHISELED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:chiseled_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
-    BaseBlocks::CUT_SANDSTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:cut_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
-    BaseBlocks::RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:red_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
+    BaseBlocks::SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sandstone"),
+        BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+    BaseBlocks::CHISELED_SANDSTONE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_sandstone"),
+            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+    BaseBlocks::CUT_SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cut_sandstone"),
+        BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+    BaseBlocks::RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_sandstone"),
+        BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
     BaseBlocks::SMOOTH_SANDSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_sandstone"),
         BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
-    BaseBlocks::CHISELED_RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:chiseled_red_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
-    BaseBlocks::CUT_RED_SANDSTONE = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:cut_red_sandstone"), BlockProperties(Material::ROCK).hardness(0.8f));
+    BaseBlocks::CHISELED_RED_SANDSTONE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_red_sandstone"),
+            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
+    BaseBlocks::CUT_RED_SANDSTONE =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cut_red_sandstone"),
+            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f));
     BaseBlocks::SMOOTH_RED_SANDSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_red_sandstone"),
             BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
@@ -461,7 +472,8 @@ void registerBaseBlocks()
                                       .ignitedByLava()
                                       .notSolid()
                                       .noOcclusion()
-                                      .opacity(1);
+                                      .opacity(1)
+                                      .resistance(0.2f);
 
     BaseBlocks::OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_log"), logProps);
     BaseBlocks::OAK_LEAVES =

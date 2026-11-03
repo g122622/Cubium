@@ -775,7 +775,7 @@ void registerCopperBlocks()
     // ============================================================================
     auto copperBarsProps = BlockProperties(Material::IRON)
                                .hardness(5.0f)
-                               .resistance(5.0f)
+                               .resistance(6.0f)
                                .notSolid()
                                .noOcclusion()
                                .soundType(BlockSoundTypes::COPPER);
@@ -825,8 +825,9 @@ void registerCopperBlocks()
     // 1.21 铜扩展：铜链（8个）
     // ============================================================================
     auto copperChainProps = BlockProperties(Material::IRON)
+                                .resistance(6.0f)
                                 .hardness(5.0f)
-                                .resistance(5.0f)
+
                                 .notSolid()
                                 .noOcclusion()
                                 .soundType(BlockSoundTypes::CHAIN);
@@ -876,8 +877,9 @@ void registerCopperBlocks()
     // 1.21 铜扩展：铜灯笼（8个）
     // ============================================================================
     auto copperLanternProps = BlockProperties(Material::IRON)
-                                  .hardness(3.5f)
                                   .resistance(3.5f)
+                                  .hardness(3.5f)
+
                                   .notSolid()
                                   .noOcclusion()
                                   .soundType(BlockSoundTypes::LANTERN);

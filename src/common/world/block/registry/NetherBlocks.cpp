@@ -195,11 +195,15 @@ void registerNetherBlocks()
     // 配合 MOVEMENT_EFFICIENCY 属性，灵魂疾行附魔可以将减速效果抵消
     // SoulSandBlock: 上方有水源时生成涌流气泡柱（DRAG=false，向上推动），与岩浆块的涡流相反。
     NetherBlocks::SOUL_SAND = &registry.registerBlock<blocks::SoulSandBlock>(ResourceLocation("minecraft:soul_sand"),
-        BlockProperties(Material::SAND).hardness(0.5f).speedFactor(0.4f).soundType(BlockSoundTypes::SOUL_SAND));
+        BlockProperties(Material::SAND)
+            .resistance(0.5f)
+            .hardness(0.5f)
+            .speedFactor(0.4f)
+            .soundType(BlockSoundTypes::SOUL_SAND));
 
     // 灵魂土
     NetherBlocks::SOUL_SOIL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_soil"),
-        BlockProperties(Material::EARTH).hardness(0.5f).soundType(BlockSoundTypes::SOUL_SOIL));
+        BlockProperties(Material::EARTH).resistance(0.5f).hardness(0.5f).soundType(BlockSoundTypes::SOUL_SOIL));
 
     // 玄武岩
     NetherBlocks::BASALT = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:basalt"),
@@ -274,8 +278,8 @@ void registerNetherBlocks()
 
     // 岩浆块 - 发光3级
     // 会站在上面造成伤害，在水中产生气泡柱
-    NetherBlocks::MAGMA = &registry.registerBlock<blocks::MagmaBlock>(
-        ResourceLocation("minecraft:magma_block"), BlockProperties(Material::ROCK).hardness(0.5f).lightLevel(3));
+    NetherBlocks::MAGMA = &registry.registerBlock<blocks::MagmaBlock>(ResourceLocation("minecraft:magma_block"),
+        BlockProperties(Material::ROCK).resistance(0.5f).hardness(0.5f).lightLevel(3));
 
     // 地狱疣块
     NetherBlocks::NETHER_WART_BLOCK =
@@ -337,7 +341,11 @@ void registerNetherBlocks()
 
     // 菌光体
     NetherBlocks::SHROOMLIGHT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:shroomlight"),
-        BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15).soundType(BlockSoundTypes::SHROOMLIGHT));
+        BlockProperties(Material::EARTH)
+            .resistance(1.0f)
+            .hardness(1.0f)
+            .lightLevel(15)
+            .soundType(BlockSoundTypes::SHROOMLIGHT));
 
     // 绯红菌（实现 IGrowable，骨粉可生成巨型真菌）
     NetherBlocks::CRIMSON_FUNGUS =
@@ -745,7 +753,12 @@ void registerNetherBlocks()
 
     // 末地传送门 - 穿越后传送到末地
     NetherBlocks::END_PORTAL = &registry.registerBlock<blocks::EndPortalBlock>(ResourceLocation("minecraft:end_portal"),
-        BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f).lightLevel(15).noLootTable());
+        BlockProperties(Material::PORTAL)
+            .resistance(3600000.0f)
+            .noCollision()
+            .hardness(-1.0f)
+            .lightLevel(15)
+            .noLootTable());
 
     // 末地传送门框架 - 放置末影之眼激活传送门
     NetherBlocks::END_PORTAL_FRAME =
@@ -760,7 +773,12 @@ void registerNetherBlocks()
     // 末地折跃门 - 在末地之间传送
     NetherBlocks::END_GATEWAY =
         &registry.registerBlock<blocks::EndGatewayBlock>(ResourceLocation("minecraft:end_gateway"),
-            BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f).lightLevel(15).noLootTable());
+            BlockProperties(Material::PORTAL)
+                .resistance(3600000.0f)
+                .noCollision()
+                .hardness(-1.0f)
+                .lightLevel(15)
+                .noLootTable());
 
     // 紫颂植物 - 末地植物
     NetherBlocks::CHORUS_PLANT = &registry.registerBlock<blocks::ChorusPlantBlock>(
@@ -784,16 +802,24 @@ void registerNetherBlocks()
 
     // 龙蛋 - 末影龙掉落物
     NetherBlocks::DRAGON_EGG = &registry.registerBlock<blocks::DragonEggBlock>(ResourceLocation("minecraft:dragon_egg"),
-        BlockProperties(Material::ROCK).hardness(3.0f).lightLevel(1).noOcclusion());
+        BlockProperties(Material::ROCK).resistance(9.0f).hardness(3.0f).lightLevel(1).noOcclusion());
 
     // 信标 - 发光15级（通过 getLightLevel）
     NetherBlocks::BEACON = &registry.registerBlock<blocks::BeaconBlock>(ResourceLocation("minecraft:beacon"),
-        BlockProperties(Material::GLASS).hardness(3.0f).soundType(BlockSoundTypes::STONE).noOcclusion());
+        BlockProperties(Material::GLASS)
+            .resistance(3.0f)
+            .hardness(3.0f)
+            .soundType(BlockSoundTypes::STONE)
+            .noOcclusion());
 
     // 酿造台 - 发光1级（通过 getLightLevel）
     NetherBlocks::BREWING_STAND =
         &registry.registerBlock<blocks::BrewingStandBlock>(ResourceLocation("minecraft:brewing_stand"),
-            BlockProperties(Material::IRON).hardness(0.5f).noOcclusion().soundType(BlockSoundTypes::STONE));
+            BlockProperties(Material::IRON)
+                .resistance(0.5f)
+                .hardness(0.5f)
+                .noOcclusion()
+                .soundType(BlockSoundTypes::STONE));
 
     // 末影箱 - 发光7级
     // 右键打开末影箱界面（物品存储在玩家数据中），记录统计 OPEN_ENDERCHEST。
@@ -825,19 +851,23 @@ void registerNetherBlocks()
 
     // 营火 - 发光15级（点燃时，通过 getLightLevel 动态计算）。可被岩浆点燃（对齐 vanilla）
     NetherBlocks::CAMPFIRE = &registry.registerBlock<blocks::CampfireBlock>(ResourceLocation("minecraft:campfire"),
-        BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava().noOcclusion(),
+        BlockProperties(Material::WOOD).resistance(2.0f).hardness(2.0f).ignitedByLava().noOcclusion(),
         15 // 点燃时光照等级
     );
 
     // 灵魂营火 - 发光10级（点燃时，通过 getLightLevel 动态计算）。可被岩浆点燃（对齐 vanilla）
     NetherBlocks::SOUL_CAMPFIRE =
         &registry.registerBlock<blocks::SoulCampfireBlock>(ResourceLocation("minecraft:soul_campfire"),
-            BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava().noOcclusion());
+            BlockProperties(Material::WOOD).resistance(2.0f).hardness(2.0f).ignitedByLava().noOcclusion());
 
     // 南瓜灯 - 发光15级，支持 FACING 属性和傀儡生成
     NetherBlocks::JACK_O_LANTERN =
         &registry.registerBlock<blocks::JackOLanternBlock>(ResourceLocation("minecraft:jack_o_lantern"),
-            BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15).soundType(BlockSoundTypes::WOOD));
+            BlockProperties(Material::EARTH)
+                .resistance(1.0f)
+                .hardness(1.0f)
+                .lightLevel(15)
+                .soundType(BlockSoundTypes::WOOD));
 }
 
 } // namespace block_registry

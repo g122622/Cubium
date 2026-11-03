@@ -205,7 +205,8 @@ void registerColoredBlocks()
     auto& registry = BlockRegistry::instance();
 
     // ========== 羊毛注册 (16色) ==========
-    BlockProperties woolProps = BlockProperties(Material::WOOL).hardness(0.8f).flammable().ignitedByLava();
+    BlockProperties woolProps =
+        BlockProperties(Material::WOOL).hardness(0.8f).flammable().ignitedByLava().resistance(0.8f);
 
     ColoredBlocks::WHITE_WOOL =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_wool"), woolProps);
@@ -235,7 +236,8 @@ void registerColoredBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_wool"), woolProps);
 
     // ========== 地毯注册 (16色) ==========
-    BlockProperties carpetProps = BlockProperties(Material::WOOL).hardness(0.1f).notSolid().flammable().ignitedByLava();
+    BlockProperties carpetProps =
+        BlockProperties(Material::WOOL).hardness(0.1f).notSolid().flammable().ignitedByLava().resistance(0.1f);
 
     ColoredBlocks::WHITE_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:white_carpet"), carpetProps);
@@ -274,8 +276,13 @@ void registerColoredBlocks()
     // 对齐 vanilla TransparentBlock#propagatesSkylightDown=true（染色玻璃完全透传天空光），
     // 且 getLightBlock=isSolidRender?15:(pSD?0:1)=0（opacity=0，不衰减天空光）。
     // 与普通玻璃 GLASS（BaseBlocks.cpp）注册写法一致：.opacity(0).propagatesSkylightDown()。
-    BlockProperties stainedGlassProps =
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().opacity(0).propagatesSkylightDown();
+    BlockProperties stainedGlassProps = BlockProperties(Material::GLASS)
+                                            .hardness(0.3f)
+                                            .notSolid()
+                                            .noOcclusion()
+                                            .opacity(0)
+                                            .propagatesSkylightDown()
+                                            .resistance(0.3f);
 
     ColoredBlocks::WHITE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:white_stained_glass"), stainedGlassProps, DyeColor::White);
@@ -348,7 +355,7 @@ void registerColoredBlocks()
 
     // ========== 混凝土粉末注册 (16色) ==========
     // 混凝土粉末是下落方块，接触水会固化为对应颜色的混凝土
-    BlockProperties concretePowderProps = BlockProperties(Material::SAND).hardness(0.5f);
+    BlockProperties concretePowderProps = BlockProperties(Material::SAND).hardness(0.5f).resistance(0.5f);
 
     ColoredBlocks::WHITE_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
         ResourceLocation("minecraft:white_concrete_powder"), concretePowderProps, ColoredBlocks::WHITE_CONCRETE);
@@ -474,7 +481,8 @@ void registerColoredBlocks()
                                    .notSolid()
                                    .noOcclusion()
                                    .ignitedByLava()
-                                   .soundType(BlockSoundTypes::WOOD);
+                                   .soundType(BlockSoundTypes::WOOD)
+                                   .resistance(0.2f);
 
     ColoredBlocks::WHITE_BED =
         &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:white_bed"), DyeColor::White, bedProps);

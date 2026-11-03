@@ -1409,6 +1409,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "原版用 MAX_LEVEL 截断，抄成 16 与 15 在游戏里看不出区别，只能靠比对发现",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_hardness",
+        probe: "block_hardness",
+        oracle: "BlockHardnessOracle",
+        description: "全部方块的硬度与爆炸抗性（getDestroySpeed / getExplosionResistance）—— 每个方块一个单元，f32 位模式比对；"
+        + "硬度差一点挖掘手感就不对、差一个数量级玩家会以为自己拿错了工具；**硬度 -1 表示不可破坏**，写成 0 会一碰就碎、写成 50 会挖得动但挖不完；"
+        + "抗性写成 0 的黑曜石会被一颗 TNT 清空。与 block_destroy_progress 互补：后者验公式，本条验公式的输入",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

@@ -207,37 +207,37 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::OAK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:oak_stairs"),
             BaseBlocks::OAK_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 云杉木楼梯
     BuildingVariantBlocks::SPRUCE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:spruce_stairs"),
             BaseBlocks::SPRUCE_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 白桦木楼梯
     BuildingVariantBlocks::BIRCH_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:birch_stairs"),
             BaseBlocks::BIRCH_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 丛林木楼梯
     BuildingVariantBlocks::JUNGLE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:jungle_stairs"),
             BaseBlocks::JUNGLE_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 金合欢木楼梯
     BuildingVariantBlocks::ACACIA_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:acacia_stairs"),
             BaseBlocks::ACACIA_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 深色橡木楼梯
     BuildingVariantBlocks::DARK_OAK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:dark_oak_stairs"),
             BaseBlocks::DARK_OAK_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 石头楼梯
     BuildingVariantBlocks::STONE_STAIRS =
@@ -358,32 +358,32 @@ void registerBuildingVariantBlocks()
     // ========== 台阶 ==========
     // 橡木台阶
     BuildingVariantBlocks::OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:oak_slab"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 云杉木台阶
     BuildingVariantBlocks::SPRUCE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:spruce_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 白桦木台阶
     BuildingVariantBlocks::BIRCH_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:birch_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 丛林木台阶
     BuildingVariantBlocks::JUNGLE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:jungle_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 金合欢木台阶
     BuildingVariantBlocks::ACACIA_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:acacia_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 深色橡木台阶
     BuildingVariantBlocks::DARK_OAK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:dark_oak_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).flammable().ignitedByLava());
 
     // 石头台阶
     BuildingVariantBlocks::STONE_SLAB =
@@ -448,7 +448,7 @@ void registerBuildingVariantBlocks()
     // 石英台阶
     BuildingVariantBlocks::QUARTZ_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:quartz_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).resistance(6.0f).hardness(2.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 平滑石英台阶
     BuildingVariantBlocks::SMOOTH_QUARTZ_SLAB =
@@ -463,7 +463,7 @@ void registerBuildingVariantBlocks()
     // 红砂岩台阶
     BuildingVariantBlocks::RED_SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:red_sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).resistance(6.0f).hardness(2.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 平滑红砂岩台阶
     BuildingVariantBlocks::SMOOTH_RED_SANDSTONE_SLAB =
@@ -488,7 +488,7 @@ void registerBuildingVariantBlocks()
     // 石化橡木台阶（vanilla 不设置 ignitedByLava）
     BuildingVariantBlocks::PETRIFIED_OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
         ResourceLocation("minecraft:petrified_oak_slab"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().soundType(BlockSoundTypes::STONE));
+        BlockProperties(Material::WOOD).resistance(6.0f).hardness(2.0f).flammable().soundType(BlockSoundTypes::STONE));
 
     // 海晶台阶
     BuildingBlocks::PRISMARINE_SLAB =
@@ -530,12 +530,12 @@ void registerBuildingVariantBlocks()
     // 砂岩墙
     BuildingVariantBlocks::SANDSTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:sandstone_wall"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f).harvestTool(HarvestTool::Pickaxe));
 
     // 红砂岩墙
     BuildingVariantBlocks::RED_SANDSTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:red_sandstone_wall"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK).resistance(0.800000012f).hardness(0.8f).harvestTool(HarvestTool::Pickaxe));
 
     // 花岗岩墙
     BuildingVariantBlocks::GRANITE_WALL =
@@ -659,10 +659,10 @@ void registerBuildingVariantBlocks()
     // 橡木栅栏门
     BuildingVariantBlocks::OAK_FENCE_GATE =
         &registry.registerBlock<blocks::FenceGateBlock>(ResourceLocation("minecraft:oak_fence_gate"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(3.0f).hardness(2.0f).notSolid().flammable().ignitedByLava());
 
     BlockProperties woodFenceGateProps =
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable().ignitedByLava();
+        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).notSolid().flammable().ignitedByLava();
 
     BuildingVariantBlocks::SPRUCE_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
         ResourceLocation("minecraft:spruce_fence_gate"), woodFenceGateProps);
@@ -678,7 +678,7 @@ void registerBuildingVariantBlocks()
     // 下界木材栅栏门（不可燃）
     BlockProperties netherWoodFenceGateProps = BlockProperties(Material::NETHER_WOOD)
                                                    .hardness(2.0f)
-                                                   .resistance(2.0f)
+                                                   .resistance(3.0f)
                                                    .notSolid()
                                                    .soundType(BlockSoundTypes::NETHER_WOOD);
     BuildingVariantBlocks::CRIMSON_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
@@ -687,7 +687,8 @@ void registerBuildingVariantBlocks()
         ResourceLocation("minecraft:warped_fence_gate"), netherWoodFenceGateProps);
 
     // ========== 染色玻璃板（16色）==========
-    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion();
+    BlockProperties stainedGlassPaneProps =
+        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().resistance(0.3f);
 
     BuildingVariantBlocks::WHITE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:white_stained_glass_pane"), stainedGlassPaneProps);
@@ -753,7 +754,7 @@ void registerBuildingVariantBlocks()
     // 屏障 - 不可见的不可破坏方块
     BuildingVariantBlocks::BARRIER =
         &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
-            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable().noOcclusion());
+            BlockProperties(Material::BARRIER).resistance(3600000.75f).hardness(-1.0f).noLootTable().noOcclusion());
 
     // 命令方块 - 红石触发型，需要管理员权限
     BuildingVariantBlocks::COMMAND_BLOCK =
@@ -780,9 +781,10 @@ void registerBuildingVariantBlocks()
     // lightLevel(state -> LEVEL)。
     BuildingVariantBlocks::LIGHT = &registry.registerBlock<blocks::LightBlock>(ResourceLocation("minecraft:light"),
         BlockProperties(Material::DECORATION)
+            .resistance(3600000.75f)
             .replaceable()
             .hardness(-1.0f)
-            .resistance(3600000.0f)
+
             .noLootTable()
             .noOcclusion());
 

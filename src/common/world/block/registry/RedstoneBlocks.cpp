@@ -145,7 +145,10 @@ void registerRedstoneBlocks()
     // 红石灯
     RedstoneBlocks::REDSTONE_LAMP =
         &registry.registerBlock<blocks::RedstoneLampBlock>(ResourceLocation("minecraft:redstone_lamp"),
-            BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f).soundType(BlockSoundTypes::GLASS));
+            BlockProperties(Material::REDSTONE_LIGHT)
+                .resistance(0.300000012f)
+                .hardness(0.3f)
+                .soundType(BlockSoundTypes::GLASS));
 
     // 红石中继器
     // 原版只用 instabreak() + sound()，既没有 noCollision() 也没有 noOcclusion()：
@@ -404,6 +407,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::CRIMSON_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:crimson_pressure_plate"),
             BlockProperties(Material::NETHER_WOOD)
+                .resistance(0.5f)
                 .noCollision()
                 .notSolid()
                 .hardness(0.5f)
@@ -414,6 +418,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::WARPED_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:warped_pressure_plate"),
             BlockProperties(Material::NETHER_WOOD)
+                .resistance(0.5f)
                 .noCollision()
                 .notSolid()
                 .hardness(0.5f)
@@ -489,6 +494,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:light_weighted_pressure_plate"),
         BlockProperties(Material::IRON)
+            .resistance(0.5f)
             .noCollision()
             .notSolid()
             .hardness(0.5f)
@@ -500,6 +506,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:heavy_weighted_pressure_plate"),
         BlockProperties(Material::IRON)
+            .resistance(0.5f)
             .noCollision()
             .notSolid()
             .hardness(0.5f)
@@ -510,7 +517,7 @@ void registerRedstoneBlocks()
     // 日光探测器
     RedstoneBlocks::DAYLIGHT_DETECTOR =
         &registry.registerBlock<blocks::DaylightDetectorBlock>(ResourceLocation("minecraft:daylight_detector"),
-            BlockProperties(Material::WOOD).hardness(0.2f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).resistance(0.200000003f).hardness(0.2f).flammable().ignitedByLava());
 
     // 活塞
     RedstoneBlocks::PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:piston"),
@@ -533,7 +540,7 @@ void registerRedstoneBlocks()
     // 移动中的活塞
     RedstoneBlocks::MOVING_PISTON =
         &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
-            BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable().noOcclusion());
+            BlockProperties(Material::PISTON).resistance(0.0f).hardness(-1.0f).noLootTable().noOcclusion());
 
     // 发射器
     RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(
@@ -545,11 +552,11 @@ void registerRedstoneBlocks()
 
     // 音符盒
     RedstoneBlocks::NOTE_BLOCK = &registry.registerBlock<blocks::NoteBlock>(ResourceLocation("minecraft:note_block"),
-        BlockProperties(Material::WOOD).hardness(0.8f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD).resistance(0.800000012f).hardness(0.8f).flammable().ignitedByLava());
 
     // 标靶
     RedstoneBlocks::TARGET = &registry.registerBlock<blocks::TargetBlock>(ResourceLocation("minecraft:target"),
-        BlockProperties(Material::WOOL).hardness(0.5f).soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::WOOL).resistance(0.5f).hardness(0.5f).soundType(BlockSoundTypes::GRASS));
 
     // 绊线
     RedstoneBlocks::TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(ResourceLocation("minecraft:tripwire"),
@@ -567,6 +574,7 @@ void registerRedstoneBlocks()
     // 普通铁轨
     RedstoneBlocks::RAIL = &registry.registerBlock<blocks::RailBlock>(ResourceLocation("minecraft:rail"),
         BlockProperties(Material::DECORATION)
+            .resistance(0.699999988f)
             .withCollision()
             .noCollision()
             .notSolid()
@@ -577,6 +585,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::POWERED_RAIL =
         &registry.registerBlock<blocks::PoweredRailBlock>(ResourceLocation("minecraft:powered_rail"),
             BlockProperties(Material::DECORATION)
+                .resistance(0.699999988f)
                 .withCollision()
                 .noCollision()
                 .notSolid()
@@ -587,6 +596,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::DETECTOR_RAIL =
         &registry.registerBlock<blocks::DetectorRailBlock>(ResourceLocation("minecraft:detector_rail"),
             BlockProperties(Material::DECORATION)
+                .resistance(0.699999988f)
                 .withCollision()
                 .noCollision()
                 .notSolid()
@@ -597,6 +607,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::ACTIVATOR_RAIL =
         &registry.registerBlock<blocks::ActivatorRailBlock>(ResourceLocation("minecraft:activator_rail"),
             BlockProperties(Material::DECORATION)
+                .resistance(0.699999988f)
                 .withCollision()
                 .noCollision()
                 .notSolid()
