@@ -55,8 +55,8 @@ public:
 
     /**
      * @brief 直接读取字节到目标缓冲区（零拷贝）
-     * @param dest 目标缓冲区指针
-     * @param size 要读取的字节数
+     * @param dest 目标缓冲区指针；size 为 0 时允许为空
+     * @param size 要读取的字节数；非 0 时 dest 必须非空
      * @return 成功返回空，失败返回错误
      */
     [[nodiscard]] Result<void> readBytesInto(u8* dest, size_t size);
@@ -80,6 +80,7 @@ public:
     [[nodiscard]] Result<u64> readVarULong();
 
     // 状态查询
+    /// 输入基址。恒为非空指针（空输入已规范化为内部静态基址），可安全参与零长度范围构造。
     const u8* data() const
     {
         return m_data;
