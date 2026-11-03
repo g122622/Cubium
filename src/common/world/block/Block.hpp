@@ -1521,6 +1521,22 @@ public:
     static void dropResources(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
+     * @brief 在世界中生成方块的掉落物品（携带方块实体上下文）
+     *
+     * 与三参版本相同，但把方块实体作为掉落参数 `BLOCK_ENTITY` 传入，供
+     * `copy_components` / `copy_custom_data` 等掉落函数复制容器名称与组件。
+     * 必须在方块实体被移除之前调用。
+     *
+     * 参考: net.minecraft.block.Block.dropResources(BlockState, LevelAccessor, BlockPos, BlockEntity)
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 被破坏的方块状态
+     * @param blockEntity 该位置的方块实体（可为 nullptr）
+     */
+    static void dropResources(IWorld& world, const BlockPos& pos, const BlockState& state, BlockEntity* blockEntity);
+
+    /**
      * @brief 方块被爆炸破坏时的处理
      *
      * 当方块被爆炸破坏时调用。默认实现为空。
@@ -2649,11 +2665,14 @@ public:
         const BlockState& state, IWorld& world, const BlockPos& pos);
 
     /**
-     * @brief 更新或销毁方块：新状态为空气时移除方块，否则写入新状态。
+     * @brief 更新或销毁方块：新状态为空气时摧毁方块，否则写入新状态。
      *
-     * 形状更新级联的统一出口。新状态为空气时移除该方块，且当 flags 含
-     * UPDATE_SUPPRESS_DROPS 时一并抑制移除带来的掉落（含容器内容物）；
-     * 新状态非空气时写入新状态，并剥掉该标志位以免语义泄漏到下游写入。
+     * 形状更新级联的统一出口。新状态为空气时调用 IWorld::destroyBlock：产生破坏粒子、
+     * dropBlock 为 true 时按掉落表生成掉落、发送 BLOCK_DESTROY 游戏事件；flags 含
+     * UPDATE_SUPPRESS_DROPS 时传 dropBlock=false 抑制掉落。新状态非空气时写入新状态，
+     * 并剥掉该标志位以免语义泄漏到下游写入。
+     *
+     * 等价于传入 BlockUpdateFlags::DEFAULT_DESTROY_RECURSION。
      *
      * @param oldState 变化前的方块状态
      * @param newState 变化后的方块状态
@@ -2663,6 +2682,26 @@ public:
      */
     static void updateOrDestroy(
         const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags);
+
+    /**
+     * @brief 更新或销毁方块（指定形状更新递归预算）
+     *
+     * 对应 MC Java: Block.updateOrDestroy(oldState, newState, level, pos, flags, recursionLeft)。
+     * recursionLeft 是形状更新级联的深度预算，变空气时原样传给 IWorld::destroyBlock。
+     *
+     * @param oldState 变化前的方块状态
+     * @param newState 变化后的方块状态
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @param flags 更新标志
+     * @param recursionLeft 剩余的形状更新递归预算
+     */
+    static void updateOrDestroy(const BlockState& oldState,
+        const BlockState& newState,
+        IWorld& world,
+        const BlockPos& pos,
+        i32 flags,
+        i32 recursionLeft);
 
     // ========================================================================
     // 攻击和交互

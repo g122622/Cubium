@@ -264,7 +264,7 @@ public:
      * - UPDATE_CLIENTS：向客户端发包同步方块变化；
      * - UPDATE_KNOWN_SHAPE：跳过形状更新（对 6 向邻居的 updatePostPlacement）;
      * - UPDATE_MOVE_BY_PISTON：以 movedByPiston 语义下传给 onBlockAdded/onBlockRemoved；
-     * - UPDATE_SUPPRESS_DROPS：抑制本次移除带来的掉落（经 Block::updateOrDestroy）；
+     * - UPDATE_SUPPRESS_DROPS：抑制形状更新级联中脱落方块产生的掉落（经 Block::updateOrDestroy）；
      * - UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS：跳过旧方块实体的移除副作用（容器内容物掉落等）；
      * - UPDATE_SKIP_ON_PLACE：跳过 onBlockAdded 回调；
      * - UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE：形状更新时跳过红石线，避免 O(n²) 重算。

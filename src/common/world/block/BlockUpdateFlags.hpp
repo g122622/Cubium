@@ -81,6 +81,14 @@ inline constexpr i32 UPDATE_ALL = 3;
 inline constexpr i32 UPDATE_ALL_IMMEDIATE = 11;
 inline constexpr i32 UPDATE_NONE = 260;
 inline constexpr i32 UPDATE_SKIP_ALL_SIDEEFFECTS = 816;
+
+/**
+ * @brief destroyBlock 的默认侧向更新递归预算
+ *
+ * 对应 MC Java: LevelWriter.destroyBlock(pos, dropBlock, entity) 传入的 512。
+ * 形状更新级联（shape updates）每次向邻居传播时递减，用于限制一次摧毁能波及的邻居层数。
+ */
+inline constexpr i32 DEFAULT_DESTROY_RECURSION = 512;
 } // namespace BlockUpdateFlags
 
 } // namespace world

@@ -34,11 +34,9 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/drop/BlockDropHandler.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -128,10 +126,8 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                 // 判断当前位置是否需要填充
                 bool shouldFill = false;
                 bool isShell = false;
-                // 保存旧方块状态，用于在setBlockState之后调用spawnAfterBreak
-                const BlockState* prevState = nullptr;
-                // 是否需要调用spawnAfterBreak（destroy和hollow的内部空气替换需要）
-                bool needSpawnAfterBreak = false;
+                // Destroy 模式下原方块是否被实际摧毁（空气目标不计入修改数，对应原版 affector 返回值）
+                bool destroyedAny = false;
 
                 switch (mode) {
                     case FillMode::Replace:
@@ -146,32 +142,13 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                         }
                         break;
 
-                    case FillMode::Destroy: {
-                        // 破坏模式：先掉落物品，再填充
-                        const BlockState* currentState = world->getBlockState(x, y, z);
-                        if (currentState != nullptr && !currentState->isAir()) {
-                            // 获取掉落表管理器
-                            const loot::LootTableManager* lootTableManager = world->lootTableManager();
-                            if (lootTableManager != nullptr) {
-                                // 生成掉落物
-                                // 注意：FillCommand destroy 模式不检查 canHarvestBlock，总是掉落物品
-                                std::vector<ItemStack> drops = BlockDropHandler::generateDrops(*world,
-                                    BlockPos(x, y, z),
-                                    *currentState,
-                                    nullptr, // 无玩家
-                                    nullptr, // 无工具
-                                    *lootTableManager);
-
-                                if (!drops.empty()) {
-                                    BlockDropHandler::spawnDrops(*world, BlockPos(x, y, z), drops, "");
-                                }
-                            }
-                            prevState = currentState;
-                            needSpawnAfterBreak = true;
-                        }
+                    case FillMode::Destroy:
+                        // 破坏模式：原版 DESTROY 的 affector 即 destroyBlock(pos, true)，
+                        // 由统一接口完成破坏粒子、掉落、BLOCK_DESTROY 事件与原方块移除。
+                        // 目标本就是空气时 destroyBlock 返回 false，原版此时不计入修改数。
+                        destroyedAny = world->destroyBlock(BlockPos(x, y, z), true);
                         shouldFill = true;
                         break;
-                    }
 
                     case FillMode::Hollow:
                         // 空心填充：仅外壳填充，内部填充空气
@@ -179,24 +156,12 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                         if (isShell) {
                             shouldFill = true;
                         } else {
-                            // 内部填充空气
-                            const BlockState* airState = BlockRegistry::instance().getBlockState(0);
-                            if (airState != nullptr) {
-                                const BlockState* currentState = world->getBlockState(x, y, z);
-                                if (currentState == nullptr || !currentState->isAir()) {
-                                    // 记录旧方块，用于spawnAfterBreak
-                                    prevState = currentState;
-                                    needSpawnAfterBreak = true;
-                                    world->setBlockState(x, y, z, airState);
-                                    blocksModified++;
-                                    // 内部空气填充后立即调用spawnAfterBreak
-                                    if (prevState != nullptr && !prevState->isAir()) {
-                                        prevState->getBlock().spawnAfterBreak(
-                                            *world, BlockPos(x, y, z), *prevState, nullptr, false);
-                                    }
-                                    prevState = nullptr;
-                                    needSpawnAfterBreak = false;
-                                }
+                            // 内部清空为空气：原版 hollow 内核同样走 Filter 的 destroyBlock(pos, true)
+                            const BlockState* currentState = world->getBlockState(x, y, z);
+                            if (currentState != nullptr && !currentState->isAir()) {
+                                world->destroyBlock(BlockPos(x, y, z), true);
+                                blocksModified++;
+                                continue;
                             }
                         }
                         break;
@@ -221,11 +186,8 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                 if (shouldFill) {
                     if (world->setBlockState(x, y, z, fillState)) {
                         blocksModified++;
-                        // destroy模式：在方块被替换后调用spawnAfterBreak
-                        if (needSpawnAfterBreak && prevState != nullptr && !prevState->isAir()) {
-                            prevState->getBlock().spawnAfterBreak(
-                                *world, BlockPos(x, y, z), *prevState, nullptr, false);
-                        }
+                    } else if (destroyedAny) {
+                        blocksModified++;
                     }
                 }
             }

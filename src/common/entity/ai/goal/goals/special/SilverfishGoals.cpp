@@ -214,12 +214,8 @@ void SilverfishSummonOthersGoal::tick()
                         if (infestedBlock != nullptr) {
                             // 检查 mobGriefing 游戏规则
                             if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
-                                const BlockState* airState = BlockRegistry::instance().airState();
-                                if (airState != nullptr) {
-                                    // 先移除方块，再调用 spawnAfterBreak（与 MC Java destroyBlock 行为一致）
-                                    world->setBlockState(checkPos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-                                    block.spawnAfterBreak(*world, checkPos, *state, nullptr, true);
-                                }
+                                // 调用 destroyBlock 会经由掉落表与 spawnAfterBreak 生成蠹虫及其它资源
+                                world->destroyBlock(checkPos, true, m_silverfish);
                             } else {
                                 // 转换为原版方块
                                 u32 hostBlockId = infestedBlock->getHostBlock();

@@ -27,6 +27,7 @@
 #include "WorldConstants.hpp"
 #include "biome/BiomeClimate.hpp"
 #include "block/BlockPos.hpp"
+#include "block/BlockUpdateFlags.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -196,6 +197,61 @@ public:
 
     // 使用基类的 setBlockState(const BlockPos&, const BlockState*) 非虚函数
     using IWorldWriter::setBlockState;
+
+    /**
+     * @brief 移除方块（不产生破坏粒子、掉落与游戏事件）
+     *
+     * 对应 MC Java: Level.removeBlock(pos, isMoving)。
+     * 把该位置本就存在的流体状态写回为遗留方块：无水位置写空气，水/岩浆位置写回
+     * 对应流体方块。若该流体位置被非流体方块占据，则会连带替换掉该方块。
+     *
+     * 这仅用于「方块消失本身不带破坏语义」的场景（末影龙/凋灵穿墙、末影人取方块、
+     * 爆炸移除单元、活塞搬运等）。需要破坏粒子/掉落/振动事件的场景应调用 destroyBlock()。
+     *
+     * @param pos 方块位置
+     * @param isMoving 是否源自活塞推动；置位时本次写入携带 UPDATE_MOVE_BY_PISTON
+     * @return 世界是否确实发生了写入（位置已是目标方块时为 false）
+     */
+    virtual bool removeBlock(const BlockPos& pos, bool isMoving);
+
+    /**
+     * @brief 摧毁方块
+     *
+     * 对应 MC Java: Level.destroyBlock(pos, dropBlock, entity, recursionLeft)。
+     * 完整流程：
+     * 1. 位置为空气（或区块未加载）时直接返回 false；
+     * 2. 目标方块非火焰时，发送 2001 破坏粒子世界事件；
+     * 3. dropBlock 为 true 时按掉落表生成掉落物（服务端生效）；
+     * 4. 调 removeBlock(pos, false) 写回流体遗留方块；
+     * 5. 写入成功时发送 BLOCK_DESTROY 游戏事件（供幽匿感测体等监听）。
+     *
+     * @param pos 方块位置
+     * @param dropBlock 是否生成掉落物
+     * @param entity 摧毁方（用于游戏事件上下文与掉落表查询，可为 nullptr）
+     * @param recursionLeft 形状更新级联剩余的递归预算
+     * @return 方块是否被成功移除
+     */
+    virtual bool destroyBlock(const BlockPos& pos, bool dropBlock, const Entity* entity, i32 recursionLeft);
+
+    /**
+     * @brief 摧毁方块（使用默认递归预算）[便捷重载]
+     *
+     * 等价于 destroyBlock(pos, dropBlock, entity, BlockUpdateFlags::DEFAULT_DESTROY_RECURSION)。
+     */
+    bool destroyBlock(const BlockPos& pos, bool dropBlock, const Entity* entity)
+    {
+        return destroyBlock(pos, dropBlock, entity, world::BlockUpdateFlags::DEFAULT_DESTROY_RECURSION);
+    }
+
+    /**
+     * @brief 摧毁方块（无摧毁实体）[便捷重载]
+     *
+     * 等价于 destroyBlock(pos, dropBlock, nullptr)。
+     */
+    bool destroyBlock(const BlockPos& pos, bool dropBlock)
+    {
+        return destroyBlock(pos, dropBlock, nullptr);
+    }
 
     /**
      * @brief 获取方块实体

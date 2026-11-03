@@ -40,7 +40,6 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/drop/BlockDropHandler.hpp" // BlockDropHandler::generateDrops/spawnDrops（destroyBlock 掉落物分支）
 
 #include <spdlog/spdlog.h>
 
@@ -603,38 +602,21 @@ GameTestResult GameTestHelper::setBlockWithStates(const std::string& blockType,
 
 GameTestResult GameTestHelper::destroyBlock(BlockPos relativePos, bool dropResources)
 {
-    // 项目 IWorld/ServerWorld 无 destroyBlock 方法（见调研）：手动置 air + 掉落物生成。
+    // 原版 GameTestHelper.destroyBlock 使用 level.destroyBlock(absolutePos, false, null)；
+    // Cubium 额外支持 dropResources=true 以复用完整掉落链路。
     const BlockPos worldPos = worldBlockPosition(relativePos);
 
-    // 破坏前读取旧方块状态，供 dropResources=true 时生成掉落物。
     const BlockState* oldState = m_world.getBlockState(worldPos);
     if (oldState == nullptr) {
         return GameTestError{
             GameTestErrorType::LevelStateModificationFailed, "No block to destroy at {0}", {worldPos.toString()}};
     }
 
-    // 生成掉落物（dropResources=true 时走 BlockDropHandler 完整掉落链路）。
-    // 必须在 setBlockState(air) 之前生成掉落物：generateDrops 读取 pos 处的方块状态，
-    // 若先置 air 再生成，getLootTable 会读到空气方块的空掉落表，返回空掉落列表。
-    if (dropResources) {
-        const auto* lootTableManager = m_world.lootTableManager();
-        if (lootTableManager != nullptr) {
-            auto drops =
-                BlockDropHandler::generateDrops(m_world, worldPos, *oldState, nullptr, nullptr, *lootTableManager);
-            if (!drops.empty()) {
-                BlockDropHandler::spawnDrops(m_world, worldPos, drops, std::string());
-            }
-        }
-    }
-
-    const BlockState* air = mc::BlockRegistry::instance().airState();
-    if (air == nullptr) {
-        return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Air block state unavailable"};
-    }
-    if (!m_world.setBlockState(worldPos, air, world::BlockUpdateFlags::UPDATE_ALL)) {
-        // setBlockState 对“格子已是 air”返回 false（no-op 成功），原版 destroyBlock 同样视为成功。
-        // 仅当格子确实未被写入（chunk 未加载等）时才报真失败。
-        if (!_blockAlreadyMatches(m_world, worldPos, air)) {
+    if (!m_world.destroyBlock(worldPos, dropResources)) {
+        // 目标已是空气（含区块内本就是空气）时 destroyBlock 返回 false，原版同样视为成功；
+        // 仅当位置仍有非空气方块（chunk 未加载等导致的写入失败）时才报真失败。
+        const BlockState* remaining = m_world.getBlockState(worldPos);
+        if (remaining != nullptr && !remaining->isAir()) {
             return GameTestError{GameTestErrorType::LevelStateModificationFailed,
                 "Failed to destroy block at {0}",
                 {worldPos.toString()}};

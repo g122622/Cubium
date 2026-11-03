@@ -763,6 +763,16 @@ BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& wor
 void Block::updateOrDestroy(
     const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags)
 {
+    updateOrDestroy(oldState, newState, world, pos, flags, world::BlockUpdateFlags::DEFAULT_DESTROY_RECURSION);
+}
+
+void Block::updateOrDestroy(const BlockState& oldState,
+    const BlockState& newState,
+    IWorld& world,
+    const BlockPos& pos,
+    i32 flags,
+    i32 recursionLeft)
+{
     if (newState.stateId() == oldState.stateId()) {
         return;
     }
@@ -773,17 +783,16 @@ void Block::updateOrDestroy(
             return;
         }
 
-        // 移除方块。置位 UPDATE_SUPPRESS_DROPS 时抑制移除带来的掉落：项目中方块自身的
-        // 掉落由玩家破坏路径处理，这里的掉落只有方块实体的移除副作用（容器内容物），
-        // 故等价地叠加 UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS。
-        i32 removeFlags = world::BlockUpdateFlags::UPDATE_ALL;
-        if ((flags & world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS) != 0) {
-            removeFlags |= world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS;
-        }
-        world.setBlockState(pos, &newState, removeFlags);
+        // 视同摧毁：发破坏粒子、按需掉落、写回流体遗留方块并发送 BLOCK_DESTROY 振动事件。
+        // UPDATE_SUPPRESS_DROPS 表示本条场景不产生掉落（如形状级联中的临时脱落）。
+        const bool dropBlock = (flags & world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS) == 0;
+        world.destroyBlock(pos, dropBlock, nullptr, recursionLeft);
         return;
     }
 
+    // recursionLeft 是形状更新级联的深度预算，由变空气分支下传给 destroyBlock；
+    // 非空气分支的后续级联由 ServerWorld::setBlockState 另行携带预算，此处无需递减。
+    MC_UNUSED(recursionLeft);
     world.setBlockState(pos, &newState, flags & ~world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
 }
 
@@ -1188,6 +1197,11 @@ i32 Block::getFireSpreadSpeed(
 
 void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
+    dropResources(world, pos, state, world.getBlockEntity(pos));
+}
+
+void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& state, BlockEntity* blockEntity)
+{
     // 仅在服务端生成掉落物品（lootTableManager 为空表示客户端）
     auto* lootTableManager = world.lootTableManager();
     if (lootTableManager == nullptr) {
@@ -1213,6 +1227,12 @@ void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& 
     // ORIGIN：方块掉落的来源位置取方块中心（对齐 vanilla LootContextParams.ORIGIN 的
     // Vec3.atCenterOf(pos) 语义），供探险地图等按世界坐标搜索结构的掉落函数使用。
     contextBuilder.withOwnedValue(loot::LootParams::ORIGIN, pos.center());
+
+    // BLOCK_ENTITY：容器类方块（箱子、熔炉等）的掉落表需要它复制名称与组件。
+    // vanilla 通过 LootContextParams.BLOCK_ENTITY 传递，Cubium 以可选参数形式接入。
+    if (blockEntity != nullptr) {
+        contextBuilder.withParameter(loot::LootParams::BLOCK_ENTITY, blockEntity);
+    }
 
     // 设置掉落表解析器和条件解析器
     contextBuilder.withLootTableResolver([lootTableManager](const std::string& id) -> const loot::LootTable* {

@@ -125,13 +125,8 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
                 for (i32 i = 0; i < 3; ++i) {
                     for (i32 j = 0; j < 3; ++j) {
                         const BlockPos portalPos = match->getBlock(1 + i, 1 + j, 0).pos();
-                        // 等价原版 level.destroyBlock(portalPos, true, null)：先掉落原方块的资源
-                        // （含 spawnAfterBreak 额外效果），再写入传送门方块。原版 destroyBlock 对空气
-                        // 与不可破坏方块返回 false 且不产生掉落，这里同样跳过。
-                        const BlockState* existingState = world.getBlockState(portalPos);
-                        if (existingState != nullptr && !existingState->isAir() && existingState->hardness() >= 0.0f) {
-                            Block::dropResources(world, portalPos, *existingState);
-                        }
+                        // 先摧毁原方块（掉落资源、破坏粒子、BLOCK_DESTROY 事件），再写入传送门方块。
+                        world.destroyBlock(portalPos, true);
                         world.setBlockState(portalPos, endPortalState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                     }
                 }

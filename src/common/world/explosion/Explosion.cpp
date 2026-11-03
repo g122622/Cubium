@@ -54,7 +54,6 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
@@ -747,9 +746,6 @@ void Explosion::_destroyBlocks()
         std::swap(m_affectedBlocks[i - 1], m_affectedBlocks[j]);
     }
 
-    // 获取空气方块引用
-    const BlockState* airState = &VanillaBlocks::AIR->defaultState();
-
     // 收集所有掉落物（用于合并）
     std::vector<std::pair<ItemStack, BlockPos>> allDrops;
 
@@ -771,7 +767,7 @@ void Explosion::_destroyBlocks()
         // 移除方块
         if (m_mode == ExplosionMode::Break) {
             // 破坏但不掉落
-            m_world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
+            _removeExplodedBlock(pos);
         } else if (m_mode == ExplosionMode::Destroy && canDrop) {
             // 破坏并掉落
             if (m_lootTableManager != nullptr) {
@@ -803,10 +799,10 @@ void Explosion::_destroyBlocks()
                     }
                 }
             }
-            m_world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
+            _removeExplodedBlock(pos);
         } else {
             // DESTROY 模式但方块不掉落（如玻璃）
-            m_world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
+            _removeExplodedBlock(pos);
         }
 
         // 调用方块的破坏后生成回调（如 InfestedBlock 生成蠹虫）
@@ -834,6 +830,11 @@ void Explosion::_destroyBlocks()
 
     // 记录本次爆炸合并后的掉落物数量（计数器）
     MC_TRACE_COUNTER(TraceEvents.Server.World, "Explosion.ItemDrops", static_cast<i64>(allDrops.size()));
+}
+
+void Explosion::_removeExplodedBlock(const BlockPos& pos)
+{
+    m_world.removeBlock(pos, false);
 }
 
 void Explosion::_applyKnockback()

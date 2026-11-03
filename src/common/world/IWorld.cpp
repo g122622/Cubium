@@ -22,10 +22,15 @@
  */
 
 #include "IWorld.hpp"
+#include "WorldEvents.hpp"
 #include "block/Block.hpp"
+#include "block/BlockRegistry.hpp"
+#include "block/BlockState.hpp"
+#include "block/blocks/nether/FireBlock.hpp"
 #include "blockentity/BlockEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "entity/core/Entity.hpp"
 #include "fluid/Fluid.hpp"
 #include "gamerule/GameRules.hpp"
@@ -164,6 +169,60 @@ bool IWorld::mayInteract(const Entity& entity, const BlockPos& pos) const
     (void)entity;
     (void)pos;
     return true;
+}
+
+bool IWorld::removeBlock(const BlockPos& pos, bool isMoving)
+{
+    // 遗留方块取该位置当前流体对应的方块形态：无流体 → 空气，水/岩浆 → 对应流体方块。
+    // 与 vanilla FluidState.createLegacyBlock() 语义一致。
+    const fluid::FluidState* fluidState = getFluidState(pos);
+    const BlockState* replacement = nullptr;
+    if (fluidState != nullptr && !fluidState->isEmpty()) {
+        replacement = fluidState->getBlockState();
+    }
+    if (replacement == nullptr) {
+        replacement = BlockRegistry::instance().airState();
+    }
+    MC_ASSERT_RELEASE(replacement != nullptr);
+
+    i32 flags = world::BlockUpdateFlags::UPDATE_ALL;
+    if (isMoving) {
+        flags |= world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON;
+    }
+    return setBlockState(pos, replacement, flags);
+}
+
+bool IWorld::destroyBlock(const BlockPos& pos, bool dropBlock, const Entity* entity, i32 recursionLeft)
+{
+    // recursionLeft 是形状更新级联的深度预算，由调用方（Block::updateOrDestroy）负责消耗；
+    // 本方法当前不自行发起形状级联，保留参数以对齐原版签名。
+    MC_UNUSED(recursionLeft);
+
+    const BlockState* state = getBlockState(pos);
+    if (state == nullptr || state->isAir()) {
+        return false;
+    }
+
+    // 保存破坏前的状态快照：后续写入会替换该位置的方块
+    const BlockState brokenState = *state;
+    const Block& block = brokenState.getBlock();
+
+    // 火焰方块被移除时不产生破坏粒子（火焰原本就没有对应的破坏音效/粒子）
+    if (dynamic_cast<const blocks::FireBlock*>(&block) == nullptr) {
+        playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(brokenState.stateId()));
+    }
+
+    // 掉落物只在服务端生成（Block::dropResources 内部以掉落表管理器为空判定客户端）。
+    // 方块实体必须在移除前取出：掉落表（copy_components / copy_custom_data）需要读取它。
+    if (dropBlock) {
+        Block::dropResources(*this, pos, brokenState, getBlockEntity(pos));
+    }
+
+    const bool written = removeBlock(pos, false);
+    if (written) {
+        gameEvent(gameevent::GameEvents::BLOCK_DESTROY, pos, gameevent::GameEvent::Context::of(entity, &brokenState));
+    }
+    return written;
 }
 
 } // namespace mc
