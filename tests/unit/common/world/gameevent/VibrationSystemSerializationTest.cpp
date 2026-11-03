@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
@@ -76,15 +77,21 @@ TEST(VibrationInfoSerializationTest, SaveToNBT_WithSourceEntity)
     GameEvent event("step", 16);
     Vector3d pos(1.0, 2.0, 3.0);
     VibrationInfo info(event, 3.0f, pos, nullptr);
-    info.sourceEntityId = 42;
-    info.hasSourceEntity = true;
+    info.sourceUuid = util::uuidFromString("0f0e0d0c0b0a09080706050403020100");
 
     nbt::CompoundTag tag;
     info.saveToNBT(tag);
 
-    auto source = entity::serialization::nbt_helper::tryGetLong(tag, "source");
-    ASSERT_TRUE(source.has_value());
-    EXPECT_EQ(source.value(), 42);
+    // UUID 按原版 UUIDUtil.CODEC 存成 4 个 i32，不是单个 long。
+    const auto it = tag.value.find("source");
+    ASSERT_NE(it, tag.value.end());
+    const auto* arrayTag = dynamic_cast<const nbt::tags::intarray_tag*>(it->second.get());
+    ASSERT_NE(arrayTag, nullptr);
+    ASSERT_EQ(arrayTag->value.size(), 4U);
+    EXPECT_EQ(arrayTag->value[0], 0x0f0e0d0c);
+    EXPECT_EQ(arrayTag->value[1], 0x0b0a0908);
+    EXPECT_EQ(arrayTag->value[2], 0x07060504);
+    EXPECT_EQ(arrayTag->value[3], 0x03020100);
 }
 
 TEST(VibrationInfoSerializationTest, LoadFromNBT_RoundTrip)
@@ -92,8 +99,8 @@ TEST(VibrationInfoSerializationTest, LoadFromNBT_RoundTrip)
     GameEvent event("entity_damage", 16);
     Vector3d pos(100.0, -5.5, 200.0);
     VibrationInfo original(event, 12.3f, pos, nullptr);
-    original.sourceEntityId = 99;
-    original.hasSourceEntity = true;
+    original.sourceUuid = util::uuidFromString("ffffffffffffffff8000000000000001");
+    original.projectileOwnerUuid = util::uuidFromString("0102030405060708090a0b0c0d0e0f10");
 
     // 保存
     nbt::CompoundTag tag;
@@ -109,8 +116,10 @@ TEST(VibrationInfoSerializationTest, LoadFromNBT_RoundTrip)
     EXPECT_DOUBLE_EQ(loaded.pos.x, 100.0);
     EXPECT_DOUBLE_EQ(loaded.pos.y, -5.5);
     EXPECT_DOUBLE_EQ(loaded.pos.z, 200.0);
-    EXPECT_TRUE(loaded.hasSourceEntity);
-    EXPECT_EQ(loaded.sourceEntityId, 99u);
+    ASSERT_TRUE(loaded.sourceUuid.has_value());
+    EXPECT_EQ(util::uuidToString(*loaded.sourceUuid), "ffffffffffffffff8000000000000001");
+    ASSERT_TRUE(loaded.projectileOwnerUuid.has_value());
+    EXPECT_EQ(util::uuidToString(*loaded.projectileOwnerUuid), "0102030405060708090a0b0c0d0e0f10");
 }
 
 TEST(VibrationInfoSerializationTest, LoadFromNBT_MissingGameEvent)
@@ -161,8 +170,7 @@ TEST(VibrationInfoSerializationTest, LoadFromJson_RoundTrip)
     GameEvent event("resonate_5", 16);
     Vector3d pos(-10.0, 0.5, 300.0);
     VibrationInfo original(event, 8.0f, pos, nullptr);
-    original.sourceEntityId = 123;
-    original.hasSourceEntity = true;
+    original.sourceUuid = util::uuidFromString("aabbccdd00112233445566778899aabb");
 
     nlohmann::json data;
     original.saveToJson(data);
@@ -176,8 +184,8 @@ TEST(VibrationInfoSerializationTest, LoadFromJson_RoundTrip)
     EXPECT_DOUBLE_EQ(loaded.pos.x, -10.0);
     EXPECT_DOUBLE_EQ(loaded.pos.y, 0.5);
     EXPECT_DOUBLE_EQ(loaded.pos.z, 300.0);
-    EXPECT_TRUE(loaded.hasSourceEntity);
-    EXPECT_EQ(loaded.sourceEntityId, 123u);
+    ASSERT_TRUE(loaded.sourceUuid.has_value());
+    EXPECT_EQ(util::uuidToString(*loaded.sourceUuid), "aabbccdd00112233445566778899aabb");
 }
 
 // ============================================================================

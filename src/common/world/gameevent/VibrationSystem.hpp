@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
@@ -70,11 +71,11 @@ struct VibrationInfo {
     /** 振动源位置 */
     Vector3d pos;
 
-    /** 源实体UUID（可为空） */
-    u64 sourceEntityId = 0;
+    /** 源实体 UUID（可为空） */
+    std::optional<Uuid> sourceUuid;
 
-    /** 是否有源实体 */
-    bool hasSourceEntity = false;
+    /** 弹射物拥有者 UUID（可为空） */
+    std::optional<Uuid> projectileOwnerUuid;
 
     VibrationInfo() = default;
 
@@ -91,8 +92,11 @@ struct VibrationInfo {
      * - "game_event": string  - 事件 ID（如 "minecraft:step"）
      * - "distance": f32     - 振动传播距离
      * - "pos": list<f64>   - 振动源位置 [x, y, z]
-     * - "source": long        - 源实体 ID（可选）
-     * - "projectile_owner": long - 弹射物拥有者实体 ID（可选）
+     * - "source": [i32; 4]    - 源实体 UUID（可选）
+     * - "projectile_owner": [i32; 4] - 弹射物拥有者 UUID（可选）
+     *
+     * UUID 按原版 UUIDUtil.CODEC 序列化成 4 个 int（大端 16 字节拆成 4 组），
+     * 不是单个 long。写成 long 会让存档与网络包都和原版对不上。
      *
      * @param tag 输出 NBT 复合标签
      */

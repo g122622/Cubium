@@ -36,6 +36,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
@@ -49,10 +50,67 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc::gameevent {
+
+namespace {
+
+/**
+ * @brief 把 16 字节 UUID 按原版 UUIDUtil 的方式拆成 4 个 i32
+ *
+ * 原版 UUIDUtil.CODEC 是 INT_STREAM + fixedSize(4)，即 uuids 的大端 16 字节
+ * 每 4 个一组解释成一个有符号 int。顺序与 UUID.getMostSignificantBits /
+ * getLeastSignificantBits 的拆分一致。
+ *
+ * @param uuid 16 字节 UUID
+ * @return 4 个 i32
+ */
+std::vector<i32> _uuidToIntArray(const Uuid& uuid)
+{
+    std::vector<i32> result(4, 0);
+    for (std::size_t group = 0; group < 4; ++group) {
+        const u32 value = (static_cast<u32>(uuid[group * 4]) << 24) | (static_cast<u32>(uuid[group * 4 + 1]) << 16) |
+            (static_cast<u32>(uuid[group * 4 + 2]) << 8) | static_cast<u32>(uuid[group * 4 + 3]);
+        result[group] = static_cast<i32>(value);
+    }
+    return result;
+}
+
+/**
+ * @brief 读取 int 数组形式的 UUID 字段
+ *
+ * 字段缺席、类型不对或长度不是 4 都返回 nullopt —— 对应原版
+ * lenientOptionalFieldOf 的宽容语义。
+ *
+ * @param tag 源 NBT 复合标签
+ * @param key 字段名
+ * @return 解析出的 UUID，或 nullopt
+ */
+std::optional<Uuid> _readUuidField(const nbt::CompoundTag& tag, const char* key)
+{
+    const auto it = tag.value.find(key);
+    if (it == tag.value.end() || it->second == nullptr) {
+        return std::nullopt;
+    }
+    const auto* arrayTag = dynamic_cast<const nbt::tags::intarray_tag*>(it->second.get());
+    if (arrayTag == nullptr || arrayTag->value.size() != 4) {
+        return std::nullopt;
+    }
+    Uuid uuid{};
+    for (std::size_t group = 0; group < 4; ++group) {
+        const u32 value = static_cast<u32>(arrayTag->value[group]);
+        uuid[group * 4] = static_cast<u8>((value >> 24) & 0xFFU);
+        uuid[group * 4 + 1] = static_cast<u8>((value >> 16) & 0xFFU);
+        uuid[group * 4 + 2] = static_cast<u8>((value >> 8) & 0xFFU);
+        uuid[group * 4 + 3] = static_cast<u8>(value & 0xFFU);
+    }
+    return uuid;
+}
+
+} // namespace
 
 // ============================================================================
 // 振动频率映射表
@@ -162,8 +220,7 @@ VibrationInfo::VibrationInfo(const GameEvent& event, f32 dist, const Vector3d& p
     : gameEvent(&event)
     , distance(dist)
     , pos(position)
-    , sourceEntityId(entity != nullptr ? entity->id() : 0)
-    , hasSourceEntity(entity != nullptr)
+    , sourceUuid(entity != nullptr ? std::optional<Uuid>(util::uuidFromString(entity->uuid())) : std::nullopt)
 {}
 
 // ============================================================================
@@ -306,9 +363,14 @@ void VibrationInfo::saveToNBT(nbt::CompoundTag& tag) const
     posList->value.push_back(pos.z);
     tag.value.emplace("pos", std::move(posList));
 
-    // source: 源实体 ID（可选）
-    if (hasSourceEntity) {
-        tag.put("source", static_cast<i64>(sourceEntityId));
+    // source / projectile_owner: UUID（可选）。原版 UUIDUtil.CODEC 用 INT_STREAM，
+    // 即 16 字节按大端拆成 4 个 int，不是单个 long。
+    if (sourceUuid.has_value()) {
+        tag.value.emplace("source", std::make_unique<nbt::tags::intarray_tag>(_uuidToIntArray(*sourceUuid)));
+    }
+    if (projectileOwnerUuid.has_value()) {
+        tag.value.emplace(
+            "projectile_owner", std::make_unique<nbt::tags::intarray_tag>(_uuidToIntArray(*projectileOwnerUuid)));
     }
 }
 
@@ -342,15 +404,10 @@ bool VibrationInfo::loadFromNBT(const nbt::CompoundTag& tag)
         }
     }
 
-    // source: 源实体 ID（可选）
-    auto sourceOpt = entity::serialization::nbt_helper::tryGetLong(tag, "source");
-    if (sourceOpt.has_value()) {
-        sourceEntityId = static_cast<u64>(*sourceOpt);
-        hasSourceEntity = true;
-    } else {
-        sourceEntityId = 0;
-        hasSourceEntity = false;
-    }
+    // source / projectile_owner: UUID（可选）。缺失或格式不对都当作「没有」，
+    // 对应原版 lenientOptionalFieldOf 允许字段缺席的语义。
+    sourceUuid = _readUuidField(tag, "source");
+    projectileOwnerUuid = _readUuidField(tag, "projectile_owner");
 
     return true;
 }
@@ -362,8 +419,12 @@ void VibrationInfo::saveToJson(nlohmann::json& data) const
     }
     data["distance"] = distance;
     data["pos"] = {pos.x, pos.y, pos.z};
-    if (hasSourceEntity) {
-        data["source"] = static_cast<i64>(sourceEntityId);
+    // JSON 视图里 UUID 用标准连字符字符串，便于人读与日志检索。
+    if (sourceUuid.has_value()) {
+        data["source"] = util::uuidToStringWithDashes(*sourceUuid);
+    }
+    if (projectileOwnerUuid.has_value()) {
+        data["projectile_owner"] = util::uuidToStringWithDashes(*projectileOwnerUuid);
     }
 }
 
@@ -389,12 +450,15 @@ bool VibrationInfo::loadFromJson(const nlohmann::json& data)
     }
 
     // source
-    if (data.contains("source") && data["source"].is_number_integer()) {
-        sourceEntityId = static_cast<u64>(data["source"].get<i64>());
-        hasSourceEntity = true;
+    if (data.contains("source") && data["source"].is_string()) {
+        sourceUuid = util::uuidFromString(data["source"].get<std::string>());
     } else {
-        sourceEntityId = 0;
-        hasSourceEntity = false;
+        sourceUuid.reset();
+    }
+    if (data.contains("projectile_owner") && data["projectile_owner"].is_string()) {
+        projectileOwnerUuid = util::uuidFromString(data["projectile_owner"].get<std::string>());
+    } else {
+        projectileOwnerUuid.reset();
     }
 
     return true;

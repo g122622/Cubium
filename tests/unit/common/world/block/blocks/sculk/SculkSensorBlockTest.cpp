@@ -286,29 +286,31 @@ TEST(VibrationSystemFrequencyTest, Step_Frequency1)
     EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::STEP), 1);
 }
 
-TEST(VibrationSystemFrequencyTest, BlockActivate_Frequency5)
+TEST(VibrationSystemFrequencyTest, BlockActivate_Frequency10)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_ACTIVATE), 5);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_ACTIVATE), 10);
 }
 
-TEST(VibrationSystemFrequencyTest, EntityDamage_Frequency11)
+TEST(VibrationSystemFrequencyTest, EntityDamage_Frequency7)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DAMAGE), 11);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DAMAGE), 7);
 }
 
-TEST(VibrationSystemFrequencyTest, EntityDie_Frequency11)
+TEST(VibrationSystemFrequencyTest, EntityDie_Frequency15)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DIE), 11);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DIE), 15);
 }
 
-TEST(VibrationSystemFrequencyTest, Shriek_Frequency15)
+TEST(VibrationSystemFrequencyTest, Shriek_HasNoFrequency)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SHRIEK), 15);
+    // 原版没有为 shriek 定义振动频率，0 表示不产生振动。
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SHRIEK), 0);
 }
 
-TEST(VibrationSystemFrequencyTest, SculkSensorTendrilsClicking_Frequency9)
+TEST(VibrationSystemFrequencyTest, SculkSensorTendrilsClicking_HasNoFrequency)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SCULK_SENSOR_TENDRILS_CLICKING), 9);
+    // 原版没有为这个事件定义振动频率，避免感测体自身触发自我循环。
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SCULK_SENSOR_TENDRILS_CLICKING), 0);
 }
 
 // ============================================================================

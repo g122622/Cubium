@@ -1602,6 +1602,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "三个错都不崩不报错，只是读数差 1，而依赖精确读数的装置会整体失效",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "vibration_info_nbt",
+        probe: "vibration_info_nbt",
+        oracle: "VibrationInfoNbtOracle",
+        description: "振动信息的 NBT 结构（VibrationInfo.CODEC）—— 字段组合 4 种；"
+        + "game_event(string) / distance(float) / pos(double[3]) 必填，source 与 projectile_owner 是可选的 UUID。"
+        + "UUID 按原版 UUIDUtil.CODEC 拆成 4 个有符号 int，不是单个 long —— 写成 long 会让存档与网络包都和原版对不上；"
+        + "Cubium 原来 source 就是 long、projectile_owner 整个缺失",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
