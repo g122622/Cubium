@@ -543,5 +543,13 @@ i32 VineBlock::_getConnectionCount(const BlockState& state) const
     return count;
 }
 
+bool VineBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 藤蔓是贴墙薄片，不挡天空光。
+    return true;
+}
 } // namespace blocks
 } // namespace mc

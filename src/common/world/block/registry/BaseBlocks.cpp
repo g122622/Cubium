@@ -35,6 +35,7 @@
 #include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/TransparentBlock.hpp"
 #include "world/block/blocks/dirt/SnowyDirtBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
@@ -328,7 +329,7 @@ void registerBaseBlocks()
     // 玻璃：vanilla Blocks.GLASS 注册 noOcclusion()，且其方块类（TransparentBlock/HalfTransparentBlock）
     // 未重写 getLightBlock / propagatesSkylightDown。遮挡形状仍是完整立方体，故
     // propagatesSkylightDown=false、lightBlock=1（天空光衰减 1 级），而不是 0。
-    BaseBlocks::GLASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:glass"),
+    BaseBlocks::GLASS = &registry.registerBlock<blocks::TransparentBlock>(ResourceLocation("minecraft:glass"),
         BlockProperties(Material::GLASS)
             .instrument(BlockProperties::Instrument::Hat)
             .resistance(0.300000012f)

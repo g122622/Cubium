@@ -85,6 +85,15 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 天空光直通（原版 `VineBlock#propagatesSkylightDown`）
+     *
+     * 藤蔓是贴墙的薄片，没有实体底面挡住天空光。不覆写的话基类判据
+     * （形状是否覆盖整格 + 流体是否为空）会得出 false，导致藤蔓下方偏暗。
+     */
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
     // ========== 攀爬 ==========
 
     /**

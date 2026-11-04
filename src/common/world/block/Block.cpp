@@ -517,14 +517,15 @@ f32 Block::getShadeBrightness(const BlockState& state, IWorld* world, const Bloc
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    // 默认实现与 MC 原版一致：
-    // 碰撞形状为完整方块时返回 0.2F（产生 AO 阴影），否则返回 1.0F。
-    // noOcclusion 方块不产生 AO 阴影（vanilla 的 AO 前提是 canOcclude）。
-    // 子类可重写以实现特殊行为（如 MudBlock 碰撞形状不完整但仍需阴影）。
-    if (!m_canOcclude) {
-        return 1.0f;
-    }
-    return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
+    // 原版判据只看「碰撞形状是否覆盖整格」，与 canOcclude / noOcclusion 无关：
+    //   isCollisionShapeFullBlock(state, world, pos) ? 0.2F : 1.0F
+    //
+    // 这一点很容易写错。用 canOcclude 判定会在两个方向上同时出错：
+    // - 树叶、冰、荧石、信标、潜影盒形状是整格，原版有阴影，但它们标了 noOcclusion
+    // - 栅栏、台阶、楼梯、墙形状不完整，原版没有阴影，但它们是可遮挡方块
+    //
+    // 子类仍可重写以实现特例（泥巴、灵魂沙是 14/16 矮块却要阴影；雪层满层才要阴影）。
+    return state.getCollisionShape().coversFullBlock() ? 0.2f : 1.0f;
 }
 
 i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* pos) const

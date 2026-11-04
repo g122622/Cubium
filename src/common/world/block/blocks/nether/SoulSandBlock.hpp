@@ -58,6 +58,16 @@ public:
     [[nodiscard]] const CollisionShape& getBlockSupportShape(const BlockState& state) const override;
 
     /**
+     * @brief 遮光亮度恒为 0.2（原版 `SoulSandBlock#getShadeBrightness`）
+     *
+     * 灵魂沙的碰撞形状是 14/16 高的矮块，按基类默认判据（碰撞形状是否覆盖整格）
+     * 会得到 1.0（无阴影）。但它的视觉是个实心块面，必须有阴影，否则会看起来
+     * 像浮在地面上的亮块。原版为此专门覆写返回 0.2。
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
+    /**
      * @brief 方块被添加时
      *
      * 调度 tick 以检查上方水源并生成涌流气泡柱。

@@ -165,5 +165,21 @@ const fluid::FluidState* WaxedCopperGrateBlock::getFluidState(const BlockState& 
     return waterloggable::getWaterFluidState(state);
 }
 
+f32 WeatheringCopperGrateBlock::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 碰撞形状是整格但满是镂空，光能透过去，不投影。
+    return 1.0f;
+}
+
+f32 WaxedCopperGrateBlock::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return 1.0f;
+}
 } // namespace blocks
 } // namespace mc

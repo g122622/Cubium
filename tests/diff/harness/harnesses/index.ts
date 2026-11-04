@@ -1665,6 +1665,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "把灵魂沙的写成 0.5，沙漠神殿的灵魂沙跑酷就几乎不可能",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_shade_brightness",
+        probe: "block_shade_brightness",
+        oracle: "BlockShadeBrightnessOracle",
+        description: "方块遮光亮度与天空光透传（BlockBehaviour#getShadeBrightness / propagatesSkylightDown）—— 全部已注册方块；"
+        + "碰撞形状是完整方块返回 0.2（形成阴影），否则 1.0。三个必须单独覆写的特例：泥巴与灵魂沙是 14/16 矮块但视觉实心、仍需 0.2，"
+        + "雪层满层 0.2 其余 1.0；屏障/结构空位这类不可见方块返回 1.0。按默认规则处理泥巴和灵魂沙会让它们看起来像浮在地面上的亮块",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

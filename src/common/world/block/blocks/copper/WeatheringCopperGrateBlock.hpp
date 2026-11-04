@@ -58,6 +58,14 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
+    /**
+     * @brief 遮光亮度恒为 1.0（原版 `TransparentBlock#getShadeBrightness`）
+     *
+     * 铜格栅碰撞形状是整格但满是镂空，光能透过去，不该投下阴影。
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
@@ -79,6 +87,14 @@ public:
     explicit WaxedCopperGrateBlock(const BlockProperties& properties);
 
     ~WaxedCopperGrateBlock() override = default;
+
+    /**
+     * @brief 遮光亮度恒为 1.0（原版 `TransparentBlock#getShadeBrightness`）
+     *
+     * 涂蜡不改光学行为，与未涂蜡的铜格栅一致。
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 

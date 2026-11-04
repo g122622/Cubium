@@ -847,6 +847,7 @@ add_library(mc_common STATIC
     world/block/ILiquidSealed.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
+    world/block/blocks/TransparentBlock.cpp
     world/block/blocks/DropExperienceBlock.cpp
     world/block/blocks/FallingBlock.cpp
     world/block/blocks/ConcretePowderBlock.cpp
