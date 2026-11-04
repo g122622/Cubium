@@ -60,6 +60,13 @@ bool MatchToolCondition::test(LootContext& context) const
     return m_predicate->test(*tool);
 }
 
+void MatchToolCondition::expandTagItems()
+{
+    if (m_predicate.has_value()) {
+        m_predicate->expandTagItems();
+    }
+}
+
 std::unique_ptr<LootCondition> MatchToolCondition::clone() const noexcept
 {
     if (m_predicate.has_value()) {

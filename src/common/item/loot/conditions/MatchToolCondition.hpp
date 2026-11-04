@@ -70,6 +70,11 @@ public:
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
 
+    /**
+     * @brief 让工具谓词按当前物品标签重新展开
+     */
+    void expandTagItems() override;
+
     [[nodiscard]] std::string getType() const noexcept override
     {
         return "match_tool";

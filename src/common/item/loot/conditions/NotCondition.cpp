@@ -42,6 +42,11 @@ bool NotCondition::test(LootContext& context) const
     return !m_condition->test(context);
 }
 
+void NotCondition::expandTagItems()
+{
+    m_condition->expandTagItems();
+}
+
 std::unique_ptr<LootCondition> NotCondition::clone() const noexcept
 {
     if (m_condition) {

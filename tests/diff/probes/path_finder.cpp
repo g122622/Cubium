@@ -39,6 +39,8 @@
 #include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "path_scene.hpp"
+#include "vanilla_datapack.hpp"
+
 #include "probe.hpp"
 #include <array>
 #include <memory>
@@ -54,8 +56,10 @@ using nlohmann::json;
 
 void initialize()
 {
+    // 与 walk_path_type 同理：寻路判定依赖 BlockTags（栅栏/墙/活板门/火），
+    // 标签成员只在 datapack::initializeRegistries() 阶段从数据包展开载入。
     static const bool done = [] {
-        VanillaBlocks::initialize();
+        datapack::initializeRegistries();
         return true;
     }();
     MC_UNUSED(done);

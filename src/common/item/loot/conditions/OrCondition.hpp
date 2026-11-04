@@ -61,6 +61,11 @@ public:
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
 
     /**
+     * @brief 让所有子条件重新展开物品标签成员
+     */
+    void expandTagItems() override;
+
+    /**
      * @brief 获取条件类型标识
      * @return 类型标识字符串 "or"
      */

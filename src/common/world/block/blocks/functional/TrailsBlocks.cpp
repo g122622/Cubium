@@ -224,6 +224,14 @@ const CollisionShape& DecoratedPotBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
+bool DecoratedPotBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 原版显式返回 false：碰撞形状不满格不代表可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 const fluid::FluidState* DecoratedPotBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);
@@ -538,6 +546,14 @@ BlockState SnifferEggBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     MC_UNUSED(context);
     return defaultState().with(BlockStateProperties::HATCH_0_2(), 0);
+}
+
+bool SnifferEggBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 原版显式返回 false：蛋的碰撞形状随时长变化且始终不满格。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
 }
 
 const CollisionShape& SnifferEggBlock::getShape(const BlockState& state) const

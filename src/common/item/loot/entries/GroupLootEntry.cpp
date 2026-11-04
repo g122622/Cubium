@@ -41,6 +41,14 @@ GroupLootEntry::GroupLootEntry(std::vector<std::unique_ptr<LootEntry>> children)
     : m_children(std::move(children))
 {}
 
+void GroupLootEntry::expandTagItems()
+{
+    LootEntry::expandTagItems();
+    for (auto& child : m_children) {
+        child->expandTagItems();
+    }
+}
+
 std::unique_ptr<LootEntry> GroupLootEntry::clone() const
 {
     std::vector<std::unique_ptr<LootEntry>> clonedChildren;

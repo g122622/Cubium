@@ -50,6 +50,11 @@ public:
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
 
+    /**
+     * @brief 让被取反的条件重新展开物品标签成员
+     */
+    void expandTagItems() override;
+
     [[nodiscard]] std::string getType() const override
     {
         return "inverted";

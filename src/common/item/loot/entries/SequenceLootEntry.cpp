@@ -45,6 +45,14 @@ SequenceLootEntry::SequenceLootEntry(std::vector<std::unique_ptr<LootEntry>> chi
 // 公共方法
 // ============================================================================
 
+void SequenceLootEntry::expandTagItems()
+{
+    LootEntry::expandTagItems();
+    for (auto& child : m_children) {
+        child->expandTagItems();
+    }
+}
+
 std::unique_ptr<LootEntry> SequenceLootEntry::clone() const
 {
     // 深拷贝所有子条目

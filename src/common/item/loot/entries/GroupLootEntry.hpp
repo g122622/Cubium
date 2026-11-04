@@ -50,6 +50,7 @@ public:
     }
 
     [[nodiscard]] std::unique_ptr<LootEntry> clone() const override;
+    void expandTagItems() override;
 
     void addChild(std::unique_ptr<LootEntry> child);
 

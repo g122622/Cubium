@@ -41,6 +41,14 @@ AlternativesLootEntry::AlternativesLootEntry(std::vector<std::unique_ptr<LootEnt
     : m_children(std::move(children))
 {}
 
+void AlternativesLootEntry::expandTagItems()
+{
+    LootEntry::expandTagItems();
+    for (auto& child : m_children) {
+        child->expandTagItems();
+    }
+}
+
 std::unique_ptr<LootEntry> AlternativesLootEntry::clone() const
 {
     std::vector<std::unique_ptr<LootEntry>> clonedChildren;

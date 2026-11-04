@@ -75,6 +75,11 @@ public:
      */
     [[nodiscard]] std::unique_ptr<LootPool> clone() const;
 
+    /**
+     * @brief 让池内条目、条件与函数按当前物品标签重新展开
+     */
+    void expandTagItems();
+
     // ========== 条目管理 ==========
 
     /**

@@ -62,6 +62,17 @@ public:
      * @brief 获取条件类型标识
      */
     [[nodiscard]] virtual std::string getType() const = 0;
+
+    /**
+     * @brief 复活引用了物品标签的成员
+     *
+     * 战利品表在物品标签表建立之前解析，解析期无法展开 `items` 里的 `#tag`；而启动
+     * 流程还会清空并重建物品标签，早期已展开成具体物品 ID 的成员随之失效。标签表
+     * 就绪后调用本方法，让持有物品谓词的条件重新展开一次。
+     *
+     * 默认什么也不做：只有直接或间接持有物品谓词的条件需要覆写。
+     */
+    virtual void expandTagItems() {}
 };
 
 } // namespace loot

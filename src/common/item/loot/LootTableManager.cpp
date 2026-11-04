@@ -74,6 +74,15 @@ std::vector<std::string> LootTableManager::getAllTableIds() const
     return ids;
 }
 
+void LootTableManager::expandTagItems()
+{
+    for (auto& [id, table] : m_tables) {
+        if (table) {
+            table->expandTagItems();
+        }
+    }
+}
+
 const LootTable& LootTableManager::getEmptyTable()
 {
     return LootTable::EMPTY;

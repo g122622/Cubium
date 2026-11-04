@@ -87,6 +87,14 @@ public:
      */
     [[nodiscard]] std::vector<std::string> getAllTableIds() const;
 
+    /**
+     * @brief 让所有已注册掉落表按当前物品标签重新展开
+     *
+     * 数据包启动流程先解析战利品表、后建立物品标签表（且中途会清空标签），
+     * 因此标签表就绪后必须调用一次，否则 `items` 里的 `#tag` 条件恒假。
+     */
+    void expandTagItems();
+
     // ========== 默认表 ==========
 
     /**
