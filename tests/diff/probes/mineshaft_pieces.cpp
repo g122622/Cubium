@@ -121,6 +121,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("mineshaft_pieces", nullptr, &runLine)
+MC_DIFF_DEFINE_PROBE(mineshaft_pieces, nullptr, &runLine)
 
 } // namespace mc::diff

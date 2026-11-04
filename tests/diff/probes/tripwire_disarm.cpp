@@ -375,6 +375,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("tripwire_disarm", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(tripwire_disarm, &writeList, &runLine)
 
 } // namespace mc::diff

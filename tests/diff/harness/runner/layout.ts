@@ -117,19 +117,17 @@ export function freeMemoryBytes(): number {
 }
 
 /**
- * 定位构建出的 probe 可执行文件。
+ * 定位构建出的差分探针可执行文件。
  *
- * 按候选顺序直接看文件在不在，不猜生成器：多配置生成器落在 `bin/<配置>/`，单配置落在
- * `bin/`；`RUNTIME_OUTPUT_DIRECTORY_<配置>` 是整体覆盖而不是叠加，所以不会有
- * `bin/<配置>/diff/` 这一层，但历史上见过，一并兜底。
+ * 全部能力共用一个 `diff_runner`：能力名作为第一个命令行参数传入，不再按能力各建一个
+ * exe（那会让 mc_common 被重复链接 257 次，调试信息合计 11 GB）。按候选顺序直接看文件
+ * 在不在，不猜生成器：多配置生成器落在 `bin/<配置>/`，单配置落在 `bin/`。
  */
-export function probeExecutable(domain: string, layout: ProjectLayout = projectLayout()): string {
-    const name = `diff_${domain}${layout.exeSuffix}`;
+export function probeExecutable(layout: ProjectLayout = projectLayout()): string {
+    const name = `diff_runner${layout.exeSuffix}`;
     const candidates = [
         path.join(layout.buildDir, "bin", layout.config, name),
-        path.join(layout.buildDir, "bin", layout.config, "diff", name),
         path.join(layout.buildDir, "bin", name),
-        path.join(layout.buildDir, "bin", "diff", name),
     ];
     for (const candidate of candidates) {
         if (fs.existsSync(candidate)) {
@@ -137,14 +135,14 @@ export function probeExecutable(domain: string, layout: ProjectLayout = projectL
         }
     }
     throw new Error(
-        `找不到 probe 可执行文件（已查找 ${candidates.join("、")}）；` +
+        `找不到探针可执行文件（已查找 ${candidates.join("、")}）；` +
             "先运行 `node tests/diff/harness/runner.ts build`，或确认 MC_DIFF_BUILD_DIR 指向正确的构建目录",
     );
 }
 
 /** 探针可执行文件相对构建目录的路径（依赖图与构建目标名使用）。 */
-export function probeArtifact(domain: string, layout: ProjectLayout = projectLayout()): string {
-    return `${layout.binDirectory}/diff_${domain}${layout.exeSuffix}`;
+export function probeArtifact(layout: ProjectLayout = projectLayout()): string {
+    return `${layout.binDirectory}/diff_runner${layout.exeSuffix}`;
 }
 
 /**

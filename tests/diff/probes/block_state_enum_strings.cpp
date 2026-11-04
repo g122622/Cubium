@@ -358,6 +358,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("block_state_enum_strings", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(block_state_enum_strings, &writeList, &runLine)
 
 } // namespace mc::diff

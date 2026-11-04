@@ -250,6 +250,6 @@ void writeList(FILE* out)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("loot_function", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(loot_function, &writeList, &runLine)
 
 } // namespace mc::diff

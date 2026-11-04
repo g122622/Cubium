@@ -406,6 +406,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("collide_sweep", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(collide_sweep, &writeList, &runLine)
 
 } // namespace mc::diff

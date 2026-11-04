@@ -249,6 +249,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("front_and_top", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(front_and_top, &writeList, &runLine)
 
 } // namespace mc::diff

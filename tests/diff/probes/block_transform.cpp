@@ -462,6 +462,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("block_transform", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(block_transform, &writeList, &runLine)
 
 } // namespace mc::diff

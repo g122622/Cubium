@@ -295,6 +295,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("portal_relative", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(portal_relative, &writeList, &runLine)
 
 } // namespace mc::diff

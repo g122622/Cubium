@@ -25,13 +25,16 @@
  * @file runner_main.cpp
  * @brief 全部差分探针共享的进程入口。
  *
- * 具体能力由编译期宏 MC_DIFF_PROBE_DOMAIN 选择：各 probe 源文件用
- * MC_DIFF_DEFINE_PROBE 定义 mc::diff::currentProbe()，本文件只负责命令行、
+ * 全部能力编入同一个可执行文件：各 probe 源文件用 MC_DIFF_DEFINE_PROBE 把自己的
+ * Probe 登记进 mc::diff 的注册表，本文件按第一个命令行参数查找能力，再负责命令行、
  * 文件读写与错误处理。
  *
+ * 为什么共用一个进程而不是每能力一个 exe：每个 exe 都要链接一份 mc_common，Debug 信息
+ * 随之重复一遍（257 个探针合计 11 GB 的 .pdb），改一行公共代码还要重链接 257 次。
+ *
  * 用法：
- *   diff_<domain> list
- *   diff_<domain> run <input.jsonl> <output.jsonl>
+ *   diff_runner <domain> list
+ *   diff_runner <domain> run <input.jsonl> <output.jsonl>
  */
 
 // 探针是内部工具，文件路径全部来自编排层，不存在不受信输入。MSVC 的 CRT 把 fopen
@@ -54,9 +57,6 @@
 #include "probe.hpp"
 
 namespace mc::diff {
-const Probe& currentProbe();
-}
-
 namespace {
 
 /**
@@ -124,7 +124,30 @@ int runInput(const mc::diff::Probe& probe, const char* inputPath, const char* ou
     return readOk && writeOk ? 0 : 1;
 }
 
+/**
+ * @brief 打印用法与全部已登记能力。
+ *
+ * 能力清单来自注册表而不是 CMake 清单：两者应当一致，打印注册表能直接暴露「CMake
+ * 清单写了但源文件没登记」这类问题。
+ */
+void printUsage()
+{
+    std::fprintf(stderr,
+        "usage: diff_runner <domain> list\n"
+        "       diff_runner <domain> run <input.jsonl> <output.jsonl>\n"
+        "domains:\n");
+    for (const mc::diff::Probe* probe : mc::diff::registeredProbes()) {
+        std::fprintf(stderr, "  %.*s\n", static_cast<int>(probe->domain.size()), probe->domain.data());
+    }
+}
+
 } // namespace
+} // namespace mc::diff
+
+using mc::diff::printUsage;
+using mc::diff::registeredProbes;
+using mc::diff::runInput;
+using mc::diff::runList;
 
 int main(int argc, char** argv)
 {
@@ -133,7 +156,17 @@ int main(int argc, char** argv)
     mc::assert::CrashHandler::install();
     spdlog::set_level(spdlog::level::err);
 
-    const mc::diff::Probe& probe = mc::diff::currentProbe();
+    if (argc < 2) {
+        printUsage();
+        return 2;
+    }
+    const std::string_view domain = argv[1];
+    const mc::diff::Probe* probe = mc::diff::findProbe(domain);
+    if (probe == nullptr) {
+        std::fprintf(stderr, "diff probe: unknown domain '%.*s'\n", static_cast<int>(domain.size()), domain.data());
+        printUsage();
+        return 2;
+    }
 
     // 探针内部可能抛异常（JSON 解析、方块查找）。异常逃出 main 会触发 std::terminate，
     // 编排层只能看到进程被杀、拿不到原因；这里统一转成一个可读的错误与退出码 1。
@@ -142,18 +175,12 @@ int main(int argc, char** argv)
     // 如果等到静态析构才释放，实体会在注册表单例被销毁之后才析构，退出阶段崩溃。
     int status = 2;
     try {
-        if (argc >= 2 && std::string_view(argv[1]) == "list") {
-            status = runList(probe);
-        } else if (argc == 4 && std::string_view(argv[1]) == "run") {
-            status = runInput(probe, argv[2], argv[3]);
+        if (argc == 3 && std::string_view(argv[2]) == "list") {
+            status = runList(*probe);
+        } else if (argc == 5 && std::string_view(argv[2]) == "run") {
+            status = runInput(*probe, argv[3], argv[4]);
         } else {
-            std::fprintf(stderr,
-                "usage: diff_%.*s list\n"
-                "       diff_%.*s run <input.jsonl> <output.jsonl>\n",
-                static_cast<int>(probe.domain.size()),
-                probe.domain.data(),
-                static_cast<int>(probe.domain.size()),
-                probe.domain.data());
+            printUsage();
         }
     }
     catch (const std::exception& error) {
@@ -161,8 +188,8 @@ int main(int argc, char** argv)
         status = 1;
     }
 
-    if (probe.shutdown != nullptr) {
-        probe.shutdown();
+    if (probe->shutdown != nullptr) {
+        probe->shutdown();
     }
     return status;
 }

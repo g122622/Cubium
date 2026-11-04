@@ -40,8 +40,12 @@ vcpkg_installed/
 *.tmp
 *.temp
 *.log
+*.log.gz
 *.swp
 *~
+
+# 运行期日志目录：服务端与差分 oracle 都会在工作目录下建它
+logs/
 
 # OS files
 .DS_Store

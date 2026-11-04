@@ -317,6 +317,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("vec3_math", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(vec3_math, &writeList, &runLine)
 
 } // namespace mc::diff

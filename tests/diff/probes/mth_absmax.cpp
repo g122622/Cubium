@@ -321,6 +321,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("mth_absmax", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(mth_absmax, &writeList, &runLine)
 
 } // namespace mc::diff

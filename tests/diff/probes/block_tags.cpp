@@ -113,6 +113,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("block_tags", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(block_tags, &writeList, &runLine)
 
 } // namespace mc::diff

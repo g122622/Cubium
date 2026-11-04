@@ -269,6 +269,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("boss_bar", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(boss_bar, &writeList, &runLine)
 
 } // namespace mc::diff

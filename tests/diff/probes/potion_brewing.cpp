@@ -106,6 +106,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("potion_brewing", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(potion_brewing, &writeList, &runLine)
 
 } // namespace mc::diff

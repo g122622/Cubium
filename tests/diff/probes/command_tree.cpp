@@ -279,6 +279,6 @@ std::string runLine(std::string_view)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("command_tree", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(command_tree, &writeList, &runLine)
 
 } // namespace mc::diff

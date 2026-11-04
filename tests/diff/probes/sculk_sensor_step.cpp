@@ -377,6 +377,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("sculk_sensor_step", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(sculk_sensor_step, &writeList, &runLine)
 
 } // namespace mc::diff

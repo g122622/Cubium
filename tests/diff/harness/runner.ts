@@ -198,7 +198,7 @@ function buildDependencyEntries(layout: ProjectLayout, state: RunnerState): { en
         );
         const objects = new Map<string, { objects: readonly string[]; missing: readonly string[] }>();
         for (const probe of new Set(probes.values())) {
-            objects.set(probe, executableObjects(model, probeArtifact(probe, layout)));
+            objects.set(probe, executableObjects(model, probeArtifact(layout)));
         }
         const previous = new Map<string, DependencyEntry>();
         for (const [name, record] of Object.entries(state.harnesses)) {

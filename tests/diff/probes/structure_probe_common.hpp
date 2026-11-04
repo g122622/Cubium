@@ -50,7 +50,7 @@
 
 namespace mc::diff {
 
-std::filesystem::path dataPackRoot()
+inline std::filesystem::path dataPackRoot()
 {
     const char* path = std::getenv("MC_DIFF_VANILLA_DATAPACK");
     if (path == nullptr || *path == '\0') {
@@ -65,7 +65,7 @@ std::filesystem::path dataPackRoot()
  * 模板管理器只持非拥有指针，仓库必须活到最后一个模板被使用，因此放在进程级静态里，
  * 不能是局部变量。
  */
-resource::DataPackRepository& dataPackRepository()
+inline resource::DataPackRepository& dataPackRepository()
 {
     static const auto repository = [] {
         auto repo = std::make_unique<resource::DataPackRepository>();
@@ -96,7 +96,7 @@ resource::DataPackRepository& dataPackRepository()
  * 未绑定时模板静默失败（连接点为空、尺寸为 0），装配退化成「起始点上一个退化片段」，
  * 差分得到的将全是假差异。
  */
-world::gen::feature::template_::TemplateManagerHostBinding& templateBinding()
+inline world::gen::feature::template_::TemplateManagerHostBinding& templateBinding()
 {
     static const auto binding = [] {
         auto token = std::make_unique<world::gen::feature::template_::TemplateManagerHostBinding>(

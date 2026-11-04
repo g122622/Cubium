@@ -233,5 +233,5 @@ std::string runLine(std::string_view inputLine)
         .dump();
 }
 } // namespace
-MC_DIFF_DEFINE_PROBE("explosion_seen_grid", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(explosion_seen_grid, &writeList, &runLine)
 } // namespace mc::diff

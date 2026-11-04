@@ -88,79 +88,13 @@
 #include "server/world/gen/structure/StructureSetLoader.hpp"
 #include "server/world/gen/structure/StructureTagLoader.hpp"
 #include "server/world/gen/structure/pools/Pools.hpp"
+#include "structure_probe_common.hpp"
 
 namespace mc::diff {
 namespace {
 
 using nlohmann::json;
 
-// ============================================================================
-// 数据包装配（进程内只做一次）
-// ============================================================================
-
-std::filesystem::path dataPackRoot()
-{
-    const char* path = std::getenv("MC_DIFF_VANILLA_DATAPACK");
-    if (path == nullptr || *path == '\0') {
-        throw std::runtime_error("MC_DIFF_VANILLA_DATAPACK 未设置：需要指向原版数据包根目录（含 data/ 的那一层）");
-    }
-    return std::filesystem::path(path);
-}
-
-/**
- * @brief 数据包仓库（模板来源）
- *
- * 模板管理器只持非拥有指针，仓库必须活到最后一个模板被使用，因此放在进程级静态里，
- * 不能是局部变量。
- */
-resource::DataPackRepository& dataPackRepository()
-{
-    static const auto repository = [] {
-        auto repo = std::make_unique<resource::DataPackRepository>();
-        // 仓库扫描的是「包含若干数据包的目录」，而环境变量给的是**数据包本身**的根
-        // （含 pack.mcmeta 与 data/ 的那一层），因此扫它的上一级。
-        const auto scanResult = repo->scanDirectory(dataPackRoot().parent_path());
-        if (!scanResult.success() || scanResult.value() == 0) {
-            throw std::runtime_error("structure_starts: 数据包扫描失败：" + dataPackRoot().string());
-        }
-        // 模板是按路径逐个读取的非 JSON 资源：这里先抽查一个必定存在的模板，把「仓库能扫到
-        // 数据包」与「仓库能读到包内资源」两件事分开验证——否则一处路径写错会让全部拼图
-        // 结构静默退化成空模板（连接点为空、尺寸为 0），差分只会表现为构件数量对不上。
-        const auto probeTemplate =
-            repo->readResource("minecraft/structure/village/plains/town_centers/plains_meeting_point_1.nbt");
-        if (!probeTemplate.success() || probeTemplate.value().empty()) {
-            throw std::runtime_error(
-                "structure_starts: 数据包里读不到结构模板，仓库路径可能配错：" + dataPackRoot().string());
-        }
-        return repo;
-    }();
-    return *repository;
-}
-
-/**
- * @brief 模板管理器绑定令牌（进程内保持存活）
- *
- * 拼图结构的模板在**模板池加载期**就被读进片段对象，因此绑定必须早于结构定义加载；
- * 未绑定时模板静默失败（连接点为空、尺寸为 0），装配退化成「起始点上一个退化片段」，
- * 差分得到的将全是假差异。
- */
-world::gen::feature::template_::TemplateManagerHostBinding& templateBinding()
-{
-    static const auto binding = [] {
-        auto token = std::make_unique<world::gen::feature::template_::TemplateManagerHostBinding>(
-            world::gen::jigsaw::JigsawAssembler::getTemplateManager());
-        token->bindDataPackRepository(dataPackRepository());
-        return token;
-    }();
-    return *binding;
-}
-
-/**
- * @brief 按服务端启动顺序装配全部世界生成注册表
- *
- * 顺序与 `RegistryBootstrap::initializeAll` 一致：模板池必须先于结构定义，结构标签必须先于
- * 结构集。注册表是进程级单例，重复调用幂等。
- */
 /**
  * @brief 按服务端启动顺序装配全部世界生成注册表。
  *
@@ -283,6 +217,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("structure_starts", nullptr, &runLine)
+MC_DIFF_DEFINE_PROBE(structure_starts, nullptr, &runLine)
 
 } // namespace mc::diff

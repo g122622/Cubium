@@ -272,6 +272,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("boolean_property_index", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(boolean_property_index, &writeList, &runLine)
 
 } // namespace mc::diff

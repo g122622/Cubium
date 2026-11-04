@@ -132,6 +132,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("entity_type_size", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(entity_type_size, &writeList, &runLine)
 
 } // namespace mc::diff

@@ -228,6 +228,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("single_item_recipe", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(single_item_recipe, &writeList, &runLine)
 
 } // namespace mc::diff
