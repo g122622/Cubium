@@ -1739,6 +1739,16 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "只看水平四个方向不看正上方（原版 POSSIBLE_FLOW_DIRECTIONS 是 DOWN + 四水平，往岩浆正上方倒水不会当场凝固）",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_replaceable",
+        probe: "block_replaceable",
+        oracle: "BlockReplaceableOracle",
+        description: "方块状态是否可被替换（BlockStateBase#canBeReplaced）—— 全部 29671 个状态；"
+        + "它描述「这一格现在算不算空」：直接放置、流体流动、世界生成、掉落方块都靠它。"
+        + "两处容易写反：草/蕨/海草必须 true（false 则玩家在草上放不了方块）；树叶必须 false（true 则被后来生成的树覆盖，森林一片片秃）；"
+        + "铁轨必须 true（false 则放不了方块覆盖轨道）；耕地必须 false（true 则农田被无意填平）。"
+        + "注意与 canBeReplacedByFluid 不是一回事：后者对非固体方块放宽（门、告示牌虽然不可替换但水能流进去）",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
