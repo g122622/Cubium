@@ -37,6 +37,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
@@ -271,6 +272,11 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
 
 void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos)
 {
+    // 原版 fizz() 走 levelEvent 1501：客户端据此生成烟雾粒子并播放嘶嘶声。
+    // 只手工放音效/粒子而不发这个事件，会与客户端逻辑重复触发，
+    // 且依赖客户端本地的粒子生成路径，两端口径不一致。
+    world.playEvent(::mc::world::WorldEvents::LAVA_EXTINGUISH, pos, 0);
+
     // 播放嘶嘶声和烟雾粒子效果
 
     // 播放嘶嘶声

@@ -1730,6 +1730,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
         oracleMissing: entityTypesKnownMissing },
     {
+        name: "fluid_lava_react",
+        probe: "fluid_lava_react",
+        oracle: "FluidLavaReactOracle",
+        description: "岩浆与相邻流体/方块相遇的产物（LiquidBlock#shouldSpreadLiquid）—— 岩浆源/流动岩浆 x 四方位 x 邻居种类 = 24 个单元；"
+        + "岩浆源+水 -> 黑曜石，流动岩浆+水 -> 圆石，岩浆+蓝冰+灵魂土 -> 玄武岩，成功凝固时发 levelEvent 1501（嗤声与烟）。"
+        + "两个易错点：源与流动的产物不同（写成一个，玩家浇岩浆造石头时得到黑曜石，或造黑曜石时只得到圆石）；"
+        + "只看水平四个方向不看正上方（原版 POSSIBLE_FLOW_DIRECTIONS 是 DOWN + 四水平，往岩浆正上方倒水不会当场凝固）",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

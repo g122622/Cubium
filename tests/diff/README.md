@@ -421,6 +421,7 @@ diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 
 | `shapes_boolean` | 原版 jar `ShapesBooleanOracle` | 18 个布尔组合用例 | 全部一致 | 纯计算，16 种 `BooleanOp` 只有 8 种可用 |
 | `fluid_spread` | 原版 jar `FluidSpreadOracle` | 30 个流体用例 | 全部一致 | 纯计算，下落覆盖等级为 7、岩浆分维度 |
 | `fluid_spread_dir` | 原版 jar `FluidSpreadDirOracle` | 29 个方向选择用例 | 全部一致 | 纯计算，`best` 无条件赋值导致方向选择不对称 |
+| `fluid_lava_react` | 原版 jar `FluidLavaReactOracle` | 岩浆源/流动岩浆 × 四方位 × 邻居 = 24 | **全部一致** | 岩浆与相邻流体/方块相遇的产物（`LiquidBlock#shouldSpreadLiquid`）：**岩浆源+水→黑曜石**、**流动岩浆+水→圆石**、**岩浆+蓝冰+灵魂土→玄武岩**，成功凝固时发 **`levelEvent 1501`**（嗤声与烟雾）。两个易错点：① **源与流动的产物不同**——写成一个，玩家浇岩浆造石头时得到黑曜石，或造黑曜石时只得到圆石；② **只看水平四个方向不看正上方**——原版 `POSSIBLE_FLOW_DIRECTIONS` 是 DOWN + 四水平，往岩浆正上方倒水不会当场凝固。**修复**：`triggerMixEffects` 原来只手工播放音效并自造粒子、**没有发 `levelEvent 1501`**，与客户端逻辑重复且两端口径不一致 |
 | `blockpos_bfs` | 原版 jar `BlockPosBfsOracle` | 14 个遍历用例 | 全部一致 | 纯计算，去重先于状态、`SKIP` 永久 |
 | `scheduled_tick` | 原版 jar `ScheduledTickOracle` | 29 个排序/去重用例 | 全部一致 | 纯计算，去重只认 type+pos |
 | `random_tick_pos` | **复刻**（`Level` 不可构造） | 16 个采样用例 | 全部一致 | 纯计算，独立 LCG 状态 |
