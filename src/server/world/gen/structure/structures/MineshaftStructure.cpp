@@ -261,8 +261,14 @@ void addMineshaftPiece(MineshaftPiece* parent,
     i32 depth,
     MineshaftType type)
 {
-    // 检查深度限制
-    if (depth > 8) {
+    // 深度限制。原版 generateAndAddPiece 的判据是 `p_227714_ > 8`，其中 p_227714_
+    // 是**调用方传进来的值**：主口段传父深度 i，第 2 段传 i + 1。子构件的深度
+    // 随后取 p_227714_ + 1。
+    //
+    // 所以这里必须拿「传入值」去比，而不是子构件的深度：第 2 段会把传入值抬高一层，
+    // 若改用子构件深度去比，整棵树的第 2 段分支会被多砍掉一层（实测构件数 159→76）。
+    const i32 requestedDepth = depth - 1; // 还原调用方传进来的原值
+    if (requestedDepth > 8) {
         return;
     }
 
@@ -405,62 +411,81 @@ void MineshaftRoom::buildComponent(
 {
     MC_UNUSED(maxDepth);
 
-    // 房间的展开分两段，顺序不能变：
+    // 房间沿四条边各开一串出口，每条边都用「随机步进 + 固定 4 格间隔」推进：
     //
-    // 1) 先抽一次 nextInt(4)，按房间朝向决定从哪条边开一个「主口」。
-    //    四个朝向各对应三条候选边，主口位置由 j 选择，纵向再加 nextInt(3) 的偏移。
-    // 2) 再在 depth < 8 时沿四条边逐点步进，每点抽一次 nextInt(5)，命中 0 或 1 才开口。
+    //   j = 0;
+    //   while (j < span) {
+    //       j += nextInt(span);
+    //       if (j + 3 > span) break;      // 剩余跨度不足 3
+    //       ...在 j 处开口，y = minY + nextInt(k) + 1...
+    //       j += 4;
+    //   }
     //
-    // 此前这里只有第 2 段，漏掉了第 1 段的那次 nextInt(4) 与 nextInt(3)——
-    // 随机序列从房间的第一个出口起就整体错位。
-    const i32 depth = genDepth();
+    // 四个循环的顺序固定为 北、南、西、东，各自独立重置 j。
+    //
+    // 子构件的深度是父深度 + 1，理由同走廊。
+    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
+    // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
+    const i32 depth = genDepth() + 1;
+    MC_UNUSED(maxDepth);
+    i32 k = (maxY() - minY() + 1) - 3 - 1;
+    if (k <= 0) {
+        k = 1;
+    }
 
-    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir, i32 childDepth) {
-        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
+    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir) {
+        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, depth, m_mineshaftType);
     };
 
-    // ---- 第 1 段：主口 ----
-    //
-    // 原版是 `Direction direction = this.getOrientation(); if (direction != null) { ... }`。
-    // 房间构件从未设置朝向，orientation 是 null，因此整段主口**一次都不执行**——
-    // 既不开主口，也不消耗那次 nextInt(4) 与 nextInt(3)。
-    //
-    // 这里显式写出来，避免以后有人「补上主口」时把随机序列又改错。
-    // TODO: 若将来房间开始设置朝向，这里必须补回 nextInt(4)/nextInt(3) 与四条分支表。
-    const bool hasOrientation = false;
-    if (hasOrientation) {
-        const i32 j = rng.nextInt(4);
-        MC_UNUSED(j);
-    }
-    // ---- 第 2 段：沿四条边逐点步进 ----
-    // 原版写的是 `if (direction != NORTH && direction != SOUTH)` 沿 X 扫描、否则沿 Z 扫描。
-    // 房间的 direction 是 **null**，而 Java 里 `null != NORTH` 为 true——
-    // 所以房间恒走「沿 X 扫描」这支，不是走 else。
-    // （这一点很容易想反：直觉会以为「没有朝向」应该落到默认分支。）
-    const bool alongX = true;
+    const i32 xSpan = maxX() - minX() + 1;
+    const i32 zSpan = maxZ() - minZ() + 1;
 
-    if (depth < 8) {
-        if (alongX) {
-            // 朝东西：沿 X 扫描，南北两侧开口。
-            for (i32 x = minX() + 3; x + 3 <= maxX(); x += 5) {
-                const i32 pick = rng.nextInt(5);
-                if (pick == 0) {
-                    addChild(x, minY(), minZ() - 1, 0, depth + 1);
-                } else if (pick == 1) {
-                    addChild(x, minY(), maxZ() + 1, 1, depth + 1);
-                }
-            }
-        } else {
-            // 朝南北：沿 Z 扫描，东西两侧开口。
-            for (i32 z = minZ() + 3; z + 3 <= maxZ(); z += 5) {
-                const i32 pick = rng.nextInt(5);
-                if (pick == 0) {
-                    addChild(minX() - 1, minY(), z, 2, depth + 1);
-                } else if (pick == 1) {
-                    addChild(maxX() + 1, minY(), z, 3, depth + 1);
-                }
-            }
+    // 北侧：沿 X 步进，出口在 minZ - 1
+    for (i32 offset = 0; offset < xSpan;) {
+        offset += rng.nextInt(xSpan);
+        if (offset + 3 > xSpan) {
+            break;
         }
+        const i32 cx = minX() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1; // 独立语句：实参求值顺序未指定
+        addChild(cx, cy, minZ() - 1, 0);
+        offset += 4;
+    }
+
+    // 南侧：沿 X 步进，出口在 maxZ + 1
+    for (i32 offset = 0; offset < xSpan;) {
+        offset += rng.nextInt(xSpan);
+        if (offset + 3 > xSpan) {
+            break;
+        }
+        const i32 cx = minX() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1;
+        addChild(cx, cy, maxZ() + 1, 1);
+        offset += 4;
+    }
+
+    // 西侧：沿 Z 步进，出口在 minX - 1
+    for (i32 offset = 0; offset < zSpan;) {
+        offset += rng.nextInt(zSpan);
+        if (offset + 3 > zSpan) {
+            break;
+        }
+        const i32 cz = minZ() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1;
+        addChild(minX() - 1, cy, cz, 2);
+        offset += 4;
+    }
+
+    // 东侧：沿 Z 步进，出口在 maxX + 1
+    for (i32 offset = 0; offset < zSpan;) {
+        offset += rng.nextInt(zSpan);
+        if (offset + 3 > zSpan) {
+            break;
+        }
+        const i32 cz = minZ() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1;
+        addChild(maxX() + 1, cy, cz, 3);
+        offset += 4;
     }
 }
 
@@ -717,84 +742,113 @@ void MineshaftCorridor::buildComponent(
 {
     MC_UNUSED(maxDepth);
 
-    // 走廊沿四条边各开一串出口，每条边都用「随机步进 + 固定 4 格间隔」推进：
+    // 走廊的展开分两段，顺序不能变：
     //
-    //   j = 0;
-    //   while (j < span) {
-    //       j += nextInt(span);
-    //       if (j + 3 > span) break;      // 剩余跨度不足以放下一个 3 宽出口
-    //       ...在 j 处开口，y = minY + nextInt(k) + 1...
-    //       j += 4;
-    //   }
+    // 1) 先抽一次 nextInt(4)，按走廊朝向决定从哪条边开一个「主口」。
+    //    走廊的朝向恒为四个水平方向之一，所以整段必然执行。
+    // 2) 再在 genDepth < 8 时沿一边逐点步进，每点抽一次 nextInt(5)，命中 0 或 1 才开口。
     //
-    // 四个循环的顺序固定为 北、南、西、东，各自独立重置 j。
-    // 此前这里写成了「按朝向取三条边、坐标由包围盒直接算出」，既没有随机步进，
-    // 也不消耗 nextInt(span)/nextInt(k)，随机序列从走廊的第一条边起就错位。
-    // 原版 addChildren 里传的是 this.getGenDepth()，generateAndAddPiece 收到后
-    // 在 createRandomShaftPiece 前 +1，因此子构件的深度是父深度 + 1。
+    // 第 2 段的条件是 `direction != NORTH && direction != SOUTH` 时沿 X 扫描、
+    // 否则沿 Z 扫描。走廊朝向不会是 null，因此这里直接按方向判断。
+    //
+    // 原版 addChildren 传的是 this.getGenDepth()，generateAndAddPiece 内部再 +1；
+    // 本项目的 addMineshaftPiece 直接把这个值当新构件的深度，所以要显式 +1。
+    //
+    // 注意这里**不能**加 `if (depth > maxDepth) return;`：原版 addChildren 的主口段
+    // 是无条件执行的，深度截断只发生在 generateAndAddPiece（即 addMineshaftPiece）
+    // 里，以及第 2 段的 `i < 8`。多这一层提前返回会让深度 8 的走廊不再开主口，
+    // 实测少掉一整条分支（原版 [9] 就是深度 8 的构件开出来的深度 9 子构件）。
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) {
-        return;
-    }
+    MC_UNUSED(maxDepth);
 
-    i32 k = (maxY() - minY() + 1) - 3 - 1;
-    if (k <= 0) {
-        k = 1;
-    }
-
-    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir) {
-        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, depth, m_mineshaftType);
+    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir, i32 childDepth) {
+        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
     };
 
-    const i32 xSpan = maxX() - minX() + 1;
-    const i32 zSpan = maxZ() - minZ() + 1;
-
-    // 北侧：沿 X 步进，出口在 minZ - 1
-    for (i32 offset = 0; offset < xSpan;) {
-        offset += rng.nextInt(xSpan);
-        if (offset + 3 > xSpan) {
-            break;
+    // ---- 第 1 段：主口 ----
+    const i32 j = rng.nextInt(4);
+    if (j <= 1) {
+        const i32 y = minY() - 1 + rng.nextInt(3);
+        switch (m_direction) {
+            case 1: // 南
+                addChild(minX(), y, maxZ() + 1, 1, depth);
+                break;
+            case 2: // 西
+                addChild(minX() - 1, y, minZ(), 2, depth);
+                break;
+            case 3: // 东
+                addChild(maxX() + 1, y, minZ(), 3, depth);
+                break;
+            case 0: // 北
+            default:
+                addChild(minX(), y, minZ() - 1, 0, depth);
+                break;
         }
-        const i32 cx = minX() + offset;
-        const i32 cy = minY() + rng.nextInt(k) + 1; // 独立语句：实参求值顺序未指定
-        addChild(cx, cy, minZ() - 1, 0);
-        offset += 4;
+    } else if (j == 2) {
+        const i32 y = minY() - 1 + rng.nextInt(3);
+        switch (m_direction) {
+            case 1: // 南
+                addChild(minX() - 1, y, maxZ() - 3, 2, depth);
+                break;
+            case 2: // 西
+                addChild(minX(), y, minZ() - 1, 0, depth);
+                break;
+            case 3: // 东
+                addChild(maxX() - 3, y, minZ() - 1, 0, depth);
+                break;
+            case 0: // 北
+            default:
+                addChild(minX() - 1, y, minZ(), 2, depth);
+                break;
+        }
+    } else {
+        const i32 y = minY() - 1 + rng.nextInt(3);
+        switch (m_direction) {
+            case 1: // 南
+                addChild(maxX() + 1, y, maxZ() - 3, 3, depth);
+                break;
+            case 2: // 西
+                addChild(minX(), y, maxZ() + 1, 1, depth);
+                break;
+            case 3: // 东
+                addChild(maxX() - 3, y, maxZ() + 1, 1, depth);
+                break;
+            case 0: // 北
+            default:
+                addChild(maxX() + 1, y, minZ(), 3, depth);
+                break;
+        }
     }
 
-    // 南侧：沿 X 步进，出口在 maxZ + 1
-    for (i32 offset = 0; offset < xSpan;) {
-        offset += rng.nextInt(xSpan);
-        if (offset + 3 > xSpan) {
-            break;
+    // ---- 第 2 段：沿边逐点步进 ----
+    //
+    // 原版判据是 `if (i < 8)`，i 为父构件深度，而 depth = i + 1，故这里用 depth - 1。
+    //
+    // 关键：第 2 段传下去的深度是 **i + 1**，主口段传的是 i。也就是说第 2 段
+    // 开出来的子构件比主口段的子构件深一层（depth = i + 2）。这一点很容易漏——
+    // 传错会让子构件的深度少 1，后续所有截断点跟着偏移。
+    if (depth - 1 < 8) {
+        if (m_direction != 0 && m_direction != 1) {
+            // 朝东西：沿 X 扫描，南北两侧开口。
+            for (i32 x = minX() + 3; x + 3 <= maxX(); x += 5) {
+                const i32 pick = rng.nextInt(5);
+                if (pick == 0) {
+                    addChild(x, minY(), minZ() - 1, 0, depth + 1);
+                } else if (pick == 1) {
+                    addChild(x, minY(), maxZ() + 1, 1, depth + 1);
+                }
+            }
+        } else {
+            // 朝南北：沿 Z 扫描，东西两侧开口。
+            for (i32 z = minZ() + 3; z + 3 <= maxZ(); z += 5) {
+                const i32 pick = rng.nextInt(5);
+                if (pick == 0) {
+                    addChild(minX() - 1, minY(), z, 2, depth + 1);
+                } else if (pick == 1) {
+                    addChild(maxX() + 1, minY(), z, 3, depth + 1);
+                }
+            }
         }
-        const i32 cx = minX() + offset;
-        const i32 cy = minY() + rng.nextInt(k) + 1;
-        addChild(cx, cy, maxZ() + 1, 1);
-        offset += 4;
-    }
-
-    // 西侧：沿 Z 步进，出口在 minX - 1
-    for (i32 offset = 0; offset < zSpan;) {
-        offset += rng.nextInt(zSpan);
-        if (offset + 3 > zSpan) {
-            break;
-        }
-        const i32 cz = minZ() + offset;
-        const i32 cy = minY() + rng.nextInt(k) + 1;
-        addChild(minX() - 1, cy, cz, 2);
-        offset += 4;
-    }
-
-    // 东侧：沿 Z 步进，出口在 maxX + 1
-    for (i32 offset = 0; offset < zSpan;) {
-        offset += rng.nextInt(zSpan);
-        if (offset + 3 > zSpan) {
-            break;
-        }
-        const i32 cz = minZ() + offset;
-        const i32 cy = minY() + rng.nextInt(k) + 1;
-        addChild(maxX() + 1, cy, cz, 3);
-        offset += 4;
     }
 }
 
@@ -846,10 +900,10 @@ void MineshaftCross::generate(IWorldWriter& world,
 void MineshaftCross::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
+    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
+    // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) {
-        return;
-    }
+    MC_UNUSED(maxDepth);
 
     // 交叉点按朝向固定开出三个方向，坐标由包围盒直接算出，不抽随机数。
     //
@@ -980,36 +1034,43 @@ void MineshaftStairs::generate(IWorldWriter& world,
 void MineshaftStairs::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
+    MC_UNUSED(maxDepth);
+
+    // 楼梯按朝向在正前方开一个口，坐标用包围盒的 minX / minY 直接算出，不抽随机数：
+    //
+    //   北 -> (minX, minY, minZ - 1) 北
+    //   南 -> (minX, minY, maxZ + 1) 南
+    //   西 -> (minX - 1, minY, minZ) 西
+    //   东 -> (maxX + 1, minY, minZ) 东
+    //
+    // 此前这里用的是包围盒中点 (minX+maxX)/2 与下沉后的 minY - length/2，
+    // 两处都与原版不符，导致楼梯之后的整棵子树坐标全部偏移。
+    //
+    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece 里。
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) {
-        return;
-    }
 
-    i32 x, y, z;
-    i32 length = (m_direction == 0 || m_direction == 1) ? (maxZ() - minZ()) : (maxX() - minX());
-    y = minY() - length / 2;
-
+    i32 x, z;
     switch (m_direction) {
-        case 0: // 北（向下）
-            x = (minX() + maxX()) / 2;
-            z = minZ() - 1;
-            break;
-        case 1: // 南（向下）
-            x = (minX() + maxX()) / 2;
+        case 1: // 南
+            x = minX();
             z = maxZ() + 1;
             break;
-        case 2: // 西（向下）
+        case 2: // 西
             x = minX() - 1;
-            z = (minZ() + maxZ()) / 2;
+            z = minZ();
             break;
-        case 3: // 东（向下）
-        default:
+        case 3: // 东
             x = maxX() + 1;
-            z = (minZ() + maxZ()) / 2;
+            z = minZ();
+            break;
+        case 0: // 北
+        default:
+            x = minX();
+            z = minZ() - 1;
             break;
     }
 
-    addMineshaftPiece(this, pieces, rng, x, y, z, m_direction, depth, m_mineshaftType);
+    addMineshaftPiece(this, pieces, rng, x, minY(), z, m_direction, depth, m_mineshaftType);
 }
 
 // ============================================================================
