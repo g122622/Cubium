@@ -472,8 +472,10 @@ bool HouseTowerGenerator::generate(feature::template_::TemplateManager& template
     feature::template_::Rotation rotation = parent.rotation();
 
     // 放置 base_floor
-    CityTemplate* current =
-        addHelper(pieces, addPiece(templateManager, parent, BlockPos(), "base_floor", rotation, true));
+    //
+    // 原版用调用方传来的 offset 作连接锚点；此前这里写死成 BlockPos()，于是从桥段
+    // 接过来的房屋会丢掉整个偏移量（实测 [10] 的旋转与位置同时错位）。
+    CityTemplate* current = addHelper(pieces, addPiece(templateManager, parent, offset, "base_floor", rotation, true));
 
     // 随机选择房屋类型
     i32 variant = rng.nextInt(3);
