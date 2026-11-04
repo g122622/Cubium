@@ -94,6 +94,7 @@ public:
             const IProperty* rawProp = prop.get();
             m_ownedProperties.push_back(std::move(prop));
             m_properties[name] = rawProp;
+            m_declarationOrder.push_back(rawProp);
             return *this;
         }
 
@@ -107,6 +108,7 @@ public:
             }
             validateProperty(*prop);
             m_properties[prop->name()] = prop;
+            m_declarationOrder.push_back(prop);
             return *this;
         }
 
@@ -164,13 +166,18 @@ public:
          */
         std::unique_ptr<StateContainer> create(StateFactory factory)
         {
-            return std::unique_ptr<StateContainer>(
-                new StateContainer(m_owner, std::move(m_properties), std::move(m_ownedProperties), factory));
+            return std::unique_ptr<StateContainer>(new StateContainer(m_owner,
+                std::move(m_properties),
+                std::move(m_declarationOrder),
+                std::move(m_ownedProperties),
+                factory));
         }
 
     private:
         Owner& m_owner;
         std::unordered_map<std::string, const IProperty*> m_properties;
+        /// 属性声明顺序：决定状态表的 stride，必须稳定。
+        std::vector<const IProperty*> m_declarationOrder;
         std::vector<std::unique_ptr<IProperty>> m_ownedProperties;
 
         void validateProperty(const IProperty& prop)
@@ -250,17 +257,19 @@ private:
 
     StateContainer(Owner& owner,
         std::unordered_map<std::string, const IProperty*> propertiesToTransfer,
+        std::vector<const IProperty*> declarationOrder,
         std::vector<std::unique_ptr<IProperty>> ownedProperties,
         StateFactory factory)
         : m_owner(owner)
         , m_properties(std::move(propertiesToTransfer))
         , m_ownedProperties(std::move(ownedProperties))
     {
-        std::vector<const IProperty*> props;
-        for (const auto& [name, prop] : m_properties) {
-            props.push_back(prop);
-        }
-        generateStates(props, factory);
+        // 属性必须按**声明顺序**展开：状态值索引的 stride 由这个顺序决定，而 `with()`
+        // 正是用 `(目标值索引 - 当前值索引) * stride` 计算目标状态的。顺序一旦不可确定，
+        // `with()` 就会落到另一个属性组合上——例如给 oak_slab 设 `type=bottom` 反而把
+        // `waterlogged` 翻成 true。`std::unordered_map` 的遍历顺序没有保证，故不能直接
+        // 用它。
+        generateStates(declarationOrder, factory);
     }
 
     void generateStates(const std::vector<const IProperty*>& props, StateFactory factory)

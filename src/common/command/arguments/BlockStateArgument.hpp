@@ -280,39 +280,18 @@ private:
             startPos = valueEnd + 1;
         }
 
-        // 查找匹配的状态
+        // 从**默认状态**出发逐个设置显式写出的属性，而不是「遍历全部状态取第一个匹配」：
+        // 后者会让没写出来的属性取到遍历顺序上的任意值（例如只写 `type=top` 时把
+        // `waterlogged` 一并置为 true），与原版 BlockStateParser 的语义不符——原版对
+        // 未写出的属性一律保留默认值。
         if (!wantedProps.empty()) {
-            // 遍历所有状态查找匹配的
-            for (const auto& candidate : container.validStates()) {
-                if (!candidate) {
-                    continue;
-                }
-
-                bool matches = true;
-                for (const auto& [prop, index] : wantedProps) {
-                    const auto valueIndex = candidate->getValueIndex(*prop);
-                    if (!valueIndex.has_value() || *valueIndex != index) {
-                        matches = false;
-                        break;
-                    }
-                }
-
-                if (matches) {
-                    return candidate.get();
-                }
-            }
-
-            // 没有找到匹配的状态，构建错误消息
-            std::string errorMsg = "No matching block state found for properties: ";
-            bool first = true;
+            const BlockState* resolved = &block->defaultState();
             for (const auto& [prop, index] : wantedProps) {
-                if (!first) {
-                    errorMsg += ", ";
-                }
-                errorMsg += prop->name() + "=" + prop->valueToString(index);
-                first = false;
+                resolved = &resolved->withValueIndex(*prop, index);
             }
-            throw CommandException(CommandErrorType::Unknown, errorMsg, start);
+            MC_ASSERT_RELEASE_MSG(
+                resolved != nullptr, "BlockStateArgument: failed to resolve block state with explicit properties");
+            return resolved;
         }
 
         return defaultState;

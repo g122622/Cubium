@@ -72,25 +72,69 @@ bool _isDefaultValidSpawn(const BlockState& state)
     return Block::isFaceFull(state.getBlockSupportShape(), Direction::Up) && state.lightLevel() < 14;
 }
 
+/// 原版注册成 `Properties#isValidSpawn(Blocks.never)` 的方块：人能在上面走，生物却不会
+/// 以它们为地面生成。清单逐条取自原版 `Blocks` 注册处（方块名 + 该处传入的谓词），
+/// 按 `VanillaBlocks` 指针比对——染色玻璃、陷阱门是一族一族的逐块注册，靠标签判不出来。
+bool _isNeverSpawnSurface(const BlockState& state)
+{
+    static const std::array<const Block*, 22> kNever = {VanillaBlocks::BEDROCK,
+        VanillaBlocks::GLASS,
+        VanillaBlocks::TINTED_GLASS,
+        VanillaBlocks::OAK_TRAPDOOR,
+        VanillaBlocks::SPRUCE_TRAPDOOR,
+        VanillaBlocks::BIRCH_TRAPDOOR,
+        VanillaBlocks::JUNGLE_TRAPDOOR,
+        VanillaBlocks::ACACIA_TRAPDOOR,
+        VanillaBlocks::DARK_OAK_TRAPDOOR,
+        VanillaBlocks::MANGROVE_TRAPDOOR,
+        VanillaBlocks::CHERRY_TRAPDOOR,
+        VanillaBlocks::PALE_OAK_TRAPDOOR,
+        VanillaBlocks::BAMBOO_TRAPDOOR,
+        VanillaBlocks::CRIMSON_TRAPDOOR,
+        VanillaBlocks::WARPED_TRAPDOOR,
+        VanillaBlocks::IRON_TRAPDOOR,
+        VanillaBlocks::COPPER_TRAPDOOR,
+        VanillaBlocks::BARRIER,
+        VanillaBlocks::SCAFFOLDING,
+        VanillaBlocks::CHORUS_FLOWER,
+        VanillaBlocks::COPPER_GRATE};
+    for (const Block* block : kNever) {
+        if (state.is(block)) {
+            return true;
+        }
+    }
+    // 染色玻璃整族与原版 `Blocks.registerStainedGlass` 走同一条注册路径，逐块登记会漏掉
+    // 新增颜色；它们与原版玻璃共享同一个「不是生成地面」的结论。
+    return state.getBlock().blockLocation().path().ends_with("_stained_glass");
+}
+
 /**
  * @brief 方块是否允许以其顶面作为生物生成的地面
  *
- * 对应原版 `BlockState#isValidSpawn`：默认走 {@link _isDefaultValidSpawn}，另有三个方块
- * 显式改写了这条谓词。这里只是把三处覆写集中列出，判据本身仍用同一份默认实现。
+ * 对应原版 `BlockState#isValidSpawn`。除下列显式覆写外走 {@link _isDefaultValidSpawn}：
+ *
+ * - `Blocks.never`：{@link _isNeverSpawnSurface} 列出的那批；
+ * - `Blocks.always`：泥巴、灵魂沙、南瓜灯、南瓜、红石灯；
+ * - `Blocks.ocelotOrParrot`：树叶只对豹猫与鹦鹉开放；
+ * - 岩浆块：**免疫火焰**的生物可以站上去生成，其余不行。这条按实体区分，
+ *   判据取自差分能力 `spawn_placement`（`below/magma_block` 对所有实体逐一实测）。
  */
-bool _isValidSpawnSurface(const BlockState& state)
+bool _isValidSpawnSurface(const BlockState& state, const std::string& entityTypeId)
 {
     if (state.is(VanillaBlocks::MAGMA)) {
-        // MagmaBlock：顶面结实即可，不看发光等级。
-        return Block::isFaceFull(state.getBlockSupportShape(), Direction::Up);
+        return _fireImmune(entityTypeId);
     }
+    // 冰块与霜冰原版只对北极熊开放（`Blocks.lambda$static$137` 那类按实体的谓词），
+    // 对其余生物一律不是生成地面。
+    if (state.is(VanillaBlocks::ICE) || state.is(VanillaBlocks::FROSTED_ICE)) {
+        return entityTypeId == "minecraft:polar_bear";
+    }
+    // 树叶原版走 `Blocks.ocelotOrParrot`：只承认这两种生物。
     if (BlockTags::LEAVES().contains(state)) {
-        // LeavesBlock：树叶顶面永远站得住。
-        return true;
+        return entityTypeId == "minecraft:ocelot" || entityTypeId == "minecraft:parrot";
     }
-    if (state.is(VanillaBlocks::BARRIER)) {
-        // BarrierBlock：屏障顶面永远站得住。
-        return true;
+    if (_isNeverSpawnSurface(state)) {
+        return false;
     }
     return _isDefaultValidSpawn(state);
 }
@@ -215,7 +259,7 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
     const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-    if (belowState == nullptr || !_isValidSpawnSurface(*belowState)) {
+    if (belowState == nullptr || !_isValidSpawnSurface(*belowState, entityTypeId)) {
         return false;
     }
 
@@ -264,13 +308,13 @@ bool EntitySpawnPlacementRegistry::_isValidSpawnBlock(
         return false;
     }
 
-    // 原版 `NaturalSpawner.isValidEmptySpawnBlock` 的六条否定条件：碰撞形状满格、
-    // 红石导体、信号源、非空流体、prevent_mob_spawning_inside、危险方块。
+    // 原版 `NaturalSpawner.isValidEmptySpawnBlock` 的全部否定条件，逐条照抄：
+    // 碰撞形状满格、信号源、非空流体、prevent_mob_spawning_inside、危险方块。
     //
-    // 红石导体与「碰撞形状满格」必须分开判：玻璃、树叶碰撞满格却不是导体（允许生成），
-    // 台阶、楼梯、陷阱门碰撞不满格却是导体（拒绝生成）。只看碰撞形状会把后者放进来。
-    if (state->getCollisionShape().coversFullBlock() || redstone::RedstoneHelper::isRedstoneConductorState(*state) ||
-        state->getBlock().canProvidePower(*state)) {
+    // 这里**没有**「红石导体」这一条：导体判据只管红石传播，与能否生成无关。加上它会把
+    // 泥巴、灵魂沙（碰撞箱不满格却是导体）以及台阶、楼梯、陷阱门全部误判成不可生成——
+    // 原版这些都允许生物站立，差分能力 spawn_placement 的 feet/* 用例就是这么查出来的。
+    if (state->getCollisionShape().coversFullBlock() || state->getBlock().canProvidePower(*state)) {
         return false;
     }
     const auto* fluid = state->getFluidState();
@@ -329,7 +373,7 @@ bool _bright(const _check& c)
 bool _mob(const _check& c)
 {
     const auto* below = _block(c, -1);
-    return isSpawnerReason(c.reason) || (below != nullptr && _isValidSpawnSurface(*below));
+    return isSpawnerReason(c.reason) || (below != nullptr && _isValidSpawnSurface(*below, c.id));
 }
 
 bool _dark(const _check& c)
