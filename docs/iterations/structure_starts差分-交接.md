@@ -1110,3 +1110,48 @@ else if (Math.abs(p_227710_ - p_227707_.getBoundingBox().minX()) <= 80
 `structure_starts` 的 47 处分布：主世界 seed 0 有 19 处、seed 9248738493917 有 22 处、
 末地两个 seed 各 3 处。末地的 6 处与矿井无关——其中 5 处两侧都有 1 个结构但内容不同，
 1 处（`the_end/0/-56/-54`）是原版空、Cubium 有，属于独立的末地城/末地船问题。
+
+## 第二十四轮：一次改动、一次回退，以及「59 vs 19」的真实来源
+
+### 做了什么
+
+按上一轮的计划，在 `recursiveChildren` 里加了打点（进入 / `gen-fail` / `collide`），
+跑 `the_end/9248738493917/-75/25` 得到：
+
+```
+[rc] enter depth=1 pieces=4
+[rc] enter depth=2 pieces=6
+[rc] enter depth=3 pieces=2
+...
+[rc] gen-fail depth=8
+[rc] enter depth=6 pieces=14
+[rc] collide depth=3 new=35
+[rc] gen-fail depth=2
+```
+
+### 一处改动与回退
+
+上一轮把碰撞判定改成「只取第一个相交者、比较它的 genDepth」。本轮实测发现
+`the_end/0/-76/-37` 的 pieces 从 19 变成 59（原版 19），于是回退（commit 38714459a）。
+
+**回退后仍是 59**，说明 59 并不是那次改动引入的——它来自更早的
+`CityTemplate::offset` 重写或 `Template::getBoundingBox` 重写。
+
+### 当前 `-76/-37` 的真实状态
+
+```
+[0] [-1209,60,-594,-1200,63,-585]   ← 与原版完全一致
+[1] [-1210,60,-596,-1199,67,-585]   ← 原版 [-1210,60,-595,-1199,67,-584]
+[2] [-1211,64,-598,-1198,71,-585]
+```
+
+`[0]` 精确对齐，`[1]` 起 Z 方向偏 1~2 格。这是 `addPiece` 里
+`calculateConnectedPos` 的结果与原版 `StructureTemplate.calculateConnectedPosition`
+不一致导致的——`[0]` 对说明锚点正确，`[1]` 错说明**相对连接位置**算错。
+
+### 教训
+
+本轮我先做了「陡坡/缓坡 -4/-8 对调」的改动（原版确实是陡坡 -4、缓坡 -8），
+实测让 `-76/-37` 从 19 掉到更差，已回退。**在没有理解 59 从何而来之前改下游参数，
+只会让状态更混乱。** 下一步应当先把 59 的引入点用 `git bisect` 式的方法定位清楚，
+再去动 `calculateConnectedPos`。
