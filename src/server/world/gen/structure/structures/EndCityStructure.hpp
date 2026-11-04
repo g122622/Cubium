@@ -150,6 +150,21 @@ public:
         return m_templatePosition;
     }
 
+    /**
+     * @brief 平移构件
+     *
+     * 除了基类的包围盒，模板放置原点也要跟着走。原版 TemplateStructurePiece.move
+     * 同样会更新 templatePosition；漏掉它的话，后续构件会以旧的模板位置为基准
+     * 计算连接坐标，整座塔逐层漂移。
+     */
+    void offset(i32 dx, i32 dy, i32 dz) override
+    {
+        StructurePiece::offset(dx, dy, dz);
+        m_templatePosition.x += dx;
+        m_templatePosition.y += dy;
+        m_templatePosition.z += dz;
+    }
+
     [[nodiscard]] feature::template_::PlacementSettings& placementSettings()
     {
         return m_settings;

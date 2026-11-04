@@ -132,8 +132,10 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
 
     // 计算生成位置
-    i32 x = chunkX * world::CHUNK_WIDTH + 8;
-    i32 z = chunkZ * world::CHUNK_WIDTH + 8;
+    // 原版 getLowestYIn5by5BoxOffset7Blocks 用的锚点是 chunkPos.getBlockX(7) /
+    // getBlockZ(7)，即区块内偏移 7，不是 8。差这 1 格会让整座塔在 X/Z 上整体偏移。
+    i32 x = chunkX * world::CHUNK_WIDTH + 7;
+    i32 z = chunkZ * world::CHUNK_WIDTH + 7;
     i32 y = _getYPosition(chunkX, chunkZ, generator, rotation);
 
     if (y < 60) {

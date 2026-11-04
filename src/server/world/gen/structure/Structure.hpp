@@ -247,7 +247,7 @@ public:
     /**
      * @brief 移动边界框
      */
-    void offset(i32 dx, i32 dy, i32 dz);
+    virtual void offset(i32 dx, i32 dy, i32 dz);
 
     /**
      * @brief 获取基础方向
