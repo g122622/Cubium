@@ -22,6 +22,7 @@
  */
 
 #include "MineshaftStructure.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -37,6 +38,7 @@
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include <array>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -269,13 +271,36 @@ void MineshaftPiece::_generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, 
 // MineshaftRoom 实现
 // ============================================================================
 
-MineshaftRoom::MineshaftRoom(i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type)
-    : MineshaftPiece(componentType, x, 50, z, x + 7 + rng.nextInt(6), 54 + rng.nextInt(6), z + 7 + rng.nextInt(6), type)
+namespace {
+
+/**
+ * 按 X -> Y -> Z 的顺序抽取房间的三个跨度。
+ *
+ * 原版是 new BoundingBox(x, 50, z, x+7+nextInt(6), 54+nextInt(6), z+7+nextInt(6))，
+ * Java 保证实参从左到右求值；而 C++ 的实参求值顺序未指定，
+ * 把三个 nextInt(6) 写在同一构造实参里会让随机序列错位
+ * （实测房间高度变成 5，而原版是 10）。
+ */
+std::array<i32, 3> drawRoomSpans(math::IRandom& rng)
 {
-    // 房间的起点 Y 恒为 50、X/Z 跨度各为 7..12，由三个独立的 nextInt(6) 决定。
-    // 此前这里是固定 7x3x7 且先去抽了一串出口方向布尔值，既让房间尺寸偏离原版，
-    // 又让随机序列错位。传入的 y 在原版里并不参与房间包围盒。
+    return {rng.nextInt(6), rng.nextInt(6), rng.nextInt(6)};
+}
+
+} // namespace
+
+MineshaftRoom::MineshaftRoom(i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type)
+    : MineshaftRoom(componentType, rng, x, y, z, type, drawRoomSpans(rng))
+{}
+
+MineshaftRoom::MineshaftRoom(
+    i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type, std::array<i32, 3> spans)
+    : MineshaftPiece(componentType, x, 50, z, x + 7 + spans[0], 54 + spans[1], z + 7 + spans[2], type)
+{
+    // 房间的起点 Y 恒为 50，X/Z 跨度各为 7..12、顶面为 54..59。
+    // 传入的 y 在原版里不参与房间包围盒。
     MC_UNUSED(y);
+    MC_UNUSED(rng);
+    MC_UNUSED(type);
 }
 
 void MineshaftRoom::generate(IWorldWriter& world,
@@ -934,8 +959,6 @@ bool MineshaftStructure::canGenerate(
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
-
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 起点固定在区块内偏移 2 的位置，且这里不消耗任何随机数。
@@ -979,15 +1002,40 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     // 缺了这一步，矿井会停在房间构造时写死的 Y=50 附近，
     // 而原版的实际房间顶面在 -10 左右（整座结构被下移了 65 格）。
     const i32 seaLevel = ::mc::world::SEA_LEVEL;
+    const StructureBoundingBox overall = start->getBoundingBox();
+
+    if (m_config.type == MineshaftType::Mesa) {
+        // 恶地矿井贴着地表：以整体包围盒中心的地表高度为准，
+        // 地表不高于海平面时对齐到海平面，否则在海平面与地表之间随机取一个高度。
+        // 原版 generatePiecesAndAdjust 的 MESA 分支走的就是这条路径，
+        // 不走 moveBelowSeaLevel。
+        const i32 centerX = (overall.minX() + overall.maxX()) / 2;
+        const i32 centerZ = (overall.minZ() + overall.maxZ()) / 2;
+        const i32 centerY = (overall.minY() + overall.maxY()) / 2;
+        const i32 surfaceY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
+        i32 targetY = seaLevel;
+        if (surfaceY > seaLevel) {
+            // Mth.randomBetweenInclusive：闭区间随机。
+            targetY = seaLevel + rng.nextInt(surfaceY - seaLevel + 1);
+        }
+        start->offset(0, targetY - centerY, 0);
+        return start;
+    }
+
+    // 其余类型整座下移到海平面以下。
+    //
+    // 原版 StructurePiecesBuilder.moveBelowSeaLevel(seaLevel, minY, random, 10)：
+    //   int i = seaLevel - padding;                  // 顶面上限
+    //   int j = bb.getYSpan() + minY + 1;            // 贴着世界底部的顶面
+    //   if (j < i) j += random.nextInt(i - j);       // 剩余空间内随机上移
+    //   offsetPiecesVertically(j - bb.maxY());
     const i32 padding = 10;
     const i32 topLimit = seaLevel - padding;
-    const StructureBoundingBox overall = start->getBoundingBox();
     i32 topY = (overall.maxY() - overall.minY() + 1) + world::MIN_BUILD_HEIGHT + 1;
     if (topY < topLimit) {
         topY += rng.nextInt(topLimit - topY);
     }
-    const i32 dy = topY - overall.maxY();
-    start->offset(0, dy, 0);
+    start->offset(0, topY - overall.maxY(), 0);
 
     return start;
 }

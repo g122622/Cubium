@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -157,6 +159,10 @@ protected:
 class MineshaftRoom : public MineshaftPiece {
 public:
     MineshaftRoom(i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type);
+
+    /** 跨度已抽好的构造：三个 nextInt(6) 由调用方按 X->Y->Z 顺序取出。 */
+    MineshaftRoom(
+        i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type, std::array<i32, 3> spans);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
