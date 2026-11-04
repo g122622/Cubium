@@ -189,6 +189,8 @@ private:
 
     /// 预计算的形状，按轴索引：[0]=Z轴(North/South), [1]=X轴(East/West)
     std::array<CollisionShape, 2> m_shapesByAxis;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

@@ -307,6 +307,8 @@ protected:
     /// 形状为完整方块减去内部12像素宽柱体后的外壁：底板 + 四面墙壁
     /// MC Java: Shapes.join(Shapes.block(), Block.column(12, clamp(1+level*2, 2, 16), 16), ONLY_FIRST)
     std::array<CollisionShape, 9> m_shapesByLevel;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

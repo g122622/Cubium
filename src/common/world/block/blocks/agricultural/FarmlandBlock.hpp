@@ -169,6 +169,8 @@ public:
 private:
     /// 耕地形状（高度15像素）
     CollisionShape m_shape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

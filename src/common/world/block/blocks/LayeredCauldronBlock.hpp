@@ -303,6 +303,8 @@ private:
 
     /// 不同水位的填充形状（外部形状 ∪ 内容形状，用于实体内部碰撞检测）
     std::array<CollisionShape, 3> m_filledShapes;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

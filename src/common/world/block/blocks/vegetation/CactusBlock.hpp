@@ -118,6 +118,8 @@ public:
 private:
     /// 各年龄阶段的形状
     std::array<CollisionShape, 16> m_shapesByAge;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

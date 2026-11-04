@@ -148,6 +148,8 @@ protected:
     CollisionShape m_sideShapes[6];
     /// 组合形状缓存（16种连接组合）
     std::array<CollisionShape, 16> m_shapes;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 /**
@@ -254,6 +256,8 @@ protected:
     CollisionShape m_sideShapes[6];
     /// 组合形状缓存（16种连接组合）
     std::array<CollisionShape, 16> m_shapes;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

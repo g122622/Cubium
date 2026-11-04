@@ -129,6 +129,8 @@ protected:
 
     /// 天花板附着北向形状（用于碰撞检测）
     CollisionShape m_ceilingNorthShape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

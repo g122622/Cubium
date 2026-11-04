@@ -118,6 +118,8 @@ public:
      * @return 是否可在细雪上行走
      */
     [[nodiscard]] static bool canEntityWalkOnPowderSnow(const Entity& entity);
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

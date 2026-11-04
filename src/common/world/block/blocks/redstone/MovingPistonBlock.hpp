@@ -136,6 +136,8 @@ public:
 private:
     /// 活塞头类型属性（与 PistonHeadBlock 共享）
     [[nodiscard]] static const EnumProperty<PistonHeadBlock::Type>& _getTypeProperty();
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

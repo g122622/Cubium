@@ -172,6 +172,8 @@ private:
     Block* m_candleBlock;
     /// 蜡烛蛋糕的碰撞形状
     CollisionShape m_shape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

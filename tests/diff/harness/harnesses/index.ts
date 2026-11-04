@@ -1,3 +1,4 @@
+import { KNOWN_PATHFINDABLE_GAPS } from "./known_pathfindable_gaps.ts";
 /*
  * Copyright (c) 2026 Guo Yi
  *
@@ -1766,7 +1767,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "两处最容易写错：① 判据是「不完整」而不是「为空」—— 台阶、楼梯、栅栏门碰撞形状非空但不完整，生物能从上方走过，"
         + "用 isEmpty() 判定会让生物绕开所有台阶（表现为村民卡在台阶前不动）；② WATER 不看形状只看是不是水 —— 三种类型统一按形状判，"
         + "陆行生物会走进水里",
-        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) , knownDifferences: KNOWN_PATHFINDABLE_GAPS },
     {
         name: "block_shape",
         probe: "block_shape",

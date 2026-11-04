@@ -240,6 +240,8 @@ protected:
 
     /// 雕像的固定圆柱形碰撞形状
     CollisionShape m_shape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 /**

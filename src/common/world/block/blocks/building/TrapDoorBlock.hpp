@@ -208,6 +208,8 @@ private:
 
     /// 预计算的形状缓存 (4 facing * 2 open * 2 half = 16)
     std::array<CollisionShape, 16> m_shapes;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

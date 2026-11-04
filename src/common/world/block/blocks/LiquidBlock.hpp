@@ -309,6 +309,8 @@ private:
      * @brief 构建流体状态缓存
      */
     void _buildFluidStateCache();
+    /// 寻路通行判定：水恒可通行、岩浆恒不可通行，与寻路类型无关。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace block

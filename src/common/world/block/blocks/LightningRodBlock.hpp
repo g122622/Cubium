@@ -164,6 +164,8 @@ private:
      * @brief 计算形状索引
      */
     [[nodiscard]] static size_t _getShapeIndex(Direction facing, bool powered) noexcept;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

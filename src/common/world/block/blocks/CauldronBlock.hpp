@@ -239,6 +239,8 @@ private:
 
     /// 炼药锅外部形状（与 LayeredCauldronBlock/LavaCauldronBlock 共享相同的几何形状）
     CollisionShape m_outerShape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

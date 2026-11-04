@@ -310,5 +310,14 @@ const ResourceLocation& WallHangingSignBlock::getWaxedInteractFailSound() const
     return SoundEvents::BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL;
 }
 
+bool WallHangingSignBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 该方块族原版显式返回 false：形状不完整不等于可以穿过。
+    // 即使水logged=true 也不因此变得可通行。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

@@ -171,5 +171,13 @@ void PowderSnowBlock::onEntityCollision(
     entity.setMotionMultiplier(Vector3(0.9, 0.9, 0.9));
 }
 
+bool PowderSnowBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 原版显式返回 true：细雪不阻挡任何寻路类型。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return true;
+}
+
 } // namespace blocks
 } // namespace mc

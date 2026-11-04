@@ -214,6 +214,8 @@ private:
     /// 在每个 FlowerPotBlock 构造时填充
     /// 注意：空花盆不参与此表（nullptr 不能作为 unordered_map 键）
     static std::unordered_map<const Block*, const FlowerPotBlock*> s_pottedByContent;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

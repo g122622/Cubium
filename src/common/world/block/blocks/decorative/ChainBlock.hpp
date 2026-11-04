@@ -109,6 +109,8 @@ protected:
     CollisionShape m_yShape;
     /// Z轴形状
     CollisionShape m_zShape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

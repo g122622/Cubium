@@ -283,6 +283,8 @@ private:
 
     /// 方块形状（根据朝向和状态缓存）
     std::array<CollisionShape, 8> m_shapes;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

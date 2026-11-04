@@ -250,6 +250,8 @@ private:
      * 那么放在栅栏门下方 `y=0` 处的火把会被误判为「有支撑」。
      */
     std::array<CollisionShape, 6> m_supportShapes;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

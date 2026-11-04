@@ -88,6 +88,8 @@ public:
      * 在上方水源位置生成涌流气泡柱（DRAG=false，向上推动）。
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

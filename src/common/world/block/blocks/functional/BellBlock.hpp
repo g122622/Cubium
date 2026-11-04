@@ -289,6 +289,8 @@ protected:
      * @return 索引值（0-15）
      */
     [[nodiscard]] static size_t _shapeIndex(const BlockState& state);
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

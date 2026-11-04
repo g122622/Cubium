@@ -357,5 +357,15 @@ void WeatheringCopperGolemStatueBlock::fillStateContainer(StateContainer<Block, 
     MC_UNUSED(container);
 }
 
+bool CopperGolemStatueBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 仅水中型生物可穿过，且必须真的在水里。
+    if (type != PathComputationType::Water) {
+        return false;
+    }
+    const fluid::FluidState* fluidState = state.getFluidState();
+    return fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+}
+
 } // namespace blocks
 } // namespace mc

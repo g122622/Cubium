@@ -153,6 +153,8 @@ public:
      * @brief 获取形状
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

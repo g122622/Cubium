@@ -429,18 +429,27 @@ TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
     EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 }
 
-TEST_F(SlabBlockWaterlogTest, GetFluidState_ReturnsEmptyForDoubleSlab)
+TEST_F(SlabBlockWaterlogTest, GetFluidState_DoubleSlabFollowsWaterloggedFlag)
 {
     SlabBlock slab(BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
 
-    // Double slabs cannot be waterlogged
-    BlockState doubleState = slab.defaultState()
-                                 .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
-                                 .with(BlockStateProperties::WATERLOGGED(), true);
-    const fluid::FluidState* fluidState = slab.getFluidState(doubleState);
+    // 流体状态只看 WATERLOGGED 属性，不区分 SLAB_TYPE：
+    // 双层台阶虽然无法被放置水，但既有状态里仍可能存在 [type=double,waterlogged=true]，
+    // 这种状态的流体必须是水（寻路、流体流动都依赖这一点）。
+    BlockState doubleWaterlogged = slab.defaultState()
+                                       .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+                                       .with(BlockStateProperties::WATERLOGGED(), true);
+    const fluid::FluidState* fluidState = slab.getFluidState(doubleWaterlogged);
+    ASSERT_TRUE(fluidState != nullptr);
+    EXPECT_FALSE(fluidState->isEmpty());
+    EXPECT_TRUE(fluidState->getFluid().isIn(fluid::FluidTags::WATER()));
 
-    // Double slab should not hold water
-    EXPECT_TRUE(fluidState == nullptr || fluidState->isEmpty());
+    // 未含水的双层台阶仍然是空的。
+    BlockState doubleDry = slab.defaultState()
+                               .with(BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double)
+                               .with(BlockStateProperties::WATERLOGGED(), false);
+    const fluid::FluidState* dryState = slab.getFluidState(doubleDry);
+    EXPECT_TRUE(dryState == nullptr || dryState->isEmpty());
 }
 
 // ========== StairsBlock Waterlog Tests ==========

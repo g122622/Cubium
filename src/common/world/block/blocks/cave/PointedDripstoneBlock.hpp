@@ -262,6 +262,8 @@ private:
 
     /// 钟乳石失去支撑时生成掉落方块实体
     static void _spawnFallingStalactite(IWorld& world, const BlockPos& pos, const BlockState& state);
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

@@ -193,6 +193,8 @@ private:
     /// 参考 MC 原版: FILLED_SHAPE = Shapes.or(SHAPE, Block.column(12, 4, 15))
     /// SHAPE_INSIDE = Block.column(12, 4, 15) = box(2, 4, 2, 14, 15, 14)（像素坐标）
     CollisionShape m_filledShape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks
