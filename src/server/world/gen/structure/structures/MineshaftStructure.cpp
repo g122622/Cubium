@@ -1164,6 +1164,9 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
 
     // 把整座矿井下移到海平面以下。
     //
+    // 注意 offset 只移动单个构件、不传播到子节点，所以必须先把全部构件收集起来，
+    // 再统一平移。只移 start 会让房间下移、其余构件留在原处，整座矿井撕裂。
+    //
     // 原版 MineshaftStructure.generatePiecesAndAdjust 末尾对非恶地类型调用
     //   moveBelowSeaLevel(seaLevel, minY, random, 10)
     // 其算法是：
@@ -1174,6 +1177,12 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     //   offsetPiecesVertically(j - bb.maxY());
     // 缺了这一步，矿井会停在房间构造时写死的 Y=50 附近，
     // 而原版的实际房间顶面在 -10 左右（整座结构被下移了 65 格）。
+    // 收集全部构件（start 自己 + 它的后续链）。
+    std::vector<world::gen::structure::StructurePiece*> allPieces;
+    for (const auto& piece : start->pieces()) {
+        allPieces.push_back(piece.get());
+    }
+
     const i32 seaLevel = ::mc::world::SEA_LEVEL;
     const StructureBoundingBox overall = start->getBoundingBox();
 
@@ -1191,7 +1200,10 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
             // Mth.randomBetweenInclusive：闭区间随机。
             targetY = seaLevel + rng.nextInt(surfaceY - seaLevel + 1);
         }
-        start->offset(0, targetY - centerY, 0);
+        const i32 mesaOffset = targetY - centerY;
+        for (auto* piece : allPieces) {
+            piece->offset(0, mesaOffset, 0);
+        }
         return start;
     }
 
@@ -1208,7 +1220,10 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     if (topY < topLimit) {
         topY += rng.nextInt(topLimit - topY);
     }
-    start->offset(0, topY - overall.maxY(), 0);
+    const i32 seaOffset = topY - overall.maxY();
+    for (auto* piece : allPieces) {
+        piece->offset(0, seaOffset, 0);
+    }
 
     return start;
 }
