@@ -71,3 +71,59 @@ rotation、template、projection、junctions、groundLevelDelta。
 本轮只做了分类与成因排查，**没有修改任何生产代码**。原因是 47 处差异集中在
 世界生成的随机序列层面，盲改风险远大于收益。需要按上面第 2 步的做法先定位到
 第一处随机数分歧点再动手。
+
+## 后续深入排查（第二轮，重要更新）
+
+上一节把 47 处差异归为四类。进一步排查后，**要塞问题的根因已定位到具体代码位置**。
+
+### 要塞：piece 数塌缩为 1
+
+按结构类型统计两侧的 start 与平均 piece 数：
+
+| 结构 | Cubium | 原版 |
+|---|---|---|
+| mineshaft | 14 个 start，平均 16.8 pieces | — |
+| trial_chambers | 5 个 start，平均 **225.8** | — |
+| ancient_city | 1 个 start，平均 **98.0** | — |
+| village_plains | 1 个 start，平均 **112.0** | — |
+| end_city | 6 个 start，平均 24.8 | — |
+| **stronghold** | **2 个 start，平均 1.0** | **8 个 start，平均 143.4** |
+
+**除要塞外所有结构的拼图组装都正常**。要塞是唯一异常项：Cubium 侧只有 2 个
+要塞起点，且每个都只有 1 个 piece（5×10×4 的小盒）；原版是 97×48×64、上百 piece。
+
+### 已排除的假设
+
+1. **不是模板池缺失**。`minecraft:stronghold` 的 `type` 是专用类型
+   `minecraft:stronghold`，不是 `minecraft:jigsaw`，所以它不使用模板池，
+   piece 由 `StrongholdStructure` 类程序化生成。数据包中确实没有
+   `worldgen/template_pool/stronghold/` 目录，但这符合预期。
+2. **不是方向枚举错位**。`StrongholdStartStairs` 用
+   `static_cast<Direction>(rng.nextInt(4) + 2)` 取方向，值域 2..5；Cubium 的
+   `Direction` 枚举 Down=0/Up=1/North=2/South=3/West=4/East=5，与原版 id 一一对应，
+   落在水平方向上，不会走进 `_generateCorridor` 的 `default: return;`。
+3. **不是随机流 fork 问题**。`StructurePlacementState` 已用
+   `generateRingLayout` 同一条流取 fork 种子，生物群系搜索（半径 112、
+   8 参数重载、步长 1、findClosest=false）也按原版实现。
+
+### 下一步该看的位置
+
+`src/server/world/gen/structure/structures/StrongholdStructure.cpp`：
+
+- `_generateCorridor`（约 L155 起）：递归入口。`depth > 50 || pieces.size() > 100`
+  是防无限递归的截断，但首轮就不产出第二个 piece，说明在更早的地方返回了。
+  需要确认 `getCoordBaseMode()` 的返回值、`minX/maxX/minY/maxZ` 是否被正确设置
+  （`StrongholdStartStairs` 构造时 box 是 `x..x+4`、`64..74`、`z..z+4`）。
+- `canSpawnMoreStructuresOfType(depth)`：若权重表在当前 depth 上全部返回 false，
+  `totalWeight == 0`，会直接生成传送门房间并 return。原版此时也会这样做，
+  但原版在此之前已经递归生成了大量走廊。**怀疑权重表的 `instancesLimit` 或
+  `groupCount` 初值与原版不同**。
+- `initializeStrongholdPieceWeights`：对照原版 `StrongholdPieces` 的静态权重表
+  （`PieceWeight(Class, weight, limit)` 列表，含 `STRAIGHT`、`PRISON_HALL`、
+  `LIBRARY` 等，以及 `allowedDepth` 分组）。
+
+### 要塞缺失（8 处）与 piece 塌缩是同一个问题
+
+原版在这些区块有要塞、Cubium 返回空数组。由于要塞起点数量在 Cubium 侧只有 2 个
+（原版候选里至少 8 个），这不是「有起点但被丢弃」，而是**环位置或结构集归属不同**，
+使得 Cubium 根本没为这些区块判定过要塞。修完 piece 塌缩后需要重新测这一项。
