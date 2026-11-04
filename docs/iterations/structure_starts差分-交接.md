@@ -318,3 +318,53 @@ bounding_box_encap 18/18、block_support 1166/1166、piston_movement 523/523 全
 
 所以矿井的 159 vs 31 差距不在这几处，需要进一步对比 `MineshaftRoom.addChildren`
 的原版实现（本轮尚未展开）。下一轮应从那里入手。
+
+## 第六轮：求值顺序缺陷与恶地分支
+
+### 已修复：C++ 实参求值顺序未指定
+
+原版房间构造 `new BoundingBox(x, 50, z, x+7+nextInt(6), 54+nextInt(6), z+7+nextInt(6))`
+在 Java 里保证从左到右求值。C++ 的实参求值顺序**未指定**（clang-format 还会把三个
+`nextInt(6)` 压到同一行），于是三个跨度按任意顺序抽取。
+
+实测：原版房间 `11x6x13`，Cubium `13x8x11`，三个值都不同。
+
+已改为 `drawRoomSpans()` 按 X -> Y -> Z 显式抽取后经委托构造传入。
+
+### 已修复：缺少恶地（MESA）分支
+
+原版 `generatePiecesAndAdjust` 分两条路径：
+
+```java
+if (type == MESA) {
+    center = builder.getBoundingBox().getCenter();
+    j = getBaseHeight(center.x, center.z, WORLD_SURFACE_WG, ...);
+    k = j <= seaLevel ? seaLevel : Mth.randomBetweenInclusive(random, seaLevel, j);
+    builder.offsetPiecesVertically(k - center.y);
+} else {
+    builder.moveBelowSeaLevel(seaLevel, minY, random, 10);
+}
+```
+
+原实现无条件走 `moveBelowSeaLevel`，恶地矿井被错误压到海平面以下。现已补上 MESA 分支。
+
+### 第六轮逐个排除的怀疑点（都无问题）
+
+| 怀疑点 | 结论 |
+|---|---|
+| `moveBelowSeaLevel` 的 `topY` 基准 | 与 `getYSpan() + minY + 1` 等价，正确 |
+| `seaLevel` / `minY` / `padding` 参数 | 63 / -64 / 10，与原版一致 |
+| `canGenerate` 消耗随机数 | 全仓零调用点，是死代码，不影响 |
+| `structureRng` 的 `setLargeFeatureSeed` | 逐行对照 `WorldgenRandom.setLargeFeatureSeed`，完全一致 |
+| `structureRng` 用的区块坐标 | 当前区块，与原版 `makeRandom(seed, chunkPos)` 一致 |
+| `JavaLegacyRandom::nextInt(bound)` | 2 的幂走高位、非 2 的幂走拒绝采样，与原版一致 |
+| 房间起点 X | 已与原版一致（如 `overworld/0/-13/-60` 两侧都是 `-206`） |
+
+### 当前阻塞点
+
+房间三个跨度仍与原版不同（原版 `11x6x13` / Cubium `13x8x11` 或 `12x5x12`），
+但上面列出的所有随机数入口都已核对一致。
+
+**下一步建议**：在 `MineshaftStructure::generate` 开头和 `drawRoomSpans` 之后各打一次
+`rng.nextLong()` 快照（诊断代码，不入库），与 oracle 侧同样位置的快照比对，
+直接看出序列是从第几个数开始分歧的。这比继续逐个怀疑点排查快得多。
