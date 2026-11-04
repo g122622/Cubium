@@ -1188,6 +1188,8 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 运行 scripts/format/clang_format_all.ts # 这个脚本会自动定位clang-format并自动格式化文件 必须node24版本（可以在同一行命令中先nvm切换到24）
 ```
 
+格式化完成后，不要重新编译一遍，以免浪费时间；如果出现了超出你预期文件范围的改动，属于正常现象，一起提交即可。
+
 ## clang-tidy 抑制注释（NOLINT）写法
 
 【重要】`// NOLINTNEXTLINE` 只对**紧邻的下一行**生效。若中间夹了任何其他注释行（哪怕是解释该抑制
