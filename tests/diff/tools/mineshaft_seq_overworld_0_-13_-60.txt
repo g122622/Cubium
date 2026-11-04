@@ -1,0 +1,1103 @@
+COUNT 159
+DRAW 0 0|nextInt(11)=3
+DRAW 1 0|nextInt(2)=0
+DRAW 2 0|nextInt(100)=53
+DRAW 3 0|nextInt(3)=1
+DRAW 4 0|nextInt(3)=0
+DRAW 5 -1|ADD[1] depth=1 parent=0 BoundingBox{minX=-203, minY=51, minZ=-973, maxX=-201, maxY=53, maxZ=-959}
+DRAW 6 1|nextInt(4)=2
+DRAW 7 1|nextInt(3)=0
+DRAW 8 1|nextInt(100)=27
+DRAW 9 1|nextInt(3)=1
+DRAW 10 1|nextInt(3)=2
+DRAW 11 1|nextInt(23)=15
+DRAW 12 -1|ADD[2] depth=2 parent=1 BoundingBox{minX=-218, minY=50, minZ=-973, maxX=-204, maxY=52, maxZ=-971}
+DRAW 13 2|nextInt(4)=2
+DRAW 14 2|nextInt(3)=1
+DRAW 15 2|nextInt(100)=25
+DRAW 16 2|nextInt(3)=1
+DRAW 17 2|nextInt(3)=2
+DRAW 18 2|nextInt(23)=11
+DRAW 19 -1|ADD[3] depth=3 parent=2 BoundingBox{minX=-218, minY=50, minZ=-988, maxX=-216, maxY=52, maxZ=-974}
+DRAW 20 3|nextInt(4)=1
+DRAW 21 3|nextInt(3)=1
+DRAW 22 3|nextInt(100)=41
+DRAW 23 3|nextInt(3)=2
+DRAW 24 3|nextInt(3)=2
+DRAW 25 3|nextInt(23)=22
+DRAW 26 -1|ADD[4] depth=4 parent=3 BoundingBox{minX=-218, minY=50, minZ=-1008, maxX=-216, maxY=52, maxZ=-989}
+DRAW 27 4|nextInt(4)=2
+DRAW 28 4|nextInt(3)=1
+DRAW 29 4|nextInt(100)=18
+DRAW 30 4|nextInt(3)=1
+DRAW 31 4|nextInt(3)=1
+DRAW 32 4|nextInt(23)=14
+DRAW 33 -1|ADD[5] depth=5 parent=4 BoundingBox{minX=-233, minY=50, minZ=-1008, maxX=-219, maxY=52, maxZ=-1006}
+DRAW 34 5|nextInt(4)=1
+DRAW 35 5|nextInt(3)=2
+DRAW 36 5|nextInt(100)=25
+DRAW 37 5|nextInt(3)=1
+DRAW 38 5|nextInt(3)=2
+DRAW 39 5|nextInt(23)=9
+DRAW 40 -1|ADD[6] depth=6 parent=5 BoundingBox{minX=-248, minY=51, minZ=-1008, maxX=-234, maxY=53, maxZ=-1006}
+DRAW 41 6|nextInt(4)=1
+DRAW 42 6|nextInt(3)=1
+DRAW 43 6|nextInt(100)=14
+DRAW 44 6|nextInt(3)=1
+DRAW 45 6|nextInt(3)=2
+DRAW 46 6|nextInt(23)=4
+DRAW 47 -1|ADD[7] depth=7 parent=6 BoundingBox{minX=-263, minY=51, minZ=-1008, maxX=-249, maxY=53, maxZ=-1006}
+DRAW 48 7|nextInt(4)=2
+DRAW 49 7|nextInt(3)=2
+DRAW 50 7|nextInt(100)=14
+DRAW 51 7|nextInt(3)=1
+DRAW 52 7|nextInt(3)=2
+DRAW 53 7|nextInt(23)=9
+DRAW 54 -1|ADD[8] depth=8 parent=7 BoundingBox{minX=-263, minY=52, minZ=-1023, maxX=-261, maxY=54, maxZ=-1009}
+DRAW 55 8|nextInt(4)=0
+DRAW 56 8|nextInt(3)=2
+DRAW 57 8|nextInt(100)=2
+DRAW 58 8|nextInt(3)=2
+DRAW 59 8|nextInt(3)=0
+DRAW 60 -1|ADD[9] depth=9 parent=8 BoundingBox{minX=-263, minY=53, minZ=-1043, maxX=-261, maxY=55, maxZ=-1024}
+DRAW 61 9|nextInt(4)=1
+DRAW 62 9|nextInt(3)=2
+DRAW 63 9|nextInt(5)=0
+DRAW 64 9|nextInt(100)=31
+DRAW 65 9|nextInt(3)=2
+DRAW 66 9|nextInt(3)=1
+DRAW 67 9|nextInt(23)=16
+DRAW 68 -1|ADD[10] depth=9 parent=8 BoundingBox{minX=-260, minY=51, minZ=-1028, maxX=-258, maxY=53, maxZ=-1009}
+DRAW 69 10|nextInt(4)=0
+DRAW 70 10|nextInt(3)=2
+DRAW 71 10|nextInt(5)=1
+DRAW 72 10|nextInt(100)=10
+DRAW 73 10|nextInt(3)=0
+DRAW 74 10|nextInt(3)=1
+DRAW 75 10|nextInt(23)=19
+DRAW 76 -1|ADD[11] depth=9 parent=8 BoundingBox{minX=-255, minY=51, minZ=-1005, maxX=-253, maxY=53, maxZ=-996}
+DRAW 77 11|nextInt(4)=2
+DRAW 78 11|nextInt(3)=1
+DRAW 79 11|nextInt(5)=1
+DRAW 80 11|nextInt(100)=85
+DRAW 81 11|nextInt(4)=3
+DRAW 82 -1|ADD[12] depth=8 parent=7 BoundingBox{minX=-246, minY=51, minZ=-1005, maxX=-242, maxY=53, maxZ=-1001}
+DRAW 83 12|nextInt(100)=9
+DRAW 84 12|nextInt(3)=2
+DRAW 85 12|nextInt(3)=0
+DRAW 86 -1|ADD[13] depth=9 parent=12 BoundingBox{minX=-245, minY=51, minZ=-1000, maxX=-243, maxY=53, maxZ=-981}
+DRAW 87 13|nextInt(4)=3
+DRAW 88 13|nextInt(3)=2
+DRAW 89 13|nextInt(100)=27
+DRAW 90 13|nextInt(3)=0
+DRAW 91 13|nextInt(3)=2
+DRAW 92 13|nextInt(23)=15
+DRAW 93 -1|ADD[14] depth=9 parent=12 BoundingBox{minX=-251, minY=51, minZ=-1004, maxX=-247, maxY=53, maxZ=-1002}
+DRAW 94 14|nextInt(4)=1
+DRAW 95 14|nextInt(3)=1
+DRAW 96 14|nextInt(100)=11
+DRAW 97 14|nextInt(3)=0
+DRAW 98 14|nextInt(3)=2
+DRAW 99 14|nextInt(23)=9
+DRAW 100 -1|ADD[15] depth=9 parent=12 BoundingBox{minX=-241, minY=51, minZ=-1004, maxX=-232, maxY=53, maxZ=-1002}
+DRAW 101 15|nextInt(4)=3
+DRAW 102 15|nextInt(3)=0
+DRAW 103 15|nextInt(5)=1
+DRAW 104 15|nextInt(100)=4
+DRAW 105 15|nextInt(3)=2
+DRAW 106 15|nextInt(5)=4
+DRAW 107 15|nextInt(5)=3
+DRAW 108 15|nextInt(5)=0
+DRAW 109 15|nextInt(100)=29
+DRAW 110 15|nextInt(3)=1
+DRAW 111 15|nextInt(3)=2
+DRAW 112 15|nextInt(23)=7
+DRAW 113 -1|ADD[16] depth=6 parent=5 BoundingBox{minX=-228, minY=50, minZ=-1005, maxX=-219, maxY=52, maxZ=-1003}
+DRAW 114 16|nextInt(4)=0
+DRAW 115 16|nextInt(3)=1
+DRAW 116 16|nextInt(100)=11
+DRAW 117 16|nextInt(3)=0
+DRAW 118 16|nextInt(5)=1
+DRAW 119 16|nextInt(100)=81
+DRAW 120 16|nextInt(4)=3
+DRAW 121 -1|ADD[17] depth=8 parent=16 BoundingBox{minX=-226, minY=50, minZ=-1002, maxX=-222, maxY=52, maxZ=-998}
+DRAW 122 17|nextInt(100)=74
+DRAW 123 -1|ADD[18] depth=9 parent=17 BoundingBox{minX=-225, minY=45, minZ=-997, maxX=-223, maxY=52, maxZ=-989}
+DRAW 124 18|nextInt(100)=58
+DRAW 125 18|nextInt(3)=2
+DRAW 126 18|nextInt(3)=1
+DRAW 127 18|nextInt(23)=8
+DRAW 128 -1|ADD[19] depth=9 parent=17 BoundingBox{minX=-241, minY=50, minZ=-1001, maxX=-227, maxY=52, maxZ=-999}
+DRAW 129 19|nextInt(4)=3
+DRAW 130 19|nextInt(3)=2
+DRAW 131 19|nextInt(100)=53
+DRAW 132 19|nextInt(3)=0
+DRAW 133 19|nextInt(5)=4
+DRAW 134 19|nextInt(5)=2
+DRAW 135 19|nextInt(5)=1
+DRAW 136 19|nextInt(100)=50
+DRAW 137 19|nextInt(3)=1
+DRAW 138 19|nextInt(3)=0
+DRAW 139 -1|ADD[20] depth=5 parent=4 BoundingBox{minX=-215, minY=50, minZ=-985, maxX=-201, maxY=52, maxZ=-983}
+DRAW 140 20|nextInt(4)=3
+DRAW 141 20|nextInt(3)=1
+DRAW 142 20|nextInt(100)=60
+DRAW 143 20|nextInt(3)=1
+DRAW 144 20|nextInt(3)=0
+DRAW 145 -1|ADD[21] depth=6 parent=20 BoundingBox{minX=-204, minY=50, minZ=-982, maxX=-202, maxY=52, maxZ=-978}
+DRAW 146 21|nextInt(4)=0
+DRAW 147 21|nextInt(3)=2
+DRAW 148 21|nextInt(100)=13
+DRAW 149 21|nextInt(3)=1
+DRAW 150 21|nextInt(5)=1
+DRAW 151 21|nextInt(100)=67
+DRAW 152 21|nextInt(3)=0
+DRAW 153 21|nextInt(3)=0
+DRAW 154 -1|ADD[22] depth=7 parent=21 BoundingBox{minX=-212, minY=50, minZ=-982, maxX=-210, maxY=52, maxZ=-978}
+DRAW 155 22|nextInt(4)=2
+DRAW 156 22|nextInt(3)=1
+DRAW 157 22|nextInt(100)=55
+DRAW 158 22|nextInt(3)=0
+DRAW 159 22|nextInt(5)=2
+DRAW 160 22|nextInt(5)=1
+DRAW 161 22|nextInt(100)=86
+DRAW 162 22|nextInt(4)=2
+DRAW 163 22|nextInt(5)=0
+DRAW 164 22|nextInt(100)=93
+DRAW 165 22|nextInt(4)=3
+DRAW 166 22|nextInt(5)=2
+DRAW 167 22|nextInt(5)=4
+DRAW 168 22|nextInt(5)=2
+DRAW 169 22|nextInt(11)=7
+DRAW 170 22|nextInt(11)=6
+DRAW 171 22|nextInt(2)=0
+DRAW 172 22|nextInt(100)=2
+DRAW 173 22|nextInt(3)=1
+DRAW 174 22|nextInt(3)=0
+DRAW 175 -1|ADD[23] depth=1 parent=0 BoundingBox{minX=-200, minY=51, minZ=-945, maxX=-198, maxY=53, maxZ=-931}
+DRAW 176 23|nextInt(4)=0
+DRAW 177 23|nextInt(3)=2
+DRAW 178 23|nextInt(100)=89
+DRAW 179 23|nextInt(4)=3
+DRAW 180 -1|ADD[24] depth=2 parent=23 BoundingBox{minX=-201, minY=52, minZ=-930, maxX=-197, maxY=54, maxZ=-926}
+DRAW 181 24|nextInt(100)=1
+DRAW 182 24|nextInt(3)=0
+DRAW 183 24|nextInt(3)=1
+DRAW 184 24|nextInt(23)=18
+DRAW 185 -1|ADD[25] depth=3 parent=24 BoundingBox{minX=-200, minY=52, minZ=-925, maxX=-198, maxY=54, maxZ=-916}
+DRAW 186 25|nextInt(4)=1
+DRAW 187 25|nextInt(3)=0
+DRAW 188 25|nextInt(100)=36
+DRAW 189 25|nextInt(3)=0
+DRAW 190 25|nextInt(3)=2
+DRAW 191 25|nextInt(23)=0
+DRAW 192 -1|ADD[26] depth=4 parent=25 BoundingBox{minX=-200, minY=51, minZ=-915, maxX=-198, maxY=53, maxZ=-906}
+DRAW 193 26|nextInt(4)=3
+DRAW 194 26|nextInt(3)=2
+DRAW 195 26|nextInt(100)=16
+DRAW 196 26|nextInt(3)=0
+DRAW 197 26|nextInt(3)=1
+DRAW 198 26|nextInt(23)=13
+DRAW 199 -1|ADD[27] depth=5 parent=26 BoundingBox{minX=-197, minY=52, minZ=-909, maxX=-188, maxY=54, maxZ=-907}
+DRAW 200 27|nextInt(4)=2
+DRAW 201 27|nextInt(3)=0
+DRAW 202 27|nextInt(100)=99
+DRAW 203 27|nextInt(4)=0
+DRAW 204 -1|ADD[28] depth=6 parent=27 BoundingBox{minX=-192, minY=51, minZ=-914, maxX=-188, maxY=57, maxZ=-910}
+DRAW 205 28|nextInt(100)=78
+DRAW 206 -1|ADD[29] depth=7 parent=28 BoundingBox{minX=-191, minY=46, minZ=-923, maxX=-189, maxY=53, maxZ=-915}
+DRAW 207 29|nextInt(100)=45
+DRAW 208 29|nextInt(3)=1
+DRAW 209 29|nextInt(3)=1
+DRAW 210 29|nextInt(23)=8
+DRAW 211 -1|ADD[30] depth=8 parent=29 BoundingBox{minX=-191, minY=46, minZ=-938, maxX=-189, maxY=48, maxZ=-924}
+DRAW 212 30|nextInt(4)=2
+DRAW 213 30|nextInt(3)=2
+DRAW 214 30|nextInt(100)=31
+DRAW 215 30|nextInt(3)=1
+DRAW 216 30|nextInt(3)=0
+DRAW 217 -1|ADD[31] depth=9 parent=30 BoundingBox{minX=-206, minY=47, minZ=-938, maxX=-192, maxY=49, maxZ=-936}
+DRAW 218 31|nextInt(4)=3
+DRAW 219 31|nextInt(3)=2
+DRAW 220 31|nextInt(100)=76
+DRAW 221 31|nextInt(100)=6
+DRAW 222 31|nextInt(3)=1
+DRAW 223 31|nextInt(3)=1
+DRAW 224 31|nextInt(23)=13
+DRAW 225 -1|ADD[32] depth=7 parent=28 BoundingBox{minX=-187, minY=51, minZ=-913, maxX=-173, maxY=53, maxZ=-911}
+DRAW 226 32|nextInt(4)=3
+DRAW 227 32|nextInt(3)=0
+DRAW 228 32|nextInt(100)=72
+DRAW 229 -1|ADD[33] depth=8 parent=32 BoundingBox{minX=-176, minY=45, minZ=-910, maxX=-174, maxY=52, maxZ=-902}
+DRAW 230 33|nextInt(100)=30
+DRAW 231 33|nextInt(3)=1
+DRAW 232 33|nextInt(3)=1
+DRAW 233 33|nextInt(23)=7
+DRAW 234 -1|ADD[34] depth=9 parent=33 BoundingBox{minX=-176, minY=45, minZ=-901, maxX=-174, maxY=47, maxZ=-887}
+DRAW 235 34|nextInt(4)=0
+DRAW 236 34|nextInt(3)=1
+DRAW 237 34|nextInt(5)=1
+DRAW 238 34|nextInt(100)=49
+DRAW 239 34|nextInt(3)=1
+DRAW 240 34|nextInt(3)=2
+DRAW 241 34|nextInt(23)=16
+DRAW 242 -1|ADD[35] depth=9 parent=33 BoundingBox{minX=-184, minY=51, minZ=-910, maxX=-182, maxY=53, maxZ=-896}
+DRAW 243 35|nextInt(4)=0
+DRAW 244 35|nextInt(3)=2
+DRAW 245 35|nextInt(5)=0
+DRAW 246 35|nextInt(100)=34
+DRAW 247 35|nextInt(3)=2
+DRAW 248 35|nextInt(3)=2
+DRAW 249 35|nextInt(23)=8
+DRAW 250 -1|ADD[36] depth=9 parent=33 BoundingBox{minX=-179, minY=51, minZ=-933, maxX=-177, maxY=53, maxZ=-914}
+DRAW 251 36|nextInt(4)=0
+DRAW 252 36|nextInt(3)=2
+DRAW 253 36|nextBoolean()=false
+DRAW 254 36|nextBoolean()=true
+DRAW 255 36|nextInt(100)=34
+DRAW 256 36|nextInt(3)=1
+DRAW 257 36|nextInt(3)=0
+DRAW 258 -1|ADD[37] depth=7 parent=28 BoundingBox{minX=-207, minY=55, minZ=-913, maxX=-193, maxY=57, maxZ=-911}
+DRAW 259 37|nextInt(4)=1
+DRAW 260 37|nextInt(3)=2
+DRAW 261 37|nextInt(100)=22
+DRAW 262 37|nextInt(3)=2
+DRAW 263 37|nextInt(3)=2
+DRAW 264 37|nextInt(23)=10
+DRAW 265 -1|ADD[38] depth=8 parent=37 BoundingBox{minX=-227, minY=56, minZ=-913, maxX=-208, maxY=58, maxZ=-911}
+DRAW 266 38|nextInt(4)=2
+DRAW 267 38|nextInt(3)=0
+DRAW 268 38|nextInt(100)=60
+DRAW 269 38|nextInt(3)=0
+DRAW 270 38|nextInt(3)=2
+DRAW 271 38|nextInt(23)=19
+DRAW 272 -1|ADD[39] depth=9 parent=38 BoundingBox{minX=-227, minY=55, minZ=-923, maxX=-225, maxY=57, maxZ=-914}
+DRAW 273 39|nextInt(4)=2
+DRAW 274 39|nextInt(3)=2
+DRAW 275 39|nextInt(5)=0
+DRAW 276 39|nextInt(100)=29
+DRAW 277 39|nextInt(3)=2
+DRAW 278 39|nextInt(3)=0
+DRAW 279 -1|ADD[40] depth=9 parent=38 BoundingBox{minX=-204, minY=55, minZ=-933, maxX=-202, maxY=57, maxZ=-914}
+DRAW 280 40|nextInt(4)=2
+DRAW 281 40|nextInt(3)=0
+DRAW 282 40|nextInt(5)=2
+DRAW 283 40|nextBoolean()=false
+DRAW 284 40|nextBoolean()=true
+DRAW 285 40|nextInt(100)=52
+DRAW 286 40|nextInt(3)=2
+DRAW 287 40|nextInt(3)=1
+DRAW 288 40|nextInt(23)=7
+DRAW 289 -1|ADD[41] depth=7 parent=28 BoundingBox{minX=-191, minY=55, minZ=-909, maxX=-189, maxY=57, maxZ=-890}
+DRAW 290 41|nextInt(4)=1
+DRAW 291 41|nextInt(3)=1
+DRAW 292 41|nextInt(100)=94
+DRAW 293 41|nextInt(4)=1
+DRAW 294 -1|ADD[42] depth=8 parent=41 BoundingBox{minX=-192, minY=55, minZ=-889, maxX=-188, maxY=57, maxZ=-885}
+DRAW 295 42|nextInt(100)=40
+DRAW 296 42|nextInt(3)=1
+DRAW 297 42|nextInt(3)=2
+DRAW 298 42|nextInt(23)=2
+DRAW 299 -1|ADD[43] depth=9 parent=42 BoundingBox{minX=-191, minY=55, minZ=-884, maxX=-189, maxY=57, maxZ=-870}
+DRAW 300 43|nextInt(4)=0
+DRAW 301 43|nextInt(3)=2
+DRAW 302 43|nextInt(100)=0
+DRAW 303 43|nextInt(3)=0
+DRAW 304 43|nextInt(3)=2
+DRAW 305 43|nextInt(23)=12
+DRAW 306 -1|ADD[44] depth=9 parent=42 BoundingBox{minX=-202, minY=55, minZ=-888, maxX=-193, maxY=57, maxZ=-886}
+DRAW 307 44|nextInt(4)=3
+DRAW 308 44|nextInt(3)=2
+DRAW 309 44|nextInt(100)=80
+DRAW 310 44|nextInt(4)=2
+DRAW 311 -1|ADD[45] depth=9 parent=42 BoundingBox{minX=-187, minY=55, minZ=-889, maxX=-183, maxY=57, maxZ=-885}
+DRAW 312 45|nextInt(5)=0
+DRAW 313 45|nextInt(100)=93
+DRAW 314 45|nextInt(4)=0
+DRAW 315 -1|ADD[46] depth=9 parent=42 BoundingBox{minX=-196, minY=55, minZ=-907, maxX=-192, maxY=61, maxZ=-903}
+DRAW 316 46|nextBoolean()=true
+DRAW 317 46|nextBoolean()=false
+DRAW 318 46|nextBoolean()=true
+DRAW 319 46|nextBoolean()=true
+DRAW 320 46|nextInt(5)=0
+DRAW 321 46|nextInt(100)=18
+DRAW 322 46|nextInt(3)=2
+DRAW 323 46|nextInt(3)=0
+DRAW 324 -1|ADD[47] depth=9 parent=42 BoundingBox{minX=-211, minY=55, minZ=-901, maxX=-192, maxY=57, maxZ=-899}
+DRAW 325 47|nextInt(4)=2
+DRAW 326 47|nextInt(3)=1
+DRAW 327 47|nextInt(5)=3
+DRAW 328 47|nextInt(5)=0
+DRAW 329 47|nextInt(100)=98
+DRAW 330 47|nextInt(4)=1
+DRAW 331 47|nextInt(5)=4
+DRAW 332 47|nextInt(5)=0
+DRAW 333 47|nextInt(100)=1
+DRAW 334 47|nextInt(3)=1
+DRAW 335 47|nextInt(3)=2
+DRAW 336 47|nextInt(23)=5
+DRAW 337 -1|ADD[48] depth=5 parent=26 BoundingBox{minX=-215, minY=52, minZ=-922, maxX=-201, maxY=54, maxZ=-920}
+DRAW 338 48|nextInt(4)=2
+DRAW 339 48|nextInt(3)=1
+DRAW 340 48|nextInt(100)=50
+DRAW 341 48|nextInt(3)=0
+DRAW 342 48|nextInt(3)=0
+DRAW 343 -1|ADD[49] depth=6 parent=48 BoundingBox{minX=-215, minY=52, minZ=-932, maxX=-213, maxY=54, maxZ=-923}
+DRAW 344 49|nextInt(4)=1
+DRAW 345 49|nextInt(3)=2
+DRAW 346 49|nextInt(100)=44
+DRAW 347 49|nextInt(3)=2
+DRAW 348 49|nextInt(3)=0
+DRAW 349 -1|ADD[50] depth=7 parent=49 BoundingBox{minX=-215, minY=53, minZ=-952, maxX=-213, maxY=55, maxZ=-933}
+DRAW 350 50|nextInt(4)=3
+DRAW 351 50|nextInt(3)=0
+DRAW 352 50|nextInt(100)=67
+DRAW 353 50|nextInt(3)=0
+DRAW 354 50|nextInt(3)=1
+DRAW 355 50|nextInt(23)=20
+DRAW 356 -1|ADD[51] depth=8 parent=50 BoundingBox{minX=-212, minY=52, minZ=-952, maxX=-208, maxY=54, maxZ=-950}
+DRAW 357 51|nextInt(4)=0
+DRAW 358 51|nextInt(3)=1
+DRAW 359 51|nextInt(100)=12
+DRAW 360 51|nextInt(3)=2
+DRAW 361 51|nextInt(5)=2
+DRAW 362 51|nextInt(5)=3
+DRAW 363 51|nextInt(5)=2
+DRAW 364 51|nextInt(5)=4
+DRAW 365 51|nextInt(5)=4
+DRAW 366 51|nextInt(5)=0
+DRAW 367 51|nextInt(100)=18
+DRAW 368 51|nextInt(3)=0
+DRAW 369 51|nextInt(3)=2
+DRAW 370 51|nextInt(23)=11
+DRAW 371 -1|ADD[52] depth=7 parent=49 BoundingBox{minX=-207, minY=52, minZ=-932, maxX=-205, maxY=54, maxZ=-923}
+DRAW 372 52|nextInt(4)=1
+DRAW 373 52|nextInt(3)=1
+DRAW 374 52|nextInt(100)=96
+DRAW 375 52|nextInt(4)=2
+DRAW 376 -1|ADD[53] depth=8 parent=52 BoundingBox{minX=-208, minY=52, minZ=-937, maxX=-204, maxY=54, maxZ=-933}
+DRAW 377 53|nextInt(100)=99
+DRAW 378 53|nextInt(4)=0
+DRAW 379 -1|ADD[54] depth=9 parent=53 BoundingBox{minX=-208, minY=52, minZ=-942, maxX=-204, maxY=58, maxZ=-938}
+DRAW 380 54|nextBoolean()=false
+DRAW 381 54|nextBoolean()=true
+DRAW 382 54|nextBoolean()=true
+DRAW 383 54|nextBoolean()=true
+DRAW 384 54|nextInt(100)=37
+DRAW 385 54|nextInt(3)=0
+DRAW 386 54|nextInt(100)=40
+DRAW 387 54|nextInt(3)=0
+DRAW 388 54|nextInt(5)=2
+DRAW 389 54|nextInt(100)=4
+DRAW 390 54|nextInt(3)=2
+DRAW 391 54|nextInt(100)=9
+DRAW 392 54|nextInt(3)=2
+DRAW 393 54|nextInt(3)=1
+DRAW 394 54|nextInt(23)=9
+DRAW 395 -1|ADD[55] depth=3 parent=24 BoundingBox{minX=-196, minY=52, minZ=-929, maxX=-182, maxY=54, maxZ=-927}
+DRAW 396 55|nextInt(4)=3
+DRAW 397 55|nextInt(3)=2
+DRAW 398 55|nextInt(100)=10
+DRAW 399 55|nextInt(3)=1
+DRAW 400 55|nextInt(3)=0
+DRAW 401 -1|ADD[56] depth=4 parent=55 BoundingBox{minX=-185, minY=53, minZ=-926, maxX=-183, maxY=55, maxZ=-917}
+DRAW 402 56|nextInt(4)=3
+DRAW 403 56|nextInt(3)=1
+DRAW 404 56|nextInt(100)=28
+DRAW 405 56|nextInt(3)=1
+DRAW 406 56|nextInt(5)=1
+DRAW 407 56|nextInt(100)=22
+DRAW 408 56|nextInt(3)=2
+DRAW 409 56|nextInt(5)=3
+DRAW 410 56|nextInt(5)=0
+DRAW 411 56|nextInt(100)=48
+DRAW 412 56|nextInt(3)=1
+DRAW 413 56|nextInt(3)=0
+DRAW 414 -1|ADD[57] depth=5 parent=56 BoundingBox{minX=-188, minY=52, minZ=-944, maxX=-186, maxY=54, maxZ=-930}
+DRAW 415 57|nextInt(4)=3
+DRAW 416 57|nextInt(3)=1
+DRAW 417 57|nextInt(100)=32
+DRAW 418 57|nextInt(3)=1
+DRAW 419 57|nextInt(3)=1
+DRAW 420 57|nextInt(23)=19
+DRAW 421 -1|ADD[58] depth=6 parent=57 BoundingBox{minX=-185, minY=52, minZ=-944, maxX=-171, maxY=54, maxZ=-942}
+DRAW 422 58|nextInt(4)=0
+DRAW 423 58|nextInt(3)=0
+DRAW 424 58|nextInt(100)=47
+DRAW 425 58|nextInt(3)=0
+DRAW 426 58|nextInt(3)=1
+DRAW 427 58|nextInt(23)=19
+DRAW 428 -1|ADD[59] depth=7 parent=58 BoundingBox{minX=-170, minY=51, minZ=-944, maxX=-161, maxY=53, maxZ=-942}
+DRAW 429 59|nextInt(4)=0
+DRAW 430 59|nextInt(3)=1
+DRAW 431 59|nextInt(100)=8
+DRAW 432 59|nextInt(3)=2
+DRAW 433 59|nextInt(3)=2
+DRAW 434 59|nextInt(23)=21
+DRAW 435 -1|ADD[60] depth=8 parent=59 BoundingBox{minX=-160, minY=51, minZ=-944, maxX=-141, maxY=53, maxZ=-942}
+DRAW 436 60|nextInt(4)=2
+DRAW 437 60|nextInt(3)=2
+DRAW 438 60|nextInt(100)=86
+DRAW 439 60|nextInt(4)=2
+DRAW 440 -1|ADD[61] depth=9 parent=60 BoundingBox{minX=-145, minY=52, minZ=-949, maxX=-141, maxY=54, maxZ=-945}
+DRAW 441 61|nextInt(5)=3
+DRAW 442 61|nextInt(5)=0
+DRAW 443 61|nextInt(100)=51
+DRAW 444 61|nextInt(3)=0
+DRAW 445 61|nextInt(3)=2
+DRAW 446 61|nextInt(23)=10
+DRAW 447 -1|ADD[62] depth=8 parent=59 BoundingBox{minX=-182, minY=52, minZ=-954, maxX=-180, maxY=54, maxZ=-945}
+DRAW 448 62|nextInt(4)=3
+DRAW 449 62|nextInt(3)=0
+DRAW 450 62|nextInt(100)=84
+DRAW 451 62|nextInt(4)=3
+DRAW 452 -1|ADD[63] depth=9 parent=62 BoundingBox{minX=-179, minY=51, minZ=-955, maxX=-175, maxY=53, maxZ=-951}
+DRAW 453 63|nextInt(5)=0
+DRAW 454 63|nextInt(100)=46
+DRAW 455 63|nextInt(3)=2
+DRAW 456 63|nextInt(3)=1
+DRAW 457 63|nextInt(23)=2
+DRAW 458 -1|ADD[64] depth=8 parent=59 BoundingBox{minX=-177, minY=52, minZ=-949, maxX=-175, maxY=54, maxZ=-945}
+DRAW 459 64|nextInt(4)=0
+DRAW 460 64|nextInt(3)=0
+DRAW 461 64|nextInt(100)=27
+DRAW 462 64|nextInt(3)=1
+DRAW 463 64|nextInt(5)=4
+DRAW 464 64|nextInt(5)=1
+DRAW 465 64|nextInt(100)=58
+DRAW 466 64|nextInt(3)=0
+DRAW 467 64|nextInt(3)=0
+DRAW 468 -1|ADD[65] depth=7 parent=58 BoundingBox{minX=-185, minY=52, minZ=-936, maxX=-176, maxY=54, maxZ=-934}
+DRAW 469 65|nextInt(4)=3
+DRAW 470 65|nextInt(3)=2
+DRAW 471 65|nextInt(100)=55
+DRAW 472 65|nextInt(3)=2
+DRAW 473 65|nextInt(5)=3
+DRAW 474 65|nextInt(5)=2
+DRAW 475 65|nextInt(5)=3
+DRAW 476 65|nextInt(11)=0
+DRAW 477 65|nextInt(13)=0
+DRAW 478 65|nextInt(2)=1
+DRAW 479 65|nextInt(100)=85
+DRAW 480 65|nextInt(4)=0
+DRAW 481 -1|ADD[66] depth=1 parent=0 BoundingBox{minX=-211, minY=52, minZ=-959, maxX=-207, maxY=58, maxZ=-955}
+DRAW 482 66|nextInt(100)=95
+DRAW 483 66|nextInt(4)=0
+DRAW 484 -1|ADD[67] depth=2 parent=66 BoundingBox{minX=-211, minY=52, minZ=-964, maxX=-207, maxY=58, maxZ=-960}
+DRAW 485 67|nextInt(100)=63
+DRAW 486 67|nextInt(3)=0
+DRAW 487 67|nextInt(3)=2
+DRAW 488 67|nextInt(23)=7
+DRAW 489 -1|ADD[68] depth=3 parent=67 BoundingBox{minX=-210, minY=52, minZ=-969, maxX=-208, maxY=54, maxZ=-965}
+DRAW 490 68|nextInt(4)=2
+DRAW 491 68|nextInt(3)=0
+DRAW 492 68|nextInt(100)=74
+DRAW 493 -1|ADD[69] depth=4 parent=68 BoundingBox{minX=-219, minY=46, minZ=-969, maxX=-211, maxY=53, maxZ=-967}
+DRAW 494 69|nextInt(100)=68
+DRAW 495 69|nextInt(3)=2
+DRAW 496 69|nextInt(3)=2
+DRAW 497 69|nextInt(23)=17
+DRAW 498 -1|ADD[70] depth=5 parent=69 BoundingBox{minX=-239, minY=46, minZ=-969, maxX=-220, maxY=48, maxZ=-967}
+DRAW 499 70|nextInt(4)=1
+DRAW 500 70|nextInt(3)=0
+DRAW 501 70|nextInt(100)=93
+DRAW 502 70|nextInt(4)=1
+DRAW 503 -1|ADD[71] depth=6 parent=70 BoundingBox{minX=-244, minY=45, minZ=-970, maxX=-240, maxY=47, maxZ=-966}
+DRAW 504 71|nextInt(100)=40
+DRAW 505 71|nextInt(3)=2
+DRAW 506 71|nextInt(3)=2
+DRAW 507 71|nextInt(23)=4
+DRAW 508 -1|ADD[72] depth=7 parent=71 BoundingBox{minX=-243, minY=45, minZ=-990, maxX=-241, maxY=47, maxZ=-971}
+DRAW 509 72|nextInt(4)=0
+DRAW 510 72|nextInt(3)=0
+DRAW 511 72|nextInt(100)=26
+DRAW 512 72|nextInt(3)=1
+DRAW 513 72|nextInt(3)=2
+DRAW 514 72|nextInt(23)=9
+DRAW 515 -1|ADD[73] depth=8 parent=72 BoundingBox{minX=-243, minY=44, minZ=-1005, maxX=-241, maxY=46, maxZ=-991}
+DRAW 516 73|nextInt(4)=0
+DRAW 517 73|nextInt(3)=2
+DRAW 518 73|nextInt(100)=56
+DRAW 519 73|nextInt(3)=2
+DRAW 520 73|nextInt(3)=0
+DRAW 521 -1|ADD[74] depth=9 parent=73 BoundingBox{minX=-243, minY=45, minZ=-1025, maxX=-241, maxY=47, maxZ=-1006}
+DRAW 522 74|nextInt(4)=0
+DRAW 523 74|nextInt(3)=0
+DRAW 524 74|nextInt(5)=1
+DRAW 525 74|nextInt(100)=78
+DRAW 526 -1|ADD[75] depth=9 parent=73 BoundingBox{minX=-240, minY=40, minZ=-987, maxX=-232, maxY=47, maxZ=-985}
+DRAW 527 75|nextInt(5)=0
+DRAW 528 75|nextInt(100)=16
+DRAW 529 75|nextInt(3)=1
+DRAW 530 75|nextInt(3)=0
+DRAW 531 -1|ADD[76] depth=9 parent=73 BoundingBox{minX=-258, minY=45, minZ=-982, maxX=-244, maxY=47, maxZ=-980}
+DRAW 532 76|nextInt(4)=1
+DRAW 533 76|nextInt(3)=1
+DRAW 534 76|nextInt(5)=4
+DRAW 535 76|nextInt(100)=75
+DRAW 536 -1|ADD[77] depth=7 parent=71 BoundingBox{minX=-243, minY=40, minZ=-965, maxX=-241, maxY=47, maxZ=-957}
+DRAW 537 77|nextInt(100)=11
+DRAW 538 77|nextInt(3)=1
+DRAW 539 77|nextInt(3)=1
+DRAW 540 77|nextInt(23)=6
+DRAW 541 -1|ADD[78] depth=8 parent=77 BoundingBox{minX=-243, minY=40, minZ=-956, maxX=-241, maxY=42, maxZ=-942}
+DRAW 542 78|nextInt(4)=0
+DRAW 543 78|nextInt(3)=2
+DRAW 544 78|nextInt(100)=96
+DRAW 545 78|nextInt(4)=1
+DRAW 546 -1|ADD[79] depth=9 parent=78 BoundingBox{minX=-244, minY=41, minZ=-941, maxX=-240, maxY=43, maxZ=-937}
+DRAW 547 79|nextInt(100)=10
+DRAW 548 79|nextInt(3)=2
+DRAW 549 79|nextInt(3)=0
+DRAW 550 -1|ADD[80] depth=7 parent=71 BoundingBox{minX=-264, minY=45, minZ=-969, maxX=-245, maxY=47, maxZ=-967}
+DRAW 551 80|nextInt(4)=0
+DRAW 552 80|nextInt(3)=1
+DRAW 553 80|nextInt(100)=3
+DRAW 554 80|nextInt(3)=0
+DRAW 555 80|nextInt(3)=1
+DRAW 556 80|nextInt(23)=8
+DRAW 557 -1|ADD[81] depth=8 parent=80 BoundingBox{minX=-274, minY=45, minZ=-969, maxX=-265, maxY=47, maxZ=-967}
+DRAW 558 81|nextInt(4)=1
+DRAW 559 81|nextInt(3)=2
+DRAW 560 81|nextInt(100)=11
+DRAW 561 81|nextInt(3)=2
+DRAW 562 81|nextInt(3)=0
+DRAW 563 -1|ADD[82] depth=9 parent=81 BoundingBox{minX=-294, minY=46, minZ=-969, maxX=-275, maxY=48, maxZ=-967}
+DRAW 564 82|nextInt(4)=2
+DRAW 565 82|nextInt(3)=0
+DRAW 566 82|nextInt(5)=0
+DRAW 567 82|nextInt(100)=36
+DRAW 568 82|nextInt(3)=1
+DRAW 569 82|nextInt(3)=1
+DRAW 570 82|nextInt(23)=11
+DRAW 571 -1|ADD[83] depth=9 parent=81 BoundingBox{minX=-261, minY=45, minZ=-984, maxX=-259, maxY=47, maxZ=-970}
+DRAW 572 83|nextInt(4)=3
+DRAW 573 83|nextInt(3)=2
+DRAW 574 83|nextInt(5)=0
+DRAW 575 83|nextInt(100)=33
+DRAW 576 83|nextInt(3)=1
+DRAW 577 83|nextInt(3)=2
+DRAW 578 83|nextInt(23)=22
+DRAW 579 -1|ADD[84] depth=9 parent=81 BoundingBox{minX=-256, minY=45, minZ=-979, maxX=-254, maxY=47, maxZ=-970}
+DRAW 580 84|nextInt(4)=0
+DRAW 581 84|nextInt(3)=1
+DRAW 582 84|nextInt(5)=1
+DRAW 583 84|nextInt(100)=75
+DRAW 584 -1|ADD[85] depth=9 parent=81 BoundingBox{minX=-251, minY=40, minZ=-966, maxX=-249, maxY=47, maxZ=-958}
+DRAW 585 85|nextInt(5)=4
+DRAW 586 85|nextInt(5)=4
+DRAW 587 85|nextInt(5)=0
+DRAW 588 85|nextInt(100)=89
+DRAW 589 85|nextInt(4)=1
+DRAW 590 -1|ADD[86] depth=7 parent=71 BoundingBox{minX=-227, minY=46, minZ=-974, maxX=-223, maxY=48, maxZ=-970}
+DRAW 591 86|nextInt(100)=75
+DRAW 592 -1|ADD[87] depth=8 parent=86 BoundingBox{minX=-226, minY=41, minZ=-983, maxX=-224, maxY=48, maxZ=-975}
+DRAW 593 87|nextInt(100)=8
+DRAW 594 87|nextInt(3)=0
+DRAW 595 87|nextInt(3)=2
+DRAW 596 87|nextInt(23)=5
+DRAW 597 -1|ADD[88] depth=9 parent=87 BoundingBox{minX=-226, minY=41, minZ=-993, maxX=-224, maxY=43, maxZ=-984}
+DRAW 598 88|nextInt(4)=1
+DRAW 599 88|nextInt(3)=0
+DRAW 600 88|nextInt(100)=90
+DRAW 601 88|nextInt(4)=1
+DRAW 602 -1|ADD[89] depth=8 parent=86 BoundingBox{minX=-232, minY=46, minZ=-974, maxX=-228, maxY=48, maxZ=-970}
+DRAW 603 89|nextInt(100)=84
+DRAW 604 89|nextInt(4)=2
+DRAW 605 -1|ADD[90] depth=9 parent=89 BoundingBox{minX=-232, minY=46, minZ=-979, maxX=-228, maxY=48, maxZ=-975}
+DRAW 606 90|nextInt(100)=46
+DRAW 607 90|nextInt(3)=1
+DRAW 608 90|nextInt(100)=63
+DRAW 609 90|nextInt(3)=2
+DRAW 610 90|nextInt(3)=2
+DRAW 611 90|nextInt(23)=13
+DRAW 612 -1|ADD[91] depth=9 parent=89 BoundingBox{minX=-237, minY=46, minZ=-973, maxX=-233, maxY=48, maxZ=-971}
+DRAW 613 91|nextInt(4)=0
+DRAW 614 91|nextInt(3)=0
+DRAW 615 91|nextInt(100)=45
+DRAW 616 91|nextInt(3)=2
+DRAW 617 91|nextInt(3)=2
+DRAW 618 91|nextInt(23)=3
+DRAW 619 -1|ADD[92] depth=8 parent=86 BoundingBox{minX=-222, minY=46, minZ=-973, maxX=-203, maxY=48, maxZ=-971}
+DRAW 620 92|nextInt(4)=0
+DRAW 621 92|nextInt(3)=1
+DRAW 622 92|nextInt(100)=99
+DRAW 623 92|nextInt(4)=3
+DRAW 624 -1|ADD[93] depth=9 parent=92 BoundingBox{minX=-202, minY=46, minZ=-974, maxX=-198, maxY=48, maxZ=-970}
+DRAW 625 93|nextInt(100)=37
+DRAW 626 93|nextInt(3)=2
+DRAW 627 93|nextInt(3)=2
+DRAW 628 93|nextInt(23)=11
+DRAW 629 -1|ADD[94] depth=3 parent=67 BoundingBox{minX=-231, minY=52, minZ=-963, maxX=-212, maxY=54, maxZ=-961}
+DRAW 630 94|nextInt(4)=3
+DRAW 631 94|nextInt(3)=1
+DRAW 632 94|nextInt(100)=77
+DRAW 633 -1|ADD[95] depth=4 parent=94 BoundingBox{minX=-231, minY=47, minZ=-960, maxX=-229, maxY=54, maxZ=-952}
+DRAW 634 95|nextInt(100)=58
+DRAW 635 95|nextInt(3)=2
+DRAW 636 95|nextInt(3)=1
+DRAW 637 95|nextInt(23)=16
+DRAW 638 -1|ADD[96] depth=5 parent=95 BoundingBox{minX=-231, minY=47, minZ=-951, maxX=-229, maxY=49, maxZ=-932}
+DRAW 639 96|nextInt(4)=1
+DRAW 640 96|nextInt(3)=1
+DRAW 641 96|nextInt(100)=44
+DRAW 642 96|nextInt(3)=1
+DRAW 643 96|nextInt(3)=0
+DRAW 644 -1|ADD[97] depth=6 parent=96 BoundingBox{minX=-231, minY=47, minZ=-931, maxX=-229, maxY=49, maxZ=-917}
+DRAW 645 97|nextInt(4)=3
+DRAW 646 97|nextInt(3)=2
+DRAW 647 97|nextInt(100)=37
+DRAW 648 97|nextInt(3)=0
+DRAW 649 97|nextInt(3)=2
+DRAW 650 97|nextInt(23)=11
+DRAW 651 -1|ADD[98] depth=7 parent=97 BoundingBox{minX=-228, minY=48, minZ=-920, maxX=-219, maxY=50, maxZ=-918}
+DRAW 652 98|nextInt(4)=3
+DRAW 653 98|nextInt(3)=0
+DRAW 654 98|nextInt(100)=81
+DRAW 655 98|nextInt(4)=1
+DRAW 656 -1|ADD[99] depth=8 parent=98 BoundingBox{minX=-223, minY=47, minZ=-917, maxX=-219, maxY=49, maxZ=-913}
+DRAW 657 99|nextInt(100)=83
+DRAW 658 99|nextInt(4)=2
+DRAW 659 -1|ADD[100] depth=9 parent=99 BoundingBox{minX=-223, minY=47, minZ=-912, maxX=-219, maxY=49, maxZ=-908}
+DRAW 660 100|nextInt(100)=95
+DRAW 661 100|nextInt(4)=2
+DRAW 662 -1|ADD[101] depth=9 parent=99 BoundingBox{minX=-228, minY=47, minZ=-917, maxX=-224, maxY=49, maxZ=-913}
+DRAW 663 101|nextInt(100)=10
+DRAW 664 101|nextInt(3)=0
+DRAW 665 101|nextInt(3)=0
+DRAW 666 -1|ADD[102] depth=9 parent=99 BoundingBox{minX=-218, minY=47, minZ=-916, maxX=-209, maxY=49, maxZ=-914}
+DRAW 667 102|nextInt(4)=2
+DRAW 668 102|nextInt(3)=2
+DRAW 669 102|nextInt(5)=1
+DRAW 670 102|nextInt(100)=73
+DRAW 671 102|nextInt(5)=4
+DRAW 672 102|nextInt(5)=4
+DRAW 673 102|nextInt(5)=1
+DRAW 674 102|nextInt(100)=21
+DRAW 675 102|nextInt(3)=1
+DRAW 676 102|nextInt(3)=0
+DRAW 677 -1|ADD[103] depth=7 parent=97 BoundingBox{minX=-228, minY=47, minZ=-948, maxX=-214, maxY=49, maxZ=-946}
+DRAW 678 103|nextInt(4)=3
+DRAW 679 103|nextInt(3)=1
+DRAW 680 103|nextInt(100)=58
+DRAW 681 103|nextInt(3)=2
+DRAW 682 103|nextInt(3)=0
+DRAW 683 -1|ADD[104] depth=8 parent=103 BoundingBox{minX=-217, minY=47, minZ=-945, maxX=-215, maxY=49, maxZ=-926}
+DRAW 684 104|nextInt(4)=2
+DRAW 685 104|nextInt(3)=2
+DRAW 686 104|nextInt(100)=52
+DRAW 687 104|nextInt(3)=0
+DRAW 688 104|nextInt(3)=0
+DRAW 689 -1|ADD[105] depth=9 parent=104 BoundingBox{minX=-227, minY=48, minZ=-929, maxX=-218, maxY=50, maxZ=-927}
+DRAW 690 105|nextInt(4)=3
+DRAW 691 105|nextInt(3)=2
+DRAW 692 105|nextInt(5)=3
+DRAW 693 105|nextInt(5)=3
+DRAW 694 105|nextInt(5)=4
+DRAW 695 105|nextInt(5)=4
+DRAW 696 105|nextInt(5)=2
+DRAW 697 105|nextInt(5)=2
+DRAW 698 105|nextInt(5)=0
+DRAW 699 105|nextInt(100)=61
+DRAW 700 105|nextInt(3)=1
+DRAW 701 105|nextInt(100)=76
+DRAW 702 105|nextBoolean()=true
+DRAW 703 105|nextInt(100)=87
+DRAW 704 105|nextInt(4)=1
+DRAW 705 -1|ADD[106] depth=3 parent=67 BoundingBox{minX=-211, minY=56, minZ=-969, maxX=-207, maxY=58, maxZ=-965}
+DRAW 706 106|nextInt(100)=47
+DRAW 707 106|nextInt(3)=1
+DRAW 708 106|nextInt(3)=2
+DRAW 709 106|nextInt(23)=20
+DRAW 710 -1|ADD[107] depth=4 parent=106 BoundingBox{minX=-210, minY=56, minZ=-984, maxX=-208, maxY=58, maxZ=-970}
+DRAW 711 107|nextInt(4)=3
+DRAW 712 107|nextInt(3)=2
+DRAW 713 107|nextInt(100)=35
+DRAW 714 107|nextInt(3)=2
+DRAW 715 107|nextInt(3)=0
+DRAW 716 -1|ADD[108] depth=5 parent=107 BoundingBox{minX=-207, minY=57, minZ=-984, maxX=-188, maxY=59, maxZ=-982}
+DRAW 717 108|nextInt(4)=0
+DRAW 718 108|nextInt(3)=2
+DRAW 719 108|nextInt(100)=54
+DRAW 720 108|nextInt(3)=0
+DRAW 721 108|nextInt(3)=1
+DRAW 722 108|nextInt(23)=4
+DRAW 723 -1|ADD[109] depth=6 parent=108 BoundingBox{minX=-187, minY=58, minZ=-984, maxX=-178, maxY=60, maxZ=-982}
+DRAW 724 109|nextInt(4)=0
+DRAW 725 109|nextInt(3)=0
+DRAW 726 109|nextInt(100)=19
+DRAW 727 109|nextInt(3)=1
+DRAW 728 109|nextInt(3)=1
+DRAW 729 109|nextInt(23)=10
+DRAW 730 -1|ADD[110] depth=7 parent=109 BoundingBox{minX=-177, minY=57, minZ=-984, maxX=-163, maxY=59, maxZ=-982}
+DRAW 731 110|nextInt(4)=0
+DRAW 732 110|nextInt(3)=1
+DRAW 733 110|nextInt(100)=91
+DRAW 734 110|nextInt(4)=3
+DRAW 735 -1|ADD[111] depth=8 parent=110 BoundingBox{minX=-162, minY=57, minZ=-985, maxX=-158, maxY=59, maxZ=-981}
+DRAW 736 111|nextInt(100)=4
+DRAW 737 111|nextInt(3)=0
+DRAW 738 111|nextInt(3)=1
+DRAW 739 111|nextInt(23)=4
+DRAW 740 -1|ADD[112] depth=9 parent=111 BoundingBox{minX=-161, minY=57, minZ=-995, maxX=-159, maxY=59, maxZ=-986}
+DRAW 741 112|nextInt(4)=0
+DRAW 742 112|nextInt(3)=2
+DRAW 743 112|nextInt(100)=64
+DRAW 744 112|nextInt(3)=1
+DRAW 745 112|nextInt(3)=0
+DRAW 746 -1|ADD[113] depth=9 parent=111 BoundingBox{minX=-161, minY=57, minZ=-980, maxX=-159, maxY=59, maxZ=-966}
+DRAW 747 113|nextInt(4)=1
+DRAW 748 113|nextInt(3)=2
+DRAW 749 113|nextInt(100)=69
+DRAW 750 113|nextInt(3)=2
+DRAW 751 113|nextInt(3)=0
+DRAW 752 -1|ADD[114] depth=9 parent=111 BoundingBox{minX=-157, minY=57, minZ=-984, maxX=-138, maxY=59, maxZ=-982}
+DRAW 753 114|nextInt(4)=2
+DRAW 754 114|nextInt(3)=0
+DRAW 755 114|nextInt(5)=0
+DRAW 756 114|nextInt(100)=57
+DRAW 757 114|nextInt(3)=0
+DRAW 758 114|nextInt(3)=2
+DRAW 759 114|nextInt(23)=14
+DRAW 760 -1|ADD[115] depth=9 parent=111 BoundingBox{minX=-174, minY=57, minZ=-994, maxX=-172, maxY=59, maxZ=-985}
+DRAW 761 115|nextInt(4)=0
+DRAW 762 115|nextInt(3)=0
+DRAW 763 115|nextInt(5)=1
+DRAW 764 115|nextInt(100)=7
+DRAW 765 115|nextInt(3)=1
+DRAW 766 115|nextInt(3)=1
+DRAW 767 115|nextInt(23)=13
+DRAW 768 -1|ADD[116] depth=9 parent=111 BoundingBox{minX=-169, minY=57, minZ=-981, maxX=-167, maxY=59, maxZ=-967}
+DRAW 769 116|nextInt(4)=2
+DRAW 770 116|nextInt(3)=0
+DRAW 771 116|nextInt(5)=1
+DRAW 772 116|nextInt(100)=4
+DRAW 773 116|nextInt(3)=2
+DRAW 774 116|nextInt(3)=0
+DRAW 775 -1|ADD[117] depth=8 parent=110 BoundingBox{minX=-184, minY=58, minZ=-981, maxX=-182, maxY=60, maxZ=-962}
+DRAW 776 117|nextInt(4)=2
+DRAW 777 117|nextInt(3)=2
+DRAW 778 117|nextInt(100)=66
+DRAW 779 117|nextInt(3)=0
+DRAW 780 117|nextInt(3)=1
+DRAW 781 117|nextInt(23)=18
+DRAW 782 -1|ADD[118] depth=9 parent=117 BoundingBox{minX=-194, minY=59, minZ=-965, maxX=-185, maxY=61, maxZ=-963}
+DRAW 783 118|nextInt(4)=2
+DRAW 784 118|nextInt(3)=0
+DRAW 785 118|nextInt(5)=2
+DRAW 786 118|nextInt(5)=2
+DRAW 787 118|nextInt(5)=4
+DRAW 788 118|nextInt(5)=4
+DRAW 789 118|nextInt(5)=1
+DRAW 790 118|nextInt(100)=15
+DRAW 791 118|nextInt(3)=1
+DRAW 792 118|nextInt(3)=2
+DRAW 793 118|nextInt(23)=5
+DRAW 794 -1|ADD[119] depth=6 parent=108 BoundingBox{minX=-207, minY=56, minZ=-976, maxX=-193, maxY=58, maxZ=-974}
+DRAW 795 119|nextInt(4)=3
+DRAW 796 119|nextInt(3)=0
+DRAW 797 119|nextInt(100)=80
+DRAW 798 119|nextInt(4)=3
+DRAW 799 -1|ADD[120] depth=7 parent=119 BoundingBox{minX=-197, minY=55, minZ=-973, maxX=-193, maxY=57, maxZ=-969}
+DRAW 800 120|nextInt(100)=37
+DRAW 801 120|nextInt(3)=1
+DRAW 802 120|nextInt(3)=0
+DRAW 803 -1|ADD[121] depth=8 parent=120 BoundingBox{minX=-196, minY=55, minZ=-968, maxX=-194, maxY=57, maxZ=-959}
+DRAW 804 121|nextInt(4)=2
+DRAW 805 121|nextInt(3)=0
+DRAW 806 121|nextInt(100)=43
+DRAW 807 121|nextInt(3)=2
+DRAW 808 121|nextInt(3)=2
+DRAW 809 121|nextInt(23)=2
+DRAW 810 -1|ADD[122] depth=9 parent=121 BoundingBox{minX=-206, minY=54, minZ=-962, maxX=-197, maxY=56, maxZ=-960}
+DRAW 811 122|nextInt(4)=2
+DRAW 812 122|nextInt(3)=1
+DRAW 813 122|nextInt(100)=89
+DRAW 814 122|nextInt(4)=3
+DRAW 815 -1|ADD[123] depth=8 parent=120 BoundingBox{minX=-202, minY=55, minZ=-973, maxX=-198, maxY=57, maxZ=-969}
+DRAW 816 123|nextInt(100)=20
+DRAW 817 123|nextInt(3)=0
+DRAW 818 123|nextInt(100)=59
+DRAW 819 123|nextInt(3)=0
+DRAW 820 123|nextInt(3)=1
+DRAW 821 123|nextInt(23)=8
+DRAW 822 -1|ADD[124] depth=9 parent=123 BoundingBox{minX=-201, minY=55, minZ=-968, maxX=-199, maxY=57, maxZ=-964}
+DRAW 823 124|nextInt(4)=3
+DRAW 824 124|nextInt(3)=0
+DRAW 825 124|nextInt(100)=10
+DRAW 826 124|nextInt(3)=1
+DRAW 827 124|nextInt(3)=1
+DRAW 828 124|nextInt(23)=0
+DRAW 829 -1|ADD[125] depth=9 parent=123 BoundingBox{minX=-207, minY=55, minZ=-972, maxX=-203, maxY=57, maxZ=-970}
+DRAW 830 125|nextInt(4)=1
+DRAW 831 125|nextInt(3)=1
+DRAW 832 125|nextInt(100)=24
+DRAW 833 125|nextInt(3)=1
+DRAW 834 125|nextInt(3)=2
+DRAW 835 125|nextInt(23)=17
+DRAW 836 -1|ADD[126] depth=8 parent=120 BoundingBox{minX=-192, minY=55, minZ=-972, maxX=-178, maxY=57, maxZ=-970}
+DRAW 837 126|nextInt(4)=1
+DRAW 838 126|nextInt(3)=0
+DRAW 839 126|nextInt(100)=15
+DRAW 840 126|nextInt(3)=2
+DRAW 841 126|nextInt(3)=1
+DRAW 842 126|nextInt(23)=12
+DRAW 843 -1|ADD[127] depth=9 parent=126 BoundingBox{minX=-177, minY=54, minZ=-972, maxX=-158, maxY=56, maxZ=-970}
+DRAW 844 127|nextInt(4)=1
+DRAW 845 127|nextInt(3)=0
+DRAW 846 127|nextInt(5)=3
+DRAW 847 127|nextInt(5)=4
+DRAW 848 127|nextInt(100)=65
+DRAW 849 127|nextInt(3)=0
+DRAW 850 127|nextInt(3)=1
+DRAW 851 127|nextInt(23)=3
+DRAW 852 -1|ADD[128] depth=4 parent=106 BoundingBox{minX=-221, minY=56, minZ=-968, maxX=-212, maxY=58, maxZ=-966}
+DRAW 853 128|nextInt(4)=1
+DRAW 854 128|nextInt(3)=1
+DRAW 855 128|nextInt(100)=65
+DRAW 856 128|nextInt(3)=1
+DRAW 857 128|nextInt(3)=2
+DRAW 858 128|nextInt(23)=20
+DRAW 859 -1|ADD[129] depth=5 parent=128 BoundingBox{minX=-236, minY=56, minZ=-968, maxX=-222, maxY=58, maxZ=-966}
+DRAW 860 129|nextInt(4)=1
+DRAW 861 129|nextInt(3)=2
+DRAW 862 129|nextInt(100)=65
+DRAW 863 129|nextInt(3)=1
+DRAW 864 129|nextInt(3)=0
+DRAW 865 -1|ADD[130] depth=6 parent=129 BoundingBox{minX=-251, minY=57, minZ=-968, maxX=-237, maxY=59, maxZ=-966}
+DRAW 866 130|nextInt(4)=2
+DRAW 867 130|nextInt(3)=0
+DRAW 868 130|nextInt(100)=93
+DRAW 869 130|nextInt(4)=3
+DRAW 870 -1|ADD[131] depth=7 parent=130 BoundingBox{minX=-252, minY=56, minZ=-973, maxX=-248, maxY=58, maxZ=-969}
+DRAW 871 131|nextInt(100)=47
+DRAW 872 131|nextInt(3)=0
+DRAW 873 131|nextInt(3)=1
+DRAW 874 131|nextInt(23)=20
+DRAW 875 -1|ADD[132] depth=8 parent=131 BoundingBox{minX=-251, minY=56, minZ=-983, maxX=-249, maxY=58, maxZ=-974}
+DRAW 876 132|nextInt(4)=2
+DRAW 877 132|nextInt(3)=0
+DRAW 878 132|nextInt(100)=53
+DRAW 879 132|nextInt(3)=2
+DRAW 880 132|nextInt(3)=0
+DRAW 881 -1|ADD[133] depth=9 parent=132 BoundingBox{minX=-271, minY=55, minZ=-983, maxX=-252, maxY=57, maxZ=-981}
+DRAW 882 133|nextInt(4)=2
+DRAW 883 133|nextInt(3)=1
+DRAW 884 133|nextInt(100)=43
+DRAW 885 133|nextInt(3)=0
+DRAW 886 133|nextInt(3)=0
+DRAW 887 -1|ADD[134] depth=8 parent=131 BoundingBox{minX=-262, minY=56, minZ=-972, maxX=-253, maxY=58, maxZ=-970}
+DRAW 888 134|nextInt(4)=1
+DRAW 889 134|nextInt(3)=0
+DRAW 890 134|nextInt(100)=62
+DRAW 891 134|nextInt(3)=1
+DRAW 892 134|nextInt(3)=2
+DRAW 893 134|nextInt(23)=19
+DRAW 894 -1|ADD[135] depth=9 parent=134 BoundingBox{minX=-277, minY=55, minZ=-972, maxX=-263, maxY=57, maxZ=-970}
+DRAW 895 135|nextInt(4)=2
+DRAW 896 135|nextInt(3)=1
+DRAW 897 135|nextInt(100)=92
+DRAW 898 135|nextInt(4)=3
+DRAW 899 -1|ADD[136] depth=8 parent=131 BoundingBox{minX=-247, minY=56, minZ=-973, maxX=-243, maxY=58, maxZ=-969}
+DRAW 900 136|nextInt(100)=68
+DRAW 901 136|nextInt(3)=1
+DRAW 902 136|nextInt(3)=0
+DRAW 903 -1|ADD[137] depth=9 parent=136 BoundingBox{minX=-246, minY=56, minZ=-988, maxX=-244, maxY=58, maxZ=-974}
+DRAW 904 137|nextInt(4)=2
+DRAW 905 137|nextInt(3)=1
+DRAW 906 137|nextInt(100)=40
+DRAW 907 137|nextInt(3)=2
+DRAW 908 137|nextInt(100)=7
+DRAW 909 137|nextInt(3)=2
+DRAW 910 137|nextInt(3)=0
+DRAW 911 -1|ADD[138] depth=9 parent=136 BoundingBox{minX=-242, minY=56, minZ=-972, maxX=-223, maxY=58, maxZ=-970}
+DRAW 912 138|nextInt(4)=0
+DRAW 913 138|nextInt(3)=1
+DRAW 914 138|nextInt(5)=0
+DRAW 915 138|nextInt(100)=92
+DRAW 916 138|nextInt(4)=1
+DRAW 917 138|nextInt(5)=0
+DRAW 918 138|nextInt(100)=8
+DRAW 919 138|nextInt(3)=1
+DRAW 920 138|nextInt(5)=3
+DRAW 921 138|nextInt(5)=2
+DRAW 922 138|nextInt(5)=4
+DRAW 923 138|nextInt(100)=57
+DRAW 924 138|nextInt(3)=1
+DRAW 925 138|nextInt(3)=1
+DRAW 926 138|nextInt(23)=21
+DRAW 927 -1|ADD[139] depth=4 parent=106 BoundingBox{minX=-206, minY=56, minZ=-968, maxX=-202, maxY=58, maxZ=-966}
+DRAW 928 139|nextInt(4)=0
+DRAW 929 139|nextInt(3)=1
+DRAW 930 139|nextInt(100)=47
+DRAW 931 139|nextInt(3)=2
+DRAW 932 139|nextBoolean()=true
+DRAW 933 139|nextInt(100)=19
+DRAW 934 139|nextInt(3)=2
+DRAW 935 139|nextInt(3)=0
+DRAW 936 -1|ADD[140] depth=3 parent=67 BoundingBox{minX=-231, minY=56, minZ=-963, maxX=-212, maxY=58, maxZ=-961}
+DRAW 937 140|nextInt(4)=2
+DRAW 938 140|nextInt(3)=0
+DRAW 939 140|nextInt(100)=57
+DRAW 940 140|nextInt(3)=1
+DRAW 941 140|nextInt(5)=3
+DRAW 942 140|nextInt(5)=2
+DRAW 943 140|nextInt(5)=2
+DRAW 944 140|nextBoolean()=true
+DRAW 945 140|nextInt(100)=14
+DRAW 946 140|nextInt(3)=2
+DRAW 947 140|nextBoolean()=true
+DRAW 948 140|nextInt(100)=3
+DRAW 949 140|nextInt(3)=1
+DRAW 950 140|nextInt(100)=15
+DRAW 951 140|nextInt(3)=0
+DRAW 952 140|nextInt(100)=71
+DRAW 953 -1|ADD[141] depth=2 parent=66 BoundingBox{minX=-220, minY=47, minZ=-958, maxX=-212, maxY=54, maxZ=-956}
+DRAW 954 141|nextInt(100)=3
+DRAW 955 141|nextInt(3)=0
+DRAW 956 141|nextInt(3)=2
+DRAW 957 141|nextInt(23)=18
+DRAW 958 -1|ADD[142] depth=3 parent=141 BoundingBox{minX=-225, minY=47, minZ=-958, maxX=-221, maxY=49, maxZ=-956}
+DRAW 959 142|nextInt(4)=1
+DRAW 960 142|nextInt(3)=2
+DRAW 961 142|nextInt(100)=89
+DRAW 962 142|nextInt(4)=1
+DRAW 963 142|nextBoolean()=true
+DRAW 964 142|nextInt(100)=99
+DRAW 965 142|nextInt(4)=1
+DRAW 966 142|nextBoolean()=false
+DRAW 967 142|nextBoolean()=true
+DRAW 968 142|nextInt(100)=34
+DRAW 969 142|nextInt(3)=1
+DRAW 970 142|nextInt(3)=0
+DRAW 971 -1|ADD[143] depth=2 parent=66 BoundingBox{minX=-206, minY=56, minZ=-958, maxX=-192, maxY=58, maxZ=-956}
+DRAW 972 143|nextInt(4)=0
+DRAW 973 143|nextInt(3)=0
+DRAW 974 143|nextInt(100)=45
+DRAW 975 143|nextInt(3)=1
+DRAW 976 143|nextInt(3)=0
+DRAW 977 -1|ADD[144] depth=3 parent=143 BoundingBox{minX=-191, minY=55, minZ=-958, maxX=-177, maxY=57, maxZ=-956}
+DRAW 978 144|nextInt(4)=2
+DRAW 979 144|nextInt(3)=1
+DRAW 980 144|nextInt(100)=34
+DRAW 981 144|nextInt(3)=0
+DRAW 982 144|nextInt(3)=2
+DRAW 983 144|nextInt(23)=0
+DRAW 984 -1|ADD[145] depth=4 parent=144 BoundingBox{minX=-180, minY=55, minZ=-968, maxX=-178, maxY=57, maxZ=-959}
+DRAW 985 145|nextInt(4)=1
+DRAW 986 145|nextInt(3)=0
+DRAW 987 145|nextInt(100)=90
+DRAW 988 145|nextInt(4)=3
+DRAW 989 145|nextInt(5)=3
+DRAW 990 145|nextInt(5)=3
+DRAW 991 145|nextInt(5)=0
+DRAW 992 145|nextInt(100)=56
+DRAW 993 145|nextInt(3)=2
+DRAW 994 145|nextInt(3)=1
+DRAW 995 145|nextInt(23)=5
+DRAW 996 -1|ADD[146] depth=5 parent=145 BoundingBox{minX=-183, minY=55, minZ=-968, maxX=-181, maxY=57, maxZ=-959}
+DRAW 997 146|nextInt(4)=2
+DRAW 998 146|nextInt(3)=0
+DRAW 999 146|nextInt(100)=17
+DRAW 1000 146|nextInt(3)=1
+DRAW 1001 146|nextInt(3)=2
+DRAW 1002 146|nextInt(23)=10
+DRAW 1003 -1|ADD[147] depth=6 parent=146 BoundingBox{minX=-193, minY=54, minZ=-968, maxX=-184, maxY=56, maxZ=-966}
+DRAW 1004 147|nextInt(4)=3
+DRAW 1005 147|nextInt(3)=0
+DRAW 1006 147|nextInt(100)=11
+DRAW 1007 147|nextInt(3)=0
+DRAW 1008 147|nextInt(3)=1
+DRAW 1009 147|nextInt(23)=3
+DRAW 1010 -1|ADD[148] depth=7 parent=147 BoundingBox{minX=-193, minY=53, minZ=-965, maxX=-191, maxY=55, maxZ=-961}
+DRAW 1011 148|nextInt(4)=1
+DRAW 1012 148|nextInt(3)=0
+DRAW 1013 148|nextInt(100)=27
+DRAW 1014 148|nextInt(3)=1
+DRAW 1015 148|nextInt(3)=2
+DRAW 1016 148|nextInt(23)=1
+DRAW 1017 -1|ADD[149] depth=8 parent=148 BoundingBox{minX=-193, minY=52, minZ=-960, maxX=-191, maxY=54, maxZ=-946}
+DRAW 1018 149|nextInt(4)=0
+DRAW 1019 149|nextInt(3)=1
+DRAW 1020 149|nextInt(100)=18
+DRAW 1021 149|nextInt(3)=2
+DRAW 1022 149|nextInt(3)=1
+DRAW 1023 149|nextInt(23)=20
+DRAW 1024 -1|ADD[150] depth=9 parent=149 BoundingBox{minX=-193, minY=52, minZ=-945, maxX=-191, maxY=54, maxZ=-931}
+DRAW 1025 150|nextInt(4)=1
+DRAW 1026 150|nextInt(3)=0
+DRAW 1027 150|nextInt(5)=0
+DRAW 1028 150|nextInt(100)=39
+DRAW 1029 150|nextInt(3)=1
+DRAW 1030 150|nextInt(5)=1
+DRAW 1031 150|nextInt(100)=53
+DRAW 1032 150|nextInt(3)=0
+DRAW 1033 150|nextInt(5)=1
+DRAW 1034 150|nextInt(100)=69
+DRAW 1035 150|nextInt(3)=2
+DRAW 1036 150|nextInt(3)=0
+DRAW 1037 -1|ADD[151] depth=4 parent=144 BoundingBox{minX=-203, minY=56, minZ=-955, maxX=-201, maxY=58, maxZ=-936}
+DRAW 1038 151|nextInt(4)=1
+DRAW 1039 151|nextInt(3)=1
+DRAW 1040 151|nextInt(100)=37
+DRAW 1041 151|nextInt(3)=2
+DRAW 1042 151|nextInt(5)=3
+DRAW 1043 151|nextInt(5)=0
+DRAW 1044 151|nextInt(100)=21
+DRAW 1045 151|nextInt(3)=0
+DRAW 1046 151|nextInt(3)=0
+DRAW 1047 -1|ADD[152] depth=6 parent=151 BoundingBox{minX=-213, minY=56, minZ=-947, maxX=-204, maxY=58, maxZ=-945}
+DRAW 1048 152|nextInt(4)=1
+DRAW 1049 152|nextInt(3)=1
+DRAW 1050 152|nextInt(100)=44
+DRAW 1051 152|nextInt(3)=2
+DRAW 1052 152|nextInt(3)=2
+DRAW 1053 152|nextInt(23)=3
+DRAW 1054 -1|ADD[153] depth=7 parent=152 BoundingBox{minX=-233, minY=56, minZ=-947, maxX=-214, maxY=58, maxZ=-945}
+DRAW 1055 153|nextInt(4)=0
+DRAW 1056 153|nextInt(3)=0
+DRAW 1057 153|nextInt(100)=99
+DRAW 1058 153|nextInt(4)=1
+DRAW 1059 -1|ADD[154] depth=8 parent=153 BoundingBox{minX=-238, minY=55, minZ=-948, maxX=-234, maxY=57, maxZ=-944}
+DRAW 1060 154|nextInt(100)=32
+DRAW 1061 154|nextInt(3)=0
+DRAW 1062 154|nextInt(3)=0
+DRAW 1063 -1|ADD[155] depth=9 parent=154 BoundingBox{minX=-237, minY=55, minZ=-958, maxX=-235, maxY=57, maxZ=-949}
+DRAW 1064 155|nextInt(4)=0
+DRAW 1065 155|nextInt(3)=0
+DRAW 1066 155|nextInt(100)=54
+DRAW 1067 155|nextInt(3)=2
+DRAW 1068 155|nextInt(3)=1
+DRAW 1069 155|nextInt(23)=17
+DRAW 1070 -1|ADD[156] depth=9 parent=154 BoundingBox{minX=-237, minY=55, minZ=-943, maxX=-235, maxY=57, maxZ=-924}
+DRAW 1071 156|nextInt(4)=0
+DRAW 1072 156|nextInt(3)=1
+DRAW 1073 156|nextInt(100)=32
+DRAW 1074 156|nextInt(3)=1
+DRAW 1075 156|nextInt(3)=2
+DRAW 1076 156|nextInt(23)=0
+DRAW 1077 -1|ADD[157] depth=9 parent=154 BoundingBox{minX=-253, minY=55, minZ=-947, maxX=-239, maxY=57, maxZ=-945}
+DRAW 1078 157|nextInt(4)=2
+DRAW 1079 157|nextInt(3)=2
+DRAW 1080 157|nextInt(5)=4
+DRAW 1081 157|nextInt(5)=3
+DRAW 1082 157|nextInt(5)=2
+DRAW 1083 157|nextInt(5)=0
+DRAW 1084 157|nextInt(100)=56
+DRAW 1085 157|nextInt(3)=2
+DRAW 1086 157|nextInt(3)=1
+DRAW 1087 157|nextInt(23)=22
+DRAW 1088 -1|ADD[158] depth=8 parent=153 BoundingBox{minX=-210, minY=56, minZ=-952, maxX=-208, maxY=58, maxZ=-948}
+DRAW 1089 158|nextInt(4)=3
+DRAW 1090 158|nextInt(3)=1
+DRAW 1091 158|nextInt(100)=99
+DRAW 1092 158|nextInt(4)=3
+DRAW 1093 158|nextInt(5)=2
+DRAW 1094 158|nextInt(5)=3
+DRAW 1095 158|nextBoolean()=false
+DRAW 1096 158|nextInt(13)=9
+DRAW 1097 158|nextInt(13)=2
+DRAW 1098 158|nextInt(2)=1
+DRAW 1099 158|nextInt(100)=60
+DRAW 1100 158|nextInt(3)=1
+DRAW 1101 158|nextInt(13)=6
