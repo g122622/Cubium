@@ -183,10 +183,10 @@ i32 EndCityStructure::_getYPosition(
 
     i32 k = (chunkX << world::CHUNK_SHIFT) + 7;
     i32 l = (chunkZ << world::CHUNK_SHIFT) + 7;
-    i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurface);
-    i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurface);
-    i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurface);
-    i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurface);
+    i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurface) - 1;
+    i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurface) - 1;
+    i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurface) - 1;
+    i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurface) - 1;
 
     return std::min({i1, j1, k1, l1});
 }
