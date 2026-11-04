@@ -796,46 +796,59 @@ void MineshaftCross::buildComponent(
         return;
     }
 
-    // 交叉点可以向三个方向延伸（除了来的方向）
-    for (i32 dir = 0; dir < 4; ++dir) {
-        // 跳过来的方向
-        if ((m_direction == 0 && dir == 1) || (m_direction == 1 && dir == 0) || (m_direction == 2 && dir == 3) ||
-            (m_direction == 3 && dir == 2)) {
-            continue;
-        }
-
-        if (rng.nextInt(3) != 0) {
-            continue; // 67% 概率跳过
-        }
-
-        i32 x, y, z;
-        switch (dir) {
-            case 0: // 北
-                x = minX() + 2;
-                y = minY();
-                z = minZ() - 1;
-                break;
-            case 1: // 南
-                x = minX() + 2;
-                y = minY();
-                z = maxZ() + 1;
-                break;
-            case 2: // 西
-                x = minX() - 1;
-                y = minY();
-                z = minZ() + 2;
-                break;
-            case 3: // 东
-            default:
-                x = maxX() + 1;
-                y = minY();
-                z = minZ() + 2;
-                break;
-        }
-
-        auto piece = addMineshaftPiece(this, pieces, rng, x, y, z, dir, depth, m_mineshaftType);
+    // 交叉点按朝向固定开出三个方向，坐标由包围盒直接算出，不抽随机数。
+    //
+    // 原版 MineShaftCrossing.addChildren 的四个分支：
+    //   北 -> (minX+1, minY, minZ-1) 北 | (minX-1, minY, minZ+1) 西 | (maxX+1, minY, minZ+1) 东
+    //   南 -> (minX+1, minY, maxZ+1) 南 | (minX-1, minY, minZ+1) 西 | (maxX+1, minY, minZ+1) 东
+    //   西 -> (minX+1, minY, minZ-1) 北 | (minX+1, minY, maxZ+1) 南 | (minX-1, minY, minZ+1) 西
+    //   东 -> (minX+1, minY, minZ-1) 北 | (minX+1, minY, maxZ+1) 南 | (maxX+1, minY, minZ+1) 东
+    //
+    // 此前这里遍历四个方向、每个方向以 nextInt(3) 决定是否跳过，既不匹配原版的
+    // 分支表，又多吃了最多四个随机数。
+    auto addChild = [&](i32 nx, i32 ny, i32 nz, i32 dir) {
+        auto piece = addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
         if (piece) {
             pieces.push_back(std::move(piece));
+        }
+    };
+
+    switch (m_direction) {
+        case 1: // 南
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+            break;
+        case 2: // 西
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            break;
+        case 3: // 东
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+            break;
+        case 0: // 北
+        default:
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+            break;
+    }
+
+    // 双层交叉点（包围盒高度大于 3）还要在上一层再开三个方向，
+    // 每个方向由一次 nextBoolean 决定是否生成。
+    if (maxY() - minY() + 1 > 3) {
+        const i32 upperY = minY() + 4;
+        if (rng.nextBoolean()) {
+            addChild(minX() + 1, upperY, minZ() - 1, 0);
+        }
+        if (rng.nextBoolean()) {
+            addChild(minX() - 1, upperY, minZ() + 1, 2);
+        }
+        if (rng.nextBoolean()) {
+            addChild(maxX() + 1, upperY, minZ() + 1, 3);
         }
     }
 }
