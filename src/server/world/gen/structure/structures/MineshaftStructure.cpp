@@ -261,11 +261,14 @@ void addMineshaftPiece(MineshaftPiece* parent,
     i32 depth,
     MineshaftType type)
 {
-    // 深度限制。原版 generateAndAddPiece 的判据是 `p_227714_ > 8`，而 p_227714_ 是
-    // **调用方传入的深度**（即新构件的父深度），子构件随后取 p_227714_ + 1。
-    // 因此最大构件深度是 9，不是 8——判据比的是父深度。
-    // 这里 depth 已经是新构件自身的深度，所以要拿 depth - 1 去比。
-    if (depth - 1 > 8) {
+    // 深度限制。原版 generateAndAddPiece 的判据是 `p_227714_ > 8`，其中 p_227714_
+    // 是**调用方传进来的值**：主口段传父深度 i，第 2 段传 i + 1。子构件的深度
+    // 随后取 p_227714_ + 1。
+    //
+    // 所以这里必须拿「传入值」去比，而不是子构件的深度：第 2 段会把传入值抬高一层，
+    // 若改用子构件深度去比，整棵树的第 2 段分支会被多砍掉一层（实测构件数 159→76）。
+    const i32 requestedDepth = depth - 1; // 还原调用方传进来的原值
+    if (requestedDepth > 8) {
         return;
     }
 
@@ -818,16 +821,21 @@ void MineshaftCorridor::buildComponent(
     }
 
     // ---- 第 2 段：沿边逐点步进 ----
-    // 原版判据是父构件的深度 i < 8，而 depth 已经是子构件的深度，故这里用 depth - 1。
+    //
+    // 原版判据是 `if (i < 8)`，i 为父构件深度，而 depth = i + 1，故这里用 depth - 1。
+    //
+    // 关键：第 2 段传下去的深度是 **i + 1**，主口段传的是 i。也就是说第 2 段
+    // 开出来的子构件比主口段的子构件深一层（depth = i + 2）。这一点很容易漏——
+    // 传错会让子构件的深度少 1，后续所有截断点跟着偏移。
     if (depth - 1 < 8) {
         if (m_direction != 0 && m_direction != 1) {
             // 朝东西：沿 X 扫描，南北两侧开口。
             for (i32 x = minX() + 3; x + 3 <= maxX(); x += 5) {
                 const i32 pick = rng.nextInt(5);
                 if (pick == 0) {
-                    addChild(x, minY(), minZ() - 1, 0, depth);
+                    addChild(x, minY(), minZ() - 1, 0, depth + 1);
                 } else if (pick == 1) {
-                    addChild(x, minY(), maxZ() + 1, 1, depth);
+                    addChild(x, minY(), maxZ() + 1, 1, depth + 1);
                 }
             }
         } else {
@@ -835,9 +843,9 @@ void MineshaftCorridor::buildComponent(
             for (i32 z = minZ() + 3; z + 3 <= maxZ(); z += 5) {
                 const i32 pick = rng.nextInt(5);
                 if (pick == 0) {
-                    addChild(minX() - 1, minY(), z, 2, depth);
+                    addChild(minX() - 1, minY(), z, 2, depth + 1);
                 } else if (pick == 1) {
-                    addChild(maxX() + 1, minY(), z, 3, depth);
+                    addChild(maxX() + 1, minY(), z, 3, depth + 1);
                 }
             }
         }
@@ -1026,36 +1034,43 @@ void MineshaftStairs::generate(IWorldWriter& world,
 void MineshaftStairs::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
-    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
-    // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
-    const i32 depth = genDepth() + 1;
     MC_UNUSED(maxDepth);
 
-    i32 x, y, z;
-    i32 length = (m_direction == 0 || m_direction == 1) ? (maxZ() - minZ()) : (maxX() - minX());
-    y = minY() - length / 2;
+    // 楼梯按朝向在正前方开一个口，坐标用包围盒的 minX / minY 直接算出，不抽随机数：
+    //
+    //   北 -> (minX, minY, minZ - 1) 北
+    //   南 -> (minX, minY, maxZ + 1) 南
+    //   西 -> (minX - 1, minY, minZ) 西
+    //   东 -> (maxX + 1, minY, minZ) 东
+    //
+    // 此前这里用的是包围盒中点 (minX+maxX)/2 与下沉后的 minY - length/2，
+    // 两处都与原版不符，导致楼梯之后的整棵子树坐标全部偏移。
+    //
+    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece 里。
+    const i32 depth = genDepth() + 1;
 
+    i32 x, z;
     switch (m_direction) {
-        case 0: // 北（向下）
-            x = (minX() + maxX()) / 2;
-            z = minZ() - 1;
-            break;
-        case 1: // 南（向下）
-            x = (minX() + maxX()) / 2;
+        case 1: // 南
+            x = minX();
             z = maxZ() + 1;
             break;
-        case 2: // 西（向下）
+        case 2: // 西
             x = minX() - 1;
-            z = (minZ() + maxZ()) / 2;
+            z = minZ();
             break;
-        case 3: // 东（向下）
-        default:
+        case 3: // 东
             x = maxX() + 1;
-            z = (minZ() + maxZ()) / 2;
+            z = minZ();
+            break;
+        case 0: // 北
+        default:
+            x = minX();
+            z = minZ() - 1;
             break;
     }
 
-    addMineshaftPiece(this, pieces, rng, x, y, z, m_direction, depth, m_mineshaftType);
+    addMineshaftPiece(this, pieces, rng, x, minY(), z, m_direction, depth, m_mineshaftType);
 }
 
 // ============================================================================
