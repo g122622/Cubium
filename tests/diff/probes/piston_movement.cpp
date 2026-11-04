@@ -359,6 +359,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("piston_movement", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(piston_movement, &writeList, &runLine)
 
 } // namespace mc::diff

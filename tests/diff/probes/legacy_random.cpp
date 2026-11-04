@@ -205,6 +205,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("legacy_random", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(legacy_random, &writeList, &runLine)
 
 } // namespace mc::diff

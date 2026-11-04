@@ -217,5 +217,5 @@ void _writeList(FILE* out)
     }
 }
 } // namespace
-MC_DIFF_DEFINE_PROBE("spawn_rules", &_writeList, &_runLine)
+MC_DIFF_DEFINE_PROBE(spawn_rules, &_writeList, &_runLine)
 } // namespace mc::diff

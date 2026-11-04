@@ -161,5 +161,5 @@ void writeList(FILE* out)
 }
 
 } // namespace
-MC_DIFF_DEFINE_PROBE("walk_path_type", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(walk_path_type, &writeList, &runLine)
 } // namespace mc::diff

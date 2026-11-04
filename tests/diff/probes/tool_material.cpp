@@ -108,6 +108,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("tool_material", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(tool_material, &writeList, &runLine)
 
 } // namespace mc::diff

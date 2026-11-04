@@ -118,6 +118,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("entity_serialize_summon", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(entity_serialize_summon, &writeList, &runLine)
 
 } // namespace mc::diff

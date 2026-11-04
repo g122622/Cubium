@@ -141,6 +141,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("block_shade_brightness", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(block_shade_brightness, &writeList, &runLine)
 
 } // namespace mc::diff

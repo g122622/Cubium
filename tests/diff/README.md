@@ -194,7 +194,8 @@ MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/runner.ts --all
 3. **原版输出缓存**：oracle 的输出按 `oracle 源码闭包 + jar/依赖库 + argv + 单元 + 输入` 缓存，
    缓存命中时只跑探针。**命中却出现差异时不会直接采信**——会重跑一次 oracle，重跑仍不一致
    才算真差异，一致则判定缓存被污染并删除该键。
-4. **只构建要用的探针**：`build <name>` 只构建该能力对应的 `diff_<探针>` 目标。
+4. **构建粒度**：全部能力编入同一个 `diff_runner` 目标，构建它等于构建全部探针。
+   增量由 ninja 按源文件粒度处理：只改一个探针源文件时只重编那一个 .o，再重链接一次。
 5. **选择器**（`runner/select.ts`）：`--changed` 用依赖图判定「哪些能力依赖改动的文件」，
    并且**不**用通过记录过滤——显式给出一批改动时，用户就是在要求验证它们。
    注意依赖图是**刻意过宽**的：C++ 侧按静态库边界展开，改一个 `mc_common` 的头会让所有
@@ -229,12 +230,17 @@ MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/runner.ts --all
 
 ## 一个 harness 的协议
 
-C++ probe 只有两个子命令：
+全部能力编入**同一个**可执行文件，第一参数选能力，之后是两个子命令：
 
 ```
-diff_<domain> list                          # 每行一个单元（方块状态文本）
-diff_<domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 输出
+diff_runner <domain> list                          # 每行一个单元（方块状态文本）
+diff_runner <domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一行 JSON 输出
 ```
+
+为什么合用一个进程：每个能力单独链接一份 `mc_common` 会让产物体积与 Debug 信息按能力
+数倍增（257 个探针合计 1.4 GB 可执行文件 + 11 GB `.pdb`），且改一行公共代码要重链接
+257 次。合并后只有一份 66 MB 可执行文件与一份 PDB。各探针源文件用
+`MC_DIFF_DEFINE_PROBE(<domain>, &writeList, &runLine)` 在静态初始化期把自己登记进注册表。
 
 `list` 枚举「这个能力能提供的全部单元」，`run` 按单元出结果，两者不必是同一个集合——
 比对什么由能力声明决定。运行层负责按 `key` 对齐两侧输出、规范化、比对、写报告。

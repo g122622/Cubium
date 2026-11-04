@@ -13,14 +13,15 @@
 #
 # 开启 MC_BUILD_DIFF_PROBES 后，全部探针随常规构建更新。
 #
-# 为什么不是每能力一个独立 target：多个可执行文件都链同一个静态库 mc_common，
-# 拆成多个 target 只是多几行 CMake，但对增量构建没有区别；合并到一个 target 里
-# 用 foreach 生成，新增能力的成本最低。
+# 全部能力编入**同一个**可执行文件 diff_runner：每个探针源文件把自己登记进
+# mc::diff 的注册表（见 probes/probe.hpp），进程入口按第一个参数选择能力。
+# 每能力一个 exe 会让同一份 mc_common 被链接 257 次：可执行文件合计 1.4 GB，
+# 各自的 .pdb 合计 11 GB，且改一行公共代码要重链接 257 次。合并后只有一份。
 
 # ---------------------------------------------------------------------------
 # 能力清单：新增一个差分能力时，在三张平行列表的**同一位置**各追加一项，
 # 然后在 probes/<domain>.cpp 实现它（runner_main.cpp 已共享，无需改动）。
-#   后缀：可执行文件名 diff_<后缀>，也是测试脚本里引用的 domain
+#   后缀：能力域名 diff_runner <后缀>，也是测试脚本里引用的 domain
 #   源文件：实现该能力的 .cpp
 #   宏名：写入基类的 MC_DIFF_PROBE_DOMAIN，供 runner_main.cpp 选择能力
 # ---------------------------------------------------------------------------
@@ -285,11 +286,12 @@ set(MC_DIFF_PROBE_SOURCES
 )
 set(MC_DIFF_PROBE_DOMAINS text_encode block_state_ids item_summary item_components entity_shape enchantment_table block_properties block_movement can_harvest mob_category entity_attributes block_state_names random_sequence command_argument command_tree biome_climate damage_type block_tags item_tags loot_table loot_table_block loot_table_entity loot_container advancement biome_spawns recipe spawn_placement spawn_rules status_effect block_experience item_attribute_modifiers damage_reduction gamerule armor_material tool_material enchantment_effects attribute_range mob_experience block_destroy_progress walk_path_type path_finder fly_path_finder structure_density structure_starts villager_trades piston_movement experience potion potion_brewing block_support food_properties entity_type_tags jukebox_song enchantment_tags painting_variant damage_type_tags enchantment_cost enchantment_applicability item_component_nbt stack_codec loot_function crafting_match armor_trim animal_variant instrument single_item_recipe banner_pattern enchantment_provider trial_spawner_config dimension_type explosion_ray explosion_damage explosion_seen_grid entity_dimensions mob_effect_merge food_stats food_tick enchantment_selection repair_cost anvil_durability item_stackable item_same_components furnace_tick brewing_tick beacon_effects hopper_cooldown spawner_delay mth_rounding mth_modulo direction_rotate aabb_ops vec3_math blockpos_codec axis_plane mth_lerp mth_bit mth_rot mth_sin mth_approach region_sector blockpos_dist enchantment_storage collide_sweep shapes_boolean fluid_spread fluid_spread_dir blockpos_bfs scheduled_tick random_tick_pos mth_color block_transform bounding_box enchantment_compat section_pos level_height chunk_pos mth_clamp chat_formatting dye_color equipment_slot heightmap_types direction_plane rotation_info blockpos_geom vec3i_arith aabb_contains fluid_height mth_inverse_lerp mth_angle_lerp mth_waveform mth_hsv argb_ops direction_nearest mth_int_div fuel_values recipe_book_category block_sound_type crop_growth redstone_signal mth_seed mth_pack_degrees mth_degrees mth_frac mth_sqrt string_util identifier_parse identifier_path blockpos_iterate blockpos_spiral aabb_factory front_and_top structure_orient bounding_box_encap chunk_region portal_relative relative_mask position_move_rotation style_apply text_color click_event hover_event identifier_resolve plain_text_contents mth_absmax display_slot objective_criteria team_rule boss_bar sound_source difficulty permission_level light_occlusion text_formatting_color text_formatting_name style_tristate team_rule_strings render_type_strings uuid_strings game_type map_decoration_type block_state_enum_strings block_state_enum_strings_2 block_state_enum_strings_3 boolean_property_index enum_property_order enum_property_order_all face_sturdy world_border easing_type mth_interpolation legacy_random custom_stats sound_events particle_type shape_face block_shape block_shape_all axis_cycle entity_type_size dispense_behavior attribute_modifier_apply entity_pose_dimensions mob_spawn_light_level dimension_type_params beacon_pyramid_level conduit_frame_level campfire_cooking cooking_recipe_types game_event_radius container_analog_signal item_max_stack_size block_light_emission block_hardness block_map_color block_friction block_fire_info block_solidity block_instrument noteblock_pitch noteblock_trigger bell_placement bell_ring jukebox_insert lever_game_event note_block_event piston_event cake_eat lectern_book tripwire_state farmland_decay tripwire_disarm berry_growth anchor_charge vibration_frequency vibration_strength vibration_info_nbt vibration_selector sculk_sensor_step brushable_fall vibration_selector_nbt block_blast_resistance block_movement_factor block_shade_brightness block_random_ticks block_signal_source item_container_fit entity_peaceful entity_serialize_summon entity_type_flags fluid_lava_react block_replaceable block_spawn_query block_pathfindable block_light_occlusion_shape block_skylight_propagation block_view_blocking)
 function(mc_add_diff_probe targetSuffix source domain)
-    set(targetName "diff_${targetSuffix}")
-    add_executable(${targetName}
-        probes/runner_main.cpp
-        ${source}
-    )
+    # 全部能力共用一个 target：这里只登记源文件，可执行文件在文件末尾创建一次。
+    set(targetName "diff_runner")
+    # 附加源文件登记进全局属性，末尾统一去重后再 target_sources：多个能力声明的是
+    # **同一批**文件（command_tree 与 structure_starts 都通配 src/server 的部分子树，
+    # 又都补上模板/谓词/地物），重复登记会让同一个 .cpp 编译两次、链接期 duplicate symbol。
+    set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES ${source})
 
     target_include_directories(${targetName} PRIVATE
         # probes/ 为根：probe 源码以 #include "<domain>.hpp" 表达私有头。
@@ -298,7 +300,6 @@ function(mc_add_diff_probe targetSuffix source domain)
     )
 
     target_compile_definitions(${targetName} PRIVATE
-        MC_DIFF_PROBE_DOMAIN=${domain}
         MC_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     )
 
@@ -313,7 +314,7 @@ function(mc_add_diff_probe targetSuffix source domain)
     # world/gen/feature 按服务端目标自己的源清单收集（目录通配会把只登记在其它目标里的
     # 文件也拉进来，它们单独编译有既有的重定义问题）。探针只注册与遍历，从不执行回调。
     if(targetSuffix STREQUAL "command_tree")
-        target_link_options(${targetName} PRIVATE "-Xlinker" "/ERRORLIMIT:0")
+        set(MC_DIFF_NEEDS_ERRORLIMIT TRUE)
         file(GLOB_RECURSE _diff_cmd_sources CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/server/*.cpp)
         list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/client/")
         list(FILTER _diff_cmd_sources EXCLUDE REGEX "/src/server/tools?/")
@@ -434,6 +435,9 @@ function(mc_add_diff_probe targetSuffix source domain)
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/nether/UnderwaterMagmaFeature.cpp
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/LakeFeature.cpp
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/SnowAndFreezeFeature.cpp
+            # 方块谓词目录只登记两个**聚合单元**：BlockPredicate.cpp 包含其余全部谓词
+            # 实现，MatchingFluidsPredicate.cpp 不详。若连同成员文件一起登记（目录通配
+            # 会这么做），同一批函数会被编译两份，链接期全部报 duplicate symbol。
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/predicate/BlockPredicate.cpp
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/predicate/MatchingFluidsPredicate.cpp
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/Template.cpp
@@ -444,23 +448,16 @@ function(mc_add_diff_probe targetSuffix source domain)
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/CappedStructureProcessor.cpp
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/ProtectedBlocksProcessor.cpp
         )
-        target_sources(${targetName} PRIVATE ${_diff_cmd_sources})
-        target_link_libraries(${targetName} PRIVATE mc_server_storage)
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES ${_diff_cmd_sources})
+        set(MC_DIFF_NEEDS_SERVER_STORAGE TRUE PARENT_SCOPE)
         # 模板目录整体排除（见上）；其符号由占位文件兜底。
     endif()
-
-    target_link_libraries(${targetName} PRIVATE
-        mc_common
-        mc_bedrock_addon
-        mc_offset_allocator
-        nlohmann_json::nlohmann_json
-    )
 
     # 战利品表要按资源名解析「乐器标签」（`set_instrument` 函数），乐器与乐器标签的
     # 数据包加载器在 src/server/item/instrument 下。那里只有这两个加载器，不牵出
     # 服务端其它子系统，因此只给战利品探针单独补上，避免所有探针都链接服务端。
     if(targetSuffix MATCHES "^loot_table" OR targetSuffix STREQUAL "loot_container" OR targetSuffix STREQUAL "loot_function")
-        target_sources(${targetName} PRIVATE
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES
             ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
             ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp
         )
@@ -470,7 +467,7 @@ function(mc_add_diff_probe targetSuffix source domain)
     # 无条件塞进链接行）。这里只补上探针真正用到的那个编译单元：Beardifier 自身只依赖
     # mc_common 的包围盒与 JigsawJunction，不牵出区块生成器。
     if(targetSuffix STREQUAL "structure_density")
-        target_sources(${targetName} PRIVATE
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/density/Beardifier.cpp
         )
     endif()
@@ -483,21 +480,21 @@ function(mc_add_diff_probe targetSuffix source domain)
     # 这里只补这一个源文件，而不是通配整个 src/server——后者会把整条服务端管线
     # 拉进链接行，构建代价远超本能力所需。
     if(targetSuffix STREQUAL "instrument")
-        target_sources(${targetName} PRIVATE
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES
             ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp)
     endif()
 
     if(targetSuffix STREQUAL "structure_starts")
-        target_link_options(${targetName} PRIVATE "-Xlinker" "/ERRORLIMIT:0")
+        set(MC_DIFF_NEEDS_ERRORLIMIT TRUE)
         file(GLOB_RECURSE _diff_gen_sources CONFIGURE_DEPENDS
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/*.cpp)
         # 与 command_tree 相同的排除：feature 子树只登记在服务端自己的源清单里，目录通配会把它
         # 的依赖一起拉进来又编译不成。结构装配会经由片段回调间接引用地物、规则测试与方块
         # 谓词，因此下面按服务端清单补上「结构装配真正会调用」的那一批。
         list(FILTER _diff_gen_sources EXCLUDE REGEX "/src/server/world/gen/feature/")
-        target_sources(${targetName} PRIVATE ${_diff_gen_sources})
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES ${_diff_gen_sources})
         # 拼图装配与模板池：结构定义加载时就要读 `.nbt` 模板，缺了它们结构全部退化。
-        target_sources(${targetName} PRIVATE
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/Template.cpp
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateLoader.cpp
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/template/TemplateManager.cpp
@@ -522,26 +519,41 @@ function(mc_add_diff_probe targetSuffix source domain)
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*.cpp)
         list(FILTER _diff_feature_sources EXCLUDE REGEX "/src/server/world/gen/feature/template/")
         # 目录里有两种「不是独立编译单元」的文件，必须整份剔除：
-        #   1) 聚合单元（*Placers / *Decorators / *Generators / BlockPredicate），它们直接
-        #      #include 同目录的兄弟 .cpp；
-        #   2) 反过来被聚合单元包含的兄弟文件（只存在于树装饰器目录）。
-        # 两条规则同时生效才不会与兄弟文件重复定义，聚合单元本身也不需要——
-        # 结构装配只构造模板片段，从不解析树或巨型蘑菇的配置。
-        file(GLOB_RECURSE _diff_aggregate_units CONFIGURE_DEPENDS
-            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*Placers.cpp
-            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*Decorators.cpp
-            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/*Generators.cpp
-            ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/predicate/BlockPredicate.cpp)
-        list(REMOVE_ITEM _diff_feature_sources ${_diff_aggregate_units})
+        #   1) 聚合单元（形如 `#include "Xxx.cpp"` 的 .cpp），它们把兄弟实现直接包含进来；
+        #   2) 反过来被聚合单元包含的兄弟文件。
+        # 聚合单元与成员文件同时登记就会重复定义（ee 见 dup2）；只留其一即可。这里保留
+        # 成员文件、剔除聚合单元，理由有二：成员文件数量稳定，新增一个 placer 只需加文件；
+        # 而「看起来像聚合单元」的名字（*Placers/*Decorators/*Generators）不可靠——
+        # `CloudPlacerHelper.cpp` 这类只剩成员的目录里根本没有聚合单元。
+        #
+        # 聚合单元的识别靠扫描内容而非文件名：先找出所有含 `#include "*.cpp"` 的文件，
+        # 它们就是聚合单元；成员文件则取自这些 include 语句本身。
+        set(_diff_aggregate_units)
+        set(_diff_aggregated_members)
+        foreach(_diff_candidate ${_diff_feature_sources})
+            file(STRINGS ${_diff_candidate} _diff_candidate_lines REGEX "#include \"[A-Za-z0-9_]+\\.cpp\"")
+            if(_diff_candidate_lines)
+                list(APPEND _diff_aggregate_units ${_diff_candidate})
+                foreach(_diff_line ${_diff_candidate_lines})
+                    string(REGEX MATCH "\"([A-Za-z0-9_]+\\.cpp)\"" _diff_member "${_diff_line}")
+                    string(REPLACE "\"" "" _diff_member "${_diff_member}")
+                    get_filename_component(_diff_member_dir ${_diff_candidate} DIRECTORY)
+                    list(APPEND _diff_aggregated_members ${_diff_member_dir}/${_diff_member})
+                endforeach()
+            endif()
+        endforeach()
+        list(REMOVE_ITEM _diff_feature_sources ${_diff_aggregate_units} ${_diff_aggregated_members})
+        # 聚合单元整体登记一次：它们把成员实现包含进来，是这个目录唯一的「实现入口」。
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES ${_diff_aggregate_units})
         set(_diff_decorator_dir ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/decorator)
         list(REMOVE_ITEM _diff_feature_sources
             ${_diff_decorator_dir}/AttachToLogsDecorator.cpp
             ${_diff_decorator_dir}/PlaceOnGroundDecorator.cpp
             ${_diff_decorator_dir}/SimpleTreeDecorators.cpp)
-        target_sources(${targetName} PRIVATE ${_diff_feature_sources})
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES ${_diff_feature_sources})
         # 地物类型的注册表在解析树配置时会按名构造装饰器，因此装饰器目录必须整体编入。
         # 这三个文件不在任何聚合单元里，是独立的实现单元。
-        target_sources(${targetName} PRIVATE
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES
             ${_diff_decorator_dir}/TreeDecorator.cpp
             ${_diff_decorator_dir}/SimpleTreeDecorators.cpp
             ${_diff_decorator_dir}/TrunkVineDecorator.cpp
@@ -549,28 +561,17 @@ function(mc_add_diff_probe targetSuffix source domain)
             ${_diff_decorator_dir}/PlaceOnGroundDecorator.cpp)
         # 方块谓词的注册表与「是否需要加载区块」的实现住在 storage 流程里，其中一处又反向
         # 引用计分板数据管理器；计分板本身不在本探针的测试范围内，但链路上绕不开。
-        target_sources(${targetName} PRIVATE
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES
             ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardDataManager.cpp
             ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp)
         # 结构定义装配会就地构造各结构类型的对象（村庄、要塞、试炼密室……），这些实现在
         # feature/ 之外的 structures 子目录，必须一并收入。
         file(GLOB_RECURSE _diff_structure_sources CONFIGURE_DEPENDS
             ${CMAKE_SOURCE_DIR}/src/server/world/gen/structure/structures/*.cpp)
-        target_sources(${targetName} PRIVATE ${_diff_structure_sources})
-        target_link_libraries(${targetName} PRIVATE mc_server_storage)
+        set_property(GLOBAL APPEND PROPERTY MC_DIFF_EXTRA_SOURCES ${_diff_structure_sources})
+        set(PROBE_NEEDS_SERVER_STORAGE TRUE CACHE INTERNAL "probe needs mc_server_storage")
     endif()
 
-    if(WIN32)
-        target_link_libraries(${targetName} PRIVATE ws2_32)
-    endif()
-
-    # 顶层把 CMAKE_RUNTIME_OUTPUT_DIRECTORY 设为 bin/，多配置生成器（Ninja Multi-Config、
-    # Visual Studio）会自动再追加 <Config>/ 一层。这里不覆盖它，让所有可执行文件
-    # （服务端、mc_tests、probe）都按项目统一规则落在 bin/<Config>/；编排层按同一规则查找。
-    # 注意 RUNTIME_OUTPUT_DIRECTORY_<Config> 是**整体覆盖**而非叠加，设成 bin/<Config>/diff
-    # 反而会让 probe 与项目其它产物的布局不一致。
-
-    mc_copy_runtime_dlls(${targetName})
 endfunction()
 
 list(LENGTH MC_DIFF_PROBE_SUFFIXES MC_DIFF_PROBE_COUNT)
@@ -600,8 +601,18 @@ foreach(probeSuffix ${MC_DIFF_PROBE_SUFFIXES})
     math(EXPR MC_DIFF_PROBE_INDEX "${MC_DIFF_PROBE_INDEX} + 1")
 endforeach()
 
-# 聚合目标：`--target diff_probes` 一次构建全部 probe。
-add_custom_target(diff_probes)
+# 唯一可执行文件：全部能力编入同一个进程。runner_main.cpp 按第一个参数选择能力，
+# 各探针源文件在静态初始化期登记自己（probes/probe.hpp 的 MC_DIFF_DEFINE_PROBE）。
+add_executable(diff_runner
+    probes/runner_main.cpp
+    probes/probe_registry.cpp
+)
+target_include_directories(diff_runner PRIVATE
+    # probes/ 为根：probe 源码以 #include "<domain>.hpp" 表达私有头。
+    ${CMAKE_CURRENT_SOURCE_DIR}/probes
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_compile_definitions(diff_runner PRIVATE MC_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 math(EXPR MC_DIFF_PROBE_LAST "${MC_DIFF_PROBE_COUNT} - 1")
 foreach(index RANGE ${MC_DIFF_PROBE_LAST})
@@ -609,5 +620,41 @@ foreach(index RANGE ${MC_DIFF_PROBE_LAST})
     list(GET MC_DIFF_PROBE_SOURCES ${index} source)
     list(GET MC_DIFF_PROBE_DOMAINS ${index} domain)
     mc_add_diff_probe(${targetSuffix} ${source} ${domain})
-    add_dependencies(diff_probes diff_${targetSuffix})
 endforeach()
+
+# 附加源文件去重后一次性登记。同一文件被多个能力同时声明是常态（command_tree 与
+# structure_starts 都会通配 src/server 子树），重复进 target_sources 会让它编译两次、
+# 链接期 duplicate symbol。
+get_property(MC_DIFF_EXTRA_SOURCES GLOBAL PROPERTY MC_DIFF_EXTRA_SOURCES)
+if(MC_DIFF_EXTRA_SOURCES)
+    list(REMOVE_DUPLICATES MC_DIFF_EXTRA_SOURCES)
+    target_sources(diff_runner PRIVATE ${MC_DIFF_EXTRA_SOURCES})
+endif()
+
+# 链接只做一次。哪些能力需要额外的库/编译选项，在各自的分支里累积：
+#   MC_DIFF_NEEDS_SERVER_STORAGE —— command_tree 与 structure_starts 的世界生成链路
+#   MC_DIFF_NEEDS_ERRORLIMIT     —— 同上，链接错误过多时仍要看到全部符号
+target_link_libraries(diff_runner PRIVATE
+    mc_common
+    mc_bedrock_addon
+    mc_offset_allocator
+    nlohmann_json::nlohmann_json
+)
+# command_tree 与 structure_starts 都要跑真实的服务端链路，storage 的 OBJECT 库绕不开。
+if(MC_DIFF_NEEDS_SERVER_STORAGE OR MC_DIFF_NEEDS_ERRORLIMIT)
+    target_link_libraries(diff_runner PRIVATE mc_server_storage)
+endif()
+if(WIN32)
+    target_link_libraries(diff_runner PRIVATE ws2_32)
+endif()
+if(MC_DIFF_NEEDS_ERRORLIMIT)
+    target_link_options(diff_runner PRIVATE "-Xlinker" "/ERRORLIMIT:0")
+endif()
+
+# 顶层把 CMAKE_RUNTIME_OUTPUT_DIRECTORY 设为 bin/，多配置生成器会自动再追加 <Config>/
+# 一层；编排层按同一规则查找。RUNTIME_OUTPUT_DIRECTORY_<Config> 是整体覆盖，不要用。
+mc_copy_runtime_dlls(diff_runner)
+
+# 旧聚合目标：`--target diff_probes` 仍然可用（等价于构建 diff_runner）。
+add_custom_target(diff_probes)
+add_dependencies(diff_probes diff_runner)

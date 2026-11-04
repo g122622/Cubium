@@ -67,11 +67,15 @@ function execWithEnvironment(command: string, args: readonly string[]): void {
     execFileSync("cmd", ["/c", `call ${vsenv} >nul 2>&1 && ${line}`], { cwd: REPO_ROOT, stdio: "inherit" });
 }
 
-/** 构建指定探针（以及它们依赖的库目标）。 */
+/**
+ * 构建探针。
+ *
+ * 全部能力共用一个 `diff_runner` 目标：无论请求哪些能力，构建的是同一个可执行文件。
+ * 参数保留只是为了签名稳定（历史上每能力一个 target），不再决定构建目标。
+ */
 export function buildProbes(layout: ProjectLayout, probes?: readonly string[]): void {
-    const targets = probes === undefined || probes.length === 0
-        ? ["diff_probes"]
-        : [...new Set(probes.map((probe) => `diff_${probe}`))];
+    void probes;
+    const targets = ["diff_runner"];
     if (process.platform === "win32") {
         // configure.bat 的「非 build」分支把参数原样透传给 cmake，并在调用前注入 VS 环境。
         const configure = path.join(REPO_ROOT, "scripts", "configure.bat");

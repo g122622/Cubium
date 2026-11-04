@@ -276,6 +276,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("direction_nearest", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(direction_nearest, &writeList, &runLine)
 
 } // namespace mc::diff

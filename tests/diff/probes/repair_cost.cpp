@@ -221,6 +221,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("repair_cost", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(repair_cost, &writeList, &runLine)
 
 } // namespace mc::diff

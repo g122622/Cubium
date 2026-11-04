@@ -280,6 +280,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("trial_spawner_config", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(trial_spawner_config, &writeList, &runLine)
 
 } // namespace mc::diff

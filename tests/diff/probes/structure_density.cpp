@@ -244,6 +244,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("structure_density", nullptr, &runLine)
+MC_DIFF_DEFINE_PROBE(structure_density, nullptr, &runLine)
 
 } // namespace mc::diff

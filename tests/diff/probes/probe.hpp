@@ -38,12 +38,16 @@
  *
  * 协议（两个子命令）：
  *
- *   diff_<domain> list
+ *   diff_runner <domain> list
  *       输出该能力可枚举的全部单元（每个方块状态、每个物品……），每行一个 ID。
  *       编排层据此生成输入，从而保证两侧喂的是**同一集合**，而不是各自枚举一次。
  *
- *   diff_<domain> run <input.jsonl> <output.jsonl>
+ *   diff_runner <domain> run <input.jsonl> <output.jsonl>
  *       逐行读输入（JSON），每行产出一行结果（JSON），顺序与输入一致。
+ *
+ * 全部能力共用一个可执行文件：每个 probe 只提供自己的 `Probe` 常量，由链接期收集进
+ * {@link registeredProbes()}。此前每个能力单独链接一份 mc_common，257 个可执行文件
+ * 各自携带 40-90 MB 的调试信息（合计 11 GB 的 .pdb），且改一行公共代码要重链接 257 次。
  *
  * 确定性要求：同一输入必须永远产出同一输出。凡涉及无序容器、随机数、时间、地址，
  * probe 必须在写入前自行收敛（排序、固定种子、去掉地址），否则差分没有意义。
@@ -89,31 +93,60 @@ struct Probe {
 };
 
 /**
- * @brief 由各 probe 提供的实现入口（每个 probe 源文件各自定义）。
+ * @brief 把 probe 登记进全局注册表。
  *
- * 使用宏而非 extern 函数名，是为了让 runner_main.cpp 能按 MC_DIFF_PROBE_DOMAIN
- * 选择能力，新增能力时只改 CMake 的能力清单，不必再改 runner_main.cpp。
+ * 各 probe 源文件定义自己的 `Probe` 常量并构造一个静态 registrar；`runner_main.cpp`
+ * 在启动时遍历注册表按域名查找能力。这样全部能力共用同一个可执行文件，
+ * 新增能力只需在 CMake 清单里加一行，不必改 `runner_main.cpp`。
  *
  * 宏不自己开 namespace：各 probe 源文件在 `namespace mc::diff` 内调用它。
  */
-#define MC_DIFF_DEFINE_PROBE(domainName, listFunc, runLineFunc)                \
-    const Probe& currentProbe()                                                \
-    {                                                                          \
-        static const Probe probe{#domainName, listFunc, runLineFunc, nullptr}; \
-        return probe;                                                          \
-    }
+class ProbeRegistrar {
+public:
+    explicit ProbeRegistrar(const Probe& probe);
+};
+
+/** 构造顺序确定的全部已登记 probe（按域名排序）。 */
+[[nodiscard]] const std::vector<const Probe*>& registeredProbes();
+
+/** 按域名查找；找不到返回 nullptr。 */
+[[nodiscard]] const Probe* findProbe(std::string_view domain);
 
 /**
- * @brief 同上，但带退出清理回调。
+ * @brief 声明一个能力领域的注册对象。
+ *
+ * `id` 由调用方显式给出，**不使用 `__LINE__`**：`__LINE__` 作为实参传入内层宏时
+ * 会先被展开成行号，两个不同文件里同名的注册对象本身不冲突（都带内链接），但
+ * 调试时符号名读出能力名远比读出行号有用。
+ *
+ * 域名同样只传**符号**（不经 `#` 字符串化）：某些 clang 版本对「实参本身就是
+ * 字符串字面量、再经 `#`」的组合会多套一层转义，产出 `"\"aabb_ops\""`，使
+ * `diff_runner aabb_ops list` 查表失败。改由 {@link MC_DIFF_DOMAIN} 把符号摇身
+ * 变成字符串：`aabb_ops` → `"aabb_ops"`，全程只经一次 `STR` 展开，绕开该问题。
+ */
+#define MC_DIFF_STR_INNER(name) #name
+#define MC_DIFF_STR(name) MC_DIFF_STR_INNER(name)
+
+#define MC_DIFF_DECLARE_PROBE(id, listFunc, runLineFunc, shutdownFunc)                    \
+    constexpr Probe diffProbe_##id{MC_DIFF_STR(id), listFunc, runLineFunc, shutdownFunc}; \
+    static const ProbeRegistrar diffRegistrar_##id(diffProbe_##id);
+
+/**
+ * @brief 定义一个能力领域（无清理回调）。
+ *
+ * 用法：`MC_DIFF_DEFINE_PROBE(aabb_ops, &writeList, &runLine)`，必须写在
+ * `namespace mc::diff` 内、文件作用域（不能放在匿名 namespace 里）。
+ * 域名就是 `id` 本身，不需要再写一遍字符串。
+ */
+#define MC_DIFF_DEFINE_PROBE(id, listFunc, runLineFunc) MC_DIFF_DECLARE_PROBE(id, listFunc, runLineFunc, nullptr)
+
+/**
+ * @brief 定义一个能力领域（带退出清理回调）。
  *
  * 适用于持有实体、世界等需要显式释放的探针；`shutdownFunc` 在 `main` 的每条
  * 退出路径上都会被调用一次。
  */
-#define MC_DIFF_DEFINE_PROBE_WITH_SHUTDOWN(domainName, listFunc, runLineFunc, shutdownFunc) \
-    const Probe& currentProbe()                                                             \
-    {                                                                                       \
-        static const Probe probe{#domainName, listFunc, runLineFunc, shutdownFunc};         \
-        return probe;                                                                       \
-    }
+#define MC_DIFF_DEFINE_PROBE_WITH_SHUTDOWN(id, listFunc, runLineFunc, shutdownFunc) \
+    MC_DIFF_DECLARE_PROBE(id, listFunc, runLineFunc, shutdownFunc)
 
 } // namespace mc::diff

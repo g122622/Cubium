@@ -221,6 +221,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("attribute_modifier_apply", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(attribute_modifier_apply, &writeList, &runLine)
 
 } // namespace mc::diff

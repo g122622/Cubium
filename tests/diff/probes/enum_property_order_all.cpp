@@ -296,6 +296,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("enum_property_order_all", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(enum_property_order_all, &writeList, &runLine)
 
 } // namespace mc::diff

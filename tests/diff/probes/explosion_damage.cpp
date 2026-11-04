@@ -160,6 +160,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("explosion_damage", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(explosion_damage, &writeList, &runLine)
 
 } // namespace mc::diff

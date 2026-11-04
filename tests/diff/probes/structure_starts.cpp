@@ -356,6 +356,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("structure_starts", nullptr, &runLine)
+MC_DIFF_DEFINE_PROBE(structure_starts, nullptr, &runLine)
 
 } // namespace mc::diff

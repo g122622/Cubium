@@ -50,6 +50,9 @@ import { executableObjects, targetDependencies } from "../../tools/ninja.ts";
 import type { ProjectLayout } from "./layout.ts";
 import { isInside, probeArtifact, REPO_ROOT } from "./layout.ts";
 
+/** 共用探针可执行文件在依赖缓存里的键（历史上这里是能力名）。 */
+const SHARED_PROBE_KEY = "diff_runner";
+
 /**
  * 第三方源码的判定：探针静态链接了它们（quickjs 经 mc_bedrock_addon、部分头文件被 CMake 复制
  * 进构建目录），但它们由 CMake 的 FetchContent 或 vcpkg 拉取，不由本仓库修改。计入仓库依赖
@@ -181,13 +184,19 @@ export function buildGraph(inputs: GraphInputs): Map<string, DependencyEntry> {
         normalized.set(object, files);
         return files;
     };
-    const expansion = (probe: string): { objects: readonly string[]; missing: readonly string[] } => {
-        const cached = inputs.objects?.get(probe);
-        return cached ?? executableObjects(model, probeArtifact(probe, layout));
+    // 全部能力共用一个 diff_runner，链接闭包对所有能力相同；建图时只展开一次。
+    const expansion = (): { objects: readonly string[]; missing: readonly string[] } => {
+        const cached = inputs.objects?.get(SHARED_PROBE_KEY);
+        return cached ?? executableObjects(model, probeArtifact(layout));
     };
-    /** 探针自己的编译单元：`.../diff_<domain>.dir/<配置>/probes/`。路径起点随生成器变化，用包含判断。 */
+    /**
+     * 探针自己的编译单元：`.../diff_runner.dir/<配置>/probes/<domain>.cpp.obj`。
+     *
+     * 共用可执行文件后，目标文件按**源文件名**归属能力——改动 aabb_ops.cpp 只让 aabb_ops
+     * 重新运行。返回 undefined 表示共享单元（probe.hpp、runner_main.cpp 等），算所有能力的依赖。
+     */
     const probeSpecific = (object: string): string | undefined => {
-        const match = /tests\/diff\/CMakeFiles\/diff_([A-Za-z0-9_]+)\.dir\/[^/]+\/probes\//.exec(object);
+        const match = /tests\/diff\/CMakeFiles\/diff_runner\.dir\/[^/]+\/probes\/([A-Za-z0-9_]+)\.cpp\.(obj|o)$/.exec(object);
         return match?.[1];
     };
     const shared = new Set<string>(SHARED_INPUTS);
@@ -198,9 +207,9 @@ export function buildGraph(inputs: GraphInputs): Map<string, DependencyEntry> {
         shared.add(file);
     }
     for (const [name, probe] of probes) {
-        const expanded = expansion(probe);
+        const expanded = expansion();
         if (expanded.missing.length > 0) {
-            throw new GraphUnavailable(`${probeArtifact(probe, layout)} 引用的静态库在构建图里缺失：${expanded.missing.join("、")}`);
+            throw new GraphUnavailable(`${probeArtifact(layout)} 引用的静态库在构建图里缺失：${expanded.missing.join("、")}`);
         }
         const files = new Set<string>(shared);
         const oracle = oracles.get(name);
@@ -227,7 +236,7 @@ export function buildGraph(inputs: GraphInputs): Map<string, DependencyEntry> {
         }
         entries.set(name, {
             files: [...files].sort(),
-            artifacts: [probeArtifact(probe, layout)],
+            artifacts: [probeArtifact(layout)],
             modules: inputs.previous?.get(name)?.modules ?? [],
         });
     }

@@ -171,11 +171,13 @@ export class HarnessSession implements HarnessContext {
 
     /** 探针的 `list` 子命令：枚举被测侧的单元。 */
     listProbeUnits(probe: string): string[] {
-        const executable = probeExecutable(probe, this.layout);
+        const executable = probeExecutable(this.layout);
         // 与 `run` 用同一套环境变量：有些探针的 `list` 要读数据包才知道自己有哪些单元
         // （配方按文件枚举、战利品表按目录扫描）。此前这里没传，这类探针的 `list` 会以
         // 「MC_DIFF_VANILLA_DATAPACK 未设置」失败，看起来像能力本身坏了。
-        const output = execFileSync(executable, ["list"], {
+        const output = execFileSync(executable, [probe, "list"], {
+            // 与 `run` 同样固定工作目录，见 runProbe 的说明。
+            cwd: this.outputDirectory(probe),
             encoding: "utf8",
             env: this.environment,
             maxBuffer: 1024 * 1024 * 1024,
@@ -480,8 +482,11 @@ function produceProbeOutput(
     fs.writeFileSync(inputsPath, `${inputs.join("\n")}\n`);
     const outputPath = path.join(workDir, "probe_outputs.jsonl");
     fs.rmSync(outputPath, { force: true });
-    const executable = probeExecutable(declaration.probe, session.layout);
-    const result = spawnSync(executable, ["run", inputsPath, outputPath], {
+    const executable = probeExecutable(session.layout);
+    // 工作目录必须显式给定：不指定时子进程继承编排层的工作目录（仓库根），凡是会初始化
+    // 游戏目录的探针都会据此在仓库根下建出 `logs/`，把游离日志留在工作树里。
+    const result = spawnSync(executable, [declaration.probe, "run", inputsPath, outputPath], {
+        cwd: workDir,
         encoding: "utf8",
         env: session.environment,
         maxBuffer: 256 * 1024 * 1024,

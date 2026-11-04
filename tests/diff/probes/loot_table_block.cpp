@@ -121,6 +121,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE_WITH_SHUTDOWN("loot_table_block", &writeList, &runLine, &lootprobe::releaseEnvironment)
+MC_DIFF_DEFINE_PROBE_WITH_SHUTDOWN(loot_table_block, &writeList, &runLine, &lootprobe::releaseEnvironment)
 
 } // namespace mc::diff

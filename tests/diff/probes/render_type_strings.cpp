@@ -220,6 +220,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("render_type_strings", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(render_type_strings, &writeList, &runLine)
 
 } // namespace mc::diff

@@ -255,6 +255,6 @@ std::string runLine(std::string_view inputLine)
 
 } // namespace
 
-MC_DIFF_DEFINE_PROBE("enchantment_storage", &writeList, &runLine)
+MC_DIFF_DEFINE_PROBE(enchantment_storage, &writeList, &runLine)
 
 } // namespace mc::diff
