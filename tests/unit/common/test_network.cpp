@@ -246,6 +246,28 @@ TEST(PacketDeserializer, HasRemaining)
     EXPECT_FALSE(deserializer.hasRemaining(1));
 }
 
+// 空输入的基址必须是可安全用于零长度拷贝/范围构造的非空指针：空 vector 的 data()
+// 与 (nullptr, 0) 缓冲区都允许为空，直接交给 vector 范围构造、std::string 构造或
+// std::memcpy 会触发 UBSan "null pointer passed as argument"（fuzz_chunk_wire 实测）。
+TEST(PacketDeserializer, EmptyInputReadsZeroLengthSafely)
+{
+    const std::vector<u8> empty;
+    PacketDeserializer fromVector(empty);
+    auto bytes = fromVector.readBytes(0);
+    ASSERT_TRUE(bytes.success());
+    EXPECT_TRUE(bytes.value().empty());
+    EXPECT_EQ(fromVector.currentPosition() - fromVector.data(), 0);
+
+    PacketDeserializer fromNull(nullptr, 0);
+    auto nullBytes = fromNull.readBytes(0);
+    ASSERT_TRUE(nullBytes.success());
+    EXPECT_TRUE(nullBytes.value().empty());
+    auto intoResult = fromNull.readBytesInto(nullptr, 0);
+    EXPECT_TRUE(intoResult.success());
+    EXPECT_EQ(fromNull.remaining(), 0u);
+    EXPECT_FALSE(fromNull.readU8().success());
+}
+
 // ============================================================================
 // VarInt/VarLong 测试
 // ============================================================================

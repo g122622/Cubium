@@ -100,6 +100,38 @@ FireBlock::FireBlock(const BlockProperties& properties, i32 fireDamage)
     // 即贴地只有 1 像素厚的一层，不是整格。此前误用整格立方体，火焰因此被当成完全挡光
     // （lightBlock=1），实际原版是 0——火焰往上不遮天空光，也不额外衰减光照。
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+
+    // 预计算 32 种连接组合的形状。每个连接方向是一根 1 像素厚、贯穿整格的薄板；
+    // 掩码为 0（四周与上方都无连接）时退回底面薄层 m_shape。
+    constexpr f32 T = 0.0625f;
+    for (std::size_t mask = 0; mask < m_shapesBySides.size(); ++mask) {
+        if (mask == 0) {
+            m_shapesBySides[mask] = m_shape;
+            continue;
+        }
+        CollisionShape shape = CollisionShape::empty();
+        if ((mask & (1u << 0)) != 0) {
+            shape = CollisionShape::combine(
+                shape, CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, T), CollisionShape::CombineOp::OR);
+        }
+        if ((mask & (1u << 1)) != 0) {
+            shape = CollisionShape::combine(
+                shape, CollisionShape::box(1.0f - T, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f), CollisionShape::CombineOp::OR);
+        }
+        if ((mask & (1u << 2)) != 0) {
+            shape = CollisionShape::combine(
+                shape, CollisionShape::box(0.0f, 0.0f, 1.0f - T, 1.0f, 1.0f, 1.0f), CollisionShape::CombineOp::OR);
+        }
+        if ((mask & (1u << 3)) != 0) {
+            shape = CollisionShape::combine(
+                shape, CollisionShape::box(0.0f, 0.0f, 0.0f, T, 1.0f, 1.0f), CollisionShape::CombineOp::OR);
+        }
+        if ((mask & (1u << 4)) != 0) {
+            shape = CollisionShape::combine(
+                shape, CollisionShape::box(0.0f, 1.0f - T, 0.0f, 1.0f, 1.0f, 1.0f), CollisionShape::CombineOp::OR);
+        }
+        m_shapesBySides[mask] = shape;
+    }
 }
 
 i32 FireBlock::getAge(const BlockState& state) const
@@ -461,8 +493,26 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
 
 const CollisionShape& FireBlock::getShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    return m_shape;
+    // 按六个连接属性查预计算表。原版每个连接方向都是一根 1 像素厚的全尺寸薄板，
+    // 而不是恒定返回底面薄层。
+    std::size_t mask = 0;
+    if (state.get(BlockStateProperties::NORTH())) {
+        mask |= 1u << 0;
+    }
+    if (state.get(BlockStateProperties::EAST())) {
+        mask |= 1u << 1;
+    }
+    if (state.get(BlockStateProperties::SOUTH())) {
+        mask |= 1u << 2;
+    }
+    if (state.get(BlockStateProperties::WEST())) {
+        mask |= 1u << 3;
+    }
+    if (state.get(BlockStateProperties::UP())) {
+        mask |= 1u << 4;
+    }
+    MC_ASSERT(mask < m_shapesBySides.size());
+    return m_shapesBySides[mask];
 }
 
 const CollisionShape& FireBlock::getCollisionShape(const BlockState& state) const

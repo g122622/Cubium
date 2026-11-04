@@ -93,6 +93,7 @@ void registerDeepslateBlocks()
     // 深板岩 - RotatedPillarBlock，有轴属性
     DeepslateBlocks::DEEPSLATE = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:deepslate"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(3.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -104,6 +105,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::COBBLED_DEEPSLATE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cobbled_deepslate"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -115,6 +117,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::POLISHED_DEEPSLATE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_deepslate"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -126,6 +129,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -137,6 +141,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_TILES =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:deepslate_tiles"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -148,6 +153,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::CHISELED_DEEPSLATE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_deepslate"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -159,6 +165,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::CRACKED_DEEPSLATE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cracked_deepslate_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -170,6 +177,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::CRACKED_DEEPSLATE_TILES =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cracked_deepslate_tiles"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -181,6 +189,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::REINFORCED_DEEPSLATE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:reinforced_deepslate"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(55.0f)
                 .resistance(1200.0f)
                 .soundType(BlockSoundTypes::DEEPSLATE)
@@ -199,6 +208,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_COAL_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_coal_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -212,6 +222,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_IRON_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_iron_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -225,6 +236,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_COPPER_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_copper_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -238,6 +250,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_GOLD_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_gold_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -251,6 +264,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_DIAMOND_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_diamond_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -264,6 +278,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_LAPIS_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_lapis_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -277,6 +292,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_EMERALD_ORE =
         &registry.registerBlock<blocks::DropExperienceBlock>(ResourceLocation("minecraft:deepslate_emerald_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -290,6 +306,7 @@ void registerDeepslateBlocks()
     DeepslateBlocks::DEEPSLATE_REDSTONE_ORE =
         &registry.registerBlock<blocks::RedstoneOreBlock>(ResourceLocation("minecraft:deepslate_redstone_ore"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(4.5f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -304,7 +321,8 @@ void registerDeepslateBlocks()
                                                 .harvestTool(HarvestTool::Pickaxe)
                                                 .harvestLevel(0)
                                                 .requiresTool()
-                                                .soundType(BlockSoundTypes::DEEPSLATE);
+                                                .soundType(BlockSoundTypes::DEEPSLATE)
+                                                .instrument(BlockProperties::Instrument::BaseDrum);
 
     DeepslateBlocks::COBBLED_DEEPSLATE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:cobbled_deepslate_stairs"),
@@ -324,7 +342,8 @@ void registerDeepslateBlocks()
                                                  .harvestTool(HarvestTool::Pickaxe)
                                                  .harvestLevel(0)
                                                  .requiresTool()
-                                                 .soundType(BlockSoundTypes::POLISHED_DEEPSLATE);
+                                                 .soundType(BlockSoundTypes::POLISHED_DEEPSLATE)
+                                                 .instrument(BlockProperties::Instrument::BaseDrum);
 
     DeepslateBlocks::POLISHED_DEEPSLATE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_deepslate_stairs"),
@@ -344,7 +363,8 @@ void registerDeepslateBlocks()
                                               .harvestTool(HarvestTool::Pickaxe)
                                               .harvestLevel(0)
                                               .requiresTool()
-                                              .soundType(BlockSoundTypes::DEEPSLATE_BRICKS);
+                                              .soundType(BlockSoundTypes::DEEPSLATE_BRICKS)
+                                              .instrument(BlockProperties::Instrument::BaseDrum);
 
     DeepslateBlocks::DEEPSLATE_BRICK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:deepslate_brick_stairs"),
@@ -364,7 +384,8 @@ void registerDeepslateBlocks()
                                              .harvestTool(HarvestTool::Pickaxe)
                                              .harvestLevel(0)
                                              .requiresTool()
-                                             .soundType(BlockSoundTypes::DEEPSLATE_TILES);
+                                             .soundType(BlockSoundTypes::DEEPSLATE_TILES)
+                                             .instrument(BlockProperties::Instrument::BaseDrum);
 
     DeepslateBlocks::DEEPSLATE_TILE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:deepslate_tile_stairs"),
@@ -381,6 +402,7 @@ void registerDeepslateBlocks()
     // 平滑玄武岩
     DeepslateBlocks::SMOOTH_BASALT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_basalt"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.25f)
             .resistance(4.2f)
             .harvestTool(HarvestTool::Pickaxe)

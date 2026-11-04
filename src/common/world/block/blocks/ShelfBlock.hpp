@@ -366,6 +366,8 @@ private:
     // ========== 状态容器 ==========
 
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+    /// 寻路通行判定：形状不完整不等于可以穿过。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

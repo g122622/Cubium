@@ -196,7 +196,7 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override
     {
-        return height() * 0.35f;
+        return 0.175f;
     }
 
     // ========== 翅膀拍打 ==========

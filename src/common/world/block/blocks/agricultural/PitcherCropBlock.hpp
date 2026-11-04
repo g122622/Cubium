@@ -114,6 +114,8 @@ public:
      * 与 vanilla PitcherCropBlock.getStateForPlacement 一致：无视放置上下文恒返回默认状态
      * （AGE=0、HALF=Lower）。种子物品经 BlockItem::getStateForPlacement 委托到本方法。
      */
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override;
+
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     /**

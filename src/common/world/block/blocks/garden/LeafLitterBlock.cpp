@@ -68,8 +68,6 @@ LeafLitterBlock::LeafLitterBlock(const BlockProperties& properties)
 
     // 默认状态：朝北、1段
     setDefaultState(defaultState().with(FACING(), Direction::North).with(SEGMENT_AMOUNT(), 1));
-
-    _initShapes();
 }
 
 // ========== 放置逻辑 ==========
@@ -188,124 +186,47 @@ const BlockState& LeafLitterBlock::mirror(const BlockState& state, Mirror mirror
 
 const CollisionShape& LeafLitterBlock::getShape(const BlockState& state) const
 {
-    Direction facing = _getFacing(state);
-    i32 amount = _getAmount(state);
+    // 原版 `leaf_litter` 的 getShape 由 (FACING, SEGMENT_AMOUNT) 共同决定：
+    // **从 FACING 指向的那个角开始铺开**。逐条实测（forAllBoxes）：
+    //
+    //   north  n1 -> [0,0,0 -> .5,.06,.5]      n2 -> [0,0,0 -> .5,.06,1]    角在 (0,0)，沿 +z 铺
+    //   east   n1 -> [.5,0,0 -> 1,.06,.5]      n2 -> [0,0,0 -> 1,.06,.5]    角在 (1,0)，沿 +x 铺
+    //   south  n1 -> [.5,0,.5 -> 1,.06,1]      n2 -> [.5,0,0 -> 1,.06,1]    角在 (1,1)，沿 -z 铺
+    //   west   n1 -> [0,0,.5 -> .5,.06,1]      n2 -> [0,0,.5 -> 1,.06,1]    角在 (0,1)，沿 +x 铺
+    //
+    // n3 / n4 一律满格。此前用的是四象限映射，与「从一角铺开」的语义无关。
+    const i32 amount = _getAmount(state);
+    const Direction facing = _getFacing(state);
+    MC_ASSERT(amount >= 1 && amount <= 4);
 
-    // 将 (facing, amount) 映射到索引
-    i32 facingIndex = 0;
-    switch (facing) {
-        case Direction::North:
-            facingIndex = 0;
-            break;
-        case Direction::East:
-            facingIndex = 1;
-            break;
-        case Direction::South:
-            facingIndex = 2;
-            break;
-        case Direction::West:
-            facingIndex = 3;
-            break;
-        default:
-            facingIndex = 0;
-            break;
-    }
-
-    i32 index = facingIndex * 4 + (amount - 1);
-    MC_ASSERT_RELEASE(index >= 0 && index < static_cast<i32>(m_shapes.size()));
-    return m_shapes[index];
-}
-
-// ========== 私有方法 ==========
-
-void LeafLitterBlock::_initShapes()
-{
-    // 预计算所有 4x4=16 种形状
-    m_shapes.resize(16);
-
-    static constexpr Direction FACINGS[4] = {
-        Direction::North,
-        Direction::East,
-        Direction::South,
-        Direction::West,
+    struct Entry {
+        Direction facing;
+        i32 amount;
+        CollisionShape shape;
     };
 
-    for (i32 facingIdx = 0; facingIdx < 4; ++facingIdx) {
-        for (i32 amount = 1; amount <= 4; ++amount) {
-            i32 index = facingIdx * 4 + (amount - 1);
-            m_shapes[index] = _calculateShape(FACINGS[facingIdx], amount);
+    static const std::array<Entry, 8> entries = {{
+        {Direction::North, 1, CollisionShape::box(0.0f, 0.0f, 0.0f, 0.5f, 0.0625f, 0.5f)},
+        {Direction::North, 2, CollisionShape::box(0.0f, 0.0f, 0.0f, 0.5f, 0.0625f, 1.0f)},
+        {Direction::East, 1, CollisionShape::box(0.5f, 0.0f, 0.0f, 1.0f, 0.0625f, 0.5f)},
+        {Direction::East, 2, CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 0.5f)},
+        {Direction::South, 1, CollisionShape::box(0.5f, 0.0f, 0.5f, 1.0f, 0.0625f, 1.0f)},
+        {Direction::South, 2, CollisionShape::box(0.5f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f)},
+        {Direction::West, 1, CollisionShape::box(0.0f, 0.0f, 0.5f, 0.5f, 0.0625f, 1.0f)},
+        {Direction::West, 2, CollisionShape::box(0.0f, 0.0f, 0.5f, 1.0f, 0.0625f, 1.0f)},
+    }};
+    static const CollisionShape fullShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.0625f, 1.0f);
+
+    if (amount >= 3) {
+        return fullShape;
+    }
+    for (const Entry& entry : entries) {
+        if (entry.facing == facing && entry.amount == amount) {
+            return entry.shape;
         }
     }
-}
-
-CollisionShape LeafLitterBlock::_calculateShape(Direction facing, i32 amount)
-{
-    // 枯叶形状：每个枯叶段为 8x1x8 像素盒子（高度 1/16）
-    // 基础盒子 box(0,0,0, 8, height, 8) 旋转水平方向后得到各朝向的段0，
-    // 然后逆时针旋转90度叠加段1、段2、段3。
-    static constexpr f32 HEIGHT = 1.0f / 16.0f;
-
-    struct Box {
-        f32 x1, y1, z1, x2, y2, z2;
-    };
-
-    // 各朝向的段位置（通过旋转 NORTH 的段坐标得到）
-    static constexpr Box SEGMENTS[4][4] = {
-        // North: 段0(NW), 段1(SW), 段2(SE), 段3(NE)
-        {{0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f}},
-        // East: 段0(NE), 段1(NW), 段2(SW), 段3(SE)
-        {{0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f}},
-        // South: 段0(SE), 段1(NE), 段2(NW), 段3(SW)
-        {{0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f}},
-        // West: 段0(SW), 段1(SE), 段2(NE), 段3(NW)
-        {{0.0f, 0.0f, 0.5f, 0.5f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.5f, 1.0f, HEIGHT, 1.0f},
-            {0.5f, 0.0f, 0.0f, 1.0f, HEIGHT, 0.5f},
-            {0.0f, 0.0f, 0.0f, 0.5f, HEIGHT, 0.5f}},
-    };
-
-    i32 facingIdx = 0;
-    switch (facing) {
-        case Direction::North:
-            facingIdx = 0;
-            break;
-        case Direction::East:
-            facingIdx = 1;
-            break;
-        case Direction::South:
-            facingIdx = 2;
-            break;
-        case Direction::West:
-            facingIdx = 3;
-            break;
-        default:
-            facingIdx = 0;
-            break;
-    }
-
-    // 构建形状：叠加各个段的盒子
-    CollisionShape shape = CollisionShape::box(SEGMENTS[facingIdx][0].x1,
-        SEGMENTS[facingIdx][0].y1,
-        SEGMENTS[facingIdx][0].z1,
-        SEGMENTS[facingIdx][0].x2,
-        SEGMENTS[facingIdx][0].y2,
-        SEGMENTS[facingIdx][0].z2);
-
-    for (i32 i = 1; i < amount; ++i) {
-        const Box& seg = SEGMENTS[facingIdx][i];
-        shape.addBox(seg.x1, seg.y1, seg.z1, seg.x2, seg.y2, seg.z2);
-    }
-
-    return shape;
+    MC_ASSERT_RELEASE_MSG(false, "leaf_litter: no shape for the given facing/amount");
+    return fullShape;
 }
 
 i32 LeafLitterBlock::_getAmount(const BlockState& state) const

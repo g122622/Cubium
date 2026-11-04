@@ -166,7 +166,6 @@ private:
      * - 每增加一个 AMOUNT，逆时针旋转90度叠加一个段
      * - 共 4x4=16 种形状
      */
-    void _initShapes();
 
     /**
      * @brief 计算指定朝向和数量的形状

@@ -207,6 +207,10 @@ private:
     /// 预计算的形状缓存
     std::array<CollisionShape, 162> m_shapes; // 2(up) * 3(north) * 3(east) * 3(south) * 3(west)
 
+    /// 预计算的**碰撞**形状缓存。与 `m_shapes` 结构相同，但所有 Y 上限统一拉到 1.5，
+    /// 让玩家能贴墙站立。原版墙的外形只有 0.875/1.0 高，碰撞形状却高到 1.5。
+    std::array<CollisionShape, 162> m_collisionShapes;
+
     /// 墙柱测试形状: 中心2x2像素的柱形区域 (7/16, 0, 7/16) -> (9/16, 1, 9/16)
     /// 墙柱测试形状: 中心2x2像素的柱形区域 (7/16, 0, 7/16) -> (9/16, 1, 9/16)
     static VoxelShape s_testShapePost;
@@ -214,6 +218,8 @@ private:
     /// 墙臂测试形状: 每个方向对应一个2x16x9像素的墙臂区域
     /// 北面 (旋转前): (7/16, 0, 0) -> (9/16, 1, 9/16)
     static std::map<Direction, VoxelShape> s_testShapesWall;
+    /// 墙在三种寻路类型下都不可通行：墙柱与侧臂都不是可穿过的空间。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

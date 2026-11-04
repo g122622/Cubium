@@ -66,12 +66,36 @@ const CollisionShape& _skullShape()
     return shape;
 }
 
-/// 猪灵站立头颅形状：SHAPE_PIGLIN = column(10, 0, 8)，比普通头颅宽 2 像素
+/// 猪灵站立头颅形状：原版实测 box(0.1875, 0, 0.1875 -> 0.8125, 0.5, 0.8125)。
+/// X 与 Z 都是 10 像素宽（3..13），高 8 像素。此前 Z 只有 8 像素（4..12）。
 const CollisionShape& _piglinSkullShape()
 {
-    // column(10, 0, 8)：10×10 像素居中、高 8 像素，即 x/z 3..13。
     static const CollisionShape shape = CollisionShape::fromPixelBox(3.0f, 0.0f, 3.0f, 13.0f, 8.0f, 13.0f);
     return shape;
+}
+
+/// 构造墙壁头颅的形状表（按 North/South/West/East 顺序，占据靠墙一侧 8/16 深度）
+void _buildWallShapes(CollisionShape out[4], f32 widthPixels)
+{
+    // 原版墙壁头颅形状（实测 forAllBoxes）：
+    //
+    //   北向: box(0.25, 0.25, 0.5 -> 0.75, 0.75, 1.0)
+    //
+    // 即宽度居中、**Y 也居中**（4..12 像素）、深度占据靠墙一侧的一半。墙上的头颅朝向
+    // 与站立时一致，无需旋转 Y。
+    //
+    // 此前 Y 范围写成 8..16 像素（贴顶），头颅比原版高出一半的位置。
+    const f32 half = widthPixels / 2.0f / 16.0f;
+    const f32 cx = 0.5f;
+    constexpr f32 yMin = 4.0f / 16.0f;
+    constexpr f32 yMax = 12.0f / 16.0f;
+    // 朝向与占据侧的对应（依据原版实测）：
+    //   北向 -> Z 靠 1 侧；南向 -> Z 靠 0 侧；西向 -> X 靠 1 侧；东向 -> X 靠 0 侧
+    // 头颅的「面朝」方向与它贴附的墙面相反，因此占据的是远离 FACING 的那一半。
+    out[0] = CollisionShape::box(cx - half, yMin, 0.5f, cx + half, yMax, 1.0f); // North
+    out[1] = CollisionShape::box(cx - half, yMin, 0.0f, cx + half, yMax, 0.5f); // South
+    out[2] = CollisionShape::box(0.5f, yMin, cx - half, 1.0f, yMax, cx + half); // West
+    out[3] = CollisionShape::box(0.0f, yMin, cx - half, 0.5f, yMax, cx + half); // East
 }
 
 /// 方向到形状表下标（水平方向）
@@ -88,41 +112,6 @@ i32 _facingIndex(Direction facing)
             return 3;
         default:
             return 0;
-    }
-}
-
-/// 构造墙壁头颅的形状表（按 North/South/West/East 顺序）
-///
-/// 原版：Shapes.rotateHorizontal(block_base)，block_base 由调用方给出。
-/// boxZ(width, y1, y2) 得到 x 居中宽 width、y 4..12、z 8..16 的盒子，
-/// 即 NORTH 档基准本身；旋转约定把 (x, z) 映射为 (1 - z, x)。
-///
-/// @param baseShape NORTH 朝向的基准形状（贴 +Z 侧）
-/// @param out 输出形状表
-void _buildWallShapes(const CollisionShape& baseShape, CollisionShape out[4])
-{
-    for (i32 quarterTurns = 0; quarterTurns < 4; ++quarterTurns) {
-        CollisionShape rotated = CollisionShape::empty();
-        for (const auto& b : baseShape.boxes()) {
-            f32 x0 = b.minX;
-            f32 x1 = b.maxX;
-            f32 z0 = b.minZ;
-            f32 z1 = b.maxZ;
-            for (i32 i = 0; i < quarterTurns; ++i) {
-                const f32 nx0 = 1.0f - z1;
-                const f32 nx1 = 1.0f - z0;
-                z0 = x0;
-                z1 = x1;
-                x0 = nx0;
-                x1 = nx1;
-            }
-            rotated.addBox(x0, b.minY, z0, x1, b.maxY, z1);
-        }
-        // 旋转 0 档即 NORTH 基准形状（贴 +Z 侧），此后每档再顺时针转 90 度，
-        // 依次得到 EAST / SOUTH / WEST。
-        constexpr Direction kFacingByTurn[4] = {
-            Direction::North, Direction::East, Direction::South, Direction::West};
-        out[_facingIndex(kFacingByTurn[quarterTurns])] = rotated;
     }
 }
 
@@ -259,10 +248,10 @@ AbstractSkullBlock::AbstractSkullBlock(SkullType type, const BlockProperties& pr
     : Block(properties)
     , m_type(type)
 {
-    // 头颅的乐器：音符盒放在其下方时演奏对应的生物头颅音色。
-    // 对齐 vanilla Blocks.SKULL 等注册时的 .instrument(NoteBlockInstrument.SKELETON/ZOMBIE/...)
-    // 与 .instrument(NoteBlockInstrument.CUSTOM)（玩家头）；两者均为 worksAboveNoteBlock 类。
-    setNonVirtualInstrument(_instrumentForSkullType(type));
+    // 乐器**只在站立头颅上设置**，见 SkullBlock 的构造函数：原版只有 `Blocks.SKELETON_SKULL`
+    // 这类站立头颅带 `.instrument(...)`，墙上的头颅（`*_wall_head` / `*_wall_skull`）
+    // 是普通方块，音符盒在它们上方演奏的是默认的竖琴，不是生物叫声。
+    // 早期写在这里，于是墙挂头颅也继承了生物乐器。
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -323,6 +312,12 @@ SkullBlock::SkullBlock(SkullType type, const BlockProperties& properties)
     , m_shape(_skullShape())
     , m_piglinShape(_piglinSkullShape())
 {
+    // 站立头颅的乐器：音符盒放在其上方时演奏对应的生物头颅音色。
+    // 原版 `Blocks.SKELETON_SKULL` 等注册时带 `.instrument(NoteBlockInstrument.SKELETON/ZOMBIE/...)`，
+    // 玩家头带 `.instrument(NoteBlockInstrument.CUSTOM)`；这些都属于 worksAboveNoteBlock 类。
+    // 墙挂头颅不带这个属性，所以这里只设在 SkullBlock 而非基类。
+    setNonVirtualInstrument(_instrumentForSkullType(type));
+
     // 站立头颅额外持有 ROTATION_0_15 属性
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -398,8 +393,7 @@ WallSkullBlock::WallSkullBlock(SkullType type, const BlockProperties& properties
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
-    // 原版 SHAPES = rotateHorizontal(Block.boxZ(8.0, 8.0, 16.0))。
-    _buildWallShapes(CollisionShape::fromPixelBox(4.0f, 4.0f, 8.0f, 12.0f, 12.0f, 16.0f), m_shapes);
+    _buildWallShapes(m_shapes, 8.0f);
 }
 
 const CollisionShape& WallSkullBlock::_shapeForFacing(Direction facing) const
@@ -410,12 +404,6 @@ const CollisionShape& WallSkullBlock::_shapeForFacing(Direction facing) const
 const CollisionShape& WallSkullBlock::getShape(const BlockState& state) const
 {
     return _shapeForFacing(state.get(BlockStateProperties::HORIZONTAL_FACING()));
-}
-
-// 原版 AbstractSkullBlock 未覆写 getCollisionShape，碰撞形状即外形。
-const CollisionShape& WallSkullBlock::getCollisionShape(const BlockState& state) const
-{
-    return getShape(state);
 }
 
 BlockState WallSkullBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -617,9 +605,7 @@ void WitherWallSkullBlock::onBlockPlacedBy(
 PiglinWallSkullBlock::PiglinWallSkullBlock(const BlockProperties& properties)
     : WallSkullBlock(SkullType::Piglin, properties)
 {
-    // 原版 SHAPES = rotateHorizontal(Block.boxZ(10.0, 8.0, 8.0, 16.0))：
-    // 横截面比普通头颅宽 2 像素（x 3..13），y 4..12、z 8..16。
-    _buildWallShapes(CollisionShape::fromPixelBox(3.0f, 4.0f, 8.0f, 13.0f, 12.0f, 16.0f), m_piglinShapes);
+    _buildWallShapes(m_piglinShapes, 10.0f);
 }
 
 const CollisionShape& PiglinWallSkullBlock::getShape(const BlockState& state) const
@@ -627,11 +613,15 @@ const CollisionShape& PiglinWallSkullBlock::getShape(const BlockState& state) co
     return m_piglinShapes[_facingIndex(state.get(BlockStateProperties::HORIZONTAL_FACING()))];
 }
 
-// 原版 AbstractSkullBlock 未覆写 getCollisionShape，碰撞形状即外形。
-const CollisionShape& PiglinWallSkullBlock::getCollisionShape(const BlockState& state) const
+bool AbstractSkullBlock::isPathfindable(const BlockState& state, PathComputationType type) const
 {
-    return getShape(state);
+    // 这三个类族在原版里都显式返回 false：形状不完整不等于可以穿过。
+    // 楼梯的台阶、墙的柱与臂、头颅的薄片都占据生物的路径空间。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
 }
 
 } // namespace blocks
+
 } // namespace mc

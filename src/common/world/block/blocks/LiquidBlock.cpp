@@ -37,6 +37,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
@@ -98,7 +99,8 @@ const mc::fluid::FluidState* LiquidBlock::getFluidState(const BlockState& state)
 
 const CollisionShape& LiquidBlock::getShape(const BlockState& state) const
 {
-    // 原版 LiquidBlock.getShape 显式返回空：外形由流体渲染负责。
+    // 原版流体的初始形状是空（Shapes.empty()），实测 water / lava 的 getShape 均为空。
+    // 基类默认返回满方块，会让流体的选中框覆盖整个方块，与流体的实际渲染不符。
     (void)state;
     return VoxelShapes::empty();
 }
@@ -270,6 +272,11 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
 
 void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos)
 {
+    // 原版 fizz() 走 levelEvent 1501：客户端据此生成烟雾粒子并播放嘶嘶声。
+    // 只手工放音效/粒子而不发这个事件，会与客户端逻辑重复触发，
+    // 且依赖客户端本地的粒子生成路径，两端口径不一致。
+    world.playEvent(::mc::world::WorldEvents::LAVA_EXTINGUISH, pos, 0);
+
     // 播放嘶嘶声和烟雾粒子效果
 
     // 播放嘶嘶声

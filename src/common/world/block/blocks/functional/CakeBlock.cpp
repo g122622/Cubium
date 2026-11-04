@@ -22,6 +22,7 @@
  */
 
 #include "CakeBlock.hpp"
+
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -37,6 +38,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -178,14 +180,18 @@ bool CakeBlock::eatSlice(IWorld& world, const BlockPos& pos, const BlockState& s
 {
     i32 bites = getBites(state);
 
+    // 每吃一片都发 EAT（幽匿感测体据此分辨「吃东西」而不只是「方块变了」）。
+    world.gameEvent(gameevent::GameEvents::EAT, pos, &state);
+
     if (bites < 6) {
         // 还有剩余片数，增加已吃片数
         BlockState newState = state.with(BlockStateProperties::BITES_0_6(), bites + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         return true;
     } else {
-        // 最后一片，移除方块
+        // 最后一片：除了 EAT 还要发 BLOCK_DESTROY —— 蛋糕整块消失了。
         world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
+        world.gameEvent(gameevent::GameEvents::BLOCK_DESTROY, pos, &state);
         return true;
     }
 }

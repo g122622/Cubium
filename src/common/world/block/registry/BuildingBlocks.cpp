@@ -168,33 +168,52 @@ void registerBuildingBlocks()
     auto& registry = BlockRegistry::instance();
 
     // 砖块
-    BuildingBlocks::BRICKS = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:bricks"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+    BuildingBlocks::BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bricks"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(2.0f)
+            .resistance(6.0f));
 
     // 苔石圆石
     BuildingBlocks::MOSSY_COBBLESTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mossy_cobblestone"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f));
 
     // 书架
     BuildingBlocks::BOOKSHELF = &registry.registerBlock<blocks::BookshelfBlock>(ResourceLocation("minecraft:bookshelf"),
-        BlockProperties(Material::WOOD).hardness(1.5f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .resistance(1.5f)
+            .hardness(1.5f)
+            .flammable()
+            .ignitedByLava());
 
     // 海绵
     BuildingBlocks::SPONGE = &registry.registerBlock<blocks::SpongeBlock>(ResourceLocation("minecraft:sponge"),
-        BlockProperties(Material::SPONGE).hardness(0.6f).soundType(BlockSoundTypes::SPONGE));
+        BlockProperties(Material::SPONGE).resistance(0.600000024f).hardness(0.6f).soundType(BlockSoundTypes::SPONGE));
 
     // 湿海绵
     BuildingBlocks::WET_SPONGE =
         &registry.registerBlock<blocks::WetSpongeBlock>(ResourceLocation("minecraft:wet_sponge"),
-            BlockProperties(Material::SPONGE).hardness(0.6f).soundType(BlockSoundTypes::WET_SPONGE));
+            BlockProperties(Material::SPONGE)
+                .resistance(0.600000024f)
+                .hardness(0.6f)
+                .soundType(BlockSoundTypes::WET_SPONGE));
 
     // 工作台
     // 右键打开3x3合成界面，记录交互统计 INTERACT_WITH_CRAFTING_TABLE。
     // 参考 MC Java: CraftingTableBlock.useWithoutItem() → player.openMenu() + player.awardStat()
     BuildingBlocks::CRAFTING_TABLE =
         &registry.registerBlock<blocks::CraftingTableBlock>(ResourceLocation("minecraft:crafting_table"),
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.5f)
+                .resistance(2.5f)
+                .flammable()
+                .ignitedByLava());
 
     // 熔炉、高炉、烟熏炉
     // 三者共用相同的方块属性：mapColor(STONE).instrument(BASEDRUM).requiresCorrectToolForDrops()
@@ -271,7 +290,12 @@ void registerBuildingBlocks()
     // 玩家仍可与书互动穿过它。因此 canOcclude 为 true、lightBlock 按其形状判定。
     BuildingBlocks::ENCHANTING_TABLE =
         &registry.registerBlock<blocks::EnchantingTableBlock>(ResourceLocation("minecraft:enchanting_table"),
-            BlockProperties(Material::ROCK).hardness(5.0f).resistance(1200.0f).notSolid().lightLevel(7));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(5.0f)
+                .resistance(1200.0f)
+                .notSolid()
+                .lightLevel(7));
 
     // 箱子 - 含水方块
     //
@@ -279,11 +303,18 @@ void registerBuildingBlocks()
     // 因此它能撑住站立告示牌。之前标成非固体，凡是靠 `isSolid()` 判支撑的方块
     // 都认为箱子撑不住（由差分能力 block_support 查出）。
     BuildingBlocks::CHEST = &registry.registerBlock<blocks::ChestBlock>(ResourceLocation("minecraft:chest"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.5f)
+            .resistance(2.5f)
+            .flammable()
+            .ignitedByLava());
 
     // 梯子 - 含水方块（vanilla 不设置 ignitedByLava）
     BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
         BlockProperties(Material::WOOD)
+            .forceSolidOff()
+            .resistance(0.400000006f)
             .hardness(0.4f)
             .notSolid()
             .flammable()
@@ -293,8 +324,9 @@ void registerBuildingBlocks()
     // 锁链 - 含水方块 (MC 1.21+ 重命名为 iron_chain)
     BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:iron_chain"),
         BlockProperties(Material::IRON)
+            .resistance(6.0f)
             .hardness(5.0f)
-            .resistance(5.0f)
+
             .notSolid()
             .soundType(BlockSoundTypes::CHAIN)
             .noOcclusion());
@@ -303,6 +335,7 @@ void registerBuildingBlocks()
     BuildingBlocks::SCAFFOLDING =
         &registry.registerBlock<blocks::ScaffoldingBlock>(ResourceLocation("minecraft:scaffolding"),
             BlockProperties(Material::DECORATION)
+                .forceSolidOff()
                 .withCollision()
                 .hardness(0.0f)
                 .notSolid()
@@ -311,7 +344,12 @@ void registerBuildingBlocks()
 
     // 玻璃板 - 含水方块
     BuildingBlocks::GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(ResourceLocation("minecraft:glass_pane"),
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion());
+        BlockProperties(Material::GLASS)
+            .instrument(BlockProperties::Instrument::Hat)
+            .resistance(0.300000012f)
+            .hardness(0.3f)
+            .notSolid()
+            .noOcclusion());
 
     // 铁栏杆 - 含水方块
     // 对齐 vanilla Blocks.IRON_BARS：requiresCorrectToolForDrops + strength(5,6) + SoundType.IRON + noOcclusion()。
@@ -328,7 +366,13 @@ void registerBuildingBlocks()
     // 陷阱箱 - 含水方块
     BuildingBlocks::TRAPPED_CHEST =
         &registry.registerBlock<blocks::TrappedChestBlock>(ResourceLocation("minecraft:trapped_chest"),
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.5f)
+                .resistance(2.5f)
+                .notSolid()
+                .flammable()
+                .ignitedByLava());
 
     // 潜影盒（无色变体）
     // 对齐 vanilla Blocks.shulkerBoxProperties：forceSolidOn + strength(2.0) + dynamicShape + noOcclusion()
@@ -348,11 +392,21 @@ void registerBuildingBlocks()
 
     // 织布机
     BuildingBlocks::LOOM = &registry.registerBlock<blocks::LoomBlock>(ResourceLocation("minecraft:loom"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.5f)
+            .resistance(2.5f)
+            .flammable()
+            .ignitedByLava());
 
     // 木桶
     BuildingBlocks::BARREL = &registry.registerBlock<blocks::BarrelBlock>(ResourceLocation("minecraft:barrel"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.5f)
+            .resistance(2.5f)
+            .flammable()
+            .ignitedByLava());
 
     // 砂轮
     BuildingBlocks::GRINDSTONE =
@@ -367,6 +421,7 @@ void registerBuildingBlocks()
     BuildingBlocks::STONECUTTER =
         &registry.registerBlock<blocks::StonecutterBlock>(ResourceLocation("minecraft:stonecutter"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(3.5f)
                 .resistance(3.5f)
                 .requiresTool()
@@ -375,33 +430,68 @@ void registerBuildingBlocks()
     // 制图台
     BuildingBlocks::CARTOGRAPHY_TABLE =
         &registry.registerBlock<blocks::CartographyTableBlock>(ResourceLocation("minecraft:cartography_table"),
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.5f)
+                .resistance(2.5f)
+                .flammable()
+                .ignitedByLava());
 
     // 制箭台
     BuildingBlocks::FLETCHING_TABLE =
         &registry.registerBlock<blocks::FletchingTableBlock>(ResourceLocation("minecraft:fletching_table"),
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.5f)
+                .resistance(2.5f)
+                .flammable()
+                .ignitedByLava());
 
     // 锻造台
     BuildingBlocks::SMITHING_TABLE =
         &registry.registerBlock<blocks::SmithingTableBlock>(ResourceLocation("minecraft:smithing_table"),
-            BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.5f)
+                .resistance(2.5f)
+                .flammable()
+                .ignitedByLava());
 
     // 堆肥桶
     BuildingBlocks::COMPOSTER = &registry.registerBlock<blocks::ComposterBlock>(ResourceLocation("minecraft:composter"),
-        BlockProperties(Material::WOOD).hardness(0.6f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .resistance(0.600000024f)
+            .hardness(0.6f)
+            .flammable()
+            .ignitedByLava());
 
     // 蛋糕
     BuildingBlocks::CAKE = &registry.registerBlock<blocks::CakeBlock>(ResourceLocation("minecraft:cake"),
-        BlockProperties(Material::CAKE).withCollision().hardness(0.5f).notSolid().soundType(BlockSoundTypes::WOOL));
+        BlockProperties(Material::CAKE)
+            .resistance(0.5f)
+            .withCollision()
+            .hardness(0.5f)
+            .notSolid()
+            .soundType(BlockSoundTypes::WOOL));
 
     // 讲台
     BuildingBlocks::LECTERN = &registry.registerBlock<blocks::LecternBlock>(ResourceLocation("minecraft:lectern"),
-        BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.5f)
+            .resistance(2.5f)
+            .flammable()
+            .ignitedByLava());
 
     // 唱片机
     BuildingBlocks::JUKEBOX = &registry.registerBlock<blocks::JukeboxBlock>(ResourceLocation("minecraft:jukebox"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(6.0f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(6.0f)
+            .flammable()
+            .ignitedByLava());
 
     // TNT - 可被岩浆点燃（对齐 vanilla）
     BuildingBlocks::TNT = &registry.registerBlock<blocks::TNTBlock>(ResourceLocation("minecraft:tnt"),
@@ -409,8 +499,14 @@ void registerBuildingBlocks()
 
     // ========== 石砖系列 ==========
     // 石砖系列：方块/楼梯/墙 1.5，台阶 2.0（原版台阶在基方块硬度上 +0.5）。
-    BlockProperties stoneBrickProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
-    BlockProperties stoneBrickSlabProps = BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f);
+    BlockProperties stoneBrickProps = BlockProperties(Material::ROCK)
+                                          .hardness(1.5f)
+                                          .resistance(6.0f)
+                                          .instrument(BlockProperties::Instrument::BaseDrum);
+    BlockProperties stoneBrickSlabProps = BlockProperties(Material::ROCK)
+                                              .hardness(2.0f)
+                                              .resistance(6.0f)
+                                              .instrument(BlockProperties::Instrument::BaseDrum);
 
     BuildingBlocks::STONE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:stone_bricks"), stoneBrickProps);
@@ -494,7 +590,10 @@ void registerBuildingBlocks()
     blocks::InfestedBlock::initializeMappings();
 
     // ========== 石英系列 ==========
-    BlockProperties quartzProps = BlockProperties(Material::ROCK).hardness(0.8f);
+    BlockProperties quartzProps = BlockProperties(Material::ROCK)
+                                      .hardness(0.8f)
+                                      .resistance(0.8f)
+                                      .instrument(BlockProperties::Instrument::BaseDrum);
 
     BuildingBlocks::QUARTZ_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:quartz_block"), quartzProps);
@@ -511,10 +610,17 @@ void registerBuildingBlocks()
 
     // 平滑石英
     BuildingBlocks::SMOOTH_QUARTZ = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_quartz"),
-        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(2.0f)
+            .resistance(6.0f)
+            .harvestTool(HarvestTool::Pickaxe));
 
     // ========== 海晶系列 ==========
-    BlockProperties prismarineProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
+    BlockProperties prismarineProps = BlockProperties(Material::ROCK)
+                                          .hardness(1.5f)
+                                          .resistance(6.0f)
+                                          .instrument(BlockProperties::Instrument::BaseDrum);
 
     BuildingBlocks::PRISMARINE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:prismarine"), prismarineProps);
@@ -527,33 +633,64 @@ void registerBuildingBlocks()
     BuildingBlocks::PRISMARINE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:prismarine_stairs"),
             BuildingBlocks::PRISMARINE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::PRISMARINE_BRICK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:prismarine_brick_stairs"),
             BuildingBlocks::PRISMARINE_BRICKS->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::DARK_PRISMARINE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:dark_prismarine_stairs"),
             BuildingBlocks::DARK_PRISMARINE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 海晶台阶
     BuildingBlocks::PRISMARINE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:prismarine_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::PRISMARINE_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:prismarine_brick_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
     BuildingBlocks::DARK_PRISMARINE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:dark_prismarine_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 海晶灯 - 发光15级
-    BuildingBlocks::SEA_LANTERN = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:sea_lantern"), BlockProperties(Material::GLASS).hardness(0.3f).lightLevel(15));
+    BuildingBlocks::SEA_LANTERN = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:sea_lantern"),
+        BlockProperties(Material::GLASS)
+            .instrument(BlockProperties::Instrument::Hat)
+            .resistance(0.300000012f)
+            .hardness(0.3f)
+            .lightLevel(15));
 
     // ========== 紫珀系列 ==========
-    BlockProperties purpurProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
+    BlockProperties purpurProps = BlockProperties(Material::ROCK)
+                                      .hardness(1.5f)
+                                      .resistance(6.0f)
+                                      .instrument(BlockProperties::Instrument::BaseDrum);
 
     BuildingBlocks::PURPUR_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:purpur_block"), purpurProps);
@@ -565,12 +702,21 @@ void registerBuildingBlocks()
     // ========== 骨块和干草块 ==========
     // 骨块 - 有轴属性
     BuildingBlocks::BONE_BLOCK = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:bone_block"),
-        BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::BONE));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::Xylophone)
+            .hardness(2.0f)
+            .resistance(2.0f)
+            .soundType(BlockSoundTypes::BONE));
 
     // 干草块 - 有轴属性。重写 onFallenUpon 以 0.2 乘数减伤 80%（对齐 Java HayBlock#fallOn）。（vanilla 不设置
     // ignitedByLava）
     BuildingBlocks::HAY_BLOCK = &registry.registerBlock<blocks::HayBlock>(ResourceLocation("minecraft:hay_block"),
-        BlockProperties(Material::EARTH).hardness(0.5f).flammable().soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::EARTH)
+            .instrument(BlockProperties::Instrument::Banjo)
+            .resistance(0.5f)
+            .hardness(0.5f)
+            .flammable()
+            .soundType(BlockSoundTypes::GRASS));
 
     // ========== 铁砧系列 ==========
     // 铁砧属性: 硬度5.0, 爆炸抗性1200.0, 铁砧材质音效

@@ -362,22 +362,22 @@ protected:
     std::unique_ptr<BedBlock> bed_;
 };
 
-TEST_F(BedBlockConnectedDirectionTest, HeadPartConnectsToFacingDirection)
+TEST_F(BedBlockConnectedDirectionTest, HeadPartConnectsToOppositeDirection)
 {
-    // 头部朝南：连接方向为南（朝向脚部）
+    // 床头朝南时，床脚在北侧。
     const BlockState& headSouth = bed_->defaultState()
                                       .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
                                       .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
-    EXPECT_EQ(BedBlock::getConnectedDirection(headSouth), Direction::South);
+    EXPECT_EQ(BedBlock::getConnectedDirection(headSouth), Direction::North);
 }
 
-TEST_F(BedBlockConnectedDirectionTest, FootPartConnectsToOppositeDirection)
+TEST_F(BedBlockConnectedDirectionTest, FootPartConnectsToFacingDirection)
 {
-    // 脚部朝南：连接方向为北（朝向头部）
+    // 床脚朝南时，床头在南侧。
     const BlockState& footSouth = bed_->defaultState()
                                       .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
                                       .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
-    EXPECT_EQ(BedBlock::getConnectedDirection(footSouth), Direction::North);
+    EXPECT_EQ(BedBlock::getConnectedDirection(footSouth), Direction::South);
 }
 
 TEST_F(BedBlockConnectedDirectionTest, AllDirectionsConsistent)
@@ -392,9 +392,9 @@ TEST_F(BedBlockConnectedDirectionTest, AllDirectionsConsistent)
                                           .with(BlockStateProperties::HORIZONTAL_FACING(), dir)
                                           .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
 
-        EXPECT_EQ(BedBlock::getConnectedDirection(headState), dir) << "Head part should connect in facing direction";
-        EXPECT_EQ(BedBlock::getConnectedDirection(footState), Directions::opposite(dir))
-            << "Foot part should connect in opposite direction";
+        EXPECT_EQ(BedBlock::getConnectedDirection(headState), Directions::opposite(dir))
+            << "Head part should connect opposite to facing";
+        EXPECT_EQ(BedBlock::getConnectedDirection(footState), dir) << "Foot part should connect in facing direction";
     }
 }
 

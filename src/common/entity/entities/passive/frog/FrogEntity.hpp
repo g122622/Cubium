@@ -75,8 +75,12 @@ public:
     static constexpr f32 WIDTH = 0.5f;
     /// 碰撞箱高度（对齐 vanilla Frog 默认实体尺寸 0.5）
     static constexpr f32 HEIGHT = 0.5f;
-    /// 眼睛高度（对齐 vanilla Frog 覆盖 getEyeHeight 的 0.5F * 0.45F）
-    static constexpr f32 EYE_HEIGHT = 0.5f * 0.45f;
+    /// 眼睛高度
+    ///
+    /// 原版 `EntityDimensions.defaultEyeHeight(h) = h * 0.85F`，即 0.5 * 0.85 = 0.425。
+    /// 此前写成 0.5 * 0.45 = 0.225——青蛙的眼睛只有身体高度的 45%，
+    /// 视线判定与凝视检测的落点偏低将近半格。由差分能力 entity_pose_dimensions 查出。
+    static constexpr f32 EYE_HEIGHT = HEIGHT * 0.85f;
 
     FrogEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~FrogEntity() override = default;

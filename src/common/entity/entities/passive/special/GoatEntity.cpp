@@ -154,6 +154,11 @@ entity::EntitySize GoatEntity::getDimensions(EntityPose pose) const
 {
     // 长跳中碰撞箱缩放 0.7（vanilla LONG_JUMPING_DIMENSIONS.scale(getAgeScale())），
     // 幼体缩放由 width()/height() 内部承担。
+    // 睡眠姿态走基类的固定尺寸 (0.2, 0.2, 0.2)，必须在长跳分支之前返回。
+    if (pose == EntityPose::Sleeping) {
+        return Entity::getDimensions(pose);
+    }
+
     const entity::EntitySize base = entity::EntitySize(width(), height(), eyeHeight(), false);
     if (pose == EntityPose::LongJumping) {
         return base.scale(LONG_JUMPING_SCALE, LONG_JUMPING_SCALE);

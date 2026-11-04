@@ -22,6 +22,7 @@
  */
 
 #include "DaylightDetectorBlock.hpp"
+
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -38,6 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -118,6 +120,10 @@ void DaylightDetectorBlock::toggleMode(IWorld& world, const BlockPos& pos, const
     newState = withPower(newState, power);
 
     world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+    // 切换昼夜模式是玩家交互引起的方块变化，要让附近幽匿感测体听到。
+    // 注意只在这一处发：_updatePower 里因光照变化更新功率时不发事件（原版也不发）。
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
 
     // 通知相邻方块
     _notifyNeighbors(world, pos);

@@ -180,7 +180,6 @@ const CollisionShape& ChorusFlowerBlock::getCollisionShape(const BlockState& sta
     return getShape(state);
 }
 
-
 // ========== 世界生成 ==========
 
 void ChorusFlowerBlock::generatePlant(
@@ -300,6 +299,12 @@ bool ChorusFlowerBlock::allNeighborsEmpty(
         }
     }
     return true;
+}
+
+bool ChorusFlowerBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 紫颂花只在 age < 5 时生长/枯萎，age=5 是终态。
+    return getAge(state) < 5;
 }
 
 } // namespace blocks

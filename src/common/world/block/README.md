@@ -565,7 +565,9 @@ Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::o
 **调用场景**：
 
 - `SpongeBlock::absorb`：海绵吸收海带、海草等海洋植物时生成掉落物
-- 爆炸等其他非玩家破坏场景
+- `IWorld::destroyBlock` 的内部实现（非玩家破坏的统一入口）
+
+**注意**：常规"摧毁方块"不要直接调用它，统一走 `IWorld::destroyBlock(pos, true, entity)`——后者额外处理 2001 破坏粒子、写回流体遗留方块与 `BLOCK_DESTROY` 游戏事件。
 
 **实现细节**：
 

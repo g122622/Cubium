@@ -22,6 +22,7 @@
  */
 
 #include "LeverBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
@@ -37,6 +38,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -189,7 +191,7 @@ BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockSta
     world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 播放音效
-    _playClickSound(world, pos, newPowered);
+    playClickEffects(world, pos, newPowered);
 
     // 通知相邻方块更新
     _notifyNeighbors(world, pos, newState);
@@ -218,12 +220,12 @@ const CollisionShape& LeverBlock::getShape(const BlockState& state) const
     // 索引方式：行 = AttachFace（0=Floor, 1=Wall, 2=Ceiling），列 = 水平朝向
     //   （0=North, 1=East, 2=South, 3=West）。
     static const CollisionShape shapes[3][4] = {
-        // Floor：贴地，向上立起
+        // Floor：贴地，向上立起（y 0..6）
         {
-            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // North
-            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // East
-            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // South
-            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // West
+            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // North
+            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // East
+            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // South
+            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // West
         },
         // Wall：贴墙
         {
@@ -232,12 +234,12 @@ const CollisionShape& LeverBlock::getShape(const BlockState& state) const
             CollisionShape::fromPixelBox(5, 4, 0, 11, 12, 6),   // South
             CollisionShape::fromPixelBox(10, 4, 5, 16, 12, 11), // West
         },
-        // Ceiling：贴天花板，倒挂
+        // Ceiling：贴天花板，向下倒挂（y 10..16）
         {
-            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // North
-            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // East
-            CollisionShape::fromPixelBox(5, 0, 4, 11, 6, 12), // South
-            CollisionShape::fromPixelBox(4, 0, 5, 12, 6, 11), // West
+            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // North
+            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // East
+            CollisionShape::fromPixelBox(5, 10, 4, 11, 16, 12), // South
+            CollisionShape::fromPixelBox(4, 10, 5, 12, 16, 11), // West
         },
     };
 
@@ -312,14 +314,18 @@ i32 LeverBlock::getStrongPower(
     return 0;
 }
 
-void LeverBlock::_playClickSound(IWorld& world, const BlockPos& pos, bool powered)
+void LeverBlock::playClickEffects(IWorld& world, const BlockPos& pos, bool powered)
 {
-    // 注意：拉杆使用木质按钮音效
-    world.playSound(powered ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
-        sound::SoundCategory::Blocks,
-        pos.center(),
-        0.3f,
-        0.6f);
+    // 拉杆有自己的音效 `block.lever.click`（不是木质按钮音），音量 0.3；
+    // 音高随状态变化：开启 0.6、关闭 0.5 —— 两者差半音，听感上一开一关能区分。
+    world.playSound(
+        SoundEvents::BLOCK_LEVER_CLICK, sound::SoundCategory::Blocks, pos.center(), 0.3f, powered ? 0.6f : 0.5f);
+
+    // 拨动是「方块状态变化」，要让附近的幽匿感测体听到：开启发 ACTIVATE、关闭发 DEACTIVATE。
+    // 漏发的话拉杆在幽匿电路里完全隐形。
+    world.gameEvent(powered ? gameevent::GameEvents::BLOCK_ACTIVATE : gameevent::GameEvents::BLOCK_DEACTIVATE,
+        pos,
+        static_cast<const BlockState*>(nullptr));
 }
 
 void LeverBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)

@@ -22,6 +22,7 @@
  */
 
 #include "NoteBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -40,6 +41,7 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <algorithm>
@@ -137,20 +139,6 @@ BlockProperties::Instrument effectiveInstrument(const BlockState& state)
     return NoteBlock::blockInstrumentByType(&state.getBlock());
 }
 
-/**
- * @brief 根据音符值计算音高
- *
- * 音高计算公式: f = 2^((note - 12) / 12)
- * - 音符范围: 0-24 (共25个音高，对应两个八度)
- * - 基准音高: note = 12 时, f = 1.0 (标准音高)
- * - 每增加 1 个音符值，音高上升一个半音
- * - 每增加 12 个音符值，音高上升一个八度 (频率翻倍)
- */
-f32 calculatePitch(i32 note)
-{
-    return static_cast<f32>(std::pow(2.0, static_cast<f64>(note - 12) / 12.0));
-}
-
 } // anonymous namespace
 
 // ============================================================================
@@ -188,6 +176,13 @@ NoteBlock::NoteBlock(const BlockProperties& properties)
 i32 NoteBlock::getNote(const BlockState& state)
 {
     return state.get(BlockStateProperties::NOTE_0_24());
+}
+
+f32 NoteBlock::calculatePitch(i32 note)
+{
+    // 音高 = 2^((note - 12) / 12)。0 号比基准低一个八度，12 号是基准，24 号高一个八度。
+    // 必须走 f64 的 pow 再窄化成 f32：直接用 f32 会把中间结果丢掉低位，与原版差 1 ulp。
+    return static_cast<f32>(std::pow(2.0, static_cast<f64>(note - 12) / 12.0));
 }
 
 BlockState NoteBlock::withNote(const BlockState& state, i32 note)
@@ -398,11 +393,37 @@ BlockState NoteBlock::resolveInstrument(IWorld& world, const BlockPos& pos, cons
 
 void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    i32 note = getNote(state);
-    i32 instrument = _getInstrumentType(world, pos, state);
+    // 上方被方块堵住时，靠「上方方块乐器」发声的音符盒不响 —— 只有本身就是
+    // worksAboveNoteBlock 的乐器（头颅类）不受影响。原版 `NoteBlock#playNote` 的前置条件。
+    const i32 instrument = static_cast<i32>(state.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()));
+    if (!BlockStateProperties::noteBlockInstrumentWorksAboveNoteBlock(
+            static_cast<BlockStateProperties::NoteBlockInstrument>(instrument))) {
+        const BlockState* above = world.getBlockState(pos.x, pos.y + 1, pos.z);
+        if (above != nullptr && !above->isAir()) {
+            return;
+        }
+    }
 
-    // 播放音符
-    _playNote(world, pos, instrument, note);
+    // 走方块事件而不是直接播放：事件由服务端广播给所有端，多人时附近玩家都能听到。
+    const auto& block = static_cast<const NoteBlock&>(state.getBlock());
+    MC_UNUSED(block.triggerEvent(state, world, pos, 0, 0));
+
+    // 让附近幽匿感测体听到。注意它发在上面的「让不让响」判定**之后**：
+    // 被堵住的音符盒既不出声也不发事件。
+    world.gameEvent(gameevent::GameEvents::NOTE_BLOCK_PLAY, pos, &state);
+}
+
+bool NoteBlock::triggerEvent(const BlockState& state, IWorld& world, const BlockPos& pos, i32 id, i32 type) const
+{
+    // 原版 `NoteBlock#triggerEvent`：id 恒为 0（原版 `levelEvent(null, 0, pos, 0)`）。
+    // 播放逻辑整体在这里：服务端广播方块事件，每个客户端收到后各自播放。
+    MC_UNUSED(id);
+    MC_UNUSED(type);
+
+    const i32 instrument = static_cast<i32>(state.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()));
+    const i32 note = state.get(BlockStateProperties::NOTE_0_24());
+
+    return _playNote(world, pos, instrument, note);
 }
 
 i32 NoteBlock::_getInstrumentType(IWorld& world, const BlockPos& pos, const BlockState& state) const
@@ -421,19 +442,26 @@ bool NoteBlock::_isTunableInstrument(i32 instrument)
     return BlockStateProperties::noteBlockInstrumentIsTunable(static_cast<Instrument>(instrument));
 }
 
-void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note)
+bool NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note) const
 {
-    // 转换乐器类型
-    auto instrumentEnum = static_cast<Instrument>(instrument);
+    const auto instrumentEnum = static_cast<Instrument>(instrument);
 
-    // 获取对应的声音事件
+    // 玩家头颅（CUSTOM 类）的声音来自**上方头颅方块实体的 note_block_sound**，不是固定的
+    // `ui.button.click`。原版 `NoteBlock#triggerEvent` 在取不到自定义音效时直接 `return false`，
+    // 一声不出——先前把 `ui.button.click` 当兜底，等于给所有普通玩家头颅配了个按钮音。
+    // TODO: Cubium 的 SkullBlockEntity 尚未保存 note_block_sound（数据组件已注册但无人读取），
+    //       该链路补齐后这里才能取到真实音效；在那之前如实按原版「无自定义音效」处理。
+    if (BlockStateProperties::noteBlockInstrumentHasCustomSound(
+            static_cast<BlockStateProperties::NoteBlockInstrument>(instrument))) {
+        return false;
+    }
+
     const ResourceLocation& soundEvent = getSoundEventForInstrument(instrumentEnum);
-
     // 对齐 vanilla NoteBlock.triggerEvent：仅可调音乐器（BASE_BLOCK 类）按音符值定音高并产生
     //   音符粒子；头颅类（MOB_HEAD/CUSTOM）音高固定 1.0 且不产生调音粒子。
     f32 pitch = 1.0f;
     if (_isTunableInstrument(instrument)) {
-        pitch = calculatePitch(note);
+        pitch = NoteBlock::calculatePitch(note);
 
         // 生成音符粒子：位置为方块上方中心，颜色数据 note / 24.0
         world.addParticle(particle::ParticleTypeId::Note,
@@ -451,6 +479,7 @@ void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i3
         3.0f, // 音量
         pitch // 音高
     );
+    return true;
 }
 
 } // namespace blocks

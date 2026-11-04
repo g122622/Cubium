@@ -67,9 +67,6 @@ constexpr f32 RAD_TO_DEG = 180.0f / PI;
 
 /**
  * @brief 数值限制在范围内
- *
- * 与 `Mth.clamp` 的 `Math.max(min, Math.min(max, value))` 逐值一致（含 ±0 与 NaN 传播），
- * 直接转调 `std::clamp`。
  */
 template <typename T>
 [[nodiscard]] inline constexpr T clamp(T value, T minVal, T maxVal) noexcept

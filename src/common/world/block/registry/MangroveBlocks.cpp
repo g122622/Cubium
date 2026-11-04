@@ -74,7 +74,8 @@ void registerMangroveBlocks()
                                            .harvestTool(HarvestTool::Axe)
                                            .soundType(BlockSoundTypes::WOOD)
                                            .flammable()
-                                           .ignitedByLava();
+                                           .ignitedByLava()
+                                           .instrument(BlockProperties::Instrument::Bass);
 
     // 红树原木 - 有轴属性
     MangroveBlocks::MANGROVE_LOG =
@@ -99,7 +100,8 @@ void registerMangroveBlocks()
                                               .harvestTool(HarvestTool::Axe)
                                               .soundType(BlockSoundTypes::WOOD)
                                               .flammable()
-                                              .ignitedByLava();
+                                              .ignitedByLava()
+                                              .instrument(BlockProperties::Instrument::Bass);
 
     // 红树木板 - 基础建筑材料
     MangroveBlocks::MANGROVE_PLANKS =
@@ -132,6 +134,8 @@ void registerMangroveBlocks()
     MangroveBlocks::MANGROVE_ROOTS =
         &registry.registerBlock<blocks::MangroveRootsBlock>(ResourceLocation("minecraft:mangrove_roots"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(0.699999988f)
                 .notSolid()
                 .hardness(0.7f)
                 .harvestTool(HarvestTool::Axe)
@@ -159,7 +163,8 @@ void registerMangroveBlocks()
                                               .resistance(3.0f)
                                               .harvestTool(HarvestTool::Axe)
                                               .flammable()
-                                              .ignitedByLava();
+                                              .ignitedByLava()
+                                              .instrument(BlockProperties::Instrument::Bass);
 
     // 红树木楼梯 - 使用红树木板作为源方块
     MangroveBlocks::MANGROVE_STAIRS =
@@ -173,7 +178,8 @@ void registerMangroveBlocks()
                                             .resistance(3.0f)
                                             .harvestTool(HarvestTool::Axe)
                                             .flammable()
-                                            .ignitedByLava();
+                                            .ignitedByLava()
+                                            .instrument(BlockProperties::Instrument::Bass);
 
     // 红树木台阶
     MangroveBlocks::MANGROVE_SLAB =
@@ -185,7 +191,8 @@ void registerMangroveBlocks()
                                              .resistance(3.0f)
                                              .harvestTool(HarvestTool::Axe)
                                              .flammable()
-                                             .ignitedByLava();
+                                             .ignitedByLava()
+                                             .instrument(BlockProperties::Instrument::Bass);
 
     // 红树木栅栏
     MangroveBlocks::MANGROVE_FENCE =
@@ -198,7 +205,8 @@ void registerMangroveBlocks()
                                                  .notSolid()
                                                  .harvestTool(HarvestTool::Axe)
                                                  .flammable()
-                                                 .ignitedByLava();
+                                                 .ignitedByLava()
+                                                 .instrument(BlockProperties::Instrument::Bass);
 
     // 红树木栅栏门
     MangroveBlocks::MANGROVE_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
@@ -211,7 +219,8 @@ void registerMangroveBlocks()
                                             .notSolid()
                                             .harvestTool(HarvestTool::Axe)
                                             .flammable()
-                                            .ignitedByLava();
+                                            .ignitedByLava()
+                                            .instrument(BlockProperties::Instrument::Bass);
 
     // 红树木门 - isIron = false
     MangroveBlocks::MANGROVE_DOOR = &registry.registerBlock<blocks::DoorBlock>(
@@ -224,7 +233,8 @@ void registerMangroveBlocks()
                                                 .notSolid()
                                                 .harvestTool(HarvestTool::Axe)
                                                 .flammable()
-                                                .ignitedByLava();
+                                                .ignitedByLava()
+                                                .instrument(BlockProperties::Instrument::Bass);
 
     // 红树木活板门 - isIron = false
     MangroveBlocks::MANGROVE_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(

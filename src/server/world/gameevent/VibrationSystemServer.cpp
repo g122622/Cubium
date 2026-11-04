@@ -29,6 +29,7 @@
  * 不依赖 ServerWorld 的纯逻辑部分位于 src/common/world/gameevent/VibrationSystem.cpp。
  */
 
+#include "common/util/UuidUtils.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
 
 #include <cmath>
@@ -391,10 +392,10 @@ bool VibrationSystem::Ticker::receiveVibration(
         }
     }
 
-    // 查找源实体
+    // 查找源实体：VibrationInfo 存的是 UUID，按 UUID 查（原版也是走 UUID）
     const Entity* sourceEntity = nullptr;
-    if (info.hasSourceEntity) {
-        sourceEntity = world.getEntity(info.sourceEntityId);
+    if (info.sourceUuid.has_value()) {
+        sourceEntity = world.getEntityByUuid(util::uuidToString(*info.sourceUuid));
     }
 
     // 触发接收回调

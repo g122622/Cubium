@@ -126,6 +126,8 @@ private:
 
     /// 预计算的形状缓存（16种组合）
     std::array<CollisionShape, 16> m_shapes;
+    /// 寻路通行判定：形状不完整不等于可以穿过。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

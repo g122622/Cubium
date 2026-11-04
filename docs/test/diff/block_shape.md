@@ -2,7 +2,7 @@
 
 比较全部 1166 个方块默认状态在原点的外形、碰撞形状和支撑形状。原版参照来自 Minecraft 1.21.11 merged jar。
 
-2026-11-04 验证：强制重跑 oracle 后 1166/1166 一致，未登记任何已知差异；142 个相关单元测试通过。
+2026-11-04 合并后验证：强制重跑 oracle 后默认状态 1166/1166、全部状态 29671/29671 一致，未登记任何已知差异；193 个相关单元测试通过。扩展筛选额外命中的两个花坛测试失败，详见收敛记录。
 
 ## 文件与运行
 
@@ -21,6 +21,8 @@ node tests/diff/harness/runner.ts block_shape --no-build --fresh --samples 0
 ```
 
 `--fresh` 强制重跑 oracle。报告中的 `oracleReused` 可确认是否使用参照结果缓存。
+
+`block_shape_all` 是同一查询维度的全部方块状态能力，来自后续主分支提交。合并涉及形状实现时，应与默认状态能力一并运行：`node tests/diff/harness/runner.ts block_shape block_shape_all --no-build --fresh --samples 0`。两项能力的输出编码分别由各自探针与 oracle 定义。
 
 ## 输入输出
 

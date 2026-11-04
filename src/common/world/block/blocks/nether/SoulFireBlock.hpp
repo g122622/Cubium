@@ -47,6 +47,20 @@ public:
     explicit SoulFireBlock(const BlockProperties& properties);
     ~SoulFireBlock() override = default;
 
+    /**
+     * @brief 获取形状。
+     *
+     * 灵魂火**没有任何状态属性**（父类 `FireBlock` 的 6 个连接属性在构造期被空容器覆盖），
+     * 所以不能走父类那段按 `north/east/south/west/up` 查表的实现——那会抛
+     * "Cannot get property north as it does not exist"。
+     *
+     * 原版 `soul_fire` 的形状恒为底面薄层 `box(0, 0, 0 -> 1, 0.0625, 1)`。
+     *
+     * @param state 方块状态
+     * @return 底面薄层形状
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
     // ========== 放置逻辑 ==========
 
     [[nodiscard]] bool isValidPosition(

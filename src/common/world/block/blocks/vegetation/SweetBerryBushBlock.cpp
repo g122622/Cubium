@@ -22,7 +22,9 @@
  */
 
 #include "SweetBerryBushBlock.hpp"
+
 #include "common/core/Constants.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -125,6 +127,7 @@ void SweetBerryBushBlock::randomTick(IWorld& world, const BlockPos& pos, BlockSt
     if (random.nextInt(5) == 0) {
         const BlockState& newState = withAge(state, age + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
 
@@ -158,6 +161,7 @@ void SweetBerryBushBlock::grow(IWorld& world, math::IRandom& random, const Block
     if (age < getMaxAge()) {
         const BlockState& newState = withAge(state, age + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
 
@@ -248,6 +252,9 @@ BlockActionResult SweetBerryBushBlock::useWithoutItem(
         const BlockState& newState = withAge(state, 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
+        // 采摘让浆果丛退回幼株，是方块状态变化。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
+
         return ActionResultType::Success;
     }
 
@@ -270,15 +277,23 @@ void SweetBerryBushBlock::initShapes()
     // AGE 0: 幼苗形状 (3, 0, 3) -> (13, 8, 13)
     m_shapesByAge[0] = CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 13.0f * P, 8.0f * P, 13.0f * P);
 
-    // AGE 1-3: 完整灌木形状 (1, 0, 1) -> (15, 16, 15)
+    // AGE 1-2: (1, 0, 1) -> (15, 16, 15)，即 0.0625..0.9375。
     CollisionShape fullShape = CollisionShape::box(1.0f * P, 0.0f, 1.0f * P, 15.0f * P, 16.0f * P, 15.0f * P);
 
     m_shapesByAge[1] = fullShape;
     m_shapesByAge[2] = fullShape;
-    m_shapesByAge[3] = fullShape;
+    // AGE 3（成熟）：原版实测是**满格 0..1**，不是 1..15 像素——
+    // 长成的甜浆果丛占满整格，此前四条边各差 1 像素。
+    m_shapesByAge[3] = CollisionShape::fullBlock();
 
     // 注：甜浆果丛无碰撞形状（对齐 vanilla noCollision()），不初始化 m_collisionShapesByAge——
     // getCollisionShape 不重写，继承 BushBlock 基类返回 empty。
+}
+
+bool SweetBerryBushBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // age=3 是成熟态，停止随机刻。
+    return state.get(BlockStateProperties::AGE_0_3()) < 3;
 }
 
 } // namespace blocks

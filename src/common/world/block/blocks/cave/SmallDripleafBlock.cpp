@@ -48,7 +48,7 @@ namespace blocks {
 
 SmallDripleafBlock::SmallDripleafBlock(const BlockProperties& properties)
     : Block(properties)
-    , m_shape(CollisionShape::fromPixelBox(2, 0, 2, 14, 13, 14))
+    , m_shape(CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.8125f, 0.875f))
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

@@ -239,7 +239,7 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override
     {
-        return 1.54f;
+        return 1.445f;
     }
 
     /**

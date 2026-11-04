@@ -22,6 +22,7 @@
  */
 
 #include "JukeboxBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -41,6 +42,7 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/JukeboxEntity.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -176,6 +178,10 @@ BlockActionResult JukeboxBlock::useItemOn(ItemStack& stack,
         // 更新方块状态为有唱片
         BlockState newState = state.with(BlockStateProperties::HAS_RECORD(), true);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
+
+        // 原版 `JukeboxPlayable#tryInsertIntoJukebox` 在塞入唱片后发 `GameEvent.BLOCK_CHANGE`，
+        // 让附近幽匿感测体感知到「唱片机状态变了」。漏发会让唱片机在幽匿电路里完全隐形。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
 
         // 消耗玩家手中的唱片（非创造模式）
         if (!player.isCreative()) {

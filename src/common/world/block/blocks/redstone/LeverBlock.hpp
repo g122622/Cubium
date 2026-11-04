@@ -165,7 +165,7 @@ private:
      * @param pos 方块位置
      * @param powered true为开启，false为关闭
      */
-    static void _playClickSound(IWorld& world, const BlockPos& pos, bool powered);
+    static void playClickEffects(IWorld& world, const BlockPos& pos, bool powered);
 
     /**
      * @brief 通知相邻方块更新

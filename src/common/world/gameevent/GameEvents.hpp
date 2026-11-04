@@ -25,6 +25,7 @@
 
 #include "GameEvent.hpp"
 #include <string>
+#include <vector>
 
 namespace mc::gameevent {
 
@@ -231,6 +232,15 @@ inline const GameEvent RESONATE_15("resonate_15");
  * @return 对应的 GameEvent 指针，未找到返回 nullptr
  */
 [[nodiscard]] const GameEvent* getGameEventById(const std::string& id);
+
+/**
+ * @brief 枚举全部已注册游戏事件的标识符
+ *
+ * 顺序不做保证（底层是哈希表）。需要稳定顺序时由调用方自行排序。
+ *
+ * @return 全部事件 ID
+ */
+[[nodiscard]] std::vector<std::string> allGameEventIds();
 
 } // namespace GameEvents
 

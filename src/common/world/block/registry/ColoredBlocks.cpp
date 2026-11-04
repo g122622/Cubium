@@ -205,7 +205,12 @@ void registerColoredBlocks()
     auto& registry = BlockRegistry::instance();
 
     // ========== 羊毛注册 (16色) ==========
-    BlockProperties woolProps = BlockProperties(Material::WOOL).hardness(0.8f).flammable().ignitedByLava();
+    BlockProperties woolProps = BlockProperties(Material::WOOL)
+                                    .hardness(0.8f)
+                                    .flammable()
+                                    .ignitedByLava()
+                                    .resistance(0.8f)
+                                    .instrument(BlockProperties::Instrument::Guitar);
 
     ColoredBlocks::WHITE_WOOL =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_wool"), woolProps);
@@ -235,7 +240,8 @@ void registerColoredBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_wool"), woolProps);
 
     // ========== 地毯注册 (16色) ==========
-    BlockProperties carpetProps = BlockProperties(Material::WOOL).hardness(0.1f).notSolid().flammable().ignitedByLava();
+    BlockProperties carpetProps =
+        BlockProperties(Material::WOOL).hardness(0.1f).notSolid().flammable().ignitedByLava().resistance(0.1f);
 
     ColoredBlocks::WHITE_CARPET =
         &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:white_carpet"), carpetProps);
@@ -274,8 +280,14 @@ void registerColoredBlocks()
     // 对齐 vanilla TransparentBlock#propagatesSkylightDown=true（染色玻璃完全透传天空光），
     // 且 getLightBlock=isSolidRender?15:(pSD?0:1)=0（opacity=0，不衰减天空光）。
     // 与普通玻璃 GLASS（BaseBlocks.cpp）注册写法一致：.opacity(0).propagatesSkylightDown()。
-    BlockProperties stainedGlassProps =
-        BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion().opacity(0).propagatesSkylightDown();
+    BlockProperties stainedGlassProps = BlockProperties(Material::GLASS)
+                                            .hardness(0.3f)
+                                            .notSolid()
+                                            .noOcclusion()
+                                            .opacity(0)
+                                            .propagatesSkylightDown()
+                                            .resistance(0.3f)
+                                            .instrument(BlockProperties::Instrument::Hat);
 
     ColoredBlocks::WHITE_STAINED_GLASS = &registry.registerBlock<block::StainedGlassBlock>(
         ResourceLocation("minecraft:white_stained_glass"), stainedGlassProps, DyeColor::White);
@@ -311,7 +323,10 @@ void registerColoredBlocks()
         ResourceLocation("minecraft:black_stained_glass"), stainedGlassProps, DyeColor::Black);
 
     // ========== 混凝土注册 (16色) ==========
-    BlockProperties concreteProps = BlockProperties(Material::ROCK).hardness(1.8f).resistance(1.8f);
+    BlockProperties concreteProps = BlockProperties(Material::ROCK)
+                                        .hardness(1.8f)
+                                        .resistance(1.8f)
+                                        .instrument(BlockProperties::Instrument::BaseDrum);
 
     ColoredBlocks::WHITE_CONCRETE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:white_concrete"), concreteProps);
@@ -348,7 +363,8 @@ void registerColoredBlocks()
 
     // ========== 混凝土粉末注册 (16色) ==========
     // 混凝土粉末是下落方块，接触水会固化为对应颜色的混凝土
-    BlockProperties concretePowderProps = BlockProperties(Material::SAND).hardness(0.5f);
+    BlockProperties concretePowderProps =
+        BlockProperties(Material::SAND).hardness(0.5f).resistance(0.5f).instrument(BlockProperties::Instrument::Snare);
 
     ColoredBlocks::WHITE_CONCRETE_POWDER = &registry.registerBlock<blocks::ConcretePowderBlock>(
         ResourceLocation("minecraft:white_concrete_powder"), concretePowderProps, ColoredBlocks::WHITE_CONCRETE);
@@ -389,7 +405,10 @@ void registerColoredBlocks()
 
     // ========== 陶瓦注册 (16色 + 普通) ==========
     // 普通/染色陶瓦：1.25 / 4.2（釉面陶瓦是 1.4 / 1.4，见下一段）。
-    BlockProperties terracottaProps = BlockProperties(Material::ROCK).hardness(1.25f).resistance(4.2f);
+    BlockProperties terracottaProps = BlockProperties(Material::ROCK)
+                                          .hardness(1.25f)
+                                          .resistance(4.2f)
+                                          .instrument(BlockProperties::Instrument::BaseDrum);
 
     // 普通陶瓦
     ColoredBlocks::TERRACOTTA =
@@ -432,7 +451,10 @@ void registerColoredBlocks()
     // ========== 釉面陶瓦注册 (16色) ==========
     // GlazedTerracottaBlock 带 HORIZONTAL_FACING 属性，可被活塞推动并沿推动方向旋转。
     // 釉面陶瓦是 1.4 / 1.4（与普通陶瓦的 1.25 / 4.2 不同），材质 ROCK。
-    BlockProperties glazedTerracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(1.4f);
+    BlockProperties glazedTerracottaProps = BlockProperties(Material::ROCK)
+                                                .hardness(1.4f)
+                                                .resistance(1.4f)
+                                                .instrument(BlockProperties::Instrument::BaseDrum);
     ColoredBlocks::WHITE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
         ResourceLocation("minecraft:white_glazed_terracotta"), glazedTerracottaProps);
     ColoredBlocks::ORANGE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
@@ -474,7 +496,8 @@ void registerColoredBlocks()
                                    .notSolid()
                                    .noOcclusion()
                                    .ignitedByLava()
-                                   .soundType(BlockSoundTypes::WOOD);
+                                   .soundType(BlockSoundTypes::WOOD)
+                                   .resistance(0.2f);
 
     ColoredBlocks::WHITE_BED =
         &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:white_bed"), DyeColor::White, bedProps);

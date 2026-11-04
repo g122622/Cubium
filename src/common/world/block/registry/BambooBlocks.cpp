@@ -71,6 +71,7 @@ void registerBambooBlocks()
     // 竹块（由竹子合成的方块，有轴属性）
     BambooBlocks::BAMBOO_BLOCK = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:bamboo_block"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(2.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -81,6 +82,7 @@ void registerBambooBlocks()
     BambooBlocks::STRIPPED_BAMBOO_BLOCK =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_bamboo_block"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -94,6 +96,7 @@ void registerBambooBlocks()
     // 竹木板
     BambooBlocks::BAMBOO_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bamboo_planks"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -103,6 +106,7 @@ void registerBambooBlocks()
     // 竹马赛克
     BambooBlocks::BAMBOO_MOSAIC = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bamboo_mosaic"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -118,6 +122,7 @@ void registerBambooBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:bamboo_stairs"),
             BambooBlocks::BAMBOO_PLANKS->defaultState(),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -131,6 +136,7 @@ void registerBambooBlocks()
             // 原版 registerLegacyStair(名字, 基材) 只继承基材的默认状态，不调用 noOcclusion()，
             // 因此 bamboo_mosaic_stairs 的 canOcclude 为 true（与所有木质楼梯一致）。
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -144,6 +150,7 @@ void registerBambooBlocks()
     // 竹台阶
     BambooBlocks::BAMBOO_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:bamboo_slab"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -154,6 +161,7 @@ void registerBambooBlocks()
     BambooBlocks::BAMBOO_MOSAIC_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:bamboo_mosaic_slab"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -167,6 +175,7 @@ void registerBambooBlocks()
     // 竹栅栏
     BambooBlocks::BAMBOO_FENCE = &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:bamboo_fence"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -177,6 +186,7 @@ void registerBambooBlocks()
     BambooBlocks::BAMBOO_FENCE_GATE =
         &registry.registerBlock<blocks::FenceGateBlock>(ResourceLocation("minecraft:bamboo_fence_gate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -187,6 +197,7 @@ void registerBambooBlocks()
     // 竹门
     BambooBlocks::BAMBOO_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:bamboo_door"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(3.0f)
             .resistance(3.0f)
             .soundType(BlockSoundTypes::BAMBOO_WOOD)
@@ -200,6 +211,7 @@ void registerBambooBlocks()
     BambooBlocks::BAMBOO_TRAPDOOR =
         &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:bamboo_trapdoor"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(3.0f)
                 .resistance(3.0f)
                 .soundType(BlockSoundTypes::BAMBOO_WOOD)

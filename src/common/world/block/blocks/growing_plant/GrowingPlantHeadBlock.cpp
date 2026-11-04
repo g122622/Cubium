@@ -194,5 +194,11 @@ BlockState GrowingPlantHeadBlock::updateBodyAfterConvertedFromHead(const BlockSt
     return bodyBlock ? bodyBlock->defaultState() : defaultState();
 }
 
+bool GrowingPlantHeadBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 头部达到最大年龄（25）后不再伸长，停止随机刻。身体部分不响应随机刻。
+    return getAge(state) < 25;
+}
+
 } // namespace blocks
 } // namespace mc

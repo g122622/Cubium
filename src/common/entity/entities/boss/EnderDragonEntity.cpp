@@ -43,9 +43,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
@@ -675,8 +674,6 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
     bool destroyedAny = false;
     bool hitWall = false;
 
-    const BlockState* airState = &VanillaBlocks::AIR->defaultState();
-
     for (BlockCoord bx = minX; bx <= maxX; ++bx) {
         for (BlockCoord by = minY; by <= maxY; ++by) {
             for (BlockCoord bz = minZ; bz <= maxZ; ++bz) {
@@ -707,10 +704,9 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
                     continue;
                 }
 
-                // 破坏方块：使用 setBlockState 设为空气 + spawnAfterBreak 触发掉落
-                // MC 原版使用 removeBlock(pos, false)，效果等价于 setBlockState(air, 3)
-                worldPtr->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-                block.spawnAfterBreak(*worldPtr, pos, *state, nullptr, false);
+                // 原版 EnderDragon.checkWalls 使用 removeBlock(pos, false)：不产生破坏粒子、不掉落、
+                // 不发 BLOCK_DESTROY 游戏事件。
+                worldPtr->removeBlock(pos, false);
 
                 // 生成爆炸粒子效果
                 worldPtr->addParticle(ParticleTypeId::Explosion,

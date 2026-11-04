@@ -51,6 +51,10 @@ import {
 import { KNOWN_MISSING as blockToolsKnownMissing } from "./known_missing_block_tools.ts";
 import { KNOWN_GAPS as lootContainerKnownGaps, LOOT_CONTAINER_SCENARIO_NAMES, lootContainerInput, lootContainerUnit } from "./loot_container.ts";
 import { KNOWN_MISSING as itemsKnownMissing } from "./known_missing_items.ts";
+import { KNOWN_MISSING as entityTypesKnownMissing } from "./known_missing_entity_types.ts";
+import { KNOWN_DISPENSE_GAPS } from "./known_dispense_gaps.ts";
+import { KNOWN_POSE_GAPS } from "./known_pose_gaps.ts";
+import { KNOWN_DIMENSION_GAPS } from "./known_dimension_gaps.ts";
 import {
     dropProjectOnlyCommands,
     KNOWN_MISSING_COMMANDS,
@@ -193,6 +197,7 @@ import { soundEventsInput } from "./sound_events.ts";
 import { particleTypeInput } from "./particle_type.ts";
 import { shapeFaceInput } from "./shape_face.ts";
 import { blockShapeInput } from "./block_shape.ts";
+import { blockShapeAllInput } from "./block_shape_all.ts";
 import { DAMAGE_TYPE_TAGS_UNORDERED, damageTypeTagsInput } from "./damage_type_tags.ts";
 import { enchantmentCostInput } from "./enchantment_cost.ts";
 import { ENCHANTMENT_APPLICABILITY_UNORDERED, enchantmentApplicabilityInput } from "./enchantment_applicability.ts";
@@ -1261,6 +1266,507 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         description: "VoxelShape 的面切片（15 种边界形状 × 6 方向）；把 slice / findIndex / "
             + "isCubeLikeAlong 单独拎出来比对，用于定位 face_sturdy 剩余差异的底层根因",
         key: "unit", units: { kind: "listing" }, input: shapeFaceInput },
+    {
+    name: "block_shape_all",
+    probe: "block_shape_all",
+    oracle: "BlockShapeAllOracle",
+    description: "方块三种形状的坐标（外形 / 碰撞 / 支撑，**全部属性组合**）；"
+    + "block_shape 只测默认状态，本能力遍历约 3 万个状态，用于抓只在非默认状态下出现的形状错误",
+    key: "unit", units: { kind: "listing" }, input: blockShapeAllInput },
+    {
+        name: "axis_cycle",
+        probe: "axis_cycle",
+        oracle: "AxisCycleOracle",
+        description: "AxisCycle 三轴循环映射（两个 cycle 重载 + inverse + between）；"
+        + "这是 VoxelShape.collide、DiscreteVoxelShape 边/面遍历的底层坐标变换，错一个映射会让上层所有几何整体偏移",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "entity_type_size",
+        probe: "entity_type_size",
+        oracle: "EntityTypeSizeOracle",
+        description: "实体类型注册尺寸（宽 / 高 / 眼睛高度 / 是否固定）；"
+        + "这四项是原版硬编码在每个 EntityType.Builder 里的注册数据，不在数据包中，也没有别的机制能校验抄写是否正确。"
+        + "抄错一位小数不会报错，只会让实体卡进方块或视线落点差一格。浮点输出位模式以避开格式差异",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
+    {
+        name: "dispense_behavior",
+        probe: "dispense_behavior",
+        oracle: "DispenseBehaviorOracle",
+        description: "发射器行为表：每个物品是否注册了专用行为、是否为 OptionalDispenseItemBehavior；"
+        + "原版 169 条注册里 109 条是匿名子类（类名是 DispenserBlock$1 这种序号），跨实现不可比，"
+        + "因此比对归一化标签与 isSuccess() 初值——后者决定是否播发射音效、是否消耗物品",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: itemsKnownMissing,
+        knownDifferences: KNOWN_DISPENSE_GAPS.flatMap((unit) =>
+            ["registered", "kind", "successDefault"].map((field) => ({
+                key: unit,
+                field,
+                reason: "Cubium 尚未注册该类发射器行为（见 known_dispense_gaps.ts 的分组与修法）",
+            }))) },
+    {
+        name: "attribute_modifier_apply",
+        probe: "attribute_modifier_apply",
+        oracle: "AttributeModifierApplyOracle",
+        description: "属性修饰符三阶段计算（AttributeInstance.calculateValue）的最终值；"
+        + "三个易错点：ADD_MULTIPLIED_BASE 乘的是经过 ADD_VALUE 之后的基数而非原始 base；"
+        + "ADD_MULTIPLIED_TOTAL 必须逐个连乘 (1+amount) 而不是先相加；sanitizeValue 对 NaN 返回 minValue",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "entity_pose_dimensions",
+        probe: "entity_pose_dimensions",
+        oracle: "EntityPoseDimensionsOracle",
+        description: "实体在 18 个姿态下的宽 / 高 / 眼睛高度（16 类型 × 18 姿态 = 288 单元）；"
+        + "核心是 LivingEntity.getDimensions(Pose) 是 **public final**：SLEEPING 恒为 (0.2, 0.2, 0.2)，"
+        + "与实体类型、年龄、缩放全都无关；其余姿态走类型尺寸。漏掉这条会让所有生物躺下时碰撞箱还是站立的尺寸",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        knownDifferences: KNOWN_POSE_GAPS },
+    {
+        name: "mob_spawn_light_level",
+        probe: "mob_spawn_light_level",
+        oracle: "MobSpawnLightLevelOracle",
+        description: "怪物生成光照判定（Monster.isDarkEnoughToSpawn）的三段逻辑；"
+        + "三个易错点：天空光与 nextInt(32) 的随机阈值比而非常量；方块光上限仅在 blockLightLimit<15 时才检查；"
+        + "最后比的是综合亮度而非方块光。输出同时带 lightTest 采样值，便于区分「随机流不同」与「判定逻辑不同」",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "dimension_type_params",
+        probe: "dimension_type_params",
+        oracle: "DimensionTypeParamsOracle",
+        description: "维度类型参数（DimensionType 的 14 个字段 × 3 维度）；"
+        + "这是**数据包驱动的注册表**，每个字段都直接决定游戏行为且彼此独立：coordinate_scale 决定主世界与下界的坐标换算、"
+        + "ambient_light 决定无光照处底色、fixed_time 让末地永远停在黄昏、min_y/height/logical_height 决定建筑高度与传送门规则。"
+        + "抄错任何一项都不会崩溃，只会让某个维度的手感整体偏差——这是最难靠人工发现的一类数据错误",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        knownDifferences: KNOWN_DIMENSION_GAPS },
+    {
+        name: "beacon_pyramid_level",
+        probe: "beacon_pyramid_level",
+        oracle: "BeaconPyramidLevelOracle",
+        description: "信标金字塔等级（BeaconBlockEntity.updateBase）；"
+        + "要点：第 j 层是 (2j+1)^2 的**整片**而非只有边框、必须**连续**（某层一破即止）、"
+        + "**低于世界底即停止**（世界底是维度参数而非常量：主世界 -64、下界与末地 0）。"
+        + "布局字符串让「整层缺一格」「层间不连续」「世界底截断」三类错误都能精确表达",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "conduit_frame_level",
+        probe: "conduit_frame_level",
+        oracle: "ConduitFrameLevelOracle",
+        description: "潮涌核心框架等级（ConduitBlockEntity.updateShape）；"
+        + "要点：中心 3x3x3 必须**全是水**否则立刻失效、只认**框架环**（42 格）而非 5x5x5 整个外壳（98 格）、"
+        + "两档门槛 MIN_ACTIVE_SIZE=16 与 MIN_KILL_SIZE=42",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "campfire_cooking",
+        probe: "campfire_cooking",
+        oracle: "CampfireCookingOracle",
+        description: "营火烹饪配方表（campfire_cooking 类型的全部配方）；"
+        + "营火只认 CampfireCooking 类型，**不读熔炉或烟熏机配方**，三者数据文件独立，同一物品在三种设施下的可熔炼性与耗时都可能不同。"
+        + "cookTime 就是营火的实际烹饪耗时（cookTick 每 tick 递增、达到即掉落），抄错任何一个都会让该物品熟得太早或太晚",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "cooking_recipe_types",
+        probe: "cooking_recipe_types",
+        oracle: "CookingRecipeTypesOracle",
+        description: "四类烹饪配方的横向对照（熔炉/烟熏机/高炉/营火）—— 16 输入 × 4 设施 = 64 单元；"
+        + "四套配方在数据包里各自独立、cookingtime 也写在 JSON 里。语义差异：熔炉通用、"
+        + "烟熏机只做食物且快一倍、高炉只做矿石且快一倍、营火只做食物且慢三倍。"
+        + "最容易出错的是**串配方**（smoking 走成 smelting 之类），不会崩溃、只会让某些物品在错误设施里可加工或耗时差一倍",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "game_event_radius",
+        probe: "game_event_radius",
+        oracle: "GameEventRadiusOracle",
+        description: "游戏事件的通知半径（GameEvent.notificationRadius）；"
+        + "60 个事件里 57 个是默认 16，只有 jukebox_play/jukebox_stop_play（10）与 shriek（32）不同。"
+        + "半径决定事件能被多远的监听器收到——幽匿感测体、尖啸体、监守者、悦灵这些「听声音」的机制全靠它；"
+        + "抄成默认 16 不会崩溃，只会让监守者的尖啸只惊动半张地图。单元由 allGameEventIds() 生成，事件名集合的差异也会直接体现为单元缺失/多出",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "container_analog_signal",
+        probe: "container_analog_signal",
+        oracle: "ContainerAnalogSignalOracle",
+        description: "容器红石信号强度（AbstractContainerMenu.getRedstoneSignalFromContainer）—— 比较器读箱子时的强度换算；"
+        + "三个易错点：每格按**各自的 maxStackSize** 归一化而不是统一按 64（否则 16 个工具会被算成只装了 4%）、"
+        + "`f > 0` 才 +1 所以非空最低为 1 而空箱为 0、先逐格累加再整体除以槽位数",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "item_max_stack_size",
+        probe: "item_max_stack_size",
+        oracle: "ItemMaxStackSizeOracle",
+        description: "全部物品的堆叠上限（ItemStack.getMaxStackSize 的默认值）—— 每个已注册物品一个单元；"
+        + "上限是散落在上千处物品注册调用里的小整数（64/16/1），抄错不会崩溃但会实实在在影响玩法："
+        + "本该 1 的桶会在一个格子叠一摞、本该 64 的食材会让物品栏凭空多占格子、"
+        + "而比较器读箱子时按 count/maxStackSize 折算占比，上限错会让**信号强度整体偏移**",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_light_emission",
+        probe: "block_light_emission",
+        oracle: "BlockLightEmissionOracle",
+        description: "方块状态的发光强度（BlockBehaviour.getLightEmission）—— 每个状态一个单元；"
+        + "与 light_occlusion 互补：后者量「光穿过这一格后还剩多少」，本条量「这一格自己发出多少光」。"
+        + "只测衰减时，一个本该发光却写成 0 的火把看起来「透光性完美」，但整间屋子不亮。"
+        + "原版用 MAX_LEVEL 截断，抄成 16 与 15 在游戏里看不出区别，只能靠比对发现",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_hardness",
+        probe: "block_hardness",
+        oracle: "BlockHardnessOracle",
+        description: "全部方块的硬度与爆炸抗性（getDestroySpeed / getExplosionResistance）—— 每个方块一个单元，f32 位模式比对；"
+        + "硬度差一点挖掘手感就不对、差一个数量级玩家会以为自己拿错了工具；**硬度 -1 表示不可破坏**，写成 0 会一碰就碎、写成 50 会挖得动但挖不完；"
+        + "抗性写成 0 的黑曜石会被一颗 TNT 清空。与 block_destroy_progress 互补：后者验公式，本条验公式的输入",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_map_color",
+        probe: "block_map_color",
+        oracle: "BlockMapColorOracle",
+        description: "全部方块状态的地图颜色（BlockBehaviour.getMapColor）—— 每个状态一个单元；"
+        + "地图上每一格的颜色都由它决定（再按高度套 4 级明暗）。只影响地图渲染、不影响任何游戏逻辑，"
+        + "所以抄错了既不崩溃也不会让玩家觉得哪里不对，直到有人做了张大地图、发现白羊毛屋顶在地图上是灰的。"
+        + "典型错误形态：16 种染色方块全指到同一颜色、陶瓦错指到 STONE",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_friction",
+        probe: "block_friction",
+        oracle: "BlockFrictionOracle",
+        description: "方块的移动手感三件套——摩擦、速度倍率、跳跃倍率（getFriction / getSpeedFactor / getJumpFactor）；"
+        + "三者互相替代，必须一起比：冰改的是 friction(0.98)、蜂蜜块不改 friction 而改 speedFactor(0.4)+jumpFactor(0.5)、"
+        + "灵魂沙改 speedFactor(0.4) 但不改 jumpFactor。只比 friction 会漏掉蜂蜜块与灵魂沙的大半行为，只比 speedFactor 会把冰判成普通方块",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_fire_info",
+        probe: "block_fire_info",
+        oracle: "BlockFireInfoOracle",
+        description: "方块的可燃性参数（FireBlock.setFlammable 的 encouragement/flammability）—— 每个方块一个单元；"
+        + "encouragement 是火焰蔓延到它的概率权重（木板 5、树叶 30），flammability 是它被烧毁的概率权重（木板 20、羊毛 60），两者独立："
+        + "树叶极易被点燃但烧尽速度和木板差不多。火焰传播是概率系统，抄错了不崩溃、只会让火势「感觉不太对」，只能逐方块比对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_solidity",
+        probe: "block_solidity",
+        oracle: "BlockSolidityOracle",
+        description: "方块的「可放置 / 可穿过」两态（isSolid 与 canBeReplaced）—— 每个方块一个单元；"
+        + "solid 决定算不算实体方块（怪物能否在其上生成、玩家视线是否被挡），算法是 forceSolidOn→真 / forceSolidOff→假 / 否则看碰撞形状是否满格；"
+        + "replaceable 决定能否被别的方块直接覆盖（草丛、雪层、空气可以，石头不行）。两个都是布尔量，抄错极隐蔽："
+        + "replaceable 误真会让玩家的墙被随手放上的方块直接替换掉，solid 误真会让屋顶刷不出怪",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_instrument",
+        probe: "block_instrument",
+        oracle: "BlockInstrumentOracle",
+        description: "音符盒放在方块上方时演奏的乐器（BlockStateBase#instrument()）—— 每个方块一个单元；"
+        + "石头类给大鼓、沙类给小军鼓、玻璃给踩镲、木类给贝斯、泥土给长笛、金块给钟、羊毛给吉他、冰给风铃、骨块给木琴、"
+        + "铁块给铁琴、灵魂沙给牛铃、南瓜给迪吉里杜管、绿宝石块给电子音、干草块给班卓琴、萤石给电钢琴，头颅模仿生物叫声，"
+        + "其余竖琴。抄错不影响任何方块行为，只会让红石音乐作品听起来不对，只能逐方块比对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "noteblock_pitch",
+        probe: "noteblock_pitch",
+        oracle: "NoteBlockPitchOracle",
+        description: "音符盒的调音（音符值 0..24 的音高与循环）—— 25 个单元；"
+        + "pitch 是原版 getPitchFromNote = 2^((note-12)/12)，按 f32 位模式比（中间用 f32 还是 f64 会让结果差 1 ulp，"
+        + "听不出来但会让包络计算逐帧漂移）；cycled 是右键一次后的音符值，回绕点写错会让某些音根本弹不出来"
+        ,
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "noteblock_trigger",
+        probe: "noteblock_trigger",
+        oracle: "NoteBlockTriggerOracle",
+        description: "音符盒被触发时播放的音效三元组（音效 id / 音量 / 音高）与音符粒子 —— 23 种乐器 x 3 个音符值 = 69 个单元；"
+        + "音量恒为 3.0，音高在可调音乐器上走 getPitchFromNote、头颅类固定 1.0，粒子只有可调音乐器才发（颜色偏移 note/24）。"
+        + "绑定在 Block::triggerEvent 上而不是直接调播放函数：原版正是靠方块事件广播让附近所有玩家都听到，直接播放只有发起方出声",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "bell_placement",
+        probe: "bell_placement",
+        oracle: "BellPlacementOracle",
+        description: "钟被放置时推导出的附着方式（BellBlock#getStateForPlacement）—— 6 种点击面 x 4 种玩家朝向 x 16 种四邻坚固性 = 384 个单元；"
+        + "钟是少数按摆放方式长出不同形状的方块：点顶面立在地上（floor）、点底面吊在天花板（ceiling）、"
+        + "点侧面且对向两侧都是墙就跨在两面墙之间（double_wall），否则单面挂（single_wall）。四种的碰撞形状与敲击范围都不同。"
+        + "双墙写成单墙会让钟只挂在一侧、朝向用点击面本身而非反方向会让钟面朝墙里，都不会崩溃只是看起来不对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "bell_ring",
+        probe: "bell_ring",
+        oracle: "BellRingOracle",
+        description: "敲钟的「有效敲击」判定（BellBlock#isProperHit）—— 4 种附着方式 x 4 种钟朝向 x 6 种点击面 x 5 个点击高度 = 480 个单元；"
+        + "钟不是碰一下就响：点击面在 Y 轴永远不响、点击高度 > 0.8124 永远不响（敲钟帽不响），"
+        + "floor 要求点击面与钟朝向同轴，墙钟要求不同轴，ceiling 任何水平面都响。"
+        + "判定错不崩溃、不掉日志，只会让某些角度敲不响或不该响的地方能响",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "jukebox_insert",
+        probe: "jukebox_insert",
+        oracle: "JukeboxInsertOracle",
+        description: "唱片机的交互判定（JukeboxPlayable#tryInsertIntoJukebox 的分支表）—— 4 种手持物 x HAS_RECORD = 8 个单元；"
+        + "只有三种结果：insert（手里是唱片且机器空着）、eject（机器里有唱片，任何手持物都一样）、try_empty_hand（都不是）。"
+        + "陷阱是顺序：「机器里有唱片」优先于「手里拿什么」—— 拿着另一张唱片点也是先弹旧的，写反了旧唱片会凭空消失",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "lever_game_event",
+        probe: "lever_game_event",
+        oracle: "LeverGameEventOracle",
+        description: "拨动拉杆时发出的游戏事件与音效（LeverBlock#play）—— 拨动前 POWERED 的两态 = 2 个单元；"
+        + "规则是开启发 block_activate、关闭发 block_deactivate，音效恒为 block.lever.click。"
+        + "游戏事件是幽匿感测体、尖啸体、监守者、悦灵这些听声音机制的唯一输入；漏发不崩溃不掉日志，"
+        + "方块状态和音效都正常，只有红石侦测端完全没反应",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "note_block_event",
+        probe: "note_block_event",
+        oracle: "NoteBlockEventOracle",
+        description: "音符盒响不响、发不发事件（NoteBlock#playNote）—— 23 种乐器 x 上方是否被方块堵住 = 46 个单元；"
+        + "前置条件是「乐器 above-note-block 生效 或 上方是空气」：头颅类乐器不受上方方块影响，其余乐器上方必须为空。"
+        + "被堵住时既不出声也不发 NOTE_BLOCK_PLAY 事件 —— 事件必须发在判定之后。漏掉前置条件会让埋了方块的音符盒照样发声",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "piston_event",
+        probe: "piston_event",
+        oracle: "PistonEventOracle",
+        description: "活塞缩回时的音效与游戏事件（PistonBaseBlock#move）—— 2 种活塞 x 6 个朝向 = 12 个单元；"
+        + "缩回放 block.piston.contract（音量 0.5）并发 BLOCK_DEACTIVATE，伸出是 extend + BLOCK_ACTIVATE。"
+        + "漏掉音效时活塞完全无声、玩家判断不出装置有没有在工作；漏掉事件则活塞在幽匿电路里完全隐形",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "cake_eat",
+        probe: "cake_eat",
+        oracle: "CakeEatOracle",
+        description: "吃一片蛋糕时发出的游戏事件（CakeBlock#eat）—— 吃之前的 BITES 0..6 = 7 个单元；"
+        + "事件是叠加的：每一片都发 eat，若是最后一片（BITES 已是 6）额外发 block_destroy。"
+        + "只写 EAT 会让最后一片消失时幽匿电路少一次 destroy，只写 DESTROY 则前六片完全静默",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "lectern_book",
+        probe: "lectern_book",
+        oracle: "LecternBookOracle",
+        description: "讲台放书/取书时的状态复位与事件（LecternBlock#resetBookState）—— 初始 HAS_BOOK x POWERED x 目标 = 8 个单元；"
+        + "POWERED 一律复位为 false、HAS_BOOK 置为目标值、发 BLOCK_CHANGE。"
+        + "讲台翻页时会拉高一次 POWERED 当比较器脉冲，放书取书不清掉的话，取走书之后下游比较器会一直读到不该存在的信号",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "tripwire_state",
+        probe: "tripwire_state",
+        oracle: "TripwireStateOracle",
+        description: "绊线钩状态变化时的音效与事件（TripWireHookBlock#emitState）—— 变化前 powered/attached x 变化后 = 16 个单元；"
+        + "四个分支互斥且按优先级：通电/断电优先于挂上/脱开。两者同时变化时只报电量那次；"
+        + "写成并列四个 if 会让一次扯断连发两个事件两个音效，幽匿感测体被连续唤醒、红石计时装置算错 tick。都不变时必须完全静默",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "farmland_decay",
+        probe: "farmland_decay",
+        oracle: "FarmlandDecayOracle",
+        description: "耕地退化时的方块替换与事件（FarmBlock#turnToDirt）—— 耕地 MOISTURE 0..7 = 8 个单元；"
+        + "被踩踏、缺水、上方被盖住三条路径都走 turnToDirt：换方块 + 发 block_change。"
+        + "换方块与发事件是两件事，幽匿感测体只认 gameEvent，不发就完全感知不到耕地被踩坏",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "tripwire_disarm",
+        probe: "tripwire_disarm",
+        oracle: "TripwireDisarmOracle",
+        description: "用剪刀拆绊线时的解除武装与事件（TripWireBlock#playerWillDestroy）—— 主手物品 3 种 = 3 个单元；"
+        + "手里是剪刀时先把绊线置成 DISARMED 再移除，两端钩子看到「已解除」走拆除路径而不是触发路径，并发 shear 事件。"
+        + "不置 DISARMED 的话，用剪刀拆陷阱反而会把它引爆一次 —— 正好是剪刀存在的意义（安全拆除）的反面",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "berry_growth",
+        probe: "berry_growth",
+        oracle: "BerryGrowthOracle",
+        description: "甜浆果丛生长时的阶段推进与事件（SweetBerryBushBlock#randomTick）—— AGE 0..3 = 4 个单元；"
+        + "随机刻生长与骨粉催熟都让 AGE+1 并发 block_change。AGE 已是 3（满阶段）时不再生长也不发事件 ——"
+        + "满阶段还发事件的话，一丛浆果能让附近幽匿感测体每 tick 醒一次",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "anchor_charge",
+        probe: "anchor_charge",
+        oracle: "AnchorChargeOracle",
+        description: "重生锚充能/放电时的层数变化与事件（RespawnAnchorBlock#charge）—— CHARGES 0..4 x 动作 = 10 个单元；"
+        + "充能 +1 上限 4、放电 -1 下限 0，都发 block_change；已满/已空时不变也不发事件。"
+        + "已达上限还继续加会让层数溢出到 5，光照等级 charges*3.75 算出 18 超出亮度上限",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "vibration_frequency",
+        probe: "vibration_frequency",
+        oracle: "VibrationFrequencyOracle",
+        description: "游戏事件到振动频率的映射（VibrationSystem.VIBRATION_FREQUENCY_FOR_EVENT）—— 全部 40 个事件；"
+        + "这张表把事件归入 1..15 的频段，频段决定红石比较器输出强度与紫水晶共振方块的 RESONATE_N 事件，"
+        + "表里没有的事件频率为 0 不产生振动。分组整体偏移不会崩也不会报错，只是所有振动装置读数同时「差不多」地错掉 ——"
+        + "这是最难靠手动测试发现的一类缺陷。实测修复前 40 条里 35 条与原版不符",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "vibration_strength",
+        probe: "vibration_strength",
+        oracle: "VibrationStrengthOracle",
+        description: "振动距离到红石强度的换算（VibrationSystem#getRedstoneStrengthForDistance）—— 监听半径 x 距离 = 120 个单元；"
+        + "公式 max(1, 15 - floor(15/radius * distance))，是幽匿感测体给红石比较器的唯一输出值。"
+        + "三个容易写错的地方：除号内外（整数截断两次会差 1）、漏掉 max(1,...) 下限（远处给出 0 而非弱信号）、距离为 0 必须给 15；"
+        + "三个错都不崩不报错，只是读数差 1，而依赖精确读数的装置会整体失效",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "vibration_info_nbt",
+        probe: "vibration_info_nbt",
+        oracle: "VibrationInfoNbtOracle",
+        description: "振动信息的 NBT 结构（VibrationInfo.CODEC）—— 字段组合 4 种；"
+        + "game_event(string) / distance(float) / pos(double[3]) 必填，source 与 projectile_owner 是可选的 UUID。"
+        + "UUID 按原版 UUIDUtil.CODEC 拆成 4 个有符号 int，不是单个 long —— 写成 long 会让存档与网络包都和原版对不上；"
+        + "Cubium 原来 source 就是 long、projectile_owner 整个缺失",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "vibration_selector",
+        probe: "vibration_selector",
+        oracle: "VibrationSelectorOracle",
+        description: "幽匿感测体的振动选优（VibrationSelector#shouldReplaceVibration）—— 事件 x 距离 x 时刻 = 24 个单元；"
+        + "同一时刻的多个振动要挑一个：距离近的优先，距离相同再比频率高的优先，不同时刻一律不替换。"
+        + "顺序不可颠倒 —— 先比频率再比距离，远处一次爆炸（频率 15）会盖掉近处的脚步声；"
+        + "允许跨 tick 替换则高频事件不断插队，低频事件永远得不到处理",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "sculk_sensor_step",
+        probe: "sculk_sensor_step",
+        oracle: "SculkSensorStepOracle",
+        description: "幽匿感测体被踩踏时是否发出 STEP 振动（SculkSensorBlock#stepOn）—— 相位 x 踩踏者 = 9 个单元；"
+        + "三个前置条件缺一不可：相位为 Inactive（否则站上去不走也会一直触发，感测体变压力板）、"
+        + "踩踏者不是监守者（同源自激）、踩踏者不在潜行（潜行绕过感测体是核心玩法）。"
+        + "修复前 Cubium 根本没有覆写 onEntityWalk，踩踏振动完全缺失",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "brushable_fall",
+        probe: "brushable_fall",
+        oracle: "BrushableFallOracle",
+        description: "可疑沙/沙砾坠落碎开时的效果与事件（BrushableBlock#onBrokenAfterFall）—— 方块种类 2 个单元；"
+        + "两个动作缺一不可：放方块破碎粒子（levelEvent 2001）、发 block_destroy 事件。"
+        + "只发粒子不发事件，坠落破碎在幽匿电路里隐形；只发事件不放粒子，玩家看不到摔碎的视觉反馈。"
+        + "修复前 Cubium 的 BrushableBlock 继承 FallingBlock 却没有覆写 onBroken，两者都没有",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "vibration_selector_nbt",
+        probe: "vibration_selector_nbt",
+        oracle: "VibrationSelectorNbtOracle",
+        description: "振动选择器的 NBT 结构与往返（VibrationSelector.CODEC）—— 无候选/有候选 2 个单元；"
+        + "只有两个字段：event（可选的 VibrationInfo 嵌套）与 tick（long）。"
+        + "无候选时 tick 必须写 -1 而不是省略字段（原版 orElse(-1L)，字段存在但值是哨兵），"
+        + "否则「读取失败」和「没有候选」语义混淆；event 存在但 tick < 0 时不能恢复候选，两字段是一对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_blast_resistance",
+        probe: "block_blast_resistance",
+        oracle: "BlockBlastResistanceOracle",
+        description: "方块默认状态的爆炸抗性（Block#getExplosionResistance）—— 全部已注册方块；"
+        + "爆炸破坏时每个方块按抗性算是否被摧毁，阈值约等于 威力/抗性。写错不会崩也不会报错，"
+        + "只表现为「TNT 炸不动这堵墙」或「炸得比预期干净」。"
+        + "注意原版很多方块的抗性不来自自身属性而是转交底层方块（楼梯、台阶、活板门、栅栏、墙），这类继承关系最易出错",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_movement_factor",
+        probe: "block_movement_factor",
+        oracle: "BlockMovementFactorOracle",
+        description: "方块的速度倍率与跳跃倍率（Block#getSpeedFactor / getJumpFactor）—— 全部已注册方块；"
+        + "速度倍率决定站上去走得多快，跳跃倍率决定起跳初速度。灵魂沙与蜂蜜块都是 0.4，但只有蜂蜜块的跳跃倍率是 0.5 ——"
+        + "灵魂沙只减速不限制跳跃。把蜂蜜块的跳跃倍数写成 1.0，玩家能轻松跳出蜂蜜陷阱；"
+        + "把灵魂沙的写成 0.5，沙漠神殿的灵魂沙跑酷就几乎不可能",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_shade_brightness",
+        probe: "block_shade_brightness",
+        oracle: "BlockShadeBrightnessOracle",
+        description: "方块遮光亮度与天空光透传（BlockBehaviour#getShadeBrightness / propagatesSkylightDown）—— 全部已注册方块；"
+        + "碰撞形状是完整方块返回 0.2（形成阴影），否则 1.0。三个必须单独覆写的特例：泥巴与灵魂沙是 14/16 矮块但视觉实心、仍需 0.2，"
+        + "雪层满层 0.2 其余 1.0；屏障/结构空位这类不可见方块返回 1.0。按默认规则处理泥巴和灵魂沙会让它们看起来像浮在地面上的亮块",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_random_ticks",
+        probe: "block_random_ticks",
+        oracle: "BlockRandomTicksOracle",
+        description: "方块状态是否响应随机刻（BlockBehaviour#isRandomlyTicking）—— 全部 29671 个状态；"
+        + "随机刻是「自然发生」的引擎，每个游戏刻随机挑一批位置，只对 true 的状态调用 randomTick："
+        + "作物生长、树叶腐烂、草方块蔓延、冰融化、铜氧化、火焰熄灭都靠它。"
+        + "设计上是方块级开关，但有方块按状态覆写（红石矿只有 lit=true 才随机刻），状态粒度的错误无法靠方块级比对发现",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_signal_source",
+        probe: "block_signal_source",
+        oracle: "BlockSignalSourceOracle",
+        description: "方块状态是否红石信号源（BlockBehaviour#isSignalSource）—— 全部 29671 个状态；"
+        + "为 true 的方块会被红石粉当作强充能来源（强度 15），并参与比较器/中继器与相邻活塞、门、铁轨的判定。"
+        + "最容易写错的是那些看起来该是信号源却不是的方块：铁轨（只自己变形状/启动矿车）、命令方块（只输出成功次数）、"
+        + "合成器、信标（输出金字塔等级是常见误解）、幽匿催化体 —— 这些不是是原版刻意的设计",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "item_container_fit",
+        probe: "item_container_fit",
+        oracle: "ItemContainerFitOracle",
+        description: "物品能否放进容器类物品（Item#canFitInsideContainerItems）—— 全部已注册物品；"
+        + "Item 默认 true，BlockItem 覆写为「潜影盒返回 false」。它防的是递归存储："
+        + "潜影盒能装物品，如果潜影盒也能装潜影盒，就能做出无限嵌套容器 —— 既是无限容量漏洞也是存档体积炸弹。"
+        + "判据挂在 BlockItem 上而不是按物品 id 白名单，所以新增颜色/材质变体自动被覆盖",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "entity_peaceful",
+        probe: "entity_peaceful",
+        oracle: "EntityPeacefulOracle",
+        description: "实体类型在和平难度下是否允许生成/召唤（EntityType#isAllowedInPeaceful）—— 全部已注册实体类型；"
+        + "原版默认允许，需显式 notInPeaceful() 才禁止。反直觉之处：大多数 MONSTER 类别实体确实禁止，但并非全部 ——"
+        + "潜影贝、僵尸猪灵、猪灵、猪灵蛮兵、疣猪兽等都不带 notInPeaceful。"
+        + "写反的后果玩家可直接观察到却不会崩溃：该禁止的没禁止（和平难度刷出敌对生物），该允许的被禁止（/summon 与刷怪蛋失效）",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
+    {
+        name: "entity_serialize_summon",
+        probe: "entity_serialize_summon",
+        oracle: "EntitySerializeSummonOracle",
+        description: "实体类型的存档序列化与召唤开关（EntityType#canSerialize / canSummon）—— 全部已注册实体类型；"
+        + "两个都是「默认值写反」型缺陷：serialize 默认 true（显式 noSave() 才关：拴绳结/闪电/玩家/浮标），"
+        + "summon 默认也是 true（原版没有任何实体关闭它）。写反不会崩溃不会报错，只是某些实体悄悄失去存档或召唤能力——"
+        + "玩家造的东西重进世界全没了，或者 /summon 对某些实体静默失效",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
+    {
+        name: "entity_type_flags",
+        probe: "entity_type_flags",
+        oracle: "EntityTypeFlagsOracle",
+        description: "实体类型的刷怪分类、网络追踪参数与火焰免疫（MobCategory / clientTrackingRange / updateInterval / fireImmune）—— 全部已注册实体类型；"
+        + "分类是重灾区：原版 8 类的生物上限完全不同（monster 70 / creature 10 / ambient 15 / axolotls 5 /"
+        + "underground_water_creature 5 / water_creature 5 / water_ambient 20 / misc -1）。把美西螈错归进水生生物就会和鱿鱼抢名额，"
+        + "表现为某种生物怎么都不刷。trackingRange 太小则远处实体突然消失，太大浪费带宽",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
+    {
+        name: "fluid_lava_react",
+        probe: "fluid_lava_react",
+        oracle: "FluidLavaReactOracle",
+        description: "岩浆与相邻流体/方块相遇的产物（LiquidBlock#shouldSpreadLiquid）—— 岩浆源/流动岩浆 x 四方位 x 邻居种类 = 24 个单元；"
+        + "岩浆源+水 -> 黑曜石，流动岩浆+水 -> 圆石，岩浆+蓝冰+灵魂土 -> 玄武岩，成功凝固时发 levelEvent 1501（嗤声与烟）。"
+        + "两个易错点：源与流动的产物不同（写成一个，玩家浇岩浆造石头时得到黑曜石，或造黑曜石时只得到圆石）；"
+        + "只看水平四个方向不看正上方（原版 POSSIBLE_FLOW_DIRECTIONS 是 DOWN + 四水平，往岩浆正上方倒水不会当场凝固）",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_replaceable",
+        probe: "block_replaceable",
+        oracle: "BlockReplaceableOracle",
+        description: "方块状态是否可被替换（BlockStateBase#canBeReplaced）—— 全部 29671 个状态；"
+        + "它描述「这一格现在算不算空」：直接放置、流体流动、世界生成、掉落方块都靠它。"
+        + "两处容易写反：草/蕨/海草必须 true（false 则玩家在草上放不了方块）；树叶必须 false（true 则被后来生成的树覆盖，森林一片片秃）；"
+        + "铁轨必须 true（false 则放不了方块覆盖轨道）；耕地必须 false（true 则农田被无意填平）。"
+        + "注意与 canBeReplacedByFluid 不是一回事：后者对非固体方块放宽（门、告示牌虽然不可替换但水能流进去）",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_redstone_conductor",
+        probe: "block_redstone_conductor",
+        oracle: "BlockRedstoneConductorOracle",
+        description: "方块状态是否红石导体（BlockBehaviour#isRedstoneConductor）—— 全部 29671 个状态；"
+        + "红石粉向四周传播时会穿过导体方块向下找信号源，非导体则不会，同时影响火把/拉杆/中继器/观察者/活塞的充能判定。"
+        + "原版默认判据是「碰撞形状完整覆盖整格」，再由 22 处 isRedstoneConductor 逐个覆盖（绝大多数是 never）。"
+        + "两类最容易写错：红石块不透明且形状完整却显式排除；单层台阶与楼梯材质不透明但形状不完整。两个判据单独用都不对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_pathfindable",
+        probe: "block_pathfindable",
+        oracle: "BlockPathfindableOracle",
+        description: "方块状态在三种寻路类型下是否可通行（BlockBehaviour#isPathfindable）—— 全部 29671 个状态 x 3 种类型；"
+        + "LAND=陆地行走、WATER=水中游动、AIR=空中飞行。原版默认判据：LAND/AIR 为「碰撞形状不完整即可通行」，WATER 为「只认水」。"
+        + "两处最容易写错：① 判据是「不完整」而不是「为空」—— 台阶、楼梯、栅栏门碰撞形状非空但不完整，生物能从上方走过，"
+        + "用 isEmpty() 判定会让生物绕开所有台阶（表现为村民卡在台阶前不动）；② WATER 不看形状只看是不是水 —— 三种类型统一按形状判，"
+        + "陆行生物会走进水里",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
         name: "block_shape",
         probe: "block_shape",

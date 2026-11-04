@@ -21,6 +21,8 @@
 
 #include "BeehiveBlock.hpp"
 
+#include "common/world/gameevent/GameEvents.hpp"
+
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -185,6 +187,9 @@ BlockActionResult BeehiveBlock::useItemOn(ItemStack& stack,
             1.0f,
             1.0f);
 
+        // 剪切是「剪」这个动作，发 SHEAR（幽匿感测体把剪羊毛/剪蜂巢/剪南瓜归为一类）。
+        world.gameEvent(gameevent::GameEvents::SHEAR, pos, &state);
+
         success = true;
     }
     // 玻璃瓶交互：消耗1个玻璃瓶，获得1个蜂蜜瓶
@@ -214,6 +219,9 @@ BlockActionResult BeehiveBlock::useItemOn(ItemStack& stack,
             Vector3(static_cast<f32>(pos.x + 0.5), static_cast<f32>(pos.y + 0.5), static_cast<f32>(pos.z + 0.5)),
             1.0f,
             1.0f);
+
+        // 装瓶取走液体，发 FLUID_PICKUP（和用桶取水同一类）。
+        world.gameEvent(gameevent::GameEvents::FLUID_PICKUP, pos, &state);
 
         success = true;
     }

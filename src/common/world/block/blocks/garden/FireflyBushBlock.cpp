@@ -123,5 +123,13 @@ std::optional<BlockPos> FireflyBushBlock::getSpreadableNeighbourPos(
     return std::nullopt;
 }
 
+const CollisionShape& FireflyBushBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 原版萤火虫灌木的形状是满方块，不沿用 BushBlock 的 13/16 高。
+    static const CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    return shape;
+}
+
 } // namespace blocks
 } // namespace mc

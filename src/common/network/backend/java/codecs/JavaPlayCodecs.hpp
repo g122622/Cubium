@@ -25,7 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/item/component/DataComponentPatchWire.hpp"
+#include "common/network/backend/java/codecs/DataComponentPatchCodec.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
@@ -96,7 +96,7 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
     MC_TRY_ASSIGN(id, buf.readVarInt());
     v.itemId = static_cast<u32>(id);
     // DataComponentPatch 按 vanilla 自终止规则消费，原样存入 componentsPatch（无外层长度前缀）。
-    MC_TRY_ASSIGN(v.componentsPatch, ::mc::item::component::readPatchBytesFromWire(buf));
+    MC_TRY_ASSIGN(v.componentsPatch, readPatchBytesFromWire(buf));
     return v;
 }
 

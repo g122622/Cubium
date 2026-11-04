@@ -195,42 +195,71 @@ void registerNetherBlocks()
     // 配合 MOVEMENT_EFFICIENCY 属性，灵魂疾行附魔可以将减速效果抵消
     // SoulSandBlock: 上方有水源时生成涌流气泡柱（DRAG=false，向上推动），与岩浆块的涡流相反。
     NetherBlocks::SOUL_SAND = &registry.registerBlock<blocks::SoulSandBlock>(ResourceLocation("minecraft:soul_sand"),
-        BlockProperties(Material::SAND).hardness(0.5f).speedFactor(0.4f).soundType(BlockSoundTypes::SOUL_SAND));
+        BlockProperties(Material::SAND)
+            .instrument(BlockProperties::Instrument::CowBell)
+            .resistance(0.5f)
+            .hardness(0.5f)
+            .speedFactor(0.4f)
+            .soundType(BlockSoundTypes::SOUL_SAND));
 
     // 灵魂土
     NetherBlocks::SOUL_SOIL = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_soil"),
-        BlockProperties(Material::EARTH).hardness(0.5f).soundType(BlockSoundTypes::SOUL_SOIL));
+        BlockProperties(Material::EARTH).resistance(0.5f).hardness(0.5f).soundType(BlockSoundTypes::SOUL_SOIL));
 
     // 玄武岩
     NetherBlocks::BASALT = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:basalt"),
-        BlockProperties(Material::ROCK).hardness(1.25f).resistance(4.2f).soundType(BlockSoundTypes::BASALT));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(1.25f)
+            .resistance(4.2f)
+            .soundType(BlockSoundTypes::BASALT));
 
     // 磨制玄武岩
     NetherBlocks::POLISHED_BASALT =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:polished_basalt"),
-            BlockProperties(Material::ROCK).hardness(1.25f).resistance(4.2f).soundType(BlockSoundTypes::BASALT));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.25f)
+                .resistance(4.2f)
+                .soundType(BlockSoundTypes::BASALT));
 
     // 黑石
     NetherBlocks::BLACKSTONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:blackstone"),
-        BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).soundType(BlockSoundTypes::STONE));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(1.5f)
+            .resistance(6.0f)
+            .soundType(BlockSoundTypes::STONE));
 
     // 磨制黑石
     NetherBlocks::POLISHED_BLACKSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_blackstone"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).soundType(BlockSoundTypes::STONE));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .soundType(BlockSoundTypes::STONE));
 
     // 哭泣的黑曜石
     NetherBlocks::CRYING_OBSIDIAN = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crying_obsidian"),
-        BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f).lightLevel(10));
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(50.0f)
+            .resistance(1200.0f)
+            .lightLevel(10));
 
     // 重生锚 - 不可被活塞推动
     NetherBlocks::RESPAWN_ANCHOR =
         &registry.registerBlock<blocks::RespawnAnchorBlock>(ResourceLocation("minecraft:respawn_anchor"),
-            BlockProperties(Material::ROCK).hardness(50.0f).resistance(1200.0f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(50.0f)
+                .resistance(1200.0f));
 
     // 火 - 普通火焰
     NetherBlocks::FIRE = &registry.registerBlock<blocks::FireBlock>(ResourceLocation("minecraft:fire"),
         BlockProperties(Material::FIRE)
+            .replaceable()
             .noCollision()
             .hardness(0.0f)
             .lightLevel(15)
@@ -240,6 +269,7 @@ void registerNetherBlocks()
     // 灵魂火 - 蓝色火焰，伤害更高
     NetherBlocks::SOUL_FIRE = &registry.registerBlock<blocks::SoulFireBlock>(ResourceLocation("minecraft:soul_fire"),
         BlockProperties(Material::FIRE)
+            .replaceable()
             .noCollision()
             .hardness(0.0f)
             .lightLevel(10)
@@ -274,8 +304,12 @@ void registerNetherBlocks()
 
     // 岩浆块 - 发光3级
     // 会站在上面造成伤害，在水中产生气泡柱
-    NetherBlocks::MAGMA = &registry.registerBlock<blocks::MagmaBlock>(
-        ResourceLocation("minecraft:magma_block"), BlockProperties(Material::ROCK).hardness(0.5f).lightLevel(3));
+    NetherBlocks::MAGMA = &registry.registerBlock<blocks::MagmaBlock>(ResourceLocation("minecraft:magma_block"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .resistance(0.5f)
+            .hardness(0.5f)
+            .lightLevel(3));
 
     // 地狱疣块
     NetherBlocks::NETHER_WART_BLOCK =
@@ -289,55 +323,99 @@ void registerNetherBlocks()
 
     // 绯红菌柄
     NetherBlocks::CRIMSON_STEM = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:crimson_stem"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(2.0f)
+            .soundType(BlockSoundTypes::STEM));
 
     // 诡异菌柄
     NetherBlocks::WARPED_STEM = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:warped_stem"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(2.0f)
+            .soundType(BlockSoundTypes::STEM));
 
     // 去皮绯红菌柄
     NetherBlocks::STRIPPED_CRIMSON_STEM =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_crimson_stem"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .soundType(BlockSoundTypes::STEM));
 
     // 去皮诡异菌柄
     NetherBlocks::STRIPPED_WARPED_STEM =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_warped_stem"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .soundType(BlockSoundTypes::STEM));
 
     // 绯红菌核
     NetherBlocks::CRIMSON_HYPHAE =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:crimson_hyphae"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .soundType(BlockSoundTypes::STEM));
 
     // 诡异菌核
     NetherBlocks::WARPED_HYPHAE =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:warped_hyphae"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .soundType(BlockSoundTypes::STEM));
 
     // 去皮绯红菌核
     NetherBlocks::STRIPPED_CRIMSON_HYPHAE =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_crimson_hyphae"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .soundType(BlockSoundTypes::STEM));
 
     // 去皮诡异菌核
     NetherBlocks::STRIPPED_WARPED_HYPHAE =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_warped_hyphae"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).soundType(BlockSoundTypes::STEM));
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(2.0f)
+                .soundType(BlockSoundTypes::STEM));
 
     // 绯红菌岩
     NetherBlocks::CRIMSON_NYLIUM =
         &registry.registerBlock<blocks::NyliumBlock>(ResourceLocation("minecraft:crimson_nylium"),
-            BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f).soundType(BlockSoundTypes::NYLIUM));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(0.4f)
+                .resistance(0.4f)
+                .soundType(BlockSoundTypes::NYLIUM));
 
     // 诡异菌岩
     NetherBlocks::WARPED_NYLIUM =
         &registry.registerBlock<blocks::NyliumBlock>(ResourceLocation("minecraft:warped_nylium"),
-            BlockProperties(Material::ROCK).hardness(0.4f).resistance(0.4f).soundType(BlockSoundTypes::NYLIUM));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(0.4f)
+                .resistance(0.4f)
+                .soundType(BlockSoundTypes::NYLIUM));
 
     // 菌光体
     NetherBlocks::SHROOMLIGHT = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:shroomlight"),
-        BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15).soundType(BlockSoundTypes::SHROOMLIGHT));
+        BlockProperties(Material::EARTH)
+            .resistance(1.0f)
+            .hardness(1.0f)
+            .lightLevel(15)
+            .soundType(BlockSoundTypes::SHROOMLIGHT));
 
     // 绯红菌（实现 IGrowable，骨粉可生成巨型真菌）
     NetherBlocks::CRIMSON_FUNGUS =
@@ -375,6 +453,7 @@ void registerNetherBlocks()
     NetherBlocks::CRIMSON_ROOTS =
         &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:crimson_roots"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .offsetType(BlockProperties::OffsetType::XZ)
@@ -384,6 +463,7 @@ void registerNetherBlocks()
     NetherBlocks::WARPED_ROOTS =
         &registry.registerBlock<blocks::NetherRootsBlock>(ResourceLocation("minecraft:warped_roots"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .offsetType(BlockProperties::OffsetType::XZ)
@@ -393,6 +473,7 @@ void registerNetherBlocks()
     NetherBlocks::NETHER_SPROUTS =
         &registry.registerBlock<blocks::NetherSproutsBlock>(ResourceLocation("minecraft:nether_sprouts"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::NETHER_SPROUT));
@@ -403,40 +484,72 @@ void registerNetherBlocks()
 
     // 绯红木板 - 下界木材，不可燃，不免疫岩浆点燃
     NetherBlocks::CRIMSON_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crimson_planks"),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+        BlockProperties(Material::NETHER_WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(3.0f)
+            .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 诡异木板 - 下界木材，不可燃，不免疫岩浆点燃
     NetherBlocks::WARPED_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:warped_planks"),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+        BlockProperties(Material::NETHER_WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(3.0f)
+            .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 绯红楼梯
-    NetherBlocks::CRIMSON_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
-        ResourceLocation("minecraft:crimson_stairs"),
-        NetherBlocks::CRIMSON_PLANKS->defaultState(),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+    NetherBlocks::CRIMSON_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:crimson_stairs"),
+            NetherBlocks::CRIMSON_PLANKS->defaultState(),
+            BlockProperties(Material::NETHER_WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(3.0f)
+                .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 诡异楼梯
-    NetherBlocks::WARPED_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
-        ResourceLocation("minecraft:warped_stairs"),
-        NetherBlocks::WARPED_PLANKS->defaultState(),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+    NetherBlocks::WARPED_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:warped_stairs"),
+            NetherBlocks::WARPED_PLANKS->defaultState(),
+            BlockProperties(Material::NETHER_WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(3.0f)
+                .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 绯红台阶
     NetherBlocks::CRIMSON_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:crimson_slab"),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+        BlockProperties(Material::NETHER_WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(3.0f)
+            .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 诡异台阶
     NetherBlocks::WARPED_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:warped_slab"),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+        BlockProperties(Material::NETHER_WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(3.0f)
+            .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 绯红栅栏 - 木质栅栏，可与所有木质栅栏和栅栏门连接
-    NetherBlocks::CRIMSON_FENCE = &registry.registerBlock<blocks::FenceBlock>(
-        ResourceLocation("minecraft:crimson_fence"),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+    NetherBlocks::CRIMSON_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:crimson_fence"),
+            BlockProperties(Material::NETHER_WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(3.0f)
+                .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 诡异栅栏 - 木质栅栏，可与所有木质栅栏和栅栏门连接
     NetherBlocks::WARPED_FENCE = &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:warped_fence"),
-        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+        BlockProperties(Material::NETHER_WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(2.0f)
+            .resistance(3.0f)
+            .soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 灵魂火把 - 发光等级10，蓝色火焰
     NetherBlocks::SOUL_TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:soul_torch"),
@@ -458,6 +571,7 @@ void registerNetherBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:blackstone_stairs"),
             NetherBlocks::BLACKSTONE->defaultState(),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -467,6 +581,7 @@ void registerNetherBlocks()
     NetherBlocks::BLACKSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:blackstone_slab"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -477,6 +592,7 @@ void registerNetherBlocks()
     NetherBlocks::BLACKSTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:blackstone_wall"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -486,6 +602,7 @@ void registerNetherBlocks()
     NetherBlocks::POLISHED_BLACKSTONE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_blackstone_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -495,6 +612,7 @@ void registerNetherBlocks()
     NetherBlocks::CRACKED_POLISHED_BLACKSTONE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cracked_polished_blackstone_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -504,6 +622,7 @@ void registerNetherBlocks()
     NetherBlocks::CHISELED_POLISHED_BLACKSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_polished_blackstone"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -514,6 +633,7 @@ void registerNetherBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_blackstone_brick_stairs"),
             NetherBlocks::POLISHED_BLACKSTONE_BRICKS->defaultState(),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -523,6 +643,7 @@ void registerNetherBlocks()
     NetherBlocks::POLISHED_BLACKSTONE_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_blackstone_brick_slab"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -533,6 +654,7 @@ void registerNetherBlocks()
     NetherBlocks::POLISHED_BLACKSTONE_BRICK_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_blackstone_brick_wall"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -543,6 +665,7 @@ void registerNetherBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_blackstone_stairs"),
             NetherBlocks::POLISHED_BLACKSTONE->defaultState(),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -553,6 +676,7 @@ void registerNetherBlocks()
     NetherBlocks::POLISHED_BLACKSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_blackstone_slab"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -563,6 +687,7 @@ void registerNetherBlocks()
     NetherBlocks::POLISHED_BLACKSTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_blackstone_wall"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -573,6 +698,7 @@ void registerNetherBlocks()
     NetherBlocks::GILDED_BLACKSTONE =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:gilded_blackstone"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -586,6 +712,7 @@ void registerNetherBlocks()
     // 下界砖
     NetherBlocks::NETHER_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_bricks"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(2.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -596,6 +723,7 @@ void registerNetherBlocks()
     NetherBlocks::RED_NETHER_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_nether_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -606,6 +734,7 @@ void registerNetherBlocks()
     NetherBlocks::CHISELED_NETHER_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_nether_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -616,6 +745,7 @@ void registerNetherBlocks()
     NetherBlocks::CRACKED_NETHER_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cracked_nether_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -627,6 +757,7 @@ void registerNetherBlocks()
     NetherBlocks::NETHER_BRICK_FENCE =
         &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:nether_brick_fence"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(2.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -639,7 +770,8 @@ void registerNetherBlocks()
                                                   .resistance(6.0f)
                                                   .harvestTool(HarvestTool::Pickaxe)
                                                   .soundType(BlockSoundTypes::NETHER_BRICK)
-                                                  .requiresTool();
+                                                  .requiresTool()
+                                                  .instrument(BlockProperties::Instrument::BaseDrum);
 
     NetherBlocks::NETHER_BRICK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:nether_brick_stairs"),
@@ -658,7 +790,8 @@ void registerNetherBlocks()
                                                      .resistance(6.0f)
                                                      .harvestTool(HarvestTool::Pickaxe)
                                                      .soundType(BlockSoundTypes::NETHER_BRICK)
-                                                     .requiresTool();
+                                                     .requiresTool()
+                                                     .instrument(BlockProperties::Instrument::BaseDrum);
 
     NetherBlocks::RED_NETHER_BRICK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:red_nether_brick_stairs"),
@@ -674,14 +807,18 @@ void registerNetherBlocks()
     // 末地石砖
     NetherBlocks::END_STONE_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone_bricks"),
-            BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(3.0f)
+                .resistance(9.0f));
 
     // 末地石砖楼梯、台阶、墙
     BlockProperties endStoneBrickVariantProps = BlockProperties(Material::ROCK)
                                                     .hardness(3.0f)
                                                     .resistance(9.0f)
                                                     .harvestTool(HarvestTool::Pickaxe)
-                                                    .requiresTool();
+                                                    .requiresTool()
+                                                    .instrument(BlockProperties::Instrument::BaseDrum);
 
     NetherBlocks::END_STONE_BRICK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:end_stone_brick_stairs"),
@@ -738,6 +875,7 @@ void registerNetherBlocks()
     // 末地烛 - 发光14级，6 向朝向
     NetherBlocks::END_ROD = &registry.registerBlock<blocks::EndRodBlock>(ResourceLocation("minecraft:end_rod"),
         BlockProperties(Material::DECORATION)
+            .forceSolidOff()
             .withCollision()
             .lightLevel(14)
             .noOcclusion()
@@ -745,12 +883,18 @@ void registerNetherBlocks()
 
     // 末地传送门 - 穿越后传送到末地
     NetherBlocks::END_PORTAL = &registry.registerBlock<blocks::EndPortalBlock>(ResourceLocation("minecraft:end_portal"),
-        BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f).lightLevel(15).noLootTable());
+        BlockProperties(Material::PORTAL)
+            .resistance(3600000.0f)
+            .noCollision()
+            .hardness(-1.0f)
+            .lightLevel(15)
+            .noLootTable());
 
     // 末地传送门框架 - 放置末影之眼激活传送门
     NetherBlocks::END_PORTAL_FRAME =
         &registry.registerBlock<blocks::EndPortalFrameBlock>(ResourceLocation("minecraft:end_portal_frame"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(-1.0f)
                 .resistance(3600000.0f)
                 .lightLevel(1)
@@ -760,7 +904,12 @@ void registerNetherBlocks()
     // 末地折跃门 - 在末地之间传送
     NetherBlocks::END_GATEWAY =
         &registry.registerBlock<blocks::EndGatewayBlock>(ResourceLocation("minecraft:end_gateway"),
-            BlockProperties(Material::PORTAL).noCollision().hardness(-1.0f).lightLevel(15).noLootTable());
+            BlockProperties(Material::PORTAL)
+                .resistance(3600000.0f)
+                .noCollision()
+                .hardness(-1.0f)
+                .lightLevel(15)
+                .noLootTable());
 
     // 紫颂植物 - 末地植物
     NetherBlocks::CHORUS_PLANT = &registry.registerBlock<blocks::ChorusPlantBlock>(
@@ -777,30 +926,45 @@ void registerNetherBlocks()
     NetherBlocks::CHORUS_FLOWER =
         &registry.registerBlock<blocks::ChorusFlowerBlock>(ResourceLocation("minecraft:chorus_flower"),
             BlockProperties(Material::PLANT)
-                .noCollision()
+                .forceSolidOff()
+                .withCollision()
                 .hardness(0.4f)
                 .resistance(0.4f)
                 .soundType(BlockSoundTypes::WOOD));
 
     // 龙蛋 - 末影龙掉落物
     NetherBlocks::DRAGON_EGG = &registry.registerBlock<blocks::DragonEggBlock>(ResourceLocation("minecraft:dragon_egg"),
-        BlockProperties(Material::ROCK).hardness(3.0f).lightLevel(1).noOcclusion());
+        BlockProperties(Material::ROCK).resistance(9.0f).hardness(3.0f).lightLevel(1).noOcclusion());
 
     // 信标 - 发光15级（通过 getLightLevel）
     NetherBlocks::BEACON = &registry.registerBlock<blocks::BeaconBlock>(ResourceLocation("minecraft:beacon"),
-        BlockProperties(Material::GLASS).hardness(3.0f).soundType(BlockSoundTypes::STONE).noOcclusion());
+        BlockProperties(Material::GLASS)
+            .instrument(BlockProperties::Instrument::Hat)
+            .resistance(3.0f)
+            .hardness(3.0f)
+            .soundType(BlockSoundTypes::STONE)
+            .noOcclusion());
 
     // 酿造台 - 发光1级（通过 getLightLevel）
     NetherBlocks::BREWING_STAND =
         &registry.registerBlock<blocks::BrewingStandBlock>(ResourceLocation("minecraft:brewing_stand"),
-            BlockProperties(Material::IRON).hardness(0.5f).noOcclusion().soundType(BlockSoundTypes::STONE));
+            BlockProperties(Material::IRON)
+                .resistance(0.5f)
+                .hardness(0.5f)
+                .noOcclusion()
+                .soundType(BlockSoundTypes::STONE));
 
     // 末影箱 - 发光7级
     // 右键打开末影箱界面（物品存储在玩家数据中），记录统计 OPEN_ENDERCHEST。
     // 方块上方有红石导体时无法打开。支持含水放置和水平朝向。
     NetherBlocks::ENDER_CHEST =
         &registry.registerBlock<blocks::EnderChestBlock>(ResourceLocation("minecraft:ender_chest"),
-            BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7).notSolid());
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(22.5f)
+                .resistance(600.0f)
+                .lightLevel(7)
+                .notSolid());
 
     // 灯笼 - 发光15级（通过构造函数参数）
     NetherBlocks::LANTERN = &registry.registerBlock<blocks::LanternBlock>(ResourceLocation("minecraft:lantern"),
@@ -808,7 +972,8 @@ void registerNetherBlocks()
             .hardness(3.5f)
             .resistance(3.5f)
             .noOcclusion()
-            .soundType(BlockSoundTypes::LANTERN),
+            .soundType(BlockSoundTypes::LANTERN)
+            .forceSolidOn(),
         15 // 光照等级
     );
 
@@ -819,25 +984,40 @@ void registerNetherBlocks()
                 .hardness(3.5f)
                 .resistance(3.5f)
                 .noOcclusion()
-                .soundType(BlockSoundTypes::LANTERN),
+                .soundType(BlockSoundTypes::LANTERN)
+                .forceSolidOn(),
             10 // 光照等级
         );
 
     // 营火 - 发光15级（点燃时，通过 getLightLevel 动态计算）。可被岩浆点燃（对齐 vanilla）
     NetherBlocks::CAMPFIRE = &registry.registerBlock<blocks::CampfireBlock>(ResourceLocation("minecraft:campfire"),
-        BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava().noOcclusion(),
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .resistance(2.0f)
+            .hardness(2.0f)
+            .ignitedByLava()
+            .noOcclusion(),
         15 // 点燃时光照等级
     );
 
     // 灵魂营火 - 发光10级（点燃时，通过 getLightLevel 动态计算）。可被岩浆点燃（对齐 vanilla）
     NetherBlocks::SOUL_CAMPFIRE =
         &registry.registerBlock<blocks::SoulCampfireBlock>(ResourceLocation("minecraft:soul_campfire"),
-            BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava().noOcclusion());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(2.0f)
+                .hardness(2.0f)
+                .ignitedByLava()
+                .noOcclusion());
 
     // 南瓜灯 - 发光15级，支持 FACING 属性和傀儡生成
     NetherBlocks::JACK_O_LANTERN =
         &registry.registerBlock<blocks::JackOLanternBlock>(ResourceLocation("minecraft:jack_o_lantern"),
-            BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15).soundType(BlockSoundTypes::WOOD));
+            BlockProperties(Material::EARTH)
+                .resistance(1.0f)
+                .hardness(1.0f)
+                .lightLevel(15)
+                .soundType(BlockSoundTypes::WOOD));
 }
 
 } // namespace block_registry

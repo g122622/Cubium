@@ -68,6 +68,7 @@ add_library(mc_common STATIC
     network/backend/java/mappings/JavaPotionIdMap.cpp
     network/backend/java/mappings/JavaEnchantmentIdMap.cpp
     network/backend/java/handshake/JavaLoginHandshaker.cpp
+    network/backend/java/codecs/DataComponentPatchCodec.cpp
 
     # Network - Sync
     network/sync/ChunkSerializer.cpp
@@ -531,7 +532,6 @@ add_library(mc_common STATIC
     item/component/DataComponentPayloadCodec.cpp
     item/component/DataComponentPatchNbt.cpp
     item/component/BannerPatternLayers.cpp
-    item/component/DataComponentPatchWire.cpp
     item/component/FireworkExplosion.cpp
     item/component/DeathProtection.cpp
 
@@ -808,6 +808,7 @@ add_library(mc_common STATIC
     world/block/FireInfoRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
+    world/block/registry/BlockMapColorTable.gen.cpp
     world/block/BlockTagLoader.cpp
     world/block/SupportType.cpp
     world/block/state/pattern/BlockInWorld.cpp
@@ -846,6 +847,7 @@ add_library(mc_common STATIC
     world/block/ILiquidSealed.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
+    world/block/blocks/TransparentBlock.cpp
     world/block/blocks/DropExperienceBlock.cpp
     world/block/blocks/FallingBlock.cpp
     world/block/blocks/ConcretePowderBlock.cpp

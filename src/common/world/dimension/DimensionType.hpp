@@ -290,6 +290,35 @@ public:
      * 下界: minecraft:infiniburn_nether
      * 末地: minecraft:infiniburn_end
      */
+    /**
+     * @brief 怪物生成光照阈值的下界（原版 monster_spawn_light_level 的 IntProvider 下限）
+     */
+    [[nodiscard]] i32 monsterSpawnLightMin() const
+    {
+        return m_monsterSpawnLightMin;
+    }
+
+    /**
+     * @brief 怪物生成光照阈值的上界（常数 IntProvider 时等于下界）
+     */
+    [[nodiscard]] i32 monsterSpawnLightMax() const
+    {
+        return m_monsterSpawnLightMax;
+    }
+
+    /**
+     * @brief 该维度允许怪物生成的方块光上限（原版 monster_spawn_block_light_limit）
+     *
+     * 为 15 时该条检查完全不生效（下界就是这样）。
+     */
+    [[nodiscard]] i32 monsterSpawnBlockLightLimit() const
+    {
+        return m_monsterSpawnBlockLightLimit;
+    }
+
+    /**
+     * @brief 获取无限燃烧方块标签
+     */
     [[nodiscard]] const std::string& infiniburn() const
     {
         return m_infiniburn;
@@ -396,6 +425,15 @@ private:
     // 光照和时间
     f32 m_ambientLight = 0.0f;
     std::optional<i64> m_fixedTime;
+
+    // 怪物生成光照（原版 DimensionType.MonsterSettings）
+    //
+    // monster_spawn_light_level 是 IntProvider，这里只保留 min/max 两个端点：
+    // 常数 IntProvider 的 min == max。原版取值见
+    // data/minecraft/dimension_type/*.json 的 monster_spawn_light_level。
+    i32 m_monsterSpawnLightMin = 0;
+    i32 m_monsterSpawnLightMax = 0;
+    i32 m_monsterSpawnBlockLightLimit = 0;
 
     // 方块标签
     std::string m_infiniburn;

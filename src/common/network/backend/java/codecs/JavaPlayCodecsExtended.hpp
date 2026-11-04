@@ -2025,7 +2025,7 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
         return Error(ErrorCode::InvalidArgument, "Invalid trade cost");
     }
     cost.itemId = static_cast<u32>(itemId);
-    MC_TRY_ASSIGN(cost.components, ::mc::item::component::readExactPredicateBytesFromWire(buf));
+    MC_TRY_ASSIGN(cost.components, ::mc::network::backend::java::readExactPredicateBytesFromWire(buf));
     return cost;
 }
 

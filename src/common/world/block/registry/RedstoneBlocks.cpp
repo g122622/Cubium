@@ -145,7 +145,10 @@ void registerRedstoneBlocks()
     // 红石灯
     RedstoneBlocks::REDSTONE_LAMP =
         &registry.registerBlock<blocks::RedstoneLampBlock>(ResourceLocation("minecraft:redstone_lamp"),
-            BlockProperties(Material::REDSTONE_LIGHT).hardness(0.3f).soundType(BlockSoundTypes::GLASS));
+            BlockProperties(Material::REDSTONE_LIGHT)
+                .resistance(0.300000012f)
+                .hardness(0.3f)
+                .soundType(BlockSoundTypes::GLASS));
 
     // 红石中继器
     // 原版只用 instabreak() + sound()，既没有 noCollision() 也没有 noOcclusion()：
@@ -160,8 +163,11 @@ void registerRedstoneBlocks()
         ResourceLocation("minecraft:comparator"), BlockProperties(Material::DECORATION).withCollision().notSolid());
 
     // 侦测器
-    RedstoneBlocks::OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(
-        ResourceLocation("minecraft:observer"), BlockProperties(Material::ROCK).hardness(3.0f).resistance(3.0f));
+    RedstoneBlocks::OBSERVER = &registry.registerBlock<blocks::ObserverBlock>(ResourceLocation("minecraft:observer"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.0f)
+            .resistance(3.0f));
 
     // 拉杆
     RedstoneBlocks::LEVER = &registry.registerBlock<blocks::LeverBlock>(ResourceLocation("minecraft:lever"),
@@ -315,202 +321,241 @@ void registerRedstoneBlocks()
     RedstoneBlocks::STONE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::StonePressurePlateBlock>(ResourceLocation("minecraft:stone_pressure_plate"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 橡木压力板
     RedstoneBlocks::OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:oak_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 云杉木压力板
     RedstoneBlocks::SPRUCE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:spruce_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 白桦木压力板
     RedstoneBlocks::BIRCH_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:birch_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 丛林木压力板
     RedstoneBlocks::JUNGLE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:jungle_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 金合欢木压力板
     RedstoneBlocks::ACACIA_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:acacia_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 深色橡木压力板
     RedstoneBlocks::DARK_OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:dark_oak_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 绯红木压力板
     RedstoneBlocks::CRIMSON_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:crimson_pressure_plate"),
             BlockProperties(Material::NETHER_WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(0.5f)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .noOcclusion()
-                .soundType(BlockSoundTypes::NETHER_WOOD));
+                .soundType(BlockSoundTypes::NETHER_WOOD)
+                .forceSolidOn());
 
     // 诡异木压力板
     RedstoneBlocks::WARPED_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:warped_pressure_plate"),
             BlockProperties(Material::NETHER_WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(0.5f)
                 .noCollision()
                 .notSolid()
                 .hardness(0.5f)
                 .noOcclusion()
-                .soundType(BlockSoundTypes::NETHER_WOOD));
+                .soundType(BlockSoundTypes::NETHER_WOOD)
+                .forceSolidOn());
 
     // 红树木压力板
     RedstoneBlocks::MANGROVE_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:mangrove_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 樱花木压力板
     RedstoneBlocks::CHERRY_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:cherry_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
                 .noOcclusion()
-                .soundType(BlockSoundTypes::CHERRY_WOOD));
+                .soundType(BlockSoundTypes::CHERRY_WOOD)
+                .forceSolidOn());
 
     // 竹木压力板
     RedstoneBlocks::BAMBOO_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:bamboo_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
                 .noOcclusion()
-                .soundType(BlockSoundTypes::BAMBOO_WOOD));
+                .soundType(BlockSoundTypes::BAMBOO_WOOD)
+                .forceSolidOn());
 
     // 苍白橡木压力板
     RedstoneBlocks::PALE_OAK_PRESSURE_PLATE =
         &registry.registerBlock<blocks::WoodPressurePlateBlock>(ResourceLocation("minecraft:pale_oak_pressure_plate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .noCollision()
-                .notSolid()
+
                 .hardness(0.5f)
                 .resistance(0.5f)
                 .hardness(0.5f)
                 .flammable()
                 .ignitedByLava()
-                .noOcclusion());
+                .noOcclusion()
+                .forceSolidOn());
 
     // 磨制黑石压力板
     RedstoneBlocks::POLISHED_BLACKSTONE_PRESSURE_PLATE = &registry.registerBlock<blocks::StonePressurePlateBlock>(
         ResourceLocation("minecraft:polished_blackstone_pressure_plate"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .noCollision()
-            .notSolid()
+
             .hardness(0.5f)
             .resistance(0.5f)
             .hardness(0.5f)
-            .noOcclusion());
+            .noOcclusion()
+            .forceSolidOn());
 
     // 轻质测重压力板
     RedstoneBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:light_weighted_pressure_plate"),
         BlockProperties(Material::IRON)
+            .resistance(0.5f)
             .noCollision()
-            .notSolid()
+
             .hardness(0.5f)
             .noOcclusion()
-            .soundType(BlockSoundTypes::METAL),
+            .soundType(BlockSoundTypes::METAL)
+            .forceSolidOn(),
         blocks::WeightedPressurePlateBlock::Sensitivity::Light);
 
     // 重质测重压力板
     RedstoneBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE = &registry.registerBlock<blocks::WeightedPressurePlateBlock>(
         ResourceLocation("minecraft:heavy_weighted_pressure_plate"),
         BlockProperties(Material::IRON)
+            .resistance(0.5f)
             .noCollision()
-            .notSolid()
+
             .hardness(0.5f)
             .noOcclusion()
-            .soundType(BlockSoundTypes::IRON),
+            .soundType(BlockSoundTypes::IRON)
+            .forceSolidOn(),
         blocks::WeightedPressurePlateBlock::Sensitivity::Heavy);
 
     // 日光探测器
     RedstoneBlocks::DAYLIGHT_DETECTOR =
         &registry.registerBlock<blocks::DaylightDetectorBlock>(ResourceLocation("minecraft:daylight_detector"),
-            BlockProperties(Material::WOOD).hardness(0.2f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(0.200000003f)
+                .hardness(0.2f)
+                .flammable()
+                .ignitedByLava());
 
     // 活塞
     RedstoneBlocks::PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:piston"),
@@ -531,25 +576,36 @@ void registerRedstoneBlocks()
             BlockProperties(Material::PISTON).hardness(1.5f).resistance(1.5f).noLootTable());
 
     // 移动中的活塞
-    RedstoneBlocks::MOVING_PISTON =
-        &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
-            BlockProperties(Material::PISTON).hardness(-1.0f).resistance(-1.0f).noLootTable().noOcclusion());
+    RedstoneBlocks::MOVING_PISTON = &registry.registerBlock<blocks::MovingPistonBlock>(
+        ResourceLocation("minecraft:moving_piston"),
+        BlockProperties(Material::PISTON).resistance(0.0f).hardness(-1.0f).noLootTable().noOcclusion().forceSolidOn());
 
     // 发射器
-    RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(
-        ResourceLocation("minecraft:dispenser"), BlockProperties(Material::ROCK).hardness(3.5f).resistance(3.5f));
+    RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(ResourceLocation("minecraft:dispenser"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.5f)
+            .resistance(3.5f));
 
     // 投掷器
-    RedstoneBlocks::DROPPER = &registry.registerBlock<blocks::DropperBlock>(
-        ResourceLocation("minecraft:dropper"), BlockProperties(Material::ROCK).hardness(3.5f).resistance(3.5f));
+    RedstoneBlocks::DROPPER = &registry.registerBlock<blocks::DropperBlock>(ResourceLocation("minecraft:dropper"),
+        BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .hardness(3.5f)
+            .resistance(3.5f));
 
     // 音符盒
     RedstoneBlocks::NOTE_BLOCK = &registry.registerBlock<blocks::NoteBlock>(ResourceLocation("minecraft:note_block"),
-        BlockProperties(Material::WOOD).hardness(0.8f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .resistance(0.800000012f)
+            .hardness(0.8f)
+            .flammable()
+            .ignitedByLava());
 
     // 标靶
     RedstoneBlocks::TARGET = &registry.registerBlock<blocks::TargetBlock>(ResourceLocation("minecraft:target"),
-        BlockProperties(Material::WOOL).hardness(0.5f).soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::WOOL).resistance(0.5f).hardness(0.5f).soundType(BlockSoundTypes::GRASS));
 
     // 绊线
     RedstoneBlocks::TRIPWIRE = &registry.registerBlock<blocks::TripWireBlock>(ResourceLocation("minecraft:tripwire"),
@@ -567,6 +623,7 @@ void registerRedstoneBlocks()
     // 普通铁轨
     RedstoneBlocks::RAIL = &registry.registerBlock<blocks::RailBlock>(ResourceLocation("minecraft:rail"),
         BlockProperties(Material::DECORATION)
+            .resistance(0.699999988f)
             .withCollision()
             .noCollision()
             .notSolid()
@@ -577,6 +634,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::POWERED_RAIL =
         &registry.registerBlock<blocks::PoweredRailBlock>(ResourceLocation("minecraft:powered_rail"),
             BlockProperties(Material::DECORATION)
+                .resistance(0.699999988f)
                 .withCollision()
                 .noCollision()
                 .notSolid()
@@ -587,6 +645,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::DETECTOR_RAIL =
         &registry.registerBlock<blocks::DetectorRailBlock>(ResourceLocation("minecraft:detector_rail"),
             BlockProperties(Material::DECORATION)
+                .resistance(0.699999988f)
                 .withCollision()
                 .noCollision()
                 .notSolid()
@@ -597,6 +656,7 @@ void registerRedstoneBlocks()
     RedstoneBlocks::ACTIVATOR_RAIL =
         &registry.registerBlock<blocks::ActivatorRailBlock>(ResourceLocation("minecraft:activator_rail"),
             BlockProperties(Material::DECORATION)
+                .resistance(0.699999988f)
                 .withCollision()
                 .noCollision()
                 .notSolid()

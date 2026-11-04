@@ -22,6 +22,7 @@
  */
 
 #include "CampfireBlock.hpp"
+
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -54,6 +55,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/processing/CampfireBlockEntity.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -361,6 +363,10 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
         if (!world.isClientSide()) {
             world.playSound(
                 SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+
+            // 原版 `CampfireBlock#dowse` 在浸灭时发 `BLOCK_CHANGE`，让附近幽匿感测体
+            // 感知到营火状态变了。点燃侧原版不发事件，这里保持一致。
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
         }
     }
 }
@@ -437,6 +443,14 @@ bool CampfireBlock::isLitCampfire(const BlockState& state)
 SoulCampfireBlock::SoulCampfireBlock(BlockProperties properties)
     : CampfireBlock(std::move(properties), 10) // 灵魂营火光照等级为10
 {}
+
+bool CampfireBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 该方块族原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
 
 } // namespace blocks
 } // namespace mc

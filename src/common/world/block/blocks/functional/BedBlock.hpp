@@ -206,7 +206,7 @@ protected:
     DyeColor m_color;
 
     /// 各朝向的形状缓存
-    std::array<CollisionShape, 6> m_shapesByFacing;
+    std::array<CollisionShape, 8> m_shapesByFacing; // [0..3] = head(north/south/west/east)，[4..7] = foot(同序)
 };
 
 } // namespace blocks

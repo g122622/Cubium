@@ -163,6 +163,8 @@ public:
     [[nodiscard]] bool propagatesSkylightDown(
         const BlockState& state, IWorld* world, const BlockPos* pos) const noexcept override;
 
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override;
+
 private:
     /// 正常形状
     CollisionShape m_normalShape;

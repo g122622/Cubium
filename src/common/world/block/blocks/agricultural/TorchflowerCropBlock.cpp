@@ -39,15 +39,17 @@ namespace blocks {
 TorchflowerCropBlock::TorchflowerCropBlock(const BlockProperties& properties)
     : CropBlock(properties, BlockStateProperties::AGE_0_1())
 {
-    // 预计算火把花各生长阶段的形状
-    // MC Java: SHAPES = Block.boxes(1, p_394173_ -> Block.column(6.0, 0.0, 6 + p_394173_ * 4))
-    // age=0: column(6, 0, 6)  -> 盒子 (5, 0, 5, 11, 6/16, 11)
-    // age=1: column(6, 0, 10) -> 盒子 (5, 0, 5, 11, 10/16, 11)
-    // column 的第一个参数是边长（像素），横截面以此居中，不是半径。
+    // 原版 SHAPES = Block.boxes(1, age -> Block.column(6.0, 0.0, 6 + age * 4))，
+    // 其中 column 的第一个参数是**宽度像素数**，不是半径：
+    //
+    //   age=0: box(5, 0, 5 -> 11,  6/16, 11)   即 X/Z 0.3125..0.6875、Y 到 0.375
+    //   age=1: box(5, 0, 5 -> 11, 10/16, 11)   即 X/Z 0.3125..0.6875、Y 到 0.625
+    //
+    // 此前把 6 当成半径，算出 0.125..0.875——宽度变成了原版的两倍。
     constexpr f32 P = 1.0f / 16.0f;
-    constexpr f32 halfSide = 6.0f * 0.5f * P;
-    constexpr f32 minXZ = 8.0f * P - halfSide; // 0.3125
-    constexpr f32 maxXZ = 8.0f * P + halfSide; // 0.6875
+    constexpr f32 halfWidth = 3.0f * P;
+    constexpr f32 minXZ = 0.5f - halfWidth; // 5/16 = 0.3125
+    constexpr f32 maxXZ = 0.5f + halfWidth; // 11/16 = 0.6875
 
     m_torchflowerShapesByAge[0] = CollisionShape::box(minXZ, 0.0f, minXZ, maxXZ, 6.0f * P, maxXZ);
     m_torchflowerShapesByAge[1] = CollisionShape::box(minXZ, 0.0f, minXZ, maxXZ, 10.0f * P, maxXZ);

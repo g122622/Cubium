@@ -50,10 +50,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
 #include <memory>
@@ -433,12 +431,8 @@ void RavagerEntity::_breakLeavesOnCollision()
 
                 // 只破坏树叶 (LeavesBlock)
                 if (BlockTags::LEAVES().contains(*state)) {
-                    // 设置为空气，掉落物品
-                    // 调用 spawnAfterBreak 以支持特殊方块行为（掠夺者破坏不使用工具，不产生经验）
-                    const Block& brokenBlock = state->getBlock();
-                    const BlockState* airState = BlockRegistry::instance().airState();
-                    worldPtr->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-                    brokenBlock.spawnAfterBreak(*worldPtr, pos, *state, nullptr, false);
+                    // 原版 Ravager.destroyBlocks 使用 level.destroyBlock(pos, false, this)
+                    worldPtr->destroyBlock(pos, false, this);
                     brokeAny = true;
                 }
             }

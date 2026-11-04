@@ -93,19 +93,17 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isS
     , m_isPowered(isPowered)
 {
     // 初始化形状
-    // 直轨形状：整格宽、2/16 高（原版 SHAPE_FLAT = Block.column(16.0, 0.0, 2.0)）
+    // 直轨形状：平坦的条状
     m_shapes[static_cast<size_t>(RailShape::NorthSouth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::EastWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
 
-    // 斜轨形状：整格宽、8/16 高（原版 SHAPE_SLOPE = Block.column(16.0, 0.0, 8.0)）
-    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingNorth)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
-    m_shapes[static_cast<size_t>(RailShape::AscendingSouth)] =
-        CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    // 斜轨形状：原版 SHAPE_ASCENDING = Shapes.box(0, 0, 0, 1, 0.5, 1)，
+    // 高度是平轨（0.125）的四倍。此前沿用平轨高度，上坡轨在视觉与碰撞上都趴在地上，
+    // 矿车爬上坡时看起来像在穿模。
+    m_shapes[static_cast<size_t>(RailShape::AscendingEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingNorth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapes[static_cast<size_t>(RailShape::AscendingSouth)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
 
     // 弯轨形状
     m_shapes[static_cast<size_t>(RailShape::SouthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);

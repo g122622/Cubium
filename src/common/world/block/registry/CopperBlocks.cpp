@@ -295,12 +295,24 @@ void registerCopperBlocks()
                                            .soundType(BlockSoundTypes::COPPER_GRATE);
 
     // 铜灯属性: Material::IRON, 硬度3.0, 抗爆6.0
-    BlockProperties copperBulbProps = BlockProperties(Material::IRON)
-                                          .hardness(3.0f)
-                                          .resistance(6.0f)
-                                          .harvestTool(HarvestTool::Pickaxe)
-                                          .requiresTool()
-                                          .soundType(BlockSoundTypes::COPPER_BULB);
+    //
+    // **亮度随氧化程度递减**：未氧化 15、斑驳 12、风化 8、氧化 4（由差分能力
+    // block_light_emission 逐状态实测）。此前八个铜灯共用一份 lightLevel(15) 的属性，
+    // 于是氧化过的铜灯与全新的一样亮。
+    auto makeCopperBulbProps = [](u8 litLevel) {
+        return BlockProperties(Material::IRON)
+            .hardness(3.0f)
+            .resistance(6.0f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool()
+            .soundType(BlockSoundTypes::COPPER_BULB)
+            .lightLevel(litLevel);
+    };
+
+    BlockProperties copperBulbProps = makeCopperBulbProps(15);
+    BlockProperties exposedCopperBulbProps = makeCopperBulbProps(12);
+    BlockProperties weatheredCopperBulbProps = makeCopperBulbProps(8);
+    BlockProperties oxidizedCopperBulbProps = makeCopperBulbProps(4);
 
     // 凿制铜属性（与铜块相同）
     BlockProperties chiseledCopperProps = BlockProperties(Material::IRON)
@@ -670,17 +682,17 @@ void registerCopperBlocks()
 
     CopperBlocks::EXPOSED_COPPER_BULB =
         &registry.registerBlock<blocks::CopperBulbBlock>(ResourceLocation("minecraft:exposed_copper_bulb"),
-            copperBulbProps,
+            exposedCopperBulbProps,
             BlockStateProperties::OxidationLevel::Exposed);
 
     CopperBlocks::WEATHERED_COPPER_BULB =
         &registry.registerBlock<blocks::CopperBulbBlock>(ResourceLocation("minecraft:weathered_copper_bulb"),
-            copperBulbProps,
+            weatheredCopperBulbProps,
             BlockStateProperties::OxidationLevel::Weathered);
 
     CopperBlocks::OXIDIZED_COPPER_BULB =
         &registry.registerBlock<blocks::CopperBulbBlock>(ResourceLocation("minecraft:oxidized_copper_bulb"),
-            copperBulbProps,
+            oxidizedCopperBulbProps,
             BlockStateProperties::OxidationLevel::Oxidized);
 
     // 设置铜灯氧化链
@@ -703,13 +715,13 @@ void registerCopperBlocks()
         ResourceLocation("minecraft:waxed_copper_bulb"), copperBulbProps);
 
     CopperBlocks::WAXED_EXPOSED_COPPER_BULB = &registry.registerBlock<blocks::WaxedCopperBulbBlock>(
-        ResourceLocation("minecraft:waxed_exposed_copper_bulb"), copperBulbProps);
+        ResourceLocation("minecraft:waxed_exposed_copper_bulb"), exposedCopperBulbProps);
 
     CopperBlocks::WAXED_WEATHERED_COPPER_BULB = &registry.registerBlock<blocks::WaxedCopperBulbBlock>(
-        ResourceLocation("minecraft:waxed_weathered_copper_bulb"), copperBulbProps);
+        ResourceLocation("minecraft:waxed_weathered_copper_bulb"), weatheredCopperBulbProps);
 
     CopperBlocks::WAXED_OXIDIZED_COPPER_BULB = &registry.registerBlock<blocks::WaxedCopperBulbBlock>(
-        ResourceLocation("minecraft:waxed_oxidized_copper_bulb"), copperBulbProps);
+        ResourceLocation("minecraft:waxed_oxidized_copper_bulb"), oxidizedCopperBulbProps);
 
     // ============================================================================
     // 1.21 铜扩展：凿制铜（8个）
@@ -763,7 +775,7 @@ void registerCopperBlocks()
     // ============================================================================
     auto copperBarsProps = BlockProperties(Material::IRON)
                                .hardness(5.0f)
-                               .resistance(5.0f)
+                               .resistance(6.0f)
                                .notSolid()
                                .noOcclusion()
                                .soundType(BlockSoundTypes::COPPER);
@@ -813,8 +825,9 @@ void registerCopperBlocks()
     // 1.21 铜扩展：铜链（8个）
     // ============================================================================
     auto copperChainProps = BlockProperties(Material::IRON)
+                                .resistance(6.0f)
                                 .hardness(5.0f)
-                                .resistance(5.0f)
+
                                 .notSolid()
                                 .noOcclusion()
                                 .soundType(BlockSoundTypes::CHAIN);
@@ -864,11 +877,12 @@ void registerCopperBlocks()
     // 1.21 铜扩展：铜灯笼（8个）
     // ============================================================================
     auto copperLanternProps = BlockProperties(Material::IRON)
-                                  .hardness(3.5f)
                                   .resistance(3.5f)
-                                  .notSolid()
+                                  .hardness(3.5f)
+
                                   .noOcclusion()
-                                  .soundType(BlockSoundTypes::LANTERN);
+                                  .soundType(BlockSoundTypes::LANTERN)
+                                  .forceSolidOn();
 
     auto* copperLantern =
         &registry.registerBlock<blocks::WeatheringCopperLanternBlock>(ResourceLocation("minecraft:copper_lantern"),
@@ -1010,6 +1024,7 @@ void registerCopperBlocks()
     // ============================================================================
     CopperBlocks::RAW_IRON_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_iron_block"),
         BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -1020,6 +1035,7 @@ void registerCopperBlocks()
     CopperBlocks::RAW_COPPER_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_copper_block"),
             BlockProperties(Material::IRON)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(5.0f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -1029,6 +1045,7 @@ void registerCopperBlocks()
 
     CopperBlocks::RAW_GOLD_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:raw_gold_block"),
         BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(5.0f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)

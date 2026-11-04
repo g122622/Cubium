@@ -101,6 +101,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:pale_oak_log"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -112,6 +113,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:pale_oak_wood"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -123,6 +125,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::STRIPPED_PALE_OAK_LOG =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_pale_oak_log"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -134,6 +137,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::STRIPPED_PALE_OAK_WOOD =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:stripped_pale_oak_wood"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(2.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -149,6 +153,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_PLANKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pale_oak_planks"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -188,6 +193,7 @@ void registerPaleGardenBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:pale_oak_stairs"),
             PaleGardenBlocks::PALE_OAK_PLANKS->defaultState(),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -199,6 +205,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:pale_oak_slab"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -210,6 +217,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_FENCE =
         &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:pale_oak_fence"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -221,6 +229,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_FENCE_GATE =
         &registry.registerBlock<blocks::FenceGateBlock>(ResourceLocation("minecraft:pale_oak_fence_gate"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -233,6 +242,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_DOOR =
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:pale_oak_door"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(3.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -247,6 +257,7 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_OAK_TRAPDOOR =
         &registry.registerBlock<blocks::TrapDoorBlock>(ResourceLocation("minecraft:pale_oak_trapdoor"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(3.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -275,11 +286,15 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::PALE_MOSS_CARPET =
         &registry.registerBlock<blocks::MossyCarpetBlock>(ResourceLocation("minecraft:pale_moss_carpet"),
             BlockProperties(Material::PLANT)
+                .resistance(0.100000001f)
+                // 碰撞形状由 MossyCarpetBlock::getCollisionShape 按 BOTTOM 决定：有底座时是
+                // 底座薄层，无底座时为空。这里必须 withCollision() 让覆写生效——
+                // noCollision() 会让基类直接短路成空形状。
                 .withCollision()
                 .notSolid()
                 .noOcclusion()
                 .hardness(0.1f)
-                .resistance(0.0f)
+
                 .soundType(BlockSoundTypes::MOSS_CARPET)
                 .ignitedByLava());
 
@@ -303,8 +318,10 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::CREAKING_HEART =
         &registry.registerBlock<blocks::CreakingHeartBlock>(ResourceLocation("minecraft:creaking_heart"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(10.0f)
                 .hardness(10.0f)
-                .resistance(1.0f)
+
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::CREAKING_HEART)
                 .flammable());
@@ -354,20 +371,24 @@ void registerPaleGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::RESIN)
-                .ignitedByLava());
+                .ignitedByLava()
+                .replaceable());
 
     // 树脂块（固体）
     // 树脂块：硬度 0（徒手瞬间破坏），抗性 3。
     PaleGardenBlocks::RESIN_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:resin_block"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .resistance(0.0f)
             .hardness(0.0f)
-            .resistance(3.0f)
+
             .harvestTool(HarvestTool::Pickaxe)
             .soundType(BlockSoundTypes::RESIN));
 
     // 树脂砖
     PaleGardenBlocks::RESIN_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:resin_bricks"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -377,8 +398,10 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::CHISELED_RESIN_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_resin_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(6.0f)
                 .hardness(1.5f)
-                .resistance(3.0f)
+
                 .harvestTool(HarvestTool::Pickaxe)
                 .soundType(BlockSoundTypes::RESIN_BRICKS));
 
@@ -387,8 +410,10 @@ void registerPaleGardenBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:resin_brick_stairs"),
             PaleGardenBlocks::RESIN_BRICKS->defaultState(),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(6.0f)
                 .hardness(1.5f)
-                .resistance(3.0f)
+
                 .harvestTool(HarvestTool::Pickaxe)
                 .soundType(BlockSoundTypes::RESIN_BRICKS));
 
@@ -396,8 +421,10 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::RESIN_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:resin_brick_slab"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(6.0f)
                 .hardness(1.5f)
-                .resistance(3.0f)
+
                 .harvestTool(HarvestTool::Pickaxe)
                 .soundType(BlockSoundTypes::RESIN_BRICKS));
 
@@ -405,8 +432,10 @@ void registerPaleGardenBlocks()
     PaleGardenBlocks::RESIN_BRICK_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:resin_brick_wall"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(6.0f)
                 .hardness(1.5f)
-                .resistance(3.0f)
+
                 .harvestTool(HarvestTool::Pickaxe)
                 .soundType(BlockSoundTypes::RESIN_BRICKS));
 }

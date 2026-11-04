@@ -1066,30 +1066,27 @@ public:
 
     /**
      * @brief 获取实体宽度
+     *
+     * 默认取**注册表里该实体类型的尺寸**（原版 `EntityType.getDimensions().width()`）。
+     *
+     * 此前这里硬编码返回 0.6（玩家宽度）——任何没有覆写 `width()` 的生物，碰撞箱宽度
+     * 都是玩家的一半宽 0.6，与它自己的注册尺寸无关。由差分能力 entity_pose_dimensions
+     * 查出：allay 在全部 18 个姿态下都返回 0.6，而原版是 0.35。
      * @return 实体宽度（方块单位）
      */
-    [[nodiscard]] virtual f32 width() const
-    {
-        return 0.6f;
-    }
+    [[nodiscard]] virtual f32 width() const;
 
     /**
      * @brief 获取实体高度
      * @return 实体高度（方块单位）
      */
-    [[nodiscard]] virtual f32 height() const
-    {
-        return 1.8f;
-    }
+    [[nodiscard]] virtual f32 height() const;
 
     /**
      * @brief 获取眼睛高度
      * @return 眼睛距离脚底的高度（方块单位）
      */
-    [[nodiscard]] virtual f32 eyeHeight() const
-    {
-        return 1.62f;
-    }
+    [[nodiscard]] virtual f32 eyeHeight() const;
 
     /**
      * @brief 获取指定姿态下的实体尺寸

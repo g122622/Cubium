@@ -54,5 +54,14 @@ bool TintedGlassBlock::propagatesSkylightDown(const BlockState& state, IWorld* w
     return false;
 }
 
+f32 TintedGlassBlock::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 挡光但不投影：它挡的是光的传播，不是面的明暗。
+    return 1.0f;
+}
+
 } // namespace blocks
 } // namespace mc

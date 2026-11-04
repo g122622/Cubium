@@ -22,6 +22,7 @@
  */
 
 #include "AbstractButtonBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -38,6 +39,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -280,6 +282,10 @@ void AbstractButtonBlock::checkPressed(IWorld& world, const BlockPos& pos, const
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         _updateNeighbours(world, pos);
         playClickSound(world, pos, arrowInside);
+        // 按下/弹起是方块状态变化，要让附近幽匿感测体听到。
+        world.gameEvent(arrowInside ? gameevent::GameEvents::BLOCK_ACTIVATE : gameevent::GameEvents::BLOCK_DEACTIVATE,
+            pos,
+            &newState);
     }
 
     // 仍处于按下状态则续期，下一个计划刻再复查；否则本次即为弹起。
@@ -360,10 +366,27 @@ i32 AbstractButtonBlock::getStrongPower(
 const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) const
 {
     // 采用原版按钮的大致体素尺寸：墙面 6x4 像素，地板/天花板 6x6 像素。
-    static const CollisionShape floorUnpressed = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 2.0f, 11.0f);
-    static const CollisionShape floorPressed = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 1.0f, 11.0f);
-    static const CollisionShape ceilingUnpressed = CollisionShape::fromPixelBox(5.0f, 14.0f, 5.0f, 11.0f, 16.0f, 11.0f);
-    static const CollisionShape ceilingPressed = CollisionShape::fromPixelBox(5.0f, 15.0f, 5.0f, 11.0f, 16.0f, 11.0f);
+    // floor / ceiling 的按钮板**扁平面朝 FACING 的轴**：朝南北时板沿 Z 只有 4 像素
+    // （0.375..0.625），朝东西时沿 X 只有 4 像素。实测（forAllBoxes，oak_button）：
+    //   FLOOR_north/south   -> [0.3125,0,0.3750 -> 0.6875,0.125,0.6250]
+    //   FLOOR_east/west     -> [0.3750,0,0.3125 -> 0.6250,0.125,0.6875]
+    //   CEILING_north/south -> [0.3125,0.875,0.3750 -> 0.6875,1,0.6250]
+    //   CEILING_east/west   -> [0.3750,0.875,0.3125 -> 0.6250,1,0.6875]
+    // 此前一律用 6x6 的正方形板（5..11 两轴相同），按下时只在 Y 上变薄，
+    // 横向轮廓与原版对不上。
+    static const CollisionShape floorNorthUnpressed =
+        CollisionShape::fromPixelBox(5.0f, 0.0f, 6.0f, 11.0f, 2.0f, 10.0f);
+    static const CollisionShape floorNorthPressed = CollisionShape::fromPixelBox(5.0f, 0.0f, 6.0f, 11.0f, 1.0f, 10.0f);
+    static const CollisionShape floorEastUnpressed = CollisionShape::fromPixelBox(6.0f, 0.0f, 5.0f, 10.0f, 2.0f, 11.0f);
+    static const CollisionShape floorEastPressed = CollisionShape::fromPixelBox(6.0f, 0.0f, 5.0f, 10.0f, 1.0f, 11.0f);
+    static const CollisionShape ceilingNorthUnpressed =
+        CollisionShape::fromPixelBox(5.0f, 14.0f, 6.0f, 11.0f, 16.0f, 10.0f);
+    static const CollisionShape ceilingNorthPressed =
+        CollisionShape::fromPixelBox(5.0f, 15.0f, 6.0f, 11.0f, 16.0f, 10.0f);
+    static const CollisionShape ceilingEastUnpressed =
+        CollisionShape::fromPixelBox(6.0f, 14.0f, 5.0f, 10.0f, 16.0f, 11.0f);
+    static const CollisionShape ceilingEastPressed =
+        CollisionShape::fromPixelBox(6.0f, 15.0f, 5.0f, 10.0f, 16.0f, 11.0f);
 
     static const CollisionShape wallNorthUnpressed =
         CollisionShape::fromPixelBox(5.0f, 6.0f, 14.0f, 11.0f, 10.0f, 16.0f);
@@ -380,11 +403,18 @@ const CollisionShape& AbstractButtonBlock::getShape(const BlockState& state) con
     const AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
     const Direction facing = getFacing(state);
 
+    const bool alongZ = (facing == Direction::North || facing == Direction::South);
     if (attachFace == AttachFace::Floor) {
-        return powered ? floorPressed : floorUnpressed;
+        if (alongZ) {
+            return powered ? floorNorthPressed : floorNorthUnpressed;
+        }
+        return powered ? floorEastPressed : floorEastUnpressed;
     }
     if (attachFace == AttachFace::Ceiling) {
-        return powered ? ceilingPressed : ceilingUnpressed;
+        if (alongZ) {
+            return powered ? ceilingNorthPressed : ceilingNorthUnpressed;
+        }
+        return powered ? ceilingEastPressed : ceilingEastUnpressed;
     }
 
     switch (facing) {
@@ -414,6 +444,9 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
 
     // 播放按下音效
     playClickSound(world, pos, true);
+
+    // 让附近幽匿感测体听到。
+    world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, &newState);
 
     // 通知相邻方块更新
     _updateNeighbours(world, pos);

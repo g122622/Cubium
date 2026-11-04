@@ -510,5 +510,11 @@ const BlockState& BambooSaplingBlock::getPlant(IBlockReader& world, const BlockP
     return defaultState();
 }
 
+bool BambooBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 只有 stage=0 的竹子会生长；stage=1 表示已达生长上限。
+    return state.get(STAGE()) == 0;
+}
+
 } // namespace blocks
 } // namespace mc

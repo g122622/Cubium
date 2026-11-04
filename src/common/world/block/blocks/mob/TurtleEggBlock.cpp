@@ -23,6 +23,8 @@
 
 #include "TurtleEggBlock.hpp"
 
+#include "common/world/gameevent/GameEvents.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -84,8 +86,10 @@ TurtleEggBlock::TurtleEggBlock(const BlockProperties& properties)
 
     // 创建各蛋数量的形状
     // 1个蛋: 3/16=0.1875, 12/16=0.75, 7/16=0.4375
-    m_shapesByEggCount[0] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.75f, 0.4375f, 0.75f);     // 1 egg
-    m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.1875f, 0.9375f, 0.4375f, 0.75f);   // 2 eggs
+    m_shapesByEggCount[0] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.75f, 0.4375f, 0.75f); // 1 egg
+    // 2 个蛋起，形状在**两个轴**上都铺到 0.0625..0.9375（原版实测），
+    // 只有 1 个蛋时是缩在 (0.1875..0.75) 的小方块。
+    m_shapesByEggCount[1] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 2 eggs
     m_shapesByEggCount[2] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 3 eggs
     m_shapesByEggCount[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.4375f, 0.9375f); // 4 eggs
 }
@@ -201,6 +205,9 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         }
         const BlockState& newState = state.with(BlockStateProperties::HATCH_0_2(), hatch + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+        // 裂纹加深是方块状态变化（还没破壳，所以是 BLOCK_CHANGE 不是 DESTROY）。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     } else {
         // 孵化完成，生成海龟
         if (!world.isClientSide()) {
@@ -216,6 +223,8 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
             world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+            // 蛋壳整个消失，是 BLOCK_DESTROY。
+            world.gameEvent(gameevent::GameEvents::BLOCK_DESTROY, pos, &state);
         }
 
         // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
@@ -350,6 +359,8 @@ void TurtleEggBlock::_removeOneEgg(IWorld& world, const BlockPos& pos, const Blo
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
             world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+            // 蛋壳整个消失，是 BLOCK_DESTROY。
+            world.gameEvent(gameevent::GameEvents::BLOCK_DESTROY, pos, &state);
         }
     }
 }

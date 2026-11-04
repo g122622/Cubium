@@ -81,6 +81,7 @@ WallBlock::WallBlock(const BlockProperties& properties)
 
     for (size_t i = 0; i < m_shapes.size(); ++i) {
         m_shapes[i] = CollisionShape::empty();
+        m_collisionShapes[i] = CollisionShape::empty();
     }
 
     for (i32 up = 0; up <= 1; ++up) {
@@ -94,34 +95,121 @@ WallBlock::WallBlock(const BlockProperties& properties)
                             static_cast<BlockStateProperties::WallHeight>(south),
                             static_cast<BlockStateProperties::WallHeight>(west));
 
-                        CollisionShape shape = m_pillarShape;
-                        if (north > 0) {
-                            f32 height = (north == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, height * P, 8.0f * P));
-                        }
-                        if (south > 0) {
-                            f32 height = (south == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(5.0f * P, 0.0f, 8.0f * P, 11.0f * P, height * P, 16.0f * P));
-                        }
-                        if (east > 0) {
-                            f32 height = (east == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(8.0f * P, 0.0f, 5.0f * P, 16.0f * P, height * P, 11.0f * P));
-                        }
-                        if (west > 0) {
-                            f32 height = (west == 2) ? 16.0f : 8.0f;
-                            shape = CollisionShape::combine(
-                                shape, CollisionShape::box(0.0f, 0.0f, 5.0f * P, 8.0f * P, height * P, 11.0f * P));
-                        }
+                        // 原版墙的形状随 `up` 变化很大（实测 `forAllBoxes`）：
+                        //
+                        //   up=true  中心柱 box(0.25,0,0.25 -> 0.75,1,0.75)，侧柱从方块边缘伸到
+                        //            `0.25/0.75`（即 8/16 处），low=0.875 高、tall=1.0 高。
+                        //   up=false **没有中心柱**，侧柱各自延伸到中心线：
+                        //            north=low -> box(0.3125,0,0 -> 0.6875,0.875,0.6875)
+                        //            north=tall -> box(0.3125,0,0 -> 0.6875,1.0,0.6875)
+                        //            四侧皆 none 时形状为**空**。
+                        //
+                        // Cubium 此前无论 `up` 都恒定放中心柱，且侧柱只到 0.25/0.75，
+                        // 于是 up=false 的全部 162 个状态（×2 waterlogged）都算错。
+                        // 原版 WallBlock 的外形与碰撞形状**结构相同、高度不同**：
+                        // 外形按 low=0.875 / tall=1.0 分档；碰撞形状一律拉高到 1.5。
+                        //
+                        // 逐条实测（forAllBoxes，andesite_wall）：
+                        //   up=true  N=low  外形 box(0.25,0,0.25->0.75,1,0.75) + box(0.3125,0,0->0.6875,0.875,0.25)
+                        //                   碰撞 两段 y 均到 1.5
+                        //   up=false N=low  外形 box(0.3125,0,0->0.6875,0.875,0.6875)（L 形，吞掉中心柱）
+                        //                   碰撞 同一盒、y 到 1.5
+                        //   up=false none   外形与碰撞都是空
+                        CollisionShape shape = CollisionShape::empty();
+                        CollisionShape coll = CollisionShape::empty();
+
+                        constexpr f32 kCollTop = 1.5f;
 
                         if (up != 0) {
-                            shape = CollisionShape::combine(shape,
-                                CollisionShape::box(4.0f * P, 14.0f * P, 4.0f * P, 12.0f * P, 16.0f * P, 12.0f * P));
+                            const f32 nHeight = (north == 2) ? 1.0f : 0.875f;
+                            const f32 sHeight = (south == 2) ? 1.0f : 0.875f;
+                            const f32 eHeight = (east == 2) ? 1.0f : 0.875f;
+                            const f32 wHeight = (west == 2) ? 1.0f : 0.875f;
+
+                            shape = m_pillarShape;
+                            coll = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, kCollTop, 0.75f);
+
+                            if (north > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, nHeight, 0.25f),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(5.0f * P, 0.0f, 0.0f, 11.0f * P, kCollTop, 0.25f),
+                                    CollisionShape::CombineOp::OR);
+                            }
+                            if (south > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(5.0f * P, 0.0f, 0.75f, 11.0f * P, sHeight, 1.0f),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(5.0f * P, 0.0f, 0.75f, 11.0f * P, kCollTop, 1.0f),
+                                    CollisionShape::CombineOp::OR);
+                            }
+                            if (east > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(0.75f, 0.0f, 5.0f * P, 1.0f, eHeight, 11.0f * P),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(0.75f, 0.0f, 5.0f * P, 1.0f, kCollTop, 11.0f * P),
+                                    CollisionShape::CombineOp::OR);
+                            }
+                            if (west > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(0.0f, 0.0f, 5.0f * P, 0.25f, wHeight, 11.0f * P),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(0.0f, 0.0f, 5.0f * P, 0.25f, kCollTop, 11.0f * P),
+                                    CollisionShape::CombineOp::OR);
+                            }
+
+                            // low 柱断在 0.875 之后，外形仍保留一块顶部横梁；碰撞形状不含它。
+                            if (north == 1 || south == 1 || west == 1 || east == 1) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(0.25f, 0.875f, 0.3125f, 0.75f, 1.0f, 0.6875f),
+                                    CollisionShape::CombineOp::OR);
+                            }
+                        } else {
+                            constexpr f32 kEdge = 0.6875f;
+                            if (north > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(
+                                        0.3125f, 0.0f, 0.0f, 0.6875f, (north == 2) ? 1.0f : 0.875f, kEdge),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(0.3125f, 0.0f, 0.0f, 0.6875f, kCollTop, kEdge),
+                                    CollisionShape::CombineOp::OR);
+                            }
+                            if (south > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(
+                                        0.3125f, 0.0f, 1.0f - kEdge, 0.6875f, (south == 2) ? 1.0f : 0.875f, 1.0f),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(0.3125f, 0.0f, 1.0f - kEdge, 0.6875f, kCollTop, 1.0f),
+                                    CollisionShape::CombineOp::OR);
+                            }
+                            if (east > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(
+                                        1.0f - kEdge, 0.0f, 0.3125f, 1.0f, (east == 2) ? 1.0f : 0.875f, 0.6875f),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(1.0f - kEdge, 0.0f, 0.3125f, 1.0f, kCollTop, 0.6875f),
+                                    CollisionShape::CombineOp::OR);
+                            }
+                            if (west > 0) {
+                                shape = CollisionShape::combine(shape,
+                                    CollisionShape::box(
+                                        0.0f, 0.0f, 0.3125f, kEdge, (west == 2) ? 1.0f : 0.875f, 0.6875f),
+                                    CollisionShape::CombineOp::OR);
+                                coll = CollisionShape::combine(coll,
+                                    CollisionShape::box(0.0f, 0.0f, 0.3125f, kEdge, kCollTop, 0.6875f),
+                                    CollisionShape::CombineOp::OR);
+                            }
                         }
 
                         m_shapes[idx] = shape;
+                        m_collisionShapes[idx] = coll;
                     }
                 }
             }
@@ -197,7 +285,14 @@ const CollisionShape& WallBlock::getShape(const BlockState& state) const
 
 const CollisionShape& WallBlock::getCollisionShape(const BlockState& state) const
 {
-    return getShape(state);
+    // 墙的碰撞形状比外形高（1.5 而非 0.875/1.0），不能直接复用 getShape。
+    const size_t index = _getShapeIndex(state.get(BlockStateProperties::UP()),
+        state.get(BlockStateProperties::WALL_HEIGHT_NORTH()),
+        state.get(BlockStateProperties::WALL_HEIGHT_EAST()),
+        state.get(BlockStateProperties::WALL_HEIGHT_SOUTH()),
+        state.get(BlockStateProperties::WALL_HEIGHT_WEST()));
+    MC_ASSERT(index < m_collisionShapes.size());
+    return m_collisionShapes[index];
 }
 
 bool WallBlock::canConnectRedstone(const BlockState& state, Direction side) const noexcept
@@ -456,5 +551,15 @@ const fluid::FluidState* WallBlock::getFluidState(const BlockState& state) const
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
+bool WallBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 这三个类族在原版里都显式返回 false：形状不完整不等于可以穿过。
+    // 楼梯的台阶、墙的柱与臂、头颅的薄片都占据生物的路径空间。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
+
 } // namespace mc

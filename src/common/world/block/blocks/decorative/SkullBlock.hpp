@@ -112,6 +112,8 @@ protected:
     [[nodiscard]] static BlockProperties::Instrument _instrumentForSkullType(SkullType type) noexcept;
 
     SkullType m_type;
+    /// 头颅在三种寻路类型下都不可通行。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 /**
@@ -154,9 +156,6 @@ public:
     ~WallSkullBlock() override = default;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    /// 墙面头颅的碰撞形状与外形一致（原版未覆写 getCollisionShape）
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
@@ -254,9 +253,6 @@ public:
     explicit PiglinWallSkullBlock(const BlockProperties& properties);
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    /// 墙面猪灵头的碰撞形状与外形一致
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
 private:
     CollisionShape m_piglinShapes[4]; // North, South, West, East

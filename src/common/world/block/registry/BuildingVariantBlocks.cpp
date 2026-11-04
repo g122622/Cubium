@@ -207,139 +207,237 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::OAK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:oak_stairs"),
             BaseBlocks::OAK_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 云杉木楼梯
     BuildingVariantBlocks::SPRUCE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:spruce_stairs"),
             BaseBlocks::SPRUCE_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 白桦木楼梯
     BuildingVariantBlocks::BIRCH_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:birch_stairs"),
             BaseBlocks::BIRCH_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 丛林木楼梯
     BuildingVariantBlocks::JUNGLE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:jungle_stairs"),
             BaseBlocks::JUNGLE_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 金合欢木楼梯
     BuildingVariantBlocks::ACACIA_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:acacia_stairs"),
             BaseBlocks::ACACIA_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 深色橡木楼梯
     BuildingVariantBlocks::DARK_OAK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:dark_oak_stairs"),
             BaseBlocks::DARK_OAK_PLANKS->defaultState(),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 石头楼梯
     BuildingVariantBlocks::STONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:stone_stairs"),
             BaseBlocks::STONE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 圆石楼梯
     BuildingVariantBlocks::COBBLESTONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:cobblestone_stairs"),
             BaseBlocks::COBBLESTONE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 砂岩楼梯
     BuildingVariantBlocks::SANDSTONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:sandstone_stairs"),
             BaseBlocks::SANDSTONE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(0.8f)
+                .resistance(0.8f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 平滑砂岩楼梯
     BuildingVariantBlocks::SMOOTH_SANDSTONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:smooth_sandstone_stairs"),
             BaseBlocks::SMOOTH_SANDSTONE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 花岗岩楼梯
     BuildingVariantBlocks::GRANITE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:granite_stairs"),
             BaseBlocks::GRANITE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 磨制花岗岩楼梯
     BuildingVariantBlocks::POLISHED_GRANITE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_granite_stairs"),
             BaseBlocks::POLISHED_GRANITE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 闪长岩楼梯
     BuildingVariantBlocks::DIORITE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:diorite_stairs"),
             BaseBlocks::DIORITE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 磨制闪长岩楼梯
     BuildingVariantBlocks::POLISHED_DIORITE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_diorite_stairs"),
             BaseBlocks::POLISHED_DIORITE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 安山岩楼梯
     BuildingVariantBlocks::ANDESITE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:andesite_stairs"),
             BaseBlocks::ANDESITE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 磨制安山岩楼梯
     BuildingVariantBlocks::POLISHED_ANDESITE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_andesite_stairs"),
             BaseBlocks::POLISHED_ANDESITE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 砖楼梯
     BuildingVariantBlocks::BRICK_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:brick_stairs"),
             BuildingBlocks::BRICKS->defaultState(),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 苔石楼梯
     BuildingVariantBlocks::MOSSY_COBBLESTONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:mossy_cobblestone_stairs"),
             BuildingBlocks::MOSSY_COBBLESTONE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 石英楼梯
     BuildingVariantBlocks::QUARTZ_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:quartz_stairs"),
             BuildingBlocks::QUARTZ_BLOCK->defaultState(),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(0.8f)
+                .resistance(0.8f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 平滑石英楼梯
     BuildingVariantBlocks::SMOOTH_QUARTZ_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:smooth_quartz_stairs"),
             BuildingBlocks::SMOOTH_QUARTZ->defaultState(),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 紫珀楼梯
     BuildingVariantBlocks::PURPUR_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:purpur_stairs"),
             BuildingBlocks::PURPUR_BLOCK->defaultState(),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 红砂岩楼梯
     BuildingVariantBlocks::RED_SANDSTONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:red_sandstone_stairs"),
             BaseBlocks::RED_SANDSTONE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(0.8f)
+                .resistance(0.8f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 平滑红砂岩楼梯
     BuildingVariantBlocks::SMOOTH_RED_SANDSTONE_STAIRS =
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:smooth_red_sandstone_stairs"),
             BaseBlocks::SMOOTH_RED_SANDSTONE->defaultState(),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 海晶楼梯
     BuildingBlocks::PRISMARINE_STAIRS =
@@ -358,137 +456,252 @@ void registerBuildingVariantBlocks()
     // ========== 台阶 ==========
     // 橡木台阶
     BuildingVariantBlocks::OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:oak_slab"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .resistance(3.0f)
+            .hardness(2.0f)
+            .flammable()
+            .ignitedByLava());
 
     // 云杉木台阶
     BuildingVariantBlocks::SPRUCE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:spruce_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 白桦木台阶
     BuildingVariantBlocks::BIRCH_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:birch_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 丛林木台阶
     BuildingVariantBlocks::JUNGLE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:jungle_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 金合欢木台阶
     BuildingVariantBlocks::ACACIA_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:acacia_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 深色橡木台阶
     BuildingVariantBlocks::DARK_OAK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:dark_oak_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 石头台阶
     BuildingVariantBlocks::STONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:stone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 圆石台阶
     BuildingVariantBlocks::COBBLESTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:cobblestone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 砂岩台阶
     BuildingVariantBlocks::SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 平滑砂岩台阶
     BuildingVariantBlocks::SMOOTH_SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:smooth_sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 花岗岩台阶
     BuildingVariantBlocks::GRANITE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:granite_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 磨制花岗岩台阶
     BuildingVariantBlocks::POLISHED_GRANITE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_granite_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 闪长岩台阶
     BuildingVariantBlocks::DIORITE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:diorite_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 磨制闪长岩台阶
     BuildingVariantBlocks::POLISHED_DIORITE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_diorite_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 安山岩台阶
     BuildingVariantBlocks::ANDESITE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:andesite_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 磨制安山岩台阶
     BuildingVariantBlocks::POLISHED_ANDESITE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_andesite_slab"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 砖台阶
     BuildingVariantBlocks::BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:brick_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 苔石台阶
     BuildingVariantBlocks::MOSSY_COBBLESTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:mossy_cobblestone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 石英台阶
     BuildingVariantBlocks::QUARTZ_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:quartz_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(6.0f)
+                .hardness(2.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 平滑石英台阶
     BuildingVariantBlocks::SMOOTH_QUARTZ_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:smooth_quartz_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 紫珀台阶
     BuildingVariantBlocks::PURPUR_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:purpur_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 红砂岩台阶
     BuildingVariantBlocks::RED_SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:red_sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(0.8f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(6.0f)
+                .hardness(2.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 平滑红砂岩台阶
     BuildingVariantBlocks::SMOOTH_RED_SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:smooth_red_sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 切制砂岩台阶
     BuildingVariantBlocks::CUT_SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:cut_sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 切制红砂岩台阶
     BuildingVariantBlocks::CUT_RED_SANDSTONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:cut_red_sandstone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 平滑石头台阶
     BuildingVariantBlocks::SMOOTH_STONE_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:smooth_stone_slab"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 石化橡木台阶（vanilla 不设置 ignitedByLava）
-    BuildingVariantBlocks::PETRIFIED_OAK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
-        ResourceLocation("minecraft:petrified_oak_slab"),
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().soundType(BlockSoundTypes::STONE));
+    BuildingVariantBlocks::PETRIFIED_OAK_SLAB =
+        &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:petrified_oak_slab"),
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(6.0f)
+                .hardness(2.0f)
+                .flammable()
+                .soundType(BlockSoundTypes::STONE));
 
     // 海晶台阶
     BuildingBlocks::PRISMARINE_SLAB =
@@ -505,52 +718,92 @@ void registerBuildingVariantBlocks()
     // 圆石墙
     BuildingVariantBlocks::COBBLESTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:cobblestone_wall"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 石砖墙
     BuildingVariantBlocks::STONE_BRICK_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:stone_brick_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 苔石墙
     BuildingVariantBlocks::MOSSY_COBBLESTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:mossy_cobblestone_wall"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 砖墙
     BuildingVariantBlocks::BRICK_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:brick_wall"),
-            BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 海晶石墙
     BuildingVariantBlocks::PRISMARINE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:prismarine_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 砂岩墙
     BuildingVariantBlocks::SANDSTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:sandstone_wall"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(0.800000012f)
+                .hardness(0.8f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 红砂岩墙
     BuildingVariantBlocks::RED_SANDSTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:red_sandstone_wall"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(0.800000012f)
+                .hardness(0.8f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 花岗岩墙
     BuildingVariantBlocks::GRANITE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:granite_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 闪长岩墙
     BuildingVariantBlocks::DIORITE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:diorite_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 安山岩墙
     BuildingVariantBlocks::ANDESITE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:andesite_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
+            BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .hardness(1.5f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 注：vanilla 1.21.11 并没有 quartz_wall / purpur_wall 这两个方块
     // （差分测试 tests/diff 与原版 jar 逐状态比对确认，原版独有 0 条、Cubium 多出 648 条）。
@@ -560,11 +813,20 @@ void registerBuildingVariantBlocks()
     // 橡木栅栏
     BuildingVariantBlocks::OAK_FENCE =
         &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:oak_fence"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .hardness(2.0f)
+                .resistance(3.0f)
+                .flammable()
+                .ignitedByLava());
 
     // 其他主世界木材栅栏（云杉、白桦、丛林、金合欢、深色橡木）
-    BlockProperties woodFenceProps =
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f).flammable().ignitedByLava();
+    BlockProperties woodFenceProps = BlockProperties(Material::WOOD)
+                                         .hardness(2.0f)
+                                         .resistance(3.0f)
+                                         .flammable()
+                                         .ignitedByLava()
+                                         .instrument(BlockProperties::Instrument::Bass);
 
     BuildingVariantBlocks::SPRUCE_FENCE =
         &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:spruce_fence"), woodFenceProps);
@@ -580,8 +842,12 @@ void registerBuildingVariantBlocks()
     // ========== 活板门 ==========
     // 木活板门（所有木材类型）
     // 木活板门属性: 硬度3.0, 抗爆3.0, 可燃
-    BlockProperties woodTrapdoorProps =
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).flammable().ignitedByLava();
+    BlockProperties woodTrapdoorProps = BlockProperties(Material::WOOD)
+                                            .hardness(3.0f)
+                                            .resistance(3.0f)
+                                            .flammable()
+                                            .ignitedByLava()
+                                            .instrument(BlockProperties::Instrument::Bass);
 
     BuildingVariantBlocks::OAK_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:oak_trapdoor"), woodTrapdoorProps, false);
@@ -598,8 +864,11 @@ void registerBuildingVariantBlocks()
 
     // 下界木材活板门（不可燃）
     // 下界木的声音组是 `SoundType.NETHER_WOOD`，与普通木质声不同
-    BlockProperties netherWoodTrapdoorProps =
-        BlockProperties(Material::NETHER_WOOD).hardness(3.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD);
+    BlockProperties netherWoodTrapdoorProps = BlockProperties(Material::NETHER_WOOD)
+                                                  .hardness(3.0f)
+                                                  .resistance(3.0f)
+                                                  .soundType(BlockSoundTypes::NETHER_WOOD)
+                                                  .instrument(BlockProperties::Instrument::Bass);
     BuildingVariantBlocks::CRIMSON_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
         ResourceLocation("minecraft:crimson_trapdoor"), netherWoodTrapdoorProps, false);
     BuildingVariantBlocks::WARPED_TRAPDOOR = &registry.registerBlock<blocks::TrapDoorBlock>(
@@ -618,7 +887,13 @@ void registerBuildingVariantBlocks()
     // ========== 门 ==========
     // 橡木门
     BuildingVariantBlocks::OAK_DOOR = &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:oak_door"),
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable().ignitedByLava(),
+        BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
+            .hardness(3.0f)
+            .resistance(3.0f)
+            .notSolid()
+            .flammable()
+            .ignitedByLava(),
         false // 不是铁门
     );
 
@@ -630,8 +905,13 @@ void registerBuildingVariantBlocks()
         );
 
     // 其他木门（所有木材类型）
-    BlockProperties woodDoorProps =
-        BlockProperties(Material::WOOD).hardness(3.0f).resistance(3.0f).notSolid().flammable().ignitedByLava();
+    BlockProperties woodDoorProps = BlockProperties(Material::WOOD)
+                                        .hardness(3.0f)
+                                        .resistance(3.0f)
+                                        .notSolid()
+                                        .flammable()
+                                        .ignitedByLava()
+                                        .instrument(BlockProperties::Instrument::Bass);
 
     BuildingVariantBlocks::SPRUCE_DOOR =
         &registry.registerBlock<blocks::DoorBlock>(ResourceLocation("minecraft:spruce_door"), woodDoorProps, false);
@@ -649,7 +929,8 @@ void registerBuildingVariantBlocks()
                                               .hardness(3.0f)
                                               .resistance(3.0f)
                                               .notSolid()
-                                              .soundType(BlockSoundTypes::NETHER_WOOD);
+                                              .soundType(BlockSoundTypes::NETHER_WOOD)
+                                              .instrument(BlockProperties::Instrument::Bass);
     BuildingVariantBlocks::CRIMSON_DOOR = &registry.registerBlock<blocks::DoorBlock>(
         ResourceLocation("minecraft:crimson_door"), netherWoodDoorProps, false);
     BuildingVariantBlocks::WARPED_DOOR = &registry.registerBlock<blocks::DoorBlock>(
@@ -659,10 +940,21 @@ void registerBuildingVariantBlocks()
     // 橡木栅栏门
     BuildingVariantBlocks::OAK_FENCE_GATE =
         &registry.registerBlock<blocks::FenceGateBlock>(ResourceLocation("minecraft:oak_fence_gate"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable().ignitedByLava());
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(3.0f)
+                .hardness(2.0f)
+                .notSolid()
+                .flammable()
+                .ignitedByLava());
 
-    BlockProperties woodFenceGateProps =
-        BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid().flammable().ignitedByLava();
+    BlockProperties woodFenceGateProps = BlockProperties(Material::WOOD)
+                                             .hardness(2.0f)
+                                             .resistance(3.0f)
+                                             .notSolid()
+                                             .flammable()
+                                             .ignitedByLava()
+                                             .instrument(BlockProperties::Instrument::Bass);
 
     BuildingVariantBlocks::SPRUCE_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
         ResourceLocation("minecraft:spruce_fence_gate"), woodFenceGateProps);
@@ -678,16 +970,22 @@ void registerBuildingVariantBlocks()
     // 下界木材栅栏门（不可燃）
     BlockProperties netherWoodFenceGateProps = BlockProperties(Material::NETHER_WOOD)
                                                    .hardness(2.0f)
-                                                   .resistance(2.0f)
+                                                   .resistance(3.0f)
                                                    .notSolid()
-                                                   .soundType(BlockSoundTypes::NETHER_WOOD);
+                                                   .soundType(BlockSoundTypes::NETHER_WOOD)
+                                                   .instrument(BlockProperties::Instrument::Bass);
     BuildingVariantBlocks::CRIMSON_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
         ResourceLocation("minecraft:crimson_fence_gate"), netherWoodFenceGateProps);
     BuildingVariantBlocks::WARPED_FENCE_GATE = &registry.registerBlock<blocks::FenceGateBlock>(
         ResourceLocation("minecraft:warped_fence_gate"), netherWoodFenceGateProps);
 
     // ========== 染色玻璃板（16色）==========
-    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS).hardness(0.3f).notSolid().noOcclusion();
+    BlockProperties stainedGlassPaneProps = BlockProperties(Material::GLASS)
+                                                .hardness(0.3f)
+                                                .notSolid()
+                                                .noOcclusion()
+                                                .resistance(0.3f)
+                                                .instrument(BlockProperties::Instrument::Hat);
 
     BuildingVariantBlocks::WHITE_STAINED_GLASS_PANE = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:white_stained_glass_pane"), stainedGlassPaneProps);
@@ -728,6 +1026,7 @@ void registerBuildingVariantBlocks()
         &registry.registerBlock<blocks::SpawnerBlock>(ResourceLocation("minecraft:spawner"),
             // 刷怪笼：硬度 5（原先写的 -1 让它在生存模式永远挖不动）。
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(5.0f)
                 .resistance(5.0f)
                 .noOcclusion()
@@ -743,7 +1042,7 @@ void registerBuildingVariantBlocks()
     // 结构空位 - 结构生成时不会替换现有方块
     BuildingVariantBlocks::STRUCTURE_VOID =
         &registry.registerBlock<blocks::StructureVoidBlock>(ResourceLocation("minecraft:structure_void"),
-            BlockProperties(Material::STRUCTURE_VOID).noCollision().noLootTable());
+            BlockProperties(Material::STRUCTURE_VOID).noCollision().noLootTable().replaceable());
 
     // 拼图方块 - Jigsaw 结构生成系统核心
     BuildingVariantBlocks::JIGSAW = &registry.registerBlock<blocks::JigsawBlock>(ResourceLocation("minecraft:jigsaw"),
@@ -753,7 +1052,7 @@ void registerBuildingVariantBlocks()
     // 屏障 - 不可见的不可破坏方块
     BuildingVariantBlocks::BARRIER =
         &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
-            BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable().noOcclusion());
+            BlockProperties(Material::BARRIER).resistance(3600000.75f).hardness(-1.0f).noLootTable().noOcclusion());
 
     // 命令方块 - 红石触发型，需要管理员权限
     BuildingVariantBlocks::COMMAND_BLOCK =
@@ -780,9 +1079,10 @@ void registerBuildingVariantBlocks()
     // lightLevel(state -> LEVEL)。
     BuildingVariantBlocks::LIGHT = &registry.registerBlock<blocks::LightBlock>(ResourceLocation("minecraft:light"),
         BlockProperties(Material::DECORATION)
+            .resistance(3600000.75f)
             .replaceable()
             .hardness(-1.0f)
-            .resistance(3600000.0f)
+
             .noLootTable()
             .noOcclusion());
 

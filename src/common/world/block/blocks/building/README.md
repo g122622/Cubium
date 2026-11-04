@@ -98,6 +98,8 @@ Block (基类)
 
 `useItemOn` / `useWithoutItem` 中必须检查 `m_isIron`，铁活板门只能通过红石控制，玩家右键应返回 `ActionResultType::Pass`。
 
+活板门打开后仍有竖直薄板碰撞，木制与铁制行为相同。OPEN 只改变薄板方向，不能把打开状态的碰撞形状置空。
+
 ### 7. TrapDoorBlock 攀爬检测
 
 `isLadder()` 只对打开状态的活板门返回 `true`。MC 1.16.5 中，打开的活板门可以作为梯子攀爬，但需要检查实体是否在正确侧（上半/下半）。

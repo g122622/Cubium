@@ -75,24 +75,24 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
             .with(BlockStateProperties::WEST(), false)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
-    // 预计算碰撞形状
-    // 像素单位
+    // 预计算碰撞形状。像素单位。
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 栅栏柱子：中间6x16x6像素
+    // 栅栏柱子：中间 4x16x4 像素（6..10）。
     CollisionShape pillar = CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 10.0f * P, 16.0f * P, 10.0f * P);
 
-    // 栅栏横杆：在7-9像素高度，厚2像素
-    // 北面横杆
-    CollisionShape railNorth = CollisionShape::box(7.0f * P, 6.0f * P, 0.0f, 9.0f * P, 9.0f * P, 6.0f * P);
-    // 南面横杆
-    CollisionShape railSouth = CollisionShape::box(7.0f * P, 6.0f * P, 10.0f * P, 9.0f * P, 9.0f * P, 16.0f * P);
-    // 东面横杆
-    CollisionShape railEast = CollisionShape::box(10.0f * P, 6.0f * P, 7.0f * P, 16.0f * P, 9.0f * P, 9.0f * P);
-    // 西面横杆
-    CollisionShape railWest = CollisionShape::box(0.0f * P, 6.0f * P, 7.0f * P, 6.0f * P, 9.0f * P, 9.0f * P);
+    // 连接侧不是「细横杆」，而是把柱子沿该方向拉宽成一条**全高实心板**。
+    // 实测（forAllBoxes，oak_fence）：
+    //   west=true  -> [0,0,0.375 -> 0.625,1,0.625]      向西一直铺到 x=0
+    //   north=true -> [0.375,0,0 -> 0.625,1,0.625]      向北一直铺到 z=0
+    //   north+south-> [0.375,0,0 -> 0.625,1,1]          合并成整条
+    // 此前用的是「柱 + 2x3 像素细横杆」，几何完全不同——细杆既不与柱子同高，
+    // 也不覆盖柱子到边缘之间的整段，栅栏在视觉与碰撞上都对不上。
+    CollisionShape armNorth = CollisionShape::box(6.0f * P, 0.0f, 0.0f, 10.0f * P, 16.0f * P, 6.0f * P);
+    CollisionShape armSouth = CollisionShape::box(6.0f * P, 0.0f, 10.0f * P, 10.0f * P, 16.0f * P, 16.0f * P);
+    CollisionShape armEast = CollisionShape::box(10.0f * P, 0.0f, 6.0f * P, 16.0f * P, 16.0f * P, 10.0f * P);
+    CollisionShape armWest = CollisionShape::box(0.0f, 0.0f, 6.0f * P, 6.0f * P, 16.0f * P, 10.0f * P);
 
-    // 初始化所有16种形状
     for (size_t i = 0; i < 16; ++i) {
         m_shapes[i] = CollisionShape::empty();
     }
@@ -104,18 +104,17 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
                     size_t idx = _getShapeIndex(north != 0, east != 0, south != 0, west != 0);
 
                     CollisionShape shape = pillar;
-
                     if (north) {
-                        shape = CollisionShape::combine(shape, railNorth);
+                        shape = CollisionShape::combine(shape, armNorth, CollisionShape::CombineOp::OR);
                     }
                     if (east) {
-                        shape = CollisionShape::combine(shape, railEast);
+                        shape = CollisionShape::combine(shape, armEast, CollisionShape::CombineOp::OR);
                     }
                     if (south) {
-                        shape = CollisionShape::combine(shape, railSouth);
+                        shape = CollisionShape::combine(shape, armSouth, CollisionShape::CombineOp::OR);
                     }
                     if (west) {
-                        shape = CollisionShape::combine(shape, railWest);
+                        shape = CollisionShape::combine(shape, armWest, CollisionShape::CombineOp::OR);
                     }
 
                     m_shapes[idx] = shape;
@@ -326,6 +325,14 @@ const fluid::FluidState* FenceBlock::getFluidState(const BlockState& state) cons
 {
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+
+bool FenceBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 该方块族原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
 }
 
 } // namespace blocks

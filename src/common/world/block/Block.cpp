@@ -68,6 +68,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/map/MaterialColor.hpp"
 #include "registry/VanillaBlocks.hpp"
 #include <algorithm>
@@ -75,6 +76,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -181,7 +183,11 @@ BlockProperties::BlockProperties(const Material& material)
     , m_isSolid(material.isSolid())
     , m_isFlammable(material.isFlammable())
     , m_requiresTool(false)
-    , m_isReplaceable(material.isReplaceable())
+    // 可替换性**不从材质推导**：原版 `BlockBehaviour.Properties#replaceable()` 是个显式开关，
+    // 默认 false，只有 29 个方块显式开启（空气、水、草、藤蔓、雪层等）。
+    // 先前按材质推导会让整片借用植物材质的方块（花、树苗、作物、蘑菇）全部变成可替换，
+    // 玩家能把这些方块直接用手上的方块覆盖掉，而原版是「放不进去」。
+    , m_isReplaceable(false)
     , m_soundType(&getDefaultSoundType(material))
 {}
 
@@ -222,6 +228,8 @@ Block::Block(BlockProperties properties)
     , m_opacity(properties.m_opacity)
     , m_hasCollision(properties.m_hasCollision)
     , m_isSolid(properties.m_isSolid)
+    , m_forceSolidOn(properties.m_forceSolidOn)
+    , m_forceSolidOff(properties.m_forceSolidOff)
     , m_isFlammable(properties.m_isFlammable)
     , m_canOcclude(properties.m_canOcclude)
     , m_propagatesSkylightDown(properties.m_propagatesSkylightDown)
@@ -450,8 +458,49 @@ bool Block::isAir(const BlockState& state) const
 
 bool Block::isSolid(const BlockState& state) const
 {
-    (void)state;
-    return m_isSolid;
+    // 原版 `BlockBehaviour.BlockStateBase#calculateSolid`：
+    //   forceSolidOn  -> true
+    //   forceSolidOff -> false
+    //   碰撞形状为空  -> false
+    //   否则按包围盒推断：
+    //     (x + y + z) / 3 >= 35/48  -> true
+    //     否则 y 尺寸 >= 1         -> true
+    //   其余 -> false
+    //
+    // 关键在最后一步：**不是**「是否占满整格」，而是「三轴平均够厚」或「整格高」。
+    // 因此门、栅栏门、告示牌这些碰撞形状远不满一格的方块，原版仍判为实体方块。
+    if (m_forceSolidOn) {
+        return true;
+    }
+    if (m_forceSolidOff) {
+        return false;
+    }
+
+    const CollisionShape& shape = getCollisionShape(state);
+    if (shape.isEmpty()) {
+        return false;
+    }
+
+    f32 minX = std::numeric_limits<f32>::max();
+    f32 minY = std::numeric_limits<f32>::max();
+    f32 minZ = std::numeric_limits<f32>::max();
+    f32 maxX = std::numeric_limits<f32>::lowest();
+    f32 maxY = std::numeric_limits<f32>::lowest();
+    f32 maxZ = std::numeric_limits<f32>::lowest();
+    for (const AxisAlignedBB& box : shape.boxes()) {
+        minX = std::min(minX, box.minX);
+        minY = std::min(minY, box.minY);
+        minZ = std::min(minZ, box.minZ);
+        maxX = std::max(maxX, box.maxX);
+        maxY = std::max(maxY, box.maxY);
+        maxZ = std::max(maxZ, box.maxZ);
+    }
+
+    const f32 size = ((maxX - minX) + (maxY - minY) + (maxZ - minZ)) / 3.0f;
+    if (size >= 35.0f / 48.0f) {
+        return true;
+    }
+    return (maxY - minY) >= 1.0f;
 }
 
 bool Block::isOpaque(const BlockState& state) const
@@ -462,24 +511,41 @@ bool Block::isOpaque(const BlockState& state) const
 
 bool Block::isPathfindable(const BlockState& state, PathComputationType type) const
 {
-    // 默认实现对齐原版 `Block#isPathfindable`：陆地看碰撞形状是否为空，
-    // 水中与空中则一律按「无碰撞即可穿过」处理（原版分别由水生方块与飞行求值器覆写）。
-    MC_UNUSED(type);
-    return state.getCollisionShape().isEmpty();
+    // 三种寻路类型的默认判据互不相同：
+    //   Land / Air -> 碰撞形状「不完整」即可通行
+    //   Water      -> 只认水（getFluidState().is(WATER)）
+    //
+    // 判据是「不完整」而不是「为空」：台阶、楼梯、栅栏门的碰撞形状非空但不完整，
+    // 生物能从上方走过。用 isEmpty() 会让生物绕开所有台阶，表现为卡在台阶前不动。
+    //
+    // Water 类型不看形状：水中型生物只能游过水方块。若三种类型统一按形状判，
+    // 陆行生物会走进水里、鱼会游进空气。
+    switch (type) {
+        case PathComputationType::Water: {
+            const fluid::FluidState* fluidState = state.getFluidState();
+            return fluidState != nullptr && !fluidState->isEmpty() &&
+                fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+        }
+        case PathComputationType::Land:
+        case PathComputationType::Air:
+        default:
+            return !state.getCollisionShape().coversFullBlock();
+    }
 }
 
 f32 Block::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    // 默认实现与 MC 原版一致：
-    // 碰撞形状为完整方块时返回 0.2F（产生 AO 阴影），否则返回 1.0F。
-    // noOcclusion 方块不产生 AO 阴影（vanilla 的 AO 前提是 canOcclude）。
-    // 子类可重写以实现特殊行为（如 MudBlock 碰撞形状不完整但仍需阴影）。
-    if (!m_canOcclude) {
-        return 1.0f;
-    }
-    return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
+    // 原版判据只看「碰撞形状是否覆盖整格」，与 canOcclude / noOcclusion 无关：
+    //   isCollisionShapeFullBlock(state, world, pos) ? 0.2F : 1.0F
+    //
+    // 这一点很容易写错。用 canOcclude 判定会在两个方向上同时出错：
+    // - 树叶、冰、荧石、信标、潜影盒形状是整格，原版有阴影，但它们标了 noOcclusion
+    // - 栅栏、台阶、楼梯、墙形状不完整，原版没有阴影，但它们是可遮挡方块
+    //
+    // 子类仍可重写以实现特例（泥巴、灵魂沙是 14/16 矮块却要阴影；雪层满层才要阴影）。
+    return state.getCollisionShape().coversFullBlock() ? 0.2f : 1.0f;
 }
 
 i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* pos) const
@@ -766,6 +832,16 @@ BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& wor
 void Block::updateOrDestroy(
     const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags)
 {
+    updateOrDestroy(oldState, newState, world, pos, flags, world::BlockUpdateFlags::DEFAULT_DESTROY_RECURSION);
+}
+
+void Block::updateOrDestroy(const BlockState& oldState,
+    const BlockState& newState,
+    IWorld& world,
+    const BlockPos& pos,
+    i32 flags,
+    i32 recursionLeft)
+{
     if (newState.stateId() == oldState.stateId()) {
         return;
     }
@@ -776,17 +852,16 @@ void Block::updateOrDestroy(
             return;
         }
 
-        // 移除方块。置位 UPDATE_SUPPRESS_DROPS 时抑制移除带来的掉落：项目中方块自身的
-        // 掉落由玩家破坏路径处理，这里的掉落只有方块实体的移除副作用（容器内容物），
-        // 故等价地叠加 UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS。
-        i32 removeFlags = world::BlockUpdateFlags::UPDATE_ALL;
-        if ((flags & world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS) != 0) {
-            removeFlags |= world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS;
-        }
-        world.setBlockState(pos, &newState, removeFlags);
+        // 视同摧毁：发破坏粒子、按需掉落、写回流体遗留方块并发送 BLOCK_DESTROY 振动事件。
+        // UPDATE_SUPPRESS_DROPS 表示本条场景不产生掉落（如形状级联中的临时脱落）。
+        const bool dropBlock = (flags & world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS) == 0;
+        world.destroyBlock(pos, dropBlock, nullptr, recursionLeft);
         return;
     }
 
+    // recursionLeft 是形状更新级联的深度预算，由变空气分支下传给 destroyBlock；
+    // 非空气分支的后续级联由 ServerWorld::setBlockState 另行携带预算，此处无需递减。
+    MC_UNUSED(recursionLeft);
     world.setBlockState(pos, &newState, flags & ~world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
 }
 
@@ -1191,6 +1266,11 @@ i32 Block::getFireSpreadSpeed(
 
 void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
+    dropResources(world, pos, state, world.getBlockEntity(pos));
+}
+
+void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& state, BlockEntity* blockEntity)
+{
     // 仅在服务端生成掉落物品（lootTableManager 为空表示客户端）
     auto* lootTableManager = world.lootTableManager();
     if (lootTableManager == nullptr) {
@@ -1216,6 +1296,12 @@ void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& 
     // ORIGIN：方块掉落的来源位置取方块中心（对齐 vanilla LootContextParams.ORIGIN 的
     // Vec3.atCenterOf(pos) 语义），供探险地图等按世界坐标搜索结构的掉落函数使用。
     contextBuilder.withOwnedValue(loot::LootParams::ORIGIN, pos.center());
+
+    // BLOCK_ENTITY：容器类方块（箱子、熔炉等）的掉落表需要它复制名称与组件。
+    // vanilla 通过 LootContextParams.BLOCK_ENTITY 传递，Cubium 以可选参数形式接入。
+    if (blockEntity != nullptr) {
+        contextBuilder.withParameter(loot::LootParams::BLOCK_ENTITY, blockEntity);
+    }
 
     // 设置掉落表解析器和条件解析器
     contextBuilder.withLootTableResolver([lootTableManager](const std::string& id) -> const loot::LootTable* {

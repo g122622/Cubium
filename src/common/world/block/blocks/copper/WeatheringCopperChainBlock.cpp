@@ -68,6 +68,8 @@ WeatheringCopperChainBlock::WeatheringCopperChainBlock(
 
     // 创建形状 - 铜锁链是细长的柱子（与普通锁链相同）
     // Y轴：垂直锁链
+    // 原版链的横截面是 Block.column(3.0, 0.0, 16.0)：宽 3 像素（6.5..9.5），
+    // 不是 4 像素（6..10）。此前链条比原版粗 1 像素。
     m_yShape = CollisionShape::fromPixelBox(6.5f, 0.0f, 6.5f, 9.5f, 16.0f, 9.5f);
     // X轴：水平锁链（东西方向）
     m_xShape = CollisionShape::fromPixelBox(0.0f, 6.5f, 6.5f, 16.0f, 9.5f, 9.5f);
@@ -181,6 +183,8 @@ WaxedCopperChainBlock::WaxedCopperChainBlock(const BlockProperties& properties)
         defaultState().with(BlockStateProperties::AXIS(), Axis::Y).with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建形状 - 与风化版本相同
+    // 原版链的横截面是 Block.column(3.0, 0.0, 16.0)：宽 3 像素（6.5..9.5），
+    // 不是 4 像素（6..10）。此前链条比原版粗 1 像素。
     m_yShape = CollisionShape::fromPixelBox(6.5f, 0.0f, 6.5f, 9.5f, 16.0f, 9.5f);
     m_xShape = CollisionShape::fromPixelBox(0.0f, 6.5f, 6.5f, 16.0f, 9.5f, 9.5f);
     m_zShape = CollisionShape::fromPixelBox(6.5f, 6.5f, 0.0f, 9.5f, 9.5f, 16.0f);

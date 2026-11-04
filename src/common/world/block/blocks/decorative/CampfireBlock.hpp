@@ -300,6 +300,8 @@ protected:
      * @return 如果下方是干草块返回true
      */
     [[nodiscard]] bool _isHayBlock(IWorld& world, const BlockPos& pos) const;
+    /// 寻路通行判定：形状不完整不等于可以穿过。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 /**

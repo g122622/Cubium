@@ -68,6 +68,7 @@ void registerShelfBlocks()
     // 橡木书架
     ShelfBlocks::OAK_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:oak_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
@@ -78,6 +79,7 @@ void registerShelfBlocks()
     // 云杉木书架
     ShelfBlocks::SPRUCE_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:spruce_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
@@ -88,6 +90,7 @@ void registerShelfBlocks()
     // 白桦木书架
     ShelfBlocks::BIRCH_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:birch_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
@@ -98,6 +101,7 @@ void registerShelfBlocks()
     // 丛林木书架
     ShelfBlocks::JUNGLE_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:jungle_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
@@ -108,6 +112,7 @@ void registerShelfBlocks()
     // 金合欢木书架
     ShelfBlocks::ACACIA_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:acacia_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
@@ -119,6 +124,7 @@ void registerShelfBlocks()
     ShelfBlocks::DARK_OAK_SHELF =
         &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:dark_oak_shelf"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -134,6 +140,7 @@ void registerShelfBlocks()
     ShelfBlocks::MANGROVE_SHELF =
         &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:mangrove_shelf"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -148,6 +155,7 @@ void registerShelfBlocks()
     // 樱花木书架
     ShelfBlocks::CHERRY_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:cherry_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
@@ -163,6 +171,7 @@ void registerShelfBlocks()
     ShelfBlocks::PALE_OAK_SHELF =
         &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:pale_oak_shelf"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -177,6 +186,7 @@ void registerShelfBlocks()
     // 竹木书架
     ShelfBlocks::BAMBOO_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:bamboo_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)
@@ -192,6 +202,7 @@ void registerShelfBlocks()
     ShelfBlocks::CRIMSON_SHELF =
         &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:crimson_shelf"),
             BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
                 .hardness(2.0f)
                 .resistance(3.0f)
                 .harvestTool(HarvestTool::Axe)
@@ -201,6 +212,7 @@ void registerShelfBlocks()
     // 诡异菌书架 - 下界木质不可燃
     ShelfBlocks::WARPED_SHELF = &registry.registerBlock<blocks::ShelfBlock>(ResourceLocation("minecraft:warped_shelf"),
         BlockProperties(Material::WOOD)
+            .instrument(BlockProperties::Instrument::Bass)
             .hardness(2.0f)
             .resistance(3.0f)
             .harvestTool(HarvestTool::Axe)

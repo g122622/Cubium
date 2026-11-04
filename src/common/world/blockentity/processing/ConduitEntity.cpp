@@ -150,28 +150,30 @@ void ConduitEntity::tick(IWorld& world)
     }
 }
 
-bool ConduitEntity::_shouldBeActive(IWorld& world)
+i32 ConduitEntity::countFrameBlocks(i32 x,
+    i32 y,
+    i32 z,
+    const std::function<bool(i32, i32, i32)>& isWater,
+    const std::function<bool(i32, i32, i32)>& isFrameBlock)
 {
-    m_prismarinePositions.clear();
-
-    // 检测中心周围3x3x3是否全部是水
+    // 第 1 段：中心 3x3x3 必须全是水，否则直接失效（不看框架）。
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dy = -1; dy <= 1; ++dy) {
             for (i32 dz = -1; dz <= 1; ++dz) {
-                const BlockPos checkPos(m_pos.x + dx, m_pos.y + dy, m_pos.z + dz);
-                if (!_isWaterAt(world, checkPos)) {
-                    return false;
+                if (!isWater(x + dx, y + dy, z + dz)) {
+                    return -1;
                 }
             }
         }
     }
 
-    // 检测5x5x5范围内的框架方块
-    // 框架位置：距离中心2格，且在坐标轴上
-    // 判断条件: |dx| > 1 || |dy| > 1 || |dz| > 1
-    //         且 (dx == 0 && (|dy| == 2 || |dz| == 2)) ||
-    //             (dy == 0 && (|dx| == 2 || |dz| == 2)) ||
-    //             (dz == 0 && (|dx| == 2 || |dy| == 2))
+    // 第 2 段：5x5x5 内只认框架环。
+    //
+    // 环的判据是「至少一个分量绝对值 > 1，且某个分量为 0」——这些格子构成
+    // 三条互相垂直的方形环，共 42 格。注意它**不是**整个 5x5x5 外壳：
+    // 外壳有 98 格，而环只有 42 格，混用会让门槛 16/42 全部失真。
+    i32 count = 0;
+
     for (i32 dx = -2; dx <= 2; ++dx) {
         for (i32 dy = -2; dy <= 2; ++dy) {
             for (i32 dz = -2; dz <= 2; ++dz) {
@@ -179,12 +181,62 @@ bool ConduitEntity::_shouldBeActive(IWorld& world)
                 const i32 ady = std::abs(dy);
                 const i32 adz = std::abs(dz);
 
-                // 跳过中心3x3x3区域
+                // 中心 3x3x3 不属于环（三个分量都 <= 1）。
                 if (adx <= 1 && ady <= 1 && adz <= 1) {
                     continue;
                 }
 
-                // 检查是否为框架位置（在坐标轴上且距离为2）
+                const bool isFramePosition = (dx == 0 && (ady == 2 || adz == 2)) ||
+                    (dy == 0 && (adx == 2 || adz == 2)) || (dz == 0 && (adx == 2 || ady == 2));
+
+                if (!isFramePosition) {
+                    continue;
+                }
+
+                if (isFrameBlock(x + dx, y + dy, z + dz)) {
+                    ++count;
+                }
+            }
+        }
+    }
+
+    return count;
+}
+
+bool ConduitEntity::_shouldBeActive(IWorld& world)
+{
+    m_prismarinePositions.clear();
+
+    const i32 frameCount = countFrameBlocks(
+        m_pos.x,
+        m_pos.y,
+        m_pos.z,
+        [this, &world](i32 bx, i32 by, i32 bz) {
+            return _isWaterAt(world, BlockPos(bx, by, bz));
+        },
+        [this, &world](i32 bx, i32 by, i32 bz) {
+            return _isValidFrameBlock(world, BlockPos(bx, by, bz));
+        });
+
+    // 中心不全是水 -> 直接失效，不记录任何框架位置。
+    if (frameCount < 0) {
+        m_prismarinePositions.clear();
+        _setEyeOpen(false);
+        return false;
+    }
+
+    // 记录框架位置供后续效果/攻击使用（顺序与扫描顺序一致）。
+    for (i32 dx = -2; dx <= 2; ++dx) {
+        for (i32 dy = -2; dy <= 2; ++dy) {
+            for (i32 dz = -2; dz <= 2; ++dz) {
+                const i32 adx = std::abs(dx);
+                const i32 ady = std::abs(dy);
+                const i32 adz = std::abs(dz);
+
+                if (adx <= 1 && ady <= 1 && adz <= 1) {
+                    continue;
+                }
+
                 const bool isFramePosition = (dx == 0 && (ady == 2 || adz == 2)) ||
                     (dy == 0 && (adx == 2 || adz == 2)) || (dz == 0 && (adx == 2 || ady == 2));
 
@@ -200,10 +252,7 @@ bool ConduitEntity::_shouldBeActive(IWorld& world)
         }
     }
 
-    // 激活条件：至少16个框架方块
-    const i32 frameCount = static_cast<i32>(m_prismarinePositions.size());
-
-    // 眼睛状态：42个或更多框架方块时睁开
+    // 眼睛状态：42 个或更多框架方块时睁开。
     _setEyeOpen(frameCount >= EYE_OPEN_FRAME_BLOCKS);
 
     return frameCount >= MIN_FRAME_BLOCKS;

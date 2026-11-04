@@ -101,11 +101,14 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
     registerProjectileBehavior(*Items::TIPPED_ARROW);
 
     // --- 投掷物品 ---
+    //
+    // 注意 ender_pearl **不在此列**：原版没有给它注册发射器行为，发射器只会把末影珍珠
+    // 当作普通物品丢出去，**不会传送**。此前这里多注册了一条，导致发射器射出末影珍珠时
+    // 会触发传送。由差分能力 dispense_behavior 查出。
     registerProjectileBehavior(*Items::SNOWBALL);
     registerProjectileBehavior(*Items::EGG);
     registerProjectileBehavior(*Items::BLUE_EGG);
     registerProjectileBehavior(*Items::BROWN_EGG);
-    registerProjectileBehavior(*Items::ENDER_PEARL);
     registerProjectileBehavior(*Items::EXPERIENCE_BOTTLE);
     registerProjectileBehavior(*Items::SPLASH_POTION);
     registerProjectileBehavior(*Items::LINGERING_POTION);

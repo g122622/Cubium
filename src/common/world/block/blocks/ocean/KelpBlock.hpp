@@ -153,6 +153,8 @@ public:
     [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
     [[nodiscard]] const BlockState& getPlant(IBlockReader& world, const BlockPos& pos) const override;
 
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override;
+
 private:
     CollisionShape m_shape;
 };

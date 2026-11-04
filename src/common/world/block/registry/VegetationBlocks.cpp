@@ -105,12 +105,14 @@ void registerVegetationBlocks()
                                      .noCollision()
                                      .notSolid()
                                      .ignitedByLava()
+                                     .replaceable()
                                      .offsetType(BlockProperties::OffsetType::XYZ);
 
     BlockProperties tallGrassProps = BlockProperties(Material::REPLACEABLE_PLANT)
                                          .noCollision()
                                          .notSolid()
                                          .ignitedByLava()
+                                         .replaceable()
                                          .offsetType(BlockProperties::OffsetType::XZ);
 
     // 矮草
@@ -239,8 +241,8 @@ void registerVegetationBlocks()
         &registry.registerBlock<blocks::PeonyBlock>(ResourceLocation("minecraft:peony"), tallFlowerProps);
 
     // 大型蕨 - 双格高的蕨类植物
-    VegetationBlocks::LARGE_FERN =
-        &registry.registerBlock<blocks::LargeFernBlock>(ResourceLocation("minecraft:large_fern"), tallFlowerProps);
+    VegetationBlocks::LARGE_FERN = &registry.registerBlock<blocks::LargeFernBlock>(
+        ResourceLocation("minecraft:large_fern"), BlockProperties(tallFlowerProps).replaceable());
 
     // 蘑菇属性
     BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
@@ -249,7 +251,11 @@ void registerVegetationBlocks()
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1);
 
     // 巨型蘑菇方块属性：可被岩浆点燃（对齐 vanilla）
-    BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava();
+    BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD)
+                                            .hardness(0.2f)
+                                            .ignitedByLava()
+                                            .resistance(0.2f)
+                                            .instrument(BlockProperties::Instrument::Bass);
 
     // 必须先注册巨型蘑菇方块，因为 BigMushroomGenerators::brownMushroom()/redMushroom()
     // 在注册普通蘑菇时会读取 BROWN_MUSHROOM_BLOCK / RED_MUSHROOM_BLOCK / MUSHROOM_STEM 的默认状态。
@@ -262,8 +268,13 @@ void registerVegetationBlocks()
         ResourceLocation("minecraft:red_mushroom_block"), hugeMushroomProps);
 
     // 蘑菇柄
-    VegetationBlocks::MUSHROOM_STEM = &registry.registerBlock<blocks::HugeMushroomBlock>(
-        ResourceLocation("minecraft:mushroom_stem"), BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava());
+    VegetationBlocks::MUSHROOM_STEM =
+        &registry.registerBlock<blocks::HugeMushroomBlock>(ResourceLocation("minecraft:mushroom_stem"),
+            BlockProperties(Material::WOOD)
+                .instrument(BlockProperties::Instrument::Bass)
+                .resistance(0.200000003f)
+                .hardness(0.2f)
+                .ignitedByLava());
 
     // 棕色蘑菇
     // 传入空 generator，由 server 侧 ServerBigMushroomGenerators::injectAll() 后置注入
@@ -300,7 +311,8 @@ void registerVegetationBlocks()
                                       .noOcclusion()
                                       .ignitedByLava()
                                       .offsetType(BlockProperties::OffsetType::XZ)
-                                      .soundType(BlockSoundTypes::BAMBOO);
+                                      .soundType(BlockSoundTypes::BAMBOO)
+                                      .resistance(1.0f);
 
     // 竹子
     VegetationBlocks::BAMBOO =
@@ -315,7 +327,8 @@ void registerVegetationBlocks()
                                              .resistance(1.0f)
                                              .ignitedByLava()
                                              .offsetType(BlockProperties::OffsetType::XZ)
-                                             .soundType(BlockSoundTypes::BAMBOO_SAPLING);
+                                             .soundType(BlockSoundTypes::BAMBOO_SAPLING)
+                                             .forceSolidOn();
 
     // 竹子幼苗
     VegetationBlocks::BAMBOO_SAPLING = &registry.registerBlock<blocks::BambooSaplingBlock>(
@@ -326,7 +339,7 @@ void registerVegetationBlocks()
     // 先注册雕刻南瓜 - 有朝向属性，可生成傀儡
     VegetationBlocks::CARVED_PUMPKIN =
         &registry.registerBlock<blocks::CarvedPumpkinBlock>(ResourceLocation("minecraft:carved_pumpkin"),
-            BlockProperties(Material::EARTH).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
+            BlockProperties(Material::EARTH).resistance(1.0f).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
 
     // 南瓜 - 可用剪刀雕刻成雕刻南瓜
     // 注意：stem 和 attachedStem 由于循环依赖，构造时传入 nullptr，在下方茎方块注册后通过 setStem/setAttachedStem 回填
@@ -334,14 +347,18 @@ void registerVegetationBlocks()
         nullptr,                          // stem - 下方 PUMPKIN_STEM 注册后回填
         nullptr,                          // attachedStem - 下方 ATTACHED_PUMPKIN_STEM 注册后回填
         VegetationBlocks::CARVED_PUMPKIN, // carvedPumpkin - 已注册的雕刻南瓜
-        BlockProperties(Material::EARTH).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
+        BlockProperties(Material::EARTH)
+            .instrument(BlockProperties::Instrument::Didgeridoo)
+            .resistance(1.0f)
+            .hardness(1.0f)
+            .soundType(BlockSoundTypes::WOOD));
 
     // 西瓜方块
     // 注意：stem 和 attachedStem 由于循环依赖，构造时传入 nullptr，在下方茎方块注册后通过 setStem/setAttachedStem 回填
     VegetationBlocks::MELON = &registry.registerBlock<blocks::MelonBlock>(ResourceLocation("minecraft:melon"),
         nullptr, // stem - 下方 MELON_STEM 注册后回填
         nullptr, // attachedStem - 下方 ATTACHED_MELON_STEM 注册后回填
-        BlockProperties(Material::EARTH).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
+        BlockProperties(Material::EARTH).resistance(1.0f).hardness(1.0f).soundType(BlockSoundTypes::WOOD));
 
     // 注册茎方块（可以引用已注册的果实方块）
 

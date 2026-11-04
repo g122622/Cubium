@@ -81,32 +81,33 @@ VineBlock::VineBlock(const BlockProperties& properties)
     m_southShape = CollisionShape::box(0.0f, 0.0f, 1.0f - thickness, 1.0f, 1.0f, 1.0f);
     m_eastShape = CollisionShape::box(1.0f - thickness, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
     m_westShape = CollisionShape::box(0.0f, 0.0f, 0.0f, thickness, 1.0f, 1.0f);
+    const CollisionShape upShape = CollisionShape::box(0.0f, 1.0f - thickness, 0.0f, 1.0f, 1.0f, 1.0f);
 
-    // 预计算 16 种附着组合的外形：按位或起来，空组合退回满格（原版 VineBlock 的兜底）。
-    for (u32 mask = 0; mask < 16; ++mask) {
-        std::vector<CollisionShape> pieces;
-        if ((mask & 1U) != 0U) {
-            pieces.push_back(m_northShape);
-        }
-        if ((mask & 2U) != 0U) {
-            pieces.push_back(m_southShape);
-        }
-        if ((mask & 4U) != 0U) {
-            pieces.push_back(m_eastShape);
-        }
-        if ((mask & 8U) != 0U) {
-            pieces.push_back(m_westShape);
-        }
-
-        if (pieces.empty()) {
-            m_shapesByFaceMask[mask] = VoxelShapes::fullCube();
+    // 按 5 个方向属性的全部 32 种组合预计算形状。
+    // 索引 0（全部为 false）按原版行为是满方块，其余为激活方向薄片之并。
+    m_shapesByDirections.fill(CollisionShape::empty());
+    for (std::size_t mask = 0; mask < m_shapesByDirections.size(); ++mask) {
+        if (mask == 0) {
+            m_shapesByDirections[mask] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
             continue;
         }
-        CollisionShape merged = pieces.front();
-        for (std::size_t index = 1; index < pieces.size(); ++index) {
-            merged = CollisionShape::combine(merged, pieces[index], CollisionShape::CombineOp::OR);
+        CollisionShape combined = CollisionShape::empty();
+        if ((mask & (1u << 0)) != 0) {
+            combined = CollisionShape::combine(combined, m_northShape, CollisionShape::CombineOp::OR);
         }
-        m_shapesByFaceMask[mask] = std::move(merged);
+        if ((mask & (1u << 1)) != 0) {
+            combined = CollisionShape::combine(combined, m_southShape, CollisionShape::CombineOp::OR);
+        }
+        if ((mask & (1u << 2)) != 0) {
+            combined = CollisionShape::combine(combined, m_eastShape, CollisionShape::CombineOp::OR);
+        }
+        if ((mask & (1u << 3)) != 0) {
+            combined = CollisionShape::combine(combined, m_westShape, CollisionShape::CombineOp::OR);
+        }
+        if ((mask & (1u << 4)) != 0) {
+            combined = CollisionShape::combine(combined, upShape, CollisionShape::CombineOp::OR);
+        }
+        m_shapesByDirections[mask] = combined;
     }
 }
 
@@ -269,22 +270,29 @@ const BlockState& VineBlock::mirror(const BlockState& state, Mirror mirror) cons
 
 const CollisionShape& VineBlock::getShape(const BlockState& state) const
 {
-    // 原版 VineBlock.getShape：把每个已附着方向的薄片并起来；一个都没有时退回满格。
-    // 这里是外形而非碰撞形状——藤蔓没有碰撞，碰撞形状仍为空。
-    u32 mask = 0;
+    // 原版 `VineBlock.getShape` 的行为（实测）：
+    //   所有方向属性都为 false 时，返回**满方块** `0..1`；
+    //   否则返回各激活方向的薄片之并。
+    //
+    // 「无方向反而满格」看起来反直觉，但确实是原版行为。此前无条件返回空形状，
+    // 与原版不符。形状已在构造函数中按 32 种属性组合预计算。
+    std::size_t mask = 0;
     if (state.get(BlockStateProperties::NORTH())) {
-        mask |= 1U;
+        mask |= 1u << 0;
     }
     if (state.get(BlockStateProperties::SOUTH())) {
-        mask |= 2U;
+        mask |= 1u << 1;
     }
     if (state.get(BlockStateProperties::EAST())) {
-        mask |= 4U;
+        mask |= 1u << 2;
     }
     if (state.get(BlockStateProperties::WEST())) {
-        mask |= 8U;
+        mask |= 1u << 3;
     }
-    return m_shapesByFaceMask[mask];
+    if (state.get(BlockStateProperties::UP())) {
+        mask |= 1u << 4;
+    }
+    return m_shapesByDirections[mask];
 }
 
 const CollisionShape& VineBlock::getCollisionShape(const BlockState& state) const
@@ -535,5 +543,13 @@ i32 VineBlock::_getConnectionCount(const BlockState& state) const
     return count;
 }
 
+bool VineBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 藤蔓是贴墙薄片，不挡天空光。
+    return true;
+}
 } // namespace blocks
 } // namespace mc

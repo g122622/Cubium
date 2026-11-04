@@ -25,6 +25,7 @@
 #include "PacketSerializer.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <cstring>
 #include <string>
@@ -32,14 +33,29 @@
 
 namespace mc::network {
 
+namespace {
+
+/// 空输入的基址。空 vector 的 data() 与 length==0 的缓冲区指针都可以是 nullptr，
+/// 而 readBytes(0)/readString() 的零长度分支仍会把该基址交给 vector 范围构造、
+/// std::string 构造与 std::memcpy，这些都是带 nonnull 属性的参数，传 nullptr 是 UB。
+constexpr u8 s_emptyBase = 0;
+
+/// 把可能为空的输入指针规范化为非空基址；长度为 0 时永远不会被解引用。
+constexpr const u8* _baseOf(const u8* data) noexcept
+{
+    return data != nullptr ? data : &s_emptyBase;
+}
+
+} // namespace
+
 PacketDeserializer::PacketDeserializer(const u8* data, size_t size)
-    : m_data(data)
-    , m_size(size)
+    : m_data(_baseOf(data))
+    , m_size(data != nullptr ? size : 0)
     , m_readPos(0)
 {}
 
 PacketDeserializer::PacketDeserializer(const std::vector<u8>& data)
-    : m_data(data.data())
+    : m_data(_baseOf(data.data()))
     , m_size(data.size())
     , m_readPos(0)
 {}
@@ -192,7 +208,11 @@ Result<void> PacketDeserializer::readBytesInto(u8* dest, size_t size)
     if (m_readPos + size > m_size) {
         return Error(ErrorCode::OutOfBounds, "Not enough data to read bytes");
     }
-    std::memcpy(dest, m_data + m_readPos, size);
+    // 零长度读取不构成拷贝：dest 允许为空（memcpy 的 dst 带 nonnull 属性）。
+    if (size > 0) {
+        MC_ASSERT_RELEASE_MSG(dest != nullptr, "readBytesInto: null destination for non-zero size");
+        std::memcpy(dest, m_data + m_readPos, size);
+    }
     m_readPos += size;
     return {};
 }

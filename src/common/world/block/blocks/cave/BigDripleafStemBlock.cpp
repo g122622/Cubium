@@ -33,9 +33,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -49,9 +47,9 @@ namespace blocks {
 
 BigDripleafStemBlock::BigDripleafStemBlock(const BlockProperties& properties)
     : Block(BlockProperties(properties).noCollision())
-    // 原版 SHAPES = rotateHorizontal(Block.column(6.0, 0.0, 16.0).move(0.0, 0.0, 0.25))：
-    // 6×6 像素截面、整体沿 +Z 方向偏移 4 像素，再逐朝向绕 Y 轴旋转。
-    , m_shape(CollisionShape::fromPixelBox(5, 0, 9, 11, 16, 15))
+    // 原版大垂滴叶茎：box(0.3125, 0, 0.5625 -> 0.6875, 1, 0.9375)。
+    // X 方向宽 6 像素居中（5..11），Z 方向偏南且更宽（9..15），并非关于中心对称。
+    , m_shape(CollisionShape::box(0.3125f, 0.0f, 0.5625f, 0.6875f, 1.0f, 0.9375f))
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -147,33 +145,35 @@ void BigDripleafStemBlock::tick(IWorld& world, const BlockPos& pos, BlockState& 
     // 延迟 tick 触发后，重新检查存活条件
     // 如果仍然无法存活，则销毁方块并掉落物品
     if (!isValidPosition(state, static_cast<IBlockReader&>(world), pos)) {
-        const BlockState* airState = BlockRegistry::instance().airState();
-        if (airState != nullptr) {
-            spawnAfterBreak(world, pos, state, nullptr, false);
-            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-        }
+        // 原版 tick 中的 serverLevel.destroyBlock(pos, true)
+        world.destroyBlock(pos, true);
     }
 }
 
 const CollisionShape& BigDripleafStemBlock::getShape(const BlockState& state) const
 {
-    // 构造里的 m_shape 即 NORTH 基准（rotateHorizontal 的基准对应 NORTH，不旋转）。
+    // 原版茎的 getShape 随 FACING 绕 Y 轴旋转（`Shapes.rotateHorizontal`）。
+    // 逐条按 forAllBoxes 实测（big_dripleaf_stem）：
+    //
+    //   north -> [0.3125,0,0.5625 -> 0.6875,1,0.9375]
+    //   east  -> [0.0625,0,0.3125 -> 0.4375,1,0.6875]
+    //   south -> [0.3125,0,0.0625 -> 0.6875,1,0.4375]
+    //   west  -> [0.5625,0,0.3125 -> 0.9375,1,0.6875]
+    //
+    // 此前无条件返回 NORTH 的 `m_shape`，四个朝向里三个是错的——
+    // 茎在朝东/南/西的大垂滴叶下方会明显错位。
+    static const std::array<CollisionShape, 6> shapes = {
+        CollisionShape::empty(),                                             // Down
+        CollisionShape::empty(),                                             // Up
+        CollisionShape::box(0.3125f, 0.0f, 0.5625f, 0.6875f, 1.0f, 0.9375f), // North
+        CollisionShape::box(0.3125f, 0.0f, 0.0625f, 0.6875f, 1.0f, 0.4375f), // South
+        CollisionShape::box(0.5625f, 0.0f, 0.3125f, 0.9375f, 1.0f, 0.6875f), // West
+        CollisionShape::box(0.0625f, 0.0f, 0.3125f, 0.4375f, 1.0f, 0.6875f), // East
+    };
     const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == Direction::North) {
-        return m_shape;
-    }
-    // 其余朝向由 NORTH 基准绕 Y 轴旋转：(x,z) → (1-z, x) 逐 90 度。
-    static const CollisionShape s_eastShape = CollisionShape::fromPixelBox(1, 0, 5, 7, 16, 11);
-    static const CollisionShape s_southShape = CollisionShape::fromPixelBox(5, 0, 1, 11, 16, 7);
-    static const CollisionShape s_westShape = CollisionShape::fromPixelBox(9, 0, 5, 15, 16, 11);
-    switch (facing) {
-        case Direction::East:
-            return s_eastShape;
-        case Direction::South:
-            return s_southShape;
-        default:
-            return s_westShape;
-    }
+    const auto index = static_cast<std::size_t>(facing);
+    MC_ASSERT(index < shapes.size() && Directions::isHorizontal(facing));
+    return shapes[index];
 }
 
 const fluid::FluidState* BigDripleafStemBlock::getFluidState(const BlockState& state) const

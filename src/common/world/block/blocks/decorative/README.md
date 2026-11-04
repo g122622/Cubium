@@ -93,6 +93,10 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 - **解**: 新变成7时创建 `FallingBlockEntity`，已经是7时直接掉落物品
 - **参考**: MC 1.16.5 `ScaffoldingBlock.tick()`
 
+### ScaffoldingBlock 外形与空实体上下文
+
+`BOTTOM=true` 的外形在顶部平台和四角支柱之外还包含底板。无实体的碰撞查询对应空上下文，其 `isAbove(..., true)` 返回 true，因此全部距离与 BOTTOM 状态都返回顶部平台和支柱；不能把 BOTTOM 外形直接当作碰撞，也不能据此推断实体下行或放置时的碰撞分支。
+
 ### CampfireBlock 熄灭逻辑
 - **坑**: 营火 **没有** AGE 属性，也 **不会** 因雨天而熄灭
 - **解**: 熄灭方式只有三种：水接触、铲子右键、喷溅型水瓶

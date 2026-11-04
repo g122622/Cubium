@@ -22,6 +22,7 @@
  */
 
 #include "FenceGateBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -42,6 +43,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/building/WallBlock.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
 #include <memory>
@@ -62,11 +64,14 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     // "空 shape 恰好非 full block"的脆弱巧合。先填 shape 再 createBlockState，保证构造期
     // getShape/getOcclusionShape 返回真实形状。对齐 PointedDripstoneBlock /
     // AmethystClusterBlock 的正确构造顺序。
-    // 原版 SHAPES = rotateHorizontalAxis(Block.cube(16.0, 16.0, 4.0))：整格高、整格宽、
-    // 沿门的法向厚 4/16。写成 2/16 会让门板比原版薄一半。
-    m_closedShape = VoxelShapes::cube(0.0f, 0.0f, 0.375f, 1.0f, 1.0f, 0.625f);
+    // 原版关闭状态的形状是单一盒子：
+    //   SHAPE_CLOSED   = Block.column(4.0, 0.0, 16.0)  -> box(0, 0, 6, 16, 16, 10)
+    //   SHAPE_IN_WALL  = Block.column(4.0, 0.0, 13.0)  -> box(0, 0, 6, 16, 13, 10)
+    // 此前 Z 范围写成 0.4375..0.5625（宽 2 像素），只有原版的一半，
+    // 栅栏门的门板比原版窄。
+    m_closedShape = CollisionShape::box(0.0f, 0.0f, 0.375f, 1.0f, 1.0f, 0.625f);
     m_openShape = VoxelShapes::empty();
-    m_inWallClosedShape = VoxelShapes::cube(0.0f, 0.0f, 0.375f, 1.0f, 0.8125f, 0.625f);
+    m_inWallClosedShape = CollisionShape::box(0.0f, 0.0f, 0.375f, 1.0f, 0.8125f, 0.625f);
 
     m_closedShapes[static_cast<size_t>(Direction::North)] = m_closedShape;
     m_openShapes[static_cast<size_t>(Direction::North)] = m_openShape;
@@ -218,9 +223,10 @@ const CollisionShape& FenceGateBlock::getShape(const BlockState& state) const
         index = static_cast<size_t>(Direction::North);
     }
 
-    if (open) {
-        return m_openShapes[index];
-    }
+    // 原版栅栏门的 getShape **不区分 open**：开与关都是同一块门板，
+    // open 只影响红石逻辑（以及音效/比较器），不改变几何。实测 16 种组合仅随
+    // facing 与 in_wall 变化。此前 open=true 返回空形状，导致打开的栅栏门凭空消失。
+    MC_UNUSED(open);
     if (inWall) {
         return m_inWallClosedShapes[index];
     }
@@ -229,19 +235,42 @@ const CollisionShape& FenceGateBlock::getShape(const BlockState& state) const
 
 const CollisionShape& FenceGateBlock::getCollisionShape(const BlockState& state) const
 {
+    // 原版栅栏门的碰撞形状与外形**两回事**，逐条按实测（oak_fence_gate）：
+    //
+    //   open=false, in_wall=false   外形 y 0..1.0      碰撞 y 0..1.5
+    //   open=false, in_wall=true    外形 y 0..0.8125   碰撞 y 0..1.5
+    //   open=true  （两者皆同）      外形同上           碰撞 **空**
+    //
+    // 即：碰撞是一块固定的 1.5 高竖板，**不随 in_wall 削短**（扒在墙上拉门时
+    // 撞到的仍是整块）；而 open=true 时完全没有碰撞（拉下的门可穿过）。
+    //
+    // 此前 open=true 返回空是对的，但 in_wall=true 沿用了削短的 0.8125 高表，
+    // 门顶 13..16 那段凭空消失。
     if (state.get(BlockStateProperties::OPEN())) {
         return VoxelShapes::empty();
     }
 
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    bool inWall = state.get(BlockStateProperties::IN_WALL());
-
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     size_t index = static_cast<size_t>(facing);
-    if (index >= Directions::COUNT || !Directions::isHorizontal(facing)) {
-        index = static_cast<size_t>(Direction::North);
-    }
+    MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
 
-    return inWall ? m_inWallClosedShapes[index] : m_closedShapes[index];
+    // m_closedShapes 是满高 1.0 的板；碰撞需要 1.5，统一抬高。
+    // 朝北/朝南时板沿 X 延伸、厚度在 Z（z 0.375..0.625）；
+    // 朝东/朝西时板沿 Z 延伸、厚度在 X（x 0.375..0.625）。
+    static const std::array<CollisionShape, 6> tallShapes = [] {
+        std::array<CollisionShape, 6> out;
+        constexpr f32 LO = 6.0f / 16.0f;  // 0.375
+        constexpr f32 HI = 10.0f / 16.0f; // 0.625
+        constexpr f32 TOP = 1.5f;
+        const CollisionShape alongZ = CollisionShape::box(0.0f, 0.0f, LO, 1.0f, TOP, HI);
+        const CollisionShape alongX = CollisionShape::box(LO, 0.0f, 0.0f, HI, TOP, 1.0f);
+        out[static_cast<size_t>(Direction::North)] = alongZ;
+        out[static_cast<size_t>(Direction::South)] = alongZ;
+        out[static_cast<size_t>(Direction::West)] = alongX;
+        out[static_cast<size_t>(Direction::East)] = alongX;
+        return out;
+    }();
+    return tallShapes[index];
 }
 
 const CollisionShape& FenceGateBlock::getBlockSupportShape(const BlockState& state) const
@@ -340,6 +369,11 @@ void FenceGateBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpeni
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
         1.0f,
         1.0f);
+
+    // 开/关是方块状态变化，要让附近幽匿感测体听到：开启发 BLOCK_OPEN、关闭发 BLOCK_CLOSE。
+    world.gameEvent(isOpening ? gameevent::GameEvents::BLOCK_OPEN : gameevent::GameEvents::BLOCK_CLOSE,
+        pos,
+        static_cast<const BlockState*>(nullptr));
 }
 
 } // namespace blocks

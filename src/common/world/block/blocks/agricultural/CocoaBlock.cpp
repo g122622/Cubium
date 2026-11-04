@@ -298,5 +298,11 @@ bool CocoaBlock::_canAttachTo(IBlockReader& world, const BlockPos& pos, Directio
     return BlockTags::JUNGLE_LOGS().contains(*attachState);
 }
 
+bool CocoaBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 可可果 age < 2 才生长。
+    return getAge(state) < 2;
+}
+
 } // namespace blocks
 } // namespace mc

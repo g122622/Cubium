@@ -311,36 +311,71 @@ TEST(VibrationSelectorTest, StartOver_ClearsCandidate)
 
 TEST(VibrationSystemTest, GetGameEventFrequency_KnownEvents)
 {
-    // 步行 - 频率 1
+    // 逐条对齐原版 VIBRATION_FREQUENCY_FOR_EVENT。
+    // 这张表曾整体按「看起来合理」的方式重新分组，40 条里 35 条与原版不符，
+    // 差分能力 vibration_frequency 现在逐条固定了它。
+    // 频率 1 - 步行 / 游泳 / 振翅
     EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::STEP), 1);
-    // 弹射物落地 - 频率 2
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SWIM), 1);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::FLAP), 1);
+    // 频率 2 - 弹射物落地 / 落地 / 溅水
     EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::PROJECTILE_LAND), 2);
-    // 方块失活 - 频率 3
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_DEACTIVATE), 3);
-    // 实体动作 - 频率 4
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::HIT_GROUND), 2);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SPLASH), 2);
+    // 频率 3 - 物品交互完成 / 弹射物发射 / 乐器演奏
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ITEM_INTERACT_FINISH), 3);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::PROJECTILE_SHOOT), 3);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::INSTRUMENT_PLAY), 3);
+    // 频率 4 - 实体动作 / 鞘翅滑翔 / 卸下装备
     EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_ACTION), 4);
-    // 方块放置 - 频率 5
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_PLACE), 5);
-    // 实体上坐骑 - 频率 6
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ELYTRA_GLIDE), 4);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::UNEQUIP), 4);
+    // 频率 5 - 下坐骑 / 装备
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DISMOUNT), 5);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::EQUIP), 5);
+    // 频率 6 - 实体交互 / 上坐骑 / 剪切
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_INTERACT), 6);
     EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_MOUNT), 6);
-    // 方块变化 - 频率 7
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_CHANGE), 7);
-    // 方块销毁 - 频率 8
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_DESTROY), 8);
-    // 幽匿感测体触须点击 - 频率 9
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SCULK_SENSOR_TENDRILS_CLICKING), 9);
-    // 弹射物发射 - 频率 10
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::PROJECTILE_SHOOT), 10);
-    // 实体受伤 - 频率 11
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DAMAGE), 11);
-    // 落地 - 频率 12
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::HIT_GROUND), 12);
-    // 唱片机播放 - 频率 13
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::JUKEBOX_PLAY), 13);
-    // 爆炸 - 频率 14
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::EXPLODE), 14);
-    // 尖啸 - 频率 15
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SHRIEK), 15);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SHEAR), 6);
+    // 频率 7 - 实体受伤
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DAMAGE), 7);
+    // 频率 8 - 饮用 / 进食
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::DRINK), 8);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::EAT), 8);
+    // 频率 9 - 方块关闭 / 方块失活 / 方块脱离 / 容器关闭
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_CLOSE), 9);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_DEACTIVATE), 9);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_DETACH), 9);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::CONTAINER_CLOSE), 9);
+    // 频率 10 - 方块激活 / 方块附着 / 方块打开 / 容器打开 / 音符盒演奏 / 引信点燃
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_ACTIVATE), 10);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_ATTACH), 10);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_OPEN), 10);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::CONTAINER_OPEN), 10);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::NOTE_BLOCK_PLAY), 10);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::PRIME_FUSE), 10);
+    // 频率 11 - 方块变化
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_CHANGE), 11);
+    // 频率 12 - 方块销毁 / 流体拾取
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_DESTROY), 12);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::FLUID_PICKUP), 12);
+    // 频率 13 - 方块放置 / 流体放置
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_PLACE), 13);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::FLUID_PLACE), 13);
+    // 频率 14 - 放置实体 / 闪电击中 / 传送
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_PLACE), 14);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::LIGHTNING_STRIKE), 14);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::TELEPORT), 14);
+    // 频率 15 - 实体死亡 / 爆炸
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DIE), 15);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::EXPLODE), 15);
+
+    // 原版表里没有的事件：频率 0，不产生振动
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SHRIEK), 0);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SCULK_SENSOR_TENDRILS_CLICKING), 0);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::JUKEBOX_PLAY), 0);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::JUKEBOX_STOP_PLAY), 0);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ITEM_INTERACT_START), 0);
 }
 
 TEST(VibrationSystemTest, GetGameEventFrequency_ResonateEvents)
@@ -446,8 +481,8 @@ TEST(VibrationInfoTest, DefaultConstruction)
     VibrationInfo info;
     EXPECT_EQ(info.gameEvent, nullptr);
     EXPECT_FLOAT_EQ(info.distance, 0.0f);
-    EXPECT_EQ(info.sourceEntityId, 0u);
-    EXPECT_FALSE(info.hasSourceEntity);
+    EXPECT_FALSE(info.sourceUuid.has_value());
+    EXPECT_FALSE(info.projectileOwnerUuid.has_value());
 }
 
 TEST(VibrationInfoTest, ParameterizedConstruction_NoEntity)
@@ -457,6 +492,6 @@ TEST(VibrationInfoTest, ParameterizedConstruction_NoEntity)
 
     EXPECT_EQ(info.gameEvent, &event);
     EXPECT_FLOAT_EQ(info.distance, 10.0f);
-    EXPECT_EQ(info.sourceEntityId, 0u);
-    EXPECT_FALSE(info.hasSourceEntity);
+    EXPECT_FALSE(info.sourceUuid.has_value());
+    EXPECT_FALSE(info.projectileOwnerUuid.has_value());
 }

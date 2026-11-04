@@ -23,6 +23,8 @@
 
 #include "AbstractCandleBlock.hpp"
 
+#include "common/world/gameevent/GameEvents.hpp"
+
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -96,6 +98,10 @@ void AbstractCandleBlock::extinguish(IWorld& world, const BlockPos& pos, BlockSt
         if (!world.isClientSide()) {
             world.playSound(
                 SoundEvents::BLOCK_CANDLE_EXTINGUISH, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+
+            // 熄灭是方块状态变化，要让附近幽匿感测体听到。
+            // 注意只在这里发：点亮（setLit）原版不发事件。
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
         }
     }
 }

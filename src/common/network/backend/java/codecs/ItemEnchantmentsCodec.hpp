@@ -39,7 +39,7 @@ namespace mc::network::backend::java {
  *   VarInt(entryCount) + [ VarInt(enchantRegistryId) + VarInt(level) ]*
  * key 是 enchantment 注册表 holder id（JavaEnchantmentIdMap 翻译），value 是裸 VarInt 等级。
  *
- * 供 DataComponentPatchWire 的 per-component codec（4c）在 ENCHANTMENTS 分支调用。
+ * 供 DataComponentPatchCodec 的 per-component codec（4c）在 ENCHANTMENTS 分支调用。
  * 项目 EnchantmentContainer 用 vector<EnchantmentInstance>（id 字符串 + level）承载，
  * 编码时按 getAll() 顺序逐项转 wire id，解码时按 wire id 还原字符串 id。
  */

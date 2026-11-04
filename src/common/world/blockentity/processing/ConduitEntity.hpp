@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -139,6 +140,41 @@ public:
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
+
+    /**
+     * @brief 潮涌核心框架扫描（纯几何，原版 `ConduitBlockEntity.updateShape`）
+     *
+     * 两段判定：
+     *
+     * 1. 中心 3x3x3 必须**全是水**，否则立刻失效（不看框架）；
+     * 2. 在 5x5x5 范围内只认**框架环**上的格子——即「至少一个分量绝对值 > 1，且某个
+     *    分量为 0」。这个环一共 42 格，正是 `MIN_KILL_SIZE`；激活门槛是 16 格。
+     *
+     * 抽成独立函数是为了能脱离世界直接验证：只要给定「某格是不是水」「某格是不是
+     * 合法框架方块」两个判定，结果就完全确定。世界读取由调用方以回调提供。
+     *
+     * @param x 潮涌核心 X
+     * @param y 潮涌核心 Y
+     * @param z 潮涌核心 Z
+     * @param isWater 判定某坐标是否为水
+     * @param isFrameBlock 判定某坐标是否为合法框架方块（海晶石 / 海晶石砖 / 暗海晶石 / 海晶灯）
+     * @return 框架环上合法方块的数量（0..42）；中心不全是水时返回 -1
+     */
+    [[nodiscard]] static i32 countFrameBlocks(i32 x,
+        i32 y,
+        i32 z,
+        const std::function<bool(i32, i32, i32)>& isWater,
+        const std::function<bool(i32, i32, i32)>& isFrameBlock);
+
+    /**
+     * @brief 激活门槛：框架环上至少这么多合法方块
+     */
+    static constexpr i32 MIN_FRAME_BLOCKS = 16;
+
+    /**
+     * @brief 眼睛睁开（可攻击敌对生物）门槛
+     */
+    static constexpr i32 EYE_OPEN_FRAME_BLOCKS = 42;
 
 private:
     /**

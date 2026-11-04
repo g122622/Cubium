@@ -57,8 +57,10 @@ void registerTrialBlocks()
     TrialBlocks::TRIAL_SPAWNER =
         &registry.registerBlock<blocks::TrialSpawnerBlock>(ResourceLocation("minecraft:trial_spawner"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
+                .resistance(50.0f)
                 .hardness(50.0f)
-                .resistance(1200.0f)
+
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(2)
                 .requiresTool()
@@ -70,15 +72,17 @@ void registerTrialBlocks()
     // VAULT_STATE + FACING + OMINOUS
     TrialBlocks::VAULT = &registry.registerBlock<blocks::VaultBlock>(ResourceLocation("minecraft:vault"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
+            .resistance(50.0f)
             .hardness(50.0f)
-            .resistance(1200.0f)
+
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(2)
             .requiresTool()
             .soundType(BlockSoundTypes::VAULT)
             .noOcclusion()
-            // 宝库自带 6 级光照（原版注册值）。
-            .lightLevel(6)
+            // 宝库发 12 级光（原版注册值，由 block_light_emission 实测修正：此前写成 6）。
+            .lightLevel(12)
             .notSolid());
 
     // 合成器 - 自动合成方块，可通过红石控制
@@ -95,6 +99,7 @@ void registerTrialBlocks()
     // 材质为铁，硬度10，抗爆1200，碰撞箱为小型柱状
     TrialBlocks::HEAVY_CORE = &registry.registerBlock<blocks::HeavyCoreBlock>(ResourceLocation("minecraft:heavy_core"),
         BlockProperties(Material::IRON)
+            .instrument(BlockProperties::Instrument::Snare)
             .hardness(10.0f)
             .resistance(1200.0f)
             .harvestTool(HarvestTool::Pickaxe)

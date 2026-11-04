@@ -84,19 +84,23 @@ public:
     }
 
     /**
-     * @brief 获取外形
-     *
-     * 原版 LiquidBlock.getShape 显式返回空形状：水的可见外形由流体渲染负责，
-     * 方块外形本身为空。不覆写会落到基类的满格默认值。
-     */
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    /**
      * @brief 获取碰撞形状
      *
      * 液体方块没有碰撞形状。
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取液体方块的形状。
+     *
+     * 原版 `LiquidBlock` 未覆写 `getShape`，但其父类 `Block` 的默认形状来自
+     * `stateDefinition` 的初始形状，而流体的初始形状是 **空**（`Shapes.empty()`）。
+     * 实测原版 `water` / `lava` 的 `getShape` 均返回空形状。
+     *
+     * @param state 方块状态
+     * @return 恒为空形状
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
      * @brief 检查指定面是否为实体面

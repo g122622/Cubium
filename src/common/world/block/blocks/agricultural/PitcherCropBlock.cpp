@@ -95,30 +95,44 @@ PitcherCropBlock::PitcherCropBlock(const BlockProperties& properties)
     m_cropCollisionShape = CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 13.0f * P, 5.0f * P, 13.0f * P);
 
     // 轮廓形状：按半部分和年龄索引
-    // Lower: [0][age], Upper: [1][age]
-    //
-    //   int i = (AGE == 0 ? 4 : 6) + BASE_HEIGHT[AGE];   // BASE_HEIGHT = {0, 9, 11, 22, 26}
-    //   int j = (AGE == 0 ? 6 : 10);                    // 横截面边长（像素），居中于方块
-    //   LOWER: column(j, -1, min(16, -1 + i))
-    //   UPPER: column(j,  0, max(0,  -1 + i - 16))
-    // 高度随年龄增长，并非固定 5 像素；横截面也比原实现窄一个像素（原文按整格写）。
+    // Lower: [age][0], Upper: [age][1]
+    // 原版 column 的第一个参数是**宽度像素数**，不是半径：
+    //   AGE 0   : 宽 6  像素 -> X/Z 5..11   （0.3125..0.6875）
+    //   AGE 1-4 : 宽 10 像素 -> X/Z 3..13   （0.1875..0.8125）
+    // 此前把 6 / 10 当作半径，算出 0.125..0.875 与 0..1，宽度翻倍。
+    constexpr f32 bulbHalfWidth = 3.0f * P;
+    constexpr f32 cropHalfWidth = 5.0f * P;
+    constexpr f32 bulbMinXZ = 0.5f - bulbHalfWidth; // 5/16  = 0.3125
+    constexpr f32 bulbMaxXZ = 0.5f + bulbHalfWidth; // 11/16 = 0.6875
+    constexpr f32 cropMinXZ = 0.5f - cropHalfWidth; // 3/16  = 0.1875
+    constexpr f32 cropMaxXZ = 0.5f + cropHalfWidth; // 13/16 = 0.8125
+
+    // MC Java 的轮廓形状计算：
+    // 年龄对应的总高度像素值: {0, 9, 11, 22, 26}
+    // baseHeight = 4 (AGE 0) 或 6 (AGE 1+)
+    // totalHeight = baseHeight + aint[age]
+    // Lower 半部分: column(radius, -1, min(16, -1 + totalHeight))
+    // Upper 半部分: column(radius, 0, max(0, -1 + totalHeight - 16))
     constexpr i32 aint[] = {0, 9, 11, 22, 26};
     constexpr i32 bulbBaseHeight = 4;
     constexpr i32 cropBaseHeight = 6;
 
     for (i32 age = 0; age <= MAX_AGE; ++age) {
-        const i32 baseHeight = (age == 0) ? bulbBaseHeight : cropBaseHeight;
-        // column(j, ...)：横截面为边长 j 像素、以方块中心对称的正方形。
-        const f32 halfSide = static_cast<f32>((age == 0) ? 6 : 10) * 0.5f * P;
-        const f32 minXZ = 8.0f * P - halfSide;
-        const f32 maxXZ = 8.0f * P + halfSide;
+        i32 baseHeight = (age == 0) ? bulbBaseHeight : cropBaseHeight;
+        f32 minXZ = (age == 0) ? bulbMinXZ : cropMinXZ;
+        f32 maxXZ = (age == 0) ? bulbMaxXZ : cropMaxXZ;
 
-        const i32 totalHeight = baseHeight + aint[age];
-        const i32 lowerMaxY = std::min(16, -1 + totalHeight);
-        const i32 upperMaxY = std::max(0, -1 + totalHeight - 16);
+        i32 totalHeight = baseHeight + aint[age];
+        i32 lowerMaxY = std::min(16, -1 + totalHeight);
+        i32 upperMaxY = std::max(0, -1 + totalHeight - 16);
 
-        m_shapesByHalfAndAge[0][age] =
-            CollisionShape::box(minXZ, -1.0f * P, minXZ, maxXZ, lowerMaxY * P, maxXZ);
+        // Lower 半部分：y 从 -1 到 lowerMaxY
+        // MC Java 使用 column(radius, -1, lowerMaxY)，对应 box 从
+        // yMin = (-1)/16, yMax = lowerMaxY/16
+        m_shapesByHalfAndAge[0][age] = CollisionShape::box(minXZ, -1.0f * P, minXZ, maxXZ, lowerMaxY * P, maxXZ);
+
+        // Upper 半部分：y 从 0 到 upperMaxY
+        // MC Java 使用 column(radius, 0, upperMaxY)
         m_shapesByHalfAndAge[1][age] = CollisionShape::box(minXZ, 0.0f, minXZ, maxXZ, upperMaxY * P, maxXZ);
     }
 }
@@ -316,12 +330,31 @@ void PitcherCropBlock::grow(IWorld& world, math::IRandom& random, const BlockPos
 
 const CollisionShape& PitcherCropBlock::getShape(const BlockState& state) const
 {
-    i32 age = getAge(state);
-    DoubleBlockHalf half = getHalf(state);
-    size_t halfIdx = (half == DoubleBlockHalf::Upper) ? 1 : 0;
-
+    // 原版上半部分的外形**随 AGE 变化**，并不是恒为空：
+    //
+    //   age=0/1/2 -> 空（植株还矮，够不到上半格）
+    //   age=3     -> box(0.1875, 0, 0.1875 -> 0.8125, 0.6875, 0.8125)
+    //   age=4     -> box(0.1875, 0, 0.1875 -> 0.8125, 0.9375, 0.8125)
+    //
+    // 此前上半一律返回 m_shapesByHalfAndAge[1][age]（那张表整列是满方块），
+    // 植株上方本该透明的小半格被当成一整块实心方块。
+    const i32 age = getAge(state);
     MC_ASSERT_RELEASE(age >= 0 && age <= MAX_AGE);
-    return m_shapesByHalfAndAge[halfIdx][age];
+
+    if (getHalf(state) == DoubleBlockHalf::Upper) {
+        static const CollisionShape emptyShape = CollisionShape::empty();
+        static const CollisionShape upperMid = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.6875f, 0.8125f);
+        static const CollisionShape upperTall = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.9375f, 0.8125f);
+        if (age == MAX_AGE) {
+            return upperTall;
+        }
+        if (age == MAX_AGE - 1) {
+            return upperMid;
+        }
+        return emptyShape;
+    }
+
+    return m_shapesByHalfAndAge[0][age];
 }
 
 const CollisionShape& PitcherCropBlock::getCollisionShape(const BlockState& state) const
@@ -375,13 +408,10 @@ void PitcherCropBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, con
         if (belowState != nullptr && belowState->is(this) && getHalf(*belowState) == DoubleBlockHalf::Lower) {
             // 创造模式下直接清除下半部分（不掉落）
             if (player.isCreative()) {
-                world.setBlockState(belowPos,
-                    BlockRegistry::instance().airState(),
-                    world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
+                world.destroyBlock(belowPos, false);
             } else {
                 // 生存模式：清除下半部分（触发掉落）
-                world.setBlockState(
-                    belowPos, BlockRegistry::instance().airState(), world::BlockUpdateFlags::UPDATE_ALL);
+                world.destroyBlock(belowPos, true);
             }
         }
     } else {
@@ -391,9 +421,7 @@ void PitcherCropBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, con
             const BlockState* aboveState = world.getBlockState(abovePos);
             if (aboveState != nullptr && aboveState->is(this) &&
                 aboveState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == DoubleBlockHalf::Upper) {
-                world.setBlockState(abovePos,
-                    BlockRegistry::instance().airState(),
-                    world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
+                world.destroyBlock(abovePos, false);
             }
         }
     }
@@ -421,20 +449,7 @@ void PitcherCropBlock::onEntityCollision(
     }
 
     // 破坏方块（对应 MC Java: serverLevel.destroyBlock(pos, true, entity)）
-    // 项目无 IWorld::destroyBlock，采用 setBlockState(air) + spawnAfterBreak 的等价模式，
-    // 与 RavagerEntity::_breakLeavesOnCollision / EnderDragonEntity::_destroyBlocksInAABB 一致：
-    // - setBlockState(pos, air, 3)：将方块设为空气并触发邻居更新
-    // - spawnAfterBreak：触发方块掉落物（由战利品表控制），第二个参数 true 表示掉落物品
-    const BlockState* airState = BlockRegistry::instance().airState();
-    if (airState == nullptr) {
-        return;
-    }
-
-    // 保存方块对象引用，因为 setBlockState 后 state 可能失效
-    const Block& brokenBlock = state.getBlock();
-
-    world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-    brokenBlock.spawnAfterBreak(world, pos, state, nullptr, true);
+    world.destroyBlock(pos, true, &entity);
 }
 
 bool PitcherCropBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
@@ -521,6 +536,12 @@ std::pair<BlockPos, const BlockState*> PitcherCropBlock::getLowerHalf(
     }
 
     return {pos, nullptr};
+}
+
+bool PitcherCropBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 只有下半部分负责生长；上半部分是被动的一半，不参与随机刻。
+    return state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == DoubleBlockHalf::Lower && !isMaxAge(state);
 }
 
 } // namespace blocks

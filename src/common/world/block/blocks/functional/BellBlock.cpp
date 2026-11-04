@@ -149,26 +149,30 @@ void BellBlock::_initializeShapes()
     // Z 轴朝向：16×16×8（厚度在 Z 方向）
     m_floorShapeZ = CollisionShape::box(0.0f, 0.0f, 4.0f * P, 1.0f, 1.0f, 12.0f * P);
 
-    // 双面墙（按朝向轴区分）：BELL_SHAPE + 单侧连接柱 (2×2, Y=13-15)
-    // X 轴朝向：连接柱在 X 方向两侧
-    m_doubleWallShapeX = CollisionShape::combine(
-        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 7.0f * P, 9.0f * P, 15.0f * P, 9.0f * P));
-    // Z 轴朝向：相同（连接柱在 Z 方向两侧，但连接柱本身是中心对称的）
-    m_doubleWallShapeZ = m_doubleWallShapeX;
+    // 双面墙：BELL_SHAPE + 一条**贯穿整格**的横梁。
+    // 实测（bell，attachment=double_wall）：第三个盒子是
+    //   [0.4375, 0.8125, 0 -> 0.5625, 0.9375, 1]   （面朝南北）
+    //   [0, 0.8125, 0.4375 -> 1, 0.9375, 0.5625]   （面朝东西）
+    // 即横梁沿**垂直于 FACING 的轴**从一端的墙一直铺到另一端的墙。
+    // 此前只在中心 2x2 像素处放了一小段，两侧的梁缺失——
+    // 双面墙挂的钟看上去像悬在空中，没有横梁支撑。
+    m_doubleWallShapeX =
+        CollisionShape::combine(bellShape, CollisionShape::box(0.0f, 13.0f * P, 7.0f * P, 1.0f, 15.0f * P, 9.0f * P));
+    m_doubleWallShapeZ =
+        CollisionShape::combine(bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 0.0f, 9.0f * P, 15.0f * P, 1.0f));
 
-    // 单面墙（按 4 个朝向区分）：
-    // - North 朝向：连接柱在 Z=0 侧
-    // - South 朝向：连接柱在 Z=1 侧
-    // - East 朝向：连接柱在 X=1 侧
-    // - West 朝向：连接柱在 X=0 侧
+    // 单面墙：横梁从墙那一侧延伸到**钟体边缘**（不是只伸出 2 像素）。
+    // 实测（bell，attachment=single_wall）第三个盒子是
+    //   [0.4375, 0.8125, 0 -> 0.5625, 0.9375, 0.8125]   墙在 -z 侧
+    // 即横梁从方块边缘一直抵到钟体的 13/16 处。
     m_singleWallShapeNorth = CollisionShape::combine(
-        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 0.0f, 9.0f * P, 15.0f * P, 2.0f * P));
+        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 0.0f, 9.0f * P, 15.0f * P, 13.0f * P));
     m_singleWallShapeSouth = CollisionShape::combine(
-        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 14.0f * P, 9.0f * P, 15.0f * P, 1.0f));
+        bellShape, CollisionShape::box(7.0f * P, 13.0f * P, 3.0f * P, 9.0f * P, 15.0f * P, 1.0f));
     m_singleWallShapeEast = CollisionShape::combine(
-        bellShape, CollisionShape::box(14.0f * P, 13.0f * P, 7.0f * P, 1.0f, 15.0f * P, 9.0f * P));
+        bellShape, CollisionShape::box(3.0f * P, 13.0f * P, 7.0f * P, 1.0f, 15.0f * P, 9.0f * P));
     m_singleWallShapeWest = CollisionShape::combine(
-        bellShape, CollisionShape::box(0.0f, 13.0f * P, 7.0f * P, 2.0f * P, 15.0f * P, 9.0f * P));
+        bellShape, CollisionShape::box(0.0f, 13.0f * P, 7.0f * P, 13.0f * P, 15.0f * P, 9.0f * P));
 
     // 填充 m_shapesByState 缓存（按 (facing_index << 2) | attachment_index 索引）
     // HORIZONTAL_FACING 的 4 个值：North=0, East=1, South=2, West=3（按 Directions::horizontal 顺序）
@@ -328,6 +332,36 @@ BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
 
     // 所有附着方式都不可用，返回默认状态（Floor 朝北）
     return defaultState();
+}
+
+bool BellBlock::canPlaceAt(const BlockItemUseContext& context) const
+{
+    // 原版 `BellBlock#getStateForPlacement` 在四种挂法都不可存活时 `return null`，
+    // `BlockItem` 据此取消放置且不消耗物品。Cubium 的 `getStateForPlacement` 返回值类型，
+    // 只能退回 `defaultState()`，所以那条「全部不可用」的分支必须在这里拦下。
+    //
+    // 判定顺序与原版一致：先 Y 轴（FLOOR / CEILING），再侧墙（单/双墙），最后地面/天花板兜底。
+    const Direction clickedFace = context.getClickedFace();
+    const BlockPos clickedPos = context.placementPos();
+    IWorld& world = const_cast<IWorld&>(context.getWorld());
+
+    if (Directions::getAxis(clickedFace) == Axis::Y) {
+        const bool isFloor = (clickedFace == Direction::Up);
+        const BlockPos supportPos = clickedPos.offset(isFloor ? Direction::Down : Direction::Up);
+        const Direction supportDir = isFloor ? Direction::Up : Direction::Down;
+        return isFloor ? Block::hasEnoughSolidSide(world, supportPos, supportDir)
+                       : Block::canSupportCenter(world, supportPos, supportDir);
+    }
+
+    // 侧向点击：先看支撑墙，再看地面（下方恒需坚固）
+    const Direction supportDir = Directions::opposite(clickedFace);
+    if (Block::hasEnoughSolidSide(world, clickedPos.offset(supportDir), clickedFace)) {
+        return true;
+    }
+    if (Block::hasEnoughSolidSide(world, clickedPos.offset(Direction::Down), Direction::Up)) {
+        return true;
+    }
+    return Block::canSupportCenter(world, clickedPos.offset(Direction::Up), Direction::Down);
 }
 
 BlockState BellBlock::updatePostPlacement(const BlockState& state,
@@ -532,9 +566,10 @@ bool BellBlock::attemptToRing(Player* player, IWorld& world, const BlockPos& pos
     // 播放钟声（音量 2.0，音调 1.0）
     world.playSound(SoundEvents::BLOCK_BELL_USE, sound::SoundCategory::Blocks, pos.center(), 2.0f, 1.0f);
 
-    // 触发 BELL_HIT 游戏事件（通知附近幽匿感测体）
-    // 注意：MC Java 使用 BLOCK_CHANGE，但语义上是方块激活；本项目统一使用 BLOCK_ACTIVATE
-    world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, static_cast<const BlockState*>(nullptr));
+    // 触发 BLOCK_CHANGE 游戏事件（通知附近幽匿感测体）。原版 `BellBlock#attemptToRing`
+    // 发的是 `GameEvent.BLOCK_CHANGE` 而不是 `BLOCK_ACTIVATE`——两者虽同为 16 格半径，
+    // 但幽匿感测体按事件 id 区分响应频率，发错事件会让钟声在幽匿电路里被当成别的事件处理。
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, static_cast<const BlockState*>(nullptr));
 
     return true;
 }
@@ -548,7 +583,7 @@ bool BellBlock::onHit(
     const Vector3 hitLocation = hit.hitPosition();
     const f64 hitY = static_cast<f64>(hitLocation.y) - static_cast<f64>(blockPos.y);
 
-    const bool isProper = !isProjectile || _isProperHit(state, direction, hitY);
+    const bool isProper = !isProjectile || isProperHit(state, direction, hitY);
     if (!isProper) {
         return false;
     }
@@ -559,7 +594,7 @@ bool BellBlock::onHit(
     return true;
 }
 
-bool BellBlock::_isProperHit(const BlockState& state, Direction direction, f64 hitY)
+bool BellBlock::isProperHit(const BlockState& state, Direction direction, f64 hitY)
 {
     // 参考: net.minecraft.world.level.block.BellBlock#isProperHit
     // 若点击方向是 Y 轴，或点击位置 Y > 0.8124，则不是有效敲击

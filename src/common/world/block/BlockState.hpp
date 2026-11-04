@@ -146,12 +146,13 @@ public:
     [[nodiscard]] bool isInvisibleRenderType() const;
 
     /**
-     * @brief 是否为固体
+     * @brief 是否为固体（原版 `BlockStateBase#isSolid`）
+     *
+     * **实时委托给所属方块**，不用构造期缓存：`isSolid` 由碰撞形状推断，而许多方块
+     * （门、台阶、栅栏门）的形状要到子类构造函数里才设置好，构造期拿到的还是空形状，
+     * 会被判成 false 并永久缓存下来。
      */
-    [[nodiscard]] bool isSolid() const
-    {
-        return m_isSolid;
-    }
+    [[nodiscard]] bool isSolid() const;
 
     /**
      * @brief 是否不透明
@@ -322,6 +323,17 @@ public:
      * @return 平移后的形状（按值返回，因为每个位置的偏移不同）
      */
     [[nodiscard]] CollisionShape getShapeAt(const BlockPos& pos) const;
+
+    /**
+     * @brief 获取所属方块的全部状态（含自身）。
+     *
+     * 顺序由 `StateContainer` 构造时的枚举顺序决定，对所有状态恒定，可用于稳定遍历。
+     * 需要覆盖「非默认状态」的调用方（如遍历全部状态做差分校验）应使用本方法，
+     * 而不是只测 `defaultState()`。
+     *
+     * @return 全部状态的指针列表
+     */
+    [[nodiscard]] const std::vector<const BlockState*>& getAllStates() const;
 
     /**
      * @brief 获取指定位置处的碰撞形状（世界坐标，已叠加 `offsetType` 偏移）。

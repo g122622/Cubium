@@ -47,6 +47,15 @@ public:
 
     ~TintedGlassBlock() override = default;
 
+    /**
+     * @brief 遮光亮度恒为 1.0（原版继承自 `TransparentBlock`）
+     *
+     * 遮光玻璃虽然挡住了天空光，但碰撞形状是整格却不该在相邻面投下阴影 ——
+     * 它挡的是「光的传播」，不是「面的明暗」。
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
     [[nodiscard]] i32 getOpacity(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 

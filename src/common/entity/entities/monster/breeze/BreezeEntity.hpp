@@ -168,7 +168,7 @@ public:
 
     f32 eyeHeight() const override
     {
-        return 1.52f;
+        return 1.3452f;
     }
 
     // ========== 生命周期 ==========

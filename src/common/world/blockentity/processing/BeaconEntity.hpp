@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,6 +28,7 @@
 #include "item/core/ItemStack.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <array>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -266,6 +267,41 @@ private:
      */
     void _updateLevels(IWorld& world);
 
+public:
+    /**
+     * @brief 金字塔等级扫描（纯几何，原版 `BeaconBlockEntity.updateBase`）
+     *
+     * 从信标所在位置向下逐层检查 `(2j+1)^2` 个方块是否都属于信标底座标签：
+     *
+     * ```java
+     * for (int j = 1; j <= 4; i = j++) {
+     *     int k = y - j;
+     *     if (k < level.getMinY()) break;          // 低于世界底部即停止
+     *     boolean flag = true;
+     *     for (int l = x - j; l <= x + j && flag; l++)
+     *         for (int i1 = z - j; i1 <= z + j; i1++)
+     *             if (!getBlockState(new BlockPos(l, k, i1)).is(BlockTags.BEACON_BASE_BLOCKS)) {
+     *                 flag = false; break;
+     *             }
+     *     if (!flag) break;
+     * }
+     * return i;
+     * ```
+     *
+     * 抽成独立函数是为了能脱离世界直接验证：只要给定「某格是不是底座方块」的判定，
+     * 结果就完全确定。真正的世界读取由调用方以回调提供。
+     *
+     * @param x 信标 X
+     * @param y 信标 Y
+     * @param z 信标 Z
+     * @param minBuildHeight 世界最低建筑高度，低于它不再扫描
+     * @param isBaseBlock 判定某个坐标是否为信标底座方块
+     * @return 金字塔等级 0..MAX_LEVELS
+     */
+    [[nodiscard]] static i32 computeLevel(
+        i32 x, i32 y, i32 z, i32 minBuildHeight, const std::function<bool(i32, i32, i32)>& isBaseBlock);
+
+private:
     /**
      * @brief 检查是否可以看到天空
      * @param world 世界引用

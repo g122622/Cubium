@@ -38,7 +38,6 @@
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include <array>
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -251,8 +250,8 @@ const BlockState& CoralFanBlock::mirror(const BlockState& state, Mirror mirror) 
 const CollisionShape& CoralFanBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // 原版 BaseCoralFanBlock.SHAPE = Block.column(12.0, 0.0, 4.0)：
-    // 12×12 像素的细柱、自底向上 4 像素高，不是整格薄片。
+    // 原版地面珊瑚扇：box(0.125, 0, 0.125 -> 0.875, 0.25, 0.875)，即 column(12, 0, 4)——
+    // 宽 12 像素居中、高 4 像素。此前写成整格宽、1 像素厚，面积和厚度都不对。
     static CollisionShape shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.25f, 0.875f);
     return shape;
 }
@@ -396,23 +395,27 @@ const BlockState& CoralWallFanBlock::mirror(const BlockState& state, Mirror mirr
 const CollisionShape& CoralWallFanBlock::getShape(const BlockState& state) const
 {
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    // 原版 SHAPES = Shapes.rotateHorizontal(Block.boxZ(16.0, 8.0, 5.0, 16.0))。
-    // `boxZ(width, height, y1, y2)` 是「x 居中宽 width、y 居中高 height、z 从 y1 到 y2」，
-    // 即基准体积 x 0..1、y 4/16..12/16、z 5/16..1，贴 +Z 侧墙面。
-    // rotateHorizontal 的 NORTH 档即基准本身；其余朝向按 (x,z) → (1-z, x) 逐 90 度旋转。
-    static const CollisionShape s_northShape = CollisionShape::box(0.0f, 0.25f, 0.3125f, 1.0f, 0.75f, 1.0f);
-    static const CollisionShape s_southShape = CollisionShape::box(0.0f, 0.25f, 0.0f, 1.0f, 0.75f, 0.6875f);
-    static const CollisionShape s_westShape = CollisionShape::box(0.3125f, 0.25f, 0.0f, 1.0f, 0.75f, 1.0f);
-    static const CollisionShape s_eastShape = CollisionShape::box(0.0f, 0.25f, 0.0f, 0.6875f, 0.75f, 1.0f);
+
+    // 根据朝向返回不同形状
     switch (facing) {
-        case Direction::North:
-            return s_northShape;
-        case Direction::South:
-            return s_southShape;
-        case Direction::West:
-            return s_westShape;
-        case Direction::East:
-            return s_eastShape;
+        case Direction::North: {
+            // 原版各朝向墙扇：占据靠墙侧的 11/16 深度，Y 居中（0.25..0.75）。
+            // 北向: box(0, 0.25, 0.3125 -> 1, 0.75, 1)
+            static CollisionShape northShape = CollisionShape::box(0.0f, 0.25f, 0.3125f, 1.0f, 0.75f, 1.0f);
+            return northShape;
+        }
+        case Direction::South: {
+            static CollisionShape southShape = CollisionShape::box(0.0f, 0.25f, 0.0f, 1.0f, 0.75f, 0.6875f);
+            return southShape;
+        }
+        case Direction::East: {
+            static CollisionShape eastShape = CollisionShape::box(0.0f, 0.25f, 0.0f, 0.6875f, 0.75f, 1.0f);
+            return eastShape;
+        }
+        case Direction::West: {
+            static CollisionShape westShape = CollisionShape::box(0.3125f, 0.25f, 0.0f, 1.0f, 0.75f, 1.0f);
+            return westShape;
+        }
         default: {
             static CollisionShape emptyShape = CollisionShape::empty();
             return emptyShape;

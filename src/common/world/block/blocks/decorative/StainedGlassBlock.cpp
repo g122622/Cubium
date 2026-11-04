@@ -51,5 +51,13 @@ const std::array<f32, 3>* StainedGlassBlock::getBeaconColorMultiplier(
     return &m_colorComponents;
 }
 
+f32 StainedGlassBlock::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 碰撞形状是整格，但光能透过去，不该投影。
+    return 1.0f;
+}
 } // namespace block
 } // namespace mc

@@ -50,6 +50,15 @@ const CollisionShape& SoulSandBlock::getBlockSupportShape(const BlockState&) con
     return shape;
 }
 
+f32 SoulSandBlock::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 原版在这里固定返回 0.2：碰撞形状只有 14/16 高，按默认判据本应是无阴影。
+    return 0.2f;
+}
+
 void SoulSandBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 调度 tick 以检查上方水源并生成涌流气泡柱。

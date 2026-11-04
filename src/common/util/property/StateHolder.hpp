@@ -369,6 +369,17 @@ protected:
         return *m_propertyLayouts;
     }
 
+    /**
+     * @brief 取全部状态的索引表（构造期由 `StateContainer` 填充，此后不变）。
+     *
+     * 派生类需要向外暴露「本方块的所有状态」时用它，例如 `BlockState::getAllStates()`。
+     * 元素是可写指针，派生类对外返回前应转为常量视图。
+     */
+    [[nodiscard]] const std::vector<State*>& allStateSlots() const
+    {
+        return *m_allStates;
+    }
+
     [[nodiscard]] size_t findPropertySlot(const IProperty& prop) const
     {
         const auto& layouts = propertyLayouts();

@@ -68,6 +68,16 @@ public:
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
+    /**
+     * @brief 发光等级（依赖试炼刷怪笼状态）
+     *
+     * 原版按状态分级：`waiting_for_players` 为 **4**，其余非 `inactive` 状态为 **8**，
+     * `inactive` 为 0。此前用统一的 `lightLevel(8)`，导致待机状态亮了一倍。
+     * 由差分能力 block_light_emission 逐状态实测。
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 };
@@ -94,6 +104,16 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    /**
+     * @brief 发光等级（依赖宝库状态）
+     *
+     * 原版按状态分级：`inactive` 为 **6**，其余状态（`active` / `unlocking` / `ejecting`）
+     * 为 **12**。此前是统一的 6，导致激活后的宝库不发亮。由差分能力
+     * block_light_emission 逐状态实测。
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

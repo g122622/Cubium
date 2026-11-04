@@ -74,7 +74,7 @@ KelpBlock::KelpBlock(const BlockProperties& properties)
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::AGE_0_25(), 0));
 
-    // 原版 KelpBlock.SHAPE = Block.column(16.0, 0.0, 9.0)：整格宽、9/16 高。
+    // 原版 kelp 形状整格宽、高 9/16（0.5625）；kelp_plant 是满方块。
     m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5625f, 1.0f);
 }
 
@@ -253,6 +253,12 @@ const BlockState& KelpBlock::getPlant(IBlockReader& world, const BlockPos& pos) 
 {
     MC_UNUSED(world);
     return defaultState();
+}
+
+bool KelpBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 原版 KelpBlock 继承 GrowingPlantHeadBlock，规则同 head：age < 25 才生长。
+    return getAge(state) < 25;
 }
 
 } // namespace blocks

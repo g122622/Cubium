@@ -30,17 +30,13 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/drop/BlockDropHandler.hpp"
 
 #include <memory>
 #include <sstream>
@@ -91,38 +87,9 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
         }
     }
 
-    // 获取原有方块状态（在替换前保存，用于spawnAfterBreak）
-    const BlockState* oldState = world->getBlockState(position.x, position.y, position.z);
-
-    // destroy模式：先破坏原有方块并掉落物品
+    // destroy模式：先摧毁原有方块（破坏粒子 + 掉落 + BLOCK_DESTROY 事件 + 写回流体遗留方块）
     if (doDrop) {
-        if (oldState != nullptr && !oldState->isAir()) {
-            // 播放方块破坏效果（粒子 + 音效）
-            // eventID 2001，data 为方块状态ID
-            world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(oldState->stateId()));
-
-            // 获取掉落表管理器
-            const loot::LootTableManager* lootTableManager = world->lootTableManager();
-
-            // 生成掉落物
-            if (lootTableManager != nullptr) {
-                // 使用基于位置的随机种子
-                math::Random rng(static_cast<u64>(world->seed() ^ static_cast<u64>(position.x ^ position.z)));
-
-                // 生成掉落物列表
-                // 注意：destroy 模式不使用工具，所以 tool = nullptr
-                std::vector<ItemStack> drops =
-                    BlockDropHandler::generateDrops(*world, pos, *oldState, nullptr, nullptr, *lootTableManager);
-
-                // 生成物品实体
-                if (!drops.empty()) {
-                    BlockDropHandler::spawnDrops(*world, pos, drops, "");
-                }
-
-                // 处理经验掉落（矿石）
-                BlockDropHandler::handleBlockBreakExperience(*world, pos, *oldState, nullptr, rng);
-            }
-        }
+        world->destroyBlock(pos, true);
     }
 
     // 放置方块
@@ -130,11 +97,6 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     if (!success) {
         source.sendError("commands.setblock.failed");
         return 0;
-    }
-
-    // destroy模式：在方块被替换后调用spawnAfterBreak
-    if (doDrop && oldState != nullptr && !oldState->isAir()) {
-        oldState->getBlock().spawnAfterBreak(*world, pos, *oldState, nullptr, false);
     }
 
     // 发送反馈

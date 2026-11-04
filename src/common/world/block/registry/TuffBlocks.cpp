@@ -68,6 +68,7 @@ void registerTuffBlocks()
     // 凝灰岩 - 粗糙的火山岩
     TuffBlocks::TUFF = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:tuff"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -77,6 +78,7 @@ void registerTuffBlocks()
     // 磨制凝灰岩
     TuffBlocks::POLISHED_TUFF = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:polished_tuff"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -86,6 +88,7 @@ void registerTuffBlocks()
     // 凝灰岩砖
     TuffBlocks::TUFF_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:tuff_bricks"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -95,6 +98,7 @@ void registerTuffBlocks()
     // 雕刻凝灰岩
     TuffBlocks::CHISELED_TUFF = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_tuff"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -104,6 +108,7 @@ void registerTuffBlocks()
     TuffBlocks::CHISELED_TUFF_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_tuff_bricks"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -117,6 +122,7 @@ void registerTuffBlocks()
     TuffBlocks::TUFF_STAIRS = &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:tuff_stairs"),
         TuffBlocks::TUFF->defaultState(),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -125,6 +131,7 @@ void registerTuffBlocks()
     // 凝灰岩台阶
     TuffBlocks::TUFF_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:tuff_slab"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -133,6 +140,7 @@ void registerTuffBlocks()
     // 凝灰岩墙
     TuffBlocks::TUFF_WALL = &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:tuff_wall"),
         BlockProperties(Material::ROCK)
+            .instrument(BlockProperties::Instrument::BaseDrum)
             .hardness(1.5f)
             .resistance(6.0f)
             .harvestTool(HarvestTool::Pickaxe)
@@ -147,6 +155,7 @@ void registerTuffBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:polished_tuff_stairs"),
             TuffBlocks::POLISHED_TUFF->defaultState(),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -156,6 +165,7 @@ void registerTuffBlocks()
     TuffBlocks::POLISHED_TUFF_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:polished_tuff_slab"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -165,6 +175,7 @@ void registerTuffBlocks()
     TuffBlocks::POLISHED_TUFF_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_tuff_wall"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -179,6 +190,7 @@ void registerTuffBlocks()
         &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:tuff_brick_stairs"),
             TuffBlocks::TUFF_BRICKS->defaultState(),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -188,6 +200,7 @@ void registerTuffBlocks()
     TuffBlocks::TUFF_BRICK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:tuff_brick_slab"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
@@ -197,6 +210,7 @@ void registerTuffBlocks()
     TuffBlocks::TUFF_BRICK_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:tuff_brick_wall"),
             BlockProperties(Material::ROCK)
+                .instrument(BlockProperties::Instrument::BaseDrum)
                 .hardness(1.5f)
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)

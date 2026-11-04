@@ -22,6 +22,7 @@
  */
 
 #include "TrapDoorBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -40,6 +41,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
 #include <memory>
@@ -90,8 +92,8 @@ TrapDoorBlock::TrapDoorBlock(const BlockProperties& properties, bool isIron)
     // 打开状态的碰撞形状（贴墙放置）
     CollisionShape openNorth = CollisionShape::box(0.0f, 0.0f, 13.0f * P, 1.0f, 1.0f, 1.0f);
     CollisionShape openSouth = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f * P);
-    CollisionShape openEast = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-    CollisionShape openWest = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 1.0f, 1.0f);
+    CollisionShape openEast = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 1.0f, 1.0f);
+    CollisionShape openWest = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 
     // 关闭状态的形状（上半和下半不同）
     m_shapes[_getShapeIndex(Direction::North, false, BlockStateProperties::Half::Bottom)] = closedBottom;
@@ -228,10 +230,9 @@ const CollisionShape& TrapDoorBlock::getShape(const BlockState& state) const
 
 const CollisionShape& TrapDoorBlock::getCollisionShape(const BlockState& state) const
 {
-    if (state.get(BlockStateProperties::OPEN())) {
-        static CollisionShape emptyShape = CollisionShape::empty();
-        return emptyShape;
-    }
+    // 原版活板门**没有**覆写 getCollisionShape，继承的默认实现就是 `hasCollision ? getShape : empty`。
+    // 打开时它同样是薄板（贴墙的那一侧），依然有碰撞——玩家可以把打开的活动板当台阶踩。
+    // 此前在 open=true 时直接返回空形状，导致所有木材的活板门打开后都变成可穿过的空气。
     return getShape(state);
 }
 
@@ -290,6 +291,11 @@ void TrapDoorBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpenin
     }
 
     world.playSound(ResourceLocation(soundId), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+
+    // 开/关是方块状态变化，要让附近幽匿感测体听到：开启发 BLOCK_OPEN、关闭发 BLOCK_CLOSE。
+    world.gameEvent(isOpening ? gameevent::GameEvents::BLOCK_OPEN : gameevent::GameEvents::BLOCK_CLOSE,
+        pos,
+        static_cast<const BlockState*>(nullptr));
 }
 
 size_t TrapDoorBlock::_getShapeIndex(Direction facing, bool open, BlockStateProperties::Half half)

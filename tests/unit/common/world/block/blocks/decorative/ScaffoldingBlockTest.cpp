@@ -270,29 +270,33 @@ TEST_F(ScaffoldingBlockTest, IsLadder_AlwaysReturnsTrue)
     EXPECT_TRUE(scaffolding_->isLadder(state, &world, &pos));
 }
 
-TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceZero_ReturnsEmpty)
+TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceZero_ReturnsStableShape)
 {
     auto state = scaffolding_->defaultState().with(BlockStateProperties::DISTANCE_0_7(), 0);
     const CollisionShape& shape = scaffolding_->getCollisionShape(state);
-    EXPECT_TRUE(shape.isEmpty());
+    EXPECT_FALSE(shape.isEmpty());
+    EXPECT_EQ(&shape, &scaffolding_->getShape(state));
 }
 
-TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceNonZeroWithBottom_ReturnsBaseShape)
+TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceNonZeroWithBottom_ReturnsStableShape)
 {
     auto state = scaffolding_->defaultState()
                      .with(BlockStateProperties::DISTANCE_0_7(), 3)
                      .with(BlockStateProperties::BOTTOM(), true);
     const CollisionShape& shape = scaffolding_->getCollisionShape(state);
     EXPECT_FALSE(shape.isEmpty());
+    const auto withoutBottom = state.with(BlockStateProperties::BOTTOM(), false);
+    EXPECT_EQ(&shape, &scaffolding_->getShape(withoutBottom));
 }
 
-TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceNonZeroWithoutBottom_ReturnsEmpty)
+TEST_F(ScaffoldingBlockTest, GetCollisionShape_DistanceNonZeroWithoutBottom_ReturnsStableShape)
 {
     auto state = scaffolding_->defaultState()
                      .with(BlockStateProperties::DISTANCE_0_7(), 3)
                      .with(BlockStateProperties::BOTTOM(), false);
     const CollisionShape& shape = scaffolding_->getCollisionShape(state);
-    EXPECT_TRUE(shape.isEmpty());
+    EXPECT_FALSE(shape.isEmpty());
+    EXPECT_EQ(&shape, &scaffolding_->getShape(state));
 }
 
 TEST_F(ScaffoldingBlockTest, IsWaterlogged_WorksCorrectly)
@@ -330,6 +334,17 @@ TEST_F(ScaffoldingBlockTest, Shape_ChangesWithBottomProperty)
     const CollisionShape& shapeWithBottom = scaffolding_->getShape(stateWithBottom);
     const CollisionShape& shapeWithoutBottom = scaffolding_->getShape(stateWithoutBottom);
     EXPECT_NE(&shapeWithBottom, &shapeWithoutBottom);
+    const Vector3 bottomCenter(0.5f, 1.0f / 16.0f, 0.5f);
+    const auto containsBottomCenter = [&](const CollisionShape& shape) {
+        for (const auto& box : shape.boxes()) {
+            if (box.contains(bottomCenter)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    EXPECT_TRUE(containsBottomCenter(shapeWithBottom));
+    EXPECT_FALSE(containsBottomCenter(shapeWithoutBottom));
 }
 
 class ScaffoldingBlockIntegrationTest : public ::testing::Test {

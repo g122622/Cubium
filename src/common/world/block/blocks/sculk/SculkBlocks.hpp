@@ -299,6 +299,16 @@ public:
      */
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
+    /**
+     * @brief 实体踩踏（原版 `SculkSensorBlock#stepOn`）
+     *
+     * 感测体不只靠监听周围的事件，自己被踩也会产生一次 STEP 振动。
+     * 判定条件：服务端、相位为 Inactive、踩踏者不是监守者
+     * （监守者与感测体同源，不该自激）。
+     * 满足时直接把 STEP 振动塞进选择器，跳过「找最近的振动」这一步。
+     */
+    void onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
@@ -387,6 +397,8 @@ protected:
 
 private:
     CollisionShape m_shape;
+    /// 寻路通行判定：形状不完整不等于可以穿过。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 /**

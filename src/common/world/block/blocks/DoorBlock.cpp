@@ -22,6 +22,7 @@
  */
 
 #include "DoorBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -45,6 +46,7 @@
 #include "common/world/block/Material.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
 #include <memory>
@@ -86,14 +88,26 @@ DoorBlock::DoorBlock(const BlockProperties& properties, bool isIron)
             .with(BlockStateProperties::HINGE(), BlockStateProperties::DoorHinge::Left)
             .with(BlockStateProperties::POWERED(), false));
 
-    m_shapes[0] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
-    m_shapes[1] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f);
-    m_shapes[2] = VoxelShapes::cube(13.0f, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
-    m_shapes[3] = VoxelShapes::cube(0.0f, 0.0f, 13.0f, 16.0f, 16.0f, 16.0f);
-    m_shapes[4] = VoxelShapes::cube(0.0f, 0.0f, 13.0f, 16.0f, 16.0f, 16.0f);
-    m_shapes[5] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
-    m_shapes[6] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 3.0f);
-    m_shapes[7] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 3.0f, 16.0f, 16.0f);
+    // 门极是 3 像素厚的板。索引 0..3 为关闭（贴在与 facing 相反的一侧，与 hinge 无关），
+    // 4..7 为打开（转到垂直方向的侧面，左右由 hinge 决定）。全部按原版 forAllBoxes 实测：
+    //
+    //   关闭 north -> z 0.8125..1   关闭 south -> z 0..0.1875
+    //   关闭 east  -> x 0..0.1875   关闭 west  -> x 0.8125..1
+    //
+    //   打开 north/left  -> x 0..0.1875      打开 north/right -> x 0.8125..1
+    //   打开 east/left   -> z 0..0.1875      打开 east/right  -> z 0.8125..1
+    //   打开 south/left  -> x 0.8125..1      打开 south/right -> x 0..0.1875
+    //   打开 west/left   -> z 0.8125..1      打开 west/right  -> z 0..0.1875
+    constexpr f32 T = 3.0f;                                      // 板厚（像素）
+    constexpr f32 S = 16.0f;                                     // 边长
+    m_shapes[0] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, T, S, S);  // 关闭 east  / 打开 north-left / 打开 south-right
+    m_shapes[1] = VoxelShapes::cube(0.0f, 0.0f, 0.0f, S, S, T);  // 关闭 south / 打开 east-left
+    m_shapes[2] = VoxelShapes::cube(S - T, 0.0f, 0.0f, S, S, S); // 关闭 west  / 打开 north-right / 打开 south-left
+    m_shapes[3] = VoxelShapes::cube(0.0f, 0.0f, S - T, S, S, S); // 关闭 north / 打开 east-right / 打开 west-left
+    m_shapes[4] = m_shapes[2];
+    m_shapes[5] = m_shapes[1];
+    m_shapes[6] = m_shapes[0];
+    m_shapes[7] = m_shapes[3];
 }
 
 BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -390,6 +404,11 @@ void DoorBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpening)
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
         1.0f,
         1.0f);
+
+    // 开/关是方块状态变化，要让附近幽匿感测体听到：开启发 BLOCK_OPEN、关闭发 BLOCK_CLOSE。
+    world.gameEvent(isOpening ? gameevent::GameEvents::BLOCK_OPEN : gameevent::GameEvents::BLOCK_CLOSE,
+        pos,
+        static_cast<const BlockState*>(nullptr));
 }
 
 i32 DoorBlock::_getOpenSound() const
@@ -406,47 +425,48 @@ i32 DoorBlock::_getCloseSound() const
 
 size_t DoorBlock::_getShapeIndex(Direction facing, bool open, bool hingeRight) noexcept
 {
+    // 关闭：板贴在与 facing 相反的一侧，左右 hinge 不影响几何。
     if (!open) {
         switch (facing) {
             case Direction::East:
-                return 0;
+                return 0; // x 0..3
             case Direction::South:
-                return 1;
+                return 1; // z 0..3
             case Direction::West:
-                return 2;
+                return 2; // x 13..16
             case Direction::North:
-                return 3;
+                return 3; // z 13..16
             default:
                 return 0;
         }
     }
 
+    // 打开：板转 90 度贴到侧面，左右由 hinge 决定。
     if (hingeRight) {
         switch (facing) {
             case Direction::East:
-                return 5;
+                return 3; // z 13..16
             case Direction::South:
-                return 6;
+                return 0; // x 0..3
             case Direction::West:
-                return 7;
+                return 1; // z 0..3
             case Direction::North:
-                return 4;
+                return 2; // x 13..16
             default:
-                return 4;
+                return 2;
         }
-    } else {
-        switch (facing) {
-            case Direction::East:
-                return 4;
-            case Direction::South:
-                return 5;
-            case Direction::West:
-                return 6;
-            case Direction::North:
-                return 7;
-            default:
-                return 4;
-        }
+    }
+    switch (facing) {
+        case Direction::East:
+            return 1; // z 0..3
+        case Direction::South:
+            return 2; // x 13..16
+        case Direction::West:
+            return 3; // z 13..16
+        case Direction::North:
+            return 0; // x 0..3
+        default:
+            return 0;
     }
 }
 

@@ -65,13 +65,12 @@ NetherWartBlock::NetherWartBlock(const BlockProperties& properties)
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::AGE_0_3(), 0));
 
-    // 创建各年龄的形状
-    // 原版 SHAPES = Block.boxes(3, age -> Block.column(16.0, 0.0, 5 + age * 3))：
-    // 整格宽、按年龄高 5/8/11/14 像素。不是逐级收窄的锥形。
-    m_shapesByAge[0] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 5.0f / 16.0f, 1.0f);
-    m_shapesByAge[1] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 8.0f / 16.0f, 1.0f);
-    m_shapesByAge[2] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 11.0f / 16.0f, 1.0f);
-    m_shapesByAge[3] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 14.0f / 16.0f, 1.0f);
+    // 原版各生长阶段都是整格宽，只是高度不同：5/16、8/16、11/16、14/16。
+    // 此前写成逐渐收缩的锥形，方向完全错了。
+    m_shapesByAge[0] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.3125f, 1.0f);
+    m_shapesByAge[1] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    m_shapesByAge[2] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.6875f, 1.0f);
+    m_shapesByAge[3] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.875f, 1.0f);
 }
 
 i32 NetherWartBlock::getAge(const BlockState& state) const noexcept
@@ -152,6 +151,12 @@ const BlockState& NetherWartBlock::getPlant(IBlockReader& world, const BlockPos&
 {
     MC_UNUSED(world);
     return defaultState();
+}
+
+bool NetherWartBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 下界疣 age < 3 才生长。
+    return getAge(state) < 3;
 }
 
 } // namespace blocks

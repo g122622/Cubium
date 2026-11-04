@@ -265,6 +265,19 @@ public:
      *
      * @return 刷扫完成音效资源位置
      */
+    /**
+     * @brief 坠落落地碎开（原版 `BrushableBlock#onBrokenAfterFall`）
+     *
+     * 可疑沙/沙砾在下落时被摔碎：先放方块破碎粒子，再发 `block_destroy` 事件
+     * （幽匿感测体据此听到「方块被毁」）。原版这两个动作都在这个方法里，
+     * 所以必须一起做，只发粒子不发事件会让坠落破碎在幽匿电路里隐形。
+     *
+     * @param world 世界引用
+     * @param pos 落地方块位置
+     * @param entity 碎开的掉落方块实体
+     */
+    void onBroken(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity) override;
+
     [[nodiscard]] const ResourceLocation& getBrushCompletedSound() const noexcept
     {
         return m_brushCompletedSound;

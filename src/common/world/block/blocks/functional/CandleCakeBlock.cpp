@@ -72,13 +72,14 @@ CandleCakeBlock::CandleCakeBlock(BlockProperties properties, Block* candleBlock)
     setDefaultState(defaultState().with(BlockStateProperties::LIT(), false));
 
     // 蜡烛蛋糕形状：蛋糕主体 + 蜡烛柱体
-    // 参考 MC Java: Shapes.or(Block.column(2.0, 8.0, 14.0), Block.column(14.0, 0.0, 8.0))
-    // 即：蜡烛部分 y=8-14, 半径1px(2/16)；蛋糕部分 y=0-8, 半径7px(14/16)
-    // 使用 fromPixelBox，坐标系为像素 (0-16)。两部分缺一不可——只画蛋糕层会让
-// 外星（getShape）矮掉一半。
-    const CollisionShape cakeBody = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 8.0f, 15.0f);
-    const CollisionShape candleColumn = CollisionShape::fromPixelBox(7.0f, 8.0f, 7.0f, 9.0f, 14.0f, 9.0f);
-    m_shape = CollisionShape::combine(cakeBody, candleColumn, CollisionShape::CombineOp::OR);
+    // 原版：Shapes.or(Block.column(2.0, 8.0, 14.0), Block.column(14.0, 0.0, 8.0))
+    //   column(14.0, 0.0,  8.0) -> box(0.0625, 0, 0.0625 -> 0.9375, 0.5, 0.9375)   蛋糕主体
+    //   column(2.0,  8.0, 14.0) -> box(0.4375, 0.5, 0.4375 -> 0.5625, 0.875, 0.5625) 蜡烛
+    //
+    // 此前只建了蛋糕主体，漏掉了蜡烛——插着蜡烛的蛋糕比普通蛋糕高出 6 像素。
+    const CollisionShape cake = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 8.0f, 15.0f);
+    const CollisionShape candle = CollisionShape::fromPixelBox(7.0f, 8.0f, 7.0f, 9.0f, 14.0f, 9.0f);
+    m_shape = CollisionShape::combine(cake, candle, CollisionShape::CombineOp::OR);
 }
 
 BlockState CandleCakeBlock::getStateForPlacement(BlockItemUseContext& context)

@@ -26,19 +26,21 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/component/DataComponentMap.hpp"
+#include "common/network/buffer/ByteBuf.hpp"
 
 #include <utility>
 #include <vector>
 
-namespace mc {
-namespace network {
-namespace buffer {
-class ByteBuf;
-} // namespace buffer
-} // namespace network
+namespace mc::network::backend::java {
 
-namespace item {
-namespace component {
+// ============================================================================
+// 物品数据组件补丁 wire 编解码
+//
+// item::component 侧只负责组件的数据模型与存档（NBT）编码，语言 wire 的两个
+// DataComponentPatch 变体（标准补丁 / 交易精确谓词）以及 HashedStack 的组件哈希
+// 属于 Java 后端线格式，统一在本文件实现。业务侧通过 ItemStackBridge 在
+// item::component::DataComponentPatch 与本层之间转换。
+// ============================================================================
 
 /**
  * @brief 将 DataComponentPatch 写入 Java wire 缓冲
@@ -59,7 +61,7 @@ namespace component {
  * @param patch 组件补丁
  * @return 成功或错误
  */
-[[nodiscard]] Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponentPatch& patch);
+[[nodiscard]] Result<void> writePatchToWire(buffer::ByteBuf& buf, const item::component::DataComponentPatch& patch);
 
 /**
  * @brief 从 Java wire 缓冲读取 DataComponentPatch
@@ -69,7 +71,7 @@ namespace component {
  * @param buf 源缓冲
  * @return 解析出的 patch 或错误
  */
-[[nodiscard]] Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf);
+[[nodiscard]] Result<item::component::DataComponentPatch> readPatchFromWire(buffer::ByteBuf& buf);
 
 /**
  * @brief 按 1.21.11 wire 规则消费 buf 中的 DataComponentPatch 区段，原样返回其字节
@@ -85,10 +87,10 @@ namespace component {
  * @param buf 源缓冲（游标须位于 patch 区段起点）
  * @return patch 区段的原始 wire 字节或错误
  */
-[[nodiscard]] Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf);
+[[nodiscard]] Result<std::vector<u8>> readPatchBytesFromWire(buffer::ByteBuf& buf);
 
 /** @brief 读取交易物品的精确组件谓词：数量及逐项组件，没有移除数量字段。 */
-[[nodiscard]] Result<std::vector<u8>> readExactPredicateBytesFromWire(network::buffer::ByteBuf& buf);
+[[nodiscard]] Result<std::vector<u8>> readExactPredicateBytesFromWire(buffer::ByteBuf& buf);
 
 /**
  * @brief 计算 DataComponentPatch 各组件的 CRC-32C 哈希（HashedStack 用）
@@ -104,8 +106,6 @@ namespace component {
  * @return {addedHashes(typeId,hash), removedTypes(typeId)}；编解码失败项跳过（不中断）
  */
 [[nodiscard]] std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHashes(
-    const DataComponentPatch& patch);
+    const item::component::DataComponentPatch& patch);
 
-} // namespace component
-} // namespace item
-} // namespace mc
+} // namespace mc::network::backend::java

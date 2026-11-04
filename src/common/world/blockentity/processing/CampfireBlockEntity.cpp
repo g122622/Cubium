@@ -198,6 +198,19 @@ bool CampfireBlockEntity::addItem(ItemStack& stack, i32 cookTime)
         return false;
     }
 
+    // 必须是营火能烹饪的物品（原版 `placeFood` 先查配方，查不到直接返回 false）。
+    //
+    // 缺少这道检查的后果：玩家能把任意物品放上营火——物品已被 split 出来、又永远
+    // 不会熟，等于凭空销毁。而且 cookTime 若被调用方传成 0，`progress >= total`
+    // 在第一个 tick 就成立，任何物品都会瞬间「熟」。
+    auto matched = findMatchingRecipe(stack);
+    if (!matched.has_value()) {
+        return false;
+    }
+    if (cookTime <= 0) {
+        cookTime = matched->second;
+    }
+
     // 找到第一个空槽位
     for (i32 i = 0; i < SLOT_COUNT; ++i) {
         if (m_inventory.getItem(i).isEmpty()) {

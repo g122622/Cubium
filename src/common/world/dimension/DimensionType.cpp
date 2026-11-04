@@ -52,10 +52,14 @@ DimensionType DimensionType::overworld()
     type.m_hasRaids = true;
     type.m_piglinSafe = false;
 
-    // 高度
+    // 高度：原版 min_y=-64、height=384、logical_height=384
+    //
+    // m_maxHeight 存的是**绝对上限**（min_y + height）。此前 logicalHeight 被写成
+    // 256，比实际世界矮 128 格，逻辑高度决定传送门与地图的垂直范围。
+    // 由差分能力 dimension_type_params 查出。
     type.m_minHeight = world::MIN_BUILD_HEIGHT;
     type.m_maxHeight = world::MAX_BUILD_HEIGHT;
-    type.m_logicalHeight = world::MAX_BUILD_HEIGHT;
+    type.m_logicalHeight = 384;
 
     // 坐标转换
     type.m_coordinateScale = 1.0f;
@@ -65,7 +69,13 @@ DimensionType DimensionType::overworld()
     type.m_fixedTime = std::nullopt; // 时间自然流逝
 
     // 方块标签
-    type.m_infiniburn = "minecraft:infiniburn_overworld";
+    type.m_infiniburn = "#minecraft:infiniburn_overworld";
+
+    // 怪物生成光照：原版 monster_spawn_light_level = uniform(0,7)、block_light_limit = 0。
+    // limit 为 0 意味着任何方块光都会立即否决生成。
+    type.m_monsterSpawnLightMin = 0;
+    type.m_monsterSpawnLightMax = 7;
+    type.m_monsterSpawnBlockLightLimit = 0;
 
     // 环境属性：主世界由 in_overworld 标签叠加通用时间线与日夜/月相/早期游戏
     type.m_timelines = {"minecraft:day", "minecraft:moon", "minecraft:early_game"};
@@ -95,9 +105,13 @@ DimensionType DimensionType::nether()
     type.m_hasRaids = false;          // 无袭击
     type.m_piglinSafe = true;         // 猪灵不会僵尸化
 
-    // 高度
+    // 高度：原版 min_y=0、height=256、logical_height=128
+    //
+    // m_maxHeight 存的是**绝对上限**（min_y + height），不是高度值。此前把 128
+    // 填在这里，于是下界的建筑上限只有 y=128——比原版矮了一倍，上层大面积区域
+    // 根本无法放置方块。由差分能力 dimension_type_params 查出。
     type.m_minHeight = 0;
-    type.m_maxHeight = 128; // 下界高度为 128
+    type.m_maxHeight = 256;
     type.m_logicalHeight = 128;
 
     // 坐标转换
@@ -108,7 +122,13 @@ DimensionType DimensionType::nether()
     type.m_fixedTime = 18000;   // 固定为午夜
 
     // 方块标签
-    type.m_infiniburn = "minecraft:infiniburn_nether";
+    type.m_infiniburn = "#minecraft:infiniburn_nether";
+
+    // 怪物生成光照：原版 monster_spawn_light_level = 7（常数）、block_light_limit = 15。
+    // limit 为 15 意味着方块光这条检查**完全不生效**——下界刷怪不受方块光限制。
+    type.m_monsterSpawnLightMin = 7;
+    type.m_monsterSpawnLightMax = 7;
+    type.m_monsterSpawnBlockLightLimit = 15;
 
     // 环境属性：下界只有通用时间线（与 vanilla in_nether 标签一致）
     type.m_timelines = {};
@@ -136,7 +156,9 @@ DimensionType DimensionType::theEnd()
 
     // 环境属性
     type.m_hasCeiling = false;
-    type.m_hasSkyLight = false; // 无天空光照
+    // 末地**有**天空光（原版 has_skylight=true），只是没有昼夜变化。
+    // 此前写成 false，导致末地的天空亮度恒为 0。
+    type.m_hasSkyLight = true;
     type.m_ultraWarm = false;
     type.m_natural = false;            // 非自然维度
     type.m_hasEnderDragonFight = true; // 有末影龙战斗
@@ -147,20 +169,30 @@ DimensionType DimensionType::theEnd()
     type.m_hasRaids = false;           // 无袭击
     type.m_piglinSafe = false;
 
-    // 高度
-    type.m_minHeight = world::MIN_BUILD_HEIGHT;
-    type.m_maxHeight = world::MAX_BUILD_HEIGHT;
-    type.m_logicalHeight = world::MAX_BUILD_HEIGHT;
+    // 高度：原版 min_y=0、height=256、logical_height=256
+    //
+    // 此前直接套用了主世界的 MIN_BUILD_HEIGHT / MAX_BUILD_HEIGHT（-64 / 320），
+    // 于是末地底部凭空多出 64 格、顶部又多 64 格，且逻辑高度也被算成 320。
+    // 末地是独立的 256 格高度世界，与主世界共享常量是错的。
+    // 由差分能力 dimension_type_params 查出。
+    type.m_minHeight = 0;
+    type.m_maxHeight = 256;
+    type.m_logicalHeight = 256;
 
     // 坐标转换
     type.m_coordinateScale = 1.0f; // 与主世界 1:1
 
     // 光照和时间
-    type.m_ambientLight = 0.0f;
-    type.m_fixedTime = 6000; // 固定为正午
+    type.m_ambientLight = 0.25f; // 原版 ambient_light = 0.25
+    type.m_fixedTime = 6000;     // 固定为正午
 
     // 方块标签
-    type.m_infiniburn = "minecraft:infiniburn_end";
+    type.m_infiniburn = "#minecraft:infiniburn_end";
+
+    // 怪物生成光照：原版 monster_spawn_light_level = 15（常数）、block_light_limit = 0。
+    type.m_monsterSpawnLightMin = 15;
+    type.m_monsterSpawnLightMax = 15;
+    type.m_monsterSpawnBlockLightLimit = 0;
 
     // 环境属性：末地只有通用时间线
     type.m_timelines = {};

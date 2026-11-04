@@ -78,6 +78,9 @@ void BlockState::_cacheProperties()
     m_hardness = m_owner->hardness();
     m_resistance = m_owner->resistance();
     m_blockId = m_owner->blockId();
+    // 地图颜色按**状态**取：床（part）、原木（axis）、含水方块（waterlogged）的颜色
+    // 随状态变化。注册时显式设置过 mapColor 的方块用注册值，否则查原版快照表。
+    // toString() 依赖属性表，此刻已就绪。
     m_mapColor = m_owner->getMapColor(*this, nullptr, nullptr);
 }
 
@@ -109,6 +112,24 @@ CollisionShape BlockState::getCollisionShapeAt(const BlockPos& pos) const
 CollisionShape BlockState::getBlockSupportShapeAt(const BlockPos& pos) const
 {
     return m_owner->getBlockSupportShapeAt(*this, pos);
+}
+
+const std::vector<const BlockState*>& BlockState::getAllStates() const
+{
+    // 索引表与 BlockState 同生命周期且构造后不变，故首次转换后缓存复用，
+    // 避免每次调用都重建 vector。
+    static thread_local std::unordered_map<const std::vector<BlockState*>*, std::vector<const BlockState*>> cache;
+    const auto& slots = allStateSlots();
+    auto iter = cache.find(&slots);
+    if (iter == cache.end()) {
+        std::vector<const BlockState*> view;
+        view.reserve(slots.size());
+        for (const BlockState* state : slots) {
+            view.push_back(state);
+        }
+        iter = cache.emplace(&slots, std::move(view)).first;
+    }
+    return iter->second;
 }
 
 bool BlockState::isRandomlyTicking() const
@@ -147,6 +168,13 @@ void BlockState::refreshLightCache()
     // 完全构造之后才生效。早期这里漏了这一行，凡是在子类里重写该方法做形状遮挡的方块
     // （土径、耕地、讲台、切石机等）运行时都退回成了默认值。
     m_useShapeForLightOcclusion = m_owner->useShapeForLightOcclusion(*this);
+}
+
+bool BlockState::isSolid() const
+{
+    // 实时委托给所属方块：isSolid 由碰撞形状推断，而许多方块（门、台阶、栅栏门）的形状
+    // 要到子类构造函数里才设置好，构造期缓存会拿到空形状并永久判成 false。
+    return m_owner->isSolid(*this);
 }
 
 bool BlockState::isSolidRender() const

@@ -52,6 +52,15 @@ public:
     StainedGlassBlock(BlockProperties properties, DyeColor color);
 
     /**
+     * @brief 遮光亮度恒为 1.0（原版 `TransparentBlock#getShadeBrightness`）
+     *
+     * 染色玻璃碰撞形状是整格，但光能透过去，不该投下阴影。按基类默认判据
+     * 会得到 0.2，导致玻璃周围出现一圈不该有的暗边。
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
+
+    /**
      * @brief 获取信标光束颜色
      *
      * 实现 IBeaconBeamColorProvider 接口。

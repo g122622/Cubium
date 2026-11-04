@@ -241,13 +241,16 @@ TEST_F(TrapDoorBlockShapeTest, ClosedTopTrapdoor_HasCollisionShape)
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(TrapDoorBlockShapeTest, OpenTrapdoor_NoCollisionShape)
+TEST_F(TrapDoorBlockShapeTest, OpenTrapdoor_HasVerticalCollisionShape)
 {
-    // 打开的活板门没有碰撞形状
+    // 打开后薄板竖立，仍会阻挡实体。
     BlockState state = woodenTrapdoor_->defaultState().with(BlockStateProperties::OPEN(), true);
 
     const CollisionShape& shape = woodenTrapdoor_->getCollisionShape(state);
-    EXPECT_TRUE(shape.isEmpty());
+    ASSERT_FALSE(shape.isEmpty());
+    ASSERT_EQ(shape.boxes().size(), 1u);
+    EXPECT_FLOAT_EQ(shape.boxes()[0].minY, 0.0f);
+    EXPECT_FLOAT_EQ(shape.boxes()[0].maxY, 1.0f);
 }
 
 TEST_F(TrapDoorBlockShapeTest, AllFacingDirections_HaveShapes)
@@ -313,8 +316,8 @@ TEST_F(TrapDoorBlockShapeTest, IronTrapdoor_SameShapeBehavior)
 
     // 关闭的有碰撞
     EXPECT_FALSE(ironTrapdoor_->getCollisionShape(closedState).isEmpty());
-    // 打开的无碰撞
-    EXPECT_TRUE(ironTrapdoor_->getCollisionShape(openState).isEmpty());
+    // 打开后仍有竖直薄板碰撞。
+    EXPECT_FALSE(ironTrapdoor_->getCollisionShape(openState).isEmpty());
 }
 
 TEST_F(TrapDoorBlockShapeTest, ShapeCaching_SameStateReturnsSameShape)

@@ -74,20 +74,20 @@ const VoxelShape& rigidSupportShape()
 // 支撑判定实现
 // ============================================================================
 
-bool isSupportingFull(const BlockState& state, IWorld& /*world*/, const BlockPos& /*pos*/, Direction direction)
+bool isSupportingFull(const BlockState& state, IWorld& /*world*/, const BlockPos& pos, Direction direction)
 {
     // Full：方块面投影必须覆盖整个 1×1 面
     // 对应 MC Java 的 SupportType.FULL: Block.isFaceFull(blockSupportShape, direction)
     // 注意：MC Java 使用 getBlockSupportShape，而 Cubium 的 Block::isFaceFull 使用 getCollisionShape
     // 这里使用 getBlockSupportShape 以与 MC Java 一致
-    return Block::isFaceFull(state.getBlockSupportShape(), direction);
+    return Block::isFaceFull(state.getBlockSupportShapeAt(pos), direction);
 }
 
-bool isSupportingCenter(const BlockState& state, IWorld& /*world*/, const BlockPos& /*pos*/, Direction direction)
+bool isSupportingCenter(const BlockState& state, IWorld& /*world*/, const BlockPos& pos, Direction direction)
 {
     // Center：方块支撑形状在指定方向的面投影必须包含 CENTER_SUPPORT_SHAPE
     // 等价于 !Shapes.joinIsNotEmpty(faceShape, CENTER_SUPPORT_SHAPE, BooleanOp.ONLY_SECOND)
-    const auto& supportShape = state.getBlockSupportShape();
+    const CollisionShape supportShape = state.getBlockSupportShapeAt(pos);
     if (supportShape.isEmpty()) {
         return false;
     }
@@ -105,11 +105,11 @@ bool isSupportingCenter(const BlockState& state, IWorld& /*world*/, const BlockP
     return !Shapes::joinIsNotEmpty(faceShape, centerSupportShape(), BooleanOps::OnlySecond());
 }
 
-bool isSupportingRigid(const BlockState& state, IWorld& /*world*/, const BlockPos& /*pos*/, Direction direction)
+bool isSupportingRigid(const BlockState& state, IWorld& /*world*/, const BlockPos& pos, Direction direction)
 {
     // Rigid：方块支撑形状在指定方向的面投影必须包含 RIGID_SUPPORT_SHAPE（外环）
     // 等价于 !Shapes.joinIsNotEmpty(faceShape, RIGID_SUPPORT_SHAPE, BooleanOp.ONLY_SECOND)
-    const auto& supportShape = state.getBlockSupportShape();
+    const CollisionShape supportShape = state.getBlockSupportShapeAt(pos);
     if (supportShape.isEmpty()) {
         return false;
     }

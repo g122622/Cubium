@@ -77,14 +77,18 @@ public:
     /**
      * @brief 获取发光等级
      *
-     * 点亮时发光等级15，熄灭时为0
+     * 点亮时取该氧化等级对应的发光值，熄灭时为 0。
+     *
+     * **亮度随氧化程度递减**：未氧化 15、斑驳 12、风化 8、氧化 4（原版实测）。此前这里
+     * 硬编码 15，把 makeCopperBulbProps 里按等级设的 lightLevel 完全遮蔽了——改属性
+     * 却不改这个覆写，等于没改。
      */
     [[nodiscard]] u8 getLightLevel(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
-        return state.get(BlockStateProperties::LIT()) ? 15 : 0;
+        return state.get(BlockStateProperties::LIT()) ? lightLevel() : 0;
     }
 
     /**
@@ -149,7 +153,7 @@ public:
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
-        return state.get(BlockStateProperties::LIT()) ? 15 : 0;
+        return state.get(BlockStateProperties::LIT()) ? lightLevel() : 0;
     }
 
     /**

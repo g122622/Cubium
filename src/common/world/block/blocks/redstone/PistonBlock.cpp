@@ -22,20 +22,18 @@
  */
 
 #include "PistonBlock.hpp"
+
 #include "MovingPistonBlock.hpp"
 #include "PistonHeadBlock.hpp"
 #include "PistonStructureHelper.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/items/block/BlockItem.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
@@ -45,6 +43,7 @@
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -300,6 +299,16 @@ bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& s
     world.setBlockState(
         pos, &newState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
+    // 音高带随机：原版是 `random.nextFloat() * 0.25F + 0.6F`，让连续伸缩的活塞声不完全一样。
+    world.playSound(SoundEvents::BLOCK_PISTON_EXTEND,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.5f,
+        world.getRandom().nextFloat() * 0.25f + 0.6f);
+
+    // 伸出是方块状态变化，要让附近幽匿感测体听到。
+    world.gameEvent(gameevent::GameEvents::BLOCK_ACTIVATE, pos, &newState);
+
     return true;
 }
 
@@ -311,6 +320,16 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
     const BlockState& newState = withExtended(state, false);
     world.setBlockState(
         pos, &newState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
+
+    // 音高带随机：原版是 `random.nextFloat() * 0.15F + 0.6F`。
+    world.playSound(SoundEvents::BLOCK_PISTON_CONTRACT,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.5f,
+        world.getRandom().nextFloat() * 0.15f + 0.6f);
+
+    // 缩回同样要让附近幽匿感测体听到。
+    world.gameEvent(gameevent::GameEvents::BLOCK_DEACTIVATE, pos, &newState);
 
     if (m_sticky) {
         // 粘性活塞：尝试拉回方块
@@ -370,28 +389,9 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
     // 先破坏需要破坏的方块（从远到近）
     for (auto it = toDestroy.rbegin(); it != toDestroy.rend(); ++it) {
         const BlockPos& destroyPos = *it;
-        const BlockState* destroyState = world.getBlockState(destroyPos);
-        if (destroyState && !destroyState->isAir()) {
-            // 破坏方块时掉落物品
-            const Block* destroyBlock = &destroyState->getBlock();
-            if (destroyBlock != nullptr) {
-                const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*destroyBlock);
-                if (blockItem != nullptr) {
-                    ItemStack dropStack(blockItem, 1);
-                    math::Random rng;
-                    ItemDropHelper::spawnItemEntity(&world,
-                        dropStack,
-                        static_cast<f64>(destroyPos.x) + 0.5,
-                        static_cast<f64>(destroyPos.y) + 0.5,
-                        static_cast<f64>(destroyPos.z) + 0.5,
-                        rng);
-                }
-            }
-            world.setBlockState(destroyPos,
-                nullptr,
-                world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            destroyBlock->spawnAfterBreak(world, destroyPos, *destroyState, nullptr, false);
-        }
+        // 原版活塞推开超限方块时调用 level.destroyBlock(pos, true)：掉落表、破坏粒子
+        // 与 BLOCK_DESTROY 事件统一由该接口处理。
+        world.destroyBlock(destroyPos, true);
     }
 
     // 移动方块（从远到近）
@@ -475,8 +475,12 @@ const CollisionShape& PistonBlock::getShape(const BlockState& state) const
     }
 
     static const CollisionShape shapes[6] = {
-        CollisionShape::fromPixelBox(0, 0, 0, 16, 12, 16), // Down
-        CollisionShape::fromPixelBox(0, 4, 0, 16, 16, 16), // Up
+        // 伸出时缺口朝向 FACING（活塞头所在侧）：
+        //   facing=down -> 缺口在下方，板占 y 4..16
+        //   facing=up   -> 缺口在上方，板占 y 0..12
+        // 此前 Down/Up 两条正好写反，伸出时活塞的缺口朝了错误的一边。
+        CollisionShape::fromPixelBox(0, 4, 0, 16, 16, 16), // Down
+        CollisionShape::fromPixelBox(0, 0, 0, 16, 12, 16), // Up
         CollisionShape::fromPixelBox(0, 0, 4, 16, 16, 16), // North
         CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 12), // South
         CollisionShape::fromPixelBox(4, 0, 0, 16, 16, 16), // West

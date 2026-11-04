@@ -265,7 +265,11 @@ void BellBlockEntity::_updateEntities(IWorld& world)
                 continue;
             }
 
-            // 仅村民有 Brain 和 HEARD_BELL_TIME 记忆
+            // 原版对所有 `LivingEntity` 无条件写 HEARD_BELL_TIME（它假定每个 Mob 都有 Brain）。
+            // Cubium 目前只有 VillagerEntity 持有 Brain 容器，因此这里限定村民——
+            // 实际消费该记忆的也只有 Villager（原版 MemoryModuleType.HEARD_BELL_TIME 的
+            // 唯一读者是 Villager），行为等价。TODO: 若将来给 MobEntity 引入通用 Brain，
+            // 这里应改回对所有 LivingEntity 写入。
             auto* villager = dynamic_cast<entity::VillagerEntity*>(living);
             if (villager == nullptr) {
                 continue;

@@ -62,8 +62,6 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -815,18 +813,9 @@ void WitherEntity::_breakNearbyBlocks()
                     continue;
                 }
 
-                // 将方块设置为空气，并掉落物品
-                const BlockState* airState =
-                    VanillaBlocks::AIR != nullptr ? &VanillaBlocks::AIR->defaultState() : nullptr;
-
-                if (airState != nullptr) {
-                    // 设置为空气方块，并通知邻居与同步客户端
-                    // 调用 spawnAfterBreak 以支持虫蚀方块等特殊行为（凋灵破坏方块不使用工具，不产生经验）
-                    const BlockState* oldState = state;
-                    worldPtr->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
-                    block.spawnAfterBreak(*worldPtr, pos, *oldState, nullptr, false);
-                    anyBlockBroken = true;
-                }
+                // 移除方块：原版 destroyBlocks 使用 level.removeBlock(pos, false)，不掉落、不产生破坏粒子
+                worldPtr->removeBlock(pos, false);
+                anyBlockBroken = true;
             }
         }
     }

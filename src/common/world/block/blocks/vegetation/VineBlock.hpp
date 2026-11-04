@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
@@ -31,7 +33,6 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include <array>
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
 
@@ -83,6 +84,15 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
+     * @brief 天空光直通（原版 `VineBlock#propagatesSkylightDown`）
+     *
+     * 藤蔓是贴墙的薄片，没有实体底面挡住天空光。不覆写的话基类判据
+     * （形状是否覆盖整格 + 流体是否为空）会得出 false，导致藤蔓下方偏暗。
+     */
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     // ========== 攀爬 ==========
 
@@ -168,8 +178,12 @@ private:
     CollisionShape m_eastShape;
     CollisionShape m_westShape;
 
-    /// 16 种附着组合的外形，按 bit0=north、bit1=south、bit2=east、bit3=west 索引。
-    mutable std::array<CollisionShape, 16> m_shapesByFaceMask;
+    /// 按方向属性组合预计算的形状表。
+    ///
+    /// 5 个布尔属性（north/south/east/west/up）共 32 种组合，索引位序为
+    /// `north<<0 | south<<1 | east<<2 | west<<3 | up<<4`。索引 0 表示全部为 false，
+    /// 按原版行为填入满方块。
+    std::array<CollisionShape, 32> m_shapesByDirections;
 };
 
 } // namespace blocks

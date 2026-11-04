@@ -27,6 +27,7 @@
 #include "AttributeModifier.hpp"
 #include "common/core/Types.hpp"
 #include <algorithm>
+#include <cmath>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -203,23 +204,37 @@ private:
      */
     [[nodiscard]] f64 _computeValue() const
     {
+        // 三阶段计算，语义严格对齐原版 AttributeInstance.calculateValue：
+        //
+        //   d0 = base + Σ(ADD_VALUE)
+        //   d1 = d0    + Σ(d0 * amount)          // 注意乘的是 d0，**不是**原始 base
+        //   d2 = d1    * Π(1 + amount)           // 逐个连乘
+        //   return sanitize(d2)
         f64 value = m_baseValue;
 
-        // 第一阶段：加法操作
+        // 第一阶段：加法操作。
         for (const auto& modifier : m_modifiers) {
             if (modifier.operation() == Operation::Addition) {
                 value += modifier.amount();
             }
         }
 
-        // 第二阶段：基础乘法
+        // 第二阶段：基础乘法。
+        //
+        // 这里的 `baseWithAdditions` 就是上面的 value（含全部 ADD_VALUE 之后的结果），
+        // 操作名 `add_multiplied_base` 指的就是「以这个基数为基准加倍」。
+        // 此前乘的是 `m_baseValue`（原始 base），只要同时存在 ADD_VALUE 修饰符，
+        // 结果就会偏低。例：base=10、ADD_VALUE=+5、MULTIPLY_BASE=0.5 时，
+        // 原版得 15 + 15*0.5 = 22.5，旧实现得 15 + 10*0.5 = 20。
+        // 由差分能力 attribute_modifier_apply 查出。
+        const f64 baseWithAdditions = value;
         for (const auto& modifier : m_modifiers) {
             if (modifier.operation() == Operation::MultiplyBase) {
-                value += m_baseValue * modifier.amount();
+                value += baseWithAdditions * modifier.amount();
             }
         }
 
-        // 第三阶段：总计乘法
+        // 第三阶段：总计乘法（逐个连乘，不能先把 amount 相加）。
         for (const auto& modifier : m_modifiers) {
             if (modifier.operation() == Operation::MultiplyTotal) {
                 value *= (1.0 + modifier.amount());
@@ -231,9 +246,20 @@ private:
 
     /**
      * @brief 将值限制在属性范围内
+     *
+     * **NaN 必须返回 minValue**：原版 `RangedAttribute.sanitizeValue` 是
+     * `Double.isNaN(v) ? minValue : Mth.clamp(v, minValue, maxValue)`。
+     *
+     * 普通的 `std::max(min, std::min(max, v))` 会让 NaN 原样穿透——NaN 与任何值比较
+     * 都是 false，`std::min` 直接返回 NaN，`std::max` 也返回 NaN。属性值一旦变成 NaN，
+     * 后续所有依赖它的伤害、生命、速度计算都会静默失效。
+     * 由差分能力 attribute_modifier_apply 查出（`10|add:nan` 原版得 0，旧实现得 100）。
      */
     [[nodiscard]] f64 _clamp(f64 value) const noexcept
     {
+        if (std::isnan(value)) {
+            return m_attribute.minValue();
+        }
         return std::max(m_attribute.minValue(), std::min(m_attribute.maxValue(), value));
     }
 

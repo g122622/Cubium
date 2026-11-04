@@ -23,12 +23,7 @@
 #include "PistonHeadBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/utils/ItemDropHelper.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/items/block/BlockItem.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
@@ -142,18 +137,27 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
     //   SHAPE_PLATFORM = boxZ(16.0, 0.0, 4.0)  = box(0, 0, 0, 16, 16, 4)
     //   SHAPES_SHORT   = SHAPE_PLATFORM | boxZ(4, 4, 16) = platform | box(6, 6, 4, 10, 10, 16)
     //   SHAPES         = SHAPE_PLATFORM | boxZ(4, 4, 20) = platform | box(6, 6, 4, 10, 10, 20)
-    // 基准姿态朝 NORTH（平台贴在 z ∈ [0, 4] 端、细杆向 +z 伸出），再按 FACING 旋转。
+    // 基准姿态朝 NORTH（平台贴在 +z 端、细杆向 -z 伸出），再按 FACING 旋转。
     // 平台 + 细杆的并集不覆盖整格，所以天空光可穿过（lightBlock=0）。早期未重写 getShape，
     // 退回整格立方体，活塞头被误判为完全挡光（lightBlock=15）。
-    // 基准朝向 NORTH：平台贴在 z ∈ [0, 4]，细杆沿 +z 伸出到 16（短臂）或 20（长臂）；
-    // 其余朝向由绕 Y/X/Z 轴旋转得到，映射 (x, z) → (1 - z, x) 等。
     static const std::array<std::array<CollisionShape, 6>, 2> shapes = {
         std::array<CollisionShape, 6>{
-            // 短臂：Down / Up / North / South / West / East
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, 0, 6, 10, 12, 10)), // Down
+            // 短臂：平台贴在 FACING 的**对侧**（厚度 4 像素），细杆从平台起沿 FACING
+            // 一直伸到方块另一端（16 像素）。逐条按 forAllBoxes 实测：
+            //   short+north -> 平台 z 0..4    杆 z 4..16   中心 4x4
+            //   short+south -> 平台 z 12..16  杆 z 0..12
+            //   short+west  -> 平台 x 0..4    杆 x 4..16
+            //   short+east  -> 平台 x 12..16  杆 x 0..12
+            // 此前每条的杆都从平台**起点**量到 12/16，方向反了——短臂活塞头看上去像根倒插的钉子。
+            // Down：平台贴**下方**（y 0..4），杆向上伸到 y 16。
+            // 与原版实测一致：[0,0,0->1,.25,1] + [.375,.25,.375->.625,1,.625]。
+            // 注意活塞头与活塞底座**规则相反**（活塞头朝向哪边、杆就伸向哪边，
+            // 平台留在反侧），不要照搬 PistonBlock 的表。
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
-                CollisionShape::fromPixelBox(6, 4, 6, 10, 16, 10)), // Up
+                CollisionShape::fromPixelBox(6, 4, 6, 10, 16, 10)), // Down
+            // Up：平台贴**上方**（y 12..16），杆向下伸到 y 0。
+            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
+                CollisionShape::fromPixelBox(6, 0, 6, 10, 12, 10)), // Up
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
                 CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 16)), // North
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
@@ -164,19 +168,28 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
                 CollisionShape::fromPixelBox(0, 6, 6, 12, 10, 10)), // East
         },
         std::array<CollisionShape, 6>{
-            // 长臂（细杆超出方块本地范围，与原版一致）
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, -4, 6, 10, 12, 10)), // Down
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
-                CollisionShape::fromPixelBox(6, 4, 6, 10, 20, 10)), // Up
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
-                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 20)), // North
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, 6, -4, 10, 10, 12)), // South
-            CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 4, 16, 16),
-                CollisionShape::fromPixelBox(4, 6, 6, 20, 10, 10)), // West
-            CollisionShape::combine(CollisionShape::fromPixelBox(12, 0, 0, 16, 16, 16),
-                CollisionShape::fromPixelBox(-4, 6, 6, 12, 10, 10)), // East
+            // 长臂：细杆沿 FACING 方向伸出方块边界（原版实测）。
+            // 平台始终贴在 FACING 的**对侧**（如 facing=north 时平台在 z 0..0.25），
+            // 细杆从平台起沿 FACING 延伸。此前细杆方向整体反了。
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.25f, 1.0f),
+                CollisionShape::box(0.375f, 0.25f, 0.375f, 0.625f, 1.25f, 0.625f)), // Down
+            // Up: 平台是整格上半的四块（Shapes.or 细分后的形态），细杆向上伸出。
+            // 四块缺一不可：此前只写了前两块，x 6..16 / z 6..16 那一大片没有板
+            // ——朝上的长臂活塞头上半部分缺了一角。
+            CollisionShape::combine(CollisionShape::box(0.375f, -0.25f, 0.375f, 0.625f, 1.0f, 0.625f),
+                CollisionShape::combine(
+                    CollisionShape::combine(CollisionShape::box(0.0f, 0.75f, 0.0f, 0.375f, 1.0f, 1.0f),
+                        CollisionShape::box(0.375f, 0.75f, 0.0f, 1.0f, 1.0f, 0.375f)),
+                    CollisionShape::combine(CollisionShape::box(0.375f, 0.75f, 0.625f, 1.0f, 1.0f, 1.0f),
+                        CollisionShape::box(0.625f, 0.75f, 0.375f, 1.0f, 1.0f, 0.625f)))),
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.25f),
+                CollisionShape::box(0.375f, 0.375f, 0.25f, 0.625f, 0.625f, 1.25f)), // North
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.75f, 1.0f, 1.0f, 1.0f),
+                CollisionShape::box(0.375f, 0.375f, -0.25f, 0.625f, 0.625f, 0.75f)), // South
+            CollisionShape::combine(CollisionShape::box(0.0f, 0.0f, 0.0f, 0.25f, 1.0f, 1.0f),
+                CollisionShape::box(0.25f, 0.375f, 0.375f, 1.25f, 0.625f, 0.625f)), // West
+            CollisionShape::combine(CollisionShape::box(0.75f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f),
+                CollisionShape::box(-0.25f, 0.375f, 0.375f, 0.75f, 0.625f, 0.625f)), // East
         },
     };
 
@@ -277,27 +290,9 @@ void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const B
     const BlockState* baseState = world.getBlockState(basePos);
 
     if (baseState != nullptr && isFittingBase(state, *baseState)) {
-        // 生成活塞基座的掉落物品
-        const Block& baseBlock = baseState->getBlock();
-        const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(baseBlock);
-        if (blockItem != nullptr) {
-            ItemStack dropStack(blockItem, 1);
-            math::Random rng;
-            ItemDropHelper::spawnItemEntity(&world,
-                dropStack,
-                static_cast<f64>(basePos.x) + 0.5,
-                static_cast<f64>(basePos.y) + 0.5,
-                static_cast<f64>(basePos.z) + 0.5,
-                rng);
-        }
-
-        // 将活塞基座设置为空气
-        if (auto* airState = BlockRegistry::instance().airState()) {
-            world.setBlockState(basePos, airState);
-        }
-
-        // 调用活塞基座的 spawnAfterBreak（如蠹虫生成等特殊逻辑）
-        baseBlock.spawnAfterBreak(world, basePos, *baseState, nullptr, false);
+        // 原版 affectNeighborsAfterRemoval 使用 serverLevel.destroyBlock(basePos, true)：
+        // 掉落表、破坏粒子与 BLOCK_DESTROY 事件由统一接口处理。
+        world.destroyBlock(basePos, true);
     }
 }
 
@@ -314,10 +309,8 @@ void PistonHeadBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, cons
     const BlockState* baseState = world.getBlockState(basePos);
 
     if (baseState != nullptr && isFittingBase(state, *baseState)) {
-        // 创造模式：销毁活塞基座但不产生掉落物
-        if (auto* airState = BlockRegistry::instance().airState()) {
-            world.setBlockState(basePos, airState);
-        }
+        // 创造模式：销毁活塞基座但不产生掉落物（原版 playerWillDestroy 的 destroyBlock(basePos, false)）
+        world.destroyBlock(basePos, false);
     }
 }
 

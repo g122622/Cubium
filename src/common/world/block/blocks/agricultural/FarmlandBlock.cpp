@@ -22,6 +22,7 @@
  */
 
 #include "FarmlandBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -40,6 +41,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <cstddef>
@@ -232,6 +234,10 @@ void FarmlandBlock::turnToDirt(Entity* entity, IWorld& world, const BlockPos& po
         // 耕地高度为 15/16 格，泥土为完整方块（1 格），碰撞形状增大时实体需要被推出
         Block::pushEntitiesUp(state, *dirtState, world, pos);
         world.setBlockState(pos, dirtState, world::BlockUpdateFlags::UPDATE_ALL);
+
+        // 耕地退化成泥土是方块状态变化（踩踏、缺水、上方被盖住都会触发），
+        // 要让附近幽匿感测体听到。
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, dirtState);
     }
 }
 

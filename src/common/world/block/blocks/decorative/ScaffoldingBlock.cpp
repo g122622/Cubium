@@ -93,17 +93,8 @@ ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
                         CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f) // 东南角
                         ))));
 
-    // 不稳定形状（SHAPE_UNSTABLE）：稳定形状 + 底部平台
-    // 包含顶部平台、四个角支柱、底部平台
-    m_fullShape = CollisionShape::combine(
-        CollisionShape::combine(CollisionShape::box(0.0f, TOP_Y_MIN, 0.0f, 1.0f, TOP_Y_MAX, 1.0f), // 顶部平台
-            CollisionShape::box(0.0f, 0.0f, 0.0f, CORNER_SIZE, 1.0f, CORNER_SIZE)                  // 西北角
-            ),
-        CollisionShape::combine(CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 0.0f, 1.0f, 1.0f, CORNER_SIZE), // 东北角
-            CollisionShape::combine(
-                CollisionShape::box(0.0f, 0.0f, 1.0f - CORNER_SIZE, CORNER_SIZE, 1.0f, 1.0f),       // 西南角
-                CollisionShape::box(1.0f - CORNER_SIZE, 0.0f, 1.0f - CORNER_SIZE, 1.0f, 1.0f, 1.0f) // 东南角
-                )));
+    // 最底层的外形在稳定形状之外还包含整块底板。
+    m_fullShape = CollisionShape::combine(m_stableShape, m_baseShape);
 
     // 空形状用于碰撞检测
     m_emptyShape = CollisionShape::empty();
@@ -283,23 +274,9 @@ const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const 
 
 const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& state) const noexcept
 {
-    // 原版 getCollisionShape：
-    //   - 放置上下文 → 空（放置时不与自身碰撞）
-    //   - 上方是完整方块且非下落中 → SHAPE_STABLE
-    //   - 否则 distance != 0 && bottom && 下方一格是完整方块 → SHAPE_UNSTABLE_BOTTOM
-    //   - 其余 → 空
-    // 下方路径需要实体上下文（CollisionContext），Cubium 的接口不带上下文，按
-    // 「非放置、上方无完整方块」的默认情形落到 stable，与差分探针的空世界一致。
-    // TODO: 接入实体上下文后补全放置 / 下落 / 底部平台三个分支。
-    i32 distance = state.get(BlockStateProperties::DISTANCE_0_7());
-    bool bottom = state.get(BlockStateProperties::BOTTOM());
-
-    if (distance != 0 && bottom) {
-        // 返回底部平台形状，允许玩家站在上面
-        return m_baseShape;
-    }
-
-    // 默认情形：顶部平台 + 四角支柱（原版 SHAPE_STABLE）。
+    MC_UNUSED(state);
+    // 空实体上下文的 isAbove(..., true) 返回 true，因此总取顶部平台与四角支柱。
+    // TODO: 在带实体的查询中补全放置、下行穿过平台及底部平台分支。
     return m_stableShape;
 }
 

@@ -72,7 +72,6 @@ void registerGardenBlocks()
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
-                .replaceable()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::PINK_PETALS));
@@ -99,6 +98,7 @@ void registerGardenBlocks()
     GardenBlocks::SHORT_DRY_GRASS =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:short_dry_grass"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .hardness(0.0f)
@@ -113,6 +113,7 @@ void registerGardenBlocks()
     GardenBlocks::TALL_DRY_GRASS =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:tall_dry_grass"),
             BlockProperties(Material::REPLACEABLE_PLANT)
+                .replaceable()
                 .noCollision()
                 .notSolid()
                 .hardness(0.0f)
@@ -164,6 +165,7 @@ void registerGardenBlocks()
     // 类名 BushPlantBlock 用以区别植物基类 BushBlock。可被岩浆点燃（对齐 vanilla）
     GardenBlocks::BUSH = &registry.registerBlock<blocks::BushPlantBlock>(ResourceLocation("minecraft:bush"),
         BlockProperties(Material::PLANT)
+            .replaceable()
             .noCollision()
             .notSolid()
             .hardness(0.0f)

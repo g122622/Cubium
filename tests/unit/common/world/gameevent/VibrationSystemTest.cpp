@@ -136,19 +136,20 @@ TEST(VibrationSystemTest, GetFrequency_ProjectileLandIs2)
     EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::PROJECTILE_LAND), 2);
 }
 
-TEST(VibrationSystemTest, GetFrequency_BlockActivateIs5)
+TEST(VibrationSystemTest, GetFrequency_BlockActivateIs10)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_ACTIVATE), 5);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::BLOCK_ACTIVATE), 10);
 }
 
-TEST(VibrationSystemTest, GetFrequency_EntityDamageIs11)
+TEST(VibrationSystemTest, GetFrequency_EntityDamageIs7)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DAMAGE), 11);
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::ENTITY_DAMAGE), 7);
 }
 
-TEST(VibrationSystemTest, GetFrequency_ShriekIs15)
+TEST(VibrationSystemTest, GetFrequency_ShriekHasNone)
 {
-    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SHRIEK), 15);
+    // 原版 VIBRATION_FREQUENCY_FOR_EVENT 里没有 shriek，频率 0 表示不产生振动。
+    EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SHRIEK), 0);
 }
 
 // ============================================================================
@@ -278,8 +279,8 @@ TEST(VibrationSystemTest, VibrationInfo_WithEntity)
 
     EXPECT_EQ(info.gameEvent, &event);
     EXPECT_FLOAT_EQ(info.distance, 5.0f);
-    EXPECT_FALSE(info.hasSourceEntity);
-    EXPECT_EQ(info.sourceEntityId, 0u);
+    EXPECT_FALSE(info.sourceUuid.has_value());
+    EXPECT_FALSE(info.projectileOwnerUuid.has_value());
 }
 
 TEST(VibrationSystemTest, VibrationInfo_DefaultConstructor)
@@ -287,7 +288,7 @@ TEST(VibrationSystemTest, VibrationInfo_DefaultConstructor)
     VibrationInfo info;
     EXPECT_EQ(info.gameEvent, nullptr);
     EXPECT_FLOAT_EQ(info.distance, 0.0f);
-    EXPECT_FALSE(info.hasSourceEntity);
+    EXPECT_FALSE(info.sourceUuid.has_value());
 }
 
 // ============================================================================

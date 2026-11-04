@@ -116,6 +116,20 @@ public:
     [[nodiscard]] static i32 getNote(const BlockState& state);
 
     /**
+     * @brief 由音符值计算播放音高（原版 `NoteBlock#getPitchFromNote`）
+     *
+     * `2^((note - 12) / 12)`：0 号音符比基准低一个八度，12 号是基准音，
+     * 24 号高一个八度。每 +1 升一个半音，每 +12 频率翻倍。
+     *
+     * 注意只有**可调音乐器**（BASE_BLOCK 类）才用它：头颅类（MOB_HEAD / CUSTOM）
+     * 的音高固定为 1.0。
+     *
+     * @param note 音调值（0-24）
+     * @return f32 播放音高
+     */
+    [[nodiscard]] static f32 calculatePitch(i32 note);
+
+    /**
      * @brief 设置音调
      * @param state 方块状态
      * @param note 音调值（0-24）
@@ -139,7 +153,24 @@ public:
      * @param pos 音符盒位置
      * @param state 当前方块状态
      */
-    void triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state);
+    static void triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 方块事件：在方块位置播放音符（原版 `NoteBlock#triggerEvent`）
+     *
+     * 原版把播放放在**方块事件**里而不是直接调 `playNote`：服务端只广播事件，
+     * 收到事件的每一端各自播放，附近所有玩家都能听到。直接调 playNote 只会
+     * 在发起方本地出声，多人时其他人听不到。
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 音符盒位置
+     * @param id 事件 ID（音符盒只用 0）
+     * @param type 事件参数（音符盒不使用）
+     * @return 事件是否被处理
+     */
+    [[nodiscard]] bool triggerEvent(
+        const BlockState& state, IWorld& world, const BlockPos& pos, i32 id, i32 type) const override;
 
     /**
      * @brief 按方块类型推导音符盒乐器（对齐 vanilla 1.20 及以前的 NoteBlockInstrument.byState）
@@ -172,7 +203,7 @@ private:
      * @param instrument 乐器类型
      * @param note 音调
      */
-    void _playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note);
+    [[nodiscard]] bool _playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note) const;
 };
 
 } // namespace blocks

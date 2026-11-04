@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/item/component/DataComponentPatchWire.hpp"
+#include "common/network/backend/java/codecs/DataComponentPatchCodec.hpp"
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -60,9 +60,30 @@
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
 
-namespace mc {
-namespace item {
-namespace component {
+namespace mc::network::backend::java {
+
+// 本文件从 item::component 迁入 backend::java 后不再共享外层 mc::item 命名空间，
+// 被 item::component / item::core 等隔离的类型须显式引入。
+using AdventureModePredicate = ::mc::AdventureModePredicate;
+using ItemRarity = ::mc::ItemRarity;
+using ItemRegistry = ::mc::ItemRegistry;
+using ItemStack = ::mc::ItemStack;
+
+using item::component::AttackRange;
+using item::component::componentTypeById;
+namespace ComponentPayloadIndex = item::component::ComponentPayloadIndex;
+using item::component::ConsumeEffectEntry;
+using item::component::ConsumeEffectKind;
+using item::component::DataComponentPatch;
+using item::component::DataComponentPayload;
+using item::component::DataComponentType;
+using item::component::DeathProtectionPayload;
+using item::component::FireworkExplosion;
+using item::component::Fireworks;
+using item::component::fireworkShapeById;
+using item::component::PotionContentsPayload;
+using item::enchant::EnchantmentContainer;
+using item::items::BundleContents;
 
 namespace {
 
@@ -76,9 +97,9 @@ enum class _ConsumeEffectWireType : i32 {
 };
 
 /// 写单个 ConsumeEffect（vanilla ConsumeEffect.STREAM_CODEC dispatch）。
-[[nodiscard]] Result<void> _writeConsumeEffect(network::buffer::ByteBuf& buf, const ConsumeEffectEntry& entry);
+[[nodiscard]] Result<void> _writeConsumeEffect(buffer::ByteBuf& buf, const ConsumeEffectEntry& entry);
 /// 读单个 ConsumeEffect（类型分派，载荷与写入对称）。
-[[nodiscard]] Result<ConsumeEffectEntry> _readConsumeEffect(network::buffer::ByteBuf& buf);
+[[nodiscard]] Result<ConsumeEffectEntry> _readConsumeEffect(buffer::ByteBuf& buf);
 
 thread_local usize _patchDepth = 0;
 
@@ -106,7 +127,7 @@ using nbt::tags::compound_tag;
 
 /// 从 buf 读一个 Component NBT wire 区段（自定界），返回其原始字节。
 /// Component NBT 根可能是 StringTag(0x08，纯文本折叠) 或 CompoundTag(0x0A，复杂组件)。
-[[nodiscard]] Result<std::vector<u8>> readComponentNbtBytes(network::buffer::ByteBuf& buf)
+[[nodiscard]] Result<std::vector<u8>> readComponentNbtBytes(buffer::ByteBuf& buf)
 {
     const usize start = buf.readPosition();
     u8 tagId = 0;
@@ -118,7 +139,7 @@ using nbt::tags::compound_tag;
         MC_TRY(buf.readBytes(static_cast<usize>(len)));
     } else if (tagId == 0x0A) {
         // CompoundTag：0x0A 已消费，skipCompound 消费 body（entries + 0x00 End）。
-        MC_TRY(network::buffer::nbt_io::skipCompound(buf));
+        MC_TRY(buffer::nbt_io::skipCompound(buf));
     } else {
         return Error(ErrorCode::InvalidData,
             "Component NBT: expected StringTag(0x08) or CompoundTag(0x0A)",
@@ -135,8 +156,7 @@ const nlohmann::json& _rawBookValue(const nlohmann::json& value)
     return value.is_object() && value.contains("raw") ? value.at("raw") : value;
 }
 
-Result<void> _writeBookValue(
-    network::buffer::ByteBuf& buf, const nlohmann::json& value, bool component, usize maxLength)
+Result<void> _writeBookValue(buffer::ByteBuf& buf, const nlohmann::json& value, bool component, usize maxLength)
 {
     auto write = [&](const nlohmann::json& raw) -> Result<void> {
         if (component) {
@@ -162,7 +182,7 @@ Result<void> _writeBookValue(
     return {};
 }
 
-Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool component, usize maxLength)
+Result<nlohmann::json> _readBookValue(buffer::ByteBuf& buf, bool component, usize maxLength)
 {
     auto read = [&]() -> Result<nlohmann::json> {
         if (component) {
@@ -171,8 +191,8 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
             if (bytes.front() == 8) {
                 return nlohmann::json(text::componentNbtBytesToPlainText(bytes));
             }
-            network::buffer::ByteBuf nbtBuf(bytes.data(), bytes.size());
-            auto tagResult = network::buffer::nbt_io::readRootCompound(nbtBuf);
+            buffer::ByteBuf nbtBuf(bytes.data(), bytes.size());
+            auto tagResult = buffer::nbt_io::readRootCompound(nbtBuf);
             if (tagResult.failed()) {
                 return tagResult.error();
             }
@@ -200,7 +220,7 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
 }
 
 /// 写颜色列表（vanilla COLOR_LIST_STREAM_CODEC = VarInt(count) + [定长 4 字节大端 INT]*）。
-void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colors)
+void _writeColorList(buffer::ByteBuf& buf, const std::vector<i32>& colors)
 {
     buf.writeVarInt(static_cast<i32>(colors.size()));
     for (i32 color : colors) {
@@ -209,7 +229,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
 }
 
 /// 读颜色列表（与 _writeColorList 对偶）。
-[[nodiscard]] Result<std::vector<i32>> _readColorList(network::buffer::ByteBuf& buf)
+[[nodiscard]] Result<std::vector<i32>> _readColorList(buffer::ByteBuf& buf)
 {
     i32 count = 0;
     MC_TRY_ASSIGN(count, buf.readVarInt());
@@ -228,7 +248,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
 
 /// 写单个组件 value 到 wire（按 type 分派到专属 codec）。
 [[nodiscard]] Result<void> _writeComponentValue(
-    network::buffer::ByteBuf& buf, DataComponentType type, const DataComponentPayload& payload)
+    buffer::ByteBuf& buf, DataComponentType type, const DataComponentPayload& payload)
 {
     using network::backend::java::writeItemEnchantments;
     using network::backend::java::writePotionContentsPayload;
@@ -306,7 +326,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
             return {};
         }
         case DataComponentType::BundleContents: {
-            const auto contents = items::BundleContents::fromJson(std::get<nlohmann::json>(payload));
+            const auto contents = BundleContents::fromJson(std::get<nlohmann::json>(payload));
             buf.writeVarInt(static_cast<i32>(contents.size()));
             for (const auto& stack : contents.items()) {
                 buf.writeVarInt(stack.getCount());
@@ -385,7 +405,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
                     tag = dynamic_cast<const compound_tag&>(*nbt);
                 }
             }
-            return network::buffer::nbt_io::writeRootCompound(buf, tag);
+            return buffer::nbt_io::writeRootCompound(buf, tag);
         }
         case DataComponentType::FireworkExplosion: {
             // FireworkExplosion.STREAM_CODEC = composite(Shape.STREAM_CODEC(VarInt id),
@@ -423,7 +443,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
 }
 
 /// 从 wire 读单个组件 value（按 type 分派到专属 codec）。
-[[nodiscard]] Result<DataComponentPayload> _readComponentValue(network::buffer::ByteBuf& buf, DataComponentType type)
+[[nodiscard]] Result<DataComponentPayload> _readComponentValue(buffer::ByteBuf& buf, DataComponentType type)
 {
     using network::backend::java::readItemEnchantments;
     using network::backend::java::readPotionContentsPayload;
@@ -541,7 +561,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
                 contents.push_back(std::move(stack));
             }
             return DataComponentPayload{
-                std::in_place_index<ComponentPayloadIndex::Json>, items::BundleContents(std::move(contents)).toJson()};
+                std::in_place_index<ComponentPayloadIndex::Json>, BundleContents(std::move(contents)).toJson()};
         }
         case DataComponentType::WritableBookContent:
         case DataComponentType::WrittenBookContent: {
@@ -636,7 +656,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(layers)};
         }
         case DataComponentType::CustomData: {
-            auto tagResult = network::buffer::nbt_io::readRootCompound(buf);
+            auto tagResult = buffer::nbt_io::readRootCompound(buf);
             if (tagResult.failed()) {
                 return tagResult.error();
             }
@@ -684,7 +704,7 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
 // ConsumeEffect wire 编解码（death_protection 组件载荷）
 // ============================================================================
 
-Result<void> _writeConsumeEffect(network::buffer::ByteBuf& buf, const ConsumeEffectEntry& entry)
+Result<void> _writeConsumeEffect(buffer::ByteBuf& buf, const ConsumeEffectEntry& entry)
 {
     using network::backend::java::writeMobEffectInstance;
     switch (entry.kind) {
@@ -725,7 +745,7 @@ Result<void> _writeConsumeEffect(network::buffer::ByteBuf& buf, const ConsumeEff
     return Error(ErrorCode::InvalidData, "Unknown consume effect kind");
 }
 
-Result<ConsumeEffectEntry> _readConsumeEffect(network::buffer::ByteBuf& buf)
+Result<ConsumeEffectEntry> _readConsumeEffect(buffer::ByteBuf& buf)
 {
     using network::backend::java::readMobEffectInstance;
     i32 typeId = 0;
@@ -789,7 +809,7 @@ Result<ConsumeEffectEntry> _readConsumeEffect(network::buffer::ByteBuf& buf)
 
 } // namespace
 
-Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponentPatch& patch)
+Result<void> writePatchToWire(buffer::ByteBuf& buf, const DataComponentPatch& patch)
 {
     // 两 count 在前（vanilla 顺序），added 段全在后，removed 段最后。
     buf.writeVarInt(static_cast<i32>(patch.added().size()));
@@ -808,7 +828,7 @@ Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponent
     return {};
 }
 
-Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
+Result<DataComponentPatch> readPatchFromWire(buffer::ByteBuf& buf)
 {
     if (_patchDepth >= 64) {
         return Error(ErrorCode::InvalidData, "Item component nesting exceeds limit");
@@ -847,7 +867,7 @@ Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
     return patch;
 }
 
-Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
+Result<std::vector<u8>> readPatchBytesFromWire(buffer::ByteBuf& buf)
 {
     // 记录 patch 区段起点，按 vanilla 自终止结构推进游标，最后切出消费到的字节副本。
     // 与 readPatchFromWire 同结构（两 count 在前 + added 段 + removed 段），但只推进游标、
@@ -887,7 +907,7 @@ Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
     return std::vector<u8>(base, base + (end - start));
 }
 
-Result<std::vector<u8>> readExactPredicateBytesFromWire(network::buffer::ByteBuf& buf)
+Result<std::vector<u8>> readExactPredicateBytesFromWire(buffer::ByteBuf& buf)
 {
     const usize start = buf.readPosition();
     i32 count = 0;
@@ -916,7 +936,7 @@ std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHa
             continue; // 未落地组件跳过
         }
         // 用专属 codec 把组件值编码到临时 ByteBuf，对 wire 字节算 CRC-32C。
-        network::buffer::ByteBuf tmp;
+        buffer::ByteBuf tmp;
         if (_writeComponentValue(tmp, *type, entry.value).failed()) {
             continue; // 编码失败跳过该组件（不中断整体哈希计算）
         }
@@ -929,6 +949,4 @@ std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHa
     return result;
 }
 
-} // namespace component
-} // namespace item
-} // namespace mc
+} // namespace mc::network::backend::java

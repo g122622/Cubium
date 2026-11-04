@@ -129,7 +129,7 @@ ExplosionContext ◄─────────── Explosion ──► Explos
 - `tool` 参数为 `nullptr`（爆炸无工具），`dropExp` 为 `false`（爆炸不产生经验）
 - 这意味着虫蚀方块（InfestedBlock）在爆炸中不会因为精准采集而不生成蠹虫（因为 tool = nullptr）
 - 但 `doTileDrops` 游戏规则仍然生效：`doTileDrops = false` 时不生成蠹虫
-- 调用顺序：`onBlockExploded` → `setBlockState(air)` → `spawnAfterBreak`，与 MC Java 一致
+- 调用顺序：`onBlockExploded` → `IWorld::removeBlock(pos, false)` → `spawnAfterBreak`，与 MC Java `onExplosionHit` 的 `setBlock(pos, AIR, 3)` 一致（爆炸不走 `IWorld::destroyBlock`，因为掉落需要先合并后再统一生成）
 - `onBlockExploded` 签名包含 `const Explosion* explosion` 参数，允许方块在爆炸回调中访问爆炸信息（如间接源实体）
 
 ### #9. 蓝色凋灵之首的爆炸抗性穿透

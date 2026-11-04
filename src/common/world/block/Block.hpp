@@ -40,6 +40,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "world/biome/BiomeClimate.hpp"
+#include "world/block/registry/BlockMapColorTable.hpp"
 #include "world/map/MaterialColor.hpp"
 #include <array>
 #include <functional>
@@ -198,6 +199,29 @@ public:
     BlockProperties& lightLevel(u8 level) noexcept
     {
         m_lightLevel = level > 15 ? 15 : level;
+        return *this;
+    }
+
+    /**
+     * @brief 强制视为实体方块（原版 `BlockBehaviour.Properties#forceSolidOn`）
+     *
+     * 覆盖 `isSolid` 的形状推断，直接返回 true。用于「碰撞形状不满整格、但语义上
+     * 算实体方块」的情况。
+     */
+    BlockProperties& forceSolidOn() noexcept
+    {
+        m_forceSolidOn = true;
+        return *this;
+    }
+
+    /**
+     * @brief 强制不视为实体方块（原版 `BlockBehaviour.Properties#forceSolidOff`）
+     *
+     * 覆盖 `isSolid` 的形状推断，直接返回 false。优先级低于 `forceSolidOn`。
+     */
+    BlockProperties& forceSolidOff() noexcept
+    {
+        m_forceSolidOff = true;
         return *this;
     }
 
@@ -676,9 +700,13 @@ private:
     u8 m_lightLevel;
     bool m_hasCollision;
     bool m_isSolid;
+    bool m_forceSolidOn = false;  ///< 强制视为实体方块（覆盖 `isSolid` 的形状推断）
+    bool m_forceSolidOff = false; ///< 强制不视为实体方块（覆盖 `isSolid` 的形状推断）
     bool m_isFlammable;
     bool m_requiresTool;
     bool m_isReplaceable;
+
+private:
     i32 m_opacity = 15;       // 默认完全不透明
     bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
     bool m_propagatesSkylightDown = false;
@@ -816,6 +844,28 @@ public:
     }
 
     /**
+     * @brief 速度倍率（原版 `Block#getSpeedFactor`）
+     *
+     * 玩家站在这块方块上时，水平移动速度乘以此值。蜂蜜块、灵魂沙为 0.4。
+     * 与摩擦系数是两套机制：摩擦决定「是否会打滑」，速度倍率决定「走得多快」。
+     */
+    [[nodiscard]] f32 speedFactor() const noexcept
+    {
+        return m_speedFactor;
+    }
+
+    /**
+     * @brief 跳跃倍率（原版 `Block#getJumpFactor`）
+     *
+     * 玩家从这块方块起跳时的初速度乘以此值。蜂蜜块为 0.5；灵魂沙是 1.0
+     * （灵魂沙只减速、不限制跳跃）。
+     */
+    [[nodiscard]] f32 jumpFactor() const noexcept
+    {
+        return m_jumpFactor;
+    }
+
+    /**
      * @brief 获取光照等级
      */
     [[nodiscard]] u8 lightLevel() const noexcept
@@ -888,20 +938,22 @@ public:
      *
      * 参考: net.minecraft.block.Block#getDefaultMaterialColor
      *
-     * TODO(map-color): 项目当前没有任何方块注册点调用 BlockProperties::mapColor()，且
-     *   Material::materialColor 恒为 0（AIR），因此 getMapColor 对所有方块都返回 AIR，
-     *   填充地图不会渲染地表。align: 需按 vanilla 1.21.11 逐个方块补 mapColor（数据可从
-     *   net/minecraft/world/level/block/Blocks.java 的字节码注释中提取
-     *   `getstatic .../material/MapColor.XXX`），并为 RotatedPillarBlock（按轴）、
-     *   LeavesBlock（PLANT）等实现状态相关颜色，同时对草的生物群系染色走 getMapColor(state, world, pos)。
+     * 注册时显式设置过 `BlockProperties::mapColor()` 的方块用注册值；否则回退到
+     * 原版快照表（`lookupVanillaMapColor`）。快照由差分能力 block_map_color 逐方块实测
+     * 导出——地图颜色在原版是硬编码在注册调用里的，数据包里没有这项信息。
+     *
+     * TODO(map-color): 尚未实现状态相关颜色（RotatedPillarBlock 按轴、LeavesBlock 的
+     *   PLANT，以及草的生物群系染色）。当前按方块取默认状态的颜色。
      */
     [[nodiscard]] virtual world::map::MaterialColorId getMapColor(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
-        MC_UNUSED(state);
-        return m_mapColor;
+        if (m_hasMapColor) {
+            return m_mapColor;
+        }
+        return static_cast<world::map::MaterialColorId>(::mc::world::block::lookupVanillaMapColor(state.toString()));
     }
 
     /**
@@ -1520,6 +1572,22 @@ public:
      * @param state 被破坏的方块状态
      */
     static void dropResources(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 在世界中生成方块的掉落物品（携带方块实体上下文）
+     *
+     * 与三参版本相同，但把方块实体作为掉落参数 `BLOCK_ENTITY` 传入，供
+     * `copy_components` / `copy_custom_data` 等掉落函数复制容器名称与组件。
+     * 必须在方块实体被移除之前调用。
+     *
+     * 参考: net.minecraft.block.Block.dropResources(BlockState, LevelAccessor, BlockPos, BlockEntity)
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 被破坏的方块状态
+     * @param blockEntity 该位置的方块实体（可为 nullptr）
+     */
+    static void dropResources(IWorld& world, const BlockPos& pos, const BlockState& state, BlockEntity* blockEntity);
 
     /**
      * @brief 方块被爆炸破坏时的处理
@@ -2665,11 +2733,14 @@ public:
         const BlockState& state, IWorld& world, const BlockPos& pos);
 
     /**
-     * @brief 更新或销毁方块：新状态为空气时移除方块，否则写入新状态。
+     * @brief 更新或销毁方块：新状态为空气时摧毁方块，否则写入新状态。
      *
-     * 形状更新级联的统一出口。新状态为空气时移除该方块，且当 flags 含
-     * UPDATE_SUPPRESS_DROPS 时一并抑制移除带来的掉落（含容器内容物）；
-     * 新状态非空气时写入新状态，并剥掉该标志位以免语义泄漏到下游写入。
+     * 形状更新级联的统一出口。新状态为空气时调用 IWorld::destroyBlock：产生破坏粒子、
+     * dropBlock 为 true 时按掉落表生成掉落、发送 BLOCK_DESTROY 游戏事件；flags 含
+     * UPDATE_SUPPRESS_DROPS 时传 dropBlock=false 抑制掉落。新状态非空气时写入新状态，
+     * 并剥掉该标志位以免语义泄漏到下游写入。
+     *
+     * 等价于传入 BlockUpdateFlags::DEFAULT_DESTROY_RECURSION。
      *
      * @param oldState 变化前的方块状态
      * @param newState 变化后的方块状态
@@ -2679,6 +2750,26 @@ public:
      */
     static void updateOrDestroy(
         const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags);
+
+    /**
+     * @brief 更新或销毁方块（指定形状更新递归预算）
+     *
+     * 对应 MC Java: Block.updateOrDestroy(oldState, newState, level, pos, flags, recursionLeft)。
+     * recursionLeft 是形状更新级联的深度预算，变空气时原样传给 IWorld::destroyBlock。
+     *
+     * @param oldState 变化前的方块状态
+     * @param newState 变化后的方块状态
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @param flags 更新标志
+     * @param recursionLeft 剩余的形状更新递归预算
+     */
+    static void updateOrDestroy(const BlockState& oldState,
+        const BlockState& newState,
+        IWorld& world,
+        const BlockPos& pos,
+        i32 flags,
+        i32 recursionLeft);
 
     // ========================================================================
     // 攻击和交互
@@ -2913,6 +3004,10 @@ protected:
     i32 m_opacity = 15; // 默认完全不透明
     bool m_hasCollision = true;
     bool m_isSolid = true;
+    bool m_forceSolidOn = false;  // 强制视为实体方块（覆盖 isSolid 的形状推断）
+    bool m_forceSolidOff = false; // 强制不视为实体方块（覆盖 isSolid 的形状推断）
+
+protected:
     bool m_isFlammable = false;
     bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
     bool m_propagatesSkylightDown = false;

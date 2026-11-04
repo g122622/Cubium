@@ -88,25 +88,13 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
             .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot)
             .with(BlockStateProperties::OCCUPIED(), false));
 
-    // 预计算各朝向的形状
-    // 床的形状：主体 + 四个床腿
+    // 按床脚朝向缓存床垫与外侧的两条腿；床头复用反向形状。
     constexpr f32 P = 1.0f / 16.0f;
 
     // 主体形状 (高度9像素，从Y=3开始)
     CollisionShape baseShape = CollisionShape::box(0.0f, 3.0f * P, 0.0f, 16.0f * P, 9.0f * P, 16.0f * P);
 
-    // 床腿：原版只有**两条**，位于对角。
-    //
-    //   leg      = Block.box(0, 0, 0, 3, 3, 3);
-    //   legRot90 = Shapes.rotate(leg, BLOCK_ROT_Y_90);   // -> box(13, 0, 0, 16, 3, 3)
-    //   SHAPES   = rotateHorizontal(Shapes.or(Block.column(16, 3, 9), leg, legRot90));
-    //
-    // 腿在 +Z 一侧（z 13..16）与 -X 一侧（x 0..3）：取 `.getOpposite()` 后的
-    // 连通方向作为键，默认（north）时落在 z 的远端。四个朝向是同一形状绕 Y 轴
-    // 旋转 0/90/180/270 度，不能共用一个形状——此前那样做会让腿总在 z 的近端。
-    // 腿是 3×3×3 像素的块，不是贯穿整边的长条。
-    // rotateHorizontal 后：north 在 z 远端（13..16）、south 在 z 近端（0..3）、
-    // west 在 x 近端（0..3）、east 在 x 远端（13..16）。
+    // 每半张床只在远离另一半的两个角有腿，横截面均为 3×3 像素。
     const auto _buildWithLegs = [&](f32 legAX, f32 legAZ, f32 legBX, f32 legBZ) {
         const CollisionShape legA =
             CollisionShape::box(legAX * P, 0.0f, legAZ * P, (legAX + 3.0f) * P, 3.0f * P, (legAZ + 3.0f) * P);
@@ -117,8 +105,8 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
 
     m_shapesByFacing[static_cast<size_t>(Direction::North)] = _buildWithLegs(0.0f, 13.0f, 13.0f, 13.0f);
     m_shapesByFacing[static_cast<size_t>(Direction::South)] = _buildWithLegs(0.0f, 0.0f, 13.0f, 0.0f);
-    m_shapesByFacing[static_cast<size_t>(Direction::West)] = _buildWithLegs(0.0f, 0.0f, 0.0f, 13.0f);
-    m_shapesByFacing[static_cast<size_t>(Direction::East)] = _buildWithLegs(13.0f, 0.0f, 13.0f, 13.0f);
+    m_shapesByFacing[static_cast<size_t>(Direction::East)] = _buildWithLegs(0.0f, 0.0f, 0.0f, 13.0f);
+    m_shapesByFacing[static_cast<size_t>(Direction::West)] = _buildWithLegs(13.0f, 0.0f, 13.0f, 13.0f);
 }
 
 BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -168,7 +156,7 @@ BlockState BedBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& BedBlock::getShape(const BlockState& state) const
 {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const Direction facing = getConnectedDirection(state);
     size_t index = static_cast<size_t>(facing);
     MC_ASSERT(index < Directions::COUNT && Directions::isHorizontal(facing));
     return m_shapesByFacing[index];
@@ -205,8 +193,8 @@ Direction BedBlock::getConnectedDirection(const BlockState& state)
 {
     BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    // 头部指向脚部（与朝向同方向），脚部指向头部（朝向的反方向）
-    return (part == BlockStateProperties::BedPart::Head) ? facing : Directions::opposite(facing);
+    // FACING 从床脚指向床头；床头连接回床脚时需要反向。
+    return (part == BlockStateProperties::BedPart::Head) ? Directions::opposite(facing) : facing;
 }
 
 namespace {
