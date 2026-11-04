@@ -56,6 +56,23 @@ std::string pieceTypeName(i32 type)
     }
 }
 
+/** 朝向名：MineshaftPiece 的方向用 0=北 1=南 2=西 3=东 记录。 */
+const char* directionName(i32 direction)
+{
+    switch (direction) {
+        case 0:
+            return "NORTH";
+        case 1:
+            return "SOUTH";
+        case 2:
+            return "WEST";
+        case 3:
+            return "EAST";
+        default:
+            return "null";
+    }
+}
+
 /** 朝向名：直接取构件记录的 Rotation，与 structure_starts 的口径一致。 */
 const char* rotationName(Rotation rotation)
 {
@@ -110,15 +127,19 @@ std::string runLine(std::string_view inputLine)
         found = true;
         for (const auto& piece : selection.start->pieces()) {
             const auto& bbox = piece->getBoundingBox();
+            const auto type = static_cast<i32>(piece->getComponentType());
+            const auto* mineshaftPiece = (type >= 60 && type <= 63)
+                ? static_cast<const world::gen::structure::MineshaftPiece*>(piece.get())
+                : nullptr;
             pieces.push_back(json{{"type", pieceTypeName(static_cast<i32>(piece->getComponentType()))},
                 {"box", {bbox.minX(), bbox.minY(), bbox.minZ(), bbox.maxX(), bbox.maxY(), bbox.maxZ()}},
                 {"rotation", rotationName(piece->getRotation())},
                 {"componentType", static_cast<i32>(piece->getComponentType())},
-                {"genDepth",
-                    piece->getComponentType() >= 60 && piece->getComponentType() <= 63
-                        ? static_cast<i32>(
-                              static_cast<const world::gen::structure::MineshaftPiece*>(piece.get())->genDepth())
-                        : -1}});
+                {"genDepth", mineshaftPiece ? mineshaftPiece->genDepth() : -1},
+                // 原版只有走廊(61)与楼梯(63)在构造里调用 setOrientation；交叉点(62)与
+                // 房间(60)都不调用，它们的 getOrientation() 是 null。这里必须逐类对齐，
+                // 不能一律取 direction()。
+                {"orientation", (type == 61 || type == 63) ? directionName(mineshaftPiece->direction()) : "null"}});
         }
     }
 

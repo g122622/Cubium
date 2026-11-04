@@ -127,6 +127,17 @@ public:
      * @param rng 随机数生成器
      * @param maxDepth 最大深度
      */
+    /**
+     * @brief 朝向：0=北 1=南 2=西 3=东；房间没有朝向，返回 -1
+     *
+     * 走廊/交叉点/楼梯都按朝向决定从哪条边开口。此前三个子类各自持有一份
+     * m_direction 与同名的 direction()，重复且容易漂移，统一上提到基类。
+     */
+    [[nodiscard]] i32 direction() const noexcept
+    {
+        return m_direction;
+    }
+
     virtual void buildComponent(
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) = 0;
 
@@ -145,6 +156,9 @@ protected:
 
     /// 生成深度：起点房间为 0，逐层 +1（见 genDepth 的说明）
     i32 m_genDepth = 0;
+
+    /// 朝向：0=北 1=南 2=西 3=东；房间为 -1
+    i32 m_direction = -1;
 };
 
 // ============================================================================
@@ -212,11 +226,6 @@ public:
     void buildComponent(
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) override;
 
-    [[nodiscard]] i32 direction() const
-    {
-        return m_direction;
-    }
-
 private:
     /**
      * @brief 生成走廊地板
@@ -266,7 +275,6 @@ private:
     bool m_hasSpiders;
     bool m_spawnerPlaced = false;
     i32 m_sectionCount;
-    i32 m_direction; ///< 0=北, 1=南, 2=西, 3=东
 };
 
 // ============================================================================
@@ -301,13 +309,7 @@ public:
     void buildComponent(
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) override;
 
-    [[nodiscard]] i32 direction() const
-    {
-        return m_direction;
-    }
-
 private:
-    i32 m_direction;
 };
 
 // ============================================================================
@@ -342,13 +344,7 @@ public:
     void buildComponent(
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) override;
 
-    [[nodiscard]] i32 direction() const
-    {
-        return m_direction;
-    }
-
 private:
-    i32 m_direction;
 };
 
 // ============================================================================
