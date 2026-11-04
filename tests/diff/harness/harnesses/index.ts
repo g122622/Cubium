@@ -1769,6 +1769,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "陆行生物会走进水里",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) , knownDifferences: KNOWN_PATHFINDABLE_GAPS },
     {
+        name: "block_light_occlusion_shape",
+        probe: "block_light_occlusion_shape",
+        oracle: "BlockLightOcclusionShapeOracle",
+        description: "方块状态是否按形状决定光照遮挡（BlockBehaviour#useShapeForLightOcclusion）—— 全部 29671 个状态；"
+        + "光照引擎判断方块是否挡光有两种口径：false（默认）只看 canOcclude 与具体形状无关；true 按形状实际包围盒累加遮挡。"
+        + "台阶、楼梯、耕地、土径、雪这类半格或略矮的方块必须是 true —— 写成 false 会让台阶下方一片漆黑、室内光照蔓延范围偏小。"
+        + "反向写成 true 则让整格不透明但形状略小的方块在其上方凭空透光。此标志不影响实体碰撞，只影响光照，错了不会撞穿只会「暗得没道理」",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
