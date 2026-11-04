@@ -436,3 +436,67 @@ piece 数 152 vs 159、266 vs 125 说明分支展开仍有出入。要彻底对�
 调试时曾看到「两个 long 值顺序颠倒」，误判为随机源起点错误。实际是**诊断代码自己
 把两个 `rng.nextLong()` 写在同一个 `fprintf` 实参里**，而 C++ 实参求值顺序未指定。
 凡是随机数抽取顺序有意义的地方，必须逐个语句取值。
+
+---
+
+## 第九、十轮：构件级差分能力与随机序列定位
+
+### 新增能力 `mineshaft_pieces`
+
+把矿井拆到构件级（顺序、类型、包围盒、朝向），用来把「整座矿井对不上」定位到
+「第几个构件开始分歧」。见 `tests/diff/README.md` 的状态表。
+
+### 修掉的三个根本缺陷
+
+1. **构件登记顺序倒置**：`addMineshaftPiece` 先展开子构件、调用方随后才 push，
+   导致子构件排在父构件之前。原版是 `addPiece` 在先、`addChildren` 在后。
+2. **房间与走廊的组装逻辑张冠李戴**：四边循环是走廊的逻辑，房间实际是
+   「`nextInt(4)` 选主口 + 沿一边逐点 `nextInt(5)`」。两处都错位了。
+3. **走廊深度不递增导致栈溢出**（`0xC0000005`）：`depth = genDepth()` 不增长，
+   `depth > maxDepth` 永不成立。
+
+修复后 `[1]` 与原版 XZ 逐位一致。
+
+### 一个反直觉的坑
+
+原版房间 `addChildren` 里写的是：
+
+```java
+if (direction != Direction.NORTH && direction != Direction.SOUTH) {  // 沿 X 扫描
+    ...
+} else {                                                             // 沿 Z 扫描
+```
+
+房间的 `direction` 是 **`null`**。Java 里 `null != NORTH` 为 **true**，
+所以房间**恒走沿 X 扫描**，不是落到 else。直觉上会以为「没有朝向 = 默认分支」。
+
+oracle 侧的实测证据：`[0] room orient=null`、`[1] corridor orient=NORTH`。
+
+### 尚未查清的一处
+
+原版源码 L165-168：
+
+```java
+int i = this.getGenDepth();
+int j = random.nextInt(4);        // ← 字面上在朝向判定之前，应无条件执行
+Direction direction = this.getOrientation();
+if (direction != null) { ... }
+```
+
+但实测结论相反：把这次 `nextInt(4)` 补进来之后，房间第 2 段那次 `nextInt(5)`
+从 `0` 变成 `2`，北侧出口随之消失，与 oracle 的 `[1] corridor NORTH (-203,…)` 对不上；
+去掉它则完全吻合。
+
+那一次 `nextInt(4)` 到底在什么条件下执行，**尚未查清**。补之前务必先跑
+`mineshaft_pieces` 确认房间第 2 段的 `nextInt(5)` 仍为 `0`。
+
+### 当前状态
+
+| 单元 | Cubium | 原版 |
+|---|---|---|
+| (-13,-60) 构件数 | 140 | 159 |
+| (-13,-60) [1] | `corridor` XZ 一致 | `corridor` |
+| (-13,-60) [2] | `stairs` `(-212,-33,-968)` | `corridor WEST` `(-218,-15,-973)` |
+
+第 2 个构件起类型分歧。oracle 侧 `[1] hasRails=true`（即构造时 `nextInt(3)==0`），
+Cubium 侧同一位置抽到 `1`——说明 `[1]` 构造之前仍有次数差，这是下一步的入口。
