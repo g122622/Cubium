@@ -26,6 +26,7 @@
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/StructurePlacementState.hpp"
 #include "server/world/gen/structure/StructureSet.hpp"
+#include "server/world/gen/structure/structures/MineshaftStructure.hpp"
 #include "structure_probe_common.hpp"
 
 namespace mc::diff {
@@ -112,7 +113,12 @@ std::string runLine(std::string_view inputLine)
             pieces.push_back(json{{"type", pieceTypeName(static_cast<i32>(piece->getComponentType()))},
                 {"box", {bbox.minX(), bbox.minY(), bbox.minZ(), bbox.maxX(), bbox.maxY(), bbox.maxZ()}},
                 {"rotation", rotationName(piece->getRotation())},
-                {"componentType", static_cast<i32>(piece->getComponentType())}});
+                {"componentType", static_cast<i32>(piece->getComponentType())},
+                {"genDepth",
+                    piece->getComponentType() >= 60 && piece->getComponentType() <= 63
+                        ? static_cast<i32>(
+                              static_cast<const world::gen::structure::MineshaftPiece*>(piece.get())->genDepth())
+                        : -1}});
         }
     }
 

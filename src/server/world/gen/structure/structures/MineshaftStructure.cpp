@@ -421,10 +421,10 @@ void MineshaftRoom::buildComponent(
     // 四个循环的顺序固定为 北、南、西、东，各自独立重置 j。
     //
     // 子构件的深度是父深度 + 1，理由同走廊。
+    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
+    // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) {
-        return;
-    }
+    MC_UNUSED(maxDepth);
     i32 k = (maxY() - minY() + 1) - 3 - 1;
     if (k <= 0) {
         k = 1;
@@ -749,12 +749,14 @@ void MineshaftCorridor::buildComponent(
     // 否则沿 Z 扫描。走廊朝向不会是 null，因此这里直接按方向判断。
     //
     // 原版 addChildren 传的是 this.getGenDepth()，generateAndAddPiece 内部再 +1；
-    // 本项目的 addMineshaftPiece 直接把这个值当新构件的深度，所以要显式 +1，
-    // 否则深度不增长、depth > maxDepth 永不成立，整座矿井无界展开。
+    // 本项目的 addMineshaftPiece 直接把这个值当新构件的深度，所以要显式 +1。
+    //
+    // 注意这里**不能**加 `if (depth > maxDepth) return;`：原版 addChildren 的主口段
+    // 是无条件执行的，深度截断只发生在 generateAndAddPiece（即 addMineshaftPiece）
+    // 里，以及第 2 段的 `i < 8`。多这一层提前返回会让深度 8 的走廊不再开主口，
+    // 实测少掉一整条分支（原版 [9] 就是深度 8 的构件开出来的深度 9 子构件）。
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) {
-        return;
-    }
+    MC_UNUSED(maxDepth);
 
     auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir, i32 childDepth) {
         addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
@@ -890,10 +892,10 @@ void MineshaftCross::generate(IWorldWriter& world,
 void MineshaftCross::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
+    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
+    // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) {
-        return;
-    }
+    MC_UNUSED(maxDepth);
 
     // 交叉点按朝向固定开出三个方向，坐标由包围盒直接算出，不抽随机数。
     //
@@ -1024,10 +1026,10 @@ void MineshaftStairs::generate(IWorldWriter& world,
 void MineshaftStairs::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
+    // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
+    // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
     const i32 depth = genDepth() + 1;
-    if (depth > maxDepth) {
-        return;
-    }
+    MC_UNUSED(maxDepth);
 
     i32 x, y, z;
     i32 length = (m_direction == 0 || m_direction == 1) ? (maxZ() - minZ()) : (maxX() - minX());
