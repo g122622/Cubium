@@ -1682,6 +1682,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "设计上是方块级开关，但有方块按状态覆写（红石矿只有 lit=true 才随机刻），状态粒度的错误无法靠方块级比对发现",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_signal_source",
+        probe: "block_signal_source",
+        oracle: "BlockSignalSourceOracle",
+        description: "方块状态是否红石信号源（BlockBehaviour#isSignalSource）—— 全部 29671 个状态；"
+        + "为 true 的方块会被红石粉当作强充能来源（强度 15），并参与比较器/中继器与相邻活塞、门、铁轨的判定。"
+        + "最容易写错的是那些看起来该是信号源却不是的方块：铁轨（只自己变形状/启动矿车）、命令方块（只输出成功次数）、"
+        + "合成器、信标（输出金字塔等级是常见误解）、幽匿催化体 —— 这些不是是原版刻意的设计",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
