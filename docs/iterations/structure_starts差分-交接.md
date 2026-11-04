@@ -127,3 +127,58 @@ rotation、template、projection、junctions、groundLevelDelta。
 原版在这些区块有要塞、Cubium 返回空数组。由于要塞起点数量在 Cubium 侧只有 2 个
 （原版候选里至少 8 个），这不是「有起点但被丢弃」，而是**环位置或结构集归属不同**，
 使得 Cubium 根本没为这些区块判定过要塞。修完 piece 塌缩后需要重新测这一项。
+
+## 第三轮：`canGenerate` 是死代码
+
+顺着上一节的线索继续查，发现一处**结构性不一致**：
+
+`StrongholdStructure::canGenerate`（`StrongholdStructure.cpp` L89-111）用的是**过时的旧算法**：
+
+```cpp
+for (i32 index = 0; index < 65; ++index) {          // 硬编码 65 个
+    const auto [cx, cz] = calculateStrongholdPos(index, worldSeed);
+    if (cx == chunkX && cz == chunkZ) return true;
+}
+```
+
+而 `calculateStrongholdPos` 用硬编码的 8 环表 `RING_COUNTS = {3,6,10,15,21,28,36,9}`。
+数据包配置却是 `count: 128, distance: 32, spread: 3`。代码注释里自己写着
+`TODO 当前实现仍未完成 Java 版 biome locate 校正`。
+
+**但这个方法是死代码**：全仓搜索 `->canGenerate(` / `.canGenerate(` 零命中。
+实际生成链是
+
+```
+generateStructureStarts
+  -> _generateStructureStartsForSet    // 先 placementState.isStructureChunk(...) 筛选
+      -> _selectStructureStart         // 轮盘抽签 + 群系校验
+          -> structure->generate(...)  // 直接生成，不经过 canGenerate
+```
+
+所以要塞缺失与 piece 塌缩**都不是 `canGenerate` 造成的**。
+
+### 应当删除 `canGenerate`
+
+它保留了旧算法与 TODO，但从未被调用。另外各结构类都有同名方法（BastionRemnant、
+BuriedTreasure、DesertPyramid、EndCity、Fortress、Igloo…），全部都是死代码。
+删掉它们不影响行为，但能消除「这里似乎还在用旧算法」的误导。
+
+建议作为独立的小改动提交，与本差分收敛解耦。
+
+### 剩下一处可疑点
+
+`_selectStructureStart` 传给 `structure->generate()` 的 `structureRng` 是
+`setLargeFeatureSeed(seed, chunkX, chunkZ)` 之后的状态；而
+`StrongholdStructure::generate` 里第一件事就是
+
+```cpp
+i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
+```
+
+即**先消耗一个随机数决定起始 Y**，再调 `_generateStrongholdPieces`。
+原版 `StrongholdStructure.addPieces` 里并没有这个「随机高度」步骤——它直接
+用一个固定的起始 Y。若原版不消耗这个 `nextInt`，后续所有 piece 的位置、
+旋转、选择都会整体错一位，正好能解释「只有 1 个 piece 且盒子很小」。
+
+这是下一轮应当首先验证的点：把 `startY` 改成不消耗随机数的固定值，
+重跑 `structure_starts` 看要塞 piece 数是否恢复。
