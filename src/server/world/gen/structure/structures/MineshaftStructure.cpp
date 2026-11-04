@@ -251,7 +251,7 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
     return created;
 }
 
-std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
+void addMineshaftPiece(MineshaftPiece* parent,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::IRandom& rng,
     i32 x,
@@ -263,7 +263,7 @@ std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
 {
     // 检查深度限制
     if (depth > 8) {
-        return nullptr;
+        return;
     }
 
     // 检查距离限制（防止无限扩展）
@@ -271,17 +271,22 @@ std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
         i32 dx = std::abs(x - parent->minX());
         i32 dz = std::abs(z - parent->minZ());
         if (dx > 80 || dz > 80) {
-            return nullptr;
+            return;
         }
     }
 
     // 创建新片段
     auto piece = createMineshaftPiece(pieces, rng, x, y, z, direction, depth, type);
-    if (piece) {
-        piece->buildComponent(pieces, rng, 8);
+    if (!piece) {
+        return;
     }
 
-    return piece;
+    // 必须**先登记再展开子构件**。原版 generateAndAddPiece 的顺序是
+    //   accessor.addPiece(piece); piece.addChildren(...);
+    // 此前这里先展开、由调用方随后才 push，结果是子构件排在父构件之前，
+    // 整座矿井的 pieces 顺序完全倒置。
+    pieces.push_back(std::move(piece));
+    pieces.back()->buildComponent(pieces, rng, 8);
 }
 
 // ============================================================================
@@ -400,78 +405,62 @@ void MineshaftRoom::buildComponent(
 {
     MC_UNUSED(maxDepth);
 
-    // 房间沿四条边各开一串出口，而不是每边固定一个。
+    // 房间的展开分两段，顺序不能变：
     //
-    // 每条边的做法是：从 0 起以 nextInt(span) 随机步进，剩余跨度不足 3 就收尾，
-    // 否则在该位置开一个朝外的竖井并继续。四个方向各走一遍。
-    // 此前这里是「每边至多一个出口」，分支数少了一个数量级——
-    // 实测矿井 piece 数 31，原版 159。
-    const i32 depth = genDepth() + 1;
-    const i32 xSpan = maxX() - minX() + 1;
-    const i32 zSpan = maxZ() - minZ() + 1;
-    i32 verticalSpan = maxY() - minY() + 1 - 3 - 1;
-    if (verticalSpan <= 0) {
-        verticalSpan = 1;
-    }
+    // 1) 先抽一次 nextInt(4)，按房间朝向决定从哪条边开一个「主口」。
+    //    四个朝向各对应三条候选边，主口位置由 j 选择，纵向再加 nextInt(3) 的偏移。
+    // 2) 再在 depth < 8 时沿四条边逐点步进，每点抽一次 nextInt(5)，命中 0 或 1 才开口。
+    //
+    // 此前这里只有第 2 段，漏掉了第 1 段的那次 nextInt(4) 与 nextInt(3)——
+    // 随机序列从房间的第一个出口起就整体错位。
+    const i32 depth = genDepth();
 
-    // 北：沿 X 步进，出口在 minZ - 1
-    for (i32 offset = 0; offset < xSpan;) {
-        offset += rng.nextInt(xSpan);
-        if (offset + 3 > xSpan) {
-            break;
-        }
-        const i32 x = minX() + offset;
-        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
-        auto piece = addMineshaftPiece(this, pieces, rng, x, y, minZ() - 1, 0, depth, m_mineshaftType);
-        if (piece) {
-            pieces.push_back(std::move(piece));
-        }
-        offset += 4;
-    }
+    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir, i32 childDepth) {
+        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
+    };
 
-    // 南：沿 X 步进，出口在 maxZ + 1
-    for (i32 offset = 0; offset < xSpan;) {
-        offset += rng.nextInt(xSpan);
-        if (offset + 3 > xSpan) {
-            break;
-        }
-        const i32 x = minX() + offset;
-        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
-        auto piece = addMineshaftPiece(this, pieces, rng, x, y, maxZ() + 1, 1, depth, m_mineshaftType);
-        if (piece) {
-            pieces.push_back(std::move(piece));
-        }
-        offset += 4;
+    // ---- 第 1 段：主口 ----
+    //
+    // 原版是 `Direction direction = this.getOrientation(); if (direction != null) { ... }`。
+    // 房间构件从未设置朝向，orientation 是 null，因此整段主口**一次都不执行**——
+    // 既不开主口，也不消耗那次 nextInt(4) 与 nextInt(3)。
+    //
+    // 这里显式写出来，避免以后有人「补上主口」时把随机序列又改错。
+    // TODO: 若将来房间开始设置朝向，这里必须补回 nextInt(4)/nextInt(3) 与四条分支表。
+    const bool hasOrientation = false;
+    if (hasOrientation) {
+        const i32 j = rng.nextInt(4);
+        MC_UNUSED(j);
     }
+    // ---- 第 2 段：沿四条边逐点步进 ----
+    // 原版写的是 `if (direction != NORTH && direction != SOUTH)` 沿 X 扫描、否则沿 Z 扫描。
+    // 房间的 direction 是 **null**，而 Java 里 `null != NORTH` 为 true——
+    // 所以房间恒走「沿 X 扫描」这支，不是走 else。
+    // （这一点很容易想反：直觉会以为「没有朝向」应该落到默认分支。）
+    const bool alongX = true;
 
-    // 西：沿 Z 步进，出口在 minX - 1
-    for (i32 offset = 0; offset < zSpan;) {
-        offset += rng.nextInt(zSpan);
-        if (offset + 3 > zSpan) {
-            break;
+    if (depth < 8) {
+        if (alongX) {
+            // 朝东西：沿 X 扫描，南北两侧开口。
+            for (i32 x = minX() + 3; x + 3 <= maxX(); x += 5) {
+                const i32 pick = rng.nextInt(5);
+                if (pick == 0) {
+                    addChild(x, minY(), minZ() - 1, 0, depth + 1);
+                } else if (pick == 1) {
+                    addChild(x, minY(), maxZ() + 1, 1, depth + 1);
+                }
+            }
+        } else {
+            // 朝南北：沿 Z 扫描，东西两侧开口。
+            for (i32 z = minZ() + 3; z + 3 <= maxZ(); z += 5) {
+                const i32 pick = rng.nextInt(5);
+                if (pick == 0) {
+                    addChild(minX() - 1, minY(), z, 2, depth + 1);
+                } else if (pick == 1) {
+                    addChild(maxX() + 1, minY(), z, 3, depth + 1);
+                }
+            }
         }
-        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
-        const i32 z = minZ() + offset;
-        auto piece = addMineshaftPiece(this, pieces, rng, minX() - 1, y, z, 2, depth, m_mineshaftType);
-        if (piece) {
-            pieces.push_back(std::move(piece));
-        }
-        offset += 4;
-    }
-
-    // 东：沿 Z 步进，出口在 maxX + 1
-    for (i32 offset = 0; offset < zSpan;) {
-        offset += rng.nextInt(zSpan);
-        if (offset + 3 > zSpan) {
-            break;
-        }
-        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
-        const i32 z = minZ() + offset;
-        auto piece = addMineshaftPiece(this, pieces, rng, maxX() + 1, y, z, 3, depth, m_mineshaftType);
-        if (piece) {
-            pieces.push_back(std::move(piece));
-        }
-        offset += 4;
     }
 }
 
@@ -726,48 +715,86 @@ void MineshaftCorridor::_generateChestMinecart(
 void MineshaftCorridor::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
-    // 每段走廊固定向三个方向分叉，分支因子是 3；深度必须严格逐层递增并在
-    // maxDepth 处截断，否则构件数会按 3^maxDepth 膨胀。
+    MC_UNUSED(maxDepth);
+
+    // 走廊沿四条边各开一串出口，每条边都用「随机步进 + 固定 4 格间隔」推进：
+    //
+    //   j = 0;
+    //   while (j < span) {
+    //       j += nextInt(span);
+    //       if (j + 3 > span) break;      // 剩余跨度不足以放下一个 3 宽出口
+    //       ...在 j 处开口，y = minY + nextInt(k) + 1...
+    //       j += 4;
+    //   }
+    //
+    // 四个循环的顺序固定为 北、南、西、东，各自独立重置 j。
+    // 此前这里写成了「按朝向取三条边、坐标由包围盒直接算出」，既没有随机步进，
+    // 也不消耗 nextInt(span)/nextInt(k)，随机序列从走廊的第一条边起就错位。
+    // 原版 addChildren 里传的是 this.getGenDepth()，generateAndAddPiece 收到后
+    // 在 createRandomShaftPiece 前 +1，因此子构件的深度是父深度 + 1。
     const i32 depth = genDepth() + 1;
     if (depth > maxDepth) {
         return;
     }
 
-    // 每段走廊固定向三个方向各分叉一个构件，坐标由包围盒直接算出，
-    // 不消耗额外的方向/位置随机数。
-    //
-    // 原版 MineShaftCorridor.addChildren：(minX+1, minY) 与 (minX-1|maxX+1, minY) 的组合
-    // 按当前朝向取三条边。此前这里只开一条出口，且用 nextInt(2)/nextInt(3) 抽偏移，
-    // 分支数只有原版的三分之一、随机序列也随之错位。
-    auto addChild = [&](i32 nx, i32 ny, i32 nz, i32 dir) {
-        auto piece = addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
-        if (piece) {
-            pieces.push_back(std::move(piece));
-        }
+    i32 k = (maxY() - minY() + 1) - 3 - 1;
+    if (k <= 0) {
+        k = 1;
+    }
+
+    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir) {
+        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, depth, m_mineshaftType);
     };
 
-    switch (m_direction) {
-        case 1: // 南
-            addChild(minX() + 1, minY(), maxZ() + 1, 1);
-            addChild(minX() - 1, minY(), minZ() + 1, 2);
-            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+    const i32 xSpan = maxX() - minX() + 1;
+    const i32 zSpan = maxZ() - minZ() + 1;
+
+    // 北侧：沿 X 步进，出口在 minZ - 1
+    for (i32 offset = 0; offset < xSpan;) {
+        offset += rng.nextInt(xSpan);
+        if (offset + 3 > xSpan) {
             break;
-        case 2: // 西
-            addChild(minX() + 1, minY(), minZ() - 1, 0);
-            addChild(minX() + 1, minY(), maxZ() + 1, 1);
-            addChild(minX() - 1, minY(), minZ() + 1, 2);
+        }
+        const i32 cx = minX() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1; // 独立语句：实参求值顺序未指定
+        addChild(cx, cy, minZ() - 1, 0);
+        offset += 4;
+    }
+
+    // 南侧：沿 X 步进，出口在 maxZ + 1
+    for (i32 offset = 0; offset < xSpan;) {
+        offset += rng.nextInt(xSpan);
+        if (offset + 3 > xSpan) {
             break;
-        case 3: // 东
-            addChild(minX() + 1, minY(), minZ() - 1, 0);
-            addChild(minX() + 1, minY(), maxZ() + 1, 1);
-            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+        }
+        const i32 cx = minX() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1;
+        addChild(cx, cy, maxZ() + 1, 1);
+        offset += 4;
+    }
+
+    // 西侧：沿 Z 步进，出口在 minX - 1
+    for (i32 offset = 0; offset < zSpan;) {
+        offset += rng.nextInt(zSpan);
+        if (offset + 3 > zSpan) {
             break;
-        case 0: // 北
-        default:
-            addChild(minX() + 1, minY(), minZ() - 1, 0);
-            addChild(minX() - 1, minY(), minZ() + 1, 2);
-            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+        }
+        const i32 cz = minZ() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1;
+        addChild(minX() - 1, cy, cz, 2);
+        offset += 4;
+    }
+
+    // 东侧：沿 Z 步进，出口在 maxX + 1
+    for (i32 offset = 0; offset < zSpan;) {
+        offset += rng.nextInt(zSpan);
+        if (offset + 3 > zSpan) {
             break;
+        }
+        const i32 cz = minZ() + offset;
+        const i32 cy = minY() + rng.nextInt(k) + 1;
+        addChild(maxX() + 1, cy, cz, 3);
+        offset += 4;
     }
 }
 
@@ -835,10 +862,7 @@ void MineshaftCross::buildComponent(
     // 此前这里遍历四个方向、每个方向以 nextInt(3) 决定是否跳过，既不匹配原版的
     // 分支表，又多吃了最多四个随机数。
     auto addChild = [&](i32 nx, i32 ny, i32 nz, i32 dir) {
-        auto piece = addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
-        if (piece) {
-            pieces.push_back(std::move(piece));
-        }
+        addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
     };
 
     switch (m_direction) {
@@ -985,10 +1009,7 @@ void MineshaftStairs::buildComponent(
             break;
     }
 
-    auto piece = addMineshaftPiece(this, pieces, rng, x, y, z, m_direction, depth, m_mineshaftType);
-    if (piece) {
-        pieces.push_back(std::move(piece));
-    }
+    addMineshaftPiece(this, pieces, rng, x, y, z, m_direction, depth, m_mineshaftType);
 }
 
 // ============================================================================

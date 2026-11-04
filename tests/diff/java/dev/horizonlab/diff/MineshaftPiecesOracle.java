@@ -108,6 +108,8 @@ public final class MineshaftPiecesOracle {
                 net.minecraft.world.level.block.Rotation rotation = piece.getRotation();
                 object.addProperty("rotation", rotation == null ? "NONE" : rotation.name());
                 object.addProperty("genDepth", piece.getGenDepth());
+                net.minecraft.core.Direction orientation = piece.getOrientation();
+                object.addProperty("orientation", orientation == null ? "null" : orientation.name());
                 pieces.add(object);
             }
         }

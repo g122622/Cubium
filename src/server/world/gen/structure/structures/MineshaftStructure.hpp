@@ -75,7 +75,7 @@ struct MineshaftConfig {
 /**
  * @brief 生成并添加矿井片段
  */
-[[nodiscard]] std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
+void addMineshaftPiece(MineshaftPiece* parent,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::IRandom& rng,
     i32 x,
