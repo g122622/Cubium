@@ -182,3 +182,75 @@ i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
 
 这是下一轮应当首先验证的点：把 `startY` 改成不消耗随机数的固定值，
 重跑 `structure_starts` 看要塞 piece 数是否恢复。
+
+## 第四轮：找到要塞生成的结构性差异（关键）
+
+上一节猜测「`generate` 里的 `rng.nextInt` 消耗了随机数」。对照原版后确认，
+问题比这严重得多：**两侧的生成算法结构完全不同**。
+
+原版 `StrongholdStructure.generatePieces`：
+
+```java
+int i = 0;
+do {
+    builder.clear();
+    context.random().setLargeFeatureSeed(context.seed() + i++, chunkPos.x, chunkPos.z);
+    StrongholdPieces.resetPieces();
+    StartPiece start = new StartPiece(random, chunkPos.getBlockX(2), chunkPos.getBlockZ(2));
+    builder.addPiece(start);
+    start.addChildren(start, builder, random);
+    List<StructurePiece> pending = start.pendingChildren;
+    while (!pending.isEmpty()) {                          // 待处理队列
+        int j = random.nextInt(pending.size());
+        pending.remove(j).addChildren(start, builder, random);
+    }
+    builder.moveBelowSeaLevel(seaLevel, minY, random, 10);
+} while (builder.isEmpty() || start.portalRoomPiece == null);
+```
+
+Cubium `StrongholdStructure::generate`：
+
+```cpp
+i32 startX = chunkX * world::CHUNK_WIDTH + 8;
+i32 startZ = chunkZ * world::CHUNK_WIDTH + 8;
+i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);  // 原版没有
+BlockPos startPos(startX, startY, startZ);
+_generateStrongholdPieces(rng, startPos, start->pieces());                // 递归
+start->recalculateStructureSize();                                         // 无 moveBelowSeaLevel
+```
+
+逐条对照：
+
+| 方面 | 原版 | Cubium | 影响 |
+|---|---|---|---|
+| 起始块位置 | `getBlockX(2)` / `getBlockZ(2)`，即区块内偏移 **2** | `chunkX*16 + 8`，偏移 **8** | 整体平移 6 格 |
+| 随机种子 | `setLargeFeatureSeed(seed + i++, ...)`，**i 是重试计数** | 直接使用调用方传入且未重新播种的 rng | 随机序列完全错位 |
+| 起始高度 | 无随机高度 | `rng.nextInt(minY..maxY)` **先消耗一个随机数** | 后续选择整体错一位 |
+| 组装方式 | **待处理队列 + 随机取下标移除** | 递归 `_generateCorridor` | 生成顺序与 piece 集合不同 |
+| 收尾 | `moveBelowSeaLevel(sea, minY, random, 10)` | `recalculateStructureSize()` | 高度不对 |
+| 终止条件 | `do-while` 重试直到 **有传送门房间** | 单次递归，可能一个都没有 | 塌缩成 1 piece |
+
+这几条叠加起来，正好解释实测现象：Cubium 侧要塞只有 2 个起点、每个仅 1 个
+piece（5×10×4），而原版 8 个起点、平均 143 个 piece（97×48×64）。
+
+### 这不是小修，需要重写
+
+正确做法是按原版重写 `StrongholdStructure::generate` 与
+`StrongholdPieces::StartPiece::addChildren`：
+
+1. 起始位置改成 `chunkX * 16 + 2` / `chunkZ * 16 + 2`。
+2. 引入重试计数 `i`，每轮 `rng.setLargeFeatureSeed(seed + i, chunkX, chunkZ)`。
+3. 去掉随机起始 Y。
+4. 把递归走廊改成「待处理队列 + `nextInt(pending.size())` 随机取下标移除」。
+5. 收尾接 `moveBelowSeaLevel(seaLevel, minY, rng, 10)`。
+6. 外层 `do-while (pieces.empty() || portalRoomPiece == null)`。
+
+工作量集中在 `StrongholdPieces.cpp`（约 1600 行，含全部 piece 类型的
+`createPiece` / `addChildren`），属于独立的一次重构。建议单独开一轮做，
+并与差分能力 `structure_starts` 配合逐步验证。
+
+### 顺带确认
+
+`StrongholdStructure::canGenerate` 及其在其它结构类（BastionRemnant、
+BuriedTreasure、DesertPyramid、EndCity、Fortress、Igloo 等）中的同名方法
+**全部没有调用点**，是死代码，应当删除以消除误导。
