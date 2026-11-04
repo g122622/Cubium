@@ -283,7 +283,10 @@ namespace {
  */
 std::array<i32, 3> drawRoomSpans(math::IRandom& rng)
 {
-    return {rng.nextInt(6), rng.nextInt(6), rng.nextInt(6)};
+    const i32 a = rng.nextInt(6);
+    const i32 b = rng.nextInt(6);
+    const i32 c2 = rng.nextInt(6);
+    return {a, b, c2};
 }
 
 } // namespace
@@ -959,6 +962,13 @@ bool MineshaftStructure::canGenerate(
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
+    // 原版 MineshaftStructure.findGenerationPoint 的第一句就是
+    //     context.random().nextDouble();
+    // 这个值被直接丢弃，作用是推进随机序列——矿井的房间跨度、走廊长度、
+    // 分支选择全部建立在它之后的状态上。漏掉它会让整座矿井的随机序列错一位，
+    // 实测房间高度变成 5 而原版是 10。
+    (void)rng.nextDouble();
+
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 起点固定在区块内偏移 2 的位置，且这里不消耗任何随机数。
