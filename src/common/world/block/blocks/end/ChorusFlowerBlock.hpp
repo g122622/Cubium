@@ -69,6 +69,8 @@ public:
 
     // ========== 放置逻辑 ==========
 
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override;
+
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] bool isValidPosition(

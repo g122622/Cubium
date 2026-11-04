@@ -538,5 +538,11 @@ std::pair<BlockPos, const BlockState*> PitcherCropBlock::getLowerHalf(
     return {pos, nullptr};
 }
 
+bool PitcherCropBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 只有下半部分负责生长；上半部分是被动的一半，不参与随机刻。
+    return state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == DoubleBlockHalf::Lower && !isMaxAge(state);
+}
+
 } // namespace blocks
 } // namespace mc

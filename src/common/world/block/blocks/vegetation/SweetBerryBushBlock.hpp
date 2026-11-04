@@ -150,6 +150,8 @@ public:
         Player& player,
         const BlockRaycastResult& hit) override;
 
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override;
+
 protected:
     /**
      * @brief 检查下方是否可支撑

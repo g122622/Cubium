@@ -1673,6 +1673,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "雪层满层 0.2 其余 1.0；屏障/结构空位这类不可见方块返回 1.0。按默认规则处理泥巴和灵魂沙会让它们看起来像浮在地面上的亮块",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_random_ticks",
+        probe: "block_random_ticks",
+        oracle: "BlockRandomTicksOracle",
+        description: "方块状态是否响应随机刻（BlockBehaviour#isRandomlyTicking）—— 全部 29671 个状态；"
+        + "随机刻是「自然发生」的引擎，每个游戏刻随机挑一批位置，只对 true 的状态调用 randomTick："
+        + "作物生长、树叶腐烂、草方块蔓延、冰融化、铜氧化、火焰熄灭都靠它。"
+        + "设计上是方块级开关，但有方块按状态覆写（红石矿只有 lit=true 才随机刻），状态粒度的错误无法靠方块级比对发现",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

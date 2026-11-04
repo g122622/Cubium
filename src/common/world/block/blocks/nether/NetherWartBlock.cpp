@@ -153,5 +153,11 @@ const BlockState& NetherWartBlock::getPlant(IBlockReader& world, const BlockPos&
     return defaultState();
 }
 
+bool NetherWartBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 下界疣 age < 3 才生长。
+    return getAge(state) < 3;
+}
+
 } // namespace blocks
 } // namespace mc

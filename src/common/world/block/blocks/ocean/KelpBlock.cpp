@@ -255,5 +255,11 @@ const BlockState& KelpBlock::getPlant(IBlockReader& world, const BlockPos& pos) 
     return defaultState();
 }
 
+bool KelpBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 原版 KelpBlock 继承 GrowingPlantHeadBlock，规则同 head：age < 25 才生长。
+    return getAge(state) < 25;
+}
+
 } // namespace blocks
 } // namespace mc

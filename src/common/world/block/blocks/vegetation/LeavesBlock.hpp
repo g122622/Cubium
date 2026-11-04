@@ -109,6 +109,18 @@ public:
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     /**
+     * @brief 只有「距离 7 且非持久」的树叶才响应随机刻
+     *
+     * 树叶是否腐烂由 DISTANCE 决定：distance=7 表示已经连不上树干。
+     * 其余状态（distance < 7 或 persistent=true）不需要随机刻 ——
+     * 它们要么还在树上，要么是玩家放置的永久叶。
+     *
+     * 不覆写这条会让**所有**树叶每刻都被随机刻调度，白白消耗随机刻预算，
+     * 并让本该静止的树叶反复参与腐烂判定。
+     */
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override;
+
+    /**
      * @brief 是否需要随机Tick
      *
      * 只有距离为7且非持久的树叶才需要随机Tick（用于腐烂）

@@ -294,5 +294,11 @@ bool ChorusFlowerBlock::allNeighborsEmpty(
     return true;
 }
 
+bool ChorusFlowerBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 紫颂花只在 age < 5 时生长/枯萎，age=5 是终态。
+    return getAge(state) < 5;
+}
+
 } // namespace blocks
 } // namespace mc

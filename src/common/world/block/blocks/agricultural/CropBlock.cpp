@@ -298,5 +298,11 @@ f32 CropBlock::getGrowthChance(const Block& block, IBlockReader& world, const Bl
     return std::max(growthChance, 1.0f);
 }
 
+bool CropBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 成熟后不再生长，停止随机刻，节省随机刻预算。
+    return !isMaxAge(state);
+}
+
 } // namespace blocks
 } // namespace mc

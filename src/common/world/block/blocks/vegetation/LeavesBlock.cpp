@@ -197,5 +197,10 @@ i32 LeavesBlock::_getDistance(const BlockState& neighborState)
     return 7;
 }
 
+bool LeavesBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // 只有已经断联（distance=7）且不是玩家放置的永久叶，才需要随机刻去腐烂。
+    return state.get(BlockStateProperties::DISTANCE_1_7()) == 7 && !state.get(BlockStateProperties::PERSISTENT());
+}
 } // namespace blocks
 } // namespace mc

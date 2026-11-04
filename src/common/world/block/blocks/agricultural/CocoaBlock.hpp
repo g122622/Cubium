@@ -96,6 +96,8 @@ public:
     /**
      * @brief 是否为最大年龄
      */
+    [[nodiscard]] bool isRandomlyTicking(const BlockState& state) const noexcept override;
+
     [[nodiscard]] bool isMaxAge(const BlockState& state) const;
 
     // ========== 放置逻辑 ==========

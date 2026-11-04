@@ -290,5 +290,11 @@ void SweetBerryBushBlock::initShapes()
     // getCollisionShape 不重写，继承 BushBlock 基类返回 empty。
 }
 
+bool SweetBerryBushBlock::isRandomlyTicking(const BlockState& state) const noexcept
+{
+    // age=3 是成熟态，停止随机刻。
+    return state.get(BlockStateProperties::AGE_0_3()) < 3;
+}
+
 } // namespace blocks
 } // namespace mc
