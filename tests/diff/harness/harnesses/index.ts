@@ -1749,6 +1749,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "注意与 canBeReplacedByFluid 不是一回事：后者对非固体方块放宽（门、告示牌虽然不可替换但水能流进去）",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_redstone_conductor",
+        probe: "block_redstone_conductor",
+        oracle: "BlockRedstoneConductorOracle",
+        description: "方块状态是否红石导体（BlockBehaviour#isRedstoneConductor）—— 全部 29671 个状态；"
+        + "红石粉向四周传播时会穿过导体方块向下找信号源，非导体则不会，同时影响火把/拉杆/中继器/观察者/活塞的充能判定。"
+        + "原版默认判据是「碰撞形状完整覆盖整格」，再由 22 处 isRedstoneConductor 逐个覆盖（绝大多数是 never）。"
+        + "两类最容易写错：红石块不透明且形状完整却显式排除；单层台阶与楼梯材质不透明但形状不完整。两个判据单独用都不对",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
