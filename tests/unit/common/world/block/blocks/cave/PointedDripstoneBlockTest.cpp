@@ -21,6 +21,7 @@
  *
  */
 
+#include <array>
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
@@ -200,6 +201,76 @@ TEST_F(PointedDripstoneBlockTest, Shape_AllThicknesses_NonEmpty)
                          .with(BlockStateProperties::DRIPSTONE_THICKNESS(), thickness);
         const CollisionShape& shape = block_->getShape(state);
         EXPECT_FALSE(shape.isEmpty()) << "Shape should not be empty for thickness " << static_cast<int>(thickness);
+    }
+}
+
+TEST_F(PointedDripstoneBlockTest, PositionedShapes_AllStatesUseClampedHorizontalOffset)
+{
+    PointedDripstoneBlock block(BlockProperties(Material::ROCK).offsetType(BlockProperties::OffsetType::XZ));
+    using Thickness = BlockStateProperties::DripstoneThickness;
+
+    struct ShapeCase {
+        Thickness thickness;
+        f32 minPixel;
+        f32 maxPixel;
+    };
+
+    const std::array shapes = {
+        ShapeCase{Thickness::TipMerge, 5.0f, 11.0f},
+        ShapeCase{Thickness::Tip, 5.0f, 11.0f},
+        ShapeCase{Thickness::Frustum, 4.0f, 12.0f},
+        ShapeCase{Thickness::Middle, 3.0f, 13.0f},
+        ShapeCase{Thickness::Base, 2.0f, 14.0f},
+    };
+
+    struct PositionCase {
+        BlockPos pos;
+        f32 offsetX;
+        f32 offsetZ;
+    };
+
+    // 直接查询 Java 得到的偏移样本；同一 x/z 的两种高度必须相同。
+    const std::array positions = {
+        PositionCase{BlockPos(0, 0, 0), -0.125f, -0.125f},
+        PositionCase{BlockPos(1, 64, 2), -0.11666666f, -0.125f},
+        PositionCase{BlockPos(-17, -11, 31), 0.08333334f, -0.125f},
+        PositionCase{BlockPos(100, 53, -99), 0.125f, -0.08333333f},
+        PositionCase{BlockPos(1, 127, 2), -0.11666666f, -0.125f},
+    };
+
+    for (const auto& shapeCase : shapes) {
+        for (const Direction direction : {Direction::Up, Direction::Down}) {
+            for (const bool waterlogged : {false, true}) {
+                const BlockState& state = block.defaultState()
+                                              .with(BlockStateProperties::DRIPSTONE_THICKNESS(), shapeCase.thickness)
+                                              .with(BlockStateProperties::VERTICAL_DIRECTION(), direction)
+                                              .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+                const bool tip = shapeCase.thickness == Thickness::Tip;
+                const f32 minY = tip && direction == Direction::Down ? 5.0f / 16.0f : 0.0f;
+                const f32 maxY = tip && direction == Direction::Up ? 11.0f / 16.0f : 1.0f;
+
+                for (const auto& position : positions) {
+                    SCOPED_TRACE(::testing::Message()
+                        << "thickness=" << static_cast<i32>(shapeCase.thickness)
+                        << " direction=" << static_cast<i32>(direction) << " waterlogged=" << waterlogged
+                        << " pos=" << position.pos.x << ',' << position.pos.y << ',' << position.pos.z);
+                    const std::array actualShapes = {state.getShapeAt(position.pos),
+                        state.getCollisionShapeAt(position.pos),
+                        state.getBlockSupportShapeAt(position.pos)};
+                    for (std::size_t i = 0; i < actualShapes.size(); ++i) {
+                        SCOPED_TRACE(::testing::Message() << "shapeKind=" << i);
+                        const auto& boxes = actualShapes[i].boxes();
+                        ASSERT_EQ(boxes.size(), 1u);
+                        EXPECT_NEAR(boxes[0].minX, shapeCase.minPixel / 16.0f + position.offsetX, 1.0e-6f);
+                        EXPECT_NEAR(boxes[0].maxX, shapeCase.maxPixel / 16.0f + position.offsetX, 1.0e-6f);
+                        EXPECT_NEAR(boxes[0].minZ, shapeCase.minPixel / 16.0f + position.offsetZ, 1.0e-6f);
+                        EXPECT_NEAR(boxes[0].maxZ, shapeCase.maxPixel / 16.0f + position.offsetZ, 1.0e-6f);
+                        EXPECT_FLOAT_EQ(boxes[0].minY, minY);
+                        EXPECT_FLOAT_EQ(boxes[0].maxY, maxY);
+                    }
+                }
+            }
+        }
     }
 }
 

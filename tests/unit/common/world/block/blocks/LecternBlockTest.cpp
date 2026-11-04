@@ -37,6 +37,8 @@
 #include "world/chunk/data/ChunkData.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
+#include <algorithm>
+#include <array>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -458,4 +460,77 @@ TEST_F(LecternBlockTest, PreRemoveSideEffects_NoWorldDoesNotCrash)
 
     BlockState state = m_block->defaultState().with(BlockStateProperties::HAS_BOOK(), true);
     EXPECT_NO_THROW(entity.preRemoveSideEffects(pos, state));
+}
+
+TEST_F(LecternBlockTest, Shapes_AllFacingsKeepSlopingTopSeparateFromCollision)
+{
+    struct Sample {
+        Vector3 pixels;
+        bool outline;
+        bool collision;
+    };
+
+    // 取样覆盖底座、立柱、每级斜台的上下空隙，以及高于一格的台面。
+    const std::array samples = {
+        Sample{{1.5f, 1.5f, 1.5f}, true, true},
+        Sample{{3.5f, 5.5f, 8.5f}, false, false},
+        Sample{{8.5f, 5.5f, 8.5f}, true, true},
+        Sample{{1.5f, 9.5f, 3.5f}, false, false},
+        Sample{{1.5f, 11.5f, 3.5f}, true, false},
+        Sample{{1.5f, 14.5f, 3.5f}, false, false},
+        Sample{{1.5f, 11.5f, 7.5f}, false, false},
+        Sample{{1.5f, 13.5f, 7.5f}, true, false},
+        Sample{{1.5f, 16.5f, 7.5f}, false, false},
+        Sample{{1.5f, 13.5f, 12.5f}, false, false},
+        Sample{{1.5f, 15.5f, 12.5f}, true, false},
+        Sample{{1.5f, 17.5f, 12.5f}, true, false},
+        Sample{{1.5f, 18.5f, 12.5f}, false, false},
+        Sample{{1.5f, 15.5f, 15.5f}, false, false},
+        Sample{{8.5f, 13.5f, 8.5f}, true, true},
+        Sample{{8.5f, 14.5f, 8.5f}, true, false},
+    };
+    const auto contains = [](const CollisionShape& shape, const Vector3& point) {
+        return std::any_of(shape.boxes().begin(), shape.boxes().end(), [&](const auto& box) {
+            return box.contains(point);
+        });
+    };
+
+    for (const Direction facing : {Direction::North, Direction::East, Direction::South, Direction::West}) {
+        for (const bool powered : {false, true}) {
+            for (const bool hasBook : {false, true}) {
+                const BlockState& state = m_block->defaultState()
+                                              .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
+                                              .with(BlockStateProperties::POWERED(), powered)
+                                              .with(BlockStateProperties::HAS_BOOK(), hasBook);
+                const CollisionShape shape = state.getShapeAt(BlockPos(0, 0, 0));
+                const CollisionShape collision = state.getCollisionShapeAt(BlockPos(0, 0, 0));
+                const CollisionShape support = state.getBlockSupportShapeAt(BlockPos(0, 0, 0));
+
+                for (const auto& sample : samples) {
+                    const Vector3 p = sample.pixels;
+                    Vector3 point = p;
+                    switch (facing) {
+                        case Direction::East:
+                            point = Vector3(16.0f - p.z, p.y, p.x);
+                            break;
+                        case Direction::South:
+                            point = Vector3(16.0f - p.x, p.y, 16.0f - p.z);
+                            break;
+                        case Direction::West:
+                            point = Vector3(p.z, p.y, 16.0f - p.x);
+                            break;
+                        default:
+                            break;
+                    }
+                    point = point / 16.0f;
+                    SCOPED_TRACE(::testing::Message()
+                        << "facing=" << static_cast<i32>(facing) << " powered=" << powered << " hasBook=" << hasBook
+                        << " sample=" << p.x << ',' << p.y << ',' << p.z);
+                    EXPECT_EQ(contains(shape, point), sample.outline);
+                    EXPECT_EQ(contains(collision, point), sample.collision);
+                    EXPECT_EQ(contains(support, point), sample.collision);
+                }
+            }
+        }
+    }
 }

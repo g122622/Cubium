@@ -125,28 +125,19 @@ LecternBlock::LecternBlock(const BlockProperties& properties)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::HAS_BOOK(), false));
 
-    // 原版（LecternBlock）：
-    //   SHAPE_COLLISION = column(16.0, 0.0, 2.0) ∪ column(8.0, 2.0, 14.0)
-    //   SHAPES = rotateHorizontal(boxZ(16.0, 10.0, 1.0, 5.333333)
-    //                            ∪ boxZ(16.0, 12.0, 5.333333, 9.666667)
-    //                            ∪ boxZ(16.0, 14.0, 9.666667, 14.0)
-    //                            ∪ SHAPE_COLLISION)
-    // column(w, y1, y2)：横截面 w×w 像素居中，y 从 y1 到 y2。
-    // boxZ(width, height, y1, y2)：x 居中宽 width、**竖直区间为 y1..y2**、z 居中高 height。
-    // 三条斜台横条因此是：y 1..10 / z 5.333..14、y 5.333..16 / z 9.667..16、y 9.667..18 / z 14..18。
+    // 碰撞只包括底座和立柱；选中外形另有三级斜台，最高达到 18 像素。
     const CollisionShape base = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 2.0f, 16.0f);
     const CollisionShape post = CollisionShape::fromPixelBox(4.0f, 2.0f, 4.0f, 12.0f, 14.0f, 12.0f);
     m_collisionShape = CollisionShape::combine(base, post);
 
-    // 斜台由三级台阶叠成：x 方向整格宽，每级 y 区间固定、z 区间随台阶前移。
-    const CollisionShape slope =
-        CollisionShape::combine(CollisionShape::combine(CollisionShape::fromPixelBox(0.0f, 1.0f, 5.333333f, 16.0f, 14.0f, 10.0f),
-                                   CollisionShape::fromPixelBox(0.0f, 5.333333f, 9.666667f, 16.0f, 16.0f, 12.0f)),
-            CollisionShape::fromPixelBox(0.0f, 9.666667f, 14.0f, 16.0f, 18.0f, 14.0f));
+    // 五参数 boxZ(width, yMin, yMax, zMin, zMax) 的两个区间不能交换。
+    // 北向斜台从 z=1 向 z=14 升高，每级厚 4 像素。
+    const CollisionShape slope = CollisionShape::combine(
+        CollisionShape::combine(CollisionShape::fromPixelBox(0.0f, 10.0f, 1.0f, 16.0f, 14.0f, 5.333333f),
+            CollisionShape::fromPixelBox(0.0f, 12.0f, 5.333333f, 16.0f, 16.0f, 9.666667f)),
+        CollisionShape::fromPixelBox(0.0f, 14.0f, 9.666667f, 16.0f, 18.0f, 14.0f));
 
-    // 其余朝向由绕 Y 轴旋转 90/180/270 度得到。原版使用 OctahedralGroup.BLOCK_ROT_Y_90，
-    // 它对体素下标的作用是 (x, z) → (z, 1 - x)，而不是常见的 (1 - z, x)；
-    // 盒子的坐标变换同样按该映射进行（另加 +1 的索引偏移由取 min/max 抵消）。
+    // 从北向顺时针旋转，依次得到东、南、西向。
     const auto rotateY = [](const CollisionShape& shape, i32 quarterTurns) -> CollisionShape {
         CollisionShape result = CollisionShape::empty();
         for (const auto& b : shape.boxes()) {
@@ -155,11 +146,11 @@ LecternBlock::LecternBlock(const BlockProperties& properties)
             f32 z0 = b.minZ;
             f32 z1 = b.maxZ;
             for (i32 i = 0; i < quarterTurns; ++i) {
-                // (x, z) → (z, 1 - x)
-                const f32 nx0 = z0;
-                const f32 nx1 = z1;
-                const f32 nz0 = 1.0f - x1;
-                const f32 nz1 = 1.0f - x0;
+                // (x, z) → (1 - z, x)
+                const f32 nx0 = 1.0f - z1;
+                const f32 nx1 = 1.0f - z0;
+                const f32 nz0 = x0;
+                const f32 nz1 = x1;
                 x0 = nx0;
                 x1 = nx1;
                 z0 = nz0;

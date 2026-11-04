@@ -247,21 +247,17 @@ BlockState PointedDripstoneBlock::updatePostPlacement(const BlockState& state,
 
 CollisionShape PointedDripstoneBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
 {
-    const auto thickness = state.get(BlockStateProperties::DRIPSTONE_THICKNESS());
-
-    // 悬垂（朝下）的尖端用 SHAPE_TIP_DOWN，其余按厚度查表。
-    const CollisionShape& base =
-        (thickness == BlockStateProperties::DripstoneThickness::Tip &&
-            state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Down)
-        ? m_tipDownShape
-        : m_shapes.at(thickness);
-
-    // 原版在 getShape 里就叠加了 offsetType 偏移，碰撞形状因此也带偏移。
+    const CollisionShape& base = getShape(state);
     const Vector3 offset = getOffsetAt(state, pos);
     if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
         return base;
     }
     return base.offset(offset.x, offset.y, offset.z);
+}
+
+CollisionShape PointedDripstoneBlock::getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    return getShapeAt(state, pos);
 }
 
 Vector3 PointedDripstoneBlock::getOffsetAt(const BlockState& state, const BlockPos& pos) const noexcept
