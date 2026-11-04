@@ -40,6 +40,7 @@
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidTags.hpp"
 #include "world/lighting/InternalLightUtils.hpp"
+#include "world/redstone/RedstoneHelper.hpp"
 #include "world/spawn/SlimeChunkChecker.hpp"
 #include <algorithm>
 #include <array>
@@ -62,40 +63,36 @@ bool _fireImmune(const std::string& id)
     return type != nullptr && type->immuneToFire();
 }
 
-bool _isValidSpawnSurface(const BlockState& state, const std::string& id)
+/** 原版 `BlockBehaviour.Properties#isValidSpawn` 的默认判据。 */
+bool _isDefaultValidSpawn(const BlockState& state)
 {
-    if (state.is(VanillaBlocks::MAGMA)) {
-        return _fireImmune(id);
-    }
-    if (BlockTags::LEAVES().contains(state)) {
-        return id == "minecraft:ocelot" || id == "minecraft:parrot";
-    }
-    if (state.is(VanillaBlocks::ICE) || state.is(VanillaBlocks::FROSTED_ICE)) {
-        return id == "minecraft:polar_bear";
-    }
-    const auto& name = state.blockLocation().path();
-    if (name.ends_with("glass") || state.is(VanillaBlocks::BEDROCK) || state.is(VanillaBlocks::BARRIER) ||
-        name.ends_with("trapdoor")) {
-        return false;
-    }
-    if (state.is(VanillaBlocks::SNOW)) {
-        return state.get(blocks::SnowBlock::LAYERS()) == 8;
-    }
+    // 顶面结实（Block.isFaceFull(getBlockSupportShape, UP)）且发光等级 < 14。
+    // 这里必须用支撑形状而非碰撞形状：泥巴、灵魂沙的碰撞箱比整格矮，支撑面却是满的，
+    // 原版照样允许在其上生成。
     return Block::isFaceFull(state.getBlockSupportShape(), Direction::Up) && state.lightLevel() < 14;
 }
 
-bool _isRedstoneConductor(const BlockState& state)
+/**
+ * @brief 方块是否允许以其顶面作为生物生成的地面
+ *
+ * 对应原版 `BlockState#isValidSpawn`：默认走 {@link _isDefaultValidSpawn}，另有三个方块
+ * 显式改写了这条谓词。这里只是把三处覆写集中列出，判据本身仍用同一份默认实现。
+ */
+bool _isValidSpawnSurface(const BlockState& state)
 {
-    if (state.is(VanillaBlocks::MUD) || state.is(VanillaBlocks::SOUL_SAND)) {
+    if (state.is(VanillaBlocks::MAGMA)) {
+        // MagmaBlock：顶面结实即可，不看发光等级。
+        return Block::isFaceFull(state.getBlockSupportShape(), Direction::Up);
+    }
+    if (BlockTags::LEAVES().contains(state)) {
+        // LeavesBlock：树叶顶面永远站得住。
         return true;
     }
-    const auto& name = state.blockLocation().path();
-    if (name.ends_with("glass") || BlockTags::LEAVES().contains(state) || state.is(VanillaBlocks::ICE) ||
-        state.is(VanillaBlocks::FROSTED_ICE) || state.is(VanillaBlocks::GLOWSTONE) ||
-        state.is(VanillaBlocks::SEA_LANTERN)) {
-        return false;
+    if (state.is(VanillaBlocks::BARRIER)) {
+        // BarrierBlock：屏障顶面永远站得住。
+        return true;
     }
-    return state.getCollisionShape().coversFullBlock();
+    return _isDefaultValidSpawn(state);
 }
 
 bool _isBlockDangerous(const BlockState& state, const std::string& id)
@@ -218,7 +215,7 @@ bool EntitySpawnPlacementRegistry::checkOnGroundSpawn(
     const ISpawnWorldReader& world, const Vector3i& pos, const std::string& entityTypeId)
 {
     const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
-    if (belowState == nullptr || !_isValidSpawnSurface(*belowState, entityTypeId)) {
+    if (belowState == nullptr || !_isValidSpawnSurface(*belowState)) {
         return false;
     }
 
@@ -248,7 +245,7 @@ bool EntitySpawnPlacementRegistry::checkInWaterSpawn(
         return false;
     }
     const auto* above = world.getBlockState(pos.x, pos.y + 1, pos.z);
-    return above != nullptr && !_isRedstoneConductor(*above);
+    return above != nullptr && !redstone::RedstoneHelper::isRedstoneConductorState(*above);
 }
 
 bool EntitySpawnPlacementRegistry::checkInLavaSpawn(
@@ -267,7 +264,13 @@ bool EntitySpawnPlacementRegistry::_isValidSpawnBlock(
         return false;
     }
 
-    if (state->getCollisionShape().coversFullBlock() || state->getBlock().canProvidePower(*state)) {
+    // 原版 `NaturalSpawner.isValidEmptySpawnBlock` 的六条否定条件：碰撞形状满格、
+    // 红石导体、信号源、非空流体、prevent_mob_spawning_inside、危险方块。
+    //
+    // 红石导体与「碰撞形状满格」必须分开判：玻璃、树叶碰撞满格却不是导体（允许生成），
+    // 台阶、楼梯、陷阱门碰撞不满格却是导体（拒绝生成）。只看碰撞形状会把后者放进来。
+    if (state->getCollisionShape().coversFullBlock() || redstone::RedstoneHelper::isRedstoneConductorState(*state) ||
+        state->getBlock().canProvidePower(*state)) {
         return false;
     }
     const auto* fluid = state->getFluidState();
@@ -326,7 +329,7 @@ bool _bright(const _check& c)
 bool _mob(const _check& c)
 {
     const auto* below = _block(c, -1);
-    return isSpawnerReason(c.reason) || (below != nullptr && _isValidSpawnSurface(*below, c.id));
+    return isSpawnerReason(c.reason) || (below != nullptr && _isValidSpawnSurface(*below));
 }
 
 bool _dark(const _check& c)

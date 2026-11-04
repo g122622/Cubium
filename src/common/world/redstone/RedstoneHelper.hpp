@@ -87,6 +87,17 @@ public:
     [[nodiscard]] static bool isRedstoneConductor(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
+     * @brief 方块状态是否红石导体（不依赖世界的纯状态判定）
+     *
+     * 与原版 `BlockState#isRedstoneConductor` 同一判据：形状完整覆盖整格，再按原版
+     * 显式注册表修正。{@link isRedstoneConductor} 转调本方法。
+     *
+     * @param state 方块状态
+     * @return 是否为红石导体
+     */
+    [[nodiscard]] static bool isRedstoneConductorState(const BlockState& state);
+
+    /**
      * @brief 获取指定位置实体的最大比较器信号强度
      *
      * 遍历指定位置的实体，返回最大的 getComparatorOutput() 值。

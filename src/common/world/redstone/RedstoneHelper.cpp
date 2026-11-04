@@ -128,7 +128,11 @@ bool RedstoneHelper::isRedstoneConductor(IWorld& world, const BlockPos& pos, con
     //    红石块最典型：它不透明、形状完整，但若当导体会把自己周围的粉重复充能。
     MC_UNUSED(world);
     MC_UNUSED(pos);
+    return isRedstoneConductorState(state);
+}
 
+bool RedstoneHelper::isRedstoneConductorState(const BlockState& state)
+{
     const ResourceLocation& id = state.getBlock().blockLocation();
     if (_isExplicitNonConductor(id)) {
         return false;

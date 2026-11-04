@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.EmptyBlockGetter;
@@ -19,10 +20,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 
 /**
- * 方块状态是否红石导体的原版 oracle（{@code BlockBehaviour#isRedstoneConductor}）。
+ * 方块状态上与「能否生成」相关的四条静态判据的原版 oracle。
  *
  * <pre>
- *   java dev.horizonlab.diff.BlockRedstoneConductorOracle list &lt;units.txt&gt; | run &lt;input.jsonl&gt; &lt;output.jsonl&gt;
+ *   java dev.horizonlab.diff.BlockSpawnQueryOracle list &lt;units.txt&gt; | run &lt;input.jsonl&gt; &lt;output.jsonl&gt;
  * </pre>
  *
  * <p>默认判据是「碰撞形状完整覆盖整格」，然后由 22 处 {@code BlockProperties#isRedstoneConductor}
@@ -31,10 +32,10 @@ import net.minecraft.world.level.block.state.properties.Property;
  * <p>两类最容易写错的方块：红石块（不透明、形状完整却显式排除）、单层台阶与楼梯
  * （材质不透明但形状不完整）。
  */
-public final class BlockRedstoneConductorOracle {
+public final class BlockSpawnQueryOracle {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
-    private BlockRedstoneConductorOracle() {}
+    private BlockSpawnQueryOracle() {}
 
     public static void main(String[] args) throws IOException {
         net.minecraft.SharedConstants.tryDetectVersion();
@@ -56,7 +57,7 @@ public final class BlockRedstoneConductorOracle {
             run(Path.of(args[1]), Path.of(args[2]));
             return;
         }
-        System.err.println("usage: BlockRedstoneConductorOracle list <units.txt> | run <input.jsonl> <output.jsonl>");
+        System.err.println("usage: BlockSpawnQueryOracle list <units.txt> | run <input.jsonl> <output.jsonl>");
         System.exit(2);
     }
 
@@ -160,7 +161,12 @@ public final class BlockRedstoneConductorOracle {
             return out;
         }
 
-        out.addProperty("conductor", state.isRedstoneConductor(EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
+        out.addProperty("collisionFull", state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
+        out.addProperty("redstoneConductor", state.isRedstoneConductor(EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
+        out.addProperty("signalSource", state.isSignalSource());
+        out.addProperty(
+            "supportFull",
+            Block.isFaceFull(state.getBlockSupportShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO), Direction.UP));
         return out;
     }
 }
