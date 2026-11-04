@@ -893,3 +893,51 @@ Cubium 的碰撞检测（`createMineshaftPiece` 里遍历所有已有构件调 `
 下一步应当在驱动程序的 `findCollisionPiece` 里打印命中的构件序号与包围盒，
 一次就能看出来——如果打不出任何命中却仍然失败，那说明失败原因根本不是碰撞，
 而要回到 `findCrossing` 之后的其他判定去找。
+
+## 第十九轮：把 ADD 与 COLLIDE 统一进同一条日志流
+
+### 方法修正
+
+此前 `ADD` 事件走 `LOG`（最后统一输出），`findCollisionPiece` 走 `System.out.println`
+（即时输出），两套输出无法交叉比对顺序——这是上两轮判断反复出错的方法原因。
+本轮把两者都写进 `LOG`，顺序才真实可比。
+
+### 由此得到的确定序列（overworld/0/-13/-7）
+
+```
+ADD[5] depth=5 dir=north                (-199,51,-185)-(-197,53,-166)
+    5|nextInt(4)=1
+    5|nextInt(3)=2
+    5|nextInt(100)=81
+    5|nextInt(4)=2
+NOCULL (-200,52,-190)-(-196,54,-186)      <- [6] 自己的碰撞检查
+ADD[6] depth=6 dir=null crossDir=north  (-200,52,-190)-(-196,54,-186)
+    6|nextInt(100)=80
+    6|nextInt(4)=1
+NOCULL (-205,52,-190)-(-201,54,-186)      <- 只有这一次！
+ADD[7] depth=7 dir=null crossDir=west   (-205,52,-190)-(-201,54,-186)
+```
+
+**`[6]` 的 `addChildren` 只调用了一次 `findCollisionPiece`，包围盒是西向的。**
+
+交叉点朝北时本应依次产生三次（北、西、东）。实测只有一次，且就是西向。
+
+### 自洽的解释
+
+若 `[6].direction = WEST`，则第 1 个出口就是 `(minX-1, minY, minZ+1) = (-201,52,-189)`，
+经 WEST 模板 `(-4,0,-1)-(0,i,3)` 得到 `(-205,52,-190)-(-201,54,-186)`——
+**与实测的 NOCULL 完全一致**，且成功登记为 `[7]`，随后 `[7]` 立即递归展开。
+整段日志与「`[6].direction = WEST`」完全自洽。
+
+### 与之冲突的观察
+
+反射读 `MineShaftCrossing.direction` 字段得到的却是 `north`，`getOrientation()` 是 null。
+
+两者矛盾，本轮没能调和。可能是：
+- 反射读到的 `direction` 与 `addChildren` 使用的不是同一个字段；
+- 或者 `[6]` 的实际类型与 `crossDir` 的读取目标不一致。
+
+### 下一步
+
+先确认 `[6]` 的真实类型：在 `ADD` 里打印 `piece.getClass().getSimpleName()`。
+这一步能一次性判定「`[6]` 到底是交叉点还是走廊」，从而确定该用哪个字段解释上面那段序列。

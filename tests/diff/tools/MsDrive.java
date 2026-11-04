@@ -98,9 +98,11 @@ public final class MsDrive {
         public StructurePiece findCollisionPiece(BoundingBox box) {
             for (StructurePiece piece : PIECES) {
                 if (piece.getBoundingBox().intersects(box)) {
+                    LOG.add("-1|COLLIDE " + box + " <- [" + PIECES.indexOf(piece) + "] d=" + piece.getGenDepth());
                     return piece;
                 }
             }
+            LOG.add("-1|NOCULL " + box);
             return null;
         }
     }
