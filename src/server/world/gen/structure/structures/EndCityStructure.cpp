@@ -290,20 +290,12 @@ void CityTemplate::generate(IWorldWriter& world,
         m_overwrite ? (world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
                     : world::BlockUpdateFlags::UPDATE_CLIENTS);
 
-    // 更新边界框 - 根据旋转计算实际尺寸
-    switch (m_rotation) {
-        case feature::template_::Rotation::None:
-        case feature::template_::Rotation::Clockwise180:
-            m_maxX = m_minX + m_size.x - 1;
-            m_maxZ = m_minZ + m_size.z - 1;
-            break;
-        case feature::template_::Rotation::Clockwise90:
-        case feature::template_::Rotation::CounterClockwise90:
-            m_maxX = m_minX + m_size.z - 1;
-            m_maxZ = m_minZ + m_size.x - 1;
-            break;
-    }
-    m_maxY = m_minY + m_size.y - 1;
+    // 包围盒在构造时已经按模板真实尺寸与原版算法算好了，这里不再重算。
+    //
+    // 原先这里按 `m_minX + m_size - 1` 的简单加法重算一遍，没有考虑「旋转后包围盒
+    // 的 min 会落在 pos 之前」这一事实，等于把构造时算对的结果又覆盖成错的：
+    // 实测 fat_tower_top 的模板是 17x6x17，构造时盒子正确，但被这里改成了 12x8x12，
+    // 与紧邻的下一层构件直接错位。
 }
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const
