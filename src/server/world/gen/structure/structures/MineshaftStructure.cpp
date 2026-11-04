@@ -65,58 +65,78 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
     std::unique_ptr<MineshaftPiece> created;
 
     if (chance >= 80) {
-        // 20% 概率生成交叉点
-        i32 minX = x, maxX = x + 4;
-        i32 minZ = z, maxZ = z + 4;
-        i32 minY = y, maxY = y + 2;
-
-        // 根据方向调整边界
+        // 交叉点：高度由一次 nextInt(4) 决定（0 表示双层，高 6；否则高 2），
+        // 水平范围按朝向取固定的偏移表。
+        //
+        // 原版 MineShaftCrossing.findCrossing：
+        //   int i = nextInt(4) == 0 ? 6 : 2;
+        //   北 -> (-1, 0, -4) .. (3, i, 0)
+        //   南 -> (-1, 0,  0) .. (3, i, 4)
+        //   西 -> (-4, 0, -1) .. (0, i, 3)
+        //   东 -> ( 0, 0, -1) .. (4, i, 3)
+        // 此前既没有那次 nextInt(4)，偏移也与原版不同。
+        const i32 crossHeight = (rng.nextInt(4) == 0) ? 6 : 2;
+        i32 minX = x - 1, maxX = x + 3;
+        i32 minZ = z - 4, maxZ = z;
         switch (direction) {
-            case 0: // 北
-                maxZ = z;
-                minZ = z - 4;
-                break;
             case 1: // 南
                 minZ = z;
                 maxZ = z + 4;
                 break;
             case 2: // 西
-                maxX = x;
                 minX = x - 4;
+                maxX = x;
+                minZ = z - 1;
+                maxZ = z + 3;
                 break;
             case 3: // 东
                 minX = x;
                 maxX = x + 4;
+                minZ = z - 1;
+                maxZ = z + 3;
+                break;
+            case 0: // 北
+            default:
                 break;
         }
+        const i32 minY = y;
+        const i32 maxY = y + crossHeight;
 
         created = std::make_unique<MineshaftCross>(
             MineshaftPieceTypes::CROSS, minX, minY, minZ, maxX, maxY, maxZ, direction, type);
     } else if (chance >= 70) {
-        // 10% 概率生成楼梯
-        i32 length = 8;
+        // 楼梯：固定下降 5 格、水平延伸 8 格，按朝向取偏移表。
+        //
+        // 原版 MineshaftStairs.findStairs：
+        //   北 -> (0, -5, -8) .. (2, 2, 0)
+        //   南 -> (0, -5,  0) .. (2, 2, 8)
+        //   西 -> (-8, -5, 0) .. (0, 2, 2)
+        //   东 -> ( 0, -5, 0) .. (8, 2, 2)
+        // 此前 Y 方向只降了 4 格（length/2），与原版差 1。
+        constexpr i32 kStairsDrop = 5;
+        constexpr i32 kStairsReach = 8;
         i32 minX = x, maxX = x + 2;
         i32 minZ = z, maxZ = z + 2;
-        i32 minY = y - length / 2, maxY = y + 2;
-
         switch (direction) {
             case 0: // 北
-                minZ = z - length;
+                minZ = z - kStairsReach;
                 maxZ = z;
                 break;
             case 1: // 南
                 minZ = z;
-                maxZ = z + length;
+                maxZ = z + kStairsReach;
                 break;
             case 2: // 西
-                minX = x - length;
+                minX = x - kStairsReach;
                 maxX = x;
                 break;
             case 3: // 东
                 minX = x;
-                maxX = x + length;
+                maxX = x + kStairsReach;
                 break;
         }
+        const i32 minY = y - kStairsDrop;
+        const i32 maxY = y + 2;
 
         created = std::make_unique<MineshaftStairs>(
             MineshaftPieceTypes::STAIRS, minX, minY, minZ, maxX, maxY, maxZ, direction, type);
