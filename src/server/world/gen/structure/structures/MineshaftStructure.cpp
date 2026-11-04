@@ -206,6 +206,34 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
     if (created) {
         created->setGenDepth(depth);
 
+        // 每个构件都必须记录朝向，否则 getRotation() 恒为 NONE。
+        //
+        // 原版 StructurePiece.setOrientation 的映射：
+        //   NORTH -> mirror NONE,        rotation NONE
+        //   SOUTH -> mirror LEFT_RIGHT,  rotation NONE
+        //   WEST  -> mirror LEFT_RIGHT,  rotation CLOCKWISE_90
+        //   EAST  -> mirror NONE,        rotation CLOCKWISE_90
+        // 朝向同时决定构件内部的方块布局，缺了它整个矿井的构件全部按朝北绘制。
+        switch (direction) {
+            case 1: // 南
+                created->setMirror(Mirror::LeftRight);
+                created->setRotation(Rotation::None);
+                break;
+            case 2: // 西
+                created->setMirror(Mirror::LeftRight);
+                created->setRotation(Rotation::Clockwise90);
+                break;
+            case 3: // 东
+                created->setMirror(Mirror::None);
+                created->setRotation(Rotation::Clockwise90);
+                break;
+            case 0: // 北
+            default:
+                created->setMirror(Mirror::None);
+                created->setRotation(Rotation::None);
+                break;
+        }
+
         // 新构件不得与已有构件重叠。
         //
         // 原版 findCorridorSize / findCrossing / findStairs 在返回包围盒前都会调用
