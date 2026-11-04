@@ -51,8 +51,11 @@ StructureBoundingBox StructureBoundingBox::createBox(i32 x,
     Direction direction) noexcept
 {
 
+    // 深度沿 -Z 还是 +Z 展开由朝向决定：朝北向 -Z 生长，朝南向 +Z 生长。
+    // 这两个分支此前写反了（North 用了 +Z、South 用了 -Z），使所有依赖朝向的
+    // 结构构件落在门的另一侧，与其他构件的包围盒互相重叠。
     switch (direction) {
-        case Direction::North:
+        case Direction::South:
             return StructureBoundingBox(x + offsetX,
                 y + offsetY,
                 z + offsetZ,
@@ -60,13 +63,13 @@ StructureBoundingBox StructureBoundingBox::createBox(i32 x,
                 y + offsetY + sizeY - 1,
                 z + offsetZ + sizeZ - 1);
 
-        case Direction::South:
+        case Direction::North:
             return StructureBoundingBox(x + offsetX,
                 y + offsetY,
-                z - sizeZ - offsetZ + 1,
+                z - sizeZ + 1 + offsetZ,
                 x + offsetX + sizeX - 1,
                 y + offsetY + sizeY - 1,
-                z - offsetZ);
+                z + offsetZ);
 
         case Direction::West:
             return StructureBoundingBox(x - sizeZ - offsetZ + 1,
@@ -85,7 +88,7 @@ StructureBoundingBox StructureBoundingBox::createBox(i32 x,
                 z + offsetX + sizeX - 1);
 
         default:
-            // 默认朝北
+            // 未知朝向按朝南处理（深度沿 +Z 展开）。
             return StructureBoundingBox(x + offsetX,
                 y + offsetY,
                 z + offsetZ,
