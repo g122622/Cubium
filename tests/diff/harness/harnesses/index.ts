@@ -1700,6 +1700,16 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "判据挂在 BlockItem 上而不是按物品 id 白名单，所以新增颜色/材质变体自动被覆盖",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "entity_peaceful",
+        probe: "entity_peaceful",
+        oracle: "EntityPeacefulOracle",
+        description: "实体类型在和平难度下是否允许生成/召唤（EntityType#isAllowedInPeaceful）—— 全部已注册实体类型；"
+        + "原版默认允许，需显式 notInPeaceful() 才禁止。反直觉之处：大多数 MONSTER 类别实体确实禁止，但并非全部 ——"
+        + "潜影贝、僵尸猪灵、猪灵、猪灵蛮兵、疣猪兽等都不带 notInPeaceful。"
+        + "写反的后果玩家可直接观察到却不会崩溃：该禁止的没禁止（和平难度刷出敌对生物），该允许的被禁止（/summon 与刷怪蛋失效）",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
