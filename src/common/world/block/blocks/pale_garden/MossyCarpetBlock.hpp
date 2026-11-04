@@ -142,6 +142,9 @@ private:
         bool bottom, WallHeight north, WallHeight east, WallHeight south, WallHeight west);
 
     std::vector<CollisionShape> m_shapes;
+    /// 天空光直通判定：苔藓毯恒透光，与是否有底座无关。
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world, const BlockPos* pos) const override;
 };
 
 } // namespace blocks

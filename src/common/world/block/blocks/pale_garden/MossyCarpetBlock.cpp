@@ -383,5 +383,15 @@ void MossyCarpetBlock::_initShapes()
     }
 }
 
+bool MossyCarpetBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    // 原版恒返回 true：苔藓毯是贴墙/贴地的薄片，永远不遮挡天空光。
+    // 基类判据会把「没有底座的空状态」判为挡光，导致苔藓毯下方凭空变暗。
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    return true;
+}
+
 } // namespace blocks
 } // namespace mc
