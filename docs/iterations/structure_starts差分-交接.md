@@ -699,3 +699,57 @@ Cubium 的 `[28]` 判为 `twoFloor=1` 与原版一致（`ySpan = 7 > 3`），
 
 **这是下一步必须先解决的工具问题**：把 `nextBoolean` 的追踪做对，
 才能看到原版那三次的取值，进而定位它们之前哪一次抽取多了或少了。
+
+## 第十五轮：把 nextBoolean 的追踪做对，并导出原版的完整抽取序列
+
+### 工具修复
+
+上一轮覆写 `nextBoolean()` 没有生效。查 `BitRandomSource`：
+
+```java
+default boolean nextBoolean() {
+    return this.next(1) != 0;
+}
+```
+
+它走的是 `next(int)`，所以必须覆写 `next(int)`：
+
+```java
+public int next(int bits) {
+    int value = super.next(bits);
+    if (bits == 1) { log.add(current + "|nextBoolean()=" + (value != 0)); }
+    return value;
+}
+```
+
+（`next(int)` 在 `LegacyRandomSource` 里是 `public`，覆写成 `protected` 会编译失败。）
+
+### 得到的确定事实
+
+`[28]` 是双层交叉点（`ySpan = 7 > 3`），原版它有 **4 个**子构件，相对位置如下：
+
+| 子构件 | 相对 min | 解读 |
+|---|---|---|
+| `[29]` | `(1, -5, -9)` | `minX+1`、`minY-5`、`minZ-9` |
+| `[32]` | `(5, 0, 1)` | 东侧主口 `maxX+1` |
+| `[37]` | `(-15, 4, 1)` | y 偏移 **+4** |
+| `[41]` | `(1, 4, 5)` | `minX+1`、y 偏移 **+4** |
+
+`y = minY + 4` 正是 `isTwoFloored` 分支的 `minY + 3 + 1`，
+所以 `[37]`、`[41]` 都是双层分支的产物，原版那三次 `nextBoolean()` 至少命中两次。
+
+而 Cubium 在同一位置测得 `bool[0]=0, bool[1]=1, bool[2]=0`，只命中一次（西向）。
+
+### 一个尚未解释的现象
+
+按 owner 游标看，`#178 nextInt(100)=45` 属于 `[29]` 的创建，`45 < 70` 应走走廊分支；
+但 `[29]` 的 `minY` 相对父构件是 `-5`，而走廊的 `minY` 应等于传入的 `y`。这个矛盾说明
+owner 游标在这个位置不可靠——父构件的主口创建出子构件后，父构件剩余的抽取会被记到子构件名下。
+读日志时必须按 `PIECE` 行与深度关系重新归属。
+
+### 结论
+
+工具已经能导出「每次抽取 → 所属构件」的完整序列，剩下的是把归属算法做对
+（按深度和 `PIECE` 出现位置重建，而不是用单一游标）。
+做完之后 `[28]` 那三次 `nextBoolean()` 的取值可以直接读出来，
+`[28]` 之前哪一次抽取多了或少了也就一目了然。
