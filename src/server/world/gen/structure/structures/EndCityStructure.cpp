@@ -390,26 +390,38 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
         return false;
     }
 
-    // 检查碰撞
-    i32 componentId = rng.nextInt();
+    // 原版 recursiveChildren：
+    //   boolean flag = false;
+    //   int i = random.nextInt();
+    //   for (piece : list) {
+    //       piece.setGenDepth(i);
+    //       StructurePiece hit = StructurePiece.findCollisionPiece(pieces, piece.getBoundingBox());
+    //       if (hit != null && hit.getGenDepth() != parent.getGenDepth()) { flag = true; break; }
+    //   }
+    //   if (!flag) { pieces.addAll(list); return true; }
+    //
+    // 两个要点：只取**第一个**碰撞者（不是遍历全部），且比的是它的 genDepth 与
+    // parent 的 genDepth 是否相同——相同说明撞到的是同一代构件，允许重叠。
+    // 此前这里按「componentId 不等于 parent」来判断，语义完全不同，导致塔的分支
+    // 该保留的被砍掉、该砍掉的被保留。
+    const i32 componentId = rng.nextInt();
     bool hasCollision = false;
 
     for (auto& newPiece : newPieces) {
-        CityTemplate* cityPiece = dynamic_cast<CityTemplate*>(newPiece.get());
-        if (!cityPiece) {
+        auto* cityPiece = dynamic_cast<CityTemplate*>(newPiece.get());
+        if (cityPiece == nullptr) {
             continue;
         }
 
         cityPiece->componentId = componentId;
 
-        // 检查与现有片段的碰撞
         for (const auto& existingPiece : pieces) {
-            const CityTemplate* existingCity = dynamic_cast<const CityTemplate*>(existingPiece.get());
-            if (existingCity && existingCity->componentId != parent.componentId) {
-                if (cityPiece->intersects(existingCity->getBoundingBox())) {
+            const auto* existingCity = dynamic_cast<const CityTemplate*>(existingPiece.get());
+            if (existingCity != nullptr && cityPiece->intersects(existingCity->getBoundingBox())) {
+                if (existingCity->componentId != parent.componentId) {
                     hasCollision = true;
-                    break;
                 }
+                break; // 只取第一个碰撞者
             }
         }
 
