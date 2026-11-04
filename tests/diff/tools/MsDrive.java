@@ -90,6 +90,29 @@ public final class MsDrive {
         return "?";
     }
 
+    /** 只看前 N 个构件的碰撞视图，用于复现历史时刻的状态。 */
+    static final class SubsetAccessor implements StructurePieceAccessor {
+        final java.util.List<StructurePiece> pieces;
+
+        SubsetAccessor(java.util.List<StructurePiece> pieces) {
+            this.pieces = pieces;
+        }
+
+        @Override
+        public void addPiece(StructurePiece piece) {
+        }
+
+        @Override
+        public StructurePiece findCollisionPiece(BoundingBox box) {
+            for (StructurePiece piece : pieces) {
+                if (piece.getBoundingBox().intersects(box)) {
+                    return piece;
+                }
+            }
+            return null;
+        }
+    }
+
     static final class Accessor implements StructurePieceAccessor {
         @Override
         public void addPiece(StructurePiece piece) {
@@ -99,6 +122,28 @@ public final class MsDrive {
                 ACTIVE.pop();
             }
             int parent = owner();
+            if (PIECES.size() == 7 && false) {
+                try {
+                    var m = Class.forName("net.minecraft.world.level.levelgen.structure.structures.MineshaftPieces$MineShaftCrossing")
+                        .getDeclaredMethod("findCrossing", StructurePieceAccessor.class, net.minecraft.util.RandomSource.class,
+                            int.class, int.class, int.class, net.minecraft.core.Direction.class);
+                    m.setAccessible(true);
+                    // 用一个不消耗原序列的新随机源
+                    net.minecraft.world.level.levelgen.WorldgenRandom probe =
+                        new net.minecraft.world.level.levelgen.WorldgenRandom(new LegacyRandomSource(0L));
+                    probe.setSeed(0L);
+                    Object north = m.invoke(null, this, probe,
+                        piece.getBoundingBox().minX() + 1, piece.getBoundingBox().minY(),
+                        piece.getBoundingBox().minZ() - 1, net.minecraft.core.Direction.NORTH);
+                    System.out.println("PROBE6 north => " + north);
+                    Object west = m.invoke(null, this, probe,
+                        piece.getBoundingBox().minX() - 1, piece.getBoundingBox().minY(),
+                        piece.getBoundingBox().minZ() + 1, net.minecraft.core.Direction.WEST);
+                    System.out.println("PROBE6 west  => " + west);
+                } catch (ReflectiveOperationException e) {
+                    System.out.println("PROBE6 failed " + e);
+                }
+            }
             int index = PIECES.size();
             PIECES.add(piece);
             ACTIVE.push(new int[] {index, depth});
@@ -143,6 +188,32 @@ public final class MsDrive {
         System.out.println("PIECE 0 depth=0 parent=-1 " + room.getBoundingBox());
         room.addChildren(room, accessor, rng);
 
+        {
+            StructurePiece p6 = PIECES.get(6);
+            try {
+                var acc = new SubsetAccessor(PIECES.subList(0, 7));
+                var m = Class.forName("net.minecraft.world.level.levelgen.structure.structures.MineshaftPieces$MineShaftCrossing")
+                    .getDeclaredMethod("findCrossing", StructurePieceAccessor.class, net.minecraft.util.RandomSource.class,
+                        int.class, int.class, int.class, net.minecraft.core.Direction.class);
+                m.setAccessible(true);
+                net.minecraft.world.level.levelgen.WorldgenRandom probe =
+                    new net.minecraft.world.level.levelgen.WorldgenRandom(new LegacyRandomSource(0L));
+                System.out.println("P6 box = " + p6.getBoundingBox());
+                for (net.minecraft.core.Direction dir : new net.minecraft.core.Direction[] {
+                        net.minecraft.core.Direction.NORTH, net.minecraft.core.Direction.WEST, net.minecraft.core.Direction.EAST }) {
+                    int px = dir == net.minecraft.core.Direction.NORTH ? p6.getBoundingBox().minX() + 1
+                            : (dir == net.minecraft.core.Direction.WEST ? p6.getBoundingBox().minX() - 1
+                            : p6.getBoundingBox().maxX() + 1);
+                    int pz = dir == net.minecraft.core.Direction.SOUTH ? p6.getBoundingBox().maxZ() + 1
+                            : (dir == net.minecraft.core.Direction.NORTH ? p6.getBoundingBox().minZ() - 1
+                            : p6.getBoundingBox().minZ() + 1);
+                    Object box = m.invoke(null, acc, probe, px, p6.getBoundingBox().minY(), pz, dir);
+                    System.out.println("P6 " + dir + " from (" + px + "," + pz + ") => " + box);
+                }
+            } catch (ReflectiveOperationException e) {
+                System.out.println("P6 failed " + e);
+            }
+        }
         System.out.println("COUNT " + PIECES.size());
         for (int i = 0; i < LOG.size(); i++) {
             System.out.println("DRAW " + i + " " + LOG.get(i));
