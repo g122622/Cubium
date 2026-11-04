@@ -116,7 +116,7 @@ bool EndCityStructure::canGenerate(
     BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
     if (isValidBiome(biome)) {
         // 末地城只在高度 >= 60 的位置生成
-        return _getYPosition(chunkX, chunkZ, generator) >= 60;
+        return _getYPosition(chunkX, chunkZ, generator, feature::template_::Rotation::None) >= 60;
     }
     return false;
 }
@@ -126,17 +126,19 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
+    // 顺序不能变：原版 findGenerationPoint 先抽旋转，再用这个旋转去取 5x5 四角的最低
+    // 高度，最后才判 Y < 60。此前这里是先算 Y（用的还是另一个自造随机源）、再抽旋转，
+    // 既多抽了一次随机数，判定用的旋转也与实际生成用的不一致。
+    feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
+
     // 计算生成位置
     i32 x = chunkX * world::CHUNK_WIDTH + 8;
     i32 z = chunkZ * world::CHUNK_WIDTH + 8;
-    i32 y = _getYPosition(chunkX, chunkZ, generator);
+    i32 y = _getYPosition(chunkX, chunkZ, generator, rotation);
 
     if (y < 60) {
         return start;
     }
-
-    // 随机旋转
-    feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
 
     // 使用递归生成器系统
     std::vector<std::unique_ptr<StructurePiece>> pieces;
@@ -156,10 +158,9 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     return start;
 }
 
-i32 EndCityStructure::_getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator)
+i32 EndCityStructure::_getYPosition(
+    i32 chunkX, i32 chunkZ, IChunkGenerator& generator, feature::template_::Rotation rotation)
 {
-    math::Random random(static_cast<i64>(chunkX + chunkZ * 10387313));
-    feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(random.nextInt(4));
 
     i32 i = 5;
     i32 j = 5;
@@ -204,6 +205,22 @@ CityTemplate::CityTemplate(
 {
     m_settings.setRotation(rotation);
     m_settings.setIgnoreEntities(true);
+
+    // 包围盒必须按模板的真实尺寸（含旋转）算出来。
+    //
+    // 此前这里是 (pos, pos) 的单点盒，导致每个构件退化成一个点：报告里所有 piece
+    // 的 box 都是同一个坐标，既看不出结构形状，也让 intersects(chunkBounds) 失真。
+    const feature::template_::Template* templ = jigsaw::JigsawAssembler::getTemplateManager().getTemplate(
+        ResourceLocation("minecraft", "end_city/" + templateName));
+    if (templ != nullptr) {
+        const structure::StructureBoundingBox box = templ->getBoundingBox(m_settings, pos);
+        m_minX = box.minX();
+        m_minY = box.minY();
+        m_minZ = box.minZ();
+        m_maxX = box.maxX();
+        m_maxY = box.maxY();
+        m_maxZ = box.maxZ();
+    }
 
     // 设置处理器：overwrite 模式替换所有方块，insert 模式保留空气
     if (overwrite) {

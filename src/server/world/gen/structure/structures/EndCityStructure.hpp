@@ -86,7 +86,15 @@ private:
     /**
      * @brief 计算末地城生成高度
      */
-    [[nodiscard]] static i32 _getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator);
+    /**
+     * @brief 取 5x5 区域内四个角点的最低高度
+     *
+     * 四角偏移由旋转决定（±5），所以旋转必须由调用方传入——原版也是先抽旋转、
+     * 再用它去取样。此前这里自己造了一个随机源抽旋转，既不消耗真实随机序列，
+     * 判定用的旋转也与实际生成用的不一致。
+     */
+    [[nodiscard]] static i32 _getYPosition(
+        i32 chunkX, i32 chunkZ, IChunkGenerator& generator, feature::template_::Rotation rotation);
 
     /// 最大递归深度
     static constexpr i32 MAX_DEPTH = 8;
