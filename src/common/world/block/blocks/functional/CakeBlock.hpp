@@ -130,6 +130,8 @@ public:
 protected:
     /// 各片数的形状缓存
     std::array<CollisionShape, 7> m_shapesByBites;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

@@ -128,6 +128,8 @@ public:
 private:
     /// 15/16 格高的形状（渲染与碰撞共用）
     CollisionShape m_shape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

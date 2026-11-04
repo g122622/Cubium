@@ -389,5 +389,16 @@ void LiquidBlock::onEntityCollision(const BlockState& state, IWorld& world, cons
     entity.lavaHurt();
 }
 
+bool LiquidBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 流体方块只按「是不是岩浆」判定，与寻路类型无关：
+    // 水恒可通行（游泳、涉水），岩浆恒不可通行（生物不会主动走进岩浆）。
+    // 这里不能用 getFluidState().is(WATER) —— 它依赖流体标签，标签未加载时恒为 false。
+    MC_UNUSED(type);
+    const fluid::FluidState* fluidState = getFluidState(state);
+    return fluidState != nullptr && !fluidState->getFluid().isIn(fluid::FluidTags::LAVA());
+}
+
 } // namespace block
+
 } // namespace mc

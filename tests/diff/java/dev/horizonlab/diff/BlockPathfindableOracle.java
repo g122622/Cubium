@@ -49,6 +49,9 @@ public final class BlockPathfindableOracle {
     public static void main(String[] args) throws IOException {
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
+        // 流体标签必须加载：LiquidBlock#isPathfindable 依赖 "是不是岩浆" 的判定，
+        // 标签未加载时 is(FluidTags.LAVA) 恒为 false，岩浆会被误判为可通行。
+        DataPackRegistries.load();
 
         if (args.length == 2 && args[0].equals("list")) {
             List<String> units = new ArrayList<>();

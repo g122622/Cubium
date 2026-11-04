@@ -133,6 +133,8 @@ protected:
     CollisionShape m_standingShape;
     /// 光照等级
     u8 m_lightValue = 15;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

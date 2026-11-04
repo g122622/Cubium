@@ -182,6 +182,8 @@ private:
 
     /// 各朝向下的顶部横板形状（碰撞用，不含立柱）。
     std::unordered_map<Direction, CollisionShape> m_plankShapes;
+    /// 寻路通行判定：原版 WallHangingSignBlock 显式返回 false。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

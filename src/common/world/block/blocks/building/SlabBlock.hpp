@@ -179,6 +179,8 @@ private:
 
     /// 完整方块形状
     CollisionShape m_fullCubeShape;
+    /// 寻路通行判定：地面与空中不可通行，水中看是否含水。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

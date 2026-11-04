@@ -557,5 +557,21 @@ const BooleanProperty& WaxedCopperBarsBlock::_directionToProperty(Direction dire
     }
 }
 
+bool WeatheringCopperBarsBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 该方块族原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
+bool WaxedCopperBarsBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 上蜡变体不继承 WeatheringCopperBarsBlock，需要单独实现。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

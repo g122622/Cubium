@@ -118,6 +118,8 @@ private:
     /// 杜鹃树生成器回调
     SaplingBlock::TreeGenerator m_treeGenerator;
     CollisionShape m_shape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 /**
@@ -138,6 +140,8 @@ public:
     explicit FloweringAzaleaBlock(SaplingBlock::TreeGenerator treeGenerator, const BlockProperties& properties);
 
     ~FloweringAzaleaBlock() override = default;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

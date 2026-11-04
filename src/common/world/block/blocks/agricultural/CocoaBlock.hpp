@@ -166,6 +166,8 @@ private:
      * @brief 检查是否可以附着在指定方向
      */
     [[nodiscard]] bool _canAttachTo(IBlockReader& world, const BlockPos& pos, Direction facing) const;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

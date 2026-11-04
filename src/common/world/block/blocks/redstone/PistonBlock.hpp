@@ -241,6 +241,8 @@ private:
      * @return PushReaction 方块的推动反应
      */
     [[nodiscard]] Material::PushReaction _getBlockPushReaction(const BlockState& state) const;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

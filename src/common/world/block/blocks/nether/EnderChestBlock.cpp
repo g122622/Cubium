@@ -205,5 +205,13 @@ std::optional<ContainerType> EnderChestBlock::getMenuProvider(
     return ContainerType::Generic9x3;
 }
 
+bool EnderChestBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

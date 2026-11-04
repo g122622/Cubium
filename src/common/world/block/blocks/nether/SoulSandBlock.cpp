@@ -97,4 +97,12 @@ void SoulSandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     BubbleColumnBlock::placeBubbleColumn(world, abovePos, false);
 }
 
+bool SoulSandBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 原版显式返回 false：灵魂沙的形状不构成可通行空间。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace mc::blocks

@@ -139,6 +139,8 @@ public:
 protected:
     /// 末影箱形状（14x14底部，非完整方块）
     CollisionShape m_shape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

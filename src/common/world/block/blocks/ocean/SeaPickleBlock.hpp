@@ -139,6 +139,8 @@ public:
 private:
     /// 各数量的形状（索引0=1个，索引1=2个，...）
     std::array<CollisionShape, 4> m_shapesByCount;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

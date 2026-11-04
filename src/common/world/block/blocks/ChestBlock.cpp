@@ -495,5 +495,13 @@ std::optional<ContainerType> ChestBlock::getMenuProvider(
                                                                   : ContainerType::Generic9x6;
 }
 
+bool ChestBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 该方块族原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

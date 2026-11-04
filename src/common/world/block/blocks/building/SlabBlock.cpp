@@ -214,13 +214,21 @@ bool SlabBlock::isDouble(const BlockState& state)
 
 const fluid::FluidState* SlabBlock::getFluidState(const BlockState& state) const
 {
-    // 双层台阶不能含水
-    if (state.get(BlockStateProperties::SLAB_TYPE()) == BlockStateProperties::SlabType::Double) {
-        return Block::getFluidState(state);
-    }
+    // 只看 WATERLOGGED 属性，不区分 double 类型：双层台阶虽然无法被放置水，
+    // 但既有状态里仍可能存在 [type=double,waterlogged=true]，其流体必须是水。
 
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+
+bool SlabBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 台阶不可站上去（LAND/AIR 均为 false），但含水的台阶可被水中型生物穿过。
+    if (type != PathComputationType::Water) {
+        return false;
+    }
+    const fluid::FluidState* fluidState = state.getFluidState();
+    return fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER());
 }
 
 } // namespace blocks

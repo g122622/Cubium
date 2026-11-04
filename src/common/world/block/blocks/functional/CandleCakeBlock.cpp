@@ -257,5 +257,13 @@ bool CandleCakeBlock::canLight(const BlockState& state)
     return state.hasProperty(BlockStateProperties::LIT()) && !state.get(BlockStateProperties::LIT());
 }
 
+bool CandleCakeBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

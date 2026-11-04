@@ -1,3 +1,4 @@
+import { KNOWN_PATHFINDABLE_GAPS } from "./known_pathfindable_gaps.ts";
 /*
  * Copyright (c) 2026 Guo Yi
  *
@@ -1766,6 +1767,25 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "两处最容易写错：① 判据是「不完整」而不是「为空」—— 台阶、楼梯、栅栏门碰撞形状非空但不完整，生物能从上方走过，"
         + "用 isEmpty() 判定会让生物绕开所有台阶（表现为村民卡在台阶前不动）；② WATER 不看形状只看是不是水 —— 三种类型统一按形状判，"
         + "陆行生物会走进水里",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) , knownDifferences: KNOWN_PATHFINDABLE_GAPS },
+    {
+        name: "block_light_occlusion_shape",
+        probe: "block_light_occlusion_shape",
+        oracle: "BlockLightOcclusionShapeOracle",
+        description: "方块状态是否按形状决定光照遮挡（BlockBehaviour#useShapeForLightOcclusion）—— 全部 29671 个状态；"
+        + "光照引擎判断方块是否挡光有两种口径：false（默认）只看 canOcclude 与具体形状无关；true 按形状实际包围盒累加遮挡。"
+        + "台阶、楼梯、耕地、土径、雪这类半格或略矮的方块必须是 true —— 写成 false 会让台阶下方一片漆黑、室内光照蔓延范围偏小。"
+        + "反向写成 true 则让整格不透明但形状略小的方块在其上方凭空透光。此标志不影响实体碰撞，只影响光照，错了不会撞穿只会「暗得没道理」",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
+        name: "block_skylight_propagation",
+        probe: "block_skylight_propagation",
+        oracle: "BlockSkylightPropagationOracle",
+        description: "方块状态是否向下透传天空光（BlockBehaviour#propagatesSkylightDown）—— 全部 29671 个状态；"
+        + "天空光从世界顶部往下传播时遇方块要判断光能否直接穿过这一格，该值同时决定 getLightBlock（透光则 0，否则 1）。"
+        + "原版默认：!isShapeFullBlock(shape) && fluidState.isEmpty()。两个易错点：① 必须同时检查形状与流体 —— 只判形状会让水透光（海底一片明亮），"
+        + "只判流体会让台阶、栅栏、楼梯全部挡光（白天进屋一片漆黑）；② 判据是「形状非整格」而不是「碰撞形状为空」—— 树叶、草丛、栅栏、告示牌的碰撞形状都不是整格，"
+        + "它们都应透光，用「碰撞为空」会让树叶下方凭空变暗（森林地面收不到天空光）",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
         name: "block_view_blocking",

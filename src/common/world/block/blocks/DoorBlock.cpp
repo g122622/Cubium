@@ -470,5 +470,18 @@ size_t DoorBlock::_getShapeIndex(Direction facing, bool open, bool hingeRight) n
     }
 }
 
+bool DoorBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 门开则 LAND/AIR 可通行；WATER 恒不可通行（门不在水里）。
+    switch (type) {
+        case PathComputationType::Water:
+            return false;
+        case PathComputationType::Land:
+        case PathComputationType::Air:
+        default:
+            return state.get(BlockStateProperties::OPEN());
+    }
+}
+
 } // namespace blocks
 } // namespace mc

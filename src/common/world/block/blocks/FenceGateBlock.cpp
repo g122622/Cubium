@@ -376,5 +376,18 @@ void FenceGateBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpeni
         static_cast<const BlockState*>(nullptr));
 }
 
+bool FenceGateBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 栅栏门打开则 LAND/AIR 可通行；WATER 恒不可通行。
+    switch (type) {
+        case PathComputationType::Water:
+            return false;
+        case PathComputationType::Land:
+        case PathComputationType::Air:
+        default:
+            return state.get(BlockStateProperties::OPEN());
+    }
+}
+
 } // namespace blocks
 } // namespace mc

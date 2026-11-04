@@ -271,5 +271,23 @@ const fluid::FluidState* WaxedCopperLanternBlock::getFluidState(const BlockState
     return waterloggable::getWaterFluidState(state);
 }
 
+bool WeatheringCopperLanternBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 铜制锁链/灯笼不继承 ChainBlock/LanternBlock，需要单独实现。
+    // 原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
+bool WaxedCopperLanternBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 铜制锁链/灯笼不继承 ChainBlock/LanternBlock，需要单独实现。
+    // 原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

@@ -180,6 +180,8 @@ public:
      * 退回整格立方体，活塞头被误判为完全挡光。
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

@@ -73,6 +73,8 @@ protected:
 
 private:
     CollisionShape m_shape;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

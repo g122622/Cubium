@@ -320,6 +320,8 @@ protected:
      */
     [[nodiscard]] bool canCombineWithChestAt(
         IWorld& world, const BlockPos& pos, Direction facing, Direction expectedFacing) const;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

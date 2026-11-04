@@ -368,5 +368,18 @@ bool TrapDoorBlock::isLadder(const BlockState& state, IWorld* world, const Block
     return true;
 }
 
+bool TrapDoorBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 活板门打开则 LAND/AIR 可通行；WATER 取决于是否含水。
+    switch (type) {
+        case PathComputationType::Water:
+            return state.get(BlockStateProperties::WATERLOGGED());
+        case PathComputationType::Land:
+        case PathComputationType::Air:
+        default:
+            return state.get(BlockStateProperties::OPEN());
+    }
+}
+
 } // namespace blocks
 } // namespace mc

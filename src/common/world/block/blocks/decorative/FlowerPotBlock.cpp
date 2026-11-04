@@ -281,5 +281,13 @@ const FlowerPotBlock* FlowerPotBlock::getByContent(const Block& content)
     return (it != s_pottedByContent.end()) ? it->second : nullptr;
 }
 
+bool FlowerPotBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

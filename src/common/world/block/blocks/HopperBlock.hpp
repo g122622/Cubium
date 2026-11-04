@@ -255,6 +255,8 @@ private:
     // 0: DOWN, 1: UP (unused), 2: NORTH, 3: SOUTH, 4: WEST, 5: EAST
     std::array<CollisionShape, 6> m_shapes;
     std::array<CollisionShape, 6> m_raytraceShapes;
+    /// 寻路通行判定。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks
