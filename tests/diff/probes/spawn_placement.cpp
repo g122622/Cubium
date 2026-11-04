@@ -127,10 +127,10 @@ std::string _runLine(std::string_view line)
     json cases = json::array();
     for (const auto& scenario : input.at("cases")) {
         _columnWorld world(scenario);
+        const auto y = scenario.at("y").get<i32>();
         cases.push_back(json{{"name", scenario.at("name")},
             {"positionOk",
-                EntitySpawnPlacementRegistry::canSpawnAtLocation(
-                    placement, world, Vector3i(0, scenario.at("y").get<i32>(), 0), entity)}});
+                EntitySpawnPlacementRegistry::canSpawnAtLocation(placement, world, Vector3i(0, y, 0), entity)}});
     }
     const auto heightmap = EntitySpawnPlacementRegistry::getHeightmapType(entity);
     return json{{"entity", entity},
