@@ -1106,6 +1106,8 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(nullptr, EntityClassification::Misc)
             .size(0.6f, 1.8f)
             .trackingRange(32)
+            .disableSerialization()
+            .noSummon()
             .updateInterval(0)
             .build());
 
@@ -1273,6 +1275,8 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&FishingBobberEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
             .trackingRange(4)
+            .disableSerialization()
+            .noSummon()
             .updateInterval(1)
             .build());
 
@@ -1389,6 +1393,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&LightningBoltEntity::create, EntityClassification::Misc)
             .size(0.0f, 0.0f)
             .trackingRange(16)
+            .disableSerialization()
             .updateInterval(1)
             .build());
 
@@ -1438,6 +1443,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&LeashKnotEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
             .trackingRange(10)
+            .disableSerialization()
             .updateInterval(20)
             .build());
 

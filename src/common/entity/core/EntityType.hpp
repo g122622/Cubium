@@ -123,7 +123,10 @@ public:
             , m_size(EntitySize::flexible(0.6f, 1.8f))
             , m_trackingRange(5)
             , m_updateInterval(3)
-            , m_flags(EntityFlags::Serializable)
+            // 原版 Builder 的两个默认值都是 true：serialize=true、summon=true。
+            // 只有 noSave() 关 serialize，noSummon() 关 summon（原版只有玩家与浮标用了）。
+            , m_flags(static_cast<EntityFlags>(
+                  static_cast<u32>(EntityFlags::Serializable) | static_cast<u32>(EntityFlags::CanSummon)))
         {}
 
         /**
@@ -200,6 +203,20 @@ public:
         {
             m_flags =
                 static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::Serializable));
+            return *this;
+        }
+
+        /**
+         * @brief 禁止召唤（原版 `EntityType.Builder#noSummon`）
+         *
+         * 关闭后 `/summon` 与刷怪蛋都无法生成该实体。原版只有玩家与浮标两个
+         * 实体用了它：两者都由游戏内部创建，玩家不应能手动生成。
+         *
+         * @return Builder引用
+         */
+        Builder& noSummon()
+        {
+            m_flags = static_cast<EntityFlags>(static_cast<u32>(m_flags) & ~static_cast<u32>(EntityFlags::CanSummon));
             return *this;
         }
 

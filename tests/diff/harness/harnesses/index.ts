@@ -1710,6 +1710,16 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
         oracleMissing: entityTypesKnownMissing },
     {
+        name: "entity_serialize_summon",
+        probe: "entity_serialize_summon",
+        oracle: "EntitySerializeSummonOracle",
+        description: "实体类型的存档序列化与召唤开关（EntityType#canSerialize / canSummon）—— 全部已注册实体类型；"
+        + "两个都是「默认值写反」型缺陷：serialize 默认 true（显式 noSave() 才关：拴绳结/闪电/玩家/浮标），"
+        + "summon 默认也是 true（原版没有任何实体关闭它）。写反不会崩溃不会报错，只是某些实体悄悄失去存档或召唤能力——"
+        + "玩家造的东西重进世界全没了，或者 /summon 对某些实体静默失效",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
