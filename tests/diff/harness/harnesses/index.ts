@@ -1750,13 +1750,14 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "注意与 canBeReplacedByFluid 不是一回事：后者对非固体方块放宽（门、告示牌虽然不可替换但水能流进去）",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
-        name: "block_redstone_conductor",
-        probe: "block_redstone_conductor",
-        oracle: "BlockRedstoneConductorOracle",
-        description: "方块状态是否红石导体（BlockBehaviour#isRedstoneConductor）—— 全部 29671 个状态；"
-        + "红石粉向四周传播时会穿过导体方块向下找信号源，非导体则不会，同时影响火把/拉杆/中继器/观察者/活塞的充能判定。"
-        + "原版默认判据是「碰撞形状完整覆盖整格」，再由 22 处 isRedstoneConductor 逐个覆盖（绝大多数是 never）。"
-        + "两类最容易写错：红石块不透明且形状完整却显式排除；单层台阶与楼梯材质不透明但形状不完整。两个判据单独用都不对",
+        name: "block_spawn_query",
+        probe: "block_spawn_query",
+        oracle: "BlockSpawnQueryOracle",
+        description: "方块状态上与「能否生成」相关的四条静态判据—— 全部 29671 个状态：碰撞形状满格（isCollisionShapeFullBlock）、"
+        + "红石导体（isRedstoneConductor）、信号源（isSignalSource）、支撑面满顶面（isFaceFull(getBlockSupportShape, UP)）。"
+        + "前三条正是 NaturalSpawner.isValidEmptySpawnBlock 的否定条件，最后一条是 ON_GROUND 判定「脚下站不住」用的。"
+        + "最容易写错的是把后三条都当成「碰撞形状满格」：泥巴、灵魂沙碰撞箱比整格矮却不是导体也不是信号源，原版允许在其上生成；"
+        + "台阶、楼梯、陷阱门碰撞箱不满格却是导体，原版据此拒绝在其上生成。",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
         name: "block_pathfindable",
