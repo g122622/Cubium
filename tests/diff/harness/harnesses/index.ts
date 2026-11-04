@@ -220,6 +220,7 @@ import { spawnPlacementInput } from "./spawn_placement.ts";
 import { spawnRulesInput } from "./spawn_rules.ts";
 import { statusEffectInput, statusEffectUnits } from "./status_effect.ts";
 import { structureDensityDeclaration } from "./structure_density.ts";
+import { mineshaftPiecesDeclaration } from "./mineshaft_pieces.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
 import { villagerTradesDeclaration } from "./villager_trades.ts";
 import { textEncodeDeclaration } from "./text_encode.ts";
@@ -620,6 +621,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         input: (unit) => ({ item: unit }), oracleMissing: itemsKnownMissing },
     structureDensityDeclaration(),
     structureStartsDeclaration(),
+    mineshaftPiecesDeclaration(),
     villagerTradesDeclaration("list"),
     villagerTradesDeclaration("gen"),
     villagerTradesDeclaration("price"),
