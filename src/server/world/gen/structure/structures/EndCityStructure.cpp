@@ -308,33 +308,22 @@ void CityTemplate::generate(IWorldWriter& world,
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const
 {
-    MC_UNUSED(newRotation);
-    // 计算从当前模板的 localPos 位置，连接到新模板的偏移
+    // 原版 StructureTemplate.calculateConnectedPosition：
+    //
+    //   calculateRelativePosition(settingsA, posA).subtract(calculateRelativePosition(settingsB, posB));
+    //   calculateRelativePosition(settings, pos) = transform(pos, mirror, rotation, pivot);
+    //
+    // 也就是「父构件里锚点变换后的位置」减去「新构件里对应点变换后的位置」，返回的是**差值**，
+    // 不是绝对坐标。两端都要用各自的旋转/镜像变换；此前这里只按父构件的旋转做了一次
+    // 手工 switch，且把 newRotation 直接标了 MC_UNUSED——新构件的旋转被完全忽略，
+    // 于是带旋转的桥段/房屋接上去就会错位。
+    const BlockPos parentRelative = feature::template_::Template::transformBlockPos(
+        localPos, m_settings.getMirror(), m_rotation, BlockPos(0, 0, 0));
+    const BlockPos childRelative = feature::template_::Template::transformBlockPos(
+        BlockPos(0, 0, 0), feature::template_::Mirror::None, newRotation, BlockPos(0, 0, 0));
 
-    // 获取当前模板尺寸
-    BlockPos size = m_size;
-
-    // 根据旋转计算变换
-    BlockPos transformedLocal;
-
-    // 先根据当前旋转变换 localPos
-    switch (m_rotation) {
-        case feature::template_::Rotation::None:
-            transformedLocal = localPos;
-            break;
-        case feature::template_::Rotation::Clockwise90:
-            transformedLocal = BlockPos(size.z - 1 - localPos.z, localPos.y, localPos.x);
-            break;
-        case feature::template_::Rotation::Clockwise180:
-            transformedLocal = BlockPos(size.x - 1 - localPos.x, localPos.y, size.z - 1 - localPos.z);
-            break;
-        case feature::template_::Rotation::CounterClockwise90:
-            transformedLocal = BlockPos(localPos.z, localPos.y, size.x - 1 - localPos.x);
-            break;
-    }
-
-    // 计算世界坐标
-    return m_templatePosition + transformedLocal;
+    return BlockPos(
+        parentRelative.x - childRelative.x, parentRelative.y - childRelative.y, parentRelative.z - childRelative.z);
 }
 
 // ============================================================================
@@ -355,16 +344,19 @@ std::unique_ptr<CityTemplate> addPiece(feature::template_::TemplateManager& temp
     feature::template_::Rotation rotation,
     bool overwrite)
 {
-    // 创建新片段
+    // 原版 EndCityPieces.addPiece：
+    //
+    //   EndCityPiece piece = new EndCityPiece(mgr, name, parent.templatePosition(), rot, overwrite);
+    //   BlockPos rel = parent.template().calculateConnectedPosition(
+    //       parent.placeSettings(), offset, piece.placeSettings(), BlockPos.ZERO);
+    //   piece.move(rel.getX(), rel.getY(), rel.getZ());
+    //
+    // 注意新构件的**初始位置**是父构件的 templatePosition（不是零），
+    // 然后按 calculateConnectedPosition 返回的**差值**平移。
     auto piece = std::make_unique<CityTemplate>(templateName, parent.templatePosition(), rotation, overwrite);
 
-    // 计算连接位置
-    BlockPos connectedPos = parent.calculateConnectedPos(offset, rotation);
-
-    // 偏移到正确位置
-    piece->offset(connectedPos.x - piece->templatePosition().x,
-        connectedPos.y - piece->templatePosition().y,
-        connectedPos.z - piece->templatePosition().z);
+    const BlockPos relative = parent.calculateConnectedPos(offset, rotation);
+    piece->offset(relative.x, relative.y, relative.z);
 
     return piece;
 }
