@@ -941,3 +941,51 @@ ADD[7] depth=7 dir=null crossDir=west   (-205,52,-190)-(-201,54,-186)
 
 先确认 `[6]` 的真实类型：在 `ADD` 里打印 `piece.getClass().getSimpleName()`。
 这一步能一次性判定「`[6]` 到底是交叉点还是走廊」，从而确定该用哪个字段解释上面那段序列。
+
+## 第二十轮：把矛盾缩到了两条相邻的日志之间
+
+### 新增的两个观测手段
+
+1. `ADD` 里打印 `piece.getClass().getSimpleName()` —— 确认 `[6]` 确实是 `MineShaftCrossing`。
+2. `findCollisionPiece` 里打印调用者（栈里第一个 `find*` 方法）—— 确认每次碰撞检查
+   来自 `findCrossing` / `findCorridorSize` / `findStairs` 中的哪一个。
+
+### 现在矛盾只剩两条相邻日志
+
+```
+DRAW 37  ADD[6] MineShaftCrossing depth=6 parent=5 dir=null crossDir=north
+         box (-200,52,-190)-(-196,54,-186)
+DRAW 38  6|nextInt(100)=80        <- [6] 第 1 个出口进入 createRandomShaftPiece
+DRAW 39  6|nextInt(4)=1           <- findCrossing 内部的 crossHeight 抽取
+DRAW 40  NOCULL (-205,52,-190)-(-201,54,-186) @findCrossing
+DRAW 41  ADD[7] MineShaftCrossing crossDir=west
+```
+
+手工按原版模板复算 `[6]` 的三个出口：
+
+| 出口 | 传入点 | 方向 | findCrossing 结果 |
+|---|---|---|---|
+| 北 | `(-199,52,-191)` | north | `(-200,52,-195)-(-196,54,-191)` |
+| 西 | `(-201,52,-189)` | west | `(-205,52,-190)-(-201,54,-186)` |
+| 东 | `(-195,52,-189)` | east | `(-195,52,-190)-(-191,54,-186)` |
+
+**`DRAW 40` 实测的包围盒精确等于「西向出口」的结果。**
+
+### 矛盾的确切形态
+
+- `[6].direction` 反射读出是 `north`（`private final` 字段，构造后不变）；
+- 但 `DRAW 38` 的 `nextInt(100)=80`（第 1 个出口）之后，`DRAW 40` 的 `findCrossing`
+  给出的是**西向**包围盒；
+- 北向出口的那次 `findCollisionPiece`（应为 `(-200,52,-195)-(-196,54,-191)`）
+  **在整份日志里根本不存在**。
+
+也就是说：第 1 个出口抽了 `nextInt(100)` 与 `nextInt(4)`，却没有留下任何碰撞检查记录，
+而紧接着的第 2 次碰撞检查用的是西向模板。
+
+### 下一步（已经很快了）
+
+在 `findCrossing` 内部把它的 `direction` 实参打出来。做法：用 `-javaagent` 太重，
+改成**在驱动程序里直接反射调用 `MineShaftCrossing.findCrossing` 三次**（分别传
+north/west/east），把结果与 `[6]` 的实测配对——如果 north 那次能复现出
+`(-200,-195)`，就说明矛盾出在 `addChildren` 的分支顺序上；如果 north 也给出
+`(-205,-190)`，那说明我对模板的理解仍然有误，方向要整个换掉。

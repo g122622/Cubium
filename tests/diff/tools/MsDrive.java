@@ -78,6 +78,18 @@ public final class MsDrive {
         }
     }
 
+    /** 返回调用 findCollisionPiece 的最近一个 find* 方法名。 */
+    static String caller() {
+        StackTraceElement[] frames = Thread.currentThread().getStackTrace();
+        for (StackTraceElement frame : frames) {
+            String name = frame.getMethodName();
+            if (name.startsWith("find") && !name.equals("findCollisionPiece")) {
+                return name;
+            }
+        }
+        return "?";
+    }
+
     static final class Accessor implements StructurePieceAccessor {
         @Override
         public void addPiece(StructurePiece piece) {
@@ -90,7 +102,7 @@ public final class MsDrive {
             int index = PIECES.size();
             PIECES.add(piece);
             ACTIVE.push(new int[] {index, depth});
-            LOG.add("-1|ADD[" + index + "] depth=" + depth + " parent=" + parent + " dir=" + piece.getOrientation()
+            LOG.add("-1|ADD[" + index + "] " + piece.getClass().getSimpleName() + " depth=" + depth + " parent=" + parent + " dir=" + piece.getOrientation()
                     + " crossDir=" + crossDir(piece) + " " + piece.getBoundingBox());
         }
 
@@ -98,11 +110,11 @@ public final class MsDrive {
         public StructurePiece findCollisionPiece(BoundingBox box) {
             for (StructurePiece piece : PIECES) {
                 if (piece.getBoundingBox().intersects(box)) {
-                    LOG.add("-1|COLLIDE " + box + " <- [" + PIECES.indexOf(piece) + "] d=" + piece.getGenDepth());
+                    LOG.add("-1|COLLIDE " + box + " <- [" + PIECES.indexOf(piece) + "] d=" + piece.getGenDepth() + " @" + caller());
                     return piece;
                 }
             }
-            LOG.add("-1|NOCULL " + box);
+            LOG.add("-1|NOCULL " + box + " @" + caller());
             return null;
         }
     }
