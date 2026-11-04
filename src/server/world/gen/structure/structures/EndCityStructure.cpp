@@ -608,12 +608,12 @@ bool TowerBridgeGenerator::generate(feature::template_::TemplateManager& templat
                 // 陡坡
                 current = addHelper(pieces,
                     addPiece(
-                        templateManager, *current, BlockPos(0, yOffset, -8), "bridge_steep_stairs", rotation, true));
+                        templateManager, *current, BlockPos(0, yOffset, -4), "bridge_steep_stairs", rotation, true));
             } else {
                 // 缓坡
                 current = addHelper(pieces,
                     addPiece(
-                        templateManager, *current, BlockPos(0, yOffset, -4), "bridge_gentle_stairs", rotation, true));
+                        templateManager, *current, BlockPos(0, yOffset, -8), "bridge_gentle_stairs", rotation, true));
             }
             yOffset = 4;
         }
