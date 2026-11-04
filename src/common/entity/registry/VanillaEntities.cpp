@@ -217,8 +217,8 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::ALLAY,
         EntityType::Builder(&AllayEntity::create, EntityClassification::Creature)
             .size(0.35f, 0.6f)
-            .trackingRange(10)
-            .updateInterval(3)
+            .trackingRange(8)
+            .updateInterval(2)
             .canSummon(true)
             .build());
 
@@ -254,7 +254,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::CAT,
         EntityType::Builder(&CatEntity::create, EntityClassification::Creature)
             .size(0.6f, 0.7f)
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -264,7 +264,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::FOX,
         EntityType::Builder(&FoxEntity::create, EntityClassification::Creature)
             .size(0.6f, 0.7f)
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -301,7 +301,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&BeeEntity::create, EntityClassification::Creature)
             .size(0.4f, 0.3f)
             .trackingRange(8)
-            .updateInterval(1) // 蜜蜂更新频繁
+            .updateInterval(3) // 蜜蜂更新频繁
             .canSummon(true)
             .build());
 
@@ -417,7 +417,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::GLOW_SQUID,
         EntityType::Builder(&GlowSquidEntity::create, EntityClassification::UndergroundWaterCreature)
             .size(0.8f, 0.8f)
-            .trackingRange(8)
+            .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -426,7 +426,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::DOLPHIN,
         EntityType::Builder(&DolphinEntity::create, EntityClassification::WaterCreature)
             .size(0.9f, 0.6f)
-            .trackingRange(10)
+            .trackingRange(5)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -466,7 +466,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::COD,
         EntityType::Builder(&CodEntity::create, EntityClassification::WaterAmbient)
             .size(0.5f, 0.3f)
-            .trackingRange(8)
+            .trackingRange(4)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -475,7 +475,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::SALMON,
         EntityType::Builder(&SalmonEntity::create, EntityClassification::WaterAmbient)
             .size(0.7f, 0.4f)
-            .trackingRange(8)
+            .trackingRange(4)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -484,7 +484,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::PUFFERFISH,
         EntityType::Builder(&PufferfishEntity::create, EntityClassification::WaterAmbient)
             .size(0.7f, 0.7f)
-            .trackingRange(8)
+            .trackingRange(4)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -493,7 +493,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::TROPICAL_FISH,
         EntityType::Builder(&TropicalFishEntity::create, EntityClassification::WaterAmbient)
             .size(0.5f, 0.4f)
-            .trackingRange(8)
+            .trackingRange(4)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -502,7 +502,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::TADPOLE,
         EntityType::Builder(&TadpoleEntity::create, EntityClassification::Creature)
             .size(0.4f, 0.3f)
-            .trackingRange(8)
+            .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -544,7 +544,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::SNOW_GOLEM,
         EntityType::Builder(&SnowGolemEntity::create, EntityClassification::Misc)
             .size(0.7f, 1.9f)
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -649,7 +649,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::GUARDIAN,
         EntityType::Builder(&GuardianEntity::create, EntityClassification::Monster)
             .size(0.85f, 0.85f)
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
             .notInPeaceful()
@@ -761,7 +761,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::MULE,
         EntityType::Builder(&MuleEntity::create, EntityClassification::Creature)
             .size(1.3964844f, 1.6f)
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -817,8 +817,8 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::ENDER_DRAGON,
         EntityType::Builder(&EnderDragonEntity::create, EntityClassification::Monster)
             .size(16.0f, 8.0f)
-            .trackingRange(128)
-            .updateInterval(1)
+            .trackingRange(10)
+            .updateInterval(3)
             .immuneToFire()
             .build());
 
@@ -875,7 +875,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::GIANT,
         EntityType::Builder(&GiantEntity::create, EntityClassification::Monster)
             .size(3.6f, 12.0f)
-            .trackingRange(16)
+            .trackingRange(10)
             .updateInterval(3)
             .notInPeaceful()
             .build() // 不可召唤
@@ -947,7 +947,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::MAGMA_CUBE,
         EntityType::Builder(&MagmaCubeEntity::create, EntityClassification::Monster)
             .size(0.6f, 0.6f) // 尺寸会动态变化
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .immuneToFire()
             .canSummon(true)
@@ -980,7 +980,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::HOGLIN,
         EntityType::Builder(&HoglinEntity::create, EntityClassification::Monster)
             .size(1.3964844f, 1.4f)
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
             .build());
@@ -990,7 +990,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&ZoglinEntity::create, EntityClassification::Monster)
             .size(1.3964844f, 1.4f)
             .immuneToFire()
-            .trackingRange(10)
+            .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
             .notInPeaceful()
@@ -1073,7 +1073,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::BREEZE,
         EntityType::Builder(&BreezeEntity::create, EntityClassification::Monster)
             .size(0.6f, 1.77f)
-            .trackingRange(8)
+            .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
             .notInPeaceful()
@@ -1083,8 +1083,8 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::EVOKER_FANGS,
         EntityType::Builder(&entity::EvokerFangsEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.8f)
-            .trackingRange(8)
-            .updateInterval(1) // 尖牙需要频繁更新（攻击时序）
+            .trackingRange(6)
+            .updateInterval(2) // 尖牙需要频繁更新（攻击时序）
             .canSummon(true)
             .build());
 
@@ -1093,7 +1093,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&entity::ShulkerBulletEntity::create, EntityClassification::Misc)
             .size(0.3125f, 0.3125f)
             .trackingRange(8)
-            .updateInterval(1) // 子弹需要频繁更新
+            .updateInterval(3) // 子弹需要频繁更新
             .canSummon(true)
             .build());
 
@@ -1108,14 +1108,14 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(32)
             .disableSerialization()
             .noSummon()
-            .updateInterval(0)
+            .updateInterval(2)
             .build());
 
     // ========== 物品 ==========
     registry.registerType(EntityTypeKeys::ITEM,
         EntityType::Builder(&ItemEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
-            .trackingRange(4)
+            .trackingRange(6)
             .updateInterval(20)
             .canSummon(true)
             .build());
@@ -1125,7 +1125,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&ExperienceOrbEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
             .trackingRange(6)
-            .updateInterval(1) // 经验球需要频繁更新
+            .updateInterval(20) // 经验球需要频繁更新
             .canSummon(true)
             .build());
 
@@ -1134,8 +1134,8 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&entity::TNTEntity::create, EntityClassification::Misc)
             .size(0.98f, 0.98f)
             .trackingRange(10)
-            .updateInterval(1) // TNT 需要频繁更新（引信倒计时）
-            .immuneToFire()    // 对齐 vanilla EntityType.TNT.fireImmune()（EntityType.java:1015）
+            .updateInterval(10) // TNT 需要频繁更新（引信倒计时）
+            .immuneToFire()     // 对齐 vanilla EntityType.TNT.fireImmune()（EntityType.java:1015）
             .canSummon(true)
             .build());
 
@@ -1144,8 +1144,8 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&entity::AreaEffectCloudEntity::create, EntityClassification::Misc)
             .size(6.0f, 0.5f) // 初始半径3.0，宽度=半径*2
             .trackingRange(10)
-            .updateInterval(5) // 每5tick更新一次
-            .immuneToFire()    // 对齐 vanilla EntityType.AREA_EFFECT_CLOUD.fireImmune()（EntityType.java:227）
+            .updateInterval(2147483647) // 从不主动更新（物品框/特效云/拴绳结这类静态或由其他机制驱动的实体）
+            .immuneToFire()             // 对齐 vanilla EntityType.AREA_EFFECT_CLOUD.fireImmune()（EntityType.java:227）
             .canSummon(true)
             .build());
 
@@ -1157,24 +1157,24 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::ARROW,
         EntityType::Builder(&ArrowEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(20)
             .build());
 
     // 光灵箭
     registry.registerType(EntityTypeKeys::SPECTRAL_ARROW,
         EntityType::Builder(&SpectralArrowEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(20)
             .build());
 
     // 三叉戟
     registry.registerType(EntityTypeKeys::TRIDENT,
         EntityType::Builder(&TridentEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(20)
             .build());
 
     // 长矛（玩家投掷的可回收投掷武器）
@@ -1190,7 +1190,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&SnowballEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
             .trackingRange(4)
-            .updateInterval(1)
+            .updateInterval(10)
             .canSummon(true)
             .build());
 
@@ -1199,7 +1199,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&EggEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
             .trackingRange(4)
-            .updateInterval(1)
+            .updateInterval(10)
             .canSummon(true)
             .build());
 
@@ -1208,7 +1208,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&EnderPearlEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
             .trackingRange(4)
-            .updateInterval(1)
+            .updateInterval(10)
             .canSummon(true)
             .build());
 
@@ -1226,7 +1226,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&ExperienceBottleEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
             .trackingRange(4)
-            .updateInterval(1)
+            .updateInterval(10)
             .canSummon(true)
             .build());
 
@@ -1234,32 +1234,32 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::FIREBALL,
         EntityType::Builder(&FireballEntity::create, EntityClassification::Misc)
             .size(1.0f, 1.0f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(10)
             .build());
 
     // 小火球
     registry.registerType(EntityTypeKeys::SMALL_FIREBALL,
         EntityType::Builder(&SmallFireballEntity::create, EntityClassification::Misc)
             .size(0.3125f, 0.3125f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(10)
             .build());
 
     // 龙火球
     registry.registerType(EntityTypeKeys::DRAGON_FIREBALL,
         EntityType::Builder(&DragonFireballEntity::create, EntityClassification::Misc)
             .size(1.0f, 1.0f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(10)
             .build());
 
     // 凋灵之首
     registry.registerType(EntityTypeKeys::WITHER_SKULL,
         EntityType::Builder(&WitherSkullEntity::create, EntityClassification::Misc)
             .size(0.3125f, 0.3125f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(10)
             .build());
 
     // 羊驼唾液
@@ -1267,7 +1267,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&LlamaSpitEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
             .trackingRange(4)
-            .updateInterval(1)
+            .updateInterval(10)
             .build());
 
     // 钓鱼浮标
@@ -1277,23 +1277,23 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(4)
             .disableSerialization()
             .noSummon()
-            .updateInterval(1)
+            .updateInterval(5)
             .build());
 
     // 末影之眼
     registry.registerType(EntityTypeKeys::EYE_OF_ENDER,
         EntityType::Builder(&EyeOfEnderEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(4)
             .build());
 
     // 烟花火箭
     registry.registerType(EntityTypeKeys::FIREWORK_ROCKET,
         EntityType::Builder(&FireworkRocketEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(4)
+            .updateInterval(10)
             .build());
 
     // 风弹
@@ -1301,7 +1301,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&WindChargeEntity::create, EntityClassification::Misc)
             .size(0.3125f, 0.3125f)
             .trackingRange(4)
-            .updateInterval(1)
+            .updateInterval(10)
             .canSummon(true)
             .build());
 
@@ -1375,8 +1375,8 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::FALLING_BLOCK,
         EntityType::Builder(&FallingBlockEntity::create, EntityClassification::Misc)
             .size(0.98f, 0.98f)
-            .trackingRange(8)
-            .updateInterval(1)
+            .trackingRange(10)
+            .updateInterval(20)
             .build());
 
     // 末地水晶
@@ -1384,7 +1384,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&EnderCrystalEntity::create, EntityClassification::Misc)
             .size(2.0f, 2.0f)
             .trackingRange(16)
-            .updateInterval(1)
+            .updateInterval(2147483647)
             .immuneToFire() // 对齐 vanilla EntityType.END_CRYSTAL.fireImmune()（EntityType.java:456）
             .build());
 
@@ -1394,7 +1394,7 @@ void VanillaEntities::doRegisterAll()
             .size(0.0f, 0.0f)
             .trackingRange(16)
             .disableSerialization()
-            .updateInterval(1)
+            .updateInterval(2147483647)
             .build());
 
     // 盔甲架
@@ -1410,7 +1410,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&OminousItemSpawnerEntity::create, EntityClassification::Misc)
             .size(0.25f, 0.25f)
             .trackingRange(8)
-            .updateInterval(1)
+            .updateInterval(3)
             .build());
 
     // ========== 悬挂实体 ==========
@@ -1419,7 +1419,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&PaintingEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
             .trackingRange(10)
-            .updateInterval(20)
+            .updateInterval(2147483647)
             .build());
 
     // 物品展示框
@@ -1427,7 +1427,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&ItemFrameEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
             .trackingRange(10)
-            .updateInterval(20)
+            .updateInterval(2147483647)
             .build());
 
     // 荧光物品展示框
@@ -1435,7 +1435,7 @@ void VanillaEntities::doRegisterAll()
         EntityType::Builder(&ItemFrameEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
             .trackingRange(10)
-            .updateInterval(20)
+            .updateInterval(2147483647)
             .build());
 
     // 拴绳结
@@ -1444,7 +1444,7 @@ void VanillaEntities::doRegisterAll()
             .size(0.5f, 0.5f)
             .trackingRange(10)
             .disableSerialization()
-            .updateInterval(20)
+            .updateInterval(2147483647)
             .build());
 
     // ========== 初始化生成放置规则 ==========

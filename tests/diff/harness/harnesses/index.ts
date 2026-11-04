@@ -1720,6 +1720,16 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
         oracleMissing: entityTypesKnownMissing },
     {
+        name: "entity_type_flags",
+        probe: "entity_type_flags",
+        oracle: "EntityTypeFlagsOracle",
+        description: "实体类型的刷怪分类、网络追踪参数与火焰免疫（MobCategory / clientTrackingRange / updateInterval / fireImmune）—— 全部已注册实体类型；"
+        + "分类是重灾区：原版 8 类的生物上限完全不同（monster 70 / creature 10 / ambient 15 / axolotls 5 /"
+        + "underground_water_creature 5 / water_creature 5 / water_ambient 20 / misc -1）。把美西螈错归进水生生物就会和鱿鱼抢名额，"
+        + "表现为某种生物怎么都不刷。trackingRange 太小则远处实体突然消失，太大浪费带宽",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }),
+        oracleMissing: entityTypesKnownMissing },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
