@@ -206,32 +206,37 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
     if (created) {
         created->setGenDepth(depth);
 
-        // 每个构件都必须记录朝向，否则 getRotation() 恒为 NONE。
+        // 原版只有走廊与楼梯在构造里调用 setOrientation；交叉点与房间不调用，
+        // 它们的 rotation 与 mirror 保持默认的 NONE。
         //
-        // 原版 StructurePiece.setOrientation 的映射：
+        // setOrientation 的映射：
         //   NORTH -> mirror NONE,        rotation NONE
         //   SOUTH -> mirror LEFT_RIGHT,  rotation NONE
         //   WEST  -> mirror LEFT_RIGHT,  rotation CLOCKWISE_90
         //   EAST  -> mirror NONE,        rotation CLOCKWISE_90
+        //
         // 朝向同时决定构件内部的方块布局，缺了它整个矿井的构件全部按朝北绘制。
-        switch (direction) {
-            case 1: // 南
-                created->setMirror(Mirror::LeftRight);
-                created->setRotation(Rotation::None);
-                break;
-            case 2: // 西
-                created->setMirror(Mirror::LeftRight);
-                created->setRotation(Rotation::Clockwise90);
-                break;
-            case 3: // 东
-                created->setMirror(Mirror::None);
-                created->setRotation(Rotation::Clockwise90);
-                break;
-            case 0: // 北
-            default:
-                created->setMirror(Mirror::None);
-                created->setRotation(Rotation::None);
-                break;
+        const i32 pieceType = created->getComponentType();
+        if (pieceType == MineshaftPieceTypes::CORRIDOR || pieceType == MineshaftPieceTypes::STAIRS) {
+            switch (direction) {
+                case 1: // 南
+                    created->setMirror(Mirror::LeftRight);
+                    created->setRotation(Rotation::None);
+                    break;
+                case 2: // 西
+                    created->setMirror(Mirror::LeftRight);
+                    created->setRotation(Rotation::Clockwise90);
+                    break;
+                case 3: // 东
+                    created->setMirror(Mirror::None);
+                    created->setRotation(Rotation::Clockwise90);
+                    break;
+                case 0: // 北
+                default:
+                    created->setMirror(Mirror::None);
+                    created->setRotation(Rotation::None);
+                    break;
+            }
         }
 
         // 新构件不得与已有构件重叠。
@@ -504,8 +509,9 @@ MineshaftCorridor::MineshaftCorridor(i32 componentType,
     i32 direction,
     MineshaftType type)
     : MineshaftPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, type)
-    , m_direction(direction)
+
 {
+    m_direction = direction;
     m_hasRails = rng.nextInt(3) == 0;                   // 33% 概率有铁轨
     m_hasSpiders = !m_hasRails && rng.nextInt(23) == 0; // ~4% 概率有蜘蛛刷怪笼
 
@@ -859,8 +865,10 @@ void MineshaftCorridor::buildComponent(
 MineshaftCross::MineshaftCross(
     i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 direction, MineshaftType type)
     : MineshaftPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, type)
-    , m_direction(direction)
-{}
+
+{
+    m_direction = direction;
+}
 
 void MineshaftCross::generate(IWorldWriter& world,
     math::IRandom& rng,
@@ -944,7 +952,14 @@ void MineshaftCross::buildComponent(
     }
 
     // 双层交叉点（包围盒高度大于 3）还要在上一层再开三个方向，
-    // 每个方向由一次 nextBoolean 决定是否生成。
+    // 每个方向由一次 nextBoolean 决定是否生成，共四个：
+    //   1) 北 (minX+1, minY+4, minZ-1)
+    //   2) 西 (minX-1, minY+4, minZ+1)
+    //   3) 东 (maxX+1, minY+4, minZ+1)
+    //   4) 南 (minX+1, minY+4, maxZ+1)
+    //
+    // 此前这里漏了第 4 个（南向）分支。少一次 nextBoolean 会让随机序列从这里
+    // 开始整体错位，同时少掉南向的整棵子树。
     if (maxY() - minY() + 1 > 3) {
         const i32 upperY = minY() + 4;
         if (rng.nextBoolean()) {
@@ -956,6 +971,9 @@ void MineshaftCross::buildComponent(
         if (rng.nextBoolean()) {
             addChild(maxX() + 1, upperY, minZ() + 1, 3);
         }
+        if (rng.nextBoolean()) {
+            addChild(minX() + 1, upperY, maxZ() + 1, 1);
+        }
     }
 }
 
@@ -966,8 +984,10 @@ void MineshaftCross::buildComponent(
 MineshaftStairs::MineshaftStairs(
     i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 direction, MineshaftType type)
     : MineshaftPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, type)
-    , m_direction(direction)
-{}
+
+{
+    m_direction = direction;
+}
 
 void MineshaftStairs::generate(IWorldWriter& world,
     math::IRandom& rng,
