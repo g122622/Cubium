@@ -436,3 +436,118 @@ piece 数 152 vs 159、266 vs 125 说明分支展开仍有出入。要彻底对�
 调试时曾看到「两个 long 值顺序颠倒」，误判为随机源起点错误。实际是**诊断代码自己
 把两个 `rng.nextLong()` 写在同一个 `fprintf` 实参里**，而 C++ 实参求值顺序未指定。
 凡是随机数抽取顺序有意义的地方，必须逐个语句取值。
+
+---
+
+## 第九、十轮：构件级差分能力与随机序列定位
+
+### 新增能力 `mineshaft_pieces`
+
+把矿井拆到构件级（顺序、类型、包围盒、朝向），用来把「整座矿井对不上」定位到
+「第几个构件开始分歧」。见 `tests/diff/README.md` 的状态表。
+
+### 修掉的三个根本缺陷
+
+1. **构件登记顺序倒置**：`addMineshaftPiece` 先展开子构件、调用方随后才 push，
+   导致子构件排在父构件之前。原版是 `addPiece` 在先、`addChildren` 在后。
+2. **房间与走廊的组装逻辑张冠李戴**：四边循环是走廊的逻辑，房间实际是
+   「`nextInt(4)` 选主口 + 沿一边逐点 `nextInt(5)`」。两处都错位了。
+3. **走廊深度不递增导致栈溢出**（`0xC0000005`）：`depth = genDepth()` 不增长，
+   `depth > maxDepth` 永不成立。
+
+修复后 `[1]` 与原版 XZ 逐位一致。
+
+### 一个反直觉的坑
+
+原版房间 `addChildren` 里写的是：
+
+```java
+if (direction != Direction.NORTH && direction != Direction.SOUTH) {  // 沿 X 扫描
+    ...
+} else {                                                             // 沿 Z 扫描
+```
+
+房间的 `direction` 是 **`null`**。Java 里 `null != NORTH` 为 **true**，
+所以房间**恒走沿 X 扫描**，不是落到 else。直觉上会以为「没有朝向 = 默认分支」。
+
+oracle 侧的实测证据：`[0] room orient=null`、`[1] corridor orient=NORTH`。
+
+### 尚未查清的一处
+
+原版源码 L165-168：
+
+```java
+int i = this.getGenDepth();
+int j = random.nextInt(4);        // ← 字面上在朝向判定之前，应无条件执行
+Direction direction = this.getOrientation();
+if (direction != null) { ... }
+```
+
+但实测结论相反：把这次 `nextInt(4)` 补进来之后，房间第 2 段那次 `nextInt(5)`
+从 `0` 变成 `2`，北侧出口随之消失，与 oracle 的 `[1] corridor NORTH (-203,…)` 对不上；
+去掉它则完全吻合。
+
+那一次 `nextInt(4)` 到底在什么条件下执行，**尚未查清**。补之前务必先跑
+`mineshaft_pieces` 确认房间第 2 段的 `nextInt(5)` 仍为 `0`。
+
+### 当前状态
+
+| 单元 | Cubium | 原版 |
+|---|---|---|
+| (-13,-60) 构件数 | 140 | 159 |
+| (-13,-60) [1] | `corridor` XZ 一致 | `corridor` |
+| (-13,-60) [2] | `stairs` `(-212,-33,-968)` | `corridor WEST` `(-218,-15,-973)` |
+
+第 2 个构件起类型分歧。oracle 侧 `[1] hasRails=true`（即构造时 `nextInt(3)==0`），
+Cubium 侧同一位置抽到 `1`——说明 `[1]` 构造之前仍有次数差，这是下一步的入口。
+
+## 第十一轮：随机源复算与一处矛盾
+
+### 做了什么
+
+写了一个独立的 Java 复算工具（`tests/diff/tools/MsTrace.java`），按原版调用顺序
+从 `setLargeFeatureSeed` 起复算 `overworld/0/-13/-60` 的随机序列：
+
+```
+nextDouble
+room nextInt(6)x3   = 3,1,5      → 房间 X 跨度 11、Z 跨度 13，与原版包围盒吻合
+room nextInt(5)     = 0          → 北侧开口，与原版 [1] 朝北吻合
+create nextInt(100) = 57
+corridorSize        = 3          → 跨度 14，与原版 [1] 的 Z 跨度 15 吻合
+corridorCtor(3)     = 1          → rails = false
+corridorCtor(23)    = 6
+```
+
+**这份复算结果与 Cubium 的实测逐条一致。**
+
+### 但 oracle 给出相反的值
+
+oracle 实测 `[1] hasRails = true`（即构造时 `nextInt(3)==0`），并因此短路、
+**不抽** `nextInt(23)`。Cubium 抽了 `nextInt(23)`，后续整条序列偏移一位，
+这正是 `[2]` 类型与位置都不同的根因。
+
+### 试过的变体都不成立
+
+| 变体 | `room nextInt(6)x3` | 房间跨度 | 与原版包围盒 |
+|---|---|---|---|
+| 有 `nextDouble`（默认） | `3,1,5` | 11×13 | 吻合 |
+| 无 `nextDouble` | `5,3,3` | 12×11 | **不吻合** |
+| 加房间主口 `nextInt(4)` | `3,1,5`，`nextInt(5)=2` | — | **不开北口，不吻合** |
+
+所以 `nextDouble` 确实被抽了，房间主口那次 `nextInt(4)` 确实没被抽。
+在这两个约束下，复算与 Cubium 都给出 `rails=false`，而 oracle 给出 `true`——
+**这一处矛盾尚未解决**。
+
+### 已排除
+
+- `LegacyRandomSource` 的算法差异：差分能力 `legacy_random` 已覆盖 `nextInt(bound)`
+  的拒绝采样语义并完全通过，两侧逐位一致。
+- `setLargeFeatureSeed` 的参数：房间 Z 起点 `-958 = minBlockZ(-960) + 7 + spanZ(5)`
+  与复算的 `spanZ=5` 吻合，说明种子坐标没传错。
+
+### 结论
+
+下一次排查应当**直接在 oracle 运行期观察**（例如临时包装 `GenerationContext` 使用的
+`WorldgenRandom` 并记录每次 `nextInt` 的实参与返回值），而不是继续靠复算与源码推理。
+复算工具先保留在 `tests/diff/tools/`，并在其 README 里写明这个已知矛盾，
+避免后来者拿它当权威结论。
