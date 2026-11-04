@@ -41,12 +41,12 @@ scripts\configure.bat build
 #### 增量构建（无需重新 configure）
 
 ```bash
-cmake --build --preset windows-clang-relwithdebinfo
+cmake --build --preset windows-clang-relwithdebinfo-server
 ```
 
 #### 构建非默认 preset（如 release-noprof）
 
-`scripts/configure.{sh,bat,ps1}` 的无参模式与 `build` 快捷模式均**硬编码**使用 `windows-clang-relwithdebinfo` preset，无法直接切换到其他 preset。构建非默认 preset 时须使用脚本的 pass-through 模式，将 `--preset <name>` 透传给 cmake（前文 `--preset windows-clang-debug` 示例即此用法）：
+`scripts/configure.{sh,bat,ps1}` 的无参模式与 `build` 快捷模式均**硬编码**使用 `windows-clang-relwithdebinfo-server` preset，无法直接切换到其他 preset。构建非默认 preset 时须使用脚本的 pass-through 模式，将 `--preset <name>` 透传给 cmake（前文 `--preset windows-clang-debug` 示例即此用法）：
 
 ```bash
 # Configure（注入 VS 开发环境 + 指定 preset，仅配置不构建）
@@ -56,18 +56,18 @@ cmake --build --preset windows-clang-relwithdebinfo
 cmake --build --preset <preset-name>
 ```
 
-CMakePresets.json 中预置的全部 preset 见该文件。其中两个 noprof preset 使用**独立的** `binaryDir`，与默认 `build/` 完全隔离、可并存互不干扰；其余 preset 共用默认 `build/` 目录，切换时需重新 configure：
+CMakePresets.json 中预置的全部 preset 见该文件。其中两个 noprof preset 使用**独立的** `binaryDir`，与默认 `build/` 完全隔离、可并存互不干扰；其余 preset 共用默认 `build/` 目录，切换时需重新 configure。客户端已停止维护，脚本默认使用服务端专用 preset（`MC_BUILD_CLIENT=OFF`），需要客户端时显式传 `--preset windows-clang-relwithdebinfo`：
 
 | preset | buildType | tests | binaryDir | 说明 |
 |--------|-----------|-------|-----------|------|
-| `windows-clang-relwithdebinfo` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认）：Perfetto ON，Tracy/Memory OFF |
+| `windows-clang-relwithdebinfo-server` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认）：Perfetto ON，Tracy/Memory OFF |
 | `windows-clang-relwithdebinfo-noprof` | RelWithDebInfo | ON | `build-noprof` | 关闭 Perfetto/Tracy/memory 插桩 |
 | `windows-clang-release-noprof` | Release | OFF | `build-release-noprof` | 可分发发布版：关插桩 + 关 Vulkan 校验层 + 不含测试/benchmark |
 
 > **Tracy 与 `MC_ENABLE_MEMORY` 默认 OFF**（`CMakeLists.txt` 的 option 默认值）。原因是 Tracy 带来可观的常驻内存开销——Windows 上其符号解析线程会载入全部模块的调试符号（实测约 96 MB），自带的 rpmalloc 按 4 MiB 为单位 `VirtualAlloc`；且**不受 `--profiler-enabled=false` 影响**（该 flag 只门控 Perfetto 侧）。实测对比见 `docs/MEMORY.md`。需要 Tracy 实时火焰图时显式开启：
 >
 > ```bash
-> cmake --preset windows-clang-relwithdebinfo -DMC_ENABLE_TRACY=ON -DMC_ENABLE_MEMORY=ON
+> cmake --preset windows-clang-relwithdebinfo-server -DMC_ENABLE_TRACY=ON -DMC_ENABLE_MEMORY=ON
 > ```
 >
 > `MC_ENABLE_MEMORY` 依赖 `MC_ENABLE_TRACY`，两者需同时开启。排查期若不想重新构建，可临时设 `TRACY_SYMBOL_OFFLINE_RESOLVE=1` 环境变量剥离开销。
@@ -81,7 +81,7 @@ cmake --build --preset windows-clang-release-noprof
 
 构建产物位于 `build-release-noprof/bin/Release/`（如 `minecraft-client.exe`、`minecraft-server.exe`）。
 
-> **注意**：`windows-clang-release-noprof` 与 `windows-clang-release` 的 `MC_BUILD_TESTS=OFF`，不会生成 `mc_tests`；回归测试须切回 `windows-clang-relwithdebinfo` preset 构建。
+> **注意**：`windows-clang-release-noprof` 与 `windows-clang-release` 的 `MC_BUILD_TESTS=OFF`，不会生成 `mc_tests`；回归测试须切回 `windows-clang-relwithdebinfo-server` preset 构建。
 
 #### 注意事项
 
@@ -125,7 +125,7 @@ cmake .. -DVCPKG_MANIFEST_INSTALL=OFF -G "Ninja Multi-Config"
 这跳过了 vcpkg install 步骤，CMake 成功完成配置并重新生成了 ninja 构建文件。之后正常构建即可：
 
 ```powershell
-cmake --build --preset windows-clang-relwithdebinfo
+cmake --build --preset windows-clang-relwithdebinfo-server
 ```
 
 ### 运行
@@ -150,7 +150,7 @@ cmake --build --preset windows-clang-relwithdebinfo
 
 ## macOS 构建
 
-项目支持在 macOS (Apple Silicon) 上构建。使用 `macos-relwithdebinfo` preset：
+项目支持在 macOS (Apple Silicon) 上构建。使用 `macos-relwithdebinfo-server` preset：
 
 ```bash
 # 安装依赖
@@ -164,10 +164,10 @@ git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
 export VCPKG_ROOT=~/vcpkg
 
 # 配置
-cmake --preset macos-relwithdebinfo
+cmake --preset macos-relwithdebinfo-server
 
 # 构建（-j10 使用16核心并行）
-cmake --build --preset macos-relwithdebinfo -- -j16
+cmake --build --preset macos-relwithdebinfo-server -- -j16
 
 # 运行
 export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
@@ -341,7 +341,7 @@ clangd 不读 `.vscode/c_cpp_properties.json`，它依赖 CMake 生成的 `compi
 验证：
 
 ```bash
-cmake --preset macos-relwithdebinfo     # 重新 configure 才会生成/刷新数据库
+cmake --preset macos-relwithdebinfo-server     # 重新 configure 才会生成/刷新数据库
 ls build/compile_commands.json          # 应存在
 python3 -c "import json; print(len(json.load(open('build/compile_commands.json'))))"
 ```

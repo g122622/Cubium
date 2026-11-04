@@ -10,12 +10,12 @@
 #
 # 平台行为：
 #   - Linux：直接调用 cmake preset（默认 linux-relwithdebinfo，服务端为主、不含客户端）
-#   - macOS：直接调用 cmake preset（默认 macos-relwithdebinfo）
+#   - macOS：直接调用 cmake preset（默认 macos-relwithdebinfo-server，不含客户端）
 #   - Windows (Git Bash / MSYS2)：通过 cmd.exe 调用 configure.bat，
 #     由其注入 Visual Studio 开发环境后再运行 CMake。
 #
-# 默认 preset 选取（Linux/macOS）：本仓库以服务端为主，客户端暂不维护，
-# 故 Linux 默认 preset 为 linux-relwithdebinfo（MC_BUILD_CLIENT=OFF）。
+# 默认 preset 选取（Linux/macOS）：本仓库以服务端为主，客户端不再维护，
+# 故 Linux 默认 preset 为 linux-relwithdebinfo（MC_BUILD_CLIENT=OFF），macOS 为 macos-relwithdebinfo-server。
 # ============================================================
 
 set -e
@@ -35,12 +35,12 @@ detect_os() {
 OS="$(detect_os)"
 
 # ============================================================
-# 默认 preset：Linux 服务端为主，macOS 保留客户端
+# 默认 preset：Linux/macOS 均为服务端，不含客户端
 # ============================================================
 default_preset_for() {
     case "$1" in
         linux) echo "linux-relwithdebinfo" ;;
-        macos) echo "macos-relwithdebinfo" ;;
+        macos) echo "macos-relwithdebinfo-server" ;;
         *) echo "" ;;
     esac
 }

@@ -67,6 +67,7 @@
 #include "world/block/blocks/special/SpongeBlock.hpp"
 #include "world/block/blocks/special/WetSpongeBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 #include <optional>
 
 namespace mc {
@@ -374,10 +375,8 @@ void registerBuildingBlocks()
                 .flammable()
                 .ignitedByLava());
 
-    // 潜影盒（无色变体）
-    // 对齐 vanilla Blocks.shulkerBoxProperties：forceSolidOn + strength(2.0) + dynamicShape + noOcclusion()
-    // TODO: vanilla 另行注册 isSuffocating/isViewBlocking(NOT_CLOSED_SHULKER)（关闭时遮挡视线、造成窒息），
-    //   本项目尚无 isSuffocating/isViewBlocking 谓词机制，需在引入该机制后补齐。
+    // 潜影盒（无色变体）：forceSolidOn + strength(2.0) + dynamicShape + noOcclusion()。
+    // 窒息/视线保持默认判据：实测原版 6 个朝向全部为 true（「打开的潜影盒不挡」在 1.21.11 不成立）。
     // noOcclusion 使 canOcclude=false：isSolidRender=false，getLightBlock 走
     // propagatesSkylightDown?0:1 分支；潜影盒遮挡形状为完整立方体 → pSD=false → opacity=1（衰减 1 级）。
     BuildingBlocks::SHULKER_BOX =

@@ -844,3 +844,20 @@ virtual BlockActionResult useWithoutItem(const BlockState& state, IWorld& world,
 
 1. `FlowingFluid::flowInto` 对 `ILiquidContainer` 分支必须**独占接管**（委派 `receiveFluid` 后直接返回），不可在 `receiveFluid` 返回 false 时继续落到"替换方块 + 生成掉落物"路径。原版 `FlowingFluid::spreadTo` 是 if/else 结构，容器分支不会落到 `beforeDestroyingBlock` + `setBlock`。
 2. 新增任何"占位于水中、但不应被水流替换"的方块（含水植物、水下装饰等）都必须实现 `ILiquidSealed`，只靠 `.notSolid()` 是不够的。回归测试见 `tests/unit/common/world/fluid/SealedPlantLiquidTest.cpp`。
+
+### 44. 窒息 / 视线判定挂在属性谓词上，不要写成方块子类方法
+
+`Block::isSuffocatingAt` / `isViewBlockingAt` 的**默认**判据是
+`blocksMotion() && isCollisionShapeFullBlock()`（与 `BlockState#isSuffocating` 一致），
+个别方块通过 `BlockProperties::suffocating()` / `viewBlocking()` 换成共享谓词实例
+（`registry/BlockStatePredicates.hpp`）。
+
+两个坑：
+
+1. **只覆写窒息时视线会跟着变**：原版 `isViewBlocking` 默认就是 `isSuffocating` 那个实例，
+   所以「恒不窒息」的树叶、玻璃、铜格栅必须**两个都覆写**；只写 `suffocating(never)` 的话，
+   视线判定也会一并变成 false（反之亦然）。
+2. **默认判据的输入是碰撞形状，不是遮挡形状**：耕地、泥土路径、灵魂沙、泥巴的碰撞比满格
+   矮 1~2 像素，默认判据会给 false，但原版把它们注册成恒 true 的窒息/挡视线方块；
+   冰、信标、刷怪笼、潜影盒则是满格碰撞 + `noOcclusion`，默认判据给 true——不要因为
+   「它透光」就顺手加 `never()`。改完用差分能力 `block_view_blocking` 逐状态核对。

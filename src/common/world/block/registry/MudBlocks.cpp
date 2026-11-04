@@ -32,6 +32,7 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/dirt/MudBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -59,6 +60,10 @@ void registerMudBlocks()
             .hardness(0.5f)
             .resistance(0.5f)
             .harvestTool(HarvestTool::Shovel)
+            // 原版 mudProperties() 显式 isSuffocating(Blocks::never)：碰撞比满格矮，但遮挡形状满格，
+            // 默认判据会给 false，导致实体陷在泥里不掉血。
+            .suffocating(block_registry::BlockStatePredicates::mudBlocking())
+            .viewBlocking(block_registry::BlockStatePredicates::mudBlocking())
             .soundType(BlockSoundTypes::MUD));
 
     // 泥坯属性 - EARTH材质, 镐有效, 硬度1.0, 抗性3.0

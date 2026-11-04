@@ -67,6 +67,7 @@
 #include "world/block/blocks/nether/TwistingVinesPlantBlock.hpp"
 #include "world/block/blocks/nether/WeepingVinesBlock.hpp"
 #include "world/block/blocks/nether/WeepingVinesPlantBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -200,6 +201,10 @@ void registerNetherBlocks()
             .resistance(0.5f)
             .hardness(0.5f)
             .speedFactor(0.4f)
+            // 原版 soulSand 属性显式 isSuffocating/isViewBlocking(Blocks::never)：碰撞矮 2 像素，
+            // 默认判据会给 false，但原版算窒息方块。
+            .suffocating(block_registry::BlockStatePredicates::soulSandBlocking())
+            .viewBlocking(block_registry::BlockStatePredicates::soulSandBlocking())
             .soundType(BlockSoundTypes::SOUL_SAND));
 
     // 灵魂土
@@ -942,6 +947,10 @@ void registerNetherBlocks()
             .instrument(BlockProperties::Instrument::Hat)
             .resistance(3.0f)
             .hardness(3.0f)
+            // 原版 beacon 注册 isSuffocating/isViewBlocking(Blocks::always)：满格碰撞但 noOcclusion，
+            // 默认判据的 isCollisionShapeFullBlock 仍为 true，这里显式对齐以免受注册顺序影响。
+            .suffocating(block_registry::BlockStatePredicates::always())
+            .viewBlocking(block_registry::BlockStatePredicates::always())
             .soundType(BlockSoundTypes::STONE)
             .noOcclusion());
 

@@ -89,6 +89,20 @@
       }
     },
     {
+      "name": "windows-clang-relwithdebinfo-server",
+      "displayName": "Windows Clang RelWithDebInfo (server-only)",
+      "inherits": "windows-clang-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MC_BUILD_CLIENT": "OFF",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
       "name": "windows-clang-release",
       "displayName": "Windows Clang Release",
       "inherits": "windows-clang-base",
@@ -179,6 +193,20 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "MC_BUILD_CLIENT": "ON",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "macos-relwithdebinfo-server",
+      "displayName": "macOS RelWithDebInfo (server-only)",
+      "inherits": "macos-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MC_BUILD_CLIENT": "OFF",
         "MC_BUILD_SERVER": "ON",
         "MC_BUILD_TESTS": "ON",
         "MC_ENABLE_SANITIZERS": "OFF"
@@ -286,6 +314,12 @@
       "jobs": 16
     },
     {
+      "name": "windows-clang-relwithdebinfo-server",
+      "configurePreset": "windows-clang-relwithdebinfo-server",
+      "configuration": "RelWithDebInfo",
+      "jobs": 16
+    },
+    {
       "name": "windows-clang-release",
       "configurePreset": "windows-clang-release",
       "configuration": "Release",
@@ -319,6 +353,12 @@
       "name": "windows-clang-release-noprof",
       "configurePreset": "windows-clang-release-noprof",
       "configuration": "Release",
+      "jobs": 16
+    },
+    {
+      "name": "macos-relwithdebinfo-server",
+      "configurePreset": "macos-relwithdebinfo-server",
+      "configuration": "RelWithDebInfo",
       "jobs": 16
     },
     {

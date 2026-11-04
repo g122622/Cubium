@@ -30,6 +30,7 @@
 #include "world/block/Material.hpp"
 #include "world/block/blocks/trial/HeavyCoreBlock.hpp"
 #include "world/block/blocks/trial/TrialBlocks.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -64,6 +65,8 @@ void registerTrialBlocks()
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(2)
                 .requiresTool()
+                // 原版 trial_spawner：isViewBlocking(Blocks::never)、isSuffocating 保持默认（满格碰撞 → 闷人）。
+                .viewBlocking(block_registry::BlockStatePredicates::trialSpawnerNeverView())
                 .soundType(BlockSoundTypes::TRIAL_SPAWNER)
                 .notSolid()
                 .noOcclusion());
@@ -80,6 +83,8 @@ void registerTrialBlocks()
             .harvestLevel(2)
             .requiresTool()
             .soundType(BlockSoundTypes::VAULT)
+            // 原版 vault 与 trial_spawner 相同：只覆写视线判定为 never。
+            .viewBlocking(block_registry::BlockStatePredicates::trialSpawnerNeverView())
             .noOcclusion()
             // 宝库发 12 级光（原版注册值，由 block_light_emission 实测修正：此前写成 6）。
             .lightLevel(12)

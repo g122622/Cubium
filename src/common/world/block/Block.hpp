@@ -81,6 +81,45 @@ class FluidState;
 } // namespace fluid
 
 /**
+ * @brief 状态级布尔谓词（原版 `BlockBehaviour.StatePredicate`）
+ *
+ * 用于挂载在方块属性上的「(状态, 世界, 位置) → 布尔」判定。原版把多个这类判定
+ * 作为 `BlockBehaviour.Properties` 的字段，**任何方块都可以单独替换**；本项目沿用
+ * 同一形态，只要求谓词实例的地址在全部方块之间**共享**（`Blocks::never` 在 61 个
+ * 方块注册点上是同一个实例），因此不能用 lambda：每个 lambda 表达式的类型不同，
+ * 也无法表达「常量 true / 常量 false」这类共享实例。
+ */
+class StatePredicate {
+public:
+    using Fn = bool (*)(const BlockState& state, const BlockPos& pos);
+
+    /**
+     * @param fn     判定函数；参数依次为状态与查询位置
+     * @param source 该实例来源的可读名字，仅在注册形态改动时用于核对，不参与任何判定
+     */
+    constexpr StatePredicate(Fn fn, const char* source) noexcept
+        : m_fn(fn)
+        , m_source(source)
+    {}
+
+    /** @brief 求值。 */
+    [[nodiscard]] bool test(const BlockState& state, const BlockPos& pos) const
+    {
+        return m_fn(state, pos);
+    }
+
+    /** @brief 来源名字（诊断用）。 */
+    [[nodiscard]] const char* source() const noexcept
+    {
+        return m_source;
+    }
+
+private:
+    Fn m_fn;
+    const char* m_source;
+};
+
+/**
  * @brief VoxelShape工具类
  *
  * 提供常用碰撞形状的静态实例。
@@ -334,6 +373,34 @@ public:
      * 铁栏杆（金属材质）、潜影盒（木质材质）、树叶、门、活板门等在原版均注册为 noOcclusion。
      * 参考: net.minecraft.world.level.block.state.BlockBehaviour.Properties#noOcclusion
      */
+    /**
+     * @brief 覆写「是否造成窒息」（原版 `BlockBehaviour.Properties#isSuffocating`）
+     *
+     * 默认判定为 `blocksMotion() && isCollisionShapeFullBlock()`，见
+     * `Block::isSuffocatingAt`。原版只有少数方块替换它：树叶、玻璃、染色玻璃、铜格栅、
+     * 甘蔗丛/红树根（恒 false），耕地/泥土路径（恒 true），活塞（未伸出时 true），
+     * 潜影盒（未打开时 true）。
+     *
+     * @param predicate 谓词实例；必须指向静态存储期对象，注册后不再变化
+     */
+    BlockProperties& suffocating(const StatePredicate& predicate) noexcept
+    {
+        m_isSuffocating = &predicate;
+        return *this;
+    }
+
+    /**
+     * @brief 覆写「是否挡住视线」（原版 `BlockBehaviour.Properties#isViewBlocking`）
+     *
+     * 未覆写时与 `isSuffocating` 共用同一个谓词实例——原版正是 `isViewBlocking = isSuffocating`，
+     * 因此只替换窒息判定的方块（甘蔗丛、红树根等）会连带改变视线判定。
+     */
+    BlockProperties& viewBlocking(const StatePredicate& predicate) noexcept
+    {
+        m_isViewBlocking = &predicate;
+        return *this;
+    }
+
     BlockProperties& noOcclusion() noexcept
     {
         m_canOcclude = false;
@@ -709,6 +776,10 @@ private:
 private:
     i32 m_opacity = 15;       // 默认完全不透明
     bool m_canOcclude = true; // 是否参与遮挡计算（vanilla canOcclude，noOcclusion() 关闭）
+    /// 窒息谓词；为空表示使用默认判定（blocksMotion && 碰撞形状满格）
+    const StatePredicate* m_isSuffocating = nullptr;
+    /// 视线谓词；为空且窒息谓词也为空时同样走默认判定
+    const StatePredicate* m_isViewBlocking = nullptr;
     bool m_propagatesSkylightDown = false;
     bool m_propagatesSkylightDownExplicit = false; // 是否显式设置过 propagatesSkylightDown（区分显式值与默认哨兵）
     u8 m_harvestTool = HarvestTool::None;
@@ -841,6 +912,24 @@ public:
     [[nodiscard]] f32 resistance() const noexcept
     {
         return m_resistance;
+    }
+
+    /** @brief 覆写的窒息谓词；nullptr 表示沿用默认判定。 */
+    [[nodiscard]] const StatePredicate* suffocatingPredicate() const noexcept
+    {
+        return m_isSuffocating;
+    }
+
+    /**
+     * @brief 覆写的视线谓词；nullptr 表示沿用默认判定。
+     *
+     * 原版把 `isViewBlocking` 默认为 `isSuffocating` 的同一个实例，因此只覆写窒息谓词时
+     * 视线判定也随之改变；这里 `Block::isViewBlockingAt` 在视线谓词为空时转调
+     * `Block::isSuffocatingAt`，保持同一语义。
+     */
+    [[nodiscard]] const StatePredicate* viewBlockingPredicate() const noexcept
+    {
+        return m_isViewBlocking;
     }
 
     /**
@@ -1246,6 +1335,57 @@ public:
      * @param state 方块状态
      */
     [[nodiscard]] virtual bool isSolid(const BlockState& state) const;
+
+    /**
+     * @brief 该状态是否阻挡实体运动（vanilla `BlockState#blocksMotion`）
+     *
+     * 判据是 `isSolid()`，**只排除蜘蛛网与竹笋**两个方块。它们看着有碰撞，原版却
+     * 允许实体穿行；高度图的 MOTION_BLOCKING 系列与窒息/视线默认谓词都以它为准。
+     *
+     * 注意与 `isSolid()` 区分：树叶、玻璃的 `isSolid()` 为 true（能挡住脚步），
+     * 但它们不窒息、不挡视线；漏斗 `isSolid()` 也是 true，但碰撞形状不满格。
+     */
+    [[nodiscard]] virtual bool blocksMotion(const BlockState& state) const;
+
+    /**
+     * @brief 该状态的碰撞形状是否覆盖整个方块（vanilla `BlockState#isCollisionShapeFullBlock`）
+     *
+     * 判定对象是**碰撞形状**而非外形：耕地、泥土路径的碰撞比外形矮一格像素，两者都判 false；
+     * 告示牌、按钮没有碰撞，同样判 false。带位置查询（叠加 `offsetType` 偏移）。
+     */
+    [[nodiscard]] virtual bool isCollisionShapeFullBlock(const BlockState& state, const BlockPos& pos) const;
+
+    /**
+     * @brief 该状态是否让位于其中的实体窒息（vanilla `BlockState#isSuffocating`）
+     *
+     * 注册时可用 `BlockProperties::suffocating()` 覆写；未覆写时默认判据为
+     * `blocksMotion() && isCollisionShapeFullBlock()`。
+     * 窒息判定在实体每 tick 的 `isInWall` 链路上调用，原版语义是「这一格能不能把人闷死」，
+     * 与是否透光、是否透明**无关**：泥土、灵魂沙、冰都是有碰撞满格的窒息方块，玻璃则不是。
+     */
+    [[nodiscard]] virtual bool isSuffocatingAt(const BlockState& state, const BlockPos& pos) const
+    {
+        const StatePredicate* predicate = suffocatingPredicate();
+        if (predicate != nullptr) {
+            return predicate->test(state, pos);
+        }
+        return blocksMotion(state) && isCollisionShapeFullBlock(state, pos);
+    }
+
+    /**
+     * @brief 该状态是否挡住视线（vanilla `BlockState#isViewBlocking`）
+     *
+     * 未覆写视线谓词时直接转调 `isSuffocatingAt`（原版默认就是同一个谓词实例），
+     * 因此只覆写了窒息判定的方块（甘蔗丛、红树根）会连带影响视线判定。
+     */
+    [[nodiscard]] virtual bool isViewBlockingAt(const BlockState& state, const BlockPos& pos) const
+    {
+        const StatePredicate* predicate = viewBlockingPredicate();
+        if (predicate != nullptr) {
+            return predicate->test(state, pos);
+        }
+        return isSuffocatingAt(state, pos);
+    }
 
     /**
      * @brief 是否不透明
@@ -3006,6 +3146,10 @@ protected:
     bool m_isSolid = true;
     bool m_forceSolidOn = false;  // 强制视为实体方块（覆盖 isSolid 的形状推断）
     bool m_forceSolidOff = false; // 强制不视为实体方块（覆盖 isSolid 的形状推断）
+    /// 窒息谓词；空表示沿用默认判定（blocksMotion && 碰撞形状满格）
+    const StatePredicate* m_isSuffocating = nullptr;
+    /// 视线谓词；空表示沿用窒息判定
+    const StatePredicate* m_isViewBlocking = nullptr;
 
 protected:
     bool m_isFlammable = false;

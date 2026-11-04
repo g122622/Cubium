@@ -44,6 +44,7 @@
 #include "world/block/blocks/redstone/RedstoneBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneOreBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
 
@@ -305,9 +306,15 @@ void registerBaseBlocks()
             .hardness(0.6f)
             .soundType(BlockSoundTypes::GRAVEL));
 
-    // 雪层
+    // 雪层：forceSolidOff（原版 snowProperties().forceSolidOff()），只有满 8 层才挡视线（Blocks::never
+    // 以外的条件谓词）。
     BaseBlocks::SNOW = &registry.registerBlock<blocks::SnowBlock>(ResourceLocation("minecraft:snow"),
-        BlockProperties(Material::SNOW).replaceable().resistance(0.100000001f).hardness(0.1f).notSolid());
+        BlockProperties(Material::SNOW)
+            .replaceable()
+            .resistance(0.100000001f)
+            .hardness(0.1f)
+            .notSolid()
+            .viewBlocking(block_registry::BlockStatePredicates::snowFullLayersViewBlocking()));
 
     // 雪块
     BaseBlocks::SNOW_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:snow_block"),
@@ -336,6 +343,8 @@ void registerBaseBlocks()
             .hardness(0.3f)
             .notSolid()
             .noOcclusion()
+            .suffocating(block_registry::BlockStatePredicates::never())
+            .viewBlocking(block_registry::BlockStatePredicates::never())
             .propagatesSkylightDown());
 
     // 下界岩
@@ -598,6 +607,8 @@ void registerBaseBlocks()
                                    .instrument(BlockProperties::Instrument::Bass);
     // 原版 leavesProperties 只注册 noOcclusion()，没有 propagatesSkylightDown()：树叶的遮挡形状
     // 是完整立方体，默认推导给出 false，天空光穿过时衰减 1 级（opacity 1）。
+    // 窒息与视线判定恒为 false：树叶的碰撞形状是完整立方体，默认判据会给 true，
+    // 玩家站在树冠里会持续掉血、第三人称镜头也会被树叶顶开。
     BlockProperties leavesProps = BlockProperties(Material::LEAVES)
                                       .hardness(0.2f)
                                       .flammable()
@@ -605,6 +616,8 @@ void registerBaseBlocks()
                                       .notSolid()
                                       .noOcclusion()
                                       .opacity(1)
+                                      .suffocating(block_registry::BlockStatePredicates::never())
+                                      .viewBlocking(block_registry::BlockStatePredicates::never())
                                       .resistance(0.2f);
 
     BaseBlocks::OAK_LOG = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:oak_log"), logProps);

@@ -52,6 +52,7 @@
 #include "world/block/blocks/redstone/WeightedPressurePlateBlock.hpp"
 #include "world/block/blocks/redstone/WoodButtonBlock.hpp"
 #include "world/block/blocks/redstone/WoodPressurePlateBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -558,15 +559,24 @@ void registerRedstoneBlocks()
                 .ignitedByLava());
 
     // 活塞
+    // 窒息/视线：未伸出时才算挡（原版 Blocks.NOT_EXTENDED_PISTON）。
     RedstoneBlocks::PISTON = &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:piston"),
-        BlockProperties(Material::PISTON).hardness(1.5f).resistance(1.5f),
+        BlockProperties(Material::PISTON)
+            .hardness(1.5f)
+            .resistance(1.5f)
+            .suffocating(block_registry::BlockStatePredicates::notExtendedPiston())
+            .viewBlocking(block_registry::BlockStatePredicates::notExtendedPiston()),
         false // not sticky
     );
 
     // 粘性活塞
     RedstoneBlocks::STICKY_PISTON =
         &registry.registerBlock<blocks::PistonBlock>(ResourceLocation("minecraft:sticky_piston"),
-            BlockProperties(Material::PISTON).hardness(1.5f).resistance(1.5f),
+            BlockProperties(Material::PISTON)
+                .hardness(1.5f)
+                .resistance(1.5f)
+                .suffocating(block_registry::BlockStatePredicates::notExtendedPiston())
+                .viewBlocking(block_registry::BlockStatePredicates::notExtendedPiston()),
             true // sticky
         );
 
@@ -576,9 +586,17 @@ void registerRedstoneBlocks()
             BlockProperties(Material::PISTON).hardness(1.5f).resistance(1.5f).noLootTable());
 
     // 移动中的活塞
-    RedstoneBlocks::MOVING_PISTON = &registry.registerBlock<blocks::MovingPistonBlock>(
-        ResourceLocation("minecraft:moving_piston"),
-        BlockProperties(Material::PISTON).resistance(0.0f).hardness(-1.0f).noLootTable().noOcclusion().forceSolidOn());
+    RedstoneBlocks::MOVING_PISTON =
+        &registry.registerBlock<blocks::MovingPistonBlock>(ResourceLocation("minecraft:moving_piston"),
+            BlockProperties(Material::PISTON)
+                .resistance(0.0f)
+                .hardness(-1.0f)
+                // 原版 moving_piston 的窒息/视线都显式取 Blocks::never：它在移动过程中不应闷住实体。
+                .suffocating(block_registry::BlockStatePredicates::movingPistonNever())
+                .viewBlocking(block_registry::BlockStatePredicates::movingPistonNever())
+                .noLootTable()
+                .noOcclusion()
+                .forceSolidOn());
 
     // 发射器
     RedstoneBlocks::DISPENSER = &registry.registerBlock<blocks::DispenserBlock>(ResourceLocation("minecraft:dispenser"),

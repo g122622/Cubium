@@ -36,6 +36,7 @@
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -205,6 +206,9 @@ void registerCherryBlocks()
                 .resistance(0.2f)
                 .soundType(BlockSoundTypes::CHERRY_LEAVES)
                 .noOcclusion()
+                // 原版 leavesProperties() 的 isSuffocating/isViewBlocking 均为 Blocks::never。
+                .suffocating(block_registry::BlockStatePredicates::never())
+                .viewBlocking(block_registry::BlockStatePredicates::never())
                 .ignitedByLava());
 
     // 樱花树苗

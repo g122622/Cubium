@@ -26,7 +26,6 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/block/registry/NaturalBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include <array>
@@ -211,14 +210,9 @@ bool Heightmap::isOpaqueForType(HeightmapType type, const BlockState* state)
 
 bool Heightmap::_blocksMotion(const Block& block, const BlockState& state)
 {
-    // 近似原版 blocksMotion() = isSolid() && block != COBWEB && block != BAMBOO_SAPLING。
-    // 项目无 blocksMotion() 方法，用 isSolid + Block 指针排除蜘蛛网近似。
-    // bamboo_sapling 用 Material::REPLACEABLE_PLANT（isSolid=false）天然不命中，无需特判。
-    // TODO: 原版还排除 BAMBOO_SAPLING；项目该方块 isSolid 已为 false，无需显式排除。
-    if (!block.isSolid(state)) {
-        return false;
-    }
-    return &block != block_registry::NaturalBlocks::COBWEB;
+    // 直接走 `Block::blocksMotion`，不再本地近似：该方法排除了蜘蛛网与竹笋，
+    // 与原版 `BlockStateBase#blocksMotion` 一致。
+    return block.blocksMotion(state);
 }
 
 bool Heightmap::_isNotLeaf(const Block& block)

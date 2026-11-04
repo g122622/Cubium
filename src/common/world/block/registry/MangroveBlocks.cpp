@@ -38,6 +38,7 @@
 #include "world/block/blocks/mangrove/MangrovePropaguleBlock.hpp"
 #include "world/block/blocks/mangrove/MangroveRootsBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -115,6 +116,8 @@ void registerMangroveBlocks()
                                               .soundType(BlockSoundTypes::LEAVES)
                                               .tickRandomly()
                                               .noOcclusion()
+                                              .suffocating(block_registry::BlockStatePredicates::never())
+                                              .viewBlocking(block_registry::BlockStatePredicates::never())
                                               .ignitedByLava();
 
     // 红树树叶 - 有距离属性，会腐烂
@@ -142,6 +145,8 @@ void registerMangroveBlocks()
                 .soundType(BlockSoundTypes::MANGROVE_ROOTS)
                 .flammable()
                 .noOcclusion()
+                .suffocating(block_registry::BlockStatePredicates::never())
+                .viewBlocking(block_registry::BlockStatePredicates::never())
                 .ignitedByLava());
 
     // 沾泥红树根属性 - EARTH材质, 锹有效, 硬度0.7, 抗性0.7

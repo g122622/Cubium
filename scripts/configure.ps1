@@ -4,7 +4,7 @@
 # before running CMake commands.
 #
 # Usage:
-#   .\configure.ps1                         - Configure with relwithdebinfo preset
+#   .\configure.ps1                         - Configure with relwithdebinfo preset (server-only; client unmaintained)
 #   .\configure.ps1 -Build                  - Configure + build
 #   .\configure.ps1 -CmakeArgs @("--preset","windows-clang-debug")
 #                                           - Run cmake with custom args
@@ -63,7 +63,7 @@ Remove-Item $tempScript, $envFile -ErrorAction SilentlyContinue
 Write-Host "Visual Studio developer environment configured." -ForegroundColor Green
 
 # --- Run CMake ---
-$Preset = "windows-clang-relwithdebinfo"
+$Preset = "windows-clang-relwithdebinfo-server"
 
 if ($Build) {
     Write-Host "Configuring with preset $Preset..."

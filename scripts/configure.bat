@@ -8,7 +8,7 @@ setlocal enabledelayedexpansion
 :: PowerShell, Git Bash via cmd //c, CI pipelines).
 ::
 :: Usage:
-::   configure.bat                  - Configure with relwithdebinfo preset
+::   configure.bat                  - Configure with relwithdebinfo preset (server-only; the client is no longer maintained)
 ::   configure.bat build            - Configure + build
 ::   configure.bat <cmake args...>  - Run cmake with VS env (any args)
 :: ============================================================
@@ -24,8 +24,8 @@ if errorlevel 1 (
 
 :: Default: configure with the project's standard preset
 if "%~1"=="" (
-    echo Configuring with preset windows-clang-relwithdebinfo...
-    cmake --preset windows-clang-relwithdebinfo
+    echo Configuring with preset windows-clang-relwithdebinfo-server...
+    cmake --preset windows-clang-relwithdebinfo-server
     exit /b %errorlevel%
 )
 
@@ -35,8 +35,8 @@ if "%~1"=="" (
 :: delayed expansion enabled in cmd.exe.
 if /i not "%~1"=="build" goto :pass_through
 
-echo Configuring with preset windows-clang-relwithdebinfo...
-cmake --preset windows-clang-relwithdebinfo
+echo Configuring with preset windows-clang-relwithdebinfo-server...
+cmake --preset windows-clang-relwithdebinfo-server
 if errorlevel 1 exit /b %errorlevel%
 echo.
 echo Building...
@@ -44,7 +44,7 @@ echo Building...
 :: Record start time (centiseconds since midnight)
 set START_TIME=%time%
 
-cmake --build --preset windows-clang-relwithdebinfo
+cmake --build --preset windows-clang-relwithdebinfo-server
 set BUILD_EXIT=!errorlevel!
 
 set END_TIME=%time%

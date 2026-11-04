@@ -46,6 +46,7 @@
 #include "world/block/blocks/special/TestBlock.hpp"
 #include "world/block/blocks/special/TestInstanceBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 #include "world/block/registry/BuildingBlocks.hpp"
 
 namespace mc {
@@ -1030,6 +1031,9 @@ void registerBuildingVariantBlocks()
                 .hardness(5.0f)
                 .resistance(5.0f)
                 .noOcclusion()
+                // 原版 spawner 显式 isSuffocating/isViewBlocking(Blocks::never)。
+                .suffocating(block_registry::BlockStatePredicates::always())
+                .viewBlocking(block_registry::BlockStatePredicates::always())
                 .noLootTable()
                 .soundType(BlockSoundTypes::SPAWNER));
 
@@ -1052,7 +1056,14 @@ void registerBuildingVariantBlocks()
     // 屏障 - 不可见的不可破坏方块
     BuildingVariantBlocks::BARRIER =
         &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
-            BlockProperties(Material::BARRIER).resistance(3600000.75f).hardness(-1.0f).noLootTable().noOcclusion());
+            BlockProperties(Material::BARRIER)
+                .resistance(3600000.75f)
+                .hardness(-1.0f)
+                // 原版 barrier 显式 isSuffocating/isViewBlocking(Blocks::always)。
+                .suffocating(block_registry::BlockStatePredicates::always())
+                .viewBlocking(block_registry::BlockStatePredicates::always())
+                .noLootTable()
+                .noOcclusion());
 
     // 命令方块 - 红石触发型，需要管理员权限
     BuildingVariantBlocks::COMMAND_BLOCK =
@@ -1095,9 +1106,15 @@ void registerBuildingVariantBlocks()
     // 原版只有 noOcclusion()，形状沿用 BaseEntityBlock 的整格立方体：canOcclude=false 使其
     // 不参与遮挡，但默认公式因形状为整格给出 propagatesSkylightDown=false、lightBlock=1。
     // 早期多写了 .opacity(0)，把光照衰减抹成 0，与原版不符。
+    // 视线判定显式取 Blocks::never，窒息判定保持默认（满格碰撞 → 会闷人）。
     BuildingVariantBlocks::TEST_INSTANCE_BLOCK =
         &registry.registerBlock<blocks::TestInstanceBlock>(ResourceLocation("minecraft:test_instance_block"),
-            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable().noOcclusion());
+            BlockProperties(Material::TEST_BLOCK)
+                .hardness(-1.0f)
+                .resistance(3600000.0f)
+                .viewBlocking(block_registry::BlockStatePredicates::testInstanceNeverView())
+                .noLootTable()
+                .noOcclusion());
 }
 
 } // namespace block_registry

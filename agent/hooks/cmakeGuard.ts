@@ -25,7 +25,7 @@ import { query, HookCallback, StopHookInput, PreToolUseHookInput } from "@anthro
 
 /**
  * PreToolUse hook: 拦截 cmake 相关的终端调用
- * 只允许使用 cmake --build --preset windows-clang-relwithdebinfo 进行构建
+ * 只允许使用 cmake --build --preset windows-clang-relwithdebinfo-server 进行构建（默认服务端构建，不含客户端）
  */
 export const cmakeGuardHook: HookCallback = async (input, toolUseID, { signal }) => {
     const preInput = input as PreToolUseHookInput;
@@ -44,7 +44,7 @@ export const cmakeGuardHook: HookCallback = async (input, toolUseID, { signal })
     }
 
     // 允许的正确构建命令
-    const allowedCommand = "cmake --build --preset windows-clang-relwithdebinfo";
+    const allowedCommand = "cmake --build --preset windows-clang-relwithdebinfo-server";
 
     // 检查是否是允许的命令（允许一些合理的变体，如额外的空格）
     const normalizedCommand = command.trim().replace(/\s+/g, " ");

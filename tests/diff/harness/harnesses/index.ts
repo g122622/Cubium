@@ -1768,6 +1768,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "陆行生物会走进水里",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_view_blocking",
+        probe: "block_view_blocking",
+        oracle: "BlockViewBlockingOracle",
+        description: "方块状态是否挡视线 / 是否造成窒息（BlockState#isViewBlocking / #isSuffocating）—— 全部 29671 个状态；"
+        + "默认判据是「blocksMotion() && 碰撞形状满格」，但树叶、玻璃、色彩玻璃、铜格栅、耕地、泥土路径、灵魂沙、雪层、活塞、潜影盒等"
+        + "几十处注册点单独覆写。抄错的后果都不崩溃：树叶被当成窒息方块会让玩家站进树冠持续掉血、第三人称镜头穿不进树冠；"
+        + "玻璃被当成满格则隔着窗户呼吸也会闷血。只能逐状态与原版比对发现",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

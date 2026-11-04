@@ -60,6 +60,7 @@
 #include "world/block/blocks/vegetation/SugarCaneBlock.hpp"
 #include "world/block/blocks/vegetation/VineBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -186,7 +187,14 @@ void registerNaturalBlocks()
 
     // 草径
     NaturalBlocks::GRASS_PATH = &registry.registerBlock<blocks::DirtPathBlock>(ResourceLocation("minecraft:dirt_path"),
-        BlockProperties(Material::EARTH).resistance(0.649999976f).hardness(0.65f).soundType(BlockSoundTypes::GRASS));
+        BlockProperties(Material::EARTH)
+            .resistance(0.649999976f)
+            .hardness(0.65f)
+            // 原版 dirtPathProperties() 显式 isSuffocating/isViewBlocking(Blocks::never)：
+            // 碰撞比满格矮 1 像素，默认判据会给 false，但玩家站在上面仍会被闷、镜头仍被挡。
+            .suffocating(block_registry::BlockStatePredicates::dirtPathBlocking())
+            .viewBlocking(block_registry::BlockStatePredicates::dirtPathBlocking())
+            .soundType(BlockSoundTypes::GRASS));
 
     // 浮冰 - 不透明，不融化
     // 原版 packed_ice 用最普通的 Blocks.register(name, properties) 注册（普通 Block，无子类），
@@ -281,7 +289,13 @@ void registerNaturalBlocks()
 
     // 耕地
     NaturalBlocks::FARMLAND = &registry.registerBlock<blocks::FarmlandBlock>(ResourceLocation("minecraft:farmland"),
-        BlockProperties(Material::EARTH).resistance(0.600000024f).hardness(0.6f));
+        BlockProperties(Material::EARTH)
+            .resistance(0.600000024f)
+            .hardness(0.6f)
+            // 原版 farmland 属性显式 isSuffocating/isViewBlocking(Blocks::never)。
+            // 碰撞比满格矮 1 像素，默认判据会给 false，但原版仍把它算作窒息/挡视线方块。
+            .suffocating(block_registry::BlockStatePredicates::alwaysBlocking())
+            .viewBlocking(block_registry::BlockStatePredicates::alwaysBlocking()));
 
     // 红沙
     NaturalBlocks::RED_SAND = &registry.registerBlock<blocks::FallingBlock>(ResourceLocation("minecraft:red_sand"),

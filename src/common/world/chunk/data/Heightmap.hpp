@@ -261,12 +261,7 @@ private:
      */
     [[nodiscard]] bool _isOpaque(const BlockState* state) const;
 
-    /**
-     * @brief 近似原版 blocksMotion() = isSolid() && block != COBWEB
-     *
-     * 项目无 blocksMotion() 方法，用 isSolid + Block 指针排除蜘蛛网近似。
-     * bamboo_sapling 用 REPLACEABLE_PLANT（isSolid=false）天然不命中，无需特判。
-     */
+    /** @brief 原版 `blocksMotion()`，转调 `Block::blocksMotion`。 */
     [[nodiscard]] static bool _blocksMotion(const Block& block, const BlockState& state);
 
     /**

@@ -48,6 +48,7 @@
 #include "world/block/blocks/cave/SporeBlossomBlock.hpp"
 #include "world/block/blocks/decorative/CarpetBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -244,6 +245,9 @@ void registerCaveBlocks()
                 .resistance(0.3f)
                 .notSolid()
                 .soundType(BlockSoundTypes::GLASS)
+                // 原版 tinted_glass 显式 isSuffocating/isViewBlocking(Blocks::never)：遮光 15 级但既不闷人也不挡视线。
+                .suffocating(block_registry::BlockStatePredicates::never())
+                .viewBlocking(block_registry::BlockStatePredicates::never())
                 .noOcclusion());
 
     // ============================================================================
@@ -316,6 +320,9 @@ void registerCaveBlocks()
                 .soundType(BlockSoundTypes::AZALEA_LEAVES)
                 .tickRandomly()
                 .noOcclusion()
+                // 原版 leavesProperties() 的 isSuffocating/isViewBlocking 均为 Blocks::never。
+                .suffocating(block_registry::BlockStatePredicates::never())
+                .viewBlocking(block_registry::BlockStatePredicates::never())
                 .ignitedByLava());
 
     // 开花的杜鹃花叶。可被岩浆点燃（对齐 vanilla）
@@ -327,6 +334,9 @@ void registerCaveBlocks()
                 .soundType(BlockSoundTypes::AZALEA_LEAVES)
                 .tickRandomly()
                 .noOcclusion()
+                // 原版 leavesProperties() 的 isSuffocating/isViewBlocking 均为 Blocks::never。
+                .suffocating(block_registry::BlockStatePredicates::never())
+                .viewBlocking(block_registry::BlockStatePredicates::never())
                 .ignitedByLava());
 
     // ============================================================================

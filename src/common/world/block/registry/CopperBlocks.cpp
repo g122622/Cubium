@@ -47,6 +47,7 @@
 #include "world/block/blocks/copper/WeatheringLightningRodBlock.hpp"
 #include "world/block/blocks/decorative/TorchBlock.hpp"
 #include "world/block/blocks/decorative/WallTorchBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -291,6 +292,8 @@ void registerCopperBlocks()
                                            .requiresTool()
                                            .notSolid()
                                            .noOcclusion()
+                                           .suffocating(block_registry::BlockStatePredicates::never())
+                                           .viewBlocking(block_registry::BlockStatePredicates::never())
                                            .propagatesSkylightDown()
                                            .soundType(BlockSoundTypes::COPPER_GRATE);
 

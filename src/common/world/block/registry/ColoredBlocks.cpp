@@ -33,6 +33,7 @@
 #include "world/block/blocks/decorative/GlazedTerracottaBlock.hpp"
 #include "world/block/blocks/decorative/StainedGlassBlock.hpp"
 #include "world/block/blocks/functional/BedBlock.hpp"
+#include "world/block/registry/BlockStatePredicates.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -285,6 +286,8 @@ void registerColoredBlocks()
                                             .notSolid()
                                             .noOcclusion()
                                             .opacity(0)
+                                            .suffocating(block_registry::BlockStatePredicates::never())
+                                            .viewBlocking(block_registry::BlockStatePredicates::never())
                                             .propagatesSkylightDown()
                                             .resistance(0.3f)
                                             .instrument(BlockProperties::Instrument::Hat);

@@ -70,6 +70,7 @@
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/map/MaterialColor.hpp"
+#include "registry/NaturalBlocks.hpp"
 #include "registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
@@ -230,6 +231,8 @@ Block::Block(BlockProperties properties)
     , m_isSolid(properties.m_isSolid)
     , m_forceSolidOn(properties.m_forceSolidOn)
     , m_forceSolidOff(properties.m_forceSolidOff)
+    , m_isSuffocating(properties.m_isSuffocating)
+    , m_isViewBlocking(properties.m_isViewBlocking)
     , m_isFlammable(properties.m_isFlammable)
     , m_canOcclude(properties.m_canOcclude)
     , m_propagatesSkylightDown(properties.m_propagatesSkylightDown)
@@ -501,6 +504,24 @@ bool Block::isSolid(const BlockState& state) const
         return true;
     }
     return (maxY - minY) >= 1.0f;
+}
+
+bool Block::blocksMotion(const BlockState& state) const
+{
+    // 原版 `BlockStateBase#blocksMotion`：`isSolid()` 且**不是**蜘蛛网、竹笋。
+    // 这两个方块看着有碰撞，原版却允许实体穿行。竹笋在本项目注册为 REPLACEABLE_PLANT
+    // 材质、isSolid 已为 false，走下面的分支就会返回 false；蜘蛛网则需在此显式排除。
+    if (!isSolid(state)) {
+        return false;
+    }
+    return this != block_registry::NaturalBlocks::COBWEB;
+}
+
+bool Block::isCollisionShapeFullBlock(const BlockState& state, const BlockPos& pos) const
+{
+    // 与原版相同：按**碰撞形状**（不是外形、不是遮挡形状）是否覆盖整格判定，
+    // 且必须走带位置的入口，让 `offsetType` 偏移参与计算。
+    return getCollisionShapeAt(state, pos).coversFullBlock();
 }
 
 bool Block::isOpaque(const BlockState& state) const
