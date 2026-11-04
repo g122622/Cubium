@@ -254,3 +254,67 @@ piece（5×10×4），而原版 8 个起点、平均 143 个 piece（97×48×64�
 `StrongholdStructure::canGenerate` 及其在其它结构类（BastionRemnant、
 BuriedTreasure、DesertPyramid、EndCity、Fortress、Igloo 等）中的同名方法
 **全部没有调用点**，是死代码，应当删除以消除误导。
+
+## 第五轮：找到并修复 createBox 的朝向分支写反（重大）
+
+上一轮记录的要塞塌缩，根因在 `StructureBoundingBox::createBox`。
+
+### 缺陷
+
+`src/common/world/gen/structure/StructureBoundingBox.cpp` 的 North 与 South 分支实现互换了：
+
+| 方向 | 应有的深度展开 | 原实现 |
+|---|---|---|
+| South（含 default） | `z+offZ .. z+offZ+sizeZ-1`（沿 +Z） | `z-sizeZ-offZ+1 .. z-offZ`（沿 -Z） |
+| North | `z-sizeZ+1+offZ .. z+offZ`（沿 -Z） | `z+offZ .. z+offZ+sizeZ-1`（沿 +Z） |
+
+West/East 分支是对的。原版语义见 `BoundingBox.orientBox` 的 NORTH / SOUTH 分支。
+
+### 后果
+
+所有按朝向计算包围盒的结构构件都落在门的另一侧，于是同一结构内相邻构件的包围盒互相重叠，
+`findIntersecting` 判相交，后续构件全部创建失败。
+
+要塞受害最明显——`StrongholdStraight::createPiece` 用
+`createBox(x, y, z, -1, -1, 0, 5, 5, 7, direction)`，朝北时构件被放到了门的错误一侧，
+第二个构件就与起始楼梯盒重叠：
+
+- 修复前：要塞 1 个 piece（只有起始楼梯）
+- 修复后：要塞 52 个 piece，递归深度正常展开
+
+### 配套修正
+
+1. `StrongholdStructure::_generateCorridor` 的第一个子构件落点：原先用
+   「包围盒中点 `minX + (maxX-minX)/2`」并把朝向改写成 North；原版
+   `generateSmallDoorChildForward(start, builder, random, 1, 1)` 用
+   `minX+1 / minY+1 / minZ-1` 且沿用构件自身朝向。横向偏 1 格 + 朝向错位，
+   使新盒必然与起始楼梯盒在 X 方向重叠。
+
+2. `_generateStrongholdPieces` 改成队列驱动：原版把分支压进
+   `StartPiece.pendingChildren`，由 `while (!pending.isEmpty())` 逐个取出继续扩展；
+   一条分支被挡住不影响其它分支。现在把 `pieces` 本身当队列，逐个对尚未扩展的
+   构件调用 `buildComponent`，等价于原版且无需改动 StrongholdPieces 的组装逻辑。
+
+### 回归
+
+structure_orient 14/14、structure_density 1/1、bounding_box 29/29、
+bounding_box_encap 18/18、block_support 1166/1166、piston_movement 523/523 全部通过。
+
+## 仍未收敛的部分
+
+`structure_starts` 仍是 47 处，但构成变了：
+
+| 类别 | 数量 | 说明 |
+|---|---|---|
+| 要塞缺失 | 8 | 环位置或候选区块判定与原因不同 |
+| 都有但内容不同 | 37 | **废弃矿井**（template 全空、程序化生成） |
+| 原版空 / Cubium 有 | 2 | |
+
+矿井同样靠 `addChildren` + 队列组装。查过：
+- `MAX_DEPTH = 8` 两侧一致；
+- 距离限制 `<= 80` 两侧一致（原版 `MineshaftPieces.java:91`）；
+- `MineshaftRoom::buildComponent` 里 `depth = genDepth() + 1` 也已正确递增，
+  `maxDepth` 参数实际未被使用。
+
+所以矿井的 159 vs 31 差距不在这几处，需要进一步对比 `MineshaftRoom.addChildren`
+的原版实现（本轮尚未展开）。下一轮应从那里入手。
