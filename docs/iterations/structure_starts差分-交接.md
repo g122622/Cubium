@@ -1052,3 +1052,61 @@ P6 east  from (-195,-189) => (-195,52,-190)-(-191,58,-186)
 三者两两相容、三者合起来不相容。**下一轮要做的不是继续推理，而是直接观察运行时**：
 在 `Accessor.addPiece` 里给 `[6]` 打一个 `hashes` 标记，并在 `[6].addChildren` 前后
 各打印一次 `direction` 字段的值——如果它在中途被改了，这一打印就能看到。
+
+## 第二十三轮：字节码层面的新证据，以及矿井矛盾的现状
+
+### 新证据：交叉点 addChildren 的跳转表
+
+`javap -c` 反汇编运行时 jar 里 `MineShaftCrossing.addChildren`：
+
+```
+0: getGenDepth
+6: getstatic MineshaftPieces$1.$SwitchMap$Direction
+10: getfield direction
+13: Direction.ordinal()
+16: iaload
+17: tableswitch { 1: 48, 2: 162, 3: 276, 4: 390, default: 48 }
+48: ... minX, iconst_1, iadd ... minZ, iconst_1, isub ... generateAndAddPiece
+```
+
+`case 1` 与 `default` 都跳到 48，而 48 处的第一个出口是 `minX+1, minY, minZ-1`。
+这与源码 L683-687 完全一致，说明**交叉点朝北时第 1 个出口确实是北向**。
+
+### 另一个此前没注意到的原版约束
+
+`generateAndAddPiece` 除了深度判据，还有一个**距离判据**（L91）：
+
+```java
+else if (Math.abs(p_227710_ - p_227707_.getBoundingBox().minX()) <= 80
+      && Math.abs(p_227712_ - p_227707_.getBoundingBox().minZ()) <= 80) {
+```
+
+新构件的 X/Z 与父构件包围盒的距离必须 ≤ 80。Cubium 的 `addMineshaftPiece` 里已有等价检查
+（L280-287），**这一条是对齐的**。
+
+### 矛盾的现状（第五轮仍未解开）
+
+三条独立观测互相冲突：
+
+1. 反射读 `MineShaftCrossing.direction` 得 `north`，且它是 `private final`；
+2. 字节码显示 `direction=north` 必然走偏移 48，第 1 个出口是北向 `(minX+1, minY, minZ-1)`；
+3. 子集碰撞视图复现显示该出口在 `[0..6]` 下**会成功**，得到 `(-200,-195)`；
+4. 但实测原版 `[7]` 是 `(-205,-190)`，即西向。
+
+**四种方法（源码阅读、反射、字节码、子集复现）都指向「北向出口应当成功」，唯独实际运行结果不是。**
+
+这已经超出「读代码猜逻辑」能解决的范围。下一步若要继续，需要真正的运行时插桩
+（`-javaagent` + `ClassFileTransformer` 改写 `MineShaftCrossing.addChildren`，
+在每次 `generateAndAddPiece` 调用前打印实参），而不是继续在外部观察。
+**在插桩完成之前，不应再对这一段做任何推理性的结论。**
+
+### 本轮顺带确认的验收状态
+
+| 能力 | 结果 |
+|---|---|
+| `mineshaft_pieces` | 15 处差异 |
+| `structure_starts` | 47 处差异 |
+
+`structure_starts` 的 47 处分布：主世界 seed 0 有 19 处、seed 9248738493917 有 22 处、
+末地两个 seed 各 3 处。末地的 6 处与矿井无关——其中 5 处两侧都有 1 个结构但内容不同，
+1 处（`the_end/0/-56/-54`）是原版空、Cubium 有，属于独立的末地城/末地船问题。
