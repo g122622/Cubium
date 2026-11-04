@@ -1656,6 +1656,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "注意原版很多方块的抗性不来自自身属性而是转交底层方块（楼梯、台阶、活板门、栅栏、墙），这类继承关系最易出错",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_movement_factor",
+        probe: "block_movement_factor",
+        oracle: "BlockMovementFactorOracle",
+        description: "方块的速度倍率与跳跃倍率（Block#getSpeedFactor / getJumpFactor）—— 全部已注册方块；"
+        + "速度倍率决定站上去走得多快，跳跃倍率决定起跳初速度。灵魂沙与蜂蜜块都是 0.4，但只有蜂蜜块的跳跃倍率是 0.5 ——"
+        + "灵魂沙只减速不限制跳跃。把蜂蜜块的跳跃倍数写成 1.0，玩家能轻松跳出蜂蜜陷阱；"
+        + "把灵魂沙的写成 0.5，沙漠神殿的灵魂沙跑酷就几乎不可能",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
