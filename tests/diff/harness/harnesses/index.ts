@@ -1758,6 +1758,16 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "两类最容易写错：红石块不透明且形状完整却显式排除；单层台阶与楼梯材质不透明但形状不完整。两个判据单独用都不对",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_pathfindable",
+        probe: "block_pathfindable",
+        oracle: "BlockPathfindableOracle",
+        description: "方块状态在三种寻路类型下是否可通行（BlockBehaviour#isPathfindable）—— 全部 29671 个状态 x 3 种类型；"
+        + "LAND=陆地行走、WATER=水中游动、AIR=空中飞行。原版默认判据：LAND/AIR 为「碰撞形状不完整即可通行」，WATER 为「只认水」。"
+        + "两处最容易写错：① 判据是「不完整」而不是「为空」—— 台阶、楼梯、栅栏门碰撞形状非空但不完整，生物能从上方走过，"
+        + "用 isEmpty() 判定会让生物绕开所有台阶（表现为村民卡在台阶前不动）；② WATER 不看形状只看是不是水 —— 三种类型统一按形状判，"
+        + "陆行生物会走进水里",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",

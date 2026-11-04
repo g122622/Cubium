@@ -68,6 +68,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/map/MaterialColor.hpp"
 #include "registry/VanillaBlocks.hpp"
 #include <algorithm>
@@ -507,10 +508,26 @@ bool Block::isOpaque(const BlockState& state) const
 
 bool Block::isPathfindable(const BlockState& state, PathComputationType type) const
 {
-    // 默认实现对齐原版 `Block#isPathfindable`：陆地看碰撞形状是否为空，
-    // 水中与空中则一律按「无碰撞即可穿过」处理（原版分别由水生方块与飞行求值器覆写）。
-    MC_UNUSED(type);
-    return state.getCollisionShape().isEmpty();
+    // 三种寻路类型的默认判据互不相同：
+    //   Land / Air -> 碰撞形状「不完整」即可通行
+    //   Water      -> 只认水（getFluidState().is(WATER)）
+    //
+    // 判据是「不完整」而不是「为空」：台阶、楼梯、栅栏门的碰撞形状非空但不完整，
+    // 生物能从上方走过。用 isEmpty() 会让生物绕开所有台阶，表现为卡在台阶前不动。
+    //
+    // Water 类型不看形状：水中型生物只能游过水方块。若三种类型统一按形状判，
+    // 陆行生物会走进水里、鱼会游进空气。
+    switch (type) {
+        case PathComputationType::Water: {
+            const fluid::FluidState* fluidState = state.getFluidState();
+            return fluidState != nullptr && !fluidState->isEmpty() &&
+                fluidState->getFluid().isIn(fluid::FluidTags::WATER());
+        }
+        case PathComputationType::Land:
+        case PathComputationType::Air:
+        default:
+            return !state.getCollisionShape().coversFullBlock();
+    }
 }
 
 f32 Block::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const

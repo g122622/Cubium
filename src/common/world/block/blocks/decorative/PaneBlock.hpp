@@ -165,6 +165,8 @@ protected:
     CollisionShape m_sideShapes[6];
     /// 组合形状缓存
     std::array<CollisionShape, 16> m_shapes;
+    /// 寻路通行判定：形状不完整不等于可以穿过。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

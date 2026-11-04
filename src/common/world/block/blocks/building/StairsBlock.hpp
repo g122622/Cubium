@@ -212,6 +212,8 @@ private:
 
     /// 完整方块形状（用于双层台阶）
     CollisionShape m_fullCubeShape;
+    /// 楼梯在三种寻路类型下都不可通行：形状虽不完整，但生物不能从楼梯中间穿过。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

@@ -510,5 +510,15 @@ const CollisionShape& StairsBlock::_getShapeForState(const BlockState& state) co
     return isTop ? SLAB_TOP_SHAPES[shapeIdx] : SLAB_BOTTOM_SHAPES[shapeIdx];
 }
 
+bool StairsBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 这三个类族在原版里都显式返回 false：形状不完整不等于可以穿过。
+    // 楼梯的台阶、墙的柱与臂、头颅的薄片都占据生物的路径空间。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
+
 } // namespace mc

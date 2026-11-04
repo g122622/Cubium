@@ -141,6 +141,8 @@ private:
     CollisionShape m_centerShape;            ///< 中心柱形状
     CollisionShape m_armShapes[6];           ///< 6 个方向的臂形状
     std::array<CollisionShape, 64> m_shapes; ///< 预计算的 64 种组合形状
+    /// 寻路通行判定：形状不完整不等于可以穿过。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

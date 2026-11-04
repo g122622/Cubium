@@ -444,5 +444,13 @@ SoulCampfireBlock::SoulCampfireBlock(BlockProperties properties)
     : CampfireBlock(std::move(properties), 10) // 灵魂营火光照等级为10
 {}
 
+bool CampfireBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 该方块族原版显式返回 false：形状不完整不等于可以穿过。
+    MC_UNUSED(state);
+    MC_UNUSED(type);
+    return false;
+}
+
 } // namespace blocks
 } // namespace mc

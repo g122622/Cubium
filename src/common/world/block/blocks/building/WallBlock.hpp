@@ -218,6 +218,8 @@ private:
     /// 墙臂测试形状: 每个方向对应一个2x16x9像素的墙臂区域
     /// 北面 (旋转前): (7/16, 0, 0) -> (9/16, 1, 9/16)
     static std::map<Direction, VoxelShape> s_testShapesWall;
+    /// 墙在三种寻路类型下都不可通行：墙柱与侧臂都不是可穿过的空间。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 } // namespace blocks

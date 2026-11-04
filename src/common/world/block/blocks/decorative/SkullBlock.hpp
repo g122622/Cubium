@@ -112,6 +112,8 @@ protected:
     [[nodiscard]] static BlockProperties::Instrument _instrumentForSkullType(SkullType type) noexcept;
 
     SkullType m_type;
+    /// 头颅在三种寻路类型下都不可通行。
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 };
 
 /**
