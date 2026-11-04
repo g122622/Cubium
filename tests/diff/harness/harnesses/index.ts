@@ -1647,6 +1647,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "否则「读取失败」和「没有候选」语义混淆；event 存在但 tick < 0 时不能恢复候选，两字段是一对",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "block_blast_resistance",
+        probe: "block_blast_resistance",
+        oracle: "BlockBlastResistanceOracle",
+        description: "方块默认状态的爆炸抗性（Block#getExplosionResistance）—— 全部已注册方块；"
+        + "爆炸破坏时每个方块按抗性算是否被摧毁，阈值约等于 威力/抗性。写错不会崩也不会报错，"
+        + "只表现为「TNT 炸不动这堵墙」或「炸得比预期干净」。"
+        + "注意原版很多方块的抗性不来自自身属性而是转交底层方块（楼梯、台阶、活板门、栅栏、墙），这类继承关系最易出错",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
