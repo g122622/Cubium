@@ -137,7 +137,7 @@ public:
 
     [[nodiscard]] feature::template_::Rotation rotation() const
     {
-        return m_rotation;
+        return getRotation();
     }
 
     [[nodiscard]] bool overwrite() const
@@ -176,7 +176,6 @@ public:
 private:
     std::string m_templateName;
     BlockPos m_templatePosition;
-    feature::template_::Rotation m_rotation;
     bool m_overwrite;
     feature::template_::PlacementSettings m_settings;
     BlockPos m_size;

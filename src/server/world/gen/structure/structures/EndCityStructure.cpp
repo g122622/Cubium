@@ -202,9 +202,9 @@ CityTemplate::CityTemplate(
     : StructurePiece(StructurePieceTypes::END_CITY, pos.x, pos.y, pos.z, pos.x, pos.y, pos.z)
     , m_templateName(templateName)
     , m_templatePosition(pos)
-    , m_rotation(rotation)
     , m_overwrite(overwrite)
 {
+    setRotation(rotation);
     m_settings.setRotation(rotation);
     m_settings.setIgnoreEntities(true);
 
