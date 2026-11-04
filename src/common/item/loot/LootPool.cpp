@@ -93,6 +93,19 @@ ConsumerPtr LootPool::decorate(ConsumerPtr consumer, LootContext& context) const
     });
 }
 
+void LootPool::expandTagItems()
+{
+    for (auto& entry : m_entries) {
+        entry->expandTagItems();
+    }
+    for (auto& condition : m_conditions) {
+        condition->expandTagItems();
+    }
+    for (auto& function : m_functions) {
+        function->expandTagItems();
+    }
+}
+
 std::unique_ptr<LootPool> LootPool::clone() const
 {
     auto pool = std::make_unique<LootPool>(m_rolls, m_bonusRolls);

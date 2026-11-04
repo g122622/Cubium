@@ -48,6 +48,57 @@
 
 namespace mc::advancement {
 
+namespace {
+
+/**
+ * @brief 解析 vanilla `ItemPredicate.items`（HolderSet<Item>）字段
+ *
+ * 写法与 `HolderSetCodec` 一致：单个字符串等价于单元素列表；元素是物品 ID 或 `#tag`。
+ * 单元素落到 `item`/`tag`；多元素（含 `#tag` 成员）原样收进 `expanded`，标签由
+ * {@link ItemPredicate::expandTagItems} 在标签表就绪后展开。
+ *
+ * @param items 待解析的 JSON 字段（字符串或字符串数组）
+ * @param item 输出：单物品 ID
+ * @param tag 输出：单标签 ID
+ * @param expanded 输出：多元素时的成员集合（可能含 `#tag` 引用）
+ */
+void _expandItemSet(const nlohmann::json& items,
+    std::optional<ResourceLocation>& item,
+    std::optional<ResourceLocation>& tag,
+    std::vector<ResourceLocation>& expanded)
+{
+    const auto readSingle = [&](const std::string& text) {
+        if (!text.empty() && text[0] == '#') {
+            tag = ResourceLocation(text.substr(1));
+        } else {
+            item = ResourceLocation(text);
+        }
+    };
+
+    if (items.is_string()) {
+        readSingle(items.get<std::string>());
+        return;
+    }
+    if (!items.is_array()) {
+        return;
+    }
+    if (items.size() == 1 && items[0].is_string()) {
+        readSingle(items[0].get<std::string>());
+        return;
+    }
+    for (const auto& entry : items) {
+        if (!entry.is_string()) {
+            continue;
+        }
+        // 多元素列表里的标签保留原样（`expandTagItems` 会在解析完成后统一展开）：
+        // 解析战利品表时标签表可能还没建好，此刻展开会把「尚未加载」固化成空集合，
+        // 让条件恒假。
+        expanded.push_back(ResourceLocation(entry.get<std::string>()));
+    }
+}
+
+} // namespace
+
 ItemPredicate::ItemPredicate(std::optional<ResourceLocation> item,
     IntBounds count,
     IntBounds durability,
@@ -117,10 +168,10 @@ bool ItemPredicate::test(const ItemStack& stack,
         }
     }
 
-    // 检查物品集合（vanilla items 字段：多元素 items 数组 / 混合标签，成员已展开）
+    // 检查物品集合（vanilla items 字段：多元素 items 数组 / 混合标签）
     if (!m_items.empty()) {
         const Item* item = stack.getItem();
-        if (item == nullptr || std::find(m_items.begin(), m_items.end(), item->itemLocation()) == m_items.end()) {
+        if (item == nullptr || !_matchesItemSet(stack)) {
             return false;
         }
     }
@@ -194,6 +245,64 @@ bool ItemPredicate::isAny() const noexcept
     return m_isAny;
 }
 
+bool ItemPredicate::_matchesItemSet(const ItemStack& stack) const
+{
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    for (const auto& entry : m_items) {
+        const std::string text = entry.toString();
+        if (text.starts_with('#')) {
+            // 多元素列表里的标签成员：匹配时查表（标签表可能晚于战利品表就绪）。
+            const item::tag::ItemTag* tag = item::tag::ItemTags::getTag(text.substr(1));
+            if (tag != nullptr && tag->contains(item)) {
+                return true;
+            }
+            continue;
+        }
+        if (entry == item->itemLocation()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ItemPredicate::expandTagItems()
+{
+    m_items = expandedTagItems(m_items);
+}
+
+std::vector<ResourceLocation> ItemPredicate::expandedTagItems(const std::vector<ResourceLocation>& members)
+{
+    std::vector<ResourceLocation> out;
+    out.reserve(members.size());
+    expandTagItemsIn(members, out);
+    return out;
+}
+
+void ItemPredicate::expandTagItemsIn(const std::vector<ResourceLocation>& members, std::vector<ResourceLocation>& out)
+{
+    // 标签表可能尚未建立（启动早期），未命中的条目原样保留，匹配时仍按标签实时查。
+    for (const auto& entry : members) {
+        const std::string text = entry.toString();
+        if (text.starts_with('#')) {
+            const item::tag::ItemTag* tag = item::tag::ItemTags::getTag(text.substr(1));
+            if (tag == nullptr) {
+                out.push_back(entry);
+                continue;
+            }
+            for (const Item* item : tag->getItems()) {
+                if (item != nullptr) {
+                    out.push_back(item->itemLocation());
+                }
+            }
+            continue;
+        }
+        out.push_back(entry);
+    }
+}
+
 Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
 {
     if (json.is_null()) {
@@ -203,6 +312,11 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
     // vanilla DataComponentMatchers 写法：{"predicates": {"minecraft:enchantments": [...]}}。
     // 数据包的"熔炼掉落"条件用它判断直接攻击者的主手物品是否带 #smelts_loot 附魔，
     // 旧版直接写 enchantments；两种写法都要识别。
+    //
+    // `predicates` 只覆盖 components 那部分；同一个对象里的 `items`（HolderSet<Item>）
+    // 是**独立字段**，必须一并解析。紫水晶簇的战利品表正是这种组合：工具须属于
+    // #cluster_max_harvestables（items）**且**带精准采集（predicates）。只读 predicates
+    // 会让工具成分被丢弃，条件恒真，数量再被 apply_bonus 抬到 12。
     if (json.is_object() && json.contains("predicates") && json["predicates"].is_object()) {
         std::vector<EnchantmentPredicate> enchantments;
         std::vector<EnchantmentPredicate> storedEnchantments;
@@ -226,16 +340,26 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
         if (partial.contains("minecraft:stored_enchantments")) {
             MC_TRY(parseList(partial["minecraft:stored_enchantments"], storedEnchantments));
         }
+        // items 与 predicates 平级：`items` 可为字符串或数组，元素是物品 ID 或 `#tag`。
+        // 单字符串且以 `#` 开头时落到 tag 分支，否则把全部元素展开进 m_items。
+        std::optional<ResourceLocation> item;
+        std::optional<ResourceLocation> tag;
+        std::vector<ResourceLocation> itemsExpanded;
+        if (json.contains("items")) {
+            _expandItemSet(json["items"], item, tag, itemsExpanded);
+        }
+
         // TODO(item-predicate-components): 其余组件部分谓词（damage / potions / custom_data /
-        //   container 等）尚未接入，当前按"未提供"处理，不影响已识别的附魔条件。
-        ItemPredicate predicate(std::nullopt,
-            std::nullopt,
+        //   container 等）尚未接入，当前按"未提供"处理，不影响已识别的附魔与物品条件。
+        ItemPredicate predicate(std::move(item),
+            std::move(tag),
             IntBounds(),
             IntBounds(),
             std::nullopt,
             std::move(enchantments),
             std::move(storedEnchantments),
             NBTPredicate());
+        predicate.m_items = std::move(itemsExpanded);
         predicate.m_fromPredicates = true;
         predicate._updateIsAny();
         return predicate;
@@ -270,49 +394,7 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
 
     // 原版写法：items 是物品 ID 或标签（"#tag"）的列表；单元素时等价于 item/tag
     if (json.contains("items")) {
-        const auto& items = json["items"];
-        if (items.is_string()) {
-            const std::string text = items.get<std::string>();
-            if (!text.empty() && text[0] == '#') {
-                tag = ResourceLocation(text.substr(1));
-            } else {
-                item = ResourceLocation(text);
-            }
-        } else if (items.is_array()) {
-            // vanilla items 是 HolderSet<Item>：可同时列出多个物品 ID 与 "#标签"。
-            // 单元素时退化为 item/tag；多元素时全部展开为具体物品 ID 集合。
-            if (items.size() == 1 && items[0].is_string()) {
-                const std::string text = items[0].get<std::string>();
-                if (!text.empty() && text[0] == '#') {
-                    tag = ResourceLocation(text.substr(1));
-                } else {
-                    item = ResourceLocation(text);
-                }
-            } else {
-                for (const auto& entry : items) {
-                    if (!entry.is_string()) {
-                        continue;
-                    }
-                    const std::string text = entry.get<std::string>();
-                    if (!text.empty() && text[0] == '#') {
-                        const ResourceLocation tagId(text.substr(1));
-                        item::tag::ItemTag* itemTag = item::tag::ItemTags::getTag(tagId);
-                        if (itemTag == nullptr) {
-                            // TODO(tag-not-initialized): 物品标签未初始化时无法展开成员，
-                            //  该标签条目被忽略；调用方（服务端启动流程）须保证先初始化标签。
-                            continue;
-                        }
-                        for (const Item* member : itemTag->getItems()) {
-                            if (member != nullptr) {
-                                items_Expanded.push_back(member->itemLocation());
-                            }
-                        }
-                    } else {
-                        items_Expanded.push_back(ResourceLocation(text));
-                    }
-                }
-            }
-        }
+        _expandItemSet(json["items"], item, tag, items_Expanded);
     }
 
     if (json.contains("tag")) {

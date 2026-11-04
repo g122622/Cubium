@@ -207,6 +207,12 @@ public:
      * @param context 掉落上下文
      */
     virtual void generate(ConsumerPtr consumer, LootContext& context) const = 0;
+    /**
+     * @brief 让条件与函数链按当前物品标签重新展开
+     *
+     * 战利品表先于物品标签解析，解析期的  成员无法展开；标签表就绪后调用。
+     */
+    virtual void expandTagItems();
 
 protected:
     LootEntry() = default;

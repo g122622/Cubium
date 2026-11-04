@@ -45,6 +45,13 @@ bool AndCondition::test(LootContext& context) const
         });
 }
 
+void AndCondition::expandTagItems()
+{
+    for (auto& condition : m_conditions) {
+        condition->expandTagItems();
+    }
+}
+
 std::unique_ptr<LootCondition> AndCondition::clone() const noexcept
 {
     // 深拷贝所有子条件

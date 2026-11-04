@@ -223,6 +223,45 @@ private:
      */
     void _updateIsAny();
 
+public:
+    /**
+     * @brief 把 items 集合里残留的 `#tag` 成员展开为具体物品 ID
+     *
+     * 战利品表/进度在服务端启动早期解析，而物品标签表在这些表之后才由数据包建立，
+     * 因此解析期无法展开标签成员。标签表就绪后必须调用一次本方法（未命中的标签
+     * 保持原样，匹配时仍按标签查表）。
+     */
+    void expandTagItems();
+
+    /**
+     * @brief 把 `#tag` 成员替换为标签当前成员（供已解析的战利品表复活失效条目）
+     *
+     * 标签表在启动时先清空、再由数据包重建，早期解析出的具体成员随之失效。
+     *
+     * @param members 原成员集合（可含 `#tag`）
+     * @param out 输出：展开后的成员集合
+     */
+    static void expandTagItemsIn(const std::vector<ResourceLocation>& members, std::vector<ResourceLocation>& out);
+
+    /**
+     * @brief 把 `#tag` 成员替换为标签当前成员
+     *
+     * @param members 原成员集合（可含 `#tag`）
+     * @return 展开后的成员集合
+     */
+    [[nodiscard]] static std::vector<ResourceLocation> expandedTagItems(const std::vector<ResourceLocation>& members);
+
+private:
+    /**
+     * @brief 判断物品是否属于 {@link m_items} 集合
+     *
+     * 成员既可能是具体物品 ID，也可能是尚未展开的 `#tag`，后者按标签表实时匹配。
+     *
+     * @param stack 待判定物品堆
+     * @return 是否属于该集合
+     */
+    [[nodiscard]] bool _matchesItemSet(const ItemStack& stack) const;
+
     /**
      * @brief 检查附魔谓词列表是否匹配附魔容器
      * @param predicates 附魔谓词列表

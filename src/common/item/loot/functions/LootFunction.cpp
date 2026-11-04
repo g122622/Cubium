@@ -35,6 +35,13 @@ namespace loot {
 // LootFunction 基类
 // ============================================================================
 
+void LootFunction::expandTagItems()
+{
+    for (auto& condition : m_conditions) {
+        condition->expandTagItems();
+    }
+}
+
 void LootFunction::addCondition(std::unique_ptr<LootCondition> condition)
 {
     m_conditions.push_back(std::move(condition));

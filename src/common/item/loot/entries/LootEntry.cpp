@@ -39,6 +39,16 @@ namespace loot {
 
 LootEntry::~LootEntry() = default;
 
+void LootEntry::expandTagItems()
+{
+    for (auto& condition : m_conditions) {
+        condition->expandTagItems();
+    }
+    for (auto& function : m_functions) {
+        function->expandTagItems();
+    }
+}
+
 void LootEntry::addCondition(std::unique_ptr<LootCondition> condition)
 {
     m_conditions.push_back(std::move(condition));

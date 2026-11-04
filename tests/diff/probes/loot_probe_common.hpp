@@ -73,6 +73,7 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootContextBuilder.hpp"
 #include "common/item/loot/context/LootParams.hpp"
+#include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
@@ -249,6 +250,15 @@ inline LootEnv& environment()
             }
         }
         env.tables.setPredicateManager(&env.predicates);
+
+        // 与服务端启动一致：物品标签在战利品表之后才重建。这里先清空再重载，让加载
+        // 期间读到的标签成员全部失效，再由 `expandTagItems` 按新标签重建——解析期没
+        // 展开标签的实现会在这里暴露成差异。
+        item::tag::ItemTags::clear();
+        if (auto tags = item::tag::ItemTagLoader::loadFromDataPackRepository(packs); tags.failed()) {
+            env.loadError += "物品标签重载失败: " + tags.error().message() + "\n";
+        }
+        env.tables.expandTagItems();
 
         env.tableIds = env.tables.getAllTableIds();
         std::sort(env.tableIds.begin(), env.tableIds.end());

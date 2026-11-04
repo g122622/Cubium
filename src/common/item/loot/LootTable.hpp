@@ -92,6 +92,14 @@ public:
      */
     [[nodiscard]] std::unique_ptr<LootTable> clone() const;
 
+    /**
+     * @brief 让表内全部条件按当前物品标签重新展开
+     *
+     * 物品标签表在战利品表之后才由数据包建立（且启动时先清空），解析期展开的
+     * `#tag` 成员会因此失效。标签表就绪后需调用一次本方法。
+     */
+    void expandTagItems();
+
     // ========== 池管理 ==========
 
     /**

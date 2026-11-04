@@ -37,6 +37,8 @@
 #include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "path_scene.hpp"
+#include "vanilla_datapack.hpp"
+
 #include "probe.hpp"
 #include <memory>
 #include <string>
@@ -51,8 +53,11 @@ using nlohmann::json;
 
 void initialize()
 {
+    // 必须走 datapack::initializeRegistries()：getPathTypeFromState 用 BlockTags 判断
+    // FENCES / WALLS / TRAPDOORS / FIRE，而标签成员是启动期从数据包展开载入的。
+    // 只调 VanillaBlocks::initialize() 会让这些标签为空，栅栏/墙被判成 blocked、火判成 open。
     static const bool done = [] {
-        VanillaBlocks::initialize();
+        datapack::initializeRegistries();
         return true;
     }();
     MC_UNUSED(done);

@@ -101,6 +101,14 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
+    /**
+     * @brief 恒不可通行
+     *
+     * 原版 `DecoratedPotBlock#isPathfindable` 显式返回 false：陶罐碰撞形状比满格矮，
+     * 默认「碰撞不完整即可通行」的判据会让生物把罐子当可走的台阶踩上去。
+     */
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
+
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override
     {
         MC_UNUSED(state);
@@ -356,6 +364,14 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 恒不可通行
+     *
+     * 原版 `SnifferEggBlock#isPathfindable` 显式返回 false：蛋的碰撞形状随 HATCH 阶段变化且
+     * 始终不满格，默认判据会让生物把蛋当台阶踩上去。
+     */
+    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
 
     /**
      * @brief 方块放置时调度孵化 tick

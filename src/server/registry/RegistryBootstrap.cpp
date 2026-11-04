@@ -314,6 +314,13 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         m_lootTableManager.setPredicateManager(&m_predicateManager);
     }
 
+    // 物品标签与战利品表都已就绪：让表内 `items` 条件按标签重新展开。
+    // 战利品表在物品标签建立之前解析，解析期展开的标签成员会因标签清空/重建而失效。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::ExpandLootTags");
+        m_lootTableManager.expandTagItems();
+    }
+
     // 加载配方（从数据包加载）
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Recipes");
