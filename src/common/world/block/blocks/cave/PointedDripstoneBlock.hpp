@@ -73,9 +73,24 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
+     * @brief 获取碰撞形状（不含位置偏移）
+     *
+     * 与外形一致；带位置偏移的碰撞查询走 `getCollisionShapeAt`。
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
      * @brief 按位置返回形状：本类带 `offsetType`，原版在 `getShape` 里叠加了位置偏移。
      */
     [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
+    /**
+     * @brief 按状态取位置偏移。
+     *
+     * 原版把偏移函数挂在方块属性上，**所有状态**（不同厚度、上下朝向）都按坐标哈希
+     * 水平抖动，只是上限由 `MAX_HORIZONTAL_OFFSET` 收紧到 0.125。
+     */
+    [[nodiscard]] Vector3 getOffsetAt(const BlockState& state, const BlockPos& pos) const noexcept override;
 
     /**
      * @brief 水平偏移上限。
@@ -206,9 +221,9 @@ public:
     [[nodiscard]] static Vector3 getDripParticlePosition(const BlockPos& pos);
 
 private:
-    /// 碰撞形状，按厚度和方向索引
+    /// 外形（未叠加位置偏移），按厚度索引
     std::unordered_map<BlockStateProperties::DripstoneThickness, CollisionShape> m_shapes;
-    /// 朝下尖端的额外形状
+    /// 朝下尖端的外形（未叠加位置偏移）
     CollisionShape m_tipDownShape;
 
     // ========== 常量 ==========

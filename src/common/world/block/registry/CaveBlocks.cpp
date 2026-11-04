@@ -135,8 +135,8 @@ void registerCaveBlocks()
                 .resistance(1.5f)
                 .soundType(BlockSoundTypes::SMALL_AMETHYST_BUD)
                 .lightLevel(1),
-            2.0f,
-            4.0f);
+            3.0f,
+            8.0f);
 
     // 中紫水晶芽 - 发光等级2，高度4像素宽度6像素
     CaveBlocks::MEDIUM_AMETHYST_BUD =
@@ -151,7 +151,7 @@ void registerCaveBlocks()
                 .soundType(BlockSoundTypes::LARGE_AMETHYST_BUD)
                 .lightLevel(2),
             4.0f,
-            6.0f);
+            10.0f);
 
     // 大紫水晶芽 - 发光等级4，高度5像素宽度8像素
     CaveBlocks::LARGE_AMETHYST_BUD =
@@ -166,7 +166,7 @@ void registerCaveBlocks()
                 .soundType(BlockSoundTypes::MEDIUM_AMETHYST_BUD)
                 .lightLevel(4),
             5.0f,
-            8.0f);
+            10.0f);
 
     // 紫水晶簇 - 发光等级5，高度7像素宽度9像素
     CaveBlocks::AMETHYST_CLUSTER =
@@ -180,7 +180,7 @@ void registerCaveBlocks()
                 .soundType(BlockSoundTypes::AMETHYST_CLUSTER)
                 .lightLevel(5),
             7.0f,
-            9.0f);
+            10.0f);
 
     // ============================================================================
     // 滴水石系列

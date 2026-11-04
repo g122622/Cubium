@@ -601,8 +601,14 @@ void registerNaturalBlocks()
 
     // ========== 火把 ==========
     // 火把 - 发光等级14，生成火焰和烟雾粒子
+    // 原版火把带 OffsetType.XZ：外形按坐标哈希做水平抖动（每格最多 ±1/8 格）。
     NaturalBlocks::TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14).soundType(BlockSoundTypes::WOOD),
+        BlockProperties(Material::DECORATION)
+            .noCollision()
+            .notSolid()
+            .lightLevel(14)
+            .soundType(BlockSoundTypes::WOOD)
+            .offsetType(BlockProperties::OffsetType::XZ),
         particle::ParticleTypeId::Flame);
 
     // 墙上的火把 - 附着在墙上，根据朝向有不同碰撞箱和粒子位置

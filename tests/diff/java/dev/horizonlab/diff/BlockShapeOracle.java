@@ -98,7 +98,7 @@ public final class BlockShapeOracle {
         }
     };
 
-    /** 与探针侧 {@code describe} 保持完全相同的格式：逐盒输出坐标。 */
+    /** 与探针侧 {@code describe} 保持完全相同的格式：体素化后按游程压缩输出。 */
     private static String describe(VoxelShape shape) {
         if (shape.isEmpty()) {
             return "EMPTY";
@@ -116,22 +116,41 @@ public final class BlockShapeOracle {
                     final double fy = py;
                     final double fz = pz;
                     final int idx = (y * 16 + z) * 16 + x;
+                    // 逐个盒子检查体素中心是否落在盒内；命中一次即可，用返回值立即跳出遍历。
+                    final boolean[] hit = {false};
                     shape.forAllBoxes((x1, y1, z1, x2, y2, z2) -> {
-                        if (fx > x1 && fx < x2 && fy > y1 && fy < y2 && fz > z1 && fz < z2) {
-                            grid[idx] = true;
+                        if (!hit[0] && fx > x1 && fx < x2 && fy > y1 && fy < y2 && fz > z1 && fz < z2) {
+                            hit[0] = true;
                         }
                     });
+                    grid[idx] = hit[0];
                 }
             }
         }
-        // 与探针侧相同的游程压缩。
+        // 与探针侧相同的游程压缩：每段写成 `字符*次数`，段间用逗号分隔。
+        // 不加分隔符时次数与次数相邻会产生歧义（`1`+`4096` 与 `14`+`096` 无法区分）。
+        // 展开顺序必须与探针完全一致：探针按 y、z、x 三层循环把网格线性展开，
+        // 这里先把网格复制到同一线性顺序，再按游程压缩。
+        boolean[] linear = new boolean[grid.length];
+        for (int y = 0; y < 16; y++) {
+            for (int z = 0; z < 16; z++) {
+                for (int x = 0; x < 16; x++) {
+                    linear[(y * 16 + z) * 16 + x] = grid[(y * 16 + z) * 16 + x];
+                }
+            }
+        }
         StringBuilder packed = new StringBuilder();
-        for (int i = 0; i < grid.length; ) {
-            boolean ch = grid[i];
+        boolean first = true;
+        for (int i = 0; i < linear.length; ) {
+            boolean ch = linear[i];
             int run = 1;
-            while (i + run < grid.length && grid[i + run] == ch) {
+            while (i + run < linear.length && linear[i + run] == ch) {
                 run++;
             }
+            if (!first) {
+                packed.append(',');
+            }
+            first = false;
             packed.append(ch ? '1' : '0').append(run);
             i += run;
         }

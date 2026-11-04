@@ -55,6 +55,22 @@ namespace blocks {
 BambooBlock::BambooBlock(const BlockProperties& properties)
     : Block(properties)
 {
+    // 创建形状
+    // 正常形状：稍小的方块（类似甘蔗）
+    // 原版 SHAPE_SMALL = column(6.0, 0.0, 16.0)：横截面 6 像素见方、居中，
+    // 即 x/z 5..11 像素。
+    m_normalShape = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 16.0f, 11.0f);
+
+    // 大叶子形状：有叶子的竹子外形更宽
+    // 原版 SHAPE_LARGE = column(10.0, 0.0, 16.0)：横截面 10 像素见方、居中，
+    // 即 x/z 3..13 像素。
+    m_largeLeavesShape = CollisionShape::fromPixelBox(3.0f, 0.0f, 3.0f, 13.0f, 16.0f, 13.0f);
+
+    // 碰撞形状：比其他形状更细的柱子
+    // 原版 SHAPE_COLLISION = column(3.0, 0.0, 16.0)：横截面 3 像素见方、居中，
+    // 即 x/z 6.5..9.5 像素。
+    m_collisionShape = CollisionShape::fromPixelBox(6.5f, 0.0f, 6.5f, 9.5f, 16.0f, 9.5f);
+
     // 创建状态容器
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -76,19 +92,6 @@ BambooBlock::BambooBlock(const BlockProperties& properties)
             .with(BlockStateProperties::AGE_0_1(), 0)
             .with(BlockStateProperties::STAGE_0_1(), 0)
             .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None));
-
-    // 创建形状
-    // 正常形状：稍小的方块（类似甘蔗）
-    // 原版 SHAPE_SMALL = column(6.0, 0.0, 16.0) -> box(5, 0, 5, 11, 16, 11)
-    m_normalShape = CollisionShape::box(0.3125f, 0.0f, 0.3125f, 0.6875f, 1.0f, 0.6875f);
-
-    // 大叶子形状：带叶子的竹子有更大的碰撞箱
-    // 原版 SHAPE_LARGE = column(10.0, 0.0, 16.0) -> box(3, 0, 3, 13, 16, 13)
-    m_largeLeavesShape = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 1.0f, 0.8125f);
-
-    // 碰撞形状：与其他方块相同，用于碰撞检测
-    // 原版 SHAPE_COLLISION = column(3.0, 0.0, 16.0) -> box(6.5, 0, 6.5, 9.5, 16, 9.5)
-    m_collisionShape = CollisionShape::box(0.40625f, 0.0f, 0.40625f, 0.59375f, 1.0f, 0.59375f);
 }
 
 const EnumProperty<BlockStateProperties::BambooLeaves>& BambooBlock::BAMBOO_LEAVES_PROP()
@@ -249,20 +252,28 @@ const CollisionShape& BambooBlock::getShape(const BlockState& state) const noexc
 
 CollisionShape BambooBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
 {
-    const Vector3 offset = getOffset(pos);
+    // 原版 getShape 对外形（SHAPE_SMALL / SHAPE_LARGE）应用 getOffset(pos)。
+    // 该偏移随位置变化，同一方块在不同坐标处的形状不同。
+    const Vector3 offset = getOffsetAt(state, pos);
+    if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
+        return getShape(state);
+    }
     return getShape(state).offset(offset.x, offset.y, offset.z);
 }
 
 CollisionShape BambooBlock::getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const
 {
-    const Vector3 offset = getOffset(pos);
-    return getCollisionShape(state).offset(offset.x, offset.y, offset.z);
+    // 原版 getCollisionShape 取**中心细柱**（SHAPE_COLLISION），并叠加 getOffset(pos)。
+    const Vector3 offset = getOffsetAt(state, pos);
+    if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
+        return m_collisionShape;
+    }
+    return m_collisionShape.offset(offset.x, offset.y, offset.z);
 }
 
 CollisionShape BambooBlock::getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const
 {
-    // 原版 getBlockSupportShape 默认转调带位置的 getCollisionShape；竹子没有单独覆写支撑形状，
-    // 因此支撑柱就是更细的 SHAPE_COLLISION。
+    // 原版支撑形状默认取碰撞形状：更细的 SHAPE_COLLISION。
     return getCollisionShapeAt(state, pos);
 }
 
@@ -370,10 +381,8 @@ BambooSaplingBlock::BambooSaplingBlock(const BlockProperties& properties)
         });
     createBlockState(std::move(container));
 
-    // 原版 BambooSaplingBlock.SHAPE = Block.column(8.0, 0.0, 12.0)
-    //   = box(4, 0, 4, 12, 12, 12) -> X/Z 0.25..0.75，Y 上限 12/16 = 0.75。
-    // 此前 Y 上限写成 0.3125（5/16），幼苗矮了将近一半。
-    m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.75f, 0.75f);
+    // SHAPE = Block.column(8.0, 0.0, 12.0)：横截面 8 像素居中，Y 上限 12 像素。
+    m_shape = CollisionShape::fromPixelBox(4.0f, 0.0f, 4.0f, 12.0f, 12.0f, 12.0f);
 }
 
 bool BambooSaplingBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

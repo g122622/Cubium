@@ -49,53 +49,27 @@
 namespace mc {
 namespace blocks {
 
-// 避雷针杆的形状（像素坐标）:
-// 中心杆: 6x0x6 到 10x16x10（向上指时）
-// 底座: 4x0x4 到 12x2x12
 static CollisionShape makeRodShape(Direction facing)
 {
+    // 原版 RodBlock.SHAPES = rotateAllAxis(Block.cube(4.0, 4.0, 16.0))：
+    // 截面 4×4 像素、沿朝向贯穿整格的杆，没有额外的底座。
     constexpr f32 rodMin = 6.0f / 16.0f;
     constexpr f32 rodMax = 10.0f / 16.0f;
-    constexpr f32 baseMin = 4.0f / 16.0f;
-    constexpr f32 baseMax = 12.0f / 16.0f;
-    constexpr f32 baseH = 2.0f / 16.0f;
     constexpr f32 full = 1.0f;
-
-    CollisionShape rod;
-    CollisionShape base;
 
     switch (facing) {
         case Direction::Up:
-            rod = CollisionShape::box(rodMin, 0.0f, rodMin, rodMax, full, rodMax);
-            base = CollisionShape::box(baseMin, 0.0f, baseMin, baseMax, baseH, baseMax);
-            break;
         case Direction::Down:
-            rod = CollisionShape::box(rodMin, 0.0f, rodMin, rodMax, full, rodMax);
-            base = CollisionShape::box(baseMin, full - baseH, baseMin, baseMax, full, baseMax);
-            break;
+            return CollisionShape::box(rodMin, 0.0f, rodMin, rodMax, full, rodMax);
         case Direction::North:
-            rod = CollisionShape::box(rodMin, rodMin, 0.0f, rodMax, rodMax, full);
-            base = CollisionShape::box(baseMin, baseMin, full - baseH, baseMax, baseMax, full);
-            break;
         case Direction::South:
-            rod = CollisionShape::box(rodMin, rodMin, 0.0f, rodMax, rodMax, full);
-            base = CollisionShape::box(baseMin, baseMin, 0.0f, baseMax, baseMax, baseH);
-            break;
+            return CollisionShape::box(rodMin, rodMin, 0.0f, rodMax, rodMax, full);
         case Direction::East:
-            rod = CollisionShape::box(0.0f, rodMin, rodMin, full, rodMax, rodMax);
-            base = CollisionShape::box(0.0f, baseMin, baseMin, baseH, baseMax, baseMax);
-            break;
         case Direction::West:
-            rod = CollisionShape::box(0.0f, rodMin, rodMin, full, rodMax, rodMax);
-            base = CollisionShape::box(full - baseH, baseMin, baseMin, full, baseMax, baseMax);
-            break;
+            return CollisionShape::box(0.0f, rodMin, rodMin, full, rodMax, rodMax);
         default:
-            rod = CollisionShape::box(rodMin, 0.0f, rodMin, rodMax, full, rodMax);
-            base = CollisionShape::box(baseMin, 0.0f, baseMin, baseMax, baseH, baseMax);
-            break;
+            return CollisionShape::box(rodMin, 0.0f, rodMin, rodMax, full, rodMax);
     }
-
-    return CollisionShape::combine(rod, base);
 }
 
 LightningRodBlock::LightningRodBlock(const BlockProperties& properties)

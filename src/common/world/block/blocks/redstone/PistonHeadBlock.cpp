@@ -142,20 +142,22 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
     //   SHAPE_PLATFORM = boxZ(16.0, 0.0, 4.0)  = box(0, 0, 0, 16, 16, 4)
     //   SHAPES_SHORT   = SHAPE_PLATFORM | boxZ(4, 4, 16) = platform | box(6, 6, 4, 10, 10, 16)
     //   SHAPES         = SHAPE_PLATFORM | boxZ(4, 4, 20) = platform | box(6, 6, 4, 10, 10, 20)
-    // 基准姿态朝 NORTH（平台贴在 +z 端、细杆向 -z 伸出），再按 FACING 旋转。
+    // 基准姿态朝 NORTH（平台贴在 z ∈ [0, 4] 端、细杆向 +z 伸出），再按 FACING 旋转。
     // 平台 + 细杆的并集不覆盖整格，所以天空光可穿过（lightBlock=0）。早期未重写 getShape，
     // 退回整格立方体，活塞头被误判为完全挡光（lightBlock=15）。
+    // 基准朝向 NORTH：平台贴在 z ∈ [0, 4]，细杆沿 +z 伸出到 16（短臂）或 20（长臂）；
+    // 其余朝向由绕 Y/X/Z 轴旋转得到，映射 (x, z) → (1 - z, x) 等。
     static const std::array<std::array<CollisionShape, 6>, 2> shapes = {
         std::array<CollisionShape, 6>{
-            // 短臂
+            // 短臂：Down / Up / North / South / West / East
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 12, 0, 16, 16, 16),
                 CollisionShape::fromPixelBox(6, 0, 6, 10, 12, 10)), // Down
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
                 CollisionShape::fromPixelBox(6, 4, 6, 10, 16, 10)), // Up
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
-                CollisionShape::fromPixelBox(6, 6, 0, 10, 10, 12)), // North
+                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 16)), // North
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 16)), // South
+                CollisionShape::fromPixelBox(6, 6, 0, 10, 10, 12)), // South
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 4, 16, 16),
                 CollisionShape::fromPixelBox(4, 6, 6, 16, 10, 10)), // West
             CollisionShape::combine(CollisionShape::fromPixelBox(12, 0, 0, 16, 16, 16),
@@ -168,9 +170,9 @@ const CollisionShape& PistonHeadBlock::getShape(const BlockState& state) const
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 4, 16),
                 CollisionShape::fromPixelBox(6, 4, 6, 10, 20, 10)), // Up
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 4),
-                CollisionShape::fromPixelBox(6, 6, -4, 10, 10, 12)), // North
+                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 20)), // North
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 12, 16, 16, 16),
-                CollisionShape::fromPixelBox(6, 6, 4, 10, 10, 20)), // South
+                CollisionShape::fromPixelBox(6, 6, -4, 10, 10, 12)), // South
             CollisionShape::combine(CollisionShape::fromPixelBox(0, 0, 0, 4, 16, 16),
                 CollisionShape::fromPixelBox(4, 6, 6, 20, 10, 10)), // West
             CollisionShape::combine(CollisionShape::fromPixelBox(12, 0, 0, 16, 16, 16),

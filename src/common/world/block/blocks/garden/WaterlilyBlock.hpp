@@ -49,6 +49,13 @@ public:
 
     ~WaterlilyBlock() noexcept override = default;
 
+    /**
+     * @brief 获取碰撞形状
+     *
+     * 睡莲是可站立的水面植物，碰撞形状等于它 1.5 像素厚的薄片外形。
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
 protected:
     /**
      * @brief 检查下方是否可支撑

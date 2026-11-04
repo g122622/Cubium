@@ -46,7 +46,8 @@ SeagrassBlock::SeagrassBlock(const BlockProperties& properties)
 
     // 海草没有特殊状态
     // 形状：小型水下植物
-    m_shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.5f, 0.875f);
+    // 原版 SeagrassBlock.SHAPE = Block.column(12.0, 0.0, 12.0)：12×12 像素、高 12 像素。
+    m_shape = CollisionShape::fromPixelBox(2.0f, 0.0f, 2.0f, 14.0f, 12.0f, 14.0f);
 }
 
 BlockState SeagrassBlock::getStateForPlacement(BlockItemUseContext& context)

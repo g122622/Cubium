@@ -70,9 +70,14 @@ WeatheringCopperLanternBlock::WeatheringCopperLanternBlock(
 
     // 创建形状 - 与普通灯笼相同
     // 站立形状：底部到中部
-    m_standingShape = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
+    // 与普通灯笼同构：下部灯体 + 顶部细柱（原版 SHAPE_STANDING = column(4,7,9) ∪ column(6,0,7)）。
+    m_standingShape = CollisionShape::combine(CollisionShape::fromPixelBox(6.0f, 7.0f, 6.0f, 10.0f, 9.0f, 10.0f),
+        CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f),
+        CollisionShape::CombineOp::OR);
     // 悬挂形状：顶部悬挂
-    m_hangingShape = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    m_hangingShape = CollisionShape::combine(CollisionShape::fromPixelBox(6.0f, 8.0f, 6.0f, 10.0f, 10.0f, 10.0f),
+        CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f),
+        CollisionShape::CombineOp::OR);
 }
 
 void WeatheringCopperLanternBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
@@ -178,8 +183,13 @@ WaxedCopperLanternBlock::WaxedCopperLanternBlock(const BlockProperties& properti
         defaultState().with(BlockStateProperties::HANGING(), false).with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建形状 - 与风化版本相同
-    m_standingShape = CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f);
-    m_hangingShape = CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f);
+    // 与普通灯笼同构：下部灯体 + 顶部细柱（原版 SHAPE_STANDING = column(4,7,9) ∪ column(6,0,7)）。
+    m_standingShape = CollisionShape::combine(CollisionShape::fromPixelBox(6.0f, 7.0f, 6.0f, 10.0f, 9.0f, 10.0f),
+        CollisionShape::fromPixelBox(5.0f, 0.0f, 5.0f, 11.0f, 7.0f, 11.0f),
+        CollisionShape::CombineOp::OR);
+    m_hangingShape = CollisionShape::combine(CollisionShape::fromPixelBox(6.0f, 8.0f, 6.0f, 10.0f, 10.0f, 10.0f),
+        CollisionShape::fromPixelBox(5.0f, 1.0f, 5.0f, 11.0f, 8.0f, 11.0f),
+        CollisionShape::CombineOp::OR);
 }
 
 void WaxedCopperLanternBlock::fillStateContainer(StateContainer<Block, BlockState>& container)

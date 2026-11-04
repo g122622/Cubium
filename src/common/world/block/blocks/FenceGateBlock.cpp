@@ -62,9 +62,11 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     // "空 shape 恰好非 full block"的脆弱巧合。先填 shape 再 createBlockState，保证构造期
     // getShape/getOcclusionShape 返回真实形状。对齐 PointedDripstoneBlock /
     // AmethystClusterBlock 的正确构造顺序。
-    m_closedShape = VoxelShapes::cube(0.0f, 0.0f, 0.4375f, 1.0f, 1.0f, 0.5625f);
+    // 原版 SHAPES = rotateHorizontalAxis(Block.cube(16.0, 16.0, 4.0))：整格高、整格宽、
+    // 沿门的法向厚 4/16。写成 2/16 会让门板比原版薄一半。
+    m_closedShape = VoxelShapes::cube(0.0f, 0.0f, 0.375f, 1.0f, 1.0f, 0.625f);
     m_openShape = VoxelShapes::empty();
-    m_inWallClosedShape = VoxelShapes::cube(0.0f, 0.0f, 0.4375f, 1.0f, 0.8125f, 0.5625f);
+    m_inWallClosedShape = VoxelShapes::cube(0.0f, 0.0f, 0.375f, 1.0f, 0.8125f, 0.625f);
 
     m_closedShapes[static_cast<size_t>(Direction::North)] = m_closedShape;
     m_openShapes[static_cast<size_t>(Direction::North)] = m_openShape;
@@ -74,15 +76,15 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     m_openShapes[static_cast<size_t>(Direction::South)] = m_openShape;
     m_inWallClosedShapes[static_cast<size_t>(Direction::South)] = m_inWallClosedShape;
 
-    m_closedShapes[static_cast<size_t>(Direction::East)] = VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 1.0f, 1.0f);
+    m_closedShapes[static_cast<size_t>(Direction::East)] = VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 1.0f, 1.0f);
     m_openShapes[static_cast<size_t>(Direction::East)] = m_openShape;
     m_inWallClosedShapes[static_cast<size_t>(Direction::East)] =
-        VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 0.8125f, 1.0f);
+        VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 0.8125f, 1.0f);
 
-    m_closedShapes[static_cast<size_t>(Direction::West)] = VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 1.0f, 1.0f);
+    m_closedShapes[static_cast<size_t>(Direction::West)] = VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 1.0f, 1.0f);
     m_openShapes[static_cast<size_t>(Direction::West)] = m_openShape;
     m_inWallClosedShapes[static_cast<size_t>(Direction::West)] =
-        VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 0.8125f, 1.0f);
+        VoxelShapes::cube(0.375f, 0.0f, 0.0f, 0.625f, 0.8125f, 1.0f);
 
     // 支撑形状：对齐原版 SHAPE_SUPPORT = rotateHorizontalAxis(Block.column(16.0, 4.0, 5.0, 24.0))。
     //

@@ -25,7 +25,7 @@
  * @brief 差分能力：方块的**三种形状本身**（默认状态）。
  *
  * `list`：全部方块 ID（排序）
- * `run` ：{ "block": "minecraft:oak_slab" } → 三种形状的坐标
+ * `run` ：{ "unit": "minecraft:oak_slab" } → 三种形状的坐标
  *
  * ## 测哪三种形状
  *
@@ -89,11 +89,6 @@ const BlockState* stateByName(const std::string& name)
     return &block->defaultState();
 }
 
-/**
- * @brief 把形状转成稳定字符串：空形状记作 `EMPTY`，否则输出各轴坐标列表。
- *
- * 与 `shape_face` 能力使用相同格式，便于跨能力对照。
- */
 /// 16³ 体素网格。
 using Cardinal16 = std::array<std::array<std::array<bool, 16>, 16>, 16>;
 
@@ -126,6 +121,11 @@ Cardinal16 voxelize(const CollisionShape& shape)
     return grid;
 }
 
+/**
+ * @brief 把形状转成稳定字符串：空形状记作 `EMPTY`，否则输出体素网格的游程压缩。
+ *
+ * 与 `shape_face` 能力使用相同格式，便于跨能力对照。
+ */
 std::string describe(const CollisionShape& shape)
 {
     if (shape.isEmpty()) {
@@ -137,7 +137,9 @@ std::string describe(const CollisionShape& shape)
     // 逐盒输出会把这类表示差异误报成不一致，掩盖真正的问题。
     const Cardinal16 grid = voxelize(shape);
     std::string out;
-    char buffer[8];
+    out.reserve(4096);
+    // 网格索引为 (y * 16 + z) * 16 + x，按该顺序展开；两侧必须使用同一顺序，
+    // 否则「形状相同但序列化顺序不同」会被误报成形状差异。
     for (std::size_t y = 0; y < 16; ++y) {
         for (std::size_t z = 0; z < 16; ++z) {
             for (std::size_t x = 0; x < 16; ++x) {
@@ -145,14 +147,22 @@ std::string describe(const CollisionShape& shape)
             }
         }
     }
+    char buffer[8];
     // 压缩：连续相同字符用 `<字符><次数>` 表示，避免每行 4096 字符。
+    // 每段写成 `字符*次数`，段间用逗号分隔：次数与次数相邻会出现歧义
+    // （`1`+`4096` 与 `14`+`096` 无法区分），加分隔符后解析唯一。
     std::string packed;
+    bool first = true;
     for (std::size_t i = 0; i < out.size();) {
         char ch = out[i];
         std::size_t run = 1;
         while (i + run < out.size() && out[i + run] == ch) {
             ++run;
         }
+        if (!first) {
+            packed.push_back(',');
+        }
+        first = false;
         packed.push_back(ch);
         std::snprintf(buffer, sizeof(buffer), "%zu", run);
         packed += buffer;
@@ -185,15 +195,14 @@ std::string runLine(std::string_view inputLine)
         throw std::runtime_error("block_shape: 未知方块：" + name);
     }
 
-    // 三种形状用固定顺序拼接，扁平字符串便于逐字节比对。
-    // 形状按 BlockPos.ZERO 求值。注意：原版只有 FlowerBlock / BambooStalkBlock /
-    // PointedDripstoneBlock 在 getShape 里应用了 offsetType 偏移，其余方块（草、树苗、
-    // 蘑菇等）虽然有 offsetType，getShape 仍直接返回固定形状。偏移由方块自身的
-    // getShapeAt 决定，探针不需要在这一层额外处理。
-    // 用 getShapeAt 而非 getShape：前者会按方块自身是否在 getShape 里应用偏移来返回，
-    // 与原版 `getShape(state, level, pos, ctx)` 的语义一致。
-    const std::string result = "shape=" + describe(state->getShapeAt(BlockPos(0, 0, 0))) +
-        "|collision=" + describe(state->getCollisionShape()) + "|support=" + describe(state->getBlockSupportShape());
+    // 三种形状用固定顺序拼接，扁平字符串便于逐字节比对，全部按 `BlockPos.ZERO` 求值。
+    // 三种形状都必须走**带位置**的入口：原版 `getShape` / `getCollisionShape` 在
+    // FlowerBlock / BambooStalkBlock / PointedDripstoneBlock 等方块里叠加了 `offsetType` 偏移，
+    // 支撑形状默认继承碰撞形状；无位置版本拿不到坐标，无法代表原版结果。
+    const BlockPos origin(0, 0, 0);
+    const std::string result = "shape=" + describe(state->getShapeAt(origin)) +
+        "|collision=" + describe(state->getCollisionShapeAt(origin)) +
+        "|support=" + describe(state->getBlockSupportShapeAt(origin));
 
     return json{{"unit", name}, {"result", result}}.dump();
 }

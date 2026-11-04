@@ -74,8 +74,11 @@ CandleCakeBlock::CandleCakeBlock(BlockProperties properties, Block* candleBlock)
     // 蜡烛蛋糕形状：蛋糕主体 + 蜡烛柱体
     // 参考 MC Java: Shapes.or(Block.column(2.0, 8.0, 14.0), Block.column(14.0, 0.0, 8.0))
     // 即：蜡烛部分 y=8-14, 半径1px(2/16)；蛋糕部分 y=0-8, 半径7px(14/16)
-    // 使用 fromPixelBox，坐标系为像素 (0-16)
-    m_shape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 8.0f, 15.0f);
+    // 使用 fromPixelBox，坐标系为像素 (0-16)。两部分缺一不可——只画蛋糕层会让
+// 外星（getShape）矮掉一半。
+    const CollisionShape cakeBody = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 8.0f, 15.0f);
+    const CollisionShape candleColumn = CollisionShape::fromPixelBox(7.0f, 8.0f, 7.0f, 9.0f, 14.0f, 9.0f);
+    m_shape = CollisionShape::combine(cakeBody, candleColumn, CollisionShape::CombineOp::OR);
 }
 
 BlockState CandleCakeBlock::getStateForPlacement(BlockItemUseContext& context)

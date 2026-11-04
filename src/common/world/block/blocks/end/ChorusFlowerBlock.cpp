@@ -173,6 +173,14 @@ const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
     return m_shapesByAge[std::min(age, 5)];
 }
 
+const CollisionShape& ChorusFlowerBlock::getCollisionShape(const BlockState& state) const
+{
+    // 原版 ChorusFlowerBlock 不覆写 getCollisionShape；注册时虽写 `noCollision()`，
+    // 但实测（1.21.11）碰撞形状仍是完整方块——该开关只影响标签面/遮挡判定。
+    return getShape(state);
+}
+
+
 // ========== 世界生成 ==========
 
 void ChorusFlowerBlock::generatePlant(

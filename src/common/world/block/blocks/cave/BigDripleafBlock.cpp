@@ -170,10 +170,10 @@ std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
     const CollisionShape leafFull = VoxelShapes::empty();
     const std::array<CollisionShape, 4> leafByTilt = {leafNone, leafNone, leafPartial, leafFull};
 
-    // 茎连接基础形状（NORTH）：x∈[0,6], z∈[4,10], y∈[0,13] 像素。
-    const CollisionShape stemNorth = CollisionShape::fromPixelBox(0.0f, 0.0f, 4.0f, 6.0f, 13.0f, 10.0f);
+    // 茎连接形状（NORTH）：x∈[5,11], z∈[9,15], y∈[0,13] 像素——
+    // 即基准 column(6,0,13).move(0,0,0.25) 本身（rotateHorizontal 的 NORTH 档不旋转）。
+    const CollisionShape stemNorth = CollisionShape::fromPixelBox(5.0f, 0.0f, 9.0f, 11.0f, 13.0f, 15.0f);
 
-    // 按水平方向旋转（对齐 Shapes.rotateHorizontal）：NORTH=原形，EAST/SOUTH/WEST 依次绕 Y 转 90/180/270°。
     std::array<CollisionShape, 6> stemByFacing{};
     stemByFacing[static_cast<std::size_t>(Direction::North)] = stemNorth;
     stemByFacing[static_cast<std::size_t>(Direction::South)] = _rotateShapeY(stemNorth, Rotation::Clockwise180);

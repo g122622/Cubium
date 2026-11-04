@@ -44,6 +44,13 @@ WaterlilyBlock::WaterlilyBlock(const BlockProperties& properties)
     m_shape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.09375f, 0.9375f);
 }
 
+const CollisionShape& WaterlilyBlock::getCollisionShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 原版 WaterlilyBlock 注册时带 `noCollision()`，但碰撞形状仍等于薄片外形（实测 1.21.11）。
+    return m_shape;
+}
+
 bool WaterlilyBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
     // 下方须为水或冰，且睡莲自身位置（groundPos 上方一格）无流体。

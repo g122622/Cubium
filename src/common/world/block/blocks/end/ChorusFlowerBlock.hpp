@@ -88,6 +88,14 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
+     * @brief 获取碰撞形状
+     *
+     * 紫颂花注册时带 `noCollision()`，但原版碰撞形状仍等于外形（完整方块）——
+     * 该开关只影响标签面与遮挡判定。
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
      * @brief 获取支撑形状
      *
      * 原版 ChorusFlowerBlock#getBlockSupportShape 固定返回 column(14.0, 0.0, 15.0)，

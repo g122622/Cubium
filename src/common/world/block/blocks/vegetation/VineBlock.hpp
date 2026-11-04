@@ -31,6 +31,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <array>
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
 
@@ -166,6 +167,9 @@ private:
     CollisionShape m_southShape;
     CollisionShape m_eastShape;
     CollisionShape m_westShape;
+
+    /// 16 种附着组合的外形，按 bit0=north、bit1=south、bit2=east、bit3=west 索引。
+    mutable std::array<CollisionShape, 16> m_shapesByFaceMask;
 };
 
 } // namespace blocks

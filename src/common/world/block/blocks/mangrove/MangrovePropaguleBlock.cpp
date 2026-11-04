@@ -56,14 +56,17 @@ MangrovePropaguleBlock::MangrovePropaguleBlock(const BlockProperties& properties
     : Block(properties)
 {
     m_ticksRandomly = true;
-    // 非悬挂状态的碰撞形状（根据AGE变化高度）
-    // AGE 0: 4像素高, AGE 1: 6像素, AGE 2: 8像素, AGE 3: 10像素, AGE 4: 12像素
+    // 形状必须在 createBlockState() 之前填好：状态构造期会虚调用 getOpacity →
+    // propagatesSkylightDown → getOcclusionShape → getShape，形状未就绪时会被缓存/冻结。
+    //
+    // SHAPE_PER_AGE[age] = column(2.0, SHAPE_MIN_Y[age], 16.0)：
+    // 横截面 **2 像素见方**（x/z 7..9），从 SHAPE_MIN_Y[age] 一直延伸到方块顶部。
+    // SHAPE_MIN_Y = {13, 10, 7, 3, 0}，即年龄越大向下延伸越多；非悬挂态固定取 age=4 的一档。
+    static constexpr i32 SHAPE_MIN_Y[MAX_AGE + 1] = {13, 10, 7, 3, 0};
     for (i32 age = 0; age <= MAX_AGE; age++) {
-        i32 height = 4 + age * 2;
-        m_shapes.push_back(CollisionShape::fromPixelBox(2, 0, 2, 14, height, 14));
+        m_shapes.push_back(
+            CollisionShape::fromPixelBox(7.0f, static_cast<f32>(SHAPE_MIN_Y[age]), 7.0f, 9.0f, 16.0f, 9.0f));
     }
-    // 悬挂状态的碰撞形状
-    m_hangingShape = CollisionShape::fromPixelBox(2, 0, 2, 14, 12, 14);
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -125,15 +128,19 @@ BlockState MangrovePropaguleBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& MangrovePropaguleBlock::getShape(const BlockState& state) const
 {
-    if (state.get(BlockStateProperties::HANGING())) {
-        return m_hangingShape;
-    }
+    // 原版：i = HANGING ? AGE : 4，取 SHAPE_PER_AGE[i]。即只有悬挂态按年龄递增、越挂越饱满，
+    // 非悬挂态固定取最粗的一档（age=4，column(2, 0, 16)）。
+    const i32 age = state.get(BlockStateProperties::HANGING()) ? state.get(BlockStateProperties::AGE_0_4()) : MAX_AGE;
+    MC_ASSERT_RELEASE(age >= 0 && age <= MAX_AGE);
+    return m_shapes[static_cast<size_t>(age)];
+}
 
-    i32 age = state.get(BlockStateProperties::AGE_0_4());
-    if (age >= 0 && age < static_cast<i32>(m_shapes.size())) {
-        return m_shapes[age];
-    }
-    return m_shapes[0];
+CollisionShape MangrovePropaguleBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
+{
+    // 原版 getShape 对结果显式 move(getOffset(pos))；本方块注册时带 `offsetType(XZ)`，
+    // 偏移按坐标哈希水平抖动（上限取默认 0.25）。
+    const Vector3 offset = getOffsetAt(state, pos);
+    return getShape(state).offset(offset.x, offset.y, offset.z);
 }
 
 const fluid::FluidState* MangrovePropaguleBlock::getFluidState(const BlockState& state) const

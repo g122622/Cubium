@@ -85,12 +85,15 @@ PointedDripstoneBlock::PointedDripstoneBlock(const BlockProperties& properties)
     //   SHAPE_MIDDLE    = column(10.0, 0.0, 16.0) -> box(3,  0, 3, 13, 16, 13)
     //   SHAPE_BASE      = column(12.0, 0.0, 16.0) -> box(2,  0, 2, 14, 16, 14)
     //
-    // 此前除 TipMerge 外每个都比原版**宽 2 像素**（Tip 用了 4..12 应为 5..11，
-    // Frustum 用了 3..13 应为 4..12，Middle 用了 2..14 应为 3..13，Base 用了 1..15 应为 2..14）。
+    // 本表存**未叠加偏移**的外形/碰撞几何；偏移只由带位置的 `getShapeAt` 补上，
+    // `getShape` 与 `getCollisionShape` 都返回这里的值（原版只覆写了 `getShape` 加偏移）。
     m_shapes[BlockStateProperties::DripstoneThickness::TipMerge] = CollisionShape::fromPixelBox(5, 0, 5, 11, 16, 11);
     m_shapes[BlockStateProperties::DripstoneThickness::Tip] = CollisionShape::fromPixelBox(5, 0, 5, 11, 11, 11);
     m_shapes[BlockStateProperties::DripstoneThickness::Frustum] = CollisionShape::fromPixelBox(4, 0, 4, 12, 16, 12);
+    // SHAPE_MIDDLE = column(10.0, 0.0, 16.0)：横截面 10 像素见方，即 x/z 3..13。
     m_shapes[BlockStateProperties::DripstoneThickness::Middle] = CollisionShape::fromPixelBox(3, 0, 3, 13, 16, 13);
+    // SHAPE_BASE = column(12.0, 0.0, 16.0)：横截面 12 像素见方，即 x/z 2..14（宽度即像素线宽，
+    // 不是半径）。
     m_shapes[BlockStateProperties::DripstoneThickness::Base] = CollisionShape::fromPixelBox(2, 0, 2, 14, 16, 14);
 
     // 朝下尖端：SHAPE_TIP_DOWN = column(6.0, 5.0, 16.0) -> box(5, 5, 5, 11, 16, 11)
@@ -242,29 +245,50 @@ BlockState PointedDripstoneBlock::updatePostPlacement(const BlockState& state,
 // 碰撞形状
 // ============================================================================
 
-const CollisionShape& PointedDripstoneBlock::getShape(const BlockState& state) const
-{
-    auto thickness = state.get(BlockStateProperties::DRIPSTONE_THICKNESS());
-
-    // Tip 根据方向有不同形状
-    if (thickness == BlockStateProperties::DripstoneThickness::Tip) {
-        Direction dir = state.get(BlockStateProperties::VERTICAL_DIRECTION());
-        if (dir == Direction::Down) {
-            return m_tipDownShape;
-        }
-    }
-
-    auto it = m_shapes.find(thickness);
-    if (it != m_shapes.end()) {
-        return it->second;
-    }
-    return m_shapes.at(BlockStateProperties::DripstoneThickness::Tip);
-}
-
 CollisionShape PointedDripstoneBlock::getShapeAt(const BlockState& state, const BlockPos& pos) const
 {
-    const Vector3 offset = getOffset(pos);
-    return getShape(state).offset(offset.x, offset.y, offset.z);
+    const auto thickness = state.get(BlockStateProperties::DRIPSTONE_THICKNESS());
+
+    // 悬垂（朝下）的尖端用 SHAPE_TIP_DOWN，其余按厚度查表。
+    const CollisionShape& base =
+        (thickness == BlockStateProperties::DripstoneThickness::Tip &&
+            state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Down)
+        ? m_tipDownShape
+        : m_shapes.at(thickness);
+
+    // 原版在 getShape 里就叠加了 offsetType 偏移，碰撞形状因此也带偏移。
+    const Vector3 offset = getOffsetAt(state, pos);
+    if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
+        return base;
+    }
+    return base.offset(offset.x, offset.y, offset.z);
+}
+
+Vector3 PointedDripstoneBlock::getOffsetAt(const BlockState& state, const BlockPos& pos) const noexcept
+{
+    // 偏移函数挂在方块属性上，**每个状态**都生效，与厚度/朝向无关。
+    // 只有 MAX_HORIZONTAL_OFFSET 取自 SHAPE_BASE（12 像素柱的 min X = 0.125），
+    // 用来保证最粗的那段也不会因偏移而突出方块边界。
+    MC_UNUSED(state);
+    return getOffset(pos);
+}
+
+const CollisionShape& PointedDripstoneBlock::getCollisionShape(const BlockState& state) const
+{
+    // getShape 只覆载了带位置版本；无位置版本与碰撞形状同为「未叠加偏移」的几何。
+    return getShape(state);
+}
+
+const CollisionShape& PointedDripstoneBlock::getShape(const BlockState& state) const
+{
+    // 无位置的形状查询无法应用 offsetType（偏移依赖方块坐标），返回未偏移的形状。
+    // 需要偏移的调用方一律走 getShapeAt / getCollisionShapeAt。
+    const auto thickness = state.get(BlockStateProperties::DRIPSTONE_THICKNESS());
+    if (thickness == BlockStateProperties::DripstoneThickness::Tip &&
+        state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Down) {
+        return m_tipDownShape;
+    }
+    return m_shapes.at(thickness);
 }
 
 // ============================================================================

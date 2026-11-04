@@ -38,7 +38,8 @@ EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 传送门没有碰撞箱
-    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.75f, 1.0f);
+    // 原版 SHAPE = Block.column(16.0, 6.0, 12.0)：整格宽、y 6/16..12/16 的薄层。
+    m_shape = CollisionShape::fromPixelBox(0.0f, 6.0f, 0.0f, 16.0f, 12.0f, 16.0f);
 }
 
 void EndPortalBlock::onEntityCollision(

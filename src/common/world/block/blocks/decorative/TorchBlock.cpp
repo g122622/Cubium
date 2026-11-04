@@ -39,7 +39,7 @@ namespace blocks {
 
 TorchBlock::TorchBlock(const BlockProperties& properties, particle::ParticleTypeId flameParticle)
     : Block(properties)
-    , m_shape(CollisionShape::fromPixelBox(7.0f, 0.0f, 7.0f, 9.0f, 10.0f, 9.0f))
+    , m_shape(CollisionShape::fromPixelBox(6.0f, 0.0f, 6.0f, 10.0f, 10.0f, 10.0f))
     , m_flameParticle(flameParticle)
 {}
 

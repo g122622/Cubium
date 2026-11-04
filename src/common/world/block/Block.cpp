@@ -329,6 +329,9 @@ const CollisionShape& Block::getShape(const BlockState& state) const
 
 const CollisionShape& Block::getCollisionShape(const BlockState& state) const
 {
+    // 与原版一致：`noCollision()` 生成的方块（按钮、火把、告示牌、珊瑚、蘑菇……）
+    // 碰撞形状为空，有别于它们的 `getShape`（选中框/渲染轮廓仍然非空）。
+    // 注意 `noCollision()` 同时会关掉 `canOcclude`，两者是同一个开关。
     if (!m_hasCollision) {
         return VoxelShapes::empty();
     }
@@ -344,7 +347,7 @@ Vector3 Block::getOffset(const BlockPos& pos) const noexcept
     // 偏移量来自坐标哈希。`y` 固定取 0，使同一水平位置的所有高度得到相同偏移。
     const i64 seed = math::mthGetSeed(pos.x, 0, pos.z);
 
-    // 两个低半字节各自映射到 [-0.25, 0.25) 再乘 0.5，最后 clamp 到 ±上限。
+    // 水平分量：`(n/15 - 0.5) * 0.5`，取值 [-0.25, 0.25)，再 clamp 到 ±上限。
     const f32 maxHorizontal = getMaxHorizontalOffset();
     const auto horizontal = [&](i64 nibble) {
         const f32 raw = (static_cast<f32>(nibble & 15LL) / 15.0f - 0.5f) * 0.5f;

@@ -102,14 +102,11 @@ const CollisionShape& BushBlock::getShape(const BlockState& state) const
 
 const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) const
 {
-    // 大多数植物无碰撞，但 `m_hasCollision` 为 true 的个体（睡莲、滴水石芽等）有碰撞箱。
-    // 此前无条件返回空形状，导致注册时写了 `.withCollision()` 也不生效，
-    // `getBlockSupportShape`（默认转调本函数）因此恒为空。
-    if (!m_hasCollision) {
-        static const CollisionShape emptyShape = CollisionShape::empty();
-        return emptyShape;
-    }
-    return getShape(state);
+    // 植物默认没有碰撞箱：原版 `VegetationBlock` 不覆写 `getCollisionShape`，而植物注册时
+    // 一律带 `noCollision()`，于是碰撞形状恒为空、与 `getShape`（选中框/渲染）无关。
+    // 需要碰撞的植物（睡莲、滴水石芽、瓶子草作物）在各自子类里覆写本方法。
+    MC_UNUSED(state);
+    return VoxelShapes::empty();
 }
 
 const CollisionShape& BushBlock::getOcclusionShape(const BlockState& state) const

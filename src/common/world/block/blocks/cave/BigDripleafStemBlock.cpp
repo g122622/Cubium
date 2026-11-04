@@ -49,7 +49,9 @@ namespace blocks {
 
 BigDripleafStemBlock::BigDripleafStemBlock(const BlockProperties& properties)
     : Block(BlockProperties(properties).noCollision())
-    , m_shape(CollisionShape::fromPixelBox(5, 0, 5, 11, 16, 11))
+    // 原版 SHAPES = rotateHorizontal(Block.column(6.0, 0.0, 16.0).move(0.0, 0.0, 0.25))：
+    // 6×6 像素截面、整体沿 +Z 方向偏移 4 像素，再逐朝向绕 Y 轴旋转。
+    , m_shape(CollisionShape::fromPixelBox(5, 0, 9, 11, 16, 15))
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -155,8 +157,23 @@ void BigDripleafStemBlock::tick(IWorld& world, const BlockPos& pos, BlockState& 
 
 const CollisionShape& BigDripleafStemBlock::getShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    return m_shape;
+    // 构造里的 m_shape 即 NORTH 基准（rotateHorizontal 的基准对应 NORTH，不旋转）。
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    if (facing == Direction::North) {
+        return m_shape;
+    }
+    // 其余朝向由 NORTH 基准绕 Y 轴旋转：(x,z) → (1-z, x) 逐 90 度。
+    static const CollisionShape s_eastShape = CollisionShape::fromPixelBox(1, 0, 5, 7, 16, 11);
+    static const CollisionShape s_southShape = CollisionShape::fromPixelBox(5, 0, 1, 11, 16, 7);
+    static const CollisionShape s_westShape = CollisionShape::fromPixelBox(9, 0, 5, 15, 16, 11);
+    switch (facing) {
+        case Direction::East:
+            return s_eastShape;
+        case Direction::South:
+            return s_southShape;
+        default:
+            return s_westShape;
+    }
 }
 
 const fluid::FluidState* BigDripleafStemBlock::getFluidState(const BlockState& state) const

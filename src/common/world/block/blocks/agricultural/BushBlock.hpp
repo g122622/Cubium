@@ -93,7 +93,11 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
-     * @brief 获取碰撞形状（植物无碰撞）
+     * @brief 获取碰撞形状
+     *
+     * 植物材料默认在注册期带 `noCollision()`，基类会据此返回空形状，等价于原版
+     * `VegetationBlock.getCollisionShape` 恒为 `Shapes.empty()`。注册时用
+     * `withCollision()` 打开碰撞的植物（睡莲、滴水石芽等）则与 `getShape` 相同。
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 

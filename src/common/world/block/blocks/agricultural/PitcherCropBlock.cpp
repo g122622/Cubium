@@ -95,41 +95,30 @@ PitcherCropBlock::PitcherCropBlock(const BlockProperties& properties)
     m_cropCollisionShape = CollisionShape::box(3.0f * P, 0.0f, 3.0f * P, 13.0f * P, 5.0f * P, 13.0f * P);
 
     // 轮廓形状：按半部分和年龄索引
-    // Lower: [age][0], Upper: [age][1]
-    constexpr f32 bulbRadius = 6.0f * P;             // AGE 0 的半径
-    constexpr f32 cropRadius = 10.0f * P;            // AGE 1-4 的半径
-    constexpr f32 bulbMinXZ = 8.0f * P - bulbRadius; // 0.125
-    constexpr f32 bulbMaxXZ = 8.0f * P + bulbRadius; // 0.875
-    constexpr f32 cropMinXZ = 8.0f * P - cropRadius; // 0.0 + 3/16
-    constexpr f32 cropMaxXZ = 8.0f * P + cropRadius; // 1.0 - 3/16
-
-    // MC Java 的轮廓形状计算：
-    // 年龄对应的总高度像素值: {0, 9, 11, 22, 26}
-    // baseHeight = 4 (AGE 0) 或 6 (AGE 1+)
-    // totalHeight = baseHeight + aint[age]
-    // Lower 半部分: column(radius, -1, min(16, -1 + totalHeight))
-    // Upper 半部分: column(radius, 0, max(0, -1 + totalHeight - 16))
+    // Lower: [0][age], Upper: [1][age]
+    //
+    //   int i = (AGE == 0 ? 4 : 6) + BASE_HEIGHT[AGE];   // BASE_HEIGHT = {0, 9, 11, 22, 26}
+    //   int j = (AGE == 0 ? 6 : 10);                    // 横截面边长（像素），居中于方块
+    //   LOWER: column(j, -1, min(16, -1 + i))
+    //   UPPER: column(j,  0, max(0,  -1 + i - 16))
+    // 高度随年龄增长，并非固定 5 像素；横截面也比原实现窄一个像素（原文按整格写）。
     constexpr i32 aint[] = {0, 9, 11, 22, 26};
     constexpr i32 bulbBaseHeight = 4;
     constexpr i32 cropBaseHeight = 6;
 
     for (i32 age = 0; age <= MAX_AGE; ++age) {
-        i32 baseHeight = (age == 0) ? bulbBaseHeight : cropBaseHeight;
-        f32 radius = (age == 0) ? bulbRadius : cropRadius;
-        f32 minXZ = (age == 0) ? bulbMinXZ : cropMinXZ;
-        f32 maxXZ = (age == 0) ? bulbMaxXZ : cropMaxXZ;
+        const i32 baseHeight = (age == 0) ? bulbBaseHeight : cropBaseHeight;
+        // column(j, ...)：横截面为边长 j 像素、以方块中心对称的正方形。
+        const f32 halfSide = static_cast<f32>((age == 0) ? 6 : 10) * 0.5f * P;
+        const f32 minXZ = 8.0f * P - halfSide;
+        const f32 maxXZ = 8.0f * P + halfSide;
 
-        i32 totalHeight = baseHeight + aint[age];
-        i32 lowerMaxY = std::min(16, -1 + totalHeight);
-        i32 upperMaxY = std::max(0, -1 + totalHeight - 16);
+        const i32 totalHeight = baseHeight + aint[age];
+        const i32 lowerMaxY = std::min(16, -1 + totalHeight);
+        const i32 upperMaxY = std::max(0, -1 + totalHeight - 16);
 
-        // Lower 半部分：y 从 -1 到 lowerMaxY
-        // MC Java 使用 column(radius, -1, lowerMaxY)，对应 box 从
-        // yMin = (-1)/16, yMax = lowerMaxY/16
-        m_shapesByHalfAndAge[0][age] = CollisionShape::box(minXZ, -1.0f * P, minXZ, maxXZ, lowerMaxY * P, maxXZ);
-
-        // Upper 半部分：y 从 0 到 upperMaxY
-        // MC Java 使用 column(radius, 0, upperMaxY)
+        m_shapesByHalfAndAge[0][age] =
+            CollisionShape::box(minXZ, -1.0f * P, minXZ, maxXZ, lowerMaxY * P, maxXZ);
         m_shapesByHalfAndAge[1][age] = CollisionShape::box(minXZ, 0.0f, minXZ, maxXZ, upperMaxY * P, maxXZ);
     }
 }

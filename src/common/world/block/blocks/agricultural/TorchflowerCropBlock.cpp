@@ -41,12 +41,13 @@ TorchflowerCropBlock::TorchflowerCropBlock(const BlockProperties& properties)
 {
     // 预计算火把花各生长阶段的形状
     // MC Java: SHAPES = Block.boxes(1, p_394173_ -> Block.column(6.0, 0.0, 6 + p_394173_ * 4))
-    // age=0: column(radius=6, yMin=0, yMax=6) -> 盒子 (5, 0, 5, 11, 6/16, 11)
-    // age=1: column(radius=6, yMin=0, yMax=10) -> 盒子 (5, 0, 5, 11, 10/16, 11)
+    // age=0: column(6, 0, 6)  -> 盒子 (5, 0, 5, 11, 6/16, 11)
+    // age=1: column(6, 0, 10) -> 盒子 (5, 0, 5, 11, 10/16, 11)
+    // column 的第一个参数是边长（像素），横截面以此居中，不是半径。
     constexpr f32 P = 1.0f / 16.0f;
-    constexpr f32 radius = 6.0f * P;
-    constexpr f32 minXZ = 8.0f * P - radius; // 0.5 - 6/16 = 0.125
-    constexpr f32 maxXZ = 8.0f * P + radius; // 0.5 + 6/16 = 0.875
+    constexpr f32 halfSide = 6.0f * 0.5f * P;
+    constexpr f32 minXZ = 8.0f * P - halfSide; // 0.3125
+    constexpr f32 maxXZ = 8.0f * P + halfSide; // 0.6875
 
     m_torchflowerShapesByAge[0] = CollisionShape::box(minXZ, 0.0f, minXZ, maxXZ, 6.0f * P, maxXZ);
     m_torchflowerShapesByAge[1] = CollisionShape::box(minXZ, 0.0f, minXZ, maxXZ, 10.0f * P, maxXZ);

@@ -74,8 +74,8 @@ KelpBlock::KelpBlock(const BlockProperties& properties)
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::AGE_0_25(), 0));
 
-    // 海带形状：细长
-    m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 1.0f, 0.75f);
+    // 原版 KelpBlock.SHAPE = Block.column(16.0, 0.0, 9.0)：整格宽、9/16 高。
+    m_shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5625f, 1.0f);
 }
 
 i32 KelpBlock::getAge(const BlockState& state) const

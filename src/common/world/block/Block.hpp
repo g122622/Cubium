@@ -226,8 +226,9 @@ public:
      * 普通 `Block`，是完整方块，玩家能站上去；Cubium 却因为套用了植物材质而没有碰撞箱，
      * 玩家会直接穿过去。由差分能力 `face_sturdy` 查出。
      *
-     * 注意：这里**只恢复碰撞**，不改 `m_canOcclude`——遮挡与否由 `noOcclusion()` /
-     * `noCollision()` 显式控制，两者是独立的开关。
+     * 这个开关同时决定 `getCollisionShape` 是否返回空形状（原版
+     * `hasCollision ? getShape(...) : Shapes.empty()`），与 `getShape`（选中框、渲染轮廓）
+     * 相互独立——按钮、火把、告示牌等都是「外形非空、碰撞为空」。
      */
     BlockProperties& withCollision() noexcept
     {
@@ -1791,11 +1792,12 @@ public:
     }
 
     /**
-     * @brief 获取指定位置处的碰撞形状（世界坐标）。
+     * @brief 获取指定位置处的**碰撞**形状（世界坐标）。
      *
-     * 原版 `getCollisionShape` 的默认实现是 `hasCollision ? getShape(...) : empty()`，
-     * 而 `getShape` 已带位置偏移，所以碰撞形状也应带偏移。这里默认转调 `getShapeAt`。
-     * 碰撞形状与外形不同的方块（竹子用更细的 `SHAPE_COLLISION`）覆写本方法。
+     * 原版 `getCollisionShape` 是 `hasCollision ? getShape(...) : empty()`：无碰撞的方块
+     * （按钮、火把、花草）即使外形非空，碰撞形状也为空。有碰撞时还要按方块自身的覆写
+     * 决定——悬挂告示牌、南瓜头、砂轮等 `getCollisionShape` 覆写返回**固定常量**，
+     * 与外形无关。因此这里必须以 `getCollisionShape` 为基准，不能退回 `getShapeAt`。
      *
      * @param state 方块状态
      * @param pos 方块位置
@@ -1803,10 +1805,8 @@ public:
      */
     [[nodiscard]] virtual CollisionShape getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const
     {
-        if (!m_hasCollision) {
-            return VoxelShapes::empty();
-        }
-        return getShapeAt(state, pos);
+        MC_UNUSED(pos);
+        return getCollisionShape(state);
     }
 
     /**
@@ -1816,8 +1816,8 @@ public:
      * 支撑形状是独立概念，树叶的碰撞形状是完整方块但支撑形状恒空，卡片/梯子等也各自
      * 覆写了空支撑形状。转调碰撞形状会把那些覆写全部绕过。
      *
-     * 偏移取自 `getOffsetAt`，默认转调 `getOffset`；只有真正按位置变化支撑形状的方块
-     * （目前没有）才需要覆写本方法。
+     * 偏移取自 `getOffsetAt`（默认等于无位置 `getOffset`）。原版 `getBlockSupportShape`
+     * 继承自 `getCollisionShape`，本身不含偏移，偏移只可能来自这两个覆写层。
      *
      * @param state 方块状态
      * @param pos 方块位置
@@ -1826,11 +1826,27 @@ public:
     [[nodiscard]] virtual CollisionShape getBlockSupportShapeAt(const BlockState& state, const BlockPos& pos) const
     {
         const CollisionShape base = getBlockSupportShape(state);
-        const Vector3 offset = getOffset(pos);
+        const Vector3 offset = getOffsetAt(state, pos);
         if (offset.x == 0.0f && offset.y == 0.0f && offset.z == 0.0f) {
             return base;
         }
         return base.offset(offset.x, offset.y, offset.z);
+    }
+
+    /**
+     * @brief 取指定状态在指定位置的 `offsetType` 偏移。
+     *
+     * 默认转调 `getOffset(pos)`（忽略状态）。需要「偏移随状态变化」的方块在这里覆写；
+     * 目前所有 `offsetType` 方块的偏移都与状态无关。
+     *
+     * @param state 方块状态
+     * @param pos 方块位置
+     * @return 偏移量
+     */
+    [[nodiscard]] virtual Vector3 getOffsetAt(const BlockState& state, const BlockPos& pos) const noexcept
+    {
+        MC_UNUSED(state);
+        return getOffset(pos);
     }
 
     /**

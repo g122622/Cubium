@@ -133,12 +133,12 @@ public:
      */
     [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
 
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override;
-
     /**
-     * @brief 按位置返回碰撞形状：原版用更细的 `SHAPE_COLLISION` 并叠加位置偏移。
+     * @brief 按位置返回碰撞形状（与外形同一套偏移规则，但改用更细的 `SHAPE_COLLISION`）。
      */
     [[nodiscard]] CollisionShape getCollisionShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override;
 
     /**
      * @brief 按位置返回支撑形状：原版支撑形状就是碰撞形状（更细的 `SHAPE_COLLISION` 加偏移）。

@@ -84,6 +84,14 @@ public:
     }
 
     /**
+     * @brief 获取外形
+     *
+     * 原版 LiquidBlock.getShape 显式返回空形状：水的可见外形由流体渲染负责，
+     * 方块外形本身为空。不覆写会落到基类的满格默认值。
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
      * @brief 获取碰撞形状
      *
      * 液体方块没有碰撞形状。

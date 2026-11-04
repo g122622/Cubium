@@ -65,6 +65,13 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**
+     * @brief 按位置返回形状
+     *
+     * 原版 `getShape` 对形状显式做 `move(getOffset(pos))`，这里保持同构。
+     */
+    [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
+
+    /**
      * @brief 检查放置位置能否托起胎生苗
      *
      * 原版 MangrovePropaguleBlock.canSurvive：悬挂态要求上方是红树树叶；
@@ -103,9 +110,8 @@ protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
 private:
-    /// 不同AGE和HANGING状态的碰撞形状
+    /// 按 AGE 索引的形状表：悬挂态用 AGE 作下标，非悬挂态固定取最后一档。
     std::vector<CollisionShape> m_shapes;
-    CollisionShape m_hangingShape;
 };
 
 } // namespace blocks

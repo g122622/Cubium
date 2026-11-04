@@ -66,11 +66,12 @@ LadderBlock::LadderBlock(const BlockProperties& properties)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建各方向的形状
-    // 梯子形状：非常薄的板，厚度约1像素
-    m_shapes[static_cast<size_t>(Direction::North)] = CollisionShape::box(0.0f, 0.0f, 15.0f / 16.0f, 1.0f, 1.0f, 1.0f);
-    m_shapes[static_cast<size_t>(Direction::South)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f / 16.0f);
-    m_shapes[static_cast<size_t>(Direction::West)] = CollisionShape::box(15.0f / 16.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-    m_shapes[static_cast<size_t>(Direction::East)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f / 16.0f, 1.0f, 1.0f);
+    // 梯子形状：原版 SHAPES = rotateHorizontal(Block.boxZ(16.0, 13.0, 16.0))，
+    // 即沿附着方向厚 3/16 的板，不是 1 像素的贴面。
+    m_shapes[static_cast<size_t>(Direction::North)] = CollisionShape::box(0.0f, 0.0f, 13.0f / 16.0f, 1.0f, 1.0f, 1.0f);
+    m_shapes[static_cast<size_t>(Direction::South)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 3.0f / 16.0f);
+    m_shapes[static_cast<size_t>(Direction::West)] = CollisionShape::box(13.0f / 16.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+    m_shapes[static_cast<size_t>(Direction::East)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f / 16.0f, 1.0f, 1.0f);
 }
 
 BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context)

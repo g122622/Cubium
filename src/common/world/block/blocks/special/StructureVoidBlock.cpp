@@ -41,8 +41,8 @@ StructureVoidBlock::StructureVoidBlock(const BlockProperties& properties)
 const CollisionShape& StructureVoidBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // 结构空位有一个小的可见轮廓
-    static CollisionShape shape = CollisionShape::box(0.375f, 0.375f, 0.375f, 0.625f, 0.625f, 0.625f);
+    // 原版 SHAPE = Block.cube(6.0)：6×6×6 像素、三轴居中。
+    static CollisionShape shape = CollisionShape::fromPixelBox(5.0f, 5.0f, 5.0f, 11.0f, 11.0f, 11.0f);
     return shape;
 }
 

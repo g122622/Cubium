@@ -23,6 +23,7 @@
 
 #include "FireflyBushBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
@@ -42,7 +43,11 @@ namespace blocks {
 
 FireflyBushBlock::FireflyBushBlock(const BlockProperties& properties)
     : BushBlock(properties)
-{}
+{
+    // 原版 FireflyBushBlock 未覆写 getShape，走 BlockBehaviour 默认的满格外形；
+    // BushBlock 基类把 m_shape 固定成 13/16 高的灌木柱，故在此显式改回满格。
+    m_shape = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 16.0f, 16.0f);
+}
 
 // ========== IGrowable 接口实现 ==========
 

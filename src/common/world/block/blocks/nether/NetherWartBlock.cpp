@@ -66,10 +66,12 @@ NetherWartBlock::NetherWartBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::AGE_0_3(), 0));
 
     // 创建各年龄的形状
-    m_shapesByAge[0] = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 0.25f, 0.75f);
-    m_shapesByAge[1] = CollisionShape::box(0.1875f, 0.0f, 0.1875f, 0.8125f, 0.375f, 0.8125f);
-    m_shapesByAge[2] = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.5f, 0.875f);
-    m_shapesByAge[3] = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 0.625f, 0.9375f);
+    // 原版 SHAPES = Block.boxes(3, age -> Block.column(16.0, 0.0, 5 + age * 3))：
+    // 整格宽、按年龄高 5/8/11/14 像素。不是逐级收窄的锥形。
+    m_shapesByAge[0] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 5.0f / 16.0f, 1.0f);
+    m_shapesByAge[1] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 8.0f / 16.0f, 1.0f);
+    m_shapesByAge[2] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 11.0f / 16.0f, 1.0f);
+    m_shapesByAge[3] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 14.0f / 16.0f, 1.0f);
 }
 
 i32 NetherWartBlock::getAge(const BlockState& state) const noexcept

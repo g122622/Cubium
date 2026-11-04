@@ -187,7 +187,7 @@ i32 RedstoneTorchBlock::getStrongPower(
 const CollisionShape& RedstoneTorchBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    static const CollisionShape torchShape = CollisionShape::fromPixelBox(7.0f, 0.0f, 7.0f, 9.0f, 10.0f, 9.0f);
+    static const CollisionShape torchShape = CollisionShape::fromPixelBox(6.0f, 0.0f, 6.0f, 10.0f, 10.0f, 10.0f);
     return torchShape;
 }
 

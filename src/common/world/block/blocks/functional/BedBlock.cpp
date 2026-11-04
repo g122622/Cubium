@@ -101,16 +101,24 @@ BedBlock::BedBlock(DyeColor color, const BlockProperties& properties)
     //   legRot90 = Shapes.rotate(leg, BLOCK_ROT_Y_90);   // -> box(13, 0, 0, 16, 3, 3)
     //   SHAPES   = rotateHorizontal(Shapes.or(Block.column(16, 3, 9), leg, legRot90));
     //
-    // 此前画了四条腿，床底多出两块。
-    const CollisionShape legNW = CollisionShape::box(0.0f, 0.0f, 0.0f, 3.0f * P, 3.0f * P, 3.0f * P);
-    const CollisionShape legNE = CollisionShape::box(13.0f * P, 0.0f, 0.0f, 16.0f * P, 3.0f * P, 3.0f * P);
-    const CollisionShape bedShape = CollisionShape::combine(CollisionShape::combine(baseShape, legNW), legNE);
+    // 腿在 +Z 一侧（z 13..16）与 -X 一侧（x 0..3）：取 `.getOpposite()` 后的
+    // 连通方向作为键，默认（north）时落在 z 的远端。四个朝向是同一形状绕 Y 轴
+    // 旋转 0/90/180/270 度，不能共用一个形状——此前那样做会让腿总在 z 的近端。
+    // 腿是 3×3×3 像素的块，不是贯穿整边的长条。
+    // rotateHorizontal 后：north 在 z 远端（13..16）、south 在 z 近端（0..3）、
+    // west 在 x 近端（0..3）、east 在 x 远端（13..16）。
+    const auto _buildWithLegs = [&](f32 legAX, f32 legAZ, f32 legBX, f32 legBZ) {
+        const CollisionShape legA =
+            CollisionShape::box(legAX * P, 0.0f, legAZ * P, (legAX + 3.0f) * P, 3.0f * P, (legAZ + 3.0f) * P);
+        const CollisionShape legB =
+            CollisionShape::box(legBX * P, 0.0f, legBZ * P, (legBX + 3.0f) * P, 3.0f * P, (legBZ + 3.0f) * P);
+        return CollisionShape::combine(CollisionShape::combine(baseShape, legA), legB);
+    };
 
-    // 四个朝向共用同一形状（原版 rotateHorizontal 后形状不变，因为整体绕 Y 轴旋转对称）
-    m_shapesByFacing[static_cast<size_t>(Direction::North)] = bedShape;
-    m_shapesByFacing[static_cast<size_t>(Direction::South)] = bedShape;
-    m_shapesByFacing[static_cast<size_t>(Direction::West)] = bedShape;
-    m_shapesByFacing[static_cast<size_t>(Direction::East)] = bedShape;
+    m_shapesByFacing[static_cast<size_t>(Direction::North)] = _buildWithLegs(0.0f, 13.0f, 13.0f, 13.0f);
+    m_shapesByFacing[static_cast<size_t>(Direction::South)] = _buildWithLegs(0.0f, 0.0f, 13.0f, 0.0f);
+    m_shapesByFacing[static_cast<size_t>(Direction::West)] = _buildWithLegs(0.0f, 0.0f, 0.0f, 13.0f);
+    m_shapesByFacing[static_cast<size_t>(Direction::East)] = _buildWithLegs(13.0f, 0.0f, 13.0f, 13.0f);
 }
 
 BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)

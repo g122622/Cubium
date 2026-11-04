@@ -96,6 +96,13 @@ const mc::fluid::FluidState* LiquidBlock::getFluidState(const BlockState& state)
     return &m_fluidStateCache[blockLevel];
 }
 
+const CollisionShape& LiquidBlock::getShape(const BlockState& state) const
+{
+    // 原版 LiquidBlock.getShape 显式返回空：外形由流体渲染负责。
+    (void)state;
+    return VoxelShapes::empty();
+}
+
 const CollisionShape& LiquidBlock::getCollisionShape(const BlockState& state) const
 {
     // 液体方块没有碰撞形状

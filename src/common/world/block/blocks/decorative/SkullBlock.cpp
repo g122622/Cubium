@@ -66,26 +66,12 @@ const CollisionShape& _skullShape()
     return shape;
 }
 
-/// 猪灵站立头颅碰撞形状：中心 10x8 像素、高 8 像素
+/// 猪灵站立头颅形状：SHAPE_PIGLIN = column(10, 0, 8)，比普通头颅宽 2 像素
 const CollisionShape& _piglinSkullShape()
 {
-    static const CollisionShape shape = CollisionShape::fromPixelBox(3.0f, 0.0f, 4.0f, 13.0f, 8.0f, 12.0f);
+    // column(10, 0, 8)：10×10 像素居中、高 8 像素，即 x/z 3..13。
+    static const CollisionShape shape = CollisionShape::fromPixelBox(3.0f, 0.0f, 3.0f, 13.0f, 8.0f, 13.0f);
     return shape;
-}
-
-/// 构造墙壁头颅的形状表（按 North/South/West/East 顺序，占据靠墙一侧 8/16 深度）
-void _buildWallShapes(CollisionShape out[4], f32 widthPixels)
-{
-    // vanilla WallSkullBlock: Shapes.rotateHorizontal(Block.boxZ(8.0, 8.0, 16.0))
-    //   boxZ(8.0, 8.0, 16.0) 表示 X 宽 8 居中、Y[8,16]、Z[0,8]
-    // 本项目 CollisionShape 用方块本地 0-1 坐标，故 /16。
-    const f32 half = widthPixels / 2.0f / 16.0f;
-    const f32 cx = 0.5f;
-    // North: Z 靠 0 侧（贴北墙）；South: Z 靠 1 侧；West: X 靠 0 侧；East: X 靠 1 侧
-    out[0] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.0f, cx + half, 1.0f, 0.5f); // North
-    out[1] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.5f, cx + half, 1.0f, 1.0f); // South
-    out[2] = CollisionShape::box(0.0f, 8.0f / 16.0f, cx - half, 0.5f, 1.0f, cx + half); // West
-    out[3] = CollisionShape::box(0.5f, 8.0f / 16.0f, cx - half, 1.0f, 1.0f, cx + half); // East
 }
 
 /// 方向到形状表下标（水平方向）
@@ -102,6 +88,41 @@ i32 _facingIndex(Direction facing)
             return 3;
         default:
             return 0;
+    }
+}
+
+/// 构造墙壁头颅的形状表（按 North/South/West/East 顺序）
+///
+/// 原版：Shapes.rotateHorizontal(block_base)，block_base 由调用方给出。
+/// boxZ(width, y1, y2) 得到 x 居中宽 width、y 4..12、z 8..16 的盒子，
+/// 即 NORTH 档基准本身；旋转约定把 (x, z) 映射为 (1 - z, x)。
+///
+/// @param baseShape NORTH 朝向的基准形状（贴 +Z 侧）
+/// @param out 输出形状表
+void _buildWallShapes(const CollisionShape& baseShape, CollisionShape out[4])
+{
+    for (i32 quarterTurns = 0; quarterTurns < 4; ++quarterTurns) {
+        CollisionShape rotated = CollisionShape::empty();
+        for (const auto& b : baseShape.boxes()) {
+            f32 x0 = b.minX;
+            f32 x1 = b.maxX;
+            f32 z0 = b.minZ;
+            f32 z1 = b.maxZ;
+            for (i32 i = 0; i < quarterTurns; ++i) {
+                const f32 nx0 = 1.0f - z1;
+                const f32 nx1 = 1.0f - z0;
+                z0 = x0;
+                z1 = x1;
+                x0 = nx0;
+                x1 = nx1;
+            }
+            rotated.addBox(x0, b.minY, z0, x1, b.maxY, z1);
+        }
+        // 旋转 0 档即 NORTH 基准形状（贴 +Z 侧），此后每档再顺时针转 90 度，
+        // 依次得到 EAST / SOUTH / WEST。
+        constexpr Direction kFacingByTurn[4] = {
+            Direction::North, Direction::East, Direction::South, Direction::West};
+        out[_facingIndex(kFacingByTurn[quarterTurns])] = rotated;
     }
 }
 
@@ -377,7 +398,8 @@ WallSkullBlock::WallSkullBlock(SkullType type, const BlockProperties& properties
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
-    _buildWallShapes(m_shapes, 8.0f);
+    // 原版 SHAPES = rotateHorizontal(Block.boxZ(8.0, 8.0, 16.0))。
+    _buildWallShapes(CollisionShape::fromPixelBox(4.0f, 4.0f, 8.0f, 12.0f, 12.0f, 16.0f), m_shapes);
 }
 
 const CollisionShape& WallSkullBlock::_shapeForFacing(Direction facing) const
@@ -388,6 +410,12 @@ const CollisionShape& WallSkullBlock::_shapeForFacing(Direction facing) const
 const CollisionShape& WallSkullBlock::getShape(const BlockState& state) const
 {
     return _shapeForFacing(state.get(BlockStateProperties::HORIZONTAL_FACING()));
+}
+
+// 原版 AbstractSkullBlock 未覆写 getCollisionShape，碰撞形状即外形。
+const CollisionShape& WallSkullBlock::getCollisionShape(const BlockState& state) const
+{
+    return getShape(state);
 }
 
 BlockState WallSkullBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -589,12 +617,20 @@ void WitherWallSkullBlock::onBlockPlacedBy(
 PiglinWallSkullBlock::PiglinWallSkullBlock(const BlockProperties& properties)
     : WallSkullBlock(SkullType::Piglin, properties)
 {
-    _buildWallShapes(m_piglinShapes, 10.0f);
+    // 原版 SHAPES = rotateHorizontal(Block.boxZ(10.0, 8.0, 8.0, 16.0))：
+    // 横截面比普通头颅宽 2 像素（x 3..13），y 4..12、z 8..16。
+    _buildWallShapes(CollisionShape::fromPixelBox(3.0f, 4.0f, 8.0f, 13.0f, 12.0f, 16.0f), m_piglinShapes);
 }
 
 const CollisionShape& PiglinWallSkullBlock::getShape(const BlockState& state) const
 {
     return m_piglinShapes[_facingIndex(state.get(BlockStateProperties::HORIZONTAL_FACING()))];
+}
+
+// 原版 AbstractSkullBlock 未覆写 getCollisionShape，碰撞形状即外形。
+const CollisionShape& PiglinWallSkullBlock::getCollisionShape(const BlockState& state) const
+{
+    return getShape(state);
 }
 
 } // namespace blocks

@@ -81,6 +81,33 @@ VineBlock::VineBlock(const BlockProperties& properties)
     m_southShape = CollisionShape::box(0.0f, 0.0f, 1.0f - thickness, 1.0f, 1.0f, 1.0f);
     m_eastShape = CollisionShape::box(1.0f - thickness, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
     m_westShape = CollisionShape::box(0.0f, 0.0f, 0.0f, thickness, 1.0f, 1.0f);
+
+    // 预计算 16 种附着组合的外形：按位或起来，空组合退回满格（原版 VineBlock 的兜底）。
+    for (u32 mask = 0; mask < 16; ++mask) {
+        std::vector<CollisionShape> pieces;
+        if ((mask & 1U) != 0U) {
+            pieces.push_back(m_northShape);
+        }
+        if ((mask & 2U) != 0U) {
+            pieces.push_back(m_southShape);
+        }
+        if ((mask & 4U) != 0U) {
+            pieces.push_back(m_eastShape);
+        }
+        if ((mask & 8U) != 0U) {
+            pieces.push_back(m_westShape);
+        }
+
+        if (pieces.empty()) {
+            m_shapesByFaceMask[mask] = VoxelShapes::fullCube();
+            continue;
+        }
+        CollisionShape merged = pieces.front();
+        for (std::size_t index = 1; index < pieces.size(); ++index) {
+            merged = CollisionShape::combine(merged, pieces[index], CollisionShape::CombineOp::OR);
+        }
+        m_shapesByFaceMask[mask] = std::move(merged);
+    }
 }
 
 BlockState VineBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -242,10 +269,22 @@ const BlockState& VineBlock::mirror(const BlockState& state, Mirror mirror) cons
 
 const CollisionShape& VineBlock::getShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    // 返回空形状（藤蔓是薄层，没有碰撞）
-    static CollisionShape emptyShape = CollisionShape::empty();
-    return emptyShape;
+    // 原版 VineBlock.getShape：把每个已附着方向的薄片并起来；一个都没有时退回满格。
+    // 这里是外形而非碰撞形状——藤蔓没有碰撞，碰撞形状仍为空。
+    u32 mask = 0;
+    if (state.get(BlockStateProperties::NORTH())) {
+        mask |= 1U;
+    }
+    if (state.get(BlockStateProperties::SOUTH())) {
+        mask |= 2U;
+    }
+    if (state.get(BlockStateProperties::EAST())) {
+        mask |= 4U;
+    }
+    if (state.get(BlockStateProperties::WEST())) {
+        mask |= 8U;
+    }
+    return m_shapesByFaceMask[mask];
 }
 
 const CollisionShape& VineBlock::getCollisionShape(const BlockState& state) const

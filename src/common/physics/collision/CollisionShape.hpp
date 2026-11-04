@@ -197,7 +197,10 @@ public:
     // 查询
     [[nodiscard]] bool isEmpty() const noexcept
     {
-        return m_type == Type::Empty;
+        // 判定必须看盒列表而不是只看类型标记：默认构造的 `CollisionShape` 类型就是 Empty，
+        // 而 `addBox()` 只在盒数超过 1 时才改类型。逐盒累加构造出的单盒形状因此会被
+        // 误判成空（墙挂头颅、砂轮等旋转生成的形状都踩过这个坑）。
+        return m_boxes.empty();
     }
 
     [[nodiscard]] bool isFullBlock() const noexcept
