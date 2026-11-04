@@ -1691,6 +1691,15 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "合成器、信标（输出金字塔等级是常见误解）、幽匿催化体 —— 这些不是是原版刻意的设计",
         key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
     {
+        name: "item_container_fit",
+        probe: "item_container_fit",
+        oracle: "ItemContainerFitOracle",
+        description: "物品能否放进容器类物品（Item#canFitInsideContainerItems）—— 全部已注册物品；"
+        + "Item 默认 true，BlockItem 覆写为「潜影盒返回 false」。它防的是递归存储："
+        + "潜影盒能装物品，如果潜影盒也能装潜影盒，就能做出无限嵌套容器 —— 既是无限容量漏洞也是存档体积炸弹。"
+        + "判据挂在 BlockItem 上而不是按物品 id 白名单，所以新增颜色/材质变体自动被覆盖",
+        key: "unit", units: { kind: "listing" }, input: (unit: string) => ({ unit }) },
+    {
         name: "block_shape",
         probe: "block_shape",
         oracle: "BlockShapeOracle",
