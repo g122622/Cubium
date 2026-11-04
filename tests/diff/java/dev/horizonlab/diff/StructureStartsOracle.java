@@ -118,14 +118,15 @@ public final class StructureStartsOracle {
     private StructureStartsOracle() {}
 
     /** 一个维度的材质：生成器 + 结构放置状态 + 高度范围。 */
-    private record Dimension(
+    record Dimension(
             ChunkGenerator generator,
             ChunkGeneratorStructureState placementState,
             LevelHeightAccessor height,
             ResourceKey<Level> levelKey,
             RandomState randomState) {}
 
-    private static Dimension makeDimension(String name, long seed, HolderLookup.Provider lookup) {
+    /** 供同包的能力复用（mineshaft_pieces 需要同一套维度构造）。 */
+    static Dimension makeDimension(String name, long seed, HolderLookup.Provider lookup) {
         HolderLookup.RegistryLookup<StructureSet> sets = lookup.lookupOrThrow(Registries.STRUCTURE_SET);
         BiomeSource biomeSource;
         Holder<NoiseGeneratorSettings> settingsHolder;
@@ -161,7 +162,7 @@ public final class StructureStartsOracle {
      * 构造函数要求的 {@code LevelStorageAccess} 只用来定位「生成目录」（保存自动生成的模板），
      * 结构生成从不写生成模板，因此给一个临时空目录即可；它会被持有到进程结束。
      */
-    private static StructureTemplateManager templateManager(DataPackRegistries registries) {
+    static StructureTemplateManager templateManager(DataPackRegistries registries) {
         try {
             Path emptyLevel = Files.createTempDirectory("diff-structure-starts");
             var source = LevelStorageSource.createDefault(emptyLevel);
@@ -180,7 +181,7 @@ public final class StructureStartsOracle {
      * 路径上被调用；探测的是新区块，调用方从不会走到那里。因此给一个永远失败的扫描器，
      * 一旦真的被调用就会立刻暴露（而不是静默返回错误数据）。
      */
-    private static StructureManager structureManager(DataPackRegistries registries, Dimension dimension,
+    static StructureManager structureManager(DataPackRegistries registries, Dimension dimension,
             ProtoChunk chunk, StructureTemplateManager templates) {
         StructureCheck check = new StructureCheck(
                 (pos, visitor) -> CompletableFuture.failedFuture(new UnsupportedOperationException("no storage in diff probe")),

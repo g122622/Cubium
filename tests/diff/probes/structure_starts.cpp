@@ -161,55 +161,14 @@ world::gen::feature::template_::TemplateManagerHostBinding& templateBinding()
  * 顺序与 `RegistryBootstrap::initializeAll` 一致：模板池必须先于结构定义，结构标签必须先于
  * 结构集。注册表是进程级单例，重复调用幂等。
  */
+/**
+ * @brief 按服务端启动顺序装配全部世界生成注册表。
+ *
+ * 实现与 `mineshaft_pieces` 共用，见 `structure_probe_common.hpp`。
+ */
 void initializeRegistries()
 {
-    static const bool initialized = [] {
-        (void)templateBinding();
-
-        VanillaBlocks::initialize();
-        BlockTags::initialize();
-        BiomeRegistry::instance().initialize();
-        fluid::FluidRegistry::instance().initialize();
-
-        auto& repo = dataPackRepository();
-        PlacementRegistry::instance().initialize();
-        world::gen::feature::initializeBuiltinFeatureTypes();
-        world::gen::feature::ConfiguredFeatureLoader::loadFromDataPackRepository(repo);
-        world::gen::placement::PlacedFeatureLoader::loadFromDataPackRepository(repo);
-        world::gen::carver::ConfiguredCarverLoader::loadFromDataPackRepository(repo);
-        world::biome::BiomeLoader::loadFromDataPackRepository(repo);
-
-        // 噪声 → 密度函数 → noise_settings：生成器的 RandomState 只走数据驱动路径，
-        // 三段缺一不可（noise_settings 里的噪声叶子按名引用前两者）。
-        world::gen::noise::NoiseLoader::loadFromDataPackRepository(repo);
-        world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(repo);
-        world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(repo);
-        world::gen::structure::pools::Pools::initialize();
-        world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(repo);
-        world::gen::structure::StructureRegistry::clear();
-        if (!world::gen::structure::StructureDefinitionLoader::loadFromDataPackRepository(repo).success()) {
-            throw std::runtime_error("structure_starts: 结构定义加载失败");
-        }
-        world::gen::jigsaw::ProcessorListLoader::loadFromDataPackRepository(repo);
-        if (!world::gen::structure::StructureTagLoader::loadFromDataPackRepository(repo).success()) {
-            throw std::runtime_error("structure_starts: 结构标签加载失败");
-        }
-        // 生物群系标签必须先于结构集加载：同心环放置的 `preferred_biomes` 引用了
-        // `#minecraft:stronghold_biased_to`，StructureSetLoader 会去 BiomeTags 里查它。
-        // 缺了这一步 preferredBiomes 恒为空，要塞就退化成「不做生物群系搜索」，
-        // 最终坐标与原版完全不同（由差分能力 structure_starts 查出：9 个要塞单元
-        // 在原版有、Cubium 完全没有）。
-        if (!world::biome::BiomeTagLoader::loadFromDataPackRepository(repo).success()) {
-            throw std::runtime_error("structure_starts: 生物群系标签加载失败");
-        }
-        world::gen::structure::StructureSetRegistry::instance().clear();
-        if (!world::gen::structure::StructureSetLoader::loadFromDataPackRepository(repo).success()) {
-            throw std::runtime_error("structure_starts: 结构集加载失败");
-        }
-        world::gen::structure::StructureSetRegistry::instance().validateAgainstStructureRegistry();
-        return true;
-    }();
-    (void)initialized;
+    initializeStructureRegistries();
 }
 
 // ============================================================================
@@ -222,38 +181,6 @@ void initializeRegistries()
  * 群系源必须与生成器共享**同一个** RandomState 实例：群系源内部持有该实例的裸指针
  * （采样器指针 + 末地群系的随机状态指针），两份独立实例会让群系采样读到已释放的内存。
  */
-struct WorldSetup {
-    DimensionSettings settings;
-    std::shared_ptr<world::gen::RandomState> randomState;
-};
-
-WorldSetup makeWorldSetup(const std::string& name, u64 seed)
-{
-    if (name == "overworld") {
-        DimensionSettings settings = DimensionSettings::overworld();
-        auto resolved = world::gen::RandomState::create(settings, seed);
-        return {std::move(settings), std::shared_ptr<world::gen::RandomState>(std::move(resolved))};
-    }
-    if (name == "the_end") {
-        DimensionSettings settings = DimensionSettings::end();
-        auto resolved = world::gen::RandomState::create(settings, seed);
-        return {std::move(settings), std::shared_ptr<world::gen::RandomState>(std::move(resolved))};
-    }
-    throw std::runtime_error("structure_starts: unknown dimension " + name);
-}
-
-/** 用共享随机状态构造该维度的群系源。 */
-std::unique_ptr<world::biome::IBiomeSource> makeBiomeSource(
-    const std::string& name, const world::gen::RandomState& randomState)
-{
-    if (name == "overworld") {
-        return world::biome::source::MultiNoiseBiomeSource::createOverworld(randomState, false, false);
-    }
-    if (name == "the_end") {
-        return std::make_unique<world::biome::source::EndBiomeSource>(randomState);
-    }
-    throw std::runtime_error("structure_starts: unknown dimension " + name);
-}
 
 // ============================================================================
 // 摘要
