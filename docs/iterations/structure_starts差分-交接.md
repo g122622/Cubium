@@ -1155,3 +1155,49 @@ else if (Math.abs(p_227710_ - p_227707_.getBoundingBox().minX()) <= 80
 实测让 `-76/-37` 从 19 掉到更差，已回退。**在没有理解 59 从何而来之前改下游参数，
 只会让状态更混乱。** 下一步应当先把 59 的引入点用 `git bisect` 式的方法定位清楚，
 再去动 `calculateConnectedPos`。
+
+## 第二十五轮：末地只剩一个单元，分叉点定位到 [53] 之后
+
+### 已对齐的单元
+
+`the_end/0/-76/-37`、`the_end/9248738493917/-77/-55`、`the_end/9248738493917/24/-76`
+三者的构件数与原版一致（19/19、16/16、53/53），逐构件包围盒也已对齐。
+末地只剩 `the_end/9248738493917/-75/25`（pieces 57/64）。
+
+### 用模板名打点确认的分叉
+
+在 `CityTemplate` 构造处打印模板名与尺寸，得到 Cubium 在 `[53]` 之后的分支：
+
+```
+base_floor      10,4,10
+second_floor_2  12,8,12      ← variant == 1
+second_roof     14,2,14
+tower_base       7,7,7
+tower_piece      7,4,7
+tower_piece      7,4,7
+fat_tower_base  13,4,13
+fat_tower_middle 13,8,13
+fat_tower_top   17,6,17
+```
+
+而原版 `[53]` 之后的序列是：
+
+```
+[53] 10x4x10 rot=COUNTERCLOCKWISE_90
+[54] 12x2x12 rot=COUNTERCLOCKWISE_90
+[55]  2x6x5  rot=CLOCKWISE_90
+[56]  9x5x9  rot=CLOCKWISE_90
+```
+
+### 已排除的解释
+
+- 不是包围盒算错：`fat_tower_top` 的模板是 17x6x17，Cubium 算出的也是 17x6x17；
+- 不是 `variant` 分支本身写错：`variant == 0/1/2` 三个分支与原版逐句一致；
+- 不是 `rng` 在 `recursiveChildren` 里的消耗顺序：`nextInt()` 取 genDepth 的位置与原版相同。
+
+### 尚未查到的一处
+
+原版的尺寸集合里有 `12x2x12`，它在 `[38]` 和 `[54]` 两处出现。这个尺寸对不上
+任何已知模板的原始尺寸（`second_roof` 是 14x2x14、`third_roof` 是 16x2x16、
+`base_roof` 未单独测过），因此 `[54]` 究竟对应哪个模板仍未确定。
+下一步应当把所有 end_city 模板的尺寸一次性打全，再与原版的尺寸序列逐项对照。
