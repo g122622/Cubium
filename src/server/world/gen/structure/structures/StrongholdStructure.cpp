@@ -117,16 +117,17 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
 
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 计算起始位置
-    i32 startX = chunkX * mc::world::CHUNK_WIDTH + 8;
-    i32 startZ = chunkZ * mc::world::CHUNK_WIDTH + 8;
+    // 起始块在区块内的偏移是 2，不是中心 8：原版用的是 chunkPos.getBlockX(2)。
+    // 偏移量直接影响起始楼梯的包围盒，进而影响所有后续 piece 的位置。
+    const i32 startX = chunkX * mc::world::CHUNK_WIDTH + 2;
+    const i32 startZ = chunkZ * mc::world::CHUNK_WIDTH + 2;
 
-    // 要塞生成在地下 (Y 20-40)
-    i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
+    // 起始 Y 由 StrongholdStartStairs 固定为 64（原版同样没有随机起始高度）。
+    // 此前这里先消耗一个 rng.nextInt 再传下去，白吃了一个随机数，
+    // 使后续每一个 piece 的旋转、类型选择全部错一位。
+    const i32 startY = m_config.minY;
+    const BlockPos startPos(startX, startY, startZ);
 
-    BlockPos startPos(startX, startY, startZ);
-
-    // 使用 StrongholdPieces 系统生成要塞
     _generateStrongholdPieces(rng, startPos, start->pieces());
 
     start->recalculateStructureSize();
