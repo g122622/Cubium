@@ -3,8 +3,8 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, or/or sell
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -81,7 +81,11 @@ std::vector<ConcentricRingsStructurePlacement::RingEntry> ConcentricRingsStructu
 
     // 原版 ChunkGeneratorStructureState.generateRingPositions 用 RandomSource.create()
     // （即 LegacyRandomSource）再 setSeed(concentricRingsSeed)。
-    math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
+    //
+    // 这里必须用 `JavaLegacyRandom` 本体而不是 `WorldgenRandom` 包装：后者只复刻了
+    // `BitRandomSource` 的位宽抽取，`nextLong()` 一次消耗两次内层 nextLong，与
+    // LegacyRandomSource 的语义不同——而 `fork()` 恰好依赖 `nextLong()` 的消耗次数。
+    math::JavaLegacyRandom rng(0ULL);
     rng.setSeed(static_cast<u64>(worldSeed));
 
     // 同心环参数
@@ -117,10 +121,16 @@ std::vector<ConcentricRingsStructurePlacement::RingEntry> ConcentricRingsStructu
         const f64 chunkX = std::round(std::cos(angle) * radius);
         const f64 chunkZ = std::round(std::sin(angle) * radius);
 
-        // 原版紧接在算出 (k1, l1) 之后、角度步进之前调用 `randomsource.fork()`，
-        // 即 `RandomSource.create(nextLong())`。fork 必须与半径/角度扰动消耗**同一个**
-        // 随机源，否则 fork 序列反映不了前面已经发生的消耗。这里把该种子一并带出去，
-        // 交给调用方构造生物群系搜索用的随机源。
+        // 原版紧接在算出 (k1, l1) 之后、角度步进之前调用 `randomsource.fork()`：
+        //
+        //   public RandomSource fork() { return new LegacyRandomSource(this.nextLong()); }
+        //
+        // 这里的 `this` 是 LegacyRandomSource 自己，它的 `nextLong()` 是
+        // `((long)next(32) << 32) + next(32)`——**两次** 48 位 LCG 抽取。而
+        // `WorldgenRandom::nextLong()` 会先拆成两次 `next(32)` 再拼，看起来一样，
+        // 但它每一位都走「内层 nextLong 取高位」的路径，一次调用消耗**两次**
+        // 内层 nextLong（四次 LCG 抽取），与 fork 的实际语义不同，序列会整体错位。
+        // 因此 fork 必须直接调用底层 LCG 的 nextLong，不能经由包装类。
         RingEntry entry;
         entry.chunk = world::chunk::ChunkPos(static_cast<i32>(chunkX), static_cast<i32>(chunkZ));
         entry.forkSeed = static_cast<u64>(rng.nextLong());

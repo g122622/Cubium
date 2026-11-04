@@ -145,18 +145,19 @@ const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPosition
 {
     // 原版 `ChunkGeneratorStructureState.generateRingPositions` 分两步：
     //
-    //   1. 用 **常量 0L** 作种子（`createForNormal` 传的 concentricRingsSeed）
-    //      算出每个要塞的搜索起点 (chunkX, chunkZ)；
+    //   1. 用 concentricRingsSeed 作种子算出每个要塞的搜索起点 (chunkX, chunkZ)；
     //   2. 对每个起点做一次生物群系搜索，找到就把坐标改写过去：
     //        Pair<BlockPos, Holder<Biome>> pair = biomeSource.findBiomeHorizontal(
     //            chunkX << 4 + 8, 0, chunkZ << 4 + 8, 112,
     //            preferredBiomes::contains, randomsource.fork(), randomState.sampler());
     //        return pair != null ? new ChunkPos(pair.first) : new ChunkPos(chunkX, chunkZ);
     //
-    // 第 1 步的种子恒为 0，所以**所有种子下的搜索起点完全相同**；要塞最终位置的种子
-    // 相关性全部来自第 2 步——`randomsource` 在生成起点的过程中已经按世界种子推进过，
-    // 它的 fork 因此随种子变化。差分比对证实了这个分工：种子 0 与 9248738493917 的
-    // 要塞位置完全不重合，但两者的搜索起点相同。
+    // concentricRingsSeed 在正常维度创建时**就是 levelSeed**：
+    // `createForNormal(randomState, levelSeed, biomeSource, ...)` 把同一个
+    // `p_255806_` 同时传给 levelSeed 与 concentricRingsSeed。只有超平坦走
+    // `createForFlat` 才传常量 0L。此前这里写死 0，导致所有种子共用同一批搜索
+    // 起点，与生物群系搜索组合后整体偏移（差分能力 structure_starts 查出 8 处
+    // 要塞缺失）。
     //
     // 缓存在本状态里，键是放置规则指针。
     const auto cached = m_ringPositions.find(&concentric);
@@ -175,7 +176,8 @@ const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPosition
         return stored;
     }
 
-    const auto& layout = concentric.generateRingLayout(0);
+    // 正常维度下 concentricRingsSeed == levelSeed（见上方说明），不是常量 0。
+    const auto& layout = concentric.generateRingLayout(m_worldSeed);
     const auto& preferred = concentric.preferredBiomes();
 
     // 原版 `ChunkGeneratorStructureState.generateRingPositions` 在**同一条随机流**里
@@ -268,21 +270,26 @@ std::optional<BlockPos> StructurePlacementState::_findBiomeHorizontal(i32 center
     std::optional<BlockPos> chosen;
     i32 seen = 0;
 
-    for (i32 ring = quartRadius; ring >= 0; ring -= step) {
-        for (i32 dz = -ring; dz <= ring; dz += step) {
-            for (i32 dx = -ring; dx <= ring; dx += step) {
-                const i32 quartX = centerQuartX + dx;
-                const i32 quartZ = centerQuartZ + dz;
-                if (!isPreferred(m_biomeSource.getNoiseBiome(quartX, quartY, quartZ))) {
-                    continue;
-                }
-                if (!chosen.has_value() || rng.nextInt(seen + 1) == 0) {
-                    chosen = BlockPos(static_cast<BlockCoord>(quartX << 2),
-                        static_cast<BlockCoord>(centerY),
-                        static_cast<BlockCoord>(quartZ << 2));
-                }
-                ++seen;
+    // findClosest=false 时原版的 `j1 = k`（k 是半径换算成 quart 后的值），而
+    // `while (k1 <= k)` 的步长也是 spread，因此该循环**只执行一次**、k1 恒等于 k：
+    // 整个搜索是**一遍** [-k, k]² 的方形扫描，不是逐圈由外到内。
+    //
+    // 此前这里写成了「按 ring 逐层从外到内」的嵌套循环，同一批坐标会被反复采样，
+    // 蓄水池抽样的次数因此翻倍（半径越大越严重），最终选出的坐标与原版不同——
+    // 差分能力 structure_starts 表现为要塞位置整体偏移。
+    for (i32 dz = -quartRadius; dz <= quartRadius; dz += step) {
+        for (i32 dx = -quartRadius; dx <= quartRadius; dx += step) {
+            const i32 quartX = centerQuartX + dx;
+            const i32 quartZ = centerQuartZ + dz;
+            if (!isPreferred(m_biomeSource.getNoiseBiome(quartX, quartY, quartZ))) {
+                continue;
             }
+            if (!chosen.has_value() || rng.nextInt(seen + 1) == 0) {
+                chosen = BlockPos(static_cast<BlockCoord>(quartX << 2),
+                    static_cast<BlockCoord>(centerY),
+                    static_cast<BlockCoord>(quartZ << 2));
+            }
+            ++seen;
         }
     }
     return chosen;
