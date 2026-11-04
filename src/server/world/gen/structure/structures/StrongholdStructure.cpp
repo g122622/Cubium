@@ -117,16 +117,17 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
 
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 计算起始位置
-    i32 startX = chunkX * mc::world::CHUNK_WIDTH + 8;
-    i32 startZ = chunkZ * mc::world::CHUNK_WIDTH + 8;
+    // 起始块在区块内的偏移是 2，不是中心 8：原版用的是 chunkPos.getBlockX(2)。
+    // 偏移量直接影响起始楼梯的包围盒，进而影响所有后续 piece 的位置。
+    const i32 startX = chunkX * mc::world::CHUNK_WIDTH + 2;
+    const i32 startZ = chunkZ * mc::world::CHUNK_WIDTH + 2;
 
-    // 要塞生成在地下 (Y 20-40)
-    i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
+    // 起始 Y 由 StrongholdStartStairs 固定为 64（原版同样没有随机起始高度）。
+    // 此前这里先消耗一个 rng.nextInt 再传下去，白吃了一个随机数，
+    // 使后续每一个 piece 的旋转、类型选择全部错一位。
+    const i32 startY = m_config.minY;
+    const BlockPos startPos(startX, startY, startZ);
 
-    BlockPos startPos(startX, startY, startZ);
-
-    // 使用 StrongholdPieces 系统生成要塞
     _generateStrongholdPieces(rng, startPos, start->pieces());
 
     start->recalculateStructureSize();
@@ -147,9 +148,33 @@ void StrongholdStructure::_generateStrongholdPieces(
     initializeStrongholdPieceWeights(weights);
 
     StrongholdPieceWeight* lastPlaced = nullptr;
+    MC_UNUSED(lastPlaced);
 
-    // 递归生成走廊和房间
+    // 队列驱动组装。
+    //
+    // 原版 generatePieces 把所有分支压进 StartPiece.pendingChildren，再由
+    // `while (!pending.isEmpty())` 逐个取出继续扩展——某一条分支被包围盒挡住只是那一条
+    // 分支结束，其余分支照常生长。此前这里是一条单链递归：从 pieces.back() 一路向前延伸，
+    // 一旦某个位置放不下任何 piece 就整棵树结束，要塞必然塌缩成只剩起始楼梯。
+    //
+    // 这里让 pieces 本身充当队列：每轮取一个「尚未扩展过」的 piece 调用 buildComponent，
+    // 它会把新生成的子 piece 追加到 pieces 末尾，于是下一轮继续扩展这些新的分支。
+    // 效果与原版队列一致，且不需要改动 StrongholdPieces 的 1600 行组装逻辑。
+    //
+    // 上限同时防止病态拓扑（例如大量互相相邻的直角拐弯）导致 piece 数爆炸。
+    // 起始楼梯通往要塞主体的第一条走廊。
     _generateCorridor(pieces, rng, 0, startStairsPtr);
+
+    constexpr size_t kMaxPieces = 240;
+    size_t nextToExpand = 1; // 跳过起始楼梯：它的门已经由上面的 _generateCorridor 开出
+    while (nextToExpand < pieces.size() && pieces.size() < kMaxPieces) {
+        StructurePiece* current = pieces[nextToExpand].get();
+        ++nextToExpand;
+        if (current == nullptr) {
+            continue;
+        }
+        current->buildComponent(current, pieces, rng);
+    }
 }
 
 void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -188,26 +213,32 @@ void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<Structur
     i32 x, y, z;
 
     // 根据方向计算下一个片段的位置
+    // 第一个子 piece 的落点必须和起始楼梯的小门对齐：原版
+    // generateSmallDoorChildForward(start, builder, random, 1, 1) 取的是
+    // minX+1 / minY+1 / minZ-1（朝北），方向沿用 lastPiece 自身的朝向。
+    // 此前这里用「包围盒中点 + 沿用方向改写成 North」，横向偏了 1 格、朝向也错，
+    // 于是新盒与起始楼梯盒在 X 方向重叠，findIntersecting 判相交，
+    // 所有候选 piece 都创建失败——要塞塌缩成一个 piece 的直接原因。
     switch (direction) {
         case Direction::North:
-            x = lastPiece->minX() + (lastPiece->maxX() - lastPiece->minX()) / 2;
-            y = lastPiece->minY();
+            x = lastPiece->minX() + 1;
+            y = lastPiece->minY() + 1;
             z = lastPiece->minZ() - 1;
             break;
         case Direction::South:
-            x = lastPiece->minX() + (lastPiece->maxX() - lastPiece->minX()) / 2;
-            y = lastPiece->minY();
+            x = lastPiece->maxX() - 1;
+            y = lastPiece->minY() + 1;
             z = lastPiece->maxZ() + 1;
             break;
         case Direction::West:
             x = lastPiece->minX() - 1;
-            y = lastPiece->minY();
-            z = lastPiece->minZ() + (lastPiece->maxZ() - lastPiece->minZ()) / 2;
+            y = lastPiece->minY() + 1;
+            z = lastPiece->minZ() + 1;
             break;
         case Direction::East:
             x = lastPiece->maxX() + 1;
-            y = lastPiece->minY();
-            z = lastPiece->minZ() + (lastPiece->maxZ() - lastPiece->minZ()) / 2;
+            y = lastPiece->minY() + 1;
+            z = lastPiece->maxZ() - 1;
             break;
         default:
             return;
@@ -247,8 +278,32 @@ void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<Structur
         }
     }
 
-    // 创建选中的片段
-    auto newPiece = createStrongholdPiece(selectedType, pieces, rng, x, y, z, direction, depth);
+    // 创建选中的片段。
+    //
+    // 单个 piece 创建失败（与已有 piece 包围盒相交是最常见的原因）不能终止整棵树：
+    // 原版把后续 piece 放进 StartPiece.pendingChildren 队列，由一个外层
+    // `while (!pending.isEmpty())` 循环逐个取出继续组装，某一项失败只是这一项失败。
+    // 此前这里一律直接走 else 分支、depth 又通常不大于 5，于是整棵组装树在第一个
+    // 失败的 piece 处就结束，要塞塌缩成只剩起始楼梯一个 piece。
+    //
+    // 这里保持递归结构，但失败时继续尝试其余候选类型，直到有一个能放下为止。
+    std::unique_ptr<StrongholdPiece> newPiece =
+        createStrongholdPiece(selectedType, pieces, rng, x, y, z, direction, depth);
+
+    if (newPiece == nullptr) {
+        for (auto& weight : weights) {
+            if (weight.pieceType == selectedType || !weight.canSpawnMoreStructuresOfType(depth)) {
+                continue;
+            }
+            auto candidate = createStrongholdPiece(weight.pieceType, pieces, rng, x, y, z, direction, depth);
+            if (candidate != nullptr) {
+                selectedType = weight.pieceType;
+                weight.instancesSpawned++;
+                newPiece = std::move(candidate);
+                break;
+            }
+        }
+    }
 
     if (newPiece != nullptr) {
         pieces.push_back(std::move(newPiece));
@@ -266,12 +321,10 @@ void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<Structur
         // 继续生成走廊
         _generateCorridor(pieces, rng, depth + 1, start);
     } else {
-        // 无法生成更多片段，强制生成传送门房间
-        if (depth > 5) {
-            auto portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
-            if (portalRoom != nullptr) {
-                pieces.push_back(std::move(portalRoom));
-            }
+        // 所有候选类型都放不下，强制生成传送门房间收尾
+        auto portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
+        if (portalRoom != nullptr) {
+            pieces.push_back(std::move(portalRoom));
         }
     }
 }

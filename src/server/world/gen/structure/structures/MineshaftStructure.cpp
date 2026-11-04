@@ -22,6 +22,7 @@
  */
 
 #include "MineshaftStructure.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -37,6 +38,7 @@
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include <array>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -63,85 +65,135 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
     std::unique_ptr<MineshaftPiece> created;
 
     if (chance >= 80) {
-        // 20% 概率生成交叉点
-        i32 minX = x, maxX = x + 4;
-        i32 minZ = z, maxZ = z + 4;
-        i32 minY = y, maxY = y + 2;
-
-        // 根据方向调整边界
+        // 交叉点：高度由一次 nextInt(4) 决定（0 表示双层，高 6；否则高 2），
+        // 水平范围按朝向取固定的偏移表。
+        //
+        // 原版 MineShaftCrossing.findCrossing：
+        //   int i = nextInt(4) == 0 ? 6 : 2;
+        //   北 -> (-1, 0, -4) .. (3, i, 0)
+        //   南 -> (-1, 0,  0) .. (3, i, 4)
+        //   西 -> (-4, 0, -1) .. (0, i, 3)
+        //   东 -> ( 0, 0, -1) .. (4, i, 3)
+        // 此前既没有那次 nextInt(4)，偏移也与原版不同。
+        const i32 crossHeight = (rng.nextInt(4) == 0) ? 6 : 2;
+        i32 minX = x - 1, maxX = x + 3;
+        i32 minZ = z - 4, maxZ = z;
         switch (direction) {
-            case 0: // 北
-                maxZ = z;
-                minZ = z - 4;
-                break;
             case 1: // 南
                 minZ = z;
                 maxZ = z + 4;
                 break;
             case 2: // 西
-                maxX = x;
                 minX = x - 4;
+                maxX = x;
+                minZ = z - 1;
+                maxZ = z + 3;
                 break;
             case 3: // 东
                 minX = x;
                 maxX = x + 4;
+                minZ = z - 1;
+                maxZ = z + 3;
+                break;
+            case 0: // 北
+            default:
                 break;
         }
+        const i32 minY = y;
+        const i32 maxY = y + crossHeight;
 
         created = std::make_unique<MineshaftCross>(
             MineshaftPieceTypes::CROSS, minX, minY, minZ, maxX, maxY, maxZ, direction, type);
     } else if (chance >= 70) {
-        // 10% 概率生成楼梯
-        i32 length = 8;
+        // 楼梯：固定下降 5 格、水平延伸 8 格，按朝向取偏移表。
+        //
+        // 原版 MineshaftStairs.findStairs：
+        //   北 -> (0, -5, -8) .. (2, 2, 0)
+        //   南 -> (0, -5,  0) .. (2, 2, 8)
+        //   西 -> (-8, -5, 0) .. (0, 2, 2)
+        //   东 -> ( 0, -5, 0) .. (8, 2, 2)
+        // 此前 Y 方向只降了 4 格（length/2），与原版差 1。
+        constexpr i32 kStairsDrop = 5;
+        constexpr i32 kStairsReach = 8;
         i32 minX = x, maxX = x + 2;
         i32 minZ = z, maxZ = z + 2;
-        i32 minY = y - length / 2, maxY = y + 2;
-
         switch (direction) {
             case 0: // 北
-                minZ = z - length;
+                minZ = z - kStairsReach;
                 maxZ = z;
                 break;
             case 1: // 南
                 minZ = z;
-                maxZ = z + length;
+                maxZ = z + kStairsReach;
                 break;
             case 2: // 西
-                minX = x - length;
+                minX = x - kStairsReach;
                 maxX = x;
                 break;
             case 3: // 东
                 minX = x;
-                maxX = x + length;
+                maxX = x + kStairsReach;
                 break;
         }
+        const i32 minY = y - kStairsDrop;
+        const i32 maxY = y + 2;
 
         created = std::make_unique<MineshaftStairs>(
             MineshaftPieceTypes::STAIRS, minX, minY, minZ, maxX, maxY, maxZ, direction, type);
     } else {
-        // 70% 概率生成走廊
-        i32 length = (rng.nextInt(3) + 2) * 5; // 10-20格
+        // 走廊长度从 nextInt(3)+2 起逐个尝试缩短，第一个不与已有构件相交的长度胜出。
+        //
+        // 原版 findCorridorSize 的写法是
+        //   for (int i = nextInt(3) + 2; i > 0; i--) { int j = i * 5; ... 相交就继续缩短 }
+        // 因此走廊跨度恒为 5 的倍数（10 / 15 / 20）。此前用固定长度减去后直接构造，
+        // 边界为此偏移 1 格。
+        constexpr i32 kCorridorLengthStep = 5;
         i32 minX = x, maxX = x + 2;
         i32 minZ = z, maxZ = z + 2;
         i32 minY = y, maxY = y + 2;
-
-        switch (direction) {
-            case 0: // 北
-                minZ = z - length;
-                maxZ = z;
+        bool found = false;
+        for (i32 attempt = rng.nextInt(3) + 2; attempt > 0; --attempt) {
+            const i32 span = attempt * kCorridorLengthStep - 1;
+            i32 trialMinX = x, trialMaxX = x + 2;
+            i32 trialMinZ = z, trialMaxZ = z + 2;
+            switch (direction) {
+                case 0: // 北
+                    trialMinZ = z - span;
+                    trialMaxZ = z;
+                    break;
+                case 1: // 南
+                    trialMinZ = z;
+                    trialMaxZ = z + span;
+                    break;
+                case 2: // 西
+                    trialMinX = x - span;
+                    trialMaxX = x;
+                    break;
+                case 3: // 东
+                default:
+                    trialMinX = x;
+                    trialMaxX = x + span;
+                    break;
+            }
+            const StructureBoundingBox trial(trialMinX, minY, trialMinZ, trialMaxX, maxY, trialMaxZ);
+            bool collides = false;
+            for (const auto& existing : pieces) {
+                if (existing->boundingBox().intersects(trial)) {
+                    collides = true;
+                    break;
+                }
+            }
+            if (!collides) {
+                minX = trialMinX;
+                maxX = trialMaxX;
+                minZ = trialMinZ;
+                maxZ = trialMaxZ;
+                found = true;
                 break;
-            case 1: // 南
-                minZ = z;
-                maxZ = z + length;
-                break;
-            case 2: // 西
-                minX = x - length;
-                maxX = x;
-                break;
-            case 3: // 东
-                minX = x;
-                maxX = x + length;
-                break;
+            }
+        }
+        if (!found) {
+            return nullptr;
         }
 
         created = std::make_unique<MineshaftCorridor>(
@@ -153,6 +205,47 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
     // 当深度传入，首次展开即 61 > 8 直接失败，矿井永远只剩起点房间一个构件。
     if (created) {
         created->setGenDepth(depth);
+
+        // 每个构件都必须记录朝向，否则 getRotation() 恒为 NONE。
+        //
+        // 原版 StructurePiece.setOrientation 的映射：
+        //   NORTH -> mirror NONE,        rotation NONE
+        //   SOUTH -> mirror LEFT_RIGHT,  rotation NONE
+        //   WEST  -> mirror LEFT_RIGHT,  rotation CLOCKWISE_90
+        //   EAST  -> mirror NONE,        rotation CLOCKWISE_90
+        // 朝向同时决定构件内部的方块布局，缺了它整个矿井的构件全部按朝北绘制。
+        switch (direction) {
+            case 1: // 南
+                created->setMirror(Mirror::LeftRight);
+                created->setRotation(Rotation::None);
+                break;
+            case 2: // 西
+                created->setMirror(Mirror::LeftRight);
+                created->setRotation(Rotation::Clockwise90);
+                break;
+            case 3: // 东
+                created->setMirror(Mirror::None);
+                created->setRotation(Rotation::Clockwise90);
+                break;
+            case 0: // 北
+            default:
+                created->setMirror(Mirror::None);
+                created->setRotation(Rotation::None);
+                break;
+        }
+
+        // 新构件不得与已有构件重叠。
+        //
+        // 原版 findCorridorSize / findCrossing / findStairs 在返回包围盒前都会调用
+        // findCollisionPiece，一旦相交就返回 null、该分支不再生成。这一步是把
+        // 「每段三分支、深度 8 层」的指数展开收敛到实际几十个构件的关键——
+        // 缺了它矿井会膨胀到数千个构件（实测 5681）。
+        const StructureBoundingBox box = created->boundingBox();
+        for (const auto& existing : pieces) {
+            if (existing->boundingBox().intersects(box)) {
+                return nullptr;
+            }
+        }
     }
 
     return created;
@@ -226,26 +319,39 @@ void MineshaftPiece::_generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, 
 // MineshaftRoom 实现
 // ============================================================================
 
-MineshaftRoom::MineshaftRoom(i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type)
-    : MineshaftPiece(componentType, x, y, z, x + 7, y + 3, z + 7, type)
+namespace {
+
+/**
+ * 按 X -> Y -> Z 的顺序抽取房间的三个跨度。
+ *
+ * 原版是 new BoundingBox(x, 50, z, x+7+nextInt(6), 54+nextInt(6), z+7+nextInt(6))，
+ * Java 保证实参从左到右求值；而 C++ 的实参求值顺序未指定，
+ * 把三个 nextInt(6) 写在同一构造实参里会让随机序列错位
+ * （实测房间高度变成 5，而原版是 10）。
+ */
+std::array<i32, 3> drawRoomSpans(math::IRandom& rng)
 {
-    // 随机选择出口方向
-    if (rng.nextBoolean()) {
-        m_exits.push_back(0); // 北
-    }
-    if (rng.nextBoolean()) {
-        m_exits.push_back(1); // 南
-    }
-    if (rng.nextBoolean()) {
-        m_exits.push_back(2); // 西
-    }
-    if (rng.nextBoolean()) {
-        m_exits.push_back(3); // 东
-    }
-    // 确保至少有一个出口
-    if (m_exits.empty()) {
-        m_exits.push_back(rng.nextInt(4));
-    }
+    const i32 a = rng.nextInt(6);
+    const i32 b = rng.nextInt(6);
+    const i32 c2 = rng.nextInt(6);
+    return {a, b, c2};
+}
+
+} // namespace
+
+MineshaftRoom::MineshaftRoom(i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type)
+    : MineshaftRoom(componentType, rng, x, y, z, type, drawRoomSpans(rng))
+{}
+
+MineshaftRoom::MineshaftRoom(
+    i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type, std::array<i32, 3> spans)
+    : MineshaftPiece(componentType, x, 50, z, x + 7 + spans[0], 54 + spans[1], z + 7 + spans[2], type)
+{
+    // 房间的起点 Y 恒为 50，X/Z 跨度各为 7..12、顶面为 54..59。
+    // 传入的 y 在原版里不参与房间包围盒。
+    MC_UNUSED(y);
+    MC_UNUSED(rng);
+    MC_UNUSED(type);
 }
 
 void MineshaftRoom::generate(IWorldWriter& world,
@@ -292,38 +398,80 @@ void MineshaftRoom::generate(IWorldWriter& world,
 void MineshaftRoom::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
+    MC_UNUSED(maxDepth);
+
+    // 房间沿四条边各开一串出口，而不是每边固定一个。
+    //
+    // 每条边的做法是：从 0 起以 nextInt(span) 随机步进，剩余跨度不足 3 就收尾，
+    // 否则在该位置开一个朝外的竖井并继续。四个方向各走一遍。
+    // 此前这里是「每边至多一个出口」，分支数少了一个数量级——
+    // 实测矿井 piece 数 31，原版 159。
     const i32 depth = genDepth() + 1;
+    const i32 xSpan = maxX() - minX() + 1;
+    const i32 zSpan = maxZ() - minZ() + 1;
+    i32 verticalSpan = maxY() - minY() + 1 - 3 - 1;
+    if (verticalSpan <= 0) {
+        verticalSpan = 1;
+    }
 
-    for (i32 exitDir : m_exits) {
-        i32 x, y, z;
-        switch (exitDir) {
-            case 0: // 北
-                x = minX() + rng.nextInt(4) + 1;
-                y = minY();
-                z = minZ() - 1;
-                break;
-            case 1: // 南
-                x = minX() + rng.nextInt(4) + 1;
-                y = minY();
-                z = maxZ() + 1;
-                break;
-            case 2: // 西
-                x = minX() - 1;
-                y = minY();
-                z = minZ() + rng.nextInt(4) + 1;
-                break;
-            case 3: // 东
-            default:
-                x = maxX() + 1;
-                y = minY();
-                z = minZ() + rng.nextInt(4) + 1;
-                break;
+    // 北：沿 X 步进，出口在 minZ - 1
+    for (i32 offset = 0; offset < xSpan;) {
+        offset += rng.nextInt(xSpan);
+        if (offset + 3 > xSpan) {
+            break;
         }
-
-        auto piece = addMineshaftPiece(this, pieces, rng, x, y, z, exitDir, depth, m_mineshaftType);
+        const i32 x = minX() + offset;
+        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
+        auto piece = addMineshaftPiece(this, pieces, rng, x, y, minZ() - 1, 0, depth, m_mineshaftType);
         if (piece) {
             pieces.push_back(std::move(piece));
         }
+        offset += 4;
+    }
+
+    // 南：沿 X 步进，出口在 maxZ + 1
+    for (i32 offset = 0; offset < xSpan;) {
+        offset += rng.nextInt(xSpan);
+        if (offset + 3 > xSpan) {
+            break;
+        }
+        const i32 x = minX() + offset;
+        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
+        auto piece = addMineshaftPiece(this, pieces, rng, x, y, maxZ() + 1, 1, depth, m_mineshaftType);
+        if (piece) {
+            pieces.push_back(std::move(piece));
+        }
+        offset += 4;
+    }
+
+    // 西：沿 Z 步进，出口在 minX - 1
+    for (i32 offset = 0; offset < zSpan;) {
+        offset += rng.nextInt(zSpan);
+        if (offset + 3 > zSpan) {
+            break;
+        }
+        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
+        const i32 z = minZ() + offset;
+        auto piece = addMineshaftPiece(this, pieces, rng, minX() - 1, y, z, 2, depth, m_mineshaftType);
+        if (piece) {
+            pieces.push_back(std::move(piece));
+        }
+        offset += 4;
+    }
+
+    // 东：沿 Z 步进，出口在 maxX + 1
+    for (i32 offset = 0; offset < zSpan;) {
+        offset += rng.nextInt(zSpan);
+        if (offset + 3 > zSpan) {
+            break;
+        }
+        const i32 y = minY() + rng.nextInt(verticalSpan) + 1;
+        const i32 z = minZ() + offset;
+        auto piece = addMineshaftPiece(this, pieces, rng, maxX() + 1, y, z, 3, depth, m_mineshaftType);
+        if (piece) {
+            pieces.push_back(std::move(piece));
+        }
+        offset += 4;
     }
 }
 
@@ -578,41 +726,48 @@ void MineshaftCorridor::_generateChestMinecart(
 void MineshaftCorridor::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
+    // 每段走廊固定向三个方向分叉，分支因子是 3；深度必须严格逐层递增并在
+    // maxDepth 处截断，否则构件数会按 3^maxDepth 膨胀。
     const i32 depth = genDepth() + 1;
     if (depth > maxDepth) {
         return;
     }
 
-    i32 x, y, z;
+    // 每段走廊固定向三个方向各分叉一个构件，坐标由包围盒直接算出，
+    // 不消耗额外的方向/位置随机数。
+    //
+    // 原版 MineShaftCorridor.addChildren：(minX+1, minY) 与 (minX-1|maxX+1, minY) 的组合
+    // 按当前朝向取三条边。此前这里只开一条出口，且用 nextInt(2)/nextInt(3) 抽偏移，
+    // 分支数只有原版的三分之一、随机序列也随之错位。
+    auto addChild = [&](i32 nx, i32 ny, i32 nz, i32 dir) {
+        auto piece = addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
+        if (piece) {
+            pieces.push_back(std::move(piece));
+        }
+    };
 
-    // 根据方向确定出口位置
     switch (m_direction) {
-        case 0: // 北
-            x = minX() + rng.nextInt(2);
-            y = minY() - 1 + rng.nextInt(3);
-            z = minZ() - 1;
-            break;
         case 1: // 南
-            x = minX() + rng.nextInt(2);
-            y = minY() - 1 + rng.nextInt(3);
-            z = maxZ() + 1;
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
             break;
         case 2: // 西
-            x = minX() - 1;
-            y = minY() - 1 + rng.nextInt(3);
-            z = minZ() + rng.nextInt(2);
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
             break;
         case 3: // 东
-        default:
-            x = maxX() + 1;
-            y = minY() - 1 + rng.nextInt(3);
-            z = minZ() + rng.nextInt(2);
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
             break;
-    }
-
-    auto piece = addMineshaftPiece(this, pieces, rng, x, y, z, m_direction, depth, m_mineshaftType);
-    if (piece) {
-        pieces.push_back(std::move(piece));
+        case 0: // 北
+        default:
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+            break;
     }
 }
 
@@ -669,46 +824,59 @@ void MineshaftCross::buildComponent(
         return;
     }
 
-    // 交叉点可以向三个方向延伸（除了来的方向）
-    for (i32 dir = 0; dir < 4; ++dir) {
-        // 跳过来的方向
-        if ((m_direction == 0 && dir == 1) || (m_direction == 1 && dir == 0) || (m_direction == 2 && dir == 3) ||
-            (m_direction == 3 && dir == 2)) {
-            continue;
-        }
-
-        if (rng.nextInt(3) != 0) {
-            continue; // 67% 概率跳过
-        }
-
-        i32 x, y, z;
-        switch (dir) {
-            case 0: // 北
-                x = minX() + 2;
-                y = minY();
-                z = minZ() - 1;
-                break;
-            case 1: // 南
-                x = minX() + 2;
-                y = minY();
-                z = maxZ() + 1;
-                break;
-            case 2: // 西
-                x = minX() - 1;
-                y = minY();
-                z = minZ() + 2;
-                break;
-            case 3: // 东
-            default:
-                x = maxX() + 1;
-                y = minY();
-                z = minZ() + 2;
-                break;
-        }
-
-        auto piece = addMineshaftPiece(this, pieces, rng, x, y, z, dir, depth, m_mineshaftType);
+    // 交叉点按朝向固定开出三个方向，坐标由包围盒直接算出，不抽随机数。
+    //
+    // 原版 MineShaftCrossing.addChildren 的四个分支：
+    //   北 -> (minX+1, minY, minZ-1) 北 | (minX-1, minY, minZ+1) 西 | (maxX+1, minY, minZ+1) 东
+    //   南 -> (minX+1, minY, maxZ+1) 南 | (minX-1, minY, minZ+1) 西 | (maxX+1, minY, minZ+1) 东
+    //   西 -> (minX+1, minY, minZ-1) 北 | (minX+1, minY, maxZ+1) 南 | (minX-1, minY, minZ+1) 西
+    //   东 -> (minX+1, minY, minZ-1) 北 | (minX+1, minY, maxZ+1) 南 | (maxX+1, minY, minZ+1) 东
+    //
+    // 此前这里遍历四个方向、每个方向以 nextInt(3) 决定是否跳过，既不匹配原版的
+    // 分支表，又多吃了最多四个随机数。
+    auto addChild = [&](i32 nx, i32 ny, i32 nz, i32 dir) {
+        auto piece = addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
         if (piece) {
             pieces.push_back(std::move(piece));
+        }
+    };
+
+    switch (m_direction) {
+        case 1: // 南
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+            break;
+        case 2: // 西
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            break;
+        case 3: // 东
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() + 1, minY(), maxZ() + 1, 1);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+            break;
+        case 0: // 北
+        default:
+            addChild(minX() + 1, minY(), minZ() - 1, 0);
+            addChild(minX() - 1, minY(), minZ() + 1, 2);
+            addChild(maxX() + 1, minY(), minZ() + 1, 3);
+            break;
+    }
+
+    // 双层交叉点（包围盒高度大于 3）还要在上一层再开三个方向，
+    // 每个方向由一次 nextBoolean 决定是否生成。
+    if (maxY() - minY() + 1 > 3) {
+        const i32 upperY = minY() + 4;
+        if (rng.nextBoolean()) {
+            addChild(minX() + 1, upperY, minZ() - 1, 0);
+        }
+        if (rng.nextBoolean()) {
+            addChild(minX() - 1, upperY, minZ() + 1, 2);
+        }
+        if (rng.nextBoolean()) {
+            addChild(maxX() + 1, upperY, minZ() + 1, 3);
         }
     }
 }
@@ -855,21 +1023,25 @@ bool MineshaftStructure::canGenerate(
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
+    // 原版 MineshaftStructure.findGenerationPoint 的第一句就是
+    //     context.random().nextDouble();
+    // 这个值被直接丢弃，作用是推进随机序列——矿井的房间跨度、走廊长度、
+    // 分支选择全部建立在它之后的状态上。漏掉它会让整座矿井的随机序列错一位，
+    // 实测房间高度变成 5 而原版是 10。
+    (void)rng.nextDouble();
+
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 确定矿井起点位置
-    i32 baseX = (chunkX << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
-    i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
-
-    // 获取高度（在地下）
-    i32 surfaceY = generator.getHeight(baseX, baseZ, HeightmapType::WorldSurfaceWG);
-    i32 minY = world::MIN_BUILD_HEIGHT + 10; // 最低高度（底部往上10格）
-    i32 maxY = surfaceY - 20;                // 最高高度（地表下20格）
-    if (maxY < minY + 10) {
-        maxY = minY + 10;
-    }
-
-    i32 baseY = minY + rng.nextInt(maxY - minY);
+    // 起点固定在区块内偏移 2 的位置，且这里不消耗任何随机数。
+    //
+    // 原版 MineshaftStructure.generatePiecesAndAdjust 直接用
+    // chunkPos.getBlockX(2) / getBlockZ(2) 建起始房间，房间的 Y 由房间自己定成 50。
+    // 此前这里先 rng.nextInt(CHUNK_WIDTH) 抽两次起点、再用
+    // getHeight + rng.nextInt 抽一次高度，白吃了三个随机数，
+    // 使后续所有构件的方向、类型、尺寸整体错位。
+    const i32 baseX = (chunkX << world::CHUNK_SHIFT) + 2;
+    const i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + 2;
+    const i32 baseY = 50;
 
     // 创建起始房间
     auto room = std::make_unique<MineshaftRoom>(MineshaftPieceTypes::ROOM, rng, baseX, baseY, baseZ, m_config.type);
@@ -885,6 +1057,56 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     for (auto& piece : pieces) {
         start->addPiece(std::move(piece));
     }
+
+    start->recalculateStructureSize();
+
+    // 把整座矿井下移到海平面以下。
+    //
+    // 原版 MineshaftStructure.generatePiecesAndAdjust 末尾对非恶地类型调用
+    //   moveBelowSeaLevel(seaLevel, minY, random, 10)
+    // 其算法是：
+    //   int i = seaLevel - padding;                       // 可用的顶面高度上限
+    //   BoundingBox bb = 全部构件的包围盒;
+    //   int j = bb.getYSpan() + minY + 1;                 // 贴着世界底部的顶面
+    //   if (j < i) j += random.nextInt(i - j);            // 剩余空间内随机下移
+    //   offsetPiecesVertically(j - bb.maxY());
+    // 缺了这一步，矿井会停在房间构造时写死的 Y=50 附近，
+    // 而原版的实际房间顶面在 -10 左右（整座结构被下移了 65 格）。
+    const i32 seaLevel = ::mc::world::SEA_LEVEL;
+    const StructureBoundingBox overall = start->getBoundingBox();
+
+    if (m_config.type == MineshaftType::Mesa) {
+        // 恶地矿井贴着地表：以整体包围盒中心的地表高度为准，
+        // 地表不高于海平面时对齐到海平面，否则在海平面与地表之间随机取一个高度。
+        // 原版 generatePiecesAndAdjust 的 MESA 分支走的就是这条路径，
+        // 不走 moveBelowSeaLevel。
+        const i32 centerX = (overall.minX() + overall.maxX()) / 2;
+        const i32 centerZ = (overall.minZ() + overall.maxZ()) / 2;
+        const i32 centerY = (overall.minY() + overall.maxY()) / 2;
+        const i32 surfaceY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
+        i32 targetY = seaLevel;
+        if (surfaceY > seaLevel) {
+            // Mth.randomBetweenInclusive：闭区间随机。
+            targetY = seaLevel + rng.nextInt(surfaceY - seaLevel + 1);
+        }
+        start->offset(0, targetY - centerY, 0);
+        return start;
+    }
+
+    // 其余类型整座下移到海平面以下。
+    //
+    // 原版 StructurePiecesBuilder.moveBelowSeaLevel(seaLevel, minY, random, 10)：
+    //   int i = seaLevel - padding;                  // 顶面上限
+    //   int j = bb.getYSpan() + minY + 1;            // 贴着世界底部的顶面
+    //   if (j < i) j += random.nextInt(i - j);       // 剩余空间内随机上移
+    //   offsetPiecesVertically(j - bb.maxY());
+    const i32 padding = 10;
+    const i32 topLimit = seaLevel - padding;
+    i32 topY = (overall.maxY() - overall.minY() + 1) + world::MIN_BUILD_HEIGHT + 1;
+    if (topY < topLimit) {
+        topY += rng.nextInt(topLimit - topY);
+    }
+    start->offset(0, topY - overall.maxY(), 0);
 
     return start;
 }

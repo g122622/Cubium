@@ -254,3 +254,185 @@ piece（5×10×4），而原版 8 个起点、平均 143 个 piece（97×48×64�
 `StrongholdStructure::canGenerate` 及其在其它结构类（BastionRemnant、
 BuriedTreasure、DesertPyramid、EndCity、Fortress、Igloo 等）中的同名方法
 **全部没有调用点**，是死代码，应当删除以消除误导。
+
+## 第五轮：找到并修复 createBox 的朝向分支写反（重大）
+
+上一轮记录的要塞塌缩，根因在 `StructureBoundingBox::createBox`。
+
+### 缺陷
+
+`src/common/world/gen/structure/StructureBoundingBox.cpp` 的 North 与 South 分支实现互换了：
+
+| 方向 | 应有的深度展开 | 原实现 |
+|---|---|---|
+| South（含 default） | `z+offZ .. z+offZ+sizeZ-1`（沿 +Z） | `z-sizeZ-offZ+1 .. z-offZ`（沿 -Z） |
+| North | `z-sizeZ+1+offZ .. z+offZ`（沿 -Z） | `z+offZ .. z+offZ+sizeZ-1`（沿 +Z） |
+
+West/East 分支是对的。原版语义见 `BoundingBox.orientBox` 的 NORTH / SOUTH 分支。
+
+### 后果
+
+所有按朝向计算包围盒的结构构件都落在门的另一侧，于是同一结构内相邻构件的包围盒互相重叠，
+`findIntersecting` 判相交，后续构件全部创建失败。
+
+要塞受害最明显——`StrongholdStraight::createPiece` 用
+`createBox(x, y, z, -1, -1, 0, 5, 5, 7, direction)`，朝北时构件被放到了门的错误一侧，
+第二个构件就与起始楼梯盒重叠：
+
+- 修复前：要塞 1 个 piece（只有起始楼梯）
+- 修复后：要塞 52 个 piece，递归深度正常展开
+
+### 配套修正
+
+1. `StrongholdStructure::_generateCorridor` 的第一个子构件落点：原先用
+   「包围盒中点 `minX + (maxX-minX)/2`」并把朝向改写成 North；原版
+   `generateSmallDoorChildForward(start, builder, random, 1, 1)` 用
+   `minX+1 / minY+1 / minZ-1` 且沿用构件自身朝向。横向偏 1 格 + 朝向错位，
+   使新盒必然与起始楼梯盒在 X 方向重叠。
+
+2. `_generateStrongholdPieces` 改成队列驱动：原版把分支压进
+   `StartPiece.pendingChildren`，由 `while (!pending.isEmpty())` 逐个取出继续扩展；
+   一条分支被挡住不影响其它分支。现在把 `pieces` 本身当队列，逐个对尚未扩展的
+   构件调用 `buildComponent`，等价于原版且无需改动 StrongholdPieces 的组装逻辑。
+
+### 回归
+
+structure_orient 14/14、structure_density 1/1、bounding_box 29/29、
+bounding_box_encap 18/18、block_support 1166/1166、piston_movement 523/523 全部通过。
+
+## 仍未收敛的部分
+
+`structure_starts` 仍是 47 处，但构成变了：
+
+| 类别 | 数量 | 说明 |
+|---|---|---|
+| 要塞缺失 | 8 | 环位置或候选区块判定与原因不同 |
+| 都有但内容不同 | 37 | **废弃矿井**（template 全空、程序化生成） |
+| 原版空 / Cubium 有 | 2 | |
+
+矿井同样靠 `addChildren` + 队列组装。查过：
+- `MAX_DEPTH = 8` 两侧一致；
+- 距离限制 `<= 80` 两侧一致（原版 `MineshaftPieces.java:91`）；
+- `MineshaftRoom::buildComponent` 里 `depth = genDepth() + 1` 也已正确递增，
+  `maxDepth` 参数实际未被使用。
+
+所以矿井的 159 vs 31 差距不在这几处，需要进一步对比 `MineshaftRoom.addChildren`
+的原版实现（本轮尚未展开）。下一轮应从那里入手。
+
+## 第六轮：求值顺序缺陷与恶地分支
+
+### 已修复：C++ 实参求值顺序未指定
+
+原版房间构造 `new BoundingBox(x, 50, z, x+7+nextInt(6), 54+nextInt(6), z+7+nextInt(6))`
+在 Java 里保证从左到右求值。C++ 的实参求值顺序**未指定**（clang-format 还会把三个
+`nextInt(6)` 压到同一行），于是三个跨度按任意顺序抽取。
+
+实测：原版房间 `11x6x13`，Cubium `13x8x11`，三个值都不同。
+
+已改为 `drawRoomSpans()` 按 X -> Y -> Z 显式抽取后经委托构造传入。
+
+### 已修复：缺少恶地（MESA）分支
+
+原版 `generatePiecesAndAdjust` 分两条路径：
+
+```java
+if (type == MESA) {
+    center = builder.getBoundingBox().getCenter();
+    j = getBaseHeight(center.x, center.z, WORLD_SURFACE_WG, ...);
+    k = j <= seaLevel ? seaLevel : Mth.randomBetweenInclusive(random, seaLevel, j);
+    builder.offsetPiecesVertically(k - center.y);
+} else {
+    builder.moveBelowSeaLevel(seaLevel, minY, random, 10);
+}
+```
+
+原实现无条件走 `moveBelowSeaLevel`，恶地矿井被错误压到海平面以下。现已补上 MESA 分支。
+
+### 第六轮逐个排除的怀疑点（都无问题）
+
+| 怀疑点 | 结论 |
+|---|---|
+| `moveBelowSeaLevel` 的 `topY` 基准 | 与 `getYSpan() + minY + 1` 等价，正确 |
+| `seaLevel` / `minY` / `padding` 参数 | 63 / -64 / 10，与原版一致 |
+| `canGenerate` 消耗随机数 | 全仓零调用点，是死代码，不影响 |
+| `structureRng` 的 `setLargeFeatureSeed` | 逐行对照 `WorldgenRandom.setLargeFeatureSeed`，完全一致 |
+| `structureRng` 用的区块坐标 | 当前区块，与原版 `makeRandom(seed, chunkPos)` 一致 |
+| `JavaLegacyRandom::nextInt(bound)` | 2 的幂走高位、非 2 的幂走拒绝采样，与原版一致 |
+| 房间起点 X | 已与原版一致（如 `overworld/0/-13/-60` 两侧都是 `-206`） |
+
+### 当前阻塞点
+
+房间三个跨度仍与原版不同（原版 `11x6x13` / Cubium `13x8x11` 或 `12x5x12`），
+但上面列出的所有随机数入口都已核对一致。
+
+**下一步建议**：在 `MineshaftStructure::generate` 开头和 `drawRoomSpans` 之后各打一次
+`rng.nextLong()` 快照（诊断代码，不入库），与 oracle 侧同样位置的快照比对，
+直接看出序列是从第几个数开始分歧的。这比继续逐个怀疑点排查快得多。
+
+## 第七、八轮：矿井组装的深挖
+
+### 已修复（第七轮）
+
+**`findGenerationPoint` 开头被丢弃的 `nextDouble()`**
+
+```java
+p_227964_.random().nextDouble();   // 返回值丢弃，只推进随机序列
+```
+
+漏掉它会让整座矿井的随机序列错一位。补上之后房间尺寸逐位对齐：
+
+| 单元 | 原版首个构件 | Cubium 首个构件 |
+|---|---|---|
+| (-30,14) | `12x10x11` | `12x10x11` |
+| (-13,-60) | `11x6x13` | `11x6x13` |
+
+### 已修复（第八轮）
+
+**交叉点的分支方式是错的**
+
+原版 `MineShaftCrossing.addChildren` 按朝向查一张固定分支表，每方向开三个口，
+坐标由包围盒直接算出，**不抽随机数**。原实现遍历四方向、每个方向以 `nextInt(3)`
+决定是否跳过，既不符合分支表，又多吃了最多四个随机数。
+
+**缺少双层交叉点分支**
+
+`isTwoFloored = getYSpan() > 3`。双层交叉点在主分支后还要在 `minY + 4` 层再开三个方向，
+每个由一次 `nextBoolean()` 决定。原实现完全没有这段。
+
+**交叉点包围盒与楼梯下降量**
+
+- 交叉点原版 `(-1,0,-4)..(3,i,0)` 等，高度 `i = nextInt(4)==0 ? 6 : 2`；原实现没有那次 `nextInt(4)`。
+- 楼梯原版下降 5 格，原实现用 `length/2 = 4`。
+
+### 当前实测状态
+
+| 单元 | 原版 | Cubium |
+|---|---|---|
+| (-30,14) | 125 个 piece，Y=`20..42`，整体 `144x23x116` | 266 个，Y=`2..35`，`118x34x194` |
+| (-13,-60) | 159 个，Y=`-25..-4`，整体 `157x22x174` | 152 个，Y=`29..49`，`128x21x173` |
+
+第二个单元的结构已经相当接近：piece 数 152 vs 159、Z 跨度 173 vs 174。
+**但 Y 整体偏 54 格**。
+
+### 已排除的怀疑点（都正确）
+
+- 走廊构造的两处消耗（含 `!hasRails &&` 的短路语义）
+- `findCorridorSize` 的退避重试长度（`i*5-1`，与原版 `j-1` 一致）
+- `moveBelowSeaLevel` 的参数与公式
+- `addMineshaftPiece` 的深度逐层递增与 8 层截断
+- 距离限制 `<= 80`
+
+### 剩余问题的性质
+
+Y 偏 54 格的原因不是公式错，而是 `moveBelowSeaLevel` 里那次 `nextInt` 取到的值不同，
+根子仍是「`moveBelowSeaLevel` 之前消耗的随机数个数不同」——也就是 piece 数与生成顺序的差异。
+
+piece 数 152 vs 159、266 vs 125 说明分支展开仍有出入。要彻底对齐，需要把
+「每个 piece 的类型、坐标、朝向」逐个与 oracle 比对，找出第一个分歧点，
+再回溯到产生它的那次随机数消耗。这比继续读源码可靠，但需要写一个比对脚本。
+
+### 第七轮的一个教训
+
+调试时曾看到「两个 long 值顺序颠倒」，误判为随机源起点错误。实际是**诊断代码自己
+把两个 `rng.nextLong()` 写在同一个 `fprintf` 实参里**，而 C++ 实参求值顺序未指定。
+凡是随机数抽取顺序有意义的地方，必须逐个语句取值。
