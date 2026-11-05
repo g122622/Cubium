@@ -578,6 +578,7 @@ struct _TaskProbe {
     std::atomic<int> executes{0};
     std::atomic<int> cancels{0};
     std::atomic<int> callbacks{0};
+    std::atomic<int> destructs{0};
     bool released = false;
 
     void allowCompletion()
@@ -616,6 +617,39 @@ public:
     std::string description() const override
     {
         return "AreaTaskProbe";
+    }
+
+private:
+    std::shared_ptr<_TaskProbe> m_probe;
+};
+
+/// 探针任务：execute 直接成功，析构时把计数写回探针，用来观察任务体的释放时机。
+class _DestructProbeTask final : public ITask {
+public:
+    explicit _DestructProbeTask(std::shared_ptr<_TaskProbe> probe)
+        : m_probe(std::move(probe))
+    {}
+
+    ~_DestructProbeTask() override
+    {
+        ++m_probe->destructs;
+    }
+
+    bool execute(const std::atomic<bool>&) override
+    {
+        return true;
+    }
+
+    void onCancel() override {}
+
+    TaskType type() const override
+    {
+        return TaskType::Custom;
+    }
+
+    std::string description() const override
+    {
+        return "AreaTaskDestructProbe";
     }
 
 private:
@@ -861,6 +895,57 @@ TEST_F(AreaTaskSchedulerLifecycleTest, ThrowingTaskAndCallbackStillReleaseRegion
     submit(successor, ChunkPos(-1, -1), 2, TaskPriority::Normal, nullptr);
     EXPECT_EQ(successor->enteredFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
     scheduler.waitForCompletion();
+}
+
+TEST_F(AreaTaskSchedulerLifecycleTest, TaskBodyIsReleasedAtCompletionNotAtShutdown)
+{
+    auto probe = makeProbe();
+    probe->allowCompletion();
+    scheduler.submit(
+        std::make_unique<_DestructProbeTask>(probe),
+        [probe](bool, ITask*) {
+            ++probe->callbacks;
+        },
+        ChunkPos(0, 0),
+        0,
+        TaskPriority::Normal,
+        nullptr);
+
+    // 任务体在 execute 结束时就释放，而不必等调度器（服务器侧仍持有其引用）销毁。
+    for (int i = 0; i < 500 && probe->callbacks.load() == 0; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    EXPECT_EQ(probe->callbacks.load(), 1);
+    EXPECT_EQ(probe->destructs.load(), 1);
+}
+
+TEST_F(AreaTaskSchedulerLifecycleTest, CancelledQueuedTaskBodyIsReleasedBeforeShutdown)
+{
+    auto running = makeProbe();
+    submit(running, ChunkPos(0, 0), 2, TaskPriority::Normal, nullptr);
+    ASSERT_EQ(running->enteredFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+
+    // 被区域阻塞的排队任务在取消收尾时即释放任务体。
+    auto queued = makeProbe();
+    queued->allowCompletion();
+    const u64 taskId = scheduler.submit(
+        std::make_unique<_DestructProbeTask>(queued),
+        [queued](bool, ITask*) {
+            ++queued->callbacks;
+        },
+        ChunkPos(1, 0),
+        2,
+        TaskPriority::Normal,
+        nullptr);
+    ASSERT_NE(taskId, 0u);
+    EXPECT_EQ(queued->executes.load(), 0);
+
+    EXPECT_TRUE(scheduler.cancel(taskId));
+    EXPECT_EQ(queued->callbacks.load(), 1);
+    EXPECT_EQ(queued->destructs.load(), 1);
+
+    releaseAll();
+    scheduler.shutdown();
 }
 
 TEST_F(AreaTaskSchedulerLifecycleTest, AlreadyCancelledTaskDoesNotWaitForRegion)

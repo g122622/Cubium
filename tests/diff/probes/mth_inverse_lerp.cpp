@@ -109,6 +109,7 @@
 
 #include "common/core/Types.hpp"
 
+#include "common/util/math/MathUtils.hpp"
 #include "probe.hpp"
 
 namespace mc::diff {
@@ -170,7 +171,7 @@ f64 lerp2(f64 d0, f64 d1, f64 d2, f64 d3, f64 d4, f64 d5)
 /// 原版 `Mth.lerp`（两参版本）。
 f64 lerp(f64 delta, f64 start, f64 end)
 {
-    return start + delta * (end - start);
+    return math::lerp(start, end, delta);
 }
 
 /// 原版 `Mth.lerp3`：外层权重是**第 3 个**参数 `d3`，第 11 个参数未被使用。

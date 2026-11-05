@@ -131,6 +131,7 @@
 
 #include "common/core/Types.hpp"
 
+#include "common/util/math/MathUtils.hpp"
 #include "probe.hpp"
 
 namespace mc::diff {
@@ -159,13 +160,13 @@ f64 clampDouble(f64 value, f64 min, f64 max)
 /// 原版 `Mth.lerp(double, double, double)`。
 f64 lerpDouble(f64 delta, f64 start, f64 end)
 {
-    return start + delta * (end - start);
+    return math::lerp(start, end, delta);
 }
 
 /// 原版 `Mth.lerp(float, float, float)`。
 f32 lerpFloat(f32 delta, f32 start, f32 end)
 {
-    return start + delta * (end - start);
+    return math::lerp(start, end, delta);
 }
 
 /// 原版 `Mth.clampedLerp(double, double, double)`。
@@ -193,9 +194,12 @@ f64 inverseLerpDouble(f64 value, f64 start, f64 end)
 }
 
 /// 原版 `Mth.clampedMap(double, ...)`。
+///
+/// 直接调生产代码 `math::clampedMap`：探针自带副本会让生产实现的缺陷隐身
+/// （同类问题已在 `mth_lerp` 上踩过一次）。
 f64 clampedMapDouble(f64 value, f64 inMin, f64 inMax, f64 outMin, f64 outMax)
 {
-    return clampedLerpDouble(inverseLerpDouble(value, inMin, inMax), outMin, outMax);
+    return math::clampedMap(value, inMin, inMax, outMin, outMax);
 }
 
 /// 原版 `Mth.absMax(int, int)`。
@@ -359,6 +363,14 @@ void writeList(FILE* out)
         "clampedMapD|5|10|20|0|100",
         "clampedMapD|25|10|20|0|100",
         "clampedMapD|10|10|10|0|100",
+        // clampedMap 的边界样本：上面的用例都是 10/20、0/100 这类整齐数值，
+        // 在小数端点上无法暴露 `outMin + t*(outMax-outMin)` 被 FMA 融合的问题。
+        "clampedMapD|12.545929800000003|2.7720000000000002|17.118000000000002|4.8760000000000003|6.9310000000000009",
+        "clampedMapD|11.2066044|8.1850000000000005|16.625|6.8540000000000001|23.667999999999999",
+        "clampedMapD|15.084479330000002|1.7890000000000001|16.327999999999999|13.249000000000001|26.125",
+        "clampedMapD|3.0866682900000004|1.1879999999999999|4.8849999999999998|6.7789999999999999|17.59",
+        "clampedMapD|15.342021949999999|10.59|15.994999999999999|1.2130000000000001|4.4690000000000003",
+        "clampedMapD|13.80464952|9.4369999999999994|15.183|12.515000000000001|19.741",
     };
     for (const auto* unit : UNITS) {
         std::fprintf(out, "%s\n", unit);

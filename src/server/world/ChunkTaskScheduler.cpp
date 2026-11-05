@@ -274,7 +274,9 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
 
     // 回调持有 holder 的 shared_ptr（与 ChunkProgressionTask::m_holder 一致），
     // 保证 execute 返回后的回调期间 holder 不被 unloadChunkSync 销毁。
-    auto callback = [this, x, z, holder](bool success, util::ITask* rawTask) {
+    // 区域调度器在任务结束（含取消）时就释放任务体，回调拿到的 rawTask 恒为空，
+    // 因此回调内的身份比对一律用 holder 持有的 generationTask()。
+    auto callback = [this, x, z, holder](bool success, util::ITask* /*rawTask*/) {
         if (holder == nullptr) {
             return;
         }
@@ -300,7 +302,7 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
         // 身份比对在 onChunkGenFailed(holder, task) 内部持调度锁进行，消除 execute 返回与回调之间的
         // TOCTOU 窗口（另一线程可能在回调前 setGenerationTask(B)）。
         if (!success) {
-            onChunkGenFailed(*holder, static_cast<ChunkProgressionTask*>(rawTask));
+            onChunkGenFailed(*holder, holder->generationTask());
         }
         // 成功时 onChunkGenComplete 已由 ChunkProgressionTask::execute 内部调用
     };
