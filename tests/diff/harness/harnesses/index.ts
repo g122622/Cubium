@@ -1947,6 +1947,18 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "timeline_sample",
+        probe: "timeline_sample",
+        oracle: "TimelineSampleOracle",
+        description: "关键帧轨道在给定时刻的采样值（原版 KeyframeTrackSampler）—— 10 条轨道 x 22 个时刻。"
+        + "覆盖单关键帧、无周期钳位、三关键帧、周期回绕、非零起点回绕、三段常量。"
+        + "叙事重点：时刻表里 -1、-24000 这类负数必须经 Math.floorMod 回绕到周期末尾，"
+        + "用取余会落到 0 —— 夜晚的天空亮度会因此提前切到白天值；超过一个周期的大值同样要折回。"
+        + "三关键帧中途点的取值必须精确命中关键帧本身，不允许出现插值残差。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
