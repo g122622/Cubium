@@ -688,8 +688,8 @@ bool splinePointsRelaxedEqual(const SplineNode::Point& a, const SplineNode::Poin
     if (a.value.index() != b.value.index()) {
         return false;
     }
-    if (auto* va = std::get_if<f64>(&a.value)) {
-        return *va == std::get<f64>(b.value);
+    if (auto* va = std::get_if<f32>(&a.value)) {
+        return *va == std::get<f32>(b.value);
     }
     return childrenRelaxedEqual(std::get<Ptr>(a.value), std::get<Ptr>(b.value));
 }
@@ -702,8 +702,8 @@ bool splinePointsStrictEqual(const SplineNode::Point& a, const SplineNode::Point
     if (a.value.index() != b.value.index()) {
         return false;
     }
-    if (auto* va = std::get_if<f64>(&a.value)) {
-        return *va == std::get<f64>(b.value);
+    if (auto* va = std::get_if<f32>(&a.value)) {
+        return *va == std::get<f32>(b.value);
     }
     return childrenStrictEqual(std::get<Ptr>(a.value), std::get<Ptr>(b.value));
 }
@@ -739,7 +739,7 @@ size_t SplineNode::relaxedHashCode() const
     for (const auto& p : m_points) {
         hashCombine(h, hashF64(p.location));
         hashCombine(h, hashF64(p.derivative));
-        if (auto* v = std::get_if<f64>(&p.value)) {
+        if (auto* v = std::get_if<f32>(&p.value)) {
             hashCombine(h, hashF64(*v));
         } else if (auto* child = std::get_if<Ptr>(&p.value)) {
             if (*child) {

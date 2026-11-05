@@ -1010,7 +1010,11 @@ private:
 /**
  * @brief 样条点（支持嵌套子样条）
  *
- * 每个控制点的 value 可以是常量值（f64）或嵌套的 CubicSpline。
+ * 每个控制点的 value 可以是常量值（f32）或嵌套的 CubicSpline。
+ *
+ * 整条链必须是 f32：原版 CubicSpline.Multipoint 的 locations / derivatives /
+ * minValue / maxValue 全是 float，apply 内部也全程 float 运算。用 f64 会让每个
+ * 插值点都与原版差出 f32 与 f64 的精度差，而不是 1 ulp。
  * MC 1.21 CubicSpline.Multipoint 的每个坐标点。
  */
 class CubicSpline;
@@ -1018,26 +1022,30 @@ class CubicSpline;
 /**
  * @brief 样条点（支持嵌套子样条）
  *
- * 每个控制点的 value 可以是常量值（f64）或嵌套的 CubicSpline。
+ * 每个控制点的 value 可以是常量值（f32）或嵌套的 CubicSpline。
+ *
+ * 整条链必须是 f32：原版 CubicSpline.Multipoint 的 locations / derivatives /
+ * minValue / maxValue 全是 float，apply 内部也全程 float 运算。用 f64 会让每个
+ * 插值点都与原版差出 f32 与 f64 的精度差，而不是 1 ulp。
  * MC 1.21 CubicSpline.Multipoint 的每个坐标点。
  * 使用 shared_ptr<CubicSpline> 以支持多个控制点共享子样条。
  */
 struct SplinePoint {
-    f64 location = 0.0;                                         ///< 控制点位置（升序排列）
-    std::variant<f64, std::shared_ptr<CubicSpline>> value{0.0}; ///< 常量值或嵌套子样条
-    f64 derivative = 0.0;                                       ///< 控制点导数
+    f32 location = 0.0f;                                         ///< 控制点位置（升序排列）
+    std::variant<f32, std::shared_ptr<CubicSpline>> value{0.0f}; ///< 常量值或嵌套子样条
+    f32 derivative = 0.0f;                                       ///< 控制点导数
 
     SplinePoint() = default;
 
     /** 便利构造: 常量值控制点 */
-    SplinePoint(f64 loc, f64 val, f64 der = 0.0)
+    SplinePoint(f32 loc, f32 val, f32 der = 0.0f)
         : location(loc)
         , value(val)
         , derivative(der)
     {}
 
     /** 便利构造: 嵌套子样条控制点 */
-    SplinePoint(f64 loc, std::shared_ptr<CubicSpline> spline, f64 der = 0.0)
+    SplinePoint(f32 loc, std::shared_ptr<CubicSpline> spline, f32 der = 0.0f)
         : location(loc)
         , value(std::move(spline))
         , derivative(der)
@@ -1094,23 +1102,23 @@ public:
     /**
      * @brief 在给定坐标处计算样条值（内部使用，支持递归嵌套）
      */
-    [[nodiscard]] f64 apply(f64 coordinate, i32 blockX, i32 blockY, i32 blockZ) const;
+    [[nodiscard]] f32 apply(f32 coordinate, i32 blockX, i32 blockY, i32 blockZ) const;
 
     /**
      * @brief 计算样条点的值（处理嵌套）
      */
-    [[nodiscard]] f64 resolvePointValue(size_t index, i32 blockX, i32 blockY, i32 blockZ) const;
+    [[nodiscard]] f32 resolvePointValue(size_t index, i32 blockX, i32 blockY, i32 blockZ) const;
 
 private:
     std::shared_ptr<DensityFunction> m_input;
     std::vector<SplinePoint> m_points;
-    f64 m_minValue = 0.0;
-    f64 m_maxValue = 0.0;
+    f32 m_minValue = 0.0f;
+    f32 m_maxValue = 0.0f;
 
     void computeBounds();
 
     /// 线性外推（超出样条范围时使用）
-    [[nodiscard]] static f64 linearExtend(f64 coordinate, f64 location, f64 value, f64 derivative);
+    [[nodiscard]] static f32 linearExtend(f32 coordinate, f32 location, f32 value, f32 derivative);
 };
 
 // ============================================================================
@@ -1123,9 +1131,9 @@ private:
  * 为保持向后兼容保留，新建代码应使用 SplinePoint + CubicSpline。
  */
 struct FlatSplinePoint {
-    f64 location;
-    f64 value;
-    f64 derivative;
+    f32 location;
+    f32 value;
+    f32 derivative;
 };
 
 // ============================================================================

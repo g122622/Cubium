@@ -240,8 +240,8 @@ void McToAst::initializeBuiltin(std::unordered_map<std::type_index, Emitter>& re
             SplineNode::Point p;
             p.location = sp.location;
             p.derivative = sp.derivative;
-            if (std::holds_alternative<f64>(sp.value)) {
-                p.value = std::get<f64>(sp.value);
+            if (std::holds_alternative<f32>(sp.value)) {
+                p.value = std::get<f32>(sp.value);
             } else {
                 // 嵌套子样条：递归转 AST。
                 const auto& child = std::get<std::shared_ptr<CubicSpline>>(sp.value);
