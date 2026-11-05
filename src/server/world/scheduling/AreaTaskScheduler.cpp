@@ -281,19 +281,18 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
                 return;
             }
             auto self = shared_from_this();
-            auto body = std::make_shared<DispatchTask>(self, dispatch);
-            // 弱引用观察对象：回调执行时 DispatchTask 可能已被计算池销毁（执行器并发关闭），
-            // 不能在此按裸指针访问。
-            std::weak_ptr<DispatchTask> observer = body;
-            auto callback = [self, dispatch, observer](bool success, util::ITask* raw) {
-                if (raw == nullptr) {
-                    // 执行器与提交并发关闭：一次性结清等待者，避免逐任务递归失败。
-                    self->_cancelPending(true, 0);
-                } else if (auto observed = observer.lock(); observed != nullptr && observed->claimed()) {
-                    self->_finish(dispatch, success);
-                }
-            };
-            pool->submit(body, std::move(callback), dispatch.task->priority, dispatch.task->abortSignal);
+            pool->submit(
+                std::make_unique<DispatchTask>(self, dispatch),
+                [self, dispatch](bool success, util::ITask* raw) {
+                    if (raw == nullptr) {
+                        // 执行器与提交并发关闭：一次性结清等待者，避免逐任务递归失败。
+                        self->_cancelPending(true, 0);
+                    } else if (static_cast<DispatchTask*>(raw)->claimed()) {
+                        self->_finish(dispatch, success);
+                    }
+                },
+                dispatch.task->priority,
+                dispatch.task->abortSignal);
         }
     }
 
