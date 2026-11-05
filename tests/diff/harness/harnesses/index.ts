@@ -2104,6 +2104,17 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "ray_aabb",
+        probe: "ray_aabb",
+        oracle: "RayAabbOracle",
+        description: "射线与轴对齐包围盒求交（原版 Mth.rayIntersectsAABB）的判定结果 —— 12 组射线与盒的组合。"
+        + "这是实体拾取、区块剔除等热路径上的判定：先三轴各做一次「起点在盒外且方向朝外」的快速排除，再对三对轴做叉积。"
+        + "关键在不对称——前两次叉积超出即排除用 >，最后一次要在界内才相交用 <，边界行为因此不对称。"
+        + "用例覆盖正对射入、从内部出发、背向、平行擦边、盒外一点点、对角穿心、擦角、零体积盒、扁平盒、大坐标、零方向向量。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

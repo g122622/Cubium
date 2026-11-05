@@ -952,4 +952,59 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     return static_cast<i32>(std::ceil(std::sqrt(static_cast<f64>(count))));
 }
 
+/**
+ * @brief 射线是否与轴对齐包围盒相交，对应原版 `Mth.rayIntersectsAABB`
+ *
+ * 先用三轴的「中心距超出半宽且朝外」做快速排除，再对三对轴做叉积判定。三次叉积的
+ * 比较方向不同：前两次用 `>`，最后一次用 `<`——最后一次是在已经排除了前两次的前提下
+ * 判断是否真正穿过，边界行为与前者不对称。
+ *
+ * @param ox/oy/oz 射线起点
+ * @param dx/dy/dz 射线方向（不要求归一化）
+ * @param minX/minY/minZ/maxX/maxY/maxZ 包围盒的边界（f64，与原版 AABB 一致）
+ */
+[[nodiscard]] inline bool rayIntersectsAABB(
+    f64 ox, f64 oy, f64 oz, f64 dx, f64 dy, f64 dz, f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ) noexcept
+{
+    // X 轴：起点到中心的距离超出半宽，且方向朝外 → 整条射线都在盒外
+    const f64 centerX = (minX + maxX) * 0.5;
+    const f64 halfX = (maxX - minX) * 0.5;
+    const f64 deltaX = ox - centerX;
+    if (std::abs(deltaX) > halfX && deltaX * dx >= 0.0) {
+        return false;
+    }
+
+    const f64 centerY = (minY + maxY) * 0.5;
+    const f64 halfY = (maxY - minY) * 0.5;
+    const f64 deltaY = oy - centerY;
+    if (std::abs(deltaY) > halfY && deltaY * dy >= 0.0) {
+        return false;
+    }
+
+    const f64 centerZ = (minZ + maxZ) * 0.5;
+    const f64 halfZ = (maxZ - minZ) * 0.5;
+    const f64 deltaZ = oz - centerZ;
+    if (std::abs(deltaZ) > halfZ && deltaZ * dz >= 0.0) {
+        return false;
+    }
+
+    const f64 absDx = std::abs(dx);
+    const f64 absDy = std::abs(dy);
+    const f64 absDz = std::abs(dz);
+
+    // 三次叉积：前两次用 >（超出即不相交），最后一次用 <（在界内才相交）。
+    f64 cross = dy * deltaZ - dz * deltaY;
+    if (std::abs(cross) > halfY * absDz + halfZ * absDy) {
+        return false;
+    }
+
+    cross = dz * deltaX - dx * deltaZ;
+    if (std::abs(cross) > halfX * absDz + halfZ * absDx) {
+        return false;
+    }
+
+    cross = dx * deltaY - dy * deltaX;
+    return std::abs(cross) < halfX * absDy + halfY * absDx;
+}
+
 } // namespace mc::math
