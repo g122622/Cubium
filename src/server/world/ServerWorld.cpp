@@ -419,8 +419,13 @@ void ServerWorld::shutdown()
 
     // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
     if (m_chunkManager) {
+        // TEMP-DIAG：先解绑回调，再关停区块管理器（验证后回退）。
+        spdlog::info("DIAG chunkMgr(dim={}): unbind callbacks", static_cast<i32>(m_config.dimension));
+        m_chunkManager->setChunkLoadedCallback(nullptr);
+        m_chunkManager->setChunkUnloadedCallback(nullptr);
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::ShutdownChunkManager");
         m_chunkManager->shutdown();
+        spdlog::info("DIAG chunkMgr(dim={}): shutdown done", static_cast<i32>(m_config.dimension));
     }
     spdlog::info("DIAG shutdown(dim={}): chunk manager shutdown", static_cast<i32>(m_config.dimension));
     // TEMP-DIAG：逐成员释放世界数据，定位关服时的异常来源。
