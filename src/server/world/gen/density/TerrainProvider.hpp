@@ -125,56 +125,56 @@ public:
         std::unique_ptr<DensityFunction> noiseFunction,
         i32 minY,
         i32 maxY,
-        f64 outOfRangeValue);
+        f32 outOfRangeValue);
 
     // ========== 常量 ==========
 
-    static constexpr f64 DEEP_OCEAN_CONTINENTALNESS = -0.51;
-    static constexpr f64 OCEAN_CONTINENTALNESS = -0.4;
-    static constexpr f64 PLAINS_CONTINENTALNESS = 0.1;
-    static constexpr f64 BEACH_CONTINENTALNESS = -0.15;
-    static constexpr f64 GLOBAL_OFFSET = -0.50375;
+    static constexpr f32 DEEP_OCEAN_CONTINENTALNESS = -0.51;
+    static constexpr f32 OCEAN_CONTINENTALNESS = -0.4;
+    static constexpr f32 PLAINS_CONTINENTALNESS = 0.1;
+    static constexpr f32 BEACH_CONTINENTALNESS = -0.15;
+    static constexpr f32 GLOBAL_OFFSET = -0.50375;
 
 private:
     // ========== 样条构建辅助 ==========
 
-    static constexpr f64 PV_0_4 = -0.2;    // peaksAndValleys(0.4)
-    static constexpr f64 PV_0_5667 = -0.7; // peaksAndValleys(0.56666666)
-    static constexpr f64 PV_MID = -0.45;   // (PV_0_4 + PV_0_5667) / 2
+    static constexpr f32 PV_0_4 = -0.2;    // peaksAndValleys(0.4)
+    static constexpr f32 PV_0_5667 = -0.7; // peaksAndValleys(0.56666666)
+    static constexpr f32 PV_MID = -0.45;   // (PV_0_4 + PV_0_5667) / 2
 
-    [[nodiscard]] static f64 peaksAndValleys(f64 v);
-    [[nodiscard]] static f64 mountainContinentalness(f64 x, f64 offsetSplineScale);
-    [[nodiscard]] static f64 calculateMountainRidgeZeroContinentalnessPoint(f64 offsetSplineScale);
+    [[nodiscard]] static f32 peaksAndValleys(f32 v);
+    [[nodiscard]] static f32 mountainContinentalness(f32 x, f32 offsetSplineScale);
+    [[nodiscard]] static f32 calculateMountainRidgeZeroContinentalnessPoint(f32 offsetSplineScale);
 
     /**
      * @brief 构建山脊样条（5 点 ridgeSpline）
      */
     [[nodiscard]] static std::shared_ptr<CubicSpline> ridgeSpline(
-        std::shared_ptr<DensityFunction> ridges, f64 p0, f64 p1, f64 p2, f64 p3, f64 p4, f64 pMinDerivative);
+        std::shared_ptr<DensityFunction> ridges, f32 p0, f32 p1, f32 p2, f32 p3, f32 p4, f32 pMinDerivative);
 
     /**
      * @brief 构建简单两点样条
      */
     [[nodiscard]] static std::shared_ptr<CubicSpline> simpleRidgeSpline(
-        std::shared_ptr<DensityFunction> ridges, f64 loc0, f64 val0, f64 loc1, f64 val1);
+        std::shared_ptr<DensityFunction> ridges, f32 loc0, f32 val0, f32 loc1, f32 val1);
 
     /**
      * @brief 构建山脊山脊子样条（带控制点）
      */
     [[nodiscard]] static std::shared_ptr<CubicSpline> buildMountainRidgeSplineWithPoints(
-        std::shared_ptr<DensityFunction> ridges, f64 offsetSplineScale, bool isMountainTailEnd);
+        std::shared_ptr<DensityFunction> ridges, f32 offsetSplineScale, bool isMountainTailEnd);
 
     /**
      * @brief 构建 erosion offset 子样条
      */
     [[nodiscard]] static std::shared_ptr<CubicSpline> buildErosionOffsetSpline(std::shared_ptr<DensityFunction> erosion,
         std::shared_ptr<DensityFunction> ridges,
-        f64 offsetSplineY,
-        f64 offsetSplineStart,
-        f64 offsetSplineEnd,
-        f64 offsetSplineScale,
-        f64 offsetSplineMiddle,
-        f64 offsetSplineTailEnd,
+        f32 offsetSplineY,
+        f32 offsetSplineStart,
+        f32 offsetSplineEnd,
+        f32 offsetSplineScale,
+        f32 offsetSplineMiddle,
+        f32 offsetSplineTailEnd,
         bool isMountainStart,
         bool isMountainTailEnd);
 
@@ -184,7 +184,7 @@ private:
     [[nodiscard]] static std::shared_ptr<CubicSpline> buildErosionFactorSpline(std::shared_ptr<DensityFunction> erosion,
         std::shared_ptr<DensityFunction> ridges,
         std::shared_ptr<DensityFunction> weirdness,
-        f64 peakFactor,
+        f32 peakFactor,
         bool isNearCoast);
 
     /**
@@ -194,10 +194,10 @@ private:
         std::shared_ptr<DensityFunction> erosion,
         std::shared_ptr<DensityFunction> ridges,
         std::shared_ptr<DensityFunction> weirdness,
-        f64 jaggednessScale,
-        f64 jaggednessMidScale,
-        f64 jaggednessEndScale,
-        f64 jaggednessTailScale);
+        f32 jaggednessScale,
+        f32 jaggednessMidScale,
+        f32 jaggednessEndScale,
+        f32 jaggednessTailScale);
 
     /**
      * @brief 构建山脊锯齿度子样条
@@ -205,14 +205,14 @@ private:
     [[nodiscard]] static std::shared_ptr<CubicSpline> buildRidgeJaggednessSpline(
         std::shared_ptr<DensityFunction> ridges,
         std::shared_ptr<DensityFunction> weirdness,
-        f64 scalePeak,
-        f64 scaleMid);
+        f32 scalePeak,
+        f32 scaleMid);
 
     /**
      * @brief 构建奇异度锯齿度子样条
      */
     [[nodiscard]] static std::shared_ptr<CubicSpline> buildWeirdnessJaggednessSpline(
-        std::shared_ptr<DensityFunction> weirdness, f64 scale);
+        std::shared_ptr<DensityFunction> weirdness, f32 scale);
 };
 
 } // namespace mc::world::gen::density

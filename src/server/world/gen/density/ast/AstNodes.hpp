@@ -621,11 +621,11 @@ private:
 /// returnType=F32（MC 样条走 f32 算术）。
 class SplineNode final : public AstNode {
 public:
-    /// 控制点：标量 location/derivative + value（f64 常量或嵌套子样条 AST 索引）。
+    /// 控制点：标量 location/derivative + value（f32 常量或嵌套子样条 AST 索引）。
     struct Point {
-        f64 location;
-        f64 derivative;
-        std::variant<f64, Ptr> value; // f64 常量 或 嵌套子样条 AST
+        f32 location;
+        f32 derivative;
+        std::variant<f32, Ptr> value; // f32 常量 或 嵌套子样条 AST
     };
 
     SplineNode(Ptr locationFunction, std::vector<Point> points)

@@ -82,12 +82,12 @@ public final class CubicSplineOracle {
 
         @Override
         public double minValue() {
-            return this.value;
+            return -1.0;
         }
 
         @Override
         public double maxValue() {
-            return this.value;
+            return 1.0;
         }
 
         @Override

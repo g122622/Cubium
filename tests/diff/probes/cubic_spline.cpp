@@ -46,64 +46,90 @@ std::string doubleBits(f64 value)
  */
 struct SplineCase {
     const char* id;
-    std::vector<std::array<f64, 3>> points; ///< {location, value, derivative}
+    std::vector<std::array<f32, 3>> points; ///< {location, value, derivative}
 };
 
 const std::vector<SplineCase>& splineCases()
 {
     static const std::vector<SplineCase> table = {
         // 两点、全零导数：退化成两段线性
-        {"linear2", {{0.0, 0.0, 0.0}, {1.0, 1.0, 0.0}}},
+        {"linear2", {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 0.0f}}},
 
         // 三点、全零导数
-        {"flat3", {{-1.0, 0.5, 0.0}, {0.0, -0.25, 0.0}, {1.0, 0.75, 0.0}}},
+        {"flat3", {{-1.0f, 0.5f, 0.0f}, {0.0f, -0.25f, 0.0f}, {1.0f, 0.75f, 0.0f}}},
 
         // 三点、非零导数：标准三次 Hermite
-        {"hermite3", {{-1.0, 0.5, 0.25}, {0.0, -0.25, 0.5}, {1.0, 0.75, -0.125}}},
+        {"hermite3", {{-1.0f, 0.5f, 0.25f}, {0.0f, -0.25f, 0.5f}, {1.0f, 0.75f, -0.125f}}},
 
         // 宽度不等：第一段窄、第二段宽，width 直接进 f8/f9
-        {"uneven", {{0.0, 0.0, 1.0}, {0.1, 0.6, -0.5}, {2.0, -0.3, 0.2}}},
+        {"uneven", {{0.0f, 0.0f, 1.0f}, {0.1f, 0.6f, -0.5f}, {2.0f, -0.3f, 0.2f}}},
 
         // 小数 location（原版用 float 存，0.1 / 0.3 这类会带 f32 舍入）
-        {"fractional", {{0.1, 0.5, 0.125}, {0.3, -0.5, 0.25}, {0.7, 1.5, -0.375}}},
+        {"fractional", {{0.1f, 0.5f, 0.125f}, {0.3f, -0.5f, 0.25f}, {0.7f, 1.5f, -0.375f}}},
 
         // 主世界 offset 那类形状：负到正、导数为零
-        {"offset_like", {{-1.0, 2.5, 0.0}, {-0.35, 1.2, 0.0}, {-0.18, -0.4, 0.0}, {0.25, 0.9, 0.0}}},
+        {"offset_like", {{-1.0f, 2.5f, 0.0f}, {-0.35f, 1.2f, 0.0f}, {-0.18f, -0.4f, 0.0f}, {0.25f, 0.9f, 0.0f}}},
 
         // 递减
-        {"descending", {{-2.0, 1.0, -0.5}, {0.0, 0.0, -0.25}, {2.0, -1.0, 0.0}}},
+        {"descending", {{-2.0f, 1.0f, -0.5f}, {0.0f, 0.0f, -0.25f}, {2.0f, -1.0f, 0.0f}}},
 
         // 单点：全部落在外推分支
-        {"single", {{0.5, 0.25, 0.75}}},
+        {"single", {{0.5f, 0.25f, 0.75f}}},
     };
     return table;
 }
 
 /// 采样输入值：覆盖外推、端点、区间内部、控制点上。
-const std::vector<f64>& sampleInputs()
+const std::vector<f32>& sampleInputs()
 {
-    static const std::vector<f64> table = {
-        -3.0,
-        -2.0,
-        -1.0,
-        -0.5,
-        -0.35,
-        -0.18,
-        -0.1,
-        0.0,
-        0.05,
-        0.1,
-        0.2,
-        0.3,
-        0.5,
-        0.7,
-        1.0,
-        1.5,
-        2.0,
-        3.0,
+    static const std::vector<f32> table = {
+        -3.0f,
+        -2.0f,
+        -1.0f,
+        -0.5f,
+        -0.35f,
+        -0.18f,
+        -0.1f,
+        0.0f,
+        0.05f,
+        0.1f,
+        0.2f,
+        0.3f,
+        0.5f,
+        0.7f,
+        1.0f,
+        1.5f,
+        2.0f,
+        3.0f,
     };
     return table;
 }
+
+/**
+ * 声明输入坐标范围为 [-1, 1] 的密度函数。
+ *
+ * 样条的 minValue/maxValue 要用输入的范围去外推首末控制点，所以这个范围必须是样条
+ * 的真实输入域，而不是当前采样点的坐标值。oracle 侧同样固定为 [-1, 1]。
+ */
+class SplineInputRange final : public DensityFunction {
+public:
+    [[nodiscard]] f64 compute(i32, i32, i32) const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] f64 minValue() const override
+    {
+        return -1.0;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return 1.0;
+    }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(SplineInputRange)
+};
 
 std::unique_ptr<CubicSpline> buildSpline(const SplineCase& splineCase)
 {
@@ -112,7 +138,7 @@ std::unique_ptr<CubicSpline> buildSpline(const SplineCase& splineCase)
     for (const auto& point : splineCase.points) {
         points.emplace_back(point[0], point[1], point[2]);
     }
-    return std::make_unique<CubicSpline>(std::make_shared<Constant>(0.0), std::move(points));
+    return std::make_unique<CubicSpline>(std::make_shared<SplineInputRange>(), std::move(points));
 }
 
 void writeList(std::FILE* out)
@@ -145,7 +171,7 @@ std::string runLine(std::string_view inputLine)
         }
         // 直接构造生产代码的 CubicSpline，不在这里重写 Hermite 公式。
         const auto spline = buildSpline(splineCase);
-        const f64 coordinate = sampleInputs()[index];
+        const f32 coordinate = sampleInputs()[index];
         const f64 value = spline->apply(coordinate, 0, 0, 0);
         return json{{"unit", requested},
             {"value", doubleBits(value)},

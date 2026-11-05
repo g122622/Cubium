@@ -119,19 +119,19 @@ f64 CubicSpline::compute(i32 blockX, i32 blockY, i32 blockZ) const
     return apply(coordinate, blockX, blockY, blockZ);
 }
 
-f64 CubicSpline::apply(f64 coordinate, i32 blockX, i32 blockY, i32 blockZ) const
+f32 CubicSpline::apply(f32 coordinate, i32 blockX, i32 blockY, i32 blockZ) const
 {
     const size_t n = m_points.size();
 
     // 在第一个点之前 - 线性外推
     if (coordinate <= m_points[0].location) {
-        const f64 value0 = resolvePointValue(0, blockX, blockY, blockZ);
+        const f32 value0 = resolvePointValue(0, blockX, blockY, blockZ);
         return linearExtend(coordinate, m_points[0].location, value0, m_points[0].derivative);
     }
 
     // 在最后一个点之后 - 线性外推
     if (coordinate >= m_points[n - 1].location) {
-        const f64 valueN = resolvePointValue(n - 1, blockX, blockY, blockZ);
+        const f32 valueN = resolvePointValue(n - 1, blockX, blockY, blockZ);
         return linearExtend(coordinate, m_points[n - 1].location, valueN, m_points[n - 1].derivative);
     }
 
@@ -147,33 +147,45 @@ f64 CubicSpline::apply(f64 coordinate, i32 blockX, i32 blockY, i32 blockZ) const
         }
     }
 
-    // 三次 Hermite 插值（MC 1.21 CubicSpline.Multipoint.apply）
-    const f64 loc0 = m_points[lo].location;
-    const f64 loc1 = m_points[lo + 1].location;
-    const f64 val0 = resolvePointValue(lo, blockX, blockY, blockZ);
-    const f64 val1 = resolvePointValue(lo + 1, blockX, blockY, blockZ);
-    const f64 der0 = m_points[lo].derivative;
-    const f64 der1 = m_points[lo + 1].derivative;
+    // 三次 Hermite 插值。原版全程 float：locations、derivatives、中间量都是 float，
+    // 这里必须保持同样的精度层级，否则每个插值点都会差出 f32 与 f64 的精度差。
+    const f32 loc0 = m_points[lo].location;
+    const f32 loc1 = m_points[lo + 1].location;
+    const f32 val0 = resolvePointValue(lo, blockX, blockY, blockZ);
+    const f32 val1 = resolvePointValue(lo + 1, blockX, blockY, blockZ);
+    const f32 der0 = m_points[lo].derivative;
+    const f32 der1 = m_points[lo + 1].derivative;
 
-    const f64 width = loc1 - loc0;
-    const f64 t = (coordinate - loc0) / width;
+    const f32 width = loc1 - loc0;
+    const f32 t = (coordinate - loc0) / width;
 
-    // MC 1.21: f4 = der0 * width - (val1 - val0), f5 = -der1 * width + (val1 - val0)
-    const f64 f4 = der0 * width - (val1 - val0);
-    const f64 f5 = -der1 * width + (val1 - val0);
+    // 原版: f8 = der0 * (loc1 - loc0) - (val1 - val0)
+    //       f9 = -der1 * (loc1 - loc0) + (val1 - val0)
+    const f32 delta = val1 - val0;
+    const volatile f32 der0Width = der0 * width;
+    const volatile f32 der1Width = der1 * width;
+    const f32 f8 = der0Width - delta;
+    const f32 f9 = -der1Width + delta;
 
-    // lerp(t, val0, val1) + t * (1 - t) * lerp(t, f4, f5)
-    return val0 + t * (val1 - val0) + t * (1.0 - t) * (f4 * (1.0 - t) + f5 * t);
+    // 原版: lerp(t, val0, val1) + t * (1 - t) * lerp(t, f8, f9)，两个 lerp 都是 float
+    // 两个 lerp 都按原版 a + t * (b - a) 的逐步舍入来算。乘积先落回标量存储，
+    // 否则 -march=native 会把它融合成单条 fma，乘积不再舍入，末位与原版不同。
+    const volatile f32 baseDelta = t * (val1 - val0);
+    const f32 base = val0 + baseDelta;
+    const volatile f32 tailDelta = t * (f9 - f8);
+    const f32 tail = f8 + tailDelta;
+    const volatile f32 outerDelta = t * (1.0f - t) * tail;
+    return base + outerDelta;
 }
 
-f64 CubicSpline::resolvePointValue(size_t index, i32 blockX, i32 blockY, i32 blockZ) const
+f32 CubicSpline::resolvePointValue(size_t index, i32 blockX, i32 blockY, i32 blockZ) const
 {
     const auto& point = m_points[index];
-    if (std::holds_alternative<f64>(point.value)) {
-        return std::get<f64>(point.value);
+    if (std::holds_alternative<f32>(point.value)) {
+        return std::get<f32>(point.value);
     }
-    // 嵌套样条：递归计算
-    return std::get<std::shared_ptr<CubicSpline>>(point.value)->compute(blockX, blockY, blockZ);
+    // 嵌套样条：递归计算，结果截到 f32（原版嵌套也是 float）
+    return static_cast<f32>(std::get<std::shared_ptr<CubicSpline>>(point.value)->compute(blockX, blockY, blockZ));
 }
 
 std::unique_ptr<DensityFunction> CubicSpline::mapAll(Visitor& visitor) const
@@ -188,8 +200,8 @@ std::unique_ptr<DensityFunction> CubicSpline::mapAll(Visitor& visitor) const
         SplinePoint newPoint;
         newPoint.location = point.location;
         newPoint.derivative = point.derivative;
-        if (std::holds_alternative<f64>(point.value)) {
-            newPoint.value = std::get<f64>(point.value);
+        if (std::holds_alternative<f32>(point.value)) {
+            newPoint.value = std::get<f32>(point.value);
         } else {
             auto& childSpline = std::get<std::shared_ptr<CubicSpline>>(point.value);
             auto mappedChild = childSpline->mapAll(visitor);
@@ -201,38 +213,106 @@ std::unique_ptr<DensityFunction> CubicSpline::mapAll(Visitor& visitor) const
     return visitor.apply(std::make_unique<CubicSpline>(std::move(sharedInput), std::move(newPoints)));
 }
 
-f64 CubicSpline::linearExtend(f64 coordinate, f64 location, f64 value, f64 derivative)
+f32 CubicSpline::linearExtend(f32 coordinate, f32 location, f32 value, f32 derivative)
 {
-    if (derivative == 0.0) {
+    if (derivative == 0.0f) {
         return value;
     }
-    return value + derivative * (coordinate - location);
+    // 原版 linearExtend 全程 float。
+    const volatile f32 extendDelta = derivative * (coordinate - location);
+    return value + extendDelta;
 }
 
 void CubicSpline::computeBounds()
 {
-    // 递归计算所有控制点的值范围
-    m_minValue = std::numeric_limits<f64>::max();
-    m_maxValue = std::numeric_limits<f64>::lowest();
+    // 边界计算必须与原版 CubicSpline.Multipoint.create 逐步一致：它不只取控制点值，
+    // 还要用导数把区间内部的极值纳入。只用控制点值会漏掉导数把曲线拱出去的部分。
+    const size_t last = m_points.size() - 1;
+    f32 minValue = std::numeric_limits<f32>::infinity();
+    f32 maxValue = -std::numeric_limits<f32>::infinity();
 
-    for (const auto& point : m_points) {
-        if (std::holds_alternative<f64>(point.value)) {
-            m_minValue = std::min(m_minValue, std::get<f64>(point.value));
-            m_maxValue = std::max(m_maxValue, std::get<f64>(point.value));
-        } else {
-            const auto& child = std::get<std::shared_ptr<CubicSpline>>(point.value);
-            m_minValue = std::min(m_minValue, child->minValue());
-            m_maxValue = std::max(m_maxValue, child->maxValue());
-        }
+    const f32 inputMin = static_cast<f32>(m_input->minValue());
+    const f32 inputMax = static_cast<f32>(m_input->maxValue());
+
+    // 输入范围越出首/末控制点时，外推结果也要计入。
+    if (inputMin < m_points[0].location) {
+        const f32 below0 = linearExtend(inputMin, m_points[0].location, resolveBoundsMin(0), m_points[0].derivative);
+        const f32 below1 = linearExtend(inputMin, m_points[0].location, resolveBoundsMax(0), m_points[0].derivative);
+        minValue = std::min(minValue, std::min(below0, below1));
+        maxValue = std::max(maxValue, std::max(below0, below1));
     }
 
-    // 考虑导数导致的外推超出范围
-    const f64 inputMin = m_input->minValue();
-    const f64 inputMax = m_input->maxValue();
-    const f64 valAtMin = apply(inputMin, 0, 0, 0);
-    const f64 valAtMax = apply(inputMax, 0, 0, 0);
-    m_minValue = std::min({m_minValue, valAtMin, valAtMax});
-    m_maxValue = std::max({m_maxValue, valAtMin, valAtMax});
+    if (inputMax > m_points[last].location) {
+        const f32 above0 =
+            linearExtend(inputMax, m_points[last].location, resolveBoundsMin(last), m_points[last].derivative);
+        const f32 above1 =
+            linearExtend(inputMax, m_points[last].location, resolveBoundsMax(last), m_points[last].derivative);
+        minValue = std::min(minValue, std::min(above0, above1));
+        maxValue = std::max(maxValue, std::max(above0, above1));
+    }
+
+    // 所有控制点自身的值范围。
+    for (size_t i = 0; i < m_points.size(); ++i) {
+        minValue = std::min(minValue, resolveBoundsMin(i));
+        maxValue = std::max(maxValue, resolveBoundsMax(i));
+    }
+
+    // 逐区间：导数把 Hermite 曲线拱出两端值时，按原版的四组组合估计极值。
+    for (size_t j = 0; j < last; ++j) {
+        const f32 width = m_points[j + 1].location - m_points[j].location;
+        const f32 der0 = m_points[j].derivative;
+        const f32 der1 = m_points[j + 1].derivative;
+        if (der0 == 0.0f && der1 == 0.0f) {
+            continue;
+        }
+
+        const f32 min0 = resolveBoundsMin(j);
+        const f32 max0 = resolveBoundsMax(j);
+        const f32 min1 = resolveBoundsMin(j + 1);
+        const f32 max1 = resolveBoundsMax(j + 1);
+
+        const f32 scaledDer0 = der0 * width;
+        const f32 scaledDer1 = der1 * width;
+        const f32 innerMin = std::min(min0, min1);
+        const f32 innerMax = std::max(max0, max1);
+
+        // 原版: f18 = f14 - f11 + f8;  f19 = f14 - f10 + f9
+        //       f20 = -f15 + f10 - f9; f21 = -f15 + f11 - f8
+        const f32 lowA = scaledDer0 - max1 + min0;
+        const f32 highA = scaledDer0 - min1 + max0;
+        const f32 lowB = -scaledDer1 + min1 - max0;
+        const f32 highB = -scaledDer1 + max1 - min0;
+
+        const f32 innerLow = std::min(lowA, lowB);
+        const f32 innerHigh = std::max(highA, highB);
+
+        // 原版: f = min(f, f16 + 0.25F * f22); f1 = max(f1, f17 + 0.25F * f23)
+        minValue = std::min(minValue, innerMin + 0.25f * innerLow);
+        maxValue = std::max(maxValue, innerMax + 0.25f * innerHigh);
+    }
+
+    m_minValue = minValue;
+    m_maxValue = maxValue;
+}
+
+/** 控制点在边界计算中代表的最小值：常量取自身，嵌套样条取它的 minValue。 */
+f32 CubicSpline::resolveBoundsMin(size_t index) const
+{
+    const auto& point = m_points[index];
+    if (std::holds_alternative<f32>(point.value)) {
+        return std::get<f32>(point.value);
+    }
+    return static_cast<f32>(std::get<std::shared_ptr<CubicSpline>>(point.value)->minValue());
+}
+
+/** 控制点在边界计算中代表的最大值：常量取自身，嵌套样条取它的 maxValue。 */
+f32 CubicSpline::resolveBoundsMax(size_t index) const
+{
+    const auto& point = m_points[index];
+    if (std::holds_alternative<f32>(point.value)) {
+        return std::get<f32>(point.value);
+    }
+    return static_cast<f32>(std::get<std::shared_ptr<CubicSpline>>(point.value)->maxValue());
 }
 
 // ============================================================================
