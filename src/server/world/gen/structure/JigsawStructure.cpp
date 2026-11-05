@@ -203,22 +203,13 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
         return start;
     }
 
-    // 计算起始位置
+    // 起始高度**只**来自 start_height 高度提供者（原版 findGenerationPoint 同样只采样它）。
+    // 通用拼图结构在地表以下（试炼密室/要塞/下界堡垒等）或高空生成，任何"地形太低就回退到
+    // 某个默认 Y"的兜底都会把它们整批搬到地表附近——这是曾经让整类结构在差分里系统性错位的根因。
     i32 startY = m_startY;
     if (m_config.startHeight) {
-        // 使用高度提供者计算起始高度
         valueprovider::WorldGenerationContext context(MIN_BUILD_HEIGHT, CHUNK_HEIGHT);
         startY = m_config.startHeight->sample(rng, context);
-    } else if (m_nearTerrain) {
-        // 如果需要贴合地形，查询地面高度
-        const i32 centerX = chunkX * CHUNK_WIDTH + CHUNK_WIDTH / 2;
-        const i32 centerZ = chunkZ * CHUNK_WIDTH + CHUNK_WIDTH / 2;
-        startY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
-
-        // 地形太低时使用默认高度
-        if (startY < MIN_TERRAIN_HEIGHT) {
-            startY = m_startY > 0 ? m_startY : DEFAULT_START_Y;
-        }
     }
 
     // 候选生成点：区块最小角 + start_height 给出的 Y（原版 JigsawStructure.findGenerationPoint

@@ -223,13 +223,18 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
     {
         for (auto& dispatch : ready) {
             util::UniversalWorkerPool* pool;
+            bool stillScheduled;
             {
                 std::lock_guard lock(mutex);
-                if (dispatch.task->phase != Phase::Scheduled || dispatch.task->generation != dispatch.generation) {
-                    _releaseBody(dispatch.task);
-                    continue;
-                }
+                stillScheduled =
+                    dispatch.task->phase == Phase::Scheduled && dispatch.task->generation == dispatch.generation;
                 pool = executor;
+            }
+            if (!stillScheduled) {
+                // 资格已被更高优先级任务撤回。任务体必须在锁外释放：其析构会连带销毁
+                // 任务持有的世界数据（如光照任务保活的区块）。
+                _releaseBody(dispatch.task);
+                continue;
             }
             if (pool == nullptr || !pool->isRunning()) {
                 _cancelPending(true, 0);
