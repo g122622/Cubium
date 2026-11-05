@@ -1201,3 +1201,29 @@ fat_tower_top   17,6,17
 任何已知模板的原始尺寸（`second_roof` 是 14x2x14、`third_roof` 是 16x2x16、
 `base_roof` 未单独测过），因此 `[54]` 究竟对应哪个模板仍未确定。
 下一步应当把所有 end_city 模板的尺寸一次性打全，再与原版的尺寸序列逐项对照。
+
+## 第二十六轮：随机数路径的系统排查（全部排除）
+
+末地只剩 `the_end/9248738493917/-75/25`。本轮的假设是「某处多抽或少抽了一次随机数」，
+于是把整条路径逐点核对了一遍，**结果全部与原版一致**：
+
+| 位置 | 结论 |
+|---|---|
+| `_selectStructureStart` 的结构随机源 | 独立的 `WorldgenRandom` + `setLargeFeatureSeed(seed, cx, cz)`，与原版一致 |
+| `EndCityStructure::generate` 开头 | 先 `rng.nextInt(4)` 取旋转，再算高度，顺序已对齐 |
+| `startHouseTower` 的三次 `addPiece` | `addPiece` 内部不抽随机数 |
+| `CityTemplate` 构造与 `generate` | 全函数无 `rng.` 调用 |
+| `Template::place` | 显式 `(void)rng;`，1.21 起无消费方 |
+| `recursiveChildren` 的 `rng.nextInt()` | 在 `generate` 成功之后才抽，与原版位置相同 |
+| `HouseTowerGenerator` 的三分支 | `variant 0/1/2` 与原版逐句一致 |
+| `Rotation` 枚举顺序 | `None/Clockwise90/Clockwise180/CounterClockwise90`，与 Java 的 `NONE/CLOCKWISE_90/CLOCKWISE_180/COUNTERCLOCKWISE_90` 一致 |
+| `WorldgenRandom::nextInt(bound)` | 2 的幂走 `next(31)` 乘法、否则拒绝采样，与原版 `BitRandomSource` 一致 |
+
+**因此分叉不是「次数不对」，更可能是「某个抽取的返回值不同」**，而这一点无法靠阅读代码判定。
+
+### 下一轮的做法
+
+必须做**逐次比对**：给 Cubium 的 `IRandom` 套一个记录装饰器，把每次 `nextInt` / `nextBoolean`
+的序号与结果写进日志；同时在 Java 侧用同样的方式记录（`MsDrive.java` 已有子类化
+`WorldgenRandom` 覆写 `next(int)` 的现成做法），然后对齐两份序列，找出第一个不一致的下标。
+这是唯一能给出确定答案的手段，不应再继续读代码猜。
