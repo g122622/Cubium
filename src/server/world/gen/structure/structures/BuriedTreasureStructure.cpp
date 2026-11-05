@@ -43,7 +43,10 @@ namespace structure {
 
 // BuriedTreasurePiece 实现
 BuriedTreasurePiece::BuriedTreasurePiece(i32 x, i32 y, i32 z)
-    : StructurePiece(StructurePieceTypes::BURIED_TREASURE, x, y, z, x + 2, y + 2, z + 2) // 3x3x3 区域
+    // 原版 `new BoundingBox(p_227366_)` 是**单点**盒子；生成阶段向下搜索到合适地层后
+    // 才把包围盒改成落点那一格。这里若铺成 3x3x3，起点包围盒会凭空大一圈，
+    // 整体尺寸、碰撞判定与差分输出都会偏离。
+    : StructurePiece(StructurePieceTypes::BURIED_TREASURE, x, y, z, x, y, z)
 {}
 
 bool BuriedTreasurePiece::_isInBounds(i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds) const
@@ -63,10 +66,10 @@ void BuriedTreasurePiece::generate(IWorldWriter& world,
     const BlockState* sandState = VanillaBlocks::getState(VanillaBlocks::SAND);
     const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
 
-    // 放置宝藏箱子（中心位置）
-    i32 centerX = minX() + 1;
-    i32 centerY = minY() + 1;
-    i32 centerZ = minZ() + 1;
+    // 包围盒是单点盒，宝藏就落在这一格上（原版落点同样直接取包围盒的 min 角）。
+    i32 centerX = minX();
+    i32 centerY = minY();
+    i32 centerZ = minZ();
 
     if (_isInBounds(centerX, centerY, centerZ, chunkBounds)) {
         // 放置金块作为宝藏占位符（箱子方块尚未实现）
@@ -101,39 +104,30 @@ const biome::BiomeTag* BuriedTreasureStructure::defaultBiomeTag() const
 }
 
 bool BuriedTreasureStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
-    // 使用单独的 salt=10387320 计算种子，然后检查概率
-    // 埋藏宝藏的概率检查：nextFloat() < 0.01 (1% 概率)
-    return rng.nextFloat() < 0.01f;
+    // 平均每 100 个区块一座：概率判定由稀疏结构放置（RandomSpreadStructurePlacement）负责，
+    // 这里没有任何额外门槛。此前在这里又抽一次 random.nextFloat() < 0.01，等于与放置器
+    // 复利相乘（实际只剩万分之一的落点），且多消耗一次世界随机数，后续所有结构随之错位。
+    return true;
 }
 
 std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
+    MC_UNUSED(rng);
+
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 在区块中心附近找一个合适的位置
-    // MC 原版 BuriedTreasureStructure.generatePieces() 使用区块中心偏移 9 格
-    i32 baseX = (chunkX << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
-    i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
+    // 生成点固定为「区块中心列 + (9, 90, 9)」，Y 的 90 只是占位值：片段的包围盒是一个
+    // 单点，真正的落点在 FEATURES 阶段沿该列向下搜索时确定。这里不能抽样任何随机数以
+    // 挑选 X/Z 或深度——原版 generatePieces 全程不消耗随机数。
+    const BlockPos position(chunkX * world::CHUNK_WIDTH + 9, 90, chunkZ * world::CHUNK_WIDTH + 9);
 
-    // 使用 OceanFloorWG 高度图获取海底（最高固体方块）的 Y 坐标
-    // MC 原版通过 onTopOfChunkCenter() 回调使用 OCEAN_FLOOR_WG 高度图确定生成高度
-    i32 surfaceY = generator.getHeight(baseX, baseZ, HeightmapType::OceanFloorWG);
-
-    // 宝藏应该埋在沙子下面 3-6 格
-    // MC 原版在 BuriedTreasurePiece.postProcess() 中从海底向下搜索合适位置
-    i32 treasureY = surfaceY - rng.nextInt(3, 6);
-    if (treasureY < world::MIN_BUILD_HEIGHT) {
-        treasureY = world::MIN_BUILD_HEIGHT;
-    }
-
-    // 创建并添加片段（方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行）
-    auto piece = std::make_unique<BuriedTreasurePiece>(baseX, treasureY, baseZ);
-    start->addPiece(std::move(piece));
+    start->addPiece(std::make_unique<BuriedTreasurePiece>(position.x, position.y, position.z));
     start->recalculateStructureSize();
 
+    MC_UNUSED(generator);
     return start;
 }
 
