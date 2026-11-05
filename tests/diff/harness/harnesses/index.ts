@@ -1921,6 +1921,19 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "enchantment_applicability", probe: "enchantment_applicability", oracle: "EnchantmentApplicabilityOracle",
         key: "enchantment", units: { kind: "listing" }, input: enchantmentApplicabilityInput,
         unorderedArrays: ENCHANTMENT_APPLICABILITY_UNORDERED },
+    {
+        name: "dig_speed",
+        probe: "dig_speed",
+        oracle: "DigSpeedOracle",
+        description: "玩家挖掘速度的整条计算链（原版 Player.getDestroySpeed）—— 33 个固定场景覆盖七环："
+        + "工具基础速度、效率附魔、急迫/潮涌能量、挖掘疲劳、block_break_speed、水下、空中。"
+        + "最容易漏的是第二环的 > 1.0 判断：效率附魔只在「工具确实比方块快」时叠加，"
+        + "空手挖泥土吃不到它；把这一环写成无条件相加，带效率附魔的手挖速度就会偏高。"
+        + "其次是挖掘疲劳的四档是写死的常量（0.3 / 0.09 / 0.0027 / 8.1e-4），不是 0.3 的幂——按幂推算在 III 级起就偏离。"
+        + "急迫与潮涌能量取等级较高者而不叠加，这条也容易写成相加。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

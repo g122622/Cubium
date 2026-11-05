@@ -41,6 +41,7 @@
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/interaction/DigSpeed.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <algorithm>
 #include <cmath>
@@ -466,47 +467,39 @@ f32 MiningManager::_calculateDigSpeedMultiplier(ServerWorld& world,
     const ServerPlayerData& playerData,
     const Player* player) const
 {
-    // 1. 获取工具基础挖掘速度
-    f32 speed = heldItem.isEmpty() ? 1.0f : heldItem.getDestroySpeed(blockState);
+    // 公式本身在 DigSpeed.cpp，由差分测试的 dig_speed 能力直接验证。
+    // 这里只负责把「世界 / 玩家 / 物品」翻译成公式的输入。
+    DigSpeedInputs in{};
+    in.toolSpeed = heldItem.isEmpty() ? 1.0f : heldItem.getDestroySpeed(blockState);
 
-    // 2. 挖掘效率属性加成（仅当工具对当前方块有效时），对齐 vanilla Player.getDestroySpeed：
-    // 效率附魔经 enchantment.efficiency 修饰符把 level² + 1 加到 mining_efficiency 属性。
-    // 拿不到玩家实体时按默认值 0 处理——该属性默认值就是 0，等价于「没有效率附魔」。
-    if (speed > 1.0f) {
-        const f64 miningEfficiency =
-            player != nullptr ? player->getAttributeValue(entity::attribute::Attributes::MINING_EFFICIENCY, 0.0) : 0.0;
-        speed += static_cast<f32>(miningEfficiency);
-    }
+    // 效率附魔经 enchantment.efficiency 修饰符折算进 mining_efficiency。
+    // 拿不到玩家实体时按默认值 0 处理——该属性默认值就是 0，等价于没有效率附魔。
+    in.miningEfficiency = player != nullptr
+        ? static_cast<f32>(player->getAttributeValue(entity::attribute::Attributes::MINING_EFFICIENCY, 0.0))
+        : 0.0f;
 
-    // 3. block_break_speed 属性（默认 1.0，不改变结果；原版在这里做乘性叠加——
-    //    它排在急迫/疲劳之前，顺序不影响最终乘积，但必须存在这一环）。
-    if (player != nullptr) {
-        speed *= static_cast<f32>(player->getAttributeValue(entity::attribute::Attributes::BLOCK_BREAK_SPEED, 1.0));
-    }
+    const auto* hasteEffect = playerData.getEffect(entity::effect::EffectType::Haste);
+    in.hasteAmplifier = hasteEffect != nullptr ? hasteEffect->amplifier() : -1;
 
-    // 4. 急迫效果和潮涌能量加成
-    f32 hasteMultiplier = _calculateHasteMultiplier(playerData);
-    speed *= hasteMultiplier;
+    const auto* conduitEffect = playerData.getEffect(entity::effect::EffectType::ConduitPower);
+    in.conduitAmplifier = conduitEffect != nullptr ? conduitEffect->amplifier() : -1;
 
-    // 5. 挖掘疲劳惩罚
-    f32 fatigueMultiplier = _calculateMiningFatigueMultiplier(playerData);
-    speed *= fatigueMultiplier;
+    const auto* fatigueEffect = playerData.getEffect(entity::effect::EffectType::MiningFatigue);
+    in.miningFatigueAmplifier = fatigueEffect != nullptr ? fatigueEffect->amplifier() : -1;
 
-    // 6. 水下挖掘惩罚：拉开 submerged_mining_speed 属性（默认 0.2 = 陆地的 1/5），
-    // 水下速掘附魔把它乘到 1.0。拿不到玩家实体时退回到固定的 1/5。
-    if (_areEyesInWater(world, playerData)) {
-        const f64 submergedMiningSpeed = player != nullptr
-            ? player->getAttributeValue(entity::attribute::Attributes::SUBMERGED_MINING_SPEED, 0.2)
-            : 1.0 / static_cast<f64>(UNDERWATER_PENALTY);
-        speed *= static_cast<f32>(submergedMiningSpeed);
-    }
+    in.blockBreakSpeed = player != nullptr
+        ? static_cast<f32>(player->getAttributeValue(entity::attribute::Attributes::BLOCK_BREAK_SPEED, 1.0))
+        : 1.0f;
 
-    // 7. 空中挖掘惩罚
-    if (!playerData.onGround) {
-        speed /= OFF_GROUND_PENALTY;
-    }
+    // 水下挖掘默认降到陆地的 1/5；水下速掘附魔把该属性乘到 1.0。
+    in.submergedMiningSpeed = player != nullptr
+        ? static_cast<f32>(player->getAttributeValue(entity::attribute::Attributes::SUBMERGED_MINING_SPEED, 0.2))
+        : 1.0f / UNDERWATER_PENALTY;
 
-    return speed;
+    in.eyesInWater = _areEyesInWater(world, playerData);
+    in.onGround = playerData.onGround;
+
+    return digSpeed(in);
 }
 
 f32 MiningManager::_calculateHasteMultiplier(const ServerPlayerData& playerData) const
