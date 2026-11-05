@@ -118,23 +118,18 @@ private:
 
 } // anonymous namespace
 
-TrialChambersStructure::TrialChambersStructure(ResourceLocation id)
+TrialChambersStructure::TrialChambersStructure(ResourceLocation id, JigsawConfig config)
     : JigsawStructure(std::move(id),
-          JigsawConfig(ResourceLocation("minecraft", "trial_chambers/chamber/end"),
-              20, // maxDepth = 20
-              valueprovider::UniformHeight::create(
-                  valueprovider::VerticalAnchor::absolute(-40), valueprovider::VerticalAnchor::absolute(-20)),
-              createPoolAliases(),               // 池别名绑定
-              MaxDistance(116),                  // 最大距离116格
-              DimensionPadding(10, 10),          // 维度填充10
-              LiquidSettings::IgnoreWaterlogging // 忽略含水方块
-              ),
+          std::move(config),
           0,                             // startY 由 HeightProvider 决定
           false,                         // nearTerrain
           false,                         // adjustForTerrain
           TerrainAdaptation::Encapsulate // 用凝灰岩砖完全包裹
       )
-{}
+{
+    // 池别名由数据包定义（trial_chambers.json 的 pool_aliases 含带权重的 random_group），
+    // 不能在这里再建一份：数据包的别名列表是完整的，重复添加会让同一别名命中两次。
+}
 
 const biome::BiomeTag* TrialChambersStructure::defaultBiomeTag() const
 {

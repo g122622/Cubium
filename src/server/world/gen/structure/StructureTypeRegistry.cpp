@@ -176,7 +176,9 @@ Result<std::unique_ptr<Structure>> createJigsaw(const StructureDefinition& def)
         return toBase(std::make_unique<PillagerOutpostStructure>(def.id));
     }
     if (p == "trial_chambers") {
-        return toBase(std::make_unique<TrialChambersStructure>(def.id));
+        // 起始高度/最大距离/维度填充/池别名一律取自数据包：此前子类把 start_height 硬编码成
+        // absolute(-40..-20)，与数据包同值时无差别，但任何数据包改动都会静默失效。
+        return toBase(std::make_unique<TrialChambersStructure>(def.id, buildJigsawConfig(def)));
     }
     if (p == "bastion_remnant") {
         return toBase(std::make_unique<BastionRemnantStructure>(def.id));
