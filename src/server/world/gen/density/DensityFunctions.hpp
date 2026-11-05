@@ -718,9 +718,12 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
     {
-        return m_noise->getValue(static_cast<f64>(blockX) * m_xzScale,
-            static_cast<f64>(blockY) * m_yScale,
-            static_cast<f64>(blockZ) * m_xzScale);
+        // 坐标缩放先落回标量存储：原版是逐步舍入，编译器若把它保留在扩展精度里、或与
+        // getValue 内部的乘法合并，大坐标的末位就会偏移。
+        const volatile f64 sx = static_cast<f64>(blockX) * m_xzScale;
+        const volatile f64 sy = static_cast<f64>(blockY) * m_yScale;
+        const volatile f64 sz = static_cast<f64>(blockZ) * m_xzScale;
+        return m_noise->getValue(sx, sy, sz);
     }
 
     [[nodiscard]] f64 minValue() const override
