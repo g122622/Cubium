@@ -436,6 +436,36 @@ TEST_F(SpreadAlgorithmTest, SpreadPositionsTwoPositionsFarEnough)
     EXPECT_GE(positions[0].dist(positions[1]), 1.0 - 1e-6);
 }
 
+TEST_F(SpreadAlgorithmTest, SpreadPositionsReachesThresholdWithSubGridSpacing)
+{
+    // 两点相距 1.2 格、阈值 2 格：每次推一个单位距离，会越过阈值再折返，
+    // 最终距离必须大于阈值，而不是贴着阈值——贴阈值时落位取整的亚格误差会把它压回阈值以下。
+    std::vector<SpreadPosition> positions{{10.0, 10.0}, {11.2, 10.0}};
+    f64 minDist = 0.0;
+    bool success =
+        spreadPositions(2.0, m_world, m_rng, 0.0, 0.0, 100.0, 100.0, world::MAX_BUILD_HEIGHT, positions, minDist);
+    ASSERT_TRUE(success);
+    const f64 finalDist = positions[0].dist(positions[1]);
+    EXPECT_GT(finalDist, 2.0);
+    EXPECT_LT(finalDist, 4.0);
+    EXPECT_NEAR(minDist, finalDist, 1e-9);
+}
+
+TEST_F(SpreadAlgorithmTest, SpreadPositionsPushesApartUntilThresholdExceeded)
+{
+    // 多个位置挤在中心附近时，收敛后的两两间距都应严格大于阈值。
+    std::vector<SpreadPosition> positions{{4.0, 4.0}, {4.5, 4.0}, {4.0, 4.5}};
+    f64 minDist = 0.0;
+    bool success =
+        spreadPositions(3.0, m_world, m_rng, 0.0, 0.0, 12.0, 12.0, world::MAX_BUILD_HEIGHT, positions, minDist);
+    ASSERT_TRUE(success);
+    for (std::size_t i = 0; i < positions.size(); ++i) {
+        for (std::size_t j = i + 1; j < positions.size(); ++j) {
+            EXPECT_GT(positions[i].dist(positions[j]), 3.0) << "positions " << i << " and " << j;
+        }
+    }
+}
+
 TEST_F(SpreadAlgorithmTest, SpreadPositionsRespectsBounds)
 {
     // 分散后所有位置应在边界内

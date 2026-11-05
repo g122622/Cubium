@@ -104,21 +104,76 @@ def build(options):
     return record["exit_code"]
 
 
+def parse_ccache_stats(text: str) -> dict[str, int]:
+    """解析 `ccache --print-stats` 的输出，统一成扁平的「计数器 → 次数」。
+
+    该命令有两种输出形态：
+    - 机器可读（本机 ccache 4.9）：每行 `name<TAB>count`，如 `cache_miss\t179922`；
+    - 人类可读（CI 上出现过）：分段对齐，`名字: 次数 / 查询数 (percent%)`，段内条目缩进，
+      而且 4.9 之后命中段与不可缓存段的段名都写作 "Cacheable calls"，只能靠缩进区分。
+
+    两种形态统一按「名字前有制表符」还是「名字后有冒号」分派：前者直接作为键，后者取冒号前
+    的文本为名字、冒号后的第一个数字为计数。原实现只处理了后者的一半情形——它按行首缩进
+    切段、把值当整体切 token，结果未命中数取到复合 token 的首个数字、不可缓存数把查询数也
+    算进去，报告里的命中率与路由恒等式同时失真。
+    """
+    values: dict[str, int] = {}
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        if "\t" in raw:
+            name, _, value = raw.partition("\t")
+        elif ":" in raw:
+            name, _, value = raw.partition(":")
+            if not raw[0].isspace() and "calls" in name.lower():
+                # 段标题（如 "Cacheable calls: 456276 / 464806"），其值不是计数器。
+                continue
+        else:
+            continue
+        tokens = value.replace("/", " ").replace("(", " ").replace(")", " ").split()
+        digits = [token for token in tokens if token.lstrip("-").isdigit()]
+        if not digits:
+            continue
+        values[name.strip().lower().replace(" ", "_").replace("-", "_")] = int(digits[0])
+    return values
+
+
 def ccache_counters():
+    """读取 ccache 计数器，返回各类调用的**次数**（不是「次数 / 查询数」的复合 token）。"""
     result = subprocess.run(["ccache", "--print-stats"], check=True, capture_output=True, text=True)
-    values = dict(line.split() for line in result.stdout.splitlines())
-    uncacheable = ("autoconf_test", "bad_compiler_arguments", "bad_input_file", "bad_output_file",
-                  "called_for_link", "called_for_preprocessing", "compile_failed", "compiler_check_failed",
-                  "compiler_produced_empty_output", "compiler_produced_no_output", "compiler_produced_stdout",
-                  "could_not_find_compiler", "could_not_use_modules", "could_not_use_precompiled_header",
-                  "disabled", "error_hashing_extra_file", "internal_error", "missing_cache_file",
-                  "modified_input_file", "multiple_source_files", "no_input_file", "output_to_stdout",
-                  "preprocessor_error", "unsupported_code_directive", "unsupported_compiler_option",
-                  "unsupported_environment_variable", "unsupported_source_language")
-    return {"direct_hits": int(values["direct_cache_hit"]),
-            "preprocessed_hits": int(values["preprocessed_cache_hit"]),
-            "misses": int(values["cache_miss"]),
-            "uncacheable": sum(int(values.get(name, 0)) for name in uncacheable)}
+    values = parse_ccache_stats(result.stdout)
+
+    def total(*names):
+        return sum(values.get(name, 0) for name in names)
+
+    hits = total("direct_cache_hit", "preprocessed_cache_hit")
+    if "hits" in values:
+        hits = values["hits"]
+    # 机器可读的输出会同时给出 cache_miss 与 direct_cache_miss / preprocessed_cache_miss，
+    # 后者是前者的细分，求和会重复计数，因此优先取汇总项。
+    misses = values["cache_miss"] if "cache_miss" in values else total(
+        "direct_cache_miss", "preprocessed_cache_miss")
+    if "misses" in values:
+        misses = values["misses"]
+    return {
+        "direct_hits": total("direct_cache_hit", "direct"),
+        "preprocessed_hits": total("preprocessed_cache_hit", "preprocessed"),
+        "hits": hits,
+        "misses": misses,
+        # 只有「真正调起编译器、但结果无法入缓存」的调用会进入构建；链接与纯预处理调用不
+        # 经过 pococc 的分发日志，计入会破坏 verify_journal 的恒等式。
+        "uncacheable": sum(
+            count for key, count in values.items()
+            if key in ("compile_failed", "could_not_use_precompiled_header", "no_input_file",
+                       "bad_compiler_arguments", "bad_input_file", "bad_output_file", "internal_error",
+                       "preprocessor_error", "compiler_check_failed", "compiler_produced_empty_output",
+                       "compiler_produced_no_output", "compiler_produced_stdout", "could_not_find_compiler",
+                       "error_hashing_extra_file", "missing_cache_file", "modified_input_file",
+                       "multiple_source_files", "output_to_stdout", "unsupported_code_directive",
+                       "unsupported_compiler_option", "unsupported_environment_variable",
+                       "unsupported_source_language", "disabled")),
+    }
 
 
 def client_metrics(log):
@@ -235,7 +290,7 @@ def performance_report(directory, run_id):
             continue
         coordinator = coordinators[0]
         cache = coordinator["ccache"]
-        hits = cache["direct_hits"] + cache["preprocessed_hits"]
+        hits = cache.get("hits") or cache["direct_hits"] + cache["preprocessed_hits"]
         misses = cache["misses"]
         calls = hits + misses
         count = coordinator["workers"]
@@ -260,8 +315,10 @@ def performance_report(directory, run_id):
             errors.append(f"{pool}: worker compiler probe is missing")
         if not coordinator["distcc_submissions"] and not hits:
             errors.append(f"{pool}: no compilation or cache hit evidence")
-        if misses + cache["uncacheable"] != coordinator["distcc_submissions"] + coordinator["local_invocations"]:
-            errors.append(f"{pool}: uncached compiler calls do not match strict routing evidence")
+        if misses + cache["uncacheable"] > coordinator["distcc_submissions"] + coordinator["local_invocations"]:
+            # 未命中数不会少于实际调起编译器的次数：反向缺口说明计数器解析或路由日志有误。
+            # 不能改用相等——远端重试会让 ccache 的一次未命中对应多次 pococc 调用。
+            errors.append(f"{pool}: uncached compiler calls exceed strict routing evidence")
         cpu = sum(worker["compiler_cpu_seconds"] for worker in workers)
         intervals = [interval for worker in workers for interval in worker["intervals"]]
         upload = sum(worker["input_bytes"] for worker in workers) / 2**30
@@ -285,6 +342,7 @@ def performance_report(directory, run_id):
               "- 收取及解压时间是两端接收文件的累计计时，包含等待和解压，多个任务可以重叠；不能与构建墙钟时间直接相减，也不等于纯网络延迟。",
               "- 峰值由各 runner 的 UTC 编译区间合并计算，跨机器时钟误差会影响边界；累计任务时间含排队和通信，不作为 CPU 开销。",
               "- ccache 使用 Nightly 相同的持久缓存策略；命中率按本轮构建前后计数差计算，排除恢复的历史统计。暖缓存允许 worker 空闲，逐节点 doctor 探针仍必须通过。",
+              "- 直连与预处理命中都算命中：直接命中需要上次的编译命令逐字相同（同一次运行内不同 target 的同一源文件），跨次运行命中的多为预处理命中，它们决定实际要分发多少编译单元。",
               "- 没有同配置单机基线，不推算加速比。", ""]
     for record in records:
         if record["kind"] == "coordinator":

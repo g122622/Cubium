@@ -172,8 +172,9 @@ function spreadplayersSpreadsMultiplePlayersApart(test: Test): void {
         const locs = getPlayerLocations(test);
         if (locs.length < 2) return false;
         // 任意两玩家水平间距 >= spreadDistance(2)（被分散开）。
-        // 用宽松下界 1.5（spreadDistance=2 但实体站立偏移/中心对齐方块+0.5 可能有亚格误差）。
-        return horizontalDistance(locs[0], locs[1]) >= 1.5;
+        // 下界 1.9 只用来吸收落位取整到方块中心的亚格误差。不要再放宽：spreadDistance 是
+        // "至少相隔这么多格"，旧算法的 1.414 会让宽松阈值把真实缺陷放过去。
+        return horizontalDistance(locs[0], locs[1]) >= 1.9;
     }, {
         startTick: 10,
         maxTick: 100,
@@ -181,7 +182,7 @@ function spreadplayersSpreadsMultiplePlayersApart(test: Test): void {
             const locs = getPlayerLocations(test);
             const dist = locs.length >= 2 ? horizontalDistance(locs[0], locs[1]) : -1;
             test.assert(false,
-                `spreadplayers did not spread players apart (dist=${dist}, need>=1.5); ` +
+                `spreadplayers did not spread players apart (dist=${dist}, need>=1.9); ` +
                 `locs=${JSON.stringify(locs)}`);
         },
     });

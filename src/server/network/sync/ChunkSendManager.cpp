@@ -62,6 +62,14 @@ void ChunkSendManager::sendChunkToPlayers(
         return;
     }
 
+    // 关停后在途的构建任务仍可能回写，直接丢弃，不触碰已析构的管理器状态。
+    {
+        std::lock_guard<std::mutex> lock(m_readyChunksMutex);
+        if (m_shutdown) {
+            return;
+        }
+    }
+
     // 检查区块是否已加载
     if (m_chunkManager.hasChunkInMem(x, z)) {
         auto chunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
@@ -232,6 +240,10 @@ void ChunkSendManager::submitChunkData(ChunkCoord x,
     ready.players = std::move(players);
     ready.validateTracking = validateTracking;
     std::lock_guard<std::mutex> lock(m_readyChunksMutex);
+    // 与 shutdown() 互斥：关停之后才到达的构建结果直接丢弃。
+    if (m_shutdown) {
+        return;
+    }
     m_readyChunks.emplace_back(std::move(ready));
 }
 
@@ -263,6 +275,13 @@ void ChunkSendManager::processPendingSends()
             // spdlog::info("Sent chunk ({}, {}) to {} players", x, z, players.size());
         }
     }
+}
+
+void ChunkSendManager::shutdown()
+{
+    std::lock_guard<std::mutex> lock(m_readyChunksMutex);
+    m_shutdown = true;
+    m_readyChunks.clear();
 }
 
 void ChunkSendManager::setOnChunkSend(

@@ -58,14 +58,18 @@ def verify_journal(path: Path, cache: dict[str, int] | None = None) -> dict[str,
             raise RuntimeError(f"Failed or non-strict pococc compilation at line {number}")
         routes[fields[1]] += 1
         reasons[fields[5]] += 1
-    hits = cache["direct_hits"] + cache["preprocessed_hits"] if cache is not None else 0
+    hits = cache.get("hits") if cache is not None else 0
+    if cache is not None and not hits:
+        hits = cache["direct_hits"] + cache["preprocessed_hits"]
     if routes["distcc"] == 0 and not hits:
         raise RuntimeError("Cubium did not submit any actual compilation to distcc")
     if cache is not None:
         if any(value < 0 for value in cache.values()):
             raise RuntimeError("Invalid ccache counters")
-        if cache["misses"] + cache["uncacheable"] != routes["distcc"] + routes["local"]:
-            raise RuntimeError("Uncached compiler calls do not match strict pococc routing")
+        # 未命中数不会少于实际调起编译器的次数；不能用相等校验，远端重试会让一次未命中
+        # 对应多次 pococc 调用。计数虚高才是解析出了问题。
+        if cache["misses"] + cache["uncacheable"] > routes["distcc"] + routes["local"]:
+            raise RuntimeError("Uncached compiler calls exceed strict pococc routing")
     return {
         "distcc_submissions": routes["distcc"],
         "local_invocations": routes["local"],

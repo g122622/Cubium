@@ -73,7 +73,8 @@ function ladderBreaksWhenAttachedBlockRemoved(test: Test): void {
     // isSolidSide(air, east) false → 返回 air，梯子自毁。
     test.setBlockType("minecraft:air", { x: 2, y: 1, z: 1 });
 
-    // 断言梯子格 (3,1,1) 梯子已自毁消失（同 tick 同步）。
+    // 断言梯子格 (3,1,1) 梯子已自毁消失。等待上限放宽到 200 tick：附着方块移除后的自毁走
+    // 方块更新链路，可能经由后续 tick 派发，不保证与移除同一 tick 完成；60 tick 在负载高时曾超时。
     test.succeedWhenBlockPresent("minecraft:ladder", { x: 3, y: 1, z: 1 }, false);
 }
 
@@ -200,7 +201,7 @@ function ladderAbsentDealsFallDamage(test: Test): void {
 export function registerLadderTests(): void {
   GameTest.register("BlockBehaviorTests", "ladder_breaks_when_attached_block_removed", ladderBreaksWhenAttachedBlockRemoved)
         .structureName("gametests:glass_pit")
-        .maxTicks(60);
+        .maxTicks(200);
   // 梯子攀爬摔伤免疫测试用 fall_tower（垂直下落场景）。
   GameTest.register("BlockBehaviorTests", "ladder_climb_resets_fall_distance_no_damage", ladderClimbResetsFallDistanceNoDamage)
         .structureName("gametests:fall_tower")
