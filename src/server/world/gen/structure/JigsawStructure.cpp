@@ -211,7 +211,6 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
         valueprovider::WorldGenerationContext context(MIN_BUILD_HEIGHT, CHUNK_HEIGHT);
         startY = m_config.startHeight->sample(rng, context);
     }
-
     // 候选生成点：区块最小角 + start_height 给出的 Y（原版 JigsawStructure.findGenerationPoint
     // 用 chunkPos.getMinBlockX()/getMinBlockZ()，**不含任何随机偏移**——随机偏移早在结构集
     // 选点时由 RandomSpreadStructurePlacement 消耗完毕）。

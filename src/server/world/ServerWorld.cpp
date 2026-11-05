@@ -482,6 +482,17 @@ void ServerWorld::shutdown()
         m_onOpenContainer = nullptr;
         m_onOpenEntityContainer = nullptr;
         spdlog::info("DIAG members(dim={}): callbacks cleared", dim);
+        // TEMP-DIAG：实体按 id 逐个销毁，定位是否有实体的析构抛出。
+        std::vector<EntityInstanceId> ids;
+        m_entityManager.forEachEntity([&ids](const Entity* entity) {
+            ids.push_back(entity->id());
+            return true;
+        });
+        spdlog::info("DIAG members(dim={}): destroying {} entities", dim, ids.size());
+        for (EntityInstanceId id : ids) {
+            m_entityManager.destroyEntity(id, RemovalReason::Discarded);
+        }
+        spdlog::info("DIAG members(dim={}): entities destroyed individually", dim);
     }
     spdlog::info("Server world shut down");
 }
