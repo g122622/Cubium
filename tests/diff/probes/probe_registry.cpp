@@ -33,7 +33,6 @@
 #include <cstring>
 #include <string_view>
 #include <utility>
-#include <utility>
 #include <vector>
 
 #include "probe.hpp"

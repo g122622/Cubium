@@ -80,6 +80,7 @@ add_executable(mc_tests
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
     common/test_block.cpp
+    common/test_block_map_color.cpp
     common/test_pointed_dripstone.cpp
     common/test_chunk_generation.cpp
     common/test_chunk_level.cpp
