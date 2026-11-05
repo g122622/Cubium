@@ -1115,11 +1115,13 @@ const biome::BiomeTag* MineshaftStructure::defaultBiomeTag() const
 }
 
 bool MineshaftStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
-    // 间距检查已由 StructurePlacement::isStructureChunk() 处理
-    // 仅做概率检查
-    return rng.nextFloat() < m_config.probability;
+    // 间距与频率缩减（mineshaft 的 frequency = 0.004）都由结构集的放置器
+    // （RandomSpreadStructurePlacement::isStructureChunk → applyAdditionalChunkRestrictions）负责。
+    // 原版 MineshaftStructure 在候选区块确定后没有任何额外门槛，这里**不能再抽一次概率**：
+    // 多抽一次等于把频率再乘 0.004，且白耗一次世界随机数，使后续构件的分支选择整体错位。
+    return true;
 }
 
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
@@ -1204,6 +1206,7 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
         for (auto* piece : allPieces) {
             piece->offset(0, mesaOffset, 0);
         }
+        start->recalculateStructureSize();
         return start;
     }
 
@@ -1224,6 +1227,11 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     for (auto* piece : allPieces) {
         piece->offset(0, seaOffset, 0);
     }
+
+    // 起点包围盒必须按平移后的构件重算：`StructureStart::offset` 不传播到片段，
+    // 只平移集合盒会让 STRUCTURE_STARTS 阶段报出一个悬在下移前高度的盒子
+    // （构件都在 -25..-4，起点的盒子却是 40..61）。原版的 start 盒永远是片段的并集。
+    start->recalculateStructureSize();
 
     return start;
 }

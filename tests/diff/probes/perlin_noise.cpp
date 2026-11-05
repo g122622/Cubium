@@ -1,4 +1,5 @@
 #include "probe.hpp"
+#include <cmath>
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "server/world/gen/noise/PerlinNoise.hpp"
@@ -128,7 +129,11 @@ std::string runLine(std::string_view inputLine)
         // 同时输出标量路径的值：两条路径若不一致，说明 SoA 向量化引入了偏差，
         // 这比「两边都错」更容易定位。
         const f64 scalarValue = noise.getValueScalar(point[0], point[1], point[2]);
-        return json{{"unit", requested}, {"value", doubleBits(value)}, {"scalar", doubleBits(scalarValue)}}.dump();
+        // scaled：把值放大 2^40 后取整，让低位差异变成可见的整数差，便于在报告里读。
+        const i64 scaled = static_cast<i64>(std::llround(value * 1099511627776.0));
+        return json{
+            {"unit", requested}, {"value", doubleBits(value)}, {"scalar", doubleBits(scalarValue)}, {"scaled", scaled}}
+            .dump();
     }
     return json{{"unit", requested}, {"missing", true}}.dump();
 }
