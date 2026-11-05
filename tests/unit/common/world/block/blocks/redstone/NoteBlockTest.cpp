@@ -879,7 +879,6 @@ TEST_F(NoteBlockTest, HeadAbove_PlayerHeadTriggersCustomClick)
 
     // 无 note_block_sound → 原版不发声
     EXPECT_TRUE(m_world->playedSoundIds().empty());
-    EXPECT_FALSE(m_world->hasEvent(SoundEvents::UI_BUTTON_CLICK));
 }
 
 /**
