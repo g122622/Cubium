@@ -125,7 +125,10 @@ std::string runLine(std::string_view inputLine)
         const PerlinNoise noise(factory, noiseCase.firstOctave, noiseCase.amplitudes);
         const auto& point = samplePoints()[pointIndex];
         const f64 value = noise.getValue(point[0], point[1], point[2]);
-        return json{{"unit", requested}, {"value", doubleBits(value)}}.dump();
+        // 同时输出标量路径的值：两条路径若不一致，说明 SoA 向量化引入了偏差，
+        // 这比「两边都错」更容易定位。
+        const f64 scalarValue = noise.getValueScalar(point[0], point[1], point[2]);
+        return json{{"unit", requested}, {"value", doubleBits(value)}, {"scalar", doubleBits(scalarValue)}}.dump();
     }
     return json{{"unit", requested}, {"missing", true}}.dump();
 }
