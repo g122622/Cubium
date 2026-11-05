@@ -1582,9 +1582,10 @@ void Items::initialize()
     auto& registry = ItemRegistry::instance();
 
     // 空气物品（ID 0）
-    // 空气物品的堆叠上限是 1（原版 ItemStack.getMaxStackSize() 对 minecraft:air 返回 1）。
-    // 空气不可获得，但它出现在物品栏占位与比较器读数据里，上限必须与其它不可堆叠物品一致。
-    AIR = &registry.registerItem(ResourceLocation("minecraft:air"), ItemProperties().maxStackSize(1));
+    // 空气物品使用默认的堆叠上限 64：原版 `AirItem` 拿到的是一个未经修改的
+    // `Item.Properties`，没有显式设置 MAX_STACK_SIZE，于是取组件默认值。
+    // 它虽然不可获得，但会出现在物品栏占位与比较器读数里，上限必须与原版一致。
+    AIR = &registry.registerItem(ResourceLocation("minecraft:air"), ItemProperties());
 
     _registerMaterials();
     _registerMisc(); // 提前注册，因为工具层级需要木板等作为修复材料

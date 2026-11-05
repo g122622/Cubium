@@ -312,17 +312,18 @@ public:
     /**
      * @brief 是否为空物品堆
      *
-     * 对齐原版 `ItemStack#isEmpty`：**只看数量**。数量为 0 的堆仍记着物品类型，
-     * 因此 `grow` 能把它重新变成非空——原版「`set_count` 设成 0、再由
-     * `enchanted_count_increase` 加回来」这类函数链依赖这一点。
+     * 对齐原版 `ItemStack#isEmpty` 的三个条件：数量为 0、物品类型为 `air`、或就是那个
+     * `EMPTY` 哨兵。数量为 0 的堆仍记着物品类型，因此 `grow` 能把它重新变成非空——原版
+     * 「`set_count` 设成 0、再由 `enchanted_count_increase` 加回来」这类函数链依赖这一点。
+     *
+     * 物品类型为 `air` 也算空，这一点影响面比看上去大：原版 `components()` 对空堆返回
+     * `DataComponentMap.EMPTY`，于是 `getMaxStackSize()` 读到的是兜底值 1，而不是物品
+     * 注册表里 `COMMON_ITEM_COMPONENTS` 给的 64。
      *
      * `getItem()` 对数量为 0 的堆返回物品类型本身（原版 `getItem()` 同样如此）；
      * 只有从未设置过物品的默认堆才没有类型。
      */
-    [[nodiscard]] bool isEmpty() const
-    {
-        return m_count <= 0;
-    }
+    [[nodiscard]] bool isEmpty() const;
 
     /**
      * @brief 获取物品
