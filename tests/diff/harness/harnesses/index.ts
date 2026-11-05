@@ -2035,6 +2035,30 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "shifted_noise",
+        probe: "shifted_noise",
+        oracle: "ShiftedNoiseOracle",
+        description: "带坐标平移的噪声密度函数（原版 DensityFunctions.ShiftedNoise）的取值与 min/max —— 5 组配置 x 9 个坐标。"
+        + "语义是坐标先缩放再叠加位移，然后把结果喂给噪声；位移让噪声在空间上扭曲，形成蜿蜒的洞穴。"
+        + "位移函数用两种形态：常量（覆盖缩放加常量的加法顺序）与线性（覆盖非零位移路径），两者都只用加乘，不引入噪声。"
+        + "用例包含位移全零（退化成普通 NoiseDensity）、极小的常量位移（对大坐标可能被吸收）、"
+        + "以及线性位移配不对称缩放。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "shift_noise",
+        probe: "shift_noise",
+        oracle: "ShiftNoiseOracle",
+        description: "顶点位移噪声（原版 DensityFunctions.ShiftA/ShiftB/Shift）的取值与 min/max —— 9 组配置 x 11 个坐标。"
+        + "三者共享同一套算术：三个坐标各乘 0.25 后喂给噪声、结果再乘 4；区别只在坐标如何映射到噪声的三个轴："
+        + "ShiftA 是 (x,0,z)，ShiftB 是 (z,x,0)，Shift 是 (x,y,z)。"
+        + "它们是 ShiftedNoise 位移函数的实际提供方，两者组合起来才是完整的地形扭曲链路。"
+        + "采样点刻意让三轴互不相等，才能区分 ShiftA 与 ShiftB 的轴置换。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
