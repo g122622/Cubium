@@ -165,6 +165,15 @@ public:
     void processPendingSends();
 
     /**
+     * @brief 停止接收新的发送任务
+     *
+     * 区块 IR 在计算线程池里异步构建，构建完成后再回到 `submitChunkData` 入队。维度卸载时
+     * 该池子仍在运行，在途任务可能在本管理器析构之后才回写，因此必须先关停：此后所有
+     * `submitChunkData` 直接丢弃，在途任务看到关停标志也会放弃入队。
+     */
+    void shutdown();
+
+    /**
      * @brief 设置区块发送回调
      * @param callback 回调函数，参数为(玩家ID, 区块X, 区块Z, 区块IR)
      *
@@ -204,6 +213,8 @@ private:
     // 准备好的区块数据队列（包含目标玩家列表）
     std::vector<ReadyChunkData> m_readyChunks;
     std::mutex m_readyChunksMutex;
+    // 关停标志：与 m_readyChunks 同锁保护，避免"已入队"与"已关停"之间出现时间窗。
+    bool m_shutdown = false;
 
     std::function<void(PlayerId, ChunkCoord, ChunkCoord, std::shared_ptr<const mc::network::pipeline::OutboundPacket>)>
         m_onChunkSend;

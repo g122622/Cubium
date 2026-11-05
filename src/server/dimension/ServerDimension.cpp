@@ -132,7 +132,15 @@ void ServerDimension::shutdown()
     }
 
     // 清理同步管理器（必须在世界之前释放）
+    //
+    // ChunkSendManager 的区块 IR 在计算线程池里异步构建，构建完成才回到 submitChunkData
+    // 入队；计算池属于服务端、要等到所有维度都卸载后才关停。若直接析构，在途任务会在
+    // 本对象释放之后回写 m_readyChunks，构成 heap-use-after-free（ASan 在 GameTest
+    // 关服阶段稳定报出）。先置关停标志，让在途任务安全丢弃结果，再释放对象。
     m_blockUpdateSyncManager.reset();
+    m_chunkSendManager->shutdown();
+    // 世界仍持有裸指针，解绑后再释放，避免之后任何访问走到悬垂对象。
+    m_world->chunkManager()->setChunkSendManager(nullptr);
     m_chunkSendManager.reset();
 
     // 清理生物生成管理器
