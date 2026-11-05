@@ -29,11 +29,11 @@
 // （`Properties.mapColor(MapColor.XXX)`），数据包中完全没有这项信息，因此无法像
 // 标签、配方那样在初始化阶段从数据包读取。这属于项目规范中允许的例外。
 //
-// **按状态而非按方块**：有 29 个方块的颜色随状态变化——
+// 有 29 个方块的颜色随单个属性变化（见 kMapColorExceptions）：
 //   - 床按 part：foot 用染色色，head 固定 WOOL；
-//   - 原木按 axis：y 用内皮色，x/z 用树皮色；
-//   - barrier 等含水方块按 waterlogged：含水时取 WATER。
-// 按方块记录会把这些状态全部抹平。
+//   - 原木/竹块按 axis：y 用内皮色，x/z 用树皮色；
+//   - barrier/light 按 waterlogged：含水时取 WATER；
+//   - 小麦按 age：成熟后取 WHEAT。
 //
 // 数值含义：与原版 `MapColor.id` 一一对应（0~61），与 Cubium 的
 // `world::map::MaterialColorId` 同值。
@@ -42,22 +42,21 @@
 
 #include "common/world/block/registry/BlockMapColorTable.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace mc::world::block {
 namespace {
 
-/// 原版每个方块的地图颜色。
+/// 原版每个方块的地图颜色（不含状态例外）。
 ///
-/// 快照逐状态导出 29196 条，其中绝大多数状态与所属方块同色：真正随状态变色的只有 29 个
-/// 方块（床按 part、原木按 axis、barrier/light 按 waterlogged），其余状态与默认色相同，
-/// 例外状态记在 kMapColorStateOverrides。
+/// 快照逐状态导出 29196 条，其中 29 个方块的默认色随一个属性变化（见 kMapColorExceptions），
+/// 其余状态与方块默认色相同。
 constexpr std::array<MapColorBlock, 1165> kMapColorBlocks = {{
     {"minecraft:acacia_button", static_cast<u8>(0)},
     {"minecraft:acacia_door", static_cast<u8>(15)},
@@ -1226,198 +1225,147 @@ constexpr std::array<MapColorBlock, 1165> kMapColorBlocks = {{
     {"minecraft:zombie_wall_head", static_cast<u8>(0)},
 }};
 
-/// 与原版方块默认色不同的状态（规范名）。
-constexpr std::array<MapColorStateOverride, 157> kMapColorStateOverrides = {{
-    {static_cast<u8>(15), "minecraft:acacia_log[axis=y]"},
-    {static_cast<u8>(18), "minecraft:bamboo_block[axis=y]"},
-    {static_cast<u8>(12), "minecraft:barrier[waterlogged=true]"},
-    {static_cast<u8>(2), "minecraft:birch_log[axis=y]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:black_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:blue_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:brown_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(36), "minecraft:cherry_log[axis=y]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:cyan_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:gray_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:green_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(10), "minecraft:jungle_log[axis=y]"},
-    {static_cast<u8>(12), "minecraft:light[level=0,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=1,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=10,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=11,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=12,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=13,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=14,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=15,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=2,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=3,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=4,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=5,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=6,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=7,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=8,waterlogged=true]"},
-    {static_cast<u8>(12), "minecraft:light[level=9,waterlogged=true]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_blue_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:light_gray_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:lime_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:magenta_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(28), "minecraft:mangrove_log[axis=y]"},
-    {static_cast<u8>(13), "minecraft:oak_log[axis=y]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:orange_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(14), "minecraft:pale_oak_log[axis=y]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:pink_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:purple_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:red_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(34), "minecraft:spruce_log[axis=y]"},
-    {static_cast<u8>(36), "minecraft:stripped_cherry_log[axis=y]"},
-    {static_cast<u8>(18), "minecraft:wheat[age=6]"},
-    {static_cast<u8>(18), "minecraft:wheat[age=7]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:white_bed[facing=west,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=east,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=east,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=north,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=north,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=south,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=south,occupied=true,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=west,occupied=false,part=head]"},
-    {static_cast<u8>(3), "minecraft:yellow_bed[facing=west,occupied=true,part=head]"},
+/// 一个例外状态：方块取 color，条件是状态里 attribute 取 value、其余属性为默认值。
+constexpr std::array<MapColorStateOverride, 74> kMapColorExceptions = {{
+    {"minecraft:acacia_log", "x", "axis", static_cast<u8>(11)},
+    {"minecraft:acacia_log", "y", "axis", static_cast<u8>(15)},
+    {"minecraft:acacia_log", "z", "axis", static_cast<u8>(11)},
+    {"minecraft:bamboo_block", "x", "axis", static_cast<u8>(7)},
+    {"minecraft:bamboo_block", "y", "axis", static_cast<u8>(18)},
+    {"minecraft:bamboo_block", "z", "axis", static_cast<u8>(7)},
+    {"minecraft:barrier", "false", "waterlogged", static_cast<u8>(0)},
+    {"minecraft:barrier", "true", "waterlogged", static_cast<u8>(12)},
+    {"minecraft:birch_log", "x", "axis", static_cast<u8>(14)},
+    {"minecraft:birch_log", "y", "axis", static_cast<u8>(2)},
+    {"minecraft:birch_log", "z", "axis", static_cast<u8>(14)},
+    {"minecraft:black_bed", "foot", "part", static_cast<u8>(29)},
+    {"minecraft:black_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:blue_bed", "foot", "part", static_cast<u8>(25)},
+    {"minecraft:blue_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:brown_bed", "foot", "part", static_cast<u8>(26)},
+    {"minecraft:brown_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:cherry_log", "x", "axis", static_cast<u8>(43)},
+    {"minecraft:cherry_log", "y", "axis", static_cast<u8>(36)},
+    {"minecraft:cherry_log", "z", "axis", static_cast<u8>(43)},
+    {"minecraft:cyan_bed", "foot", "part", static_cast<u8>(23)},
+    {"minecraft:cyan_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:gray_bed", "foot", "part", static_cast<u8>(21)},
+    {"minecraft:gray_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:green_bed", "foot", "part", static_cast<u8>(27)},
+    {"minecraft:green_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:jungle_log", "x", "axis", static_cast<u8>(34)},
+    {"minecraft:jungle_log", "y", "axis", static_cast<u8>(10)},
+    {"minecraft:jungle_log", "z", "axis", static_cast<u8>(34)},
+    {"minecraft:light", "false", "waterlogged", static_cast<u8>(0)},
+    {"minecraft:light", "true", "waterlogged", static_cast<u8>(12)},
+    {"minecraft:light_blue_bed", "foot", "part", static_cast<u8>(17)},
+    {"minecraft:light_blue_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:light_gray_bed", "foot", "part", static_cast<u8>(22)},
+    {"minecraft:light_gray_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:lime_bed", "foot", "part", static_cast<u8>(19)},
+    {"minecraft:lime_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:magenta_bed", "foot", "part", static_cast<u8>(16)},
+    {"minecraft:magenta_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:mangrove_log", "x", "axis", static_cast<u8>(34)},
+    {"minecraft:mangrove_log", "y", "axis", static_cast<u8>(28)},
+    {"minecraft:mangrove_log", "z", "axis", static_cast<u8>(34)},
+    {"minecraft:oak_log", "x", "axis", static_cast<u8>(34)},
+    {"minecraft:oak_log", "y", "axis", static_cast<u8>(13)},
+    {"minecraft:oak_log", "z", "axis", static_cast<u8>(34)},
+    {"minecraft:orange_bed", "foot", "part", static_cast<u8>(15)},
+    {"minecraft:orange_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:pale_oak_log", "x", "axis", static_cast<u8>(11)},
+    {"minecraft:pale_oak_log", "y", "axis", static_cast<u8>(14)},
+    {"minecraft:pale_oak_log", "z", "axis", static_cast<u8>(11)},
+    {"minecraft:pink_bed", "foot", "part", static_cast<u8>(20)},
+    {"minecraft:pink_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:purple_bed", "foot", "part", static_cast<u8>(24)},
+    {"minecraft:purple_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:red_bed", "foot", "part", static_cast<u8>(28)},
+    {"minecraft:red_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:spruce_log", "x", "axis", static_cast<u8>(26)},
+    {"minecraft:spruce_log", "y", "axis", static_cast<u8>(34)},
+    {"minecraft:spruce_log", "z", "axis", static_cast<u8>(26)},
+    {"minecraft:stripped_cherry_log", "x", "axis", static_cast<u8>(42)},
+    {"minecraft:stripped_cherry_log", "y", "axis", static_cast<u8>(36)},
+    {"minecraft:stripped_cherry_log", "z", "axis", static_cast<u8>(42)},
+    {"minecraft:wheat", "0", "age", static_cast<u8>(7)},
+    {"minecraft:wheat", "1", "age", static_cast<u8>(7)},
+    {"minecraft:wheat", "2", "age", static_cast<u8>(7)},
+    {"minecraft:wheat", "3", "age", static_cast<u8>(7)},
+    {"minecraft:wheat", "4", "age", static_cast<u8>(7)},
+    {"minecraft:wheat", "5", "age", static_cast<u8>(7)},
+    {"minecraft:wheat", "6", "age", static_cast<u8>(18)},
+    {"minecraft:wheat", "7", "age", static_cast<u8>(18)},
+    {"minecraft:white_bed", "foot", "part", static_cast<u8>(8)},
+    {"minecraft:white_bed", "head", "part", static_cast<u8>(3)},
+    {"minecraft:yellow_bed", "foot", "part", static_cast<u8>(18)},
+    {"minecraft:yellow_bed", "head", "part", static_cast<u8>(3)},
 }};
+
+/// 哪个属性决定方块颜色。只有这 29 个方块的默认色随状态变化，其余方块恒定。
+constexpr std::string_view kMapColorDimensionNames[] = {
+    "age",
+    "axis",
+    "part",
+    "waterlogged",
+};
 
 } // namespace
 
+/**
+ * @brief 查原版方块状态的地图颜色
+ *
+ * 先按方块名取默认色，再看该状态在变色属性上的取值是否覆盖了默认色：
+ * 只有方块默认状态里出现的属性才可能变色（原木的 axis、床的 part、含水方块的
+ * waterlogged、小麦的 age），其余属性无论取什么值都不影响颜色。
+ */
 u8 lookupVanillaMapColor(std::string_view rawStateName)
 {
-    // 快照键是规范名（属性按名字排序），而状态字符串按属性注册顺序输出，因此先规范化再查。
     const std::string stateName = canonicalStateName(std::string(rawStateName));
+    const std::size_t open = stateName.find('[');
+    const std::size_t close = stateName.rfind(']');
 
-    // 例外状态只占全部状态的一小部分，用哈希表避免对每个状态都做一次前缀扫描。
-    static const std::unordered_map<std::string, u8> overrideTable = [] {
-        std::unordered_map<std::string, u8> table;
-        table.reserve(kMapColorStateOverrides.size() * 2);
-        for (const MapColorStateOverride& stateOverride : kMapColorStateOverrides) {
-            table.emplace(std::string(stateOverride.stateName), stateOverride.color);
+    u8 color = 0;
+    bool found = false;
+    // 表按方块名升序排列，查到名字前缀之后即可停止。
+    for (const MapColorBlock& block : kMapColorBlocks) {
+        if (stateName.compare(0, block.name.size(), block.name) == 0 &&
+            (stateName.size() == block.name.size() || stateName[block.name.size()] == '[')) {
+            color = block.color;
+            found = true;
+            break;
         }
-        return table;
-    }();
-
-    const auto it = overrideTable.find(stateName);
-    if (it != overrideTable.end()) {
-        return it->second;
+    }
+    if (!found || open == std::string::npos) {
+        return color;
     }
 
-    for (const MapColorBlock& block : kMapColorBlocks) {
-        if (std::string_view(stateName).starts_with(block.name)) {
-            const std::size_t nameSize = block.name.size();
-            if (stateName.size() == nameSize || stateName[nameSize] == '[') {
-                return block.color;
+    // 逐个属性切出 `name=value`，变色属性以 name 开头，取 value 与例外表比对。
+    std::string_view name(stateName.data(), open);
+    for (std::size_t begin = open + 1; begin < close;) {
+        const std::size_t comma = stateName.find(',', begin);
+        const std::size_t end = comma == std::string::npos || comma > close ? close : comma;
+        const std::string_view entry(stateName.data() + begin, end - begin);
+        begin = end + 1;
+        const std::size_t equals = entry.find('=');
+        if (equals == std::string_view::npos) {
+            continue;
+        }
+        const std::string_view attribute = entry.substr(0, equals);
+        if (std::find(std::begin(kMapColorDimensionNames), std::end(kMapColorDimensionNames), attribute) ==
+            std::end(kMapColorDimensionNames)) {
+            continue;
+        }
+        const std::string_view value = entry.substr(equals + 1);
+        for (const MapColorStateOverride& stateOverride : kMapColorExceptions) {
+            if (stateOverride.blockName == name && stateOverride.attribute == attribute &&
+                stateOverride.value == value) {
+                return stateOverride.color;
             }
         }
     }
-    return 0;
+    return color;
 }
 
 std::string canonicalStateName(const std::string& raw)
@@ -1431,27 +1379,22 @@ std::string canonicalStateName(const std::string& raw)
         return raw;
     }
 
-    const std::string head = raw.substr(0, open);
-    const std::string body = raw.substr(open + 1, close - open - 1);
-
     std::vector<std::string> attrs;
     std::string current;
-    for (char ch : body) {
-        if (ch == ',') {
-            if (!current.empty()) {
-                attrs.push_back(current);
-            }
+    for (std::size_t i = open + 1; i < close; ++i) {
+        if (raw[i] == ',') {
+            attrs.push_back(std::move(current));
             current.clear();
         } else {
-            current.push_back(ch);
+            current.push_back(raw[i]);
         }
     }
     if (!current.empty()) {
-        attrs.push_back(current);
+        attrs.push_back(std::move(current));
     }
     std::sort(attrs.begin(), attrs.end());
 
-    std::string result = head + "[";
+    std::string result = raw.substr(0, open) + "[";
     for (std::size_t i = 0; i < attrs.size(); ++i) {
         if (i > 0) {
             result += ",";
