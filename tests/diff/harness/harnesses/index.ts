@@ -2070,6 +2070,17 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "end_islands",
+        probe: "end_islands",
+        oracle: "EndIslandsOracle",
+        description: "末地岛屿密度（原版 DensityFunctions.EndIslandDensityFunction）的取值与 min/max —— 5 个种子 x 15 个坐标。"
+        + "它是末地地形的主密度函数：方块坐标除以 8 得到岛屿网格坐标，在该网格上求岛屿高度，再映射到 [-0.84375, 0.5625]。"
+        + "内部的 25x25 邻域搜索只在距中心超过 64 格且噪声小于 -0.9 时产生外岛，所以采样点必须同时覆盖中心区与远区，否则外岛分支一次都不会进入。"
+        + "远区采样点分别取沿单轴、沿对角、跨多个岛屿网格与极端坐标，覆盖 f32 精度边界。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
