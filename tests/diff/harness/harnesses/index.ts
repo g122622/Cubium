@@ -2083,6 +2083,17 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "lerp3_interpolate",
+        probe: "lerp3_interpolate",
+        oracle: "Lerp3InterpolateOracle",
+        description: "三线性插值（原版 Mth.lerp3）的逐位结果 —— 7 组角值 x 11 组插值因子。"
+        + "它是区块内噪声插值的核心：NoiseInterpolator 把密度函数在 4x8x4 的网格上采样，再用 lerp3 把网格值插到任意方块坐标，这是密度函数之上最后一层生成逻辑。"
+        + "插值顺序 X → Y → Z，三步 lerp 各自独立舍入，任何一步被编译器融合成 FMA 都会让结果偏若干 ulp 且随层级放大。"
+        + "角值覆盖全零、单位立方体、参差小数、大数量级、极大动态范围、相邻值只差几个 ulp、全负数；因子混入 1/3、0.1 这类无法精确表示的分数。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
