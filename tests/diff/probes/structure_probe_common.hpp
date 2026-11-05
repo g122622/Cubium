@@ -15,6 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "common/core/Types.hpp"
@@ -182,17 +183,31 @@ struct WorldSetup {
  */
 inline WorldSetup makeWorldSetup(const std::string& name, u64 seed)
 {
-    if (name == "overworld") {
-        DimensionSettings settings = DimensionSettings::overworld();
-        auto resolved = world::gen::RandomState::create(settings, seed);
-        return {std::move(settings), std::shared_ptr<world::gen::RandomState>(std::move(resolved))};
+    // 【必须按维度 + 种子缓存】RandomState::create 会重建密度函数树并对 15 个 root 做编译
+    // （McToAst → 优化 → 字节码 → JIT），而 JIT 机器码由进程级 JitRuntime 持有**至进程结束、
+    // 不释放**。每个单元新建一份，几百个单元就能把提交量推到上 GB，进而触到分配失败而静默
+    // 退出（实测跑满 250 行后必定崩溃、单独跑任一行却不会）。原版同样按维度缓存 RandomState，
+    // 不随区块重建；这里对齐同一生命周期。
+    struct CachedState {
+        u64 seed;
+        std::shared_ptr<world::gen::RandomState> state;
+    };
+
+    static std::unordered_map<std::string, CachedState> cache;
+
+    const auto found = cache.find(name);
+    if (found != cache.end() && found->second.seed == seed) {
+        DimensionSettings settings = name == "overworld" ? DimensionSettings::overworld() : DimensionSettings::end();
+        return {std::move(settings), found->second.state};
     }
-    if (name == "the_end") {
-        DimensionSettings settings = DimensionSettings::end();
-        auto resolved = world::gen::RandomState::create(settings, seed);
-        return {std::move(settings), std::shared_ptr<world::gen::RandomState>(std::move(resolved))};
+
+    DimensionSettings settings = name == "overworld" ? DimensionSettings::overworld() : DimensionSettings::end();
+    if (name != "overworld" && name != "the_end") {
+        throw std::runtime_error("structure probe: unknown dimension " + name);
     }
-    throw std::runtime_error("structure probe: unknown dimension " + name);
+    auto shared = std::shared_ptr<world::gen::RandomState>(world::gen::RandomState::create(settings, seed));
+    cache[name] = CachedState{seed, shared};
+    return {std::move(settings), std::move(shared)};
 }
 
 /** @brief 用共享随机状态构造该维度的群系源。 */

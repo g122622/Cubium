@@ -45,10 +45,19 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <fstream>
 #include <string>
 #include <string_view>
+
+#ifdef _WIN32
+#include <crtdbg.h>
+#include <process.h>
+#include <windows.h>
+
+#endif
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -120,6 +129,12 @@ int runInput(const mc::diff::Probe& probe, const char* inputPath, const char* ou
             // 错位，报出来的差异就无从定位了。
             result = nlohmann::json{{"error", error.what()}, {"line", lineNumber}}.dump();
         }
+        // TODO: 临时诊断——静默退出的异常类型，定位完成后删除。
+        catch (...) {
+            std::fprintf(stderr, "[DBG] unknown exception at line %llu\n", lineNumber);
+            std::fflush(stderr);
+            _exit(127);
+        }
         std::fprintf(out, "%s\n", result.c_str());
         std::fflush(out);
         std::fprintf(stderr, "[DBG] line %llu end\n", lineNumber);
@@ -158,10 +173,44 @@ using mc::diff::runList;
 
 int main(int argc, char** argv)
 {
+    // TODO: 临时诊断——定位静默退出（exit 127 且无崩溃信息）的路径，定位完成后删除。
+    std::set_terminate([]() {
+        std::fprintf(stderr, "[DBG] std::terminate\n");
+        std::fflush(stderr);
+        std::abort();
+    });
+    _set_purecall_handler([]() {
+        std::fprintf(stderr, "[DBG] purecall\n");
+        std::fflush(stderr);
+        std::abort();
+    });
+    std::set_new_handler([]() {
+        std::fprintf(stderr, "[DBG] bad_alloc\n");
+        std::fflush(stderr);
+        std::abort();
+    });
+    _set_invalid_parameter_handler([](const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {
+        std::fprintf(stderr, "[DBG] invalid_parameter\n");
+        std::fflush(stderr);
+        std::abort();
+    });
+
     // stdout 是**协议通道**（list 每行一个单元），任何日志写进去都会被当成数据。
     // 方块注册表初始化会打 info 日志，这里在初始化前就把级别压到 error 及以上。
     mc::assert::CrashHandler::install();
     spdlog::set_level(spdlog::level::err);
+
+    // CrashHandler::install 会装它自己的崩溃输出；SEH 过滤器**必须装在它之后**才能先于
+    // 它被调用（SetUnhandledExceptionFilter 只保留最后一次注册）。
+    // TODO: 临时诊断——定位静默退出（exit 127 且无崩溃信息）的原因，定位完成后删除。
+    SetUnhandledExceptionFilter([](EXCEPTION_POINTERS* info) -> LONG {
+        std::fprintf(stderr,
+            "[DBG] SEH code=0x%08lx rip=%p\n",
+            static_cast<unsigned long>(info->ExceptionRecord->ExceptionCode),
+            reinterpret_cast<void*>(info->ContextRecord->Rip));
+        std::fflush(stderr);
+        std::abort();
+    });
 
     if (argc < 2) {
         printUsage();
