@@ -1934,6 +1934,19 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "entity_physics",
+        probe: "entity_physics",
+        oracle: "EntityPhysicsOracle",
+        description: "实体空中移动一个 tick 的完整计算（原版 LivingEntity.travelInAir）—— 23 个固定场景："
+        + "地面/空中移动因子、重力、缓降、悬浮、跳跃初速度。"
+        + "地面移动因子是 `speed * 0.21600002 / (f * f * f)`，滑度进三次方除数；"
+        + "本工程 Release 下的 -ffast-math 会把该除法改写成乘倒数，与原版差 1 ulp，故函数内局部关闭。"
+        + "两处容易漏：缓降只在下落时生效（上升途中仍按原重力减速，否则跳跃高度减半）；"
+        + "竖直速度的 0.98 保留比例写在悬浮分支之后，悬浮也照乘。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
