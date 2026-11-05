@@ -1270,3 +1270,41 @@ fat_tower_top   17,6,17
 而不是记录 `nextInt(3)` 的结果——因为结果相同不代表 `nextBits` 的消耗次数相同。
 具体做法：在 `RecordingRandom` 里额外记录每次 `nextBits(31)` 的返回值与次数，
 定位到 [53] 之后那次 `variant` 抽取之前，两侧的消耗计数是否一致。
+
+## 第二十八轮：记录器的序号语义有歧义，逐次比对未能闭合
+
+### 做了什么
+
+在第二十七轮的 `RecordingRandom` 基础上，给 `HouseTowerGenerator` 的 `variant` 打点
+补上「最近一次抽取的序号」，想据此判断 `[53]` 之后那次 `nextInt(3)` 在此之前消耗了多少次。
+
+得到：
+
+```
+H draw=-1 depth=3 variant=1
+H draw=-1 depth=7 variant=1
+H draw=36 depth=7 variant=0
+H draw=62 depth=3 variant=1
+```
+
+### 这个序号不能直接用
+
+`g_lastDrawIndex` 记录的是「最近一次完成的抽取」的序号，而 `variant = rng.nextInt(3)`
+本身也是一次抽取。序号在抽取**之后**才自增，所以打印出来的值是**上一次**抽取的下标，
+不是这次 `nextInt(3)` 的下标。要拿到准确下标，应该在 `nextInt(3)` 之前先把计数器读出来。
+
+更关键的是：翻查序列可以看到 `D 63`、`D 64` 都是 `bool`，附近并没有出现新的 `intb3`。
+这与「`[53]` 之后紧接着就是一次 `nextInt(3)`」的预期不符，说明这次调用要么发生在
+序号统计窗口之外，要么我对 `[53]` 到 `variant` 之间调用链的假设有误。
+
+### 结论
+
+本轮没有拿到能闭合的证据，也没有改动业务代码。**不应该在这个基础上继续推断**。
+
+### 下一轮的正确做法
+
+不要在装饰器外面猜序号，而是把「来源」一起记下来：让 `nextInt(3)` 的每一次调用
+都打印**自己的**计数器值与调用者是哪个生成器（可以传一个枚举/字符串进
+`HouseTowerGenerator` / `TowerGenerator` / `FatTowerGenerator` / `TowerBridgeGenerator`），
+这样得到的日志是「第 N 次抽取 = 哪个生成器的哪种抽取 = 什么结果」的完整三元组，
+两侧各导一份即可直接 diff，不再需要靠下标倒推。
