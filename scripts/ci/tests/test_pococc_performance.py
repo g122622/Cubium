@@ -40,6 +40,25 @@ class PococcPerformanceTests(unittest.TestCase):
             self.assertEqual(record["remote_attempts"], 0)
             self.assertEqual(record["submitted_by_source"], {})
 
+    def test_aligned_cacheable_calls_output_is_parsed_without_double_counting(self):
+        """CI 上的对齐输出：命中段与不可缓存段同名，且每个值是「次数 / 查询数 (percent%)」。"""
+        stats = "\n".join([
+            "Cacheable calls:                    456276 / 464806 (98.16%)",
+            "  Hits:                             276354 / 456276 (60.57%)",
+            "    Direct:                         212553 / 276354 (76.91%)",
+            "    Preprocessed:                    63801 / 276354 (23.09%)",
+            "  Misses:                           179922 / 456276 (39.43%)",
+            "Uncacheable calls:                    8530 / 464806 ( 1.84%)",
+            "  Called for linking:                   12 /   8530 ( 0.14%)",
+            "  Compilation failed:                 1721 /   8530 (20.18%)",
+            "  Could not use precompiled header:   6795 /   8530 (79.66%)",
+            "",
+        ])
+        counters = performance.parse_ccache_stats(stats)
+        self.assertEqual(counters["hits"], 276354)
+        self.assertEqual(counters["misses"], 179922)
+        self.assertEqual(counters["compilation_failed"], 1721)
+
     def test_remote_retry_preserves_both_attempts_and_one_delivered_result(self):
         log = '\n'.join([
             'distcc[10] (dcc_scan_args) found input file "/workspace/a.cpp"',
