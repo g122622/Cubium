@@ -354,13 +354,19 @@ alignas(64) inline constexpr std::array<f64, 64> kFlatSimplexGrad = {
 /// smoothstep 衰减因子:t*t*t*(t*(t*6-15)+10)。
 [[nodiscard]] MC_PERLIN_ALWAYS_INLINE f64 perlinFade(f64 value)
 {
-    return value * value * value * (value * (value * 6.0 - 15.0) + 10.0);
+    // 逐项落回标量存储，禁止 FMA 收缩。噪声里这个值会被三线性插值放大：
+    // 单项差 1~5 ulp，八个角点合成后可达数百 ulp，足以改变地形高度。
+    const volatile f64 inner = value * (value * 6.0 - 15.0);
+    const volatile f64 shaped = inner + 10.0;
+    const volatile f64 cubed = value * value * value;
+    return cubed * shaped;
 }
 
-/// 线性插值:start + delta*(end-start)。
+/// 线性插值。转调 math::lerp，不在噪声里另写一份 `start + delta * (end - start)`：
+/// 那份写法在 -march=native 下会被 FMA 融合，乘积少一次舍入，与原版差 1 ulp。
 [[nodiscard]] MC_PERLIN_ALWAYS_INLINE f64 perlinLerp(f64 delta, f64 start, f64 end)
 {
-    return start + delta * (end - start);
+    return math::lerp(start, end, delta);
 }
 
 /// 三线性插值(8 角点值 → 单值)。

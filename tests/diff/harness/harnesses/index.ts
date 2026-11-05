@@ -1959,6 +1959,19 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "perlin_noise",
+        probe: "perlin_noise",
+        oracle: "PerlinNoiseOracle",
+        description: "Perlin 噪声在给定坐标上的取值（原版 PerlinNoise.getValue）—— 7 组配置 x 12 个坐标。"
+        + "配置覆盖单倍频、两倍频递减、原版地形的 1/2 衰减链、以及各层贡献量级接近的非几何递减。"
+        + "坐标混合整数点（噪声落在网格顶点）、半整数点与任意小数点。"
+        + "噪声直接决定地形高度：一旦有 1 ulp 偏差，表现是「地形形状看起来对但具体高度不同」，"
+        + "人工几乎无法定位，只能靠逐点比对。三线性插值里每层 `start + delta*(end-start)` 都是"
+        + "FMA 收缩的候选点（同类问题已修过三处），这条链上任何一处漏防都会被这里抓到。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
