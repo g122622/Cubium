@@ -62,7 +62,12 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         bool execute(const std::atomic<bool>& abortSignal) override
         {
             m_claimed = m_state->_claim(m_dispatch);
-            return m_claimed && m_dispatch.task->body->execute(abortSignal);
+            if (!m_claimed) {
+                return false;
+            }
+            const bool success = m_dispatch.task->body->execute(abortSignal);
+            releaseBody();
+            return success;
         }
 
         void onCancel() override
@@ -72,6 +77,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             }
             if (m_claimed) {
                 _cancelBody(m_dispatch.task);
+                releaseBody();
             }
         }
 
@@ -90,6 +96,15 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             return m_claimed;
         }
 
+        /// 任务体自身持有的世界数据（光照任务的 provider 保活 5×5 区块等）随任务体存放。
+        /// 调度器在任务完成（含取消）时经此释放任务体，而不是等到调度器的最后一个引用消失：
+        /// 世界关闭时服务器侧的 shared_ptr 仍在，若等到它销毁那一步再析构任务体，其释放的
+        /// 区块数据惯常先于世界析构，且析构时机落到另一条调用链的 no-except 上下文里。
+        void releaseBody() noexcept
+        {
+            m_dispatch.task->body.reset();
+        }
+
     private:
         std::shared_ptr<State> m_state;
         Dispatch m_dispatch;
@@ -99,6 +114,13 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
     explicit State(util::UniversalWorkerPool* pool)
         : executor(pool)
     {}
+
+    /// 任务体的释放点：任务一结束（完成、取消或执行前被撤回）就调用，见 DispatchTask::releaseBody。
+    /// 释放任务体可能间接销毁它持有的世界数据（如光照任务保活的区块），绝不夹在调度器锁里做。
+    static void _releaseBody(TaskPtr& task) noexcept
+    {
+        task->body.reset();
+    }
 
     static void _cancelBody(const TaskPtr& task)
     {
@@ -204,6 +226,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             {
                 std::lock_guard lock(mutex);
                 if (dispatch.task->phase != Phase::Scheduled || dispatch.task->generation != dispatch.generation) {
+                    _releaseBody(dispatch.task);
                     continue;
                 }
                 pool = executor;
@@ -231,6 +254,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
     void _finish(const TaskPtr& task, bool success)
     {
         // 回调可能继续提交本区域任务，必须在锁外调用；当前任务仍占据区域至回调完成。
+        // 任务体已在 DispatchTask::execute 结束时释放，这里 callback 拿到的是空指针。
         _callback(task, success);
         std::vector<Dispatch> ready;
         {
@@ -271,9 +295,11 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
                 it = tasks.erase(it);
             }
         }
-        for (const auto& task : cancelled) {
+        for (auto& task : cancelled) {
             _cancelBody(task);
             _callback(task, false);
+            // 任务已结清，立即释放任务体（与运行完成路径同一释放点）。
+            _releaseBody(task);
             std::lock_guard lock(mutex);
             MC_ASSERT_RELEASE(outstanding > 0);
             --outstanding;
