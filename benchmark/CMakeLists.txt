@@ -97,6 +97,7 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
         # 交互管理器（ServerPlayer 引用）
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/DigSpeed.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp

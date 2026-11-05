@@ -129,14 +129,16 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 【随机数顺序】原版 findGenerationPoint 先抽旋转、再按该旋转取 5x5 倾斜采样列的
-    // 最低高度；这里同样处理——用独立随机流的旋转决定采样朝向与原版不符，整座末地城的
-    // 基座高度会偏。
+    // 顺序不能变：原版 findGenerationPoint 先抽旋转，再用这个旋转去取 5x5 四角的最低
+    // 高度，最后才判 Y < 60。此前这里是先算 Y（用的还是另一个自造随机源）、再抽旋转，
+    // 既多抽了一次随机数，判定用的旋转也与实际生成用的不一致。
     feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
 
-    // 生成点 = 区块内 (7, y, 7)，y 为 5x5 定向采样四角的最低高度。
-    const i32 x = (chunkX << world::CHUNK_SHIFT) + 7;
-    const i32 z = (chunkZ << world::CHUNK_SHIFT) + 7;
+    // 计算生成位置
+    // 原版 getLowestYIn5by5BoxOffset7Blocks 用的锚点是 chunkPos.getBlockX(7) /
+    // getBlockZ(7)，即区块内偏移 7，不是 8。差这 1 格会让整座塔在 X/Z 上整体偏移。
+    const i32 x = chunkX * world::CHUNK_WIDTH + 7;
+    const i32 z = chunkZ * world::CHUNK_WIDTH + 7;
     const i32 y = _getYPosition(chunkX, chunkZ, rotation, generator);
 
     if (y < 60) {
@@ -184,11 +186,11 @@ i32 EndCityStructure::_getYPosition(
     i32 k = (chunkX << world::CHUNK_SHIFT) + 7;
     i32 l = (chunkZ << world::CHUNK_SHIFT) + 7;
     // 原版走世界生成期高度图（WORLD_SURFACE_WG），
-    // 不是区块内已生成的 WorldSurface。
-    i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurfaceWG);
-    i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurfaceWG);
-    i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurfaceWG);
-    i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurfaceWG);
+    // 不是区块内已生成的 WorldSurface；getHeight 返回的已是"最高方块上方一格"。
+    const i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurfaceWG);
+    const i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurfaceWG);
+    const i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurfaceWG);
+    const i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurfaceWG);
 
     return std::min({i1, j1, k1, l1});
 }
@@ -205,9 +207,9 @@ CityTemplate::CityTemplate(
     , m_templateName(templateName)
     , m_templatePath("minecraft:end_city/" + templateName)
     , m_templatePosition(pos)
-    , m_rotation(rotation)
     , m_overwrite(overwrite)
 {
+    setRotation(rotation);
     m_settings.setRotation(rotation);
     m_settings.setIgnoreEntities(true);
 
@@ -332,19 +334,22 @@ void CityTemplate::generate(IWorldWriter& world,
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const
 {
-    MC_UNUSED(newRotation);
-    // 计算从当前模板的 localPos 位置，连接到新模板的偏移
+    // 原版 StructureTemplate.calculateConnectedPosition：
+    //
+    //   calculateRelativePosition(settingsA, posA).subtract(calculateRelativePosition(settingsB, posB));
+    //   calculateRelativePosition(settings, pos) = transform(pos, mirror, rotation, pivot);
+    //
+    // 也就是「父构件里锚点变换后的位置」减去「新构件里对应点变换后的位置」，返回的是**差值**，
+    // 不是绝对坐标。两端都要用各自的旋转/镜像变换；此前这里只按父构件的旋转做了一次
+    // 手工 switch，且把 newRotation 直接标了 MC_UNUSED——新构件的旋转被完全忽略，
+    // 于是带旋转的桥段/房屋接上去就会错位。
+    const BlockPos parentRelative = feature::template_::Template::transformBlockPos(
+        localPos, m_settings.getMirror(), m_rotation, BlockPos(0, 0, 0));
+    const BlockPos childRelative = feature::template_::Template::transformBlockPos(
+        BlockPos(0, 0, 0), feature::template_::Mirror::None, newRotation, BlockPos(0, 0, 0));
 
-    // 原版 `StructureTemplate.calculateRelativePosition` 是
-    //   `transform(pos, mirror, rotation, pivot=0,0,0)`
-    // ——以**原点角**为轴的旋转，**不减尺寸**。此前这里按「旋转后坐标 = 尺寸-1-坐标」计算，
-    // multi-rotation 下（None/180 之外的 90/270）每个连接点都会整体偏移一个模板跨度，
-    // 整座末地城的构件位置全部错开。
-    const BlockPos transformedLocal =
-        jigsaw::JigsawTransform::transformPosition(localPos, m_rotation, Mirror::None, BlockPos(0, 0, 0));
-
-    // 计算世界坐标
-    return m_templatePosition + transformedLocal;
+    return BlockPos(
+        parentRelative.x - childRelative.x, parentRelative.y - childRelative.y, parentRelative.z - childRelative.z);
 }
 
 // ============================================================================
@@ -365,17 +370,21 @@ std::unique_ptr<CityTemplate> addPiece(feature::template_::TemplateManager& temp
     feature::template_::Rotation rotation,
     bool overwrite)
 {
-    // 创建新片段，并从父片段继承本座城的生成器集合
+    // 原版 EndCityPieces.addPiece：
+    //
+    //   EndCityPiece piece = new EndCityPiece(mgr, name, parent.templatePosition(), rot, overwrite);
+    //   BlockPos rel = parent.template().calculateConnectedPosition(
+    //       parent.placeSettings(), offset, piece.placeSettings(), BlockPos.ZERO);
+    //   piece.move(rel.getX(), rel.getY(), rel.getZ());
+    //
+    // 注意新构件的**初始位置**是父构件的 templatePosition（不是零），
+    // 然后按 calculateConnectedPosition 返回的**差值**平移。
+    // 新片段同时从父片段继承本座城的生成器集合。
     auto piece = std::make_unique<CityTemplate>(templateName, parent.templatePosition(), rotation, overwrite);
     piece->shareGeneratorsFrom(parent);
 
-    // 计算连接位置
-    BlockPos connectedPos = parent.calculateConnectedPos(offset, rotation);
-
-    // 偏移到正确位置
-    piece->offset(connectedPos.x - piece->templatePosition().x,
-        connectedPos.y - piece->templatePosition().y,
-        connectedPos.z - piece->templatePosition().z);
+    const BlockPos relative = parent.calculateConnectedPos(offset, rotation);
+    piece->offset(relative.x, relative.y, relative.z);
 
     return piece;
 }
@@ -488,8 +497,10 @@ bool HouseTowerGenerator::generate(feature::template_::TemplateManager& template
     feature::template_::Rotation rotation = parent.rotation();
 
     // 放置 base_floor
-    CityTemplate* current =
-        addHelper(pieces, addPiece(templateManager, parent, BlockPos(), "base_floor", rotation, true));
+    //
+    // 原版用调用方传来的 offset 作连接锚点；此前这里写死成 BlockPos()，于是从桥段
+    // 接过来的房屋会丢掉整个偏移量（实测 [10] 的旋转与位置同时错位）。
+    CityTemplate* current = addHelper(pieces, addPiece(templateManager, parent, offset, "base_floor", rotation, true));
 
     // 随机选择房屋类型
     i32 variant = rng.nextInt(3);
@@ -690,6 +701,7 @@ bool FatTowerGenerator::generate(feature::template_::TemplateManager& templateMa
 
     // 可能添加更多层和桥。桥生成器沿用本座城已有实例——原版胖塔分支同样直接复用
     // 同一个 TOWER_BRIDGE_GENERATOR 的「已生成末地船」状态，不在此处重置。
+    // shipCreated 必须在整棵树范围内保持，重置会让末地船被重复生成。
     TowerBridgeGenerator& bridgeGen = current->bridgeGen();
 
     for (i32 layer = 0; layer < 2 && rng.nextInt(3) != 0; ++layer) {

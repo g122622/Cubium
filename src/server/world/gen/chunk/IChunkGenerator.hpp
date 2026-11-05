@@ -171,10 +171,14 @@ public:
 
     /**
      * @brief 获取生成高度
+     *
+     * 返回**最高方块 Y 加 1**（原版 getFirstOccupiedHeight 语义），不是最高方块本身的 Y。
+     * 依赖地形海拔计算的调用方（结构锚点、特征放置）直接使用返回值即可，不要再 +1。
+     *
      * @param x X 坐标
      * @param z Z 坐标
      * @param type 高度图类型
-     * @return 高度
+     * @return 最高方块 Y + 1；整列无方块时返回该维度的 minY
      */
     [[nodiscard]] virtual i32 getHeight(i32 x, i32 z, HeightmapType type) const = 0;
 

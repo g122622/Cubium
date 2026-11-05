@@ -89,7 +89,11 @@ public:
 
 private:
     /**
-     * @brief 计算末地城生成高度
+     * @brief 取 5x5 区域内四个角点的最低高度
+     *
+     * 四角偏移由旋转决定（±5），所以旋转必须由调用方传入——原版也是先抽旋转、
+     * 再用它去取样。此前这里自己造了一个随机源抽旋转，既不消耗真实随机序列，
+     * 判定用的旋转也与实际生成用的不一致。
      */
     [[nodiscard]] static i32 _getYPosition(
         i32 chunkX, i32 chunkZ, feature::template_::Rotation rotation, IChunkGenerator& generator);
@@ -135,7 +139,7 @@ public:
 
     [[nodiscard]] feature::template_::Rotation rotation() const
     {
-        return m_rotation;
+        return getRotation();
     }
 
     [[nodiscard]] bool overwrite() const
@@ -163,7 +167,9 @@ public:
     void offset(i32 dx, i32 dy, i32 dz) override
     {
         StructurePiece::offset(dx, dy, dz);
-        m_templatePosition = BlockPos(m_templatePosition.x + dx, m_templatePosition.y + dy, m_templatePosition.z + dz);
+        m_templatePosition.x += dx;
+        m_templatePosition.y += dy;
+        m_templatePosition.z += dz;
     }
 
     /// 唯一ID，用于碰撞检测
@@ -192,7 +198,6 @@ private:
     /// 完整模板路径（`minecraft:end_city/<name>`），仅供诊断输出
     std::string m_templatePath;
     BlockPos m_templatePosition;
-    feature::template_::Rotation m_rotation;
     bool m_overwrite;
     feature::template_::PlacementSettings m_settings;
     BlockPos m_size;
@@ -204,6 +209,7 @@ private:
 class IGenerator {
 public:
     virtual ~IGenerator() = default;
+
     virtual void init() = 0;
     virtual bool generate(feature::template_::TemplateManager& templateManager,
         i32 depth,

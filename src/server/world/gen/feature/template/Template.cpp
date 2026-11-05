@@ -581,34 +581,32 @@ void Template::addEntity(const TemplateEntityInfo& entityInfo)
 
 structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings& settings, const BlockPos& pos) const
 {
-    // 即使没有方块，也使用模板尺寸
+    // 原版 StructureTemplate.getBoundingBox(pos, rotation, pivot, mirror, size)：
+    //
+    //   Vec3i last = size.offset(-1, -1, -1);
+    //   BlockPos a = transform(BlockPos.ZERO, mirror, rotation, pivot);
+    //   BlockPos b = transform(BlockPos.ZERO.offset(last), mirror, rotation, pivot);
+    //   return BoundingBox.fromCorners(a, b).move(pos);
+    //
+    // 关键在 transform：它绕 pivot（默认原点 ZERO）旋转，所以 90/270 度会把
+    // (size-1) 这一角转到负方向，包围盒的 min 会落在 pos 之前。
+    // 此前这里直接写 pos + size，只交换了尺寸、没有应用旋转变换，
+    // 于是末地城这类带旋转的模板包围盒整体偏到 pos 的同一侧。
     if (m_size.x == 0 && m_size.y == 0 && m_size.z == 0) {
         return structure::StructureBoundingBox(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
     }
 
-    // 计算变换后的尺寸
-    // 对于尺寸，旋转90/270度会交换X和Z
-    i32 sizeX = m_size.x;
-    i32 sizeZ = m_size.z;
+    const BlockPos last(m_size.x - 1, m_size.y - 1, m_size.z - 1);
+    const BlockPos cornerA =
+        transformBlockPos(BlockPos(0, 0, 0), settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+    const BlockPos cornerB = transformBlockPos(last, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
 
-    switch (settings.getRotation()) {
-        case Rotation::Clockwise90:
-        case Rotation::CounterClockwise90:
-            // 90度或270度旋转交换X和Z尺寸
-            std::swap(sizeX, sizeZ);
-            break;
-        default:
-            break;
-    }
-
-    // 注意：镜像不影响尺寸，只影响位置
-
-    return structure::StructureBoundingBox(pos.x,
-        pos.y,
-        pos.z,
-        pos.x + sizeX - 1,
-        pos.y + m_size.y - 1, // Y尺寸不变
-        pos.z + sizeZ - 1);
+    return structure::StructureBoundingBox(pos.x + std::min(cornerA.x, cornerB.x),
+        pos.y + std::min(cornerA.y, cornerB.y),
+        pos.z + std::min(cornerA.z, cornerB.z),
+        pos.x + std::max(cornerA.x, cornerB.x),
+        pos.y + std::max(cornerA.y, cornerB.y),
+        pos.z + std::max(cornerA.z, cornerB.z));
 }
 
 bool Template::place(

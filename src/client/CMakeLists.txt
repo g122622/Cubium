@@ -560,6 +560,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStatsCollector.cpp
     # 交互管理器
     ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/interaction/DigSpeed.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp

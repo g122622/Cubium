@@ -107,6 +107,10 @@ int runInput(const mc::diff::Probe& probe, const char* inputPath, const char* ou
         }
         ++lineNumber;
 
+        // TODO: 临时诊断——定位崩溃单元，定位完成后删除。
+        std::fprintf(stderr, "[DBG] line %llu begin\n", lineNumber);
+        std::fflush(stderr);
+
         std::string result;
         try {
             result = probe.runLine(line);
@@ -117,6 +121,9 @@ int runInput(const mc::diff::Probe& probe, const char* inputPath, const char* ou
             result = nlohmann::json{{"error", error.what()}, {"line", lineNumber}}.dump();
         }
         std::fprintf(out, "%s\n", result.c_str());
+        std::fflush(out);
+        std::fprintf(stderr, "[DBG] line %llu end\n", lineNumber);
+        std::fflush(stderr);
     }
 
     const bool readOk = !in.bad();

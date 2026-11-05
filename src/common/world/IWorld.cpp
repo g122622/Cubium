@@ -22,7 +22,6 @@
  */
 
 #include "IWorld.hpp"
-#include "gameevent/GameEvents.hpp"
 #include "WorldEvents.hpp"
 #include "block/Block.hpp"
 #include "block/BlockRegistry.hpp"
@@ -34,6 +33,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "entity/core/Entity.hpp"
 #include "fluid/Fluid.hpp"
+#include "gameevent/GameEvents.hpp"
 #include "gamerule/GameRules.hpp"
 #include "redstone/RedstoneSystem.hpp"
 #include "util/Direction.hpp"

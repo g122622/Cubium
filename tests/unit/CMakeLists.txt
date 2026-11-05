@@ -80,6 +80,7 @@ add_executable(mc_tests
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
     common/test_block.cpp
+    common/test_block_map_color.cpp
     common/test_pointed_dripstone.cpp
     common/test_chunk_generation.cpp
     common/test_chunk_level.cpp
@@ -2026,6 +2027,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
         # 交互管理器
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/interaction/DigSpeed.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp

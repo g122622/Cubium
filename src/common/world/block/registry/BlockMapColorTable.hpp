@@ -30,20 +30,44 @@
 namespace mc::world::block {
 
 /**
+ * @brief 某个方块状态相对所属方块的默认地图颜色例外
+ *
+ * 只有床（按 part）、原木（按 axis）、barrier/light（按 waterlogged）等少数方块
+ * 的颜色随状态变化，绝大多数状态与方块默认色相同，因此不必逐状态存表。
+ */
+struct MapColorStateOverride {
+    u8 color;                   ///< 该状态的默认地图颜色 id
+    std::string_view stateName; ///< 规范化状态名（属性按名字排序）
+};
+
+/**
+ * @brief 一个原版方块的地图颜色及其状态例外
+ *
+ * 例外状态不写在这里，而是记在快照文件内部的并行数组里：聚合体里放 `std::vector` 会让
+ * clang-format 把多行字符串分解成构造函数的多个实参而编译失败，快照因此对格式化不友好。
+ */
+struct MapColorBlock {
+    std::string_view name; ///< 方块名（如 "minecraft:oak_log"）
+    u8 color;              ///< 不含例外状态时使用的颜色
+};
+
+/**
  * @brief 查原版方块状态的地图颜色
  *
  * 数值与原版 `MapColor.id` 同值（0~61）。查不到返回 0（AIR）。
  *
  * **按状态而非按方块**：床（part）、原木（axis）、含水方块（waterlogged）的颜色
- * 随状态变化，按方块查会把它们抹平。
+ * 随状态变化，按方块查会把它们抹平。传入的状态名会先规范化再查。
  *
- * @param stateName 方块状态的规范字符串（属性按名字排序，如 "minecraft:oak_log[axis=y]"）
+ * @param stateName 方块状态的字符串表示，属性顺序不限
  * @return 地图颜色 id
  */
 [[nodiscard]] u8 lookupVanillaMapColor(std::string_view stateName);
 
 /**
  * @brief 快照表的条目数（用于自检）
+ *
+ * 只统计方块条目，不含例外状态条目。
  */
 [[nodiscard]] i32 vanillaMapColorTableSize();
 
@@ -56,5 +80,17 @@ namespace mc::world::block {
  * @return 规范名
  */
 [[nodiscard]] std::string canonicalStateName(const std::string& raw);
+
+/**
+ * @brief 把状态名驻留到一块进程生命期内地址稳定的存储
+ *
+ * 返回的 `string_view` 要么指向快照表里的常量字符串，要么指向一个内部缓存槽位；
+ * 两者都不会因调用方的字符串对象析构而悬空，可直接作为缓存键长期保存。
+ * 快照外的状态按固定容量的轮转槽位缓存，被挤出的旧视图随之失效。
+ *
+ * @param stateName 方块状态的字符串表示，属性顺序不限
+ * @return 地址稳定的状态名视图
+ */
+[[nodiscard]] std::string_view internStateName(std::string_view stateName);
 
 } // namespace mc::world::block

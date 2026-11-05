@@ -989,3 +989,546 @@ DRAW 41  ADD[7] MineShaftCrossing crossDir=west
 north/west/east），把结果与 `[6]` 的实测配对——如果 north 那次能复现出
 `(-200,-195)`，就说明矛盾出在 `addChildren` 的分支顺序上；如果 north 也给出
 `(-205,-190)`，那说明我对模板的理解仍然有误，方向要整个换掉。
+
+## 第二十一轮：确认平移逻辑本身正确，差异来自更早的随机分叉
+
+### 打点结果
+
+在 `generate` 的平移段加打点，跑了两个单元：
+
+```
+-13/-7   allPieces=129  overall=(-259,41,-210)-(-127,62,-32)
+         seaLevel=63 topLimit=53 topY=46 seaOffset=-16   房间 Y=34
+-13/-60  allPieces=159  overall=(-294,40,-1043)-(-138,61,-870)
+         seaLevel=63 topLimit=53 topY=-4 seaOffset=-65   房间 Y=-15
+```
+
+### 结论一：平移公式本身是对的
+
+`topY = ySpan + MIN_BUILD_HEIGHT + 1`，再 `topY += nextInt(topLimit - topY)`。
+`-13/-60` 的结果与原版完全一致（159 个构件全对），说明这套公式连同 `offset` 修复都正确。
+
+### 结论二：`-13/-7` 的差异来自更早，不是平移算错
+
+`-13/-7` 的 `overall` 与构件数（129 vs 原版 148）都与原版不同，说明这棵树在
+进到平移逻辑之前就已经分叉。`nextInt(94)` 抽到 87（得到 `topY=46`），要让房间落在
+原版的 -33 需要 `topY≈-21`，也就是 `nextInt(94)` 抽到 ~20——随机序列早已偏移。
+
+所以「`-13/-7` 房间 Y=34」不是平移逻辑的独立缺陷，而是上游分叉的结果。
+
+### 下一步
+
+`-13/-7` 的分叉点此前定位在构件 `[6]`（交叉点）之后，那里有两条相邻日志解释不通。
+换个做法：把该单元全部 129 个 Cubium 构件与 148 个原版构件**按 Y 对齐后逐条比**，
+找出第一个坐标不匹配的位置，而不是继续在 `[6]` 的出口推理上打转。
+
+## 第二十二轮：用子集碰撞视图复现交叉点的三个出口
+
+### 关键教训（本轮最重要的收获）
+
+在 `main` 末尾直接反射调用 `findCrossing` 是**错的**——那时 `PIECES` 已经有 148 个构件，
+碰撞视图与 `[6]` 执行 `addChildren` 那一刻完全不同，复现结果自然不对。
+
+正确做法是构造一个**只含前 N 个构件的子集视图**（`SubsetAccessor`），复现历史时刻的状态。
+
+### 复现结果（碰撞视图 = `[0..6]`）
+
+```
+P6 box = (-200,52,-190)-(-196,54,-186)
+P6 north from (-199,-191) => (-200,52,-195)-(-196,54,-191)
+P6 west  from (-201,-189) => (-205,52,-190)-(-201,54,-186)
+P6 east  from (-195,-189) => (-195,52,-190)-(-191,58,-186)
+```
+
+**三个出口在这个碰撞视图下全部成功**，其中西向的框 `(-205,52,-190)-(-201,54,-186)`
+正是原版实测的 `[7]`。
+
+### 矛盾的确切形态（比上一轮更收紧）
+
+- 复现证明：`[6]` 朝北时，第 1 个出口（北向）在 `[0..6]` 的碰撞视图下**会成功**；
+- 但原版实测只登记了一个子构件 `[7]`，而且是**西向**的；
+- `[6].direction` 反射读出是 `north`，构造参数也是 `NORTH`（由 `[5]` 向北开口传来）。
+
+三者两两相容、三者合起来不相容。**下一轮要做的不是继续推理，而是直接观察运行时**：
+在 `Accessor.addPiece` 里给 `[6]` 打一个 `hashes` 标记，并在 `[6].addChildren` 前后
+各打印一次 `direction` 字段的值——如果它在中途被改了，这一打印就能看到。
+
+## 第二十三轮：字节码层面的新证据，以及矿井矛盾的现状
+
+### 新证据：交叉点 addChildren 的跳转表
+
+`javap -c` 反汇编运行时 jar 里 `MineShaftCrossing.addChildren`：
+
+```
+0: getGenDepth
+6: getstatic MineshaftPieces$1.$SwitchMap$Direction
+10: getfield direction
+13: Direction.ordinal()
+16: iaload
+17: tableswitch { 1: 48, 2: 162, 3: 276, 4: 390, default: 48 }
+48: ... minX, iconst_1, iadd ... minZ, iconst_1, isub ... generateAndAddPiece
+```
+
+`case 1` 与 `default` 都跳到 48，而 48 处的第一个出口是 `minX+1, minY, minZ-1`。
+这与源码 L683-687 完全一致，说明**交叉点朝北时第 1 个出口确实是北向**。
+
+### 另一个此前没注意到的原版约束
+
+`generateAndAddPiece` 除了深度判据，还有一个**距离判据**（L91）：
+
+```java
+else if (Math.abs(p_227710_ - p_227707_.getBoundingBox().minX()) <= 80
+      && Math.abs(p_227712_ - p_227707_.getBoundingBox().minZ()) <= 80) {
+```
+
+新构件的 X/Z 与父构件包围盒的距离必须 ≤ 80。Cubium 的 `addMineshaftPiece` 里已有等价检查
+（L280-287），**这一条是对齐的**。
+
+### 矛盾的现状（第五轮仍未解开）
+
+三条独立观测互相冲突：
+
+1. 反射读 `MineShaftCrossing.direction` 得 `north`，且它是 `private final`；
+2. 字节码显示 `direction=north` 必然走偏移 48，第 1 个出口是北向 `(minX+1, minY, minZ-1)`；
+3. 子集碰撞视图复现显示该出口在 `[0..6]` 下**会成功**，得到 `(-200,-195)`；
+4. 但实测原版 `[7]` 是 `(-205,-190)`，即西向。
+
+**四种方法（源码阅读、反射、字节码、子集复现）都指向「北向出口应当成功」，唯独实际运行结果不是。**
+
+这已经超出「读代码猜逻辑」能解决的范围。下一步若要继续，需要真正的运行时插桩
+（`-javaagent` + `ClassFileTransformer` 改写 `MineShaftCrossing.addChildren`，
+在每次 `generateAndAddPiece` 调用前打印实参），而不是继续在外部观察。
+**在插桩完成之前，不应再对这一段做任何推理性的结论。**
+
+### 本轮顺带确认的验收状态
+
+| 能力 | 结果 |
+|---|---|
+| `mineshaft_pieces` | 15 处差异 |
+| `structure_starts` | 47 处差异 |
+
+`structure_starts` 的 47 处分布：主世界 seed 0 有 19 处、seed 9248738493917 有 22 处、
+末地两个 seed 各 3 处。末地的 6 处与矿井无关——其中 5 处两侧都有 1 个结构但内容不同，
+1 处（`the_end/0/-56/-54`）是原版空、Cubium 有，属于独立的末地城/末地船问题。
+
+## 第二十四轮：一次改动、一次回退，以及「59 vs 19」的真实来源
+
+### 做了什么
+
+按上一轮的计划，在 `recursiveChildren` 里加了打点（进入 / `gen-fail` / `collide`），
+跑 `the_end/9248738493917/-75/25` 得到：
+
+```
+[rc] enter depth=1 pieces=4
+[rc] enter depth=2 pieces=6
+[rc] enter depth=3 pieces=2
+...
+[rc] gen-fail depth=8
+[rc] enter depth=6 pieces=14
+[rc] collide depth=3 new=35
+[rc] gen-fail depth=2
+```
+
+### 一处改动与回退
+
+上一轮把碰撞判定改成「只取第一个相交者、比较它的 genDepth」。本轮实测发现
+`the_end/0/-76/-37` 的 pieces 从 19 变成 59（原版 19），于是回退（commit 38714459a）。
+
+**回退后仍是 59**，说明 59 并不是那次改动引入的——它来自更早的
+`CityTemplate::offset` 重写或 `Template::getBoundingBox` 重写。
+
+### 当前 `-76/-37` 的真实状态
+
+```
+[0] [-1209,60,-594,-1200,63,-585]   ← 与原版完全一致
+[1] [-1210,60,-596,-1199,67,-585]   ← 原版 [-1210,60,-595,-1199,67,-584]
+[2] [-1211,64,-598,-1198,71,-585]
+```
+
+`[0]` 精确对齐，`[1]` 起 Z 方向偏 1~2 格。这是 `addPiece` 里
+`calculateConnectedPos` 的结果与原版 `StructureTemplate.calculateConnectedPosition`
+不一致导致的——`[0]` 对说明锚点正确，`[1]` 错说明**相对连接位置**算错。
+
+### 教训
+
+本轮我先做了「陡坡/缓坡 -4/-8 对调」的改动（原版确实是陡坡 -4、缓坡 -8），
+实测让 `-76/-37` 从 19 掉到更差，已回退。**在没有理解 59 从何而来之前改下游参数，
+只会让状态更混乱。** 下一步应当先把 59 的引入点用 `git bisect` 式的方法定位清楚，
+再去动 `calculateConnectedPos`。
+
+## 第二十五轮：末地只剩一个单元，分叉点定位到 [53] 之后
+
+### 已对齐的单元
+
+`the_end/0/-76/-37`、`the_end/9248738493917/-77/-55`、`the_end/9248738493917/24/-76`
+三者的构件数与原版一致（19/19、16/16、53/53），逐构件包围盒也已对齐。
+末地只剩 `the_end/9248738493917/-75/25`（pieces 57/64）。
+
+### 用模板名打点确认的分叉
+
+在 `CityTemplate` 构造处打印模板名与尺寸，得到 Cubium 在 `[53]` 之后的分支：
+
+```
+base_floor      10,4,10
+second_floor_2  12,8,12      ← variant == 1
+second_roof     14,2,14
+tower_base       7,7,7
+tower_piece      7,4,7
+tower_piece      7,4,7
+fat_tower_base  13,4,13
+fat_tower_middle 13,8,13
+fat_tower_top   17,6,17
+```
+
+而原版 `[53]` 之后的序列是：
+
+```
+[53] 10x4x10 rot=COUNTERCLOCKWISE_90
+[54] 12x2x12 rot=COUNTERCLOCKWISE_90
+[55]  2x6x5  rot=CLOCKWISE_90
+[56]  9x5x9  rot=CLOCKWISE_90
+```
+
+### 已排除的解释
+
+- 不是包围盒算错：`fat_tower_top` 的模板是 17x6x17，Cubium 算出的也是 17x6x17；
+- 不是 `variant` 分支本身写错：`variant == 0/1/2` 三个分支与原版逐句一致；
+- 不是 `rng` 在 `recursiveChildren` 里的消耗顺序：`nextInt()` 取 genDepth 的位置与原版相同。
+
+### 尚未查到的一处
+
+原版的尺寸集合里有 `12x2x12`，它在 `[38]` 和 `[54]` 两处出现。这个尺寸对不上
+任何已知模板的原始尺寸（`second_roof` 是 14x2x14、`third_roof` 是 16x2x16、
+`base_roof` 未单独测过），因此 `[54]` 究竟对应哪个模板仍未确定。
+下一步应当把所有 end_city 模板的尺寸一次性打全，再与原版的尺寸序列逐项对照。
+
+## 第二十六轮：随机数路径的系统排查（全部排除）
+
+末地只剩 `the_end/9248738493917/-75/25`。本轮的假设是「某处多抽或少抽了一次随机数」，
+于是把整条路径逐点核对了一遍，**结果全部与原版一致**：
+
+| 位置 | 结论 |
+|---|---|
+| `_selectStructureStart` 的结构随机源 | 独立的 `WorldgenRandom` + `setLargeFeatureSeed(seed, cx, cz)`，与原版一致 |
+| `EndCityStructure::generate` 开头 | 先 `rng.nextInt(4)` 取旋转，再算高度，顺序已对齐 |
+| `startHouseTower` 的三次 `addPiece` | `addPiece` 内部不抽随机数 |
+| `CityTemplate` 构造与 `generate` | 全函数无 `rng.` 调用 |
+| `Template::place` | 显式 `(void)rng;`，1.21 起无消费方 |
+| `recursiveChildren` 的 `rng.nextInt()` | 在 `generate` 成功之后才抽，与原版位置相同 |
+| `HouseTowerGenerator` 的三分支 | `variant 0/1/2` 与原版逐句一致 |
+| `Rotation` 枚举顺序 | `None/Clockwise90/Clockwise180/CounterClockwise90`，与 Java 的 `NONE/CLOCKWISE_90/CLOCKWISE_180/COUNTERCLOCKWISE_90` 一致 |
+| `WorldgenRandom::nextInt(bound)` | 2 的幂走 `next(31)` 乘法、否则拒绝采样，与原版 `BitRandomSource` 一致 |
+
+**因此分叉不是「次数不对」，更可能是「某个抽取的返回值不同」**，而这一点无法靠阅读代码判定。
+
+### 下一轮的做法
+
+必须做**逐次比对**：给 Cubium 的 `IRandom` 套一个记录装饰器，把每次 `nextInt` / `nextBoolean`
+的序号与结果写进日志；同时在 Java 侧用同样的方式记录（`MsDrive.java` 已有子类化
+`WorldgenRandom` 覆写 `next(int)` 的现成做法），然后对齐两份序列，找出第一个不一致的下标。
+这是唯一能给出确定答案的手段，不应再继续读代码猜。
+
+## 第二十七轮：末地的分叉点精确到 [53] 之后的一次 variant 抽取
+
+### 做了逐次记录
+
+给 Cubium 侧的 `IRandom` 套了一个记录装饰器（`RecordingRandom`，在 `EC_DBG` 下启用），
+导出 `the_end/9248738493917/-75/25` 的完整抽取序列，共 82 条。
+
+### 关键结论：前 53 个构件完全一致
+
+逐项比较包围盒后，首个不等的下标是 **[54]**：
+
+```
+[0]..[53]   全部相等（含 [43] 的 13x24x29 末地船、[45][46] 的胖塔）
+[54] 原版 12x2x12（base_roof，variant==0）  Cub 12x8x12（second_floor_2，variant!=0）
+```
+
+**这推翻了「随机序列早已偏移」的判断** —— 序列在 [53] 之前是完全对齐的。
+
+### 五个 base_floor 的对照
+
+| 序号 | 原版下标 | 原版之后的 variant | Cubium 之后的 variant |
+|---|---|---|---|
+| 1 | [0] | — | — |
+| 2 | [12] | 1 | 1 |
+| 3 | [29] | 1 | 1 |
+| 4 | [37] | 0 | 0 |
+| 5 | [53] | **0** | **≠0** |
+
+前四个 `variant` 都相同，只有第五个不同。而第五个之前的所有构件位置也都相同。
+
+### 已核对的实现
+
+`WorldgenRandom::nextInt(bound)` 的非 2 的幂分支（bound=3 走这条）逐行核对过：
+`bits = nextBits(31)`、`val = bits % bound`、以 `u32` 回绕判定 `bits - val + (bound-1) < 0`，
+与 Java 的 `BitRandomSource.nextInt(bound)` 等价。
+
+### 下一步
+
+需要记录**每次抽取之前的内部状态**（或至少记录 `nextBits(31)` 的原始返回值），
+而不是记录 `nextInt(3)` 的结果——因为结果相同不代表 `nextBits` 的消耗次数相同。
+具体做法：在 `RecordingRandom` 里额外记录每次 `nextBits(31)` 的返回值与次数，
+定位到 [53] 之后那次 `variant` 抽取之前，两侧的消耗计数是否一致。
+
+## 第二十八轮：记录器的序号语义有歧义，逐次比对未能闭合
+
+### 做了什么
+
+在第二十七轮的 `RecordingRandom` 基础上，给 `HouseTowerGenerator` 的 `variant` 打点
+补上「最近一次抽取的序号」，想据此判断 `[53]` 之后那次 `nextInt(3)` 在此之前消耗了多少次。
+
+得到：
+
+```
+H draw=-1 depth=3 variant=1
+H draw=-1 depth=7 variant=1
+H draw=36 depth=7 variant=0
+H draw=62 depth=3 variant=1
+```
+
+### 这个序号不能直接用
+
+`g_lastDrawIndex` 记录的是「最近一次完成的抽取」的序号，而 `variant = rng.nextInt(3)`
+本身也是一次抽取。序号在抽取**之后**才自增，所以打印出来的值是**上一次**抽取的下标，
+不是这次 `nextInt(3)` 的下标。要拿到准确下标，应该在 `nextInt(3)` 之前先把计数器读出来。
+
+更关键的是：翻查序列可以看到 `D 63`、`D 64` 都是 `bool`，附近并没有出现新的 `intb3`。
+这与「`[53]` 之后紧接着就是一次 `nextInt(3)`」的预期不符，说明这次调用要么发生在
+序号统计窗口之外，要么我对 `[53]` 到 `variant` 之间调用链的假设有误。
+
+### 结论
+
+本轮没有拿到能闭合的证据，也没有改动业务代码。**不应该在这个基础上继续推断**。
+
+### 下一轮的正确做法
+
+不要在装饰器外面猜序号，而是把「来源」一起记下来：让 `nextInt(3)` 的每一次调用
+都打印**自己的**计数器值与调用者是哪个生成器（可以传一个枚举/字符串进
+`HouseTowerGenerator` / `TowerGenerator` / `FatTowerGenerator` / `TowerBridgeGenerator`），
+这样得到的日志是「第 N 次抽取 = 哪个生成器的哪种抽取 = 什么结果」的完整三元组，
+两侧各导一份即可直接 diff，不再需要靠下标倒推。
+
+## 第二十九轮：原版侧的抽取序列已能导出，但两侧序号基准不同
+
+### 新工具
+
+新增 `tests/diff/tools/EndCitySeq.java`：子类化 `WorldgenRandom` 覆写 `next(int)`，
+只播种、抽旋转、不加载模板（模板加载不消耗随机数），把每一次 `next(bits)` 的
+原始返回值按顺序打印出来。
+
+对 `seed=9248738493917, chunk=(-75,25)` 运行得到：
+
+```
+D 0 bits32 160368340
+D 1 bits32 -1765611662
+D 2 bits32 -204347753
+D 3 bits32 -606324226
+D 4 bits31 631178434
+ROT CLOCKWISE_90
+```
+
+`D 0`..`D 3` 是 `setLargeFeatureSeed` 内部两次 `nextLong()`（各拆成两次 `next(32)`）；
+`D 4` 才是 `Rotation.getRandom` 的那次 `next(31)`。
+`(4 * 631178434) >> 31 = 1`，对应 `CLOCKWISE_90`。
+
+### 与 Cubium 的对照
+
+Cubium 侧同一单元的 `[0]` 构件 rotation 也是 `CLOCKWISE_90`，**首个旋转是一致的**。
+
+### 但两侧序号基准不同
+
+Cubium 的记录装饰器是在 `startHouseTower` 调用处套上的，所以它的 `D 0` 是
+`TOWER_GENERATOR` 的第一次 `nextInt(2)`，而不是 `setLargeFeatureSeed` 内部的 `next(32)`。
+两侧的 `D n` 因此对不上，不能直接逐行 diff。
+
+### 下一轮
+
+让 Cubium 的记录器从**随机源刚构造出来时**就套上（即 `_selectStructureStart` 里
+`structureRng.setLargeFeatureSeed(...)` 之前），这样 `D 0`..`D 3` 也会被记录下来，
+与 Java 侧的编号从同一起点开始。之后再逐行 diff，第一个不匹配的位置就是分叉点。
+
+## 第三十轮：两侧序号基准已对齐，Cubium 侧导出 87 次抽取
+
+### 做法
+
+把 `_selectStructureStart` 里构造结构随机源的那一行，临时换成 `WorldgenRandom` 的子类
+（覆写 `nextBits(bits)` 打印原始返回值），并在 `setLargeFeatureSeed` 之前清零计数器。
+这样 `D 0` 就是 `setLargeFeatureSeed` 内部的第一次 `next(32)`，与 Java 侧
+`EndCitySeq` 的编号从同一起点开始。
+
+### 结果：前 5 条完全一致
+
+```
+Cubium                                   原版(EndCitySeq)
+D 0 bits32 160368340            160368340
+D 1 bits32 -1765611662         -1765611662
+D 2 bits32 -204347753          -204347753
+D 3 bits32 -606324226          -606324226
+D 4 bits31 631178434           631178434
+```
+
+Cubium 全序列共 **87 条**，`D 5` 之后依次是 `next(31)` 与 `next(1)` 的混合：
+
+```
+D 5  bits31 2084193063
+D 6  bits31 1977369053
+D 7  bits31 385551476
+D 8  bits31 63961103
+D 9  bits1 0
+D 10 bits1 1
+D 11 bits1 0
+D 12 bits1 1
+D 13 bits31 65469250
+...
+```
+
+### 顺带核对的一点
+
+`TOWER_GENERATOR`（原版 L94-147）里 `nextBoolean` 出现在两处：L119 的
+`j < i - 1 && nextBoolean()`（循环内，次数由 `i` 决定）与 L126 的 `if (nextBoolean())`
+（`TOWER_BRIDGES` 四项各一次）。因此 `D 9`..`D 12` 这连续四个 `next(1)` 本身并不异常。
+
+### 阻塞点
+
+Java 侧现在只抽到旋转就停了，要拿到完整序列必须真正驱动 `startHouseTower`，
+而它的第一个参数是 `StructureTemplateManager`，需要 `ResourceManager` 与
+存档目录才能构造。这是下一轮要解决的事。
+
+## 第三十一轮：完整序列已能对比，第一个分歧在 D 76——位宽不同
+
+### 打通了原版侧的完整驱动
+
+`EndCitySeq.java` 改用 `DataPackRegistries.load()` 与临时存档目录构造
+`StructureTemplateManager`，真正驱动 `EndCityPieces.startHouseTower`。
+（复用 `StructureStartsOracle.templateManager` 的同一套构造方式：临时空目录给
+`LevelStorageAccess`，结构生成从不写生成模板。）
+
+### 逐行 diff 结果
+
+两侧序号基准已对齐（`D 0` 都是 `setLargeFeatureSeed` 内部的第一次 `next(32)`）：
+
+```
+原版 79 条，Cubium 87 条
+D 0 .. D 75 全部一致
+D 76: 原版 bits32 591782331      Cub bits31 295891165
+D 77: 原版 bits32 -1533848996    Cub bits31 1380559150
+D 78: 原版 bits32 1376033556     Cub bits31 688016778
+```
+
+**这是本轮最关键的发现：D 76 处两侧的位宽就不同了。**
+
+- `bits32` 对应 `nextInt()`（无参，即 `recursiveChildren` 里取 componentId 的那次）；
+- `bits31` 对应 `nextInt(bound)` 的第一轮。
+
+也就是说，原版在这里执行了 `recursiveChildren` 的 `nextInt()`，而 Cubium 没有——
+Cubium 直接进入了下一个生成器的 `nextInt(bound)`。
+
+### 已核对但排除的
+
+- `WorldgenRandom::nextInt()` 就是 `nextBits(32)`，与 Java 的 `next(32)` 语义相同；
+- `nextInt()` 在 `recursiveChildren` 里的位置（`generate` 成功后立即调用）与原版一致；
+- `FatTowerGenerator` 的两处 `nextBoolean`（`FAT_TOWER_BRIDGES` 四项）与 `nextInt(3)` 的循环结构与原版一致；
+- `D 71`..`D 74` 的四个 `next(1)` 与该循环体的形态相符，`D 75` 的 `nextInt(3)` 结果
+  `364420944 % 3 = 0` 表示循环退出，之后应当直接 `fat_tower_top` 并 `return true`。
+
+### 下一轮
+
+问题收敛为「Cubium 在 `FatTowerGenerator` 返回之后到下一次 `nextInt(bound)` 之间，
+没有执行 `recursiveChildren` 的 `nextInt()`」。需要在 `recursiveChildren` 的
+`generate` 返回处与 `nextInt()` 处各打一个点，确认 `generate` 是否真的返回了 true。
+
+## 第三十二轮：D 75 之后两侧走的分支不同
+
+### 用 G> / G+ / G- 三点定位到调用层
+
+在 `recursiveChildren` 的「调用生成器前 / 生成器返回 false / 生成成功后取 componentId」三处打点，
+与 `D n bits<b>` 混排后得到：
+
+```
+D 69 bits1 1
+G> bridge d=2
+D 70 bits31 1564643288      ← nextInt(4)，桥段数
+D 71..D 74 bits1 x4         ← TOWER_BRIDGES 的四次 nextBoolean
+D 75 bits31 364420944       ← nextInt(10 - 2) = nextInt(8)，船判定
+G> house d=3                ← Cubium 走了 else 分支，递归房屋
+D 76 bits31 295891165       ← HouseTowerGenerator 的 nextInt(3)
+G> tower d=4
+...
+```
+
+而原版在同一位置的序列是：
+
+```
+D 75 bits31 364420944
+D 76 bits32 591782331
+D 77 bits32 -1533848996
+D 78 bits32 1376033556
+（结束，共 79 条）
+```
+
+### 已确定的事实
+
+1. `D 71`..`D 75` 两侧完全一致，`B 75` 的值 `364420944` 也相同；
+2. `nextInt(8)` 走 2 的幂分支 `(8 * 364420944) >> 31 = 1`，**不为 0，所以两侧都不生成末地船、
+   都应走 `else` 去递归房屋**——这一点 Cubium 的行为是对的；
+3. 原版 `D 76` 起是三次 `bits32`，即三次 `nextInt()`（`recursiveChildren` 取 componentId），
+   而 Cubium 在同样位置先抽了一次 `nextInt(3)`（房屋的 variant）。
+
+### 尚未解释的一点
+
+按原版源码，`recursiveChildren` 一定是先调 `generate` 再调 `nextInt()`，而
+`HOUSE_TOWER_GENERATOR.generate` 的第一件事（在 `depth > 8` 早退之后）就是 `nextInt(3)`。
+所以原版若走到 `nextInt()`，在此之前必然已经抽过 `nextInt(3)`。
+但原版序列里 `D 76` 直接就是 `bits32`，中间没有 `bits31`。
+
+**这个矛盾说明我对原版 `D 75` 之后所走分支的假设仍不成立**，不能据此修改 Cubium。
+下一轮应当给 Java 侧也加上同样的「进入哪个生成器」打点（在 `EndCitySeq` 里无法直接做，
+需要改写驱动、在 `SectionGenerator.generate` 外层包一层），逐层对照而不是只看随机数。
+
+### 本轮结论
+
+不做任何代码修改。已确认的是「D 75 之后两侧分支不同」，未确认的是原因。
+
+## 第三十三轮：Java 侧生成器级打点被 JVM 限制挡住
+
+### 尝试了什么
+
+想在 `EndCitySeq` 里给原版的四个 `SectionGenerator` 加「进入哪个生成器」打点，
+以便逐层对照。做法是拿到 `EndCityPieces.HOUSE_TOWER_GENERATOR` 等静态字段，
+用动态代理包一层后写回。
+
+### 三条路都被 JVM 挡住
+
+1. `Field.setAccessible(true)` + `Field.set(null, proxy)`
+   → `IllegalAccessException: Can not set static final ... field`
+2. `MethodHandles.privateLookupIn(...).findStaticSetter(...)`
+   → `IllegalAccessException: unexpected set of a final field`
+3. 用代理包装后**不改字段**、只在外部持有
+   → `startHouseTower` 内部读的仍是原始字段，代理不生效
+
+Java 17+ 对 `static final` 的写入限制是硬性的，这三条都没有绕过的空间。
+
+### 现有工具仍然可用
+
+`tests/diff/tools/EndCitySeq.java` 已恢复为可用版本，输出末地城生成的完整抽取序列：
+
+```
+D 75 bits31 364420944
+D 76 bits32 591782331
+D 77 bits32 -1533848996
+D 78 bits32 1376033556
+PIECES 57
+```
+
+**`PIECES 57` 与原版该单元的构件数一致。**
+
+### 下一步的方向
+
+既然不能从外部给原版加打点，可以反过来：**让 Cubium 输出与原版同构的「随机数 + 构件数」快照**，
+即每完成一次 `recursiveChildren` 就输出一次「当前抽取序号 + 主列表构件数」，与原版的
+`PIECES 57` 这类粗粒度结果对照。
+
+或者更直接：既然原版 `D 76`..`D 78` 之后就没有抽取了，而 Cubium 在 `D 76` 之后还有 11 次，
+可以**逐次把 Cubium 的 `D 76` 之后的那几次抽取单独复现**——用 Java 从 `D 75` 的状态出发，
+试探性地调用 `recursiveChildren`，看哪一种调用序列会产生 `bits32` 而非 `bits31`。
