@@ -140,6 +140,20 @@ u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
         }
         return 0;
     }
+    return submit(std::shared_ptr<ITask>(std::move(task)), std::move(callback), priority, std::move(abortSignal));
+}
+
+u64 UniversalWorkerPool::submit(std::shared_ptr<ITask> task,
+    TaskCallback callback,
+    TaskPriority priority,
+    std::shared_ptr<std::atomic<bool>> abortSignal)
+{
+    if (!task) {
+        if (callback) {
+            callback(false, nullptr);
+        }
+        return 0;
+    }
     auto internal = std::make_shared<InternalTask>();
     internal->task = std::move(task);
     internal->callback = std::move(callback);
@@ -363,6 +377,9 @@ void UniversalWorkerPool::_workerThread(i32 workerId)
 
 void UniversalWorkerPool::_executeTask(const std::shared_ptr<InternalTask>& task)
 {
+    // 本线程自取到任务起持有任务对象：submit(shared_ptr) 的调用方可能已不再持有，若在回调前
+    // 释放它，随后的类型/描述查询与回调就会落到已销毁对象上。
+    const std::shared_ptr<ITask> body = task->task;
     if (_isTaskCancelled(*task)) {
         _cancelTask(task);
         return;
@@ -382,22 +399,21 @@ void UniversalWorkerPool::_executeTask(const std::shared_ptr<InternalTask>& task
         MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic,
             "ExecuteTask",
             "type",
-            static_cast<u8>(task->task->type()),
+            static_cast<u8>(body->type()),
             "description",
-            task->task->description(),
+            body->description(),
             "priority",
             static_cast<i8>(task->priority));
 
-        MC_TRACE_SCOPED_EVENT(
-            TraceEvents.WorkerPool.Generic, "TaskExecution", "description", task->task->description());
-        success = task->task->execute(abortSignal);
+        MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic, "TaskExecution", "description", body->description());
+        success = body->execute(abortSignal);
     }
     catch (const std::exception& e) {
-        spdlog::error("[UniversalWorkerPool] Task {} threw exception: {}", task->task->description(), e.what());
+        spdlog::error("[UniversalWorkerPool] Task {} threw exception: {}", body->description(), e.what());
         success = false;
     }
     catch (...) {
-        spdlog::error("[UniversalWorkerPool] Task {} threw unknown exception", task->task->description());
+        spdlog::error("[UniversalWorkerPool] Task {} threw unknown exception", body->description());
         success = false;
     }
 
