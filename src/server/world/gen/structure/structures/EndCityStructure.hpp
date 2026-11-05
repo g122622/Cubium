@@ -140,6 +140,17 @@ public:
         return getRotation();
     }
 
+    /**
+     * @brief 模板资源位置
+     *
+     * 末地城的每个构件都对应一个 end_city/<name> 模板；返回它便于差分测试按模板名
+     * 逐项对照两侧的构件序列（只比包围盒时，两个不同模板恰好尺寸相同会掩盖分歧）。
+     */
+    [[nodiscard]] std::string_view templateLocation() const noexcept override
+    {
+        return m_templateName;
+    }
+
     [[nodiscard]] bool overwrite() const
     {
         return m_overwrite;
