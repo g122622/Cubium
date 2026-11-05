@@ -84,7 +84,7 @@ std::vector<std::string>& allStateNames()
 {
     static std::vector<std::string> names = [] {
         std::vector<std::string> result;
-        BlockRegistry::getInstance().forEachBlockState([&](const BlockState& state) {
+        BlockRegistry::instance().forEachBlockState([&](const BlockState& state) {
             result.push_back(canonicalStateName(state.toString()));
         });
         return result;
@@ -128,7 +128,6 @@ std::optional<std::string> withAttribute(const std::string& stateName, std::stri
 
     // 记录的属性值，不属于 key 的原样保留；属于 key 的替换掉。
     std::vector<std::string> others;
-    std::optional<std::string> oldValue;
     for (const std::string& attr : attrs) {
         const std::size_t eq = attr.find('=');
         if (eq == std::string::npos) {
@@ -136,19 +135,11 @@ std::optional<std::string> withAttribute(const std::string& stateName, std::stri
             continue;
         }
         if (attr.substr(0, eq) == key) {
-            oldValue = attr.substr(eq + 1);
             continue;
         }
         others.push_back(attr);
     }
-    if (oldValue == value) {
-        others.push_back(std::string(key) + "=" + std::string(value));
-    } else {
-        others.push_back(std::string(key) + "=" + std::string(value));
-        std::reverse(others.begin(), others.end());
-        others.pop_back();
-        others.push_back(std::string(key) + "=" + std::string(value));
-    }
+    others.emplace_back(std::string(key) + "=" + std::string(value));
     std::sort(others.begin(), others.end());
     std::string result = head + "[";
     for (std::size_t i = 0; i < others.size(); ++i) {
@@ -169,8 +160,8 @@ std::optional<std::string> withAttribute(const std::string& stateName, std::stri
 TEST(BlockMapColorTableTest, TableHasOneEntryPerVanillaBlock)
 {
     EXPECT_GT(world::block::vanillaMapColorTableSize(), 1000);
-    EXPECT_EQ(static_cast<std::size_t>(world::block::vanillaMapColorTableSize()),
-        BlockRegistry::getInstance().blockCount());
+    EXPECT_EQ(
+        static_cast<std::size_t>(world::block::vanillaMapColorTableSize()), BlockRegistry::instance().blockCount());
 }
 
 /**
@@ -178,10 +169,12 @@ TEST(BlockMapColorTableTest, TableHasOneEntryPerVanillaBlock)
  */
 TEST(BlockMapColorTableTest, BareStateUsesBlockColor)
 {
-    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:dirt"), static_cast<u8>(world::map::MaterialColorId::DIRT));
-    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:stone"),
-        static_cast<u8>(world::map::MaterialColorId::STONE));
-    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:sand"), static_cast<u8>(world::map::MaterialColorId::SAND));
+    EXPECT_EQ(
+        world::block::lookupVanillaMapColor("minecraft:dirt"), static_cast<u8>(world::map::MaterialColorId::DIRT));
+    EXPECT_EQ(
+        world::block::lookupVanillaMapColor("minecraft:stone"), static_cast<u8>(world::map::MaterialColorId::STONE));
+    EXPECT_EQ(
+        world::block::lookupVanillaMapColor("minecraft:sand"), static_cast<u8>(world::map::MaterialColorId::SAND));
     EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:water[level=0]"),
         static_cast<u8>(world::map::MaterialColorId::WATER));
 }
@@ -194,8 +187,18 @@ TEST(BlockMapColorTableTest, LogColorDependsOnAxis)
     EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:oak_log[axis=y]"), 13);
     EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:oak_log[axis=x]"), 34);
     EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:oak_log[axis=z]"), 34);
-    // 属性顺序不同，应规范化到同一个键
-    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:oak_log[axis=z]"), 34);
+}
+
+/**
+ * @brief 规范化会把属性重新排序，`axis` 之外的属性顺序不影响结果
+ */
+TEST(BlockMapColorTableTest, AttributeOrderDoesNotAffectLookup)
+{
+    const std::string sorted =
+        world::block::canonicalStateName("minecraft:red_bed[occupied=false,facing=west,part=foot]");
+    EXPECT_EQ(sorted, "minecraft:red_bed[facing=west,occupied=false,part=foot]");
+    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:red_bed[occupied=false,facing=west,part=foot]"),
+        world::block::lookupVanillaMapColor("minecraft:red_bed[facing=west,occupied=false,part=foot]"));
 }
 
 /**
@@ -294,8 +297,8 @@ TEST(BlockMapColorTableTest, ColorIsInvariantUnderColourNeutralTransformations)
             const u8 transformed = world::block::lookupVanillaMapColor(*other);
             if (original != transformed) {
                 ++mismatched;
-                ADD_FAILURE() << "color mismatch: " << name << " (" << static_cast<int>(original) << ") vs "
-                              << *other << " (" << static_cast<int>(transformed) << ")";
+                ADD_FAILURE() << "color mismatch: " << name << " (" << static_cast<int>(original) << ") vs " << *other
+                              << " (" << static_cast<int>(transformed) << ")";
             }
         }
     }

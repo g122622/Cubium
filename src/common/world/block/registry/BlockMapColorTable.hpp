@@ -42,11 +42,13 @@ struct MapColorStateOverride {
 
 /**
  * @brief 一个原版方块的地图颜色及其状态例外
+ *
+ * 例外状态不写在这里，而是记在快照文件内部的并行数组里：聚合体里放 `std::vector` 会让
+ * clang-format 把多行字符串分解成构造函数的多个实参而编译失败，快照因此对格式化不友好。
  */
 struct MapColorBlock {
-    std::string_view name;                             ///< 方块名（如 "minecraft:oak_log"）
-    u8 color;                                          ///< 不含例外状态时使用的颜色
-    std::vector<MapColorStateOverride> stateOverrides; ///< 与默认色不同的状态
+    std::string_view name; ///< 方块名（如 "minecraft:oak_log"）
+    u8 color;              ///< 不含例外状态时使用的颜色
 };
 
 /**
