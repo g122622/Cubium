@@ -293,7 +293,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
                     self->_finish(dispatch, success);
                 }
             };
-            pool->submit(std::move(body), std::move(callback), dispatch.task->priority, dispatch.task->abortSignal);
+            pool->submit(body, std::move(callback), dispatch.task->priority, dispatch.task->abortSignal);
         }
     }
 
