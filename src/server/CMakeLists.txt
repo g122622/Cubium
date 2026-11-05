@@ -428,12 +428,12 @@ add_executable(minecraft-server
     stats/StatisticsManager.cpp
     # 交互管理器
     interaction/BlockInteractionManager.cpp
-    physics/TravelTick.cpp
     interaction/DigSpeed.cpp
     interaction/MiningManager.cpp
     interaction/ContainerManager.cpp
     interaction/InventoryManager.cpp
     interaction/SignCommandHelper.cpp
+    physics/TravelTick.cpp
     # 同步管理器
     network/sync/BlockUpdateSyncManager.cpp
     network/sync/ChunkSendManager.cpp
