@@ -29,6 +29,7 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace mc {
@@ -131,8 +132,8 @@ public:
         const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
-        i32 offsetX,
-        i32 offsetY);
+        i32 positionOffset,
+        i32 verticalOffset);
 
     /**
      * @brief 获取下一个组件（X方向）
@@ -143,8 +144,8 @@ public:
         const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
-        i32 offsetX,
-        i32 offsetY);
+        i32 positionOffset,
+        i32 verticalOffset);
 
     /**
      * @brief 获取下一个组件（Z方向）
@@ -155,8 +156,8 @@ public:
         const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
-        i32 offsetX,
-        i32 offsetY);
+        i32 positionOffset,
+        i32 verticalOffset);
 
 protected:
     Door m_entryDoor = Door::Opening;
@@ -430,6 +431,12 @@ public:
  */
 class StrongholdStairs : public StrongholdPiece {
 public:
+    /**
+     * @brief 构造楼梯
+     *
+     * @param fixedDoor 非空时使用该入口门且**不消耗随机数**；为空时按原版
+     *                  `randomSmallDoor` 抽一次。起始楼梯必须传 `Door::Opening`。
+     */
     StrongholdStairs(i32 componentType,
         math::IRandom& rng,
         i32 minX,
@@ -438,7 +445,8 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
-        Direction direction);
+        Direction direction,
+        std::optional<Door> fixedDoor);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
