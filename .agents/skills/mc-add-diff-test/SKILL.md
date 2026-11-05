@@ -174,6 +174,59 @@ MC_DIFF_DEFINE_PROBE("<domain>", &writeList, &runLine)
 } // namespace mc::diff
 ```
 
+### 【最重要】探针必须调用生产代码，绝不能在探针里另写一份算法
+
+这是本流程里唯一一条「写错了就完全白做」的规则。差分测试的全部价值在于：**把同一份输入
+分别喂给 Cubium 的实现和原版参照，要求输出逐字节相同**。如果探针自己重新实现了一遍算法，
+那么测的就是「探针作者的实现」和原版是否一致——Cubium 的实现在这条链上从未被调用。
+
+```cpp
+// ❌ 错误：探针自带一份副本，Cubium 的实现从未参与比对
+f32 lerpF(f32 d, f32 start, f32 end)
+{
+    return start + d * (end - start);
+}
+
+// ✅ 正确：直接调生产代码
+f32 lerpF(f32 d, f32 start, f32 end)
+{
+    return math::lerp(start, end, d);
+}
+```
+
+**这个错误已经实际发生过四次**，且每次都是「测试全绿但缺陷仍在」：
+
+| 能力 | 探针自带的副本 | 后果 |
+| --- | --- | --- |
+| `timeline_sample` | `lerpFloat` | 掩盖了 `LerpFunction::ofFloat` 的 FMA 收缩 |
+| `mth_lerp` | `lerpF` / `lerpD` | 掩盖了 `MathUtils::lerp` 的 FMA 收缩 |
+| `mth_clamp` | `clampedMapDouble` | 同样绕过，所幸该实现本身没有缺陷 |
+
+把探针改成调用生产代码后，`timeline_sample` 与 `mth_lerp` 立刻从全绿变成失败，
+暴露出真实的 1 ulp 偏差。
+
+**判断方法**：写完探针的辅助函数后，逐个问「这个函数在 `src/` 里对应的实现是哪个？」。
+如果有对应实现却没用它，就是错了。只有在 `src/` 里**确实没有**对应实现时（如原版的某个
+纯数学辅助量在 Cubium 侧根本不存在），才允许在探针内实现，并在注释里写明原因。
+
+### 用例必须包含「不整齐」的数值
+
+对称整数用例（`10|20`、`0|100`、`0.5`）在浮点的两种算法下**结果往往完全相同**，
+因此无法暴露精度类缺陷。每个涉及浮点的能力，用例里至少要有：
+
+- 若干组小数端点（如 `2.772`、`17.118`，而不是 `0`、`100`）；
+- 分段函数的分界点本身（如 bounce 的 `0.36363637`、`0.72727275`）；
+- 会让中间结果落不到精确值的组合。
+
+如果一时想不出哪组能触发，可以写个临时程序穷举搜索——找到后**原样**写进用例，
+不要「化简」成好读的数字。
+
+### 两侧的用例表必须逐项一致
+
+探针的 `writeList` 与 oracle 的单元列表必须完全相同（名称、顺序、每个输入）。
+一侧多写或少写，表现为「参照实现返回 missing」或单元数对不上，而不是数值差异。
+新增用例时**两处都要改**，改完跑一次确认两侧单元数相同。
+
 **硬性约束**：
 
 - **确定性**：同一输入永远产出同一输出。涉及无序容器（`unordered_map`/`unordered_set`）、指针地址、时间、未固定随机种子的，写出前必须自行收敛：排序、固定种子、去掉地址。
@@ -335,6 +388,30 @@ node tests/diff/harness/runner.ts <domain> --fresh
 6. **把不可比的东西塞进比对条件**。例如 Cubium 里某字段来自材质默认值而非逐方块注册，这类系统性缺口应先补齐或登记为已知缺口，不要让它们混进通过条件（参考 `block_properties` 的做法）。
 7. **在探针里做本属于编排层的事**。探针只负责「输入 → 输出」，用例生成、场景展开、排序策略属于 TS 侧（`harnesses/*.ts`），否则增量缓存和报告都失去意义。
 
+8. **`-march=native` 的 FMA 收缩**。本工程 Release 下开了 `-ffast-math` 与 `-march=native`，
+   本机 CPU（raptorlake）带 `+fma`，因此 `a + b * c` 会被编译成单条 fma，乘积不再舍入到
+   标量精度，与原版 JVM 的逐步舍入差 1 ulp。**已经因此修过三处**：`LerpFunction::ofFloat`、
+   `LerpFunction::ofDegrees`、`MathUtils::lerp`。
+
+   写涉及浮点乘加的探针时，如果发现「两侧都算对了但结果差一点点」，先怀疑这个。
+   定位方法（已实测有效）：
+
+   ```bash
+   # 同一份代码换编译选项，看结果是否变化
+   clang++ -O2 -march=native -ffast-math x.cpp   # 有 fma
+   clang++ -O2 -mno-fma -ffast-math x.cpp        # 无 fma
+   ```
+
+   两者结果不同即确诊。修复用 `volatile` 把乘积强制落回标量存储（局部 `#pragma clang fp
+   contract(off)` 在 lambda 体内实测不生效）：
+
+   ```cpp
+   const volatile f32 delta = (b - a) * t;
+   return a + delta;
+   ```
+
+   注意副作用：这会让函数失去 `constexpr` 资格。改之前先 `git grep` 确认没有 constexpr 调用方。
+
 ---
 
 # 7. 收尾清单
@@ -344,6 +421,8 @@ node tests/diff/harness/runner.ts <domain> --fresh
 - [ ] 探针源文件带 MIT 版权头，放在 `namespace mc::diff` 内，用 `MC_DIFF_DEFINE_PROBE` 注册；
 - [ ] `list` 输出稳定有序，`run` 输出单行 JSON 且确定性；
 - [ ] oracle 用文件传协议数据，同包复用逻辑已抽成辅助类；
+- [ ] **探针的每个辅助函数都调用了 `src/` 里的实现**，没有在探针里另写一份算法（见第 2 步同名章节）；
+- [ ] 用例里包含小数端点与分段边界，不只是对称整数；
 - [ ] `CMakeLists.txt` 三张列表**同一位置**各加一项，长度一致；
 - [ ] `harnesses/index.ts` 声明齐全，`knownDifferences` 每条都有 `reason` 与对应 `TODO`；
 - [ ] `node tests/diff/harness/runner.ts build <domain>` 与 `... <domain>` 都能跑通；

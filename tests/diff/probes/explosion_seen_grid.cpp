@@ -62,6 +62,7 @@
  * 直接复用它而不再自带一份实现。
  */
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "probe.hpp"
 #include <algorithm>
 #include <cmath>
@@ -115,7 +116,7 @@ f64 computeOffset(f64 step)
 /// 原版 `Mth.lerp(t, min, max) = min + t * (max - min)`。
 f64 lerp(f64 t, f64 minValue, f64 maxValue)
 {
-    return minValue + t * (maxValue - minValue);
+    return math::lerp(minValue, maxValue, t);
 }
 
 struct Box {

@@ -135,6 +135,7 @@
 
 #include "common/core/Types.hpp"
 
+#include "common/util/math/MathUtils.hpp"
 #include "probe.hpp"
 
 namespace mc::diff {
@@ -155,7 +156,7 @@ struct Box {
 /// 与原版 `Mth.lerp` 一致：`start + delta * (end - start)`。
 f64 lerp(f64 delta, f64 start, f64 end)
 {
-    return start + delta * (end - start);
+    return math::lerp(start, end, delta);
 }
 
 /// 格式化浮点：`%.9g`，并把 `nan` / `inf` 统一成小写。
