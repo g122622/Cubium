@@ -148,15 +148,15 @@ void ServerDimension::shutdown()
     m_despawnManager.reset();
     m_naturalSpawner.reset();
 
+    m_players.clear();
+    m_portalPositions.clear();
+
     // 销毁 ServerWorld，触发 ServerWorld::~ServerWorld() → ServerWorld::shutdown()
     // （含实体落盘 + ServerChunkManager::shutdown，是维度卸载里最重的部分）。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerDimension::shutdown::DestroyWorld");
         m_world.reset();
     }
-
-    m_players.clear();
-    m_portalPositions.clear();
 
     m_initialized = false;
 }
