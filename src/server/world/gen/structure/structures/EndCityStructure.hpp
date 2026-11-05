@@ -172,9 +172,6 @@ public:
         m_templatePosition.z += dz;
     }
 
-    /// 唯一ID，用于碰撞检测
-    i32 componentId = 0;
-
     /// 挂载本座城的生成器（由 startHouseTower 在生成开始时调用）
     void setGenerators(std::shared_ptr<CityGenerators> generators);
 
