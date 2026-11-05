@@ -450,6 +450,39 @@ void ServerWorld::shutdown()
     m_chunkManager.reset();
     spdlog::info("DIAG shutdown(dim={}): chunk manager destroyed", static_cast<i32>(m_config.dimension));
 
+    // TEMP-DIAG：成员析构链逐组定位（这些成员声明在析构链的末段）。
+    {
+        const i32 dim = static_cast<i32>(m_config.dimension);
+        spdlog::info("DIAG members(dim={}): drop dragonFight", dim);
+        m_dragonFight.reset();
+        spdlog::info("DIAG members(dim={}): clear block events", dim);
+        m_blockEvents.clear();
+        m_blockEventsToReschedule.clear();
+        spdlog::info("DIAG members(dim={}): reset on-callbacks", dim);
+        m_onLightChanged = nullptr;
+        m_onBlockChanged = nullptr;
+        m_onPlaySound = nullptr;
+        m_onBroadcastParticle = nullptr;
+        m_onBroadcastVibrationParticle = nullptr;
+        m_onBroadcastTrailParticle = nullptr;
+        m_onBroadcastEntityEffectParticle = nullptr;
+        m_onBroadcastBlockParticle = nullptr;
+        m_onBroadcastItemParticle = nullptr;
+        m_onBroadcastEntityStatus = nullptr;
+        m_onBroadcastEntityAnimation = nullptr;
+        m_onBroadcastHurtAnimation = nullptr;
+        m_onBroadcastSetEntityLink = nullptr;
+        m_onBroadcastWorldEvent = nullptr;
+        m_onBroadcastGlobalLevelEvent = nullptr;
+        m_onBroadcastBlockEvent = nullptr;
+        m_onBroadcastBlockEntity = nullptr;
+        m_onDestroyBlockProgress = nullptr;
+        m_onBroadcastExplosion = nullptr;
+        m_onExecuteCommand = nullptr;
+        m_onOpenContainer = nullptr;
+        m_onOpenEntityContainer = nullptr;
+        spdlog::info("DIAG members(dim={}): callbacks cleared", dim);
+    }
     spdlog::info("Server world shut down");
 }
 
