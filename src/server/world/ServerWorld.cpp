@@ -490,7 +490,7 @@ void ServerWorld::shutdown()
         });
         spdlog::info("DIAG members(dim={}): destroying {} entities", dim, ids.size());
         for (EntityInstanceId id : ids) {
-            m_entityManager.destroyEntity(id, entity::RemovalReason::Discarded);
+            m_entityManager.destroyEntity(id, RemovalReason::Discarded);
         }
         spdlog::info("DIAG members(dim={}): entities destroyed individually", dim);
     }
