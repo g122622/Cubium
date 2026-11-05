@@ -80,7 +80,12 @@ public:
     static LerpFunction<f32> ofFloat()
     {
         return LerpFunction<f32>([](f32 progress, f32 from, f32 to) {
-            return from + progress * (to - from);
+            // 用 volatile 强制乘积先落回 float 存储：-march=native 会把 `from + p*(to-from)`
+            // 融合成单条 fma，乘积不再舍入到 float，结果与原版的逐步舍入差 1 ulp。
+            // 局部 `#pragma clang fp contract(off)` 在这个 lambda 里不生效（实测无效）。
+            // 以 p=0.98927504、from=10、to=0 为例：融合得 0x3ddba5b0，逐步舍入得 0x3ddba580。
+            const volatile f32 delta = progress * (to - from);
+            return from + delta;
         });
     }
 
@@ -91,7 +96,12 @@ public:
     {
         return LerpFunction<f32>([threshold](f32 progress, f32 from, f32 to) {
             const f32 diff = _wrapDegrees(to - from);
-            return std::abs(diff) >= threshold ? to : from + progress * diff;
+            // 同样禁止 FMA 收缩，理由见 ofFloat。
+            if (std::abs(diff) >= threshold) {
+                return to;
+            }
+            const volatile f32 delta = progress * diff;
+            return from + delta;
         });
     }
 
@@ -142,7 +152,9 @@ public:
     static i32 srgbLerp(f32 progress, i32 from, i32 to)
     {
         auto lerpChannel = [progress](i32 c1, i32 c2) {
-            const f32 result = c1 + progress * (c2 - c1);
+            // 同样禁止 FMA 收缩，理由见 ofFloat。
+            const volatile f32 delta = progress * static_cast<f32>(c2 - c1);
+            const f32 result = static_cast<f32>(c1) + delta;
             return static_cast<i32>(result < 0.0f ? result - 1.0f : result);
         };
 

@@ -32,12 +32,6 @@ std::string floatBits(f32 value)
     return buffer;
 }
 
-/// f32 轨道的线性插值：`from + f * (to - from)`，与原版 LerpFunction 同式
-f32 lerpFloat(f32 f, f32 from, f32 to)
-{
-    return from + f * (to - from);
-}
-
 /**
  * @brief 一条待测轨道
  *
@@ -119,7 +113,8 @@ const std::vector<i64>& sampleTicks()
 std::unique_ptr<KeyframeTrackSampler<f32>> buildSampler(const TrackCase& trackCase)
 {
     const KeyframeTrack<f32> track(trackCase.keyframes, trackCase.easing);
-    const world::attribute::LerpFunction<f32> lerp{std::function<f32(f32, f32, f32)>(&lerpFloat)};
+    // 用生产代码自己的插值函数：差分测试要覆盖真实路径，而不是探针另写一份。
+    const world::attribute::LerpFunction<f32> lerp = world::attribute::LerpFunction<f32>::ofFloat();
     return std::make_unique<KeyframeTrackSampler<f32>>(track.bakeSampler(trackCase.period, lerp));
 }
 
