@@ -2094,6 +2094,16 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "mth_misc",
+        probe: "mth_misc",
+        oracle: "MthMiscOracle",
+        description: "Mth 里一批纯计算函数 —— murmur3 混洗、快速立方根倒数、三态符号、向下量化、棋盘距离、整数倍判断、正方形边长、Catmull-Rom 样条、整数平方。"
+        + "这些函数此前在 Cubium 里缺失，本次补齐实现的同时补上差分覆盖；都不依赖世界状态，可直接喂入任意输入比对。"
+        + "每个都有各自的陷阱：murmur 的移位必须无符号、立方根倒数的整数部分是带符号除法、sign 的负零应返回 0 而 NaN 返回 -1、quantize 不能向零截断。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
