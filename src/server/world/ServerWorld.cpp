@@ -503,6 +503,10 @@ void ServerWorld::shutdown()
         spdlog::info("DIAG members(dim={}): entity tracker reset", dim);
         spdlog::info("DIAG members(dim={}): drop entity registry", dim);
         spdlog::info("DIAG members(dim={}): entity registry reset", dim);
+        spdlog::info("DIAG members(dim={}): drop entity manager", dim);
+        m_entityManager.~EntityManager();
+        new (&m_entityManager) EntityManager(m_entityRegistry);
+        spdlog::info("DIAG members(dim={}): entity manager reset", dim);
     }
     spdlog::info("Server world shut down");
 }

@@ -2061,6 +2061,17 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "weird_scaled_sampler",
+        probe: "weird_scaled_sampler",
+        oracle: "WeirdScaledSamplerOracle",
+        description: "奇异缩放采样器（原版 DensityFunctions.WeirdScaledSampler）的取值与 min/max —— 2 种 rarity 映射 x 21 个输入值 x 2 组噪声 x 5 个坐标。"
+        + "它不是纯算术：先拿输入值查表选出稀有度系数，再用 坐标/系数 采样噪声、结果取绝对值后乘回系数。"
+        + "主世界的 weirdness/ridges 用它把噪声在空间上分层，查表用的是严格小于，所以阈值上取等与取不等的落档不同。"
+        + "输入值刻意取在全部阈值上与其两侧：Type1 的 -0.5/0.0/0.5，Type2 的 -0.75/-0.5/0.5/0.75。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
