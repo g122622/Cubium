@@ -2302,9 +2302,11 @@ void Player::registerAttributes()
     attributes().setBaseValue(Attributes::WAYPOINT_RECEIVE_RANGE, 60000000.0);
 
     // 挖掘/潜行/横扫相关属性（对应 MC 1.21.11 Player.createAttributes:207-225）。
-    // 这三类属性的消费点都在玩家身上（挖掘速度、潜行速度倍率、横扫伤害），
+    // 这几类属性的消费点都在玩家身上（挖掘速度、潜行速度倍率、横扫伤害），
     // 附魔修饰符通过 detectEquipmentUpdates → applyEnchantmentAttributeModifiers 注入。
-    // BLOCK_BREAK_SPEED 仍缺失，见下方 TODO。
+    // BLOCK_BREAK_SPEED 是挖掘速度公式里乘性的一环（默认 1.0 不改变结果），
+    // 不注册的话 getAttributeValue 取不到它，挖掘速度就少乘这一项。
+    attributes().registerAttribute(*Attributes::blockBreakSpeed());
     attributes().registerAttribute(*Attributes::miningEfficiency());
     attributes().registerAttribute(*Attributes::submergedMiningSpeed());
     attributes().registerAttribute(*Attributes::sneakingSpeed());

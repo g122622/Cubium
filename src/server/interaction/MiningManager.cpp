@@ -478,15 +478,21 @@ f32 MiningManager::_calculateDigSpeedMultiplier(ServerWorld& world,
         speed += static_cast<f32>(miningEfficiency);
     }
 
-    // 3. 急迫效果和潮涌能量加成
+    // 3. block_break_speed 属性（默认 1.0，不改变结果；原版在这里做乘性叠加——
+    //    它排在急迫/疲劳之前，顺序不影响最终乘积，但必须存在这一环）。
+    if (player != nullptr) {
+        speed *= static_cast<f32>(player->getAttributeValue(entity::attribute::Attributes::BLOCK_BREAK_SPEED, 1.0));
+    }
+
+    // 4. 急迫效果和潮涌能量加成
     f32 hasteMultiplier = _calculateHasteMultiplier(playerData);
     speed *= hasteMultiplier;
 
-    // 4. 挖掘疲劳惩罚
+    // 5. 挖掘疲劳惩罚
     f32 fatigueMultiplier = _calculateMiningFatigueMultiplier(playerData);
     speed *= fatigueMultiplier;
 
-    // 5. 水下挖掘惩罚：拉开 submerged_mining_speed 属性（默认 0.2 = 陆地的 1/5），
+    // 6. 水下挖掘惩罚：拉开 submerged_mining_speed 属性（默认 0.2 = 陆地的 1/5），
     // 水下速掘附魔把它乘到 1.0。拿不到玩家实体时退回到固定的 1/5。
     if (_areEyesInWater(world, playerData)) {
         const f64 submergedMiningSpeed = player != nullptr
@@ -495,7 +501,7 @@ f32 MiningManager::_calculateDigSpeedMultiplier(ServerWorld& world,
         speed *= static_cast<f32>(submergedMiningSpeed);
     }
 
-    // 6. 空中挖掘惩罚
+    // 7. 空中挖掘惩罚
     if (!playerData.onGround) {
         speed /= OFF_GROUND_PENALTY;
     }
