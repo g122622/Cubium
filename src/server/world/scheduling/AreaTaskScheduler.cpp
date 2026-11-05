@@ -65,6 +65,8 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             if (!m_claimed) {
                 return false;
             }
+            m_type = m_dispatch.task->body->type();
+            m_description = m_dispatch.task->body->description();
             const bool success = m_dispatch.task->body->execute(abortSignal);
             releaseBody();
             return success;
@@ -81,14 +83,22 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             }
         }
 
+        /// 任务体释放后，计算池仍会在回调整段查询类型与描述（日志/追踪），
+        /// 故执行前先缓存一份，不能转发到已释放的任务体。
         util::TaskType type() const override
         {
-            return m_dispatch.task->body->type();
+            if (m_dispatch.task->body != nullptr) {
+                return m_dispatch.task->body->type();
+            }
+            return m_type;
         }
 
         std::string description() const override
         {
-            return m_dispatch.task->body->description();
+            if (m_dispatch.task->body != nullptr) {
+                return m_dispatch.task->body->description();
+            }
+            return m_description;
         }
 
         bool claimed() const
@@ -109,6 +119,9 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         std::shared_ptr<State> m_state;
         Dispatch m_dispatch;
         bool m_claimed = false;
+        /// 执行前从任务体抄下的类型与描述：任务体释放后计算池仍会查询它们做日志与追踪。
+        util::TaskType m_type = util::TaskType::Custom;
+        std::string m_description;
     };
 
     explicit State(util::UniversalWorkerPool* pool)
