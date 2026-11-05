@@ -2022,6 +2022,17 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "noise_density",
+        probe: "noise_density",
+        oracle: "NoiseDensityOracle",
+        description: "噪声型密度函数（原版 NoiseDensity / MappedNoise）的取值与 min/max —— 8 组配置 x 9 个坐标。"
+        + "NoiseDensity 是 noise * scale，MappedNoise 把噪声重映射到 [from, to]；两者直接决定主世界与下界的洞穴形状。"
+        + "缩放特意用非 2 的幂（0.1、0.011、0.31），因为 x * xzScale 这一步的舍入会直接传到噪声输入。"
+        + "采样点覆盖原点、各轴单独偏移、负坐标、以及远离原点的大坐标。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
