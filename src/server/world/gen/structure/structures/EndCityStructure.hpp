@@ -187,6 +187,10 @@ private:
 class IGenerator {
 public:
     virtual ~IGenerator() = default;
+
+    /** @brief 生成器名称（仅用于调试打点） */
+    [[nodiscard]] virtual const char* name() const = 0;
+
     virtual void init() = 0;
     virtual bool generate(feature::template_::TemplateManager& templateManager,
         i32 depth,
@@ -201,6 +205,11 @@ public:
  */
 class HouseTowerGenerator : public IGenerator {
 public:
+    [[nodiscard]] const char* name() const override
+    {
+        return "house";
+    }
+
     void init() override {}
 
     bool generate(feature::template_::TemplateManager& templateManager,
@@ -216,6 +225,11 @@ public:
  */
 class TowerGenerator : public IGenerator {
 public:
+    [[nodiscard]] const char* name() const override
+    {
+        return "tower";
+    }
+
     void init() override {}
 
     bool generate(feature::template_::TemplateManager& templateManager,
@@ -233,6 +247,11 @@ public:
  */
 class TowerBridgeGenerator : public IGenerator {
 public:
+    [[nodiscard]] const char* name() const override
+    {
+        return "bridge";
+    }
+
     void init() override
     {
         m_shipCreated = false;
@@ -254,6 +273,11 @@ private:
  */
 class FatTowerGenerator : public IGenerator {
 public:
+    [[nodiscard]] const char* name() const override
+    {
+        return "fat";
+    }
+
     void init() override {}
 
     bool generate(feature::template_::TemplateManager& templateManager,
