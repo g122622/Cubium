@@ -84,7 +84,7 @@ public:
     /**
      * @brief 从数据包重建方块标签表
      *
-     * 数据包中的 `data/<ns>/tags/block/<name>.json` 是方块标签表的**唯一来源**：本方法先
+     * 数据包（`data/<ns>/tags/block/` 下的 JSON）是方块标签表的**唯一来源**：本方法先
      * `BlockTags::clear()`，再交由 BlockTagLoader 重建整张表，过程中不留任何编译期快照。
      *
      * 前置条件：方块物品（BlockItemRegistry）必须已注册。原版标签按物品 id 引用方块物品，

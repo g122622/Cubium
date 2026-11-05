@@ -283,6 +283,11 @@ if(MC_ENABLE_SANITIZERS)
     message(STATUS "Sanitizer build: optimizations reduced, stack protection enabled")
 else()
     add_compile_options(-O2) # 不开o3，o3对缓存不友好、增加编译时间且可能存在bug
+    # 向量化请求失败（`#pragma clang loop vectorize_width`）只报告为警告。本工程的浮点
+    # 语义依赖 `-ffast-math`，同一份代码在不同优化路径（内联深度、常量传播）下能否向量化
+    # 并不稳定；把它升级成 -Werror 会让构建随编译器启发式偶发失败（PerlinNoise /
+    # BlendedNoise 的噪声采样循环就出现过）。性能回归由基准测试把关，不靠编译失败把关。
+    add_compile_options(-Wno-pass-failed)
     # 仅当明确要求时针对本机 CPU 生成指令（见 MC_ENABLE_NATIVE_ARCH 的说明）。
     # 跨机器分发产物（CI 的 build job → 测试 job）时必须关闭，否则可能在无对应
     # CPU 特性的机器上触发 SIGILL。

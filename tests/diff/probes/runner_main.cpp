@@ -117,6 +117,12 @@ int runInput(const mc::diff::Probe& probe, const char* inputPath, const char* ou
             // 错位，报出来的差异就无从定位了。
             result = nlohmann::json{{"error", error.what()}, {"line", lineNumber}}.dump();
         }
+        catch (...) {
+            // 非 std::exception 的抛出同样要落到这一行。漏掉它 result 会保持为空，
+            // 而空行被编排层直接过滤——表现是"探针少输出一行"，两侧行号一并错位，
+            // 比报错更难查。
+            result = nlohmann::json{{"error", "unknown exception"}, {"line", lineNumber}}.dump();
+        }
         std::fprintf(out, "%s\n", result.c_str());
     }
 

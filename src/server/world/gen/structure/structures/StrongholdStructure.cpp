@@ -28,7 +28,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
@@ -111,44 +113,78 @@ bool StrongholdStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> StrongholdStructure::generate(
-    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
-
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 起始块在区块内的偏移是 2，不是中心 8：原版用的是 chunkPos.getBlockX(2)。
-    // 偏移量直接影响起始楼梯的包围盒，进而影响所有后续 piece 的位置。
-    const i32 startX = chunkX * mc::world::CHUNK_WIDTH + 2;
-    const i32 startZ = chunkZ * mc::world::CHUNK_WIDTH + 2;
+    const i32 startX = chunkX * world::CHUNK_WIDTH + 2;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH + 2;
 
-    // 起始 Y 由 StrongholdStartStairs 固定为 64（原版同样没有随机起始高度）。
-    // 此前这里先消耗一个 rng.nextInt 再传下去，白吃了一个随机数，
-    // 使后续每一个 piece 的旋转、类型选择全部错一位。
+    // 原版 generatePieces 的整段重试循环。三处要点缺一不可：
+    //
+    //  1. 每轮用**独立**的 `setLargeFeatureSeed(世界种子 + i, 区块)` 重置随机源，
+    //     并用它替换全局世界随机数。要塞用的不是区块随机流——直接沿用外部 rng
+    //     会让起点、每个片段的类型与旋转全部错位。
+    //  2. 每轮先 resetPieces()（权重计数与 imposedPiece 归零），再重新构建起始楼梯。
+    //     短链生成的森林里权重计数与上一轮共享，第二轮起的选择分布就偏了。
+    //  3. 结束时整体 moveBelowSeaLevel(海平面, 最小 Y, random, 10)。
+    //     漏掉它整座要塞会悬在 Y=64 的起始高度上（实测 52 个构件全在 64..74）。
+    //
+    // 终止条件同样来自原版：构件集非空且已经生成了传送门房间。
+    const i64 worldSeed = static_cast<i64>(generator.seed());
     const i32 startY = m_config.minY;
     const BlockPos startPos(startX, startY, startZ);
 
-    _generateStrongholdPieces(rng, startPos, start->pieces());
+    // 防御性上限：原版 while(true) 靠「权重耗尽」保证终止，而权重恰好全部耗尽的轮次
+    // 可能同时卡在传送门房间的包围盒冲突上，缺少硬上限会让探针/服务端永久挂住。
+    // 触发说明组装逻辑与条件不一致，必须报错而不是静默产出残缺要塞。
+    constexpr i32 kMaxAttempts = 256;
+    for (i32 attempt = 0;; ++attempt) {
+        MC_ASSERT_RELEASE_MSG(attempt < kMaxAttempts,
+            "stronghold assembly did not produce a portal room within retry limit; "
+            "the piece weight bookkeeping or the portal room registration is inconsistent");
+        start->pieces().clear();
+        start->recalculateStructureSize();
 
-    start->recalculateStructureSize();
+        math::WorldgenRandom localRng(std::make_unique<math::JavaLegacyRandom>(static_cast<u64>(worldSeed + attempt)));
+        localRng.setLargeFeatureSeed(worldSeed + attempt, chunkX, chunkZ);
+
+        StrongholdStartStairs* startStairs = _generateStrongholdPieces(localRng, startPos, start->pieces());
+        const bool hasPortalRoom = startStairs != nullptr && startStairs->portalRoom() != nullptr;
+
+        start->recalculateStructureSize();
+
+        const i32 seaLevel = ::mc::world::SEA_LEVEL;
+        const i32 minY = ::mc::world::MIN_BUILD_HEIGHT;
+        const StructureBoundingBox overall = start->getBoundingBox();
+        const i32 topLimit = seaLevel - 10;
+        i32 topY = (overall.maxY() - overall.minY() + 1) + minY + 1;
+        if (topY < topLimit) {
+            topY += localRng.nextInt(topLimit - topY);
+        }
+        const i32 offsetY = topY - overall.maxY();
+        for (auto& piece : start->pieces()) {
+            piece->offset(0, offsetY, 0);
+        }
+        start->recalculateStructureSize();
+
+        if (!start->pieces().empty() && hasPortalRoom) {
+            break;
+        }
+    }
 
     return start;
 }
 
-void StrongholdStructure::_generateStrongholdPieces(
+StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
     math::IRandom& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const
 {
-    // 生成起始楼梯
+    // 起始楼梯。权重列表由 StrongholdStartStairs 构造函数新建（计数为 0），
+    // 因此每轮重试都是干净的初始状态，不需要额外的 resetPieces。
     auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z);
     StrongholdStartStairs* startStairsPtr = startStairs.get();
     pieces.push_back(std::move(startStairs));
-
-    // 初始化片段权重列表
-    std::vector<StrongholdPieceWeight> weights;
-    initializeStrongholdPieceWeights(weights);
-
-    StrongholdPieceWeight* lastPlaced = nullptr;
-    MC_UNUSED(lastPlaced);
 
     // 队列驱动组装。
     //
@@ -162,11 +198,13 @@ void StrongholdStructure::_generateStrongholdPieces(
     // 效果与原版队列一致，且不需要改动 StrongholdPieces 的 1600 行组装逻辑。
     //
     // 上限同时防止病态拓扑（例如大量互相相邻的直角拐弯）导致 piece 数爆炸。
-    // 起始楼梯通往要塞主体的第一条走廊。
-    _generateCorridor(pieces, rng, 0, startStairsPtr);
-
+    // 片段总数上限只是防御「病态拓扑把内存吃光」的兜底：终止条件必须来自权重耗尽
+    // （原版 canAddStructurePieces 返回 false，各分支开不出新片段），否则要塞会在到达
+    // 真实规模之前被凭空截断。真正的 50 层深度限制由每个片段各自的分支深度把关
+    // （见 StrongholdPiece::expansionDepth），不在这里数全局片段数。
     constexpr size_t kMaxPieces = 240;
-    size_t nextToExpand = 1; // 跳过起始楼梯：它的门已经由上面的 _generateCorridor 开出
+    // 从起始楼梯开始扩展：原版 StartPiece 的第一步就是 buildComponent，由它开出通往要塞主体的门。
+    size_t nextToExpand = 0;
     while (nextToExpand < pieces.size() && pieces.size() < kMaxPieces) {
         StructurePiece* current = pieces[nextToExpand].get();
         ++nextToExpand;
@@ -175,158 +213,8 @@ void StrongholdStructure::_generateStrongholdPieces(
         }
         current->buildComponent(current, pieces, rng);
     }
-}
 
-void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::IRandom& rng,
-    i32 depth,
-    StrongholdStartStairs* start) const
-{
-    // 递归生成走廊和房间，直到达到最大深度或无法生成更多片段
-
-    if (depth > 50 || pieces.size() > 100) {
-        // 防止无限递归
-        return;
-    }
-
-    // 获取最后添加的片段
-    if (pieces.empty()) {
-        return;
-    }
-
-    StructurePiece* lastPiece = pieces.back().get();
-    if (lastPiece == nullptr) {
-        return;
-    }
-
-    // 初始化片段权重
-    std::vector<StrongholdPieceWeight> weights;
-    initializeStrongholdPieceWeights(weights);
-
-    // 随机打乱权重顺序
-    for (size_t i = 0; i < weights.size(); ++i) {
-        size_t j = rng.nextInt(static_cast<i32>(weights.size()));
-        std::swap(weights[i], weights[j]);
-    }
-
-    Direction direction = lastPiece->getCoordBaseMode();
-    i32 x, y, z;
-
-    // 根据方向计算下一个片段的位置
-    // 第一个子 piece 的落点必须和起始楼梯的小门对齐：原版
-    // generateSmallDoorChildForward(start, builder, random, 1, 1) 取的是
-    // minX+1 / minY+1 / minZ-1（朝北），方向沿用 lastPiece 自身的朝向。
-    // 此前这里用「包围盒中点 + 沿用方向改写成 North」，横向偏了 1 格、朝向也错，
-    // 于是新盒与起始楼梯盒在 X 方向重叠，findIntersecting 判相交，
-    // 所有候选 piece 都创建失败——要塞塌缩成一个 piece 的直接原因。
-    switch (direction) {
-        case Direction::North:
-            x = lastPiece->minX() + 1;
-            y = lastPiece->minY() + 1;
-            z = lastPiece->minZ() - 1;
-            break;
-        case Direction::South:
-            x = lastPiece->maxX() - 1;
-            y = lastPiece->minY() + 1;
-            z = lastPiece->maxZ() + 1;
-            break;
-        case Direction::West:
-            x = lastPiece->minX() - 1;
-            y = lastPiece->minY() + 1;
-            z = lastPiece->minZ() + 1;
-            break;
-        case Direction::East:
-            x = lastPiece->maxX() + 1;
-            y = lastPiece->minY() + 1;
-            z = lastPiece->maxZ() - 1;
-            break;
-        default:
-            return;
-    }
-
-    // 尝试生成一个片段
-    // 简化实现：随机选择一个片段类型
-    i32 totalWeight = 0;
-    for (const auto& weight : weights) {
-        if (weight.canSpawnMoreStructuresOfType(depth)) {
-            totalWeight += weight.weight;
-        }
-    }
-
-    if (totalWeight == 0) {
-        // 所有片段都达到限制，生成传送门房间
-        auto portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
-        if (portalRoom != nullptr) {
-            pieces.push_back(std::move(portalRoom));
-        }
-        return;
-    }
-
-    // 随机选择片段类型
-    i32 randomValue = rng.nextInt(totalWeight);
-    i32 cumulativeWeight = 0;
-    i32 selectedType = StrongholdPieceTypes::STRAIGHT;
-
-    for (auto& weight : weights) {
-        if (weight.canSpawnMoreStructuresOfType(depth)) {
-            cumulativeWeight += weight.weight;
-            if (randomValue < cumulativeWeight) {
-                selectedType = weight.pieceType;
-                weight.instancesSpawned++;
-                break;
-            }
-        }
-    }
-
-    // 创建选中的片段。
-    //
-    // 单个 piece 创建失败（与已有 piece 包围盒相交是最常见的原因）不能终止整棵树：
-    // 原版把后续 piece 放进 StartPiece.pendingChildren 队列，由一个外层
-    // `while (!pending.isEmpty())` 循环逐个取出继续组装，某一项失败只是这一项失败。
-    // 此前这里一律直接走 else 分支、depth 又通常不大于 5，于是整棵组装树在第一个
-    // 失败的 piece 处就结束，要塞塌缩成只剩起始楼梯一个 piece。
-    //
-    // 这里保持递归结构，但失败时继续尝试其余候选类型，直到有一个能放下为止。
-    std::unique_ptr<StrongholdPiece> newPiece =
-        createStrongholdPiece(selectedType, pieces, rng, x, y, z, direction, depth);
-
-    if (newPiece == nullptr) {
-        for (auto& weight : weights) {
-            if (weight.pieceType == selectedType || !weight.canSpawnMoreStructuresOfType(depth)) {
-                continue;
-            }
-            auto candidate = createStrongholdPiece(weight.pieceType, pieces, rng, x, y, z, direction, depth);
-            if (candidate != nullptr) {
-                selectedType = weight.pieceType;
-                weight.instancesSpawned++;
-                newPiece = std::move(candidate);
-                break;
-            }
-        }
-    }
-
-    if (newPiece != nullptr) {
-        pieces.push_back(std::move(newPiece));
-
-        // 10% 概率生成图书馆，传送门房间必须生成
-        if (rng.nextInt(10) == 0 && depth < 30) {
-            // 可能生成图书馆
-            auto library = StrongholdLibrary::createPiece(
-                pieces, rng, x + rng.nextInt(8), y - rng.nextInt(5), z + rng.nextInt(8), direction, depth + 1);
-            if (library != nullptr) {
-                pieces.push_back(std::move(library));
-            }
-        }
-
-        // 继续生成走廊
-        _generateCorridor(pieces, rng, depth + 1, start);
-    } else {
-        // 所有候选类型都放不下，强制生成传送门房间收尾
-        auto portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
-        if (portalRoom != nullptr) {
-            pieces.push_back(std::move(portalRoom));
-        }
-    }
+    return startStairsPtr;
 }
 
 std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 worldSeed)
