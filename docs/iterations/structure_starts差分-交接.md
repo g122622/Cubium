@@ -1347,3 +1347,50 @@ Cubium 的记录装饰器是在 `startHouseTower` 调用处套上的，所以它
 让 Cubium 的记录器从**随机源刚构造出来时**就套上（即 `_selectStructureStart` 里
 `structureRng.setLargeFeatureSeed(...)` 之前），这样 `D 0`..`D 3` 也会被记录下来，
 与 Java 侧的编号从同一起点开始。之后再逐行 diff，第一个不匹配的位置就是分叉点。
+
+## 第三十轮：两侧序号基准已对齐，Cubium 侧导出 87 次抽取
+
+### 做法
+
+把 `_selectStructureStart` 里构造结构随机源的那一行，临时换成 `WorldgenRandom` 的子类
+（覆写 `nextBits(bits)` 打印原始返回值），并在 `setLargeFeatureSeed` 之前清零计数器。
+这样 `D 0` 就是 `setLargeFeatureSeed` 内部的第一次 `next(32)`，与 Java 侧
+`EndCitySeq` 的编号从同一起点开始。
+
+### 结果：前 5 条完全一致
+
+```
+Cubium                                   原版(EndCitySeq)
+D 0 bits32 160368340            160368340
+D 1 bits32 -1765611662         -1765611662
+D 2 bits32 -204347753          -204347753
+D 3 bits32 -606324226          -606324226
+D 4 bits31 631178434           631178434
+```
+
+Cubium 全序列共 **87 条**，`D 5` 之后依次是 `next(31)` 与 `next(1)` 的混合：
+
+```
+D 5  bits31 2084193063
+D 6  bits31 1977369053
+D 7  bits31 385551476
+D 8  bits31 63961103
+D 9  bits1 0
+D 10 bits1 1
+D 11 bits1 0
+D 12 bits1 1
+D 13 bits31 65469250
+...
+```
+
+### 顺带核对的一点
+
+`TOWER_GENERATOR`（原版 L94-147）里 `nextBoolean` 出现在两处：L119 的
+`j < i - 1 && nextBoolean()`（循环内，次数由 `i` 决定）与 L126 的 `if (nextBoolean())`
+（`TOWER_BRIDGES` 四项各一次）。因此 `D 9`..`D 12` 这连续四个 `next(1)` 本身并不异常。
+
+### 阻塞点
+
+Java 侧现在只抽到旋转就停了，要拿到完整序列必须真正驱动 `startHouseTower`，
+而它的第一个参数是 `StructureTemplateManager`，需要 `ResourceManager` 与
+存档目录才能构造。这是下一轮要解决的事。
