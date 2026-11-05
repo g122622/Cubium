@@ -91,6 +91,7 @@
 
 #include "common/core/Types.hpp"
 
+#include "common/util/math/MathUtils.hpp"
 #include "probe.hpp"
 
 namespace mc::diff {
@@ -132,15 +133,18 @@ std::string formatNumber(f64 value)
 }
 
 /// 原版 `Mth.lerp(double, double, double)`。
+///
+/// 直接调生产代码 `math::lerp`，不在这里另写一份：差分测试要覆盖真实路径，
+/// 探针自带副本会让生产实现的缺陷（如被 FMA 融合）隐身。
 f64 lerpD(f64 d, f64 start, f64 end)
 {
-    return start + d * (end - start);
+    return math::lerp(start, end, d);
 }
 
 /// 原版 `Mth.lerp(float, float, float)`。
 f32 lerpF(f32 d, f32 start, f32 end)
 {
-    return start + d * (end - start);
+    return math::lerp(start, end, d);
 }
 
 /**
@@ -203,6 +207,22 @@ constexpr const char* UNITS[] = {
     "lerpf|0.25|100|200",
     "lerpf|-0.5|10|20",
     "lerpf|1.5|10|20",
+    // lerp(float)：能区分「FMA 融合」与「逐步舍入」的样本。
+    //
+    // 上面那些对称整数用例（10/20、0/10）在两种算法下结果相同，因此长期没能
+    // 暴露下面这个问题：启用了 +fma 的目标（-march=native 在本机 raptorlake 上会带上）
+    // 会把 `a + (b - a) * t` 编译成单条 fma，乘积不再舍入到 float，与原版 JVM 的
+    // 逐步舍入差 1 ulp。属性插值那边已经因为同一原因修过（LerpFunction::ofFloat）。
+    //
+    // 下面八个输入是穷举搜索得到的第一批能触发差异的组合，保留原值不要「化简」。
+    "lerpf|0.843400002|2.2530005|-6.13999987",
+    "lerpf|0.0476999991|-0.416999549|8.59300041",
+    "lerpf|0.525900006|-0.289999545|1.87100053",
+    "lerpf|0.206599995|0.864000499|-8.08599949",
+    "lerpf|0.176499993|-0.224999532|4.9890008",
+    "lerpf|0.613599956|-3.81899977|5.65500069",
+    "lerpf|0.612500012|5.7060008|-2.33499956",
+    "lerpf|0.958999991|2.24900055|-6.52499962",
     // clampedLerp(double)：越界应精确返回端点
     "clamppd|-0.5|10|20",
     "clamppd|-1e-09|10|20",

@@ -77,17 +77,29 @@ template <typename T>
 /**
  * @brief 线性插值 (f32 版本)
  */
-[[nodiscard]] inline constexpr f32 lerp(f32 a, f32 b, f32 t) noexcept
+// 不能保留 constexpr：这里必须用 volatile 强制乘积先落回标量存储。
+//
+// 启用了 +fma 的目标（-march=native 在本机 raptorlake 上会带上）会把 `a + (b-a)*t`
+// 编译成单条 fma，乘积不再舍入到 f32，与原版 JVM 的逐步舍入差 1 ulp。以
+// a=0.864000499、b=-8.08599949、t=0.206599995 为例：融合得 -0.985069394，
+// 逐步舍入得 -0.985069454。这个差值会一路传到噪声采样与地形高度。
+//
+// 没有 constexpr 调用方（全库查过），去掉 constexpr 不影响任何现有代码。
+[[nodiscard]] inline f32 lerp(f32 a, f32 b, f32 t) noexcept
 {
-    return a + (b - a) * t;
+    const volatile f32 delta = (b - a) * t;
+    return a + delta;
 }
 
 /**
  * @brief 线性插值 (f64 版本)
+ *
+ * 同 f32 版：禁止 FMA 收缩，保留原版的逐步舍入。
  */
-[[nodiscard]] inline constexpr f64 lerp(f64 a, f64 b, f64 t) noexcept
+[[nodiscard]] inline f64 lerp(f64 a, f64 b, f64 t) noexcept
 {
-    return a + (b - a) * t;
+    const volatile f64 delta = (b - a) * t;
+    return a + delta;
 }
 
 /**
