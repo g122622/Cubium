@@ -659,12 +659,21 @@ protected:
     Rotation m_rotation = Rotation::None;
 
     /**
-     * @brief 本片段在所属分支上的深度
+     * @brief 本片段在所属分支上的深度（要塞的 50 层上限）
      *
-     * 起始片段为 0，每向下一层加一。组装算法（如要塞的 50 层上限）按**单条分支**
-     * 累计深度，而不是数全部片段总数。
+     * 起始片段为 0，每向下一层加一。组装算法按**单条分支**累计深度，而不是数全部片段总数。
      */
     i32 m_expansionDepth = 0;
+
+    /**
+     * @brief 生成深度（对应 MC `StructurePiece.genDepth`）
+     *
+     * 与 m_expansionDepth 语义不同：这个字段是原版用于**重叠判定**的标识。
+     * 末地城每次整批提交前用一次 nextInt() 得到的值覆盖它，随后「只与 genDepth
+     * 不同的已有构件比对是否相交」；桥段把它设成 -1 表示豁免所有比对。
+     * 矿井的起点房间保持原版写死的 50。
+     */
+    i32 m_genDepth = 0;
 
 public:
     [[nodiscard]] i32 expansionDepth() const noexcept
@@ -675,6 +684,16 @@ public:
     void setExpansionDepth(i32 depth) noexcept
     {
         m_expansionDepth = depth;
+    }
+
+    [[nodiscard]] i32 genDepth() const noexcept
+    {
+        return m_genDepth;
+    }
+
+    void setGenDepth(i32 depth) noexcept
+    {
+        m_genDepth = depth;
     }
 };
 

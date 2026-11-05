@@ -365,6 +365,12 @@ MineshaftRoom::MineshaftRoom(
 {
     // 房间的起点 Y 恒为 50，X/Z 跨度各为 7..12、顶面为 54..59。
     // 传入的 y 在原版里不参与房间包围盒。
+    //
+    // 【深度初值是写死的 50】原版 `MineshaftPieces.MineShaftRoom` 的构造是
+    // `super(StructurePieceType.MINE_SHAFT_ROOM, MAGIC_START_Y, ...)`，而 `MAGIC_START_Y = 50`；
+    // 这个值同时充当包围盒的起点 Y 与 genDepth。子构件的深度从它 +1 起递推，
+    // 因此起点房间的深度远大于展开上限 8，`depth > 8` 不会挡住第一层子构件。
+    setGenDepth(50);
     MC_UNUSED(y);
     MC_UNUSED(rng);
     MC_UNUSED(type);

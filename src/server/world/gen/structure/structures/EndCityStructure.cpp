@@ -185,12 +185,14 @@ i32 EndCityStructure::_getYPosition(
 
     i32 k = (chunkX << world::CHUNK_SHIFT) + 7;
     i32 l = (chunkZ << world::CHUNK_SHIFT) + 7;
-    // 原版走世界生成期高度图（WORLD_SURFACE_WG），
-    // 不是区块内已生成的 WorldSurface；getHeight 返回的已是"最高方块上方一格"。
-    const i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurfaceWG);
-    const i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurfaceWG);
-    const i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurfaceWG);
-    const i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurfaceWG);
+    // 原版 `Structure.getCornerHeights` 走 `ChunkGenerator.getFirstOccupiedHeight`：
+    //     return this.getBaseHeight(x, z, heightmap, ...) - 1;
+    // 即**最高方块本身的 Y**（而不是 `getHeight` 那种"最高方块上方一格"）。
+    // 少减这 1 会让整座末地城（以及 `y < 60` 的门槛判定）整体抬高 1 格。
+    const i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurfaceWG) - 1;
+    const i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurfaceWG) - 1;
+    const i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurfaceWG) - 1;
+    const i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurfaceWG) - 1;
 
     return std::min({i1, j1, k1, l1});
 }
@@ -411,8 +413,17 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
         return false;
     }
 
-    // 检查碰撞
-    i32 componentId = rng.nextInt();
+    // 整批提交前的邻近性检查（对应原版 `StructurePiece.findCollisionPiece` + genDepth 比较）。
+    //
+    // 判定用的标识是**生成深度**，不是构件自身的「组件号」：原版
+    //   structurepiece.setGenDepth(i);                                  // i = random.nextInt()，整批同一个值
+    //   piece1 = findCollisionPiece(pieces, structurepiece.getBoundingBox());
+    //   if (piece1 != null && piece1.getGenDepth() != parent.getGenDepth()) { 放弃整批 }
+    // 也就是「只与**不同深度**的已有构件比对」。同层构件（同一批或同一父构件开出的兄弟）
+    // 之间允许重叠；bridge 段把自身深度设成 -1 正是为了豁免所有检查。
+    // 此前这里用 componentId 做「同一个 id 就不比」的近似，会让兄弟构件互相判碰撞，
+    // 整座城过早停止生长；深度语义才是原版真正依赖的东西。
+    const i32 componentId = rng.nextInt();
     bool hasCollision = false;
 
     for (auto& newPiece : newPieces) {
@@ -421,16 +432,17 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
             continue;
         }
 
-        cityPiece->componentId = componentId;
+        cityPiece->setGenDepth(componentId);
 
-        // 检查与现有片段的碰撞
         for (const auto& existingPiece : pieces) {
             const CityTemplate* existingCity = dynamic_cast<const CityTemplate*>(existingPiece.get());
-            if (existingCity && existingCity->componentId != parent.componentId) {
-                if (cityPiece->intersects(existingCity->getBoundingBox())) {
-                    hasCollision = true;
-                    break;
-                }
+            if (existingCity == nullptr) {
+                continue;
+            }
+            if (existingCity->genDepth() != parent.genDepth() &&
+                cityPiece->intersects(existingCity->getBoundingBox())) {
+                hasCollision = true;
+                break;
             }
         }
 
@@ -615,7 +627,9 @@ bool TowerBridgeGenerator::generate(feature::template_::TemplateManager& templat
     i32 numSegments = rng.nextInt(4) + 1;
     CityTemplate* current =
         addHelper(pieces, addPiece(templateManager, parent, BlockPos(0, 0, -4), "bridge_piece", rotation, true));
-    current->componentId = -1; // 标记为桥段
+    // 桥段的深度设为 -1（原版 `endcitypieces$endcitypiece.setGenDepth(-1)`，深度是 non-negative
+    // 的随机值，-1 因此豁免邻近性检查：桥可以贴着它出发的那座塔）。
+    current->setGenDepth(-1);
 
     i32 yOffset = 0;
 
@@ -673,7 +687,7 @@ bool TowerBridgeGenerator::generate(feature::template_::TemplateManager& templat
             "bridge_end",
             addRotation(rotation, feature::template_::Rotation::Clockwise180),
             true));
-    current->componentId = -1;
+    current->setGenDepth(-1);
 
     return true;
 }

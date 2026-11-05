@@ -155,10 +155,17 @@ json summarisePiece(const world::gen::structure::StructurePiece& piece)
                     ? "rigid"
                     : "terrain_matching"}});
     }
+    // `template` 的语义是「拼图池元素标识」，不是「构件用到的模板文件」：oracle 侧只对
+    // `PoolElementStructurePiece` 读取模板位置，要塞房间、矿井走廊、末地城构件这些
+    // **程序化拼装**的非池元素片段一律输出空串。末地城的 `CityTemplate` 虽然有模板文件，
+    // 但它不是池元素，因此同样输出空串——否则这条能力对末地城永远报「template 不同」，
+    // 把真正的几何差异淹没掉。构件模板名由专门的能力（end_city_pieces）比对。
+    const std::string templateId = piece.isJigsawPiece() ? std::string(piece.templateLocation()) : std::string();
+
     return json{{"box", {box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()}},
         {"rotation", rotationName(piece.getRotation())},
         {"groundLevelDelta", piece.getGroundLevelDelta()},
-        {"template", std::string(piece.templateLocation())},
+        {"template", templateId},
         {"projection", projectionName(piece.getProjection())},
         {"junctions", std::move(junctions)}};
 }
