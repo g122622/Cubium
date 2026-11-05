@@ -274,12 +274,17 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
 
     // 回调持有 holder 的 shared_ptr（与 ChunkProgressionTask::m_holder 一致），
     // 保证 execute 返回后的回调期间 holder 不被 unloadChunkSync 销毁。
-    // 区域调度器在任务结束（含取消）时就释放任务体，回调拿到的 rawTask 恒为空，
-    // 因此回调内的身份比对一律用 holder 持有的 generationTask()。
+    // 区域调度器在任务结束（含取消）时已经释放任务体，因此回调只按 success 与 holder 状态处理，
+    // 不再经由 rawTask 反查任务身份（失败处理内部本就以 holder.generationTask() 做身份比对）。
     auto callback = [this, x, z, holder](bool success, util::ITask* /*rawTask*/) {
         if (holder == nullptr) {
             return;
         }
+        spdlog::info("[ChunkTaskScheduler] TEMP-DIAG generation callback ({}, {}) success={} hasTask={}",
+            x,
+            z,
+            success,
+            holder->generationTask() != nullptr);
         // onChunkGenFailed 仅在「本任务真正失败（execute 返回 false 且未被取消）」时触发。
         // 用任务身份比对（generationTask()==rawTask）而非 hasGenerationTask()：
         //
@@ -304,6 +309,7 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
         if (!success) {
             onChunkGenFailed(*holder, holder->generationTask());
         }
+        spdlog::info("[ChunkTaskScheduler] TEMP-DIAG generation callback handled ({}, {})", x, z);
         // 成功时 onChunkGenComplete 已由 ChunkProgressionTask::execute 内部调用
     };
 
