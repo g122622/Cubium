@@ -2047,6 +2047,18 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "shift_noise",
+        probe: "shift_noise",
+        oracle: "ShiftNoiseOracle",
+        description: "顶点位移噪声（原版 DensityFunctions.ShiftA/ShiftB/Shift）的取值与 min/max —— 9 组配置 x 11 个坐标。"
+        + "三者共享同一套算术：三个坐标各乘 0.25 后喂给噪声、结果再乘 4；区别只在坐标如何映射到噪声的三个轴："
+        + "ShiftA 是 (x,0,z)，ShiftB 是 (z,x,0)，Shift 是 (x,y,z)。"
+        + "它们是 ShiftedNoise 位移函数的实际提供方，两者组合起来才是完整的地形扭曲链路。"
+        + "采样点刻意让三轴互不相等，才能区分 ShiftA 与 ShiftB 的轴置换。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
