@@ -47,6 +47,26 @@
 
 namespace mc::world::gen::structure {
 
+namespace {
+
+/**
+ * @brief 起点房间的 genDepth
+ *
+ * 原版 `MineShaftRoom` 构造时把 `MAGIC_START_Y`（50）同时用作包围盒起点 Y 与
+ * `StructurePiece.genDepth`，而后者的比较语义（`> 8`）若照搬会把第一层子构件就判成
+ * 「太深」——整座矿井只剩房间一个构件。
+ *
+ * 两者是同一个数字的两种用途，真正表示「层数」的只有 genDepth，因此这里直接把起点房间
+ * 的深度记作 0：与其它结构（要塞、末地城）的口径一致，也让深度截断可以照原版的阈值
+ * 直接比较。包围盒的起点 Y 仍然单独写成 50。
+ */
+constexpr i32 kStartRoomDepth = 0;
+
+/// 展开层数上限（原版 `MineshaftPieces.MAX_DEPTH`）。判据比较的是父构件的深度。
+constexpr i32 kMaxMineshaftDepth = 8;
+
+} // namespace
+
 // ============================================================================
 // 辅助函数实现
 // ============================================================================
@@ -263,17 +283,15 @@ void addMineshaftPiece(MineshaftPiece* parent,
     i32 y,
     i32 z,
     i32 direction,
-    i32 depth,
+    i32 parentDepth,
     MineshaftType type)
 {
     // 深度限制。原版 generateAndAddPiece 的判据是 `p_227714_ > 8`，其中 p_227714_
-    // 是**调用方传进来的值**：主口段传父深度 i，第 2 段传 i + 1。子构件的深度
-    // 随后取 p_227714_ + 1。
-    //
-    // 所以这里必须拿「传入值」去比，而不是子构件的深度：第 2 段会把传入值抬高一层，
-    // 若改用子构件深度去比，整棵树的第 2 段分支会被多砍掉一层（实测构件数 159→76）。
-    const i32 requestedDepth = depth - 1; // 还原调用方传进来的原值
-    if (requestedDepth > 8) {
+    // 是**父构件的深度**：主口段传父的 `this.getGenDepth()`，走廊第 2 段传 `i + 1`。
+    // 子构件的深度随后取 `p_227714_ + 1`。
+    MC_ASSERT_RELEASE_MSG(
+        parentDepth >= kStartRoomDepth, "mineshaft piece depth must not go below the start room depth");
+    if (parentDepth > kStartRoomDepth + kMaxMineshaftDepth) {
         return;
     }
 
@@ -287,7 +305,7 @@ void addMineshaftPiece(MineshaftPiece* parent,
     }
 
     // 创建新片段
-    auto piece = createMineshaftPiece(pieces, rng, x, y, z, direction, depth, type);
+    auto piece = createMineshaftPiece(pieces, rng, x, y, z, direction, parentDepth + 1, type);
     if (!piece) {
         return;
     }
@@ -366,11 +384,9 @@ MineshaftRoom::MineshaftRoom(
     // 房间的起点 Y 恒为 50，X/Z 跨度各为 7..12、顶面为 54..59。
     // 传入的 y 在原版里不参与房间包围盒。
     //
-    // 【深度初值是写死的 50】原版 `MineshaftPieces.MineShaftRoom` 的构造是
-    // `super(StructurePieceType.MINE_SHAFT_ROOM, MAGIC_START_Y, ...)`，而 `MAGIC_START_Y = 50`；
-    // 这个值同时充当包围盒的起点 Y 与 genDepth。子构件的深度从它 +1 起递推，
-    // 因此起点房间的深度远大于展开上限 8，`depth > 8` 不会挡住第一层子构件。
-    setGenDepth(50);
+    // 深度从 0 起算（见 kStartRoomDepth 的说明）：原版把 MAGIC_START_Y 同时喂给开始 Y
+    // 与 genDepth，但真正表达层数的只有后者，照搬 50 会让第一层子构件立刻被判定超深。
+    setGenDepth(kStartRoomDepth);
     MC_UNUSED(y);
     MC_UNUSED(rng);
     MC_UNUSED(type);
@@ -437,7 +453,7 @@ void MineshaftRoom::buildComponent(
     // 子构件的深度是父深度 + 1，理由同走廊。
     // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
     // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
-    const i32 depth = genDepth() + 1;
+    const i32 depth = genDepth();
     MC_UNUSED(maxDepth);
     i32 k = (maxY() - minY() + 1) - 3 - 1;
     if (k <= 0) {
@@ -770,7 +786,10 @@ void MineshaftCorridor::buildComponent(
     // 是无条件执行的，深度截断只发生在 generateAndAddPiece（即 addMineshaftPiece）
     // 里，以及第 2 段的 `i < 8`。多这一层提前返回会让深度 8 的走廊不再开主口，
     // 实测少掉一整条分支（原版 [9] 就是深度 8 的构件开出来的深度 9 子构件）。
-    const i32 depth = genDepth() + 1;
+    //
+    // 这里的 depth 是**本构件自己的深度**（原版 addChildren 里的 `int i = getGenDepth()`），
+    // 主口段直接把它传给 generateAndAddPiece，子构件取 i + 1；第 2 段传 i + 1。
+    const i32 depth = genDepth();
     MC_UNUSED(maxDepth);
 
     auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir, i32 childDepth) {
@@ -834,12 +853,12 @@ void MineshaftCorridor::buildComponent(
 
     // ---- 第 2 段：沿边逐点步进 ----
     //
-    // 原版判据是 `if (i < 8)`，i 为父构件深度，而 depth = i + 1，故这里用 depth - 1。
+    // 原版判据是 `if (i < 8)`，i 为父构件的 genDepth；起点房间的深度是 kStartRoomDepth。
     //
-    // 关键：第 2 段传下去的深度是 **i + 1**，主口段传的是 i。也就是说第 2 段
-    // 开出来的子构件比主口段的子构件深一层（depth = i + 2）。这一点很容易漏——
-    // 传错会让子构件的深度少 1，后续所有截断点跟着偏移。
-    if (depth - 1 < 8) {
+    // 关键：第 2 段传给 addMineshaftPiece 的是**父深度本身**，主口段传的是同一语义的
+    // 父深度。子构件最终取 parentDepth + 1。第 2 段因此比主口段深一层，这一点很容易漏
+    // ——传错会让子构件的深度少 1，后续所有截断点跟着偏移。
+    if (genDepth() < kStartRoomDepth + kMaxMineshaftDepth) {
         if (m_direction != 0 && m_direction != 1) {
             // 朝东西：沿 X 扫描，南北两侧开口。
             for (i32 x = minX() + 3; x + 3 <= maxX(); x += 5) {
@@ -916,7 +935,7 @@ void MineshaftCross::buildComponent(
 {
     // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
     // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
-    const i32 depth = genDepth() + 1;
+    const i32 depth = genDepth();
     MC_UNUSED(maxDepth);
 
     // 交叉点按朝向固定开出三个方向，坐标由包围盒直接算出，不抽随机数。
@@ -1073,7 +1092,7 @@ void MineshaftStairs::buildComponent(
     // 两处都与原版不符，导致楼梯之后的整棵子树坐标全部偏移。
     //
     // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece 里。
-    const i32 depth = genDepth() + 1;
+    const i32 depth = genDepth();
 
     i32 x, z;
     switch (m_direction) {
