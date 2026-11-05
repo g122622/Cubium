@@ -645,7 +645,7 @@ endforeach()
 # 的末位与原版差 1~37 ulp。这三个文件关掉 fast-math，其余文件不受影响。
 # 注意：diff_runner 自己编译这些 .cpp（不经 mc_gen），所以属性要在这里设一遍。
 # 先验证：整体关掉 fast-math 看残差是否收敛，确认后再收窄到具体文件。
-target_compile_options(diff_runner PRIVATE "-fno-fast-math")
+target_compile_options(diff_runner PRIVATE "-fno-fast-math" "-ffp-contract=off")
 
 get_property(MC_DIFF_EXTRA_SOURCES GLOBAL PROPERTY MC_DIFF_EXTRA_SOURCES)
 if(MC_DIFF_EXTRA_SOURCES)
