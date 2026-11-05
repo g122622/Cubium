@@ -1308,3 +1308,42 @@ H draw=62 depth=3 variant=1
 `HouseTowerGenerator` / `TowerGenerator` / `FatTowerGenerator` / `TowerBridgeGenerator`），
 这样得到的日志是「第 N 次抽取 = 哪个生成器的哪种抽取 = 什么结果」的完整三元组，
 两侧各导一份即可直接 diff，不再需要靠下标倒推。
+
+## 第二十九轮：原版侧的抽取序列已能导出，但两侧序号基准不同
+
+### 新工具
+
+新增 `tests/diff/tools/EndCitySeq.java`：子类化 `WorldgenRandom` 覆写 `next(int)`，
+只播种、抽旋转、不加载模板（模板加载不消耗随机数），把每一次 `next(bits)` 的
+原始返回值按顺序打印出来。
+
+对 `seed=9248738493917, chunk=(-75,25)` 运行得到：
+
+```
+D 0 bits32 160368340
+D 1 bits32 -1765611662
+D 2 bits32 -204347753
+D 3 bits32 -606324226
+D 4 bits31 631178434
+ROT CLOCKWISE_90
+```
+
+`D 0`..`D 3` 是 `setLargeFeatureSeed` 内部两次 `nextLong()`（各拆成两次 `next(32)`）；
+`D 4` 才是 `Rotation.getRandom` 的那次 `next(31)`。
+`(4 * 631178434) >> 31 = 1`，对应 `CLOCKWISE_90`。
+
+### 与 Cubium 的对照
+
+Cubium 侧同一单元的 `[0]` 构件 rotation 也是 `CLOCKWISE_90`，**首个旋转是一致的**。
+
+### 但两侧序号基准不同
+
+Cubium 的记录装饰器是在 `startHouseTower` 调用处套上的，所以它的 `D 0` 是
+`TOWER_GENERATOR` 的第一次 `nextInt(2)`，而不是 `setLargeFeatureSeed` 内部的 `next(32)`。
+两侧的 `D n` 因此对不上，不能直接逐行 diff。
+
+### 下一轮
+
+让 Cubium 的记录器从**随机源刚构造出来时**就套上（即 `_selectStructureStart` 里
+`structureRng.setLargeFeatureSeed(...)` 之前），这样 `D 0`..`D 3` 也会被记录下来，
+与 Java 侧的编号从同一起点开始。之后再逐行 diff，第一个不匹配的位置就是分叉点。
