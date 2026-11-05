@@ -47,7 +47,6 @@
 #include "server/world/gen/jigsaw/SequencedPriorityIterator.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
 #include <algorithm>
-
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -143,8 +142,17 @@ StartPlacement JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPi
     // 原版语义只传区块最小角，起始块的 X/Z 就偏到了区块角上（试炼密室首个构件随之错位，
     // 差分能力 structure_starts 表现为整条拼图链偏移）。
     BlockPos origin = chunkOrigin;
-    const i32 groundLine = boundingBox.minY() + startPiece.getGroundLevelDelta();
-    origin.y = targetGroundLine - groundLine;
+
+    // 【起始块的落点：模板底面对齐到 start_height 的下一格】
+    // 原版 addPieces 里起始块的原点由请求点减去「命名连接点相对请求点的偏移」得到；未指定
+    // start_jigsaw_name 时该偏移为零，原点即 (getMinBlockX(), startHeight, getMinBlockZ())。
+    // 此后模板的底面（minY）恒比其原点低一格，净效果是模板包围盒底面落在 startHeight - 1，
+    // 也就是 start_height 指定的那一格本身就是结构的地面线。
+    //
+    // 此前这里拿 groundLevelDelta 反解原点，等于把**地面线**对齐到 start_height；而
+    // groundLevelDelta 是模板地面线相对包围盒底面的偏移、不是绝对高度，凡是 delta 非零的
+    // 结构都会被整体抬高一截（试炼密室的首个构件 delta=1、高 20 格，整链抬高 20 格）。
+    origin.y = targetGroundLine - 1;
 
     // 候选生成点 = 包围盒 X/Z 中心 + 目标地面线高度，原版据此做生物群系校验
     const BlockPos candidatePoint(centerX, targetGroundLine, centerZ);
@@ -261,9 +269,11 @@ std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoo
     startPlaced->position = startPos;
     startPlaced->rotation = rotation;
     startPlaced->mirror = Mirror::None; // 起始块不使用镜像
-    startPlaced->groundLevelDelta = startPiece.getGroundLevelDelta();
     startPlaced->projection = startPiece.getPlacementBehaviour();
     startPlaced->boundingBox = boundingBox;
+    // 记录的是模板自身的地面线相对包围盒底面的偏移（原版 haveGroundLevel ? delta : …），
+    // 不是地面线的绝对高度；子构件的 groundLevelDelta 由它与连接点高度共同推出。
+    startPlaced->groundLevelDelta = startPiece.getGroundLevelDelta();
     startPlaced->joints = JigsawTransform::getTransformedJoints(startPiece, startPos, rotation, Mirror::None);
     pieces.push_back(std::move(startPlaced));
 
