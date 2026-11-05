@@ -28,7 +28,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
@@ -111,44 +113,71 @@ bool StrongholdStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> StrongholdStructure::generate(
-    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
-
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 起始块在区块内的偏移是 2，不是中心 8：原版用的是 chunkPos.getBlockX(2)。
-    // 偏移量直接影响起始楼梯的包围盒，进而影响所有后续 piece 的位置。
-    const i32 startX = chunkX * mc::world::CHUNK_WIDTH + 2;
-    const i32 startZ = chunkZ * mc::world::CHUNK_WIDTH + 2;
+    const i32 startX = chunkX * world::CHUNK_WIDTH + 2;
+    const i32 startZ = chunkZ * world::CHUNK_WIDTH + 2;
 
-    // 起始 Y 由 StrongholdStartStairs 固定为 64（原版同样没有随机起始高度）。
-    // 此前这里先消耗一个 rng.nextInt 再传下去，白吃了一个随机数，
-    // 使后续每一个 piece 的旋转、类型选择全部错一位。
+    // 原版 generatePieces 的整段重试循环。三处要点缺一不可：
+    //
+    //  1. 每轮用**独立**的 `setLargeFeatureSeed(世界种子 + i, 区块)` 重置随机源，
+    //     并用它替换全局世界随机数。要塞用的不是区块随机流——直接沿用外部 rng
+    //     会让起点、每个片段的类型与旋转全部错位。
+    //  2. 每轮先 resetPieces()（权重计数与 imposedPiece 归零），再重新构建起始楼梯。
+    //     短链生成的森林里权重计数与上一轮共享，第二轮起的选择分布就偏了。
+    //  3. 结束时整体 moveBelowSeaLevel(海平面, 最小 Y, random, 10)。
+    //     漏掉它整座要塞会悬在 Y=64 的起始高度上（实测 52 个构件全在 64..74）。
+    //
+    // 终止条件同样来自原版：构件集非空且已经生成了传送门房间。
+    const i64 worldSeed = static_cast<i64>(generator.seed());
     const i32 startY = m_config.minY;
     const BlockPos startPos(startX, startY, startZ);
 
-    _generateStrongholdPieces(rng, startPos, start->pieces());
+    for (i32 attempt = 0;; ++attempt) {
+        start->pieces().clear();
+        start->recalculateStructureSize();
 
-    start->recalculateStructureSize();
+        math::WorldgenRandom localRng(std::make_unique<math::JavaLegacyRandom>(static_cast<u64>(worldSeed + attempt)));
+        localRng.setLargeFeatureSeed(worldSeed + attempt, chunkX, chunkZ);
+
+        StrongholdStartStairs* startStairs = _generateStrongholdPieces(localRng, startPos, start->pieces());
+        const bool hasPortalRoom = startStairs != nullptr && startStairs->portalRoom() != nullptr;
+
+        start->recalculateStructureSize();
+
+        const i32 seaLevel = ::mc::world::SEA_LEVEL;
+        const i32 minY = ::mc::world::MIN_BUILD_HEIGHT;
+        const StructureBoundingBox overall = start->getBoundingBox();
+        const i32 topLimit = seaLevel - 10;
+        i32 topY = (overall.maxY() - overall.minY() + 1) + minY + 1;
+        if (topY < topLimit) {
+            topY += localRng.nextInt(topLimit - topY);
+        }
+        const i32 offsetY = topY - overall.maxY();
+        for (auto& piece : start->pieces()) {
+            piece->offset(0, offsetY, 0);
+        }
+        start->recalculateStructureSize();
+
+        if (!start->pieces().empty() && hasPortalRoom) {
+            break;
+        }
+    }
 
     return start;
 }
 
-void StrongholdStructure::_generateStrongholdPieces(
+StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
     math::IRandom& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const
 {
-    // 生成起始楼梯
+    // 起始楼梯。权重列表由 StrongholdStartStairs 构造函数新建（计数为 0），
+    // 因此每轮重试都是干净的初始状态，不需要额外的 resetPieces。
     auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z);
     StrongholdStartStairs* startStairsPtr = startStairs.get();
     pieces.push_back(std::move(startStairs));
-
-    // 初始化片段权重列表
-    std::vector<StrongholdPieceWeight> weights;
-    initializeStrongholdPieceWeights(weights);
-
-    StrongholdPieceWeight* lastPlaced = nullptr;
-    MC_UNUSED(lastPlaced);
 
     // 队列驱动组装。
     //
@@ -175,6 +204,8 @@ void StrongholdStructure::_generateStrongholdPieces(
         }
         current->buildComponent(current, pieces, rng);
     }
+
+    return startStairsPtr;
 }
 
 void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,

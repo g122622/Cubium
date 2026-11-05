@@ -95,6 +95,13 @@ public:
         m_lastPitch = pitch;
     }
 
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        MC_UNUSED(pos);
+        MC_UNUSED(data);
+        m_playedEventIds.push_back(eventId);
+    }
+
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         MC_UNUSED(type);
@@ -134,6 +141,11 @@ public:
         return m_lastPitch;
     }
 
+    [[nodiscard]] const std::vector<i32>& playedEventIds() const
+    {
+        return m_playedEventIds;
+    }
+
     [[nodiscard]] i32 particleCount() const
     {
         return m_particleCount;
@@ -143,6 +155,7 @@ public:
     {
         m_blocks.clear();
         m_playedSoundIds.clear();
+        m_playedEventIds.clear();
         m_lastPitch = 1.0f;
         m_particleCount = 0;
     }
@@ -150,6 +163,7 @@ public:
 private:
     std::map<BlockPos, BlockState> m_blocks;
     std::vector<ResourceLocation> m_playedSoundIds;
+    std::vector<i32> m_playedEventIds;
     f32 m_lastPitch = 1.0f;
     i32 m_particleCount = 0;
 };
@@ -879,7 +893,7 @@ TEST_F(NoteBlockTest, HeadAbove_PlayerHeadTriggersCustomClick)
 
     // 无 note_block_sound → 原版不发声
     EXPECT_TRUE(m_world->playedSoundIds().empty());
-    EXPECT_FALSE(m_world->hasEvent(SoundEvents::UI_BUTTON_CLICK));
+    EXPECT_TRUE(m_world->playedEventIds().empty()) << "无自定义音效时不应发送任何世界事件";
 }
 
 /**

@@ -107,8 +107,10 @@ public:
 private:
     /**
      * @brief 使用 StrongholdPieces 生成要塞
+     *
+     * @return 起始楼梯片段（持有权重计数、lastPlaced、传送门房间引用等本次装配的全局状态）
      */
-    void _generateStrongholdPieces(
+    StrongholdStartStairs* _generateStrongholdPieces(
         math::IRandom& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
 
     /**
