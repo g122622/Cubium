@@ -493,6 +493,18 @@ void ServerWorld::shutdown()
             m_entityManager.destroyEntity(id, RemovalReason::Discarded);
         }
         spdlog::info("DIAG members(dim={}): entities destroyed individually", dim);
+        spdlog::info("DIAG members(dim={}): drop sculk vibration", dim);
+        m_sculkVibrationManager.~SculkVibrationManager();
+        new (&m_sculkVibrationManager) SculkVibrationManager();
+        spdlog::info("DIAG members(dim={}): sculk vibration reset", dim);
+        spdlog::info("DIAG members(dim={}): drop entity tracker", dim);
+        m_entityTracker.~EntityTracker();
+        new (&m_entityTracker) EntityTracker();
+        spdlog::info("DIAG members(dim={}): entity tracker reset", dim);
+        spdlog::info("DIAG members(dim={}): drop entity registry", dim);
+        m_entityRegistry.~ecs::EntityRegistry();
+        new (&m_entityRegistry) ecs::EntityRegistry();
+        spdlog::info("DIAG members(dim={}): entity registry reset", dim);
     }
     spdlog::info("Server world shut down");
 }
