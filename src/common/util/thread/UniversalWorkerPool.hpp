@@ -140,24 +140,6 @@ public:
         TaskPriority priority = TaskPriority::Normal,
         std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
 
-    /**
-     * @brief 提交已由调用方共享持有的任务
-     *
-     * 与 unique_ptr 重载语义相同，区别在于调用方还保留一份引用（例如需要以 weak_ptr 在
-     * 回调里观察任务对象、或让任务对象在池外还有生命周期管理）。池仍保证在执行完毕（含完成
-     * 回调）后不再持有它，但不负责它是最后一个持有者。
-     *
-     * @param task 任务对象（不得为空指针）
-     * @param callback 完成回调（可为空）
-     * @param priority 优先级
-     * @param abortSignal 取消令牌（可为空）
-     * @return 任务ID
-     */
-    u64 submit(std::shared_ptr<ITask> task,
-        TaskCallback callback,
-        TaskPriority priority = TaskPriority::Normal,
-        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
-
     // ============================================================================
     // 任务管理
     // ============================================================================
