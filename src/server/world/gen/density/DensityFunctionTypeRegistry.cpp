@@ -434,7 +434,7 @@ Result<SplinePoint> parseSplinePoint(const json& point, const ResolveContext& ct
     }
     const auto& valueNode = point["value"];
     if (valueNode.is_number()) {
-        sp.value = valueNode.get<f64>();
+        sp.value = static_cast<f32>(valueNode.get<f64>());
         return sp;
     }
     if (valueNode.is_object()) {

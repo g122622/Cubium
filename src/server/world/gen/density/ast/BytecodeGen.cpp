@@ -672,9 +672,9 @@ private:
         for (const auto& p : points) {
             splineData->locations.push_back(p.location);
             splineData->derivatives.push_back(p.derivative);
-            if (std::holds_alternative<f64>(p.value)) {
+            if (std::holds_alternative<f32>(p.value)) {
                 // 常量值点：编译为单条 LOAD_CONST + RETURN 的求值器。
-                splineData->valueEvaluators.push_back(makeConstantEvaluator(std::get<f64>(p.value)));
+                splineData->valueEvaluators.push_back(makeConstantEvaluator(static_cast<f64>(std::get<f32>(p.value))));
             } else {
                 // 嵌套子样条：递归编译为独立求值器。子样条经 evalSpline 调 eval，不经 Adapter，
                 // min/max 无人消费，用哨兵值（子求值器无原 DF 可取 min/max）。
