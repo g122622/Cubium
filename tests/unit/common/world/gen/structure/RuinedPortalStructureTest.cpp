@@ -178,8 +178,8 @@ protected:
         if (!m_dataPackRepository.scanDirectory(dataPackDir).success()) {
             return;
         }
-        m_templateBinding = std::make_unique<TemplateManagerHostBinding>(
-            world::gen::jigsaw::JigsawAssembler::getTemplateManager());
+        m_templateBinding =
+            std::make_unique<TemplateManagerHostBinding>(world::gen::jigsaw::JigsawAssembler::getTemplateManager());
         m_templateBinding->bindDataPackRepository(m_dataPackRepository);
     }
 

@@ -209,13 +209,22 @@ nlohmann::json Style::toJson() const
     nlohmann::json json = nlohmann::json::object();
 
     if (m_color.has_value()) {
-        // 原版 Style.Serializer 把颜色写成 "#RRGGBB"（TextColor.Serializer），
-        // 不是颜色名。写成名字会让 Cubium 的存档/网络数据与原版无法互通。
+        // 原版 TextColor.serialize()：**具名颜色写名字**（"red"），只有自定义 RGB 才写
+        // "#RRGGBB"。具名颜色经 `TextColor.fromLegacyFormat(ChatFormatting)` 构造，
+        // 其 name 字段非空，故 serialize() 返回名字。
+        //
+        // 一律写十六进制是错的：原版 JSON（以及由原版解析的文本组件）里 `"color":"red"`
+        // 与 `"color":"#FF5555"` 语义等价但**文本不等**，存档/网络逐字节比对会不一致。
         const std::optional<u32> argb = findFormattingARGB(*m_color);
         if (argb.has_value()) {
-            char buffer[8];
-            std::snprintf(buffer, sizeof(buffer), "#%06X", static_cast<unsigned>(*argb & 0xFFFFFFu));
-            json["color"] = buffer;
+            const std::string colorName = toName(*m_color);
+            if (!colorName.empty()) {
+                json["color"] = colorName;
+            } else {
+                char buffer[8];
+                std::snprintf(buffer, sizeof(buffer), "#%06X", static_cast<unsigned>(*argb & 0xFFFFFFu));
+                json["color"] = buffer;
+            }
         }
     }
     // 三态：显式 false 也要写出来（`"italic": false`）。原版存档里它与「没写」是两种值。
