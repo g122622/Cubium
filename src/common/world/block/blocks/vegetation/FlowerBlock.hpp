@@ -69,6 +69,7 @@ public:
 
     /**
      * @brief 按位置返回形状：本类带 `offsetType`，原版在 `getShape` 里叠加了位置偏移。
+
      */
     [[nodiscard]] CollisionShape getShapeAt(const BlockState& state, const BlockPos& pos) const override;
 

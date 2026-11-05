@@ -181,12 +181,15 @@ TEST_F(TripWireTest, TripWireBlock_HasCorrectStateProperties)
 }
 
 /**
- * @brief 测试 TripWireBlock canProvidePower
+ * @brief 绊线不是红石信号源（只有绊线钩是）
+ *
+ * 原版 `TripWireBlock` 没有重写 `isSignalSource()`，因此 `canProvidePower()` 为 false：
+ * 绊线格只把「被踩到」的状态报告给绳上的绊线钩，自身不向相邻方块输出红石信号。
  */
 TEST_F(TripWireTest, TripWireBlock_CanProvidePower)
 {
     const BlockState& state = VanillaBlocks::TRIPWIRE->defaultState();
-    EXPECT_TRUE(state.getBlock().canProvidePower(state));
+    EXPECT_FALSE(state.getBlock().canProvidePower(state));
 }
 
 /**

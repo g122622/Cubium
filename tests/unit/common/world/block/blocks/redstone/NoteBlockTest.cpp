@@ -877,7 +877,7 @@ TEST_F(NoteBlockTest, HeadAbove_PlayerHeadTriggersCustomClick)
 
     noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
-    // 无 note_block_sound → 原版不发声
+    // 无 note_block_sound → 原版不发声（不存在 ui.button.click 兜底）
     EXPECT_TRUE(m_world->playedSoundIds().empty());
 }
 

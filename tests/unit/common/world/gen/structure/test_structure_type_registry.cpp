@@ -279,12 +279,14 @@ TEST_F(StructureTypeRegistryTest, JigsawVillageUsesGenericPath)
         auto def = makeJigsawDef(idPath);
         auto result = reg.create("jigsaw", def);
         ASSERT_TRUE(result.success()) << "id=" << idPath;
-        auto* structure = result.value().get();
-        ASSERT_NE(dynamic_cast<JigsawStructure*>(structure), nullptr) << "id=" << idPath;
+        auto structure = result.value();
+        ASSERT_NE(structure, nullptr);
+        // 村庄结构必须构造为通用 JigsawStructure（不是任何专属子类）
+        EXPECT_NE(dynamic_cast<JigsawStructure*>(structure.get()), nullptr) << "id=" << idPath;
         // 不应落到任何带专属子类的类型
-        EXPECT_EQ(dynamic_cast<PillagerOutpostStructure*>(structure), nullptr);
-        EXPECT_EQ(dynamic_cast<TrialChambersStructure*>(structure), nullptr);
-        EXPECT_EQ(dynamic_cast<BastionRemnantStructure*>(structure), nullptr);
+        EXPECT_EQ(dynamic_cast<PillagerOutpostStructure*>(structure.get()), nullptr);
+        EXPECT_EQ(dynamic_cast<TrialChambersStructure*>(structure.get()), nullptr);
+        EXPECT_EQ(dynamic_cast<BastionRemnantStructure*>(structure.get()), nullptr);
     }
 }
 

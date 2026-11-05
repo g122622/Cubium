@@ -117,8 +117,7 @@ private:
     T _interpolate(i64 j, const Segment<T>& segment) const
     {
 #pragma float_control(precise, on)
-        const f32 f =
-            static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
+        const f32 f = static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
         const f32 f1 = segment.easing.apply(f);
         const T result = m_lerp.apply(f1, segment.fromValue, segment.toValue);
 #pragma float_control(precise, pop)
@@ -129,8 +128,7 @@ private:
     {
         // TODO: 若将来能按目标为 timeline 单独去掉 -ffast-math（或在文件作用域写下该 pragma），
         //       可去掉这里的 noinline 调用开销。
-        const f32 f =
-            static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
+        const f32 f = static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
         const f32 f1 = segment.easing.apply(f);
         return m_lerp.apply(f1, segment.fromValue, segment.toValue);
     }

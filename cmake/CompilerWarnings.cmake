@@ -25,6 +25,16 @@ function(mc_set_compiler_warnings target)
             # 把 __COUNTER__ 归入 C2y 扩展，-pedantic 下 -Werror 会把宏展开判为错误。
             -Wno-c2y-extensions           # 禁用：C2y 扩展警告（如 __COUNTER__）
 
+            # 显式要求向量化的循环（`#pragma clang loop vectorize_width(N)`）偶尔会被优化器
+            # 放弃（典型：循环体里出现跨 TU 调用、或依赖运行期 trip count）。-Wall 会顺带打开
+            # -Wpass-failed=transform-warning，再经上面的 -Werror 升级成**编译错误**——于是
+            # 一次"少了个向量化"的性能退化就能把整条构建链打断（实测 PerlinNoise.cpp 与
+            # BlendedNoise.cpp 曾因此无法编译）。
+            #
+            # 这里关掉它：向量化与否是性能问题，不该阻断构建。若确实需要复核某个循环是否
+            # 仍被向量化，可临时用 -Rpass=loop-vectorize 单独观察。
+            -Wno-pass-failed             # 禁用：向量化等优化 pass 未执行时的诊断
+
             # 将关键警告视为错误。不用手动启用，因为 -Werror=all 已经包含了这些。
             # -Werror=return-local-addr    # 错误：返回局部变量地址
             # -Werror=uninitialized        # 错误：使用未初始化变量
