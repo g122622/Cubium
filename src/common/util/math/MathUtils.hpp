@@ -26,12 +26,15 @@
 #include "MathConstants.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <type_traits>
 
 namespace mc::math {
 
@@ -229,11 +232,20 @@ template <typename T>
 
 /**
  * @brief 平方
+ *
+ * 整数入参按有符号回绕计算：原版的 `int * int` 溢出是定义良好的回绕，而 C++ 的有符号
+ * 溢出是未定义行为，编译器可以假定它不发生并据此优化。已知 `Mth.square` 会被喂进
+ * 坐标量级的数值，这里显式经无符号乘再转回，保证与 Java 一致。
  */
 template <typename T>
 [[nodiscard]] inline constexpr T square(T x) noexcept
 {
-    return x * x;
+    if constexpr (std::is_integral_v<T> && std::is_signed_v<T>) {
+        using U = std::make_unsigned_t<T>;
+        return static_cast<T>(static_cast<U>(static_cast<U>(x) * static_cast<U>(x)));
+    } else {
+        return x * x;
+    }
 }
 
 /**
@@ -835,6 +847,109 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     // 公式: 1 - (1 - r)^dt
     // 确保结果在 [0, 1] 范围内（浮点精度保护）
     return std::clamp(1.0f - std::pow(1.0f - ratePerSecond, deltaTime), 0.0f, 1.0f);
+}
+
+/**
+ * @brief murmur3 32 位混洗，对应原版 `Mth.murmurHash3Mixer`
+ *
+ * 用于把坐标/种子打散成伪随机值。移位必须用无符号右移，有符号右移会把符号位带下来，
+ * 结果完全不同。
+ */
+[[nodiscard]] inline constexpr i32 murmurHash3Mixer(i32 value) noexcept
+{
+    u32 hash = static_cast<u32>(value);
+    hash ^= hash >> 16U;
+    hash *= 0x85EBCA6BU; // -2048144789 的无符号形式
+    hash ^= hash >> 13U;
+    hash *= 0xC2B2AE35U; // -1028477387 的无符号形式
+    hash ^= hash >> 16U;
+    return static_cast<i32>(hash);
+}
+
+/**
+ * @brief 快速立方根倒数，对应原版 `Mth.fastInvCubeRoot`
+ *
+ * 先用整数魔数近似，再做一次牛顿迭代。整数部分用带符号除法（向零取整），与无符号
+ * 移位的结果不同，负数输入要特别注意。
+ */
+[[nodiscard]] inline f32 fastInvCubeRoot(f32 value) noexcept
+{
+    i32 bits = static_cast<i32>(std::bit_cast<u32>(value));
+    bits = 1419967116 - bits / 3;
+    f32 approx = std::bit_cast<f32>(static_cast<u32>(bits));
+    // 原版迭代两次：第一次把误差压到千分位，第二次才进入 f32 的精度量级。
+    // 只做一次会让结果与 Java 差出若干 ulp 到千分之一。
+    approx = 0.6666667f * approx + 1.0f / (3.0f * approx * approx * value);
+    return 0.6666667f * approx + 1.0f / (3.0f * approx * approx * value);
+}
+
+/**
+ * @brief Catmull-Rom 样条插值，对应原版 `Mth.catmullrom`
+ *
+ * 五个参数依次为插值因子、p0、p1、p2、p3；曲线穿过 p1 与 p2。
+ */
+[[nodiscard]] inline f32 catmullrom(f32 delta, f32 p0, f32 p1, f32 p2, f32 p3) noexcept
+{
+    return 0.5f *
+        (2.0f * p1 + (p2 - p0) * delta + (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * delta * delta +
+            (3.0f * p1 - p0 - 3.0f * p2 + p3) * delta * delta * delta);
+}
+
+/**
+ * @brief 向下量化到步长的整数倍，对应原版 `Mth.quantize`
+ *
+ * 先做浮点除法、再向下取整、再乘回步长。
+ */
+[[nodiscard]] inline i32 quantize(f64 value, i32 step) noexcept
+{
+    return static_cast<i32>(std::floor(value / static_cast<f64>(step))) * step;
+}
+
+/**
+ * @brief 三态符号，对应原版 `Mth.sign`
+ *
+ * 零返回 0。`-0.0 == 0.0` 为真，因此负零同样返回 0；NaN 走 `> 0.0` 为假的分支返回 -1，
+ * 与原版一致。
+ */
+[[nodiscard]] inline i32 sign(f64 value) noexcept
+{
+    if (value == 0.0) {
+        return 0;
+    }
+    return value > 0.0 ? 1 : -1;
+}
+
+/**
+ * @brief 棋盘距离，对应原版 `Mth.chessboardDistance`
+ *
+ * 两个方向差值的绝对值取大者。
+ */
+[[nodiscard]] inline i32 chessboardDistance(i32 x1, i32 z1, i32 x2, i32 z2) noexcept
+{
+    const i32 dx = x2 - x1;
+    const i32 dz = z2 - z1;
+    const i32 absX = dx < 0 ? -dx : dx;
+    const i32 absZ = dz < 0 ? -dz : dz;
+    return absX > absZ ? absX : absZ;
+}
+
+/**
+ * @brief 是否为另一个数的整数倍，对应原版 `Mth.isMultipleOf`
+ */
+[[nodiscard]] inline bool isMultipleOf(i32 value, i32 divisor) noexcept
+{
+    return value % divisor == 0;
+}
+
+/**
+ * @brief 容纳 count 个物品所需的正方形边长，对应原版 `Mth.smallestSquareSide`
+ *
+ * 对数量开方后向上取整；负数在原版抛异常，这里用断言等价表达。
+ */
+[[nodiscard]] inline i32 smallestSquareSide(i32 count) noexcept
+{
+    MC_ASSERT_RELEASE_MSG(count >= 0, "smallestSquareSide requires a non-negative count");
+    return static_cast<i32>(std::ceil(std::sqrt(static_cast<f64>(count))));
 }
 
 } // namespace mc::math
