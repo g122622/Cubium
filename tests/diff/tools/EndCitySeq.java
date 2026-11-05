@@ -1,13 +1,25 @@
+import dev.horizonlab.diff.DataPackRegistries;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.Bootstrap;
-import net.minecraft.world.level.levelgen.WorldgenRandom;
-import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.levelgen.LegacyRandomSource;
+import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
+import net.minecraft.world.level.levelgen.structure.structures.EndCityPieces;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraft.world.level.storage.LevelStorageSource;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * 只记录原版末端城生成过程中的随机数抽取，
- * 不实际加载模板（模板加载不消耗随机数）。
+ * 记录原版末地城生成过程中的每一次随机数抽取。
  */
 public final class EndCitySeq {
     private static int counter = 0;
@@ -25,7 +37,15 @@ public final class EndCitySeq {
         }
     }
 
-    public static void main(String[] args) {
+    static StructureTemplateManager templateManager(DataPackRegistries registries) throws Exception {
+        Path emptyLevel = Files.createTempDirectory("diff-endcity");
+        var source = LevelStorageSource.createDefault(emptyLevel);
+        var storage = source.createAccess("diff");
+        return new StructureTemplateManager(registries.resourceManager, storage,
+            DataFixers.getDataFixer(), registries.lookup.lookupOrThrow(Registries.BLOCK));
+    }
+
+    public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
 
@@ -33,11 +53,15 @@ public final class EndCitySeq {
         int chunkX = Integer.parseInt(args[1]);
         int chunkZ = Integer.parseInt(args[2]);
 
+        DataPackRegistries registries = DataPackRegistries.load();
+        StructureTemplateManager mgr = templateManager(registries);
         Tracing rng = new Tracing(new LegacyRandomSource(0L));
         rng.setLargeFeatureSeed(seed, chunkX, chunkZ);
 
         Rotation rotation = Rotation.getRandom(rng);
-        System.out.println("ROT " + rotation);
-        System.out.println("DONE");
+        List<StructurePiece> pieces = new ArrayList<>();
+        EndCityPieces.startHouseTower(mgr, new BlockPos(0, 64, 0), rotation, pieces, rng);
+
+        System.out.println("PIECES " + pieces.size());
     }
 }

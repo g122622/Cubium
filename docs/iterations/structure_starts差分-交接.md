@@ -1394,3 +1394,46 @@ D 13 bits31 65469250
 Java 侧现在只抽到旋转就停了，要拿到完整序列必须真正驱动 `startHouseTower`，
 而它的第一个参数是 `StructureTemplateManager`，需要 `ResourceManager` 与
 存档目录才能构造。这是下一轮要解决的事。
+
+## 第三十一轮：完整序列已能对比，第一个分歧在 D 76——位宽不同
+
+### 打通了原版侧的完整驱动
+
+`EndCitySeq.java` 改用 `DataPackRegistries.load()` 与临时存档目录构造
+`StructureTemplateManager`，真正驱动 `EndCityPieces.startHouseTower`。
+（复用 `StructureStartsOracle.templateManager` 的同一套构造方式：临时空目录给
+`LevelStorageAccess`，结构生成从不写生成模板。）
+
+### 逐行 diff 结果
+
+两侧序号基准已对齐（`D 0` 都是 `setLargeFeatureSeed` 内部的第一次 `next(32)`）：
+
+```
+原版 79 条，Cubium 87 条
+D 0 .. D 75 全部一致
+D 76: 原版 bits32 591782331      Cub bits31 295891165
+D 77: 原版 bits32 -1533848996    Cub bits31 1380559150
+D 78: 原版 bits32 1376033556     Cub bits31 688016778
+```
+
+**这是本轮最关键的发现：D 76 处两侧的位宽就不同了。**
+
+- `bits32` 对应 `nextInt()`（无参，即 `recursiveChildren` 里取 componentId 的那次）；
+- `bits31` 对应 `nextInt(bound)` 的第一轮。
+
+也就是说，原版在这里执行了 `recursiveChildren` 的 `nextInt()`，而 Cubium 没有——
+Cubium 直接进入了下一个生成器的 `nextInt(bound)`。
+
+### 已核对但排除的
+
+- `WorldgenRandom::nextInt()` 就是 `nextBits(32)`，与 Java 的 `next(32)` 语义相同；
+- `nextInt()` 在 `recursiveChildren` 里的位置（`generate` 成功后立即调用）与原版一致；
+- `FatTowerGenerator` 的两处 `nextBoolean`（`FAT_TOWER_BRIDGES` 四项）与 `nextInt(3)` 的循环结构与原版一致；
+- `D 71`..`D 74` 的四个 `next(1)` 与该循环体的形态相符，`D 75` 的 `nextInt(3)` 结果
+  `364420944 % 3 = 0` 表示循环退出，之后应当直接 `fat_tower_top` 并 `return true`。
+
+### 下一轮
+
+问题收敛为「Cubium 在 `FatTowerGenerator` 返回之后到下一次 `nextInt(bound)` 之间，
+没有执行 `recursiveChildren` 的 `nextInt()`」。需要在 `recursiveChildren` 的
+`generate` 返回处与 `nextInt()` 处各打一个点，确认 `generate` 是否真的返回了 true。
