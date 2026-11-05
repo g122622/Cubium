@@ -62,9 +62,15 @@ TEST_F(WorldBorderTest, SetSize)
     EXPECT_DOUBLE_EQ(border->getSize(), 1000.0);
     EXPECT_EQ(border->getStatus(), BorderStatus::Stationary);
 
-    // 设置大小应该被限制在最大值
+    // 原版 `WorldBorder#setSize` 直接 `extent = new StaticBorderExtent(size)`，**不做钳制**：
+    // 超过 MAX_SIZE 的尺寸会被接受（边界判定时由 absoluteMaxSize 在坐标层面兜底）。
+    // 早期本用例期望"钳到 MAX_SIZE"，与生产实现（已按原版去掉 std::clamp）相反。
     border->setSize(1.0E10);
-    EXPECT_DOUBLE_EQ(border->getSize(), WorldBorder::MAX_SIZE);
+    EXPECT_DOUBLE_EQ(border->getSize(), 1.0E10);
+
+    // 小于 1 的尺寸同样允许（原版允许 0.3 甚至负值）
+    border->setSize(0.3);
+    EXPECT_DOUBLE_EQ(border->getSize(), 0.3);
 }
 
 TEST_F(WorldBorderTest, DefaultSizeSurvivesSetterAndSerialization)

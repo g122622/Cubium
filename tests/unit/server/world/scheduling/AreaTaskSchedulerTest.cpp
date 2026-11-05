@@ -897,6 +897,36 @@ TEST_F(AreaTaskSchedulerLifecycleTest, ThrowingTaskAndCallbackStillReleaseRegion
     scheduler.waitForCompletion();
 }
 
+TEST_F(AreaTaskSchedulerLifecycleTest, ExecutedThenCancelledTaskIsCancelledOnlyOnce)
+{
+    // 计算池的取消与执行竞态：任务已执行完（任务体已释放）、尚未进入回调时被取消。调度器在该
+    // 路径上认领区域后必须看到「任务体已释放」，不能对空指针再调一次 onCancel。
+    UniversalWorkerPool pool{1, "AreaCancelRace", 900};
+    pool.start();
+    std::atomic<int> executions{0};
+    for (int round = 0; round < 200; ++round) {
+        AreaTaskScheduler scheduler(&pool);
+        scheduler.submit(
+            std::make_unique<FunctionTask>(
+                TaskType::Custom,
+                "ExecutedThenCancelled",
+                [&executions](const std::atomic<bool>&) -> bool {
+                    ++executions;
+                    return true;
+                },
+                "worker_pool"),
+            [](bool, ITask*) {},
+            ChunkPos(round, 0),
+            0,
+            TaskPriority::Normal,
+            nullptr);
+        scheduler.waitForCompletion();
+        scheduler.shutdown();
+    }
+    pool.shutdown();
+    EXPECT_EQ(executions.load(), 200);
+}
+
 TEST_F(AreaTaskSchedulerLifecycleTest, TaskBodyIsReleasedAtCompletionNotAtShutdown)
 {
     auto probe = makeProbe();
