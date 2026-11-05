@@ -932,6 +932,7 @@ void registerNetherBlocks()
         &registry.registerBlock<blocks::ChorusFlowerBlock>(ResourceLocation("minecraft:chorus_flower"),
             BlockProperties(Material::PLANT)
                 .forceSolidOff()
+                .noOcclusion()
                 .withCollision()
                 .hardness(0.4f)
                 .resistance(0.4f)

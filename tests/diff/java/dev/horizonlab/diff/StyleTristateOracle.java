@@ -142,11 +142,13 @@ public final class StyleTristateOracle {
 
     private static TextColor colorByName(String name) {
         ChatFormatting formatting = ChatFormatting.valueOf(name);
-        Integer rgb = formatting.getColor();
-        if (rgb == null) {
+        if (formatting.getColor() == null) {
             throw new IllegalArgumentException("style_tristate: " + name + " 不是颜色");
         }
-        return TextColor.fromRgb(rgb);
+        // 必须走 fromLegacyFormat：它保留具名颜色，serialize() 因此返回名字（"red"）。
+        // 若改用 fromRgb 构造，name 字段为 null，serialize() 会退化成 "#FF5555"——
+        // 那是用户显式指定 RGB 时的形态，不是「设置具名颜色」的真实路径。
+        return TextColor.fromLegacyFormat(formatting);
     }
 
     /** 设置单个标志（值为 null 表示清除）。 */
