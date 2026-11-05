@@ -2010,6 +2010,18 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "density_composite",
+        probe: "density_composite",
+        oracle: "DensityCompositeOracle",
+        description: "组合型密度函数（原版 DensityFunctions）的取值与 min/max —— 30 组配置。"
+        + "覆盖 TwoArgument（add/mul/min/max）、Lerp、RangeChoice；子函数全部用常量，整棵树可由参数量化重建。"
+        + "三者都是噪声整形的实际主力：add/mul 拼出密度组合，Lerp 做双线性混合，RangeChoice 在洞穴与地形之间切换。"
+        + "用例重点覆盖 Mul 在一边为 0 时的短路（另一侧即使是 inf/nan 也要短路）、Lerp 的 d 在 0/1 边界与区间外、"
+        + "RangeChoice 的 [lo, hi) 边界（等于 lo 命中、等于 hi 不命中），以及非整齐数值。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

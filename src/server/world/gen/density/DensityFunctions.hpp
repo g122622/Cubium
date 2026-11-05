@@ -409,6 +409,8 @@ public:
         : m_arg1(std::move(arg1))
         , m_arg2(std::move(arg2))
         , m_type(type)
+        , m_hasConstantOperand(dynamic_cast<const Constant*>(m_arg1.get()) != nullptr ||
+              dynamic_cast<const Constant*>(m_arg2.get()) != nullptr)
     {
         computeBounds();
     }
@@ -421,6 +423,13 @@ public:
             case TwoArgumentType::Add:
                 return v1 + m_arg2->compute(blockX, blockY, blockZ);
             case TwoArgumentType::Mul:
+                // 原版在一侧是常量时走 MulOrAdd 特化，compute 就是 input * argument 的真乘法；
+                // 只有两侧都是非常量时才走 Ap2 的 `v1 == 0.0 ? 0.0` 短路。两者在 v1 为 0、
+                // 另一侧为负时结果不同：真乘法得 -0.0，短路得 +0.0。
+                if (m_hasConstantOperand) {
+                    const volatile f64 product = v1 * m_arg2->compute(blockX, blockY, blockZ);
+                    return product;
+                }
                 return v1 == 0.0 ? 0.0 : v1 * m_arg2->compute(blockX, blockY, blockZ);
             case TwoArgumentType::Min:
                 return v1 < m_arg2->minValue() ? v1 : std::min(v1, m_arg2->compute(blockX, blockY, blockZ));
@@ -466,6 +475,8 @@ private:
     std::unique_ptr<DensityFunction> m_arg1;
     std::unique_ptr<DensityFunction> m_arg2;
     TwoArgumentType m_type;
+    /// 任一侧是常量时，原版走 MulOrAdd 特化路径（真乘法，不短路）
+    bool m_hasConstantOperand = false;
     f64 m_minValue = 0.0;
     f64 m_maxValue = 0.0;
 
@@ -537,16 +548,14 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
     {
+        // 原版 lerp 不钳制 d：它是 `d * (e - s) + s` 的纯算术，d 越界时按原样外推。
+        // 曾经这里在 d<=0 / d>=1 时直接返回端点，那与原版不符。
         const f64 d = m_delta->compute(blockX, blockY, blockZ);
         const f64 s = m_start->compute(blockX, blockY, blockZ);
-        if (d <= 0.0) {
-            return s;
-        }
         const f64 e = m_end->compute(blockX, blockY, blockZ);
-        if (d >= 1.0) {
-            return e;
-        }
-        return s + d * (e - s);
+        // 乘积先落回标量存储，禁止 FMA 收缩：原版是逐步舍入，融合会改变末位。
+        const volatile f64 delta = d * (e - s);
+        return delta + s;
     }
 
     [[nodiscard]] f64 minValue() const override
@@ -591,12 +600,30 @@ private:
 
     void computeBounds()
     {
+        // 按原版 lerp 的展开式做区间传播：d * (e - s) + s。
+        // 原版把 lerp 展开成 add(mul(d, add(e, constant(-s))), constant(s))，
+        // 边界由 Mul/Add 的区间算术逐层推出，而不是简单取两端点的极值。
+        const f64 dMin = m_delta->minValue();
+        const f64 dMax = m_delta->maxValue();
         const f64 sMin = m_start->minValue();
         const f64 sMax = m_start->maxValue();
         const f64 eMin = m_end->minValue();
         const f64 eMax = m_end->maxValue();
-        m_minValue = std::min({sMin, sMax, eMin, eMax});
-        m_maxValue = std::max({sMin, sMax, eMin, eMax});
+
+        // 因子的区间。
+        const f64 factorMin = eMin - sMax;
+        const f64 factorMax = eMax - sMin;
+
+        // 乘积区间：两个区间相乘，取四个端点积的极小/极大。
+        const f64 p0 = dMin * factorMin;
+        const f64 p1 = dMin * factorMax;
+        const f64 p2 = dMax * factorMin;
+        const f64 p3 = dMax * factorMax;
+        const f64 productMin = std::min({p0, p1, p2, p3});
+        const f64 productMax = std::max({p0, p1, p2, p3});
+
+        m_minValue = productMin + sMin;
+        m_maxValue = productMax + sMax;
     }
 };
 
