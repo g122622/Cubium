@@ -347,7 +347,7 @@ void ServerWorld::shutdown()
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Initialization, "ServerWorld::shutdown", "dim", static_cast<i32>(m_config.dimension));
 
-    spdlog::info("Shutting down server world...");
+    spdlog::info("Shutting down server world (dim={})...", static_cast<i32>(m_config.dimension));
     m_initialized = false;
 
     // 先保存所有已加载区块内的实体
@@ -404,28 +404,51 @@ void ServerWorld::shutdown()
         }
     }
 
+    spdlog::info("DIAG shutdown(dim={}): saving entities done", static_cast<i32>(m_config.dimension));
     // 先清理袭击管理器（可能引用村庄）
     m_raidManager.reset();
+    spdlog::info("DIAG shutdown(dim={}): raid reset", static_cast<i32>(m_config.dimension));
     // 再清理村庄管理器
     m_villageManager.reset();
+    spdlog::info("DIAG shutdown(dim={}): village reset", static_cast<i32>(m_config.dimension));
 
     // 丢弃未执行的跨维度迁移回调：它们按引用捕获源/目标 EntityManager，本世界销毁后
     // 这些引用全部悬垂，若残留到下一个世界 tick 才执行必然崩溃。
     m_entityManager.discardPendingDimensionTransfers();
+    spdlog::info("DIAG shutdown(dim={}): transfers discarded", static_cast<i32>(m_config.dimension));
 
     // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
     if (m_chunkManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::ShutdownChunkManager");
         m_chunkManager->shutdown();
     }
+    spdlog::info("DIAG shutdown(dim={}): chunk manager shutdown", static_cast<i32>(m_config.dimension));
+    // TEMP-DIAG：逐成员释放世界数据，定位关服时的异常来源。
+    {
+        const i32 dim = static_cast<i32>(m_config.dimension);
+        spdlog::info("DIAG shutdown(dim={}): drop dragonFight", dim);
+        m_dragonFight.reset();
+        spdlog::info("DIAG shutdown(dim={}): drop chunkManager own ref", dim);
+        m_chunkManager.reset();
+        spdlog::info("DIAG shutdown(dim={}): drop mapDataManager", dim);
+        m_mapDataManager.reset();
+        spdlog::info("DIAG shutdown(dim={}): drop environmentAttributes", dim);
+        m_environmentAttributes.reset();
+        spdlog::info("DIAG shutdown(dim={}): drop gameEventDispatcher", dim);
+        m_gameEventDispatcher.reset();
+    }
 
     m_weatherManager.reset();
+    spdlog::info("DIAG shutdown(dim={}): weather reset", static_cast<i32>(m_config.dimension));
     m_lightManager.reset();
+    spdlog::info("DIAG shutdown(dim={}): light reset", static_cast<i32>(m_config.dimension));
     m_tickManager.reset();
     m_physicsEngine.reset();
     m_collisionCache.reset();
+    spdlog::info("DIAG shutdown(dim={}): tick/physics reset", static_cast<i32>(m_config.dimension));
 
     m_chunkManager.reset();
+    spdlog::info("DIAG shutdown(dim={}): chunk manager destroyed", static_cast<i32>(m_config.dimension));
 
     spdlog::info("Server world shut down");
 }
