@@ -645,6 +645,8 @@ public:
         , m_yScale(yScale)
         , m_fromValue(fromValue)
         , m_toValue(toValue)
+        , m_midpoint((fromValue + toValue) * 0.5)
+        , m_halfAmplitude((toValue - fromValue) * 0.5)
     {
         // MC 1.21: bounds = add(constant(midpoint), mul(constant(halfAmplitude), noise))
         // midpoint = (fromValue + toValue) / 2, halfAmplitude = (toValue - fromValue) / 2
@@ -663,7 +665,11 @@ public:
         const f64 noiseVal = m_noise->getValue(static_cast<f64>(blockX) * m_xzScale,
             static_cast<f64>(blockY) * m_yScale,
             static_cast<f64>(blockZ) * m_xzScale);
-        return m_fromValue + noiseVal * (m_toValue - m_fromValue);
+        // 乘积先落回标量存储，禁止 FMA 收缩：原版是逐步舍入，融合会改动末位。
+        // 原版 mapFromUnitTo: add(constant(midpoint), mul(constant(halfAmplitude), noise))，
+        // 即 mid + noise * half，half = (to - from) * 0.5。不是 from + noise * (to - from)。
+        const volatile f64 scaled = noiseVal * m_halfAmplitude;
+        return m_midpoint + scaled;
     }
 
     [[nodiscard]] f64 minValue() const override
@@ -689,6 +695,8 @@ private:
     f64 m_yScale;
     f64 m_fromValue;
     f64 m_toValue;
+    f64 m_midpoint = 0.0;
+    f64 m_halfAmplitude = 0.0;
     f64 m_minValue;
     f64 m_maxValue;
 };
@@ -710,9 +718,12 @@ public:
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
     {
-        return m_noise->getValue(static_cast<f64>(blockX) * m_xzScale,
-            static_cast<f64>(blockY) * m_yScale,
-            static_cast<f64>(blockZ) * m_xzScale);
+        // 坐标缩放先落回标量存储：原版是逐步舍入，编译器若把它保留在扩展精度里、或与
+        // getValue 内部的乘法合并，大坐标的末位就会偏移。
+        const volatile f64 sx = static_cast<f64>(blockX) * m_xzScale;
+        const volatile f64 sy = static_cast<f64>(blockY) * m_yScale;
+        const volatile f64 sz = static_cast<f64>(blockZ) * m_xzScale;
+        return m_noise->getValue(sx, sy, sz);
     }
 
     [[nodiscard]] f64 minValue() const override

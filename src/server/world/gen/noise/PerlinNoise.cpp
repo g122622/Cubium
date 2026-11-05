@@ -425,7 +425,9 @@ f64 PerlinNoise::getValue(f64 x, f64 y, f64 z) const
     // 标量顺序累加:与原 getValue 循环顺序一致。
     f64 result = 0.0;
     for (u32 i = 0; i < count; ++i) {
-        result += soa.amplitude()[i] * ds[i] * soa.valueFactor()[i];
+        // 乘积先落回标量存储，禁止 FMA 收缩：原版是逐步舍入，融合会改动末位。
+        const volatile f64 term = soa.amplitude()[i] * ds[i] * soa.valueFactor()[i];
+        result += term;
     }
     return result;
 }
@@ -444,7 +446,9 @@ f64 PerlinNoise::getValueScalar(f64 x, f64 y, f64 z) const
             const f64 nx = wrap(x * inputFactor);
             const f64 ny = wrap(y * inputFactor);
             const f64 nz = wrap(z * inputFactor);
-            result += amplitude * m_layers[i]->noise(nx, ny, nz) * valueFactor;
+            // 同上：先舍入乘积，再累加。
+            const volatile f64 term = amplitude * m_layers[i]->noise(nx, ny, nz) * valueFactor;
+            result += term;
         }
         inputFactor *= 2.0;
         valueFactor /= 2.0;
@@ -469,7 +473,8 @@ f64 PerlinNoise::edgeValue(f64 maxInputValue) const
 
     for (size_t i = 0; i < m_amplitudes.size(); ++i) {
         if (m_layers[i] != nullptr) {
-            result += m_amplitudes[i] * maxInputValue * valueFactor;
+            const volatile f64 term = m_amplitudes[i] * maxInputValue * valueFactor;
+            result += term;
         }
         valueFactor /= 2.0;
     }
@@ -499,7 +504,9 @@ f64 PerlinNoise::getValueWithSmear(f64 x, f64 y, f64 z, f64 smearScaleMultiplier
             const f64 nz = wrap(z * inputFactor);
             const f64 yOffset = smearScaleMultiplier * inputFactor;
             const f64 yFraction = y * inputFactor;
-            result += amplitude * m_layers[i]->noiseWithSmear(nx, ny, nz, yOffset, yFraction) * valueFactor;
+            const volatile f64 term =
+                amplitude * m_layers[i]->noiseWithSmear(nx, ny, nz, yOffset, yFraction) * valueFactor;
+            result += term;
         }
         inputFactor *= 2.0;
         valueFactor /= 2.0;

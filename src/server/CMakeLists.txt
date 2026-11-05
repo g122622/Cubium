@@ -257,6 +257,16 @@ add_library(mc_gen OBJECT
     world/gen/spawn/WorldGenSpawner.cpp
 )
 
+# 噪声与密度函数的求值必须逐位对齐原版。全局 -ffast-math 允许编译器重排 `a + b*c`、
+# 把同一表达式在释放点重新求值，实测会让 perlin_noise / normal_noise / noise_density
+# 的末位与原版差 1~37 ulp（137 处）。这些文件关掉 fast-math，其余文件不受影响。
+set_source_files_properties(
+    world/gen/noise/PerlinNoise.cpp
+    world/gen/noise/NormalNoise.cpp
+    world/gen/density/BlendedNoise.cpp
+    PROPERTIES COMPILE_OPTIONS "-fno-fast-math"
+)
+
 # mc_gen 的 .cpp 重度依赖 common 头（Result.hpp/IWorld/各 world 类），并传递引入
 # spdlog/nlohmann_json/simdjson/asmjit/fmt 等第三方头（均由 mc_common PUBLIC 链接）。
 # 故 mc_gen 须 PRIVATE 链接 mc_common：编译 mc_gen 自身 .cpp 时需要 common 符号与头路径，
