@@ -219,9 +219,9 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         return true;
     }
 
-    void _dispatch(const std::vector<Dispatch>& ready)
+    void _dispatch(std::vector<Dispatch>& ready)
     {
-        for (const auto& dispatch : ready) {
+        for (auto& dispatch : ready) {
             util::UniversalWorkerPool* pool;
             {
                 std::lock_guard lock(mutex);
