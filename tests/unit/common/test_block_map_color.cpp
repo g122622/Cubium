@@ -155,7 +155,9 @@ std::optional<std::string> withAttribute(const std::string& stateName, std::stri
 } // namespace
 
 /**
- * @brief 快照表只按方块收录，条目数与注册表里的方块数一致
+ * @brief 快照表只按方块收录，条目数与注册表里的方块数相等
+ *
+ * 相等而不是「至少」：若新增的方块漏登记，查表会恒返回 AIR 色，也顺带断言了快照与注册表同步。
  */
 TEST(BlockMapColorTableTest, TableHasOneEntryPerVanillaBlock)
 {
@@ -190,7 +192,7 @@ TEST(BlockMapColorTableTest, LogColorDependsOnAxis)
 }
 
 /**
- * @brief 规范化会把属性重新排序，`axis` 之外的属性顺序不影响结果
+ * @brief 规范化会把属性按名字排序：状态字符串按注册顺序输出，属性顺序不同不应影响结果
  */
 TEST(BlockMapColorTableTest, AttributeOrderDoesNotAffectLookup)
 {
