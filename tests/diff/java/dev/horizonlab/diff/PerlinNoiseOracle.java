@@ -52,6 +52,7 @@ public final class PerlinNoiseOracle {
         list.add(new NoiseCase("octaves_4", 42L, -4, new double[] {1.0, 0.5, 0.25, 0.125}));
         list.add(new NoiseCase("octaves_6", 42L, -4, new double[] {1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125}));
         list.add(new NoiseCase("flat_weights", 777L, 0, new double[] {1.0, 0.9, 0.8, 0.7}));
+        list.add(new NoiseCase("fo_m7", -42L, -7, new double[] {1.0, 1.0, 1.0}));
         return list;
     }
 
