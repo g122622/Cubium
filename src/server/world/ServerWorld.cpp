@@ -507,6 +507,27 @@ void ServerWorld::shutdown()
         m_entityManager.~EntityManager();
         new (&m_entityManager) EntityManager(m_entityRegistry);
         spdlog::info("DIAG members(dim={}): entity manager reset", dim);
+        spdlog::info("DIAG members(dim={}): drop PhysicsEngine", dim);
+        m_physicsEngine.reset();
+        spdlog::info("DIAG members(dim={}): drop CollisionCache", dim);
+        m_collisionCache.reset();
+        spdlog::info("DIAG members(dim={}): drop TickManager", dim);
+        m_tickManager.reset();
+        spdlog::info("DIAG members(dim={}): drop WeatherManager", dim);
+        m_weatherManager.reset();
+        spdlog::info("DIAG members(dim={}): drop MapDataManager", dim);
+        m_mapDataManager.reset();
+        spdlog::info("DIAG members(dim={}): drop EnvironmentAttributes", dim);
+        m_environmentAttributes.reset();
+        spdlog::info("DIAG members(dim={}): drop GameEventDispatcher", dim);
+        m_gameEventDispatcher.reset();
+        spdlog::info("DIAG members(dim={}): drop VillageManager", dim);
+        m_villageManager.reset();
+        spdlog::info("DIAG members(dim={}): drop RaidManager", dim);
+        m_raidManager.reset();
+        spdlog::info("DIAG members(dim={}): drop LightManager", dim);
+        m_lightManager.reset();
+        spdlog::info("DIAG members(dim={}): members released", dim);
     }
     spdlog::info("Server world shut down");
 }
