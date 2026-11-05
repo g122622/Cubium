@@ -1117,6 +1117,10 @@ private:
 
     void computeBounds();
 
+    /// 控制点在边界计算中代表的最小/最大值（常量取自身，嵌套样条取其 min/max）
+    [[nodiscard]] f32 resolveBoundsMin(size_t index) const;
+    [[nodiscard]] f32 resolveBoundsMax(size_t index) const;
+
     /// 线性外推（超出样条范围时使用）
     [[nodiscard]] static f32 linearExtend(f32 coordinate, f32 location, f32 value, f32 derivative);
 };

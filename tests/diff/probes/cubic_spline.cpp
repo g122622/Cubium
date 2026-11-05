@@ -105,6 +105,32 @@ const std::vector<f32>& sampleInputs()
     return table;
 }
 
+/**
+ * 声明输入坐标范围为 [-1, 1] 的密度函数。
+ *
+ * 样条的 minValue/maxValue 要用输入的范围去外推首末控制点，所以这个范围必须是样条
+ * 的真实输入域，而不是当前采样点的坐标值。oracle 侧同样固定为 [-1, 1]。
+ */
+class SplineInputRange final : public DensityFunction {
+public:
+    [[nodiscard]] f64 compute(i32, i32, i32) const override
+    {
+        return 0.0;
+    }
+
+    [[nodiscard]] f64 minValue() const override
+    {
+        return -1.0;
+    }
+
+    [[nodiscard]] f64 maxValue() const override
+    {
+        return 1.0;
+    }
+
+    DENSITY_FUNCTION_MAP_ALL_LEAF(SplineInputRange)
+};
+
 std::unique_ptr<CubicSpline> buildSpline(const SplineCase& splineCase)
 {
     std::vector<SplinePoint> points;
@@ -112,7 +138,7 @@ std::unique_ptr<CubicSpline> buildSpline(const SplineCase& splineCase)
     for (const auto& point : splineCase.points) {
         points.emplace_back(point[0], point[1], point[2]);
     }
-    return std::make_unique<CubicSpline>(std::make_shared<Constant>(0.0f), std::move(points));
+    return std::make_unique<CubicSpline>(std::make_shared<SplineInputRange>(), std::move(points));
 }
 
 void writeList(std::FILE* out)
