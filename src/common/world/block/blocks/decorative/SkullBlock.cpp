@@ -374,12 +374,10 @@ const BlockState& SkullBlock::mirror(const BlockState& state, Mirror mirror) con
 WallSkullBlock::WallSkullBlock(SkullType type, const BlockProperties& properties)
     : AbstractSkullBlock(type, properties)
 {
-    // 墙挂头颅**继承**站立头颅的乐器：原版注册墙面变体用的是
-    // `Blocks.wallVariant(Blocks.SKELETON_SKULL, true)`，第二个参数 true 表示连同父方块的
-    // 属性（含 `.instrument(...)`）一起复制。因此音符盒在 `skeleton_wall_skull` 上方同样
-    // 演奏骷髅拟声，而不是默认竖琴。此前这里漏了设置，且基类注释把结论写反了。
-    setNonVirtualInstrument(_instrumentForSkullType(type));
-
+    // 墙挂头颅不继承站立头颅的乐器，音符盒在其上方演奏默认的竖琴。
+    // 原版注册墙面变体用的是 `Blocks.wallVariant(Blocks.SKELETON_SKULL, true)`，
+    // 而 wallVariant 从 `Properties.of()` 全新建起属性，第二个参数只控制
+    // `overrideDescription`（覆盖描述），与乐器无关；战利品表是唯一被复制过来的属性。
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::POWERED())
