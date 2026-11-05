@@ -31,6 +31,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentPatchNbt.hpp"
 #include "common/item/component/DataComponentType.hpp"
@@ -215,10 +216,25 @@ void ItemStack::setCount(i32 count)
     m_count = std::max(count, 0);
 }
 
+bool ItemStack::isEmpty() const
+{
+    if (m_count <= 0) {
+        return true;
+    }
+    // 原版 `ItemStack#isEmpty` 的第二个条件是 `item == Items.AIR`：空气堆同样算空，
+    // 于是 `components()` 返回 `DataComponentMap.EMPTY`，`getMaxStackSize()` 读到
+    // 兜底值 1 而非注册表里 `COMMON_ITEM_COMPONENTS` 给的 64。
+    return m_item != nullptr && m_item == Items::AIR;
+}
+
 i32 ItemStack::getMaxStackSize() const
 {
     if (m_item == nullptr) {
         return 0;
+    }
+    // 空栈读到的是空的组件表，兜底为 1。
+    if (isEmpty()) {
+        return 1;
     }
     // 如果有耐久度，堆叠数为1
     if (isDamageable()) {
