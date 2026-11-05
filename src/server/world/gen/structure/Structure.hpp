@@ -657,6 +657,25 @@ protected:
     Direction m_coordBaseMode = Direction::None;
     Mirror m_mirror = Mirror::None;
     Rotation m_rotation = Rotation::None;
+
+    /**
+     * @brief 本片段在所属分支上的深度
+     *
+     * 起始片段为 0，每向下一层加一。组装算法（如要塞的 50 层上限）按**单条分支**
+     * 累计深度，而不是数全部片段总数。
+     */
+    i32 m_expansionDepth = 0;
+
+public:
+    [[nodiscard]] i32 expansionDepth() const noexcept
+    {
+        return m_expansionDepth;
+    }
+
+    void setExpansionDepth(i32 depth) noexcept
+    {
+        m_expansionDepth = depth;
+    }
 };
 
 /**

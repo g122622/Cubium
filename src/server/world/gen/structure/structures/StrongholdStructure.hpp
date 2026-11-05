@@ -113,14 +113,6 @@ private:
     StrongholdStartStairs* _generateStrongholdPieces(
         math::IRandom& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
 
-    /**
-     * @brief 递归生成走廊
-     */
-    void _generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::IRandom& rng,
-        i32 depth,
-        StrongholdStartStairs* start) const;
-
     Config m_config;
     static const std::string m_name;
 };

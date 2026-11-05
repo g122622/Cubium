@@ -128,6 +128,7 @@ public:
      * 在当前片段前方生成下一个连接片段
      */
     StructurePiece* getNextComponentNormal(StrongholdStartStairs* start,
+        const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
         i32 offsetX,
@@ -139,6 +140,7 @@ public:
      * 在当前片段左侧或右侧生成连接片段
      */
     StructurePiece* getNextComponentX(StrongholdStartStairs* start,
+        const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
         i32 offsetX,
@@ -150,6 +152,7 @@ public:
      * 在当前片段左侧或右侧生成连接片段
      */
     StructurePiece* getNextComponentZ(StrongholdStartStairs* start,
+        const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
         i32 offsetX,
@@ -540,12 +543,23 @@ public:
         m_imposedPieceType = type;
     }
 
+    void setLastPieceType(i32 type)
+    {
+        m_lastPieceType = type;
+    }
+
+    [[nodiscard]] i32 lastPieceType() const
+    {
+        return m_lastPieceType;
+    }
+
 private:
     std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表
     StrongholdPieceWeight* m_lastPlaced = nullptr;  ///< 上一个放置的片段权重
     StrongholdPiece* m_portalRoom = nullptr;        ///< 传送门房间引用
     std::vector<StructurePiece*> m_pendingChildren; ///< 待处理的子片段
     i32 m_imposedPieceType = -1;                    ///< 强制片段类型（-1 表示无强制）
+    i32 m_lastPieceType = -1;                       ///< 上一个生成的片段类型（无则 -1）
 };
 
 // ============================================================================
@@ -819,6 +833,7 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
  * 返回值是**非拥有观察指针**，仅便于调用方继续传递，调用方不得释放。
  */
 [[nodiscard]] StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
+    const StructurePiece& previous,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng,
     i32 x,

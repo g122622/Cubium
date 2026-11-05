@@ -26,6 +26,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -38,7 +39,9 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <cmath>
+#include <cstdlib>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {
@@ -145,6 +148,7 @@ bool StrongholdPiece::canStrongholdGoDeeper(const StructureBoundingBox& box)
 }
 
 StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* start,
+    const StructurePiece& previous,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng,
     i32 offsetX,
@@ -183,10 +187,11 @@ StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* s
             return nullptr;
     }
 
-    return generateAndAddPiece(start, pieces, rng, x, y, z, newDirection, getComponentType() + 1);
+    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
 }
 
 StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
+    const StructurePiece& previous,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng,
     i32 offsetX,
@@ -229,10 +234,11 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
             return nullptr;
     }
 
-    return generateAndAddPiece(start, pieces, rng, x, y, z, newDirection, getComponentType() + 1);
+    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
 }
 
 StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
+    const StructurePiece& previous,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng,
     i32 offsetX,
@@ -275,7 +281,7 @@ StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
             return nullptr;
     }
 
-    return generateAndAddPiece(start, pieces, rng, x, y, z, newDirection, getComponentType() + 1);
+    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
 }
 
 // ============================================================================
@@ -362,22 +368,25 @@ void StrongholdStraight::generate(IWorldWriter& world,
 void StrongholdStraight::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
     // 正向连接
-    getNextComponentNormal(start, pieces, rng, 1, 1);
+    getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 
     // X方向扩展
     if (m_expandsLeft) {
-        getNextComponentX(start, pieces, rng, 1, 2);
+        getNextComponentX(start, *this, pieces, rng, 1, 2);
     }
 
     // Z方向扩展
     if (m_expandsRight) {
-        getNextComponentZ(start, pieces, rng, 1, 2);
+        getNextComponentZ(start, *this, pieces, rng, 1, 2);
     }
 }
 
@@ -464,12 +473,15 @@ void StrongholdPrison::generate(IWorldWriter& world,
 void StrongholdPrison::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
-    getNextComponentNormal(start, pieces, rng, 1, 1);
+    getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
 std::unique_ptr<StrongholdPrison> StrongholdPrison::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -540,16 +552,19 @@ void StrongholdLeftTurn::generate(IWorldWriter& world,
 void StrongholdLeftTurn::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
     Direction direction = getCoordBaseMode();
     if (direction != Direction::North && direction != Direction::East) {
-        getNextComponentZ(start, pieces, rng, 1, 1);
+        getNextComponentZ(start, *this, pieces, rng, 1, 1);
     } else {
-        getNextComponentX(start, pieces, rng, 1, 1);
+        getNextComponentX(start, *this, pieces, rng, 1, 1);
     }
 }
 
@@ -622,16 +637,19 @@ void StrongholdRightTurn::generate(IWorldWriter& world,
 void StrongholdRightTurn::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
     Direction direction = getCoordBaseMode();
     if (direction != Direction::North && direction != Direction::East) {
-        getNextComponentX(start, pieces, rng, 1, 1);
+        getNextComponentX(start, *this, pieces, rng, 1, 1);
     } else {
-        getNextComponentZ(start, pieces, rng, 1, 1);
+        getNextComponentZ(start, *this, pieces, rng, 1, 1);
     }
 }
 
@@ -740,14 +758,17 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
 void StrongholdRoomCrossing::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
-    getNextComponentNormal(start, pieces, rng, 4, 1);
-    getNextComponentX(start, pieces, rng, 1, 4);
-    getNextComponentZ(start, pieces, rng, 1, 4);
+    getNextComponentNormal(start, *this, pieces, rng, 4, 1);
+    getNextComponentX(start, *this, pieces, rng, 1, 4);
+    getNextComponentZ(start, *this, pieces, rng, 1, 4);
 }
 
 std::unique_ptr<StrongholdRoomCrossing> StrongholdRoomCrossing::createPiece(
@@ -825,12 +846,15 @@ void StrongholdStairsStraight::generate(IWorldWriter& world,
 void StrongholdStairsStraight::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
-    getNextComponentNormal(start, pieces, rng, 1, 1);
+    getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
 std::unique_ptr<StrongholdStairsStraight> StrongholdStairsStraight::createPiece(
@@ -915,7 +939,10 @@ void StrongholdStairs::generate(IWorldWriter& world,
 void StrongholdStairs::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
@@ -925,7 +952,7 @@ void StrongholdStairs::buildComponent(
         start->setImposedPieceType(StrongholdPieceTypes::CROSSING);
     }
 
-    getNextComponentNormal(start, pieces, rng, 1, 1);
+    getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
 std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
@@ -1032,13 +1059,16 @@ void StrongholdCrossing::generate(IWorldWriter& world,
 void StrongholdCrossing::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
     // 正向连接
-    getNextComponentNormal(start, pieces, rng, 5, 1);
+    getNextComponentNormal(start, *this, pieces, rng, 5, 1);
 
     // 根据方向计算偏移
     i32 leftLowOffset = 3;
@@ -1056,22 +1086,22 @@ void StrongholdCrossing::buildComponent(
 
     // 左下出口
     if (m_leftLow) {
-        getNextComponentX(start, pieces, rng, leftLowOffset, 1);
+        getNextComponentX(start, *this, pieces, rng, leftLowOffset, 1);
     }
 
     // 左上出口
     if (m_leftHigh) {
-        getNextComponentX(start, pieces, rng, leftHighOffset, 7);
+        getNextComponentX(start, *this, pieces, rng, leftHighOffset, 7);
     }
 
     // 右下出口
     if (m_rightLow) {
-        getNextComponentZ(start, pieces, rng, rightLowOffset, 1);
+        getNextComponentZ(start, *this, pieces, rng, rightLowOffset, 1);
     }
 
     // 右上出口
     if (m_rightHigh) {
-        getNextComponentZ(start, pieces, rng, rightHighOffset, 7);
+        getNextComponentZ(start, *this, pieces, rng, rightHighOffset, 7);
     }
 }
 
@@ -1154,12 +1184,15 @@ void StrongholdChestCorridor::generate(IWorldWriter& world,
 void StrongholdChestCorridor::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
+    MC_ASSERT_RELEASE(!pieces.empty());
+    // 起始楼梯永远是片段集的首个元素，而队列传进来的 component 是当前片段本身，
+    // 直接 cast component 永远失败（静默返回，整棵树一步都不扩张）。
+    auto* start = dynamic_cast<StrongholdStartStairs*>(pieces.front().get());
     if (start == nullptr) {
         return;
     }
 
-    getNextComponentNormal(start, pieces, rng, 1, 1);
+    getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
 std::unique_ptr<StrongholdChestCorridor> StrongholdChestCorridor::createPiece(
@@ -1396,15 +1429,14 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
 void StrongholdPortalRoom::buildComponent(
     StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
-    // PortalRoom 是终点，不再生成后续组件
-    // 但需要将自身注册到 start 的 portalRoom 引用
-    auto* start = dynamic_cast<StrongholdStartStairs*>(component);
-    if (start != nullptr) {
-        start->setPortalRoom(this);
-    }
-
-    (void)pieces;
-    (void)rng;
+    // PortalRoom 是终点，不再生成后续组件。
+    //
+    // 传送门房间的登记由 generateAndAddPiece 完成（它持有真正的起始楼梯指针）；
+    // 这里不能拿 `component` 去 cast——队列里传进来的是**这个房间自己**，
+    // 永远 cast 不到 StrongholdStartStairs，登记会静默丢失。
+    MC_UNUSED(component);
+    MC_UNUSED(pieces);
+    MC_UNUSED(rng);
 }
 
 std::unique_ptr<StrongholdPortalRoom> StrongholdPortalRoom::createPiece(
@@ -1607,8 +1639,10 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
 {
     // 强制片段类型机制：如果有强制片段类型，优先创建
     if (start != nullptr && start->imposedPieceType() >= 0) {
-        i32 imposedType = start->imposedPieceType();
-        start->setImposedPieceType(-1); // 消费强制类型
+        // 一次性的：无论这次能否放下都必须消费掉。若只在成功时才清除，被包围盒挡住的
+        // 那次会在**每一个**后续分支上重复强制同一个类型，最终把所有分支都堵死。
+        const i32 imposedType = start->imposedPieceType();
+        start->setImposedPieceType(-1);
 
         std::unique_ptr<StrongholdPiece> piece =
             createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
@@ -1636,20 +1670,28 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
 
     i32 totalWeight = 0;
     if (!canAddStructurePieces(weights, totalWeight)) {
+        // 权重耗尽（各类型都达到了实例上限）时**不再**凭空生成片段：原版就是这个语义，
+        // 这一条分支到此为止。首轮要塞的首个分支必然最先耗尽，因此这里必须放行，
+        // 否则要塞永远生不出来。
         return nullptr;
     }
 
     // 尝试最多 5 次
     for (i32 attempt = 0; attempt < 5; ++attempt) {
+        // 每次尝试都重算可用权重：被上限挡住的类型不能继续参与抽签。原版每次尝试都对
+        // 「当前可用」的权重列表重抽，这里用同一个 totalWeight 连续抽 5 次会让
+        // randomValue 落到已被排除的类型上，白白失败。
+        if (!canAddStructurePieces(weights, totalWeight)) {
+            break;
+        }
         i32 randomValue = rng.nextInt(totalWeight);
 
         for (auto& weight : weights) {
+            if (weight.weight == 0) {
+                continue;
+            }
             randomValue -= weight.weight;
             if (randomValue < 0) {
-                // 跳过权重为0的片段（已达到生成上限）
-                if (weight.weight == 0) {
-                    continue;
-                }
                 // 检查是否可以生成该类型的片段
                 if (!weight.canSpawnMoreStructuresOfType(depth)) {
                     break;
@@ -1682,9 +1724,16 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
         }
     }
 
-    // 如果所有尝试都失败，创建填充走廊
-    StructureBoundingBox box = StrongholdCorridor::findPieceBox(pieces, rng, x, y, z, direction);
-    if (box.isValid() && box.minY() > 1) {
+    // 如果所有尝试都失败，创建填充走廊。
+    //
+    // 原版两条路径：上一个片段是走廊（走道）时再补一段走廊，否则在十字路口补一个十字路口。
+    // 这里原先不分类型一律补走廊：十字路口的支路被几段 3 格短的填充走廊顶死后
+    // 整棵树只剩单链，要塞退化成一条走廊蛇形（实测 164 个构件全是走廊）。
+    if (start != nullptr && start->lastPieceType() == StrongholdPieceTypes::CORRIDOR) {
+        StructureBoundingBox box = StrongholdCorridor::findPieceBox(pieces, rng, x, y, z, direction);
+        if (!box.isValid() || box.minY() <= 1) {
+            return nullptr;
+        }
         i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxX() - box.minX() + 1)
                                                                                      : (box.maxZ() - box.minZ() + 1);
         return std::make_unique<StrongholdCorridor>(StrongholdPieceTypes::CORRIDOR,
@@ -1697,11 +1746,11 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
             box.maxZ(),
             direction);
     }
-
-    return nullptr;
+    return StrongholdCrossing::createPiece(pieces, rng, x, y, z, direction, depth);
 }
 
 StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
+    const StructurePiece& previous,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng,
     i32 x,
@@ -1710,7 +1759,17 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     Direction direction,
     i32 depth)
 {
-    // 深度限制：最多 50 层
+    // 深度限制：最多 50 层。
+    //
+    // 「深度」必须沿**单条分支**累计，而不是数已放置的片段总数。原版把它存在
+    // StartPiece 的递归调用栈上（`generatePieceFromSmallDoor` 的 p_227880_ 参数）：
+    // 传入 depth 的语句本身就带 `getGenDepth() < 50` 的判据，而 getGenDepth 返回的是
+    // componentType，即 `父片段 depth + 1`。
+    //
+    // 此前这里直接传 `getComponentType() + 1`：componentType 从起始楼梯的 0 起随着
+    // **全局**片段数增长，任何一条分支只要推到第 50 个片段，其余分支也一并被截断，
+    // 要塞塌缩成一条 50 多个片段的单链（实测 stronghold 只有 52 个构件）。
+    // 改由每个片段记录自己的分支深度后，分支之间互不影响。
     if (depth > 50) {
         return nullptr;
     }
@@ -1733,6 +1792,14 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
 
     // pieces 是唯一所有者（最终落入 StructureStart::m_pieces）；
     // 返回值只是便于调用方继续传递的非拥有观察指针。
+    // 分支深度：本片段记录的是传入的 depth，下一层的 getNextComponent* 取它的 +1。
+    piece->setExpansionDepth(previous.expansionDepth() + 1);
+    start->setLastPieceType(piece->type());
+    // 传送门房间在这里登记：此时手上才有真正的起始楼梯指针。要塞的重试循环以
+    // 「已生成传送门房间」为终止条件，漏登记会让生成器永远重试下去。
+    if (dynamic_cast<StrongholdPortalRoom*>(piece.get()) != nullptr) {
+        start->setPortalRoom(piece.get());
+    }
     StructurePiece* observer = piece.get();
     pieces.push_back(std::move(piece));
     start->addPendingChild(observer);
