@@ -1489,3 +1489,46 @@ D 78 bits32 1376033556
 ### 本轮结论
 
 不做任何代码修改。已确认的是「D 75 之后两侧分支不同」，未确认的是原因。
+
+## 第三十三轮：Java 侧生成器级打点被 JVM 限制挡住
+
+### 尝试了什么
+
+想在 `EndCitySeq` 里给原版的四个 `SectionGenerator` 加「进入哪个生成器」打点，
+以便逐层对照。做法是拿到 `EndCityPieces.HOUSE_TOWER_GENERATOR` 等静态字段，
+用动态代理包一层后写回。
+
+### 三条路都被 JVM 挡住
+
+1. `Field.setAccessible(true)` + `Field.set(null, proxy)`
+   → `IllegalAccessException: Can not set static final ... field`
+2. `MethodHandles.privateLookupIn(...).findStaticSetter(...)`
+   → `IllegalAccessException: unexpected set of a final field`
+3. 用代理包装后**不改字段**、只在外部持有
+   → `startHouseTower` 内部读的仍是原始字段，代理不生效
+
+Java 17+ 对 `static final` 的写入限制是硬性的，这三条都没有绕过的空间。
+
+### 现有工具仍然可用
+
+`tests/diff/tools/EndCitySeq.java` 已恢复为可用版本，输出末地城生成的完整抽取序列：
+
+```
+D 75 bits31 364420944
+D 76 bits32 591782331
+D 77 bits32 -1533848996
+D 78 bits32 1376033556
+PIECES 57
+```
+
+**`PIECES 57` 与原版该单元的构件数一致。**
+
+### 下一步的方向
+
+既然不能从外部给原版加打点，可以反过来：**让 Cubium 输出与原版同构的「随机数 + 构件数」快照**，
+即每完成一次 `recursiveChildren` 就输出一次「当前抽取序号 + 主列表构件数」，与原版的
+`PIECES 57` 这类粗粒度结果对照。
+
+或者更直接：既然原版 `D 76`..`D 78` 之后就没有抽取了，而 Cubium 在 `D 76` 之后还有 11 次，
+可以**逐次把 Cubium 的 `D 76` 之后的那几次抽取单独复现**——用 Java 从 `D 75` 的状态出发，
+试探性地调用 `recursiveChildren`，看哪一种调用序列会产生 `bits32` 而非 `bits31`。
