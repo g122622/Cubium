@@ -74,7 +74,10 @@ f64 NormalNoise::getValue(f64 x, f64 y, f64 z) const
     const f64 sy = y * INPUT_FACTOR;
     const f64 sz = z * INPUT_FACTOR;
 
-    return (m_first->getValue(x, y, z) + m_second->getValue(sx, sy, sz)) * m_valueFactor;
+    // 先舍入两个分量之和，再乘系数：原版是逐步舍入，`(a+b)*c` 被融合成 fma 会改动末位。
+    const volatile f64 sum = m_first->getValue(x, y, z) + m_second->getValue(sx, sy, sz);
+    const volatile f64 scaled = sum * m_valueFactor;
+    return scaled;
 }
 
 f64 NormalNoise::expectedDeviation(i32 octaveRange)

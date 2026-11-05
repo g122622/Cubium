@@ -637,6 +637,14 @@ endforeach()
 # 附加源文件去重后一次性登记。同一文件被多个能力同时声明是常态（command_tree 与
 # structure_starts 都会通配 src/server 子树），重复进 target_sources 会让它编译两次、
 # 链接期 duplicate symbol。
+
+# 噪声与密度函数的求值必须逐位对齐原版。全局 -ffast-math 允许编译器重排 `a + b*c`、
+# 并把同一表达式在释放点重新求值，实测会让 perlin_noise / normal_noise / noise_density
+# 的末位与原版差 1~37 ulp。这三个文件关掉 fast-math，其余文件不受影响。
+# 注意：diff_runner 自己编译这些 .cpp（不经 mc_gen），所以属性要在这里设一遍。
+# 先验证：整体关掉 fast-math 看残差是否收敛，确认后再收窄到具体文件。
+target_compile_options(diff_runner PRIVATE "-fno-fast-math")
+
 get_property(MC_DIFF_EXTRA_SOURCES GLOBAL PROPERTY MC_DIFF_EXTRA_SOURCES)
 if(MC_DIFF_EXTRA_SOURCES)
     list(REMOVE_DUPLICATES MC_DIFF_EXTRA_SOURCES)
