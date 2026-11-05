@@ -664,7 +664,8 @@ bool FatTowerGenerator::generate(feature::template_::TemplateManager& templateMa
 
     // 可能添加更多层和桥
     static TowerBridgeGenerator bridgeGen;
-    bridgeGen.init();
+    // 不在此处调用 bridgeGen.init()：原版只在 startHouseTower 开头初始化一次，
+    // shipCreated 必须在整棵树范围内保持。这里若重置，末地船会被重复生成。
 
     for (i32 layer = 0; layer < 2 && rng.nextInt(3) != 0; ++layer) {
         current = addHelper(
