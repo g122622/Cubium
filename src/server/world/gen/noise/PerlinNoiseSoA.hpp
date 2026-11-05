@@ -39,6 +39,10 @@ namespace mc::world::gen::noise {
 // clang-cl 用 __attribute__((always_inline)),须配合 inline 关键字。
 #define MC_PERLIN_ALWAYS_INLINE __attribute__((always_inline)) inline
 
+/// 与 ALWAYS_INLINE 相对：拒绝内联，让函数体在调用点之外单独成型。
+/// 浮点关键函数必须用它——一旦内联，优化器可以在不同调用点对同一表达式做不同的
+/// 重排（-ffast-math 允许），同一份输入就会给出不同结果。
+
 // ============================================================================
 // Perlin SoA 采样内核(效仿 C2ME c2me-opts-natives-math 的 ext_math.h)
 //
@@ -352,16 +356,11 @@ alignas(64) inline constexpr std::array<f64, 64> kFlatSimplexGrad = {
 };
 
 /// smoothstep 衰减因子:t*t*t*(t*(t*6-15)+10)。
-[[nodiscard]] MC_PERLIN_ALWAYS_INLINE f64 perlinFade(f64 value)
-{
-    return value * value * value * (value * (value * 6.0 - 15.0) + 10.0);
-}
+[[nodiscard]] f64 perlinFade(f64 value);
 
-/// 线性插值:start + delta*(end-start)。
-[[nodiscard]] MC_PERLIN_ALWAYS_INLINE f64 perlinLerp(f64 delta, f64 start, f64 end)
-{
-    return start + delta * (end - start);
-}
+/// 线性插值。转调 math::lerp，不在噪声里另写一份 `start + delta * (end - start)`：
+/// 那份写法在 -march=native 下会被 FMA 融合，乘积少一次舍入，与原版差 1 ulp。
+[[nodiscard]] f64 perlinLerp(f64 delta, f64 start, f64 end);
 
 /// 三线性插值(8 角点值 → 单值)。
 [[nodiscard]] MC_PERLIN_ALWAYS_INLINE f64 perlinLerp3(

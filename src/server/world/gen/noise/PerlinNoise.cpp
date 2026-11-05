@@ -28,6 +28,7 @@
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "server/world/gen/noise/PerlinNoiseSoA.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -146,19 +147,27 @@ f64 PerlinNoise::PerlinLayer::gradDot(i32 hash, f64 x, f64 y, f64 z)
         {-1.0, 1.0, 0.0},
         {0.0, -1.0, -1.0}};
     const i32 idx = hash & 15;
-    return GRADIENTS[idx][0] * x + GRADIENTS[idx][1] * y + GRADIENTS[idx][2] * z;
+    // 逐项落回标量存储：-ffast-math 允许重排这三项加法并把乘加融合成 fma，
+    // 三次独立的舍入变成一次，与原版 JVM 的逐步舍入不同。
+    const volatile f64 gx = GRADIENTS[idx][0] * x;
+    const volatile f64 gy = GRADIENTS[idx][1] * y;
+    const volatile f64 gz = GRADIENTS[idx][2] * z;
+    const volatile f64 sumXY = gx + gy;
+    return sumXY + gz;
 }
 
 f64 PerlinNoise::PerlinLayer::sampleAndLerp(
     i32 cellX, i32 cellY, i32 cellZ, f64 fracX, f64 fracY, f64 fracZ, f64 smoothstepY) const
 {
     // Smoothstep 插值因子
+    // 统一走 perlinFade / perlinLerp，不在这里内联展开：那两处已经用 volatile 挡住
+    // 了 FMA 收缩，内联写一份等于绕开防护，两条路径会各自漂移出不同的低位。
     // 当 smoothstepY >= 0 时（涂抹模式），Y 轴 smoothstep 使用原始分数，
     // 而 fracY 是修改后的分数用于梯度计算
-    const f64 sx = fracX * fracX * fracX * (fracX * (fracX * 6.0 - 15.0) + 10.0);
+    const f64 sx = perlinFade(fracX);
     const f64 syRaw = (smoothstepY >= 0.0) ? smoothstepY : fracY;
-    const f64 sy = syRaw * syRaw * syRaw * (syRaw * (syRaw * 6.0 - 15.0) + 10.0);
-    const f64 sz = fracZ * fracZ * fracZ * (fracZ * (fracZ * 6.0 - 15.0) + 10.0);
+    const f64 sy = perlinFade(syRaw);
+    const f64 sz = perlinFade(fracZ);
 
     // 8 个角的梯度计算
     const i32 i = p(cellX);
@@ -178,15 +187,40 @@ f64 PerlinNoise::PerlinLayer::sampleAndLerp(
     const f64 v111 = gradDot(p(j1 + cellZ + 1), fracX - 1.0, fracY - 1.0, fracZ - 1.0);
 
     // 三线性插值
-    const f64 lerpX0 = v000 + sx * (v100 - v000);
-    const f64 lerpX1 = v010 + sx * (v110 - v010);
-    const f64 lerpX2 = v001 + sx * (v101 - v001);
-    const f64 lerpX3 = v011 + sx * (v111 - v011);
+    const f64 lerpX0 = perlinLerp(sx, v000, v100);
+    const f64 lerpX1 = perlinLerp(sx, v010, v110);
+    const f64 lerpX2 = perlinLerp(sx, v001, v101);
+    const f64 lerpX3 = perlinLerp(sx, v011, v111);
 
-    const f64 lerpY0 = lerpX0 + sy * (lerpX1 - lerpX0);
-    const f64 lerpY1 = lerpX2 + sy * (lerpX3 - lerpX2);
+    const f64 lerpY0 = perlinLerp(sy, lerpX0, lerpX1);
+    const f64 lerpY1 = perlinLerp(sy, lerpX2, lerpX3);
 
-    return lerpY0 + sz * (lerpY1 - lerpY0);
+    return perlinLerp(sz, lerpY0, lerpY1);
+}
+
+// ============================================================================
+// 噪声插值原语
+// ============================================================================
+
+/// smoothstep 衰减因子：t*t*t*(t*(t*6-15)+10)。
+///
+/// 逐项用 volatile 落回标量存储，禁止 FMA 收缩；并且定义在 .cpp 里、不内联——
+/// -ffast-math 允许优化器在不同调用点对同一表达式做不同重排，内联后同一份输入
+/// 会给出不同结果（实测 y0 差 16 ulp）。
+f64 perlinFade(f64 value)
+{
+    const volatile f64 inner = value * (value * 6.0 - 15.0);
+    const volatile f64 shaped = inner + 10.0;
+    const volatile f64 cubed = value * value * value;
+    return cubed * shaped;
+}
+
+/// 线性插值：start + delta*(end-start)，参数顺序同原版 Mth.lerp。
+/// 同样落回标量存储且不内联，理由见 perlinFade。
+f64 perlinLerp(f64 delta, f64 start, f64 end)
+{
+    const volatile f64 product = (end - start) * delta;
+    return start + product;
 }
 
 // ============================================================================
