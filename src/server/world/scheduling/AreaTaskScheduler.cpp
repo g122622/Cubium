@@ -76,11 +76,15 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         void onCancel() override
         {
             if (!m_claimed) {
+                // 计算池的取消发生在执行之前（出队时发现已取消）：这里认领区域后立即取消任务体。
+                // 此前该分支直接调用 onCancel 而未经 claim，任务体自然也没登记，而执行路径
+                // 结束时已经释放过任务体——认领后就是第二次取消一个已释放的任务体（UBSan 空指针）。
+                // 认领时登记任务体，完成/取消的释放点因此统一。
                 m_claimed = m_state->_claim(m_dispatch);
-            }
-            if (m_claimed) {
-                _cancelBody(m_dispatch.task);
-                releaseBody();
+                if (m_claimed) {
+                    _cancelBody(m_dispatch.task);
+                    releaseBody();
+                }
             }
         }
 
