@@ -160,13 +160,13 @@ f64 clampDouble(f64 value, f64 min, f64 max)
 /// 原版 `Mth.lerp(double, double, double)`。
 f64 lerpDouble(f64 delta, f64 start, f64 end)
 {
-    return start + delta * (end - start);
+    return math::lerp(start, end, delta);
 }
 
 /// 原版 `Mth.lerp(float, float, float)`。
 f32 lerpFloat(f32 delta, f32 start, f32 end)
 {
-    return start + delta * (end - start);
+    return math::lerp(start, end, delta);
 }
 
 /// 原版 `Mth.clampedLerp(double, double, double)`。
