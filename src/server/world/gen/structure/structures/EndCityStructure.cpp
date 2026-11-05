@@ -42,8 +42,10 @@
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
+#include "server/world/gen/jigsaw/JigsawTransform.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <algorithm>
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -114,11 +116,12 @@ bool EndCityStructure::canGenerate(
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    if (isValidBiome(biome)) {
-        // 末地城只在高度 >= 60 的位置生成
-        return _getYPosition(chunkX, chunkZ, generator) >= 60;
+    if (!isValidBiome(biome)) {
+        return false;
     }
-    return false;
+    // 末地城只在高度 >= 60 的位置生成。这里的采样朝向只影响采样列，不参与世界生成
+    // 随机流（原版 canGenerate 也不消耗世界随机数）。
+    return _getYPosition(chunkX, chunkZ, feature::template_::Rotation::None, generator) >= 60;
 }
 
 std::unique_ptr<StructureStart> EndCityStructure::generate(
@@ -126,17 +129,19 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 计算生成位置
-    i32 x = chunkX * world::CHUNK_WIDTH + 8;
-    i32 z = chunkZ * world::CHUNK_WIDTH + 8;
-    i32 y = _getYPosition(chunkX, chunkZ, generator);
+    // 【随机数顺序】原版 findGenerationPoint 先抽旋转、再按该旋转取 5x5 倾斜采样列的
+    // 最低高度；这里同样处理——用独立随机流的旋转决定采样朝向与原版不符，整座末地城的
+    // 基座高度会偏。
+    feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
+
+    // 生成点 = 区块内 (7, y, 7)，y 为 5x5 定向采样四角的最低高度。
+    const i32 x = (chunkX << world::CHUNK_SHIFT) + 7;
+    const i32 z = (chunkZ << world::CHUNK_SHIFT) + 7;
+    const i32 y = _getYPosition(chunkX, chunkZ, rotation, generator);
 
     if (y < 60) {
         return start;
     }
-
-    // 随机旋转
-    feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
 
     // 使用递归生成器系统
     std::vector<std::unique_ptr<StructurePiece>> pieces;
@@ -156,11 +161,9 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     return start;
 }
 
-i32 EndCityStructure::_getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator)
+i32 EndCityStructure::_getYPosition(
+    i32 chunkX, i32 chunkZ, feature::template_::Rotation rotation, IChunkGenerator& generator)
 {
-    math::Random random(static_cast<i64>(chunkX + chunkZ * 10387313));
-    feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(random.nextInt(4));
-
     i32 i = 5;
     i32 j = 5;
     switch (rotation) {
@@ -180,10 +183,12 @@ i32 EndCityStructure::_getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& gen
 
     i32 k = (chunkX << world::CHUNK_SHIFT) + 7;
     i32 l = (chunkZ << world::CHUNK_SHIFT) + 7;
-    i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurface);
-    i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurface);
-    i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurface);
-    i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurface);
+    // 原版走世界生成期高度图（WORLD_SURFACE_WG），
+    // 不是区块内已生成的 WorldSurface。
+    i32 i1 = generator.getHeight(k, l, HeightmapType::WorldSurfaceWG);
+    i32 j1 = generator.getHeight(k, l + j, HeightmapType::WorldSurfaceWG);
+    i32 k1 = generator.getHeight(k + i, l, HeightmapType::WorldSurfaceWG);
+    i32 l1 = generator.getHeight(k + i, l + j, HeightmapType::WorldSurfaceWG);
 
     return std::min({i1, j1, k1, l1});
 }
@@ -198,6 +203,7 @@ CityTemplate::CityTemplate(
     const std::string& templateName, const BlockPos& pos, feature::template_::Rotation rotation, bool overwrite)
     : StructurePiece(StructurePieceTypes::END_CITY, pos.x, pos.y, pos.z, pos.x, pos.y, pos.z)
     , m_templateName(templateName)
+    , m_templatePath("minecraft:end_city/" + templateName)
     , m_templatePosition(pos)
     , m_rotation(rotation)
     , m_overwrite(overwrite)
@@ -205,14 +211,69 @@ CityTemplate::CityTemplate(
     m_settings.setRotation(rotation);
     m_settings.setIgnoreEntities(true);
 
-    // 设置处理器：overwrite 模式替换所有方块，insert 模式保留空气
-    if (overwrite) {
-        // OVERWRITE: 替换所有方块（包括结构方块）
-        // 使用默认设置即可
-    } else {
-        // INSERT: 保留空气和结构方块
-        // 在模板放置时处理
+    // 【包围盒必须在构造期就确定】原版 `TemplateStructurePiece` 的构造直接用模板算出
+    // 包围盒（`StructureTemplate.getBoundingBox(templatePosition, settings)`），后续
+    // `move()` 只是平移这个盒子。这里原本把 m_min*/m_max* 全设成 pos，尺寸要等到
+    // FEATURES 阶段的 generate() 才回填——于是 STRUCTURE_STARTS 阶段每个构件都是退化到
+    // 单点的盒子：整座末地城的整体包围盒、构件碰撞判定、差分输出全部失真。
+    //
+    // 模板名不带命名空间，原版由 `makeIdentifier` 补上 `minecraft:` 前缀，这里同样处理。
+    const feature::template_::Template* templ = jigsaw::JigsawAssembler::getTemplateManager().getTemplate(
+        ResourceLocation("minecraft", "end_city/" + templateName));
+    if (templ != nullptr) {
+        // 包围盒 = 以**原点**为轴按旋转铺开后的范围，再平移到 templatePosition。
+        // 原版 `TemplateStructurePiece` 的 BoundingBox 正是
+        // `structureTemplate.getBoundingBox(templatePosition, placeSettings)`，内部同样是
+        // 「变换两个对角点再整体平移」。注意旋转后范围不一定从 0 开始（90/270 度时 X 落在
+        // [-(size.z-1), 0]），所以不能简单地"把 size 铺在 pos 上"。
+        m_size = templ->getSize();
+        const BlockPos cornerA =
+            jigsaw::JigsawTransform::transformPosition(BlockPos(0, 0, 0), m_rotation, Mirror::None, BlockPos(0, 0, 0));
+        const BlockPos cornerB = jigsaw::JigsawTransform::transformPosition(
+            BlockPos(m_size.x - 1, m_size.y - 1, m_size.z - 1), m_rotation, Mirror::None, BlockPos(0, 0, 0));
+        m_minX = pos.x + std::min(cornerA.x, cornerB.x);
+        m_minY = pos.y + std::min(cornerA.y, cornerB.y);
+        m_minZ = pos.z + std::min(cornerA.z, cornerB.z);
+        m_maxX = pos.x + std::max(cornerA.x, cornerB.x);
+        m_maxY = pos.y + std::max(cornerA.y, cornerB.y);
+        m_maxZ = pos.z + std::max(cornerA.z, cornerB.z);
     }
+}
+
+void CityTemplate::setGenerators(std::shared_ptr<CityGenerators> generators)
+{
+    m_generators = std::move(generators);
+}
+
+// 同一座城的所有片段共享一组生成器：`addPiece` 从父片段继承，根片段由
+// `startHouseTower` 挂载。断言非空可立即暴露漏挂。
+void CityTemplate::shareGeneratorsFrom(const CityTemplate& parent)
+{
+    m_generators = parent.m_generators;
+}
+
+HouseTowerGenerator& CityTemplate::houseTowerGen()
+{
+    MC_ASSERT_RELEASE(m_generators != nullptr);
+    return m_generators->houseTower;
+}
+
+TowerGenerator& CityTemplate::towerGen()
+{
+    MC_ASSERT_RELEASE(m_generators != nullptr);
+    return m_generators->tower;
+}
+
+TowerBridgeGenerator& CityTemplate::bridgeGen()
+{
+    MC_ASSERT_RELEASE(m_generators != nullptr);
+    return m_generators->bridge;
+}
+
+FatTowerGenerator& CityTemplate::fatTowerGen()
+{
+    MC_ASSERT_RELEASE(m_generators != nullptr);
+    return m_generators->fatTower;
 }
 
 void CityTemplate::generate(IWorldWriter& world,
@@ -260,9 +321,6 @@ void CityTemplate::generate(IWorldWriter& world,
         return;
     }
 
-    // 更新模板大小
-    m_size = templ->getSize();
-
     // 放置模板：覆盖模式声明形状已知（跳过形状重算），非覆盖模式仅同步客户端
     templ->place(world,
         m_templatePosition,
@@ -270,21 +328,6 @@ void CityTemplate::generate(IWorldWriter& world,
         rng,
         m_overwrite ? (world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
                     : world::BlockUpdateFlags::UPDATE_CLIENTS);
-
-    // 更新边界框 - 根据旋转计算实际尺寸
-    switch (m_rotation) {
-        case feature::template_::Rotation::None:
-        case feature::template_::Rotation::Clockwise180:
-            m_maxX = m_minX + m_size.x - 1;
-            m_maxZ = m_minZ + m_size.z - 1;
-            break;
-        case feature::template_::Rotation::Clockwise90:
-        case feature::template_::Rotation::CounterClockwise90:
-            m_maxX = m_minX + m_size.z - 1;
-            m_maxZ = m_minZ + m_size.x - 1;
-            break;
-    }
-    m_maxY = m_minY + m_size.y - 1;
 }
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const
@@ -292,27 +335,13 @@ BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::
     MC_UNUSED(newRotation);
     // 计算从当前模板的 localPos 位置，连接到新模板的偏移
 
-    // 获取当前模板尺寸
-    BlockPos size = m_size;
-
-    // 根据旋转计算变换
-    BlockPos transformedLocal;
-
-    // 先根据当前旋转变换 localPos
-    switch (m_rotation) {
-        case feature::template_::Rotation::None:
-            transformedLocal = localPos;
-            break;
-        case feature::template_::Rotation::Clockwise90:
-            transformedLocal = BlockPos(size.z - 1 - localPos.z, localPos.y, localPos.x);
-            break;
-        case feature::template_::Rotation::Clockwise180:
-            transformedLocal = BlockPos(size.x - 1 - localPos.x, localPos.y, size.z - 1 - localPos.z);
-            break;
-        case feature::template_::Rotation::CounterClockwise90:
-            transformedLocal = BlockPos(localPos.z, localPos.y, size.x - 1 - localPos.x);
-            break;
-    }
+    // 原版 `StructureTemplate.calculateRelativePosition` 是
+    //   `transform(pos, mirror, rotation, pivot=0,0,0)`
+    // ——以**原点角**为轴的旋转，**不减尺寸**。此前这里按「旋转后坐标 = 尺寸-1-坐标」计算，
+    // multi-rotation 下（None/180 之外的 90/270）每个连接点都会整体偏移一个模板跨度，
+    // 整座末地城的构件位置全部错开。
+    const BlockPos transformedLocal =
+        jigsaw::JigsawTransform::transformPosition(localPos, m_rotation, Mirror::None, BlockPos(0, 0, 0));
 
     // 计算世界坐标
     return m_templatePosition + transformedLocal;
@@ -336,8 +365,9 @@ std::unique_ptr<CityTemplate> addPiece(feature::template_::TemplateManager& temp
     feature::template_::Rotation rotation,
     bool overwrite)
 {
-    // 创建新片段
+    // 创建新片段，并从父片段继承本座城的生成器集合
     auto piece = std::make_unique<CityTemplate>(templateName, parent.templatePosition(), rotation, overwrite);
+    piece->shareGeneratorsFrom(parent);
 
     // 计算连接位置
     BlockPos connectedPos = parent.calculateConnectedPos(offset, rotation);
@@ -366,7 +396,8 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
     // 临时列表存储新生成的片段
     std::vector<std::unique_ptr<StructurePiece>> newPieces;
 
-    // 调用生成器
+    // 调用生成器。生成器状态（如「本座城是否已生成末地船」）在 `startHouseTower`
+    // 开头统一 init() 重置，这里不重复。
     if (!generator.generate(templateManager, depth, parent, offset, newPieces, rng)) {
         return false;
     }
@@ -417,20 +448,16 @@ void startHouseTower(feature::template_::TemplateManager& templateManager,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng)
 {
-    static HouseTowerGenerator houseTowerGen;
-    static TowerGenerator towerGen;
-    static TowerBridgeGenerator bridgeGen;
-    static FatTowerGenerator fatTowerGen;
-
-    // 初始化生成器
-    houseTowerGen.init();
-    towerGen.init();
-    bridgeGen.init();
-    fatTowerGen.init();
-
-    // 创建基础片段
+    // 生成器实例挂在片段上，随结构起点一起销毁：用函数内 static 会让「已生成末地船」
+    // 之类的一次性标记残留到下一座城（原版每次 generatePieces 都 init() 重置）。
     auto baseFloor = std::make_unique<CityTemplate>("base_floor", startPos, rotation, true);
     CityTemplate* current = addHelper(pieces, std::move(baseFloor));
+    auto generators = std::make_shared<CityGenerators>();
+    generators->houseTower.init();
+    generators->tower.init();
+    generators->bridge.init();
+    generators->fatTower.init();
+    current->setGenerators(std::move(generators));
 
     // second_floor_1 + third_floor_1 + third_roof
     current =
@@ -440,7 +467,7 @@ void startHouseTower(feature::template_::TemplateManager& templateManager,
     current = addHelper(pieces, addPiece(templateManager, *current, BlockPos(-1, 8, -1), "third_roof", rotation, true));
 
     // 递归生成塔
-    recursiveChildren(templateManager, towerGen, 1, *current, BlockPos(), pieces, rng);
+    recursiveChildren(templateManager, current->towerGen(), 1, *current, BlockPos(), pieces, rng);
 }
 
 // ============================================================================
@@ -478,8 +505,7 @@ bool HouseTowerGenerator::generate(feature::template_::TemplateManager& template
             addHelper(pieces, addPiece(templateManager, *current, BlockPos(-1, 8, -1), "second_roof", rotation, false));
 
         // 递归生成塔
-        static TowerGenerator towerGen;
-        recursiveChildren(templateManager, towerGen, depth + 1, *current, BlockPos(), pieces, rng);
+        recursiveChildren(templateManager, current->towerGen(), depth + 1, *current, BlockPos(), pieces, rng);
     } else {
         // 三层房屋
         current = addHelper(
@@ -490,8 +516,7 @@ bool HouseTowerGenerator::generate(feature::template_::TemplateManager& template
             addHelper(pieces, addPiece(templateManager, *current, BlockPos(-1, 8, -1), "third_roof", rotation, true));
 
         // 递归生成塔
-        static TowerGenerator towerGen;
-        recursiveChildren(templateManager, towerGen, depth + 1, *current, BlockPos(), pieces, rng);
+        recursiveChildren(templateManager, current->towerGen(), depth + 1, *current, BlockPos(), pieces, rng);
     }
 
     return true;
@@ -537,7 +562,7 @@ bool TowerGenerator::generate(feature::template_::TemplateManager& templateManag
 
     if (bridgeAnchor != nullptr) {
         // 有桥连接点：生成桥和塔顶
-        static TowerBridgeGenerator bridgeGen;
+        TowerBridgeGenerator& bridgeGen = current->bridgeGen();
 
         for (const auto& bridge : TOWER_BRIDGES) {
             if (rng.nextBoolean()) {
@@ -552,8 +577,8 @@ bool TowerGenerator::generate(feature::template_::TemplateManager& templateManag
     } else {
         // 无桥连接点：可能生成胖塔或塔顶
         if (depth != 7) {
-            static FatTowerGenerator fatTowerGen;
-            return recursiveChildren(templateManager, fatTowerGen, depth + 1, *current, BlockPos(), pieces, rng);
+            return recursiveChildren(
+                templateManager, current->fatTowerGen(), depth + 1, *current, BlockPos(), pieces, rng);
         }
 
         addHelper(pieces, addPiece(templateManager, *current, BlockPos(-1, 4, -1), "tower_top", rotation, true));
@@ -590,17 +615,19 @@ bool TowerBridgeGenerator::generate(feature::template_::TemplateManager& templat
                 pieces, addPiece(templateManager, *current, BlockPos(0, yOffset, -4), "bridge_piece", rotation, true));
             yOffset = 0;
         } else {
-            // 带坡度的桥
+            // 带坡度的桥。连接偏移与模板名是**错配**的（陡坡走 -4，缓坡走 -8），
+            // 原版 `TOWER_BRIDGE_GENERATOR` 就是这样写的，照抄即可——把它们"改正"会让整条
+            // 桥链的构件位置整体偏移一个模板跨度。
             if (rng.nextBoolean()) {
                 // 陡坡
                 current = addHelper(pieces,
                     addPiece(
-                        templateManager, *current, BlockPos(0, yOffset, -8), "bridge_steep_stairs", rotation, true));
+                        templateManager, *current, BlockPos(0, yOffset, -4), "bridge_steep_stairs", rotation, true));
             } else {
                 // 缓坡
                 current = addHelper(pieces,
                     addPiece(
-                        templateManager, *current, BlockPos(0, yOffset, -4), "bridge_gentle_stairs", rotation, true));
+                        templateManager, *current, BlockPos(0, yOffset, -8), "bridge_gentle_stairs", rotation, true));
             }
             yOffset = 4;
         }
@@ -616,9 +643,13 @@ bool TowerBridgeGenerator::generate(feature::template_::TemplateManager& templat
         m_shipCreated = true;
     } else {
         // 生成房屋
-        static HouseTowerGenerator houseTowerGen;
-        if (!recursiveChildren(
-                templateManager, houseTowerGen, depth + 1, *current, BlockPos(-3, yOffset + 1, -11), pieces, rng)) {
+        if (!recursiveChildren(templateManager,
+                current->houseTowerGen(),
+                depth + 1,
+                *current,
+                BlockPos(-3, yOffset + 1, -11),
+                pieces,
+                rng)) {
             return false;
         }
     }
@@ -657,9 +688,9 @@ bool FatTowerGenerator::generate(feature::template_::TemplateManager& templateMa
     current =
         addHelper(pieces, addPiece(templateManager, *current, BlockPos(0, 4, 0), "fat_tower_middle", rotation, true));
 
-    // 可能添加更多层和桥
-    static TowerBridgeGenerator bridgeGen;
-    bridgeGen.init();
+    // 可能添加更多层和桥。桥生成器沿用本座城已有实例——原版胖塔分支同样直接复用
+    // 同一个 TOWER_BRIDGE_GENERATOR 的「已生成末地船」状态，不在此处重置。
+    TowerBridgeGenerator& bridgeGen = current->bridgeGen();
 
     for (i32 layer = 0; layer < 2 && rng.nextInt(3) != 0; ++layer) {
         current = addHelper(

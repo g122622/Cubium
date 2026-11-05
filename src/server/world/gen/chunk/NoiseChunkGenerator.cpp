@@ -806,89 +806,21 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
     MC_ASSERT_RELEASE(m_randomState != nullptr);
 
-    // iterateNoiseColumn — 创建单列 NoiseChunk 采样高度
-    // 与直接逐方块采样相比，cell 插值方式与实际区块生成管线完全一致
-    const NoiseSettings& noise = m_settings.noise;
-    const i32 minY = noise.minY;
-    const i32 cellHeight = m_cellHeight;
-    const i32 cellWidth = m_cellWidth;
-    const i32 cellCountY = math::floorDiv(noise.height, cellHeight);
-
-    // 对齐坐标到 cell 网格
-    const i32 cellX = math::floorDiv(x, cellWidth);
-    const i32 cellZ = math::floorDiv(z, cellWidth);
-    const i32 alignedX = cellX * cellWidth;
-    const i32 alignedZ = cellZ * cellWidth;
-    const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
-    const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
-
-    // 创建单列 NoiseChunk（cellCountXZ=1）
-    // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1，与区块生成的 cellCountXZ=4 不同
-    // cellCountXZ=1 使得 NoiseInterpolator 只分配 2 个 Z 切片而非 5 个
-    // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
-        cellWidth,
-        cellHeight,
-        cellCountY,
-        alignedX,
-        minY,
-        alignedZ,
-        std::make_unique<world::gen::density::BeardifierMarker>(),
-        1); // cellCountXZ = 1 for single-column query
-
-    // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
-    _configureNoiseChunkMaterials(
-        *noiseChunk, math::floorDiv(alignedX, world::CHUNK_WIDTH), math::floorDiv(alignedZ, world::CHUNK_WIDTH));
-
-    noiseChunk->initializeForFirstCellX();
-    noiseChunk->advanceCellX(0);
-
-    // 判定逻辑统一委托 Heightmap::isOpaqueForType，避免与 Heightmap 内部判定复制漂移。
-    auto matchesHeightmap = [type](const BlockState* state) -> bool {
-        return Heightmap::isOpaqueForType(type, state);
-    };
-
-    for (i32 cellY = cellCountY - 1; cellY >= 0; --cellY) {
-        // MC 1.21: iterateNoiseColumn 使用 selectCellYZ 而非 selectCellXYZ
-        // 因为 advanceCellX(0) 已经设置了 X 方向的 slice 数据，
-        // 只需选择 YZ 方向的 cell 即可
-        noiseChunk->selectCellYZ(cellY, 0);
-
-        for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
-            const i32 blockY = (math::floorDiv(minY, cellHeight) + cellY) * cellHeight + inCellY;
-            const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellHeight);
-            noiseChunk->updateForY(blockY, yLerp);
-            noiseChunk->updateForX(x, deltaX);
-
-            noiseChunk->updateForZ(z, deltaZ);
-            const f64 density = noiseChunk->finalDensity().compute(x, blockY, z);
-
-            // 使用 BlockStateFiller 链确定方块状态
-            // 原版 NoiseBasedChunkGenerator.iterateNoiseColumn：
-            //   BlockState blockstate = noisechunk.getInterpolatedState();
-            //   BlockState blockstate1 = blockstate == null ? defaultBlock : blockstate;
-            // 【必须无条件替换】规则链未命中时 getInterpolatedState 返回 null（与密度的正负无关），
-            // 原版一律当作**默认方块（石头）**参与高度图判定。若像此前那样只在 density > 0 时替换，
-            // 密度 <= 0 且规则未命中的格子会被判为"非固体"，使该列的高度查询结果偏低——
-            // 而装配期的高度查询（getFirstFreeHeight）正是靠这个判定定位地面线，
-            // 结果就是构件贴地高度偏差、碰撞判定翻转、随机数序列整体错位。
-            const BlockState* blockState = noiseChunk->getInterpolatedState(density);
-            if (blockState == nullptr) {
-                blockState = m_settings.defaultBlock;
-            }
-
-            if (matchesHeightmap(blockState)) {
-                noiseChunk->stopInterpolation();
-                return blockY + 1;
-            }
+    // 【必须走完整地形列】原版 `ChunkGenerator.getBaseHeight` 是
+    //   `getBaseColumn(x, z).getFirstAvailable(...) - 1`
+    // 即先求出**整列**方块状态，再找第一格满足高度图判据的位置。此前这里是自上而下
+    // 逐格重算密度、遇到第一个匹配就返回：凡是匹配地块上方仍有不匹配地块的列
+    // （叶簇、积雪、水面之上的薄层……）都会过早命中而偏低。末地城的 5x5 采样列落在
+    // 浮空岛上，整座城因此比原版低一格（差分能力 structure_starts 暴露）。
+    // 逐格早退只在上方全不匹配时与整列等价，这类偏差靠表现层几乎无法反推。
+    const NoiseColumn column = getBaseColumn(x, z);
+    for (i32 y = column.minY() + column.height() - 1; y >= column.minY(); --y) {
+        const BlockState* state = column.getBlock(y);
+        if (state != nullptr && Heightmap::isOpaqueForType(type, state)) {
+            return y + 1;
         }
     }
-
-    // MC 1.21.11: NoiseChunk.stopInterpolation()
-    // 在高度查询完成后标记插值循环结束
-    noiseChunk->stopInterpolation();
-
-    return minY;
+    return m_settings.noise.minY;
 }
 
 NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const

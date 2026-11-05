@@ -31,6 +31,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
@@ -45,6 +47,7 @@
 #include "server/world/gen/jigsaw/SequencedPriorityIterator.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
 #include <algorithm>
+
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -58,6 +61,31 @@ namespace jigsaw {
 
 // 静态模板管理器实例定义（从 JigsawManager 迁移）
 feature::template_::TemplateManager JigsawAssembler::s_templateManager;
+
+namespace {
+
+/**
+ * @brief 派生池别名解析专用的随机源
+ *
+ * 原版 `PoolAliasLookup.create(aliases, pos, seed)` 内部是
+ * `RandomSource.create(seed).forkPositional().at(pos)`：
+ *
+ *   forkPositional() → new LegacyPositionalRandomFactory(source.nextLong())
+ *   at(x, y, z)      → new LegacyRandomSource(Mth.getSeed(x, y, z) ^ factorySeed)
+ *
+ * 两条派生都是完整的 Java 语义，必须直接用 `JavaLegacyRandom`：`forkPositional()`
+ * 依赖 `nextLong()` 恰好消耗两次 48 位 LCG 抽取，包装类会改变该消耗次数。
+ */
+std::unique_ptr<math::IRandom> _aliasRandomSource(i64 structureSeed, const BlockPos& pos)
+{
+    math::JavaLegacyRandom source(static_cast<u64>(structureSeed));
+    const u64 factorySeed = static_cast<u64>(source.nextLong());
+    return std::make_unique<math::JavaLegacyRandom>(
+        static_cast<u64>(math::mthGetSeed(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z))) ^
+        factorySeed);
+}
+
+} // namespace
 
 feature::template_::TemplateManager& JigsawAssembler::getTemplateManager()
 {
@@ -82,12 +110,14 @@ AxisAlignedBB JigsawAssembler::toAabb(const structure::StructureBoundingBox& box
 }
 
 StartPlacement JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPiece,
-    const BlockPos& stubPos,
+    const BlockPos& chunkOrigin,
+    i32 startHeightY,
     Rotation rotation,
     IChunkGenerator& generator,
     bool projectStartToHeightmap)
 {
     // 先按请求点求起始块包围盒——投影用的列坐标由它导出
+    const BlockPos stubPos(chunkOrigin.x, startHeightY, chunkOrigin.z);
     auto boundingBox = JigsawTransform::calculateBoundingBox(startPiece, stubPos, rotation);
 
     // 【必须用 (minX+maxX)/2 而非包围盒中心】原版 JigsawPlacement 取的是
@@ -104,9 +134,17 @@ StartPlacement JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPi
         : stubPos.y;
 
     // 起始块的地面线 = 包围盒 minY + groundLevelDelta；平移使其对齐目标地面线。
-    BlockPos origin = stubPos;
+    //
+    // 【原点必须是区块最小角，不能是 stubPos】原版 `addPieces` 里起始块的原点是
+    //   blockpos1 = stubPos.subtract(vec3i)，其中 vec3i = 命名连接点相对请求点的偏移。
+    // 未指定 `start_jigsaw_name` 时 vec3i 为零，原点即 `new BlockPos(getMinBlockX(),
+    // startHeight, getMinBlockZ())`——Y 用 start_height 的高度，**X/Z 恒为区块最小角**。
+    // 这里原来直接用 stubPos 作原点，等于要求调用方把这段语义塞进 stubPos；调用方若按
+    // 原版语义只传区块最小角，起始块的 X/Z 就偏到了区块角上（试炼密室首个构件随之错位，
+    // 差分能力 structure_starts 表现为整条拼图链偏移）。
+    BlockPos origin = chunkOrigin;
     const i32 groundLine = boundingBox.minY() + startPiece.getGroundLevelDelta();
-    origin.y += targetGroundLine - groundLine;
+    origin.y = targetGroundLine - groundLine;
 
     // 候选生成点 = 包围盒 X/Z 中心 + 目标地面线高度，原版据此做生物群系校验
     const BlockPos candidatePoint(centerX, targetGroundLine, centerZ);
@@ -118,18 +156,39 @@ StartPlacement JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPi
 std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolRegistry,
     const TemplatePool& startPool,
     i32 maxDepth,
-    const BlockPos& stubPos,
+    const BlockPos& chunkOrigin,
+    i32 startHeightY,
     bool projectStartToHeightmap,
     bool useExpansionHack,
     math::IRandom& rng,
     IChunkGenerator& generator,
     const PoolAliasBindings* aliases,
     const structure::MaxDistance* maxDistance,
-    const structure::DimensionPadding* dimensionPadding)
+    const structure::DimensionPadding* dimensionPadding,
+    i64 structureSeed)
 {
-    // 预解析池别名绑定为不可变查找表（对应 MC 1.21 PoolAliasLookup.create）。
-    // 无别名时使用空查找表（lookup 恒等映射）。一次性解析保证同一别名多次出现时解析结果一致。
-    const PoolAliasLookup aliasLookup = (aliases != nullptr) ? PoolAliasLookup(*aliases, rng) : PoolAliasLookup();
+    // 原版 addPieces 的请求点：`new BlockPos(getMinBlockX(), startHeight, getMinBlockZ())`，
+    // 即 X/Z 恒为区块最小角、Y 由 start_height 高度提供者给出。别名解析用它按位置派生种子。
+    const BlockPos startPos(chunkOrigin.x, startHeightY, chunkOrigin.z);
+
+    // 预解析池别名绑定为不可变查找表。无别名时使用空查找表（lookup 恒等映射），
+    // 一次性解析保证同一别名多次出现时解析结果一致。
+    //
+    // 【不得消耗主随机流】原版在 JigsawStructure.findGenerationPoint 里调用
+    //   PoolAliasLookup.create(this.poolAliases, blockpos, p_227636_.seed())
+    // 传给它的种子是 `GenerationContext.seed()`（**关卡种子**，不是世界生成随机流），
+    // 内部再 `RandomSource.create(seed).forkPositional().at(blockpos)` 派生一条独立随机源。
+    // 因此别名解析与起始旋转、起始块的抽取互不相干。
+    //
+    // 此前这里把主随机流 `rng` 直接交给别名解析：只要结构带 pool_aliases（试炼密室），
+    // 别名里的随机 target 就会先吃掉两次 nextLong，随后的 Rotation.getRandom 与
+    // getRandomTemplate 全部错位一格——差分能力 structure_starts 表现为起始构件选错
+    // （trial_chambers 的 end_1 / end_2 互换），整条拼图链跟着偏移。
+    PoolAliasLookup aliasLookup;
+    if (aliases != nullptr && !aliases->empty()) {
+        const auto aliasRng = _aliasRandomSource(structureSeed, startPos);
+        aliasLookup = PoolAliasLookup(*aliases, *aliasRng);
+    }
 
     // 【随机数顺序不可交换】原版先取起始旋转（Rotation.getRandom）再取起始块
     // （StructureTemplatePool.getRandomTemplate），两者都从同一个 WorldgenRandom 抽取；
@@ -141,7 +200,7 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     }
 
     const StartPlacement placement =
-        resolveStartPlacement(*startPiece, stubPos, rotation, generator, projectStartToHeightmap);
+        resolveStartPlacement(*startPiece, chunkOrigin, startHeightY, rotation, generator, projectStartToHeightmap);
     return assembleFromStartPlacement(poolRegistry,
         *startPiece,
         placement,

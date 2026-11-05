@@ -55,6 +55,11 @@ namespace structure {
 namespace end_city {
 class CityTemplate;
 class IGenerator;
+class HouseTowerGenerator;
+class TowerGenerator;
+class TowerBridgeGenerator;
+class FatTowerGenerator;
+struct CityGenerators;
 } // namespace end_city
 
 /**
@@ -86,7 +91,8 @@ private:
     /**
      * @brief 计算末地城生成高度
      */
-    [[nodiscard]] static i32 _getYPosition(i32 chunkX, i32 chunkZ, IChunkGenerator& generator);
+    [[nodiscard]] static i32 _getYPosition(
+        i32 chunkX, i32 chunkZ, feature::template_::Rotation rotation, IChunkGenerator& generator);
 
     /// 最大递归深度
     static constexpr i32 MAX_DEPTH = 8;
@@ -147,11 +153,44 @@ public:
         return m_settings;
     }
 
+    /**
+     * @brief 平移片段
+     *
+     * `m_templatePosition` 必须与包围盒同步平移：它既是方块写入（`generate`）的原点，
+     * 也是 `calculateConnectedPos` 的基准。只移动基类坐标会让后续所有子构件按旧基准
+     * 计算连接点，整座结构逐渐偏移。
+     */
+    void offset(i32 dx, i32 dy, i32 dz) override
+    {
+        StructurePiece::offset(dx, dy, dz);
+        m_templatePosition = BlockPos(m_templatePosition.x + dx, m_templatePosition.y + dy, m_templatePosition.z + dz);
+    }
+
     /// 唯一ID，用于碰撞检测
     i32 componentId = 0;
 
+    /// 挂载本座城的生成器（由 startHouseTower 在生成开始时调用）
+    void setGenerators(std::shared_ptr<CityGenerators> generators);
+
+    /// 从父片段继承生成器集合（同一座城的片段共享一组）
+    void shareGeneratorsFrom(const CityTemplate& parent);
+    [[nodiscard]] HouseTowerGenerator& houseTowerGen();
+    [[nodiscard]] TowerGenerator& towerGen();
+    [[nodiscard]] TowerBridgeGenerator& bridgeGen();
+    [[nodiscard]] FatTowerGenerator& fatTowerGen();
+
+    /// 片段来源的模板名（仅用于诊断与差分输出）
+    [[nodiscard]] std::string_view templateLocation() const noexcept override
+    {
+        return m_templatePath;
+    }
+
 private:
+    std::shared_ptr<CityGenerators> m_generators;
     std::string m_templateName;
+
+    /// 完整模板路径（`minecraft:end_city/<name>`），仅供诊断输出
+    std::string m_templatePath;
     BlockPos m_templatePosition;
     feature::template_::Rotation m_rotation;
     bool m_overwrite;
@@ -240,6 +279,20 @@ public:
         const BlockPos& offset,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng) override;
+};
+
+/**
+ * @brief 一座末地城所用的分段生成器集合
+ *
+ * 生成器带可变状态（桥生成器的「本座城是否已生成末地船」），原版每次 generatePieces
+ * 都重新 init() 一遍。实例因此与城市同生命周期：每次生成新建一组并挂在起始片段上，
+ * 不能用函数内 static——否则状态会残留到下一座城。
+ */
+struct CityGenerators {
+    HouseTowerGenerator houseTower;
+    TowerGenerator tower;
+    TowerBridgeGenerator bridge;
+    FatTowerGenerator fatTower;
 };
 
 /**

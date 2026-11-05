@@ -535,8 +535,19 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
     if (startPool && !startPool->isEmpty()) {
         // 使用 Jigsaw 系统组装
         // TODO: 要塞的 project_start_to_heightmap / use_expansion_hack 尚未接入，暂按 false 传递。
-        auto placedPieces = jigsaw::JigsawAssembler::assemble(
-            patternRegistry, *startPool, 10, startPos, false, false, rng, generator, nullptr, nullptr, nullptr);
+        auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry,
+            *startPool,
+            10,
+            BlockPos(startPos.x, 0, startPos.z),
+            startPos.y,
+            false,
+            false,
+            rng,
+            generator,
+            nullptr,
+            nullptr,
+            nullptr,
+            static_cast<i64>(generator.seed()));
 
         // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
         for (auto& placed : placedPieces) {

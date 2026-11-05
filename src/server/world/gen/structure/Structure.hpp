@@ -246,8 +246,11 @@ public:
 
     /**
      * @brief 移动边界框
+     *
+     * 虚函数：子类的额外位置状态（模板原点、子节点基准等）必须随之平移，
+     * 否则移动后它们仍指向旧位置。
      */
-    void offset(i32 dx, i32 dy, i32 dz);
+    virtual void offset(i32 dx, i32 dy, i32 dz);
 
     /**
      * @brief 获取基础方向

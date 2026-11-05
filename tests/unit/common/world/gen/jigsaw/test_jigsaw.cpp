@@ -585,8 +585,19 @@ TEST(JigsawAssemblerAssembleTest, StartPieceBelowLowerLimitReturnsEmpty)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        generator,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     EXPECT_TRUE(pieces.empty());
 }
@@ -607,8 +618,19 @@ TEST(JigsawAssemblerAssembleTest, StartPieceAboveUpperLimitReturnsEmpty)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        generator,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     EXPECT_TRUE(pieces.empty());
 }
@@ -629,8 +651,19 @@ TEST(JigsawAssemblerAssembleTest, ZeroDimensionPaddingAllowsEdgePlacement)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        generator,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     // ZERO padding 不触发边界检查，应成功放置起始块
     EXPECT_EQ(pieces.size(), 1u);
@@ -650,8 +683,19 @@ TEST(JigsawAssemblerAssembleTest, NullDimensionPaddingSkipsCheck)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, nullptr);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        generator,
+        nullptr,
+        &maxDist,
+        nullptr,
+        0);
 
     EXPECT_EQ(pieces.size(), 1u);
 }
@@ -676,8 +720,19 @@ TEST(JigsawAssemblerAssembleTest, StartPieceWithinPaddingSucceeds)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        generator,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     EXPECT_EQ(pieces.size(), 1u);
     // 验证起始块包围盒正确（minY = 请求点 Y - groundLevelDelta = 0 - 1）
@@ -707,8 +762,19 @@ TEST(JigsawAssemblerAssembleTest, MaxDistanceBottomClippingRejectsStart)
     const mc::world::gen::structure::MaxDistance maxDist(10, 10);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        generator,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     // 起始块 minY=-60 < lowerLimit=-14，被 isStartTooCloseToWorldHeightLimits 拒绝
     EXPECT_TRUE(pieces.empty());
@@ -731,8 +797,19 @@ TEST(JigsawAssemblerAssembleTest, MaxDistanceTopClippingRejectsStart)
     const mc::world::gen::structure::MaxDistance maxDist(10, 10);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        generator,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     // 起始块 maxY=316 > upperLimit=269，被拒绝
     EXPECT_TRUE(pieces.empty());
@@ -754,8 +831,19 @@ TEST(JigsawAssemblerAssembleTest, NetherLikeWorldBottomCheck)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, netherGen, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        netherGen,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     EXPECT_TRUE(pieces.empty());
 }
@@ -777,8 +865,19 @@ TEST(JigsawAssemblerAssembleTest, NetherLikeWorldWithinBoundsSucceeds)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces = JigsawAssembler::assemble(
-        registry, startPool, 1, startPos, false, false, rng, netherGen, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(registry,
+        startPool,
+        1,
+        BlockPos(startPos.x, 0, startPos.z),
+        startPos.y,
+        false,
+        false,
+        rng,
+        netherGen,
+        nullptr,
+        &maxDist,
+        &padding,
+        0);
 
     EXPECT_EQ(pieces.size(), 1u);
     ASSERT_FALSE(pieces.empty());

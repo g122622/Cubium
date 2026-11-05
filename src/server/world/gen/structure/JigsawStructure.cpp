@@ -244,14 +244,16 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry,
         *startPool,
         m_config.size,
-        startPos,
+        BlockPos(chunkX * CHUNK_WIDTH, 0, chunkZ * CHUNK_WIDTH),
+        startY,
         m_config.projectStartToHeightmap,
         m_config.useExpansionHack,
         rng,
         generator,
         aliases,
         maxDistance,
-        &m_config.dimensionPadding);
+        &m_config.dimensionPadding,
+        static_cast<i64>(generator.seed()));
 
     // 生物群系校验：采样原版候选生成点。原版 GenerationStub 的位置是
     // `startPos.offset(0, groundLevelDelta - 1, 0)`——起始块投影后的地面线（包围盒最低面）
@@ -269,11 +271,16 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // MC 1.21.11: 结构起点只创建片段，不写入方块
     // 方块放置延迟到 FEATURES 阶段，由 placeInChunk() 调用 generate() 执行
+    //
+    // 【包围盒必须显式登记】`addPiece` 会把片段并入起点包围盒。原版 `StructurePiecesBuilder`
+    // 的包围盒由每个 piece 的包围盒并入，这里等价；但空片段（EmptyJigsawPiece）不登记，
+    // 其占位包围盒与原版一致地不计入。
     for (auto& placed : placedPieces) {
         if (placed.piece && !placed.piece->isEmpty()) {
             start->addPiece(std::make_unique<JigsawPlacedPieceAdapter>(std::move(placed)));
         }
     }
+    start->recalculateStructureSize();
 
     return start;
 }

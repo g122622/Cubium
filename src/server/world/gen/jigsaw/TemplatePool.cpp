@@ -96,35 +96,47 @@ const JigsawPiece* TemplatePool::getRandomPiece(math::IRandom& rng) const
     if (m_entries.empty() || m_totalWeight <= 0) {
         return nullptr;
     }
-    // 对应 MC 1.21 StructureTemplatePool.getRandomTemplate：
+    // 对应 MC 1.21 `StructureTemplatePool.getRandomTemplate`：
     //   templates.get(random.nextInt(templates.size()))
-    // templates 是按权重**逐份展开**的列表（权重 w 的条目在列表中连续出现 w 次、条目之间
-    // 不交错）。先取 [0, totalWeight) 的整数再按条目顺序累加权重定位，位次到条目的映射
-    // 与展开列表完全相同，因此不必真的展开。
-    i32 target = rng.nextInt(m_totalWeight);
-    for (const auto& entry : m_entries) {
-        if (target < entry.weight) {
-            return entry.piece;
-        }
-        target -= entry.weight;
-    }
-    return m_entries.back().piece;
+    //
+    // 这里的 `templates` 是**折叠**的 `List<Pair<StructurePoolElement, Integer>>`——
+    // 每个 element 只占一项，weight 是配对里的整数、**不参与索引**。因此抽取是
+    // `nextInt(条目数)`，不是 `nextInt(权重和)`：两者取值域不同，随后的映射也不同，
+    // 权重再按比例随机分流。
+    //
+    // 此前这里用的是 `nextInt(totalWeight)` + 累加权重定位，等于把权重当成了重复份数，
+    // 与原版完全不是同一套抽样——起始 piece 直接就选错（trial_chambers 的 end_1/end_2
+    // 互换），后续整条拼图链跟着错位。
+    const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(m_entries.size())));
+    return m_entries[index].piece;
 }
 
 std::vector<const JigsawPiece*> TemplatePool::getShuffledPieces(math::IRandom& rng) const
 {
+    // 原版 `StructureTemplatePool.getShuffledTemplates` 是
+    // `Util.shuffledCopy(this.templates, random)`——`templates` 是**折叠**的
+    // `List<Pair<StructurePoolElement, Integer>>`，每个 element 只占一项、weight
+    // 只作为配对里的整数带着走。洗牌因此只做 `size - 1` 次交换，消耗的随机数与
+    // 「池里有几个条目」成正比，而不是与权重和成正比。
+    //
+    // 此前这里先按权重展开再洗牌，消耗量变成总权重次——trial_chambers 这类大权重池
+    // 会因此让整条随机流错位，首个 piece 就选错，后续所有拼图跟着偏移（差分能力
+    // structure_starts 的「双方都有但内容不同」）。
+    std::vector<size_t> order(m_entries.size());
+    for (size_t i = 0; i < order.size(); ++i) {
+        order[i] = i;
+    }
+    rng.shuffle(order);
+
+    // 洗牌之后再按权重展开：条目顺序由洗好的顺序决定，与折叠列表的语义一致。
     std::vector<const JigsawPiece*> result;
     result.reserve(static_cast<size_t>(m_totalWeight));
-
-    // 按权重展开指针：每个条目生成 weight 份指针。
-    for (const auto& entry : m_entries) {
+    for (const size_t index : order) {
+        const PoolEntry& entry = m_entries[index];
         for (i32 i = 0; i < entry.weight; ++i) {
             result.push_back(entry.piece);
         }
     }
-
-    // Fisher-Yates 洗牌
-    rng.shuffle(result);
 
     return result;
 }

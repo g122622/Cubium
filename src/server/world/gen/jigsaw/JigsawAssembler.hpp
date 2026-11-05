@@ -137,14 +137,16 @@ public:
      *   4. 把起始块沿 Y 平移，使 `包围盒.minY + groundLevelDelta == k`。
      *
      * @param startPiece 起始拼图块
-     * @param stubPos 请求点（区块最小角 + start_height 的 Y）
+     * @param chunkOrigin 请求点的区块最小角（X/Z 取原版 `chunkPos.getMinBlockX()/getMinBlockZ()`）
+     * @param startHeightY start_height 高度提供者给出的 Y
      * @param rotation 起始块旋转
      * @param generator 区块生成器（投影时查询地形高度）
      * @param projectStartToHeightmap 是否把起始点投影到地形高度图
      * @return 起始块的摆放结果
      */
     [[nodiscard]] static StartPlacement resolveStartPlacement(const JigsawPiece& startPiece,
-        const BlockPos& stubPos,
+        const BlockPos& chunkOrigin,
+        i32 startHeightY,
         Rotation rotation,
         IChunkGenerator& generator,
         bool projectStartToHeightmap);
@@ -170,7 +172,8 @@ public:
      * @param poolRegistry 模板池注册表
      * @param startPool 起始模板池
      * @param maxDepth 最大递归深度
-     * @param stubPos 候选生成点（区块最小角 + start_height 的 Y）
+     * @param chunkOrigin 候选生成点的区块最小角（X/Z；原版 `chunkPos.getMinBlockX()/getMinBlockZ()`）
+     * @param startHeightY start_height 高度提供者给出的 Y（原版 `startHeight.sample(...)`）
      * @param projectStartToHeightmap 是否把起始点投影到地形高度图
      * @param useExpansionHack 是否启用 use_expansion_hack（为矮构件预留竖直净空）
      * @param rng 随机数生成器
@@ -178,19 +181,22 @@ public:
      * @param aliases 池别名绑定集合（可空，用于试炼密室等结构的池随机化）
      * @param maxDistance 距结构中心的最大距离约束（用于初始化 freeShape 可放置空间）
      * @param dimensionPadding 维度填充（可空，控制结构距世界顶/底边界的最小距离）
+     * @param structureSeed 关卡种子，用于派生池别名解析的独立随机源（不消耗 rng）
      * @return 已放置的拼图块列表
      */
     static std::vector<PlacedPiece> assemble(TemplatePoolRegistry& poolRegistry,
         const TemplatePool& startPool,
         i32 maxDepth,
-        const BlockPos& stubPos,
+        const BlockPos& chunkOrigin,
+        i32 startHeightY,
         bool projectStartToHeightmap,
         bool useExpansionHack,
         math::IRandom& rng,
         IChunkGenerator& generator,
         const PoolAliasBindings* aliases,
         const structure::MaxDistance* maxDistance,
-        const structure::DimensionPadding* dimensionPadding);
+        const structure::DimensionPadding* dimensionPadding,
+        i64 structureSeed);
 
     /**
      * @brief 从已确定的起始块继续组装
