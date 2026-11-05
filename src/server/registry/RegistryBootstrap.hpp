@@ -81,6 +81,24 @@ public:
      */
     void initializeAll(bool registerEntities);
 
+    /**
+     * @brief 从数据包重建方块标签表
+     *
+     * 数据包（`data/<ns>/tags/block/*.json`）是方块标签表的**唯一来源**：本方法先
+     * `BlockTags::clear()`，再交由 BlockTagLoader 重建整张表，过程中不留任何编译期快照。
+     *
+     * 前置条件：方块物品（BlockItemRegistry）必须已注册。原版标签按物品 id 引用方块物品，
+     * 加载时碰到 null 物品会整条跳过，并留下"该标签里没有这个物品"的永久空洞；标签表是
+     * 一次性构建的，之后再补也不会回填。
+     *
+     * 单独暴露的原因是单元测试的全局环境同样需要方块标签（方块标签决定 STAIRS/SLABS/
+     * LOGS 等全部标签派生行为），但它没有完整服务端装配所需的战利品/函数管理器，只能
+     * 复用本段。生产路径由 initializeAll 调用，调用顺序与这里完全一致。
+     *
+     * @return 无；加载失败只记录 error 日志（与 initializeAll 同口径，不中断装配）
+     */
+    void loadBlockDataPackTags();
+
 private:
     mc::resource::DataPackRepository& m_dataPackList;
     mc::loot::LootTableManager& m_lootTableManager;

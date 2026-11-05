@@ -29,11 +29,18 @@
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/loot/LootPredicateManager.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/tag/ItemTagLoader.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/CrashHandler.hpp"
+#include "common/world/block/BlockTagLoader.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "server/function/FunctionManager.hpp"
+#include "server/registry/RegistryBootstrap.hpp"
 #include "server/world/ChunkTaskScheduler.hpp"
 #include "server/world/gen/density/DensityFunctionLoader.hpp"
 #include "server/world/gen/noise/NoiseLoader.hpp"
@@ -42,6 +49,8 @@
 #include "server/world/gen/settings/WorldPresetLoader.hpp"
 
 #include <gtest/gtest.h>
+
+#include <spdlog/spdlog.h>
 
 #include <cstdlib>
 #include <filesystem>
@@ -97,11 +106,24 @@ public:
         if (!std::filesystem::exists(dataPackDir)) {
             return;
         }
-        mc::resource::DataPackRepository repo;
-        auto scanResult = repo.scanDirectory(dataPackDir);
+        // 仓库作为成员而不是局部变量：模板管理器等组件会持有它的指针（同 MinecraftServer
+        // 以 m_dataPackList 成员持有的做法），局部对象在 SetUp 返回后销毁会留下悬垂指针。
+        auto scanResult = m_dataPackRepository.scanDirectory(dataPackDir);
         if (!scanResult.success() || scanResult.value() == 0) {
             return;
         }
+
+        // 方块标签与物品标签：数据包是**唯一来源**（BlockTags/ItemTags 内置表已清空，不再有编译期
+        // 快照），不在此加载则整张标签表为空，`BlockTags::STAIRS()/LOGS()/...`、
+        // `ItemTags::FLOWERS()/...` 全部返回空集。后果是**静默**的行为退化而非报错：处理器里按
+        // 标签匹配的分支永不命中（如 BlockAgeProcessor 对全部楼梯的替换、ProtectedBlocksProcessor
+        // 对 FEATURES_CANNOT_REPLACE 的保护），合成/繁殖/交易等标签判定也一并失效。标签加载器本身
+        // 不依赖 noise/density 注册表，故放在它们之前，与生产启动序列（RegistryBootstrap）一致。
+        //
+        // 方块标签走 RegistryBootstrap::loadBlockDataPackTags，而非在此重复 clear + 加载：生产路径
+        // 与测试环境共用同一段实现，避免两边对「先清空还是后追加」的理解漂移。
+        _loadDataPackTags();
+
         // noise_settings 的 JSON 解析会调 BlockStateParser::parse("minecraft:stone")，
         // 依赖 BlockRegistry 已注册原版方块（已由本环境上方的 VanillaBlocks::initialize 完成，
         // 此处不再重复调用）。
@@ -122,14 +144,38 @@ public:
         // 加载顺序：noise → density_function → noise_settings → flat_level_generator_preset（依赖拓扑）。
         // flat preset 依赖 BlockRegistry（层方块，已由上方的 VanillaBlocks::initialize 注册）与
         // BiomeLoader::biomeIdByName（编译期静态 biome 名映射表），不依赖运行时 BiomeRegistry。
-        mc::world::gen::noise::NoiseLoader::loadFromDataPackRepository(repo);
-        mc::world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(repo);
-        mc::world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(repo);
-        mc::world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(repo);
+        mc::world::gen::noise::NoiseLoader::loadFromDataPackRepository(m_dataPackRepository);
+        mc::world::gen::density::DensityFunctionLoader::loadFromDataPackRepository(m_dataPackRepository);
+        mc::world::gen::settings::NoiseSettingsLoader::loadFromDataPackRepository(m_dataPackRepository);
+        mc::world::gen::settings::FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(m_dataPackRepository);
         // world_preset 依赖 noise_settings（noise 维度存 RL）+ flat_preset（flat 维度内联 settings 复用
         // FlatLevelGeneratorSettings::fromSettingsObject）。
-        mc::world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(repo);
+        mc::world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(m_dataPackRepository);
     }
+
+private:
+    /// 从当前数据包仓库重建方块标签与物品标签（均为「清空后重建」，数据包是唯一来源）。
+    void _loadDataPackTags()
+    {
+        // 生产路径与测试环境共用同一段方块标签加载实现，避免「先清空还是后追加」的理解漂移。
+        mc::server::RegistryBootstrap(m_dataPackRepository, m_lootTableManager, m_predicateManager, m_functionManager)
+            .loadBlockDataPackTags();
+
+        mc::item::tag::ItemTags::clear();
+        auto itemTagResult = mc::item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackRepository);
+        if (itemTagResult.failed()) {
+            spdlog::error("Failed to load item tags from data packs: {}", itemTagResult.error().message());
+        }
+    }
+
+    /// 数据包仓库须比 SetUp 活得更久（有些组件持有它的指针），故作为成员。
+    mc::resource::DataPackRepository m_dataPackRepository;
+
+    // 仅被 RegistryBootstrap 构造函数引用（loadBlockDataPackTags 不使用它们），
+    // 其对应的加载器不参与测试环境的装配。
+    mc::loot::LootTableManager m_lootTableManager;
+    mc::loot::LootPredicateManager m_predicateManager;
+    mc::function::FunctionManager m_functionManager;
 };
 
 } // namespace

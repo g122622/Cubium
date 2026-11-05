@@ -41,6 +41,8 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/core/GameDirectory.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -49,11 +51,14 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/feature/template/TemplateManagerHostBinding.hpp"
+#include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <unordered_map>
 
 using namespace mc;
@@ -153,7 +158,33 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
+        _bindVanillaTemplates();
     }
+
+    /// 把原版数据包里的结构模板（data/minecraft/structure/**/*.nbt）接到进程级模板管理器。
+    ///
+    /// RuinedPortalStructure::generate 会立刻 loadTemplateNow() 并断言 hasLoadedTemplate()——
+    /// 没有模板来源时它会直接 abort（缺模板=整座传送门凭空消失且无报错，所以那里显式失败）。
+    /// 因此凡是会调用 generate() 的用例都必须先绑定模板来源。
+    ///
+    /// 仓库与绑定令牌都作为夹具成员：令牌析构会解绑，仓库必须活得比绑定更久。
+    /// 数据包缺失时（非开发机）静默跳过，generate() 相关用例由断言自然暴露为失败。
+    void _bindVanillaTemplates()
+    {
+        const auto dataPackDir = GameDirectory::defaultDirectory().dataPacksDir();
+        if (!std::filesystem::exists(dataPackDir)) {
+            return;
+        }
+        if (!m_dataPackRepository.scanDirectory(dataPackDir).success()) {
+            return;
+        }
+        m_templateBinding = std::make_unique<TemplateManagerHostBinding>(
+            world::gen::jigsaw::JigsawAssembler::getTemplateManager());
+        m_templateBinding->bindDataPackRepository(m_dataPackRepository);
+    }
+
+    std::unique_ptr<TemplateManagerHostBinding> m_templateBinding;
+    resource::DataPackRepository m_dataPackRepository;
 };
 
 // ============================================================================

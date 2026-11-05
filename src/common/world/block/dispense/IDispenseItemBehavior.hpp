@@ -260,13 +260,14 @@ protected:
 class OptionalDispenseItemBehavior : public DefaultDispenseItemBehavior {
 public:
     OptionalDispenseItemBehavior()
-        // 初值必须是 **false**：原版 `OptionalDispenseItemBehavior` 只有子类真正做成事时
-        // 才 `setSuccess(true)`，未置位就代表「这次没做成」。
+        // 初值取 **false**：原版 `OptionalDispenseItemBehavior` 的 Java 字段初值虽是 true，
+        // 但每一个子类的 execute 都会在开头/各分支显式 setSuccess（打火石、骨粉、TNT、荧石、
+        // 刷子、空桶……），因此「执行前为 false」才是实际驱动音效的语义——Cubium 的具名子类
+        // （BonemealDispenseBehavior / FlintAndSteelDispenseBehavior / TNTDispenseBehavior）
+        // 也都在 dispense() 开头显式 _setSuccess(true)。
         //
-        // 这个标志决定**是否播发射音效、是否消耗物品**。初值写成 true 会让放置类行为
-        // （骨粉、打火石、TNT、潜影盒、桶…）在目标位置不可用时仍然消耗物品并播放成功音效。
-        // 由差分能力 dispense_behavior 查出：bone_meal / flint_and_steel / tnt 三项的
-        // isSuccess() 初值与原版相反。
+        // 这个标志决定**是否播发射音效（1000/1001）**。取 true 会让放置类行为在目标位置
+        // 不可用时仍播放成功音效。与差分能力 dispense_behavior 的 successDefault 口径一致。
         : m_success(false)
     {}
 

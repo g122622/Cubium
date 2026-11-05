@@ -140,21 +140,22 @@ protected:
 TEST_F(TripWireBlockPowerTest, GetWeakPower_Returns15WhenPowered)
 {
     BlockState state = block_->defaultState().with(BlockStateProperties::POWERED(), true);
-    // 绊线只输出弱信号
-    // 需要在实际世界中测试，这里验证canProvidePower
-    EXPECT_TRUE(block_->canProvidePower(state));
+    // 绊线不是信号源：原版 TripWireBlock 没有重写 isSignalSource()，只有绊线钩
+    // TripWireHookBlock 才是。绊线格只把「被踩到」的状态报告给绳上的钩子，
+    // 自身不向相邻方块输出红石信号；写恒 true 会让绊线格被当作信号源参与红石计算。
+    EXPECT_FALSE(block_->canProvidePower(state));
 }
 
 TEST_F(TripWireBlockPowerTest, GetWeakPower_Returns0WhenNotPowered)
 {
     BlockState state = block_->defaultState().with(BlockStateProperties::POWERED(), false);
-    EXPECT_TRUE(block_->canProvidePower(state));
+    EXPECT_FALSE(block_->canProvidePower(state));
 }
 
 TEST_F(TripWireBlockPowerTest, CanProvidePower_ReturnsTrue)
 {
     BlockState state = block_->defaultState();
-    EXPECT_TRUE(block_->canProvidePower(state));
+    EXPECT_FALSE(block_->canProvidePower(state));
 }
 
 TEST_F(TripWireBlockPowerTest, IsPowered_StaticMethod)

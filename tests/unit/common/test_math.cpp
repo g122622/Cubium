@@ -134,8 +134,12 @@ TEST(MathUtils, ApproxEqual)
 TEST(MathUtils, FastInverseSqrt)
 {
     // 一次位模式初猜 + 一次牛顿迭代：不是正确舍入的值，但必须落在原版同一个近似上。
+    // 误差界说明：本实现复刻 Mth.fastInvSqrt（double 位模式 + 魔数 6910469410427058090，
+    // 只做一次牛顿迭代）。实测 fastInvSqrt(1) ≈ 0.998308143，相对误差约 1.7e-3——这是该算法
+    // 本身固有的精度，不是缺陷。因此容差按算法实际误差取 2e-3；收紧到 1e-3 相当于要求第二次
+    // 牛顿迭代，反而会偏离原版对近似值的定义。
     EXPECT_NE(fastInvSqrt(1.0), 1.0);
-    EXPECT_NEAR(fastInvSqrt(1.0), 1.0, 1e-3);
+    EXPECT_NEAR(fastInvSqrt(1.0), 1.0, 2e-3);
     EXPECT_NEAR(fastInvSqrt(4.0), 0.5, 1e-3);
     EXPECT_NEAR(fastInvSqrt(9.0), 1.0 / 3.0, 1e-3);
     EXPECT_NEAR(fastInvSqrt(2.0), 0.70710678, 1e-2);

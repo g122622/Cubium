@@ -123,6 +123,19 @@ RegistryBootstrap::RegistryBootstrap(mc::resource::DataPackRepository& dataPackL
     , m_functionManager(functionManager)
 {}
 
+void RegistryBootstrap::loadBlockDataPackTags()
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::BlockTagLoader");
+    // 数据包是标签表的唯一来源：先清空，再由数据包重建（与物品标签同口径）。
+    BlockTags::clear();
+    auto blockTagResult = BlockTagLoader::loadFromDataPackRepository(m_dataPackList);
+    if (blockTagResult.failed()) {
+        spdlog::error("Failed to load block tags from data packs: {}", blockTagResult.error().toString());
+    } else {
+        spdlog::info("Loaded {} block tags from data packs", blockTagResult.value());
+    }
+}
+
 void RegistryBootstrap::initializeAll(bool registerEntities)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll");
@@ -207,20 +220,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     }
     spdlog::info("Block items initialized");
 
-    // 从数据包加载方块标签（追加到或替换内置默认值），必须在方块与方块物品都注册完成后：
-    // 原版标签（数据包 tags/block/*.json）按物品 id 引用方块物品，加载碰到 null 物品会整条跳过
-    // 并留下"该标签里没有这个物品"的永久空洞；标签表是一次性构建的，之后再补也不会回填。
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::BlockTagLoader");
-        // 数据包是标签表的唯一来源：先清空，再由数据包重建（与物品标签同口径）。
-        BlockTags::clear();
-        auto blockTagResult = BlockTagLoader::loadFromDataPackRepository(m_dataPackList);
-        if (blockTagResult.failed()) {
-            spdlog::error("Failed to load block tags from data packs: {}", blockTagResult.error().toString());
-        } else {
-            spdlog::info("Loaded {} block tags from data packs", blockTagResult.value());
-        }
-    }
+    // 从数据包重建方块标签表（清空后用 BlockTagLoader 重建）。
+    // 位置不可前移：须在方块物品注册完成之后，否则按物品 id 引用的成员会被整条跳过。
+    loadBlockDataPackTags();
 
     // 从刚加载的方块标签派生采集规则（mineable/<tool> + needs_*_tool），并校验注册处的
     // requiresTool() 与标签并集一致。原版把「用什么工具、最低哪一档」放在数据包标签里，

@@ -53,6 +53,24 @@ class KeyframeTrack;
  */
 template <typename T>
 class KeyframeTrackSampler {
+    /// 采样段：定义一个 [fromTicks, toTicks] 区间内的插值
+    template <typename U>
+    struct Segment {
+        EasingType easing;
+        U fromValue;
+        i32 fromTicks;
+        U toValue;
+        i32 toTicks;
+
+        Segment(EasingType easing, U fromValue, i32 fromTicks, U toValue, i32 toTicks)
+            : easing(easing)
+            , fromValue(std::move(fromValue))
+            , fromTicks(fromTicks)
+            , toValue(std::move(toValue))
+            , toTicks(toTicks)
+        {}
+    };
+
 public:
     KeyframeTrackSampler(const KeyframeTrack<T>& track, std::optional<i32> periodTicks, attribute::LerpFunction<T> lerp)
         : m_periodTicks(periodTicks)
@@ -75,31 +93,48 @@ public:
         } else if (j >= static_cast<i64>(segment.toTicks)) {
             return segment.toValue;
         } else {
-            const f32 f =
-                static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
-            const f32 f1 = segment.easing.apply(f);
-            return m_lerp.apply(f1, segment.fromValue, segment.toValue);
+            // 本工程 Release 下开了 -ffast-math，它会把下面那次除法改写成乘倒数。两者在 IEEE 754
+            // 下不等价：49f/50f 得 0x3f7ae148，而 49f*(1/50f) 得 0x3f7ae147。进度差 1 ulp 会顺着
+            // 缓动放大成可见的插值误差（timeline_sample 差分测试的 three_out_bounce@11 即此），
+            // 因此除法必须落在关闭了倒数优化的独立函数里。
+            //
+            // 不能在此处直接写 `#pragma clang fp reciprocal(off)`：该 pragma 只能在文件作用域或
+            // 复合语句**开头**生效，写在 else 体里会报 "only at file scope or at the start of a
+            // compound statement"，而本头文件被上百个 TU 包含，会直接卡住整个构建。
+            return _interpolate(j, segment);
         }
     }
 
 private:
-    /// 采样段：定义一个 [fromTicks, toTicks] 区间内的插值
-    template <typename U>
-    struct Segment {
-        EasingType easing;
-        U fromValue;
-        i32 fromTicks;
-        U toValue;
-        i32 toTicks;
-
-        Segment(EasingType easing, U fromValue, i32 fromTicks, U toValue, i32 toTicks)
-            : easing(easing)
-            , fromValue(std::move(fromValue))
-            , fromTicks(fromTicks)
-            , toValue(std::move(toValue))
-            , toTicks(toTicks)
-        {}
-    };
+    /// 段内线性插值：除法按 IEEE 754 执行，不得被 -ffast-math 改写成乘倒数。
+    ///
+    /// 两条编译器路径：
+    /// - clang-cl：局部 `#pragma clang fp` 不可用，用 noinline 让实现与应用 -ffast-math 的
+    ///   调用方隔离开，避免内联后被重新优化成乘倒数。
+    /// - MSVC：cl 支持局部 `#pragma float_control(precise, on)`，内联即可，零额外开销。
+    ///   （MSVC 不认 `__attribute__((noinline))`，所以两条路径必须分开写。）
+#if defined(_MSC_VER) && !defined(__clang__)
+    T _interpolate(i64 j, const Segment<T>& segment) const
+    {
+#pragma float_control(precise, on)
+        const f32 f =
+            static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
+        const f32 f1 = segment.easing.apply(f);
+        const T result = m_lerp.apply(f1, segment.fromValue, segment.toValue);
+#pragma float_control(precise, pop)
+        return result;
+    }
+#else
+    [[gnu::noinline]] T _interpolate(i64 j, const Segment<T>& segment) const
+    {
+        // TODO: 若将来能按目标为 timeline 单独去掉 -ffast-math（或在文件作用域写下该 pragma），
+        //       可去掉这里的 noinline 调用开销。
+        const f32 f =
+            static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
+        const f32 f1 = segment.easing.apply(f);
+        return m_lerp.apply(f1, segment.fromValue, segment.toValue);
+    }
+#endif
 
     static std::vector<Segment<T>> bakeSegments(const KeyframeTrack<T>& track, std::optional<i32> periodTicks)
     {

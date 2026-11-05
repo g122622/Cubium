@@ -1972,6 +1972,20 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "normal_noise",
+        probe: "normal_noise",
+        oracle: "NormalNoiseOracle",
+        description: "归一化噪声在给定坐标上的取值（原版 NormalNoise.getValue）—— 7 组参数 x 12 个坐标。"
+        + "NormalNoise 由两个 PerlinNoise 叠加：第二个的坐标乘以 1.0181268882175227 错开，"
+        + "取和后乘 0.16666666666666666 / expectedDeviation(octaveRange)。它是地形高度与气候参数的"
+        + "基础采样，比单独的 PerlinNoise 多三层易错点：octaveRange 只统计非零振幅的最小/最大下标之差"
+        + "（不是列表长度）、expectedDeviation 里的 1.0/(n+1)、以及归一化常数的字面量形式。"
+        + "参数组特意包含中间夹零振幅、首尾为零振幅、只有一个非零振幅三种形状，让 octaveRange 分别取到"
+        + "不同值。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

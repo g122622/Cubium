@@ -312,3 +312,19 @@ if (StructureTags::DOLPHIN_LOCATED().contains(ResourceLocation("minecraft", "shi
     // 该结构可被海豚定位
 }
 ```
+
+### 13. 模板里的 `mode: DATA` 结构方块（数据标记）尚无人处理
+
+原版把模板中 `mode=DATA` 的结构方块当作「数据标记（data marker）」：放置后由所属结构片段
+（`TemplateStructurePiece::postProcess`）或拼图元素（`SinglePoolElement::place` →
+`handleDataMarker`）读取其 `metadata` 字符串，再生成箱子/生物/入口方块（`ShipwreckPieces`、
+`OceanRuinPieces`、`IglooPieces`、`NetherFossilPieces`、`EndCityPieces`、`RuinedPortalPiece`
+各自重写）。
+
+Cubium 目前**没有任何** `handleDataMarker` 等价实现，也不读取 `metadata`：数据标记方块会被当作
+普通结构方块放置或按忽略规则丢弃，`metadata` 里描述的内容（如沉船宝箱、海底废墟的埋藏物）
+因此缺失。
+
+TODO: 在 `Template::place` 之后补一遍「筛出 DATA 模式结构方块 → 分派给结构片段」的链路
+（对应 `TemplateStructurePiece::postProcess` 与 `SinglePoolElement::place` 中的两处数据标记处理），
+再逐个结构实现其 `handleDataMarker`。注意原版中 DATA 标记**不参与**正常方块放置。
