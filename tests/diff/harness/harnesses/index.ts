@@ -1998,6 +1998,18 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "cubic_spline",
+        probe: "cubic_spline",
+        oracle: "CubicSplineOracle",
+        description: "三次样条（原版 CubicSpline / DensityFunctions.spline）在给定坐标上的取值与 min/max —— 8 组控制点 x 18 个输入。"
+        + "样条是主世界地形 offset/factor/jaggedness 的核心：控制点、导数和三次 Hermite 插值共同决定地表起伏。"
+        + "用例覆盖全零导数（退化成线性）、非零导数（真正三次）、控制点间距不等（width 直接进 Hermite 的两次乘法）、"
+        + "端点线性外推、输入恰好落在控制点上（t 为 0/1 时 tachy 归零）、以及小数 location。"
+        + "注意原版整条链是 float：Multipoint 的 locations/derivatives/minValue/maxValue 全是 float，apply 内部也全程 float 运算。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */
