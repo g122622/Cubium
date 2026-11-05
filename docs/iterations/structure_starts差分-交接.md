@@ -1437,3 +1437,55 @@ Cubium 直接进入了下一个生成器的 `nextInt(bound)`。
 问题收敛为「Cubium 在 `FatTowerGenerator` 返回之后到下一次 `nextInt(bound)` 之间，
 没有执行 `recursiveChildren` 的 `nextInt()`」。需要在 `recursiveChildren` 的
 `generate` 返回处与 `nextInt()` 处各打一个点，确认 `generate` 是否真的返回了 true。
+
+## 第三十二轮：D 75 之后两侧走的分支不同
+
+### 用 G> / G+ / G- 三点定位到调用层
+
+在 `recursiveChildren` 的「调用生成器前 / 生成器返回 false / 生成成功后取 componentId」三处打点，
+与 `D n bits<b>` 混排后得到：
+
+```
+D 69 bits1 1
+G> bridge d=2
+D 70 bits31 1564643288      ← nextInt(4)，桥段数
+D 71..D 74 bits1 x4         ← TOWER_BRIDGES 的四次 nextBoolean
+D 75 bits31 364420944       ← nextInt(10 - 2) = nextInt(8)，船判定
+G> house d=3                ← Cubium 走了 else 分支，递归房屋
+D 76 bits31 295891165       ← HouseTowerGenerator 的 nextInt(3)
+G> tower d=4
+...
+```
+
+而原版在同一位置的序列是：
+
+```
+D 75 bits31 364420944
+D 76 bits32 591782331
+D 77 bits32 -1533848996
+D 78 bits32 1376033556
+（结束，共 79 条）
+```
+
+### 已确定的事实
+
+1. `D 71`..`D 75` 两侧完全一致，`B 75` 的值 `364420944` 也相同；
+2. `nextInt(8)` 走 2 的幂分支 `(8 * 364420944) >> 31 = 1`，**不为 0，所以两侧都不生成末地船、
+   都应走 `else` 去递归房屋**——这一点 Cubium 的行为是对的；
+3. 原版 `D 76` 起是三次 `bits32`，即三次 `nextInt()`（`recursiveChildren` 取 componentId），
+   而 Cubium 在同样位置先抽了一次 `nextInt(3)`（房屋的 variant）。
+
+### 尚未解释的一点
+
+按原版源码，`recursiveChildren` 一定是先调 `generate` 再调 `nextInt()`，而
+`HOUSE_TOWER_GENERATOR.generate` 的第一件事（在 `depth > 8` 早退之后）就是 `nextInt(3)`。
+所以原版若走到 `nextInt()`，在此之前必然已经抽过 `nextInt(3)`。
+但原版序列里 `D 76` 直接就是 `bits32`，中间没有 `bits31`。
+
+**这个矛盾说明我对原版 `D 75` 之后所走分支的假设仍不成立**，不能据此修改 Cubium。
+下一轮应当给 Java 侧也加上同样的「进入哪个生成器」打点（在 `EndCitySeq` 里无法直接做，
+需要改写驱动、在 `SectionGenerator.generate` 外层包一层），逐层对照而不是只看随机数。
+
+### 本轮结论
+
+不做任何代码修改。已确认的是「D 75 之后两侧分支不同」，未确认的是原因。
