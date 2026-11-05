@@ -1986,6 +1986,18 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "density_function",
+        probe: "density_function",
+        oracle: "DensityFunctionOracle",
+        description: "密度函数（原版 DensityFunctions）在给定坐标上的取值与 min/max —— 38 组配置 x 10 个坐标。"
+        + "只覆盖不依赖噪声、不依赖其他密度函数的纯函数：Constant、YClampedGradient、Clamp、以及 Mapped 的七种变换。"
+        + "密度函数直接决定地形：YClampedGradient 是主世界「从 Y=-64 的实心到 Y=320 的空气」那类梯度的载体，"
+        + "Mapped 的七种变换参与几乎所有噪声整形。用例包含 fromY>toY 的反向梯度与 fromY==toY 的退化梯度"
+        + "（后者会让 inverseLerp 除以 0），以及各变换的正负与非整输入。噪声类与缓存类留待后续能力。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

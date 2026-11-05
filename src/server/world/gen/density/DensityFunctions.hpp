@@ -173,7 +173,12 @@ private:
         if (t > 1.0) {
             return to;
         }
-        return from + t * (to - from);
+        // 乘积先落回标量存储，禁止 FMA 收缩。-march=native 会把 `from + t*(to-from)`
+        // 融合成单条 fma，乘积不再舍入，与原版 JVM 的逐步舍入差 1 ulp。以
+        // t=0.83333333333333337、from=1.5625、to=-0.078125 为例：融合得
+        // 0x3fc8fffffffffffe，逐步舍入得 0x3fc9000000000000。
+        const volatile f64 delta = t * (to - from);
+        return from + delta;
     }
 
     [[nodiscard]] static f64 inverseLerp(f64 value, f64 from, f64 to)
