@@ -2037,6 +2037,18 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "shifted_noise",
+        probe: "shifted_noise",
+        oracle: "ShiftedNoiseOracle",
+        description: "带坐标平移的噪声密度函数（原版 DensityFunctions.ShiftedNoise）的取值与 min/max —— 5 组配置 x 9 个坐标。"
+        + "语义是坐标先缩放再叠加位移，然后把结果喂给噪声；位移让噪声在空间上扭曲，形成蜿蜒的洞穴。"
+        + "位移函数用两种形态：常量（覆盖缩放加常量的加法顺序）与线性（覆盖非零位移路径），两者都只用加乘，不引入噪声。"
+        + "用例包含位移全零（退化成普通 NoiseDensity）、极小的常量位移（对大坐标可能被吸收）、"
+        + "以及线性位移配不对称缩放。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

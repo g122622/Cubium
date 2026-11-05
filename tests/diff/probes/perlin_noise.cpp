@@ -58,6 +58,9 @@ const std::vector<NoiseCase>& noiseCases()
 
         // 非几何递减：各层贡献量级接近，更容易暴露累加顺序的差异
         {"flat_weights", 777ULL, 0, {1.0, 0.9, 0.8, 0.7}},
+        // 与 normal_noise 的 first_octave_m7 同一份参数，用来判断 -7 的问题出在
+        // PerlinNoise 本身还是 NormalNoise 的双 fork。
+        {"fo_m7", static_cast<u64>(-42), -7, {1.0, 1.0, 1.0}},
     };
     return table;
 }
