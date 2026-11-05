@@ -248,10 +248,9 @@ AbstractSkullBlock::AbstractSkullBlock(SkullType type, const BlockProperties& pr
     : Block(properties)
     , m_type(type)
 {
-    // 乐器**只在站立头颅上设置**，见 SkullBlock 的构造函数：原版只有 `Blocks.SKELETON_SKULL`
-    // 这类站立头颅带 `.instrument(...)`，墙上的头颅（`*_wall_head` / `*_wall_skull`）
-    // 是普通方块，音符盒在它们上方演奏的是默认的竖琴，不是生物叫声。
-    // 早期写在这里，于是墙挂头颅也继承了生物乐器。
+    // 乐器在各具体子类（SkullBlock / WallSkullBlock）构造函数里设置：两者都要设——站立头颅
+    // 注册时带 `.instrument(...)`，墙面变体经 `Blocks.wallVariant(parent, true)` 继承它。
+    // 不放在基类只是为了把「谁该带乐器」显式写在各子类里，语义上两者一致。
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -315,7 +314,7 @@ SkullBlock::SkullBlock(SkullType type, const BlockProperties& properties)
     // 站立头颅的乐器：音符盒放在其上方时演奏对应的生物头颅音色。
     // 原版 `Blocks.SKELETON_SKULL` 等注册时带 `.instrument(NoteBlockInstrument.SKELETON/ZOMBIE/...)`，
     // 玩家头带 `.instrument(NoteBlockInstrument.CUSTOM)`；这些都属于 worksAboveNoteBlock 类。
-    // 墙挂头颅不带这个属性，所以这里只设在 SkullBlock 而非基类。
+    // 墙面变体经 `Blocks.wallVariant(parent, true)` 继承同一乐器，见 WallSkullBlock 构造函数。
     setNonVirtualInstrument(_instrumentForSkullType(type));
 
     // 站立头颅额外持有 ROTATION_0_15 属性
@@ -375,6 +374,12 @@ const BlockState& SkullBlock::mirror(const BlockState& state, Mirror mirror) con
 WallSkullBlock::WallSkullBlock(SkullType type, const BlockProperties& properties)
     : AbstractSkullBlock(type, properties)
 {
+    // 墙挂头颅**继承**站立头颅的乐器：原版注册墙面变体用的是
+    // `Blocks.wallVariant(Blocks.SKELETON_SKULL, true)`，第二个参数 true 表示连同父方块的
+    // 属性（含 `.instrument(...)`）一起复制。因此音符盒在 `skeleton_wall_skull` 上方同样
+    // 演奏骷髅拟声，而不是默认竖琴。此前这里漏了设置，且基类注释把结论写反了。
+    setNonVirtualInstrument(_instrumentForSkullType(type));
+
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::POWERED())

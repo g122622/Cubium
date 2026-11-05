@@ -95,8 +95,12 @@ protected:
 
 TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_DefaultSuccess)
 {
+    // OptionalDispenseItemBehavior 的初值是 false：原版只有子类真正做成事时才 setSuccess(true)。
+    // 这个标志决定播放发射音效（1000）还是失败音效（1001）、以及是否消耗物品。
+    // 注意：原版 `new OptionalDispenseItemBehavior(){...}` 的 Java 初值同样是 true，但 Cubium
+    // 的具名子类（骨粉/打火石/TNT）都按原版在 execute 开头显式置位，故这里必须取 false。
     OptionalDispenseItemBehavior behavior;
-    EXPECT_TRUE(behavior.isSuccess());
+    EXPECT_FALSE(behavior.isSuccess());
 }
 
 TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_CanSetFailure)
@@ -111,13 +115,13 @@ TEST_F(DispenseBehaviorTest, OptionalDispenseBehavior_CanSetFailure)
     };
 
     TestableOptionalBehavior testBehavior;
-    EXPECT_TRUE(testBehavior.isSuccess());
-
-    testBehavior._setSuccess(false);
     EXPECT_FALSE(testBehavior.isSuccess());
 
     testBehavior._setSuccess(true);
     EXPECT_TRUE(testBehavior.isSuccess());
+
+    testBehavior._setSuccess(false);
+    EXPECT_FALSE(testBehavior.isSuccess());
 }
 
 // ============================================================================
@@ -179,7 +183,9 @@ TEST_F(DispenseBehaviorTest, Registry_InitDefaultBehaviors_RegistersProjectiles)
     EXPECT_TRUE(registry.hasBehavior("minecraft:tipped_arrow"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:snowball"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:egg"));
-    EXPECT_TRUE(registry.hasBehavior("minecraft:ender_pearl"));
+    // ender_pearl **不应**注册发射器行为：原版没有给它注册，发射器只把它当普通物品丢出去，
+    // 不会触发传送。此前多注册了一条，已被差分能力 dispense_behavior 查出并移除。
+    EXPECT_FALSE(registry.hasBehavior("minecraft:ender_pearl"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:experience_bottle"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:splash_potion"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:lingering_potion"));
@@ -793,8 +799,9 @@ TEST_F(DispenseBehaviorTest, WaterBucketBehavior_IsOptionalDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
     ASSERT_NE(behavior, nullptr);
-    // 桶行为继承自 OptionalDispenseItemBehavior，初始状态为成功
-    EXPECT_TRUE(behavior->isSuccess());
+    // 桶行为继承自 OptionalDispenseItemBehavior：执行前未置位（false），真正放下水/岩浆后
+    // 才在 dispense() 内 _setSuccess(true)。见下方 BucketDispense_* 系列用例的断言。
+    EXPECT_FALSE(behavior->isSuccess());
 }
 
 TEST_F(DispenseBehaviorTest, LavaBucketBehavior_IsOptionalDispenseBehavior)
@@ -804,7 +811,7 @@ TEST_F(DispenseBehaviorTest, LavaBucketBehavior_IsOptionalDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:lava_bucket");
     ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
+    EXPECT_FALSE(behavior->isSuccess());
 }
 
 TEST_F(DispenseBehaviorTest, EmptyBucketBehavior_IsOptionalDispenseBehavior)
@@ -814,7 +821,10 @@ TEST_F(DispenseBehaviorTest, EmptyBucketBehavior_IsOptionalDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bucket");
     ASSERT_NE(behavior, nullptr);
+    // 空桶用的是普通 DefaultDispenseItemBehavior（恒成功），**不是** Optional。
     EXPECT_TRUE(behavior->isSuccess());
+    EXPECT_EQ(dynamic_cast<OptionalDispenseItemBehavior*>(behavior), nullptr);
+    EXPECT_NE(dynamic_cast<EmptyBucketDispenseBehavior*>(behavior), nullptr);
 }
 
 // ============================================================================
@@ -836,7 +846,8 @@ TEST_F(DispenseBehaviorTest, FlintAndSteelBehavior_IsOptionalDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:flint_and_steel");
     ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
+    // 执行前未置位；点火成功才置 true，目标不可燃则保持 false（播失败音效）
+    EXPECT_FALSE(behavior->isSuccess());
 }
 
 TEST_F(DispenseBehaviorTest, Registry_HasBoneMealBehavior)
@@ -854,7 +865,8 @@ TEST_F(DispenseBehaviorTest, BoneMealBehavior_IsOptionalDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:bone_meal");
     ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
+    // 执行前未置位；成功催熟才置 true
+    EXPECT_FALSE(behavior->isSuccess());
 }
 
 // ============================================================================
@@ -876,7 +888,10 @@ TEST_F(DispenseBehaviorTest, TntBehavior_IsDefaultDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:tnt");
     ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
+    // TNT 走 OptionalDispenseItemBehavior：执行前为 false（失败音效），成功引爆后由
+    // TNTDispenseBehavior::dispense 内的 _setSuccess(true) 置位。用例名沿用了旧行为名，
+    // 断言以「执行前未置位」为准。
+    EXPECT_FALSE(behavior->isSuccess());
 }
 
 // ============================================================================
@@ -939,8 +954,8 @@ TEST_F(DispenseBehaviorTest, WaterBucketBehavior_IsBucketDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
     ASSERT_NE(behavior, nullptr);
-    // BucketDispenseBehavior 继承自 OptionalDispenseItemBehavior
-    EXPECT_TRUE(behavior->isSuccess());
+    // BucketDispenseBehavior 继承自 OptionalDispenseItemBehavior：执行前未置位
+    EXPECT_FALSE(behavior->isSuccess());
     // 可以安全地 dynamic_cast 验证类型
     auto* bucketBehavior = dynamic_cast<BucketDispenseBehavior*>(behavior);
     // 如果水流体注册成功，behavior 应为 BucketDispenseBehavior
@@ -956,7 +971,7 @@ TEST_F(DispenseBehaviorTest, LavaBucketBehavior_IsBucketDispenseBehavior)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:lava_bucket");
     ASSERT_NE(behavior, nullptr);
-    EXPECT_TRUE(behavior->isSuccess());
+    EXPECT_FALSE(behavior->isSuccess());
 }
 
 TEST_F(DispenseBehaviorTest, EmptyBucketBehavior_IsEmptyBucketDispenseBehavior)
@@ -1341,8 +1356,8 @@ TEST_F(DispenseBehaviorTest, BucketDispense_TypeVerification)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:water_bucket");
     ASSERT_NE(behavior, nullptr);
-    // BucketDispenseBehavior 继承自 OptionalDispenseItemBehavior
-    EXPECT_TRUE(behavior->isSuccess());
+    // BucketDispenseBehavior 继承自 OptionalDispenseItemBehavior：执行前未置位
+    EXPECT_FALSE(behavior->isSuccess());
     // 可以安全地 dynamic_cast 验证类型
     auto* bucketBehavior = dynamic_cast<BucketDispenseBehavior*>(behavior);
     if (bucketBehavior != nullptr) {
@@ -1377,8 +1392,9 @@ TEST_F(DispenseBehaviorTest, EmptyBucket_FailWhenNoFluidToPickup)
 
         ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
-        // 失败时应回退到默认投掷行为
-        EXPECT_FALSE(behavior->isSuccess());
+        // 空桶不是 OptionalDispenseItemBehavior：无论是否舀到流体，都恒为成功（播发射音效）。
+        // 舀不到时回退为默认投掷行为，把空桶丢出去。
+        EXPECT_TRUE(behavior->isSuccess());
     }
 }
 
@@ -1404,7 +1420,8 @@ TEST_F(DispenseBehaviorTest, EmptyBucket_FailOnAirBlock)
 
         ItemStack result = behavior->dispense(world, dispenserPos, *dispenserState, stack, nullptr);
 
-        EXPECT_FALSE(behavior->isSuccess());
+        // 空桶恒为成功（见上方 EmptyBucket_FailWhenNoFluidToPickup 的说明）
+        EXPECT_TRUE(behavior->isSuccess());
     }
 }
 
@@ -1553,8 +1570,9 @@ TEST_F(DispenseBehaviorTest, DefaultBehavior_SpawnsItemEntity)
 
     IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:tnt");
     ASSERT_NE(behavior, nullptr);
-    // TNT 使用默认发射行为（直接投掷物品）
-    EXPECT_TRUE(behavior->isSuccess());
+    // TNT 是 OptionalDispenseItemBehavior，未执行前不置位——初值为 false（失败音效/不消耗）。
+    // 真正的成功与否由 execute 内的 _setSuccess 决定，见下方 TNT 相关用例。
+    EXPECT_FALSE(behavior->isSuccess());
 }
 
 // ============================================================================
@@ -1612,7 +1630,8 @@ TEST_F(DispenseBehaviorTest, Registry_AllProjectileBehaviorsRegistered)
     // 投掷物品类
     EXPECT_TRUE(registry.hasBehavior("minecraft:snowball"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:egg"));
-    EXPECT_TRUE(registry.hasBehavior("minecraft:ender_pearl"));
+    // ender_pearl 原版**没有**发射器行为（只当普通物品丢出，不传送）
+    EXPECT_FALSE(registry.hasBehavior("minecraft:ender_pearl"));
     EXPECT_TRUE(registry.hasBehavior("minecraft:experience_bottle"));
 
     // 药水类

@@ -235,3 +235,27 @@ newY = 高度图取值(x, z) + offset + 模板内局部 Y
 - 结构源先于宿主析构时（如 `GameTestServer` 的派生类成员），**必须**显式解绑。
 - 漏解绑的症状：下次读到模板时 SIGSEGV（`TemplateManager::_loadTemplate`），或 `std::system_error("mutex lock failed: Invalid argument")`——对象已析构但其内存尚未被复用，虚函数调用仍能派发进去，随后死在成员的已析构锁上。
 
+### 17. 标签类处理器：数据包标签表为空时整段分支静默失效
+
+`BlockAgeProcessor` / `ProtectedBlocksProcessor` 依赖 `BlockTags::STAIRS/SLABS/WALLS`、`FEATURES_CANNOT_REPLACE`。这些标签**只来自数据包**（`BlockTags` 内置表已清空，启动期由 `RegistryBootstrap::loadBlockDataPackTags` 重建）。
+
+- 标签表未加载时 `contains()` 恒为 false：楼梯/台阶/墙全部不替换、受保护方块全部不保护，**没有任何报错**。
+- 单元测试的全局环境（`tests/unit/main.cpp`）必须加载标签，否则用例的失败信息会指向处理器逻辑，而真正原因是环境没装数据。
+- `ProtectedBlocksProcessor` 在标签未注册时返回 nullptr 并**透传**方块（"空标签"语义）——数据包缺失不该让结构生成崩掉，这是刻意取舍。
+
+### 18. `BlockAgeProcessor` 的随机源只来自 `settings.getRandom(&pos)`，不能掺入结构原点
+
+原版是 `p_74021_.getRandom(p_74020_.pos())`，即**只**用方块自身世界坐标派生（`LegacyRandomSource(Mth.getSeed(pos))`）。
+
+- 把结构原点（`seedPos`）混进种子，会让同一模板在不同偏移处得到不同的苔藓化图案，与原版不符且不可复现。
+- 与第 7 条并列看：`IntegrityProcessor` / `RuleStructureProcessor` 直接用 `RandomSource.create(Mth.getSeed(pos))`，与 placement 随机源无关；`BlockAgeProcessor` 走 `settings.getRandom(...)`，会**借用**预设随机源。两者的随机源口径不同，不要互相套用。
+
+### 19. `settings.getRandom()` 返回 (借用指针, 自有指针)，借用指针可能为 nullptr
+
+```cpp
+auto [borrowed, owned] = settings.getRandom(&pos);
+math::IRandom& rng = borrowed != nullptr ? *borrowed : *owned;
+```
+
+未设预设随机源时借用指针就是 **nullptr**，直接解引用即空指针解引用（表现为 ACCESS_VIOLATION at 0x0，栈落在调用点而非 `getRandom` 内部）。此时由 `owned` 持有对象，必须活到本次处理结束。
+

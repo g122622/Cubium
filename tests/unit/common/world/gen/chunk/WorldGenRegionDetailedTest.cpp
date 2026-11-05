@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -505,19 +505,30 @@ TEST_F(WorldGenRegionDetailedTest, DimensionHeight_Overworld)
 
 TEST_F(WorldGenRegionDetailedTest, DimensionHeight_Nether)
 {
-    // 下界 (dimId=-1): minY=0, maxY=128
+    // 下界 (dimId=-1)：min_y=0、height=256（绝对上限 = min_y + height = 256）。
+    // 注意 getMaxBuildHeight() 返回的是**绝对上限**而不是高度值——写 128 会让下界建筑
+    // 上限只有 y=128，比原版矮一倍。期望值直接取 DimensionType，避免与数据包再度漂移。
     auto region = createRegion(0, 0, 1, -1);
+    const DimensionType nether = DimensionType::fromId(-1);
     EXPECT_EQ(region->getMinBuildHeight(), 0);
-    EXPECT_EQ(region->getMaxBuildHeight(), 128);
+    EXPECT_EQ(region->getMaxBuildHeight(), nether.maxHeight());
+    EXPECT_EQ(region->getMaxBuildHeight(), 256);
 }
 
 TEST_F(WorldGenRegionDetailedTest, DimensionHeight_End)
 {
-    // 末地 (dimId=1): DimensionType::theEnd() 使用 MIN_BUILD_HEIGHT/MAX_BUILD_HEIGHT
-    // 与主世界相同（minY=-64, maxY=320），因为维度类型定义中 m_minHeight=MIN_BUILD_HEIGHT
+    // 末地 (dimId=1)：min_y=0、height=256，**不是**主世界的 -64/384。
+    // 早期曾把末地直接套用主世界的 MIN_BUILD_HEIGHT/MAX_BUILD_HEIGHT，已由差分能力
+    // dimension_type_params 修正；本用例锁定修正后的取值。
     auto region = createRegion(0, 0, 1, 1);
-    EXPECT_EQ(region->getMinBuildHeight(), world::MIN_BUILD_HEIGHT);
-    EXPECT_EQ(region->getMaxBuildHeight(), world::MAX_BUILD_HEIGHT);
+    const DimensionType end = DimensionType::fromId(1);
+    EXPECT_EQ(region->getMinBuildHeight(), 0);
+    EXPECT_EQ(region->getMaxBuildHeight(), 256);
+    EXPECT_EQ(region->getMinBuildHeight(), end.minHeight());
+    EXPECT_EQ(region->getMaxBuildHeight(), end.maxHeight());
+    // 明确排除"照抄主世界"的回归
+    EXPECT_NE(region->getMinBuildHeight(), world::MIN_BUILD_HEIGHT);
+    EXPECT_NE(region->getMaxBuildHeight(), world::MAX_BUILD_HEIGHT);
 }
 
 // ============================================================================

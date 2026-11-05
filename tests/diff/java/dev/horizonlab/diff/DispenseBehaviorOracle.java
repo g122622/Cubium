@@ -34,9 +34,18 @@ import net.minecraft.world.level.block.DispenserBlock;
  *
  * <h2>successDefault</h2>
  *
- * 原版 {@code OptionalDispenseItemBehavior} 的 {@code isSuccess()} 初始为 false，
- * 只有子类真正做成事才置 true——决定**是否播发射音效、是否消耗物品**。
- * 普通行为恒为 true。这个布尔值是最容易被漏抄的一位语义。
+ * {@code successDefault} 是「执行前该行为是否已经打算报告成功」，决定播放发射音效（1000）
+ * 还是失败音效（1001）。它按**类型**归一：
+ * <ul>
+ *   <li>普通 {@code DefaultDispenseItemBehavior} → true（恒定成功）。</li>
+ *   <li>{@code OptionalDispenseItemBehavior} → false。</li>
+ * </ul>
+ *
+ * 需要说明的是：原版 {@code OptionalDispenseItemBehavior} 的字段初值其实是 {@code true}，
+ * 但原版里每一个匿名/具名子类的 {@code execute} 都会在开头或各分支显式 {@code setSuccess}
+ * （打火石、骨粉、TNT、荧石、刷子、空桶等均如此）。因此「Optional ⇒ 执行前为 false」才是
+ * **实际驱动音效的语义**，也是 Cubium 具名子类统一沿用的约定；按类而非按运行时字段取值，
+ * 才不会被原版那个永不生效的初值误导。
  */
 public final class DispenseBehaviorOracle {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();

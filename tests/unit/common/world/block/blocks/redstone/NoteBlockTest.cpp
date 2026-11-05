@@ -853,7 +853,12 @@ TEST_F(NoteBlockTest, HeadAbove_PiglinHeadTriggersImitatePiglin)
 }
 
 /**
- * @brief 玩家头置于上方 → 自定义头颅音色（UI_BUTTON_CLICK 兜底）
+ * @brief 玩家头置于上方 → CUSTOM_HEAD 乐器；无自定义音效时不发声（对齐原版 triggerEvent）
+ *
+ * 原版 `NoteBlock#triggerEvent` 在 CUSTOM 类乐器下取头颅的 `note_block_sound`，
+ * 取不到就 `return false`——一声不出，**没有** `ui.button.click` 兜底。
+ * TODO: Cubium 的 SkullBlockEntity 尚未保存 note_block_sound，链路补齐后本用例应改为
+ *       断言播放该自定义音效。在那之前如实验证"不发声"。
  */
 TEST_F(NoteBlockTest, HeadAbove_PlayerHeadTriggersCustomClick)
 {
@@ -866,11 +871,15 @@ TEST_F(NoteBlockTest, HeadAbove_PlayerHeadTriggersCustomClick)
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
+    // 乐器本身解析为 CUSTOM_HEAD（玩家头）
+    EXPECT_EQ(state.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()),
+        BlockStateProperties::NoteBlockInstrument::CustomHead);
+
     noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
-    const auto& sounds = m_world->playedSoundIds();
-    ASSERT_EQ(sounds.size(), 1u);
-    EXPECT_EQ(sounds[0], SoundEvents::UI_BUTTON_CLICK);
+    // 无 note_block_sound → 原版不发声
+    EXPECT_TRUE(m_world->playedSoundIds().empty());
+    EXPECT_FALSE(m_world->hasEvent(SoundEvents::UI_BUTTON_CLICK));
 }
 
 /**

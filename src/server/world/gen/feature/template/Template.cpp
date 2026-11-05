@@ -1744,11 +1744,11 @@ BlockAgeProcessor::BlockAgeProcessor(f32 mossiness)
     : m_mossiness(mossiness)
 {}
 
-std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& seedPos,
+std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& /*rawBlockInfo*/,
     const BlockInfo& blockInfo,
-    const PlacementSettings& /*settings*/)
+    const PlacementSettings& settings)
 {
     // 随机将石砖相关方块替换为苔藓化或裂变版本
     const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
@@ -1758,9 +1758,15 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
 
     const Block& block = state->getBlock();
 
-    // 使用确定性随机（基于位置）
-    u64 hash = math::hashBlockPos(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
-    math::Random rng(static_cast<u64>(hash) ^ static_cast<u64>(seedPos.x * 31 + seedPos.z * 17));
+    // 随机源取自 settings.getRandom(pos)，即原版 `p_74021_.getRandom(p_74020_.pos())`。
+    // 绝不能用结构原点（seedPos）参与种子：原版只以方块自身的世界坐标派生随机，
+    // 同一模板放在任何偏移下，同一方块的替换结果必须一致；混入原点会让整座结构
+    // 苔藓化图案随位置变化（也与原版的确定性不符）。
+    //
+    // 返回的 pair 是 (借用指针, 自有指针)：未设预设随机源时借用指针为 nullptr，由自有指针持有对象。
+    // 必须先判空再取用，且自有指针要活到本函数末尾。
+    auto [borrowedRandom, ownedRandom] = settings.getRandom(&blockInfo.pos);
+    math::IRandom& rng = borrowedRandom != nullptr ? *borrowedRandom : *ownedRandom;
 
     const BlockState* newState = nullptr;
 
