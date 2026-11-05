@@ -266,7 +266,9 @@ template <typename T>
     if (t > 1.0) {
         t = 1.0;
     }
-    return toMin + t * (toMax - toMin);
+    // 同 lerp：乘积先落回标量存储，禁止 FMA 收缩。
+    const volatile f64 delta = t * (toMax - toMin);
+    return toMin + delta;
 }
 
 /**
