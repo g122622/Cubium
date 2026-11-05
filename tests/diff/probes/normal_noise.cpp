@@ -69,6 +69,8 @@ const std::vector<NoiseCase>& noiseCases()
 
         // 非几何递减，各层量级接近
         {"flat_weights", 12345ULL, -1, {1.0, 0.9, 0.8, 0.7}},
+        // 与 noise_density 的 scale_small 完全同一份参数，用来隔离该用例的残差。
+        {"first_octave_m7", static_cast<u64>(-42), -7, {1.0, 1.0, 1.0}},
     };
     return table;
 }
@@ -89,6 +91,10 @@ const std::vector<std::array<f64, 3>>& samplePoints()
         {1.0e-3, 2.0e-3, 3.0e-3},
         {123.456, 789.012, 345.678},
         {-0.123456789, 0.987654321, -0.5},
+        // 接近零的小数：NoiseDensity 的 x * 0.011 会落在这个量级。
+        {0.17599999999999999, 0.70399999999999996, -0.17599999999999999},
+        {0.176, 0.704, -0.176},
+        {-11.0, 0.055, 11.0},
     };
     return table;
 }

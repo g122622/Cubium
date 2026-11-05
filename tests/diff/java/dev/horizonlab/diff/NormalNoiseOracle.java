@@ -58,6 +58,7 @@ public final class NormalNoiseOracle {
         list.add(new NoiseCase("trimmed", 777L, -2, new double[] {0.0, 1.0, 0.5, 0.25, 0.0}));
         list.add(new NoiseCase("lonely", 5L, 0, new double[] {0.0, 0.0, 1.5, 0.0}));
         list.add(new NoiseCase("flat_weights", 12345L, -1, new double[] {1.0, 0.9, 0.8, 0.7}));
+        list.add(new NoiseCase("first_octave_m7", -42L, -7, new double[] {1.0, 1.0, 1.0}));
         return list;
     }
 
@@ -75,6 +76,9 @@ public final class NormalNoiseOracle {
         {1.0e-3, 2.0e-3, 3.0e-3},
         {123.456, 789.012, 345.678},
         {-0.123456789, 0.987654321, -0.5},
+        {0.17599999999999999, 0.70399999999999996, -0.17599999999999999},
+        {0.176, 0.704, -0.176},
+        {-11.0, 0.055, 11.0},
     };
 
     public static void main(String[] args) throws IOException {
