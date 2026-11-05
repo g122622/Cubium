@@ -181,7 +181,7 @@ bool spreadPositions(f64 spreadDistance,
     std::vector<SpreadPosition>& positions,
     f64& outMinDist)
 {
-    // 使用 f32 最大值作为哨兵值
+    // 哨兵值与原版一致：Float.MAX_VALUE，用于「没有其它位置可比」时回落到 0。
     constexpr f64 sentinelDist = static_cast<f64>(std::numeric_limits<f32>::max());
     bool moved = true;
     f64 minDist = sentinelDist;
@@ -191,6 +191,12 @@ bool spreadPositions(f64 spreadDistance,
         moved = false;
         minDist = sentinelDist;
 
+        // 只把「距离小于 spreadDistance」的位置计入推力，求和后单位化再反向推开。
+        //
+        // 之前少了单位化：推力大小等于平均位移长度，两个位置的距离越接近 0 推力越小，
+        // 于是以「平均位移」的步长缓慢挪动，两点永远刚好卡在阈值附近；落位时坐标取整到
+        // 方块中心，亚格误差会把距离压回阈值以下（GameTest 里 2 格阈值的两点只到 1.414 格）。
+        // 原版每次移动一个单位距离，两点会一路推过阈值再折返，收敛在阈值之外。
         for (size_t j = 0; j < positions.size(); ++j) {
             i32 closeCount = 0;
             SpreadPosition delta;
@@ -214,9 +220,8 @@ bool spreadPositions(f64 spreadDistance,
                 delta.x /= static_cast<f64>(closeCount);
                 delta.z /= static_cast<f64>(closeCount);
 
-                f64 len = delta.getLength();
-                if (len > 0.0) {
-                    delta.normalize();
+                delta.normalize();
+                if (delta.getLength() > 0.0) {
                     positions[j].moveAway(delta);
                 } else {
                     positions[j].randomize(rng, minX, minZ, maxX, maxZ);
@@ -230,7 +235,7 @@ bool spreadPositions(f64 spreadDistance,
             }
         }
 
-        // 如果所有位置都已满足距离要求，检查安全性
+        // 所有位置都满足距离要求（本回合无人移动）后，才检查落点安全性。
         if (!moved) {
             for (auto& pos : positions) {
                 if (!pos.isSafe(world, maxHeight)) {

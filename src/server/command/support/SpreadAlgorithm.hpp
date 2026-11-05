@@ -51,7 +51,7 @@ struct SpreadPosition {
     /// 归一化向量
     void normalize();
 
-    /// 沿指定方向的反方向移动（远离）
+    /// 沿 direction 的反方向移动（远离）。direction 须为单位向量，调用方先 normalize
     void moveAway(const SpreadPosition& direction);
 
     /// 将位置钳制到指定矩形范围内，返回是否发生了钳制
