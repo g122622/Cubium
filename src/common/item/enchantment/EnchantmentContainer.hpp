@@ -144,12 +144,29 @@ public:
 
     // ========== 修改 ==========
 
+    /// 附魔等级上限，对应原版 `ItemEnchantments.Mutable` 里的 `Math.min(level, 255)`。
+    /// NBT 中附魔等级是 byte 字段，超过 255 会在存盘时溢出成负数。
+    static constexpr i32 MAX_ENCHANTMENT_LEVEL = 255;
+
     /**
      * @brief 添加或更新附魔
+     *
+     * `level <= 0` 表示**删除**该附魔（不是写入 0 级），`level > 255` 截断到 255。
+     *
      * @param enchantmentId 附魔ID
      * @param level 附魔等级
      */
     void set(std::string_view enchantmentId, i32 level);
+
+    /**
+     * @brief 仅在更高时提升附魔等级
+     *
+     * `level <= 0` 什么都不做；`level > 255` 先截断到 255 再比较。
+     *
+     * @param enchantmentId 附魔ID
+     * @param level 尝试提升到的等级
+     */
+    void upgrade(std::string_view enchantmentId, i32 level);
 
     /**
      * @brief 移除附魔

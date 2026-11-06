@@ -99,6 +99,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/item/enchantment/EnchantmentContainer.hpp"
 
 #include "probe.hpp"
 
@@ -106,54 +107,6 @@ namespace mc::diff {
 namespace {
 
 using nlohmann::json;
-
-/// 原版 `ItemEnchantments.Mutable.set` / `upgrade` 共用的等级上限。
-constexpr i32 MAX_LEVEL = 255;
-
-/**
- * @brief 复刻 `ItemEnchantments.Mutable`。
- */
-class Mutable {
-public:
-    /// 原版 `Mutable.set`：`level <= 0` 删除，否则截断到 255 后写入。
-    void set(char ench, i32 level)
-    {
-        if (level <= 0) {
-            m_entries.erase(ench);
-        } else {
-            m_entries[ench] = std::min(level, MAX_LEVEL);
-        }
-    }
-
-    /// 原版 `Mutable.upgrade`：`level <= 0` 什么都不做，否则取较大值。
-    void upgrade(char ench, i32 level)
-    {
-        if (level > 0) {
-            const i32 clamped = std::min(level, MAX_LEVEL);
-            const auto it = m_entries.find(ench);
-            if (it == m_entries.end()) {
-                m_entries[ench] = clamped;
-            } else {
-                it->second = std::max(it->second, clamped);
-            }
-        }
-    }
-
-    /// 原版 `Mutable.getLevel`：不存在时返回 0。
-    i32 getLevel(char ench) const
-    {
-        const auto it = m_entries.find(ench);
-        return it == m_entries.end() ? 0 : it->second;
-    }
-
-    const std::map<char, i32>& entries() const
-    {
-        return m_entries;
-    }
-
-private:
-    std::map<char, i32> m_entries;
-};
 
 std::vector<std::string> splitBy(const std::string& text, char separator)
 {
@@ -220,7 +173,7 @@ std::string runLine(std::string_view inputLine)
     const json input = json::parse(inputLine);
     const std::string unit = input.at("unit").get<std::string>();
 
-    Mutable mutable_;
+    item::enchant::EnchantmentContainer container;
     for (const auto& opText : splitBy(unit, ',')) {
         const auto parts = splitBy(opText, ':');
         if (parts.size() != 3 || parts[1].size() != 1) {
@@ -230,27 +183,34 @@ std::string runLine(std::string_view inputLine)
         const i32 level = std::stoi(parts[2]);
 
         if (parts[0] == "set") {
-            mutable_.set(ench, level);
+            container.set(std::string(1, ench), level);
         } else if (parts[0] == "upgrade") {
-            mutable_.upgrade(ench, level);
+            container.upgrade(std::string(1, ench), level);
         } else {
             throw std::runtime_error("enchantment_storage: 未知操作 '" + parts[0] + "'");
         }
     }
 
     // 输出：按附魔名排序的 `名=等级` 列表（空则给 "-"）。
+    // getAll() 的顺序是插入顺序，这里排一次序让输出稳定。
+    std::vector<std::pair<std::string, i32>> entries;
+    for (const auto& instance : container.getAll()) {
+        entries.emplace_back(instance.enchantmentId, instance.level);
+    }
+    std::sort(entries.begin(), entries.end());
+
     std::string summary;
-    for (const auto& [ench, level] : mutable_.entries()) {
+    for (const auto& [ench, level] : entries) {
         if (!summary.empty()) {
             summary += ",";
         }
-        summary += std::string(1, ench) + "=" + std::to_string(level);
+        summary += ench + "=" + std::to_string(level);
     }
     if (summary.empty()) {
         summary = "-";
     }
 
-    return json{{"unit", unit}, {"result", summary}, {"size", mutable_.entries().size()}}.dump();
+    return json{{"unit", unit}, {"result", summary}, {"size", entries.size()}}.dump();
 }
 
 } // namespace
