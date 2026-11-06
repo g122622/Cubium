@@ -69,12 +69,30 @@ constexpr f32 RAD_TO_DEG = 180.0f / PI;
 }
 
 /**
- * @brief 数值限制在范围内
+ * @brief 数值限制在范围内，对应原版 `Mth.clamp`
+ *
+ * 原版按类型分了四条重载，语义并不相同：
+ *
+ * ```
+ * int/long   : Math.min(Math.max(v, min), max)
+ * float/double: v < min ? min : Math.min(v, max)
+ * ```
+ *
+ * 两者只在 `min > max` 这种畸形区间下才会分道扬镳：
+ * `clamp(5, 10, 0)` 整数版得 0（先 max 抬到 10、再 min 压回 0），
+ * 浮点版得 10（`5 < 10` 直接返回 min）。这里按原版分别实现。
+ *
+ * **不要换成 `std::clamp`**：它在 `min > max` 时是未定义行为，实际会返回 `min`，
+ * 与两种原版语义都对不上。
  */
 template <typename T>
 [[nodiscard]] inline constexpr T clamp(T value, T minVal, T maxVal) noexcept
 {
-    return std::clamp(value, minVal, maxVal);
+    if constexpr (std::is_floating_point_v<T>) {
+        return value < minVal ? minVal : std::min(value, maxVal);
+    } else {
+        return std::min(std::max(value, minVal), maxVal);
+    }
 }
 
 /**
@@ -1261,6 +1279,34 @@ inline i32 roundToward(i32 value, i32 divisor) noexcept
 [[nodiscard]] inline constexpr f64 smoothstepDerivative(f64 t) noexcept
 {
     return 30.0 * t * t * (t - 1.0) * (t - 1.0);
+}
+
+/**
+ * @brief 三角波，对应原版 `Mth.triangleWave`
+ *
+ * 先把 `x` 对周期取余（Java 的 `%`，向零截断），再折成 `[-1, 1]` 的三角形状。
+ *
+ * 注意负输入的余数在 Java 中同样为负，`|r - p/2|` 因此会给出超出 `[-1, 1]` 的值——
+ * 原版就是这样，没有做额外夹取，调用方需自行保证 `x >= 0`。
+ */
+[[nodiscard]] inline f32 triangleWave(f32 x, f32 period) noexcept
+{
+    const f32 quarter = period * 0.25f;
+    return (std::abs(std::fmod(x, period) - period * 0.5f) - quarter) / quarter;
+}
+
+/**
+ * @brief 五次平滑曲线，对应原版 `Mth.smoothstep(double)`
+ *
+ * 与上面三参数的 `smoothstep(edge0, edge1, x)`（Hermite 插值）**不是同一个东西**：
+ * 这里假设输入已归一化到 `[0, 1]`，直接对值做五次整形
+ * `t³(t(6t-15)+10)`。两者名字相同但签名不同，因此加 `Mth` 前缀区分。
+ *
+ * 用的系数是五次版本（6/15/10）而不是三次的（2/3），这是噪声插值里最关键的一条。
+ */
+[[nodiscard]] inline constexpr f64 mthSmoothstep(f64 t) noexcept
+{
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
 } // namespace mc::math
