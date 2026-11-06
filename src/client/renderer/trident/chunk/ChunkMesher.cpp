@@ -356,7 +356,7 @@ thread_local LiquidFaceLayerCacheState t_liquidFaceLayerCache;
         return 1.0f;
     }
 
-    return fluidState->getHeight();
+    return fluidState->getOwnHeight();
 }
 
 [[nodiscard]] f32 getLiquidCornerHeight(

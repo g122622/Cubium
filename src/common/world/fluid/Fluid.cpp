@@ -76,13 +76,13 @@ bool FluidState::isFalling() const
     return opt.has_value() && opt.value();
 }
 
-f32 FluidState::getHeight() const
+f32 FluidState::getOwnHeight() const
 {
     i32 level = getLevel();
     return static_cast<f32>(level) / static_cast<f32>(MAX_AMOUNT);
 }
 
-f32 FluidState::getActualHeight(IWorld& world, const BlockPos& pos) const
+f32 FluidState::getActualHeight(const IWorld& world, const BlockPos& pos) const
 {
     // 检查上方是否有同种流体（满高度情况）
     BlockPos above = pos.up();
@@ -94,7 +94,7 @@ f32 FluidState::getActualHeight(IWorld& world, const BlockPos& pos) const
     }
 
     // 返回基础高度
-    return getHeight();
+    return getOwnHeight();
 }
 
 bool FluidState::isEmpty() const
