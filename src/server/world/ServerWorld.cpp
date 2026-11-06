@@ -209,7 +209,8 @@ ServerWorld::~ServerWorld()
     m_config = ServerWorldConfig();
     spdlog::info("DIAG dtor(dim={}): config", static_cast<i32>(m_config.dimension));
     m_server = nullptr;
-    m_entityTracker = EntityTracker();
+    m_entityTracker.~EntityTracker();
+    new (&m_entityTracker) EntityTracker();
     spdlog::info("DIAG dtor(dim={}): tracker", static_cast<i32>(m_config.dimension));
     m_waypointManager = WaypointManager();
     spdlog::info("DIAG dtor(dim={}): waypoints", static_cast<i32>(m_config.dimension));
@@ -269,10 +270,9 @@ ServerWorld::~ServerWorld()
     m_collisionCache.reset();
     m_chunkManager.reset();
     spdlog::info("DIAG dtor(dim={}): managers", static_cast<i32>(m_config.dimension));
-    m_entityManager = EntityManager(m_entityRegistry);
+    m_entityManager.~EntityManager();
+    new (&m_entityManager) EntityManager(m_entityRegistry);
     spdlog::info("DIAG dtor(dim={}): entity manager", static_cast<i32>(m_config.dimension));
-    m_entityRegistry = std::move(ecs::EntityRegistry(std::string("autosave")));
-    spdlog::info("DIAG dtor(dim={}): entity registry", static_cast<i32>(m_config.dimension));
 }
 
 Result<void> ServerWorld::initialize()
