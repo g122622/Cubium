@@ -228,6 +228,7 @@ import { spawnRulesInput } from "./spawn_rules.ts";
 import { statusEffectInput, statusEffectUnits } from "./status_effect.ts";
 import { structureDensityDeclaration } from "./structure_density.ts";
 import { mineshaftPiecesDeclaration } from "./mineshaft_pieces.ts";
+import { strongholdPiecesDeclaration } from "./stronghold_pieces.ts";
 import { endCityPiecesDeclaration } from "./end_city_pieces.ts";
 import { jigsawJointOrderDeclaration } from "./jigsaw_joint_order.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
@@ -631,6 +632,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     structureDensityDeclaration(),
     structureStartsDeclaration(),
     mineshaftPiecesDeclaration(),
+    strongholdPiecesDeclaration(),
     endCityPiecesDeclaration(),
     jigsawJointOrderDeclaration(),
     villagerTradesDeclaration("list"),

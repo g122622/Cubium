@@ -678,6 +678,24 @@ protected:
     i32 m_genDepth = 0;
 
 public:
+    /**
+     * @brief 原版 `getOrientation()`：构件构造时记录的导入口世界朝向
+     *
+     * 原版用 `setOrientation(Direction)` 存一个独立字段；本项目把同样的信息编码进
+     * rotation + mirror（SOUTH=LEFT_RIGHT+NONE、WEST=LEFT_RIGHT+CW90、EAST=NONE+CW90、
+     * NORTH=NONE+NONE），这里按同一张表反推。房间一类构件从来没有设过朝向，结果为 None。
+     */
+    [[nodiscard]] Direction orientation() const noexcept
+    {
+        if (m_rotation == Rotation::None) {
+            return Direction::South;
+        }
+        if (m_rotation == Rotation::Clockwise90) {
+            return m_mirror == Mirror::LeftRight ? Direction::West : Direction::East;
+        }
+        return Direction::None;
+    }
+
     [[nodiscard]] i32 expansionDepth() const noexcept
     {
         return m_expansionDepth;

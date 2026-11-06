@@ -387,15 +387,29 @@ public final class StructureStartsOracle {
      * 保证覆盖整张网格；后者直接给出预生成的环形位置，不必扫描。
      */
     private static void exportCandidates(String[] seeds, Path output) throws IOException {
+        // 允许 `--only <structureSetId>` 过滤随机散布的结构集：完整枚举全部结构集的候选
+        // 要按网格逐格扫描并做位置判定，分钟级起步；只关心某一类结构时不必为其余结构集
+        // 付这份成本。同心环放置（要塞）的环形位置本就是预计算好的，永远枚举。
+        java.util.Set<String> wantedSets = new java.util.HashSet<>();
+        java.util.List<String> seedTexts = new java.util.ArrayList<>();
+        for (int index = 0; index < seeds.length; index++) {
+            if (seeds[index].equals("--only") && index + 1 < seeds.length) {
+                wantedSets.add(seeds[++index]);
+            } else {
+                seedTexts.add(seeds[index]);
+            }
+        }
         DataPackRegistries registries = DataPackRegistries.load();
         StringBuilder lines = new StringBuilder();
         for (String dimensionName : List.of("overworld", "the_end")) {
-            for (String seedText : seeds) {
+            for (String seedText : seedTexts) {
                 long seed = Long.parseLong(seedText);
                 Dimension dimension = makeDimension(dimensionName, seed, registries.lookup);
                 for (Holder<StructureSet> setHolder : dimension.placementState().possibleStructureSets()) {
                     StructureSet set = setHolder.value();
                     if (set.placement() instanceof ConcentricRingsStructurePlacement concentric) {
+                        // 同心环放置（要塞）：环形位置由放置规则预先算好，直接输出，成本可忽略，
+                        // 因此无条件枚举。
                         List<ChunkPos> ring = dimension.placementState().getRingPositionsFor(concentric);
                         if (ring != null) {
                             for (ChunkPos pos : ring) {
@@ -403,6 +417,12 @@ public final class StructureStartsOracle {
                                         .append(pos.x).append(' ').append(pos.z).append('\n');
                             }
                         }
+                        continue;
+                    }
+                    if (!wantedSets.isEmpty()
+                            && !wantedSets.contains(setHolder.unwrapKey().map(key -> key.identifier().toString()).orElse(""))) {
+                        // 随机散布的结构集要按网格逐格扫描并做完整位置判定，每个都要几十毫秒到
+                        // 上百毫秒，几十个结构集合起来就是分钟级。调用方指定了结构集时只跑那几个。
                         continue;
                     }
                     // 随机散布：扫描到足以覆盖若干个网格周期，保证每个结构集都有代表。

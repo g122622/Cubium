@@ -251,14 +251,14 @@ TEST(StrongholdStartStairsTest, ImposedPieceType_DefaultIsNegativeOne)
 {
     // 默认无强制片段
     math::Random rng(42);
-    StrongholdStartStairs start(rng, 0, 0);
+    StrongholdStartStairs start(rng, 0, 0, Direction::South);
     EXPECT_EQ(start.imposedPieceType(), -1);
 }
 
 TEST(StrongholdStartStairsTest, ImposedPieceType_SetAndGet)
 {
     math::Random rng(42);
-    StrongholdStartStairs start(rng, 0, 0);
+    StrongholdStartStairs start(rng, 0, 0, Direction::South);
 
     start.setImposedPieceType(StrongholdPieceTypes::CROSSING);
     EXPECT_EQ(start.imposedPieceType(), StrongholdPieceTypes::CROSSING);
@@ -270,7 +270,7 @@ TEST(StrongholdStartStairsTest, ImposedPieceType_SetAndGet)
 TEST(StrongholdStartStairsTest, WeightsInitializedInConstructor)
 {
     math::Random rng(42);
-    StrongholdStartStairs start(rng, 0, 0);
+    StrongholdStartStairs start(rng, 0, 0, Direction::South);
 
     const auto& weights = start.weights();
     EXPECT_EQ(weights.size(), 11u);
@@ -292,7 +292,7 @@ protected:
         VanillaBlocks::initialize();
 
         math::Random rng(42);
-        m_start = std::make_unique<StrongholdStartStairs>(rng, 100, 200);
+        m_start = std::make_unique<StrongholdStartStairs>(rng, 100, 200, Direction::South);
     }
 
     std::unique_ptr<StrongholdStartStairs> m_start;
