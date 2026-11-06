@@ -111,7 +111,33 @@ public final class DirectionDataOracle {
                     "ord|30|-20",
                     "ord|200|70",
                     "ord|270|0",
-                    "ord|359|0");
+                    "ord|359|0",
+                    "vd3|0",
+                    "vd3|1",
+                    "vd3|2",
+                    "vd3|3",
+                    "vd3|4",
+                    "vd3|5",
+                    "vd3|6",
+                    "vd3|7",
+                    "vd3|11",
+                    "vd3|12",
+                    "vd3|-1",
+                    "vd3|-2",
+                    "vd3|-6",
+                    "vd3|-7",
+                    "vd2|0",
+                    "vd2|1",
+                    "vd2|2",
+                    "vd2|3",
+                    "vd2|4",
+                    "vd2|5",
+                    "vd2|7",
+                    "vd2|8",
+                    "vd2|-1",
+                    "vd2|-2",
+                    "vd2|-4",
+                    "vd2|-5");
 
     private DirectionDataOracle() {}
 
@@ -210,6 +236,13 @@ public final class DirectionDataOracle {
         JsonObject out = new JsonObject();
         out.addProperty("unit", unit);
         // ord 单元只有角度参数，没有方向名，先分流再解析方向。
+        if (mode.equals("vd3") || mode.equals("vd2")) {
+            int raw = Integer.parseInt(parts[1]);
+            Direction result = mode.equals("vd3") ? Direction.from3DDataValue(raw) : Direction.from2DDataValue(raw);
+            out.addProperty("value", result.getName());
+            return out;
+        }
+        
         if (mode.equals("ord")) {
             if (parts.length != 3) {
                 throw new IllegalArgumentException("direction_data: ord needs yaw,pitch: " + unit);

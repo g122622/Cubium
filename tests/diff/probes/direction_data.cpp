@@ -189,6 +189,14 @@ std::string runLine(std::string_view inputLine)
 
     const std::string mode = parts[0];
     // ord 单元只有角度参数，没有方向名，先分流再解析方向。
+    if (mode == "vd3" && parts.size() == 2) {
+        const Direction result = Directions::from3DDataValue(std::stoi(parts[1]));
+        return json{{"unit", unit}, {"value", directionName(result)}}.dump();
+    }
+    if (mode == "vd2" && parts.size() == 2) {
+        const Direction result = Directions::from2DDataValue(std::stoi(parts[1]));
+        return json{{"unit", unit}, {"value", directionName(result)}}.dump();
+    }
     if (mode == "ord" && parts.size() == 3) {
         const auto ordered = Directions::orderedByNearest(std::stof(parts[1]), std::stof(parts[2]));
         std::string joined;

@@ -29,6 +29,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -663,6 +664,44 @@ inline f32 toYRot(Direction dir)
         default:
             return -1;
     }
+}
+
+/**
+ * @brief 由三维数据值反查方向，对应原版 `Direction.from3DDataValue(int)`
+ *
+ * 原版实现是 `BY_3D_DATA[Mth.abs(v % BY_3D_DATA.length)]`——**取模环回**，
+ * 不是越界返回默认值：
+ *
+ *   from3DDataValue(6)  → DOWN    （6 % 6 = 0）
+ *   from3DDataValue(7)  → UP
+ *   from3DDataValue(-1) → UP      （-1 % 6 = -1，abs 后为 1）
+ *
+ * 负值方向与正值**不对称**，因为 Java/C++ 的 `%` 结果符号跟随被除数，
+ * `abs` 之后 -1 落到 1 而不是 5。这是原版的实际行为，不能「修正」成对称环回。
+ */
+[[nodiscard]] inline Direction from3DDataValue(i32 value)
+{
+    // 顺序即枚举顺序（data3d 与序号一致）。
+    constexpr Direction BY_3D_DATA[] = {
+        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
+    return BY_3D_DATA[static_cast<size_t>(std::abs(value % 6))];
+}
+
+/**
+ * @brief 由二维数据值反查水平方向，对应原版 `Direction.from2DDataValue(int)`
+ *
+ * 二维表**只含水平方向**，长度 4（顺序为 SOUTH=0、WEST=1、NORTH=2、EAST=3），
+ * 因此取模用的是 4 而不是 6：
+ *
+ *   from2DDataValue(4) → SOUTH   （4 % 4 = 0）
+ *   from2DDataValue(-1) → WEST   （-1 % 4 = -1，abs 后为 1）
+ *
+ * **永远返回水平方向**，不会返回 UP/DOWN。
+ */
+[[nodiscard]] inline Direction from2DDataValue(i32 value)
+{
+    constexpr Direction BY_2D_DATA[] = {Direction::South, Direction::West, Direction::North, Direction::East};
+    return BY_2D_DATA[static_cast<size_t>(std::abs(value % 4))];
 }
 
 /**
