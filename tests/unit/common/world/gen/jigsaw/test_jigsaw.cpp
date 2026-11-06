@@ -194,10 +194,13 @@ TEST(TemplatePoolTest, WeightedRandomSelection)
         }
     }
 
-    // 验证概率分布（允许 15% 误差）
-    EXPECT_NEAR(counts["piece_a"], 1000, 150);
+    // 原版 StructureTemplatePool.getRandomTemplate 走的是
+    // `templates.get(nextInt(templates.size()))`：templates 是**折叠**的配对列表，
+    // 每个元素只占一项，weight 不参与索引，因此三个条目被等概率抽中（各 1/3）。
+    // weight 只在按比例展开（getShuffledPieces 之后的拼图放置）时才生效。
+    EXPECT_NEAR(counts["piece_a"], 2000, 300);
     EXPECT_NEAR(counts["piece_b"], 2000, 300);
-    EXPECT_NEAR(counts["piece_c"], 3000, 450);
+    EXPECT_NEAR(counts["piece_c"], 2000, 300);
 }
 
 /**

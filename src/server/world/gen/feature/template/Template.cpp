@@ -1250,42 +1250,48 @@ BlockPos Template::getZeroPositionWithTransform(const BlockPos& pos, Mirror mirr
 
 BlockPos Template::transformBlockPos(const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center)
 {
-    BlockPos result = pos;
+    // 直接照搬原版 StructureTemplate.transform(pos, mirror, rotation, pivot)：
+    //
+    //   i = pos.x; k = pos.z;
+    //   LEFT_RIGHT -> k = -k;  FRONT_BACK -> i = -i;
+    //   l = pivot.x; i1 = pivot.z;
+    //   COUNTERCLOCKWISE_90 -> (l - i1 + k, y, l + i1 - i)
+    //   CLOCKWISE_90       -> (l + i1 - k, y, i1 - l + i)
+    //   CLOCKWISE_180      -> (2l - i,      y, 2i1 - k)
+    //   其余               -> (i, y, k)
+    //
+    // 注意两点，此前实现都与之不同，导致镜像 + 旋转组合（含 180 度）的构件整体错位：
+    //   1) 旋转公式在镜像之后作用，用的是**绕 pivot 的对称式**，而不是先平移回原点再转；
+    //   2) CLOCKWISE_180 走 (2l - i, 2i1 - k)，与「取负再平移」在左闭右开坐标下并不等价。
+    i32 i = pos.x;
+    const i32 j = pos.y;
+    i32 k = pos.z;
 
-    // 减去中心偏移
-    result = BlockPos(result.x - center.x, result.y, result.z - center.z);
-
-    // 应用镜像
+    bool mirrored = true;
     switch (mirror) {
-        case Mirror::LeftRight: // Z 轴镜像（左右）
-            result = BlockPos(result.x, result.y, -result.z);
+        case Mirror::LeftRight:
+            k = -k;
             break;
-        case Mirror::FrontBack: // X 轴镜像（前后）
-            result = BlockPos(-result.x, result.y, result.z);
+        case Mirror::FrontBack:
+            i = -i;
             break;
         default:
+            mirrored = false;
             break;
     }
 
-    // 应用旋转
+    const i32 l = center.x;
+    const i32 i1 = center.z;
     switch (rotation) {
-        case Rotation::Clockwise90:
-            result = BlockPos(-result.z, result.y, result.x);
-            break;
-        case Rotation::Clockwise180:
-            result = BlockPos(-result.x, result.y, -result.z);
-            break;
         case Rotation::CounterClockwise90:
-            result = BlockPos(result.z, result.y, -result.x);
-            break;
+            return BlockPos(l - i1 + k, j, l + i1 - i);
+        case Rotation::Clockwise90:
+            return BlockPos(l + i1 - k, j, i1 - l + i);
+        case Rotation::Clockwise180:
+            return BlockPos(l + l - i, j, i1 + i1 - k);
         default:
-            break;
+            return mirrored ? BlockPos(i, j, k) : pos;
     }
-
-    // 加回中心偏移
-    result = BlockPos(result.x + center.x, result.y, result.z + center.z);
-
-    return result;
 }
 
 math::Vector3d Template::transformEntityPos(

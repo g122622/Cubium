@@ -136,13 +136,17 @@ OceanRuinPiece::OceanRuinPiece(const std::string& templateName,
           position.x,
           position.y,
           position.z)
-    , m_templateName(templateName)
-    , m_rotation(rotation)
+    , m_templateName(ResourceLocation(templateName).toString())
     , m_integrity(integrity)
     , m_type(type)
     , m_isLarge(isLarge)
     , m_size(1, 1, 1)
 {
+    // 模板标识用资源位置的完整写法（`minecraft:underwater_ruin/brick_6`）：原版
+    // `TemplateStructurePiece.templateName` 存的是 `Identifier.toString()`，字段本身
+    // 是片段的对外标识，不是内部查找键。
+    m_rotation = rotation;
+
     // 包围盒必须在构造期按模板真实尺寸算好：`TemplateStructurePiece` 的构造就是这么做的，
     // 后续 move() 只平移盒子。等到 FEATURES 阶段才回填，会让 STRUCTURE_STARTS 阶段的
     // 每个构件都退化成一个点——整座废墟的整体包围盒、集群的重叠判定、差分输出全部失真。
@@ -204,7 +208,7 @@ void OceanRuinPiece::generate(IWorldWriter& world,
 
     // 创建放置设置
     feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
+    settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
 
@@ -258,15 +262,19 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 生成点固定为「区块最小角 + 90」：X/Z 不抽样（原版 generatePieces 直接用
-    // chunkPos.getMinBlockX()/getMinBlockZ()），Y 的 90 只是占位，真实高度由落在
-    // 片段包围盒上的海底高度图决定。
+    // chunkPos.getMinBlockX()/getMinBlockZ()），Y 恒为 90。
+    //
+    // 【90 是最终高度，不是占位】原版 OceanRuinPieces.addPieces 不在任何位置回填海床
+    // 高度：片段包围盒就是围绕 Y=90 展开的，放置阶段再由模板处理器自行贴地。早先实现
+    // 在这里把 Y 换成 OceanFloorWG 高度，导致整座废墟比原版低三十余格（差分能力
+    // structure_starts 暴露）。
     const i32 baseX = chunkX * world::CHUNK_WIDTH;
     const i32 baseZ = chunkZ * world::CHUNK_WIDTH;
     const i32 anchorY = 90;
 
     // 确定废墟类型（根据生物群系）
     const i32 floorY = generator.getHeight(baseX, baseZ, HeightmapType::OceanFloorWG);
-    const BiomeId biome = generator.getBiome(baseX, floorY, baseZ);
+    const BiomeId biome = generator.getBiome(baseX, anchorY, baseZ);
     const bool warmVariant = _isWarmBiome(biome);
 
     // 更新配置
@@ -291,12 +299,12 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     std::vector<std::unique_ptr<StructurePiece>> pieces;
 
     // 生成主要片段
-    generatePiece(*templateManager, BlockPos(baseX, floorY, baseZ), rotation, pieces, rng, config, isLarge, integrity);
+    generatePiece(*templateManager, BlockPos(baseX, anchorY, baseZ), rotation, pieces, rng, config, isLarge, integrity);
 
     // 如果是大型废墟，可能生成集群。判据与原版一致：用**主废墟变换后的对角点 + 位置**
     // 构造主包围盒，候选簇与它相交就跳过（不生成、不消耗后续随机数）。
     if (isLarge && rng.nextFloat() <= config.clusterProbability) {
-        generateClusterPieces(*templateManager, rng, rotation, BlockPos(baseX, floorY, baseZ), config, pieces);
+        generateClusterPieces(*templateManager, rng, rotation, BlockPos(baseX, anchorY, baseZ), config, pieces);
     }
 
     // 将片段添加到 start

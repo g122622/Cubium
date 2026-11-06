@@ -52,13 +52,9 @@ namespace {
 /**
  * @brief 起点房间的 genDepth
  *
- * 原版 `MineShaftRoom` 构造时把 `MAGIC_START_Y`（50）同时用作包围盒起点 Y 与
- * `StructurePiece.genDepth`，而后者的比较语义（`> 8`）若照搬会把第一层子构件就判成
- * 「太深」——整座矿井只剩房间一个构件。
- *
- * 两者是同一个数字的两种用途，真正表示「层数」的只有 genDepth，因此这里直接把起点房间
- * 的深度记作 0：与其它结构（要塞、末地城）的口径一致，也让深度截断可以照原版的阈值
- * 直接比较。包围盒的起点 Y 仍然单独写成 50。
+ * 原版 `MineshaftStructure.generatePiecesAndAdjust` 用 `new MineShaftRoom(0, ...)` 建起始
+ * 房间：那个 0 是 `StructurePiece.genDepth`，与包围盒起点 Y（恒为 50）无关。子构件取
+ * `父深度 + 1`，`generateAndAddPiece` 的截断判据是 `> 8`，因此矿井从 0 起算、最多九层。
  */
 constexpr i32 kStartRoomDepth = 0;
 
@@ -384,8 +380,7 @@ MineshaftRoom::MineshaftRoom(
     // 房间的起点 Y 恒为 50，X/Z 跨度各为 7..12、顶面为 54..59。
     // 传入的 y 在原版里不参与房间包围盒。
     //
-    // 深度从 0 起算（见 kStartRoomDepth 的说明）：原版把 MAGIC_START_Y 同时喂给开始 Y
-    // 与 genDepth，但真正表达层数的只有后者，照搬 50 会让第一层子构件立刻被判定超深。
+    // 深度从 0 起算（见 kStartRoomDepth 的说明）：包围盒起点 Y 恒为 50，与深度无关。
     setGenDepth(kStartRoomDepth);
     MC_UNUSED(y);
     MC_UNUSED(rng);
@@ -853,7 +848,7 @@ void MineshaftCorridor::buildComponent(
 
     // ---- 第 2 段：沿边逐点步进 ----
     //
-    // 原版判据是 `if (i < 8)`，i 为父构件的 genDepth；起点房间的深度是 kStartRoomDepth。
+    // 原版判据是 `if (i < 8)`，i 为走廊自己的 genDepth；起点房间的深度是 kStartRoomDepth。
     //
     // 关键：第 2 段传给 addMineshaftPiece 的是**父深度本身**，主口段传的是同一语义的
     // 父深度。子构件最终取 parentDepth + 1。第 2 段因此比主口段深一层，这一点很容易漏

@@ -116,7 +116,7 @@ public:
      * @return 被选中的结构与其起点；没有产出时 `start` 为空
      */
     [[nodiscard]] StructureSelection _selectStructureStart(
-        const world::gen::structure::StructureSet& structureSet, i32 chunkX, i32 chunkZ);
+        WorldGenRegion& region, const world::gen::structure::StructureSet& structureSet, i32 chunkX, i32 chunkZ);
 
     /**
      * @brief 为单个结构集跑完整的「放置判定 + 择出起点」
@@ -131,7 +131,7 @@ public:
      * @param chunkZ 区块 Z 坐标
      * @return 被选中的结构与其起点；结构集在此不落点或没有产出时 `start` 为空
      */
-    [[nodiscard]] StructureSelection _generateStructureStartsForSet(
+    [[nodiscard]] StructureSelection _generateStructureStartsForSet(WorldGenRegion& region,
         const world::gen::structure::StructurePlacementState& placementState,
         const world::gen::structure::StructureSet& structureSet,
         i32 chunkX,
@@ -159,6 +159,22 @@ public:
     }
 
     [[nodiscard]] NoiseColumn getBaseColumn(i32 x, i32 z) const override;
+
+    /**
+     * @brief 带结构地形贡献（Beardifier）的基础列
+     *
+     * 原版 `ChunkGenerator.getBaseColumn(x, z, level, randomState)` 对同一份 `RandomState`
+     * 的调用会命中 `RandomState.getOrCreateNoiseChunk` 的缓存：结构生成期已经建过该区块的
+     * NoiseChunk（带 Beardifier，内含已放置结构的密度贡献），因此结构落点扫描看到的是
+     * **被结构整平/垫高过的地形**。只算无结构地形会让落在已有结构范围内的废墟传送门
+     * 扫描到原始山体高度，Y 与原版不一致。
+     *
+     * @param x 方块 X 坐标
+     * @param z 方块 Z 坐标
+     * @param region 结构生成区域，用于取相邻区块的结构起点；为 nullptr 时无结构贡献
+     * @return 噪声列
+     */
+    [[nodiscard]] NoiseColumn getBaseColumnWithStructures(i32 x, i32 z, WorldGenRegion* region) const override;
 
     [[nodiscard]] i32 getGenDepth() const override
     {
@@ -259,6 +275,16 @@ private:
     world::gen::aquifer::FluidPicker m_globalFluidPicker;
 
     // === 核心生成方法 ===
+
+    /**
+     * @brief 收集参与指定区块地形整平的结构起点
+     *
+     * 从该区块已填充的结构引用出发，找到所有延伸到它的结构起点（含源自邻居区块的）。
+     * 结构引用尚未填充时返回空列表。
+     */
+    [[nodiscard]] std::vector<
+        std::pair<const world::gen::structure::StructureStart*, const world::gen::structure::Structure*>>
+    _collectStructureStarts(WorldGenRegion& region, i32 chunkMinX, i32 chunkMinZ) const;
 
     [[nodiscard]] world::gen::density::Beardifier _buildBeardifier(WorldGenRegion& region, ChunkPrimer& chunk) const;
 

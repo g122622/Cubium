@@ -49,6 +49,7 @@
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -163,6 +164,10 @@ RuinedPortalPiece::RuinedPortalPiece(const std::string& templateName,
 {
     m_rotation = rotation;
     m_mirror = mirror;
+    // 模板标识在片段里全程用资源位置的完整写法（`minecraft:ruined_portal/portal_1`）：
+    // 原版 `TemplateStructurePiece.templateName` 存的就是 `Identifier.toString()`，
+    // 存相对路径会让任何读该字段的地方拿到与资源位置不同的字符串。
+    m_templateName = ResourceLocation(templateName).toString();
 }
 
 void RuinedPortalPiece::_loadTemplate()
@@ -184,20 +189,20 @@ void RuinedPortalPiece::_loadTemplate()
 
 void RuinedPortalPiece::_updateBoundingBox()
 {
-    // 计算旋转后的尺寸
-    i32 sizeX = m_size.x;
-    i32 sizeZ = m_size.z;
-    if (m_rotation == Rotation::Clockwise90 || m_rotation == Rotation::CounterClockwise90) {
-        std::swap(sizeX, sizeZ);
-    }
-
-    // 应用镜像后更新边界框
-    // 使用中心偏移定位
-    m_minX = m_minX - m_centerOffset.x;
-    m_minZ = m_minZ - m_centerOffset.z;
-    m_maxX = m_minX + sizeX - 1;
-    m_maxY = m_minY + m_size.y - 1;
-    m_maxZ = m_minZ + sizeZ - 1;
+    // 原版 TemplateStructurePiece 直接把模板的 getBoundingBox(placeSettings, templatePosition)
+    // 当包围盒用：templatePosition 是**候选生成点**（区块原点），盒子已经围绕旋转轴心
+    // (templateSize/2) 展开。这里再减一次轴心会让整座传送门沿 XZ 平移半个模板边长。
+    feature::template_::PlacementSettings boxSettings;
+    boxSettings.setRotation(m_rotation);
+    boxSettings.setMirror(m_mirror);
+    boxSettings.setCenterOffset(m_centerOffset);
+    const StructureBoundingBox box = m_template->getBoundingBox(boxSettings, BlockPos(m_minX, m_minY, m_minZ));
+    m_minX = box.minX();
+    m_minY = box.minY();
+    m_minZ = box.minZ();
+    m_maxX = box.maxX();
+    m_maxY = box.maxY();
+    m_maxZ = box.maxZ();
 }
 
 void RuinedPortalPiece::generate(IWorldWriter& world,
@@ -312,10 +317,10 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
 
     settings.setProcessors(&processors);
 
-    // 放置模板，使用中心偏移，所以需要调整位置
-    BlockPos adjustedPos(m_minX, m_minY, m_minZ);
+    // 放置原点必须是**候选生成点**本身：模板的方块坐标是相对该点、绕 (size/2) 轴心变换后
+    // 再相加的。用包围盒的 min 当原点会重复扣掉轴心，整座传送门平移半个模板边长。
     m_template->place(world,
-        adjustedPos,
+        m_candidatePos,
         settings,
         rng,
         world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
@@ -401,6 +406,7 @@ bool _sampleProbability(math::IRandom& rng, f32 probability)
  */
 i32 _findSuitableY(math::IRandom& rng,
     IChunkGenerator& generator,
+    WorldGenRegion* region,
     const RuinedPortalSetupDefinition& setup,
     bool airPocket,
     i32 startY,
@@ -448,10 +454,12 @@ i32 _findSuitableY(math::IRandom& rng,
         : HeightmapType::WorldSurfaceWG;
 
     // 逐层取四条完整地形列：判据要的是"该 Y 处是不是实心地形"，而非"该列最高方块在哪"。
-    const NoiseColumn cornerColumns[4] = {generator.getBaseColumn(minX, minZ),
-        generator.getBaseColumn(maxX, minZ),
-        generator.getBaseColumn(minX, maxZ),
-        generator.getBaseColumn(maxX, maxZ)};
+    // 必须走带结构贡献的版本：原版 `getBaseColumn(x, z, level, randomState)` 命中的是
+    // 带 Beardifier 的 NoiseChunk，山地里附近结构会把地形整平，落点因此与原版一致。
+    const std::array<NoiseColumn, 4> cornerColumns = {generator.getBaseColumnWithStructures(minX, minZ, region),
+        generator.getBaseColumnWithStructures(maxX, minZ, region),
+        generator.getBaseColumnWithStructures(minX, maxZ, region),
+        generator.getBaseColumnWithStructures(maxX, maxZ, region)};
 
     i32 scanY = y;
     for (; scanY > minScanY; --scanY) {
@@ -471,6 +479,12 @@ i32 _findSuitableY(math::IRandom& rng,
 
 std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
+{
+    return generate(generator, nullptr, rng, chunkX, chunkZ);
+}
+
+std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
+    IChunkGenerator& generator, WorldGenRegion* region, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_ASSERT_RELEASE_MSG(!m_setups.empty(),
         fmt::format(
@@ -549,7 +563,7 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     // getHeight 返回"最高方块上方一格"，减 1 得到方块本身 Y。
     const i32 surfaceBlockY = generator.getHeight(centerX, centerZ, heightmapType) - 1;
 
-    const i32 y = _findSuitableY(rng, generator, *setup, props.airPocket, surfaceBlockY, boundingBox);
+    const i32 y = _findSuitableY(rng, generator, region, *setup, props.airPocket, surfaceBlockY, boundingBox);
 
     const BlockPos portalPos(chunkOrigin.x, y, chunkOrigin.z);
 

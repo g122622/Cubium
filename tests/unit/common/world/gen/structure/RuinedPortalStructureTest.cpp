@@ -385,7 +385,7 @@ TEST_F(RuinedPortalStructureTest, PieceStoresTemplateNamePositionRotationMirror)
         props,
         BlockPos(100, 64, 200));
 
-    EXPECT_EQ(piece.templateName(), "ruined_portal/portal_1");
+    EXPECT_EQ(piece.templateName(), "minecraft:ruined_portal/portal_1");
     EXPECT_EQ(piece.location(), RuinedPortalLocation::OnLandSurface);
     EXPECT_FLOAT_EQ(piece.properties().mossiness, 0.5f);
     EXPECT_TRUE(piece.properties().airPocket);
@@ -428,9 +428,11 @@ TEST_F(RuinedPortalStructureTest, GenerateProducesValidStartWithRuinedPortalPiec
 
     const auto& normalTemplates = RuinedPortalStructure::getNormalTemplates();
     const auto& giantTemplates = RuinedPortalStructure::getGiantTemplates();
+    // 片段的模板标识是完整资源位置（带 minecraft: 前缀），模板表里存的是相对路径。
     const auto& name = piece->templateName();
-    const bool isNormal = std::find(normalTemplates.begin(), normalTemplates.end(), name) != normalTemplates.end();
-    const bool isGiant = std::find(giantTemplates.begin(), giantTemplates.end(), name) != giantTemplates.end();
+    const std::string path = name.starts_with("minecraft:") ? name.substr(10) : name;
+    const bool isNormal = std::find(normalTemplates.begin(), normalTemplates.end(), path) != normalTemplates.end();
+    const bool isGiant = std::find(giantTemplates.begin(), giantTemplates.end(), path) != giantTemplates.end();
     EXPECT_TRUE(isNormal || isGiant) << "Unexpected template name: " << name;
 }
 
