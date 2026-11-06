@@ -336,7 +336,7 @@ diff_runner <domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一�
 | harness | 参照实现 | 单元 | 结果 | 已知缺口 |
 |---|---|---|---|---|
 | `text_encode` | 原版 jar `BlockStateOracle` | 1166 个方块（状态全集 29671 条由各自的 `list` 枚举） | 全部一致 | 原版没有、Cubium 多注册的方块会被列为「probe 侧多出」 |
-| `item_summary` | 原版 jar `ItemSummaryOracle` | 1124 | 全部一致 | 381 个物品未注册 |
+| `item_summary` | minecraft-data（`reference`，不再走 Java oracle） | 1124 | 全部一致 | 381 个物品未注册 |
 | `item_components` | 原版 jar `ItemComponentsOracle` | 1124 | 全部一致 | 381 个物品未注册 |
 | `entity_shape` | 原版 jar `EntityShapeOracle` | 125 | 全部一致 | 32 个实体类型未注册 |
 | `enchantment_table` | 原版 jar `EnchantmentExport` | 43 | 全部一致 | — |
