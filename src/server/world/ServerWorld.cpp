@@ -203,6 +203,76 @@ ServerWorld::ServerWorld(const ServerWorldConfig& config, std::unique_ptr<Server
 ServerWorld::~ServerWorld()
 {
     shutdown();
+
+    // TEMP-DIAG：在析构函数体内释放各成员，定位 terminate 的发生点（验证后定稿或回退）。
+    spdlog::info("DIAG dtor(dim={}): begin", static_cast<i32>(m_config.dimension));
+    m_config = ServerWorldConfig();
+    spdlog::info("DIAG dtor(dim={}): config", static_cast<i32>(m_config.dimension));
+    m_server = nullptr;
+    m_entityTracker = EntityTracker();
+    spdlog::info("DIAG dtor(dim={}): tracker", static_cast<i32>(m_config.dimension));
+    m_waypointManager = WaypointManager();
+    spdlog::info("DIAG dtor(dim={}): waypoints", static_cast<i32>(m_config.dimension));
+    m_lightQueue = ServerLightQueue();
+    spdlog::info("DIAG dtor(dim={}): light queue", static_cast<i32>(m_config.dimension));
+    m_respawnData = world::storage::LevelRespawnData();
+    spdlog::info("DIAG dtor(dim={}): respawn", static_cast<i32>(m_config.dimension));
+    m_worldBorder = world::border::WorldBorder();
+    spdlog::info("DIAG dtor(dim={}): border", static_cast<i32>(m_config.dimension));
+    m_sculkVibrationManager = SculkVibrationManager();
+    spdlog::info("DIAG dtor(dim={}): sculk vibration", static_cast<i32>(m_config.dimension));
+    m_gameRules = world::gamerule::GameRules();
+    spdlog::info("DIAG dtor(dim={}): game rules", static_cast<i32>(m_config.dimension));
+    m_blockEvents.clear();
+    m_blockEventsToReschedule.clear();
+    spdlog::info("DIAG dtor(dim={}): block events", static_cast<i32>(m_config.dimension));
+    m_difficultyCallback = nullptr;
+    m_onOpenContainer = nullptr;
+    m_onOpenEntityContainer = nullptr;
+    m_onLightChanged = nullptr;
+    m_onBlockChanged = nullptr;
+    m_onPlaySound = nullptr;
+    m_onBroadcastParticle = nullptr;
+    m_onBroadcastVibrationParticle = nullptr;
+    m_onBroadcastTrailParticle = nullptr;
+    m_onBroadcastEntityEffectParticle = nullptr;
+    m_onBroadcastBlockParticle = nullptr;
+    m_onBroadcastItemParticle = nullptr;
+    m_onBroadcastEntityStatus = nullptr;
+    m_onBroadcastEntityAnimation = nullptr;
+    m_onBroadcastHurtAnimation = nullptr;
+    m_onBroadcastSetEntityLink = nullptr;
+    m_onBroadcastWorldEvent = nullptr;
+    m_onBroadcastGlobalLevelEvent = nullptr;
+    m_onBroadcastBlockEvent = nullptr;
+    m_onBroadcastBlockEntity = nullptr;
+    m_onDestroyBlockProgress = nullptr;
+    m_onBroadcastExplosion = nullptr;
+    m_onExecuteCommand = nullptr;
+    spdlog::info("DIAG dtor(dim={}): callbacks", static_cast<i32>(m_config.dimension));
+    m_itemPickupManager = server::ItemPickupManager();
+    spdlog::info("DIAG dtor(dim={}): pickup", static_cast<i32>(m_config.dimension));
+    m_mapDataManager.reset();
+    spdlog::info("DIAG dtor(dim={}): map data", static_cast<i32>(m_config.dimension));
+    m_random = math::Random(0);
+    m_blockPositionRandom = math::BlockPositionRandom(0);
+    spdlog::info("DIAG dtor(dim={}): random", static_cast<i32>(m_config.dimension));
+    m_dragonFight.reset();
+    m_raidManager.reset();
+    m_villageManager.reset();
+    m_gameEventDispatcher.reset();
+    m_environmentAttributes.reset();
+    m_weatherManager.reset();
+    m_lightManager.reset();
+    m_tickManager.reset();
+    m_physicsEngine.reset();
+    m_collisionCache.reset();
+    m_chunkManager.reset();
+    spdlog::info("DIAG dtor(dim={}): managers", static_cast<i32>(m_config.dimension));
+    m_entityManager = EntityManager(m_entityRegistry);
+    spdlog::info("DIAG dtor(dim={}): entity manager", static_cast<i32>(m_config.dimension));
+    m_entityRegistry = std::move(ecs::EntityRegistry(std::string("autosave")));
+    spdlog::info("DIAG dtor(dim={}): entity registry", static_cast<i32>(m_config.dimension));
 }
 
 Result<void> ServerWorld::initialize()
