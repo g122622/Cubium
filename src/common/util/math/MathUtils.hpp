@@ -30,6 +30,7 @@
 #include "common/world/WorldConstants.hpp"
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstring>
@@ -349,6 +350,123 @@ template <typename T>
     f64 estimate = 0.0;
     std::memcpy(&estimate, &bits, sizeof(estimate));
     return estimate * (1.5 - half * estimate * estimate); // 一次牛顿迭代
+}
+
+/**
+ * @brief `Mth.atan2` 用的偏置常量
+ *
+ * 位模式 `4805340802404319232` 对应一个约为 1.0 + 2^-9 附近的值：加上它之后，
+ * `y` 的 `double` 位模式恰好落在 `[0, 256]` 区间，可以直接拿来当 257 项表的**下标**。
+ * 这是原版把「浮点转整数」变成「读位模式」的技巧，不能用普通的乘加替代。
+ */
+inline const f64 FRAC_BIAS = [] {
+    u64 bits = 4805340802404319232ULL;
+    f64 value = 0.0;
+    std::memcpy(&value, &bits, sizeof(value));
+    return value;
+}();
+
+/**
+ * @brief `asin(i / 256)` 表，共 257 项（i = 0..256）
+ */
+[[nodiscard]] inline const std::array<f64, 257>& asinTable() noexcept
+{
+    static const std::array<f64, 257> table = [] {
+        std::array<f64, 257> result{};
+        for (size_t i = 0; i < result.size(); ++i) {
+            result[i] = std::asin(static_cast<f64>(i) / 256.0);
+        }
+        return result;
+    }();
+    return table;
+}
+
+/**
+ * @brief `cos(asin(i / 256))` 表，共 257 项
+ */
+[[nodiscard]] inline const std::array<f64, 257>& cosTable() noexcept
+{
+    static const std::array<f64, 257> table = [] {
+        std::array<f64, 257> result{};
+        for (size_t i = 0; i < result.size(); ++i) {
+            result[i] = std::cos(std::asin(static_cast<f64>(i) / 256.0));
+        }
+        return result;
+    }();
+    return table;
+}
+
+/**
+ * @brief 反正切（复刻 MC 的 `Mth.atan2` 查表实现）
+ *
+ * **这不是 `std::atan2`。** 原版用手写的近似：
+ *
+ * 1. 把两个参数取绝对值，并保证 `y <= x`（交换并记下标志）；
+ * 2. 用 `fastInvSqrt` 归一化成单位向量；
+ * 3. 把 `y` 加上一个精心选取的偏置 `FRAC_BIAS`，使 `double` 的位模式恰好落在
+ *    一张 257 项的表内，用位模式**直接当作下标**；
+ * 4. 表给出 `asin` 的粗值与 `cos` 值，再用一次三次修正项 `(6 + d²)·d / 6`；
+ * 5. 按之前的标志做 π/2、π 的反射与符号还原。
+ *
+ * 结果与标准库相差约 1e-9 量级，但**逐位不同**。凡是原版用 `Mth.atan2` 的地方
+ * （实体朝向、投射物角度、结构旋转），换成 `std::atan2` 都会产生可观测的偏差。
+ *
+ * @param y Y 分量
+ * @param x X 分量
+ * @return 反正切值
+ */
+[[nodiscard]] inline f64 atan2(f64 y, f64 x) noexcept
+{
+    const f64 sum = x * x + y * y;
+    if (std::isnan(sum)) {
+        return std::numeric_limits<f64>::quiet_NaN();
+    }
+
+    const bool negateY = y < 0.0;
+    if (negateY) {
+        y = -y;
+    }
+    const bool negateX = x < 0.0;
+    if (negateX) {
+        x = -x;
+    }
+    const bool swap = y > x;
+    if (swap) {
+        const f64 temp = x;
+        x = y;
+        y = temp;
+    }
+
+    const f64 inv = fastInvSqrt(sum);
+    x *= inv;
+    y *= inv;
+
+    // 偏置的位模式 4805340802404319232 是浮点 2.0 的阶码段附近的一个整数常量，
+    // 加上它之后 y 的位模式会落进 [0, 256] 区间，可直接当表下标。
+    const f64 biased = FRAC_BIAS + y;
+    u64 indexBits = 0;
+    std::memcpy(&indexBits, &biased, sizeof(indexBits));
+    // 原版是 `(int) Double.doubleToRawLongBits(d2)`——先截断到 32 位 int，
+    // 低 32 位恰好落在 [0, 256]。直接拿完整 64 位位模式会越界。
+    const auto index = static_cast<size_t>(static_cast<i32>(indexBits));
+
+    const f64 asinValue = asinTable()[index];
+    const f64 cosValue = cosTable()[index];
+    const f64 fraction = biased - FRAC_BIAS;
+    const f64 residual = y * cosValue - x * fraction;
+    const f64 correction = (6.0 + residual * residual) * residual * 0.16666666666666666;
+    f64 result = asinValue + correction;
+
+    if (swap) {
+        result = (PI_DOUBLE / 2.0) - result;
+    }
+    if (negateX) {
+        result = PI_DOUBLE - result;
+    }
+    if (negateY) {
+        result = -result;
+    }
+    return result;
 }
 
 /**
