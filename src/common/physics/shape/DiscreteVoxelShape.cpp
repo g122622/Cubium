@@ -352,14 +352,14 @@ bool DiscreteVoxelShape::isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 to
 // 遍历
 // ============================================================================
 
-void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simplify)
+void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simplify) const
 {
     _forAllAxisEdges(consumer, AxisCycle::NONE, simplify);
     _forAllAxisEdges(consumer, AxisCycle::FORWARD, simplify);
     _forAllAxisEdges(consumer, AxisCycle::BACKWARD, simplify);
 }
 
-void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify)
+void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify) const
 {
     // 空形状直接返回
     if (isEmpty()) {
@@ -559,7 +559,7 @@ void DiscreteVoxelShape::recalculateBounds() const
     m_boundsDirty = false;
 }
 
-void DiscreteVoxelShape::_forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify)
+void DiscreteVoxelShape::_forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify) const
 {
     const AxisCycle invCycle = AxisCycles::inverse(cycle);
     const i32 jSize = getSize(AxisCycles::cycle(invCycle, Axis::X));
@@ -590,20 +590,20 @@ void DiscreteVoxelShape::_forAllAxisEdges(const IntLineConsumer& consumer, AxisC
                             start = k1;
                         }
                     } else {
-                        consumer(AxisCycles::cycle(cycle, i1, j1, k1, Axis::X),
-                            AxisCycles::cycle(cycle, i1, j1, k1, Axis::Y),
-                            AxisCycles::cycle(cycle, i1, j1, k1, Axis::Z),
-                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::X),
-                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::Y),
-                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::Z));
+                        consumer(AxisCycles::cycle(invCycle, i1, j1, k1, Axis::X),
+                            AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Y),
+                            AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Z),
+                            AxisCycles::cycle(invCycle, i1, j1, k1 + 1, Axis::X),
+                            AxisCycles::cycle(invCycle, i1, j1, k1 + 1, Axis::Y),
+                            AxisCycles::cycle(invCycle, i1, j1, k1 + 1, Axis::Z));
                     }
                 } else if (start != -1) {
-                    consumer(AxisCycles::cycle(cycle, i1, j1, start, Axis::X),
-                        AxisCycles::cycle(cycle, i1, j1, start, Axis::Y),
-                        AxisCycles::cycle(cycle, i1, j1, start, Axis::Z),
-                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::X),
-                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::Y),
-                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::Z));
+                    consumer(AxisCycles::cycle(invCycle, i1, j1, start, Axis::X),
+                        AxisCycles::cycle(invCycle, i1, j1, start, Axis::Y),
+                        AxisCycles::cycle(invCycle, i1, j1, start, Axis::Z),
+                        AxisCycles::cycle(invCycle, i1, j1, k1, Axis::X),
+                        AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Y),
+                        AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Z));
                     start = -1;
                 }
             }

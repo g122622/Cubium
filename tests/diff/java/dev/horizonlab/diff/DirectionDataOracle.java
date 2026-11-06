@@ -142,6 +142,62 @@ public final class DirectionDataOracle {
                     "yrot|SOUTH",
                     "yrot|WEST",
                     "yrot|EAST",
+                    "opp|DOWN",
+                    "opp|UP",
+                    "opp|NORTH",
+                    "opp|SOUTH",
+                    "opp|WEST",
+                    "opp|EAST",
+                    "cw|NORTH",
+                    "cw|SOUTH",
+                    "cw|WEST",
+                    "cw|EAST",
+                    "ccw|NORTH",
+                    "ccw|SOUTH",
+                    "ccw|WEST",
+                    "ccw|EAST",
+                    "axis|DOWN",
+                    "axis|UP",
+                    "axis|NORTH",
+                    "axis|SOUTH",
+                    "axis|WEST",
+                    "axis|EAST",
+                    "horiz|DOWN",
+                    "horiz|UP",
+                    "horiz|NORTH",
+                    "horiz|SOUTH",
+                    "horiz|WEST",
+                    "horiz|EAST",
+                    "vert|DOWN",
+                    "vert|UP",
+                    "vert|NORTH",
+                    "vert|SOUTH",
+                    "vert|WEST",
+                    "vert|EAST",
+                    "sx|DOWN",
+                    "sx|UP",
+                    "sx|NORTH",
+                    "sx|SOUTH",
+                    "sx|WEST",
+                    "sx|EAST",
+                    "sy|DOWN",
+                    "sy|UP",
+                    "sy|NORTH",
+                    "sy|SOUTH",
+                    "sy|WEST",
+                    "sy|EAST",
+                    "sz|DOWN",
+                    "sz|UP",
+                    "sz|NORTH",
+                    "sz|SOUTH",
+                    "sz|WEST",
+                    "sz|EAST",
+                    "pos|X",
+                    "neg|X",
+                    "pos|Y",
+                    "neg|Y",
+                    "pos|Z",
+                    "neg|Z",
                     "torot|NORTH",
                     "torot|SOUTH",
                     "torot|WEST",
@@ -244,6 +300,39 @@ public final class DirectionDataOracle {
         JsonObject out = new JsonObject();
         out.addProperty("unit", unit);
         // ord 单元只有角度参数，没有方向名，先分流再解析方向。
+        if (mode.equals("pos") || mode.equals("neg")) {
+            net.minecraft.core.Direction.Axis axis = switch (parts[1]) {
+                case "X" -> net.minecraft.core.Direction.Axis.X;
+                case "Y" -> net.minecraft.core.Direction.Axis.Y;
+                case "Z" -> net.minecraft.core.Direction.Axis.Z;
+                default -> throw new IllegalArgumentException("direction_data: unknown axis: " + parts[1]);
+            };
+            Direction result = mode.equals("pos") ? axis.getPositive() : axis.getNegative();
+            out.addProperty("value", result.getName());
+            return out;
+        }
+        
+        // 只有这九种模式按「方向」解释 parts[1]；其余模式各有自己的参数形式。
+        boolean matrixMode = mode.equals("opp") || mode.equals("cw") || mode.equals("ccw")
+                || mode.equals("axis") || mode.equals("horiz") || mode.equals("vert")
+                || mode.equals("sx") || mode.equals("sy") || mode.equals("sz");
+        if (matrixMode) {
+            Direction matDir = parseDirection(parts[1]);
+            switch (mode) {
+                case "opp" -> out.addProperty("value", matDir.getOpposite().getName());
+                case "cw" -> out.addProperty("value", matDir.getClockWise().getName());
+                case "ccw" -> out.addProperty("value", matDir.getCounterClockWise().getName());
+                case "axis" -> out.addProperty("value", matDir.getAxis().getName());
+                case "horiz" -> out.addProperty("value", matDir.getAxis().isHorizontal());
+                case "vert" -> out.addProperty("value", matDir.getAxis().isVertical());
+                case "sx" -> out.addProperty("value", matDir.getStepX());
+                case "sy" -> out.addProperty("value", matDir.getStepY());
+                case "sz" -> out.addProperty("value", matDir.getStepZ());
+                default -> throw new IllegalArgumentException("direction_data: unknown mode: " + mode);
+            }
+            return out;
+        }
+        
         if (mode.equals("yrot") || mode.equals("torot")) {
             Direction parsed = parseDirection(parts[1]);
             if (parsed == null) {
