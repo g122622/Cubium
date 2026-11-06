@@ -464,6 +464,15 @@ void ServerWorld::shutdown()
     m_blockPositionRandom = math::BlockPositionRandom(0);
     spdlog::info("DIAG shutdown(dim={}): config reset", static_cast<i32>(m_config.dimension));
     m_config = ServerWorldConfig();
+    spdlog::info("DIAG shutdown(dim={}): map data reset", static_cast<i32>(m_config.dimension));
+    m_mapDataManager = std::make_unique<world::map::MapDataManager>();
+    spdlog::info("DIAG shutdown(dim={}): item pickup reset", static_cast<i32>(m_config.dimension));
+    m_itemPickupManager = server::ItemPickupManager();
+    spdlog::info("DIAG shutdown(dim={}): difficulty callback reset", static_cast<i32>(m_config.dimension));
+    m_difficultyCallback = nullptr;
+    spdlog::info("DIAG shutdown(dim={}): on-open callbacks reset", static_cast<i32>(m_config.dimension));
+    m_onOpenContainer = nullptr;
+    m_onOpenEntityContainer = nullptr;
 
     m_chunkManager.reset();
     spdlog::info("DIAG shutdown(dim={}): chunk manager destroyed", static_cast<i32>(m_config.dimension));
