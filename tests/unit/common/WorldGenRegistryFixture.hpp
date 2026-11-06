@@ -58,11 +58,26 @@ namespace test {
  * 注册表：PlacementRegistry → FeatureTypeRegistry → ConfiguredFeature →
  * PlacedFeature → ConfiguredCarver → Biome。供需要真实雕刻/装饰管线的测试调用。
  *
- * 注册表为进程级单例，重复调用安全（多次加载会累积覆盖同名条目）。
+ * 注册表为进程级单例：本函数在进程内只装配一次（见下方缓存），需要重新装配的用例
+ * 直接调用 _reloadVanillaWorldGenRegistries()。
  *
  * @return 数据包目录存在且扫描成功返回 true；目录缺失返回 false（调用方应 GTEST_SKIP）
  */
+bool _reloadVanillaWorldGenRegistries();
+
 inline bool loadVanillaWorldGenRegistries()
+{
+    // 进程级缓存：整套装配要重新解析 ConfiguredFeature/PlacedFeature/Carver/Biome 与结构管线
+    // 的全部 JSON，而 gtest_discover_tests 下每个用例是独立进程。逐用例 SetUp 里重复装配会
+    // 把这份开销乘以同套件的用例数。注册表是进程级单例，装配一次即对后续用例可见。
+    // 需要「重新装配」的用例请直接调用下面的 _reloadVanillaWorldGenRegistries。
+    // 同一进程内用 --gtest_filter 跑多个用例时，缓存命中的后续用例会直接拿到首次装配的结果；
+    // 装配失败由调用方的 ASSERT_TRUE 报告。
+    static const bool loaded = _reloadVanillaWorldGenRegistries();
+    return loaded;
+}
+
+inline bool _reloadVanillaWorldGenRegistries()
 {
     const auto dataPackDir = GameDirectory::defaultDirectory().dataPacksDir();
     if (!std::filesystem::exists(dataPackDir)) {
