@@ -242,6 +242,11 @@ void ChunkSendManager::submitChunkData(ChunkCoord x,
     std::vector<PlayerId> players,
     bool validateTracking)
 {
+    // 关停检查必须先于一切：关停后到达的构建结果直接丢弃，连追踪事件都不必再取。
+    if (m_shutdown.load(std::memory_order::acquire)) {
+        return;
+    }
+
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::submitChunkData");
 
     std::sort(players.begin(), players.end());
@@ -259,12 +264,6 @@ void ChunkSendManager::submitChunkData(ChunkCoord x,
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(ir)}});
     ready.players = std::move(players);
     ready.validateTracking = validateTracking;
-    // 与 shutdown() 互斥：关停之后才到达的构建结果直接丢弃。
-    // 构建任务持有本对象的 shared_ptr（在途期间管理器必然存活），因此关停标志可以无锁读取；
-    // 这样关服时销毁优先级排在前面的管理器也不会被在途任务卡住。
-    if (m_shutdown.load(std::memory_order::acquire)) {
-        return;
-    }
     std::lock_guard<std::mutex> lock(m_readyChunksMutex);
     if (m_shutdown.load(std::memory_order::acquire)) {
         return;
