@@ -167,6 +167,9 @@ template <typename Clock>
     using FileDuration = std::filesystem::file_time_type::duration;
     using FileRep = FileDuration::rep;
     using FilePeriod = FileDuration::period;
+    // 边界换算需以 i64 承载；libc++（macOS）的 FileRep 是 __int128，直接用它推导 kMaxSeconds
+    // 会得到 __int128 常量，赋给 i64 时触发 -Wconstant-conversion。
+    using BoundRep = i64;
 
     // 换算因子：1 秒 = FilePeriod::den / FilePeriod::num 个 file_clock 刻度
     // （libstdc++ 为纳秒 → 1e9；MSVC 为 100ns → 1e7）。
@@ -181,8 +184,17 @@ template <typename Clock>
     // 正确做法是把边界换算到"Unix 秒"这个共同尺度上先做比较，只在确认不溢出之后才相乘。
     // FileRep 为 i64、kTicksPerSecond 为正，可表示的秒数区间为 [min/k, max/k]。
     const i64 offsetSeconds = detail::fileClockToSystemOffsetSeconds();
-    constexpr i64 kMaxSeconds = std::numeric_limits<FileRep>::max() / kTicksPerSecond;
-    constexpr i64 kMinSeconds = std::numeric_limits<FileRep>::min() / kTicksPerSecond;
+    // 先钳到 i64 范围：FileRep 比 i64 宽时超出部分本就无法由 i64 入参触及。
+    constexpr BoundRep kMaxFileTicks =
+        static_cast<BoundRep>(std::numeric_limits<FileRep>::max() > std::numeric_limits<BoundRep>::max()
+                ? std::numeric_limits<BoundRep>::max()
+                : std::numeric_limits<FileRep>::max());
+    constexpr BoundRep kMinFileTicks =
+        static_cast<BoundRep>(std::numeric_limits<FileRep>::min() < std::numeric_limits<BoundRep>::min()
+                ? std::numeric_limits<BoundRep>::min()
+                : std::numeric_limits<FileRep>::min());
+    constexpr i64 kMaxSeconds = kMaxFileTicks / kTicksPerSecond;
+    constexpr i64 kMinSeconds = kMinFileTicks / kTicksPerSecond;
 
     // 边界与 offsetSeconds 同为 1e9~1e10 量级，相减安全。
     const i64 maxUnixSeconds = kMaxSeconds - offsetSeconds;
