@@ -593,6 +593,27 @@ diff_runner <domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一�
 | `direction_rotate` | 原版 jar `DirectionRotateOracle` | 43 个方向/角度输入 | 全部一致 | 纯计算，方向旋转 |
 | `aabb_ops` | 原版 jar `AabbOpsOracle` | 19 个几何运算 | 全部一致 | 纯计算（Cubium 无 AABB 类） |
 | `spawner_delay` | 原版 jar `SpawnerDelayOracle` | 15 种延迟状态组合 | 全部一致 | 纯计算，`-1` 哨兵、区间退化 |
+| `block_spawn_query` | 原版 jar `BlockSpawnQueryOracle` | 全部 29671 个方块状态 | 待重跑确认 | 四条生成判据：碰撞满格 / 红石导体 / 信号源 / 支撑面；后三条不能当成「碰撞形状满格」 |
+| `block_view_blocking` | 原版 jar `BlockViewBlockingOracle` | 全部 29671 个方块状态 | 待重跑确认 | 挡视线（第三人称相机拉近）与窒息（持续掉血）；树叶、玻璃等数十处按注册覆写 |
+| `dig_speed` | 原版 jar `DigSpeedOracle` | 32 个输入组合 | 待重跑确认 | 挖掘速度公式，f32 位模式比对；出错的是「多个因子同时在场」的组合 |
+| `entity_physics` | 原版 jar `EntityPhysicsOracle` | 48 个移动 tick 组合 | 待重跑确认 | 一次移动 tick 的速度更新，f32 位模式比对；摩擦/重力/滑度/缓降的组合 |
+| `timeline_sample` | 原版 jar `TimelineSampleOracle` | 10 条轨道 × 采样时刻 | 待重跑确认 | 关键帧轨道采样；`loopTicks` 用 `floorMod`，负数必须回绕到周期末尾 |
+| `ray_aabb` | 原版 jar `RayAabbOracle` | 36 个盒 × 起点 × 方向 | 待重跑确认 | `Mth.rayIntersectsAABB`；前两次叉积判定用 `>`、最后一次用 `<`，不对称是关键 |
+| `jigsaw_joint_order` | 原版 jar `JigsawJointOrderOracle` | 6 个模板 × 旋转 × 种子 | 待重跑确认 | 拼图连接点洗牌顺序；随机数消耗差一就让整棵结构分叉 |
+| `cubic_spline` | 原版 jar `CubicSplineOracle` | 11 条样条 × 采样值 | 待重跑确认 | 三次 Hermite 样条；全零导数是线性插值，非零导数走真样条 |
+| `density_composite` | 原版 jar `DensityCompositeOracle` | 3 类组合（Add/Mul/Min/Max/Lerp/RangeChoice） | 待重跑确认 | 子函数全用 `Constant`，整棵树由单元名参数量化重建 |
+| `density_function` | 原版 jar `DensityFunctionOracle` | 3 类纯函数 × 采样点 | 待重跑确认 | 只覆盖不依赖噪声的密度函数；噪声类见 `noise_density` 等 |
+| `noise_density` | 原版 jar `NoiseDensityOracle` | 11 条配置 × 采样点 | 待重跑确认 | `NoiseDensity` 与 `MappedNoise`；缩放取非 2 的幂以暴露舍入 |
+| `perlin_noise` | 原版 jar `PerlinNoiseOracle` | 9 条配置 × 12 个采样点 | 待重跑确认 | 单/多倍频与真实地形的振幅链；整数点验端点、小数点压三线性插值内部 |
+| `normal_noise` | 原版 jar `NormalNoiseOracle` | 8 条配置 × 采样点 | 待重跑确认 | 双 fork 叠加与 `expectedDeviation` 归一化；`octaveRange` 只统计非零振幅 |
+| `shift_noise` | 原版 jar `ShiftNoiseOracle` | 12 种 ShiftA/ShiftB/Shift 形态 × 采样点 | 待重跑确认 | 顶点位移噪声，坐标乘 0.25 后取值再乘 4 |
+| `shifted_noise` | 原版 jar `ShiftedNoiseOracle` | 8 种位移形态 × 采样点 | 待重跑确认 | 坐标缩放后叠加位移密度函数再采样噪声 |
+| `weird_scaled_sampler` | 原版 jar `WeirdScaledSamplerOracle` | 3 类 rarity 映射 × 采样点 | 待重跑确认 | `value < 阈值` 是严格小于；输入刻意取阈值与其两侧 |
+| `end_islands` | 原版 jar `EndIslandsOracle` | 3 个种子 × 采样点 | 待重跑确认 | 末地主密度函数；采样点覆盖中心区与 25×25 邻域的外岛分支 |
+| `lerp3_interpolate` | 原版 jar `Lerp3InterpolateOracle` | 7 组八角色值 × 插值因子 | 待重跑确认 | 区块噪声三线性插值，顺序 X→Y→Z；任何一步被融合成 FMA 都会偏若干 ulp |
+| `mth_atan2` | 原版 jar `MthAtan2Oracle` | 33 个角度用例 | 32 一致，2 处已登记 | 查表近似；`1|1` 与 `-1|1` 为平台 `std::cos` 差 1 ULP |
+| `mth_map_lerp` | 原版 jar `MthMapLerpOracle` | 35 个整数插值/映射用例 | 待重跑确认 | `lerpInt` 乘 span、`lerpDiscrete` 乘 span-1 再对正值补一格 |
+| `mth_misc` | 原版 jar `MthMiscOracle` | 7 类函数的取值范围组合 | 待重跑确认 | `murmur` 无符号右移、`invCube` 向零取整、`sign` 对负零/NaN、`quantize` 向下取整、`square` 保留符号 |
 
 `loot_function` 把范围从「整张表掷出来什么」收窄到**单个函数**：两侧各现场造一张「1 个池
 + 1 个必定产出一条物品」的表，表级只挂一个函数，然后在同一批种子上掷 4 次。差异因此只
