@@ -140,6 +140,32 @@ public:
     }
 
     /**
+     * @brief 方块底面中心点，对应原版 `BlockPos.getBottomCenter()`
+     *
+     * Y 轴不偏移，只有 X/Z 各加 0.5——用于判断「脚站在方块上」的位置。
+     */
+    [[nodiscard]] Vector3 bottomCenter() const noexcept
+    {
+        return {static_cast<f32>(x) + 0.5f, static_cast<f32>(y), static_cast<f32>(z) + 0.5f};
+    }
+
+    /**
+     * @brief 各分量按标量缩放，对应原版 `BlockPos.multiply(int)`
+     */
+    [[nodiscard]] BlockPos multiply(i32 scalar) const noexcept
+    {
+        return BlockPos(x * scalar, y * scalar, z * scalar);
+    }
+
+    /**
+     * @brief 逐分量相减，对应原版 `BlockPos.subtract(Vec3i)`
+     */
+    [[nodiscard]] BlockPos subtract(const BlockPos& other) const noexcept
+    {
+        return BlockPos(x - other.x, y - other.y, z - other.z);
+    }
+
+    /**
      * @brief 计算到另一个位置的曼哈顿距离
      *
      * 曼哈顿距离 = |x1-x2| + |y1-y2| + |z1-z2|
