@@ -70,6 +70,76 @@ enum class TextFormatting : u8 {
 };
 
 /**
+ * @brief 文本颜色，对应原版 `net.minecraft.network.chat.TextColor`
+ *
+ * 同时覆盖两种来源：
+ * - **具名颜色**：由 `TextFormatting` 的 16 个颜色码构造，序列化时写**名字**（`"red"`）；
+ * - **自定义 RGB**：由 `fromRgb` 构造，序列化时写 `"#RRGGBB"`。
+ *
+ * 两者的 JSON 文本不同（`"red"` vs `"#FF5555"`），即使 RGB 值相同——存档与网络
+ * 逐字节比对时这是必须区分的，所以内部保留 `name` 字段而不是只存 RGB。
+ */
+class TextColor {
+public:
+    /**
+     * @brief 由 RGB 构造自定义颜色，对应原版 `TextColor.fromRgb`
+     *
+     * 只保留低 24 位；传入 `0xFF5555` 与 `0x00FF5555` 等价。
+     */
+    [[nodiscard]] static TextColor fromRgb(i32 rgb);
+
+    /**
+     * @brief 由格式化枚举构造具名颜色，对应原版 `TextColor.fromLegacyFormat`
+     *
+     * 传入样式码（加粗、斜体等）或 `Reset`/`None` 时返回 `std::nullopt`——
+     * 它们不对应任何颜色。
+     */
+    [[nodiscard]] static std::optional<TextColor> fromLegacyFormat(TextFormatting formatting);
+
+    /**
+     * @brief 解析 `"red"` 或 `"#RRGGBB"`，对应原版 `TextColor.parseColor`
+     *
+     * 具名颜色必须与 16 个颜色名**完全匹配**（区分大小写、不接受样式名）；
+     * 十六进制必须是 `#` 加**恰好 6 位**十六进制数字。任何不符返回 `std::nullopt`。
+     */
+    [[nodiscard]] static std::optional<TextColor> parseColor(std::string_view text);
+
+    /**
+     * @brief 序列化成 JSON 字符串形式
+     *
+     * 具名颜色返回名字，自定义颜色返回 `"#RRGGBB"`（**大写十六进制**）。
+     */
+    [[nodiscard]] std::string serialize() const;
+
+    /**
+     * @brief RGB 值（不含 alpha）
+     */
+    [[nodiscard]] i32 value() const noexcept
+    {
+        return m_value;
+    }
+
+    /**
+     * @brief 具名颜色的名字；自定义颜色为空
+     */
+    [[nodiscard]] const std::optional<std::string>& name() const noexcept
+    {
+        return m_name;
+    }
+
+    bool operator==(const TextColor& other) const noexcept
+    {
+        return m_value == other.m_value && m_name == other.m_name;
+    }
+
+private:
+    TextColor(i32 value, std::optional<std::string> name);
+
+    i32 m_value = 0;
+    std::optional<std::string> m_name;
+};
+
+/**
  * @brief 获取格式化类型的颜色值（ARGB格式），样式类型返回 std::nullopt
  *
  * 对应原版 `ChatFormatting#getColor()`：**只有 16 个颜色码有颜色**，
