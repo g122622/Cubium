@@ -218,6 +218,23 @@ Result<std::unique_ptr<Structure>> createZeroArg(const StructureDefinition& def)
     return toBase(std::make_unique<T>(def.id));
 }
 
+/**
+ * @brief 废墟传送门工厂
+ *
+ * 七个 `ruined_portal*` 变体的全部差异都写在各自 JSON 的 `setups` 表里（放置方式、苔藓、
+ * 藤蔓、空气口袋、权重）。子类必须拿到这张表才能按原版流程生成，因此这里不能走
+ * `createZeroArg`。表为空说明数据包缺 `setups` 字段，属于配置错误，直接失败而不是
+ * 退回到某套硬编码的默认值。
+ */
+Result<std::unique_ptr<Structure>> createRuinedPortal(const StructureDefinition& def)
+{
+    if (def.ruinedPortalSetups.empty()) {
+        return Error(ErrorCode::InvalidData,
+            "ruined_portal structure '" + def.id.toString() + "' missing non-empty 'setups' array");
+    }
+    return toBase(std::make_unique<RuinedPortalStructure>(def.id, def.ruinedPortalSetups));
+}
+
 } // namespace
 
 // ----------------------------------------------------------------------------
@@ -300,7 +317,7 @@ void initializeBuiltinStructureTypes()
     // 原版 1.21 已把该类型由 minecraft:monument 改名为 minecraft:ocean_monument。
     reg.registerType("ocean_monument", createZeroArg<OceanMonumentStructure>);
     reg.registerType("ocean_ruin", createZeroArg<OceanRuinStructure>);
-    reg.registerType("ruined_portal", createZeroArg<RuinedPortalStructure>);
+    reg.registerType("ruined_portal", createRuinedPortal);
     reg.registerType("shipwreck", createZeroArg<ShipwreckStructure>);
     reg.registerType("stronghold", createZeroArg<StrongholdStructure>);
     reg.registerType("swamp_hut", createZeroArg<SwampHutStructure>);

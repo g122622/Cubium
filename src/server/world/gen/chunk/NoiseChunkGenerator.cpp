@@ -242,9 +242,10 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
 
         // 生物群系校验。原版在"候选生成点已求出、构件尚未装配"时校验，采样点是候选点本身
         // （jigsaw 结构为起始块中心、高度为投影后的地面线），而非区块中心。
-        // 候选点依赖随机数的结构（要先抽起始块）无法由调用方预先算出，改由结构自身在
-        // generate() 内校验并返回 nullptr——那种情况下这里跳过预检，避免重复消耗随机数
-        // 与用错误的采样点误杀。
+        // 候选点依赖随机数的结构（要先抽起始块）无法由调用方预先算出，两种处理：
+        //   - `validatesBiomeOnCandidatePoint()`：结构在 generate() 内校验，失败返回 nullptr；
+        //   - `isValidAtCandidatePoint()`：结构照常产出起点，由这里用**结构给出的候选点**复核。
+        // 其余情况在本区块中心预检。任何一条路径都不得用错误的采样点误杀结构。
         bool biomeOk = true;
         if (!structure->validatesBiomeOnCandidatePoint()) {
             const BiomeId biomeAtCandidate =
@@ -270,7 +271,11 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
             // 用同一个随机源重抽其余条目；若把它当成成功，会静默吞掉该结构集在本区块的
             // 其余候选，使结构整片缺失。
             if (start && start->isValid()) {
-                return {entry->structureId, std::move(start)};
+                // 原版把群系校验放在 `GenerationStub` 的 Consumer **内部**（候选点算完之后）：
+                // 起点存在并不等于落点合法。这里对声明了候选点复核的结构补上同一步。
+                if (structure->isValidAtCandidatePoint(*this, *start)) {
+                    return {entry->structureId, std::move(start)};
+                }
             }
         }
 

@@ -203,6 +203,15 @@ TEST_F(StructureTypeRegistryTest, DispatchesProceduralTypesToSubclasses)
 
     for (const auto& [type, isMatch] : cases) {
         auto def = makeDef(type, "minecraft:" + type);
+        if (type == "ruined_portal") {
+            // 废墟传送门必须带非空的 setups 表：七个变体的差异全写在这张表里，工厂对空表
+            // 直接报错（宁可失败也不退回某套硬编码默认值）。
+            def.ruinedPortalSetups.push_back([] {
+                RuinedPortalSetupDefinition setup;
+                setup.placement = RuinedPortalSetupDefinition::Placement::OnLandSurface;
+                return setup;
+            }());
+        }
         auto result = reg.create(type, def);
         ASSERT_TRUE(result.success()) << "type=" << type << " create failed";
         auto structure = result.value();

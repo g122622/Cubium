@@ -188,30 +188,63 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
 
     // 队列驱动组装。
     //
-    // 原版 generatePieces 把所有分支压进 StartPiece.pendingChildren，再由
-    // `while (!pending.isEmpty())` 逐个取出继续扩展——某一条分支被包围盒挡住只是那一条
-    // 分支结束，其余分支照常生长。此前这里是一条单链递归：从 pieces.back() 一路向前延伸，
-    // 一旦某个位置放不下任何 piece 就整棵树结束，要塞必然塌缩成只剩起始楼梯。
+    // 原版 generatePieces 把所有待扩展分支压进 `StartPiece.pendingChildren`，然后
     //
-    // 这里让 pieces 本身充当队列：每轮取一个「尚未扩展过」的 piece 调用 buildComponent，
-    // 它会把新生成的子 piece 追加到 pieces 末尾，于是下一轮继续扩展这些新的分支。
-    // 效果与原版队列一致，且不需要改动 StrongholdPieces 的 1600 行组装逻辑。
+    //     while (!pending.isEmpty()) {
+    //         int j = random.nextInt(pending.size());
+    //         StructurePiece next = pending.remove(j);
+    //         next.addChildren(start, builder, random);
+    //     }
     //
-    // 上限同时防止病态拓扑（例如大量互相相邻的直角拐弯）导致 piece 数爆炸。
+    // 那一次 `nextInt(size)` 既决定下一次扩展哪条分支，也消耗一个随机数。顺序遍历
+    // （正序或倒序）能长出同样规模的树，但每次 buildComponent 内部消耗的随机数不同，
+    // 整条随机流会从第一个不同的分支开始错位，最终构件集合、位置与旋转全部与原版不同。
+    // 因此必须照原版的「随机取下标 + 从待扩展队列移除」来做。
+    //
+    // `pieces` 存放全部已生成片段（增长顺序与原版 addPiece 一致），
+    // `pendingChildren` 只存放「还没扩展过的分支」。
+    //
+    // 【起始楼梯必须在循环外直接扩展】原版是
+    //     builder.addPiece(start); start.addChildren(start, builder, random);
+    //     List<StructurePiece> list = start.pendingChildren;
+    //     while (!list.isEmpty()) { int j = random.nextInt(list.size()); list.remove(j).addChildren(...); }
+    // 起始楼梯**不在** pendingChildren 里——它是在进循环之前直接展开的。若把它也塞进
+    // 队列，队列长度为 1 时那次 `nextInt(1)` 就白白多消耗一个随机数（Java 的
+    // `nextInt(1)` 虽然恒返回 0，但仍要消费一次 `next(31)`），整座要塞从第一个子构件
+    // 起错位。
+    std::vector<size_t> pendingChildren;
+
     // 片段总数上限只是防御「病态拓扑把内存吃光」的兜底：终止条件必须来自权重耗尽
     // （原版 canAddStructurePieces 返回 false，各分支开不出新片段），否则要塞会在到达
     // 真实规模之前被凭空截断。真正的 50 层深度限制由每个片段各自的分支深度把关
     // （见 StrongholdPiece::expansionDepth），不在这里数全局片段数。
     constexpr size_t kMaxPieces = 240;
-    // 从起始楼梯开始扩展：原版 StartPiece 的第一步就是 buildComponent，由它开出通往要塞主体的门。
-    size_t nextToExpand = 0;
-    while (nextToExpand < pieces.size() && pieces.size() < kMaxPieces) {
-        StructurePiece* current = pieces[nextToExpand].get();
-        ++nextToExpand;
+
+    {
+        const size_t before = pieces.size();
+        pieces[0]->buildComponent(pieces[0].get(), pieces, rng);
+        for (size_t i = before; i < pieces.size(); ++i) {
+            pendingChildren.push_back(i);
+        }
+    }
+
+    while (!pendingChildren.empty() && pieces.size() < kMaxPieces) {
+        const i32 pick = rng.nextInt(static_cast<i32>(pendingChildren.size()));
+        MC_ASSERT_RELEASE(pick >= 0 && static_cast<size_t>(pick) < pendingChildren.size());
+        const size_t index = pendingChildren[static_cast<size_t>(pick)];
+        pendingChildren.erase(pendingChildren.begin() + pick);
+
+        StructurePiece* current = pieces[index].get();
         if (current == nullptr) {
             continue;
         }
+
+        const size_t before = pieces.size();
         current->buildComponent(current, pieces, rng);
+        // 新生成的片段加入待扩展队列，顺序与 addPiece 的追加顺序一致。
+        for (size_t i = before; i < pieces.size(); ++i) {
+            pendingChildren.push_back(i);
+        }
     }
 
     return startStairsPtr;

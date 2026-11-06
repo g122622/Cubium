@@ -110,6 +110,9 @@ public final class MineshaftPiecesOracle {
                 object.addProperty("genDepth", piece.getGenDepth());
                 net.minecraft.core.Direction orientation = piece.getOrientation();
                 object.addProperty("orientation", orientation == null ? "null" : orientation.name());
+                // 交叉点的方向字段：getOrientation() 对它是 null，但 addChildren 实际按
+                // 构造时传入的方向选出口表，因此它决定下一批构件的坐标。
+                object.addProperty("crossDirection", crossDirection(piece));
                 pieces.add(object);
             }
         }
@@ -119,6 +122,28 @@ public final class MineshaftPiecesOracle {
         result.addProperty("present", found);
         result.add("pieces", pieces);
         return result;
+    }
+
+    /**
+     * 交叉点构件的方向字段。
+     *
+     * {@code MineShaftCrossing.direction} 是 {@code private final}，没有访问器，而
+     * {@code addChildren} 完全依赖它选出口表——它是「下一个构件从哪出发」的唯一线索。
+     * 只对交叉点读取，其余构件返回 {@code null}。
+     */
+    private static String crossDirection(StructurePiece piece) {
+        if (!(piece instanceof net.minecraft.world.level.levelgen.structure.structures.MineshaftPieces
+                .MineShaftCrossing)) {
+            return "null";
+        }
+        try {
+            java.lang.reflect.Field field = piece.getClass().getDeclaredField("direction");
+            field.setAccessible(true);
+            Object value = field.get(piece);
+            return value == null ? "null" : ((net.minecraft.core.Direction) value).name();
+        } catch (ReflectiveOperationException error) {
+            return "null";
+        }
     }
 
     private static String typeName(StructurePieceType type) {

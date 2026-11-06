@@ -139,7 +139,11 @@ std::string runLine(std::string_view inputLine)
                 // 原版只有走廊(61)与楼梯(63)在构造里调用 setOrientation；交叉点(62)与
                 // 房间(60)都不调用，它们的 getOrientation() 是 null。这里必须逐类对齐，
                 // 不能一律取 direction()。
-                {"orientation", (type == 61 || type == 63) ? directionName(mineshaftPiece->direction()) : "null"}});
+                {"orientation", (type == 61 || type == 63) ? directionName(mineshaftPiece->direction()) : "null"},
+                // 交叉点单独的「方向字段」：原版 getOrientation() 对它返回 null，但
+                // `MineShaftCrossing.addChildren` 实际按构造时传入的方向选出口表，
+                // 因此它决定了下一批构件的坐标。两侧必须逐条一致。
+                {"crossDirection", type == 62 ? directionName(mineshaftPiece->direction()) : "null"}});
         }
     }
 

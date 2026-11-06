@@ -30,7 +30,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -150,7 +151,8 @@ RuinedPortalPiece::RuinedPortalPiece(const std::string& templateName,
     Rotation rotation,
     Mirror mirror,
     RuinedPortalLocation location,
-    const RuinedPortalProperties& properties)
+    const RuinedPortalProperties& properties,
+    const BlockPos& candidatePos)
     : StructurePiece(
           StructurePieceTypes::RUINED_PORTAL, position.x, position.y, position.z, position.x, position.y, position.z)
     , m_templateName(templateName)
@@ -158,6 +160,7 @@ RuinedPortalPiece::RuinedPortalPiece(const std::string& templateName,
     , m_mirror(mirror)
     , m_location(location)
     , m_properties(properties)
+    , m_candidatePos(candidatePos)
     , m_size(1, 1, 1)
 {}
 
@@ -321,8 +324,9 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
 // RuinedPortalStructure
 // ============================================================================
 
-RuinedPortalStructure::RuinedPortalStructure(ResourceLocation id)
+RuinedPortalStructure::RuinedPortalStructure(ResourceLocation id, std::vector<RuinedPortalSetupDefinition> setups)
     : Structure(std::move(id))
+    , m_setups(std::move(setups))
 {}
 
 const biome::BiomeTag* RuinedPortalStructure::defaultBiomeTag() const
@@ -330,230 +334,240 @@ const biome::BiomeTag* RuinedPortalStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_STANDARD();
 }
 
-RuinedPortalType RuinedPortalStructure::getPortalType(BiomeId biome)
+bool RuinedPortalStructure::isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const
 {
-    // 根据生物群系确定传送门类型
-    if (biome == Desert || biome == DesertHills || biome == DesertLakes) {
-        return RuinedPortalType::Desert;
+    if (start.pieces().empty()) {
+        return true;
     }
-    if (biome == Jungle || biome == JungleHills || biome == JungleEdge || biome == ModifiedJungle ||
-        biome == ModifiedJungleEdge) {
-        return RuinedPortalType::Jungle;
+    const auto* piece = dynamic_cast<const RuinedPortalPiece*>(start.pieces().front().get());
+    MC_ASSERT_RELEASE(piece != nullptr);
+    const BlockPos& candidate = piece->candidatePos();
+    const BiomeId biomeId = generator.getBiomeAtBlock(candidate.x, candidate.y, candidate.z);
+    if (!isValidBiome(biomeId)) {
+        // 候选点采样到的群系不属于本变体时整座传送门作废。这条告警出现在"原版生成、
+        // 本实现没有"的差分里时，是落点/模板包围盒算偏的第一嫌疑。
+        spdlog::warn("ruined_portal '{}': candidate ({}, {}, {}) biome {} rejected by '{}'",
+            id().toString(),
+            candidate.x,
+            candidate.y,
+            candidate.z,
+            static_cast<i32>(biomeId),
+            biomeTag()->getId().toString());
+        return false;
     }
-    if (biome == Swamp) {
-        return RuinedPortalType::Swamp;
-    }
-    if (biome == Mountains || biome == WoodedMountains || biome == GravellyMountains || biome == MountainEdge ||
-        biome == SnowyMountains) {
-        return RuinedPortalType::Mountain;
-    }
-    if (biome == Ocean || biome == DeepOcean || biome == WarmOcean || biome == DeepWarmOcean ||
-        biome == LukewarmOcean || biome == DeepLukewarmOcean || biome == ColdOcean || biome == DeepColdOcean ||
-        biome == FrozenOcean || biome == DeepFrozenOcean) {
-        return RuinedPortalType::Ocean;
-    }
-    // 下界生物群系由 DimensionType 判断，这里不处理
-    return RuinedPortalType::Standard;
+    return true;
 }
 
-bool RuinedPortalStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
+namespace {
+
+/// 在闭区间 [min, max] 上均匀取整（原版 `Mth.randomBetweenInclusive`）
+i32 _randomBetweenInclusive(math::IRandom& rng, i32 minValue, i32 maxValue)
 {
-    // 间距检查已由 StructurePlacement::isStructureChunk() 处理
-    // 概率检查（约 30% 基础概率，具体由生物群系调整）
-    return rng.nextFloat() < 0.3f;
+    return rng.nextInt(maxValue - minValue + 1) + minValue;
 }
 
-RuinedPortalProperties RuinedPortalStructure::configureProperties(
-    RuinedPortalType type, math::IRandom& rng, BiomeId biome) const
+/**
+ * @brief 在 [min, max] 上取整；区间为空时**不消耗随机数**直接返回 max
+ *
+ * 原版 `getRandomWithinInterval` 的语义：`min < max` 才抽取，否则返回 max。这个"不抽"
+ * 分支有可观测后果——空区间出现时少一次 `nextInt`，后续所有抽取都会前移一格。
+ */
+i32 _randomWithinInterval(math::IRandom& rng, i32 minValue, i32 maxValue)
 {
-    RuinedPortalProperties props;
+    return minValue < maxValue ? _randomBetweenInclusive(rng, minValue, maxValue) : maxValue;
+}
 
-    // 根据类型配置属性
-    switch (type) {
-        case RuinedPortalType::Desert:
-            // 沙漠: 部分掩埋，无空气口袋，无苔藓
-            props.airPocket = false;
-            props.mossiness = 0.0f;
+/// 原版 `RuinedPortalStructure.sample`：概率为 0/1 时**不消耗随机数**
+bool _sampleProbability(math::IRandom& rng, f32 probability)
+{
+    if (probability == 0.0f) {
+        return false;
+    }
+    if (probability == 1.0f) {
+        return true;
+    }
+    return rng.nextFloat() < probability;
+}
+
+/**
+ * @brief 四角扫描求竖直落点（原版 `RuinedPortalStructure.findSuitableY`）
+ *
+ * 从候选高度`startY` 向下逐层扫描，某一层四个角上**至少三格**是高度图判据下的不透明
+ * 方块时就把传送门放在该层——这样它不会悬空或整个埋进山体。扫描下界是 `minY + 15`；
+ * 扫到下限仍未凑够三格时返回下限本身。
+ *
+ * @param boundingBox 以 `origin` 为锚点算出的模板包围盒
+ * @param origin 模板在 XZ 上的世界原点
+ */
+i32 _findSuitableY(math::IRandom& rng,
+    IChunkGenerator& generator,
+    const RuinedPortalSetupDefinition& setup,
+    bool airPocket,
+    i32 startY,
+    const StructureBoundingBox& boundingBox,
+    const BlockPos& origin)
+{
+    const i32 minScanY = ::mc::world::MIN_BUILD_HEIGHT + 15;
+    const i32 ySpan = boundingBox.ySpan();
+    i32 y = 0;
+    switch (setup.placement) {
+        case RuinedPortalSetupDefinition::Placement::InNether:
+            if (airPocket) {
+                y = _randomBetweenInclusive(rng, 32, 100);
+            } else if (rng.nextFloat() < 0.5f) {
+                y = _randomBetweenInclusive(rng, 27, 29);
+            } else {
+                y = _randomBetweenInclusive(rng, 29, 100);
+            }
             break;
-
-        case RuinedPortalType::Jungle:
-            // 丛林: 在地表，可能有空气口袋，高苔藓，过度生长，藤蔓
-            props.airPocket = rng.nextFloat() < 0.5f;
-            props.mossiness = 0.8f;
-            props.overgrown = true;
-            props.vines = true;
+        case RuinedPortalSetupDefinition::Placement::InMountain:
+            // 目标区间 [70, 地表-模板高]：整座建筑都要留在地面以上，上界扣掉 Y 跨度。
+            y = _randomWithinInterval(rng, 70, startY - ySpan);
             break;
-
-        case RuinedPortalType::Swamp:
-            // 沼泽: 在海底，无空气口袋，中等苔藓，有藤蔓
-            props.airPocket = false;
-            props.mossiness = 0.5f;
-            props.vines = true;
+        case RuinedPortalSetupDefinition::Placement::Underground:
+            y = _randomWithinInterval(rng, minScanY, startY - ySpan);
             break;
-
-        case RuinedPortalType::Mountain:
-            // 山地: 可能在山中或地表，有空气口袋
-            props.airPocket = rng.nextFloat() < 0.5f || rng.nextFloat() < 0.5f;
+        case RuinedPortalSetupDefinition::Placement::PartlyBuried:
+            y = startY - ySpan + _randomBetweenInclusive(rng, 2, 8);
             break;
-
-        case RuinedPortalType::Ocean:
-            // 海洋: 在海底，无空气口袋，高苔藓
-            props.airPocket = false;
-            props.mossiness = 0.8f;
-            break;
-
-        case RuinedPortalType::Nether:
-            // 下界: 在下界高度，可能有空气口袋，无苔藓，替换为黑石
-            props.airPocket = rng.nextFloat() < 0.5f;
-            props.mossiness = 0.0f;
-            props.replaceWithBlackstone = true;
-            break;
-
-        case RuinedPortalType::Standard:
+        case RuinedPortalSetupDefinition::Placement::OnLandSurface:
+        case RuinedPortalSetupDefinition::Placement::OnOceanFloor:
         default:
-            // 标准: 可能在地下或地表，有空气口袋
-            props.airPocket = rng.nextFloat() < 0.5f || rng.nextFloat() < 0.5f;
+            y = startY;
             break;
     }
 
-    // 如果是山地、海洋或标准类型，检查生物群系温度确定是否为寒冷
-    if (type == RuinedPortalType::Mountain || type == RuinedPortalType::Ocean || type == RuinedPortalType::Standard) {
-        // 简化处理：雪地生物群系为寒冷
-        if (biome == SnowyPlains || biome == SnowyMountains || biome == SnowyBeach || biome == FrozenOcean ||
-            biome == DeepFrozenOcean || biome == ColdOcean || biome == DeepColdOcean) {
-            props.cold = true;
+    // 四角采样：包围盒以 origin 为锚点算出，四角的世界坐标即 origin 加盒内偏移。
+    const i32 minX = origin.x + boundingBox.minX();
+    const i32 maxX = origin.x + boundingBox.maxX();
+    const i32 minZ = origin.z + boundingBox.minZ();
+    const i32 maxZ = origin.z + boundingBox.maxZ();
+    const HeightmapType heightmapType = setup.placement == RuinedPortalSetupDefinition::Placement::OnOceanFloor
+        ? HeightmapType::OceanFloorWG
+        : HeightmapType::WorldSurfaceWG;
+
+    // 逐层取四条完整地形列：判据要的是"该 Y 处是不是实心地形"，而非"该列最高方块在哪"。
+    const NoiseColumn cornerColumns[4] = {generator.getBaseColumn(minX, minZ),
+        generator.getBaseColumn(maxX, minZ),
+        generator.getBaseColumn(minX, maxZ),
+        generator.getBaseColumn(maxX, maxZ)};
+
+    i32 scanY = y;
+    for (; scanY > minScanY; --scanY) {
+        i32 opaqueCount = 0;
+        for (const auto& column : cornerColumns) {
+            if (Heightmap::isOpaqueForType(heightmapType, column.getBlock(scanY))) {
+                if (++opaqueCount == 3) {
+                    return scanY;
+                }
+            }
         }
     }
-
-    return props;
+    return scanY;
 }
 
-RuinedPortalLocation RuinedPortalStructure::determineLocation(RuinedPortalType type, math::IRandom& rng) const
-{
-    // 根据类型确定垂直放置位置
-    switch (type) {
-        case RuinedPortalType::Desert:
-            return RuinedPortalLocation::PartlyBuried;
-
-        case RuinedPortalType::Jungle:
-            return RuinedPortalLocation::OnLandSurface;
-
-        case RuinedPortalType::Swamp:
-            return RuinedPortalLocation::OnOceanFloor;
-
-        case RuinedPortalType::Mountain:
-            // 50% 在山中，50% 在地表
-            return rng.nextFloat() < 0.5f ? RuinedPortalLocation::InMountain : RuinedPortalLocation::OnLandSurface;
-
-        case RuinedPortalType::Ocean:
-            return RuinedPortalLocation::OnOceanFloor;
-
-        case RuinedPortalType::Nether:
-            return RuinedPortalLocation::InNether;
-
-        case RuinedPortalType::Standard:
-        default:
-            // 50% 地下，50% 地表
-            return rng.nextFloat() < 0.5f ? RuinedPortalLocation::Underground : RuinedPortalLocation::OnLandSurface;
-    }
-}
+} // namespace
 
 std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    MC_ASSERT_RELEASE_MSG(!m_setups.empty(),
+        fmt::format(
+            "ruined_portal '{}' has an empty setups list; datapack must provide at least one setup", id().toString())
+            .c_str());
 
-    // 计算生成位置
-    i32 x = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-    i32 z = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-
-    // 获取生物群系并确定传送门类型
-    BiomeId biome = generator.getBiome(x, SEA_LEVEL, z);
-    RuinedPortalType portalType = getPortalType(biome);
-
-    // 确定属性和位置
-    RuinedPortalProperties props = configureProperties(portalType, rng, biome);
-    RuinedPortalLocation location = determineLocation(portalType, rng);
-
-    // 5% 概率选择巨型传送门
-    const std::string* templateName = nullptr;
-    if (rng.nextFloat() < 0.05f && !s_giantTemplates.empty()) {
-        const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_giantTemplates.size())));
-        templateName = &s_giantTemplates[index];
+    // ---- 1. 按 weight 抽取 setup（单条目时不消耗随机数）----
+    const RuinedPortalSetupDefinition* setup = nullptr;
+    if (m_setups.size() > 1) {
+        f32 totalWeight = 0.0f;
+        for (const auto& candidate : m_setups) {
+            totalWeight += candidate.weight;
+        }
+        f32 roll = rng.nextFloat();
+        for (const auto& candidate : m_setups) {
+            roll -= candidate.weight / totalWeight;
+            if (roll < 0.0f) {
+                setup = &candidate;
+                break;
+            }
+        }
+        // 浮点累减可能取不到任何项（roll 恰好落在区间右端外）：退回最后一项并告警，
+        // 保证不产出空结构。
+        if (setup == nullptr) {
+            setup = &m_setups.back();
+            spdlog::warn("ruined_portal '{}': setup weighted draw did not select any entry; using the last one",
+                id().toString());
+        }
     } else {
-        const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_normalTemplates.size())));
-        templateName = &s_normalTemplates[index];
+        setup = &m_setups.front();
     }
 
-    // 随机旋转和镜像
-    Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
-    Mirror mirror = rng.nextFloat() < 0.5f ? Mirror::None : Mirror::FrontBack;
+    // ---- 2. 由 setup 派生属性 ----
+    RuinedPortalProperties props;
+    props.airPocket = _sampleProbability(rng, setup->airPocketProbability);
+    props.mossiness = setup->mossiness;
+    props.overgrown = setup->overgrown;
+    props.vines = setup->vines;
+    props.replaceWithBlackstone = setup->replaceWithBlackstone;
 
-    // 确定高度
-    i32 y = 0;
-    HeightmapType heightmapType =
-        (location == RuinedPortalLocation::OnOceanFloor) ? HeightmapType::OceanFloorWG : HeightmapType::WorldSurfaceWG;
+    // ---- 3. 抽模板（5% 巨型）----
+    const std::string& templateName = (rng.nextFloat() < 0.05f)
+        ? s_giantTemplates[static_cast<size_t>(rng.nextInt(static_cast<i32>(s_giantTemplates.size())))]
+        : s_normalTemplates[static_cast<size_t>(rng.nextInt(static_cast<i32>(s_normalTemplates.size())))];
 
-    switch (location) {
-        case RuinedPortalLocation::InNether:
-            // 下界: Y 32-100，大型传送门在 32-100
-            if (*templateName == s_giantTemplates[0] || *templateName == s_giantTemplates[1] ||
-                *templateName == s_giantTemplates[2]) {
-                y = 32 + rng.nextInt(69); // 32-100
-            } else if (rng.nextFloat() < 0.5f) {
-                y = 27 + rng.nextInt(3); // 27-29
-            } else {
-                y = 29 + rng.nextInt(72); // 29-100
-            }
-            break;
-
-        case RuinedPortalLocation::InMountain:
-        case RuinedPortalLocation::Underground: {
-            i32 surfaceY = generator.getHeight(x, z, heightmapType);
-            if (location == RuinedPortalLocation::InMountain) {
-                // 山中: 地表高度附近
-                y = 70 + rng.nextInt(std::max(1, surfaceY - 70));
-            } else {
-                // 地下: Y 15 到地表
-                y = 15 + rng.nextInt(std::max(1, surfaceY - 15));
-            }
-        } break;
-
-        case RuinedPortalLocation::PartlyBuried: {
-            i32 surfaceY = generator.getHeight(x, z, heightmapType);
-            y = surfaceY + rng.nextInt(7) + 2; // 地表上方 2-8 格
-        } break;
-
-        case RuinedPortalLocation::OnLandSurface:
-        case RuinedPortalLocation::OnOceanFloor:
-        default:
-            y = generator.getHeight(x, z, heightmapType);
-            if (y <= 0) {
-                y = generator.seaLevel();
-            }
-            break;
-    }
-
-    // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
-    if (!templateManager) {
+    if (templateManager == nullptr) {
         templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
     }
+    const auto* templ = templateManager->getTemplate(ResourceLocation(templateName));
+    MC_ASSERT_RELEASE_MSG(
+        templ != nullptr, fmt::format("ruined_portal: template '{}' not found in datapacks", templateName).c_str());
 
-    // 创建片段
-    auto piece =
-        std::make_unique<RuinedPortalPiece>(*templateName, BlockPos(x, y, z), rotation, mirror, location, props);
+    // ---- 4. 旋转 + 镜像 ----
+    // 原版 `Util.getRandom(Rotation.values(), random)` 按 [NONE, CLOCKWISE_90, CLOCKWISE_180,
+    // COUNTERCLOCKWISE_90] 取下标，与本项目 Rotation 枚举值一致，故直接 `nextInt(4)`。
+    const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
+    const Mirror mirror = rng.nextFloat() < 0.5f ? Mirror::None : Mirror::FrontBack;
+
+    // ---- 5. 以区块原点为锚点求模板包围盒，再按包围盒中心取地表高度 ----
+    const BlockPos chunkOrigin(chunkX * world::CHUNK_WIDTH, 0, chunkZ * world::CHUNK_WIDTH);
+    const BlockPos pivot(templ->getSize().x / 2, 0, templ->getSize().z / 2);
+    feature::template_::PlacementSettings pivotSettings;
+    pivotSettings.setRotation(rotation);
+    pivotSettings.setMirror(mirror);
+    pivotSettings.setCenterOffset(pivot);
+    const StructureBoundingBox boundingBox = templ->getBoundingBox(pivotSettings, chunkOrigin);
+
+    // 原版 `BoundingBox.getCenter()` 用 `min + span / 2`，跨度按闭区间算（含 +1）。
+    const i32 centerX = boundingBox.minX() + boundingBox.xSpan() / 2;
+    const i32 centerZ = boundingBox.minZ() + boundingBox.zSpan() / 2;
+
+    const HeightmapType heightmapType = setup->placement == RuinedPortalSetupDefinition::Placement::OnOceanFloor
+        ? HeightmapType::OceanFloorWG
+        : HeightmapType::WorldSurfaceWG;
+    // getHeight 返回"最高方块上方一格"，减 1 得到方块本身 Y。
+    const i32 surfaceBlockY = generator.getHeight(centerX, centerZ, heightmapType) - 1;
+
+    const i32 y = _findSuitableY(rng, generator, *setup, props.airPocket, surfaceBlockY, boundingBox, chunkOrigin);
+
+    const BlockPos portalPos(chunkOrigin.x, y, chunkOrigin.z);
+
+    // ---- 6. cold 判定（仅 setup.can_be_cold 时采样，采样点取最终落点）----
+    if (setup->canBeCold) {
+        const BiomeId biomeId = generator.getBiomeAtBlock(portalPos.x, portalPos.y, portalPos.z);
+        const Biome& biome = biome::BiomeRegistry::instance().get(biomeId);
+        props.cold = biome.coldEnoughToSnow(portalPos.x, portalPos.y, portalPos.z, generator.seaLevel());
+    }
+
+    // ---- 7. 建片段 ----
+    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto piece = std::make_unique<RuinedPortalPiece>(
+        templateName, portalPos, rotation, mirror, setup->placement, props, portalPos);
     piece->setTemplateManager(templateManager);
-    // 析构时的包围盒来自这里的尺寸：模板要在登记起点**之前**加载，
-    // 否则起点包围盒退化成单点（模板本身由 generate 惰性复用同一份缓存）。
+    // 起点包围盒在登记前就要有真实尺寸，否则退化成单点（模板本身由 generate 惰性复用同一份缓存）。
     piece->loadTemplateNow();
-
-    // 【模板必须真的加载到】模板缺失时片段会退化成包围盒为单点、不写任何方块的空片段，
-    // 而起点仍然会被登记、isValid() 只按片段数判定——结果是整座传送门凭空消失且没有任何
-    // 报错。这里显式失败，让"缺模板"第一时间暴露成可定位的错误，而不是静默的空结构。
     MC_ASSERT_RELEASE_MSG(piece->hasLoadedTemplate(),
-        fmt::format("ruined_portal: template '{}' not found in datapacks", *templateName).c_str());
+        fmt::format("ruined_portal: template '{}' not found in datapacks", templateName).c_str());
 
     start->addPiece(std::move(piece));
     start->recalculateStructureSize();
