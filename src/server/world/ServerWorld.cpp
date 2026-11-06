@@ -455,6 +455,16 @@ void ServerWorld::shutdown()
     m_collisionCache.reset();
     spdlog::info("DIAG shutdown(dim={}): tick/physics reset", static_cast<i32>(m_config.dimension));
 
+    spdlog::info("DIAG shutdown(dim={}): world border reset", static_cast<i32>(m_config.dimension));
+    m_worldBorder = world::border::WorldBorder();
+    spdlog::info("DIAG shutdown(dim={}): game rules reset", static_cast<i32>(m_config.dimension));
+    m_gameRules = world::gamerule::GameRules();
+    spdlog::info("DIAG shutdown(dim={}): random reset", static_cast<i32>(m_config.dimension));
+    m_random = math::Random(0);
+    m_blockPositionRandom = math::BlockPositionRandom(0);
+    spdlog::info("DIAG shutdown(dim={}): config reset", static_cast<i32>(m_config.dimension));
+    m_config = ServerWorldConfig();
+
     m_chunkManager.reset();
     spdlog::info("DIAG shutdown(dim={}): chunk manager destroyed", static_cast<i32>(m_config.dimension));
 
@@ -539,6 +549,8 @@ void ServerWorld::shutdown()
     }
     spdlog::info("Server world shut down");
 }
+
+ServerWorld::_EnvironmentAttributes::~_EnvironmentAttributes() = default;
 
 void ServerWorld::setSharedStorage(world::storage::SingleLevelStorageManager* storage)
 {
