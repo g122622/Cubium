@@ -124,6 +124,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include "probe.hpp"
 
@@ -131,68 +132,6 @@ namespace mc::diff {
 namespace {
 
 using nlohmann::json;
-
-/// 原版 `Identifier.validPathChar`。
-bool validPathChar(char ch)
-{
-    return ch == '_' || ch == '-' || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '/' || ch == '.';
-}
-
-/// 原版 `Identifier.validNamespaceChar`。
-bool validNamespaceChar(char ch)
-{
-    return ch == '_' || ch == '-' || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '.';
-}
-
-bool isValidPath(const std::string& text)
-{
-    for (char ch : text) {
-        if (!validPathChar(ch)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool isValidNamespace(const std::string& text)
-{
-    for (char ch : text) {
-        if (!validNamespaceChar(ch)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/// 原版 `Identifier.toLanguageKey()`：只把 `:` 换成 `.`。
-std::string toLanguageKey(const std::string& nameSpace, const std::string& path)
-{
-    return nameSpace + "." + path;
-}
-
-/// 原版 `Identifier.toShortLanguageKey()`。
-std::string toShortLanguageKey(const std::string& nameSpace, const std::string& path)
-{
-    return nameSpace == "minecraft" ? path : toLanguageKey(nameSpace, path);
-}
-
-/// 原版 `Identifier.toShortString()`。
-std::string toShortString(const std::string& nameSpace, const std::string& path)
-{
-    return nameSpace == "minecraft" ? path : (nameSpace + ":" + path);
-}
-
-/// 原版 `Identifier.toDebugFileName()`：`/` 与 `:` 都换成 `_`。
-std::string toDebugFileName(const std::string& nameSpace, const std::string& path)
-{
-    std::string text = nameSpace + ":" + path;
-    for (char& ch : text) {
-        if (ch == '/' || ch == ':') {
-            ch = '_';
-        }
-    }
-    return text;
-}
 
 void writeList(FILE* out)
 {
@@ -257,36 +196,36 @@ std::string runLine(std::string_view inputLine)
     const std::string& path = parts[2];
 
     if (mode == "lang" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", toLanguageKey(nameSpace, path)}}.dump();
+        return json{{"unit", unit}, {"value", ResourceLocation(nameSpace, path).toLanguageKey()}}.dump();
     }
     if (mode == "shortLang" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", toShortLanguageKey(nameSpace, path)}}.dump();
+        return json{{"unit", unit}, {"value", ResourceLocation(nameSpace, path).toShortLanguageKey()}}.dump();
     }
     if (mode == "shortStr" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", toShortString(nameSpace, path)}}.dump();
+        return json{{"unit", unit}, {"value", ResourceLocation(nameSpace, path).toShortString()}}.dump();
     }
     if (mode == "debugFile" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", toDebugFileName(nameSpace, path)}}.dump();
+        return json{{"unit", unit}, {"value", ResourceLocation(nameSpace, path).toDebugFileName()}}.dump();
     }
     if (mode == "langPrefix" && parts.size() == 4) {
-        return json{{"unit", unit}, {"value", parts[3] + "." + toLanguageKey(nameSpace, path)}}.dump();
+        return json{{"unit", unit}, {"value", parts[3] + "." + ResourceLocation(nameSpace, path).toLanguageKey()}}.dump();
     }
     if (mode == "withPrefix" && parts.size() == 4) {
         const std::string combined = parts[3] + path;
-        if (!isValidPath(combined)) {
+        if (!ResourceLocation::isValidPath(combined)) {
             return json{{"unit", unit}, {"value", "<invalid>"}}.dump();
         }
         return json{{"unit", unit}, {"value", nameSpace + ":" + combined}}.dump();
     }
     if (mode == "withSuffix" && parts.size() == 4) {
         const std::string combined = path + parts[3];
-        if (!isValidPath(combined)) {
+        if (!ResourceLocation::isValidPath(combined)) {
             return json{{"unit", unit}, {"value", "<invalid>"}}.dump();
         }
         return json{{"unit", unit}, {"value", nameSpace + ":" + combined}}.dump();
     }
     if (mode == "withPath" && parts.size() == 4) {
-        if (!isValidPath(parts[3])) {
+        if (!ResourceLocation::isValidPath(parts[3])) {
             return json{{"unit", unit}, {"value", "<invalid>"}}.dump();
         }
         return json{{"unit", unit}, {"value", nameSpace + ":" + parts[3]}}.dump();

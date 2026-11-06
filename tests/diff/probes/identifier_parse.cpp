@@ -112,6 +112,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include "probe.hpp"
 
@@ -120,81 +121,13 @@ namespace {
 
 using nlohmann::json;
 
-/// 原版 `Identifier.validPathChar`。
-bool validPathChar(char ch)
+/// 把解析结果渲染成 `namespace:path`；无效时给出 `"<invalid>"`。
+std::string renderParsed(const std::optional<ResourceLocation>& parsed)
 {
-    return ch == '_' || ch == '-' || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '/' || ch == '.';
-}
-
-/// 原版 `Identifier.validNamespaceChar`：没有 `/`。
-bool validNamespaceChar(char ch)
-{
-    return ch == '_' || ch == '-' || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '.';
-}
-
-/// 原版 `Identifier.isValidPath`：空串合法。
-bool isValidPath(const std::string& text)
-{
-    for (char ch : text) {
-        if (!validPathChar(ch)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/// 原版 `Identifier.isValidNamespace`：空串合法。
-bool isValidNamespace(const std::string& text)
-{
-    for (char ch : text) {
-        if (!validNamespaceChar(ch)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/// 已解析的标识符。
-struct Parsed {
-    std::string nameSpace;
-    std::string path;
-    bool valid = false;
-};
-
-/// 原版 `Identifier.tryBySeparator`：非法返回无效。
-Parsed tryBySeparator(const std::string& text, char separator)
-{
-    const std::size_t position = text.find(separator);
-    std::string path;
-    std::string nameSpace;
-    if (position != std::string::npos) {
-        path = text.substr(position + 1);
-        if (position == 0) {
-            nameSpace = "minecraft";
-        } else {
-            nameSpace = text.substr(0, position);
-        }
-    } else {
-        path = text;
-        nameSpace = "minecraft";
-    }
-
-    if (!isValidPath(path)) {
-        return {};
-    }
-    if (!isValidNamespace(nameSpace)) {
-        return {};
-    }
-    return Parsed{nameSpace, path, true};
-}
-
-/// 格式化为 `namespace:path`；无效时给出 `"<invalid>"`。
-std::string render(const Parsed& parsed)
-{
-    if (!parsed.valid) {
+    if (!parsed.has_value()) {
         return "<invalid>";
     }
-    return parsed.nameSpace + ":" + parsed.path;
+    return parsed->toString();
 }
 
 void writeList(FILE* out)
@@ -275,24 +208,24 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "path" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", isValidPath(parts[1])}}.dump();
+        return json{{"unit", unit}, {"value", ResourceLocation::isValidPath(parts[1])}}.dump();
     }
     if (mode == "ns" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", isValidNamespace(parts[1])}}.dump();
+        return json{{"unit", unit}, {"value", ResourceLocation::isValidNamespace(parts[1])}}.dump();
     }
     if (mode == "pathChar" && parts.size() == 2) {
         const i32 codepoint = std::stoi(parts[1]);
-        const bool valid = codepoint >= 0 && codepoint < 128 && validPathChar(static_cast<char>(codepoint));
+        const bool valid = codepoint >= 0 && codepoint < 128 && ResourceLocation::validPathChar(static_cast<char>(codepoint));
         return json{{"unit", unit}, {"value", valid}}.dump();
     }
     if (mode == "parse" || mode == "tryParse") {
         if (parts.size() != 2) {
             throw std::runtime_error("identifier_parse: 需要 2 段：" + unit);
         }
-        return json{{"unit", unit}, {"value", render(tryBySeparator(parts[1], ':'))}}.dump();
+        return json{{"unit", unit}, {"value", renderParsed(ResourceLocation::tryBySeparator(parts[1], ':'))}}.dump();
     }
     if (mode == "tryBuild" && parts.size() == 3) {
-        if (!isValidNamespace(parts[1]) || !isValidPath(parts[2])) {
+        if (!ResourceLocation::isValidNamespace(parts[1]) || !ResourceLocation::isValidPath(parts[2])) {
             return json{{"unit", unit}, {"value", "<invalid>"}}.dump();
         }
         return json{{"unit", unit}, {"value", parts[1] + ":" + parts[2]}}.dump();
@@ -301,10 +234,10 @@ std::string runLine(std::string_view inputLine)
         if (parts[2].size() != 1) {
             throw std::runtime_error("identifier_parse: 分隔符须为单字符：" + unit);
         }
-        return json{{"unit", unit}, {"value", render(tryBySeparator(parts[1], parts[2][0]))}}.dump();
+        return json{{"unit", unit}, {"value", renderParsed(ResourceLocation::tryBySeparator(parts[1], parts[2][0]))}}.dump();
     }
     if (mode == "withDefault" && parts.size() == 2) {
-        if (!isValidPath(parts[1])) {
+        if (!ResourceLocation::isValidPath(parts[1])) {
             return json{{"unit", unit}, {"value", "<invalid>"}}.dump();
         }
         return json{{"unit", unit}, {"value", "minecraft:" + parts[1]}}.dump();
