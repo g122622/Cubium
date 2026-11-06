@@ -687,13 +687,9 @@ public:
      */
     [[nodiscard]] Direction orientation() const noexcept
     {
-        if (m_rotation == Rotation::None) {
-            return Direction::South;
-        }
-        if (m_rotation == Rotation::Clockwise90) {
-            return m_mirror == Mirror::LeftRight ? Direction::West : Direction::East;
-        }
-        return Direction::None;
+        // 构造时 setCoordBaseMode 会把「没有朝向」写成 rotation/mirror 双 None，而同一组取值
+        // 也对应 NORTH，仅凭旋转无法区分；以 setCoordBaseMode 记下的原始方向为准。
+        return m_coordBaseMode;
     }
 
     [[nodiscard]] i32 expansionDepth() const noexcept
