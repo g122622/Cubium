@@ -145,15 +145,21 @@ void ServerDimension::shutdown()
     // 先关闭本维度的区域调度器（不再接纳新任务、取消排队任务、等待在途任务结束），再销毁
     // 管理器：构建任务完成回调之前任务体已被调度器释放，所以在途任务是常态；排空后本维度
     // 不再有任何引用管理器的任务在计算池里跑，销毁时机也就完全确定。
+    // TEMP-DIAG：定位关服 SEGV（验证后回退）。
+    spdlog::info("DIAG dim(dim={}): areaTasks shutdown begin", static_cast<i32>(id()));
     m_world->chunkManager()->areaTasks().shutdown();
+    spdlog::info("DIAG dim(dim={}): areaTasks shutdown done", static_cast<i32>(id()));
+    spdlog::info("DIAG dim(dim={}): release send manager", static_cast<i32>(id()));
     m_chunkSendManager->releaseLifetimeGuard();
     m_chunkSendManager.reset();
+    spdlog::info("DIAG dim(dim={}): send manager destroyed", static_cast<i32>(id()));
 
     // 清理生物生成管理器
     m_villageSiege.reset();
     m_despawnManager.reset();
     m_naturalSpawner.reset();
 
+    spdlog::info("DIAG dim(dim={}): destroy world", static_cast<i32>(id()));
     m_players.clear();
     m_portalPositions.clear();
 
@@ -164,6 +170,7 @@ void ServerDimension::shutdown()
         m_world.reset();
     }
 
+    spdlog::info("DIAG dim(dim={}): world destroyed", static_cast<i32>(id()));
     m_initialized = false;
 }
 
