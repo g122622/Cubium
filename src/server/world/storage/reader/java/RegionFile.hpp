@@ -87,6 +87,45 @@ public:
     [[nodiscard]] bool hasChunk(i32 localX, i32 localZ) const;
 
     /**
+     * @brief 槽位在偏移表中的索引，对应原版 `RegionFile.getOffsetIndex`
+     *
+     * **列优先**：`localX + localZ * 32`——X 变化最快。
+     * 弄反会让区块写到错误的位置，且表现为「区块数据错乱」而非崩溃。
+     */
+    [[nodiscard]] static constexpr i32 getOffsetIndex(i32 localX, i32 localZ) noexcept
+    {
+        return localX + localZ * REGION_SIZE;
+    }
+
+    /**
+     * @brief 从偏移表条目取出扇区号，对应原版 `RegionFile.getSectorNumber`
+     *
+     * 高 24 位。
+     */
+    [[nodiscard]] static constexpr i32 getSectorNumber(i32 offset) noexcept
+    {
+        return (offset >> 8) & 16777215;
+    }
+
+    /**
+     * @brief 从偏移表条目取出扇区数，对应原版 `RegionFile.getNumSectors`
+     *
+     * 低 8 位。
+     */
+    [[nodiscard]] static constexpr i32 getNumSectors(i32 offset) noexcept
+    {
+        return offset & 0xFF;
+    }
+
+    /**
+     * @brief 把扇区号与扇区数打包成偏移表条目（上面两个方法的逆运算）
+     */
+    [[nodiscard]] static constexpr i32 packOffset(i32 sector, i32 count) noexcept
+    {
+        return (sector << 8) | (count & 0xFF);
+    }
+
+    /**
      * @brief 读取区块的原始 NBT 数据（已解压）
      * @param localX 区域内 X 坐标（0-31）
      * @param localZ 区域内 Z 坐标（0-31）

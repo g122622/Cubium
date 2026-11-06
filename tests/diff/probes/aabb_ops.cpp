@@ -95,12 +95,14 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 
 #include "probe.hpp"
 
 namespace mc::diff {
 namespace {
 
+using mc::AxisAlignedBB;
 using nlohmann::json;
 
 struct Box {
@@ -142,7 +144,7 @@ std::string formatNumber(f64 value)
     return text;
 }
 
-json boxToJson(const Box& box)
+json boxToJson(const AxisAlignedBB& box)
 {
     return json::array({formatNumber(box.minX),
         formatNumber(box.minY),
@@ -152,74 +154,6 @@ json boxToJson(const Box& box)
         formatNumber(box.maxZ)});
 }
 
-/// 原版 `AABB.inflate`。
-Box inflate(const Box& box, f64 dx, f64 dy, f64 dz)
-{
-    return makeBox(box.minX - dx, box.minY - dy, box.minZ - dz, box.maxX + dx, box.maxY + dy, box.maxZ + dz);
-}
-
-/// 原版 `AABB.expandTowards`。
-Box expandTowards(const Box& box, f64 dx, f64 dy, f64 dz)
-{
-    Box result = box;
-    if (dx < 0.0) {
-        result.minX += dx;
-    } else if (dx > 0.0) {
-        result.maxX += dx;
-    }
-    if (dy < 0.0) {
-        result.minY += dy;
-    } else if (dy > 0.0) {
-        result.maxY += dy;
-    }
-    if (dz < 0.0) {
-        result.minZ += dz;
-    } else if (dz > 0.0) {
-        result.maxZ += dz;
-    }
-    // 原版最后是 `new AABB(...)`，同样会被构造器归一化。
-    return makeBox(result.minX, result.minY, result.minZ, result.maxX, result.maxY, result.maxZ);
-}
-
-/// 原版 `AABB.move`。
-Box move(const Box& box, f64 dx, f64 dy, f64 dz)
-{
-    return makeBox(box.minX + dx, box.minY + dy, box.minZ + dz, box.maxX + dx, box.maxY + dy, box.maxZ + dz);
-}
-
-/// 原版 `AABB.intersect`（交集）。
-Box intersect(const Box& a, const Box& b)
-{
-    return makeBox(std::max(a.minX, b.minX),
-        std::max(a.minY, b.minY),
-        std::max(a.minZ, b.minZ),
-        std::min(a.maxX, b.maxX),
-        std::min(a.maxY, b.maxY),
-        std::min(a.maxZ, b.maxZ));
-}
-
-/// 原版 `AABB.minmax`（并集）。
-Box minmax(const Box& a, const Box& b)
-{
-    return makeBox(std::min(a.minX, b.minX),
-        std::min(a.minY, b.minY),
-        std::min(a.minZ, b.minZ),
-        std::max(a.maxX, b.maxX),
-        std::max(a.maxY, b.maxY),
-        std::max(a.maxZ, b.maxZ));
-}
-
-/// 原版 `AABB.intersects`：严格不等号。
-bool intersects(const Box& a, const Box& b)
-{
-    return a.minX < b.maxX && a.maxX > b.minX && a.minY < b.maxY && a.maxY > b.minY && a.minZ < b.maxZ &&
-        a.maxZ > b.minZ;
-}
-
-/// 标准测试盒：单位立方体在原点 `(0,0,0)-(1,1,1)`。
-constexpr const char* UNIT_BOX = "0,0,0,1,1,1";
-
-/// 单元表。
 constexpr const char* UNITS[] = {
     // inflate：四边各扩
     "0,0,0,1,1,1|inflate|1|1|1",
@@ -297,19 +231,18 @@ std::vector<std::string> splitComma(const std::string& text)
     return tokens;
 }
 
-Box parseBox(const std::string& text)
+AxisAlignedBB parseBox(const std::string& text)
 {
     const auto parts = splitComma(text);
     if (parts.size() != 6) {
         throw std::runtime_error("aabb_ops: 盒子应为 6 个分量：" + text);
     }
-    Box box;
-    return makeBox(std::stod(parts[0]),
-        std::stod(parts[1]),
-        std::stod(parts[2]),
-        std::stod(parts[3]),
-        std::stod(parts[4]),
-        std::stod(parts[5]));
+    return AxisAlignedBB(static_cast<f32>(std::stod(parts[0])),
+        static_cast<f32>(std::stod(parts[1])),
+        static_cast<f32>(std::stod(parts[2])),
+        static_cast<f32>(std::stod(parts[3])),
+        static_cast<f32>(std::stod(parts[4])),
+        static_cast<f32>(std::stod(parts[5])));
 }
 
 std::string runLine(std::string_view inputLine)
@@ -321,19 +254,19 @@ std::string runLine(std::string_view inputLine)
         throw std::runtime_error("aabb_ops: 单元至少需要「盒子|模式」：" + unit);
     }
 
-    const Box box = parseBox(parts[0]);
+    const AxisAlignedBB box = parseBox(parts[0]);
 
     // 双盒子形式：`<box>|<box2>|<op>`，模式在最后一段。
     if (parts.size() == 3) {
-        const Box other = parseBox(parts[1]);
+        const AxisAlignedBB other = parseBox(parts[1]);
         if (parts[2] == "intersect") {
-            return json{{"unit", unit}, {"result", boxToJson(intersect(box, other))}}.dump();
+            return json{{"unit", unit}, {"result", boxToJson(box.intersect(other))}}.dump();
         }
         if (parts[2] == "minmax") {
-            return json{{"unit", unit}, {"result", boxToJson(minmax(box, other))}}.dump();
+            return json{{"unit", unit}, {"result", boxToJson(box.minmax(other))}}.dump();
         }
         if (parts[2] == "intersects") {
-            return json{{"unit", unit}, {"hit", intersects(box, other)}}.dump();
+            return json{{"unit", unit}, {"hit", box.intersects(other)}}.dump();
         }
     }
     if (parts.size() == 5) {
@@ -341,13 +274,20 @@ std::string runLine(std::string_view inputLine)
         const f64 dy = std::stod(parts[3]);
         const f64 dz = std::stod(parts[4]);
         if (parts[1] == "inflate") {
-            return json{{"unit", unit}, {"result", boxToJson(inflate(box, dx, dy, dz))}}.dump();
+            return json{{"unit", unit},
+                {"result", boxToJson(box.inflate(static_cast<f32>(dx), static_cast<f32>(dy), static_cast<f32>(dz)))}}
+                .dump();
         }
         if (parts[1] == "expand") {
-            return json{{"unit", unit}, {"result", boxToJson(expandTowards(box, dx, dy, dz))}}.dump();
+            return json{{"unit", unit},
+                {"result",
+                    boxToJson(box.expandTowards(static_cast<f32>(dx), static_cast<f32>(dy), static_cast<f32>(dz)))}}
+                .dump();
         }
         if (parts[1] == "move") {
-            return json{{"unit", unit}, {"result", boxToJson(move(box, dx, dy, dz))}}.dump();
+            return json{{"unit", unit},
+                {"result", boxToJson(box.offsetted(static_cast<f32>(dx), static_cast<f32>(dy), static_cast<f32>(dz)))}}
+                .dump();
         }
     }
 

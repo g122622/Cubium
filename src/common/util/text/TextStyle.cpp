@@ -166,9 +166,110 @@ std::string toName(TextFormatting formatting)
 u32 Style::getColorARGB() const noexcept
 {
     if (m_color.has_value()) {
-        return getFormattingColor(*m_color);
+        return 0xFF000000U | static_cast<u32>(m_color->value());
     }
     return 0xFFFFFFFF; // 默认白色
+}
+
+std::optional<TextFormatting> Style::getColor() const noexcept
+{
+    if (!m_color.has_value()) {
+        return std::nullopt;
+    }
+    // 具名颜色才能映射回 TextFormatting；自定义 RGB 没有对应的枚举值
+    if (!m_color->name().has_value()) {
+        return std::nullopt;
+    }
+    const TextFormatting formatting = fromName(*m_color->name());
+    return formatting == TextFormatting::None ? std::nullopt : std::optional<TextFormatting>{formatting};
+}
+
+Style Style::applyFormat(TextFormatting formatting) const
+{
+    Style result = *this;
+    switch (formatting) {
+        case TextFormatting::Obfuscated:
+            result.m_obfuscated = true;
+            break;
+        case TextFormatting::Bold:
+            result.m_bold = true;
+            break;
+        case TextFormatting::Strikethrough:
+            result.m_strikethrough = true;
+            break;
+        case TextFormatting::Underline:
+            result.m_underlined = true;
+            break;
+        case TextFormatting::Italic:
+            result.m_italic = true;
+            break;
+        case TextFormatting::Reset:
+            return Style();
+        default:
+            result.m_color = TextColor::fromLegacyFormat(formatting);
+            break;
+    }
+    return result;
+}
+
+Style Style::applyLegacyFormat(TextFormatting formatting) const
+{
+    Style result = *this;
+    switch (formatting) {
+        case TextFormatting::Obfuscated:
+            result.m_obfuscated = true;
+            break;
+        case TextFormatting::Bold:
+            result.m_bold = true;
+            break;
+        case TextFormatting::Strikethrough:
+            result.m_strikethrough = true;
+            break;
+        case TextFormatting::Underline:
+            result.m_underlined = true;
+            break;
+        case TextFormatting::Italic:
+            result.m_italic = true;
+            break;
+        case TextFormatting::Reset:
+            return Style();
+        default:
+            // § 语义：换颜色等同开新段落，旧的样式标志一并作废
+            result.m_obfuscated = false;
+            result.m_bold = false;
+            result.m_strikethrough = false;
+            result.m_underlined = false;
+            result.m_italic = false;
+            result.m_color = TextColor::fromLegacyFormat(formatting);
+            break;
+    }
+    return result;
+}
+
+Style Style::applyTo(const Style& other) const
+{
+    if (isEmpty()) {
+        return other;
+    }
+    if (other.isEmpty()) {
+        return *this;
+    }
+
+    Style result;
+    // 本样式优先，other 兜底
+    result.m_color = m_color.has_value() ? m_color : other.m_color;
+    const auto pick = [](const std::optional<bool>& primary, const std::optional<bool>& fallback) {
+        return primary.has_value() ? primary : fallback;
+    };
+    result.m_bold = pick(m_bold, other.m_bold);
+    result.m_italic = pick(m_italic, other.m_italic);
+    result.m_underlined = pick(m_underlined, other.m_underlined);
+    result.m_strikethrough = pick(m_strikethrough, other.m_strikethrough);
+    result.m_obfuscated = pick(m_obfuscated, other.m_obfuscated);
+    result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : other.m_clickEvent;
+    result.m_hoverEvent = m_hoverEvent.has_value() ? m_hoverEvent : other.m_hoverEvent;
+    result.m_insertion = m_insertion.has_value() ? m_insertion : other.m_insertion;
+    return result;
 }
 
 Style Style::mergeWithParent(const Style& parent) const noexcept
@@ -192,6 +293,7 @@ Style Style::mergeWithParent(const Style& parent) const noexcept
     // 事件：子样式优先
     result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : parent.m_clickEvent;
     result.m_hoverEvent = m_hoverEvent.has_value() ? m_hoverEvent : parent.m_hoverEvent;
+    result.m_insertion = m_insertion.has_value() ? m_insertion : parent.m_insertion;
 
     return result;
 }
@@ -201,7 +303,7 @@ bool Style::isEmpty() const noexcept
     // 三态：任一标志被显式设置（true 或 false）就不算空样式。
     return !m_color.has_value() && !m_bold.has_value() && !m_italic.has_value() && !m_underlined.has_value() &&
         !m_strikethrough.has_value() && !m_obfuscated.has_value() && !m_clickEvent.has_value() &&
-        !m_hoverEvent.has_value();
+        !m_hoverEvent.has_value() && !m_insertion.has_value();
 }
 
 nlohmann::json Style::toJson() const
@@ -215,17 +317,7 @@ nlohmann::json Style::toJson() const
         //
         // 一律写十六进制是错的：原版 JSON（以及由原版解析的文本组件）里 `"color":"red"`
         // 与 `"color":"#FF5555"` 语义等价但**文本不等**，存档/网络逐字节比对会不一致。
-        const std::optional<u32> argb = findFormattingARGB(*m_color);
-        if (argb.has_value()) {
-            const std::string colorName = toName(*m_color);
-            if (!colorName.empty()) {
-                json["color"] = colorName;
-            } else {
-                char buffer[8];
-                std::snprintf(buffer, sizeof(buffer), "#%06X", static_cast<unsigned>(*argb & 0xFFFFFFu));
-                json["color"] = buffer;
-            }
-        }
+        json["color"] = m_color->serialize();
     }
     // 三态：显式 false 也要写出来（`"italic": false`）。原版存档里它与「没写」是两种值。
     if (m_bold.has_value()) {
@@ -250,6 +342,9 @@ nlohmann::json Style::toJson() const
         json["hoverEvent"] = m_hoverEvent->toJson();
     }
 
+    if (m_insertion.has_value()) {
+        json["insertion"] = *m_insertion;
+    }
     return json;
 }
 
@@ -260,22 +355,9 @@ Style Style::fromJson(const nlohmann::json& json)
     if (json.contains("color") && json["color"].is_string()) {
         const std::string text = json["color"].get<std::string>();
         // 原版写 "#RRGGBB"；这里也接受颜色名，以便读取旧数据与手写 JSON。
-        if (!text.empty() && text.front() == '#' && text.size() == 7) {
-            const unsigned rgb = static_cast<unsigned>(std::strtoul(text.c_str() + 1, nullptr, 16));
-            // 把 RGB 反查回最接近的命名颜色（原版 TextColor 是任意 RGB，
-            // 但 Cubium 的 Style 只存格式化枚举，此处取精确匹配）。
-            style.m_color = std::nullopt;
-            for (const auto& entry : FORMATTING_TABLE) {
-                if ((entry.color & 0xFFFFFFu) == rgb) {
-                    style.m_color = entry.formatting;
-                    break;
-                }
-            }
-            // TODO: Cubium 的 Style 用 TextFormatting 枚举表达能力有限，
-            // 无法存储任意 RGB（如 "#123456"）。待 Style 改为持有 RGB 后再支持。
-        } else {
-            style.m_color = fromName(text);
-        }
+        // 任意 RGB 直接用 TextColor 承载，不需要反查具名颜色
+        const std::optional<TextColor> parsedHex = TextColor::parseColor(text);
+        style.m_color = parsedHex;
     }
     if (json.contains("bold") && json["bold"].is_boolean()) {
         style.m_bold = json["bold"].get<bool>();
@@ -299,6 +381,10 @@ Style Style::fromJson(const nlohmann::json& json)
         style.m_hoverEvent = HoverEvent::fromJson(json["hoverEvent"]);
     }
 
+    if (json.contains("insertion") && json["insertion"].is_string()) {
+        style.m_insertion = json["insertion"].get<std::string>();
+    }
+
     return style;
 }
 
@@ -306,7 +392,8 @@ bool Style::operator==(const Style& other) const noexcept
 {
     return m_color == other.m_color && m_bold == other.m_bold && m_italic == other.m_italic &&
         m_underlined == other.m_underlined && m_strikethrough == other.m_strikethrough &&
-        m_obfuscated == other.m_obfuscated && m_clickEvent == other.m_clickEvent && m_hoverEvent == other.m_hoverEvent;
+        m_obfuscated == other.m_obfuscated && m_clickEvent == other.m_clickEvent &&
+        m_hoverEvent == other.m_hoverEvent && m_insertion == other.m_insertion;
 }
 
 // ========== 工具函数 ==========
@@ -342,6 +429,104 @@ std::string getStyleCodes(const Style& style)
     }
 
     return codes;
+}
+
+// ============================================================================
+// TextColor
+// ============================================================================
+
+TextColor::TextColor(i32 value, std::optional<std::string> name)
+    : m_value(value)
+    , m_name(std::move(name))
+{}
+
+TextColor TextColor::fromRgb(i32 rgb)
+{
+    return TextColor(rgb & 0xFFFFFF, std::nullopt);
+}
+
+std::optional<TextColor> TextColor::fromLegacyFormat(TextFormatting formatting)
+{
+    // 样式码与 Reset/None 没有颜色，原版同样返回 null
+    const std::optional<u32> argb = findFormattingARGB(formatting);
+    if (!argb.has_value()) {
+        return std::nullopt;
+    }
+    const std::string name = toName(formatting);
+    return TextColor(static_cast<i32>(*argb & 0xFFFFFFU), name);
+}
+
+std::optional<TextColor> TextColor::parseColor(std::string_view text)
+{
+    if (text.empty()) {
+        return std::nullopt;
+    }
+
+    // 十六进制形式：按 Java `Integer.parseInt(s, 16)` 的语义解析——
+    // 允许前导 +/-、允许任意位数（`#f00` 得 0xF00、`#0` 得 0），
+    // 只要求最终值落在 [0, 0xFFFFFF]。
+    if (text[0] == '#') {
+        const std::string digits(text.substr(1));
+        if (digits.empty()) {
+            return std::nullopt;
+        }
+
+        std::size_t index = 0;
+        bool negative = false;
+        if (digits[0] == '+' || digits[0] == '-') {
+            negative = digits[0] == '-';
+            index = 1;
+            if (digits.size() == 1) {
+                return std::nullopt;
+            }
+        }
+
+        i64 value = 0;
+        for (; index < digits.size(); ++index) {
+            const char digit = digits[index];
+            i32 nibble = 0;
+            if (digit >= '0' && digit <= '9') {
+                nibble = digit - '0';
+            } else if (digit >= 'a' && digit <= 'f') {
+                nibble = digit - 'a' + 10;
+            } else if (digit >= 'A' && digit <= 'F') {
+                nibble = digit - 'A' + 10;
+            } else {
+                return std::nullopt;
+            }
+            value = value * 16 + nibble;
+            // 超出 int 范围后原版 parseInt 会抛 NumberFormatException；这里同样按非法处理
+            if (value > 0x7FFFFFFFLL) {
+                return std::nullopt;
+            }
+        }
+        if (negative) {
+            value = -value;
+        }
+        if (value < 0 || value > 0xFFFFFFLL) {
+            return std::nullopt;
+        }
+        return TextColor(static_cast<i32>(value), std::nullopt);
+    }
+
+    // 具名形式：原版是 `NAMED_COLORS.get(text)`——**精确匹配、区分大小写**。
+    // 不能走 `fromName`：那个函数会先转小写，会把 `RED` 当成 `red` 接受。
+    for (std::size_t i = 0; i < FORMATTING_TABLE_SIZE; ++i) {
+        if (FORMATTING_TABLE[i].name == text) {
+            return fromLegacyFormat(FORMATTING_TABLE[i].formatting);
+        }
+    }
+    return std::nullopt;
+}
+
+std::string TextColor::serialize() const
+{
+    if (m_name.has_value()) {
+        return *m_name;
+    }
+    char buffer[16];
+    std::snprintf(buffer, sizeof(buffer), "#%06X", static_cast<unsigned>(m_value));
+    return buffer;
 }
 
 } // namespace mc::text

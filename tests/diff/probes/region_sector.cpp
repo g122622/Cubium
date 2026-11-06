@@ -80,58 +80,17 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "server/world/storage/reader/java/RegionFile.hpp"
 
 #include "probe.hpp"
 
 namespace mc::diff {
 namespace {
 
+using mc::ChunkPos;
+using mc::world::storage::reader::java::RegionFile;
 using nlohmann::json;
-
-/// 原版 `RegionFile.SECTOR_BYTES`。
-constexpr i32 SECTOR_BYTES = 4096;
-
-/// 原版 `RegionFile.SECTOR_INTS`。
-constexpr i32 SECTOR_INTS = 1024;
-
-/// 每个区域边长的区块数（32）。
-constexpr i32 REGION_CHUNK_SIZE = 32;
-
-/// 原版 `ChunkPos.getRegionX`：算术右移。
-i32 getRegionCoord(i32 chunkCoord)
-{
-    return chunkCoord >> 5;
-}
-
-/// 原版 `ChunkPos.getRegionLocalX`：按位与。
-i32 getRegionLocal(i32 chunkCoord)
-{
-    return chunkCoord & 31;
-}
-
-/// 原版 `RegionFile.getOffsetIndex`：列优先 `localX + localZ * 32`。
-i32 getOffsetIndex(i32 localX, i32 localZ)
-{
-    return localX + localZ * REGION_CHUNK_SIZE;
-}
-
-/// 原版 `RegionFile.getNumSectors`：低 8 位。
-i32 getNumSectors(i32 offset)
-{
-    return offset & 0xFF;
-}
-
-/// 原版 `RegionFile.getSectorNumber`：高 24 位。
-i32 getSectorNumber(i32 offset)
-{
-    return (offset >> 8) & 16777215;
-}
-
-/// 把扇区号与扇区数打包成偏移值（`getSectorNumber` / `getNumSectors` 的逆运算）。
-i32 packOffset(i32 sector, i32 count)
-{
-    return (sector << 8) | (count & 0xFF);
-}
 
 /// 单元表。
 constexpr const char* UNITS[] = {
@@ -215,26 +174,29 @@ std::string runLine(std::string_view inputLine)
     if (mode == "region" && parts.size() == 3) {
         const i32 chunkX = std::stoi(parts[1]);
         const i32 chunkZ = std::stoi(parts[2]);
-        const i32 localX = getRegionLocal(chunkX);
-        const i32 localZ = getRegionLocal(chunkZ);
+        const i32 localX = ChunkPos(chunkX, 0).getRegionLocalX();
+        const i32 localZ = ChunkPos(0, chunkZ).getRegionLocalZ();
         return json{{"unit", unit},
-            {"regionX", getRegionCoord(chunkX)},
-            {"regionZ", getRegionCoord(chunkZ)},
+            {"regionX", ChunkPos(chunkX, 0).getRegionX()},
+            {"regionZ", ChunkPos(0, chunkZ).getRegionZ()},
             {"localX", localX},
             {"localZ", localZ},
-            {"offsetIndex", getOffsetIndex(localX, localZ)}}
+            {"offsetIndex", RegionFile::getOffsetIndex(localX, localZ)}}
             .dump();
     }
 
     if (mode == "sector" && parts.size() == 2) {
         const i32 offset = std::stoi(parts[1]);
-        return json{{"unit", unit}, {"sector", getSectorNumber(offset)}, {"count", getNumSectors(offset)}}.dump();
+        return json{{"unit", unit},
+            {"sector", RegionFile::getSectorNumber(offset)},
+            {"count", RegionFile::getNumSectors(offset)}}
+            .dump();
     }
 
     if (mode == "pack" && parts.size() == 3) {
         const i32 sector = std::stoi(parts[1]);
         const i32 count = std::stoi(parts[2]);
-        return json{{"unit", unit}, {"offset", packOffset(sector, count)}}.dump();
+        return json{{"unit", unit}, {"offset", RegionFile::packOffset(sector, count)}}.dump();
     }
 
     throw std::runtime_error("region_sector: 无法识别的单元：" + unit);

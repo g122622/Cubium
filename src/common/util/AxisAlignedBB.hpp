@@ -143,11 +143,74 @@ public:
         return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
     }
 
+    /**
+     * @brief X 方向边长，对应原版 `AABB.getXsize`
+     */
+    [[nodiscard]] f32 getXsize() const noexcept
+    {
+        return maxX - minX;
+    }
+
+    /**
+     * @brief Y 方向边长，对应原版 `AABB.getYsize`
+     */
+    [[nodiscard]] f32 getYsize() const noexcept
+    {
+        return maxY - minY;
+    }
+
+    /**
+     * @brief Z 方向边长，对应原版 `AABB.getZsize`
+     */
+    [[nodiscard]] f32 getZsize() const noexcept
+    {
+        return maxZ - minZ;
+    }
+
+    /**
+     * @brief 三边长的算术平均，对应原版 `AABB.getSize`
+     *
+     * 注意是**算术平均**而不是几何平均或最长边，且除以的常量是 `3.0`。
+     */
+    [[nodiscard]] f32 getSize() const noexcept
+    {
+        return (getXsize() + getYsize() + getZsize()) / 3.0f;
+    }
+
     // 相交检测
     [[nodiscard]] bool intersects(const AxisAlignedBB& other) const noexcept
     {
         return minX < other.maxX && maxX > other.minX && minY < other.maxY && maxY > other.minY && minZ < other.maxZ &&
             maxZ > other.minZ;
+    }
+
+    /**
+     * @brief 两个 AABB 的交集，对应原版 `AABB.intersect`
+     *
+     * 注意构造时会再次归一化：若两盒不相交，结果会被压成一个「翻转」的盒，
+     * min > max，而不是返回空盒。调用方需自行用 `intersects` 判断有效性。
+     */
+    [[nodiscard]] AxisAlignedBB intersect(const AxisAlignedBB& other) const noexcept
+    {
+        return AxisAlignedBB(std::max(minX, other.minX),
+            std::max(minY, other.minY),
+            std::max(minZ, other.minZ),
+            std::min(maxX, other.maxX),
+            std::min(maxY, other.maxY),
+            std::min(maxZ, other.maxZ));
+    }
+
+    /**
+     * @brief 包住两个 AABB 的最小盒，对应原版 `AABB.minmax`
+     */
+    [[nodiscard]] AxisAlignedBB minmax(const AxisAlignedBB& other) const noexcept
+    {
+        return AxisAlignedBB(std::min(minX, other.minX),
+            std::min(minY, other.minY),
+            std::min(minZ, other.minZ),
+            std::max(maxX, other.maxX),
+            std::max(maxY, other.maxY),
+            std::max(maxZ, other.maxZ));
     }
 
     /**
@@ -271,6 +334,93 @@ public:
      *
      * @param amount 各方向膨胀量
      */
+    /**
+     * @brief 三轴分别膨胀 AABB，对应原版 `AABB.inflate(f64, f64, f64)`
+     *
+     * min 减、max
+     * 加。负值即收缩。构造时归一化，因此收缩过度会翻转成 min > max。
+     */
+    [[nodiscard]] AxisAlignedBB inflate(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        return AxisAlignedBB(minX - dx, minY - dy, minZ - dz, maxX + dx, maxY + dy, maxZ + dz);
+    }
+
+    /**
+     * @brief 单向收缩 AABB，对应原版 `AABB.contract(f64, f64, f64)`
+     *
+     * 与 `deflate`
+     * 的关键区别：**每个轴只动一个端点**。
+     * 正增量收缩 max 边，负增量扩 min 边，零增量不动。
+     *
+     * 因此
+     * `contract(0.5, 0, 0)` 让 X 方向变窄但位置不变，
+     * 而 `deflate(0.5, 0, 0)` 两边各收 0.5。
+
+     */
+    /**
+     * @brief 三轴分别收缩 AABB，对应原版 `AABB.deflate(f64, f64, f64)`
+     *
+     * 等价于 `inflate(-dx, -dy,
+     * -dz)`——**两边同时收**。
+     * 要与「只动一个端点」的语义对比，见 `contract`。
+ */
+    [[nodiscard]] AxisAlignedBB deflate(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        return inflate(-dx, -dy, -dz);
+    }
+
+    [[nodiscard]] AxisAlignedBB contract(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        f32 x0 = minX;
+        f32 y0 = minY;
+        f32 z0 = minZ;
+        f32 x1 = maxX;
+        f32 y1 = maxY;
+        f32 z1 = maxZ;
+        if (dx < 0.0f) {
+            x0 -= dx;
+        } else if (dx > 0.0f) {
+            x1 -= dx;
+        }
+        if (dy < 0.0f) {
+            y0 -= dy;
+        } else if (dy > 0.0f) {
+            y1 -= dy;
+        }
+        if (dz < 0.0f) {
+            z0 -= dz;
+        } else if (dz > 0.0f) {
+            z1 -= dz;
+        }
+        return AxisAlignedBB(x0, y0, z0, x1, y1, z1);
+    }
+
+    /**
+     * @brief 任一坐标是 NaN 则为真，对应原版 `AABB.hasNaN`
+     */
+    [[nodiscard]] bool hasNaN() const noexcept
+    {
+        return std::isnan(minX) || std::isnan(minY) || std::isnan(minZ) || std::isnan(maxX) || std::isnan(maxY) ||
+            std::isnan(maxZ);
+    }
+
+    /**
+     * @brief 两个 AABB 之间的最近距离平方，对应原版 `AABB.distanceToSqr(AABB)`
+     *
+     *
+     * 逐轴取两盒之间的间隙（相交时为 0），再求平方和。
+     *
+     * 注意与点版本的 `distanceToSqr(Vec3)`
+     * 不是同一个函数。
+     */
+    [[nodiscard]] f32 distanceToSqr(const AxisAlignedBB& other) const noexcept
+    {
+        const f32 dx = std::max(std::max(minX - other.maxX, other.minX - maxX), 0.0f);
+        const f32 dy = std::max(std::max(minY - other.maxY, other.minY - maxY), 0.0f);
+        const f32 dz = std::max(std::max(minZ - other.maxZ, other.minZ - maxZ), 0.0f);
+        return dx * dx + dy * dy + dz * dz;
+    }
+
     [[nodiscard]] AxisAlignedBB inflate(f32 amount) const noexcept
     {
         return expand(amount, amount, amount);

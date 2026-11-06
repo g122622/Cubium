@@ -70,6 +70,76 @@ enum class TextFormatting : u8 {
 };
 
 /**
+ * @brief 文本颜色，对应原版 `net.minecraft.network.chat.TextColor`
+ *
+ * 同时覆盖两种来源：
+ * - **具名颜色**：由 `TextFormatting` 的 16 个颜色码构造，序列化时写**名字**（`"red"`）；
+ * - **自定义 RGB**：由 `fromRgb` 构造，序列化时写 `"#RRGGBB"`。
+ *
+ * 两者的 JSON 文本不同（`"red"` vs `"#FF5555"`），即使 RGB 值相同——存档与网络
+ * 逐字节比对时这是必须区分的，所以内部保留 `name` 字段而不是只存 RGB。
+ */
+class TextColor {
+public:
+    /**
+     * @brief 由 RGB 构造自定义颜色，对应原版 `TextColor.fromRgb`
+     *
+     * 只保留低 24 位；传入 `0xFF5555` 与 `0x00FF5555` 等价。
+     */
+    [[nodiscard]] static TextColor fromRgb(i32 rgb);
+
+    /**
+     * @brief 由格式化枚举构造具名颜色，对应原版 `TextColor.fromLegacyFormat`
+     *
+     * 传入样式码（加粗、斜体等）或 `Reset`/`None` 时返回 `std::nullopt`——
+     * 它们不对应任何颜色。
+     */
+    [[nodiscard]] static std::optional<TextColor> fromLegacyFormat(TextFormatting formatting);
+
+    /**
+     * @brief 解析 `"red"` 或 `"#RRGGBB"`，对应原版 `TextColor.parseColor`
+     *
+     * 具名颜色必须与 16 个颜色名**完全匹配**（区分大小写、不接受样式名）；
+     * 十六进制必须是 `#` 加**恰好 6 位**十六进制数字。任何不符返回 `std::nullopt`。
+     */
+    [[nodiscard]] static std::optional<TextColor> parseColor(std::string_view text);
+
+    /**
+     * @brief 序列化成 JSON 字符串形式
+     *
+     * 具名颜色返回名字，自定义颜色返回 `"#RRGGBB"`（**大写十六进制**）。
+     */
+    [[nodiscard]] std::string serialize() const;
+
+    /**
+     * @brief RGB 值（不含 alpha）
+     */
+    [[nodiscard]] i32 value() const noexcept
+    {
+        return m_value;
+    }
+
+    /**
+     * @brief 具名颜色的名字；自定义颜色为空
+     */
+    [[nodiscard]] const std::optional<std::string>& name() const noexcept
+    {
+        return m_name;
+    }
+
+    bool operator==(const TextColor& other) const noexcept
+    {
+        return m_value == other.m_value && m_name == other.m_name;
+    }
+
+private:
+    TextColor(i32 value, std::optional<std::string> name);
+
+    i32 m_value = 0;
+    std::optional<std::string> m_name;
+};
+
+/**
  * @brief 获取格式化类型的颜色值（ARGB格式），样式类型返回 std::nullopt
  *
  * 对应原版 `ChatFormatting#getColor()`：**只有 16 个颜色码有颜色**，
@@ -153,21 +223,43 @@ public:
     // ========== 颜色 ==========
 
     /**
-     * @brief 获取颜色
-     * @return 颜色格式化类型，未设置返回 nullopt
+     * @brief 获取颜色（`TextColor` 形式）
+     *
+     * 这是完整形式，能同时承载具名色与自定义 RGB。
      */
-    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept
+    [[nodiscard]] const std::optional<TextColor>& getTextColor() const noexcept
     {
         return m_color;
     }
 
     /**
-     * @brief 设置颜色
-     * @param color 颜色格式化类型
+     * @brief 获取具名颜色
+     *
+     * 颜色是自定义 RGB（非具名）时返回 `std::nullopt`——那些值没有对应的
+     * `TextFormatting`。需要拿到任意颜色请用 `getTextColor()`。
+     */
+    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept;
+
+    /**
+     * @brief 设置颜色（`TextColor` 形式）
+     */
+    void setTextColor(std::optional<TextColor> color) noexcept
+    {
+        m_color = std::move(color);
+    }
+
+    /**
+     * @brief 设置具名颜色
+     *
+     * 传 `std::nullopt` 表示清除颜色。
      */
     void setColor(std::optional<TextFormatting> color) noexcept
     {
-        m_color = color;
+        if (!color.has_value()) {
+            m_color = std::nullopt;
+            return;
+        }
+        m_color = TextColor::fromLegacyFormat(*color);
     }
 
     /**
@@ -299,6 +391,24 @@ public:
         m_hoverEvent = event;
     }
 
+    /**
+     * @brief 获取插入文本，对应原版 `Style.getInsertion`
+     *
+     * 玩家点击该文本组件时，这段字符串会被插入聊天输入框。
+     */
+    [[nodiscard]] const std::optional<std::string>& getInsertion() const noexcept
+    {
+        return m_insertion;
+    }
+
+    /**
+     * @brief 设置插入文本，对应原版 `Style.withInsertion`
+     */
+    void setInsertion(std::optional<std::string> insertion) noexcept
+    {
+        m_insertion = std::move(insertion);
+    }
+
     // ========== 父样式继承 ==========
 
     /**
@@ -307,6 +417,37 @@ public:
      * @return 合并后的新样式
      */
     [[nodiscard]] Style mergeWithParent(const Style& parent) const noexcept;
+
+    // ========== 格式化套用 ==========
+
+    /**
+     * @brief 套用一个格式码，对应原版 `Style.applyFormat`
+     *
+     * 样式码（加粗、斜体、删除线、下划线、混淆）只把对应标志置 true，**不动其他标志**；
+     * 颜色码只替换颜色；`Reset` 返回空样式。
+     *
+     * 注意这里与 `applyLegacyFormat` 的唯一区别：**处理颜色时不清除已有的样式标志**。
+     */
+    [[nodiscard]] Style applyFormat(TextFormatting formatting) const;
+
+    /**
+     * @brief 按旧版 § 码语义套用格式，对应原版 `Style.applyLegacyFormat`
+     *
+     * 与 `applyFormat` 几乎相同，唯一区别在**颜色码分支**：这里会把五个样式标志
+     * **全部置 false**，因为 § 语义下换颜色等同于开启一个新段落，旧的加粗/斜体等
+     * 一并作废。样式码分支的行为两者完全一致（只置 true，不动其他）。
+     */
+    [[nodiscard]] Style applyLegacyFormat(TextFormatting formatting) const;
+
+    /**
+     * @brief 以本样式为**父**、把它的未设置项填到 `other` 上，对应原版 `Style.applyTo`
+     *
+     * 语义是「本样式优先，`other` 兜底」：本样式显式设置过的项保持不变，未设置的项
+     * 取 `other` 的值。
+     *
+     * 两处短路：本样式为空时直接返回 `other`；`other` 为空时直接返回本样式。
+     */
+    [[nodiscard]] Style applyTo(const Style& other) const;
 
     /**
      * @brief 检查样式是否为空（所有属性未设置）
@@ -348,7 +489,7 @@ public:
     }
 
 private:
-    std::optional<TextFormatting> m_color;
+    std::optional<TextColor> m_color;
     std::optional<bool> m_bold;
     std::optional<bool> m_italic;
     std::optional<bool> m_underlined;
@@ -356,6 +497,7 @@ private:
     std::optional<bool> m_obfuscated;
     std::optional<ClickEvent> m_clickEvent;
     std::optional<HoverEvent> m_hoverEvent;
+    std::optional<std::string> m_insertion;
 };
 
 /**

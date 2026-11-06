@@ -140,6 +140,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/color/ARGB.hpp"
 
 #include "probe.hpp"
 
@@ -148,6 +149,12 @@ namespace {
 
 using nlohmann::json;
 
+/// 把 32 位颜色的位模式按有符号输出，与原版 Java 的 `int` 一致。
+i32 toSigned(u32 color)
+{
+    return static_cast<i32>(color);
+}
+
 /// 解析颜色：支持十进制与 `0x` 十六进制。
 i32 parseColor(const std::string& text)
 {
@@ -155,131 +162,6 @@ i32 parseColor(const std::string& text)
         return static_cast<i32>(std::stoull(text.substr(2), nullptr, 16));
     }
     return static_cast<i32>(std::stoll(text));
-}
-
-/// 原版 `ARGB.alpha`：`c >>> 24`。
-i32 alpha(i32 color)
-{
-    return static_cast<i32>(static_cast<u32>(color) >> 24);
-}
-
-/// 原版 `ARGB.red`：`c >> 16 & 0xFF`。
-i32 red(i32 color)
-{
-    return (color >> 16) & 0xFF;
-}
-
-/// 原版 `ARGB.green`：`c >> 8 & 0xFF`。
-i32 green(i32 color)
-{
-    return (color >> 8) & 0xFF;
-}
-
-/// 原版 `ARGB.blue`：`c & 0xFF`。
-i32 blue(i32 color)
-{
-    return color & 0xFF;
-}
-
-/// 原版 `ARGB.color(a, r, g, b)`。
-i32 pack(i32 a, i32 r, i32 g, i32 b)
-{
-    return static_cast<i32>((static_cast<u32>(a & 0xFF) << 24) | (static_cast<u32>(r & 0xFF) << 16) |
-        (static_cast<u32>(g & 0xFF) << 8) | static_cast<u32>(b & 0xFF));
-}
-
-/// 原版 `ARGB.multiply`。
-i32 multiply(i32 first, i32 second)
-{
-    if (first == -1) {
-        return second;
-    }
-    if (second == -1) {
-        return first;
-    }
-    return pack(alpha(first) * alpha(second) / 255,
-        red(first) * red(second) / 255,
-        green(first) * green(second) / 255,
-        blue(first) * blue(second) / 255);
-}
-
-/// 原版 `ARGB.greyscale`。
-i32 greyscale(i32 color)
-{
-    const i32 grey = static_cast<i32>(static_cast<f32>(red(color)) * 0.3F + static_cast<f32>(green(color)) * 0.59F +
-        static_cast<f32>(blue(color)) * 0.11F);
-    return pack(alpha(color), grey, grey, grey);
-}
-
-/// 原版 `ARGB.addRgb`。
-i32 addRgb(i32 first, i32 second)
-{
-    return pack(alpha(first),
-        std::min(red(first) + red(second), 255),
-        std::min(green(first) + green(second), 255),
-        std::min(blue(first) + blue(second), 255));
-}
-
-/// 原版 `ARGB.scaleRGB(int, float, float, float)`。
-i32 scaleRgbFloat(i32 color, f32 sr, f32 sg, f32 sb)
-{
-    const i32 r = static_cast<i32>(static_cast<f32>(red(color)) * sr);
-    const i32 g = static_cast<i32>(static_cast<f32>(green(color)) * sg);
-    const i32 b = static_cast<i32>(static_cast<f32>(blue(color)) * sb);
-    return pack(alpha(color), std::clamp(r, 0, 255), std::clamp(g, 0, 255), std::clamp(b, 0, 255));
-}
-
-/// 原版 `ARGB.scaleRGB(int, int)`：注意是 `long` 乘法后整除 255。
-i32 scaleRgbInt(i32 color, i32 scale)
-{
-    const auto r = static_cast<i64>(red(color)) * scale / 255LL;
-    const auto g = static_cast<i64>(green(color)) * scale / 255LL;
-    const auto b = static_cast<i64>(blue(color)) * scale / 255LL;
-    return pack(alpha(color),
-        static_cast<i32>(std::clamp<i64>(r, 0, 255)),
-        static_cast<i32>(std::clamp<i64>(g, 0, 255)),
-        static_cast<i32>(std::clamp<i64>(b, 0, 255)));
-}
-
-/// 原版 `ARGB.multiplyAlpha`。
-i32 multiplyAlpha(i32 color, f32 scale)
-{
-    if (color == 0 || scale <= 0.0F) {
-        return 0;
-    }
-    if (scale >= 1.0F) {
-        return color;
-    }
-    const i32 newAlpha = static_cast<i32>(static_cast<f32>(alpha(color)) * scale);
-    // 原版 ARGB.color(float alpha, int rgb)：用新 alpha 替换，RGB 保持不变。
-    return pack(newAlpha, red(color), green(color), blue(color));
-}
-
-/// 原版 `ARGB.alphaBlendChannel`：`(overlay*oAlpha + base*(outAlpha-oAlpha)) / outAlpha`。
-i32 alphaBlendChannel(i32 outAlpha, i32 overlayAlpha, i32 baseChannel, i32 overlayChannel)
-{
-    if (outAlpha == 0) {
-        return 0;
-    }
-    return (overlayChannel * overlayAlpha + baseChannel * (outAlpha - overlayAlpha)) / outAlpha;
-}
-
-/// 原版 `ARGB.alphaBlend`。
-i32 alphaBlend(i32 base, i32 overlay)
-{
-    const i32 baseAlpha = alpha(base);
-    const i32 overlayAlpha = alpha(overlay);
-    if (overlayAlpha == 255) {
-        return overlay;
-    }
-    if (overlayAlpha == 0) {
-        return base;
-    }
-    const i32 outAlpha = overlayAlpha + baseAlpha * (255 - overlayAlpha) / 255;
-    return pack(outAlpha,
-        alphaBlendChannel(outAlpha, overlayAlpha, red(base), red(overlay)),
-        alphaBlendChannel(outAlpha, overlayAlpha, green(base), green(overlay)),
-        alphaBlendChannel(outAlpha, overlayAlpha, blue(base), blue(overlay)));
 }
 
 void writeList(FILE* out)
@@ -369,46 +251,64 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "ch" && parts.size() == 2) {
-        const i32 color = parseColor(parts[1]);
-        const std::string value = std::to_string(alpha(color)) + "," + std::to_string(red(color)) + "," +
-            std::to_string(green(color)) + "," + std::to_string(blue(color));
+        const u32 color = static_cast<u32>(parseColor(parts[1]));
+        const std::string value = std::to_string(toSigned(util::argb::alpha(color))) + "," +
+            std::to_string(toSigned(util::argb::red(color))) + "," +
+            std::to_string(toSigned(util::argb::green(color))) + "," +
+            std::to_string(toSigned(util::argb::blue(color)));
         return json{{"unit", unit}, {"value", value}}.dump();
     }
     if (mode == "pack" && parts.size() == 5) {
         return json{{"unit", unit},
-            {"value", pack(std::stoi(parts[1]), std::stoi(parts[2]), std::stoi(parts[3]), std::stoi(parts[4]))}}
+            {"value",
+                toSigned(util::argb::color(
+                    std::stoi(parts[1]), std::stoi(parts[2]), std::stoi(parts[3]), std::stoi(parts[4])))}}
             .dump();
     }
     if (mode == "pack3" && parts.size() == 4) {
-        return json{{"unit", unit}, {"value", pack(255, std::stoi(parts[1]), std::stoi(parts[2]), std::stoi(parts[3]))}}
+        return json{{"unit", unit},
+            {"value", toSigned(util::argb::color(255, std::stoi(parts[1]), std::stoi(parts[2]), std::stoi(parts[3])))}}
             .dump();
     }
     if (mode == "mul" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", multiply(parseColor(parts[1]), parseColor(parts[2]))}}.dump();
+        return json{
+            {"unit", unit}, {"value", toSigned(util::argb::multiply(parseColor(parts[1]), parseColor(parts[2])))}}
+            .dump();
     }
     if (mode == "grey" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", greyscale(parseColor(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", toSigned(util::argb::greyscale(parseColor(parts[1])))}}.dump();
     }
     if (mode == "add" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", addRgb(parseColor(parts[1]), parseColor(parts[2]))}}.dump();
+        return json{{"unit", unit}, {"value", toSigned(util::argb::addRgb(parseColor(parts[1]), parseColor(parts[2])))}}
+            .dump();
     }
     if (mode == "scaleF" && parts.size() == 3) {
         const f32 scale = parseF(parts[2]);
-        return json{{"unit", unit}, {"value", scaleRgbFloat(parseColor(parts[1]), scale, scale, scale)}}.dump();
+        return json{
+            {"unit", unit}, {"value", toSigned(util::argb::scaleRgb(parseColor(parts[1]), scale, scale, scale))}}
+            .dump();
     }
     if (mode == "scaleF3" && parts.size() == 5) {
         return json{{"unit", unit},
-            {"value", scaleRgbFloat(parseColor(parts[1]), parseF(parts[2]), parseF(parts[3]), parseF(parts[4]))}}
+            {"value",
+                toSigned(
+                    util::argb::scaleRgb(parseColor(parts[1]), parseF(parts[2]), parseF(parts[3]), parseF(parts[4])))}}
             .dump();
     }
     if (mode == "scaleI" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", scaleRgbInt(parseColor(parts[1]), std::stoi(parts[2]))}}.dump();
+        return json{
+            {"unit", unit}, {"value", toSigned(util::argb::scaleRgbInt(parseColor(parts[1]), std::stoi(parts[2])))}}
+            .dump();
     }
     if (mode == "mulAlpha" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", multiplyAlpha(parseColor(parts[1]), parseF(parts[2]))}}.dump();
+        return json{
+            {"unit", unit}, {"value", toSigned(util::argb::multiplyAlpha(parseColor(parts[1]), parseF(parts[2])))}}
+            .dump();
     }
     if (mode == "blend" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", alphaBlend(parseColor(parts[1]), parseColor(parts[2]))}}.dump();
+        return json{
+            {"unit", unit}, {"value", toSigned(util::argb::alphaBlend(parseColor(parts[1]), parseColor(parts[2])))}}
+            .dump();
     }
 
     throw std::runtime_error("argb_ops: 无法识别的单元：" + unit);
