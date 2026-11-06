@@ -45,10 +45,13 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "server/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManagerHostBinding.hpp"
@@ -90,7 +93,19 @@ public:
 
     [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override
     {
-        return 64;
+        return m_surfaceY + 1;
+    }
+
+    /// 四角扫描要按完整地形列判实心：地表以下全实心、地表及以上全空气。
+    [[nodiscard]] NoiseColumn getBaseColumn(i32, i32) const override
+    {
+        const i32 minY = m_settings.noise.minY;
+        NoiseColumn column(minY, m_settings.noise.height);
+        const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+        for (i32 y = minY; y < m_surfaceY; ++y) {
+            column.setBlock(y, &stoneState);
+        }
+        return column;
     }
 
     [[nodiscard]] u64 seed() const override
@@ -129,6 +144,8 @@ public:
 
 private:
     BiomeId m_biome;
+    /// 地表方块 Y：默认取海平面，避免高度调整后的温度低于降雪阈值
+    i32 m_surfaceY = 62;
     DimensionSettings m_settings = DimensionSettings::overworld();
 };
 
@@ -146,6 +163,144 @@ const RuinedPortalPiece* firstRuinedPortalPiece(const StructureStart& start)
     return nullptr;
 }
 
+/// 构造单个 setup（数据包里的 setups 表就是这么一项一项写的）
+RuinedPortalSetupDefinition makeSetup(RuinedPortalSetupDefinition::Placement placement,
+    f32 airPocketProbability,
+    f32 mossiness,
+    bool overgrown,
+    bool vines,
+    bool canBeCold,
+    bool replaceWithBlackstone,
+    f32 weight)
+{
+    RuinedPortalSetupDefinition setup;
+    setup.placement = placement;
+    setup.airPocketProbability = airPocketProbability;
+    setup.mossiness = mossiness;
+    setup.overgrown = overgrown;
+    setup.vines = vines;
+    setup.canBeCold = canBeCold;
+    setup.replaceWithBlackstone = replaceWithBlackstone;
+    setup.weight = weight;
+    return setup;
+}
+
+// 以下 setups 表逐字取自 datapacks/Vanilla 的 worldgen/structure/ruined_portal*.json
+
+std::vector<RuinedPortalSetupDefinition> desertSetups()
+{
+    return {
+        makeSetup(RuinedPortalSetupDefinition::Placement::PartlyBuried, 0.0f, 0.0f, false, false, false, false, 1.0f)};
+}
+
+std::vector<RuinedPortalSetupDefinition> jungleSetups()
+{
+    return {
+        makeSetup(RuinedPortalSetupDefinition::Placement::OnLandSurface, 0.5f, 0.8f, true, true, false, false, 1.0f)};
+}
+
+std::vector<RuinedPortalSetupDefinition> swampSetups()
+{
+    return {
+        makeSetup(RuinedPortalSetupDefinition::Placement::OnOceanFloor, 0.0f, 0.5f, false, true, false, false, 1.0f)};
+}
+
+std::vector<RuinedPortalSetupDefinition> oceanSetups()
+{
+    return {
+        makeSetup(RuinedPortalSetupDefinition::Placement::OnOceanFloor, 0.0f, 0.8f, false, false, true, false, 1.0f)};
+}
+
+std::vector<RuinedPortalSetupDefinition> standardSetups()
+{
+    return {makeSetup(RuinedPortalSetupDefinition::Placement::Underground, 1.0f, 0.2f, false, false, true, false, 0.5f),
+        makeSetup(RuinedPortalSetupDefinition::Placement::OnLandSurface, 0.5f, 0.2f, false, false, true, false, 0.5f)};
+}
+
+/// 以对应的变体 id + 数据包里的群系标签构造结构实例
+///
+/// 生产路径里 id 与 `biomes` 标签都由 StructureTypeRegistry 从结构定义 JSON 注入；
+/// 直接构造子类时二者都不存在，只能退回子类的 standard 默认标签——沙漠变体因此拿到
+/// standard 标签，`isValidBiome(Desert)` 为 false，生成被整段跳过。这里显式注入，
+/// 让测试与生产路径的行为一致。
+std::unique_ptr<RuinedPortalStructure> makeStructure(
+    const std::vector<RuinedPortalSetupDefinition>& setups, const mc::world::biome::BiomeTag* biomeTag)
+{
+    static const ResourceLocation kStandardId("minecraft", "ruined_portal");
+    static const ResourceLocation kDesertId("minecraft", "ruined_portal_desert");
+    static const ResourceLocation kJungleId("minecraft", "ruined_portal_jungle");
+    static const ResourceLocation kSwampId("minecraft", "ruined_portal_swamp");
+    static const ResourceLocation kOceanId("minecraft", "ruined_portal_ocean");
+    static const ResourceLocation kNetherId("minecraft", "ruined_portal_nether");
+    static const ResourceLocation kMountainId("minecraft", "ruined_portal_mountain");
+
+    ResourceLocation id = kStandardId;
+    if (biomeTag == &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_DESERT()) {
+        id = kDesertId;
+    } else if (biomeTag == &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_JUNGLE()) {
+        id = kJungleId;
+    } else if (biomeTag == &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_SWAMP()) {
+        id = kSwampId;
+    } else if (biomeTag == &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_OCEAN()) {
+        id = kOceanId;
+    } else if (biomeTag == &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_NETHER()) {
+        id = kNetherId;
+    } else if (biomeTag == &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_MOUNTAIN()) {
+        id = kMountainId;
+    }
+
+    auto structure = std::make_unique<RuinedPortalStructure>(id, setups);
+    structure->setBiomeTag(biomeTag);
+    return structure;
+}
+
+/// 按 setups 表内容推断所属变体并构造
+///
+/// setups 表与变体一一对应：单 setup 的 placement 直接决定变体，多 setup 只有
+/// standard / mountain 两张表。
+std::unique_ptr<RuinedPortalStructure> makeStructure(const std::vector<RuinedPortalSetupDefinition>& setups)
+{
+    if (setups.size() == 1) {
+        const auto& head = setups.front();
+        if (head.placement == RuinedPortalSetupDefinition::Placement::OnOceanFloor) {
+            return makeStructure(setups,
+                head.vines ? &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_SWAMP()
+                           : &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_OCEAN());
+        }
+        if (head.placement == RuinedPortalSetupDefinition::Placement::OnLandSurface && head.overgrown) {
+            return makeStructure(setups, &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_JUNGLE());
+        }
+        if (head.placement == RuinedPortalSetupDefinition::Placement::PartlyBuried) {
+            return makeStructure(setups, &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_DESERT());
+        }
+        if (head.placement == RuinedPortalSetupDefinition::Placement::InNether) {
+            return makeStructure(setups, &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_NETHER());
+        }
+        if (head.placement == RuinedPortalSetupDefinition::Placement::InMountain) {
+            return makeStructure(setups, &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_MOUNTAIN());
+        }
+    }
+    return makeStructure(setups, &mc::world::biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_STANDARD());
+}
+
+/// 生成一个传送门起点，并要求恰好包含一个 RuinedPortalPiece。
+///
+/// 这里直接调用 `Structure::generate`，跳过结构集的加权抽签与"区块内是否落点"的判定。
+/// 生成点由测试给定的世界种子派生，结构性断言（setup 字段、模板池、cold 标志）可稳定复现。
+///
+/// 注意：generate 仍会按**候选生成点**处的噪声群系校验生物群系；固定群系生成器在
+/// 该点返回的群系若不在结构标签里，返回 nullptr 是正确行为。
+std::unique_ptr<StructureStart> generatePortal(
+    const RuinedPortalStructure& structure, FixedBiomeChunkGenerator& generator, u64 seed, i32 chunkX, i32 chunkZ)
+{
+    math::Random rng(seed);
+    auto start = structure.generate(generator, rng, chunkX, chunkZ);
+    if (start == nullptr || start->pieceCount() != 1) {
+        return nullptr;
+    }
+    return start;
+}
+
 } // namespace
 
 // ============================================================================
@@ -158,7 +313,28 @@ protected:
     {
         VanillaBlocks::initialize();
         BlockTags::initialize();
+        // cold 判定要读群系的气候温度：未初始化时 BiomeRegistry::get 会回退到 plains，
+        // 雪原也会被判成"不够冷"。
+        world::biome::BiomeRegistry::instance().initialize();
         _bindVanillaTemplates();
+        _bindVanillaBiomeTags();
+    }
+
+    /// 从原版数据包加载 `has_structure/*` 群系标签。
+    ///
+    /// 结构类持有的 BiomeTag 是静态缓存且一旦解析就不再重建，而标签解析晚于构造函数时
+    /// 该缓存会退化成"空标签"——isValidBiome 对任何群系都返回 false。因此标签必须在
+    /// 构造任何结构实例之前加载好。
+    void _bindVanillaBiomeTags()
+    {
+        const auto dataPackDir = GameDirectory::defaultDirectory().dataPacksDir();
+        if (!std::filesystem::exists(dataPackDir)) {
+            return;
+        }
+        if (!m_dataPackRepository.scanDirectory(dataPackDir).success()) {
+            return;
+        }
+        world::biome::BiomeTagLoader::loadFromDataPackRepository(m_dataPackRepository);
     }
 
     /// 把原版数据包里的结构模板（data/minecraft/structure/**/*.nbt）接到进程级模板管理器。
@@ -206,7 +382,8 @@ TEST_F(RuinedPortalStructureTest, PieceStoresTemplateNamePositionRotationMirror)
         Rotation::Clockwise90,
         Mirror::FrontBack,
         RuinedPortalLocation::OnLandSurface,
-        props);
+        props,
+        BlockPos(100, 64, 200));
 
     EXPECT_EQ(piece.templateName(), "ruined_portal/portal_1");
     EXPECT_EQ(piece.location(), RuinedPortalLocation::OnLandSurface);
@@ -226,146 +403,151 @@ TEST_F(RuinedPortalStructureTest, PieceStoresAllLocationValues)
              RuinedPortalLocation::InMountain,
              RuinedPortalLocation::Underground,
              RuinedPortalLocation::InNether}) {
-        RuinedPortalPiece piece("ruined_portal/portal_1", BlockPos(0, 0, 0), Rotation::None, Mirror::None, loc, props);
+        RuinedPortalPiece piece(
+            "ruined_portal/portal_1", BlockPos(0, 0, 0), Rotation::None, Mirror::None, loc, props, BlockPos(0, 0, 0));
 
         EXPECT_EQ(piece.location(), loc) << "Location " << static_cast<int>(loc) << " not stored correctly";
     }
 }
 
 // ============================================================================
-// 2. Structure::generate 端到端：验证生成的片段具有正确的属性
+// 2. Structure::generate 端到端：setups 表的字段如实进入片段属性
 // ============================================================================
 
 TEST_F(RuinedPortalStructureTest, GenerateProducesValidStartWithRuinedPortalPiece)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(standardSetups());
     FixedBiomeChunkGenerator generator(Plains);
-    math::Random rng(54321);
 
-    auto start = structure.generate(generator, rng, 10, 10);
+    auto start = generatePortal(*structure, generator, 54321, 10, 10);
     ASSERT_NE(start, nullptr);
-    EXPECT_GT(start->pieceCount(), 0u);
+    EXPECT_EQ(start->pieceCount(), 1u);
 
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
 
-    // 模板名应为普通或巨型
     const auto& normalTemplates = RuinedPortalStructure::getNormalTemplates();
     const auto& giantTemplates = RuinedPortalStructure::getGiantTemplates();
     const auto& name = piece->templateName();
-    bool isNormal = std::find(normalTemplates.begin(), normalTemplates.end(), name) != normalTemplates.end();
-    bool isGiant = std::find(giantTemplates.begin(), giantTemplates.end(), name) != giantTemplates.end();
+    const bool isNormal = std::find(normalTemplates.begin(), normalTemplates.end(), name) != normalTemplates.end();
+    const bool isGiant = std::find(giantTemplates.begin(), giantTemplates.end(), name) != giantTemplates.end();
     EXPECT_TRUE(isNormal || isGiant) << "Unexpected template name: " << name;
 }
 
 // ============================================================================
-// 3. 配置正确性测试：不同生物群系对应的属性
-// 对应 MC 1.21.11 RuinedPortalStructure.configureProperties / determineLocation
+// 3. 配置正确性：各变体的 setups 表如实决定片段的放置方式与修饰属性
 // ============================================================================
 
-TEST_F(RuinedPortalStructureTest, DesertBiomeProducesDesertConfiguration)
+TEST_F(RuinedPortalStructureTest, DesertSetupProducesDesertConfiguration)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(desertSetups());
     FixedBiomeChunkGenerator generator(Desert);
-    math::Random rng(111);
 
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 111, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
 
-    // 沙漠类型: 部分掩埋，无空气口袋，无苔藓
     EXPECT_EQ(piece->location(), RuinedPortalLocation::PartlyBuried);
     EXPECT_FALSE(piece->properties().airPocket);
     EXPECT_FLOAT_EQ(piece->properties().mossiness, 0.0f);
     EXPECT_FALSE(piece->properties().replaceWithBlackstone);
 }
 
-TEST_F(RuinedPortalStructureTest, JungleBiomeProducesJungleConfiguration)
+TEST_F(RuinedPortalStructureTest, JungleSetupProducesJungleConfiguration)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(jungleSetups());
     FixedBiomeChunkGenerator generator(Jungle);
-    math::Random rng(222);
 
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 222, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
 
-    // 丛林类型: 在地表，高苔藓，过度生长，藤蔓
     EXPECT_EQ(piece->location(), RuinedPortalLocation::OnLandSurface);
     EXPECT_FLOAT_EQ(piece->properties().mossiness, 0.8f);
     EXPECT_TRUE(piece->properties().overgrown);
     EXPECT_TRUE(piece->properties().vines);
 }
 
-TEST_F(RuinedPortalStructureTest, SwampBiomeProducesSwampConfiguration)
+TEST_F(RuinedPortalStructureTest, SwampSetupProducesSwampConfiguration)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(swampSetups());
     FixedBiomeChunkGenerator generator(Swamp);
-    math::Random rng(333);
 
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 333, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
 
-    // 沼泽类型: 在海底，无空气口袋，中等苔藓，有藤蔓
     EXPECT_EQ(piece->location(), RuinedPortalLocation::OnOceanFloor);
     EXPECT_FALSE(piece->properties().airPocket);
     EXPECT_FLOAT_EQ(piece->properties().mossiness, 0.5f);
     EXPECT_TRUE(piece->properties().vines);
 }
 
-TEST_F(RuinedPortalStructureTest, OceanBiomeProducesOceanConfiguration)
+TEST_F(RuinedPortalStructureTest, OceanSetupProducesOceanConfiguration)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(oceanSetups());
     FixedBiomeChunkGenerator generator(Ocean);
-    math::Random rng(444);
 
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 444, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
 
-    // 海洋类型: 在海底，无空气口袋，高苔藓
     EXPECT_EQ(piece->location(), RuinedPortalLocation::OnOceanFloor);
     EXPECT_FALSE(piece->properties().airPocket);
     EXPECT_FLOAT_EQ(piece->properties().mossiness, 0.8f);
 }
 
 // ============================================================================
-// 4. 寒冷生物群系检测
-// 对应 MC 1.21.11 RuinedPortalStructure.configureProperties 中的 cold 判断
+// 4. cold 标志：仅 setup.can_be_cold 时才按落点群系采样
 // ============================================================================
 
 TEST_F(RuinedPortalStructureTest, ColdBiomeSetsColdFlag)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(standardSetups());
     FixedBiomeChunkGenerator generator(SnowyPlains);
-    math::Random rng(555);
 
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 555, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
 
-    // 雪地生物群系应设置 cold=true（Standard 类型 + 雪地生物群系）
     EXPECT_TRUE(piece->properties().cold);
 }
 
 TEST_F(RuinedPortalStructureTest, NonColdBiomeDoesNotSetColdFlag)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(standardSetups());
     FixedBiomeChunkGenerator generator(Plains);
-    math::Random rng(666);
 
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 666, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
 
-    // 平原不应设置 cold=true
+    EXPECT_FALSE(piece->properties().cold);
+}
+
+TEST_F(RuinedPortalStructureTest, CanBeColdFalseNeverSetsColdFlag)
+{
+    // 单 setup 且 can_be_cold=false：即使落在雪地群系也不采样、不置位。
+    // 用 standard 变体的 setups 表（can_be_cold=true 的那份单独由 ColdBiomeSetsColdFlag
+    // 覆盖），这里换成同一张表的 can_be_cold=false 版本，标签不变以便通过群系校验。
+    auto setups = standardSetups();
+    for (auto& setup : setups) {
+        setup.canBeCold = false;
+    }
+    auto structure = makeStructure(setups);
+    FixedBiomeChunkGenerator generator(SnowyPlains);
+
+    auto start = generatePortal(*structure, generator, 777, 0, 0);
+    ASSERT_NE(start, nullptr);
+    const auto* piece = firstRuinedPortalPiece(*start);
+    ASSERT_NE(piece, nullptr);
+
     EXPECT_FALSE(piece->properties().cold);
 }
 
@@ -553,11 +735,10 @@ TEST_F(RuinedPortalStructureTest, NetherrackReplacementProbabilityApproximately7
 
 TEST_F(RuinedPortalStructureTest, JungleMossinessValueIsHigh)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(jungleSetups());
     FixedBiomeChunkGenerator generator(Jungle);
-    math::Random rng(777);
 
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 777, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
@@ -568,11 +749,9 @@ TEST_F(RuinedPortalStructureTest, JungleMossinessValueIsHigh)
 
 TEST_F(RuinedPortalStructureTest, DesertMossinessValueIsZero)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(desertSetups());
     FixedBiomeChunkGenerator generator(Desert);
-    math::Random rng(888);
-
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 888, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
@@ -589,11 +768,9 @@ TEST_F(RuinedPortalStructureTest, DesertMossinessValueIsZero)
 
 TEST_F(RuinedPortalStructureTest, StandardTypeDoesNotSetReplaceWithBlackstone)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(standardSetups());
     FixedBiomeChunkGenerator generator(Plains);
-    math::Random rng(999);
-
-    auto start = structure.generate(generator, rng, 0, 0);
+    auto start = generatePortal(*structure, generator, 999, 0, 0);
     ASSERT_NE(start, nullptr);
     const auto* piece = firstRuinedPortalPiece(*start);
     ASSERT_NE(piece, nullptr);
@@ -609,12 +786,11 @@ TEST_F(RuinedPortalStructureTest, StandardTypeDoesNotSetReplaceWithBlackstone)
 
 TEST_F(RuinedPortalStructureTest, MultipleGenerationsProduceConsistentConfiguration)
 {
-    RuinedPortalStructure structure(ResourceLocation("minecraft", "ruined_portal"));
+    auto structure = makeStructure(swampSetups());
     FixedBiomeChunkGenerator generator(Swamp);
 
     for (u64 seed = 1; seed <= 20; ++seed) {
-        math::Random rng(seed);
-        auto start = structure.generate(generator, rng, 0, 0);
+        auto start = generatePortal(*structure, generator, seed, 0, 0);
         ASSERT_NE(start, nullptr);
         const auto* piece = firstRuinedPortalPiece(*start);
         ASSERT_NE(piece, nullptr);

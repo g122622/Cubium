@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
@@ -906,6 +907,24 @@ public:
     [[nodiscard]] virtual bool validatesBiomeOnCandidatePoint() const
     {
         return false;
+    }
+
+    /**
+     * @brief 在结构自己算出的候选点处校验（覆写本方法的结构才走这条路径）
+     *
+     * 与 `isValidBiomeAt` 的区别只在采样时机：调用方在 `generate()` 返回之后用这里给出的
+     * 点校验，不需要结构把校验写进生成流程内部。片段的原点（`pieces()[0]` 的包围盒
+     * 角点之外的锚点）即候选点，由各结构按自己的语义解释。
+     *
+     * @param generator 区块生成器
+     * @param start 结构刚产出的起点
+     * @return 该起点的候选点是否允许本结构
+     */
+    [[nodiscard]] virtual bool isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const
+    {
+        MC_UNUSED(generator);
+        MC_UNUSED(start);
+        return true;
     }
 
     /**

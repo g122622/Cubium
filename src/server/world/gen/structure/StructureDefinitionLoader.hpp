@@ -56,12 +56,36 @@ namespace world::gen::structure {
  * 从 JSON 解析的结构定义，包含生成结构所需的全部配置参数。
  * 对应 MC 1.21.11 的 Structure 结构。
  */
+/**
+ * @brief 废墟传送门的单个 setup（对应数据包 `setups` 数组的一项）
+ *
+ * 七个 `minecraft:ruined_portal*` 变体全部靠这张表决定垂直放置方式、苔藓/藤蔓/空气口袋
+ * 等属性，以及各 setup 的抽取权重。此前实现完全没有读取 `setups`，全部退化成一棵写死的
+ * 默认路径，导致构件位置与旋转与原版系统性不同。
+ */
+struct RuinedPortalSetupDefinition {
+    /// 垂直放置方式（对应原版 `RuinedPortalPiece.VerticalPlacement`）
+    enum class Placement : u8 { OnLandSurface, OnOceanFloor, InMountain, Underground, PartlyBuried, InNether };
+
+    Placement placement = Placement::OnLandSurface;
+    f32 airPocketProbability = 0.0f;
+    f32 mossiness = 0.0f;
+    bool overgrown = false;
+    bool vines = false;
+    bool canBeCold = false;
+    bool replaceWithBlackstone = false;
+    f32 weight = 1.0f;
+};
+
 struct StructureDefinition {
     ResourceLocation id;                                           ///< 结构资源位置
     std::string type;                                              ///< 结构类型（如 "minecraft:jigsaw"）
     ResourceLocation biomes;                                       ///< 生物群系标签引用
     DecorationStage step = DecorationStage::SurfaceStructures;     ///< 生成阶段
     TerrainAdaptation terrainAdaptation = TerrainAdaptation::None; ///< 地形适配模式
+
+    /// 废墟传送门的 setup 表（仅 `minecraft:ruined_portal` 类型使用）
+    std::vector<RuinedPortalSetupDefinition> ruinedPortalSetups;
 
     // Jigsaw 结构专用参数
     ResourceLocation startPool;                                        ///< 起始模板池
@@ -189,6 +213,15 @@ private:
      * 分派三种绑定类型：direct / random / random_group，构造 jigsaw::PoolAliasBindings。
      */
     static void _parsePoolAliasBindings(const nlohmann::json& jsonObj, jigsaw::PoolAliasBindings& outBindings);
+
+    /**
+     * @brief 解析废墟传送门的 setups JSON 数组
+     *
+     * 每个 setup 描述一种垂直放置方式及其苔藓/藤蔓/空气口袋等属性，
+     * 抽取时按 weight 加权。
+     */
+    static void _parseRuinedPortalSetups(
+        const nlohmann::json& setups, std::vector<RuinedPortalSetupDefinition>& outSetups);
 
     /// 已加载的结构定义存储
     static std::vector<std::unique_ptr<StructureDefinition>> s_definitions;

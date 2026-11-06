@@ -101,40 +101,6 @@ TEST(TemplatedStructuresTest, RuinedPortalHasCorrectTemplateCount)
     }
 }
 
-TEST(TemplatedStructuresTest, RuinedPortalTypeDetectionWorks)
-{
-    using namespace mc::Biomes;
-
-    // 沙漠类型
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Desert), RuinedPortalType::Desert);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(DesertHills), RuinedPortalType::Desert);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(DesertLakes), RuinedPortalType::Desert);
-
-    // 丛林类型
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Jungle), RuinedPortalType::Jungle);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(JungleHills), RuinedPortalType::Jungle);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(JungleEdge), RuinedPortalType::Jungle);
-
-    // 沼泽类型
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Swamp), RuinedPortalType::Swamp);
-
-    // 山地类型
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Mountains), RuinedPortalType::Mountain);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(WoodedMountains), RuinedPortalType::Mountain);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(SnowyMountains), RuinedPortalType::Mountain);
-
-    // 海洋类型
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Ocean), RuinedPortalType::Ocean);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(DeepOcean), RuinedPortalType::Ocean);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(WarmOcean), RuinedPortalType::Ocean);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(FrozenOcean), RuinedPortalType::Ocean);
-
-    // 标准类型（默认）
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Plains), RuinedPortalType::Standard);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Forest), RuinedPortalType::Standard);
-    EXPECT_EQ(RuinedPortalStructure::getPortalType(Taiga), RuinedPortalType::Standard);
-}
-
 // 测试结构片段属性
 
 TEST(TemplatedStructuresTest, IglooPieceHasCorrectDefaults)
@@ -190,7 +156,8 @@ TEST(TemplatedStructuresTest, RuinedPortalPieceProperties)
         Rotation::None,
         Mirror::None,
         RuinedPortalLocation::OnLandSurface,
-        props);
+        props,
+        mc::BlockPos(0, 64, 0));
 
     EXPECT_EQ(piece.templateName(), "ruined_portal/portal_1");
     EXPECT_EQ(piece.location(), RuinedPortalLocation::OnLandSurface);

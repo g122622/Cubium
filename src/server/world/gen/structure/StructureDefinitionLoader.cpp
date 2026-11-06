@@ -287,6 +287,11 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
             _parsePoolAliasBindings(jsonObj["pool_aliases"], def->poolAliases);
         }
 
+        // 解析废墟传送门的 setup 表
+        if (jsonObj.contains("setups") && jsonObj["setups"].is_array()) {
+            _parseRuinedPortalSetups(jsonObj["setups"], def->ruinedPortalSetups);
+        }
+
         // 存储定义
         // spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
         s_byId[location] = def.get();
@@ -454,6 +459,58 @@ void StructureDefinitionLoader::_parseSpawnOverrides(
         }
 
         outOverrides[it.key()] = std::move(override);
+    }
+}
+
+void StructureDefinitionLoader::_parseRuinedPortalSetups(
+    const nlohmann::json& setups, std::vector<RuinedPortalSetupDefinition>& outSetups)
+{
+    // `setups` 是数组，每项形如：
+    //   { "placement": "in_mountain", "air_pocket_probability": 1.0, "can_be_cold": true,
+    //     "mossiness": 0.2, "overgrown": false, "replace_with_blackstone": false,
+    //     "vines": false, "weight": 0.5 }
+    outSetups.clear();
+    outSetups.reserve(setups.size());
+    for (const auto& item : setups) {
+        if (!item.is_object()) {
+            spdlog::warn("ruined_portal setups: non-object entry skipped");
+            continue;
+        }
+
+        RuinedPortalSetupDefinition setup;
+        if (item.contains("placement") && item["placement"].is_string()) {
+            const std::string placement = item["placement"].get<std::string>();
+            if (placement == "on_land_surface") {
+                setup.placement = RuinedPortalSetupDefinition::Placement::OnLandSurface;
+            } else if (placement == "on_ocean_floor") {
+                setup.placement = RuinedPortalSetupDefinition::Placement::OnOceanFloor;
+            } else if (placement == "in_mountain") {
+                setup.placement = RuinedPortalSetupDefinition::Placement::InMountain;
+            } else if (placement == "underground") {
+                setup.placement = RuinedPortalSetupDefinition::Placement::Underground;
+            } else if (placement == "partly_buried") {
+                setup.placement = RuinedPortalSetupDefinition::Placement::PartlyBuried;
+            } else if (placement == "in_nether") {
+                setup.placement = RuinedPortalSetupDefinition::Placement::InNether;
+            } else {
+                // 未知放置方式不静默退化：原版的枚举只有这六种，出现别的值说明数据包
+                // 使用了本实现尚不支持的形式，必须让它可见。
+                spdlog::warn(
+                    "ruined_portal setups: unknown placement '{}', falling back to on_land_surface", placement);
+            }
+        } else {
+            spdlog::warn("ruined_portal setups: missing placement, falling back to on_land_surface");
+        }
+
+        setup.airPocketProbability = item.value("air_pocket_probability", 0.0f);
+        setup.mossiness = item.value("mossiness", 0.0f);
+        setup.overgrown = item.value("overgrown", false);
+        setup.vines = item.value("vines", false);
+        setup.canBeCold = item.value("can_be_cold", false);
+        setup.replaceWithBlackstone = item.value("replace_with_blackstone", false);
+        setup.weight = item.value("weight", 1.0f);
+
+        outSetups.push_back(setup);
     }
 }
 
