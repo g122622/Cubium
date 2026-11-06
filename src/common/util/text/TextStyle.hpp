@@ -391,6 +391,24 @@ public:
         m_hoverEvent = event;
     }
 
+    /**
+     * @brief 获取插入文本，对应原版 `Style.getInsertion`
+     *
+     * 玩家点击该文本组件时，这段字符串会被插入聊天输入框。
+     */
+    [[nodiscard]] const std::optional<std::string>& getInsertion() const noexcept
+    {
+        return m_insertion;
+    }
+
+    /**
+     * @brief 设置插入文本，对应原版 `Style.withInsertion`
+     */
+    void setInsertion(std::optional<std::string> insertion) noexcept
+    {
+        m_insertion = std::move(insertion);
+    }
+
     // ========== 父样式继承 ==========
 
     /**
@@ -479,6 +497,7 @@ private:
     std::optional<bool> m_obfuscated;
     std::optional<ClickEvent> m_clickEvent;
     std::optional<HoverEvent> m_hoverEvent;
+    std::optional<std::string> m_insertion;
 };
 
 /**

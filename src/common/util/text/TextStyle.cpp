@@ -268,6 +268,7 @@ Style Style::applyTo(const Style& other) const
     result.m_obfuscated = pick(m_obfuscated, other.m_obfuscated);
     result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : other.m_clickEvent;
     result.m_hoverEvent = m_hoverEvent.has_value() ? m_hoverEvent : other.m_hoverEvent;
+    result.m_insertion = m_insertion.has_value() ? m_insertion : other.m_insertion;
     return result;
 }
 
@@ -292,6 +293,7 @@ Style Style::mergeWithParent(const Style& parent) const noexcept
     // 事件：子样式优先
     result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : parent.m_clickEvent;
     result.m_hoverEvent = m_hoverEvent.has_value() ? m_hoverEvent : parent.m_hoverEvent;
+    result.m_insertion = m_insertion.has_value() ? m_insertion : parent.m_insertion;
 
     return result;
 }
@@ -301,7 +303,7 @@ bool Style::isEmpty() const noexcept
     // 三态：任一标志被显式设置（true 或 false）就不算空样式。
     return !m_color.has_value() && !m_bold.has_value() && !m_italic.has_value() && !m_underlined.has_value() &&
         !m_strikethrough.has_value() && !m_obfuscated.has_value() && !m_clickEvent.has_value() &&
-        !m_hoverEvent.has_value();
+        !m_hoverEvent.has_value() && !m_insertion.has_value();
 }
 
 nlohmann::json Style::toJson() const
@@ -340,6 +342,9 @@ nlohmann::json Style::toJson() const
         json["hoverEvent"] = m_hoverEvent->toJson();
     }
 
+    if (m_insertion.has_value()) {
+        json["insertion"] = *m_insertion;
+    }
     return json;
 }
 
@@ -350,23 +355,9 @@ Style Style::fromJson(const nlohmann::json& json)
     if (json.contains("color") && json["color"].is_string()) {
         const std::string text = json["color"].get<std::string>();
         // 原版写 "#RRGGBB"；这里也接受颜色名，以便读取旧数据与手写 JSON。
-        if (!text.empty() && text.front() == '#' && text.size() == 7) {
-            const unsigned rgb = static_cast<unsigned>(std::strtoul(text.c_str() + 1, nullptr, 16));
-            // 把 RGB 反查回最接近的命名颜色（原版 TextColor 是任意 RGB，
-            // 但 Cubium 的 Style 只存格式化枚举，此处取精确匹配）。
-            style.m_color = std::nullopt;
-            for (const auto& entry : FORMATTING_TABLE) {
-                if ((entry.color & 0xFFFFFFu) == rgb) {
-                    style.m_color = TextColor::fromLegacyFormat(entry.formatting);
-                    break;
-                }
-            }
-            // TODO: Cubium 的 Style 用 TextFormatting 枚举表达能力有限，
-            // 无法存储任意 RGB（如 "#123456"）。待 Style 改为持有 RGB 后再支持。
-        } else {
-            const TextFormatting parsed = fromName(std::string(text));
-            style.m_color = parsed == TextFormatting::None ? std::nullopt : TextColor::fromLegacyFormat(parsed);
-        }
+        // 任意 RGB 直接用 TextColor 承载，不需要反查具名颜色
+        const std::optional<TextColor> parsedHex = TextColor::parseColor(text);
+        style.m_color = parsedHex;
     }
     if (json.contains("bold") && json["bold"].is_boolean()) {
         style.m_bold = json["bold"].get<bool>();
@@ -390,6 +381,10 @@ Style Style::fromJson(const nlohmann::json& json)
         style.m_hoverEvent = HoverEvent::fromJson(json["hoverEvent"]);
     }
 
+    if (json.contains("insertion") && json["insertion"].is_string()) {
+        style.m_insertion = json["insertion"].get<std::string>();
+    }
+
     return style;
 }
 
@@ -397,7 +392,8 @@ bool Style::operator==(const Style& other) const noexcept
 {
     return m_color == other.m_color && m_bold == other.m_bold && m_italic == other.m_italic &&
         m_underlined == other.m_underlined && m_strikethrough == other.m_strikethrough &&
-        m_obfuscated == other.m_obfuscated && m_clickEvent == other.m_clickEvent && m_hoverEvent == other.m_hoverEvent;
+        m_obfuscated == other.m_obfuscated && m_clickEvent == other.m_clickEvent &&
+        m_hoverEvent == other.m_hoverEvent && m_insertion == other.m_insertion;
 }
 
 // ========== 工具函数 ==========
