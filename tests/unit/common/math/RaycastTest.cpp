@@ -692,7 +692,7 @@ TEST_F(RaycastFluidSourceTest, DownwardRayThroughAirHitsSurfaceWater)
     ASSERT_TRUE(result.isHit());
     EXPECT_EQ(result.blockPos(), BlockPos(0, 62, 0));
     EXPECT_EQ(result.face(), Direction::Up);
-    EXPECT_NEAR(result.hitPosition().y, 62.0f + waterSource().getHeight(), 1e-4f);
+    EXPECT_NEAR(result.hitPosition().y, 62.0f + waterSource().getOwnHeight(), 1e-4f);
 }
 
 TEST_F(RaycastFluidSourceTest, StartInsideFluidSourceHitsImmediately)

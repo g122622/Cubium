@@ -256,7 +256,7 @@ TEST(FluidStateTest, WaterBlockStateMapsToShallowFluidHeight)
     ASSERT_NE(fluidState, nullptr);
     EXPECT_FALSE(fluidState->isSource());
     EXPECT_EQ(fluidState->getLevel(), 1);
-    EXPECT_NEAR(fluidState->getHeight(), 1.0f / 9.0f, 1e-6f);
+    EXPECT_NEAR(fluidState->getOwnHeight(), 1.0f / 9.0f, 1e-6f);
 }
 
 TEST(FluidStateTest, ActualHeightBecomesFullWhenSameFluidAbove)
