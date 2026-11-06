@@ -136,13 +136,16 @@ OceanRuinPiece::OceanRuinPiece(const std::string& templateName,
           position.x,
           position.y,
           position.z)
-    , m_templateName(templateName)
+    , m_templateName(ResourceLocation(templateName).toString())
     , m_rotation(rotation)
     , m_integrity(integrity)
     , m_type(type)
     , m_isLarge(isLarge)
     , m_size(1, 1, 1)
 {
+    // 模板标识用资源位置的完整写法（`minecraft:underwater_ruin/brick_6`）：原版
+    // `TemplateStructurePiece.templateName` 存的是 `Identifier.toString()`，字段本身
+    // 是片段的对外标识，不是内部查找键。
     // 包围盒必须在构造期按模板真实尺寸算好：`TemplateStructurePiece` 的构造就是这么做的，
     // 后续 move() 只平移盒子。等到 FEATURES 阶段才回填，会让 STRUCTURE_STARTS 阶段的
     // 每个构件都退化成一个点——整座废墟的整体包围盒、集群的重叠判定、差分输出全部失真。

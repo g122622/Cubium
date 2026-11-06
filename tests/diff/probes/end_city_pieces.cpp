@@ -119,13 +119,31 @@ std::string runLine(std::string_view inputLine)
     json pieces = json::array();
     bool found = false;
 
+    // 结构起点阶段的依赖半径为 0。region 的区块数组按「从左上到右下」的绝对顺序排列，
+    // 主区块位于下标正中：大小必须是奇数（半径 1 → 9 个区块），写 1 会让主区块取不到。
+    // region 的作用是让落点扫描看到已放置结构对地形的整平贡献（原版经 RandomState 的
+    // NoiseChunk 缓存在同一进程内取得）。
+    std::vector<std::unique_ptr<::mc::world::chunk::ChunkPrimer>> regionOwners;
+    std::vector<IChunk*> regionChunks;
+    for (i32 dz = -1; dz <= 1; ++dz) {
+        for (i32 dx = -1; dx <= 1; ++dx) {
+            regionOwners.push_back(std::make_unique<::mc::world::chunk::ChunkPrimer>(chunkX + dx, chunkZ + dz));
+            regionChunks.push_back(regionOwners.back().get());
+        }
+    }
+    ::mc::WorldGenRegion region(chunkX, chunkZ, 1, std::move(regionChunks));
+    ::mc::world::chunk::ChunkPrimer& regionPrimer = *regionOwners[4];
+
     for (const auto* structureSet : placementState.structureSets()) {
         NoiseChunkGenerator::StructureSelection selection =
-            generator._generateStructureStartsForSet(placementState, *structureSet, chunkX, chunkZ);
+            generator._generateStructureStartsForSet(region, placementState, *structureSet, chunkX, chunkZ);
         if (selection.start == nullptr) {
             continue;
         }
         if (selection.structureId.toString() != "minecraft:end_city") {
+            // 非目标结构也要登记回本区块：后续结构集的落点扫描需要看到它的地形整平贡献。
+            regionPrimer.addStructureStart(selection.structureId,
+                std::shared_ptr<world::gen::structure::StructureStart>(std::move(selection.start)));
             continue;
         }
         found = true;

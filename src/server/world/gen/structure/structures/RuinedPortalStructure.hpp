@@ -206,6 +206,16 @@ public:
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
+     * @brief 带生成区域重载：落点扫描计入已放置结构对地形的整平贡献
+     *
+     * 原版 `getBaseColumn(x, z, level, randomState)` 命中的是带 Beardifier 的 NoiseChunk，
+     * 山地里已有结构（村庄、试炼密室等）会把四周地形整平/垫高，废墟传送门因此扫描到
+     * 的是整平后的高度。只有拿到 region 才能复刻这一步。
+     */
+    [[nodiscard]] std::unique_ptr<StructureStart> generate(
+        IChunkGenerator& generator, WorldGenRegion* region, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
+
+    /**
      * @brief 设置模板管理器
      */
     void setTemplateManager(feature::template_::TemplateManager* manager)

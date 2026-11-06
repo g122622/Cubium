@@ -54,6 +54,7 @@ class ChunkPrimer;
 
 using world::chunk::ChunkPrimer;
 class IChunkGenerator;
+class WorldGenRegion;
 class BlockState;
 class BlockPos;
 
@@ -1032,6 +1033,23 @@ public:
      */
     [[nodiscard]] virtual std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const;
+
+    /**
+     * @brief 生成结构起点，并可读取生成区域中已放置结构的引用
+     *
+     * 落点依赖「已被结构整平过的地形」的结构（如废墟传送门，原版经 RandomState 的
+     * NoiseChunk 缓存看到 Beardifier 贡献）需要 region 才能得到与原版一致的高度。
+     *
+     * 默认实现丢弃 region 并转发到四参数版本；需要结构地形贡献的子类覆写本方法。
+     *
+     * @param region 生成区域（可能为 nullptr，表示无法获取结构引用）
+     */
+    [[nodiscard]] virtual std::unique_ptr<StructureStart> generate(
+        IChunkGenerator& generator, WorldGenRegion* region, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
+    {
+        MC_UNUSED(region);
+        return generate(generator, rng, chunkX, chunkZ);
+    }
 
     /**
      * @brief 在区块中放置结构片段

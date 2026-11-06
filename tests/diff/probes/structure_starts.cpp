@@ -88,6 +88,7 @@
 #include "server/world/gen/structure/StructureSetLoader.hpp"
 #include "server/world/gen/structure/StructureTagLoader.hpp"
 #include "server/world/gen/structure/pools/Pools.hpp"
+#include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
 #include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "structure_probe_common.hpp"
 
@@ -163,18 +164,20 @@ json summarisePiece(const world::gen::structure::StructurePiece& piece)
     // 把真正的几何差异淹没掉。构件模板名由专门的能力（end_city_pieces）比对。
     const std::string templateId = piece.isJigsawPiece() ? std::string(piece.templateLocation()) : std::string();
 
-    // 模板文件名：oracle 侧对任意 TemplateStructurePiece 都输出，这里必须同口径——
-    // 废墟传送门与末地城都不是池元素（template 为空），但两者都有独立的模板文件。
+    // 模板文件名：oracle 侧对任意 TemplateStructurePiece 都输出**完整资源位置**
+    // （`TemplateStructurePiece.templateName` 存的是 `Identifier.toString()`），废墟传送门与
+    // 末地城都不是池元素（template 为空），但两者都有独立的模板文件。末地城存的是裸文件名
+    // （与 oracle 侧反射读到的值一致），不能自作主张补命名空间。
     const std::string templateFile = [&]() -> std::string {
         if (const auto* portal = dynamic_cast<const world::gen::structure::RuinedPortalPiece*>(&piece)) {
             return portal->templateName();
         }
-        std::string path(piece.templateLocation());
-        // 与原版 TemplateStructurePiece.templateName 同口径：只保留文件名，去掉
-        // 命名空间与目录前缀（末地城存的是完整资源路径，废墟传送门存的是相对路径）。
-        const auto slash = path.find_last_of('/');
-        return slash == std::string::npos ? path : path.substr(slash + 1);
+        if (const auto* ruin = dynamic_cast<const world::gen::structure::OceanRuinPiece*>(&piece)) {
+            return ruin->templateName();
+        }
+        return std::string(piece.templateLocation());
     }();
+
     return json{{"templateFile", templateFile},
         {"box", {box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()}},
         {"rotation", rotationName(piece.getRotation())},
@@ -214,11 +217,28 @@ std::string runLine(std::string_view inputLine)
         }
     }
 
+    // 生成区域只含本区块：STRUCTURE_STARTS 的依赖半径为 0，落点扫描所需的其它结构信息
+    // 全部经由结构引用拿到。region 的作用是让废墟传送门这类结构看到已放置结构对地形的
+    // 整平贡献——原版经 RandomState 的 NoiseChunk 缓存在同一进程里拿到这份贡献，本实现
+    // 必须显式把区块传进来。
+    // region 的区块数组按「从左上到右下」的绝对顺序排列，主区块位于下标正中：大小必须是
+    // 奇数（半径 1 → 9 个区块），写 1 会让相对坐标 (0,0) 落到下标 0 而取不到主区块。
+    std::vector<std::unique_ptr<::mc::world::chunk::ChunkPrimer>> regionOwners;
+    std::vector<IChunk*> regionChunks;
+    for (i32 dz = -1; dz <= 1; ++dz) {
+        for (i32 dx = -1; dx <= 1; ++dx) {
+            regionOwners.push_back(std::make_unique<::mc::world::chunk::ChunkPrimer>(chunkX + dx, chunkZ + dz));
+            regionChunks.push_back(regionOwners.back().get());
+        }
+    }
+    ::mc::WorldGenRegion region(chunkX, chunkZ, 1, std::move(regionChunks));
+    ::mc::world::chunk::ChunkPrimer& primer = *regionOwners[4];
+
     json starts = json::array();
 
     for (const auto* structureSet : placementState.structureSets()) {
         NoiseChunkGenerator::StructureSelection selection =
-            generator._generateStructureStartsForSet(placementState, *structureSet, chunkX, chunkZ);
+            generator._generateStructureStartsForSet(region, placementState, *structureSet, chunkX, chunkZ);
         if (selection.start == nullptr) {
             continue;
         }
@@ -231,6 +251,12 @@ std::string runLine(std::string_view inputLine)
         starts.push_back(json{{"structure", selection.structureId.toString()},
             {"box", {bbox.minX(), bbox.minY(), bbox.minZ(), bbox.maxX(), bbox.maxY(), bbox.maxZ()}},
             {"pieces", std::move(pieces)}});
+
+        // 起点必须登记回本区块再继续下一个结构集：原版 createStructures 每择出一个起点就
+        // 写回区块，后续结构的落点扫描经 RandomState 的 NoiseChunk 看到它的地形整平贡献
+        // （Beardifier）。不登记的话废墟传送门等结构会按未被整平的地形算高度。
+        primer.addStructureStart(
+            selection.structureId, std::shared_ptr<world::gen::structure::StructureStart>(std::move(selection.start)));
     }
 
     return json{{"unit", input.value("unit", "")}, {"starts", std::move(starts)}}.dump();

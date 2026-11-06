@@ -165,7 +165,7 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 // ============================================================================
 
 NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureStart(
-    const world::gen::structure::StructureSet& structureSet, i32 chunkX, i32 chunkZ)
+    WorldGenRegion& region, const world::gen::structure::StructureSet& structureSet, i32 chunkX, i32 chunkZ)
 {
     // 加权选择 + 失败回退重抽。
     // 参考: ChunkGenerator.createStructures()
@@ -265,7 +265,7 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
             math::WorldgenRandom structureRng(std::make_unique<math::JavaLegacyRandom>(0ULL));
             structureRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 
-            auto start = structure->generate(*this, structureRng, chunkX, chunkZ);
+            auto start = structure->generate(*this, &region, structureRng, chunkX, chunkZ);
             // 【必须判 isValid】原版只有 `start.isValid()` 才登记结构起点：空的
             // StructureStart（构件数为 0，如起始模板池为空）不算生成成功，必须继续
             // 用同一个随机源重抽其余条目；若把它当成成功，会静默吞掉该结构集在本区块的
@@ -287,7 +287,7 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
     return {};
 }
 
-NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_generateStructureStartsForSet(
+NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_generateStructureStartsForSet(WorldGenRegion& region,
     const world::gen::structure::StructurePlacementState& placementState,
     const world::gen::structure::StructureSet& structureSet,
     i32 chunkX,
@@ -298,7 +298,7 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_generateStructureS
     if (!placementState.isStructureChunk(structureSet, chunkX, chunkZ)) {
         return {};
     }
-    return _selectStructureStart(structureSet, chunkX, chunkZ);
+    return _selectStructureStart(region, structureSet, chunkX, chunkZ);
 }
 
 void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
@@ -338,7 +338,7 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             continue;
         }
 
-        auto selection = _generateStructureStartsForSet(placementState, *structureSet, chunkX, chunkZ);
+        auto selection = _generateStructureStartsForSet(region, placementState, *structureSet, chunkX, chunkZ);
         if (selection.start != nullptr) {
             chunk.addStructureStart(selection.structureId,
                 std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(selection.start)));
@@ -830,6 +830,11 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 
 NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 {
+    return getBaseColumnWithStructures(x, z, nullptr);
+}
+
+NoiseColumn NoiseChunkGenerator::getBaseColumnWithStructures(i32 x, i32 z, WorldGenRegion* region) const
+{
     if (!m_randomState) {
         return NoiseColumn(m_settings.noise.minY, m_settings.noise.height);
     }
@@ -850,7 +855,22 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
     const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
     const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
-    // 创建单列 NoiseChunk（使用 BeardifierMarker 零贡献，与 getHeight 一致）
+    // 结构地形贡献：原版这里取的是 RandomState 缓存里**已经带 Beardifier** 的 NoiseChunk。
+    // 结构生成期该列所在区块通常已经建过 NoiseChunk（含已放置结构对密度的贡献），因此
+    // 结构落点扫描看到的是被结构整平/垫高后的地形，而不是原始地形。没有缓存命中时才
+    // 退化成零贡献的 BeardifierMarker（与 getHeight 一致）。
+    std::unique_ptr<world::gen::density::DensityFunction> beardifier =
+        std::make_unique<world::gen::density::BeardifierMarker>();
+    if (region != nullptr) {
+        const i32 chunkMinX = math::floorDiv(x, world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
+        const i32 chunkMinZ = math::floorDiv(z, world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
+        const auto starts = _collectStructureStarts(*region, chunkMinX, chunkMinZ);
+        const auto data = world::gen::density::collectBeardifierData(starts, chunkMinX, chunkMinZ);
+        if (!data.pieces.empty() || !data.junctions.empty()) {
+            beardifier = std::make_unique<world::gen::density::Beardifier>(data.pieces, data.junctions);
+        }
+    }
+
     // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
     // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
     auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
@@ -860,7 +880,7 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
         alignedX,
         minY,
         alignedZ,
-        std::make_unique<world::gen::density::BeardifierMarker>(),
+        std::move(beardifier),
         1); // cellCountXZ = 1 for single-column query
 
     // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
@@ -1165,6 +1185,56 @@ world::gen::density::BeardifierData world::gen::density::collectBeardifierData(
     return data;
 }
 
+std::vector<std::pair<const world::gen::structure::StructureStart*, const world::gen::structure::Structure*>>
+NoiseChunkGenerator::_collectStructureStarts(WorldGenRegion& region, i32 chunkMinX, i32 chunkMinZ) const
+{
+    // 结构引用已在 STRUCTURE_REFERENCES 阶段填充，包含源自邻居区块但延伸到当前区块的结构；
+    // 引用机制本身已包含当前区块的结构起点，因此不需要额外遍历 structureStarts。
+    std::vector<std::pair<const world::gen::structure::StructureStart*, const world::gen::structure::Structure*>>
+        starts;
+    std::unordered_set<const world::gen::structure::StructureStart*> processedStarts;
+
+    const i32 chunkX = math::floorDiv(chunkMinX, world::CHUNK_WIDTH);
+    const i32 chunkZ = math::floorDiv(chunkMinZ, world::CHUNK_WIDTH);
+    IChunk* self = region.getIChunk(chunkX, chunkZ, ChunkStatuses::STRUCTURE_STARTS);
+    if (self == nullptr) {
+        return starts;
+    }
+    const auto* selfPrimer = dynamic_cast<const ChunkPrimer*>(self);
+    if (selfPrimer == nullptr || !selfPrimer->hasStructureReferences()) {
+        return starts;
+    }
+
+    for (const auto& [structureId, refs] : selfPrimer->structureReferences()) {
+        const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
+        for (const auto& [refX, refZ] : refs) {
+            IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
+            if (!sourceChunk) {
+                continue;
+            }
+
+            auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);
+            if (!sourcePrimer) {
+                continue;
+            }
+
+            auto* start = sourcePrimer->getStructureStart(structureId);
+            if (!start || !start->isValid()) {
+                continue;
+            }
+
+            // 去重：同一个 StructureStart 可能通过多个引用条目被多次发现
+            if (processedStarts.count(start) != 0) {
+                continue;
+            }
+            processedStarts.insert(start);
+            starts.emplace_back(start, structure);
+        }
+    }
+
+    return starts;
+}
+
 world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRegion& region, ChunkPrimer& chunk) const
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildBeardifier", "x", chunk.x(), "z", chunk.z());
@@ -1172,41 +1242,7 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRe
     const i32 chunkMinX = chunk.x() * world::CHUNK_WIDTH;
     const i32 chunkMinZ = chunk.z() * world::CHUNK_WIDTH;
 
-    // 结构引用已在 STRUCTURE_REFERENCES 阶段填充，包含源自邻居区块但延伸到当前区块的结构；
-    // 引用机制本身已包含当前区块的结构起点，因此不需要额外遍历 structureStarts。
-    std::vector<std::pair<const world::gen::structure::StructureStart*, const world::gen::structure::Structure*>>
-        starts;
-    std::unordered_set<const world::gen::structure::StructureStart*> processedStarts;
-
-    if (chunk.hasStructureReferences()) {
-        for (const auto& [structureId, refs] : chunk.structureReferences()) {
-            const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
-            for (const auto& [refX, refZ] : refs) {
-                IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
-                if (!sourceChunk) {
-                    continue;
-                }
-
-                auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);
-                if (!sourcePrimer) {
-                    continue;
-                }
-
-                auto* start = sourcePrimer->getStructureStart(structureId);
-                if (!start || !start->isValid()) {
-                    continue;
-                }
-
-                // 去重：同一个 StructureStart 可能通过多个引用条目被多次发现
-                if (processedStarts.count(start) != 0) {
-                    continue;
-                }
-                processedStarts.insert(start);
-                starts.emplace_back(start, structure);
-            }
-        }
-    }
-
+    const auto starts = _collectStructureStarts(region, chunkMinX, chunkMinZ);
     auto data = world::gen::density::collectBeardifierData(starts, chunkMinX, chunkMinZ);
     return world::gen::density::Beardifier(std::move(data.pieces), std::move(data.junctions));
 }
