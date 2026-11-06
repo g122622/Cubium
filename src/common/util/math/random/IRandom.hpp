@@ -192,6 +192,62 @@ public:
     [[nodiscard]] virtual f32 nextGaussian(f32 mean = 0.0f, f32 stddev = 1.0f);
 
     /**
+     * @brief 闭区间随机整数，对应原版 `RandomSource.nextIntBetweenInclusive`
+     *
+     * 等价于 `nextInt(bound - origin + 1) + origin`。**加一不可省**：
+     * 直接写 `nextInt(bound - origin) + origin` 会让上界取不到。
+     */
+    [[nodiscard]] i32 nextIntBetweenInclusive(i32 origin, i32 bound)
+    {
+        return nextInt(bound - origin + 1) + origin;
+    }
+
+    /**
+     * @brief 三角分布随机数（f64），对应原版 `RandomSource.triangle(double, double)`
+     *
+     * `mean + spread * (nextDouble() - nextDouble())`——两个独立均匀分布之差，
+     * 结果落在 `[mean - spread, mean + spread]`，中间概率最高。
+     *
+     * **固定消耗两次 `nextDouble()`**，即使调用方只用一部分结果，随机流也已推进。
+     */
+    [[nodiscard]] f64 triangle(f64 mean, f64 spread)
+    {
+        return mean + spread * (nextDouble() - nextDouble());
+    }
+
+    /**
+     * @brief 三角分布随机数（f32），对应原版 `RandomSource.triangle(float, float)`
+     *
+     * **必须用 `nextFloat()` 而不是 `nextDouble()`**：两者在被测实现里是**不同的随机流**
+     * （`nextFloat` 取 24 位、`nextDouble` 取 53 位），混用会让整条随机序列错位。
+     */
+    [[nodiscard]] f32 triangle(f32 mean, f32 spread)
+    {
+        return mean + spread * (nextFloat() - nextFloat());
+    }
+
+    /**
+     * @brief 区间内的随机浮点，对应原版 `Mth.randomBetween`
+     *
+     * `nextFloat() * (max - min) + min`——**先减后乘再加**，运算顺序不能换：
+     * 写成 `min + nextFloat() * (max - min)` 在浮点下是同一式的不同舍入，末位可能不同。
+     */
+    [[nodiscard]] f32 randomBetween(f32 min, f32 max)
+    {
+        return nextFloat() * (max - min) + min;
+    }
+
+    /**
+     * @brief 闭区间随机整数，对应原版 `Mth.randomBetweenInclusive`
+     *
+     * 与 `nextIntBetweenInclusive` 语义相同，只是参数顺序按原版的 (rng, min, max) 排列。
+     */
+    [[nodiscard]] i32 randomBetweenInclusive(i32 min, i32 max)
+    {
+        return nextInt(max - min + 1) + min;
+    }
+
+    /**
      * @brief 返回随机 64 位长整数
      * @return 随机 i64 值
      *

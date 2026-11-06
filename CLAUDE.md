@@ -295,13 +295,11 @@ auto& str = tag.get<mc::nbt::tags::string_tag>("name");
 项目内置两套 profiler 后端，可独立开关、同时启用（双轨录制），对外 `MC_TRACE_*` API 宏名统一：
 
 - **Perfetto**（`MC_ENABLE_TRACING`，默认 ON）：进程内录制到 `.perfetto-trace` 文件，供 ui.perfetto.dev 分析。
-- **Tracy**（`MC_ENABLE_TRACY`，**默认 OFF**）：in-memory 采集，client 自动监听 8086 端口，用 tracy GUI 连接拉取查看（进程内不写文件）。采集范围另受 `MC_TRACY_ON_DEMAND`（默认 ON）控制：**仅在有 GUI 连接时记录事件**。原因是 Tracy 默认会把事件无条件写入进程内生产者队列，而该队列只在 GUI 连接时被排空，长驻进程（服务端）下会无限增长。因此抓取服务端启动阶段的 trace 须先连上 GUI，或改用 Perfetto（不受此项影响）。
-  - 默认关闭的原因：Tracy 带来可观的常驻内存开销（Windows 上其符号解析线程会载入全部模块调试符号约 96 MB，自带的 rpmalloc 按 4 MiB 为单位 `VirtualAlloc`），且**不受 `--profiler-enabled=false` 影响**。实测对比见 `docs/MEMORY.md`。需要时显式 `-DMC_ENABLE_TRACY=ON -DMC_ENABLE_MEMORY=ON`。
-- 两者同时启用时，`MC_TRACE_*` 宏会同时向两套后端发事件；两者皆关时所有宏空展开、零开销。
+- **Tracy**（`MC_ENABLE_TRACY`，**默认 OFF**）：in-memory 采集，client 自动监听 8086 端口，用 tracy GUI 连接拉取查看。
 
 #### 追踪类别
 
-追踪类别参见 `src\common\profiler\TraceCategories.hpp` 中的 `mc::trace::TraceEvents` 枚举树。你只能使用这棵树上的叶子节点（如 `TraceEvents.Server.Tick`），其字符串值已在该文件的 `PERFETTO_DEFINE_CATEGORIES` 中注册（仅 Perfetto 后端需要注册，Tracy 侧不消费 category）。使用树外的类别会导致编译错误（仅 Perfetto 启用时）。
+追踪类别参见 `src\common\profiler\TraceCategories.hpp` 中的 `mc::trace::TraceEvents` 枚举树。
 
 #### 用法
 
@@ -326,11 +324,7 @@ MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "FPS", fps);
 MC_TRACE_INSTANT_EVENT(TraceEvents.Game.Tick, "SomethingHappened");
 ```
 
-在 `.cpp` 中通常在 include 区后加 `using namespace mc::trace;`，即可直接写 `TraceEvents.Server.Tick`；在 `.hpp` 中用全限定 `::mc::trace::TraceEvents.X.Y`，不要在头文件加 `using namespace`。
-
 可用宏：`MC_TRACE_SCOPED_EVENT`（作用域事件，最常用）、`MC_TRACE_INSTANT_EVENT`（瞬时事件）、`MC_TRACE_COUNTER`（计数器）、`MC_TRACE_EVENT_BEGIN`/`MC_TRACE_EVENT_END`（手动跨函数配对）、`MC_TRACE_SET_THREAD_NAME`（线程命名）。
-
-双轨说明：`MC_TRACE_SCOPED_EVENT` 双轨启用时同时发 Perfetto `TRACE_EVENT` 与 Tracy `ZoneScopedN`（变量名按 `__LINE__` 唯一化，允许同一作用域多个）；`MC_TRACE_COUNTER` 同时发 `TRACE_COUNTER` 与 `TracyPlot`（转 double，>2^53 大值会丢精度）；`MC_TRACE_INSTANT_EVENT`/`BEGIN`/`END` 在 Tracy 侧降级为 message 边界标记。`MC_TRACE_SET_THREAD_NAME` 转调 `ProfilerManager::setThreadName`，由门面同时写两套后端。
 
 你必须保证传入的枚举叶节点在 `src\common\profiler\TraceCategories.hpp` 中已注册，否则会导致编译错误（仅 Perfetto 后端启用时生效；Tracy 不消费 category）。
 
@@ -406,9 +400,6 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 
 ## 重要说明
 
-### MC Java 源码参考
-你可以在 `D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft` 访问 MC Java 1.21.11 源码作为参考。本项目旨在尽可能复制 Java 版游戏玩法。
-
 ### 代码质量
 - 必须有断言和单元测试
 - 每个方法都要有文档注释
@@ -416,7 +407,7 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 - "测试即契约"原则
 
 ### 目录结构
-保持整洁优雅的目录结构，适当使用子目录。永远不要在一个目录里堆放大量文件。
+保持整洁优雅的目录结构，充分使用子目录、子目录的子目录，永远不要在一个目录里堆放大量文件，这会很乱！
 
 ### 命名空间使用
 使用嵌套命名空间来隔离子系统：
@@ -432,33 +423,19 @@ enum class Operation : u8 { ... };
 
 本节记录项目中反复出现、难以排查的陷阱。新增同类代码前务必先核对这里，避免重蹈覆辙。各子目录 README 的"容易踩的坑"章节记录更局部的坑，本节只收录跨模块、影响面大的通用坑。
 
-### 0. 【最重要的架构偏好】原版数据一律运行时从数据包读取，不要生成 C++ 代码
+### 0. 原版数据一律运行时从数据包读取，不要生成 C++ 代码
 
 项目要像原版 MC 一样：**在初始化阶段读取数据包**，而不是把数据包内容展开成 `.gen.cpp` 编译进去。区块生成系统、`ItemTagLoader`、`BlockTagLoader` 都是这条路线。
 
 - ✅ 正确做法：`data/<ns>/...` 下的 JSON 在启动期由加载器读取（`GenericTagLoader` / `ItemTagLoader` / `BlockTagLoader` 等），支持多数据包合并与 `replace` 语义，改数据包即改行为，无需重编译。
 - ❌ 错误做法：写脚本把数据包展开成 `*.gen.cpp` 内嵌进二进制。这类文件与数据包会无声漂移，且玩家/服务端无法通过数据包定制。
 - 例外仅限**数据包中根本不存在**的信息（如原版硬编码在注册代码里的属性）。这类数据以「实测快照」形式内嵌，并在注释中写明：它为什么无法从数据包得到、数值从何而来。
-- 存量违反项（`VanillaBlockTags.gen.cpp`、`VanillaItemTags.gen.cpp`）属于历史遗留，改动相关模块时应顺带迁移到运行时加载。
 
 ### 1. 高度图 +1 语义：`ctx.getHeight` vs `getTopBlockY`
 
 MC 1.21.11 生成期间，`WorldGenContext.getHeight(...)` 走 `WorldGenRegion.getHeight`，其实现为 `chunk.getHeight(...) + 1`（`WorldGenRegion.java:404-407`），即返回"最高方块上方一格空气的 Y"（blockY+1），**不是方块本身 Y**。而 `ChunkAccess.getHeight` 返回 blockY（`getFirstAvailable-1`）。
 
 项目的 `WorldGenRegion::getTopBlockY` 转发 `ChunkPrimer::getTopBlockY`，返回 blockY（等价 MC `ChunkAccess.getHeight`），**少了这个 +1**。因此：**凡是对应 MC `ctx.getHeight(...)` 调用的 placement/feature 代码，必须对 `getTopBlockY` 结果 +1**。
-
-漏掉 +1 的典型后果：`HeightmapPlacement` 返回草方块本身 Y → `TreeFeature` 的 `startPos` 落在草方块上 → `_calculateAvailableHeight` 在 `y=0` 检查草方块（不可替换）立即返回 -2 → 所有依赖 heightmap 的 feature（含全部树木）判定"空间不足"而生成失败，且**无任何报错**（feature 失败本就是常态，静默返回 false）。目前已 +1 的有 `HeightmapPlacement`、`SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement`、`GravityStructureProcessor`；新增同类代码务必核对 MC 源码确认调用方是否走 `WorldGenRegion.getHeight`。
-
-`GravityStructureProcessor`（terrain_matching 投影贴地）另有一处配套语义：落点是
-`newY = getHeight(...) + offset + 模板内局部 Y`，**局部 Y 不可省**——整块模板沿 Y 平移，使局部 y=0 落在高度图处（村庄街道的路面在局部 y=0、jigsaw 在局部 y=1）。漏掉局部 Y 会把构件压扁到同一层，路面 dirt_path 被上层方块覆盖，表现为"村庄里看不见路"。
-
-### 2. random_selector / simple_random_selector 子特征引用是 PlacedFeature id
-
-MC 1.21.11 中 `RandomFeatureConfiguration.features[]` / `default` 是 `WeightedPlacedFeature` / `Holder<PlacedFeature>`，即 **PlacedFeature 引用**，命中后调用其 `place(origin)`（先走该 PlacedFeature 自带的 placement 链，再放置其配置化特征）。**不是 ConfiguredFeature 引用**。
-
-项目的数据包存在两种写法（均合法）：(1) 字符串 id 指向已注册 placed_feature（如 `"minecraft:spruce_checked"`、`"minecraft:oak_checked"`）；(2) 内联对象 `{"feature":"<configured_id>","placement":[]}`，加载器提取出 configured id（如 `"minecraft:oak_bees_005"`，无对应 placed_feature 文件）。
-
-若错误地仅按 `ConfiguredFeatureRegistry` 解析这些 id，则所有以 placed_feature id 作 default 的 trees_*（snowy/taiga/jungle/savanna/water/windswept_hills 等）都会因注册表查不到而 `default-miss` 静默失败，**整个生物群系的树木都不生成，且无报错**。正确做法：解析子特征 id 时**先查 `PlacedFeatureRegistry`，未命中再查 `ConfiguredFeatureRegistry`** 兜底（见 `RandomSelectorFeature.cpp` 的 `dispatchChildFeature`）。新增同类 selector feature 必须沿用此双注册表解析。
 
 ## 【重要】README.md 使用指南
 
@@ -522,6 +499,10 @@ src/client/renderer/
 - 对于目录结构，我偏好分门别类的、有较大深度的树形结构，而不是平铺的结构。此外，如果一个目录下的文件被且仅被另一个目录所依赖，则前者要在后者的目录树下，而不是与之平级甚至高级。
 - 对于一个子系统下的基础文件（比如类型声明、工具库等），且它们是依赖链的末梢，则将他们放在该子系统的base目录下。例如：`base/buffer/`、`base/codec/`、`base/types/`等。
 - 不允许出现容易让人混淆的api/类名/方法名等。这里的混淆，既包括单个的混淆，也包括相互之间的混淆。
+
+### 关于“对齐MC”这件事的边界
+
+我希望能在逻辑、数值、时序、协议等方面完整对齐MC，但在对齐过程中，务必使用更清晰的架构、更高性能的实现等。此外，无需对诸如“浮点精度”、“数学精度”这种细枝末节的地方进行对齐，避免因此增加开发复杂度和性能负担。
 
 ### 对于重构类任务的准则
 

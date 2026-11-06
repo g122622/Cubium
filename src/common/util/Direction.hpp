@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "math/MathUtils.hpp"
 #include <array>
 #include <cmath>
@@ -626,6 +627,93 @@ inline f32 toYRot(Direction dir)
         default:
             // DOWN/UP：vanilla 命令方块 facing 不会是垂直方向，返回 0 作兜底
             return 0.0f;
+    }
+}
+
+/**
+ * @brief 三维数据值，对应原版 `Direction.get3DDataValue()`
+ *
+ * 原版的 data3d 与枚举序号完全一致（DOWN=0 … EAST=5），所以直接取枚举值即可。
+ * None 不是合法方向，返回 -1。
+ */
+[[nodiscard]] inline i32 get3DDataValue(Direction dir)
+{
+    return dir == Direction::None ? -1 : static_cast<i32>(dir);
+}
+
+/**
+ * @brief 二维数据值，对应原版 `Direction.get2DDataValue()`
+ *
+ * 天空光/朝向相关的水平编码：SOUTH=0、WEST=1、NORTH=2、EAST=3。
+ *
+ * **与三维数据值的顺序完全不同**——三维是 N=2/S=3/W=4/E=5，二维是 S=0/W=1/N=2/E=3。
+ * 两者不能互相替代。垂直方向在二维编码中没有定义，返回 -1。
+ */
+[[nodiscard]] inline i32 get2DDataValue(Direction dir)
+{
+    switch (dir) {
+        case Direction::South:
+            return 0;
+        case Direction::West:
+            return 1;
+        case Direction::North:
+            return 2;
+        case Direction::East:
+            return 3;
+        default:
+            return -1;
+    }
+}
+
+/**
+ * @brief 方向的单位向量（整数），对应原版 `Direction.getUnitVec3i()`
+ *
+ * 六个方向各对应一个分量取 ±1、其余为 0 的向量。None 返回零向量。
+ */
+[[nodiscard]] inline Vector3i getUnitVec3i(Direction dir)
+{
+    return Vector3i(xOffset(dir), yOffset(dir), zOffset(dir));
+}
+
+/**
+ * @brief 方向的单位向量（f32），对应原版 `Direction.getUnitVec3f()`
+ *
+ * 原版返回 JOML 的 `Vector3fc`，本项目的对应类型是 `Vector3f`。
+ */
+[[nodiscard]] inline Vector3f getUnitVec3f(Direction dir)
+{
+    return Vector3f(static_cast<f32>(xOffset(dir)), static_cast<f32>(yOffset(dir)), static_cast<f32>(zOffset(dir)));
+}
+
+/**
+ * @brief 方向的单位向量（f64），对应原版 `Direction.getUnitVec3()`
+ *
+ * 原版返回 `Vec3`（f64 分量）；本项目的 `Vector3d` 与之对应。
+ */
+[[nodiscard]] inline Vector3d getUnitVec3(Direction dir)
+{
+    return Vector3d(static_cast<f64>(xOffset(dir)), static_cast<f64>(yOffset(dir)), static_cast<f64>(zOffset(dir)));
+}
+
+/**
+ * @brief 按方向的轴取对应分量，对应原版 `Direction.Axis.choose(int, int, int)`
+ *
+ * 参数顺序是 (x, y, z)；取方向的轴再按轴选分量。例如 EAST 的轴是 X，返回 x。
+ *
+ * 注意原版的 `choose` 定义在
+ * **`Direction.Axis`** 接口上，不是 `Direction` 的实例方法。
+ */
+[[nodiscard]] inline i32 choose(Direction dir, i32 x, i32 y, i32 z)
+{
+    switch (getAxis(dir)) {
+        case Axis::X:
+            return x;
+        case Axis::Y:
+            return y;
+        case Axis::Z:
+            return z;
+        default:
+            return x;
     }
 }
 

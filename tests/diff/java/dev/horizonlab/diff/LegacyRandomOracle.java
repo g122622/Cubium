@@ -35,6 +35,7 @@ import java.util.List;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
+import net.minecraft.util.Mth;
 
 /**
  * {@code LegacyRandomSource} 的原版 oracle。
@@ -61,7 +62,21 @@ public final class LegacyRandomOracle {
         "2024|I;I;l;l;b;b;f;f;d;d",
         "555|c:10;i:100",
         "555|c:1;i:100",
+        "42|r:0,1;r:0,1;r:0,1",
+        "42|r:-1,1;r:-1,1;r:-1,1",
+        "42|r:5,5;r:5,5",
+        "42|r:-0.5,0.5;r:-0.5,0.5",
+        "42|R:0,10;R:0,10;R:0,10",
+        "42|R:5,5;R:5,5",
+        "42|R:-5,5;R:-5,5;R:-5,5",
         "-12345|i:100;i:100;i:100",
+        "2024|t:1;t:1;t:1;d;d",
+        "2024|T:1;T:1;T:1;f;f",
+        "777|d;t:0.5;d;T:0.5;f",
+        "42|n:5,5;n:5,5;n:5,5",
+        "42|n:-10,-10;n:-10,-10",
+        "42|n:-5,5;n:-5,5;n:-5,5;n:-5,5",
+        "42|n:0,1;n:0,1;n:0,1;n:0,1",
         "9223372036854775807|i:1000;i:1000",
     };
 
@@ -136,6 +151,38 @@ public final class LegacyRandomOracle {
                 case 'b' -> parts.add(random.nextBoolean() ? "1" : "0");
                 case 'f' -> parts.add(trimZeros(String.format("%.9g", (double) random.nextFloat())));
                 case 'd' -> parts.add(trimZeros(String.format("%.16g", random.nextDouble())));
+                case 't' -> parts.add(trimZeros(String.format("%.16g", random.triangle(0.0, Double.parseDouble(op.substring(2))))));
+                case 'T' -> parts.add(trimZeros(String.format("%.9g", (double) random.triangle(0.0f, Float.parseFloat(op.substring(2))))));
+                case 'n' -> {
+                    String args = op.substring(2);
+                    int comma = args.indexOf(',');
+                    if (comma < 0) {
+                        throw new IllegalArgumentException("legacy_random: n needs <origin>,<bound>: " + op);
+                    }
+                    int origin = Integer.parseInt(args.substring(0, comma));
+                    int bound = Integer.parseInt(args.substring(comma + 1));
+                    parts.add(Integer.toString(random.nextIntBetweenInclusive(origin, bound)));
+                }
+                case 'r' -> {
+                    String args = op.substring(2);
+                    int comma = args.indexOf(',');
+                    if (comma < 0) {
+                        throw new IllegalArgumentException("legacy_random: r needs <min>,<max>: " + op);
+                    }
+                    float lo = Float.parseFloat(args.substring(0, comma));
+                    float hi = Float.parseFloat(args.substring(comma + 1));
+                    parts.add(trimZeros(String.format("%.9g", (double) Mth.randomBetween(random, lo, hi))));
+                }
+                case 'R' -> {
+                    String args = op.substring(2);
+                    int comma = args.indexOf(',');
+                    if (comma < 0) {
+                        throw new IllegalArgumentException("legacy_random: R needs <min>,<max>: " + op);
+                    }
+                    int lo = Integer.parseInt(args.substring(0, comma));
+                    int hi = Integer.parseInt(args.substring(comma + 1));
+                    parts.add(Integer.toString(Mth.randomBetweenInclusive(random, lo, hi)));
+                }
                 case 'c' -> random.consumeCount(Integer.parseInt(op.substring(2)));
                 default -> throw new IllegalArgumentException("legacy_random: 未知操作: " + op);
             }

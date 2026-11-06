@@ -363,7 +363,7 @@ public:
      * 等价于 `inflate(-dx, -dy,
      * -dz)`——**两边同时收**。
      * 要与「只动一个端点」的语义对比，见 `contract`。
- */
+     */
     [[nodiscard]] AxisAlignedBB deflate(f32 dx, f32 dy, f32 dz) const noexcept
     {
         return inflate(-dx, -dy, -dz);
