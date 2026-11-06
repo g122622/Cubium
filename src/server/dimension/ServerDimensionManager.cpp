@@ -161,8 +161,15 @@ void ServerDimensionManager::shutdown()
     m_playerDimensions.clear();
     m_dimensionPlayers.clear();
 
-    // 调用基类关闭：基类通过 m_dimensions.clear() 析构每个 ServerDimension，
-    // 间接触发各维度的 ServerDimension::shutdown()（带 per-dimension trace）。
+    // 逐个显式卸载维度，而不是 m_dimensions.clear()：unordered_map 的桶序决定析构顺序，
+    // 崩溃/资源释放顺序因此不可预期。固定为「末地 → 下界 → 主世界」，与出生世界最后归还一致。
+    for (DimensionId id : {THE_END, NETHER, OVERWORLD}) {
+        if (Dimension* dimension = getDimension(id)) {
+            static_cast<ServerDimension*>(dimension)->shutdown();
+        }
+    }
+
+    // 调用基类关闭：清理维度表本身。
     DimensionManager::shutdown();
 
     m_initialized = false;
