@@ -213,8 +213,13 @@ private:
     // 准备好的区块数据队列（包含目标玩家列表）
     std::vector<ReadyChunkData> m_readyChunks;
     std::mutex m_readyChunksMutex;
-    // 关停标志：与 m_readyChunks 同锁保护，避免"已入队"与"已关停"之间出现时间窗。
-    bool m_shutdown = false;
+    // 关停标志。构建任务持有 m_lifetimeGuard（本对象在途期间必然存活），故可无锁读取：
+    // 关服时管理器析构不必等待在途的区块构建任务结束。
+    std::atomic<bool> m_shutdown{false};
+
+    /// 生命周期守卫：由发起的每个在途任务/回调共享持有，保证它们的 [this] 在使用期间有效。
+    /// 任务经区域调度器提交，完成时调度器会立即释放任务体，不会把销毁时机拖到计算池。
+    std::shared_ptr<ChunkSendManager> m_lifetimeGuard;
 
     std::function<void(PlayerId, ChunkCoord, ChunkCoord, std::shared_ptr<const mc::network::pipeline::OutboundPacket>)>
         m_onChunkSend;

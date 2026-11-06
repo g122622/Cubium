@@ -1,280 +1,172 @@
-/*
- * Copyright (c) 2026 Guo Yi
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- */
+#include "probe.hpp"
 
-/**
- * @brief 差分能力：`Mth` 的 HSV → ARGB 颜色转换（纯计算）。
- *
- * `list`：一组「模式|参数…」单元
- * `run` ：同上一行 → { "value": ... }
- *
- * 复刻原版 `net.minecraft.util.Mth`：
- *
- * ```java
- * public static int hsvToRgb(float hue, float saturation, float value) {
- *     return hsvToArgb(hue, saturation, value, 0);
- * }
- *
- * public static int hsvToArgb(float hue, float sat, float val, int alpha) {
- *     int i = (int)(hue * 6.0F) % 6;
- *     float f  = hue * 6.0F - i;
- *     float f1 = val * (1.0F - sat);
- *     float f2 = val * (1.0F - f * sat);
- *     float f3 = val * (1.0F - (1.0F - f) * sat);
- *     float r, g, b;
- *     switch (i) {
- *         case 0 -> { r = val; g = f3;   b = f1; }
- *         case 1 -> { r = f2;  g = val;  b = f1; }
- *         case 2 -> { r = f1;  g = val;  b = f3; }
- *         case 3 -> { r = f1;  g = f2;   b = val; }
- *         case 4 -> { r = f3;  g = f1;   b = val; }
- *         case 5 -> { r = val; g = f1;   b = f2; }
- *         default -> throw new RuntimeException(...);
- *     }
- *     return ARGB.color(alpha,
- *         clamp((int)(r * 255.0F), 0, 255),
- *         clamp((int)(g * 255.0F), 0, 255),
- *         clamp((int)(b * 255.0F), 0, 255));
- * }
- * ```
- *
- * ## 四个关键点
- *
- * 1. **`hue = 1.0` 回绕到红色段（`i = 0`），不是 `i = 6`。**
- *
- *    ```java
- *    int i = (int)(hue * 6.0F) % 6;
- *    ```
- *
- *    `1.0 * 6 = 6`，`(int)6 = 6`，`6 % 6 = 0` → 走 `case 0`，得到**纯红色**。
- *
- *    `hue = 0.0` 也是 `i = 0` 纯红。**所以 `hue` 是循环的，`0` 与 `1` 等价。**
- *
- * 2. **`(int)` 是向零截断，`hue` 落在分段边界时偏向低段。**
- *
- *    | `hue` | `hue * 6` | `(int)` | `% 6` | 段 |
- *    |---|---|---|---|---|
- *    | `0.0` | `0` | 0 | 0 | 红 |
- *    | `1/6 ≈ 0.1667` | `1` | 1 | 1 | 黄 |
- *    | `2/6 ≈ 0.3333` | `2` | 2 | 2 | 绿 |
- *    | `0.5` | `3` | 3 | 3 | 青 |
- *    | `4/6 ≈ 0.6667` | `4` | 4 | 4 | 蓝 |
- *    | `5/6 ≈ 0.8333` | `5` | 5 | 5 | 品红 |
- *    | **`1.0`** | **`6`** | **6** | **0** | **红（回绕）** |
- *
- *    `hue = 1/6` 时 `f = 1.0 - 1 = 0`，所以该点正好是纯黄色。
- *
- * 3. **每个分量是 `(int)(f * 255.0F)` 截断，不是四舍五入。**
- *
- *    `0.5 * 255 = 127.5`，`(int)` 得 **`127`**，而不是 `128`。
- *
- *    `hsvToRgb(0, 0, 0.5)`（灰 50%）→ 三个分量都是 `127` → `0x007F7F7F`（alpha = 0）。
- *
- * 4. **`hsvToRgb` 的 alpha 恒为 0，不是 255。**
- *
- *    ```java
- *    return hsvToArgb(hue, sat, val, 0);
- *    ```
- *
- *    结果形如 `0x00RRGGBB`——**高位是 0**。调用方若要用于渲染通常需要自己补 alpha。
- *
- *    `ARGB.color(a, r, g, b)` 的布局是 `a << 24 | r << 16 | g << 8 | b`。
- *
- * 单元格式：
- * - `rgb|<hue>|<sat>|<val>` —— `hsvToRgb`（alpha 0）
- * - `argb|<hue>|<sat>|<val>|<alpha>` —— `hsvToArgb`
- *
- * 输出是**有符号 32 位整数**（与 Java `int` 一致）。当 alpha 的最高位为 1 时结果为负数。
- *
- * TODO: 未覆盖 `Mth.atan2`（依赖 257 项 `ASIN_TAB` / `COS_TAB` 与 `fastInvSqrt`，
- * 且这些表由 `Math.sin` 填充，存在 JDK 与 MSVC 的 sin 差异风险）、`Mth.hsvToArgb` 的
- * 非有限输入（`NaN` / `Infinity`）。
- */
-#include <cmath>
+#include "common/util/math/MathUtils.hpp"
+
+#include <nlohmann/json.hpp>
+
 #include <cstdio>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
-#include "common/core/Types.hpp"
-
-#include "probe.hpp"
-
 namespace mc::diff {
+
 namespace {
 
-using nlohmann::json;
+using json = nlohmann::json;
 
-/// 原版 `Mth.clamp(int, int, int)`。
-i32 clampI32(i32 value, i32 min, i32 max)
+/**
+ * @brief `Mth.hsvToArgb` / `hsvToRgb` 的差分能力
+ *
+ * **本探针调用生产代码** `math::hsvToArgb` / `math::hsvToRgb`，不在探针里重写转换逻辑。
+ *
+ * 色相按 60 度一档切成六段，每段走不同的分量排列。用例取四组集合的笛卡尔积
+ * （色相 × 饱和度 × 明度 × alpha），而不是手挑几个颜色——手挑很难同时覆盖到
+ * 「每段的每一条选区」「段边界」「饱和度为 0」这些只在特定组合下才出现的路径。
+ *
+ * 单元格式：`<色相>|<饱和度>|<明度>|<alpha>@<序号>`
+ */
+struct NamedFloat {
+    const char* id;
+    f32 value;
+};
+
+/// 色相：六段的中点 + 段边界 + 关键回绕点
+const std::vector<NamedFloat>& hueCases()
 {
-    if (value < min) {
-        return min;
-    }
-    return value > max ? max : value;
-}
-
-/// 原版 `ARGB.color(int, int, int, int)`：`a<<24 | r<<16 | g<<8 | b`。
-i32 argbColor(i32 alpha, i32 red, i32 green, i32 blue)
-{
-    return static_cast<i32>((static_cast<u32>(alpha & 0xFF) << 24) | (static_cast<u32>(red & 0xFF) << 16) |
-        (static_cast<u32>(green & 0xFF) << 8) | static_cast<u32>(blue & 0xFF));
-}
-
-/// 原版 `Mth.hsvToArgb`。
-i32 hsvToArgb(f32 hue, f32 saturation, f32 value, i32 alpha)
-{
-    const i32 i = static_cast<i32>(hue * 6.0F) % 6;
-    const f32 f = hue * 6.0F - static_cast<f32>(i);
-    const f32 f1 = value * (1.0F - saturation);
-    const f32 f2 = value * (1.0F - f * saturation);
-    const f32 f3 = value * (1.0F - (1.0F - f) * saturation);
-
-    f32 r = 0.0F;
-    f32 g = 0.0F;
-    f32 b = 0.0F;
-    switch (i) {
-        case 0:
-            r = value;
-            g = f3;
-            b = f1;
-            break;
-        case 1:
-            r = f2;
-            g = value;
-            b = f1;
-            break;
-        case 2:
-            r = f1;
-            g = value;
-            b = f3;
-            break;
-        case 3:
-            r = f1;
-            g = f2;
-            b = value;
-            break;
-        case 4:
-            r = f3;
-            g = f1;
-            b = value;
-            break;
-        case 5:
-            r = value;
-            g = f1;
-            b = f2;
-            break;
-        default:
-            throw std::runtime_error("mth_hsv: HSV 段索引越界：" + std::to_string(i));
-    }
-
-    return argbColor(alpha,
-        clampI32(static_cast<i32>(r * 255.0F), 0, 255),
-        clampI32(static_cast<i32>(g * 255.0F), 0, 255),
-        clampI32(static_cast<i32>(b * 255.0F), 0, 255));
-}
-
-/// 原版 `Mth.hsvToRgb`。
-i32 hsvToRgb(f32 hue, f32 saturation, f32 value)
-{
-    return hsvToArgb(hue, saturation, value, 0);
-}
-
-void writeList(FILE* out)
-{
-    constexpr const char* UNITS[] = {
-        // rgb：六个纯色段
-        "rgb|0|1|1",
-        "rgb|0.1666667|1|1",
-        "rgb|0.3333333|1|1",
-        "rgb|0.5|1|1",
-        "rgb|0.6666667|1|1",
-        "rgb|0.8333333|1|1",
-        // rgb：hue = 1.0 回绕
-        "rgb|1|1|1",
-        // rgb：饱和度与明度为 0
-        "rgb|0|0|1",
-        "rgb|0|0|0.5",
-        "rgb|0|0|0",
-        // rgb：中间色
-        "rgb|0|0.5|1",
-        "rgb|0.25|1|1",
-        "rgb|0.75|1|1",
-        // argb：非零 alpha
-        "argb|0|1|1|255",
-        "argb|0|1|1|128",
-        "argb|0|0|0|0",
-        "argb|0.5|1|1|255",
+    static const std::vector<NamedFloat> table = {
+        // 六段中点
+        {"h_0", 0.0833333f},
+        {"h_1", 0.25f},
+        {"h_2", 0.4166667f},
+        {"h_3", 0.5833333f},
+        {"h_4", 0.75f},
+        {"h_5", 0.9166667f},
+        // 段边界（每段的起点）
+        {"b_0", 0.0f},
+        {"b_1", 0.1666667f},
+        {"b_2", 0.3333333f},
+        {"b_3", 0.5f},
+        {"b_4", 0.6666667f},
+        {"b_5", 0.8333333f},
+        // 回绕：1.0 应等价于 0.0
+        {"wrap_1", 1.0f},
+        // 纯红端点
+        {"red", 0.0f},
     };
-    for (const auto* unit : UNITS) {
-        std::fprintf(out, "%s\n", unit);
-    }
+    return table;
 }
 
-std::vector<std::string> splitPipe(const std::string& text)
+/// 饱和度：0（灰）、中间值、1（纯色）
+const std::vector<NamedFloat>& saturationCases()
 {
-    std::vector<std::string> tokens;
-    std::string current;
-    for (char ch : text) {
-        if (ch == '|') {
-            tokens.push_back(current);
-            current.clear();
-        } else {
-            current.push_back(ch);
+    static const std::vector<NamedFloat> table = {
+        {"s_0", 0.0f},
+        {"s_q", 0.25f},
+        {"s_h", 0.5f},
+        {"s_1", 1.0f},
+    };
+    return table;
+}
+
+/// 明度：0（黑）、中间值、1（全亮）
+const std::vector<NamedFloat>& valueCases()
+{
+    static const std::vector<NamedFloat> table = {
+        {"v_0", 0.0f},
+        {"v_q", 0.25f},
+        {"v_h", 0.5f},
+        {"v_1", 1.0f},
+    };
+    return table;
+}
+
+/// alpha 通道：0、中间、满、越界
+const std::vector<i32>& alphaCases()
+{
+    static const std::vector<i32> table = {0, 127, 255, 256};
+    return table;
+}
+
+void writeList(std::FILE* out)
+{
+    size_t index = 0;
+    for (const auto& hue : hueCases()) {
+        for (const auto& sat : saturationCases()) {
+            for (const auto& val : valueCases()) {
+                for (const i32 alpha : alphaCases()) {
+                    std::fprintf(out, "%s|%s|%s|%d@%zu\n", hue.id, sat.id, val.id, alpha, index);
+                    ++index;
+                }
+            }
         }
     }
-    tokens.push_back(current);
-    return tokens;
-}
-
-f32 parseF(const std::string& text)
-{
-    return static_cast<f32>(std::stod(text));
 }
 
 std::string runLine(std::string_view inputLine)
 {
     const json input = json::parse(inputLine);
-    const std::string unit = input.at("unit").get<std::string>();
-    const auto parts = splitPipe(unit);
-    if (parts.size() < 2) {
-        throw std::runtime_error("mth_hsv: 单元至少两段：" + unit);
+    const std::string text = input.at("unit").get<std::string>();
+
+    const size_t at = text.rfind('@');
+    if (at == std::string::npos) {
+        return json{{"unit", text}, {"missing", true}}.dump();
+    }
+    const std::string triple = text.substr(0, at);
+
+    // 解析 `<色相>|<饱和度>|<明度>|<alpha>`
+    std::vector<std::string> parts;
+    size_t start = 0;
+    while (true) {
+        const size_t pos = triple.find('|', start);
+        const std::string piece = triple.substr(start, pos == std::string::npos ? std::string::npos : pos - start);
+        parts.push_back(piece);
+        if (pos == std::string::npos) {
+            break;
+        }
+        start = pos + 1;
+    }
+    if (parts.size() != 4) {
+        return json{{"unit", text}, {"missing", true}}.dump();
     }
 
-    const std::string mode = parts[0];
-
-    if (mode == "rgb" && parts.size() == 4) {
-        const i32 result = hsvToRgb(parseF(parts[1]), parseF(parts[2]), parseF(parts[3]));
-        return json{{"unit", unit}, {"value", result}}.dump();
+    // 按 id 查表，避免从单元名里反解浮点（十进制往返会引入误差）
+    f32 hue = 0.0f;
+    f32 saturation = 0.0f;
+    f32 value = 0.0f;
+    bool foundHue = false;
+    bool foundSat = false;
+    bool foundVal = false;
+    for (const auto& item : hueCases()) {
+        if (parts[0] == item.id) {
+            hue = item.value;
+            foundHue = true;
+            break;
+        }
     }
-    if (mode == "argb" && parts.size() == 5) {
-        const i32 result = hsvToArgb(parseF(parts[1]), parseF(parts[2]), parseF(parts[3]), std::stoi(parts[4]));
-        return json{{"unit", unit}, {"value", result}}.dump();
+    for (const auto& item : saturationCases()) {
+        if (parts[1] == item.id) {
+            saturation = item.value;
+            foundSat = true;
+            break;
+        }
     }
+    for (const auto& item : valueCases()) {
+        if (parts[2] == item.id) {
+            value = item.value;
+            foundVal = true;
+            break;
+        }
+    }
+    if (!foundHue || !foundSat || !foundVal) {
+        return json{{"unit", text}, {"missing", true}}.dump();
+    }
+    const i32 alpha = std::stoi(parts[3]);
 
-    throw std::runtime_error("mth_hsv: 无法识别的单元：" + unit);
+    // 直接调用生产代码。
+    const u32 argb = math::hsvToArgb(hue, saturation, value, alpha);
+    const u32 rgb = math::hsvToRgb(hue, saturation, value);
+    return json{{"unit", text}, {"argb", argb}, {"rgb", rgb}}.dump();
 }
 
 } // namespace

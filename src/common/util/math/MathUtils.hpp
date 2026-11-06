@@ -26,12 +26,15 @@
 #include "MathConstants.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <type_traits>
 
 namespace mc::math {
 
@@ -66,12 +69,30 @@ constexpr f32 RAD_TO_DEG = 180.0f / PI;
 }
 
 /**
- * @brief 数值限制在范围内
+ * @brief 数值限制在范围内，对应原版 `Mth.clamp`
+ *
+ * 原版按类型分了四条重载，语义并不相同：
+ *
+ * ```
+ * int/long   : Math.min(Math.max(v, min), max)
+ * float/double: v < min ? min : Math.min(v, max)
+ * ```
+ *
+ * 两者只在 `min > max` 这种畸形区间下才会分道扬镳：
+ * `clamp(5, 10, 0)` 整数版得 0（先 max 抬到 10、再 min 压回 0），
+ * 浮点版得 10（`5 < 10` 直接返回 min）。这里按原版分别实现。
+ *
+ * **不要换成 `std::clamp`**：它在 `min > max` 时是未定义行为，实际会返回 `min`，
+ * 与两种原版语义都对不上。
  */
 template <typename T>
 [[nodiscard]] inline constexpr T clamp(T value, T minVal, T maxVal) noexcept
 {
-    return std::clamp(value, minVal, maxVal);
+    if constexpr (std::is_floating_point_v<T>) {
+        return value < minVal ? minVal : std::min(value, maxVal);
+    } else {
+        return std::min(std::max(value, minVal), maxVal);
+    }
 }
 
 /**
@@ -229,11 +250,20 @@ template <typename T>
 
 /**
  * @brief 平方
+ *
+ * 整数入参按有符号回绕计算：原版的 `int * int` 溢出是定义良好的回绕，而 C++ 的有符号
+ * 溢出是未定义行为，编译器可以假定它不发生并据此优化。已知 `Mth.square` 会被喂进
+ * 坐标量级的数值，这里显式经无符号乘再转回，保证与 Java 一致。
  */
 template <typename T>
 [[nodiscard]] inline constexpr T square(T x) noexcept
 {
-    return x * x;
+    if constexpr (std::is_integral_v<T> && std::is_signed_v<T>) {
+        using U = std::make_unsigned_t<T>;
+        return static_cast<T>(static_cast<U>(static_cast<U>(x) * static_cast<U>(x)));
+    } else {
+        return x * x;
+    }
 }
 
 /**
@@ -835,6 +865,448 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     // 公式: 1 - (1 - r)^dt
     // 确保结果在 [0, 1] 范围内（浮点精度保护）
     return std::clamp(1.0f - std::pow(1.0f - ratePerSecond, deltaTime), 0.0f, 1.0f);
+}
+
+/**
+ * @brief murmur3 32 位混洗，对应原版 `Mth.murmurHash3Mixer`
+ *
+ * 用于把坐标/种子打散成伪随机值。移位必须用无符号右移，有符号右移会把符号位带下来，
+ * 结果完全不同。
+ */
+[[nodiscard]] inline constexpr i32 murmurHash3Mixer(i32 value) noexcept
+{
+    u32 hash = static_cast<u32>(value);
+    hash ^= hash >> 16U;
+    hash *= 0x85EBCA6BU; // -2048144789 的无符号形式
+    hash ^= hash >> 13U;
+    hash *= 0xC2B2AE35U; // -1028477387 的无符号形式
+    hash ^= hash >> 16U;
+    return static_cast<i32>(hash);
+}
+
+/**
+ * @brief 快速立方根倒数，对应原版 `Mth.fastInvCubeRoot`
+ *
+ * 先用整数魔数近似，再做一次牛顿迭代。整数部分用带符号除法（向零取整），与无符号
+ * 移位的结果不同，负数输入要特别注意。
+ */
+[[nodiscard]] inline f32 fastInvCubeRoot(f32 value) noexcept
+{
+    i32 bits = static_cast<i32>(std::bit_cast<u32>(value));
+    bits = 1419967116 - bits / 3;
+    f32 approx = std::bit_cast<f32>(static_cast<u32>(bits));
+    // 原版迭代两次：第一次把误差压到千分位，第二次才进入 f32 的精度量级。
+    // 只做一次会让结果与 Java 差出若干 ulp 到千分之一。
+    approx = 0.6666667f * approx + 1.0f / (3.0f * approx * approx * value);
+    return 0.6666667f * approx + 1.0f / (3.0f * approx * approx * value);
+}
+
+/**
+ * @brief Catmull-Rom 样条插值，对应原版 `Mth.catmullrom`
+ *
+ * 五个参数依次为插值因子、p0、p1、p2、p3；曲线穿过 p1 与 p2。
+ */
+[[nodiscard]] inline f32 catmullrom(f32 delta, f32 p0, f32 p1, f32 p2, f32 p3) noexcept
+{
+    return 0.5f *
+        (2.0f * p1 + (p2 - p0) * delta + (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * delta * delta +
+            (3.0f * p1 - p0 - 3.0f * p2 + p3) * delta * delta * delta);
+}
+
+/**
+ * @brief 向下量化到步长的整数倍，对应原版 `Mth.quantize`
+ *
+ * 先做浮点除法、再向下取整、再乘回步长。
+ */
+[[nodiscard]] inline i32 quantize(f64 value, i32 step) noexcept
+{
+    return static_cast<i32>(std::floor(value / static_cast<f64>(step))) * step;
+}
+
+/**
+ * @brief 三态符号，对应原版 `Mth.sign`
+ *
+ * 零返回 0。`-0.0 == 0.0` 为真，因此负零同样返回 0；NaN 走 `> 0.0` 为假的分支返回 -1，
+ * 与原版一致。
+ */
+[[nodiscard]] inline i32 sign(f64 value) noexcept
+{
+    if (value == 0.0) {
+        return 0;
+    }
+    return value > 0.0 ? 1 : -1;
+}
+
+/**
+ * @brief 棋盘距离，对应原版 `Mth.chessboardDistance`
+ *
+ * 两个方向差值的绝对值取大者。
+ */
+[[nodiscard]] inline i32 chessboardDistance(i32 x1, i32 z1, i32 x2, i32 z2) noexcept
+{
+    const i32 dx = x2 - x1;
+    const i32 dz = z2 - z1;
+    const i32 absX = dx < 0 ? -dx : dx;
+    const i32 absZ = dz < 0 ? -dz : dz;
+    return absX > absZ ? absX : absZ;
+}
+
+/**
+ * @brief 是否为另一个数的整数倍，对应原版 `Mth.isMultipleOf`
+ */
+[[nodiscard]] inline bool isMultipleOf(i32 value, i32 divisor) noexcept
+{
+    return value % divisor == 0;
+}
+
+/**
+ * @brief 容纳 count 个物品所需的正方形边长，对应原版 `Mth.smallestSquareSide`
+ *
+ * 对数量开方后向上取整；负数在原版抛异常，这里用断言等价表达。
+ */
+[[nodiscard]] inline i32 smallestSquareSide(i32 count) noexcept
+{
+    MC_ASSERT_RELEASE_MSG(count >= 0, "smallestSquareSide requires a non-negative count");
+    return static_cast<i32>(std::ceil(std::sqrt(static_cast<f64>(count))));
+}
+
+/**
+ * @brief 射线是否与轴对齐包围盒相交，对应原版 `Mth.rayIntersectsAABB`
+ *
+ * 先用三轴的「中心距超出半宽且朝外」做快速排除，再对三对轴做叉积判定。三次叉积的
+ * 比较方向不同：前两次用 `>`，最后一次用 `<`——最后一次是在已经排除了前两次的前提下
+ * 判断是否真正穿过，边界行为与前者不对称。
+ *
+ * @param ox/oy/oz 射线起点
+ * @param dx/dy/dz 射线方向（不要求归一化）
+ * @param minX/minY/minZ/maxX/maxY/maxZ 包围盒的边界（f64，与原版 AABB 一致）
+ */
+[[nodiscard]] inline bool rayIntersectsAABB(
+    f64 ox, f64 oy, f64 oz, f64 dx, f64 dy, f64 dz, f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ) noexcept
+{
+    // X 轴：起点到中心的距离超出半宽，且方向朝外 → 整条射线都在盒外
+    const f64 centerX = (minX + maxX) * 0.5;
+    const f64 halfX = (maxX - minX) * 0.5;
+    const f64 deltaX = ox - centerX;
+    if (std::abs(deltaX) > halfX && deltaX * dx >= 0.0) {
+        return false;
+    }
+
+    const f64 centerY = (minY + maxY) * 0.5;
+    const f64 halfY = (maxY - minY) * 0.5;
+    const f64 deltaY = oy - centerY;
+    if (std::abs(deltaY) > halfY && deltaY * dy >= 0.0) {
+        return false;
+    }
+
+    const f64 centerZ = (minZ + maxZ) * 0.5;
+    const f64 halfZ = (maxZ - minZ) * 0.5;
+    const f64 deltaZ = oz - centerZ;
+    if (std::abs(deltaZ) > halfZ && deltaZ * dz >= 0.0) {
+        return false;
+    }
+
+    const f64 absDx = std::abs(dx);
+    const f64 absDy = std::abs(dy);
+    const f64 absDz = std::abs(dz);
+
+    // 三次叉积：前两次用 >（超出即不相交），最后一次用 <（在界内才相交）。
+    f64 cross = dy * deltaZ - dz * deltaY;
+    if (std::abs(cross) > halfY * absDz + halfZ * absDy) {
+        return false;
+    }
+
+    cross = dz * deltaX - dx * deltaZ;
+    if (std::abs(cross) > halfX * absDz + halfZ * absDx) {
+        return false;
+    }
+
+    cross = dx * deltaY - dy * deltaX;
+    return std::abs(cross) < halfX * absDy + halfY * absDx;
+}
+
+/**
+ * @brief HSV 转 ARGB 打包值，对应原版 `Mth.hsvToArgb`
+ *
+ * 色相按 60 度一档切成六段，每段走不同的分量排列。几个容易写错的地方：
+ *
+ * - 段号用 `(i32)(hue * 6.0f) % 6`，`(i32)` 是**向零截断**而非向下取整；
+ *   色相为负时段号为负，会落到 switch 的 default 分支；
+ * - 各分量乘 255 后同样先截断再夹到 `[0, 255]`；
+ * - 结果是 `alpha << 24 | r << 16 | g << 8 | b`，alpha 不做夹取。
+ */
+[[nodiscard]] inline u32 hsvToArgb(f32 hue, f32 saturation, f32 value, i32 alpha) noexcept
+{
+    const i32 sector = static_cast<i32>(hue * 6.0f) % 6;
+    const f32 fraction = hue * 6.0f - static_cast<f32>(sector);
+    const f32 p = value * (1.0f - saturation);
+    const f32 q = value * (1.0f - fraction * saturation);
+    const f32 t = value * (1.0f - (1.0f - fraction) * saturation);
+
+    f32 r = 0.0f;
+    f32 g = 0.0f;
+    f32 b = 0.0f;
+    switch (sector) {
+        case 0:
+            r = value;
+            g = t;
+            b = p;
+            break;
+        case 1:
+            r = q;
+            g = value;
+            b = p;
+            break;
+        case 2:
+            r = p;
+            g = value;
+            b = t;
+            break;
+        case 3:
+            r = p;
+            g = q;
+            b = value;
+            break;
+        case 4:
+            r = t;
+            g = p;
+            b = value;
+            break;
+        case 5:
+            r = value;
+            g = p;
+            b = q;
+            break;
+        default:
+            // 色相为负时段号为负，原版在这里抛异常；调用方应先归一化色相。
+            MC_ASSERT_RELEASE_MSG(false, "hsvToArgb received an out-of-range hue");
+            break;
+    }
+
+    const auto toByte = [](f32 channel) {
+        return static_cast<u32>(clamp(static_cast<i32>(channel * 255.0f), 0, 255));
+    };
+    return (static_cast<u32>(alpha) << 24U) | (toByte(r) << 16U) | (toByte(g) << 8U) | toByte(b);
+}
+
+/**
+ * @brief HSV 转 RGB 打包值（alpha 恒为 0），对应原版 `Mth.hsvToRgb`
+ *
+ * 注意 alpha 是 0 而不是 255——原版就是这么写的，调用方负责补 alpha。
+ */
+[[nodiscard]] inline u32 hsvToRgb(f32 hue, f32 saturation, f32 value) noexcept
+{
+    return hsvToArgb(hue, saturation, value, 0);
+}
+
+// ============================================================================
+// 位运算与整数工具
+// ============================================================================
+
+/**
+ * @brief 是否为 2 的整数次幂，对应原版 `Mth.isPowerOfTwo`
+ *
+ * 注意 0 不算——`0 & -1 == 0` 会让朴素的写法把 0 误判成 2 的幂，所以要先单独排除。
+ */
+[[nodiscard]] inline constexpr bool isPowerOfTwo(i32 value) noexcept
+{
+    return value != 0 && (value & (value - 1)) == 0;
+}
+
+/**
+ * @brief 最小的、不小于 value 的 2 的整数次幂，对应原版 `Mth.smallestEncompassingPowerOfTwo`
+ *
+ * 用「把最高位以下全部填 1、再 +1」的做法。value 为 1 时返回 1；value 为 0 或负数时
+ * 走满五轮填充得到 -1、再加 1 得 0——原版同样如此，调用方需自行保证入参为正。
+ */
+[[nodiscard]] inline constexpr i32 smallestEncompassingPowerOfTwo(i32 value) noexcept
+{
+    i32 result = value - 1;
+    result |= result >> 1;
+    result |= result >> 2;
+    result |= result >> 4;
+    result |= result >> 8;
+    result |= result >> 16;
+    return result + 1;
+}
+
+/**
+ * @brief `value` 向上取整到 `divisor` 的整数倍，对应原版 `Mth.roundToward`
+ *
+ * 经 `positiveCeilDiv` 实现，因此除数为负时行为与原版一致。
+ */
+[[nodiscard]] inline i32 roundToward(i32 value, i32 divisor) noexcept;
+
+/**
+ * @brief 向正无穷取整的除法，对应原版 `Mth.positiveCeilDiv`
+ *
+ * 原版写成 `-Math.floorDiv(-a, b)`：先取负、做向下取整除法、再取负。不能简单用
+ * `(a + b - 1) / b`——那样在 a 为负、b 为正时会因为 C++ 的向零截断而算错。
+ */
+[[nodiscard]] inline i32 positiveCeilDiv(i32 a, i32 b) noexcept
+{
+    // floorDiv(-a, b) 用向零截断加修正表达
+    const i32 negated = -a;
+    i32 quotient = negated / b;
+    if ((negated % b != 0) && ((negated < 0) != (b < 0))) {
+        --quotient;
+    }
+    return -quotient;
+}
+
+inline i32 roundToward(i32 value, i32 divisor) noexcept
+{
+    return positiveCeilDiv(value, divisor) * divisor;
+}
+
+/**
+ * @brief 向上取整的二进制对数，对应原版 `Mth.ceillog2`
+ *
+ * 先把 value 补齐到 2 的幂，再用 de Bruijn 序列查最高位的位置。表里 32 项按
+ * `value * 125613361 >> 27` 的取值排布，索引再 `& 31`。
+ *
+ * value 为 0 时结果无意义（原版同样如此），调用方需保证入参为正。
+ */
+[[nodiscard]] inline i32 ceillog2(i32 value) noexcept
+{
+    static constexpr i32 DE_BRUIJN_BIT_POSITION[32] = {0,
+        1,
+        28,
+        2,
+        29,
+        14,
+        24,
+        3,
+        30,
+        22,
+        20,
+        15,
+        25,
+        17,
+        4,
+        8,
+        31,
+        27,
+        13,
+        23,
+        21,
+        19,
+        16,
+        7,
+        26,
+        12,
+        18,
+        6,
+        11,
+        5,
+        10,
+        9};
+    const i32 adjusted = isPowerOfTwo(value) ? value : smallestEncompassingPowerOfTwo(value);
+    return DE_BRUIJN_BIT_POSITION[static_cast<i32>((static_cast<i64>(adjusted) * 125613361LL) >> 27) & 31];
+}
+
+/**
+ * @brief 向下取整的二进制对数，对应原版 `Mth.log2`
+ */
+[[nodiscard]] inline i32 log2Of(i32 value) noexcept
+{
+    return ceillog2(value) - (isPowerOfTwo(value) ? 0 : 1);
+}
+
+// ============================================================================
+// 角度逼近
+// ============================================================================
+
+/**
+ * @brief 两个角度之间的最短有向差，对应原版 `Mth.degreesDifference`
+ *
+ * 结果落在 `[-180, 180)`。用 `wrapDegrees` 做规范化，因此跨越 0/360 边界时不会有
+ * 「绕远路」的问题。
+ */
+[[nodiscard]] inline f32 degreesDifference(f32 first, f32 second) noexcept
+{
+    return wrapDegrees(second - first);
+}
+
+/**
+ * @brief 让角度朝目标逼近一步，对应原版 `Mth.approach`
+ *
+ * 步长取绝对值。已经越过目标时 clamp 会把结果钉在目标上，不会来回振荡。
+ */
+[[nodiscard]] inline f32 approach(f32 from, f32 to, f32 step) noexcept
+{
+    const f32 magnitude = std::abs(step);
+    if (from < to) {
+        return clamp(from + magnitude, from, to);
+    }
+    return clamp(from - magnitude, to, from);
+}
+
+/**
+ * @brief 按最短方向逼近目标角度，对应原版 `Mth.approachDegrees`
+ *
+ * 先求最短有向差，再沿该方向逼近——直接把角度差喂给 `approach` 会在跨越 0/360
+ * 时朝反方向绕一大圈。
+ */
+[[nodiscard]] inline f32 approachDegrees(f32 from, f32 to, f32 step) noexcept
+{
+    const f32 difference = degreesDifference(from, to);
+    return approach(from, from + difference, step);
+}
+
+/**
+ * @brief 角度差超出阈值时向目标靠拢，对应原版 `Mth.rotateIfNecessary`
+ *
+ * 只在偏差超过 `maxDelta` 时修正，否则返回原目标值。
+ */
+[[nodiscard]] inline f32 rotateIfNecessary(f32 from, f32 to, f32 maxDelta) noexcept
+{
+    const f32 difference = degreesDifference(from, to);
+    const f32 clamped = clamp(difference, -maxDelta, maxDelta);
+    return to - clamped;
+}
+
+// ============================================================================
+// 曲线工具
+// ============================================================================
+
+/**
+ * @brief smoothstep 的导数，对应原版 `Mth.smoothstepDerivative`
+ *
+ * `30 * t² * (t-1)²`。注意原版用 `t - 1.0` 而非 `1.0 - t`：两者平方后相等，
+ * 但 `t - 1.0` 在 t 略小于 1 时的舍入方向与 `1.0 - t` 不同。
+ */
+[[nodiscard]] inline constexpr f64 smoothstepDerivative(f64 t) noexcept
+{
+    return 30.0 * t * t * (t - 1.0) * (t - 1.0);
+}
+
+/**
+ * @brief 三角波，对应原版 `Mth.triangleWave`
+ *
+ * 先把 `x` 对周期取余（Java 的 `%`，向零截断），再折成 `[-1, 1]` 的三角形状。
+ *
+ * 注意负输入的余数在 Java 中同样为负，`|r - p/2|` 因此会给出超出 `[-1, 1]` 的值——
+ * 原版就是这样，没有做额外夹取，调用方需自行保证 `x >= 0`。
+ */
+[[nodiscard]] inline f32 triangleWave(f32 x, f32 period) noexcept
+{
+    const f32 quarter = period * 0.25f;
+    return (std::abs(std::fmod(x, period) - period * 0.5f) - quarter) / quarter;
+}
+
+/**
+ * @brief 五次平滑曲线，对应原版 `Mth.smoothstep(double)`
+ *
+ * 与上面三参数的 `smoothstep(edge0, edge1, x)`（Hermite 插值）**不是同一个东西**：
+ * 这里假设输入已归一化到 `[0, 1]`，直接对值做五次整形
+ * `t³(t(6t-15)+10)`。两者名字相同但签名不同，因此加 `Mth` 前缀区分。
+ *
+ * 用的系数是五次版本（6/15/10）而不是三次的（2/3），这是噪声插值里最关键的一条。
+ */
+[[nodiscard]] inline constexpr f64 mthSmoothstep(f64 t) noexcept
+{
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
 } // namespace mc::math

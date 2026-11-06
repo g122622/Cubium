@@ -419,8 +419,16 @@ void ServerWorld::shutdown()
 
     // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
     if (m_chunkManager) {
+        // TEMP-DIAG：先解绑回调，再关停区块管理器（验证后回退）。
+        spdlog::info("DIAG chunkMgr(dim={}): unbind callbacks", static_cast<i32>(m_config.dimension));
+        m_chunkManager->setChunkLoadedCallback(nullptr);
+        m_chunkManager->setChunkUnloadedCallback(nullptr);
+        // TEMP-DIAG：诊断 terminate 时也解绑区块缓存中心/追踪变化回调（验证后定稿或回退）。
+        m_chunkManager->ticketManager().setTrackingChangeCallback(nullptr);
+        m_chunkManager->setChunkCacheCenterCallback(nullptr);
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::ShutdownChunkManager");
         m_chunkManager->shutdown();
+        spdlog::info("DIAG chunkMgr(dim={}): shutdown done", static_cast<i32>(m_config.dimension));
     }
     spdlog::info("DIAG shutdown(dim={}): chunk manager shutdown", static_cast<i32>(m_config.dimension));
     // TEMP-DIAG：逐成员释放世界数据，定位关服时的异常来源。
@@ -446,6 +454,16 @@ void ServerWorld::shutdown()
     m_physicsEngine.reset();
     m_collisionCache.reset();
     spdlog::info("DIAG shutdown(dim={}): tick/physics reset", static_cast<i32>(m_config.dimension));
+
+    spdlog::info("DIAG shutdown(dim={}): world border reset", static_cast<i32>(m_config.dimension));
+    m_worldBorder = world::border::WorldBorder();
+    spdlog::info("DIAG shutdown(dim={}): game rules reset", static_cast<i32>(m_config.dimension));
+    m_gameRules = world::gamerule::GameRules();
+    spdlog::info("DIAG shutdown(dim={}): random reset", static_cast<i32>(m_config.dimension));
+    m_random = math::Random(0);
+    m_blockPositionRandom = math::BlockPositionRandom(0);
+    spdlog::info("DIAG shutdown(dim={}): config reset", static_cast<i32>(m_config.dimension));
+    m_config = ServerWorldConfig();
 
     m_chunkManager.reset();
     spdlog::info("DIAG shutdown(dim={}): chunk manager destroyed", static_cast<i32>(m_config.dimension));
@@ -507,6 +525,27 @@ void ServerWorld::shutdown()
         m_entityManager.~EntityManager();
         new (&m_entityManager) EntityManager(m_entityRegistry);
         spdlog::info("DIAG members(dim={}): entity manager reset", dim);
+        spdlog::info("DIAG members(dim={}): drop PhysicsEngine", dim);
+        m_physicsEngine.reset();
+        spdlog::info("DIAG members(dim={}): drop CollisionCache", dim);
+        m_collisionCache.reset();
+        spdlog::info("DIAG members(dim={}): drop TickManager", dim);
+        m_tickManager.reset();
+        spdlog::info("DIAG members(dim={}): drop WeatherManager", dim);
+        m_weatherManager.reset();
+        spdlog::info("DIAG members(dim={}): drop MapDataManager", dim);
+        m_mapDataManager.reset();
+        spdlog::info("DIAG members(dim={}): drop EnvironmentAttributes", dim);
+        m_environmentAttributes.reset();
+        spdlog::info("DIAG members(dim={}): drop GameEventDispatcher", dim);
+        m_gameEventDispatcher.reset();
+        spdlog::info("DIAG members(dim={}): drop VillageManager", dim);
+        m_villageManager.reset();
+        spdlog::info("DIAG members(dim={}): drop RaidManager", dim);
+        m_raidManager.reset();
+        spdlog::info("DIAG members(dim={}): drop LightManager", dim);
+        m_lightManager.reset();
+        spdlog::info("DIAG members(dim={}): members released", dim);
     }
     spdlog::info("Server world shut down");
 }

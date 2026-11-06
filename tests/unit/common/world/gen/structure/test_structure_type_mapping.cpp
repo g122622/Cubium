@@ -39,7 +39,7 @@ using namespace mc::world::gen::structure;
 // 进程内其它套件（集成服、parity 测试）依赖装配后的全局注册表存活。
 class StructureSetRegistryTest : public ::testing::Test {
 protected:
-    void SetUp() override
+    static void SetUpTestSuite()
     {
         ASSERT_TRUE(mc::test::loadVanillaWorldGenRegistries()) << "数据包缺失，无法加载结构集注册表";
     }

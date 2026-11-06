@@ -2072,6 +2072,49 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "end_islands",
+        probe: "end_islands",
+        oracle: "EndIslandsOracle",
+        description: "末地岛屿密度（原版 DensityFunctions.EndIslandDensityFunction）的取值与 min/max —— 5 个种子 x 15 个坐标。"
+        + "它是末地地形的主密度函数：方块坐标除以 8 得到岛屿网格坐标，在该网格上求岛屿高度，再映射到 [-0.84375, 0.5625]。"
+        + "内部的 25x25 邻域搜索只在距中心超过 64 格且噪声小于 -0.9 时产生外岛，所以采样点必须同时覆盖中心区与远区，否则外岛分支一次都不会进入。"
+        + "远区采样点分别取沿单轴、沿对角、跨多个岛屿网格与极端坐标，覆盖 f32 精度边界。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "lerp3_interpolate",
+        probe: "lerp3_interpolate",
+        oracle: "Lerp3InterpolateOracle",
+        description: "三线性插值（原版 Mth.lerp3）的逐位结果 —— 7 组角值 x 11 组插值因子。"
+        + "它是区块内噪声插值的核心：NoiseInterpolator 把密度函数在 4x8x4 的网格上采样，再用 lerp3 把网格值插到任意方块坐标，这是密度函数之上最后一层生成逻辑。"
+        + "插值顺序 X → Y → Z，三步 lerp 各自独立舍入，任何一步被编译器融合成 FMA 都会让结果偏若干 ulp 且随层级放大。"
+        + "角值覆盖全零、单位立方体、参差小数、大数量级、极大动态范围、相邻值只差几个 ulp、全负数；因子混入 1/3、0.1 这类无法精确表示的分数。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "mth_misc",
+        probe: "mth_misc",
+        oracle: "MthMiscOracle",
+        description: "Mth 里一批纯计算函数 —— murmur3 混洗、快速立方根倒数、三态符号、向下量化、棋盘距离、整数倍判断、正方形边长、Catmull-Rom 样条、整数平方。"
+        + "这些函数此前在 Cubium 里缺失，本次补齐实现的同时补上差分覆盖；都不依赖世界状态，可直接喂入任意输入比对。"
+        + "每个都有各自的陷阱：murmur 的移位必须无符号、立方根倒数的整数部分是带符号除法、sign 的负零应返回 0 而 NaN 返回 -1、quantize 不能向零截断。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "ray_aabb",
+        probe: "ray_aabb",
+        oracle: "RayAabbOracle",
+        description: "射线与轴对齐包围盒求交（原版 Mth.rayIntersectsAABB）的判定结果 —— 12 组射线与盒的组合。"
+        + "这是实体拾取、区块剔除等热路径上的判定：先三轴各做一次「起点在盒外且方向朝外」的快速排除，再对三对轴做叉积。"
+        + "关键在不对称——前两次叉积超出即排除用 >，最后一次要在界内才相交用 <，边界行为因此不对称。"
+        + "用例覆盖正对射入、从内部出发、背向、平行擦边、盒外一点点、对角穿心、擦角、零体积盒、扁平盒、大坐标、零方向向量。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 
 /** 按名字查找能力声明；未知名字返回 undefined。 */

@@ -47,10 +47,28 @@ using namespace mc::trace;
 
 namespace mc::server::sync {
 
+namespace {
+
+/// 构造期借用宿主对象引用创建：“不删除”的自引用守卫。
+///
+/// ChunkSendManager 由宿主以 unique_ptr 持有，在途的区块构建任务/回调需要保证 [this] 在其
+/// 使用期间有效，而宿主又可能在关服时先于计算池销毁它。这里用一个永不对对象 delete 的控制块
+/// 产生别名 shared_ptr：持有时对象不会成为悬垂访问，宿主 unique_ptr 析构时也不会二次释放。
+/// 任务/回调一律先检查 m_shutdown，关停后不再触碰任何宿主状态。
+template <typename T>
+std::shared_ptr<T> aliasLifetimeGuard(T* self)
+{
+    static const auto neverDelete = std::shared_ptr<T>(self, [](T*) {});
+    return std::shared_ptr<T>(neverDelete, self);
+}
+
+} // namespace
+
 ChunkSendManager::ChunkSendManager(
     ServerChunkManager& chunkManager, world::chunk::ChunkLoadTicketManager& ticketManager)
     : m_chunkManager(chunkManager)
     , m_ticketManager(ticketManager)
+    , m_lifetimeGuard(aliasLifetimeGuard(this))
 {}
 
 void ChunkSendManager::sendChunkToPlayers(
@@ -63,11 +81,8 @@ void ChunkSendManager::sendChunkToPlayers(
     }
 
     // 关停后在途的构建任务仍可能回写，直接丢弃，不触碰已析构的管理器状态。
-    {
-        std::lock_guard<std::mutex> lock(m_readyChunksMutex);
-        if (m_shutdown) {
-            return;
-        }
+    if (m_shutdown.load(std::memory_order::acquire)) {
+        return;
     }
 
     // 检查区块是否已加载
@@ -96,7 +111,9 @@ void ChunkSendManager::sendChunkToPlayers(
         auto task = std::make_unique<util::FunctionTask>(
             util::TaskType::Custom,
             fmt::format("BuildChunkIR({},{})", x, z),
-            [this, x, z, chunk, players, validateTracking](const std::atomic<bool>& abortSignal) -> bool {
+            [this, self = m_lifetimeGuard, x, z, chunk, players, validateTracking](
+                const std::atomic<bool>& abortSignal) -> bool {
+                (void)self;
                 // 任务可能被取消（关服/区块卸载），检查后安全跳过。
                 // shared_ptr 随 lambda 析构释放，无需特殊清理。
                 if (abortSignal.load(std::memory_order::acquire)) {
@@ -117,8 +134,11 @@ void ChunkSendManager::sendChunkToPlayers(
     } else {
         // 区块未加载，触发异步加载
         // 注意：玩家列表需要复制到回调中
-        m_chunkManager.requestChunkAsync(
-            x, z, ChunkStatuses::FULL, [this, x, z, players, validateTracking](bool success, ChunkData* chunk) {
+        m_chunkManager.requestChunkAsync(x,
+            z,
+            ChunkStatuses::FULL,
+            [this, self = m_lifetimeGuard, x, z, players, validateTracking](bool success, ChunkData* chunk) {
+                (void)self;
                 if (success && chunk) {
                     auto loadedChunk = m_chunkManager.tryToGetChunkSharedInMem(x, z);
                     if (!loadedChunk) {
@@ -239,9 +259,14 @@ void ChunkSendManager::submitChunkData(ChunkCoord x,
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(ir)}});
     ready.players = std::move(players);
     ready.validateTracking = validateTracking;
-    std::lock_guard<std::mutex> lock(m_readyChunksMutex);
     // 与 shutdown() 互斥：关停之后才到达的构建结果直接丢弃。
-    if (m_shutdown) {
+    // 构建任务持有本对象的 shared_ptr（在途期间管理器必然存活），因此关停标志可以无锁读取；
+    // 这样关服时销毁优先级排在前面的管理器也不会被在途任务卡住。
+    if (m_shutdown.load(std::memory_order::acquire)) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(m_readyChunksMutex);
+    if (m_shutdown.load(std::memory_order::acquire)) {
         return;
     }
     m_readyChunks.emplace_back(std::move(ready));
@@ -279,9 +304,16 @@ void ChunkSendManager::processPendingSends()
 
 void ChunkSendManager::shutdown()
 {
-    std::lock_guard<std::mutex> lock(m_readyChunksMutex);
-    m_shutdown = true;
-    m_readyChunks.clear();
+    {
+        std::lock_guard<std::mutex> lock(m_readyChunksMutex);
+        m_shutdown.store(true, std::memory_order::release);
+        m_readyChunks.clear();
+    }
+    // 切断与外部对象的引用（m_chunkManager/m_ticketManager/发送回调都可能是宿主维度的成员）：
+    // 若在途任务仍持有本对象，它之后只能看到关停标志并直接返回，不会再触碰任何宿主状态。
+    m_lifetimeGuard.reset();
+    m_onChunkSend = nullptr;
+    m_onChunkUnload = nullptr;
 }
 
 void ChunkSendManager::setOnChunkSend(
