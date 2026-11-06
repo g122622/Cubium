@@ -36,7 +36,7 @@
  * public static final int REGION_SIZE = 32;
  * private static final int REGION_MASK = 31;
  * public static final int REGION_MAX_INDEX = 31;
- * public static final long INVALID_CHUNK_POS = asLong(1875066, 1875066);
+ * public static final long INVALID_CHUNK_POS = ChunkPos(1875066, 1875066).asLong();
  *
  * public ChunkPos(long packed) {
  *     this.x = (int)packed;
@@ -85,8 +85,8 @@
  * 2. **反解 X 用 `&`，反解 Z 用 `>>>`。**
  *
  *    ```java
- *    getX(packed) = (int)(packed & 4294967295L)
- *    getZ(packed) = (int)(packed >>> 32 & 4294967295L)
+ *    ChunkPos::getX(packed) = (int)(packed & 4294967295L)
+ *    ChunkPos::getZ(packed) = (int)(packed >>> 32 & 4294967295L)
  *    ```
  *
  *    低位直接掩码即可；高位必须**逻辑右移**（`>>>`）把符号位补 0，再掩码取低 32 位。若用
@@ -137,54 +137,19 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 
 #include "probe.hpp"
 
 namespace mc::diff {
 namespace {
 
+using mc::ChunkPos;
 using nlohmann::json;
 
 constexpr i64 COORD_MASK = 4294967295L;
 constexpr i32 REGION_SIZE = 32;
-
-/// 原版 `ChunkPos.asLong`：两个 32 位字段无符号拼接。
-i64 asLong(i32 x, i32 z)
-{
-    return (static_cast<i64>(x) & COORD_MASK) | ((static_cast<i64>(z) & COORD_MASK) << 32);
-}
-
-/// 原版 `ChunkPos.getX`：取低 32 位。
-i32 getX(i64 packed)
-{
-    return static_cast<i32>(packed & COORD_MASK);
-}
-
-/// 原版 `ChunkPos.getZ`：逻辑右移 32 位再取低 32 位。
-i32 getZ(i64 packed)
-{
-    return static_cast<i32>(static_cast<u64>(packed) >> 32 & static_cast<u64>(COORD_MASK));
-}
-
-/// 原版 `SectionPos.sectionToBlockCoord(int)`。
-i32 sectionToBlockCoord(i32 sectionCoord)
-{
-    return sectionCoord << 4;
-}
-
-/// 原版 `SectionPos.sectionToBlockCoord(int, int)`。
-i32 sectionToBlockCoordOffset(i32 sectionCoord, i32 offset)
-{
-    return sectionToBlockCoord(sectionCoord) + offset;
-}
-
-/// 原版 `ChunkPos.hash`：两个 LCG 混合后异或。
-i32 chunkHash(i32 x, i32 z)
-{
-    const u32 i = static_cast<u32>(1664525) * static_cast<u32>(x) + 1013904223u;
-    const u32 j = static_cast<u32>(1664525) * (static_cast<u32>(z) ^ static_cast<u32>(-559038737)) + 1013904223u;
-    return static_cast<i32>(i ^ j);
-}
 
 void writeList(FILE* out)
 {
@@ -265,19 +230,19 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "asLong" && parts.size() == 3) {
-        const i64 packed = asLong(std::stoi(parts[1]), std::stoi(parts[2]));
+        const i64 packed = ChunkPos(std::stoi(parts[1]), std::stoi(parts[2])).asLong();
         return json{{"unit", unit}, {"value", std::to_string(packed)}}.dump();
     }
     if (mode == "decode" && parts.size() == 2) {
         const i64 packed = std::stoll(parts[1]);
-        const std::string value = std::to_string(getX(packed)) + "," + std::to_string(getZ(packed));
+        const std::string value = std::to_string(ChunkPos::getX(packed)) + "," + std::to_string(ChunkPos::getZ(packed));
         return json{{"unit", unit}, {"value", value}}.dump();
     }
     if (mode == "roundtrip" && parts.size() == 3) {
         const i32 x = std::stoi(parts[1]);
         const i32 z = std::stoi(parts[2]);
-        const i64 packed = asLong(x, z);
-        const std::string value = std::to_string(getX(packed)) + "," + std::to_string(getZ(packed));
+        const i64 packed = ChunkPos(x, z).asLong();
+        const std::string value = std::to_string(ChunkPos::getX(packed)) + "," + std::to_string(ChunkPos::getZ(packed));
         return json{{"unit", unit}, {"value", value}}.dump();
     }
     if (mode == "minRegion" && parts.size() == 3) {
@@ -291,20 +256,20 @@ std::string runLine(std::string_view inputLine)
         return json{{"unit", unit}, {"value", std::to_string(rx) + "," + std::to_string(rz)}}.dump();
     }
     if (mode == "hash" && parts.size() == 3) {
-        const i32 value = chunkHash(std::stoi(parts[1]), std::stoi(parts[2]));
+        const i32 value = ChunkPos::hash(std::stoi(parts[1]), std::stoi(parts[2]));
         return json{{"unit", unit}, {"value", value}}.dump();
     }
     if (mode == "blocks" && parts.size() == 3) {
         const i32 x = std::stoi(parts[1]);
         const i32 z = std::stoi(parts[2]);
-        const std::string value = std::to_string(sectionToBlockCoord(x)) + "," +
-            std::to_string(sectionToBlockCoordOffset(x, 8)) + "," + std::to_string(sectionToBlockCoordOffset(x, 15)) +
-            "," + std::to_string(sectionToBlockCoord(z)) + "," + std::to_string(sectionToBlockCoordOffset(z, 8)) + "," +
-            std::to_string(sectionToBlockCoordOffset(z, 15));
+        const std::string value = std::to_string(world::sectionToBlockCoord(x)) + "," +
+            std::to_string(world::sectionToBlockCoord(x, 8)) + "," + std::to_string(world::sectionToBlockCoord(x, 15)) +
+            "," + std::to_string(world::sectionToBlockCoord(z)) + "," +
+            std::to_string(world::sectionToBlockCoord(z, 8)) + "," + std::to_string(world::sectionToBlockCoord(z, 15));
         return json{{"unit", unit}, {"value", value}}.dump();
     }
     if (mode == "invalid" && parts.size() == 1) {
-        const i64 packed = asLong(1875066, 1875066);
+        const i64 packed = ChunkPos(1875066, 1875066).asLong();
         return json{{"unit", unit}, {"value", std::to_string(packed)}}.dump();
     }
 

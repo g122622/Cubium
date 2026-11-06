@@ -156,13 +156,14 @@ RuinedPortalPiece::RuinedPortalPiece(const std::string& templateName,
     : StructurePiece(
           StructurePieceTypes::RUINED_PORTAL, position.x, position.y, position.z, position.x, position.y, position.z)
     , m_templateName(templateName)
-    , m_rotation(rotation)
-    , m_mirror(mirror)
     , m_location(location)
     , m_properties(properties)
     , m_candidatePos(candidatePos)
     , m_size(1, 1, 1)
-{}
+{
+    m_rotation = rotation;
+    m_mirror = mirror;
+}
 
 void RuinedPortalPiece::_loadTemplate()
 {
@@ -396,16 +397,14 @@ bool _sampleProbability(math::IRandom& rng, f32 probability)
  * 方块时就把传送门放在该层——这样它不会悬空或整个埋进山体。扫描下界是 `minY + 15`；
  * 扫到下限仍未凑够三格时返回下限本身。
  *
- * @param boundingBox 以 `origin` 为锚点算出的模板包围盒
- * @param origin 模板在 XZ 上的世界原点
+ * @param boundingBox 模板包围盒（世界坐标）
  */
 i32 _findSuitableY(math::IRandom& rng,
     IChunkGenerator& generator,
     const RuinedPortalSetupDefinition& setup,
     bool airPocket,
     i32 startY,
-    const StructureBoundingBox& boundingBox,
-    const BlockPos& origin)
+    const StructureBoundingBox& boundingBox)
 {
     const i32 minScanY = ::mc::world::MIN_BUILD_HEIGHT + 15;
     const i32 ySpan = boundingBox.ySpan();
@@ -437,11 +436,13 @@ i32 _findSuitableY(math::IRandom& rng,
             break;
     }
 
-    // 四角采样：包围盒以 origin 为锚点算出，四角的世界坐标即 origin 加盒内偏移。
-    const i32 minX = origin.x + boundingBox.minX();
-    const i32 maxX = origin.x + boundingBox.maxX();
-    const i32 minZ = origin.z + boundingBox.minZ();
-    const i32 maxZ = origin.z + boundingBox.maxZ();
+    // 四角采样：`getBoundingBox(settings, pos)` 返回的盒子里**已经**包含 pos 偏移，四角就是
+    // 盒子自身的 min/max，不能再加一次 origin——多加一次会让采样点整体跑到两倍坐标处，
+    // 落点整个失效。
+    const i32 minX = boundingBox.minX();
+    const i32 maxX = boundingBox.maxX();
+    const i32 minZ = boundingBox.minZ();
+    const i32 maxZ = boundingBox.maxZ();
     const HeightmapType heightmapType = setup.placement == RuinedPortalSetupDefinition::Placement::OnOceanFloor
         ? HeightmapType::OceanFloorWG
         : HeightmapType::WorldSurfaceWG;
@@ -548,7 +549,7 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     // getHeight 返回"最高方块上方一格"，减 1 得到方块本身 Y。
     const i32 surfaceBlockY = generator.getHeight(centerX, centerZ, heightmapType) - 1;
 
-    const i32 y = _findSuitableY(rng, generator, *setup, props.airPocket, surfaceBlockY, boundingBox, chunkOrigin);
+    const i32 y = _findSuitableY(rng, generator, *setup, props.airPocket, surfaceBlockY, boundingBox);
 
     const BlockPos portalPos(chunkOrigin.x, y, chunkOrigin.z);
 

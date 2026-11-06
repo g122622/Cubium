@@ -129,12 +129,15 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 
 #include "probe.hpp"
 
 namespace mc::diff {
 namespace {
 
+using mc::AxisAlignedBB;
+using mc::Vector3;
 using nlohmann::json;
 
 /// 一个轴对齐包围盒。
@@ -164,7 +167,7 @@ std::string formatNumber(f64 value)
     return text;
 }
 
-json boxToJson(const Box& box)
+json boxToJson(const AxisAlignedBB& box)
 {
     return json::array({formatNumber(box.minX),
         formatNumber(box.minY),
@@ -174,7 +177,7 @@ json boxToJson(const Box& box)
         formatNumber(box.maxZ)});
 }
 
-Box parseBox(const std::string& text)
+AxisAlignedBB parseBox(const std::string& text)
 {
     f64 values[6] = {0, 0, 0, 0, 0, 0};
     i32 count = 0;
@@ -194,85 +197,12 @@ Box parseBox(const std::string& text)
         throw std::runtime_error("aabb_contains: 包围盒必须六段：" + text);
     }
     values[count++] = std::stod(current);
-    return Box{values[0], values[1], values[2], values[3], values[4], values[5]};
-}
-
-/// 原版 `AABB.inflate(dx, dy, dz)`：min 减、max 加。
-Box inflate(const Box& box, f64 dx, f64 dy, f64 dz)
-{
-    return Box{box.minX - dx, box.minY - dy, box.minZ - dz, box.maxX + dx, box.maxY + dy, box.maxZ + dz};
-}
-
-/// 原版 `AABB.deflate`：取负后 inflate。
-Box deflate(const Box& box, f64 dx, f64 dy, f64 dz)
-{
-    return inflate(box, -dx, -dy, -dz);
-}
-
-/// 原版 `AABB.contract`：只改 min 或 max 中的一个。
-Box contract(const Box& box, f64 dx, f64 dy, f64 dz)
-{
-    Box result = box;
-    if (dx < 0.0) {
-        result.minX -= dx;
-    } else if (dx > 0.0) {
-        result.maxX -= dx;
-    }
-    if (dy < 0.0) {
-        result.minY -= dy;
-    } else if (dy > 0.0) {
-        result.maxY -= dy;
-    }
-    if (dz < 0.0) {
-        result.minZ -= dz;
-    } else if (dz > 0.0) {
-        result.maxZ -= dz;
-    }
-    return result;
-}
-
-/// 原版 `AABB.contains`：半开区间 `[min, max)`。
-bool contains(const Box& box, f64 x, f64 y, f64 z)
-{
-    return x >= box.minX && x < box.maxX && y >= box.minY && y < box.maxY && z >= box.minZ && z < box.maxZ;
-}
-
-/// 原版 `AABB.getXsize` 等。
-f64 xSize(const Box& box)
-{
-    return box.maxX - box.minX;
-}
-
-f64 ySize(const Box& box)
-{
-    return box.maxY - box.minY;
-}
-
-f64 zSize(const Box& box)
-{
-    return box.maxZ - box.minZ;
-}
-
-/// 原版 `AABB.getSize`：三边长算术平均。
-f64 getSize(const Box& box)
-{
-    return (xSize(box) + ySize(box) + zSize(box)) / 3.0;
-}
-
-/// 原版 `AABB.hasNaN`。
-bool hasNaN(const Box& box)
-{
-    return std::isnan(box.minX) || std::isnan(box.minY) || std::isnan(box.minZ) || std::isnan(box.maxX) ||
-        std::isnan(box.maxY) || std::isnan(box.maxZ);
-}
-
-/// 原版 `AABB.distanceToSqr(AABB)`：逐轴取「两盒之间的间隙」，再求平方和。
-f64 distanceToSqr(const Box& a, const Box& b)
-{
-    const f64 dx = std::max(std::max(a.minX - b.maxX, b.minX - a.maxX), 0.0);
-    const f64 dy = std::max(std::max(a.minY - b.maxY, b.minY - a.maxY), 0.0);
-    const f64 dz = std::max(std::max(a.minZ - b.maxZ, b.minZ - a.maxZ), 0.0);
-    return dx * dx + dy * dy + dz * dz;
+    return AxisAlignedBB(static_cast<f32>(values[0]),
+        static_cast<f32>(values[1]),
+        static_cast<f32>(values[2]),
+        static_cast<f32>(values[3]),
+        static_cast<f32>(values[4]),
+        static_cast<f32>(values[5]));
 }
 
 void writeList(FILE* out)
@@ -345,38 +275,44 @@ std::string runLine(std::string_view inputLine)
         throw std::runtime_error("aabb_contains: 单元至少两段：" + unit);
     }
 
-    const Box box = parseBox(parts[0]);
+    const AxisAlignedBB box = parseBox(parts[0]);
     const std::string mode = parts[1];
 
     if (mode == "contains" && parts.size() == 5) {
-        const bool hit = contains(box, std::stod(parts[2]), std::stod(parts[3]), std::stod(parts[4]));
+        const bool hit = box.contains(Vector3(static_cast<f32>(std::stod(parts[2])),
+            static_cast<f32>(std::stod(parts[3])),
+            static_cast<f32>(std::stod(parts[4]))));
         return json{{"unit", unit}, {"value", hit ? "true" : "false"}}.dump();
     }
     if (mode == "getSize" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(getSize(box))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(box.getSize())}}.dump();
     }
     if (mode == "getXsize" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(xSize(box))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(box.getXsize())}}.dump();
     }
     if (mode == "getYsize" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(ySize(box))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(box.getYsize())}}.dump();
     }
     if (mode == "getZsize" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(zSize(box))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(box.getZsize())}}.dump();
     }
     if (mode == "deflate" && parts.size() == 5) {
-        const Box result = deflate(box, std::stod(parts[2]), std::stod(parts[3]), std::stod(parts[4]));
+        const AxisAlignedBB result = box.deflate(static_cast<f32>(std::stod(parts[2])),
+            static_cast<f32>(std::stod(parts[3])),
+            static_cast<f32>(std::stod(parts[4])));
         return json{{"unit", unit}, {"value", boxToJson(result)}}.dump();
     }
     if (mode == "contract" && parts.size() == 5) {
-        const Box result = contract(box, std::stod(parts[2]), std::stod(parts[3]), std::stod(parts[4]));
+        const AxisAlignedBB result = box.contract(static_cast<f32>(std::stod(parts[2])),
+            static_cast<f32>(std::stod(parts[3])),
+            static_cast<f32>(std::stod(parts[4])));
         return json{{"unit", unit}, {"value", boxToJson(result)}}.dump();
     }
     if (mode == "hasNaN" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", hasNaN(box) ? "true" : "false"}}.dump();
+        return json{{"unit", unit}, {"value", box.hasNaN() ? "true" : "false"}}.dump();
     }
     if (mode == "distAabb" && parts.size() == 3) {
-        const f64 result = distanceToSqr(box, parseBox(parts[2]));
+        const f32 result = box.distanceToSqr(parseBox(parts[2]));
         return json{{"unit", unit}, {"value", formatNumber(result)}}.dump();
     }
 

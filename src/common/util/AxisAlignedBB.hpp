@@ -345,6 +345,82 @@ public:
         return AxisAlignedBB(minX - dx, minY - dy, minZ - dz, maxX + dx, maxY + dy, maxZ + dz);
     }
 
+    /**
+     * @brief 单向收缩 AABB，对应原版 `AABB.contract(f64, f64, f64)`
+     *
+     * 与 `deflate`
+     * 的关键区别：**每个轴只动一个端点**。
+     * 正增量收缩 max 边，负增量扩 min 边，零增量不动。
+     *
+     * 因此
+     * `contract(0.5, 0, 0)` 让 X 方向变窄但位置不变，
+     * 而 `deflate(0.5, 0, 0)` 两边各收 0.5。
+
+     */
+    /**
+     * @brief 三轴分别收缩 AABB，对应原版 `AABB.deflate(f64, f64, f64)`
+     *
+     * 等价于 `inflate(-dx, -dy,
+     * -dz)`——**两边同时收**。
+     * 要与「只动一个端点」的语义对比，见 `contract`。
+ */
+    [[nodiscard]] AxisAlignedBB deflate(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        return inflate(-dx, -dy, -dz);
+    }
+
+    [[nodiscard]] AxisAlignedBB contract(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        f32 x0 = minX;
+        f32 y0 = minY;
+        f32 z0 = minZ;
+        f32 x1 = maxX;
+        f32 y1 = maxY;
+        f32 z1 = maxZ;
+        if (dx < 0.0f) {
+            x0 -= dx;
+        } else if (dx > 0.0f) {
+            x1 -= dx;
+        }
+        if (dy < 0.0f) {
+            y0 -= dy;
+        } else if (dy > 0.0f) {
+            y1 -= dy;
+        }
+        if (dz < 0.0f) {
+            z0 -= dz;
+        } else if (dz > 0.0f) {
+            z1 -= dz;
+        }
+        return AxisAlignedBB(x0, y0, z0, x1, y1, z1);
+    }
+
+    /**
+     * @brief 任一坐标是 NaN 则为真，对应原版 `AABB.hasNaN`
+     */
+    [[nodiscard]] bool hasNaN() const noexcept
+    {
+        return std::isnan(minX) || std::isnan(minY) || std::isnan(minZ) || std::isnan(maxX) || std::isnan(maxY) ||
+            std::isnan(maxZ);
+    }
+
+    /**
+     * @brief 两个 AABB 之间的最近距离平方，对应原版 `AABB.distanceToSqr(AABB)`
+     *
+     *
+     * 逐轴取两盒之间的间隙（相交时为 0），再求平方和。
+     *
+     * 注意与点版本的 `distanceToSqr(Vec3)`
+     * 不是同一个函数。
+     */
+    [[nodiscard]] f32 distanceToSqr(const AxisAlignedBB& other) const noexcept
+    {
+        const f32 dx = std::max(std::max(minX - other.maxX, other.minX - maxX), 0.0f);
+        const f32 dy = std::max(std::max(minY - other.maxY, other.minY - maxY), 0.0f);
+        const f32 dz = std::max(std::max(minZ - other.maxZ, other.minZ - maxZ), 0.0f);
+        return dx * dx + dy * dy + dz * dz;
+    }
+
     [[nodiscard]] AxisAlignedBB inflate(f32 amount) const noexcept
     {
         return expand(amount, amount, amount);

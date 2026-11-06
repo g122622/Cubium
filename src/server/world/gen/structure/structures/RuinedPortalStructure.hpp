@@ -150,8 +150,9 @@ private:
     void _updateBoundingBox();
 
     std::string m_templateName;
-    Rotation m_rotation;
-    Mirror m_mirror;
+    // 旋转与镜像必须用基类 StructurePiece::m_rotation / m_mirror：子类另起同名成员会把
+    // 基类那份遮蔽掉，而 getRotation()/getMirror() 读的是基类成员，差分里表现为
+    // "抽到了旋转却始终输出 NONE"。
     RuinedPortalLocation m_location;
     RuinedPortalProperties m_properties;
 

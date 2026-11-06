@@ -71,6 +71,7 @@ import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.structure.StructureCheck;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
+import net.minecraft.world.level.levelgen.structure.TemplateStructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.pools.FeaturePoolElement;
 import net.minecraft.world.level.levelgen.structure.pools.JigsawJunction;
@@ -292,6 +293,15 @@ public final class StructureStartsOracle {
         object.add("box", box(piece.getBoundingBox()));
         // 非拼图片段（要塞、矿井……）没有旋转概念，原版返回 null，两侧都按 NONE 输出。
         object.addProperty("rotation", piece.getRotation() == null ? "NONE" : piece.getRotation().name());
+        if (piece instanceof TemplateStructurePiece tsp) {
+            try {
+                var field = TemplateStructurePiece.class.getDeclaredField("templateName");
+                field.setAccessible(true);
+                object.addProperty("templateFile", String.valueOf(field.get(tsp)));
+            } catch (ReflectiveOperationException ignored) {
+                object.addProperty("templateFile", "");
+            }
+        }
         // 地面高度偏移与连接点只有拼图片段有；其它片段（要塞房间、矿井走廊……）在两侧
         // 都按 0 与空列表输出。
         boolean jigsaw = piece instanceof PoolElementStructurePiece;
