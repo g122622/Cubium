@@ -215,7 +215,8 @@ std::string runLine(std::string_view inputLine)
     }
     if (mode == "pathChar" && parts.size() == 2) {
         const i32 codepoint = std::stoi(parts[1]);
-        const bool valid = codepoint >= 0 && codepoint < 128 && ResourceLocation::validPathChar(static_cast<char>(codepoint));
+        const bool valid =
+            codepoint >= 0 && codepoint < 128 && ResourceLocation::validPathChar(static_cast<char>(codepoint));
         return json{{"unit", unit}, {"value", valid}}.dump();
     }
     if (mode == "parse" || mode == "tryParse") {
@@ -234,7 +235,8 @@ std::string runLine(std::string_view inputLine)
         if (parts[2].size() != 1) {
             throw std::runtime_error("identifier_parse: 分隔符须为单字符：" + unit);
         }
-        return json{{"unit", unit}, {"value", renderParsed(ResourceLocation::tryBySeparator(parts[1], parts[2][0]))}}.dump();
+        return json{{"unit", unit}, {"value", renderParsed(ResourceLocation::tryBySeparator(parts[1], parts[2][0]))}}
+            .dump();
     }
     if (mode == "withDefault" && parts.size() == 2) {
         if (!ResourceLocation::isValidPath(parts[1])) {

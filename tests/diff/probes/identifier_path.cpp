@@ -208,7 +208,8 @@ std::string runLine(std::string_view inputLine)
         return json{{"unit", unit}, {"value", ResourceLocation(nameSpace, path).toDebugFileName()}}.dump();
     }
     if (mode == "langPrefix" && parts.size() == 4) {
-        return json{{"unit", unit}, {"value", parts[3] + "." + ResourceLocation(nameSpace, path).toLanguageKey()}}.dump();
+        return json{{"unit", unit}, {"value", parts[3] + "." + ResourceLocation(nameSpace, path).toLanguageKey()}}
+            .dump();
     }
     if (mode == "withPrefix" && parts.size() == 4) {
         const std::string combined = parts[3] + path;
