@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3fc;
@@ -92,7 +93,59 @@ public final class DirectionDataOracle {
                     "u3|DOWN",
                     "u3|UP",
                     "u3|SOUTH",
-                    "u3|EAST");
+                    "u3|EAST",
+                    "ord|0|0",
+                    "ord|90|0",
+                    "ord|180|0",
+                    "ord|-90|0",
+                    "ord|45|0",
+                    "ord|-45|0",
+                    "ord|135|0",
+                    "ord|0|90",
+                    "ord|0|-90",
+                    "ord|0|45",
+                    "ord|0|-45",
+                    "ord|0|89",
+                    "ord|45|30",
+                    "ord|-135|-60",
+                    "ord|30|-20",
+                    "ord|200|70",
+                    "ord|270|0",
+                    "ord|359|0",
+                    "vd3|0",
+                    "vd3|1",
+                    "vd3|2",
+                    "vd3|3",
+                    "vd3|4",
+                    "vd3|5",
+                    "vd3|6",
+                    "vd3|7",
+                    "vd3|11",
+                    "vd3|12",
+                    "vd3|-1",
+                    "vd3|-2",
+                    "vd3|-6",
+                    "vd3|-7",
+                    "vd2|0",
+                    "vd2|1",
+                    "vd2|2",
+                    "vd2|3",
+                    "vd2|4",
+                    "vd2|5",
+                    "vd2|7",
+                    "vd2|8",
+                    "vd2|-1",
+                    "vd2|-2",
+                    "vd2|-4",
+                    "vd2|-5",
+                    "yrot|NORTH",
+                    "yrot|SOUTH",
+                    "yrot|WEST",
+                    "yrot|EAST",
+                    "torot|NORTH",
+                    "torot|SOUTH",
+                    "torot|WEST",
+                    "torot|EAST");
 
     private DirectionDataOracle() {}
 
@@ -140,6 +193,46 @@ public final class DirectionDataOracle {
         };
     }
 
+    /**
+     * 按 yaw/pitch 复算六个方向的排序。
+     *
+     * 原版 `Direction.orderedByNearest` 只接受 Entity，无法脱离实体调用，
+     * 因此这里照原版公式用给定角度复算（与探针侧同一个算法）。
+     */
+    private static Direction[] orderedByNearest(float yawDeg, float pitchDeg) {
+        float f = pitchDeg * (float) (Math.PI / 180.0);
+        float f1 = -yawDeg * (float) (Math.PI / 180.0);
+        float f2 = Mth.sin(f);
+        float f3 = Mth.cos(f);
+        float f4 = Mth.sin(f1);
+        float f5 = Mth.cos(f1);
+        boolean flag = f4 > 0.0F;
+        boolean flag1 = f2 < 0.0F;
+        boolean flag2 = f5 > 0.0F;
+        float f6 = flag ? f4 : -f4;
+        float f7 = flag1 ? -f2 : f2;
+        float f8 = flag2 ? f5 : -f5;
+        float f9 = f6 * f3;
+        float f10 = f8 * f3;
+        Direction direction = flag ? Direction.EAST : Direction.WEST;
+        Direction direction1 = flag1 ? Direction.UP : Direction.DOWN;
+        Direction direction2 = flag2 ? Direction.SOUTH : Direction.NORTH;
+        if (f6 > f8) {
+            if (f7 > f9) {
+                return makeDirectionArray(direction1, direction, direction2);
+            }
+            return f10 > f7 ? makeDirectionArray(direction, direction2, direction1) : makeDirectionArray(direction, direction1, direction2);
+        }
+        if (f7 > f10) {
+            return makeDirectionArray(direction1, direction2, direction);
+        }
+        return f9 > f7 ? makeDirectionArray(direction2, direction, direction1) : makeDirectionArray(direction2, direction1, direction);
+    }
+
+    private static Direction[] makeDirectionArray(Direction a, Direction b, Direction c) {
+        return new Direction[] {a, b, c, c.getOpposite(), b.getOpposite(), a.getOpposite()};
+    }
+
     private static JsonObject summarise(String unit) {
         String[] parts = unit.split("\\|", -1);
         if (parts.length < 2) {
@@ -147,10 +240,45 @@ public final class DirectionDataOracle {
         }
 
         String mode = parts[0];
-        Direction dir = parseDirection(parts[1]);
-
+        
         JsonObject out = new JsonObject();
         out.addProperty("unit", unit);
+        // ord 单元只有角度参数，没有方向名，先分流再解析方向。
+        if (mode.equals("yrot") || mode.equals("torot")) {
+            Direction parsed = parseDirection(parts[1]);
+            if (parsed == null) {
+                out.addProperty("value", "none");
+                return out;
+            }
+            float rot = mode.equals("yrot") ? Direction.getYRot(parsed) : parsed.toYRot();
+            out.addProperty("value", String.format(Locale.ROOT, "%.1f", rot));
+            return out;
+        }
+        
+        if (mode.equals("vd3") || mode.equals("vd2")) {
+            int raw = Integer.parseInt(parts[1]);
+            Direction result = mode.equals("vd3") ? Direction.from3DDataValue(raw) : Direction.from2DDataValue(raw);
+            out.addProperty("value", result.getName());
+            return out;
+        }
+        
+        if (mode.equals("ord")) {
+            if (parts.length != 3) {
+                throw new IllegalArgumentException("direction_data: ord needs yaw,pitch: " + unit);
+            }
+            Direction[] ordered = orderedByNearest(Float.parseFloat(parts[1]), Float.parseFloat(parts[2]));
+            StringBuilder joined = new StringBuilder();
+            for (int i = 0; i < ordered.length; i++) {
+                if (i > 0) {
+                    joined.append(',');
+                }
+                joined.append(ordered[i].getName());
+            }
+            out.addProperty("value", joined.toString());
+            return out;
+        }
+        
+        Direction dir = parseDirection(parts[1]);
 
         // NONE 在两侧都按 -1 处理：原版没有该常量，取不到数据值。
         if (dir == null) {

@@ -33,61 +33,10 @@
 #include "common/world/block/BlockState.hpp"
 
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <vector>
 
 namespace mc {
-
-namespace {
-
-// 与 MC 1.21.11 Direction.orderedByNearest(Entity) 一致：
-// 依据玩家视线俯仰角(pitch)与偏航角(yaw)对 6 个方向按"与视线夹角"由小到大排序。
-// 返回的数组长度恒为 6，且第 i 个与第 5-i 个互为相反方向。
-//
-// 参数：
-//   yawDeg   玩家偏航角（度）。MC 约定：0=南, 90=东, 180=北, 270=西。
-//   pitchDeg 玩家俯仰角（度）。MC 约定：0=水平，正=俯视，负=仰视。
-std::array<Direction, 6> orderedByNearest(f32 yawDeg, f32 pitchDeg)
-{
-    // MC 1.21.11: f = viewXRot*(π/180)；f1 = -viewYRot*(π/180)
-    // 注：MC 的 viewXRot 即 pitch，正=俯视，负=仰视。
-    const f32 f = pitchDeg * math::DEG_TO_RAD;
-    const f32 f1 = -yawDeg * math::DEG_TO_RAD;
-    const f32 f2 = std::sin(f);   // sin(pitch)
-    const f32 f3 = std::cos(f);   // cos(pitch)
-    const f32 f4 = std::sin(f1);  // sin(-yaw)
-    const f32 f5 = std::cos(f1);  // cos(-yaw)
-    const bool flag = f4 > 0.0f;  // 东向分量>0
-    const bool flag1 = f2 < 0.0f; // true=仰视（pitch<0 时 sin(pitch)<0），false=俯视
-    const bool flag2 = f5 > 0.0f; // 南向分量>0
-    const f32 f6 = flag ? f4 : -f4;
-    const f32 f7 = flag1 ? -f2 : f2;
-    const f32 f8 = flag2 ? f5 : -f5;
-    const f32 f9 = f6 * f3;
-    const f32 f10 = f8 * f3;
-    const Direction direction = flag ? Direction::East : Direction::West;
-    const Direction direction1 = flag1 ? Direction::Up : Direction::Down;
-    const Direction direction2 = flag2 ? Direction::South : Direction::North;
-
-    // makeDirectionArray(a, b, c) = {a, b, c, opposite(c), opposite(b), opposite(a)}
-    const auto makeArray = [](Direction a, Direction b, Direction c) -> std::array<Direction, 6> {
-        return {a, b, c, Directions::opposite(c), Directions::opposite(b), Directions::opposite(a)};
-    };
-
-    if (f6 > f8) {
-        if (f7 > f9) {
-            return makeArray(direction1, direction, direction2);
-        }
-        return f10 > f7 ? makeArray(direction, direction2, direction1) : makeArray(direction, direction1, direction2);
-    }
-    if (f7 > f10) {
-        return makeArray(direction1, direction2, direction);
-    }
-    return f9 > f7 ? makeArray(direction2, direction, direction1) : makeArray(direction2, direction1, direction);
-}
-
-} // namespace
 
 BlockItemUseContext::BlockItemUseContext(IWorld& world,
     Player* player,
@@ -180,7 +129,6 @@ const BlockState* BlockItemUseContext::getBlockStateAtPlacementPos() const
 
 Direction BlockItemUseContext::getNearestLookingDirection() const
 {
-    // 与 MC 1.21.11 BlockPlaceContext.getNearestLookingDirection 对齐：
     //   return Direction.orderedByNearest(player)[0];
     // 无条件返回玩家视线最近方向（不经过 getNearestLookingDirections 的「点击面反向提首」处理）。
     // 用于木桶/活塞/发射器等「朝向玩家视线反方向」放置的方块（facing = opposite(this)）。
@@ -194,12 +142,12 @@ Direction BlockItemUseContext::getNearestLookingDirection() const
         pitchDeg = m_player->pitch();
     }
 
-    return orderedByNearest(yawDeg, pitchDeg)[0];
+    return Directions::orderedByNearest(yawDeg, pitchDeg)[0];
 }
 
 std::vector<Direction> BlockItemUseContext::getNearestLookingDirections() const
 {
-    // 与 MC 1.21.11 BlockPlaceContext.getNearestLookingDirections 对齐：
+    // 取点击面之前，要先把「点击面的反向」提到排序首位。
     //   Direction[] adirection = Direction.orderedByNearest(player);
     //   if (replaceClicked) return adirection;
     //   Direction direction = getClickedFace();
@@ -218,7 +166,7 @@ std::vector<Direction> BlockItemUseContext::getNearestLookingDirections() const
         pitchDeg = m_player->pitch();
     }
 
-    std::array<Direction, 6> ordered = orderedByNearest(yawDeg, pitchDeg);
+    std::array<Direction, 6> ordered = Directions::orderedByNearest(yawDeg, pitchDeg);
 
     if (m_replacingClickedBlock) {
         return std::vector<Direction>(ordered.begin(), ordered.end());

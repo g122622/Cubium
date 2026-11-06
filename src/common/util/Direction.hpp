@@ -24,11 +24,13 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "math/MathUtils.hpp"
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -631,6 +633,46 @@ inline f32 toYRot(Direction dir)
 }
 
 /**
+ * @brief 方向的 y-Rot（实体朝向角），对应原版 `Direction.getYRot(Direction)`
+ *
+ * **与 `toYRot` 不是同一个方法，EAST 的取值不同：**
+ *
+ * | 方向   | toYRot | getYRot |
+ * |--------|--------|---------|
+ * | NORTH  | 180    | 180     |
+ * | SOUTH  | 0      | 0       |
+ * | WEST   | 90     | 90      |
+ * | EAST   | 270    | **-90** |
+ * | DOWN/UP | 0     | **抛出/断言** |
+ *
+ * 270 与 -90 在角度上等价（差 360），但作为**返回值字面量**不同：
+ * 写进 NBT、比较、作为数组下标时都会得到不同结果。
+ *
+ * `toYRot` 走的是 `(data2d & 3) * 90`，天然落在 [0, 270]；
+ * `getYRot` 是手写 switch，EAST 取 -90。
+ *
+ * 垂直方向在原版会抛 `IllegalStateException`——调用方不该对 DOWN/UP 求 y-Rot。
+ * 这里返回 0 并断言。
+ */
+[[nodiscard]] inline f32 getYRot(Direction dir)
+{
+    switch (dir) {
+        case Direction::North:
+            return 180.0f;
+        case Direction::South:
+            return 0.0f;
+        case Direction::West:
+            return 90.0f;
+        case Direction::East:
+            return -90.0f;
+        default:
+            // 原版对垂直方向抛异常，调用方不该走到这里。
+            MC_ASSERT_RELEASE_MSG(false, "getYRot: vertical direction has no y-rotation");
+            return 0.0f;
+    }
+}
+
+/**
  * @brief 三维数据值，对应原版 `Direction.get3DDataValue()`
  *
  * 原版的 data3d 与枚举序号完全一致（DOWN=0 … EAST=5），所以直接取枚举值即可。
@@ -666,6 +708,44 @@ inline f32 toYRot(Direction dir)
 }
 
 /**
+ * @brief 由三维数据值反查方向，对应原版 `Direction.from3DDataValue(int)`
+ *
+ * 原版实现是 `BY_3D_DATA[Mth.abs(v % BY_3D_DATA.length)]`——**取模环回**，
+ * 不是越界返回默认值：
+ *
+ *   from3DDataValue(6)  → DOWN    （6 % 6 = 0）
+ *   from3DDataValue(7)  → UP
+ *   from3DDataValue(-1) → UP      （-1 % 6 = -1，abs 后为 1）
+ *
+ * 负值方向与正值**不对称**，因为 Java/C++ 的 `%` 结果符号跟随被除数，
+ * `abs` 之后 -1 落到 1 而不是 5。这是原版的实际行为，不能「修正」成对称环回。
+ */
+[[nodiscard]] inline Direction from3DDataValue(i32 value)
+{
+    // 顺序即枚举顺序（data3d 与序号一致）。
+    constexpr Direction BY_3D_DATA[] = {
+        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
+    return BY_3D_DATA[static_cast<size_t>(std::abs(value % 6))];
+}
+
+/**
+ * @brief 由二维数据值反查水平方向，对应原版 `Direction.from2DDataValue(int)`
+ *
+ * 二维表**只含水平方向**，长度 4（顺序为 SOUTH=0、WEST=1、NORTH=2、EAST=3），
+ * 因此取模用的是 4 而不是 6：
+ *
+ *   from2DDataValue(4) → SOUTH   （4 % 4 = 0）
+ *   from2DDataValue(-1) → WEST   （-1 % 4 = -1，abs 后为 1）
+ *
+ * **永远返回水平方向**，不会返回 UP/DOWN。
+ */
+[[nodiscard]] inline Direction from2DDataValue(i32 value)
+{
+    constexpr Direction BY_2D_DATA[] = {Direction::South, Direction::West, Direction::North, Direction::East};
+    return BY_2D_DATA[static_cast<size_t>(std::abs(value % 4))];
+}
+
+/**
  * @brief 方向的单位向量（整数），对应原版 `Direction.getUnitVec3i()`
  *
  * 六个方向各对应一个分量取 ±1、其余为 0 的向量。None 返回零向量。
@@ -693,6 +773,64 @@ inline f32 toYRot(Direction dir)
 [[nodiscard]] inline Vector3d getUnitVec3(Direction dir)
 {
     return Vector3d(static_cast<f64>(xOffset(dir)), static_cast<f64>(yOffset(dir)), static_cast<f64>(zOffset(dir)));
+}
+
+/**
+ * @brief 按视线方向把六个方向从「最接近」到「最远」排序，对应原版 `Direction.orderedByNearest`
+ *
+ * 视线向量是 `(-sin yaw·cos pitch, -sin pitch, cos yaw·cos pitch)`。实现不直接算点积，
+ * 而是先取三个轴上分量的**绝对值**（`f6`/`f7`/`f8`），再按大小关系分三种情况把
+ * 「主轴方向 → 次轴方向 → 第三轴方向」排好，最后补上各自的反向。
+ *
+ * 返回值恒为 6 项，且第 i 项与第 5-i 项互为反向——这是 `makeDirectionArray` 的构造方式决定的。
+ *
+ * @param yawDeg 视线偏航角（度），0=南、90=西、180=北、270=东
+ * @param pitchDeg 视线俯仰角（度），正=俯视、负=仰视
+ */
+[[nodiscard]] inline std::array<Direction, 6> orderedByNearest(f32 yawDeg, f32 pitchDeg)
+{
+    // 注意 f1 取负：原版 `-viewYRot`。yaw 的正负方向与「东为 +X」相反。
+    const f32 pitchRad = pitchDeg * math::DEG_TO_RAD;
+    const f32 yawRad = -yawDeg * math::DEG_TO_RAD;
+
+    const f32 sinPitch = math::mthSin(pitchRad);
+    const f32 cosPitch = math::mthCos(pitchRad);
+    const f32 sinYaw = math::mthSin(yawRad);
+    const f32 cosYaw = math::mthCos(yawRad);
+
+    const bool eastward = sinYaw > 0.0f;
+    const bool upward = sinPitch < 0.0f;
+    const bool southward = cosYaw > 0.0f;
+
+    // 取绝对值：比较的是各轴分量的大小，与正负无关。
+    const f32 absSinYaw = eastward ? sinYaw : -sinYaw;
+    const f32 absSinPitch = upward ? -sinPitch : sinPitch;
+    const f32 absCosYaw = southward ? cosYaw : -cosYaw;
+
+    // 水平分量还要乘上 cos(pitch)，才能与竖直分量在同一尺度上比较。
+    const f32 horizontalEast = absSinYaw * cosPitch;
+    const f32 horizontalSouth = absCosYaw * cosPitch;
+
+    const Direction xDir = eastward ? Direction::East : Direction::West;
+    const Direction yDir = upward ? Direction::Up : Direction::Down;
+    const Direction zDir = southward ? Direction::South : Direction::North;
+
+    const auto makeArray = [](Direction first, Direction second, Direction third) -> std::array<Direction, 6> {
+        return {first, second, third, opposite(third), opposite(second), opposite(first)};
+    };
+
+    if (absSinYaw > absCosYaw) {
+        // X 轴分量最大
+        if (absSinPitch > horizontalEast) {
+            return makeArray(yDir, xDir, zDir);
+        }
+        return horizontalSouth > absSinPitch ? makeArray(xDir, zDir, yDir) : makeArray(xDir, yDir, zDir);
+    }
+    // Z 轴分量最大
+    if (absSinPitch > horizontalSouth) {
+        return makeArray(yDir, zDir, xDir);
+    }
+    return horizontalEast > absSinPitch ? makeArray(zDir, xDir, yDir) : makeArray(zDir, yDir, xDir);
 }
 
 /**

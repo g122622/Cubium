@@ -84,6 +84,24 @@ constexpr const char* UNITS[] = {
     "u3|UP",
     "u3|SOUTH",
     "u3|EAST",
+    "ord|0|0",
+    "ord|90|0",
+    "ord|180|0",
+    "ord|-90|0",
+    "ord|45|0",
+    "ord|-45|0",
+    "ord|135|0",
+    "ord|0|90",
+    "ord|0|-90",
+    "ord|0|45",
+    "ord|0|-45",
+    "ord|0|89",
+    "ord|45|30",
+    "ord|-135|-60",
+    "ord|30|-20",
+    "ord|200|70",
+    "ord|270|0",
+    "ord|359|0",
 };
 
 void writeList(FILE* out)
@@ -136,6 +154,30 @@ Direction parseDirection(const std::string& name)
     throw std::runtime_error("direction_data: unknown direction: " + name);
 }
 
+/// 方向名（小写），与 Java `Direction.getName()` 的输出一致。
+///
+/// 注意：单元表里用的写法是**大写**（用于 parseDirection 解析），
+/// 两者刻意不同——前者是输入格式，后者是对比用的输出格式。
+const char* directionName(Direction dir)
+{
+    switch (dir) {
+        case Direction::Down:
+            return "down";
+        case Direction::Up:
+            return "up";
+        case Direction::North:
+            return "north";
+        case Direction::South:
+            return "south";
+        case Direction::West:
+            return "west";
+        case Direction::East:
+            return "east";
+        default:
+            return "none";
+    }
+}
+
 std::string runLine(std::string_view inputLine)
 {
     const json input = json::parse(inputLine);
@@ -146,7 +188,40 @@ std::string runLine(std::string_view inputLine)
     }
 
     const std::string mode = parts[0];
+    // ord 单元只有角度参数，没有方向名，先分流再解析方向。
+    if (mode == "vd3" && parts.size() == 2) {
+        const Direction result = Directions::from3DDataValue(std::stoi(parts[1]));
+        return json{{"unit", unit}, {"value", directionName(result)}}.dump();
+    }
+    if (mode == "vd2" && parts.size() == 2) {
+        const Direction result = Directions::from2DDataValue(std::stoi(parts[1]));
+        return json{{"unit", unit}, {"value", directionName(result)}}.dump();
+    }
+    if (mode == "ord" && parts.size() == 3) {
+        const auto ordered = Directions::orderedByNearest(std::stof(parts[1]), std::stof(parts[2]));
+        std::string joined;
+        for (size_t index = 0; index < ordered.size(); ++index) {
+            if (index > 0) {
+                joined.push_back(',');
+            }
+            joined += directionName(ordered[index]);
+        }
+        return json{{"unit", unit}, {"value", joined}}.dump();
+    }
+
     const Direction dir = parseDirection(parts[1]);
+    if (mode == "yrot") {
+        const f32 rot = Directions::getYRot(dir);
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.1f", static_cast<double>(rot));
+        return json{{"unit", unit}, {"value", std::string(buffer)}}.dump();
+    }
+    if (mode == "torot") {
+        const f32 rot = Directions::toYRot(dir);
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.1f", static_cast<double>(rot));
+        return json{{"unit", unit}, {"value", std::string(buffer)}}.dump();
+    }
 
     if (mode == "v3") {
         return json{{"unit", unit}, {"value", Directions::get3DDataValue(dir)}}.dump();
