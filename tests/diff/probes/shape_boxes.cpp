@@ -46,18 +46,20 @@ using nlohmann::json;
 ///   - 移动方向上已分离（应原样放行）；
 ///   - 真正相撞（应削减到贴面）。
 constexpr const char* UNITS[] = {
-    // 单个满方块
-    "0,0,0,1,1,1",
-    // 贴地扁片
-    "0.0625,0,0.0625,0.9375,0.09375,0.9375",
-    // 居中细柱
-    "0.25,0,0.25,0.75,0.5,0.75",
-    // 悬挂细柱（不触底）
-    "0.375,0.25,0.375,0.625,1,0.625",
-    // 跨负坐标
-    "-1,-2,-3,4,5,6",
-    // 零点尺寸的退化盒
-    "0,0,0,0,0,0",
+    // boxes：形状拆盒
+    "boxes|0,0,0,1,1,1",
+    "boxes|0.0625,0,0.0625,0.9375,0.09375,0.9375",
+    "boxes|0.25,0,0.25,0.75,0.5,0.75",
+    "boxes|0.375,0.25,0.375,0.625,1,0.625",
+    "boxes|-1,-2,-3,4,5,6",
+    "boxes|0,0,0,0,0,0",
+    // edges：形状拆棱（12 条棱的端点对）
+    "edges|0,0,0,1,1,1",
+    "edges|0.0625,0,0.0625,0.9375,0.09375,0.9375",
+    "edges|0.25,0,0.25,0.75,0.5,0.75",
+    "edges|0.375,0.25,0.375,0.625,1,0.625",
+    "edges|-1,-2,-3,4,5,6",
+    "edges|0,0,0,0,0,0",
 };
 
 void writeList(FILE* out)
@@ -105,20 +107,34 @@ std::string runLine(std::string_view inputLine)
 {
     const json input = json::parse(inputLine);
     const std::string unit = input.at("unit").get<std::string>();
-    const auto box = parseNumbers(unit, 6, unit);
+    const auto parts = splitPipe(unit);
+    if (parts.size() != 2) {
+        throw std::runtime_error("shape_boxes: unit needs two fields: " + unit);
+    }
+    const std::string mode = parts[0];
+    const auto box = parseNumbers(parts[1], 6, unit);
 
     const VoxelShape shape = Shapes::box(box[0], box[1], box[2], box[3], box[4], box[5]);
 
-    // 每个盒子按顺序输出 "x1,y1,z1,x2,y2,z2"，以分号连接。
+    // 每个盒/棱按顺序输出 "a1,a2,a3,b1,b2,b3"，以分号连接。
     std::string joined;
-    shape.forAllBoxes([&joined](f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) {
+    const auto collect = [&joined](f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) {
         if (!joined.empty()) {
             joined.push_back(';');
         }
         char buffer[256];
         std::snprintf(buffer, sizeof(buffer), "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f", x1, y1, z1, x2, y2, z2);
         joined += buffer;
-    });
+    };
+    if (mode == "boxes") {
+        shape.forAllBoxes(collect);
+    } else if (mode == "edges") {
+        shape.forAllEdges(collect);
+    } else {
+        throw std::runtime_error("shape_boxes: unknown mode: " + unit);
+    }
+    const auto unused = [](f64 x1, f64 y1, f64 z1, f64 x2, f64 y2, f64 z2) {};
+    MC_UNUSED(unused);
 
     return json{{"unit", unit}, {"value", joined}}.dump();
 }

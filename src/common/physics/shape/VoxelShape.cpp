@@ -293,7 +293,7 @@ VoxelShape VoxelShape::optimize() const
 // 遍历
 // ============================================================================
 
-void VoxelShape::forAllEdges(const DoubleLineConsumer& consumer)
+void VoxelShape::forAllEdges(const DoubleLineConsumer& consumer) const
 {
     m_shape->forAllEdges(
         [this, &consumer](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {

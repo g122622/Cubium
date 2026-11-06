@@ -53,12 +53,18 @@ public final class ShapeBoxesOracle {
 
     private static final List<String> UNITS =
             List.of(
-                    "0,0,0,1,1,1",
-                    "0.0625,0,0.0625,0.9375,0.09375,0.9375",
-                    "0.25,0,0.25,0.75,0.5,0.75",
-                    "0.375,0.25,0.375,0.625,1,0.625",
-                    "-1,-2,-3,4,5,6",
-                    "0,0,0,0,0,0");
+                    "boxes|0,0,0,1,1,1",
+                    "boxes|0.0625,0,0.0625,0.9375,0.09375,0.9375",
+                    "boxes|0.25,0,0.25,0.75,0.5,0.75",
+                    "boxes|0.375,0.25,0.375,0.625,1,0.625",
+                    "boxes|-1,-2,-3,4,5,6",
+                    "boxes|0,0,0,0,0,0",
+                    "edges|0,0,0,1,1,1",
+                    "edges|0.0625,0,0.0625,0.9375,0.09375,0.9375",
+                    "edges|0.25,0,0.25,0.75,0.5,0.75",
+                    "edges|0.375,0.25,0.375,0.625,1,0.625",
+                    "edges|-1,-2,-3,4,5,6",
+                    "edges|0,0,0,0,0,0");
 
     private ShapeBoxesOracle() {}
 
@@ -93,7 +99,12 @@ public final class ShapeBoxesOracle {
     }
 
     private static JsonObject summarise(String unit) {
-        String[] parts = unit.split(",", -1);
+        String[] sections = unit.split("\\|", -1);
+        if (sections.length != 2) {
+            throw new IllegalArgumentException("shape_boxes: unit needs two fields: " + unit);
+        }
+        String mode = sections[0];
+        String[] parts = sections[1].split(",", -1);
         if (parts.length != 6) {
             throw new IllegalArgumentException("shape_boxes: expected 6 numbers: " + unit);
         }
@@ -105,12 +116,19 @@ public final class ShapeBoxesOracle {
         VoxelShape shape = Shapes.box(box[0], box[1], box[2], box[3], box[4], box[5]);
 
         StringBuilder joined = new StringBuilder();
-        shape.forAllBoxes((x1, y1, z1, x2, y2, z2) -> {
+        Shapes.DoubleLineConsumer collect = (x1, y1, z1, x2, y2, z2) -> {
             if (joined.length() > 0) {
                 joined.append(';');
             }
             joined.append(String.format(Locale.ROOT, "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f", x1, y1, z1, x2, y2, z2));
-        });
+        };
+        if (mode.equals("boxes")) {
+            shape.forAllBoxes(collect);
+        } else if (mode.equals("edges")) {
+            shape.forAllEdges(collect);
+        } else {
+            throw new IllegalArgumentException("shape_boxes: unknown mode: " + unit);
+        }
 
         JsonObject out = new JsonObject();
         out.addProperty("unit", unit);

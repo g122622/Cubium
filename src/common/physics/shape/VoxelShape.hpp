@@ -149,7 +149,7 @@ public:
     /**
      * @brief 遍历所有边
      */
-    void forAllEdges(const DoubleLineConsumer& consumer);
+    void forAllEdges(const DoubleLineConsumer& consumer) const;
 
     /**
      * @brief 遍历所有盒子

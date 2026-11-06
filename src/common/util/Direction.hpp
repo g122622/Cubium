@@ -1159,11 +1159,19 @@ inline Axis cycle(AxisCycle cycle, Axis axis)
  */
 inline i32 cycle(AxisCycle cycle, i32 x, i32 y, i32 z, Axis axis)
 {
+    // 原版 `AxisCycle.cycle(x, y, z, axis)` 的语义是把 (x, y, z) **重排后**再取 axis 分量：
+    //
+    //   NONE     → choose(x, y, z)
+    //   FORWARD  → choose(z, x, y)
+    //   BACKWARD → choose(y, z, x)
+    //
+    // FORWARD 与 BACKWARD 曾经写反（FORWARD 返回 (y, z, x)），
+    // 导致 VoxelShape::forAllEdges 输出的棱端点顺序与原版相反。
     switch (cycle) {
         case AxisCycle::NONE:
             return (axis == Axis::X) ? x : (axis == Axis::Y) ? y : z;
         case AxisCycle::FORWARD:
-            // X->Y, Y->Z, Z->X
+            // (z, x, y)
             if (axis == Axis::X) {
                 return z;
             }
@@ -1172,7 +1180,7 @@ inline i32 cycle(AxisCycle cycle, i32 x, i32 y, i32 z, Axis axis)
             }
             return y;
         case AxisCycle::BACKWARD:
-            // X->Z, Y->X, Z->Y
+            // (y, z, x)
             if (axis == Axis::X) {
                 return y;
             }
