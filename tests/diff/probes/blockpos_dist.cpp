@@ -91,12 +91,14 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include "probe.hpp"
 
 namespace mc::diff {
 namespace {
 
+using mc::BlockPos;
 using nlohmann::json;
 
 std::string formatNumber(f64 value)
@@ -120,65 +122,6 @@ std::string formatNumber(f64 value)
     return mantissa + suffix;
 }
 
-/// 原版 `Vec3i.distManhattan`：`float` 累加后转 `int`。
-i32 distManhattan(i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2)
-{
-    const f32 dx = std::fabs(static_cast<f32>(x2 - x1));
-    const f32 dy = std::fabs(static_cast<f32>(y2 - y1));
-    const f32 dz = std::fabs(static_cast<f32>(z2 - z1));
-    return static_cast<i32>(dx + dy + dz);
-}
-
-/// 原版 `Vec3i.distToLowCornerSqr`：`double` 平方和。
-f64 distToLowCornerSqr(i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2)
-{
-    const f64 dx = static_cast<f64>(x1) - static_cast<f64>(x2);
-    const f64 dy = static_cast<f64>(y1) - static_cast<f64>(y2);
-    const f64 dz = static_cast<f64>(z1) - static_cast<f64>(z2);
-    return dx * dx + dy * dy + dz * dz;
-}
-
-/**
- * @brief 复刻 `betweenClosed` 的迭代：X 最内层、Z 最外层。
- *
- * 前 `limit` 个坐标按原版顺序输出。
- */
-std::vector<std::vector<i32>> iterateBox(i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2, i32 limit)
-{
-    const i32 minX = std::min(x1, x2);
-    const i32 minY = std::min(y1, y2);
-    const i32 minZ = std::min(z1, z2);
-    const i32 maxX = std::max(x1, x2);
-    const i32 maxY = std::max(y1, y2);
-    const i32 maxZ = std::max(z1, z2);
-
-    const i32 sizeX = maxX - minX + 1;
-    const i32 sizeY = maxY - minY + 1;
-    const i32 sizeZ = maxZ - minZ + 1;
-
-    std::vector<std::vector<i32>> result;
-    const i64 total = static_cast<i64>(sizeX) * sizeY * sizeZ;
-    const i64 count = std::min<i64>(total, limit);
-    for (i64 index = 0; index < count; ++index) {
-        const i32 i1 = static_cast<i32>(index % sizeX);
-        const i32 j1 = static_cast<i32>(index / sizeX);
-        const i32 k1 = j1 % sizeY;
-        const i32 l1 = j1 / sizeY;
-        result.push_back({minX + i1, minY + k1, minZ + l1});
-    }
-    return result;
-}
-
-/// 盒体积。
-i64 boxVolume(i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2)
-{
-    const i64 sizeX = std::abs(static_cast<i64>(x2) - x1) + 1;
-    const i64 sizeY = std::abs(static_cast<i64>(y2) - y1) + 1;
-    const i64 sizeZ = std::abs(static_cast<i64>(z2) - z1) + 1;
-    return sizeX * sizeY * sizeZ;
-}
-
-/// 单元表。
 constexpr const char* UNITS[] = {
     // distManhattan：常规
     "manhattan|0|0|0|1|2|3",
@@ -261,22 +204,27 @@ std::string runLine(std::string_view inputLine)
     const i32 z2 = std::stoi(parts[6]);
 
     if (mode == "manhattan") {
-        return json{{"unit", unit}, {"value", distManhattan(x1, y1, z1, x2, y2, z2)}}.dump();
+        return json{{"unit", unit}, {"value", BlockPos(x1, y1, z1).manhattanDistance(BlockPos(x2, y2, z2))}}.dump();
     }
     if (mode == "sqr") {
-        return json{{"unit", unit}, {"value", formatNumber(distToLowCornerSqr(x1, y1, z1, x2, y2, z2))}}.dump();
+        return json{{"unit", unit},
+            {"value", formatNumber(static_cast<f64>(BlockPos(x1, y1, z1).distanceSq(BlockPos(x2, y2, z2))))}}
+            .dump();
     }
     if (mode == "boxsize") {
-        return json{{"unit", unit}, {"volume", std::to_string(boxVolume(x1, y1, z1, x2, y2, z2))}}.dump();
+        return json{{"unit", unit}, {"volume", std::to_string(blockPosBetweenClosedCount(x1, y1, z1, x2, y2, z2))}}
+            .dump();
     }
     if (mode == "box") {
         // 输出前 8 个（或全部，若不足 8 个），足够暴露迭代顺序。
-        const auto coords = iterateBox(x1, y1, z1, x2, y2, z2, 8);
+        const auto coords = blockPosBetweenClosed(x1, y1, z1, x2, y2, z2);
         json order = json::array();
-        for (const auto& c : coords) {
-            order.push_back(json::array({c[0], c[1], c[2]}));
+        for (std::size_t index = 0; index < coords.size() && index < 8; ++index) {
+            order.push_back(json::array({coords[index].x, coords[index].y, coords[index].z}));
         }
-        return json{{"unit", unit}, {"order", order}, {"volume", std::to_string(boxVolume(x1, y1, z1, x2, y2, z2))}}
+        return json{{"unit", unit},
+            {"order", order},
+            {"volume", std::to_string(blockPosBetweenClosedCount(x1, y1, z1, x2, y2, z2))}}
             .dump();
     }
 
