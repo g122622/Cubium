@@ -62,6 +62,13 @@ public final class LegacyRandomOracle {
         "555|c:10;i:100",
         "555|c:1;i:100",
         "-12345|i:100;i:100;i:100",
+        "2024|t:1;t:1;t:1;d;d",
+        "2024|T:1;T:1;T:1;f;f",
+        "777|d;t:0.5;d;T:0.5;f",
+        "42|n:5,5;n:5,5;n:5,5",
+        "42|n:-10,-10;n:-10,-10",
+        "42|n:-5,5;n:-5,5;n:-5,5;n:-5,5",
+        "42|n:0,1;n:0,1;n:0,1;n:0,1",
         "9223372036854775807|i:1000;i:1000",
     };
 
@@ -136,6 +143,18 @@ public final class LegacyRandomOracle {
                 case 'b' -> parts.add(random.nextBoolean() ? "1" : "0");
                 case 'f' -> parts.add(trimZeros(String.format("%.9g", (double) random.nextFloat())));
                 case 'd' -> parts.add(trimZeros(String.format("%.16g", random.nextDouble())));
+                case 't' -> parts.add(trimZeros(String.format("%.16g", random.triangle(0.0, Double.parseDouble(op.substring(2))))));
+                case 'T' -> parts.add(trimZeros(String.format("%.9g", (double) random.triangle(0.0f, Float.parseFloat(op.substring(2))))));
+                case 'n' -> {
+                    String args = op.substring(2);
+                    int comma = args.indexOf(',');
+                    if (comma < 0) {
+                        throw new IllegalArgumentException("legacy_random: n needs <origin>,<bound>: " + op);
+                    }
+                    int origin = Integer.parseInt(args.substring(0, comma));
+                    int bound = Integer.parseInt(args.substring(comma + 1));
+                    parts.add(Integer.toString(random.nextIntBetweenInclusive(origin, bound)));
+                }
                 case 'c' -> random.consumeCount(Integer.parseInt(op.substring(2)));
                 default -> throw new IllegalArgumentException("legacy_random: 未知操作: " + op);
             }
