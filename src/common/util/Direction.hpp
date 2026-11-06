@@ -31,6 +31,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -526,7 +527,15 @@ inline Direction fromAxisAndDirection(Axis axis, AxisDirection axisDir)
  */
 inline Direction fromVector(f32 x, f32 y, f32 z)
 {
-    f32 maxDot = -1.0f;
+    // 初值必须是 Java 的 Float.MIN_VALUE（1.4e-45，最小**次正规**正数），
+    // 不是 C++ 的 numeric_limits<f32>::min()（1.175e-38，最小**正规**正数）。
+    //
+    // 两者差 7 个数量级：C++ 那一侧会让 1e-40 这类次正规分量的点积被判为「不够大」，
+    // 从而错误地停在 North；Java 那侧则会正确选中对应方向。
+    //
+    // 零向量时所有点积都是 0，0 > 1.4e-45 为假，于是保持 North——这正是原版行为。
+    constexpr f32 JAVA_FLOAT_MIN_VALUE = 1.401298464324817e-45f;
+    f32 maxDot = JAVA_FLOAT_MIN_VALUE;
     Direction result = Direction::North;
 
     const Direction dirs[] = {
@@ -1279,6 +1288,37 @@ inline size_t ordinal(Direction dir)
 inline Direction getApproximateNearest(f32 x, f32 y, f32 z)
 {
     return Directions::fromVector(x, y, z);
+}
+
+/**
+ * @brief 按三个分量的绝对值取主导轴方向，对应原版 `Direction.getNearest(int, int, int, Direction)`
+ *
+ * 取绝对值最大的那个分量所在的轴；若有并列（含全零），返回 `fallback`。
+ *
+ * **判定用的是严格大于**，所以任意两个分量的绝对值相等时都落到 `fallback`，
+ * 而不是按 X > Y > Z 的优先级挑选。
+ *
+ * @param x X 分量
+ * @param y Y 分量
+ * @param z Z 分量
+ * @param fallback 并列或全零时返回的方向
+ * @return 主导轴方向，或 fallback
+ */
+[[nodiscard]] inline Direction getNearest(i32 x, i32 y, i32 z, Direction fallback)
+{
+    const i32 absX = std::abs(x);
+    const i32 absY = std::abs(y);
+    const i32 absZ = std::abs(z);
+    if (absX > absZ && absX > absY) {
+        return x < 0 ? Direction::West : Direction::East;
+    }
+    if (absZ > absX && absZ > absY) {
+        return z < 0 ? Direction::North : Direction::South;
+    }
+    if (absY > absX && absY > absZ) {
+        return y < 0 ? Direction::Down : Direction::Up;
+    }
+    return fallback;
 }
 
 } // namespace mc

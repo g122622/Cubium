@@ -20,97 +20,6 @@
  * SOFTWARE.
  *
  */
-
-/**
- * @brief 差分能力：`Direction.getApproximateNearest` 与 `Direction.getNearest`（纯计算）。
- *
- * `list`：一组「模式|参数…」单元
- * `run` ：同上一行 → { "value": "<direction>" }
- *
- * 复刻原版 `net.minecraft.core.Direction`：
- *
- * ```java
- * public static Direction getApproximateNearest(double x, double y, double z) {
- *     return getApproximateNearest((float) x, (float) y, (float) z);   // 先降精度
- * }
- *
- * public static Direction getApproximateNearest(float x, float y, float z) {
- *     Direction direction = NORTH;              // 默认 NORTH
- *     float f = Float.MIN_VALUE;                // 不是 -Infinity！
- *     for (Direction candidate : VALUES) {      // 按 data3d 排序：DOWN,UP,NORTH,SOUTH,WEST,EAST
- *         float dot = x * c.normal.getX() + y * c.normal.getY() + z * c.normal.getZ();
- *         if (dot > f) {                        // 严格大于
- *             f = dot;
- *             direction = candidate;
- *         }
- *     }
- *     return direction;
- * }
- *
- * public static @Nullable Direction getNearest(int x, int y, int z, @Nullable Direction fallback) {
- *     int i = Math.abs(x), j = Math.abs(y), k = Math.abs(z);
- *     if (i > k && i > j)      return x < 0 ? WEST : EAST;
- *     else if (k > i && k > j) return z < 0 ? NORTH : SOUTH;
- *     else if (j > i && j > k) return y < 0 ? DOWN : UP;
- *     else                     return fallback;   // 平局回退
- * }
- * ```
- *
- * ## 四个关键点
- *
- * 1. **`getApproximateNearest` 的初始比较基准是 `Float.MIN_VALUE`（约 `1.4e-45`），不是
- *    `-Infinity`。**
- *
- *    `Float.MIN_VALUE` 是**最小正规格化正数**，不是最负的数（那是 `-Float.MAX_VALUE`）。
- *
- *    因此**当所有点积都 `<= Float.MIN_VALUE` 时，循环一次都不更新，返回默认值 `NORTH`**。
- *
- *    - 全零向量 `(0,0,0)`：所有点积都是 `0`，`0 > 1.4e-45` 为假 → **返回 `NORTH`**
- *    - 负方向 `(0,0,-1)`：`NORTH` 的点积是 `1`，会被选中
- *    - **`(0,-1,0)`（正下方）**：`DOWN` 的点积是 `1`，被选中
- *
- *    注意 `(0,0,-1)` 与 `(0,0,1)` 分别得 `NORTH` / `SOUTH`，但**全零向量也返回 `NORTH`**——
- *    无法从结果反推「是否为零向量」。
- *
- * 2. **平局由 `VALUES` 的枚举顺序决定。**
- *
- *    `VALUES = values()`，而枚举声明顺序是 `DOWN, UP, NORTH, SOUTH, WEST, EAST`。
- *    循环用**严格** `>` 比较，所以**先遍历到的胜出**。
- *
- *    - `(1,1,0)`：`EAST` 与 `UP` 的点积都是 `1`。`UP` (索引 1) 先于 `EAST` (索引 5)，
- *      但 `UP` 的点积来自 `y=1`，`EAST` 来自 `x=1`，**两者都等于 1**。
- *      遍历顺序：`DOWN`(0) → `UP`(1, dot=1, 更新) → `NORTH`(0) → `SOUTH`(0) → `WEST`(0) → `EAST`(1, 不 >1)
- *      → **返回 `UP`**
- *
- * 3. **`getApproximateNearest(double,...)` 先把参数降成 `float`。**
- *
- *    ```java
- *    return getApproximateNearest((float) x, (float) y, (float) z);
- *    ```
- *
- *    因此 `double` 版**没有更高精度**——`getApproximateNearest(1e-300)` 会降成 `0.0f`。
- *    两版行为完全一致，只是入口不同。
- *
- * 4. **`getNearest` 用严格 `>` 且平局回退到 `fallback`。**
- *
- *    ```java
- *    if (i > k && i > j) ... else return fallback;
- *    ```
- *
- *    **三个坐标绝对值相等时（包括全零）一律返回 `fallback`**，不做任何启发式。
- *
- *    返回 `null` 也是合法的（`fallback = null` 时），但本能力用 `"null"` 字符串表示。
- *
- * 单元格式：
- * - `approxF|<x>|<y>|<z>` —— `getApproximateNearest(float,float,float)`
- * - `approxD|<x>|<y>|<z>` —— `getApproximateNearest(double,double,double)`
- * - `nearest|<x>|<y>|<z>|<fallback>` —— `getNearest`，`fallback` 取 `north`/`east`/`null` 等
- *
- * 方向输出为**小写枚举名**（`down`/`up`/`north`/`south`/`west`/`east`），`null` 输出 `"null"`。
- *
- * TODO: 未覆盖 `Direction.orderedByNearest`（需要 `Entity`）、`Direction.rotate`（需要矩阵）、
- * `Direction.axisStepOrder`（返回 `ImmutableList<Axis>`）、`Direction.getFacingAxis`。
- */
 #include <cmath>
 #include <cstdio>
 #include <optional>
@@ -122,6 +31,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 
 #include "probe.hpp"
 
@@ -130,93 +40,62 @@ namespace {
 
 using nlohmann::json;
 
-/// 六个方向，按原版 `VALUES = values()` 的枚举声明顺序。
-constexpr const char* DIRECTIONS[] = {"down", "up", "north", "south", "west", "east"};
-
-/// 各方向的单位法向量（与 `DIRECTIONS` 一一对应）。
-constexpr f32 NORMALS[6][3] = {
-    {0.0F, -1.0F, 0.0F}, // down
-    {0.0F, 1.0F, 0.0F},  // up
-    {0.0F, 0.0F, -1.0F}, // north
-    {0.0F, 0.0F, 1.0F},  // south
-    {-1.0F, 0.0F, 0.0F}, // west
-    {1.0F, 0.0F, 0.0F},  // east
+/// 单元表。
+///
+/// `approx` 重点覆盖零向量与极小分量——原版初值是 `Float.MIN_VALUE`（1.175e-38），
+/// 点积为 0 时不满足 `> 初值`，因此保持 NORTH；初值若取 -1 会错误地变成 DOWN。
+///
+/// `nearest` 重点覆盖并列情形——原版用**严格大于**判定，任意两轴绝对值相等
+/// 都落到 fallback。
+constexpr const char* UNITS[] = {
+    // approx：六个轴向
+    "approxF|1|0|0",
+    "approxF|-1|0|0",
+    "approxF|0|1|0",
+    "approxF|0|-1|0",
+    "approxF|0|0|1",
+    "approxF|0|0|-1",
+    // approx：零向量（关键：返回 NORTH）
+    "approxF|0|0|0",
+    // approx：极小值（点积仍是 0）
+    "approxF|1e-40|0|0",
+    "approxF|-1e-40|0|0",
+    "approxF|1e-46|1e-46|1e-46",
+    // approx：斜向
+    "approxF|1|1|0",
+    "approxF|1|0|1",
+    "approxF|0|1|1",
+    "approxF|1|1|1",
+    "approxF|-1|-1|-1",
+    "approxF|2|1|0",
+    "approxF|1|2|0",
+    // approxD：double 版（先降精度）
+    "approxD|1|0|0",
+    "approxD|0|0|0",
+    "approxD|1e-300|0|0",
+    // nearest：单轴主导
+    "nearest|5|1|1|north",
+    "nearest|-5|1|1|north",
+    "nearest|1|5|1|north",
+    "nearest|1|-5|1|north",
+    "nearest|1|1|5|north",
+    "nearest|1|1|-5|north",
+    // nearest：全零 → fallback
+    "nearest|0|0|0|north",
+    "nearest|0|0|0|up",
+    // nearest：并列 → fallback（严格大于）
+    "nearest|5|5|1|north",
+    "nearest|5|1|5|north",
+    "nearest|1|5|5|north",
+    "nearest|5|5|5|north",
+    "nearest|-5|-5|1|up",
+    // nearest：绝对值比较，符号独立
+    "nearest|-5|1|1|north",
+    "nearest|5|-1|-1|north",
 };
-
-/// 原版 `Direction.getApproximateNearest(float, float, float)`。
-std::string getApproximateNearest(f32 x, f32 y, f32 z)
-{
-    // 原版初值：Direction.NORTH 与 Float.MIN_VALUE（最小正规格化正数）。
-    i32 best = 2;
-    f32 bestDot = 1.401298464324817E-45F;
-    for (i32 i = 0; i < 6; ++i) {
-        const f32 dot = x * NORMALS[i][0] + y * NORMALS[i][1] + z * NORMALS[i][2];
-        if (dot > bestDot) {
-            bestDot = dot;
-            best = i;
-        }
-    }
-    return DIRECTIONS[best];
-}
-
-/// 原版 `Direction.getNearest(int, int, int, Direction)`：平局返回 `fallback`。
-std::string getNearest(i32 x, i32 y, i32 z, const std::optional<std::string>& fallback)
-{
-    const i32 i = std::abs(x);
-    const i32 j = std::abs(y);
-    const i32 k = std::abs(z);
-    if (i > k && i > j) {
-        return x < 0 ? "west" : "east";
-    }
-    if (k > i && k > j) {
-        return z < 0 ? "north" : "south";
-    }
-    if (j > i && j > k) {
-        return y < 0 ? "down" : "up";
-    }
-    return fallback.value_or("null");
-}
 
 void writeList(FILE* out)
 {
-    constexpr const char* UNITS[] = {
-        // approxF：轴向
-        "approxF|1|0|0",
-        "approxF|-1|0|0",
-        "approxF|0|1|0",
-        "approxF|0|-1|0",
-        "approxF|0|0|1",
-        "approxF|0|0|-1",
-        // approxF：全零（关键：返回 NORTH）
-        "approxF|0|0|0",
-        // approxF：斜向
-        "approxF|1|1|0",
-        "approxF|1|0|1",
-        "approxF|0|1|1",
-        "approxF|1|1|1",
-        "approxF|-1|-1|-1",
-        // approxF：极端小值（低于 Float.MIN_VALUE）
-        "approxF|1e-46|1e-46|1e-46",
-        // approxD：与 float 版对照
-        "approxD|1|0|0",
-        "approxD|0|0|0",
-        "approxD|1e-300|0|0",
-        // nearest：三轴主导
-        "nearest|5|1|1|north",
-        "nearest|-5|1|1|north",
-        "nearest|1|5|1|north",
-        "nearest|1|-5|1|north",
-        "nearest|1|1|5|north",
-        "nearest|1|1|-5|north",
-        // nearest：平局
-        "nearest|1|1|0|north",
-        "nearest|1|0|1|north",
-        "nearest|0|1|1|north",
-        "nearest|1|1|1|north",
-        "nearest|0|0|0|north",
-        "nearest|0|0|0|null",
-        "nearest|-1|1|0|west",
-    };
     for (const auto* unit : UNITS) {
         std::fprintf(out, "%s\n", unit);
     }
@@ -238,40 +117,71 @@ std::vector<std::string> splitPipe(const std::string& text)
     return tokens;
 }
 
+Direction parseDirection(const std::string& name)
+{
+    const auto parsed = Directions::fromName(name);
+    if (!parsed.has_value()) {
+        throw std::runtime_error("direction_nearest: unknown direction: " + name);
+    }
+    return *parsed;
+}
+
+const char* directionName(Direction dir)
+{
+    switch (dir) {
+        case Direction::Down:
+            return "down";
+        case Direction::Up:
+            return "up";
+        case Direction::North:
+            return "north";
+        case Direction::South:
+            return "south";
+        case Direction::West:
+            return "west";
+        case Direction::East:
+            return "east";
+        default:
+            return "null";
+    }
+}
+
 std::string runLine(std::string_view inputLine)
 {
     const json input = json::parse(inputLine);
     const std::string unit = input.at("unit").get<std::string>();
     const auto parts = splitPipe(unit);
     if (parts.size() < 2) {
-        throw std::runtime_error("direction_nearest: 单元至少两段：" + unit);
+        throw std::runtime_error("direction_nearest: unit needs at least two fields: " + unit);
     }
 
     const std::string mode = parts[0];
 
     if (mode == "approxF" && parts.size() == 4) {
-        const std::string result = getApproximateNearest(static_cast<f32>(std::stod(parts[1])),
-            static_cast<f32>(std::stod(parts[2])),
-            static_cast<f32>(std::stod(parts[3])));
-        return json{{"unit", unit}, {"value", result}}.dump();
+        const f32 x = static_cast<f32>(std::stod(parts[1]));
+        const f32 y = static_cast<f32>(std::stod(parts[2]));
+        const f32 z = static_cast<f32>(std::stod(parts[3]));
+        return json{{"unit", unit}, {"value", directionName(getApproximateNearest(x, y, z))}}.dump();
     }
     if (mode == "approxD" && parts.size() == 4) {
-        // 原版 double 版先降精度到 float。
-        const std::string result = getApproximateNearest(static_cast<f32>(std::stod(parts[1])),
-            static_cast<f32>(std::stod(parts[2])),
-            static_cast<f32>(std::stod(parts[3])));
-        return json{{"unit", unit}, {"value", result}}.dump();
+        // 原版 double 重载先把参数降成 float 再转调。
+        const f64 x = std::stod(parts[1]);
+        const f64 y = std::stod(parts[2]);
+        const f64 z = std::stod(parts[3]);
+        return json{{"unit", unit},
+            {"value",
+                directionName(getApproximateNearest(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z)))}}
+            .dump();
     }
     if (mode == "nearest" && parts.size() == 5) {
-        std::optional<std::string> fallback;
-        if (parts[4] != "null") {
-            fallback = parts[4];
-        }
-        const std::string result = getNearest(std::stoi(parts[1]), std::stoi(parts[2]), std::stoi(parts[3]), fallback);
-        return json{{"unit", unit}, {"value", result}}.dump();
+        const i32 x = std::stoi(parts[1]);
+        const i32 y = std::stoi(parts[2]);
+        const i32 z = std::stoi(parts[3]);
+        const Direction fallback = parseDirection(parts[4]);
+        return json{{"unit", unit}, {"value", directionName(getNearest(x, y, z, fallback))}}.dump();
     }
 
-    throw std::runtime_error("direction_nearest: 无法识别的单元：" + unit);
+    throw std::runtime_error("direction_nearest: unrecognized unit: " + unit);
 }
 
 } // namespace
