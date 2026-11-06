@@ -81,6 +81,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -122,37 +123,6 @@ constexpr i32 DE_BRUIJN_BIT_POSITION[32] = {0,
     5,
     10,
     9};
-
-/// 原版 `Mth.smallestEncompassingPowerOfTwo`。
-i32 smallestEncompassingPowerOfTwo(i32 value)
-{
-    i32 result = value - 1;
-    result |= result >> 1;
-    result |= result >> 2;
-    result |= result >> 4;
-    result |= result >> 8;
-    result |= result >> 16;
-    return result + 1;
-}
-
-/// 原版 `Mth.isPowerOfTwo`。
-bool isPowerOfTwo(i32 value)
-{
-    return value != 0 && (value & (value - 1)) == 0;
-}
-
-/// 原版 `Mth.ceillog2`。
-i32 ceillog2(i32 value)
-{
-    const i32 adjusted = isPowerOfTwo(value) ? value : smallestEncompassingPowerOfTwo(value);
-    return DE_BRUIJN_BIT_POSITION[static_cast<i32>((static_cast<i64>(adjusted) * 125613361LL) >> 27) & 31];
-}
-
-/// 原版 `Mth.log2`。
-i32 log2Of(i32 value)
-{
-    return ceillog2(value) - (isPowerOfTwo(value) ? 0 : 1);
-}
 
 /// 单元表。
 constexpr const char* UNITS[] = {
@@ -247,16 +217,16 @@ std::string runLine(std::string_view inputLine)
     const i32 value = std::stoi(parts[1]);
 
     if (mode == "sep2") {
-        return json{{"unit", unit}, {"value", smallestEncompassingPowerOfTwo(value)}}.dump();
+        return json{{"unit", unit}, {"value", math::smallestEncompassingPowerOfTwo(value)}}.dump();
     }
     if (mode == "ispot") {
-        return json{{"unit", unit}, {"result", isPowerOfTwo(value)}}.dump();
+        return json{{"unit", unit}, {"result", math::isPowerOfTwo(value)}}.dump();
     }
     if (mode == "log2") {
-        return json{{"unit", unit}, {"value", log2Of(value)}}.dump();
+        return json{{"unit", unit}, {"value", math::log2Of(value)}}.dump();
     }
     if (mode == "ceillog2") {
-        return json{{"unit", unit}, {"value", ceillog2(value)}}.dump();
+        return json{{"unit", unit}, {"value", math::ceillog2(value)}}.dump();
     }
 
     throw std::runtime_error("mth_bit: 无法识别的单元：" + unit);

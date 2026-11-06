@@ -1081,4 +1081,186 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     return hsvToArgb(hue, saturation, value, 0);
 }
 
+// ============================================================================
+// 位运算与整数工具
+// ============================================================================
+
+/**
+ * @brief 是否为 2 的整数次幂，对应原版 `Mth.isPowerOfTwo`
+ *
+ * 注意 0 不算——`0 & -1 == 0` 会让朴素的写法把 0 误判成 2 的幂，所以要先单独排除。
+ */
+[[nodiscard]] inline constexpr bool isPowerOfTwo(i32 value) noexcept
+{
+    return value != 0 && (value & (value - 1)) == 0;
+}
+
+/**
+ * @brief 最小的、不小于 value 的 2 的整数次幂，对应原版 `Mth.smallestEncompassingPowerOfTwo`
+ *
+ * 用「把最高位以下全部填 1、再 +1」的做法。value 为 1 时返回 1；value 为 0 或负数时
+ * 走满五轮填充得到 -1、再加 1 得 0——原版同样如此，调用方需自行保证入参为正。
+ */
+[[nodiscard]] inline constexpr i32 smallestEncompassingPowerOfTwo(i32 value) noexcept
+{
+    i32 result = value - 1;
+    result |= result >> 1;
+    result |= result >> 2;
+    result |= result >> 4;
+    result |= result >> 8;
+    result |= result >> 16;
+    return result + 1;
+}
+
+/**
+ * @brief `value` 向上取整到 `divisor` 的整数倍，对应原版 `Mth.roundToward`
+ *
+ * 经 `positiveCeilDiv` 实现，因此除数为负时行为与原版一致。
+ */
+[[nodiscard]] inline i32 roundToward(i32 value, i32 divisor) noexcept;
+
+/**
+ * @brief 向正无穷取整的除法，对应原版 `Mth.positiveCeilDiv`
+ *
+ * 原版写成 `-Math.floorDiv(-a, b)`：先取负、做向下取整除法、再取负。不能简单用
+ * `(a + b - 1) / b`——那样在 a 为负、b 为正时会因为 C++ 的向零截断而算错。
+ */
+[[nodiscard]] inline i32 positiveCeilDiv(i32 a, i32 b) noexcept
+{
+    // floorDiv(-a, b) 用向零截断加修正表达
+    const i32 negated = -a;
+    i32 quotient = negated / b;
+    if ((negated % b != 0) && ((negated < 0) != (b < 0))) {
+        --quotient;
+    }
+    return -quotient;
+}
+
+inline i32 roundToward(i32 value, i32 divisor) noexcept
+{
+    return positiveCeilDiv(value, divisor) * divisor;
+}
+
+/**
+ * @brief 向上取整的二进制对数，对应原版 `Mth.ceillog2`
+ *
+ * 先把 value 补齐到 2 的幂，再用 de Bruijn 序列查最高位的位置。表里 32 项按
+ * `value * 125613361 >> 27` 的取值排布，索引再 `& 31`。
+ *
+ * value 为 0 时结果无意义（原版同样如此），调用方需保证入参为正。
+ */
+[[nodiscard]] inline i32 ceillog2(i32 value) noexcept
+{
+    static constexpr i32 DE_BRUIJN_BIT_POSITION[32] = {0,
+        1,
+        28,
+        2,
+        29,
+        14,
+        24,
+        3,
+        30,
+        22,
+        20,
+        15,
+        25,
+        17,
+        4,
+        8,
+        31,
+        27,
+        13,
+        23,
+        21,
+        19,
+        16,
+        7,
+        26,
+        12,
+        18,
+        6,
+        11,
+        5,
+        10,
+        9};
+    const i32 adjusted = isPowerOfTwo(value) ? value : smallestEncompassingPowerOfTwo(value);
+    return DE_BRUIJN_BIT_POSITION[static_cast<i32>((static_cast<i64>(adjusted) * 125613361LL) >> 27) & 31];
+}
+
+/**
+ * @brief 向下取整的二进制对数，对应原版 `Mth.log2`
+ */
+[[nodiscard]] inline i32 log2Of(i32 value) noexcept
+{
+    return ceillog2(value) - (isPowerOfTwo(value) ? 0 : 1);
+}
+
+// ============================================================================
+// 角度逼近
+// ============================================================================
+
+/**
+ * @brief 两个角度之间的最短有向差，对应原版 `Mth.degreesDifference`
+ *
+ * 结果落在 `[-180, 180)`。用 `wrapDegrees` 做规范化，因此跨越 0/360 边界时不会有
+ * 「绕远路」的问题。
+ */
+[[nodiscard]] inline f32 degreesDifference(f32 first, f32 second) noexcept
+{
+    return wrapDegrees(second - first);
+}
+
+/**
+ * @brief 让角度朝目标逼近一步，对应原版 `Mth.approach`
+ *
+ * 步长取绝对值。已经越过目标时 clamp 会把结果钉在目标上，不会来回振荡。
+ */
+[[nodiscard]] inline f32 approach(f32 from, f32 to, f32 step) noexcept
+{
+    const f32 magnitude = std::abs(step);
+    if (from < to) {
+        return clamp(from + magnitude, from, to);
+    }
+    return clamp(from - magnitude, to, from);
+}
+
+/**
+ * @brief 按最短方向逼近目标角度，对应原版 `Mth.approachDegrees`
+ *
+ * 先求最短有向差，再沿该方向逼近——直接把角度差喂给 `approach` 会在跨越 0/360
+ * 时朝反方向绕一大圈。
+ */
+[[nodiscard]] inline f32 approachDegrees(f32 from, f32 to, f32 step) noexcept
+{
+    const f32 difference = degreesDifference(from, to);
+    return approach(from, from + difference, step);
+}
+
+/**
+ * @brief 角度差超出阈值时向目标靠拢，对应原版 `Mth.rotateIfNecessary`
+ *
+ * 只在偏差超过 `maxDelta` 时修正，否则返回原目标值。
+ */
+[[nodiscard]] inline f32 rotateIfNecessary(f32 from, f32 to, f32 maxDelta) noexcept
+{
+    const f32 difference = degreesDifference(from, to);
+    const f32 clamped = clamp(difference, -maxDelta, maxDelta);
+    return to - clamped;
+}
+
+// ============================================================================
+// 曲线工具
+// ============================================================================
+
+/**
+ * @brief smoothstep 的导数，对应原版 `Mth.smoothstepDerivative`
+ *
+ * `30 * t² * (t-1)²`。注意原版用 `t - 1.0` 而非 `1.0 - t`：两者平方后相等，
+ * 但 `t - 1.0` 在 t 略小于 1 时的舍入方向与 `1.0 - t` 不同。
+ */
+[[nodiscard]] inline constexpr f64 smoothstepDerivative(f64 t) noexcept
+{
+    return 30.0 * t * t * (t - 1.0) * (t - 1.0);
+}
+
 } // namespace mc::math
