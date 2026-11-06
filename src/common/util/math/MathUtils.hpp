@@ -1007,4 +1007,78 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     return std::abs(cross) < halfX * absDy + halfY * absDx;
 }
 
+/**
+ * @brief HSV 转 ARGB 打包值，对应原版 `Mth.hsvToArgb`
+ *
+ * 色相按 60 度一档切成六段，每段走不同的分量排列。几个容易写错的地方：
+ *
+ * - 段号用 `(i32)(hue * 6.0f) % 6`，`(i32)` 是**向零截断**而非向下取整；
+ *   色相为负时段号为负，会落到 switch 的 default 分支；
+ * - 各分量乘 255 后同样先截断再夹到 `[0, 255]`；
+ * - 结果是 `alpha << 24 | r << 16 | g << 8 | b`，alpha 不做夹取。
+ */
+[[nodiscard]] inline u32 hsvToArgb(f32 hue, f32 saturation, f32 value, i32 alpha) noexcept
+{
+    const i32 sector = static_cast<i32>(hue * 6.0f) % 6;
+    const f32 fraction = hue * 6.0f - static_cast<f32>(sector);
+    const f32 p = value * (1.0f - saturation);
+    const f32 q = value * (1.0f - fraction * saturation);
+    const f32 t = value * (1.0f - (1.0f - fraction) * saturation);
+
+    f32 r = 0.0f;
+    f32 g = 0.0f;
+    f32 b = 0.0f;
+    switch (sector) {
+        case 0:
+            r = value;
+            g = t;
+            b = p;
+            break;
+        case 1:
+            r = q;
+            g = value;
+            b = p;
+            break;
+        case 2:
+            r = p;
+            g = value;
+            b = t;
+            break;
+        case 3:
+            r = p;
+            g = q;
+            b = value;
+            break;
+        case 4:
+            r = t;
+            g = p;
+            b = value;
+            break;
+        case 5:
+            r = value;
+            g = p;
+            b = q;
+            break;
+        default:
+            // 色相为负时段号为负，原版在这里抛异常；调用方应先归一化色相。
+            MC_ASSERT_RELEASE_MSG(false, "hsvToArgb received an out-of-range hue");
+            break;
+    }
+
+    const auto toByte = [](f32 channel) {
+        return static_cast<u32>(clamp(static_cast<i32>(channel * 255.0f), 0, 255));
+    };
+    return (static_cast<u32>(alpha) << 24U) | (toByte(r) << 16U) | (toByte(g) << 8U) | toByte(b);
+}
+
+/**
+ * @brief HSV 转 RGB 打包值（alpha 恒为 0），对应原版 `Mth.hsvToRgb`
+ *
+ * 注意 alpha 是 0 而不是 255——原版就是这么写的，调用方负责补 alpha。
+ */
+[[nodiscard]] inline u32 hsvToRgb(f32 hue, f32 saturation, f32 value) noexcept
+{
+    return hsvToArgb(hue, saturation, value, 0);
+}
+
 } // namespace mc::math
