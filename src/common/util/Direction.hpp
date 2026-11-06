@@ -1053,6 +1053,40 @@ inline std::string toString(Axis axis)
     return names[static_cast<size_t>(axis)];
 }
 
+/**
+ * @brief 轴的正方向，对应原版 `Direction.Axis.getPositive()`
+ *
+ * X→EAST、Y→UP、Z→SOUTH。
+ */
+[[nodiscard]] inline Direction getPositive(Axis axis)
+{
+    switch (axis) {
+        case Axis::X:
+            return Direction::East;
+        case Axis::Y:
+            return Direction::Up;
+        default:
+            return Direction::South;
+    }
+}
+
+/**
+ * @brief 轴的负方向，对应原版 `Direction.Axis.getNegative()`
+ *
+ * X→WEST、Y→DOWN、Z→NORTH。
+ */
+[[nodiscard]] inline Direction getNegative(Axis axis)
+{
+    switch (axis) {
+        case Axis::X:
+            return Direction::West;
+        case Axis::Y:
+            return Direction::Down;
+        default:
+            return Direction::North;
+    }
+}
+
 inline bool isHorizontal(Axis axis)
 {
     return axis == Axis::X || axis == Axis::Z;

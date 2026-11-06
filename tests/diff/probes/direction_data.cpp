@@ -188,6 +188,15 @@ std::string runLine(std::string_view inputLine)
     }
 
     const std::string mode = parts[0];
+    if (mode == "pos" || mode == "neg") {
+        const std::string& axisName = parts[1];
+        std::optional<Axis> axis = Axes::fromName(axisName == "X" ? "x" : (axisName == "Y" ? "y" : "z"));
+        if (!axis.has_value()) {
+            throw std::runtime_error("direction_data: unknown axis: " + axisName);
+        }
+        const Direction result = mode == "pos" ? Axes::getPositive(*axis) : Axes::getNegative(*axis);
+        return json{{"unit", unit}, {"value", directionName(result)}}.dump();
+    }
     // ord 单元只有角度参数，没有方向名，先分流再解析方向。
     if (mode == "vd3" && parts.size() == 2) {
         const Direction result = Directions::from3DDataValue(std::stoi(parts[1]));
@@ -210,6 +219,33 @@ std::string runLine(std::string_view inputLine)
     }
 
     const Direction dir = parseDirection(parts[1]);
+    if (mode == "opp") {
+        return json{{"unit", unit}, {"value", directionName(Directions::opposite(dir))}}.dump();
+    }
+    if (mode == "cw") {
+        return json{{"unit", unit}, {"value", directionName(Directions::getClockWise(dir))}}.dump();
+    }
+    if (mode == "ccw") {
+        return json{{"unit", unit}, {"value", directionName(Directions::getCounterClockWise(dir))}}.dump();
+    }
+    if (mode == "axis") {
+        return json{{"unit", unit}, {"value", Axes::toString(Directions::getAxis(dir))}}.dump();
+    }
+    if (mode == "horiz") {
+        return json{{"unit", unit}, {"value", Directions::isHorizontal(dir)}}.dump();
+    }
+    if (mode == "vert") {
+        return json{{"unit", unit}, {"value", Directions::isVertical(dir)}}.dump();
+    }
+    if (mode == "sx") {
+        return json{{"unit", unit}, {"value", Directions::xOffset(dir)}}.dump();
+    }
+    if (mode == "sy") {
+        return json{{"unit", unit}, {"value", Directions::yOffset(dir)}}.dump();
+    }
+    if (mode == "sz") {
+        return json{{"unit", unit}, {"value", Directions::zOffset(dir)}}.dump();
+    }
     if (mode == "yrot") {
         const f32 rot = Directions::getYRot(dir);
         char buffer[32];
