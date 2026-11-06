@@ -311,9 +311,21 @@ void ChunkSendManager::shutdown()
     }
     // 切断与外部对象的引用（m_chunkManager/m_ticketManager/发送回调都可能是宿主维度的成员）：
     // 若在途任务仍持有本对象，它之后只能看到关停标志并直接返回，不会再触碰任何宿主状态。
-    m_lifetimeGuard.reset();
     m_onChunkSend = nullptr;
     m_onChunkUnload = nullptr;
+    // m_lifetimeGuard 是自持有的 shared_ptr（环），这里不能直接 reset：那会在类的成员函数里
+    // 释放本对象。由宿主在 reset() 之前调用 releaseLifetimeGuard() 断开该环。
+}
+
+void ChunkSendManager::releaseLifetimeGuard() noexcept
+{
+    // 由宿主（ServerDimension）在 reset() 之前调用：先断开回调引用，再断开自环。
+    // 此后对象由剩余的持有者（宿主 unique_ptr 与在途任务）管理，最后一个持有者负责销毁。
+    m_onChunkSend = nullptr;
+    m_onChunkUnload = nullptr;
+    auto self = std::move(m_lifetimeGuard);
+    m_lifetimeGuard.reset();
+    // self 在此析构：若没有在途任务引用，对象在这里被销毁（调用方此后不得再访问本对象）。
 }
 
 void ChunkSendManager::setOnChunkSend(

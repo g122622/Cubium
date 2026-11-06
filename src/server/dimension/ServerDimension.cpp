@@ -141,6 +141,9 @@ void ServerDimension::shutdown()
     m_chunkSendManager->shutdown();
     // 世界仍持有裸指针，解绑后再释放，避免之后任何访问走到悬垂对象。
     m_world->chunkManager()->setChunkSendManager(nullptr);
+    // 断开管理器自持的生命周期守卫：在途构建任务持有它的共享引用，销毁时机交给最后一个
+    // 持有者，而不是被拖到计算池或非预期的析构链上。
+    m_chunkSendManager->releaseLifetimeGuard();
     m_chunkSendManager.reset();
 
     // 清理生物生成管理器

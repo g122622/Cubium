@@ -88,6 +88,7 @@
 #include "server/world/gen/structure/StructureSetLoader.hpp"
 #include "server/world/gen/structure/StructureTagLoader.hpp"
 #include "server/world/gen/structure/pools/Pools.hpp"
+#include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "structure_probe_common.hpp"
 
 namespace mc::diff {
@@ -162,7 +163,20 @@ json summarisePiece(const world::gen::structure::StructurePiece& piece)
     // 把真正的几何差异淹没掉。构件模板名由专门的能力（end_city_pieces）比对。
     const std::string templateId = piece.isJigsawPiece() ? std::string(piece.templateLocation()) : std::string();
 
-    return json{{"box", {box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()}},
+    // 模板文件名：oracle 侧对任意 TemplateStructurePiece 都输出，这里必须同口径——
+    // 废墟传送门与末地城都不是池元素（template 为空），但两者都有独立的模板文件。
+    const std::string templateFile = [&]() -> std::string {
+        if (const auto* portal = dynamic_cast<const world::gen::structure::RuinedPortalPiece*>(&piece)) {
+            return portal->templateName();
+        }
+        std::string path(piece.templateLocation());
+        // 与原版 TemplateStructurePiece.templateName 同口径：只保留文件名，去掉
+        // 命名空间与目录前缀（末地城存的是完整资源路径，废墟传送门存的是相对路径）。
+        const auto slash = path.find_last_of('/');
+        return slash == std::string::npos ? path : path.substr(slash + 1);
+    }();
+    return json{{"templateFile", templateFile},
+        {"box", {box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()}},
         {"rotation", rotationName(piece.getRotation())},
         {"groundLevelDelta", piece.getGroundLevelDelta()},
         {"template", templateId},
