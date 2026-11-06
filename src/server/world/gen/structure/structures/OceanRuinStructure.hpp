@@ -122,7 +122,8 @@ private:
     void _loadTemplate();
 
     std::string m_templateName;
-    Rotation m_rotation;
+    // 不能用「子类同名成员」保存旋转：它会遮蔽 StructurePiece::m_rotation，
+    // 而 getRotation()/getMirror() 读的是基类成员，差分里表现为「抽到了旋转却始终输出 NONE」。
     f32 m_integrity;
     OceanRuinType m_type;
     bool m_isLarge;

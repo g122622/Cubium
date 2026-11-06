@@ -88,6 +88,7 @@
 #include "server/world/gen/structure/StructureSetLoader.hpp"
 #include "server/world/gen/structure/StructureTagLoader.hpp"
 #include "server/world/gen/structure/pools/Pools.hpp"
+#include "server/world/gen/structure/structures/EndCityStructure.hpp"
 #include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
 #include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "structure_probe_common.hpp"
@@ -174,6 +175,11 @@ json summarisePiece(const world::gen::structure::StructurePiece& piece)
         }
         if (const auto* ruin = dynamic_cast<const world::gen::structure::OceanRuinPiece*>(&piece)) {
             return ruin->templateName();
+        }
+        if (const auto* city = dynamic_cast<const world::gen::structure::end_city::CityTemplate*>(&piece)) {
+            // 末地城存的是裸文件名（`end_city/base_floor` 的文件名部分），与原版
+            // `TemplateStructurePiece.templateName` 逐字一致，不能补命名空间。
+            return city->templateName();
         }
         return std::string(piece.templateLocation());
     }();

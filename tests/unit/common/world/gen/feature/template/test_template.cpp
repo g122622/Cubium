@@ -881,15 +881,59 @@ TEST_F(TemplateTest, Template_GetBoundingBox_WithRotation)
     settings.setRotation(Rotation::Clockwise90);
     BlockPos pos(0, 0, 0);
 
-    // 90度旋转后尺寸: (15, 5, 10)
+    // 原版 StructureTemplate.getBoundingBox 是**绕旋转轴心**变换包围盒的两个角：
+    // 轴心为原点时 90 度旋转把 (size-1) 这一角转到负方向，盒子跨 pivot 的两侧
+    // （`-14..0 × 0..9`），不是「交换尺寸后贴在 pos 的同一侧」。真值取自原版：
+    //   getBoundingBox(ZERO, CLOCKWISE_90, ZERO, NONE, size) = minX=-14, minZ=0,
+    //                                                          maxX=0, maxZ=9
     auto bounds = templ.getBoundingBox(settings, pos);
+
+    EXPECT_EQ(bounds.minX(), -14);
+    EXPECT_EQ(bounds.minY(), 0);
+    EXPECT_EQ(bounds.minZ(), 0);
+    EXPECT_EQ(bounds.maxX(), 0);
+    EXPECT_EQ(bounds.maxY(), 4);
+    EXPECT_EQ(bounds.maxZ(), 9);
+}
+
+TEST_F(TemplateTest, Template_GetBoundingBox_WithPivot)
+{
+    Template templ;
+    templ.setSize(BlockPos(10, 5, 15));
+
+    // 绕模板中心（size / 2）旋转：原版
+    //   getBoundingBox(ZERO, CLOCKWISE_90, (5,0,7), NONE, size) = -2..12 × 2..11
+    PlacementSettings settings;
+    settings.setRotation(Rotation::Clockwise90);
+    settings.setCenterOffset(BlockPos(5, 0, 7));
+    auto bounds = templ.getBoundingBox(settings, BlockPos(0, 0, 0));
+
+    EXPECT_EQ(bounds.minX(), -2);
+    EXPECT_EQ(bounds.minY(), 0);
+    EXPECT_EQ(bounds.minZ(), 2);
+    EXPECT_EQ(bounds.maxX(), 12);
+    EXPECT_EQ(bounds.maxY(), 4);
+    EXPECT_EQ(bounds.maxZ(), 11);
+}
+
+TEST_F(TemplateTest, Template_GetBoundingBox_WithMirrorAndRotation)
+{
+    Template templ;
+    templ.setSize(BlockPos(10, 5, 15));
+
+    // 原版先镜像再旋转：getBoundingBox(ZERO, CLOCKWISE_90, ZERO, LEFT_RIGHT, size)
+    //   = 0..14 × 0..9（与不带镜像的 -14..0 × 0..9 关于原点镜像）
+    PlacementSettings settings;
+    settings.setRotation(Rotation::Clockwise90);
+    settings.setMirror(Mirror::LeftRight);
+    auto bounds = templ.getBoundingBox(settings, BlockPos(0, 0, 0));
 
     EXPECT_EQ(bounds.minX(), 0);
     EXPECT_EQ(bounds.minY(), 0);
     EXPECT_EQ(bounds.minZ(), 0);
-    EXPECT_EQ(bounds.maxX(), 14); // 0 + 15 - 1
-    EXPECT_EQ(bounds.maxY(), 4);  // 0 + 5 - 1
-    EXPECT_EQ(bounds.maxZ(), 9);  // 0 + 10 - 1
+    EXPECT_EQ(bounds.maxX(), 14);
+    EXPECT_EQ(bounds.maxY(), 4);
+    EXPECT_EQ(bounds.maxZ(), 9);
 }
 
 // ============================================================================

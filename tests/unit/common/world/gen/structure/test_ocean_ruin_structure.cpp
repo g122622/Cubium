@@ -81,7 +81,8 @@ TEST_F(OceanRuinStructureTest, Piece_Construction)
     OceanRuinPiece piece(
         "underwater_ruin/brick_1", BlockPos(100, 64, 200), Rotation::None, 0.8f, OceanRuinType::Cold, false);
 
-    EXPECT_EQ(piece.templateName(), "underwater_ruin/brick_1");
+    // 片段的模板标识是完整资源位置（原版 TemplateStructurePiece.templateName 存 Identifier.toString()）。
+    EXPECT_EQ(piece.templateName(), "minecraft:underwater_ruin/brick_1");
     EXPECT_EQ(piece.integrity(), 0.8f);
     EXPECT_EQ(piece.ruinType(), OceanRuinType::Cold);
     EXPECT_FALSE(piece.isLarge());
@@ -106,10 +107,10 @@ TEST_F(OceanRuinStructureTest, Piece_RotationVariants)
     OceanRuinPiece piece270("test", BlockPos(0, 0, 0), Rotation::CounterClockwise90, 1.0f, OceanRuinType::Cold, false);
 
     // 验证构造成功
-    EXPECT_EQ(piece0.templateName(), "test");
-    EXPECT_EQ(piece90.templateName(), "test");
-    EXPECT_EQ(piece180.templateName(), "test");
-    EXPECT_EQ(piece270.templateName(), "test");
+    EXPECT_EQ(piece0.templateName(), "minecraft:test");
+    EXPECT_EQ(piece90.templateName(), "minecraft:test");
+    EXPECT_EQ(piece180.templateName(), "minecraft:test");
+    EXPECT_EQ(piece270.templateName(), "minecraft:test");
 }
 
 // ============================================================================
@@ -230,7 +231,7 @@ TEST_F(OceanRuinStructureTest, Rotation_AllVariants)
         OceanRuinPiece piece("test_template", BlockPos(0, 0, 0), rotation, 0.8f, OceanRuinType::Cold, false);
 
         // 验证构造成功
-        EXPECT_EQ(piece.templateName(), "test_template");
+        EXPECT_EQ(piece.templateName(), "minecraft:test_template");
     }
 }
 

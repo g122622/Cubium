@@ -52,15 +52,11 @@ namespace {
 /**
  * @brief 起点房间的 genDepth
  *
- * 原版 `MineShaftRoom` 构造时把 `MAGIC_START_Y`（50）同时用作包围盒起点 Y 与
- * `StructurePiece.genDepth`；`generateAndAddPiece` 的截断判据是 `父深度 > 8`，而父深度
- * 一路来自 `MAGIC_START_Y` 加层数。也就是说矿井**天然只展开一层**（第一层子构件深度
- * 51 即被截断），这正是原版矿井形制紧凑的原因。
- *
- * 早先实现误以为把 50 当作层数会让矿井只剩房间一个构件，擅自把它改成 0，结果矿井能
- * 展开九层、构件数量是原版的两倍以上。必须照原版保留 50。
+ * 原版 `MineshaftStructure.generatePiecesAndAdjust` 用 `new MineShaftRoom(0, ...)` 建起始
+ * 房间：那个 0 是 `StructurePiece.genDepth`，与包围盒起点 Y（恒为 50）无关。子构件取
+ * `父深度 + 1`，`generateAndAddPiece` 的截断判据是 `> 8`，因此矿井从 0 起算、最多九层。
  */
-constexpr i32 kStartRoomDepth = 50;
+constexpr i32 kStartRoomDepth = 0;
 
 /// 展开层数上限（原版 `MineshaftPieces.MAX_DEPTH`）。判据比较的是父构件的深度。
 constexpr i32 kMaxMineshaftDepth = 8;
@@ -291,7 +287,7 @@ void addMineshaftPiece(MineshaftPiece* parent,
     // 子构件的深度随后取 `p_227714_ + 1`。
     MC_ASSERT_RELEASE_MSG(
         parentDepth >= kStartRoomDepth, "mineshaft piece depth must not go below the start room depth");
-    if (parentDepth > kMaxMineshaftDepth) {
+    if (parentDepth > kStartRoomDepth + kMaxMineshaftDepth) {
         return;
     }
 
@@ -384,7 +380,7 @@ MineshaftRoom::MineshaftRoom(
     // 房间的起点 Y 恒为 50，X/Z 跨度各为 7..12、顶面为 54..59。
     // 传入的 y 在原版里不参与房间包围盒。
     //
-    // genDepth 就是 MAGIC_START_Y（50），与包围盒起点 Y 同源（见 kStartRoomDepth 的说明）。
+    // 深度从 0 起算（见 kStartRoomDepth 的说明）：包围盒起点 Y 恒为 50，与深度无关。
     setGenDepth(kStartRoomDepth);
     MC_UNUSED(y);
     MC_UNUSED(rng);
@@ -852,13 +848,12 @@ void MineshaftCorridor::buildComponent(
 
     // ---- 第 2 段：沿边逐点步进 ----
     //
-    // 原版判据是 `if (i < 8)`，i 为走廊自己的 genDepth（起点房间的深度是 50，走廊为 51，
-    // 因此这里恒为假——原版矿井不会再从走廊两侧继续展开）。
+    // 原版判据是 `if (i < 8)`，i 为走廊自己的 genDepth；起点房间的深度是 kStartRoomDepth。
     //
     // 关键：第 2 段传给 addMineshaftPiece 的是**父深度本身**，主口段传的是同一语义的
     // 父深度。子构件最终取 parentDepth + 1。第 2 段因此比主口段深一层，这一点很容易漏
     // ——传错会让子构件的深度少 1，后续所有截断点跟着偏移。
-    if (genDepth() < kMaxMineshaftDepth) {
+    if (genDepth() < kStartRoomDepth + kMaxMineshaftDepth) {
         if (m_direction != 0 && m_direction != 1) {
             // 朝东西：沿 X 扫描，南北两侧开口。
             for (i32 x = minX() + 3; x + 3 <= maxX(); x += 5) {

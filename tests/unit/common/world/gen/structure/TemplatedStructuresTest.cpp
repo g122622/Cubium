@@ -159,7 +159,7 @@ TEST(TemplatedStructuresTest, RuinedPortalPieceProperties)
         props,
         mc::BlockPos(0, 64, 0));
 
-    EXPECT_EQ(piece.templateName(), "ruined_portal/portal_1");
+    EXPECT_EQ(piece.templateName(), "minecraft:ruined_portal/portal_1");
     EXPECT_EQ(piece.location(), RuinedPortalLocation::OnLandSurface);
     EXPECT_TRUE(piece.properties().cold);
     EXPECT_FLOAT_EQ(piece.properties().mossiness, 0.8f);
@@ -172,7 +172,7 @@ TEST(TemplatedStructuresTest, OceanRuinPieceProperties)
     OceanRuinPiece piece(
         "underwater_ruin/brick_1", mc::BlockPos(0, 30, 0), Rotation::Clockwise90, 0.8f, OceanRuinType::Cold, false);
 
-    EXPECT_EQ(piece.templateName(), "underwater_ruin/brick_1");
+    EXPECT_EQ(piece.templateName(), "minecraft:underwater_ruin/brick_1");
     EXPECT_FLOAT_EQ(piece.integrity(), 0.8f);
     EXPECT_EQ(piece.ruinType(), OceanRuinType::Cold);
     EXPECT_FALSE(piece.isLarge());
