@@ -210,6 +210,18 @@ std::string runLine(std::string_view inputLine)
     }
 
     const Direction dir = parseDirection(parts[1]);
+    if (mode == "yrot") {
+        const f32 rot = Directions::getYRot(dir);
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.1f", static_cast<double>(rot));
+        return json{{"unit", unit}, {"value", std::string(buffer)}}.dump();
+    }
+    if (mode == "torot") {
+        const f32 rot = Directions::toYRot(dir);
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.1f", static_cast<double>(rot));
+        return json{{"unit", unit}, {"value", std::string(buffer)}}.dump();
+    }
 
     if (mode == "v3") {
         return json{{"unit", unit}, {"value", Directions::get3DDataValue(dir)}}.dump();

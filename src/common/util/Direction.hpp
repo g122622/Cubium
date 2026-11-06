@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "math/MathUtils.hpp"
 #include <array>
@@ -627,6 +628,46 @@ inline f32 toYRot(Direction dir)
             return 270.0f;
         default:
             // DOWN/UP：vanilla 命令方块 facing 不会是垂直方向，返回 0 作兜底
+            return 0.0f;
+    }
+}
+
+/**
+ * @brief 方向的 y-Rot（实体朝向角），对应原版 `Direction.getYRot(Direction)`
+ *
+ * **与 `toYRot` 不是同一个方法，EAST 的取值不同：**
+ *
+ * | 方向   | toYRot | getYRot |
+ * |--------|--------|---------|
+ * | NORTH  | 180    | 180     |
+ * | SOUTH  | 0      | 0       |
+ * | WEST   | 90     | 90      |
+ * | EAST   | 270    | **-90** |
+ * | DOWN/UP | 0     | **抛出/断言** |
+ *
+ * 270 与 -90 在角度上等价（差 360），但作为**返回值字面量**不同：
+ * 写进 NBT、比较、作为数组下标时都会得到不同结果。
+ *
+ * `toYRot` 走的是 `(data2d & 3) * 90`，天然落在 [0, 270]；
+ * `getYRot` 是手写 switch，EAST 取 -90。
+ *
+ * 垂直方向在原版会抛 `IllegalStateException`——调用方不该对 DOWN/UP 求 y-Rot。
+ * 这里返回 0 并断言。
+ */
+[[nodiscard]] inline f32 getYRot(Direction dir)
+{
+    switch (dir) {
+        case Direction::North:
+            return 180.0f;
+        case Direction::South:
+            return 0.0f;
+        case Direction::West:
+            return 90.0f;
+        case Direction::East:
+            return -90.0f;
+        default:
+            // 原版对垂直方向抛异常，调用方不该走到这里。
+            MC_ASSERT_RELEASE_MSG(false, "getYRot: vertical direction has no y-rotation");
             return 0.0f;
     }
 }

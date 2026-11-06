@@ -137,7 +137,15 @@ public final class DirectionDataOracle {
                     "vd2|-1",
                     "vd2|-2",
                     "vd2|-4",
-                    "vd2|-5");
+                    "vd2|-5",
+                    "yrot|NORTH",
+                    "yrot|SOUTH",
+                    "yrot|WEST",
+                    "yrot|EAST",
+                    "torot|NORTH",
+                    "torot|SOUTH",
+                    "torot|WEST",
+                    "torot|EAST");
 
     private DirectionDataOracle() {}
 
@@ -236,6 +244,17 @@ public final class DirectionDataOracle {
         JsonObject out = new JsonObject();
         out.addProperty("unit", unit);
         // ord 单元只有角度参数，没有方向名，先分流再解析方向。
+        if (mode.equals("yrot") || mode.equals("torot")) {
+            Direction parsed = parseDirection(parts[1]);
+            if (parsed == null) {
+                out.addProperty("value", "none");
+                return out;
+            }
+            float rot = mode.equals("yrot") ? Direction.getYRot(parsed) : parsed.toYRot();
+            out.addProperty("value", String.format(Locale.ROOT, "%.1f", rot));
+            return out;
+        }
+        
         if (mode.equals("vd3") || mode.equals("vd2")) {
             int raw = Integer.parseInt(parts[1]);
             Direction result = mode.equals("vd3") ? Direction.from3DDataValue(raw) : Direction.from2DDataValue(raw);
