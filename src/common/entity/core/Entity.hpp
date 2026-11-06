@@ -790,6 +790,24 @@ public:
     void snapshotInterpolationState();
 
     void setRotation(f32 yaw, f32 pitch);
+
+    /**
+     * @brief 让实体朝向指定坐标，对应原版 `Entity.lookAt(Anchor, Vec3)`
+     *
+     * ```java
+     * double d3 = Math.sqrt(d0 * d0 + d2 * d2);
+     * setXRot(Mth.wrapDegrees((float)(-(Mth.atan2(d1, d3) * 180.0F / (float)Math.PI))));
+     * setYRot(Mth.wrapDegrees((float)(Mth.atan2(d2, d0) * 180.0F / (float)Math.PI) - 90.0F));
+     * ```
+     *
+     * 三个容易写错的点：
+     * - 角度用 `180.0F / (float)Math.PI` 换算，**不是** `Math.toDegrees`，两者末位不同；
+     * - 结果必须过一遍 `wrapDegrees` 折回 (-180, 180]；
+     * - **pitch 先取负**再 wrap，yaw 是 wrap 之后再减 90。顺序反了会在边界处差整整 360。
+     *
+     * @param target 目标坐标
+     */
+    void lookAt(const Vector3& target);
     void setVelocity(f32 x, f32 y, f32 z);
 
     void setVelocity(const Vector3& vel)

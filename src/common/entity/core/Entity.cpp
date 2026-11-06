@@ -920,6 +920,24 @@ void Entity::setRotation(f32 yaw, f32 pitch)
     m_builtIn.rotation->m_rot.y = pitch;
 }
 
+void Entity::lookAt(const Vector3& target)
+{
+    const Vector3 from = position();
+    const f64 dx = static_cast<f64>(target.x) - static_cast<f64>(from.x);
+    const f64 dy = static_cast<f64>(target.y) - static_cast<f64>(from.y);
+    const f64 dz = static_cast<f64>(target.z) - static_cast<f64>(from.z);
+    const f64 horizontal = std::sqrt(dx * dx + dz * dz);
+
+    // 必须用 180/π 而不是 toDegrees：原版是 (f32)(x * 180.0F / (f32)Math.PI)，
+    // 与 Math.toDegrees 内部用的是不同的除法顺序，末位可能不同。
+    constexpr f64 RAD_TO_DEG = 180.0 / 3.14159265358979323846;
+
+    // pitch 先取负再 wrap；yaw 是 wrap 之后再减 90。顺序不可交换。
+    const f32 pitch = math::wrapDegrees(static_cast<f32>(-(math::atan2(dy, horizontal) * RAD_TO_DEG)));
+    const f32 yaw = math::wrapDegrees(static_cast<f32>(math::atan2(dz, dx) * RAD_TO_DEG) - 90.0f);
+    setRotation(yaw, pitch);
+}
+
 void Entity::setVelocity(f32 x, f32 y, f32 z)
 {
     m_builtIn.velocity->m_velocity = Vector3(x, y, z);

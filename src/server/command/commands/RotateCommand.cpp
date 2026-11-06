@@ -27,6 +27,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -47,8 +48,9 @@ Vector2f _lookAt(const Vector3d& from, const Vector3d& to)
     const f64 dy = to.y - from.y;
     const f64 dz = to.z - from.z;
     const f64 horizontal = std::sqrt(dx * dx + dz * dz);
-    const f32 yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / 3.14159265358979323846 - 90.0);
-    const f32 pitch = static_cast<f32>(-std::atan2(dy, horizontal) * 180.0 / 3.14159265358979323846);
+    constexpr f64 RAD_TO_DEG = 180.0 / 3.14159265358979323846;
+    const f32 pitch = math::wrapDegrees(static_cast<f32>(-(math::atan2(dy, horizontal) * RAD_TO_DEG)));
+    const f32 yaw = math::wrapDegrees(static_cast<f32>(math::atan2(dz, dx) * RAD_TO_DEG) - 90.0f);
     return Vector2f(yaw, pitch);
 }
 
