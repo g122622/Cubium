@@ -112,6 +112,7 @@ import { mthMapLerpInput } from "./mth_map_lerp.ts";
 import { mthOutFromOriginInput } from "./mth_out_from_origin.ts";
 import { mthLengthEqualInput } from "./mth_length_equal.ts";
 import { blockposCenterInput } from "./blockpos_center.ts";
+import { directionDataInput } from "./direction_data.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
@@ -954,6 +955,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // BlockPos 中心点：原版 Vec3 是 double，本项目 Vector3 是 float，大坐标会丢 0.5。
     { name: "blockpos_center", probe: "blockpos_center", oracle: "BlockposCenterOracle",
         key: "unit", units: { kind: "listing" }, input: blockposCenterInput },
+    // Direction 的两套数据值编码：三维等于枚举序号，二维按 South=0 重排。
+    { name: "direction_data", probe: "direction_data", oracle: "DirectionDataOracle",
+        key: "unit", units: { kind: "listing" }, input: directionDataInput },
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },

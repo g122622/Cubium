@@ -630,6 +630,63 @@ inline f32 toYRot(Direction dir)
 }
 
 /**
+ * @brief 三维数据值，对应原版 `Direction.get3DDataValue()`
+ *
+ * 原版的 data3d 与枚举序号完全一致（DOWN=0 … EAST=5），所以直接取枚举值即可。
+ * None 不是合法方向，返回 -1。
+ */
+[[nodiscard]] inline i32 get3DDataValue(Direction dir)
+{
+    return dir == Direction::None ? -1 : static_cast<i32>(dir);
+}
+
+/**
+ * @brief 二维数据值，对应原版 `Direction.get2DDataValue()`
+ *
+ * 天空光/朝向相关的水平编码：SOUTH=0、WEST=1、NORTH=2、EAST=3。
+ *
+ * **与三维数据值的顺序完全不同**——三维是 N=2/S=3/W=4/E=5，二维是 S=0/W=1/N=2/E=3。
+ * 两者不能互相替代。垂直方向在二维编码中没有定义，返回 -1。
+ */
+[[nodiscard]] inline i32 get2DDataValue(Direction dir)
+{
+    switch (dir) {
+        case Direction::South:
+            return 0;
+        case Direction::West:
+            return 1;
+        case Direction::North:
+            return 2;
+        case Direction::East:
+            return 3;
+        default:
+            return -1;
+    }
+}
+
+/**
+ * @brief 按方向的轴取对应分量，对应原版 `Direction.Axis.choose(int, int, int)`
+ *
+ * 参数顺序是 (x, y, z)；取方向的轴再按轴选分量。例如 EAST 的轴是 X，返回 x。
+ *
+ * 注意原版的 `choose` 定义在
+ * **`Direction.Axis`** 接口上，不是 `Direction` 的实例方法。
+ */
+[[nodiscard]] inline i32 choose(Direction dir, i32 x, i32 y, i32 z)
+{
+    switch (getAxis(dir)) {
+        case Axis::X:
+            return x;
+        case Axis::Y:
+            return y;
+        case Axis::Z:
+            return z;
+        default:
+            return x;
+    }
+}
+
+/**
  * @brief 旋转方向
  *
  * 根据旋转类型旋转水平方向。
