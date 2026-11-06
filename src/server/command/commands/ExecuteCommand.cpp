@@ -44,6 +44,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/Block.hpp"
@@ -870,8 +871,9 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
                 const f64 dy = to.y - from.y;
                 const f64 dz = to.z - from.z;
                 const f64 horizontal = std::sqrt(dx * dx + dz * dz);
-                const f32 yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / 3.14159265358979323846 - 90.0);
-                const f32 pitch = static_cast<f32>(-std::atan2(dy, horizontal) * 180.0 / 3.14159265358979323846);
+                constexpr f64 RAD_TO_DEG = 180.0 / 3.14159265358979323846;
+                const f32 pitch = math::wrapDegrees(static_cast<f32>(-(math::atan2(dy, horizontal) * RAD_TO_DEG)));
+                const f32 yaw = math::wrapDegrees(static_cast<f32>(math::atan2(dz, dx) * RAD_TO_DEG) - 90.0f);
                 target = target.withRotation(Vector2f(yaw, pitch));
             } else if (verb == "if" || verb == "unless") {
                 // 条件不成立时整条链中断、嵌套命令不执行、返回 0（对齐 vanilla
