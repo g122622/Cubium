@@ -469,7 +469,8 @@ public:
         i32 depth);
 
 protected:
-    bool m_isSource = false; ///< 是否是起始楼梯
+    bool m_isSource = false;                   ///< 是否是起始楼梯
+    Direction m_orientation = Direction::None; ///< 起始楼梯的导入口朝向
 };
 
 // ============================================================================
@@ -483,7 +484,27 @@ protected:
  */
 class StrongholdStartStairs : public StrongholdStairs {
 public:
-    explicit StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z);
+    /**
+     * @brief 构造起始楼梯
+     *
+     * @param direction 朝向。必须由调用方用 `nextInt(4)` 抽取后映射，
+     *                  原版候选顺序为 NORTH/EAST/SOUTH/WEST。
+     */
+    StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z, Direction direction);
+
+    /** 原版起始楼梯的固定起始高度（包围盒从这里向下伸展 11 格）。 */
+    static constexpr i32 MAGIC_START_Y = 64;
+
+    /**
+     * @brief 获取原版 `getOrientation()`：起始楼梯的导入口朝向
+     *
+     * 其余构件把朝向编码进 rotation + mirror，由 `generateSmallDoorChild*` 内部换算，
+     * 只有起始楼梯显式记录了这个朝向。
+     */
+    [[nodiscard]] Direction orientation() const
+    {
+        return m_orientation;
+    }
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng) override;
@@ -514,6 +535,12 @@ public:
     }
 
     [[nodiscard]] const std::vector<StructurePiece*>& pendingChildren() const
+    {
+        return m_pendingChildren;
+    }
+
+    /** 待扩展队列的可写视图：装配循环要按原版「随机下标取出并移除」消费它。 */
+    [[nodiscard]] std::vector<StructurePiece*>& mutablePendingChildren()
     {
         return m_pendingChildren;
     }

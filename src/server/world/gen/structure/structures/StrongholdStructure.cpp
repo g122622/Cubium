@@ -133,8 +133,9 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
     //
     // 终止条件同样来自原版：构件集非空且已经生成了传送门房间。
     const i64 worldSeed = static_cast<i64>(generator.seed());
-    const i32 startY = m_config.minY;
-    const BlockPos startPos(startX, startY, startZ);
+    // 原版起始楼梯的包围盒固定从 MAGIC_START_Y=64 起算，与配置里的 minY 无关；
+    // 最终的竖直位置由结尾的 moveBelowSeaLevel 决定。
+    const BlockPos startPos(startX, StrongholdStartStairs::MAGIC_START_Y, startZ);
 
     // 防御性上限：原版 while(true) 靠「权重耗尽」保证终止，而权重恰好全部耗尽的轮次
     // 可能同时卡在传送门房间的包围盒冲突上，缺少硬上限会让探针/服务端永久挂住。
@@ -154,6 +155,16 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
         const bool hasPortalRoom = startStairs != nullptr && startStairs->portalRoom() != nullptr;
 
         start->recalculateStructureSize();
+
+        // 原版 `moveBelowSeaLevel` 排在重试条件的判定之内、且每轮都会执行；它消耗的那次
+        // `nextInt` 会推进随机流，因此只能草稿式地算出来再丢弃，正式落位在通过条件之后。
+        const i32 draftTopLimit = ::mc::world::SEA_LEVEL - 10;
+        if ((start->getBoundingBox().maxY() - start->getBoundingBox().minY() + 1) + ::mc::world::MIN_BUILD_HEIGHT + 1 <
+            draftTopLimit) {
+            static_cast<void>(localRng.nextInt(draftTopLimit -
+                ((start->getBoundingBox().maxY() - start->getBoundingBox().minY() + 1) + ::mc::world::MIN_BUILD_HEIGHT +
+                    1)));
+        }
 
         const i32 seaLevel = ::mc::world::SEA_LEVEL;
         const i32 minY = ::mc::world::MIN_BUILD_HEIGHT;
@@ -182,7 +193,10 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
 {
     // 起始楼梯。权重列表由 StrongholdStartStairs 构造函数新建（计数为 0），
     // 因此每轮重试都是干净的初始状态，不需要额外的 resetPieces。
-    auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z);
+    // 朝向的抽取发生在起始楼梯构造**之前**（原版 `StartPiece` 的构造实参里先调
+    // `getRandomHorizontalDirection`，再进父类构造），因此这一次 nextInt(4) 必须在这里。
+    const Direction direction = Directions::horizontal()[static_cast<size_t>(rng.nextInt(4))];
+    auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z, direction);
     StrongholdStartStairs* startStairsPtr = startStairs.get();
     pieces.push_back(std::move(startStairs));
 
@@ -190,61 +204,39 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
     //
     // 原版 generatePieces 把所有待扩展分支压进 `StartPiece.pendingChildren`，然后
     //
-    //     while (!pending.isEmpty()) {
-    //         int j = random.nextInt(pending.size());
-    //         StructurePiece next = pending.remove(j);
-    //         next.addChildren(start, builder, random);
+    //     while (!pendingChildren.isEmpty()) {
+    //         int j = random.nextInt(pendingChildren.size());
+    //         pendingChildren.remove(j).addChildren(start, builder, random);
     //     }
     //
     // 那一次 `nextInt(size)` 既决定下一次扩展哪条分支，也消耗一个随机数。顺序遍历
     // （正序或倒序）能长出同样规模的树，但每次 buildComponent 内部消耗的随机数不同，
     // 整条随机流会从第一个不同的分支开始错位，最终构件集合、位置与旋转全部与原版不同。
-    // 因此必须照原版的「随机取下标 + 从待扩展队列移除」来做。
     //
-    // `pieces` 存放全部已生成片段（增长顺序与原版 addPiece 一致），
-    // `pendingChildren` 只存放「还没扩展过的分支」。
+    // 【起始楼梯不在队列里】原版先 `addPiece(start)`，紧接着**直接**展开起始楼梯，
+    // 再把它的 pendingChildren 交给循环。若把起始楼梯也塞进队列，队列长度为 1 时那次
+    // `nextInt(1)` 仍要消费一个随机数（Java 的 nextInt(1) 恒返回 0 但照样推进种子），
+    // 整座要塞从第一个子构件起错位。
     //
-    // 【起始楼梯必须在循环外直接扩展】原版是
-    //     builder.addPiece(start); start.addChildren(start, builder, random);
-    //     List<StructurePiece> list = start.pendingChildren;
-    //     while (!list.isEmpty()) { int j = random.nextInt(list.size()); list.remove(j).addChildren(...); }
-    // 起始楼梯**不在** pendingChildren 里——它是在进循环之前直接展开的。若把它也塞进
-    // 队列，队列长度为 1 时那次 `nextInt(1)` 就白白多消耗一个随机数（Java 的
-    // `nextInt(1)` 虽然恒返回 0，但仍要消费一次 `next(31)`），整座要塞从第一个子构件
-    // 起错位。
-    std::vector<size_t> pendingChildren;
-
+    // 待扩展队列由起始楼梯自己维护（`addPendingChild`），因为子构件是通过
+    // `generateAndAddPiece` 落进 `pieces` 的——那里只有一个 `StructurePieceAccessor`，
+    // 拿不到要塞起点。
+    //
     // 终止条件来自权重耗尽（原版 canAddStructurePieces 返回 false，各分支开不出新片段）
-    // 与每个片段各自的分支深度上限（原版 MAX_DEPTH=50，见 StrongholdPieces 的 depth > 50）。
-    // 这里**不能**再加一层全局片段数上限：原版要塞的构件数可以到三百以上，多一层上限
-    // 会在到达真实规模之前把它凭空截断（实测被截到 113 个而原版 316 个）。
-    {
-        const size_t before = pieces.size();
-        pieces[0]->buildComponent(pieces[0].get(), pieces, rng);
-        for (size_t i = before; i < pieces.size(); ++i) {
-            pendingChildren.push_back(i);
-        }
-    }
+    // 与每个片段各自的分支深度上限（原版 MAX_DEPTH=50）。这里**不能**再加一层全局
+    // 片段数上限：原版要塞的构件数可以到三百以上，多一层上限会在到达真实规模之前
+    // 把它凭空截断。
+    const size_t before = pieces.size();
+    pieces[0]->buildComponent(pieces[0].get(), pieces, rng);
+    MC_ASSERT_RELEASE(pieces.size() > before);
 
-    while (!pendingChildren.empty()) {
-        const i32 pick = rng.nextInt(static_cast<i32>(pendingChildren.size()));
-        MC_ASSERT_RELEASE(pick >= 0 && static_cast<size_t>(pick) < pendingChildren.size());
-        const size_t index = pendingChildren[static_cast<size_t>(pick)];
-        pendingChildren.erase(pendingChildren.begin() + pick);
-
-        StructurePiece* current = pieces[index].get();
-        if (current == nullptr) {
-            continue;
-        }
-
-        const size_t before = pieces.size();
+    while (!startStairsPtr->pendingChildren().empty()) {
+        auto& pending = startStairsPtr->mutablePendingChildren();
+        const i32 pick = rng.nextInt(static_cast<i32>(pending.size()));
+        MC_ASSERT_RELEASE(pick >= 0 && static_cast<size_t>(pick) < pending.size());
+        StructurePiece* current = pending[static_cast<size_t>(pick)];
+        pending.erase(pending.begin() + pick);
         current->buildComponent(current, pieces, rng);
-        if (pieces.size() == before) {
-        }
-        // 新生成的片段加入待扩展队列，顺序与 addPiece 的追加顺序一致。
-        for (size_t i = before; i < pieces.size(); ++i) {
-            pendingChildren.push_back(i);
-        }
     }
 
     return startStairsPtr;

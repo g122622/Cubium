@@ -197,37 +197,33 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
     i32 positionOffset,
     i32 verticalOffset)
 {
-    Direction direction = getCoordBaseMode();
+    const Direction direction = getCoordBaseMode();
     if (direction == Direction::None) {
         return nullptr;
     }
 
     i32 x = 0, y = 0, z = 0;
-    Direction newDirection = Direction::North;
+    Direction newDirection = Direction::None;
 
+    // 调用方按导入口朝向的**世界方向**调用（左门传 WEST、右门传 EAST、前门沿用本体朝向），
+    // 这里再做一次「世界方向 -> 局部 +X/+Z」的换算：世界 WEST 恒等于 NORTH/SOUTH 的 -X，
+    // 即 WEST/EAST 两段本体的局部 +X；世界 NORTH 恒等于 NORTH/SOUTH 的 -Z、WEST/EAST 的 +X。
+    // 直接照抄原版 switch 会把 WEST/EAST 的两只侧门错位到局部 Z 轴上。
     switch (direction) {
         case Direction::North:
-            x = boundingBox().minX() - 1;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() + positionOffset;
-            newDirection = Direction::West;
-            break;
         case Direction::South:
+            // 世界 WEST：局部 -X（刚体翻滚，前门在局部 +Z）。
             x = boundingBox().minX() - 1;
             y = boundingBox().minY() + verticalOffset;
             z = boundingBox().minZ() + positionOffset;
             newDirection = Direction::West;
             break;
         case Direction::West:
-            x = boundingBox().minX() + positionOffset;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() - 1;
-            newDirection = Direction::North;
-            break;
         case Direction::East:
-            x = boundingBox().minX() + positionOffset;
+            // 世界 NORTH：刚体逆时针转 90°，即局部 +X 方向。
+            x = boundingBox().maxX() + 1;
             y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() - 1;
+            z = boundingBox().minZ() + positionOffset;
             newDirection = Direction::North;
             break;
         default:
@@ -244,34 +240,30 @@ StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
     i32 positionOffset,
     i32 verticalOffset)
 {
-    Direction direction = getCoordBaseMode();
+    const Direction direction = getCoordBaseMode();
     if (direction == Direction::None) {
         return nullptr;
     }
 
     i32 x = 0, y = 0, z = 0;
-    Direction newDirection = Direction::East;
+    Direction newDirection = Direction::None;
 
+    // 调用方按导入口朝向的**世界方向**调用（左门传 WEST、右门传 EAST、前门沿用本体朝向），
+    // 这里再做一次「世界方向 -> 局部 +X/+Z」的换算：世界 WEST 恒等于 NORTH/SOUTH 的 -X、
+    // 即 WEST/EAST 两段本体的局部 +X；世界 NORTH 恒等于 NORTH/SOUTH 的 -Z、WEST/EAST 的 +X。
+    // 直接照抄原版 switch 会让 WEST/EAST 两只门错位到局部 Z 轴上。
     switch (direction) {
         case Direction::North:
-            x = boundingBox().maxX() + 1;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() + positionOffset;
-            newDirection = Direction::East;
-            break;
         case Direction::South:
+            // 世界 EAST：局部 +X（刚体翻滚）。
             x = boundingBox().maxX() + 1;
             y = boundingBox().minY() + verticalOffset;
             z = boundingBox().minZ() + positionOffset;
             newDirection = Direction::East;
             break;
         case Direction::West:
-            x = boundingBox().minX() + positionOffset;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().maxZ() + 1;
-            newDirection = Direction::South;
-            break;
         case Direction::East:
+            // 世界 SOUTH：刚体顺时针转 +90°，即局部 +Z 方向。
             x = boundingBox().minX() + positionOffset;
             y = boundingBox().minY() + verticalOffset;
             z = boundingBox().maxZ() + 1;
@@ -562,8 +554,12 @@ void StrongholdLeftTurn::buildComponent(
         return;
     }
 
-    Direction direction = getCoordBaseMode();
-    if (direction != Direction::North && direction != Direction::East) {
+    // 原版这里按本体朝向二分开的是左门还是右门。ORIENT 是构件的世界朝向
+    // （setOrientation 在构造时把传入的放置方向折算成世界方向），因此条件仍然要读它：
+    // 小口径楼梯沿局部 +Z 走向，其世界方向恒为放置方向。
+    const Direction orient = orientation();
+    if (orient != Direction::North && orient != Direction::East) {
+        // 右门：世界 WEST 恒为局部 -X（NORTH/SOUTH）或局部 +X（WEST/EAST）。
         getNextComponentZ(start, *this, pieces, rng, 1, 1);
     } else {
         getNextComponentX(start, *this, pieces, rng, 1, 1);
@@ -627,9 +623,9 @@ void StrongholdRightTurn::generate(IWorldWriter& world,
 
     Direction dir = getCoordBaseMode();
     if (dir != Direction::North && dir != Direction::East) {
-        fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, air, air, false);
-    } else {
         fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, air, air, false);
+    } else {
+        fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, air, air, false);
     }
 
     (void)chunkX;
@@ -647,8 +643,8 @@ void StrongholdRightTurn::buildComponent(
         return;
     }
 
-    Direction direction = getCoordBaseMode();
-    if (direction != Direction::North && direction != Direction::East) {
+    const Direction orient = orientation();
+    if (orient != Direction::North && orient != Direction::East) {
         getNextComponentX(start, *this, pieces, rng, 1, 1);
     } else {
         getNextComponentZ(start, *this, pieces, rng, 1, 1);
@@ -987,21 +983,55 @@ std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std:
         std::nullopt); // 普通楼梯：入口门按原版 randomSmallDoor 抽取
 }
 
+namespace {
+
+// 原版 `BoundingBox.orientBox(x, 64, z, -1, -7, 0, 5, 11, 5, direction)` 在 XZ 上的
+// 近角与远角。NORTH/WEST 会把盒子向负方向平移 4 格，SOUTH/EAST 则从原点正向展开。
+i32 startMinX(i32 x, i32 z, Direction direction)
+{
+    MC_UNUSED(z);
+    return direction == Direction::West ? x - 4 : x;
+}
+
+i32 startMaxX(i32 x, i32 z, Direction direction)
+{
+    MC_UNUSED(z);
+    return direction == Direction::West ? x : x + 4;
+}
+
+i32 startMinZ(i32 x, i32 z, Direction direction)
+{
+    MC_UNUSED(x);
+    return direction == Direction::North ? z - 4 : z;
+}
+
+i32 startMaxZ(i32 x, i32 z, Direction direction)
+{
+    MC_UNUSED(x);
+    return direction == Direction::North ? z : z + 4;
+}
+
+} // namespace
+
 // StartStairs
-StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z)
+StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z, Direction direction)
     : StrongholdStairs(StrongholdPieceTypes::START_STAIRS,
           rng,
-          x,
-          64,
-          z,
-          x + 4,
-          74,
-          z + 4,
-          // 原版 `getRandomHorizontalDirection` 走 `Plane.HORIZONTAL.getRandomDirection`，
-          // 即 `Util.getRandom(faces, random)` = `faces[nextInt(4)]`，而 faces 的顺序是
-          // **NORTH, EAST, SOUTH, WEST**。本项目 Direction 的枚举值是 North=2/South=3/
-          // West=4/East=5，直接 `nextInt(4)+2` 得到 North/South/West/East，后半段整体错位。
-          Directions::horizontal()[static_cast<size_t>(rng.nextInt(4))],
+          // 原版起始楼梯走 `StairsDown` 的起始构造，包围盒是
+          // `orientBox(x, MAGIC_START_Y=64, z, -1, -7, 0, 5, 11, 5, direction)`：
+          // 沿 -Y 竖直伸展、在 XZ 上按朝向往返旋转的中心盒。若直接取
+          // `x..x+4 / 64..74 / z..z+4` 的轴对齐盒，朝向为 NORTH/WEST 时整体偏一格，
+          // 且继承下来的朝向与盒子不符，后续每个子构件的落点与分支深度都会跟着错。
+          startMinX(x, z, direction),
+          64 - 7,
+          startMinZ(x, z, direction),
+          startMaxX(x, z, direction),
+          64 - 7 + 10,
+          startMaxZ(x, z, direction),
+          // 朝向由调用方用 `nextInt(4)` 抽取——原版 `Plane.HORIZONTAL.getRandomDirection`
+          // 的候选顺序是 **NORTH, EAST, SOUTH, WEST**，与本项目 Direction 的枚举值
+          // （North/South/West/East）不同，映射必须在调用方完成。
+          direction,
           // 起始楼梯的入口门是写死的 OPENING，不抽随机数——原版 `StartPiece` 走的是
           // `StairsDown(StructurePieceType, depth, x, z, direction)` 这条构造，
           // 它只 setOrientation，不调 randomSmallDoor。基类构造里若仍然抽一次，
@@ -1013,6 +1043,7 @@ StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z)
     // 这个标志只在头文件里默认成 false、构造函数漏了赋值，于是第一个子构件退回权重抽签，
     // 整座要塞从第 2 个构件起与版分叉。
     m_isSource = true;
+    m_orientation = direction;
     // 初始化片段权重列表
     initializeStrongholdPieceWeights(m_weights);
 }
@@ -1671,6 +1702,7 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
 
         std::unique_ptr<StrongholdPiece> piece =
             createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
+        if (piece != nullptr) {}
         if (piece != nullptr) {
             // 找到对应的权重并更新计数
             for (auto& weight : weights) {
