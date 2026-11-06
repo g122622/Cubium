@@ -462,14 +462,28 @@ std::optional<TextColor> TextColor::parseColor(std::string_view text)
         return std::nullopt;
     }
 
-    // 十六进制形式：`#` 加恰好 6 位
+    // 十六进制形式：按 Java `Integer.parseInt(s, 16)` 的语义解析——
+    // 允许前导 +/-、允许任意位数（`#f00` 得 0xF00、`#0` 得 0），
+    // 只要求最终值落在 [0, 0xFFFFFF]。
     if (text[0] == '#') {
-        if (text.size() != 7) {
+        const std::string digits(text.substr(1));
+        if (digits.empty()) {
             return std::nullopt;
         }
-        i32 value = 0;
-        for (std::size_t index = 1; index < text.size(); ++index) {
-            const char digit = text[index];
+
+        std::size_t index = 0;
+        bool negative = false;
+        if (digits[0] == '+' || digits[0] == '-') {
+            negative = digits[0] == '-';
+            index = 1;
+            if (digits.size() == 1) {
+                return std::nullopt;
+            }
+        }
+
+        i64 value = 0;
+        for (; index < digits.size(); ++index) {
+            const char digit = digits[index];
             i32 nibble = 0;
             if (digit >= '0' && digit <= '9') {
                 nibble = digit - '0';
@@ -480,17 +494,29 @@ std::optional<TextColor> TextColor::parseColor(std::string_view text)
             } else {
                 return std::nullopt;
             }
-            value = (value << 4) | nibble;
+            value = value * 16 + nibble;
+            // 超出 int 范围后原版 parseInt 会抛 NumberFormatException；这里同样按非法处理
+            if (value > 0x7FFFFFFFLL) {
+                return std::nullopt;
+            }
         }
-        return TextColor(value, std::nullopt);
+        if (negative) {
+            value = -value;
+        }
+        if (value < 0 || value > 0xFFFFFFLL) {
+            return std::nullopt;
+        }
+        return TextColor(static_cast<i32>(value), std::nullopt);
     }
 
-    // 具名形式：必须与 16 个颜色名完全匹配，且不能是样式名
-    const TextFormatting formatting = fromName(std::string(text));
-    if (formatting == TextFormatting::None) {
-        return std::nullopt;
+    // 具名形式：原版是 `NAMED_COLORS.get(text)`——**精确匹配、区分大小写**。
+    // 不能走 `fromName`：那个函数会先转小写，会把 `RED` 当成 `red` 接受。
+    for (std::size_t i = 0; i < FORMATTING_TABLE_SIZE; ++i) {
+        if (FORMATTING_TABLE[i].name == text) {
+            return fromLegacyFormat(FORMATTING_TABLE[i].formatting);
+        }
     }
-    return fromLegacyFormat(formatting);
+    return std::nullopt;
 }
 
 std::string TextColor::serialize() const
