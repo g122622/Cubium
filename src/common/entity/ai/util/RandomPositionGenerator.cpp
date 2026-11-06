@@ -120,7 +120,7 @@ bool RandomPositionGenerator::findRandomTargetTowardsScaled(
     toTarget = toTarget * (1.0 / distanceToTarget); // 归一化
 
     // 计算目标方向的角度（弧度）
-    f64 targetAngle = std::atan2(toTarget.x, toTarget.z);
+    f64 targetAngle = math::atan2(toTarget.x, toTarget.z);
 
     math::IRandom& rng = creature->getRandom();
 
@@ -494,7 +494,7 @@ std::optional<Vector3> RandomPositionGenerator::generateRandomOffset(
     //   若 |dx|<=xzRange 且 |dz|<=xzRange 则采用，否则该次尝试失败（返 nullopt 由调用方重试）。
     if (directionBias.lengthSquared() > 0.001f) {
         constexpr f32 kAngleRange = math::PI / 2.0f; // ±90° 锥角（vanilla getPosAway 传 PI/2）
-        const f32 baseAngle = std::atan2(directionBias.z, directionBias.x) - math::PI / 2.0f;
+        const f32 baseAngle = math::atan2(directionBias.z, directionBias.x) - math::PI / 2.0f;
         const f32 angle = baseAngle + (rng.nextFloat() * 2.0f - 1.0f) * kAngleRange;
         // 距离：lerp(sqrt(rand), 0, xzRange) * SQRT2，偏近端且 SQRT2 补偿锥角内最大投影。
         const f32 dist = std::sqrt(rng.nextFloat()) * static_cast<f32>(xzRange) * math::SQRT2;
@@ -793,7 +793,7 @@ std::optional<BlockPos> RandomPositionGenerator::generateRandomDirectionWithinRa
     math::IRandom& rng, f64 minRange, f64 maxRange, i32 verticalRange, i32 yOffset, f64 xDir, f64 zDir, f64 maxAngle)
 {
     // 计算基础角度：从方向向量计算角度，减去PI/2使0度对应正前方
-    f64 baseAngle = std::atan2(zDir, xDir) - (math::PI_DOUBLE / 2.0);
+    f64 baseAngle = math::atan2(zDir, xDir) - (math::PI_DOUBLE / 2.0);
 
     // 在基础角度附近随机偏移，偏移范围在 [-maxAngle, +maxAngle]
     f64 angleOffset = (2.0 * rng.nextDouble() - 1.0) * maxAngle;

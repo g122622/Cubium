@@ -136,7 +136,7 @@ void EvokerEntity::castFangsAttack()
     f32 distSq = dx * dx + dz * dz;
 
     // 计算朝向目标的角度
-    f32 angle = std::atan2(dz, dx);
+    f32 angle = math::atan2(dz, dx);
 
     // 获取 Y 范围
     f32 minY = std::min(target->y(), y());

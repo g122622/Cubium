@@ -75,7 +75,7 @@ void GuardianMoveControl::tick()
     const f64 dirZ = toGoal.z / goalLength;
 
     // 转向：yaw 以 90 度/tick 逼近目标方向，身体朝向同步
-    const f32 targetYaw = static_cast<f32>(std::atan2(toGoal.z, toGoal.x) * 180.0 / math::PI) - 90.0f;
+    const f32 targetYaw = static_cast<f32>(math::atan2(toGoal.z, toGoal.x) * 180.0 / math::PI) - 90.0f;
     const f32 newYaw = static_cast<f32>(math::clampedRotate(m_guardian->yaw(), targetYaw, 90.0f));
     m_guardian->setRotation(newYaw, m_guardian->pitch());
     m_guardian->setRenderYawOffset(newYaw);

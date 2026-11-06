@@ -285,7 +285,7 @@ void GhastLookAroundGoal::tick()
     if (attackTarget == nullptr) {
         // 无攻击目标：朝向移动方向
         Vector3 velocity = m_ghast->velocity();
-        f32 targetYaw = -static_cast<f32>(math::toDegrees(std::atan2(velocity.x, velocity.z)));
+        f32 targetYaw = -static_cast<f32>(math::toDegrees(math::atan2(velocity.x, velocity.z)));
         m_ghast->setRotation(targetYaw, m_ghast->pitch());
         m_ghast->setRenderYawOffset(targetYaw);
     } else {
@@ -296,7 +296,7 @@ void GhastLookAroundGoal::tick()
 
         if (distSq < LOOK_RANGE_SQ) {
             // 在攻击范围内，朝向目标
-            f32 targetYaw = -static_cast<f32>(math::toDegrees(std::atan2(dx, dz)));
+            f32 targetYaw = -static_cast<f32>(math::toDegrees(math::atan2(dx, dz)));
             m_ghast->setRotation(targetYaw, m_ghast->pitch());
             m_ghast->setRenderYawOffset(targetYaw);
         }

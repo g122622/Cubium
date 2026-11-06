@@ -79,13 +79,13 @@ void VexMovementController::tick()
             if (attackTarget == nullptr) {
                 // 无攻击目标：朝运动方向旋转
                 // 使用velocity计算yaw
-                f32 yaw = static_cast<f32>(std::atan2(velocity.x, velocity.z) * math::RAD_TO_DEG);
+                f32 yaw = static_cast<f32>(math::atan2(velocity.x, velocity.z) * math::RAD_TO_DEG);
                 m_vex->setRotation(yaw, m_vex->pitch());
             } else {
                 // 有攻击目标：朝目标旋转
                 f64 targetDx = attackTarget->x() - m_vex->x();
                 f64 targetDz = attackTarget->z() - m_vex->z();
-                f32 yaw = static_cast<f32>(std::atan2(targetDx, targetDz) * math::RAD_TO_DEG);
+                f32 yaw = static_cast<f32>(math::atan2(targetDx, targetDz) * math::RAD_TO_DEG);
                 m_vex->setRotation(yaw, m_vex->pitch());
             }
 

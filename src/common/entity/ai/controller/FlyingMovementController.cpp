@@ -64,7 +64,7 @@ void FlyingMovementController::tick()
         }
 
         // 计算目标偏航角（Y轴旋转，即水平朝向），以90度/tick旋转
-        f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * (180.0 / math::PI)) - 90.0f;
+        f32 targetYaw = static_cast<f32>(math::atan2(dz, dx) * (180.0 / math::PI)) - 90.0f;
         m_mob->setRotation(math::clampedRotate(m_mob->yaw(), targetYaw, 90.0f), m_mob->pitch());
 
         // 根据是否在地面选择速度属性
@@ -79,7 +79,7 @@ void FlyingMovementController::tick()
         // 计算俯仰角
         f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
         if (std::abs(dy) > 1.0E-5 || std::abs(horizontalDist) > 1.0E-5) {
-            f32 targetPitch = static_cast<f32>(-(std::atan2(dy, horizontalDist) * (180.0 / math::PI)));
+            f32 targetPitch = static_cast<f32>(-(math::atan2(dy, horizontalDist) * (180.0 / math::PI)));
             m_mob->setRotation(
                 m_mob->yaw(), math::clampedRotate(m_mob->pitch(), targetPitch, static_cast<f32>(m_maxTurn)));
             // 前进输入恒为 1：实体的朝向（yaw）已在上方转向目标，MoveForward=1 即“朝目标飞”。

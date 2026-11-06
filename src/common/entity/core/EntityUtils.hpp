@@ -195,7 +195,7 @@ template <typename T>
 {
     f64 dx = target.x() - source.x();
     f64 dz = target.z() - source.z();
-    return static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
+    return static_cast<f32>(math::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 }
 
 /**
@@ -210,7 +210,7 @@ template <typename T>
 {
     f64 dx = targetX - source.x();
     f64 dz = targetZ - source.z();
-    return static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
+    return static_cast<f32>(math::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 }
 
 /**
@@ -226,7 +226,7 @@ template <typename T>
     f64 dy = (target.y() + target.eyeHeight()) - (source.y() + source.eyeHeight());
     f64 dz = target.z() - source.z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
-    return static_cast<f32>(-(std::atan2(dy, horizontalDist) * math::RAD_TO_DEG));
+    return static_cast<f32>(-(math::atan2(dy, horizontalDist) * math::RAD_TO_DEG));
 }
 
 } // namespace EntityUtils

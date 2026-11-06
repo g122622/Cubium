@@ -80,7 +80,7 @@ void DrownedMoveControl::tick()
         f64 normDy = dy / dist;
 
         // 计算目标偏航角（水平方向）
-        f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
+        f32 targetYaw = static_cast<f32>(math::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 
         // 平滑旋转，限制最大旋转速度为 90 度/tick
         f32 currentYaw = m_drowned->yaw();

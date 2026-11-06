@@ -140,7 +140,7 @@ void MovementController::tick()
         }
 
         // 计算目标偏航角
-        f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
+        f32 targetYaw = static_cast<f32>(math::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 
         // 限制旋转速度为90度/tick
         // limitAngle 结果必须包装到 [0, 360)

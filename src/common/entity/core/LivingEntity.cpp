@@ -511,7 +511,7 @@ void LivingEntity::indicateDamage(f64 d0, f64 d1)
 {
     // 基类仅本地设置 hurtDir；网络广播由 ServerPlayer 重写负责。
     // hurtDir = atan2(d1, d0) * RAD_TO_DEG - yaw。
-    m_hurtDir = static_cast<f32>(std::atan2(d1, d0) * static_cast<f64>(math::RAD_TO_DEG) - static_cast<f64>(yaw()));
+    m_hurtDir = static_cast<f32>(math::atan2(d1, d0) * static_cast<f64>(math::RAD_TO_DEG) - static_cast<f64>(yaw()));
 }
 
 bool LivingEntity::isScoping() const

@@ -122,8 +122,8 @@ void ProjectileHelper::rotateTowardsMovement(Entity& projectile, f32 rotationSpe
     f32 currentPitch = projectile.pitch();
 
     // 根据速度方向计算目标偏航角和俯仰角
-    const f32 targetYaw = std::atan2(velocity.z, velocity.x) * math::RAD_TO_DEG + 90.0f;
-    const f32 targetPitch = std::atan2(horizontal, velocity.y) * math::RAD_TO_DEG - 90.0f;
+    const f32 targetYaw = math::atan2(velocity.z, velocity.x) * math::RAD_TO_DEG + 90.0f;
+    const f32 targetPitch = math::atan2(horizontal, velocity.y) * math::RAD_TO_DEG - 90.0f;
 
     // 将角度差归一化到 [-180, 180) 范围，避免绕远路旋转
     while (targetPitch - currentPitch < -180.0f) {
