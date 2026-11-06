@@ -161,11 +161,6 @@ void ServerDimensionManager::shutdown()
     m_playerDimensions.clear();
     m_dimensionPlayers.clear();
 
-    // TEMP-DIAG：维度表的桶序决定析构顺序，崩溃总落在最后一个被析构的维度。
-    for (DimensionId id : getDimensionIds()) {
-        spdlog::info("DIAG dimension table: {}", static_cast<i32>(id));
-    }
-
     // 调用基类关闭：基类通过 m_dimensions.clear() 析构每个 ServerDimension，
     // 间接触发各维度的 ServerDimension::shutdown()（带 per-dimension trace）。
     DimensionManager::shutdown();

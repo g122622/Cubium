@@ -280,11 +280,6 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
         if (holder == nullptr) {
             return;
         }
-        spdlog::info("[ChunkTaskScheduler] TEMP-DIAG generation callback ({}, {}) success={} hasTask={}",
-            x,
-            z,
-            success,
-            holder->generationTask() != nullptr);
         // onChunkGenFailed 仅在「本任务真正失败（execute 返回 false 且未被取消）」时触发。
         // 用任务身份比对（generationTask()==rawTask）而非 hasGenerationTask()：
         //
@@ -309,7 +304,6 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
         if (!success) {
             onChunkGenFailed(*holder, holder->generationTask());
         }
-        spdlog::info("[ChunkTaskScheduler] TEMP-DIAG generation callback handled ({}, {})", x, z);
         // 成功时 onChunkGenComplete 已由 ChunkProgressionTask::execute 内部调用
     };
 

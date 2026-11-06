@@ -203,76 +203,6 @@ ServerWorld::ServerWorld(const ServerWorldConfig& config, std::unique_ptr<Server
 ServerWorld::~ServerWorld()
 {
     shutdown();
-
-    // TEMP-DIAG：在析构函数体内释放各成员，定位 terminate 的发生点（验证后定稿或回退）。
-    spdlog::info("DIAG dtor(dim={}): begin", static_cast<i32>(m_config.dimension));
-    m_config = ServerWorldConfig();
-    spdlog::info("DIAG dtor(dim={}): config", static_cast<i32>(m_config.dimension));
-    m_server = nullptr;
-    m_entityTracker.~EntityTracker();
-    new (&m_entityTracker) EntityTracker();
-    spdlog::info("DIAG dtor(dim={}): tracker", static_cast<i32>(m_config.dimension));
-    m_waypointManager = WaypointManager();
-    spdlog::info("DIAG dtor(dim={}): waypoints", static_cast<i32>(m_config.dimension));
-    m_lightQueue = ServerLightQueue();
-    spdlog::info("DIAG dtor(dim={}): light queue", static_cast<i32>(m_config.dimension));
-    m_respawnData = world::storage::LevelRespawnData();
-    spdlog::info("DIAG dtor(dim={}): respawn", static_cast<i32>(m_config.dimension));
-    m_worldBorder = world::border::WorldBorder();
-    spdlog::info("DIAG dtor(dim={}): border", static_cast<i32>(m_config.dimension));
-    m_sculkVibrationManager = SculkVibrationManager();
-    spdlog::info("DIAG dtor(dim={}): sculk vibration", static_cast<i32>(m_config.dimension));
-    m_gameRules = world::gamerule::GameRules();
-    spdlog::info("DIAG dtor(dim={}): game rules", static_cast<i32>(m_config.dimension));
-    m_blockEvents.clear();
-    m_blockEventsToReschedule.clear();
-    spdlog::info("DIAG dtor(dim={}): block events", static_cast<i32>(m_config.dimension));
-    m_difficultyCallback = nullptr;
-    m_onOpenContainer = nullptr;
-    m_onOpenEntityContainer = nullptr;
-    m_onLightChanged = nullptr;
-    m_onBlockChanged = nullptr;
-    m_onPlaySound = nullptr;
-    m_onBroadcastParticle = nullptr;
-    m_onBroadcastVibrationParticle = nullptr;
-    m_onBroadcastTrailParticle = nullptr;
-    m_onBroadcastEntityEffectParticle = nullptr;
-    m_onBroadcastBlockParticle = nullptr;
-    m_onBroadcastItemParticle = nullptr;
-    m_onBroadcastEntityStatus = nullptr;
-    m_onBroadcastEntityAnimation = nullptr;
-    m_onBroadcastHurtAnimation = nullptr;
-    m_onBroadcastSetEntityLink = nullptr;
-    m_onBroadcastWorldEvent = nullptr;
-    m_onBroadcastGlobalLevelEvent = nullptr;
-    m_onBroadcastBlockEvent = nullptr;
-    m_onBroadcastBlockEntity = nullptr;
-    m_onDestroyBlockProgress = nullptr;
-    m_onBroadcastExplosion = nullptr;
-    m_onExecuteCommand = nullptr;
-    spdlog::info("DIAG dtor(dim={}): callbacks", static_cast<i32>(m_config.dimension));
-    m_itemPickupManager = server::ItemPickupManager();
-    spdlog::info("DIAG dtor(dim={}): pickup", static_cast<i32>(m_config.dimension));
-    m_mapDataManager.reset();
-    spdlog::info("DIAG dtor(dim={}): map data", static_cast<i32>(m_config.dimension));
-    m_random = math::Random(0);
-    m_blockPositionRandom = math::BlockPositionRandom(0);
-    spdlog::info("DIAG dtor(dim={}): random", static_cast<i32>(m_config.dimension));
-    m_dragonFight.reset();
-    m_raidManager.reset();
-    m_villageManager.reset();
-    m_gameEventDispatcher.reset();
-    m_environmentAttributes.reset();
-    m_weatherManager.reset();
-    m_lightManager.reset();
-    m_tickManager.reset();
-    m_physicsEngine.reset();
-    m_collisionCache.reset();
-    m_chunkManager.reset();
-    spdlog::info("DIAG dtor(dim={}): managers", static_cast<i32>(m_config.dimension));
-    m_entityManager.~EntityManager();
-    new (&m_entityManager) EntityManager(m_entityRegistry);
-    spdlog::info("DIAG dtor(dim={}): entity manager", static_cast<i32>(m_config.dimension));
 }
 
 Result<void> ServerWorld::initialize()
@@ -417,7 +347,7 @@ void ServerWorld::shutdown()
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Initialization, "ServerWorld::shutdown", "dim", static_cast<i32>(m_config.dimension));
 
-    spdlog::info("Shutting down server world (dim={})...", static_cast<i32>(m_config.dimension));
+    spdlog::info("Shutting down server world...");
     m_initialized = false;
 
     // 先保存所有已加载区块内的实体
@@ -474,158 +404,41 @@ void ServerWorld::shutdown()
         }
     }
 
-    spdlog::info("DIAG shutdown(dim={}): saving entities done", static_cast<i32>(m_config.dimension));
     // 先清理袭击管理器（可能引用村庄）
     m_raidManager.reset();
-    spdlog::info("DIAG shutdown(dim={}): raid reset", static_cast<i32>(m_config.dimension));
     // 再清理村庄管理器
     m_villageManager.reset();
-    spdlog::info("DIAG shutdown(dim={}): village reset", static_cast<i32>(m_config.dimension));
 
     // 丢弃未执行的跨维度迁移回调：它们按引用捕获源/目标 EntityManager，本世界销毁后
     // 这些引用全部悬垂，若残留到下一个世界 tick 才执行必然崩溃。
     m_entityManager.discardPendingDimensionTransfers();
-    spdlog::info("DIAG shutdown(dim={}): transfers discarded", static_cast<i32>(m_config.dimension));
 
-    // 先停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
+    // 先解绑世界级回调，再停止区块管理器。
+    //
+    // 关停过程中区块管理器仍可能排空后处理队列并回调这些 lambda；而每个 lambda 都捕获了
+    // 世界本身（`[world]`/`[this]`），在 ServerWorld 析构期间执行即踩到正在析构的对象。
+    // 回调本身属于本世界、本世界不再 tick，提前解绑不改变任何仍需要的行为。
     if (m_chunkManager) {
-        // TEMP-DIAG：先解绑回调，再关停区块管理器（验证后回退）。
-        spdlog::info("DIAG chunkMgr(dim={}): unbind callbacks", static_cast<i32>(m_config.dimension));
         m_chunkManager->setChunkLoadedCallback(nullptr);
         m_chunkManager->setChunkUnloadedCallback(nullptr);
-        // TEMP-DIAG：诊断 terminate 时也解绑区块缓存中心/追踪变化回调（验证后定稿或回退）。
-        m_chunkManager->ticketManager().setTrackingChangeCallback(nullptr);
         m_chunkManager->setChunkCacheCenterCallback(nullptr);
+        m_chunkManager->ticketManager().setTrackingChangeCallback(nullptr);
+    }
+
+    // 再停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
+    if (m_chunkManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::ShutdownChunkManager");
         m_chunkManager->shutdown();
-        spdlog::info("DIAG chunkMgr(dim={}): shutdown done", static_cast<i32>(m_config.dimension));
-    }
-    spdlog::info("DIAG shutdown(dim={}): chunk manager shutdown", static_cast<i32>(m_config.dimension));
-    // TEMP-DIAG：逐成员释放世界数据，定位关服时的异常来源。
-    {
-        const i32 dim = static_cast<i32>(m_config.dimension);
-        spdlog::info("DIAG shutdown(dim={}): drop dragonFight", dim);
-        m_dragonFight.reset();
-        spdlog::info("DIAG shutdown(dim={}): drop chunkManager own ref", dim);
-        m_chunkManager.reset();
-        spdlog::info("DIAG shutdown(dim={}): drop mapDataManager", dim);
-        m_mapDataManager.reset();
-        spdlog::info("DIAG shutdown(dim={}): drop environmentAttributes", dim);
-        m_environmentAttributes.reset();
-        spdlog::info("DIAG shutdown(dim={}): drop gameEventDispatcher", dim);
-        m_gameEventDispatcher.reset();
     }
 
     m_weatherManager.reset();
-    spdlog::info("DIAG shutdown(dim={}): weather reset", static_cast<i32>(m_config.dimension));
     m_lightManager.reset();
-    spdlog::info("DIAG shutdown(dim={}): light reset", static_cast<i32>(m_config.dimension));
     m_tickManager.reset();
     m_physicsEngine.reset();
     m_collisionCache.reset();
-    spdlog::info("DIAG shutdown(dim={}): tick/physics reset", static_cast<i32>(m_config.dimension));
-
-    spdlog::info("DIAG shutdown(dim={}): world border reset", static_cast<i32>(m_config.dimension));
-    m_worldBorder = world::border::WorldBorder();
-    spdlog::info("DIAG shutdown(dim={}): game rules reset", static_cast<i32>(m_config.dimension));
-    m_gameRules = world::gamerule::GameRules();
-    spdlog::info("DIAG shutdown(dim={}): random reset", static_cast<i32>(m_config.dimension));
-    m_random = math::Random(0);
-    m_blockPositionRandom = math::BlockPositionRandom(0);
-    spdlog::info("DIAG shutdown(dim={}): config reset", static_cast<i32>(m_config.dimension));
-    m_config = ServerWorldConfig();
-    spdlog::info("DIAG shutdown(dim={}): map data reset", static_cast<i32>(m_config.dimension));
-    m_mapDataManager = std::make_unique<world::map::MapDataManager>();
-    spdlog::info("DIAG shutdown(dim={}): item pickup reset", static_cast<i32>(m_config.dimension));
-    m_itemPickupManager = server::ItemPickupManager();
-    spdlog::info("DIAG shutdown(dim={}): difficulty callback reset", static_cast<i32>(m_config.dimension));
-    m_difficultyCallback = nullptr;
-    spdlog::info("DIAG shutdown(dim={}): on-open callbacks reset", static_cast<i32>(m_config.dimension));
-    m_onOpenContainer = nullptr;
-    m_onOpenEntityContainer = nullptr;
 
     m_chunkManager.reset();
-    spdlog::info("DIAG shutdown(dim={}): chunk manager destroyed", static_cast<i32>(m_config.dimension));
 
-    // TEMP-DIAG：成员析构链逐组定位（这些成员声明在析构链的末段）。
-    {
-        const i32 dim = static_cast<i32>(m_config.dimension);
-        spdlog::info("DIAG members(dim={}): drop dragonFight", dim);
-        m_dragonFight.reset();
-        spdlog::info("DIAG members(dim={}): clear block events", dim);
-        m_blockEvents.clear();
-        m_blockEventsToReschedule.clear();
-        spdlog::info("DIAG members(dim={}): reset on-callbacks", dim);
-        m_onLightChanged = nullptr;
-        m_onBlockChanged = nullptr;
-        m_onPlaySound = nullptr;
-        m_onBroadcastParticle = nullptr;
-        m_onBroadcastVibrationParticle = nullptr;
-        m_onBroadcastTrailParticle = nullptr;
-        m_onBroadcastEntityEffectParticle = nullptr;
-        m_onBroadcastBlockParticle = nullptr;
-        m_onBroadcastItemParticle = nullptr;
-        m_onBroadcastEntityStatus = nullptr;
-        m_onBroadcastEntityAnimation = nullptr;
-        m_onBroadcastHurtAnimation = nullptr;
-        m_onBroadcastSetEntityLink = nullptr;
-        m_onBroadcastWorldEvent = nullptr;
-        m_onBroadcastGlobalLevelEvent = nullptr;
-        m_onBroadcastBlockEvent = nullptr;
-        m_onBroadcastBlockEntity = nullptr;
-        m_onDestroyBlockProgress = nullptr;
-        m_onBroadcastExplosion = nullptr;
-        m_onExecuteCommand = nullptr;
-        m_onOpenContainer = nullptr;
-        m_onOpenEntityContainer = nullptr;
-        spdlog::info("DIAG members(dim={}): callbacks cleared", dim);
-        // TEMP-DIAG：实体按 id 逐个销毁，定位是否有实体的析构抛出。
-        std::vector<EntityInstanceId> ids;
-        m_entityManager.forEachEntity([&ids](const Entity* entity) {
-            ids.push_back(entity->id());
-            return true;
-        });
-        spdlog::info("DIAG members(dim={}): destroying {} entities", dim, ids.size());
-        for (EntityInstanceId id : ids) {
-            m_entityManager.destroyEntity(id, RemovalReason::Discarded);
-        }
-        spdlog::info("DIAG members(dim={}): entities destroyed individually", dim);
-        spdlog::info("DIAG members(dim={}): drop sculk vibration", dim);
-        m_sculkVibrationManager.~SculkVibrationManager();
-        new (&m_sculkVibrationManager) SculkVibrationManager();
-        spdlog::info("DIAG members(dim={}): sculk vibration reset", dim);
-        spdlog::info("DIAG members(dim={}): drop entity tracker", dim);
-        m_entityTracker.~EntityTracker();
-        new (&m_entityTracker) EntityTracker();
-        spdlog::info("DIAG members(dim={}): entity tracker reset", dim);
-        spdlog::info("DIAG members(dim={}): drop entity registry", dim);
-        spdlog::info("DIAG members(dim={}): entity registry reset", dim);
-        spdlog::info("DIAG members(dim={}): drop entity manager", dim);
-        m_entityManager.~EntityManager();
-        new (&m_entityManager) EntityManager(m_entityRegistry);
-        spdlog::info("DIAG members(dim={}): entity manager reset", dim);
-        spdlog::info("DIAG members(dim={}): drop PhysicsEngine", dim);
-        m_physicsEngine.reset();
-        spdlog::info("DIAG members(dim={}): drop CollisionCache", dim);
-        m_collisionCache.reset();
-        spdlog::info("DIAG members(dim={}): drop TickManager", dim);
-        m_tickManager.reset();
-        spdlog::info("DIAG members(dim={}): drop WeatherManager", dim);
-        m_weatherManager.reset();
-        spdlog::info("DIAG members(dim={}): drop MapDataManager", dim);
-        m_mapDataManager.reset();
-        spdlog::info("DIAG members(dim={}): drop EnvironmentAttributes", dim);
-        m_environmentAttributes.reset();
-        spdlog::info("DIAG members(dim={}): drop GameEventDispatcher", dim);
-        m_gameEventDispatcher.reset();
-        spdlog::info("DIAG members(dim={}): drop VillageManager", dim);
-        m_villageManager.reset();
-        spdlog::info("DIAG members(dim={}): drop RaidManager", dim);
-        m_raidManager.reset();
-        spdlog::info("DIAG members(dim={}): drop LightManager", dim);
-        m_lightManager.reset();
-        spdlog::info("DIAG members(dim={}): members released", dim);
-    }
     spdlog::info("Server world shut down");
 }
 

@@ -207,7 +207,6 @@ void ServerChunkManager::shutdown()
     // 使在途回调快速丢弃结果。
     m_shuttingDown.store(true, std::memory_order::release);
     m_deferredTicketLevels.clear();
-    spdlog::info("DIAG-CM step1: shuttingDown flag");
 
     // 第一步：标记调度器关闭，通知所有活跃生成任务取消（设置 cancel token）。
     // setShuttingDown 使 cancelGeneration 不重新调度被解除阻塞的邻居（避免无限循环）：
@@ -217,7 +216,6 @@ void ServerChunkManager::shutdown()
     if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
         scheduler->setShuttingDown();
     }
-    spdlog::info("DIAG-CM step2: scheduler setShuttingDown");
 
     // 收集所有 holder 的 shared_ptr（保持存活），在 m_lifecycleManagersMutex 锁外执行 cancelGeneration。
     // cancelGeneration 持调度锁并调用 findHolder（获取 m_lifecycleManagersMutex），若在遍历 m_lifecycleManagers
@@ -258,14 +256,12 @@ void ServerChunkManager::shutdown()
     // 但取消已使所有 holder 的 abortSignal 失效，新调度产生的任务也会立刻检测到取消
     // （holder 已 cancelActiveWork），最终队列收敛为空。
     m_areaTasks.shutdown();
-    spdlog::info("DIAG-CM step3: areaTasks shutdown");
 
     if (util::UniversalWorkerPool* pool = computeExecutor(); pool != nullptr && pool->isRunning()) {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "ServerChunkManager::shutdown::WaitForWorkerCompletion");
         pool->waitForCompletion();
     }
-    spdlog::info("DIAG-CM step4: pool waitForCompletion");
 
     // 第三步：所有生成任务已结束，安全移除 holder。移到本地 vector 在锁外完成等待者失败通知。
     std::vector<std::shared_ptr<SingleChunkLifecycleManager>> remainingManagers;
@@ -289,7 +285,6 @@ void ServerChunkManager::shutdown()
 
     std::lock_guard<std::mutex> lock(m_chunksMutex);
     m_chunks.clear();
-    spdlog::info("DIAG-CM step5: chunks cleared");
 
     // 清理卸载候选队列：holder 已全部移除，残留候选无意义；同时避免下次 initialize 复用
     // 同一实例时旧候选干扰（队列与成员集合必须一起清，否则集合残留会让入队去重失效）。

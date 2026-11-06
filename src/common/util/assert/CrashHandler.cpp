@@ -24,7 +24,6 @@
 #include "CrashHandler.hpp"
 #include "common/core/Types.hpp"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
@@ -928,21 +927,6 @@ void crashSignalHandler(i32 signal, siginfo_t* info, void* context)
 // std::terminate 处理器
 void terminateHandler()
 {
-#if !defined(_WIN32)
-    // TEMP-DIAG：关服 terminate 的调用点不是平凡帧，用栈回溯直接打印内联帧定位。
-    {
-        void* frames[128];
-        const int count = backtrace(frames, 128);
-        char** symbols = backtrace_symbols(frames, count);
-        if (symbols != nullptr) {
-            for (int i = 0; i < count; ++i) {
-                fprintf(stderr, "DIAG-TERMINATE-FRAME [%d] %s\n", i, symbols[i]);
-            }
-            free(symbols);
-        }
-        std::fflush(stderr);
-    }
-#endif
     std::lock_guard<std::mutex> lock(getCrashMutex());
     printCrashInfoLocked("std::terminate() called (unhandled exception or noexcept violation)");
     _exit(1);
