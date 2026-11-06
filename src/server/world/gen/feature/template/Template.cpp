@@ -588,18 +588,21 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
     //   BlockPos b = transform(BlockPos.ZERO.offset(last), mirror, rotation, pivot);
     //   return BoundingBox.fromCorners(a, b).move(pos);
     //
-    // 关键在 transform：它绕 pivot（默认原点 ZERO）旋转，所以 90/270 度会把
-    // (size-1) 这一角转到负方向，包围盒的 min 会落在 pos 之前。
+    // 关键在 transform：它绕 pivot 旋转，所以 90/270 度会把 (size-1) 这一角转到负方向，
+    // 包围盒的 min 会落在 pos 之前。
     // 此前这里直接写 pos + size，只交换了尺寸、没有应用旋转变换，
     // 于是末地城这类带旋转的模板包围盒整体偏到 pos 的同一侧。
+    //
+    // 【pivot 必须参与】废墟传送门以模板中心（`size / 2`）作旋转轴心而非原点：漏掉它
+    // 时包围盒绕区块角而不是模板中心展开，随后据此算出的中心列、四角采样与落点全部错位。
     if (m_size.x == 0 && m_size.y == 0 && m_size.z == 0) {
         return structure::StructureBoundingBox(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
     }
 
     const BlockPos last(m_size.x - 1, m_size.y - 1, m_size.z - 1);
-    const BlockPos cornerA =
-        transformBlockPos(BlockPos(0, 0, 0), settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
-    const BlockPos cornerB = transformBlockPos(last, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+    const BlockPos& pivot = settings.getCenterOffset();
+    const BlockPos cornerA = transformBlockPos(BlockPos(0, 0, 0), settings.getMirror(), settings.getRotation(), pivot);
+    const BlockPos cornerB = transformBlockPos(last, settings.getMirror(), settings.getRotation(), pivot);
 
     return structure::StructureBoundingBox(pos.x + std::min(cornerA.x, cornerB.x),
         pos.y + std::min(cornerA.y, cornerB.y),

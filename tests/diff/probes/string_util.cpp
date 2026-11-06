@@ -144,6 +144,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/StringUtils.hpp"
 
 #include "probe.hpp"
 
@@ -201,236 +202,6 @@ std::string decodeEscapes(const std::string& text)
         out.push_back(text[i]);
     }
     return out;
-}
-
-/// 原版 `Mth.floor(float)`。
-i32 mthFloor(f32 value)
-{
-    const i32 truncated = static_cast<i32>(value);
-    return value < static_cast<f32>(truncated) ? truncated - 1 : truncated;
-}
-
-/// 原版 `StringUtil.formatTickDuration`。
-std::string formatTickDuration(i32 ticks, f32 ticksPerSecond)
-{
-    i32 i = mthFloor(static_cast<f32>(ticks) / ticksPerSecond);
-    i32 j = i / 60;
-    i %= 60;
-    const i32 k = j / 60;
-    j %= 60;
-
-    char buffer[64];
-    if (k > 0) {
-        std::snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", k, j, i);
-    } else {
-        std::snprintf(buffer, sizeof(buffer), "%02d:%02d", j, i);
-    }
-    return buffer;
-}
-
-/// 判断 `§` 后的字符是否属于 `[0-9A-FK-OR]`（不区分大小写）。
-bool isColorCode(char ch)
-{
-    if (ch >= '0' && ch <= '9') {
-        return true;
-    }
-    const char upper = (ch >= 'a' && ch <= 'z') ? static_cast<char>(ch - 'a' + 'A') : ch;
-    switch (upper) {
-        case 'A':
-        case 'B':
-        case 'C':
-        case 'D':
-        case 'E':
-        case 'F':
-        case 'K':
-        case 'L':
-        case 'M':
-        case 'N':
-        case 'O':
-        case 'R':
-            return true;
-        default:
-            return false;
-    }
-}
-
-/// 原版 `StringUtil.stripColor`：移除所有 `§` + 颜色码。
-std::string stripColor(const std::string& text)
-{
-    std::string out;
-    out.reserve(text.size());
-    for (std::size_t i = 0; i < text.size(); ++i) {
-        // `§` 在 UTF-8 中是 0xC2 0xA7。
-        if (i + 2 < text.size() && static_cast<unsigned char>(text[i]) == 0xC2 &&
-            static_cast<unsigned char>(text[i + 1]) == 0xA7 && isColorCode(text[i + 2])) {
-            i += 2;
-            continue;
-        }
-        out.push_back(text[i]);
-    }
-    return out;
-}
-
-/// 原版 `StringUtil.truncateStringIfNecessary`。
-std::string truncateStringIfNecessary(const std::string& text, i32 maxLength, bool addEllipsis)
-{
-    if (static_cast<i32>(text.size()) <= maxLength) {
-        return text;
-    }
-    if (addEllipsis && maxLength > 3) {
-        return text.substr(0, static_cast<std::size_t>(maxLength - 3)) + "...";
-    }
-    return text.substr(0, static_cast<std::size_t>(maxLength));
-}
-
-/// 原版 `StringUtil.lineCount`：`LINE_PATTERN = "\r\n|\v"`，Java 正则的 `\v` 是垂直空白类。
-i32 lineCount(const std::string& text)
-{
-    if (text.empty()) {
-        return 0;
-    }
-    i32 count = 1;
-    for (std::size_t i = 0; i < text.size(); ++i) {
-        if (text[i] == '\r' && i + 1 < text.size() && text[i + 1] == '\n') {
-            ++count;
-            ++i;
-            continue;
-        }
-        // Java 正则的 \v 是「垂直空白字符类」，匹配 \n、垂直制表、\f、\r、\u0085、\u2028、\u2029。
-        if (text[i] == '\n' || text[i] == '\v' || text[i] == '\f' || text[i] == '\r') {
-            ++count;
-            continue;
-        }
-        const unsigned char lead = static_cast<unsigned char>(text[i]);
-        if (lead == 0xC2 && i + 1 < text.size() && static_cast<unsigned char>(text[i + 1]) == 0x85) {
-            ++count;
-            ++i;
-            continue;
-        }
-        if (lead == 0xE2 && i + 2 < text.size() && static_cast<unsigned char>(text[i + 1]) == 0x80 &&
-            (static_cast<unsigned char>(text[i + 2]) == 0xA8 || static_cast<unsigned char>(text[i + 2]) == 0xA9)) {
-            ++count;
-            i += 2;
-        }
-    }
-    return count;
-}
-
-/// 原版 `StringUtil.isAllowedChatCharacter`。
-bool isAllowedChatCharacter(i32 codepoint)
-{
-    return codepoint != 167 && codepoint >= 32 && codepoint != 127;
-}
-
-/// 把 UTF-8 字节串解码为码点序列（用于按 Java `int` 语义判断）。
-std::vector<u32> decodeCodepoints(const std::string& text)
-{
-    std::vector<u32> codepoints;
-    for (std::size_t i = 0; i < text.size();) {
-        const unsigned char lead = static_cast<unsigned char>(text[i]);
-        if (lead < 0x80) {
-            codepoints.push_back(lead);
-            i += 1;
-        } else if ((lead >> 5) == 0x6 && i + 1 < text.size()) {
-            codepoints.push_back(((lead & 0x1FU) << 6) | (static_cast<unsigned char>(text[i + 1]) & 0x3FU));
-            i += 2;
-        } else if ((lead >> 4) == 0xE && i + 2 < text.size()) {
-            codepoints.push_back(((lead & 0x0FU) << 12) | ((static_cast<unsigned char>(text[i + 1]) & 0x3FU) << 6) |
-                (static_cast<unsigned char>(text[i + 2]) & 0x3FU));
-            i += 3;
-        } else {
-            codepoints.push_back(((lead & 0x07U) << 18) | ((static_cast<unsigned char>(text[i + 1]) & 0x3FU) << 12) |
-                ((static_cast<unsigned char>(text[i + 2]) & 0x3FU) << 6) |
-                (static_cast<unsigned char>(text[i + 3]) & 0x3FU));
-            i += 4;
-        }
-    }
-    return codepoints;
-}
-
-/// 原版 `StringUtil.isValidPlayerName`：`chars()` 迭代的是 UTF-16 码元。
-bool isValidPlayerName(const std::string& text)
-{
-    // 长度按 UTF-16 码元数计：BMP 内 1 个，辅助平面 2 个（代理对）。
-    i32 length = 0;
-    for (u32 codepoint : decodeCodepoints(text)) {
-        length += codepoint > 0xFFFF ? 2 : 1;
-    }
-    if (length > 16) {
-        return false;
-    }
-    // `chars()` 逐码元过滤：辅助平面字符会产生两个代理码元（均 >= 127），因此非法。
-    for (u32 codepoint : decodeCodepoints(text)) {
-        if (codepoint > 0xFFFF) {
-            return false;
-        }
-        if (codepoint <= 32 || codepoint >= 127) {
-            return false;
-        }
-    }
-    return true;
-}
-
-/// 原版 `StringUtil.filterText(String, boolean)`：逐码点过滤，非 ASCII 码点（>= 128）合法。
-std::string filterText(const std::string& text, bool keepNewlines)
-{
-    std::string out;
-    std::size_t offset = 0;
-    for (u32 codepoint : decodeCodepoints(text)) {
-        std::size_t width = 1;
-        if (codepoint >= 0x10000) {
-            width = 4;
-        } else if (codepoint >= 0x800) {
-            width = 3;
-        } else if (codepoint >= 0x80) {
-            width = 2;
-        }
-        if (isAllowedChatCharacter(static_cast<i32>(codepoint))) {
-            out.append(text, offset, width);
-        } else if (keepNewlines && codepoint == '\n') {
-            out.push_back('\n');
-        }
-        offset += width;
-    }
-    return out;
-}
-
-/// 原版 `StringUtil.isWhitespace(int)`。
-bool isWhitespace(i32 codepoint)
-{
-    switch (codepoint) {
-        case 0x09: // \t
-        case 0x0A: // \n
-        case 0x0B: // \v
-        case 0x0C: // \f
-        case 0x0D: // \r
-        case 0x1C:
-        case 0x1D:
-        case 0x1E:
-        case 0x1F:
-        case 0x20: // space
-        case 0xA0: // NBSP (isSpaceChar)
-        case 0x1680:
-        case 0x2000:
-        case 0x2001:
-        case 0x2002:
-        case 0x2003:
-        case 0x2004:
-        case 0x2005:
-        case 0x2006:
-        case 0x2007:
-        case 0x2008:
-        case 0x2009:
-        case 0x200A:
-        case 0x2028:
-        case 0x2029:
-        case 0x202F:
-        case 0x205F:
-        case 0x3000:
-            return true;
-        default:
-            return false;
-    }
 }
 
 void writeList(FILE* out)
@@ -518,41 +289,43 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "duration" && parts.size() == 3) {
-        return json{
-            {"unit", unit}, {"value", formatTickDuration(std::stoi(parts[1]), static_cast<f32>(std::stod(parts[2])))}}
+        return json{{"unit", unit},
+            {"value", util::formatTickDuration(std::stoi(parts[1]), static_cast<f32>(std::stod(parts[2])))}}
             .dump();
     }
     if (mode == "strip" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", stripColor(decodeEscapes(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", util::stripColor(decodeEscapes(parts[1]))}}.dump();
     }
     if (mode == "trunc" && parts.size() == 4) {
         return json{{"unit", unit},
-            {"value", truncateStringIfNecessary(decodeEscapes(parts[1]), std::stoi(parts[2]), parts[3] == "true")}}
+            {"value",
+                util::truncateStringIfNecessary(decodeEscapes(parts[1]), std::stoi(parts[2]), parts[3] == "true")}}
             .dump();
     }
     if (mode == "lines" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", lineCount(decodeEscapes(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", util::lineCount(decodeEscapes(parts[1]))}}.dump();
     }
     if (mode == "trimChat" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", truncateStringIfNecessary(decodeEscapes(parts[1]), 256, false)}}.dump();
+        return json{{"unit", unit}, {"value", util::truncateStringIfNecessary(decodeEscapes(parts[1]), 256, false)}}
+            .dump();
     }
     if (mode == "allowedChat" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", isAllowedChatCharacter(std::stoi(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", util::isAllowedChatCharacter(std::stoi(parts[1]))}}.dump();
     }
     if (mode == "playerName" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", isValidPlayerName(decodeEscapes(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", util::isValidPlayerName(decodeEscapes(parts[1]))}}.dump();
     }
     if (mode == "filter" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", filterText(decodeEscapes(parts[1]), parts[2] == "true")}}.dump();
+        return json{{"unit", unit}, {"value", util::filterText(decodeEscapes(parts[1]), parts[2] == "true")}}.dump();
     }
     if (mode == "whitespace" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", isWhitespace(std::stoi(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", util::isWhitespace(std::stoi(parts[1]))}}.dump();
     }
     if (mode == "blank" && parts.size() == 2) {
         const std::string text = decodeEscapes(parts[1]);
         bool blank = true;
         for (std::size_t i = 0; i < text.size(); ++i) {
-            if (!isWhitespace(static_cast<i32>(static_cast<unsigned char>(text[i])))) {
+            if (!util::isWhitespace(static_cast<i32>(static_cast<unsigned char>(text[i])))) {
                 blank = false;
                 break;
             }

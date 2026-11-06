@@ -671,8 +671,9 @@ bool Structure::isValidBiome(BiomeId biomeId) const
 
 bool Structure::isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const
 {
-    // QuartPos.fromBlock 即算术右移 2 位（C++20 起有符号右移为算术移位，负坐标同样成立）
-    const BiomeId biomeId = generator.getNoiseBiome(pos.x >> 2, pos.y >> 2, pos.z >> 2);
+    // 走 BiomeManager 的 fuzzy offset 选格，与 `LevelReader.getBiome(BlockPos)` 同一条路径；
+// 直接右移两位会漏掉这层偏移，在群系边界附近判出与原版相反的结论。
+    const BiomeId biomeId = generator.getBiomeAtBlock(pos.x, pos.y, pos.z);
     return isValidBiome(biomeId);
 }
 

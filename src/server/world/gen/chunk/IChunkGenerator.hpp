@@ -167,6 +167,21 @@ public:
      */
     [[nodiscard]] virtual BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const = 0;
 
+    /**
+     * @brief 在**方块坐标**处查询噪声群系
+     *
+     * 默认实现等价于 `getNoiseBiome(QuartPos.fromBlock(x), ...)`：直接取该方块所在
+     * 四分格。结构起点校验、生物群系采样一律走这条路径。
+     *
+     * 注意**不要**换成 BiomeManager 的 fuzzy 选格：后者是 `LevelReader.getBiome(BlockPos)`
+     * 的语义（生成期间读世界时用），而结构生成里所有群系采样都显式做
+     * `QuartPos.fromBlock`，两者在群系边界附近会给出不同四分格。
+     */
+    [[nodiscard]] virtual BiomeId getBiomeAtBlock(i32 blockX, i32 blockY, i32 blockZ) const
+    {
+        return getNoiseBiome(blockX >> 2, blockY >> 2, blockZ >> 2);
+    }
+
     // === 高度 ===
 
     /**

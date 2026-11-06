@@ -32,6 +32,7 @@
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/StructureDefinitionLoader.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -43,15 +44,10 @@ namespace structure {
 
 /**
  * @brief 废弃传送门垂直放置位置
+ *
+ * 直接复用数据包的 `placement` 枚举，避免两套枚举之间的映射维护成本。
  */
-enum class RuinedPortalLocation : u8 {
-    OnLandSurface, ///< 在地表
-    PartlyBuried,  ///< 部分掩埋
-    OnOceanFloor,  ///< 在海底
-    InMountain,    ///< 在山中
-    Underground,   ///< 地下
-    InNether       ///< 下界
-};
+using RuinedPortalLocation = RuinedPortalSetupDefinition::Placement;
 
 /**
  * @brief 废弃传送门属性配置
@@ -86,7 +82,8 @@ public:
         Rotation rotation,
         Mirror mirror,
         RuinedPortalLocation location,
-        const RuinedPortalProperties& properties);
+        const RuinedPortalProperties& properties,
+        const BlockPos& candidatePos);
 
     ~RuinedPortalPiece() noexcept override = default;
 
@@ -142,6 +139,12 @@ public:
         return m_properties;
     }
 
+    /// 候选生成点（模板包围盒中心的地面高度处），用于装配后的生物群系校验
+    [[nodiscard]] const BlockPos& candidatePos() const noexcept
+    {
+        return m_candidatePos;
+    }
+
 private:
     void _loadTemplate();
     void _updateBoundingBox();
@@ -154,33 +157,27 @@ private:
 
     feature::template_::TemplateManager* m_templateManager = nullptr;
     const feature::template_::Template* m_template = nullptr;
+    BlockPos m_candidatePos{0, 0, 0};
     BlockPos m_size{1, 1, 1};
     BlockPos m_centerOffset{0, 0, 0};
 };
 
 /**
- * @brief 废弃传送门结构类型
- *
- * 根据生物群系决定传送门的变体类型
- */
-enum class RuinedPortalType : u8 {
-    Standard, ///< 标准类型
-    Desert,   ///< 沙漠类型
-    Jungle,   ///< 丛林类型
-    Swamp,    ///< 沼泽类型
-    Mountain, ///< 山地类型
-    Ocean,    ///< 海洋类型
-    Nether    ///< 下界类型
-};
-
-/**
  * @brief 废弃传送门结构
  *
- * 使用模板系统生成废弃传送门，支持多种变体。
+ * 数据包为每个 `minecraft:ruined_portal` 结构定义提供一张 `setups` 表，每项描述一种
+ * 垂直放置方式及苔藓/藤蔓/空气口袋等属性，并按 weight 加权抽取。变体（平原/沙漠/丛林/
+ * 沼泽/山地/海洋/下界）的差异**完全**由各自的 setups 表表达，代码里不再有按生物群系
+ * 分派的硬编码配置。
  */
 class RuinedPortalStructure : public Structure {
 public:
-    explicit RuinedPortalStructure(ResourceLocation id);
+    /**
+     * @brief 构造函数
+     * @param id 结构资源位置
+     * @param setups 数据包的 setups 表（不可为空；原版 Codec 用 nonEmptyList 校验）
+     */
+    RuinedPortalStructure(ResourceLocation id, std::vector<RuinedPortalSetupDefinition> setups);
 
     [[nodiscard]] const std::string& name() const override
     {
@@ -190,13 +187,19 @@ public:
     /**
      * @brief 获取结构关联的生物群系标签
      *
-     * 返回 minecraft:has_structure/ruined_portal_standard 标签，用于 O(1) 生物群系查找。
-     * 实际变体区分在 canGenerate() 中根据生物群系/维度判断。
+     * 返回 minecraft:has_structure/ruined_portal_standard 标签。实际生效的标签由
+     * StructureTypeRegistry 依据数据包的 `biomes` 字段覆盖，这里只是子类默认值。
      */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
+    /**
+     * @brief 生物群系校验在 generate() 返回之后、以片段锚点（候选点）为采样点进行
+     *
+     * 原版把校验放在 `GenerationStub` 的 Consumer 里，即候选点算出之后；本实现把候选
+     * 生成点记在片段上，由调用方在 generate() 之后复核（见 isValidAtCandidatePoint）。
+     * 用区块中心的 y=0 代替会采到洞穴群系，群系边界附近判反。
+     */
+    [[nodiscard]] bool isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
@@ -208,13 +211,6 @@ public:
     {
         m_templateManager = manager;
     }
-
-    /**
-     * @brief 根据生物群系确定传送门类型
-     * @param biome 生物群系ID
-     * @return 传送门类型
-     */
-    [[nodiscard]] static RuinedPortalType getPortalType(BiomeId biome);
 
     /**
      * @brief 获取普通传送门模板列表
@@ -232,31 +228,20 @@ public:
         return s_giantTemplates;
     }
 
+    [[nodiscard]] const std::vector<RuinedPortalSetupDefinition>& setups() const noexcept
+    {
+        return m_setups;
+    }
+
     // 模板名称常量
     static const std::vector<std::string> s_normalTemplates;
     static const std::vector<std::string> s_giantTemplates;
 
 private:
     static const std::string s_name;
+
+    std::vector<RuinedPortalSetupDefinition> m_setups;
     feature::template_::TemplateManager* m_templateManager = nullptr;
-
-    /**
-     * @brief 配置传送门属性
-     * @param type 传送门类型
-     * @param rng 随机数生成器
-     * @param biome 生物群系
-     * @return 属性配置
-     */
-    [[nodiscard]] RuinedPortalProperties configureProperties(
-        RuinedPortalType type, math::IRandom& rng, BiomeId biome) const;
-
-    /**
-     * @brief 确定垂直放置位置
-     * @param type 传送门类型
-     * @param rng 随机数生成器
-     * @return 垂直放置位置
-     */
-    [[nodiscard]] RuinedPortalLocation determineLocation(RuinedPortalType type, math::IRandom& rng) const;
 };
 
 } // namespace structure

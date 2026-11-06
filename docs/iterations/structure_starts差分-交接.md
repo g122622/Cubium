@@ -1532,3 +1532,116 @@ PIECES 57
 或者更直接：既然原版 `D 76`..`D 78` 之后就没有抽取了，而 Cubium 在 `D 76` 之后还有 11 次，
 可以**逐次把 Cubium 的 `D 76` 之后的那几次抽取单独复现**——用 Java 从 `D 75` 的状态出发，
 试探性地调用 `recursiveChildren`，看哪一种调用序列会产生 `bits32` 而非 `bits31`。
+
+## 第三十四轮：末地城与矿井的两处结构性缺陷（已修）
+
+本轮不再从随机序列入手，而是先核对「构件深度」这一原版字段本身，结果一次修掉两类差异。
+
+### 末地城：邻近性判定用的是 genDepth，不是自造 ID
+
+原版 `EndCityPieces.recursiveChildren` 在把一批构件提交进主列表之前做三件事：
+
+```java
+structurepiece.setGenDepth(i);                                  // i = random.nextInt()，整批同一个值
+StructurePiece piece1 = findCollisionPiece(pieces, structurepiece.getBoundingBox());
+if (piece1 != null && piece1.getGenDepth() != parent.getGenDepth()) { 放弃整批 }
+```
+
+也就是「只与 **genDepth 不同**的已有构件比对是否相交」；`TOWER_BRIDGE_GENERATOR` 把桥段的
+genDepth 设成 -1（`setGenDepth(-1)`），从而豁免全部比对，桥可以贴着出发的那座塔。
+
+Cubium 此前用一个自造的 `componentId` 做「同一个 id 就不比」的近似，于是**兄弟构件会互相
+判碰撞**，整座城过早停止生长。改为 `StructurePiece` 基类持有 `genDepth` 后，这条规则与
+原版逐字对应。
+
+### 末地城：高度基准少减了 1
+
+`EndCityStructure._getYPosition` 原来直接用 `generator.getHeight(...)`，而原版
+`Structure.getCornerHeights` 走的是 `ChunkGenerator.getFirstOccupiedHeight`：
+
+```java
+public int getFirstOccupiedHeight(...) { return this.getBaseHeight(...) - 1; }
+```
+
+`getHeight` 返回的是「最高方块上方一格」，`getFirstOccupiedHeight` 返回「最高方块本身」。
+少减这 1 让整座末地城与 `y < 60` 门槛都系统性抬高 1 格。修正后 `the_end` 的 5 处差异全部消失。
+
+### 矿井：起点房间的深度必须是 0，不是 50
+
+原版 `MineShaftRoom` 的构造是
+`super(StructurePieceType.MINE_SHAFT_ROOM, MAGIC_START_Y, ...)`，`MAGIC_START_Y = 50`，
+而这个参数**同时**是包围盒起点 Y 与 `StructurePiece.genDepth`。照字面把 50 也当作深度用，
+`generateAndAddPiece` 的 `p_227714_ > 8` 与走廊第 2 段的 `i < 8` 就双双立刻成立，
+**整座矿井只剩房间一个构件**。
+
+Cubium 里「层数」只由 genDepth 表达（包围盒的起点 Y 另外单独写 50），因此起点房间记 0。
+改后 `overworld/0/-13/-60` 的 159 个构件逐条（类型 / 包围盒 / 旋转 / genDepth）完全一致。
+
+### 新增差分能力 `end_city_pieces`
+
+末地城没有模板池、整座城由生成器递归拼出，`structure_starts` 对它只能看到整体包围盒。
+新能力把整座城拆到构件级（模板名 / 包围盒 / 旋转 / genDepth），5/5 单元通过。
+
+顺带把 `structure_starts` 的 `template` 字段收紧为「拼图池元素标识」：oracle 侧只对
+`PoolElementStructurePiece` 读取模板位置，要塞房间、矿井走廊、末地城构件这些**程序化拼装**
+的片段一律输出空串。此前探针无条件输出 `templateLocation()`，末地城会永远报「template 不同」。
+
+### 当前状态
+
+| 能力 | 状态 |
+|---|---|
+| `structure_starts` | 44 → 33 处差异 |
+| `mineshaft_pieces` | 24 → 15 处差异（9 个单元完全一致） |
+| `end_city_pieces` | 5/5 全部一致 |
+
+## 第三十五轮：矿井剩余 15 处分歧的形态（未解决）
+
+按「对齐起始房间后逐构件比对类型 / 包围盒 / 深度 / 交叉点方向」统计首个分歧点：
+
+| 单元 | 原版构件 | 我方构件 | 首个分歧 |
+|---|---|---|---|
+| `overworld/0/-13/-7` | 148 | 129 | 7 |
+| `overworld/9248738493917/107/118` | 108 | 100 | 7 |
+| `overworld/9248738493917/110/33` | 147 | 157 | 8 |
+| `overworld/0/-8/55` | 101 | 198 | 9 |
+| `overworld/9248738493917/0/26` | 69 | 66 | 9 |
+| `overworld/9248738493917/-22/18` | 191 | 163 | 9 |
+| `overworld/0/-45/47` | 123 | 137 | 26 |
+| `overworld/0/62/-17` | 182 | 165 | 35 |
+| `overworld/9248738493917/-21/-19` | 201 | 179 | 62 |
+| `overworld/9248738493917/-45/63` | 201 | 96 | 81 |
+| `overworld/9248738493917/45/-63` | 201 | 96 | 81 |
+| `overworld/9248738493917/23/-12` | 140 | 183 | 94 |
+| `overworld/0/36/2` | 147 | 157 | 128 |
+
+### 形态：交叉点 / 走廊的三个出口里，两侧取中了不同的那个
+
+以 `-13/-7` 为例，`[0]`..`[6]` 的类型、包围盒、genDepth、方向字段**逐项完全一致**，
+分歧从第 7 个构件开始：
+
+```
+E[6] crossing [-200,-31,-190]-[-196,-29,-186] depth=6 dir=NORTH
+E[7] crossing [-205,-31,-190]-[-201,-29,-186] depth=7 dir=WEST     ← 西向出口
+A[7] crossing [-200,-31,-195]-[-196,-29,-191] depth=7 dir=NORTH    ← 北向出口
+```
+
+两侧 `[6]` 的包围盒、方向、深度都相同，按原版 NORTH 分支的出口表（N → W → E，顺序与
+Cubium 逐字一致）与同一张碰撞表复算，三个出口的成败应当相同；实测却一个取北、一个取西。
+
+按原版公式复算 `[6]` 的三个出口（交叉点模板 `(-1,0,-4)-(3,i,0)` 等，`i = nextInt(4)==0 ? 6 : 2`）：
+
+| 出口 | 传入点 | 交叉点候选盒 | 与已有构件相交 |
+|---|---|---|---|
+| 北 | `(-199,-31,-191)` | `(-200,-31,-195)-(-196,-29,-191)` | 否 |
+| 西 | `(-201,-31,-189)` | `(-202,-31,-193)-(-198,-29,-189)` | **是**（与 `[6]` 自身在 X 上重叠） |
+| 东 | `(-195,-31,-189)` | `(-196,-31,-193)-(-192,-29,-189)` | **是**（同上） |
+
+即按这份复算，**北向唯一可行、西向与东向都撞父构件自身**；原版却取中了西向。
+这与第二十二轮记录的矛盾是同一个：所有静态方法（源码、字节码、子集碰撞视图复现）都指向
+「北向应当成功」，而原版的实际输出不是。
+
+**在拿到运行时插桩证据之前，不应再在这一段做任何推理性修改。** 仓库内现有手段
+（`MineshaftPiecesOracle` 的反射读字段、`SubsetAccessor` 子集复现）都不足以区分
+「出口顺序不同」与「碰撞视图不同」，下一步必须上 `-javaagent` 改写
+`MineShaftCrossing.addChildren`，在每次 `generateAndAddPiece` 调用前打印实参与
+`findCollisionPiece` 的命中构件。
