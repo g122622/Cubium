@@ -696,6 +696,64 @@ inline f32 toYRot(Direction dir)
 }
 
 /**
+ * @brief 按视线方向把六个方向从「最接近」到「最远」排序，对应原版 `Direction.orderedByNearest`
+ *
+ * 视线向量是 `(-sin yaw·cos pitch, -sin pitch, cos yaw·cos pitch)`。实现不直接算点积，
+ * 而是先取三个轴上分量的**绝对值**（`f6`/`f7`/`f8`），再按大小关系分三种情况把
+ * 「主轴方向 → 次轴方向 → 第三轴方向」排好，最后补上各自的反向。
+ *
+ * 返回值恒为 6 项，且第 i 项与第 5-i 项互为反向——这是 `makeDirectionArray` 的构造方式决定的。
+ *
+ * @param yawDeg 视线偏航角（度），0=南、90=西、180=北、270=东
+ * @param pitchDeg 视线俯仰角（度），正=俯视、负=仰视
+ */
+[[nodiscard]] inline std::array<Direction, 6> orderedByNearest(f32 yawDeg, f32 pitchDeg)
+{
+    // 注意 f1 取负：原版 `-viewYRot`。yaw 的正负方向与「东为 +X」相反。
+    const f32 pitchRad = pitchDeg * math::DEG_TO_RAD;
+    const f32 yawRad = -yawDeg * math::DEG_TO_RAD;
+
+    const f32 sinPitch = math::mthSin(pitchRad);
+    const f32 cosPitch = math::mthCos(pitchRad);
+    const f32 sinYaw = math::mthSin(yawRad);
+    const f32 cosYaw = math::mthCos(yawRad);
+
+    const bool eastward = sinYaw > 0.0f;
+    const bool upward = sinPitch < 0.0f;
+    const bool southward = cosYaw > 0.0f;
+
+    // 取绝对值：比较的是各轴分量的大小，与正负无关。
+    const f32 absSinYaw = eastward ? sinYaw : -sinYaw;
+    const f32 absSinPitch = upward ? -sinPitch : sinPitch;
+    const f32 absCosYaw = southward ? cosYaw : -cosYaw;
+
+    // 水平分量还要乘上 cos(pitch)，才能与竖直分量在同一尺度上比较。
+    const f32 horizontalEast = absSinYaw * cosPitch;
+    const f32 horizontalSouth = absCosYaw * cosPitch;
+
+    const Direction xDir = eastward ? Direction::East : Direction::West;
+    const Direction yDir = upward ? Direction::Up : Direction::Down;
+    const Direction zDir = southward ? Direction::South : Direction::North;
+
+    const auto makeArray = [](Direction first, Direction second, Direction third) -> std::array<Direction, 6> {
+        return {first, second, third, opposite(third), opposite(second), opposite(first)};
+    };
+
+    if (absSinYaw > absCosYaw) {
+        // X 轴分量最大
+        if (absSinPitch > horizontalEast) {
+            return makeArray(yDir, xDir, zDir);
+        }
+        return horizontalSouth > absSinPitch ? makeArray(xDir, zDir, yDir) : makeArray(xDir, yDir, zDir);
+    }
+    // Z 轴分量最大
+    if (absSinPitch > horizontalSouth) {
+        return makeArray(yDir, zDir, xDir);
+    }
+    return horizontalEast > absSinPitch ? makeArray(zDir, xDir, yDir) : makeArray(zDir, yDir, xDir);
+}
+
+/**
  * @brief 按方向的轴取对应分量，对应原版 `Direction.Axis.choose(int, int, int)`
  *
  * 参数顺序是 (x, y, z)；取方向的轴再按轴选分量。例如 EAST 的轴是 X，返回 x。
