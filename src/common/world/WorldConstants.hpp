@@ -217,4 +217,85 @@ inline i32 toSectionLocalY(i32 y) noexcept
     return (y - MIN_BUILD_HEIGHT) % CHUNK_SECTION_HEIGHT;
 }
 
+// ============================================================================
+// SectionPos 语义：段坐标与方块坐标的互换、段坐标三元组的分位打包
+// ============================================================================
+
+/**
+ * @brief 方块坐标转段坐标，对应原版 `SectionPos.blockToSectionCoord(int)`
+ *
+ * 就是算术右移 4 位。对负数而言右移等价于向下取整除法，与正数一致；
+ * 用 `/` 而非 `>>` 会在负数上得到不同结果（向零截断），这里必须用右移。
+ */
+[[nodiscard]] inline i32 blockToSectionCoord(i32 blockCoord) noexcept
+{
+    return blockCoord >> 4;
+}
+
+/**
+ * @brief 浮点方块坐标转段坐标，对应原版 `SectionPos.blockToSectionCoord(double)`
+ *
+ * 先向下取整再右移。注意 `floor` 在前——直接对负数截断再右移会差一格。
+ */
+[[nodiscard]] inline i32 blockToSectionCoord(f64 blockCoord) noexcept
+{
+    return static_cast<i32>(static_cast<i64>(std::floor(blockCoord)) >> 4);
+}
+
+/**
+ * @brief 段坐标转方块坐标，对应原版 `SectionPos.sectionToBlockCoord(int)`
+ */
+[[nodiscard]] inline i32 sectionToBlockCoord(i32 sectionCoord) noexcept
+{
+    return sectionCoord << 4;
+}
+
+/**
+ * @brief 段坐标转方块坐标并加偏移，对应原版 `SectionPos.sectionToBlockCoord(int, int)`
+ */
+[[nodiscard]] inline i32 sectionToBlockCoord(i32 sectionCoord, i32 offset) noexcept
+{
+    return sectionToBlockCoord(sectionCoord) + offset;
+}
+
+/**
+ * @brief 段坐标三元组打包成 64 位，对应原版 `SectionPos.asLong(int, int, int)`
+ *
+ * 布局：X 占 bit 42..63，Z 占 bit 20..41，Y 占 bit 0..19。X/Z 各 22 位、Y 20 位。
+ */
+[[nodiscard]] inline i64 sectionPosAsLong(i32 x, i32 y, i32 z) noexcept
+{
+    constexpr i64 XZ_MASK = 4194303LL; // 22 位
+    constexpr i64 Y_MASK = 1048575LL;  // 20 位
+    i64 packed = 0;
+    packed |= (static_cast<i64>(x) & XZ_MASK) << 42;
+    packed |= (static_cast<i64>(y) & Y_MASK);
+    packed |= (static_cast<i64>(z) & XZ_MASK) << 20;
+    return packed;
+}
+
+/**
+ * @brief 从打包值取出段 X，对应原版 `SectionPos.x(long)`
+ */
+[[nodiscard]] inline i32 sectionPosX(i64 packed) noexcept
+{
+    return static_cast<i32>(packed << 0 >> 42);
+}
+
+/**
+ * @brief 从打包值取出段 Y，对应原版 `SectionPos.y(long)`
+ */
+[[nodiscard]] inline i32 sectionPosY(i64 packed) noexcept
+{
+    return static_cast<i32>(packed << 44 >> 44);
+}
+
+/**
+ * @brief 从打包值取出段 Z，对应原版 `SectionPos.z(long)`
+ */
+[[nodiscard]] inline i32 sectionPosZ(i64 packed) noexcept
+{
+    return static_cast<i32>(packed << 22 >> 42);
+}
+
 } // namespace mc::world
