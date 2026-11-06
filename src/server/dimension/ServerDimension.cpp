@@ -141,8 +141,11 @@ void ServerDimension::shutdown()
     m_chunkSendManager->shutdown();
     // 世界仍持有裸指针，解绑后再释放，避免之后任何访问走到悬垂对象。
     m_world->chunkManager()->setChunkSendManager(nullptr);
-    // 断开管理器自持的生命周期守卫：在途构建任务持有它的共享引用，销毁时机交给最后一个
-    // 持有者，而不是被拖到计算池或非预期的析构链上。
+
+    // 先关闭本维度的区域调度器（不再接纳新任务、取消排队任务、等待在途任务结束），再销毁
+    // 管理器：构建任务完成回调之前任务体已被调度器释放，所以在途任务是常态；排空后本维度
+    // 不再有任何引用管理器的任务在计算池里跑，销毁时机也就完全确定。
+    m_world->chunkManager()->areaTasks().shutdown();
     m_chunkSendManager->releaseLifetimeGuard();
     m_chunkSendManager.reset();
 
