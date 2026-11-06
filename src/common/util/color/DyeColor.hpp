@@ -97,37 +97,37 @@ enum class DyeColor : u8 {
 {
     switch (color) {
         case DyeColor::White:
-            return 0xF0F0F0;
+            return 15790320U;
         case DyeColor::Orange:
-            return 0xEB8844;
+            return 15435844U;
         case DyeColor::Magenta:
-            return 0xC354CD;
+            return 12801229U;
         case DyeColor::LightBlue:
-            return 0x6689D3;
+            return 6719955U;
         case DyeColor::Yellow:
-            return 0xDECF2A;
+            return 14602026U;
         case DyeColor::Lime:
-            return 0x41CD34;
+            return 4312372U;
         case DyeColor::Pink:
-            return 0xD88198;
+            return 14188952U;
         case DyeColor::Gray:
-            return 0x434343;
+            return 4408131U;
         case DyeColor::LightGray:
-            return 0xABABAB;
+            return 11250603U;
         case DyeColor::Cyan:
-            return 0x287697;
+            return 2651799U;
         case DyeColor::Purple:
-            return 0x7B2FBE;
+            return 8073150U;
         case DyeColor::Blue:
-            return 0x253192;
+            return 2437522U;
         case DyeColor::Brown:
-            return 0x51301A;
+            return 5320730U;
         case DyeColor::Green:
-            return 0x3B511A;
+            return 3887386U;
         case DyeColor::Red:
-            return 0xB3312C;
+            return 11743532U;
         case DyeColor::Black:
-            return 0x1E1B1B;
+            return 1973019U;
         default:
             return 0xF0F0F0;
     }
@@ -198,6 +198,86 @@ enum class DyeColor : u8 {
         }
     }
     return std::nullopt;
+}
+
+/**
+ * @brief 按 id 取染料，对应原版 `DyeColor.byId`
+ *
+ * 原版用 `ByIdMap.continuous(..., OutOfBoundsStrategy.ZERO)`——越界一律返回
+ * **下标 0（WHITE）**，不是按 16 取模回绕。负数同样落到 WHITE。
+ *
+ * 注意这与 `Rotation.BY_ID` 的 WRAP 策略不同：不同枚举选的越界策略并不统一。
+ */
+[[nodiscard]] constexpr DyeColor dyeColorById(i32 id) noexcept
+{
+    constexpr i32 COUNT = static_cast<i32>(DyeColor::Count);
+    return (id >= 0 && id < COUNT) ? static_cast<DyeColor>(id) : static_cast<DyeColor>(0);
+}
+
+/**
+ * @brief 按序列化名取染料，对应原版 `DyeColor.byName`
+ *
+ * 严格匹配小写序列化名；找不到时返回调用方给的默认值。
+ */
+[[nodiscard]] constexpr std::optional<DyeColor> dyeColorByName(std::string_view name) noexcept
+{
+    for (u8 i = 0; i < static_cast<u8>(DyeColor::Count); ++i) {
+        const auto color = static_cast<DyeColor>(i);
+        if (dyeColorName(color) == name) {
+            return color;
+        }
+    }
+    return std::nullopt;
+}
+
+/**
+ * @brief 染料对应的文字色（vanilla DyeColor.getTextColor()）
+ *
+ * 注意这个名字有歧义：它不是"用该染料染出的皮革/羊毛色"，而是
+ * **聊天与告示牌上显示该颜色名字时用的十六进制颜色码**（如 WHITE → 0xFFFFF）。
+ *
+ * 与 [[dyeTextureDiffuseColor]]（材质底色）、[[dyeFireworkColor]]（烟花色）都不同，
+ * 三者两两互不相等。
+ */
+[[nodiscard]] constexpr u32 dyeTextColor(DyeColor color) noexcept
+{
+    switch (color) {
+        case DyeColor::White:
+            return 16777215U;
+        case DyeColor::Orange:
+            return 16738335U;
+        case DyeColor::Magenta:
+            return 16711935U;
+        case DyeColor::LightBlue:
+            return 10141901U;
+        case DyeColor::Yellow:
+            return 16776960U;
+        case DyeColor::Lime:
+            return 12582656U;
+        case DyeColor::Pink:
+            return 16738740U;
+        case DyeColor::Gray:
+            return 8421504U;
+        case DyeColor::LightGray:
+            return 13882323U;
+        case DyeColor::Cyan:
+            return 65535U;
+        case DyeColor::Purple:
+            return 10494192U;
+        case DyeColor::Blue:
+            return 255U;
+        case DyeColor::Brown:
+            return 9127187U;
+        case DyeColor::Green:
+            return 65280U;
+        case DyeColor::Red:
+            return 16711680U;
+        case DyeColor::Black:
+            return 0U;
+        case DyeColor::Count:
+            break;
+    }
+    return 0x000000;
 }
 
 } // namespace mc
