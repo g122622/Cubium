@@ -118,6 +118,39 @@ inline Rotation add(Rotation a, Rotation b)
 }
 
 /**
+ * @brief 把另一个旋转叠加到本旋转上，对应原版 `Rotation.getRotated`
+ *
+ * 本质是四元群的加法：四个旋转映射到 0/1/2/3，相加后对 4 取模。
+ * 原版用四层 switch 手工写死 16 种组合，这里用取模得到同样结果——
+ * **枚举值必须保持 0/1/2/3 的顺序**，否则这个等价关系不成立。
+ */
+inline Rotation getRotated(Rotation self, Rotation other)
+{
+    return add(self, other);
+}
+
+/**
+ * @brief 旋转一个环形索引，对应原版 `Rotation.rotate(int, int)`
+ *
+ * 注意用的是 **C++ 的 `%`（向零截断）而不是 `positiveModulo`**——原版这里就是
+ * 普通 `%`，因此值为负时结果也可能为负。另外 `modulus * 3 / 4` 是**先乘后除**，
+ * 不能写成 `modulus / 4 * 3`（对 5、6 这类模数结果不同）。
+ */
+inline i32 rotate(Rotation rot, i32 value, i32 modulus)
+{
+    switch (rot) {
+        case Rotation::Clockwise90:
+            return (value + modulus / 4) % modulus;
+        case Rotation::Clockwise180:
+            return (value + modulus / 2) % modulus;
+        case Rotation::CounterClockwise90:
+            return (value + modulus * 3 / 4) % modulus;
+        default:
+            return value;
+    }
+}
+
+/**
  * @brief 获取旋转的逆
  */
 constexpr Rotation getInverse(Rotation rot)
@@ -342,6 +375,36 @@ inline Direction rotateY(Direction dir)
         return Direction::North;
     }
     return dir;
+}
+
+/**
+ * @brief 水平面逆时针旋转，对应原版 `Direction.getCounterClockWise()`
+ *
+ * 竖直方向（Up/Down）原样返回——它们不在水平面内，没有顺/逆时针之分。
+ */
+inline Direction getCounterClockWise(Direction dir)
+{
+    if (dir == Direction::North) {
+        return Direction::West;
+    }
+    if (dir == Direction::West) {
+        return Direction::South;
+    }
+    if (dir == Direction::South) {
+        return Direction::East;
+    }
+    if (dir == Direction::East) {
+        return Direction::North;
+    }
+    return dir;
+}
+
+/**
+ * @brief 水平面顺时针旋转的别名，对应原版 `Direction.getClockWise()`
+ */
+inline Direction getClockWise(Direction dir)
+{
+    return rotateY(dir);
 }
 
 /**
@@ -705,7 +768,33 @@ inline Direction fromYRot(f64 yaw)
     const i32 value = TWO_D_TO_THREE_D[data];
     return static_cast<Direction>(value);
 }
+
 } // namespace Directions
+
+/**
+ * @brief 旋转一个朝向，对应原版 `Rotation.rotate(Direction)`
+ *
+ * 竖直方向（Up/Down）不受水平旋转影响，原样返回。
+ */
+inline Direction rotate(Rotation rot, Direction dir)
+{
+    // 竖直方向不在水平面内，任何水平旋转都不改变它。
+    // 这一条必须最先判断：CW180 走的是 opposite()，若不先拦下会把 Up/Down 互换。
+    if (Directions::getAxis(dir) == Axis::Y) {
+        return dir;
+    }
+    switch (rot) {
+        case Rotation::None:
+            return dir;
+        case Rotation::Clockwise90:
+            return Directions::getClockWise(dir);
+        case Rotation::Clockwise180:
+            return Directions::opposite(dir);
+        case Rotation::CounterClockwise90:
+            return Directions::getCounterClockWise(dir);
+    }
+    return dir;
+}
 
 /**
  * @brief Axis工具函数
