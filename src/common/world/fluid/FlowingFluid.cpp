@@ -298,7 +298,7 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos, const Fl
         }
 
         f32 heightDelta = 0.0f;
-        f32 neighborHeight = neighborFluid->getHeight();
+        f32 neighborHeight = neighborFluid->getOwnHeight();
         if (neighborHeight == 0.0f) {
             const BlockState* neighborBlock = world.getBlockState(samplePos);
             if (neighborBlock != nullptr && neighborBlock->owner().material().blocksMovement()) {
@@ -308,15 +308,15 @@ Vector3 FlowingFluid::getFlow(IBlockReader& world, const BlockPos& pos, const Fl
             BlockPos belowPos = samplePos.down();
             const FluidState* belowFluid = world.getFluidState(belowPos);
             if (belowFluid != nullptr && isSameOrEmpty(*belowFluid)) {
-                neighborHeight = belowFluid->getHeight();
+                neighborHeight = belowFluid->getOwnHeight();
                 if (neighborHeight > 0.0f) {
                     // SOURCE_LEVEL/MAX_AMOUNT ≈ 0.889，表示下落流体的额外高度偏移
-                    heightDelta = state.getHeight() -
+                    heightDelta = state.getOwnHeight() -
                         (neighborHeight - static_cast<f32>(SOURCE_LEVEL) / static_cast<f32>(MAX_AMOUNT));
                 }
             }
         } else {
-            heightDelta = state.getHeight() - neighborHeight;
+            heightDelta = state.getOwnHeight() - neighborHeight;
         }
 
         if (heightDelta != 0.0f) {

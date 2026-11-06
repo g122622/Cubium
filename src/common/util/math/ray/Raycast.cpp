@@ -417,8 +417,10 @@ BlockRaycastResult raycastFluidSource(const RaycastContext& context, const IWorl
             return CellResult::Blocked;
         }
         // 流体碰撞形状：水平铺满整格，高度按液体量缩放
+        // 必须用 getActualHeight：上方有同类流体时该格是满高度 1.0，
+        // 只调 getHeight() 会得到 8/9，射线会从水面与方块顶之间的缝隙穿过。
         CollisionShape shape;
-        shape.addBox(0.0f, 0.0f, 0.0f, 1.0f, fluidState->getHeight(), 1.0f);
+        shape.addBox(0.0f, 0.0f, 0.0f, 1.0f, fluidState->getActualHeight(world, pos), 1.0f);
         if (!traceShapeBoxes(shape, pos, adjustedStart, ddaDelta, start, out.hitPos, out.face, out.distance)) {
             // 射线几何上未穿过该流体形状（例如擦过未满方块液面的上沿），继续前进
             return CellResult::None;

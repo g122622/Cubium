@@ -141,7 +141,7 @@ public:
      *
      * @return 高度 (0.0-1.0)
      */
-    [[nodiscard]] f32 getHeight() const;
+    [[nodiscard]] f32 getOwnHeight() const;
 
     /**
      * @brief 获取实际高度（考虑下方流体）
@@ -150,7 +150,7 @@ public:
      * @param pos 位置
      * @return 实际高度
      */
-    [[nodiscard]] f32 getActualHeight(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] f32 getActualHeight(const IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 是否为空流体

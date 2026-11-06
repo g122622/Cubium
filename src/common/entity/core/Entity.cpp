@@ -1184,8 +1184,11 @@ void Entity::updateEnvironmentState()
                 }
 
                 // 计算流体高度
-                // MC: (f32)y + fluidState.getActualHeight()
-                f32 fluidTopY = static_cast<f32>(y) + fluidState->getHeight();
+                // 必须用 getActualHeight：上方有同类流体时该格是满高度 1.0，
+                // 只调 getHeight() 会得到 8/9，导致实体浮在略低于水面的位置。
+                f32 fluidTopY = static_cast<f32>(y) +
+                    (m_world != nullptr ? fluidState->getActualHeight(*m_world, BlockPos(x, y, z))
+                                        : fluidState->getOwnHeight());
 
                 // 检查流体是否在碰撞箱内
                 if (fluidTopY > box.minY) {
