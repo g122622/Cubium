@@ -550,8 +550,6 @@ void ServerWorld::shutdown()
     spdlog::info("Server world shut down");
 }
 
-ServerWorld::_EnvironmentAttributes::~_EnvironmentAttributes() = default;
-
 void ServerWorld::setSharedStorage(world::storage::SingleLevelStorageManager* storage)
 {
     MC_ASSERT_RELEASE(!m_initialized);
