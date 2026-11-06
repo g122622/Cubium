@@ -166,9 +166,109 @@ std::string toName(TextFormatting formatting)
 u32 Style::getColorARGB() const noexcept
 {
     if (m_color.has_value()) {
-        return getFormattingColor(*m_color);
+        return 0xFF000000U | static_cast<u32>(m_color->value());
     }
     return 0xFFFFFFFF; // 默认白色
+}
+
+std::optional<TextFormatting> Style::getColor() const noexcept
+{
+    if (!m_color.has_value()) {
+        return std::nullopt;
+    }
+    // 具名颜色才能映射回 TextFormatting；自定义 RGB 没有对应的枚举值
+    if (!m_color->name().has_value()) {
+        return std::nullopt;
+    }
+    const TextFormatting formatting = fromName(*m_color->name());
+    return formatting == TextFormatting::None ? std::nullopt : std::optional<TextFormatting>{formatting};
+}
+
+Style Style::applyFormat(TextFormatting formatting) const
+{
+    Style result = *this;
+    switch (formatting) {
+        case TextFormatting::Obfuscated:
+            result.m_obfuscated = true;
+            break;
+        case TextFormatting::Bold:
+            result.m_bold = true;
+            break;
+        case TextFormatting::Strikethrough:
+            result.m_strikethrough = true;
+            break;
+        case TextFormatting::Underline:
+            result.m_underlined = true;
+            break;
+        case TextFormatting::Italic:
+            result.m_italic = true;
+            break;
+        case TextFormatting::Reset:
+            return Style();
+        default:
+            result.m_color = TextColor::fromLegacyFormat(formatting);
+            break;
+    }
+    return result;
+}
+
+Style Style::applyLegacyFormat(TextFormatting formatting) const
+{
+    Style result = *this;
+    switch (formatting) {
+        case TextFormatting::Obfuscated:
+            result.m_obfuscated = true;
+            break;
+        case TextFormatting::Bold:
+            result.m_bold = true;
+            break;
+        case TextFormatting::Strikethrough:
+            result.m_strikethrough = true;
+            break;
+        case TextFormatting::Underline:
+            result.m_underlined = true;
+            break;
+        case TextFormatting::Italic:
+            result.m_italic = true;
+            break;
+        case TextFormatting::Reset:
+            return Style();
+        default:
+            // § 语义：换颜色等同开新段落，旧的样式标志一并作废
+            result.m_obfuscated = false;
+            result.m_bold = false;
+            result.m_strikethrough = false;
+            result.m_underlined = false;
+            result.m_italic = false;
+            result.m_color = TextColor::fromLegacyFormat(formatting);
+            break;
+    }
+    return result;
+}
+
+Style Style::applyTo(const Style& other) const
+{
+    if (isEmpty()) {
+        return other;
+    }
+    if (other.isEmpty()) {
+        return *this;
+    }
+
+    Style result;
+    // 本样式优先，other 兜底
+    result.m_color = m_color.has_value() ? m_color : other.m_color;
+    const auto pick = [](const std::optional<bool>& primary, const std::optional<bool>& fallback) {
+        return primary.has_value() ? primary : fallback;
+    };
+    result.m_bold = pick(m_bold, other.m_bold);
+    result.m_italic = pick(m_italic, other.m_italic);
+    result.m_underlined = pick(m_underlined, other.m_underlined);
+    result.m_strikethrough = pick(m_strikethrough, other.m_strikethrough);
+    result.m_obfuscated = pick(m_obfuscated, other.m_obfuscated);
+    result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : other.m_clickEvent;
+    result.m_hoverEvent = m_hoverEvent.has_value() ? m_hoverEvent : other.m_hoverEvent;
+    return result;
 }
 
 Style Style::mergeWithParent(const Style& parent) const noexcept
@@ -215,17 +315,7 @@ nlohmann::json Style::toJson() const
         //
         // 一律写十六进制是错的：原版 JSON（以及由原版解析的文本组件）里 `"color":"red"`
         // 与 `"color":"#FF5555"` 语义等价但**文本不等**，存档/网络逐字节比对会不一致。
-        const std::optional<u32> argb = findFormattingARGB(*m_color);
-        if (argb.has_value()) {
-            const std::string colorName = toName(*m_color);
-            if (!colorName.empty()) {
-                json["color"] = colorName;
-            } else {
-                char buffer[8];
-                std::snprintf(buffer, sizeof(buffer), "#%06X", static_cast<unsigned>(*argb & 0xFFFFFFu));
-                json["color"] = buffer;
-            }
-        }
+        json["color"] = m_color->serialize();
     }
     // 三态：显式 false 也要写出来（`"italic": false`）。原版存档里它与「没写」是两种值。
     if (m_bold.has_value()) {
@@ -267,14 +357,15 @@ Style Style::fromJson(const nlohmann::json& json)
             style.m_color = std::nullopt;
             for (const auto& entry : FORMATTING_TABLE) {
                 if ((entry.color & 0xFFFFFFu) == rgb) {
-                    style.m_color = entry.formatting;
+                    style.m_color = TextColor::fromLegacyFormat(entry.formatting);
                     break;
                 }
             }
             // TODO: Cubium 的 Style 用 TextFormatting 枚举表达能力有限，
             // 无法存储任意 RGB（如 "#123456"）。待 Style 改为持有 RGB 后再支持。
         } else {
-            style.m_color = fromName(text);
+            const TextFormatting parsed = fromName(std::string(text));
+            style.m_color = parsed == TextFormatting::None ? std::nullopt : TextColor::fromLegacyFormat(parsed);
         }
     }
     if (json.contains("bold") && json["bold"].is_boolean()) {

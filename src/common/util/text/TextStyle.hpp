@@ -223,21 +223,43 @@ public:
     // ========== 颜色 ==========
 
     /**
-     * @brief 获取颜色
-     * @return 颜色格式化类型，未设置返回 nullopt
+     * @brief 获取颜色（`TextColor` 形式）
+     *
+     * 这是完整形式，能同时承载具名色与自定义 RGB。
      */
-    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept
+    [[nodiscard]] const std::optional<TextColor>& getTextColor() const noexcept
     {
         return m_color;
     }
 
     /**
-     * @brief 设置颜色
-     * @param color 颜色格式化类型
+     * @brief 获取具名颜色
+     *
+     * 颜色是自定义 RGB（非具名）时返回 `std::nullopt`——那些值没有对应的
+     * `TextFormatting`。需要拿到任意颜色请用 `getTextColor()`。
+     */
+    [[nodiscard]] std::optional<TextFormatting> getColor() const noexcept;
+
+    /**
+     * @brief 设置颜色（`TextColor` 形式）
+     */
+    void setTextColor(std::optional<TextColor> color) noexcept
+    {
+        m_color = std::move(color);
+    }
+
+    /**
+     * @brief 设置具名颜色
+     *
+     * 传 `std::nullopt` 表示清除颜色。
      */
     void setColor(std::optional<TextFormatting> color) noexcept
     {
-        m_color = color;
+        if (!color.has_value()) {
+            m_color = std::nullopt;
+            return;
+        }
+        m_color = TextColor::fromLegacyFormat(*color);
     }
 
     /**
@@ -378,6 +400,37 @@ public:
      */
     [[nodiscard]] Style mergeWithParent(const Style& parent) const noexcept;
 
+    // ========== 格式化套用 ==========
+
+    /**
+     * @brief 套用一个格式码，对应原版 `Style.applyFormat`
+     *
+     * 样式码（加粗、斜体、删除线、下划线、混淆）只把对应标志置 true，**不动其他标志**；
+     * 颜色码只替换颜色；`Reset` 返回空样式。
+     *
+     * 注意这里与 `applyLegacyFormat` 的唯一区别：**处理颜色时不清除已有的样式标志**。
+     */
+    [[nodiscard]] Style applyFormat(TextFormatting formatting) const;
+
+    /**
+     * @brief 按旧版 § 码语义套用格式，对应原版 `Style.applyLegacyFormat`
+     *
+     * 与 `applyFormat` 几乎相同，唯一区别在**颜色码分支**：这里会把五个样式标志
+     * **全部置 false**，因为 § 语义下换颜色等同于开启一个新段落，旧的加粗/斜体等
+     * 一并作废。样式码分支的行为两者完全一致（只置 true，不动其他）。
+     */
+    [[nodiscard]] Style applyLegacyFormat(TextFormatting formatting) const;
+
+    /**
+     * @brief 以本样式为**父**、把它的未设置项填到 `other` 上，对应原版 `Style.applyTo`
+     *
+     * 语义是「本样式优先，`other` 兜底」：本样式显式设置过的项保持不变，未设置的项
+     * 取 `other` 的值。
+     *
+     * 两处短路：本样式为空时直接返回 `other`；`other` 为空时直接返回本样式。
+     */
+    [[nodiscard]] Style applyTo(const Style& other) const;
+
     /**
      * @brief 检查样式是否为空（所有属性未设置）
      * @return 如果所有属性都是默认值返回 true
@@ -418,7 +471,7 @@ public:
     }
 
 private:
-    std::optional<TextFormatting> m_color;
+    std::optional<TextColor> m_color;
     std::optional<bool> m_bold;
     std::optional<bool> m_italic;
     std::optional<bool> m_underlined;
