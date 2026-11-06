@@ -143,11 +143,74 @@ public:
         return (maxX - minX) * (maxY - minY) * (maxZ - minZ);
     }
 
+    /**
+     * @brief X 方向边长，对应原版 `AABB.getXsize`
+     */
+    [[nodiscard]] f32 getXsize() const noexcept
+    {
+        return maxX - minX;
+    }
+
+    /**
+     * @brief Y 方向边长，对应原版 `AABB.getYsize`
+     */
+    [[nodiscard]] f32 getYsize() const noexcept
+    {
+        return maxY - minY;
+    }
+
+    /**
+     * @brief Z 方向边长，对应原版 `AABB.getZsize`
+     */
+    [[nodiscard]] f32 getZsize() const noexcept
+    {
+        return maxZ - minZ;
+    }
+
+    /**
+     * @brief 三边长的算术平均，对应原版 `AABB.getSize`
+     *
+     * 注意是**算术平均**而不是几何平均或最长边，且除以的常量是 `3.0`。
+     */
+    [[nodiscard]] f32 getSize() const noexcept
+    {
+        return (getXsize() + getYsize() + getZsize()) / 3.0f;
+    }
+
     // 相交检测
     [[nodiscard]] bool intersects(const AxisAlignedBB& other) const noexcept
     {
         return minX < other.maxX && maxX > other.minX && minY < other.maxY && maxY > other.minY && minZ < other.maxZ &&
             maxZ > other.minZ;
+    }
+
+    /**
+     * @brief 两个 AABB 的交集，对应原版 `AABB.intersect`
+     *
+     * 注意构造时会再次归一化：若两盒不相交，结果会被压成一个「翻转」的盒，
+     * min > max，而不是返回空盒。调用方需自行用 `intersects` 判断有效性。
+     */
+    [[nodiscard]] AxisAlignedBB intersect(const AxisAlignedBB& other) const noexcept
+    {
+        return AxisAlignedBB(std::max(minX, other.minX),
+            std::max(minY, other.minY),
+            std::max(minZ, other.minZ),
+            std::min(maxX, other.maxX),
+            std::min(maxY, other.maxY),
+            std::min(maxZ, other.maxZ));
+    }
+
+    /**
+     * @brief 包住两个 AABB 的最小盒，对应原版 `AABB.minmax`
+     */
+    [[nodiscard]] AxisAlignedBB minmax(const AxisAlignedBB& other) const noexcept
+    {
+        return AxisAlignedBB(std::min(minX, other.minX),
+            std::min(minY, other.minY),
+            std::min(minZ, other.minZ),
+            std::max(maxX, other.maxX),
+            std::max(maxY, other.maxY),
+            std::max(maxZ, other.maxZ));
     }
 
     /**
@@ -271,6 +334,17 @@ public:
      *
      * @param amount 各方向膨胀量
      */
+    /**
+     * @brief 三轴分别膨胀 AABB，对应原版 `AABB.inflate(f64, f64, f64)`
+     *
+     * min 减、max
+     * 加。负值即收缩。构造时归一化，因此收缩过度会翻转成 min > max。
+     */
+    [[nodiscard]] AxisAlignedBB inflate(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        return AxisAlignedBB(minX - dx, minY - dy, minZ - dz, maxX + dx, maxY + dy, maxZ + dz);
+    }
+
     [[nodiscard]] AxisAlignedBB inflate(f32 amount) const noexcept
     {
         return expand(amount, amount, amount);
