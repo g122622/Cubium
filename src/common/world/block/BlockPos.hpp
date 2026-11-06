@@ -38,6 +38,7 @@
 #include <functional>
 #include <string>
 #include <tuple>
+#include <vector>
 
 namespace mc {
 
@@ -642,6 +643,59 @@ public:
     }
 };
 
+/**
+ * @brief 闭区间内所有方块坐标，对应原版 `BlockPos.betweenClosed`
+ *
+ * **迭代顺序是 X 最内层、Z 最外层**：
+ *
+ * ```
+ * for (i = 0..sizeX) for (j = 0..sizeY) for (k = 0..sizeZ) yield (minX+i, minY+j, minZ+k)
+ * ```
+ *
+ * 这个顺序不是随手定的——依赖它的代码（如按体积顺序放置方块、逐层扫描）会因顺序不同而
+ * 产生不同结果。注意 X 变化**最快**，Z 变化**最慢**。
+ *
+ * @param x1,y1,z1 一个角点
+ * @param x2,y2,z2 对角点（与前者大小关系不限，内部会归一化）
+ * @return 按上述顺序排列的坐标列表
+ */
+[[nodiscard]] inline std::vector<BlockPos> blockPosBetweenClosed(i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2)
+{
+    const i32 minX = std::min(x1, x2);
+    const i32 minY = std::min(y1, y2);
+    const i32 minZ = std::min(z1, z2);
+    const i32 maxX = std::max(x1, x2);
+    const i32 maxY = std::max(y1, y2);
+    const i32 maxZ = std::max(z1, z2);
+
+    const i32 sizeX = maxX - minX + 1;
+    const i32 sizeY = maxY - minY + 1;
+    const i32 sizeZ = maxZ - minZ + 1;
+
+    std::vector<BlockPos> result;
+    result.reserve(static_cast<size_t>(sizeX) * static_cast<size_t>(sizeY) * static_cast<size_t>(sizeZ));
+    for (i32 k = 0; k < sizeZ; ++k) {
+        for (i32 j = 0; j < sizeY; ++j) {
+            for (i32 i = 0; i < sizeX; ++i) {
+                result.emplace_back(minX + i, minY + j, minZ + k);
+            }
+        }
+    }
+    return result;
+}
+
+/**
+ * @brief 闭区间内方块坐标的个数，对应原版 `BlockPos.betweenClosed` 的 `size()`
+ *
+ * 用 `i64` 计算，避免大体积溢出。
+ */
+[[nodiscard]] inline i64 blockPosBetweenClosedCount(i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2)
+{
+    const i64 sizeX = static_cast<i64>(std::abs(static_cast<i64>(x2) - x1)) + 1;
+    const i64 sizeY = static_cast<i64>(std::abs(static_cast<i64>(y2) - y1)) + 1;
+    const i64 sizeZ = static_cast<i64>(std::abs(static_cast<i64>(z2) - z1)) + 1;
+    return sizeX * sizeY * sizeZ;
+}
 } // namespace mc
 
 // 哈希函数支持
