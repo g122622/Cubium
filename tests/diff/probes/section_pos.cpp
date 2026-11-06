@@ -115,6 +115,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
 
 #include "probe.hpp"
 
@@ -127,58 +128,6 @@ constexpr i32 SECTION_MASK = 15;
 constexpr i32 SECTION_SIZE = 16;
 constexpr i64 XZ_MASK = 4194303L; // 0x3FFFFF，22 位
 constexpr i64 Y_MASK = 1048575L;  // 0xFFFFF，20 位
-
-/// 原版 `SectionPos.blockToSectionCoord(int)`：算术右移。
-i32 blockToSectionCoord(i32 blockCoord)
-{
-    return blockCoord >> 4;
-}
-
-/// 原版 `SectionPos.blockToSectionCoord(double)`：先 floor 再右移。
-i32 blockToSectionCoordDouble(f64 blockCoord)
-{
-    return static_cast<i32>(static_cast<i64>(std::floor(blockCoord)) >> 4);
-}
-
-/// 原版 `SectionPos.sectionToBlockCoord(int)`。
-i32 sectionToBlockCoord(i32 sectionCoord)
-{
-    return sectionCoord << 4;
-}
-
-/// 原版 `SectionPos.sectionToBlockCoord(int, int)`。
-i32 sectionToBlockCoordOffset(i32 sectionCoord, i32 offset)
-{
-    return sectionToBlockCoord(sectionCoord) + offset;
-}
-
-/// 原版 `SectionPos.asLong(int, int, int)`。
-i64 asLong(i32 x, i32 y, i32 z)
-{
-    i64 packed = 0;
-    packed |= (static_cast<i64>(x) & XZ_MASK) << 42;
-    packed |= (static_cast<i64>(y) & Y_MASK) << 0;
-    packed |= (static_cast<i64>(z) & XZ_MASK) << 20;
-    return packed;
-}
-
-/// 原版 `SectionPos.x(long)`：`(int)(packed << 0 >> 42)`。
-i32 decodeX(i64 packed)
-{
-    return static_cast<i32>(packed << 0 >> 42);
-}
-
-/// 原版 `SectionPos.y(long)`：`(int)(packed << 44 >> 44)`。
-i32 decodeY(i64 packed)
-{
-    return static_cast<i32>(packed << 44 >> 44);
-}
-
-/// 原版 `SectionPos.z(long)`：`(int)(packed << 22 >> 42)`。
-i32 decodeZ(i64 packed)
-{
-    return static_cast<i32>(packed << 22 >> 42);
-}
 
 void writeList(FILE* out)
 {
@@ -267,23 +216,23 @@ std::string runLine(std::string_view inputLine)
 
     if (mode == "blockToSection" && parts.size() == 2) {
         const i32 value = static_cast<i32>(std::stoll(parts[1]));
-        return json{{"unit", unit}, {"value", blockToSectionCoord(value)}}.dump();
+        return json{{"unit", unit}, {"value", world::blockToSectionCoord(value)}}.dump();
     }
     if (mode == "blockToSectionD" && parts.size() == 2) {
         const f64 value = std::stod(parts[1]);
-        return json{{"unit", unit}, {"value", blockToSectionCoordDouble(value)}}.dump();
+        return json{{"unit", unit}, {"value", world::blockToSectionCoord(value)}}.dump();
     }
     if (mode == "sectionToBlock" && parts.size() == 2) {
         const i32 value = static_cast<i32>(std::stoll(parts[1]));
-        return json{{"unit", unit}, {"value", sectionToBlockCoord(value)}}.dump();
+        return json{{"unit", unit}, {"value", world::sectionToBlockCoord(value)}}.dump();
     }
     if (mode == "sectionToBlockOff" && parts.size() == 3) {
         const i32 section = static_cast<i32>(std::stoll(parts[1]));
         const i32 offset = std::stoi(parts[2]);
-        return json{{"unit", unit}, {"value", sectionToBlockCoordOffset(section, offset)}}.dump();
+        return json{{"unit", unit}, {"value", world::sectionToBlockCoord(section, offset)}}.dump();
     }
     if (mode == "asLong" && parts.size() == 4) {
-        const i64 packed = asLong(static_cast<i32>(std::stoll(parts[1])),
+        const i64 packed = world::sectionPosAsLong(static_cast<i32>(std::stoll(parts[1])),
             static_cast<i32>(std::stoll(parts[2])),
             static_cast<i32>(std::stoll(parts[3])));
         // 长整型必须按字符串输出——JS 安全整数上限是 2^53。
@@ -291,17 +240,17 @@ std::string runLine(std::string_view inputLine)
     }
     if (mode == "decode" && parts.size() == 2) {
         const i64 packed = std::stoll(parts[1]);
-        const std::string decoded = std::to_string(decodeX(packed)) + "," + std::to_string(decodeY(packed)) + "," +
-            std::to_string(decodeZ(packed));
+        const std::string decoded = std::to_string(world::sectionPosX(packed)) + "," +
+            std::to_string(world::sectionPosY(packed)) + "," + std::to_string(world::sectionPosZ(packed));
         return json{{"unit", unit}, {"value", decoded}}.dump();
     }
     if (mode == "roundtrip" && parts.size() == 4) {
         const i32 x = static_cast<i32>(std::stoll(parts[1]));
         const i32 y = static_cast<i32>(std::stoll(parts[2]));
         const i32 z = static_cast<i32>(std::stoll(parts[3]));
-        const i64 packed = asLong(x, y, z);
-        const std::string decoded = std::to_string(decodeX(packed)) + "," + std::to_string(decodeY(packed)) + "," +
-            std::to_string(decodeZ(packed));
+        const i64 packed = world::sectionPosAsLong(x, y, z);
+        const std::string decoded = std::to_string(world::sectionPosX(packed)) + "," +
+            std::to_string(world::sectionPosY(packed)) + "," + std::to_string(world::sectionPosZ(packed));
         return json{{"unit", unit}, {"value", decoded}}.dump();
     }
 
