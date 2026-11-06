@@ -1703,12 +1703,9 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
 
     // 尝试最多 5 次
     for (i32 attempt = 0; attempt < 5; ++attempt) {
-        // 每次尝试都重算可用权重：被上限挡住的类型不能继续参与抽签。原版每次尝试都对
-        // 「当前可用」的权重列表重抽，这里用同一个 totalWeight 连续抽 5 次会让
-        // randomValue 落到已被排除的类型上，白白失败。
-        if (!canAddStructurePieces(weights, totalWeight)) {
-            break;
-        }
+        // 原版这 5 次重试共用入口处算好的 totalWeight（generatePieceFromSmallDoor 的
+        // "while (j < 5)" 循环）：某次失败只说明本轮抽到的类型放不下，不改变其余类型的
+        // 权重。在循环内重算会让 randomValue 的取值范围与原版不同，随机流从此分叉。
         i32 randomValue = rng.nextInt(totalWeight);
 
         for (auto& weight : weights) {

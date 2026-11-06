@@ -214,12 +214,10 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
     // 起错位。
     std::vector<size_t> pendingChildren;
 
-    // 片段总数上限只是防御「病态拓扑把内存吃光」的兜底：终止条件必须来自权重耗尽
-    // （原版 canAddStructurePieces 返回 false，各分支开不出新片段），否则要塞会在到达
-    // 真实规模之前被凭空截断。真正的 50 层深度限制由每个片段各自的分支深度把关
-    // （见 StrongholdPiece::expansionDepth），不在这里数全局片段数。
-    constexpr size_t kMaxPieces = 240;
-
+    // 终止条件来自权重耗尽（原版 canAddStructurePieces 返回 false，各分支开不出新片段）
+    // 与每个片段各自的分支深度上限（原版 MAX_DEPTH=50，见 StrongholdPieces 的 depth > 50）。
+    // 这里**不能**再加一层全局片段数上限：原版要塞的构件数可以到三百以上，多一层上限
+    // 会在到达真实规模之前把它凭空截断（实测被截到 113 个而原版 316 个）。
     {
         const size_t before = pieces.size();
         pieces[0]->buildComponent(pieces[0].get(), pieces, rng);
@@ -228,7 +226,7 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
         }
     }
 
-    while (!pendingChildren.empty() && pieces.size() < kMaxPieces) {
+    while (!pendingChildren.empty()) {
         const i32 pick = rng.nextInt(static_cast<i32>(pendingChildren.size()));
         MC_ASSERT_RELEASE(pick >= 0 && static_cast<size_t>(pick) < pendingChildren.size());
         const size_t index = pendingChildren[static_cast<size_t>(pick)];
@@ -241,6 +239,8 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
 
         const size_t before = pieces.size();
         current->buildComponent(current, pieces, rng);
+        if (pieces.size() == before) {
+        }
         // 新生成的片段加入待扩展队列，顺序与 addPiece 的追加顺序一致。
         for (size_t i = before; i < pieces.size(); ++i) {
             pendingChildren.push_back(i);
