@@ -36,6 +36,7 @@
 #include <cstring>
 #include <limits>
 #include <type_traits>
+#include <vector>
 
 namespace mc::math {
 
@@ -158,6 +159,80 @@ template <typename T>
 {
     const i32 span = to - from;
     return from + static_cast<i32>(std::floor(t * static_cast<f32>(span - 1))) + (t > 0.0f ? 1 : 0);
+}
+
+/**
+ * @brief 从原点向外交替扩展的整数序列，对应原版 `Mth.outFromOrigin`
+ *
+ * 从 `clamp(origin, lower, upper)` 出发，**先向上再向下**交替步进，直到两侧都越界。
+ * 例如 `(0, -2, 2, 1)` 得 `0 1 -1 2 -2`。
+ *
+ * 原版用 `IntStream.iterate(seed, hasNext, next)` 表达，这里直接展开循环。
+ * `next` 的语义容易看错，逐条拆解：
+ *
+ * - `flag = cur <= origin`：当前在原点**下方或等于**原点；
+ * - `j = |origin - cur|`：距原点的偏移量；
+ * - `flag1 = origin + j + step <= upper`：向上还走得动；
+ * - 若「不在下方」或「向上走不动」，就尝试往下：`k = origin - j - (flag ? step : 0)`，
+ *   能落在 `lower` 之上就返回 `k`；
+ * - 否则返回 `origin + j + step`。
+ *
+ * **注意 `flag` 为真时向下要多减一个 `step`**——因为当前位置已在下方，要先回到上方对称点
+ * 再往下走，否则会原地踏步。
+ *
+ * @param origin 起点（会被夹到 [lowerBound, upperBound]）
+ * @param lowerBound 下界（含）
+ * @param upperBound 上界（含）
+ * @param step 步长，必须 >= 1
+ * @return 按访问顺序排列的整数序列
+ */
+[[nodiscard]] inline std::vector<i32> outFromOrigin(i32 origin, i32 lowerBound, i32 upperBound, i32 step)
+{
+    MC_ASSERT_RELEASE_MSG(lowerBound <= upperBound, "outFromOrigin: lowerBound must not exceed upperBound");
+    MC_ASSERT_RELEASE_MSG(step >= 1, "outFromOrigin: step must be >= 1");
+
+    const i32 start = clamp(origin, lowerBound, upperBound);
+    std::vector<i32> result;
+    result.push_back(start);
+
+    // 原版 `IntStream.iterate(seed, hasNext, next)` 的求值顺序：
+    //   先 yield seed；此后**先算 next(cur)，再用 hasNext(新值) 判断要不要 yield 它**。
+    //
+    // 注意 hasNext 收到的是「新算出来的值」而不是「上一个值」——写成后者会多输出一个
+    // 越界元素（本实现在改写前正是这样，被本能力一把抓出 21 处差异）。
+    i32 current = start;
+    while (true) {
+        const i32 offset = std::abs(start - current);
+
+        // next(current)
+        const bool atOrBelow = current <= start;
+        const bool canGoUp = start + offset + step <= upperBound;
+        i32 next = start + offset + step;
+        if (!atOrBelow || !canGoUp) {
+            const i32 down = start - offset - (atOrBelow ? step : 0);
+            if (down >= lowerBound) {
+                next = down;
+            }
+        }
+
+        // hasNext(next)：两个方向都越界才停。
+        const i32 nextOffset = std::abs(start - next);
+        if (!(start - nextOffset >= lowerBound || start + nextOffset <= upperBound)) {
+            break;
+        }
+
+        current = next;
+        result.push_back(current);
+    }
+    return result;
+}
+
+/**
+ * @brief `outFromOrigin` 的默认步长版本（step = 1）
+ */
+[[nodiscard]] inline std::vector<i32> outFromOrigin(i32 origin, i32 lowerBound, i32 upperBound)
+{
+    return outFromOrigin(origin, lowerBound, upperBound, 1);
 }
 
 /**
