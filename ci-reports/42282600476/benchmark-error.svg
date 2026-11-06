@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="870.48pt" height="294.255pt" viewBox="0 0 870.48 294.255" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-11-06T20:48:21.951952</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.6.3, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 294.255 
+L 870.48 294.255 
+L 870.48 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="text_1">
+    <text style="fill: #657180; font: 9px 'Noto Sans CJK JP'" transform="translate(264.097969 160.697266)">serverInitializeWorld/iterations:1/repeats:5: server exited with code 134 (world dir</text>
+    <text style="fill: #657180; font: 9px 'Noto Sans CJK JP'" transform="translate(333.056953 171.592891)">kept: /tmp/mc_benchmark_server_init/world_0)</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #d55e00; font: 16px 'Noto Sans CJK JP'; text-anchor: start" x="12.96" y="25.695" transform="rotate(-0 12.96 25.695)">Benchmark 数据读取或测量失败</text>
+   </g>
+  </g>
+ </g>
+</svg>
