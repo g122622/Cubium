@@ -41,7 +41,7 @@ using namespace mc::world::gen::structure;
  */
 class FindNearestStructureTest : public ::testing::Test {
 protected:
-    void SetUp() override
+    static void SetUpTestSuite()
     {
         // 从数据包装配结构注册表 + 结构集注册表（含启动期完整性校验）
         ASSERT_TRUE(mc::test::loadVanillaWorldGenRegistries()) << "数据包缺失，无法加载结构集注册表";
