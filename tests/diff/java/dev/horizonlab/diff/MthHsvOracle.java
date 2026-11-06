@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2026 Guo Yi
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- */
-
 package dev.horizonlab.diff;
 
 import com.google.gson.Gson;
@@ -31,104 +8,167 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.util.Mth;
 
 /**
- * {@code Mth.hsvToRgb} / {@code Mth.hsvToArgb} 的原版 oracle。
+ * {@code Mth.hsvToArgb} / {@code hsvToRgb} 的原版 oracle。
  *
  * <pre>
- *   java dev.horizonlab.diff.MthHsvOracle list &lt;units.txt&gt; | run &lt;input.jsonl&gt; &lt;output.jsonl&gt;
+ *   java dev.horizonlab.diff.MthHsvOracle list &lt;units.txt&gt;
+ *   java dev.horizonlab.diff.MthHsvOracle run &lt;input.jsonl&gt; &lt;output.jsonl&gt;
  * </pre>
  *
- * <p>直接调用原版 {@link Mth#hsvToRgb(float, float, float)} 与
- * {@link Mth#hsvToArgb(float, float, float, int)}。
+ * <p>色相按 60 度一档切成六段，每段走不同的分量排列。用例取色相 × 饱和度 × 明度 × alpha
+ * 的笛卡尔积，覆盖每段的中点与边界、饱和度为 0 的灰色、明度为 0 的黑色，以及 alpha 的
+ * 越界值。
  *
- * <p>输出是**有符号 32 位整数**（与 Java `int` 一致）。`hsvToRgb` 的 alpha 恒为 0，
- * 因此结果非负；`hsvToArgb` 传入 `alpha = 255` 时结果为负数。
- *
- * <p>本能力不需要注册表。
- *
- * <p>单元表必须与 probes/mth_hsv.cpp 逐项一致。
+ * <p>注意 {@code hsvToRgb} 的 alpha 恒为 <b>0</b> 而不是 255——原版就是这么写的。
  */
 public final class MthHsvOracle {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
-    /** 单元表。 */
-    private static final List<String> UNITS =
-            List.of(
-                    "rgb|0|1|1",
-                    "rgb|0.1666667|1|1",
-                    "rgb|0.3333333|1|1",
-                    "rgb|0.5|1|1",
-                    "rgb|0.6666667|1|1",
-                    "rgb|0.8333333|1|1",
-                    "rgb|1|1|1",
-                    "rgb|0|0|1",
-                    "rgb|0|0|0.5",
-                    "rgb|0|0|0",
-                    "rgb|0|0.5|1",
-                    "rgb|0.25|1|1",
-                    "rgb|0.75|1|1",
-                    "argb|0|1|1|255",
-                    "argb|0|1|1|128",
-                    "argb|0|0|0|0",
-                    "argb|0.5|1|1|255");
-
     private MthHsvOracle() {}
 
+    /** 与探针侧逐项一致。 */
+    private record NamedFloat(String id, float value) {}
+
+    private static List<NamedFloat> hueCases() {
+        List<NamedFloat> list = new ArrayList<>();
+        // 六段中点
+        list.add(new NamedFloat("h_0", 0.0833333f));
+        list.add(new NamedFloat("h_1", 0.25f));
+        list.add(new NamedFloat("h_2", 0.4166667f));
+        list.add(new NamedFloat("h_3", 0.5833333f));
+        list.add(new NamedFloat("h_4", 0.75f));
+        list.add(new NamedFloat("h_5", 0.9166667f));
+        // 段边界
+        list.add(new NamedFloat("b_0", 0.0f));
+        list.add(new NamedFloat("b_1", 0.1666667f));
+        list.add(new NamedFloat("b_2", 0.3333333f));
+        list.add(new NamedFloat("b_3", 0.5f));
+        list.add(new NamedFloat("b_4", 0.6666667f));
+        list.add(new NamedFloat("b_5", 0.8333333f));
+        // 回绕
+        list.add(new NamedFloat("wrap_1", 1.0f));
+        // 纯红端点
+        list.add(new NamedFloat("red", 0.0f));
+        return list;
+    }
+
+    private static List<NamedFloat> saturationCases() {
+        List<NamedFloat> list = new ArrayList<>();
+        list.add(new NamedFloat("s_0", 0.0f));
+        list.add(new NamedFloat("s_q", 0.25f));
+        list.add(new NamedFloat("s_h", 0.5f));
+        list.add(new NamedFloat("s_1", 1.0f));
+        return list;
+    }
+
+    private static List<NamedFloat> valueCases() {
+        List<NamedFloat> list = new ArrayList<>();
+        list.add(new NamedFloat("v_0", 0.0f));
+        list.add(new NamedFloat("v_q", 0.25f));
+        list.add(new NamedFloat("v_h", 0.5f));
+        list.add(new NamedFloat("v_1", 1.0f));
+        return list;
+    }
+
+    private static final int[] ALPHA_CASES = {0, 127, 255, 256};
+
     public static void main(String[] args) throws IOException {
+        net.minecraft.SharedConstants.tryDetectVersion();
+        net.minecraft.server.Bootstrap.bootStrap();
+
         if (args.length == 2 && args[0].equals("list")) {
-            StringBuilder text = new StringBuilder();
-            for (String unit : UNITS) {
-                text.append(unit).append('\n');
-            }
-            Files.writeString(Path.of(args[1]), text, StandardCharsets.UTF_8);
+            Files.writeString(Path.of(args[1]), buildListing(), StandardCharsets.UTF_8);
             return;
         }
+
         if (args.length == 3 && args[0].equals("run")) {
-            run(Path.of(args[1]), Path.of(args[2]));
+            List<String> inputs = Files.readAllLines(Path.of(args[1]), StandardCharsets.UTF_8);
+            List<String> outputs = new ArrayList<>(inputs.size());
+            for (String line : inputs) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                outputs.add(runLine(line));
+            }
+            Files.write(Path.of(args[2]), outputs, StandardCharsets.UTF_8);
             return;
         }
-        System.err.println(
-                "usage: MthHsvOracle list <units.txt> | run <input.jsonl> <output.jsonl>");
-        System.exit(2);
+
+        throw new IllegalArgumentException("usage: MthHsvOracle list <units.txt> | run <in> <out>");
     }
 
-    private static void run(Path input, Path output) throws IOException {
+    /** 与探针侧 writeList 逐项一致。 */
+    private static String buildListing() {
         StringBuilder text = new StringBuilder();
-        for (String line : Files.readAllLines(input, StandardCharsets.UTF_8)) {
-            if (line.isBlank()) {
-                continue;
+        int index = 0;
+        for (NamedFloat hue : hueCases()) {
+            for (NamedFloat sat : saturationCases()) {
+                for (NamedFloat val : valueCases()) {
+                    for (int alpha : ALPHA_CASES) {
+                        text.append(hue.id()).append('|').append(sat.id()).append('|')
+                            .append(val.id()).append('|').append(alpha).append('@').append(index).append('\n');
+                        index++;
+                    }
+                }
             }
-            String unit = JsonParser.parseString(line).getAsJsonObject().get("unit").getAsString();
-            text.append(GSON.toJson(summarise(unit))).append('\n');
         }
-        Files.writeString(output, text, StandardCharsets.UTF_8);
+        return text.toString();
     }
 
-    private static float parseF(String text) {
-        return (float) Double.parseDouble(text);
+    private static NamedFloat lookup(List<NamedFloat> cases, String id) {
+        for (NamedFloat item : cases) {
+            if (item.id().equals(id)) {
+                return item;
+            }
+        }
+        return null;
     }
 
-    private static JsonObject summarise(String unit) {
-        String[] parts = unit.split("\\|", -1);
-        if (parts.length < 2) {
-            throw new IllegalArgumentException("mth_hsv: 单元至少两段: " + unit);
+    private static String runLine(String line) {
+        JsonObject input = JsonParser.parseString(line).getAsJsonObject();
+        String text = input.get("unit").getAsString();
+
+        int at = text.lastIndexOf('@');
+        if (at < 0) {
+            return missing(text);
+        }
+        String[] parts = text.substring(0, at).split("\\|", -1);
+        if (parts.length != 4) {
+            return missing(text);
         }
 
-        JsonObject out = new JsonObject();
-        out.addProperty("unit", unit);
-
-        switch (parts[0]) {
-            case "rgb" -> out.addProperty("value", Mth.hsvToRgb(
-                    parseF(parts[1]), parseF(parts[2]), parseF(parts[3])));
-            case "argb" -> out.addProperty("value", Mth.hsvToArgb(
-                    parseF(parts[1]), parseF(parts[2]), parseF(parts[3]),
-                    Integer.parseInt(parts[4])));
-            default -> throw new IllegalArgumentException("mth_hsv: 无法识别的单元: " + unit);
+        NamedFloat hue = lookup(hueCases(), parts[0]);
+        NamedFloat sat = lookup(saturationCases(), parts[1]);
+        NamedFloat val = lookup(valueCases(), parts[2]);
+        if (hue == null || sat == null || val == null) {
+            return missing(text);
         }
 
-        return out;
+        int alpha;
+        try {
+            alpha = Integer.parseInt(parts[3]);
+        } catch (NumberFormatException error) {
+            return missing(text);
+        }
+
+        JsonObject output = new JsonObject();
+        output.addProperty("unit", text);
+        // 用无符号转 long，避免 Java int 的符号位在序列化成 JSON 数字时变负。
+        output.addProperty(
+                "argb", Integer.toUnsignedLong(Mth.hsvToArgb(hue.value(), sat.value(), val.value(), alpha)));
+        output.addProperty("rgb", Integer.toUnsignedLong(Mth.hsvToRgb(hue.value(), sat.value(), val.value())));
+        return GSON.toJson(output);
+    }
+
+    private static String missing(String requested) {
+        JsonObject output = new JsonObject();
+        output.addProperty("unit", requested);
+        output.addProperty("missing", true);
+        return GSON.toJson(output);
     }
 }

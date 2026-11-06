@@ -952,4 +952,133 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
     return static_cast<i32>(std::ceil(std::sqrt(static_cast<f64>(count))));
 }
 
+/**
+ * @brief 射线是否与轴对齐包围盒相交，对应原版 `Mth.rayIntersectsAABB`
+ *
+ * 先用三轴的「中心距超出半宽且朝外」做快速排除，再对三对轴做叉积判定。三次叉积的
+ * 比较方向不同：前两次用 `>`，最后一次用 `<`——最后一次是在已经排除了前两次的前提下
+ * 判断是否真正穿过，边界行为与前者不对称。
+ *
+ * @param ox/oy/oz 射线起点
+ * @param dx/dy/dz 射线方向（不要求归一化）
+ * @param minX/minY/minZ/maxX/maxY/maxZ 包围盒的边界（f64，与原版 AABB 一致）
+ */
+[[nodiscard]] inline bool rayIntersectsAABB(
+    f64 ox, f64 oy, f64 oz, f64 dx, f64 dy, f64 dz, f64 minX, f64 minY, f64 minZ, f64 maxX, f64 maxY, f64 maxZ) noexcept
+{
+    // X 轴：起点到中心的距离超出半宽，且方向朝外 → 整条射线都在盒外
+    const f64 centerX = (minX + maxX) * 0.5;
+    const f64 halfX = (maxX - minX) * 0.5;
+    const f64 deltaX = ox - centerX;
+    if (std::abs(deltaX) > halfX && deltaX * dx >= 0.0) {
+        return false;
+    }
+
+    const f64 centerY = (minY + maxY) * 0.5;
+    const f64 halfY = (maxY - minY) * 0.5;
+    const f64 deltaY = oy - centerY;
+    if (std::abs(deltaY) > halfY && deltaY * dy >= 0.0) {
+        return false;
+    }
+
+    const f64 centerZ = (minZ + maxZ) * 0.5;
+    const f64 halfZ = (maxZ - minZ) * 0.5;
+    const f64 deltaZ = oz - centerZ;
+    if (std::abs(deltaZ) > halfZ && deltaZ * dz >= 0.0) {
+        return false;
+    }
+
+    const f64 absDx = std::abs(dx);
+    const f64 absDy = std::abs(dy);
+    const f64 absDz = std::abs(dz);
+
+    // 三次叉积：前两次用 >（超出即不相交），最后一次用 <（在界内才相交）。
+    f64 cross = dy * deltaZ - dz * deltaY;
+    if (std::abs(cross) > halfY * absDz + halfZ * absDy) {
+        return false;
+    }
+
+    cross = dz * deltaX - dx * deltaZ;
+    if (std::abs(cross) > halfX * absDz + halfZ * absDx) {
+        return false;
+    }
+
+    cross = dx * deltaY - dy * deltaX;
+    return std::abs(cross) < halfX * absDy + halfY * absDx;
+}
+
+/**
+ * @brief HSV 转 ARGB 打包值，对应原版 `Mth.hsvToArgb`
+ *
+ * 色相按 60 度一档切成六段，每段走不同的分量排列。几个容易写错的地方：
+ *
+ * - 段号用 `(i32)(hue * 6.0f) % 6`，`(i32)` 是**向零截断**而非向下取整；
+ *   色相为负时段号为负，会落到 switch 的 default 分支；
+ * - 各分量乘 255 后同样先截断再夹到 `[0, 255]`；
+ * - 结果是 `alpha << 24 | r << 16 | g << 8 | b`，alpha 不做夹取。
+ */
+[[nodiscard]] inline u32 hsvToArgb(f32 hue, f32 saturation, f32 value, i32 alpha) noexcept
+{
+    const i32 sector = static_cast<i32>(hue * 6.0f) % 6;
+    const f32 fraction = hue * 6.0f - static_cast<f32>(sector);
+    const f32 p = value * (1.0f - saturation);
+    const f32 q = value * (1.0f - fraction * saturation);
+    const f32 t = value * (1.0f - (1.0f - fraction) * saturation);
+
+    f32 r = 0.0f;
+    f32 g = 0.0f;
+    f32 b = 0.0f;
+    switch (sector) {
+        case 0:
+            r = value;
+            g = t;
+            b = p;
+            break;
+        case 1:
+            r = q;
+            g = value;
+            b = p;
+            break;
+        case 2:
+            r = p;
+            g = value;
+            b = t;
+            break;
+        case 3:
+            r = p;
+            g = q;
+            b = value;
+            break;
+        case 4:
+            r = t;
+            g = p;
+            b = value;
+            break;
+        case 5:
+            r = value;
+            g = p;
+            b = q;
+            break;
+        default:
+            // 色相为负时段号为负，原版在这里抛异常；调用方应先归一化色相。
+            MC_ASSERT_RELEASE_MSG(false, "hsvToArgb received an out-of-range hue");
+            break;
+    }
+
+    const auto toByte = [](f32 channel) {
+        return static_cast<u32>(clamp(static_cast<i32>(channel * 255.0f), 0, 255));
+    };
+    return (static_cast<u32>(alpha) << 24U) | (toByte(r) << 16U) | (toByte(g) << 8U) | toByte(b);
+}
+
+/**
+ * @brief HSV 转 RGB 打包值（alpha 恒为 0），对应原版 `Mth.hsvToRgb`
+ *
+ * 注意 alpha 是 0 而不是 255——原版就是这么写的，调用方负责补 alpha。
+ */
+[[nodiscard]] inline u32 hsvToRgb(f32 hue, f32 saturation, f32 value) noexcept
+{
+    return hsvToArgb(hue, saturation, value, 0);
+}
+
 } // namespace mc::math
