@@ -423,6 +423,9 @@ void ServerWorld::shutdown()
         spdlog::info("DIAG chunkMgr(dim={}): unbind callbacks", static_cast<i32>(m_config.dimension));
         m_chunkManager->setChunkLoadedCallback(nullptr);
         m_chunkManager->setChunkUnloadedCallback(nullptr);
+        // TEMP-DIAG：诊断 terminate 时也解绑区块缓存中心/追踪变化回调（验证后定稿或回退）。
+        m_chunkManager->ticketManager().setTrackingChangeCallback(nullptr);
+        m_chunkManager->setChunkCacheCenterCallback(nullptr);
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::ShutdownChunkManager");
         m_chunkManager->shutdown();
         spdlog::info("DIAG chunkMgr(dim={}): shutdown done", static_cast<i32>(m_config.dimension));
