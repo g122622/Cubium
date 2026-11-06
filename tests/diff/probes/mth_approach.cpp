@@ -85,6 +85,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -108,53 +109,6 @@ std::string formatNumber(f64 value)
         }
     }
     return text;
-}
-
-/// 原版 `Mth.wrapDegrees(float)`：两个独立 `if`。
-f32 wrapDegrees(f32 degrees)
-{
-    f32 result = std::fmod(degrees, 360.0f);
-    if (result >= 180.0f) {
-        result -= 360.0f;
-    }
-    if (result < -180.0f) {
-        result += 360.0f;
-    }
-    return result;
-}
-
-/**
- * @brief 原版 `Mth.clamp(float, float, float)`。
- *
- * 注意：**不校验 `min <= max`**。`value < min` 时直接返回 `min`，`max` 完全不参与。
- */
-f32 mthClamp(f32 value, f32 min, f32 max)
-{
-    return value < min ? min : std::min(value, max);
-}
-
-/**
- * @brief 原版 `Mth.approach(float, float, float)`。
- *
- * 第一行就把 `step` 取绝对值。
- */
-f32 approach(f32 value, f32 limit, f32 step)
-{
-    const f32 magnitude = std::fabs(step);
-    return value < limit ? mthClamp(value + magnitude, value, limit) : mthClamp(value - magnitude, limit, value);
-}
-
-/// 原版 `Mth.degreesDifference(float, float)`。
-f32 degreesDifference(f32 from, f32 to)
-{
-    return wrapDegrees(to - from);
-}
-
-/// 原版 `Mth.approachDegrees(float, float, float)`。
-f32 approachDegrees(f32 from, f32 to, f32 step)
-{
-    const f32 diff = degreesDifference(from, to);
-    return approach(from, from + diff, step);
 }
 
 /// 单元表。
@@ -242,23 +196,24 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "approach" && parts.size() == 4) {
-        const f32 v = approach(static_cast<f32>(std::stod(parts[1])),
+        const f32 v = math::approach(static_cast<f32>(std::stod(parts[1])),
             static_cast<f32>(std::stod(parts[2])),
             static_cast<f32>(std::stod(parts[3])));
         return json{{"unit", unit}, {"value", formatNumber(static_cast<f64>(v))}}.dump();
     }
     if (mode == "clamp" && parts.size() == 4) {
-        const f32 v = mthClamp(static_cast<f32>(std::stod(parts[1])),
+        const f32 v = math::clamp(static_cast<f32>(std::stod(parts[1])),
             static_cast<f32>(std::stod(parts[2])),
             static_cast<f32>(std::stod(parts[3])));
         return json{{"unit", unit}, {"value", formatNumber(static_cast<f64>(v))}}.dump();
     }
     if (mode == "degdiff" && parts.size() == 3) {
-        const f32 v = degreesDifference(static_cast<f32>(std::stod(parts[1])), static_cast<f32>(std::stod(parts[2])));
+        const f32 v =
+            math::degreesDifference(static_cast<f32>(std::stod(parts[1])), static_cast<f32>(std::stod(parts[2])));
         return json{{"unit", unit}, {"value", formatNumber(static_cast<f64>(v))}}.dump();
     }
     if (mode == "appdeg" && parts.size() == 4) {
-        const f32 v = approachDegrees(static_cast<f32>(std::stod(parts[1])),
+        const f32 v = math::approachDegrees(static_cast<f32>(std::stod(parts[1])),
             static_cast<f32>(std::stod(parts[2])),
             static_cast<f32>(std::stod(parts[3])));
         return json{{"unit", unit}, {"value", formatNumber(static_cast<f64>(v))}}.dump();

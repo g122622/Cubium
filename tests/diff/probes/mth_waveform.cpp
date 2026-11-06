@@ -121,6 +121,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -151,41 +152,6 @@ std::string formatNumber(f64 value)
         }
     }
     return text;
-}
-
-/// Java 的 `%`：向零截断。
-f32 javaMod(f32 value, f32 modulus)
-{
-    return std::fmod(value, modulus);
-}
-
-/// 原版 `Mth.triangleWave`。
-f32 triangleWave(f32 x, f32 period)
-{
-    return (std::fabs(javaMod(x, period) - period * 0.5F) - period * 0.25F) / (period * 0.25F);
-}
-
-f64 smoothstep(f64 x)
-{
-    return x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
-}
-
-/// 原版 `Mth.smoothstepDerivative`。
-f64 smoothstepDerivative(f64 x)
-{
-    return 30.0 * x * x * (x - 1.0) * (x - 1.0);
-}
-
-/// 原版 `Mth.square`。
-f32 square(f32 x)
-{
-    return x * x;
-}
-
-/// 原版 `Mth.cube`。
-f32 cube(f32 x)
-{
-    return x * x * x;
 }
 
 void writeList(FILE* out)
@@ -262,20 +228,20 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "tri" && parts.size() == 3) {
-        const f32 result = triangleWave(parseF(parts[1]), parseF(parts[2]));
+        const f32 result = math::triangleWave(parseF(parts[1]), parseF(parts[2]));
         return json{{"unit", unit}, {"value", formatNumber(result)}}.dump();
     }
     if (mode == "smooth" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(smoothstep(std::stod(parts[1])))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(math::mthSmoothstep(std::stod(parts[1])))}}.dump();
     }
     if (mode == "smoothD" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(smoothstepDerivative(std::stod(parts[1])))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(math::smoothstepDerivative(std::stod(parts[1])))}}.dump();
     }
     if (mode == "square" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(square(parseF(parts[1])))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(math::square(parseF(parts[1])))}}.dump();
     }
     if (mode == "cube" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(cube(parseF(parts[1])))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(math::cube(parseF(parts[1])))}}.dump();
     }
 
     throw std::runtime_error("mth_waveform: 无法识别的单元：" + unit);

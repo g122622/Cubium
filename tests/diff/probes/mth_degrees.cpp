@@ -101,7 +101,7 @@
  *    `Math.abs(Integer.MIN_VALUE)` 仍是 `Integer.MIN_VALUE`（负），因此
  *    `absMax(Integer.MIN_VALUE, 0)` 返回 `Integer.MIN_VALUE`（负数），**不是 `0` 或正数**。
  *
- *    这是补码的固有边界，Cubium 若用 `std::abs` 也会得到同样的负值。
+ *    这是补码的固有边界，Cubium 若用 `abs` 也会得到同样的负值。
  *
  * 单元格式：
  * - `diff|<from>|<to>` —— `degreesDifference`
@@ -124,6 +124,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -154,69 +155,6 @@ std::string formatNumber(f64 value)
         }
     }
     return text;
-}
-
-/// 原版 `Mth.wrapDegrees(float)`。
-f32 wrapDegrees(f32 degrees)
-{
-    f32 f = std::fmod(degrees, 360.0F);
-    if (f >= 180.0F) {
-        f -= 360.0F;
-    }
-    if (f < -180.0F) {
-        f += 360.0F;
-    }
-    return f;
-}
-
-/// 原版 `Mth.abs(float)`。
-f32 mthAbs(f32 value)
-{
-    return value >= 0.0F ? value : -value;
-}
-
-/// 原版 `Mth.clamp(float, float, float)`。
-f32 clampF(f32 value, f32 min, f32 max)
-{
-    return value < min ? min : (value > max ? max : value);
-}
-
-/// 原版 `Mth.degreesDifference`：注意是 `wrapDegrees(to - from)`。
-f32 degreesDifference(f32 from, f32 to)
-{
-    return wrapDegrees(to - from);
-}
-
-/// 原版 `Mth.approach`。
-f32 approach(f32 current, f32 target, f32 step)
-{
-    const f32 magnitude = mthAbs(step);
-    return current < target ? clampF(current + magnitude, current, target)
-                            : clampF(current - magnitude, target, current);
-}
-
-/// 原版 `Mth.approachDegrees`。
-f32 approachDegrees(f32 current, f32 target, f32 maxStep)
-{
-    const f32 diff = degreesDifference(current, target);
-    return approach(current, current + diff, maxStep);
-}
-
-/// 原版 `Mth.rotateIfNecessary`：从 `target` 反推。
-f32 rotateIfNecessary(f32 current, f32 target, f32 maxStep)
-{
-    const f32 diff = degreesDifference(current, target);
-    const f32 clamped = clampF(diff, -maxStep, maxStep);
-    return target - clamped;
-}
-
-/// 原版 `Mth.sign(double)`：`NaN` 走 `-1`。
-i32 sign(f64 value)
-{
-    if (value == 0.0) {
-        return 0;
-    }
-    return value > 0.0 ? 1 : -1;
 }
 
 void writeList(FILE* out)
@@ -298,21 +236,22 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "diff" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", formatNumber(degreesDifference(parseF(parts[1]), parseF(parts[2])))}}
+        return json{
+            {"unit", unit}, {"value", formatNumber(math::degreesDifference(parseF(parts[1]), parseF(parts[2])))}}
             .dump();
     }
     if (mode == "diffAbs" && parts.size() == 3) {
-        const f32 difference = degreesDifference(parseF(parts[1]), parseF(parts[2]));
-        return json{{"unit", unit}, {"value", formatNumber(mthAbs(difference))}}.dump();
+        const f32 difference = math::degreesDifference(parseF(parts[1]), parseF(parts[2]));
+        return json{{"unit", unit}, {"value", formatNumber(std::abs(difference))}}.dump();
     }
     if (mode == "approachDeg" && parts.size() == 4) {
         return json{{"unit", unit},
-            {"value", formatNumber(approachDegrees(parseF(parts[1]), parseF(parts[2]), parseF(parts[3])))}}
+            {"value", formatNumber(math::approachDegrees(parseF(parts[1]), parseF(parts[2]), parseF(parts[3])))}}
             .dump();
     }
     if (mode == "rotate" && parts.size() == 4) {
         return json{{"unit", unit},
-            {"value", formatNumber(rotateIfNecessary(parseF(parts[1]), parseF(parts[2]), parseF(parts[3])))}}
+            {"value", formatNumber(math::rotateIfNecessary(parseF(parts[1]), parseF(parts[2]), parseF(parts[3])))}}
             .dump();
     }
     if (mode == "absMaxI" && parts.size() == 3) {
@@ -324,7 +263,7 @@ std::string runLine(std::string_view inputLine)
     }
     if (mode == "absMaxF" && parts.size() == 3) {
         return json{
-            {"unit", unit}, {"value", formatNumber(std::max(mthAbs(parseF(parts[1])), mthAbs(parseF(parts[2]))))}}
+            {"unit", unit}, {"value", formatNumber(std::max(std::abs(parseF(parts[1])), std::abs(parseF(parts[2]))))}}
             .dump();
     }
     if (mode == "absMaxD" && parts.size() == 3) {
@@ -333,7 +272,7 @@ std::string runLine(std::string_view inputLine)
             .dump();
     }
     if (mode == "sign" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", sign(std::stod(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", math::sign(std::stod(parts[1]))}}.dump();
     }
 
     throw std::runtime_error("mth_degrees: 无法识别的单元：" + unit);

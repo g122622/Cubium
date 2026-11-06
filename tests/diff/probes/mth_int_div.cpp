@@ -135,6 +135,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -176,63 +177,6 @@ constexpr i32 DE_BRUIJN[] = {0,
     5,
     10,
     9};
-
-/// 原版 `Mth.floorDiv`：向下取整。
-i32 floorDiv(i32 x, i32 y)
-{
-    if (y == 0) {
-        throw std::runtime_error("mth_int_div: 除数为 0");
-    }
-    i32 q = x / y;
-    if ((x % y != 0) && ((x ^ y) < 0)) {
-        --q;
-    }
-    return q;
-}
-
-/// 原版 `Mth.isPowerOfTwo`。
-bool isPowerOfTwo(i32 value)
-{
-    return value != 0 && (value & (value - 1)) == 0;
-}
-
-/// 原版 `Mth.smallestEncompassingPowerOfTwo`：位扩散。
-i32 smallestEncompassingPowerOfTwo(i32 value)
-{
-    i32 i = static_cast<i32>(static_cast<u32>(value) - 1u);
-    i |= i >> 1;
-    i |= i >> 2;
-    i |= i >> 4;
-    i |= i >> 8;
-    i |= i >> 16;
-    return static_cast<i32>(static_cast<u32>(i) + 1u);
-}
-
-/// 原版 `Mth.ceillog2`：De Bruijn 乘法查表。
-i32 ceillog2(i32 value)
-{
-    const i32 adjusted = isPowerOfTwo(value) ? value : smallestEncompassingPowerOfTwo(value);
-    const i64 product = static_cast<i64>(adjusted) * 125613361LL;
-    return DE_BRUIJN[static_cast<i32>(product >> 27) & 31];
-}
-
-/// 原版 `Mth.log2`。
-i32 log2Of(i32 value)
-{
-    return ceillog2(value) - (isPowerOfTwo(value) ? 0 : 1);
-}
-
-/// 原版 `Mth.positiveCeilDiv`。
-i32 positiveCeilDiv(i32 x, i32 y)
-{
-    return -floorDiv(-x, y);
-}
-
-/// 原版 `Mth.roundToward`。
-i32 roundToward(i32 value, i32 divisor)
-{
-    return static_cast<i32>(static_cast<u32>(positiveCeilDiv(value, divisor)) * static_cast<u32>(divisor));
-}
 
 void writeList(FILE* out)
 {
@@ -340,26 +284,26 @@ std::string runLine(std::string_view inputLine)
     const std::string mode = parts[0];
 
     if (mode == "floorDiv" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", floorDiv(parseInt(parts[1]), parseInt(parts[2]))}}.dump();
+        return json{{"unit", unit}, {"value", math::floorDiv(parseInt(parts[1]), parseInt(parts[2]))}}.dump();
     }
     if (mode == "isPow2" && parts.size() == 2) {
-        const bool result = isPowerOfTwo(parseInt(parts[1]));
+        const bool result = math::isPowerOfTwo(parseInt(parts[1]));
         return json{{"unit", unit}, {"value", result ? "true" : "false"}}.dump();
     }
     if (mode == "smallest" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", smallestEncompassingPowerOfTwo(parseInt(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", math::smallestEncompassingPowerOfTwo(parseInt(parts[1]))}}.dump();
     }
     if (mode == "ceillog2" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", ceillog2(parseInt(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", math::ceillog2(parseInt(parts[1]))}}.dump();
     }
     if (mode == "log2" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", log2Of(parseInt(parts[1]))}}.dump();
+        return json{{"unit", unit}, {"value", math::log2Of(parseInt(parts[1]))}}.dump();
     }
     if (mode == "posCeilDiv" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", positiveCeilDiv(parseInt(parts[1]), parseInt(parts[2]))}}.dump();
+        return json{{"unit", unit}, {"value", math::positiveCeilDiv(parseInt(parts[1]), parseInt(parts[2]))}}.dump();
     }
     if (mode == "roundToward" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", roundToward(parseInt(parts[1]), parseInt(parts[2]))}}.dump();
+        return json{{"unit", unit}, {"value", math::roundToward(parseInt(parts[1]), parseInt(parts[2]))}}.dump();
     }
 
     throw std::runtime_error("mth_int_div: 无法识别的单元：" + unit);
