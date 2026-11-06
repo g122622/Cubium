@@ -449,6 +449,73 @@ template <typename T>
 }
 
 /**
+ * @brief 二维长度的平方，对应原版 `Mth.lengthSquared(double, double)`
+ */
+[[nodiscard]] inline constexpr f64 lengthSquared(f64 x, f64 y) noexcept
+{
+    return x * x + y * y;
+}
+
+/**
+ * @brief 三维长度的平方，对应原版 `Mth.lengthSquared(double, double, double)`
+ */
+[[nodiscard]] inline constexpr f64 lengthSquared(f64 x, f64 y, f64 z) noexcept
+{
+    return x * x + y * y + z * z;
+}
+
+/**
+ * @brief 二维长度（f64），对应原版 `Mth.length(double, double)`
+ */
+[[nodiscard]] inline f64 length(f64 x, f64 y) noexcept
+{
+    return std::sqrt(lengthSquared(x, y));
+}
+
+/**
+ * @brief 二维长度（f32），对应原版 `Mth.length(float, float)`
+ *
+ * **平方和在 f64 下算，不是 f32。**
+ *
+ * 原版是 `(float) Math.sqrt(lengthSquared(x, y))`，而 `lengthSquared` 只接受 double，
+ * 两个 f32 参数会**隐式提升**为 double 再平方。
+ *
+ * 在 f32 下算平方和会出两类错：
+ *   - `length(1e20f, 1e20f)`：`x * x` 在 f32 下溢出为 Inf，结果是 Inf（原版 1.4142e20）；
+ *   - `length(0.1f, 0.2f)`：末位差 1 ULP。
+ */
+[[nodiscard]] inline f32 length(f32 x, f32 y) noexcept
+{
+    return static_cast<f32>(std::sqrt(lengthSquared(static_cast<f64>(x), static_cast<f64>(y))));
+}
+
+/**
+ * @brief 近似相等（f32），对应原版 `Mth.equal(float, float)`
+ *
+ * 判据是 `|a - b| < 1e-5f`，**不是**相对误差。
+ */
+[[nodiscard]] inline bool equal(f32 a, f32 b) noexcept
+{
+    return std::abs(b - a) < 1.0e-5f;
+}
+
+/**
+ * @brief 近似相等（f64），对应原版 `Mth.equal(double, double)`
+ *
+ * **阈值仍然是 f32 的 `1.0e-5f`，不是 f64 的 `1e-5`。**
+ *
+ * 两者并不相等：
+ *   1.0e-5f 升为 double 是 9.999999747378752e-06
+ *   1.0e-5  就是               1.0000000000000000000e-05
+ *
+ * 用 `1e-5` 会让判据**略宽**，在边界附近的浮点值上给出不同的相等结论。
+ */
+[[nodiscard]] inline bool equal(f64 a, f64 b) noexcept
+{
+    return std::abs(b - a) < static_cast<f64>(1.0e-5f);
+}
+
+/**
  * @brief 判断是否接近零
  */
 [[nodiscard]] inline bool isZero(f32 x, f32 epsilon = EPSILON) noexcept
