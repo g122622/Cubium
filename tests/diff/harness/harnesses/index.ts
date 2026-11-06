@@ -110,6 +110,7 @@ import { mthAtan2Input } from "./mth_atan2.ts";
 import { KNOWN_ATAN2_GAPS } from "./known_atan2_gaps.ts";
 import { mthMapLerpInput } from "./mth_map_lerp.ts";
 import { mthOutFromOriginInput } from "./mth_out_from_origin.ts";
+import { mthLengthEqualInput } from "./mth_length_equal.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
@@ -946,6 +947,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth 从原点的交替扩展序列：hasNext 只拦双向越界，末尾可能越界一格。
     { name: "mth_out_from_origin", probe: "mth_out_from_origin", oracle: "MthOutFromOriginOracle",
         key: "unit", units: { kind: "listing" }, input: mthOutFromOriginInput },
+    // Mth 长度与近似相等：length 分 f32/f64 两版，equal 的阈值是 f32 的 1e-5。
+    { name: "mth_length_equal", probe: "mth_length_equal", oracle: "MthLengthEqualOracle",
+        key: "unit", units: { kind: "listing" }, input: mthLengthEqualInput },
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },
