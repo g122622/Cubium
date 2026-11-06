@@ -108,6 +108,7 @@ import { mthRotInput } from "./mth_rot.ts";
 import { mthSinInput } from "./mth_sin.ts";
 import { mthAtan2Input } from "./mth_atan2.ts";
 import { KNOWN_ATAN2_GAPS } from "./known_atan2_gaps.ts";
+import { mthMapLerpInput } from "./mth_map_lerp.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
@@ -938,6 +939,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "mth_atan2", probe: "mth_atan2", oracle: "MthAtan2Oracle",
         key: "unit", units: { kind: "listing" }, input: mthAtan2Input,
         knownDifferences: KNOWN_ATAN2_GAPS },
+    // Mth 整数插值三兄弟：lerpInt 乘 span、lerpDiscrete 乘 span-1 再对正值补一格。
+    { name: "mth_map_lerp", probe: "mth_map_lerp", oracle: "MthMapLerpOracle",
+        key: "unit", units: { kind: "listing" }, input: mthMapLerpInput },
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },

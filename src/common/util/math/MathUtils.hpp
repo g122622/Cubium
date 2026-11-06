@@ -125,6 +125,68 @@ template <typename T>
 }
 
 /**
+ * @brief 整数线性插值，对应原版 `Mth.lerpInt`
+ *
+ * `from + floor(t * (to - from))`。注意 `t` 是 **f32**，且结果**不夹取**——
+ * `t` 超出 [0, 1] 时结果会跑出 `[from, to]`。
+ *
+ * 与 `lerpDiscrete` 的区别：本函数没有 `t > 0` 的补偿，`t = 0` 时返回 `from`。
+ */
+[[nodiscard]] inline i32 lerpInt(f32 t, i32 from, i32 to) noexcept
+{
+    return from + static_cast<i32>(std::floor(t * static_cast<f32>(to - from)));
+}
+
+/**
+ * @brief 离散整数插值，对应原版 `Mth.lerpDiscrete`
+ *
+ * ```java
+ * int i = to - from;
+ * return from + floor(t * (i - 1)) + (t > 0.0F ? 1 : 0);
+ * ```
+ *
+ * **两处与 `lerpInt` 不同，都不能省略：**
+ *
+ * 1. 乘的是 `i - 1` 而不是 `i`——因为离散取值有 `to - from + 1` 个候选端点，
+ *    要让 `t = 1` 时恰好落在 `to` 上，跨度只能是 `i - 1`；
+ * 2. 末尾加 `t > 0 ? 1 : 0`——把 `t` 的微小正值抬过整数台阶，避免 `t` 略大于 0
+ *    时仍停留在 `from`。**`t = 0` 不加**，所以起点仍然正确。
+ *
+ * 用于按进度挑选离散档位（如音高、粒子数量），写成 `lerpInt` 会让 `t = 1` 取不到末项。
+ */
+[[nodiscard]] inline i32 lerpDiscrete(f32 t, i32 from, i32 to) noexcept
+{
+    const i32 span = to - from;
+    return from + static_cast<i32>(std::floor(t * static_cast<f32>(span - 1))) + (t > 0.0f ? 1 : 0);
+}
+
+/**
+ * @brief 在 [from, to) 上二分查找第一个满足谓词的整数，对应原版 `Mth.binarySearch`
+ *
+ * 前提：谓词在区间上**单调**（先假后真）。返回值为第一个为真的下标；
+ * 若全为假则返回 `to`。
+ *
+ * 参数 `predicate` 接受下标返回 `bool`。
+ */
+template <typename Predicate>
+[[nodiscard]] inline i32 binarySearch(i32 from, i32 to, Predicate&& predicate)
+{
+    i32 low = from;
+    i32 remaining = to - from;
+    while (remaining > 0) {
+        const i32 half = remaining / 2;
+        const i32 mid = low + half;
+        if (predicate(mid)) {
+            remaining = half;
+        } else {
+            low = mid + 1;
+            remaining -= half + 1;
+        }
+    }
+    return low;
+}
+
+/**
  * @brief 三线性插值 (Trilinear Interpolation)
  *
  * 沿三个轴向依次进行线性插值，用于 3D 噪声生成等场景。
