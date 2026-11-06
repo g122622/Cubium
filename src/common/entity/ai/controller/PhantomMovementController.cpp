@@ -72,7 +72,7 @@ void PhantomMovementController::tick()
     f32 oldYaw = m_phantom->yaw();
 
     // 计算目标偏航角：atan2(dz, dx) 转为角度
-    f32 targetYawDeg = static_cast<f32>(std::atan2(dz, dx) * (180.0 / math::PI));
+    f32 targetYawDeg = static_cast<f32>(math::atan2(dz, dx) * (180.0 / math::PI));
     f32 currentYawPlus90 = math::wrapDegrees(m_phantom->yaw() + 90.0f);
     f32 wrappedTarget = math::wrapDegrees(targetYawDeg);
 
@@ -107,7 +107,7 @@ void PhantomMovementController::tick()
     }
 
     // 计算俯仰角
-    f32 pitch = static_cast<f32>(-(std::atan2(-dy, horizontalDist) * 180.0 / math::PI));
+    f32 pitch = static_cast<f32>(-(math::atan2(-dy, horizontalDist) * 180.0 / math::PI));
     m_phantom->setRotation(m_phantom->yaw(), pitch);
 
     // 计算速度向量

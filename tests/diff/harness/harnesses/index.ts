@@ -106,6 +106,8 @@ import { mthLerpInput } from "./mth_lerp.ts";
 import { mthBitInput } from "./mth_bit.ts";
 import { mthRotInput } from "./mth_rot.ts";
 import { mthSinInput } from "./mth_sin.ts";
+import { mthAtan2Input } from "./mth_atan2.ts";
+import { KNOWN_ATAN2_GAPS } from "./known_atan2_gaps.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
@@ -932,6 +934,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // Mth.sin / cos 查表：65536 项表由 Math.sin 构造，索引 & 65535，纯计算。
     { name: "mth_sin", probe: "mth_sin", oracle: "MthSinOracle",
         key: "unit", units: { kind: "listing" }, input: mthSinInput },
+    // Mth.atan2 查表近似：fastInvSqrt + 位模式查表 + 三次修正，与 std::atan2 差 1e-6 量级。
+    { name: "mth_atan2", probe: "mth_atan2", oracle: "MthAtan2Oracle",
+        key: "unit", units: { kind: "listing" }, input: mthAtan2Input,
+        knownDifferences: KNOWN_ATAN2_GAPS },
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },

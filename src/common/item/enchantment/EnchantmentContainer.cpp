@@ -83,16 +83,39 @@ bool EnchantmentContainer::hasType(EnchantmentType type) const
 
 void EnchantmentContainer::set(std::string_view enchantmentId, i32 level)
 {
-    // 查找现有附魔
+    // 原版 ItemEnchantments.Mutable.set：level <= 0 表示删除，而不是写入 0 级。
+    // 若不删除，"移除附魔"会留下一条 level=0 的条目，导致 has() 仍返回 true。
+    if (level <= 0) {
+        remove(enchantmentId);
+        return;
+    }
+
+    // 原版用 Math.min(level, 255) 截断。附魔等级会写进 NBT 的 byte 字段，
+    // 超过 255 而不截断会在存盘时被截成负数。
+    const i32 clamped = std::min(level, MAX_ENCHANTMENT_LEVEL);
+
     for (auto& instance : m_enchantments) {
         if (instance.enchantmentId == enchantmentId) {
-            instance.level = level;
+            instance.level = clamped;
             return;
         }
     }
 
-    // 添加新附魔
-    m_enchantments.emplace_back(std::string(enchantmentId), level);
+    m_enchantments.emplace_back(std::string(enchantmentId), clamped);
+}
+
+void EnchantmentContainer::upgrade(std::string_view enchantmentId, i32 level)
+{
+    // 原版 Mutable.upgrade：level <= 0 时直接返回，既不新建也不清除。
+    if (level <= 0) {
+        return;
+    }
+    // 先截断再比较：否则传入 300 时会存成 255，但若已有 255 也不该再动。
+    const i32 clamped = std::min(level, MAX_ENCHANTMENT_LEVEL);
+    const i32 current = getLevel(enchantmentId);
+    if (clamped > current) {
+        set(enchantmentId, clamped);
+    }
 }
 
 bool EnchantmentContainer::remove(std::string_view enchantmentId)

@@ -119,91 +119,24 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/color/DyeColor.hpp"
 
 #include "probe.hpp"
 
 namespace mc::diff {
 namespace {
 
+using mc::DyeColor;
 using nlohmann::json;
 
-/// 一个染料颜色。
-struct DyeColor {
-    const char* name;
-    i32 id;
-    i32 rgb;
-    i32 fireworkColor;
-    i32 textColor;
-};
-
-/// 原版 16 种染料，顺序与 `values()` 一致（按 id）。
-constexpr DyeColor ALL[] = {
-    {"WHITE", 0, 16383998, 15790320, 16777215},
-    {"ORANGE", 1, 16351261, 15435844, 16738335},
-    {"MAGENTA", 2, 13061821, 12801229, 16711935},
-    {"LIGHT_BLUE", 3, 3847130, 6719955, 10141901},
-    {"YELLOW", 4, 16701501, 14602026, 16776960},
-    {"LIME", 5, 8439583, 4312372, 12582656},
-    {"PINK", 6, 15961002, 14188952, 16738740},
-    {"GRAY", 7, 4673362, 4408131, 8421504},
-    {"LIGHT_GRAY", 8, 10329495, 11250603, 13882323},
-    {"CYAN", 9, 1481884, 2651799, 65535},
-    {"PURPLE", 10, 8991416, 8073150, 10494192},
-    {"BLUE", 11, 3949738, 2437522, 255},
-    {"BROWN", 12, 8606770, 5320730, 9127187},
-    {"GREEN", 13, 6192150, 3887386, 65280},
-    {"RED", 14, 11546150, 11743532, 16711680},
-    {"BLACK", 15, 1908001, 1973019, 0},
-};
-
-constexpr i32 COLOR_COUNT = 16;
-
-/// 原版 `ARGB.opaque(rgb)`：`0xFF000000 | rgb`。
-i32 opaque(i32 rgb)
+/// 原版枚举名（大写），对应 Java `DyeColor.name()`。
+std::string enumNameOf(DyeColor color)
 {
-    return static_cast<i32>(0xFF000000u | static_cast<u32>(rgb));
-}
-
-/// 原版 `DyeColor.byId`：越界返回 `WHITE`（下标 0）。
-const DyeColor* byId(i32 id)
-{
-    if (id >= 0 && id < COLOR_COUNT) {
-        return &ALL[id];
-    }
-    return &ALL[0];
-}
-
-/// 枚举名 → 小写序列化名（前置声明，`byName` 需要它）。
-std::string serializedName(const char* name);
-
-/// 原版 `DyeColor.byName`：严格匹配 `serializedName`（小写名）。
-const DyeColor* byName(const std::string& name)
-{
-    for (const auto& color : ALL) {
-        if (name == serializedName(color.name)) {
-            return &color;
+    std::string result(dyeColorName(color));
+    for (char& ch : result) {
+        if (ch >= 'a' && ch <= 'z') {
+            ch = static_cast<char>(ch - 'a' + 'A');
         }
-    }
-    return nullptr;
-}
-
-/// 原版 `DyeColor.byFireworkColor`：按 fireworkColor 查表。
-const DyeColor* byFireworkColor(i32 color)
-{
-    for (const auto& dye : ALL) {
-        if (dye.fireworkColor == color) {
-            return &dye;
-        }
-    }
-    return nullptr;
-}
-
-/// 枚举名 → 小写序列化名。
-std::string serializedName(const char* name)
-{
-    std::string result;
-    for (const char* p = name; *p != '\0'; ++p) {
-        result.push_back(*p >= 'A' && *p <= 'Z' ? static_cast<char>(*p - 'A' + 'a') : *p);
     }
     return result;
 }
@@ -281,36 +214,47 @@ std::string runLine(std::string_view inputLine)
     const std::string unit = input.at("unit").get<std::string>();
     const auto parts = splitPipe(unit);
     if (parts.size() < 2) {
-        throw std::runtime_error("dye_color: 单元至少两段：" + unit);
+        throw std::runtime_error("dye_color: unit needs at least two fields: " + unit);
     }
 
     const std::string mode = parts[0];
 
     if (mode == "byId" && parts.size() == 2) {
-        const DyeColor* found = byId(std::stoi(parts[1]));
-        return json{{"unit", unit}, {"value", std::string(found->name)}}.dump();
+        const DyeColor found = dyeColorById(std::stoi(parts[1]));
+        return json{{"unit", unit}, {"value", enumNameOf(found)}}.dump();
     }
     if (mode == "byName" && parts.size() == 2) {
-        const DyeColor* found = byName(parts[1]);
-        return json{{"unit", unit}, {"value", found ? std::string(found->name) : "null"}}.dump();
+        const std::optional<DyeColor> found = dyeColorByName(parts[1]);
+        return json{{"unit", unit}, {"value", found.has_value() ? enumNameOf(*found) : "null"}}.dump();
     }
     if (mode == "byFirework" && parts.size() == 2) {
-        const DyeColor* found = byFireworkColor(std::stoi(parts[1]));
-        return json{{"unit", unit}, {"value", found ? std::string(found->name) : "null"}}.dump();
+        const std::optional<DyeColor> found = dyeColorByFireworkColor(static_cast<u32>(std::stoi(parts[1])));
+        return json{{"unit", unit}, {"value", found.has_value() ? enumNameOf(*found) : "null"}}.dump();
     }
     if (mode == "info" && parts.size() == 2) {
-        for (const auto& dye : ALL) {
-            if (parts[1] == dye.name) {
-                const std::string value = std::to_string(dye.id) + "," + std::to_string(dye.rgb) + "," +
-                    std::to_string(opaque(dye.rgb)) + "," + std::to_string(dye.fireworkColor) + "," +
-                    std::to_string(opaque(dye.textColor)) + "," + serializedName(dye.name);
-                return json{{"unit", unit}, {"value", value}}.dump();
-            }
+        // info 的输入是枚举名（大写），byName 认的是小写序列化名，这里统一转小写
+        std::string lowered;
+        for (char ch : parts[1]) {
+            lowered.push_back((ch >= 'A' && ch <= 'Z') ? static_cast<char>(ch - 'A' + 'a') : ch);
         }
-        return json{{"unit", unit}, {"value", "null"}}.dump();
+        const std::optional<DyeColor> found = dyeColorByName(lowered);
+        if (!found.has_value()) {
+            return json{{"unit", unit}, {"value", "null"}}.dump();
+        }
+        // 输出顺序与原 oracle 一致：id, textureDiffuse, diffuseArg, firework, textArg, 序列化名。
+        // 打包值按 Java int 的**有符号**形式输出（如 0xFFFFFFFF 写作 -1）。
+        const auto signedInt = [](u32 value) {
+            return static_cast<i32>(value);
+        };
+        const std::string value = std::to_string(static_cast<i32>(*found)) + "," +
+            std::to_string(dyeTextureDiffuseColor(*found)) + "," +
+            std::to_string(signedInt(0xFF000000U | dyeTextureDiffuseColor(*found))) + "," +
+            std::to_string(dyeFireworkColor(*found)) + "," +
+            std::to_string(signedInt(0xFF000000U | dyeTextColor(*found))) + "," + std::string(dyeColorName(*found));
+        return json{{"unit", unit}, {"value", value}}.dump();
     }
 
-    throw std::runtime_error("dye_color: 无法识别的单元：" + unit);
+    throw std::runtime_error("dye_color: unrecognized unit: " + unit);
 }
 
 } // namespace

@@ -179,8 +179,8 @@ void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
     m_builtIn.velocity->m_velocity = Vector3(x * velocity, y * velocity, z * velocity);
 
     const f32 horizontalLength = std::sqrt(x * x + z * z);
-    m_builtIn.rotation->m_rot.x = std::atan2(x, z) * math::RAD_TO_DEG;
-    m_builtIn.rotation->m_rot.y = std::atan2(y, horizontalLength) * math::RAD_TO_DEG;
+    m_builtIn.rotation->m_rot.x = math::atan2(x, z) * math::RAD_TO_DEG;
+    m_builtIn.rotation->m_rot.y = math::atan2(y, horizontalLength) * math::RAD_TO_DEG;
     m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
     m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
 }

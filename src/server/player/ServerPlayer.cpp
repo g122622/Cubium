@@ -805,7 +805,7 @@ void ServerPlayer::stopSleepInBed(bool resetTimer)
             if (dirLen > 0.001) {
                 dirToBed.x /= dirLen;
                 dirToBed.z /= dirLen;
-                f32 yawDeg = static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f;
+                f32 yawDeg = static_cast<f32>(math::toDegrees(math::atan2(dirToBed.z, dirToBed.x))) - 90.0f;
                 yawDeg = math::wrapDegrees(yawDeg);
                 setRotation(yawDeg, 0.0f);
             }
@@ -838,7 +838,7 @@ namespace {
     if (length < 1.0e-6) {
         return 0.0f;
     }
-    const f32 lookYawRadians = std::atan2(static_cast<f32>(dz / length), static_cast<f32>(dx / length));
+    const f32 lookYawRadians = math::atan2(static_cast<f32>(dz / length), static_cast<f32>(dx / length));
     return math::wrapDegrees(math::toDegrees(lookYawRadians) - 90.0F);
 }
 

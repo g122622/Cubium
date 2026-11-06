@@ -177,7 +177,7 @@ void BatFloatGoal::tick()
         m_bat->setVelocity(newVel);
 
         // 计算朝向
-        f32 targetYaw = static_cast<f32>(math::toDegrees(std::atan2(newVel.z, newVel.x))) - 90.0f;
+        f32 targetYaw = static_cast<f32>(math::toDegrees(math::atan2(newVel.z, newVel.x))) - 90.0f;
         f32 yawDiff = math::wrapDegrees(targetYaw - m_bat->yaw());
         m_bat->setRotation(m_bat->yaw() + yawDiff * 0.1f, m_bat->pitch());
     }

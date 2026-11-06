@@ -32,6 +32,7 @@
 #include "common/item/core/UseAction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
@@ -255,8 +256,8 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
 
     // 如果有目标，计算指向目标的方向
     if (horizontalDist > 0.001) {
-        yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / math::PI) - 90.0f;
-        pitch = static_cast<f32>(std::atan2(dy, horizontalDist) * 180.0 / math::PI);
+        yaw = static_cast<f32>(math::atan2(dz, dx) * 180.0 / math::PI) - 90.0f;
+        pitch = static_cast<f32>(math::atan2(dy, horizontalDist) * 180.0 / math::PI);
     }
 
     // 应用弹道偏移角度（用于多重射击）

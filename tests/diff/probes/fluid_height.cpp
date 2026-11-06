@@ -130,6 +130,9 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/fluid/FlowingFluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 
 #include "probe.hpp"
 

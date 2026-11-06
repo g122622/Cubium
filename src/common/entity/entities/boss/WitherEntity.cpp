@@ -757,9 +757,9 @@ void WitherEntity::_updateSideHeadRotations()
             f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
             // 偏航角：atan2(dz, dx) * 180/PI - 90
-            f32 targetYaw = static_cast<f32>(std::atan2(dz, dx) * (180.0 / math::PI) - 90.0);
+            f32 targetYaw = static_cast<f32>(math::atan2(dz, dx) * (180.0 / math::PI) - 90.0);
             // 俯仰角：-(atan2(dy, horizontalDist) * 180/PI)
-            f32 targetPitch = static_cast<f32>(-(std::atan2(dy, horizontalDist) * (180.0 / math::PI)));
+            f32 targetPitch = static_cast<f32>(-(math::atan2(dy, horizontalDist) * (180.0 / math::PI)));
 
             m_headXRot[j] = _rotLerp(m_headXRot[j], targetPitch, 40.0f);
             m_headYRot[j] = _rotLerp(m_headYRot[j], targetYaw, 10.0f);
@@ -1032,7 +1032,7 @@ bool WitherRandomFlyGoal::_generateFlightTarget()
     for (i32 attempt = 0; attempt < 10; ++attempt) {
         // 在 PI/2 弧度（90度）锥形范围内随机偏移
         f32 angleOffset = (2.0f * rng.nextFloat() - 1.0f) * (math::PI / 2.0f);
-        f32 baseAngle = std::atan2(lookZ, lookX);
+        f32 baseAngle = math::atan2(lookZ, lookX);
         f32 finalAngle = baseAngle + angleOffset;
 
         // 水平距离：使用 sqrt 分布保证均匀分布（范围 0~8）
@@ -1219,7 +1219,7 @@ void WitherEntity::_updateFlightBehavior()
     velocity = this->velocity();
     f64 horizontalSpeedSq = static_cast<f64>(velocity.x) * velocity.x + static_cast<f64>(velocity.z) * velocity.z;
     if (horizontalSpeedSq > 0.05) {
-        setRotation(static_cast<f32>(std::atan2(velocity.z, velocity.x) * (180.0 / math::PI) - 90.0), pitch());
+        setRotation(static_cast<f32>(math::atan2(velocity.z, velocity.x) * (180.0 / math::PI) - 90.0), pitch());
     }
 }
 

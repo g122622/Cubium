@@ -582,7 +582,7 @@ void RabbitEntity::facePoint(f64 targetX, f64 targetZ)
 {
     // 对应 MC Rabbit.facePoint(f64, f64)：
     //   setYRot((f32)(Mth.atan2(targetZ - getZ(), targetX - getX()) * 180.0 / PI) - 90.0F);
-    f32 targetYaw = static_cast<f32>(std::atan2(targetZ - z(), targetX - x()) * math::RAD_TO_DEG - 90.0);
+    f32 targetYaw = static_cast<f32>(math::atan2(targetZ - z(), targetX - x()) * math::RAD_TO_DEG - 90.0);
     setYaw(math::wrapDegrees(targetYaw));
 }
 

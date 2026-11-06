@@ -535,8 +535,8 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
     f32 pitch = this->pitch();
 
     if (horizontalDist > 0.001) {
-        yaw = static_cast<f32>(std::atan2(dz, dx) * 180.0 / math::PI) - 90.0f;
-        pitch = static_cast<f32>(std::atan2(dy, horizontalDist) * 180.0 / math::PI);
+        yaw = static_cast<f32>(math::atan2(dz, dx) * 180.0 / math::PI) - 90.0f;
+        pitch = static_cast<f32>(math::atan2(dy, horizontalDist) * 180.0 / math::PI);
     }
 
     // 发射箭矢

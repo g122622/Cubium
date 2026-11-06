@@ -242,6 +242,11 @@ void ChunkSendManager::submitChunkData(ChunkCoord x,
     std::vector<PlayerId> players,
     bool validateTracking)
 {
+    // 关停检查必须先于一切：关停后到达的构建结果直接丢弃，连追踪事件都不必再取。
+    if (m_shutdown.load(std::memory_order::acquire)) {
+        return;
+    }
+
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::submitChunkData");
 
     std::sort(players.begin(), players.end());
@@ -259,12 +264,6 @@ void ChunkSendManager::submitChunkData(ChunkCoord x,
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(ir)}});
     ready.players = std::move(players);
     ready.validateTracking = validateTracking;
-    // 与 shutdown() 互斥：关停之后才到达的构建结果直接丢弃。
-    // 构建任务持有本对象的 shared_ptr（在途期间管理器必然存活），因此关停标志可以无锁读取；
-    // 这样关服时销毁优先级排在前面的管理器也不会被在途任务卡住。
-    if (m_shutdown.load(std::memory_order::acquire)) {
-        return;
-    }
     std::lock_guard<std::mutex> lock(m_readyChunksMutex);
     if (m_shutdown.load(std::memory_order::acquire)) {
         return;
@@ -311,9 +310,21 @@ void ChunkSendManager::shutdown()
     }
     // 切断与外部对象的引用（m_chunkManager/m_ticketManager/发送回调都可能是宿主维度的成员）：
     // 若在途任务仍持有本对象，它之后只能看到关停标志并直接返回，不会再触碰任何宿主状态。
-    m_lifetimeGuard.reset();
     m_onChunkSend = nullptr;
     m_onChunkUnload = nullptr;
+    // m_lifetimeGuard 是自持有的 shared_ptr（环），这里不能直接 reset：那会在类的成员函数里
+    // 释放本对象。由宿主在 reset() 之前调用 releaseLifetimeGuard() 断开该环。
+}
+
+void ChunkSendManager::releaseLifetimeGuard() noexcept
+{
+    // 由宿主（ServerDimension）在 reset() 之前调用：先断开回调引用，再断开自环。
+    // 此后对象由剩余的持有者（宿主 unique_ptr 与在途任务）管理，最后一个持有者负责销毁。
+    m_onChunkSend = nullptr;
+    m_onChunkUnload = nullptr;
+    auto self = std::move(m_lifetimeGuard);
+    m_lifetimeGuard.reset();
+    // self 在此析构：若没有在途任务引用，对象在这里被销毁（调用方此后不得再访问本对象）。
 }
 
 void ChunkSendManager::setOnChunkSend(

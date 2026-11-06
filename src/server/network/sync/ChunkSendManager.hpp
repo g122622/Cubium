@@ -180,6 +180,15 @@ public:
      * 回调在主线程 processPendingSends 内按 (chunk, player) 对调用，同一 chunk 给 N 个玩家
      * 触发 N 次。快照由所有目标玩家共享，编码和压缩结果由网络执行器按连接配置缓存。
      */
+    /**
+     * @brief 断开会话自持的生命周期守卫（宿主 reset() 前必须调用一次）
+     *
+     * 在途的区块构建任务/回调通过共享该守卫保证使用期间对象有效，因此本类以 shared_ptr
+     * 自持一层引用，形成环。该环只能由宿主显式断开：调用后若没有在途任务引用本对象，
+     * 对象即刻被销毁；否则由最后一个在途任务在结束时销毁。
+     */
+    void releaseLifetimeGuard() noexcept;
+
     void setOnChunkSend(std::function<void(
             PlayerId, ChunkCoord, ChunkCoord, std::shared_ptr<const mc::network::pipeline::OutboundPacket>)> callback);
 

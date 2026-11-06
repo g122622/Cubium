@@ -128,7 +128,7 @@ f32 LookController::getTargetYaw() const
     f64 dz = m_posZ - m_mob->z();
 
     // atan2(dz, dx) 返回弧度，转换为度数
-    f32 yaw = static_cast<f32>(std::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
+    f32 yaw = static_cast<f32>(math::atan2(dz, dx) * math::RAD_TO_DEG - 90.0);
 
     return yaw;
 }
@@ -146,7 +146,7 @@ f32 LookController::getTargetPitch() const
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
     // 俯仰角为负值表示向上看
-    f32 pitch = static_cast<f32>(-(std::atan2(dy, horizontalDist) * math::RAD_TO_DEG));
+    f32 pitch = static_cast<f32>(-(math::atan2(dy, horizontalDist) * math::RAD_TO_DEG));
 
     return pitch;
 }

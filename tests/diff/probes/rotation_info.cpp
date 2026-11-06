@@ -134,12 +134,15 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 
 #include "probe.hpp"
 
 namespace mc::diff {
 namespace {
 
+using mc::Direction;
+using mc::Rotation;
 using nlohmann::json;
 
 /// 一个旋转值。
@@ -148,163 +151,6 @@ struct RotationInfo {
     i32 index;
     const char* serializedName;
 };
-
-/// 原版 4 个旋转，按 index 升序。
-constexpr RotationInfo ROTATIONS[] = {
-    {"NONE", 0, "none"},
-    {"CLOCKWISE_90", 1, "clockwise_90"},
-    {"CLOCKWISE_180", 2, "180"},
-    {"COUNTERCLOCKWISE_90", 3, "counterclockwise_90"},
-};
-
-constexpr i32 ROTATION_COUNT = 4;
-
-/// 旋转名 → 旋转。
-const RotationInfo* findRotation(const std::string& name)
-{
-    for (const auto& rot : ROTATIONS) {
-        if (name == rot.name) {
-            return &rot;
-        }
-    }
-    return nullptr;
-}
-
-/// 原版 `Mth.positiveModulo`：结果始终非负。
-i32 positiveModulo(i32 value, i32 modulus)
-{
-    const i32 result = value % modulus;
-    return result < 0 ? result + modulus : result;
-}
-
-/// 原版 `Rotation.BY_ID`（WRAP 策略）。
-const RotationInfo* byId(i32 id)
-{
-    return &ROTATIONS[positiveModulo(id, ROTATION_COUNT)];
-}
-
-/// 原版 `Rotation.getRotated`：把另一个旋转叠加到本旋转上。
-const RotationInfo* getRotated(const RotationInfo& base, const RotationInfo& other)
-{
-    return &ROTATIONS[(base.index + other.index) % ROTATION_COUNT];
-}
-
-/// 方向名 → 是否 Y 轴。
-bool isYAxis(const std::string& dir)
-{
-    return dir == "UP" || dir == "DOWN";
-}
-
-/// 原版 `Direction.getClockWise()`：水平面顺时针。
-const char* getClockWise(const std::string& dir)
-{
-    if (dir == "NORTH") {
-        return "EAST";
-    }
-    if (dir == "EAST") {
-        return "SOUTH";
-    }
-    if (dir == "SOUTH") {
-        return "WEST";
-    }
-    if (dir == "WEST") {
-        return "NORTH";
-    }
-    return nullptr;
-}
-
-/// 原版 `Direction.getCounterClockWise()`：水平面逆时针。
-const char* getCounterClockWise(const std::string& dir)
-{
-    if (dir == "NORTH") {
-        return "WEST";
-    }
-    if (dir == "WEST") {
-        return "SOUTH";
-    }
-    if (dir == "SOUTH") {
-        return "EAST";
-    }
-    if (dir == "EAST") {
-        return "NORTH";
-    }
-    return nullptr;
-}
-
-/// 原版 `Direction.getOpposite()`。
-const char* getOpposite(const std::string& dir)
-{
-    if (dir == "NORTH") {
-        return "SOUTH";
-    }
-    if (dir == "SOUTH") {
-        return "NORTH";
-    }
-    if (dir == "EAST") {
-        return "WEST";
-    }
-    if (dir == "WEST") {
-        return "EAST";
-    }
-    if (dir == "UP") {
-        return "DOWN";
-    }
-    if (dir == "DOWN") {
-        return "UP";
-    }
-    return nullptr;
-}
-
-/// 原版 `Rotation.rotate(Direction)`。
-std::string rotateDir(const std::string& rotName, const std::string& dir)
-{
-    if (isYAxis(dir)) {
-        return dir;
-    }
-    if (rotName == "NONE") {
-        return dir;
-    }
-    if (rotName == "CLOCKWISE_90") {
-        const char* result = getClockWise(dir);
-        if (result == nullptr) {
-            throw std::runtime_error("rotation_info: 未知方向：" + dir);
-        }
-        return result;
-    }
-    if (rotName == "CLOCKWISE_180") {
-        const char* result = getOpposite(dir);
-        if (result == nullptr) {
-            throw std::runtime_error("rotation_info: 未知方向：" + dir);
-        }
-        return result;
-    }
-    if (rotName == "COUNTERCLOCKWISE_90") {
-        const char* result = getCounterClockWise(dir);
-        if (result == nullptr) {
-            throw std::runtime_error("rotation_info: 未知方向：" + dir);
-        }
-        return result;
-    }
-    throw std::runtime_error("rotation_info: 未知旋转：" + rotName);
-}
-
-/// 原版 `Rotation.rotate(int, int)`：注意 `modulus * 3 / 4` 是先乘后除。
-i32 rotateInt(const std::string& rotName, i32 value, i32 modulus)
-{
-    if (modulus == 0) {
-        throw std::runtime_error("rotation_info: 模数为 0");
-    }
-    if (rotName == "CLOCKWISE_90") {
-        return (value + modulus / 4) % modulus;
-    }
-    if (rotName == "CLOCKWISE_180") {
-        return (value + modulus / 2) % modulus;
-    }
-    if (rotName == "COUNTERCLOCKWISE_90") {
-        return (value + modulus * 3 / 4) % modulus;
-    }
-    return value;
-}
 
 void writeList(FILE* out)
 {
@@ -384,46 +230,96 @@ std::vector<std::string> splitPipe(const std::string& text)
     return tokens;
 }
 
+/// 原版 `Rotation.getSerializedName()` 对应的名字，按 index 升序。
+/// 注意是**小写**：原版 `getSerializedName()` 返回的是小写形式。
+/// 注意 `CLOCKWISE_180` 的序列化名是 `"180"` 而不是 `"clockwise_180"`——原版数据如此。
+constexpr const char* ROTATION_SERIALIZED[] = {"none", "clockwise_90", "180", "counterclockwise_90"};
+
+/// 解析用的名字（大写），仅探针内部使用。
+constexpr const char* ROTATION_NAMES[] = {"NONE", "CLOCKWISE_90", "CLOCKWISE_180", "COUNTERCLOCKWISE_90"};
+
+constexpr const char* DIRECTION_NAMES[] = {"DOWN", "UP", "NORTH", "SOUTH", "WEST", "EAST"};
+
+/// 名字 → 生产枚举的 Rotation；未知返回 nullopt。
+std::optional<Rotation> findRotation(const std::string& name)
+{
+    for (i32 index = 0; index < 4; ++index) {
+        if (name == ROTATION_NAMES[index]) {
+            return static_cast<Rotation>(index);
+        }
+    }
+    return std::nullopt;
+}
+
+/// 名字 → 生产枚举的 Direction；未知返回 nullopt。
+std::optional<Direction> findDirection(const std::string& name)
+{
+    for (i32 index = 0; index < 6; ++index) {
+        if (name == DIRECTION_NAMES[index]) {
+            return static_cast<Direction>(index);
+        }
+    }
+    return std::nullopt;
+}
+
 std::string runLine(std::string_view inputLine)
 {
     const json input = json::parse(inputLine);
     const std::string unit = input.at("unit").get<std::string>();
     const auto parts = splitPipe(unit);
     if (parts.size() < 2) {
-        throw std::runtime_error("rotation_info: 单元至少两段：" + unit);
+        throw std::runtime_error("rotation_info: unit needs at least two fields: " + unit);
     }
 
     const std::string mode = parts[0];
 
     if (mode == "info" && parts.size() == 2) {
-        const RotationInfo* rot = findRotation(parts[1]);
-        if (rot == nullptr) {
+        const std::optional<Rotation> rot = findRotation(parts[1]);
+        if (!rot.has_value()) {
             return json{{"unit", unit}, {"value", "null"}}.dump();
         }
-        const std::string value = std::to_string(rot->index) + "," + rot->serializedName;
+        const std::string value =
+            std::to_string(static_cast<i32>(*rot)) + "," + ROTATION_SERIALIZED[static_cast<i32>(*rot)];
         return json{{"unit", unit}, {"value", value}}.dump();
     }
     if (mode == "byId" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", std::string(byId(std::stoi(parts[1]))->name)}}.dump();
+        // 原版 BY_ID 用 WRAP 策略：越界索引按 4 取模回绕
+        const i32 raw = std::stoi(parts[1]);
+        const i32 wrapped = ((raw % 4) + 4) % 4;
+        return json{{"unit", unit}, {"value", std::string(ROTATION_NAMES[wrapped])}}.dump();
     }
     if (mode == "getRotated" && parts.size() == 3) {
-        const RotationInfo* base = findRotation(parts[1]);
-        const RotationInfo* other = findRotation(parts[2]);
-        if (base == nullptr || other == nullptr) {
+        const std::optional<Rotation> base = findRotation(parts[1]);
+        const std::optional<Rotation> other = findRotation(parts[2]);
+        if (!base.has_value() || !other.has_value()) {
             return json{{"unit", unit}, {"value", "null"}}.dump();
         }
-        return json{{"unit", unit}, {"value", std::string(getRotated(*base, *other)->name)}}.dump();
+        const Rotation result = Rotations::getRotated(*base, *other);
+        return json{{"unit", unit}, {"value", std::string(ROTATION_NAMES[static_cast<i32>(result)])}}.dump();
     }
     if (mode == "rotateDir" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", rotateDir(parts[1], parts[2])}}.dump();
+        const std::optional<Rotation> rot = findRotation(parts[1]);
+        const std::optional<Direction> dir = findDirection(parts[2]);
+        if (!rot.has_value() || !dir.has_value()) {
+            throw std::runtime_error("rotation_info: unknown rotation or direction: " + unit);
+        }
+        const Direction result = mc::rotate(*rot, *dir);
+        return json{{"unit", unit}, {"value", std::string(DIRECTION_NAMES[static_cast<i32>(result)])}}.dump();
     }
     if (mode == "rotateInt" && parts.size() == 4) {
+        const std::optional<Rotation> rot = findRotation(parts[1]);
+        if (!rot.has_value()) {
+            throw std::runtime_error("rotation_info: unknown rotation: " + unit);
+        }
         const i32 value = static_cast<i32>(std::stoll(parts[2]));
         const i32 modulus = static_cast<i32>(std::stoll(parts[3]));
-        return json{{"unit", unit}, {"value", rotateInt(parts[1], value, modulus)}}.dump();
+        if (modulus == 0) {
+            throw std::runtime_error("rotation_info: modulus is zero");
+        }
+        return json{{"unit", unit}, {"value", Rotations::rotate(*rot, value, modulus)}}.dump();
     }
 
-    throw std::runtime_error("rotation_info: 无法识别的单元：" + unit);
+    throw std::runtime_error("rotation_info: unrecognized unit: " + unit);
 }
 
 } // namespace

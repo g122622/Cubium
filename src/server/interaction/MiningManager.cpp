@@ -599,8 +599,10 @@ bool MiningManager::_areEyesInWater(ServerWorld& world, const ServerPlayerData& 
     }
 
     // 5. 计算流体表面高度
+    // 必须用 getActualHeight：上方有同类流体时该格是满高度 1.0。
+    // 只调 getHeight() 会得到 8/9，潜入两格深的水中时眼睛会被误判为不在水里。
     const BlockPos pos(eyeBlockX, eyeBlockY, eyeBlockZ);
-    const f32 fluidHeight = fluidState->getHeight();
+    const f32 fluidHeight = fluidState->getActualHeight(world, pos);
     const f64 fluidSurfaceY = static_cast<f64>(eyeBlockY) + static_cast<f64>(fluidHeight);
 
     // 6. 如果流体表面高度 > 检测点高度，则眼睛在水中
