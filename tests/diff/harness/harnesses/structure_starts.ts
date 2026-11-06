@@ -188,6 +188,14 @@ export function structureStartsDeclaration(): HarnessDeclaration {
             );
             const candidates = pickUnits(fs.readFileSync(candidatesPath, "utf8").split(/\r?\n/));
             units = candidates.map((candidate) => ({ unit: unitKey(candidate), input: candidate }));
+            // 落点位置不是这条能力的比较项（构件序列由 stronghold_pieces 逐条比对），但落点
+            // 偏差会把「装配分叉」与「位置不同」混为一谈；排查时打开开关即可看到候选落点。
+            if (process.env.MC_DIFF_TRACE_CANDIDATES === "1") {
+                const lines = fs.readFileSync(candidatesPath, "utf8").split(/\r?\n/).filter((line) => line.trim().length > 0);
+                for (const line of lines.slice(0, 8)) {
+                    console.log("[cand]", line);
+                }
+            }
         },
     } satisfies HarnessDeclaration;
 }

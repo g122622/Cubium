@@ -205,14 +205,11 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
     i32 x = 0, y = 0, z = 0;
     Direction newDirection = Direction::None;
 
-    // 调用方按导入口朝向的**世界方向**调用（左门传 WEST、右门传 EAST、前门沿用本体朝向），
-    // 这里再做一次「世界方向 -> 局部 +X/+Z」的换算：世界 WEST 恒等于 NORTH/SOUTH 的 -X，
-    // 即 WEST/EAST 两段本体的局部 +X；世界 NORTH 恒等于 NORTH/SOUTH 的 -Z、WEST/EAST 的 +X。
-    // 直接照抄原版 switch 会把 WEST/EAST 的两只侧门错位到局部 Z 轴上。
+    // 原版 `generateSmallDoorChildLeft`（p_229905_ = 沿局部 X 的偏移、p_229906_ = 沿局部 Z 的偏移）：
+    // 门在局部 -X 边（本体翻滚系里是南/北门），门沿局部 Z 的位置由调用方给的偏移决定。
     switch (direction) {
         case Direction::North:
         case Direction::South:
-            // 世界 WEST：局部 -X（刚体翻滚，前门在局部 +Z）。
             x = boundingBox().minX() - 1;
             y = boundingBox().minY() + verticalOffset;
             z = boundingBox().minZ() + positionOffset;
@@ -220,10 +217,9 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
             break;
         case Direction::West:
         case Direction::East:
-            // 世界 NORTH：刚体逆时针转 90°，即局部 +X 方向。
-            x = boundingBox().maxX() + 1;
+            x = boundingBox().minX() + positionOffset;
             y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() + positionOffset;
+            z = boundingBox().minZ() - 1;
             newDirection = Direction::North;
             break;
         default:
@@ -248,10 +244,7 @@ StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
     i32 x = 0, y = 0, z = 0;
     Direction newDirection = Direction::None;
 
-    // 调用方按导入口朝向的**世界方向**调用（左门传 WEST、右门传 EAST、前门沿用本体朝向），
-    // 这里再做一次「世界方向 -> 局部 +X/+Z」的换算：世界 WEST 恒等于 NORTH/SOUTH 的 -X、
-    // 即 WEST/EAST 两段本体的局部 +X；世界 NORTH 恒等于 NORTH/SOUTH 的 -Z、WEST/EAST 的 +X。
-    // 直接照抄原版 switch 会让 WEST/EAST 两只门错位到局部 Z 轴上。
+    // 原版 `generateSmallDoorChildRight`，与左门同一套「局部偏移」语义（见 getNextComponentX）。
     switch (direction) {
         case Direction::North:
         case Direction::South:
@@ -1702,7 +1695,6 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
 
         std::unique_ptr<StrongholdPiece> piece =
             createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
-        if (piece != nullptr) {}
         if (piece != nullptr) {
             // 找到对应的权重并更新计数
             for (auto& weight : weights) {
