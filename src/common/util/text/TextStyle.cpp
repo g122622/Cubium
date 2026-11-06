@@ -344,4 +344,76 @@ std::string getStyleCodes(const Style& style)
     return codes;
 }
 
+// ============================================================================
+// TextColor
+// ============================================================================
+
+TextColor::TextColor(i32 value, std::optional<std::string> name)
+    : m_value(value)
+    , m_name(std::move(name))
+{}
+
+TextColor TextColor::fromRgb(i32 rgb)
+{
+    return TextColor(rgb & 0xFFFFFF, std::nullopt);
+}
+
+std::optional<TextColor> TextColor::fromLegacyFormat(TextFormatting formatting)
+{
+    // 样式码与 Reset/None 没有颜色，原版同样返回 null
+    const std::optional<u32> argb = findFormattingARGB(formatting);
+    if (!argb.has_value()) {
+        return std::nullopt;
+    }
+    const std::string name = toName(formatting);
+    return TextColor(static_cast<i32>(*argb & 0xFFFFFFU), name);
+}
+
+std::optional<TextColor> TextColor::parseColor(std::string_view text)
+{
+    if (text.empty()) {
+        return std::nullopt;
+    }
+
+    // 十六进制形式：`#` 加恰好 6 位
+    if (text[0] == '#') {
+        if (text.size() != 7) {
+            return std::nullopt;
+        }
+        i32 value = 0;
+        for (std::size_t index = 1; index < text.size(); ++index) {
+            const char digit = text[index];
+            i32 nibble = 0;
+            if (digit >= '0' && digit <= '9') {
+                nibble = digit - '0';
+            } else if (digit >= 'a' && digit <= 'f') {
+                nibble = digit - 'a' + 10;
+            } else if (digit >= 'A' && digit <= 'F') {
+                nibble = digit - 'A' + 10;
+            } else {
+                return std::nullopt;
+            }
+            value = (value << 4) | nibble;
+        }
+        return TextColor(value, std::nullopt);
+    }
+
+    // 具名形式：必须与 16 个颜色名完全匹配，且不能是样式名
+    const TextFormatting formatting = fromName(std::string(text));
+    if (formatting == TextFormatting::None) {
+        return std::nullopt;
+    }
+    return fromLegacyFormat(formatting);
+}
+
+std::string TextColor::serialize() const
+{
+    if (m_name.has_value()) {
+        return *m_name;
+    }
+    char buffer[16];
+    std::snprintf(buffer, sizeof(buffer), "#%06X", static_cast<unsigned>(m_value));
+    return buffer;
+}
+
 } // namespace mc::text
