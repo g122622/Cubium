@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "math/MathUtils.hpp"
 #include <array>
 #include <cmath>
@@ -662,6 +663,36 @@ inline f32 toYRot(Direction dir)
         default:
             return -1;
     }
+}
+
+/**
+ * @brief 方向的单位向量（整数），对应原版 `Direction.getUnitVec3i()`
+ *
+ * 六个方向各对应一个分量取 ±1、其余为 0 的向量。None 返回零向量。
+ */
+[[nodiscard]] inline Vector3i getUnitVec3i(Direction dir)
+{
+    return Vector3i(xOffset(dir), yOffset(dir), zOffset(dir));
+}
+
+/**
+ * @brief 方向的单位向量（f32），对应原版 `Direction.getUnitVec3f()`
+ *
+ * 原版返回 JOML 的 `Vector3fc`，本项目的对应类型是 `Vector3f`。
+ */
+[[nodiscard]] inline Vector3f getUnitVec3f(Direction dir)
+{
+    return Vector3f(static_cast<f32>(xOffset(dir)), static_cast<f32>(yOffset(dir)), static_cast<f32>(zOffset(dir)));
+}
+
+/**
+ * @brief 方向的单位向量（f64），对应原版 `Direction.getUnitVec3()`
+ *
+ * 原版返回 `Vec3`（f64 分量）；本项目的 `Vector3d` 与之对应。
+ */
+[[nodiscard]] inline Vector3d getUnitVec3(Direction dir)
+{
+    return Vector3d(static_cast<f64>(xOffset(dir)), static_cast<f64>(yOffset(dir)), static_cast<f64>(zOffset(dir)));
 }
 
 /**

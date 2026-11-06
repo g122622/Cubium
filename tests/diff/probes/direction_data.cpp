@@ -69,6 +69,21 @@ constexpr const char* UNITS[] = {
     "choose|EAST|-7,0,0",
     "choose|UP|-7,0,0",
     "choose|NORTH|-7,0,0",
+    // 单位向量（整数 / f32 / f64）
+    "u3i|DOWN",
+    "u3i|UP",
+    "u3i|NORTH",
+    "u3i|SOUTH",
+    "u3i|WEST",
+    "u3i|EAST",
+    "u3f|DOWN",
+    "u3f|NORTH",
+    "u3f|WEST",
+    "u3f|EAST",
+    "u3|DOWN",
+    "u3|UP",
+    "u3|SOUTH",
+    "u3|EAST",
 };
 
 void writeList(FILE* out)
@@ -138,6 +153,29 @@ std::string runLine(std::string_view inputLine)
     }
     if (mode == "v2") {
         return json{{"unit", unit}, {"value", Directions::get2DDataValue(dir)}}.dump();
+    }
+    if (mode == "u3i") {
+        const Vector3i v = Directions::getUnitVec3i(dir);
+        return json{
+            {"unit", unit}, {"value", std::to_string(v.x) + "," + std::to_string(v.y) + "," + std::to_string(v.z)}}
+            .dump();
+    }
+    if (mode == "u3f") {
+        const Vector3f v = Directions::getUnitVec3f(dir);
+        char buffer[128];
+        std::snprintf(buffer,
+            sizeof(buffer),
+            "%.1f,%.1f,%.1f",
+            static_cast<double>(v.x),
+            static_cast<double>(v.y),
+            static_cast<double>(v.z));
+        return json{{"unit", unit}, {"value", std::string(buffer)}}.dump();
+    }
+    if (mode == "u3") {
+        const Vector3d v = Directions::getUnitVec3(dir);
+        char buffer[128];
+        std::snprintf(buffer, sizeof(buffer), "%.1f,%.1f,%.1f", v.x, v.y, v.z);
+        return json{{"unit", unit}, {"value", std::string(buffer)}}.dump();
     }
     if (mode == "choose" && parts.size() == 3) {
         const std::string& coords = parts[2];

@@ -31,7 +31,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3fc;
 
 /**
  * Direction 数据值编码与按轴取分量的原版 oracle。
@@ -74,7 +78,21 @@ public final class DirectionDataOracle {
                     "choose|EAST|11,22,33",
                     "choose|EAST|-7,0,0",
                     "choose|UP|-7,0,0",
-                    "choose|NORTH|-7,0,0");
+                    "choose|NORTH|-7,0,0",
+                    "u3i|DOWN",
+                    "u3i|UP",
+                    "u3i|NORTH",
+                    "u3i|SOUTH",
+                    "u3i|WEST",
+                    "u3i|EAST",
+                    "u3f|DOWN",
+                    "u3f|NORTH",
+                    "u3f|WEST",
+                    "u3f|EAST",
+                    "u3|DOWN",
+                    "u3|UP",
+                    "u3|SOUTH",
+                    "u3|EAST");
 
     private DirectionDataOracle() {}
 
@@ -145,6 +163,18 @@ public final class DirectionDataOracle {
             case "v2" -> {
                 // 原版 get2DDataValue 对垂直方向返回 -1。
                 out.addProperty("value", dir.get2DDataValue());
+            }
+            case "u3i" -> {
+                Vec3i v = dir.getUnitVec3i();
+                out.addProperty("value", v.getX() + "," + v.getY() + "," + v.getZ());
+            }
+            case "u3f" -> {
+                Vector3fc v = dir.getUnitVec3f();
+                out.addProperty("value", String.format(Locale.ROOT, "%.1f,%.1f,%.1f", v.x(), v.y(), v.z()));
+            }
+            case "u3" -> {
+                Vec3 v = dir.getUnitVec3();
+                out.addProperty("value", String.format(Locale.ROOT, "%.1f,%.1f,%.1f", v.x, v.y, v.z));
             }
             case "choose" -> {
                 if (parts.length != 3) {
