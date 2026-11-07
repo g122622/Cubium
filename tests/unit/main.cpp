@@ -35,27 +35,34 @@
 int main(int argc, char* argv[])
 {
     // 供 OnTestProgramEnd 统计进程墙钟的上界余量（见该类注释）。取值早于任何初始化。
-    TestIsolationListener::s_processStartMs =
+    test_timing::g_processStartMs =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
             .count();
 
+    const auto sinceStart = [] {
+        return test_timing::sinceStartMs();
+    };
     spdlog::info("[SetupTiming] main_enter");
-    WorldGenRegistryEnvironment::recordTiming("main_enter", 0);
+    WorldGenRegistryEnvironment::recordTiming("main_enter", sinceStart());
 
     // 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用、std::terminate 等，
     // 输出调用栈和局部变量信息到终端。多次调用安全（只安装一次）。
     mc::assert::CrashHandler::install();
     spdlog::info("[SetupTiming] main_after_crash_handler");
+    WorldGenRegistryEnvironment::recordTiming("main_after_crash_handler", sinceStart());
 
     ::testing::InitGoogleTest(&argc, argv);
     spdlog::info("[SetupTiming] main_after_init_gtest");
+    WorldGenRegistryEnvironment::recordTiming("main_after_init_gtest", sinceStart());
     // 注册全局环境：在 RUN_ALL_TESTS 之前加载世界生成注册表。
     ::testing::AddGlobalTestEnvironment(new WorldGenRegistryEnvironment());
     spdlog::info("[SetupTiming] main_after_add_env");
+    WorldGenRegistryEnvironment::recordTiming("main_after_add_env", sinceStart());
     // 注册跨用例隔离监听器：每用例结束重置 thread_local 调度上下文，根除全二进制
     // 直跑时的跨用例共享状态污染（详见 docs/test/「跨测试隔离模型」）。
     ::testing::UnitTest::GetInstance()->listeners().Append(new TestIsolationListener());
     const int result = RUN_ALL_TESTS();
+    WorldGenRegistryEnvironment::recordTiming("main_after_run", sinceStart());
 
     // CrashHandler 不需要 uninstall：进程即将退出，操作系统回收所有资源。
     return result;

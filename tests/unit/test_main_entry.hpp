@@ -44,6 +44,21 @@
 #include <sys/resource.h>
 #endif
 
+namespace test_timing {
+
+/// 进程进入 main 时的 steady_clock 读数（毫秒），由 main 最早写入。
+inline mc::i64 g_processStartMs = 0;
+
+/// 自进程进入 main 起经过的毫秒数。所有阶段标记统一用这个基准，便于直接对齐。
+[[nodiscard]] inline mc::i64 sinceStartMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+               .count() -
+        g_processStartMs;
+}
+
+} // namespace test_timing
+
 /// 全局测试环境：在所有用例运行前一次性加载 noise_settings 数据驱动注册表。
 ///
 /// RandomState::create 现为数据驱动唯一路径（查 NoiseSettingsRegistry），
@@ -63,13 +78,10 @@ public:
     {
         // 分步时刻标记：CI 上每个 ctest 用例都是独立进程，入口各步骤的耗时只能靠这类日志
         // 才看得见（ctest 只给一个总时长）。标记前缀固定为 [SetupTiming]，便于统计。
-        const auto setupStart = std::chrono::steady_clock::now();
-        const auto mark = [&setupStart](const char* step) {
-            const auto ms =
-                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - setupStart)
-                    .count();
+        const auto mark = [](const char* step) {
+            const auto ms = test_timing::sinceStartMs();
             spdlog::info("[SetupTiming] {} {}ms", step, ms);
-            _appendTimingLine(step, static_cast<mc::i64>(ms));
+            recordTiming(step, ms);
         };
         // 注册组件序列化器（进程单例，幂等）。Entity::writeToNBT/readFromNBT 经
         // ComponentSerializerRegistry::saveAll/loadAll 把已 ECS 组件化的字段（Pos/Motion/
@@ -164,6 +176,17 @@ public:
         // FlatLevelGeneratorSettings::fromSettingsObject）。
         mc::world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(m_dataPackRepository);
         mark("worldgen_registries");
+        mark("setup_done");
+    }
+
+    void TearDown() override
+    {
+        recordTiming("teardown_begin", 0);
+    }
+
+    ~WorldGenRegistryEnvironment() override
+    {
+        recordTiming("env_destructor_begin", 0);
     }
 
 private:
@@ -198,6 +221,17 @@ private:
             std::fclose(file);
         }
     }
+
+    /// 成员按声明逆序析构：放在最前，使它的析构发生在其余成员全部析构之后，
+    /// 从而把「环境成员析构」这段耗时单独记录下来。
+    struct MemberDestructionSentinel {
+        ~MemberDestructionSentinel()
+        {
+            WorldGenRegistryEnvironment::recordTiming("env_members_destroyed", 0);
+        }
+    };
+
+    MemberDestructionSentinel m_memberDestructionSentinel;
 
     /// 数据包仓库须比 SetUp 活得更久（有些组件持有它的指针），故作为成员。
     mc::resource::DataPackRepository m_dataPackRepository;
@@ -235,6 +269,7 @@ public:
     /// 与用例口径对账，定位 CI 上单用例固定开销的来源。
     void OnTestProgramEnd(const ::testing::UnitTest& unitTest) override
     {
+        WorldGenRegistryEnvironment::recordTiming("program_end", test_timing::sinceStartMs());
         const auto wallMs = unitTest.elapsed_time();
         const auto uptimeMs =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())

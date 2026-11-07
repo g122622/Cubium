@@ -450,6 +450,59 @@ jobs:
           retention-days: 7
     env:
       POCOCC_CI_ARTIFACT_PREFIX: pococc-${{ matrix.pool }}-
+  # 临时诊断作业：直接跑单个测试用例，把进程内各阶段时间线一次性打出来（约 1 分钟出结果），
+  # 用于定位单进程 8 秒固定开销的来源。调查结束后删除。
+  timing-probe:
+    name: Unit Test Timing Probe
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+          tar -xzf ctest-meta.tar.gz || true
+      - uses: ./.github/actions/setup-sanitizer-symbolizer
+      - name: Probe one test process
+        env:
+          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
+        run: |
+          set +e
+          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
+          cd build/tests/unit
+          for i in 1 2 3; do
+            rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
+            start=$(date +%s.%N)
+            "$BIN" --gtest_filter=MathUtils.LerpDouble > /dev/null 2>&1
+            end=$(date +%s.%N)
+            echo "run $i: total_wall=$(echo "$end - $start" | bc)"
+            cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
+          done
+      - name: Compare list mode and empty filter
+        env:
+          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
+        run: |
+          set +e
+          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
+          cd build/tests/unit
+          for mode in "--gtest_list_tests" "--gtest_filter=NoSuchTest" "--gtest_filter=MathUtils.LerpDouble"; do
+            rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
+            start=$(date +%s.%N)
+            "$BIN" $mode > /dev/null 2>&1
+            end=$(date +%s.%N)
+            echo "mode [$mode]: total_wall=$(echo "$end - $start" | bc)"
+            cat "$MC_SETUP_TIMING_DIR/setup-timing.log" 2>/dev/null
+          done
+
   unit-tests:
     name: Unit Tests (CTest shard ${{ matrix.shard }}/20)
     needs: build
