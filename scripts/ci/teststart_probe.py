@@ -46,16 +46,16 @@ def run(command: list[str], **kwargs) -> subprocess.CompletedProcess:
 
 
 def find_entry(compile_db: Path, suffix: str) -> dict:
+    """取某个 mc_tests 源文件的编译参数（探针源文件不在数据库里，借用同目标的编译参数）。"""
     for entry in json.loads(compile_db.read_text()):
-        file_name = entry.get("file", "")
-        if file_name.endswith(suffix) and "mc_tests.dir" in entry.get("output", ""):
+        if entry.get("file", "").endswith(suffix) and "mc_tests.dir" in entry.get("output", ""):
             return entry
     raise ProbeError(f"compile_commands.json 中找不到 {suffix}")
 
 
 def compile_variant(compile_db: Path, suffix: str, output: Path, extra_flags: list[str]) -> None:
     """按 mc_tests 的编译参数编译一个变体目标文件（只替换 -o 与追加宏定义）。"""
-    entry = find_entry(compile_db, suffix)
+    entry = find_entry(compile_db, "tests/unit/main.cpp")
     tokens = shlex.split(entry["command"])
     result = []
     index = 0
@@ -67,6 +67,9 @@ def compile_variant(compile_db: Path, suffix: str, output: Path, extra_flags: li
             continue
         result.append(token)
         index += 1
+    absolute = str(Path(suffix).resolve())
+    tokens_source = next(i for i, token in enumerate(result) if token.endswith("tests/unit/main.cpp"))
+    result[tokens_source] = absolute
     result = result[:1] + extra_flags + result[1:]
     completed = run(result, cwd=entry["directory"], capture_output=True)
     if completed.returncode != 0:
