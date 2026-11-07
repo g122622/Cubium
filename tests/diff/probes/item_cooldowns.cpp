@@ -83,29 +83,75 @@ const std::vector<Case>& cases()
         // 设 20 tick 冷却后立刻查询：进度应为 1.0
         {"set_then_query", {{"set", 20, 0.0f}, {"query", 0, 0.0f}}},
         // 冷却设置后推进一半
-        {"set_advance_half", {{"set", 20, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                                 {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                                 {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"query", 0, 0.0f}}},
+        {"set_advance_half",
+            {{"set", 20, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"query", 0, 0.0f}}},
         // 推进到恰好到期：tick() 用 <= 判定，此时应已移除
-        {"expire_exactly", {{"set", 20, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                               {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                               {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                               {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                               {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                               {"tick", 0, 0.0f}, {"query", 0, 0.0f}}},
+        {"expire_exactly",
+            {{"set", 20, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"query", 0, 0.0f}}},
         // 到期后多推进一 tick：结果应与上一条相同（都是 0）
-        {"expire_past", {{"set", 5, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                            {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"query", 0, 0.0f}}},
+        {"expire_past",
+            {{"set", 5, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"query", 0, 0.0f}}},
         // partialTicks 参与：progress 应比 partial=0 时更小
-        {"partial_ticks", {{"set", 20, 0.0f}, {"tick", 0, 0.0f}, {"query", 0, 0.0f}, {"query", 0, 0.5f},
-                              {"query", 0, 0.25f}, {"query", 0, 0.75f}}},
+        {"partial_ticks",
+            {{"set", 20, 0.0f},
+                {"tick", 0, 0.0f},
+                {"query", 0, 0.0f},
+                {"query", 0, 0.5f},
+                {"query", 0, 0.25f},
+                {"query", 0, 0.75f}}},
         // partialTicks 超过剩余：clamp 到 0
         {"partial_beyond_end", {{"set", 4, 0.0f}, {"query", 0, 3.5f}, {"query", 0, 4.0f}, {"query", 0, 10.0f}}},
         // 负的 partialTicks：clamp 到 1
         {"partial_negative", {{"set", 10, 0.0f}, {"query", 0, -1.0f}, {"query", 0, -0.5f}}},
         // 重复设置同一冷却组：结束时间被重置
-        {"reset_cooldown", {{"set", 20, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f}, {"tick", 0, 0.0f},
-                               {"set", 10, 0.0f}, {"query", 0, 0.0f}, {"tick", 0, 0.0f}, {"query", 0, 0.0f}}},
+        {"reset_cooldown",
+            {{"set", 20, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"set", 10, 0.0f},
+                {"query", 0, 0.0f},
+                {"tick", 0, 0.0f},
+                {"query", 0, 0.0f}}},
         // 小于等于 0 的冷却时长：原版 addCooldown 仍会写入，Cubium 走 remove 分支
         {"zero_cooldown", {{"set", 0, 0.0f}, {"query", 0, 0.0f}}},
         {"negative_cooldown", {{"set", -5, 0.0f}, {"query", 0, 0.0f}}},
@@ -116,8 +162,7 @@ const std::vector<Case>& cases()
         // 极长冷却
         {"very_long", {{"set", 72000, 0.0f}, {"query", 0, 0.0f}, {"tick", 0, 0.0f}, {"query", 0, 0.0f}}},
         // 冷却时长 1 tick
-        {"one_tick", {{"set", 1, 0.0f}, {"query", 0, 0.0f}, {"query", 0, 0.5f}, {"tick", 0, 0.0f},
-                         {"query", 0, 0.0f}}},
+        {"one_tick", {{"set", 1, 0.0f}, {"query", 0, 0.0f}, {"query", 0, 0.5f}, {"tick", 0, 0.0f}, {"query", 0, 0.0f}}},
     };
     return table;
 }
@@ -165,8 +210,9 @@ std::string runLine(std::string_view inputLine)
             continue;
         }
         // query
-        states.push_back(json{{"progress", encodeFloat(static_cast<f64>(tracker.getCooldownProgress(group, step.partial)))},
-            {"active", tracker.hasCooldown(group)}});
+        states.push_back(
+            json{{"progress", encodeFloat(static_cast<f64>(tracker.getCooldownProgress(group, step.partial)))},
+                {"active", tracker.hasCooldown(group)}});
     }
 
     return json{{"unit", requested}, {"states", states}}.dump();

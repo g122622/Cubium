@@ -2346,6 +2346,21 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
         normalise: FLOAT_TOLERANCE,
         input: (unit: string) => ({ unit }) },
+    {
+        name: "inventory_slot_mapping",
+        probe: "inventory_slot_mapping",
+        oracle: "InventorySlotMappingOracle",
+        description: "玩家背包内部索引与背包菜单槽位号的互转 —— 双向 x 全部合法索引 + 越界值，共 94 个单元。"
+        + "两套索引同时存在且语义完全不同：背包内部索引（0..40）是玩家背包对象的存储顺序；"
+        + "菜单槽（0..45）是 ContainerSetContent / ContainerSetSlot 包里 slot 字段的含义，客户端按它摆放物品。"
+        + "网络同步时按菜单槽逐个反查内部索引再取物品，所以这张表直接决定客户端看到的背包界面。"
+        + "错一位的表现是「装备穿在错误的格子里」，而服务端自己看起来完全自洽——只有逐槽对比才发现。"
+        + "原版把这张表分散在 InventoryMenu 的构造里：护甲用 39-i 从背包尾部倒着绑、"
+        + "快捷栏 0..8 映射到菜单 36..44、副手 40 映射到菜单 45。"
+        + "要注意数值重叠：背包槽 36..39 是护甲，菜单槽 36..44 是快捷栏，同一个数字在两套索引里指不同的东西。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 export function findHarness(name: string): HarnessDeclaration | undefined {
     return HARNESSES.find((harness) => harness.name === name);

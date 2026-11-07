@@ -33,8 +33,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <map>
@@ -139,149 +139,29 @@ const std::vector<Scene>& scenes()
 
     static const std::vector<Scene> table = {
         // 站在 3x3 平台正中的 x 位置：中心 x=1.5，走 0.5 后到 2.0，检测盒仍在平台内
-        {"center_of_3x3_move_x",
-            1.7,
-            1.0,
-            0.7,
-            2.3,
-            2.8,
-            1.3,
-            0.5,
-            0.0,
-            0.6,
-            platform(0, 2, 0, 2)},
+        {"center_of_3x3_move_x", 1.7, 1.0, 0.7, 2.3, 2.8, 1.3, 0.5, 0.0, 0.6, platform(0, 2, 0, 2)},
         // 站在平台最外沿（中心 x=2.5，脚跨到 x=2.8 仍在方块 2 内），继续往 +X 走会掉下去
-        {"walk_off_edge_x",
-            2.2,
-            1.0,
-            0.7,
-            2.8,
-            2.8,
-            1.3,
-            1.0,
-            0.0,
-            0.6,
-            platform(0, 2, 0, 2)},
+        {"walk_off_edge_x", 2.2, 1.0, 0.7, 2.8, 2.8, 1.3, 1.0, 0.0, 0.6, platform(0, 2, 0, 2)},
         // 斜向：X 会掉、Z 不会 → 应只削掉 X，保留 Z（沿边滑行）
-        {"slide_along_edge",
-            1.9,
-            1.0,
-            0.7,
-            2.5,
-            2.8,
-            1.3,
-            1.0,
-            1.0,
-            0.6,
-            platform(0, 2, 0, 2)},
+        {"slide_along_edge", 1.9, 1.0, 0.7, 2.5, 2.8, 1.3, 1.0, 1.0, 0.6, platform(0, 2, 0, 2)},
         // 斜向且两个方向都会掉 → 都应削掉
-        {"corner_both_fall",
-            1.9,
-            1.0,
-            1.9,
-            2.5,
-            2.8,
-            2.5,
-            1.0,
-            1.0,
-            0.6,
-            platform(0, 2, 0, 2)},
+        {"corner_both_fall", 1.9, 1.0, 1.9, 2.5, 2.8, 2.5, 1.0, 1.0, 0.6, platform(0, 2, 0, 2)},
         // 站在边缘但朝平台内侧走：不应被削
-        {"move_inward",
-            1.9,
-            1.0,
-            0.7,
-            2.5,
-            2.8,
-            1.3,
-            -1.0,
-            0.0,
-            0.6,
-            platform(0, 2, 0, 2)},
+        {"move_inward", 1.9, 1.0, 0.7, 2.5, 2.8, 1.3, -1.0, 0.0, 0.6, platform(0, 2, 0, 2)},
         // 单方块平台，实体站在正中央（方块占据 [0,1]）：任何超过 0.2 的位移都会踏空
-        {"single_block",
-            0.2,
-            1.0,
-            0.2,
-            0.8,
-            2.8,
-            0.8,
-            0.5,
-            0.0,
-            0.6,
-            platform(0, 0, 0, 0)},
+        {"single_block", 0.2, 1.0, 0.2, 0.8, 2.8, 0.8, 0.5, 0.0, 0.6, platform(0, 0, 0, 0)},
         // 长条平台（只有 +X 方向延伸）：沿 Z 走会掉
-        {"narrow_strip_z",
-            0.2,
-            1.0,
-            -0.3,
-            0.8,
-            2.8,
-            0.3,
-            0.0,
-            1.0,
-            0.6,
-            platform(0, 0, -1, 1)},
+        {"narrow_strip_z", 0.2, 1.0, -0.3, 0.8, 2.8, 0.3, 0.0, 1.0, 0.6, platform(0, 0, -1, 1)},
         // 一小步（小于一个方块）：不应被削
-        {"small_step_inward",
-            0.2,
-            1.0,
-            0.2,
-            0.8,
-            2.8,
-            0.8,
-            0.1,
-            0.0,
-            0.6,
-            platform(0, 1, 0, 1)},
+        {"small_step_inward", 0.2, 1.0, 0.2, 0.8, 2.8, 0.8, 0.1, 0.0, 0.6, platform(0, 1, 0, 1)},
         // 恰好 0.05 的位移：正好是回退步长，应能在边缘停下
-        {"exactly_step_epsilon",
-            0.2,
-            1.0,
-            0.2,
-            0.8,
-            2.8,
-            0.8,
-            0.05,
-            0.0,
-            0.6,
-            platform(0, 0, 0, 0)},
+        {"exactly_step_epsilon", 0.2, 1.0, 0.2, 0.8, 2.8, 0.8, 0.05, 0.0, 0.6, platform(0, 0, 0, 0)},
         // 台阶高度足够高：下方一格处有方块时不算会掉
-        {"tall_step_absorbs",
-            0.2,
-            1.0,
-            0.2,
-            0.8,
-            2.8,
-            0.8,
-            0.5,
-            0.0,
-            0.6,
-            platform(0, 1, 0, 1)},
+        {"tall_step_absorbs", 0.2, 1.0, 0.2, 0.8, 2.8, 0.8, 0.5, 0.0, 0.6, platform(0, 1, 0, 1)},
         // 负方向移动
-        {"move_negative_x",
-            0.2,
-            1.0,
-            0.2,
-            0.8,
-            2.8,
-            0.8,
-            -1.0,
-            0.0,
-            0.6,
-            platform(0, 0, 0, 0)},
+        {"move_negative_x", 0.2, 1.0, 0.2, 0.8, 2.8, 0.8, -1.0, 0.0, 0.6, platform(0, 0, 0, 0)},
         // 没有地面：任何方向都应被削到 0
-        {"no_ground",
-            0.2,
-            1.0,
-            0.2,
-            0.8,
-            2.8,
-            0.8,
-            0.5,
-            0.0,
-            0.6,
-            {}},
+        {"no_ground", 0.2, 1.0, 0.2, 0.8, 2.8, 0.8, 0.5, 0.0, 0.6, {}},
     };
     return table;
 }
@@ -343,8 +223,8 @@ std::string runLine(std::string_view inputLine)
         static_cast<f32>((scene->boxMinZ + scene->boxMaxZ) * 0.5));
     player.setSneaking(true);
 
-    const auto resolved = player.maybeBackOffFromEdge(
-        Vector3(static_cast<f32>(scene->moveX), 0.0f, static_cast<f32>(scene->moveZ)));
+    const auto resolved =
+        player.maybeBackOffFromEdge(Vector3(static_cast<f32>(scene->moveX), 0.0f, static_cast<f32>(scene->moveZ)));
 
     return json{{"unit", requested},
         {"resolvedX", encodeFloat(static_cast<f64>(resolved.x))},

@@ -28,6 +28,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/inventory/Slot.hpp"
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -224,13 +225,13 @@ public:
             case 99:
                 return 40; // weapon.offhand -> OFFHAND
             case 100:
-                return 39; // armor.feet -> ARMOR_FEET
+                return InventorySlots::ARMOR_FEET; // armor.feet
             case 101:
-                return 38; // armor.legs -> ARMOR_LEGS
+                return InventorySlots::ARMOR_LEGS; // armor.legs
             case 102:
-                return 37; // armor.chest -> ARMOR_CHEST
+                return InventorySlots::ARMOR_CHEST; // armor.chest
             case 103:
-                return 36; // armor.head -> ARMOR_HEAD
+                return InventorySlots::ARMOR_HEAD; // armor.head
             case 105:
                 return -1; // armor.body -> 玩家无 Body 槽位（仅非玩家实体使用）
             default:
