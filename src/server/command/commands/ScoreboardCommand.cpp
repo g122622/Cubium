@@ -183,10 +183,11 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto renderTypeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("rendertype");
     for (const char* kind : {"hearts", "integer"}) {
         auto kindNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(kind);
-        kindNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            // TODO: 渲染类型的写入尚未实现，形态已对齐原版。
-            ctx.getSource().sendError("commands.scoreboard.rendertype.notImplemented");
-            return 0;
+        // 渲染类型是字面量分支，直接把对应枚举捕获进回调。
+        const scoreboard::RenderType renderType =
+            scoreboard::renderTypeParse(kind).value_or(scoreboard::RenderType::Integer);
+        kindNode->setCommand([renderType](CommandContext<ServerCommandSource>& ctx) {
+            return _setObjectiveRenderType(ctx, renderType);
         });
         renderTypeNode->addChild(kindNode);
     }
@@ -874,6 +875,34 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayName(CommandContext<ServerCommandS
     objective->setDisplayName(std::make_unique<text::StringTextComponent>(displayName));
     source.sendMessage("Set display name of objective '" + name + "' to '" + displayName + "'");
     return 1;
+}
+
+i32 ScoreboardCommand::_setObjectiveRenderType(
+    CommandContext<ServerCommandSource>& context, scoreboard::RenderType renderType)
+{
+    auto& source = context.getSource();
+    const std::string name = context.getArgument<std::string>("objective");
+
+    auto* scoreboard = getScoreboard(source);
+    if (scoreboard == nullptr) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    auto* objective = scoreboard->getObjective(name);
+    if (objective == nullptr) {
+        source.sendMessage("Unknown objective '" + name + "'");
+        return 0;
+    }
+
+    // 原版仅在类型真正变化时才写入并回报，避免重复设置时刷屏。
+    if (objective->getRenderType() != renderType) {
+        objective->setRenderType(renderType);
+        source.sendMessage(
+            "Set render type of objective '" + name + "' to '" + scoreboard::renderTypeToString(renderType) + "'");
+    }
+
+    return 0;
 }
 
 i32 ScoreboardCommand::_setDisplaySlot(CommandContext<ServerCommandSource>& context)
