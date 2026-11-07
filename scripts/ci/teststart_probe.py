@@ -72,18 +72,38 @@ def compile_variant(compile_db: Path, suffix: str, output: Path, extra_flags: li
         raise ProbeError(f"编译 {suffix} 失败：\n{completed.stderr[-4000:]}")
 
 
-def link_inputs(ninja_file: Path, config: str) -> tuple[list[str], list[str], list[str]]:
-    """从 ninja 的 mc_tests 链接语句解析 (对象文件, 库, 其它 FLAGS/LINK_FLAGS)。"""
+def link_inputs(ninja_file: Path, config: str) -> tuple[list[str], list[str], list[str], str]:
+    """从 ninja 的 mc_tests 链接语句解析 (对象文件, 库, FLAGS+LINK_FLAGS, 链接编译器命令)。"""
     lines = ninja_file.read_text().splitlines()
+
+    def variables(start: int) -> dict[str, str]:
+        """收集某条 build 语句之后的缩进变量（FLAGS/LINK_FLAGS/...）。"""
+        result: dict[str, str] = {}
+        for line in lines[start + 1:]:
+            if not line.startswith("  "):
+                break
+            key, _, value = line.strip().partition(" = ")
+            result[key] = value
+        return result
+
     start = next(i for i, line in enumerate(lines) if line.startswith(f"build bin/{config}/mc_tests "))
+    entry = variables(start)
+    # "build <targets>: <rule> <inputs>"；目标路径里本身可能带 ":"，故从 " : " 之后找规则名。
+    rule = re.search(r" \S+: (\S+)", lines[start]).group(1)
     inputs = lines[start].split(":", 1)[1].split()
     inputs = inputs[: inputs.index("|")]
-    flags = re.search(r"^\s*FLAGS = (.*)$", lines[start + 1]).group(1)
-    link_flags = re.search(r"^\s*LINK_FLAGS = (.*)$", lines[start + 2]).group(1)
-    libraries = re.search(r"^\s*LINK_LIBRARIES = (.*)$", lines[start + 3]).group(1)
-    libraries = [token for token in shlex.split(libraries) if not token.startswith("-Wl,-rpath")]
+    libraries = [token for token in shlex.split(entry["LINK_LIBRARIES"]) if not token.startswith("-Wl,-rpath")]
     objects = [token for token in inputs if token.endswith(".o")]
-    return objects, libraries, shlex.split(flags) + shlex.split(link_flags)
+
+    # 链接规则（command = $PRE_LINK && <compiler> $FLAGS $LINK_FLAGS @$RSP_FILE -o $TARGET_FILE）定义在
+    # CMakeFiles/rules.ninja：取其编译器路径，避免写死工具链版本。
+    rules_file = ninja_file.with_name("rules.ninja")
+    rule_body = re.search(
+        rf"^rule {re.escape(rule)}\r?\n((?:  [^\r\n]*\r?\n)*)", rules_file.read_text(), re.MULTILINE).group(1)
+    command = re.search(r"^  command = (.*)$", rule_body, re.MULTILINE).group(1)
+    compiler = re.search(r"clang\+\+|g\+\+", command)
+    flags = shlex.split(entry.get("FLAGS", "")) + shlex.split(entry.get("LINK_FLAGS", ""))
+    return objects, libraries, flags, compiler.group(0) if compiler else "/usr/bin/clang++"
 
 
 def link(compiler: str, rsp: Path, output: Path) -> None:
@@ -154,7 +174,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--build-dir", type=Path, default=Path("build"))
     parser.add_argument("--config", default="RelWithDebInfo")
-    parser.add_argument("--compiler", default="/usr/lib/llvm-22/bin/clang++")
+    parser.add_argument("--compiler", default=None, help="链接/编译用的 clang++；缺省取 ninja 规则里的编译器")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--clean", action="store_true", help="删除 tests/ci-probes 后退出（调查结束后使用）")
     options = parser.parse_args()
@@ -171,16 +191,18 @@ def main() -> int:
     work_dir = build_dir / "tests" / "unit"
     PROBE_BIN_DIR.mkdir(parents=True, exist_ok=True)
 
-    objects, libraries, flags = link_inputs(NINJA_FILE.with_name(NINJA_FILE.name.format(config=config)), config)
+    objects, libraries, flags, compiler = link_inputs(NINJA_FILE.with_name(NINJA_FILE.name.format(config=config)), config)
     main_object = next(
         path for path in objects
         if path.startswith("tests/unit/CMakeFiles/mc_tests.dir/") and path.endswith("/main.cpp.o")
     )
     ordered_objects = [main_object] + [path for path in objects if path != main_object]
 
+    compiler = options.compiler or compiler
     report: dict = {
         "config": config,
-        "compiler": run([options.compiler, "--version"], capture_output=True).stdout.splitlines()[:1],
+        "compiler": compiler,
+        "compiler_version": run([compiler, "--version"], capture_output=True).stdout.splitlines()[:1],
         "mc_tests_bytes": test_binary.stat().st_size,
         "launcher": [],
         "teststart": [],
@@ -199,7 +221,7 @@ def main() -> int:
         rsp = PROBE_BIN_DIR / f"launcher_{tag}.rsp"
         rsp.write_text("\n".join([str(variant)] + libraries) + "\n")
         binary = PROBE_BIN_DIR / f"launcher_{tag}"
-        link(options.compiler, rsp, binary)
+        link(compiler, rsp, binary)
         report["launcher"].append(
             {"mode": tag, "binary_bytes": binary.stat().st_size, **launch_once(binary, {}, Path("/tmp"), tag)}
         )
@@ -212,7 +234,7 @@ def main() -> int:
         members = [str(variant)] + ordered_objects[1:]
         rsp.write_text("\n".join(members + libraries) + "\n")
         binary = PROBE_BIN_DIR / f"teststart_level{level}"
-        link(options.compiler, rsp, binary)
+        link(compiler, rsp, binary)
         for repeat in range(3):
             sample = launch_once(binary, {"PROBE_LEVEL": str(level), "MC_TIMING_WORLDGEN": "1"}, work_dir, f"level{level}")
             report["teststart"].append({"level": level, "repeat": repeat, **sample})
