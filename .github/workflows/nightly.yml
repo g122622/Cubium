@@ -450,6 +450,68 @@ jobs:
           retention-days: 7
     env:
       POCOCC_CI_ARTIFACT_PREFIX: pococc-${{ matrix.pool }}-
+  # 单元测试单进程固定开销的对照实验（临时诊断作业，接近后连同 tests/ci-probes 一起删除）。
+  # 只链接 build 作业已产出的目标文件，不重新编译被测代码；所有对照在同一次运行、同一台机器上
+  # 背靠背执行，结论写进 Actions summary。
+  test-start-probe:
+    name: Test Start Probe
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+          tar -xzf ctest-meta.tar.gz
+      - uses: ./.github/actions/setup-sanitizer-symbolizer
+      - name: Run start-up probe
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/teststart_probe.py --build-dir build --config RelWithDebInfo --out teststart-probe.json
+      - name: Summarize
+        if: always()
+        run: |
+          python3 - "$GITHUB_STEP_SUMMARY" <<'EOF_SUMMARY'
+          import json, sys
+          try:
+              report = json.load(open("teststart-probe.json"))
+          except Exception as error:
+              sys.exit(f"probe report missing: {error}")
+          lines = ["| 对照 | 结果 |", "|---|---|"]
+          for item in report["launcher"]:
+              internal = item["internal"] or {}
+              lines.append(f"| launcher {item['mode']} ({item['binary_bytes']//1024} KiB) | python wall {item['wall_ms']} ms / internal {internal.get('wall_ms')} ms / cpu {internal.get('cpu_ms')} ms |")
+          for item in report["teststart"]:
+              internal = item["internal"] or {}
+              phases = " ".join(f"{name}={value}" for name, value in item["phases"].items())
+              lines.append(f"| teststart level {item['level']} #{item['repeat']} | python wall {item['wall_ms']} ms / internal {internal.get('wall_ms')} ms / cpu {internal.get('cpu_ms')} ms / {phases} |")
+          for item in report["ctest"]:
+              lines.append(f"| {item['command']} | wall {item['wall_s']} s / {item['tests']} tests / median {item['median_s']} s |")
+          for item in report["direct"]:
+              lines.append(f"| direct serial ({item['tests']} tests) | median {item['median_s']} s |")
+          print("\n".join(lines))
+          open(sys.argv[1], "a").write("\n## Test start-up probe\n\n" + "\n".join(lines) + "\n")
+          EOF_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pococc-test-start-probe
+          retention-days: 7
+          path: |
+            teststart-probe.json
+            /tmp/teststart-probe/
   unit-tests:
     name: Unit Tests (CTest shard ${{ matrix.shard }}/20)
     needs: build
