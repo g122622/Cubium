@@ -482,7 +482,8 @@ jobs:
           for i in 1 2 3; do
             rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
             start=$(date +%s.%N)
-            "$BIN" --gtest_filter=MathUtils.LerpDouble > /dev/null 2>&1
+            # 保留 stdout：临时诊断会打印 [BlockTiming] 分段耗时。
+            "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "\[BlockTiming\]" | head -40
             end=$(date +%s.%N)
             echo "run $i: total_wall=$(echo "$end - $start" | bc)"
             cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
