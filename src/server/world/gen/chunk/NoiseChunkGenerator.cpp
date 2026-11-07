@@ -550,7 +550,9 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     const ChunkCoord targetChunkX = chunk.x();
     const ChunkCoord targetChunkZ = chunk.z();
 
-    CarvingMask& carvingMask = chunk.carvingMask();
+    // 掩码的几何必须与雕刻上下文同源：两者都用本维度的生成设置，
+    // 否则 (y - minY) 的位移基准错位，雕刻结果会落到错误的格子上。
+    CarvingMask& carvingMask = chunk.carvingMask(m_settings.noise.minY, m_settings.noise.height);
 
     // 从 ChunkPrimer 缓存的 NoiseChunk 获取 Aquifer
     world::gen::aquifer::Aquifer* aquifer = nullptr;

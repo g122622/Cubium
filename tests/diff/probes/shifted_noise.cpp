@@ -7,7 +7,6 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
-#include <bit>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -23,13 +22,6 @@ using world::gen::density::Constant;
 using world::gen::density::DensityFunction;
 using world::gen::density::ShiftedNoise;
 using world::gen::noise::NormalNoise;
-
-std::string doubleBits(f64 value)
-{
-    char buffer[24];
-    std::snprintf(buffer, sizeof(buffer), "0x%016llx", static_cast<unsigned long long>(std::bit_cast<u64>(value)));
-    return buffer;
-}
 
 /**
  * @brief 坐标平移函数的形态
@@ -200,9 +192,9 @@ std::string runLine(std::string_view inputLine)
         const auto& point = samplePoints()[index];
         const f64 value = function->compute(point[0], point[1], point[2]);
         return json{{"unit", requested},
-            {"value", doubleBits(value)},
-            {"min", doubleBits(function->minValue())},
-            {"max", doubleBits(function->maxValue())}}
+            {"value", encodeFloat(value)},
+            {"min", encodeFloat(function->minValue())},
+            {"max", encodeFloat(function->maxValue())}}
             .dump();
     }
     return json{{"unit", requested}, {"missing", true}}.dump();

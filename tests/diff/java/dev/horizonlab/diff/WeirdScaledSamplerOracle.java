@@ -38,9 +38,6 @@ public final class WeirdScaledSamplerOracle {
 
     private WeirdScaledSamplerOracle() {}
 
-    private static String doubleBits(double value) {
-        return String.format("0x%016x", Double.doubleToRawLongBits(value));
-    }
 
     /** 与探针侧逐项一致。 */
     private record NoiseCase(long seed, int firstOctave, double[] amplitudes) {}
@@ -197,9 +194,9 @@ public final class WeirdScaledSamplerOracle {
         };
         JsonObject output = new JsonObject();
         output.addProperty("unit", requested);
-        output.addProperty("value", doubleBits(function.compute(context)));
-        output.addProperty("min", doubleBits(function.minValue()));
-        output.addProperty("max", doubleBits(function.maxValue()));
+        JsonFloats.add(output, "value", function.compute(context));
+        JsonFloats.add(output, "min", function.minValue());
+        JsonFloats.add(output, "max", function.maxValue());
         return GSON.toJson(output);
     }
 

@@ -28,10 +28,6 @@ public final class MthMiscOracle {
 
     private MthMiscOracle() {}
 
-    private static String doubleBits(double value) {
-        return String.format("0x%016x", Double.doubleToRawLongBits(value));
-    }
-
     /** 整数输入，与探针侧逐项一致。 */
     private static final int[] INT_INPUTS = {
         0, 1, -1, 2, -2, 7, -7, 13, 255, 256, -256, 65535, 65536, -65536,
@@ -136,8 +132,9 @@ public final class MthMiscOracle {
                 int x = Integer.parseInt(parts[1]);
                 result.addProperty("value", x * x);
             }
-            case "invCube" -> result.addProperty(
-                    "value", doubleBits((double) Mth.fastInvCubeRoot((float) Double.parseDouble(parts[1]))));
+            case "invCube" -> {
+                JsonFloats.add(result, "value", (double) Mth.fastInvCubeRoot((float) Double.parseDouble(parts[1])));
+            }
             case "sign" -> result.addProperty("value", Mth.sign(Double.parseDouble(parts[1])));
             case "quantize" -> result.addProperty(
                     "value", Mth.quantize(Double.parseDouble(parts[2]), Integer.parseInt(parts[1])));
@@ -151,14 +148,14 @@ public final class MthMiscOracle {
             case "multiple" -> result.addProperty(
                     "value", Mth.isMultipleOf(Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
             case "squareSide" -> result.addProperty("value", Mth.smallestSquareSide(Integer.parseInt(parts[1])));
-            case "catmull" -> result.addProperty(
-                    "value",
-                    doubleBits((double) Mth.catmullrom(
-                            (float) Double.parseDouble(parts[1]),
-                            (float) Double.parseDouble(parts[2]),
-                            (float) Double.parseDouble(parts[3]),
-                            (float) Double.parseDouble(parts[4]),
-                            (float) Double.parseDouble(parts[5]))));
+            case "catmull" -> {
+                JsonFloats.add(result, "value", (double) Mth.catmullrom(
+                        (float) Double.parseDouble(parts[1]),
+                        (float) Double.parseDouble(parts[2]),
+                        (float) Double.parseDouble(parts[3]),
+                        (float) Double.parseDouble(parts[4]),
+                        (float) Double.parseDouble(parts[5])));
+            }
             default -> result.addProperty("missing", true);
         }
         return GSON.toJson(result);

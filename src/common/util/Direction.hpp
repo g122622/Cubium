@@ -1009,7 +1009,18 @@ inline Direction fromYRot(f64 yaw)
     // 结合 Direction 的 3D 值布局（Down=0、Up=1、North=2、South=3、West=4、East=5），
     // 2D 数据值 d 对应 3D 值：d=0→3(South)、d=1→4(West)、d=2→2(North)、d=3→5(East)。
     static constexpr i32 TWO_D_TO_THREE_D[4] = {3, 4, 2, 5};
-    const i32 data = static_cast<i32>(std::floor(yaw / 90.0 + 0.5)) & 3;
+    // 扇区下标 = floor(yaw / 90 + 0.5) & 3，与原版同式。
+    //
+    // 必须用 volatile 中转一次：`-ffast-math` 允许把 `yaw / 90.0` 改写成
+    // `yaw * (1 / 90.0)`，而 1/90 无法用二进制精确表示。yaw = -45 时近似结果略小于
+    // -0.5，加 0.5 后落到零的负侧，floor 得 -1，`-1 & 3` 变成 3（East）——原版是
+    // South。yaw 为 45° 的奇数倍（±45、±135、±225、±315）全部会踩到，表现为「按玩家
+    // 朝向放置的方块在斜 45° 时朝反方向」。
+    //
+    // volatile 让这次除法在 double 下精确完成、不被改写，并且不引入任何数值改动：
+    // -45 / 90 精确等于 -0.5，加 0.5 精确等于 +0.0，floor 得 0。
+    const volatile f64 quarter = yaw / 90.0;
+    const i32 data = static_cast<i32>(std::floor(static_cast<f64>(quarter) + 0.5)) & 3;
     const i32 value = TWO_D_TO_THREE_D[data];
     return static_cast<Direction>(value);
 }

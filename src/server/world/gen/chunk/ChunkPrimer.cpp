@@ -533,10 +533,14 @@ void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, 
 // 雕刻掩码
 // ============================================================================
 
-CarvingMask& ChunkPrimer::carvingMask()
+CarvingMask& ChunkPrimer::carvingMask(i32 minY, i32 height)
 {
     if (!m_carvingMask) {
-        m_carvingMask = std::make_unique<CarvingMask>(m_x, m_z);
+        m_carvingMask = std::make_unique<CarvingMask>(minY, height);
+    } else {
+        // 掩码在本次生成中只创建一次；几何必须与创建时一致，否则索引会整体错位。
+        MC_ASSERT_RELEASE(m_carvingMask->getMinY() == minY);
+        MC_ASSERT_RELEASE(m_carvingMask->getHeight() == height);
     }
     return *m_carvingMask;
 }

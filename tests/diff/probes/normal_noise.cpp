@@ -6,7 +6,6 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
-#include <bit>
 #include <cstdio>
 #include <string>
 #include <string_view>
@@ -18,13 +17,6 @@ namespace {
 
 using json = nlohmann::json;
 using world::gen::noise::NormalNoise;
-
-std::string doubleBits(f64 value)
-{
-    char buffer[24];
-    std::snprintf(buffer, sizeof(buffer), "0x%016llx", static_cast<unsigned long long>(std::bit_cast<u64>(value)));
-    return buffer;
-}
 
 /**
  * @brief 一条噪声参数
@@ -133,7 +125,10 @@ std::string runLine(std::string_view inputLine)
         const NormalNoise noise(rng, noiseCase.firstOctave, noiseCase.amplitudes);
         const auto& point = samplePoints()[pointIndex];
         const f64 value = noise.getValue(point[0], point[1], point[2]);
-        return json{{"unit", requested}, {"value", doubleBits(value)}}.dump();
+        // 浮点不逐位比较：项目不对齐浮点精度，生产构建带 FMA 收缩，末位必然与原版差若干
+        // ulp。这里只输出数值，由编排层按 NOISE_TOLERANCE 判定；不输出位模式，否则
+        // 那串十六进制会参与严格比较，把无害的末位差异重新变成失败。
+        return json{{"unit", requested}, {"value", value}}.dump();
     }
     return json{{"unit", requested}, {"missing", true}}.dump();
 }

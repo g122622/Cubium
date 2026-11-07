@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
-#include <bit>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -23,13 +22,6 @@ using world::gen::density::Lerp;
 using world::gen::density::RangeChoice;
 using world::gen::density::TwoArgument;
 using world::gen::density::TwoArgumentType;
-
-std::string doubleBits(f64 value)
-{
-    char buffer[24];
-    std::snprintf(buffer, sizeof(buffer), "0x%016llx", static_cast<unsigned long long>(std::bit_cast<u64>(value)));
-    return buffer;
-}
 
 /**
  * @brief 组合型密度函数的用例
@@ -167,9 +159,9 @@ std::string runLine(std::string_view inputLine)
     // 三个参数都是常量，采样坐标不影响结果；仍取一组非零坐标确认这一点。
     const f64 value = function->compute(17, 42, -23);
     return json{{"unit", requested},
-        {"value", doubleBits(value)},
-        {"min", doubleBits(function->minValue())},
-        {"max", doubleBits(function->maxValue())}}
+        {"value", encodeFloat(value)},
+        {"min", encodeFloat(function->minValue())},
+        {"max", encodeFloat(function->maxValue())}}
         .dump();
 }
 

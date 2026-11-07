@@ -593,6 +593,11 @@ diff_runner <domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一�
 | `direction_rotate` | 原版 jar `DirectionRotateOracle` | 43 个方向/角度输入 | 全部一致 | 纯计算，方向旋转 |
 | `aabb_ops` | 原版 jar `AabbOpsOracle` | 19 个几何运算 | 全部一致 | 纯计算（Cubium 无 AABB 类） |
 | `spawner_delay` | 原版 jar `SpawnerDelayOracle` | 15 种延迟状态组合 | 全部一致 | 纯计算，`-1` 哨兵、区间退化 |
+| `density_nested` | 原版 jar `DensityNestedOracle` | 17 棵树 × 10 个采样点 | 全部一致 | 嵌套密度函数树，区间传播与短路语义 |
+| `carving_mask` | 原版 jar `CarvingMaskOracle` | 7 个场景 | 全部一致 | 雕刻掩码的索引公式与三种维度几何 |
+| `shape_collide` | 原版 jar `ShapeCollideOracle` | 19 个场景 | 全部一致 | 实体与方块形状的碰撞求解（三轴） |
+| `edge_backoff` | 原版 jar `EdgeBackoffOracle` | 12 个场景 | 全部一致 | 潜行边缘保护的分轴回退 |
+| `item_cooldowns` | 原版 jar `ItemCooldownsOracle` | 14 个操作序列 | 全部一致 | 物品冷却进度与到期移除 |
 
 `loot_function` 把范围从「整张表掷出来什么」收窄到**单个函数**：两侧各现场造一张「1 个池
 + 1 个必定产出一条物品」的表，表级只挂一个函数，然后在同一批种子上掷 4 次。差异因此只

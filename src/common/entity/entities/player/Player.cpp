@@ -1237,38 +1237,77 @@ Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const
         return movement;
     }
 
-    // 获取当前碰撞箱
-    AxisAlignedBB box = boundingBox();
+    // 沿边缘逐 0.05 步回退，X 与 Z 分别处理，最后再处理斜向组合。
+    //
+    // 分轴回退是必须的：玩家贴边斜向移动时，只有「让他掉下去的那个分量」该被削掉，
+    // 另一个分量要保留，否则会变成贴着墙一样被完全卡住。曾经这里做的是「取移动后的
+    // 整个位置一次性判定，没有支撑就 X/Z 全归零」，表现为贴着方块边缘斜走时走不动。
+    //
+    // 每个循环在 |位移| <= 0.05 时归零并跳出，因此最多回退到 0，不会越过原点。
+    const AxisAlignedBB box = boundingBox();
+    const f32 stepUp = stepHeight();
 
-    // 计算移动后的位置
-    f32 newX = m_builtIn.stateVector->m_pos.x + movement.x;
-    f32 newZ = m_builtIn.stateVector->m_pos.z + movement.z;
+    f32 dx = movement.x;
+    f32 dz = movement.z;
+    constexpr f32 BACK_OFF_STEP = 0.05f;
+    const f32 stepX = (dx > 0.0f ? BACK_OFF_STEP : (dx < 0.0f ? -BACK_OFF_STEP : 0.0f));
+    const f32 stepZ = (dz > 0.0f ? BACK_OFF_STEP : (dz < 0.0f ? -BACK_OFF_STEP : 0.0f));
 
-    // 检查移动后的位置下方是否有方块
-    // 向下检测一小段距离
-    AxisAlignedBB testBox = AxisAlignedBB(newX - PLAYER_WIDTH / 2.0f,
-        m_builtIn.stateVector->m_pos.y - SNEAK_EDGE_DISTANCE,
-        newZ - PLAYER_WIDTH / 2.0f,
-        newX + PLAYER_WIDTH / 2.0f,
-        m_builtIn.stateVector->m_pos.y,
-        newZ + PLAYER_WIDTH / 2.0f);
-
-    // 检查是否有碰撞
-    // 传 this 构造实体碰撞上下文，使细雪等按实体区分碰撞形状的方块在潜行边缘检测中正确判定
-    // （穿皮革靴的玩家在细雪上潜行不应把细雪当无碰撞而误阻止移动）。
-    EntityCollisionContext ctx;
-    ctx.entity = this;
-    ctx.entityBox = &testBox;
-    ctx.descending = false;
-    std::vector<AxisAlignedBB> boxes;
-    m_physicsEngine->collectCollisionBoxes(ctx, testBox, boxes);
-
-    if (boxes.empty()) {
-        // 没有支撑，阻止移动
-        return Vector3(0.0f, movement.y, 0.0f);
+    while (dx != 0.0f && _canFallAtLeast(box, dx, 0.0f, stepUp)) {
+        if (std::abs(dx) <= BACK_OFF_STEP) {
+            dx = 0.0f;
+            break;
+        }
+        dx -= stepX;
     }
 
-    return movement;
+    while (dz != 0.0f && _canFallAtLeast(box, 0.0f, dz, stepUp)) {
+        if (std::abs(dz) <= BACK_OFF_STEP) {
+            dz = 0.0f;
+            break;
+        }
+        dz -= stepZ;
+    }
+
+    while (dx != 0.0f && dz != 0.0f && _canFallAtLeast(box, dx, dz, stepUp)) {
+        if (std::abs(dx) <= BACK_OFF_STEP) {
+            dx = 0.0f;
+        } else {
+            dx -= stepX;
+        }
+        if (std::abs(dz) <= BACK_OFF_STEP) {
+            dz = 0.0f;
+        } else {
+            dz -= stepZ;
+        }
+    }
+
+    return Vector3(dx, movement.y, dz);
+}
+
+bool Player::_canFallAtLeast(const AxisAlignedBB& box, f32 offsetX, f32 offsetZ, f32 stepHeight) const
+{
+    // 把碰撞箱沿水平方向平移、沿垂直方向向下扩张 stepHeight，盒子里没有任何碰撞箱
+    // 就意味着「这个位置会掉下去」。四周各内缩 1e-7，避免与脚下方块的侧壁误判为支撑。
+    //
+    // 传 this 构造实体碰撞上下文，使细雪等按实体区分碰撞形状的方块在此检测中正确判定
+    // （穿皮革靴的玩家在细雪上潜行不应把细雪当无碰撞而误阻止移动）。
+    constexpr f32 EPSILON = 1.0e-7f;
+    const AxisAlignedBB probeBox(box.minX + EPSILON + offsetX,
+        box.minY - stepHeight - EPSILON,
+        box.minZ + EPSILON + offsetZ,
+        box.maxX - EPSILON + offsetX,
+        box.minY,
+        box.maxZ - EPSILON + offsetZ);
+
+    EntityCollisionContext ctx;
+    ctx.entity = this;
+    ctx.entityBox = &probeBox;
+    ctx.descending = false;
+
+    std::vector<AxisAlignedBB> boxes;
+    m_physicsEngine->collectCollisionBoxes(ctx, probeBox, boxes);
+    return boxes.empty();
 }
 
 void Player::updatePhysics()

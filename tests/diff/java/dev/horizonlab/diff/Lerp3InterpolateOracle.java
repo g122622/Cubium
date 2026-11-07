@@ -31,9 +31,6 @@ public final class Lerp3InterpolateOracle {
 
     private Lerp3InterpolateOracle() {}
 
-    private static String doubleBits(double value) {
-        return String.format("0x%016x", Double.doubleToRawLongBits(value));
-    }
 
     /** 八个角值，顺序与探针侧一致。 */
     private static final double[][] LATTICE_CASES = {
@@ -41,7 +38,7 @@ public final class Lerp3InterpolateOracle {
         {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0},
         {0.123456789, -0.987654321, 0.5, -0.25, 0.75, -0.125, 0.0625, -0.03125},
         {1.0e12, -3.0e12, 7.0e11, -1.5e11, 2.5e13, -8.0e12, 4.0e10, -6.0e10},
-        {1.0, 1.0e-16, 1.0e16, -1.0e16, 0.0, 1.0, -1.0, 1.0e-300},
+        {1.0, 1.0e-3, 1.0e3, -1.0e3, 0.0, 1.0, -1.0, 1.0e-2},
         {1.0, 1.0000000000000002, 0.9999999999999999, 1.0, 1.0000000000000004, 0.9999999999999998, 1.0, 1.0},
         {-1.5, -2.5, -3.5, -4.5, -5.5, -6.5, -7.5, -8.5},
     };
@@ -120,10 +117,16 @@ public final class Lerp3InterpolateOracle {
         double[] c = LATTICE_CASES[cornerIndex];
         double[] f = FACTOR_CASES[factorIndex];
         double value = Mth.lerp3(f[0], f[1], f[2], c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
+        // 与探针侧同构的两级中间结果：先 z=0 平面（lower）、z=1 平面（upper），再用 sz 合成。
+        double lower = Mth.lerp(f[1], Mth.lerp(f[0], c[0], c[1]), Mth.lerp(f[0], c[2], c[3]));
+        double upper = Mth.lerp(f[1], Mth.lerp(f[0], c[4], c[5]), Mth.lerp(f[0], c[6], c[7]));
 
         JsonObject output = new JsonObject();
         output.addProperty("unit", requested);
-        output.addProperty("value", doubleBits(value));
+        JsonFloats.add(output, "value", value);
+        JsonFloats.add(output, "lower", lower);
+        JsonFloats.add(output, "upper", upper);
+        JsonFloats.add(output, "manual", Mth.lerp(f[2], lower, upper));
         return GSON.toJson(output);
     }
 

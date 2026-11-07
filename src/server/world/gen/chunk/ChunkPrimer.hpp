@@ -554,12 +554,17 @@ public:
     /**
      * @brief 获取雕刻掩码
      *
-     * MC原版中，CarvingMask 在 AIR 和 LIQUID 两个雕刻阶段之间共享。
-     * 第一次调用时自动创建掩码。
+     * 掩码在 AIR 与 LIQUID 两个雕刻阶段之间共享，第一次调用时按传入的维度几何创建。
      *
+     * `minY` 与 `height` 必须来自该区块所在维度的生成设置（主世界 -64/384、下界 0/128、
+     * 末地 0/256），不能用世界常量兜底：掩码索引是 `(y - minY) << 8`，基准错位会让
+     * 雕刻结果落到别的格上，表现为洞穴在区块内被刻穿或漏刻，且不报任何错。
+     *
+     * @param minY 该维度最低生成 Y 坐标
+     * @param height 该维度生成高度
      * @return 雕刻掩码引用
      */
-    [[nodiscard]] CarvingMask& carvingMask();
+    [[nodiscard]] CarvingMask& carvingMask(i32 minY, i32 height);
 
     /**
      * @brief 检查是否已有雕刻掩码
