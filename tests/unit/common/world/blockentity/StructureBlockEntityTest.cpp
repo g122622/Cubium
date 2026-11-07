@@ -195,11 +195,20 @@ TEST_F(StructureBlockEntityTest, CreatedBy_PlayerPrefersCustomName)
 
 TEST_F(StructureBlockEntityTest, CreatedBy_NonPlayerUsesDisplayName)
 {
-    // 非玩家实体取显示名；无自定义名时为基类占位显示名（项目尚未按实体类型生成默认名，
-    // 故对齐基类 Entity.getDisplayName 的占位语义）。
+    // 非玩家实体取显示名。设置自定义名时直接取自定义名，与实体类型无关。
+    Entity marker(EntityInstanceId{3}, nullptr, mc::test::testEcsRegistry());
+    marker.setCustomName("Marker");
+    m_entity->createdBy(marker);
+    EXPECT_EQ(m_entity->getAuthor(), "Marker");
+}
+
+TEST_F(StructureBlockEntityTest, CreatedBy_NonPlayerWithoutTypeFallsBackToTypeId)
+{
+    // 没有 typeId 的实体无法生成翻译键，显示名退回类型标识符本身（此处为空串），
+    // 而不是伪造一个占位名。带 typeId 时见 EntityDisplayNameTest 的翻译键断言。
     Entity marker(EntityInstanceId{3}, nullptr, mc::test::testEcsRegistry());
     m_entity->createdBy(marker);
-    EXPECT_EQ(m_entity->getAuthor(), "entity");
+    EXPECT_EQ(m_entity->getAuthor(), "");
 }
 
 TEST_F(StructureBlockEntityTest, CreatedBy_AuthorSurvivesNbtRoundTrip)

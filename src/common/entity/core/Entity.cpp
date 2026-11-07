@@ -536,10 +536,18 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
     if (c->m_customName) {
         return c->m_customName->deepCopy();
     }
+
     // 无自定义名时返回实体类型的可翻译默认名（如 entity.minecraft.zombie）。
-    // 用翻译组件而不是预先查表的纯文本：语言切换后名字要跟着变，且客户端与服务端的
+    // 用翻译组件而不是预先查表的纯文本：语言在渲染/序列化时才决定，且客户端与服务端的
     // 语言可能不同，查表必须留到渲染/序列化时进行。
-    return std::make_unique<text::TranslationTextComponent>(entityType()->getDescriptionId());
+    //
+    // entityType() 允许返回 nullptr（未设置 typeId 的实体，见其实现注释），此时没有可用的
+    // 翻译键，退回类型标识符本身——它已经是玩家可读的 "minecraft:pig" 形式。
+    const entity::EntityType* type = entityType();
+    if (type == nullptr) {
+        return std::make_unique<text::StringTextComponent>(getTypeId());
+    }
+    return std::make_unique<text::TranslationTextComponent>(type->getDescriptionId());
 }
 
 void Entity::setCustomNameVisible(bool visible)

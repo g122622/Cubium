@@ -83,8 +83,8 @@ TEST_F(EntityDisplayNameTest, DescriptionIdUsesDottedNamespace)
     // 经注册表注册一个自定义命名空间的类型，再取其翻译键（bindIdentity 是私有的，
     // 外部只能经 registerType 建立带名字的类型）。
     auto& registry = EntityRegistry::instance();
-    const auto registered = registry.registerType("mymod:custom_mob",
-        EntityType::Builder(&PigEntity::create, TEST_CLASSIFICATION).size(0.6f, 1.8f).build());
+    const auto registered = registry.registerType(
+        "mymod:custom_mob", EntityType::Builder(&PigEntity::create, TEST_CLASSIFICATION).size(0.6f, 1.8f).build());
     ASSERT_TRUE(registered.success());
 
     const EntityType* type = registry.getType("mymod:custom_mob");

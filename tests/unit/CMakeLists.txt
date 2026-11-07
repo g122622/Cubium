@@ -1643,6 +1643,8 @@ add_executable(mc_tests
     util/NbtJsonUtilsTest.cpp
     # NBT标签深度比较测试
     util/NbtEqualsTest.cpp
+    # list_tag 按下标增删改虚接口（removeAt/clearAll/replaceAt/appendCopy）
+    util/ListTagIndexOpsTest.cpp
     # 调试区块生成器测试（文件实际位于 common/world/gen/）
     common/world/gen/DebugChunkGeneratorTest.cpp
     # 区块生成器MC对齐测试

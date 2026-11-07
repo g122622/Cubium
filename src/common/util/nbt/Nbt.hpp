@@ -980,6 +980,10 @@ struct tag_list_tag;
 
 /**
  * @brief 列表标签基类
+ *
+ * 元素的实际存储方式随子类而变（定长数值/数组/字符串/复合/嵌套列表/任意标签），因此
+ * 按下标增删改必须是虚接口——调用方（如 NbtPath）只持有 `list_tag*`，无法也不应
+ * `dynamic_cast` 到每个具体类型再操作各自的 `value` 容器。
  */
 struct list_tag : public tag {
     static constexpr TagId tid = TagId::List;
@@ -995,6 +999,44 @@ struct list_tag : public tag {
     virtual std::unique_ptr<tag> operator[](size_t i) const = 0;
     static std::unique_ptr<list_tag> read(std::istream& input);
     virtual tag_list_tag as_tags() = 0;
+
+    /**
+     * @brief 删除下标处的元素
+     *
+     * @param index 下标（0 起，不做负下标换算）
+     * @return 下标有效且已删除返回 true；越界返回 false
+     */
+    virtual bool removeAt(size_t index) = 0;
+
+    /**
+     * @brief 清空全部元素
+     *
+     * @return 原本非空（确实发生了删除）返回 true
+     */
+    virtual bool clearAll() = 0;
+
+    /**
+     * @brief 用给定标签的副本替换下标处的元素
+     *
+     * 定长元素类型的列表要求 `value.id()` 与其元素类型一致；任意标签列表（含空列表
+     * 提升而来）则接受任意类型。
+     *
+     * @param index 下标（0 起）
+     * @param value 新元素（被复制，调用方保留所有权）
+     * @return 下标有效且类型匹配并已替换返回 true
+     */
+    virtual bool replaceAt(size_t index, const tag& value) = 0;
+
+    /**
+     * @brief 在末尾追加给定标签的副本
+     *
+     * 类型要求同 {@link replaceAt}。
+     *
+     * @param value 新元素（被复制，调用方保留所有权）
+     * @return 类型匹配并已追加返回 true
+     */
+    virtual bool appendCopy(const tag& value) = 0;
+
     virtual bool equals(const tag& other) const override;
 };
 
@@ -1002,6 +1044,63 @@ template <>
 struct find_by<TagId::List> final {
     typedef list_tag type;
 };
+
+namespace list_ops {
+
+/**
+ * @brief 定长元素类型列表（数值/数组/字符串/复合/嵌套列表）的通用索引操作
+ *
+ * 这些子类的元素类型由 `ListT::tag_type` 唯一确定，容器都是 `std::vector<element_type>`，
+ * 因此按下标增删改的实现完全同构，只是元素类型不同。集中在这里实现，避免七个子类
+ * 各写一遍同样的代码。
+ *
+ * 类型校验：定长列表只接受与自身元素类型相同的标签，否则写入后 `element_id()` 会与
+ * 实际内容不符，序列化出去就是非法 NBT。
+ */
+template <typename ListT>
+bool removeAt(ListT& list, size_t index)
+{
+    if (index >= list.value.size()) {
+        return false;
+    }
+    list.value.erase(list.value.begin() + static_cast<std::ptrdiff_t>(index));
+    return true;
+}
+
+template <typename ListT>
+bool clearAll(ListT& list)
+{
+    if (list.value.empty()) {
+        return false;
+    }
+    list.value.clear();
+    return true;
+}
+
+/// 元素类型为 `unique_ptr<tag>` 的列表（tag_list_tag / list_list_tag）走另一套实现
+template <typename ListT>
+bool replaceAt(ListT& list, size_t index, const tag& value)
+{
+    using TagType = typename ListT::tag_type;
+    if (index >= list.value.size() || value.id() != TagType::tid) {
+        return false;
+    }
+    list.value[static_cast<size_t>(index)] = static_cast<const TagType&>(value).value;
+    return true;
+}
+
+template <typename ListT>
+bool appendCopy(ListT& list, const tag& value)
+{
+    using TagType = typename ListT::tag_type;
+    if (value.id() != TagType::tid) {
+        return false;
+    }
+    list.value.push_back(static_cast<const TagType&>(value).value);
+    return true;
+}
+
+} // namespace list_ops
 
 /**
  * @brief 通用列表标签（存储任意类型标签）
@@ -1036,6 +1135,42 @@ struct tag_list_tag final : public list_tag {
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
+
+    // 任意标签列表：`eid == TagId::End` 表示元素类型尚未固定（空列表），此时接受任意类型。
+    virtual bool removeAt(size_t index) override
+    {
+        return list_ops::removeAt(*this, index);
+    }
+
+    virtual bool clearAll() override
+    {
+        return list_ops::clearAll(*this);
+    }
+
+    virtual bool replaceAt(size_t index, const tag& element) override
+    {
+        if (index >= value.size() || !_accepts(element)) {
+            return false;
+        }
+        value[index] = element.copy();
+        return true;
+    }
+
+    virtual bool appendCopy(const tag& element) override
+    {
+        if (!_accepts(element)) {
+            return false;
+        }
+        value.push_back(element.copy());
+        return true;
+    }
+
+private:
+    /// 元素类型已固定时要求一致；未固定（End）时任意类型都可放入。
+    [[nodiscard]] bool _accepts(const tag& element) const noexcept
+    {
+        return eid == TagId::End || eid == element.id();
+    }
 };
 
 template <TagId tid>
@@ -1091,6 +1226,31 @@ struct end_list_tag final : public list_tag {
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
+
+    // 空列表的 size() 恒为 0，任何下标都不存在，也无处追加（元素类型是 TAG_End）。
+    virtual bool removeAt(size_t index) override
+    {
+        (void)index;
+        return false;
+    }
+
+    virtual bool clearAll() override
+    {
+        return false;
+    }
+
+    virtual bool replaceAt(size_t index, const tag& value) override
+    {
+        (void)index;
+        (void)value;
+        return false;
+    }
+
+    virtual bool appendCopy(const tag& value) override
+    {
+        (void)value;
+        return false;
+    }
 };
 
 inline end_list_tag end_list;
@@ -1169,6 +1329,26 @@ struct number_list_tag final : public list_tag {
         value.clear();
         value.shrink_to_fit();
         return result;
+    }
+
+    virtual bool removeAt(size_t index) override
+    {
+        return list_ops::removeAt(*this, index);
+    }
+
+    virtual bool clearAll() override
+    {
+        return list_ops::clearAll(*this);
+    }
+
+    virtual bool replaceAt(size_t index, const tag& element) override
+    {
+        return list_ops::replaceAt(*this, index, element);
+    }
+
+    virtual bool appendCopy(const tag& element) override
+    {
+        return list_ops::appendCopy(*this, element);
     }
 };
 
@@ -1258,6 +1438,26 @@ struct array_list_tag final : public list_tag {
         value.shrink_to_fit();
         return result;
     }
+
+    virtual bool removeAt(size_t index) override
+    {
+        return list_ops::removeAt(*this, index);
+    }
+
+    virtual bool clearAll() override
+    {
+        return list_ops::clearAll(*this);
+    }
+
+    virtual bool replaceAt(size_t index, const tag& element) override
+    {
+        return list_ops::replaceAt(*this, index, element);
+    }
+
+    virtual bool appendCopy(const tag& element) override
+    {
+        return list_ops::appendCopy(*this, element);
+    }
 };
 
 #define ARRAY_LIST_TAG(name, tag_type)     \
@@ -1304,6 +1504,26 @@ struct string_list_tag final : public list_tag {
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
+
+    virtual bool removeAt(size_t index) override
+    {
+        return list_ops::removeAt(*this, index);
+    }
+
+    virtual bool clearAll() override
+    {
+        return list_ops::clearAll(*this);
+    }
+
+    virtual bool replaceAt(size_t index, const tag& element) override
+    {
+        return list_ops::replaceAt(*this, index, element);
+    }
+
+    virtual bool appendCopy(const tag& element) override
+    {
+        return list_ops::appendCopy(*this, element);
+    }
 };
 
 FIND_LIST_TAG(string_list_tag)
@@ -1343,6 +1563,42 @@ struct list_list_tag final : public list_tag {
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
+
+    // 元素是 unique_ptr<list_tag>（多态所有权），不能走按值存储的通用实现。
+    virtual bool removeAt(size_t index) override
+    {
+        return list_ops::removeAt(*this, index);
+    }
+
+    virtual bool clearAll() override
+    {
+        return list_ops::clearAll(*this);
+    }
+
+    virtual bool replaceAt(size_t index, const tag& element) override
+    {
+        if (index >= value.size() || element.id() != TagId::List) {
+            return false;
+        }
+        value[index] = _copyAsList(element);
+        return true;
+    }
+
+    virtual bool appendCopy(const tag& element) override
+    {
+        if (element.id() != TagId::List) {
+            return false;
+        }
+        value.push_back(_copyAsList(element));
+        return true;
+    }
+
+private:
+    static std::unique_ptr<list_tag> _copyAsList(const tag& element)
+    {
+        // copy() 返回的 tag 指针实际指向 list_tag（已校验 id），收窄所有权后交给容器。
+        return std::unique_ptr<list_tag>(static_cast<list_tag*>(element.copy().release()));
+    }
 };
 
 FIND_LIST_TAG(list_list_tag)
@@ -1482,6 +1738,35 @@ struct compound_list_tag final : public list_tag {
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
+
+    // 元素是按值存储的 compound_tag 本身（不是 compound_tag::value_type），故单独实现。
+    virtual bool removeAt(size_t index) override
+    {
+        return list_ops::removeAt(*this, index);
+    }
+
+    virtual bool clearAll() override
+    {
+        return list_ops::clearAll(*this);
+    }
+
+    virtual bool replaceAt(size_t index, const tag& element) override
+    {
+        if (index >= value.size() || element.id() != TagId::Compound) {
+            return false;
+        }
+        value[index] = static_cast<const compound_tag&>(element);
+        return true;
+    }
+
+    virtual bool appendCopy(const tag& element) override
+    {
+        if (element.id() != TagId::Compound) {
+            return false;
+        }
+        value.push_back(static_cast<const compound_tag&>(element));
+        return true;
+    }
 };
 
 FIND_LIST_TAG(compound_list_tag)

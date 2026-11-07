@@ -945,16 +945,8 @@ i32 NbtPathIndexNode::set(
     }
 
     MC_UNUSED(overwriteSame);
-    auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(list);
-    if (tagList == nullptr) {
-        // 裸值/复合/嵌套列表的元素类型固定，无法原地放入任意类型的标签；
-        // TODO: NbtPath::set 可通过 heavyList 预先把列表转换为 tag_list_tag 来支持按下标写入，
-        //   该节点自身只持有元素路径，无法定位并替换列表所在槽位
-        return 0;
-    }
-
-    tagList->value[static_cast<size_t>(index)] = std::move(value);
-    return 1;
+    // 元素类型不匹配时列表会拒绝写入（定长列表不允许混入其它类型）。
+    return list->replaceAt(static_cast<size_t>(index), *value) ? 1 : 0;
 }
 
 i32 NbtPathIndexNode::remove(nbt::tags::tag* tag) const
@@ -974,15 +966,7 @@ i32 NbtPathIndexNode::remove(nbt::tags::tag* tag) const
         return 0;
     }
 
-    auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(list);
-    if (tagList == nullptr || tagList->element_id() == nbt::TagId::List) {
-        // 元素以裸值/值类型/嵌套列表存储，无法从排序后的节点路径中安全定位父槽位进行原地删除；
-        // TODO: 为 list_tag 增加 removeAt(index) 虚方法，让各子类自行按具体容器删除元素
-        return 0;
-    }
-
-    tagList->value.erase(tagList->value.begin() + index);
-    return 1;
+    return list->removeAt(static_cast<size_t>(index)) ? 1 : 0;
 }
 
 std::vector<nbt::tags::tag*> NbtPathIndexNode::getOrCreate(
@@ -1051,17 +1035,12 @@ i32 NbtPathAllElementsNode::set(
     MC_UNUSED(overwriteSame);
     const size_t size = list->size();
     if (size == 0) {
-        auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(list);
-        if (tagList == nullptr) {
-            // 空列表按定义是 end_list_tag，不能容纳任何元素
-            return 0;
-        }
+        // 空列表按定义是 end_list_tag，不能容纳任何元素。
         auto value = valueSupplier();
         if (value == nullptr) {
             return 0;
         }
-        tagList->value.push_back(std::move(value));
-        return 1;
+        return list->appendCopy(*value) ? 1 : 0;
     }
 
     auto value = valueSupplier();
@@ -1069,27 +1048,17 @@ i32 NbtPathAllElementsNode::set(
         return 0;
     }
 
+    // 逐元素替换：只有与新值不同且确实替换成功（类型匹配）的才计数。
+    // 定长列表的类型校验由 replaceAt 负责，不匹配时整次操作不产生修改。
     i32 changed = 0;
     for (size_t i = 0; i < size; ++i) {
         auto element = (*list)[i];
-        if (!value->equals(*element)) {
+        if (value->equals(*element)) {
+            continue;
+        }
+        if (list->replaceAt(i, *value)) {
             changed++;
         }
-    }
-    if (changed == 0) {
-        return 0;
-    }
-
-    auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(list);
-    if (tagList == nullptr) {
-        // TODO: 为 list_tag 增加 setAll 虚方法，让各子类按具体容器把全部元素替换为给定值
-        return 0;
-    }
-
-    tagList->value.clear();
-    tagList->value.push_back(value->copy());
-    for (size_t i = 1; i < size; ++i) {
-        tagList->value.push_back(value->copy());
     }
     return changed;
 }
@@ -1110,38 +1079,9 @@ i32 NbtPathAllElementsNode::remove(nbt::tags::tag* tag) const
         return 0;
     }
 
-    // 删除全部元素，返回值与 MC AllElementsNode.removeTag 一致（原列表长度）
-    if (auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(list)) {
-        tagList->value.clear();
-    } else if (auto* listList = dynamic_cast<nbt::tags::list_list_tag*>(list)) {
-        listList->value.clear();
-    } else if (auto* compoundList = dynamic_cast<nbt::tags::compound_list_tag*>(list)) {
-        compoundList->value.clear();
-    } else if (auto* stringList = dynamic_cast<nbt::tags::string_list_tag*>(list)) {
-        stringList->value.clear();
-    } else if (auto* byteList = dynamic_cast<nbt::tags::byte_list_tag*>(list)) {
-        byteList->value.clear();
-    } else if (auto* shortList = dynamic_cast<nbt::tags::short_list_tag*>(list)) {
-        shortList->value.clear();
-    } else if (auto* intList = dynamic_cast<nbt::tags::int_list_tag*>(list)) {
-        intList->value.clear();
-    } else if (auto* longList = dynamic_cast<nbt::tags::long_list_tag*>(list)) {
-        longList->value.clear();
-    } else if (auto* floatList = dynamic_cast<nbt::tags::float_list_tag*>(list)) {
-        floatList->value.clear();
-    } else if (auto* doubleList = dynamic_cast<nbt::tags::double_list_tag*>(list)) {
-        doubleList->value.clear();
-    } else if (auto* byteArrayList = dynamic_cast<nbt::tags::bytearray_list_tag*>(list)) {
-        byteArrayList->value.clear();
-    } else if (auto* intArrayList = dynamic_cast<nbt::tags::intarray_list_tag*>(list)) {
-        intArrayList->value.clear();
-    } else if (auto* longArrayList = dynamic_cast<nbt::tags::longarray_list_tag*>(list)) {
-        longArrayList->value.clear();
-    } else {
-        // TODO: 新增列表容器类型时需在此补充清空逻辑
-        return 0;
-    }
-
+    // 删除全部元素，返回值与 MC AllElementsNode.removeTag 一致（原列表长度）。
+    // 清空细节由各列表子类按自身容器实现，调用方不需要知道元素是裸值还是标签对象。
+    list->clearAll();
     return count;
 }
 
@@ -1159,16 +1099,14 @@ std::vector<nbt::tags::tag*> NbtPathAllElementsNode::getOrCreate(
         return get(tag);
     }
 
-    auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(list);
-    if (tagList == nullptr) {
-        return get(tag);
-    }
-
     auto value = creator();
     if (value == nullptr) {
         return {};
     }
-    tagList->value.push_back(std::move(value));
+    // 空列表（end_list_tag）无法容纳元素，appendCopy 会拒绝；可容纳时插入创建出的值。
+    if (!list->appendCopy(*value)) {
+        return get(tag);
+    }
     return get(tag);
 }
 
@@ -1495,18 +1433,13 @@ std::vector<nbt::tags::tag*> NbtPathListFilterNode::getOrCreate(
         return matches;
     }
 
-    auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(list);
-    auto pattern = m_filter
-        ? std::unique_ptr<nbt::tags::compound_tag>(static_cast<nbt::tags::compound_tag*>(m_filter->copy().release()))
-        : std::make_unique<nbt::tags::compound_tag>();
-    if (tagList == nullptr) {
-        // TODO: 复合列表（compound_list_tag）追加过滤器模式需要一个可复制的复合标签槽位，
-        //   当前无法从已执行完的节点路径中取得父槽位，待 list_tag 增加 append 虚方法后补全
-        MC_UNUSED(pattern);
+    // 追加的模板与新建父标签用的是同一份（createPreferredParentTag），避免两处各写一遍。
+    const auto pattern = createPreferredParentTag();
+    if (pattern == nullptr || !list->appendCopy(*pattern)) {
+        // 空列表（end_list_tag）无法容纳元素；复合列表则可正常追加。
         return {};
     }
 
-    tagList->value.push_back(std::move(pattern));
     return get(tag);
 }
 
