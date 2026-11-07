@@ -1026,3 +1026,68 @@ Cubium 的 `InventorySlots` 写成了 **36=头、39=脚**，四个护甲槽的�
 
 差分能力本身也能抓到 oracle 侧的同类错误：第一版 oracle 把菜单槽 5..8 误判成合成槽，
 探针侧算对的地方反而报了差异，逐条核对后才确认是 oracle 写错。
+
+### 物品进包的装填顺序三处错误（inventory_add）
+
+原版 Inventory.add 分两步：getSlotWithRemainingSpace 找**能合并**的槽（选中槽 → 副手槽 40
+→ 从 0 递增扫全部 36 个槽），再 getFreeSlot 从 0 递增找**第一个空槽**。三处实现错误：
+
+- **只合并一个槽就转去填空槽**：槽 1 有 50 个、要加入 20 个时，补满 64 后还剩 6 个。
+  原版把这 6 个继续并进下一个同类未满的槽（槽 3），Cubium 却新开一个空槽，同一批物品
+  被拆散到两个槽里。现在合并写成循环，直到装完或再也找不到能装的槽。
+- **找空槽时副手槽排在快捷栏之前**：原版 getFreeSlot 只扫 items（长度 36），副手不在
+  候选里；副手只在第一步以「能不能合并」的身份出现。Cubium 把它插在快捷栏前面，捡到的
+  东西会凭空出现在副手槽。
+- **整个堆叠塞进一个空槽，不按上限拆分**：100 个石头会挤进同一格，超出堆叠上限。
+
+单元口径只比「实际进了背包多少个」+ 每个槽的内容。不直接比 dd 的返回值（原版是 bool
+「有没有装进去一点」，空堆叠恒 false；Cubium 返回剩余量，两者在空堆叠上分叉），也不比
+堆叠的残留数量（空气这类物品两侧的归一化时机不同，会造出与游戏表现无关的假差异）。
+
+### 摔落伤害的公式与钳位（all_damage）
+
+公式本身与原版一致，但实现方式带来两处问题，已一并整理：
+
+- **公式内联在 causeFallDamage 里，没有独立成方法**。原版 calculateFallDamage 是独立
+  的 protected 方法，可以被子类覆盖、也可以单独验证；内联写法既无法单独测试，也让子类
+  只能去重写整条 causeFallDamage（连带复制免疫判定与音效逻辑）。现已抽成
+  irtual i32 calculateFallDamage(f64 distance, f32 damageMultiplier) const，与原版同构。
+- **距离运算从 f32 改为 f64**。伤害最终按整数格结算，+1e-6 这一项在 f32 下会被舍入吃掉，
+  整数边界附近整格偏差。
+
+顺带修正青蛙：它原本重写 causeFallDamage、把减免 5 点折算成「等效摔落距离」再交给基类。
+但 **floor 不可逆**——先折算距离再取整，与「先取整再减 5」在非整数倍率下结果不同
+（例如倍率 0.2、距离 20 格：原版取整得 3、减 5 后不造成伤害；折算版把距离压到安全距离
+以下，走的是另一条分支）。现改为重写 allDamageReduction()，这正是该钩子存在的意义。
+
+### 地表规则的条件判定（surface_rule）
+
+三种条件（水面 / 石头深度 / Y 高度）逐字核对后**与原版一致**，没有查出缺陷。这个能力
+的价值在防回归：三条判定都是单行整数比较，任何一处边界改动都会让整片地形错乱，
+而且不会崩、不会报错。
+
+已覆盖的边界：
+
+- 水面条件的 waterHeight == INT_MIN 哨兵——它表示「这一列没有水」，条件**恒真**。
+  写成恒假会让所有非含水地形少铺一层。
+- 石头深度的 <= 而不是 <：深度从 1 起计，1 就是最表面那一层。
+- secondary_depth_range 非 0 时叠加的次级噪声映射：(v+1)/2 * range 再取整。
+- Y 锚点的两种方向：bove_bottom 从下往上、elow_top 从上往下（minY + height - 1 - offset）。
+
+## 写这类 oracle 时踩到的坑
+
+原版把相关类型都藏得很深，这轮为了调用它们踩了几个坑，记下来避免重复摸索：
+
+- SurfaceRules.Context 是 protected static final class，构造要求 SurfaceSystem、
+  ChunkAccess、NoiseChunk。但条件只读几个标量字段，所以用反射构造后**直接写字段**即可。
+- SurfaceRules.Condition 与 Condition.test() 都是 private，必须反射。
+- ConditionSource 不是普通接口，它 extends Function<Context, Condition>，
+  所以 pply 要从 Function 上取，而不是从 ConditionSource 上找 pply(Context)。
+- WorldGenerationContext 的构造函数会解引用 ChunkGenerator 与 LevelHeightAccessor，
+  而只需要它承载两个整数——用 sun.misc.Unsafe.allocateInstance 跳过构造再写 inal 字段。
+- Cubium 侧的 SurfaceRuleContext 要求 NoiseChunk，而 NoiseChunk 要求 RandomState，
+  后者会断言「noise_settings 已从数据包加载」。差分探针不加载数据包，所以**这条链走不通**。
+  最终探针只内联三条判定式，不构造任何上下文对象。
+- FALL_DAMAGE 那边的 LivingEntity 是抽象类，EntityType.ZOMBIE 的类型参数是 Zombie
+  而构造签名要 EntityType<? extends LivingEntity>，通配符不接受隐式向上转换；
+  改用具体子类 Zombie 构造实例，再用反射调它的 protected calculateFallDamage。

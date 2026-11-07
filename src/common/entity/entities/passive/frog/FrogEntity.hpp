@@ -168,15 +168,16 @@ public:
     // ========== 行为 ==========
 
     /**
-     * @brief 摔落伤害（对齐 vanilla Frog.calculateFallDamage = 基类伤害 − 5）
+     * @brief 摔落伤害减免（vanilla Frog.FROG_FALL_DAMAGE_REDUCTION = 5）
      *
-     * 基类先按通用公式结算（扣到 0 以下则无伤害），随后额外减免 FROG_FALL_DAMAGE_REDUCTION。
-     *
-     * @param distance 摔落距离
-     * @param damageMultiplier 调用方传入的伤害倍率（干草块/蜂蜜块 0.2 等）
-     * @param source 摔落伤害来源
+     * 基类先按通用公式取整得到原始伤害，再减去本减免。这里必须走减免钩子而不是
+     * 重写 causeFallDamage 去折算距离——floor 不可逆，折算后的距离重新取整会得到
+     * 与原版「先取整再减 5」不同的值。
      */
-    void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
+    [[nodiscard]] i32 fallDamageReduction() const override
+    {
+        return FROG_FALL_DAMAGE_REDUCTION;
+    }
 
     // ========== 尺寸与音效 ==========
 

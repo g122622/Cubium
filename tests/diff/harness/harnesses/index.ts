@@ -2363,6 +2363,57 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "inventory_add",
+        probe: "inventory_add",
+        oracle: "InventoryAddOracle",
+        description: "物品进入玩家背包时的装填顺序（原版 Inventory.add / addResource）—— 14 个场景。"
+        + "玩家捡起物品、合成产物入包、漏斗输出到玩家，最后都走这条路径。"
+        + "原版顺序是：先在选中槽装，再在副手槽（40）装，然后从索引 0 递增扫全部槽位找同类堆叠；"
+        + "都装不下时同样从 0 递增找第一个空槽。两个细节最容易写错——"
+        + "① 副手槽排在全部槽位扫描之前，不是「顺便也看一眼副手」；"
+        + "② 扫描与找空槽都从 0 递增，而 0..8 是快捷栏，所以捡东西会先塞满快捷栏再去主背包，"
+        + "写成「先主背包后快捷栏」会让物品凭空出现在背包第二排。"
+        + "add 返回的是没装下的剩余数量而不是装进去多少，这两个值在很多场景下不相等。"
+        + "场景覆盖空背包、整组、超过一组、并入选中槽、并入副手、副手优先于扫描、按下标递增扫描、"
+        + "快捷栏占满、不同物品不合并、加入 0 个、加入空气、选中槽已满、同类全满、以及跨多个槽铺开。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "fall_damage",
+        probe: "fall_damage",
+        oracle: "FallDamageOracle",
+        description: "摔落伤害的数值公式（原版 LivingEntity.calculateFallDamage / calculateFallPower）—— 109 个单元。"
+        + "公式是 floor((distance + 1e-6 - SAFE_FALL_DISTANCE) * multiplier * FALL_DAMAGE_MULTIPLIER) 再减子类减免。"
+        + "三个地方最容易写错：① +1e-6 把「恰好等于安全距离」推到安全距离之上一点点，"
+        + "让 3.0 格不掉血、3.0001 格才掉 1 点，少写这一项会让恰好 4.0 格也掉血；"
+        + "② 运算是 double——伤害按整数格结算，中途落到 f32 会让 1e-6 被舍入吃掉，整数边界附近整格偏差；"
+        + "③ 先 floor 再减法，子类减免（青蛙 5、山羊 10）作用在取整之后，先折算距离再取整结果不同。"
+        + "multiplier 由落地方块给出：普通 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0。"
+        + "单元覆盖安全距离边界（2.999999/3.0/3.000001/4.000001）、1~25 格的整格与半格与 .999、"
+        + "以及五种倍率与七种距离的笛卡尔组合。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "surface_rule",
+        probe: "surface_rule",
+        oracle: "SurfaceRuleOracle",
+        description: "地表规则的三种条件判定：水面、石头深度、Y 高度 —— 684 个单元。"
+        + "地表规则决定「这一格铺草方块还是沙子还是深板岩」，由一棵条件树逐格求值。"
+        + "三个边界写错会让整片地形错乱，而且不崩、不报错："
+        + "① 水面条件在 waterHeight == MIN_VALUE 时恒真（哨兵表示「这一列没有水」，不是「水面在最低处」），"
+        + "写成恒假会让所有非含水地形少铺一层；"
+        + "② 石头深度用 <= 而不是 <，深度从 1 起计、1 就是最表面那一层；"
+        + "③ Y 高度锚点可以是从上往下数（below_top），换算方式与从下往上不同。"
+        + "surfaceDepth 不作为输入而由真实噪声算出（noise * 2.75 + 3.0 + rng.nextDouble() * 0.25 取整），"
+        + "噪声曲线与位置随机工厂只要有一处不同就会得到不同的深度值。"
+        + "单元覆盖 MIN_VALUE 哨兵、正负 offset 与 multiplier、Floor/Ceiling 两种取法、"
+        + "secondary_depth_range 的 0 与非 0、以及两种锚点。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 export function findHarness(name: string): HarnessDeclaration | undefined {
     return HARNESSES.find((harness) => harness.name === name);

@@ -2265,25 +2265,9 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
         return;
     }
 
-    // 计算摔落伤害（对齐 vanilla LivingEntity.calculateFallDamage/calculateFallPower:
-    //   fallPower = distance + 1e-6 - SAFE_FALL_DISTANCE;
-    //   fallDamage = floor(fallPower * damageMultiplier * FALL_DAMAGE_MULTIPLIER);）
-    // - SAFE_FALL_DISTANCE 默认 3.0，JumpBoost 药水通过 Addition 修饰符每级 +1
-    //   （等价于原先在 distance 上减 jumpBoostLevel，现统一走属性体系）。
-    // - FALL_DAMAGE_MULTIPLIER 默认 1.0，马类覆盖为 0.5。
-    // - damageMultiplier 由调用方传入（普通方块 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0）。
-    // - 1e-6 偏移消除浮点边界：恰好等于安全距离时不产生伤害。
-    // - floor 整体取整：伤害按整数格结算（vanilla calculateFallDamage 返回 i32）。
-    // 注意：摔落保护附魔的减伤在 actuallyHurt 管线的 applyPotionDamageCalculations
-    //   统一处理（对 isFall() 伤害），此处不再重复减伤（此前此处重复减伤为 bug）。
-    const f32 safeFallDistance =
-        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 3.0));
-    const f32 fallDamageMultiplier =
-        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0));
-    const f32 fallPower = distance + 1.0e-6f - safeFallDistance;
-    const i32 rawDamage = static_cast<i32>(std::floor(fallPower * damageMultiplier * fallDamageMultiplier));
-    // 子类减免（对齐 vanilla calculateFallDamage 的 `super.calculateFallDamage(...) - 减免`，山羊 -10）。
-    const i32 damage = rawDamage - fallDamageReduction();
+    // 计算摔落伤害。距离取 double 参与运算：伤害最终按整数格结算，若中途落到 f32，
+    // 恰好落在整数边界上的距离（如 4.0）会因为 +1e-6 的修正被 f32 吃掉而少算一格。
+    const i32 damage = calculateFallDamage(static_cast<f64>(distance), damageMultiplier);
 
     if (damage > 0) {
         auto sourceClone = source.clone();
@@ -2292,6 +2276,27 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
 
     // 播放摔落音效
     playFallSound(distance);
+}
+
+i32 LivingEntity::calculateFallDamage(f64 distance, f32 damageMultiplier) const
+{
+    // fallPower = distance + 1e-6 - SAFE_FALL_DISTANCE
+    //
+    // - SAFE_FALL_DISTANCE 默认 3.0，跳跃提升通过 Addition 修饰符每级 +1。
+    // - FALL_DAMAGE_MULTIPLIER 默认 1.0，马类覆写为 0.5。
+    // - damageMultiplier 由调用方给出：普通方块 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0。
+    // - 1e-6 用来消除浮点边界：恰好等于安全距离时不产生伤害。
+    // - 整体 floor：伤害按整数格结算。
+    //
+    // 摔落保护附魔的减伤不在这里，它由 actuallyHurt 管线按 isFall() 统一处理。
+    const f64 safeFallDistance = attributes().getValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 3.0);
+    const f64 fallDamageMultiplier = attributes().getValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0);
+    const f64 fallPower = distance + 1.0e-6 - safeFallDistance;
+    const i32 rawDamage =
+        static_cast<i32>(std::floor(fallPower * static_cast<f64>(damageMultiplier) * fallDamageMultiplier));
+
+    // 子类减免（山羊 -10）。
+    return rawDamage - fallDamageReduction();
 }
 
 // ============================================================================
