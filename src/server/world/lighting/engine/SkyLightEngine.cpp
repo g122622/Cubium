@@ -789,6 +789,7 @@ void SkyStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array
 
     SWMRNibbleArray* nibble = getNibbleFromCache(pos.x, sectionY, pos.z);
     if (nibble == nullptr) {
+        // 段还没有 nibble：以 NULL 状态建一个并入缓存，随后由 setData 的数据填充为 INIT。
         m_ownedNibbles.emplace_back(std::make_unique<SWMRNibbleArray>(nullptr, true));
         nibble = m_ownedNibbles.back().get();
         setNibbleInCache(pos.x, sectionY, pos.z, nibble);

@@ -1506,6 +1506,8 @@ add_executable(mc_tests
     lighting/LightUpdateTest.cpp
     lighting/BlockLightRegressionTest.cpp
     lighting/BaseLightEngineQueueTest.cpp
+    # 点亮流程输入 nibble 工厂（getFilledEmptyLight 的 NULL 状态语义）
+    lighting/FilledEmptyLightTest.cpp
     lighting/SkyLightRegressionTest.cpp
     lighting/WorldLightManagerTest.cpp
     # 主线程读路径 visible 侧回归测试（③-2a）

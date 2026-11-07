@@ -194,8 +194,7 @@ TEST_F(EnchantmentTooltipTest, TagReferenceExpandsInPlace)
     const auto* tag = EnchantmentTags::getTag(ResourceLocation("minecraft:complex_tag"));
     ASSERT_NE(tag, nullptr);
     // 声明顺序：sharpness, #sub_tag(unbreaking, looting), looting（重复不追加）
-    const std::vector<std::string> expected{
-        "minecraft:sharpness", "minecraft:unbreaking", "minecraft:looting"};
+    const std::vector<std::string> expected{"minecraft:sharpness", "minecraft:unbreaking", "minecraft:looting"};
     std::vector<std::string> actual;
     for (const auto& id : tag->getOrderedEnchantmentIds()) {
         actual.push_back(id.toString());
@@ -264,8 +263,8 @@ TEST_F(EnchantmentTooltipTest, EnchantmentsOutsideTagKeepStorageOrderAtEnd)
     sword.addEnchantment("minecraft:looting", 3); // 不在 tooltip_order 里
 
     const auto sorted = EnchantmentHelper::getSortedEnchantmentsForTooltip(sword);
-    EXPECT_EQ(ids(sorted),
-        (std::vector<std::string>{"minecraft:fortune", "minecraft:unbreaking", "minecraft:looting"}));
+    EXPECT_EQ(
+        ids(sorted), (std::vector<std::string>{"minecraft:fortune", "minecraft:unbreaking", "minecraft:looting"}));
 
     mc::test::removeTestDir(root);
 }
@@ -276,7 +275,8 @@ TEST_F(EnchantmentTooltipTest, FallsBackToStorageOrderWhenTagNotLoaded)
     const ItemStack sword = makeEnchantedSword();
     const auto sorted = EnchantmentHelper::getSortedEnchantmentsForTooltip(sword);
     EXPECT_EQ(ids(sorted),
-        (std::vector<std::string>{"minecraft:fortune", "minecraft:sharpness", "minecraft:mending", "minecraft:protection"}));
+        (std::vector<std::string>{
+            "minecraft:fortune", "minecraft:sharpness", "minecraft:mending", "minecraft:protection"}));
 }
 
 TEST_F(EnchantmentTooltipTest, EmptyStackHasNoSortedEnchantments)
@@ -323,8 +323,7 @@ TEST_F(EnchantmentTooltipTest, FullNameColorDistinguishesCurse)
     EXPECT_NE(normal.rfind("\xC2\xA7", 0), std::string::npos);
     EXPECT_NE(cursed.rfind("\xC2\xA7", 0), std::string::npos);
     EXPECT_NE(normal, cursed);
-    EXPECT_NE(EnchantmentHelper::getColoredName(*fortune, false),
-        EnchantmentHelper::getColoredName(*fortune, true));
+    EXPECT_NE(EnchantmentHelper::getColoredName(*fortune, false), EnchantmentHelper::getColoredName(*fortune, true));
 }
 
 // ============================================================================

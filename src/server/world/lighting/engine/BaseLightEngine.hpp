@@ -556,9 +556,17 @@ protected:
     // ========================================================================
 
     /**
-     * @brief 创建填充为空的 Nibble 数组
+     * @brief 创建 `totalLightSections` 个处于 NULL 状态的光照 nibble
      *
-     * TODO: 当前无任何调用方，待接入光照引擎的 null-section 处理路径。
+     * NULL 状态表示"该段没有光照数据"，与"数据全零的 UNINIT/INIT 段"语义不同：
+     * 天空光在 NULL 段上的传播由 `SkyStarLightEngine::checkNullSection` 单独处理，
+     * 不会把段内容当成亮度 0 的实心段。
+     *
+     * 返回 unique_ptr 是刻意的：点亮流程（`StarLightEngine::light`）用这批 nibble 作为
+     * 一次性输入，随后由 `setSkyNibbles`/`setBlockNibbles` 按**移动语义**把状态搬进区块。
+     * 若改用值数组，`std::vector` 扩容时元素会移动、指针失效，而缓存里存的是裸指针。
+     *
+     * @param totalLightSections 光照段总数（含上下各一段缓冲，见 m_minLightSection/m_maxLightSection）
      */
     [[nodiscard]] static std::vector<std::unique_ptr<SWMRNibbleArray>> getFilledEmptyLight(i32 totalLightSections);
 
