@@ -421,6 +421,25 @@ template <typename T>
 }
 
 /**
+ * @brief 向上取整到 64 位整数，对应原版 `Mth.ceilLong(double)`
+ *
+ * 与 `std::ceil` 的差别在于**先截断再比较**：
+ *
+ *   ceilLong(2.1)  → 3
+ *   ceilLong(2.0)  → 2
+ *   ceilLong(-2.1) → -2   （截断得 -2，-2.1 > -2 为假，故不加 1）
+ *   ceilLong(-2.0) → -2
+ *
+ * 负数方向与「数学上的向上取整」一致（-2.1 向上取整是 -2），
+ * 但实现路径不同：它靠一次截断 + 一次比较完成，不调用 libm。
+ */
+[[nodiscard]] inline i64 ceilLong(f64 value)
+{
+    const i64 truncated = static_cast<i64>(value);
+    return value > static_cast<f64>(truncated) ? truncated + 1 : truncated;
+}
+
+/**
  * @brief 钳位线性映射，将值从 [fromMin, fromMax] 映射到 [toMin, toMax] 并 clamp
  *
  * 参考 MC 1.21: Mth.clampedMap
