@@ -195,7 +195,7 @@ private:
 class TestIsolationListener : public ::testing::EmptyTestEventListener {
 public:
     /// `main` 进入 steady_clock 读数（毫秒），用于换算进程墙钟。
-    static inline i64 s_processStartMs = 0;
+    static inline mc::i64 s_processStartMs = 0;
 
     void OnTestEnd(const ::testing::TestInfo& /*test_info*/) override
     {
@@ -211,7 +211,7 @@ public:
     /// 与用例口径对账，定位 CI 上单用例固定开销的来源。
     void OnTestProgramEnd(const ::testing::UnitTest& unitTest) override
     {
-        const auto wallMs = unitTest.elapsed_time().count() / 1000;
+        const auto wallMs = unitTest.elapsed_time().count();
         const auto uptimeMs =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
                 .count() -
@@ -221,14 +221,14 @@ public:
 
 private:
     /// 读取本进程累计消耗的用户态 + 内核态 CPU 时间（毫秒）。非 Linux 平台返回 -1。
-    static i64 _processCpuMs()
+    static mc::i64 _processCpuMs()
     {
 #ifdef __linux__
         struct rusage usage{};
         if (::getrusage(RUSAGE_SELF, &usage) != 0) {
             return -1;
         }
-        return static_cast<i64>(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) * 1000 +
+        return static_cast<mc::i64>(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) * 1000 +
             (usage.ru_utime.tv_usec + usage.ru_stime.tv_usec) / 1000;
 #else
         return -1;
