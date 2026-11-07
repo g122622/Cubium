@@ -39,6 +39,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <unistd.h>
 
 #ifdef __linux__
 #include <sys/resource.h>
@@ -48,6 +49,10 @@ namespace test_timing {
 
 /// 进程进入 main 时的 steady_clock 读数（毫秒），由 main 最早写入。
 inline mc::i64 g_processStartMs = 0;
+
+/// 由 main 预打开的 timing 日志文件描述符（-1 表示未启用）。用裸 write(2) 打点时避免
+/// 依赖 C 库的首次初始化。
+inline int g_timingFd = -1;
 
 /// 自进程进入 main 起经过的毫秒数。所有阶段标记统一用这个基准，便于直接对齐。
 [[nodiscard]] inline mc::i64 sinceStartMs()
@@ -250,7 +255,15 @@ class ProbeEnvironmentA : public ::testing::Environment {
 public:
     void SetUp() override
     {
-        WorldGenRegistryEnvironment::recordTiming("env_a_enter", test_timing::sinceStartMs());
+        // 用最原始的 write(2) 打点：绕开 getenv / std::filesystem / fopen 等可能在首次调用时
+        // 触发额外初始化（locale、iostream）的设施，判断慢的是「环境调用」还是我们的打点函数。
+        const mc::i64 ms = test_timing::sinceStartMs();
+        char buffer[64];
+        int length = std::snprintf(buffer, sizeof(buffer), "%lld env_a_raw_enter\n", static_cast<long long>(ms));
+        if (length > 0) {
+            (void)::write(test_timing::g_timingFd, buffer, static_cast<size_t>(length));
+        }
+        WorldGenRegistryEnvironment::recordTiming("env_a_enter", ms);
     }
 };
 

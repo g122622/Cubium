@@ -32,12 +32,22 @@
 
 #include <spdlog/spdlog.h>
 
+#include <string>
+#include <fcntl.h>
+#include <unistd.h>
+
 int main(int argc, char* argv[])
 {
     // 供 OnTestProgramEnd 统计进程墙钟的上界余量（见该类注释）。取值早于任何初始化。
     test_timing::g_processStartMs =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
             .count();
+
+    // 预开 timing 日志：后续用裸 write(2) 打点，避免首次调用 C 库相关设施引入额外初始化。
+    if (const char* dir = std::getenv("MC_SETUP_TIMING_DIR")) {
+        const std::string path = std::string(dir) + "/setup-timing.log";
+        test_timing::g_timingFd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+    }
 
     const auto sinceStart = [] {
         return test_timing::sinceStartMs();
