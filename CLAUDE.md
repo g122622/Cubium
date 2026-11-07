@@ -175,40 +175,16 @@ block/
 
 **游戏常量** (`src/common/core/Constants.hpp`)
 
-`mc::game` 命名空间：
-- `PLAYER_HEIGHT`, `PLAYER_EYE_HEIGHT`, `PLAYER_WIDTH`, `PLAYER_SNEAK_HEIGHT` - 玩家尺寸
-- `PLAYER_MAX_HEALTH`, `PLAYER_MAX_AIR` - 玩家生命值/氧气
-- `MAX_LIGHT_LEVEL`（一般为15）, `MIN_LIGHT_LEVEL`（一般为0） - 光照等级范围
-- `DAY_LENGTH_TICKS`, `DAY_LENGTH_SECONDS` - 游戏日长度
+`mc::game`（玩家尺寸/生命/氧气、`MAX_LIGHT_LEVEL`、`DAY_LENGTH_TICKS` 等）、`mc::entity`、`mc::item`、`mc::capacity`（缓冲区、容器初始容量、字符串长度限制）均为扁平常量族，**用前直接读 `Constants.hpp`，以该文件为准**。
 
-`mc::network` 命名空间：
-- `PROTOCOL_VERSION` - 协议版本。【警示】**该常量当前值仍是 1.16.5 的 `754`，与项目目标 1.21.11 不一致**，`Constants.hpp` 中的注释也还写着"目标是 1.16.5"。判断线上实际协议版本时以 `network/protocol/ProtocolInfo` 与 Java 后端协议表为准，不要直接引用 `PROTOCOL_VERSION`；若任务涉及它，按 1.21.11 修正并同步删除该处过期注释。
-- `DEFAULT_PORT`, `DEFAULT_RCON_PORT` - 默认端口
-- `MAX_PACKET_SIZE`, `MAX_UNCOMPRESSED_SIZE`, `MIN_COMPRESSION_THRESHOLD` - 数据包限制
-- `CONNECT_TIMEOUT_MS`, `READ_TIMEOUT_MS`, `WRITE_TIMEOUT_MS` - 超时设置
-- `KEEP_ALIVE_INTERVAL_MS`, `KEEP_ALIVE_TIMEOUT_MS` - 心跳设置
-- `MAX_PACKETS_PER_SECOND`, `MAX_LOGIN_ATTEMPTS` - 速率限制
+`mc::network`：
+- `PROTOCOL_VERSION` - 协议版本。【警示】**当前值仍是 1.16.5 的 `754`，与项目目标 1.21.11 不一致**，`Constants.hpp` 注释也还写着"目标是 1.16.5"。判断线上实际协议版本以 `network/protocol/ProtocolInfo` 与 Java 后端协议表为准，不要直接引用本常量；若任务涉及它，按 1.21.11 修正并删除该处过期注释。
+- `DEFAULT_PORT` / `MAX_PACKET_SIZE` / `MAX_UNCOMPRESSED_SIZE` / `MIN_COMPRESSION_THRESHOLD` / 各类 `*_TIMEOUT_MS` / `KEEP_ALIVE_*` / `MAX_PACKETS_PER_SECOND`
 
-`mc::world` 命名空间：
-- `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制。【重要】只能使用这些mc::world下的常量作为高度限制，不能硬编码0、256等数字，因为未来可能会频繁修改这些高度限制。
-- `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS` - 区块尺寸。【重要】只能使用这些mc::world下的常量作为区块尺寸，不能硬编码16等数字，因为未来可能会频繁修改区块尺寸。另外，有些地方可能使用位运算来计算区块坐标（例如 `x >> CHUNK_SHIFT`），务必使用这些常量来确保位运算的正确性，而不是简单 >> 4。
-【重要】CHUNK_HEIGHT和MAX_BUILD_HEIGHT值不同，语义也完全不同。CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT = 320 - (-64) = 384，而MAX_BUILD_HEIGHT = 320。使用的时候务必小心这个区别！
-- `CHUNK_SHIFT`, `SECTION_SHIFT`, `CHUNK_MASK` - 区块位运算常量
-- `CHUNK_LOAD_RADIUS` - 默认区块加载半径
-- `SPAWN_CHUNK_RADIUS` - 出生点常驻区块半径
-
-世界常量、尺寸与坐标换算工具统一定义在 `src/common/world/WorldConstants.hpp`（`Constants.hpp` 通过 include 重新导出）。使用时直接 include 该头文件并引用其中常量/函数，不要硬编码数字；具体清单以该文件为准，本文档不再重复罗列——重复罗列会随代码演进迅速失真。
-
-`mc::entity` 命名空间：
-- `MAX_ENTITIES_PER_CHUNK`, `MAX_ENTITIES` - 实体数量限制
-
-`mc::item` 命名空间：
-- `DEFAULT_MAX_STACK_SIZE` - 物品默认最大堆叠数（64）
-
-`mc::capacity` 命名空间：
-- `DEFAULT_BUFFER_SIZE`, `PACKET_BUFFER_SIZE` - 缓冲区大小
-- `ENTITY_LIST_INITIAL`, `CHUNK_MAP_INITIAL`, `PLAYER_LIST_INITIAL` - 容器初始容量
-- `MAX_PLAYER_NAME_LENGTH`, `MAX_CHAT_MESSAGE_LENGTH`, `MAX_COMMAND_LENGTH`, `MAX_PATH_LENGTH` - 字符串限制
+`mc::world`：
+- 【重要】高度限制（`MIN_BUILD_HEIGHT` / `MAX_BUILD_HEIGHT` / `SEA_LEVEL`）与区块尺寸（`CHUNK_WIDTH` / `CHUNK_HEIGHT` / `CHUNK_SECTION_HEIGHT` / `CHUNK_SECTIONS` / `CHUNK_SHIFT` / `SECTION_SHIFT` / `CHUNK_MASK`）**必须只用常量，禁止硬编码 0/16/256**；位运算也要用 `CHUNK_SHIFT` 而不是 `>> 4`。
+- 【重要】`CHUNK_HEIGHT` ≠ `MAX_BUILD_HEIGHT`，语义完全不同：`CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT = 320 - (-64) = 384`，而 `MAX_BUILD_HEIGHT = 320`。
+- `CHUNK_LOAD_RADIUS`、`SPAWN_CHUNK_RADIUS` 等其余清单见 `src/common/world/WorldConstants.hpp`（`Constants.hpp` 通过 include 重新导出）。**具体清单以该文件为准**，不要依赖本文档的罗列。
 
 **数学函数** (`src/common/util/math/MathUtils.hpp`)
 - `toRadians()`, `toDegrees()`, `clamp()`, `lerp()`, `smoothstep()`
@@ -556,42 +532,9 @@ src/client/renderer/
 
 不要过度防御性编程，这会导致代码臃肿、不易发现真正的bug和架构缺陷。只在必要的边界和不受信任的输入处进行防御性检查，其他地方可以假设前置条件已经满足。
 
-❌ 不好的例子：
+典型反例（❌ 错误）：`if (m_chunkManager && pendingTasksCount >= 0) { ... m_chunkManager->tick(...); }`、`if (m_lightManager && m_lightManager->hasLightWork())`、`if (m_skyLight != nullptr)` —— 对约定非空的成员做冗余判空，把职责不变量检查混进调用点。
 
-```cpp
-    // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
-    if (m_chunkManager && pendingTasksCount >= 0) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::ChunkTick");
-        m_chunkManager->tick(pendingTasksCount);
-    }
-
-    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
-    if (m_lightManager && m_lightManager->hasLightWork()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
-        m_lightManager->tick(32768, true, true);
-    }
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
-    }
-```
-
-✅ 正确例子，最佳实践：
-
-```cpp
-    // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::ChunkTick");
-    MC_ASSERT_RELEASE(pendingTasksCount >= 0); // 转为断言，便于迅速暴露问题
-    m_chunkManager->tick(pendingTasksCount);
-
-    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
-    if (m_lightManager->hasLightWork()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
-        m_lightManager->tick(32768, true, true);
-    }
-
-    m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
-```
+✅ 正确：约定非空的成员直接使用（`m_chunkManager->tick(pendingTasksCount);`、`m_lightManager->hasLightWork()`、`m_skyLight->forceHandleEmptySectionChanges(...)`），把"不可能为负/为空"转成 `MC_ASSERT_RELEASE(...)` 就近暴露问题，而不是 if 兜底。
 
 这可能会导致一些空指针访问，但这通常是由于架构设计缺陷或其他bug引起的，过度防御会掩盖这些问题。正确的做法是通过单元测试、集成测试和代码审查来发现和修复这些问题，而不是在每个调用处添加冗余检查。
 
@@ -661,47 +604,26 @@ if (!result.success()) {
 ### 2.4 类设计规范
 
 ```cpp
-// ✅ 推荐：Rule of Five
+// ✅ 推荐：Rule of Five（含移动语义；私有方法用 _ 前缀）
 class Chunk {
 public:
-    Chunk();                                    // 默认构造函数
-    Chunk(const Chunk& other);                  // 拷贝构造
-    Chunk(Chunk&& other) noexcept;              // 移动构造
-    Chunk& operator=(const Chunk& other);       // 拷贝赋值
-    Chunk& operator=(Chunk&& other) noexcept;   // 移动赋值
-    ~Chunk();                                   // 析构函数
-    
-    // 工厂方法
-    static std::unique_ptr<Chunk> create(int32_t x, int32_t z);
-    
+    Chunk();
+    Chunk(const Chunk& other);
+    Chunk(Chunk&& other) noexcept;
+    Chunk& operator=(const Chunk& other);
+    Chunk& operator=(Chunk&& other) noexcept;
+    ~Chunk();
+
+    static std::unique_ptr<Chunk> create(ChunkCoord x, ChunkCoord z);  // 工厂方法
+
 private:
-    // 数据成员
     std::vector<Block> m_blocks;
     ChunkPos m_position;
-    // 私有方法（私有方法必须加前缀_以示区分）
     void _loadFromDisk();
 };
 
-// ✅ 必须：明确指定访问控制
-class Entity {
-public:
-    // 公共接口
-    void update(float deltaTime);
-    
-protected:
-    // 派生类可访问
-    virtual void onTick();
-    
-private:
-    // 私有实现
-    void _internalUpdate();
-    EntityID m_id;
-};
-
-// ❌ 禁止：友元滥用
-class A {
-    friend class B;  // 除非必要，否则避免
-};
+// ✅ 必须：明确指定 public/protected/private 访问控制
+// ❌ 禁止：滥用 friend
 ```
 
 ### 2.5 函数设计规范
