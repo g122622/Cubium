@@ -273,6 +273,22 @@ public:
      * 避免依附类方块（按钮/火把等）在支撑尚未放置时被邻居通知自毁。
      */
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override;
+
+    /**
+     * @brief 方块写入后的统一补发邻居更新，对应原版 `ServerLevel#updateNeighboursOnBlockSet`
+     *
+     * 用于"批量写入期间抑制副作用、写完后统一补发"的场景（`/fill` 与 `/clone` 的 strict 模式
+     * 传 `UPDATE_SKIP_ALL_SIDEEFFECTS` 写入，随后逐位置调用本方法）。
+     *
+     * 与 `setBlockState` 内的即时通知不同，这里以**旧状态**为参照：旧状态所属方块与新状态
+     * 不是同一方块时，先让旧状态处理"被移除后的邻居影响"，再以新状态所属方块为来源通知
+     * 周围 6 向邻居。
+     *
+     * @param pos 刚写入的位置
+     * @param oldState 该位置写入前的状态
+     */
+    void updateNeighboursOnBlockSet(const BlockPos& pos, const BlockState& oldState);
+
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override;
 
     // ========== 方块实体管理 ==========

@@ -1031,6 +1031,8 @@ add_executable(mc_tests
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp
+    # strict 模式（/fill、/clone）的"抑制副作用 + 延后补发邻居更新"通路
+    server/ServerWorldNeighbourOnBlockSetTest.cpp
     server/test_integrated_server.cpp
     server/test_save_player_runtime_state.cpp
     server/BlockDropHandlerTest.cpp

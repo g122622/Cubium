@@ -810,6 +810,21 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 // 修改世界中的方块
 // 注意：会自动给客户端发包，不要在外部调用后再发一次！
 // ============================================================================
+void ServerWorld::updateNeighboursOnBlockSet(const BlockPos& pos, const BlockState& oldState)
+{
+    const BlockState* currentState = getBlockState(pos.x, pos.y, pos.z);
+    MC_ASSERT_RELEASE(currentState != nullptr);
+
+    // 以新状态的方块为通知来源（原版传 blockstate.getBlock()）。只有在方块本体发生变化时
+    // 才需要让旧方块处理"被移除后的邻居影响"；同一方块换状态（如楼梯朝向）不涉及移除。
+    Block& newBlock = currentState->getBlockMutable();
+    if (!oldState.is(&newBlock)) {
+        oldState.getBlockMutable().onBlockRemoved(*this, pos, oldState, false);
+    }
+
+    updateNeighbors(pos, newBlock);
+}
+
 bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
     // 4 参版等价于 flags=UPDATE_ALL(NEIGHBORS|CLIENTS)，保留历史行为（玩家放置/破坏等标准更新）。
