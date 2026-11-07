@@ -51,21 +51,21 @@ protected:
 // OceanRuinConfig 测试
 // ============================================================================
 
-TEST_F(OceanRuinStructureTest, Config_DefaultValues)
+TEST_F(OceanRuinStructureTest, Config_CarriesPackProbabilities)
 {
-    OceanRuinConfig config;
+    // 两个概率来自数据包，结构自身只搬运、不改写。
+    OceanRuinConfig config{OceanRuinType::Cold, 0.3f, 0.9f};
+    OceanRuinStructure structure(ResourceLocation("minecraft", "ocean_ruin_cold"));
+    structure.setConfig(config);
 
-    EXPECT_EQ(config.biomeType, OceanRuinType::Cold);
-    EXPECT_FLOAT_EQ(config.largeProbability, 0.3f);
-    EXPECT_FLOAT_EQ(config.clusterProbability, 0.9f);
+    EXPECT_EQ(structure.config().biomeType, OceanRuinType::Cold);
+    EXPECT_FLOAT_EQ(structure.config().largeProbability, 0.3f);
+    EXPECT_FLOAT_EQ(structure.config().clusterProbability, 0.9f);
 }
 
 TEST_F(OceanRuinStructureTest, Config_WarmType)
 {
-    OceanRuinConfig config;
-    config.biomeType = OceanRuinType::Warm;
-    config.largeProbability = 0.5f;
-    config.clusterProbability = 0.7f;
+    OceanRuinConfig config{OceanRuinType::Warm, 0.5f, 0.7f};
 
     EXPECT_EQ(config.biomeType, OceanRuinType::Warm);
     EXPECT_FLOAT_EQ(config.largeProbability, 0.5f);
@@ -241,7 +241,7 @@ TEST_F(OceanRuinStructureTest, Rotation_AllVariants)
 
 TEST_F(OceanRuinStructureTest, Config_ProbabilityRanges)
 {
-    OceanRuinConfig config;
+    OceanRuinConfig config{OceanRuinType::Cold, 0.3f, 0.9f};
 
     // 验证概率值在有效范围内
     EXPECT_GE(config.largeProbability, 0.0f);

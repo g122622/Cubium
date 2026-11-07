@@ -50,9 +50,9 @@ enum class OceanRuinType : u8 {
  * @brief 海底废墟配置
  */
 struct OceanRuinConfig {
-    OceanRuinType biomeType = OceanRuinType::Cold;
-    f32 largeProbability = 0.3f;   ///< 大型废墟概率
-    f32 clusterProbability = 0.9f; ///< 集群概率
+    OceanRuinType biomeType; ///< 废墟风格（按生成点群系判定后填入）
+    f32 largeProbability;    ///< 大型废墟概率（数据包 `large_probability`）
+    f32 clusterProbability;  ///< 集群概率（数据包 `cluster_probability`）
 };
 
 /**
@@ -122,6 +122,7 @@ private:
     void _loadTemplate();
 
     std::string m_templateName;
+    BlockPos m_templatePosition;
     // 不能用「子类同名成员」保存旋转：它会遮蔽 StructurePiece::m_rotation，
     // 而 getRotation()/getMirror() 读的是基类成员，差分里表现为「抽到了旋转却始终输出 NONE」。
     f32 m_integrity;
@@ -170,7 +171,7 @@ public:
     }
 
     /**
-     * @brief 设置配置
+     * @brief 设置配置（两个概率来自数据包的 `large_probability` / `cluster_probability`）
      */
     void setConfig(const OceanRuinConfig& config)
     {
@@ -193,50 +194,6 @@ public:
     static const std::vector<std::string> s_mossyBigTemplates;
 
 private:
-    /**
-     * @param templateManager 模板管理器
-     * @param pos 放置位置
-     * @param rotation 旋转
-     * @param pieces 输出片段列表
-     * @param rng 随机数生成器
-     * @param config 配置
-     * @param isLarge 是否为大型废墟
-     * @param integrity 完整度
-     */
-    void generatePiece(feature::template_::TemplateManager& templateManager,
-        const BlockPos& pos,
-        Rotation rotation,
-        std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::IRandom& rng,
-        const OceanRuinConfig& config,
-        bool isLarge,
-        f32 integrity) const;
-
-    /**
-     * @brief 生成集群片段
-     * @param templateManager 模板管理器
-     * @param rng 随机数生成器
-     * @param rotation 旋转
-     * @param pos 放置位置
-     * @param config 配置
-     * @param pieces 输出片段列表
-     */
-    void generateClusterPieces(feature::template_::TemplateManager& templateManager,
-        math::IRandom& rng,
-        Rotation rotation,
-        const BlockPos& pos,
-        const OceanRuinConfig& config,
-        std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
-
-    /**
-     * @brief 获取候选位置列表
-     * @param rng 随机数生成器
-     * @param x X 坐标
-     * @param z Z 坐标
-     * @return 候选位置列表
-     */
-    [[nodiscard]] std::vector<BlockPos> getCandidatePositions(math::IRandom& rng, i32 x, i32 z) const;
-
     [[nodiscard]] bool _isWarmBiome(BiomeId biomeId) const noexcept;
 
     static const std::string m_name;

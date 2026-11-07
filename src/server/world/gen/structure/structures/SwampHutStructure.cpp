@@ -79,38 +79,14 @@ std::unique_ptr<StructureStart> SwampHutStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 计算生成位置
-    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    // 生成位置固定为区块最小角、Y=64（原版 `ScatteredFeaturePiece` 构造传 64），
+    // 唯一一次抽样是水平朝向：`Direction.Plane.HORIZONTAL.getRandomDirection` 按
+    // [NORTH, EAST, SOUTH, WEST] 取一个。
+    constexpr Direction kHorizontalFaces[] = {Direction::North, Direction::East, Direction::South, Direction::West};
+    const Direction direction = kHorizontalFaces[rng.nextInt(4)];
 
-    // 获取地表高度
-    i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
-
-    // 确保在海平面以上（沼泽小屋通常在水面以上）
-    if (y < world::SEA_LEVEL - 1) {
-        y = world::SEA_LEVEL - 1;
-    }
-
-    // 随机旋转
-    feature::template_::Rotation rotation;
-    i32 rotValue = rng.nextInt(4);
-    switch (rotValue) {
-        case 0:
-            rotation = feature::template_::Rotation::None;
-            break;
-        case 1:
-            rotation = feature::template_::Rotation::Clockwise90;
-            break;
-        case 2:
-            rotation = feature::template_::Rotation::Clockwise180;
-            break;
-        case 3:
-        default:
-            rotation = feature::template_::Rotation::CounterClockwise90;
-            break;
-    }
-
-    auto piece = std::make_unique<SwampHutPiece>(BlockPos(x, y, z), rotation);
+    auto piece = std::make_unique<SwampHutPiece>(
+        BlockPos(chunkX * world::CHUNK_WIDTH, 64, chunkZ * world::CHUNK_WIDTH), direction);
     start->addPiece(std::move(piece));
 
     return start;
@@ -120,17 +96,23 @@ std::unique_ptr<StructureStart> SwampHutStructure::generate(
 // SwampHutPiece
 // ============================================================================
 
-SwampHutPiece::SwampHutPiece(const BlockPos& pos, feature::template_::Rotation rotation)
-    : StructurePiece(StructurePieceTypes::SWAMP_HUT, pos.x, pos.y, pos.z, pos.x + 7, pos.y + 6, pos.z + 9)
-    , m_rotation(rotation)
+SwampHutPiece::SwampHutPiece(const BlockPos& pos, Direction direction)
+    : StructurePiece(StructurePieceTypes::SWAMP_HUT, pos.x, pos.y, pos.z, pos.x, pos.y, pos.z)
 {
-    // 沼泽小屋尺寸约 7x5x9
+    // 尺寸按 `makeBoundingBox(x, y, z, direction, width=7, height=7, depth=9)` 展开：
+    // 朝向沿 Z 轴（北/南）时深度落在 Z 上，沿 X 轴（东/西）时深度落在 X 上。
+    const i32 width = 7;
+    const i32 height = 7;
+    const i32 depth = 9;
+    const bool alongZ = direction == Direction::North || direction == Direction::South;
     m_minX = pos.x;
     m_minY = pos.y;
     m_minZ = pos.z;
-    m_maxX = pos.x + 6;
-    m_maxY = pos.y + 5;
-    m_maxZ = pos.z + 8;
+    m_maxX = pos.x + (alongZ ? width : depth) - 1;
+    m_maxY = pos.y + height - 1;
+    m_maxZ = pos.z + (alongZ ? depth : width) - 1;
+    // 构件朝向同时决定旋转与镜像（原版 `setOrientation`）。
+    setCoordBaseMode(direction);
 }
 
 void SwampHutPiece::generate(IWorldWriter& world,

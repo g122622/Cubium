@@ -315,7 +315,18 @@ PlacementSettings& PlacementSettings::setBoundingBox(const structure::StructureB
 
 PlacementSettings& PlacementSettings::setCenterOffset(const BlockPos& offset)
 {
+    // `centerOffset` 与旋转枢轴在放置语义上是同一件事：原版只有 rotationPivot，过去这里
+    // 用 centerOffset 顶替枢轴，于是各自设枢轴的调用方不得不二选一。现在两者由同一份数据
+    // 驱动，避免 A 设了 centerOffset、B 设了 rotationPivot 而彼此看不到。
     m_centerOffset = offset;
+    m_rotationPivot = offset;
+    return *this;
+}
+
+PlacementSettings& PlacementSettings::setRotationPivot(const BlockPos& pivot)
+{
+    m_rotationPivot = pivot;
+    m_centerOffset = pivot;
     return *this;
 }
 
@@ -355,6 +366,7 @@ PlacementSettings PlacementSettings::copy() const
     result.m_keepLiquids = m_keepLiquids;
     result.m_boundingBox = m_boundingBox;
     result.m_centerOffset = m_centerOffset;
+    result.m_rotationPivot = m_rotationPivot;
     result.m_blockUpdateFlags = m_blockUpdateFlags;
     result.m_processors = m_processors;
     result.m_world = m_world;
@@ -600,7 +612,7 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
     }
 
     const BlockPos last(m_size.x - 1, m_size.y - 1, m_size.z - 1);
-    const BlockPos& pivot = settings.getCenterOffset();
+    const BlockPos& pivot = settings.getRotationPivot();
     const BlockPos cornerA = transformBlockPos(BlockPos(0, 0, 0), settings.getMirror(), settings.getRotation(), pivot);
     const BlockPos cornerB = transformBlockPos(last, settings.getMirror(), settings.getRotation(), pivot);
 

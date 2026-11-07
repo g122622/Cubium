@@ -120,6 +120,144 @@ const std::vector<std::string> OceanRuinStructure::s_mossyBigTemplates = {"under
 const std::string OceanRuinStructure::m_name = "ocean_ruin";
 
 // ============================================================================
+// 片段模板选择
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 按风格与大小生成一组废墟片段（每层一个，完整度依次递减）
+ *
+ * 暖海只有一层；冷海是砖 / 裂纹 / 苔藓三层叠在同一个位置。抽取顺序与层数都是原版
+ * `OceanRuinPieces.addPiece` 的一部分：集群里的小废墟也要走这里，随机数序列必须同源。
+ */
+void appendRuinPieces(feature::template_::TemplateManager& templateManager,
+    const BlockPos& pos,
+    Rotation rotation,
+    math::IRandom& rng,
+    const OceanRuinConfig& config,
+    bool isLarge,
+    f32 integrity,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces)
+{
+    const auto make = [&](const std::string& templateName, f32 pieceIntegrity) {
+        auto piece =
+            std::make_unique<OceanRuinPiece>(templateName, pos, rotation, pieceIntegrity, config.biomeType, isLarge);
+        piece->setTemplateManager(&templateManager);
+        pieces.push_back(std::move(piece));
+    };
+
+    if (config.biomeType == OceanRuinType::Warm) {
+        const auto& table = isLarge ? OceanRuinStructure::s_warmBigTemplates : OceanRuinStructure::s_warmTemplates;
+        make(table[static_cast<size_t>(rng.nextInt(static_cast<i32>(table.size())))], integrity);
+        return;
+    }
+
+    // 冷海：抽取范围按**该分支自己的表长**，不能用小废墟的表长再取模。
+    const auto& bricks = isLarge ? OceanRuinStructure::s_brickBigTemplates : OceanRuinStructure::s_brickTemplates;
+    const auto& cracked = isLarge ? OceanRuinStructure::s_crackedBigTemplates : OceanRuinStructure::s_crackedTemplates;
+    const auto& mossy = isLarge ? OceanRuinStructure::s_mossyBigTemplates : OceanRuinStructure::s_mossyTemplates;
+    MC_ASSERT_RELEASE(bricks.size() == cracked.size() && bricks.size() == mossy.size());
+    const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(bricks.size())));
+    make(bricks[index], integrity);
+    make(cracked[index], 0.7f);
+    make(mossy[index], 0.5f);
+}
+
+std::vector<BlockPos> getCandidatePositions(math::IRandom& rng, i32 x, i32 z)
+{
+    // 生成 8 个候选位置，围绕主废墟
+    std::vector<BlockPos> positions;
+    positions.reserve(8);
+
+    // Y 坐标固定为 90（后续会调整到海床）
+    const i32 y = 90;
+
+    // 【抽取顺序】每次 `offset(dx, 0, dz)` 的两个分量在 Java 里严格从左到右求值，
+    // 而 C++ 同一表达式中两次调用的求值顺序是**未指定**的（clang 实际从右往左），
+    // 直接写成 `emplace_back(x + rng.nextInt(...), y, z + rng.nextInt(...))` 会让 X/Z 的
+    // 抽样顺序颠倒，整组候选位置与后续随机流随之错位。这里逐项取出中间量。
+    const auto at = [&](i32 offsetX, i32 offsetZ, i32 xMin, i32 xMax, i32 zMin, i32 zMax) {
+        const i32 dx = rng.nextInt(xMin, xMax);
+        const i32 dz = rng.nextInt(zMin, zMax);
+        positions.emplace_back(x + offsetX + dx, y, z + offsetZ + dz);
+    };
+
+    // 北侧偏移
+    at(-16, 16, 1, 8, 1, 7);
+    at(-16, 0, 1, 8, 1, 7);
+    at(-16, -16, 1, 8, 4, 8);
+
+    // 中间偏移
+    at(0, 16, 1, 7, 1, 7);
+    at(0, -16, 1, 7, 4, 6);
+
+    // 南侧偏移
+    at(16, 16, 1, 7, 3, 8);
+    at(16, 0, 1, 7, 1, 7);
+    at(16, -16, 1, 7, 4, 8);
+
+    return positions;
+}
+
+void generateClusterPieces(feature::template_::TemplateManager& templateManager,
+    math::IRandom& rng,
+    Rotation mainRotation,
+    const BlockPos& mainPos,
+    const OceanRuinConfig& config,
+    std::vector<std::unique_ptr<StructurePiece>>& pieces)
+{
+    // 主废墟包围盒：以 (15, 0, 15) 的变换结果为另一角（`BoundingBox.fromCorners` 会自己
+    // 排好 min/max，旋转到 90/270 度时另一角会落到负方向，不能假设它就是 max）。
+    const BlockPos mainCornerA(mainPos.x, 90, mainPos.z);
+    const BlockPos mainCornerB = feature::template_::Template::transformBlockPos(
+        BlockPos(15, 0, 15), Mirror::None, mainRotation, BlockPos(0, 0, 0));
+    const StructureBoundingBox mainBox(std::min(mainCornerA.x, mainPos.x + mainCornerB.x),
+        mainCornerA.y,
+        std::min(mainCornerA.z, mainPos.z + mainCornerB.z),
+        std::max(mainCornerA.x, mainPos.x + mainCornerB.x),
+        mainCornerA.y,
+        std::max(mainCornerA.z, mainPos.z + mainCornerB.z));
+    const BlockPos gridOrigin(
+        std::min(mainCornerA.x, mainPos.x + mainCornerB.x), 90, std::min(mainCornerA.z, mainPos.z + mainCornerB.z));
+
+    // 候选位置集合：**先一次性**生成全部 8 个（每个消耗 2 次随机数），再决定抽几个，
+    // 顺序不能颠倒——原版 allPositions 在 nextInt(4, 8) 之前完成全部抽取。
+    auto candidatePositions = getCandidatePositions(rng, gridOrigin.x, gridOrigin.z);
+
+    const i32 count = rng.nextInt(4, 8);
+
+    for (i32 i = 0; i < count; ++i) {
+        if (candidatePositions.empty()) {
+            break;
+        }
+        // 按当前列表长度抽取并移除（不是从固定 8 个里挑后跳过）
+        const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(candidatePositions.size())));
+        const BlockPos pos = candidatePositions[index];
+        candidatePositions.erase(candidatePositions.begin() + static_cast<ptrdiff_t>(index));
+
+        const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
+
+        // 小废墟占用 (5, 0, 6) 的对角，与主废墟相交时整段跳过。
+        const BlockPos smallCorner = feature::template_::Template::transformBlockPos(
+            BlockPos(5, 0, 6), Mirror::None, rotation, BlockPos(0, 0, 0));
+        const StructureBoundingBox smallBox(std::min(pos.x, pos.x + smallCorner.x),
+            pos.y,
+            std::min(pos.z, pos.z + smallCorner.z),
+            std::max(pos.x, pos.x + smallCorner.x),
+            pos.y,
+            std::max(pos.z, pos.z + smallCorner.z));
+        if (smallBox.intersects(mainBox)) {
+            continue;
+        }
+
+        appendRuinPieces(templateManager, pos, rotation, rng, config, false, 0.8f, pieces);
+    }
+}
+
+} // namespace
+
+// ============================================================================
 // OceanRuinPiece
 // ============================================================================
 
@@ -156,16 +294,18 @@ OceanRuinPiece::OceanRuinPiece(const std::string& templateName,
         return;
     }
     m_size = templ->getSize();
-    const BlockPos cornerA =
-        feature::template_::Template::transformBlockPos(BlockPos(0, 0, 0), Mirror::None, rotation, BlockPos(0, 0, 0));
-    const BlockPos cornerB = feature::template_::Template::transformBlockPos(
-        BlockPos(m_size.x - 1, m_size.y - 1, m_size.z - 1), Mirror::None, rotation, BlockPos(0, 0, 0));
-    m_minX = position.x + std::min(cornerA.x, cornerB.x);
-    m_minY = position.y + std::min(cornerA.y, cornerB.y);
-    m_minZ = position.z + std::min(cornerA.z, cornerB.z);
-    m_maxX = position.x + std::max(cornerA.x, cornerB.x);
-    m_maxY = position.y + std::max(cornerA.y, cornerB.y);
-    m_maxZ = position.z + std::max(cornerA.z, cornerB.z);
+    m_templatePosition = position;
+    // 旋转枢轴为模板原点（原版 `OceanRuinPiece.makeSettings` 不设枢轴）。
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(rotation);
+    settings.setMirror(Mirror::None);
+    const StructureBoundingBox rect = templ->getBoundingBox(settings, BlockPos(0, 0, 0));
+    m_minX = position.x + rect.minX();
+    m_minY = position.y + rect.minY();
+    m_minZ = position.z + rect.minZ();
+    m_maxX = position.x + rect.maxX();
+    m_maxY = position.y + rect.maxY();
+    m_maxZ = position.z + rect.maxZ();
 }
 
 void OceanRuinPiece::_loadTemplate()
@@ -225,7 +365,7 @@ void OceanRuinPiece::generate(IWorldWriter& world,
 
     // 放置模板
     m_template->place(world,
-        BlockPos(m_minX, m_minY, m_minZ),
+        m_templatePosition,
         settings,
         rng,
         world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
@@ -261,25 +401,21 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
+    // 【随机数顺序】原版 findGenerationPoint 走 onTopOfChunkCenter，而它**不消耗随机数**
+    // （X/Z 取区块中心是定值，Y 走高度图），generatePieces 的第一件事就是取旋转。这里同样
+    // 先取旋转再判大小，中间不得插入任何抽样。
     // 生成点固定为「区块最小角 + 90」：X/Z 不抽样（原版 generatePieces 直接用
     // chunkPos.getMinBlockX()/getMinBlockZ()），Y 恒为 90。
     //
     // 【90 是最终高度，不是占位】原版 OceanRuinPieces.addPieces 不在任何位置回填海床
-    // 高度：片段包围盒就是围绕 Y=90 展开的，放置阶段再由模板处理器自行贴地。早先实现
-    // 在这里把 Y 换成 OceanFloorWG 高度，导致整座废墟比原版低三十余格（差分能力
-    // structure_starts 暴露）。
+    // 高度：片段包围盒就是围绕 Y=90 展开的，放置阶段再由模板处理器自行贴地。
     const i32 baseX = chunkX * world::CHUNK_WIDTH;
     const i32 baseZ = chunkZ * world::CHUNK_WIDTH;
     const i32 anchorY = 90;
 
-    // 确定废墟类型（根据生物群系）
-    const i32 floorY = generator.getHeight(baseX, baseZ, HeightmapType::OceanFloorWG);
-    const BiomeId biome = generator.getBiome(baseX, anchorY, baseZ);
-    const bool warmVariant = _isWarmBiome(biome);
-
-    // 更新配置
-    OceanRuinConfig config = m_config;
-    config.biomeType = warmVariant ? OceanRuinType::Warm : OceanRuinType::Cold;
+    // 暖/冷变体来自结构定义（数据包 `biome_temp`），不按生成点群系现判：结构集本身已经
+    // 按群系标签挑好了变体，再判一次只会让两者不一致。
+    const OceanRuinConfig& config = m_config;
 
     // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
@@ -287,22 +423,18 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
         templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
     }
 
-    // 随机数顺序不可调换：原版先抽「是否大型」，再在 OceanRuinPieces.addPieces 内部
-    // 取旋转（Rotation.getRandom 消耗 1 次），最后才抽集群概率。
-    const bool isLarge = rng.nextFloat() <= config.largeProbability;
-    const f32 integrity = isLarge ? 0.9f : 0.8f;
-
-    // 随机旋转
+    // generatePieces 的第一步就是取旋转（Rotation.getRandom 消耗 1 次）。
     const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
     // 创建片段列表
     std::vector<std::unique_ptr<StructurePiece>> pieces;
 
-    // 生成主要片段
-    generatePiece(*templateManager, BlockPos(baseX, anchorY, baseZ), rotation, pieces, rng, config, isLarge, integrity);
+    // OceanRuinPieces.addPieces：先抽「是否大型」，再生成主废墟，最后才抽集群概率。
+    const bool isLarge = rng.nextFloat() <= config.largeProbability;
+    const f32 integrity = isLarge ? 0.9f : 0.8f;
+    appendRuinPieces(
+        *templateManager, BlockPos(baseX, anchorY, baseZ), rotation, rng, config, isLarge, integrity, pieces);
 
-    // 如果是大型废墟，可能生成集群。判据与原版一致：用**主废墟变换后的对角点 + 位置**
-    // 构造主包围盒，候选簇与它相交就跳过（不生成、不消耗后续随机数）。
     if (isLarge && rng.nextFloat() <= config.clusterProbability) {
         generateClusterPieces(*templateManager, rng, rotation, BlockPos(baseX, anchorY, baseZ), config, pieces);
     }
@@ -314,143 +446,6 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
 
     start->recalculateStructureSize();
     return start;
-}
-
-void OceanRuinStructure::generatePiece(feature::template_::TemplateManager& templateManager,
-    const BlockPos& pos,
-    Rotation rotation,
-    std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::IRandom& rng,
-    const OceanRuinConfig& config,
-    bool isLarge,
-    f32 integrity) const
-{
-    // 根据类型选择模板
-    std::string templateName;
-
-    if (config.biomeType == OceanRuinType::Warm) {
-        // 暖海废墟
-        if (isLarge) {
-            const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_warmBigTemplates.size())));
-            templateName = s_warmBigTemplates[index];
-        } else {
-            const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_warmTemplates.size())));
-            templateName = s_warmTemplates[index];
-        }
-
-        auto piece =
-            std::make_unique<OceanRuinPiece>(templateName, pos, rotation, integrity, config.biomeType, isLarge);
-        piece->setTemplateManager(&templateManager);
-        pieces.push_back(std::move(piece));
-    } else {
-        // 冷海废墟 - 生成三层叠加（砖、裂纹、苔藓）
-        // 抽取范围按**该分支自己的表长**，不能用小废墟的表长再取模：大型表只有 4 项，
-        // 取模会把 big_brick_2/3/8 的选中概率抬到小废墟的两倍，与原版 nextInt(表长) 不符。
-        const size_t index = isLarge ? static_cast<size_t>(rng.nextInt(static_cast<i32>(s_brickBigTemplates.size())))
-                                     : static_cast<size_t>(rng.nextInt(static_cast<i32>(s_brickTemplates.size())));
-
-        std::string brickTemplate, crackedTemplate, mossyTemplate;
-        if (isLarge) {
-            brickTemplate = s_brickBigTemplates[index];
-            crackedTemplate = s_crackedBigTemplates[index];
-            mossyTemplate = s_mossyBigTemplates[index];
-        } else {
-            brickTemplate = s_brickTemplates[index];
-            crackedTemplate = s_crackedTemplates[index];
-            mossyTemplate = s_mossyTemplates[index];
-        }
-
-        // 生成三层叠加，不同完整度
-        auto brickPiece =
-            std::make_unique<OceanRuinPiece>(brickTemplate, pos, rotation, integrity, config.biomeType, isLarge);
-        brickPiece->setTemplateManager(&templateManager);
-        pieces.push_back(std::move(brickPiece));
-
-        auto crackedPiece =
-            std::make_unique<OceanRuinPiece>(crackedTemplate, pos, rotation, 0.7f, config.biomeType, isLarge);
-        crackedPiece->setTemplateManager(&templateManager);
-        pieces.push_back(std::move(crackedPiece));
-
-        auto mossyPiece =
-            std::make_unique<OceanRuinPiece>(mossyTemplate, pos, rotation, 0.5f, config.biomeType, isLarge);
-        mossyPiece->setTemplateManager(&templateManager);
-        pieces.push_back(std::move(mossyPiece));
-    }
-}
-
-void OceanRuinStructure::generateClusterPieces(feature::template_::TemplateManager& templateManager,
-    math::IRandom& rng,
-    [[maybe_unused]] Rotation mainRotation,
-    const BlockPos& mainPos,
-    const OceanRuinConfig& config,
-    std::vector<std::unique_ptr<StructurePiece>>& pieces) const
-{
-    // 主废墟包围盒：以 (15, 0, 15) 的变换结果为另一角。小废墟用到的是 (5, 0, 6)。
-    const BlockPos mainCornerA(mainPos.x, 90, mainPos.z);
-    const BlockPos mainCornerB = feature::template_::Template::transformBlockPos(
-        BlockPos(15, 0, 15), Mirror::None, mainRotation, BlockPos(0, 0, 0));
-    const StructureBoundingBox mainBox(mainCornerA.x,
-        mainCornerA.y,
-        mainCornerA.z,
-        mainPos.x + mainCornerB.x,
-        mainCornerA.y,
-        mainPos.z + mainCornerB.z);
-    const BlockPos gridOrigin(
-        std::min(mainCornerA.x, mainPos.x + mainCornerB.x), 90, std::min(mainCornerA.z, mainPos.z + mainCornerB.z));
-
-    // 候选位置集合：**先一次性**生成全部 8 个（每个消耗 2 次随机数），再决定抽几个，
-    // 顺序不能颠倒——原版 allPositions 在 nextInt(4, 8) 之前完成全部抽取。
-    auto candidatePositions = getCandidatePositions(rng, gridOrigin.x, gridOrigin.z);
-
-    const i32 count = rng.nextInt(4, 8);
-
-    for (i32 i = 0; i < count; ++i) {
-        if (candidatePositions.empty()) {
-            break;
-        }
-        // 按当前列表长度抽取并移除（不是从固定 8 个里挑后跳过）
-        const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(candidatePositions.size())));
-        const BlockPos pos = candidatePositions[index];
-        candidatePositions.erase(candidatePositions.begin() + static_cast<ptrdiff_t>(index));
-
-        const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
-
-        // 小废墟占用 (5, 0, 6) 的对角，与主废墟相交时整段跳过。
-        const BlockPos smallCorner = feature::template_::Template::transformBlockPos(
-            BlockPos(5, 0, 6), Mirror::None, rotation, BlockPos(0, 0, 0));
-        const StructureBoundingBox smallBox(pos.x, pos.y, pos.z, pos.x + smallCorner.x, pos.y, pos.z + smallCorner.z);
-        if (smallBox.intersects(mainBox)) {
-            continue;
-        }
-
-        generatePiece(templateManager, pos, rotation, pieces, rng, config, false, 0.8f);
-    }
-}
-
-std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(math::IRandom& rng, i32 x, i32 z) const
-{
-    // 生成 8 个候选位置，围绕主废墟
-    std::vector<BlockPos> positions;
-    positions.reserve(8);
-
-    // Y 坐标固定为 90（后续会调整到海床）
-    const i32 y = 90;
-
-    // 北侧偏移
-    positions.emplace_back(x - 16 + rng.nextInt(1, 8), y, z + 16 + rng.nextInt(1, 7));
-    positions.emplace_back(x - 16 + rng.nextInt(1, 8), y, z + rng.nextInt(1, 7));
-    positions.emplace_back(x - 16 + rng.nextInt(1, 8), y, z - 16 + rng.nextInt(4, 8));
-
-    // 中间偏移
-    positions.emplace_back(x + rng.nextInt(1, 7), y, z + 16 + rng.nextInt(1, 7));
-    positions.emplace_back(x + rng.nextInt(1, 7), y, z - 16 + rng.nextInt(4, 6));
-
-    // 南侧偏移
-    positions.emplace_back(x + 16 + rng.nextInt(1, 7), y, z + 16 + rng.nextInt(3, 8));
-    positions.emplace_back(x + 16 + rng.nextInt(1, 7), y, z + rng.nextInt(1, 7));
-    positions.emplace_back(x + 16 + rng.nextInt(1, 7), y, z - 16 + rng.nextInt(4, 8));
-
-    return positions;
 }
 
 bool OceanRuinStructure::_isWarmBiome(BiomeId biomeId) const noexcept

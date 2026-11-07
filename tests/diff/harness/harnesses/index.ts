@@ -240,6 +240,7 @@ import { strongholdRoomCrossingDeclaration } from "./stronghold_room_crossing.ts
 import { strongholdSmallDoorDeclaration } from "./stronghold_small_door.ts";
 import { endCityPiecesDeclaration } from "./end_city_pieces.ts";
 import { jigsawJointOrderDeclaration } from "./jigsaw_joint_order.ts";
+import { structureStartSingleDeclaration } from "./structure_start_single.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
 import { villagerTradesDeclaration } from "./villager_trades.ts";
 import { textEncodeDeclaration } from "./text_encode.ts";
@@ -700,6 +701,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "item_components", probe: "item_components", oracle: "ItemComponentsOracle", key: "item", units: { kind: "listing" },
         input: (unit) => ({ item: unit }), oracleMissing: itemsKnownMissing },
     structureDensityDeclaration(),
+    structureStartSingleDeclaration(),
     structureStartsDeclaration(),
     mineshaftPiecesDeclaration(),
     strongholdPiecesDeclaration(),

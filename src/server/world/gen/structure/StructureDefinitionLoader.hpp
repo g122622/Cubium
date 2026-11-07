@@ -31,6 +31,7 @@
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
+#include "structures/OceanRuinStructure.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -86,6 +87,16 @@ struct StructureDefinition {
 
     /// 废墟传送门的 setup 表（仅 `minecraft:ruined_portal` 类型使用）
     std::vector<RuinedPortalSetupDefinition> ruinedPortalSetups;
+
+    /// 海底废墟的配置骨架（仅 `minecraft:ocean_ruin` 类型使用）：
+    /// 集群/大型概率来自 JSON，`biomeType` 由运行时按生成点群系判定，不取自数据包。
+    OceanRuinConfig oceanRuinConfig{OceanRuinType::Cold, 0.0f, 0.0f};
+
+    /// 海底废墟的暖/冷变体（数据包字段 `biome_temp`；cold/warm）
+    OceanRuinType oceanRuinBiomeTemp = OceanRuinType::Cold;
+
+    /// 沉船是否为搁浅变体（仅 `minecraft:shipwreck` 类型使用，数据包字段 `is_beached`）
+    bool shipwreckBeached = false;
 
     // Jigsaw 结构专用参数
     ResourceLocation startPool;                                        ///< 起始模板池

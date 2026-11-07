@@ -407,6 +407,12 @@ public final class StructureStartsOracle {
                 Dimension dimension = makeDimension(dimensionName, seed, registries.lookup);
                 for (Holder<StructureSet> setHolder : dimension.placementState().possibleStructureSets()) {
                     StructureSet set = setHolder.value();
+                    // 行格式是「维度 种子 X Z」，不带结构集名；调用方按结构集逐次导出（`--only` 只给一个），
+                    // 才能知道每一行属于哪个结构集。多给几个过滤值时本函数无法区分归属，必须直接报错。
+                    if (wantedSets.size() > 1) {
+                        throw new IllegalArgumentException(
+                                "StructureStartsOracle: candidates 一次只接受一个 --only（行格式不带结构集名）");
+                    }
                     if (set.placement() instanceof ConcentricRingsStructurePlacement concentric) {
                         // 同心环放置（要塞）：环形位置由放置规则预先算好，直接输出，成本可忽略，
                         // 因此无条件枚举。

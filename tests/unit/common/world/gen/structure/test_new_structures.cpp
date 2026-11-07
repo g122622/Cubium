@@ -312,21 +312,16 @@ TEST_F(NewStructuresTest, Igloo_CanGenerate)
 
 TEST_F(NewStructuresTest, Igloo_PieceConstruction)
 {
-    BlockPos pos(100, 64, 200);
-    mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::None;
-    bool hasBasement = true;
-    i32 middleCount = 1; // 中间层数量
+    // 雪屋的每个模板各是一个构件，包围盒在构造期就由模板尺寸展开（模板由全局管理器提供）。
+    IglooPiece top(IglooStructure::s_topTemplateName, BlockPos(100, 64, 200), Rotation::None);
+    EXPECT_EQ(top.templateName(), IglooStructure::s_topTemplateName);
+    EXPECT_EQ(top.templatePosition(), BlockPos(100, 64, 200));
+    // 模板缺失时退化为单点盒子，但模板名与原点必须原样保留。
+    EXPECT_LE(top.getBoundingBox().minX(), top.getBoundingBox().maxX());
 
-    IglooPiece piece(pos, rotation, hasBasement, middleCount);
-
-    // 验证地下室状态
-    EXPECT_TRUE(piece.hasBasement());
-    EXPECT_EQ(piece.middleCount(), middleCount);
-
-    // 有地下室时，Y 范围应该更大
-    IglooPiece pieceWithoutBasement(pos, rotation, false, 0);
-    EXPECT_FALSE(pieceWithoutBasement.hasBasement());
-    EXPECT_EQ(pieceWithoutBasement.middleCount(), 0);
+    IglooPiece middle(IglooStructure::s_middleTemplateName, BlockPos(102, 61, 204), Rotation::Clockwise90);
+    EXPECT_EQ(middle.templateName(), IglooStructure::s_middleTemplateName);
+    EXPECT_EQ(middle.templatePosition(), BlockPos(102, 61, 204));
 }
 
 // ============================================================================
@@ -369,14 +364,29 @@ TEST_F(NewStructuresTest, SwampHut_CanGenerate)
 TEST_F(NewStructuresTest, SwampHut_PieceConstruction)
 {
     BlockPos pos(100, 64, 200);
-    mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::Clockwise90;
 
-    SwampHutPiece piece(pos, rotation);
+    // 南北朝向：深度 9 落在 Z 轴；旋转与镜像由 setOrientation 一并决定。
+    SwampHutPiece north(pos, Direction::North);
+    EXPECT_EQ(north.maxX() - north.minX(), 6);
+    EXPECT_EQ(north.maxY() - north.minY(), 6);
+    EXPECT_EQ(north.maxZ() - north.minZ(), 8);
+    EXPECT_EQ(north.getRotation(), Rotation::None);
+    EXPECT_EQ(north.getMirror(), Mirror::None);
 
-    // 验证边界框（沼泽小屋约 7x6x9）
-    EXPECT_LE(piece.maxX() - piece.minX(), 10);
-    EXPECT_LE(piece.maxY() - piece.minY(), 10);
-    EXPECT_LE(piece.maxZ() - piece.minZ(), 15);
+    // 东西朝向：深度 9 落在 X 轴。
+    SwampHutPiece east(pos, Direction::East);
+    EXPECT_EQ(east.maxX() - east.minX(), 8);
+    EXPECT_EQ(east.maxZ() - east.minZ(), 6);
+    EXPECT_EQ(east.getRotation(), Rotation::Clockwise90);
+    EXPECT_EQ(east.getMirror(), Mirror::None);
+
+    // 南与西带左右镜像。
+    SwampHutPiece south(pos, Direction::South);
+    EXPECT_EQ(south.getMirror(), Mirror::LeftRight);
+    EXPECT_EQ(south.getRotation(), Rotation::None);
+    SwampHutPiece west(pos, Direction::West);
+    EXPECT_EQ(west.getMirror(), Mirror::LeftRight);
+    EXPECT_EQ(west.getRotation(), Rotation::Clockwise90);
 }
 
 // ============================================================================

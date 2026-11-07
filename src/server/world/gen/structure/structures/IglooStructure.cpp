@@ -66,76 +66,66 @@ const std::string IglooStructure::s_bottomTemplateName = "igloo/bottom";
 // IglooPiece
 // ============================================================================
 
-IglooPiece::IglooPiece(const BlockPos& position, Rotation rotation, bool hasBasement, i32 middleCount)
-    : StructurePiece(StructurePieceTypes::IGLOO, position.x, position.y, position.z, position.x, position.y, position.z)
-    , m_rotation(rotation)
-    , m_hasBasement(hasBasement)
-    , m_middleCount(middleCount)
-{}
+namespace {
 
-void IglooPiece::_loadTemplates()
+/// 各模板的旋转枢轴与相对锚点的偏移（原版 `IglooPieces.PIVOTS` / `OFFSETS`）。
+struct IglooPieceShape {
+    const std::string* templateName;
+    BlockPos pivot;
+    BlockPos offset;
+};
+
+const IglooPieceShape& shapeOf(const std::string& templateName)
 {
-    if (!m_templateManager) {
+    static const IglooPieceShape shapes[] = {
+        {&IglooStructure::s_topTemplateName, BlockPos(3, 5, 5), BlockPos(0, 0, 0)},
+        {&IglooStructure::s_middleTemplateName, BlockPos(1, 3, 1), BlockPos(2, -3, 4)},
+        {&IglooStructure::s_bottomTemplateName, BlockPos(3, 6, 7), BlockPos(0, -3, -2)},
+    };
+    for (const auto& shape : shapes) {
+        if (*shape.templateName == templateName) {
+            return shape;
+        }
+    }
+    // 未知模板名属于装配错误（模板表就三个），直接暴露而不是退回某个默认枢轴。
+    MC_ASSERT_RELEASE_MSG(false, "IglooPiece: unknown template");
+    return shapes[0];
+}
+
+} // namespace
+
+IglooPiece::IglooPiece(const std::string& templateName, const BlockPos& position, Rotation rotation)
+    : StructurePiece(StructurePieceTypes::IGLOO, position.x, position.y, position.z, position.x, position.y, position.z)
+    , m_templateName(templateName)
+    , m_templatePosition(position)
+{
+    // 旋转与镜像存进基类（子类同名成员会遮蔽基类，getRotation() 读的正是基类那个）。
+    setRotation(rotation);
+    setMirror(Mirror::None);
+    // 原版 `TemplateStructurePiece` 在构造期就以模板真实包围盒确定几何；等到后处理阶段才展开
+    // 会让 STRUCTURE_STARTS 阶段每个构件退化成一个点。
+    m_template = jigsaw::JigsawAssembler::getTemplateManager().getTemplate(ResourceLocation(m_templateName));
+    if (m_template == nullptr) {
         return;
     }
-
-    // 加载地上部分模板
-    m_topTemplate = m_templateManager->getTemplate(ResourceLocation(IglooStructure::s_topTemplateName));
-    if (m_topTemplate) {
-        m_topSize = m_topTemplate->getSize();
-    }
-
-    if (m_hasBasement) {
-        // 加载中间层模板
-        m_middleTemplate = m_templateManager->getTemplate(ResourceLocation(IglooStructure::s_middleTemplateName));
-        if (m_middleTemplate) {
-            m_middleSize = m_middleTemplate->getSize();
-        }
-
-        // 加载底部模板
-        m_bottomTemplate = m_templateManager->getTemplate(ResourceLocation(IglooStructure::s_bottomTemplateName));
-        if (m_bottomTemplate) {
-            m_bottomSize = m_bottomTemplate->getSize();
-        }
-    }
-
-    // 更新边界框
+    m_size = m_template->getSize();
     _updateBoundingBox();
 }
 
 void IglooPiece::_updateBoundingBox()
 {
-    // igloo/top 的中心偏移是 BlockPos(3, 0, 5)
-    // 使用 transformBlockPos 正确处理旋转变换
-    BlockPos centerOffset(3, 0, 5);
-    BlockPos transformedOffset =
-        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(getRotation());
+    settings.setMirror(Mirror::None);
+    settings.setRotationPivot(shapeOf(m_templateName).pivot);
+    const StructureBoundingBox rect = m_template->getBoundingBox(settings, BlockPos(0, 0, 0));
 
-    // 计算地上部分尺寸（考虑旋转）
-    i32 topSizeX = m_topSize.x;
-    i32 topSizeZ = m_topSize.z;
-    if (m_rotation == Rotation::Clockwise90 || m_rotation == Rotation::CounterClockwise90) {
-        std::swap(topSizeX, topSizeZ);
-    }
-
-    // 计算总高度
-    i32 totalHeight = m_topSize.y;
-    if (m_hasBasement) {
-        totalHeight += m_middleSize.y * m_middleCount + m_bottomSize.y;
-    }
-
-    // 边界框从调整后的位置开始计算
-    m_minX = m_minX - transformedOffset.x;
-    m_minZ = m_minZ - transformedOffset.z;
-    m_maxX = m_minX + topSizeX - 1;
-    m_maxY = m_minY + totalHeight - 1;
-    m_maxZ = m_minZ + topSizeZ - 1;
-
-    // 如果有地下室，向下扩展边界框
-    if (m_hasBasement && m_middleTemplate && m_bottomTemplate) {
-        i32 basementHeight = m_middleSize.y * m_middleCount + m_bottomSize.y;
-        m_minY = m_minY - basementHeight + m_topSize.y;
-    }
+    m_minX = m_templatePosition.x + rect.minX();
+    m_minY = m_templatePosition.y + rect.minY();
+    m_minZ = m_templatePosition.z + rect.minZ();
+    m_maxX = m_templatePosition.x + rect.maxX();
+    m_maxY = m_templatePosition.y + rect.maxY();
+    m_maxZ = m_templatePosition.z + rect.maxZ();
 }
 
 void IglooPiece::generate(IWorldWriter& world,
@@ -146,121 +136,33 @@ void IglooPiece::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    if (!m_templateManager) {
-        return;
+    if (m_templateManager == nullptr) {
+        m_templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
+    }
+    if (m_template == nullptr) {
+        // 构造期模板管理器还没装好时补一次加载。
+        m_template = m_templateManager->getTemplate(ResourceLocation(m_templateName));
+        if (m_template == nullptr) {
+            spdlog::warn("IglooPiece: template '{}' is missing", m_templateName);
+            return;
+        }
+        m_size = m_template->getSize();
+        _updateBoundingBox();
     }
 
-    // 延迟加载模板
-    if (!m_topTemplate) {
-        _loadTemplates();
-    }
-
-    if (!m_topTemplate) {
-        spdlog::warn("IglooPiece: Failed to load top template");
-        return;
-    }
-
-    // 检查边界框是否与区块相交
-    StructureBoundingBox pieceBounds(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
+    const StructureBoundingBox pieceBounds(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
     if (!pieceBounds.intersects(chunkBounds)) {
         return;
     }
 
-    // 生成地上部分
-    _generateTop(world, rng, chunkBounds);
-
-    // 生成地下室（如果有）
-    if (m_hasBasement) {
-        for (i32 i = 0; i < m_middleCount; ++i) {
-            _generateMiddle(world, rng, i, chunkBounds);
-        }
-        _generateBottom(world, rng, chunkBounds);
-    }
-}
-
-void IglooPiece::_generateTop(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
-{
-    if (!m_topTemplate) {
-        return;
-    }
-
-    // 创建放置设置
     feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
+    settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
+    settings.setRotationPivot(shapeOf(m_templateName).pivot);
     settings.setBoundingBox(&chunkBounds);
 
-    // igloo/top 模板的中心偏移是 BlockPos(3, 0, 5)
-    // 使用 transformBlockPos 正确处理旋转变换
-    BlockPos centerOffset(3, 0, 5);
-    BlockPos transformedOffset =
-        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
-
-    // 计算调整后的放置位置
-    BlockPos adjustedPos(m_minX - transformedOffset.x, m_minY, m_minZ - transformedOffset.z);
-
-    // 放置模板
-    m_topTemplate->place(world,
-        adjustedPos,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-}
-
-void IglooPiece::_generateMiddle(
-    IWorldWriter& world, math::IRandom& rng, i32 index, const StructureBoundingBox& chunkBounds)
-{
-    if (!m_middleTemplate) {
-        return;
-    }
-
-    // 计算中间层位置（在地下部分）
-    // 中间层偏移是 BlockPos(2, 0, 4)，每个中间层向下偏移 3 格
-    i32 y = m_minY + m_topSize.y - 3 + index * (-3);
-
-    feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
-    settings.setMirror(Mirror::None);
-    settings.setBoundingBox(&chunkBounds);
-
-    // 使用 transformBlockPos 正确处理旋转变换
-    BlockPos centerOffset(2, 0, 4);
-    BlockPos transformedOffset =
-        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
-
-    BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
-
-    m_middleTemplate->place(world,
-        adjustedPos,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-}
-
-void IglooPiece::_generateBottom(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
-{
-    if (!m_bottomTemplate) {
-        return;
-    }
-
-    // 计算底部位置
-    // 底部偏移是 BlockPos(3, 0, 7)
-    i32 y = m_minY + m_topSize.y - 3 - m_middleSize.y * m_middleCount;
-
-    feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
-    settings.setMirror(Mirror::None);
-    settings.setBoundingBox(&chunkBounds);
-
-    // 使用 transformBlockPos 正确处理旋转变换
-    BlockPos centerOffset(3, 0, 7);
-    BlockPos transformedOffset =
-        feature::template_::Template::transformBlockPos(centerOffset, Mirror::None, m_rotation, BlockPos(0, 0, 0));
-
-    BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
-
-    m_bottomTemplate->place(world,
-        adjustedPos,
+    m_template->place(world,
+        m_templatePosition,
         settings,
         rng,
         world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
@@ -292,36 +194,41 @@ std::unique_ptr<StructureStart> IglooStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 计算生成位置
-    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-
-    // 获取地表高度
-    i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
-
-    // 随机旋转
-    Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
-
-    // 雪屋有50%概率有地下室
-    bool hasBasement = rng.nextFloat() < 0.5f;
-
-    // 如果有地下室，随机 1-2 层中间层
-    i32 middleCount = 0;
-    if (hasBasement) {
-        middleCount = 1 + rng.nextInt(2); // 1 或 2
-    }
-
-    // 获取模板管理器
+    // 原版 findGenerationPoint 走 onTopOfChunkCenter：它**不消耗随机数**（X/Z 是区块中心的
+    // 定值，Y 走高度图），generatePieces 第一件事就是取旋转。这里同样直接从旋转开始。
     feature::template_::TemplateManager* templateManager = m_templateManager;
-    if (!templateManager) {
+    if (templateManager == nullptr) {
         templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
     }
 
-    // 创建片段
-    auto piece = std::make_unique<IglooPiece>(BlockPos(x, y, z), rotation, hasBasement, middleCount);
-    piece->setTemplateManager(templateManager);
+    const i32 baseX = chunkX * world::CHUNK_WIDTH;
+    const i32 baseZ = chunkZ * world::CHUNK_WIDTH;
+    const BlockPos anchor(baseX, 90, baseZ);
+    const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
-    start->addPiece(std::move(piece));
+    // 原版 `IglooPieces.addPieces`：50% 概率带地下室——先放最底下的实验室，再逐层往上放阶梯，
+    // 最后才是地面上的雪屋本体。顺序即后处理顺序，不能打乱。
+    //
+    // 每个构件的模板原点 = 锚点 + 该模板的 OFFSETS 再下移层数*3；层偏移只作用在 Y 上。
+    if (rng.nextDouble() < 0.5) {
+        const i32 depth = rng.nextInt(8) + 4;
+        auto bottom = std::make_unique<IglooPiece>(
+            s_bottomTemplateName, anchor + BlockPos(0, -3, -2) - BlockPos(0, 3 * depth, 0), rotation);
+        bottom->setTemplateManager(templateManager);
+        start->addPiece(std::move(bottom));
+
+        for (i32 index = 0; index < depth - 1; ++index) {
+            auto middle = std::make_unique<IglooPiece>(
+                s_middleTemplateName, anchor + BlockPos(2, -3, 4) - BlockPos(0, 3 * index, 0), rotation);
+            middle->setTemplateManager(templateManager);
+            start->addPiece(std::move(middle));
+        }
+    }
+
+    auto top = std::make_unique<IglooPiece>(s_topTemplateName, anchor, rotation);
+    top->setTemplateManager(templateManager);
+    start->addPiece(std::move(top));
+
     start->recalculateStructureSize();
     return start;
 }

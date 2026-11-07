@@ -115,10 +115,48 @@ ShipwreckPiece::ShipwreckPiece(const std::string& templateName,
           position.y,
           position.z)
     , m_templateName(templateName)
-    , m_rotation(rotation)
     , m_isBeached(isBeached)
     , m_size(1, 1, 1)
-{}
+{
+    // 原版 `TemplateStructurePiece` 在构造期就用模板的真实包围盒确定几何：模板管理器是全局
+    // 共享的，这里直接问它要模板，不必等到 FEATURES 阶段才回填——否则 STRUCTURE_STARTS 阶段
+    // 每个构件都是一个点（整座沉船在外层看来只有 1x1x1），差分里表现为「位置对、尺寸全错」。
+    m_templatePosition = position;
+    // 旋转与镜像存进基类（子类同名成员会遮蔽基类，getRotation() 读的正是基类那个）。
+    setRotation(rotation);
+    setMirror(Mirror::None);
+    const feature::template_::Template* templ =
+        jigsaw::JigsawAssembler::getTemplateManager().getTemplate(ResourceLocation(m_templateName));
+    if (templ == nullptr) {
+        return;
+    }
+    m_size = templ->getSize();
+    _updateBoundingBox();
+}
+
+void ShipwreckPiece::_updateBoundingBox()
+{
+    // 模板绕 `STRUCTURE_OFFSET` 旋转，包围盒由模板尺寸与旋转共同决定。
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(getRotation());
+    settings.setMirror(Mirror::None);
+    settings.setRotationPivot(STRUCTURE_OFFSET);
+    const StructureBoundingBox rect = jigsaw::JigsawAssembler::getTemplateManager()
+                                          .getTemplate(ResourceLocation(m_templateName))
+                                          ->getBoundingBox(settings, BlockPos(0, 0, 0));
+    m_minX = m_templatePosition.x + rect.minX();
+    m_minY = m_templatePosition.y + rect.minY();
+    m_minZ = m_templatePosition.z + rect.minZ();
+    m_maxX = m_templatePosition.x + rect.maxX();
+    m_maxY = m_templatePosition.y + rect.maxY();
+    m_maxZ = m_templatePosition.z + rect.maxZ();
+}
+
+void ShipwreckPiece::adjustPositionHeight(i32 y)
+{
+    m_templatePosition = BlockPos(m_templatePosition.x, y, m_templatePosition.z);
+    _updateBoundingBox();
+}
 
 void ShipwreckPiece::_loadTemplate()
 {
@@ -129,19 +167,7 @@ void ShipwreckPiece::_loadTemplate()
     ResourceLocation location(m_templateName);
     m_template = m_templateManager->getTemplate(location);
 
-    if (m_template) {
-        m_size = m_template->getSize();
-        // 更新边界框
-        // 计算旋转后的尺寸
-        i32 sizeX = m_size.x;
-        i32 sizeZ = m_size.z;
-        if (m_rotation == Rotation::Clockwise90 || m_rotation == Rotation::CounterClockwise90) {
-            std::swap(sizeX, sizeZ);
-        }
-        m_maxX = m_minX + sizeX - 1;
-        m_maxY = m_minY + m_size.y - 1;
-        m_maxZ = m_minZ + sizeZ - 1;
-    }
+    // 包围盒已在构造期按模板真实尺寸算好，这里不再改写。
 }
 
 void ShipwreckPiece::generate(IWorldWriter& world,
@@ -167,9 +193,9 @@ void ShipwreckPiece::generate(IWorldWriter& world,
 
     // 创建放置设置
     feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
+    settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
-    settings.setCenterOffset(STRUCTURE_OFFSET);
+    settings.setRotationPivot(STRUCTURE_OFFSET);
     settings.setBoundingBox(&chunkBounds);
 
     // 添加空气和结构方块忽略处理器
@@ -181,10 +207,9 @@ void ShipwreckPiece::generate(IWorldWriter& world,
     processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
     settings.setProcessors(&processors);
 
-    // 放置模板（使用中心偏移，需要调整位置）
-    BlockPos adjustedPos(m_minX - STRUCTURE_OFFSET.x, m_minY, m_minZ - STRUCTURE_OFFSET.z);
+    // 包围盒由模板原点绕枢轴展开，放置位置就是模板原点本身。
     m_template->place(world,
-        adjustedPos,
+        m_templatePosition,
         settings,
         rng,
         world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
@@ -226,41 +251,56 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 计算基础位置（使用区块坐标转换）
-    const i32 baseX = (chunkX << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
-    const i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
+    // 原版 findGenerationPoint 走 onTopOfChunkCenter：它**不消耗随机数**（X/Z 是区块中心的
+    // 定值，Y 走高度图），generatePieces 第一件事就是取旋转。这里同样直接从旋转开始。
+    // 搁浅与否由结构定义决定（数据包里的 `is_beached`），不是按生成点群系现判。
+    const bool isBeached = m_config.isBeached;
 
-    // 确定是否为搁浅沉船（检查是否在海滩生物群系）
-    const BiomeId biome = generator.getBiome(baseX, 64, baseZ); // 使用固定高度检查生物群系
-    const bool isBeached = (biome == Biomes::Beach || biome == Biomes::SnowyBeach);
-
-    // 获取高度
-    const HeightmapType heightmapType = isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
-    i32 height = generator.getHeight(baseX, baseZ, heightmapType);
-
-    // 根据是否搁浅调整高度
-    // 搁浅沉船: height = minHeight - templateHeight/2 - random(0, 2)
-    // 水下沉船: height = averageHeight
-    // 这里简化处理，直接使用查询到的高度
-    if (height <= 0) {
-        height = generator.seaLevel() - 5;
-    }
-
-    // 随机旋转
+    // 抽取顺序：旋转 → 模板。原版 addRandomPiece 先取模板再构造构件。
     const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
-    // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
     if (!templateManager) {
         templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
     }
-
-    // 选择随机模板
     const std::string templateName = _getRandomTemplateName(rng, isBeached);
 
-    // 创建片段
-    auto piece = std::make_unique<ShipwreckPiece>(templateName, BlockPos(baseX, height, baseZ), rotation, isBeached);
+    const i32 baseX = chunkX * world::CHUNK_WIDTH;
+    const i32 baseZ = chunkZ * world::CHUNK_WIDTH;
+    auto piece = std::make_unique<ShipwreckPiece>(templateName, BlockPos(baseX, 90, baseZ), rotation, isBeached);
     piece->setTemplateManager(templateManager);
+
+    // 只有「放不进世界生成区域」的超大模板才在起点阶段调整高度（原版
+    // `isTooBigToFitInWorldGenRegion` 分支）；其余模板的贴地发生在后处理阶段，
+    // 起点阶段的包围盒保持在 Y=90。
+    // TODO: 在后处理阶段实现 `ShipwreckPiece.postProcess` 的贴地（赋高与搁浅随机下沉），
+    //       目前只保证起点阶段的几何一致。
+    const BlockPos size = piece->templateSize();
+    if (size.x > 32 || size.y > 32) {
+        const auto& bounds = piece->getBoundingBox();
+        const HeightmapType heightmapType = isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
+        i32 height;
+        if (isBeached) {
+            i32 lowest = 0;
+            for (i32 z = bounds.minZ(); z <= bounds.maxZ(); ++z) {
+                for (i32 x = bounds.minX(); x <= bounds.maxX(); ++x) {
+                    lowest = std::min(lowest, generator.getHeight(x, z, heightmapType));
+                }
+            }
+            height = lowest - size.y / 2 - rng.nextInt(3);
+        } else {
+            i64 sum = 0;
+            i32 count = 0;
+            for (i32 z = bounds.minZ(); z <= bounds.maxZ(); ++z) {
+                for (i32 x = bounds.minX(); x <= bounds.maxX(); ++x) {
+                    sum += generator.getHeight(x, z, heightmapType);
+                    count++;
+                }
+            }
+            height = count == 0 ? 0 : static_cast<i32>(sum / count);
+        }
+        piece->adjustPositionHeight(height);
+    }
 
     start->addPiece(std::move(piece));
     start->recalculateStructureSize();

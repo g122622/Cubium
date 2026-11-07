@@ -85,7 +85,12 @@ private:
  */
 class SwampHutPiece : public StructurePiece {
 public:
-    SwampHutPiece(const BlockPos& pos, feature::template_::Rotation rotation);
+    /**
+     * @brief 构造女巫小屋构件
+     * @param pos 区块最小角（Y 恒为 64）
+     * @param direction 水平朝向（原版构造期从四个水平方向里抽一个）
+     */
+    SwampHutPiece(const BlockPos& pos, Direction direction);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -102,8 +107,6 @@ private:
     void _generateRoof(IWorldWriter& world, const StructureBoundingBox& bounds);
     void _generateInterior(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds);
     void _generatePillars(IWorldWriter& world, const StructureBoundingBox& bounds);
-
-    feature::template_::Rotation m_rotation;
 };
 
 } // namespace structure

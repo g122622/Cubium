@@ -219,6 +219,31 @@ Result<std::unique_ptr<Structure>> createZeroArg(const StructureDefinition& def)
 }
 
 /**
+ * @brief 海底废墟工厂
+ *
+ * `large_probability` / `cluster_probability` 写在数据包里（原版编解码器字段），直接决定
+ * 大型判定与集群判定，必须逐文件下发，不能用子类里的硬编码默认值。
+ */
+Result<std::unique_ptr<Structure>> createOceanRuin(const StructureDefinition& def)
+{
+    auto structure = std::make_unique<OceanRuinStructure>(def.id);
+    structure->setConfig(def.oceanRuinConfig);
+    return toBase(std::move(structure));
+}
+
+/**
+ * @brief 沉船工厂
+ *
+ * 搁浅与否写在数据包里（`is_beached`），决定模板表与最终高度算法，必须逐文件下发。
+ */
+Result<std::unique_ptr<Structure>> createShipwreck(const StructureDefinition& def)
+{
+    auto structure = std::make_unique<ShipwreckStructure>(def.id);
+    structure->setConfig(ShipwreckConfig{def.shipwreckBeached});
+    return toBase(std::move(structure));
+}
+
+/**
  * @brief 废墟传送门工厂
  *
  * 七个 `ruined_portal*` 变体的全部差异都写在各自 JSON 的 `setups` 表里（放置方式、苔藓、
@@ -316,9 +341,9 @@ void initializeBuiltinStructureTypes()
     reg.registerType("nether_fossil", createZeroArg<NetherFossilStructure>);
     // 原版 1.21 已把该类型由 minecraft:monument 改名为 minecraft:ocean_monument。
     reg.registerType("ocean_monument", createZeroArg<OceanMonumentStructure>);
-    reg.registerType("ocean_ruin", createZeroArg<OceanRuinStructure>);
+    reg.registerType("ocean_ruin", createOceanRuin);
     reg.registerType("ruined_portal", createRuinedPortal);
-    reg.registerType("shipwreck", createZeroArg<ShipwreckStructure>);
+    reg.registerType("shipwreck", createShipwreck);
     reg.registerType("stronghold", createZeroArg<StrongholdStructure>);
     reg.registerType("swamp_hut", createZeroArg<SwampHutStructure>);
     reg.registerType("woodland_mansion", createZeroArg<WoodlandMansionStructure>);
