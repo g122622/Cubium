@@ -168,16 +168,6 @@ jobs:
             --binary "${RELEASE_BIN_DIR}/minecraft-server" --binary "${RELEASE_BIN_DIR}/mc_benchmark" \
             --library-dir release-package/lib --report release-artifact-check.txt
           cp "${RELEASE_BIN_DIR}/minecraft-server" release-package/minecraft-server
-      - name: Package probe link metadata
-        run: |
-          set -euo pipefail
-          rm -rf .probe-link-meta && mkdir -p .probe-link-meta/build-release-noprof/CMakeFiles
-          cp build-release-noprof/CMakeFiles/impl-Release.ninja build-release-noprof/CMakeFiles/rules.ninja \
-            .probe-link-meta/build-release-noprof/CMakeFiles/
-          cp build-release-noprof/compile_commands.json .probe-link-meta/build-release-noprof/
-          python3 scripts/ci/add_probe_compile_entries.py \
-            .probe-link-meta/build-release-noprof/compile_commands.json --build-root build-release-noprof
-          tar -czf teststart-probe.tar.gz -C .probe-link-meta .
       - name: Record runner configuration
         if: always()
         continue-on-error: true
@@ -193,10 +183,6 @@ jobs:
             ${{ env.RELEASE_BIN_DIR }}/mc_benchmark
             release-package/lib/
             release-artifact-check.txt
-            # 临时：供 Test Start Probe 对照实验链接与重建（pococc 构建机上不保留静态库）。
-            build-release-noprof/lib/
-            build-release-noprof/vcpkg_installed/
-            teststart-probe.tar.gz
       - name: Upload release build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -464,74 +450,6 @@ jobs:
           retention-days: 7
     env:
       POCOCC_CI_ARTIFACT_PREFIX: pococc-${{ matrix.pool }}-
-  # 单元测试单进程固定开销的对照实验（临时诊断作业，接近后连同 tests/ci-probes 一起删除）。
-  # 只链接 build 作业已产出的目标文件，不重新编译被测代码；所有对照在同一次运行、同一台机器上
-  # 背靠背执行，结论写进 Actions summary。
-  test-start-probe:
-    name: Test Start Probe
-    needs: build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
-    env:
-      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-datapack
-      - uses: actions/download-artifact@v4
-        with:
-          name: pococc-release-build-artifacts
-      - name: Prepare environment
-        run: |
-          set -euo pipefail
-          tar -xzf teststart-probe.tar.gz
-      # 对照实验要链接静态库；pococc 构建机上不保留它们，这里手动装 vcpkg 依赖并重建库。
-      # 临时诊断作业，调查结束后连同 tests/ci-probes 一起删除。
-      - uses: ./.github/actions/setup-pococc-toolchain
-        with:
-          cubium-dependencies: 'true'
-      - name: Build static libraries
-        run: |
-          set -euo pipefail
-          cmake --preset linux-clang-ci-tests
-          cmake --build --preset linux-clang-ci-tests --target mc_common
-      - uses: ./.github/actions/setup-sanitizer-symbolizer
-      - name: Run start-up probe
-        run: |
-          set -euo pipefail
-          python3 scripts/ci/teststart_probe.py --build-dir build-release-noprof --config Release --out teststart-probe.json
-      - name: Summarize
-        if: always()
-        run: |
-          python3 - "$GITHUB_STEP_SUMMARY" <<'EOF_SUMMARY'
-          import json, sys
-          try:
-              report = json.load(open("teststart-probe.json"))
-          except Exception as error:
-              sys.exit(f"probe report missing: {error}")
-          lines = ["| 对照 | 结果 |", "|---|---|"]
-          for item in report["launcher"]:
-              internal = item["internal"] or {}
-              lines.append(f"| launcher {item['mode']} ({item['binary_bytes']//1024} KiB) | python wall {item['wall_ms']} ms / internal {internal.get('wall_ms')} ms / cpu {internal.get('cpu_ms')} ms |")
-          for item in report["teststart"]:
-              internal = item["internal"] or {}
-              phases = " ".join(f"{name}={value}" for name, value in item["phases"].items())
-              lines.append(f"| teststart level {item['level']} #{item['repeat']} | python wall {item['wall_ms']} ms / internal {internal.get('wall_ms')} ms / cpu {internal.get('cpu_ms')} ms / {phases} |")
-          for item in report["ctest"]:
-              lines.append(f"| {item['command']} | wall {item['wall_s']} s / {item['tests']} tests / median {item['median_s']} s |")
-          for item in report["direct"]:
-              lines.append(f"| direct serial ({item['tests']} tests) | median {item['median_s']} s |")
-          print("\n".join(lines))
-          open(sys.argv[1], "a").write("\n## Test start-up probe\n\n" + "\n".join(lines) + "\n")
-          EOF_SUMMARY
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pococc-test-start-probe
-          retention-days: 7
-          path: |
-            teststart-probe.json
-            /tmp/teststart-probe/
   unit-tests:
     name: Unit Tests (CTest shard ${{ matrix.shard }}/20)
     needs: build

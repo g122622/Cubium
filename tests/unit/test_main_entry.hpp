@@ -2,8 +2,7 @@
  * @file test_main_entry.hpp
  * @brief 单元测试进程的入口组件（全局环境与监听器）。
  *
- * 被 tests/unit/main.cpp 直接 include；tests/ci-probes 的启动成本对照入口也 include 本文件，
- * 以复用完全相同的环境与监听器实现。
+ * 被 tests/unit/main.cpp 直接 include。
  *
  * @note 本文件没有包含守卫：它刻意是"被包含的代码片段"而非独立头文件，整段只在一个 TU 里
  *       展开一次即可（两个使用者都各自把它作为唯一的入口来源）。
@@ -50,13 +49,19 @@
 /// 已从原版数据包加载。注册表为进程级单例，加载一次即对全部测试可见。
 /// 数据包目录缺失时（非开发机）静默跳过——此类测试会因 registry 为空而断言失败，
 /// 属预期（CI/开发机数据包应存在）。
-///
-/// 放在全局命名空间而非匿名命名空间：tests/ci-probes 的启动成本对照入口 include 本文件后
-/// 需要引用它（匿名命名空间内的名字在另一 TU 中不可见）。
 class WorldGenRegistryEnvironment : public ::testing::Environment {
 public:
     void SetUp() override
     {
+        // 分步时刻标记：CI 上每个 ctest 用例都是独立进程，入口各步骤的耗时只能靠这类日志
+        // 才看得见（ctest 只给一个总时长）。标记前缀固定为 [SetupTiming]，便于统计。
+        const auto setupStart = std::chrono::steady_clock::now();
+        const auto mark = [&setupStart](const char* step) {
+            const auto ms =
+                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - setupStart)
+                    .count();
+            spdlog::info("[SetupTiming] {} {}ms", step, ms);
+        };
         // 注册组件序列化器（进程单例，幂等）。Entity::writeToNBT/readFromNBT 经
         // ComponentSerializerRegistry::saveAll/loadAll 把已 ECS 组件化的字段（Pos/Motion/
         // Rotation/Health/Equipment 等 13+ 字段）序列化到 NBT。未注册时 saveAll/loadAll 遍历空
@@ -65,6 +70,7 @@ public:
         // 正确序列化组件字段。原先各测试需自行调 VanillaEntities::registerAll() 才间接触发，
         // 漏调即静默失败；集中到全局环境根治此类 setup 陷阱。
         mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+        mark("component_serializers");
 
         // 初始化伤害类型标签（进程单例，s_initialized 守卫幂等，纯硬编码成员集不依赖数据包/方块）。
         // DamageTypeTags::initialize() 注册 BYPASSES_ENCHANTMENTS/WITCH_RESISTANT_TO/IS_FIRE 等全部标签的
@@ -73,6 +79,7 @@ public:
         // WITCH_RESISTANT_TO 命中、BypassesEnchantmentsTest 依赖 BYPASSES_ENCHANTMENTS 命中）。集中到全局
         // 环境根治此类 setup 陷阱，使依赖标签的测试自包含——与上方 ComponentSerializerRegistry 同模式。
         mc::DamageTypeTags::initialize();
+        mark("damage_type_tags");
 
         // 初始化物品与方块物品注册表，按服务端启动序列（RegistryBootstrap::initializeAll）的
         // 依赖拓扑：方块 → 物品 → 方块物品。
@@ -88,8 +95,11 @@ public:
         // 幂等：VanillaBlocks 与 Items 各有 initializing 标志，BlockItemRegistry 以 m_initialized
         // 守卫，用例夹具重复调用均无副作用。
         mc::VanillaBlocks::initialize();
+        mark("vanilla_blocks");
         mc::Items::ensureInitialized();
+        mark("items");
         mc::BlockItemRegistry::instance().initializeVanillaBlockItems();
+        mark("block_items");
 
         const auto dataPackDir = mc::GameDirectory::defaultDirectory().dataPacksDir();
         if (!std::filesystem::exists(dataPackDir)) {
@@ -112,6 +122,7 @@ public:
         // 方块标签走 RegistryBootstrap::loadBlockDataPackTags，而非在此重复 clear + 加载：生产路径
         // 与测试环境共用同一段实现，避免两边对「先清空还是后追加」的理解漂移。
         _loadDataPackTags();
+        mark("datapack_tags");
 
         // noise_settings 的 JSON 解析会调 BlockStateParser::parse("minecraft:stone")，
         // 依赖 BlockRegistry 已注册原版方块（已由本环境上方的 VanillaBlocks::initialize 完成，
@@ -123,6 +134,7 @@ public:
         if (auto r = mc::network::backend::java::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
             // 非致命：缺失时 codec 往返的 BlockState 字段会 warn+降级 air。
         }
+        mark("java_block_state_map");
 
         // BlockEvent wire 出站边界依赖 JavaBlockIdMap 做内部 blockId ↔ Java Block 注册表 id
         // 翻译。须在方块注册完成后初始化，否则 PlayBlockEvent 往返测试会因 miss 降级 air 而 fail。
@@ -140,6 +152,7 @@ public:
         // world_preset 依赖 noise_settings（noise 维度存 RL）+ flat_preset（flat 维度内联 settings 复用
         // FlatLevelGeneratorSettings::fromSettingsObject）。
         mc::world::gen::settings::WorldPresetLoader::loadFromDataPackRepository(m_dataPackRepository);
+        mark("worldgen_registries");
     }
 
 private:
