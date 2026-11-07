@@ -138,7 +138,9 @@ def link(compiler: str, rsp: Path, output: Path, build_dir: Path) -> None:
     # rsp 内的相对路径（lib/、vcpkg_installed/、各目标文件）都以构建目录为基准。
     completed = run([compiler, "-g", "-rdynamic", f"@{rsp}", "-o", str(output)], cwd=build_dir, capture_output=True)
     if completed.returncode != 0:
-        raise ProbeError(f"链接 {output} 失败：\n{completed.stderr[-4000:]}")
+        raise ProbeError(
+            f"链接 {output} 失败（cwd={build_dir}，rsp={rsp}）：\n{completed.stdout[-1000:]}\n{completed.stderr[-4000:]}"
+        )
 
 
 def launch_once(binary: Path, env: dict[str, str], cwd: Path, tag: str | None = None) -> dict:
