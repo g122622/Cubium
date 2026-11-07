@@ -378,6 +378,12 @@ public:
         Direction direction,
         i32 depth);
 
+    /** 房间内景类型：构造时由 `nextInt(5)` 抽出，决定墙饰与宝箱等细节。 */
+    [[nodiscard]] i32 roomType() const noexcept
+    {
+        return m_roomType;
+    }
+
 private:
     i32 m_roomType; ///< 0=喷泉, 1=火把柱, 2=宝箱房间
 };
