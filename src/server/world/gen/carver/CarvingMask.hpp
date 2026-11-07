@@ -34,19 +34,19 @@ namespace mc {
  * @brief 雕刻掩码
  *
  * 用于追踪哪些位置已被雕刻，防止重复雕刻。
- * MC 1.21.11: 掩码大小基于 minY 和 height（生成范围），不硬编码世界常量。
+ *
+ * 几何参数（minY / height）必须来自**该区块所在维度**的生成设置，而不是世界常量：
+ * 主世界是 (-64, 384)、下界是 (0, 128)、末地是 (0, 256)。传错会让 `y - minY` 的位移
+ * 基准整体偏移，索引落到别的格上——洞穴在区块内被刻穿或漏刻，不会崩溃也不会报错。
  */
 class CarvingMask {
 public:
     /**
      * @brief 构造雕刻掩码
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     * @param minY 最小生成Y坐标（如 -64）
-     * @param height 生成高度（如 384）
+     * @param minY 该维度最低生成 Y 坐标（如主世界 -64、下界 0）
+     * @param height 该维度生成高度（如主世界 384、下界 128）
      */
-    CarvingMask(
-        ChunkCoord chunkX, ChunkCoord chunkZ, i32 minY = world::MIN_BUILD_HEIGHT, i32 height = world::CHUNK_HEIGHT);
+    CarvingMask(i32 minY, i32 height);
 
     /** @brief 检查指定位置是否已被雕刻 */
     [[nodiscard]] bool isCarved(BlockCoord x, i32 y, BlockCoord z) const;
@@ -67,8 +67,15 @@ public:
     }
 
 private:
-    ChunkCoord m_chunkX;
-    ChunkCoord m_chunkZ;
+    /**
+     * @brief 把区块内局部坐标换算成掩码下标
+     *
+     * 公式是 `x & 15 | (z & 15) << 4 | (y - minY) << 8`：X、Z 按区块宽度掩码，
+     * Y 用相对 minY 的偏移参与位移。调用方（WorldCarver）已把三个坐标夹进合法范围，
+     * 这里不再重复校验。
+     */
+    [[nodiscard]] i32 _index(BlockCoord x, i32 y, BlockCoord z) const;
+
     i32 m_minY;
     i32 m_height;
     std::vector<bool> m_mask;

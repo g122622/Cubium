@@ -77,6 +77,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -103,31 +104,6 @@ constexpr f64 COS_QUARTER_OFFSET = 16384.0;
  * 表项 = `(float)Math.sin(i / SIN_SCALE)`。这里用 `std::sin` —— 若两者在某个下标上末位
  * 不同，对应索引的 `sin`/`cos` 就会分叉，这正是本能力要检测的。
  */
-const std::array<f32, SIN_QUANTIZATION>& sinTable()
-{
-    static const std::array<f32, SIN_QUANTIZATION> table = [] {
-        std::array<f32, SIN_QUANTIZATION> built{};
-        for (i32 i = 0; i < SIN_QUANTIZATION; ++i) {
-            built[static_cast<size_t>(i)] = static_cast<f32>(std::sin(static_cast<f64>(i) / SIN_SCALE));
-        }
-        return built;
-    }();
-    return table;
-}
-
-/// 原版 `Mth.sin`。
-f32 mthSin(f64 value)
-{
-    const i64 scaled = static_cast<i64>(value * SIN_SCALE);
-    return sinTable()[static_cast<size_t>(scaled & SIN_MASK)];
-}
-
-/// 原版 `Mth.cos`。
-f32 mthCos(f64 value)
-{
-    const i64 scaled = static_cast<i64>(value * SIN_SCALE + COS_QUARTER_OFFSET);
-    return sinTable()[static_cast<size_t>(scaled & SIN_MASK)];
-}
 
 std::string formatNumber(f64 value)
 {
@@ -213,15 +189,17 @@ std::string runLine(std::string_view inputLine)
         if (index < 0 || index >= SIN_QUANTIZATION) {
             throw std::runtime_error("mth_sin: 表下标越界：" + unit);
         }
-        const f32 entry = sinTable()[static_cast<size_t>(index)];
+        // 生产代码没有暴露正弦表，只能通过 mthSin 反推第 index 项：表中第 i 项的量化角是 i * 2π / SIN_QUANTIZATION。
+        const f64 angle = static_cast<f64>(index) * math::TWO_PI / static_cast<f64>(SIN_QUANTIZATION);
+        const f32 entry = math::mthSin(angle);
         return json{{"unit", unit}, {"kind", "tab"}, {"value", formatNumber(static_cast<f64>(entry))}}.dump();
     }
 
     const f64 angle = std::stod(unit);
     return json{{"unit", unit},
         {"kind", "angle"},
-        {"sin", formatNumber(static_cast<f64>(mthSin(angle)))},
-        {"cos", formatNumber(static_cast<f64>(mthCos(angle)))}}
+        {"sin", formatNumber(static_cast<f64>(math::mthSin(angle)))},
+        {"cos", formatNumber(static_cast<f64>(math::mthCos(angle)))}}
         .dump();
 }
 

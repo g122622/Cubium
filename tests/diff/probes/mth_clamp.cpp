@@ -139,91 +139,75 @@ namespace {
 
 using nlohmann::json;
 
-/// 原版 `Mth.clamp(int, int, int)`。
+// 全部直接调用生产代码，探针内不再保留任何副本。
+// 探针自带副本会让生产实现的缺陷隐身——`direction_nearest` 曾因此整整一轮没测到真代码。
+
 i32 clampInt(i32 value, i32 min, i32 max)
 {
-    return std::min(std::max(value, min), max);
+    return math::clamp(value, min, max);
 }
 
-/// 原版 `Mth.clamp(float, float, float)`：注意用的是 `<` 而非 `Math.max`。
 f32 clampFloat(f32 value, f32 min, f32 max)
 {
-    return value < min ? min : std::min(value, max);
+    return math::clamp(value, min, max);
 }
 
-/// 原版 `Mth.clamp(double, double, double)`。
 f64 clampDouble(f64 value, f64 min, f64 max)
 {
-    return value < min ? min : std::min(value, max);
+    return math::clamp(value, min, max);
 }
 
-/// 原版 `Mth.lerp(double, double, double)`。
 f64 lerpDouble(f64 delta, f64 start, f64 end)
 {
     return math::lerp(start, end, delta);
 }
 
-/// 原版 `Mth.lerp(float, float, float)`。
 f32 lerpFloat(f32 delta, f32 start, f32 end)
 {
     return math::lerp(start, end, delta);
 }
 
-/// 原版 `Mth.clampedLerp(double, double, double)`。
 f64 clampedLerpDouble(f64 delta, f64 start, f64 end)
 {
-    if (delta < 0.0) {
-        return start;
-    }
-    return delta > 1.0 ? end : lerpDouble(delta, start, end);
+    return math::clampedLerp(start, end, delta);
 }
 
-/// 原版 `Mth.clampedLerp(float, float, float)`。
 f32 clampedLerpFloat(f32 delta, f32 start, f32 end)
 {
-    if (delta < 0.0f) {
-        return start;
-    }
-    return delta > 1.0f ? end : lerpFloat(delta, start, end);
+    return math::clampedLerp(start, end, delta);
 }
 
-/// 原版 `Mth.inverseLerp(double, double, double)`。
 f64 inverseLerpDouble(f64 value, f64 start, f64 end)
 {
-    return (value - start) / (end - start);
+    return math::inverseLerp(value, start, end);
 }
 
-/// 原版 `Mth.clampedMap(double, ...)`。
-///
-/// 直接调生产代码 `math::clampedMap`：探针自带副本会让生产实现的缺陷隐身
-/// （同类问题已在 `mth_lerp` 上踩过一次）。
 f64 clampedMapDouble(f64 value, f64 inMin, f64 inMax, f64 outMin, f64 outMax)
 {
     return math::clampedMap(value, inMin, inMax, outMin, outMax);
 }
 
-/// 原版 `Mth.absMax(int, int)`。
 i32 absMaxInt(i32 a, i32 b)
 {
-    return std::max(std::abs(a), std::abs(b));
+    return math::absMax(a, b);
 }
 
-/// 原版 `Mth.chessboardDistance`。
 i32 chessboardDistance(i32 x1, i32 x2, i32 z1, i32 z2)
 {
-    return absMaxInt(z1 - x1, z2 - x2);
+    // 这里的形参名沿用原版单元表的 (x1, x2, z1, z2)，但**位置**直接按序传给生产函数。
+    // 生产签名的形参名是 (x1, z1, x2, z2)，命名不同却逐位等价：
+    // 两边都是 absMax(第3个 - 第1个, 第4个 - 第2个)。
+    return math::chessboardDistance(x1, x2, z1, z2);
 }
 
-/// 原版 `Mth.square(int)`：32 位溢出环绕。
 i32 squareInt(i32 value)
 {
-    return static_cast<i32>(static_cast<u32>(value) * static_cast<u32>(value));
+    return math::square(value);
 }
 
-/// 原版 `Mth.square(long)`：64 位溢出环绕。
 i64 squareLong(i64 value)
 {
-    return static_cast<i64>(static_cast<u64>(value) * static_cast<u64>(value));
+    return math::square(value);
 }
 
 /**

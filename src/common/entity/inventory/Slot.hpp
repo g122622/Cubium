@@ -65,10 +65,10 @@ constexpr i32 MAIN_SIZE = 27;
 constexpr i32 ARMOR_START = 36;
 constexpr i32 ARMOR_END = 39;
 constexpr i32 ARMOR_SIZE = 4;
-constexpr i32 ARMOR_HEAD = 36;  // 头盔
-constexpr i32 ARMOR_CHEST = 37; // 胸甲
-constexpr i32 ARMOR_LEGS = 38;  // 护腿
-constexpr i32 ARMOR_FEET = 39;  // 靴子
+constexpr i32 ARMOR_FEET = 36;  // 靴子
+constexpr i32 ARMOR_LEGS = 37;  // 护腿
+constexpr i32 ARMOR_CHEST = 38; // 胸甲
+constexpr i32 ARMOR_HEAD = 39;  // 头盔
 
 // 副手
 constexpr i32 OFFHAND = 40;

@@ -117,6 +117,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -141,21 +142,19 @@ i32 javaMaxInt(i32 a, i32 b)
 }
 
 /// 原版 `Mth.absMax(int, int)`。
+///
+/// 直接转调生产代码：探针内保留副本会让生产实现的缺陷隐身。
 i32 absMaxInt(i32 a, i32 b)
 {
-    return javaMaxInt(javaAbsInt(a), javaAbsInt(b));
-}
-
-/// Java `int` 减法的回绕语义。
-i32 javaSubInt(i32 a, i32 b)
-{
-    return static_cast<i32>(static_cast<u32>(a) - static_cast<u32>(b));
+    return math::absMax(a, b);
 }
 
 /// 原版 `Mth.chessboardDistance`。
+///
+/// 生产签名是 `(x1, z1, x2, z2)`，与这里的形参逐位对应，直接按序转调。
 i32 chessboardDistance(i32 x1, i32 z1, i32 x2, i32 z2)
 {
-    return absMaxInt(javaSubInt(x2, x1), javaSubInt(z2, z1));
+    return math::chessboardDistance(x1, z1, x2, z2);
 }
 
 /// 格式化浮点：9 位有效数字 + 去尾随零 + **十进制全展开**（与 Java 的

@@ -2159,6 +2159,20 @@ public:
      */
     [[nodiscard]] Vector3 maybeBackOffFromEdge(const Vector3& movement) const;
 
+    /**
+     * @brief 判定从当前位置按给定水平偏移移动后是否会踏空
+     *
+     * 把碰撞箱沿水平方向平移 (offsetX, offsetZ)、沿垂直方向向下扩张 stepHeight，
+     * 若这个盒子里没有任何碰撞箱，说明脚下没有支撑、会掉下去。
+     *
+     * @param box 当前碰撞箱
+     * @param offsetX 水平 X 偏移
+     * @param offsetZ 水平 Z 偏移
+     * @param stepHeight 向下探测的深度（台阶高度）
+     * @return 是否会踏空
+     */
+    [[nodiscard]] bool _canFallAtLeast(const AxisAlignedBB& box, f32 offsetX, f32 offsetZ, f32 stepHeight) const;
+
     // ========== 背包 ==========
 
     /**

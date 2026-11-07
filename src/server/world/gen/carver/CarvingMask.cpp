@@ -28,30 +28,29 @@
 
 namespace mc {
 
-CarvingMask::CarvingMask(ChunkCoord chunkX, ChunkCoord chunkZ, i32 minY, i32 height)
-    : m_chunkX(chunkX)
-    , m_chunkZ(chunkZ)
-    , m_minY(minY)
+CarvingMask::CarvingMask(i32 minY, i32 height)
+    : m_minY(minY)
     , m_height(height)
     , m_mask(static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH * static_cast<size_t>(height), false)
 {}
 
+i32 CarvingMask::_index(BlockCoord x, i32 y, BlockCoord z) const
+{
+    // 与原版 CarvingMask#getIndex 逐项对应：X、Z 按区块宽度掩码，Y 用相对 minY 的偏移。
+    // 掩码宽度取 world::CHUNK_WIDTH 而不是字面量 15，区块尺寸变化时公式自动跟随。
+    const i32 xzMask = world::CHUNK_WIDTH - 1;
+    return (static_cast<i32>(x) & xzMask) | ((static_cast<i32>(z) & xzMask) << world::CHUNK_SHIFT) |
+        ((y - m_minY) << (world::CHUNK_SHIFT * 2));
+}
+
 bool CarvingMask::isCarved(BlockCoord x, i32 y, BlockCoord z) const
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < m_minY || y >= m_minY + m_height) {
-        return false;
-    }
-    const i32 index = (x) | ((z) << world::CHUNK_SHIFT) | ((y - m_minY) << (world::CHUNK_SHIFT + world::SECTION_SHIFT));
-    return m_mask[static_cast<size_t>(index)];
+    return m_mask[static_cast<size_t>(_index(x, y, z))];
 }
 
 void CarvingMask::setCarved(BlockCoord x, i32 y, BlockCoord z)
 {
-    if (x < 0 || x >= world::CHUNK_WIDTH || z < 0 || z >= world::CHUNK_WIDTH || y < m_minY || y >= m_minY + m_height) {
-        return;
-    }
-    const i32 index = (x) | ((z) << world::CHUNK_SHIFT) | ((y - m_minY) << (world::CHUNK_SHIFT + world::SECTION_SHIFT));
-    m_mask[static_cast<size_t>(index)] = true;
+    m_mask[static_cast<size_t>(_index(x, y, z))] = true;
 }
 
 } // namespace mc

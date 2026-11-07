@@ -89,6 +89,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 
 #include "probe.hpp"
 
@@ -99,12 +100,6 @@ using nlohmann::json;
 
 /// 原版 `Vec3.normalize()` 的短路阈值（`1.0E-5F`，float 字面量）。
 constexpr f64 NORMALIZE_EPSILON = 1.0e-5;
-
-struct Vec {
-    f64 x = 0.0;
-    f64 y = 0.0;
-    f64 z = 0.0;
-};
 
 std::string formatNumber(f64 value)
 {
@@ -123,58 +118,7 @@ std::string formatNumber(f64 value)
     return text;
 }
 
-/// 原版 `Vec3.length()`。
-f64 length(const Vec& v)
-{
-    return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-
-/// 原版 `Vec3.lengthSqr()`。
-f64 lengthSqr(const Vec& v)
-{
-    return v.x * v.x + v.y * v.y + v.z * v.z;
-}
-
-/// 原版 `Vec3.horizontalDistance()`。
-f64 horizontalDistance(const Vec& v)
-{
-    return std::sqrt(v.x * v.x + v.z * v.z);
-}
-
-/**
- * @brief 原版 `Vec3.normalize()`。
- *
- * 注意 `volatile`：`-ffast-math` 可能把 `x / d0` 改写成 `x * (1/d0)`，导致尾位不一致。
- * 固定中间值以复现原版的除法语义。
- */
-Vec normalize(const Vec& v)
-{
-    volatile f64 d0 = length(v);
-    if (d0 < NORMALIZE_EPSILON) {
-        return Vec{0.0, 0.0, 0.0};
-    }
-    return Vec{v.x / d0, v.y / d0, v.z / d0};
-}
-
-/// 原版 `Vec3.dot`。
-f64 dot(const Vec& a, const Vec& b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-/// 原版 `Vec3.cross`。
-Vec cross(const Vec& a, const Vec& b)
-{
-    return Vec{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
-}
-
-/// 原版 `Vec3.scale`（等价于 `multiply(s, s, s)`）。
-Vec scale(const Vec& v, f64 s)
-{
-    return Vec{v.x * s, v.y * s, v.z * s};
-}
-
-json vecToJson(const Vec& v)
+json vecToJson(const Vector3d& v)
 {
     return json::array({formatNumber(v.x), formatNumber(v.y), formatNumber(v.z)});
 }
@@ -251,12 +195,12 @@ std::vector<std::string> splitPipe(const std::string& text)
 }
 
 /// 原版 `Vec3.horizontalDistanceSqr()`。
-f64 horizontalDistanceSqr(const Vec& v)
+f64 horizontalDistanceSqr(const Vector3d& v)
 {
     return v.x * v.x + v.z * v.z;
 }
 
-Vec parseVec(const std::string& text)
+Vector3d parseVec(const std::string& text)
 {
     std::vector<std::string> parts;
     std::string current;
@@ -272,7 +216,7 @@ Vec parseVec(const std::string& text)
     if (parts.size() != 3) {
         throw std::runtime_error("vec3_math: 向量应为 3 个分量：" + text);
     }
-    return Vec{std::stod(parts[0]), std::stod(parts[1]), std::stod(parts[2])};
+    return Vector3d{std::stod(parts[0]), std::stod(parts[1]), std::stod(parts[2])};
 }
 
 std::string runLine(std::string_view inputLine)
@@ -285,31 +229,31 @@ std::string runLine(std::string_view inputLine)
     }
 
     const std::string mode = parts[0];
-    const Vec v = parseVec(parts[1]);
+    const Vector3d v = parseVec(parts[1]);
 
     if (mode == "normalize" && parts.size() == 2) {
-        return json{{"unit", unit}, {"result", vecToJson(normalize(v))}}.dump();
+        return json{{"unit", unit}, {"result", vecToJson(v.normalized())}}.dump();
     }
     if (mode == "dot" && parts.size() == 3) {
-        return json{{"unit", unit}, {"value", formatNumber(dot(v, parseVec(parts[2])))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(v.dot(parseVec(parts[2])))}}.dump();
     }
     if (mode == "cross" && parts.size() == 3) {
-        return json{{"unit", unit}, {"result", vecToJson(cross(v, parseVec(parts[2])))}}.dump();
+        return json{{"unit", unit}, {"result", vecToJson(v.cross(parseVec(parts[2])))}}.dump();
     }
     if (mode == "length" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(length(v))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(v.length())}}.dump();
     }
     if (mode == "lengthsqr" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(lengthSqr(v))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(v.lengthSquared())}}.dump();
     }
     if (mode == "hdist" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(horizontalDistance(v))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(v.lengthHorizontal())}}.dump();
     }
     if (mode == "hdistsqr" && parts.size() == 2) {
-        return json{{"unit", unit}, {"value", formatNumber(horizontalDistanceSqr(v))}}.dump();
+        return json{{"unit", unit}, {"value", formatNumber(v.lengthHorizontal() * v.lengthHorizontal())}}.dump();
     }
     if (mode == "scale" && parts.size() == 3) {
-        return json{{"unit", unit}, {"result", vecToJson(scale(v, std::stod(parts[2])))}}.dump();
+        return json{{"unit", unit}, {"result", vecToJson(v * std::stod(parts[2]))}}.dump();
     }
 
     throw std::runtime_error("vec3_math: 无法识别的单元：" + unit);

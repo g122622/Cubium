@@ -158,32 +158,32 @@ public final class AxisPlaneOracle {
 
         if (mode.equals("choosei") && parts.length == 2) {
             Direction.Axis axis = parseAxis(parts[1]);
-            // 固定三分量 (10, 20, 30)，用返回值区分取了哪一个。
-            result.addProperty("result", axis.choose(10, 20, 30));
+            // 固定三分量 (11, 22, 33)，用返回值区分取了哪一个。
+            result.addProperty("value", axis.choose(11, 22, 33));
             return result;
         }
         if ((mode.equals("positive") || mode.equals("negative")) && parts.length == 2) {
             Direction.Axis axis = parseAxis(parts[1]);
             Direction dir = mode.equals("positive") ? axis.getPositive() : axis.getNegative();
-            result.addProperty("result", dir.getName());
+            result.addProperty("value", dir.getName());
             return result;
         }
         if (mode.equals("planeof") && parts.length == 2) {
             Direction.Axis axis = parseAxis(parts[1]);
             result.addProperty(
-                    "result",
+                    "value",
                     axis.getPlane() == Direction.Plane.VERTICAL ? "vertical" : "horizontal");
             return result;
         }
         if (mode.equals("axisof") && parts.length == 2) {
             Direction dir = parseDir(parts[1]);
-            result.addProperty("result", dir.getAxis().getName());
+            result.addProperty("value", dir.getAxis().getName());
             return result;
         }
         if (mode.equals("test") && parts.length == 3) {
             Direction.Plane plane = parsePlane(parts[1]);
             Direction dir = parts[2].equals("null") ? null : parseDir(parts[2]);
-            result.addProperty("result", plane.test(dir));
+            result.addProperty("value", plane.test(dir));
             return result;
         }
 

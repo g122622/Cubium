@@ -115,6 +115,11 @@ import { blockposCenterInput } from "./blockpos_center.ts";
 import { directionDataInput } from "./direction_data.ts";
 import { shapeClosestInput } from "./shape_closest.ts";
 import { shapeBoxesInput } from "./shape_boxes.ts";
+import { shapeQueryInput } from "./shape_query.ts";
+import { directionFacingInput } from "./direction_facing.ts";
+import { mthRoundExtInput } from "./mth_round_ext.ts";
+import { vec3RotateInput } from "./vec3_rotate.ts";
+import { aabbExtInput } from "./aabb_ext.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
@@ -337,6 +342,67 @@ function floatComparer(): CompareTransform {
     };
     return compare;
 }
+
+/**
+ * 浮点容差比较器：用于参照实现给出**原始数值**（double/f32 十进制）的能力。
+ *
+ * 与 {@link floatComparer} 的分工：那个处理「两侧都给了数字、只是写法不同」的场合；
+ * 这个处理「两侧算出同一个量、但末位有 ulp 级差异」的场合——项目规范明确不对齐
+ * 浮点精度与 `-ffast-math`，生产构建带 FMA 收缩，噪声/密度/样条这类算法的末位必然
+ * 与原版差若干 ulp，**这不是缺陷**。
+ *
+ * 判定用相对容差：`|a - b| <= max(|a|, |b|) * RELATIVE + ABSOLUTE`。
+ * 相对项覆盖正常量级；绝对项让接近 0 的值也能比——噪声在过零点附近绝对值本身很小，
+ * 纯相对容差会把「都接近 0」的两次计算判成不相等。
+ *
+ * 真正的逻辑错误（取错倍频、octaveRange 算错、坐标轴置换、归一化常数写错）造成的偏差
+ * 在 1e-3 以上，远大于这里的容差，不会被掩盖。
+ */
+function floatTolerance(relative: number, absolute: number): CompareTransform {
+    const close = (expected: number, actual: number): boolean => {
+        if (Number.isNaN(expected) || Number.isNaN(actual)) {
+            return Number.isNaN(expected) && Number.isNaN(actual);
+        }
+        if (!Number.isFinite(expected) || !Number.isFinite(actual)) {
+            return expected === actual;
+        }
+        const scale = Math.max(Math.abs(expected), Math.abs(actual));
+        return Math.abs(expected - actual) <= scale * relative + absolute;
+    };
+    const compare = (expected: unknown, actual: unknown): unknown => {
+        // 非有限值两侧都以字符串形态出现（"nan" / "inf" / "-inf"），直接按原文比对：
+        // 它们没有「误差」可言，NaN 只与 NaN 相等。
+        if (typeof expected === "string" || typeof actual === "string") {
+            return expected === actual ? expected : actual;
+        }
+        if (typeof expected === "number" && typeof actual === "number") {
+            return close(expected, actual) ? expected : actual;
+        }
+        if (Array.isArray(expected) && Array.isArray(actual)) {
+            return actual.map((item: unknown, index: number) => compare(expected[index], item));
+        }
+        if (expected !== null && actual !== null && typeof expected === "object" && typeof actual === "object") {
+            const result: Record<string, unknown> = { ...(actual as Record<string, unknown>) };
+            for (const [key, value] of Object.entries(expected as Record<string, unknown>)) {
+                result[key] = compare(value, (actual as Record<string, unknown>)[key]);
+            }
+            return result;
+        }
+        return actual;
+    };
+    return compare;
+}
+
+/** 噪声与密度函数求值的容差：整条链是双精度，末位误差远小于 1e-9。 */
+const NOISE_TOLERANCE: CompareTransform = floatTolerance(1e-9, 1e-12);
+
+/**
+ * f32 运算链的容差。
+ *
+ * 原版内部用 float、Cubium 用 double（或反过来）时，同一个数学式的相对误差在 1e-7 量级，
+ * 累加几步后会到 1e-6。这是精度差异，不是逻辑差异——项目明确不对齐浮点精度。
+ */
+const FLOAT_TOLERANCE: CompareTransform = floatTolerance(1e-6, 1e-7);
 
 function decimalPrecisions(value: number): number[] {
     const own = decimalsOf(value);
@@ -972,6 +1038,21 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 形状拆盒：既验数值也验遍历顺序。
     { name: "shape_boxes", probe: "shape_boxes", oracle: "ShapeBoxesOracle",
         key: "unit", units: { kind: "listing" }, input: shapeBoxesInput },
+    // 形状查询：坐标表、二分索引、立方判定、拆盒。
+    { name: "shape_query", probe: "shape_query", oracle: "ShapeQueryOracle",
+        key: "unit", units: { kind: "listing" }, input: shapeQueryInput },
+    // 方向的轴向正负与朝向角度判定。
+    { name: "direction_facing", probe: "direction_facing", oracle: "DirectionFacingOracle",
+        key: "unit", units: { kind: "listing" }, input: directionFacingInput },
+    // ceilLong 与 map 的边界行为。
+    { name: "mth_round_ext", probe: "mth_round_ext", oracle: "MthRoundExtOracle",
+        key: "unit", units: { kind: "listing" }, input: mthRoundExtInput },
+    // 向量绕轴旋转与投影。
+    { name: "vec3_rotate", probe: "vec3_rotate", oracle: "Vec3RotateOracle",
+        key: "unit", units: { kind: "listing" }, input: vec3RotateInput },
+    // 盒中心、角点与向上包含。
+    { name: "aabb_ext", probe: "aabb_ext", oracle: "AabbExtOracle",
+        key: "unit", units: { kind: "listing" }, input: aabbExtInput },
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },
@@ -1977,6 +2058,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "急迫与潮涌能量取等级较高者而不叠加，这条也容易写成相加。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "entity_physics",
@@ -2015,6 +2098,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "FMA 收缩的候选点（同类问题已修过三处），这条链上任何一处漏防都会被这里抓到。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "normal_noise",
@@ -2029,6 +2114,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "不同值。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "density_function",
@@ -2041,6 +2128,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "（后者会让 inverseLerp 除以 0），以及各变换的正负与非整输入。噪声类与缓存类留待后续能力。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "cubic_spline",
@@ -2053,6 +2142,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "注意原版整条链是 float：Multipoint 的 locations/derivatives/minValue/maxValue 全是 float，apply 内部也全程 float 运算。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "density_composite",
@@ -2065,6 +2156,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "RangeChoice 的 [lo, hi) 边界（等于 lo 命中、等于 hi 不命中），以及非整齐数值。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "noise_density",
@@ -2076,6 +2169,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "采样点覆盖原点、各轴单独偏移、负坐标、以及远离原点的大坐标。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "shifted_noise",
@@ -2088,6 +2183,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "以及线性位移配不对称缩放。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "shift_noise",
@@ -2100,6 +2197,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "采样点刻意让三轴互不相等，才能区分 ShiftA 与 ShiftB 的轴置换。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "weird_scaled_sampler",
@@ -2111,6 +2210,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "输入值刻意取在全部阈值上与其两侧：Type1 的 -0.5/0.0/0.5，Type2 的 -0.75/-0.5/0.5/0.75。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "end_islands",
@@ -2122,6 +2223,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "远区采样点分别取沿单轴、沿对角、跨多个岛屿网格与极端坐标，覆盖 f32 精度边界。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: FLOAT_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "lerp3_interpolate",
@@ -2133,6 +2236,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "角值覆盖全零、单位立方体、参差小数、大数量级、极大动态范围、相邻值只差几个 ulp、全负数；因子混入 1/3、0.1 这类无法精确表示的分数。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "mth_misc",
@@ -2143,6 +2248,8 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         + "每个都有各自的陷阱：murmur 的移位必须无符号、立方根倒数的整数部分是带符号除法、sign 的负零应返回 0 而 NaN 返回 -1、quantize 不能向零截断。",
         key: "unit",
         units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: FLOAT_TOLERANCE,
         input: (unit: string) => ({ unit }) },
     {
         name: "ray_aabb",
@@ -2155,9 +2262,108 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "density_nested",
+        probe: "density_nested",
+        oracle: "DensityNestedOracle",
+        description: "嵌套密度函数树的求值与区间 —— 17 棵树 x 10 个采样点。"
+        + "density_composite 只测了「两个常量喂一个二元算子」这一层；真实地形的 final_density 是一棵多层树："
+        + "噪声项经 Mapped 整形、与梯度相加、被 Clamp 截断、再经 RangeChoice 在洞穴与地形之间切换。"
+        + "组合型密度函数有三个单层测不到的易错点："
+        + "① 区间传播——minValue/maxValue 自底向上合成，Mul 的区间不是两端点相乘（负负得正）、"
+        + "Lerp 要看 delta 的符号、RangeChoice 要合并两个分支；算错不崩溃，只让缓存与插值调度偏掉；"
+        + "② 短路语义——Mul 一边为 0 时另一侧即使是 NaN/Inf 也应短路成 0；"
+        + "③ 梯度与 Clamp 的相对位置——先 Clamp 再 Mapped 与反过来结果不同，写反会让地形整体变平或长出尖刺。"
+        + "浅层组合（clamp_after_add / mapped_after_clamp 等成对出现）专门卡第 ③ 点，deep_mix 把三者串起来。",
+        key: "unit",
+        units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: NOISE_TOLERANCE,
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "carving_mask",
+        probe: "carving_mask",
+        oracle: "CarvingMaskOracle",
+        description: "雕刻掩码（原版 CarvingMask）的写入 / 查询行为 —— 7 个场景 x 5~11 步操作，外加整块扫描的标记格数。"
+        + "掩码记录「这一格已经刻过」，雕刻器每次写入前都要查它，避免同一条洞穴被重复雕刻。它看起来只是位数组，"
+        + "但索引公式 x & 15 | (z & 15) << 4 | (y - minY) << 8 决定了可观察行为：X、Z 按区块宽度掩码，"
+        + "Y 用相对 minY 的偏移参与高位位移——minY 取错会让整张掩码的 Y 基准平移，相邻 Y 落到同一格上。"
+        + "场景覆盖 wrap_xz（X/Z 回绕到 0..15）、y_edges（位移 0 与 height-1 是否串段）、collide（回绕与位移撞索引），"
+        + "以及主世界 -64/384、下界 0/128、末地 0/256 三种几何——下界与末地的 minY 为 0，与主世界的负 minY 是两条不同的路径。"
+        + "这类错误不崩溃、不报错，只让洞穴在区块边界处多刻或少刻，玩家看到的是「有断层的洞穴」，几乎无法靠肉眼定位。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "shape_collide",
+        probe: "shape_collide",
+        oracle: "ShapeCollideOracle",
+        description: "实体与方块形状的碰撞求解（原版 Shapes.collide）—— 19 个场景，全三个移动轴。"
+        + "Entity.move 的核心不是加速度积分，而是沿位移方向把碰撞箱收敛到贴面位置：对每个将要撞上的"
+        + "形状按移动轴求允许的最大位移，再吃掉剩余位移。它决定玩家能否卡进缝隙、能否站上方块边缘、"
+        + "斜向撞墙时会不会被滑过去。"
+        + "关键细节是收敛方向与重叠判定：正向移动取形状的 min 面、反向取 max 面，还要和当前位移取更近的"
+        + "那个；写反的表现是实体穿模或卡在半空。"
+        + "场景覆盖整块墙（三轴各一）、半格台阶（形状上表面与实体底面齐平，不应产生水平阻挡）、"
+        + "细栅栏柱、只在 Y 上部分重叠的形状、斜向被两块夹住、首尾相接的两块（取更近的那块）、"
+        + "已经重叠（应返回 0 而不是推得更深）、恰好贴着不重叠、空形状列表、零位移、"
+        + "以及与形状无关的小数位移和大跨度位移。",
+        key: "unit",
+        units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: FLOAT_TOLERANCE,
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "edge_backoff",
+        probe: "edge_backoff",
+        oracle: "EdgeBackoffOracle",
+        description: "潜行时的边缘保护（原版 Player.maybeBackOffFromEdge + canFallAtLeast）—— 12 个场景。"
+        + "玩家潜行走到方块边缘不会掉下去，但沿边缘斜向移动仍然可以滑行：只削掉会让他掉下去的那个分量。"
+        + "原版为此逐 0.05 步回退，X 与 Z 分别处理，最后再处理斜向组合，每个循环在 |位移| <= 0.05 时归零跳出。"
+        + "关键是分轴回退——写成「整块判定、要么全过要么全停」的话，玩家贴边斜走会被完全卡住而不是沿墙滑行。"
+        + "canFallAtLeast 的判定是：把碰撞箱沿水平方向平移、沿垂直方向向下扩张 step，盒子里没有任何碰撞箱"
+        + "就意味着会掉下去；盒子四周各内缩 1e-7，避免与脚下方块的侧壁误判为支撑。"
+        + "场景覆盖平台正中、走出边缘、只削 X 保留 Z 的贴边滑行、两个方向都会掉的角落、朝内侧走、"
+        + "单方块平台、窄条平台、恰好 0.05 的位移、台阶高度吸收、负方向移动、以及完全没有地面。",
+        key: "unit",
+        units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: FLOAT_TOLERANCE,
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "item_cooldowns",
+        probe: "item_cooldowns",
+        oracle: "ItemCooldownsOracle",
+        description: "物品冷却追踪（原版 ItemCooldowns）—— 14 个操作序列，逐条输出进度、剩余 tick 与是否生效。"
+        + "冷却进度决定准星旁的遮罩高度，也决定「这个物品现在能不能用」。"
+        + "公式是 progress = clamp((endTime - (tickCount + partialTicks)) / (endTime - startTime), 0, 1)，"
+        + "三个易错点：① 分母是冷却总长而不是剩余值，partialTicks=0 时两者等价、非零时就偏；"
+        + "② partialTicks 加在 tickCount 上而不是从剩余值里减，分母不为 1 时结果不同；"
+        + "③ 到期项在 tick() 里移除，移除发生在 tickCount 自增之后并用 <= 比较，"
+        + "所以「刚好到期」的那一 tick 就已经查不到冷却了。"
+        + "序列覆盖设置后立即查询、推进到一半、恰好到期、过期、partialTicks 取 0/0.25/0.5/0.75 与越界正负值、"
+        + "重复设置重置、时长为 0 与负数、设置后显式移除、从未设置就查询、72000 tick 的极长冷却、1 tick 的极短冷却。",
+        key: "unit",
+        units: { kind: "listing" },
+        // 浮点按容差比较，不逐位：项目不对齐浮点精度与 -ffast-math。
+        normalise: FLOAT_TOLERANCE,
+        input: (unit: string) => ({ unit }) },
+    {
+        name: "inventory_slot_mapping",
+        probe: "inventory_slot_mapping",
+        oracle: "InventorySlotMappingOracle",
+        description: "玩家背包内部索引与背包菜单槽位号的互转 —— 双向 x 全部合法索引 + 越界值，共 94 个单元。"
+        + "两套索引同时存在且语义完全不同：背包内部索引（0..40）是玩家背包对象的存储顺序；"
+        + "菜单槽（0..45）是 ContainerSetContent / ContainerSetSlot 包里 slot 字段的含义，客户端按它摆放物品。"
+        + "网络同步时按菜单槽逐个反查内部索引再取物品，所以这张表直接决定客户端看到的背包界面。"
+        + "错一位的表现是「装备穿在错误的格子里」，而服务端自己看起来完全自洽——只有逐槽对比才发现。"
+        + "原版把这张表分散在 InventoryMenu 的构造里：护甲用 39-i 从背包尾部倒着绑、"
+        + "快捷栏 0..8 映射到菜单 36..44、副手 40 映射到菜单 45。"
+        + "要注意数值重叠：背包槽 36..39 是护甲，菜单槽 36..44 是快捷栏，同一个数字在两套索引里指不同的东西。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
-
-/** 按名字查找能力声明；未知名字返回 undefined。 */
 export function findHarness(name: string): HarnessDeclaration | undefined {
     return HARNESSES.find((harness) => harness.name === name);
 }

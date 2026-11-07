@@ -119,12 +119,12 @@ void AbstractContainerMenu::addPlayerHotbarSlots(i32 startX, i32 startY)
 void AbstractContainerMenu::addPlayerArmorSlots(i32 startX, i32 startY)
 {
     // 护甲槽位顺序（从上到下）：头盔、胸甲、护腿、靴子
-    // 对应 PlayerInventory 的槽位 36-39
+    // 对应 PlayerInventory 的槽位 39..36（头→脚递减，与原版 EquipmentSlot 的 index 相反）
     constexpr i32 ARMOR_INDICES[] = {
-        InventorySlots::ARMOR_HEAD,  // 36 头盔
-        InventorySlots::ARMOR_CHEST, // 37 胸甲
-        InventorySlots::ARMOR_LEGS,  // 38 护腿
-        InventorySlots::ARMOR_FEET   // 39 靴子
+        InventorySlots::ARMOR_HEAD,  // 39 头盔
+        InventorySlots::ARMOR_CHEST, // 38 胸甲
+        InventorySlots::ARMOR_LEGS,  // 37 护腿
+        InventorySlots::ARMOR_FEET   // 36 靴子
     };
 
     for (i32 i = 0; i < 4; ++i) {

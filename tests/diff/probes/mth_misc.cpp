@@ -4,7 +4,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include <bit>
 #include <cstdio>
 #include <string>
 #include <string_view>
@@ -15,13 +14,6 @@ namespace mc::diff {
 namespace {
 
 using json = nlohmann::json;
-
-std::string doubleBits(f64 value)
-{
-    char buffer[24];
-    std::snprintf(buffer, sizeof(buffer), "0x%016llx", static_cast<unsigned long long>(std::bit_cast<u64>(value)));
-    return buffer;
-}
 
 /**
  * @brief `Mth` 里一批此前未覆盖的纯计算函数
@@ -168,7 +160,7 @@ std::string runLine(std::string_view inputLine)
         result["value"] = math::square(static_cast<i32>(std::stol(parts[1])));
     } else if (name == "invCube" && parts.size() == 2) {
         const f32 value = static_cast<f32>(std::stod(parts[1]));
-        result["value"] = doubleBits(static_cast<f64>(math::fastInvCubeRoot(value)));
+        result["value"] = encodeFloat(static_cast<f64>(math::fastInvCubeRoot(value)));
     } else if (name == "sign" && parts.size() == 2) {
         result["value"] = math::sign(std::stod(parts[1]));
     } else if (name == "quantize" && parts.size() == 3) {
@@ -189,7 +181,7 @@ std::string runLine(std::string_view inputLine)
         const f32 p1 = static_cast<f32>(std::stod(parts[3]));
         const f32 p2 = static_cast<f32>(std::stod(parts[4]));
         const f32 p3 = static_cast<f32>(std::stod(parts[5]));
-        result["value"] = doubleBits(static_cast<f64>(math::catmullrom(delta, p0, p1, p2, p3)));
+        result["value"] = encodeFloat(static_cast<f64>(math::catmullrom(delta, p0, p1, p2, p3)));
     } else {
         result["missing"] = true;
     }

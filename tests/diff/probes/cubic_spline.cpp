@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
-#include <bit>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -21,13 +20,6 @@ using world::gen::density::Constant;
 using world::gen::density::CubicSpline;
 using world::gen::density::DensityFunction;
 using world::gen::density::SplinePoint;
-
-std::string doubleBits(f64 value)
-{
-    char buffer[24];
-    std::snprintf(buffer, sizeof(buffer), "0x%016llx", static_cast<unsigned long long>(std::bit_cast<u64>(value)));
-    return buffer;
-}
 
 /**
  * @brief 一条样条用例
@@ -174,9 +166,9 @@ std::string runLine(std::string_view inputLine)
         const f32 coordinate = sampleInputs()[index];
         const f64 value = spline->apply(coordinate, 0, 0, 0);
         return json{{"unit", requested},
-            {"value", doubleBits(value)},
-            {"min", doubleBits(spline->minValue())},
-            {"max", doubleBits(spline->maxValue())}}
+            {"value", encodeFloat(value)},
+            {"min", encodeFloat(spline->minValue())},
+            {"max", encodeFloat(spline->maxValue())}}
             .dump();
     }
     return json{{"unit", requested}, {"missing", true}}.dump();

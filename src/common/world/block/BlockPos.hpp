@@ -722,6 +722,83 @@ public:
     const i64 sizeZ = static_cast<i64>(std::abs(static_cast<i64>(z2) - z1)) + 1;
     return sizeX * sizeY * sizeZ;
 }
+
+/**
+ * @brief 绕 Y 轴旋转方块坐标，对应原版 `BlockPos.rotate(Rotation)`
+ *
+ * Y 分量不变，X/Z 按旋转重排：
+ *
+ *   CLOCKWISE_90         → (-z, y,  x)
+ *   CLOCKWISE_180        → (-x, y, -z)
+ *   COUNTERCLOCKWISE_90  → ( z, y, -x)
+ *   NONE                 → ( x, y,  z)
+ */
+[[nodiscard]] inline BlockPos rotate(const BlockPos& pos, Rotation rotation)
+{
+    switch (rotation) {
+        case Rotation::Clockwise90:
+            return BlockPos{-pos.z, pos.y, pos.x};
+        case Rotation::Clockwise180:
+            return BlockPos{-pos.x, pos.y, -pos.z};
+        case Rotation::CounterClockwise90:
+            return BlockPos{pos.z, pos.y, -pos.x};
+        default:
+            return pos;
+    }
+}
+
+/**
+ * @brief 两个坐标的叉积，对应原版 `BlockPos.cross(Vec3i)`
+ *
+ * 把坐标当成三维向量做叉积，结果仍是整数坐标。
+ */
+[[nodiscard]] inline BlockPos cross(const BlockPos& a, const BlockPos& b)
+{
+    return BlockPos{a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+}
+
+/**
+ * @brief 三个分量同乘一个标量，对应原版 `BlockPos.multiply(int)`
+ */
+[[nodiscard]] inline BlockPos multiply(const BlockPos& pos, i32 scalar)
+{
+    return BlockPos{pos.x * scalar, pos.y * scalar, pos.z * scalar};
+}
+
+/**
+ * @brief 逐分量相减，对应原版 `BlockPos.subtract(Vec3i)`
+ */
+[[nodiscard]] inline BlockPos subtract(const BlockPos& a, const BlockPos& b)
+{
+    return BlockPos{a.x - b.x, a.y - b.y, a.z - b.z};
+}
+
+/**
+ * @brief 逐分量取较小者，对应原版 `BlockPos.min(BlockPos, BlockPos)`
+ */
+[[nodiscard]] inline BlockPos min(const BlockPos& a, const BlockPos& b)
+{
+    return BlockPos{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)};
+}
+
+/**
+ * @brief 逐分量取较大者，对应原版 `BlockPos.max(BlockPos, BlockPos)`
+ */
+[[nodiscard]] inline BlockPos max(const BlockPos& a, const BlockPos& b)
+{
+    return BlockPos{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)};
+}
+
+/**
+ * @brief 由浮点坐标构造方块坐标（逐分量向下取整），对应原版 `BlockPos.containing(double, double, double)`
+ *
+ * 负坐标同样向下取整：-0.5 得到 -1，不是 0。
+ */
+[[nodiscard]] inline BlockPos containing(f64 x, f64 y, f64 z)
+{
+    return BlockPos{math::floorTo<i32>(x), math::floorTo<i32>(y), math::floorTo<i32>(z)};
+}
+
 } // namespace mc
 
 // 哈希函数支持

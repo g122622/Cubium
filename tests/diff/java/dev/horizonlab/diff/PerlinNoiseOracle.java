@@ -134,7 +134,8 @@ public final class PerlinNoiseOracle {
             double[] point = SAMPLE_POINTS[pointIndex];
             JsonObject output = new JsonObject();
             output.addProperty("unit", requested);
-            output.addProperty("value", doubleBits(noise.getValue(point[0], point[1], point[2])));
+            // 浮点不逐位比较：只给原始数值，交给编排列按容差判定。
+            output.addProperty("value", noise.getValue(point[0], point[1], point[2]));
             return GSON.toJson(output);
         }
         return missing(requested);

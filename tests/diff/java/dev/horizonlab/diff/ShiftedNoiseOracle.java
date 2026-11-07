@@ -37,9 +37,6 @@ public final class ShiftedNoiseOracle {
 
     private ShiftedNoiseOracle() {}
 
-    private static String doubleBits(double value) {
-        return String.format("0x%016x", Double.doubleToRawLongBits(value));
-    }
 
     /** 平移函数的形态，与探针侧一致。 */
     private enum ShiftKind {
@@ -252,9 +249,9 @@ public final class ShiftedNoiseOracle {
             };
             JsonObject output = new JsonObject();
             output.addProperty("unit", requested);
-            output.addProperty("value", doubleBits(function.compute(context)));
-            output.addProperty("min", doubleBits(function.minValue()));
-            output.addProperty("max", doubleBits(function.maxValue()));
+            JsonFloats.add(output, "value", function.compute(context));
+            JsonFloats.add(output, "min", function.minValue());
+            JsonFloats.add(output, "max", function.maxValue());
             return GSON.toJson(output);
         }
         return missing(requested);

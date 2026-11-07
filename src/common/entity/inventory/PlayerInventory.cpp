@@ -694,12 +694,12 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
     }
 
     // 护甲槽位索引到 EquipmentSlot 的映射
-    // ARMOR_HEAD(36)→Head(5), ARMOR_CHEST(37)→Chest(4), ARMOR_LEGS(38)→Legs(3), ARMOR_FEET(39)→Feet(2)
+    // 从 ARMOR_START(36) 起按索引递增遍历，对应顺序是 FEET→LEGS→CHEST→HEAD
     static constexpr EquipmentSlot armorEquipmentSlots[] = {
-        EquipmentSlot::Head,  // ARMOR_HEAD  = 36
-        EquipmentSlot::Chest, // ARMOR_CHEST = 37
-        EquipmentSlot::Legs,  // ARMOR_LEGS  = 38
-        EquipmentSlot::Feet,  // ARMOR_FEET  = 39
+        EquipmentSlot::Feet,  // ARMOR_FEET  = 36
+        EquipmentSlot::Legs,  // ARMOR_LEGS  = 37
+        EquipmentSlot::Chest, // ARMOR_CHEST = 38
+        EquipmentSlot::Head,  // ARMOR_HEAD  = 39
     };
 
     for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {

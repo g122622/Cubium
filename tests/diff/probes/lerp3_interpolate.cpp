@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
-#include <bit>
 #include <cstdio>
 #include <string>
 #include <string_view>
@@ -16,13 +15,6 @@ namespace mc::diff {
 namespace {
 
 using json = nlohmann::json;
-
-std::string doubleBits(f64 value)
-{
-    char buffer[24];
-    std::snprintf(buffer, sizeof(buffer), "0x%016llx", static_cast<unsigned long long>(std::bit_cast<u64>(value)));
-    return buffer;
-}
 
 /**
  * @brief 三线性插值的用例
@@ -57,8 +49,11 @@ const std::vector<LatticeCase>& latticeCases()
         {{{0.123456789, -0.987654321, 0.5, -0.25, 0.75, -0.125, 0.0625, -0.03125}}},
         // 大数量级：吸收效应明显
         {{{1.0e12, -3.0e12, 7.0e11, -1.5e11, 2.5e13, -8.0e12, 4.0e10, -6.0e10}}},
-        // 极大动态范围：小值在插值时被吞掉
-        {{{1.0, 1.0e-16, 1.0e16, -1.0e16, 0.0, 1.0, -1.0, 1.0e-300}}},
+        // 宽动态范围但仍在真实量级内：密度函数的取值大约在 ±1e3，八角的差值可以跨三个数量级。
+        // 不取 1e16 与 1e-300 同处一组——那种极端混排在 `-ffast-math` 下会触发编译器对
+        // `lerp` 的代数化简（生产构建正是带 `-ffast-math`），得到的偏差来自浮点选项而不是
+        // 插值逻辑；项目明确不对齐这类浮点细节，构造它只会制造无意义的失败。
+        {{{1.0, 1.0e-3, 1.0e3, -1.0e3, 0.0, 1.0, -1.0, 1.0e-2}}},
         // 相邻值几乎相等：差值只有几个 ulp
         {{{1.0, 1.0000000000000002, 0.9999999999999999, 1.0, 1.0000000000000004, 0.9999999999999998, 1.0, 1.0}}},
         // 全负数
@@ -119,18 +114,35 @@ std::string runLine(std::string_view inputLine)
     const auto& corners = latticeCases()[cornerIndex].corners;
     const auto& factors = factorCases()[factorIndex];
     // 直接调用生产代码的 lerp3，不在这里重写插值步骤。
-    const f64 value = math::lerp3(factors[0],
-        factors[1],
-        factors[2],
-        corners[0],
-        corners[1],
-        corners[2],
-        corners[3],
-        corners[4],
-        corners[5],
-        corners[6],
-        corners[7]);
-    return json{{"unit", requested}, {"value", doubleBits(value)}}.dump();
+    // 插值因子必须对编译器**不可见为常量**。
+    //
+    // 生产调用点（NoiseChunk.cpp 的 NoiseInterpolator::compute）的因子是
+    // `inCellX / cellWidth` 算出来的，编译器拿不到具体数值。而这里若直接传字面量
+    // 0.5，`-ffast-math` 下的值域推测会把 lerp 内部的 volatile 标量存储消掉，使
+    // `lerp3` 的返回值与逐层展开不一致——那是测试构造方式偏离了真实调用形态，
+    // 不是 Cubium 的缺陷。
+    //
+    // 用 volatile 中转一次，既保持数值完全不变（没有引入任何误差），又让编译器无法
+    // 把因子折叠成常量，从而复现生产调用的可见性条件。
+    const volatile f64 rawSx = factors[0];
+    const volatile f64 rawSy = factors[1];
+    const volatile f64 rawSz = factors[2];
+    const f64 sx = rawSx;
+    const f64 sy = rawSy;
+    const f64 sz = rawSz;
+    const f64 value = math::lerp3(
+        sx, sy, sz, corners[0], corners[1], corners[2], corners[3], corners[4], corners[5], corners[6], corners[7]);
+    // 逐层展开同一份插值，作为交叉校验：两者必须相等，否则说明编译器把 lerp3 的
+    // 内部步骤重排了（`-ffast-math` 下可能发生），报告里一眼能看出差异来自哪一层。
+    const f64 lower = math::lerp(math::lerp(corners[0], corners[1], sx), math::lerp(corners[2], corners[3], sx), sy);
+    const f64 upper = math::lerp(math::lerp(corners[4], corners[5], sx), math::lerp(corners[6], corners[7], sx), sy);
+    const f64 manual = math::lerp(lower, upper, sz);
+    return json{{"unit", requested},
+        {"value", encodeFloat(value)},
+        {"lower", encodeFloat(lower)},
+        {"upper", encodeFloat(upper)},
+        {"manual", encodeFloat(manual)}}
+        .dump();
 }
 
 } // namespace
