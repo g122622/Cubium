@@ -468,12 +468,12 @@ inline std::unique_ptr<Attribute> sneakingSpeed()
  * 对齐 vanilla 1.21.11 的 block_break_speed 属性
  *（Attributes.java:19-21，RangedAttribute("attribute.name.block_break_speed", 1.0, 0.0, 1024.0)）。
  *
- * 消费点：挖掘速度——最终速度乘以本属性值（对齐 vanilla Player.getDestroySpeed 的
- * `f *= getAttributeValue(BLOCK_BREAK_SPEED)`）。默认 1.0 不改变速度；目前原版没有附魔或
- * 效果修饰它，属于「给数据包/命令预留」的属性。
+ * 消费点有两个，二者都必须乘上本属性：
+ * - `Player::getDigSpeed`（客户端预测与方块侧计算），在挖掘疲劳之后、水下惩罚之前相乘；
+ * - `MiningManager::_calculateDigSpeedMultiplier`（服务端权威校验），经 `DigSpeedInputs::blockBreakSpeed`
+ *   参与同一公式（由差分测试的 dig_speed 能力对拍）。
  *
- * TODO: 接通挖掘速度的消费点（Player::getDigSpeed / MiningManager::_calculateDigSpeedMultiplier），
- *       当前只注册了定义，还没有任何代码读取它。
+ * 默认 1.0 不改变速度；原版没有附魔或效果修饰它，属于「给数据包/命令预留」的属性。
  *
  * 默认值: 1.0
  * 范围: 0.0 ~ 1024.0
