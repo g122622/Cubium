@@ -21,6 +21,8 @@
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/world/block/BlockTagLoader.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/world/ChunkTaskScheduler.hpp"
