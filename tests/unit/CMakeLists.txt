@@ -2681,7 +2681,6 @@ function(mc_register_gtests targetName)
         # 改用 DISCOVERY_MODE PRE_TEST：ctest 运行期才执行探测（此时 DLL 已随目标部署到
         # $<TARGET_FILE_DIR>），并用 DL_PATHS 把该目录加入 DLL 搜索路径。每个用例单独注册到
         # CTest 并附 TIMEOUT，实现"单测试 5 分钟超时"。
-        # TESTEXCLUDE：进程启动成本的基准用例不作为 ctest 用例登记，由 CI 作业显式驱动。
         gtest_discover_tests(${targetName}
             DISCOVERY_MODE PRE_TEST
             DL_PATHS "$<TARGET_FILE_DIR:${targetName}>"
