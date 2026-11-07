@@ -253,12 +253,45 @@ private:
 /// 监听器挂默认事件转发器之后，仅 OnTestEnd 做清理，不干扰断言/输出。
 class TestIsolationListener : public ::testing::EmptyTestEventListener {
 public:
-    /// `main` 进入 steady_clock 读数（毫秒），用于换算进程墙钟。
-    static inline mc::i64 s_processStartMs = 0;
+    void OnTestProgramStart(const ::testing::UnitTest& /*unitTest*/) override
+    {
+        _mark("gtest_program_start");
+    }
+
+    void OnTestIterationStart(const ::testing::UnitTest& /*unitTest*/, int /*iteration*/) override
+    {
+        _mark("gtest_iteration_start");
+    }
+
+    void OnEnvironmentsSetUpStart(const ::testing::UnitTest& /*unitTest*/) override
+    {
+        _mark("gtest_env_setup_start");
+    }
+
+    void OnEnvironmentsSetUpEnd(const ::testing::UnitTest& /*unitTest*/) override
+    {
+        _mark("gtest_env_setup_end");
+    }
+
+    void OnTestStart(const ::testing::TestInfo& /*testInfo*/) override
+    {
+        _mark("gtest_test_start");
+    }
 
     void OnTestEnd(const ::testing::TestInfo& /*test_info*/) override
     {
         mc::server::ChunkTaskScheduler::resetThreadLocalContext();
+        _mark("gtest_test_end");
+    }
+
+    void OnEnvironmentsTearDownStart(const ::testing::UnitTest& /*unitTest*/) override
+    {
+        _mark("gtest_env_teardown_start");
+    }
+
+    void OnEnvironmentsTearDownEnd(const ::testing::UnitTest& /*unitTest*/) override
+    {
+        _mark("gtest_env_teardown_end");
     }
 
     /// 进程内全部用例结束（含全局环境 tear-down）时输出一行耗时诊断。
@@ -271,15 +304,21 @@ public:
     void OnTestProgramEnd(const ::testing::UnitTest& unitTest) override
     {
         WorldGenRegistryEnvironment::recordTiming("program_end", test_timing::sinceStartMs());
-        const auto wallMs = unitTest.elapsed_time();
+        const auto wallMs = ::testing::UnitTest::GetInstance()->elapsed_time();
         const auto uptimeMs =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
                 .count() -
-            s_processStartMs;
+            test_timing::g_processStartMs;
         spdlog::info("[TestTiming] tests_wall={}ms process_uptime={}ms cpu={}ms", wallMs, uptimeMs, _processCpuMs());
     }
 
 private:
+    /// 记录一个 gtest 阶段时刻（供定位 RUN_ALL_TESTS 内部各段耗时）。
+    static void _mark(const char* step)
+    {
+        WorldGenRegistryEnvironment::recordTiming(step, test_timing::sinceStartMs());
+    }
+
     /// 读取本进程累计消耗的用户态 + 内核态 CPU 时间（毫秒）。非 Linux 平台返回 -1。
     static mc::i64 _processCpuMs()
     {
