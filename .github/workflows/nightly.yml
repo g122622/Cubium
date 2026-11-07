@@ -114,7 +114,7 @@ jobs:
             # 链接期输入（各目标文件与库的链接参数）：诊断作业（test-start-probe）要在产物上
             # 重新链接等价二进制来做对照实验，而 ninja 描述文件不属于上述测试元数据。
             rm -rf .probe-link-meta && mkdir -p .probe-link-meta/build/CMakeFiles
-            cp build/CMakeFiles/impl-RelWithDebInfo.ninja .probe-link-meta/build/CMakeFiles/
+            cp build/CMakeFiles/impl-RelWithDebInfo.ninja build/CMakeFiles/rules.ninja .probe-link-meta/build/CMakeFiles/
             cp build/compile_commands.json .probe-link-meta/build/
             tar -czf teststart-probe.tar.gz -C .probe-link-meta .
             # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。

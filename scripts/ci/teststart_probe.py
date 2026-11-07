@@ -23,6 +23,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -95,15 +96,23 @@ def link_inputs(ninja_file: Path, config: str) -> tuple[list[str], list[str], li
     libraries = [token for token in shlex.split(entry["LINK_LIBRARIES"]) if not token.startswith("-Wl,-rpath")]
     objects = [token for token in inputs if token.endswith(".o")]
 
-    # 链接规则（command = $PRE_LINK && <compiler> $FLAGS $LINK_FLAGS @$RSP_FILE -o $TARGET_FILE）定义在
-    # CMakeFiles/rules.ninja：取其编译器路径，避免写死工具链版本。
-    rules_file = ninja_file.with_name("rules.ninja")
-    rule_body = re.search(
-        rf"^rule {re.escape(rule)}\r?\n((?:  [^\r\n]*\r?\n)*)", rules_file.read_text(), re.MULTILINE).group(1)
-    command = re.search(r"^  command = (.*)$", rule_body, re.MULTILINE).group(1)
-    compiler = re.search(r"clang\+\+|g\+\+", command)
     flags = shlex.split(entry.get("FLAGS", "")) + shlex.split(entry.get("LINK_FLAGS", ""))
-    return objects, libraries, flags, compiler.group(0) if compiler else "/usr/bin/clang++"
+    return objects, libraries, flags, _linker_from_rules(ninja_file, rule)
+
+
+def _linker_from_rules(ninja_file: Path, rule: str) -> str:
+    """链接规则（command = $PRE_LINK && <compiler> $FLAGS $LINK_FLAGS @$RSP_FILE ...）在
+    CMakeFiles/rules.ninja；取其编译器名，避免写死工具链版本。规则文件缺失时返回默认名，
+    由调用方在 PATH 中解析。"""
+    rules_file = ninja_file.with_name("rules.ninja")
+    if not rules_file.exists():
+        return "clang++"
+    body = re.search(rf"^rule {re.escape(rule)}\r?\n((?:  [^\r\n]*\r?\n)*)", rules_file.read_text(), re.MULTILINE)
+    if body is None:
+        return "clang++"
+    command = re.search(r"^  command = (.*)$", body.group(1), re.MULTILINE).group(1)
+    compiler = re.search(r"clang\+\+|g\+\+", command)
+    return compiler.group(0) if compiler else "clang++"
 
 
 def link(compiler: str, rsp: Path, output: Path) -> None:
@@ -174,7 +183,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--build-dir", type=Path, default=Path("build"))
     parser.add_argument("--config", default="RelWithDebInfo")
-    parser.add_argument("--compiler", default=None, help="链接/编译用的 clang++；缺省取 ninja 规则里的编译器")
+    parser.add_argument("--compiler", default=None, help="链接/编译用的 clang++；缺省取 ninja 规则里的编译器名")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--clean", action="store_true", help="删除 tests/ci-probes 后退出（调查结束后使用）")
     options = parser.parse_args()
@@ -198,7 +207,7 @@ def main() -> int:
     )
     ordered_objects = [main_object] + [path for path in objects if path != main_object]
 
-    compiler = options.compiler or compiler
+    compiler = options.compiler or shutil.which(compiler) or compiler
     report: dict = {
         "config": config,
         "compiler": compiler,
