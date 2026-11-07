@@ -40,8 +40,9 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 
 ### 游戏类型
 - `ChunkCoord`, `BlockCoord`, `WorldHeight` - 坐标类型
-- `BlockId`, `ItemId`, `EntityId`, `BiomeId`, `DimensionId` - ID 类型
-- `PlayerId` - 玩家标识符
+- `ItemId`(`u32`), `BiomeId`(`u16`), `DimensionId`(`i32`), `PlayerId`(`u64`) - ID 类型（别名都定义在 `Types.hpp`）
+- `EntityInstanceId`(`u64`) - 实体实例 ID（**没有** `EntityId` 这个别名；无效值用 `INVALID_ENTITY_ID`）
+- 方块没有独立的 ID 别名：方块用 `BlockRegistry` 注册返回的 `u32 blockId`，方块状态用 `BlockState`/stateId 表达
 
 ### 世界类型
 - `ChunkPos`, `BlockPos`, `SectionPos`, `GlobalPos`(相当于BlockPos+维度id) - 位置类型
@@ -78,7 +79,11 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `pipeline::Connection<RegistryByteBuf>` - 网络管道连接，对外 API 为 `send(ir::IrPacket)` / `onPacket(listener)`，位于 `network/pipeline/Connection.hpp`
 - `transport::LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
 
-**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `ConnectionManager::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除，入站分发改为 `ServerPlayRouter`（服务端）和客户端 `ClientPlayVisitor`，均通过 `std::visit` 遍历 `ir::PlayPacket`。
+**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `ConnectionManager::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除。
+
+**入站分发**（两条链路职责与实现方式不同，不要混为一谈）：
+- **服务端**：`ClientSession::handleInbound(const ir::IrPacket&)` 先交给握手处理器，再转到 `ServerPlayHandler::route(PlayerId, const ir::IrPacket&)`（`server/network/play/ServerPlayHandler.hpp`）。`route` 是**集中的 if/`std::holds_alternative` 分发表**（不是 `std::visit`），按包族转调 `MovementHandler` / `BlockActionHandler` / `EntityActionHandler` / `ChatHandler` / `PlayerStateHandler` / `SessionSignalHandler`。新增服务端入站包时在 `route` 里加一个分支并转调对应 handler，不要另起一套分发器。
+- **客户端**：`ClientNetwork` 的入站回调委托给 `ClientPlayVisitor::handle`（Play 阶段）与 `handleConfiguration`（Configuration 阶段），这两个方法内部才是 `std::visit` 遍历 IR variant。客户端已停止维护，修改前先确认任务是否真的需要动它。
 
 **业务枚举**（位于 `network/protocol/`）：
 - `EntityAnimation` / `EntityStatus` → `protocol/EntityEvents.hpp`
@@ -86,10 +91,11 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `TitleAction` → `protocol/TitleActions.hpp`
 
 ### 错误处理
-- `Result<T>` - 可能失败操作的结果类型
-- `Error` - 包含错误码和消息的错误容器
-- `ErrorCode` - 错误码枚举
-- 新增代码不允许使用c++异常，统一走Result/Error体系。
+- `Result<T>` / `Result<void>` - 可能失败操作的结果类型（定义在 `src/common/core/Result.hpp`）
+- `ErrorCode` - **独立的顶层枚举** `mc::ErrorCode`（不是 `Error` 的嵌套类型），含 `Success`/`InvalidArgument`/`NotFound`/`OutOfMemory` 等，分组编号见 `Result.hpp`
+- `Error` - 错误容器，构造为 `Error(ErrorCode code, std::string_view message, std::string_view source)`，并提供静态工厂 `Error::ok()` / `Error::invalidArgument()` / `Error::notFound()` / `Error::fileNotFound()` / `Error::connectionFailed()` / `Error::unknown()`
+- 【重要】`Result::value()` 在结果失败时会 **`throw std::runtime_error`**（`Result<T>` 与 `Result<std::unique_ptr<T, D>>` 都是如此）。取 `value()` 之前必须已经确认 `success()`，否则会绕过整个 Result 体系抛出异常。
+- 新增代码不允许使用c++异常，统一走Result/Error体系（上面这条 `value()` 的隐式抛出是既存实现，不是可以依赖的错误处理手段）。
 
 ### 设置类型
 - `BooleanOption`, `RangeOption`, `FloatOption` - 设置选项类型
@@ -176,7 +182,7 @@ block/
 - `DAY_LENGTH_TICKS`, `DAY_LENGTH_SECONDS` - 游戏日长度
 
 `mc::network` 命名空间：
-- `PROTOCOL_VERSION` - 协议版本
+- `PROTOCOL_VERSION` - 协议版本。【警示】**该常量当前值仍是 1.16.5 的 `754`，与项目目标 1.21.11 不一致**，`Constants.hpp` 中的注释也还写着"目标是 1.16.5"。判断线上实际协议版本时以 `network/protocol/ProtocolInfo` 与 Java 后端协议表为准，不要直接引用 `PROTOCOL_VERSION`；若任务涉及它，按 1.21.11 修正并同步删除该处过期注释。
 - `DEFAULT_PORT`, `DEFAULT_RCON_PORT` - 默认端口
 - `MAX_PACKET_SIZE`, `MAX_UNCOMPRESSED_SIZE`, `MIN_COMPRESSION_THRESHOLD` - 数据包限制
 - `CONNECT_TIMEOUT_MS`, `READ_TIMEOUT_MS`, `WRITE_TIMEOUT_MS` - 超时设置
@@ -207,8 +213,10 @@ block/
 **数学函数** (`src/common/util/math/MathUtils.hpp`)
 - `toRadians()`, `toDegrees()`, `clamp()`, `lerp()`, `smoothstep()`
 - `square()`, `cube()`, `isZero()`, `approxEqual()`
-- `fastInverseSqrt()`, `floorTo<T>()`, `ceilTo<T>()`, `roundTo<T>()`
+- `floorTo<T>()`, `ceilTo<T>()`, `roundTo<T>()`
 - `toChunkCoord()`, `wrapDegrees()`, `distanceSq()`, `distanceHorizontalSq()`
+
+注意：仓库里**没有** `fastInverseSqrt()`。需要倒数平方根时用 `1.0f / std::sqrt(x)`，不要凭记忆调用不存在的工具函数。
 
 **射线** (`src/common/util/math/ray/Ray.hpp`)
 - `Ray` - 射线类，支持 `at(t)` 获取点、`fromAngles()` 从角度创建
@@ -216,11 +224,18 @@ block/
 ### 几何工具
 
 **方向枚举** (`src/common/util/Direction.hpp`)
-- `Direction` - 方向枚举（Down, Up, North, South, West, East, None）
+
+`Direction.hpp` 在 `mc` 命名空间下并列提供了**五个**命名空间，按查询对象分开，不要只在 `Directions` 里找：
+
+- `Direction` - 方向枚举（Down, Up, North, South, West, East, None），索引顺序 Down=0, Up=1, North=2, South=3, West=4, East=5
 - `Axis` - 轴向枚举（X, Y, Z）
 - `Rotation` - 旋转枚举（None, Clockwise90, Clockwise180, CounterClockwise90）
-- `Mirror` - 镜像枚举
-- `Directions` 命名空间：`opposite()`, `xOffset()`, `yOffset()`, `zOffset()`, `getAxis()`, `isHorizontal()`, `isVertical()`, `rotateY()`, `fromName()`, `toBlockFace()`
+- `Mirror` - 镜像枚举（None, LeftRight, FrontBack）
+- `Directions` - 方向相关：`opposite()`, `xOffset()`, `yOffset()`, `zOffset()`, `getAxis()`, `isHorizontal()`, `isVertical()`, `rotateY()`, `fromName()`, `toBlockFace()`, `all()`, `horizontal()` 等
+- `Rotations` - 旋转相关：`add()`, `getRotated()`, `getInverse()`, `rotate()`, `toDegrees()`
+- `Mirrors` - 镜像相关：`getInverse()`
+- `Axes` - 轴相关：`all()`, `fromName()`, `toString()`, `getPositive()`, `getNegative()`, `getPlane()`, `isHorizontal()`, `isVertical()`, `choose()`
+- `AxisCycles` - 轴循环相关：`all()`, `cycle()`, `inverse()`, `between()`
 
 **轴对齐包围盒** (`src/common/util/AxisAlignedBB.hpp`)
 - `AxisAlignedBB` - 碰撞检测核心类
@@ -265,12 +280,12 @@ block/
 - `spawnItemEntities()` - 批量生成物品实体
 - `DEFAULT_PICKUP_DELAY = 10` - 默认拾取延迟（ticks）
 - `DEFAULT_LIFETIME = 6000` - 默认存活时间（ticks）
-- 参考 MC Java `InventoryHelper.spawnItemStack()`、`Entity.entityDropItem()`（对齐 1.21.11）
+- 上述 `spawnItem*` 与速度函数的签名都要求显式传入 `math::IRandom&`、位置、拾取延迟等，不允许再包一层省略参数的便捷重载（见"关于配置和传参"）
 
 ### NBT 系统 (`src/common/util/nbt/`)
 
 **核心类型**
-- `TagId` - NBT 标签类型枚举（End, Byte, Short, Int, Long, Float, Double, ByteArray, std::string, List, Compound, IntArray, LongArray）
+- `TagId` - NBT 标签类型枚举（`End`, `Byte`, `Short`, `Int`, `Long`, `Float`, `Double`, `ByteArray`, `String`, `List`, `Compound`, `IntArray`, `LongArray`），注意字符串标签的枚举项叫 `String`，不叫 `std::string`
 - `tags::tag` - 抽象基类
 - `tags::compound_tag` - 复合标签（键值对映射）
 - `tags::list_tag` - 列表基类（同类型元素）
@@ -971,49 +986,59 @@ Result<void> initialize() {
     if (!result.success()) {
         return result;  // 传播错误
     }
-    
+
     result = createRenderer();
     if (!result.success()) {
         return result;
     }
-    
+
     return Result<void>::ok();
 }
 
+// ✅ 推荐：用 MC_TRY / MC_TRY_ASSIGN 宏简化传播（宏名带 MC_ 前缀，没有裸 TRY 宏）
 Result<void> initialize() {
-    TRY(createWindow());
-    TRY(createRenderer());
+    MC_TRY(createWindow());
+    MC_TRY(createRenderer());
     return Result<void>::ok();
+}
+
+Result<Renderer> makeRenderer() {
+    Renderer renderer;
+    MC_TRY_ASSIGN(renderer, createRenderer());  // 失败时直接向上传播 error
+    return renderer;
 }
 
 // ✅ 推荐：携带错误信息
+// ErrorCode 是独立的顶层枚举 mc::ErrorCode，不是 Error 的嵌套类型（定义见 Result.hpp:48）
+enum class ErrorCode : i32 { Success = 0, Unknown = -1, InvalidArgument = -2, NotFound = -100, OutOfMemory = -103, ... };
+
 class Error {
 public:
-    enum class Code {
-        Success = 0,
-        NotFound,
-        InvalidArgument,
-        OutOfMemory,
-        // ...
-    };
-    
-    Code code() const;
-    const std::string& message() const;
-    const std::string& source() const;  // 错误位置
+    Error(ErrorCode code, std::string_view message = "", std::string_view source = "");
+
+    [[nodiscard]] ErrorCode code() const noexcept;
+    [[nodiscard]] const std::string& message() const noexcept;
+    [[nodiscard]] const std::string& source() const noexcept;  // 错误位置
+
+    // 静态工厂
+    static Error invalidArgument(std::string_view message = "");
+    static Error notFound(std::string_view message = "");
+    static Error fileNotFound(std::string_view path = "");
 };
 
 // 使用
 Result<Chunk*> loadChunk(ChunkPos pos) {
     if (!chunkExists(pos)) {
-        return Error{
-            Error::Code::NotFound,
-            fmt::format("Chunk at {} not found", pos),
-            "ChunkManager::loadChunk"
-        };
+        return Error(ErrorCode::NotFound, fmt::format("Chunk at {} not found", pos), "ChunkManager::loadChunk");
     }
-    // ...
+    // 也可以直接用工厂：return Error::notFound(...);
 }
+
+// ⚠️ 注意：Result::value() 在 failed() 时 throw std::runtime_error，
+//    必须先用 success() 判断再取 value()，不要依赖异常传递。
 ```
+
+【重要】要使用错误码时，必须参照 `Result.hpp` 中的 `mc::ErrorCode` 定义，不要按 MC 原版的 `Error.Code` 写法臆造。
 
 ---
 
@@ -1112,13 +1137,43 @@ void processMessage(const std::string& message) {
 ./scripts/configure.sh build
 ```
 
+该脚本在 Windows 上只是转调 `scripts/configure.bat`，而 `configure.bat` / `configure.ps1` / `configure.sh` 的默认模式与 `build` 快捷模式都**硬编码** `windows-clang-relwithdebinfo-server`，在这个模式下无法切换 preset。需要构建其它 preset 时走 pass-through 模式，把 `--preset` 透传给 cmake：
+
+```bash
+./scripts/configure.sh --preset windows-clang-debug
+cmake --build --preset windows-clang-debug
+```
+
 在macos上：
 ```bash
-cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
+cmake --build --preset macos-relwithdebinfo-server -- -j{当前机器核心数减去2}
 # 当前机器核心数要通过命令获取
+# 必须用 -server 后缀（MC_BUILD_CLIENT=OFF）。不带后缀的 macos-relwithdebinfo 会打开客户端构建，
+# 与"客户端已停止维护"的现状不符。
 ```
 
 如果仍然对于构建过程存在疑难问题，可参考`docs/BUILD.md`
+
+### preset 体系（先看清楚再决定用哪个）
+
+preset 定义在 `CMakePresets.json`，关键选项为 `MC_BUILD_CLIENT` / `MC_BUILD_SERVER` / `MC_BUILD_TESTS` / `MC_BUILD_BENCHMARKS` / `MC_BUILD_DIFF_PROBES` / `MC_BUILD_FUZZERS` / `MC_ENABLE_SANITIZERS`。所有 preset 的 `binaryDir` 都是仓库根 `build/`（`*-noprof` 为 `build-noprof/`），产物统一落在 `build/bin/<Config>/`。
+
+| preset | 客户端 | 测试 | 说明 |
+|---|---|---|---|
+| `windows-clang-relwithdebinfo-server` | OFF | ON | **Windows 默认**，`configure.sh build` 用的就是它 |
+| `windows-clang-debug` | ON | ON | Debug 构建 |
+| `windows-clang-relwithdebinfo` | ON | ON | 含客户端 |
+| `windows-clang-release` / `windows-clang-release-noprof` | ON | OFF | Release / 无 profiler 可分发版 |
+| `windows-clang-relwithdebinfo-noprof` | ON | ON | 无 profiler，`binaryDir` 为 `build-noprof/` |
+| `windows-clang-fuzz` / `linux-clang-fuzz` | — | OFF | 只构建 `tests/fuzz` 下的 libFuzzer 目标 |
+| `macos-relwithdebinfo-server` | OFF | ON | **macOS 默认**（`configure.sh` 的 macOS 分支用它） |
+| `macos-relwithdebinfo` / `macos-debug` / `macos-release` | ON | 视 preset | 含客户端 |
+| `linux-relwithdebinfo` / `linux-debug` | OFF | ON | **Linux 默认** |
+| `linux-clang-ci-tests` | — | ON | CI 用，**ASan + UBSan**；build preset 只构建 `minecraft-server` + `mc_tests` |
+| `linux-clang-ci-release` | — | OFF | CI 用，build preset 只构建 `minecraft-server` + `mc_benchmark` |
+| `linux-release-noprof` | OFF | OFF | 无 profiler 可分发版 |
+
+`tests/diff` 下的差分包默认**不**参与常规构建，需显式配置 `-DMC_BUILD_DIFF_PROBES=ON` 才会生成 `diff_*` 可执行文件。
 
 ### 判断构建是否真的结束（不要被重定向日志骗了）
 
@@ -1127,25 +1182,42 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 正确的判据（任选其一，必要时组合）：
 
 1. **后台任务输出里的完成标记**：`cmake --build ... > /tmp/x.log 2>&1; echo exit=$?` 中 `echo exit=$?` 的输出会进到后台任务自己的输出文件，看到 `exit=0` 才是真的结束了；
-2. **产物 mtime**：`stat -c '%y' build/bin/RelWithDebInfo/mc_tests.exe`，若 mtime 晚于本次构建启动时刻，说明链接已完成；
+2. **产物 mtime**：`stat -c '%y' build/bin/RelWithDebInfo/mc_tests.exe`，若 mtime 晚于本次构建启动时刻，说明链接已完成。该判据的前提是当前 preset 开启了 `MC_BUILD_TESTS`（见上表）；
 3. **幂等验证**：再跑一次同样的 `cmake --build`，若输出 `ninja: no work to do.` 就说明上一次已经完整结束、依赖图已闭合。
 
 排查「是否真的卡死」的标准动作：`tasklist` 查 `ninja.exe` / `clang++.exe` / `lld-link.exe` / 目标 exe 是否还在；都不在 = 没有进程在等，就是已经结束。
 
 ## 运行
 
-```bash
-./build/bin/RelWithDebInfo/minecraft-client --quick-play-new # 客户端（会同时启动内置服务端）
-./build/bin/RelWithDebInfo/minecraft-server --profiler_enabled=false # 服务端（命令行参数由 gflags 解析，可用 --gametest 无头跑测试、--config 指定配置） 建议绝大多数场景下明确传入--profiler_enabled=false，除非是在CPU性能分析场景下才需要启用这个flag
-./build/bin/RelWithDebInfo/minecraft-server.exe --gametest # 服务端无头跑集成测试
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="*GameTestServer*" # GameTestServer自动化集成测试
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="你的测试过滤器" # 其他单元测试
+产物路径统一为 `build/bin/<Config>/`，Windows 上配置名为 `RelWithDebInfo`、`Debug`、`Release` 等。
 
+```bash
+./build/bin/RelWithDebInfo/minecraft-server --profiler_enabled=false  # 服务端（命令行参数由 gflags 解析，可用 --gametest 无头跑测试、--config 指定配置、--interactive 进交互式终端）。建议绝大多数场景下明确传入 --profiler_enabled=false，除非是在 CPU 性能分析场景下才需要启用
+./build/bin/RelWithDebInfo/minecraft-server --gametest               # 服务端无头跑 GameTest（可配 --gametest_packs / --gametest_report / --gametest_tests / --gametest_world / --gametest_shard）
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter="*GameTestServer*" # GameTestServer 门面相关单元测试
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter="你的测试过滤器"     # 其他单元测试
 ```
+
+【重要】**客户端已停止维护，默认 preset 不再构建 `minecraft-client`**（见上文 preset 表，`MC_BUILD_CLIENT=OFF`）。`build/bin/RelWithDebInfo/minecraft-client` 若存在，也是历史构建的残留产物，不代表当前代码可构建出客户端；需要客户端时必须显式选 `MC_BUILD_CLIENT=ON` 的 preset 并自行承担后果。
 
 运行过程中的日志也会一并输出到控制台，如果你要抓日志来调试，请编译后直接执行上述命令即可，尽量不要让用户手动去执行。
 
 日志一般非常大，请尽量不要读取全文，只抓取你需要的部分。
+
+### 测试入口地图（四类测试，别混用）
+
+仓库有四类测试，各自有独立的入口，**不要**以为只有 `mc_tests`：
+
+| 类型 | 位置 | 怎么跑 | 参考文档 |
+|---|---|---|---|
+| 单元测试 | `tests/unit/` | `./build/bin/RelWithDebInfo/mc_tests --gtest_filter="..."` | `docs/test/UNIT_TEST.md` |
+| GameTest 集成测试 | `tests/integrated/`（行为包）+ `src/server/test/`（框架） | 单进程：`minecraft-server --gametest`；全量编排（分片 + 失败隔离重跑 + JUnit 聚合）：`node scripts/test/run-gametests.ts --filter='mob_*'` | `src/server/test/README.md`、`docs/test/INTEGRATED_TEST.md` |
+| 差分测试 | `tests/diff/`（C++ probe + Java oracle） | 需 `-DMC_BUILD_DIFF_PROBES=ON` 重新配置，产物为 `build/bin/RelWithDebInfo/diff_*`；跨服务端对拍：`node scripts/test/run_diff.ts` | `tests/diff/README.md`、`docs/test/diff/` |
+| 模糊测试 | `tests/fuzz/` | 用 `windows-clang-fuzz` / `linux-clang-fuzz` preset 构建 | `docs/test/FUZZING.md` |
+
+补充入口：`node scripts/test/setup.ts` 是一次性环境准备（构建 `tests/integrated` 行为包产物、建 junction、改基岩 `server.properties`），跑 `run_diff.ts` 之前需要先执行它。
+
+`src/server/test/README.md` 完整描述了 GameTest 框架的七层结构（`base/` / `framework/` / `native/` / `facade/` / `minecraft/` / `runner/` / `script/`），改动或新增 GameTest 前应先读它。
 
 ## 测试
 
