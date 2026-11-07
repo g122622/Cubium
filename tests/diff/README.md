@@ -601,6 +601,7 @@ diff_runner <domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一�
 | `inventory_slot_mapping` | 原版 jar `InventorySlotMappingOracle` | 94 个槽位互转 | 全部一致 | 背包内部索引 ↔ 菜单槽位 |
 | `inventory_add` | 原版 jar `InventoryAddOracle` | 14 个装填场景 | 全部一致 | 物品进包的合并与铺开顺序 |
 | `fall_damage` | 原版 jar `FallDamageOracle` | 109 个距离×倍率 | 全部一致 | 摔落伤害公式 |
+| `surface_rule` | 原版 jar `SurfaceRuleOracle` | 684 个条件判定 | 全部一致 | 地表规则的水面/石头深度/Y 条件 |
 
 `loot_function` 把范围从「整张表掷出来什么」收窄到**单个函数**：两侧各现场造一张「1 个池
 + 1 个必定产出一条物品」的表，表级只挂一个函数，然后在同一批种子上掷 4 次。差异因此只

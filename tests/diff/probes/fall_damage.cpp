@@ -58,7 +58,6 @@ using json = nlohmann::json;
  * 单元格式：`<distance>|<multiplier>`，距离与倍率都是十进制字面量。
  */
 
-
 /// 把距离与倍率拼成单元字符串。倍率保留原始十进制写法，避免与 oracle 侧不一致。
 std::string formatUnit(f64 distance, f32 multiplier)
 {
@@ -105,7 +104,6 @@ void writeList(std::FILE* out)
         std::fprintf(out, "%s\n", unit.c_str());
     }
 }
-
 
 std::string runLine(std::string_view inputLine)
 {

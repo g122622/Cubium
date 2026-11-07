@@ -2394,6 +2394,24 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "surface_rule",
+        probe: "surface_rule",
+        oracle: "SurfaceRuleOracle",
+        description: "地表规则的三种条件判定：水面、石头深度、Y 高度 —— 684 个单元。"
+        + "地表规则决定「这一格铺草方块还是沙子还是深板岩」，由一棵条件树逐格求值。"
+        + "三个边界写错会让整片地形错乱，而且不崩、不报错："
+        + "① 水面条件在 waterHeight == MIN_VALUE 时恒真（哨兵表示「这一列没有水」，不是「水面在最低处」），"
+        + "写成恒假会让所有非含水地形少铺一层；"
+        + "② 石头深度用 <= 而不是 <，深度从 1 起计、1 就是最表面那一层；"
+        + "③ Y 高度锚点可以是从上往下数（below_top），换算方式与从下往上不同。"
+        + "surfaceDepth 不作为输入而由真实噪声算出（noise * 2.75 + 3.0 + rng.nextDouble() * 0.25 取整），"
+        + "噪声曲线与位置随机工厂只要有一处不同就会得到不同的深度值。"
+        + "单元覆盖 MIN_VALUE 哨兵、正负 offset 与 multiplier、Floor/Ceiling 两种取法、"
+        + "secondary_depth_range 的 0 与非 0、以及两种锚点。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 export function findHarness(name: string): HarnessDeclaration | undefined {
     return HARNESSES.find((harness) => harness.name === name);
