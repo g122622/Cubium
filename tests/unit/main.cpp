@@ -52,8 +52,13 @@
 
 #include <spdlog/spdlog.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
+
+#ifdef __linux__
+#include <sys/resource.h>
+#endif
 
 namespace {
 
@@ -189,14 +194,55 @@ private:
 /// 监听器挂默认事件转发器之后，仅 OnTestEnd 做清理，不干扰断言/输出。
 class TestIsolationListener : public ::testing::EmptyTestEventListener {
 public:
+    /// `main` 进入 steady_clock 读数（毫秒），用于换算进程墙钟。
+    static inline i64 s_processStartMs = 0;
+
     void OnTestEnd(const ::testing::TestInfo& /*test_info*/) override
     {
         mc::server::ChunkTaskScheduler::resetThreadLocalContext();
+    }
+
+    /// 进程内全部用例结束（含全局环境 tear-down）时输出一行耗时诊断。
+    ///
+    /// gtest 报告里的 "(X ms)" 只统计环境 tear-down 结束之前的用例体；ctest 日志中
+    /// 每用例 "Passed N sec" 却是整个进程的墙钟，二者之差包含进程启动（ELF 装载、
+    /// 静态初始化、ASan 运行库初始化）、`main` 收尾（spdlog/单例析构、ASan 泄漏检查）
+    /// 与退出。本行在 `main` 返回前打印，CPU 时间在进程退出前读到，用于把 ctest 口径
+    /// 与用例口径对账，定位 CI 上单用例固定开销的来源。
+    void OnTestProgramEnd(const ::testing::UnitTest& unitTest) override
+    {
+        const auto wallMs = unitTest.elapsed_time().count() / 1000;
+        const auto uptimeMs =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+                .count() -
+            s_processStartMs;
+        spdlog::info("[TestTiming] tests_wall={}ms process_uptime={}ms cpu={}ms", wallMs, uptimeMs, _processCpuMs());
+    }
+
+private:
+    /// 读取本进程累计消耗的用户态 + 内核态 CPU 时间（毫秒）。非 Linux 平台返回 -1。
+    static i64 _processCpuMs()
+    {
+#ifdef __linux__
+        struct rusage usage{};
+        if (::getrusage(RUSAGE_SELF, &usage) != 0) {
+            return -1;
+        }
+        return static_cast<i64>(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) * 1000 +
+            (usage.ru_utime.tv_usec + usage.ru_stime.tv_usec) / 1000;
+#else
+        return -1;
+#endif
     }
 };
 
 int main(int argc, char* argv[])
 {
+    // 供 OnTestProgramEnd 统计进程墙钟的上界余量（见该类注释）。取值早于任何初始化。
+    TestIsolationListener::s_processStartMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+            .count();
+
     // 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用、std::terminate 等，
     // 输出调用栈和局部变量信息到终端。多次调用安全（只安装一次）。
     mc::assert::CrashHandler::install();
