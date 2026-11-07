@@ -33,6 +33,7 @@
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/goal/GoalConstants.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
@@ -700,7 +701,10 @@ protected:
         }
 
         f32 distSq = owner->distanceSqTo(*wantedEntity);
-        return distSq <= goal::constants::TEMPT_RANGE * goal::constants::TEMPT_RANGE;
+        // 与 TemptGoal 同源：诱惑范围取自 tempt_range 属性（默认 10.0），
+        // 数据包/命令调该属性时两条诱惑路径保持一致。
+        const f64 temptRange = owner->getAttributeValue(entity::attribute::Attributes::TEMPT_RANGE, 10.0);
+        return static_cast<f64>(distSq) <= temptRange * temptRange;
     }
 
     void startExecuting(IWorld* world, E* owner, i64 gameTime) override

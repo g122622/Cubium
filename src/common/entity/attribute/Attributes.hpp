@@ -547,7 +547,9 @@ inline std::unique_ptr<Attribute> cameraDistance()
  *
  * 决定手持诱饵物品时生物开始跟随的最大距离（猪/牛/羊/鸡等）。
  *
- * TODO: 接通消费点——TemptGoal 目前用的是写死的 10.0。
+ * 消费点是 `TemptGoal::_temptRange()`：玩家搜索半径与"是否超出范围"的距离判定都用它，
+ * 因此命令/数据包改属性即可调整跟随距离。该属性在 `AnimalEntity::registerAttributes`
+ * 注册（对应 vanilla `Animal.createAnimalAttributes()`），嗅探兽等再把默认值调高。
  *
  * 默认值: 10.0
  * 范围: 0.0 ~ 2048.0
