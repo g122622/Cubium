@@ -2268,6 +2268,22 @@ public:
     void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
 
     /**
+     * @brief 计算摔落伤害数值（不做免疫判定、不施加伤害）
+     *
+     * 公式：`floor((distance + 1e-6 - SAFE_FALL_DISTANCE) * damageMultiplier * FALL_DAMAGE_MULTIPLIER)`，
+     * 再减去子类减免。距离取 double 参与运算：伤害按整数格结算，若中途落到 f32，
+     * 恰好落在整数边界上的距离（例如 4.0）会因为 1e-6 被 f32 吃掉而算错一格。
+     *
+     * 免疫判定（FALL_DAMAGE_IMMUNE 标签、缓降效果）不在这里，而在 causeFallDamage 里。
+     *
+     * @param distance 摔落距离（格）
+     * @param damageMultiplier 该次摔落的环境倍率（普通方块 1.0、干草块/蜂蜜块 0.2、
+     *        石笋 2.0、史莱姆块 0），由方块在结算时给出
+     * @return 摔落伤害点数，可能为负（减免大于原始伤害时由调用方判 `> 0`）
+     */
+    [[nodiscard]] virtual i32 calculateFallDamage(f64 distance, f32 damageMultiplier) const;
+
+    /**
      * @brief 摔落伤害减免量（对齐 vanilla LivingEntity.calculateFallDamage 的减法项）
      *
      * vanilla `calculateFallDamage(distance, multiplier) = super.calculateFallDamage(...) - 减免`；

@@ -2378,6 +2378,22 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "fall_damage",
+        probe: "fall_damage",
+        oracle: "FallDamageOracle",
+        description: "摔落伤害的数值公式（原版 LivingEntity.calculateFallDamage / calculateFallPower）—— 109 个单元。"
+        + "公式是 floor((distance + 1e-6 - SAFE_FALL_DISTANCE) * multiplier * FALL_DAMAGE_MULTIPLIER) 再减子类减免。"
+        + "三个地方最容易写错：① +1e-6 把「恰好等于安全距离」推到安全距离之上一点点，"
+        + "让 3.0 格不掉血、3.0001 格才掉 1 点，少写这一项会让恰好 4.0 格也掉血；"
+        + "② 运算是 double——伤害按整数格结算，中途落到 f32 会让 1e-6 被舍入吃掉，整数边界附近整格偏差；"
+        + "③ 先 floor 再减法，子类减免（青蛙 5、山羊 10）作用在取整之后，先折算距离再取整结果不同。"
+        + "multiplier 由落地方块给出：普通 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0。"
+        + "单元覆盖安全距离边界（2.999999/3.0/3.000001/4.000001）、1~25 格的整格与半格与 .999、"
+        + "以及五种倍率与七种距离的笛卡尔组合。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 export function findHarness(name: string): HarnessDeclaration | undefined {
     return HARNESSES.find((harness) => harness.name === name);

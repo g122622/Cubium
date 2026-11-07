@@ -25,8 +25,8 @@
 
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
-#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 #include <nlohmann/json.hpp>
@@ -97,16 +97,23 @@ const std::vector<Scene>& scenes()
         // 选中槽是空的，而副手有同类未满：副手优先于扫描
         {"merge_into_offhand", 0, {{"minecraft:stone", 40, 10}}, "minecraft:stone", 20},
         // 索引 1 有同类未满，副手也有同类未满：副手应先被填
-        {"offhand_before_scan", 0, {{"minecraft:stone", 1, 10}, {"minecraft:stone", 40, 10}},
-            "minecraft:stone", 20},
+        {"offhand_before_scan", 0, {{"minecraft:stone", 1, 10}, {"minecraft:stone", 40, 10}}, "minecraft:stone", 20},
         // 索引 1、3 都有同类未满：应从下标小的开始
         {"scan_ascending", 0, {{"minecraft:stone", 1, 50}, {"minecraft:stone", 3, 50}}, "minecraft:stone", 20},
         // 快捷栏满、主背包有空位：应落到主背包
-        {"hotbar_full", 0,
-            {{"minecraft:dirt", 0, 64}, {"minecraft:dirt", 1, 64}, {"minecraft:dirt", 2, 64},
-                {"minecraft:dirt", 3, 64}, {"minecraft:dirt", 4, 64}, {"minecraft:dirt", 5, 64},
-                {"minecraft:dirt", 6, 64}, {"minecraft:dirt", 7, 64}, {"minecraft:dirt", 8, 64}},
-            "minecraft:stone", 1},
+        {"hotbar_full",
+            0,
+            {{"minecraft:dirt", 0, 64},
+                {"minecraft:dirt", 1, 64},
+                {"minecraft:dirt", 2, 64},
+                {"minecraft:dirt", 3, 64},
+                {"minecraft:dirt", 4, 64},
+                {"minecraft:dirt", 5, 64},
+                {"minecraft:dirt", 6, 64},
+                {"minecraft:dirt", 7, 64},
+                {"minecraft:dirt", 8, 64}},
+            "minecraft:stone",
+            1},
         // 不同物品不合并
         {"different_item_no_merge", 0, {{"minecraft:dirt", 0, 10}}, "minecraft:stone", 10},
         // 加入 0 个：不应改变任何槽
@@ -116,8 +123,7 @@ const std::vector<Scene>& scenes()
         // 选中槽已满：跳到副手
         {"selected_full", 0, {{"minecraft:stone", 0, 64}}, "minecraft:stone", 10},
         // 选中槽、副手、索引都满，但有空槽：应进第一个空槽
-        {"all_matching_full", 0, {{"minecraft:stone", 0, 64}, {"minecraft:stone", 40, 64}},
-            "minecraft:stone", 10},
+        {"all_matching_full", 0, {{"minecraft:stone", 0, 64}, {"minecraft:stone", 40, 64}}, "minecraft:stone", 10},
         // 加入数量跨多个槽：应依次铺满
         {"spans_multiple", 0, {{"minecraft:stone", 0, 60}}, "minecraft:stone", 200},
     };
