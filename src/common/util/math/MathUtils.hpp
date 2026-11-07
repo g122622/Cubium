@@ -454,10 +454,26 @@ template <typename T>
 
 /**
  * @brief 两数绝对值中的较大者，对应原版 `Mth.absMax(int, int)`
+ *
+ * **`abs(INT_MIN)` 必须按补码回绕处理，不能交给 `std::abs`。**
+ *
+ * Java 的 `Math.abs(Integer.MIN_VALUE)` 仍返回 `Integer.MIN_VALUE`——补码中 INT_MIN
+ * 的相反数不可表示，于是折回自身。原版两个 `absMax` 用例因此得到：
+ *
+ *   absMax(INT_MIN, 0) → max(INT_MIN, 0) = 0
+ *   absMax(INT_MIN, 5) → max(INT_MIN, 5) = 5
+ *
+ * C++ 的 `std::abs(INT_MIN)` 是未定义行为，实测会返回 INT_MIN，
+ * 于是 `max(INT_MIN, 0)` 得到 INT_MIN——与原版相反。
  */
 [[nodiscard]] inline i32 absMax(i32 a, i32 b)
 {
-    return std::max(std::abs(a), std::abs(b));
+    // 用无符号取反再转回，得到与 Java 一致的补码回绕结果。
+    const auto absOf = [](i32 value) {
+        const u32 magnitude = value < 0 ? (0U - static_cast<u32>(value)) : static_cast<u32>(value);
+        return static_cast<i32>(magnitude);
+    };
+    return std::max(absOf(a), absOf(b));
 }
 
 /**

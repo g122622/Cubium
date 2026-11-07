@@ -170,16 +170,17 @@ f32 clampedLerpF(f32 d, f32 start, f32 end)
 }
 
 /// 原版 `Mth.lerpInt(float, int, int)`。
+///
+/// 直接转调生产代码：探针内保留副本会让生产实现的缺陷隐身。
 i32 lerpInt(f32 d, i32 start, i32 end)
 {
-    return start + mthFloor(d * static_cast<f32>(end - start));
+    return math::lerpInt(d, start, end);
 }
 
 /// 原版 `Mth.lerpDiscrete(float, int, int)`。
 i32 lerpDiscrete(f32 t, i32 start, i32 end)
 {
-    const i32 delta = end - start;
-    return start + mthFloor(t * static_cast<f32>(delta - 1)) + (t > 0.0f ? 1 : 0);
+    return math::lerpDiscrete(t, start, end);
 }
 
 /// 原版 `Mth.lerp2`。
