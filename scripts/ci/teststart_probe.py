@@ -133,8 +133,9 @@ def resolve_compiler(preferred: str) -> str:
     raise ProbeError(f"找不到可用的 clang++（偏好 {preferred}）")
 
 
-def link(compiler: str, rsp: Path, output: Path) -> None:
-    completed = run([compiler, "-g", "-rdynamic", f"@{rsp}", "-o", str(output)], capture_output=True)
+def link(compiler: str, rsp: Path, output: Path, build_dir: Path) -> None:
+    # rsp 内的相对路径（lib/、vcpkg_installed/、各目标文件）都以构建目录为基准。
+    completed = run([compiler, "-g", "-rdynamic", f"@{rsp}", "-o", str(output)], cwd=build_dir, capture_output=True)
     if completed.returncode != 0:
         raise ProbeError(f"链接 {output} 失败：\n{completed.stderr[-4000:]}")
 
@@ -248,7 +249,7 @@ def main() -> int:
         rsp = PROBE_BIN_DIR / f"launcher_{tag}.rsp"
         rsp.write_text("\n".join([str(variant)] + libraries) + "\n")
         binary = PROBE_BIN_DIR / f"launcher_{tag}"
-        link(compiler, rsp, binary)
+        link(compiler, rsp, binary, build_dir)
         report["launcher"].append(
             {"mode": tag, "binary_bytes": binary.stat().st_size, **launch_once(binary, {}, Path("/tmp"), tag)}
         )
@@ -261,7 +262,7 @@ def main() -> int:
         members = [str(variant)] + ordered_objects[1:]
         rsp.write_text("\n".join(members + libraries) + "\n")
         binary = PROBE_BIN_DIR / f"teststart_level{level}"
-        link(compiler, rsp, binary)
+        link(compiler, rsp, binary, build_dir)
         for repeat in range(3):
             sample = launch_once(binary, {"PROBE_LEVEL": str(level), "MC_TIMING_WORLDGEN": "1"}, work_dir, f"level{level}")
             report["teststart"].append({"level": level, "repeat": repeat, **sample})
