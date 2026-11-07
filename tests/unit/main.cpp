@@ -211,7 +211,7 @@ public:
     /// 与用例口径对账，定位 CI 上单用例固定开销的来源。
     void OnTestProgramEnd(const ::testing::UnitTest& unitTest) override
     {
-        const auto wallMs = unitTest.elapsed_time().count();
+        const auto wallMs = unitTest.elapsed_time();
         const auto uptimeMs =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
                 .count() -
