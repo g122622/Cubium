@@ -53,10 +53,12 @@ def find_entry(compile_db: Path, suffix: str) -> dict:
     raise ProbeError(f"compile_commands.json 中找不到 {suffix}")
 
 
-def compile_variant(compile_db: Path, suffix: str, output: Path, extra_flags: list[str]) -> None:
+def compile_variant(compile_db: Path, suffix: str, output: Path, extra_flags: list[str], compiler: str) -> None:
     """按 mc_tests 的编译参数编译一个变体目标文件（只替换 -o 与追加宏定义）。"""
     entry = find_entry(compile_db, "tests/unit/main.cpp")
     tokens = shlex.split(entry["command"])
+    # 编译数据库里的编译器是构建 worker 的工具链专用封装；本作业没有该工具链。
+    tokens[0] = compiler
     result = []
     index = 0
     while index < len(tokens):
@@ -228,7 +230,7 @@ def main() -> int:
         variant = PROBE_BIN_DIR / f"main_{tag}.o"
         compile_variant(
             COMPILE_DB, "tests/ci-probes/src/launcher/probe_main.cpp", variant,
-            include_flags + [f"-DPROBE_MODE={mode}"],
+            include_flags + [f"-DPROBE_MODE={mode}"], compiler,
         )
         rsp = PROBE_BIN_DIR / f"launcher_{tag}.rsp"
         rsp.write_text("\n".join([str(variant)] + libraries) + "\n")
@@ -241,7 +243,7 @@ def main() -> int:
     # ---- 2. teststart：测试入口的分阶段装配 ----
     for level in range(5):
         variant = PROBE_BIN_DIR / f"main_level{level}.o"
-        compile_variant(COMPILE_DB, "tests/ci-probes/src/teststart/test_main.cpp", variant, include_flags)
+        compile_variant(COMPILE_DB, "tests/ci-probes/src/teststart/test_main.cpp", variant, include_flags, compiler)
         rsp = PROBE_BIN_DIR / f"teststart_level{level}.rsp"
         members = [str(variant)] + ordered_objects[1:]
         rsp.write_text("\n".join(members + libraries) + "\n")

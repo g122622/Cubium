@@ -490,7 +490,8 @@ jobs:
       - name: Run start-up probe
         run: |
           set -euo pipefail
-          python3 scripts/ci/teststart_probe.py --build-dir build --config RelWithDebInfo --out teststart-probe.json
+          python3 scripts/ci/teststart_probe.py --build-dir build --config RelWithDebInfo --out teststart-probe.json \
+            --compiler /usr/lib/llvm-22/bin/clang++
       - name: Summarize
         if: always()
         run: |
