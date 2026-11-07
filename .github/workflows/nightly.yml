@@ -111,6 +111,12 @@ jobs:
           if [ "${count}" -gt 0 ]; then
             tar -czf ctest-meta.tar.gz --null -T /tmp/ctest-meta.list
             echo "Packaged ${count} CTest metadata files."
+            # 链接期输入（各目标文件与库的链接参数）：诊断作业（test-start-probe）要在产物上
+            # 重新链接等价二进制来做对照实验，而 ninja 描述文件不属于上述测试元数据。
+            rm -rf .probe-link-meta && mkdir -p .probe-link-meta/build/CMakeFiles
+            cp build/CMakeFiles/impl-RelWithDebInfo.ninja .probe-link-meta/build/CMakeFiles/
+            cp build/compile_commands.json .probe-link-meta/build/
+            tar -czf teststart-probe.tar.gz -C .probe-link-meta .
             # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。
             find build -name '*_tests*.cmake' | head -5
           else
@@ -138,6 +144,7 @@ jobs:
             vcpkg-libs/
             build-artifact-check.txt
             ctest-meta.tar.gz
+            teststart-probe.tar.gz
             runner-info.json
             tests/integrated/*/scripts/
             tests/integrated/*/structures/
@@ -475,6 +482,7 @@ jobs:
             echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
           tar -xzf ctest-meta.tar.gz
+          tar -xzf teststart-probe.tar.gz
       - uses: ./.github/actions/setup-sanitizer-symbolizer
       - name: Run start-up probe
         run: |
