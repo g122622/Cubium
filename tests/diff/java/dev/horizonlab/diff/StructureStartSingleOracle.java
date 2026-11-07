@@ -166,6 +166,7 @@ public final class StructureStartSingleOracle {
                     entry.add("box", array);
                     entry.addProperty("rotation", piece.getRotation() == null ? 0 : piece.getRotation().ordinal());
                     entry.addProperty("template", templateNameOf(piece));
+                    entry.addProperty("pieceType", pieceTypeName(piece));
                     pieces.add(entry);
                 }
             }
@@ -176,6 +177,51 @@ public final class StructureStartSingleOracle {
         result.addProperty("valid", valid);
         result.add("pieces", pieces);
         return result;
+    }
+
+    /** 要塞片段类型的注册名（与探针侧的短名同口径）；其余构件返回空串。 */
+    private static String pieceTypeName(StructurePiece piece) {
+        net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType type = piece.getType();
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_STRAIGHT) {
+            return "shs";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_PRISON_HALL) {
+            return "shph";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_LEFT_TURN) {
+            return "shlt";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_RIGHT_TURN) {
+            return "shrt";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_ROOM_CROSSING) {
+            return "shrc";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_STRAIGHT_STAIRS_DOWN) {
+            return "shssd";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_STAIRS_DOWN) {
+            return "shsd";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_START) {
+            return "shstart";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_FIVE_CROSSING) {
+            return "sh5c";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_CHEST_CORRIDOR) {
+            return "shcc";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_LIBRARY) {
+            return "shli";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_PORTAL_ROOM) {
+            return "shpr";
+        }
+        if (type == net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType.STRONGHOLD_FILLER_CORRIDOR) {
+            return "shfc";
+        }
+        return "";
     }
 
     /**

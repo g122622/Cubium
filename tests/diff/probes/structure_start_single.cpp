@@ -74,6 +74,46 @@ const Structure& findStructure(const ResourceLocation& id)
     return *structure;
 }
 
+/**
+ * @brief 构件类型名（目前只有要塞片段有可比的注册名）
+ *
+ * 要塞片段没有模板、包围盒尺寸又高度重复，只比包围盒时"错一个片段"与"整体偏移"
+ * 无法区分。原版用注册名（shs/sh5c/shpr…），这里给出同一口径的短名。
+ */
+std::string pieceTypeName(i32 type)
+{
+    switch (type) {
+        case 100:
+            return "shs"; // Straight
+        case 101:
+            return "shph"; // PrisonHall
+        case 102:
+            return "shlt"; // LeftTurn
+        case 103:
+            return "shrt"; // RightTurn
+        case 104:
+            return "shrc"; // RoomCrossing
+        case 105:
+            return "shssd"; // StraightStairsDown
+        case 106:
+            return "shsd"; // StairsDown
+        case 107:
+            return "shstart"; // StartPiece
+        case 108:
+            return "sh5c"; // FiveCrossing
+        case 109:
+            return "shcc"; // ChestCorridor
+        case 110:
+            return "shli"; // Library
+        case 111:
+            return "shpr"; // PortalRoom
+        case 112:
+            return "shfc"; // FillerCorridor
+        default:
+            return "";
+    }
+}
+
 std::string runLine(std::string_view inputLine)
 {
     initializeStructureRegistries();
@@ -117,7 +157,8 @@ std::string runLine(std::string_view inputLine)
             // 会被误读成位置偏差。非拼图构件的模板名为空串。
             pieces.push_back(json{{"box", {box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()}},
                 {"rotation", static_cast<i32>(piece->getRotation())},
-                {"template", std::string(piece->templateLocation())}});
+                {"template", std::string(piece->templateLocation())},
+                {"pieceType", pieceTypeName(piece->type())}});
         }
     }
 

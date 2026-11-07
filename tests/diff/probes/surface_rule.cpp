@@ -21,8 +21,8 @@
  *
  */
 
-#include "probe.hpp"
 #include "common/core/Types.hpp"
+#include "probe.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -96,13 +96,8 @@ bool waterCondition(
  *
  * Floor 取上方深度、Ceiling 取下方深度；次级噪声在 [-1,1] 上线性映射到 [0, range] 再取整叠加。
  */
-bool stoneDepthCondition(i32 offset,
-    bool addSurfaceDepth,
-    i32 secondaryRange,
-    bool ceiling,
-    i32 stoneDepth,
-    i32 surfaceDepth,
-    f64 secondary)
+bool stoneDepthCondition(
+    i32 offset, bool addSurfaceDepth, i32 secondaryRange, bool ceiling, i32 stoneDepth, i32 surfaceDepth, f64 secondary)
 {
     // Floor 取 stoneDepthAbove、Ceiling 取 stoneDepthBelow；调用方已把两者填成同一个值，
     // 所以这里只需区分用哪一个（真实地形里两者不同）。
@@ -127,8 +122,13 @@ bool stoneDepthCondition(i32 offset,
  *
  * 锚点 `below_top` 从上往下数：`minY + height - 1 - offset`；`above_bottom` 从下往上数。
  */
-bool yCondition(
-    bool belowTop, i32 anchorValue, i32 multiplier, bool addStoneDepth, i32 blockY, i32 stoneDepthAbove, i32 surfaceDepth)
+bool yCondition(bool belowTop,
+    i32 anchorValue,
+    i32 multiplier,
+    bool addStoneDepth,
+    i32 blockY,
+    i32 stoneDepthAbove,
+    i32 surfaceDepth)
 {
     const i32 anchorY = belowTop ? (WORLD_MIN_Y + WORLD_HEIGHT - 1 - anchorValue) : (WORLD_MIN_Y + anchorValue);
     const i32 y = blockY + (addStoneDepth ? stoneDepthAbove : 0);
@@ -157,8 +157,12 @@ void writeList(std::FILE* out)
             for (const i32 surfaceDepth : {0, 1, 3}) {
                 for (const bool addStoneDepth : {false, true}) {
                     const std::string unit = formatUnit("water",
-                        {std::to_string(0), std::to_string(1), std::to_string(addStoneDepth ? 1 : 0),
-                            std::to_string(blockY), std::to_string(addStoneDepth ? 2 : 0), std::to_string(waterHeight),
+                        {std::to_string(0),
+                            std::to_string(1),
+                            std::to_string(addStoneDepth ? 1 : 0),
+                            std::to_string(blockY),
+                            std::to_string(addStoneDepth ? 2 : 0),
+                            std::to_string(waterHeight),
                             std::to_string(surfaceDepth)});
                     std::fprintf(out, "%s\n", unit.c_str());
                 }
@@ -168,8 +172,8 @@ void writeList(std::FILE* out)
     // 水面条件：非零 offset 与负 multiplier
     for (const i32 offset : {-2, 0, 5}) {
         for (const i32 multiplier : {-2, 0, 1, 4}) {
-            const std::string unit = formatUnit("water",
-                {std::to_string(offset), std::to_string(multiplier), "1", "63", "0", "62", "3"});
+            const std::string unit =
+                formatUnit("water", {std::to_string(offset), std::to_string(multiplier), "1", "63", "0", "62", "3"});
             std::fprintf(out, "%s\n", unit.c_str());
         }
     }
@@ -182,8 +186,12 @@ void writeList(std::FILE* out)
                     for (const bool addSurfaceDepth : {false, true}) {
                         for (const std::string& secondary : {"-1.000", "0.000", "0.500", "1.000"}) {
                             const std::string unit = formatUnit("stonedepth",
-                                {std::to_string(offset), std::to_string(addSurfaceDepth ? 1 : 0),
-                                    std::to_string(secondaryRange), surface, std::to_string(stoneDepth), "2",
+                                {std::to_string(offset),
+                                    std::to_string(addSurfaceDepth ? 1 : 0),
+                                    std::to_string(secondaryRange),
+                                    surface,
+                                    std::to_string(stoneDepth),
+                                    "2",
                                     secondary});
                             std::fprintf(out, "%s\n", unit.c_str());
                         }
@@ -199,8 +207,13 @@ void writeList(std::FILE* out)
             for (const i32 multiplier : {-1, 0, 1, 3}) {
                 for (const bool addStoneDepth : {false, true}) {
                     const std::string unit = formatUnit("y",
-                        {anchor, std::to_string(anchorValue), std::to_string(multiplier),
-                            std::to_string(addStoneDepth ? 1 : 0), "70", std::to_string(addStoneDepth ? 2 : 0), "1"});
+                        {anchor,
+                            std::to_string(anchorValue),
+                            std::to_string(multiplier),
+                            std::to_string(addStoneDepth ? 1 : 0),
+                            "70",
+                            std::to_string(addStoneDepth ? 2 : 0),
+                            "1"});
                     std::fprintf(out, "%s\n", unit.c_str());
                 }
             }
@@ -238,14 +251,29 @@ std::string runLine(std::string_view inputLine)
 
     bool result = false;
     if (kind == "water" && args.size() >= 7) {
-        result = waterCondition(std::stoi(args[0]), std::stoi(args[1]), std::stoi(args[2]) != 0, std::stoi(args[3]),
-            std::stoi(args[4]), std::stoi(args[5]), std::stoi(args[6]));
+        result = waterCondition(std::stoi(args[0]),
+            std::stoi(args[1]),
+            std::stoi(args[2]) != 0,
+            std::stoi(args[3]),
+            std::stoi(args[4]),
+            std::stoi(args[5]),
+            std::stoi(args[6]));
     } else if (kind == "stonedepth" && args.size() >= 7) {
-        result = stoneDepthCondition(std::stoi(args[0]), std::stoi(args[1]) != 0, std::stoi(args[2]),
-            args[3] == "ceiling", std::stoi(args[4]), std::stoi(args[5]), std::stod(args[6]));
+        result = stoneDepthCondition(std::stoi(args[0]),
+            std::stoi(args[1]) != 0,
+            std::stoi(args[2]),
+            args[3] == "ceiling",
+            std::stoi(args[4]),
+            std::stoi(args[5]),
+            std::stod(args[6]));
     } else if (kind == "y" && args.size() >= 7) {
-        result = yCondition(args[0] == "below_top", std::stoi(args[1]), std::stoi(args[2]), std::stoi(args[3]) != 0,
-            std::stoi(args[4]), std::stoi(args[5]), std::stoi(args[6]));
+        result = yCondition(args[0] == "below_top",
+            std::stoi(args[1]),
+            std::stoi(args[2]),
+            std::stoi(args[3]) != 0,
+            std::stoi(args[4]),
+            std::stoi(args[5]),
+            std::stoi(args[6]));
     } else {
         return json{{"unit", requested}, {"missing", true}}.dump();
     }

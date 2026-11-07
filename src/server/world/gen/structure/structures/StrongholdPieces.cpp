@@ -1203,33 +1203,35 @@ void StrongholdCrossing::buildComponent(
     }
     // 正向连接
     getNextComponentNormal(start, *this, pieces, rng, 5, 1);
-    // 根据方向计算偏移
-    i32 leftLowOffset = 3;
-    i32 leftHighOffset = 5;
-    i32 rightLowOffset = 3;
-    i32 rightHighOffset = 5;
+
+    // 侧门的偏移：低门贴地面（竖直偏移 3、沿轴偏移 1），高门贴上层（竖直 5、沿轴 7）。
+    // 西/北朝向时两轴镜像（8 - offset）。
+    // 【参数顺序】getNextComponentX/Z 的第一个参数是**竖直**偏移、第二个是**沿轴**偏移，
+    // 与原版 generateSmallDoorChildLeft/Right(..., verticalOffset, positionOffset) 一致；
+    // 传反会让侧门同时错高与错位若干格，且随机数消耗不变——表现为"到某个构件后
+    // 位置整体偏移、构件类型序列随后分叉"。
+    i32 lowVertical = 3;
+    i32 highVertical = 5;
     Direction direction = getCoordBaseMode();
     if (direction == Direction::West || direction == Direction::North) {
-        leftLowOffset = 8 - leftLowOffset;
-        leftHighOffset = 8 - leftHighOffset;
-        rightLowOffset = 8 - rightLowOffset;
-        rightHighOffset = 8 - rightHighOffset;
+        lowVertical = 8 - lowVertical;
+        highVertical = 8 - highVertical;
     }
     // 左下出口
     if (m_leftLow) {
-        getNextComponentX(start, *this, pieces, rng, 1, leftLowOffset);
+        getNextComponentX(start, *this, pieces, rng, lowVertical, 1);
     }
     // 左上出口
     if (m_leftHigh) {
-        getNextComponentX(start, *this, pieces, rng, 7, leftHighOffset);
+        getNextComponentX(start, *this, pieces, rng, highVertical, 7);
     }
     // 右下出口
     if (m_rightLow) {
-        getNextComponentZ(start, *this, pieces, rng, 1, rightLowOffset);
+        getNextComponentZ(start, *this, pieces, rng, lowVertical, 1);
     }
     // 右上出口
     if (m_rightHigh) {
-        getNextComponentZ(start, *this, pieces, rng, 7, rightHighOffset);
+        getNextComponentZ(start, *this, pieces, rng, highVertical, 7);
     }
 }
 
