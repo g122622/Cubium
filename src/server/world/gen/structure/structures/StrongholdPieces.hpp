@@ -116,7 +116,9 @@ public:
         i32 originY,
         i32 originZ,
         i32 sizeX,
-        i32 sizeZ);
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ);
 
     [[nodiscard]] Door entryDoor() const
     {
@@ -202,8 +204,8 @@ public:
         const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
-        i32 positionOffset,
-        i32 verticalOffset);
+        i32 verticalOffset,
+        i32 positionOffset);
 
     /**
      * @brief 获取下一个组件（Z方向）
@@ -214,13 +216,16 @@ public:
         const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
-        i32 positionOffset,
-        i32 verticalOffset);
+        i32 verticalOffset,
+        i32 positionOffset);
 
 protected:
     Door m_entryDoor = Door::Opening;
     i32 m_sizeX = 0;
     i32 m_sizeZ = 0;
+    /** orientBox 的局部偏移（各片段不同：多数是 -1，五向交叉点是 -4）。 */
+    i32 m_offsetX = 0;
+    i32 m_offsetZ = 0;
 };
 
 // ============================================================================
@@ -257,6 +262,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -306,6 +313,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -351,6 +360,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -396,6 +407,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -441,6 +454,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -495,6 +510,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -550,7 +567,9 @@ public:
         Direction direction,
         std::optional<Door> fixedDoor,
         i32 sizeX,
-        i32 sizeZ);
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -682,23 +701,12 @@ public:
         m_imposedPieceType = type;
     }
 
-    void setLastPieceType(i32 type)
-    {
-        m_lastPieceType = type;
-    }
-
-    [[nodiscard]] i32 lastPieceType() const
-    {
-        return m_lastPieceType;
-    }
-
 private:
     std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表
     StrongholdPieceWeight* m_lastPlaced = nullptr;  ///< 上一个放置的片段权重
     StrongholdPiece* m_portalRoom = nullptr;        ///< 传送门房间引用
     std::vector<StructurePiece*> m_pendingChildren; ///< 待处理的子片段
     i32 m_imposedPieceType = -1;                    ///< 强制片段类型（-1 表示无强制）
-    i32 m_lastPieceType = -1;                       ///< 上一个生成的片段类型（无则 -1）
 };
 
 // ============================================================================
@@ -723,6 +731,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -774,6 +784,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -822,6 +834,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -872,6 +886,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -921,6 +937,8 @@ public:
         i32 originZ,
         i32 sizeX,
         i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,

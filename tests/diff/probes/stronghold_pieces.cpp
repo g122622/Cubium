@@ -81,45 +81,24 @@ std::string pieceTypeName(i32 type)
 /**
  * @brief 构件在原版里的 `getOrientation()`
  *
- * 原版 `StructurePiece.setOrientation(Direction)` 的映射是：
- *   SOUTH -> mirror LEFT_RIGHT, rotation NONE
- *   WEST  -> mirror LEFT_RIGHT, rotation CLOCKWISE_90
- *   EAST  -> mirror NONE,       rotation CLOCKWISE_90
- *   NORTH -> mirror NONE,       rotation NONE
- * 未调用过 setOrientation 的构件两字段都是默认值，这里输出 null 与之一致。
- * 起始楼梯记录了自己的朝向，直接取用。
+ * 原版把朝向存成独立字段：构造时 `setOrientation` 写入，房间一类从不设朝向的构件为 null。
+ * 本项目同位置保存的是 `setCoordBaseMode` 记下的方向，直接读取即可——
+ * 用 rotation/mirror 反推会把 NORTH 与「未设朝向」混为一谈（两者旋转相同）。
  */
 const char* orientationName(const StructurePiece& piece)
 {
-    if (const auto* startStairs = dynamic_cast<const StrongholdStartStairs*>(&piece)) {
-        switch (startStairs->orientation()) {
-            case Direction::North:
-                return "NORTH";
-            case Direction::South:
-                return "SOUTH";
-            case Direction::West:
-                return "WEST";
-            case Direction::East:
-                return "EAST";
-            default:
-                return "null";
-        }
+    switch (piece.orientation()) {
+        case Direction::North:
+            return "NORTH";
+        case Direction::South:
+            return "SOUTH";
+        case Direction::West:
+            return "WEST";
+        case Direction::East:
+            return "EAST";
+        default:
+            return "null";
     }
-    const Rotation rotation = piece.getRotation();
-    const Mirror mirror = piece.getMirror();
-    if (rotation == Rotation::None && mirror == Mirror::None) {
-        return "null";
-    }
-    if (rotation == Rotation::None) {
-        return "SOUTH";
-    }
-    if (rotation == Rotation::Clockwise90 && mirror == Mirror::LeftRight) {
-        return "WEST";
-    }
-    if (rotation == Rotation::Clockwise90 && mirror == Mirror::None) {
-        return "EAST";
-    }
-    return "?";
 }
 
 /** 朝向名：直接取构件记录的 Rotation，与 structure_starts 的口径一致。 */
@@ -199,6 +178,7 @@ std::string runLine(std::string_view inputLine)
             startBBox.maxZ()});
         for (const auto& piece : selection.start->pieces()) {
             const auto& bbox = piece->getBoundingBox();
+
             pieces.push_back(json{{"type", pieceTypeName(piece->getComponentType())},
                 {"box", {bbox.minX(), bbox.minY(), bbox.minZ(), bbox.maxX(), bbox.maxY(), bbox.maxZ()}},
                 {"rotation", rotationName(piece->getRotation())},

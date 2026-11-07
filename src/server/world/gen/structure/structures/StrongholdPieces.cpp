@@ -61,40 +61,42 @@ StrongholdPiece::StrongholdPiece(i32 type,
     i32 originY,
     i32 originZ,
     i32 sizeX,
-    i32 sizeZ)
+    i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ)
     : StructurePiece(type, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ)
     , m_sizeX(sizeX)
     , m_sizeZ(sizeZ)
+    , m_offsetX(offsetX)
+    , m_offsetZ(offsetZ)
 {}
 
-// 原版各片段展开盒子时用的局部偏移都是同一个形状：主体从原点起、入口门开在局部 -Z 边
-// 并让门占位后缩 1 格（各片段的 `-1, …, 0`）。于是原版盒角与构造原点之差只取决于朝向：
-//   SOUTH: minX=originX+offsetX,        maxX=originX+offsetX+sizeX-1
-//   NORTH: minZ=originZ-sizeZ+1+offsetZ, maxZ=originZ+offsetZ
-//   WEST:  minX=originX-sizeZ+1+offsetZ, maxX=originX+offsetZ
-//   EAST:  minZ=originZ-sizeZ+1+offsetZ, maxZ=originZ+offsetZ
-// 沿朝向往返的两轴上盒子跨度恒为带符号的 `size-1`（`offsetX..offsetX+sizeX-1`），
-// 因此上面四个访问器直接由原点、尺寸与各片段共用的 offsetX=-1 / offsetZ=0 算出，
-// 不依赖世界盒的实际形状。子构件落点里原版的 `minX() + 偏移` 即
-// `orientedMinX(direction) + 偏移`。
+// 原版子构件的落点用的是「原版盒角 ± 偏移」，而原版盒角就是 `orientBox` 算出的世界盒近角——
+// 本项目每个构件创建时也都走同一套 `orientBox`，盒角因此逐坐标一致，直接取自己的盒子即可。
+// 不能用「构造原点 + 朝向」重算：起始楼梯走的是 `makeBoundingBox`（与朝向无关的轴对齐盒），
+// 按 orientBox 的规则重算会多减/多加 `size-1`。
 i32 StrongholdPiece::orientedMinX(Direction direction) const noexcept
 {
-    return direction == Direction::West ? originX() - m_sizeZ + 1 : originX() - 1;
+    MC_UNUSED(direction);
+    return minX();
 }
 
 i32 StrongholdPiece::orientedMaxX(Direction direction) const noexcept
 {
-    return direction == Direction::West ? originX() : originX() + m_sizeX - 1 - 1;
+    MC_UNUSED(direction);
+    return maxX();
 }
 
 i32 StrongholdPiece::orientedMinZ(Direction direction) const noexcept
 {
-    return direction == Direction::North ? originZ() - m_sizeZ + 1 : originZ() - 1;
+    MC_UNUSED(direction);
+    return minZ();
 }
 
 i32 StrongholdPiece::orientedMaxZ(Direction direction) const noexcept
 {
-    return direction == Direction::North ? originZ() : originZ() + m_sizeX - 1 - 1;
+    MC_UNUSED(direction);
+    return maxZ();
 }
 
 StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::IRandom& rng)
@@ -189,14 +191,12 @@ StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* s
     i32 positionOffset,
     i32 verticalOffset)
 {
-    // 朝向一律取「原版 getOrientation()」：房间、走廊等构件原版从不调 setOrientation，
-    // 它们不会从这里开子构件；能走到这里的构件都与盒子朝同一套方向。
     const Direction direction = orientation();
     if (direction == Direction::None) {
         return nullptr;
     }
     i32 x = 0, y = 0, z = 0;
-    Direction newDirection = direction;
+    const Direction newDirection = direction;
     switch (direction) {
         case Direction::North:
             x = orientedMinX(direction) + positionOffset;
@@ -228,19 +228,17 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
     const StructurePiece& previous,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng,
-    i32 positionOffset,
-    i32 verticalOffset)
+    i32 verticalOffset,
+    i32 positionOffset)
 {
-    // 朝向一律取「原版 getOrientation()」：房间、走廊等构件原版从不调 setOrientation，
-    // 它们不会从这里开子构件；能走到这里的构件都与盒子朝同一套方向。
     const Direction direction = orientation();
     if (direction == Direction::None) {
         return nullptr;
     }
     i32 x = 0, y = 0, z = 0;
     Direction newDirection = Direction::None;
-    // 原版 `generateSmallDoorChildLeft`（p_229905_ = 沿局部 X 的偏移、p_229906_ = 沿局部 Z 的偏移）：
-    // 门在局部 -X 边（本体翻滚系里是南/北门），门沿局部 Z 的位置由调用方给的偏移决定。
+    // 原版 `generateSmallDoorChildLeft`：North/South 的左门是贴 minX 的 -X 侧门，Z 由
+    // positionOffset 决定；West/East 的左门是贴 minZ 的 -Z 侧门，X 由 positionOffset 决定。
     switch (direction) {
         case Direction::North:
         case Direction::South:
@@ -266,30 +264,28 @@ StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
     const StructurePiece& previous,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::IRandom& rng,
-    i32 positionOffset,
-    i32 verticalOffset)
+    i32 verticalOffset,
+    i32 positionOffset)
 {
-    // 朝向一律取「原版 getOrientation()」：房间、走廊等构件原版从不调 setOrientation，
-    // 它们不会从这里开子构件；能走到这里的构件都与盒子朝同一套方向。
     const Direction direction = orientation();
     if (direction == Direction::None) {
         return nullptr;
     }
     i32 x = 0, y = 0, z = 0;
     Direction newDirection = Direction::None;
-    // 原版 `generateSmallDoorChildRight`，与左门同一套「局部偏移」语义（见 getNextComponentX）。
+    // 原版 `generateSmallDoorChildRight`：North/South 的右门是贴 maxX 的 +X 侧门；
+    // West/East 的右门是贴 maxZ 的 +Z 侧门。
     switch (direction) {
         case Direction::North:
         case Direction::South:
-            // 世界 EAST：局部 +X（刚体翻滚）。
             x = orientedMaxX(direction) + 1;
             y = minY() + verticalOffset;
             z = orientedMinZ(direction) + positionOffset;
+
             newDirection = Direction::East;
             break;
         case Direction::West:
         case Direction::East:
-            // 世界 SOUTH：刚体顺时针转 +90°，即局部 +Z 方向。
             x = orientedMinX(direction) + positionOffset;
             y = minY() + verticalOffset;
             z = orientedMaxZ(direction) + 1;
@@ -343,8 +339,11 @@ StrongholdStraight::StrongholdStraight(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     // 抽取顺序：原版 `Straight` 先 `randomSmallDoor(random)` 再抽两个边支路开关。
     // 初始化列表先于构造函数体求值，写在列表里会让入口门退到最后抽取。
@@ -434,6 +433,8 @@ std::unique_ptr<StrongholdStraight> StrongholdStraight::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -1,
+        0,
         direction);
 }
 
@@ -455,8 +456,11 @@ StrongholdPrison::StrongholdPrison(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -526,6 +530,8 @@ std::unique_ptr<StrongholdPrison> StrongholdPrison::createPiece(std::vector<std:
         z,
         kSizeX,
         kSizeZ,
+        -1,
+        0,
         direction);
 }
 
@@ -543,8 +549,11 @@ StrongholdLeftTurn::StrongholdLeftTurn(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -622,6 +631,8 @@ std::unique_ptr<StrongholdLeftTurn> StrongholdLeftTurn::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -1,
+        0,
         direction);
 }
 
@@ -639,8 +650,11 @@ StrongholdRightTurn::StrongholdRightTurn(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -714,6 +728,8 @@ std::unique_ptr<StrongholdRightTurn> StrongholdRightTurn::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -1,
+        0,
         direction);
 }
 
@@ -731,8 +747,11 @@ StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     // 抽取顺序：原版 `RoomCrossing` 先 `randomSmallDoor(random)` 再抽房间类型。
     setCoordBaseMode(direction);
@@ -838,6 +857,8 @@ std::unique_ptr<StrongholdRoomCrossing> StrongholdRoomCrossing::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -4,
+        0,
         direction);
 }
 
@@ -855,8 +876,11 @@ StrongholdStairsStraight::StrongholdStairsStraight(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -931,6 +955,8 @@ std::unique_ptr<StrongholdStairsStraight> StrongholdStairsStraight::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -1,
+        0,
         direction);
 }
 
@@ -949,8 +975,11 @@ StrongholdStairs::StrongholdStairs(i32 componentType,
     Direction direction,
     std::optional<Door> fixedDoor,
     i32 sizeX,
-    i32 sizeZ)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     setCoordBaseMode(direction);
     // 门类型要么由随机数决定（普通楼梯：原版 `randomSmallDoor`），要么写死（起始楼梯：
@@ -1039,33 +1068,34 @@ std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std:
         direction,
         std::nullopt, // 普通楼梯：入口门按原版 randomSmallDoor 抽取
         kSizeX,
-        kSizeZ);
+        kSizeZ,
+        -1,
+        0);
 }
 
 // StartStairs
 /**
- * @brief 起始楼梯在 XZ 上的盒子
+ * @brief 起始楼梯的盒子
  *
- * 与其余片段同一套 orientBox 展开参数（-1, -7, 0, 5, 11, 5），只是 Y 从固定的
- * MAGIC_START_Y 起算，向下伸展 11 格。
+ * 原版走的是 `StairsDown` 的起始构造，它用的是 `makeBoundingBox(x, MAGIC_START_Y, z,
+ * direction, 5, 11, 5)` —— 与朝向无关的轴对齐盒：`x..x+4 / 64..74 / z..z+4`。
+ * 这与普通楼梯（`orientBox(..., -1, -7, 0, 5, 11, 5, direction)`）不同，不能混用。
  */
-StructureBoundingBox startBox(i32 x, i32 z, Direction direction)
+StructureBoundingBox startBox(i32 x, i32 z)
 {
-    const StructureBoundingBox box =
-        StructureBoundingBox::orientBox(x, StrongholdStartStairs::MAGIC_START_Y, z, -1, -7, 0, 5, 11, 5, direction);
-
-    return box;
+    const i32 y = StrongholdStartStairs::MAGIC_START_Y;
+    return StructureBoundingBox(x, y, z, x + 4, y + 10, z + 4);
 }
 
 StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z, Direction direction)
     : StrongholdStairs(StrongholdPieceTypes::START_STAIRS,
           rng,
-          startBox(x, z, direction).minX(),
-          startBox(x, z, direction).minY(),
-          startBox(x, z, direction).minZ(),
-          startBox(x, z, direction).maxX(),
-          startBox(x, z, direction).maxY(),
-          startBox(x, z, direction).maxZ(),
+          startBox(x, z).minX(),
+          startBox(x, z).minY(),
+          startBox(x, z).minZ(),
+          startBox(x, z).maxX(),
+          startBox(x, z).maxY(),
+          startBox(x, z).maxZ(),
           // 盒子由窗口展开，构造原点仍是 (x, MAGIC_START_Y, z)。
           x,
           StrongholdStartStairs::MAGIC_START_Y,
@@ -1078,7 +1108,9 @@ StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z, D
           // 整座要塞的随机流从第一个片段起就少/多一次抽取，之后全部错位。
           Door::Opening,
           5,
-          5)
+          5,
+          0,
+          0)
 {
     // 【必须置位】原版起始楼梯的构造把 isSource 设为 true，addChildren 正是靠它把下一个
     // 构件强制成五向交叉点——要塞的第一个子构件因此固定是五向交叉点。
@@ -1108,8 +1140,11 @@ StrongholdCrossing::StrongholdCrossing(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     // 【抽取顺序必须与原版一致】原版 `FiveCrossing` 构造的顺序是
     //     entryDoor = randomSmallDoor(random);   ← 先抽入口门
@@ -1179,19 +1214,19 @@ void StrongholdCrossing::buildComponent(
     }
     // 左下出口
     if (m_leftLow) {
-        getNextComponentX(start, *this, pieces, rng, leftLowOffset, 1);
+        getNextComponentX(start, *this, pieces, rng, 1, leftLowOffset);
     }
     // 左上出口
     if (m_leftHigh) {
-        getNextComponentX(start, *this, pieces, rng, leftHighOffset, 7);
+        getNextComponentX(start, *this, pieces, rng, 7, leftHighOffset);
     }
     // 右下出口
     if (m_rightLow) {
-        getNextComponentZ(start, *this, pieces, rng, rightLowOffset, 1);
+        getNextComponentZ(start, *this, pieces, rng, 1, rightLowOffset);
     }
     // 右上出口
     if (m_rightHigh) {
-        getNextComponentZ(start, *this, pieces, rng, rightHighOffset, 7);
+        getNextComponentZ(start, *this, pieces, rng, 7, rightHighOffset);
     }
 }
 
@@ -1223,6 +1258,8 @@ std::unique_ptr<StrongholdCrossing> StrongholdCrossing::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -4,
+        0,
         direction);
 }
 
@@ -1240,8 +1277,11 @@ StrongholdChestCorridor::StrongholdChestCorridor(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -1319,6 +1359,8 @@ std::unique_ptr<StrongholdChestCorridor> StrongholdChestCorridor::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -1,
+        0,
         direction);
 }
 
@@ -1336,8 +1378,11 @@ StrongholdLibrary::StrongholdLibrary(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
     , m_isLargeRoom((maxY - minY) > 6)
 {
     setCoordBaseMode(direction);
@@ -1425,6 +1470,8 @@ std::unique_ptr<StrongholdLibrary> StrongholdLibrary::createPiece(std::vector<st
         z,
         kSizeX,
         kSizeZ,
+        -4,
+        0,
         direction);
 }
 
@@ -1442,8 +1489,11 @@ StrongholdPortalRoom::StrongholdPortalRoom(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
 {
     setCoordBaseMode(direction);
 }
@@ -1572,6 +1622,8 @@ std::unique_ptr<StrongholdPortalRoom> StrongholdPortalRoom::createPiece(
         z,
         kSizeX,
         kSizeZ,
+        -4,
+        0,
         direction);
 }
 
@@ -1590,8 +1642,11 @@ StrongholdCorridor::StrongholdCorridor(i32 componentType,
     i32 originZ,
     i32 sizeX,
     i32 sizeZ,
+    i32 offsetX,
+    i32 offsetZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
+    : StrongholdPiece(
+          componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ, offsetX, offsetZ)
     , m_steps(steps)
 {
     setCoordBaseMode(direction);
@@ -1658,6 +1713,8 @@ std::unique_ptr<StrongholdCorridor> StrongholdCorridor::createPiece(
         z,
         5,
         steps,
+        -1,
+        0,
         direction);
 }
 
@@ -1846,13 +1903,12 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
             }
         }
     }
-    // 如果所有尝试都失败，创建填充走廊。
-    //
-    // 原版两条路径：上一个片段是走廊（走道）时再补一段走廊，否则在十字路口补一个十字路口。
-    // 这里原先不分类型一律补走廊：十字路口的支路被几段 3 格短的填充走廊顶死后
-    // 整棵树只剩单链，要塞退化成一条走廊蛇形（实测 164 个构件全是走廊）。
-    if (start != nullptr && start->lastPieceType() == StrongholdPieceTypes::CORRIDOR) {
+
+    // 抽签五次全部落空（或抽中的类型放不下）时，原版无条件补一段填充走廊：
+    // 走廊长度由与已放置构件的碰撞结果决定，放不下才返回空。
+    {
         StructureBoundingBox box = StrongholdCorridor::findPieceBox(pieces, rng, x, y, z, direction);
+
         if (!box.isValid() || box.minY() <= 1) {
             return nullptr;
         }
@@ -1873,9 +1929,10 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
             z,
             5,
             steps,
+            -1,
+            0,
             direction);
     }
-    return StrongholdCrossing::createPiece(pieces, rng, x, y, z, direction, depth);
 }
 
 StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
@@ -1922,7 +1979,6 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     // 返回值只是便于调用方继续传递的非拥有观察指针。
     // 分支深度：本片段记录的是传入的 depth，下一层的 getNextComponent* 取它的 +1。
     piece->setExpansionDepth(previous.expansionDepth() + 1);
-    start->setLastPieceType(piece->type());
     // 传送门房间在这里登记：此时手上才有真正的起始楼梯指针。要塞的重试循环以
     // 「已生成传送门房间」为终止条件，漏登记会让生成器永远重试下去。
     if (dynamic_cast<StrongholdPortalRoom*>(piece.get()) != nullptr) {

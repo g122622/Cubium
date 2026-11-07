@@ -112,6 +112,8 @@ std::string runLine(std::string_view inputLine)
         z,
         11,
         11,
+        -4,
+        0,
         direction);
     piece->setExpansionDepth(depth);
 

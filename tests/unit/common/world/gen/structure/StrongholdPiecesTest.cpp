@@ -573,6 +573,8 @@ TEST_F(StrongholdLibraryTest, LargeRoom_HasTwoChests)
         0,
         14,
         15,
+        -4,
+        0,
         Direction::South);
 
     // 验证是大型房间
@@ -610,7 +612,7 @@ TEST_F(StrongholdLibraryTest, SmallRoom_HasOneChest)
 
     // minY=40, maxY=46 → 高度差 6，不大于 6，所以是小房间
     StrongholdLibrary library(
-        StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 46, 14, 0, 40, 0, 14, 15, Direction::South);
+        StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 46, 14, 0, 40, 0, 14, 15, -4, 0, Direction::South);
 
     // 验证不是大型房间
     EXPECT_FALSE(library.isLargeRoom());
@@ -641,7 +643,7 @@ TEST_F(StrongholdLibraryTest, LargeRoomChestsHaveLootTables)
     math::Random rng(42);
 
     StrongholdLibrary library(
-        StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 50, 14, 0, 40, 0, 14, 15, Direction::South);
+        StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 50, 14, 0, 40, 0, 14, 15, -4, 0, Direction::South);
 
     StructureBoundingBox bounds(-16, 0, -16, 32, 80, 32);
     library.generate(*m_region, rng, 0, 0, bounds);

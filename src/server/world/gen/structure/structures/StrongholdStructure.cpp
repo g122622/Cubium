@@ -156,7 +156,9 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
         const i32 seaLevel = ::mc::world::SEA_LEVEL;
         const i32 minY = ::mc::world::MIN_BUILD_HEIGHT;
         constexpr i32 kBelowSeaLevelMargin = 10;
+
         const StructureBoundingBox overall = start->getBoundingBox();
+
         const i32 topLimit = seaLevel - kBelowSeaLevelMargin;
         i32 topY = (overall.maxY() - overall.minY() + 1) + minY + 1;
         if (topY < topLimit) {
