@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
     // 注册跨用例隔离监听器：每用例结束重置 thread_local 调度上下文，根除全二进制
     // 直跑时的跨用例共享状态污染（详见 docs/test/「跨测试隔离模型」）。
     ::testing::UnitTest::GetInstance()->listeners().Append(new TestIsolationListener());
+    WorldGenRegistryEnvironment::recordTiming("main_after_listener", sinceStart());
     const int result = RUN_ALL_TESTS();
     WorldGenRegistryEnvironment::recordTiming("main_after_run", sinceStart());
 

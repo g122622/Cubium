@@ -494,7 +494,8 @@ jobs:
           set +e
           BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
           cd build/tests/unit
-          for mode in "--gtest_list_tests" "--gtest_filter=NoSuchTest" "--gtest_filter=MathUtils.LerpDouble"; do
+          for mode in "--gtest_list_tests" "--gtest_filter=NoSuchTest" "--gtest_filter=MathUtils.LerpDouble" \
+                      "--gtest_filter=MathUtils.*" "--gtest_filter=-MathUtils.LerpDouble"; do
             rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
             start=$(date +%s.%N)
             "$BIN" $mode > /dev/null 2>&1
