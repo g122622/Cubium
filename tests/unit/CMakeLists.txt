@@ -240,6 +240,8 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
     common/entity/entities/passive/basic/AnimalEntityTest.cpp
+    # 悦灵音效（手持物品/空手两套环境音 + 专用受伤音）
+    common/entity/entities/passive/allay/AllayEntityTest.cpp
     common/entity/entities/passive/tamable/WolfEntityTest.cpp
     common/entity/entities/passive/tamable/ParrotEntityTest.cpp
     common/entity/entities/passive/tamable/OcelotEntityTest.cpp

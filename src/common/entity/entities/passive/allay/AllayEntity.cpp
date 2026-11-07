@@ -23,6 +23,7 @@
 
 #include "AllayEntity.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/sound/SoundEvents.hpp"
 
 namespace mc {
 namespace entity {
@@ -53,6 +54,19 @@ void AllayEntity::registerAttributes()
     // 对齐原版 `Allay#createAttributes()`：MAX_HEALTH = 20，FLYING_SPEED = 0.1。
     attributes().setBaseValue(attribute::Attributes::MAX_HEALTH, 20.0);
     attributes().setBaseValue(attribute::Attributes::MOVEMENT_SPEED, 0.1);
+}
+
+std::optional<ResourceLocation> AllayEntity::getAmbientSound() const
+{
+    // 悦灵的环境音分"手持物品"与"空手"两套，没有通用的 entity.allay.ambient。
+    const ItemStack& mainHand = getEquipment(EquipmentSlot::MainHand);
+    return mainHand.isEmpty() ? SoundEvents::ENTITY_ALLAY_AMBIENT_WITHOUT_ITEM
+                              : SoundEvents::ENTITY_ALLAY_AMBIENT_WITH_ITEM;
+}
+
+std::optional<ResourceLocation> AllayEntity::getHurtSound(DamageSource& /*source*/) const
+{
+    return SoundEvents::ENTITY_ALLAY_HURT;
 }
 
 } // namespace entity
