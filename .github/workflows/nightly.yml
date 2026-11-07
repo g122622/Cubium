@@ -487,6 +487,23 @@ jobs:
             echo "run $i: total_wall=$(echo "$end - $start" | bc)"
             cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
           done
+      - name: Sample the slow process with gdb
+        env:
+          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
+        run: |
+          set +e
+          command -v gdb >/dev/null || sudo apt-get install -y --no-install-recommends gdb
+          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
+          cd build/tests/unit
+          "$BIN" --gtest_filter=MathUtils.LerpDouble > /dev/null 2>&1 &
+          pid=$!
+          sleep 3
+          for i in 1 2 3; do
+            echo "===== sample $i ====="
+            gdb -q -batch -ex "thread apply all bt 15" -p "$pid" 2>&1 | grep -vE "^\[New LWP|warning:" | head -120
+            sleep 2
+          done
+          wait "$pid"
       - name: Compare list mode and empty filter
         env:
           MC_SETUP_TIMING_DIR: ${{ runner.temp }}
