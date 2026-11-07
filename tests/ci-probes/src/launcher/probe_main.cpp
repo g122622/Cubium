@@ -14,6 +14,8 @@
 //   PROBE_DONE <wall_ms> <cpu_ms>
 // 最后一个输出由静态对象析构完成，早于进程真正退出（动态链接器卸载、ASan 运行库收尾）。
 
+#include "common/core/Types.hpp"
+
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
