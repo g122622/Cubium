@@ -66,6 +66,7 @@ int main(int argc, char* argv[])
     WorldGenRegistryEnvironment::recordTiming("main_after_init_gtest", sinceStart());
     // 注册全局环境：在 RUN_ALL_TESTS 之前加载世界生成注册表。
     ::testing::AddGlobalTestEnvironment(new ProbeEnvironmentA());
+    ::testing::AddGlobalTestEnvironment(new ProbeEnvironmentB());
     ::testing::AddGlobalTestEnvironment(new WorldGenRegistryEnvironment());
     spdlog::info("[SetupTiming] main_after_add_env");
     WorldGenRegistryEnvironment::recordTiming("main_after_add_env", sinceStart());

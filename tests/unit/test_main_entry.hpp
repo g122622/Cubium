@@ -267,6 +267,15 @@ public:
     }
 };
 
+/// 第二次、第三次注册的空环境：若只有第一个延迟，说明是一次性的、与具体环境无关的初始化。
+class ProbeEnvironmentB : public ::testing::Environment {
+public:
+    void SetUp() override
+    {
+        WorldGenRegistryEnvironment::recordTiming("env_b_enter", test_timing::sinceStartMs());
+    }
+};
+
 /// 跨用例隔离监听器：每用例结束后重置 ChunkTaskScheduler 的 thread_local 同步调度上下文。
 ///
 /// 全二进制直跑（`mc_tests --gtest_filter=...`）时同 worker 线程跨用例复用 thread_local
