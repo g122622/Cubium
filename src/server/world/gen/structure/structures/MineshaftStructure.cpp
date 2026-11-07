@@ -273,6 +273,7 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
 }
 
 void addMineshaftPiece(MineshaftPiece* parent,
+    const MineshaftPiece* origin,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::IRandom& rng,
     i32 x,
@@ -291,11 +292,11 @@ void addMineshaftPiece(MineshaftPiece* parent,
         return;
     }
 
-    // 检查距离限制（防止无限扩展）
-    if (parent) {
-        i32 dx = std::abs(x - parent->minX());
-        i32 dz = std::abs(z - parent->minZ());
-        if (dx > 80 || dz > 80) {
+    // 距离限制：原版以**起点房间**的包围盒为基准（`p_227707_` 始终是起始构件），
+    // 而不是发起这次开口的父构件。用父构件作基准会让远处分支被过早截断，
+    // 整棵树的长短与原版不同。
+    if (origin != nullptr) {
+        if (std::abs(x - origin->minX()) > 80 || std::abs(z - origin->minZ()) > 80) {
             return;
         }
     }
@@ -456,7 +457,7 @@ void MineshaftRoom::buildComponent(
     }
 
     auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir) {
-        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, depth, m_mineshaftType);
+        addMineshaftPiece(this, pieces.front().get(), pieces, rng, cx, cy, cz, dir, depth, m_mineshaftType);
     };
 
     const i32 xSpan = maxX() - minX() + 1;
@@ -788,7 +789,7 @@ void MineshaftCorridor::buildComponent(
     MC_UNUSED(maxDepth);
 
     auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir, i32 childDepth) {
-        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
+        addMineshaftPiece(this, pieces.front().get(), pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
     };
 
     // ---- 第 1 段：主口 ----
@@ -944,7 +945,7 @@ void MineshaftCross::buildComponent(
     // 此前这里遍历四个方向、每个方向以 nextInt(3) 决定是否跳过，既不匹配原版的
     // 分支表，又多吃了最多四个随机数。
     auto addChild = [&](i32 nx, i32 ny, i32 nz, i32 dir) {
-        addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
+        addMineshaftPiece(this, pieces.front().get(), pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
     };
 
     switch (m_direction) {
@@ -1110,7 +1111,7 @@ void MineshaftStairs::buildComponent(
             break;
     }
 
-    addMineshaftPiece(this, pieces, rng, x, minY(), z, m_direction, depth, m_mineshaftType);
+    addMineshaftPiece(this, pieces.front().get(), pieces, rng, x, minY(), z, m_direction, depth, m_mineshaftType);
 }
 
 // ============================================================================
