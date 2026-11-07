@@ -20,8 +20,6 @@ endfunction()
 # 通用测试可执行文件
 add_executable(mc_tests
     main.cpp
-    # 进程启动成本基准用例：不进入 ctest 登记（ctest 侧以 TESTEXCLUDE 过滤），由 CI 显式驱动。
-    TestMainTiming.cpp
     common/test_math.cpp
     common/test_network.cpp
     common/network/test_bytebuf.cpp
@@ -2688,12 +2686,10 @@ function(mc_register_gtests targetName)
             DISCOVERY_MODE PRE_TEST
             DL_PATHS "$<TARGET_FILE_DIR:${targetName}>"
             PROPERTIES TIMEOUT ${MC_TEST_TIMEOUT}
-            TESTEXCLUDE "^TestMainTiming\\."
         )
     else()
         gtest_discover_tests(${targetName}
             PROPERTIES TIMEOUT ${MC_TEST_TIMEOUT}
-            TESTEXCLUDE "^TestMainTiming\\."
         )
     endif()
 endfunction()
