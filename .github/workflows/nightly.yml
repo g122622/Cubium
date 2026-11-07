@@ -487,6 +487,17 @@ jobs:
             echo "run $i: total_wall=$(echo "$end - $start" | bc)"
             cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
           done
+      - name: Resource usage for the real binary
+        run: |
+          set +e
+          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
+          cd build/tests/unit
+          echo "===== full run ====="
+          /usr/bin/time -v "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "Elapsed|User time|System time|Maximum resident|Minor|Major|File system inputs|Voluntary"
+          echo "===== empty filter ====="
+          /usr/bin/time -v "$BIN" --gtest_filter=NoSuchTest 2>&1 | grep -E "Elapsed|User time|System time|Maximum resident|Minor|Major|File system inputs|Voluntary"
+          echo "===== second full run (warm) ====="
+          /usr/bin/time -v "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "Elapsed|User time|System time|Maximum resident|Minor|Major|File system inputs|Voluntary"
       - name: Minimal gtest control experiment
         run: |
           set +e
