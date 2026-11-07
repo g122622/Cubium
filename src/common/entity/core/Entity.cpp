@@ -76,6 +76,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
@@ -535,10 +536,10 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
     if (c->m_customName) {
         return c->m_customName->deepCopy();
     }
-    // 无自定义名时返回默认名称。
-    // TODO: 此处返回占位名 "entity"，未按实体类型生成可翻译的默认名称（应按实体类型描述符
-    //   "entity.<type>.name" 翻译得到）。待翻译键体系覆盖实体类型后改为按 entityType() 生成默认名。
-    return std::make_unique<text::StringTextComponent>("entity");
+    // 无自定义名时返回实体类型的可翻译默认名（如 entity.minecraft.zombie）。
+    // 用翻译组件而不是预先查表的纯文本：语言切换后名字要跟着变，且客户端与服务端的
+    // 语言可能不同，查表必须留到渲染/序列化时进行。
+    return std::make_unique<text::TranslationTextComponent>(entityType()->getDescriptionId());
 }
 
 void Entity::setCustomNameVisible(bool visible)

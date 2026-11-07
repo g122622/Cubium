@@ -164,12 +164,10 @@ std::string VanillaEntities::getLocalizedNameKey(const std::string& typeId)
         return "entity.minecraft.unknown";
     }
 
-    // 将 minecraft:pig 转换为 entity.minecraft.pig
-    const std::string& name = type->name();
-    if (name.find(':') != std::string::npos) {
-        return "entity." + name;
-    }
-    return "entity.minecraft." + name;
+    // 翻译键的唯一来源是 EntityType::getDescriptionId（内部把冒号换成点）。
+    // 此前在这里手工拼 "entity." + name 会得到 "entity.minecraft:pig"，冒号不是合法
+    // 翻译键字符，玩家看到的是原始键名。
+    return type->getDescriptionId();
 }
 
 void VanillaEntities::doRegisterAll()
