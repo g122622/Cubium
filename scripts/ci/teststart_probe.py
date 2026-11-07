@@ -32,6 +32,7 @@ from pathlib import Path
 NINJA_FILE = Path("build/CMakeFiles/impl-{config}.ninja")
 COMPILE_DB = Path("build/compile_commands.json")
 PROBE_BIN_DIR = Path("/tmp/teststart-probe")
+REPO_ROOT = Path(__file__).resolve().parents[2]
 # 显式指定工具链时的兜底路径：runner 上的 clang 通常经 update-alternatives 装在 /usr/bin。
 FALLBACK_COMPILERS = ["/usr/bin/clang++", "/usr/bin/clang++-22", "clang++"]
 
@@ -213,8 +214,10 @@ def main() -> int:
         return 0
 
     build_dir = options.build_dir.resolve()
+    # ninja 描述文件与 compile_commands.json 用相对构建根（build/）的路径，故先切到构建根；
+    # 之后所有子进程的 cwd 都显式给定。
+    os.chdir(build_dir)
     config = options.config
-    os.chdir(build_dir.parent)
     test_binary = build_dir / "bin" / config / "mc_tests"
     work_dir = build_dir / "tests" / "unit"
     PROBE_BIN_DIR.mkdir(parents=True, exist_ok=True)
@@ -239,7 +242,7 @@ def main() -> int:
     }
 
     # ---- 1. launcher：进程启动与静态库初始化 ----
-    include_flags = ["-Itests/ci-probes/src/launcher", "-Itests/ci-probes/src/teststart"]
+    include_flags = [f"-I{REPO_ROOT / 'tests/ci-probes/src/launcher'}", f"-I{REPO_ROOT / 'tests/ci-probes/src/teststart'}"]
     for mode, tag in ((0, "triv"), (1, "fmt"), (2, "spdlog"), (3, "crasher")):
         variant = PROBE_BIN_DIR / f"main_{tag}.o"
         compile_variant(
