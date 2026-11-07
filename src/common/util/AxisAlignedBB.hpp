@@ -214,6 +214,61 @@ public:
     }
 
     /**
+     * @brief 向上包含一个点，对应原版 `AABB.include(Vector3fc)`
+     *
+     * **原地修改**，不返回新盒子：每个分量取 min/max 把点纳入范围。
+     * 点已在盒内时盒子不变。
+     */
+    void include(const Vector3f& point) noexcept
+    {
+        // 这里不能用 std::min/std::max：本类自己的成员函数就叫 min/max，会遮蔽它们。
+        // 直接用比较表达式更清楚，也避免名字查找的意外。
+        const f64 px = static_cast<f64>(point.x);
+        const f64 py = static_cast<f64>(point.y);
+        const f64 pz = static_cast<f64>(point.z);
+        minX = px < minX ? px : minX;
+        minY = py < minY ? py : minY;
+        minZ = pz < minZ ? pz : minZ;
+        maxX = px > maxX ? px : maxX;
+        maxY = py > maxY ? py : maxY;
+        maxZ = pz > maxZ ? pz : maxZ;
+    }
+
+    /**
+     * @brief 盒中心点，对应原版 `AABB.getCenter()`
+     */
+    [[nodiscard]] Vector3d getCenter() const noexcept
+    {
+        return Vector3d{(minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5};
+    }
+
+    /**
+     * @brief 盒底面中心点，对应原版 `AABB.getBottomCenter()`
+     *
+     * X/Z 取中心，Y 取 `minY`（不抬到中心）。
+     */
+    [[nodiscard]] Vector3d getBottomCenter() const noexcept
+    {
+        return Vector3d{(minX + maxX) * 0.5, minY, (minZ + maxZ) * 0.5};
+    }
+
+    /**
+     * @brief 最小角点，对应原版 `AABB.getMinPosition()`
+     */
+    [[nodiscard]] Vector3d getMinPosition() const noexcept
+    {
+        return Vector3d{minX, minY, minZ};
+    }
+
+    /**
+     * @brief 最大角点，对应原版 `AABB.getMaxPosition()`
+     */
+    [[nodiscard]] Vector3d getMaxPosition() const noexcept
+    {
+        return Vector3d{maxX, maxY, maxZ};
+    }
+
+    /**
      * @brief 检查点是否在AABB内部
      * @param point 要检查的点
      * @return 点是否在AABB内部

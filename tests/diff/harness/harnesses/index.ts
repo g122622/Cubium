@@ -119,6 +119,7 @@ import { shapeQueryInput } from "./shape_query.ts";
 import { directionFacingInput } from "./direction_facing.ts";
 import { mthRoundExtInput } from "./mth_round_ext.ts";
 import { vec3RotateInput } from "./vec3_rotate.ts";
+import { aabbExtInput } from "./aabb_ext.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
@@ -986,6 +987,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // 向量绕轴旋转与投影。
     { name: "vec3_rotate", probe: "vec3_rotate", oracle: "Vec3RotateOracle",
         key: "unit", units: { kind: "listing" }, input: vec3RotateInput },
+    // 盒中心、角点与向上包含。
+    { name: "aabb_ext", probe: "aabb_ext", oracle: "AabbExtOracle",
+        key: "unit", units: { kind: "listing" }, input: aabbExtInput },
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },
