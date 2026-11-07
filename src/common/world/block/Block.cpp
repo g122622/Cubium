@@ -850,6 +850,63 @@ BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& wor
     return currentState;
 }
 
+void Block::updateIndirectNeighbourShapes(
+    const BlockState& state, IWorld& world, const BlockPos& pos, i32 flags, i32 recursionLeft, bool movedByPiston)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(flags);
+    MC_UNUSED(recursionLeft);
+    MC_UNUSED(movedByPiston);
+    // 默认实现为空（与 vanilla `BlockBehaviour#updateIndirectNeighbourShapes` 一致）。
+}
+
+void Block::updateNeighbourShapes(
+    const BlockState& state, IWorld& world, const BlockPos& pos, i32 flags, i32 recursionLeft, bool movedByPiston)
+{
+    for (Direction direction : UPDATE_SHAPE_ORDER) {
+        // 邻居的更新方向是「从邻居指向本方块」，即本方块朝向该邻居的反方向。
+        world.notifyShapeChanged(
+            Directions::opposite(direction), pos.offset(direction), pos, state, flags, recursionLeft, movedByPiston);
+    }
+}
+
+void Block::executeShapeUpdate(Direction direction,
+    const BlockState& sourceState,
+    IWorld& world,
+    const BlockPos& neighborPos,
+    const BlockPos& sourcePos,
+    i32 flags,
+    i32 recursionLeft,
+    bool movedByPiston)
+{
+    const BlockState* neighborState = world.getBlockState(neighborPos);
+    if (neighborState == nullptr) {
+        // 区块未加载：没有可更新的方块。
+        return;
+    }
+
+    // UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE：目标为红石线时跳过形状更新，避免红石网络在
+    // 放置/破坏时产生 O(n²) 的形状重算风暴（对应 vanilla `NeighborUpdater.executeShapeUpdate`）。
+    if ((flags & world::BlockUpdateFlags::UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE) != 0 &&
+        VanillaBlocks::REDSTONE_WIRE != nullptr && neighborState->is(VanillaBlocks::REDSTONE_WIRE)) {
+        return;
+    }
+
+    Block& neighborBlock = neighborState->getBlockMutable();
+    const BlockState updatedState =
+        neighborBlock.updatePostPlacement(*neighborState, direction, sourceState, world, neighborPos, sourcePos);
+    if (updatedState.stateId() == neighborState->stateId()) {
+        return;
+    }
+
+    (void)movedByPiston;
+    // 与 vanilla 一致：变空气走 destroyBlock（粒子/掉落/BLOCK_DESTROY 振动），否则写回新状态。
+    // UPDATE_SUPPRESS_DROPS 由 updateOrDestroy 消费；形状递归预算继续向下传递。
+    updateOrDestroy(*neighborState, updatedState, world, neighborPos, flags, recursionLeft);
+}
+
 void Block::updateOrDestroy(
     const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags)
 {

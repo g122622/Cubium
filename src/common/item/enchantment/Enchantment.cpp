@@ -35,6 +35,7 @@
 #include "common/item/items/weapon/FishingRodItem.hpp"
 #include "common/item/items/weapon/SpearItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <string>
 
 namespace mc {
@@ -47,9 +48,12 @@ namespace enchant {
 
 std::string Enchantment::getNameKey(i32 level) const
 {
-    (void)level; // 大多数附魔不使用等级前缀
-    // 返回本地化键
-    return "enchantment." + id();
+    (void)level; // 附魔名不随等级变化（等级后缀由 EnchantmentHelper::getFullName 追加）
+    // 翻译键形如 `enchantment.minecraft.fortune`：命名空间是名字的一部分（点分隔），
+    // 与数据包里 enchantment JSON 的 `description.translate` 完全一致。不能直接拼
+    // `"enchantment." + id()`——那会产出 `enchantment.minecraft:fortune`，冒号不是合法的
+    // 翻译键字符，玩家看到的就是原始键名。
+    return "enchantment." + ResourceLocation(id()).toLanguageKey();
 }
 
 bool Enchantment::canApplyTo(u32 itemType) const

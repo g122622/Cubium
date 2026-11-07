@@ -32,6 +32,8 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/food/Food.hpp"
 #include "common/item/tag/ItemTag.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
@@ -312,13 +314,22 @@ void Item::onArmorTick(ItemStack& stack, IWorld& world, LivingEntity& player) co
 
 void Item::addInformation(const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const
 {
-    // 默认实现：不做任何操作
-    // 子类可重写以添加自定义提示
-    // world 可为 null（对应 MC 的 EMPTY TooltipContext，如客户端 Player 无 IWorld 时）
-    (void)stack;
-    (void)world;
-    (void)tooltip;
-    (void)advanced;
+    // 附魔行：按 `minecraft:tooltip_order` 标签排序后逐行追加（对应原版
+    // `ItemEnchantments#addToTooltip`，物品组件处理管线在 appendHoverText 之前执行）。
+    // 这里的 tooltip 是纯文本管道，颜色用 § 前缀表达，客户端渲染时按 § 解析或直接丢弃。
+    if (stack.hasEnchantments()) {
+        for (const auto& [enchantment, level] :
+            item::enchant::EnchantmentHelper::getSortedEnchantmentsForTooltip(stack)) {
+            tooltip.push_back(
+                item::enchant::EnchantmentHelper::getFullName(*enchantment, level, enchantment->isCurse()));
+        }
+    }
+
+    // 子类追加自己的提示行（默认实现为空）。
+    // world 可为 null（对应 MC 的 EMPTY TooltipContext，如客户端 Player 无 IWorld 时）。
+    MC_UNUSED(stack);
+    MC_UNUSED(world);
+    MC_UNUSED(advanced);
 }
 
 bool Item::hasEffect(const ItemStack& stack) const

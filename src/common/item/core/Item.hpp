@@ -783,6 +783,10 @@ public:
      * 可空语义：world 为 null 时，子类应跳过依赖世界的逻辑（如 FilledMapItem 的
      * 缩放级别提示），其他逻辑（如 SmithingTemplateItem 的翻译文本）正常执行。
      *
+     * 默认实现首先追加附魔行（按 `minecraft:tooltip_order` 标签排序，对应原版物品组件
+     * 管线里的 `ItemEnchantments#addToTooltip`），随后子类在行尾追加自己的提示。
+     * 因此重写本方法时**必须先调用 `Item::addInformation`**，否则附魔行会丢失。
+     *
      * @param stack 物品堆
      * @param world 世界指针（可为 null，对应 MC 的 EMPTY TooltipContext）
      * @param tooltip 提示文本列表

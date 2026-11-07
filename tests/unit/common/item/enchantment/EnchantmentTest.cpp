@@ -378,8 +378,10 @@ TEST(EnchantmentTest, GetNameKey)
 {
     FortuneEnchantment fortune;
 
-    EXPECT_EQ(fortune.getNameKey(), "enchantment.minecraft:fortune");
-    EXPECT_EQ(fortune.getNameKey(3), "enchantment.minecraft:fortune");
+    // 翻译键的命名空间以点分隔（enchantment.minecraft.fortune），与数据包
+    // description.translate 一致；带冒号的形式不是合法翻译键。
+    EXPECT_EQ(fortune.getNameKey(), "enchantment.minecraft.fortune");
+    EXPECT_EQ(fortune.getNameKey(3), "enchantment.minecraft.fortune");
 }
 
 // ============================================================================

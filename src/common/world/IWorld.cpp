@@ -143,6 +143,20 @@ void IWorld::updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Dire
     world::redstone::RedstoneSystem::instance().updateNeighborsExcept(*this, pos, sourceBlock, except);
 }
 
+void IWorld::notifyShapeChanged(Direction direction,
+    const BlockPos& neighborPos,
+    const BlockPos& sourcePos,
+    const BlockState& sourceState,
+    i32 flags,
+    i32 recursionLeft,
+    bool movedByPiston)
+{
+    // 默认实现与 vanilla `Level` 一致：交给形状更新执行器。需要特殊排队语义的世界
+    // （如收集式邻居更新器）可重写本方法，但形状级联的语义必须保持等价。
+    Block::executeShapeUpdate(
+        direction, sourceState, *this, neighborPos, sourcePos, flags, recursionLeft, movedByPiston);
+}
+
 const world::gamerule::GameRules& IWorld::getGameRules() const
 {
     // 默认实现返回静态默认规则

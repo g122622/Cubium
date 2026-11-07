@@ -217,6 +217,8 @@ add_executable(mc_tests
     # 附魔每 tick 效果派发（runTickEffects / Enchantment::onTick）与灵魂疾行 TICK 组件
     common/item/enchantment/EnchantmentTickEffectsTest.cpp
     common/item/enchantment/BlastProtectionAttributeTest.cpp
+    # 附魔提示框：tooltip_order 排序、附魔全名（颜色 + 罗马数字等级）、Item::addInformation 附魔行
+    common/item/enchantment/EnchantmentTooltipTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     # ContainerType 的 wire 取值锁定（数值即菜单注册表项序，偏移会让原版客户端建错窗口）
     common/entity/inventory/ContainerTypeUtilsTest.cpp

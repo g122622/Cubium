@@ -1099,11 +1099,32 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
     // 形状更新（UPDATE_KNOWN_SHAPE 未置位时执行）：按 UPDATE_SHAPE_ORDER 对 6 向邻居调用
     // updatePostPlacement，形状发生变化时经 Block::updateOrDestroy 写回——结果为空气则移除
     // 该邻居，否则写入新状态。级联写入会再次进入本函数并继续传播形状更新。
-    // TODO: 原版在此处还会调用 updateIndirectNeighbourShapes（间接邻居形状更新，基类默认空实现），
-    //       项目尚未提供该方法；红石线等依赖间接形状传播的方块暂由其自身的 updatePostPlacement 覆盖。
+    //
+    // 顺序与原版 Level.setBlock 保持一致：先让**旧状态**处理间接邻居，再对直接邻居做形状
+    // 更新，最后让**新状态**处理间接邻居。间接形状更新处理的是直接邻居形状更新覆盖不到的
+    // 斜向方块（红石线爬墙连接的对角线另一端），见 Block::updateIndirectNeighbourShapes。
     if (!skipKnownShape) {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.World, "ServerWorld::setBlockState::ShapeUpdates", "x", x, "y", y, "z", z);
+
+        // 形状更新携带的递归预算：原版 destroyBlock 的 512 是"摧毁一次最多波及的邻居层数"，
+        // 形状级联向下一层递减 1。
+        const i32 shapeRecursionLeft = world::BlockUpdateFlags::DEFAULT_DESTROY_RECURSION - 1;
+
+        {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+                "ServerWorld::setBlockState::IndirectShapeUpdatesOld",
+                "x",
+                x,
+                "y",
+                y,
+                "z",
+                z);
+            if (!oldIsAir) {
+                oldState->getBlockMutable().updateIndirectNeighbourShapes(
+                    *oldState, *this, changedPos, flags, shapeRecursionLeft, movedByPiston);
+            }
+        }
 
         for (Direction direction : Block::UPDATE_SHAPE_ORDER) {
             const BlockPos neighborPos = changedPos.offset(direction);
@@ -1137,6 +1158,34 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
                 neighborPos,
                 flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS & ~world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON,
                 world::BlockUpdateFlags::DEFAULT_DESTROY_RECURSION);
+
+            // 邻居已按新状态完成形状更新，接着由它处理自己的间接邻居（原版同样在
+            // updateNeighbourShapes 之后调用新状态的 updateIndirectNeighbourShapes）。
+            const BlockState* settledState = canonicalizeState(getBlockState(neighborPos));
+            if (settledState != nullptr && !settledState->isAir()) {
+                settledState->getBlockMutable().updateIndirectNeighbourShapes(*settledState,
+                    *this,
+                    neighborPos,
+                    flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS &
+                        ~world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON,
+                    shapeRecursionLeft,
+                    movedByPiston);
+            }
+        }
+
+        {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+                "ServerWorld::setBlockState::IndirectShapeUpdatesNew",
+                "x",
+                x,
+                "y",
+                y,
+                "z",
+                z);
+            if (!newIsAir) {
+                newState->getBlockMutable().updateIndirectNeighbourShapes(
+                    *newState, *this, changedPos, flags, shapeRecursionLeft, movedByPiston);
+            }
         }
     }
 
