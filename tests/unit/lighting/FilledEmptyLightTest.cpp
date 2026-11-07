@@ -43,8 +43,7 @@ class TestLightEngine : public StarLightEngine {
 public:
     TestLightEngine()
         : StarLightEngine(false)
-    {
-    }
+    {}
 
     using StarLightEngine::getFilledEmptyLight;
 };
