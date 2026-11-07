@@ -118,26 +118,9 @@ std::string runLine(std::string_view inputLine)
         }
     }
 
-    // 随机源状态：起点位置与旋转都对但盒子不同，只可能是消耗的随机数个数不同。输出后续的
-    // 几个取值，把「多抽/少抽」与「抽的东西不同」分开。
-    json rngTail = json::array();
-    for (i32 index = 0; index < 4; ++index) {
-        rngTail.push_back(structureRng.nextInt());
-    }
-
-    // 诊断：同一 (seed, chunk) 派生出的前 4 个 nextInt()，用于核对两侧随机源初始状态。
-    math::WorldgenRandom seedCheck(std::make_unique<math::JavaLegacyRandom>(0ULL));
-    seedCheck.setLargeFeatureSeed(static_cast<i64>(seed), chunkX, chunkZ);
-    json seedTail = json::array();
-    for (i32 index = 0; index < 4; ++index) {
-        seedTail.push_back(seedCheck.nextInt());
-    }
-
     return json{{"unit", input.value("unit", "")},
         {"valid", start != nullptr && start->isValid()},
-        {"pieces", std::move(pieces)},
-        {"rngTail", std::move(rngTail)},
-        {"seedTail", std::move(seedTail)}}
+        {"pieces", std::move(pieces)}}
         .dump();
 }
 

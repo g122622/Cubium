@@ -142,26 +142,10 @@ public final class StructureStartSingleOracle {
             }
         }
 
-        // 诊断：同一 seed 的前 4 个 nextInt()，用于核对两侧随机源的初始状态。
-        JsonArray seedTail = new JsonArray();
-        RandomSource seedCheck = new WorldgenRandom(new net.minecraft.world.level.levelgen.LegacyRandomSource(0L));
-        ((WorldgenRandom) seedCheck).setLargeFeatureSeed(seed, chunkX, chunkZ);
-        for (int index = 0; index < 4; index++) {
-            seedTail.add(seedCheck.nextInt());
-        }
-
-        // 随机流尾：与探针同口径，用于判断「消耗的随机数个数」是否一致。
-        JsonArray rngTail = new JsonArray();
-        for (int index = 0; index < 4; index++) {
-            rngTail.add(random.nextInt());
-        }
-
         JsonObject result = new JsonObject();
         result.addProperty("unit", unit);
         result.addProperty("valid", valid);
         result.add("pieces", pieces);
-        result.add("rngTail", rngTail);
-        result.add("seedTail", seedTail);
         return result;
     }
 }

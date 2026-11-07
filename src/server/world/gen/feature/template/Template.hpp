@@ -724,6 +724,15 @@ public:
     [[nodiscard]] BlockPos getZeroPositionWithTransform(const BlockPos& pos, Mirror mirror, Rotation rotation) const;
 
     /**
+     * @brief 按显式尺寸计算放置原点（对应原版 `StructureTemplate.getZeroPositionWithTransform` 静态版）
+     *
+     * 尺寸以「方块数」给出，内部各减 1 后按镜像/旋转选择偏移分量。用于调用方手里只有
+     * 模板尺寸、没有模板实例的场景（如林地府邸按 7x7 的房间足迹推算放置点）。
+     */
+    [[nodiscard]] static BlockPos getZeroPositionWithTransform(
+        const BlockPos& pos, Mirror mirror, Rotation rotation, i32 sizeX, i32 sizeZ);
+
+    /**
      * @brief 变换实体精确位置（f64）
      *
      * 对应 MC 1.21.11 StructureTemplate#transform(Vec3, Mirror, Rotation, BlockPos)。

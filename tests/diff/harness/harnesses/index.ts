@@ -102,6 +102,7 @@ import { aabbOpsInput } from "./aabb_ops.ts";
 import { vec3MathInput } from "./vec3_math.ts";
 import { blockposCodecInput } from "./blockpos_codec.ts";
 import { axisPlaneInput } from "./axis_plane.ts";
+import { mansionGridDeclaration } from "./mansion_grid.ts";
 import { mthLerpInput } from "./mth_lerp.ts";
 import { mthBitInput } from "./mth_bit.ts";
 import { mthRotInput } from "./mth_rot.ts";
@@ -701,6 +702,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "item_components", probe: "item_components", oracle: "ItemComponentsOracle", key: "item", units: { kind: "listing" },
         input: (unit) => ({ item: unit }), oracleMissing: itemsKnownMissing },
     structureDensityDeclaration(),
+    mansionGridDeclaration(),
     structureStartSingleDeclaration(),
     structureStartsDeclaration(),
     mineshaftPiecesDeclaration(),

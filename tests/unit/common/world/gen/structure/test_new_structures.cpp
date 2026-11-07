@@ -460,6 +460,7 @@ TEST_F(NewStructuresTest, EndCity_PieceConstruction)
 
     // 验证模板名称和旋转
     EXPECT_EQ(piece.templateName(), templateName);
+    EXPECT_EQ(piece.templatePosition(), pos);
     EXPECT_EQ(piece.rotation(), rotation);
     EXPECT_FALSE(piece.overwrite());
 }
@@ -490,7 +491,9 @@ TEST_F(NewStructuresTest, WoodlandMansion_PieceConstruction)
 
     // 验证模板名称和旋转
     EXPECT_EQ(piece.templateName(), templateName);
-    EXPECT_EQ(piece.rotation(), rotation);
+    EXPECT_EQ(piece.getRotation(), rotation);
+    EXPECT_EQ(piece.templatePosition(), pos);
+    EXPECT_EQ(piece.getMirror(), Mirror::None);
 }
 
 // ============================================================================

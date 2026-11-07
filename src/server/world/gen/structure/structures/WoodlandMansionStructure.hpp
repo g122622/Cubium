@@ -29,6 +29,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <string>
@@ -44,6 +45,7 @@ namespace woodland_mansion {
 class SimpleGrid;
 class MansionGrid;
 class MansionPlacer;
+class RoomCollection;
 } // namespace woodland_mansion
 
 /**
@@ -80,13 +82,14 @@ private:
 
 /**
  * @brief 林地府邸模板片段
+ *
+ * 对应原版 `WoodlandMansionPieces.MansionTemplate`（`TemplateStructurePiece` 的子类）：
+ * 构造期就用模板真实包围盒确定几何，并记住模板原点、旋转与镜像。
  */
 class WoodlandMansionPiece : public StructurePiece {
 public:
-    WoodlandMansionPiece(const std::string& templateName,
-        const BlockPos& pos,
-        feature::template_::Rotation rotation,
-        feature::template_::Mirror mirror = feature::template_::Mirror::None);
+    WoodlandMansionPiece(const std::string& templateName, const BlockPos& pos, Rotation rotation);
+    WoodlandMansionPiece(const std::string& templateName, const BlockPos& pos, Rotation rotation, Mirror mirror);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -101,21 +104,19 @@ public:
         return m_templateName;
     }
 
-    [[nodiscard]] feature::template_::Rotation rotation() const
+    [[nodiscard]] const BlockPos& templatePosition() const
     {
-        return m_rotation;
-    }
-
-    [[nodiscard]] feature::template_::Mirror mirror() const
-    {
-        return m_mirror;
+        return m_templatePosition;
     }
 
 private:
+    void _loadTemplate();
+
     std::string m_templateName;
     BlockPos m_templatePosition;
-    feature::template_::Rotation m_rotation;
-    feature::template_::Mirror m_mirror;
+    feature::template_::TemplateManager* m_templateManager = nullptr;
+    const feature::template_::Template* m_template = nullptr;
+    BlockPos m_size{1, 1, 1};
 };
 
 namespace woodland_mansion {
@@ -210,76 +211,69 @@ private:
 /**
  * @brief 林地府邸放置器
  *
- * 根据网格布局放置模板片段。
+ * 忠实复刻原版 `WoodlandMansionPieces.Placer`：外墙、屋顶、地板、地毯与房间全部按
+ * 「网格单元 → 世界坐标」的同一套偏移规则摆放。累计位置与旋转放在 `PlacementData` 里，
+ * 随外墙遍历一路传递。
  */
 class MansionPlacer {
 public:
-    MansionPlacer(math::IRandom& rng);
+    MansionPlacer(feature::template_::TemplateManager& templateManager, math::IRandom& rng);
     ~MansionPlacer() = default;
 
     void createMansion(const BlockPos& startPos,
-        feature::template_::Rotation rotation,
+        Rotation rotation,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const MansionGrid& grid);
 
 private:
-    void _entrance(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, feature::template_::Rotation& rotation, BlockPos& pos);
+    /** 外墙遍历中的累计放置状态（原版 `PlacementData`）。 */
+    struct PlacementData {
+        Rotation rotation;
+        BlockPos position;
+        std::string wallType;
+    };
 
+    void _entrance(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data);
+    void _traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data);
+    void _traverseTurn(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data);
+    void _traverseInnerTurn(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data);
     void _traverseOuterWalls(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        PlacementData& data,
         const SimpleGrid& grid,
         Direction startDir,
         i32 startX,
         i32 startY,
         i32 targetX,
-        i32 targetY,
-        BlockPos& pos,
-        feature::template_::Rotation& rotation,
-        const std::string& wallType);
-
-    void _traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        BlockPos& pos,
-        feature::template_::Rotation rotation,
-        const std::string& wallType);
-
-    void _traverseTurn(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation);
-
-    void _traverseInnerTurn(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation);
-
+        i32 targetY);
     void _createRoof(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& basePos,
-        feature::template_::Rotation rotation,
+        Rotation rotation,
         const SimpleGrid& grid,
         const SimpleGrid* upperGrid);
-
     void _addRoom1x1(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
-        feature::template_::Rotation rotation,
+        Rotation rotation,
         Direction doorDir,
-        i32 floor);
-
+        const RoomCollection& rooms);
     void _addRoom1x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
-        feature::template_::Rotation rotation,
+        Rotation rotation,
         Direction roomDir,
         Direction doorDir,
-        i32 floor,
+        const RoomCollection& rooms,
         bool isStairs);
-
     void _addRoom2x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
-        feature::template_::Rotation rotation,
+        Rotation rotation,
         Direction roomDir,
         Direction doorDir,
-        i32 floor);
-
+        const RoomCollection& rooms);
     void _addRoom2x2Secret(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         const BlockPos& pos,
-        feature::template_::Rotation rotation,
-        i32 floor);
+        Rotation rotation,
+        const RoomCollection& rooms);
 
+    feature::template_::TemplateManager& m_templateManager;
     math::IRandom& m_rng;
     i32 m_startX;
     i32 m_startY;
