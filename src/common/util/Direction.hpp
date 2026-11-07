@@ -608,21 +608,25 @@ inline Direction fromDelta(i32 dx, i32 dy, i32 dz)
  * 将偏航角转换为视线方向向量，与该方向的法向量做点积。
  * 点积 > 0 表示实体的视线方向与该方向同侧。
  *
- * @param dir 水平方向（仅对水平方向有效）
  * @param yaw 实体的偏航角（度），MC 约定：0=南，90=西，180=北，-90（或 270）=东；
  *            视线单位向量为 (-sin yaw, 0, cos yaw)
  * @return true 如果实体大致朝向该方向
  */
 inline bool isFacingAngle(Direction dir, f32 yaw)
 {
-    if (!isHorizontal(dir)) {
-        return false;
-    }
-    // 将偏航角转换为弧度，计算视线方向向量
-    f32 rad = mc::math::toRadians(yaw);
-    f32 sinYaw = -std::sin(rad);
-    f32 cosYaw = std::cos(rad);
-    // 方向的法向量与视线方向向量的点积
+    // 必须用查表的 mthSin / mthCos，不能换成 std::sin / std::cos。
+    //
+    // 查表在 90° 的整数倍上返回**精确**的 0 或 ±1，而 libm 会给出 ±4e-8 量级的残差：
+    //
+    //   yaw=90   Mth.cos = 0            std::cos = -4.4e-8
+    //   yaw=180  Mth.sin = 0            std::sin = -8.7e-8
+    //   yaw=270  Mth.cos = 0            std::cos = +1.2e-8
+    //
+    // 点积判定是 `> 0`，这些残差会让「正好正交」的情形翻成 true（或反过来）。
+    // 原版走查表，所以 90° 倍数上一律得到 false。
+    const f32 rad = math::toRadians(yaw);
+    const f32 sinYaw = -math::mthSin(rad);
+    const f32 cosYaw = math::mthCos(rad);
     return static_cast<f32>(xOffset(dir)) * sinYaw + static_cast<f32>(zOffset(dir)) * cosYaw > 0.0f;
 }
 
