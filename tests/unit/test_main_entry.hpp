@@ -76,6 +76,7 @@ public:
 
     void SetUp() override
     {
+        recordTiming("setup_enter", test_timing::sinceStartMs());
         // 分步时刻标记：CI 上每个 ctest 用例都是独立进程，入口各步骤的耗时只能靠这类日志
         // 才看得见（ctest 只给一个总时长）。标记前缀固定为 [SetupTiming]，便于统计。
         const auto mark = [](const char* step) {
