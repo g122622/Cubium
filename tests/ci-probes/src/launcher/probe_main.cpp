@@ -18,9 +18,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <string_view>
 
 #ifdef __linux__
+#include <csignal>
 #include <sys/resource.h>
 #include <unistd.h>
 #endif

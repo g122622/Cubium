@@ -23,6 +23,7 @@
 #include <sys/resource.h>
 #endif
 
+#include "common/core/Types.hpp"
 #include "common/util/assert/CrashHandler.hpp"
 #include "test_main_entry.hpp"
 
