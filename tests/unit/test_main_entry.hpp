@@ -53,6 +53,12 @@
 /// 属预期（CI/开发机数据包应存在）。
 class WorldGenRegistryEnvironment : public ::testing::Environment {
 public:
+    /// 供 main 在进入入口时记录起点（此时全局环境尚未构造）。毫秒值相对本进程钟表即可。
+    static void recordTiming(const char* step, mc::i64 ms)
+    {
+        _appendTimingLine(step, ms);
+    }
+
     void SetUp() override
     {
         // 分步时刻标记：CI 上每个 ctest 用例都是独立进程，入口各步骤的耗时只能靠这类日志
@@ -179,12 +185,6 @@ private:
     ///
     /// CI 上每个用例都是独立进程，ctest 只保留失败用例的输出，进程跑完后的固定开销因此看不见；
     /// 追加写的共享文件可以在作业结束后统计全部进程的分阶段耗时，由 CI 作业统一上传。
-    /// 供 main 在进入入口时记录起点（此时全局环境尚未构造）。毫秒值相对本进程钟表即可。
-    static void recordTiming(const char* step, mc::i64 ms)
-    {
-        _appendTimingLine(step, ms);
-    }
-
     /// 把阶段时刻写入共享日志。
     static void _appendTimingLine(const char* step, mc::i64 ms)
     {
