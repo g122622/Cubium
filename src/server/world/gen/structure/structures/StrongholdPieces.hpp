@@ -53,7 +53,14 @@ struct StrongholdPieceWeight {
     i32 instancesLimit;   ///< 最大数量 (0 = 无限制)
     i32 minDepth;         ///< 最小深度条件 (0 = 无条件)
 
-    StrongholdPieceWeight(i32 type, i32 w, i32 limit, i32 depth = 0)
+    /**
+     * @param type 片段类型
+     * @param w 抽签权重
+     * @param limit 实例上限（0 = 无限制）
+     * @param depth 最小深度：只在该深度**之后**才可被抽中（0 = 无门槛），
+     *              对应原版 Library（>4）与 PortalRoom（>5）覆写的 `doPlace`
+     */
+    StrongholdPieceWeight(i32 type, i32 w, i32 limit, i32 depth)
         : pieceType(type)
         , weight(w)
         , instancesSpawned(0)
@@ -61,15 +68,21 @@ struct StrongholdPieceWeight {
         , minDepth(depth)
     {}
 
+    /** 原版 `doPlace`：深度门槛与实例余额，两者都满足才允许放入。 */
     [[nodiscard]] bool canSpawnMoreStructuresOfType(i32 depth) const
     {
-        // 检查深度条件
         if (minDepth > 0 && depth <= minDepth) {
             return false;
         }
         return instancesLimit == 0 || instancesSpawned < instancesLimit;
     }
 
+    /**
+     * @brief 原版 `PieceWeight.isValid()`：只补实例上限，**不含**深度门槛
+     *
+     * 用尽后该类型要从抽签表里移除；若把深度门槛也并进来，被深度挡下的那次放置会
+     * 把类型误判为「已用尽」并从表中删除，后续分支再也抽不到它。
+     */
     [[nodiscard]] bool canSpawnMoreStructures() const
     {
         return instancesLimit == 0 || instancesSpawned < instancesLimit;
@@ -95,7 +108,30 @@ public:
         IronDoor  ///< 铁门
     };
 
-    StrongholdPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
+    /**
+     * @brief 构造要塞片段
+     *
+     * @param originX/originY/originZ 本片段在**原版坐标系**里的构造原点，即展开包围盒时
+     *        `orientBox` 的第一个实参。子构件的落点沿用它做「原版坐标 → 世界坐标」的基准，
+     *        因此必须原样传入；见 `StructurePiece` 三参版本构造函数的说明。
+     * @param sizeX/sizeZ 本片段在 `orientBox` 里用的局部尺寸。原版子构件落点与
+     *        `addChildren` 的偏移翻转都以这两个尺寸为基准（例如五向交叉点的 `8 - i`），
+     *        而盒子的世界跨度在 EAST 下会与它们互换，故显式记下来。
+     */
+    StrongholdPiece(i32 type,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ);
 
     [[nodiscard]] Door entryDoor() const
     {
@@ -124,6 +160,43 @@ public:
     [[nodiscard]] static bool canStrongholdGoDeeper(const StructureBoundingBox& box);
 
     /**
+     * @brief 原版坐标系里的盒子近角/远角
+     *
+     * 原版子构件落点写成 `this.boundingBox.minX() + 偏移` 这类形式，而 `minX()` 在原版里
+     * 是 `orientBox` 算出的盒角，与构造原点之间只差一个由方向决定的常量。本项目盒子已是
+     * 世界坐标，镜像朝向下不能直接拿来当原版盒角用，故由原点加上这两个常量还原。
+     *
+     * @param direction 本片段的导入口朝向（原版 `getOrientation()`）
+     */
+    [[nodiscard]] i32 orientedMinX(Direction direction) const noexcept;
+    [[nodiscard]] i32 orientedMaxX(Direction direction) const noexcept;
+    [[nodiscard]] i32 orientedMinZ(Direction direction) const noexcept;
+    [[nodiscard]] i32 orientedMaxZ(Direction direction) const noexcept;
+
+    /** @brief `orientBox` 的局部尺寸 X（原版片段里写死的 WIDTH）。 */
+    [[nodiscard]] i32 sizeX() const noexcept
+    {
+        return m_sizeX;
+    }
+
+    /** @brief `orientBox` 的局部尺寸 Z（原版片段里写死的 DEPTH）。 */
+    [[nodiscard]] i32 sizeZ() const noexcept
+    {
+        return m_sizeZ;
+    }
+
+    /**
+     * @brief 把「沿局部 Z 的偏移」换算成世界偏移
+     *
+     * 原版若干 `addChildren` 在朝 NORTH/WEST 时把局部偏移取成 `尺寸 - 偏移 - 1`
+     * （例如五向交叉点的 `i = 8 - i`）。世界朝向下这段偏移是沿 X 还是沿 Z，随朝向互换。
+     */
+    [[nodiscard]] static bool flipsLocalZ(Direction direction) noexcept
+    {
+        return direction == Direction::North || direction == Direction::West;
+    }
+
+    /**
      * @brief 获取下一个组件（正向）
      *
      * 在当前片段前方生成下一个连接片段
@@ -144,8 +217,8 @@ public:
         const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
-        i32 positionOffset,
-        i32 verticalOffset);
+        i32 verticalOffset,
+        i32 positionOffset);
 
     /**
      * @brief 获取下一个组件（Z方向）
@@ -156,11 +229,16 @@ public:
         const StructurePiece& previous,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::IRandom& rng,
-        i32 positionOffset,
-        i32 verticalOffset);
+        i32 verticalOffset,
+        i32 positionOffset);
 
 protected:
     Door m_entryDoor = Door::Opening;
+    i32 m_sizeX = 0;
+    i32 m_sizeZ = 0;
+    /** orientBox 的局部偏移（各片段不同：多数是 -1，五向交叉点是 -4）。 */
+    i32 m_offsetX = 0;
+    i32 m_offsetZ = 0;
 };
 
 // ============================================================================
@@ -192,6 +270,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -236,6 +321,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -276,6 +368,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -316,6 +415,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -356,6 +462,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -405,6 +518,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -440,8 +560,11 @@ public:
     /**
      * @brief 构造楼梯
      *
+     * @param box 已按朝向展开好的世界包围盒
+     * @param originX/originY/originZ 展开该盒时 `orientBox` 用的原点（原版坐标系）
      * @param fixedDoor 非空时使用该入口门且**不消耗随机数**；为空时按原版
      *                  `randomSmallDoor` 抽一次。起始楼梯必须传 `Door::Opening`。
+     * @param sizeX/sizeZ `orientBox` 的局部尺寸
      */
     StrongholdStairs(i32 componentType,
         math::IRandom& rng,
@@ -451,8 +574,15 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
         Direction direction,
-        std::optional<Door> fixedDoor);
+        std::optional<Door> fixedDoor,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -515,19 +645,15 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng) override;
 
-    [[nodiscard]] StrongholdPieceWeight* lastPlaced() const
+    /**
+     * @brief 上一次放下的片段类型（对应原版 `StartPiece.previousPiece`）在抽签表中的下标
+     *
+     * 用下标而不是指针：类型用尽时要从表里删除，指针会悬垂。
+     * -1 表示尚未放置过任何片段。
+     */
+    [[nodiscard]] i32& lastPlacedIndex()
     {
-        return m_lastPlaced;
-    }
-
-    void setLastPlaced(StrongholdPieceWeight* weight)
-    {
-        m_lastPlaced = weight;
-    }
-
-    StrongholdPieceWeight*& lastPlacedRef()
-    {
-        return m_lastPlaced;
+        return m_lastPlacedIndex;
     }
 
     [[nodiscard]] StrongholdPiece* portalRoom() const
@@ -584,23 +710,12 @@ public:
         m_imposedPieceType = type;
     }
 
-    void setLastPieceType(i32 type)
-    {
-        m_lastPieceType = type;
-    }
-
-    [[nodiscard]] i32 lastPieceType() const
-    {
-        return m_lastPieceType;
-    }
-
 private:
-    std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表
-    StrongholdPieceWeight* m_lastPlaced = nullptr;  ///< 上一个放置的片段权重
+    std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表（用尽的类型会被移出）
+    i32 m_lastPlacedIndex = -1;                     ///< 上一次放下的类型下标（-1 = 无）
     StrongholdPiece* m_portalRoom = nullptr;        ///< 传送门房间引用
     std::vector<StructurePiece*> m_pendingChildren; ///< 待处理的子片段
     i32 m_imposedPieceType = -1;                    ///< 强制片段类型（-1 表示无强制）
-    i32 m_lastPieceType = -1;                       ///< 上一个生成的片段类型（无则 -1）
 };
 
 // ============================================================================
@@ -620,6 +735,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -666,6 +788,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -709,6 +838,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -746,8 +882,22 @@ private:
  */
 class StrongholdPortalRoom : public StrongholdPiece {
 public:
-    StrongholdPortalRoom(
-        i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction);
+    StrongholdPortalRoom(i32 componentType,
+        math::IRandom& rng,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
+        Direction direction);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -761,7 +911,13 @@ public:
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng) override;
 
     [[nodiscard]] static std::unique_ptr<StrongholdPortalRoom> createPiece(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::IRandom& rng,
+        i32 x,
+        i32 y,
+        i32 z,
+        Direction direction,
+        i32 depth);
 
 private:
     bool m_hasSpawner = false;
@@ -776,8 +932,23 @@ private:
  */
 class StrongholdCorridor : public StrongholdPiece {
 public:
-    StrongholdCorridor(
-        i32 componentType, i32 steps, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction);
+    StrongholdCorridor(i32 componentType,
+        i32 steps,
+        math::IRandom& rng,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        i32 offsetX,
+        i32 offsetZ,
+        Direction direction);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -849,9 +1020,9 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     i32 depth);
 
 /**
- * @brief 检查是否可以添加更多片段
+ * @brief 重算抽签总权重，并报告是否还有受限类型可放置（原版 `updatePieceWeight`）
  */
-[[nodiscard]] bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight);
+[[nodiscard]] bool updatePieceWeight(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight);
 
 /**
  * @brief 从小门生成要塞片段
@@ -865,7 +1036,7 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     Direction direction,
     i32 depth,
     std::vector<StrongholdPieceWeight>& weights,
-    StrongholdPieceWeight*& lastPlaced);
+    i32& lastPlacedIndex);
 
 /**
  * @brief 生成并添加片段

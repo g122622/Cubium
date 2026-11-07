@@ -75,6 +75,7 @@ function collectUnits(
   directory: string,
   classpath: string,
   seed: number,
+  env: NodeJS.ProcessEnv,
 ): Sample[] {
   const candidatesPath = path.join(directory, CANDIDATES_FILE);
   execFileSync(
@@ -89,7 +90,7 @@ function collectUnits(
       String(seed),
       candidatesPath,
     ],
-    { cwd: directory, stdio: ["ignore", "pipe", "pipe"] },
+    { cwd: directory, env, stdio: ["ignore", "pipe", "pipe"] },
   );
   const candidates = parseCandidateLines(
     fs.readFileSync(candidatesPath, "utf8"),
@@ -148,7 +149,7 @@ export function strongholdPiecesDeclaration(): HarnessDeclaration {
       );
       units = [];
       for (const seed of SEEDS) {
-        for (const sample of collectUnits(directory, classpath, seed)) {
+        for (const sample of collectUnits(directory, classpath, seed, context.environment)) {
           units.push(sample);
         }
       }

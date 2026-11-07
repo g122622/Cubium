@@ -74,8 +74,12 @@ struct MineshaftConfig {
 
 /**
  * @brief 生成并添加矿井片段
+ *
+ * @param parent 发起这次开口的构件（原版 `generateAndAddPiece` 的 p_227707_）
+ * @param origin 起始房间，距离限制以它的包围盒为基准；为 nullptr 时不做距离限制
  */
 void addMineshaftPiece(MineshaftPiece* parent,
+    const MineshaftPiece* origin,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::IRandom& rng,
     i32 x,

@@ -98,7 +98,7 @@ std::string runLine(std::string_view inputLine)
     math::JavaLegacyRandom rng(seed);
     // 包围盒按原版 `orientBox(x, y, z, -4, -1, 0, 11, 7, 11, direction)` 展开：
     // 这条能力要验证的正是「同一扇门在四个朝向下落出同一个盒子」。
-    const StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 11, 7, 11, direction);
+    const StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -4, -1, 0, 11, 7, 11, direction);
     auto piece = std::make_unique<StrongholdRoomCrossing>(StrongholdPieceTypes::ROOM_CROSSING,
         rng,
         box.minX(),
@@ -107,6 +107,13 @@ std::string runLine(std::string_view inputLine)
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        11,
+        11,
+        -4,
+        0,
         direction);
     piece->setExpansionDepth(depth);
 

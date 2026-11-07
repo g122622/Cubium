@@ -184,6 +184,26 @@ public:
     };
 
     StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
+
+    /**
+     * @brief 带显式构造原点的构造函数
+     *
+     * 原版的片段定位统一走 `BoundingBox.orientBox(origin, …, direction)`：盒子由
+     * 「原版坐标系里的原点 + 局部偏移」一次算成，之后子构件的落点也在**同一套原版坐标**
+     * 里按 `盒角 ± 偏移` 推出。本项目把方向拆成了 rotation + mirror，盒子本身已换到世界
+     * 坐标，镜像朝向（SOUTH/WEST）下盒角与原版坐标不再对应。
+     *
+     * 因此凡是需要按原版公式推算子构件落点或使用「原版坐标系里的角坐标」的片段，
+     * 必须传入构造原点；`originX()/originY()/originZ()` 给出的就是原版坐标，
+     * 它们随 `offset()` 一起平移。
+     *
+     * @param originX 原版坐标系的原点 X（即 orientBox 的第一个实参）
+     * @param originY 原版坐标系的原点 Y
+     * @param originZ 原版坐标系的原点 Z
+     */
+    StructurePiece(
+        i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 originX, i32 originY, i32 originZ);
+
     virtual ~StructurePiece() = default;
 
     [[nodiscard]] i32 type() const noexcept
@@ -209,6 +229,24 @@ public:
     [[nodiscard]] i32 minZ() const noexcept
     {
         return m_minZ;
+    }
+
+    /** @brief 构造原点 X（原版坐标系，参见三参版本构造函数的说明）。 */
+    [[nodiscard]] i32 originX() const noexcept
+    {
+        return m_originX;
+    }
+
+    /** @brief 构造原点 Y（原版坐标系）。 */
+    [[nodiscard]] i32 originY() const noexcept
+    {
+        return m_originY;
+    }
+
+    /** @brief 构造原点 Z（原版坐标系）。 */
+    [[nodiscard]] i32 originZ() const noexcept
+    {
+        return m_originZ;
     }
 
     [[nodiscard]] i32 maxX() const noexcept
@@ -253,6 +291,17 @@ public:
      * 否则移动后它们仍指向旧位置。
      */
     virtual void offset(i32 dx, i32 dy, i32 dz);
+
+    /** 整体改写包围盒（世界坐标）。构件自身的位置状态由子类按需同步。 */
+    void setBoundingBox(const StructureBoundingBox& bounds) noexcept
+    {
+        m_minX = bounds.minX();
+        m_minY = bounds.minY();
+        m_minZ = bounds.minZ();
+        m_maxX = bounds.maxX();
+        m_maxY = bounds.maxY();
+        m_maxZ = bounds.maxZ();
+    }
 
     /**
      * @brief 获取基础方向
@@ -659,6 +708,15 @@ protected:
     Direction m_coordBaseMode = Direction::None;
     Mirror m_mirror = Mirror::None;
     Rotation m_rotation = Rotation::None;
+
+    /**
+     * @brief 构造原点（原版坐标系）
+     *
+     * 缺省取盒子的最小角，使未走定向展开的片段仍能给出「与原版等价」的角坐标。
+     */
+    i32 m_originX = 0;
+    i32 m_originY = 0;
+    i32 m_originZ = 0;
 
     /**
      * @brief 本片段在所属分支上的深度（要塞的 50 层上限）

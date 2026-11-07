@@ -20,9 +20,7 @@
  * SOFTWARE.
  *
  */
-
 #include "StrongholdStructure.hpp"
-
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
@@ -39,21 +37,19 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/structures/StrongholdPieces.hpp"
-
 #include <cmath>
 #include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
 namespace gen {
 namespace structure {
-
 namespace {
-
 // 要塞分布环配置
 // 环 0: 3 个要塞，距离 1408-2688
 // 环 1: 3 个要塞，距离 4480-5760
@@ -67,11 +63,9 @@ namespace {
 constexpr i32 RING_COUNTS[] = {3, 3, 3, 4, 6, 10, 15, 21};
 constexpr i32 RING_DISTANCES[] = {1408, 4480, 7552, 10624, 13696, 16768, 19840, 22912};
 constexpr i32 RING_SPREADS[] = {1280, 1280, 1280, 1280, 1280, 1280, 1280, 1280};
-
 } // namespace
 
 using namespace mc::Biomes;
-
 const std::string StrongholdStructure::m_name = "stronghold";
 
 StrongholdStructure::StrongholdStructure(ResourceLocation id)
@@ -94,7 +88,6 @@ bool StrongholdStructure::canGenerate(
     MC_UNUSED(world);
     MC_UNUSED(generator);
     MC_UNUSED(rng);
-
     /**
      * @brief 检查指定区块是否命中预计算的要塞起点。
      *
@@ -108,7 +101,6 @@ bool StrongholdStructure::canGenerate(
             return true;
         }
     }
-
     return false;
 }
 
@@ -116,8 +108,7 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
     IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
-
-    // 起始块在区块内的偏移是 2，不是中心 8：原版用的是 chunkPos.getBlockX(2)。
+    // 起始点取区块内第 2 格（`chunkPos.getBlockX(2)`），不是区块中心。
     const i32 startX = chunkX * world::CHUNK_WIDTH + 2;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH + 2;
 
@@ -136,12 +127,18 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
     // 原版起始楼梯的包围盒固定从 MAGIC_START_Y=64 起算，与配置里的 minY 无关；
     // 最终的竖直位置由结尾的 moveBelowSeaLevel 决定。
     const BlockPos startPos(startX, StrongholdStartStairs::MAGIC_START_Y, startZ);
-
     // 防御性上限：原版 while(true) 靠「权重耗尽」保证终止，而权重恰好全部耗尽的轮次
     // 可能同时卡在传送门房间的包围盒冲突上，缺少硬上限会让探针/服务端永久挂住。
     // 触发说明组装逻辑与条件不一致，必须报错而不是静默产出残缺要塞。
-    constexpr i32 kMaxAttempts = 256;
+    constexpr i32 kMaxAttempts = 1024;
     for (i32 attempt = 0;; ++attempt) {
+        if (attempt == 32) {
+            spdlog::warn("stronghold assembly: {} attempts without a portal room (seed {}, chunk {},{})",
+                attempt,
+                worldSeed,
+                chunkX,
+                chunkZ);
+        }
         MC_ASSERT_RELEASE_MSG(attempt < kMaxAttempts,
             "stronghold assembly did not produce a portal room within retry limit; "
             "the piece weight bookkeeping or the portal room registration is inconsistent");
@@ -150,26 +147,19 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
 
         math::WorldgenRandom localRng(std::make_unique<math::JavaLegacyRandom>(static_cast<u64>(worldSeed + attempt)));
         localRng.setLargeFeatureSeed(worldSeed + attempt, chunkX, chunkZ);
-
         StrongholdStartStairs* startStairs = _generateStrongholdPieces(localRng, startPos, start->pieces());
         const bool hasPortalRoom = startStairs != nullptr && startStairs->portalRoom() != nullptr;
-
         start->recalculateStructureSize();
-
-        // 原版 `moveBelowSeaLevel` 排在重试条件的判定之内、且每轮都会执行；它消耗的那次
-        // `nextInt` 会推进随机流，因此只能草稿式地算出来再丢弃，正式落位在通过条件之后。
-        const i32 draftTopLimit = ::mc::world::SEA_LEVEL - 10;
-        if ((start->getBoundingBox().maxY() - start->getBoundingBox().minY() + 1) + ::mc::world::MIN_BUILD_HEIGHT + 1 <
-            draftTopLimit) {
-            static_cast<void>(localRng.nextInt(draftTopLimit -
-                ((start->getBoundingBox().maxY() - start->getBoundingBox().minY() + 1) + ::mc::world::MIN_BUILD_HEIGHT +
-                    1)));
-        }
-
+        // 原版 `moveBelowSeaLevel(海平面, 最小 Y, random, 10)` 在重试条件**之前**、每轮都会执行：
+        // 它先把整座要塞压到海平面以下（可能消耗一次 nextInt），再由后面的重试判定决定是否作废。
+        // 因此这里必须每轮都落一次，不能只在通过条件后落位。
         const i32 seaLevel = ::mc::world::SEA_LEVEL;
         const i32 minY = ::mc::world::MIN_BUILD_HEIGHT;
+        constexpr i32 kBelowSeaLevelMargin = 10;
+
         const StructureBoundingBox overall = start->getBoundingBox();
-        const i32 topLimit = seaLevel - 10;
+
+        const i32 topLimit = seaLevel - kBelowSeaLevelMargin;
         i32 topY = (overall.maxY() - overall.minY() + 1) + minY + 1;
         if (topY < topLimit) {
             topY += localRng.nextInt(topLimit - topY);
@@ -184,7 +174,6 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
             break;
         }
     }
-
     return start;
 }
 
@@ -199,7 +188,6 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
     auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z, direction);
     StrongholdStartStairs* startStairsPtr = startStairs.get();
     pieces.push_back(std::move(startStairs));
-
     // 队列驱动组装。
     //
     // 原版 generatePieces 把所有待扩展分支压进 `StartPiece.pendingChildren`，然后
@@ -222,14 +210,17 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
     // `generateAndAddPiece` 落进 `pieces` 的——那里只有一个 `StructurePieceAccessor`，
     // 拿不到要塞起点。
     //
-    // 终止条件来自权重耗尽（原版 canAddStructurePieces 返回 false，各分支开不出新片段）
+    // 终止条件来自权重耗尽（原版 updatePieceWeight 返回 false，各分支开不出新片段）
     // 与每个片段各自的分支深度上限（原版 MAX_DEPTH=50）。这里**不能**再加一层全局
     // 片段数上限：原版要塞的构件数可以到三百以上，多一层上限会在到达真实规模之前
     // 把它凭空截断。
     const size_t before = pieces.size();
+    // 起始楼梯的定向盒（未经 moveBelowSeaLevel 平移）由魔术高度展开：
+    // 高度 64、向下 11 格，底面在 57，必定满足最小高度门限。
+    MC_ASSERT_RELEASE(startStairsPtr->minY() > 10);
     pieces[0]->buildComponent(pieces[0].get(), pieces, rng);
-    MC_ASSERT_RELEASE(pieces.size() > before);
-
+    // 首个子构件是强制的五向交叉点；它也可能因包围盒冲突被拒，此时整棵树到此为止。
+    MC_UNUSED(before);
     while (!startStairsPtr->pendingChildren().empty()) {
         auto& pending = startStairsPtr->mutablePendingChildren();
         const i32 pick = rng.nextInt(static_cast<i32>(pending.size()));
@@ -238,7 +229,6 @@ StrongholdStartStairs* StrongholdStructure::_generateStrongholdPieces(
         pending.erase(pending.begin() + pick);
         current->buildComponent(current, pieces, rng);
     }
-
     return startStairsPtr;
 }
 
@@ -251,31 +241,24 @@ std::pair<i32, i32> StrongholdStructure::calculateStrongholdPos(i32 index, i64 w
     for (i32 i = 0; i < ring; ++i) {
         ringIndex -= RING_COUNTS[i];
     }
-
     i32 count = RING_COUNTS[ring];
     i32 distance = RING_DISTANCES[ring];
     i32 spread = RING_SPREADS[ring];
-
     // 计算角度
     math::Random rng(worldSeed);
     [[maybe_unused]] const i32 skippedValue0 = rng.nextInt(); // 跳过一些值
     [[maybe_unused]] const i32 skippedValue1 = rng.nextInt();
-
     // 计算该要塞的角度
     f64 angleStep = 2.0 * mc::math::PI_DOUBLE / count;
     f64 angle = angleStep * ringIndex;
-
     // 添加随机偏移
     f64 randomOffset = (rng.nextDouble() - 0.5) * angleStep * 0.5;
     angle += randomOffset;
-
     // 计算距离
     i32 actualDistance = distance + rng.nextInt(spread);
-
     // 计算坐标
     i32 x = static_cast<i32>(std::cos(angle) * actualDistance);
     i32 z = static_cast<i32>(std::sin(angle) * actualDistance);
-
     // 转换为区块坐标
     return {x >> mc::world::CHUNK_SHIFT, z >> mc::world::CHUNK_SHIFT};
 }
@@ -291,7 +274,6 @@ i32 StrongholdStructure::getRing(i32 index) noexcept
     }
     return 7;
 }
-
 } // namespace structure
 } // namespace gen
 } // namespace world

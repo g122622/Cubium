@@ -168,7 +168,7 @@ TEST(StrongholdPieceWeightTest, InitializeWeights_SpecificEntries)
 }
 
 // ============================================================================
-// canAddStructurePieces 测试
+// updatePieceWeight 测试
 // ============================================================================
 
 TEST(StrongholdPieceWeightTest, CanAddStructurePieces_InitialWeights_ReturnsTrue)
@@ -177,7 +177,7 @@ TEST(StrongholdPieceWeightTest, CanAddStructurePieces_InitialWeights_ReturnsTrue
     initializeStrongholdPieceWeights(weights);
 
     i32 totalWeight = 0;
-    EXPECT_TRUE(canAddStructurePieces(weights, totalWeight));
+    EXPECT_TRUE(updatePieceWeight(weights, totalWeight));
     EXPECT_EQ(totalWeight, 145); // 40+5+20+20+10+5+5+5+5+10+20
 }
 
@@ -197,8 +197,8 @@ TEST(StrongholdPieceWeightTest, CanAddStructurePieces_AllLimitedExhausted_Return
 
     i32 totalWeight = 0;
     // MC Java 的 updatePieceWeight 在所有限制类型耗尽时也返回 false
-    EXPECT_FALSE(canAddStructurePieces(weights, totalWeight));
-    // 注意：canAddStructurePieces 只跳过 weight==0 的条目，
+    EXPECT_FALSE(updatePieceWeight(weights, totalWeight));
+    // 注意：updatePieceWeight 只跳过 weight==0 的条目，
     // 当仅设置 instancesSpawned=instancesLimit 而未将 weight 设为 0 时，
     // 这些条目仍会贡献其权重到 totalWeight（这与 MC Java 一致，
     // 因为 MC Java 的 updatePieceWeight 也对列表中所有条目求和）
@@ -219,7 +219,7 @@ TEST(StrongholdPieceWeightTest, CanAddStructurePieces_ZeroWeightSkipped)
     }
 
     i32 totalWeight = 0;
-    EXPECT_TRUE(canAddStructurePieces(weights, totalWeight));
+    EXPECT_TRUE(updatePieceWeight(weights, totalWeight));
     // 总权重应减少 PRISON 的 5
     EXPECT_EQ(totalWeight, 140);
 }
@@ -240,7 +240,7 @@ TEST(StrongholdPieceWeightTest, CanAddStructurePieces_SomeLimitedStillAvailable)
     }
 
     i32 totalWeight = 0;
-    EXPECT_TRUE(canAddStructurePieces(weights, totalWeight)); // 其他限制类型仍可用
+    EXPECT_TRUE(updatePieceWeight(weights, totalWeight)); // 其他限制类型仍可用
 }
 
 // ============================================================================
@@ -306,10 +306,10 @@ TEST_F(GeneratePieceTest, ImposedPiece_CrossingIsCreated)
 
     math::Random rng(42);
     auto& weights = m_start->weights();
-    StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
+    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
     auto pieceOwner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     // 强制片段应被创建
@@ -336,18 +336,18 @@ TEST_F(GeneratePieceTest, ImposedPiece_ConsumedAfterUse)
 
     math::Random rng(42);
     auto& weights = m_start->weights();
-    StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
+    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
     // 第一次调用应使用强制片段
     auto pieceOwner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
     ASSERT_NE(piece, nullptr);
     EXPECT_EQ(m_start->imposedPieceType(), -1); // 已消费
 
     // 第二次调用应不再使用强制片段（正常随机选择）
     auto piece2Owner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 2, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 2, weights, lastPlacedIndex);
     StrongholdPiece* piece2 = piece2Owner.get(); // 非拥有观察指针
     // piece2 可能为 nullptr（碰撞等原因）或为其他类型，但不应是强制片段
     if (piece2 != nullptr) {
@@ -363,11 +363,11 @@ TEST_F(GeneratePieceTest, ImposedPiece_WeightZeroedWhenLimitReached)
 
     math::Random rng(42);
     auto& weights = m_start->weights();
-    StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
+    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
     // 先确保深度足够（PortalRoom minDepth == 5）
     auto pieceOwner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 10, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 10, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     if (piece != nullptr) {
@@ -389,10 +389,10 @@ TEST_F(GeneratePieceTest, NoImposedPiece_NormalWeightSelection)
 
     math::Random rng(42);
     auto& weights = m_start->weights();
-    StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
+    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
     auto pieceOwner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     // 不验证具体类型（随机），但应不是强制片段
@@ -401,7 +401,7 @@ TEST_F(GeneratePieceTest, NoImposedPiece_NormalWeightSelection)
 }
 
 // ============================================================================
-// canAddStructurePieces 与 generatePieceFromSmallDoor 的交互测试
+// updatePieceWeight 与 generatePieceFromSmallDoor 的交互测试
 // ============================================================================
 
 TEST_F(GeneratePieceTest, AllLimitedExhausted_ReturnsNullptr)
@@ -416,15 +416,15 @@ TEST_F(GeneratePieceTest, AllLimitedExhausted_ReturnsNullptr)
     }
 
     math::Random rng(42);
-    StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
+    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
-    // canAddStructurePieces 应返回 false
+    // updatePieceWeight 应返回 false
     i32 totalWeight = 0;
-    EXPECT_FALSE(canAddStructurePieces(weights, totalWeight));
+    EXPECT_FALSE(updatePieceWeight(weights, totalWeight));
 
     // generatePieceFromSmallDoor 在无强制片段且 canAdd 返回 false 时应返回 nullptr
     auto pieceOwner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
     EXPECT_EQ(piece, nullptr);
 }
@@ -444,11 +444,11 @@ TEST_F(GeneratePieceTest, ImposedPieceOverridesExhaustedWeights)
     m_start->setImposedPieceType(StrongholdPieceTypes::STRAIGHT);
 
     math::Random rng(42);
-    StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
+    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
     // 强制片段应在 canAdd 返回 false 时仍被创建
     auto pieceOwner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     // 强制片段类型为 STRAIGHT（无限制类型），应该能创建
@@ -476,10 +476,10 @@ TEST_F(GeneratePieceTest, WeightZeroedWhenLimitReached)
     m_start->setImposedPieceType(StrongholdPieceTypes::PRISON);
 
     math::Random rng(42);
-    StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
+    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
     auto pieceOwner = generatePieceFromSmallDoor(
-        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+        m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     if (piece != nullptr) {
@@ -568,6 +568,13 @@ TEST_F(StrongholdLibraryTest, LargeRoom_HasTwoChests)
         14,
         50,
         14, // maxX, maxY, maxZ
+        0,
+        40,
+        0,
+        14,
+        15,
+        -4,
+        0,
         Direction::South);
 
     // 验证是大型房间
@@ -604,7 +611,8 @@ TEST_F(StrongholdLibraryTest, SmallRoom_HasOneChest)
     math::Random rng(42);
 
     // minY=40, maxY=46 → 高度差 6，不大于 6，所以是小房间
-    StrongholdLibrary library(StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 46, 14, Direction::South);
+    StrongholdLibrary library(
+        StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 46, 14, 0, 40, 0, 14, 15, -4, 0, Direction::South);
 
     // 验证不是大型房间
     EXPECT_FALSE(library.isLargeRoom());
@@ -634,7 +642,8 @@ TEST_F(StrongholdLibraryTest, LargeRoomChestsHaveLootTables)
     // 验证大型图书馆的宝箱都设置了正确的战利品表
     math::Random rng(42);
 
-    StrongholdLibrary library(StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 50, 14, Direction::South);
+    StrongholdLibrary library(
+        StrongholdPieceTypes::LIBRARY, rng, 0, 40, 0, 14, 50, 14, 0, 40, 0, 14, 15, -4, 0, Direction::South);
 
     StructureBoundingBox bounds(-16, 0, -16, 32, 80, 32);
     library.generate(*m_region, rng, 0, 0, bounds);

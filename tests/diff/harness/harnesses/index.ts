@@ -237,6 +237,7 @@ import { structureDensityDeclaration } from "./structure_density.ts";
 import { mineshaftPiecesDeclaration } from "./mineshaft_pieces.ts";
 import { strongholdPiecesDeclaration } from "./stronghold_pieces.ts";
 import { strongholdRoomCrossingDeclaration } from "./stronghold_room_crossing.ts";
+import { strongholdSmallDoorDeclaration } from "./stronghold_small_door.ts";
 import { endCityPiecesDeclaration } from "./end_city_pieces.ts";
 import { jigsawJointOrderDeclaration } from "./jigsaw_joint_order.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
@@ -703,6 +704,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     mineshaftPiecesDeclaration(),
     strongholdPiecesDeclaration(),
     strongholdRoomCrossingDeclaration(),
+    strongholdSmallDoorDeclaration(),
     endCityPiecesDeclaration(),
     jigsawJointOrderDeclaration(),
     villagerTradesDeclaration("list"),
