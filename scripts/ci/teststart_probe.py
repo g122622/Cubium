@@ -214,9 +214,9 @@ def main() -> int:
         return 0
 
     build_dir = options.build_dir.resolve()
-    # ninja 描述文件与 compile_commands.json 用相对构建根（build/）的路径，故先切到构建根；
-    # 之后所有子进程的 cwd 都显式给定。
-    os.chdir(build_dir)
+    # ninja 描述文件与 compile_commands.json 写的是相对构建根（build/）的路径，故切到仓库根；
+    # 之后需要相对构建根的步骤（链接）再显式指定 cwd=build_dir。
+    os.chdir(build_dir.parent)
     config = options.config
     test_binary = build_dir / "bin" / config / "mc_tests"
     work_dir = build_dir / "tests" / "unit"
