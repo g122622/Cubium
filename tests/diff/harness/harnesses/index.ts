@@ -118,6 +118,7 @@ import { shapeBoxesInput } from "./shape_boxes.ts";
 import { shapeQueryInput } from "./shape_query.ts";
 import { directionFacingInput } from "./direction_facing.ts";
 import { mthRoundExtInput } from "./mth_round_ext.ts";
+import { vec3RotateInput } from "./vec3_rotate.ts";
 import { mthApproachInput } from "./mth_approach.ts";
 import { regionSectorInput } from "./region_sector.ts";
 import { blockposDistInput } from "./blockpos_dist.ts";
@@ -982,6 +983,9 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     // ceilLong 与 map 的边界行为。
     { name: "mth_round_ext", probe: "mth_round_ext", oracle: "MthRoundExtOracle",
         key: "unit", units: { kind: "listing" }, input: mthRoundExtInput },
+    // 向量绕轴旋转与投影。
+    { name: "vec3_rotate", probe: "vec3_rotate", oracle: "Vec3RotateOracle",
+        key: "unit", units: { kind: "listing" }, input: vec3RotateInput },
     // Mth 逼近与钳制：approach 对 step 取绝对值、clamp 不校验 min<=max，纯计算。
     { name: "mth_approach", probe: "mth_approach", oracle: "MthApproachOracle",
         key: "unit", units: { kind: "listing" }, input: mthApproachInput },
