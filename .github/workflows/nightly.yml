@@ -487,6 +487,20 @@ jobs:
             echo "run $i: total_wall=$(echo "$end - $start" | bc)"
             cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
           done
+      - name: Minimal gtest control experiment
+        run: |
+          set +e
+          sudo apt-get install -y --no-install-recommends libgtest-dev >/dev/null 2>&1
+          echo 'I2luY2x1ZGUgPGd0ZXN0L2d0ZXN0Lmg+CiNpbmNsdWRlIDxjaHJvbm8+CiNpbmNsdWRlIDxjc3RkaW8+CnN0YXRpYyBsb25nIGxvbmcgdDAgPSAwOwpzdGF0aWMgbG9uZyBsb25nIG1zKCkgewogIHJldHVybiBzdGQ6OmNocm9ubzo6ZHVyYXRpb25fY2FzdDxzdGQ6OmNocm9ubzo6bWlsbGlzZWNvbmRzPigKICAgICAgICAgICAgIHN0ZDo6Y2hyb25vOjpzdGVhZHlfY2xvY2s6Om5vdygpLnRpbWVfc2luY2VfZXBvY2goKSkuY291bnQoKSAtIHQwOwp9CmNsYXNzIEVudiA6IHB1YmxpYyA6OnRlc3Rpbmc6OkVudmlyb25tZW50IHsKcHVibGljOgogIHZvaWQgU2V0VXAoKSBvdmVycmlkZSB7IHN0ZDo6cHJpbnRmKCJtaW5pIGVudl9zZXR1cF9lbnRlciAlbGxkXG4iLCBtcygpKTsgfQp9OwpURVNUKE1pbmksIE9rKSB7IHN0ZDo6cHJpbnRmKCJtaW5pIGJvZHkgJWxsZFxuIiwgbXMoKSk7IFNVQ0NFRUQoKTsgfQppbnQgbWFpbihpbnQgYXJnYywgY2hhcioqIGFyZ3YpIHsKICB0MCA9IHN0ZDo6Y2hyb25vOjpkdXJhdGlvbl9jYXN0PHN0ZDo6Y2hyb25vOjptaWxsaXNlY29uZHM+KAogICAgICAgICAgIHN0ZDo6Y2hyb25vOjpzdGVhZHlfY2xvY2s6Om5vdygpLnRpbWVfc2luY2VfZXBvY2goKSkuY291bnQoKTsKICA6OnRlc3Rpbmc6OkluaXRHb29nbGVUZXN0KCZhcmdjLCBhcmd2KTsKICA6OnRlc3Rpbmc6OkFkZEdsb2JhbFRlc3RFbnZpcm9ubWVudChuZXcgRW52KCkpOwogIHN0ZDo6cHJpbnRmKCJtaW5pIGJlZm9yZV9ydW4gJWxsZFxuIiwgbXMoKSk7CiAgY29uc3QgaW50IHIgPSBSVU5fQUxMX1RFU1RTKCk7CiAgc3RkOjpwcmludGYoIm1pbmkgYWZ0ZXJfcnVuICVsbGRcbiIsIG1zKCkpOwogIHJldHVybiByOwp9Cg==' | base64 -d > /tmp/mini_gtest.cpp
+          # 对照 1：普通构建；对照 2：ASan+UBSan 构建（与 mc_tests 相同的插桩）。
+          clang++ -std=c++20 -O1 -g /tmp/mini_gtest.cpp -o /tmp/mini_gtest -lgtest -pthread
+          clang++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -fno-omit-frame-pointer /tmp/mini_gtest.cpp -o /tmp/mini_gtest_asan -lgtest -pthread
+          for bin in /tmp/mini_gtest /tmp/mini_gtest_asan; do
+            for i in 1 2 3; do
+              /usr/bin/time -f "$bin wall=%e user=%U sys=%S" $bin --gtest_filter=Mini.Ok
+            done
+          done
       - name: Sample the slow process with gdb
         env:
           MC_SETUP_TIMING_DIR: ${{ runner.temp }}
@@ -500,7 +514,7 @@ jobs:
           sleep 3
           for i in 1 2 3; do
             echo "===== sample $i ====="
-            gdb -q -batch -ex "thread apply all bt 15" -p "$pid" 2>&1 | grep -vE "^\[New LWP|warning:" | head -120
+            timeout -s INT 5 gdb -q -batch -ex run -ex "thread apply all bt 20" --args "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "^#|^Thread" | head -60
             sleep 2
           done
           wait "$pid"
