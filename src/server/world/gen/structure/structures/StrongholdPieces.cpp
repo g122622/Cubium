@@ -20,7 +20,6 @@
  * SOFTWARE.
  *
  */
-
 #include "StrongholdPieces.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -48,14 +47,55 @@ namespace mc {
 namespace world {
 namespace gen {
 namespace structure {
-
 // ============================================================================
 // StrongholdPiece 基类实现
 // ============================================================================
-
-StrongholdPiece::StrongholdPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
-    : StructurePiece(type, minX, minY, minZ, maxX, maxY, maxZ)
+StrongholdPiece::StrongholdPiece(i32 type,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ)
+    : StructurePiece(type, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ)
+    , m_sizeX(sizeX)
+    , m_sizeZ(sizeZ)
 {}
+
+// 原版各片段展开盒子时用的局部偏移都是同一个形状：主体从原点起、入口门开在局部 -Z 边
+// 并让门占位后缩 1 格（各片段的 `-1, …, 0`）。于是原版盒角与构造原点之差只取决于朝向：
+//   SOUTH: minX=originX+offsetX,        maxX=originX+offsetX+sizeX-1
+//   NORTH: minZ=originZ-sizeZ+1+offsetZ, maxZ=originZ+offsetZ
+//   WEST:  minX=originX-sizeZ+1+offsetZ, maxX=originX+offsetZ
+//   EAST:  minZ=originZ-sizeZ+1+offsetZ, maxZ=originZ+offsetZ
+// 沿朝向往返的两轴上盒子跨度恒为带符号的 `size-1`（`offsetX..offsetX+sizeX-1`），
+// 因此上面四个访问器直接由原点、尺寸与各片段共用的 offsetX=-1 / offsetZ=0 算出，
+// 不依赖世界盒的实际形状。子构件落点里原版的 `minX() + 偏移` 即
+// `orientedMinX(direction) + 偏移`。
+i32 StrongholdPiece::orientedMinX(Direction direction) const noexcept
+{
+    return direction == Direction::West ? originX() - m_sizeZ + 1 : originX() - 1;
+}
+
+i32 StrongholdPiece::orientedMaxX(Direction direction) const noexcept
+{
+    return direction == Direction::West ? originX() : originX() + m_sizeX - 1 - 1;
+}
+
+i32 StrongholdPiece::orientedMinZ(Direction direction) const noexcept
+{
+    return direction == Direction::North ? originZ() - m_sizeZ + 1 : originZ() - 1;
+}
+
+i32 StrongholdPiece::orientedMaxZ(Direction direction) const noexcept
+{
+    return direction == Direction::North ? originZ() : originZ() + m_sizeX - 1 - 1;
+}
 
 StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::IRandom& rng)
 {
@@ -78,14 +118,12 @@ void StrongholdPiece::generateDoor(
     IWorldWriter& world, const StructureBoundingBox& bounds, math::IRandom& rng, Door door, i32 x, i32 y, i32 z)
 {
     (void)rng; // 不需要随机数，保持接口一致
-
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
     const BlockState* oakDoor = VanillaBlocks::getState(VanillaBlocks::OAK_DOOR);
     const BlockState* ironDoor = VanillaBlocks::getState(VanillaBlocks::IRON_DOOR);
     const BlockState* stoneButton = VanillaBlocks::getState(VanillaBlocks::STONE_BUTTON);
-
     switch (door) {
         case Door::Opening:
             // 简单的 3x3 开口
@@ -95,7 +133,6 @@ void StrongholdPiece::generateDoor(
                 }
             }
             break;
-
         case Door::WoodDoor: {
             // 石砖框架
             setBlockState(world, stoneBricks, x, y, z, bounds);
@@ -109,7 +146,6 @@ void StrongholdPiece::generateDoor(
             setBlockState(world, oakDoor, x + 1, y, z, bounds);
             break;
         }
-
         case Door::Grates:
             // 铁栏杆门
             setBlockState(world, caveAir, x + 1, y, z, bounds);
@@ -122,7 +158,6 @@ void StrongholdPiece::generateDoor(
             setBlockState(world, ironBars, x + 2, y + 1, z, bounds);
             setBlockState(world, ironBars, x + 2, y, z, bounds);
             break;
-
         case Door::IronDoor: {
             // 石砖框架 + 铁门
             setBlockState(world, stoneBricks, x, y, z, bounds);
@@ -154,39 +189,38 @@ StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* s
     i32 positionOffset,
     i32 verticalOffset)
 {
-    Direction direction = getCoordBaseMode();
+    // 朝向一律取「原版 getOrientation()」：房间、走廊等构件原版从不调 setOrientation，
+    // 它们不会从这里开子构件；能走到这里的构件都与盒子朝同一套方向。
+    const Direction direction = orientation();
     if (direction == Direction::None) {
         return nullptr;
     }
-
     i32 x = 0, y = 0, z = 0;
     Direction newDirection = direction;
-
     switch (direction) {
         case Direction::North:
-            x = boundingBox().minX() + positionOffset;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() - 1;
+            x = orientedMinX(direction) + positionOffset;
+            y = minY() + verticalOffset;
+            z = orientedMinZ(direction) - 1;
             break;
         case Direction::South:
-            x = boundingBox().minX() + positionOffset;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().maxZ() + 1;
+            x = orientedMinX(direction) + positionOffset;
+            y = minY() + verticalOffset;
+            z = orientedMaxZ(direction) + 1;
             break;
         case Direction::West:
-            x = boundingBox().minX() - 1;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() + positionOffset;
+            x = orientedMinX(direction) - 1;
+            y = minY() + verticalOffset;
+            z = orientedMinZ(direction) + positionOffset;
             break;
         case Direction::East:
-            x = boundingBox().maxX() + 1;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() + positionOffset;
+            x = orientedMaxX(direction) + 1;
+            y = minY() + verticalOffset;
+            z = orientedMinZ(direction) + positionOffset;
             break;
         default:
             return nullptr;
     }
-
     return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
 }
 
@@ -197,35 +231,34 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
     i32 positionOffset,
     i32 verticalOffset)
 {
-    const Direction direction = getCoordBaseMode();
+    // 朝向一律取「原版 getOrientation()」：房间、走廊等构件原版从不调 setOrientation，
+    // 它们不会从这里开子构件；能走到这里的构件都与盒子朝同一套方向。
+    const Direction direction = orientation();
     if (direction == Direction::None) {
         return nullptr;
     }
-
     i32 x = 0, y = 0, z = 0;
     Direction newDirection = Direction::None;
-
     // 原版 `generateSmallDoorChildLeft`（p_229905_ = 沿局部 X 的偏移、p_229906_ = 沿局部 Z 的偏移）：
     // 门在局部 -X 边（本体翻滚系里是南/北门），门沿局部 Z 的位置由调用方给的偏移决定。
     switch (direction) {
         case Direction::North:
         case Direction::South:
-            x = boundingBox().minX() - 1;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() + positionOffset;
+            x = orientedMinX(direction) - 1;
+            y = minY() + verticalOffset;
+            z = orientedMinZ(direction) + positionOffset;
             newDirection = Direction::West;
             break;
         case Direction::West:
         case Direction::East:
-            x = boundingBox().minX() + positionOffset;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() - 1;
+            x = orientedMinX(direction) + positionOffset;
+            y = minY() + verticalOffset;
+            z = orientedMinZ(direction) - 1;
             newDirection = Direction::North;
             break;
         default:
             return nullptr;
     }
-
     return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
 }
 
@@ -236,49 +269,46 @@ StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
     i32 positionOffset,
     i32 verticalOffset)
 {
-    const Direction direction = getCoordBaseMode();
+    // 朝向一律取「原版 getOrientation()」：房间、走廊等构件原版从不调 setOrientation，
+    // 它们不会从这里开子构件；能走到这里的构件都与盒子朝同一套方向。
+    const Direction direction = orientation();
     if (direction == Direction::None) {
         return nullptr;
     }
-
     i32 x = 0, y = 0, z = 0;
     Direction newDirection = Direction::None;
-
     // 原版 `generateSmallDoorChildRight`，与左门同一套「局部偏移」语义（见 getNextComponentX）。
     switch (direction) {
         case Direction::North:
         case Direction::South:
             // 世界 EAST：局部 +X（刚体翻滚）。
-            x = boundingBox().maxX() + 1;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().minZ() + positionOffset;
+            x = orientedMaxX(direction) + 1;
+            y = minY() + verticalOffset;
+            z = orientedMinZ(direction) + positionOffset;
             newDirection = Direction::East;
             break;
         case Direction::West:
         case Direction::East:
             // 世界 SOUTH：刚体顺时针转 +90°，即局部 +Z 方向。
-            x = boundingBox().minX() + positionOffset;
-            y = boundingBox().minY() + verticalOffset;
-            z = boundingBox().maxZ() + 1;
+            x = orientedMinX(direction) + positionOffset;
+            y = minY() + verticalOffset;
+            z = orientedMaxZ(direction) + 1;
             newDirection = Direction::South;
             break;
         default:
             return nullptr;
     }
-
     return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
 }
 
 // ============================================================================
 // StrongholdStonesSelector 实现
 // ============================================================================
-
 void StrongholdStonesSelector::selectBlocks(math::IRandom& rng, i32 x, i32 y, i32 z, bool isWall)
 {
     (void)x;
     (void)y;
     (void)z;
-
     if (isWall) {
         f32 f = rng.nextFloat();
         if (f < 0.2f) {
@@ -300,7 +330,6 @@ void StrongholdStonesSelector::selectBlocks(math::IRandom& rng, i32 x, i32 y, i3
 // ============================================================================
 // StrongholdStraight 实现
 // ============================================================================
-
 StrongholdStraight::StrongholdStraight(i32 componentType,
     math::IRandom& rng,
     i32 minX,
@@ -309,8 +338,13 @@ StrongholdStraight::StrongholdStraight(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     // 抽取顺序：原版 `Straight` 先 `randomSmallDoor(random)` 再抽两个边支路开关。
     // 初始化列表先于构造函数体求值，写在列表里会让入口门退到最后抽取。
@@ -329,16 +363,12 @@ void StrongholdStraight::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
-
     // 填充墙壁
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 6, true, rng, selector);
-
     // 生成入口门
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
-
     // 生成出口门
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 6);
-
     // 生成侧面开口
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
     if (m_expandsLeft) {
@@ -347,7 +377,6 @@ void StrongholdStraight::generate(IWorldWriter& world,
     if (m_expandsRight) {
         fillWithBlocks(world, chunkBounds, 4, 1, 2, 4, 3, 4, air, air, false);
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -362,15 +391,12 @@ void StrongholdStraight::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     // 正向连接
     getNextComponentNormal(start, *this, pieces, rng, 1, 1);
-
     // X方向扩展
     if (m_expandsLeft) {
         getNextComponentX(start, *this, pieces, rng, 1, 2);
     }
-
     // Z方向扩展
     if (m_expandsRight) {
         getNextComponentZ(start, *this, pieces, rng, 1, 2);
@@ -386,17 +412,15 @@ std::unique_ptr<StrongholdStraight> StrongholdStraight::createPiece(
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 7, direction);
-
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, 7, direction);
+    constexpr i32 kSizeX = 5;
+    constexpr i32 kSizeZ = 7;
     if (!canStrongholdGoDeeper(box)) {
         return nullptr;
     }
-
     if (StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-
     return std::make_unique<StrongholdStraight>(StrongholdPieceTypes::STRAIGHT,
         rng,
         box.minX(),
@@ -405,16 +429,19 @@ std::unique_ptr<StrongholdStraight> StrongholdStraight::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
 // ============================================================================
 // 其他片段的简化实现
 // ============================================================================
-
 // 简化实现：Prison, LeftTurn, RightTurn, RoomCrossing, StairsStraight, Stairs, Crossing, ChestCorridor, Library,
 // PortalRoom, Corridor
-
 StrongholdPrison::StrongholdPrison(i32 componentType,
     math::IRandom& rng,
     i32 minX,
@@ -423,8 +450,13 @@ StrongholdPrison::StrongholdPrison(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -441,18 +473,15 @@ void StrongholdPrison::generate(IWorldWriter& world,
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
     const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 8, 4, 10, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
     fillWithBlocks(world, chunkBounds, 1, 1, 10, 3, 3, 10, air, air, false);
-
     // 简化监狱栏杆
     for (i32 i = 1; i <= 3; ++i) {
         setBlockState(world, ironBars, 4, i, 4, chunkBounds);
         setBlockState(world, ironBars, 4, i, 5, chunkBounds);
         setBlockState(world, ironBars, 4, i, 6, chunkBounds);
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -467,7 +496,6 @@ void StrongholdPrison::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
@@ -479,8 +507,9 @@ std::unique_ptr<StrongholdPrison> StrongholdPrison::createPiece(std::vector<std:
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 9, 5, 11, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 9, 5, 11, direction);
+    constexpr i32 kSizeX = 9;
+    constexpr i32 kSizeZ = 11;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -492,6 +521,11 @@ std::unique_ptr<StrongholdPrison> StrongholdPrison::createPiece(std::vector<std:
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
@@ -504,8 +538,13 @@ StrongholdLeftTurn::StrongholdLeftTurn(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -521,17 +560,14 @@ void StrongholdLeftTurn::generate(IWorldWriter& world,
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
-
     Direction dir = getCoordBaseMode();
     if (dir != Direction::North && dir != Direction::East) {
         fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, air, air, false);
     } else {
         fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, air, air, false);
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -546,7 +582,6 @@ void StrongholdLeftTurn::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     // 原版这里按本体朝向二分开的是左门还是右门。ORIENT 是构件的世界朝向
     // （setOrientation 在构造时把传入的放置方向折算成世界方向），因此条件仍然要读它：
     // 小口径楼梯沿局部 +Z 走向，其世界方向恒为放置方向。
@@ -568,8 +603,9 @@ std::unique_ptr<StrongholdLeftTurn> StrongholdLeftTurn::createPiece(
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 5, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, 5, direction);
+    constexpr i32 kSizeX = 5;
+    constexpr i32 kSizeZ = 5;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -581,6 +617,11 @@ std::unique_ptr<StrongholdLeftTurn> StrongholdLeftTurn::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
@@ -593,8 +634,13 @@ StrongholdRightTurn::StrongholdRightTurn(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -610,17 +656,14 @@ void StrongholdRightTurn::generate(IWorldWriter& world,
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
-
     Direction dir = getCoordBaseMode();
     if (dir != Direction::North && dir != Direction::East) {
         fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, air, air, false);
     } else {
         fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, air, air, false);
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -635,7 +678,6 @@ void StrongholdRightTurn::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     const Direction orient = orientation();
     if (orient != Direction::North && orient != Direction::East) {
         getNextComponentX(start, *this, pieces, rng, 1, 1);
@@ -653,8 +695,9 @@ std::unique_ptr<StrongholdRightTurn> StrongholdRightTurn::createPiece(
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 5, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, 5, direction);
+    constexpr i32 kSizeX = 5;
+    constexpr i32 kSizeZ = 5;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -666,6 +709,11 @@ std::unique_ptr<StrongholdRightTurn> StrongholdRightTurn::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
@@ -678,8 +726,13 @@ StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     // 抽取顺序：原版 `RoomCrossing` 先 `randomSmallDoor(random)` 再抽房间类型。
     setCoordBaseMode(direction);
@@ -701,13 +754,11 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
     const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
     const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
     const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 10, 6, 10, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 4, 1, 0);
     fillWithBlocks(world, chunkBounds, 4, 1, 10, 6, 3, 10, air, air, false);
     fillWithBlocks(world, chunkBounds, 0, 1, 4, 0, 3, 6, air, air, false);
     fillWithBlocks(world, chunkBounds, 10, 1, 4, 10, 3, 6, air, air, false);
-
     // 根据房间类型生成不同内容
     switch (m_roomType) {
         case 0: // 喷泉房间
@@ -721,7 +772,6 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
             setBlockState(world, stoneBricks, 5, 2, 5, chunkBounds);
             setBlockState(world, stoneBricks, 5, 3, 5, chunkBounds);
             break;
-
         case 2: // 宝箱房间
             for (i32 i = 1; i <= 9; ++i) {
                 setBlockState(world, cobblestone, 1, 3, i, chunkBounds);
@@ -738,11 +788,9 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
             generateChest(
                 world, chunkBounds, rng, 3, 4, 8, ResourceLocation("minecraft", "chests/stronghold_crossing"));
             break;
-
         default:
             break;
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -757,7 +805,6 @@ void StrongholdRoomCrossing::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     getNextComponentNormal(start, *this, pieces, rng, 4, 1);
     getNextComponentX(start, *this, pieces, rng, 1, 4);
     getNextComponentZ(start, *this, pieces, rng, 1, 4);
@@ -772,8 +819,9 @@ std::unique_ptr<StrongholdRoomCrossing> StrongholdRoomCrossing::createPiece(
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 11, 7, 11, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -4, -1, 0, 11, 7, 11, direction);
+    constexpr i32 kSizeX = 11;
+    constexpr i32 kSizeZ = 11;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -785,6 +833,11 @@ std::unique_ptr<StrongholdRoomCrossing> StrongholdRoomCrossing::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
@@ -797,8 +850,13 @@ StrongholdStairsStraight::StrongholdStairsStraight(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -815,11 +873,9 @@ void StrongholdStairsStraight::generate(IWorldWriter& world,
     StrongholdStonesSelector selector;
     const BlockState* cobblestoneStairs = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE_STAIRS);
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 10, 7, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 7, 0);
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 7);
-
     for (i32 i = 0; i < 6; ++i) {
         setBlockState(world, cobblestoneStairs, 1, 6 - i, 1 + i, chunkBounds);
         setBlockState(world, cobblestoneStairs, 2, 6 - i, 1 + i, chunkBounds);
@@ -830,7 +886,6 @@ void StrongholdStairsStraight::generate(IWorldWriter& world,
             setBlockState(world, stoneBricks, 3, 5 - i, 1 + i, chunkBounds);
         }
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -845,7 +900,6 @@ void StrongholdStairsStraight::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
@@ -858,8 +912,9 @@ std::unique_ptr<StrongholdStairsStraight> StrongholdStairsStraight::createPiece(
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -7, 0, 5, 11, 8, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -7, 0, 5, 11, 8, direction);
+    constexpr i32 kSizeX = 5;
+    constexpr i32 kSizeZ = 8;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -871,6 +926,11 @@ std::unique_ptr<StrongholdStairsStraight> StrongholdStairsStraight::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
@@ -883,9 +943,14 @@ StrongholdStairs::StrongholdStairs(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
     Direction direction,
-    std::optional<Door> fixedDoor)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    std::optional<Door> fixedDoor,
+    i32 sizeX,
+    i32 sizeZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     setCoordBaseMode(direction);
     // 门类型要么由随机数决定（普通楼梯：原版 `randomSmallDoor`），要么写死（起始楼梯：
@@ -905,11 +970,9 @@ void StrongholdStairs::generate(IWorldWriter& world,
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 10, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 7, 0);
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 4);
-
     setBlockState(world, stoneBricks, 2, 6, 1, chunkBounds);
     setBlockState(world, stoneBricks, 1, 5, 1, chunkBounds);
     setBlockState(world, stoneSlab, 1, 6, 1, chunkBounds);
@@ -927,7 +990,6 @@ void StrongholdStairs::generate(IWorldWriter& world,
     setBlockState(world, stoneSlab, 1, 2, 1, chunkBounds);
     setBlockState(world, stoneBricks, 1, 1, 2, chunkBounds);
     setBlockState(world, stoneSlab, 1, 1, 3, chunkBounds);
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -942,12 +1004,10 @@ void StrongholdStairs::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     // 如果是起始楼梯，设置下一个组件类型为交叉点
     if (m_isSource) {
         start->setImposedPieceType(StrongholdPieceTypes::CROSSING);
     }
-
     getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
@@ -959,8 +1019,9 @@ std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std:
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -7, 0, 5, 11, 5, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -7, 0, 5, 11, 5, direction);
+    constexpr i32 kSizeX = 5;
+    constexpr i32 kSizeZ = 5;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -972,69 +1033,55 @@ std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std:
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
         direction,
-        std::nullopt); // 普通楼梯：入口门按原版 randomSmallDoor 抽取
+        std::nullopt, // 普通楼梯：入口门按原版 randomSmallDoor 抽取
+        kSizeX,
+        kSizeZ);
 }
-
-namespace {
-
-// 原版 `BoundingBox.orientBox(x, 64, z, -1, -7, 0, 5, 11, 5, direction)` 在 XZ 上的
-// 近角与远角。NORTH/WEST 会把盒子向负方向平移 4 格，SOUTH/EAST 则从原点正向展开。
-i32 startMinX(i32 x, i32 z, Direction direction)
-{
-    MC_UNUSED(z);
-    return direction == Direction::West ? x - 4 : x;
-}
-
-i32 startMaxX(i32 x, i32 z, Direction direction)
-{
-    MC_UNUSED(z);
-    return direction == Direction::West ? x : x + 4;
-}
-
-i32 startMinZ(i32 x, i32 z, Direction direction)
-{
-    MC_UNUSED(x);
-    return direction == Direction::North ? z - 4 : z;
-}
-
-i32 startMaxZ(i32 x, i32 z, Direction direction)
-{
-    MC_UNUSED(x);
-    return direction == Direction::North ? z : z + 4;
-}
-
-} // namespace
 
 // StartStairs
+/**
+ * @brief 起始楼梯在 XZ 上的盒子
+ *
+ * 与其余片段同一套 orientBox 展开参数（-1, -7, 0, 5, 11, 5），只是 Y 从固定的
+ * MAGIC_START_Y 起算，向下伸展 11 格。
+ */
+StructureBoundingBox startBox(i32 x, i32 z, Direction direction)
+{
+    const StructureBoundingBox box =
+        StructureBoundingBox::orientBox(x, StrongholdStartStairs::MAGIC_START_Y, z, -1, -7, 0, 5, 11, 5, direction);
+
+    return box;
+}
+
 StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z, Direction direction)
     : StrongholdStairs(StrongholdPieceTypes::START_STAIRS,
           rng,
-          // 原版起始楼梯走 `StairsDown` 的起始构造，包围盒是
-          // `orientBox(x, MAGIC_START_Y=64, z, -1, -7, 0, 5, 11, 5, direction)`：
-          // 沿 -Y 竖直伸展、在 XZ 上按朝向往返旋转的中心盒。若直接取
-          // `x..x+4 / 64..74 / z..z+4` 的轴对齐盒，朝向为 NORTH/WEST 时整体偏一格，
-          // 且继承下来的朝向与盒子不符，后续每个子构件的落点与分支深度都会跟着错。
-          startMinX(x, z, direction),
-          64 - 7,
-          startMinZ(x, z, direction),
-          startMaxX(x, z, direction),
-          64 - 7 + 10,
-          startMaxZ(x, z, direction),
-          // 朝向由调用方用 `nextInt(4)` 抽取——原版 `Plane.HORIZONTAL.getRandomDirection`
-          // 的候选顺序是 **NORTH, EAST, SOUTH, WEST**，与本项目 Direction 的枚举值
+          startBox(x, z, direction).minX(),
+          startBox(x, z, direction).minY(),
+          startBox(x, z, direction).minZ(),
+          startBox(x, z, direction).maxX(),
+          startBox(x, z, direction).maxY(),
+          startBox(x, z, direction).maxZ(),
+          // 盒子由窗口展开，构造原点仍是 (x, MAGIC_START_Y, z)。
+          x,
+          StrongholdStartStairs::MAGIC_START_Y,
+          z,
+          // 朝向由调用方用 nextInt(4) 抽取——原版 Plane.HORIZONTAL.getRandomDirection 的
+          // 候选顺序是 NORTH, EAST, SOUTH, WEST，与本项目 Direction 的枚举值
           // （North/South/West/East）不同，映射必须在调用方完成。
           direction,
-          // 起始楼梯的入口门是写死的 OPENING，不抽随机数——原版 `StartPiece` 走的是
-          // `StairsDown(StructurePieceType, depth, x, z, direction)` 这条构造，
-          // 它只 setOrientation，不调 randomSmallDoor。基类构造里若仍然抽一次，
+          // 起始楼梯的入口门写死为 OPENING，不抽随机数：基类构造里若仍然抽一次，
           // 整座要塞的随机流从第一个片段起就少/多一次抽取，之后全部错位。
-          Door::Opening)
+          Door::Opening,
+          5,
+          5)
 {
-    // 【必须置位】原版 `StairsDown` 的起始构造把 isSource 设为 true，`addChildren` 正是
-    // 靠它把 `imposedPiece` 强制成 FiveCrossing——要塞的第一个子构件因此固定是五向交叉点。
-    // 这个标志只在头文件里默认成 false、构造函数漏了赋值，于是第一个子构件退回权重抽签，
-    // 整座要塞从第 2 个构件起与版分叉。
+    // 【必须置位】原版起始楼梯的构造把 isSource 设为 true，addChildren 正是靠它把下一个
+    // 构件强制成五向交叉点——要塞的第一个子构件因此固定是五向交叉点。
     m_isSource = true;
     m_orientation = direction;
     // 初始化片段权重列表
@@ -1056,8 +1103,13 @@ StrongholdCrossing::StrongholdCrossing(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     // 【抽取顺序必须与原版一致】原版 `FiveCrossing` 构造的顺序是
     //     entryDoor = randomSmallDoor(random);   ← 先抽入口门
@@ -1082,10 +1134,8 @@ void StrongholdCrossing::generate(IWorldWriter& world,
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 9, 8, 10, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 4, 3, 0);
-
     if (m_leftLow) {
         fillWithBlocks(world, chunkBounds, 0, 3, 1, 0, 5, 3, air, air, false);
     }
@@ -1098,9 +1148,7 @@ void StrongholdCrossing::generate(IWorldWriter& world,
     if (m_rightHigh) {
         fillWithBlocks(world, chunkBounds, 9, 5, 7, 9, 7, 9, air, air, false);
     }
-
     fillWithBlocks(world, chunkBounds, 5, 1, 10, 7, 3, 10, air, air, false);
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -1115,16 +1163,13 @@ void StrongholdCrossing::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     // 正向连接
     getNextComponentNormal(start, *this, pieces, rng, 5, 1);
-
     // 根据方向计算偏移
     i32 leftLowOffset = 3;
     i32 leftHighOffset = 5;
     i32 rightLowOffset = 3;
     i32 rightHighOffset = 5;
-
     Direction direction = getCoordBaseMode();
     if (direction == Direction::West || direction == Direction::North) {
         leftLowOffset = 8 - leftLowOffset;
@@ -1132,22 +1177,18 @@ void StrongholdCrossing::buildComponent(
         rightLowOffset = 8 - rightLowOffset;
         rightHighOffset = 8 - rightHighOffset;
     }
-
     // 左下出口
     if (m_leftLow) {
         getNextComponentX(start, *this, pieces, rng, leftLowOffset, 1);
     }
-
     // 左上出口
     if (m_leftHigh) {
         getNextComponentX(start, *this, pieces, rng, leftHighOffset, 7);
     }
-
     // 右下出口
     if (m_rightLow) {
         getNextComponentZ(start, *this, pieces, rng, rightLowOffset, 1);
     }
-
     // 右上出口
     if (m_rightHigh) {
         getNextComponentZ(start, *this, pieces, rng, rightHighOffset, 7);
@@ -1163,8 +1204,9 @@ std::unique_ptr<StrongholdCrossing> StrongholdCrossing::createPiece(
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -3, 0, 10, 9, 11, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -4, -3, 0, 10, 9, 11, direction);
+    constexpr i32 kSizeX = 10;
+    constexpr i32 kSizeZ = 11;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -1176,6 +1218,11 @@ std::unique_ptr<StrongholdCrossing> StrongholdCrossing::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
@@ -1188,8 +1235,13 @@ StrongholdChestCorridor::StrongholdChestCorridor(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     setCoordBaseMode(direction);
     setEntryDoor(getRandomDoor(rng));
@@ -1206,15 +1258,12 @@ void StrongholdChestCorridor::generate(IWorldWriter& world,
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 6, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 6);
-
     fillWithBlocks(world, chunkBounds, 3, 1, 2, 3, 1, 4, stoneBricks, stoneBricks, false);
     setBlockState(world, stoneSlab, 3, 1, 1, chunkBounds);
     setBlockState(world, stoneSlab, 3, 1, 5, chunkBounds);
-
     if (!m_hasChest) {
         i32 chestX = getXWithOffset(3, 3);
         i32 chestY = getYWithOffset(2);
@@ -1225,7 +1274,6 @@ void StrongholdChestCorridor::generate(IWorldWriter& world,
                 world, chunkBounds, rng, 3, 2, 3, ResourceLocation("minecraft", "chests/stronghold_corridor"));
         }
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -1240,7 +1288,6 @@ void StrongholdChestCorridor::buildComponent(
     if (start == nullptr) {
         return;
     }
-
     getNextComponentNormal(start, *this, pieces, rng, 1, 1);
 }
 
@@ -1253,8 +1300,9 @@ std::unique_ptr<StrongholdChestCorridor> StrongholdChestCorridor::createPiece(
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 7, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, 7, direction);
+    constexpr i32 kSizeX = 5;
+    constexpr i32 kSizeZ = 7;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
@@ -1266,6 +1314,11 @@ std::unique_ptr<StrongholdChestCorridor> StrongholdChestCorridor::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
@@ -1278,8 +1331,13 @@ StrongholdLibrary::StrongholdLibrary(i32 componentType,
     i32 maxX,
     i32 maxY,
     i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
     Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
     , m_isLargeRoom((maxY - minY) > 6)
 {
     setCoordBaseMode(direction);
@@ -1298,14 +1356,10 @@ void StrongholdLibrary::generate(IWorldWriter& world,
     const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
     const BlockState* bookshelf = VanillaBlocks::getState(VanillaBlocks::BOOKSHELF);
     const BlockState* cobweb = VanillaBlocks::getState(VanillaBlocks::COBWEB);
-
     i32 height = m_isLargeRoom ? 11 : 6;
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 13, height - 1, 14, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 4, 1, 0);
-
     randomlyRareFillWithBlocks(world, chunkBounds, 2, 1, 1, 11, 4, 13, cobweb);
-
     for (i32 l = 1; l <= 13; ++l) {
         if ((l - 1) % 4 == 0) {
             fillWithBlocks(world, chunkBounds, 1, 1, l, 1, 4, l, oakPlanks, oakPlanks, false);
@@ -1323,15 +1377,12 @@ void StrongholdLibrary::generate(IWorldWriter& world,
             }
         }
     }
-
     for (i32 l1 = 3; l1 < 12; l1 += 2) {
         fillWithBlocks(world, chunkBounds, 3, 1, l1, 4, 3, l1, bookshelf, bookshelf, false);
         fillWithBlocks(world, chunkBounds, 6, 1, l1, 7, 3, l1, bookshelf, bookshelf, false);
         fillWithBlocks(world, chunkBounds, 9, 1, l1, 10, 3, l1, bookshelf, bookshelf, false);
     }
-
     generateChest(world, chunkBounds, rng, 3, 3, 5, ResourceLocation("minecraft", "chests/stronghold_library"));
-
     // 大型图书馆在高层增加第二个宝箱
     if (m_isLargeRoom) {
         // 在 (12, 9, 1) 处放置洞穴空气以清理上方空间
@@ -1339,7 +1390,6 @@ void StrongholdLibrary::generate(IWorldWriter& world,
         setBlockState(world, caveAir, 12, 9, 1, chunkBounds);
         generateChest(world, chunkBounds, rng, 12, 8, 1, ResourceLocation("minecraft", "chests/stronghold_library"));
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -1352,10 +1402,12 @@ std::unique_ptr<StrongholdLibrary> StrongholdLibrary::createPiece(std::vector<st
     Direction direction,
     i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 14, 11, 15, direction);
+    // 两档高度的盒子共用同一组局部尺寸（原版先试高书架室、冲突才退回矮书架室）。
+    constexpr i32 kSizeX = 14;
+    constexpr i32 kSizeZ = 15;
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -4, -1, 0, kSizeX, 11, kSizeZ, direction);
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
-        box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 14, 6, 15, direction);
+        box = StructureBoundingBox::orientBox(x, y, z, -4, -1, 0, kSizeX, 6, kSizeZ, direction);
         if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
             return nullptr;
         }
@@ -1368,13 +1420,30 @@ std::unique_ptr<StrongholdLibrary> StrongholdLibrary::createPiece(std::vector<st
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
 // PortalRoom
-StrongholdPortalRoom::StrongholdPortalRoom(
-    i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+StrongholdPortalRoom::StrongholdPortalRoom(i32 componentType,
+    math::IRandom& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
+    Direction direction)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
 {
     setCoordBaseMode(direction);
 }
@@ -1393,24 +1462,19 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
     const BlockState* cobblestoneStairs = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE_STAIRS);
     const BlockState* spawner = VanillaBlocks::getState(VanillaBlocks::SPAWNER);
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
-
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 10, 7, 15, false, rng, selector);
     generateDoor(world, chunkBounds, rng, Door::Grates, 4, 1, 0);
-
     i32 i = 6;
     fillWithRandomizedBlocks(world, chunkBounds, 1, i, 1, 1, i, 14, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 9, i, 1, 9, i, 14, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 2, i, 1, 8, i, 2, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 2, i, 14, 8, i, 14, false, rng, selector);
-
     fillWithRandomizedBlocks(world, chunkBounds, 1, 1, 1, 2, 1, 4, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 8, 1, 1, 9, 1, 4, false, rng, selector);
     fillWithBlocks(world, chunkBounds, 1, 1, 1, 1, 1, 3, lava, lava, false);
     fillWithBlocks(world, chunkBounds, 9, 1, 1, 9, 1, 3, lava, lava, false);
-
     fillWithRandomizedBlocks(world, chunkBounds, 3, 1, 8, 7, 1, 12, false, rng, selector);
     fillWithBlocks(world, chunkBounds, 4, 1, 9, 6, 1, 11, lava, lava, false);
-
     // 铁栏杆
     for (i32 j = 3; j < 14; j += 2) {
         setBlockState(world, ironBars, 0, 3, j, chunkBounds);
@@ -1418,22 +1482,18 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
         setBlockState(world, ironBars, 10, 3, j, chunkBounds);
         setBlockState(world, ironBars, 10, 4, j, chunkBounds);
     }
-
     for (i32 i1 = 2; i1 < 9; i1 += 2) {
         setBlockState(world, ironBars, i1, 3, 15, chunkBounds);
         setBlockState(world, ironBars, i1, 4, 15, chunkBounds);
     }
-
     fillWithRandomizedBlocks(world, chunkBounds, 4, 1, 5, 6, 1, 7, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 4, 2, 6, 6, 2, 7, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 4, 3, 7, 6, 3, 7, false, rng, selector);
-
     for (i32 k = 4; k <= 6; ++k) {
         setBlockState(world, cobblestoneStairs, k, 1, 4, chunkBounds);
         setBlockState(world, cobblestoneStairs, k, 2, 5, chunkBounds);
         setBlockState(world, cobblestoneStairs, k, 3, 6, chunkBounds);
     }
-
     // 末地传送门框架 - 带随机眼睛状态
     // MC: 每个框架有 10% 概率已有眼睛（nextFloat() > 0.9F）
     bool eyeStates[12];
@@ -1444,11 +1504,9 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
             allEyesFilled = false;
         }
     }
-
     // 放置末地传送门框架方块环
     // 传送门中心在局部坐标 (5, 3, 10)，框架围绕中心 ±2 格
     placeEndPortalFrames(world, chunkBounds, 5, 3, 10, eyeStates, allEyesFilled);
-
     // 蠹虫刷怪笼
     if (!m_hasSpawner) {
         i32 spawnerX = getXWithOffset(5, 6);
@@ -1457,7 +1515,6 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
         if (chunkBounds.isInside(spawnerX, spawnerY, spawnerZ)) {
             m_hasSpawner = true;
             setBlockState(world, spawner, 5, 3, 6, chunkBounds);
-
             // 配置刷怪笼实体类型为蠹虫
             IWorld* iworld = dynamic_cast<IWorld*>(&world);
             if (iworld != nullptr) {
@@ -1470,7 +1527,6 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
             }
         }
     }
-
     (void)chunkX;
     (void)chunkZ;
 }
@@ -1489,27 +1545,53 @@ void StrongholdPortalRoom::buildComponent(
 }
 
 std::unique_ptr<StrongholdPortalRoom> StrongholdPortalRoom::createPiece(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces, i32 x, i32 y, i32 z, Direction direction, i32 depth)
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    math::IRandom& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    Direction direction,
+    i32 depth)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -4, -1, 0, 11, 8, 16, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -4, -1, 0, 11, 8, 16, direction);
+    constexpr i32 kSizeX = 11;
+    constexpr i32 kSizeZ = 16;
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
     return std::make_unique<StrongholdPortalRoom>(StrongholdPieceTypes::PORTAL_ROOM,
+        rng,
         box.minX(),
         box.minY(),
         box.minZ(),
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        kSizeX,
+        kSizeZ,
         direction);
 }
 
 // Corridor
-StrongholdCorridor::StrongholdCorridor(
-    i32 componentType, i32 steps, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction)
-    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ)
+StrongholdCorridor::StrongholdCorridor(i32 componentType,
+    i32 steps,
+    math::IRandom& rng,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    i32 originX,
+    i32 originY,
+    i32 originZ,
+    i32 sizeX,
+    i32 sizeZ,
+    Direction direction)
+    : StrongholdPiece(componentType, minX, minY, minZ, maxX, maxY, maxZ, originX, originY, originZ, sizeX, sizeZ)
     , m_steps(steps)
 {
     setCoordBaseMode(direction);
@@ -1525,7 +1607,6 @@ void StrongholdCorridor::generate(IWorldWriter& world,
 {
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
-
     for (i32 i = 0; i < m_steps; ++i) {
         for (i32 x = 0; x < 5; ++x) {
             setBlockState(world, stoneBricks, x, 0, i, chunkBounds);
@@ -1541,7 +1622,6 @@ void StrongholdCorridor::generate(IWorldWriter& world,
             setBlockState(world, stoneBricks, x, 4, i, chunkBounds);
         }
     }
-
     (void)rng;
     (void)chunkX;
     (void)chunkZ;
@@ -1556,38 +1636,44 @@ std::unique_ptr<StrongholdCorridor> StrongholdCorridor::createPiece(
     Direction direction,
     i32 depth)
 {
-
     StructureBoundingBox box = findPieceBox(pieces, rng, x, y, z, direction);
     if (!box.isValid() || box.minY() <= 1) {
         return nullptr;
     }
-    i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxX() - box.minX() + 1)
-                                                                                 : (box.maxZ() - box.minZ() + 1);
+    // 填充走廊的步长就是沿伸入轴的长度，而宽度固定为 kSizeX；两者都要留给基类，
+    // 否则后续子构件（本片段没有子构件）以外的坐标推导会拿到互换的尺寸。
+    const i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxZ() - box.minZ() + 1)
+                                                                                       : (box.maxX() - box.minX() + 1);
     return std::make_unique<StrongholdCorridor>(StrongholdPieceTypes::CORRIDOR,
         steps,
+        rng,
         box.minX(),
         box.minY(),
         box.minZ(),
         box.maxX(),
         box.maxY(),
         box.maxZ(),
+        x,
+        y,
+        z,
+        5,
+        steps,
         direction);
 }
 
 StructureBoundingBox StrongholdCorridor::findPieceBox(
     std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng, i32 x, i32 y, i32 z, Direction direction)
 {
-
-    StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 4, direction);
+    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, 4, direction);
     StructurePiece* intersecting = StructurePiece::findIntersecting(pieces, box);
     if (intersecting == nullptr) {
         return box;
     }
     if (intersecting->minY() == box.minY()) {
         for (i32 j = 3; j >= 1; --j) {
-            box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, j - 1, direction);
+            box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, j - 1, direction);
             if (!intersecting->intersects(box)) {
-                return StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, j, direction);
+                return StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, j, direction);
             }
         }
     }
@@ -1597,7 +1683,6 @@ StructureBoundingBox StrongholdCorridor::findPieceBox(
 // ============================================================================
 // 辅助函数实现
 // ============================================================================
-
 void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weights)
 {
     weights.clear();
@@ -1616,23 +1701,25 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     weights.emplace_back(StrongholdPieceTypes::PORTAL_ROOM, 20, 1, 5); // depth > 5
 }
 
-bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight)
+/**
+ * @brief 原版 `updatePieceWeight`：重算可用权重总和，并判断是否还有类型可放置
+ *
+ * 权重为 0 的类型是「已达实例上限」的占位（本项目用置 0 代替从列表里删除），不参与总和。
+ */
+bool updatePieceWeight(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight)
 {
-    bool canAdd = false;
+    bool canPlace = false;
     outTotalWeight = 0;
-
     for (auto& weight : weights) {
-        // 跳过权重为0的项（已达到生成上限）
         if (weight.weight == 0) {
             continue;
         }
-        if (weight.instancesLimit > 0 && weight.instancesSpawned < weight.instancesLimit) {
-            canAdd = true;
+        if (weight.canSpawnMoreStructures()) {
+            canPlace = true;
         }
         outTotalWeight += weight.weight;
     }
-
-    return canAdd;
+    return canPlace;
 }
 
 std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
@@ -1644,7 +1731,6 @@ std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
     Direction direction,
     i32 depth)
 {
-
     switch (pieceType) {
         case StrongholdPieceTypes::STRAIGHT:
             return StrongholdStraight::createPiece(pieces, rng, x, y, z, direction, depth);
@@ -1667,7 +1753,7 @@ std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
         case StrongholdPieceTypes::LIBRARY:
             return StrongholdLibrary::createPiece(pieces, rng, x, y, z, direction, depth);
         case StrongholdPieceTypes::PORTAL_ROOM:
-            return StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
+            return StrongholdPortalRoom::createPiece(pieces, rng, x, y, z, direction, depth);
         case StrongholdPieceTypes::CORRIDOR:
             return StrongholdCorridor::createPiece(pieces, rng, x, y, z, direction, depth);
         default:
@@ -1692,7 +1778,6 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
         // 那次会在**每一个**后续分支上重复强制同一个类型，最终把所有分支都堵死。
         const i32 imposedType = start->imposedPieceType();
         start->setImposedPieceType(-1);
-
         std::unique_ptr<StrongholdPiece> piece =
             createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
         if (piece != nullptr) {
@@ -1716,22 +1801,18 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
             return piece;
         }
     }
-
+    // 原版 updatePieceWeight：先重算可用总权重；若没有任何类型还能放置，就直接返回 false，
+    // 由调用方走「先补填充走廊、再补十字路口」的兜底，**不消耗随机数**。权重耗尽时若继续
+    // 走后面的抽签循环，会一边抽一边全部落空，随机流从这一刻起与参照实现分叉。
     i32 totalWeight = 0;
-    if (!canAddStructurePieces(weights, totalWeight)) {
-        // 权重耗尽（各类型都达到了实例上限）时**不再**凭空生成片段：原版就是这个语义，
-        // 这一条分支到此为止。首轮要塞的首个分支必然最先耗尽，因此这里必须放行，
-        // 否则要塞永远生不出来。
-        return nullptr;
-    }
-
+    const bool hasAvailable = updatePieceWeight(weights, totalWeight);
     // 尝试最多 5 次
-    for (i32 attempt = 0; attempt < 5; ++attempt) {
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
+    for (i32 attempt = 0; hasAvailable && attempt < 5; ++attempt) {
         // 原版这 5 次重试共用入口处算好的 totalWeight（generatePieceFromSmallDoor 的
         // "while (j < 5)" 循环）：某次失败只说明本轮抽到的类型放不下，不改变其余类型的
         // 权重。在循环内重算会让 randomValue 的取值范围与原版不同，随机流从此分叉。
         i32 randomValue = rng.nextInt(totalWeight);
-
         for (auto& weight : weights) {
             if (weight.weight == 0) {
                 continue;
@@ -1746,14 +1827,11 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
                 if (lastPlaced != nullptr && &weight == lastPlaced) {
                     break;
                 }
-
                 std::unique_ptr<StrongholdPiece> piece =
                     createStrongholdPiece(weight.pieceType, pieces, rng, x, y, z, direction, depth);
-
                 if (piece != nullptr) {
                     weight.instancesSpawned++;
                     lastPlaced = &weight;
-
                     // 如果达到限制，将权重设为0使其不再被选中
                     // 将权重置0使其不再被选中（等效于从列表中移除）
                     // 使用权重置0而非移除，避免迭代器失效和 lastPlaced 悬垂指针问题
@@ -1763,13 +1841,11 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
                             lastPlaced = nullptr;
                         }
                     }
-
                     return piece;
                 }
             }
         }
     }
-
     // 如果所有尝试都失败，创建填充走廊。
     //
     // 原版两条路径：上一个片段是走廊（走道）时再补一段走廊，否则在十字路口补一个十字路口。
@@ -1780,16 +1856,23 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
         if (!box.isValid() || box.minY() <= 1) {
             return nullptr;
         }
-        i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxX() - box.minX() + 1)
-                                                                                     : (box.maxZ() - box.minZ() + 1);
+        const i32 steps = (direction == Direction::North || direction == Direction::South)
+            ? (box.maxZ() - box.minZ() + 1)
+            : (box.maxX() - box.minX() + 1);
         return std::make_unique<StrongholdCorridor>(StrongholdPieceTypes::CORRIDOR,
             steps,
+            rng,
             box.minX(),
             box.minY(),
             box.minZ(),
             box.maxX(),
             box.maxY(),
             box.maxZ(),
+            x,
+            y,
+            z,
+            5,
+            steps,
             direction);
     }
     return StrongholdCrossing::createPiece(pieces, rng, x, y, z, direction, depth);
@@ -1819,27 +1902,22 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     if (depth > 50) {
         return nullptr;
     }
-
     // 距离限制：距离起点不超过 112 格
     if (std::abs(x - start->boundingBox().minX()) > 112 || std::abs(z - start->boundingBox().minZ()) > 112) {
         return nullptr;
     }
-
     // 使用 StrongholdStartStairs 成员变量存储状态（替代 thread_local 静态变量）
     std::vector<StrongholdPieceWeight>& weights = start->weights();
     StrongholdPieceWeight*& lastPlaced = start->lastPlacedRef();
-
     // 原版 `generateAndAddPiece` 收到 p_229444_ 后，传给 `generatePieceFromSmallDoor` 的是
     // **p_229444_ + 1**（见 `generatePieceFromSmallDoor(..., p_229444_ + 1)`），而深度门控
     // （Library 需 > 4、PortalRoom 需 > 5）比较的正是这个 +1 后的值。少加这一步会让两类
     // 房间的可用时机整体晚一层，抽签序列从该层起与版分叉。
     std::unique_ptr<StrongholdPiece> piece =
         generatePieceFromSmallDoor(start, pieces, rng, x, y, z, direction, depth + 1, weights, lastPlaced);
-
     if (piece == nullptr) {
         return nullptr;
     }
-
     // pieces 是唯一所有者（最终落入 StructureStart::m_pieces）；
     // 返回值只是便于调用方继续传递的非拥有观察指针。
     // 分支深度：本片段记录的是传入的 depth，下一层的 getNextComponent* 取它的 +1。
@@ -1855,7 +1933,6 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     start->addPendingChild(observer);
     return observer;
 }
-
 } // namespace structure
 } // namespace gen
 } // namespace world

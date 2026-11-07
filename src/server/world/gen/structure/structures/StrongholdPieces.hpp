@@ -95,7 +95,28 @@ public:
         IronDoor  ///< 铁门
     };
 
-    StrongholdPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
+    /**
+     * @brief 构造要塞片段
+     *
+     * @param originX/originY/originZ 本片段在**原版坐标系**里的构造原点，即展开包围盒时
+     *        `orientBox` 的第一个实参。子构件的落点沿用它做「原版坐标 → 世界坐标」的基准，
+     *        因此必须原样传入；见 `StructurePiece` 三参版本构造函数的说明。
+     * @param sizeX/sizeZ 本片段在 `orientBox` 里用的局部尺寸。原版子构件落点与
+     *        `addChildren` 的偏移翻转都以这两个尺寸为基准（例如五向交叉点的 `8 - i`），
+     *        而盒子的世界跨度在 EAST 下会与它们互换，故显式记下来。
+     */
+    StrongholdPiece(i32 type,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ);
 
     [[nodiscard]] Door entryDoor() const
     {
@@ -122,6 +143,43 @@ public:
      * @brief 检查是否可以继续向下生成
      */
     [[nodiscard]] static bool canStrongholdGoDeeper(const StructureBoundingBox& box);
+
+    /**
+     * @brief 原版坐标系里的盒子近角/远角
+     *
+     * 原版子构件落点写成 `this.boundingBox.minX() + 偏移` 这类形式，而 `minX()` 在原版里
+     * 是 `orientBox` 算出的盒角，与构造原点之间只差一个由方向决定的常量。本项目盒子已是
+     * 世界坐标，镜像朝向下不能直接拿来当原版盒角用，故由原点加上这两个常量还原。
+     *
+     * @param direction 本片段的导入口朝向（原版 `getOrientation()`）
+     */
+    [[nodiscard]] i32 orientedMinX(Direction direction) const noexcept;
+    [[nodiscard]] i32 orientedMaxX(Direction direction) const noexcept;
+    [[nodiscard]] i32 orientedMinZ(Direction direction) const noexcept;
+    [[nodiscard]] i32 orientedMaxZ(Direction direction) const noexcept;
+
+    /** @brief `orientBox` 的局部尺寸 X（原版片段里写死的 WIDTH）。 */
+    [[nodiscard]] i32 sizeX() const noexcept
+    {
+        return m_sizeX;
+    }
+
+    /** @brief `orientBox` 的局部尺寸 Z（原版片段里写死的 DEPTH）。 */
+    [[nodiscard]] i32 sizeZ() const noexcept
+    {
+        return m_sizeZ;
+    }
+
+    /**
+     * @brief 把「沿局部 Z 的偏移」换算成世界偏移
+     *
+     * 原版若干 `addChildren` 在朝 NORTH/WEST 时把局部偏移取成 `尺寸 - 偏移 - 1`
+     * （例如五向交叉点的 `i = 8 - i`）。世界朝向下这段偏移是沿 X 还是沿 Z，随朝向互换。
+     */
+    [[nodiscard]] static bool flipsLocalZ(Direction direction) noexcept
+    {
+        return direction == Direction::North || direction == Direction::West;
+    }
 
     /**
      * @brief 获取下一个组件（正向）
@@ -161,6 +219,8 @@ public:
 
 protected:
     Door m_entryDoor = Door::Opening;
+    i32 m_sizeX = 0;
+    i32 m_sizeZ = 0;
 };
 
 // ============================================================================
@@ -192,6 +252,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -236,6 +301,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -276,6 +346,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -316,6 +391,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -356,6 +436,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -405,6 +490,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -440,8 +530,11 @@ public:
     /**
      * @brief 构造楼梯
      *
+     * @param box 已按朝向展开好的世界包围盒
+     * @param originX/originY/originZ 展开该盒时 `orientBox` 用的原点（原版坐标系）
      * @param fixedDoor 非空时使用该入口门且**不消耗随机数**；为空时按原版
      *                  `randomSmallDoor` 抽一次。起始楼梯必须传 `Door::Opening`。
+     * @param sizeX/sizeZ `orientBox` 的局部尺寸
      */
     StrongholdStairs(i32 componentType,
         math::IRandom& rng,
@@ -451,8 +544,13 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
         Direction direction,
-        std::optional<Door> fixedDoor);
+        std::optional<Door> fixedDoor,
+        i32 sizeX,
+        i32 sizeZ);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -620,6 +718,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -666,6 +769,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -709,6 +817,11 @@ public:
         i32 maxX,
         i32 maxY,
         i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
         Direction direction);
 
     void generate(IWorldWriter& world,
@@ -746,8 +859,20 @@ private:
  */
 class StrongholdPortalRoom : public StrongholdPiece {
 public:
-    StrongholdPortalRoom(
-        i32 componentType, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction);
+    StrongholdPortalRoom(i32 componentType,
+        math::IRandom& rng,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        Direction direction);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -761,7 +886,13 @@ public:
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng) override;
 
     [[nodiscard]] static std::unique_ptr<StrongholdPortalRoom> createPiece(
-        std::vector<std::unique_ptr<StructurePiece>>& pieces, i32 x, i32 y, i32 z, Direction direction, i32 depth);
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
+        math::IRandom& rng,
+        i32 x,
+        i32 y,
+        i32 z,
+        Direction direction,
+        i32 depth);
 
 private:
     bool m_hasSpawner = false;
@@ -776,8 +907,21 @@ private:
  */
 class StrongholdCorridor : public StrongholdPiece {
 public:
-    StrongholdCorridor(
-        i32 componentType, i32 steps, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, Direction direction);
+    StrongholdCorridor(i32 componentType,
+        i32 steps,
+        math::IRandom& rng,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        i32 originX,
+        i32 originY,
+        i32 originZ,
+        i32 sizeX,
+        i32 sizeZ,
+        Direction direction);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -851,7 +995,7 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
 /**
  * @brief 检查是否可以添加更多片段
  */
-[[nodiscard]] bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight);
+[[nodiscard]] bool updatePieceWeight(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight);
 
 /**
  * @brief 从小门生成要塞片段

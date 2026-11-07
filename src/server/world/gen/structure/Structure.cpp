@@ -62,6 +62,23 @@ StructurePiece::StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX,
     , m_maxX(maxX)
     , m_maxY(maxY)
     , m_maxZ(maxZ)
+    , m_originX(minX)
+    , m_originY(minY)
+    , m_originZ(minZ)
+{}
+
+StructurePiece::StructurePiece(
+    i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 originX, i32 originY, i32 originZ)
+    : m_type(type)
+    , m_minX(minX)
+    , m_minY(minY)
+    , m_minZ(minZ)
+    , m_maxX(maxX)
+    , m_maxY(maxY)
+    , m_maxZ(maxZ)
+    , m_originX(originX)
+    , m_originY(originY)
+    , m_originZ(originZ)
 {}
 
 StructureBoundingBox StructurePiece::getBoundingBox() const
@@ -98,6 +115,9 @@ void StructurePiece::offset(i32 dx, i32 dy, i32 dz)
     m_maxX += dx;
     m_maxY += dy;
     m_maxZ += dz;
+    m_originX += dx;
+    m_originY += dy;
+    m_originZ += dz;
 }
 
 void StructurePiece::setCoordBaseMode(Direction dir)

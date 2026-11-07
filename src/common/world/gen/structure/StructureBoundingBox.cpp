@@ -20,26 +20,23 @@
  * SOFTWARE.
  *
  */
-
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/WorldConstants.hpp"
 
 namespace mc::world::gen::structure {
-
 StructureBoundingBox StructureBoundingBox::fromChunk(i32 chunkX, i32 chunkZ) noexcept
 {
     const i32 chunkMinX = chunkX << world::CHUNK_SHIFT;
     const i32 chunkMinZ = chunkZ << world::CHUNK_SHIFT;
     const i32 chunkMaxX = chunkMinX + world::CHUNK_WIDTH - 1;
     const i32 chunkMaxZ = chunkMinZ + world::CHUNK_WIDTH - 1;
-
     return StructureBoundingBox(
         chunkMinX, world::MIN_BUILD_HEIGHT, chunkMinZ, chunkMaxX, world::MAX_BUILD_HEIGHT - 1, chunkMaxZ);
 }
 
-StructureBoundingBox StructureBoundingBox::createBox(i32 x,
+StructureBoundingBox StructureBoundingBox::orientBox(i32 x,
     i32 y,
     i32 z,
     i32 offsetX,
@@ -51,18 +48,10 @@ StructureBoundingBox StructureBoundingBox::createBox(i32 x,
     Direction direction) noexcept
 {
 
-    // 深度沿 -Z 还是 +Z 展开由朝向决定：朝北向 -Z 生长，朝南向 +Z 生长。
-    // 这两个分支此前写反了（North 用了 +Z、South 用了 -Z），使所有依赖朝向的
-    // 结构构件落在门的另一侧，与其他构件的包围盒互相重叠。
+    // 与原版 BoundingBox.orientBox 逐分支一致：先在「未旋转」坐标里把 (offset, size) 展开成
+    // 一个盒子，再按朝向往世界坐标里摆。SOUTH 不动；NORTH/WEST 沿各自的伸入轴翻转并让
+    // offsetZ 落在**远角**；EAST 沿 Z 伸入、offsetX 落在远角。
     switch (direction) {
-        case Direction::South:
-            return StructureBoundingBox(x + offsetX,
-                y + offsetY,
-                z + offsetZ,
-                x + offsetX + sizeX - 1,
-                y + offsetY + sizeY - 1,
-                z + offsetZ + sizeZ - 1);
-
         case Direction::North:
             return StructureBoundingBox(x + offsetX,
                 y + offsetY,
@@ -70,15 +59,13 @@ StructureBoundingBox StructureBoundingBox::createBox(i32 x,
                 x + offsetX + sizeX - 1,
                 y + offsetY + sizeY - 1,
                 z + offsetZ);
-
         case Direction::West:
-            return StructureBoundingBox(x - sizeZ - offsetZ + 1,
+            return StructureBoundingBox(x - sizeZ + 1 + offsetZ,
                 y + offsetY,
                 z + offsetX,
-                x - offsetZ,
+                x + offsetZ,
                 y + offsetY + sizeY - 1,
                 z + offsetX + sizeX - 1);
-
         case Direction::East:
             return StructureBoundingBox(x + offsetZ,
                 y + offsetY,
@@ -86,9 +73,9 @@ StructureBoundingBox StructureBoundingBox::createBox(i32 x,
                 x + offsetZ + sizeZ - 1,
                 y + offsetY + sizeY - 1,
                 z + offsetX + sizeX - 1);
-
+        case Direction::South:
+        case Direction::None:
         default:
-            // 未知朝向按朝南处理（深度沿 +Z 展开）。
             return StructureBoundingBox(x + offsetX,
                 y + offsetY,
                 z + offsetZ,
@@ -97,5 +84,4 @@ StructureBoundingBox StructureBoundingBox::createBox(i32 x,
                 z + offsetZ + sizeZ - 1);
     }
 }
-
 } // namespace mc::world::gen::structure

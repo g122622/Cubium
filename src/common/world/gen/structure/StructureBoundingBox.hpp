@@ -74,7 +74,7 @@ public:
      * @param sizeZ Z 方向大小
      * @param direction 方向（Direction::North/South/East/West，或使用整数 0-3）
      */
-    static StructureBoundingBox createBox(i32 x,
+    static StructureBoundingBox orientBox(i32 x,
         i32 y,
         i32 z,
         i32 offsetX,
