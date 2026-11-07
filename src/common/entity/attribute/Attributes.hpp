@@ -484,14 +484,16 @@ inline std::unique_ptr<Attribute> blockBreakSpeed()
 }
 
 /**
- * @brief 台阶高度
+ * @brief 步进高度
  *
  * 对齐 vanilla 1.21.11 的 step_height 属性
  *（Attributes.java:85-87，RangedAttribute("attribute.name.step_height", 0.6, 0.0, 10.0)）。
  *
- * 决定实体不跳跃就能跨过的最大高度。马类与部分生物会把它调高。
+ * 决定实体不跳跃就能跨过的最大高度。消费点是 `LivingEntity::stepHeight()`：它直接读本属性
+ * （并被移动、寻路台阶判定与 `Entity::move` 的自动步进共同使用），因此数据包/命令改属性即可
+ * 改变生物能否走上整格方块。马、掠夺者、末影人、溺尸等把默认值调高到 1.0。
  *
- * TODO: 接通消费点——移动与寻路里的台阶判定目前仍用固定 0.6，没有读这个属性。
+ * 额外规则：被玩家骑乘时至少按 1.0 计，避免玩家骑乘时被半格高度卡住（vanilla 同款）。
  *
  * 默认值: 0.6
  * 范围: 0.0 ~ 10.0

@@ -139,6 +139,29 @@ public:
      */
     virtual void registerAttributes();
 
+    /**
+     * @brief 获取自动步进的最大高度，对应原版 `LivingEntity#maxUpStep`
+     *
+     * 直接读取 `step_height` 属性（默认 0.6，即半格台阶），因此数据包/命令改属性即可
+     * 改变生物能否走上整格方块——马、掠夺者等就是把该属性调高到 1.0。
+     *
+     * 额外规则（与 vanilla 一致）：被玩家骑乘时至少为 1.0，避免玩家骑乘时被半格高度卡住。
+     *
+     * 注意 `Entity::setStepHeight` 仍然存在，它改写的是无属性系统时的回退值；本类是
+     * `stepHeight()` 的唯一改写点，子类不要再 override 它来调步进高度，改属性即可。
+     */
+    [[nodiscard]] f32 stepHeight() const override;
+
+    /**
+     * @brief 设置步进高度，写入 `step_height` 属性的基础值
+     *
+     * 与 {@link stepHeight} 共用同一事实来源：改这里等价于改属性基础值，命令/数据包改的
+     * 是同一份数据，不会再出现"setStepHeight 设了但没人读"的双轨问题。
+     *
+     * @param height 步进高度（属性值范围 0.0 ~ 10.0）
+     */
+    void setStepHeight(f32 height) override;
+
     // ========== 生命值 ==========
 
     /**
