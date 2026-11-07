@@ -42,8 +42,11 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include <algorithm>
@@ -59,6 +62,57 @@ namespace mc {
 namespace command {
 
 namespace {
+
+/**
+ * @brief 根据命令参数解析出源世界与目标世界
+ *
+ * `/clone` 的两个维度参数是可选的：
+ * - `sourceDimension` 缺省时取命令源所在维度；
+ * - `targetDimension` 缺省时取源维度（即同维度克隆）。
+ *
+ * 任一维度在当前服务端不存在（或该维度没有世界）时返回 false，并已向命令源发送错误。
+ *
+ * @param context 命令上下文
+ * @param sourceWorld 输出：源世界
+ * @param targetWorld 输出：目标世界
+ * @return 是否解析成功
+ */
+bool resolveCloneWorlds(
+    CommandContext<ServerCommandSource>& context, server::ServerWorld*& sourceWorld, server::ServerWorld*& targetWorld)
+{
+    auto& commandSource = context.getSource();
+    server::IServer* server = commandSource.server();
+    if (server == nullptr) {
+        commandSource.sendError("commands.clone.failed.noWorld");
+        return false;
+    }
+
+    // 源维度：显式参数优先，否则用命令源所在维度。
+    const DimensionId sourceDimensionId = context.hasArgument("sourceDimension")
+        ? DimensionArgumentType::getDimension(context, "sourceDimension")
+        : commandSource.dimensionId();
+
+    // 目标维度：显式参数优先，否则与源维度相同。
+    const DimensionId targetDimensionId = context.hasArgument("targetDimension")
+        ? DimensionArgumentType::getDimension(context, "targetDimension")
+        : sourceDimensionId;
+
+    auto* sourceDimension = server->dimensionManager().getDimension(sourceDimensionId);
+    if (sourceDimension == nullptr || sourceDimension->world() == nullptr) {
+        commandSource.sendError("commands.clone.failed.sourceUnloaded");
+        return false;
+    }
+
+    auto* targetDimension = server->dimensionManager().getDimension(targetDimensionId);
+    if (targetDimension == nullptr || targetDimension->world() == nullptr) {
+        commandSource.sendError("commands.clone.failed.destinationUnloaded");
+        return false;
+    }
+
+    sourceWorld = sourceDimension->world();
+    targetWorld = targetDimension->world();
+    return true;
+}
 
 /**
  * @brief 检查区域是否已加载
@@ -114,12 +168,17 @@ struct BlockInfo {
 /**
  * @brief 执行克隆操作
  *
+ * 源与目标世界分开传入，因此支持跨维度克隆（原版 `/clone ... from <dim> to <dim>`）：
+ * 源区域从 `sourceWorld` 读、目标区域向 `targetWorld` 写，move 模式清空的是源世界。
+ *
  * @param strict 严格模式：抑制写入期间的全部方块副作用（不触发邻居更新、方块实体副作用、
  *               掉落与形状更新），并在全部写入完成后统一补发邻居更新。
  *               对应原版 `/clone ... strict` 传 `2 | 816`（UPDATE_CLIENTS |
  *               UPDATE_SKIP_ALL_SIDEEFFECTS），非 strict 传 `2 | 256`。
  */
 i32 executeClone(CommandContext<ServerCommandSource>& context,
+    server::ServerWorld& sourceWorld,
+    server::ServerWorld& targetWorld,
     const BlockPos& beginPos,
     const BlockPos& endPos,
     const BlockPos& destPos,
@@ -130,12 +189,8 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
 {
     auto& source = context.getSource();
 
-    // 获取世界
-    server::ServerWorld* world = source.world();
-    if (world == nullptr) {
-        source.sendError("commands.clone.failed.noWorld");
-        return 0;
-    }
+    // 重叠判定只在同一维度内才有意义：跨维度时两块区域属于不同世界，永远不会重叠。
+    const bool sameWorld = &sourceWorld == &targetWorld;
 
     // filtered 模式的过滤条件：方块类型必须相同，且 filter 显式指定的属性值必须与源方块一致
     // （对齐 vanilla BlockPredicateArgument：仅匹配 filter 中显式写出的属性，未写出属性任意值都算匹配）。
@@ -162,8 +217,8 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     i32 destMaxY = destPos.y + sizeY;
     i32 destMaxZ = destPos.z + sizeZ;
 
-    // 检查重叠（normal 模式不允许重叠）
-    if (cloneMode == CloneMode::Normal) {
+    // 检查重叠（normal 模式不允许重叠；跨维度时两块区域在不同世界，不会重叠）
+    if (cloneMode == CloneMode::Normal && sameWorld) {
         if (boxesOverlap(srcMinX,
                 srcMinY,
                 srcMinZ,
@@ -191,12 +246,12 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
         return 0;
     }
 
-    // 检查源区域和目标区域是否已加载
-    if (!isAreaLoaded(*world, srcMinX, srcMinY, srcMinZ, srcMaxX, srcMaxY, srcMaxZ)) {
+    // 检查源区域和目标区域是否已加载（分别检查各自世界）
+    if (!isAreaLoaded(sourceWorld, srcMinX, srcMinY, srcMinZ, srcMaxX, srcMaxY, srcMaxZ)) {
         source.sendError("commands.clone.failed.sourceUnloaded");
         return 0;
     }
-    if (!isAreaLoaded(*world, destPos.x, destPos.y, destPos.z, destMaxX, destMaxY, destMaxZ)) {
+    if (!isAreaLoaded(targetWorld, destPos.x, destPos.y, destPos.z, destMaxX, destMaxY, destMaxZ)) {
         source.sendError("commands.clone.failed.destinationUnloaded");
         return 0;
     }
@@ -224,7 +279,7 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
                     continue;
                 }
 
-                const BlockState* state = world->getBlockState(x, y, z);
+                const BlockState* state = sourceWorld.getBlockState(x, y, z);
                 if (state == nullptr) {
                     continue;
                 }
@@ -269,14 +324,14 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
                 BlockPos destBlockPos(x + offsetX, y + offsetY, z + offsetZ);
 
                 // 检查方块实体
-                BlockEntity* tileEntity = world->getBlockEntity(BlockPos(x, y, z));
+                BlockEntity* tileEntity = sourceWorld.getBlockEntity(BlockPos(x, y, z));
                 if (tileEntity != nullptr) {
                     // 保存方块实体数据
                     nlohmann::json tileData;
                     tileEntity->save(tileData);
                     tileEntityBlocks.emplace_back(destBlockPos, state, tileData);
                     sourcePositions.push_back(BlockPos(x, y, z));
-                } else if (!state->isOpaqueCube(*world, BlockPos(x, y, z)) && !state->hasOpaqueCollisionShape()) {
+                } else if (!state->isOpaqueCube(sourceWorld, BlockPos(x, y, z)) && !state->hasOpaqueCollisionShape()) {
                     // 透明或不完整碰撞的方块
                     transparentBlocks.emplace_back(destBlockPos, state, nlohmann::json());
                     sourcePositions.push_front(BlockPos(x, y, z));
@@ -306,7 +361,7 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     if (cloneMode == CloneMode::Move) {
         // 先清空方块实体的容器内容
         for (const BlockPos& srcPos : sourcePositions) {
-            BlockEntity* tileEntity = world->getBlockEntity(srcPos);
+            BlockEntity* tileEntity = sourceWorld.getBlockEntity(srcPos);
             if (tileEntity != nullptr) {
                 // 如果是容器，清空内容
                 IInventory* inventory = dynamic_cast<IInventory*>(tileEntity);
@@ -320,8 +375,8 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
         const BlockState* airState = BlockRegistry::instance().airState();
         for (const BlockPos& srcPos : sourcePositions) {
             if (world::isValidY(srcPos.y)) {
-                const BlockState* oldState = strict ? world->getBlockState(srcPos.x, srcPos.y, srcPos.z) : nullptr;
-                if (world->setBlockState(srcPos.x, srcPos.y, srcPos.z, airState, writeFlags) && strict) {
+                const BlockState* oldState = strict ? sourceWorld.getBlockState(srcPos.x, srcPos.y, srcPos.z) : nullptr;
+                if (sourceWorld.setBlockState(srcPos.x, srcPos.y, srcPos.z, airState, writeFlags) && strict) {
                     deferredNeighborUpdates.push_back({srcPos, oldState});
                 }
             }
@@ -347,9 +402,9 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
         }
 
         // 写入前先取旧状态（strict 补发邻居更新时需要）。
-        const BlockState* oldState = strict ? world->getBlockState(info.pos.x, info.pos.y, info.pos.z) : nullptr;
+        const BlockState* oldState = strict ? targetWorld.getBlockState(info.pos.x, info.pos.y, info.pos.z) : nullptr;
 
-        if (world->setBlockState(info.pos.x, info.pos.y, info.pos.z, info.state, writeFlags)) {
+        if (targetWorld.setBlockState(info.pos.x, info.pos.y, info.pos.z, info.state, writeFlags)) {
             blocksCloned++;
             if (strict) {
                 deferredNeighborUpdates.push_back({info.pos, oldState});
@@ -360,14 +415,14 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     // strict：全部写入完成后统一补发邻居更新（原版 updateNeighboursOnBlockSet 的时机）。
     for (const auto& updated : deferredNeighborUpdates) {
         if (updated.oldState != nullptr) {
-            world->updateNeighboursOnBlockSet(updated.pos, *updated.oldState);
+            targetWorld.updateNeighboursOnBlockSet(updated.pos, *updated.oldState);
         }
     }
 
     // 恢复方块实体数据
     for (const BlockInfo& info : tileEntityBlocks) {
         if (!info.tileEntityData.is_null()) {
-            BlockEntity* newTileEntity = world->getBlockEntity(info.pos);
+            BlockEntity* newTileEntity = targetWorld.getBlockEntity(info.pos);
             if (newTileEntity != nullptr) {
                 // 更新坐标
                 nlohmann::json data = info.tileEntityData;
@@ -513,14 +568,14 @@ i32 CloneCommand::_doCloneStatic(
     CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode, bool strict)
 {
     auto& source = context.getSource();
-    // TODO: 为源和目标分别解析世界并执行跨维度复制。
-    for (const char* name : {"sourceDimension", "targetDimension"}) {
-        if (context.hasArgument(name) &&
-            DimensionArgumentType::getDimension(context, name) != source.world()->dimension()) {
-            source.sendError("Cross-dimension cloning is not supported");
-            return 0;
-        }
+
+    // 源与目标世界分别解析，据此支持跨维度克隆。
+    server::ServerWorld* sourceWorld = nullptr;
+    server::ServerWorld* targetWorld = nullptr;
+    if (!resolveCloneWorlds(context, sourceWorld, targetWorld)) {
+        return 0;
     }
+
     // 原版 begin/end/destination 都是 BlockPosArgument（整数方块坐标）。
     const Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
     const Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
@@ -530,20 +585,21 @@ i32 CloneCommand::_doCloneStatic(
     const BlockPos endPos(end.x, end.y, end.z);
     const BlockPos destPos(dest.x, dest.y, dest.z);
 
-    return executeClone(context, beginPos, endPos, destPos, filterMode, cloneMode, strict, nullptr);
+    return executeClone(
+        context, *sourceWorld, *targetWorld, beginPos, endPos, destPos, filterMode, cloneMode, strict, nullptr);
 }
 
 i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode, bool strict)
 {
     auto& source = context.getSource();
-    // TODO: 为源和目标分别解析世界并执行跨维度复制。
-    for (const char* name : {"sourceDimension", "targetDimension"}) {
-        if (context.hasArgument(name) &&
-            DimensionArgumentType::getDimension(context, name) != source.world()->dimension()) {
-            source.sendError("Cross-dimension cloning is not supported");
-            return 0;
-        }
+
+    // 源与目标世界分别解析，据此支持跨维度克隆。
+    server::ServerWorld* sourceWorld = nullptr;
+    server::ServerWorld* targetWorld = nullptr;
+    if (!resolveCloneWorlds(context, sourceWorld, targetWorld)) {
+        return 0;
     }
+
     // 原版 begin/end/destination 都是 BlockPosArgument（整数方块坐标）。
     const Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
     const Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
@@ -554,7 +610,16 @@ i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& co
     const BlockPos endPos(end.x, end.y, end.z);
     const BlockPos destPos(dest.x, dest.y, dest.z);
 
-    return executeClone(context, beginPos, endPos, destPos, FilterMode::Filtered, cloneMode, strict, &filterInput);
+    return executeClone(context,
+        *sourceWorld,
+        *targetWorld,
+        beginPos,
+        endPos,
+        destPos,
+        FilterMode::Filtered,
+        cloneMode,
+        strict,
+        &filterInput);
 }
 
 } // namespace command
