@@ -32,6 +32,8 @@ from pathlib import Path
 NINJA_FILE = Path("build/CMakeFiles/impl-{config}.ninja")
 COMPILE_DB = Path("build/compile_commands.json")
 PROBE_BIN_DIR = Path("/tmp/teststart-probe")
+# 显式指定工具链时的兜底路径：runner 上的 clang 通常经 update-alternatives 装在 /usr/bin。
+FALLBACK_COMPILERS = ["/usr/bin/clang++", "/usr/bin/clang++-22", "clang++"]
 
 PROBE_TIME_RE = re.compile(r"^PROBE_TIME (\w+) (-?\d+)$", re.MULTILINE)
 PROBE_DONE_RE = re.compile(r"^PROBE_DONE (\S+) (-?\d+) (-?\d+)$", re.MULTILINE)
@@ -118,6 +120,17 @@ def _linker_from_rules(ninja_file: Path, rule: str) -> str:
     command = re.search(r"^  command = (.*)$", body.group(1), re.MULTILINE).group(1)
     compiler = re.search(r"clang\+\+|g\+\+", command)
     return compiler.group(0) if compiler else "clang++"
+
+
+def resolve_compiler(preferred: str) -> str:
+    """解析可执行的 clang++：先用给定名字查 PATH，找不到再按兜底列表逐个确认。"""
+    found = shutil.which(preferred)
+    if found:
+        return found
+    for candidate in FALLBACK_COMPILERS:
+        if shutil.which(candidate):
+            return shutil.which(candidate)
+    raise ProbeError(f"找不到可用的 clang++（偏好 {preferred}）")
 
 
 def link(compiler: str, rsp: Path, output: Path) -> None:
@@ -212,7 +225,7 @@ def main() -> int:
     )
     ordered_objects = [main_object] + [path for path in objects if path != main_object]
 
-    compiler = shutil.which(options.compiler or compiler) or (options.compiler or compiler)
+    compiler = resolve_compiler(options.compiler or compiler)
     report: dict = {
         "config": config,
         "compiler": compiler,
