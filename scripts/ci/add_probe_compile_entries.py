@@ -30,8 +30,12 @@ def main() -> int:
 
     entries = json.loads(options.database.read_text())
     template = next(
-        entry for entry in entries
-        if entry["file"].endswith("tests/unit/main.cpp") and "mc_tests.dir" in entry.get("output", "")
+        (entry for entry in entries
+         if entry["file"].endswith("tests/unit/main.cpp") and "mc_tests.dir" in entry.get("output", "")),
+        None,
+    ) or next(
+        # Release 构建不含测试目标，退而取同一目标下任一源文件的条目（宏与包含路径相同）。
+        entry for entry in entries if "mc_tests.dir" in entry.get("output", "")
     )
     root = Path(os.getcwd())
     replacement_root = str(root / options.build_root)
