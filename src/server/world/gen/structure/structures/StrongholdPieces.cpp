@@ -1116,6 +1116,9 @@ StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z, D
     // 构件强制成五向交叉点——要塞的第一个子构件因此固定是五向交叉点。
     m_isSource = true;
     m_orientation = direction;
+    // 原版 `StartPiece` 把 `previousPiece` 留为 null：第一个子构件不受「与上一个同类型」
+    // 的排除规则限制。
+    m_lastPlacedIndex = -1;
     // 初始化片段权重列表
     initializeStrongholdPieceWeights(m_weights);
 }
@@ -1708,12 +1711,12 @@ std::unique_ptr<StrongholdCorridor> StrongholdCorridor::createPiece(
         box.maxX(),
         box.maxY(),
         box.maxZ(),
-        x,
-        y,
-        z,
+        box.minX(),
+        box.minY(),
+        box.minZ(),
         5,
         steps,
-        -1,
+        0,
         0,
         direction);
 }
@@ -1721,16 +1724,18 @@ std::unique_ptr<StrongholdCorridor> StrongholdCorridor::createPiece(
 StructureBoundingBox StrongholdCorridor::findPieceBox(
     std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng, i32 x, i32 y, i32 z, Direction direction)
 {
-    StructureBoundingBox box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, 4, direction);
-    StructurePiece* intersecting = StructurePiece::findIntersecting(pieces, box);
+    const StructureBoundingBox probe = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, 4, direction);
+    const StructurePiece* intersecting = StructurePiece::findIntersecting(pieces, probe);
     if (intersecting == nullptr) {
-        return box;
+        // 原版此处返回 null：填充走廊只在「必定撞上某构件」时才有意义，
+        // 门前方空着说明这里本来就不该堵，交给上层重抽。
+        return StructureBoundingBox();
     }
-    if (intersecting->minY() == box.minY()) {
-        for (i32 j = 3; j >= 1; --j) {
-            box = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, j - 1, direction);
-            if (!intersecting->intersects(box)) {
-                return StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, j, direction);
+    if (intersecting->minY() == probe.minY()) {
+        for (i32 j = 2; j >= 1; --j) {
+            const StructureBoundingBox shrunk = StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, j, direction);
+            if (!intersecting->intersects(shrunk)) {
+                return StructureBoundingBox::orientBox(x, y, z, -1, -1, 0, 5, 5, j + 1, direction);
             }
         }
     }
@@ -1759,24 +1764,41 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
 }
 
 /**
- * @brief 原版 `updatePieceWeight`：重算可用权重总和，并判断是否还有类型可放置
+ * @brief 原版 `updatePieceWeight`：重算抽签总权重，并判断是否还有受限类型可放置
  *
- * 权重为 0 的类型是「已达实例上限」的占位（本项目用置 0 代替从列表里删除），不参与总和。
+ * `flag` 只在「受限类型仍有余额」时为真；全部受限类型用尽即整棵树终止，
+ * 哪怕无上限的直廊/转弯仍可放置。
  */
 bool updatePieceWeight(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight)
 {
     bool canPlace = false;
     outTotalWeight = 0;
     for (auto& weight : weights) {
-        if (weight.weight == 0) {
-            continue;
-        }
-        if (weight.canSpawnMoreStructures()) {
+        if (weight.instancesLimit > 0 && weight.instancesSpawned < weight.instancesLimit) {
             canPlace = true;
         }
         outTotalWeight += weight.weight;
     }
     return canPlace;
+}
+
+/**
+ * @brief 原版 `PieceWeight.isValid()` 为假时把该类型移出抽签表
+ *
+ * 原版是 `currentPieces.remove(weight)`。这里用下标追踪「上一次放下的类型」，
+ * 删除后把下标顺移，避免悬垂。
+ */
+void eraseExhaustedWeight(std::vector<StrongholdPieceWeight>& weights, size_t index, i32& lastPlacedIndex)
+{
+    const bool wasLastPlaced = (lastPlacedIndex == static_cast<i32>(index));
+    weights.erase(weights.begin() + static_cast<std::ptrdiff_t>(index));
+    if (wasLastPlaced) {
+        lastPlacedIndex = -1;
+        return;
+    }
+    if (lastPlacedIndex > static_cast<i32>(index)) {
+        --lastPlacedIndex;
+    }
 }
 
 std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
@@ -1827,7 +1849,7 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
     Direction direction,
     i32 depth,
     std::vector<StrongholdPieceWeight>& weights,
-    StrongholdPieceWeight*& lastPlaced)
+    i32& lastPlacedIndex)
 {
     // 强制片段类型机制：如果有强制片段类型，优先创建
     if (start != nullptr && start->imposedPieceType() >= 0) {
@@ -1838,22 +1860,19 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
         std::unique_ptr<StrongholdPiece> piece =
             createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
         if (piece != nullptr) {
-            // 找到对应的权重并更新计数
-            for (auto& weight : weights) {
-                if (weight.pieceType == imposedType) {
-                    weight.instancesSpawned++;
-                    lastPlaced = &weight;
-                    // 如果达到限制，从列表中移除
-                    if (!weight.canSpawnMoreStructures()) {
-                        // 使用 swap-and-pop 惯用法移除，避免迭代器失效
-                        // 注意：lastPlaced 此时指向被移除元素的引用，需要置空
-                        if (lastPlaced == &weight) {
-                            lastPlaced = nullptr;
-                        }
-                        weight.weight = 0; // 将权重设为0，使其不再被选中
-                    }
-                    break;
+            // 原版清掉 imposedPiece 后同样走「placeCount++ / previousPiece = 该权重 /
+            // 用尽则出表」这一套计数，漏掉会让强制片段不占实例额度。
+            for (size_t index = 0; index < weights.size(); ++index) {
+                auto& weight = weights[index];
+                if (weight.pieceType != imposedType) {
+                    continue;
                 }
+                ++weight.instancesSpawned;
+                lastPlacedIndex = static_cast<i32>(index);
+                if (!weight.canSpawnMoreStructures()) {
+                    eraseExhaustedWeight(weights, index, lastPlacedIndex);
+                }
+                break;
             }
             return piece;
         }
@@ -1863,44 +1882,41 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
     // 走后面的抽签循环，会一边抽一边全部落空，随机流从这一刻起与参照实现分叉。
     i32 totalWeight = 0;
     const bool hasAvailable = updatePieceWeight(weights, totalWeight);
+    if (!hasAvailable) {
+        // 原版这里确有一条填充走廊兜底，但该路径不可达：`updatePieceWeight` 为假要求所有
+        // **受限**类型都已用尽，此时抽签表里只剩无上限的直廊/转弯，它们若还能落脚就已经
+        // 在抽签里成功返回，走到这里必然是自己撞了包围盒，填充走廊同样撞，仍是空。
+        // 因此直接返回空，与那一步等价且省掉一次无效碰撞查询。
+        return nullptr;
+    }
     // 尝试最多 5 次
-    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
-    for (i32 attempt = 0; hasAvailable && attempt < 5; ++attempt) {
+    for (i32 attempt = 0; attempt < 5; ++attempt) {
         // 原版这 5 次重试共用入口处算好的 totalWeight（generatePieceFromSmallDoor 的
         // "while (j < 5)" 循环）：某次失败只说明本轮抽到的类型放不下，不改变其余类型的
         // 权重。在循环内重算会让 randomValue 的取值范围与原版不同，随机流从此分叉。
         i32 randomValue = rng.nextInt(totalWeight);
-        for (auto& weight : weights) {
-            if (weight.weight == 0) {
+        for (size_t index = 0; index < weights.size(); ++index) {
+            auto& weight = weights[index];
+            randomValue -= weight.weight;
+            if (randomValue >= 0) {
                 continue;
             }
-            randomValue -= weight.weight;
-            if (randomValue < 0) {
-                // 检查是否可以生成该类型的片段
-                if (!weight.canSpawnMoreStructuresOfType(depth)) {
-                    break;
-                }
-                // 跳过上一个放置的片段类型，避免连续生成相同类型
-                if (lastPlaced != nullptr && &weight == lastPlaced) {
-                    break;
-                }
-                std::unique_ptr<StrongholdPiece> piece =
-                    createStrongholdPiece(weight.pieceType, pieces, rng, x, y, z, direction, depth);
-                if (piece != nullptr) {
-                    weight.instancesSpawned++;
-                    lastPlaced = &weight;
-                    // 如果达到限制，将权重设为0使其不再被选中
-                    // 将权重置0使其不再被选中（等效于从列表中移除）
-                    // 使用权重置0而非移除，避免迭代器失效和 lastPlaced 悬垂指针问题
-                    if (!weight.canSpawnMoreStructures()) {
-                        weight.weight = 0;
-                        if (lastPlaced == &weight) {
-                            lastPlaced = nullptr;
-                        }
-                    }
-                    return piece;
-                }
+            // 抽中的类型被深度门槛挡下，或恰好是上一次放下的类型：本轮作废，重抽。
+            if (!weight.canSpawnMoreStructuresOfType(depth) || static_cast<i32>(index) == lastPlacedIndex) {
+                break;
             }
+            std::unique_ptr<StrongholdPiece> piece =
+                createStrongholdPiece(weight.pieceType, pieces, rng, x, y, z, direction, depth);
+            if (piece == nullptr) {
+                // 原版这里不 break：类型本身可放置，只是包围盒被占，继续比对后续类型。
+                continue;
+            }
+            ++weight.instancesSpawned;
+            lastPlacedIndex = static_cast<i32>(index);
+            if (!weight.canSpawnMoreStructures()) {
+                eraseExhaustedWeight(weights, index, lastPlacedIndex);
+            }
+            return piece;
         }
     }
 
@@ -1915,6 +1931,9 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
         const i32 steps = (direction == Direction::North || direction == Direction::South)
             ? (box.maxZ() - box.minZ() + 1)
             : (box.maxX() - box.minX() + 1);
+        // 原版 `new FillerCorridor(depth, boundingBox, direction)` 把盒子直接交给
+        // `StructurePiece(type, genDepth, boundingBox)`：构造原点即盒最小角，
+        // 而且它没有导入口，不会通过门去反推任何朝向偏移。
         return std::make_unique<StrongholdCorridor>(StrongholdPieceTypes::CORRIDOR,
             steps,
             rng,
@@ -1924,12 +1943,12 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
             box.maxX(),
             box.maxY(),
             box.maxZ(),
-            x,
-            y,
-            z,
+            box.minX(),
+            box.minY(),
+            box.minZ(),
             5,
             steps,
-            -1,
+            0,
             0,
             direction);
     }
@@ -1965,13 +1984,13 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     }
     // 使用 StrongholdStartStairs 成员变量存储状态（替代 thread_local 静态变量）
     std::vector<StrongholdPieceWeight>& weights = start->weights();
-    StrongholdPieceWeight*& lastPlaced = start->lastPlacedRef();
+    i32& lastPlacedIndex = start->lastPlacedIndex();
     // 原版 `generateAndAddPiece` 收到 p_229444_ 后，传给 `generatePieceFromSmallDoor` 的是
     // **p_229444_ + 1**（见 `generatePieceFromSmallDoor(..., p_229444_ + 1)`），而深度门控
     // （Library 需 > 4、PortalRoom 需 > 5）比较的正是这个 +1 后的值。少加这一步会让两类
     // 房间的可用时机整体晚一层，抽签序列从该层起与版分叉。
     std::unique_ptr<StrongholdPiece> piece =
-        generatePieceFromSmallDoor(start, pieces, rng, x, y, z, direction, depth + 1, weights, lastPlaced);
+        generatePieceFromSmallDoor(start, pieces, rng, x, y, z, direction, depth + 1, weights, lastPlacedIndex);
     if (piece == nullptr) {
         return nullptr;
     }

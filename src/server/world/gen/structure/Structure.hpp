@@ -292,6 +292,17 @@ public:
      */
     virtual void offset(i32 dx, i32 dy, i32 dz);
 
+    /** 整体改写包围盒（世界坐标）。构件自身的位置状态由子类按需同步。 */
+    void setBoundingBox(const StructureBoundingBox& bounds) noexcept
+    {
+        m_minX = bounds.minX();
+        m_minY = bounds.minY();
+        m_minZ = bounds.minZ();
+        m_maxX = bounds.maxX();
+        m_maxY = bounds.maxY();
+        m_maxZ = bounds.maxZ();
+    }
+
     /**
      * @brief 获取基础方向
      */

@@ -53,7 +53,14 @@ struct StrongholdPieceWeight {
     i32 instancesLimit;   ///< 最大数量 (0 = 无限制)
     i32 minDepth;         ///< 最小深度条件 (0 = 无条件)
 
-    StrongholdPieceWeight(i32 type, i32 w, i32 limit, i32 depth = 0)
+    /**
+     * @param type 片段类型
+     * @param w 抽签权重
+     * @param limit 实例上限（0 = 无限制）
+     * @param depth 最小深度：只在该深度**之后**才可被抽中（0 = 无门槛），
+     *              对应原版 Library（>4）与 PortalRoom（>5）覆写的 `doPlace`
+     */
+    StrongholdPieceWeight(i32 type, i32 w, i32 limit, i32 depth)
         : pieceType(type)
         , weight(w)
         , instancesSpawned(0)
@@ -61,15 +68,21 @@ struct StrongholdPieceWeight {
         , minDepth(depth)
     {}
 
+    /** 原版 `doPlace`：深度门槛与实例余额，两者都满足才允许放入。 */
     [[nodiscard]] bool canSpawnMoreStructuresOfType(i32 depth) const
     {
-        // 检查深度条件
         if (minDepth > 0 && depth <= minDepth) {
             return false;
         }
         return instancesLimit == 0 || instancesSpawned < instancesLimit;
     }
 
+    /**
+     * @brief 原版 `PieceWeight.isValid()`：只补实例上限，**不含**深度门槛
+     *
+     * 用尽后该类型要从抽签表里移除；若把深度门槛也并进来，被深度挡下的那次放置会
+     * 把类型误判为「已用尽」并从表中删除，后续分支再也抽不到它。
+     */
     [[nodiscard]] bool canSpawnMoreStructures() const
     {
         return instancesLimit == 0 || instancesSpawned < instancesLimit;
@@ -632,19 +645,15 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng) override;
 
-    [[nodiscard]] StrongholdPieceWeight* lastPlaced() const
+    /**
+     * @brief 上一次放下的片段类型（对应原版 `StartPiece.previousPiece`）在抽签表中的下标
+     *
+     * 用下标而不是指针：类型用尽时要从表里删除，指针会悬垂。
+     * -1 表示尚未放置过任何片段。
+     */
+    [[nodiscard]] i32& lastPlacedIndex()
     {
-        return m_lastPlaced;
-    }
-
-    void setLastPlaced(StrongholdPieceWeight* weight)
-    {
-        m_lastPlaced = weight;
-    }
-
-    StrongholdPieceWeight*& lastPlacedRef()
-    {
-        return m_lastPlaced;
+        return m_lastPlacedIndex;
     }
 
     [[nodiscard]] StrongholdPiece* portalRoom() const
@@ -702,8 +711,8 @@ public:
     }
 
 private:
-    std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表
-    StrongholdPieceWeight* m_lastPlaced = nullptr;  ///< 上一个放置的片段权重
+    std::vector<StrongholdPieceWeight> m_weights;   ///< 片段权重列表（用尽的类型会被移出）
+    i32 m_lastPlacedIndex = -1;                     ///< 上一次放下的类型下标（-1 = 无）
     StrongholdPiece* m_portalRoom = nullptr;        ///< 传送门房间引用
     std::vector<StructurePiece*> m_pendingChildren; ///< 待处理的子片段
     i32 m_imposedPieceType = -1;                    ///< 强制片段类型（-1 表示无强制）
@@ -1011,7 +1020,7 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     i32 depth);
 
 /**
- * @brief 检查是否可以添加更多片段
+ * @brief 重算抽签总权重，并报告是否还有受限类型可放置（原版 `updatePieceWeight`）
  */
 [[nodiscard]] bool updatePieceWeight(std::vector<StrongholdPieceWeight>& weights, i32& outTotalWeight);
 
@@ -1027,7 +1036,7 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
     Direction direction,
     i32 depth,
     std::vector<StrongholdPieceWeight>& weights,
-    StrongholdPieceWeight*& lastPlaced);
+    i32& lastPlacedIndex);
 
 /**
  * @brief 生成并添加片段
