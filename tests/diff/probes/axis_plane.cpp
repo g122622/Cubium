@@ -20,68 +20,9 @@
  * SOFTWARE.
  *
  */
-
-/**
- * @brief 差分能力：`Direction.Axis` / `Direction.Plane` 的判定与选取（纯计算）。
- *
- * `list`：一组「模式|参数…」单元
- * `run` ：同上一行 → { "result": "..." }
- *
- * 复刻原版 `Direction.Axis` 与 `Direction.Plane`：
- *
- * ```java
- * // Axis 枚举：X("x"), Y("y"), Z("z")
- * public int choose(int x, int y, int z) { return x; }   // X 取第 1 个
- * public int choose(int x, int y, int z) { return y; }   // Y 取第 2 个
- * public int choose(int x, int y, int z) { return z; }   // Z 取第 3 个
- * // boolean 与 double 版本结构相同
- *
- * public Direction getPositive() { return EAST; }   // X -> EAST
- * public Direction getNegative() { return WEST; }   // X -> WEST
- * // Y -> (UP, DOWN)，Z -> (SOUTH, NORTH)
- *
- * public Plane getPlane() {
- *     return switch (this) { case X, Z -> HORIZONTAL; case Y -> VERTICAL; };
- * }
- *
- * public Direction.Axis getAxis() {
- *     return switch (this) { case DOWN, UP -> Y; case NORTH, SOUTH -> Z; case WEST, EAST -> X; };
- * }
- *
- * // Plane
- * HORIZONTAL(new Direction[]{NORTH, EAST, SOUTH, WEST}, new Axis[]{X, Z}),
- * VERTICAL(new Direction[]{UP, DOWN}, new Axis[]{Y});
- *
- * public boolean test(@Nullable Direction d) {
- *     return d != null && d.getAxis().getPlane() == this;
- * }
- * ```
- *
- * ## 三个关键点
- *
- * 1. **`Axis.choose(x, y, z)` 是按轴取对应分量**：`X.choose` 返回**第 1 个**参数、`Y` 返回
- *    第 2 个、`Z` 返回第 3 个。这不是「选最大/最小」之类的运算，只是按轴投影。三个重载
- *    （`int` / `double` / `boolean`）结构完全一致。
- *
- * 2. **`getPositive` / `getNegative` 与 `AxisDirection` 相关但不同**：`Z` 轴的 `getPositive`
- *    是 `SOUTH` 而不是 `NORTH`——因为 Minecraft 的 `+Z` 指向南。这是最容易写反的一处。
- *
- * 3. **`Plane.test(null)` 返回 `false`**，且 `HORIZONTAL` 的轴集合是 `{X, Z}`（注意枚举
- *    顺序是 `X, Z` 而不是 `Z, X`）。`HORIZONTAL` 的方向数组顺序是 `NORTH, EAST, SOUTH,
- *    WEST`——这是迭代顺序，影响依赖遍历下标的代码。
- *
- * 单元格式：
- * - `choosei|<axis>` / `choosed|<axis>` / `chooseb|<axis>` —— 用固定三分量 `(10,20,30)` 取值
- * - `positive|<axis>` / `negative|<axis>` —— 该轴的正/负方向
- * - `planeof|<axis>` —— 轴所属平面
- * - `axisof|<dir>` —— 方向所属轴
- * - `test|<plane>|<dir>` / `test|<plane>|null` —— 平面判定
- *
- * TODO: 未覆盖 `Plane.getRandomDirection` / `getRandomAxis`（依赖随机源）、`Plane.iterator` /
- * `stream`（迭代顺序已在文档中记录，但未用单元钉住）。
- */
 #include <cstdio>
-#include <cstdlib>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -89,6 +30,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 
 #include "probe.hpp"
 
@@ -97,168 +39,11 @@ namespace {
 
 using nlohmann::json;
 
-enum class Dir : u8 { Down = 0, Up = 1, North = 2, South = 3, West = 4, East = 5 };
-
-enum class Axis : u8 { X = 0, Y = 1, Z = 2 };
-
-enum class Plane : u8 { Horizontal = 0, Vertical = 1 };
-
-const char* dirName(Dir dir)
-{
-    switch (dir) {
-        case Dir::Down:
-            return "down";
-        case Dir::Up:
-            return "up";
-        case Dir::North:
-            return "north";
-        case Dir::South:
-            return "south";
-        case Dir::West:
-            return "west";
-        case Dir::East:
-            return "east";
-    }
-    return "unknown";
-}
-
-const char* axisName(Axis axis)
-{
-    switch (axis) {
-        case Axis::X:
-            return "x";
-        case Axis::Y:
-            return "y";
-        case Axis::Z:
-            return "z";
-    }
-    return "unknown";
-}
-
-bool parseDir(const std::string& text, Dir& out)
-{
-    if (text == "down") {
-        out = Dir::Down;
-    } else if (text == "up") {
-        out = Dir::Up;
-    } else if (text == "north") {
-        out = Dir::North;
-    } else if (text == "south") {
-        out = Dir::South;
-    } else if (text == "west") {
-        out = Dir::West;
-    } else if (text == "east") {
-        out = Dir::East;
-    } else {
-        return false;
-    }
-    return true;
-}
-
-bool parseAxis(const std::string& text, Axis& out)
-{
-    if (text == "x") {
-        out = Axis::X;
-    } else if (text == "y") {
-        out = Axis::Y;
-    } else if (text == "z") {
-        out = Axis::Z;
-    } else {
-        return false;
-    }
-    return true;
-}
-
-bool parsePlane(const std::string& text, Plane& out)
-{
-    if (text == "horizontal") {
-        out = Plane::Horizontal;
-    } else if (text == "vertical") {
-        out = Plane::Vertical;
-    } else {
-        return false;
-    }
-    return true;
-}
-
-/// 原版 `Direction.Axis.choose(int, int, int)`：按轴取对应分量。
-i32 chooseInt(Axis axis, i32 x, i32 y, i32 z)
-{
-    switch (axis) {
-        case Axis::X:
-            return x;
-        case Axis::Y:
-            return y;
-        case Axis::Z:
-            return z;
-    }
-    return 0;
-}
-
-/// 原版 `Direction.Axis.getPositive()`。
-Dir getPositive(Axis axis)
-{
-    switch (axis) {
-        case Axis::X:
-            return Dir::East;
-        case Axis::Y:
-            return Dir::Up;
-        case Axis::Z:
-            // 注意：+Z 指向南，不是北。
-            return Dir::South;
-    }
-    return Dir::Up;
-}
-
-/// 原版 `Direction.Axis.getNegative()`。
-Dir getNegative(Axis axis)
-{
-    switch (axis) {
-        case Axis::X:
-            return Dir::West;
-        case Axis::Y:
-            return Dir::Down;
-        case Axis::Z:
-            return Dir::North;
-    }
-    return Dir::Down;
-}
-
-/// 原版 `Direction.Axis.getPlane()`。
-Plane getPlane(Axis axis)
-{
-    return axis == Axis::Y ? Plane::Vertical : Plane::Horizontal;
-}
-
-/// 原版 `Direction.getAxis()`。
-Axis getAxis(Dir dir)
-{
-    switch (dir) {
-        case Dir::Down:
-        case Dir::Up:
-            return Axis::Y;
-        case Dir::North:
-        case Dir::South:
-            return Axis::Z;
-        case Dir::West:
-        case Dir::East:
-            return Axis::X;
-    }
-    return Axis::Y;
-}
-
-/// 原版 `Direction.Plane.test`：null 返回 false。
-bool planeTest(Plane plane, bool hasDir, Dir dir)
-{
-    if (!hasDir) {
-        return false;
-    }
-    return getPlane(getAxis(dir)) == plane;
-}
-
 /// 单元表。
+///
+/// 覆盖 `Direction.Axis` 上的全部轴语义，以及 `Directions.getAxis()` 的分组。
 constexpr const char* UNITS[] = {
-    // choose：轴决定取第几个分量
+    // choosei：轴决定取第几个分量（三个分量互不相同，能区分任何取错轴）
     "choosei|x",
     "choosei|y",
     "choosei|z",
@@ -269,7 +54,7 @@ constexpr const char* UNITS[] = {
     "negative|x",
     "negative|y",
     "negative|z",
-    // planeof
+    // planeof：X/Z 水平，Y 垂直
     "planeof|x",
     "planeof|y",
     "planeof|z",
@@ -292,7 +77,7 @@ constexpr const char* UNITS[] = {
     "test|vertical|down",
     "test|vertical|north",
     "test|vertical|east",
-    // test：null
+    // test：null（原版对 null 返回 false）
     "test|horizontal|null",
     "test|vertical|null",
 };
@@ -320,67 +105,85 @@ std::vector<std::string> splitPipe(const std::string& text)
     return tokens;
 }
 
+Axis parseAxis(const std::string& text)
+{
+    const auto parsed = Axes::fromName(text);
+    if (!parsed.has_value()) {
+        throw std::runtime_error("axis_plane: unknown axis: " + text);
+    }
+    return *parsed;
+}
+
+Direction parseDirection(const std::string& name)
+{
+    const auto parsed = Directions::fromName(name);
+    if (!parsed.has_value()) {
+        throw std::runtime_error("axis_plane: unknown direction: " + name);
+    }
+    return *parsed;
+}
+
+const char* directionName(Direction dir)
+{
+    switch (dir) {
+        case Direction::Down:
+            return "down";
+        case Direction::Up:
+            return "up";
+        case Direction::North:
+            return "north";
+        case Direction::South:
+            return "south";
+        case Direction::West:
+            return "west";
+        case Direction::East:
+            return "east";
+        default:
+            return "unknown";
+    }
+}
+
+const char* planeName(Plane plane)
+{
+    return plane == Plane::Vertical ? "vertical" : "horizontal";
+}
+
 std::string runLine(std::string_view inputLine)
 {
     const json input = json::parse(inputLine);
     const std::string unit = input.at("unit").get<std::string>();
     const auto parts = splitPipe(unit);
     if (parts.size() < 2) {
-        throw std::runtime_error("axis_plane: 单元至少两段：" + unit);
+        throw std::runtime_error("axis_plane: unit needs at least two fields: " + unit);
     }
 
     const std::string mode = parts[0];
 
     if (mode == "choosei" && parts.size() == 2) {
-        Axis axis{};
-        if (!parseAxis(parts[1], axis)) {
-            throw std::runtime_error("axis_plane: 未知轴 " + parts[1]);
-        }
-        // 固定三分量 (10, 20, 30)，用返回值区分取了哪一个。
-        return json{{"unit", unit}, {"result", chooseInt(axis, 10, 20, 30)}}.dump();
+        return json{{"unit", unit}, {"value", Axes::choose(parseAxis(parts[1]), 11, 22, 33)}}.dump();
     }
-
     if ((mode == "positive" || mode == "negative") && parts.size() == 2) {
-        Axis axis{};
-        if (!parseAxis(parts[1], axis)) {
-            throw std::runtime_error("axis_plane: 未知轴 " + parts[1]);
-        }
-        const Dir dir = (mode == "positive") ? getPositive(axis) : getNegative(axis);
-        return json{{"unit", unit}, {"result", dirName(dir)}}.dump();
+        const Axis axis = parseAxis(parts[1]);
+        const Direction dir = mode == "positive" ? Axes::getPositive(axis) : Axes::getNegative(axis);
+        return json{{"unit", unit}, {"value", directionName(dir)}}.dump();
     }
-
     if (mode == "planeof" && parts.size() == 2) {
-        Axis axis{};
-        if (!parseAxis(parts[1], axis)) {
-            throw std::runtime_error("axis_plane: 未知轴 " + parts[1]);
-        }
-        return json{{"unit", unit}, {"result", getPlane(axis) == Plane::Vertical ? "vertical" : "horizontal"}}.dump();
+        return json{{"unit", unit}, {"value", planeName(Axes::getPlane(parseAxis(parts[1])))}}.dump();
     }
-
     if (mode == "axisof" && parts.size() == 2) {
-        Dir dir{};
-        if (!parseDir(parts[1], dir)) {
-            throw std::runtime_error("axis_plane: 未知方向 " + parts[1]);
-        }
-        return json{{"unit", unit}, {"result", axisName(getAxis(dir))}}.dump();
+        return json{{"unit", unit}, {"value", Axes::toString(Directions::getAxis(parseDirection(parts[1])))}}.dump();
     }
-
     if (mode == "test" && parts.size() == 3) {
-        Plane plane{};
-        if (!parsePlane(parts[1], plane)) {
-            throw std::runtime_error("axis_plane: 未知平面 " + parts[1]);
-        }
+        // 原版 Plane.test 接受可空方向，null 一律返回 false。
+        const Plane plane = parts[1] == "vertical" ? Plane::Vertical : Plane::Horizontal;
         if (parts[2] == "null") {
-            return json{{"unit", unit}, {"result", planeTest(plane, false, Dir::Up)}}.dump();
+            return json{{"unit", unit}, {"value", false}}.dump();
         }
-        Dir dir{};
-        if (!parseDir(parts[2], dir)) {
-            throw std::runtime_error("axis_plane: 未知方向 " + parts[2]);
-        }
-        return json{{"unit", unit}, {"result", planeTest(plane, true, dir)}}.dump();
+        const Direction dir = parseDirection(parts[2]);
+        return json{{"unit", unit}, {"value", Axes::getPlane(Directions::getAxis(dir)) == plane}}.dump();
     }
 
-    throw std::runtime_error("axis_plane: 无法识别的单元：" + unit);
+    throw std::runtime_error("axis_plane: unrecognized unit: " + unit);
 }
 
 } // namespace

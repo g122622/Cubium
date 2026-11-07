@@ -178,12 +178,16 @@ public:
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector3 normalized() const noexcept
     {
+        // 长度小于 1e-5 的向量归零，而不是按比例缩放。
+        //
+        // 阈值是 1e-5，不是 EPSILON（1e-6）——后者小一个数量级，会让 1e-6 到 1e-5 之间的
+        // 近零向量被错误地归一化成一个单位向量，方向完全由舍入误差决定。
         const T len = length();
-        if (len > static_cast<T>(EPSILON)) {
-            const T invLen = static_cast<T>(1) / len;
-            return {x * invLen, y * invLen, z * invLen};
+        constexpr T MIN_LENGTH = static_cast<T>(1.0e-5f);
+        if (len < MIN_LENGTH) {
+            return zero();
         }
-        return zero();
+        return {x / len, y / len, z / len};
     }
 
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>

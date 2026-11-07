@@ -63,6 +63,19 @@ enum class Direction : u8 {
 enum class Axis : u8 { X = 0, Y = 1, Z = 2 };
 
 /**
+ * @brief 轴向平面，对应原版 `Direction.Plane`
+ *
+ * 把六个方向按面分成水平与垂直两组：
+ *
+ *   HORIZONTAL = {NORTH, EAST, SOUTH, WEST}，对应轴 {X, Z}，长度 4
+ *   VERTICAL   = {UP, DOWN}，对应轴 {Y}，长度 2
+ *
+ * 水平面的顺序是 NORTH→EAST→SOUTH→WEST（顺时针一圈），
+ * 不是 NORTH→SOUTH→WEST→EAST。该顺序在按平面随机取方向时会影响结果。
+ */
+enum class Plane : u8 { Horizontal = 0, Vertical = 1 };
+
+/**
  * @brief 旋转枚举（用于结构旋转）
  *
  * 参考: net.minecraft.util.Rotation
@@ -614,34 +627,6 @@ inline bool isFacingAngle(Direction dir, f32 yaw)
 }
 
 /**
- * @brief 将水平方向转换为实体偏航角（yaw）
- *
- * 对应 MC Java 1.21.11 `Direction.toYRot()`，用于命令方块/命令方块矿车等
- * 无实体朝向的命令源执行 `^` 局部坐标命令时构造 CommandSourceStack 的 rotation。
- * 视线单位向量为 (-sin yaw, 0, cos yaw)，故 yaw=0 朝南、90 朝西、180 朝北、270 朝东
- * （与 fromYRot 互逆，见其注释）。
- *
- * @param dir 水平方向（DOWN/UP 返回 0，命令方块 facing 不会是垂直方向）
- * @return 偏航角（度）
- */
-inline f32 toYRot(Direction dir)
-{
-    switch (dir) {
-        case Direction::North:
-            return 180.0f;
-        case Direction::South:
-            return 0.0f;
-        case Direction::West:
-            return 90.0f;
-        case Direction::East:
-            return 270.0f;
-        default:
-            // DOWN/UP：vanilla 命令方块 facing 不会是垂直方向，返回 0 作兜底
-            return 0.0f;
-    }
-}
-
-/**
  * @brief 方向的 y-Rot（实体朝向角），对应原版 `Direction.getYRot(Direction)`
  *
  * **与 `toYRot` 不是同一个方法，EAST 的取值不同：**
@@ -714,6 +699,27 @@ inline f32 toYRot(Direction dir)
         default:
             return -1;
     }
+}
+
+/**
+ * @brief 将水平方向转换为实体偏航角（yaw）
+ *
+ * 对应 MC Java 1.21.11 `Direction.toYRot()`，用于命令方块/命令方块矿车等
+ * 无实体朝向的命令源执行 `^` 局部坐标命令时构造 CommandSourceStack 的 rotation。
+ * 视线单位向量为 (-sin yaw, 0, cos yaw)，故 yaw=0 朝南、90 朝西、180 朝北、270 朝东
+ * （与 fromYRot 互逆，见其注释）。
+ *
+ * @param dir 水平方向（DOWN/UP 返回 0，命令方块 facing 不会是垂直方向）
+ * @return 偏航角（度）
+ */
+inline f32 toYRot(Direction dir)
+{
+    // 原版实现是 (data2d & 3) * 90，data2d 为：DOWN/UP = -1、SOUTH = 0、WEST = 1、NORTH = 2、EAST = 3。
+    //
+    // 因此 DOWN/UP 得到 (-1 & 3) * 90 = 3 * 90 = 270，不是 0。
+    // -1 在补码下全部 32 位都是 1，按低 2 位截取正好是 3。
+    const i32 data2d = get2DDataValue(dir);
+    return static_cast<f32>((data2d & 3) * 90);
 }
 
 /**
@@ -1004,6 +1010,100 @@ inline Direction fromYRot(f64 yaw)
     return static_cast<Direction>(value);
 }
 
+/**
+ * @brief 绕指定轴顺时针旋转 90°，对应原版 `Direction.getClockWise(Axis)`
+ *
+ * 方向位于该轴上时返回自身（绕自身轴旋转不变）；否则在该轴的垂直平面内转 90°。
+ *
+ *   绕 X：DOWN→SOUTH、UP→NORTH、NORTH→DOWN、SOUTH→UP
+ *   绕 Y：NORTH→EAST、SOUTH→WEST、WEST→NORTH、EAST→SOUTH（等同 getClockWise(dir)）
+ *   绕 Z：DOWN→WEST、UP→EAST、WEST→UP、EAST→DOWN
+ *
+ * 绕 X 与绕 Z 的映射并不对称：绕 X 是 DOWN→SOUTH，绕 Z 是 DOWN→WEST。
+ */
+[[nodiscard]] inline Direction getClockWise(Axis axis, Direction dir)
+{
+    switch (axis) {
+        case Axis::X:
+            switch (dir) {
+                case Direction::Down:
+                    return Direction::South;
+                case Direction::Up:
+                    return Direction::North;
+                case Direction::North:
+                    return Direction::Down;
+                case Direction::South:
+                    return Direction::Up;
+                default:
+                    return dir;
+            }
+        case Axis::Y:
+            if (dir == Direction::Up || dir == Direction::Down) {
+                return dir;
+            }
+            return getClockWise(dir);
+        default:
+            switch (dir) {
+                case Direction::Down:
+                    return Direction::West;
+                case Direction::Up:
+                    return Direction::East;
+                case Direction::West:
+                    return Direction::Up;
+                case Direction::East:
+                    return Direction::Down;
+                default:
+                    return dir;
+            }
+    }
+}
+
+/**
+ * @brief 绕指定轴逆时针旋转 90°，对应原版 `Direction.getCounterClockWise(Axis)`
+ *
+ * 与 `getClockWise(Axis, dir)` 的映射方向相反：
+ *
+ *   绕 X：DOWN→NORTH、UP→SOUTH、NORTH→UP、SOUTH→DOWN
+ *   绕 Y：NORTH→WEST、SOUTH→EAST、WEST→SOUTH、EAST→NORTH
+ *   绕 Z：DOWN→EAST、UP→WEST、WEST→DOWN、EAST→UP
+ */
+[[nodiscard]] inline Direction getCounterClockWise(Axis axis, Direction dir)
+{
+    switch (axis) {
+        case Axis::X:
+            switch (dir) {
+                case Direction::Down:
+                    return Direction::North;
+                case Direction::Up:
+                    return Direction::South;
+                case Direction::North:
+                    return Direction::Up;
+                case Direction::South:
+                    return Direction::Down;
+                default:
+                    return dir;
+            }
+        case Axis::Y:
+            if (dir == Direction::Up || dir == Direction::Down) {
+                return dir;
+            }
+            return getCounterClockWise(dir);
+        default:
+            switch (dir) {
+                case Direction::Down:
+                    return Direction::East;
+                case Direction::Up:
+                    return Direction::West;
+                case Direction::West:
+                    return Direction::Down;
+                case Direction::East:
+                    return Direction::Up;
+                default:
+                    return dir;
+            }
+    }
+}
+
 } // namespace Directions
 
 /**
@@ -1076,6 +1176,33 @@ inline std::string toString(Axis axis)
             return Direction::Up;
         default:
             return Direction::South;
+    }
+}
+
+/**
+ * @brief 轴所属的平面，对应原版 `Direction.Axis.getPlane()`
+ *
+ * X、Z 属于水平面，Y 属于垂直面。
+ */
+[[nodiscard]] inline Plane getPlane(Axis axis)
+{
+    return axis == Axis::Y ? Plane::Vertical : Plane::Horizontal;
+}
+
+/**
+ * @brief 按轴取对应分量，对应原版 `Direction.Axis.choose(int, int, int)`
+ *
+ * X 取 x，Y 取 y，Z 取 z。
+ */
+[[nodiscard]] inline i32 choose(Axis axis, i32 x, i32 y, i32 z)
+{
+    switch (axis) {
+        case Axis::X:
+            return x;
+        case Axis::Y:
+            return y;
+        default:
+            return z;
     }
 }
 

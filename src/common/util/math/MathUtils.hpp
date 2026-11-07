@@ -440,6 +440,27 @@ template <typename T>
 }
 
 /**
+ * @brief 反向线性插值，对应原版 `Mth.inverseLerp(double, double, double)`
+ *
+ * 求 value 在 [from, to] 中的归一化位置：`(value - from) / (to - from)`。
+ *
+ * 区间退化（from == to）时除零，结果是 inf 或 nan；原版不对此做保护，
+ * 调用方需保证区间非退化。
+ */
+[[nodiscard]] inline f64 inverseLerp(f64 value, f64 from, f64 to)
+{
+    return (value - from) / (to - from);
+}
+
+/**
+ * @brief 两数绝对值中的较大者，对应原版 `Mth.absMax(int, int)`
+ */
+[[nodiscard]] inline i32 absMax(i32 a, i32 b)
+{
+    return std::max(std::abs(a), std::abs(b));
+}
+
+/**
  * @brief 立方
  */
 template <typename T>
