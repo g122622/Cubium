@@ -117,23 +117,8 @@ jobs:
             cp build/CMakeFiles/impl-RelWithDebInfo.ninja build/CMakeFiles/rules.ninja .probe-link-meta/build/CMakeFiles/
             cp build/compile_commands.json .probe-link-meta/build/
             # 对照入口的源文件与 tests/unit/main.cpp 是同一个编译目标（相同的宏与包含路径），
-            # 直接把数据库里 main.cpp 的条目改指向探针源文件；include 路径按构建期路径重写。
-            python3 - <<'PY'
-            import json
-            from pathlib import Path
-            database = Path(".probe-link-meta/build/compile_commands.json")
-            entries = json.loads(database.read_text())
-            main = next(entry for entry in entries
-                        if entry["file"].endswith("tests/unit/main.cpp") and "mc_tests.dir" in entry["output"])
-            probes = ["tests/ci-probes/src/launcher/probe_main.cpp", "tests/ci-probes/src/teststart/test_main.cpp"]
-            for source in probes:
-                cloned = dict(main)
-                cloned["file"] = str(Path(source).resolve())
-                cloned["command"] = main["command"].replace("/home/runner/work/Cubium/Cubium", str(Path.cwd()))
-                cloned["directory"] = main["directory"].replace("/home/runner/work/Cubium/Cubium", str(Path.cwd()))
-                entries.append(cloned)
-            database.write_text(json.dumps(entries))
-            PY
+            # 直接把数据库里 main.cpp 的条目改指向探针源文件；路径按构建期路径重写。
+            python3 scripts/ci/add_probe_compile_entries.py .probe-link-meta/build/compile_commands.json
             tar -czf teststart-probe.tar.gz -C .probe-link-meta .
             # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。
             find build -name '*_tests*.cmake' | head -5
