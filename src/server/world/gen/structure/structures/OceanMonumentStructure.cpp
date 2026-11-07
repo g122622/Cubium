@@ -37,34 +37,6 @@ const biome::BiomeTag* OceanMonumentStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_MONUMENT();
 }
 
-bool OceanMonumentStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    using namespace mc::world;
-
-    const i32 centerX = chunkX * CHUNK_WIDTH + 9;
-    const i32 centerZ = chunkZ * CHUNK_WIDTH + 9;
-    const BiomeId centerBiome = generator.getBiome(centerX, SEA_LEVEL, centerZ);
-    if (!isValidBiome(centerBiome)) {
-        return false;
-    }
-
-    constexpr i32 outerRadius = 29;
-    constexpr i32 step = CHUNK_WIDTH;
-    for (i32 dx = -outerRadius; dx <= outerRadius; dx += step) {
-        for (i32 dz = -outerRadius; dz <= outerRadius; dz += step) {
-            const BiomeId biome = generator.getBiome(centerX + dx, SEA_LEVEL, centerZ + dz);
-            if (!biome::BiomeTags::IS_OCEAN().contains(biome) && !biome::BiomeTags::IS_RIVER().contains(biome)) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
@@ -73,6 +45,27 @@ std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
     using namespace mc::world;
 
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+
+    // 原版先按「区块内第 9 格 + 海平面」为中心取 29 半径内的群系，要求全部落在
+    // `required_ocean_monument_surrounding` 标签内；再在候选生成点（区块中心、海底高度）
+    // 校验本结构自身的群系标签。
+    // TODO: 原版按 `getBiomesWithin` 的四分格方框采样，这里仍按 16 格步长近似，
+    //       换成精确的方框采样后再去掉这个近似。
+    const i32 centerX = chunkX * CHUNK_WIDTH + 9;
+    const i32 centerZ = chunkZ * CHUNK_WIDTH + 9;
+    constexpr i32 outerRadius = 29;
+    for (i32 dx = -outerRadius; dx <= outerRadius; dx += world::CHUNK_WIDTH) {
+        for (i32 dz = -outerRadius; dz <= outerRadius; dz += world::CHUNK_WIDTH) {
+            const BiomeId biome = generator.getBiome(centerX + dx, generator.seaLevel(), centerZ + dz);
+            if (!biome::BiomeTags::REQUIRED_OCEAN_MONUMENT_SURROUNDING().contains(biome)) {
+                return start;
+            }
+        }
+    }
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::OceanFloorWG))) {
+        return start;
+    }
+
     const i32 startX = chunkX * CHUNK_WIDTH - 29;
     const i32 startZ = chunkZ * CHUNK_WIDTH - 29;
 

@@ -67,6 +67,12 @@ const FEATURES = [
   { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_warm" },
   { structureSet: "minecraft:woodland_mansions", structure: "minecraft:mansion" },
   { structureSet: "minecraft:igloos", structure: "minecraft:igloo" },
+  { structureSet: "minecraft:trial_chambers", structure: "minecraft:trial_chambers" },
+  { structureSet: "minecraft:ancient_cities", structure: "minecraft:ancient_city" },
+  { structureSet: "minecraft:villages", structure: "minecraft:village_plains" },
+  { structureSet: "minecraft:pillager_outposts", structure: "minecraft:pillager_outpost" },
+  { structureSet: "minecraft:mineshafts", structure: "minecraft:mineshaft" },
+  { structureSet: "minecraft:strongholds", structure: "minecraft:stronghold" },
 ] as const;
 
 /** 每个结构取多少个落点。 */
@@ -80,8 +86,9 @@ let units: Sample[] = [];
 /**
  * 导出某个结构集的候选区块表。
  *
- * 候选行的格式是「维度 种子 X Z」，不带结构集名，因此必须按结构集逐个导出（oracle 侧也只接受
- * 一个 `--only`）。完整枚举所有结构集要按网格逐格扫描，分钟级起步；这条能力只关心六个结构。
+ * 候选行的格式是「维度 种子 X Z 结构集 id」。oracle 一次只接受一个 `--only`，按需逐个导出；
+ * 完整枚举所有结构集要按网格逐格扫描，分钟级起步。同心环（要塞）不受 `--only` 过滤，
+ * 因此在任何一次导出里都会混进来，读取方按第 5 列分回各自的集合。
  */
 function exportCandidates(directory: string, classpath: string, structureSet: string): string[] {
   const outputPath = path.join(directory, `${CANDIDATES_FILE_PREFIX}${structureSet.replace(":", "_")}.txt`);
@@ -110,17 +117,18 @@ function exportCandidates(directory: string, classpath: string, structureSet: st
 function buildUnits(readCandidates: (structureSet: string) => string[]): Sample[] {
   const result: Sample[] = [];
   for (const feature of FEATURES) {
+    // 候选行形如「维度 种子 X Z 结构集 id」。结构集按需逐个导出，但同心环（要塞）不受
+    // `--only` 过滤，永远混在文件里，必须按第 5 列把行分回各自的集合。
     const rows = readCandidates(feature.structureSet)
       .map((line) => line.split(/\s+/))
-      .filter(([dimension]) => dimension === "overworld");
+      .filter(([dimension, , , , setId]) => dimension === "overworld" && setId === feature.structureSet);
     // 均匀抽样：候选表按网格扫描顺序排列，只取前 N 个会集中在同一条带里。
     const picked = Array.from({ length: Math.min(PER_STRUCTURE, rows.length) }, (_, index) => {
       return rows[Math.floor((index * rows.length) / Math.max(PER_STRUCTURE, 1))];
     });
-    if (picked.length < PER_STRUCTURE) {
-      throw new Error(
-        `structure_start_single: 结构集 ${feature.structureSet} 只有 ${picked.length} 个候选区块，不足 ${PER_STRUCTURE}`,
-      );
+    // 稀疏结构（掠夺者前哨站等）在扫描窗口里可能只有个位数落点，此时按实际数量取全量。
+    if (picked.length === 0) {
+      throw new Error(`structure_start_single: 结构集 ${feature.structureSet} 在扫描窗口内没有任何候选区块`);
     }
     for (const [, seedText, xText, zText] of picked) {
       const chunkX = Number(xText);

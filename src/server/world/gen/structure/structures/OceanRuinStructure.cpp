@@ -384,22 +384,15 @@ const biome::BiomeTag* OceanRuinStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_OCEAN_RUIN_COLD();
 }
 
-bool OceanRuinStructure::canGenerate([[maybe_unused]] IWorld& world,
-    [[maybe_unused]] IChunkGenerator& generator,
-    math::IRandom& /*rng*/,
-    [[maybe_unused]] i32 chunkX,
-    [[maybe_unused]] i32 chunkZ)
-{
-    // 候选区块已由结构集放置器（间距 + frequency 缩减）确定；原版 OceanRuinStructure
-    // 在候选区块上没有任何额外门槛。此前这里再抽一次 nextFloat() < 0.4，等于把频率
-    // 又乘 0.4，同时白耗一次世界随机数，后续旋转/大型判定的随机序列整体错位。
-    return true;
-}
-
 std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+
+    // 生物群系校验落在候选生成点（区块中心、海底高度）上；不匹配即返回空起点。
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::OceanFloorWG))) {
+        return start;
+    }
 
     // 【随机数顺序】原版 findGenerationPoint 走 onTopOfChunkCenter，而它**不消耗随机数**
     // （X/Z 取区块中心是定值，Y 走高度图），generatePieces 的第一件事就是取旋转。这里同样

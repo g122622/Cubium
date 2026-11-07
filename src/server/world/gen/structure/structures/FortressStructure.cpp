@@ -503,16 +503,6 @@ const biome::BiomeTag* FortressStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_FORTRESS();
 }
 
-bool FortressStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    // 下界要塞只检查概率，不检查生物群系
-    // 生物群系检查由维度的 BiomeGenerationSettings 决定
-
-    // 40% 概率生成
-    return rng.nextInt(5) < 2;
-}
-
 std::unique_ptr<StructureStart> FortressStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
@@ -526,6 +516,12 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
     i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
 
     BlockPos startPos(startX, startY, startZ);
+
+    // 生物群系校验落在候选生成点（区块最小角、Y=64）。下界要塞自身没有额外门槛，
+    // 群系过滤全部交给结构定义里的 biomeTag。
+    if (!isValidBiomeAt(generator, BlockPos(chunkX * world::CHUNK_WIDTH, 64, chunkZ * world::CHUNK_WIDTH))) {
+        return start;
+    }
 
     // 使用 Jigsaw 系统生成要塞
     ResourceLocation startPoolLocation("minecraft", "nether_fortress/start");

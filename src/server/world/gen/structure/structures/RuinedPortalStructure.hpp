@@ -193,15 +193,6 @@ public:
      */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
-    /**
-     * @brief 生物群系校验在 generate() 返回之后、以片段锚点（候选点）为采样点进行
-     *
-     * 原版把校验放在 `GenerationStub` 的 Consumer 里，即候选点算出之后；本实现把候选
-     * 生成点记在片段上，由调用方在 generate() 之后复核（见 isValidAtCandidatePoint）。
-     * 用区块中心的 y=0 代替会采到洞穴群系，群系边界附近判反。
-     */
-    [[nodiscard]] bool isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const override;
-
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 

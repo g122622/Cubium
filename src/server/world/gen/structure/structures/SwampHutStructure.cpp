@@ -66,18 +66,15 @@ const biome::BiomeTag* SwampHutStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_SWAMP_HUT();
 }
 
-bool SwampHutStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ)
-{
-    // 检查区块中心位置的生物群系是否为沼泽
-    const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
-    return isValidBiome(biome);
-}
-
 std::unique_ptr<StructureStart> SwampHutStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+
+    // 生物群系校验落在候选生成点（区块中心、地表高度）上；不匹配即返回空起点。
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::WorldSurfaceWG))) {
+        return start;
+    }
 
     // 生成位置固定为区块最小角、Y=64（原版 `ScatteredFeaturePiece` 构造传 64），
     // 唯一一次抽样是水平朝向：`Direction.Plane.HORIZONTAL.getRandomDirection` 按

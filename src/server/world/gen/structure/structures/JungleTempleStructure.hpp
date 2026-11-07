@@ -88,12 +88,6 @@ public:
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     /**
-     * @brief 检查是否可以生成
-     */
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
-
-    /**
      * @brief 生成丛林神庙起点（仅创建 StructurePiece，禁止写方块）
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(

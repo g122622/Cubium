@@ -413,6 +413,9 @@ public final class StructureStartsOracle {
                         throw new IllegalArgumentException(
                                 "StructureStartsOracle: candidates 一次只接受一个 --only（行格式不带结构集名）");
                     }
+                    // 行尾追加结构集 id：候选行本身不带归属，多个结构集共用同一个文件时，
+                    // 调用方需要靠它把行分回各自的集合（同心环永远导出，不受 `--only` 过滤）。
+                    final String setId = setHolder.unwrapKey().map(key -> key.identifier().toString()).orElse("");
                     if (set.placement() instanceof ConcentricRingsStructurePlacement concentric) {
                         // 同心环放置（要塞）：环形位置由放置规则预先算好，直接输出，成本可忽略，
                         // 因此无条件枚举。
@@ -420,7 +423,7 @@ public final class StructureStartsOracle {
                         if (ring != null) {
                             for (ChunkPos pos : ring) {
                                 lines.append(dimensionName).append(' ').append(seed).append(' ')
-                                        .append(pos.x).append(' ').append(pos.z).append('\n');
+                                        .append(pos.x).append(' ').append(pos.z).append(' ').append(setId).append('\n');
                             }
                         }
                         continue;
@@ -442,7 +445,7 @@ public final class StructureStartsOracle {
                                     .getPotentialStructureChunk(seed, x, z);
                             if (set.placement().isStructureChunk(dimension.placementState(), potential.x, potential.z)) {
                                 lines.append(dimensionName).append(' ').append(seed).append(' ')
-                                        .append(potential.x).append(' ').append(potential.z).append('\n');
+                                        .append(potential.x).append(' ').append(potential.z).append(' ').append(setId).append('\n');
                             }
                         }
                     }

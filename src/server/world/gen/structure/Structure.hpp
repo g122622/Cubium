@@ -29,6 +29,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
@@ -964,41 +965,21 @@ public:
     [[nodiscard]] bool isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const;
 
     /**
-     * @brief 本结构是否在 generate() 内部按真实候选生成点完成生物群系校验
+     * @brief 区块中心处的候选生成点（Y 取指定高度图）
      *
-     * 原版的生物群系校验发生在"候选生成点已求出、构件尚未装配"的时刻，采样点是候选点本身
-     * （jigsaw 结构即起始块中心、高度为投影后的地面线）。对于候选点依赖随机数的结构
-     * （要先抽起始块才知道点在哪儿），调用方无法在不重复消耗随机数的前提下预先算出该点，
-     * 故改由结构自身在 generate() 内校验：**校验失败返回 nullptr**，调用方据此回退到结构集
-     * 内的其它条目并继续用同一个随机源重抽（与原版一致）。
-     *
-     * 返回 true 的结构必须在求出候选点之后、装配构件之前调用 isValidBiomeAt()。
-     *
-     * 返回 false（默认）：调用方在区块中心（y=0）处校验，与迁移前的行为一致。
-     * TODO: 其余 jigsaw 结构（掠夺者前哨站、试炼密室等）也应改为按真实候选点校验。
-     */
-    [[nodiscard]] virtual bool validatesBiomeOnCandidatePoint() const
-    {
-        return false;
-    }
-
-    /**
-     * @brief 在结构自己算出的候选点处校验（覆写本方法的结构才走这条路径）
-     *
-     * 与 `isValidBiomeAt` 的区别只在采样时机：调用方在 `generate()` 返回之后用这里给出的
-     * 点校验，不需要结构把校验写进生成流程内部。片段的原点（`pieces()[0]` 的包围盒
-     * 角点之外的锚点）即候选点，由各结构按自己的语义解释。
+     * 等价原版 `Structure.onTopOfChunkCenter`：X/Z 是区块中心定值、Y 取高度图，
+     * 全程不消耗随机数。生物群系校验必须落在候选生成点上（原版
+     * `findValidGenerationPoint` 就是在 Stub 位置上采样的），用区块角落或固定 Y
+     * 采样会在群系边界与洞穴上方判出相反结论。
      *
      * @param generator 区块生成器
-     * @param start 结构刚产出的起点
-     * @return 该起点的候选点是否允许本结构
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @param type 高度图类型（原版各结构用 WORLD_SURFACE_WG 或 OCEAN_FLOOR_WG）
+     * @return 候选生成点
      */
-    [[nodiscard]] virtual bool isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const
-    {
-        MC_UNUSED(generator);
-        MC_UNUSED(start);
-        return true;
-    }
+    [[nodiscard]] BlockPos onTopOfChunkCenter(
+        IChunkGenerator& generator, i32 chunkX, i32 chunkZ, HeightmapType type) const;
 
     /**
      * @brief 获取结构的地形适配模式
@@ -1077,18 +1058,6 @@ public:
     {
         return nullptr;
     }
-
-    /**
-     * @brief 检查是否可以在指定位置生成结构
-     * @param world 世界引用
-     * @param generator 区块生成器
-     * @param rng 随机数生成器
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @return 是否可以生成
-     */
-    [[nodiscard]] virtual bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ);
 
     /**
      * @brief 生成结构起点（仅创建 StructurePiece，禁止写方块）

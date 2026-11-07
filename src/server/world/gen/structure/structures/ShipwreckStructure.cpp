@@ -228,13 +228,6 @@ const biome::BiomeTag* ShipwreckStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_SHIPWRECK();
 }
 
-bool ShipwreckStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
-{
-    // 沉船不像海洋废墟那样有随机概率检查，直接由间距设置控制生成频率
-    return true;
-}
-
 std::string ShipwreckStructure::_getRandomTemplateName(math::IRandom& rng, bool isBeached) const
 {
     if (isBeached) {
@@ -251,10 +244,18 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 原版 findGenerationPoint 走 onTopOfChunkCenter：它**不消耗随机数**（X/Z 是区块中心的
-    // 定值，Y 走高度图），generatePieces 第一件事就是取旋转。这里同样直接从旋转开始。
     // 搁浅与否由结构定义决定（数据包里的 `is_beached`），不是按生成点群系现判。
     const bool isBeached = m_config.isBeached;
+
+    // 生物群系校验落在候选生成点（区块中心、搁浅取地表 / 否则取海底）上；
+    // 不匹配即返回空起点。
+    const HeightmapType heightmapType = isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, heightmapType))) {
+        return start;
+    }
+
+    // 原版 findGenerationPoint 走 onTopOfChunkCenter：它**不消耗随机数**（X/Z 是区块中心的
+    // 定值，Y 走高度图），generatePieces 第一件事就是取旋转。这里同样直接从旋转开始。
 
     // 抽取顺序：旋转 → 模板。原版 addRandomPiece 先取模板再构造构件。
     const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
@@ -278,13 +279,13 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     const BlockPos size = piece->templateSize();
     if (size.x > 32 || size.y > 32) {
         const auto& bounds = piece->getBoundingBox();
-        const HeightmapType heightmapType = isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
+        const HeightmapType adjustType = isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
         i32 height;
         if (isBeached) {
             i32 lowest = 0;
             for (i32 z = bounds.minZ(); z <= bounds.maxZ(); ++z) {
                 for (i32 x = bounds.minX(); x <= bounds.maxX(); ++x) {
-                    lowest = std::min(lowest, generator.getHeight(x, z, heightmapType));
+                    lowest = std::min(lowest, generator.getHeight(x, z, adjustType));
                 }
             }
             height = lowest - size.y / 2 - rng.nextInt(3);

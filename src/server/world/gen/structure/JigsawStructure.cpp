@@ -41,6 +41,7 @@
 #include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <utility>
@@ -122,7 +123,13 @@ public:
      */
     [[nodiscard]] std::string_view templateLocation() const noexcept override
     {
-        return m_placed.piece ? std::string_view(m_placed.piece->getName()) : std::string_view();
+        if (!m_placed.piece) {
+            return {};
+        }
+        // 列表/地物/空池元素没有模板文件，退回到池元素类型名（与 oracle 侧的
+        // `structure_pool_element` 注册名同口径），否则这些构件在差分里只能是空串。
+        const std::string& name = m_placed.piece->getName();
+        return name.empty() ? std::string_view(m_placed.piece->getTypeName()) : std::string_view(name);
     }
 
     [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
@@ -162,32 +169,6 @@ JigsawStructure::JigsawStructure(ResourceLocation id,
     // 写入基类 m_terrainAdaptation：非 None 时由基类非虚 terrainAdaptation() 直接返回；
     // None 时回退 defaultTerrainAdaptation()（同样返回基类成员，为 None）。
     m_terrainAdaptation = terrainAdaptation;
-}
-
-bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
-    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
-    if (!startPool || startPool->isEmpty()) {
-        return false;
-    }
-
-    if (m_nearTerrain) {
-        // 计算区块中心坐标
-        const i32 centerX = chunkX * CHUNK_WIDTH + CHUNK_WIDTH / 2;
-        const i32 centerZ = chunkZ * CHUNK_WIDTH + CHUNK_WIDTH / 2;
-        const i32 topY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
-
-        // 检查地形高度是否在有效范围内
-        if (topY < MIN_TERRAIN_HEIGHT || topY > MAX_TERRAIN_HEIGHT) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 std::unique_ptr<StructureStart> JigsawStructure::generate(

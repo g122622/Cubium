@@ -691,16 +691,17 @@ bool Structure::isValidBiome(BiomeId biomeId) const
 
 bool Structure::isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const
 {
-    // 走 BiomeManager 的 fuzzy offset 选格，与 `LevelReader.getBiome(BlockPos)` 同一条路径；
-    // 直接右移两位会漏掉这层偏移，在群系边界附近判出与原版相反的结论。
+    // 采样点必须是候选生成点本身：原版在 `GenerationStub` 位置按 QuartPos.fromBlock
+    // 取噪声群系，路由到 `getNoiseBiome(x>>2, y>>2, z>>2)`，与 `getBiomeAtBlock` 一致。
     const BiomeId biomeId = generator.getBiomeAtBlock(pos.x, pos.y, pos.z);
     return isValidBiome(biomeId);
 }
 
-bool Structure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
+BlockPos Structure::onTopOfChunkCenter(IChunkGenerator& generator, i32 chunkX, i32 chunkZ, HeightmapType type) const
 {
-    return true;
+    const i32 x = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    const i32 z = chunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    return BlockPos(x, generator.getHeight(x, z, type), z);
 }
 
 std::unique_ptr<StructureStart> Structure::generate(

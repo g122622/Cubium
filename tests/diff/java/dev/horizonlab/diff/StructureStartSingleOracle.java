@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.RandomSource;
@@ -116,8 +117,35 @@ public final class StructureStartSingleOracle {
                 seed,
                 new ChunkPos(chunkX, chunkZ),
                 dimension.height(),
-                biome -> true);
+                // 生产路径（ChunkGenerator.tryGenerateStructure）传的是 `structure.biomes()::contains`，
+                // 即结构定义 JSON 的 biomes 标签。传 `biome -> true` 会把群系校验整个摘掉，
+                // 让 oracle 在「放置规则选中但群系不符」的候选区块上产出起点，而探针侧按标签拒绝，
+                // 差分就退化成两侧谓词不同造成的假差异。
+                structure.biomes()::contains);
 
+        if (System.getenv("MC_DIFF_DIAG_BIOME") != null) {
+            try {
+                java.lang.reflect.Method m =
+                        Structure.class.getDeclaredMethod("findGenerationPoint", Structure.GenerationContext.class);
+                m.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                Optional<Structure.GenerationStub> raw = (Optional<Structure.GenerationStub>) m.invoke(structure, context);
+                if (raw.isPresent()) {
+                    net.minecraft.core.BlockPos p = raw.get().position();
+                    Holder<Biome> b = dimension.generator().getBiomeSource().getNoiseBiome(
+                            net.minecraft.core.QuartPos.fromBlock(p.getX()),
+                            net.minecraft.core.QuartPos.fromBlock(p.getY()),
+                            net.minecraft.core.QuartPos.fromBlock(p.getZ()),
+                            randomState.sampler());
+                    System.err.println("[diag] " + unit + " stub=" + p
+                            + " biome=" + b.unwrapKey().map(Object::toString).orElse("?")
+                            + " contains=" + structure.biomes().contains(b)
+                            + " tag=" + structure.biomes().unwrap().toString());
+                }
+            } catch (ReflectiveOperationException error) {
+                throw new IllegalStateException(error);
+            }
+        }
         Optional<Structure.GenerationStub> stub = structure.findValidGenerationPoint(context);
         JsonArray pieces = new JsonArray();
         boolean valid = false;
@@ -137,6 +165,7 @@ public final class StructureStartSingleOracle {
                     array.add(box.maxZ());
                     entry.add("box", array);
                     entry.addProperty("rotation", piece.getRotation() == null ? 0 : piece.getRotation().ordinal());
+                    entry.addProperty("template", templateNameOf(piece));
                     pieces.add(entry);
                 }
             }
@@ -147,5 +176,40 @@ public final class StructureStartSingleOracle {
         result.addProperty("valid", valid);
         result.add("pieces", pieces);
         return result;
+    }
+
+    /**
+     * 取构件对应的模板标识（仅拼图构件有），用于把"同一尺寸但选错模板/旋转"的差异暴露出来。
+     *
+     * 原版 `SinglePoolElement.template` 是 `Either<ResourceLocation, StructureTemplate>`，
+     * 数据包加载的拼图元素一律是左侧的 ResourceLocation；地物池元素没有模板，返回占位名。
+     */
+    private static String templateNameOf(StructurePiece piece) {
+        if (!(piece instanceof net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece poolPiece)) {
+            return "";
+        }
+        net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement element = poolPiece.getElement();
+        if (element == null) {
+            return "";
+        }
+        for (Class<?> type = element.getClass(); type != null; type = type.getSuperclass()) {
+            try {
+                java.lang.reflect.Field field = type.getDeclaredField("template");
+                field.setAccessible(true);
+                Object value = field.get(element);
+                if (value instanceof com.mojang.datafixers.util.Either<?, ?> either) {
+                    return either.left().map(Object::toString).orElse("");
+                }
+                return "";
+            } catch (NoSuchFieldException ignored) {
+                // 继续向父类查找
+            } catch (IllegalAccessException error) {
+                throw new IllegalStateException("StructureStartSingleOracle: cannot read template", error);
+            }
+        }
+        // 列表/地物/空池元素没有模板文件：返回池元素类型的注册路径（与探针侧的
+        // `JigsawPiece::getTypeName()` 同口径），否则这些构件在差分里只能是空串。
+        var key = BuiltInRegistries.STRUCTURE_POOL_ELEMENT.getKey(element.getType());
+        return key == null ? element.getClass().getSimpleName() : key.getPath();
     }
 }

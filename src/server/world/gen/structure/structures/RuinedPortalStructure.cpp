@@ -340,30 +340,6 @@ const biome::BiomeTag* RuinedPortalStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_STANDARD();
 }
 
-bool RuinedPortalStructure::isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const
-{
-    if (start.pieces().empty()) {
-        return true;
-    }
-    const auto* piece = dynamic_cast<const RuinedPortalPiece*>(start.pieces().front().get());
-    MC_ASSERT_RELEASE(piece != nullptr);
-    const BlockPos& candidate = piece->candidatePos();
-    const BiomeId biomeId = generator.getBiomeAtBlock(candidate.x, candidate.y, candidate.z);
-    if (!isValidBiome(biomeId)) {
-        // 候选点采样到的群系不属于本变体时整座传送门作废。这条告警出现在"原版生成、
-        // 本实现没有"的差分里时，是落点/模板包围盒算偏的第一嫌疑。
-        spdlog::warn("ruined_portal '{}': candidate ({}, {}, {}) biome {} rejected by '{}'",
-            id().toString(),
-            candidate.x,
-            candidate.y,
-            candidate.z,
-            static_cast<i32>(biomeId),
-            biomeTag()->getId().toString());
-        return false;
-    }
-    return true;
-}
-
 namespace {
 
 /// 在闭区间 [min, max] 上均匀取整（原版 `Mth.randomBetweenInclusive`）
@@ -583,6 +559,13 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     piece->loadTemplateNow();
     MC_ASSERT_RELEASE_MSG(piece->hasLoadedTemplate(),
         fmt::format("ruined_portal: template '{}' not found in datapacks", templateName).c_str());
+
+    // ---- 8. 生物群系校验（候选点 = 传送门落点）----
+    // 原版在候选生成点求出后、构件装配前校验；落点依赖模板尺寸与随机流，
+    // 只能在这里补上。不匹配即返回空起点，调用方据此重抽结构集条目。
+    if (!isValidBiomeAt(generator, portalPos)) {
+        return start;
+    }
 
     start->addPiece(std::move(piece));
     start->recalculateStructureSize();

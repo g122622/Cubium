@@ -113,8 +113,11 @@ std::string runLine(std::string_view inputLine)
     if (start != nullptr) {
         for (const auto& piece : start->pieces()) {
             const auto& box = piece->getBoundingBox();
+            // 模板名让"同一尺寸但选错模板/旋转"的差异一眼可见：只比包围盒时这类差异
+            // 会被误读成位置偏差。非拼图构件的模板名为空串。
             pieces.push_back(json{{"box", {box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()}},
-                {"rotation", static_cast<i32>(piece->getRotation())}});
+                {"rotation", static_cast<i32>(piece->getRotation())},
+                {"template", std::string(piece->templateLocation())}});
         }
     }
 

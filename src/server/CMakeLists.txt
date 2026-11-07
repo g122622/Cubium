@@ -215,11 +215,8 @@ add_library(mc_gen OBJECT
     world/gen/structure/structures/IglooStructure.cpp
     world/gen/structure/structures/SwampHutStructure.cpp
     world/gen/structure/structures/NetherFossilStructure.cpp
-    world/gen/structure/structures/PillagerOutpostStructure.cpp
     world/gen/structure/structures/EndCityStructure.cpp
     world/gen/structure/structures/WoodlandMansionStructure.cpp
-    world/gen/structure/structures/BastionRemnantStructure.cpp
-    world/gen/structure/structures/TrialChambersStructure.cpp
     world/gen/structure/JigsawStructure.cpp
     world/gen/jigsaw/JigsawAssembler.cpp
     world/gen/jigsaw/JigsawPiece.cpp

@@ -1135,16 +1135,6 @@ const biome::BiomeTag* MineshaftStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_MINESHAFT();
 }
 
-bool MineshaftStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
-{
-    // 间距与频率缩减（mineshaft 的 frequency = 0.004）都由结构集的放置器
-    // （RandomSpreadStructurePlacement::isStructureChunk → applyAdditionalChunkRestrictions）负责。
-    // 原版 MineshaftStructure 在候选区块确定后没有任何额外门槛，这里**不能再抽一次概率**：
-    // 多抽一次等于把频率再乘 0.004，且白耗一次世界随机数，使后续构件的分支选择整体错位。
-    return true;
-}
-
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
@@ -1253,6 +1243,16 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     // 只平移集合盒会让 STRUCTURE_STARTS 阶段报出一个悬在下移前高度的盒子
     // （构件都在 -25..-4，起点的盒子却是 40..61）。原版的 start 盒永远是片段的并集。
     start->recalculateStructureSize();
+
+    // 生物群系校验：原版在 `findGenerationPoint` 把候选点取成
+    // `(区块中心 X, 50 + 下移量, 区块最小 Z)` 之后校验。下移量必须用本次实际下移的结果。
+    const i32 candidateX = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    const i32 candidateZ = chunkZ * world::CHUNK_WIDTH;
+    if (!isValidBiomeAt(generator, BlockPos(candidateX, baseY + seaOffset, candidateZ))) {
+        start->pieces().clear();
+        start->recalculateStructureSize();
+        return start;
+    }
 
     return start;
 }

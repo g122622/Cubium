@@ -151,13 +151,9 @@ public:
      * @brief 获取结构关联的生物群系标签
      *
      * 返回 minecraft:has_structure/ocean_ruin_cold 标签。
-     * 海底废墟同时处理冷海和暖海两种变体，
-     * 实际变体区分在 canGenerate() 中根据生物群系判断。
+     * 暖/冷变体由结构定义 JSON 的 `biome_temp` 决定，不按落点群系现判。
      */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
-
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;

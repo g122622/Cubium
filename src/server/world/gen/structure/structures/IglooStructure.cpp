@@ -181,18 +181,15 @@ const biome::BiomeTag* IglooStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_IGLOO();
 }
 
-bool IglooStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ)
-{
-    // 检查区块中心位置的生物群系是否为雪地
-    const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
-    return isValidBiome(biome);
-}
-
 std::unique_ptr<StructureStart> IglooStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+
+    // 生物群系校验落在候选生成点（区块中心、地表高度）上；不匹配即返回空起点。
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::WorldSurfaceWG))) {
+        return start;
+    }
 
     // 原版 findGenerationPoint 走 onTopOfChunkCenter：它**不消耗随机数**（X/Z 是区块中心的
     // 定值，Y 走高度图），generatePieces 第一件事就是取旋转。这里同样直接从旋转开始。

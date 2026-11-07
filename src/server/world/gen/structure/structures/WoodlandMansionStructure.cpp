@@ -94,17 +94,6 @@ const biome::BiomeTag* WoodlandMansionStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_MANSION();
 }
 
-bool WoodlandMansionStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, SEA_LEVEL, chunkZ * CHUNK_WIDTH + 8);
-    return isValidBiome(biome);
-}
-
 std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
@@ -137,6 +126,12 @@ std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
     };
     const i32 y = std::min(std::min(corners[0], corners[1]), std::min(corners[2], corners[3]));
     if (y < 60) {
+        return start;
+    }
+
+    // 生物群系校验落在候选生成点（区块内偏移 7 格处的最低地表）上；不匹配即返回空起点。
+    // 必须在构造网格之前完成：原版候选点校验先于 generatePieces，网格抽样在其后。
+    if (!isValidBiomeAt(generator, BlockPos(baseX, y, baseZ))) {
         return start;
     }
 

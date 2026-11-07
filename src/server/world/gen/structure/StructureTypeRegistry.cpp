@@ -32,7 +32,6 @@
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
-#include "structures/BastionRemnantStructure.hpp"
 #include "structures/BuriedTreasureStructure.hpp"
 #include "structures/DesertPyramidStructure.hpp"
 #include "structures/EndCityStructure.hpp"
@@ -43,12 +42,10 @@
 #include "structures/NetherFossilStructure.hpp"
 #include "structures/OceanMonumentStructure.hpp"
 #include "structures/OceanRuinStructure.hpp"
-#include "structures/PillagerOutpostStructure.hpp"
 #include "structures/RuinedPortalStructure.hpp"
 #include "structures/ShipwreckStructure.hpp"
 #include "structures/StrongholdStructure.hpp"
 #include "structures/SwampHutStructure.hpp"
-#include "structures/TrialChambersStructure.hpp"
 #include "structures/WoodlandMansionStructure.hpp"
 #include <memory>
 #include <string>
@@ -161,36 +158,16 @@ void applyDefinitionOverrides(Structure& structure, const StructureDefinition& d
 /**
  * @brief jigsaw 类型工厂
  *
- * 按 def.id 分流：
- * - pillager_outpost / trial_chambers：委托子类（构造期硬编码 JigsawConfig + 特殊逻辑：
- *   村庄距离检查 / 池别名创建）。
- * - bastion_remnant：委托 BastionRemnantStructure（运行时加权选 4 种堡垒）。
- * - 其余 id（village_* / ancient_city / trail_ruins / 自定义）：裸 JigsawStructure，
- *   JigsawConfig 从 def 填充。
+ * 原版 1.21.11 只有 `JigsawStructure` 一个拼图结构类：村庄、掠夺者前哨站、试炼密室、
+ * 堡垒遗迹等全部是同一个类的实例，差异只来自结构定义 JSON（start_pool / size /
+ * start_height / pool_aliases / project_start_to_heightmap / use_expansion_hack /
+ * terrain_adaptation）。因此这里不再按 id 分支：任何硬编码子类都会让数据包改动静默失效。
+ *
+ * 必须提供 start_pool（默认 ResourceLocation 命名空间为 "minecraft"、路径为空，
+ * 故以路径非空判定是否显式提供池）。
  */
 Result<std::unique_ptr<Structure>> createJigsaw(const StructureDefinition& def)
 {
-    const std::string& p = def.id.path();
-
-    if (p == "pillager_outpost") {
-        return toBase(std::make_unique<PillagerOutpostStructure>(def.id));
-    }
-    if (p == "trial_chambers") {
-        // 起始高度/最大距离/维度填充/池别名一律取自数据包：此前子类把 start_height 硬编码成
-        // absolute(-40..-20)，与数据包同值时无差别，但任何数据包改动都会静默失效。
-        return toBase(std::make_unique<TrialChambersStructure>(def.id, buildJigsawConfig(def)));
-    }
-    if (p == "bastion_remnant") {
-        return toBase(std::make_unique<BastionRemnantStructure>(def.id));
-    }
-    // 裸 JigsawStructure：必须提供 start_pool（默认 ResourceLocation 命名空间为 "minecraft"、
-    // 路径为空，故以路径非空判定是否显式提供池）。
-    //
-    // 村庄同样走这条通用路径：它的结构定义 JSON（start_pool / size / start_height /
-    // project_start_to_heightmap / use_expansion_hack / terrain_adaptation）与拼图结构完全同构，
-    // 而只有通用路径会按 start_jigsaw_name 选出真正的起始连接点。早期给村庄单写了一套装配
-    // 流程，其中两处差异让整座村庄错位：起始旋转在抽起始块**之前**消耗随机数，且不按
-    // start_jigsaw_name 过滤起始块——两者叠加使选中的起始块与装配走向都偏离原版。
     if (def.startPool.path().empty()) {
         return Error(ErrorCode::InvalidData, "jigsaw structure '" + def.id.toString() + "' missing 'start_pool'");
     }
