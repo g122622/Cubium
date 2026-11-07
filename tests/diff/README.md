@@ -599,6 +599,7 @@ diff_runner <domain> run <input.jsonl> <output.jsonl>   # 每行输入 → 一�
 | `edge_backoff` | 原版 jar `EdgeBackoffOracle` | 12 个场景 | 全部一致 | 潜行边缘保护的分轴回退 |
 | `item_cooldowns` | 原版 jar `ItemCooldownsOracle` | 14 个操作序列 | 全部一致 | 物品冷却进度与到期移除 |
 | `inventory_slot_mapping` | 原版 jar `InventorySlotMappingOracle` | 94 个槽位互转 | 全部一致 | 背包内部索引 ↔ 菜单槽位 |
+| `inventory_add` | 原版 jar `InventoryAddOracle` | 14 个装填场景 | 全部一致 | 物品进包的合并与铺开顺序 |
 
 `loot_function` 把范围从「整张表掷出来什么」收窄到**单个函数**：两侧各现场造一张「1 个池
 + 1 个必定产出一条物品」的表，表级只挂一个函数，然后在同一批种子上掷 4 次。差异因此只

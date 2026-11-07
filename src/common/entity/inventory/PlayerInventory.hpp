@@ -621,6 +621,19 @@ private:
      */
     [[nodiscard]] bool _stacksEqualExact(const ItemStack& stack1, const ItemStack& stack2) const;
 
+    /**
+     * @brief 该槽能否再装下一些同类物品（原版 hasRemainingSpaceForItem）
+     *
+     * 能合并（同类且可堆叠）并且还没达到堆叠上限时为 true。
+     *
+     * @param target 槽内现有的堆叠
+     * @param incoming 要加入的堆叠
+     * @param maxStackLimit 背包级堆叠上限
+     * @return 是否还有剩余空间
+     */
+    [[nodiscard]] bool _hasRemainingSpaceForItem(
+        const ItemStack& target, const ItemStack& incoming, i32 maxStackLimit) const;
+
     std::array<ItemStack, TOTAL_SIZE> m_items;
     ItemStack m_carriedItem; ///< 鼠标持有的物品（容器交互时使用）
     Player* m_player;

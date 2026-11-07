@@ -2361,6 +2361,23 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
         key: "unit",
         units: { kind: "listing" },
         input: (unit: string) => ({ unit }) },
+    {
+        name: "inventory_add",
+        probe: "inventory_add",
+        oracle: "InventoryAddOracle",
+        description: "物品进入玩家背包时的装填顺序（原版 Inventory.add / addResource）—— 14 个场景。"
+        + "玩家捡起物品、合成产物入包、漏斗输出到玩家，最后都走这条路径。"
+        + "原版顺序是：先在选中槽装，再在副手槽（40）装，然后从索引 0 递增扫全部槽位找同类堆叠；"
+        + "都装不下时同样从 0 递增找第一个空槽。两个细节最容易写错——"
+        + "① 副手槽排在全部槽位扫描之前，不是「顺便也看一眼副手」；"
+        + "② 扫描与找空槽都从 0 递增，而 0..8 是快捷栏，所以捡东西会先塞满快捷栏再去主背包，"
+        + "写成「先主背包后快捷栏」会让物品凭空出现在背包第二排。"
+        + "add 返回的是没装下的剩余数量而不是装进去多少，这两个值在很多场景下不相等。"
+        + "场景覆盖空背包、整组、超过一组、并入选中槽、并入副手、副手优先于扫描、按下标递增扫描、"
+        + "快捷栏占满、不同物品不合并、加入 0 个、加入空气、选中槽已满、同类全满、以及跨多个槽铺开。",
+        key: "unit",
+        units: { kind: "listing" },
+        input: (unit: string) => ({ unit }) },
 ];
 export function findHarness(name: string): HarnessDeclaration | undefined {
     return HARNESSES.find((harness) => harness.name === name);
