@@ -212,7 +212,7 @@ def main() -> int:
     )
     ordered_objects = [main_object] + [path for path in objects if path != main_object]
 
-    compiler = options.compiler or shutil.which(compiler) or compiler
+    compiler = shutil.which(options.compiler or compiler) or (options.compiler or compiler)
     report: dict = {
         "config": config,
         "compiler": compiler,
