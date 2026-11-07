@@ -458,6 +458,8 @@ jobs:
     env:
       ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      # 临时诊断：测试进程把入口各阶段时刻追加到该文件（见 tests/unit/test_main_entry.hpp）。
+      MC_SETUP_TIMING_DIR: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-datapack
@@ -520,9 +522,12 @@ jobs:
           name: pococc-unit-test-results-${{ matrix.shard }}
           retention-days: 30
           if-no-files-found: warn
+          # 临时诊断：测试进程在每个启动阶段都向 setup-timing.log 追加一行（见
+          # tests/unit/test_main_entry.hpp），用于把每个进程的固定开销归因到具体阶段。
           path: |
             ctest-output.log
             ctest-results.xml
+            setup-timing.log
             build/Testing/
             runner-info.json
             ctest-partition.json

@@ -40,6 +40,7 @@ int main(int argc, char* argv[])
             .count();
 
     spdlog::info("[SetupTiming] main_enter");
+    WorldGenRegistryEnvironment::recordTiming("main_enter", 0);
 
     // 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用、std::terminate 等，
     // 输出调用栈和局部变量信息到终端。多次调用安全（只安装一次）。

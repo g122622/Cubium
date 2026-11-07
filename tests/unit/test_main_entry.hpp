@@ -36,6 +36,8 @@
 #include <spdlog/spdlog.h>
 
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 
 #ifdef __linux__
@@ -61,6 +63,7 @@ public:
                 std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - setupStart)
                     .count();
             spdlog::info("[SetupTiming] {} {}ms", step, ms);
+            _appendTimingLine(step, static_cast<mc::i64>(ms));
         };
         // 注册组件序列化器（进程单例，幂等）。Entity::writeToNBT/readFromNBT 经
         // ComponentSerializerRegistry::saveAll/loadAll 把已 ECS 组件化的字段（Pos/Motion/
@@ -103,12 +106,14 @@ public:
 
         const auto dataPackDir = mc::GameDirectory::defaultDirectory().dataPacksDir();
         if (!std::filesystem::exists(dataPackDir)) {
+            mark("no_datapack");
             return;
         }
         // 仓库作为成员而不是局部变量：模板管理器等组件会持有它的指针（同 MinecraftServer
         // 以 m_dataPackList 成员持有的做法），局部对象在 SetUp 返回后销毁会留下悬垂指针。
         auto scanResult = m_dataPackRepository.scanDirectory(dataPackDir);
         if (!scanResult.success() || scanResult.value() == 0) {
+            mark("datapack_scan_failed");
             return;
         }
 
@@ -167,6 +172,30 @@ private:
         auto itemTagResult = mc::item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackRepository);
         if (itemTagResult.failed()) {
             spdlog::error("Failed to load item tags from data packs: {}", itemTagResult.error().message());
+        }
+    }
+
+    /// 把阶段时刻追加到 MC_SETUP_TIMING_DIR 下的 setup-timing.log（未设置则静默跳过）。
+    ///
+    /// CI 上每个用例都是独立进程，ctest 只保留失败用例的输出，进程跑完后的固定开销因此看不见；
+    /// 追加写的共享文件可以在作业结束后统计全部进程的分阶段耗时，由 CI 作业统一上传。
+    /// 供 main 在进入入口时记录起点（此时全局环境尚未构造）。毫秒值相对本进程钟表即可。
+    static void recordTiming(const char* step, mc::i64 ms)
+    {
+        _appendTimingLine(step, ms);
+    }
+
+    /// 把阶段时刻写入共享日志。
+    static void _appendTimingLine(const char* step, mc::i64 ms)
+    {
+        const char* dir = std::getenv("MC_SETUP_TIMING_DIR");
+        if (dir == nullptr) {
+            return;
+        }
+        const std::filesystem::path path = std::filesystem::path(dir) / "setup-timing.log";
+        if (FILE* file = std::fopen(path.c_str(), "a")) {
+            std::fprintf(file, "%lld %s\n", static_cast<long long>(ms), step);
+            std::fclose(file);
         }
     }
 
