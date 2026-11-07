@@ -25,6 +25,7 @@ def rewrite(value: str, root: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("database", type=Path)
+    parser.add_argument("--build-root", default="build", help="构建目录在记录命令时的相对路径，如 build-release-noprof")
     options = parser.parse_args()
 
     entries = json.loads(options.database.read_text())
@@ -33,11 +34,14 @@ def main() -> int:
         if entry["file"].endswith("tests/unit/main.cpp") and "mc_tests.dir" in entry.get("output", "")
     )
     root = Path(os.getcwd())
+    replacement_root = str(root / options.build_root)
+    # 模板条目里 main.cpp 的源文件路径与工作目录都指向构建根下的同一仓库；把它们整体重定向到
+    # 本工作区的 <root>/<build-root>，其余（包含路径、宏）保持不变。
     for probe in PROBES:
         cloned = dict(template)
         cloned["file"] = str((root / probe).resolve())
-        cloned["command"] = rewrite(template["command"], root)
-        cloned["directory"] = rewrite(template["directory"], root)
+        cloned["command"] = rewrite(template["command"], replacement_root)
+        cloned["directory"] = rewrite(template["directory"], replacement_root)
         entries.append(cloned)
     options.database.write_text(json.dumps(entries))
     return 0

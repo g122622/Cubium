@@ -111,16 +111,7 @@ jobs:
           if [ "${count}" -gt 0 ]; then
             tar -czf ctest-meta.tar.gz --null -T /tmp/ctest-meta.list
             echo "Packaged ${count} CTest metadata files."
-            # 链接期输入（各目标文件与库的链接参数）：诊断作业（test-start-probe）要在产物上
-            # 重新链接等价二进制来做对照实验，而 ninja 描述文件不属于上述测试元数据。
-            rm -rf .probe-link-meta && mkdir -p .probe-link-meta/build/CMakeFiles
-            cp build/CMakeFiles/impl-RelWithDebInfo.ninja build/CMakeFiles/rules.ninja .probe-link-meta/build/CMakeFiles/
-            cp build/compile_commands.json .probe-link-meta/build/
-            # 对照入口的源文件与 tests/unit/main.cpp 是同一个编译目标（相同的宏与包含路径），
-            # 直接把数据库里 main.cpp 的条目改指向探针源文件；路径按构建期路径重写。
-            python3 scripts/ci/add_probe_compile_entries.py .probe-link-meta/build/compile_commands.json
-            tar -czf teststart-probe.tar.gz -C .probe-link-meta .
-            # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。
+                        # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。
             find build -name '*_tests*.cmake' | head -5
           else
             echo "::warning::未找到任何 CTest 元数据文件，unit-tests job 可能无法用 ctest 运行。"
@@ -147,7 +138,6 @@ jobs:
             vcpkg-libs/
             build-artifact-check.txt
             ctest-meta.tar.gz
-            teststart-probe.tar.gz
             runner-info.json
             tests/integrated/*/scripts/
             tests/integrated/*/structures/
@@ -178,6 +168,16 @@ jobs:
             --binary "${RELEASE_BIN_DIR}/minecraft-server" --binary "${RELEASE_BIN_DIR}/mc_benchmark" \
             --library-dir release-package/lib --report release-artifact-check.txt
           cp "${RELEASE_BIN_DIR}/minecraft-server" release-package/minecraft-server
+      - name: Package probe link metadata
+        run: |
+          set -euo pipefail
+          rm -rf .probe-link-meta && mkdir -p .probe-link-meta/build-release-noprof/CMakeFiles
+          cp build-release-noprof/CMakeFiles/impl-Release.ninja build-release-noprof/CMakeFiles/rules.ninja \
+            .probe-link-meta/build-release-noprof/CMakeFiles/
+          cp build-release-noprof/compile_commands.json .probe-link-meta/build-release-noprof/
+          python3 scripts/ci/add_probe_compile_entries.py \
+            .probe-link-meta/build-release-noprof/compile_commands.json --build-root build-release-noprof
+          tar -czf teststart-probe.tar.gz -C .probe-link-meta .
       - name: Record runner configuration
         if: always()
         continue-on-error: true
@@ -193,9 +193,10 @@ jobs:
             ${{ env.RELEASE_BIN_DIR }}/mc_benchmark
             release-package/lib/
             release-artifact-check.txt
-            # 临时：供 Test Start Probe 对照实验链接（pococc 构建机上不保留静态库）。
+            # 临时：供 Test Start Probe 对照实验链接与重建（pococc 构建机上不保留静态库）。
             build-release-noprof/lib/
             build-release-noprof/vcpkg_installed/
+            teststart-probe.tar.gz
       - name: Upload release build diagnostics
         if: always()
         uses: actions/upload-artifact@v4

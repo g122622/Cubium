@@ -205,6 +205,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--build-dir", type=Path, default=Path("build"))
     parser.add_argument("--config", default="RelWithDebInfo")
+    parser.add_argument("--test-build-dir", default=None, help="含测试的构建目录（ctest 元数据与 mc_tests 所在）")
+    parser.add_argument("--test-config", default="RelWithDebInfo")
     parser.add_argument("--compiler", default=None, help="链接/编译用的 clang++；缺省取 ninja 规则里的编译器名")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--clean", action="store_true", help="删除 tests/ci-probes 后退出（调查结束后使用）")
@@ -220,8 +222,11 @@ def main() -> int:
     # 之后需要相对构建根的步骤（链接）再显式指定 cwd=build_dir。
     os.chdir(build_dir.parent)
     config = options.config
-    test_binary = build_dir / "bin" / config / "mc_tests"
-    work_dir = build_dir / "tests" / "unit"
+    # 测试可执行文件与目标文件都来自 Test Build（RelWithDebInfo + ASan）；只有链接所需的
+    # 静态库来自本目录的构建。两者配置不同，故测试二进制路径单独指定。
+    test_build_dir = Path(options.test_build_dir).resolve() if options.test_build_dir else build_dir
+    test_binary = test_build_dir / "bin" / options.test_config / "mc_tests"
+    work_dir = test_build_dir / "tests" / "unit"
     PROBE_BIN_DIR.mkdir(parents=True, exist_ok=True)
 
     objects, libraries, flags, compiler = link_inputs(NINJA_FILE.with_name(NINJA_FILE.name.format(config=config)), config)
@@ -274,9 +279,9 @@ def main() -> int:
 
     # ---- 3. ctest 基线与 4. 直跑对照 ----
     window = "1,,20"
-    report["ctest"].append(ctest_step(build_dir, config, window, 2, PROBE_BIN_DIR / "ctest-j2.xml", PROBE_BIN_DIR / "ctest-j2.log"))
-    report["ctest"].append(ctest_step(build_dir, config, window, 1, PROBE_BIN_DIR / "ctest-j1.xml", PROBE_BIN_DIR / "ctest-j1.log"))
-    names = selection_names(build_dir, window, 60)
+    report["ctest"].append(ctest_step(test_build_dir, options.test_config, window, 2, PROBE_BIN_DIR / "ctest-j2.xml", PROBE_BIN_DIR / "ctest-j2.log"))
+    report["ctest"].append(ctest_step(test_build_dir, options.test_config, window, 1, PROBE_BIN_DIR / "ctest-j1.xml", PROBE_BIN_DIR / "ctest-j1.log"))
+    names = selection_names(test_build_dir, window, 60)
     report["direct"].append(direct_step(test_binary, work_dir, names))
 
     options.out.write_text(json.dumps(report, indent=2) + "\n")
