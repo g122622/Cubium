@@ -244,6 +244,16 @@ private:
     mc::function::FunctionManager m_functionManager;
 };
 
+/// 诊断用空环境：在真正的环境之前注册，只记录进入时刻。
+/// 若它的时刻也明显晚于 gtest_env_setup_start，说明开销发生在环境调用本身而非某个具体环境。
+class ProbeEnvironmentA : public ::testing::Environment {
+public:
+    void SetUp() override
+    {
+        WorldGenRegistryEnvironment::recordTiming("env_a_enter", test_timing::sinceStartMs());
+    }
+};
+
 /// 跨用例隔离监听器：每用例结束后重置 ChunkTaskScheduler 的 thread_local 同步调度上下文。
 ///
 /// 全二进制直跑（`mc_tests --gtest_filter=...`）时同 worker 线程跨用例复用 thread_local
