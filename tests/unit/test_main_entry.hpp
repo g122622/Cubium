@@ -215,6 +215,3 @@ private:
 #endif
     }
 };
-
-// 进程启动成本对照实验（tests/ci-probes）复用本文件的全局环境与监听器，并以此宏跳过 main。
-#ifndef MC_TESTSTART_EMBED_MAIN

@@ -60,7 +60,7 @@
 namespace {
 
 /// steady_clock 当前读数（毫秒）。
-inline i64 nowMs()
+inline mc::i64 nowMs()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
         .count();
@@ -71,20 +71,20 @@ inline i64 nowMs()
 /// 记录本进程的启动阶段时刻。输出行前缀固定为 `[TestMainTiming]`，便于 CI 侧正则提取。
 TEST(TestMainTiming, Phases)
 {
-    const i64 enter = nowMs();
+    const mc::i64 enter = nowMs();
     spdlog::info("[TestMainTiming] enter={}", enter);
 
     mc::VanillaBlocks::initialize();
     mc::Items::ensureInitialized();
     mc::BlockItemRegistry::instance().initializeVanillaBlockItems();
-    const i64 registries = nowMs();
+    const mc::i64 registries = nowMs();
     spdlog::info("[TestMainTiming] registries={}", registries);
 
     // 第二遍：此时全部幂等守卫均已命中，只测「已就绪后的一遍调用」本身。
     mc::VanillaBlocks::initialize();
     mc::Items::ensureInitialized();
     mc::BlockItemRegistry::instance().initializeVanillaBlockItems();
-    const i64 registriesAgain = nowMs();
+    const mc::i64 registriesAgain = nowMs();
     spdlog::info("[TestMainTiming] registries_again={}", registriesAgain);
 
     const char* worldGen = std::getenv("MC_TIMING_WORLDGEN");

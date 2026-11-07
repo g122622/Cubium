@@ -41,19 +41,19 @@ namespace {
 
 std::chrono::steady_clock::time_point s_start;
 
-i64 elapsedMs()
+mc::i64 elapsedMs()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - s_start).count();
 }
 
-i64 cpuMs()
+mc::i64 cpuMs()
 {
 #ifdef __linux__
     struct rusage usage{};
     if (::getrusage(RUSAGE_SELF, &usage) != 0) {
         return -1;
     }
-    return static_cast<i64>(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) * 1000 +
+    return static_cast<mc::i64>(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) * 1000 +
         (usage.ru_utime.tv_usec + usage.ru_stime.tv_usec) / 1000;
 #else
     return -1;
