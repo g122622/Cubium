@@ -40,6 +40,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -112,6 +113,11 @@ struct BlockInfo {
 
 /**
  * @brief 执行克隆操作
+ *
+ * @param strict 严格模式：抑制写入期间的全部方块副作用（不触发邻居更新、方块实体副作用、
+ *               掉落与形状更新），并在全部写入完成后统一补发邻居更新。
+ *               对应原版 `/clone ... strict` 传 `2 | 816`（UPDATE_CLIENTS |
+ *               UPDATE_SKIP_ALL_SIDEEFFECTS），非 strict 传 `2 | 256`。
  */
 i32 executeClone(CommandContext<ServerCommandSource>& context,
     const BlockPos& beginPos,
@@ -119,7 +125,8 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     const BlockPos& destPos,
     FilterMode filterMode,
     CloneMode cloneMode,
-    const BlockStateInput* filterInput = nullptr)
+    bool strict,
+    const BlockStateInput* filterInput)
 {
     auto& source = context.getSource();
 
@@ -282,6 +289,18 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
         }
     }
 
+    // 写入标志与延后补发：strict 抑制全部副作用，写完后统一补发邻居更新。
+    const i32 writeFlags = world::BlockUpdateFlags::UPDATE_CLIENTS |
+        (strict ? world::BlockUpdateFlags::UPDATE_SKIP_ALL_SIDEEFFECTS
+                : world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS);
+
+    struct DeferredNeighbourUpdate {
+        BlockPos pos;
+        const BlockState* oldState;
+    };
+
+    std::vector<DeferredNeighbourUpdate> deferredNeighborUpdates;
+
     // 如果是 move 模式，先清空源区域
     // 由于项目中没有注册屏障方块，我们直接设置为空气
     if (cloneMode == CloneMode::Move) {
@@ -301,7 +320,10 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
         const BlockState* airState = BlockRegistry::instance().airState();
         for (const BlockPos& srcPos : sourcePositions) {
             if (world::isValidY(srcPos.y)) {
-                world->setBlockState(srcPos.x, srcPos.y, srcPos.z, airState);
+                const BlockState* oldState = strict ? world->getBlockState(srcPos.x, srcPos.y, srcPos.z) : nullptr;
+                if (world->setBlockState(srcPos.x, srcPos.y, srcPos.z, airState, writeFlags) && strict) {
+                    deferredNeighborUpdates.push_back({srcPos, oldState});
+                }
             }
         }
     }
@@ -324,8 +346,21 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
             continue;
         }
 
-        if (world->setBlockState(info.pos.x, info.pos.y, info.pos.z, info.state)) {
+        // 写入前先取旧状态（strict 补发邻居更新时需要）。
+        const BlockState* oldState = strict ? world->getBlockState(info.pos.x, info.pos.y, info.pos.z) : nullptr;
+
+        if (world->setBlockState(info.pos.x, info.pos.y, info.pos.z, info.state, writeFlags)) {
             blocksCloned++;
+            if (strict) {
+                deferredNeighborUpdates.push_back({info.pos, oldState});
+            }
+        }
+    }
+
+    // strict：全部写入完成后统一补发邻居更新（原版 updateNeighboursOnBlockSet 的时机）。
+    for (const auto& updated : deferredNeighborUpdates) {
+        if (updated.oldState != nullptr) {
+            world->updateNeighboursOnBlockSet(updated.pos, *updated.oldState);
         }
     }
 
@@ -373,57 +408,61 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
             {},
             false));
 
-    const auto makeMode = [](const char* name, FilterMode filterMode, CloneMode cloneMode) {
+    const auto makeMode = [](const char* name, FilterMode filterMode, CloneMode cloneMode, bool strict) {
         auto node = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
-        node->setCommand([filterMode, cloneMode](CommandContext<ServerCommandSource>& ctx) {
-            return _doCloneStatic(ctx, filterMode, cloneMode);
+        node->setCommand([filterMode, cloneMode, strict](CommandContext<ServerCommandSource>& ctx) {
+            return _doCloneStatic(ctx, filterMode, cloneMode, strict);
         });
         return node;
     };
-    const auto makeFilteredMode = [](const char* name, CloneMode cloneMode) {
+    const auto makeFilteredMode = [](const char* name, CloneMode cloneMode, bool strict) {
         auto node = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
-        node->setCommand([cloneMode](CommandContext<ServerCommandSource>& ctx) {
-            return _doCloneFilteredStatic(ctx, cloneMode);
+        node->setCommand([cloneMode, strict](CommandContext<ServerCommandSource>& ctx) {
+            return _doCloneFilteredStatic(ctx, cloneMode, strict);
         });
         return node;
     };
 
     // 目的地之后的模式子树（replace / masked / filtered 各自展开，strict 再复制一份）。
     // strict 下的子树与 destination 下同构（strict 只在 destination/begin/end 之后，不再嵌套）。
-    std::function<void(const std::shared_ptr<CommandNode<ServerCommandSource>>&, bool)> addModeChildren;
-    addModeChildren = [&](const std::shared_ptr<CommandNode<ServerCommandSource>>& parent, bool withStrict) {
-        for (const auto& [name, filterMode] : {
-                 std::pair<const char*, FilterMode>{"replace", FilterMode::Replace},
-                 std::pair<const char*, FilterMode>{"masked", FilterMode::Masked},
-             }) {
-            auto modeNode = makeMode(name, filterMode, CloneMode::Normal);
-            modeNode->addChild(makeMode("force", filterMode, CloneMode::Force));
-            modeNode->addChild(makeMode("move", filterMode, CloneMode::Move));
-            modeNode->addChild(makeMode("normal", filterMode, CloneMode::Normal));
-            parent->addChild(modeNode);
-        }
+    //
+    // strict 是"写入标志"维度，与 FilterMode/CloneMode 正交：它保持 replace|normal 的选取语义，
+    // 只改变写入时抑制副作用的做法，因此整棵子树的每个可执行节点都要携带该标志。
+    std::function<void(const std::shared_ptr<CommandNode<ServerCommandSource>>&, bool, bool)> addModeChildren;
+    addModeChildren =
+        [&](const std::shared_ptr<CommandNode<ServerCommandSource>>& parent, bool withStrict, bool strict) {
+            for (const auto& [name, filterMode] : {
+                     std::pair<const char*, FilterMode>{"replace", FilterMode::Replace},
+                     std::pair<const char*, FilterMode>{"masked", FilterMode::Masked},
+                 }) {
+                auto modeNode = makeMode(name, filterMode, CloneMode::Normal, strict);
+                modeNode->addChild(makeMode("force", filterMode, CloneMode::Force, strict));
+                modeNode->addChild(makeMode("move", filterMode, CloneMode::Move, strict));
+                modeNode->addChild(makeMode("normal", filterMode, CloneMode::Normal, strict));
+                parent->addChild(modeNode);
+            }
 
-        // filtered：过滤条件 → 三种模式；filtered 本身不可执行。
-        auto filteredNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("filtered");
-        auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
-            "filter", BlockPredicateArgumentType::blockPredicate());
-        filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            return _doCloneFilteredStatic(ctx, CloneMode::Normal);
-        });
-        filterArg->addChild(makeFilteredMode("force", CloneMode::Force));
-        filterArg->addChild(makeFilteredMode("move", CloneMode::Move));
-        filterArg->addChild(makeFilteredMode("normal", CloneMode::Normal));
-        filteredNode->addChild(filterArg);
-        parent->addChild(filteredNode);
+            // filtered：过滤条件 → 三种模式；filtered 本身不可执行。
+            auto filteredNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("filtered");
+            auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
+                "filter", BlockPredicateArgumentType::blockPredicate());
+            filterArg->setCommand([strict](CommandContext<ServerCommandSource>& ctx) {
+                return _doCloneFilteredStatic(ctx, CloneMode::Normal, strict);
+            });
+            filterArg->addChild(makeFilteredMode("force", CloneMode::Force, strict));
+            filterArg->addChild(makeFilteredMode("move", CloneMode::Move, strict));
+            filterArg->addChild(makeFilteredMode("normal", CloneMode::Normal, strict));
+            filteredNode->addChild(filterArg);
+            parent->addChild(filteredNode);
 
-        // TODO: strict 需要通过方块更新标志抑制邻居更新。
-        if (withStrict) {
-            auto strictNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("strict");
-            strictNode->setCommand(makeMode("replace", FilterMode::Replace, CloneMode::Normal)->getCommand());
-            addModeChildren(strictNode, false);
-            parent->addChild(strictNode);
-        }
-    };
+            if (withStrict) {
+                // /clone ... strict：与 replace|normal 同选取语义，但抑制写入期间的全部副作用。
+                auto strictNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("strict");
+                strictNode->setCommand(makeMode("replace", FilterMode::Replace, CloneMode::Normal, true)->getCommand());
+                addModeChildren(strictNode, false, true);
+                parent->addChild(strictNode);
+            }
+        };
 
     const auto makeDestination = [&] {
         auto destination = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
@@ -431,7 +470,7 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
         destination->setCommand([](CommandContext<ServerCommandSource>& ctx) {
             return _doCloneDefault(ctx);
         });
-        addModeChildren(destination, true);
+        addModeChildren(destination, true, false);
         return destination;
     };
     const auto makeBeginEnd = [&] {
@@ -467,11 +506,11 @@ i32 CloneCommand::_cloneBlocks(CommandContext<ServerCommandSource>& context)
 
 i32 CloneCommand::_doCloneDefault(CommandContext<ServerCommandSource>& context)
 {
-    return _doCloneStatic(context, FilterMode::Replace, CloneMode::Normal);
+    return _doCloneStatic(context, FilterMode::Replace, CloneMode::Normal, false);
 }
 
 i32 CloneCommand::_doCloneStatic(
-    CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode)
+    CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode, bool strict)
 {
     auto& source = context.getSource();
     // TODO: 为源和目标分别解析世界并执行跨维度复制。
@@ -491,10 +530,10 @@ i32 CloneCommand::_doCloneStatic(
     const BlockPos endPos(end.x, end.y, end.z);
     const BlockPos destPos(dest.x, dest.y, dest.z);
 
-    return executeClone(context, beginPos, endPos, destPos, filterMode, cloneMode);
+    return executeClone(context, beginPos, endPos, destPos, filterMode, cloneMode, strict, nullptr);
 }
 
-i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode)
+i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode, bool strict)
 {
     auto& source = context.getSource();
     // TODO: 为源和目标分别解析世界并执行跨维度复制。
@@ -515,7 +554,7 @@ i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& co
     const BlockPos endPos(end.x, end.y, end.z);
     const BlockPos destPos(dest.x, dest.y, dest.z);
 
-    return executeClone(context, beginPos, endPos, destPos, FilterMode::Filtered, cloneMode, &filterInput);
+    return executeClone(context, beginPos, endPos, destPos, FilterMode::Filtered, cloneMode, strict, &filterInput);
 }
 
 } // namespace command

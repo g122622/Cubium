@@ -107,8 +107,8 @@ TEST_F(ServerWorldNeighbourOnBlockSetTest, SkipAllSideEffectsSuppressesImmediate
     m_world->setBlockState(0, 65, 0, &VanillaBlocks::STONE->defaultState());
 
     const BlockState* stone = &VanillaBlocks::STONE->defaultState();
-    const i32 strictFlags = world::BlockUpdateFlags::UPDATE_CLIENTS |
-        world::BlockUpdateFlags::UPDATE_SKIP_ALL_SIDEEFFECTS;
+    const i32 strictFlags =
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_SKIP_ALL_SIDEEFFECTS;
 
     // 先在冰正上方放个空气：strict 写入不触发邻居更新。
     ASSERT_TRUE(m_world->setBlockState(0, 65, 0, nullptr, strictFlags));

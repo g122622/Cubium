@@ -212,6 +212,25 @@ TEST_F(CloneCommandTest, CloneCommandParsesReplaceNormalMode)
     EXPECT_EQ(result.value(), 0);
 }
 
+TEST_F(CloneCommandTest, CloneCommandParsesStrictMode)
+{
+    // strict 是写入标志维度：与 replace|normal 同选取语义，但抑制写入期间的方块副作用。
+    // 这里只验证命令树接受该语法（行为由 ServerWorldNeighbourOnBlockSetTest 覆盖）。
+    const auto result = m_server.commandRegistry().execute("clone 0 0 0 10 10 10 20 20 20 strict", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(CloneCommandTest, CloneCommandParsesStrictReplaceNormalMode)
+{
+    const auto result =
+        m_server.commandRegistry().execute("clone 0 0 0 10 10 10 20 20 20 strict replace normal", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
 TEST_F(CloneCommandTest, CloneCommandParsesMaskedForceMode)
 {
     const auto result = m_server.commandRegistry().execute("clone 0 0 0 10 10 10 20 20 20 masked force", m_console);
