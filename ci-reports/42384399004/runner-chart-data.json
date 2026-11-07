@@ -1,0 +1,136 @@
+{
+  "errors": [],
+  "missing": {
+    "benchmark": "未采集",
+    "build": "未采集",
+    "e2e-tests": "未采集",
+    "fuzz": "未采集",
+    "integrated-tests": "未采集",
+    "release-build": "未采集",
+    "unit-tests": "未采集",
+    "workers": "未采集"
+  },
+  "rows": [
+    {
+      "info": {
+        "artifact": "pococc-prepare-results",
+        "build": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": "/usr/lib/llvm-22/bin/clang++",
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_EXE_LINKER_FLAGS": "",
+          "CMAKE_EXE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_GENERATOR": "Ninja",
+          "CMAKE_LINKER": "/usr/lib/llvm-22/bin/ld.lld",
+          "CMAKE_MODULE_LINKER_FLAGS": "",
+          "CMAKE_MODULE_LINKER_FLAGS_RELEASE": "",
+          "CMAKE_SHARED_LINKER_FLAGS": "",
+          "CMAKE_SHARED_LINKER_FLAGS_RELEASE": ""
+        },
+        "captured_at": "2026-11-07T15:04:37.807580+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 7763 64-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 90647617536,
+          "total_bytes": 154894188544
+        },
+        "job": "prepare",
+        "memory_bytes": 16760344576,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261101.360.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "7.0.0-1017-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "cmake": {
+            "description": "cmake version 3.31.6",
+            "name": "cmake",
+            "path": "/usr/local/bin/cmake",
+            "status": "ok",
+            "version": "3.31.6"
+          },
+          "compiler": {
+            "description": "Ubuntu clang version 22.1.8 (++20260714014902+ca7933e47d3a-1~exp1~20260714135019.80)",
+            "name": "clang++",
+            "path": "/usr/lib/llvm-22/bin/clang++",
+            "status": "ok",
+            "version": "22.1.8"
+          },
+          "ninja": {
+            "description": "1.13.2",
+            "name": "ninja",
+            "path": "/usr/local/bin/ninja",
+            "status": "ok",
+            "version": "1.13.2"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "prepare",
+      "label": "工具准备"
+    },
+    {
+      "info": {
+        "artifact": "report",
+        "build": {},
+        "captured_at": "2026-11-07T15:05:32.030461+00:00",
+        "cpu": {
+          "logical_cpus": 4,
+          "model": "AMD EPYC 9V74 80-Core Processor"
+        },
+        "disk": {
+          "free_bytes": 91223293952,
+          "total_bytes": 154894188544
+        },
+        "job": "report",
+        "memory_bytes": 16760340480,
+        "runner": {
+          "environment": "github-hosted",
+          "image_os": "ubuntu24",
+          "image_version": "20261101.360.1"
+        },
+        "schema_version": 1,
+        "system": {
+          "architecture": "x86_64",
+          "kernel": "7.0.0-1017-azure",
+          "libc": "glibc 2.39",
+          "os": "Ubuntu 24.04.5 LTS"
+        },
+        "tools": {
+          "gh": {
+            "description": "gh version 2.103.3 (2026-10-26)",
+            "name": "gh",
+            "path": "/usr/bin/gh",
+            "status": "ok",
+            "version": "2.103.3"
+          },
+          "python": {
+            "path": "/usr/bin/python3",
+            "status": "ok",
+            "version": "3.12.3"
+          }
+        },
+        "vcpkg_baseline": ""
+      },
+      "key": "report",
+      "label": "汇总"
+    }
+  ],
+  "snapshots": 2
+}
