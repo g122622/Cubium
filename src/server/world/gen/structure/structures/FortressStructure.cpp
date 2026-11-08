@@ -22,464 +22,24 @@
  */
 
 #include "FortressStructure.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/block/base/types/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "server/world/gen/jigsaw/AssemblyTypes.hpp"
-#include "server/world/gen/jigsaw/JigsawAssembler.hpp"
-#include "server/world/gen/jigsaw/JigsawJunction.hpp"
-#include "server/world/gen/jigsaw/JigsawPlacer.hpp"
-#include "server/world/gen/jigsaw/JigsawTypes.hpp"
-#include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
+#include "server/world/gen/structure/structures/NetherFortressPieces.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <limits>
 #include <memory>
-#include <optional>
-#include <string>
 #include <utility>
 #include <vector>
 
-namespace mc {
-namespace world {
-namespace gen {
-namespace structure {
-
-using namespace mc::Biomes;
-
-// ============================================================================
-// 匿名命名空间：FortressPlacedPieceAdapter
-// ============================================================================
-
-namespace {
-
-/**
- * @brief 下界要塞 Jigsaw 片段适配器
- *
- * 将 PlacedPiece 适配为 StructurePiece，用于存储到 StructureStart。
- * 存储 JigsawJunction 用于地形平滑计算。
- */
-class FortressPlacedPieceAdapter final : public StructurePiece {
-public:
-    explicit FortressPlacedPieceAdapter(jigsaw::PlacedPiece placed)
-        : StructurePiece(FortressPieceTypes::START,
-              placed.boundingBox.minX(),
-              placed.boundingBox.minY(),
-              placed.boundingBox.minZ(),
-              placed.boundingBox.maxX(),
-              placed.boundingBox.maxY(),
-              placed.boundingBox.maxZ())
-        , m_placed(std::move(placed))
-        , m_groundLevelDelta(m_placed.groundLevelDelta)
-        , m_junctions(m_placed.junctions)
-    {}
-
-    void generate(IWorldWriter& world,
-        math::IRandom& rng,
-        i32,
-        i32,
-        const StructureBoundingBox& chunkBounds,
-        ChunkPrimer* chunk,
-        IChunkGenerator* generator) override
-    {
-        jigsaw::JigsawPlacer::placePiece(world, m_placed, rng, &chunkBounds, chunk, generator);
-    }
-
-    [[nodiscard]] i32 getGroundLevelDelta() const override
-    {
-        return m_groundLevelDelta;
-    }
-
-    [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override
-    {
-        return m_junctions;
-    }
-
-    [[nodiscard]] bool isJigsawPiece() const override
-    {
-        return true;
-    }
-
-    [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
-    {
-        return (m_placed.projection == mc::world::gen::jigsaw::JigsawPlacementBehaviour::TerrainMatching)
-            ? mc::StructurePieceProjection::TerrainMatching
-            : mc::StructurePieceProjection::Rigid;
-    }
-
-private:
-    jigsaw::PlacedPiece m_placed;
-    i32 m_groundLevelDelta;
-    std::vector<jigsaw::JigsawJunction> m_junctions;
-};
-
-} // namespace
-
-// ============================================================================
-// FortressFallbackPiece
-// ============================================================================
-
-FortressFallbackPiece::FortressFallbackPiece(const BlockPos& pos)
-    : StructurePiece(
-          StructurePieceTypes::FORTRESS_FALLBACK, pos.x - 8, pos.y - 1, pos.z - 8, pos.x + 37, pos.y + 14, pos.z + 28)
-    , m_startPos(pos)
-{}
-
-void FortressFallbackPiece::generate(IWorldWriter& world,
-    math::IRandom& rng,
-    i32 /*chunkX*/,
-    i32 /*chunkZ*/,
-    const StructureBoundingBox& chunkBounds,
-    ChunkPrimer* /*chunk*/,
-    IChunkGenerator* /*generator*/)
-{
-    if (!getBoundingBox().intersects(chunkBounds)) {
-        return;
-    }
-    _generateFallbackFortress(world, rng, chunkBounds);
-}
-
-void FortressFallbackPiece::_generateFallbackFortress(
-    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds)
-{
-    // 获取方块状态
-    const BlockState* netherBricks = VanillaBlocks::getState(VanillaBlocks::NETHERRACK); // 使用下界岩替代
-    const BlockState* netherrack = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
-    const BlockState* soulSand = VanillaBlocks::getState(VanillaBlocks::SOUL_SAND);
-    const BlockState* netherWart = VanillaBlocks::getState(VanillaBlocks::NETHER_WART);
-    const BlockState* netherWartBlock = VanillaBlocks::getState(VanillaBlocks::NETHER_WART_BLOCK);
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
-    const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
-
-    i32 baseX = m_startPos.x;
-    i32 baseY = m_startPos.y;
-    i32 baseZ = m_startPos.z;
-
-    // 生成主桥 (直线段)
-    // 尺寸: 5x10x19
-    for (i32 z = 0; z < 19; ++z) {
-        // 桥面
-        for (i32 x = 0; x < 5; ++x) {
-            i32 wx = baseX + x, wy = baseY, wz = baseZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-        // 围栏
-        {
-            i32 wx = baseX, wy = baseY + 1, wz = baseZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-        {
-            i32 wx = baseX + 4, wy = baseY + 1, wz = baseZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-        {
-            i32 wx = baseX, wy = baseY + 2, wz = baseZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-        {
-            i32 wx = baseX + 4, wy = baseY + 2, wz = baseZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-
-        // 中间是空气
-        for (i32 y = 1; y <= 8; ++y) {
-            {
-                i32 wx = baseX + 1, wy = baseY + y, wz = baseZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        air,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-            {
-                i32 wx = baseX + 2, wy = baseY + y, wz = baseZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        air,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-            {
-                i32 wx = baseX + 3, wy = baseY + y, wz = baseZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        air,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-        }
-    }
-
-    // 生成王座房间（带烈焰人刷怪笼）
-    // 尺寸: 7x8x9
-    i32 throneX = baseX + 10;
-    i32 throneY = baseY;
-    i32 throneZ = baseZ + 20;
-
-    // 地板
-    for (i32 x = 0; x < 7; ++x) {
-        for (i32 z = 0; z < 9; ++z) {
-            i32 wx = throneX + x, wy = throneY, wz = throneZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-    }
-
-    // 墙壁
-    for (i32 y = 1; y <= 7; ++y) {
-        for (i32 x = 0; x < 7; ++x) {
-            {
-                i32 wx = throneX + x, wy = throneY + y, wz = throneZ;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-            {
-                i32 wx = throneX + x, wy = throneY + y, wz = throneZ + 8;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-        }
-        for (i32 z = 0; z < 9; ++z) {
-            {
-                i32 wx = throneX, wy = throneY + y, wz = throneZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-            {
-                i32 wx = throneX + 6, wy = throneY + y, wz = throneZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-        }
-    }
-
-    // 天花板
-    for (i32 x = 0; x < 7; ++x) {
-        for (i32 z = 0; z < 9; ++z) {
-            i32 wx = throneX + x, wy = throneY + 8, wz = throneZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-    }
-
-    // 烈焰人刷怪点标记（中心偏移）
-    {
-        i32 wx = throneX + 3, wy = throneY + 5, wz = throneZ + 4;
-        if (bounds.contains(wx, wy, wz)) {
-            world.setBlockState(wx,
-                wy,
-                wz,
-                netherWartBlock ? netherWartBlock : netherBricks,
-                world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-        }
-    }
-
-    // 生成地狱疣房间
-    // 尺寸: 13x14x13
-    i32 wartRoomX = baseX + 25;
-    i32 wartRoomY = baseY;
-    i32 wartRoomZ = baseZ + 10;
-
-    // 地板（灵魂沙）
-    for (i32 x = 0; x < 13; ++x) {
-        for (i32 z = 0; z < 13; ++z) {
-            i32 wx = wartRoomX + x, wy = wartRoomY, wz = wartRoomZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    soulSand,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-    }
-
-    // 墙壁
-    for (i32 y = 1; y <= 13; ++y) {
-        for (i32 x = 0; x < 13; ++x) {
-            {
-                i32 wx = wartRoomX + x, wy = wartRoomY + y, wz = wartRoomZ;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-            {
-                i32 wx = wartRoomX + x, wy = wartRoomY + y, wz = wartRoomZ + 12;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-        }
-        for (i32 z = 0; z < 13; ++z) {
-            {
-                i32 wx = wartRoomX, wy = wartRoomY + y, wz = wartRoomZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-            {
-                i32 wx = wartRoomX + 12, wy = wartRoomY + y, wz = wartRoomZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherBricks,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-        }
-    }
-
-    // 天花板
-    for (i32 x = 0; x < 13; ++x) {
-        for (i32 z = 0; z < 13; ++z) {
-            i32 wx = wartRoomX + x, wy = wartRoomY + 14, wz = wartRoomZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    netherBricks,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-    }
-
-    // 灵魂沙平台上的地狱疣
-    // 平台位置: (3-4, 4, 4-8) 和 (8-9, 4, 4-8)
-    for (i32 x = 3; x <= 4; ++x) {
-        for (i32 z = 4; z <= 8; ++z) {
-            if (netherWart) {
-                i32 wx = wartRoomX + x, wy = wartRoomY + 1, wz = wartRoomZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherWart,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-        }
-    }
-    for (i32 x = 8; x <= 9; ++x) {
-        for (i32 z = 4; z <= 8; ++z) {
-            if (netherWart) {
-                i32 wx = wartRoomX + x, wy = wartRoomY + 1, wz = wartRoomZ + z;
-                if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx,
-                        wy,
-                        wz,
-                        netherWart,
-                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-                }
-            }
-        }
-    }
-
-    // 入口（带岩浆）
-    // 尺寸: 13x14x13
-    i32 entranceX = baseX - 8;
-    i32 entranceY = baseY;
-    i32 entranceZ = baseZ - 8;
-
-    // 简化入口：岩浆坑
-    for (i32 x = 0; x < 5; ++x) {
-        for (i32 z = 0; z < 5; ++z) {
-            i32 wx = entranceX + x, wy = entranceY - 1, wz = entranceZ + z;
-            if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx,
-                    wy,
-                    wz,
-                    lava,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-    }
-}
+namespace mc::world::gen::structure {
 
 // ============================================================================
 // FortressStructure
@@ -494,11 +54,6 @@ FortressStructure::FortressStructure(ResourceLocation id)
     : Structure(std::move(id))
 {}
 
-FortressStructure::FortressStructure(ResourceLocation id, const Config& config)
-    : Structure(std::move(id))
-    , m_config(config)
-{}
-
 const biome::BiomeTag* FortressStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_FORTRESS();
@@ -509,61 +64,53 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
 {
     auto start = makeStructureStart(chunkX, chunkZ);
 
-    // 计算起始位置
-    i32 startX = chunkX * world::CHUNK_WIDTH + 2;
-    i32 startZ = chunkZ * world::CHUNK_WIDTH + 2;
-
-    // Y 坐标在配置范围内随机选择
-    i32 startY = m_config.minY + rng.nextInt(m_config.maxY - m_config.minY);
-
-    BlockPos startPos(startX, startY, startZ);
-
-    // 生物群系校验落在候选生成点（区块最小角、Y=64）。下界要塞自身没有额外门槛，
-    // 群系过滤全部交给结构定义里的 biomeTag。
-    if (!isValidBiomeAt(generator, BlockPos(chunkX * world::CHUNK_WIDTH, 64, chunkZ * world::CHUNK_WIDTH))) {
+    // 原版 `NetherFortressStructure.findGenerationPoint`：候选生成点固定为
+    // (区块最小角, MAGIC_START_Y=64, 区块最小角)，群系校验就落在这个点上。
+    const i32 chunkMinX = chunkX * world::CHUNK_WIDTH;
+    const i32 chunkMinZ = chunkZ * world::CHUNK_WIDTH;
+    if (!isValidBiomeAt(generator, BlockPos(chunkMinX, nether_fortress::MAGIC_START_Y, chunkMinZ))) {
         return start;
     }
 
-    // 使用 Jigsaw 系统生成要塞
-    ResourceLocation startPoolLocation("minecraft", "nether_fortress/start");
-    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
-    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(startPoolLocation);
+    // 起始片段在区块内 (minX+2, minZ+2)，水平朝向由一次 nextInt(4) 抽出。
+    auto startPiece = std::make_unique<nether_fortress::StartPiece>(rng, chunkMinX + 2, chunkMinZ + 2);
+    nether_fortress::StartPiece* startPtr = startPiece.get();
+    start->addPiece(std::move(startPiece));
 
-    if (startPool && !startPool->isEmpty()) {
-        // 使用 Jigsaw 系统组装
-        // TODO: 要塞的 project_start_to_heightmap / use_expansion_hack 尚未接入，暂按 false 传递。
-        auto assembled = jigsaw::JigsawAssembler::assemble(patternRegistry,
-            *startPool,
-            10,
-            BlockPos(startPos.x, 0, startPos.z),
-            startPos.y,
-            false,
-            false,
-            rng,
-            generator,
-            nullptr,
-            std::nullopt,
-            nullptr,
-            nullptr,
-            static_cast<i64>(generator.seed()));
+    nether_fortress::PieceAccessor accessor{start->pieces(), startPtr->pendingChildren()};
 
-        // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
-        for (auto& placed : assembled.pieces) {
-            if (placed.piece && !placed.piece->isEmpty()) {
-                start->addPiece(std::make_unique<FortressPlacedPieceAdapter>(std::move(placed)));
-            }
-        }
-    } else {
-        // 回退：创建简单的要塞结构片段
-        auto piece = std::make_unique<FortressFallbackPiece>(startPos);
-        start->addPiece(std::move(piece));
+    // 起始片段先直接展开一次；之后按「随机挑一个待展开分支 → 展开」的队列循环推进。
+    // `nextInt(pending.size())` 即使 size 为 1 也会推进随机流，不能跳过。
+    startPtr->addChildren(*startPtr, accessor, rng);
+    auto& pending = startPtr->pendingChildren();
+    while (!pending.empty()) {
+        const i32 pick = rng.nextInt(static_cast<i32>(pending.size()));
+        MC_ASSERT_RELEASE(pick >= 0 && static_cast<size_t>(pick) < pending.size());
+        StructurePiece* current = pending[static_cast<size_t>(pick)];
+        pending.erase(pending.begin() + pick);
+        static_cast<nether_fortress::NetherBridgePiece*>(current)->addChildren(*startPtr, accessor, rng);
+    }
+
+    // 原版 `StructurePiecesBuilder.moveInsideHeights(random, 48, 70)`：把整座要塞平移进
+    // [48, 70] 这段高度区间；只有剩余空间为正时才消耗一次 nextInt。
+    i32 actualMinY = std::numeric_limits<i32>::max();
+    i32 actualMaxY = std::numeric_limits<i32>::min();
+    for (const auto& piece : start->pieces()) {
+        const StructureBoundingBox box = piece->getBoundingBox();
+        actualMinY = std::min(actualMinY, box.minY());
+        actualMaxY = std::max(actualMaxY, box.maxY());
+    }
+    const i32 spare =
+        (nether_fortress::HEIGHT_RANGE_MAX - nether_fortress::HEIGHT_RANGE_MIN + 1) - (actualMaxY - actualMinY + 1);
+    const i32 targetMinY =
+        spare > 0 ? nether_fortress::HEIGHT_RANGE_MIN + rng.nextInt(spare) : nether_fortress::HEIGHT_RANGE_MIN;
+    const i32 offsetY = targetMinY - actualMinY;
+    for (auto& piece : start->pieces()) {
+        piece->offset(0, offsetY, 0);
     }
 
     start->recalculateStructureSize();
     return start;
 }
 
-} // namespace structure
-} // namespace gen
-} // namespace world
-} // namespace mc
+} // namespace mc::world::gen::structure

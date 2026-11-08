@@ -81,10 +81,14 @@ public:
     }
 
 private:
+    /// 载入模板并按旋转展开包围盒（构造期调用一次，缺模板时由 generate 补一次）。
     void _loadTemplate();
 
+    /// 用模板真实尺寸 + 旋转重算包围盒（对应原版 `StructureTemplate.getBoundingBox`）。
+    void _updateBoundingBox();
+
     std::string m_templateName;
-    Rotation m_rotation;
+    BlockPos m_templatePosition;
     feature::template_::TemplateManager* m_templateManager = nullptr;
     const feature::template_::Template* m_template = nullptr;
     BlockPos m_size;

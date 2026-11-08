@@ -212,6 +212,7 @@ add_library(mc_gen OBJECT
     world/gen/structure/structures/ShipwreckStructure.cpp
     world/gen/structure/structures/OceanRuinStructure.cpp
     world/gen/structure/structures/FortressStructure.cpp
+    world/gen/structure/structures/NetherFortressPieces.cpp
     world/gen/structure/structures/IglooStructure.cpp
     world/gen/structure/structures/SwampHutStructure.cpp
     world/gen/structure/structures/NetherFossilStructure.cpp

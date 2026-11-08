@@ -59,20 +59,27 @@ const LINE_BREAK = new RegExp(`${String.fromCharCode(92)}r?${String.fromCharCode
 /** 候选区块表文件名：由 oracle 按放置规则导出（每个结构集真实命中的区块）。 */
 const CANDIDATES_FILE_PREFIX = "structure_start_single_candidates_";
 
-/** 参与的能力：结构集 id → 该集合里要单独生成的结构 id。 */
+/**
+ * 参与的能力：结构集 id → 该集合里要单独生成的结构 id。
+ *
+ * 维度逐项给出：候选表把三个维度混在一个文件里，同一个结构集在不同维度下都可能有
+ * 落点（下界化石只在下界），按维度过滤才能把输入喂给正确的世界。
+ */
 const FEATURES = [
-  { structureSet: "minecraft:swamp_huts", structure: "minecraft:swamp_hut" },
-  { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck" },
-  { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_cold" },
-  { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_warm" },
-  { structureSet: "minecraft:woodland_mansions", structure: "minecraft:mansion" },
-  { structureSet: "minecraft:igloos", structure: "minecraft:igloo" },
-  { structureSet: "minecraft:trial_chambers", structure: "minecraft:trial_chambers" },
-  { structureSet: "minecraft:ancient_cities", structure: "minecraft:ancient_city" },
-  { structureSet: "minecraft:villages", structure: "minecraft:village_plains" },
-  { structureSet: "minecraft:pillager_outposts", structure: "minecraft:pillager_outpost" },
-  { structureSet: "minecraft:mineshafts", structure: "minecraft:mineshaft" },
-  { structureSet: "minecraft:strongholds", structure: "minecraft:stronghold" },
+  { structureSet: "minecraft:swamp_huts", structure: "minecraft:swamp_hut", dimension: "overworld" },
+  { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck", dimension: "overworld" },
+  { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_cold", dimension: "overworld" },
+  { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_warm", dimension: "overworld" },
+  { structureSet: "minecraft:woodland_mansions", structure: "minecraft:mansion", dimension: "overworld" },
+  { structureSet: "minecraft:igloos", structure: "minecraft:igloo", dimension: "overworld" },
+  { structureSet: "minecraft:trial_chambers", structure: "minecraft:trial_chambers", dimension: "overworld" },
+  { structureSet: "minecraft:ancient_cities", structure: "minecraft:ancient_city", dimension: "overworld" },
+  { structureSet: "minecraft:villages", structure: "minecraft:village_plains", dimension: "overworld" },
+  { structureSet: "minecraft:pillager_outposts", structure: "minecraft:pillager_outpost", dimension: "overworld" },
+  { structureSet: "minecraft:mineshafts", structure: "minecraft:mineshaft", dimension: "overworld" },
+  { structureSet: "minecraft:strongholds", structure: "minecraft:stronghold", dimension: "overworld" },
+  { structureSet: "minecraft:nether_fossils", structure: "minecraft:nether_fossil", dimension: "the_nether" },
+  { structureSet: "minecraft:nether_complexes", structure: "minecraft:fortress", dimension: "the_nether" },
 ] as const;
 
 /** 每个结构取多少个落点。 */
@@ -121,7 +128,7 @@ function buildUnits(readCandidates: (structureSet: string) => string[]): Sample[
     // `--only` 过滤，永远混在文件里，必须按第 5 列把行分回各自的集合。
     const rows = readCandidates(feature.structureSet)
       .map((line) => line.split(/\s+/))
-      .filter(([dimension, , , , setId]) => dimension === "overworld" && setId === feature.structureSet);
+      .filter(([dimension, , , , setId]) => dimension === feature.dimension && setId === feature.structureSet);
     // 均匀抽样：候选表按网格扫描顺序排列，只取前 N 个会集中在同一条带里。
     const picked = Array.from({ length: Math.min(PER_STRUCTURE, rows.length) }, (_, index) => {
       return rows[Math.floor((index * rows.length) / Math.max(PER_STRUCTURE, 1))];
@@ -136,7 +143,7 @@ function buildUnits(readCandidates: (structureSet: string) => string[]): Sample[
       result.push({
         unit: `${feature.structure}/${SEED}/${chunkX}/${chunkZ}`,
         input: {
-          dimension: "overworld",
+          dimension: feature.dimension,
           seed: Number(seedText),
           chunkX,
           chunkZ,
