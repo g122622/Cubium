@@ -79,10 +79,12 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/property/Properties.hpp" // BlockStateProperties::OCCUPIED / HORIZONTAL_FACING
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/sound/BlockSoundType.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/functional/BedBlock.hpp" // BedBlock::findStandUpPosition（stopSleeping 起身落点）
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
@@ -1322,15 +1324,69 @@ bool LivingEntity::isSleeping() const
 
 void LivingEntity::stopSleeping()
 {
-    // 对齐 vanilla LivingEntity.stopSleeping 的状态机部分：清除睡眠位置并回到站立姿态。
-    // 原版还会把床方块的 OCCUPIED 置回 false 并计算起身位置；Cubium 的床占用状态由
-    // Player/ServerPlayer 的睡眠流程维护，基类仅处理通用状态。
-    // TODO(bed-sleep): 床方块 OCCUPIED 复位与 findStandUpPosition 起身落点随床方块体系落地后
-    //   在此补全（vanilla LivingEntity.stopSleeping:3654-3671），并供非玩家实体复用。
+    // 清除睡眠位置并回到站立姿态。
+    const entity::OptionalBlockPosValue sleepingPos =
+        m_dataManager.get<entity::OptionalBlockPosValue>(DATA_SLEEPING_POS_PARAM);
     m_dataManager.set(DATA_SLEEPING_POS_PARAM, entity::OptionalBlockPosValue{false, {}});
     if (pose() == EntityPose::Sleeping) {
         setPose(EntityPose::Standing);
     }
+
+    // 床侧收尾：复位 OCCUPIED 并把实体移到床边的安全落脚点。
+    // Player 重写本方法自行处理（它有独立的 m_isSleeping/m_sleepingPosition 状态与
+    // ServerPlayer 的睡眠协调），因此能走到这里的是非玩家实体。
+    if (!sleepingPos.present || m_world == nullptr) {
+        return;
+    }
+
+    const BlockPos bedPos(sleepingPos.pos.x, sleepingPos.pos.y, sleepingPos.pos.z);
+    const BlockState* bedState = m_world->getBlockState(bedPos);
+
+    // 先取出所需属性值再写方块，避免 setBlockState 后 bedState 悬挂。
+    const bool hasOccupied = bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED());
+    const bool hasFacing = bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING());
+    const Direction bedFacing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
+
+    if (hasOccupied) {
+        const BlockState freeBed = bedState->with(BlockStateProperties::OCCUPIED(), false);
+        m_world->setBlockState(bedPos, &freeBed, world::BlockUpdateFlags::UPDATE_ALL);
+    }
+
+    // 没有朝向（方块已被替换/破坏）时退回床头正上方，保证实体不会留在床里。
+    if (!hasFacing) {
+        const BlockPos aboveBed = bedPos.up();
+        setPosition(aboveBed.x + 0.5, aboveBed.y + 0.1, aboveBed.z + 0.5);
+        return;
+    }
+
+    const auto standUp = blocks::BedBlock::findStandUpPosition(*m_world,
+        bedPos,
+        bedFacing,
+        yaw(),
+        static_cast<f32>(width()),
+        static_cast<f32>(height()),
+        false,
+        isImmuneToFire());
+    if (!standUp.has_value()) {
+        // 床边找不到落脚点：留在原地。调用方（如 AI goal）会重新规划，强行传送可能卡进方块。
+        spdlog::warn(
+            "[entity] stopSleeping: no stand-up position near bed at ({}, {}, {})", bedPos.x, bedPos.y, bedPos.z);
+        return;
+    }
+
+    // 面向床中心：由落脚点指向床底中心的水平方向换算成 yaw。
+    const Vector3& wakePos = *standUp;
+    const Vector3d bedCenter(bedPos.x + 0.5, bedPos.y, bedPos.z + 0.5);
+    Vector3d dirToBed = bedCenter - Vector3d(wakePos.x, wakePos.y, wakePos.z);
+    const f32 dirLen = std::sqrt(dirToBed.x * dirToBed.x + dirToBed.z * dirToBed.z);
+    if (dirLen > 0.001f) {
+        dirToBed.x /= dirLen;
+        dirToBed.z /= dirLen;
+        setRotation(
+            math::wrapDegrees(static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f), 0.0f);
+    }
+
+    setPosition(wakePos.x, wakePos.y, wakePos.z);
 }
 
 void LivingEntity::onKillCommand()
