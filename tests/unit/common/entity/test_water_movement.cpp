@@ -10,11 +10,11 @@
  * 不影响输入放大，导致附魔对生物完全无效。
  */
 
-#include "common/entity/core/CreatureEntity.hpp"
-#include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/attribute/AttributeInstance.hpp"
-#include "common/util/assert/AssertAll.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/attribute/AttributeInstance.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <gtest/gtest.h>
 
@@ -90,8 +90,7 @@ TEST(WaterMovementTest, DepthStriderIncreasesWaterInputSpeed)
     enchanted.attributes().setBaseValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 1.0);
     const f32 enchantedGain = _horizontalSpeedGainAfterTravel(enchanted);
 
-    EXPECT_GT(enchantedGain, plainGain * 2.0f)
-        << "depth strider must scale water input speed, not only reduce drag";
+    EXPECT_GT(enchantedGain, plainGain * 2.0f) << "depth strider must scale water input speed, not only reduce drag";
 }
 
 /**

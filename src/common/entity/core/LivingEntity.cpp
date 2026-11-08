@@ -770,28 +770,35 @@ void LivingEntity::_applyDeathProtectionEffects(const item::component::DeathProt
                 break;
             }
             case item::component::ConsumeEffectKind::TeleportRandomly: {
-                // 对齐 vanilla TeleportRandomlyConsumeEffect.apply 的 16 次尝试循环：
+                // 原版 TeleportRandomlyConsumeEffect.apply：最多 16 次尝试，
                 //   目标 = 当前位置 + (random - 0.5) * diameter（Y 钳到世界可建造范围），
-                //   乘坐中先下骑，再调 randomTeleport 落点搜索，成功即停并触发 TELEPORT 游戏事件。
-                // Entity::randomTeleport(range) 以目标为中心做安全落点搜索，等价 vanilla
-                // LivingEntity.randomTeleport(x, y, z, true) 的落点语义。
+                //   每个候选都要通过落点安全校验才传送，成功即停并触发 TELEPORT 游戏事件。
+                // 安全校验直接复用 Entity::findSafeTeleportPosition（碰撞箱 + 液体），
+                // 它内部已经包含 isSafeTeleportPosition 的逐项检查。
                 if (m_world == nullptr || m_world->isClientSide()) {
                     break;
                 }
+
+                constexpr i32 MAX_TELEPORT_ATTEMPTS = 16;
                 const f64 minY = static_cast<f64>(m_world->getMinBuildHeight());
-                for (i32 attempt = 0; attempt < 16; ++attempt) {
+                const f64 maxY = static_cast<f64>(m_world->getMaxBuildHeight() - 1);
+                for (i32 attempt = 0; attempt < MAX_TELEPORT_ATTEMPTS; ++attempt) {
                     const f64 targetX = x() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
-                    const f64 targetY = std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter,
-                        minY,
-                        static_cast<f64>(m_world->getMaxBuildHeight() - 1));
+                    const f64 targetY =
+                        std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter, minY, maxY);
                     const f64 targetZ = z() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
+
+                    // 落点不安全就换下一个候选，16 次全失败则原地不动。
+                    const auto safe = findSafeTeleportPosition(targetX, targetY, targetZ, true);
+                    if (!safe.has_value()) {
+                        continue;
+                    }
+
                     if (isRiding()) {
                         stopRiding();
                     }
                     const Vector3 previous = position();
-                    // TODO(consume-effect): Cubium 尚无 vanilla RandomTeleport 的安全落点搜索
-                    //   （逐候选做碰撞/液体校验），此处直接落到目标坐标；接入落点搜索后改为校验通过才传送。
-                    setPosition(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
+                    setPosition(static_cast<f32>(safe->x), static_cast<f32>(safe->y), static_cast<f32>(safe->z));
                     gameEvent(gameevent::GameEvents::TELEPORT, BlockPos(previous));
                     break;
                 }
