@@ -82,32 +82,10 @@ const biome::BiomeTag* StrongholdStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_STRONGHOLD();
 }
 
-bool StrongholdStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(generator);
-    MC_UNUSED(rng);
-    /**
-     * @brief 检查指定区块是否命中预计算的要塞起点。
-     *
-     * TODO 当前实现仍未完成 Java 版 biome locate 校正，但至少必须保证：
-     * 要塞不会在任意区块都返回 true，而是只在 65 个预计算环形位置上生成。
-     */
-    const i64 worldSeed = static_cast<i64>(world.seed());
-    for (i32 index = 0; index < 65; ++index) {
-        const auto [strongholdChunkX, strongholdChunkZ] = calculateStrongholdPos(index, worldSeed);
-        if (strongholdChunkX == chunkX && strongholdChunkZ == chunkZ) {
-            return true;
-        }
-    }
-    return false;
-}
-
 std::unique_ptr<StructureStart> StrongholdStructure::generate(
     IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
     // 起始点取区块内第 2 格（`chunkPos.getBlockX(2)`），不是区块中心。
     const i32 startX = chunkX * world::CHUNK_WIDTH + 2;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH + 2;
@@ -124,6 +102,13 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
     //
     // 终止条件同样来自原版：构件集非空且已经生成了传送门房间。
     const i64 worldSeed = static_cast<i64>(generator.seed());
+    // 生物群系校验：原版候选生成点是 `chunkPos().getWorldPosition()`（区块最小角、
+    // 维度最低层），不是构件实际使用的 +2 起点。
+    if (!isValidBiomeAt(
+            generator, BlockPos(chunkX * world::CHUNK_WIDTH, generator.getMinY(), chunkZ * world::CHUNK_WIDTH))) {
+        return start;
+    }
+
     // 原版起始楼梯的包围盒固定从 MAGIC_START_Y=64 起算，与配置里的 minY 无关；
     // 最终的竖直位置由结尾的 moveBelowSeaLevel 决定。
     const BlockPos startPos(startX, StrongholdStartStairs::MAGIC_START_Y, startZ);
@@ -157,7 +142,7 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
         const i32 minY = ::mc::world::MIN_BUILD_HEIGHT;
         constexpr i32 kBelowSeaLevelMargin = 10;
 
-        const StructureBoundingBox overall = start->getBoundingBox();
+        const StructureBoundingBox overall = start->piecesBoundingBox();
 
         const i32 topLimit = seaLevel - kBelowSeaLevelMargin;
         i32 topY = (overall.maxY() - overall.minY() + 1) + minY + 1;

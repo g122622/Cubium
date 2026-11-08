@@ -158,6 +158,13 @@ public:
 
     PlacementSettings& setCenterOffset(const BlockPos& offset);
 
+    [[nodiscard]] const BlockPos& getRotationPivot() const
+    {
+        return m_rotationPivot;
+    }
+
+    PlacementSettings& setRotationPivot(const BlockPos& pivot);
+
     // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
     //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
     [[nodiscard]] i32 getBlockUpdateFlags() const
@@ -226,6 +233,7 @@ private:
     bool m_keepLiquids = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
+    BlockPos m_rotationPivot = BlockPos(0, 0, 0);
     i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;   // 可选的世界读取器
@@ -714,6 +722,15 @@ public:
      * @return 变换后的放置原点
      */
     [[nodiscard]] BlockPos getZeroPositionWithTransform(const BlockPos& pos, Mirror mirror, Rotation rotation) const;
+
+    /**
+     * @brief 按显式尺寸计算放置原点（对应原版 `StructureTemplate.getZeroPositionWithTransform` 静态版）
+     *
+     * 尺寸以「方块数」给出，内部各减 1 后按镜像/旋转选择偏移分量。用于调用方手里只有
+     * 模板尺寸、没有模板实例的场景（如林地府邸按 7x7 的房间足迹推算放置点）。
+     */
+    [[nodiscard]] static BlockPos getZeroPositionWithTransform(
+        const BlockPos& pos, Mirror mirror, Rotation rotation, i32 sizeX, i32 sizeZ);
 
     /**
      * @brief 变换实体精确位置（f64）

@@ -102,6 +102,7 @@ import { aabbOpsInput } from "./aabb_ops.ts";
 import { vec3MathInput } from "./vec3_math.ts";
 import { blockposCodecInput } from "./blockpos_codec.ts";
 import { axisPlaneInput } from "./axis_plane.ts";
+import { mansionGridDeclaration } from "./mansion_grid.ts";
 import { mthLerpInput } from "./mth_lerp.ts";
 import { mthBitInput } from "./mth_bit.ts";
 import { mthRotInput } from "./mth_rot.ts";
@@ -240,6 +241,9 @@ import { strongholdRoomCrossingDeclaration } from "./stronghold_room_crossing.ts
 import { strongholdSmallDoorDeclaration } from "./stronghold_small_door.ts";
 import { endCityPiecesDeclaration } from "./end_city_pieces.ts";
 import { jigsawJointOrderDeclaration } from "./jigsaw_joint_order.ts";
+import { beardifierDensityDeclaration } from "./beardifier_density.ts";
+import { biomeSourceSampleDeclaration } from "./biome_source_sample.ts";
+import { structureStartSingleDeclaration } from "./structure_start_single.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
 import { villagerTradesDeclaration } from "./villager_trades.ts";
 import { textEncodeDeclaration } from "./text_encode.ts";
@@ -700,6 +704,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     { name: "item_components", probe: "item_components", oracle: "ItemComponentsOracle", key: "item", units: { kind: "listing" },
         input: (unit) => ({ item: unit }), oracleMissing: itemsKnownMissing },
     structureDensityDeclaration(),
+    mansionGridDeclaration(),
+    beardifierDensityDeclaration(),
+    biomeSourceSampleDeclaration(),
+    structureStartSingleDeclaration(),
     structureStartsDeclaration(),
     mineshaftPiecesDeclaration(),
     strongholdPiecesDeclaration(),

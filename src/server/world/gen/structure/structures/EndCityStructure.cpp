@@ -108,26 +108,10 @@ const biome::BiomeTag* EndCityStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_END_CITY();
 }
 
-bool EndCityStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    if (!isValidBiome(biome)) {
-        return false;
-    }
-    // 末地城只在高度 >= 60 的位置生成。这里的采样朝向只影响采样列，不参与世界生成
-    // 随机流（原版 canGenerate 也不消耗世界随机数）。
-    return _getYPosition(chunkX, chunkZ, feature::template_::Rotation::None, generator) >= 60;
-}
-
 std::unique_ptr<StructureStart> EndCityStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 顺序不能变：原版 findGenerationPoint 先抽旋转，再用这个旋转去取 5x5 四角的最低
     // 高度，最后才判 Y < 60。此前这里是先算 Y（用的还是另一个自造随机源）、再抽旋转，
@@ -142,6 +126,11 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     const i32 y = _getYPosition(chunkX, chunkZ, rotation, generator);
 
     if (y < 60) {
+        return start;
+    }
+
+    // 生物群系校验落在候选生成点（区块内偏移 7 格处的五乘五最低地表）上；不匹配即返回空起点。
+    if (!isValidBiomeAt(generator, BlockPos(x, y, z))) {
         return start;
     }
 

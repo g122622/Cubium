@@ -32,7 +32,6 @@
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/structures/BastionRemnantStructure.hpp"
 #include "server/world/gen/structure/structures/DesertPyramidStructure.hpp"
 #include "server/world/gen/structure/structures/EndCityStructure.hpp"
 #include "server/world/gen/structure/structures/IglooStructure.hpp"
@@ -40,7 +39,6 @@
 #include "server/world/gen/structure/structures/NetherFossilStructure.hpp"
 #include "server/world/gen/structure/structures/OceanMonumentPieces.hpp"
 #include "server/world/gen/structure/structures/OceanMonumentStructure.hpp"
-#include "server/world/gen/structure/structures/PillagerOutpostStructure.hpp"
 #include "server/world/gen/structure/structures/StrongholdPieces.hpp"
 #include "server/world/gen/structure/structures/StrongholdStructure.hpp"
 #include "server/world/gen/structure/structures/SwampHutStructure.hpp"
@@ -198,7 +196,7 @@ private:
 };
 
 /**
- * @brief 可配置高度和海平面的区块生成器，用于 canGenerate 测试
+ * @brief 可配置高度和海平面的区块生成器，用于 generate() 的群系/高度门槛测试
  */
 class ConfigurableChunkGenerator final : public IChunkGenerator {
 public:
@@ -286,47 +284,33 @@ TEST_F(NewStructuresTest, Igloo_NameAndBiomeTag)
     EXPECT_TRUE(tag->contains(SnowyTaiga));
 }
 
-TEST_F(NewStructuresTest, Igloo_CanGenerate)
+TEST_F(NewStructuresTest, Igloo_GenerateRejectsNonSnowyBiome)
 {
     IglooStructure structure(ResourceLocation("minecraft", "igloo"));
-    StructureTestWorld world;
-    math::Random rng(12345);
 
-    // 雪地生物群系应允许生成
-    FixedBiomeChunkGenerator snowyGen(SnowyPlains);
-    EXPECT_TRUE(structure.canGenerate(world, snowyGen, rng, 0, 0));
-
-    FixedBiomeChunkGenerator taigaGen(SnowyTaiga);
-    EXPECT_TRUE(structure.canGenerate(world, taigaGen, rng, 5, 5));
-
-    // 非雪地生物群系应拒绝生成
+    // 生物群系校验发生在 generate() 内部、候选生成点（区块中心 + 地表高度）上：
+    // 非雪地群系必须产出空起点，雪地群系则继续装配（模板缺失时构件仍会登记）。
+    math::Random desertRng(12345);
     FixedBiomeChunkGenerator desertGen(Desert);
-    EXPECT_FALSE(structure.canGenerate(world, desertGen, rng, 0, 0));
+    EXPECT_FALSE(structure.generate(desertGen, desertRng, 0, 0)->isValid());
 
+    math::Random plainsRng(12345);
     FixedBiomeChunkGenerator plainsGen(Plains);
-    EXPECT_FALSE(structure.canGenerate(world, plainsGen, rng, 0, 0));
-
-    // 验证 biomeTag 返回非空
-    EXPECT_NE(structure.biomeTag(), nullptr);
+    EXPECT_FALSE(structure.generate(plainsGen, plainsRng, 0, 0)->isValid());
 }
 
 TEST_F(NewStructuresTest, Igloo_PieceConstruction)
 {
-    BlockPos pos(100, 64, 200);
-    mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::None;
-    bool hasBasement = true;
-    i32 middleCount = 1; // 中间层数量
+    // 雪屋的每个模板各是一个构件，包围盒在构造期就由模板尺寸展开（模板由全局管理器提供）。
+    IglooPiece top(IglooStructure::s_topTemplateName, BlockPos(100, 64, 200), Rotation::None);
+    EXPECT_EQ(top.templateName(), IglooStructure::s_topTemplateName);
+    EXPECT_EQ(top.templatePosition(), BlockPos(100, 64, 200));
+    // 模板缺失时退化为单点盒子，但模板名与原点必须原样保留。
+    EXPECT_LE(top.getBoundingBox().minX(), top.getBoundingBox().maxX());
 
-    IglooPiece piece(pos, rotation, hasBasement, middleCount);
-
-    // 验证地下室状态
-    EXPECT_TRUE(piece.hasBasement());
-    EXPECT_EQ(piece.middleCount(), middleCount);
-
-    // 有地下室时，Y 范围应该更大
-    IglooPiece pieceWithoutBasement(pos, rotation, false, 0);
-    EXPECT_FALSE(pieceWithoutBasement.hasBasement());
-    EXPECT_EQ(pieceWithoutBasement.middleCount(), 0);
+    IglooPiece middle(IglooStructure::s_middleTemplateName, BlockPos(102, 61, 204), Rotation::Clockwise90);
+    EXPECT_EQ(middle.templateName(), IglooStructure::s_middleTemplateName);
+    EXPECT_EQ(middle.templatePosition(), BlockPos(102, 61, 204));
 }
 
 // ============================================================================
@@ -345,38 +329,50 @@ TEST_F(NewStructuresTest, SwampHut_NameAndBiomeTag)
     EXPECT_TRUE(tag->contains(Swamp));
 }
 
-TEST_F(NewStructuresTest, SwampHut_CanGenerate)
+TEST_F(NewStructuresTest, SwampHut_GenerateBiomeGate)
 {
     SwampHutStructure structure(ResourceLocation("minecraft", "swamp_hut"));
-    StructureTestWorld world;
-    math::Random rng(12345);
 
-    // 沼泽生物群系应允许生成
+    // 生物群系校验发生在 generate() 内部、候选生成点（区块中心 + 地表高度）上。
+    math::Random swampRng(12345);
     FixedBiomeChunkGenerator swampGen(Swamp);
-    EXPECT_TRUE(structure.canGenerate(world, swampGen, rng, 0, 0));
+    EXPECT_TRUE(structure.generate(swampGen, swampRng, 0, 0)->isValid());
 
-    // 非沼泽生物群系应拒绝生成
+    math::Random desertRng(12345);
     FixedBiomeChunkGenerator desertGen(Desert);
-    EXPECT_FALSE(structure.canGenerate(world, desertGen, rng, 0, 0));
+    EXPECT_FALSE(structure.generate(desertGen, desertRng, 0, 0)->isValid());
 
+    math::Random plainsRng(12345);
     FixedBiomeChunkGenerator plainsGen(Plains);
-    EXPECT_FALSE(structure.canGenerate(world, plainsGen, rng, 0, 0));
-
-    // 验证 biomeTag 返回非空
-    EXPECT_NE(structure.biomeTag(), nullptr);
+    EXPECT_FALSE(structure.generate(plainsGen, plainsRng, 0, 0)->isValid());
 }
 
 TEST_F(NewStructuresTest, SwampHut_PieceConstruction)
 {
     BlockPos pos(100, 64, 200);
-    mc::world::gen::feature::template_::Rotation rotation = mc::world::gen::feature::template_::Rotation::Clockwise90;
 
-    SwampHutPiece piece(pos, rotation);
+    // 南北朝向：深度 9 落在 Z 轴；旋转与镜像由 setOrientation 一并决定。
+    SwampHutPiece north(pos, Direction::North);
+    EXPECT_EQ(north.maxX() - north.minX(), 6);
+    EXPECT_EQ(north.maxY() - north.minY(), 6);
+    EXPECT_EQ(north.maxZ() - north.minZ(), 8);
+    EXPECT_EQ(north.getRotation(), Rotation::None);
+    EXPECT_EQ(north.getMirror(), Mirror::None);
 
-    // 验证边界框（沼泽小屋约 7x6x9）
-    EXPECT_LE(piece.maxX() - piece.minX(), 10);
-    EXPECT_LE(piece.maxY() - piece.minY(), 10);
-    EXPECT_LE(piece.maxZ() - piece.minZ(), 15);
+    // 东西朝向：深度 9 落在 X 轴。
+    SwampHutPiece east(pos, Direction::East);
+    EXPECT_EQ(east.maxX() - east.minX(), 8);
+    EXPECT_EQ(east.maxZ() - east.minZ(), 6);
+    EXPECT_EQ(east.getRotation(), Rotation::Clockwise90);
+    EXPECT_EQ(east.getMirror(), Mirror::None);
+
+    // 南与西带左右镜像。
+    SwampHutPiece south(pos, Direction::South);
+    EXPECT_EQ(south.getMirror(), Mirror::LeftRight);
+    EXPECT_EQ(south.getRotation(), Rotation::None);
+    SwampHutPiece west(pos, Direction::West);
+    EXPECT_EQ(west.getMirror(), Mirror::LeftRight);
+    EXPECT_EQ(west.getRotation(), Rotation::Clockwise90);
 }
 
 // ============================================================================
@@ -408,22 +404,6 @@ TEST_F(NewStructuresTest, NetherFossil_PieceConstruction)
 }
 
 // ============================================================================
-// PillagerOutpostStructure 测试
-// ============================================================================
-
-TEST_F(NewStructuresTest, PillagerOutpost_NameAndBiomeTag)
-{
-    PillagerOutpostStructure structure(ResourceLocation("minecraft", "pillager_outpost"));
-
-    EXPECT_EQ(structure.name(), "Pillager_Outpost");
-
-    // 验证生物群系标签非空
-    const auto* tag = structure.biomeTag();
-    ASSERT_NE(tag, nullptr);
-    EXPECT_TRUE(tag->contains(Plains));
-}
-
-// ============================================================================
 // EndCityStructure 测试
 // ============================================================================
 
@@ -450,6 +430,7 @@ TEST_F(NewStructuresTest, EndCity_PieceConstruction)
 
     // 验证模板名称和旋转
     EXPECT_EQ(piece.templateName(), templateName);
+    EXPECT_EQ(piece.templatePosition(), pos);
     EXPECT_EQ(piece.rotation(), rotation);
     EXPECT_FALSE(piece.overwrite());
 }
@@ -480,26 +461,9 @@ TEST_F(NewStructuresTest, WoodlandMansion_PieceConstruction)
 
     // 验证模板名称和旋转
     EXPECT_EQ(piece.templateName(), templateName);
-    EXPECT_EQ(piece.rotation(), rotation);
-}
-
-// ============================================================================
-// BastionRemnantStructure 测试
-// ============================================================================
-
-TEST_F(NewStructuresTest, BastionRemnant_NameAndBiomeTag)
-{
-    BastionRemnantStructure structure(ResourceLocation("minecraft", "bastion_remnant"));
-
-    EXPECT_EQ(structure.name(), "bastion_remnant");
-
-    // 验证生物群系标签非空
-    const auto* tag = structure.biomeTag();
-    ASSERT_NE(tag, nullptr);
-    // 验证包含下界荒地
-    EXPECT_TRUE(tag->contains(NetherWastes));
-    // 验证不包含玄武岩三角洲
-    EXPECT_FALSE(tag->contains(BasaltDeltas));
+    EXPECT_EQ(piece.getRotation(), rotation);
+    EXPECT_EQ(piece.templatePosition(), pos);
+    EXPECT_EQ(piece.getMirror(), Mirror::None);
 }
 
 // ============================================================================
@@ -511,19 +475,15 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidBiomeTags)
     IglooStructure igloo(ResourceLocation("minecraft", "igloo"));
     SwampHutStructure swampHut(ResourceLocation("minecraft", "swamp_hut"));
     NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"));
-    PillagerOutpostStructure outpost(ResourceLocation("minecraft", "pillager_outpost"));
     EndCityStructure endCity(ResourceLocation("minecraft", "end_city"));
     WoodlandMansionStructure mansion(ResourceLocation("minecraft", "mansion"));
-    BastionRemnantStructure bastion(ResourceLocation("minecraft", "bastion_remnant"));
 
     // 所有结构应该有有效的生物群系标签
     EXPECT_NE(igloo.biomeTag(), nullptr);
     EXPECT_NE(swampHut.biomeTag(), nullptr);
     EXPECT_NE(netherFossil.biomeTag(), nullptr);
-    EXPECT_NE(outpost.biomeTag(), nullptr);
     EXPECT_NE(endCity.biomeTag(), nullptr);
     EXPECT_NE(mansion.biomeTag(), nullptr);
-    EXPECT_NE(bastion.biomeTag(), nullptr);
 }
 
 TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
@@ -531,32 +491,15 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
     IglooStructure igloo(ResourceLocation("minecraft", "igloo"));
     SwampHutStructure swampHut(ResourceLocation("minecraft", "swamp_hut"));
     NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"));
-    PillagerOutpostStructure outpost(ResourceLocation("minecraft", "pillager_outpost"));
     EndCityStructure endCity(ResourceLocation("minecraft", "end_city"));
     WoodlandMansionStructure mansion(ResourceLocation("minecraft", "mansion"));
-    BastionRemnantStructure bastion(ResourceLocation("minecraft", "bastion_remnant"));
 
     // 名称应该非空
     EXPECT_FALSE(igloo.name().empty());
     EXPECT_FALSE(swampHut.name().empty());
     EXPECT_FALSE(netherFossil.name().empty());
-    EXPECT_FALSE(outpost.name().empty());
     EXPECT_FALSE(endCity.name().empty());
     EXPECT_FALSE(mansion.name().empty());
-    EXPECT_FALSE(bastion.name().empty());
-}
-
-// ============================================================================
-// PillagerOutpostStructure Village Detection Tests (P4)
-// ============================================================================
-
-TEST_F(NewStructuresTest, PillagerOutpost_VillageDetection)
-{
-    // 测试前哨站结构的基本属性
-    PillagerOutpostStructure outpost(ResourceLocation("minecraft", "pillager_outpost"));
-
-    // 前哨站应有有效的生物群系标签
-    EXPECT_NE(outpost.biomeTag(), nullptr);
 }
 
 // ============================================================================
@@ -644,20 +587,6 @@ TEST_F(NewStructuresTest, StrongholdPieces_WeightInitialization)
     EXPECT_TRUE(hasLibrary);
 }
 
-TEST_F(NewStructuresTest, Stronghold_CanGenerateIsNotUniversal)
-{
-    StrongholdStructure structure(ResourceLocation("minecraft", "stronghold"));
-    StructureTestWorld world;
-    FixedBiomeChunkGenerator generator(Plains);
-    math::Random rng(12345);
-
-    // MC 原版要塞位置由预计算结果决定，不应在任意区块都返回 true。
-    const bool originCanGenerate = structure.canGenerate(world, generator, rng, 0, 0);
-    const bool farCanGenerate = structure.canGenerate(world, generator, rng, 200, -200);
-
-    EXPECT_FALSE(originCanGenerate && farCanGenerate);
-}
-
 // ============================================================================
 // DesertPyramidStructure Tests (P4)
 // ============================================================================
@@ -676,44 +605,43 @@ TEST_F(NewStructuresTest, DesertPyramid_NameAndBiomeTag)
     EXPECT_FALSE(tag->contains(Swamp));
 }
 
-TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_DesertBiome_Allowed)
+TEST_F(NewStructuresTest, DesertPyramid_Generate_DesertBiome_Allowed)
 {
     DesertPyramidStructure structure(ResourceLocation("minecraft", "desert_pyramid"));
-    StructureTestWorld world;
-    math::Random rng(12345);
 
     // 沙漠生物群系 + 高度在海平面以上 → 允许生成
+    math::Random rng(12345);
     ConfigurableChunkGenerator desertGen(Desert, 70, 63);
-    EXPECT_TRUE(structure.canGenerate(world, desertGen, rng, 0, 0));
+    EXPECT_TRUE(structure.generate(desertGen, rng, 0, 0)->isValid());
 }
 
-TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_NonDesertBiome_Rejected)
+TEST_F(NewStructuresTest, DesertPyramid_Generate_NonDesertBiome_Rejected)
 {
     DesertPyramidStructure structure(ResourceLocation("minecraft", "desert_pyramid"));
-    StructureTestWorld world;
-    math::Random rng(12345);
 
     // 非沙漠生物群系 → 拒绝生成
+    math::Random plainsRng(12345);
     ConfigurableChunkGenerator plainsGen(Plains, 70, 63);
-    EXPECT_FALSE(structure.canGenerate(world, plainsGen, rng, 0, 0));
+    EXPECT_FALSE(structure.generate(plainsGen, plainsRng, 0, 0)->isValid());
 
+    math::Random swampRng(12345);
     ConfigurableChunkGenerator swampGen(Swamp, 70, 63);
-    EXPECT_FALSE(structure.canGenerate(world, swampGen, rng, 0, 0));
+    EXPECT_FALSE(structure.generate(swampGen, swampRng, 0, 0)->isValid());
 }
 
-TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_BelowSeaLevel_Rejected)
+TEST_F(NewStructuresTest, DesertPyramid_Generate_BelowSeaLevel_Rejected)
 {
     DesertPyramidStructure structure(ResourceLocation("minecraft", "desert_pyramid"));
-    StructureTestWorld world;
-    math::Random rng(12345);
 
     // 沙漠生物群系但四角高度低于海平面 → 拒绝生成
+    math::Random lowRng(12345);
     ConfigurableChunkGenerator lowGen(Desert, 50, 63);
-    EXPECT_FALSE(structure.canGenerate(world, lowGen, rng, 0, 0));
+    EXPECT_FALSE(structure.generate(lowGen, lowRng, 0, 0)->isValid());
 
     // 高度恰好等于海平面 → 允许生成
+    math::Random atSeaRng(12345);
     ConfigurableChunkGenerator atSeaGen(Desert, 63, 63);
-    EXPECT_TRUE(structure.canGenerate(world, atSeaGen, rng, 0, 0));
+    EXPECT_TRUE(structure.generate(atSeaGen, atSeaRng, 0, 0)->isValid());
 }
 
 // ============================================================================

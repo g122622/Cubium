@@ -70,10 +70,25 @@ constexpr i32 VINE_DECORATION_COUNT = 20;
 // JungleTemplePiece
 // ============================================================================
 
-JungleTemplePiece::JungleTemplePiece(const BlockPos& pos)
-    : StructurePiece(StructurePieceTypes::JUNGLE_TEMPLE, pos.x, pos.y, pos.z, pos.x + 11, pos.y + 13, pos.z + 14)
+JungleTemplePiece::JungleTemplePiece(const BlockPos& pos, Direction direction)
+    : StructurePiece(StructurePieceTypes::JUNGLE_TEMPLE, pos.x, pos.y, pos.z, pos.x, pos.y, pos.z)
     , m_startPos(pos)
-{}
+{
+    // 原版 `ScatteredFeaturePiece` 用 `makeBoundingBox(x, y, z, direction, 12, 10, 15)`：
+    // 水平朝向沿 Z 时是 12x15 的脚印，沿 X 时展开成 15x12。包围盒必须按朝向展开，
+    // 否则起点盒的尺寸/位置与原版不一致（差分里表现为整座结构四周各小 12 格）。
+    const i32 width = TEMPLE_WIDTH;
+    const i32 height = TEMPLE_HEIGHT;
+    const i32 depth = TEMPLE_LENGTH;
+    const bool alongZ = direction == Direction::North || direction == Direction::South;
+    m_minY = pos.y;
+    m_maxX = pos.x + (alongZ ? width : depth) - 1;
+    m_maxY = pos.y + height - 1;
+    m_maxZ = pos.z + (alongZ ? depth : width) - 1;
+    setCoordBaseMode(direction);
+    // TODO: 下面 `_generateTemple` 的方块布局仍按 +X/+Z 展开、未应用朝向变换。
+    //       起点几何已与原版一致；方块朝向待重写布局时一并处理。
+}
 
 void JungleTemplePiece::generate(IWorldWriter& world,
     math::IRandom& rng,
@@ -584,35 +599,34 @@ const biome::BiomeTag* JungleTempleStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_JUNGLE_PYRAMID();
 }
 
-bool JungleTempleStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-    // 检查区块中心位置的生物群系是否属于丛林神庙可生成的生物群系
-    const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
-    return isValidBiome(biome);
-}
-
 std::unique_ptr<StructureStart> JungleTempleStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
-    // 计算起始位置
-    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-
-    // 获取地表高度
-    i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    if (startY < MIN_GENERATION_HEIGHT) {
-        startY = FALLBACK_HEIGHT;
+    // `SinglePieceStructure.findGenerationPoint` 的三步，顺序不可换：
+    //   1. 以区块最小角展开 12x15 方框取四角最低地表，低于海平面直接放弃；
+    //   2. 在候选生成点（区块中心 + 世界表面高度）校验生物群系；
+    //   3. `generatePieces` 只做一件事：抽一次水平朝向并建构件（原点 = 区块最小角、Y=64）。
+    const i32 minX = chunkX * CHUNK_WIDTH;
+    const i32 minZ = chunkZ * CHUNK_WIDTH;
+    const i32 lowest = std::min({generator.getHeight(minX, minZ, HeightmapType::WorldSurfaceWG),
+        generator.getHeight(minX + TEMPLE_WIDTH, minZ, HeightmapType::WorldSurfaceWG),
+        generator.getHeight(minX, minZ + TEMPLE_LENGTH, HeightmapType::WorldSurfaceWG),
+        generator.getHeight(minX + TEMPLE_WIDTH, minZ + TEMPLE_LENGTH, HeightmapType::WorldSurfaceWG)});
+    if (lowest < generator.seaLevel()) {
+        return start;
+    }
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::WorldSurfaceWG))) {
+        return start;
     }
 
-    BlockPos startPos(startX, startY, startZ);
+    // 原版 `Direction.Plane.HORIZONTAL.getRandomDirection` 的候选顺序是
+    // NORTH, EAST, SOUTH, WEST（与本项目 Direction 的枚举值不同，映射必须显式写）。
+    constexpr Direction kHorizontalFaces[] = {Direction::North, Direction::East, Direction::South, Direction::West};
+    const Direction direction = kHorizontalFaces[rng.nextInt(4)];
 
-    // 创建片段（方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行）
-    auto piece = std::make_unique<JungleTemplePiece>(startPos);
+    auto piece = std::make_unique<JungleTemplePiece>(BlockPos(minX, 64, minZ), direction);
     start->addPiece(std::move(piece));
     start->recalculateStructureSize();
 

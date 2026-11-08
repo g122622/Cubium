@@ -691,22 +691,23 @@ bool Structure::isValidBiome(BiomeId biomeId) const
 
 bool Structure::isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const
 {
-    // 走 BiomeManager 的 fuzzy offset 选格，与 `LevelReader.getBiome(BlockPos)` 同一条路径；
-    // 直接右移两位会漏掉这层偏移，在群系边界附近判出与原版相反的结论。
+    // 采样点必须是候选生成点本身：原版在 `GenerationStub` 位置按 QuartPos.fromBlock
+    // 取噪声群系，路由到 `getNoiseBiome(x>>2, y>>2, z>>2)`，与 `getBiomeAtBlock` 一致。
     const BiomeId biomeId = generator.getBiomeAtBlock(pos.x, pos.y, pos.z);
     return isValidBiome(biomeId);
 }
 
-bool Structure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
+BlockPos Structure::onTopOfChunkCenter(IChunkGenerator& generator, i32 chunkX, i32 chunkZ, HeightmapType type) const
 {
-    return true;
+    const i32 x = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    const i32 z = chunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    return BlockPos(x, generator.getHeight(x, z, type), z);
 }
 
 std::unique_ptr<StructureStart> Structure::generate(
     IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    return std::make_unique<StructureStart>(chunkX, chunkZ);
+    return makeStructureStart(chunkX, chunkZ);
 }
 
 void Structure::placeInChunk(IWorldWriter& world,
@@ -740,29 +741,64 @@ std::unique_ptr<math::IRandom> Structure::createRandom(i64 seed, i32 chunkX, i32
     return std::make_unique<math::Random>(static_cast<i64>(combinedSeed));
 }
 
+StructureBoundingBox Structure::adjustBoundingBox(const StructureBoundingBox& box) const
+{
+    // 原版 `Structure.adjustBoundingBox`：地形适配非 NONE 时每侧外扩 12 格
+    // （Beardifier 的核半径），NONE 时原样返回。
+    if (terrainAdaptation() == TerrainAdaptation::None || !box.isValid()) {
+        return box;
+    }
+    constexpr i32 TERRAIN_ADJUSTMENT_INFLATION = 12;
+    return StructureBoundingBox(box.minX() - TERRAIN_ADJUSTMENT_INFLATION,
+        box.minY() - TERRAIN_ADJUSTMENT_INFLATION,
+        box.minZ() - TERRAIN_ADJUSTMENT_INFLATION,
+        box.maxX() + TERRAIN_ADJUSTMENT_INFLATION,
+        box.maxY() + TERRAIN_ADJUSTMENT_INFLATION,
+        box.maxZ() + TERRAIN_ADJUSTMENT_INFLATION);
+}
+
+std::unique_ptr<StructureStart> Structure::makeStructureStart(i32 chunkX, i32 chunkZ) const
+{
+    return std::make_unique<StructureStart>(*this, chunkX, chunkZ);
+}
+
 // ========== StructureStart ==========
 
-StructureStart::StructureStart(i32 chunkX, i32 chunkZ)
+StructureStart::StructureStart(const Structure& owner, i32 chunkX, i32 chunkZ)
     : m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
+    , m_owner(&owner)
 {}
+
+const StructureBoundingBox& StructureStart::getBoundingBox() const noexcept
+{
+    if (m_boundingBoxDirty) {
+        m_boundingBox = m_owner->adjustBoundingBox(m_pieceBox);
+        m_boundingBoxDirty = false;
+    }
+    return m_boundingBox;
+}
 
 void StructureStart::addPiece(std::unique_ptr<StructurePiece> piece)
 {
     if (piece) {
-        m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
-        m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        m_pieceBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
+        m_pieceBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        m_boundingBoxDirty = true;
         m_pieces.push_back(std::move(piece));
     }
 }
 
 void StructureStart::recalculateStructureSize()
 {
-    m_boundingBox = StructureBoundingBox(); // 重置为无效状态
+    m_pieceBox = StructureBoundingBox(); // 重置为无效状态
     for (const auto& piece : m_pieces) {
-        m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
-        m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        m_pieceBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
+        m_pieceBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
     }
+    // 地形适配外扩在 getBoundingBox() 里按需施加：原版同样从片段并集重算，
+    // 再调 `Structure.adjustBoundingBox`，外扩不会被片段位置"吃掉"。
+    m_boundingBoxDirty = true;
 }
 
 bool StructureStart::isRefCountBelowMax() const noexcept
@@ -775,12 +811,14 @@ void StructureStart::offset(i32 dx, i32 dy, i32 dz)
     for (auto& piece : m_pieces) {
         piece->offset(dx, dy, dz);
     }
-    m_boundingBox = StructureBoundingBox(m_boundingBox.minX() + dx,
-        m_boundingBox.minY() + dy,
-        m_boundingBox.minZ() + dz,
-        m_boundingBox.maxX() + dx,
-        m_boundingBox.maxY() + dy,
-        m_boundingBox.maxZ() + dz);
+    const auto shift = [&](StructureBoundingBox& box) {
+        box = StructureBoundingBox(
+            box.minX() + dx, box.minY() + dy, box.minZ() + dz, box.maxX() + dx, box.maxY() + dy, box.maxZ() + dz);
+    };
+    shift(m_pieceBox);
+    if (!m_boundingBoxDirty) {
+        shift(m_boundingBox);
+    }
 }
 
 } // namespace mc::world::gen::structure

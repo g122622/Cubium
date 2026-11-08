@@ -98,6 +98,13 @@ public final class JigsawJointOrderOracle {
                     entry.addProperty("target", joint.pool().identifier().toString());
                     entry.addProperty("selectionPriority", joint.selectionPriority());
                     entry.addProperty("placementPriority", joint.placementPriority());
+                    // 朝向与连接类型同样是匹配输入：正面相反、aligned 时顶面一致。
+                    // 只比坐标时，朝向旋转错一格会表现为"同一模板、不同旋转"，无从定位。
+                    entry.addProperty("front", net.minecraft.world.level.block.JigsawBlock
+                            .getFrontFacing(joint.info().state()).getName());
+                    entry.addProperty("top", net.minecraft.world.level.block.JigsawBlock
+                            .getTopFacing(joint.info().state()).getName());
+                    entry.addProperty("joint", joint.jointType().getSerializedName());
                     array.add(entry);
                 }
                 result.add("joints", array);

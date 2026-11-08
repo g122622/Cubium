@@ -43,6 +43,7 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.datafix.DataFixers;
@@ -318,6 +319,12 @@ public final class StructureStartsOracle {
                 // 一致）。原版没有公开访问器，这里按 toString 解析——它形如
                 // `Feature[ResourceKey[minecraft:placed_feature / minecraft:oak]]`。
                 template = unpackFeatureId(element.toString());
+            } else {
+                // 列表池元素等其余池元素没有模板文件，用其注册名（与原版
+                // `structure_pool_element` 注册表口径一致）：所有列表元素都叫
+                // `list_pool_element`，至少能把"列表占位"与"空占位"区分开。
+                var key = BuiltInRegistries.STRUCTURE_POOL_ELEMENT.getKey(element.getType());
+                template = key == null ? "" : key.getPath();
             }
         }
         object.addProperty("template", template);
@@ -407,6 +414,15 @@ public final class StructureStartsOracle {
                 Dimension dimension = makeDimension(dimensionName, seed, registries.lookup);
                 for (Holder<StructureSet> setHolder : dimension.placementState().possibleStructureSets()) {
                     StructureSet set = setHolder.value();
+                    // 行格式是「维度 种子 X Z」，不带结构集名；调用方按结构集逐次导出（`--only` 只给一个），
+                    // 才能知道每一行属于哪个结构集。多给几个过滤值时本函数无法区分归属，必须直接报错。
+                    if (wantedSets.size() > 1) {
+                        throw new IllegalArgumentException(
+                                "StructureStartsOracle: candidates 一次只接受一个 --only（行格式不带结构集名）");
+                    }
+                    // 行尾追加结构集 id：候选行本身不带归属，多个结构集共用同一个文件时，
+                    // 调用方需要靠它把行分回各自的集合（同心环永远导出，不受 `--only` 过滤）。
+                    final String setId = setHolder.unwrapKey().map(key -> key.identifier().toString()).orElse("");
                     if (set.placement() instanceof ConcentricRingsStructurePlacement concentric) {
                         // 同心环放置（要塞）：环形位置由放置规则预先算好，直接输出，成本可忽略，
                         // 因此无条件枚举。
@@ -414,7 +430,7 @@ public final class StructureStartsOracle {
                         if (ring != null) {
                             for (ChunkPos pos : ring) {
                                 lines.append(dimensionName).append(' ').append(seed).append(' ')
-                                        .append(pos.x).append(' ').append(pos.z).append('\n');
+                                        .append(pos.x).append(' ').append(pos.z).append(' ').append(setId).append('\n');
                             }
                         }
                         continue;
@@ -436,7 +452,7 @@ public final class StructureStartsOracle {
                                     .getPotentialStructureChunk(seed, x, z);
                             if (set.placement().isStructureChunk(dimension.placementState(), potential.x, potential.z)) {
                                 lines.append(dimensionName).append(' ').append(seed).append(' ')
-                                        .append(potential.x).append(' ').append(potential.z).append('\n');
+                                        .append(potential.x).append(' ').append(potential.z).append(' ').append(setId).append('\n');
                             }
                         }
                     }

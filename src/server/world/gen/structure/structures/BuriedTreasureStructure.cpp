@@ -103,21 +103,17 @@ const biome::BiomeTag* BuriedTreasureStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_BURIED_TREASURE();
 }
 
-bool BuriedTreasureStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
-{
-    // 平均每 100 个区块一座：概率判定由稀疏结构放置（RandomSpreadStructurePlacement）负责，
-    // 这里没有任何额外门槛。此前在这里又抽一次 random.nextFloat() < 0.01，等于与放置器
-    // 复利相乘（实际只剩万分之一的落点），且多消耗一次世界随机数，后续所有结构随之错位。
-    return true;
-}
-
 std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(rng);
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
+
+    // 生物群系校验落在候选生成点（区块中心、海底高度）上；不匹配即返回空起点。
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::OceanFloorWG))) {
+        return start;
+    }
 
     // 生成点固定为「区块中心列 + (9, 90, 9)」，Y 的 90 只是占位值：片段的包围盒是一个
     // 单点，真正的落点在 FEATURES 阶段沿该列向下搜索时确定。这里不能抽样任何随机数以

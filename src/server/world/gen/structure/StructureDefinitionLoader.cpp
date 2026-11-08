@@ -292,6 +292,34 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
             _parseRuinedPortalSetups(jsonObj["setups"], def->ruinedPortalSetups);
         }
 
+        // 海底废墟的两个概率：原版是 OceanRuinStructure 编解码器的必填字段之外的
+        // `large_probability` / `cluster_probability`，直接参与随机判定，不能写死常量。
+        if (def->type == "minecraft:ocean_ruin") {
+            // 两个字段在原版编解码器里没有默认值，缺失即配置错误，必须报出来而不是补一个猜测值。
+            if (!jsonObj.contains("large_probability") || !jsonObj.contains("cluster_probability")) {
+                return Error(ErrorCode::InvalidData,
+                    "ocean_ruin structure '" + location.toString() +
+                        "' is missing large_probability or cluster_probability");
+            }
+            def->oceanRuinConfig.largeProbability = jsonObj["large_probability"].get<f32>();
+            def->oceanRuinConfig.clusterProbability = jsonObj["cluster_probability"].get<f32>();
+            // 暖/冷变体由结构定义决定（结构集按群系标签各自挑一个），不是按生成点群系现判。
+            if (!jsonObj.contains("biome_temp")) {
+                return Error(
+                    ErrorCode::InvalidData, "ocean_ruin structure '" + location.toString() + "' is missing biome_temp");
+            }
+            const std::string biomeTemp = jsonObj["biome_temp"].get<std::string>();
+            if (biomeTemp == "warm") {
+                def->oceanRuinBiomeTemp = OceanRuinType::Warm;
+            } else if (biomeTemp == "cold") {
+                def->oceanRuinBiomeTemp = OceanRuinType::Cold;
+            } else {
+                return Error(ErrorCode::InvalidData,
+                    "ocean_ruin structure '" + location.toString() + "' has unknown biome_temp '" + biomeTemp + "'");
+            }
+            def->oceanRuinConfig.biomeType = def->oceanRuinBiomeTemp;
+        }
+
         // 存储定义
         // spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
         s_byId[location] = def.get();

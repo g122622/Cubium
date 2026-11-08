@@ -221,7 +221,7 @@ StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* s
         default:
             return nullptr;
     }
-    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
+    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth());
 }
 
 StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
@@ -257,7 +257,7 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
         default:
             return nullptr;
     }
-    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
+    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth());
 }
 
 StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
@@ -294,7 +294,7 @@ StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
         default:
             return nullptr;
     }
-    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth() + 1);
+    return generateAndAddPiece(start, previous, pieces, rng, x, y, z, newDirection, previous.expansionDepth());
 }
 
 // ============================================================================
@@ -1203,33 +1203,35 @@ void StrongholdCrossing::buildComponent(
     }
     // 正向连接
     getNextComponentNormal(start, *this, pieces, rng, 5, 1);
-    // 根据方向计算偏移
-    i32 leftLowOffset = 3;
-    i32 leftHighOffset = 5;
-    i32 rightLowOffset = 3;
-    i32 rightHighOffset = 5;
+
+    // 侧门的偏移：低门贴地面（竖直偏移 3、沿轴偏移 1），高门贴上层（竖直 5、沿轴 7）。
+    // 西/北朝向时两轴镜像（8 - offset）。
+    // 【参数顺序】getNextComponentX/Z 的第一个参数是**竖直**偏移、第二个是**沿轴**偏移，
+    // 与原版 generateSmallDoorChildLeft/Right(..., verticalOffset, positionOffset) 一致；
+    // 传反会让侧门同时错高与错位若干格，且随机数消耗不变——表现为"到某个构件后
+    // 位置整体偏移、构件类型序列随后分叉"。
+    i32 lowVertical = 3;
+    i32 highVertical = 5;
     Direction direction = getCoordBaseMode();
     if (direction == Direction::West || direction == Direction::North) {
-        leftLowOffset = 8 - leftLowOffset;
-        leftHighOffset = 8 - leftHighOffset;
-        rightLowOffset = 8 - rightLowOffset;
-        rightHighOffset = 8 - rightHighOffset;
+        lowVertical = 8 - lowVertical;
+        highVertical = 8 - highVertical;
     }
     // 左下出口
     if (m_leftLow) {
-        getNextComponentX(start, *this, pieces, rng, 1, leftLowOffset);
+        getNextComponentX(start, *this, pieces, rng, lowVertical, 1);
     }
     // 左上出口
     if (m_leftHigh) {
-        getNextComponentX(start, *this, pieces, rng, 7, leftHighOffset);
+        getNextComponentX(start, *this, pieces, rng, highVertical, 7);
     }
     // 右下出口
     if (m_rightLow) {
-        getNextComponentZ(start, *this, pieces, rng, 1, rightLowOffset);
+        getNextComponentZ(start, *this, pieces, rng, lowVertical, 1);
     }
     // 右上出口
     if (m_rightHigh) {
-        getNextComponentZ(start, *this, pieces, rng, 7, rightHighOffset);
+        getNextComponentZ(start, *this, pieces, rng, highVertical, 7);
     }
 }
 
@@ -1851,35 +1853,9 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
     std::vector<StrongholdPieceWeight>& weights,
     i32& lastPlacedIndex)
 {
-    // 强制片段类型机制：如果有强制片段类型，优先创建
-    if (start != nullptr && start->imposedPieceType() >= 0) {
-        // 一次性的：无论这次能否放下都必须消费掉。若只在成功时才清除，被包围盒挡住的
-        // 那次会在**每一个**后续分支上重复强制同一个类型，最终把所有分支都堵死。
-        const i32 imposedType = start->imposedPieceType();
-        start->setImposedPieceType(-1);
-        std::unique_ptr<StrongholdPiece> piece =
-            createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
-        if (piece != nullptr) {
-            // 原版清掉 imposedPiece 后同样走「placeCount++ / previousPiece = 该权重 /
-            // 用尽则出表」这一套计数，漏掉会让强制片段不占实例额度。
-            for (size_t index = 0; index < weights.size(); ++index) {
-                auto& weight = weights[index];
-                if (weight.pieceType != imposedType) {
-                    continue;
-                }
-                ++weight.instancesSpawned;
-                lastPlacedIndex = static_cast<i32>(index);
-                if (!weight.canSpawnMoreStructures()) {
-                    eraseExhaustedWeight(weights, index, lastPlacedIndex);
-                }
-                break;
-            }
-            return piece;
-        }
-    }
-    // 原版 updatePieceWeight：先重算可用总权重；若没有任何类型还能放置，就直接返回 false，
-    // 由调用方走「先补填充走廊、再补十字路口」的兜底，**不消耗随机数**。权重耗尽时若继续
-    // 走后面的抽签循环，会一边抽一边全部落空，随机流从这一刻起与参照实现分叉。
+    // 原版 updatePieceWeight：先重算可用总权重；若没有任何类型还能放置，就直接返回 null，
+    // **不消耗随机数**、也不消费 imposedPiece。权重耗尽时若继续走后面的抽签循环，会一边抽
+    // 一边全部落空，随机流从这一刻起与参照实现分叉。
     i32 totalWeight = 0;
     const bool hasAvailable = updatePieceWeight(weights, totalWeight);
     if (!hasAvailable) {
@@ -1888,6 +1864,20 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
         // 在抽签里成功返回，走到这里必然是自己撞了包围盒，填充走廊同样撞，仍是空。
         // 因此直接返回空，与那一步等价且省掉一次无效碰撞查询。
         return nullptr;
+    }
+
+    // 强制片段类型（原版 imposedPiece）：仅当上面确认还有可放置类型时才消费。
+    // 【不计实例额度】原版这条分支只做「取出—清空—创建—返回」，**不**递增 placeCount、
+    // 不更新 previousPiece、也不把用尽的权重移出抽签表。补上这套计数会让强制类型提前
+    // 用尽，并从该点起改变抽签表与 previousPiece 排除规则。
+    if (start != nullptr && start->imposedPieceType() >= 0) {
+        const i32 imposedType = start->imposedPieceType();
+        start->setImposedPieceType(-1);
+        std::unique_ptr<StrongholdPiece> piece =
+            createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
+        if (piece != nullptr) {
+            return piece;
+        }
     }
     // 尝试最多 5 次
     for (i32 attempt = 0; attempt < 5; ++attempt) {
@@ -1985,10 +1975,11 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     // 使用 StrongholdStartStairs 成员变量存储状态（替代 thread_local 静态变量）
     std::vector<StrongholdPieceWeight>& weights = start->weights();
     i32& lastPlacedIndex = start->lastPlacedIndex();
-    // 原版 `generateAndAddPiece` 收到 p_229444_ 后，传给 `generatePieceFromSmallDoor` 的是
-    // **p_229444_ + 1**（见 `generatePieceFromSmallDoor(..., p_229444_ + 1)`），而深度门控
-    // （Library 需 > 4、PortalRoom 需 > 5）比较的正是这个 +1 后的值。少加这一步会让两类
-    // 房间的可用时机整体晚一层，抽签序列从该层起与版分叉。
+    // 原版 `generateAndAddPiece` 收到的是**父片段的 genDepth**，传给
+    // `generatePieceFromSmallDoor` 的才是 **genDepth + 1**；深度门控（Library 需 > 4、
+    // PortalRoom 需 > 5）比较的正是这个 +1 后的值，它同时也是新片段的 genDepth。
+    // 调用方因此必须传 `previous.expansionDepth()`，不能预先 +1——否则门控整体早一层，
+    // Library/PortalRoom 会在原版还不允许的深度被抽中，抽签序列从该层起分叉。
     std::unique_ptr<StrongholdPiece> piece =
         generatePieceFromSmallDoor(start, pieces, rng, x, y, z, direction, depth + 1, weights, lastPlacedIndex);
     if (piece == nullptr) {

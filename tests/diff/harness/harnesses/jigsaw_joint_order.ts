@@ -50,6 +50,15 @@ const TEMPLATES = [
     "minecraft:trial_chambers/reward/vault",
     "minecraft:trial_chambers/decor/disposal",
     "minecraft:trial_chambers/hallway/encounter_3",
+    // 装配差分里最早分叉的构件来自这几个模板（同一模板选到了不同旋转），
+    // 单列出来覆盖"旋转互换"这条失败路径。
+    "minecraft:trial_chambers/dispensers/wall_dispenser",
+    "minecraft:trial_chambers/chamber/assembly/cover_1",
+    "minecraft:trial_chambers/chamber/assembly/hanging_1",
+    // 掠夺者前哨站：structure_start_single 里同样从第 3 个构件开始分叉。
+    "minecraft:pillager_outpost/base_plate",
+    "minecraft:pillager_outpost/watchtower",
+    "minecraft:pillager_outpost/tent",
     // 村庄与古代城市：跨结构验证同一套洗牌语义。
     "minecraft:village/plains/town_centers/plains_fountain_01",
     "minecraft:village/plains/streets/straight_02",

@@ -160,27 +160,20 @@ const biome::BiomeTag* NetherFossilStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_NETHER_FOSSIL();
 }
 
-bool NetherFossilStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    if (!isValidBiome(biome)) {
-        return false;
-    }
-    return true;
-    return false;
-}
-
 std::unique_ptr<StructureStart> NetherFossilStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(generator);
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
+
+    // 生物群系校验：原版在求出化石的候选生成点之后、装配模板之前校验。这里沿用
+    // 「区块内随机列 + 30..59」的既有落点近似（原版是沿列向下找第一个空气层），
+    // TODO: 按原版 `findGenerationPoint` 的列扫描重写落点，届时把校验挪到扫描完成之后。
+    const BlockPos candidate(chunkX * world::CHUNK_WIDTH, 30, chunkZ * world::CHUNK_WIDTH);
+    if (!isValidBiomeAt(generator, candidate)) {
+        return start;
+    }
 
     // 计算生成位置
     i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);

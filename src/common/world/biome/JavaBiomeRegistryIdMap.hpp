@@ -65,6 +65,18 @@ public:
     /// 内部 BiomeId → Java biome registry id；未建立或查不到返回 plains 的 registry id 并记 warn。
     [[nodiscard]] u32 toJavaRegistryId(BiomeId internalBiomeId) const;
 
+    /**
+     * @brief 内部 BiomeId → Java 1.21.11 群系资源名（如 "minecraft:stony_shore"）
+     *
+     * 内部名（`Biome::name()`）保留 1.16.5 旧名，与 Java 侧的注册名不一定一致；
+     * 凡是需要与 Java 资源名对照的场合（差分、日志、存档导出）都必须经这里转译，
+     * 不能直接用 `Biome::name()`。
+     *
+     * @param internalBiomeId 内部 BiomeId
+     * @return 带 "minecraft:" 前缀的 Java 群系名；映射未建立或该群系在 1.21.11 已删除时为空
+     */
+    [[nodiscard]] std::optional<std::string> javaNameOf(BiomeId internalBiomeId) const;
+
     /// Java biome registry id → 内部 BiomeId；未建立或查不到返回 plains 的内部 id 并记 warn。
     [[nodiscard]] BiomeId fromJavaRegistryId(u32 javaRegistryId) const;
 

@@ -122,7 +122,13 @@ public:
      */
     [[nodiscard]] std::string_view templateLocation() const noexcept override
     {
-        return m_placed.piece ? std::string_view(m_placed.piece->getName()) : std::string_view();
+        if (!m_placed.piece) {
+            return {};
+        }
+        // 列表/地物/空池元素没有模板文件，退回到池元素类型名（与 oracle 侧的
+        // `structure_pool_element` 注册名同口径），否则这些构件在差分里只能是空串。
+        const std::string& name = m_placed.piece->getName();
+        return name.empty() ? std::string_view(m_placed.piece->getTypeName()) : std::string_view(name);
     }
 
     [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
@@ -164,36 +170,10 @@ JigsawStructure::JigsawStructure(ResourceLocation id,
     m_terrainAdaptation = terrainAdaptation;
 }
 
-bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
-    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
-    if (!startPool || startPool->isEmpty()) {
-        return false;
-    }
-
-    if (m_nearTerrain) {
-        // 计算区块中心坐标
-        const i32 centerX = chunkX * CHUNK_WIDTH + CHUNK_WIDTH / 2;
-        const i32 centerZ = chunkZ * CHUNK_WIDTH + CHUNK_WIDTH / 2;
-        const i32 topY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
-
-        // 检查地形高度是否在有效范围内
-        if (topY < MIN_TERRAIN_HEIGHT || topY > MAX_TERRAIN_HEIGHT) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 std::unique_ptr<StructureStart> JigsawStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 获取起始模板池
     auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
@@ -231,7 +211,7 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     // JigsawAssembler 内部按"先起始旋转、后起始块"的顺序消耗随机数，外部无法重复这些抽取。
     // 因此只能整体装配完再按候选点校验（对齐原版 Structure.findValidGenerationPoint），
     // 校验不通过时丢弃已装配的构件——已消耗的随机数与装配结果都不再回滚，与原版一致。
-    auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry,
+    auto assembled = jigsaw::JigsawAssembler::assemble(patternRegistry,
         *startPool,
         m_config.size,
         BlockPos(chunkX * CHUNK_WIDTH, 0, chunkZ * CHUNK_WIDTH),
@@ -241,21 +221,18 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
         rng,
         generator,
         aliases,
+        m_config.startJigsawName,
         maxDistance,
         &m_config.dimensionPadding,
         static_cast<i64>(generator.seed()));
+    std::vector<jigsaw::PlacedPiece>& placedPieces = assembled.pieces;
 
-    // 生物群系校验：采样原版候选生成点。原版 GenerationStub 的位置是
-    // `startPos.offset(0, groundLevelDelta - 1, 0)`——起始块投影后的地面线（包围盒最低面）
-    // 而非装配后整个结构的中心。装配后的整体包围盒被所有向外延伸的构件撑大，中心会偏离
-    // 起始块几十格，在群系边界处给出与原版相反的结论（例如整座古代城市被误判淘汰）。
-    if (!placedPieces.empty()) {
-        const auto& startBox = placedPieces.front().boundingBox;
-        const BlockPos candidatePoint(
-            (startBox.minX() + startBox.maxX()) / 2, startBox.minY(), (startBox.minZ() + startBox.maxZ()) / 2);
-        if (!isValidBiomeAt(generator, candidatePoint)) {
-            return start;
-        }
+    // 生物群系校验：采样原版候选生成点。候选点由装配器按原版 `GenerationStub(new BlockPos(i, i1, j))`
+    // 给出——起始块包围盒的 X/Z 中心 + 起始高度（未投影时就是 start_height 本身，投影时叠加地形
+    // 高度），而不是装配后整个结构的中心：整体包围盒被向外延伸的构件撑大，中心会偏离起始块
+    // 几十格，在群系边界处给出与原版相反的结论（例如整座古代城市被误判淘汰）。
+    if (!placedPieces.empty() && !isValidBiomeAt(generator, assembled.candidatePoint)) {
+        return start;
     }
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart

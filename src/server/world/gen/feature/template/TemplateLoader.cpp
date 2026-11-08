@@ -1193,13 +1193,19 @@ TemplateJigsawBlockInfo TemplateLoader::_parseJigsawBlock(
         info.targetName = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target")).value;
     }
 
-    // 连接类型由方块的 orientation 推导，**不读 NBT 的 `joint` 字段**：
-    // 原版 `StructureTemplate.getJointType` 的规则是「front 为水平朝向（东南西北）时 aligned，
-    // 否则 rollable」，NBT 里的 `joint` 只是方块实体的冗余存档，运行期并不使用。
-    // 数据包里大量 jigsaw 方块的这两者互相矛盾（如古代城市的入口构件，全库逾千处），
-    // 照抄 NBT 会让连接点的可连接判定与原版相反，进而多接或少接连接点。
+    // 连接类型：原版 `StructureTemplate.getJointType(nbt, state)` **先读 NBT 的 `joint` 字段**，
+    // 缺失时才回退到方块状态推导的默认值（front 为水平朝向 → aligned，垂直 → rollable）。
+    // 数据包里两者不一致的条目很多（如古代城市的入口构件），只按状态推导会让
+    // aligned/rollable 判反，匹配时接受原版拒绝的旋转，装配结果从某个构件起整体分叉。
     info.jointType = 0;
-    if (blockStateId != 0) {
+    if (nbt->value.count("joint") != 0) {
+        const std::string joint = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("joint")).value;
+        if (joint == "aligned") {
+            info.jointType = 1;
+        } else if (joint == "rollable") {
+            info.jointType = 0;
+        }
+    } else if (blockStateId != 0) {
         const BlockState* state = BlockRegistry::instance().getBlockState(blockStateId);
         if (state != nullptr) {
             const Direction facing =
