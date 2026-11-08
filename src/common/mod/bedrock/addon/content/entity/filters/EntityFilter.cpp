@@ -22,6 +22,7 @@
  */
 
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
+#include "common/entity/core/AgeableEntity.hpp" // is_baby 过滤读 AgeableEntity::isChild
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -146,6 +147,12 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         "has_damage",
         "is_daytime",
         "weather",
+        "is_baby",
+        "is_sleeping",
+        "on_fire",
+        "is_leashed",
+        "is_riding",
+        "rider_count",
         "distance_to_nearest_player"};
     if (!supported.contains(test)) {
         // TODO: 接入生物群系温度等过滤测试。
@@ -183,7 +190,8 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
     filter["operator"] = operation;
     const bool boolean = test == "bool_property" || test == "is_alive" || test == "is_sneaking" ||
         test == "has_target" || test == "is_daytime" || test == "is_owner" || test == "has_container_open" ||
-        test == "on_ground" || test == "in_water" || test == "in_lava" || test == "in_water_or_rain";
+        test == "on_ground" || test == "in_water" || test == "in_lava" || test == "in_water_or_rain" ||
+        test == "is_baby" || test == "is_sleeping" || test == "on_fire" || test == "is_leashed" || test == "is_riding";
     if (!filter.contains("value") && boolean) {
         filter["value"] = true;
     }
@@ -202,8 +210,9 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
             return Error(ErrorCode::InvalidData, "Entity filter value must be boolean");
         }
     } else if (test == "int_property" || test == "float_property" || test == "distance_to_nearest_player" ||
-        test == "is_variant" || test == "is_mark_variant") {
-        const bool integer = test == "int_property" || test == "is_variant" || test == "is_mark_variant";
+        test == "is_variant" || test == "is_mark_variant" || test == "rider_count") {
+        const bool integer =
+            test == "int_property" || test == "is_variant" || test == "is_mark_variant" || test == "rider_count";
         MC_TRY(_numeric(value, integer));
         if (integer &&
             (value.get<double>() < std::numeric_limits<i32>::min() ||
@@ -448,6 +457,31 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
     }
     if (test == "in_water_or_rain") {
         return _compare(entity->isWet(), expected, operation);
+    }
+    if (test == "is_baby") {
+        // 基岩的 is_baby 语义就是"是否为幼体"，直接读 AgeableEntity 的年龄状态。
+        // 非 AgeableEntity 没有幼体概念，恒为 false。
+        const auto* ageable = dynamic_cast<const mc::AgeableEntity*>(entity);
+        return _compare(ageable != nullptr && ageable->isChild(), expected, operation);
+    }
+    if (test == "is_sleeping") {
+        // 睡眠状态是 LivingEntity 的概念，非生物实体恒为 false。
+        const auto* living = dynamic_cast<const mc::LivingEntity*>(entity);
+        return _compare(living != nullptr && living->isSleeping(), expected, operation);
+    }
+    if (test == "on_fire") {
+        return _compare(entity->isOnFire(), expected, operation);
+    }
+    if (test == "is_leashed") {
+        // 只有 MobEntity 能被拴绳牵引；非生物实体恒为 false。
+        const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);
+        return _compare(mob != nullptr && mob->isLeashed(), expected, operation);
+    }
+    if (test == "is_riding") {
+        return _compare(entity->isRiding(), expected, operation);
+    }
+    if (test == "rider_count") {
+        return _compare(static_cast<i32>(entity->getPassengers().size()), expected, operation);
     }
     if (test == "has_target") {
         const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);

@@ -21,6 +21,8 @@
  *
  */
 
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
@@ -309,6 +311,61 @@ TEST_F(EntityFilterTest, TypeTagAndBasicEntityStateTests)
     check({{"test", "is_alive"}}, true);
     check({{"test", "is_sneaking"}, {"value", false}}, true);
     check({{"test", "has_target"}, {"value", false}}, true);
+}
+
+// 新增接入的实体状态型过滤（is_baby / on_fire / is_sleeping / is_leashed / is_riding / rider_count）。
+// 关键字断言：非生物实体上这些测试必须恒为 false，而不是报错——基岩侧对"实体没有该概念"
+// 的处理就是条件不成立，若返回 Unsupported 会让整包加载失败。
+TEST_F(EntityFilterTest, EntityStateFiltersAreFalseOnNonLivingEntity)
+{
+    // 裸 Entity 既不是 LivingEntity 也不是 MobEntity，也没有乘客。
+    check({{"test", "is_baby"}, {"value", false}}, true);
+    check({{"test", "is_sleeping"}, {"value", false}}, true);
+    check({{"test", "is_leashed"}, {"value", false}}, true);
+    check({{"test", "is_riding"}, {"value", false}}, true);
+    check({{"test", "rider_count"}, {"value", 0}}, true);
+    check({{"test", "rider_count"}, {"value", 1}}, false);
+}
+
+// is_baby 必须读真实的幼体状态：AgeableEntity::isChild() 为 true 时才成立。
+TEST_F(EntityFilterTest, IsBabyReflectsAgeableChildState)
+{
+    AgeableEntity mob(EntityInstanceId(3), registry);
+    mob.registerAttributes();
+    EntityFilterContext mobContext{mob, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
+    const nlohmann::json babyFilter = {{"test", "is_baby"}, {"value", true}};
+    auto filter = EntityFilter::compile(babyFilter);
+    ASSERT_TRUE(filter.success()) << filter.error().message();
+
+    auto notBaby = filter.value().matches(mobContext);
+    ASSERT_TRUE(notBaby.success()) << notBaby.error().message();
+    EXPECT_FALSE(notBaby.value()) << "a freshly created mob must not be a baby";
+
+    mob.setChild(true);
+    auto isBaby = filter.value().matches(mobContext);
+    ASSERT_TRUE(isBaby.success()) << isBaby.error().message();
+    EXPECT_TRUE(isBaby.value()) << "is_baby must follow AgeableEntity::setChild";
+}
+
+// on_fire / is_riding 在生物实体上也要能读到真实状态。
+TEST_F(EntityFilterTest, FireAndRidingFiltersFollowEntityState)
+{
+    CreatureEntity mob(EntityInstanceId(4), registry);
+    mob.registerAttributes();
+    EntityFilterContext mobContext{mob, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
+    const nlohmann::json fireFilter = {{"test", "on_fire"}, {"value", true}};
+    auto onFire = EntityFilter::compile(fireFilter);
+    ASSERT_TRUE(onFire.success()) << onFire.error().message();
+    auto before = onFire.value().matches(mobContext);
+    ASSERT_TRUE(before.success());
+    EXPECT_FALSE(before.value()) << "freshly created mob is not on fire";
+
+    mob.setRemainingFireTicks(100);
+    auto after = onFire.value().matches(mobContext);
+    ASSERT_TRUE(after.success());
+    EXPECT_TRUE(after.value()) << "on_fire must follow the fire timer";
 }
 
 TEST_F(EntityFilterTest, DaytimeWeatherAndNearestPlayerUseWorldState)
