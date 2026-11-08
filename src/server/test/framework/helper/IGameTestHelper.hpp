@@ -158,6 +158,10 @@ public:
         const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity) = 0;
     [[nodiscard]] virtual GameTestResult spawnItemAt(
         const std::string& itemType, const mc::math::Vector3d& position, mc::Entity*& outEntity) = 0;
+    /// 生成物品实体（完整 ItemStack 版本，保留数量/附魔/自定义名）。
+    /// 对齐基岩 Test.spawnItem(itemStack, location)。字符串版本内部构造 count=1 的空堆后委托本方法。
+    [[nodiscard]] virtual GameTestResult spawnItemAt(
+        const mc::ItemStack& stack, const mc::math::Vector3d& position, mc::Entity*& outEntity) = 0;
 
     // 实体 spawn 变体与实体状态断言（批次4 补齐，对齐基岩 Test 类官方 JS API）。
     /// 在世界绝对 Vector3 位置生成实体（spawn 的浮点位置变体，对齐基岩 spawnAtLocation）。

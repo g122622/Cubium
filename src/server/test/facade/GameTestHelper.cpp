@@ -1188,13 +1188,6 @@ GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockP
 GameTestResult GameTestHelper::spawnItemAt(
     const std::string& itemType, const mc::math::Vector3d& position, mc::Entity*& outEntity)
 {
-    // 对齐基岩 Test.spawnItem(itemStack, location)：在指定位置生成物品实体。
-    // 基岩签名接受 ItemStack 对象，此处简化接受 itemType 字符串（ScriptTestHelper.spawnItem 委托此方法，
-    // 详见 ScriptTestHelper.cpp:911 注释），内部解析为 Item* 构造 ItemStack(count=1)，再委托
-    // ItemDropHelper::spawnItemEntity 生成 ItemEntity 并加入世界。
-    //
-    // 速度设 0（不施加掉落散射速度），让物品在原位垂直下落，便于测试精确判定落点（如压力板检测框）。
-    // pickupDelay 用默认值（DEFAULT_PICKUP_DELAY=10），避免物品生成瞬间被测试 SimulatedPlayer 拾取。
     outEntity = nullptr;
 
     // 解析物品类型字符串 → Item*
@@ -1203,14 +1196,29 @@ GameTestResult GameTestHelper::spawnItemAt(
         return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Unknown item type '{0}'", {itemType}};
     }
 
-    // 构造 ItemStack(count=1)
     mc::ItemStack stack(item, 1);
     if (stack.isEmpty()) {
         return GameTestError{
             GameTestErrorType::LevelStateModificationFailed, "Failed to build ItemStack for '{0}'", {itemType}};
     }
 
-    // 委托 ItemDropHelper 生成物品实体（显式 0 速度，避免散射偏移落点）。
+    return spawnItemAt(stack, position, outEntity);
+}
+
+GameTestResult GameTestHelper::spawnItemAt(
+    const mc::ItemStack& stack, const mc::math::Vector3d& position, mc::Entity*& outEntity)
+{
+    // 对齐基岩 Test.spawnItem(itemStack, location)：在指定位置生成物品实体。
+    // 接受完整 ItemStack 才能保留数量、附魔、自定义名等状态（字符串版本只构造 count=1 的空堆）。
+    //
+    // 速度设 0（不施加掉落散射速度），让物品在原位垂直下落，便于测试精确判定落点（如压力板检测框）。
+    // pickupDelay 用默认值（DEFAULT_PICKUP_DELAY=10），避免物品生成瞬间被测试 SimulatedPlayer 拾取。
+    outEntity = nullptr;
+
+    if (stack.isEmpty()) {
+        return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Cannot spawn an empty item stack"};
+    }
+
     // position 是相对结构坐标（与 test.spawn 系列一致），先经 worldPosition 转世界绝对坐标。
     const auto worldPos = worldPosition(position);
     auto* itemEntity =
@@ -1218,7 +1226,10 @@ GameTestResult GameTestHelper::spawnItemAt(
     if (itemEntity == nullptr) {
         return GameTestError{GameTestErrorType::LevelStateModificationFailed,
             "Failed to spawn item entity '{0}' at ({1}, {2}, {3})",
-            {itemType, std::to_string(position.x), std::to_string(position.y), std::to_string(position.z)}};
+            {stack.getItem() != nullptr ? stack.getItem()->toString() : std::string{"<null>"},
+                std::to_string(position.x),
+                std::to_string(position.y),
+                std::to_string(position.z)}};
     }
 
     outEntity = itemEntity;
