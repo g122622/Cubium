@@ -256,8 +256,17 @@ bool CommandBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
         }
     }
 
-    // 基岩版特有字段 ExecuteOnFirstTick / TickDelay / LPCondionalMode / LPRedstoneMode 项目无对应字段，
-    // 暂忽略（TODO: 循环方块首 tick 执行 / 延迟执行接线后补）。
+    // 基岩版特有字段：TickDelay / ExecuteOnFirstTick 决定循环方块的执行节奏，
+    // 现已在调度路径生效（见 CommandBlock::tick 与 onUpdated 用 nextTickDelay()）。
+    if (auto v = nh::tryGetInt(tag, "TickDelay")) {
+        setTickDelay(static_cast<i32>(*v));
+    }
+    if (auto v = nh::tryGetBool(tag, "ExecuteOnFirstTick")) {
+        setExecuteOnFirstTick(*v);
+    }
+    // LPCondionalMode / LPRedstoneMode 仍无对应字段：它们控制基岩"条件"与"红石"开关的
+    // 存档表示，项目用 m_conditionMet 与 m_powered 的运行时状态表达，不持久化这两个开关。
+    // TODO: 若需要完整支持基岩命令方块 UI 开关的存档往返，再补这两个字段。
 
     return true;
 }
@@ -305,6 +314,14 @@ void CommandBlockEntity::save(nlohmann::json& data) const
 
     // 保存更新最后执行标志
     data["UpdateLastExecution"] = m_updateLastExecution;
+
+    // 循环方块的执行节奏（基岩特有字段）。只在非默认值时写出，避免给 Java 存档塞冗余键。
+    if (m_tickDelay != 0) {
+        data["TickDelay"] = m_tickDelay;
+    }
+    if (!m_executeOnFirstTick) {
+        data["ExecuteOnFirstTick"] = false;
+    }
 }
 
 void CommandBlockEntity::tick(IWorld& world)
@@ -346,6 +363,8 @@ std::unique_ptr<BlockEntity> CommandBlockEntity::clone() const
     cloned->m_trackOutput = m_trackOutput;
     cloned->m_updateLastExecution = m_updateLastExecution;
     cloned->m_lastExecution = m_lastExecution;
+    cloned->m_tickDelay = m_tickDelay;
+    cloned->m_executeOnFirstTick = m_executeOnFirstTick;
     return cloned;
 }
 

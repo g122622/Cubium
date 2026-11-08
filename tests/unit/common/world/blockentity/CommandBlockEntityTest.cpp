@@ -69,6 +69,38 @@ TEST_F(CommandBlockEntityTest, Create_DefaultModeIsRedstone)
     EXPECT_EQ(entity_->getMode(), CommandBlockMode::Redstone);
 }
 
+// 基岩 TickDelay / ExecuteOnFirstTick：循环方块的执行节奏，且必须随 clone 复制。
+TEST_F(CommandBlockEntityTest, TickDelayAndExecuteOnFirstTickRoundTripThroughClone)
+{
+    CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Auto);
+
+    // 默认：每 tick 执行（delay 0 → 调度延迟 1），首 tick 执行。
+    EXPECT_EQ(entity.tickDelay(), 0);
+    EXPECT_TRUE(entity.executeOnFirstTick());
+    EXPECT_EQ(entity.nextTickDelay(), 1) << "block ticks cannot be scheduled with 0 delay";
+
+    entity.setTickDelay(20);
+    EXPECT_EQ(entity.tickDelay(), 20);
+    EXPECT_EQ(entity.nextTickDelay(), 20);
+    entity.setExecuteOnFirstTick(false);
+    EXPECT_FALSE(entity.executeOnFirstTick());
+
+    // 负延迟按 0 归一，不允许出现"比每 tick 更快"的间隔。
+    entity.setTickDelay(-5);
+    EXPECT_EQ(entity.tickDelay(), 0);
+    EXPECT_EQ(entity.nextTickDelay(), 1);
+
+    // clone 必须复制这两个字段，否则结构复制/方块移动会丢失执行节奏。
+    entity.setTickDelay(7);
+    entity.setExecuteOnFirstTick(false);
+    const auto cloned = entity.clone();
+    ASSERT_NE(cloned, nullptr);
+    const auto* clonedCommand = dynamic_cast<const CommandBlockEntity*>(cloned.get());
+    ASSERT_NE(clonedCommand, nullptr);
+    EXPECT_EQ(clonedCommand->tickDelay(), 7);
+    EXPECT_FALSE(clonedCommand->executeOnFirstTick());
+}
+
 TEST_F(CommandBlockEntityTest, Create_DefaultAutoIsFalse)
 {
     EXPECT_FALSE(entity_->isAuto());
