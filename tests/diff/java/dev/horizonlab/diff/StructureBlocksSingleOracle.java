@@ -55,6 +55,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -244,6 +245,9 @@ public final class StructureBlocksSingleOracle {
         int maxY;
         long seed;
         Holder<Biome> biome;
+        net.minecraft.world.attribute.EnvironmentAttributeSystem attributes;
+        final net.minecraft.world.level.border.WorldBorder border =
+                new net.minecraft.world.level.border.WorldBorder();
         // Unsafe 分配不会执行字段初始化器，这两个表必须在 create() 里显式建出来。
         Map<Long, BlockState> blocks;
         Map<Long, ProtoChunk> chunks;
@@ -269,6 +273,9 @@ public final class StructureBlocksSingleOracle {
                 level.seed = seed;
                 level.biome = registries.access.lookupOrThrow(Registries.BIOME)
                         .getOrThrow(net.minecraft.world.level.biome.Biomes.PLAINS);
+                level.attributes = net.minecraft.world.attribute.EnvironmentAttributeSystem.builder()
+                        .addConstantLayer(net.minecraft.world.attribute.EnvironmentAttributeMap.builder().build())
+                        .build();
                 level.blocks = new HashMap<>();
                 level.chunks = new HashMap<>();
                 return level;
@@ -331,6 +338,16 @@ public final class StructureBlocksSingleOracle {
         }
 
         @Override
+        public net.minecraft.world.attribute.EnvironmentAttributeSystem environmentAttributes() {
+            return attributes;
+        }
+
+        @Override
+        public net.minecraft.world.level.border.WorldBorder getWorldBorder() {
+            return border;
+        }
+
+        @Override
         public FeatureFlagSet enabledFeatures() {
             return FeatureFlags.REGISTRY.allFlags();
         }
@@ -348,6 +365,16 @@ public final class StructureBlocksSingleOracle {
         public ChunkAccess getChunk(int x, int z, ChunkStatus status, boolean load) {
             return chunks.computeIfAbsent(BlockPos.asLong(x, 0, z),
                     key -> new ProtoChunk(new ChunkPos(x, z), UpgradeData.EMPTY, this, factory, null));
+        }
+
+        @Override
+        public void updateNeighborsAt(BlockPos pos, Block block) {
+            // 空世界没有邻居更新器；模板放置会触发它，直接吞掉。
+        }
+
+        @Override
+        public void updateNeighborsAt(BlockPos pos, Block block, net.minecraft.world.level.redstone.Orientation orientation) {
+            // 同上。
         }
 
         @Override
