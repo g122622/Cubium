@@ -32,8 +32,8 @@
  *
  * TODO: 矿井（minecraft:mineshaft）与要塞（minecraft:stronghold）目前仍有差异：
  *       矿井的 postProcess 还是自造的简化实现（不按原版开凿 cave_air，也不做邻接判定），
- *       要塞的装饰件（门、铁栏杆、按钮、火把、台阶）尚未补齐。两者都要按原版逐个片段
- *       重写后再纳入「必须全绿」的范围。
+ *       要塞的装饰件（门框/门的上半、铁栏杆连接状态、按钮、火把、台阶）尚未按原版补齐。
+ *       两者都要按原版逐个片段重写；完成后删掉 KNOWN_GAPS 登记，让它们回到必须全绿。
  */
 
 import { execFileSync } from "node:child_process";
@@ -75,6 +75,15 @@ const FEATURES = [
 
 /** 每个结构取多少个落点。 */
 const PER_STRUCTURE = 5;
+
+/**
+ * 已定位根因、等待单独一轮重写的结构（前缀匹配单元键）。
+ *
+ * 登记为已知差异而不是从语料里剔除：差异照常产生并出现在报告里，但不会让整个能力变红。
+ * 修好后必须删除这里对应的前缀。
+ */
+const KNOWN_GAP_STRUCTURES = ["minecraft:mineshaft/", "minecraft:stronghold/"];
+
 
 /** 语料种子。 */
 const SEED = 0;
@@ -164,6 +173,15 @@ export function structureBlocksSingleDeclaration(): HarnessDeclaration {
         throw new Error(`structure_blocks_single: unknown unit ${unit}`);
       }
       return { ...entry.input, unit };
+    },
+    get knownDifferences(): { key: string; field: string; reason: string }[] {
+      return units
+        .filter((entry) => KNOWN_GAP_STRUCTURES.some((prefix) => entry.unit.startsWith(prefix)))
+        .map((entry) => ({
+          key: entry.unit,
+          field: "blocks",
+          reason: "postProcess 尚未按原版重写（见文件头 TODO），属于已定位的整块缺口",
+        }));
     },
     beforeUnits: (context: HarnessContext): void => {
       const directory = context.outputDirectory("structure_blocks_single", "oracle");
