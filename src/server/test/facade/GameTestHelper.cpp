@@ -473,9 +473,10 @@ bool GameTestHelper::isCompleted() const noexcept
 
 bool GameTestHelper::isCleaningUp() const noexcept
 {
-    // 第一阶段无清理阶段状态机（基岩版有 ClearUp 阶段）；暂以"已完成且失败"近似，留 TODO 精化。
-    // TODO: 引入显式 CleaningUp 状态后改为状态判定（见 framework/instance/GameTestState.hpp）
-    return false;
+    // 对齐基岩 Test.isCleaningUp：是否处于测试结束后的清理阶段。
+    // 项目的清理阶段即 runOnFinish 回调执行期间（见 BaseGameTestInstance::_runFinishCallbacks），
+    // 由 instance 侧维护标志，这里直接转发。
+    return m_instance.isCleaningUp();
 }
 
 i32 GameTestHelper::currentTick() const noexcept
