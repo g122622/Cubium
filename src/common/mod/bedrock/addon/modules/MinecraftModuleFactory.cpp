@@ -3581,13 +3581,44 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     containerReg.method(
         "transferItem",
         [containerClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            // TODO: transferItem(fromSlot,toContainer,toSlot) 跨容器迁移依赖第二个 Container 入参 unwrap，
-            //       框架已具备（同 containerClassId），完整迁移语义（堆叠/空槽选择）后续补全。
-            (void)thisVal;
-            (void)argc;
-            (void)args;
+            // 官方 Container.transferItem(fromSlot, toContainer, toSlot)：
+            // 把本容器 fromSlot 的物品移到 toContainer 的 toSlot，源槽位清空，返回是否搬运成功。
+            auto* fromInv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+            if (fromInv == nullptr || argc < 3 || !ctx.isNumber(args[0])) {
+                return ctx.createBoolean(false);
+            }
 
-            return ctx.createUndefined();
+            auto fromSlot = ctx.toInt32(args[0]);
+            if (!fromSlot || *fromSlot < 0 || *fromSlot >= fromInv->getContainerSize()) {
+                return ctx.createBoolean(false);
+            }
+
+            // 目标容器：同一 Container 类 opaque 持 IInventory*（非拥有）。
+            auto* toInv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, args[1], containerClassId));
+            if (toInv == nullptr) {
+                return ctx.createBoolean(false);
+            }
+
+            auto toSlot = ctx.toInt32(args[2]);
+            if (!toSlot || *toSlot < 0 || *toSlot >= toInv->getContainerSize()) {
+                return ctx.createBoolean(false);
+            }
+
+            const mc::ItemStack source = fromInv->getItem(*fromSlot);
+            if (source.isEmpty()) {
+                return ctx.createBoolean(false);
+            }
+
+            // 目标槽必须为空：官方 transferItem 不做堆叠合并（同物品也各自占槽），
+            // 合并语义由 addItem 承担。
+            if (!toInv->getItem(*toSlot).isEmpty()) {
+                return ctx.createBoolean(false);
+            }
+
+            toInv->setItem(*toSlot, source);
+            fromInv->setItem(*fromSlot, mc::ItemStack::EMPTY);
+
+            return ctx.createBoolean(true);
         },
         3);
 

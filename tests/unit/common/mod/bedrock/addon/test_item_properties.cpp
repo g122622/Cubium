@@ -109,6 +109,18 @@ protected:
             nullptr);
         binding.setProperty(global, "inventory", container);
         binding.releaseValue(container);
+        // 第二个容器：供 Container.transferItem 的跨容器搬运用例使用。
+        void* otherContainer = ScriptObjectRegistry::wrap(binding,
+            containerId,
+            binding.classRegistry().proto(containerId),
+            static_cast<mc::IInventory*>(&otherInventory),
+            false,
+            "Container",
+            nullptr,
+            0,
+            nullptr);
+        binding.setProperty(global, "otherInventory", otherContainer);
+        binding.releaseValue(otherContainer);
         binding.releaseValue(global);
         return context;
     }
@@ -121,6 +133,7 @@ protected:
 
     mc::ItemStack subject;
     mc::CraftingInventory inventory{2, 2};
+    mc::CraftingInventory otherInventory{2, 2};
     std::unique_ptr<IScriptEngine> engine;
     std::unique_ptr<IScriptContext> first;
     std::unique_ptr<IScriptContext> second;
@@ -351,5 +364,40 @@ TEST_F(AddonItemPropertiesBindingTest, AddEnchantmentRejectsLevelsAboveMaxLevel)
         const list = subject.getEnchantments();
         if (list.length !== 1) throw Error('list changed after rejected write');
         if (list[0].level !== 1) throw Error('level changed after rejected write');
+    )");
+}
+
+// Container.transferItem(fromSlot, toContainer, toSlot)：跨容器搬运，源槽清空、目标槽写入。
+TEST_F(AddonItemPropertiesBindingTest, TransferItemMovesStackAcrossContainers)
+{
+    check(*first, R"(
+        inventory.setItem(0, subject);
+        const moved = inventory.transferItem(0, otherInventory, 1);
+        if (moved !== true) throw Error('transferItem should report success');
+        if (inventory.getItem(0) !== undefined) throw Error('source slot must be cleared');
+        const arrived = otherInventory.getItem(1);
+        if (arrived === undefined) throw Error('target slot is empty');
+        if (arrived.typeId !== subject.typeId) throw Error('moved item type mismatch');
+    )");
+}
+
+// 目标槽非空时必须拒绝搬运，源槽保持不变。
+TEST_F(AddonItemPropertiesBindingTest, TransferItemRejectsOccupiedTargetSlot)
+{
+    check(*first, R"(
+        inventory.setItem(0, subject);
+        otherInventory.setItem(1, subject);
+        const moved = inventory.transferItem(0, otherInventory, 1);
+        if (moved !== false) throw Error('transferItem should fail on occupied target');
+        if (inventory.getItem(0) === undefined) throw Error('source slot must be untouched on failure');
+    )");
+}
+
+// 源槽为空时搬运失败。
+TEST_F(AddonItemPropertiesBindingTest, TransferItemRejectsEmptySourceSlot)
+{
+    check(*first, R"(
+        const moved = inventory.transferItem(3, otherInventory, 0);
+        if (moved !== false) throw Error('transferItem should fail on empty source');
     )");
 }
