@@ -613,3 +613,30 @@ TEST_F(AddonHealthAttributeBindingTest, ResetToMinValueUsesAttributeMin)
         }
     )");
 }
+
+// Entity.addEffect 的 effectType 参数按基岩签名接受 EffectType | string。
+// 对象形式取其 id 属性；字符串形式同时接受带/不带命名空间。
+TEST_F(AddonEquippableArmorBindingTest, AddEffectAcceptsEffectTypeObject)
+{
+    // 三种形态各用不同效果，避免依赖 removeEffect（脚本侧未提供）。
+    check(R"(
+        {
+            subject.addEffect('minecraft:blindness', 200);
+            if (subject.getEffect('minecraft:blindness') === undefined) {
+                throw Error('string form did not apply');
+            }
+        }
+        {
+            subject.addEffect({id: 'minecraft:weakness'}, 200);
+            if (subject.getEffect('minecraft:weakness') === undefined) {
+                throw Error('object form did not apply');
+            }
+        }
+        {
+            subject.addEffect({id: 'poison'}, 100);
+            if (subject.getEffect('poison') === undefined) {
+                throw Error('unqualified id via object did not apply');
+            }
+        }
+    )");
+}

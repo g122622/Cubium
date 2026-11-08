@@ -1918,18 +1918,31 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return obj;
     };
     // 解析 JS effectType 参数（string 或 EffectType 对象）为 EffectType，失败返 nullopt。
-    // 基岩允许传字符串（"blindness"）或 EffectType 对象（.id）。Cubium 暂仅支持字符串。
+    // 基岩签名是 EffectType | string：传字符串时直接用（"blindness" 与
+    // "minecraft:blindness" 都接受）；传对象时取其 id 属性——官方 EffectType 是
+    // { id: string, ... } 形态的枚举成员对象。
     auto parseEffectType = [](IScriptBindingContext& ctx, void* arg) -> std::optional<mc::entity::effect::EffectType> {
-        if (arg == nullptr || !ctx.isString(arg)) {
+        if (arg == nullptr) {
             return std::nullopt;
         }
 
-        auto s = ctx.toString(arg);
-        if (!s) {
+        std::optional<std::string> name;
+        if (ctx.isString(arg)) {
+            name = ctx.toString(arg);
+        } else if (ctx.isObject(arg)) {
+            void* idVal = ctx.getProperty(arg, "id");
+            const bool isStr = ctx.isString(idVal);
+            if (isStr) {
+                name = ctx.toString(idVal);
+            }
+            ctx.releaseValue(idVal);
+        }
+
+        if (!name.has_value()) {
             return std::nullopt;
         }
 
-        std::string id = *s;
+        std::string id = *name;
         if (id.find(':') == std::string::npos) {
             id = "minecraft:" + id;
         }
@@ -1967,7 +1980,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 返 undefined。
     // 用于 GameTest 给实体施加状态效果（如僵尸村民治愈需先施虚弱、测试中毒/凋零伤害等），
     // 此前仅 EffectCommand(/effect) 能施效果且只支持玩家选择器，对非玩家实体不可用。
-    // TODO: 官方还支持 effectType 传 EffectType 对象（.id），Cubium 暂仅支持字符串（同 parseEffectType 限制）。
+    // effectType 接受字符串或 EffectType 对象（取其 id），见 parseEffectType。
     entityReg.method(
         "addEffect",
         [entityClassId, parseEffectType](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
