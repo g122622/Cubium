@@ -28,6 +28,8 @@
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/entity/inventory/CraftingInventory.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/item/Items.hpp"
@@ -309,4 +311,28 @@ TEST_F(AddonEntityStateQueryTest, ScriptVariantReferenceReadsCurrentGroupAndReje
     ASSERT_TRUE(result.success()) << result.errorMessage();
     context.reset();
     engine->shutdown();
+}
+
+// 载具容器（箱子矿车/漏斗矿车/箱子船）的 inventory 域查询：
+// 这些实体都提供了不修改库存的只读访问接口，has_equipment 的 inventory 域应当能查到。
+TEST_F(AddonEntityStateQueryTest, VehicleContainerInventoryIsQueryable)
+{
+    entity::ChestMinecartEntity minecart(EntityInstanceId(1), registry);
+    minecart.setInventoryItem(3, ItemStack(*item, 1));
+
+    Entity caller(EntityInstanceId(2), nullptr, registry);
+    EntityFilterContext minecartContext{caller, &minecart, nullptr, nullptr, nullptr, nullptr, nullptr};
+    check(minecartContext,
+        {{"test", "has_equipment"}, {"subject", "other"}, {"domain", "inventory"}, {"value", "minecraft:stick"}},
+        true);
+    check(minecartContext,
+        {{"test", "has_equipment"}, {"subject", "other"}, {"domain", "inventory"}, {"value", "minecraft:diamond"}},
+        false);
+
+    entity::ChestBoatEntity boat(entity::BoatEntity::Type::OAK, registry);
+    boat.setInventoryItem(0, ItemStack(*item, 1));
+    EntityFilterContext boatContext{caller, &boat, nullptr, nullptr, nullptr, nullptr, nullptr};
+    check(boatContext,
+        {{"test", "has_equipment"}, {"subject", "other"}, {"domain", "inventory"}, {"value", "minecraft:stick"}},
+        true);
 }
