@@ -506,7 +506,7 @@ jobs:
                 --inventory ctest-inventory.json \
                 --shard-index "$SHARD" \
                 --shard-count 20 \
-                --batch-size 60 \
+                --batch-size 200 \
                 --jobs 4 \
                 --out-log ctest-output.log \
                 --out-junit ctest-results.xml

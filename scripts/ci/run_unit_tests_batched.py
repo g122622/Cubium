@@ -11,6 +11,9 @@ GoogleTest 用例由 `gtest_discover_tests` 逐条注册为 CTest 用例，ctest
 | Release（无 sanitizer） | 0.76 s |
 | RelWithDebInfo + ASan/UBSan（单测构建） | 12.6 s |
 
+CI runner 上单个测试进程的端到端开销（ELF 装载 + sanitizer 运行库 + 上述初始化 + 退出）
+还要更大：按分片进程数反推约 38 秒。
+
 于是单分片 1390 个用例要付出约 1390 × 13 s ÷ 并发 的纯初始化开销——CI 上单分片实测 5900~10600 秒，
 而用例体本身通常只有几毫秒。判定逻辑没有问题，纯粹是「初始化次数 × 进程数」。
 
@@ -43,6 +46,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -162,20 +166,18 @@ class Runner:
                 errors = errors.decode("utf-8", "replace")
             return -1, True, (output + errors)[-8000:]
 
-    def _execute_batch(self, names: list[str], xml_path: Path) -> list[dict]:
-        """执行一个批次，返回每条用例的结果。"""
-        return self._execute_subset(names, xml_path, [0])
-
-    def _execute_subset(self, names: list[str], xml_path: Path, counter: list[int]) -> list[dict]:
+    def _execute_subset(self, names: list[str], xml_path: Path) -> tuple[list[dict], list[list[str]]]:
         """执行一组用例；进程崩溃/超时时二分缩小子集，只让出问题的那部分退化为单跑。
 
         gtest 的 XML 只在进程正常收尾时落盘，因此进程被信号杀掉时整批结果都没有。此时若把
-        整批都改为逐用例执行，一个坏用例就会让该批次多付几十次进程启动的固定开销（实测
-        60 个用例的批次会因此从 ~13s 变成 ~13min）。二分后健康的一半仍批量执行，进程数
-        只随崩溃用例数按对数增长。
+        整批都改为逐用例执行，一个坏用例就会让该批次多付几十次进程启动的固定开销（单进程
+        在 CI 上约 38 秒，60 个用例整批重跑要十分钟量级）。二分后健康的一半仍批量执行，
+        进程数只随崩溃用例数按对数增长。
+
+        返回 `(结果, 待继续二分的子集)`：子集由调用方重新提交到线程池，这样崩溃后的多次
+        二分仍能并发推进，而不是在单个工作线程里串行等完。
         """
-        counter[0] += 1
-        part_xml = xml_path.with_name(f"{xml_path.stem}_{counter[0]}.xml")
+        part_xml = xml_path.with_name(f"{xml_path.stem}_{uuid.uuid4().hex[:8]}.xml")
         part_xml.unlink(missing_ok=True)
         returncode, timed_out, output = self._run_gtest(names, part_xml, self.options.batch_timeout)
         results = self._parse_batch(part_xml) if part_xml.exists() else []
@@ -191,21 +193,19 @@ class Runner:
             if returncode != 0 and not any(r["status"] in ("failure", "error") for r in results):
                 print(f"[BatchExitIssue] {len(names)} test(s) reported results but the process "
                       f"exited with {returncode}:\n{output[-2000:]}", flush=True)
-            return results
+            return results, []
 
         if len(names) == 1:
             # 单个用例仍然没有结果：进程在报告前就终止了，保留失败现场供失败清单展示。
-            return [self._run_single(names[0], batch_output=output)]
+            return [self._run_single(names[0], batch_output=output)], []
+        if len(missing) == 1:
+            results.append(self._run_single(missing[0], batch_output=output))
+            return results, []
 
         reason = "timed out" if timed_out else f"exited with {returncode}"
         print(f"batch of {len(names)} {reason}; bisecting {len(missing)} unreported test(s)", flush=True)
-        if len(missing) == 1:
-            results.append(self._run_single(missing[0], batch_output=output))
-            return results
         middle = len(missing) // 2
-        results.extend(self._execute_subset(missing[:middle], xml_path, counter))
-        results.extend(self._execute_subset(missing[middle:], xml_path, counter))
-        return results
+        return results, [missing[:middle], missing[middle:]]
 
     def _run_single(self, name: str, batch_output: str = "") -> dict:
         """在独立进程里跑一个用例，返回它的结果。"""
@@ -279,12 +279,21 @@ class Runner:
         results: list[dict] = []
         with tempfile.TemporaryDirectory(prefix="mc-batch-") as scratch, \
                 concurrent.futures.ThreadPoolExecutor(max_workers=self.options.jobs) as pool:
-            futures = [
-                pool.submit(self._execute_batch, batch, Path(scratch) / f"batch-{index}.xml")
+            futures = {
+                pool.submit(self._execute_subset, batch, Path(scratch) / f"batch-{index}.xml")
                 for index, batch in enumerate(batches)
-            ]
-            for future in concurrent.futures.as_completed(futures):
-                results.extend(future.result())
+            }
+            while futures:
+                done, futures = concurrent.futures.wait(
+                    futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                for future in done:
+                    part_results, splits = future.result()
+                    results.extend(part_results)
+                    # 崩溃后的子集重新入队，让多次二分在线程池里并发推进。
+                    for split in splits:
+                        futures.add(pool.submit(
+                            self._execute_subset, split,
+                            Path(scratch) / f"split-{uuid.uuid4().hex[:8]}.xml"))
 
         # 过滤模式里的 `?` 可能顺带命中同分片的相邻用例（重复执行一次，结果按名字去重），
         # 这里只保留本分片真正要的用例，避免把别人的结果写进本分片报告。
@@ -377,7 +386,7 @@ def main() -> int:
     parser.add_argument("--config", default="RelWithDebInfo")
     parser.add_argument("--shard-index", type=int, required=True)
     parser.add_argument("--shard-count", type=int, required=True)
-    parser.add_argument("--batch-size", type=int, default=50,
+    parser.add_argument("--batch-size", type=int, default=200,
                         help="每个进程执行的用例数；越大初始化摊薄得越彻底，但崩溃影响面越大")
     parser.add_argument("--jobs", type=int, default=4, help="并发进程数")
     parser.add_argument("--batch-timeout", type=float, default=900.0)
