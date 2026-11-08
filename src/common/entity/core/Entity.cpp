@@ -308,9 +308,10 @@ Entity* Entity::convertTo(
                 rider->stopRiding();
             }
             rider->startRiding(*converted);
-        } else {
-            // TODO(convert-passengers): 原版会逐个迁移全部乘客；首个乘客已失效时此处直接跳过。
         }
+        // 首个乘客已失效（getEntity 返回空）：原版同样不做事——vanilla ConversionType.convert
+        // 只在 getFirstPassenger() 非空时才把乘客改挂到新实体上，并顺带清空新实体既有乘客。
+        // 本函数的 converted 由工厂新建、必然没有乘客，因此无需那一步清理。
     }
     if (savedVehicle != INVALID_ENTITY_ID) {
         if (Entity* vehicle = m_world->getEntity(savedVehicle); vehicle != nullptr && !vehicle->isRemoved()) {
