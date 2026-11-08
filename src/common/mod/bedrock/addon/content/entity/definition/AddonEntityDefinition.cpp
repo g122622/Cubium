@@ -186,6 +186,10 @@ public:
         : AgeableEntity(mc::EntityInstanceId(0), registry)
         , m_definition(std::move(definition))
     {
+        // 构造期虚函数不派发到派生类，LivingEntity 构造里调到的 registerAttributes() 解析到
+        // LivingEntity 版本而非 MobEntity 版本，导致 MOB 层属性（如 FOLLOW_RANGE）缺失——
+        // 表现是 getValue(FOLLOW_RANGE) 返回 0 而不是默认 16。这里显式再调一次补上。
+        registerAttributes();
         setWorld(world);
     }
 
@@ -415,6 +419,31 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             // 纯标记组件：存在即表示可攀爬梯子/藤蔓。攀爬判定读的是实体的攀爬状态，
             // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:follow_range") {
+            // value 映射到 Attributes::FOLLOW_RANGE（单位：方块）。基岩侧 max 是"最大追击距离"
+            // 的上限设定，运行时用于 cap 目标搜索；项目属性模型只有一个上限为 2048 的 follow_range，
+            // 因此 value 写基值，max 仅校验范围不参与计算。
+            // 与 knockback_resistance 同理，只接受字面量数字：属性基值是实例化时的常量，
+            // 没有 Molang/range 的求值通路，收下不生效比报错更难排查。
+            MC_TRY(_members(component, {"value", "max"}));
+            const auto bounds = mc::entity::attribute::Attributes::followRange();
+            for (const char* field : {"value", "max"}) {
+                const auto it = component.find(field);
+                if (it == component.end()) {
+                    continue;
+                }
+
+                if (!it->is_number()) {
+                    return Error(ErrorCode::Unsupported,
+                        std::string("minecraft:follow_range requires a literal number: ") + field);
+                }
+
+                const double number = it->get<double>();
+                if (!std::isfinite(number) || number < bounds->minValue() || number > bounds->maxValue()) {
+                    return Error(
+                        ErrorCode::InvalidData, std::string("minecraft:follow_range is out of range: ") + field);
+                }
+            }
         } else if (name == "minecraft:knockback_resistance") {
             // value 映射到 Attributes::KNOCKBACK_RESISTANCE（0.0 无抗性，1.0 完全免疫）。
             // 基岩侧 max 是"潜在上限"（用于显示/成长预留），运行时生效的是 value，
@@ -525,6 +554,16 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
     // 走 Entity::setInvulnerable(true)，与"无敌"共用同一套伤害拦截，不额外造一条并行判定。
     if (m_components.contains("minecraft:cannot_be_attacked")) {
         entity.setInvulnerable(true);
+    }
+
+    // minecraft:follow_range.value → 追击范围属性。只有 LivingEntity 有属性表。
+    if (const auto it = m_components.find("minecraft:follow_range"); it != m_components.end()) {
+        if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity); living != nullptr) {
+            if (const auto value = it->find("value"); value != it->end() && value->is_number()) {
+                living->attributes().setBaseValue(
+                    mc::entity::attribute::Attributes::FOLLOW_RANGE, value->get<double>());
+            }
+        }
     }
 
     // minecraft:knockback_resistance.value → 击退抗性属性。只有 LivingEntity 有属性表。

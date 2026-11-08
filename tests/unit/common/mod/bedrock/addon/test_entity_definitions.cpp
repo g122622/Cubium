@@ -180,6 +180,31 @@ TEST_F(AddonEntityDefinitionTest, MarkerComponentsAreAcceptedAndIsBabyTakesEffec
 // minecraft:knockback_resistance.value 必须落到击退抗性属性上，且只接受字面量数字：
 // range 对象 / Molang 当前没有"每 tick 求值"的通路，放任通过会导致组件被收下却不生效。
 // minecraft:cannot_be_attacked 是纯标记组件，解析后实体必须是无敌的（否则组件等于被忽略）。
+// minecraft:follow_range.value 必须落到追击范围属性上（实体寻路/目标搜索读的就是它）。
+TEST_F(AddonEntityDefinitionTest, FollowRangeIsAppliedToAttribute)
+{
+    auto definition = _definition("addon_test:follow_range");
+    definition["minecraft:entity"]["components"]["minecraft:movement"] = {{"value", 0.3}};
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    definition["minecraft:entity"]["components"]["minecraft:follow_range"] = {{"value", 48}, {"max", 64}};
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    auto entity = AddonEntityDefinition::create(shared, nullptr, entities, {});
+    ASSERT_NE(entity, nullptr);
+    const auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    EXPECT_DOUBLE_EQ(living->attributes().getValue(mc::entity::attribute::Attributes::FOLLOW_RANGE), 48.0);
+
+    // 动态形式必须被明确拒绝，与 knockback_resistance 保持同一策略。
+    auto dynamicValue = _definition("addon_test:follow_range_dynamic");
+    dynamicValue["minecraft:entity"]["components"]["minecraft:follow_range"] = {{"value", "math.random(16, 48)"}};
+    const auto rejected = AddonEntityDefinition::parse(dynamicValue);
+    ASSERT_TRUE(rejected.failed());
+    EXPECT_EQ(rejected.error().code(), mc::ErrorCode::Unsupported);
+}
+
 TEST_F(AddonEntityDefinitionTest, CannotBeAttackedMakesEntityInvulnerable)
 {
     auto definition = _definition("addon_test:invulnerable");
