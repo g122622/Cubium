@@ -52,6 +52,7 @@ nbt::tags::compound_tag ScoreboardSaveData::ObjectiveData::toNbt() const
     tag.put("CriteriaName", criteriaName);
     tag.put("DisplayName", displayName);
     tag.put("RenderType", renderType);
+    tag.put("DisplayAutoUpdate", displayAutoUpdate ? std::int8_t{1} : std::int8_t{0});
     return tag;
 }
 
@@ -101,6 +102,15 @@ Result<ScoreboardSaveData::ObjectiveData> ScoreboardSaveData::ObjectiveData::fro
         }
     } else {
         data.renderType = "integer";
+    }
+
+    // DisplayAutoUpdate：缺省 true（vanilla 默认值），故旧存档读出新字段时为 true。
+    auto autoUpdateIt = tag.value.find("DisplayAutoUpdate");
+    if (autoUpdateIt != tag.value.end()) {
+        auto* autoUpdateTag = dynamic_cast<const nbt::tags::byte_tag*>(autoUpdateIt->second.get());
+        data.displayAutoUpdate = autoUpdateTag == nullptr || autoUpdateTag->value != 0;
+    } else {
+        data.displayAutoUpdate = true;
     }
 
     return data;
@@ -388,6 +398,7 @@ ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboa
         }
 
         objData.renderType = renderTypeToString(objective->getRenderType());
+        objData.displayAutoUpdate = objective->getDisplayAutoUpdate();
         data.addObjective(std::move(objData));
     }
 
@@ -487,6 +498,7 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
         if (objective) {
             auto renderType = renderTypeFromString(objData.renderType);
             objective->setRenderType(renderType);
+            objective->setDisplayAutoUpdate(objData.displayAutoUpdate);
         }
     }
 

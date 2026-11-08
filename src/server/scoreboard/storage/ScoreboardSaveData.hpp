@@ -53,8 +53,9 @@ public:
     struct ObjectiveData {
         std::string name;
         std::string criteriaName;
-        std::string displayName; // JSON 格式
-        std::string renderType;  // "integer" 或 "hearts"
+        std::string displayName;       // JSON 格式
+        std::string renderType;        // "integer" 或 "hearts"
+        bool displayAutoUpdate = true; ///< 显示名随分数自动更新（vanilla Objective.displayAutoUpdate）
 
         [[nodiscard]] nbt::tags::compound_tag toNbt() const;
         static Result<ObjectiveData> fromNbt(const nbt::tags::compound_tag& tag);

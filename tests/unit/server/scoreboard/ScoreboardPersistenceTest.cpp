@@ -74,6 +74,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Serialize)
     data.criteriaName = "dummy";
     data.displayName = "Player Kills";
     data.renderType = "integer";
+    data.displayAutoUpdate = false;
 
     nbt::tags::compound_tag tag = data.toNbt();
 
@@ -93,6 +94,10 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Serialize)
     auto* renderTag = dynamic_cast<const nbt::tags::string_tag*>(tag.value.find("RenderType")->second.get());
     ASSERT_NE(renderTag, nullptr);
     EXPECT_EQ(renderTag->value, "integer");
+
+    auto* autoUpdateTag = dynamic_cast<const nbt::tags::byte_tag*>(tag.value.find("DisplayAutoUpdate")->second.get());
+    ASSERT_NE(autoUpdateTag, nullptr);
+    EXPECT_EQ(autoUpdateTag->value, 0);
 }
 
 TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize)
@@ -102,6 +107,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize)
     tag.put("CriteriaName", std::string("deathCount"));
     tag.put("DisplayName", std::string("Death Count"));
     tag.put("RenderType", std::string("hearts"));
+    tag.put("DisplayAutoUpdate", std::int8_t{0});
 
     auto result = ScoreboardSaveData::ObjectiveData::fromNbt(tag);
     ASSERT_TRUE(result.success());
@@ -111,6 +117,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize)
     EXPECT_EQ(data.criteriaName, "deathCount");
     EXPECT_EQ(data.displayName, "Death Count");
     EXPECT_EQ(data.renderType, "hearts");
+    EXPECT_FALSE(data.displayAutoUpdate);
 }
 
 TEST_F(ScoreboardPersistenceTest, ObjectiveData_MissingFields)
@@ -141,6 +148,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Defaults)
     auto data = std::move(result).value();
     EXPECT_EQ(data.displayName, "test");   // 默认使用 name
     EXPECT_EQ(data.renderType, "integer"); // 默认 integer
+    EXPECT_TRUE(data.displayAutoUpdate);   // 默认 true（旧存档同此行为）
 }
 
 // ========== 分数数据序列化测试 ==========

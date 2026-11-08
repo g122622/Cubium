@@ -140,6 +140,26 @@ public:
      */
     void setRenderType(RenderType renderType);
 
+    /**
+     * @brief 显示名是否随分数自动更新
+     *
+     * 对应 vanilla `Objective.displayAutoUpdate`（/scoreboard objectives modify
+     * <objective> displayautoupdate <bool>）。为 true 时记分板界面会把显示名中的分数
+     * 占位刷新为最新值；为 false 时只在显示名变化时重算。
+     *
+     * @return 自动更新时返回 true
+     */
+    [[nodiscard]] bool getDisplayAutoUpdate() const noexcept
+    {
+        return m_displayAutoUpdate;
+    }
+
+    /**
+     * @brief 设置显示名是否随分数自动更新
+     * @param displayAutoUpdate 是否自动更新
+     */
+    void setDisplayAutoUpdate(bool displayAutoUpdate);
+
     // ========== 所属记分板 ==========
 
     /**
@@ -168,6 +188,7 @@ private:
     std::unique_ptr<text::ITextComponent> m_displayName;
     std::unique_ptr<text::ITextComponent> m_formattedDisplayName;
     RenderType m_renderType;
+    bool m_displayAutoUpdate = true; ///< 显示名自动更新（vanilla 默认为 true）
 };
 
 } // namespace mc::scoreboard

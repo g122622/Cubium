@@ -135,9 +135,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto displayAutoUpdateArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
     displayAutoUpdateArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 显示自动更新的写入尚未实现，形态已对齐原版。
-        ctx.getSource().sendError("commands.scoreboard.displayautoupdate.notImplemented");
-        return 0;
+        return _modifyObjectiveDisplayAutoUpdate(ctx);
     });
     displayAutoUpdateNode->addChild(displayAutoUpdateArg);
     modifyNameArg->addChild(displayAutoUpdateNode);
@@ -874,6 +872,28 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayName(CommandContext<ServerCommandS
     }
     objective->setDisplayName(std::make_unique<text::StringTextComponent>(displayName));
     source.sendMessage("Set display name of objective '" + name + "' to '" + displayName + "'");
+    return 1;
+}
+
+i32 ScoreboardCommand::_modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const std::string name = context.getArgument<std::string>("objective");
+    const bool value = context.getArgument<bool>("value");
+
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+    auto* objective = scoreboard->getObjective(name);
+    if (objective == nullptr) {
+        source.sendMessage("Unknown objective '" + name + "'");
+        return 0;
+    }
+
+    objective->setDisplayAutoUpdate(value);
+    source.sendMessage("Set displayAutoUpdate of objective '" + name + "' to " + (value ? "true" : "false"));
     return 1;
 }
 

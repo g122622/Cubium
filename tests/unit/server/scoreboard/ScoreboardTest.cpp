@@ -817,6 +817,33 @@ TEST_F(ScoreboardTest, Objective_SetRenderTypeToHearts)
     EXPECT_EQ(objective->getRenderType(), RenderType::Integer);
 }
 
+TEST_F(ScoreboardTest, Objective_DisplayAutoUpdateDefaultsToTrue)
+{
+    // 原版新建目标的 displayAutoUpdate 默认为 true。
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    auto* objective = scoreboard.addObjective("auto", *criteria);
+    ASSERT_NE(objective, nullptr);
+
+    EXPECT_TRUE(objective->getDisplayAutoUpdate());
+}
+
+TEST_F(ScoreboardTest, Objective_SetDisplayAutoUpdateFalse)
+{
+    // /scoreboard objectives modify <objective> displayautoupdate false 的底层写入。
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    auto* objective = scoreboard.addObjective("auto", *criteria);
+    ASSERT_NE(objective, nullptr);
+
+    objective->setDisplayAutoUpdate(false);
+    EXPECT_FALSE(objective->getDisplayAutoUpdate());
+
+    // 可以改回来，持久化层的读写一致性依赖该 setter 生效。
+    objective->setDisplayAutoUpdate(true);
+    EXPECT_TRUE(objective->getDisplayAutoUpdate());
+}
+
 TEST_F(ScoreboardTest, RenderTypeStringRoundTrip)
 {
     // 命令字面量 -> 枚举 -> 字符串 必须闭环，否则约定的 rendertype 参数会写错值。

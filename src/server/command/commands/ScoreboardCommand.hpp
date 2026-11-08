@@ -57,6 +57,13 @@ private:
     static i32 _modifyObjectiveDisplayName(CommandContext<ServerCommandSource>& context);
 
     /**
+     * @brief 设置目标的显示名是否随分数自动更新
+     *
+     * 对应 /scoreboard objectives modify <objective> displayautoupdate <bool>。
+     */
+    static i32 _modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCommandSource>& context);
+
+    /**
      * @brief 设置目标的分数渲染类型
      *
      * 对应原版 `commands.scoreboard.objectives.modify.rendertype`：仅在类型发生变化时写入并
