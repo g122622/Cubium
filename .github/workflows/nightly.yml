@@ -454,7 +454,7 @@ jobs:
   # 用于定位单进程 8 秒固定开销的来源。调查结束后删除。
   timing-probe:
     name: Unit Test Timing Probe
-    needs: build
+    needs: [build, release-build]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
