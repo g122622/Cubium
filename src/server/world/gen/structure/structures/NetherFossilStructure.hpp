@@ -33,6 +33,7 @@
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -97,7 +98,13 @@ private:
  */
 class NetherFossilStructure : public Structure {
 public:
-    explicit NetherFossilStructure(ResourceLocation id);
+    /**
+     * @brief 构造下界化石结构
+     *
+     * @param id 结构资源位置
+     * @param height 落点高度提供者（数据包字段 `height`，原版 `NetherFossilStructure.height`）
+     */
+    NetherFossilStructure(ResourceLocation id, std::unique_ptr<valueprovider::HeightProvider> height);
 
     [[nodiscard]] const std::string& name() const override
     {
@@ -130,6 +137,7 @@ public:
 
 private:
     static const std::string s_name;
+    std::unique_ptr<valueprovider::HeightProvider> m_height; ///< 落点高度提供者（数据包 `height`）
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 

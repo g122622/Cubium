@@ -195,16 +195,25 @@ inline WorldSetup makeWorldSetup(const std::string& name, u64 seed)
 
     static std::unordered_map<std::string, CachedState> cache;
 
+    const auto makeSettings = [&name]() {
+        if (name == "overworld") {
+            return DimensionSettings::overworld();
+        }
+        if (name == "the_nether") {
+            return DimensionSettings::nether();
+        }
+        if (name == "the_end") {
+            return DimensionSettings::end();
+        }
+        throw std::runtime_error("structure probe: unknown dimension " + name);
+    };
+
     const auto found = cache.find(name);
     if (found != cache.end() && found->second.seed == seed) {
-        DimensionSettings settings = name == "overworld" ? DimensionSettings::overworld() : DimensionSettings::end();
-        return {std::move(settings), found->second.state};
+        return {makeSettings(), found->second.state};
     }
 
-    DimensionSettings settings = name == "overworld" ? DimensionSettings::overworld() : DimensionSettings::end();
-    if (name != "overworld" && name != "the_end") {
-        throw std::runtime_error("structure probe: unknown dimension " + name);
-    }
+    DimensionSettings settings = makeSettings();
     auto shared = std::shared_ptr<world::gen::RandomState>(world::gen::RandomState::create(settings, seed));
     cache[name] = CachedState{seed, shared};
     return {std::move(settings), std::move(shared)};
@@ -216,6 +225,9 @@ inline std::unique_ptr<world::biome::IBiomeSource> makeBiomeSource(
 {
     if (name == "overworld") {
         return world::biome::source::MultiNoiseBiomeSource::createOverworld(randomState, false, false);
+    }
+    if (name == "the_nether") {
+        return world::biome::source::MultiNoiseBiomeSource::createNether(randomState);
     }
     if (name == "the_end") {
         return std::make_unique<world::biome::source::EndBiomeSource>(randomState);

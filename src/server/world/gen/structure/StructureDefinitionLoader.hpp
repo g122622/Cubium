@@ -85,6 +85,9 @@ struct StructureDefinition {
     DecorationStage step = DecorationStage::SurfaceStructures;     ///< 生成阶段
     TerrainAdaptation terrainAdaptation = TerrainAdaptation::None; ///< 地形适配模式
 
+    /// 落点高度提供者（数据包字段 `height`，目前仅 `minecraft:nether_fossil` 使用）
+    std::unique_ptr<valueprovider::HeightProvider> height;
+
     /// 废墟传送门的 setup 表（仅 `minecraft:ruined_portal` 类型使用）
     std::vector<RuinedPortalSetupDefinition> ruinedPortalSetups;
 

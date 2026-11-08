@@ -43,6 +43,8 @@
 #include "server/world/gen/structure/structures/StrongholdStructure.hpp"
 #include "server/world/gen/structure/structures/SwampHutStructure.hpp"
 #include "server/world/gen/structure/structures/WoodlandMansionStructure.hpp"
+#include "server/world/gen/surface/VerticalAnchor.hpp"
+#include "server/world/gen/valueprovider/HeightProvider.hpp"
 
 #include <cmath>
 #include <unordered_map>
@@ -50,6 +52,18 @@
 using namespace mc;
 using namespace mc::world::gen::structure;
 using namespace mc::Biomes;
+
+namespace {
+
+/// 化石结构测试用的落点高度范围，与数据包 nether_fossil.json 的 height 字段一致。
+std::unique_ptr<mc::world::gen::valueprovider::HeightProvider> makeNetherFossilHeight()
+{
+    using mc::world::gen::surface::VerticalAnchor;
+    return mc::world::gen::valueprovider::UniformHeight::create(
+        VerticalAnchor::absolute(32), VerticalAnchor::belowTop(2));
+}
+
+} // namespace
 
 // ============================================================================
 // 测试夹具
@@ -381,7 +395,7 @@ TEST_F(NewStructuresTest, SwampHut_PieceConstruction)
 
 TEST_F(NewStructuresTest, NetherFossil_NameAndBiomeTag)
 {
-    NetherFossilStructure structure(ResourceLocation("minecraft", "nether_fossil"));
+    NetherFossilStructure structure(ResourceLocation("minecraft", "nether_fossil"), makeNetherFossilHeight());
 
     EXPECT_EQ(structure.name(), "Nether_Fossil");
 
@@ -474,7 +488,7 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidBiomeTags)
 {
     IglooStructure igloo(ResourceLocation("minecraft", "igloo"));
     SwampHutStructure swampHut(ResourceLocation("minecraft", "swamp_hut"));
-    NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"));
+    NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"), makeNetherFossilHeight());
     EndCityStructure endCity(ResourceLocation("minecraft", "end_city"));
     WoodlandMansionStructure mansion(ResourceLocation("minecraft", "mansion"));
 
@@ -490,7 +504,7 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
 {
     IglooStructure igloo(ResourceLocation("minecraft", "igloo"));
     SwampHutStructure swampHut(ResourceLocation("minecraft", "swamp_hut"));
-    NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"));
+    NetherFossilStructure netherFossil(ResourceLocation("minecraft", "nether_fossil"), makeNetherFossilHeight());
     EndCityStructure endCity(ResourceLocation("minecraft", "end_city"));
     WoodlandMansionStructure mansion(ResourceLocation("minecraft", "mansion"));
 

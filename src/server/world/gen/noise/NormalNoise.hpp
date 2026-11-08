@@ -72,6 +72,21 @@ public:
      */
     NormalNoise(math::IRandom& rng, i32 firstOctave, std::vector<f64> amplitudes);
 
+    /**
+     * @brief 旧版下界生物群系噪声（MC 1.21 `NormalNoise.createLegacyNetherBiome`）
+     *
+     * 两个 PerlinNoise 都从**同一个** RandomSource 顺序消费随机数，而不是各自
+     * `forkPositional()` 派生工厂。下界/末地这类 `legacy_random_source = true` 的维度里，
+     * 温度与湿度两个气候噪声走的就是这条路（主世界不走）。
+     *
+     * @param rng 共享随机源（LegacyRandomSource(worldSeed + 偏移)），构造后状态被推进
+     * @param firstOctave 首个倍频索引
+     * @param amplitudes 倍频振幅列表
+     * @return 新建的噪声实例
+     */
+    [[nodiscard]] static std::shared_ptr<NormalNoise> createLegacyNetherBiome(
+        math::IRandom& rng, i32 firstOctave, std::vector<f64> amplitudes);
+
     ~NormalNoise() = default;
 
     NormalNoise(const NormalNoise&) = delete;
@@ -143,6 +158,9 @@ public:
     [[nodiscard]] static f64 expectedDeviation(i32 octaveRange);
 
 private:
+    /// 供 createLegacyNetherBiome 逐字段填装的空构造（成员随后立即赋值）。
+    NormalNoise() = default;
+
     /**
      * @brief 计算 valueFactor 和 maxValue（两个构造函数共用）
      */

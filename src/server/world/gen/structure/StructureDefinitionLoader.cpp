@@ -209,6 +209,16 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
             def->size = jsonObj["size"].get<i32>();
         }
 
+        if (jsonObj.contains("height") && jsonObj["height"].is_object()) {
+            auto heightResult = valueprovider::HeightProviderParser::parse(jsonObj["height"]);
+            if (heightResult.success()) {
+                def->height = heightResult.value();
+            } else {
+                spdlog::warn("Structure '{}': failed to parse height ({}), structure will not generate",
+                    def->id.toString(),
+                    heightResult.error().message());
+            }
+        }
         if (jsonObj.contains("start_height")) {
             // start_height 两种形式：
             //   简写（单键锚点）：{ "absolute": 0 } / { "above_bottom": N } / { "below_top": N }
