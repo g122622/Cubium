@@ -16,7 +16,8 @@ env:
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
   VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
   CCACHE_DIR: ${{ github.workspace }}/.ccache
-  CCACHE_MAXSIZE: 2G
+  # ccache 上限按编译池在 .github/actions/build-pococc 中分别设置：GitHub Actions 缓存配额
+  # 由三个池（nightly/release/fuzz）与 vcpkg 共享，全局放大上限会互相挤占。
   CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
   POCOCC_CI_BINARY_DIR: /tmp/pococc-tools
   POCOCC_CI_HOLD_TIMEOUT: '21600'
