@@ -488,19 +488,19 @@ jobs:
             echo "run $i: total_wall=$(echo "$end - $start" | bc)"
             cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
           done
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-release-build-artifacts
+          path: /tmp/release
       - name: Compare with the non-sanitized release server
         run: |
           set +e
-          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" \
-            -n pococc-release-build-artifacts -D /tmp/release 2>/dev/null || true
-          SERVER=$(ls /tmp/release/build-release-noprof/bin/Release/minecraft-server 2>/dev/null | head -1)
-          if [ -z "$SERVER" ] || [ ! -x "$SERVER" ]; then
-            echo "release server not available"
-            exit 0
-          fi
-          # Release 构建不含 sanitizer：同一份初始化代码在同样的机器上的基线耗时。
-          timeout 60 "$SERVER" --profiler_enabled=false > /tmp/release-server.log 2>&1
-          grep -nE "\[VanillaBlocks\]|Initializing vanilla block items|Registered .* block items" /tmp/release-server.log | head -20
+          find /tmp/release -maxdepth 4 -name "minecraft-server" -type f | head -5
+          SERVER=$(find /tmp/release -maxdepth 4 -name "minecraft-server" -type f | head -1)
+          chmod +x "$SERVER" 2>/dev/null
+          # Release 构建不含 sanitizer：同一份初始化代码在同样机器上的基线耗时。
+          timeout 90 "$SERVER" --profiler_enabled=false > /tmp/release-server.log 2>&1
+          grep -nE "\[VanillaBlocks\]|Registered [0-9]+ block items" /tmp/release-server.log | head -20
       - name: Sanitizer option sweep
         env:
           MC_SETUP_TIMING_DIR: ${{ runner.temp }}
