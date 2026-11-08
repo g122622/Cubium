@@ -3259,9 +3259,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     //
     // 参数 enchantment：{ type: string, level: number }。
     //   - type：附魔 id，接受 "minecraft:fire_protection" 或 "fire_protection"（无命名空间时补 minecraft:）。
-    //   - level：附魔等级，整数 ≥1。基岩范围由各附魔 maxLevel 约束，超范围抛 EnchantmentLevelOutOfBoundsError；
-    //     此处仅校验 ≥1（Cubium EnchantmentRegistry 未提供 maxLevel 查询，超范围不抛错，与基岩略有差异，
-    //     TODO: 接入 Enchantment::getMaxLevel 后补范围校验）。
+    //   - level：附魔等级，整数 ≥1 且不超过该附魔的 maxLevel（Enchantment::maxLevel），
+    //     超出抛错（对齐基岩 EnchantmentLevelOutOfBoundsError）。
     //
     // id 存在性校验：EnchantmentRegistry::get(id) 查不到时 throwTypeError（对应基岩
     // EnchantmentTypeUnknownIdError），避免写入未注册的垃圾附魔 id。校验通过后调
@@ -3315,6 +3314,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             const mc::item::enchant::Enchantment* ench = mc::item::enchant::EnchantmentRegistry::get(typeId);
             if (ench == nullptr) {
                 const std::string msg = "ItemStack.addEnchantment: unknown enchantment type '" + typeId + "'";
+
+                return ctx.throwTypeError(msg.c_str());
+            }
+
+            // 等级上限校验（对齐基岩 EnchantmentLevelOutOfBoundsError）：超出该附魔 maxLevel 时拒绝。
+            // 此前只校验 ≥1，会让 /enchant 之外的脚本路径写入不可能存在的等级。
+            if (level > ench->maxLevel()) {
+                const std::string msg = "ItemStack.addEnchantment: level " + std::to_string(level) +
+                    " exceeds max level " + std::to_string(ench->maxLevel()) + " for '" + typeId + "'";
 
                 return ctx.throwTypeError(msg.c_str());
             }

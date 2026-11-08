@@ -25,6 +25,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/content/item/ItemAddonProperties.hpp"
@@ -315,5 +316,40 @@ TEST_F(AddonItemPropertiesBindingTest, GetterExceptionsPreserveOriginalValueAndE
         if (!caught) throw Error('exception swallowed');
         if (subject.getDynamicProperty('saved') !== true) throw Error('saved value changed');
         if (subject.getDynamicProperty('good') !== undefined) throw Error('partial commit');
+    )");
+}
+
+// ItemStack.addEnchantment 的等级上限校验：超出该附魔 maxLevel 时必须抛错，
+// 而不是写入一个不可能存在的等级。
+TEST_F(AddonItemPropertiesBindingTest, AddEnchantmentRejectsLevelsAboveMaxLevel)
+{
+    mc::item::enchant::EnchantmentRegistry::initialize();
+    const auto* sharpness = mc::item::enchant::EnchantmentRegistry::get("minecraft:sharpness");
+    ASSERT_NE(sharpness, nullptr);
+    const mc::i32 maxLevel = sharpness->maxLevel();
+    ASSERT_GT(maxLevel, 0);
+
+    // 上限内正常写入。
+    check(*first, R"(
+        subject.addEnchantment({type: 'minecraft:sharpness', level: 1});
+        const list = subject.getEnchantments();
+        if (list.length !== 1) throw Error('enchantment not added');
+        if (list[0].level !== 1) throw Error('wrong level');
+    )");
+
+    // 超出上限必须抛错。
+    const std::string overLevel = std::to_string(maxLevel + 1);
+    check(*first,
+        "let rejected = false;\n"
+        "try { subject.addEnchantment({type: 'minecraft:sharpness', level: " +
+            overLevel +
+            "}); } catch { rejected = true; }\n"
+            "if (!rejected) throw Error('level above max was accepted');");
+
+    // 拒绝后等级不应被改动（仍为上一步写入的 1）。
+    check(*first, R"(
+        const list = subject.getEnchantments();
+        if (list.length !== 1) throw Error('list changed after rejected write');
+        if (list[0].level !== 1) throw Error('level changed after rejected write');
     )");
 }
