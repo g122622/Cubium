@@ -113,34 +113,54 @@ public:
     void moveToLocation(BlockPos relativePos, f32 speed, bool faceTarget);
 
     /**
+     * @brief 朝向持续语义（基岩 LookDuration）
+     *
+     * - Instant：只在调用瞬间定向；
+     * - Continuous：每 tick 持续朝向目标，直到被新的 lookAt 覆盖；
+     * - UntilMove：每 tick 持续朝向目标，直到玩家发生移动。
+     */
+    enum class LookDuration : u8 {
+        Instant,
+        Continuous,
+        UntilMove,
+    };
+
+    /**
      * @brief 转头朝向某方块位置（设置 yaw / pitch + 头部旋转）。
      *
      * 对齐基岩 SimulatedPlayer::lookAtLocation。
      *
      * @param relativePos 结构相对坐标。
+     * @param duration 朝向持续语义。
      */
-    void lookAtLocation(BlockPos relativePos);
+    void lookAtLocation(BlockPos relativePos, LookDuration duration);
 
     /**
      * @brief 转头朝向某实体。
      *
      * 对齐基岩 SimulatedPlayer::lookAtEntity。Player 不是 MobEntity 故无 MobEntity::lookAt，
-     * 此处用 setRotation 直接定向（瞬时，无插值；TODO: 加插值对齐基岩 deltaYaw / deltaPitch）。
+     * 此处用 setRotation 直接定向。duration 为 Continuous / UntilMove 时由 tick() 每 tick 重新定向
+     * 以跟随目标移动（TODO: 加 deltaYaw/deltaPitch 插值，当前每 tick 瞬时对齐）。
      *
      * @param target 目标实体。
+     * @param duration 朝向持续语义。
      */
-    void lookAtEntity(const mc::Entity& target);
+    void lookAtEntity(const mc::Entity& target, LookDuration duration);
 
     /**
      * @brief 转头朝向某方块位置（对齐基岩 SimulatedPlayer::lookAtBlock）。
      *
-     * 语义等同 lookAtLocation（都接结构相对 BlockPos），duration 参数当前忽略（瞬时定向），
-     * TODO: 加插值对齐基岩 LookDuration（Continuous/Instant/UntilMove）。
+     * 语义等同 lookAtLocation（都接结构相对 BlockPos）。
      *
      * @param relativePos 结构相对坐标。
-     * @param duration 朝向持续时间语义（LookDuration），当前忽略。
+     * @param duration 朝向持续语义。
      */
-    void lookAtBlock(BlockPos relativePos);
+    void lookAtBlock(BlockPos relativePos, LookDuration duration);
+
+    /**
+     * @brief 每 tick 刷新追踪朝向，并处理 UntilMove 在移动时终止追踪。
+     */
+    void tick() override;
 
     /**
      * @brief 朝目标方块位置行走（对齐基岩 SimulatedPlayer::moveToBlock）。
@@ -385,6 +405,31 @@ public:
 
 private:
     IGameTestHelper* m_helper = nullptr; // 非拥有回指，spawn 时绑定
+
+    /// 当前追踪的朝向目标类型
+    enum class LookTargetKind : u8 {
+        None,
+        Entity,
+        Block,
+    };
+
+    /// 每 tick 刷新追踪朝向（Continuous / UntilMove）。Instant 或无目标时不做任何事。
+    void _tickLookTarget();
+
+    /// 按当前追踪目标重新定向（目标失效时清除追踪）
+    void _applyLookTarget();
+
+    LookDuration m_lookDuration = LookDuration::Instant;
+    LookTargetKind m_lookTargetKind = LookTargetKind::None;
+    /// 追踪的实体目标 id（用 id 而非裸指针，避免实体销毁后悬垂）
+    mc::EntityInstanceId m_lookTargetEntityId = INVALID_ENTITY_ID;
+    /// 追踪的方块目标（世界绝对坐标）
+    BlockPos m_lookTargetBlock{};
+    /// UntilMove 语义下是否仍处于追踪状态（一旦移动即置 false）
+    bool m_lookActive = false;
+    /// 上一 tick 的水平位置，用于判定 UntilMove 期间是否发生了移动
+    f32 m_lastLookTickX = 0.0f;
+    f32 m_lastLookTickZ = 0.0f;
 };
 
 } // namespace mc::test

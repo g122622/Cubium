@@ -113,6 +113,37 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
     return nullptr;
 }
 
+// 解析基岩 LookDuration 字符串枚举："Continuous" / "Instant" / "UntilMove"（默认 "Instant"）。
+// 该枚举取值是字符串（不是数字），传其他值报 TypeError。
+bool _parseLookDuration(
+    mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg, SimulatedPlayer::LookDuration& out)
+{
+    out = SimulatedPlayer::LookDuration::Instant;
+
+    if (arg == nullptr || ctx.isUndefined(arg)) {
+        return true; // duration 可省略，按瞬时定向
+    }
+
+    auto value = ctx.toString(arg);
+    if (!value) {
+        MC_UNUSED(ctx.throwTypeError("LookDuration must be a string"));
+        return false;
+    }
+
+    if (*value == "Instant") {
+        out = SimulatedPlayer::LookDuration::Instant;
+    } else if (*value == "Continuous") {
+        out = SimulatedPlayer::LookDuration::Continuous;
+    } else if (*value == "UntilMove") {
+        out = SimulatedPlayer::LookDuration::UntilMove;
+    } else {
+        MC_UNUSED(ctx.throwTypeError("LookDuration must be one of Instant/Continuous/UntilMove"));
+        return false;
+    }
+
+    return true;
+}
+
 // 解析基岩 MoveToOptions {faceTarget?: boolean, speed?: number}。
 // 缺省值取基岩文档：options 本身可省略，speed 省略时按 1.0，faceTarget 省略时按 true。
 // 字段存在但类型不对时报类型错误（不静默取默认值，避免拼写错误被吞掉）。
@@ -927,7 +958,7 @@ u64 registerSimulatedPlayerClassBinding(
         },
         2);
 
-    // --- lookAtLocation(blockPos) ---
+    // --- lookAtLocation(blockPos, duration?) ---
     reg.method(
         "lookAtLocation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -937,7 +968,7 @@ u64 registerSimulatedPlayerClassBinding(
             }
 
             if (argc < 1 || !ctx.isObject(args[0])) {
-                return ctx.throwTypeError("lookAtLocation(pos)");
+                return ctx.throwTypeError("lookAtLocation(pos, duration?)");
             }
 
             BlockPos pos;
@@ -945,7 +976,11 @@ u64 registerSimulatedPlayerClassBinding(
                 return nullptr;
             }
 
-            player->lookAtLocation(pos);
+            SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
+            if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
+                return nullptr;
+            }
+            player->lookAtLocation(pos, duration);
 
             return ctx.createUndefined();
         },
@@ -991,7 +1026,7 @@ u64 registerSimulatedPlayerClassBinding(
         0);
 
     // --- lookAtEntity(entity, duration?) ---
-    // entity 经 _unwrapEntity 取 mc::Entity*。duration（LookDuration）当前忽略（瞬时定向），TODO。
+    // entity 经 _unwrapEntity 取 mc::Entity*；duration 为基岩 LookDuration（见 _parseLookDuration）。
     reg.method(
         "lookAtEntity",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -1009,7 +1044,11 @@ u64 registerSimulatedPlayerClassBinding(
                 return ctx.throwTypeError("lookAtEntity: first arg must be an Entity");
             }
             // TODO: duration（LookDuration）插值语义，当前瞬时。
-            player->lookAtEntity(*target);
+            SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
+            if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
+                return nullptr;
+            }
+            player->lookAtEntity(*target, duration);
 
             return ctx.createUndefined();
         },
@@ -1033,7 +1072,11 @@ u64 registerSimulatedPlayerClassBinding(
                 return nullptr;
             }
             // TODO: duration（LookDuration）插值语义，当前瞬时。
-            player->lookAtBlock(pos);
+            SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
+            if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
+                return nullptr;
+            }
+            player->lookAtBlock(pos, duration);
 
             return ctx.createUndefined();
         },

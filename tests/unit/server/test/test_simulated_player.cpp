@@ -175,6 +175,33 @@ TEST(SimulatedPlayerTest, SetItem_SelectSlotOnlyForHotbar)
 // 移动输入：speed 倍率
 // ============================================================================
 
+// Instant 只定向一次；Continuous 每 tick 重新朝向目标（目标相对位置变化后仍跟随）。
+TEST(SimulatedPlayerTest, LookAtBlockDurationInstantVsContinuous)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1011), std::string{"LookBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setPosition(0.0, 64.0, 0.0);
+
+    // Instant：定向到目标方块中心，之后即使目标方向变了也不重新朝向。
+    player->lookAtBlock(BlockPos{0, 64, 10}, mc::test::SimulatedPlayer::LookDuration::Instant);
+    const f32 instantYaw = player->yaw();
+    player->setPosition(10.0, 64.0, 0.0);
+    player->tick();
+    EXPECT_FLOAT_EQ(player->yaw(), instantYaw) << "Instant must not reorient on tick";
+
+    // Continuous：换位后 tick() 必须把朝向重新指向目标（yaw 发生变化）。
+    player->lookAtBlock(BlockPos{0, 64, 10}, mc::test::SimulatedPlayer::LookDuration::Continuous);
+    player->setPosition(10.0, 64.0, 0.0);
+    const f32 beforeTick = player->yaw();
+    player->setPosition(-10.0, 64.0, 0.0);
+    player->tick();
+    EXPECT_NE(player->yaw(), beforeTick) << "Continuous must reorient on tick";
+}
+
 TEST(SimulatedPlayerTest, MoveToLocation_SpeedScalesMovementInput)
 {
     mc::Items::ensureInitialized();

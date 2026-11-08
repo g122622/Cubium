@@ -147,46 +147,98 @@ void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed, bool faceT
     handleMovementInput(1.0f, 0.0f, false, false, speed);
 }
 
-void SimulatedPlayer::lookAtLocation(BlockPos relativePos)
+void SimulatedPlayer::lookAtLocation(BlockPos relativePos, LookDuration duration)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::lookAtLocation: helper not bound");
 
-    const BlockPos worldPos = m_helper->worldBlockPosition(relativePos);
-    const f64 dx = static_cast<f64>(worldPos.x) + 0.5 - static_cast<f64>(x());
-    const f64 dy = static_cast<f64>(worldPos.y) + 0.5 - getEyeY();
-    const f64 dz = static_cast<f64>(worldPos.z) + 0.5 - static_cast<f64>(z());
-
-    const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
-    const f64 horizDist = std::sqrt(dx * dx + dz * dz);
-    // pitch: 正值向下看，负值向上看；dy>0（目标在上方）应得负 pitch
-    const f32 pitchDeg = -mc::math::toDegrees(static_cast<f32>(std::atan2(dy, horizDist)));
-    setRotation(yawDeg, pitchDeg);
-    // 同步头部旋转（LivingEntity 重写，写 m_rotationYawHead）
-    setYHeadRot(yawDeg);
+    // 方块目标按世界绝对坐标记录，供 Continuous/UntilMove 每 tick 重新定向。
+    m_lookTargetKind = LookTargetKind::Block;
+    m_lookTargetBlock = m_helper->worldBlockPosition(relativePos);
+    m_lookTargetEntityId = INVALID_ENTITY_ID;
+    m_lookDuration = duration;
+    m_lookActive = duration != LookDuration::Instant;
+    // UntilMove 的移动判定基准取当前水平位置，避免把"调用前的历史位移"误判为移动。
+    m_lastLookTickX = static_cast<f32>(x());
+    m_lastLookTickZ = static_cast<f32>(z());
+    _applyLookTarget();
 }
 
-void SimulatedPlayer::lookAtEntity(const mc::Entity& target)
+void SimulatedPlayer::lookAtEntity(const mc::Entity& target, LookDuration duration)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::lookAtEntity: helper not bound");
-    (void)m_helper; // 当前直接用绝对坐标算朝向，不经 helper 相对化
+    (void)m_helper; // 直接按实体绝对坐标算朝向，不经 helper 相对化
 
-    const f64 dx = static_cast<f64>(target.x()) - static_cast<f64>(x());
-    const f64 dy = target.getEyeY() - getEyeY();
-    const f64 dz = static_cast<f64>(target.z()) - static_cast<f64>(z());
-
-    const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
-    const f64 horizDist = std::sqrt(dx * dx + dz * dz);
-    const f32 pitchDeg = -mc::math::toDegrees(static_cast<f32>(std::atan2(dy, horizDist)));
-    setRotation(yawDeg, pitchDeg);
-    setYHeadRot(yawDeg);
-    // TODO: 对齐基岩 lookAt 的 deltaYaw/deltaPitch 插值（当前为瞬时定向）
+    // 记录实体 id（不是裸指针）：目标被销毁后 _applyLookTarget 会查不到并自动解除追踪。
+    m_lookTargetKind = LookTargetKind::Entity;
+    m_lookTargetEntityId = target.id();
+    m_lookDuration = duration;
+    m_lookActive = duration != LookDuration::Instant;
+    // UntilMove 的移动判定基准取当前水平位置，避免把"调用前的历史位移"误判为移动。
+    m_lastLookTickX = static_cast<f32>(x());
+    m_lastLookTickZ = static_cast<f32>(z());
+    _applyLookTarget();
 }
 
-void SimulatedPlayer::lookAtBlock(BlockPos relativePos)
+void SimulatedPlayer::lookAtBlock(BlockPos relativePos, LookDuration duration)
 {
-    // 语义等同 lookAtLocation（都接结构相对 BlockPos 朝向其中心）。duration 当前忽略（瞬时）。
-    // TODO: 支持 LookDuration（Continuous/Instant/UntilMove）插值语义。
-    lookAtLocation(relativePos);
+    // 语义等同 lookAtLocation（都接结构相对 BlockPos 朝向其中心）。
+    lookAtLocation(relativePos, duration);
+}
+
+void SimulatedPlayer::_applyLookTarget()
+{
+    const auto aimAt = [this](f64 dx, f64 dy, f64 dz) {
+        const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
+        const f64 horizDist = std::sqrt(dx * dx + dz * dz);
+        // pitch: 正值向下看，负值向上看；dy>0（目标在上方）应得负 pitch。
+        const f32 pitchDeg = -mc::math::toDegrees(static_cast<f32>(std::atan2(dy, horizDist)));
+        setRotation(yawDeg, pitchDeg);
+        // 同步头部旋转（LivingEntity 重写，写 m_rotationYawHead）。
+        setYHeadRot(yawDeg);
+    };
+
+    if (m_lookTargetKind == LookTargetKind::Entity) {
+        const mc::Entity* target = m_helper->world().getEntity(m_lookTargetEntityId);
+        if (target == nullptr || !target->isAlive()) {
+            // 目标已消失：解除追踪，避免每 tick 查询一个永远查不到的 id。
+            m_lookTargetKind = LookTargetKind::None;
+            m_lookActive = false;
+            return;
+        }
+        aimAt(static_cast<f64>(target->x()) - static_cast<f64>(x()),
+            target->getEyeY() - getEyeY(),
+            static_cast<f64>(target->z()) - static_cast<f64>(z()));
+        return;
+    }
+
+    if (m_lookTargetKind == LookTargetKind::Block) {
+        aimAt(static_cast<f64>(m_lookTargetBlock.x) + 0.5 - static_cast<f64>(x()),
+            static_cast<f64>(m_lookTargetBlock.y) + 0.5 - getEyeY(),
+            static_cast<f64>(m_lookTargetBlock.z) + 0.5 - static_cast<f64>(z()));
+    }
+}
+
+void SimulatedPlayer::tick()
+{
+    ServerPlayer::tick();
+
+    if (!m_lookActive || m_lookDuration == LookDuration::Instant) {
+        return;
+    }
+
+    // UntilMove：一旦发生位移就终止追踪（移动优先于持续注视）。
+    if (m_lookDuration == LookDuration::UntilMove && m_lookTargetKind != LookTargetKind::None) {
+        const bool moved = std::abs(static_cast<f32>(x()) - m_lastLookTickX) > 0.001f ||
+            std::abs(static_cast<f32>(z()) - m_lastLookTickZ) > 0.001f;
+        m_lastLookTickX = static_cast<f32>(x());
+        m_lastLookTickZ = static_cast<f32>(z());
+        if (moved) {
+            m_lookActive = false;
+            return;
+        }
+    }
+
+    _applyLookTarget();
 }
 
 void SimulatedPlayer::moveToBlock(BlockPos relativePos, f32 speed, bool faceTarget)
