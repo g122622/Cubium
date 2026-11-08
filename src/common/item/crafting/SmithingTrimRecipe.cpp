@@ -78,13 +78,24 @@ ItemStack SmithingTrimRecipe::assemble(const IInventory& inventory) const
     // 与地图扩展同口径：数据包只声明配方存在，材料匹配由配方的原料表（模板 / 可纹饰盔甲
     // 标签 / 纹饰材料标签）负责，这里只算结果。
     //
-    // TODO(armor-trim): 纹饰注册表（`item::armortrim::TrimMaterials` / `TrimPatterns`，
-    // 均从数据包加载并有 `get()` 查询）**已经可用**，缺的是上面那层组合与写入：
-    //   ① `ArmorTrim` 值类型（material + pattern 的组合，原版为 record）；
-    //   ② TRIM 数据组件的载荷读写（`DataComponentType::Trim` 已占位 = 54，但还没有
-    //      可序列化的 `ArmorTrim` 负载类型）；
-    //   ③ 有了 ①② 才能写入 TRIM，并据此做"已有相同纹饰则返回空"的去重。
-    // 因此在此之前合成结果只是底材副本（数量 1），纹饰不会体现在产物上。
+    // TODO(armor-trim): 纹饰配方目前只能产出底材副本。查清后的完整依赖链如下，
+    // 按此顺序完成才能让纹饰真正落到产物上：
+    //
+    //   ① `PROVIDES_TRIM_MATERIAL` 组件（`DataComponentType::ProvidesTrimMaterial` = 60）
+    //      必须支持编解码。原版 `TrimMaterials.getFromIngredient` 就是读 addition 槽物品的
+    //      这个组件来反查材质的——**不是**从 TrimMaterial 注册表字段反推（该注册表只有
+    //      assets / description，没有"材料物品"字段）。当前 `DataComponentPayloadCodec`
+    //      的编解码 switch 里没有这个类型，会落到 default 分支当作空 compound 写出，
+    //      即载荷内容在往返中丢失。
+    //   ② 有了 ① 才能由 addition 解析出 TrimMaterial id。
+    //   ③ TRIM 组件本身已经可用：`DataComponentPayloadCodec` 的 Trim 分支以原始 JSON 承载
+    //      （`ItemStack::rawComponents`），载荷形态与原版 `ArmorTrim` record 一致，
+    //      即 `{"material": <id>, "pattern": <id>}`。所以不需要额外引入 ArmorTrim 值类型。
+    //   ④ 纹饰注册表也已可用：`TrimMaterials` / `TrimPatterns` 均从数据包加载，
+    //      并有 `get(ResourceLocation)` 查询；配方自己就持有 `m_pattern`。
+    //   ⑤ 最后据此写入 TRIM，并做"已有相同纹饰则返回空"的去重。
+    //
+    // 也就是说：① 是唯一的硬阻塞点，其余零件都已就位。
     if (inventory.getContainerSize() <= SLOT_ADDITION) {
         return ItemStack::EMPTY;
     }
@@ -93,7 +104,7 @@ ItemStack SmithingTrimRecipe::assemble(const IInventory& inventory) const
         return ItemStack::EMPTY;
     }
 
-    // 纹饰色/图案的写入依赖 TRIM 组件载荷（见上面的 TODO(armor-trim)），此处只产出底材的副本。
+    // 纹饰写入依赖 `PROVIDES_TRIM_MATERIAL` 组件（见上面的 TODO(armor-trim)），此处只产出底材副本。
     ItemStack result = baseStack.copy();
     result.setCount(1);
     return result;
