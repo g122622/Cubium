@@ -3412,23 +3412,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         ctx.releaseValue(directionObj);
     }
 
-    // --- FluidType类（@minecraft/server）---
-    // 流体类型包装。项目流体体系（Fluids namespace）尚未暴露完整查询入口，本类占位：
-    // opaque 持 std::string*（owned=true，JS GC 时 delete，存资源位置 id 如 "minecraft:water"）。
-    // 仅暴露 id 属性；完整 fluid state 体系后续 TODO。
-    u64 fluidTypeClassId = ScriptObjectRegistry::allocateClassId(ctx);
-    void* fluidTypeProto = builder.exportClass("FluidType", fluidTypeClassId);
-    ctx.classRegistry().registerClass(fluidTypeClassId, fluidTypeProto, "FluidType");
-
-    ClassRegistrar<void> fluidTypeReg(ctx, fluidTypeClassId, fluidTypeProto);
-    fluidTypeReg.readonlyProperty("id", [fluidTypeClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        auto* id = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, fluidTypeClassId));
-        if (id == nullptr) {
-            return ctx.createUndefined();
-        }
-
-        return ctx.createString(*id);
-    });
+    // --- FluidType 枚举对象（@minecraft/server）---
+    // 官方 FluidType 是字符串枚举（Lava="Lava"/Potion="Potion"/PowderSnow="PowderSnow"/
+    // Water="Water"），用于描述炼药锅这类流体容器里的流体种类，不是"某个流体实例"的包装类。
+    // 此前把它实现成持 std::string* 的类并只暴露 id 属性，与官方语义不符；改为与 Direction
+    // 相同的只读枚举对象导出方式。
+    {
+        void* fluidTypeObj = ctx.createObject();
+        ctx.setPropertyString(fluidTypeObj, "Lava", "Lava");
+        ctx.setPropertyString(fluidTypeObj, "Potion", "Potion");
+        ctx.setPropertyString(fluidTypeObj, "PowderSnow", "PowderSnow");
+        ctx.setPropertyString(fluidTypeObj, "Water", "Water");
+        builder.exportValue("FluidType", fluidTypeObj);
+        ctx.releaseValue(fluidTypeObj);
+    }
 
     // --- Container类（@minecraft/server）---
     // 容器包装。opaque 持 mc::IInventory*（非拥有，容器由 BlockEntity 或 Player 拥有）。
