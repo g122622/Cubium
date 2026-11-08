@@ -88,6 +88,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp"    // ContainerBlockEntity::getInventory（Container 底层）
 #include "common/world/blockentity/processing/BeaconEntity.hpp" // BeaconEntity::getLevel（Block.beaconLevel 读信标等级）
 #include "common/world/border/WorldBorder.hpp"                  // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
+#include "common/world/fluid/Fluid.hpp"                         // FluidState/Fluid（Block.isWaterlogged 判定流体类型）
 #include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
 #include <optional>
@@ -2247,7 +2248,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // opaque 持 mc::Entity*。HealthComponent 仅 LivingEntity attach，getter 内 dynamic_cast<LivingEntity*>，
     // 失败返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。currentValue/effectiveMax 走
     // LivingEntity::health()/maxHealth()（HealthComponent 真相源 + 属性系统）；setCurrentValue/resetToMaxValue
-    // 走 setHealth（带 DataParameter 同步副作用）。effectiveMin/defaultValue 保守硬编码留 TODO。
+    // 走 setHealth（带 DataParameter 同步副作用）。effectiveMin/defaultValue 及两个 reset 方法
+    // 均从 max_health 属性实例取 minValue()/defaultValue()，与 MovementComponent 同范式。
     u64 healthClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* healthProto = builder.exportClass("HealthComponent", healthClassId);
     ctx.classRegistry().registerClass(healthClassId, healthProto, "HealthComponent");
@@ -3024,11 +3026,19 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return obj;
     });
     blockReg.readonlyProperty("isWaterlogged", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // 官方 Block.isWaterlogged：方块是否被水淹没。读 BlockState 流体状态非空判定。
-        // TODO: 流体状态判定后续完善，暂保守返回 false。
-        (void)thisVal;
+        // 官方 Block.isWaterlogged：该方块位置是否被水淹没。含水方块的 fluid state 是 water
+        // （source 或流动），非含水方块为 EMPTY。直接读快照里的 BlockState，无需再查世界。
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->state == nullptr) {
+            return ctx.createBoolean(false);
+        }
 
-        return ctx.createBoolean(false);
+        const auto* fluidState = ref->state->getFluidState();
+        if (fluidState == nullptr || fluidState->isEmpty()) {
+            return ctx.createBoolean(false);
+        }
+
+        return ctx.createBoolean(fluidState->getFluid().fluidLocation() == mc::ResourceLocation("minecraft:water"));
     });
     // --- Block 光照查询扩展（Cubium 专有，官方 @minecraft/server Block 无光照 API）---
     // 为集成测试直接读取光照数值而扩展，对齐 Java Level/World 的光照查询方法。
