@@ -990,7 +990,14 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     // 若索引数与 size 体积不符，仍按已解析的方块构建（不强制断言，便于容错）
     templ->addPalette(Palette(std::move(blockInfos), std::move(nbtTable)));
 
-    // TODO: 解析 structure.entities（基岩版 mob 实体 schema 与 Java 不同，GameTest 结构通常无 mob，暂不解析）
+    // TODO: 解析 structure.entities。
+    //   基岩 .mcstructure 的实体项 schema（identifier / pos / 实体 NBT 的嵌套形态）在项目内
+    //   没有参考实现——`common/util/nbt/Nbt.cpp` 只处理了它的**空列表读取**（`List[End] n=0`，
+    //   曾因少读 3 字节 size 导致外层 Compound 提前结束、palette 丢失），LeviLamina 逆向头文件
+    //   里也没有结构实体的定义。因此这里不凭猜测写解析，避免把错误 schema 固化下来。
+    //   现状影响：结构里的 mob 不会被解析，`Template::placeEntities` 自然也就放不出它们。
+    //   GameTest 结构（本项目的主要使用者）实测该字段恒为空列表，所以当前无功能损失；
+    //   真正需要时，应先从基岩官方 .mcstructure 文档或实际存档取样确认 schema。
 
     return templ;
 }

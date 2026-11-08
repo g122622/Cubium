@@ -1162,6 +1162,10 @@ preset 定义在 `CMakePresets.json`，关键选项为 `MC_BUILD_CLIENT` / `MC_B
 
 格式化完成后，不要重新编译一遍，以免浪费时间；如果出现了超出你预期文件范围的改动，属于正常现象，一起提交即可。
 
+### 文本编码
+
+仓库内所有代码与文档统一为 **UTF-8（无 BOM）**、LF 换行，由 `.editorconfig` 与 `.gitattributes` 共同约束；`*.ps1` 例外保留 UTF-8 BOM（Windows PowerShell 5.1 缺少 BOM 时会按 ANSI 解码）。禁止写入 GBK/GB2312/GB18030 编码的内容。提交前可运行 `node --experimental-strip-types scripts/format/check_encoding.ts` 检查非 UTF-8 文件、BOM 与 U+FFFD 乱码。
+
 ## clang-tidy 抑制注释（NOLINT）写法
 
 【重要】`// NOLINTNEXTLINE` 只对**紧邻的下一行**生效。若中间夹了任何其他注释行（哪怕是解释该抑制

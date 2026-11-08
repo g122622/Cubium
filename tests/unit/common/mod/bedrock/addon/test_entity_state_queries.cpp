@@ -21,12 +21,14 @@
  *
  */
 
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
@@ -141,6 +143,24 @@ TEST_F(AddonEntityStateQueryTest, ArmorBodyAndInventoryDomainsDoNotOverlap)
     check(context, inventoryFilter, false);
 }
 
+// 狐狸叼着的物品放在主手槽，inventory 域必须能查到它。
+TEST_F(AddonEntityStateQueryTest, FoxMouthItemIsQueryableThroughInventoryDomain)
+{
+    FoxEntity fox(EntityInstanceId(7), registry);
+    EntityFilterContext context{fox, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    const nlohmann::json inventoryFilter = {{"test", "has_equipment"}, {"domain", "inventory"}, {"value", "stick"}};
+
+    // 未叼物品时查不到。
+    check(context, inventoryFilter, false);
+
+    // 狐狸把叼着的物品放在主手槽，因此装备到主手后 inventory 域就应能查到。
+    fox.setEquipment(EquipmentSlot::MainHand, ItemStack(*item, 1));
+    check(context, inventoryFilter, true);
+
+    fox.setEquipment(EquipmentSlot::MainHand, ItemStack::EMPTY);
+    check(context, inventoryFilter, false);
+}
+
 TEST_F(AddonEntityStateQueryTest, OwnerFilterUsesCallerOwnershipAndCanonicalUuid)
 {
     WolfEntity tameable(EntityInstanceId(1), registry);
@@ -194,6 +214,30 @@ TEST_F(AddonEntityStateQueryTest, NativeMarkerComponentsFollowTamingAndChargingT
     check(context, {{"test", "has_component"}, {"subject", "other"}, {"value", "is_charged"}}, false);
     creeper.setPowered(true);
     check(context, {{"test", "has_component"}, {"subject", "other"}, {"value", "is_charged"}}, true);
+}
+
+// 原生标记组件（fire_immune / is_baby / is_sleeping / is_leashed / is_riding / is_sneaking）
+// 的存在条件必须读实体真实状态，而不是恒 false 或报 Unsupported。
+TEST_F(AddonEntityStateQueryTest, NativeStateComponentsFollowEntityState)
+{
+    AgeableEntity mob(EntityInstanceId(9), registry);
+    mob.registerAttributes();
+    EntityFilterContext context{mob, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
+    // 幼体状态：新建为非幼体，setChild 后组件才存在。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_baby"}, {"operator", "not"}}, true);
+    mob.setChild(true);
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_baby"}}, true);
+
+    // 睡眠状态同理。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_sleeping"}, {"operator", "not"}}, true);
+
+    // 攀爬与骑乘默认都不成立。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_riding"}, {"operator", "not"}}, true);
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_leashed"}, {"operator", "not"}}, true);
+
+    // fire_immune 是实体固有属性，普通生物不免疫火焰。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:fire_immune"}, {"operator", "not"}}, true);
 }
 
 // 哞菇的红/棕是主变种（基岩 minecraft:variant），不能用 mark_variant 承载——

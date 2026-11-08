@@ -23,10 +23,12 @@
 
 #include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
@@ -115,7 +117,15 @@ Result<bool> _inventory(const mc::Entity& entity, const mc::ResourceLocation& it
         }
         return false;
     }
-    // TODO: 随其他原生携物生物和 addon inventory 组件接入统一背包查询。
+    if (const auto* fox = dynamic_cast<const mc::FoxEntity*>(&entity)) {
+        // 狐狸把叼着的物品放在主手槽（vanilla 的狐狸没有独立口中槽位），
+        // 因此查主手即可；未叼物品时主手为空，_matches 自然返回 false。
+        return _matches(fox->getMainHandItem(), item);
+    }
+    // 其余携物生物（狐狸等）见上方分支。仍未覆盖的两类：
+    //   - addon `minecraft:inventory` 组件声明的自定义背包（需要组件侧提供槽位读取）；
+    //   - 玩家末影箱等"非实体自带"的库存（不属于实体携带物品语义）。
+    // TODO: addon inventory 组件接入后在此扩展。
     return false;
 }
 
@@ -139,6 +149,29 @@ Result<bool> EntityStateQuery::hasComponent(const mc::Entity& entity, const std:
     if (name == "minecraft:is_charged") {
         const auto* creeper = dynamic_cast<const mc::CreeperEntity*>(&entity);
         return creeper != nullptr && creeper->isPowered();
+    }
+    if (name == "minecraft:fire_immune") {
+        // 火焰免疫是实体固有属性（烈焰人、恶魂等），不依赖数据包组件。
+        return entity.isImmuneToFire();
+    }
+    if (name == "minecraft:is_baby") {
+        // 幼体状态：AgeableEntity 才有年龄概念，非 AgeableEntity 上该组件不存在。
+        const auto* ageable = dynamic_cast<const mc::AgeableEntity*>(&entity);
+        return ageable != nullptr && ageable->isChild();
+    }
+    if (name == "minecraft:is_sleeping") {
+        const auto* living = dynamic_cast<const mc::LivingEntity*>(&entity);
+        return living != nullptr && living->isSleeping();
+    }
+    if (name == "minecraft:is_leashed") {
+        const auto* mob = dynamic_cast<const mc::MobEntity*>(&entity);
+        return mob != nullptr && mob->isLeashed();
+    }
+    if (name == "minecraft:is_riding" || name == "minecraft:riding") {
+        return entity.isRiding();
+    }
+    if (name == "minecraft:is_sneaking") {
+        return entity.isSneaking();
     }
     if (name == "minecraft:onfire") {
         return entity.isOnFire();

@@ -1,0 +1,15 @@
+# 统一文本编码与换行符。
+#
+# 编码：UTF-8（无 BOM）；换行：LF。二者与 .gitattributes 的 eol=lf 规则配套，
+# 避免 Windows 与 macOS/Linux 协作时再次出现 GBK、乱码或整文件伪 diff。
+# PowerShell 脚本例外：Windows PowerShell 5.1 在缺少 BOM 时会按 ANSI 解码，
+# 其中的中文注释会变成乱码，因此 *.ps1 保留 UTF-8 BOM。
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+
+[*.ps1]
+charset = utf-8-bom

@@ -79,9 +79,8 @@ IllusionerEntity::IllusionerEntity(EntityInstanceId id, ecs::EntityRegistry& reg
     }
 
     // 幻术师不在阳光下燃烧：幻术师是灾厄村民（非亡灵），原版 Illusioner 不燃。
-    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员
-    // m_burnsInDaylight（而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），
-    // 故用 setBurnsInDaylight(false) 生效。
+    // 对齐原版，在构造时关闭日光燃烧。该标志经虚函数 shouldBurnInDaylight() 读取，
+    // 由 MonsterEntity::handleDaylightBurning() 调用，因此 setBurnsInDaylight(false) 即生效。
     setBurnsInDaylight(false);
 
     // 默认主手持弓：幻术师使用弓远程攻击，RangedBowAttackGoal::shouldExecute 依赖主手持弓

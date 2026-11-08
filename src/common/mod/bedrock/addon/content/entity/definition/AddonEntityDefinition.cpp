@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/AgeableEntity.hpp" // minecraft:is_baby → AgeableEntity::setChild
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
@@ -175,13 +176,20 @@ private:
     std::shared_ptr<const AddonEntityDefinition> m_definition;
 };
 
-class _AddonMob final : public mc::CreatureEntity {
+// 继承 AgeableEntity 而非 CreatureEntity：基岩 addon 的 mob 普遍带 minecraft:is_baby 与年龄
+// 语义（幼体体型缩放、成长计时），AgeableEntity 才是能承载这些的基类（它是 CreatureEntity 的子类，
+// 不会丢任何现有能力）。此前继承 CreatureEntity 使 is_baby 无处落地。
+class _AddonMob final : public mc::AgeableEntity {
 public:
     _AddonMob(
         std::shared_ptr<const AddonEntityDefinition> definition, mc::IWorld* world, mc::ecs::EntityRegistry& registry)
-        : CreatureEntity(mc::EntityInstanceId(0), registry)
+        : AgeableEntity(mc::EntityInstanceId(0), registry)
         , m_definition(std::move(definition))
     {
+        // 构造期虚函数不派发到派生类，LivingEntity 构造里调到的 registerAttributes() 解析到
+        // LivingEntity 版本而非 MobEntity 版本，导致 MOB 层属性（如 FOLLOW_RANGE）缺失——
+        // 表现是 getValue(FOLLOW_RANGE) 返回 0 而不是默认 16。这里显式再调一次补上。
+        registerAttributes();
         setWorld(world);
     }
 
@@ -400,6 +408,70 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             }
         } else if (name == "minecraft:fire_immune") {
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:is_baby") {
+            // 纯标记组件：存在即表示按幼体生成。实际生效在 _initialize 里调 AgeableEntity::setChild。
+            MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:cannot_be_attacked") {
+            // 纯标记组件：存在即表示不可被攻击。生效方式是 Entity::setInvulnerable(true)，
+            // 这会同时挡住近战/弹射物/爆炸等常规伤害来源（与基岩语义一致）。
+            MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:can_climb") {
+            // 纯标记组件：存在即表示可攀爬梯子/藤蔓。攀爬判定读的是实体的攀爬状态，
+            // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
+            MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:follow_range") {
+            // value 映射到 Attributes::FOLLOW_RANGE（单位：方块）。基岩侧 max 是"最大追击距离"
+            // 的上限设定，运行时用于 cap 目标搜索；项目属性模型只有一个上限为 2048 的 follow_range，
+            // 因此 value 写基值，max 仅校验范围不参与计算。
+            // 与 knockback_resistance 同理，只接受字面量数字：属性基值是实例化时的常量，
+            // 没有 Molang/range 的求值通路，收下不生效比报错更难排查。
+            MC_TRY(_members(component, {"value", "max"}));
+            const auto bounds = mc::entity::attribute::Attributes::followRange();
+            for (const char* field : {"value", "max"}) {
+                const auto it = component.find(field);
+                if (it == component.end()) {
+                    continue;
+                }
+
+                if (!it->is_number()) {
+                    return Error(ErrorCode::Unsupported,
+                        std::string("minecraft:follow_range requires a literal number: ") + field);
+                }
+
+                const double number = it->get<double>();
+                if (!std::isfinite(number) || number < bounds->minValue() || number > bounds->maxValue()) {
+                    return Error(
+                        ErrorCode::InvalidData, std::string("minecraft:follow_range is out of range: ") + field);
+                }
+            }
+        } else if (name == "minecraft:knockback_resistance") {
+            // value 映射到 Attributes::KNOCKBACK_RESISTANCE（0.0 无抗性，1.0 完全免疫）。
+            // 基岩侧 max 是"潜在上限"（用于显示/成长预留），运行时生效的是 value，
+            // 因此只落 value；max 仅校验类型，不参与计算。
+            //
+            // 这里显式要求字面量数字：_number 虽已支持 range 对象与 Molang，但属性基值是
+            // 实例化时一次性写入的常量，没有"每 tick 重新求值"的机制。若放任 range/Molang 通过，
+            // 组件会被收下却永远不生效——那比直接报错更难排查。真正支持动态值需要先有
+            // 属性绑定 Molang 的求值通路，属于另一件事。
+            MC_TRY(_members(component, {"value", "max"}));
+            const auto bounds = mc::entity::attribute::Attributes::knockbackResistance();
+            for (const char* field : {"value", "max"}) {
+                const auto it = component.find(field);
+                if (it == component.end()) {
+                    continue;
+                }
+
+                if (!it->is_number()) {
+                    return Error(ErrorCode::Unsupported,
+                        std::string("minecraft:knockback_resistance requires a literal number: ") + field);
+                }
+
+                const double number = it->get<double>();
+                if (!std::isfinite(number) || number < bounds->minValue() || number > bounds->maxValue()) {
+                    return Error(ErrorCode::InvalidData,
+                        std::string("minecraft:knockback_resistance is out of range: ") + field);
+                }
+            }
         } else if (name == "minecraft:variant" || name == "minecraft:mark_variant") {
             MC_TRY(_members(component, {"value"}));
             MC_TRY(_number(component, "value", std::numeric_limits<i32>::min(), std::numeric_limits<i32>::max()));
@@ -465,6 +537,46 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
         return definitions.error();
     }
     MC_TRY(entity.getOrAddComponent<EntityAddonState>().defineProperties(definitions.value()));
+
+    // minecraft:is_baby 是纯标记组件，存在即按幼体生成。living 型 addon 实体（_AddonMob）
+    // 继承 AgeableEntity，因此能真正落地（体型经 babyScale 缩放、可成长）。
+    // 非 living 型（_AddonActor，无年龄概念）上挂该组件无意义，记 warn 而不报错——基岩侧同样
+    // 不会因为把组件放在无年龄实体上就拒绝整个行为包。
+    if (m_components.contains("minecraft:is_baby")) {
+        if (auto* ageable = dynamic_cast<mc::AgeableEntity*>(&entity); ageable != nullptr) {
+            ageable->setChild(true);
+        } else {
+            spdlog::warn("[BedrockAddon] minecraft:is_baby on non-ageable entity '{}' has no effect", m_identifier);
+        }
+    }
+
+    // minecraft:cannot_be_attacked 是纯标记组件，存在即不可被攻击。
+    // 走 Entity::setInvulnerable(true)，与"无敌"共用同一套伤害拦截，不额外造一条并行判定。
+    if (m_components.contains("minecraft:cannot_be_attacked")) {
+        entity.setInvulnerable(true);
+    }
+
+    // minecraft:follow_range.value → 追击范围属性。只有 LivingEntity 有属性表。
+    if (const auto it = m_components.find("minecraft:follow_range"); it != m_components.end()) {
+        if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity); living != nullptr) {
+            if (const auto value = it->find("value"); value != it->end() && value->is_number()) {
+                living->attributes().setBaseValue(
+                    mc::entity::attribute::Attributes::FOLLOW_RANGE, value->get<double>());
+            }
+        }
+    }
+
+    // minecraft:knockback_resistance.value → 击退抗性属性。只有 LivingEntity 有属性表。
+    if (const auto it = m_components.find("minecraft:knockback_resistance"); it != m_components.end()) {
+        if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity); living != nullptr) {
+            // 允许 range 对象/Molang 之外的纯字面量；非数字形式已在 validateComponents 阶段拒绝。
+            if (const auto value = it->find("value"); value != it->end() && value->is_number()) {
+                living->attributes().setBaseValue(
+                    mc::entity::attribute::Attributes::KNOCKBACK_RESISTANCE, value->get<double>());
+            }
+        }
+    }
+
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
     //   is_spawnable 本身已保存（见 canSpawn()），缺的是刷怪蛋物品注册与生成规则挂接。

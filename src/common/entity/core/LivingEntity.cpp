@@ -770,28 +770,35 @@ void LivingEntity::_applyDeathProtectionEffects(const item::component::DeathProt
                 break;
             }
             case item::component::ConsumeEffectKind::TeleportRandomly: {
-                // 对齐 vanilla TeleportRandomlyConsumeEffect.apply 的 16 次尝试循环：
+                // 原版 TeleportRandomlyConsumeEffect.apply：最多 16 次尝试，
                 //   目标 = 当前位置 + (random - 0.5) * diameter（Y 钳到世界可建造范围），
-                //   乘坐中先下骑，再调 randomTeleport 落点搜索，成功即停并触发 TELEPORT 游戏事件。
-                // Entity::randomTeleport(range) 以目标为中心做安全落点搜索，等价 vanilla
-                // LivingEntity.randomTeleport(x, y, z, true) 的落点语义。
+                //   每个候选都要通过落点安全校验才传送，成功即停并触发 TELEPORT 游戏事件。
+                // 安全校验直接复用 Entity::findSafeTeleportPosition（碰撞箱 + 液体），
+                // 它内部已经包含 isSafeTeleportPosition 的逐项检查。
                 if (m_world == nullptr || m_world->isClientSide()) {
                     break;
                 }
+
+                constexpr i32 MAX_TELEPORT_ATTEMPTS = 16;
                 const f64 minY = static_cast<f64>(m_world->getMinBuildHeight());
-                for (i32 attempt = 0; attempt < 16; ++attempt) {
+                const f64 maxY = static_cast<f64>(m_world->getMaxBuildHeight() - 1);
+                for (i32 attempt = 0; attempt < MAX_TELEPORT_ATTEMPTS; ++attempt) {
                     const f64 targetX = x() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
-                    const f64 targetY = std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter,
-                        minY,
-                        static_cast<f64>(m_world->getMaxBuildHeight() - 1));
+                    const f64 targetY =
+                        std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter, minY, maxY);
                     const f64 targetZ = z() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
+
+                    // 落点不安全就换下一个候选，16 次全失败则原地不动。
+                    const auto safe = findSafeTeleportPosition(targetX, targetY, targetZ, true);
+                    if (!safe.has_value()) {
+                        continue;
+                    }
+
                     if (isRiding()) {
                         stopRiding();
                     }
                     const Vector3 previous = position();
-                    // TODO(consume-effect): Cubium 尚无 vanilla RandomTeleport 的安全落点搜索
-                    //   （逐候选做碰撞/液体校验），此处直接落到目标坐标；接入落点搜索后改为校验通过才传送。
-                    setPosition(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
+                    setPosition(static_cast<f32>(safe->x), static_cast<f32>(safe->y), static_cast<f32>(safe->z));
                     gameEvent(gameevent::GameEvents::TELEPORT, BlockPos(previous));
                     break;
                 }
@@ -839,13 +846,14 @@ void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initia
         ItemStack& equipment = getMutableEquipment(slot);
         // TODO(equippable-component): vanilla 还要求 Equippable.damageOnHurt 为 true
         //   （默认 true，可被数据包关闭）。Cubium 未实现 EQUIPPABLE 组件，此处按默认值处理。
-        //   新发现的缺陷（待同一改造解决）：本函数还会对主手工具等非装备物品磨损耐久，而 vanilla
-        //   只有 Player.hurtArmor 传入的四个护甲槽与 hurtHelmet 传入的头盔槽会走到这里；护甲槽内
-        //   的非护甲物品（如头盔槽里的南瓜）在 vanilla 无 EQUIPPABLE 组件 → 不磨损。
+        //   缺的只是"按数据包关闭磨损"这一条开关语义；其余行为已经是正确的：
+        //   - 调用方只有 Player::hurtArmor（FEET/LEGS/CHEST/HEAD）与 hurtHelmet（HEAD），
+        //     主手/副手的工具不会被传入，所以不存在"误磨主手工具"的问题；
+        //   - 护甲槽里的非耐久物品（头盔槽里的南瓜等）由下面的 isDamageable() 挡掉，
+        //     这与 vanilla"无 EQUIPPABLE 组件即不磨损"的结果一致。
         //   落地顺序：① EQUIPPABLE 结构化载荷 + 编解码（slot/equip_sound/damage_on_hurt 等）
-        //   → ② 物品默认组件注册（护甲/鞘翅/wolf_armor）→ ③ 此处改读 stack.get(Equippable)，
-        //   并同步修正 MobEntity::getEquipmentSlotForItem 的「未落地组件→护甲槽位」近似
-        //   （MobEntity.cpp:1463）。
+        //   → ② 物品默认组件注册（护甲/鞘翅/wolf_armor）→ ③ 此处改读 stack.get(Equippable)。
+        //   MobEntity::getEquipmentSlotForItem 的「未落地组件→护甲槽位」近似可在那之后再收敛。
         if (equipment.isEmpty() || !equipment.isDamageable() || !equipment.canBeHurtBy(source)) {
             continue;
         }
@@ -2586,7 +2594,27 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 根据是否在地面选择不同的移动因子
     f32 moveFactor;
-    if (m_builtIn.physicsState->m_onGround) {
+    // 液体中的移动输入因子。vanilla 在 travelInWater/travelInLava 里给的是独立的常量 0.02，
+    // 而不是空中的 m_jumpMovementFactor；两者虽然量级接近，但水中还叠加了深海探索者的插值。
+    // 这一步只算"输入被放大多少"，速度衰减（WaterSlowDown）仍由下方的阻力分支处理。
+    const bool inWater = isInWater();
+    const bool inLava = !inWater && isInLava();
+    if (inWater) {
+        // f1 = 0.02；f2 = WATER_MOVEMENT_EFFICIENCY（不在地面时减半）
+        //   f1 += (getSpeed() - f1) * f2
+        moveFactor = physics::SWIM_SPEED_BASE;
+        f32 waterMovementEfficiency =
+            static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
+        if (!m_builtIn.physicsState->m_onGround) {
+            waterMovementEfficiency *= 0.5f;
+        }
+        if (waterMovementEfficiency > 0.0f) {
+            moveFactor += (moveSpeed - moveFactor) * waterMovementEfficiency;
+        }
+    } else if (inLava) {
+        // 岩浆没有深海探索者等价物，输入速度就是常量 0.02。
+        moveFactor = physics::SWIM_SPEED_BASE;
+    } else if (m_builtIn.physicsState->m_onGround) {
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
 
@@ -2721,9 +2749,8 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
         // 水中移动效率（深海探索者）：对齐 vanilla LivingEntity.travelInWater
         // 用属性值在「当前阻力」与「陆地上限 0.54600006」之间线性插值。
-        // TODO: 原版还会把输入速度（0.02）向 getSpeed() 插值，本函数只处理速度衰减，
-        // 移动输入在 Player::_handleWaterMovement 里单独算，非玩家生物的水中水平输入
-        // 尚未接入同一套插值（属于独立的「生物水中移动」缺口，不在本次附魔对齐范围内）。
+        // 输入速度那一路的插值（f1 += (getSpeed() - f1) * f2）在函数上半段计算 moveFactor 时
+        // 已经做过，此处只负责速度衰减这一半，两处共用同一个属性值。
         f32 waterMovementEfficiency =
             static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
         if (!m_builtIn.physicsState->m_onGround) {

@@ -64,7 +64,7 @@ StructureBlock::StructureBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态：DATA 模式
-    // 原版结构方块的默认模式是 LOAD（注意：Mode 枚举的声明顺序��索引值，但默认状态按名字取）。
+    // 原版结构方块的默认模式是 LOAD（注意：Mode 枚举的声明顺序即索引值，但默认状态按名字取）。
     setDefaultState(defaultState().with(BlockStateProperties::STRUCTURE_MODE(), Mode::Load));
 }
 

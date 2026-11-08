@@ -31,6 +31,7 @@
 
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/AgeableEntity.hpp" // is_baby → setChild/isChild 断言
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -152,6 +153,116 @@ TEST_F(AddonEntityDefinitionTest, DataOnlyPackInstallsPropertiesDimensionsAndPhy
 
 // description.is_spawnable 此前只校验类型就丢弃，运行时读不到。现在必须如实保存：
 // 缺省为 false，显式 true 时为 true，且与 is_summonable 相互独立。
+// minecraft:is_baby / minecraft:can_climb 是纯标记组件（无字段），必须被接受而不是当作未知组件
+// 拒绝——否则用了它们的整个行为包都加载不了。is_baby 对 living 型实体会真正调 setChild。
+TEST_F(AddonEntityDefinitionTest, MarkerComponentsAreAcceptedAndIsBabyTakesEffect)
+{
+    auto definition = _definition("addon_test:markers");
+    definition["minecraft:entity"]["components"]["minecraft:is_baby"] = nlohmann::json::object();
+    definition["minecraft:entity"]["components"]["minecraft:can_climb"] = nlohmann::json::object();
+    definition["minecraft:entity"]["components"]["minecraft:movement"] = {{"value", 0.3}};
+    // living 判定要求 movement + health 同时存在（仅有 movement 会被判为"无生命的移动 actor"而拒绝）。
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    // 带 minecraft:movement 的 definition 是 living 型，生成后应当是幼体。
+    ASSERT_TRUE(parsed.value().isLiving());
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    auto entity = AddonEntityDefinition::create(shared, nullptr, entities, {});
+    ASSERT_NE(entity, nullptr);
+    const auto* ageable = dynamic_cast<mc::AgeableEntity*>(entity.get());
+    ASSERT_NE(ageable, nullptr) << "living addon mobs must be AgeableEntity so is_baby can apply";
+    EXPECT_TRUE(ageable->isChild());
+}
+
+// is_baby 写在非 living 实体上不报错（只是无效果），基岩侧也不会因此拒绝行为包。
+// minecraft:knockback_resistance.value 必须落到击退抗性属性上，且只接受字面量数字：
+// range 对象 / Molang 当前没有"每 tick 求值"的通路，放任通过会导致组件被收下却不生效。
+// minecraft:cannot_be_attacked 是纯标记组件，解析后实体必须是无敌的（否则组件等于被忽略）。
+// minecraft:follow_range.value 必须落到追击范围属性上（实体寻路/目标搜索读的就是它）。
+TEST_F(AddonEntityDefinitionTest, FollowRangeIsAppliedToAttribute)
+{
+    auto definition = _definition("addon_test:follow_range");
+    definition["minecraft:entity"]["components"]["minecraft:movement"] = {{"value", 0.3}};
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    definition["minecraft:entity"]["components"]["minecraft:follow_range"] = {{"value", 48}, {"max", 64}};
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    auto entity = AddonEntityDefinition::create(shared, nullptr, entities, {});
+    ASSERT_NE(entity, nullptr);
+    const auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    EXPECT_DOUBLE_EQ(living->attributes().getValue(mc::entity::attribute::Attributes::FOLLOW_RANGE), 48.0);
+
+    // 动态形式必须被明确拒绝，与 knockback_resistance 保持同一策略。
+    auto dynamicValue = _definition("addon_test:follow_range_dynamic");
+    dynamicValue["minecraft:entity"]["components"]["minecraft:follow_range"] = {{"value", "math.random(16, 48)"}};
+    const auto rejected = AddonEntityDefinition::parse(dynamicValue);
+    ASSERT_TRUE(rejected.failed());
+    EXPECT_EQ(rejected.error().code(), mc::ErrorCode::Unsupported);
+}
+
+TEST_F(AddonEntityDefinitionTest, CannotBeAttackedMakesEntityInvulnerable)
+{
+    auto definition = _definition("addon_test:invulnerable");
+    definition["minecraft:entity"]["components"]["minecraft:cannot_be_attacked"] = nlohmann::json::object();
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    auto entity = AddonEntityDefinition::create(shared, nullptr, entities, {});
+    ASSERT_NE(entity, nullptr);
+    EXPECT_TRUE(entity->isInvulnerable()) << "cannot_be_attacked must make the entity invulnerable";
+
+    // 没写该组件的实体必须保持可被攻击，避免"一律无敌"的过度实现。
+    auto plain = AddonEntityDefinition::parse(_definition("addon_test:attackable"));
+    ASSERT_TRUE(plain.success()) << plain.error().message();
+    auto plainShared = std::make_shared<const AddonEntityDefinition>(plain.value());
+    auto plainEntity = AddonEntityDefinition::create(plainShared, nullptr, entities, {});
+    ASSERT_NE(plainEntity, nullptr);
+    EXPECT_FALSE(plainEntity->isInvulnerable());
+}
+
+TEST_F(AddonEntityDefinitionTest, KnockbackResistanceIsAppliedAndRequiresLiteralNumber)
+{
+    auto definition = _definition("addon_test:knockback");
+    definition["minecraft:entity"]["components"]["minecraft:knockback_resistance"] = {{"value", 0.75}};
+    // 击退抗性挂在 LivingEntity 上，因此需要 movement + health 让定义被判为 living 型。
+    definition["minecraft:entity"]["components"]["minecraft:movement"] = {{"value", 0.3}};
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    auto entity = AddonEntityDefinition::create(shared, nullptr, entities, {});
+    ASSERT_NE(entity, nullptr);
+    const auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    EXPECT_DOUBLE_EQ(living->attributes().getValue(mc::entity::attribute::Attributes::KNOCKBACK_RESISTANCE), 0.75);
+
+    // 动态形式必须被明确拒绝，而不是静默收下。
+    auto dynamicValue = _definition("addon_test:knockback_dynamic");
+    dynamicValue["minecraft:entity"]["components"]["minecraft:knockback_resistance"] = {
+        {"value", {{"range_min", 0.1}, {"range_max", 0.9}}}};
+    const auto rejected = AddonEntityDefinition::parse(dynamicValue);
+    ASSERT_TRUE(rejected.failed());
+    EXPECT_EQ(rejected.error().code(), mc::ErrorCode::Unsupported);
+}
+
+TEST_F(AddonEntityDefinitionTest, IsBabyOnNonLivingIsAcceptedWithoutEffect)
+{
+    auto definition = _definition("addon_test:baby_actor");
+    definition["minecraft:entity"]["components"]["minecraft:is_baby"] = nlohmann::json::object();
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+    ASSERT_FALSE(parsed.value().isLiving());
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    EXPECT_NE(AddonEntityDefinition::create(shared, nullptr, entities, {}), nullptr);
+}
+
 TEST_F(AddonEntityDefinitionTest, SpawnableAndSummonableFlagsAreParsedIndependently)
 {
     auto neither = AddonEntityDefinition::parse(_definition("addon_test:neither"));

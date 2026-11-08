@@ -112,6 +112,8 @@ public:
         const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnItemAt(
         const std::string& itemType, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
+    [[nodiscard]] GameTestResult spawnItemAt(
+        const mc::ItemStack& stack, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnAtLocation(
         const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnWithoutBehaviors(
