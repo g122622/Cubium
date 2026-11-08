@@ -1043,7 +1043,6 @@ u64 registerSimulatedPlayerClassBinding(
             if (target == nullptr) {
                 return ctx.throwTypeError("lookAtEntity: first arg must be an Entity");
             }
-            // TODO: duration（LookDuration）插值语义，当前瞬时。
             SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
             if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
                 return nullptr;
@@ -1071,7 +1070,6 @@ u64 registerSimulatedPlayerClassBinding(
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
-            // TODO: duration（LookDuration）插值语义，当前瞬时。
             SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
             if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
                 return nullptr;
@@ -1282,12 +1280,16 @@ u64 registerSimulatedPlayerClassBinding(
         0);
 
     // === 攻击/交互/破坏/建造 ===
-    // attack() 无参版本：基岩语义为攻击当前看向的实体，依赖 raycast 命中检测，TODO 待射线体系就绪。
+    // attack() 无参版本：从头部沿视线 raycast 选目标，命中且冷却就绪返回 true。
     reg.method(
         "attack",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "attack");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->attack());
         },
         0);
     // --- attackEntity(entity) ---

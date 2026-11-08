@@ -174,6 +174,16 @@ public:
     void moveToBlock(BlockPos relativePos, f32 speed, bool faceTarget);
 
     /**
+     * @brief 朝视线方向挥击（对齐基岩 SimulatedPlayer::attack）。
+     *
+     * 从头部沿当前视线方向挑选目标（在 entity_interaction_range 内、且视线夹角最小的存活实体），
+     * 命中则走完整玩家攻击伤害链。
+     *
+     * @return 是否真的挥击成功：必须找到有效目标且攻击冷却已就绪。
+     */
+    [[nodiscard]] bool attack();
+
+    /**
      * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。
      *
      * 转发 Player::jump（地面 + 冷却为 0 才跳），返回是否真的起跳。
@@ -414,10 +424,20 @@ private:
     };
 
     /// 每 tick 刷新追踪朝向（Continuous / UntilMove）。Instant 或无目标时不做任何事。
-    void _tickLookTarget();
 
     /// 按当前追踪目标重新定向（目标失效时清除追踪）
     void _applyLookTarget();
+
+    /**
+     * @brief 从头部沿视线方向挑选可攻击目标
+     *
+     * 在 entity_interaction_range 内取存活、非自身、且视线夹角在容差内的最近实体。
+     * 用"视线方向与到目标中心方向的点积"做筛选，等价于一条细圆锥而非严格射线，
+     * 这与原版实体命中判定的"碰撞箱与视线相交"口径接近，且不依赖体素遍历。
+     *
+     * @return 命中的目标实体，没有则 nullptr。
+     */
+    mc::Entity* _findAttackTarget();
 
     LookDuration m_lookDuration = LookDuration::Instant;
     LookTargetKind m_lookTargetKind = LookTargetKind::None;

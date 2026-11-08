@@ -403,6 +403,75 @@ void SimulatedPlayer::attack(mc::Entity& target)
     Player::attack(target);
 }
 
+mc::Entity* SimulatedPlayer::_findAttackTarget()
+{
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::_findAttackTarget: helper not bound");
+
+    auto& world = m_helper->world();
+    // 攻击距离取自玩家属性（entity_interaction_range，默认 3.0），与真实玩家一致。
+    const f64 reach = getAttributeValue(mc::entity::attribute::Attributes::ENTITY_INTERACTION_RANGE, 3.0);
+
+    // 视线方向：yaw=0→+Z、yaw=90→-X；pitch 正值向下。
+    const f64 yawRad = mc::math::toRadians(static_cast<f64>(yaw()));
+    const f64 pitchRad = mc::math::toRadians(static_cast<f64>(pitch()));
+    const f64 cosPitch = std::cos(pitchRad);
+    const Vector3d lookDir{-std::sin(yawRad) * cosPitch, -std::sin(pitchRad), std::cos(yawRad) * cosPitch};
+
+    const f64 eyeX = x();
+    const f64 eyeY = getEyeY();
+    const f64 eyeZ = z();
+
+    // 先取以眼睛为中心、半径 reach 的立方体，再按视线夹角筛选。
+    const AxisAlignedBB searchBox(eyeX - reach, eyeY - reach, eyeZ - reach, eyeX + reach, eyeY + reach, eyeZ + reach);
+
+    mc::Entity* best = nullptr;
+    f64 bestScore = -2.0; // 视线方向点积，越大越靠近视线中心
+    for (mc::Entity* candidate : world.getEntitiesInAABB(searchBox, this)) {
+        if (candidate == nullptr || candidate == this || !candidate->isAlive()) {
+            continue;
+        }
+
+        const f64 dx = candidate->x() - eyeX;
+        const f64 dy = (candidate->getEyeY() + candidate->y()) * 0.5 - eyeY;
+        const f64 dz = candidate->z() - eyeZ;
+        const f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist > reach || dist < 1.0e-6) {
+            continue;
+        }
+
+        // 与视线的夹角余弦；要求目标大致在正前方（cos >= 0.5 ≈ 60° 半角）。
+        const f64 dot = (dx * lookDir.x + dy * lookDir.y + dz * lookDir.z) / dist;
+        if (dot < 0.5) {
+            continue;
+        }
+
+        // 取"最正对视线"者；同分时近者优先。
+        const f64 score = dot - dist * 0.001;
+        if (score > bestScore) {
+            bestScore = score;
+            best = candidate;
+        }
+    }
+
+    return best;
+}
+
+bool SimulatedPlayer::attack()
+{
+    // 冷却未就绪时不挥击（基岩：返回 false 且不产生攻击）。
+    if (getCooledAttackStrength(0.0f) < 1.0f) {
+        return false;
+    }
+
+    mc::Entity* target = _findAttackTarget();
+    if (target == nullptr) {
+        return false;
+    }
+
+    attack(*target);
+    return true;
+}
+
 // === 方块破坏 / 放置 / 疾跑（对齐基岩 SimulatedPlayer::breakBlock/placeBlock/setSprint）===
 
 bool SimulatedPlayer::breakBlock(BlockPos relativePos)
