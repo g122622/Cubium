@@ -407,6 +407,10 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
         } else if (name == "minecraft:is_baby") {
             // 纯标记组件：存在即表示按幼体生成。实际生效在 _initialize 里调 AgeableEntity::setChild。
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:cannot_be_attacked") {
+            // 纯标记组件：存在即表示不可被攻击。生效方式是 Entity::setInvulnerable(true)，
+            // 这会同时挡住近战/弹射物/爆炸等常规伤害来源（与基岩语义一致）。
+            MC_TRY(_members(component, {}));
         } else if (name == "minecraft:can_climb") {
             // 纯标记组件：存在即表示可攀爬梯子/藤蔓。攀爬判定读的是实体的攀爬状态，
             // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
@@ -515,6 +519,12 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
         } else {
             spdlog::warn("[BedrockAddon] minecraft:is_baby on non-ageable entity '{}' has no effect", m_identifier);
         }
+    }
+
+    // minecraft:cannot_be_attacked 是纯标记组件，存在即不可被攻击。
+    // 走 Entity::setInvulnerable(true)，与"无敌"共用同一套伤害拦截，不额外造一条并行判定。
+    if (m_components.contains("minecraft:cannot_be_attacked")) {
+        entity.setInvulnerable(true);
     }
 
     // minecraft:knockback_resistance.value → 击退抗性属性。只有 LivingEntity 有属性表。
