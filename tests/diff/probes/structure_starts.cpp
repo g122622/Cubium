@@ -35,7 +35,6 @@
  * 单元由共同语料决定（`harnesses/structure_starts.ts`），本探针不提供 `list`。
  */
 
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -46,7 +45,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -148,16 +146,11 @@ const char* projectionName(StructurePieceProjection projection)
 json summarisePiece(const world::gen::structure::StructurePiece& piece)
 {
     const auto box = piece.getBoundingBox();
-    // 接线按端点坐标排序后再输出：两边（原版与本项目）的接线收集顺序不同，而这份文件
-    // 比的是「接线集合是否一致」而不是「收集顺序是否一致」。顺序差异来自纯实现细节，
-    // 参与比较只会把真正的几何/数值差异淹没在噪声里。
-    auto sortedJunctions = piece.getJunctions();
-    std::sort(sortedJunctions.begin(), sortedJunctions.end(), [](const auto& l, const auto& r) {
-        return std::make_tuple(l.getSourceX(), l.getSourceZ(), l.getSourceGroundY(), l.getDeltaY()) <
-            std::make_tuple(r.getSourceX(), r.getSourceZ(), r.getSourceGroundY(), r.getDeltaY());
-    });
+    // 接线按收集顺序原样输出，与 oracle 的 `getJunctions()` 同口径。接线在父构件上按连接点
+    // 遍历序追加、在子构件上只有被挂接时的那一条，两条实现都必须逐项对齐；若此处再排序，
+    // 装配阶段真的把接线记到了错误的连接点上也会被掩盖掉。
     json junctions = json::array();
-    for (const auto& junction : sortedJunctions) {
+    for (const auto& junction : piece.getJunctions()) {
         junctions.push_back(json{{"x", junction.getSourceX()},
             {"groundY", junction.getSourceGroundY()},
             {"z", junction.getSourceZ()},

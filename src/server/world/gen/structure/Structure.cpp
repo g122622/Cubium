@@ -764,6 +764,23 @@ void StructureStart::recalculateStructureSize()
         m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
         m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
     }
+    // 地形适配的外扩在并集之后统一施加：原版 `getBoundingBox()` 每次都从片段并集重算，
+    // 再调 `adjustBoundingBox`，外扩从不被片段位置"吃掉"。
+    if (m_terrainBoxInflation > 0 && m_boundingBox.isValid()) {
+        m_boundingBox = StructureBoundingBox(m_boundingBox.minX() - m_terrainBoxInflation,
+            m_boundingBox.minY() - m_terrainBoxInflation,
+            m_boundingBox.minZ() - m_terrainBoxInflation,
+            m_boundingBox.maxX() + m_terrainBoxInflation,
+            m_boundingBox.maxY() + m_terrainBoxInflation,
+            m_boundingBox.maxZ() + m_terrainBoxInflation);
+    }
+}
+
+void StructureStart::applyTerrainAdaptationInflation(TerrainAdaptation terrainAdaptation)
+{
+    // 原版 `Structure.adjustBoundingBox`：非 NONE 时每侧外扩 12 格。
+    m_terrainBoxInflation = (terrainAdaptation == TerrainAdaptation::None) ? 0 : 12;
+    recalculateStructureSize();
 }
 
 bool StructureStart::isRefCountBelowMax() const noexcept

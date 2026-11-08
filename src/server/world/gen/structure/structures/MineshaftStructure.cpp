@@ -1218,6 +1218,15 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
             piece->offset(0, mesaOffset, 0);
         }
         start->recalculateStructureSize();
+
+        // 生物群系校验（恶地分支同样要做）：原版候选点是
+        // `(区块中心 X, 50 + 下移量, 区块最小 Z)`，恶地的下移量来自上面的地表对齐。
+        // 漏掉这一步会让恶地矿井在任意群系都被接受。
+        const i32 mesaCandidateX = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+        if (!isValidBiomeAt(generator, BlockPos(mesaCandidateX, baseY + mesaOffset, chunkZ * world::CHUNK_WIDTH))) {
+            start->pieces().clear();
+            start->recalculateStructureSize();
+        }
         return start;
     }
 

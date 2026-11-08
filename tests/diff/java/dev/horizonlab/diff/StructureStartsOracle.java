@@ -43,6 +43,7 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.datafix.DataFixers;
@@ -318,6 +319,12 @@ public final class StructureStartsOracle {
                 // 一致）。原版没有公开访问器，这里按 toString 解析——它形如
                 // `Feature[ResourceKey[minecraft:placed_feature / minecraft:oak]]`。
                 template = unpackFeatureId(element.toString());
+            } else {
+                // 列表池元素等其余池元素没有模板文件，用其注册名（与原版
+                // `structure_pool_element` 注册表口径一致）：所有列表元素都叫
+                // `list_pool_element`，至少能把"列表占位"与"空占位"区分开。
+                var key = BuiltInRegistries.STRUCTURE_POOL_ELEMENT.getKey(element.getType());
+                template = key == null ? "" : key.getPath();
             }
         }
         object.addProperty("template", template);

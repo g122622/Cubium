@@ -19,6 +19,8 @@
 
 #include "JigsawAssembler.hpp"
 
+#include <spdlog/spdlog.h>
+
 #include "JigsawMatcher.hpp"
 #include "JigsawPiece.hpp"
 #include "JigsawTransform.hpp"
@@ -108,16 +110,43 @@ AxisAlignedBB JigsawAssembler::toAabb(const structure::StructureBoundingBox& box
         static_cast<f32>(box.maxZ() + 1));
 }
 
-StartPlacement JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPiece,
+std::optional<StartPlacement> JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPiece,
     const BlockPos& chunkOrigin,
     i32 startHeightY,
     Rotation rotation,
+    math::IRandom& rng,
+    const std::optional<ResourceLocation>& startJigsawName,
     IChunkGenerator& generator,
     bool projectStartToHeightmap)
 {
-    // 先按请求点求起始块包围盒——投影用的列坐标由它导出
+    // 请求点：原版 `new BlockPos(chunkPos.getMinBlockX(), startHeight, chunkPos.getMinBlockZ())`。
     const BlockPos stubPos(chunkOrigin.x, startHeightY, chunkOrigin.z);
-    auto boundingBox = JigsawTransform::calculateBoundingBox(startPiece, stubPos, rotation);
+
+    // 命名起始连接点（原版 `start_jigsaw_name`）：先对起始块的全部连接点做一次洗牌——**这一步
+    // 消耗随机数，且发生在装配开始之前**，跳过它会让之后整条拼图链的随机流错位——再取第一个
+    // 名字匹配的连接点，并把模板原点反向偏移，使该连接点恰好落在请求点上。
+    // 未指定名称时偏移为零，原点即请求点。
+    BlockPos anchorOffset(0, 0, 0);
+    if (startJigsawName.has_value()) {
+        const std::string wantedName = startJigsawName->toString();
+        std::optional<BlockPos> anchor;
+        for (const JigsawJoint& joint : startPiece.getShuffledJoints(rng)) {
+            if (joint.sourceName == wantedName) {
+                anchor =
+                    JigsawTransform::transformPosition(joint.sourcePos, rotation, Mirror::None, BlockPos(0, 0, 0)) +
+                    stubPos;
+                break;
+            }
+        }
+        if (!anchor.has_value()) {
+            spdlog::error("No starting jigsaw {} found in start pool", wantedName);
+            return std::nullopt;
+        }
+        anchorOffset = *anchor - stubPos;
+    }
+
+    const BlockPos initialOrigin = stubPos - anchorOffset;
+    auto boundingBox = JigsawTransform::calculateBoundingBox(startPiece, initialOrigin, rotation);
 
     // 【必须用 (minX+maxX)/2 而非包围盒中心】原版 JigsawPlacement 取的是
     // (bb.maxX() + bb.minX()) / 2 与 (bb.maxZ() + bb.minZ()) / 2（整数除法），
@@ -127,41 +156,29 @@ StartPlacement JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPi
     const i32 centerZ = (boundingBox.minZ() + boundingBox.maxZ()) / 2;
 
     // project_start_to_heightmap：把该列地形高度叠加到请求点 Y 上，得到目标地面线高度。
-    // 不投影时目标地面线就是请求点 Y（即 start_height 给出的绝对高度）。
+    // 不投影时目标地面线就是**模板原点**的 Y（原版 `k = blockpos1.getY()`）。指定
+    // `start_jigsaw_name` 时模板原点已被命名连接点反向偏移（原点下移锚点高度），目标地面线
+    // 必须跟着一起下移，否则起始块会被整体抬回请求点附近、命名连接点的偏移形同虚设。
     const i32 targetGroundLine = projectStartToHeightmap
         ? stubPos.y + generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG)
-        : stubPos.y;
+        : initialOrigin.y;
 
-    // 起始块的地面线 = 包围盒 minY + groundLevelDelta；平移使其对齐目标地面线。
-    //
-    // 【原点必须是区块最小角，不能是 stubPos】原版 `addPieces` 里起始块的原点是
-    //   blockpos1 = stubPos.subtract(vec3i)，其中 vec3i = 命名连接点相对请求点的偏移。
-    // 未指定 `start_jigsaw_name` 时 vec3i 为零，原点即 `new BlockPos(getMinBlockX(),
-    // startHeight, getMinBlockZ())`——Y 用 start_height 的高度，**X/Z 恒为区块最小角**。
-    // 这里原来直接用 stubPos 作原点，等于要求调用方把这段语义塞进 stubPos；调用方若按
-    // 原版语义只传区块最小角，起始块的 X/Z 就偏到了区块角上（试炼密室首个构件随之错位，
-    // 差分能力 structure_starts 表现为整条拼图链偏移）。
-    BlockPos origin = chunkOrigin;
+    // 起始块的地面线 = 包围盒 minY + groundLevelDelta；平移使其对齐目标地面线 k。
+    // 对应原版 `poolelementstructurepiece.move(0, k - l, 0)`，其中 l = minY + groundLevelDelta。
+    // 【地面线不是包围盒底面】groundLevelDelta 是模板地面线相对包围盒底面的偏移，原版对齐的是
+    // 「minY + delta == k」而不是「minY == k - 1」；后者只在 delta 恰为 1 时巧合成立。
+    BlockPos origin = initialOrigin;
+    origin.y += targetGroundLine - (boundingBox.minY() + startPiece.getGroundLevelDelta());
+    boundingBox = JigsawTransform::calculateBoundingBox(startPiece, origin, rotation);
 
-    // 【起始块的落点：模板底面对齐到 start_height 的下一格】
-    // 原版 addPieces 里起始块的原点由请求点减去「命名连接点相对请求点的偏移」得到；未指定
-    // start_jigsaw_name 时该偏移为零，原点即 (getMinBlockX(), startHeight, getMinBlockZ())。
-    // 此后模板的底面（minY）恒比其原点低一格，净效果是模板包围盒底面落在 startHeight - 1，
-    // 也就是 start_height 指定的那一格本身就是结构的地面线。
-    //
-    // 此前这里拿 groundLevelDelta 反解原点，等于把**地面线**对齐到 start_height；而
-    // groundLevelDelta 是模板地面线相对包围盒底面的偏移、不是绝对高度，凡是 delta 非零的
-    // 结构都会被整体抬高一截（试炼密室的首个构件 delta=1、高 20 格，整链抬高 20 格）。
-    origin.y = targetGroundLine - 1;
+    // 候选生成点 = 包围盒 X/Z 中心 + (k + 锚点 Y 偏移)，对应原版 `GenerationStub(new BlockPos(i, i1, j))`。
+    // 无高度投影时 k = 原点 Y，加回锚点偏移后恰好回到请求点 Y（即 start_height）。
+    const BlockPos candidatePoint(centerX, targetGroundLine + anchorOffset.y, centerZ);
 
-    // 候选生成点 = 包围盒 X/Z 中心 + 目标地面线高度，原版据此做生物群系校验
-    const BlockPos candidatePoint(centerX, targetGroundLine, centerZ);
-
-    return StartPlacement(
-        origin, rotation, JigsawTransform::calculateBoundingBox(startPiece, origin, rotation), candidatePoint);
+    return StartPlacement(origin, rotation, boundingBox, candidatePoint);
 }
 
-std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolRegistry,
+AssemblyResult JigsawAssembler::assemble(TemplatePoolRegistry& poolRegistry,
     const TemplatePool& startPool,
     i32 maxDepth,
     const BlockPos& chunkOrigin,
@@ -171,6 +188,7 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     math::IRandom& rng,
     IChunkGenerator& generator,
     const PoolAliasBindings* aliases,
+    const std::optional<ResourceLocation>& startJigsawName,
     const structure::MaxDistance* maxDistance,
     const structure::DimensionPadding* dimensionPadding,
     i64 structureSeed)
@@ -207,11 +225,18 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
         return {};
     }
 
-    const StartPlacement placement =
-        resolveStartPlacement(*startPiece, chunkOrigin, startHeightY, rotation, generator, projectStartToHeightmap);
-    return assembleFromStartPlacement(poolRegistry,
+    // 命名起始连接点找不到时原版放弃整个结构（返回 Optional.empty），此处同样返回空结果；
+    // 随机数消耗到此为止，不回滚。
+    const std::optional<StartPlacement> placement = resolveStartPlacement(
+        *startPiece, chunkOrigin, startHeightY, rotation, rng, startJigsawName, generator, projectStartToHeightmap);
+    if (!placement.has_value()) {
+        return {};
+    }
+
+    AssemblyResult result;
+    result.pieces = assembleFromStartPlacement(poolRegistry,
         *startPiece,
-        placement,
+        *placement,
         maxDepth,
         useExpansionHack,
         rng,
@@ -219,6 +244,8 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
         aliasLookup,
         maxDistance,
         dimensionPadding);
+    result.candidatePoint = placement->candidatePoint;
+    return result;
 }
 
 std::vector<Rotation> JigsawAssembler::shuffledRotations(math::IRandom& rng)

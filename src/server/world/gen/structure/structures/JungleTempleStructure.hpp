@@ -44,7 +44,11 @@ namespace structure {
  */
 class JungleTemplePiece final : public StructurePiece {
 public:
-    explicit JungleTemplePiece(const BlockPos& startPos);
+    /**
+     * @param startPos 构件原点（区块最小角、Y=64）
+     * @param direction 水平朝向（`getRandomHorizontalDirection` 抽取，决定包围盒展开方向）
+     */
+    JungleTemplePiece(const BlockPos& startPos, Direction direction);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,

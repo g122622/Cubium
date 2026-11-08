@@ -829,9 +829,21 @@ public:
     /**
      * @brief 重新计算结构大小
      *
-     * 根据所有片段的边界框计算整体边界。
+     * 根据所有片段的边界框计算整体边界，并按 `m_terrainBoxInflation` 向外膨胀
+     * （对应原版 `StructureStart.getBoundingBox()` 调用的 `Structure.adjustBoundingBox`）。
      */
     void recalculateStructureSize();
+
+    /**
+     * @brief 按地形适配设置整体边界的外扩量
+     *
+     * 原版 `Structure.adjustBoundingBox`：`terrain_adaptation != NONE` 时把起点包围盒
+     * 每侧外扩 12 格（Beardifier 的作用范围）。漏掉这层外扩会让所有带地形适配的结构
+     * （村庄、试炼密室、前哨站等）起点盒比原版小 24 格，进而影响引用判定与区块覆盖。
+     *
+     * @param terrainAdaptation 结构的地形适配模式
+     */
+    void applyTerrainAdaptationInflation(TerrainAdaptation terrainAdaptation);
 
     /**
      * @brief 检查引用计数是否低于最大值
@@ -872,7 +884,8 @@ private:
     StructureBoundingBox m_boundingBox;
     i32 m_chunkX;
     i32 m_chunkZ;
-    i32 m_references = 0; ///< 引用计数，用于追踪多少个区块引用此结构
+    i32 m_references = 0;          ///< 引用计数，用于追踪多少个区块引用此结构
+    i32 m_terrainBoxInflation = 0; ///< 地形适配导致的每侧外扩量（0 表示不膨胀）
 };
 
 /**
