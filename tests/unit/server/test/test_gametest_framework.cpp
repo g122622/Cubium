@@ -38,7 +38,7 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/util/Direction.hpp" // Rotation
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/base/coords/TestTransform.hpp"
 #include "server/test/base/data/TestData.hpp"
 #include "server/test/base/error/GameTestError.hpp"

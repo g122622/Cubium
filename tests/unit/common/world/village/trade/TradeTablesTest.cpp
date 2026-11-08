@@ -33,7 +33,7 @@
 #include "common/item/potion/Potions.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/village/trade/ItemCost.hpp"
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/MerchantOffer.hpp"

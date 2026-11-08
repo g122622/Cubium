@@ -32,7 +32,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>

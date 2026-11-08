@@ -36,9 +36,9 @@
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/enchantment/enchantments/protection/FrostWalkerEnchantment.hpp"
 #include "common/item/enchantment/enchantments/special/SoulSpeedEnchantment.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/NetherBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/Fluids.hpp"
 

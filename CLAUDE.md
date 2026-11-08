@@ -79,7 +79,7 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `pipeline::Connection<RegistryByteBuf>` - 网络管道连接，对外 API 为 `send(ir::IrPacket)` / `onPacket(listener)`，位于 `network/pipeline/Connection.hpp`
 - `transport::LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
 
-**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `ConnectionManager::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除。
+**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `PacketSender::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除。
 
 **入站分发**（两条链路职责与实现方式不同，不要混为一谈）：
 - **服务端**：`ClientSession::handleInbound(const ir::IrPacket&)` 先交给握手处理器，再转到 `ServerPlayHandler::route(PlayerId, const ir::IrPacket&)`（`server/network/play/ServerPlayHandler.hpp`）。`route` 是**集中的 if/`std::holds_alternative` 分发表**（不是 `std::visit`），按包族转调 `MovementHandler` / `BlockActionHandler` / `EntityActionHandler` / `ChatHandler` / `PlayerStateHandler` / `SessionSignalHandler`。新增服务端入站包时在 `route` 里加一个分支并转调对应 handler，不要另起一套分发器。
@@ -127,32 +127,27 @@ src/common/world/
 ├── IWorldWriter.hpp            # 世界写入接口（生成用）
 ├── WorldConstants.hpp          # 世界常量和坐标转换工具，如世界高度限制、区块尺寸等
 ├── WorldConfig.hpp             # 世界配置
-├── WorldEvents.hpp             # 世界事件ID常量
+├── effect/base/LevelEventId.hpp # 客户端世界效果编号
 ├── GlobalPos.hpp               # 全局位置类型
 
 src/common/world/chunk/
 ├── base/                       # 位置与标识纯值类型（ChunkPos、SectionPos、ChunkId）
-├── data/                       # 区块数据模型（ChunkData、ChunkPrimer、ChunkSection、Heightmap、BiomeContainer、IChunk）
-├── gen/                        # 生成管线（ChunkStatus、ChunkPyramid、ChunkStep、ChunkDependencies）
+├── data/                       # 区块数据模型（ChunkData、ChunkSection、Heightmap、BiomeContainer、IChunk）
 └── load/                       # 加载票据系统（ChunkLoadTicket、ChunkLoadTicketManager、ChunkDistanceGraph、ChunkLoadLevel）
 
+生成阶段与邻居依赖模型位于 `src/server/world/chunk/pipeline/`；生成中间区块位于 `src/server/world/gen/chunk/`。
+
 block/
-├── Block.hpp/cpp                   # 方块基类，定义核心属性和行为
-├── BlockState.hpp/cpp              # 方块状态类，不可变状态对象
-├── BlockPos.hpp                    # 方块位置坐标类
-├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
-├── BlockSoundType.hpp/cpp          # 方块声音类型定义
-├── BlockTags.hpp/cpp               # 方块标签系统（分组判断），可用于判断方块类型，推荐首选！
-├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
-├── HarvestTool.hpp                 # 挖掘工具类型定义
-├── IBeaconBeamColorProvider.hpp    # 信标光束颜色提供者接口
-├── IBucketPickupHandler.hpp        # 桶提取接口
-├── IGrowable.hpp                   # 可生长方块接口
-├── ILiquidContainer.hpp            # 液体容器接口
-├── IWaterLoggable.hpp/cpp          # 含水方块接口
-├── Material.hpp/cpp                # 材质系统（物理属性）
-├── PlantType.hpp                   # 植物类型定义
-├── WaterLoggableHelpers.hpp        # 含水方块工具函数
+├── core/                       # Block 身份与行为扩展入口
+├── properties/                 # BlockProperties 与状态谓词
+├── state/                      # BlockState 与匹配模式
+├── base/                       # 基础类型、材质、声音组合与方块族
+├── capability/                 # 生长、含水、氧化等可选能力
+├── registry/                   # 通用注册入口与 vanilla 原版内容装配
+├── support/                    # 附着与支撑形状判定
+├── tags/                       # 数据包方块标签
+├── fire/                       # 可燃参数
+└── blocks/                     # 按主要行为组织的方块实现
 
 ```
 

@@ -21,7 +21,7 @@
  *
  */
 
-#include "world/block/blocks/LayeredCauldronBlock.hpp"
+#include "common/world/block/blocks/cauldron/LayeredCauldronBlock.hpp"
 #include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
@@ -39,9 +39,10 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -1553,7 +1554,7 @@ public:
         MC_UNUSED(category, pos, volume, pitch);
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         MC_UNUSED(eventId, pos, data);
     }

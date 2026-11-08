@@ -30,7 +30,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <vector>
 #include <glm/ext/vector_float3.hpp>

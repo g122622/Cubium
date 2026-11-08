@@ -36,11 +36,11 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <cmath>
 #include <optional>
 
@@ -368,7 +368,7 @@ void GhastFireballAttackGoal::tick()
             // 充能音效事件
             BlockPos pos(
                 static_cast<i32>(m_ghast->x()), static_cast<i32>(m_ghast->y()), static_cast<i32>(m_ghast->z()));
-            m_ghast->world()->playEvent(world::WorldEvents::GHAST_WARN_SOUND, pos, 0);
+            m_ghast->world()->playEvent(::mc::world::LevelEventId::SOUND_GHAST_WARNING, pos, 0);
         }
 
         // 充能完成（第20 tick）

@@ -25,7 +25,7 @@
 
 #include "CropBlock.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 namespace blocks {

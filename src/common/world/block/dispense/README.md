@@ -97,7 +97,7 @@ IDispenseItemBehavior (接口)
 - `Direction` / `Directions` - 方向枚举和工具函数
 - `Random` - 高斯随机速度计算
 - `Vector3` / `BlockPos` - 位置计算
-- `WorldEvents` - 世界事件 ID（音效、粒子）
+- `LevelEventId` - 世界事件 ID（音效、粒子）
 - `GameRules` / `GameRuleKeys` - tntExplodes 游戏规则（TNTDispenseBehavior 检查，FlintAndSteelDispenseBehavior 点燃 TNT 时检查）
 
 ## 容易踩的坑

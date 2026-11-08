@@ -32,7 +32,10 @@
  */
 
 #include "common/core/Result.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -55,9 +58,6 @@
 #include "util/Direction.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/property/Properties.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "world/block/dispense/IDispenseItemBehavior.hpp"
 
@@ -401,10 +401,10 @@ TEST_F(DispenseBehaviorTest, AllProjectileItems_ImplementProjectileItemInterface
 TEST_F(DispenseBehaviorTest, WorldEventIds_AreCorrect)
 {
     // 验证世界事件 ID 与 MC 1.16.5 一致
-    EXPECT_EQ(mc::world::WorldEvents::DISPENSER_DISPENSE_SOUND, 1000);
-    EXPECT_EQ(mc::world::WorldEvents::DISPENSER_FAIL_SOUND, 1001);
-    EXPECT_EQ(mc::world::WorldEvents::DISPENSER_LAUNCH_SOUND, 1002);
-    EXPECT_EQ(mc::world::WorldEvents::DISPENSER_SMOKE, 2000);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::SOUND_DISPENSER_DISPENSE), 1000);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::SOUND_DISPENSER_FAIL), 1001);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::SOUND_DISPENSER_PROJECTILE_LAUNCH), 1002);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_SHOOT_SMOKE), 2000);
 }
 
 // ============================================================================
@@ -1106,7 +1106,7 @@ public:
     }
 
     // --- playEvent: 记录事件 ---
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_playedEvents.push_back({eventId, pos, data});
     }
@@ -1177,7 +1177,7 @@ public:
         return m_lastSetBlockState;
     }
 
-    const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const
+    const std::vector<std::tuple<::mc::world::LevelEventId, BlockPos, i32>>& playedEvents() const
     {
         return m_playedEvents;
     }
@@ -1188,7 +1188,7 @@ public:
     }
 
     // --- 检查是否有指定事件ID的记录 ---
-    bool hasEvent(i32 eventId) const
+    bool hasEvent(::mc::world::LevelEventId eventId) const
     {
         for (const auto& ev : m_playedEvents) {
             if (std::get<0>(ev) == eventId) {
@@ -1216,7 +1216,7 @@ private:
     BlockPos m_lastSetBlockPos{0, 0, 0};
     const BlockState* m_lastSetBlockState = nullptr;
     i32 m_setBlockStateCallCount = 0;
-    std::vector<std::tuple<i32, BlockPos, i32>> m_playedEvents;
+    std::vector<std::tuple<::mc::world::LevelEventId, BlockPos, i32>> m_playedEvents;
     std::vector<std::string> m_spawnedEntityTypes;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::unordered_map<BlockPos, const BlockState*, BlockPosHasher> m_blockStateMap;
@@ -1287,7 +1287,7 @@ TEST_F(DispenseBehaviorTest, BucketDispense_PlaceWaterOnAir)
         // 应调用了 setBlockState 在目标位置放置水
         EXPECT_GT(world.setBlockStateCallCount(), beforeCall);
         // 应播放成功音效（1000）
-        EXPECT_TRUE(world.hasEvent(world::WorldEvents::DISPENSER_DISPENSE_SOUND));
+        EXPECT_TRUE(world.hasEvent(::mc::world::LevelEventId::SOUND_DISPENSER_DISPENSE));
     }
 }
 
@@ -1318,7 +1318,7 @@ TEST_F(DispenseBehaviorTest, BucketDispense_WaterEvaporatesInUltraWarmDimension)
         // 成功但水蒸发
         EXPECT_TRUE(behavior->isSuccess());
         // 应播放火焰熄灭音效（1009）
-        EXPECT_TRUE(world.hasEvent(world::WorldEvents::FIRE_EXTINGUISH_SOUND));
+        EXPECT_TRUE(world.hasEvent(::mc::world::LevelEventId::SOUND_EXTINGUISH_FIRE));
     }
 }
 
@@ -1468,7 +1468,7 @@ TEST_F(DispenseBehaviorTest, FlintAndSteel_FailOnNonFlammableTarget)
         // 失败
         EXPECT_FALSE(behavior->isSuccess());
         // 失败时应播放 DISPENSER_FAIL_SOUND (1001)
-        EXPECT_TRUE(world.hasEvent(world::WorldEvents::DISPENSER_FAIL_SOUND));
+        EXPECT_TRUE(world.hasEvent(::mc::world::LevelEventId::SOUND_DISPENSER_FAIL));
     }
 }
 
@@ -1596,12 +1596,12 @@ TEST_F(DispenseBehaviorTest, DispenseTestWorld_PlayEventRecords)
     DispenseTestWorld world;
 
     BlockPos pos(5, 10, 15);
-    world.playEvent(world::WorldEvents::DISPENSER_DISPENSE_SOUND, pos, 0);
-    world.playEvent(world::WorldEvents::DISPENSER_FAIL_SOUND, pos, 1);
+    world.playEvent(::mc::world::LevelEventId::SOUND_DISPENSER_DISPENSE, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_DISPENSER_FAIL, pos, 1);
 
     ASSERT_EQ(world.playedEvents().size(), 2u);
-    EXPECT_EQ(std::get<0>(world.playedEvents()[0]), world::WorldEvents::DISPENSER_DISPENSE_SOUND);
-    EXPECT_EQ(std::get<0>(world.playedEvents()[1]), world::WorldEvents::DISPENSER_FAIL_SOUND);
+    EXPECT_EQ(std::get<0>(world.playedEvents()[0]), ::mc::world::LevelEventId::SOUND_DISPENSER_DISPENSE);
+    EXPECT_EQ(std::get<0>(world.playedEvents()[1]), ::mc::world::LevelEventId::SOUND_DISPENSER_FAIL);
 }
 
 TEST_F(DispenseBehaviorTest, DispenseTestWorld_TickManagerAvailable)

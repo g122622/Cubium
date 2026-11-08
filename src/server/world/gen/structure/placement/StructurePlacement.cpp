@@ -27,7 +27,7 @@
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/math/random/WorldgenRandom.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <functional>
 #include <utility>

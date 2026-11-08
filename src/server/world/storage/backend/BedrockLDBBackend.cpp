@@ -28,7 +28,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/GlobalPos.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"

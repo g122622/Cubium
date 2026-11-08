@@ -24,7 +24,7 @@
 #include "PanelStats.hpp"
 
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <fmt/format.h>
 

@@ -31,11 +31,11 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/IWaterLoggable.hpp"
-#include "common/world/block/blocks/MultifaceBlock.hpp"
-#include "common/world/block/blocks/MultifaceSpreader.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/multiface/MultifaceBlock.hpp"
+#include "common/world/block/blocks/multiface/MultifaceSpreader.hpp"
+#include "common/world/block/capability/IWaterLoggable.hpp"
+#include "common/world/block/core/Block.hpp"
 
 #include <array>
 #include <cstddef>

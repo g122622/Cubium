@@ -23,7 +23,7 @@
 
 #include "BlockStatePredictionHandler.hpp"
 #include "client/world/ClientWorld.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <vector>
 #include <spdlog/spdlog.h>
 

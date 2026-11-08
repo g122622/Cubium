@@ -28,7 +28,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "entity/inventory/ISidedInventory.hpp"

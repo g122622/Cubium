@@ -31,11 +31,11 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include <algorithm>
 #include <cstring>

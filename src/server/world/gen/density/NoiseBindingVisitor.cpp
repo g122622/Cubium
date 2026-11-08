@@ -25,7 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/generation/density/DensityFunction.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "server/world/gen/density/DensityFunctions.hpp"

@@ -26,8 +26,8 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 
 // macOS系统头文件<mach/arm/vm_param.h>定义了BYTE_SIZE宏(=8)，

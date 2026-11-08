@@ -22,6 +22,7 @@
  */
 
 #include "PardonCommand.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
@@ -29,14 +30,14 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "server/access/base/BannedPlayerListTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 
 #include <memory>
 #include <sstream>
@@ -104,10 +105,10 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    auto& banList = server->bannedPlayerList();
+    auto& banList = server->accessManager();
 
     // 检查玩家是否被封禁
-    if (!banList.isNameBanned(playerName)) {
+    if (!banList.playerBanIsNameBanned(playerName)) {
         std::ostringstream ss;
         ss << "Could not unban " << playerName << " (not banned)";
         source.sendError(ss.str());
@@ -115,7 +116,7 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     // 移除封禁
-    if (!banList.removeEntryByName(playerName)) {
+    if (!banList.playerBanRemoveEntryByName(playerName)) {
         std::ostringstream ss;
         ss << "Failed to remove " << playerName << " from ban list";
         source.sendError(ss.str());
@@ -123,7 +124,7 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     // 保存封禁列表
-    auto saveResult = banList.save();
+    auto saveResult = banList.playerBanSave();
     if (saveResult.failed()) {
         spdlog::error("Failed to save banned players list: {}", saveResult.error().message());
     }

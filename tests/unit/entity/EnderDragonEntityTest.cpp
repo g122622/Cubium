@@ -44,8 +44,8 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 

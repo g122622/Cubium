@@ -25,7 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"

@@ -21,13 +21,13 @@
  *
  */
 
-#include "world/block/blocks/LavaCauldronBlock.hpp"
+#include "common/world/block/blocks/cauldron/LavaCauldronBlock.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/blocks/CauldronBlock.hpp"
-#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/cauldron/CauldronBlock.hpp"
+#include "common/world/block/blocks/cauldron/LayeredCauldronBlock.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"

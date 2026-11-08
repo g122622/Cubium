@@ -22,7 +22,7 @@
  */
 
 #include "world/blockentity/interactive/BrushableBlockEntity.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -41,12 +41,12 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/functional/TrailsBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "util/property/Properties.hpp"
@@ -293,7 +293,7 @@ void BrushableBlockEntity::brushingCompleted(IWorld& world, LivingEntity& entity
     // 2. 触发 BRUSH_BLOCK_COMPLETE 世界事件（data = Block.getId(blockstate)）
     const BlockState* state = world.getBlockState(m_pos);
     const i32 blockId = (state != nullptr) ? static_cast<i32>(state->blockId()) : 0;
-    world.playEvent(world::WorldEvents::BRUSH_BLOCK_COMPLETE, m_pos, blockId);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_BRUSH_BLOCK_COMPLETE, m_pos, blockId);
 
     // 3. 将方块替换为 BrushableBlock::getTurnsInto() 的默认状态
     const Block* turnsInto = nullptr;

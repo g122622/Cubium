@@ -28,13 +28,13 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/blocks/copper/WeatheringCopperBlock.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/capability/oxidation/WeatheringCopperBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/Direction.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/WaterLoggableHelpers.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

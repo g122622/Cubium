@@ -5,7 +5,7 @@
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {

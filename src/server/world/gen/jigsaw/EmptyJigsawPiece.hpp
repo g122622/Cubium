@@ -21,7 +21,7 @@
 
 #include "JigsawPiece.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 #include <memory>
 #include <string>

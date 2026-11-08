@@ -23,6 +23,7 @@
 
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "core/Types.hpp"
 #include "entity/entities/player/GameModeUtils.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -30,7 +31,6 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "item/core/Item.hpp"
-#include "world/block/BlockPos.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>

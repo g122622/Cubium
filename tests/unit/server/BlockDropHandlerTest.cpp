@@ -30,7 +30,7 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
 

@@ -27,7 +27,7 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/jukebox/JukeboxSongPlayer.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"

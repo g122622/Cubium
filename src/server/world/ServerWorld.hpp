@@ -45,6 +45,7 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -92,7 +93,7 @@ namespace particle {
 enum class ParticleTypeId : u16;
 }
 
-namespace server::core {
+namespace server {
 class TimeManager; // 前向声明
 }
 
@@ -136,7 +137,7 @@ struct ServerWorldConfig {
 //
 // 不负责：
 // - 玩家管理（由 PlayerManager 管理）
-// - 网络通信（由 ConnectionManager 管理）
+// - 网络通信（由 PacketSender 管理）
 // - 时间管理（由 TimeManager 管理）
 // - 传送（由 TeleportManager 管理）
 // - 游戏模式（由 GameModeManager 管理）
@@ -223,17 +224,17 @@ public:
 
     // ========== 时间管理（设置外部 TimeManager） ==========
 
-    void setTimeManager(core::TimeManager* timeManager)
+    void setTimeManager(TimeManager* timeManager)
     {
         m_timeManager = timeManager;
     }
 
-    [[nodiscard]] core::TimeManager* timeManager()
+    [[nodiscard]] TimeManager* timeManager()
     {
         return m_timeManager;
     }
 
-    [[nodiscard]] const core::TimeManager* timeManager() const
+    [[nodiscard]] const TimeManager* timeManager() const
     {
         return m_timeManager;
     }
@@ -662,9 +663,9 @@ public:
 
     // ========== 世界事件 ==========
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override;
 
-    void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data) override;
+    void globalLevelEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override;
 
     void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress) override;
 
@@ -886,7 +887,7 @@ public:
      * 当服务端需要广播世界事件给玩家时调用。
      * 参数：事件ID、位置、数据
      */
-    using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
+    using WorldEventCallback = std::function<void(::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastWorldEvent(WorldEventCallback callback)
     {
@@ -900,7 +901,7 @@ public:
      * 参数：事件ID、位置x/y/z、数据
      */
     using GlobalLevelEventCallback =
-        std::function<void(DimensionId dimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
+        std::function<void(DimensionId dimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastGlobalLevelEvent(GlobalLevelEventCallback callback)
     {
@@ -1901,7 +1902,7 @@ private:
     mutable std::unique_ptr<_EnvironmentAttributes> m_environmentAttributes;
     std::unique_ptr<world::map::MapDataManager> m_mapDataManager;
     server::ItemPickupManager m_itemPickupManager;
-    core::TimeManager* m_timeManager = nullptr;       // 外部引用，不拥有
+    TimeManager* m_timeManager = nullptr;             // 外部引用，不拥有
     std::function<Difficulty()> m_difficultyCallback; ///< 难度获取回调（从 MinecraftServer 获取）
     bool m_initialized = false;
     world::storage::LevelRespawnData m_respawnData; ///< 存档级世界出生数据

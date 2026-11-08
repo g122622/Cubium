@@ -32,7 +32,7 @@
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"

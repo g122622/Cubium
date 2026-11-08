@@ -36,7 +36,7 @@ base/
 
 ## 上下游外部依赖关系
 
-**上游（本目录依赖的外部）**：`common/core/Types.hpp`（i32/u64/f64/BlockCoord）、`common/world/block/BlockPos.hpp`、`common/util/Direction.hpp`（Rotation/Mirror）、`common/util/math/Vector3.hpp`（Vector3d）、nlohmann_json（仅 `data/TestData.cpp`）。
+**上游（本目录依赖的外部）**：`common/core/Types.hpp`（i32/u64/f64/BlockCoord）、`common/world/block/base/types/BlockPos.hpp`、`common/util/Direction.hpp`（Rotation/Mirror）、`common/util/math/Vector3.hpp`（Vector3d）、nlohmann_json（仅 `data/TestData.cpp`）。
 
 **下游（依赖本目录的外部）**：
 - `framework/` 全部子目录（`GameTestResult` 是序列/实例/动作的统一返回类型；`TestData` 是 `BaseGameTestFunction` 构造参数）。

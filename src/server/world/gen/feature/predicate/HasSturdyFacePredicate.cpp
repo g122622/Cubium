@@ -22,8 +22,8 @@
 
 #include "HasSturdyFacePredicate.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc::world::gen::feature::predicate {
 

@@ -28,7 +28,8 @@
 
 #include "item/loot/LootSerializers.hpp"
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
@@ -46,7 +47,6 @@
 #include "item/loot/functions/LootFunctions.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/data/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"

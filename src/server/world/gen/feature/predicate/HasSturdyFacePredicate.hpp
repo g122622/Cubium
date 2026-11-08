@@ -25,7 +25,7 @@
 #include "BlockPredicate.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 
 namespace mc::world::gen::feature::predicate {

@@ -23,12 +23,12 @@
 
 #include "Placements.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/noise/PerlinSimplexNoise.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/placement/Placement.hpp"
 #include <cstddef>

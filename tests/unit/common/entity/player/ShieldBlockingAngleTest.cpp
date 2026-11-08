@@ -34,7 +34,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 

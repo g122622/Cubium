@@ -41,7 +41,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <cmath>
 #include <memory>
 #include <utility>
@@ -269,7 +269,7 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
             // 在世界中生成火球
             if (m_blaze->world()) {
                 // 播放发射音效
-                m_blaze->world()->playEvent(world::WorldEvents::BLAZE_SHOOT_SOUND,
+                m_blaze->world()->playEvent(::mc::world::LevelEventId::SOUND_BLAZE_FIREBALL,
                     BlockPos(
                         static_cast<i32>(m_blaze->x()), static_cast<i32>(m_blaze->y()), static_cast<i32>(m_blaze->z())),
                     0);

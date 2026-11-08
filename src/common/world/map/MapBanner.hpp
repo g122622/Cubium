@@ -24,10 +24,10 @@
 #pragma once
 
 #include "MapDecoration.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "core/Types.hpp"
 #include "util/color/DyeColor.hpp"
 #include "util/nbt/Nbt.hpp"
-#include "world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 #include <string>

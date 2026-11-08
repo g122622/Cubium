@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 
 namespace mc::client::renderer::trident::blockentity {

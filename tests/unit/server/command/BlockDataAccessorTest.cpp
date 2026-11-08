@@ -27,7 +27,7 @@
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/fluid/Fluids.hpp"

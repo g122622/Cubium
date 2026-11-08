@@ -30,8 +30,8 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/redstone/AbstractPressurePlateBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <vector>
 
 namespace mc {
@@ -40,55 +40,15 @@ namespace blocks {
 // 木压力板tick延迟
 static constexpr i32 WOOD_PLATE_DELAY = 10;
 
-WoodPressurePlateBlock::WoodPressurePlateBlock(const BlockProperties& properties)
-    : AbstractPressurePlateBlock(properties)
+WoodPressurePlateBlock::WoodPressurePlateBlock(const BlockProperties& properties, const BlockSetType& type)
+    : AbstractPressurePlateBlock(properties, type)
 {}
-
-i32 WoodPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const
-{
-    // 木压力板可以被所有实体触发（玩家、怪物、物品等）
-    // 对应 MC Java 的 PressurePlateSensitivity.EVERYTHING：使用 Entity.class 过滤
-    // 有实体时输出15，无实体时输出0
-
-    // 创建压力板上方的碰撞箱
-    AxisAlignedBB detectionBox(static_cast<f32>(pos.x) + 0.125f,
-        static_cast<f32>(pos.y) + 0.0f,
-        static_cast<f32>(pos.z) + 0.125f,
-        static_cast<f32>(pos.x) + 0.875f,
-        static_cast<f32>(pos.y) + 0.25f,
-        static_cast<f32>(pos.z) + 0.875f);
-
-    // 查询碰撞箱内的实体
-    std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
-
-    // 木压力板被任何实体触发，但排除不触发压力板的实体
-    // （蝙蝠、标记模式盔甲架、不祥物品生成器等）
-    for (Entity* entity : entities) {
-        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
-            return 15; // 有实体就输出最大信号
-        }
-    }
-
-    return 0;
-}
 
 i32 WoodPressurePlateBlock::getTickDelay(bool oldPowered, bool newPowered) const
 {
     MC_UNUSED(oldPowered);
     MC_UNUSED(newPowered);
     return WOOD_PLATE_DELAY;
-}
-
-void WoodPressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
-{
-    if (!world.isClientSide()) {
-        world.playSound(pressed ? SoundEvents::BLOCK_WOODEN_PRESSURE_PLATE_CLICK_ON
-                                : SoundEvents::BLOCK_WOODEN_PRESSURE_PLATE_CLICK_OFF,
-            sound::SoundCategory::Blocks,
-            pos.center(),
-            0.3f,
-            0.6f);
-    }
 }
 
 } // namespace blocks

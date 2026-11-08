@@ -49,7 +49,7 @@ IDragonBossBar (common 层抽象接口，见 src/common/world/dimension/end/)
 1. `MinecraftServer::setupDragonFightBossBar()` 在服务端启动时创建 `ServerDragonBossBar`
 2. 通过 `EndDragonFight::setDragonBossBar()` 注入到 `EndDragonFight`
 3. `EndDragonFight` 在 `updateDragon()`/`tick()`/`setDragonKilled()` 中调用接口方法
-4. `ServerDragonBossBar` 将变更通过 `IServer::connectionManager().sendPacketToPlayer()` 发送给追踪玩家
+4. `ServerDragonBossBar` 将变更通过 `IServer::packetSender().sendPacketToPlayer()` 发送给追踪玩家
 
 ### replacePlayers 增量更新
 
@@ -72,7 +72,7 @@ IDragonBossBar (common 层抽象接口，见 src/common/world/dimension/end/)
 - `common/util/text/ComponentUtils.hpp` - wrapInSquareBrackets 方括号包裹工具（formattedName 使用）
 - `common/util/nbt/Nbt.hpp` - NBT 序列化
 - `common/world/dimension/end/IDragonBossBar.hpp` - 末影龙 Boss 栏抽象接口（ServerDragonBossBar 依赖）
-- `server/application/MinecraftServer.hpp` - IServer 访问（connectionManager）
+- `server/application/MinecraftServer.hpp` - IServer 访问（packetSender）
 
 ### 被谁依赖
 
@@ -92,7 +92,7 @@ IDragonBossBar (common 层抽象接口，见 src/common/world/dimension/end/)
 
 `ir::play::BossEvent` 是 1.21.11 单包 ID + u8 operation 的 Boss 栏同步包，支持六种操作（Add、Remove、UpdatePercent、UpdateName、UpdateStyle、UpdateProperties）。UUID 以 128 位（两个 i64）格式在网络包中传输。
 
-`ServerDragonBossBar` 内部构建 `ir::play::BossEvent` 并通过 `IServer::connectionManager().sendPacketToPlayer()` 直接发送，不经过 `ServerBossInfo` 的（空）广播方法。
+`ServerDragonBossBar` 内部构建 `ir::play::BossEvent` 并通过 `IServer::packetSender().sendPacketToPlayer()` 直接发送，不经过 `ServerBossInfo` 的（空）广播方法。
 
 ### 玩家登出处理
 

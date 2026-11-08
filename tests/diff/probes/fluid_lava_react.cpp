@@ -45,6 +45,7 @@
  *    把上方算进去，会让「水流过岩浆上方」这种常见场景瞬间凝固成一片石头。
  */
 
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <map>
@@ -60,11 +61,11 @@
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/LiquidBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/fluid/LiquidBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -146,9 +147,9 @@ public:
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
-    void playEvent(i32 eventId, const BlockPos& /*pos*/, i32 /*data*/) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& /*pos*/, i32 /*data*/) override
     {
-        m_levelEvents.push_back(eventId);
+        m_levelEvents.push_back(static_cast<i32>(eventId));
     }
 
     [[nodiscard]] const std::vector<i32>& levelEvents() const noexcept

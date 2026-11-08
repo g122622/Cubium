@@ -21,19 +21,19 @@
  *
  */
 
-#include "world/block/blocks/CauldronBlock.hpp"
+#include "common/world/block/blocks/cauldron/CauldronBlock.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/cauldron/LayeredCauldronBlock.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "world/block/blocks/LayeredCauldronBlock.hpp"
 #include <gtest/gtest.h>
 
 #include <map>

@@ -2,7 +2,7 @@
 
 #include "common/core/Types.hpp"        // EntityInstanceId / GameMode / Direction / i32 / f32
 #include "common/util/math/Vector3.hpp" // Vector3（useItemOnBlock 的 faceLocation 参数）
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/player/ServerPlayer.hpp"
 
 #include <memory>

@@ -28,7 +28,7 @@
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/WorldEvents.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <glm/glm.hpp>
 #include <gtest/gtest.h>
 
@@ -203,10 +203,10 @@ TEST(WhiteSmokeParticleTest, RegistryRegistration)
 TEST(WhiteSmokeParticleTest, WorldEventConstants)
 {
     // SHOOT_WHITE_SMOKE 事件 ID 应为 2010
-    EXPECT_EQ(WorldEvents::SHOOT_WHITE_SMOKE, 2010);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_SHOOT_WHITE_SMOKE), 2010);
 
     // DISPENSER_SMOKE 事件 ID 应为 2000
-    EXPECT_EQ(WorldEvents::DISPENSER_SMOKE, 2000);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_SHOOT_SMOKE), 2000);
 }
 
 // ============================================================================

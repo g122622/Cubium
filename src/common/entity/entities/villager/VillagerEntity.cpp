@@ -80,14 +80,14 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
 #include "common/world/attribute/EnvironmentAttributes.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
-#include "common/world/timeline/Timelines.hpp"
+#include "common/world/time/timeline/Timelines.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -375,7 +375,7 @@ bool VillagerEntity::_tryConvertToZombieVillager(DamageSource& cause)
 
     // 9. 播放感染音效 + 世界事件（对齐 Java levelEvent 1026 = ZOMBIE_INFECTED）
     playSound(SoundEvents::ENTITY_ZOMBIE_INFECT, 1.0f, 1.0f);
-    m_world->playEvent(world::WorldEvents::ZOMBIE_INFECT_SOUND,
+    m_world->playEvent(::mc::world::LevelEventId::SOUND_ZOMBIE_INFECTED,
         BlockPos(static_cast<i32>(m_builtIn.stateVector->m_pos.x),
             static_cast<i32>(m_builtIn.stateVector->m_pos.y),
             static_cast<i32>(m_builtIn.stateVector->m_pos.z)),

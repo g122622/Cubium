@@ -22,9 +22,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"

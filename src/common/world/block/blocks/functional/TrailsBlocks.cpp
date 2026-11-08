@@ -51,20 +51,20 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockSoundType.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
-#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/block/base/sound/BlockSoundType.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/blocks/base/HorizontalBlock.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
@@ -475,7 +475,7 @@ void BrushableBlock::onBroken(IWorld& world, const BlockPos& /*pos*/, entity::Fa
         static_cast<i32>(std::floor(center.y)),
         static_cast<i32>(std::floor(center.z)));
 
-    world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, effectPos, 0);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, effectPos, 0);
     // Cubium 的 gameEvent 只接受方块位置；原版这里传的是 Vec3 中心点，
     // 在整数格坐标上与方块位置等价（周围一圈格子的振动半径远大于 1 格）。
     const BlockState* fallingState = entity.getFallingState();
@@ -581,7 +581,7 @@ void SnifferEggBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const Blo
     const bool flag = hatchBoost(world, pos);
     if (flag) {
         // 加速时播放蛋壳破裂粒子事件（MC levelEvent 3009）
-        world.playEvent(world::WorldEvents::EGG_CRACK, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_EGG_CRACK, pos, 0);
     }
 
     // 孵化总时长：加速 12000 tick，常规 24000 tick；分三阶段，每段 i/3 + [0, 300) tick

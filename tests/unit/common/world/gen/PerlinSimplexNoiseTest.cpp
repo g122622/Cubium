@@ -21,15 +21,17 @@
  *
  */
 
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
+#include "common/util/math/noise/PerlinSimplexNoise.hpp"
+#include "common/util/math/noise/SimplexNoise.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
 
+using ::mc::math::noise::PerlinSimplexNoise;
+using ::mc::math::noise::SimplexNoise;
+
 namespace mc {
 namespace {
-
-using namespace world::gen::noise;
 
 // ============================================================================
 // PerlinSimplexNoise 确定性测试

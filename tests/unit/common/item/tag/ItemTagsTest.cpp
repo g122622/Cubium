@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"

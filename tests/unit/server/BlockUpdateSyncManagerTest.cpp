@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/network/sync/BlockUpdateSyncManager.hpp"
 

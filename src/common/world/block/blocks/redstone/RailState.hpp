@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <vector>
 

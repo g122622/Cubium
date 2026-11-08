@@ -52,13 +52,13 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "probe.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/density/Beardifier.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include "structure_probe_common.hpp"
 
 namespace mc::diff {

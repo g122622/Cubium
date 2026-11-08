@@ -23,11 +23,11 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "physics/collision/CollisionShape.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/end/DragonEggBlock.hpp"
 
 using namespace mc;

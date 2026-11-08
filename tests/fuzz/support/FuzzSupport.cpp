@@ -28,7 +28,7 @@
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <spdlog/spdlog.h>
 

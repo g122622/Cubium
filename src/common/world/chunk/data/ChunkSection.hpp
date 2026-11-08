@@ -27,8 +27,8 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/data/PalettedContainer.hpp"
 
 #include <cstddef>

@@ -22,7 +22,7 @@
  */
 
 #include "world/redstone/RedstoneContext.hpp"
-#include "world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

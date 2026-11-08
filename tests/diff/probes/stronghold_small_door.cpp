@@ -24,9 +24,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "probe.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include "server/world/gen/structure/structures/StrongholdPieces.hpp"
 
 namespace mc::diff {

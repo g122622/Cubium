@@ -46,10 +46,10 @@ ShearsItem (剪刀) - 独立继承自 Item
 - `src/common/item/tier/IItemTier.hpp` - 工具层级接口
 - `src/common/item/crafting/Ingredient.hpp` - 合成材料
 - `src/common/item/items/special/HoneycombItem.hpp` - 蜜脾物品（AxeItem 除蜡依赖 HoneycombItem::getWaxedOff 映射）
-- `src/common/world/block/blocks/copper/IOxidizableBlock.hpp` - 可氧化方块接口（AxeItem 刮削依赖 getPreviousOxidationBlock 反向链）
-- `src/common/world/block/Block.hpp` - 方块定义
-- `src/common/world/block/BlockState.hpp` - 方块状态
-- `src/common/world/block/Material.hpp` - 材质定义
+- `src/common/world/block/capability/oxidation/IOxidizableBlock.hpp` - 可氧化方块接口（AxeItem 刮削依赖 getPreviousOxidationBlock 反向链）
+- `src/common/world/block/core/Block.hpp` - 方块定义
+- `src/common/world/block/state/BlockState.hpp` - 方块状态
+- `src/common/world/block/base/material/Material.hpp` - 材质定义
 - `src/common/world/block/VanillaBlocks.hpp` - 原版方块注册
 
 **被依赖**：

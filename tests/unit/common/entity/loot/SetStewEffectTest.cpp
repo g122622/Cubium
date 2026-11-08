@@ -22,6 +22,7 @@
  */
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "core/Constants.hpp"
 #include "entity/effect/EffectType.hpp"
 #include "item/Items.hpp"
@@ -31,7 +32,6 @@
 #include "resource/ResourceLocation.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/data/ChunkData.hpp"
 #include "world/fluid/Fluid.hpp"

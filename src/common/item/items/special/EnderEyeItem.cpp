@@ -29,16 +29,16 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/end/EndPortalFrameBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/block/state/pattern/BlockInWorld.hpp"
 #include "common/world/block/state/pattern/BlockPattern.hpp"
 #include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <memory>
 
@@ -57,7 +57,8 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
     // 2. 若是：设置 EYE=true（仅同步客户端），播放 levelEvent(1503)（END_PORTAL_FRAME_FILL）
     // 3. 消耗物品（非创造模式，shrink(1)）
     // 4. 调用 EndPortalFrameBlock::getOrCreatePortalShape().find() 检测 12 框架
-    // 5. 若匹配：在内部 3×3 区域放置 END_PORTAL 方块并广播 globalLevelEvent(1038, centerPos, 0)
+    // 5. 若匹配：在内部 3×3 区域放置 END_PORTAL 方块并广播
+    // globalLevelEvent(::mc::world::LevelEventId::SOUND_END_PORTAL_SPAWN, centerPos, 0)
     const BlockPos& pos = context.blockPos();
     IWorld& world = const_cast<IWorld&>(context.world());
     const BlockState* statePtr = world.getBlockState(pos);
@@ -85,7 +86,7 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
 
     // 播放框架填充音效/粒子事件（事件 1503）
     // 对应 MC Java: level.levelEvent(1503, blockpos, 0);
-    world.playEvent(world::WorldEvents::END_PORTAL_FRAME_FILL, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::END_PORTAL_FRAME_FILL, pos, 0);
 
     // 消耗物品（非创造模式）
     Player* player = context.player();
@@ -106,7 +107,7 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
     //               level.setBlock(blockpos2, Blocks.END_PORTAL.defaultBlockState(), 2);
     //           }
     //       }
-    //       level.globalLevelEvent(1038, blockpos1.offset(1, 0, 1), 0);
+    //       level.globalLevelEvent(::mc::world::LevelEventId::SOUND_END_PORTAL_SPAWN, blockpos1.offset(1, 0, 1), 0);
     //   }
     //
     // 注意：MC Java 用 getFrontTopLeft().offset(-3, 0, -3) 硬编码世界坐标偏移，
@@ -133,10 +134,10 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
             }
 
             // 广播末地传送门激活音效（全服跨维度）
-            // 对应 MC Java: level.globalLevelEvent(1038, blockpos1.offset(1, 0, 1), 0);
-            // 事件位置为传送门 3×3 区域的中心。
+            // 对应 MC Java: level.globalLevelEvent(::mc::world::LevelEventId::SOUND_END_PORTAL_SPAWN,
+            // blockpos1.offset(1, 0, 1), 0); 事件位置为传送门 3×3 区域的中心。
             const BlockPos centerPos = match->getBlock(2, 2, 0).pos();
-            world.globalLevelEvent(world::WorldEvents::END_PORTAL_SPAWN_SOUND, centerPos, 0);
+            world.globalLevelEvent(::mc::world::LevelEventId::SOUND_END_PORTAL_SPAWN, centerPos, 0);
         }
     }
 

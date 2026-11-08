@@ -63,7 +63,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 

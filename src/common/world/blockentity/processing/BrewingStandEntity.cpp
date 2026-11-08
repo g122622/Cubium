@@ -25,7 +25,8 @@
 #include "common/core/Types.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -35,7 +36,6 @@
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>

@@ -22,7 +22,7 @@
  */
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 
 #include "common/entity/core/EntityClassification.hpp" // entity::EntityClassification（spawnNaturalAt category 映射）
 #include "common/item/core/ItemStack.hpp"              // mc::ItemStack（_unwrapItemStack/assertContainerContains）
@@ -34,9 +34,9 @@
 #include "common/util/math/Vector3.hpp"    // mc::math::Vector3d（worldPosition/rotateVector 等）
 #include "common/world/IWorld.hpp"         // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
 #include "common/world/biome/BiomeIds.hpp" // Biomes::Plains 等（spawnNaturalAt biome 注入映射）
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp" // mc::BlockState（_unwrapBlockPermutation/setBlockPermutation）
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp" // mc::blocks::SculkSpreader（getSculkSpreader wrap/delete 需完整类型）
+#include "common/world/block/state/BlockState.hpp" // mc::BlockState（_unwrapBlockPermutation/setBlockPermutation）
 #include "server/test/base/error/GameTestError.hpp"
 #include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/facade/GameTestHelper.hpp"

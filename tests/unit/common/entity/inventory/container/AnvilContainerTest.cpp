@@ -23,14 +23,14 @@
 
 #include "entity/inventory/container/AnvilContainer.hpp"
 #include "common/TestWorldHelper.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "item/Items.hpp"
-#include "world/block/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -344,9 +344,9 @@ TEST_F(AnvilContainerWithPlayerTest, AnvilDamageChain_PreservesFacing)
  */
 TEST_F(AnvilContainerWithPlayerTest, AnvilSoundEventConstants)
 {
-    EXPECT_EQ(mc::world::WorldEvents::ANVIL_DESTROYED_SOUND, 1029);
-    EXPECT_EQ(mc::world::WorldEvents::ANVIL_USE_SOUND, 1030);
-    EXPECT_EQ(mc::world::WorldEvents::ANVIL_LAND_SOUND, 1031);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::SOUND_ANVIL_BROKEN), 1029);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::SOUND_ANVIL_USED), 1030);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::SOUND_ANVIL_LAND), 1031);
 }
 
 /**

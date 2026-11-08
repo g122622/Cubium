@@ -28,10 +28,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/RotatedPillarBlock.hpp"
+#include "common/world/block/blocks/base/RotatedPillarBlock.hpp"
 #include "common/world/block/blocks/mob/InfestedBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

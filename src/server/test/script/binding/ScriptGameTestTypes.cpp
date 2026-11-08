@@ -24,7 +24,7 @@
 #include "server/test/script/binding/ScriptGameTestTypes.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 classId/proto 注册表
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"  // mc::blocks::SculkSpreader/ChargeCursor
 #include "server/test/base/error/GameTestErrorType.hpp"       // GameTestErrorType::MethodNotImplemented
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（addCursorsWithOffset stub）

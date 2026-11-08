@@ -62,7 +62,7 @@ EntityArgument.hpp
 - `common/core/Types` - 基础类型定义（GameMode 等）
 - `common/resource/ResourceLocation` - 资源位置解析
 - `common/item/core/ItemRegistry` - 物品查找
-- `common/world/block/BlockRegistry` - 方块查找
+- `common/world/block/core/BlockRegistry` - 方块查找
 - `common/util/nbt/Nbt` - NBT 标签系统
 - `common/util/math/Vector2`、`Vector3` - 向量类型
 

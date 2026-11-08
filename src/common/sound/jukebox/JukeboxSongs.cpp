@@ -27,6 +27,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/sound/jukebox/JukeboxSong.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include <array>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -184,4 +185,47 @@ void JukeboxSongs::registerSong(const ResourceLocation& songId,
     s_soundEventToSongId.emplace(soundEventId, songId);
 }
 
+} // namespace mc
+
+namespace mc {
+std::span<const std::string_view> JukeboxSongs::registryKeys()
+{
+    static constexpr std::array<std::string_view, 21> keys{"minecraft:13",
+        "minecraft:cat",
+        "minecraft:blocks",
+        "minecraft:chirp",
+        "minecraft:far",
+        "minecraft:mall",
+        "minecraft:mellohi",
+        "minecraft:stal",
+        "minecraft:strad",
+        "minecraft:ward",
+        "minecraft:11",
+        "minecraft:wait",
+        "minecraft:otherside",
+        "minecraft:5",
+        "minecraft:pigstep",
+        "minecraft:relic",
+        "minecraft:precipice",
+        "minecraft:creator",
+        "minecraft:creator_music_box",
+        "minecraft:tears",
+        "minecraft:lava_chicken"};
+    return keys;
+}
+
+i32 JukeboxSongs::numericId(const JukeboxSong& song)
+{
+    const auto it = s_soundEventToSongId.find(song.getSoundEventId());
+    MC_ASSERT_RELEASE_MSG(it != s_soundEventToSongId.end(), "Unregistered jukebox song");
+    const std::string name = it->second.toString();
+    const auto keys = registryKeys();
+    for (size_t index = 0; index < keys.size(); ++index) {
+        if (keys[index] == name) {
+            return static_cast<i32>(index);
+        }
+    }
+    MC_ASSERT_RELEASE_MSG(false, "Jukebox song missing from synchronized registry");
+    return -1;
+}
 } // namespace mc

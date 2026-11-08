@@ -38,9 +38,9 @@
 #include "common/world/biome/BiomeAmbientSounds.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <cmath>
 #include <memory>

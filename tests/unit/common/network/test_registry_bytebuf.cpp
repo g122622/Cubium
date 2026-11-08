@@ -26,8 +26,8 @@
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <gtest/gtest.h>
 

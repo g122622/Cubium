@@ -1,9 +1,9 @@
 #include "server/test/facade/GameTestHelper.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 
 #include "common/entity/core/EntityReference.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/base/error/GameTestErrorContext.hpp"
 #include "server/test/framework/instance/BaseGameTestInstance.hpp"
 #include "server/test/framework/listener/IGameTestListener.hpp"
@@ -38,21 +38,21 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp" // BlockStateProperties::NORTH/EAST/SOUTH/WEST（getFenceConnectivity）
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/ILiquidContainer.hpp"         // ILiquidContainer::receiveFluid（setFluidContainer）
-#include "common/world/block/blocks/MultifaceSpreader.hpp" // MultifaceSpreader（spreadFromFaceTowardDirection）
+#include "common/world/block/blocks/multiface/MultifaceSpreader.hpp" // MultifaceSpreader（spreadFromFaceTowardDirection）
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
 #include "common/world/block/blocks/redstone/LeverBlock.hpp"          // LeverBlock::toggle（pullLever 接线）
 #include "common/world/block/blocks/sculk/SculkBlocks.hpp"            // SculkVeinBlock::getSpreader（同上）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
+#include "common/world/block/capability/ILiquidContainer.hpp" // ILiquidContainer::receiveFluid（setFluidContainer）
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"          // getBlockEntity → dynamic_cast<ContainerBlockEntity*>
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
 #include "common/world/fluid/Fluid.hpp"                      // FluidState（assertIsWaterlogged 判定流体类型）
 #include "common/world/fluid/FluidRegistry.hpp"              // FluidRegistry::getFluid（setFluidContainer）
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
-#include "common/world/redstone/RedstonePower.hpp" // RedstonePower::getSignal（assertRedstonePower）
+#include "common/world/redstone/RedstonePower.hpp"           // RedstonePower::getSignal（assertRedstonePower）
 #include "server/world/ServerWorld.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
 #include <spdlog/spdlog.h>
 

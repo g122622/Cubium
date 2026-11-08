@@ -37,11 +37,11 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -300,7 +300,7 @@ const CollisionShape& BigDripleafBlock::getCollisionShape(const BlockState& stat
     switch (tilt) {
         case BlockStateProperties::Tilt::Full:
             // 完全倾斜时无碰撞，实体穿透下落
-            return VoxelShapes::empty();
+            return CollisionShape::emptyShape();
         case BlockStateProperties::Tilt::Partial:
             return s_partialShape;
         case BlockStateProperties::Tilt::None:

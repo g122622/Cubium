@@ -32,7 +32,7 @@
 #include <gtest/gtest.h>
 
 #include "common/util/Direction.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/base/error/GameTestError.hpp"
 #include "server/test/base/error/GameTestErrorType.hpp"
 #include "server/test/base/error/GameTestResult.hpp"

@@ -23,7 +23,7 @@
 
 #include "common/world/border/WorldBorder.hpp"
 #include "common/util/AxisAlignedBB.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

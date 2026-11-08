@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
 #include <algorithm>
 #include <cmath>
 #include <glm/common.hpp>
@@ -38,7 +39,6 @@
 namespace mc::client {
 
 // 静态成员定义
-constexpr f64 CelestialCalculations::MOON_PHASE_FACTORS[8];
 
 f64 CelestialCalculations::calculateCelestialAngle(i64 dayTime)
 {
@@ -92,15 +92,16 @@ f64 CelestialCalculations::calculateCelestialAngleInterpolated(i64 dayTime, f64 
 
 i32 CelestialCalculations::calculateMoonPhase(i64 gameTime)
 {
-    return static_cast<i32>((gameTime / mc::game::DAY_LENGTH_TICKS) % 8);
+    return world::moonPhaseIndex(world::moonPhaseAt(gameTime));
 }
 
 f64 CelestialCalculations::getMoonPhaseFactor(i32 moonPhase)
 {
-    if (moonPhase < 0 || moonPhase > 7) {
+    if (moonPhase < 0 || moonPhase >= world::MOON_PHASE_COUNT) {
         return 0.5;
     }
-    return MOON_PHASE_FACTORS[moonPhase];
+    const i32 index = (moonPhase % world::MOON_PHASE_COUNT + world::MOON_PHASE_COUNT) % world::MOON_PHASE_COUNT;
+    return world::moonBrightness(static_cast<world::MoonPhase>(index));
 }
 
 glm::vec3 CelestialCalculations::calculateSunDirection(f64 celestialAngle)

@@ -29,7 +29,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/state/pattern/BlockPattern.hpp"
 #include <cmath>
 #include <functional>

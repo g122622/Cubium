@@ -36,16 +36,16 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include "common/world/spawn/RespawnData.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
 #include <memory>
@@ -152,7 +152,7 @@ i32 SetWorldSpawnCommand::_applyWorldSpawn(
     pkt.blockPosPacked = spawnData.pos().asLong();
     pkt.yaw = spawnData.yaw;
     pkt.pitch = spawnData.pitch;
-    server->connectionManager().broadcast(mc::network::ir::IrPacket{
+    server->packetSender().broadcast(mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
 
     std::ostringstream ss;

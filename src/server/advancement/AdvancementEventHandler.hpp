@@ -48,12 +48,12 @@
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <functional>
@@ -102,7 +102,7 @@ public:
      * 用于通过 UUID 查找玩家数据。CuredZombieVillagerEvent 携带 UUID 而非 PlayerId，
      * 需要通过 PlayerManager::findByUuid() 转换为 PlayerId。
      */
-    void setPlayerManager(mc::server::core::PlayerManager* playerManager)
+    void setPlayerManager(mc::server::PlayerManager* playerManager)
     {
         m_playerManager = playerManager;
     }
@@ -1415,7 +1415,7 @@ private:
     IServer* m_server = nullptr;
 
     // 玩家管理器（用于 UUID 查找）
-    mc::server::core::PlayerManager* m_playerManager = nullptr;
+    mc::server::PlayerManager* m_playerManager = nullptr;
 
     bool m_initialized = false;
 };

@@ -25,7 +25,7 @@
 
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 #include "common/entity/core/EntityReference.hpp"
 

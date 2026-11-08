@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/util/Direction.hpp" // Rotation
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp" // StructureBoundingBox
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp" // StructureBoundingBox
 
 namespace mc::test {
 

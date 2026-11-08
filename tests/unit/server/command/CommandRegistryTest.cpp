@@ -28,7 +28,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
 #include "common/sound/SoundCategory.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -534,7 +534,7 @@ TEST_F(CommandRegistryServerTest, ParticleCommandBroadcastsParticleAtCurrentPosi
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 
-    // 批5b：粒子改经 connectionManager().broadcast(buildLevelParticlesIr(...)) 投递，
+    // 批5b：粒子改经 packetSender().broadcast(buildLevelParticlesIr(...)) 投递，
     // 原 IServer 弱类型 broadcastParticleInRange 纯虚已删。FakeServerConnection::send
     // 仅累积字节、不还原包内容，故此处断言"向在线玩家 Steve 发了出站包"即可，不再
     // 校验粒子类型/位置/数量（包构造正确性由真客户端验证覆盖）。
@@ -547,7 +547,7 @@ TEST_F(CommandRegistryServerTest, ParticleCommandBroadcastsParticleAtSpecifiedPo
 {
     const auto result = m_server.commandRegistry().execute("particle smoke 50.5 70.0 -100.5", m_console);
 
-    // console 源无在线玩家，connectionManager().broadcast 为 no-op，仅验证命令成功。
+    // console 源无在线玩家，packetSender().broadcast 为 no-op，仅验证命令成功。
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 }

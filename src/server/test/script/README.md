@@ -37,7 +37,7 @@ script/
 **上游（本目录依赖）**：
 - `mc_bedrock_addon` 绑定基础设施：`IModuleBindingFactory`/`IScriptBindingContext`/`NativeModuleBuilder`/`ClassRegistrar`/`ScriptObjectRegistry`（`common/mod/bedrock/addon/binding/`）+ `IScriptContext`/`ModuleVersion`/`ModuleDependency`（`core/`）。
 - `mc_test` framework+base：`BaseGameTestFunction`/`IGameTestFunctionContext`/`IGameTestFunctionRunResult`/`SyncGameTestRunResult`/`GameTestRegistry`/`GameTestSequence`/`TestData`/`GameTestError`/`GameTestErrorType`/`GameTestResult`。
-- 服务端 facade/类型：`server/test/facade/GameTestHelper`（测试体门面）、`server/test/simulated/SimulatedPlayer`（ServerPlayer 子类）、`mc::GameMode`（`common/core/Types.hpp`）、`BlockPos`（`common/world/block/BlockPos.hpp`）。
+- 服务端 facade/类型：`server/test/facade/GameTestHelper`（测试体门面）、`server/test/simulated/SimulatedPlayer`（ServerPlayer 子类）、`mc::GameMode`（`common/core/Types.hpp`）、`BlockPos`（`common/world/block/base/types/BlockPos.hpp`）。
 - spdlog（info/warn）。
 
 **下游（依赖本目录）**：

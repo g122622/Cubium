@@ -25,15 +25,15 @@
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include <functional>
 #include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::interaction {
 
-InventoryManager::InventoryManager(core::PlayerManager& playerManager)
+InventoryManager::InventoryManager(PlayerManager& playerManager)
     : m_playerManager(playerManager)
 {}
 

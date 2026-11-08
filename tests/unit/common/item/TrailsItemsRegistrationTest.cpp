@@ -20,12 +20,12 @@
  * SOFTWARE.
  */
 
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/items/special/KnowledgeBookItem.hpp"
 #include "item/items/weapon/ThrowableItems.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"

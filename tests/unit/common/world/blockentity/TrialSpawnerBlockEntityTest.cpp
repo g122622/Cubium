@@ -34,14 +34,14 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/SimpleBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/base/SimpleBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <unordered_map>
 #include <nlohmann/json.hpp>
 
@@ -807,12 +807,12 @@ public:
     }
 
     struct PlayEventCall {
-        i32 eventId;
+        ::mc::world::LevelEventId eventId;
         BlockPos pos;
         i32 data;
     };
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_playEventCalls.push_back({eventId, pos, data});
     }
@@ -1305,11 +1305,11 @@ TEST_F(TrialSpawnerSpawnMobTest, SuccessfulSpawn_PlaysSpawnEvents)
     ASSERT_GE(events.size(), 2u);
 
     // 第一个事件是刷怪笼粒子效果
-    EXPECT_EQ(events[0].eventId, world::WorldEvents::TRIAL_SPAWNER_SPAWN);
+    EXPECT_EQ(events[0].eventId, ::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN);
     EXPECT_EQ(events[0].pos, BlockPos(0, 64, 0));
 
     // 第二个事件是怪物生成位置的粒子效果
-    EXPECT_EQ(events[1].eventId, world::WorldEvents::TRIAL_SPAWNER_SPAWN_MOB_AT);
+    EXPECT_EQ(events[1].eventId, ::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN_MOB_AT);
     // 位置应在刷怪笼附近
 }
 
@@ -1385,9 +1385,9 @@ TEST_F(TrialSpawnerSpawnMobTest, OminousSpawn_PlaysOminousEvent)
     ASSERT_GE(events.size(), 2u);
 
     // 不祥变体应该使用 flameParticle=1 (SOUL_FIRE_FLAME)
-    EXPECT_EQ(events[0].eventId, world::WorldEvents::TRIAL_SPAWNER_SPAWN);
+    EXPECT_EQ(events[0].eventId, ::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN);
     EXPECT_EQ(events[0].data, 1); // ominous particle flag
-    EXPECT_EQ(events[1].eventId, world::WorldEvents::TRIAL_SPAWNER_SPAWN_MOB_AT);
+    EXPECT_EQ(events[1].eventId, ::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN_MOB_AT);
     EXPECT_EQ(events[1].data, 1);
 }
 
@@ -1553,7 +1553,7 @@ public:
         MC_UNUSED(soundId);
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         MC_UNUSED(eventId);
         MC_UNUSED(pos);

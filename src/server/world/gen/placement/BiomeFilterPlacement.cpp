@@ -28,7 +28,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/placement/Placement.hpp"
 #include <vector>

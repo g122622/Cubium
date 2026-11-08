@@ -42,8 +42,8 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -98,7 +98,7 @@ sound::SoundCategory parseSoundCategory(const std::string& name)
 /**
  * @brief 发送 PlaySound IR 包给指定玩家
  */
-void sendPlaySoundPacket(server::core::ConnectionManager& connMgr,
+void sendPlaySoundPacket(server::PacketSender& connMgr,
     PlayerId playerId,
     const ResourceLocation& soundId,
     sound::SoundCategory category,
@@ -251,7 +251,7 @@ i32 PlaySoundCommand::_playSoundDefault(CommandContext<ServerCommandSource>& con
 
     auto* server = source.server();
     auto& playerManager = server->playerManager();
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
 
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
@@ -284,7 +284,7 @@ i32 PlaySoundCommand::_playSoundAtPosition(CommandContext<ServerCommandSource>& 
     }
 
     auto* server = source.server();
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
     glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 
     i32 successCount = 0;
@@ -312,7 +312,7 @@ i32 PlaySoundCommand::_playSoundWithVolume(CommandContext<ServerCommandSource>& 
     }
 
     auto* server = source.server();
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
     glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 
     i32 successCount = 0;
@@ -341,7 +341,7 @@ i32 PlaySoundCommand::_playSoundWithPitch(CommandContext<ServerCommandSource>& c
     }
 
     auto* server = source.server();
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
     glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 
     i32 successCount = 0;
@@ -373,7 +373,7 @@ i32 PlaySoundCommand::_playSoundWithMinVolume(
 
     auto* server = source.server();
     auto& playerManager = server->playerManager();
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
     glm::vec3 soundPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 
     // 计算声音可听距离（MC 原版公式：volume * 16）

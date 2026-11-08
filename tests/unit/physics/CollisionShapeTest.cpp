@@ -36,7 +36,7 @@
 
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
 

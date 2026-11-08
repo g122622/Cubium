@@ -28,7 +28,7 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/feature/template/RuleTest.hpp"
 #include "server/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include <gtest/gtest.h>

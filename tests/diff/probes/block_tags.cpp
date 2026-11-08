@@ -42,7 +42,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 #include "probe.hpp"
 #include "vanilla_datapack.hpp"

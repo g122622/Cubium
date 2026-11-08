@@ -33,11 +33,11 @@
 #include "server/application/MinecraftServer.hpp"
 #include "server/bossbar/BossInfo.hpp" // bossInfoColorToName/bossInfoOverlayToName（BossBarView color/overlay 字符串化）
 #include "server/bossbar/CustomServerBossInfoManager.hpp" // bossBarManager().getIds/get（world.bossbar 回调）
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/dimension/ServerDimensionManager.hpp" // getOverworld（world.getDefaultSpawn 回调取主世界）
+#include "server/dimension/ServerDimensionManager.hpp"    // getOverworld（world.getDefaultSpawn 回调取主世界）
 #include "server/event/ServerEventBus.hpp"
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp" // respawnData（world.getDefaultSpawn 回调）
 #include "server/world/storage/SingleLevelStorageManager.hpp"

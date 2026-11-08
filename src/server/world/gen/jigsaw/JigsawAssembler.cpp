@@ -36,10 +36,9 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
@@ -48,6 +47,7 @@
 #include "server/world/gen/jigsaw/PoolAliasLookup.hpp"
 #include "server/world/gen/jigsaw/SequencedPriorityIterator.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

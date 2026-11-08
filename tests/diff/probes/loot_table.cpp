@@ -39,7 +39,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include "loot_probe_common.hpp"
 #include "probe.hpp"

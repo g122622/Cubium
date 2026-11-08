@@ -1,159 +1,60 @@
-# Blocks 模块
+# 按主要行为组织的具体方块
 
-本目录包含 Minecraft 中方块的专用基类实现。这些类继承自 `Block` 基类，为特定类型的方块提供专门的行为和属性。
+## 目录结构树
 
-## 目录结构
-
-```
+```text
 blocks/
-├── AirBlock.hpp/cpp             # 空气方块（无碰撞、非固体、非不透明）
-├── SimpleBlock.hpp/cpp          # 简单方块基类（无状态的静态方块）
-├── FallingBlock.hpp/cpp         # 可下落方块基类（沙子、砾石等）
-├── ConcretePowderBlock.hpp/cpp  # 混凝土粉末方块（下落+遇水固化，16色变体）
-├── RotatedPillarBlock.hpp/cpp   # 旋转柱状方块（原木、玄武岩等，有 AXIS 属性）
-├── LiquidBlock.hpp/cpp          # 液体方块（水、岩浆，关联 FlowingFluid）
-├── ChestBlock.hpp/cpp           # 箱子方块（27格存储，支持双箱合并）
-├── TrappedChestBlock.hpp/cpp    # 陷阱箱方块（红石信号输出，重写createBlockEntity返回TrappedChestEntity）
-├── HopperBlock.hpp/cpp          # 漏斗方块（物品自动传输）
-├── ShulkerBoxBlock.hpp/cpp      # 潜影盒方块（16色+无色变体，27格存储，防递归嵌套，DyeColor参数化）
-├── AbstractFurnaceBlock.hpp     # 熔炉方块基类（FACING + LIT 属性）
-├── FurnaceBlock.hpp/cpp         # 普通熔炉方块
-├── BlastFurnaceBlock.hpp/cpp    # 高炉方块（冶炼速度2x）
-├── SmokerBlock.hpp/cpp          # 烟熏炉方块（食物烹饪2x）
-├── DoorBlock.hpp/cpp            # 门方块（双方块结构，HALF/FACING/OPEN/HINGE/POWERED 属性）
-├── FenceGateBlock.hpp/cpp       # 栅栏门方块（FACING/OPEN/IN_WALL/POWERED 属性）
-├── CauldronBlock.hpp/cpp        # 空炼药锅方块（无水位属性，接收水/岩浆桶/水瓶/降水/滴石滴水→替换为对应炼药锅）
-├── LayeredCauldronBlock.hpp/cpp # 分层炼药锅方块（水/细雪，LEVEL_1_3 属性，水位交互，灭火，降水填充，滴石滴水）
-├── LavaCauldronBlock.hpp/cpp    # 岩浆炼药锅方块（始终满，发光15，实体碰撞伤害+点燃，空桶提取岩浆）
-├── EnchantingTableBlock.hpp/cpp # 附魔台方块（书架增强附魔力量、延迟tick初始化、邻居通知）
-├── BookshelfBlock.hpp/cpp       # 书架方块（附魔力量提供者、主动通知附近附魔台）
-├── ShelfBlock.hpp/cpp           # 书架方块（1.21.4+ 木质书架，3槽位物品存储，侧链连接，红石充能，比较器信号）
-├── SignBlock.hpp/cpp            # 告示牌方块（站立/墙面两种形式，含水支持，蜜脾涂蜡交互）
-├── redstone/                    # 红石方块子目录
-│   ├── README.md                # 红石方块文档
-│   └── ...（红石相关方块）
-├── end/                         # 末地方块子目录
-│   ├── README.md                # 末地方块文档
-│   └── EndPortalBlock.hpp/cpp   # 末地传送门相关方块
-├── building/                    # 建筑方块子目录（楼梯、台阶、墙、栅栏等）
-│   └── README.md
-├── agricultural/                # 农业方块子目录（农作物、农田等）
-├── cave/                        # 洞穴方块子目录
-├── copper/                      # 铜方块子目录
-├── coral/                       # 珊瑚方块子目录
-├── decorative/                  # 装饰方块子目录
-├── dirt/                        # 泥土方块子目录
-├── functional/                  # 功能方块子目录
-├── garden/                      # 花园觉醒方块子目录（仙人掌花等）
-├── growing_plant/               # 生长植物子目录
-├── ice/                         # 冰方块子目录
-├── mob/                         # 生物相关方块子目录
-├── nether/                      # 下界方块子目录
-├── ocean/                       # 海洋方块子目录
-├── special/                     # 特殊方块子目录（海绵、屏障、命令方块等）
-├── vegetation/                  # 植被方块子目录
-└── README.md                    # 本文档
+├── agricultural/  # 该领域的子模块
+├── air/  # 空气方块
+├── base/  # 本领域共享的基础类型与定义
+├── building/  # 该领域的子模块
+├── cauldron/  # 炼药锅与内容物交互
+├── cave/  # 该领域的子模块
+├── container/  # 存储与运输方块行为
+├── copper/  # 该领域的子模块
+├── coral/  # 该领域的子模块
+├── decorative/  # 该领域的子模块
+├── dirt/  # 该领域的子模块
+├── door/  # 双格门行为与铜门变种
+├── enchanting/  # 附魔台与书架行为
+├── end/  # 该领域的子模块
+├── falling/  # 下落方块的专用行为
+├── fencegate/  # 栅栏门交互与连接
+├── fluid/  # 流体方块
+├── functional/  # 该领域的子模块
+├── furnace/  # 熔炉及冶炼方块行为
+├── garden/  # 该领域的子模块
+├── growing_plant/  # 该领域的子模块
+├── ice/  # 该领域的子模块
+├── mangrove/  # 该领域的子模块
+├── mob/  # 该领域的子模块
+├── multiface/  # 多面附着与扩散
+├── nether/  # 该领域的子模块
+├── ocean/  # 该领域的子模块
+├── pale_garden/  # 该领域的子模块
+├── redstone/  # 该领域的子模块
+├── sculk/  # 该领域的子模块
+├── sign/  # 普通及悬挂告示牌行为
+├── special/  # 该领域的子模块
+├── trapdoor/  # 活板门行为与铜变种
+├── trial/  # 该领域的子模块
+└── vegetation/  # 该领域的子模块
 ```
-
-**子目录文档**：
-- 红石方块详情请参阅 [redstone/README.md](redstone/README.md)
-- 末地方块详情请参阅 [end/README.md](end/README.md)
-- 建筑方块详情请参阅 [building/README.md](building/README.md)
-- 特殊方块详情请参阅 [special/README.md](special/README.md)
-- 花园觉醒方块详情请参阅 [garden/README.md](garden/README.md)
 
 ## 内部模块关系
 
-```mermaid
-classDiagram
-    class Block {
-        <<abstract>>
-        +BlockProperties properties
-        +getShape() CollisionShape
-        +getCollisionShape() CollisionShape
-        +getEntityInsideCollisionShape() CollisionShape
-        +isAir() bool
-        +isSolid() bool
-        +isOpaque() bool
-        +tick()
-        +neighborChanged()
-        +onEntityCollision()
-    }
+Block 定义共享行为入口，BlockState 维护不可变状态；BlockProperties 与方块族描述在注册时绑定。注册表持有方块和状态，原版装配位于 registry/vanilla。
 
-    class AirBlock {
-        +isAir() bool ~true~
-        +isSolid() bool ~false~
-    }
+## 上下游外部依赖关系
 
-    class SimpleBlock {
-        +isSolid() bool
-    }
-
-    class FallingBlock {
-        +onBlockAdded()
-        +neighborChanged()
-        +tick()
-    }
-
-    class RotatedPillarBlock {
-        +AXIS() EnumProperty~Axis~
-        +getAxis() Axis
-        +withAxis() BlockState
-    }
-
-    class LiquidBlock {
-        -FlowingFluid m_fluid
-        +getFluidState() FluidState*
-        +tick()
-    }
-
-    class ChestBlock {
-        +CHEST_TYPE() EnumProperty
-        +FACING() DirectionProperty
-        +createBlockEntity()
-    }
-
-    Block <|-- AirBlock
-    Block <|-- SimpleBlock
-    Block <|-- FallingBlock
-    Block <|-- RotatedPillarBlock
-    Block <|-- LiquidBlock
-    Block <|-- ChestBlock
-    Block <|-- HopperBlock
-    Block <|-- AbstractFurnaceBlock
-    Block <|-- DoorBlock
-    Block <|-- FenceGateBlock
-    Block <|-- CauldronBlock
-    Block <|-- LavaCauldronBlock
-    Block <|-- EnchantingTableBlock
-    Block <|-- BookshelfBlock
-    Block <|-- SignBlock
-```
-
-## 上下游依赖关系
-
-### 上游依赖
-
-| 依赖 | 用途 |
-|------|------|
-| `Block.hpp` | 基类定义 |
-| `BlockState.hpp` | 状态管理 |
-| `Material.hpp` | 材质定义 |
-| `VoxelShapes.hpp` | 碰撞形状 |
-| `Fluid.hpp` / `FlowingFluid.hpp` | LiquidBlock 关联的流体系统 |
-| `Properties.hpp` | 方块属性（DirectionProperty、BooleanProperty 等） |
-| `Direction.hpp` | 方向定义 |
-
-### 下游依赖
-
-| 模块 | 用途 |
-|------|------|
-| `VanillaBlocks.hpp` | 注册原版方块 |
-| `BlockRegistry` | 方块注册表 |
-| 世界生成 | 使用方块实例 |
-| 渲染系统 | 方块渲染 |
+实体、物品、区块和服务端世界消费方块接口；几何运算使用 common/physics，状态属性使用 common/util/property。
 
 ## 容易踩的坑
+
+- 方块和状态由注册表持有，发放的引用必须保持稳定。
+- 形状工厂显式区分 box 的归一化坐标和 fromPixelBox 的像素坐标。
+- 声音事件标识、方块族规则、LevelEventId 与模拟 GameEvent 分别管理。
+- 原版地图颜色策略在注册时绑定，公共模型不直接引用原版快照。
 
 ### 1. 液体等级映射错误
 

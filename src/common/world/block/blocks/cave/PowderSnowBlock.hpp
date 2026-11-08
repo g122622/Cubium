@@ -22,8 +22,8 @@
 
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/IBucketPickupHandler.hpp"
+#include "common/world/block/capability/IBucketPickupHandler.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 namespace blocks {

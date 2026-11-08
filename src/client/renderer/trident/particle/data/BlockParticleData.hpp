@@ -25,8 +25,8 @@
 
 #include "ParticleData.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <string>
 

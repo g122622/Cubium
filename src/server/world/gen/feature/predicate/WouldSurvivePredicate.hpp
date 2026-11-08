@@ -23,7 +23,7 @@
 #pragma once
 
 #include "BlockPredicate.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 
 namespace mc::world::gen::feature::predicate {

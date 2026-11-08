@@ -34,6 +34,7 @@
  * - 完整编辑流程：设置编辑锁 → 校验 → 更新文本 → 清除编辑锁
  */
 
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
@@ -41,8 +42,8 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "util/text/StringTextComponent.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
@@ -92,7 +93,7 @@ public:
         return it != m_uuidToEntity.end() ? it->second : nullptr;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         MC_UNUSED(eventId, pos, data);
     }

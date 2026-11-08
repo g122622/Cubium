@@ -31,7 +31,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 #include <vector>

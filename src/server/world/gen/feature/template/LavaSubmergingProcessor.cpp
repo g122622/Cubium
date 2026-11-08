@@ -31,8 +31,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/template/BlockInfo.hpp"
 #include "server/world/gen/feature/template/PlacementSettings.hpp"
 #include <optional>

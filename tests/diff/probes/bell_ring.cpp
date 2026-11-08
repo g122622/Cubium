@@ -60,10 +60,10 @@
 #include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/functional/BellBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include "vanilla_datapack.hpp"
 

@@ -22,7 +22,7 @@
  */
 
 #include "world/blockentity/redstone/CommandBlockEntity.hpp"
-#include "world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <gtest/gtest.h>
 

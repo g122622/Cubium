@@ -8,9 +8,9 @@
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/util/text/Utf8.hpp"
 #include "server/application/MinecraftServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/ContainerManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <spdlog/spdlog.h>

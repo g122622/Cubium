@@ -33,9 +33,9 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
-#include "common/world/block/blocks/CauldronBlock.hpp"
-#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/cauldron/CauldronBlock.hpp"
+#include "common/world/block/blocks/cauldron/LayeredCauldronBlock.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 namespace {

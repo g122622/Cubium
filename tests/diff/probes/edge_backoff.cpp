@@ -28,8 +28,8 @@
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/collision/EntityCollisionContext.hpp"
 #include "common/util/AxisAlignedBB.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <nlohmann/json.hpp>
 

@@ -36,12 +36,12 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "util/text/TextEvents.hpp"
 #include "util/text/TextStyle.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
 

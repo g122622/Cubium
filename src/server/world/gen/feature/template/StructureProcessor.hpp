@@ -32,7 +32,7 @@
 #include "BlockInfo.hpp"
 #include "PlacementSettings.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>

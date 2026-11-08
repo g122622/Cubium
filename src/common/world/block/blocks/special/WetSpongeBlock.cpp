@@ -27,10 +27,10 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 namespace mc {
 namespace blocks {
@@ -52,7 +52,7 @@ void WetSpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const Bloc
         world.setBlockState(pos, &spongeState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 播放蒸汽效果（事件 2009）
-        world.playEvent(world::WorldEvents::WET_SPONGE_DRY, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_WATER_EVAPORATING, pos, 0);
 
         // 播放火焰熄灭音效
         world.playSound(ResourceLocation("minecraft", "block.fire.extinguish"),

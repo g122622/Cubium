@@ -36,7 +36,7 @@ flowchart TB
 - `client/ui/kagero/widget/Widget.hpp`
 - `client/ui/kagero/paint/PaintContext.hpp`
 - `common/core/BlockRaycastResult.hpp`
-- `common/world/block/Block.hpp`
+- `common/world/block/core/Block.hpp`
 - `common/item/core/ItemStack.hpp`
 - `common/util/AxisAlignedBB.hpp`
 

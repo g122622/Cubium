@@ -65,7 +65,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
@@ -74,6 +74,7 @@
 #include "common/world/dimension/Dimension.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -81,23 +82,21 @@
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/village/raid/Raid.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "server/access/AccessManager.hpp"
+#include "server/access/base/BannedIpListTypes.hpp"
+#include "server/access/base/BannedPlayerListTypes.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
+#include "server/access/base/WhitelistManagerTypes.hpp"
 #include "server/bossbar/BossInfo.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/bossbar/ServerDragonBossBar.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/data/DataAccessor.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/GameModeManager.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PositionTracker.hpp"
-#include "server/core/TeleportManager.hpp"
-#include "server/core/WhitelistManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/event/ServerEventBus.hpp"
+#include "server/event/events/ServerEvents.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/TimerQueue.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
@@ -107,13 +106,18 @@
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/network/handshake/LoginFlow.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/network/outbound/PlayerBroadcaster.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/network/session/ClientSessionManager.hpp"
+#include "server/network/session/keepalive/KeepAliveManager.hpp"
 #include "server/network/sync/BlockUpdateSyncManager.hpp"
 #include "server/network/sync/ChunkSendManager.hpp"
 #include "server/network/sync/WeatherSyncService.hpp"
+#include "server/network/sync/player/TeleportManager.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/gamemode/GameModeManager.hpp"
+#include "server/player/movement/PlayerMovementManager.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
@@ -393,7 +397,7 @@ void MinecraftServer::tick()
 
         // 移除全部连接已断开的玩家。区块资源的释放由 PlayerManager 的移除钩子统一完成，
         // 此处无需重复调用（重复释放虽为幂等，但会让"释放只有一处"的约定失效）。
-        m_connectionManager->cleanupDisconnectedPlayers();
+        m_playerConnections->cleanupDisconnectedPlayers();
     }
 
     ++m_tickCounter;
@@ -523,7 +527,7 @@ void MinecraftServer::tick()
             spdlog::warn("MinecraftServer: Player {} timed out", playerId);
             // 断开连接。disconnectPlayer 内部经 PlayerManager::removePlayer 触发移除钩子，
             // 由钩子统一释放区块票据与区块发送跟踪。
-            m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
+            m_playerConnections->disconnectPlayer(playerId, "Connection timed out");
         }
     }
 
@@ -548,7 +552,7 @@ void MinecraftServer::tick()
         for (PlayerId playerId : idlePlayers) {
             spdlog::warn("MinecraftServer: Player {} kicked for idling", playerId);
             // 对齐 vanilla disconnect(Component.translatable("multiplayer.disconnect.idling"))。
-            m_connectionManager->disconnectPlayer(playerId, "You have been idle for too long!");
+            m_playerConnections->disconnectPlayer(playerId, "You have been idle for too long!");
         }
     }
 
@@ -589,12 +593,12 @@ void MinecraftServer::addPostTickCallback(std::function<void()> callback)
     m_postTickCallbacks.push_back(std::move(callback));
 }
 
-void MinecraftServer::initializeCoreManagers()
+void MinecraftServer::initializeDomainServices()
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeCoreManagers");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeDomainServices");
 
     // 创建核心管理器
-    m_playerManager = std::make_unique<core::PlayerManager>(m_settings.maxPlayers.get());
+    m_playerManager = std::make_unique<PlayerManager>(m_settings.maxPlayers.get());
     // 把区块资源释放挂到玩家移除入口上。玩家离场路径有 5 条以上（客户端断线、被踢/封禁/白名单拒绝、
     // KeepAlive 超时、登录阶段失败、关服批量断开），逐点补调用一定会漏；挂在入口才能保证
     // "先释放区块票据、后移除玩家" 这一顺序对所有路径成立。
@@ -603,15 +607,30 @@ void MinecraftServer::initializeCoreManagers()
             m_containerManager->closeContainer(playerId);
             m_containerManager->closePlayerInventoryMenu(playerId);
         }
+        if (auto* world = getPlayerWorld(playerId); world != nullptr) {
+            m_playerEntityManager.removePlayerEntity(playerId, world, RemovalReason::UnloadedWithPlayer);
+        }
         this->releasePlayerChunkResources(playerId);
     });
-    m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
+    m_playerManager->setPlayerRemovedHook([this](PlayerId id, const std::string& uuid, const std::string& name) {
+        if (!uuid.empty()) {
+            mc::network::ir::play::PlayerInfoRemove removal;
+            removal.uuids.push_back(util::uuidFromString(uuid));
+            m_packetSender->broadcast(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(removal)}});
+        }
+        event::ServerEventBus::instance().publish(event::PlayerLogoutEvent(currentTick(), id, name, "disconnected"));
+    });
+    m_packetSender = std::make_unique<PacketSender>(*m_playerManager);
+    m_playerConnections = std::make_unique<PlayerConnectionManager>(*m_playerManager);
+    m_playerManager->chunkSyncManager().setDefaultViewDistance(m_settings.viewDistance.get());
     // MC 1.16.5: 新世界初始 dayTime = 0（日出时刻）
-    m_timeManager = std::make_unique<core::TimeManager>(0, 0);
-    m_teleportManager = std::make_unique<core::TeleportManager>(*m_playerManager);
-    m_keepAliveManager = std::make_unique<core::KeepAliveManager>(*m_playerManager);
-    m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_settings.viewDistance.get());
-    m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
+    m_timeManager = std::make_unique<TimeManager>(0, 0);
+
+    m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager);
+    m_playerMovementManager = std::make_unique<PlayerMovementManager>(*m_playerManager);
+    m_teleportManager = std::make_unique<TeleportManager>(*m_playerManager, *m_playerMovementManager);
+    m_gameModeManager = std::make_unique<GameModeManager>(*m_playerManager, *m_packetSender);
 
     // 注册游戏模式变化回调：当玩家切入/切出旁观者模式时，更新 ServerPlayer 实体的
     // 每次模式变化均更新真实实体；玩家 ID 必须经过实体管理器解析。
@@ -631,10 +650,8 @@ void MinecraftServer::initializeCoreManagers()
         }
         player->setGameMode(newMode);
     });
-    m_whitelistManager = std::make_unique<core::WhitelistManager>();
-    m_bannedPlayerList = std::make_unique<core::BannedPlayerList>();
-    m_bannedIpList = std::make_unique<core::BannedIpList>();
-    m_opListManager = std::make_unique<core::OpListManager>();
+
+    m_accessManager = std::make_unique<AccessManager>();
 
     // 创建记分板
     m_scoreboard = std::make_unique<ServerScoreboard>(*this);
@@ -686,7 +703,7 @@ void MinecraftServer::initializeCoreManagers()
                 return;
             }
 
-            m_positionTracker->updatePosition(
+            m_playerMovementManager->updatePosition(
                 playerId, position.x, position.y, position.z, player->yaw, player->pitch, player->onGround);
             m_playHandler->updateEntityTrackingForPlayer(playerId, position.x, position.y, position.z);
 
@@ -778,12 +795,13 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
             broadcastSetEntityLinkInRange(entityId, linkedEntityId, entity->position());
         }
     });
-    world.setOnBroadcastWorldEvent([this](i32 eventId, i32 x, i32 y, i32 z, i32 data) {
+    world.setOnBroadcastWorldEvent([this](::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data) {
         broadcastWorldEventInRange(eventId, x, y, z, data);
     });
-    world.setOnBroadcastGlobalLevelEvent([this](DimensionId dimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data) {
-        broadcastGlobalLevelEvent(dimensionId, eventId, x, y, z, data);
-    });
+    world.setOnBroadcastGlobalLevelEvent(
+        [this](DimensionId dimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data) {
+            broadcastGlobalLevelEvent(dimensionId, eventId, x, y, z, data);
+        });
     world.setOnBroadcastBlockEvent([this](i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId) {
         broadcastBlockEventInRange(x, y, z, paramA, paramB, blockId);
     });
@@ -1138,7 +1156,7 @@ void MinecraftServer::initializeInteractionManagers()
     m_blockInteractionManager =
         std::make_unique<interaction::BlockInteractionManager>(*m_playerManager, m_lootTableManager);
 
-    m_miningManager = std::make_unique<interaction::MiningManager>(*m_playerManager, *m_connectionManager);
+    m_miningManager = std::make_unique<interaction::MiningManager>(*m_playerManager, *m_packetSender);
 
     m_containerManager = std::make_unique<interaction::ContainerManager>(*m_playerManager);
 
@@ -1772,11 +1790,12 @@ void MinecraftServer::shutdownManagers()
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
                 "MinecraftServer::shutdownManagers::ResetCoreManagers::ResetRemainingManagers");
             m_gameModeManager.reset();
-            m_positionTracker.reset();
+            m_playerMovementManager.reset();
             m_keepAliveManager.reset();
             m_teleportManager.reset();
             m_timeManager.reset();
-            m_connectionManager.reset();
+            m_playerConnections.reset();
+            m_packetSender.reset();
             m_playerManager.reset();
         }
     }
@@ -2110,7 +2129,7 @@ void MinecraftServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerIn
 
 i32 MinecraftServer::resolveOpLevel(const std::string& uuid) const noexcept
 {
-    return static_cast<i32>(m_opListManager->getLevel(uuid));
+    return static_cast<i32>(m_accessManager->operatorGetLevel(uuid));
 }
 
 void MinecraftServer::savePlayerRuntimeState()
@@ -2265,8 +2284,8 @@ void MinecraftServer::stopCore()
     spdlog::info("Stopping server core...");
 
     // 断开所有玩家
-    if (m_connectionManager) {
-        m_connectionManager->disconnectAll("Server shutting down");
+    if (m_packetSender) {
+        m_playerConnections->disconnectAll("Server shutting down");
     }
 
     // 关闭管理器
@@ -2402,18 +2421,19 @@ void MinecraftServer::broadcastSetEntityLinkInRange(
 // 世界事件
 // ============================================================================
 
-void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
+void MinecraftServer::broadcastWorldEvent(::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)
 {
     m_broadcaster->broadcastWorldEvent(eventId, x, y, z, data);
 }
 
 void MinecraftServer::broadcastGlobalLevelEvent(
-    DimensionId sourceDimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data)
+    DimensionId sourceDimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)
 {
     m_broadcaster->broadcastGlobalLevelEvent(sourceDimensionId, eventId, x, y, z, data);
 }
 
-void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
+void MinecraftServer::broadcastWorldEventInRange(
+    ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
 {
     m_broadcaster->broadcastWorldEventInRange(eventId, x, y, z, data, range);
 }

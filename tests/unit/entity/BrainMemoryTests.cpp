@@ -27,7 +27,7 @@
 #include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/memory/WalkTarget.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 namespace mc::entity::ai::brain::memory {
 namespace {

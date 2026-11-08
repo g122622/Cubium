@@ -21,15 +21,15 @@
  *
  */
 
-#include "common/world/gen/noise/SimplexNoise.hpp"
+#include "common/util/math/noise/SimplexNoise.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
 
+using ::mc::math::noise::SimplexNoise;
+
 namespace mc {
 namespace {
-
-using namespace world::gen::noise;
 
 // ============================================================================
 // SimplexNoise 确定性测试

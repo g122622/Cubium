@@ -23,14 +23,14 @@
 
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "entity/entities/item/ItemEntity.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "util/Direction.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
 #include <gtest/gtest.h>

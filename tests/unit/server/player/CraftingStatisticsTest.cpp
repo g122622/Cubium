@@ -46,7 +46,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include <gtest/gtest.h>

@@ -33,13 +33,14 @@
 //   6. tryRespawn 在有讲台时使用已有讲台位置
 //   7. _respawnDragon 使用 BlockPattern 精确替换讲台方块（不误伤其他基岩）
 
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/EndDragonFightTestAccessor.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
@@ -90,7 +91,7 @@ public:
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
-    void playEvent(i32 /*eventId*/, const BlockPos& /*pos*/, i32 /*data*/) override {}
+    void playEvent(::mc::world::LevelEventId /*eventId*/, const BlockPos& /*pos*/, i32 /*data*/) override {}
 
     // ========== 实体管理 ==========
 

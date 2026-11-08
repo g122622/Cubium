@@ -34,7 +34,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <nlohmann/json.hpp>
 

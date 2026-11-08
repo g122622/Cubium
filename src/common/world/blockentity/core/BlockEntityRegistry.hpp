@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <cstddef>

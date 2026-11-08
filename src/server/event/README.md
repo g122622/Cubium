@@ -56,7 +56,7 @@ server/event/
 | `common/core/Types.hpp` | 基本类型定义（PlayerId、EntityId 等） |
 | `common/entity/core/Entity.hpp` | Entity 类（事件参数） |
 | `common/item/core/ItemStack.hpp` | ItemStack 类（事件参数） |
-| `common/world/block/BlockPos.hpp` | BlockPos 类型（事件参数） |
+| `common/world/block/base/types/BlockPos.hpp` | BlockPos 类型（事件参数） |
 | `common/world/GlobalPos.hpp` | GlobalPos 类型（事件参数） |
 
 ### 被依赖（计划集成点）

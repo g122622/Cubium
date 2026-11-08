@@ -39,8 +39,8 @@
 
 #include "client/renderer/trident/entity/util/BlockMeshBuilder.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

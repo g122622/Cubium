@@ -24,10 +24,10 @@
 #include "BiomeColors.hpp"
 #include "client/world/color/ColorResolver.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/noise/PerlinSimplexNoise.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <memory>
 
 namespace mc {

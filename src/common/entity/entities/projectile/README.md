@@ -91,7 +91,7 @@ Entity (core/Entity.hpp)
 - `common/entity/damage/DamageSource.hpp` - 伤害来源
 - `common/entity/effect/EffectInstance.hpp` - 药水效果
 - `common/world/IWorld.hpp` - 世界接口（射线追踪、粒子、方块查询）
-- `common/world/block/Block.hpp` - 方块状态
+- `common/world/block/core/Block.hpp` - 方块状态
 - `common/item/ItemStack.hpp` - 物品堆（拾取、药水箭）
 - `common/util/math/Vector3.hpp` - 向量运算
 - `common/util/math/random/Random.hpp` - 随机数生成

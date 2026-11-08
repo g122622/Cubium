@@ -41,8 +41,8 @@ ITickList<T> (接口)
 
 ### 本模块依赖
 - `common/core/Types.hpp`: 基础类型定义
-- `common/world/block/BlockPos.hpp`: 方块位置
-- `common/world/block/Block.hpp`, `BlockRegistry.hpp`: 方块基类和注册表
+- `common/world/block/base/types/BlockPos.hpp`: 方块位置
+- `common/world/block/core/Block.hpp`, `BlockRegistry.hpp`: 方块基类和注册表
 - `common/world/fluid/Fluid.hpp`, `FluidRegistry.hpp`: 流体基类和注册表
 - `common/world/IWorld.hpp`: 世界接口
 - `common/resource/ResourceLocation.hpp`: 资源位置

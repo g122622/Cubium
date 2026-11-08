@@ -22,14 +22,16 @@
  */
 
 #include "BanIpCommand.hpp"
+#include "server/access/AccessManager.hpp"
+#include "server/network/session/PlayerConnectionManager.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "server/access/base/BannedIpListTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
@@ -154,29 +156,29 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
         playersToKick.push_back(playerData->playerId);
     }
 
-    auto& banList = server->bannedIpList();
+    auto& banList = server->accessManager();
 
     // 检查是否已被封禁
-    if (banList.isBanned(ipAddress)) {
+    if (banList.ipBanIsBanned(ipAddress)) {
         source.sendError("commands.banip.failed.ipAlreadyBanned");
         return 0;
     }
 
     // 创建封禁条目
-    server::core::BannedIpEntry entry(ipAddress,
+    server::BannedIpEntry entry(ipAddress,
         getCurrentTimeString(),
         bannedBy,
         "forever", // 永久封禁
         reason);
 
     // 添加到封禁列表
-    if (!banList.addEntry(entry)) {
+    if (!banList.ipBanAddEntry(entry)) {
         source.sendError("commands.banip.failed.addEntry");
         return 0;
     }
 
     // 保存封禁列表
-    auto saveResult = banList.save();
+    auto saveResult = banList.ipBanSave();
     if (saveResult.failed()) {
         spdlog::error("Failed to save banned IPs list: {}", saveResult.error().message());
     }
@@ -190,7 +192,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
     for (PlayerId playerId : playersToKick) {
         std::ostringstream kickReason;
         kickReason << "Your IP has been banned!\nReason: " << reason;
-        server->connectionManager().disconnectPlayer(playerId, kickReason.str());
+        server->playerConnections().disconnectPlayer(playerId, kickReason.str());
         spdlog::info("Player kicked due to IP ban (playerId={})", playerId);
     }
 

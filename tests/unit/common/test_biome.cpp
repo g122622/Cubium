@@ -29,7 +29,7 @@
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/biome/source/NetherBiomeBuilder.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "server/world/gen/biome/source/EndBiomeSource.hpp"

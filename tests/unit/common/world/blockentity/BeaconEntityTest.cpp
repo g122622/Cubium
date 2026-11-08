@@ -22,8 +22,8 @@
  */
 
 #include "world/blockentity/processing/BeaconEntity.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/effect/EffectType.hpp"
-#include "world/block/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"

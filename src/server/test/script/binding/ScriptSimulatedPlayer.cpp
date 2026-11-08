@@ -37,7 +37,7 @@
 #include "common/util/math/Vector3.hpp"         // Vector3（faceLocation 参数）
 #include "common/world/GlobalPos.hpp"           // GlobalPos（getRespawnConfig 返回的维度+方块位置）
 #include "common/world/IWorld.hpp"              // IWorld::dimension()（options.dimension 跨维度判定)
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"        // DimensionId（teleport 目标维度类型）
 #include "server/test/base/error/GameTestErrorType.hpp"       // GameTestErrorType::MethodNotImplemented
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（stub 用）

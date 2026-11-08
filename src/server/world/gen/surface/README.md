@@ -47,7 +47,7 @@ SurfaceRules.hpp（聚合头文件）
 | 模块 | 用途 |
 |------|------|
 | `common/core/Types.hpp` | 基础类型定义 (i32, f32, u64 等) |
-| `common/world/block/BlockState.hpp` | 方块状态 |
+| `common/world/block/state/BlockState.hpp` | 方块状态 |
 | `common/world/block/VanillaBlocks.hpp` | 原版方块定义 |
 | `common/world/chunk/ChunkPrimer.hpp` | 区块数据 |
 | `common/world/biome/Biome.hpp` | 生物群系定义 |

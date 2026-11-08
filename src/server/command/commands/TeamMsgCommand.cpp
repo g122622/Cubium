@@ -30,7 +30,7 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 
 #include <memory>

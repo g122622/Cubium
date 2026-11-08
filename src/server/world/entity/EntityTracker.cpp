@@ -46,9 +46,9 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/network/outbound/AttributeSnapshotBuilder.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <algorithm>

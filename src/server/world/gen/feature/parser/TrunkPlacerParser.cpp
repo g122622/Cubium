@@ -26,7 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "server/world/gen/feature/tree/trunk/BendingTrunkPlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/CherryTrunkPlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"

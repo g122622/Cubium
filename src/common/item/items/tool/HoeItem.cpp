@@ -35,9 +35,9 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <unordered_map>
 #include <unordered_set>
 

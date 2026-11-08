@@ -29,8 +29,9 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -70,7 +71,7 @@ namespace mc::server::net {
  * 不承接耦合 Server 私有状态的方法：broadcastDifficultyChange（依赖 m_difficulty）、
  * sendCommandTreePacket（依赖 m_commandRegistry）、sendPermissionLevelChange
  * （依赖 getPlayerWorld + playerEntityManager）——这些由 PacketBuilders builder +
- * connectionManager 在批5b 处理。broadcastServerMessage 仅 spdlog 不发包，批5b 删。
+ * packetSender 在批5b 处理。broadcastServerMessage 仅 spdlog 不发包，批5b 删。
  */
 class PlayerBroadcaster {
 public:
@@ -134,13 +135,14 @@ public:
         EntityInstanceId entityId, EntityInstanceId linkedEntityId, const Vector3& pos, f32 range = 32.0f);
 
     // ========== 世界事件 ==========
-    void broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
-    void broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
+    void broadcastWorldEvent(::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data);
+    void broadcastWorldEventInRange(
+        ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
 
     /**
      * @brief 广播全局世界事件给全服所有玩家（跨维度）
      *
-     * 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
+     * 对应 MC Java: ServerLevel.globalLevelEvent(::mc::world::LevelEventId, BlockPos, i32)
      * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
      * 遍历全服所有玩家，对每个玩家计算事件位置：
      *   - 同维度且距离<32格：使用真实事件位置
@@ -155,7 +157,8 @@ public:
      * @param z Z坐标
      * @param data 事件数据
      */
-    void broadcastGlobalLevelEvent(DimensionId sourceDimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data);
+    void broadcastGlobalLevelEvent(
+        DimensionId sourceDimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data);
     void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range = 64.0f);
     void broadcastBlockEntityInRange(
         const BlockPos& pos, BlockEntityType type, std::shared_ptr<nbt::CompoundTag> tag, f32 range = 64.0f);

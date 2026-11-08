@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/framework/batch/GameTestBatch.hpp"
 #include "server/test/framework/function/BaseGameTestFunction.hpp"
 #include "server/test/framework/ticker/GameTestTicker.hpp"

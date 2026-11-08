@@ -27,13 +27,13 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <optional>
 #include <unordered_map>
 #include <utility>
@@ -67,7 +67,7 @@ ActionResultType HoneycombItem::onItemUse(ItemUseContext& context)
         if (!signEntity->isWaxed()) {
             if (signEntity->setWaxed(true)) {
                 // 播放涂蜡粒子与音效
-                world.playEvent(world::WorldEvents::WAX_ON, pos, 0);
+                world.playEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_WAX_ON, pos, 0);
 
                 // 消耗一个蜜脾（非创造模式）
                 ItemStack& stack = context.getItemStackMut();
@@ -92,7 +92,7 @@ ActionResultType HoneycombItem::onItemUse(ItemUseContext& context)
     world.setBlockState(pos, &waxedState.value(), world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
     // 播放涂蜡粒子与音效
-    world.playEvent(world::WorldEvents::WAX_ON, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_WAX_ON, pos, 0);
 
     // 消耗一个蜜脾（非创造模式）
     ItemStack& stack = context.getItemStackMut();

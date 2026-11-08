@@ -36,9 +36,9 @@
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/decorative/SkullBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <gtest/gtest.h>
 
 #include <memory>

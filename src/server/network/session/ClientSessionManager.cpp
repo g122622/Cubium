@@ -30,14 +30,14 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "server/application/MinecraftServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/network/handshake/LoginFlow.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
 #include "server/network/session/ClientSession.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include <array>
 #include <cstddef>
 #include <memory>
@@ -185,48 +185,7 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
     // 移除远程玩家（若已创建实体）：按 sessionId 查 playerId。
     const PlayerId playerId = m_server.playerManager().getPlayerIdBySession(sessionId);
     if (playerId != 0) {
-        // 离场广播用的 UUID 必须在 removePlayer 之前取——之后 ServerPlayerData 即被销毁。
-        // 判据用 uuid 非空而**不用** hasConnection()：本回调触发时该连接的 socket 已经关闭，
-        // hasConnection()（= connection && connection->isConnected()）此刻恒为 false，
-        // 用它会让离场广播永不发出。
-        std::optional<std::array<u8, 16>> departedUuid;
-        std::string departedName;
-        if (const auto* playerData = m_server.playerManager().getPlayer(playerId); playerData != nullptr) {
-            if (!playerData->uuid.empty()) {
-                departedUuid = util::uuidFromString(playerData->uuid);
-            }
-            // 玩家名同样必须在 removePlayer 之前取快照（之后数据即被销毁）。
-            departedName = playerData->username;
-        }
-
-        // 销毁背包菜单。须在移除实体之前——菜单销毁时会把光标上的物品归还玩家背包，
-        // 那需要实体还在。
-        m_server.containerManager().closeContainer(playerId);
-        m_server.containerManager().closePlayerInventoryMenu(playerId);
-
-        // 清理玩家实体
-        auto* world = m_server.getPlayerWorld(playerId);
-        // 不论实体当前是否仍在世界内都清理映射（实体可能已因死亡消散被移除）。
-        m_server.playerEntityManager().removePlayerEntity(playerId, world, RemovalReason::UnloadedWithPlayer);
-
-        // 移除玩家会话信息。物品栏无需另行清理——它随上面移除的玩家实体一起消失，
-        // InventoryManager 不持有任何需要释放的副本。
         m_server.playerManager().removePlayer(playerId);
-
-        // 广播离场（ClientboundPlayerInfoRemove，cb 67），否则其余客户端的 Tab 列表会永久
-        // 残留该玩家。顺序与语义一致于 vanilla：先把玩家移出在线列表，再向剩余玩家广播；
-        // 离开者本人此时已不在接收集合内，不会收到自己的移除包。
-        if (departedUuid.has_value()) {
-            mc::network::ir::play::PlayerInfoRemove removal;
-            removal.uuids.push_back(*departedUuid);
-            m_server.broadcastPacket(mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{removal}});
-        }
-
-        // 玩家离开事件：终端控制台、基岩脚本桥（playerLeave）等订阅方依赖它。
-        // 名字已在上方 removePlayer 之前取好快照。
-        event::ServerEventBus::instance().publish(
-            event::PlayerLogoutEvent(m_server.currentTick(), playerId, departedName, "disconnected"));
     }
 }
 

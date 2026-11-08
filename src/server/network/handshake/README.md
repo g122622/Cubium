@@ -54,7 +54,7 @@ LoginFlow.createPlayerForConnection ──▶ play::Login / 权限 / 命令树 /
 | `common/network/backend/java/handshake/JavaLoginHandshaker.hpp` | Login 阶段包编解码（双向共用，留在 common） |
 | `common/network/ir/packets/{handshake,login,status,configuration}/*` | 各阶段 IR 包 |
 | `server/application/MinecraftServer.hpp` | `LoginFlow` 的处理体入口 |
-| `server/core/PlayerManager.hpp`、`server/world/ServerWorld.hpp` | 建号与初始世界状态 |
+| `server/player/lifecycle/PlayerManager.hpp`、`server/world/ServerWorld.hpp` | 建号与初始世界状态 |
 
 ### 依赖本目录
 

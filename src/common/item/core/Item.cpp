@@ -40,7 +40,7 @@
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <algorithm>
 #include <functional>
 #include <string>

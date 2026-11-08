@@ -27,7 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/world/GlobalPos.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>

@@ -26,7 +26,7 @@
 #include "BlockItem.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <cstddef>
 #include <functional>
 #include <unordered_map>

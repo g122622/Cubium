@@ -33,7 +33,7 @@
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/PacketFlow.hpp"
 #include "common/registry/RegistryAccess.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
 #include "server/network/session/ServerNetwork.hpp"
 

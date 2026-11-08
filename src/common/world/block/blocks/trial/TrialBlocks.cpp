@@ -38,15 +38,15 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
+#include "common/world/block/blocks/base/HorizontalBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/Random.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/block/BlockState.hpp"
 #include "world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
 #include "world/blockentity/trial/VaultBlockEntity.hpp"
@@ -370,7 +370,7 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
     if (recipe == nullptr) {
         // 没有匹配配方，播放失败音效
         // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(SOUND_CRAFTER_FAIL, pos, 0)
-        world.playEvent(world::WorldEvents::CRAFTER_FAIL_SOUND, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::SOUND_CRAFTER_FAIL, pos, 0);
         return;
     }
 
@@ -378,7 +378,7 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
     if (result.isEmpty()) {
         // 配方结果为空，播放失败音效
         // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(SOUND_CRAFTER_FAIL, pos, 0)
-        world.playEvent(world::WorldEvents::CRAFTER_FAIL_SOUND, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::SOUND_CRAFTER_FAIL, pos, 0);
         return;
     }
 
@@ -389,14 +389,14 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
 
     // 播放合成成功音效
     // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(SOUND_CRAFTER_CRAFT, pos, 0)
-    world.playEvent(world::WorldEvents::CRAFTER_CRAFT_SOUND, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_CRAFTER_CRAFT, pos, 0);
 
     // 射出合成结果时产生方向性白烟粒子
     // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(PARTICLES_SHOOT_WHITE_SMOKE, pos, direction.get3DDataValue())
     // vanilla 射出方向为 orientation.front()，即 JigsawOrientation 的主要朝向
     Direction facing =
         world::gen::jigsaw::JigsawOrientations::getFacing(state.get(BlockStateProperties::ORIENTATION()));
-    world.playEvent(world::WorldEvents::SHOOT_WHITE_SMOKE, pos, static_cast<i32>(facing));
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_SHOOT_WHITE_SMOKE, pos, static_cast<i32>(facing));
 
     // 射出合成结果
     _spawnItemEntity(world, pos, facing, result);

@@ -30,7 +30,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <algorithm>
 #include <string>

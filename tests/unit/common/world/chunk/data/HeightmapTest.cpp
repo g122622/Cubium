@@ -23,7 +23,7 @@
 
 #include "common/world/chunk/data/Heightmap.hpp"
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 

@@ -25,10 +25,10 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/WorldGenRegistryFixture.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
-#include "world/block/BlockRegistry.hpp"
 
 using namespace mc;
 

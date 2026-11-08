@@ -41,7 +41,7 @@ class IServer;
  * @brief 服务端末影龙 Boss 栏
  *
  * 实现 common 层的 IDragonBossBar 接口，内部持有 ServerBossInfo 并通过
- * IServer::connectionManager() 发送 ir::play::BossEvent 实现网络同步。
+ * IServer::packetSender() 发送 ir::play::BossEvent 实现网络同步。
  *
  * 与 CustomServerBossInfo 的区别：
  * - 不持有 ResourceLocation ID（龙 Boss 栏不是 /bossbar 命令创建的）
@@ -58,7 +58,7 @@ public:
     /**
      * @brief 构造函数
      *
-     * @param server IServer 引用，用于通过 connectionManager() 发送网络包
+     * @param server IServer 引用，用于通过 packetSender() 发送网络包
      * @param uuid Boss 栏 UUID（由调用方生成，保证唯一性）
      * @param name 初始显示名称（如 "entity.minecraft.ender_dragon" 翻译键）
      * @param color 初始颜色（MC 默认 PINK）
@@ -107,7 +107,7 @@ private:
      */
     void _broadcastUpdate(network::BossInfoAction action);
 
-    /// IServer 引用（用于 connectionManager 发送网络包）
+    /// IServer 引用（用于 packetSender 发送网络包）
     IServer& m_server;
 
     /// Boss 栏 UUID

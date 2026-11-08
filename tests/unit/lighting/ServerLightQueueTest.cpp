@@ -32,7 +32,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/ServerLightQueue.hpp"
 

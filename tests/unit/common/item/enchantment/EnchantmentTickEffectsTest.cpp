@@ -45,9 +45,9 @@
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/enchantment/enchantments/special/SoulSpeedEnchantment.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/NetherBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 
 #include <map>

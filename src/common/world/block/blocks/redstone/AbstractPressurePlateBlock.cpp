@@ -22,6 +22,8 @@
  */
 
 #include "AbstractPressurePlateBlock.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/sound/SoundCategory.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -33,8 +35,8 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -47,8 +49,9 @@
 namespace mc {
 namespace blocks {
 
-AbstractPressurePlateBlock::AbstractPressurePlateBlock(const BlockProperties& properties)
-    : Block(properties)
+AbstractPressurePlateBlock::AbstractPressurePlateBlock(const BlockProperties& properties, const BlockSetType& type)
+    : Block(BlockProperties(properties).soundType(type.soundType))
+    , m_type(type)
 {
 
     // 创建状态容器
@@ -253,3 +256,29 @@ bool AbstractPressurePlateBlock::isValidPosition(
 
 } // namespace blocks
 } // namespace mc
+
+namespace mc::blocks {
+void AbstractPressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
+{
+    world.playSound(pressed ? m_type.pressurePlateClickOn : m_type.pressurePlateClickOff,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.3f,
+        pressed ? 0.6f : 0.5f);
+}
+} // namespace mc::blocks
+
+namespace mc::blocks {
+i32 AbstractPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const
+{
+    const AxisAlignedBB bounds(pos.x + 0.125f, pos.y, pos.z + 0.125f, pos.x + 0.875f, pos.y + 0.25f, pos.z + 0.875f);
+    for (Entity* entity : world.getEntitiesInAABB(bounds, nullptr)) {
+        if (!entity->doesEntityNotTriggerPressurePlate() &&
+            (m_type.pressurePlateSensitivity == PressurePlateSensitivity::Everything ||
+                dynamic_cast<LivingEntity*>(entity) != nullptr)) {
+            return 15;
+        }
+    }
+    return 0;
+}
+} // namespace mc::blocks

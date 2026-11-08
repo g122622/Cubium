@@ -36,7 +36,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TempDirHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/spawn/RespawnData.hpp"

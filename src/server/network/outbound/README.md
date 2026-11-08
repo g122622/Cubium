@@ -1,61 +1,35 @@
-# network/outbound - 出站构造与广播
+# IR 包构造、投递与接收者筛选
 
-服务端**主动发起**的所有出站包构造与投递。与入站处理（`play/`）正交：这里没有入站状态机，
-只有「构造 IR 包 → 按距离/订阅关系投递」。
+## 目录结构树
 
-本目录是 `server/network` **被其他子系统直接 include 的公共出站 ABI**——`server/command/commands/*`
-经 `PacketBuilders` 构造命令回包，`server/world/ServerWorld` 经 `MapPacketBuilder` 推送地图。
-因此它的头文件**不得**反向依赖 `play/` 或 `session/` 的内部类型。
-
-## 目录结构
-
-```
-src/server/network/outbound/
-├── README.md
-├── PacketBuilders.hpp/cpp         # 纯自由函数：buildPlaySoundIr / buildPermissionLevelChangeIr
-│                                  #   / buildCommandsIr / buildLevelParticlesIr
-├── DialogPacketBuilder.cpp        # PacketBuilders 声明的对话框 JSON → IR 构造，供握手 fuzz 共用
-├── CommandTreeEncoder.hpp         # 命令树快照 → ClientboundCommandsPacket 包体字节（header-only）
-├── PlayerBroadcaster.hpp/cpp      # 距离过滤 + 多态广播（声音/粒子/实体事件/世界事件/爆炸/光照）
-└── MapPacketBuilder.hpp/cpp       # 脏地图周期推送（pushDirtyMaps）
+```text
+outbound/
+├── AttributeSnapshotBuilder.hpp  # 把生物的当前属性收集成属性同步包负载
+├── CommandTreeEncoder.hpp  # 只编码参数节点的 properties 部分（不含类型数值 id，也不含建议提供器）
+├── DialogPacketBuilder.cpp  # 模块接口与实现
+├── MapPacketBuilder.cpp  # 模块接口与实现
+├── MapPacketBuilder.hpp  # 地图数据周期推送构造器（无状态静态类）
+├── PacketBuilders.cpp  # 模块接口与实现
+├── PacketBuilders.hpp  # 构造当前商人菜单的完整报价包，保留物品组件与价格、经验信息。
+├── PacketSender.cpp  # 模块接口与实现
+├── PacketSender.hpp  # 连接管理器（新网络层 IR 版本）
+├── PlayerBroadcaster.cpp  # 模块接口与实现
+└── PlayerBroadcaster.hpp  # 玩家广播门面
 ```
 
 ## 内部模块关系
 
-- `PacketBuilders`：**无状态纯函数**，只返回 `IrPacket` / `optional<IrPacket>`，**不发包**，零
-  `MinecraftServer` 依赖。是唯一的单包构造点。
-- `CommandTreeEncoder`：被 `PacketBuilders::buildCommandsIr` 调用，把 `CommandTreeSnapshot` 编码为
-  二进制 `ClientboundCommandsPacket` 包体（`VarInt(nodeCount) + nodes + VarInt(rootIndex)`）。
-  自 `common/network/backend/java/codecs/` 迁入——命令树只由服务端下发，客户端只解码不编码。
-- `PlayerBroadcaster`：持 `MinecraftServer&`，构造函数在内部完成包构造后按距离过滤投递。
-- `MapPacketBuilder`：唯一的 `pushDirtyMaps(ServerWorld&)` 静态方法，遍历在线玩家背包里的脏
-  `MapData`，构造 `MapItemData` 并**自行下发**。
-
-> 分工约定：`PacketBuilders` 产包，`PlayerBroadcaster` / `MapPacketBuilder` 产包**并**发包。
-> 后两者内部的包构造应尽量复用 `PacketBuilders` 的原语，避免同一编码出现两份实现。
+PacketBuilders 构造 IR 包；PacketSender 提供单播和共享包广播；PlayerBroadcaster 根据世界位置筛选接收者。连接关闭与玩家移除不在本目录执行。
 
 ## 上下游外部依赖关系
 
-### 本目录依赖
-
-| 依赖 | 用途 |
-|---|---|
-| `common/network/ir/IrPacket.hpp`、`ir/packets/play/*` | IR 包定义 |
-| `common/command/{CommandTreeSnapshot,CommandNode}.hpp` | 命令树编码输入 |
-| `common/network/buffer/ByteBuf.hpp` | `CommandTreeEncoder` 的字节输出 |
-| `server/application/MinecraftServer.hpp` | `PlayerBroadcaster` 的距离过滤与投递 |
-| `server/core/ConnectionManager.hpp`、`server/world/ServerWorld.hpp` | 投递与地图数据来源 |
-
-### 依赖本目录
-
-| 模块 | 用途 |
-|---|---|
-| `server/command/commands/{Give,Loot,Op,DeOp,Particle}Command.cpp` | 经 `PacketBuilders` 构造回包 |
-| `server/world/ServerWorld.cpp` | `MapPacketBuilder::pushDirtyMaps` |
-| `server/application/MinecraftServer.cpp` | 构造并持 `PlayerBroadcaster` |
-| `server/network/handshake/LoginFlow.cpp` | 经 `PacketBuilders::buildCommandsIr` 发命令树 |
+依赖公共 IR、玩家记录和连接视图；世界绑定、命令、记分板、首领条及游戏模式服务使用投递入口。
 
 ## 容易踩的坑
+
+- PacketSender 只投递包，PlayerConnectionManager 关闭连接，PlayerManager 统一移除记录。
+- 玩家移除前释放菜单、实体和区块资源，移除后通知剩余玩家；重复移除不得重复通知。
+- 玩家移动与区块订阅分开，订阅统一使用 ChunkSyncManager 持有的 tracker。
 
 ### 1. 同一编码只允许一份实现
 

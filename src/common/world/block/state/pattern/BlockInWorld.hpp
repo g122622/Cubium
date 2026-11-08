@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <optional>
 

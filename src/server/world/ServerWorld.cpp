@@ -68,13 +68,13 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/LightningRodBlock.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/redstone/lightningrod/LightningRodBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/sculk/SculkSensorBlockEntity.hpp"
@@ -89,6 +89,7 @@
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -110,9 +111,8 @@
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/event/ServerEventBus.hpp"
@@ -136,6 +136,7 @@
 #include "server/world/storage/entity/EntityStorageManager.hpp"
 #include "server/world/storage/section/SectionManager.hpp"
 #include "server/world/structure/StructureLocator.hpp"
+#include "server/world/time/TimeManager.hpp"
 #include "weather/WeatherManager.hpp"
 #include <algorithm>
 #include <array>
@@ -501,7 +502,7 @@ bool ServerWorld::mayInteract(const Entity& entity, const BlockPos& pos) const
     }
 
     // 半径内：版主及以上权限、单机主豁免（对齐 MinecraftServer#isUnderSpawnProtection）。
-    return player->hasPermission(static_cast<i32>(core::OpLevel::Moderator)) ||
+    return player->hasPermission(static_cast<i32>(OpLevel::Moderator)) ||
         m_server->isSingleplayerOwner(player->playerId());
 }
 
@@ -513,14 +514,14 @@ void ServerWorld::playSound(
     }
 }
 
-void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
+void ServerWorld::playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data)
 {
     if (m_onBroadcastWorldEvent) {
         m_onBroadcastWorldEvent(eventId, pos.x, pos.y, pos.z, data);
     }
 }
 
-void ServerWorld::globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
+void ServerWorld::globalLevelEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data)
 {
     // 对齐 vanilla ServerLevel.globalLevelEvent：gamerule globalSoundEvents=false 时降级为
     // 普通 levelEvent（仅广播给事件位置附近的玩家，而非按玩家位置钳制的全局事件）。
@@ -1404,7 +1405,7 @@ void ServerWorld::removeBlockEntity(const BlockPos& pos)
 // 不负责：
 // - 实体管理 (这个容易踩坑，我们认为实体不属于世界范畴，不交由世界管理)
 // - 玩家管理（由 PlayerManager 管理）
-// - 网络通信（由 ConnectionManager 管理）
+// - 网络通信（由 PacketSender 管理）
 // - 时间管理（由 TimeManager 管理）
 // - 传送（由 TeleportManager 管理）
 // - 游戏模式（由 GameModeManager 管理）

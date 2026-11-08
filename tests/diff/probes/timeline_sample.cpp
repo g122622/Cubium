@@ -1,7 +1,7 @@
 #include "probe.hpp"
 
-#include "common/world/timeline/KeyframeTrack.hpp"
-#include "common/world/timeline/KeyframeTrackSampler.hpp"
+#include "common/world/time/timeline/KeyframeTrack.hpp"
+#include "common/world/time/timeline/KeyframeTrackSampler.hpp"
 
 #include <nlohmann/json.hpp>
 

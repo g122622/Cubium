@@ -30,9 +30,9 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <cstddef>
 #include <functional>
 #include <memory>

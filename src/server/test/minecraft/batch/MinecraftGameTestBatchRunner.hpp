@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/framework/batch/BaseGameTestBatchRunner.hpp"
 #include "server/test/runner/spawner/StructureGridSpawner.hpp"
 

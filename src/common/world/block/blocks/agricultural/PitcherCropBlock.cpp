@@ -34,14 +34,14 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/PlantType.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/PlantType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
-#include "common/world/block/registry/TrailsBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/TrailsBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -361,7 +361,7 @@ const CollisionShape& PitcherCropBlock::getCollisionShape(const BlockState& stat
 {
     // 上半部分无碰撞
     if (getHalf(state) == DoubleBlockHalf::Upper) {
-        return VoxelShapes::empty();
+        return CollisionShape::emptyShape();
     }
 
     // 下半部分：AGE 0 用鳞茎形状，AGE 1-4 用作物形状

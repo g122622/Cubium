@@ -1,0 +1,479 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "common/world/block/registry/vanilla/SignBannerBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/sound/BlockSoundType.hpp"
+#include "common/world/block/blocks/sign/HangingSignBlock.hpp"
+#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "world/block/blocks/decorative/BannerBlock.hpp"
+
+namespace mc {
+namespace block_registry {
+
+// 告示牌（含水）
+Block* SignBannerBlocks::OAK_SIGN = nullptr;
+Block* SignBannerBlocks::OAK_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::SPRUCE_SIGN = nullptr;
+Block* SignBannerBlocks::SPRUCE_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::BIRCH_SIGN = nullptr;
+Block* SignBannerBlocks::BIRCH_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::JUNGLE_SIGN = nullptr;
+Block* SignBannerBlocks::JUNGLE_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::ACACIA_SIGN = nullptr;
+Block* SignBannerBlocks::ACACIA_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::DARK_OAK_SIGN = nullptr;
+Block* SignBannerBlocks::DARK_OAK_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::CRIMSON_SIGN = nullptr;
+Block* SignBannerBlocks::CRIMSON_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::WARPED_SIGN = nullptr;
+Block* SignBannerBlocks::WARPED_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::MANGROVE_SIGN = nullptr;
+Block* SignBannerBlocks::MANGROVE_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::CHERRY_SIGN = nullptr;
+Block* SignBannerBlocks::CHERRY_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::BAMBOO_SIGN = nullptr;
+Block* SignBannerBlocks::BAMBOO_WALL_SIGN = nullptr;
+Block* SignBannerBlocks::PALE_OAK_SIGN = nullptr;
+Block* SignBannerBlocks::PALE_OAK_WALL_SIGN = nullptr;
+
+// 悬挂告示牌（1.20 Trails & Tales 新增）
+Block* SignBannerBlocks::OAK_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::OAK_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::SPRUCE_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::SPRUCE_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::BIRCH_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::BIRCH_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::JUNGLE_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::JUNGLE_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::ACACIA_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::ACACIA_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::DARK_OAK_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::DARK_OAK_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::CRIMSON_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::CRIMSON_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::WARPED_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::WARPED_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::MANGROVE_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::MANGROVE_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::CHERRY_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::CHERRY_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::BAMBOO_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::BAMBOO_WALL_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::PALE_OAK_HANGING_SIGN = nullptr;
+Block* SignBannerBlocks::PALE_OAK_WALL_HANGING_SIGN = nullptr;
+
+// 旗帜 (16色 × 2形态 = 32方块)
+Block* SignBannerBlocks::WHITE_BANNER = nullptr;
+Block* SignBannerBlocks::WHITE_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::ORANGE_BANNER = nullptr;
+Block* SignBannerBlocks::ORANGE_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::MAGENTA_BANNER = nullptr;
+Block* SignBannerBlocks::MAGENTA_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::LIGHT_BLUE_BANNER = nullptr;
+Block* SignBannerBlocks::LIGHT_BLUE_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::YELLOW_BANNER = nullptr;
+Block* SignBannerBlocks::YELLOW_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::LIME_BANNER = nullptr;
+Block* SignBannerBlocks::LIME_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::PINK_BANNER = nullptr;
+Block* SignBannerBlocks::PINK_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::GRAY_BANNER = nullptr;
+Block* SignBannerBlocks::GRAY_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::LIGHT_GRAY_BANNER = nullptr;
+Block* SignBannerBlocks::LIGHT_GRAY_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::CYAN_BANNER = nullptr;
+Block* SignBannerBlocks::CYAN_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::PURPLE_BANNER = nullptr;
+Block* SignBannerBlocks::PURPLE_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::BLUE_BANNER = nullptr;
+Block* SignBannerBlocks::BLUE_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::BROWN_BANNER = nullptr;
+Block* SignBannerBlocks::BROWN_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::GREEN_BANNER = nullptr;
+Block* SignBannerBlocks::GREEN_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::RED_BANNER = nullptr;
+Block* SignBannerBlocks::RED_WALL_BANNER = nullptr;
+Block* SignBannerBlocks::BLACK_BANNER = nullptr;
+Block* SignBannerBlocks::BLACK_WALL_BANNER = nullptr;
+
+void registerSignBannerBlocks()
+{
+    auto& registry = BlockRegistry::instance();
+
+    // ========== 告示牌注册 ==========
+    // 木质告示牌属性：可被岩浆点燃（对齐 vanilla Blocks.register 木质告示牌链路）
+    BlockProperties signProps = BlockProperties(Material::WOOD)
+                                    .hardness(1.0f)
+                                    .noCollision()
+
+                                    .ignitedByLava()
+                                    .noOcclusion()
+                                    .resistance(1.0f)
+                                    .forceSolidOn()
+                                    .instrument(NoteBlockInstrument::Bass);
+    // 下界木（crimson/warped）告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
+    BlockProperties netherSignProps = BlockProperties(Material::NETHER_WOOD)
+                                          .hardness(1.0f)
+                                          .noCollision()
+
+                                          .noOcclusion()
+                                          .soundType(BlockSoundTypes::NETHER_WOOD)
+                                          .resistance(1.0f)
+                                          .forceSolidOn()
+                                          .instrument(NoteBlockInstrument::Bass);
+    // 竹/樱花告示牌：原版 `WoodType.BAMBOO/CHERRY.soundType()`，与通用木质声不同
+    BlockProperties bambooSignProps = BlockProperties(Material::WOOD)
+                                          .hardness(1.0f)
+                                          .noCollision()
+
+                                          .ignitedByLava()
+                                          .noOcclusion()
+                                          .soundType(BlockSoundTypes::BAMBOO_WOOD)
+                                          .resistance(1.0f)
+                                          .forceSolidOn()
+                                          .instrument(NoteBlockInstrument::Bass);
+    BlockProperties cherrySignProps = BlockProperties(Material::WOOD)
+                                          .hardness(1.0f)
+                                          .noCollision()
+
+                                          .ignitedByLava()
+                                          .noOcclusion()
+                                          .soundType(BlockSoundTypes::CHERRY_WOOD)
+                                          .resistance(1.0f)
+                                          .forceSolidOn()
+                                          .instrument(NoteBlockInstrument::Bass);
+
+    // 注册各木材类型的告示牌
+    // 橡木
+    SignBannerBlocks::OAK_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:oak_sign"), signProps, WoodTypes::OAK);
+    SignBannerBlocks::OAK_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:oak_wall_sign"), signProps, WoodTypes::OAK);
+
+    // 云杉木
+    SignBannerBlocks::SPRUCE_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:spruce_sign"), signProps, WoodTypes::SPRUCE);
+    SignBannerBlocks::SPRUCE_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:spruce_wall_sign"), signProps, WoodTypes::SPRUCE);
+
+    // 白桦木
+    SignBannerBlocks::BIRCH_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:birch_sign"), signProps, WoodTypes::BIRCH);
+    SignBannerBlocks::BIRCH_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:birch_wall_sign"), signProps, WoodTypes::BIRCH);
+
+    // 丛林木
+    SignBannerBlocks::JUNGLE_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:jungle_sign"), signProps, WoodTypes::JUNGLE);
+    SignBannerBlocks::JUNGLE_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:jungle_wall_sign"), signProps, WoodTypes::JUNGLE);
+
+    // 金合欢木
+    SignBannerBlocks::ACACIA_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:acacia_sign"), signProps, WoodTypes::ACACIA);
+    SignBannerBlocks::ACACIA_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:acacia_wall_sign"), signProps, WoodTypes::ACACIA);
+
+    // 深色橡木
+    SignBannerBlocks::DARK_OAK_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:dark_oak_sign"), signProps, WoodTypes::DARK_OAK);
+    SignBannerBlocks::DARK_OAK_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:dark_oak_wall_sign"), signProps, WoodTypes::DARK_OAK);
+
+    // 绯红菌（下界木材）
+    SignBannerBlocks::CRIMSON_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:crimson_sign"), netherSignProps, WoodTypes::CRIMSON);
+    SignBannerBlocks::CRIMSON_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:crimson_wall_sign"), netherSignProps, WoodTypes::CRIMSON);
+
+    // 诡异菌（下界木材）
+    SignBannerBlocks::WARPED_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:warped_sign"), netherSignProps, WoodTypes::WARPED);
+    SignBannerBlocks::WARPED_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:warped_wall_sign"), netherSignProps, WoodTypes::WARPED);
+
+    // 红树木（1.19）
+    SignBannerBlocks::MANGROVE_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:mangrove_sign"), signProps, WoodTypes::MANGROVE);
+    SignBannerBlocks::MANGROVE_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:mangrove_wall_sign"), signProps, WoodTypes::MANGROVE);
+
+    // 樱花木（1.20）
+    SignBannerBlocks::CHERRY_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:cherry_sign"), cherrySignProps, WoodTypes::CHERRY);
+    SignBannerBlocks::CHERRY_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:cherry_wall_sign"), cherrySignProps, WoodTypes::CHERRY);
+
+    // 竹木（1.20）
+    SignBannerBlocks::BAMBOO_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:bamboo_sign"), bambooSignProps, WoodTypes::BAMBOO);
+    SignBannerBlocks::BAMBOO_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:bamboo_wall_sign"), bambooSignProps, WoodTypes::BAMBOO);
+
+    // 苍白橡木（1.21.2）
+    SignBannerBlocks::PALE_OAK_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
+        ResourceLocation("minecraft:pale_oak_sign"), signProps, WoodTypes::PALE_OAK);
+    SignBannerBlocks::PALE_OAK_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
+        ResourceLocation("minecraft:pale_oak_wall_sign"), signProps, WoodTypes::PALE_OAK);
+
+    // ========== 悬挂告示牌注册（1.20 Trails & Tales）==========
+    // 悬挂告示牌使用与普通告示牌相同的材质属性；木质可被岩浆点燃（对齐 vanilla）。
+    // 声音组取原版 `WoodType.HANGING_SIGN`（`block.hanging_sign.*`），不是普通木质声。
+    BlockProperties hangingSignProps = BlockProperties(Material::WOOD)
+                                           .resistance(1.0f)
+                                           .hardness(1.0f)
+                                           .noCollision()
+
+                                           .ignitedByLava()
+                                           .soundType(BlockSoundTypes::HANGING_SIGN)
+                                           .forceSolidOn()
+                                           .instrument(NoteBlockInstrument::Bass);
+    // 下界木（crimson/warped）悬挂告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
+    BlockProperties netherHangingSignProps = BlockProperties(Material::NETHER_WOOD)
+                                                 .hardness(1.0f)
+                                                 .noCollision()
+
+                                                 .soundType(BlockSoundTypes::NETHER_WOOD_HANGING_SIGN)
+                                                 .resistance(1.0f)
+                                                 .forceSolidOn()
+                                                 .instrument(NoteBlockInstrument::Bass);
+    // 竹悬挂告示牌属性：原版 `WoodType.BAMBOO.hangingSignSoundType()`
+    BlockProperties bambooHangingSignProps = BlockProperties(Material::WOOD)
+                                                 .hardness(1.0f)
+                                                 .noCollision()
+
+                                                 .ignitedByLava()
+                                                 .soundType(BlockSoundTypes::BAMBOO_WOOD_HANGING_SIGN)
+                                                 .resistance(1.0f)
+                                                 .forceSolidOn()
+                                                 .instrument(NoteBlockInstrument::Bass);
+    // 樱花悬挂告示牌属性：原版 `WoodType.CHERRY.hangingSignSoundType()`
+    BlockProperties cherryHangingSignProps = BlockProperties(Material::WOOD)
+                                                 .hardness(1.0f)
+                                                 .noCollision()
+
+                                                 .ignitedByLava()
+                                                 .soundType(BlockSoundTypes::CHERRY_WOOD_HANGING_SIGN)
+                                                 .resistance(1.0f)
+                                                 .forceSolidOn()
+                                                 .instrument(NoteBlockInstrument::Bass);
+
+    // 橡木悬挂告示牌
+    SignBannerBlocks::OAK_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:oak_hanging_sign"), hangingSignProps, WoodTypes::OAK);
+    SignBannerBlocks::OAK_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:oak_wall_hanging_sign"), hangingSignProps, WoodTypes::OAK);
+
+    // 云杉木悬挂告示牌
+    SignBannerBlocks::SPRUCE_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:spruce_hanging_sign"), hangingSignProps, WoodTypes::SPRUCE);
+    SignBannerBlocks::SPRUCE_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:spruce_wall_hanging_sign"), hangingSignProps, WoodTypes::SPRUCE);
+
+    // 白桦木悬挂告示牌
+    SignBannerBlocks::BIRCH_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:birch_hanging_sign"), hangingSignProps, WoodTypes::BIRCH);
+    SignBannerBlocks::BIRCH_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:birch_wall_hanging_sign"), hangingSignProps, WoodTypes::BIRCH);
+
+    // 丛林木悬挂告示牌
+    SignBannerBlocks::JUNGLE_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:jungle_hanging_sign"), hangingSignProps, WoodTypes::JUNGLE);
+    SignBannerBlocks::JUNGLE_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:jungle_wall_hanging_sign"), hangingSignProps, WoodTypes::JUNGLE);
+
+    // 金合欢木悬挂告示牌
+    SignBannerBlocks::ACACIA_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:acacia_hanging_sign"), hangingSignProps, WoodTypes::ACACIA);
+    SignBannerBlocks::ACACIA_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:acacia_wall_hanging_sign"), hangingSignProps, WoodTypes::ACACIA);
+
+    // 深色橡木悬挂告示牌
+    SignBannerBlocks::DARK_OAK_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:dark_oak_hanging_sign"), hangingSignProps, WoodTypes::DARK_OAK);
+    SignBannerBlocks::DARK_OAK_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:dark_oak_wall_hanging_sign"), hangingSignProps, WoodTypes::DARK_OAK);
+
+    // 绯红菌悬挂告示牌（下界木材）
+    SignBannerBlocks::CRIMSON_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:crimson_hanging_sign"), netherHangingSignProps, WoodTypes::CRIMSON);
+    SignBannerBlocks::CRIMSON_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:crimson_wall_hanging_sign"), netherHangingSignProps, WoodTypes::CRIMSON);
+
+    // 诡异菌悬挂告示牌（下界木材）
+    SignBannerBlocks::WARPED_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:warped_hanging_sign"), netherHangingSignProps, WoodTypes::WARPED);
+    SignBannerBlocks::WARPED_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:warped_wall_hanging_sign"), netherHangingSignProps, WoodTypes::WARPED);
+
+    // 红树木悬挂告示牌（1.19）
+    SignBannerBlocks::MANGROVE_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:mangrove_hanging_sign"), hangingSignProps, WoodTypes::MANGROVE);
+    SignBannerBlocks::MANGROVE_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:mangrove_wall_hanging_sign"), hangingSignProps, WoodTypes::MANGROVE);
+
+    // 樱花木悬挂告示牌（1.20）
+    SignBannerBlocks::CHERRY_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:cherry_hanging_sign"), cherryHangingSignProps, WoodTypes::CHERRY);
+    SignBannerBlocks::CHERRY_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:cherry_wall_hanging_sign"), cherryHangingSignProps, WoodTypes::CHERRY);
+
+    // 竹木悬挂告示牌（1.20）
+    SignBannerBlocks::BAMBOO_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:bamboo_hanging_sign"), bambooHangingSignProps, WoodTypes::BAMBOO);
+    SignBannerBlocks::BAMBOO_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:bamboo_wall_hanging_sign"), bambooHangingSignProps, WoodTypes::BAMBOO);
+
+    // 苍白橡木悬挂告示牌（1.21.2）
+    SignBannerBlocks::PALE_OAK_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
+        ResourceLocation("minecraft:pale_oak_hanging_sign"), hangingSignProps, WoodTypes::PALE_OAK);
+    SignBannerBlocks::PALE_OAK_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
+        ResourceLocation("minecraft:pale_oak_wall_hanging_sign"), hangingSignProps, WoodTypes::PALE_OAK);
+
+    // ========== 旗帜注册 ==========
+    //
+    // 对齐原版：旗帜的 `hasCollision` 为 **false**。
+    //
+    // 原版 `BlockBehaviour#getBlockSupportShape` 默认返回
+    // `getCollisionShape(..., CollisionContext.empty())`，而 `getCollisionShape` 的默认实现是
+    // `hasCollision ? getShape() : Shapes.empty()`。因此旗帜的**支撑形状是空的**，
+    // 尽管 `getShape()` 返回 8×16×8 的柱体。
+    //
+    // 缺了 `noCollision()` 时支撑形状退化成 `getShape()`，`SupportType.CENTER` 会在
+    // 六个面上都判为 true（banner 的 4..12 投影完整包住了中心 2×2 柱），
+    // 于是旗帜被当成可以承托火把/灯笼的方块。
+    // 由差分能力 face_sturdy 查出（banner 系列共 48 处）。
+    BlockProperties bannerProps = BlockProperties(Material::WOOD)
+                                      .hardness(1.0f)
+                                      .resistance(1.0f)
+                                      .noCollision()
+
+                                      .noOcclusion()
+                                      .soundType(BlockSoundTypes::WOOD)
+                                      .ignitedByLava()
+                                      .forceSolidOn()
+                                      .instrument(NoteBlockInstrument::Bass);
+
+    // 白色旗帜
+    SignBannerBlocks::WHITE_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:white_banner"), bannerProps, DyeColor::White);
+    SignBannerBlocks::WHITE_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:white_wall_banner"), bannerProps, DyeColor::White);
+
+    // 橙色旗帜
+    SignBannerBlocks::ORANGE_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:orange_banner"), bannerProps, DyeColor::Orange);
+    SignBannerBlocks::ORANGE_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:orange_wall_banner"), bannerProps, DyeColor::Orange);
+
+    // 品红色旗帜
+    SignBannerBlocks::MAGENTA_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:magenta_banner"), bannerProps, DyeColor::Magenta);
+    SignBannerBlocks::MAGENTA_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:magenta_wall_banner"), bannerProps, DyeColor::Magenta);
+
+    // 淡蓝色旗帜
+    SignBannerBlocks::LIGHT_BLUE_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:light_blue_banner"), bannerProps, DyeColor::LightBlue);
+    SignBannerBlocks::LIGHT_BLUE_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:light_blue_wall_banner"), bannerProps, DyeColor::LightBlue);
+
+    // 黄色旗帜
+    SignBannerBlocks::YELLOW_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:yellow_banner"), bannerProps, DyeColor::Yellow);
+    SignBannerBlocks::YELLOW_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:yellow_wall_banner"), bannerProps, DyeColor::Yellow);
+
+    // 黄绿色旗帜
+    SignBannerBlocks::LIME_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:lime_banner"), bannerProps, DyeColor::Lime);
+    SignBannerBlocks::LIME_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:lime_wall_banner"), bannerProps, DyeColor::Lime);
+
+    // 粉红色旗帜
+    SignBannerBlocks::PINK_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:pink_banner"), bannerProps, DyeColor::Pink);
+    SignBannerBlocks::PINK_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:pink_wall_banner"), bannerProps, DyeColor::Pink);
+
+    // 灰色旗帜
+    SignBannerBlocks::GRAY_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:gray_banner"), bannerProps, DyeColor::Gray);
+    SignBannerBlocks::GRAY_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:gray_wall_banner"), bannerProps, DyeColor::Gray);
+
+    // 淡灰色旗帜
+    SignBannerBlocks::LIGHT_GRAY_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:light_gray_banner"), bannerProps, DyeColor::LightGray);
+    SignBannerBlocks::LIGHT_GRAY_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:light_gray_wall_banner"), bannerProps, DyeColor::LightGray);
+
+    // 青色旗帜
+    SignBannerBlocks::CYAN_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:cyan_banner"), bannerProps, DyeColor::Cyan);
+    SignBannerBlocks::CYAN_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:cyan_wall_banner"), bannerProps, DyeColor::Cyan);
+
+    // 紫色旗帜
+    SignBannerBlocks::PURPLE_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:purple_banner"), bannerProps, DyeColor::Purple);
+    SignBannerBlocks::PURPLE_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:purple_wall_banner"), bannerProps, DyeColor::Purple);
+
+    // 蓝色旗帜
+    SignBannerBlocks::BLUE_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:blue_banner"), bannerProps, DyeColor::Blue);
+    SignBannerBlocks::BLUE_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:blue_wall_banner"), bannerProps, DyeColor::Blue);
+
+    // 棕色旗帜
+    SignBannerBlocks::BROWN_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:brown_banner"), bannerProps, DyeColor::Brown);
+    SignBannerBlocks::BROWN_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:brown_wall_banner"), bannerProps, DyeColor::Brown);
+
+    // 绿色旗帜
+    SignBannerBlocks::GREEN_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:green_banner"), bannerProps, DyeColor::Green);
+    SignBannerBlocks::GREEN_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:green_wall_banner"), bannerProps, DyeColor::Green);
+
+    // 红色旗帜
+    SignBannerBlocks::RED_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:red_banner"), bannerProps, DyeColor::Red);
+    SignBannerBlocks::RED_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:red_wall_banner"), bannerProps, DyeColor::Red);
+
+    // 黑色旗帜
+    SignBannerBlocks::BLACK_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(
+        ResourceLocation("minecraft:black_banner"), bannerProps, DyeColor::Black);
+    SignBannerBlocks::BLACK_WALL_BANNER = &registry.registerBlock<blocks::WallBannerBlock>(
+        ResourceLocation("minecraft:black_wall_banner"), bannerProps, DyeColor::Black);
+}
+
+} // namespace block_registry
+} // namespace mc

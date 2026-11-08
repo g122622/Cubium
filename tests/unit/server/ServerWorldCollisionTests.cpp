@@ -27,7 +27,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"

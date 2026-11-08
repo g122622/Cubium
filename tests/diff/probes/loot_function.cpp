@@ -60,7 +60,7 @@
 #include "common/item/loot/entries/ItemLootEntry.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include "loot_probe_common.hpp"
 #include "probe.hpp"

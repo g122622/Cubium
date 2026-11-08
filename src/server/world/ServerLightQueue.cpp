@@ -29,7 +29,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/lighting/engine/BlockLightEngine.hpp"

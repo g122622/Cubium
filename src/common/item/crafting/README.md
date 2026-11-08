@@ -112,7 +112,7 @@ src/common/item/crafting/
 
 | 模块 | 用途 |
 |------|------|
-| `server/core/MinecraftServer` | 注册特殊配方、配方加载 |
+| `server/player/MinecraftServer` | 注册特殊配方、配方加载 |
 | `server/player/ServerPlayer` | 配方解锁、配方书同步 |
 | `server/command/RecipeCommand` | /recipe 命令实现 |
 | `entity/player/Player` | 合成逻辑调用 |

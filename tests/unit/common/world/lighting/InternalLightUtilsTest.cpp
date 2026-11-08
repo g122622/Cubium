@@ -272,3 +272,11 @@ TEST_F(InternalLightUtilsTest, GetMoonBrightness_NewMoon_Returns0)
 
 } // namespace
 } // namespace mc
+
+TEST(SharedMoonRulesTest, NegativeTimeWrapsAtDayBoundary)
+{
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(-1), 7);
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(-24000), 7);
+    EXPECT_EQ(mc::InternalLightUtils::getMoonPhase(-24001), 6);
+    EXPECT_FLOAT_EQ(mc::InternalLightUtils::getMoonBrightness(-1), 0.75f);
+}

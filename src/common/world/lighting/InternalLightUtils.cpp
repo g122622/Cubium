@@ -25,6 +25,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -211,27 +212,13 @@ bool isNighttime(i64 dayTime) noexcept
 
 i32 getMoonPhase(i64 dayTime) noexcept
 {
-    // 月相周期为8天
-    // 每天有 DAY_LENGTH_TICKS ticks
-    i64 dayNumber = dayTime / game::DAY_LENGTH_TICKS;
-    return static_cast<i32>(dayNumber % 8);
+    return world::moonPhaseIndex(world::moonPhaseAt(dayTime));
 }
 
 f32 getMoonBrightness(i32 moonPhase) noexcept
 {
-    // 月相亮度：
-    // 0: 满月 (1.0)
-    // 1: 亏凸月 (0.75)
-    // 2: 下弦月 (0.5)
-    // 3: 亏月 (0.25)
-    // 4: 新月 (0.0)
-    // 5: 盈月 (0.25)
-    // 6: 上弦月 (0.5)
-    // 7: 盈凸月 (0.75)
-
-    static const f32 PHASE_BRIGHTNESS[8] = {1.0f, 0.75f, 0.5f, 0.25f, 0.0f, 0.25f, 0.5f, 0.75f};
-
-    return PHASE_BRIGHTNESS[moonPhase % 8];
+    const i32 index = (moonPhase % world::MOON_PHASE_COUNT + world::MOON_PHASE_COUNT) % world::MOON_PHASE_COUNT;
+    return world::moonBrightness(static_cast<world::MoonPhase>(index));
 }
 
 } // namespace InternalLightUtils

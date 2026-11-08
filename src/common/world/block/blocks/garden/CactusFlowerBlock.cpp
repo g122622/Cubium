@@ -23,11 +23,11 @@
 #include "CactusFlowerBlock.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/SupportType.hpp"
 #include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 namespace mc {
 namespace blocks {

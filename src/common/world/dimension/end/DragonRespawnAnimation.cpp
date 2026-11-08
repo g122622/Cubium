@@ -28,12 +28,12 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/end/EndSpikes.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include <cstddef>
 #include <vector>
@@ -102,7 +102,7 @@ void dragon_respawn::tickPreparingToSummonPillars(IWorld& world,
     //     }
     if (time < 100) {
         if (time == 0 || time == 50 || time == 51 || time == 52 || time >= 95) {
-            world.playEvent(world::WorldEvents::ENDERMAN_GROWL_SOUND, BlockPos(0, 128, 0), 0);
+            world.playEvent(::mc::world::LevelEventId::ANIMATION_DRAGON_SUMMON_ROAR, BlockPos(0, 128, 0), 0);
         }
     } else {
         fight.setRespawnStage(world, DragonRespawnAnimation::SUMMONING_PILLARS);
@@ -263,11 +263,11 @@ void dragon_respawn::tickSummoningDragon(IWorld& world,
             crystal->discard();
         }
     } else if (time >= 80) {
-        world.playEvent(world::WorldEvents::ENDERMAN_GROWL_SOUND, BlockPos(0, 128, 0), 0);
+        world.playEvent(::mc::world::LevelEventId::ANIMATION_DRAGON_SUMMON_ROAR, BlockPos(0, 128, 0), 0);
     } else if (time == 0) {
         setCrystalBeamTargets(crystals, BlockPos(0, 128, 0));
     } else if (time < 5) {
-        world.playEvent(world::WorldEvents::ENDERMAN_GROWL_SOUND, BlockPos(0, 128, 0), 0);
+        world.playEvent(::mc::world::LevelEventId::ANIMATION_DRAGON_SUMMON_ROAR, BlockPos(0, 128, 0), 0);
     }
 }
 

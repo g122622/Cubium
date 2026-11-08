@@ -26,8 +26,8 @@
 #include "AbstractPressurePlateBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -44,14 +44,10 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      */
-    explicit WoodPressurePlateBlock(const BlockProperties& properties);
+    explicit WoodPressurePlateBlock(const BlockProperties& properties, const BlockSetType& type);
 
 protected:
-    [[nodiscard]] i32 calculateSignalStrength(IWorld& world, const BlockPos& pos) const override;
-
     [[nodiscard]] i32 getTickDelay(bool oldPowered, bool newPowered) const override;
-
-    void playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const override;
 };
 
 } // namespace blocks

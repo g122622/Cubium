@@ -34,7 +34,7 @@ WorldBorder
 **上游依赖（本模块依赖）：**
 - `common/core/Types.hpp` - 基础类型定义
 - `common/util/AxisAlignedBB.hpp` - AABB 碰撞检测
-- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/block/base/types/BlockPos.hpp` - 方块位置
 - `common/world/chunk/ChunkPos.hpp` - 区块位置
 - `common/world/WorldConstants.hpp` - 世界常量（CHUNK_WIDTH）
 

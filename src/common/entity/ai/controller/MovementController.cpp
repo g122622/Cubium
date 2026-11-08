@@ -34,11 +34,11 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
-#include "common/world/block/blocks/FenceGateBlock.hpp"
 #include "common/world/block/blocks/building/FenceBlock.hpp"
 #include "common/world/block/blocks/building/WallBlock.hpp"
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+#include "common/world/block/blocks/fencegate/FenceGateBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <algorithm>
 #include <cmath>
 

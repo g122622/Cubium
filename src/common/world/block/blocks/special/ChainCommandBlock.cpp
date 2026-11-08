@@ -23,9 +23,9 @@
 
 #include "ChainCommandBlock.hpp"
 
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/special/CommandBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
 #include <memory>

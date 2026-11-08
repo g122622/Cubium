@@ -68,7 +68,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/special/SnifferEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 

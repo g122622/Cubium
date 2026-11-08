@@ -32,7 +32,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <unordered_map>
 #include <vector>
@@ -238,7 +238,7 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
-        return VoxelShapes::empty();
+        return CollisionShape::emptyShape();
     }
 
     /**

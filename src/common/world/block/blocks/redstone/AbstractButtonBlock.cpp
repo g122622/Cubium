@@ -22,6 +22,7 @@
  */
 
 #include "AbstractButtonBlock.hpp"
+#include "common/sound/SoundCategory.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -35,10 +36,10 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/SupportType.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/support/SupportType.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -57,10 +58,11 @@ namespace blocks {
 using AttachFace = BlockStateProperties::AttachFace;
 using entity::AbstractArrowEntity;
 
-AbstractButtonBlock::AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed, bool arrowSensitive)
-    : Block(properties)
+AbstractButtonBlock::AbstractButtonBlock(
+    const BlockProperties& properties, i32 ticksToStayPressed, const BlockSetType& type)
+    : Block(BlockProperties(properties).soundType(type.soundType))
+    , m_type(type)
     , m_ticksToStayPressed(ticksToStayPressed)
-    , m_arrowSensitive(arrowSensitive)
 {
 
     // 创建状态容器
@@ -234,7 +236,7 @@ void AbstractButtonBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // 仅木按钮可被箭矢触发；已按下的续期由计划刻负责。
-    if (!m_arrowSensitive || world.isClientSide() || isPowered(state)) {
+    if (!m_type.canButtonBeActivatedByArrows || world.isClientSide() || isPowered(state)) {
         return;
     }
     if (dynamic_cast<const AbstractArrowEntity*>(&entity) == nullptr) {
@@ -261,7 +263,7 @@ bool _containsArrow(const IWorld& world, const AxisAlignedBB& box)
 void AbstractButtonBlock::checkPressed(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     bool arrowInside = false;
-    if (m_arrowSensitive) {
+    if (m_type.canButtonBeActivatedByArrows) {
         // 以按钮形状所有局部盒的并集判定"箭矢停留在按钮内"：按钮形状单盒，取首个盒即可，
         // 静止在地面的箭矢同样算作持续按下。
         const CollisionShape& shape = getShape(state);
@@ -485,3 +487,14 @@ bool AbstractButtonBlock::canAttachToFace(Direction facing) const
 
 } // namespace blocks
 } // namespace mc
+
+namespace mc::blocks {
+void AbstractButtonBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
+{
+    world.playSound(pressed ? m_type.buttonClickOn : m_type.buttonClickOff,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        0.3f,
+        pressed ? 0.6f : 0.5f);
+}
+} // namespace mc::blocks

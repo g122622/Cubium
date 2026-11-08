@@ -28,8 +28,8 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include <memory>
 #include <unordered_map>

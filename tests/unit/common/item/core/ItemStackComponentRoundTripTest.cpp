@@ -42,7 +42,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextParser.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 
 #include <nlohmann/json.hpp>
 

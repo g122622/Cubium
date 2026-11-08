@@ -22,10 +22,10 @@
 
 #include "ServerTreeGenerators.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/cave/AzaleaBlock.hpp"
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include <memory>

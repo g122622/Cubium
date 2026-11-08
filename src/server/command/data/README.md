@@ -49,7 +49,7 @@ data/
 - `common/command/exceptions/CommandExceptions.hpp` - 命令异常类型
 - `common/resource/ResourceLocation.hpp` - 资源位置标识符
 - `common/util/nbt/Nbt.hpp` - NBT 标签系统
-- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/block/base/types/BlockPos.hpp` - 方块位置
 - `common/world/IWorld.hpp` - 世界接口（用于获取 BlockEntity 和通知方块更新）
 - `common/world/blockentity/BlockEntity.hpp` - 方块实体基类（saveToNBT/loadFromNBT）
 - `common/entity/core/Entity.hpp` - 实体基类（writeToNBT/readFromNBT）

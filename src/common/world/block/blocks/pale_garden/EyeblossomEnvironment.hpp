@@ -27,9 +27,9 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/attribute/DimensionAttributes.hpp"
 #include "common/world/attribute/EnvironmentAttributes.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/DimensionType.hpp"
-#include "common/world/timeline/Timelines.hpp"
+#include "common/world/time/timeline/Timelines.hpp"
 
 namespace mc {
 namespace blocks {

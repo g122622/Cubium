@@ -26,7 +26,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/items/block/WallOrFloorItem.hpp"
 #include "common/util/color/DyeColor.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "item/core/ItemStack.hpp"
 #include "resource/LanguageManager.hpp"

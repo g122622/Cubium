@@ -35,7 +35,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 #include <spdlog/spdlog.h>
 

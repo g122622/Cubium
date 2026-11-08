@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -43,9 +43,9 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/WorldGenRegistryFixture.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"

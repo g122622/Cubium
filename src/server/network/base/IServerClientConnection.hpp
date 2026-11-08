@@ -38,7 +38,7 @@ namespace mc::server::net {
 /**
  * @brief 服务端单客户端连接接口（仅暴露业务侧所需的最小出站/断连语义）
  *
- * ServerPlayerData / PlayerManager / ConnectionManager 等业务层只关心"发包 +
+ * ServerPlayerData / PlayerManager / PacketSender 等业务层只关心"发包 +
  * 断连 + 是否在线"三件事，不需要也不应触及握手编排、入站队列、压缩/加密装配等
  * pipeline 细节。本接口把这部分依赖收窄到最小，使：
  *   - 生产实现 ServerClientConnection 持有完整 pipeline::Connection 并实现本接口；

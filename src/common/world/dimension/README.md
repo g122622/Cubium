@@ -57,7 +57,7 @@ DimensionRenderSettings ──→ CloudRenderer / 天空渲染器 / 雾渲染器
 
 | 外部模块 | 用途 |
 |----------|------|
-| `server/core/MinecraftServer` | 维度管理器初始化和维度访问 |
+| `server/player/MinecraftServer` | 维度管理器初始化和维度访问 |
 | `server/world/ServerWorld` | 服务端世界维度操作 |
 | `client/renderer/` | 客户端渲染器使用 `DimensionRenderSettings` |
 | `entity/` | 实体传送、维度切换 |

@@ -39,7 +39,7 @@
 #include "common/item/Items.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {

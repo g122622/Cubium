@@ -27,9 +27,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/PlantType.hpp"
+#include "common/world/block/base/types/PlantType.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 
 namespace mc {
 namespace blocks {
@@ -106,7 +106,7 @@ const CollisionShape& BushBlock::getCollisionShape(const BlockState& state) cons
     // 一律带 `noCollision()`，于是碰撞形状恒为空、与 `getShape`（选中框/渲染）无关。
     // 需要碰撞的植物（睡莲、滴水石芽、瓶子草作物）在各自子类里覆写本方法。
     MC_UNUSED(state);
-    return VoxelShapes::empty();
+    return CollisionShape::emptyShape();
 }
 
 const CollisionShape& BushBlock::getOcclusionShape(const BlockState& state) const

@@ -45,8 +45,8 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include <gtest/gtest.h>
 
@@ -116,9 +116,9 @@ public:
         m_soundPlayCount++;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
-        m_lastPlayEventId = eventId;
+        m_lastPlayEventId = static_cast<i32>(eventId);
         m_lastPlayEventPos = pos;
         m_lastPlayEventData = data;
         m_playEventCount++;
@@ -667,7 +667,8 @@ TEST_F(OminousItemSpawnerTest, TickServer_PlayEventTriggered)
 
     // 应播放世界事件 TRIAL_SPAWNER_SPAWN_ITEM (3021)
     EXPECT_GT(m_world.playEventCount(), 0);
-    EXPECT_EQ(m_world.lastPlayEventId(), world::WorldEvents::TRIAL_SPAWNER_SPAWN_ITEM);
+    EXPECT_EQ(
+        m_world.lastPlayEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN_ITEM));
     EXPECT_EQ(m_world.lastPlayEventData(), 1);
 }
 
@@ -799,7 +800,8 @@ TEST_F(OminousItemSpawnerProjectileTest, ThrowableItem_Snowball_SpawnsProjectile
 
     // 应播放世界事件
     EXPECT_GT(m_world.playEventCount(), 0);
-    EXPECT_EQ(m_world.lastPlayEventId(), world::WorldEvents::TRIAL_SPAWNER_SPAWN_ITEM);
+    EXPECT_EQ(
+        m_world.lastPlayEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN_ITEM));
 
     // 应触发 ENTITY_PLACE 游戏事件
     EXPECT_GT(m_world.gameEventCount(), 0);
@@ -904,7 +906,8 @@ TEST_F(OminousItemSpawnerProjectileTest, WindChargeItem_SpawnsProjectile)
 
     // 应播放世界事件
     EXPECT_GT(m_world.playEventCount(), 0);
-    EXPECT_EQ(m_world.lastPlayEventId(), world::WorldEvents::TRIAL_SPAWNER_SPAWN_ITEM);
+    EXPECT_EQ(
+        m_world.lastPlayEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN_ITEM));
 }
 
 TEST_F(OminousItemSpawnerProjectileTest, SplashPotionItem_SpawnsProjectile)

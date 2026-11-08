@@ -1,419 +1,49 @@
-# Server Module
+# server 模块
 
-Cubium 服务端模块，承接 Minecraft Java 1.21.11 的世界模拟、网络连接和游戏逻辑。
+## 目录结构树
 
-## 目录结构
-
-```
+```text
 server/
-├── application/          # 服务器应用层
-│   ├── IServer.hpp       # 服务器接口定义
-│   ├── MinecraftServer.hpp/cpp  # 抽象基类，共享实现
-│   ├── IntegratedServer.hpp/cpp # 内置服务器（单机模式）
-│   ├── StandaloneServer.hpp/cpp  # 独立服务器（多人模式）
-│   └── console/          # 交互式终端（--interactive），详见 console/README.md
-├── core/                 # 核心管理器
-│   ├── ServerPlayerData.hpp   # 玩家数据
-│   ├── PlayerManager.hpp/cpp  # 玩家生命周期管理
-│   ├── ConnectionManager.hpp/cpp  # IR 发送门面（ir::IrPacket）
-│   ├── TimeManager.hpp/cpp    # 游戏时间管理
-│   ├── TeleportManager.hpp/cpp # 传送管理
-│   ├── KeepAliveManager.hpp/cpp # 心跳管理
-│   ├── PositionTracker.hpp/cpp # 位置追踪
-│   └── GameModeManager.hpp/cpp # 游戏模式管理
-├── interaction/          # 交互管理器
-│   ├── BlockInteractionManager.hpp/cpp # 方块交互
-│   ├── MiningManager.hpp/cpp  # 挖掘进度
-│   ├── ContainerManager.hpp/cpp # 容器管理
-│   └── InventoryManager.hpp/cpp # 物品栏管理
-├── dimension/            # 维度管理
-│   ├── ServerDimension.hpp/cpp         # 服务端维度实例（持有同步管理器和刷怪管理器）
-│   └── ServerDimensionManager.hpp/cpp  # 服务端维度管理器
-├── world/                # 世界管理
-│   ├── ServerWorld.hpp/cpp     # 服务端世界
-│   ├── ServerChunkManager.hpp/cpp # 区块管理
-│   ├── ChunkGenerateTask.hpp/cpp # 区块生成任务
-│   ├── drop/             # 掉落物处理
-│   │   └── BlockDropHandler.hpp/cpp
-│   ├── entity/           # 实体管理
-│   │   ├── EntityTracker.hpp/cpp
-│   │   └── ItemPickupManager.hpp/cpp
-│   ├── spawn/            # 自然生成
-│   │   ├── NaturalSpawner.hpp/cpp
-│   └── weather/          # 天气系统
-│       └── WeatherManager.hpp/cpp
-├── network/              # 网络层（按连接生命周期分层，详见 network/README.md）
-│   ├── base/             # 连接抽象与连接实例（IServerClientConnection / ServerClientConnection）
-│   ├── session/          # 门面 ServerNetwork + ClientSession(+Manager)
-│   ├── handshake/        # 四阶段状态机 + Configuration 载荷 + Play 入场序列
-│   ├── play/             # Play 阶段入站处理（聚合门面 + 7 个按包族拆分的处理器）
-│   ├── outbound/         # 出站构造与广播（PacketBuilders / PlayerBroadcaster / MapPacketBuilder）
-│   └── sync/             # 世界数据下推（ChunkSend / BlockUpdateSync / WeatherSync + chunk/ 记账）
-├── command/              # 命令系统
-│   ├── CommandRegistry.hpp/cpp # 命令注册表
-│   ├── ServerCommandSource.hpp/cpp # 命令源
-│   └── commands/         # 命令实现
-│       ├── GameModeCommand.hpp/cpp
-│       ├── TeleportCommand.hpp/cpp
-│       ├── TimeCommand.hpp/cpp
-│       ├── WeatherCommand.hpp/cpp
-│       ├── GiveCommand.hpp/cpp
-│       ├── KillCommand.hpp/cpp
-│       ├── ClearCommand.hpp/cpp
-│       ├── SeedCommand.hpp/cpp
-│       ├── ListCommand.hpp/cpp
-│       └── HelpCommand.hpp/cpp
-├── function/             # 数据包函数系统
-│   ├── CommandFunction.hpp/cpp  # 命令函数（.mcfunction 解析结果）
-│   ├── FunctionLoader.hpp/cpp   # 函数加载器（从数据包加载）
-│   ├── FunctionManager.hpp/cpp  # 函数管理器（注册、查找、执行）
-│   └── TimerQueue.hpp/cpp       # 函数调度定时器队列（/schedule 命令）
-├── menu/                 # 容器菜单
-│   ├── CraftingMenu.hpp/cpp   # 工作台菜单
-│   └── InventoryCraftingMenu  # 玩家背包合成
-├── player/               # 服务端玩家
-│   └── ServerPlayer.hpp/cpp
-├── settings/             # 服务器设置
-│   └── ServerSettings.hpp/cpp
-├── test/                 # GameTest 集成测试框架服务端专属层（facade/minecraft/runner/simulated/script/native-builtin）
-├── config/               # 配置文件（空）
-└── main.cpp              # 入口点
+├── access/  # 准入名单与权限门面
+├── advancement/  # 该领域的子模块
+├── application/  # 服务端生命周期与领域装配
+├── bossbar/  # 该领域的子模块
+├── command/  # 服务端命令与命令源
+├── core/  # 方块身份、状态容器与行为扩展入口
+├── dimension/  # 多维度运行时管理
+├── event/  # 服务端领域事件
+├── function/  # 该领域的子模块
+├── interaction/  # 玩家物品、挖掘与容器交互
+├── item/  # 该领域的子模块
+├── menu/  # 该领域的子模块
+├── mod/  # 该领域的子模块
+├── network/  # 连接会话与网络同步
+├── physics/  # 该领域的子模块
+├── player/  # 玩家实体、记录、移动和模式
+├── registry/  # 注册表启动与数据加载
+├── scoreboard/  # 该领域的子模块
+├── settings/  # 服务端设置
+├── stats/  # 该领域的子模块
+├── test/  # 该领域的子模块
+├── world/  # 权威世界模拟、区块、生成与存储
+├── CMakeLists.txt  # 模块说明与构建配置
+├── Makefile  # 模块说明与构建配置
+├── cmake_install.cmake  # 模块说明与构建配置
+└── main.cpp  # 模块接口与实现
 ```
 
-## 子目录职责
+## 内部模块关系
 
-### application/ - 服务器应用层
+各文件承接目录树中标明的单一职责，通过同领域接口组合。独占的辅助实现位于使用者目录下。
 
-实现服务器的启动、生命周期管理和网络通信。
+## 上下游外部依赖关系
 
-| 类 | 职责 |
-|---|---|
-| `IServer` | 服务器接口，定义所有管理器的访问方法（含 `dimensionManager()`、`getPlayerWorld(PlayerId)`、`dataPackList()`、`lootTableManager()`、`functionManager()`、`functionTimerQueue()`）。`m_world` 及单世界访问器（`world()`、`chunkManager()` 等）已移除，世界访问通过维度管理器进行 |
-| `MinecraftServer` | 抽象基类，实现共享的服务器逻辑（tick 循环、数据包路由、数据包管理）。不再持有 `m_world`、同步管理器和刷怪管理器，这些已下沉到 `ServerDimension` |
-| `IntegratedServer` | 内置服务器，使用 LocalTransport 与客户端同进程零拷贝直传 IR 包（单机模式） |
-| `StandaloneServer` | 独立服务器，使用 TCP 网络层（多人模式） |
-| `console::ServerConsole` | 交互式终端门面（`--interactive`）：日志区 + 状态面板 + 命令输入框。见 `application/console/README.md` |
-
-### core/ - 核心管理器
-
-服务器核心功能的模块化管理器。
-
-| 类 | 职责 |
-|---|---|
-| `ServerPlayerData` | 服务端玩家状态（位置、心跳、传送等） |
-| `PlayerManager` | 玩家生命周期（注册、移除、遍历），线程安全 |
-| `ConnectionManager` | IR 发送门面，封装 `ir::IrPacket` 发送/广播 |
-| `TimeManager` | 游戏时间、日光周期管理 |
-| `TeleportManager` | 传送请求、确认、ID 生成 |
-| `KeepAliveManager` | 心跳计时、超时检测、ping 计算 |
-| `PositionTracker` | 位置更新、区块订阅、移动验证 |
-| `GameModeManager` | 游戏模式切换、能力同步 |
-
-### interaction/ - 交互管理器
-
-处理玩家与世界交互的逻辑。
-
-| 类 | 职责 |
-|---|---|
-| `BlockInteractionManager` | 方块破坏、放置、使用（距离验证、掉落生成） |
-| `MiningManager` | 挖掘进度追踪、破坏动画广播 |
-| `ContainerManager` | 容器菜单（打开/关闭/点击） |
-| `InventoryManager` | 物品栏同步、槽位管理 |
-
-### world/ - 世界管理
-
-服务端世界逻辑和区块管理。
-
-`ServerChunkManager` 除了提供传统的同步/异步区块访问外，还提供共享快照接口，供光照、发包等跨线程流程在持有数据时保持区块存活。
-
-`ServerWorld` 通过回调机制获取难度，允许运行时动态修改难度（如通过 `/difficulty` 命令）。难度回调由 `MinecraftServer` 在初始化时设置。
-
-**重要架构变更**：
-- `MinecraftServer::m_world` 已移除。世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
-- 共享存储访问必须通过 `IServer::sharedStorage()` 进行，不再通过主世界 `ServerWorld` 绕行。
-- `NaturalSpawner` 和 `DespawnManager` 现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
-- 同步管理器（ChunkSendManager、BlockUpdateSyncManager）现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。（光照同步已由 `ServerWorld` 承担，无独立 `LightSyncManager`；实体同步由 `EntityTracker` + `ServerWorld` 广播回调承担，无独立 `EntitySyncManager`。）
-- 多维度 tick 由 `ServerDimensionManager::tick()` 统一驱动。
-
-### dimension/ - 维度管理
-
-服务端维度实例和管理器，负责多维度生命周期、玩家维度追踪和维度切换。
-
-| 类 | 职责 |
-|---|---|
-| `ServerDimension` | 维度实例，持有 ServerWorld、同步管理器（ChunkSendManager、BlockUpdateSyncManager）、刷怪管理器（NaturalSpawner、DespawnManager、VillageSiege） |
-| `ServerDimensionManager` | 管理所有 ServerDimension 实例，处理玩家维度切换和维度 tick 调度 |
-
-同步管理器和刷怪管理器在 `ServerDimension::initialize()` 中创建，在 `ServerDimension::tick()` 中按顺序 tick（详见 `src/server/dimension/README.md`）。
-
-| 类 | 职责 |
-|---|---|
-| `ServerWorld` | 服务端世界容器（区块、实体、光照、物理、天气、难度回调） |
-| `ServerChunkManager` | 区块生命周期（加载、生成、卸载、取消），统一调度 |
-| `ChunkGenerateTask` | 区块生成任务，提交到 UniversalWorkerPool 执行 |
-| `EntityTracker` | 实体可见性管理，基于距离追踪 |
-| `ItemPickupManager` | 物品拾取检测和处理 |
-| `WeatherManager` | 天气周期、闪电生成、天气命令 |
-| `NaturalSpawner` | 自然实体生成（怪物、动物） |
-| `BlockDropHandler` | 方块掉落物生成（LootTable 系统） |
-
-`ServerChunkManager` 现在不只服务玩家视距：玩家、强制区块、传送、末影龙、区块灯光等票据都会进入同一条调度链路，避免快速移动或短暂触发造成的过期生成浪费。
-
-### network/ - 网络层
-
-服务端与客户端之间的全部协议交互：握手 → Configuration → Play 的入站处理，以及世界数据的出站下推。
-
-目录按**连接生命周期阶段**分层（`base` → `session` → `handshake` → `play`），另加两条正交轴
-`outbound/`（服务端主动发起的出站构造与广播）与 `sync/`（世界数据下推）。
-
-| 层 | 职责 | 详见 |
-|---|---|---|
-| `base/` | 连接抽象 `IServerClientConnection` 与 Local/Wire 双模单连接实现 | `network/base/README.md` |
-| `session/` | 门面 `ServerNetwork`（accept + 连接集合 + tick 泵）+ `ClientSession`(`Manager`) | `network/session/README.md` |
-| `handshake/` | 四阶段握手状态机 + Configuration 载荷构造 + Play 入场序列 `LoginFlow` | `network/handshake/README.md` |
-| `play/` | Play 阶段入站分发与处理体 | `network/play/README.md` |
-| `outbound/` | 单包 IR 构造、距离过滤广播、地图周期推送、命令树编码 | `network/outbound/README.md` |
-| `sync/` | 区块/方块更新/天气的下推，由各 `ServerDimension` 独立持有 | `network/sync/README.md` |
-
-`ServerNetwork` 同时承载 Local（集成服同进程零拷贝）与 Wire（独立服/局域网发布 TCP accept）两种模式。
-
-### command/ - 命令系统
-
-服务端命令处理。
-
-| 类 | 职责 |
-|---|---|
-| `CommandRegistry` | 命令注册表、分发执行、建议查询 |
-| `ServerCommandSource` | 命令执行上下文（玩家、世界、权限、静默输出） |
-
-**已实现命令**：
-- `/gamemode` - 设置游戏模式
-- `/tp` / `/teleport` - 传送（`/teleport` 通过重定向复用 `/tp` 子树）
-- `/give` - 给予物品
-- `/time` - 时间控制
-- `/weather` - 天气控制
-- `/kill` - 杀死实体
-- `/clear` - 清空背包
-- `/seed` - 显示种子
-- `/list` - 列出玩家
-- `/help` - 帮助信息
-- `/execute` - 执行嵌套命令（支持 as、at、positioned、if/unless block 子命令）
-- `/datapack` - 数据包管理（enable/disable/list），通过 `DataPackList` 操作
-- `/reload` - 重新加载数据包内容（战利品表、配方、函数等）
-- `/function` - 执行数据包函数
-- `/schedule` - 调度函数延迟执行（function/clear 模式）
-- `/attribute` - 查询和修改活体实体属性（支持所有 LivingEntity，使用 EntityResolver 选择器）
-- `/panel` - 刷新交互式终端右侧面板，并查看区块状态/方块分布/群系/方块实体（**非原版命令**，
-  只服务于 `--interactive`；见 `application/console/README.md`）
-
-命令建议现在直接从命令树生成，参数节点可以挂接自定义建议提供器，因此别名、重定向和未来的动态候选项都能统一走同一条补全路径。
-
-**架构变更**：`/attribute` 命令已从 PlayerResolver 迁移到 EntityResolver，现在支持 @e 选择器选取非玩家活体实体（僵尸、猪、马等）。非 LivingEntity 实体使用 `/attribute` 时会返回错误提示。
-
-### function/ - 数据包函数系统
-
-管理数据包函数（.mcfunction）的加载、注册、执行和调度。对应 MC Java 的 ServerFunctionManager。
-
-| 类 | 职责 |
-|---|---|
-| `CommandFunction` | 命令函数数据类，持有 ResourceLocation ID 和命令列表 |
-| `FunctionLoader` | 从数据包加载 .mcfunction 文件，解析为 CommandFunction 并注册到 FunctionManager |
-| `FunctionManager` | 函数注册、查找和执行；管理 tick/load 标签函数的自动执行 |
-| `TimerQueue` | 优先队列定时器，调度 /schedule 命令的延迟函数执行 |
-
-**数据流**：
-1. `FunctionLoader` 从 DataPackRepository 读取 .mcfunction 文件
-2. 解析命令行（去注释、去 / 前缀、行连接、跳过宏行）
-3. 通过 `FunctionManager::registerFunction()` 注册
-4. `MinecraftServer::tick()` 每帧调用 `FunctionManager::tick()` 执行 minecraft:tick 标签函数
-5. `/function` 命令直接调用 `FunctionManager::execute()`
-6. `/schedule` 命令通过 `TimerQueue` 调度延迟执行
-
-**已知限制**（与 MC Java 的差异）：
-- 宏函数（$variable 语法）当前跳过并记录警告，需要 CompoundTag 实例化支持
-- 调度事件不持久化（重启后丢失）
-- 多数据包标签合并仅读取最高优先级数据包的内容，完整的多数据包合并需要在 DataPackRepository 层面提供读取所有数据包中同一资源的方法
-
-### menu/ - 容器菜单
-
-实现各种容器 GUI 逻辑。
-
-| 类 | 职责 |
-|---|---|
-| `CraftingMenu` | 工作台 3x3 合成菜单 |
-| `InventoryCraftingMenu` | 玩家背包 2x2 合成、护甲、副手 |
-
-### player/ - 服务端玩家
-
-| 类 | 职责 |
-|---|---|
-| `ServerPlayer` | 服务端玩家实体，扩展 Player 类 |
-
-### settings/ - 服务器设置
-
-| 类 | 职责 |
-|---|---|
-| `ServerSettings` | 服务器配置（端口、玩家数、视距、日志等） |
-
-### test/ - GameTest 集成测试框架（server 整体）
-
-GameTest 框架整体作为 server 的一部分，物理位于 `src/server/test/`，编入 `minecraft-server` exe + `mc_tests`，依赖服务端类型 + `mc_bedrock_addon`（script 层）。命名空间统一 `mc::test`。历史上 `base/`/`framework/`/`native/` 曾独立为 `mc_test` 库放在 `src/common/test/`，但实际只有服务端使用 gametest，故将其物理迁入 `server/test/` 下，取消 `mc_test` 独立库。详见 `test/README.md`。
-
-## 模块间关系
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        IServer 接口                          │
-├─────────────────────────────────────────────────────────────┤
-│                     MinecraftServer                          │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                    core/ 管理器                       │    │
-│  │  PlayerManager │ ConnectionManager │ TimeManager    │    │
-│  │  TeleportManager │ KeepAliveManager │ PositionTracker│    │
-│  │  GameModeManager                                    │    │
-│  └─────────────────────────────────────────────────────┘    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                  interaction/ 管理器                  │    │
-│  │  BlockInteractionManager │ MiningManager            │    │
-│  │  ContainerManager │ InventoryManager                │    │
-│  └─────────────────────────────────────────────────────┘    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              ServerDimensionManager                   │    │
-│  │  ┌───────────────────────────────────────────────┐   │    │
-│  │  │         ServerDimension (每个维度)             │   │    │
-│  │  │  ┌─────────────────────────────────────────┐  │   │    │
-│  │  │  │ sync/ 管理器（维度级，每个维度独立一套） │  │   │    │
-│  │  │  │ BlockUpdateSyncManager │ ChunkSendManager│  │   │    │
-│  │  │  └─────────────────────────────────────────┘  │   │    │
-│  │  │  ┌─────────────────────────────────────────┐  │   │    │
-│  │  │  │ spawn/ 管理器（维度级）                   │  │   │    │
-│  │  │  │ NaturalSpawner │ DespawnManager          │  │   │    │
-│  │  │  └─────────────────────────────────────────┘  │   │    │
-│  │  │  ┌─────────────────────────────────────────┐  │   │    │
-│  │  │  │ world/                                      │  │   │    │
-│  │  │  │ ServerWorld │ ServerChunkManager           │  │   │    │
-│  │  │  │ EntityTracker │ ItemPickupManager          │  │   │    │
-│  │  │  │ WeatherManager                              │  │   │    │
-│  │  │  └─────────────────────────────────────────┘  │   │    │
-│  │  └───────────────────────────────────────────────┘   │    │
-│  └─────────────────────────────────────────────────────┘    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                  command/ 命令系统                    │    │
-│  │  CommandRegistry │ ServerCommandSource               │    │
-│  └─────────────────────────────────────────────────────┘    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                  function/ 函数系统                   │    │
-│  │  FunctionLoader │ FunctionManager │ TimerQueue      │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-         │                                    │
-         ▼                                    ▼
-┌─────────────────────┐           ┌─────────────────────┐
-│   IntegratedServer   │           │   StandaloneServer   │
-│  (LocalTransport +   │           │  (ServerNetwork::    │
-│   ServerNetwork::    │           │   startAccept/Wire)  │
-│   startAccept 可选)  │           │   多人模式            │
-│   单机模式            │           │                      │
-└─────────────────────┘           └─────────────────────┘
-```
-
-**数据流向**：
-
-1. **入站数据包**：
-   ```
-   网络 → transport 收字节 → pipeline::Connection 解帧
-   → ServerPlayHandler (ir::PlayPacket holds_alternative 分发)
-   → 各 Manager 处理 → 世界状态更新
-   ```
-
-2. **出站数据包**：
-   ```
-   世界事件 → Manager 回调 → ConnectionManager.broadcast() → 网络
-   ```
-
-3. **区块同步**：
-   ```
-   玩家移动 → PositionTracker → ChunkLoadTicketManager
-   → ChunkSendManager → ChunkData 序列化 → 发送给客户端
-   ```
-
-4. **世界 tick 调度**：
-   ```
-   MinecraftServer::tick()
-   → ServerDimensionManager::tick()
-   → 遍历每个 ServerDimension::tick()
-       → ServerWorld::tick()
-       → chunkSendManager()->processPendingSends()
-       → blockUpdateSyncManager()->flushPendingUpdates()
-       → naturalSpawner()->tick()
-       → despawnManager()->tick()
-       → villageSiege()->tick()（仅主世界/下界 hostile 维度）
-   ```
-
-5. **方块更新同步**：
-    ```
-    ServerWorld::setBlockState() → setOnBlockChanged() → BlockUpdateSyncManager
-    → ServerDimension::tick() 末 flushPendingUpdates() → BlockUpdatePacket → 追踪该区块的客户端
-    ```
-
-6. **区块生成**：
-   ```
-   ServerChunkManager.requestChunkAsync() → UniversalWorkerPool
-   → ChunkGenerateTask 执行 → 回调主线程 → 存入缓存
-   ```
-
-7. **函数系统 tick**：
-   ```
-   MinecraftServer::tick()
-   → FunctionManager::tick()
-       → 首次重载后执行 minecraft:load 标签函数
-       → 每 tick 执行 minecraft:tick 标签函数
-   → TimerQueue::tick()
-       → 收集到期事件 → FunctionManager::execute() 逐行执行
-   ```
-
-## 模块整体职责
-
-### 职责
-
-服务端模块负责：
-- **玩家管理**：连接、认证、状态维护、断开
-- **世界管理**：区块加载/生成/卸载、实体管理、光照计算
-- **游戏逻辑**：方块交互、挖掘、物品栏、合成
-- **数据同步**：区块、方块更新、实体、光照、天气同步到客户端
-- **命令系统**：服务端命令注册和执行
-- **函数系统**：数据包函数加载、注册、执行和定时调度
-- **网络通信**：TCP 连接管理、数据包处理
-
-### 输入
-
-| 来源 | 类型 |
-|------|------|
-| 客户端 | 数据包（移动、交互、聊天等） |
-| 配置文件 | 服务器设置（server.properties） |
-| 世界存档 | 区块数据、实体数据 |
-| 命令行 | 启动参数 |
-
-### 输出
-
-| 目标 | 类型 |
-|------|------|
-| 客户端 | 数据包（区块、实体、状态更新等） |
-| 世界存档 | 区块数据、实体数据 |
-| 日志 | 运行日志、调试信息 |
-
-### 依赖项
-
-| 模块 | 用途 |
-|------|------|
-| `common/` | 核心类型、世界生成、网络协议、实体系统 |
-| `vcpkg` | asio（网络）、spdlog（日志）、glm（数学） |
-
-### 命令注册
-
-命令在 `CommandRegistry::registerDefaults()` 中自动注册。自定义命令需通过 `CommandRegistry` 注册。
+公共层提供领域类型与接口；服务端通过应用装配连接玩家、网络和世界实现。源文件的构建归属与领域目录一致。
 
 ## 容易踩的坑
+
+- 目录按领域职责组织；跨领域协作通过明确入口和基础类型。
+- 新增或迁移源文件时同步更新所有消费目标的 CMake 清单。
 
 ### 1. 线程安全
 
@@ -472,30 +102,4 @@ server.commandRegistry().dispatcher().registerCommand(
             return 1;
         })
 );
-```
-
-## Mermaid 图
-
-```mermaid
-flowchart LR
-    client["客户端"] --> server["MinecraftServer"]
-    server --> dim["ServerDimension"]
-    dim --> sync["sync/ 管理器<br/>(维度级)"]
-    sync --> block["BlockUpdateSyncManager"]
-    sync --> chunk["ChunkSendManager"]
-    dim --> world["ServerWorld"]
-    world --> callback["setOnBlockChanged"]
-    callback --> block
-    block --> packet["BlockUpdatePacket"]
-    packet --> client
-
-    style client fill:#f1f5f9,stroke:#475569,color:#111
-    style server fill:#ffd166,stroke:#b7791f,color:#111
-    style dim fill:#8ecae6,stroke:#1d4ed8,color:#111
-    style sync fill:#90be6d,stroke:#2f6f3e,color:#111
-    style block fill:#bde0fe,stroke:#2563eb,color:#111
-    style chunk fill:#f4a261,stroke:#b45309,color:#111
-    style world fill:#ffe8a3,stroke:#c99700,color:#111
-    style callback fill:#bde0fe,stroke:#2563eb,color:#111
-    style packet fill:#e9c46a,stroke:#a16207,color:#111
 ```

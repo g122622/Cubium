@@ -9,9 +9,9 @@
 #include "common/util/text/TextStyle.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/network/sync/chunk/PlayerChunkTracker.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <cmath>

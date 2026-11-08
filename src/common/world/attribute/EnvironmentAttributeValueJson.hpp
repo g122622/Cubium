@@ -25,7 +25,7 @@
 
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/util/TriState.hpp"
-#include "common/world/level/MoonPhase.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 

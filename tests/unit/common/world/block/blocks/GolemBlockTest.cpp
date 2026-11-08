@@ -34,7 +34,12 @@
  */
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/container/CopperChestBlock.hpp"
+#include "common/world/block/capability/oxidation/IOxidizableBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
@@ -47,12 +52,7 @@
 #include "util/math/random/Random.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
-#include "world/block/blocks/copper/CopperChestBlock.hpp"
-#include "world/block/blocks/copper/IOxidizableBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/Fluids.hpp"
@@ -177,9 +177,9 @@ public:
         m_soundPlayed = true;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
-        m_lastEventId = eventId;
+        m_lastEventId = static_cast<i32>(eventId);
         m_lastEventPos = pos;
         m_lastEventData = data;
         m_eventCount++;
@@ -478,7 +478,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_PlaysBreakEvent)
 
     // 验证播放了破坏事件（应该有3次：南瓜 + 2个雪块）
     EXPECT_GE(world_->getEventCount(), 3);
-    EXPECT_EQ(world_->getLastEventId(), mc::world::WorldEvents::BREAK_BLOCK_EFFECTS);
+    EXPECT_EQ(world_->getLastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK));
 }
 
 TEST_F(SnowGolemSpawnTest, SnowGolem_IncompletePattern_NoSpawn)
@@ -674,7 +674,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_PlaysBreakEvents)
 
     // 验证播放了破坏事件（应该有5次：南瓜 + 4个铁块）
     EXPECT_GE(world_->getEventCount(), 5);
-    EXPECT_EQ(world_->getLastEventId(), mc::world::WorldEvents::BREAK_BLOCK_EFFECTS);
+    EXPECT_EQ(world_->getLastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK));
 }
 
 TEST_F(IronGolemSpawnTest, IronGolem_MissingArmBlock_NoSpawn)
@@ -1421,7 +1421,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_PlaysBreakEvents)
 
     // 验证播放了破坏事件（南瓜 + 铜块 = 2 次）
     EXPECT_GE(world_->getEventCount(), 2);
-    EXPECT_EQ(world_->getLastEventId(), mc::world::WorldEvents::BREAK_BLOCK_EFFECTS);
+    EXPECT_EQ(world_->getLastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK));
 }
 
 TEST_F(CopperGolemSpawnTest, CopperGolem_NoCopperBlock_NoSpawn)

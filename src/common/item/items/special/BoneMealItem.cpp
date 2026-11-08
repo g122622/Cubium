@@ -33,17 +33,17 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/IGrowable.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
@@ -88,7 +88,7 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
             // 发送植物生长效果事件（粒子 + 音效）
             // 客户端收到后将根据 IGrowable::getBoneMealType() 区分粒子分布方式
             if (!world.isClientSide()) {
-                world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
+                world.playEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH, pos, 15);
             }
 
             return ActionResultType::Success;
@@ -111,7 +111,7 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
 
             // 发送植物生长效果事件（粒子 + 音效）
             if (!world.isClientSide()) {
-                world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
+                world.playEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH, pos, 15);
             }
 
             return ActionResultType::Success;
@@ -163,7 +163,7 @@ bool BoneMealItem::applyBonemeal(ItemStack& stack, IWorld& world, const BlockPos
 
         // 发送植物生长效果事件（粒子 + 音效）
         if (!world.isClientSide()) {
-            world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
+            world.playEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH, pos, 15);
         }
 
         return true;

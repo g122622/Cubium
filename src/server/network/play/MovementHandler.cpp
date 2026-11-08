@@ -37,14 +37,14 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/village/Village.hpp"
 #include "server/application/MinecraftServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
 #include <string>
@@ -243,7 +243,7 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
         });
     }
 
-    m_server.positionTracker().updatePosition(
+    m_server.playerMovementManager().updatePosition(
         playerId, player->x, player->y, player->z, player->yaw, player->pitch, player->onGround);
     updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 

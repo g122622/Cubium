@@ -34,12 +34,12 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/FlowingFluid.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -235,7 +235,7 @@ void LavaFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const B
 void LavaFluid::_triggerEffects(IWorld& world, const BlockPos& pos)
 {
     // 触发烟雾和嘶嘶声音效果
-    world.playEvent(world::WorldEvents::LAVA_EXTINGUISH, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::LAVA_FIZZ, pos, 0);
 }
 
 void LavaFluid::flowInto(

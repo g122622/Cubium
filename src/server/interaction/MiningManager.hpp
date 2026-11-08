@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/protocol/GameActions.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <optional>
 #include <unordered_map>
@@ -41,10 +41,10 @@ class ServerWorld;
 struct ServerPlayerData;
 } // namespace mc::server
 
-namespace mc::server::core {
+namespace mc::server {
 class PlayerManager;
-class ConnectionManager;
-} // namespace mc::server::core
+class PacketSender;
+} // namespace mc::server
 
 namespace mc::server::interaction {
 class InventoryManager;
@@ -75,7 +75,7 @@ public:
     /**
      * @brief 构造函数
      */
-    MiningManager(core::PlayerManager& playerManager, core::ConnectionManager& connectionManager);
+    MiningManager(PlayerManager& playerManager, PacketSender& packetSender);
 
     /**
      * @brief 设置物品栏管理器（用于获取手持物品）
@@ -269,8 +269,8 @@ private:
         u64 delayedTickStart = 0;
     };
 
-    core::PlayerManager& m_playerManager;
-    core::ConnectionManager& m_connectionManager;
+    PlayerManager& m_playerManager;
+    PacketSender& m_packetSender;
     InventoryManager* m_inventoryManager = nullptr;
     std::unordered_map<PlayerId, MiningState> m_miningStates;
 

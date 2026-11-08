@@ -42,11 +42,11 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -789,14 +789,14 @@ void EnderDragonEntity::_onDeathUpdate()
 
     // 死亡音效：在 1 tick 时触发（需要非静默）
     // MC: if (dragonDeathTime == 1 && !isSilent()) {
-    //         serverlevel.globalLevelEvent(1028, this.blockPosition(), 0);
+    //         serverlevel.globalLevelEvent(::mc::world::LevelEventId::SOUND_DRAGON_DEATH, this.blockPosition(), 0);
     //     }
     if (worldPtr != nullptr && m_deathTicks == 1 && !isSilent()) {
-        // 对齐原版: serverlevel.globalLevelEvent(1028, this.blockPosition(), 0)
-        // 受 GameRules.GLOBAL_SOUND_EVENTS 门控，全服跨维度广播末影龙死亡音效。
+        // 对齐原版: serverlevel.globalLevelEvent(::mc::world::LevelEventId::SOUND_DRAGON_DEATH, this.blockPosition(),
+        // 0) 受 GameRules.GLOBAL_SOUND_EVENTS 门控，全服跨维度广播末影龙死亡音效。
         const BlockPos blockPos(
             static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
-        worldPtr->globalLevelEvent(world::WorldEvents::DRAGON_DEATH_SOUND, blockPos, 0);
+        worldPtr->globalLevelEvent(::mc::world::LevelEventId::SOUND_DRAGON_DEATH, blockPos, 0);
     }
 
     // 死亡动画期间缓慢上升

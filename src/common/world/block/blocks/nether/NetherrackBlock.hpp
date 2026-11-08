@@ -25,8 +25,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 

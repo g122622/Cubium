@@ -36,7 +36,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/world/block/blocks/dirt/MudBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::blocks;

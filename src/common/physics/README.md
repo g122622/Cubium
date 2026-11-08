@@ -46,7 +46,7 @@ VoxelShape ────────┘         │
 - `common/util/AxisAlignedBB.hpp` - AABB 碰撞箱
 - `common/util/Direction.hpp` - 方向枚举
 - `common/util/math/Vector3.hpp` - 向量类型
-- `common/world/block/Block.hpp` - 方块定义
+- `common/world/block/core/Block.hpp` - 方块定义
 - `common/world/chunk/ChunkData.hpp` - 区块数据
 - `common/world/chunk/ChunkPos.hpp` - 区块坐标
 

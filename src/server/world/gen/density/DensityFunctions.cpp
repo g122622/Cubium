@@ -23,9 +23,9 @@
 #include "server/world/gen/density/DensityFunctions.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/noise/SimplexNoise.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
-#include "common/world/gen/noise/SimplexNoise.hpp"
+#include "common/world/generation/density/DensityFunction.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -46,7 +46,7 @@ EndIslands::EndIslands(u64 seed)
 {
     math::JavaLegacyRandom rng(seed);
     rng.consumeCount(17292);
-    m_islandNoise = std::make_unique<noise::SimplexNoise>(rng);
+    m_islandNoise = std::make_unique<::mc::math::noise::SimplexNoise>(rng);
 }
 
 f64 EndIslands::compute(i32 blockX, i32 blockY, i32 blockZ) const

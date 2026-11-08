@@ -41,7 +41,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"

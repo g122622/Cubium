@@ -62,9 +62,9 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/IWorldSpawnAdapter.hpp"
@@ -651,7 +651,7 @@ void ZombieEntity::convertToDrowned()
 
     // 11. 播放转化音效
     playSound(SoundEvents::ENTITY_ZOMBIE_CONVERTED_TO_DROWNED, 1.0f, 1.0f);
-    worldPtr->playEvent(world::WorldEvents::ZOMBIE_CONVERT_TO_DROWNED_SOUND,
+    worldPtr->playEvent(::mc::world::LevelEventId::SOUND_ZOMBIE_TO_DROWNED,
         BlockPos(static_cast<i32>(m_builtIn.stateVector->m_pos.x),
             static_cast<i32>(m_builtIn.stateVector->m_pos.y),
             static_cast<i32>(m_builtIn.stateVector->m_pos.z)),

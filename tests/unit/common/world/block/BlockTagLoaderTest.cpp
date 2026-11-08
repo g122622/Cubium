@@ -25,9 +25,9 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/InMemoryResourcePack.hpp"
-#include "common/world/block/BlockTagLoader.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTagLoader.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 using namespace mc;
 

@@ -54,10 +54,10 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockSoundType.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/sound/BlockSoundType.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <algorithm>
 #include <cmath>

@@ -21,7 +21,9 @@
  *
  */
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
@@ -32,8 +34,6 @@
 #include "item/items/tool/SwordItem.hpp"
 #include "item/items/tool/ToolType.hpp"
 #include "item/tier/ItemTiers.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

@@ -23,6 +23,7 @@
 
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/serialization/NbtHelper.hpp"
@@ -36,7 +37,6 @@
 #include "item/loot/context/LootParams.hpp"
 #include "item/loot/entries/ItemLootEntry.hpp"
 #include "util/nbt/Nbt.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"

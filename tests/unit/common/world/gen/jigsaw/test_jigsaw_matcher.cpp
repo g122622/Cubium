@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawMatcher.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include <gtest/gtest.h>

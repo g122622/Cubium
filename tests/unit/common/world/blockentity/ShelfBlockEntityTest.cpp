@@ -23,9 +23,9 @@
 
 #include "world/blockentity/interactive/ShelfBlockEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include <gtest/gtest.h>
 

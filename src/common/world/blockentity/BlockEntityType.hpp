@@ -24,8 +24,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "resource/ResourceLocation.hpp"
-#include "world/block/BlockPos.hpp"
 #include <memory>
 #include <nlohmann/json.hpp>
 

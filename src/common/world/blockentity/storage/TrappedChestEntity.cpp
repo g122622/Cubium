@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,11 +23,11 @@
 
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include <algorithm>

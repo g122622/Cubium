@@ -72,7 +72,7 @@
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 

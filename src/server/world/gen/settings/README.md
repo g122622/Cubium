@@ -41,9 +41,9 @@ Settings.hpp（总入口）
 |--------|------|
 | `common/core/Types.hpp` | 基础类型 i32、f32 等 |
 | `common/world/WorldConstants.hpp` | world::MAX_BUILD_HEIGHT、world::SEA_LEVEL 等 |
-| `common/world/block/Block.hpp` | BlockState 前向声明 |
-| `common/world/block/BlockRegistry.hpp` | 方块注册表访问 |
-| `common/world/block/registry/VanillaBlocks.hpp` | 原版方块定义 |
+| `common/world/block/core/Block.hpp` | BlockState 前向声明 |
+| `common/world/block/registry/BlockRegistry.hpp` | 方块注册表访问 |
+| `common/world/block/registry/vanilla/VanillaBlocks.hpp` | 原版方块定义 |
 | `common/world/biome/BiomeIds.hpp` | Biomes::Plains 等生物群系 ID |
 
 ### 被依赖

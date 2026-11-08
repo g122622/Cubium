@@ -27,7 +27,7 @@
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/util/TriState.hpp"
 #include "common/world/attribute/AttributeType.hpp"
-#include "common/world/level/MoonPhase.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
 
 namespace mc {
 namespace world {

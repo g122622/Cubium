@@ -62,9 +62,9 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "server/application/IServer.hpp"
@@ -72,12 +72,12 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -435,11 +435,11 @@ i32 giveItemsToPlayers(
         if (totalAdded > 0) {
             syncInventoryToClient(source, playerId);
 
-            // 播放拾取音效（批5b：经 buildPlaySoundIr + connectionManager 投递，
+            // 播放拾取音效（批5b：经 buildPlaySoundIr + packetSender 投递，
             // 原 IServer::sendSoundToPlayer 纯虚已删）
             math::Random rng(static_cast<u64>(playerId) ^ generateSeed());
             const f32 pitch = (rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.0f;
-            server->connectionManager().sendToPlayer(playerId,
+            server->packetSender().sendToPlayer(playerId,
                 mc::server::net::buildPlaySoundIr(SoundEvents::ENTITY_ITEM_PICKUP,
                     sound::SoundCategory::Players,
                     Vector3(player->x(), player->y(), player->z()),

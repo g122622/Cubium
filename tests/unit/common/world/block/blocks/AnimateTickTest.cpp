@@ -28,12 +28,12 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/blocks/cave/SporeBlossomBlock.hpp"
 #include "common/world/block/blocks/mob/SpawnerBlock.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/capability/IBlockAnimateContext.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::blocks;

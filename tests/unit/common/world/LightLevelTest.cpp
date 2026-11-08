@@ -23,7 +23,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include <gtest/gtest.h>
 

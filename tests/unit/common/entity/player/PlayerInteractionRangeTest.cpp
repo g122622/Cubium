@@ -43,7 +43,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/AxisAlignedBB.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

@@ -30,7 +30,7 @@
 #include "client/ui/kagero/widget/Widget.hpp"
 #include "client/ui/minecraft/screens/Screen.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <array>
 #include <cstddef>
 #include <memory>

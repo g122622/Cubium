@@ -26,7 +26,7 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "world/biome/climate/Sampler.hpp"
 
 #include <cmath>

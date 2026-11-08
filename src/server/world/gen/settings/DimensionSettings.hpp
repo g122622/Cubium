@@ -29,7 +29,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <array>
 #include <memory>
 #include <vector>

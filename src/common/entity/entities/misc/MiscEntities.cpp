@@ -24,6 +24,7 @@
  */
 
 #include "MiscEntities.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <algorithm>
 
@@ -47,14 +48,14 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/ConcretePowderBlock.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/blocks/falling/ConcretePowderBlock.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -250,7 +251,7 @@ void FallingBlockEntity::_handleLanding()
 
     // 如果 dontSetBlock 为 true（铁砧完全摧毁或外部设置），不放置方块，但调用 onBroken 回调
     // 注意：铁砧完全摧毁时仅设置 m_dontSetBlock=true（而非 m_cancelDrop），
-    // 以确保 onBroken 回调被触发（播放铁砧破碎音效 WorldEvents::ANVIL_DESTROYED_SOUND）
+    // 以确保 onBroken 回调被触发（播放铁砧破碎音效 ::mc::world::LevelEventId::SOUND_ANVIL_BROKEN）
     // 同时 m_shouldDropItem 在此路径下不会触发物品掉落（因为不走 _dropItem 分支）
     if (m_dontSetBlock) {
         // 调用 FallingBlock 的 onBroken 回调（如铁砧播放破碎音效）
@@ -475,7 +476,7 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
             } else {
                 // 铁砧已在最大损坏状态（damaged_anvil），完全摧毁
                 // 设置 m_dontSetBlock=true 使 _handleLanding 走 onBroken 回调路径
-                // （播放铁砧破碎音效 WorldEvents::ANVIL_DESTROYED_SOUND），不放置方块也不掉落物品
+                // （播放铁砧破碎音效 ::mc::world::LevelEventId::SOUND_ANVIL_BROKEN），不放置方块也不掉落物品
                 // 不使用 m_cancelDrop，因为那会跳过 onBroken 回调
                 m_dontSetBlock = true;
                 m_shouldDropItem = false;

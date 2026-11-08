@@ -3,16 +3,17 @@
 #include "common/util/UuidUtils.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "server/access/AccessManager.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/IntegratedServer.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/GameModeManager.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/TeleportManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
+#include "server/network/sync/player/TeleportManager.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/gamemode/GameModeManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <gtest/gtest.h>
@@ -44,11 +45,13 @@ class _PlayerStateRequestServer : public server::IntegratedServer {
 public:
     _PlayerStateRequestServer()
     {
-        m_playerManager = std::make_unique<server::core::PlayerManager>(10);
-        m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
-        m_gameModeManager = std::make_unique<server::core::GameModeManager>(*m_playerManager, *m_connectionManager);
-        m_opListManager = std::make_unique<server::core::OpListManager>();
-        m_teleportManager = std::make_unique<server::core::TeleportManager>(*m_playerManager);
+        m_playerManager = std::make_unique<server::PlayerManager>(10);
+        m_packetSender = std::make_unique<server::PacketSender>(*m_playerManager);
+        m_gameModeManager = std::make_unique<server::GameModeManager>(*m_playerManager, *m_packetSender);
+
+        m_accessManager = std::make_unique<server::AccessManager>();
+        m_playerMovementManager = std::make_unique<server::PlayerMovementManager>(*m_playerManager);
+        m_teleportManager = std::make_unique<server::TeleportManager>(*m_playerManager, *m_playerMovementManager);
         m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
     }
 
@@ -198,12 +201,12 @@ TEST(PlayerStateRequestTest, ChangeGameModeRequiresGameMasterAndLoggedInPlayer)
     const IrPacket request{protocol::ConnectionProtocol::Play, PlayPacket{ChangeGameMode{1}}};
     handler.route(1, request);
     EXPECT_EQ(player->gameMode, GameMode::Survival);
-    server.opListManager().setEntry(
-        server::core::OpEntry("player-uuid", "Player", server::core::OpLevel::Moderator, false));
+    server.accessManager().operatorSetEntry(
+        server::OpEntry("player-uuid", "Player", server::OpLevel::Moderator, false));
     handler.route(1, request);
     EXPECT_EQ(player->gameMode, GameMode::Survival);
-    server.opListManager().setEntry(
-        server::core::OpEntry("player-uuid", "Player", server::core::OpLevel::GameMaster, false));
+    server.accessManager().operatorSetEntry(
+        server::OpEntry("player-uuid", "Player", server::OpLevel::GameMaster, false));
     handler.route(1, request);
     EXPECT_EQ(player->gameMode, GameMode::Creative);
     player->loggedIn = false;
@@ -264,8 +267,8 @@ TEST(PlayerStateRequestTest, SwitchKeepsLoadSignalsSeparateFromGameModeRequests)
     _PlayerStateRequestServer server;
     auto* data = server.playerManager().addPlayer(1, "player-uuid", "Player", nullptr);
     ASSERT_NE(data, nullptr);
-    server.opListManager().setEntry(
-        server::core::OpEntry("player-uuid", "Player", server::core::OpLevel::GameMaster, false));
+    server.accessManager().operatorSetEntry(
+        server::OpEntry("player-uuid", "Player", server::OpLevel::GameMaster, false));
     server::net::ServerPlayHandler handler(server);
     data->restartClientLoadTimerAfterRespawn();
     handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{ChangeGameMode{1}}});

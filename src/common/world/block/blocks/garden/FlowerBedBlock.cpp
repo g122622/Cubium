@@ -38,9 +38,9 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

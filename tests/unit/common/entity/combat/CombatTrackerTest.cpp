@@ -28,7 +28,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 using namespace mc;
 

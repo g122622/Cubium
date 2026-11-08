@@ -29,7 +29,7 @@
 #include "common/item/enchantment/enchantments/protection/ThornsEnchantment.hpp"
 #include "common/item/enchantment/enchantments/weapon/SweepingEnchantment.hpp"
 #include "common/scoreboard/core/Team.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/effect/EffectEntities.hpp"
 #include "world/fluid/FluidRegistry.hpp"

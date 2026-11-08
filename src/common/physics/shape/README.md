@@ -47,13 +47,13 @@ CubePointRange ──► DiscreteCubeMerger (优化路径)
 - `common/util/Direction.hpp` - Axis, AxisCycle, Direction 枚举
 - `common/util/AxisAlignedBB.hpp` - 碰撞箱类
 - `common/util/math/Vector3.hpp` - 3D 向量
-- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/block/base/types/BlockPos.hpp` - 方块位置
 
 **下游依赖（依赖本目录）：**
 - `common/physics/collision/CollisionShape.hpp` - 简化版碰撞形状
 - `common/physics/PhysicsEngine.hpp` - 物理引擎，使用 VoxelShape 进行碰撞检测
 - `common/physics/CollisionCache.hpp` - 碰撞缓存
-- `common/world/block/Block.hpp` - 方块类，使用 VoxelShape 定义形状
+- `common/world/block/core/Block.hpp` - 方块类，使用 VoxelShape 定义形状
 - `common/world/block/blocks/*.cpp` - 各方块实现，定义碰撞/遮挡形状
 - `server/world/lighting/engine/*.cpp` - 光照引擎，使用面遮挡检测
 - `common/entity/entities/*.cpp` - 实体，使用碰撞检测

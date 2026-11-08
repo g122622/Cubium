@@ -46,17 +46,17 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockSoundType.hpp"
-#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/base/sound/BlockSoundType.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
-#include "common/world/block/registry/MudBlocks.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/CaveBlocks.hpp"
+#include "common/world/block/registry/vanilla/MudBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
@@ -197,28 +197,28 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         // ========================================================================
         // 音效事件 (1000-1043)
         // ========================================================================
-        case WorldEvents::DISPENSER_DISPENSE_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_DISPENSER_DISPENSE):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_DISPENSER_DISPENSE, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
             }
             break;
 
-        case WorldEvents::DISPENSER_FAIL_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_DISPENSER_FAIL):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_DISPENSER_FAIL, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
             }
             break;
 
-        case WorldEvents::DISPENSER_LAUNCH_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_DISPENSER_PROJECTILE_LAUNCH):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_DISPENSER_LAUNCH, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
             }
             break;
 
-        case WorldEvents::FIRE_EXTINGUISH_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_EXTINGUISH_FIRE):
             if (m_audioService) {
                 if (data == 0) {
                     m_audioService->play(std::make_unique<sound::SoundInstance>(
@@ -242,7 +242,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             }
             break;
 
-        case WorldEvents::GHAST_WARN_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_GHAST_WARNING):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(
                     sound::SoundInstance::createLocated(SoundEvents::ENTITY_GHAST_WARN,
@@ -255,7 +255,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             }
             break;
 
-        case WorldEvents::BLAZE_SHOOT_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_BLAZE_FIREBALL):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(
                     sound::SoundInstance::createLocated(SoundEvents::ENTITY_BLAZE_SHOOT,
@@ -268,35 +268,35 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             }
             break;
 
-        case WorldEvents::ANVIL_DESTROYED_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_ANVIL_BROKEN):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_ANVIL_DESTROY, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
             }
             break;
 
-        case WorldEvents::ANVIL_LAND_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_ANVIL_LAND):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_ANVIL_LAND, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
             }
             break;
 
-        case WorldEvents::PHANTOM_BITE_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_PHANTOM_BITE):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::ENTITY_PHANTOM_BITE, SoundCategory::Hostile, px, py, pz, 1.0f, 1.0f)));
             }
             break;
 
-        case WorldEvents::ZOMBIE_CONVERT_TO_DROWNED_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_ZOMBIE_TO_DROWNED):
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::ENTITY_ZOMBIE_VILLAGER_CONVERTED, SoundCategory::Hostile, px, py, pz, 1.0f, 1.0f)));
             }
             break;
 
-        case WorldEvents::CRAFTER_CRAFT_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_CRAFTER_CRAFT):
             // 合成器合成成功音效
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
@@ -304,7 +304,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             }
             break;
 
-        case WorldEvents::CRAFTER_FAIL_SOUND:
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_CRAFTER_FAIL):
             // 合成器合成失败音效
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
@@ -316,7 +316,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             // 特殊效果事件 (1500-1505)
             // ========================================================================
 
-        case WorldEvents::COMPOSTER_FILLED_UP: {
+        case static_cast<i32>(::mc::world::LevelEventId::COMPOSTER_FILL): {
             // 堆肥桶填充事件
             // data > 0: 堆肥成功升级，播放 COMPOSTER_FILL_SUCCESS 音效
             // data <= 0: 仅填充未升级，播放 COMPOSTER_FILL 音效
@@ -344,7 +344,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::LAVA_EXTINGUISH: {
+        case static_cast<i32>(::mc::world::LevelEventId::LAVA_FIZZ): {
             // 岩浆熄灭事件：播放音效 + 8个大烟雾粒子
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(
@@ -366,25 +366,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::BONEMEAL_PARTICLES: {
-            // 骨粉粒子效果
-            // data 为粒子数量，0 则生成 15 个
-            i32 count = (data == 0) ? 15 : data;
-            m_world.addParticle(ParticleTypeId::HappyVillager,
-                Vector3(px, py, pz),
-                Vector3(0.0f, 0.0f, 0.0f),
-                Vector3(1.0f, 1.0f, 1.0f),
-                static_cast<u32>(count));
-
-            // 播放骨粉使用音效
-            if (m_audioService) {
-                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
-                    SoundEvents::ITEM_BONE_MEAL_USE, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
-            }
-            break;
-        }
-
-        case WorldEvents::BREAK_BLOCK_EFFECTS: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK): {
             // 方块破坏效果：根据方块状态ID获取正确的破坏音效和破坏粒子
             // data = 方块状态ID（BlockState::stateId()）
             // 对应 MC ClientLevel.addDestroyBlockEffect / LevelEventHandler case 2001
@@ -446,7 +428,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::DISPENSER_SMOKE: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_SHOOT_SMOKE): {
             // 发射器烟雾粒子，data 为方向（Direction.getIndex()）
             {
                 Direction dir = static_cast<Direction>(data);
@@ -473,7 +455,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::MOB_SPAWNER_PARTICLES: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_MOBBLOCK_SPAWN): {
             // 刷怪笼成功生成实体时爆发烟雾和火焰粒子
             // 客户端在方块中心2格范围内随机生成20个烟雾粒子和20个火焰粒子
             {
@@ -491,13 +473,13 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::SPAWN_EXPLOSION_PARTICLE: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_DRAGON_BLOCK_BREAK): {
             // 爆炸粒子
             m_world.addParticle(ParticleTypeId::HugeExplosion, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));
             break;
         }
 
-        case WorldEvents::WET_SPONGE_DRY: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_WATER_EVAPORATING): {
             // 湿海绵在下界变干：8个云粒子（蒸汽） + 火焰熄灭音效
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(
@@ -519,7 +501,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::DRIPSTONE_DRIP: {
+        case static_cast<i32>(::mc::world::LevelEventId::DRIPSTONE_DRIP): {
             // 滴石滴水粒子效果
             // 事件由服务端在 maybeTransferFluid 中触发（钟乳石成功向炼药锅传输流体时）
             // 客户端需要根据钟乳石上方的流体类型选择正确的粒子类型
@@ -570,7 +552,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::PLANT_GROWTH_EFFECT: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH): {
             // 植物生长粒子与音效事件（由骨粉使用触发）
             // data 为粒子数量，0 则生成 15 个
             // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 IGrowable::getBoneMealType()
@@ -652,7 +634,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::POINTED_DRIPSTONE_LAND_SOUND: {
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_POINTED_DRIPSTONE_LAND): {
             // 滴石尖锥落地音效
             if (m_audioService) {
                 f32 pitch = random.nextFloat() * 0.1f + 0.9f;
@@ -662,7 +644,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::DRIP_LAVA_INTO_CAULDRON_SOUND: {
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_DRIP_LAVA_INTO_CAULDRON): {
             // 熔岩滴入炼药锅音效
             if (m_audioService) {
                 f32 pitch = random.nextFloat() * 0.1f + 0.9f;
@@ -678,7 +660,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND: {
+        case static_cast<i32>(::mc::world::LevelEventId::SOUND_DRIP_WATER_INTO_CAULDRON): {
             // 水滴入炼药锅音效
             if (m_audioService) {
                 f32 pitch = random.nextFloat() * 0.1f + 0.9f;
@@ -694,7 +676,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::END_PORTAL_FRAME_FILL: {
+        case static_cast<i32>(::mc::world::LevelEventId::END_PORTAL_FRAME_FILL): {
             // 末地传送门框填充：播放音效
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
@@ -703,7 +685,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::REDSTONE_TORCH_BURNOUT: {
+        case static_cast<i32>(::mc::world::LevelEventId::REDSTONE_TORCH_BURNOUT): {
             // 红石火把烧断：播放音效 + 烟雾粒子
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
@@ -719,7 +701,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::SMASH_ATTACK: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_SMASH_ATTACK): {
             // 重锤砸地攻击粒子效果（对应 MC LevelEvent.PARTICLES_SMASH_ATTACK = 2013）
             // 使用 DustPillar 粒子携带方块状态纹理，分两层分布：
             //   - 内层簇（count/3 个）：高斯分布聚集在中心
@@ -770,7 +752,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::SHOOT_WHITE_SMOKE: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_SHOOT_WHITE_SMOKE): {
             // 白烟粒子效果（方向性），与 DISPENSER_SMOKE(2000) 类似但为白色烟雾
             // data 为烟雾方向（Direction.getIndex()）
             {
@@ -798,7 +780,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::PLANT_GROWTH_PARTICLES: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_BEE_GROWTH): {
             // 植物生长粒子效果（蜜蜂授粉促进作物生长时触发）
             // data 为粒子数量（通常为 15），0 则生成 15 个
             // 与 BONEMEAL_PARTICLES(2005) 的区别：不播放骨粉使用音效
@@ -813,7 +795,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
-        case WorldEvents::TURTLE_EGG_PLACEMENT: {
+        case static_cast<i32>(::mc::world::LevelEventId::PARTICLES_TURTLE_EGG_PLACEMENT): {
             // 海龟蛋放置粒子效果
             // 与 PLANT_GROWTH_PARTICLES(2011) 逻辑相同，均为 HappyVillager 粒子
             {
@@ -839,9 +821,9 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
     //   Cubium 客户端当前缺失对应 case，导致即使服务端通过 globalLevelEvent 广播了这些事件，
     //   客户端也只会落入 default 分支打印 warning 并静默忽略。
     //   待实现:
-    //     case WorldEvents::WITHER_SPAWN_SOUND:        // 1023 凋灵生成
-    //     case WorldEvents::DRAGON_DEATH_SOUND:        // 1028 末影龙死亡
-    //     case WorldEvents::END_PORTAL_SPAWN_SOUND:    // 1038 末地传送门激活
+    //     case static_cast<i32>(::mc::world::LevelEventId::SOUND_WITHER_BOSS_SPAWN):        // 1023 凋灵生成
+    //     case static_cast<i32>(::mc::world::LevelEventId::SOUND_DRAGON_DEATH):        // 1028 末影龙死亡
+    //     case static_cast<i32>(::mc::world::LevelEventId::SOUND_END_PORTAL_SPAWN):    // 1038 末地传送门激活
     //   实现时需同时扩展 _handleWorldEvent 签名以传入 globalEvent 标志（见 ClientPlayVisitor.cpp）。
 }
 

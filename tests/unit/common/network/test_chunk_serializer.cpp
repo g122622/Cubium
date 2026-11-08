@@ -26,7 +26,7 @@
 #include "common/network/sync/ChunkSerializer.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 
 using namespace mc;

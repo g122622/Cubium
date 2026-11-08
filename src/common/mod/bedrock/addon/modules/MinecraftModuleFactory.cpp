@@ -77,15 +77,15 @@
 #include "common/util/AxisAlignedBB.hpp"        // Dimension.getEntities 构造查询包围盒
 #include "common/util/Direction.hpp"            // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
 #include "common/util/math/Vector3.hpp"
-#include "common/util/text/TextStyle.hpp"       // text::toName(TextFormatting)（Team.color 字符串化）
-#include "common/world/GlobalPos.hpp"           // GlobalPos（Player.getRespawnConfig 返回的维度+方块位置）
-#include "common/world/IWorld.hpp"              // Dimension JS 类 opaque 持 IWorld*
-#include "common/world/block/Block.hpp"         // Block::blockLocation/defaultState/getBlock（Block/BlockPermutation）
-#include "common/world/block/BlockPos.hpp"      // BlockPos（Block.location 坐标）
-#include "common/world/block/BlockRegistry.hpp" // BlockRegistry::get/getBlock（按 id 取 BlockState/Block）
-#include "common/world/block/BlockState.hpp"    // BlockState（Block/BlockPermutation opaque 持此指针）
-#include "common/world/blockentity/BlockEntity.hpp"             // BlockEntity（Container 经 getBlockEntity 取得）
-#include "common/world/blockentity/ContainerBlockEntity.hpp"    // ContainerBlockEntity::getInventory（Container 底层）
+#include "common/util/text/TextStyle.hpp"             // text::toName(TextFormatting)（Team.color 字符串化）
+#include "common/world/GlobalPos.hpp"                 // GlobalPos（Player.getRespawnConfig 返回的维度+方块位置）
+#include "common/world/IWorld.hpp"                    // Dimension JS 类 opaque 持 IWorld*
+#include "common/world/block/base/types/BlockPos.hpp" // BlockPos（Block.location 坐标）
+#include "common/world/block/core/Block.hpp" // Block::blockLocation/defaultState/getBlock（Block/BlockPermutation）
+#include "common/world/block/registry/BlockRegistry.hpp"     // BlockRegistry::get/getBlock（按 id 取 BlockState/Block）
+#include "common/world/block/state/BlockState.hpp"           // BlockState（Block/BlockPermutation opaque 持此指针）
+#include "common/world/blockentity/BlockEntity.hpp"          // BlockEntity（Container 经 getBlockEntity 取得）
+#include "common/world/blockentity/ContainerBlockEntity.hpp" // ContainerBlockEntity::getInventory（Container 底层）
 #include "common/world/blockentity/processing/BeaconEntity.hpp" // BeaconEntity::getLevel（Block.beaconLevel 读信标等级）
 #include "common/world/border/WorldBorder.hpp"                  // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
 #include "common/world/fluid/Fluid.hpp"                         // FluidState/Fluid（Block.isWaterlogged 判定流体类型）

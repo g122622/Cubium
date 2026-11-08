@@ -54,20 +54,20 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -237,8 +237,7 @@ u32 BlockInteractionManager::_setBlockToAir(
 // 构造函数
 // ============================================================================
 
-BlockInteractionManager::BlockInteractionManager(
-    core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager)
+BlockInteractionManager::BlockInteractionManager(PlayerManager& playerManager, loot::LootTableManager& lootTableManager)
     : m_playerManager(playerManager)
     , m_lootTableManager(lootTableManager)
 {}
@@ -981,7 +980,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     // 发送方块破坏粒子效果（对齐原版 Block.destroy 中 level.levelEvent(2001, pos,
     // Block.getId(state))）：data 为方块状态ID，客户端据此渲染对应方块的碎屑粒子。
     // 此前挖块路径仅发破坏声音（m_onBlockBreak 回调），未发破坏粒子，方块直接消失无碎屑。
-    world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(oldState.stateId()));
+    world->playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, pos, static_cast<i32>(oldState.stateId()));
 
     // 设置为空气
     u32 newBlockStateId = _setBlockToAir(*world, pos, oldState, playerId);

@@ -29,7 +29,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/generation/density/DensityFunction.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/aquifer/Aquifer.hpp"
 #include "server/world/gen/density/Beardifier.hpp"

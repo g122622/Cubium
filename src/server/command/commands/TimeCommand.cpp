@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,7 +33,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/core/TimeManager.hpp"
+#include "server/world/time/TimeManager.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -56,7 +56,7 @@ inline constexpr i32 MIDNIGHT_TIME = 18000; // 午夜
  * @param timeManager 时间管理器。
  * @return 归一化到 `[0, 23999]` 区间的昼夜时间。
  */
-[[nodiscard]] i32 normalizedDayTime(const server::core::TimeManager& timeManager) noexcept
+[[nodiscard]] i32 normalizedDayTime(const server::TimeManager& timeManager) noexcept
 {
     return static_cast<i32>(timeManager.dayTimeOfDay());
 }

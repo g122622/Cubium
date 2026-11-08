@@ -40,7 +40,7 @@
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "server/application/IServer.hpp"

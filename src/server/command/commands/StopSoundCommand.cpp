@@ -39,7 +39,7 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -65,7 +65,7 @@ std::shared_ptr<ISuggestionProvider<ServerCommandSource>> _nativeSuggestions()
 /**
  * @brief 发送 StopSound IR 包给指定玩家
  */
-void sendStopSoundPacket(server::core::ConnectionManager& connMgr,
+void sendStopSoundPacket(server::PacketSender& connMgr,
     PlayerId playerId,
     const std::optional<ResourceLocation>& soundId,
     const std::optional<sound::SoundCategory>& category)
@@ -184,7 +184,7 @@ i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& contex
     }
 
     auto* server = source.server();
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
 
     for (PlayerId playerId : playerIds) {
         sendStopSoundPacket(connMgr, playerId, std::nullopt, std::nullopt);
@@ -208,7 +208,7 @@ i32 StopSoundCommand::_stopSounds(CommandContext<ServerCommandSource>& context,
     }
 
     auto* server = source.server();
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
 
     for (PlayerId playerId : playerIds) {
         sendStopSoundPacket(connMgr, playerId, soundId, category);

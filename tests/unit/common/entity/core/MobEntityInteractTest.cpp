@@ -38,7 +38,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
 #include "common/item/items/special/SpawnEggItem.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::entity;

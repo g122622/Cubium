@@ -26,8 +26,6 @@
 #include "IWorldWriter.hpp"
 #include "WorldConstants.hpp"
 #include "biome/BiomeClimate.hpp"
-#include "block/BlockPos.hpp"
-#include "block/BlockUpdateFlags.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -42,7 +40,10 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/attribute/EnvironmentAttributeSystem.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
 #include "gameevent/GameEvent.hpp"
@@ -518,11 +519,11 @@ public:
      * 世界事件是服务端广播给客户端的游戏事件，用于触发音效和粒子效果。
      * 例如：门开关音效、铁砧使用、方块破坏粒子等。
      *
-     * @param eventId 事件ID，参见 WorldEvents 命名空间
+     * @param eventId 事件ID，参见 LevelEventId 枚举
      * @param pos 事件位置
      * @param data 事件数据（含义因事件而异）
      */
-    virtual void playEvent(i32 eventId, const BlockPos& pos, i32 data)
+    virtual void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data)
     {
         (void)eventId;
         (void)pos;
@@ -532,7 +533,7 @@ public:
     /**
      * @brief 全局世界事件广播
      *
-     * 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
+     * 对应 MC Java: ServerLevel.globalLevelEvent(::mc::world::LevelEventId, BlockPos, i32)
      * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
      * 遍历全服所有玩家（跨维度），对每个玩家计算事件位置：
      *   - 同维度且距离<32格：使用真实事件位置
@@ -545,7 +546,7 @@ public:
      * @param pos 事件位置
      * @param data 事件数据
      */
-    virtual void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
+    virtual void globalLevelEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data)
     {
         // 默认降级为普通 playEvent（等价 vanilla globalSoundEvents=false 时的行为）；
         // 服务端世界覆写本方法，按 gamerule 选择全局广播或普通事件。

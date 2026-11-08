@@ -28,14 +28,14 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/special/CommandBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/BlockState.hpp"
 #include <algorithm>
 #include <memory>
 #include <optional>

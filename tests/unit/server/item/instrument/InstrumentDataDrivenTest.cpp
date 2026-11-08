@@ -44,7 +44,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/item/instrument/InstrumentLoader.hpp"
 #include "server/item/instrument/InstrumentTagLoader.hpp"
 

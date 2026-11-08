@@ -35,10 +35,10 @@
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/scoreboard/storage/ScoreboardDataManager.hpp"
 #include <cstddef>
 #include <string>
@@ -135,18 +135,18 @@ void ServerScoreboard::onPlayerLeave(PlayerId playerId, const std::string& playe
 void ServerScoreboard::sendToAllPlayers(const mc::network::ir::IrPacket& packet)
 {
     auto& playerManager = m_server.playerManager();
-    auto& connectionManager = m_server.connectionManager();
+    auto& packetSender = m_server.packetSender();
 
     playerManager.forEachPlayer([&](ServerPlayerData& data) {
         if (data.hasConnection()) {
-            connectionManager.sendToPlayer(data.playerId, packet);
+            packetSender.sendToPlayer(data.playerId, packet);
         }
     });
 }
 
 void ServerScoreboard::sendToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    m_server.connectionManager().sendToPlayer(playerId, packet);
+    m_server.packetSender().sendToPlayer(playerId, packet);
 }
 
 void ServerScoreboard::sendObjectiveToPlayer(ScoreObjective& objective, PlayerId playerId)

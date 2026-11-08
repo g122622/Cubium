@@ -29,10 +29,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
 class Entity;
@@ -109,7 +109,7 @@ protected:
     /**
      * @brief 头颅种类对应的音符盒乐器（对齐 vanilla 头颅注册的 instrument 属性）
      */
-    [[nodiscard]] static BlockProperties::Instrument _instrumentForSkullType(SkullType type) noexcept;
+    [[nodiscard]] static NoteBlockInstrument _instrumentForSkullType(SkullType type) noexcept;
 
     SkullType m_type;
     /// 头颅在三种寻路类型下都不可通行。

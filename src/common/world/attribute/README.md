@@ -43,12 +43,12 @@ DimensionType ──attributes()──> EnvironmentAttributeMap ──> Environm
 
 **依赖（上游）**：
 - `entity/ai/brain/schedule/Activity.hpp` — `AttributeTypes::ACTIVITY` 与村民活动属性以 `Activity` 作为值类型
-- `world/timeline/` — 时间线给出各属性的关键帧轨道
+- `world/time/timeline/` — 时间线给出各属性的关键帧轨道
 - `world/level/MoonPhase.hpp` — `MOON_PHASE` 属性与月相时间线的值类型
 - `world/dimension/DimensionType.hpp` — 维度声明常量属性与时间线名
 
 **被依赖（下游）**：
-- `world/timeline/` — `AttributeTrack` 持有 `AttributeModifier`；`AttributeTrackSampler` 实现 `EnvironmentAttributeLayer::TimeBased`
+- `world/time/timeline/` — `AttributeTrack` 持有 `AttributeModifier`；`AttributeTrackSampler` 实现 `EnvironmentAttributeLayer::TimeBased`
 - `entity/ai/brain/Brain.hpp` — 按活动环境属性创建轨道采样器
 - `server/world/ServerWorld.cpp` — `environmentAttributes()` 持有维度级系统实例，每 tick 末尾失效缓存
 - `block/blocks/pale_garden/EyeblossomEnvironment.hpp` — 按 `EYEBLOSSOM_OPEN` 查询眼眸花开合

@@ -44,8 +44,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iomanip>

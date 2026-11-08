@@ -35,8 +35,8 @@ namespace mc::gameevent {
  * 定义所有 Minecraft 原版游戏事件，每个事件包含标识符和通知半径。
  * 大多数事件的默认通知半径为 16 格，少数事件有特殊半径。
  *
- * 与 WorldEvents（世界事件/levelEvent）不同：
- * - WorldEvents 是服务端向客户端广播的音效/粒子事件（如门开关、唱片播放）
+ * 与 LevelEventId（世界效果/levelEvent）不同：
+ * - LevelEventId 是服务端向客户端广播的音效/粒子事件（如方块破坏、唱片播放）
  * - GameEvents 是服务端内部事件分发，通知附近的 GameEventListener（如幽匿感测体）
  *
  */

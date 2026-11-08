@@ -35,7 +35,7 @@
  */
 
 #include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "path_scene.hpp"
 #include "vanilla_datapack.hpp"
 

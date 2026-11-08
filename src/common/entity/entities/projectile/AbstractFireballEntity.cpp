@@ -42,10 +42,10 @@
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -371,7 +371,7 @@ void DragonFireballEntity::_createDragonBreathCloud()
 
     // 播放龙息效果音和粒子（事件ID 2006）
     // data: 1 = 播放粒子和声音, -1 = 仅播放粒子（实体静音时）
-    worldPtr->playEvent(world::WorldEvents::DRAGON_FIREBALL_HIT,
+    worldPtr->playEvent(::mc::world::LevelEventId::PARTICLES_DRAGON_FIREBALL_SPLASH,
         BlockPos(math::floorTo<i32>(x()), math::floorTo<i32>(y()), math::floorTo<i32>(z())),
         isSilent() ? -1 : 1);
 }

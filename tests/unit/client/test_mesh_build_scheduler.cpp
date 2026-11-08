@@ -26,7 +26,7 @@
 #include "client/renderer/mesh/MeshResultQueue.hpp"
 #include "common/core/Constants.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <chrono>
 #include <thread>

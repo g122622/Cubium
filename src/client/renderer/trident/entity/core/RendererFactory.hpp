@@ -35,8 +35,6 @@ namespace mc::client::renderer::entity {
 
 class EntityRendererManager;
 
-namespace core {
-
 /**
  * @brief 渲染器创建函数类型
  *
@@ -149,5 +147,4 @@ private:
         return std::make_unique<::mc::client::renderer::entity::renderer::RendererClass>();           \
     })
 
-} // namespace core
 } // namespace mc::client::renderer::entity

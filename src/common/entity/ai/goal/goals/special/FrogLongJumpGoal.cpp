@@ -32,9 +32,9 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
-#include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/registry/vanilla/CaveBlocks.hpp"
+#include "common/world/block/registry/vanilla/NaturalBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 #include <algorithm>

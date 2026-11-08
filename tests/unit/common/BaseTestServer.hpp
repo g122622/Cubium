@@ -4,27 +4,29 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "server/access/AccessManager.hpp"
+#include "server/access/base/BannedIpListTypes.hpp"
+#include "server/access/base/BannedPlayerListTypes.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
+#include "server/access/base/WhitelistManagerTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/data/DataAccessor.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/GameModeManager.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/PositionTracker.hpp"
-#include "server/core/TeleportManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "server/core/WhitelistManager.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/function/TimerQueue.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/network/base/IServerClientConnection.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/network/session/PlayerConnectionManager.hpp"
+#include "server/network/session/keepalive/KeepAliveManager.hpp"
+#include "server/network/sync/player/TeleportManager.hpp"
+#include "server/player/gamemode/GameModeManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/movement/PlayerMovementManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/time/TimeManager.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -112,114 +114,94 @@ public:
         return true;
     }
 
-    [[nodiscard]] server::core::PlayerManager& playerManager() override
+    [[nodiscard]] server::AccessManager& accessManager() override
+    {
+        return m_accessManager;
+    }
+
+    [[nodiscard]] const server::AccessManager& accessManager() const override
+    {
+        return m_accessManager;
+    }
+
+    [[nodiscard]] server::PlayerManager& playerManager() override
     {
         return m_playerManager;
     }
 
-    [[nodiscard]] const server::core::PlayerManager& playerManager() const override
+    [[nodiscard]] const server::PlayerManager& playerManager() const override
     {
         return m_playerManager;
     }
 
-    [[nodiscard]] server::core::ConnectionManager& connectionManager() override
+    [[nodiscard]] server::PlayerConnectionManager& playerConnections() override
     {
-        return m_connectionManager;
+        return m_playerConnections;
     }
 
-    [[nodiscard]] const server::core::ConnectionManager& connectionManager() const override
+    [[nodiscard]] const server::PlayerConnectionManager& playerConnections() const override
     {
-        return m_connectionManager;
+        return m_playerConnections;
     }
 
-    [[nodiscard]] server::core::TimeManager& timeManager() override
+    [[nodiscard]] server::PacketSender& packetSender() override
+    {
+        return m_packetSender;
+    }
+
+    [[nodiscard]] const server::PacketSender& packetSender() const override
+    {
+        return m_packetSender;
+    }
+
+    [[nodiscard]] server::TimeManager& timeManager() override
     {
         return m_timeManager;
     }
 
-    [[nodiscard]] const server::core::TimeManager& timeManager() const override
+    [[nodiscard]] const server::TimeManager& timeManager() const override
     {
         return m_timeManager;
     }
 
-    [[nodiscard]] server::core::TeleportManager& teleportManager() override
+    [[nodiscard]] server::TeleportManager& teleportManager() override
     {
         return m_teleportManager;
     }
 
-    [[nodiscard]] const server::core::TeleportManager& teleportManager() const override
+    [[nodiscard]] const server::TeleportManager& teleportManager() const override
     {
         return m_teleportManager;
     }
 
-    [[nodiscard]] server::core::KeepAliveManager& keepAliveManager() override
+    [[nodiscard]] server::KeepAliveManager& keepAliveManager() override
     {
         return m_keepAliveManager;
     }
 
-    [[nodiscard]] const server::core::KeepAliveManager& keepAliveManager() const override
+    [[nodiscard]] const server::KeepAliveManager& keepAliveManager() const override
     {
         return m_keepAliveManager;
     }
 
-    [[nodiscard]] server::core::PositionTracker& positionTracker() override
+    [[nodiscard]] server::PlayerMovementManager& playerMovementManager() override
     {
-        return m_positionTracker;
+        return m_playerMovementManager;
     }
 
-    [[nodiscard]] const server::core::PositionTracker& positionTracker() const override
+    [[nodiscard]] const server::PlayerMovementManager& playerMovementManager() const override
     {
-        return m_positionTracker;
+        return m_playerMovementManager;
     }
 
-    [[nodiscard]] server::core::GameModeManager& gameModeManager() override
+    [[nodiscard]] server::GameModeManager& gameModeManager() override
     {
         return m_gameModeManager;
     }
 
-    [[nodiscard]] const server::core::GameModeManager& gameModeManager() const override
+    [[nodiscard]] const server::GameModeManager& gameModeManager() const override
     {
         return m_gameModeManager;
-    }
-
-    [[nodiscard]] server::core::WhitelistManager& whitelistManager() override
-    {
-        return m_whitelistManager;
-    }
-
-    [[nodiscard]] const server::core::WhitelistManager& whitelistManager() const override
-    {
-        return m_whitelistManager;
-    }
-
-    [[nodiscard]] server::core::BannedPlayerList& bannedPlayerList() override
-    {
-        return m_bannedPlayerList;
-    }
-
-    [[nodiscard]] const server::core::BannedPlayerList& bannedPlayerList() const override
-    {
-        return m_bannedPlayerList;
-    }
-
-    [[nodiscard]] server::core::BannedIpList& bannedIpList() override
-    {
-        return m_bannedIpList;
-    }
-
-    [[nodiscard]] const server::core::BannedIpList& bannedIpList() const override
-    {
-        return m_bannedIpList;
-    }
-
-    [[nodiscard]] server::core::OpListManager& opListManager() override
-    {
-        return m_opListManager;
-    }
-
-    [[nodiscard]] const server::core::OpListManager& opListManager() const override
-    {
-        return m_opListManager;
     }
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override;
@@ -488,7 +470,8 @@ protected:
     bool m_stopRequested = false;
 
     server::ServerWorld* m_playerWorld = nullptr;
-    server::core::PlayerManager m_playerManager;
+    server::PlayerManager m_playerManager;
+    server::AccessManager m_accessManager;
     server::interaction::InventoryManager m_inventoryManager;
     /// 测试玩家的物品栏（按 playerId）。生产环境的权威数据在玩家实体上，测试不构造实体，
     /// 故由本表持有并经解析器暴露给 m_inventoryManager——每个玩家仍只有一份。
@@ -498,16 +481,14 @@ protected:
     // playerEntityManager().getPlayerIds()，须返回空对象而非抛 "unused"（原 throwUnused 桩致
     // PlayerResolverTest/SpawnPointCommandTest/TellRawCommandTest 共 16 用例崩溃）。
     server::ServerPlayerEntityManager m_playerEntityManager;
-    server::core::ConnectionManager m_connectionManager;
-    server::core::TimeManager m_timeManager;
-    server::core::TeleportManager m_teleportManager;
-    server::core::KeepAliveManager m_keepAliveManager;
-    server::core::PositionTracker m_positionTracker;
-    server::core::GameModeManager m_gameModeManager;
-    server::core::WhitelistManager m_whitelistManager;
-    server::core::BannedPlayerList m_bannedPlayerList;
-    server::core::BannedIpList m_bannedIpList;
-    server::core::OpListManager m_opListManager;
+    server::PacketSender m_packetSender;
+    server::PlayerConnectionManager m_playerConnections{m_playerManager};
+    server::TimeManager m_timeManager;
+    server::PlayerMovementManager m_playerMovementManager;
+    server::TeleportManager m_teleportManager;
+    server::KeepAliveManager m_keepAliveManager;
+    server::GameModeManager m_gameModeManager;
+
     command::CommandRegistry m_commandRegistry;
     command::CommandStorage m_commandStorage;
     server::ServerScoreboard m_scoreboard;

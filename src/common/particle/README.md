@@ -110,7 +110,7 @@ using ParticleTypeId = mc::particle::ParticleTypeId;
 
 **下游**（依赖本模块）：
 - `common/world/IWorld.hpp` — `addParticle()` 接口使用 `ParticleTypeId` 作为参数类型
-- `common/world/block/IBlockAnimateContext.hpp` — `addAnimateParticle()` 接口
+- `common/world/block/capability/IBlockAnimateContext.hpp` — `addAnimateParticle()` 接口
 - `common/network/ir/packets/play/PlayPacketsExtended.hpp` — `ir::play::LevelParticles` IR 包使用 `ParticleTypeId`（旧 `common/network/packet/ParticlePacket.hpp` 已删除）
 - `common/entity/` — 实体类生成粒子
 - `common/world/block/` — 方块 animateTick 生成粒子

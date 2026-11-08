@@ -27,7 +27,8 @@
 #include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponent.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -36,7 +37,6 @@
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include "item/items/special/EnchantedBookItem.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include <algorithm>
 #include <array>
