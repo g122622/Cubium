@@ -1,0 +1,148 @@
+# CI 提速交接文档
+
+> 分支：`diag/shutdown-crash`（`g122622/Cubium`）
+> 最后更新：2026-11-08
+
+## 硬性约束
+
+- 禁止本地编译和运行测试；全部验证通过当前分支的 GitHub Actions 完成。
+- 只允许向当前分支推送，禁止合入 main。触发方式：
+  `gh workflow run nightly.yml --ref diag/shutdown-crash`。
+- GitHub Actions 缓存总配额为 10 GB，test/release/fuzz 与 vcpkg 共享。
+- CI 固定 pococc commit `70955224a6cb37fe52c48ef845c0ea5d83650d7d`，本地源码参考位置
+  `/mnt/e/dev/pococc`。临时诊断提交已有回退，以当前工作树为准。
+
+## 已有 CI 证据
+
+最近已完成构建验收的运行：
+[42456395241](https://github.com/g122622/Cubium/actions/runs/42456395241)，提交 `cc1f4d44d`。
+本轮已通过 prepare 的 7 项执行器回归测试，以及三个编译池的构建、真实 launcher 和冷暖探针。
+20 个单测分片已全部完成，恢复逻辑及 shard 6 的失败归属已验收。
+用户明确要求不再等待 benchmark 和 fuzz，本次性能优化依据已完成的构建及单测结果收尾。
+
+| 指标 | 旧运行 42452181845 | 运行 42453916366 | 本轮 42456395241 |
+|---|---:|---:|---:|
+| test 构建测量区间（编译及链接） | 485.3 s | 367.3 s | 196.8 s |
+| 本轮 ccache 命中 | 3354 | 3640 | 3801 |
+| 本轮 ccache 未命中 | 450 | 164 | 3 |
+| 本轮 journal 远端编译调用 | 450 | 164 | 3 |
+| test 缓存上限 | 2 GB | 5 GB | 5 GB |
+| test 实际缓存占用 | 约 2 GB，频繁清理 | 2.1 GB / 5 GB | 2.1 GB / 5 GB |
+
+各池本轮统计（构建前清零，探针使用独立缓存）：
+
+| 池 | 命中 / 可缓存调用 | 命中率 | journal 远端调用 | 编译及链接耗时 |
+|---|---:|---:|---:|---:|
+| test | 3801 / 3804 | 99.92% | 3 | 196.8 s |
+| release | 2026 / 2029 | 99.85% | 3 | 455.7 s |
+| fuzz | 1345 / 1346 | 99.93% | 1 | 52.1 s |
+
+所有命中均为 direct hit，所有远端调用均成功、无重试。test/release 仅三个携带构建版本信息的
+application 入口 TU 未命中：`BaseApplicationEntry.cpp`、`ServerApplicationEntry.cpp`、
+`StandaloneServer.cpp`；fuzz 仅第一个。全部缓存压缩后约 3.56 GB，低于配额。
+
+三个池的 runner-info 均确认链接器为 `/usr/lib/llvm-22/bin/ld.lld`（22.1.8）。
+`perfetto.cc` 已命中：本轮不在 journal 的三个未命中源码中，Ninja 的完成行出现在
+06:55:47.105，比首个完成项晚约 0.43 秒。上一轮它实际分发并耗时 142.6 秒。
+这确认暖缓存已消除该 TU 的重复远端编译；Ninja 完成行不是独立编译耗时，不用它推算链接耗时。
+test 总构建测量时间较 485.3 秒基线下降约 59.4%。Release 仍耗时约 7.6 分钟，
+高缓存命中率不代表链接也被缓存。
+
+## ccache 日志矛盾的排查
+
+**旧交接中“每条 Submitting 都意味着本轮真实编译”的前提不成立。**
+ccache 缓存编译器 stderr，`CCACHE_PREFIX=pococc-cc` 的路由日志也在该缓存范围内。
+命中时可能重放历史 `Submitting` 和 `Executing locally`，而不会重新调用 pococc。
+
+历史证据已排除“ccache 没有参与”的判断：
+
+- test 清零后统计为 3640 hit / 164 miss，journal 恰有 164 条成功远端调用；
+- Release 清零后统计为 2026 hit / 3 miss，日志却有 2029 条 `Submitting`；
+- pococc 的 `Logger.hpp` 确认其日志写入 stderr，journal 则在实际执行后追加。
+
+新增 `scripts/ci/verify_ccache_replay.py` 在各池构建后完成直接验证：
+
+1. 从 Ninja 实际命令检查 launcher 为 `ccache clang++ ...`。
+   `compile_commands.json` 自身通常不包含 launcher，不能单靠它判断。
+2. 在独立缓存中对小型 TU 冷跑、暖跑，核对冷跑 1 miss / 1 journal，
+   暖跑增加 1 hit / 0 journal，同时仍打印相同的 `Submitting` stderr。
+3. 归档 Ninja 命令、两次 ccache 日志、stderr、计数器及 `replay.json`。
+   探针使用 `pococc-probe-*` 路径，沿用现有 worker 探针分类，不混入项目性能计量。
+
+**三个池的新探针均已通过本轮 CI 验收。** 每池冷跑 1 miss / 1 新 journal，暖跑增加
+1 direct hit / 0 新 journal，两次 stderr 完全相同且各含一条 `Submitting`。
+暖跑 ccache 日志明确记录 `Reading embedded entry #0 <stderr>` 和 `Result: direct_cache_hit`。
+test 的项目构建日志仍有 3824 条 `Submitting`，而本轮实际仅分发 3 次。
+
+分发次数应交叉核对本轮 ccache 统计、journal、distcc client 与 worker 记录，不能统计
+`Submitting` 行数，也不能对跨运行恢复的累计计数直接相减。探针归档在各池
+`pococc-<pool>-diagnostics-1/ccache-replay/`，原始项目计量仍在同 artifact 根目录。
+
+## 单元测试批处理
+
+根因已经确认：逐用例 CTest 为每个用例新建进程，每次重复初始化全局方块、标签、世界生成注册表。
+ASan/UBSan 下初始化约 12.6 秒，runner 上端到端开销更高。旧分片耗时 5900～10600 秒。
+
+现有执行器 `scripts/ci/run_unit_tests_batched.py` 保持 CTest 的全局编号、20 片 stride、
+日志 Start 行和 JUnit 接口；每批 200 个用例、四个进程并发。大多数分片已降至数分钟。
+批内失败单跑复核，单跑通过以 `[BatchPollution]` 标记。
+
+遗留长尾集中于 shard 6：
+
+- `GlazedTerracottaBlockTest.PistonLandingAppliesRotation`：SIGABRT；
+- `ServerChunkManagerTest.ConcurrentGenerateAndUnloadRace`：watchdog 检出 holder 泄漏并 abort；
+- `StructureReferencesRaceTest.MovePlayerAndGenerate_RaceRepro`：watchdog 检出 promise 泄漏并 abort。
+
+旧实现只有进程结束后的 XML；崩溃时反复二分，超时时整批展开为单例，
+会重复初始化大量已经完成或尚未开始的用例。将批次超时降至 300 秒仍不能解决这一点。
+
+本次修改：
+
+- 保留完整 gtest 输出，固定无颜色、非 brief、显示时间的格式；
+- XML 未落盘时，用成对 RUN/结束事件恢复已完成结果，包括失败及跳过；
+- 明确识别中断用例后，只将它单跑，其余未开始用例继续成批执行；
+- 无可用进度时保留二分/单例恢复；单例直接使用 test timeout，不重复复核已隔离失败。
+- 在 nightly 的 prepare 阶段验证恢复逻辑，包括崩溃、超时、参数化名、跳过、完整输出和 XML 优先级。
+
+**恢复改动已通过本轮 CI 验收。** 20 片的 `Run unit tests` 步骤耗时范围为 113～448 秒，
+中位数 199.5 秒；除 shard 6 外，其余 19 片均在 261 秒内完成。这里统计步骤墙钟时间，
+不含 job 的产物下载；shard 6 执行器自身测得 446.6 秒，比原批处理长尾 1956 秒缩短约 77.2%。
+
+shard 6 的三次恢复日志：
+
+| 中断用例 | 已完成并恢复的结果 | 未开始、继续批量执行的用例 |
+|---|---:|---:|
+| `GlazedTerracottaBlockTest.PistonLandingAppliesRotation` | 174 | 25 |
+| `StructureReferencesRaceTest.MovePlayerAndGenerate_RaceRepro` | 123 | 76 |
+| `ServerChunkManagerTest.ConcurrentGenerateAndUnloadRace` | 51 | 148 |
+
+三个批次的 600 个用例分为 348 个恢复结果、249 个继续批量执行的用例和 3 个单独复核的
+中断用例，没有整批退化为单例。三个单独复核仍异常退出，JUnit 分别保留在对应 testcase 的
+`error` 节点：GlazedTerracotta 为 ASan `stack-use-after-return`，另外两个为 watchdog abort。
+
+shard 6 的 JUnit 含 1390 条 testcase：1378 通过、6 个断言失败、3 个进程错误、3 个跳过，
+没有丢失中断用例的失败归属。已知批内污染
+`EnderDragonEntityTest.CheckCrystals_HealsEveryTenTicksWhileNotFull` 单跑通过，仍以
+`[BatchPollution]` 记录。job 成功不代表全部用例通过；不扩展调查与 CI 性能无关的存量失败。
+
+本轮证据：job `128658208056` 的恢复日志和执行器摘要，以及
+`pococc-unit-test-results-6/ctest-results.xml`。
+
+20 份 JUnit 合计 27790 条记录：27629 通过、97 个断言失败、12 个进程错误、52 个跳过，
+没有 `test did not run` 占位结果。这是产物统计；最终无遗漏、无重复仍由 CI report 的
+全局编号覆盖校验裁决，不能仅凭 testcase 总数替代覆盖率验证。
+
+## 收尾状态
+
+ccache 暖缓存命中、stderr 重放原因、真实 launcher、lld 选用和单测中断恢复均已通过 CI 验收。
+性能结果为 test 构建 196.8 秒、命中率 99.92%，单测最慢分片执行器耗时 446.6 秒。
+
+按用户指示不再等待或调查 benchmark/fuzz，后台监控已停止，CI 作业继续自行运行。
+因此最终 report 的全局编号覆盖率和整轮性能汇总未在本次收尾中验收；不据此宣称整轮 CI 全绿。
+单测中的功能失败及集成测试失败另行处理，不阻塞本次性能任务。
+全部改动仅推送至 `diag/shutdown-crash`，验收文档更新不重新触发构建。
+
+监控的历史状态和日志保留在 `/tmp/cubium-ci-monitor-42456395241.json` 及同名前缀的 `.log`。
+
+为满足只在当前分支验证的约束，Release 发布、image-data 推送和 issue 创建已限制为 main
+运行；诊断分支仍保留所有构建、测试及报告 artifact。

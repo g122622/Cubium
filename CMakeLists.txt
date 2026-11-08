@@ -273,6 +273,21 @@ endif()
 # 全局编译选项
 add_compile_options(-fcolor-diagnostics)
 
+# Linux + Clang 下统一使用 lld。
+#
+# 本项目的产物体积很大（单测二进制在 RelWithDebInfo + ASan 下约 2.3 GB），GNU ld 链接这种
+# 二进制要两分钟以上，而 lld 通常只要几十秒。此前 `-fuse-ld=lld` 只写在 Release 的 LTO 分支
+# 里（且条件写的是未定义变量 LINUX，实际从未生效），sanitizer 构建完全没有链接器选项。
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    find_program(MC_LD_LLD ld.lld)
+    if(MC_LD_LLD)
+        add_link_options("-fuse-ld=${MC_LD_LLD}")
+        message(STATUS "Linker: lld (${MC_LD_LLD})")
+    else()
+        message(WARNING "ld.lld not found; falling back to the default linker (slow for large binaries)")
+    endif()
+endif()
+
 if(MC_ENABLE_SANITIZERS)
     # Sanitizer 构建：禁用优化和可能干扰 sanitizer 的选项
     # CMAKE_CXX_FLAGS 中由调用者注入具体的 -fsanitize= 选项
@@ -305,13 +320,10 @@ else()
     # 链接时优化。只在release构建启用
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
-        if(WIN32 OR LINUX)
-            add_link_options(-flto=thin -fuse-ld=lld)
-        else()
-            add_link_options(-flto=thin)
-        endif()
-        if(WIN32 OR LINUX)
-            add_link_options(-Wl,-gc-sections) # 链接器选项，移除所有未引用的函数和数据（GNU ld/ld.lld）
+        add_link_options(-flto=thin)
+        # 链接器本身在文件上方按平台选择（Linux 用 lld）。
+        if(WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            add_link_options(-Wl,-gc-sections) # 链接器选项，移除所有未引用的函数和数据（ld/ld.lld）
         endif()
     endif()
 endif()
