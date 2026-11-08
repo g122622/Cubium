@@ -179,6 +179,28 @@ TEST_F(AddonEntityDefinitionTest, MarkerComponentsAreAcceptedAndIsBabyTakesEffec
 // is_baby 写在非 living 实体上不报错（只是无效果），基岩侧也不会因此拒绝行为包。
 // minecraft:knockback_resistance.value 必须落到击退抗性属性上，且只接受字面量数字：
 // range 对象 / Molang 当前没有"每 tick 求值"的通路，放任通过会导致组件被收下却不生效。
+// minecraft:cannot_be_attacked 是纯标记组件，解析后实体必须是无敌的（否则组件等于被忽略）。
+TEST_F(AddonEntityDefinitionTest, CannotBeAttackedMakesEntityInvulnerable)
+{
+    auto definition = _definition("addon_test:invulnerable");
+    definition["minecraft:entity"]["components"]["minecraft:cannot_be_attacked"] = nlohmann::json::object();
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    auto entity = AddonEntityDefinition::create(shared, nullptr, entities, {});
+    ASSERT_NE(entity, nullptr);
+    EXPECT_TRUE(entity->isInvulnerable()) << "cannot_be_attacked must make the entity invulnerable";
+
+    // 没写该组件的实体必须保持可被攻击，避免"一律无敌"的过度实现。
+    auto plain = AddonEntityDefinition::parse(_definition("addon_test:attackable"));
+    ASSERT_TRUE(plain.success()) << plain.error().message();
+    auto plainShared = std::make_shared<const AddonEntityDefinition>(plain.value());
+    auto plainEntity = AddonEntityDefinition::create(plainShared, nullptr, entities, {});
+    ASSERT_NE(plainEntity, nullptr);
+    EXPECT_FALSE(plainEntity->isInvulnerable());
+}
+
 TEST_F(AddonEntityDefinitionTest, KnockbackResistanceIsAppliedAndRequiresLiteralNumber)
 {
     auto definition = _definition("addon_test:knockback");
