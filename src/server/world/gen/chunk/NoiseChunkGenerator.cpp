@@ -818,11 +818,6 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 
 NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 {
-    return getBaseColumnWithStructures(x, z, nullptr);
-}
-
-NoiseColumn NoiseChunkGenerator::getBaseColumnWithStructures(i32 x, i32 z, WorldGenRegion* region) const
-{
     if (!m_randomState) {
         return NoiseColumn(m_settings.noise.minY, m_settings.noise.height);
     }
@@ -843,21 +838,10 @@ NoiseColumn NoiseChunkGenerator::getBaseColumnWithStructures(i32 x, i32 z, World
     const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
     const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
-    // 结构地形贡献：原版这里取的是 RandomState 缓存里**已经带 Beardifier** 的 NoiseChunk。
-    // 结构生成期该列所在区块通常已经建过 NoiseChunk（含已放置结构对密度的贡献），因此
-    // 结构落点扫描看到的是被结构整平/垫高后的地形，而不是原始地形。没有缓存命中时才
-    // 退化成零贡献的 BeardifierMarker（与 getHeight 一致）。
-    std::unique_ptr<world::gen::density::DensityFunction> beardifier =
-        std::make_unique<world::gen::density::BeardifierMarker>();
-    if (region != nullptr) {
-        const i32 chunkMinX = math::floorDiv(x, world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-        const i32 chunkMinZ = math::floorDiv(z, world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-        const auto starts = _collectStructureStarts(*region, chunkMinX, chunkMinZ);
-        const auto data = world::gen::density::collectBeardifierData(starts, chunkMinX, chunkMinZ);
-        if (!data.pieces.empty() || !data.junctions.empty()) {
-            beardifier = std::make_unique<world::gen::density::Beardifier>(data.pieces, data.junctions);
-        }
-    }
+    // 原版 `iterateNoiseColumn` 固定使用 `DensityFunctions.BeardifierMarker.INSTANCE`：
+    // 结构落点扫描看到的是**原始地形**，不叠加任何已放置结构的地形贡献。结构地形适配
+    // （Beardifier）只在真正生成区块的噪声块（`_buildBeardifier`）里参与。
+    auto beardifier = std::make_unique<world::gen::density::BeardifierMarker>();
 
     // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
     // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。

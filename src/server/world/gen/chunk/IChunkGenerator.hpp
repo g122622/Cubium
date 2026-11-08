@@ -220,23 +220,6 @@ public:
         return NoiseColumn(getMinY(), getGenDepth());
     }
 
-    /**
-     * @brief 获取指定位置的基础列，并在结构生成期计入已放置结构的地形贡献
-     *
-     * 原版结构落点扫描走的是 `ChunkGenerator.getBaseColumn(x, z, level, randomState)`，
-     * 它命中的 `NoiseChunk` 带 Beardifier——即被已放置结构整平/垫高过的地形。结构生成
-     * 阶段必须用这条路径，否则落点会按原始地形计算（废墟传送门在山地里偏低的根因）。
-     *
-     * @param x 方块 X 坐标
-     * @param z 方块 Z 坐标
-     * @param region 结构生成区域；为 nullptr 时等价于 `getBaseColumn`
-     */
-    [[nodiscard]] virtual NoiseColumn getBaseColumnWithStructures(i32 x, i32 z, WorldGenRegion* region) const
-    {
-        MC_UNUSED(region);
-        return getBaseColumn(x, z);
-    }
-
     // === 基本信息 ===
 
     [[nodiscard]] virtual u64 seed() const = 0;

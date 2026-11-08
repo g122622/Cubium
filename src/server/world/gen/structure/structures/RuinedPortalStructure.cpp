@@ -430,12 +430,14 @@ i32 _findSuitableY(math::IRandom& rng,
         : HeightmapType::WorldSurfaceWG;
 
     // 逐层取四条完整地形列：判据要的是"该 Y 处是不是实心地形"，而非"该列最高方块在哪"。
-    // 必须走带结构贡献的版本：原版 `getBaseColumn(x, z, level, randomState)` 命中的是
-    // 带 Beardifier 的 NoiseChunk，山地里附近结构会把地形整平，落点因此与原版一致。
-    const std::array<NoiseColumn, 4> cornerColumns = {generator.getBaseColumnWithStructures(minX, minZ, region),
-        generator.getBaseColumnWithStructures(maxX, minZ, region),
-        generator.getBaseColumnWithStructures(minX, maxZ, region),
-        generator.getBaseColumnWithStructures(maxX, maxZ, region)};
+    // 原版 `getBaseColumn(x, z, level, randomState)` 内部构造的 NoiseChunk 用的是
+    // `DensityFunctions.BeardifierMarker.INSTANCE`（**不含**任何结构的地形贡献），
+    // 这里不能擅自叠加结构贡献：STRUCTURE_STARTS 阶段回读本区块的 STRUCTURE_STARTS
+    // 既违反阶段依赖（本区块还没推进到该状态），结果也与原版不同。
+    const std::array<NoiseColumn, 4> cornerColumns = {generator.getBaseColumn(minX, minZ),
+        generator.getBaseColumn(maxX, minZ),
+        generator.getBaseColumn(minX, maxZ),
+        generator.getBaseColumn(maxX, maxZ)};
 
     i32 scanY = y;
     for (; scanY > minScanY; --scanY) {
