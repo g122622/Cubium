@@ -839,13 +839,14 @@ void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initia
         ItemStack& equipment = getMutableEquipment(slot);
         // TODO(equippable-component): vanilla 还要求 Equippable.damageOnHurt 为 true
         //   （默认 true，可被数据包关闭）。Cubium 未实现 EQUIPPABLE 组件，此处按默认值处理。
-        //   新发现的缺陷（待同一改造解决）：本函数还会对主手工具等非装备物品磨损耐久，而 vanilla
-        //   只有 Player.hurtArmor 传入的四个护甲槽与 hurtHelmet 传入的头盔槽会走到这里；护甲槽内
-        //   的非护甲物品（如头盔槽里的南瓜）在 vanilla 无 EQUIPPABLE 组件 → 不磨损。
+        //   缺的只是"按数据包关闭磨损"这一条开关语义；其余行为已经是正确的：
+        //   - 调用方只有 Player::hurtArmor（FEET/LEGS/CHEST/HEAD）与 hurtHelmet（HEAD），
+        //     主手/副手的工具不会被传入，所以不存在"误磨主手工具"的问题；
+        //   - 护甲槽里的非耐久物品（头盔槽里的南瓜等）由下面的 isDamageable() 挡掉，
+        //     这与 vanilla"无 EQUIPPABLE 组件即不磨损"的结果一致。
         //   落地顺序：① EQUIPPABLE 结构化载荷 + 编解码（slot/equip_sound/damage_on_hurt 等）
-        //   → ② 物品默认组件注册（护甲/鞘翅/wolf_armor）→ ③ 此处改读 stack.get(Equippable)，
-        //   并同步修正 MobEntity::getEquipmentSlotForItem 的「未落地组件→护甲槽位」近似
-        //   （MobEntity.cpp:1463）。
+        //   → ② 物品默认组件注册（护甲/鞘翅/wolf_armor）→ ③ 此处改读 stack.get(Equippable)。
+        //   MobEntity::getEquipmentSlotForItem 的「未落地组件→护甲槽位」近似可在那之后再收敛。
         if (equipment.isEmpty() || !equipment.isDamageable() || !equipment.canBeHurtBy(source)) {
             continue;
         }
