@@ -28,6 +28,7 @@
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
@@ -139,6 +140,24 @@ TEST_F(AddonEntityStateQueryTest, ArmorBodyAndInventoryDomainsDoNotOverlap)
     player.inventory().setItem(PlayerInventory::HOTBAR_SIZE, ItemStack(*item, 1));
     check(context, inventoryFilter, true);
     player.inventory().setItem(PlayerInventory::HOTBAR_SIZE, ItemStack::EMPTY);
+    check(context, inventoryFilter, false);
+}
+
+// 狐狸叼着的物品放在主手槽，inventory 域必须能查到它。
+TEST_F(AddonEntityStateQueryTest, FoxMouthItemIsQueryableThroughInventoryDomain)
+{
+    FoxEntity fox(EntityInstanceId(7), registry);
+    EntityFilterContext context{fox, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    const nlohmann::json inventoryFilter = {{"test", "has_equipment"}, {"domain", "inventory"}, {"value", "stick"}};
+
+    // 未叼物品时查不到。
+    check(context, inventoryFilter, false);
+
+    // 狐狸把叼着的物品放在主手槽，因此装备到主手后 inventory 域就应能查到。
+    fox.setEquipment(EquipmentSlot::MainHand, ItemStack(*item, 1));
+    check(context, inventoryFilter, true);
+
+    fox.setEquipment(EquipmentSlot::MainHand, ItemStack::EMPTY);
     check(context, inventoryFilter, false);
 }
 
