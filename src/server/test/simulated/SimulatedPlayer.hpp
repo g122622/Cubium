@@ -41,15 +41,17 @@ namespace mc::test {
  *
  * 已实现：spawn / discard / respawn / chat、moveToLocation / moveToBlock（含 MoveToOptions 的
  * speed 与 faceTarget）、lookAtLocation / lookAtBlock / lookAtEntity（含 LookDuration 的
- * Instant / Continuous / UntilMove）、jump、attack / interact（视线选目标）、
+ * Instant / Continuous / UntilMove）、move / moveRelative / stopMoving（结构方向与自身朝向两种）、
+ * rotateBody / setBodyRotation、jump、attack / interact（视线选目标）、
  * fly / stopFlying、glide / stopGliding、swim / stopSwimming、breakBlock / placeBlock、
- * useItem / useItemInSlot / useItemOnBlock / useItemInSlotOnBlock、giveItem / setItem、
- * setFoodLevel、setSprint / setSneaking 等状态设置。
+ * dropSelectedItem、useItem / useItemInSlot / useItemOnBlock / useItemInSlotOnBlock、
+ * giveItem / setItem、setFoodLevel、setSprint / setSneaking 等状态设置。
  *
- * 仍为 stub（绑定层报 notImplemented）：navigateTo*（需 PathNavigator 适配非 Mob 拥有者）、
- * move / moveRelative / stopMoving（需连续输入驱动）、startBuild / stopBuild、
- * stopBreakingBlock / stopInteracting（需使用中状态机）、rotateBody / setBodyRotation
- * （需身体旋转插值）、dropSelectedItem（需掉落物体系）。
+ * 仍为 stub（绑定层报 notImplemented，前置条件都确实缺失）：
+ * - navigateTo*（4 个）：需要 PathNavigator，而 Player 不是 MobEntity，无法挂寻路器；
+ * - startBuild / stopBuild：需要"持续建造"输入状态机，项目只有一次性的 placeBlock；
+ * - stopBreakingBlock：需要"持续挖掘"状态机，项目只有一次性的 breakBlock；
+ * - stopInteracting：需要"使用中/交互中"状态机。
  *
  * 生命周期：经 spawn(helper, name, relativePos, gameMode) 静态工厂构造并注入世界，
  * 实例所有权由 ServerWorld 的 EntityManager 持有（spawnEntity 接管 unique_ptr）；
