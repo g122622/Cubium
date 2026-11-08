@@ -120,6 +120,13 @@ std::optional<Path> PathNavigator::_createPath(const BlockPos& target, i32 reach
     return _createPath(std::vector<BlockPos>{target}, GROUND_SEARCH_RANGE, false, reachRange, maxPathLength);
 }
 
+bool PathNavigator::canReach(const BlockPos& target, i32 reachRange)
+{
+    // 只算路径不启动跟随：与 moveTo 共用 maxPathLength=16 的口径，保证"能不能到"
+    // 与"实际会不会去"使用同一限制。
+    return _createPath(target, reachRange, 16.0f).has_value();
+}
+
 std::optional<Path> PathNavigator::_createPath(
     const std::vector<BlockPos>& targets, i32 searchRange, bool above, i32 reachRange, f32 maxPathLength)
 {

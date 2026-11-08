@@ -11,13 +11,16 @@
 #include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp" // spawnSimulatedPlayer / removeSimulatedPlayer
 
+#include "common/entity/ai/pathfinding/PathNavigator.hpp" // PathNavigator::canReach（assertCanReachLocation）
+#include "common/entity/attribute/Attributes.hpp"         // Attributes::JUMP_STRENGTH（onPlayerJump）
 #include "common/entity/core/AgeableEntity.hpp" // applySpawnEvent 派发 spawn_baby 幼体事件（AgeableEntity::setChild）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EquipmentSlot.hpp"       // EquipmentSlot（assertEntityHasArmor 槽位映射）
-#include "common/entity/core/LivingEntity.hpp"        // killEntity 走 onKillCommand 伤害致死链路
-#include "common/entity/core/MobEntity.hpp"           // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
-#include "common/entity/entities/item/ItemEntity.hpp" // ItemEntity（assertItemEntityPresent 按物品类型过滤）
+#include "common/entity/core/EquipmentSlot.hpp"         // EquipmentSlot（assertEntityHasArmor 槽位映射）
+#include "common/entity/core/LivingEntity.hpp"          // killEntity 走 onKillCommand 伤害致死链路
+#include "common/entity/core/MobEntity.hpp"             // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
+#include "common/entity/entities/item/ItemEntity.hpp"   // ItemEntity（assertItemEntityPresent 按物品类型过滤）
+#include "common/entity/entities/misc/MiscEntities.hpp" // TNTEntity::setFuse（setTntFuse）
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // assertEntityHasComponent 判定 is_charged
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
@@ -1440,24 +1443,51 @@ GameTestResult GameTestHelper::assertEntityState(
 
 GameTestResult GameTestHelper::assertCanReachLocation(mc::Entity& entity, BlockPos relativePos, bool canReach)
 {
-    // TODO: 断言实体能否寻路到达 pos。依赖 PathNavigator（硬依赖 dynamic_cast<MobEntity*>，Player 不是
-    //       MobEntity）未就绪，stub。寻路做实见 MobEntity
-    //       寻路三层根因（mobentity-navigator-pathfinder-null-global-bug）。
-    (void)entity;
-    (void)relativePos;
-    (void)canReach;
-    return GameTestError{GameTestErrorType::MethodNotImplemented,
-        "assertCanReachLocation not implemented yet (pathfinding system pending)"};
+    // 对齐基岩 Test.assertCanReachLocation：断言实体能否寻路到达 pos。
+    // 只算路径不启动移动（PathNavigator::canReach），因此断言本身不改变实体状态。
+    // 寻路挂在 MobEntity 上；玩家（Player 不是 MobEntity）没有寻路能力，报不支持。
+    auto* mob = dynamic_cast<mc::MobEntity*>(&entity);
+    if (mob == nullptr || mob->navigator() == nullptr) {
+        return GameTestError{GameTestErrorType::MethodNotImplemented,
+            "assertCanReachLocation requires a mob entity with a path navigator"};
+    }
+
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    // 到达半径 1 与 vanilla assertCanReachLocation 的默认 reachRange 一致。
+    const bool actual = mob->navigator()->canReach(worldPos, 1);
+    if (actual != canReach) {
+        return GameTestError{GameTestErrorType::Assert,
+            "Entity {0} canReach {1} is {2}, expected {3}",
+            {entity.getTypeId(), relativePos.toString(), actual ? "true" : "false", canReach ? "true" : "false"}};
+    }
+
+    return std::nullopt;
 }
 
-void GameTestHelper::onPlayerJump(mc::Entity& /*entity*/, i32 /*jumpAmount*/)
+void GameTestHelper::onPlayerJump(mc::Entity& entity, i32 jumpAmount)
 {
-    // TODO: 模拟实体跳跃事件（对齐基岩 onPlayerJump）。依赖跳跃事件分发体系未就绪，stub。
+    // 对齐基岩 Test.onPlayerJump(mob, jumpAmount)：把跳跃强度设为给定值，下一次起跳即生效。
+    // 跳跃强度由 generic.jump_strength 属性承载（默认 0.42），因此这里写属性基础值；
+    // 非 LivingEntity 没有属性表，直接忽略。
+    auto* living = dynamic_cast<mc::LivingEntity*>(&entity);
+    if (living == nullptr) {
+        return;
+    }
+
+    auto* instance = living->attributes().getInstance(mc::entity::attribute::Attributes::JUMP_STRENGTH);
+    if (instance != nullptr) {
+        instance->setBaseValue(static_cast<f64>(jumpAmount));
+    }
 }
 
-void GameTestHelper::setTntFuse(mc::Entity& /*entity*/, i32 /*fuseLength*/)
+void GameTestHelper::setTntFuse(mc::Entity& entity, i32 fuseLength)
 {
-    // TODO: 设可爆炸实体（TNT 等）的引信时长。依赖实体 fuse 体系未就绪，stub。
+    // 对齐基岩 Test.setTntFuse：设置可爆炸实体的引信时长（tick）。
+    // TNTEntity 的 setFuse 同时写同步数据，客户端能看到倒计时。
+    auto* tnt = dynamic_cast<mc::entity::TNTEntity*>(&entity);
+    if (tnt != nullptr) {
+        tnt->setFuse(fuseLength);
+    }
 }
 
 // === 5. 坐标变换 ===
@@ -1556,22 +1586,19 @@ void GameTestHelper::failIf(std::function<GameTestResult()> fn)
 void GameTestHelper::succeedWhenEntityHasComponent(
     const std::string& entityType, const std::string& componentId, BlockPos relativePos, bool hasComponent)
 {
-    // TODO: 每 tick 检查 pos 处实体是否含指定组件，满足时标记成功（对齐基岩 succeedWhenEntityHasComponent）。
-    //       依赖实体组件查询体系未就绪，当前注册恒失败 succeed 条件（保持轮询语义，组件体系做实后补真实判定）。
+    // 每 tick 检查 pos 处实体是否具备指定组件，满足即标记成功（对齐基岩
+    // succeedWhenEntityHasComponent）。判定直接复用 assertEntityHasComponent——
+    // 与 succeedWhenBlockPresent 复用 assertBlockPresent 同构：返回 nullopt 表示条件
+    // 已满足，返回错误表示尚未满足，由框架继续轮询（错误文本会在超时时作为
+    // "last unmet condition" 一并报出）。
     std::string type = entityType;
     std::string comp = componentId;
     BlockPos rel = relativePos;
     bool want = hasComponent;
-    m_instance.registerSucceedCondition([this, type, comp, rel, want]() -> GameTestResult {
-        (void)this;
-        (void)type;
-        (void)comp;
-        (void)rel;
-        (void)want;
-        // 组件查询未就绪：恒返回"未满足"使轮询继续（由 maxTicks 超时兜底），避免假成功。
-        return GameTestError{GameTestErrorType::MethodNotImplemented,
-            "succeedWhenEntityHasComponent not implemented yet (entity component system pending)"};
-    });
+    m_instance.registerSucceedCondition(
+        [this, type = std::move(type), comp = std::move(comp), rel, want]() -> GameTestResult {
+            return assertEntityHasComponent(type, comp, rel, want);
+        });
 }
 
 // === 7. SimulatedPlayer ===
