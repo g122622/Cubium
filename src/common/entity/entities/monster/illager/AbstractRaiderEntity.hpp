@@ -28,6 +28,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 
 namespace mc {
 namespace world::village::raid {
@@ -156,14 +157,11 @@ public:
     /**
      * @brief 是否在袭击中（vanilla `Raider.hasRaid()`）。
      *
-     * 原版除自身所属袭击外，还会查脚下位置有没有袭击（`ServerLevel.getRaidAt`）；
-     * 这一路查询需要世界侧支持，目前只覆盖「自身已加入某场袭击」。
-     * TODO(raider-has-raid): 补上「位置上的袭击」这一路，见 EntityPredicate 的同名 TODO。
+     * 原版判定为 `getCurrentRaid() != null || serverLevel.getRaidAt(blockPosition()) != null`：
+     * 除了自身已加入的袭击，脚下位置存在进行中的袭击同样算"在袭击中"——尚未入队的
+     * 劫掠者站在袭击范围内时，战利品/进度条件应当成立。
      */
-    [[nodiscard]] bool hasRaid() const
-    {
-        return m_raid != nullptr;
-    }
+    [[nodiscard]] bool hasRaid() const;
 
     /**
      * @brief 是否袭击队长（vanilla `Raider.isCaptain()`）。
