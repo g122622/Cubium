@@ -44,6 +44,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
 #include "common/world/fluid/Fluid.hpp"                      // FluidState（assertIsWaterlogged 判定流体类型）
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/redstone/RedstonePower.hpp" // RedstonePower::getSignal（assertRedstonePower）
 #include "server/world/ServerWorld.hpp"
 
 #include <spdlog/spdlog.h>
@@ -687,17 +688,46 @@ GameTestResult GameTestHelper::pullLever(BlockPos relativePos)
 
 GameTestResult GameTestHelper::pulseRedstone(BlockPos relativePos, i32 duration)
 {
-    // TODO: 在 relativePos 处发 duration tick 的红石脉冲（红石信号体系就绪前 stub）
-    (void)relativePos;
-    (void)duration;
+    // 对齐基岩 Test.pulseRedstone：在 relativePos 处产生持续 duration tick 的红石脉冲。
+    // 实现方式是把该位置临时换成红石块（强度 15 的电源），到期后恢复原方块。
+    // 保存原状态用 BlockState 拷贝（BlockRegistry 持有的状态对象，拷贝安全）。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* previous = m_world.getBlockState(worldPos);
+    if (previous == nullptr) {
+        return generateErrorWithContext(
+            GameTestErrorType::LevelStateModificationFailed, "No block state at pulse position", relativePos);
+    }
+
+    const mc::BlockState previousState = *previous;
+    const auto setResult = setBlock("minecraft:redstone_block", relativePos, 3);
+    if (setResult.has_value()) {
+        return setResult;
+    }
+
+    runAfterDelay(duration, [this, worldPos, previousState]() -> GameTestResult {
+        m_world.setBlockState(worldPos, &previousState, 3);
+        return std::nullopt;
+    });
+
     return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertRedstonePower(BlockPos relativePos, i32 power)
 {
-    // TODO: 读取 relativePos 处红石信号强度断言（红石信号体系就绪前 stub）
-    (void)relativePos;
-    (void)power;
+    // 对齐基岩 Test.assertRedstonePower：断言 pos 处的红石信号强度。
+    // 取四面水平方向的最大信号（红石线/元件对外输出的强度），与 vanilla
+    // RedstonePower.getSignal 的口径一致。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    i32 actual = 0;
+    for (const Direction side : Directions::horizontal()) {
+        actual = std::max(actual, mc::world::redstone::RedstonePower::getSignal(m_world, worldPos, side));
+    }
+
+    if (actual != power) {
+        return generateErrorWithContext(
+            GameTestErrorType::Assert, fmt::format("Redstone power is {}, expected {}", actual, power), relativePos);
+    }
+
     return std::nullopt;
 }
 
