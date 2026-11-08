@@ -195,6 +195,41 @@ public:
     [[nodiscard]] bool interact();
 
     /**
+     * @brief 开始创造式飞行（对齐基岩 SimulatedPlayer::fly）。
+     *
+     * 对齐 vanilla：只有具备飞行能力（`abilities().canFly`，创造/旁观模式）才能起飞。
+     * 能力不足时不做任何事（基岩该 API 返回 void，无失败信号）。
+     */
+    void fly();
+
+    /**
+     * @brief 停止创造式飞行（对齐基岩 SimulatedPlayer::stopFlying）。
+     */
+    void stopFlying();
+
+    /**
+     * @brief 开始鞘翅滑翔（对齐基岩 SimulatedPlayer::glide）。
+     *
+     * @return 是否成功开始滑翔（需装备鞘翅且满足起飞条件）。
+     */
+    [[nodiscard]] bool glide();
+
+    /**
+     * @brief 停止鞘翅滑翔（对齐基岩 SimulatedPlayer::stopGliding）。
+     */
+    void stopGliding();
+
+    /**
+     * @brief 进入游泳姿态（对齐基岩 SimulatedPlayer::swim）。
+     */
+    void swim();
+
+    /**
+     * @brief 退出游泳姿态（对齐基岩 SimulatedPlayer::stopSwimming）。
+     */
+    void stopSwimming();
+
+    /**
      * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。
      *
      * 转发 Player::jump（地面 + 冷却为 0 才跳），返回是否真的起跳。

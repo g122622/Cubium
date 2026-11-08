@@ -299,6 +299,33 @@ TEST(SimulatedPlayerTest, FlyToLocation_CreativeEntersFlightTowardTarget)
     EXPECT_TRUE(player->isFlying());
 }
 
+// fly 受 abilities.canFly 门控；stopFlying/swim/stopSwimming 直接改状态。
+TEST(SimulatedPlayerTest, FlyRespectsAbilityGateAndSwimTogglesState)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1012), std::string{"FlyBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+
+    // 默认无飞行能力：fly() 必须不生效。
+    ASSERT_FALSE(player->abilities().canFly);
+    player->fly();
+    EXPECT_FALSE(player->isFlying()) << "fly must be gated by abilities.canFly";
+
+    // 授予飞行能力后可起飞，stopFlying 可收回。
+    player->abilities().canFly = true;
+    player->fly();
+    EXPECT_TRUE(player->isFlying());
+    player->stopFlying();
+    EXPECT_FALSE(player->isFlying());
+
+    // 游泳姿态可双向切换。
+    player->swim();
+    EXPECT_TRUE(player->isSwimming());
+    player->stopSwimming();
+    EXPECT_FALSE(player->isSwimming());
+}
+
 TEST(SimulatedPlayerTest, Jump_ReportsWhetherJumpHappened)
 {
     mc::Items::ensureInitialized();

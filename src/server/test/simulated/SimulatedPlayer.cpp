@@ -517,6 +517,45 @@ bool SimulatedPlayer::interact()
     return useItemOnBlock(emptyStack, blockHit.blockPos(), blockHit.face(), faceLocation);
 }
 
+// === 飞行 / 滑翔 / 游泳（对齐基岩 SimulatedPlayer::fly/glide/swim 系列）===
+
+void SimulatedPlayer::fly()
+{
+    // 起飞需要飞行能力（创造/旁观模式由 GameMode 设置 abilities.canFly）。
+    if (!abilities().canFly) {
+        spdlog::warn("[gametest] SimulatedPlayer::fly ignored: player has no flight ability");
+        return;
+    }
+
+    setFlying(true);
+}
+
+void SimulatedPlayer::stopFlying()
+{
+    setFlying(false);
+}
+
+bool SimulatedPlayer::glide()
+{
+    // tryToStartFallFlying 内部已检查 canGlide()（装备鞘翅）与水中/已飞行等前置条件。
+    return tryToStartFallFlying();
+}
+
+void SimulatedPlayer::stopGliding()
+{
+    stopFallFlying();
+}
+
+void SimulatedPlayer::swim()
+{
+    setSwimming(true);
+}
+
+void SimulatedPlayer::stopSwimming()
+{
+    setSwimming(false);
+}
+
 // === 方块破坏 / 放置 / 疾跑（对齐基岩 SimulatedPlayer::breakBlock/placeBlock/setSprint）===
 
 bool SimulatedPlayer::breakBlock(BlockPos relativePos)

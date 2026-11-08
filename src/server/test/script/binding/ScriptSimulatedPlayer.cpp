@@ -1410,11 +1410,27 @@ u64 registerSimulatedPlayerClassBinding(
             return _throwNotImplemented(ctx, "stopInteracting");
         },
         0);
+    // breakBlock(blockLocation, direction?) -> boolean
+    // 基岩语义：按服务端游戏模式规则破坏方块，返回该位置是否为固体方块。
+    // direction 用于"从哪一面开始挖"，当前底层 breakBlock 直接走完整破坏链路，该面不影响结果。
     reg.method(
         "breakBlock",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "breakBlock");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 1) {
+                return ctx.throwTypeError("breakBlock(blockLocation, direction?)");
+            }
+
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+
+            return ctx.createBoolean(player->breakBlock(pos));
         },
         2);
     reg.method(
@@ -1439,48 +1455,78 @@ u64 registerSimulatedPlayerClassBinding(
         },
         0);
 
-    // === 飞行/滑翔/游泳 stub（依赖物理状态机/abilities 细化）===
-    // TODO: fly/glide/swim 物理分支（abilities.flying / fall-flying / swim 状态）实现后做实。
+    // === 飞行 / 滑翔 / 游泳 ===
+    // fly/stopFlying 走 Player::setFlying（受 abilities.canFly 门控）；glide/stopGliding 走
+    // tryToStartFallFlying/stopFallFlying（内部检查鞘翅与水中等前置）；swim/stopSwimming 走 setSwimming。
     reg.method(
         "fly",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "fly");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->fly();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "stopFlying",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopFlying");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopFlying();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "glide",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "glide");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->glide());
         },
         0);
     reg.method(
         "stopGliding",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopGliding");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopGliding();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "swim",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "swim");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->swim();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "stopSwimming",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopSwimming");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopSwimming();
+            return ctx.createUndefined();
         },
         0);
 
