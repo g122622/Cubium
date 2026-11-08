@@ -48,26 +48,29 @@ namespace {
 
 } // namespace
 
-EnchantmentPredicate::EnchantmentPredicate(std::optional<ResourceLocation> enchantment, IntBounds levels)
-    : m_enchantment(std::move(enchantment))
+EnchantmentPredicate::EnchantmentPredicate(std::vector<Entry> entries, IntBounds levels)
+    : m_entries(std::move(entries))
     , m_levels(levels)
 {}
 
 std::optional<i32> EnchantmentPredicate::_findLevel(const item::enchant::EnchantmentContainer& enchantments,
     const std::function<std::vector<std::string>(const ResourceLocation&)>& tagResolver) const
 {
-    if (m_enchantmentTag.has_value()) {
-        const std::vector<std::string> members = tagResolver(m_enchantmentTag.value());
-        for (const auto& [id, level] : enchantments.getAll()) {
-            if (std::find(members.begin(), members.end(), id) != members.end()) {
-                return level;
+    // 容器里第一个满足"属于本谓词任一 entry"的附魔，其等级即为比较对象。
+    for (const Entry& entry : m_entries) {
+        if (entry.isTag) {
+            const std::vector<std::string> members = tagResolver(entry.id);
+            for (const auto& [id, level] : enchantments.getAll()) {
+                if (std::find(members.begin(), members.end(), id) != members.end()) {
+                    return level;
+                }
             }
+            continue;
         }
-        return std::nullopt;
-    }
-    if (m_enchantment.has_value()) {
-        const i32 level = enchantments.getLevel(m_enchantment.value().toString());
-        return level > 0 ? std::optional<i32>(level) : std::nullopt;
+        const i32 level = enchantments.getLevel(entry.id.toString());
+        if (level > 0) {
+            return level;
+        }
     }
     return std::nullopt;
 }
@@ -88,8 +91,8 @@ bool EnchantmentPredicate::test(const item::enchant::EnchantmentContainer& encha
         return true;
     }
 
-    // 指定了具体附魔或附魔标签：容器里取其等级，再判断等级范围。
-    if (m_enchantment.has_value() || m_enchantmentTag.has_value()) {
+    // 指定了附魔集合：容器中命中其中任一条目，再判断该附魔的等级范围。
+    if (!m_entries.empty()) {
         const std::optional<i32> level = _findLevel(enchantments, tagResolver);
         return level.has_value() && m_levels.test(level.value());
     }
@@ -110,7 +113,7 @@ bool EnchantmentPredicate::test(const item::enchant::EnchantmentContainer& encha
 
 bool EnchantmentPredicate::isAny() const noexcept
 {
-    return !m_enchantment.has_value() && !m_enchantmentTag.has_value() && m_levels.isUnbounded();
+    return m_entries.empty() && m_levels.isUnbounded();
 }
 
 Result<EnchantmentPredicate> EnchantmentPredicate::fromJson(const nlohmann::json& json)
@@ -119,16 +122,15 @@ Result<EnchantmentPredicate> EnchantmentPredicate::fromJson(const nlohmann::json
         return EnchantmentPredicate{};
     }
 
-    std::optional<ResourceLocation> enchantment;
-    std::optional<ResourceLocation> enchantmentTag;
+    std::vector<EnchantmentPredicate::Entry> entries;
     IntBounds levels;
 
     // 解析 HolderSet<Enchantment> 的一个元素：`#tag` 是标签，其余是具体附魔。
-    const auto assign = [&](const std::string& name) {
+    const auto append = [&](const std::string& name) {
         if (isTagName(name)) {
-            enchantmentTag = ResourceLocation(name.substr(1));
+            entries.push_back(EnchantmentPredicate::Entry{ResourceLocation(name.substr(1)), true});
         } else {
-            enchantment = ResourceLocation(name);
+            entries.push_back(EnchantmentPredicate::Entry{ResourceLocation(name), false});
         }
     };
 
@@ -148,12 +150,14 @@ Result<EnchantmentPredicate> EnchantmentPredicate::fromJson(const nlohmann::json
         }
         if (names != nullptr) {
             if (names->is_string()) {
-                assign(names->get<std::string>());
-            } else if (names->is_array() && !names->empty() && (*names)[0].is_string()) {
-                // 多元素写法：原版 HolderSet 的语义是「包含其中任意一个」，且元素本身可能是标签。
-                // TODO(item-predicate-multi-enchantment): 只建模了一个集合元素，多元素写法当前
-                //   只取第一个；数据包目前未使用多元素写法。
-                assign((*names)[0].get<std::string>());
+                append(names->get<std::string>());
+            } else if (names->is_array()) {
+                // 多元素写法：HolderSet 的顺序即"任意一个"，每个元素都参与匹配。
+                for (const auto& element : *names) {
+                    if (element.is_string()) {
+                        append(element.get<std::string>());
+                    }
+                }
             }
         }
         if (json.contains("levels")) {
@@ -162,9 +166,7 @@ Result<EnchantmentPredicate> EnchantmentPredicate::fromJson(const nlohmann::json
     }
 
     // IntBounds 是可平凡拷贝的小值类型，按值传入即可，move 不会有任何效果。
-    EnchantmentPredicate predicate(std::move(enchantment), levels);
-    predicate.m_enchantmentTag = std::move(enchantmentTag);
-    return predicate;
+    return EnchantmentPredicate(std::move(entries), levels);
 }
 
 nlohmann::json EnchantmentPredicate::toJson() const
@@ -174,11 +176,16 @@ nlohmann::json EnchantmentPredicate::toJson() const
     }
 
     nlohmann::json json;
-    if (m_enchantment.has_value()) {
-        json["enchantment"] = m_enchantment.value().toString();
-    }
-    if (m_enchantmentTag.has_value()) {
-        json["enchantment"] = "#" + m_enchantmentTag.value().toString();
+    // 单个条目沿用原版常见的字符串字段名，多个条目写出数组形式，便于与数据包互转。
+    if (m_entries.size() == 1) {
+        const Entry& entry = m_entries.front();
+        json["enchantment"] = entry.isTag ? "#" + entry.id.toString() : entry.id.toString();
+    } else if (!m_entries.empty()) {
+        nlohmann::json list = nlohmann::json::array();
+        for (const Entry& entry : m_entries) {
+            list.push_back(entry.isTag ? "#" + entry.id.toString() : entry.id.toString());
+        }
+        json["enchantments"] = std::move(list);
     }
     if (!m_levels.isUnbounded()) {
         json["levels"] = m_levels.toJson();

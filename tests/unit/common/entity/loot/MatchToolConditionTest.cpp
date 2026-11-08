@@ -236,7 +236,9 @@ TEST_F(MatchToolConditionTest, WithEnchantmentPredicate_MatchingEnchantment_Retu
 {
     // 创建带有精准采集附魔谓词的 ItemPredicate
     advancement::EnchantmentPredicate silkTouch(
-        ResourceLocation("minecraft:silk_touch"), advancement::IntBounds::atLeast(1));
+        std::vector<advancement::EnchantmentPredicate::Entry>{
+            advancement::EnchantmentPredicate::Entry{ResourceLocation("minecraft:silk_touch"), false}},
+        advancement::IntBounds::atLeast(1));
 
     std::vector<advancement::EnchantmentPredicate> enchantments;
     enchantments.push_back(std::move(silkTouch));
@@ -267,7 +269,9 @@ TEST_F(MatchToolConditionTest, WithEnchantmentPredicate_NoMatchingEnchantment_Re
 {
     // 创建带有精准采集附魔谓词的 ItemPredicate
     advancement::EnchantmentPredicate silkTouch(
-        ResourceLocation("minecraft:silk_touch"), advancement::IntBounds::atLeast(1));
+        std::vector<advancement::EnchantmentPredicate::Entry>{
+            advancement::EnchantmentPredicate::Entry{ResourceLocation("minecraft:silk_touch"), false}},
+        advancement::IntBounds::atLeast(1));
 
     std::vector<advancement::EnchantmentPredicate> enchantments;
     enchantments.push_back(std::move(silkTouch));

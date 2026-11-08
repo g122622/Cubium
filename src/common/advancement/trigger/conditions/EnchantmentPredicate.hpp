@@ -29,6 +29,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <optional>
+#include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -47,16 +48,27 @@ namespace mc::advancement {
 class EnchantmentPredicate {
 public:
     /**
+     * @brief 附魔集合条目
+     *
+     * 原版 `enchantments` 字段是 `HolderSet<Enchantment>`，每个元素可以是具体附魔 ID，
+     * 也可以是 `#tag` 形式的附魔标签；语义是"容器中包含其中任意一个即可"。
+     */
+    struct Entry {
+        ResourceLocation id; ///< 附魔 ID，或标签名（不含 `#` 前缀）
+        bool isTag;          ///< true 表示 id 是标签名
+    };
+
+    /**
      * @brief 默认构造（匹配任意附魔）
      */
     EnchantmentPredicate() = default;
 
     /**
      * @brief 构造附魔谓词
-     * @param enchantment 附魔ID（可选，为空则匹配任意附魔类型）
+     * @param entries 附魔集合条目（为空则匹配任意附魔类型）
      * @param levels 附魔等级范围
      */
-    EnchantmentPredicate(std::optional<ResourceLocation> enchantment, IntBounds levels);
+    EnchantmentPredicate(std::vector<Entry> entries, IntBounds levels);
 
     /**
      * @brief 检查附魔容器中是否存在匹配的附魔
@@ -101,17 +113,12 @@ public:
     [[nodiscard]] nlohmann::json toJson() const;
 
     // ========== Getters ==========
+    // ========== Getters ==========
 
-    /// 具体附魔 ID（与 `getEnchantmentTag` 二选一）。
-    [[nodiscard]] const std::optional<ResourceLocation>& getEnchantment() const noexcept
+    /// 附魔集合的全部条目（空表示不限定附魔集合）。
+    [[nodiscard]] const std::vector<Entry>& getEntries() const noexcept
     {
-        return m_enchantment;
-    }
-
-    /// 附魔标签（原版 `HolderSet` 的 `#tag` 写法）。
-    [[nodiscard]] const std::optional<ResourceLocation>& getEnchantmentTag() const noexcept
-    {
-        return m_enchantmentTag;
+        return m_entries;
     }
 
     [[nodiscard]] const IntBounds& getLevels() const noexcept
@@ -120,13 +127,12 @@ public:
     }
 
 private:
-    /// 容器里是否有属于「具体附魔」或「附魔标签」的条目；返回首个命中的等级。
+    /// 在容器的附魔集合中查找与本谓词条目匹配的等级；返回首个命中的等级。
     [[nodiscard]] std::optional<i32> _findLevel(const item::enchant::EnchantmentContainer& enchantments,
         const std::function<std::vector<std::string>(const ResourceLocation&)>& tagResolver) const;
 
-    std::optional<ResourceLocation> m_enchantment;    ///< 附魔 ID
-    std::optional<ResourceLocation> m_enchantmentTag; ///< 附魔标签
-    IntBounds m_levels;                               ///< 附魔等级范围
+    std::vector<Entry> m_entries; ///< 附魔集合（空表示不限定）
+    IntBounds m_levels;           ///< 附魔等级范围
 };
 
 } // namespace mc::advancement
