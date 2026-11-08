@@ -14,8 +14,9 @@
 #include "common/entity/core/AgeableEntity.hpp" // applySpawnEvent 派发 spawn_baby 幼体事件（AgeableEntity::setChild）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
-#include "common/entity/core/MobEntity.hpp"    // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
+#include "common/entity/core/LivingEntity.hpp"        // killEntity 走 onKillCommand 伤害致死链路
+#include "common/entity/core/MobEntity.hpp"           // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
+#include "common/entity/entities/item/ItemEntity.hpp" // ItemEntity（assertItemEntityPresent 按物品类型过滤）
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"  // applySpawnEvent 派发 sheep color_<dye> 颜色事件
@@ -174,6 +175,13 @@ std::string normalizeEntityType(const std::string& name)
         return it->second;
     }
     return full;
+}
+
+// 物品 id 规范化：与实体类型不同，物品没有 <spawnEvent> 后缀与基岩别名表，
+// 只需要在缺少命名空间时补 minecraft:（GameTest 里常写 "apple" 而非 "minecraft:apple"）。
+std::string normalizeItemType(const std::string& name)
+{
+    return name.find(':') == std::string::npos ? "minecraft:" + name : name;
 }
 
 // 对刚创建的实体派发 spawn 事件（对齐基岩 spawn <spawnEvent> 后缀语义）。
@@ -928,22 +936,70 @@ GameTestResult GameTestHelper::assertEntityTouching(
 GameTestResult GameTestHelper::assertItemEntityPresent(
     const std::string& itemType, BlockPos relativePos, f32 searchDistance, bool isPresent)
 {
-    // TODO: 区分 ItemEntity 并按 itemType 过滤（ItemEntity 体系就绪前用类型名 minecraft:item 近似）
-    (void)itemType;
-    (void)relativePos;
-    (void)searchDistance;
-    (void)isPresent;
+    // 对齐基岩 Test.assertItemEntityPresent：以 relativePos 为中心、searchDistance 为半径
+    // 查找指定物品类型的掉落物实体。按 ItemEntity::getItemStack() 的物品 id 过滤。
+    const auto fullItemType = normalizeItemType(itemType);
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const AxisAlignedBB box = AxisAlignedBB::fromPosition(Vector3(static_cast<f32>(worldPos.x) + 0.5f,
+                                                              static_cast<f32>(worldPos.y) + 0.5f,
+                                                              static_cast<f32>(worldPos.z) + 0.5f),
+        0.0f,
+        0.0f)
+                                  .grow(searchDistance);
+
+    bool found = false;
+    for (const auto* e : m_world.getEntitiesInAABB(box, nullptr)) {
+        const auto* itemEntity = dynamic_cast<const mc::ItemEntity*>(e);
+        if (itemEntity == nullptr || !itemEntity->isAlive()) {
+            continue;
+        }
+
+        const mc::ItemStack& stack = itemEntity->getItemStack();
+        if (!stack.isEmpty() && stack.getItem()->itemLocation().toString() == fullItemType) {
+            found = true;
+            break;
+        }
+    }
+
+    if (found != isPresent) {
+        return GameTestError{GameTestErrorType::Assert,
+            isPresent ? "Expected item entity '{0}' present" : "Expected item entity '{0}' absent",
+            {fullItemType}};
+    }
     return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertItemEntityCountIs(
     const std::string& itemType, BlockPos relativePos, f32 searchDistance, i32 count)
 {
-    // TODO: 统计指定 itemType 的 ItemEntity 数量（ItemEntity 体系就绪前 stub）
-    (void)itemType;
-    (void)relativePos;
-    (void)searchDistance;
-    (void)count;
+    // 对齐基岩 Test.assertItemEntityCountIs：统计范围内指定物品类型的掉落物数量。
+    const auto fullItemType = normalizeItemType(itemType);
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const AxisAlignedBB box = AxisAlignedBB::fromPosition(Vector3(static_cast<f32>(worldPos.x) + 0.5f,
+                                                              static_cast<f32>(worldPos.y) + 0.5f,
+                                                              static_cast<f32>(worldPos.z) + 0.5f),
+        0.0f,
+        0.0f)
+                                  .grow(searchDistance);
+
+    i32 actual = 0;
+    for (const auto* e : m_world.getEntitiesInAABB(box, nullptr)) {
+        const auto* itemEntity = dynamic_cast<const mc::ItemEntity*>(e);
+        if (itemEntity == nullptr || !itemEntity->isAlive()) {
+            continue;
+        }
+
+        const mc::ItemStack& stack = itemEntity->getItemStack();
+        if (!stack.isEmpty() && stack.getItem()->itemLocation().toString() == fullItemType) {
+            ++actual;
+        }
+    }
+
+    if (actual != count) {
+        return GameTestError{GameTestErrorType::Assert,
+            "Expected {0} item entity of type '{1}', found {2}",
+            {std::to_string(count), fullItemType, std::to_string(actual)}};
+    }
     return std::nullopt;
 }
 
