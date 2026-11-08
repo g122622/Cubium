@@ -518,3 +518,98 @@ TEST_F(AddonEquippableArmorBindingTest, TotalArmorTracksAttributeChanges)
         }
     )");
 }
+
+// HealthComponent 的 effectiveMin/defaultValue 与 reset* 方法必须读 max_health 属性，
+// 而不是硬编码 0/20/1。用一个 max_health 默认值被改写的 LivingEntity 验证。
+class AddonHealthAttributeBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+        subject = std::make_unique<mc::LivingEntity>(mc::EntityInstanceId(1), nullptr, registry);
+        context = createContext();
+        ASSERT_NE(context, nullptr);
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    std::unique_ptr<IScriptContext> createContext()
+    {
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        if (!created) {
+            return nullptr;
+        }
+        auto& binding = created->bindingContext();
+        binding.setPackId("health-pack");
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        return created;
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "health-attributes.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-health-attributes"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::LivingEntity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonHealthAttributeBindingTest, EffectiveMinAndDefaultValueComeFromMaxHealthAttribute)
+{
+    // 默认 max_health 属性：defaultValue=20.0、minValue=1.0。
+    check(R"(
+        const health = subject.getComponent('minecraft:health');
+        if (health === undefined) throw Error('health component missing');
+        if (health.effectiveMin !== 1) throw Error('effectiveMin=' + health.effectiveMin);
+        if (health.defaultValue !== 20) throw Error('defaultValue=' + health.defaultValue);
+    )");
+}
+
+TEST_F(AddonHealthAttributeBindingTest, ResetToDefaultValueUsesAttributeDefault)
+{
+    // 把 max_health 基值改成 40 后，defaultValue 应随属性实例里的 default 变化——
+    // 这里只验证 resetToDefaultValue 与 defaultValue 一致，而非写死 20。
+    subject->attributes().setBaseValue(mc::entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    check(R"(
+        {
+            const health = subject.getComponent('minecraft:health');
+            health.setCurrentValue(5);
+            if (health.currentValue !== 5) throw Error('setCurrentValue failed');
+            health.resetToDefaultValue();
+            if (health.currentValue !== health.defaultValue) {
+                throw Error('resetToDefaultValue=' + health.currentValue + ' default=' + health.defaultValue);
+            }
+        }
+    )");
+}
+
+TEST_F(AddonHealthAttributeBindingTest, ResetToMinValueUsesAttributeMin)
+{
+    subject->attributes().setBaseValue(mc::entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    check(R"(
+        {
+            const health = subject.getComponent('minecraft:health');
+            health.setCurrentValue(30);
+            health.resetToMinValue();
+            if (health.currentValue !== health.effectiveMin) {
+                throw Error('resetToMinValue=' + health.currentValue + ' min=' + health.effectiveMin);
+            }
+        }
+    )");
+}

@@ -2271,13 +2271,27 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
         return ctx.createFloat64(static_cast<f64>(living->maxHealth()));
     });
-    healthReg.readonlyProperty("effectiveMin", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: 读 AttributeInstance::attribute().minValue()，属性边界后续完善。
-        return ctx.createFloat64(0.0);
+    healthReg.readonlyProperty("effectiveMin", [healthClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // max_health 属性由 LivingEntity 构造期注册，正常不会缺失；缺失时回退到该属性的下界 1.0。
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
+        auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+        if (living == nullptr) {
+            return ctx.createFloat64(0.0);
+        }
+
+        const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+        return ctx.createFloat64(inst != nullptr ? inst->attribute().minValue() : 1.0);
     });
-    healthReg.readonlyProperty("defaultValue", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: HealthComponent 默认 m_health{20.0f}，按实体类型差异后续完善。
-        return ctx.createFloat64(20.0);
+    healthReg.readonlyProperty("defaultValue", [healthClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 默认生命值取 max_health 属性的 defaultValue（各实体类型可不同），缺失时 20.0。
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
+        auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+        if (living == nullptr) {
+            return ctx.createFloat64(20.0);
+        }
+
+        const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+        return ctx.createFloat64(inst != nullptr ? inst->attribute().defaultValue() : 20.0);
     });
     healthReg.method(
         "setCurrentValue",
@@ -2313,22 +2327,24 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         });
     healthReg.method("resetToMinValue",
         [healthClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
-            // TODO: 按 AttributeInstance::attribute().minValue() 设置，暂用 1.0（属性 min=1.0）。
+            // 下界取 max_health 属性的 minValue()（vanilla 为 1.0），属性实例缺失时回退 1.0。
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
             auto* living = dynamic_cast<mc::LivingEntity*>(ent);
             if (living != nullptr) {
-                living->setHealth(1.0f);
+                const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+                living->setHealth(static_cast<f32>(inst != nullptr ? inst->attribute().minValue() : 1.0));
             }
 
             return ctx.createUndefined();
         });
     healthReg.method("resetToDefaultValue",
         [healthClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
-            // TODO: 按实体类型默认 health 设置，暂用 20.0。
+            // 默认值取 max_health 属性的 defaultValue（各实体类型可不同），缺失时 20.0。
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
             auto* living = dynamic_cast<mc::LivingEntity*>(ent);
             if (living != nullptr) {
-                living->setHealth(20.0f);
+                const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+                living->setHealth(static_cast<f32>(inst != nullptr ? inst->attribute().defaultValue() : 20.0));
             }
 
             return ctx.createUndefined();
@@ -2382,7 +2398,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
 
         const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MOVEMENT_SPEED);
-        // TODO: 各实体默认移动速度不同，inst 缺失时 fallback 0.25（vanilla 通用值）。
+        // 属性实例缺失时回退 0.25（vanilla 通用移动速度）。
         return ctx.createFloat64(inst != nullptr ? inst->attribute().defaultValue() : 0.25);
     });
     movementReg.method(
