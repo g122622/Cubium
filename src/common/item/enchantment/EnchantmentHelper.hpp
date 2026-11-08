@@ -118,6 +118,48 @@ public:
     [[nodiscard]] static std::vector<std::pair<const Enchantment*, i32>> getEnchantments(const ItemStack& stack);
 
     /**
+     * @brief 按 `minecraft:tooltip_order` 附魔标签排好序的附魔列表
+     *
+     * 对应原版 `ItemEnchantments#addToTooltip`：先按 `EnchantmentTags.TOOLTIP_ORDER` 标签的
+     * 声明顺序列出标签内的附魔，再追加不在标签内的附魔（顺序取物品自身的存储顺序）。
+     * 物品提示框逐行显示附魔时用的就是这个顺序——例如"经验修补"在附魔书提示框中恒排最后。
+     *
+     * 标签未加载（无数据包）时整体退化为 `getEnchantments` 的存储顺序，不会丢行。
+     *
+     * @param stack 物品堆
+     * @return 排好序的附魔列表（附魔指针和等级）
+     */
+    [[nodiscard]] static std::vector<std::pair<const Enchantment*, i32>> getSortedEnchantmentsForTooltip(
+        const ItemStack& stack);
+
+    /**
+     * @brief 构造附魔的完整显示名（名称 + 罗马数字等级），对应原版 `Enchantment#getFullname`
+     *
+     * 名称取 `Enchantment::getNameKey()` 的本地化文本；等级不为 1 或最大等级不为 1 时追加
+     * 一个空格与 `enchantment.level.<等级>` 的本地化文本（I/II/…）。
+     *
+     * 颜色码写成 `§<code>` 前缀即可：附魔名与 § 不可能重名，无需再转义。颜色三态由
+     * `Style::applyLegacyFormat` 与 `getStyleCodes` 计算，不在本函数里硬编码字符。
+     *
+     * @param enchantment 附魔定义（非空）
+     * @param level 附魔等级
+     * @param isCurse 是否为诅咒附魔（决定红色，否则灰色）
+     * @return 带颜色码与等级后缀的显示名
+     */
+    [[nodiscard]] static std::string getFullName(const Enchantment& enchantment, i32 level, bool isCurse);
+
+    /**
+     * @brief 构造附魔名称本身（不含等级后缀）的带色文本
+     *
+     * 颜色规则与 `getFullName` 一致：诅咒红色、其余灰色。
+     *
+     * @param enchantment 附魔定义（非空）
+     * @param isCurse 是否为诅咒附魔
+     * @return 带颜色码的附魔名称
+     */
+    [[nodiscard]] static std::string getColoredName(const Enchantment& enchantment, bool isCurse);
+
+    /**
      * @brief 设置物品上的所有附魔
      *
      * 清除物品上现有的所有附魔，然后添加新的附魔列表。

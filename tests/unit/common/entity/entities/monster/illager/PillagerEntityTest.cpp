@@ -259,4 +259,52 @@ TEST(RangedCrossbowAttackGoalTest, CrossbowStateEnum)
     EXPECT_EQ(static_cast<u8>(entity::ai::goal::CrossbowState::ReadyToAttack), 3);
 }
 
+// ============================================================================
+// hasRaid 测试（自身所属袭击 + 位置上的袭击）
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 允许直接设置 m_raid 的掠夺者，用于验证 hasRaid 的"自身所属袭击"分支
+ */
+class RaidLinkablePillager final : public PillagerEntity {
+public:
+    RaidLinkablePillager()
+        : PillagerEntity(EntityInstanceId(90), mc::test::testEcsRegistry())
+    {}
+
+    void linkRaid(world::village::raid::Raid* raid)
+    {
+        m_raid = raid;
+    }
+};
+
+} // namespace
+
+TEST(PillagerEntityTest, HasRaidIsFalseWithoutRaidOrRaidManager)
+{
+    // 世界不提供 RaidManager（默认返回 nullptr），且自身未加入任何袭击。
+    PillagerTestWorld world;
+    PillagerEntity pillager(EntityInstanceId(91), mc::test::testEcsRegistry());
+    pillager.setWorld(&world);
+    pillager.setPosition(0.0f, 64.0f, 0.0f);
+
+    EXPECT_FALSE(pillager.hasRaid());
+}
+
+TEST(PillagerEntityTest, HasRaidIsTrueWhenLinkedToRaid)
+{
+    PillagerTestWorld world;
+    RaidLinkablePillager pillager;
+    pillager.setWorld(&world);
+    pillager.setPosition(0.0f, 64.0f, 0.0f);
+
+    // 用真实的 Raid 对象代表"已加入某场袭击"：hasRaid 走自身分支，不做位置查询。
+    world::village::raid::Raid raid(world::village::raid::RaidId(1), nullptr);
+    pillager.linkRaid(&raid);
+
+    EXPECT_TRUE(pillager.hasRaid());
+}
+
 } // namespace mc

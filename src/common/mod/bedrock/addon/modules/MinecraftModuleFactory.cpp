@@ -88,6 +88,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp"    // ContainerBlockEntity::getInventory（Container 底层）
 #include "common/world/blockentity/processing/BeaconEntity.hpp" // BeaconEntity::getLevel（Block.beaconLevel 读信标等级）
 #include "common/world/border/WorldBorder.hpp"                  // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
+#include "common/world/fluid/Fluid.hpp"                         // FluidState/Fluid（Block.isWaterlogged 判定流体类型）
 #include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
 #include <optional>
@@ -894,15 +895,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     objectiveReg.readonlyProperty(
         "displayName", [objectiveClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
             // 对齐基岩 Objective.displayName：返回显示名纯文本（无格式码）。Cubium 的 getDisplayName
-            // 返回 ITextComponent*，取纯文本需经 Component flatten。TODO: 未接入 ITextComponent 纯文本
-            // 提取，当前用 name 兜底（/scoreboard objectives add 未指定显示名时 display==name，对测试足够）。
+            // 返回 ITextComponent*，取其 getUnformattedText() 即纯文本；未设置显示名时该组件
+            // 就是名字本身，因此无需额外回退分支。
             auto* objective = static_cast<mc::scoreboard::ScoreObjective*>(
                 ScriptObjectRegistry::unwrap(ctx, thisVal, objectiveClassId));
             if (objective == nullptr) {
                 return ctx.createUndefined();
             }
 
-            return ctx.createString(objective->getName());
+            const auto* displayName = objective->getDisplayName();
+            if (displayName == nullptr) {
+                return ctx.createString(objective->getName());
+            }
+
+            return ctx.createString(displayName->getUnformattedText());
         });
     objectiveReg.method(
         "getScore",
@@ -974,15 +980,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return ctx.createString(team->getName());
     });
     teamReg.readonlyProperty("displayName", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // 对齐基岩无 Team.displayName，此处提供测试用显示名纯文本。TODO: getDisplayName 返 ITextComponent*，
-        // 未接入纯文本提取，当前用 name 兜底（/team add 未指定显示名时 display==name，对测试足够）。
+        // 基岩 Team 无 displayName，此处提供纯文本显示名供测试断言。取 ITextComponent 的
+        // getUnformattedText()（无格式码）；未设置时该组件即名字本身。
         auto* team =
             static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
         if (team == nullptr) {
             return ctx.createUndefined();
         }
 
-        return ctx.createString(team->getName());
+        const auto* displayName = team->getDisplayName();
+        if (displayName == nullptr) {
+            return ctx.createString(team->getName());
+        }
+
+        return ctx.createString(displayName->getUnformattedText());
     });
     teamReg.readonlyProperty("color", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         // 对齐 Java Team.color：返回颜色名（"red"/"blue"/"dark_green" 等），经 text::toName 字符串化。
@@ -1429,9 +1440,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     //     仅在新时间>当前剩余时更新（不覆盖免疫期）。等价 vanilla useEffects 的副作用链。
     //   - useEffects=false → mc::Entity::setFire(seconds*20)（Entity.hpp:1684）：直接设 tick 不检查
     //     不乘属性不清冰冻（对齐 vanilla useEffects=false 跳过条件直接设）。
-    //   返回 true（Cubium igniteForSeconds/setFire 不区分成功失败，统一返 true 对齐"已设置"语义；
-    //   vanilla 的 false 仅在湿/免疫时返回，Cubium igniteForSeconds 仍会写入 fire 字段——为避免误导
-    //   测试，此处不模拟湿/免疫失败，TODO: 后续按 isWet/fireImmune 精确返回 false）。
+    //   返回 true；useEffects=true 时，实体潮湿（isWet）或火焰免疫（isImmuneToFire）则返回 false
+    //   且不写入火焰计时（对齐 vanilla：条件不满足时不点燃）。
     //
     // 用途：集成测试需点燃实体验证灭火链路（如水瓶 _onHitAsWater extinguishFire、雨/水伤害门控、
     // 火焰保护 BURNING_TIME 缩减）。此前脚本层仅 readonly onFireTicksRemaining（无法主动点火），
@@ -1464,8 +1474,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             if (useEffects) {
+                // useEffects=true 时点燃会被水与火焰免疫挡下，官方此时返回 false。
+                // 若不在此判定，脚本会收到"点燃成功"而实体实际不燃烧。
+                if (ent->isWet() || ent->isImmuneToFire()) {
+                    return ctx.createBoolean(false);
+                }
                 ent->igniteForSeconds(static_cast<f32>(seconds));
             } else {
+                // useEffects=false 跳过所有条件检查，直接设火焰计时（对齐 vanilla）。
                 ent->setFire(static_cast<i32>(seconds * 20.0));
             }
 
@@ -1917,18 +1933,31 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return obj;
     };
     // 解析 JS effectType 参数（string 或 EffectType 对象）为 EffectType，失败返 nullopt。
-    // 基岩允许传字符串（"blindness"）或 EffectType 对象（.id）。Cubium 暂仅支持字符串。
+    // 基岩签名是 EffectType | string：传字符串时直接用（"blindness" 与
+    // "minecraft:blindness" 都接受）；传对象时取其 id 属性——官方 EffectType 是
+    // { id: string, ... } 形态的枚举成员对象。
     auto parseEffectType = [](IScriptBindingContext& ctx, void* arg) -> std::optional<mc::entity::effect::EffectType> {
-        if (arg == nullptr || !ctx.isString(arg)) {
+        if (arg == nullptr) {
             return std::nullopt;
         }
 
-        auto s = ctx.toString(arg);
-        if (!s) {
+        std::optional<std::string> name;
+        if (ctx.isString(arg)) {
+            name = ctx.toString(arg);
+        } else if (ctx.isObject(arg)) {
+            void* idVal = ctx.getProperty(arg, "id");
+            const bool isStr = ctx.isString(idVal);
+            if (isStr) {
+                name = ctx.toString(idVal);
+            }
+            ctx.releaseValue(idVal);
+        }
+
+        if (!name.has_value()) {
             return std::nullopt;
         }
 
-        std::string id = *s;
+        std::string id = *name;
         if (id.find(':') == std::string::npos) {
             id = "minecraft:" + id;
         }
@@ -1966,7 +1995,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 返 undefined。
     // 用于 GameTest 给实体施加状态效果（如僵尸村民治愈需先施虚弱、测试中毒/凋零伤害等），
     // 此前仅 EffectCommand(/effect) 能施效果且只支持玩家选择器，对非玩家实体不可用。
-    // TODO: 官方还支持 effectType 传 EffectType 对象（.id），Cubium 暂仅支持字符串（同 parseEffectType 限制）。
+    // effectType 接受字符串或 EffectType 对象（取其 id），见 parseEffectType。
     entityReg.method(
         "addEffect",
         [entityClassId, parseEffectType](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -2023,10 +2052,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // - 显式 checkForBlocks=true → 走 attemptTeleport（带 findSafeTeleportPosition + 碰撞检测）。
     // tryTeleport 默认 checkForBlocks=true（见下方），与 teleport 默认相反。
     //
-    // 注意：changeDimension 不接受自定义位置（位置由 Teleporter 计算：末地固定 (100,49,0)，
-    // 下界 1:8 缩放），故跨维度时 location 参数被忽略。这与基岩 teleport 跨维度支持 location 有差异。
-    // TODO: 若需支持跨维度自定义位置，需扩展 changeDimension 接受 optional<Vector3d> 并传给
-    //       transferPlayerToDimension（其已支持 position 参数）。
+    // 跨维度走 teleportToDimension（/tp 语义），location 参数被采用；非玩家实体基类返回
+    // false，此时 teleport 抛错、tryTeleport 返回 false。
     entityReg.method(
         "teleport",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -2071,9 +2098,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             if (crossDim) {
-                // 跨维度：经虚派发 changeDimension（ServerPlayer override 调真实实现）。
-                // 非 Player 实体基类返回 false（不传送），对齐当前 Cubium 限制。
-                ent->changeDimension(targetDim);
+                // 跨维度：走 teleportToDimension（/tp 语义，接受调用方指定的坐标），
+                // 而非 changeDimension（传送门语义，坐标由 Teleporter 计算、会忽略 location 参数）。
+                // ServerPlayer override 调真实迁移实现；非 Player 实体基类返回 false，不会传送。
+                if (!ent->teleportToDimension(targetDim, Vector3d(x, y, z), Vector2f(ent->yaw(), ent->pitch()))) {
+                    // 非玩家实体暂不支持跨维度传送（基类默认 false）。
+                    return ctx.throwTypeError("teleport across dimensions is only supported for players");
+                }
             } else if (checkForBlocks) {
                 // 同维度 + 检查碰撞：attemptTeleport（findSafeTeleportPosition + 碰撞检测）。
                 ent->attemptTeleport(x, y, z, false);
@@ -2131,7 +2162,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             if (crossDim) {
-                bool ok = ent->changeDimension(targetDim);
+                // 与 teleport 一致：跨维度走 teleportToDimension，尊重调用方给出的坐标。
+                bool ok = ent->teleportToDimension(targetDim, Vector3d(x, y, z), Vector2f(ent->yaw(), ent->pitch()));
 
                 return ctx.createBoolean(ok);
             }
@@ -2247,7 +2279,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // opaque 持 mc::Entity*。HealthComponent 仅 LivingEntity attach，getter 内 dynamic_cast<LivingEntity*>，
     // 失败返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。currentValue/effectiveMax 走
     // LivingEntity::health()/maxHealth()（HealthComponent 真相源 + 属性系统）；setCurrentValue/resetToMaxValue
-    // 走 setHealth（带 DataParameter 同步副作用）。effectiveMin/defaultValue 保守硬编码留 TODO。
+    // 走 setHealth（带 DataParameter 同步副作用）。effectiveMin/defaultValue 及两个 reset 方法
+    // 均从 max_health 属性实例取 minValue()/defaultValue()，与 MovementComponent 同范式。
     u64 healthClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* healthProto = builder.exportClass("HealthComponent", healthClassId);
     ctx.classRegistry().registerClass(healthClassId, healthProto, "HealthComponent");
@@ -2271,13 +2304,27 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
         return ctx.createFloat64(static_cast<f64>(living->maxHealth()));
     });
-    healthReg.readonlyProperty("effectiveMin", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: 读 AttributeInstance::attribute().minValue()，属性边界后续完善。
-        return ctx.createFloat64(0.0);
+    healthReg.readonlyProperty("effectiveMin", [healthClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // max_health 属性由 LivingEntity 构造期注册，正常不会缺失；缺失时回退到该属性的下界 1.0。
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
+        auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+        if (living == nullptr) {
+            return ctx.createFloat64(0.0);
+        }
+
+        const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+        return ctx.createFloat64(inst != nullptr ? inst->attribute().minValue() : 1.0);
     });
-    healthReg.readonlyProperty("defaultValue", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: HealthComponent 默认 m_health{20.0f}，按实体类型差异后续完善。
-        return ctx.createFloat64(20.0);
+    healthReg.readonlyProperty("defaultValue", [healthClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 默认生命值取 max_health 属性的 defaultValue（各实体类型可不同），缺失时 20.0。
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
+        auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+        if (living == nullptr) {
+            return ctx.createFloat64(20.0);
+        }
+
+        const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+        return ctx.createFloat64(inst != nullptr ? inst->attribute().defaultValue() : 20.0);
     });
     healthReg.method(
         "setCurrentValue",
@@ -2313,22 +2360,24 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         });
     healthReg.method("resetToMinValue",
         [healthClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
-            // TODO: 按 AttributeInstance::attribute().minValue() 设置，暂用 1.0（属性 min=1.0）。
+            // 下界取 max_health 属性的 minValue()（vanilla 为 1.0），属性实例缺失时回退 1.0。
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
             auto* living = dynamic_cast<mc::LivingEntity*>(ent);
             if (living != nullptr) {
-                living->setHealth(1.0f);
+                const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+                living->setHealth(static_cast<f32>(inst != nullptr ? inst->attribute().minValue() : 1.0));
             }
 
             return ctx.createUndefined();
         });
     healthReg.method("resetToDefaultValue",
         [healthClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
-            // TODO: 按实体类型默认 health 设置，暂用 20.0。
+            // 默认值取 max_health 属性的 defaultValue（各实体类型可不同），缺失时 20.0。
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, healthClassId));
             auto* living = dynamic_cast<mc::LivingEntity*>(ent);
             if (living != nullptr) {
-                living->setHealth(20.0f);
+                const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MAX_HEALTH);
+                living->setHealth(static_cast<f32>(inst != nullptr ? inst->attribute().defaultValue() : 20.0));
             }
 
             return ctx.createUndefined();
@@ -2382,7 +2431,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
 
         const auto* inst = living->attributes().getInstance(mc::entity::attribute::Attributes::MOVEMENT_SPEED);
-        // TODO: 各实体默认移动速度不同，inst 缺失时 fallback 0.25（vanilla 通用值）。
+        // 属性实例缺失时回退 0.25（vanilla 通用移动速度）。
         return ctx.createFloat64(inst != nullptr ? inst->attribute().defaultValue() : 0.25);
     });
     movementReg.method(
@@ -2458,14 +2507,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ctx.classRegistry().registerClass(equippableClassId, equippableProto, "EquippableComponent");
 
     ClassRegistrar<void> equippableReg(ctx, equippableClassId, equippableProto);
-    equippableReg.readonlyProperty("totalArmor", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: 读 attributes().getValue(Attributes::ARMOR)，属性未必对所有 LivingEntity 注册，暂返 0。
-        return ctx.createFloat64(0.0);
-    });
-    equippableReg.readonlyProperty("totalToughness", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: 读 attributes().getValue(Attributes::ARMOR_TOUGHNESS)，暂返 0。
-        return ctx.createFloat64(0.0);
-    });
+    equippableReg.readonlyProperty(
+        "totalArmor", [equippableClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            // 读 armor 属性的最终值（含装备修饰符）；非 LivingEntity 或未注册该属性时按 0 处理。
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, equippableClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr) {
+                return ctx.createFloat64(0.0);
+            }
+            return ctx.createFloat64(living->getAttributeValue(mc::entity::attribute::Attributes::ARMOR, 0.0));
+        });
+    equippableReg.readonlyProperty(
+        "totalToughness", [equippableClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, equippableClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr) {
+                return ctx.createFloat64(0.0);
+            }
+            return ctx.createFloat64(
+                living->getAttributeValue(mc::entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
+        });
     equippableReg.method(
         "getEquipment",
         [equippableClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -2996,11 +3057,19 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return obj;
     });
     blockReg.readonlyProperty("isWaterlogged", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // 官方 Block.isWaterlogged：方块是否被水淹没。读 BlockState 流体状态非空判定。
-        // TODO: 流体状态判定后续完善，暂保守返回 false。
-        (void)thisVal;
+        // 官方 Block.isWaterlogged：该方块位置是否被水淹没。含水方块的 fluid state 是 water
+        // （source 或流动），非含水方块为 EMPTY。直接读快照里的 BlockState，无需再查世界。
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->state == nullptr) {
+            return ctx.createBoolean(false);
+        }
 
-        return ctx.createBoolean(false);
+        const auto* fluidState = ref->state->getFluidState();
+        if (fluidState == nullptr || fluidState->isEmpty()) {
+            return ctx.createBoolean(false);
+        }
+
+        return ctx.createBoolean(fluidState->getFluid().fluidLocation() == mc::ResourceLocation("minecraft:water"));
     });
     // --- Block 光照查询扩展（Cubium 专有，官方 @minecraft/server Block 无光照 API）---
     // 为集成测试直接读取光照数值而扩展，对齐 Java Level/World 的光照查询方法。
@@ -3231,9 +3300,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     //
     // 参数 enchantment：{ type: string, level: number }。
     //   - type：附魔 id，接受 "minecraft:fire_protection" 或 "fire_protection"（无命名空间时补 minecraft:）。
-    //   - level：附魔等级，整数 ≥1。基岩范围由各附魔 maxLevel 约束，超范围抛 EnchantmentLevelOutOfBoundsError；
-    //     此处仅校验 ≥1（Cubium EnchantmentRegistry 未提供 maxLevel 查询，超范围不抛错，与基岩略有差异，
-    //     TODO: 接入 Enchantment::getMaxLevel 后补范围校验）。
+    //   - level：附魔等级，整数 ≥1 且不超过该附魔的 maxLevel（Enchantment::maxLevel），
+    //     超出抛错（对齐基岩 EnchantmentLevelOutOfBoundsError）。
     //
     // id 存在性校验：EnchantmentRegistry::get(id) 查不到时 throwTypeError（对应基岩
     // EnchantmentTypeUnknownIdError），避免写入未注册的垃圾附魔 id。校验通过后调
@@ -3291,6 +3359,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.throwTypeError(msg.c_str());
             }
 
+            // 等级上限校验（对齐基岩 EnchantmentLevelOutOfBoundsError）：超出该附魔 maxLevel 时拒绝。
+            // 此前只校验 ≥1，会让 /enchant 之外的脚本路径写入不可能存在的等级。
+            if (level > ench->maxLevel()) {
+                const std::string msg = "ItemStack.addEnchantment: level " + std::to_string(level) +
+                    " exceeds max level " + std::to_string(ench->maxLevel()) + " for '" + typeId + "'";
+
+                return ctx.throwTypeError(msg.c_str());
+            }
+
             stack->addEnchantment(typeId, level);
 
             return ctx.createUndefined();
@@ -3314,7 +3391,11 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 同范式（createObject + setPropertyInt）。getDamage/getMaxDamage 是 const 只读，owned 拷贝
     // （Equippable.getEquipment）与非 owned 快照（Container.getItem）均安全。
     //
-    // TODO: 其他 item componentId（enchantable/food/cooldown 等）按需补全——当前仅 durability 有测试需求。
+    // 目前只分发 minecraft:durability。基岩的 enchantable/food/cooldown 等组件各自是一套
+    // 有方法的组件类（EnchantableComponent 就有 addEnchantment/getEnchantments/canAddEnchantment
+    // 等 8 个方法），需要注册独立脚本类并管理句柄生命周期，不是加一个分支能完成的。
+    // 附魔的读写已由 ItemStack 上的 getEnchantments/addEnchantment 提供（见上文），
+    // 语义等价，因此这里不缺能力，只是未按组件类形态暴露。
     itemStackReg.method(
         "getComponent",
         [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -3366,23 +3447,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         ctx.releaseValue(directionObj);
     }
 
-    // --- FluidType类（@minecraft/server）---
-    // 流体类型包装。项目流体体系（Fluids namespace）尚未暴露完整查询入口，本类占位：
-    // opaque 持 std::string*（owned=true，JS GC 时 delete，存资源位置 id 如 "minecraft:water"）。
-    // 仅暴露 id 属性；完整 fluid state 体系后续 TODO。
-    u64 fluidTypeClassId = ScriptObjectRegistry::allocateClassId(ctx);
-    void* fluidTypeProto = builder.exportClass("FluidType", fluidTypeClassId);
-    ctx.classRegistry().registerClass(fluidTypeClassId, fluidTypeProto, "FluidType");
-
-    ClassRegistrar<void> fluidTypeReg(ctx, fluidTypeClassId, fluidTypeProto);
-    fluidTypeReg.readonlyProperty("id", [fluidTypeClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        auto* id = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, fluidTypeClassId));
-        if (id == nullptr) {
-            return ctx.createUndefined();
-        }
-
-        return ctx.createString(*id);
-    });
+    // --- FluidType 枚举对象（@minecraft/server）---
+    // 官方 FluidType 是字符串枚举（Lava="Lava"/Potion="Potion"/PowderSnow="PowderSnow"/
+    // Water="Water"），用于描述炼药锅这类流体容器里的流体种类，不是"某个流体实例"的包装类。
+    // 此前把它实现成持 std::string* 的类并只暴露 id 属性，与官方语义不符；改为与 Direction
+    // 相同的只读枚举对象导出方式。
+    {
+        void* fluidTypeObj = ctx.createObject();
+        ctx.setPropertyString(fluidTypeObj, "Lava", "Lava");
+        ctx.setPropertyString(fluidTypeObj, "Potion", "Potion");
+        ctx.setPropertyString(fluidTypeObj, "PowderSnow", "PowderSnow");
+        ctx.setPropertyString(fluidTypeObj, "Water", "Water");
+        builder.exportValue("FluidType", fluidTypeObj);
+        ctx.releaseValue(fluidTypeObj);
+    }
 
     // --- Container类（@minecraft/server）---
     // 容器包装。opaque 持 mc::IInventory*（非拥有，容器由 BlockEntity 或 Player 拥有）。
@@ -3508,13 +3586,44 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     containerReg.method(
         "transferItem",
         [containerClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-            // TODO: transferItem(fromSlot,toContainer,toSlot) 跨容器迁移依赖第二个 Container 入参 unwrap，
-            //       框架已具备（同 containerClassId），完整迁移语义（堆叠/空槽选择）后续补全。
-            (void)thisVal;
-            (void)argc;
-            (void)args;
+            // 官方 Container.transferItem(fromSlot, toContainer, toSlot)：
+            // 把本容器 fromSlot 的物品移到 toContainer 的 toSlot，源槽位清空，返回是否搬运成功。
+            auto* fromInv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+            if (fromInv == nullptr || argc < 3 || !ctx.isNumber(args[0])) {
+                return ctx.createBoolean(false);
+            }
 
-            return ctx.createUndefined();
+            auto fromSlot = ctx.toInt32(args[0]);
+            if (!fromSlot || *fromSlot < 0 || *fromSlot >= fromInv->getContainerSize()) {
+                return ctx.createBoolean(false);
+            }
+
+            // 目标容器：同一 Container 类 opaque 持 IInventory*（非拥有）。
+            auto* toInv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, args[1], containerClassId));
+            if (toInv == nullptr) {
+                return ctx.createBoolean(false);
+            }
+
+            auto toSlot = ctx.toInt32(args[2]);
+            if (!toSlot || *toSlot < 0 || *toSlot >= toInv->getContainerSize()) {
+                return ctx.createBoolean(false);
+            }
+
+            const mc::ItemStack source = fromInv->getItem(*fromSlot);
+            if (source.isEmpty()) {
+                return ctx.createBoolean(false);
+            }
+
+            // 目标槽必须为空：官方 transferItem 不做堆叠合并（同物品也各自占槽），
+            // 合并语义由 addItem 承担。
+            if (!toInv->getItem(*toSlot).isEmpty()) {
+                return ctx.createBoolean(false);
+            }
+
+            toInv->setItem(*toSlot, source);
+            fromInv->setItem(*fromSlot, mc::ItemStack::EMPTY);
+
+            return ctx.createBoolean(true);
         },
         3);
 

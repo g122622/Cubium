@@ -109,8 +109,12 @@ public:
     [[nodiscard]] virtual std::string id() const = 0;
 
     /**
-     * @brief 获取附魔显示名称
-     * @param level 附魔等级
+     * @brief 获取附魔显示名称的翻译键
+     *
+     * 默认实现由 `id()` 推出 `"enchantment." + 命名空间 + "." + 路径`（如
+     * `enchantment.minecraft.fortune`），与数据包 `description.translate` 一致。
+     *
+     * @param level 附魔等级（名称不随等级变化，保留参数供少数需要区分的子类使用）
      * @return 本地化名称键（如 "enchantment.minecraft.fortune"）
      */
     [[nodiscard]] virtual std::string getNameKey(i32 level = 1) const;

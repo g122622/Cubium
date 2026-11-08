@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
@@ -260,6 +261,22 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
                 mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
                     mc::network::ir::PlayPacket{std::move(attributes)}});
         }
+    }
+
+    // 下发玩家能力（PlayerAbilities）。客户端在收到之前只有本地默认值，创造/旁观玩家的
+    // 飞行开关与"允许飞行"标志、生存玩家的不可飞行状态都要靠它对齐；漏发时客户端会把
+    // 创造模式当成"不能飞"，双击空格也无法起飞。
+    m_server.gameModeManager().syncAbilities(playerId);
+
+    // 下发当前选中的快捷栏槽位（SetHeldSlot）。极简/第三方客户端在收到前默认选中 0 号槽，
+    // 而存档恢复出的选中槽可能不是 0——不同步就会在客户端把手上显示的物品与服务端权威
+    // 手中物品对不上（后续交互按客户端视角判别，会整体错位）。
+    {
+        mc::network::ir::play::SetHeldSlot heldSlot;
+        heldSlot.slot = static_cast<i32>(playerEntity->inventory().getSelectedSlot());
+        m_server.sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(heldSlot)}});
     }
 
     // 建立玩家的背包菜单（containerId 固定为 0）。客户端本地就会建出背包屏，其中的点击

@@ -25,7 +25,9 @@
 #include "Entity.hpp"
 #include "LivingEntity.hpp"
 #include "common/entity/tag/EntityTypeTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace entity {
@@ -58,6 +60,13 @@ std::unique_ptr<Entity> EntityType::create(IWorld* world, ecs::EntityRegistry& r
 bool EntityType::isIn(const EntityTypeTag& tag) const
 {
     return tag.contains(*this);
+}
+
+std::string EntityType::getDescriptionId() const
+{
+    // 注册名形如 "minecraft:zombie"；翻译键把冒号换成点得到 "entity.minecraft.zombie"。
+    // 走 ResourceLocation::toLanguageKey 而不是手工替换，避免与其它翻译键的构造方式分叉。
+    return "entity." + ResourceLocation(m_name).toLanguageKey();
 }
 
 } // namespace entity

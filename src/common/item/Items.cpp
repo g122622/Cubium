@@ -5627,10 +5627,6 @@ void Items::_registerSpawnEggs()
         0xE4DDC9FF,
         ItemProperties().maxStackSize(64));
 
-    // TODO: camel_husk_spawn_egg 依赖 CamelHuskEntity 注册实现。当前 CamelHuskEntity 尚未在
-    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
-    // EntityRegistry::getType("minecraft:camel_husk") 查找实体会返回 nullptr，导致此刷怪蛋
-    // 右键方块/右键生物时无法生成实体。待 CamelHuskEntity 实现并在 VanillaEntities 中注册后生效。
     CAMEL_HUSK_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:camel_husk_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:camel_husk"),
@@ -5773,10 +5769,6 @@ void Items::_registerSpawnEggs()
         0x25D1C2FF,
         ItemProperties().maxStackSize(64));
 
-    // TODO: happy_ghast_spawn_egg 依赖 HappyGhastEntity 注册实现。当前 HappyGhastEntity 尚未在
-    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
-    // EntityRegistry::getType("minecraft:happy_ghast") 查找实体会返回 nullptr，导致此刷怪蛋
-    // 右键方块/右键生物时无法生成实体。待 HappyGhastEntity 实现并在 VanillaEntities 中注册后生效。
     HAPPY_GHAST_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:happy_ghast_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:happy_ghast"),
@@ -6127,14 +6119,12 @@ void Items::_registerSpawnEggs()
             0x88B1BFFF,
             ItemProperties().maxStackSize(64));
 
-    // TODO: 以下 2 种刷怪蛋对应的实体类型尚未在项目中注册，刷怪蛋物品本身已注册成功，
+    // TODO: creaking_spawn_egg 对应的实体类型尚未在项目中注册，刷怪蛋物品本身已注册成功，
     // 但实际使用时（右键方块/右键生物生成幼体）MobEntity::_spawnOffspringFromSpawnEgg 或
     // SpawnEggItem::spawnEntity 通过 EntityRegistry::getType(name)->create() 查找实体会返回
     // nullptr，导致无法生成实体，功能不完整：
-    //   - creaking_spawn_egg       → 依赖 CreakingEntity
-    //   - happy_ghast_spawn_egg    → 依赖 HappyGhastEntity
-    // （nautilus / zombie_nautilus / parched / camel_husk 的实体已在 VanillaEntities 注册，不在此列）
-    // 待上述实体类型实现并在 VanillaEntities::registerAll() 中注册后，刷怪蛋功能自动生效。
+    //   - creaking_spawn_egg → 依赖 CreakingEntity（EntityTypeKeys::CREAKING 亦未定义）
+    // 其余刷怪蛋的实体均已在 VanillaEntities 注册，功能正常。
 }
 
 } // namespace mc

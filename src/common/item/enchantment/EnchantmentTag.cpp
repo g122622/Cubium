@@ -22,6 +22,7 @@
  */
 
 #include "EnchantmentTag.hpp"
+#include <utility>
 
 namespace mc {
 
@@ -31,7 +32,11 @@ EnchantmentTag::EnchantmentTag(ResourceLocation id) noexcept
 
 void EnchantmentTag::add(const ResourceLocation& enchantmentId)
 {
-    m_enchantmentIds.insert(enchantmentId);
+    // 首次加入才追加到有序序列，保证「声明顺序」不被重复条目（标签 + 其引用的子标签
+    // 同时列出同一附魔）打乱。
+    if (m_enchantmentIds.insert(enchantmentId).second) {
+        m_orderedEnchantmentIds.push_back(enchantmentId);
+    }
 }
 
 bool EnchantmentTag::contains(const ResourceLocation& enchantmentId) const noexcept
@@ -47,6 +52,7 @@ bool EnchantmentTag::contains(const std::string& enchantmentId) const
 void EnchantmentTag::clear()
 {
     m_enchantmentIds.clear();
+    m_orderedEnchantmentIds.clear();
 }
 
 } // namespace mc

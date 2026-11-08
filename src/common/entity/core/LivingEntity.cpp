@@ -1410,6 +1410,14 @@ void LivingEntity::registerAttributes()
     // travelInWater 消费，深海探索者魔咒通过 enchantment.depth_strider 修饰符（每级 +0.33333334
     // ADD_VALUE，FEET 槽位）注入。所有生物都具备该属性（原版如此），因此注册在基类。
     attributes().registerAttribute(*entity::attribute::Attributes::waterMovementEfficiency());
+    // 步进高度属性（默认 0.6）。vanilla LivingEntity.createLivingAttributes() 也注册它，
+    // 并由 maxUpStep() 消费（本项目的等价点是 stepHeight()）。马、掠夺者等把默认值调高到
+    // 1.0 的生物应通过该属性（而非 setStepHeight）表达，这样数据包/命令也能调整。
+    attributes().registerAttribute(*entity::attribute::Attributes::stepHeight());
+    // 尺寸缩放属性（默认 1.0）。vanilla LivingEntity.getDimensions(pose) 对非睡眠姿态返回
+    // getDefaultDimensions(pose).scale(getScale())，因此碰撞箱、视高、渲染尺寸都随它变化；
+    // 命令 `/attribute <target> minecraft:scale base set <v>` 或缩放效果即通过它生效。
+    attributes().registerAttribute(*entity::attribute::Attributes::scale());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -1424,9 +1432,53 @@ f64 LivingEntity::getAttributeValue(const std::string& name, f64 defaultValue) c
     return attributes().getValue(name, defaultValue);
 }
 
+f32 LivingEntity::stepHeight() const
+{
+    // 对应 vanilla `LivingEntity#maxUpStep`：直接读 step_height 属性，因此数据包/命令
+    // 改该属性即可改变生物能否走上整格方块（马、掠夺者等就是把默认值调高到 1.0）。
+    f32 height = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::STEP_HEIGHT, 0.6));
+
+    // 被玩家骑乘时至少一格高：否则玩家骑着生物走到整格方块前会被卡住（vanilla 同款规则）。
+    const EntityInstanceId passengerId = getControllingPassenger();
+    if (passengerId != INVALID_ENTITY_ID && m_world != nullptr) {
+        const Entity* passenger = m_world->getEntity(passengerId);
+        if (dynamic_cast<const Player*>(passenger) != nullptr) {
+            height = std::max(height, 1.0f);
+        }
+    }
+
+    return height;
+}
+
 void LivingEntity::setAttributeBaseValue(const std::string& name, f64 value)
 {
     attributes().setBaseValue(name, value);
+}
+
+void LivingEntity::setStepHeight(f32 height)
+{
+    // 与 stepHeight() 共用同一事实来源：写入属性基础值，而不是另存一份 m_stepHeight。
+    // 属性未注册（子类漏调 registerAttributes）时 setBaseValue 返回 false，此时回退到
+    // 成员变量，保证构造期的 setStepHeight 调用不会静默丢失。
+    if (!attributes().setBaseValue(entity::attribute::Attributes::STEP_HEIGHT, height)) {
+        Entity::setStepHeight(height);
+    }
+}
+
+f32 LivingEntity::getScale() const
+{
+    return static_cast<f32>(getAttributeValue(entity::attribute::Attributes::SCALE, 1.0));
+}
+
+entity::EntitySize LivingEntity::getDimensions(EntityPose pose) const
+{
+    // 睡眠姿态直接沿用基类的固定尺寸，不参与缩放（该尺寸对所有生物都是同一常量）。
+    if (pose == EntityPose::Sleeping) {
+        return Entity::getDimensions(pose);
+    }
+
+    // 非睡眠姿态：实体类型在该姿态下的基础尺寸整体乘以 scale 属性。
+    return Entity::getDimensions(pose).scale(getScale());
 }
 
 f32 LivingEntity::getBlockSpeedFactor()
@@ -2982,11 +3034,13 @@ void LivingEntity::copyConversionStateTo(Entity& converted, const ConversionPara
     auto* toAgeable = dynamic_cast<AgeableEntity*>(toLiving);
     if (fromAgeable != nullptr && toAgeable != nullptr) {
         toAgeable->setGrowingAge(fromAgeable->getGrowingAge());
+        // 强制成长进度随转换保留（vanilla copyDataFrom 一并复制），否则幼体已累积的
+        // 喂食加速进度会丢失。
+        toAgeable->setForcedAge(fromAgeable->getForcedAge());
+        toAgeable->setForcedAgeTimer(fromAgeable->getForcedAgeTimer());
     } else if (auto* toChildHolder = dynamic_cast<AgeableEntity*>(toLiving); isChild() && toChildHolder != nullptr) {
         toChildHolder->setChild(true);
     }
-    // TODO(convert-forced-age): AgeableEntity 的 m_forcedAge / m_forcedAgeTimer 为私有且无
-    //   访问器，vanilla copyDataFrom 会一并复制；待补充 getter/setter 后在此复制。
 
     auto* fromMob = dynamic_cast<MobEntity*>(this);
     auto* toMob = dynamic_cast<MobEntity*>(toLiving);
@@ -2996,8 +3050,8 @@ void LivingEntity::copyConversionStateTo(Entity& converted, const ConversionPara
     if (params.preserveCanPickUpLoot) {
         toMob->setCanPickUpLoot(fromMob->canPickUpLoot());
     }
-    // TODO(convert-left-handed): MobEntity 尚无 isLeftHanded 状态接口；vanilla convertCommon
-    //   会复制 Mob 的左手标志，待该字段落地后补上。
+    // 左手持物标记随转换保留（vanilla convertCommon 会复制 Mob 的左手标志）。
+    toMob->setLeftHanded(fromMob->isLeftHanded());
     toMob->setNoAi(fromMob->isNoAi());
     if (fromMob->isNoDespawnRequired()) {
         toMob->enablePersistence();

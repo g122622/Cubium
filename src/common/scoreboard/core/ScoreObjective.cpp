@@ -85,4 +85,12 @@ void ScoreObjective::setRenderType(RenderType renderType)
     }
 }
 
+void ScoreObjective::setDisplayAutoUpdate(bool displayAutoUpdate)
+{
+    if (m_displayAutoUpdate != displayAutoUpdate) {
+        m_displayAutoUpdate = displayAutoUpdate;
+        m_scoreboard.onObjectiveChanged(*this);
+    }
+}
+
 } // namespace mc::scoreboard

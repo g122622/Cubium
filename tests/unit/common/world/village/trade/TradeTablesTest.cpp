@@ -388,5 +388,67 @@ TEST_F(TradeTablesTest, WanderingTraderIsDeterministicForSameSeed)
     }
 }
 
+// ============================================================================
+// 制图师的探险家地图条目
+// ============================================================================
+
+TEST_F(TradeTablesTest, CartographerDescribesTreasureMapListings)
+{
+    // describeTrades 不依赖世界，可用它验证探险家地图条目的静态数据是否登记完整。
+    const nlohmann::json described =
+        VillagerTrades::describeTrades(VillagerProfession::Cartographer, offlineContext(1));
+    ASSERT_TRUE(described.is_object());
+
+    i32 treasureMapCount = 0;
+    for (auto level = described.begin(); level != described.end(); ++level) {
+        for (const auto& entry : level.value()) {
+            if (entry.value("type", std::string()) != "TreasureMapForEmeralds") {
+                continue;
+            }
+            ++treasureMapCount;
+
+            // 成交物必须是带结构标签的探险家地图，且装饰类型已解析成注册表 id。
+            const auto& sell = entry.at("sell");
+            EXPECT_EQ(sell.value("item", std::string()), "minecraft:filled_map");
+            EXPECT_FALSE(sell.value("targetTag", std::string()).empty());
+            // 装饰类型不能是空串，也不能是解析失败留下的默认值。
+            EXPECT_FALSE(sell.value("decorationType", std::string()).empty());
+        }
+    }
+
+    // 注意：describeTrades 只导出通过 `_add` 注册的条目；按村庄类型分表登记的条目
+    // （6 个村庄型地图 + 沼泽小屋 + 丛林神庙）走 `_addTypeSpecific` 的另一张表，不在其中。
+    // 因此这里只能断言"所有已导出条目"的数量，即 mansion / monument / trial_chambers 三条。
+    EXPECT_EQ(treasureMapCount, 3);
+}
+
+TEST_F(TradeTablesTest, TreasureMapListingExportsResolvedDecorationType)
+{
+    // 装饰类型必须由 id 真正解析成枚举后导出，不能是空串或占位。
+    // 注意 targetTag 导出的是**结构标签**（如 on_woodland_explorer_maps），
+    // 不是结构 id；结构 id 只在运行时由 findNearestMapStructure 解析。
+    const nlohmann::json described =
+        VillagerTrades::describeTrades(VillagerProfession::Cartographer, offlineContext(2));
+
+    bool sawMansion = false;
+    std::string collected;
+    for (auto level = described.begin(); level != described.end(); ++level) {
+        for (const auto& entry : level.value()) {
+            if (entry.value("type", std::string()) != "TreasureMapForEmeralds") {
+                continue;
+            }
+            const auto& sell = entry.at("sell");
+            const std::string decoration = sell.value("decorationType", std::string());
+            const std::string targetTag = sell.value("targetTag", std::string());
+            collected += targetTag + "=" + decoration + " ";
+            if (targetTag == "minecraft:on_woodland_explorer_maps") {
+                EXPECT_EQ(decoration, "mansion");
+                sawMansion = true;
+            }
+        }
+    }
+    EXPECT_TRUE(sawMansion) << "cartographer should register a woodland mansion map; got: " << collected;
+}
+
 } // namespace
 } // namespace mc

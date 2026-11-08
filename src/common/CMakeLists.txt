@@ -1442,6 +1442,7 @@ add_library(mc_common STATIC
     skin/loader/SkinLoader.cpp
     skin/loader/FileSkinLoader.cpp
     skin/loader/HttpSkinLoader.cpp
+    skin/loader/SkinImageValidator.cpp
     # Skin System - Parser
     skin/parser/SkinMetadataParser.cpp
     # Skin System - Network

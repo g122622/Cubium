@@ -212,6 +212,25 @@ TEST_F(CloneCommandTest, CloneCommandParsesReplaceNormalMode)
     EXPECT_EQ(result.value(), 0);
 }
 
+TEST_F(CloneCommandTest, CloneCommandParsesStrictMode)
+{
+    // strict 是写入标志维度：与 replace|normal 同选取语义，但抑制写入期间的方块副作用。
+    // 这里只验证命令树接受该语法（行为由 ServerWorldNeighbourOnBlockSetTest 覆盖）。
+    const auto result = m_server.commandRegistry().execute("clone 0 0 0 10 10 10 20 20 20 strict", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(CloneCommandTest, CloneCommandParsesStrictReplaceNormalMode)
+{
+    const auto result =
+        m_server.commandRegistry().execute("clone 0 0 0 10 10 10 20 20 20 strict replace normal", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
 TEST_F(CloneCommandTest, CloneCommandParsesMaskedForceMode)
 {
     const auto result = m_server.commandRegistry().execute("clone 0 0 0 10 10 10 20 20 20 masked force", m_console);
@@ -276,6 +295,30 @@ TEST_F(CloneCommandTest, CloneCommandParsesReversedCoordinates)
     const auto result = m_server.commandRegistry().execute("clone 10 10 10 0 0 0 20 20 20", m_console);
 
     EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(CloneCommandTest, CloneCommandParsesCrossDimensionSyntax)
+{
+    // 跨维度语法：clone from <sourceDimension> <begin> <end> to <targetDimension> <destination>。
+    // 本用例只验证命令树接受该语法并进入执行路径；测试服务端不注册任何维度，
+    // 因此执行会在"源世界不可用"处返回 0，而不是在解析阶段失败。
+    const auto result = m_server.commandRegistry().execute(
+        "clone from minecraft:overworld 0 0 0 10 10 10 to minecraft:the_nether 20 20 20", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+TEST_F(CloneCommandTest, CloneCommandNoLongerRejectsCrossDimension)
+{
+    // 回归保护：以前跨维度会直接报 "Cross-dimension cloning is not supported"。
+    // 现在改为按维度解析世界，失败原因应是世界/区域不可用而非"不支持"。
+    const auto result = m_server.commandRegistry().execute(
+        "clone from minecraft:overworld 0 0 0 10 10 10 to minecraft:the_nether 20 20 20", m_console);
+
+    EXPECT_TRUE(result.success());
+    // 测试服务端没有维度 → resolveCloneWorlds 返回 false → 命令返回 0。
     EXPECT_EQ(result.value(), 0);
 }
 

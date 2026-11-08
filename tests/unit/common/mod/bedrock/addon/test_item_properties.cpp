@@ -25,6 +25,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/content/item/ItemAddonProperties.hpp"
@@ -108,6 +109,18 @@ protected:
             nullptr);
         binding.setProperty(global, "inventory", container);
         binding.releaseValue(container);
+        // 第二个容器：供 Container.transferItem 的跨容器搬运用例使用。
+        void* otherContainer = ScriptObjectRegistry::wrap(binding,
+            containerId,
+            binding.classRegistry().proto(containerId),
+            static_cast<mc::IInventory*>(&otherInventory),
+            false,
+            "Container",
+            nullptr,
+            0,
+            nullptr);
+        binding.setProperty(global, "otherInventory", otherContainer);
+        binding.releaseValue(otherContainer);
         binding.releaseValue(global);
         return context;
     }
@@ -120,6 +133,7 @@ protected:
 
     mc::ItemStack subject;
     mc::CraftingInventory inventory{2, 2};
+    mc::CraftingInventory otherInventory{2, 2};
     std::unique_ptr<IScriptEngine> engine;
     std::unique_ptr<IScriptContext> first;
     std::unique_ptr<IScriptContext> second;
@@ -315,5 +329,75 @@ TEST_F(AddonItemPropertiesBindingTest, GetterExceptionsPreserveOriginalValueAndE
         if (!caught) throw Error('exception swallowed');
         if (subject.getDynamicProperty('saved') !== true) throw Error('saved value changed');
         if (subject.getDynamicProperty('good') !== undefined) throw Error('partial commit');
+    )");
+}
+
+// ItemStack.addEnchantment 的等级上限校验：超出该附魔 maxLevel 时必须抛错，
+// 而不是写入一个不可能存在的等级。
+TEST_F(AddonItemPropertiesBindingTest, AddEnchantmentRejectsLevelsAboveMaxLevel)
+{
+    mc::item::enchant::EnchantmentRegistry::initialize();
+    const auto* sharpness = mc::item::enchant::EnchantmentRegistry::get("minecraft:sharpness");
+    ASSERT_NE(sharpness, nullptr);
+    const mc::i32 maxLevel = sharpness->maxLevel();
+    ASSERT_GT(maxLevel, 0);
+
+    // 上限内正常写入。
+    check(*first, R"(
+        subject.addEnchantment({type: 'minecraft:sharpness', level: 1});
+        const list = subject.getEnchantments();
+        if (list.length !== 1) throw Error('enchantment not added');
+        if (list[0].level !== 1) throw Error('wrong level');
+    )");
+
+    // 超出上限必须抛错。
+    const std::string overLevel = std::to_string(maxLevel + 1);
+    check(*first,
+        "let rejected = false;\n"
+        "try { subject.addEnchantment({type: 'minecraft:sharpness', level: " +
+            overLevel +
+            "}); } catch { rejected = true; }\n"
+            "if (!rejected) throw Error('level above max was accepted');");
+
+    // 拒绝后等级不应被改动（仍为上一步写入的 1）。
+    check(*first, R"(
+        const list = subject.getEnchantments();
+        if (list.length !== 1) throw Error('list changed after rejected write');
+        if (list[0].level !== 1) throw Error('level changed after rejected write');
+    )");
+}
+
+// Container.transferItem(fromSlot, toContainer, toSlot)：跨容器搬运，源槽清空、目标槽写入。
+TEST_F(AddonItemPropertiesBindingTest, TransferItemMovesStackAcrossContainers)
+{
+    check(*first, R"(
+        inventory.setItem(0, subject);
+        const moved = inventory.transferItem(0, otherInventory, 1);
+        if (moved !== true) throw Error('transferItem should report success');
+        if (inventory.getItem(0) !== undefined) throw Error('source slot must be cleared');
+        const arrived = otherInventory.getItem(1);
+        if (arrived === undefined) throw Error('target slot is empty');
+        if (arrived.typeId !== subject.typeId) throw Error('moved item type mismatch');
+    )");
+}
+
+// 目标槽非空时必须拒绝搬运，源槽保持不变。
+TEST_F(AddonItemPropertiesBindingTest, TransferItemRejectsOccupiedTargetSlot)
+{
+    check(*first, R"(
+        inventory.setItem(0, subject);
+        otherInventory.setItem(1, subject);
+        const moved = inventory.transferItem(0, otherInventory, 1);
+        if (moved !== false) throw Error('transferItem should fail on occupied target');
+        if (inventory.getItem(0) === undefined) throw Error('source slot must be untouched on failure');
+    )");
+}
+
+// 源槽为空时搬运失败。
+TEST_F(AddonItemPropertiesBindingTest, TransferItemRejectsEmptySourceSlot)
+{
+    check(*first, R"(
+        const moved = inventory.transferItem(3, otherInventory, 0);
+        if (moved !== false) throw Error('transferItem should fail on empty source');
     )");
 }

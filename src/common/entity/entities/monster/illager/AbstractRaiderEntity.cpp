@@ -30,6 +30,7 @@
 #include "common/entity/entities/monster/illager/PatrollerEntity.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/raid/Raid.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/raid/RaiderType.hpp"
 
 namespace mc {
@@ -122,6 +123,23 @@ void AbstractRaiderEntity::die(DamageSource& cause)
 
     // 调用父类die方法
     PatrollerEntity::die(cause);
+}
+
+bool AbstractRaiderEntity::hasRaid() const
+{
+    // 原版判定：自身已加入某场袭击，或脚下位置存在袭击（ServerLevel.getRaidAt）即算在袭击中。
+    // 后者覆盖"尚未入队但站在袭击范围内"的劫掠者——战利品/进度条件对它同样应当成立。
+    if (m_raid != nullptr) {
+        return true;
+    }
+    if (m_world == nullptr) {
+        return false;
+    }
+    auto* raidManager = m_world->raidManager();
+    if (raidManager == nullptr) {
+        return false;
+    }
+    return raidManager->getRaidAt(onPos()) != nullptr;
 }
 
 } // namespace mc

@@ -71,9 +71,7 @@ struct EntityTypeSpecificPredicate {
     std::optional<i32> sizeMax;
     /// 是否为袭击队长（raider）：头戴不祥旗帜且是巡逻队长（vanilla `Raider.isCaptain()`）
     std::optional<bool> isCaptain;
-    /// 是否处于袭击中（raider，vanilla `Raider.hasRaid()`）
-    // TODO(raider-has-raid): 目前只比对实体自身的袭击归属；原版还会在自身没有袭击时
-    //   查询「脚下位置是否有袭击」（`ServerLevel.getRaidAt`），该查询尚未接到谓词层。
+    /// 是否处于袭击中（raider，vanilla `Raider.hasRaid()`：自身所属袭击或脚下位置的袭击）
     std::optional<bool> hasRaid;
     /// 是否在开放水域（fishing_hook）
     std::optional<bool> inOpenWater;

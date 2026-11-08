@@ -24,23 +24,28 @@
 #include "HttpSkinLoader.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/skin/loader/SkinImageValidator.hpp"
 #include "common/skin/loader/SkinLoader.hpp"
 #include "common/util/crypto/Sha1.hpp"
 #include "common/util/thread/ITask.hpp"
+#include <array>
 #include <atomic>
+#include <cctype>
 #include <cstddef>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
+#include <asio.hpp>
+#include <asio/ssl.hpp>
+#include <openssl/ssl.h>
 #include <spdlog/spdlog.h>
-
-// 注意：实际 HTTP 实现需要依赖 curl 或 asio
-// 这里提供框架代码，具体实现可以后续添加
 
 namespace mc::skin {
 
@@ -57,9 +62,6 @@ Result<void> HttpSkinLoader::initialize()
         return {};
     }
 
-    // TODO: 初始化 HTTP 客户端（如 curl）
-    // curl_global_init(CURL_GLOBAL_DEFAULT);
-
     m_initialized = true;
     spdlog::info("HttpSkinLoader initialized");
     return {};
@@ -73,9 +75,6 @@ void HttpSkinLoader::shutdown()
 
     // 取消所有待处理的下载
     cancelAll();
-
-    // TODO: 清理 HTTP 客户端
-    // curl_global_cleanup();
 
     m_initialized = false;
 
@@ -257,14 +256,253 @@ void HttpSkinLoader::_decrementPending()
     m_shutdownCondition.notify_one();
 }
 
+namespace {
+
+/**
+ * @brief Parsed pieces of an HTTP(S) URL that the loader needs.
+ */
+struct ParsedUrl {
+    bool tls = true;
+    std::string host;
+    std::string port;
+    std::string target; // path + query, always starts with '/'
+};
+
+/**
+ * @brief Split an HTTP(S) URL into scheme/host/port/target.
+ *
+ * Only http:// and https:// are accepted; anything else is reported as invalid so the caller
+ * can fail loudly instead of silently issuing a malformed request.
+ */
+Result<ParsedUrl> _parseHttpUrl(const std::string& url)
+{
+    ParsedUrl parsed;
+    std::string rest;
+    if (url.rfind("https://", 0) == 0) {
+        parsed.tls = true;
+        rest = url.substr(8);
+        parsed.port = "443";
+    } else if (url.rfind("http://", 0) == 0) {
+        parsed.tls = false;
+        rest = url.substr(7);
+        parsed.port = "80";
+    } else {
+        return Error(ErrorCode::InvalidArgument, "Unsupported URL scheme: " + url);
+    }
+
+    const size_t pathPos = rest.find('/');
+    std::string authority = (pathPos == std::string::npos) ? rest : rest.substr(0, pathPos);
+    parsed.target = (pathPos == std::string::npos) ? "/" : rest.substr(pathPos);
+
+    const size_t colonPos = authority.find(':');
+    if (colonPos == std::string::npos) {
+        parsed.host = authority;
+    } else {
+        parsed.host = authority.substr(0, colonPos);
+        parsed.port = authority.substr(colonPos + 1);
+    }
+
+    if (parsed.host.empty()) {
+        return Error(ErrorCode::InvalidArgument, "URL has no host: " + url);
+    }
+    return parsed;
+}
+
+/**
+ * @brief Case-insensitive ASCII comparison helper.
+ */
+bool _iequals(const std::string& a, const std::string& b)
+{
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // anonymous namespace
+
 Result<std::vector<u8>> HttpSkinLoader::_httpGet(const std::string& url)
 {
-    // TODO: 实现真正的 HTTP GET
-    // 这里需要使用 curl 或 asio 实现
+    auto parsedResult = _parseHttpUrl(url);
+    if (!parsedResult.success()) {
+        return parsedResult.error();
+    }
+    const ParsedUrl& parsed = parsedResult.value();
 
-    // 临时实现：返回错误
-    spdlog::warn("HttpSkinLoader: HTTP GET not implemented, URL: {}", url);
-    return Error(ErrorCode::Unsupported, "HTTP GET not implemented");
+    // A per-request io_context keeps the synchronous request self-contained: no shared reactor,
+    // no cross-thread state, so concurrent loadAsync workers cannot interfere with each other.
+    asio::io_context ioContext;
+    asio::ip::tcp::resolver resolver(ioContext);
+    asio::error_code error;
+
+    auto endpoints = resolver.resolve(parsed.host, parsed.port, error);
+    if (error) {
+        spdlog::warn("HttpSkinLoader: DNS resolution failed for {}: {}", parsed.host, error.message());
+        return Error(ErrorCode::ConnectionFailed, "DNS resolution failed: " + error.message());
+    }
+
+    asio::ip::tcp::socket socket(ioContext);
+    asio::connect(socket, endpoints, error);
+    if (error) {
+        spdlog::warn("HttpSkinLoader: TCP connect failed for {}: {}", parsed.host, error.message());
+        return Error(ErrorCode::ConnectionFailed, "TCP connect failed: " + error.message());
+    }
+
+    // TLS context must outlive the stream it serves; declaring it here keeps the lifetime obvious
+    // instead of hiding it behind a branch-local object.
+    asio::ssl::context sslContext(asio::ssl::context::tls_client);
+    std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> tlsStream;
+
+    if (parsed.tls) {
+        sslContext.set_default_verify_paths();
+        sslContext.set_verify_mode(asio::ssl::verify_peer);
+
+        tlsStream = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), sslContext);
+        // SNI + hostname verification: textures.minecraft.net is served from a shared CDN, so
+        // skipping verification would accept any certificate the CDN happens to present.
+        if (!SSL_set_tlsext_host_name(tlsStream->native_handle(), parsed.host.c_str())) {
+            return Error(ErrorCode::ConnectionFailed, "Failed to set TLS SNI hostname");
+        }
+        tlsStream->set_verify_callback(asio::ssl::host_name_verification(parsed.host));
+        tlsStream->handshake(asio::ssl::stream_base::client, error);
+        if (error) {
+            spdlog::warn("HttpSkinLoader: TLS handshake failed for {}: {}", parsed.host, error.message());
+            return Error(ErrorCode::ConnectionFailed, "TLS handshake failed: " + error.message());
+        }
+    }
+
+    std::ostringstream request;
+    request << "GET " << parsed.target << " HTTP/1.1\r\n";
+    request << "Host: " << parsed.host << "\r\n";
+    request << "User-Agent: Cubium\r\n";
+    request << "Accept: image/png\r\n";
+    request << "Connection: close\r\n\r\n";
+    const std::string requestText = request.str();
+
+    // Both transports are driven through the same lambdas so the HTTP layer below is written once.
+    const auto writeAll = [&](const std::string& text) {
+        if (parsed.tls) {
+            asio::write(*tlsStream, asio::buffer(text), error);
+        } else {
+            asio::write(socket, asio::buffer(text), error);
+        }
+    };
+    const auto readSome = [&](std::array<char, 8192>& buffer) -> size_t {
+        return parsed.tls ? tlsStream->read_some(asio::buffer(buffer), error)
+                          : socket.read_some(asio::buffer(buffer), error);
+    };
+
+    writeAll(requestText);
+    if (error) {
+        spdlog::warn("HttpSkinLoader: failed to send request for {}: {}", url, error.message());
+        return Error(ErrorCode::ConnectionFailed, "Failed to send HTTP request: " + error.message());
+    }
+
+    std::string rawResponse;
+    std::array<char, 8192> buffer{};
+    while (true) {
+        const size_t bytesRead = readSome(buffer);
+        if (error == asio::error::eof) {
+            break;
+        }
+        if (error) {
+            spdlog::warn("HttpSkinLoader: failed to read response for {}: {}", url, error.message());
+            return Error(ErrorCode::ConnectionFailed, "Failed to read HTTP response: " + error.message());
+        }
+        rawResponse.append(buffer.data(), bytesRead);
+    }
+
+    const size_t headerEnd = rawResponse.find("\r\n\r\n");
+    if (headerEnd == std::string::npos) {
+        return Error(ErrorCode::InvalidData, "Malformed HTTP response (no header terminator)");
+    }
+
+    // Parse the status line and the headers we care about (case-insensitive names).
+    const std::string headerBlock = rawResponse.substr(0, headerEnd);
+    std::istringstream headerStream(headerBlock);
+    std::string statusLine;
+    std::getline(headerStream, statusLine);
+
+    i32 statusCode = 0;
+    {
+        std::istringstream statusStream(statusLine);
+        std::string version;
+        statusStream >> version >> statusCode;
+    }
+    if (statusCode != 200) {
+        spdlog::warn("HttpSkinLoader: HTTP {} for {}", statusCode, url);
+        return Error(ErrorCode::ConnectionFailed, "HTTP status " + std::to_string(statusCode));
+    }
+
+    bool chunked = false;
+    size_t contentLength = 0;
+    bool hasContentLength = false;
+    std::string line;
+    while (std::getline(headerStream, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        const size_t sep = line.find(':');
+        if (sep == std::string::npos) {
+            continue;
+        }
+        const std::string name = line.substr(0, sep);
+        std::string value = line.substr(sep + 1);
+        while (!value.empty() && (value.front() == ' ' || value.front() == '\t')) {
+            value.erase(value.begin());
+        }
+        if (_iequals(name, "Transfer-Encoding") && value.find("chunked") != std::string::npos) {
+            chunked = true;
+        } else if (_iequals(name, "Content-Length")) {
+            contentLength = static_cast<size_t>(std::strtoull(value.c_str(), nullptr, 10));
+            hasContentLength = true;
+        }
+    }
+
+    const std::string body = rawResponse.substr(headerEnd + 4);
+
+    if (!chunked) {
+        if (hasContentLength) {
+            if (body.size() < contentLength) {
+                return Error(ErrorCode::InvalidData, "Truncated HTTP body");
+            }
+            return std::vector<u8>(body.begin(), body.begin() + static_cast<std::ptrdiff_t>(contentLength));
+        }
+        return std::vector<u8>(body.begin(), body.end());
+    }
+
+    // Chunked transfer encoding: accumulate chunk payloads, stop at the zero-length terminator.
+    std::vector<u8> decoded;
+    size_t cursor = 0;
+    while (cursor < body.size()) {
+        const size_t lineEnd = body.find("\r\n", cursor);
+        if (lineEnd == std::string::npos) {
+            return Error(ErrorCode::InvalidData, "Malformed chunked HTTP body");
+        }
+        const size_t chunkSize =
+            static_cast<size_t>(std::strtoull(body.substr(cursor, lineEnd - cursor).c_str(), nullptr, 16));
+        cursor = lineEnd + 2;
+        if (chunkSize == 0) {
+            break;
+        }
+        if (cursor + chunkSize > body.size()) {
+            return Error(ErrorCode::InvalidData, "Truncated chunked HTTP body");
+        }
+        decoded.insert(decoded.end(),
+            body.begin() + static_cast<std::ptrdiff_t>(cursor),
+            body.begin() + static_cast<std::ptrdiff_t>(cursor + chunkSize));
+        cursor += chunkSize + 2; // skip payload and trailing CRLF
+    }
+
+    if (decoded.empty()) {
+        return Error(ErrorCode::InvalidData, "Empty HTTP body");
+    }
+    return decoded;
 }
 
 std::string HttpSkinLoader::_extractHashFromUrl(const std::string& url) const
@@ -287,18 +525,9 @@ std::string HttpSkinLoader::_extractHashFromUrl(const std::string& url) const
 
 Result<std::vector<u8>> HttpSkinLoader::_validateAndConvertSkin(const std::vector<u8>& pngData)
 {
-    // TODO: 当 HTTP 下载实现后，需要与 FileSkinLoader 保持一致的验证逻辑：
-    // 1. 使用 stbi_load_from_memory 解码 PNG
-    // 2. 验证尺寸为 64x64 或 64x32
-    // 3. 如果是 64x32，转换为 64x64
-    // 4. 使用 stbi_write_png_to_func 重新编码为 PNG
-    // 当前 _httpGet 尚未实现，此方法暂时不会被调用
-
-    if (pngData.size() < 64) {
-        return Error(ErrorCode::InvalidData, "Skin data too small");
-    }
-
-    return pngData;
+    // 与 FileSkinLoader 共用同一份校验/规范化实现：两个来源必须产出完全一致的字节，
+    // 否则同一张皮肤由不同来源加载会得到不同缓存哈希。
+    return SkinImageValidator::validateAndNormalize(pngData);
 }
 
 std::string HttpSkinLoader::_calculateHash(const std::vector<u8>& data)

@@ -290,6 +290,12 @@ void registerNetherBlocks()
             // （难度越高概率越大——条件满足时按 1/2000·难度 触发）。
             // TODO: Cubium 侧尚未实现 NetherPortalBlock::randomTick 的猪灵生成逻辑，
             //       这里只先对齐「是随机刻方块」这一属性。
+            //       已具备：IWorld::difficulty()、IWorld::getPlayers()、IWorld::spawnEntity()、
+            //       ZombifiedPiglinEntity 与 IRandom。
+            //       尚缺：IWorld::isSpawningMonsters()（怪物生成开关）、
+            //       NETHER_PORTAL_SPAWNS_PIGLINS 环境属性查询、isValidSpawn(pos, type)、
+            //       以及 anyPlayerCloseEnoughForSpawning(pos)（128 格水平/垂直范围判定）。
+            //       缺一环就实现会让刷猪灵的概率口径与原版不一致，故整体待这些接口落地。
             BlockProperties(Material::PORTAL)
                 .noCollision()
                 .hardness(-1.0f)

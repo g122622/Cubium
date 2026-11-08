@@ -201,6 +201,11 @@ bool ItemPredicate::test(const ItemStack& stack,
         }
     }
 
+    // 检查已损耗值（minecraft:damage 谓词的 damage 子范围）
+    if (!m_damage.isUnbounded() && !m_damage.test(stack.getDamage())) {
+        return false;
+    }
+
     // 检查药水类型
     if (m_potion.has_value()) {
         const potion::Potion* actualPotion = potion::PotionUtils::getPotion(stack);
@@ -349,17 +354,43 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
             _expandItemSet(json["items"], item, tag, itemsExpanded);
         }
 
-        // TODO(item-predicate-components): 其余组件部分谓词（damage / potions / custom_data /
-        //   container 等）尚未接入，当前按"未提供"处理，不影响已识别的附魔与物品条件。
+        // TODO(item-predicate-components): 其余组件部分谓词（custom_data / container / bundle /
+        //   written_book 等）尚未接入，当前按"未提供"处理，不影响已识别的附魔、物品与 damage 条件。
+        // minecraft:damage 谓词：原版 DamagePredicate 同时接受 durability 与 damage 两个子范围，
+        // 前者按剩余耐久（maxDamage - damage）判定，后者按已损耗值判定。
+        IntBounds durabilityBounds;
+        IntBounds damageBounds;
+        if (partial.contains("minecraft:damage") && partial["minecraft:damage"].is_object()) {
+            const auto& damageJson = partial["minecraft:damage"];
+            if (damageJson.contains("durability")) {
+                durabilityBounds = IntBounds::fromJson(damageJson["durability"]);
+            }
+            if (damageJson.contains("damage")) {
+                damageBounds = IntBounds::fromJson(damageJson["damage"]);
+            }
+        }
+
+        // minecraft:potion_contents 谓词：只取药水 id 这一维（其余 payload 维度暂无对应模型）。
+        std::optional<ResourceLocation> potionId;
+        if (partial.contains("minecraft:potion_contents")) {
+            const auto& potionJson = partial["minecraft:potion_contents"];
+            if (potionJson.is_string()) {
+                potionId = ResourceLocation(potionJson.get<std::string>());
+            } else if (potionJson.is_object() && potionJson.contains("potion") && potionJson["potion"].is_string()) {
+                potionId = ResourceLocation(potionJson["potion"].get<std::string>());
+            }
+        }
+
         ItemPredicate predicate(std::move(item),
             std::move(tag),
             IntBounds(),
-            IntBounds(),
-            std::nullopt,
+            std::move(durabilityBounds),
+            std::move(potionId),
             std::move(enchantments),
             std::move(storedEnchantments),
             NBTPredicate());
         predicate.m_items = std::move(itemsExpanded);
+        predicate.m_damage = std::move(damageBounds);
         predicate.m_fromPredicates = true;
         predicate._updateIsAny();
         return predicate;
@@ -516,8 +547,8 @@ nlohmann::json ItemPredicate::toJson() const
 void ItemPredicate::_updateIsAny()
 {
     m_isAny = !m_item.has_value() && !m_tag.has_value() && m_items.empty() && m_count.isUnbounded() &&
-        m_durability.isUnbounded() && !m_potion.has_value() && m_enchantments.empty() && m_storedEnchantments.empty() &&
-        m_nbt.isAny();
+        m_durability.isUnbounded() && m_damage.isUnbounded() && !m_potion.has_value() && m_enchantments.empty() &&
+        m_storedEnchantments.empty() && m_nbt.isAny();
 }
 
 bool ItemPredicate::_testEnchantments(

@@ -10,10 +10,12 @@ enchantment/
 ├── Enchantment.cpp              # 附魔基类实现
 ├── EnchantmentContainer.hpp     # 附魔容器（存储物品上的附魔）
 ├── EnchantmentContainer.cpp     # 附魔容器实现
-├── EnchantmentHelper.hpp        # 附魔查询工具类
+├── EnchantmentHelper.hpp        # 附魔查询工具类（含提示框排序与附魔全名）
 ├── EnchantmentHelper.cpp        # 附魔查询工具类实现
 ├── EnchantmentRegistry.hpp      # 附魔注册表
 ├── EnchantmentRegistry.cpp      # 附魔注册表实现
+├── EnchantmentTag.hpp/cpp       # 单个附魔标签（成员同时保留有序序列与集合）
+├── EnchantmentTags.hpp/cpp      # 附魔标签注册表（数据包加载 + 15 个内置标签占位）
 └── enchantments/                # 具体附魔实现
     ├── AllEnchantments.hpp      # 所有附魔统一包含
     ├── AllEnchantments.cpp      # 所有附魔注册
@@ -165,3 +167,26 @@ LivingEntity::actuallyHurt()
 - `LocationEnchantmentTracker` — 追踪每个装备槽位上活跃的位置依赖附魔
 
 **激活/停用必须成对**：覆写了 `onLocationChanged()` 的附魔**必须**同时覆写 `onLocationEffectDeactivated()`。即使不需要清理（如冰霜行者），也应提供空实现以保证设计一致性。
+
+### 8. tooltip_order 是**有序**标签，不能只留集合
+
+提示框里的附魔行按 `minecraft:tooltip_order` 的**声明顺序**排列（标签外的附魔追加在后面），
+这是 `EnchantmentHelper::getSortedEnchantmentsForTooltip` 的实现依据。因此：
+
+- `EnchantmentTag` 同时维护 `getEnchantmentIds()`（集合，判存在）与
+  `getOrderedEnchantmentIds()`（声明顺序，判排序），两者都要维护，`add()` 会一并写入；
+- 通用标签加载器的 `readTag` 回调必须按**有序**序列展开，否则 `#` 引用展开后顺序丢失；
+- 客户端那侧的顺序由 Configuration 阶段的 UpdateTags 下发（`RegistryDataBuilder`），
+  元素 id 必须等于 enchantment 注册表条目的发送序号，不能另起编号。
+
+### 9. 附魔翻译键是 `enchantment.minecraft.<path>`
+
+`Enchantment::getNameKey()` 由 `id()` 推导时走 `ResourceLocation::toLanguageKey()`（冒号换点），
+得到 `enchantment.minecraft.fortune`。**不要**直接做 `"enchantment." + id()`——那会产出带冒号的
+`enchantment.minecraft:fortune`，不是合法的翻译键，玩家看到的会是原始键名。
+
+### 10. 附魔提示行由 `Item::addInformation` 统一追加
+
+附魔行（颜色 + 罗马数字等级）由基类 `Item::addInformation` 首发，子类重写时必须先调用
+`Item::addInformation`，否则附魔行丢失。颜色规则与等级后缀由
+`EnchantmentHelper::getFullName` 统一给出，不要在各方块/物品里自行拼接。

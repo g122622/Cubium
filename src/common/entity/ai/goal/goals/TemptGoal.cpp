@@ -90,8 +90,10 @@ bool TemptGoal::shouldContinueExecuting()
     }
 
     // 检查距离
+    // 诱惑范围来自 tempt_range 属性（默认 10.0），命令/数据包可调整，嗅探兽等会调高。
+    const f64 temptRange = _temptRange();
     f64 distSq = m_creature->distanceSqTo(*m_temptingPlayer);
-    if (distSq > TEMPT_RANGE_SQ) {
+    if (distSq > temptRange * temptRange) {
         return false;
     }
 
@@ -211,11 +213,17 @@ Player* TemptGoal::findTemptingPlayer()
 
     // 搜索附近手持诱惑物品的玩家
     return EntityUtils::findClosestEntity<Player>(
-        m_creature->world(), m_creature->position(), TEMPT_RANGE, m_creature, [this](Player* playerEntity) {
+        m_creature->world(), m_creature->position(), _temptRange(), m_creature, [this](Player* playerEntity) {
             const ItemStack& mainHand = playerEntity->getHeldItem(Hand::MainHand);
             const ItemStack& offHand = playerEntity->getHeldItem(Hand::OffHand);
             return isTempting(mainHand) || isTempting(offHand);
         });
+}
+
+f64 TemptGoal::_temptRange() const
+{
+    // 动物基类注册了该属性；未注册时按属性默认值 10.0 回退，行为与原常量一致。
+    return m_creature->getAttributeValue(entity::attribute::Attributes::TEMPT_RANGE, 10.0);
 }
 
 } // namespace mc::entity::ai::goal

@@ -69,6 +69,23 @@ public:
     // ========== 属性 ==========
 
     void registerAttributes() override;
+
+    // ========== 声音 ==========
+
+    /**
+     * @brief 获取环境音
+     *
+     * 悦灵有两套环境音：手持物品时用 `entity.allay.ambient_with_item`，空手时用
+     * `entity.allay.ambient_without_item`。基类的 `entity.<type>.ambient` 拼接在这里不成立。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤音
+     *
+     * 原版用固定常量 `entity.allay.hurt`，不走基类的 `entity.<type>.hurt` 拼接。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 };
 
 } // namespace entity

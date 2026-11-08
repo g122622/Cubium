@@ -175,6 +175,10 @@ TEST_F(ConvertToStateTest, CopiesAgeAiAndPersistence)
     baby.setNoAi(true);
     baby.enablePersistence();
     baby.setCanPickUpLoot(true);
+    baby.setLeftHanded(true);
+    // 强制成长进度（喂食加速）也应随转换保留。
+    baby.setForcedAge(12);
+    baby.setForcedAgeTimer(34);
 
     Entity* converted = baby.convertTo(entity::EntityTypeKeys::COW, ConversionParams::single(baby, false, true));
     ASSERT_NE(converted, nullptr);
@@ -184,4 +188,10 @@ TEST_F(ConvertToStateTest, CopiesAgeAiAndPersistence)
     EXPECT_TRUE(convertedMob->isNoAi());
     EXPECT_TRUE(convertedMob->isNoDespawnRequired());
     EXPECT_TRUE(convertedMob->canPickUpLoot());
+    EXPECT_TRUE(convertedMob->isLeftHanded()) << "left-handed flag must survive conversion";
+
+    auto* convertedAgeable = dynamic_cast<AgeableEntity*>(converted);
+    ASSERT_NE(convertedAgeable, nullptr);
+    EXPECT_EQ(convertedAgeable->getForcedAge(), 12);
+    EXPECT_EQ(convertedAgeable->getForcedAgeTimer(), 34);
 }

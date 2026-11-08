@@ -135,9 +135,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto displayAutoUpdateArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
     displayAutoUpdateArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 显示自动更新的写入尚未实现，形态已对齐原版。
-        ctx.getSource().sendError("commands.scoreboard.displayautoupdate.notImplemented");
-        return 0;
+        return _modifyObjectiveDisplayAutoUpdate(ctx);
     });
     displayAutoUpdateNode->addChild(displayAutoUpdateArg);
     modifyNameArg->addChild(displayAutoUpdateNode);
@@ -146,7 +144,18 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // numberformat 本身可执行（等价于 blank），其下 fixed <contents> / styled <style> / blank。
     auto numberFormatNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("numberformat");
     numberFormatNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
+        // TODO(numberformat): 数字格式的写入尚未实现。完整的 vanilla NumberFormat 是
+        //   三变体联合：blank（无载荷）/ styled（Style 载荷）/ fixed（Component 载荷），
+        //   需要：
+        //   ① ScoreObjective 增加 numberFormat 字段（结构化模型，非字符串）；
+        //   ② Style 的 wire 编码子系统——styled 变体要把颜色/粗体/斜体/下划线/点击事件等
+        //      完整编码进 NumberFormat payload，项目目前没有 Style 的 STREAM_CODEC 等价物
+        //      （只有 TextColor::serialize 与 Component 的 NBT 编码）；
+        //   ③ 持久化（NBT）与 ServerScoreboard::_createObjectivePacket 的 wire 填充
+        //      （IR 侧 pkt.numberFormat 是 std::vector<u8> 透传，见 JavaPlayCodecsExtended）。
+        //   已具备：Component NBT 编码（componentToNbtBytes，可承载 fixed 变体的载荷）、
+        //      TextColor 序列化、命令树形态。
+        //   缺 ② 会让 styled 变体无法正确编码，因此不做部分实现。
         ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
         return 0;
     });
@@ -183,10 +192,11 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto renderTypeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("rendertype");
     for (const char* kind : {"hearts", "integer"}) {
         auto kindNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(kind);
-        kindNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            // TODO: 渲染类型的写入尚未实现，形态已对齐原版。
-            ctx.getSource().sendError("commands.scoreboard.rendertype.notImplemented");
-            return 0;
+        // 渲染类型是字面量分支，直接把对应枚举捕获进回调。
+        const scoreboard::RenderType renderType =
+            scoreboard::renderTypeParse(kind).value_or(scoreboard::RenderType::Integer);
+        kindNode->setCommand([renderType](CommandContext<ServerCommandSource>& ctx) {
+            return _setObjectiveRenderType(ctx, renderType);
         });
         renderTypeNode->addChild(kindNode);
     }
@@ -874,6 +884,56 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayName(CommandContext<ServerCommandS
     objective->setDisplayName(std::make_unique<text::StringTextComponent>(displayName));
     source.sendMessage("Set display name of objective '" + name + "' to '" + displayName + "'");
     return 1;
+}
+
+i32 ScoreboardCommand::_modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const std::string name = context.getArgument<std::string>("objective");
+    const bool value = context.getArgument<bool>("value");
+
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+    auto* objective = scoreboard->getObjective(name);
+    if (objective == nullptr) {
+        source.sendMessage("Unknown objective '" + name + "'");
+        return 0;
+    }
+
+    objective->setDisplayAutoUpdate(value);
+    source.sendMessage("Set displayAutoUpdate of objective '" + name + "' to " + (value ? "true" : "false"));
+    return 1;
+}
+
+i32 ScoreboardCommand::_setObjectiveRenderType(
+    CommandContext<ServerCommandSource>& context, scoreboard::RenderType renderType)
+{
+    auto& source = context.getSource();
+    const std::string name = context.getArgument<std::string>("objective");
+
+    auto* scoreboard = getScoreboard(source);
+    if (scoreboard == nullptr) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    auto* objective = scoreboard->getObjective(name);
+    if (objective == nullptr) {
+        source.sendMessage("Unknown objective '" + name + "'");
+        return 0;
+    }
+
+    // 原版仅在类型真正变化时才写入并回报，避免重复设置时刷屏。
+    if (objective->getRenderType() != renderType) {
+        objective->setRenderType(renderType);
+        source.sendMessage(
+            "Set render type of objective '" + name + "' to '" + scoreboard::renderTypeToString(renderType) + "'");
+    }
+
+    return 0;
 }
 
 i32 ScoreboardCommand::_setDisplaySlot(CommandContext<ServerCommandSource>& context)

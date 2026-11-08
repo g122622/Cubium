@@ -1559,6 +1559,66 @@ public:
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving);
 
     /**
+     * @brief 间接邻居形状更新（对应 vanilla `BlockBehaviour#updateIndirectNeighbourShapes`）
+     *
+     * 当本方块在某位置被写入/移除时，原版除了对 6 个**直接**邻居做形状更新
+     * （`updateNeighbourShapes`）之外，还会调用本方法让方块自己处理"隔一格的邻居"。
+     * 目前只有红石线需要：红石线连到一格高的方块上时（`RedstoneSide::Up`），真正的
+     * 连接对象在斜上方，直接邻居更新覆盖不到它。
+     *
+     * 默认实现为空（与 vanilla 基类一致）。**这里只能发起形状更新**（经由
+     * `IWorld::notifyShapeChanged`），不要触发邻居通知或方块 tick。
+     *
+     * @param state 本方块（调用方所在位置）的状态
+     * @param world 世界
+     * @param pos 调用方所在位置
+     * @param flags 形状更新标志（原版传入的 flags 已剥掉形状递归自身）
+     * @param recursionLeft 剩余的形状更新递归预算
+     * @param movedByPiston 是否由活塞推动引发（对应 vanilla 单独注入 `updateIndirectNeighborShape` 的场景）
+     */
+    virtual void updateIndirectNeighbourShapes(
+        const BlockState& state, IWorld& world, const BlockPos& pos, i32 flags, i32 recursionLeft, bool movedByPiston);
+
+    /**
+     * @brief 对 6 个邻居发起形状更新（对应 vanilla `BlockState#updateNeighbourShapes`）
+     *
+     * 按 `UPDATE_SHAPE_ORDER` 依次对每个邻居调用 {@link IWorld::notifyShapeChanged}。
+     *
+     * @param state 本次写入后的方块状态
+     * @param world 世界
+     * @param pos 本次写入的位置
+     * @param flags 形状更新标志
+     * @param recursionLeft 剩余的形状更新递归预算
+     * @param movedByPiston 是否由活塞推动引发
+     */
+    static void updateNeighbourShapes(
+        const BlockState& state, IWorld& world, const BlockPos& pos, i32 flags, i32 recursionLeft, bool movedByPiston);
+
+    /**
+     * @brief 对单个邻居发起形状更新（对应 vanilla `NeighborUpdater#executeShapeUpdate`）
+     *
+     * 读取 `neighborPos` 的当前状态，用来源方向/来源状态跑一次 `updatePostPlacement`，
+     * 结果不同则经 `Block::updateOrDestroy` 写回。对应原版 `NeighborUpdater.executeShapeUpdate`：
+     * `flags` 含 UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE 且目标为红石线时直接跳过。
+     *
+     * @param direction 从邻居指向本方块的方向（即邻居的"更新方向"）
+     * @param sourceState 本方块（更新来源）的状态
+     * @param neighborPos 邻居位置（被更新者）
+     * @param sourcePos 本方块位置（更新来源）
+     * @param flags 形状更新标志
+     * @param recursionLeft 剩余的形状更新递归预算
+     * @param movedByPiston 是否由活塞推动引发
+     */
+    static void executeShapeUpdate(Direction direction,
+        const BlockState& sourceState,
+        IWorld& world,
+        const BlockPos& neighborPos,
+        const BlockPos& sourcePos,
+        i32 flags,
+        i32 recursionLeft,
+        bool movedByPiston);
+
+    /**
      * @brief 方块被放置时的处理
      *
      * 当方块被放置到世界中时调用。默认实现为空。

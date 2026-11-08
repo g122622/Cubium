@@ -23,6 +23,7 @@
 
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "EnchantmentTags.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
@@ -32,10 +33,14 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/resource/LanguageManager.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include <algorithm>
 #include <array>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -117,6 +122,89 @@ std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getEnchantmen
         if (enchantment) {
             result.emplace_back(enchantment, instance.level);
         }
+    }
+
+    return result;
+}
+
+std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getSortedEnchantmentsForTooltip(
+    const ItemStack& stack)
+{
+    std::vector<std::pair<const Enchantment*, i32>> unsorted = getEnchantments(stack);
+    if (unsorted.empty()) {
+        return unsorted;
+    }
+
+    // 附魔 id → 等级。同名附魔在容器中不会重复，故以 id 为键即可。
+    std::unordered_map<std::string, i32> byId;
+    byId.reserve(unsorted.size());
+    for (const auto& [enchantment, level] : unsorted) {
+        byId.emplace(enchantment->id(), level);
+    }
+
+    std::vector<std::pair<const Enchantment*, i32>> sorted;
+    sorted.reserve(unsorted.size());
+
+    // 第一步：按 `minecraft:tooltip_order` 标签的声明顺序输出标签内的附魔
+    const EnchantmentTag* tooltipOrder = EnchantmentTags::getTag(ResourceLocation("minecraft:tooltip_order"));
+    if (tooltipOrder != nullptr) {
+        for (const auto& enchantmentId : tooltipOrder->getOrderedEnchantmentIds()) {
+            const auto it = byId.find(enchantmentId.toString());
+            if (it == byId.end()) {
+                continue;
+            }
+            const Enchantment* enchantment = EnchantmentRegistry::get(it->first);
+            if (enchantment != nullptr) {
+                sorted.emplace_back(enchantment, it->second);
+            }
+            byId.erase(it);
+        }
+    }
+
+    // 第二步：标签外的附魔按物品自身的存储顺序追加（原版同样是遍历剩余 map 条目）
+    for (const auto& [enchantment, level] : unsorted) {
+        const auto it = byId.find(enchantment->id());
+        if (it == byId.end()) {
+            continue;
+        }
+        sorted.emplace_back(enchantment, level);
+        byId.erase(it);
+    }
+
+    return sorted;
+}
+
+namespace {
+
+/**
+ * @brief 取某附魔在提示框中名称的颜色（§ 代码前缀），对应原版 `Enchantment#getFullname`
+ *
+ * 诅咒独占红色分支，其余全部走默认分支（灰色）。枚举到 § 代码字符的映射交给
+ * `Style::applyLegacyFormat` + `getStyleCodes`，不在此处硬编码颜色字母。
+ */
+std::string _enchantmentNameColorCode(bool isCurse)
+{
+    const mc::text::Style style =
+        mc::text::Style{}.applyLegacyFormat(isCurse ? mc::text::TextFormatting::Red : mc::text::TextFormatting::Gray);
+    return mc::text::getStyleCodes(style);
+}
+
+} // namespace
+
+std::string EnchantmentHelper::getColoredName(const Enchantment& enchantment, bool isCurse)
+{
+    return _enchantmentNameColorCode(isCurse) + resource::LanguageManager::instance().get(enchantment.getNameKey());
+}
+
+std::string EnchantmentHelper::getFullName(const Enchantment& enchantment, i32 level, bool isCurse)
+{
+    std::string result = getColoredName(enchantment, isCurse);
+
+    // 原版：等级不是 1，或该附魔的最大等级不是 1 时追加空格 + `enchantment.level.<等级>`。
+    // 也就是说单级附魔（如精准采集）在 1 级时不显示罗马数字后缀。
+    if (level != 1 || enchantment.maxLevel() != 1) {
+        result += " ";
+        result += resource::LanguageManager::instance().get("enchantment.level." + std::to_string(level));
     }
 
     return result;

@@ -99,6 +99,14 @@ protected:
      */
     Player* findTemptingPlayer();
 
+    /**
+     * @brief 读取诱惑范围
+     *
+     * 取生物的 `tempt_range` 属性值（默认 10.0），供玩家搜索与距离判定共同使用，
+     * 避免两处口径不一致。
+     */
+    [[nodiscard]] f64 _temptRange() const;
+
     CreatureEntity* m_creature;
     f64 m_speed;
     ItemPredicate m_itemPredicate;

@@ -217,6 +217,8 @@ add_executable(mc_tests
     # 附魔每 tick 效果派发（runTickEffects / Enchantment::onTick）与灵魂疾行 TICK 组件
     common/item/enchantment/EnchantmentTickEffectsTest.cpp
     common/item/enchantment/BlastProtectionAttributeTest.cpp
+    # 附魔提示框：tooltip_order 排序、附魔全名（颜色 + 罗马数字等级）、Item::addInformation 附魔行
+    common/item/enchantment/EnchantmentTooltipTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     # ContainerType 的 wire 取值锁定（数值即菜单注册表项序，偏移会让原版客户端建错窗口）
     common/entity/inventory/ContainerTypeUtilsTest.cpp
@@ -238,6 +240,8 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
     common/entity/entities/passive/basic/AnimalEntityTest.cpp
+    # 悦灵音效（手持物品/空手两套环境音 + 专用受伤音）
+    common/entity/entities/passive/allay/AllayEntityTest.cpp
     common/entity/entities/passive/tamable/WolfEntityTest.cpp
     common/entity/entities/passive/tamable/ParrotEntityTest.cpp
     common/entity/entities/passive/tamable/OcelotEntityTest.cpp
@@ -394,6 +398,8 @@ add_executable(mc_tests
     common/entity/core/EquipmentUpdateTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
+    # 生物尺寸缩放（scale 属性消费点）
+    common/entity/core/EntityScaleTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
     common/entity/core/EntityIsInRainTest.cpp
     # Entity::isOnLadder() 可攀爬判定测试（CLIMBABLE 标签 + Block::isLadder 虚函数两条来源）
@@ -797,6 +803,8 @@ add_executable(mc_tests
     common/world/dimension/EndDragonFightFindPortalTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
+    # 实体默认显示名与类型翻译键（entity.minecraft.<path>）
+    entity/EntityDisplayNameTest.cpp
     # 实体同步数据字段 id 对齐 vanilla 1.21.11 黄金表测试（防继承链分配器回归）
     entity/EntityMetadataIdGoldenTest.cpp
     entity/EntityDataManagerStorageTest.cpp
@@ -1027,6 +1035,8 @@ add_executable(mc_tests
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp
+    # strict 模式（/fill、/clone）的"抑制副作用 + 延后补发邻居更新"通路
+    server/ServerWorldNeighbourOnBlockSetTest.cpp
     server/test_integrated_server.cpp
     server/test_save_player_runtime_state.cpp
     server/BlockDropHandlerTest.cpp
@@ -1123,6 +1133,8 @@ add_executable(mc_tests
     common/command/arguments/NbtPathTest.cpp
     # NBT 标签赋值语义测试
     common/util/nbt/NbtTagAssignmentTest.cpp
+    # SNBT 文本字面量的类型保真（double 后缀、布尔字面量）
+    common/util/nbt/SnbtLiteralTest.cpp
     common/command/arguments/TimeArgumentTest.cpp
     common/command/arguments/Vec2ArgumentTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
@@ -1504,6 +1516,8 @@ add_executable(mc_tests
     lighting/LightUpdateTest.cpp
     lighting/BlockLightRegressionTest.cpp
     lighting/BaseLightEngineQueueTest.cpp
+    # 点亮流程输入 nibble 工厂（getFilledEmptyLight 的 NULL 状态语义）
+    lighting/FilledEmptyLightTest.cpp
     lighting/SkyLightRegressionTest.cpp
     lighting/WorldLightManagerTest.cpp
     # 主线程读路径 visible 侧回归测试（③-2a）
@@ -1637,6 +1651,8 @@ add_executable(mc_tests
     util/NbtJsonUtilsTest.cpp
     # NBT标签深度比较测试
     util/NbtEqualsTest.cpp
+    # list_tag 按下标增删改虚接口（removeAt/clearAll/replaceAt/appendCopy）
+    util/ListTagIndexOpsTest.cpp
     # 调试区块生成器测试（文件实际位于 common/world/gen/）
     common/world/gen/DebugChunkGeneratorTest.cpp
     # 区块生成器MC对齐测试
@@ -1755,6 +1771,8 @@ add_executable(mc_tests
     common/skin/test_skin_manager.cpp
     common/skin/test_default_skin_provider.cpp
     common/skin/test_skin_loader_async.cpp
+    # 皮肤 PNG 校验/规范化（FileSkinLoader 与 HttpSkinLoader 共用）
+    common/skin/SkinImageValidatorTest.cpp
     # 富文本系统测试
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp

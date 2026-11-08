@@ -363,6 +363,29 @@ public:
      */
     virtual void updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Direction except);
 
+    /**
+     * @brief 邻居形状更新（对应 vanilla `LevelAccessor#neighborShapeChanged`）
+     *
+     * 方块变化后，让 `neighborPos` 处的方块按"哪一侧变了、变成什么"重算自己的形状，
+     * 结果不同即写回。这是形状更新级联的**唯一入口**：`Block::updateNeighbourShapes`
+     * 与 `Block::updateIndirectNeighbourShapes` 都经由它转发。
+     *
+     * @param direction 从 `neighborPos` 指向 `sourcePos` 的方向（即邻居的更新方向）
+     * @param neighborPos 被更新的邻居位置
+     * @param sourcePos 变化来源位置
+     * @param sourceState 变化来源方块的（新）状态
+     * @param flags 形状更新标志；含 UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE 时跳过红石线
+     * @param recursionLeft 剩余的形状更新递归预算（每次级联递减 1）
+     * @param movedByPiston 是否由活塞推动引发（传递给被更新方块的回调）
+     */
+    virtual void notifyShapeChanged(Direction direction,
+        const BlockPos& neighborPos,
+        const BlockPos& sourcePos,
+        const BlockState& sourceState,
+        i32 flags,
+        i32 recursionLeft,
+        bool movedByPiston);
+
     // ========== 流体访问 ==========
 
     /**

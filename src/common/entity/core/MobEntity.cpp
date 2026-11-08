@@ -550,12 +550,9 @@ std::optional<ResourceLocation> MobEntity::getAmbientSound() const
     //
     // TODO: 以下实体尚未在 Cubium 实现（VanillaEntities 未注册），待补齐实体类时一并 override
     //       getAmbientSound：
-    //   - allay        悦灵        有手物品→ALLAY_AMBIENT_WITH_ITEM / 无→ALLAY_AMBIENT_WITHOUT_ITEM
-    //   - armadillo    犰狳        受惊(scared)→nullopt / 否则→ARMADILLO_AMBIENT
-    //   - camel        骆驼        CAMEL_AMBIENT（声音键 entity.camel.ambient）
-    //   - goat         山羊        GOAT_AMBIENT / 幼体尖叫概率→GOAT_SCREAMING_AMBIENT
     //   - creaking     嘎枝        CREAKING_AMBIENT（1.21 新实体，声音键 entity.creaking.ambient）
-    // 已实现并各自 override 的实体：frog（FrogEntity）、happy_ghast（HappyGhastEntity）。
+    // 已实现并各自 override 的实体：allay（AllayEntity，手持物品/空手两套）、
+    // armadillo（受惊返回 nullopt）、camel、goat、frog、happy_ghast。
     return makeSoundEventId("ambient");
 }
 
@@ -1755,27 +1752,14 @@ bool MobEntity::canReplaceCurrentItem(const ItemStack& candidate, const ItemStac
             }
         }
 
-        // TODO(weapon-attribute): Cubium 的武器攻击伤害以 ItemAttributeModifiers 的加法修饰器
-        //   表达，而 vanilla 为 ADD_MULTIPLIED_TOTAL 修饰器；此处暂直接取加法量作为比较依据，
-        //   待属性修饰器操作类型对齐后再改用 approximateAttributeWith(ATTACK_DAMAGE)。
-        double candidateAttack = 0.0;
-        double currentAttack = 0.0;
-        if (const Item* item = candidate.getItem()) {
-            for (const auto& entry :
-                item->getAttributeModifiers(static_cast<i32>(slot)).getModifiersForSlot(static_cast<i32>(slot))) {
-                if (entry.attributeName == entity::attribute::Attributes::ATTACK_DAMAGE) {
-                    candidateAttack += entry.modifier.amount();
-                }
-            }
-        }
-        if (const Item* item = current.getItem()) {
-            for (const auto& entry :
-                item->getAttributeModifiers(static_cast<i32>(slot)).getModifiersForSlot(static_cast<i32>(slot))) {
-                if (entry.attributeName == entity::attribute::Attributes::ATTACK_DAMAGE) {
-                    currentAttack += entry.modifier.amount();
-                }
-            }
-        }
+        // 双方偏好性相同：按攻击伤害比较。用 approximateAttributeWith 复现 vanilla
+        // Mob.getApproximateAttributeWith(ATTACK_DAMAGE)，它把物品的 ADD_VALUE /
+        // ADD_MULTIPLIED_BASE / ADD_MULTIPLIED_TOTAL 三类修饰器按原版顺序叠加到实体属性基础值上，
+        // 因此不依赖修饰器操作类型的具体取值，也与护甲分支共用同一套计算。
+        const f64 candidateAttack =
+            approximateAttributeWith(*this, candidate, entity::attribute::Attributes::ATTACK_DAMAGE, slot);
+        const f64 currentAttack =
+            approximateAttributeWith(*this, current, entity::attribute::Attributes::ATTACK_DAMAGE, slot);
         return candidateAttack != currentAttack ? candidateAttack > currentAttack
                                                 : canReplaceEqualItem(candidate, current);
     }

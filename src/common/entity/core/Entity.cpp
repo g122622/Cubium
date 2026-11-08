@@ -76,6 +76,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
@@ -307,9 +308,10 @@ Entity* Entity::convertTo(
                 rider->stopRiding();
             }
             rider->startRiding(*converted);
-        } else {
-            // TODO(convert-passengers): 原版会逐个迁移全部乘客；首个乘客已失效时此处直接跳过。
         }
+        // 首个乘客已失效（getEntity 返回空）：原版同样不做事——vanilla ConversionType.convert
+        // 只在 getFirstPassenger() 非空时才把乘客改挂到新实体上，并顺带清空新实体既有乘客。
+        // 本函数的 converted 由工厂新建、必然没有乘客，因此无需那一步清理。
     }
     if (savedVehicle != INVALID_ENTITY_ID) {
         if (Entity* vehicle = m_world->getEntity(savedVehicle); vehicle != nullptr && !vehicle->isRemoved()) {
@@ -535,10 +537,18 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
     if (c->m_customName) {
         return c->m_customName->deepCopy();
     }
-    // 无自定义名时返回默认名称。
-    // TODO: 此处返回占位名 "entity"，未按实体类型生成可翻译的默认名称（应按实体类型描述符
-    //   "entity.<type>.name" 翻译得到）。待翻译键体系覆盖实体类型后改为按 entityType() 生成默认名。
-    return std::make_unique<text::StringTextComponent>("entity");
+
+    // 无自定义名时返回实体类型的可翻译默认名（如 entity.minecraft.zombie）。
+    // 用翻译组件而不是预先查表的纯文本：语言在渲染/序列化时才决定，且客户端与服务端的
+    // 语言可能不同，查表必须留到渲染/序列化时进行。
+    //
+    // entityType() 允许返回 nullptr（未设置 typeId 的实体，见其实现注释），此时没有可用的
+    // 翻译键，退回类型标识符本身——它已经是玩家可读的 "minecraft:pig" 形式。
+    const entity::EntityType* type = entityType();
+    if (type == nullptr) {
+        return std::make_unique<text::StringTextComponent>(getTypeId());
+    }
+    return std::make_unique<text::TranslationTextComponent>(type->getDescriptionId());
 }
 
 void Entity::setCustomNameVisible(bool visible)

@@ -116,7 +116,10 @@ GameMode GameModeManager::getGameMode(PlayerId playerId) const noexcept
 
 bool GameModeManager::syncAbilities(PlayerId playerId)
 {
-    auto* player = m_playerManager.getPlayer(playerId);
+    // 能力标志由 gameMode 决定，不依赖玩家实体的飞行状态：登录阶段玩家实体可能尚未创建
+    // 完全，经 playerEntityManager 取实体容易漏发。PlayerManager 只记服务端玩家数据，
+    // 这里只用它的 gameMode。
+    const auto* player = m_playerManager.getPlayer(playerId);
     if (!player) {
         return false;
     }

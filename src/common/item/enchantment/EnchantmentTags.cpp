@@ -157,7 +157,8 @@ Result<size_t> EnchantmentTags::loadFromDataPackRepository(const resource::DataP
         if (tag == nullptr) {
             return members;
         }
-        for (const auto& enchantmentId : tag->getEnchantmentIds()) {
+        // 按声明顺序迭代：`#` 引用展开时成员落在引用位置，顺序决定 tooltip_order 的提示框排序。
+        for (const auto& enchantmentId : tag->getOrderedEnchantmentIds()) {
             members.push_back(poolGetOrCreate(enchantmentId));
         }
         return members;
@@ -166,10 +167,15 @@ Result<size_t> EnchantmentTags::loadFromDataPackRepository(const resource::DataP
     resource::tag::TagFiller fillTag =
         [](const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
             EnchantmentTag& tag = registerTag(tagId);
+            const auto& table = memberTable();
             if (replace) {
                 tag.clear();
+            } else if (members.empty()) {
+                // 通用加载器在第一阶段用空成员集合调用本回调，只为注册占位标签；此时必须保留
+                // 已存在的成员，否则跨数据包合并时低优先级数据包的内容会被空调用清空
+                // （低优先级包先写入，高优先级包再次进入第一阶段的空调用即抹掉前者）。
+                return;
             }
-            const auto& table = memberTable();
             for (const std::size_t index : members) {
                 if (index < table.size()) {
                     tag.add(table[index]);

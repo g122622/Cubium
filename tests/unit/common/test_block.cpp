@@ -2095,3 +2095,35 @@ TEST(GetShadeBrightnessTest, LeafBlockReturns10)
     EXPECT_FLOAT_EQ(leafState.getShadeBrightness(), 1.0f);
     EXPECT_FLOAT_EQ(leafState.getAmbientOcclusionLightValue(), 1.0f);
 }
+
+// 脚本 Block.isWaterlogged 的判定依赖 getFluidState()：水方块的流体状态必须是水、
+// 空气必须是空。这里锁定这条契约，避免上游流体状态改动让 isWaterlogged 静默失效。
+TEST(BlockFluidStateContractTest, WaterBlockStateReportsWaterFluid)
+{
+    VanillaBlocks::initialize();
+    const auto& waterState = VanillaBlocks::WATER->defaultState();
+    const fluid::FluidState* fluidState = waterState.getFluidState();
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_FALSE(fluidState->isEmpty());
+    EXPECT_EQ(fluidState->getFluid().fluidLocation(), ResourceLocation("minecraft:water"));
+}
+
+TEST(BlockFluidStateContractTest, AirBlockStateReportsEmptyFluid)
+{
+    VanillaBlocks::initialize();
+    const auto& airState = VanillaBlocks::AIR->defaultState();
+    const fluid::FluidState* fluidState = airState.getFluidState();
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_TRUE(fluidState->isEmpty());
+}
+
+TEST(BlockFluidStateContractTest, LavaBlockStateIsNotEmptyButNotWater)
+{
+    VanillaBlocks::initialize();
+    const auto& lavaState = VanillaBlocks::LAVA->defaultState();
+    const fluid::FluidState* fluidState = lavaState.getFluidState();
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_FALSE(fluidState->isEmpty());
+    // 岩浆不是水，isWaterlogged 对它必须为 false。
+    EXPECT_NE(fluidState->getFluid().fluidLocation(), ResourceLocation("minecraft:water"));
+}

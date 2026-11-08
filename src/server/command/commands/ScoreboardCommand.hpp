@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "server/command/ServerCommandSource.hpp"
 
 namespace mc {
@@ -54,6 +55,25 @@ private:
     static i32 _listPlayers(CommandContext<ServerCommandSource>& context);
     static i32 _listAllPlayers(CommandContext<ServerCommandSource>& context);
     static i32 _modifyObjectiveDisplayName(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 设置目标的显示名是否随分数自动更新
+     *
+     * 对应 /scoreboard objectives modify <objective> displayautoupdate <bool>。
+     */
+    static i32 _modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 设置目标的分数渲染类型
+     *
+     * 对应原版 `commands.scoreboard.objectives.modify.rendertype`：仅在类型发生变化时写入并
+     * 回报成功，类型不变则不产生任何输出。
+     *
+     * @param context 命令上下文
+     * @param renderType 目标渲染类型（hearts / integer）
+     */
+    static i32 _setObjectiveRenderType(CommandContext<ServerCommandSource>& context, scoreboard::RenderType renderType);
+
     static i32 _setDisplaySlot(CommandContext<ServerCommandSource>& context);
     static i32 _displayPlayerScore(CommandContext<ServerCommandSource>& context);
     static i32 _operateScore(CommandContext<ServerCommandSource>& context);

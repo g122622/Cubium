@@ -2180,13 +2180,37 @@ public:
      */
     [[nodiscard]] const PlayerInventory& inventory() const
     {
-        return m_inventory;
+        return _inventoryConst();
     }
 
+    /**
+     * @brief 获取玩家背包（可写）
+     */
     PlayerInventory& inventory()
     {
-        return m_inventory;
+        return _inventory();
     }
+
+    /**
+     * @brief 实际的背包访问点（`inventory()` 两个重载共用）。
+     *
+     * `inventory()` 是头文件内联访问器，直接引用成员会触发模板实参化的成员指针并造成
+     * 不完整类型错误（PlayerInventory 在本头文件中只是前向声明）；把实际的成员访问
+     * 固定在 .cpp 里即可规避（与非虚成员函数的隐式实例化同理）。
+     */
+    [[nodiscard]] PlayerInventory& _inventory();
+    [[nodiscard]] const PlayerInventory& _inventoryConst() const;
+
+    /**
+     * @brief 获取当前选中的快捷栏槽位（对应原版 `Player#getInventory().getSelectedSlot()`）
+     */
+    [[nodiscard]] i32 selectedSlot() const;
+
+    /**
+     * @brief 设置当前选中的快捷栏槽位
+     * @param slot 槽位索引（越界由 PlayerInventory 夹到快捷栏范围）
+     */
+    void setSelectedSlot(i32 slot);
 
     /**
      * @brief 获取末影箱物品栏

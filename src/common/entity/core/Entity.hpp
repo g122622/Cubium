@@ -1148,7 +1148,7 @@ public:
      *
      * @param height 步进高度
      */
-    void setStepHeight(f32 height)
+    virtual void setStepHeight(f32 height)
     {
         m_stepHeight = height;
     }

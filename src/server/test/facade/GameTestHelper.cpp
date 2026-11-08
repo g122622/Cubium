@@ -14,15 +14,19 @@
 #include "common/entity/core/AgeableEntity.hpp" // applySpawnEvent 派发 spawn_baby 幼体事件（AgeableEntity::setChild）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
-#include "common/entity/core/MobEntity.hpp"    // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
+#include "common/entity/core/EquipmentSlot.hpp"       // EquipmentSlot（assertEntityHasArmor 槽位映射）
+#include "common/entity/core/LivingEntity.hpp"        // killEntity 走 onKillCommand 伤害致死链路
+#include "common/entity/core/MobEntity.hpp"           // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
+#include "common/entity/entities/item/ItemEntity.hpp" // ItemEntity（assertItemEntityPresent 按物品类型过滤）
+#include "common/entity/entities/monster/basic/CreeperEntity.hpp" // assertEntityHasComponent 判定 is_charged
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"  // applySpawnEvent 派发 sheep color_<dye> 颜色事件
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // applySpawnEvent 派发 horse set_tamed 驯服事件（AbstractHorseEntity::setTame）
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp" // applySpawnEvent 派发 skeleton_horse 陷阱马事件
 #include "common/entity/entities/passive/special/PandaEntity.hpp" // applySpawnEvent 派发 panda 性格事件（setMainGene+updatePersonalityFromGenes）
-#include "common/entity/inventory/IInventory.hpp" // getItem/getContainerSize/isEmpty（容器断言）
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp" // assertEntityHasComponent 判定 is_tamed
+#include "common/entity/inventory/IInventory.hpp"                    // getItem/getContainerSize/isEmpty（容器断言）
 #include "common/entity/utils/ItemDropHelper.hpp" // ItemDropHelper::spawnItemEntity（spawnItemAt 生成物品实体）
 #include "common/item/core/Item.hpp"              // Item::getItem（spawnItemAt 解析 itemType 字符串）
 #include "common/item/core/ItemStack.hpp"         // isSameItem（assertContainerContains 类型匹配）
@@ -33,12 +37,16 @@
 #include "common/util/property/Properties.hpp" // BlockStateProperties::NORTH/EAST/SOUTH/WEST（getFenceConnectivity）
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/ILiquidContainer.hpp" // ILiquidContainer::receiveFluid（setFluidContainer）
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
 #include "common/world/block/blocks/redstone/LeverBlock.hpp"          // LeverBlock::toggle（pullLever 接线）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
 #include "common/world/blockentity/BlockEntity.hpp"          // getBlockEntity → dynamic_cast<ContainerBlockEntity*>
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
+#include "common/world/fluid/Fluid.hpp"                      // FluidState（assertIsWaterlogged 判定流体类型）
+#include "common/world/fluid/FluidRegistry.hpp"              // FluidRegistry::getFluid（setFluidContainer）
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/redstone/RedstonePower.hpp" // RedstonePower::getSignal（assertRedstonePower）
 #include "server/world/ServerWorld.hpp"
 
 #include <spdlog/spdlog.h>
@@ -173,6 +181,13 @@ std::string normalizeEntityType(const std::string& name)
         return it->second;
     }
     return full;
+}
+
+// 物品 id 规范化：与实体类型不同，物品没有 <spawnEvent> 后缀与基岩别名表，
+// 只需要在缺少命名空间时补 minecraft:（GameTest 里常写 "apple" 而非 "minecraft:apple"）。
+std::string normalizeItemType(const std::string& name)
+{
+    return name.find(':') == std::string::npos ? "minecraft:" + name : name;
 }
 
 // 对刚创建的实体派发 spawn 事件（对齐基岩 spawn <spawnEvent> 后缀语义）。
@@ -675,25 +690,69 @@ GameTestResult GameTestHelper::pullLever(BlockPos relativePos)
 
 GameTestResult GameTestHelper::pulseRedstone(BlockPos relativePos, i32 duration)
 {
-    // TODO: 在 relativePos 处发 duration tick 的红石脉冲（红石信号体系就绪前 stub）
-    (void)relativePos;
-    (void)duration;
+    // 对齐基岩 Test.pulseRedstone：在 relativePos 处产生持续 duration tick 的红石脉冲。
+    // 实现方式是把该位置临时换成红石块（强度 15 的电源），到期后恢复原方块。
+    // 保存原状态用 BlockState 拷贝（BlockRegistry 持有的状态对象，拷贝安全）。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* previous = m_world.getBlockState(worldPos);
+    if (previous == nullptr) {
+        return generateErrorWithContext(
+            GameTestErrorType::LevelStateModificationFailed, "No block state at pulse position", relativePos);
+    }
+
+    const mc::BlockState previousState = *previous;
+    const auto setResult = setBlock("minecraft:redstone_block", relativePos, 3);
+    if (setResult.has_value()) {
+        return setResult;
+    }
+
+    runAfterDelay(duration, [this, worldPos, previousState]() -> GameTestResult {
+        m_world.setBlockState(worldPos, &previousState, 3);
+        return std::nullopt;
+    });
+
     return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertRedstonePower(BlockPos relativePos, i32 power)
 {
-    // TODO: 读取 relativePos 处红石信号强度断言（红石信号体系就绪前 stub）
-    (void)relativePos;
-    (void)power;
+    // 对齐基岩 Test.assertRedstonePower：断言 pos 处的红石信号强度。
+    // 取四面水平方向的最大信号（红石线/元件对外输出的强度），与 vanilla
+    // RedstonePower.getSignal 的口径一致。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    i32 actual = 0;
+    for (const Direction side : Directions::horizontal()) {
+        actual = std::max(actual, mc::world::redstone::RedstonePower::getSignal(m_world, worldPos, side));
+    }
+
+    if (actual != power) {
+        return generateErrorWithContext(
+            GameTestErrorType::Assert, fmt::format("Redstone power is {}, expected {}", actual, power), relativePos);
+    }
+
     return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertIsWaterlogged(BlockPos relativePos, bool isWaterlogged)
 {
-    // TODO: 读取方块 Waterlogged 属性断言（属性体系就绪前 stub）
-    (void)relativePos;
-    (void)isWaterlogged;
+    // 对齐基岩 Test.assertIsWaterlogged：断言 pos 处方块是否被水淹没。
+    // 判定口径与脚本 Block.isWaterlogged 一致——读该方块状态的流体，是水即视为含水。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return generateErrorWithContext(
+            GameTestErrorType::LevelStateModificationFailed, "No block state at {0}", relativePos);
+    }
+
+    const mc::fluid::FluidState* fluidState = state->getFluidState();
+    const bool actual = fluidState != nullptr && !fluidState->isEmpty() &&
+        fluidState->getFluid().fluidLocation() == mc::ResourceLocation("minecraft:water");
+    if (actual != isWaterlogged) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Block waterlogged is {}, expected {}", actual, isWaterlogged),
+            relativePos);
+    }
+
     return std::nullopt;
 }
 
@@ -759,12 +818,44 @@ GameTestResult GameTestHelper::setBlockPermutation(const mc::BlockState& permuta
 
 GameTestResult GameTestHelper::setFluidContainer(BlockPos relativePos, const std::string& fluidType)
 {
-    // TODO: 设 pos 处流体容器（如炼药锅）的流体类型。底层 ILiquidContainer::receiveFluid 写入体系
-    //       未就绪，stub 返回 MethodNotImplemented（绑定层经 _resultToJs 转 GameTestError 抛出）。
-    (void)fluidType;
-    return generateErrorWithContext(GameTestErrorType::MethodNotImplemented,
-        "setFluidContainer not implemented yet (fluid container write system pending)",
-        relativePos);
+    // 对齐基岩 Test.setFluidContainer：把 pos 处的流体容器（炼药锅等）设为指定流体。
+    // 走方块的 ILiquidContainer::receiveFluid（与发射器注水同一路径）。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return generateErrorWithContext(
+            GameTestErrorType::LevelStateModificationFailed, "No block state at fluid container position", relativePos);
+    }
+
+    mc::Block* block = mc::Block::getBlock(state->blockId());
+    auto* liquidContainer = dynamic_cast<mc::ILiquidContainer*>(block);
+    if (liquidContainer == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Block at position is not a fluid container"),
+            relativePos);
+    }
+
+    const auto fullFluidType = normalizeItemType(fluidType);
+    mc::fluid::Fluid* fluid = mc::fluid::FluidRegistry::instance().getFluid(mc::ResourceLocation(fullFluidType));
+    if (fluid == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Unknown fluid type '{}'", fullFluidType),
+            relativePos);
+    }
+
+    if (!liquidContainer->canContainFluid(m_world, worldPos, *state, *fluid)) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Fluid container at position cannot contain '{}'", fullFluidType),
+            relativePos);
+    }
+
+    if (!liquidContainer->receiveFluid(m_world, worldPos, *state, fluid->defaultState())) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Fluid container at position rejected '{}'", fullFluidType),
+            relativePos);
+    }
+
+    return std::nullopt;
 }
 
 void GameTestHelper::triggerInternalBlockEvent(BlockPos /*relativePos*/, const std::string& /*eventName*/)
@@ -912,22 +1003,70 @@ GameTestResult GameTestHelper::assertEntityTouching(
 GameTestResult GameTestHelper::assertItemEntityPresent(
     const std::string& itemType, BlockPos relativePos, f32 searchDistance, bool isPresent)
 {
-    // TODO: 区分 ItemEntity 并按 itemType 过滤（ItemEntity 体系就绪前用类型名 minecraft:item 近似）
-    (void)itemType;
-    (void)relativePos;
-    (void)searchDistance;
-    (void)isPresent;
+    // 对齐基岩 Test.assertItemEntityPresent：以 relativePos 为中心、searchDistance 为半径
+    // 查找指定物品类型的掉落物实体。按 ItemEntity::getItemStack() 的物品 id 过滤。
+    const auto fullItemType = normalizeItemType(itemType);
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const AxisAlignedBB box = AxisAlignedBB::fromPosition(Vector3(static_cast<f32>(worldPos.x) + 0.5f,
+                                                              static_cast<f32>(worldPos.y) + 0.5f,
+                                                              static_cast<f32>(worldPos.z) + 0.5f),
+        0.0f,
+        0.0f)
+                                  .grow(searchDistance);
+
+    bool found = false;
+    for (const auto* e : m_world.getEntitiesInAABB(box, nullptr)) {
+        const auto* itemEntity = dynamic_cast<const mc::ItemEntity*>(e);
+        if (itemEntity == nullptr || !itemEntity->isAlive()) {
+            continue;
+        }
+
+        const mc::ItemStack& stack = itemEntity->getItemStack();
+        if (!stack.isEmpty() && stack.getItem()->itemLocation().toString() == fullItemType) {
+            found = true;
+            break;
+        }
+    }
+
+    if (found != isPresent) {
+        return GameTestError{GameTestErrorType::Assert,
+            isPresent ? "Expected item entity '{0}' present" : "Expected item entity '{0}' absent",
+            {fullItemType}};
+    }
     return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertItemEntityCountIs(
     const std::string& itemType, BlockPos relativePos, f32 searchDistance, i32 count)
 {
-    // TODO: 统计指定 itemType 的 ItemEntity 数量（ItemEntity 体系就绪前 stub）
-    (void)itemType;
-    (void)relativePos;
-    (void)searchDistance;
-    (void)count;
+    // 对齐基岩 Test.assertItemEntityCountIs：统计范围内指定物品类型的掉落物数量。
+    const auto fullItemType = normalizeItemType(itemType);
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const AxisAlignedBB box = AxisAlignedBB::fromPosition(Vector3(static_cast<f32>(worldPos.x) + 0.5f,
+                                                              static_cast<f32>(worldPos.y) + 0.5f,
+                                                              static_cast<f32>(worldPos.z) + 0.5f),
+        0.0f,
+        0.0f)
+                                  .grow(searchDistance);
+
+    i32 actual = 0;
+    for (const auto* e : m_world.getEntitiesInAABB(box, nullptr)) {
+        const auto* itemEntity = dynamic_cast<const mc::ItemEntity*>(e);
+        if (itemEntity == nullptr || !itemEntity->isAlive()) {
+            continue;
+        }
+
+        const mc::ItemStack& stack = itemEntity->getItemStack();
+        if (!stack.isEmpty() && stack.getItem()->itemLocation().toString() == fullItemType) {
+            ++actual;
+        }
+    }
+
+    if (actual != count) {
+        return GameTestError{GameTestErrorType::Assert,
+            "Expected {0} item entity of type '{1}', found {2}",
+            {std::to_string(count), fullItemType, std::to_string(actual)}};
+    }
     return std::nullopt;
 }
 
@@ -1096,17 +1235,34 @@ GameTestResult GameTestHelper::spawnAtLocation(
 GameTestResult GameTestHelper::spawnWithoutBehaviors(
     const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity)
 {
-    // TODO: 生成无 AI 行为的实体（对齐基岩 spawnWithoutBehaviors，供 walkTo 等可预测行为测试）。
-    //       依赖行为移除体系（goal 清空/Brain 停用）未就绪，当前退化为普通 spawnEntity。
-    return spawnEntity(entityType, relativePos, outEntity);
+    // 对齐基岩 Test.spawnWithoutBehaviors：生成不运行 AI 的实体，供 walkTo 等可预测行为测试。
+    // 走 MobEntity::setNoAi（与 /summon 的 NoAI:1b 同一开关），非 Mob 实体无 AI，原样返回。
+    GameTestResult spawned = spawnEntity(entityType, relativePos, outEntity);
+    if (spawned.has_value()) {
+        return spawned;
+    }
+
+    if (auto* mob = dynamic_cast<mc::MobEntity*>(outEntity)) {
+        mob->setNoAi(true);
+    }
+
+    return std::nullopt;
 }
 
 GameTestResult GameTestHelper::spawnWithoutBehaviorsAtLocation(
     const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity)
 {
-    // TODO: spawnAtLocation 的无行为变体（对齐基岩 spawnWithoutBehaviorsAtLocation）。
-    //       依赖行为移除体系未就绪，当前退化为普通 spawnAtLocation。
-    return spawnAtLocation(entityType, position, outEntity);
+    // 与 spawnWithoutBehaviors 同义，位置改为任意浮点坐标。
+    GameTestResult spawned = spawnAtLocation(entityType, position, outEntity);
+    if (spawned.has_value()) {
+        return spawned;
+    }
+
+    if (auto* mob = dynamic_cast<mc::MobEntity*>(outEntity)) {
+        mob->setNoAi(true);
+    }
+
+    return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertEntityHasArmor(const std::string& entityType,
@@ -1116,39 +1272,170 @@ GameTestResult GameTestHelper::assertEntityHasArmor(const std::string& entityTyp
     BlockPos relativePos,
     bool hasArmor)
 {
-    // TODO: 断言 pos 处实体装备指定护甲槽/护甲名/数据值。依赖装备槽查询体系未就绪，stub。
-    (void)entityType;
-    (void)armorSlot;
-    (void)armorName;
-    (void)armorData;
-    (void)hasArmor;
-    return generateErrorWithContext(GameTestErrorType::MethodNotImplemented,
-        "assertEntityHasArmor not implemented yet (equipment slot system pending)",
-        relativePos);
+    // 对齐基岩 Test.assertEntityHasArmor：断言 pos 处实体是否装备了指定护甲。
+    // armorSlot 是护甲容器索引（0=头、1=胸、2=腿、3=脚），其余值视为不支持的槽位。
+    mc::EquipmentSlot slot = mc::EquipmentSlot::Head;
+    switch (armorSlot) {
+        case 0:
+            slot = mc::EquipmentSlot::Head;
+            break;
+        case 1:
+            slot = mc::EquipmentSlot::Chest;
+            break;
+        case 2:
+            slot = mc::EquipmentSlot::Legs;
+            break;
+        case 3:
+            slot = mc::EquipmentSlot::Feet;
+            break;
+        default:
+            return generateErrorWithContext(GameTestErrorType::MethodNotImplemented,
+                fmt::format("assertEntityHasArmor does not support armor slot {}", armorSlot),
+                relativePos);
+    }
+
+    const auto fullType = normalizeEntityType(entityType);
+    const auto fullArmorName = normalizeItemType(armorName);
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const AxisAlignedBB box = AxisAlignedBB::fromPosition(Vector3(static_cast<f32>(worldPos.x) + 0.5f,
+                                                              static_cast<f32>(worldPos.y) + 0.5f,
+                                                              static_cast<f32>(worldPos.z) + 0.5f),
+        1.0f,
+        1.0f);
+
+    std::optional<bool> actual;
+    for (const auto* e : m_world.getEntitiesInAABB(box, nullptr)) {
+        if (e == nullptr || !e->isAlive() || e->getTypeId() != fullType) {
+            continue;
+        }
+
+        const auto* living = dynamic_cast<const mc::LivingEntity*>(e);
+        if (living == nullptr) {
+            actual = false;
+            break;
+        }
+
+        const mc::ItemStack& equipped = living->getEquipment(slot);
+        const bool matches = !equipped.isEmpty() && equipped.getItem() != nullptr &&
+            equipped.getItem()->itemLocation().toString() == fullArmorName &&
+            (armorData < 0 || equipped.getDamage() == armorData);
+        actual = matches;
+        break;
+    }
+
+    if (!actual.has_value()) {
+        return generateErrorWithContext(
+            GameTestErrorType::Assert, fmt::format("No entity '{}' found to check armor", fullType), relativePos);
+    }
+
+    if (*actual != hasArmor) {
+        return generateErrorWithContext(GameTestErrorType::Assert,
+            fmt::format("Entity '{}' armor slot {} matching '{}' is {}, expected {}",
+                fullType,
+                armorSlot,
+                fullArmorName,
+                *actual,
+                hasArmor),
+            relativePos);
+    }
+
+    return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertEntityHasComponent(
     const std::string& entityType, const std::string& componentId, BlockPos relativePos, bool hasComponent)
 {
-    // TODO: 断言 pos 处实体含指定组件。依赖实体组件查询体系未就绪，stub。
-    (void)entityType;
-    (void)componentId;
-    (void)hasComponent;
-    return generateErrorWithContext(GameTestErrorType::MethodNotImplemented,
-        "assertEntityHasComponent not implemented yet (entity component system pending)",
-        relativePos);
+    // 对齐基岩 Test.assertEntityHasComponent：断言 pos 处指定类型实体是否具备某组件。
+    // 组件存在性按实体能力判定（与脚本侧 EntityStateQuery::hasComponent 同一口径），
+    // 覆盖 GameTest 常用组件；未知组件报 MethodNotImplemented 而非静默通过。
+    const auto fullType = normalizeEntityType(entityType);
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const AxisAlignedBB box = AxisAlignedBB::fromPosition(Vector3(static_cast<f32>(worldPos.x) + 0.5f,
+                                                              static_cast<f32>(worldPos.y) + 0.5f,
+                                                              static_cast<f32>(worldPos.z) + 0.5f),
+        1.0f,
+        1.0f);
+
+    std::optional<bool> actual;
+    for (const auto* e : m_world.getEntitiesInAABB(box, nullptr)) {
+        if (e == nullptr || !e->isAlive() || e->getTypeId() != fullType) {
+            continue;
+        }
+
+        const auto* living = dynamic_cast<const mc::LivingEntity*>(e);
+        if (componentId == "minecraft:health" || componentId == "minecraft:movement" ||
+            componentId == "minecraft:equippable") {
+            actual = living != nullptr;
+        } else if (componentId == "minecraft:onfire") {
+            actual = e->isOnFire();
+        } else if (componentId == "minecraft:is_charged") {
+            const auto* creeper = dynamic_cast<const mc::CreeperEntity*>(e);
+            actual = creeper != nullptr && creeper->isPowered();
+        } else if (componentId == "minecraft:is_tamed") {
+            if (const auto* tameable = dynamic_cast<const mc::TameableEntity*>(e)) {
+                actual = tameable->isTamed();
+            } else {
+                const auto* horse = dynamic_cast<const mc::AbstractHorseEntity*>(e);
+                actual = horse != nullptr && horse->isTame();
+            }
+        } else {
+            return generateErrorWithContext(GameTestErrorType::MethodNotImplemented,
+                fmt::format("assertEntityHasComponent does not support component '{}'", componentId),
+                relativePos);
+        }
+
+        break;
+    }
+
+    if (!actual.has_value()) {
+        return generateErrorWithContext(GameTestErrorType::Assert,
+            fmt::format("No entity '{}' found to check component '{}'", fullType, componentId),
+            relativePos);
+    }
+
+    if (*actual != hasComponent) {
+        return generateErrorWithContext(GameTestErrorType::Assert,
+            fmt::format("Entity '{}' component '{}' is {}, expected {}", fullType, componentId, *actual, hasComponent),
+            relativePos);
+    }
+
+    return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertEntityState(
     BlockPos relativePos, const std::string& entityType, std::function<bool(const mc::Entity&)> predicate)
 {
-    // TODO: 断言 pos 处实体满足 predicate（predicate 接 Entity&，返回 false 即失败）。
-    //       依赖实体按 pos 查询体系（getEntitiesInAABB + 类型过滤）做实，当前 stub。
-    (void)relativePos;
-    (void)entityType;
-    (void)predicate;
-    return GameTestError{
-        GameTestErrorType::MethodNotImplemented, "assertEntityState not implemented yet (entity query system pending)"};
+    // 对齐基岩 Test.assertEntityState：以 relativePos 为中心 1x1x1 范围内查指定类型实体，
+    // 对每个命中项调用 predicate，任一满足即通过。
+    const auto fullType = normalizeEntityType(entityType);
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const AxisAlignedBB box = AxisAlignedBB::fromPosition(Vector3(static_cast<f32>(worldPos.x) + 0.5f,
+                                                              static_cast<f32>(worldPos.y) + 0.5f,
+                                                              static_cast<f32>(worldPos.z) + 0.5f),
+        1.0f,
+        1.0f);
+
+    bool matched = false;
+    i32 candidates = 0;
+    for (const auto* e : m_world.getEntitiesInAABB(box, nullptr)) {
+        if (e == nullptr || !e->isAlive() || e->getTypeId() != fullType) {
+            continue;
+        }
+
+        ++candidates;
+        if (predicate(*e)) {
+            matched = true;
+            break;
+        }
+    }
+
+    if (!matched) {
+        return generateErrorWithContext(GameTestErrorType::Assert,
+            fmt::format("No entity '{}' at position satisfied the predicate ({} candidate(s))", fullType, candidates),
+            relativePos);
+    }
+
+    return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertCanReachLocation(mc::Entity& entity, BlockPos relativePos, bool canReach)

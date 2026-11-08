@@ -453,6 +453,14 @@ public:
     }
 
     /**
+     * @brief 获取实体类型的翻译键，对应原版 `EntityType#getDescriptionId`
+     *
+     * 形如 `entity.minecraft.zombie`：前缀 `entity.` + 资源位置的语言键形式（冒号换成点）。
+     * 这是实体在**没有自定义名**时的默认显示名来源，也是刷怪蛋等衍生翻译键的基础。
+     */
+    [[nodiscard]] std::string getDescriptionId() const;
+
+    /**
      * @brief 检查是否有效
      */
     [[nodiscard]] bool isValid() const

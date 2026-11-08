@@ -51,6 +51,7 @@
 #include "common/entity/experience/ExperienceManager.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/entity/player/SleepResult.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -212,6 +213,27 @@ Player::Player(EntityInstanceId id, const std::string& username, ecs::EntityRegi
 }
 
 Player::~Player() = default;
+
+PlayerInventory& Player::_inventory()
+{
+    return m_inventory;
+}
+
+const PlayerInventory& Player::_inventoryConst() const
+{
+    return m_inventory;
+}
+
+i32 Player::selectedSlot() const
+{
+    return m_inventory.getSelectedSlot();
+}
+
+void Player::setSelectedSlot(i32 slot)
+{
+    // 越界夹取由 PlayerInventory::setSelectedSlot 统一处理（它自身 clamp 到快捷栏范围）。
+    m_inventory.setSelectedSlot(slot);
+}
 
 void Player::registerData()
 {
@@ -1621,14 +1643,18 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
         }
     }
 
-    // 5. 水下挖掘惩罚
+    // 5. 方块破坏速度倍率（block_break_speed 属性）
+    // 原版在挖掘疲劳之后、水下惩罚之前乘上它；默认 1.0 不改变速度，供数据包/命令调参。
+    speed *= static_cast<f32>(getAttributeValue(entity::attribute::Attributes::BLOCK_BREAK_SPEED, 1.0));
+
+    // 6. 水下挖掘惩罚
     // 对齐 vanilla Player.getDestroySpeed：眼睛在水中时速度乘以 submerged_mining_speed 属性
     // （默认 0.2 = 陆地的 1/5），水下速掘附魔把该属性乘到 1.0（add_multiplied_total +4.0）。
     if (areEyesInWater()) {
         speed *= static_cast<f32>(getAttributeValue(entity::attribute::Attributes::SUBMERGED_MINING_SPEED, 0.2));
     }
 
-    // 6. 空中挖掘惩罚（不在地面时）
+    // 7. 空中挖掘惩罚（不在地面时）
     if (!m_builtIn.physicsState->m_onGround) {
         speed /= 5.0f;
     }

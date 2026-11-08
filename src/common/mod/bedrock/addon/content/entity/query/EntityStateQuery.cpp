@@ -29,6 +29,8 @@
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/Item.hpp"
@@ -79,11 +81,39 @@ Result<bool> _inventory(const mc::Entity& entity, const mc::ResourceLocation& it
         const auto& inventory = villager->inventory();
         return _inventoryMatches(inventory, 0, inventory.getContainerSize(), item);
     }
-    const auto& id = entity.getTypeId();
-    if (id == "minecraft:chest_minecart" || id == "minecraft:hopper_minecart" || id.ends_with("chest_boat") ||
-        id.ends_with("chest_raft")) {
-        // TODO: 为载具容器提供不修改库存的公共只读访问接口。
-        return Error(ErrorCode::Unsupported, "Native vehicle inventory query is not implemented: " + id);
+    // 载具容器：矿车与箱船都提供了不修改库存的只读访问接口（getContainerSize +
+    // getInventoryItem），逐个槽位比对即可，与商人/马类走同一套 _matches 判定。
+    // 这里按实体类型判定而非 getTypeId() 字符串：矿车/船实体并不各自覆写 getTypeId，
+    // 依赖字符串会漏判。
+    if (const auto* chestMinecart = dynamic_cast<const entity::ChestMinecartEntity*>(&entity)) {
+        const i32 size = chestMinecart->getContainerSize();
+        for (i32 slot = 0; slot < size; ++slot) {
+            if (_matches(chestMinecart->getInventoryItem(slot), item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (const auto* hopperMinecart = dynamic_cast<const entity::HopperMinecartEntity*>(&entity)) {
+        const i32 size = hopperMinecart->getContainerSize();
+        for (i32 slot = 0; slot < size; ++slot) {
+            if (_matches(hopperMinecart->getInventoryItem(slot), item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (const auto* chestBoat = dynamic_cast<const entity::ChestBoatEntity*>(&entity)) {
+        // ChestBoatEntity::getInventoryItem 会先触发战利品表懒解包（首次访问时填充库存），
+        // 因此不是 const 成员；这里只是读取，用 const_cast 是安全的。
+        auto& mutableChestBoat = const_cast<entity::ChestBoatEntity&>(*chestBoat);
+        const i32 size = mutableChestBoat.getContainerSize();
+        for (i32 slot = 0; slot < size; ++slot) {
+            if (_matches(mutableChestBoat.getInventoryItem(slot), item)) {
+                return true;
+            }
+        }
+        return false;
     }
     // TODO: 随其他原生携物生物和 addon inventory 组件接入统一背包查询。
     return false;
@@ -114,12 +144,17 @@ Result<bool> EntityStateQuery::hasComponent(const mc::Entity& entity, const std:
         return entity.isOnFire();
     }
     if (name == "minecraft:inventory") {
+        // 具备"可查询库存"这一组件的实体：玩家、马类、商人，以及承载物品的载具
+        // （箱子矿车/漏斗矿车/箱子船）。判定口径与 _inventory 的查询分支保持一致，
+        // 否则会出现"组件报告存在、却查不到库存"或反之的不一致。
         if (dynamic_cast<const mc::Player*>(&entity) != nullptr ||
             dynamic_cast<const mc::AbstractHorseEntity*>(&entity) != nullptr ||
-            dynamic_cast<const mc::entity::AbstractVillagerEntity*>(&entity) != nullptr) {
+            dynamic_cast<const mc::entity::AbstractVillagerEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::ChestMinecartEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::HopperMinecartEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::ChestBoatEntity*>(&entity) != nullptr) {
             return true;
         }
-        // TODO: 接入剩余原版容器实体的 inventory 组件存在条件。
         return Error(
             ErrorCode::Unsupported, "Native inventory component mapping is not implemented: " + entity.getTypeId());
     }
