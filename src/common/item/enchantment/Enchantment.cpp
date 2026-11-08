@@ -35,6 +35,7 @@
 #include "common/item/items/weapon/FishingRodItem.hpp"
 #include "common/item/items/weapon/SpearItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <string>
 
@@ -262,10 +263,9 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
                     armorItem->isBoots();
             }
             const auto itemId = item->itemLocation().path();
-            // TODO: 接入 `#minecraft:skulls` 物品标签后删除这段按 ID 后缀的近似判定。
-            return itemId == "elytra" || itemId == "carved_pumpkin" ||
-                (itemId.size() > 5 && itemId.substr(itemId.size() - 5) == "_head") ||
-                (itemId.size() > 6 && itemId.substr(itemId.size() - 6) == "_skull");
+            // 头颅走 `#minecraft:skulls` 标签（内容来自数据包），不再按 `_head` / `_skull`
+            // 后缀猜测——后缀判定会把自定义命名空间里名字恰好以 _head 结尾的物品也算进来。
+            return itemId == "elytra" || itemId == "carved_pumpkin" || item::tag::ItemTags::SKULLS().contains(item);
         }
         case EnchantmentType::Vanishable: {
             // 原版 `#enchantable/vanishing` = `#enchantable/durability` ∪ 指南针 ∪
@@ -275,10 +275,8 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
                 return true;
             }
             const auto itemId = item->itemLocation().path();
-            // TODO: 接入 `#minecraft:skulls` 物品标签后删除这段按 ID 后缀的近似判定。
-            return itemId == "compass" || itemId == "carved_pumpkin" ||
-                (itemId.size() > 5 && itemId.substr(itemId.size() - 5) == "_head") ||
-                (itemId.size() > 6 && itemId.substr(itemId.size() - 6) == "_skull");
+            // 头颅同样走标签，理由见 Wearable 分支。
+            return itemId == "compass" || itemId == "carved_pumpkin" || item::tag::ItemTags::SKULLS().contains(item);
         }
         // 武器类六种类型已在函数开头统一处理，这里不会走到。
         case EnchantmentType::Weapon:

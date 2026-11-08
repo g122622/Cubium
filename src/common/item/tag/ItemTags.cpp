@@ -120,6 +120,15 @@ ItemTag& ItemTags::CARPETS()
     return *tag;
 }
 
+ItemTag& ItemTags::SKULLS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr || !_isLive(tag)) {
+        tag = &registerTag(ResourceLocation("minecraft", "skulls"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::BEDS()
 {
     static ItemTag* tag = nullptr;
