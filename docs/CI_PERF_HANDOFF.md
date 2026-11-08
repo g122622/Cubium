@@ -14,25 +14,38 @@
 
 ## 已有 CI 证据
 
-最近已完成构建的运行：
-[42453916366](https://github.com/g122622/Cubium/actions/runs/42453916366)，提交 `3434defa7`。
+最近已完成构建验收的运行：
+[42456395241](https://github.com/g122622/Cubium/actions/runs/42456395241)，提交 `cc1f4d44d`。
+本轮已通过 prepare 的 7 项执行器回归测试，以及三个编译池的构建、真实 launcher 和冷暖探针。
+单测分片及最终覆盖率报告仍在等待后台监控唤醒后验收。
 
-| 指标 | 旧运行 42452181845 | 运行 42453916366 |
-|---|---:|---:|
-| test 构建测量区间（编译及链接） | 485.3 s | 367.3 s |
-| 本轮 ccache 命中 | 3354 | 3640 |
-| 本轮 ccache 未命中 | 450 | 164 |
-| 本轮 journal 远端编译调用 | 450 | 164 |
-| test 缓存上限 | 2 GB | 5 GB |
-| test 实际缓存占用 | 约 2 GB，频繁清理 | 2.1 GB / 5 GB |
+| 指标 | 旧运行 42452181845 | 运行 42453916366 | 本轮 42456395241 |
+|---|---:|---:|---:|
+| test 构建测量区间（编译及链接） | 485.3 s | 367.3 s | 196.8 s |
+| 本轮 ccache 命中 | 3354 | 3640 | 3801 |
+| 本轮 ccache 未命中 | 450 | 164 | 3 |
+| 本轮 journal 远端编译调用 | 450 | 164 | 3 |
+| test 缓存上限 | 2 GB | 5 GB | 5 GB |
+| test 实际缓存占用 | 约 2 GB，频繁清理 | 2.1 GB / 5 GB | 2.1 GB / 5 GB |
 
-新运行构建前已清零统计：3804 次可缓存调用，命中率 95.69%，其中 direct 3425 次、
-preprocessed 215 次。Release 命中 2026/2029（99.85%），实际未命中 3 次。
-全部缓存压缩后合计约 3.56 GB，低于配额。
+各池本轮统计（构建前清零，探针使用独立缓存）：
 
-Linux + Clang 已实际选用 `/usr/lib/llvm-22/bin/ld.lld`，两个构建 job 均成功。
-`perfetto.cc` 在这一轮仍未命中，journal 记录耗时 142.6 秒；需看下一轮暖缓存结果，
-不能仅凭旧缓存清理次数就断言它每轮未命中的具体原因。
+| 池 | 命中 / 可缓存调用 | 命中率 | journal 远端调用 | 编译及链接耗时 |
+|---|---:|---:|---:|---:|
+| test | 3801 / 3804 | 99.92% | 3 | 196.8 s |
+| release | 2026 / 2029 | 99.85% | 3 | 455.7 s |
+| fuzz | 1345 / 1346 | 99.93% | 1 | 52.1 s |
+
+所有命中均为 direct hit，所有远端调用均成功、无重试。test/release 仅三个携带构建版本信息的
+application 入口 TU 未命中：`BaseApplicationEntry.cpp`、`ServerApplicationEntry.cpp`、
+`StandaloneServer.cpp`；fuzz 仅第一个。全部缓存压缩后约 3.56 GB，低于配额。
+
+三个池的 runner-info 均确认链接器为 `/usr/lib/llvm-22/bin/ld.lld`（22.1.8）。
+`perfetto.cc` 已命中：本轮不在 journal 的三个未命中源码中，Ninja 的完成行出现在
+06:55:47.105，比首个完成项晚约 0.43 秒。上一轮它实际分发并耗时 142.6 秒。
+这确认暖缓存已消除该 TU 的重复远端编译；Ninja 完成行不是独立编译耗时，不用它推算链接耗时。
+test 总构建测量时间较 485.3 秒基线下降约 59.4%。Release 仍耗时约 7.6 分钟，
+高缓存命中率不代表链接也被缓存。
 
 ## ccache 日志矛盾的排查
 
@@ -40,7 +53,7 @@ Linux + Clang 已实际选用 `/usr/lib/llvm-22/bin/ld.lld`，两个构建 job �
 ccache 缓存编译器 stderr，`CCACHE_PREFIX=pococc-cc` 的路由日志也在该缓存范围内。
 命中时可能重放历史 `Submitting` 和 `Executing locally`，而不会重新调用 pococc。
 
-现有证据已排除“ccache 没有参与”的判断：
+历史证据已排除“ccache 没有参与”的判断：
 
 - test 清零后统计为 3640 hit / 164 miss，journal 恰有 164 条成功远端调用；
 - Release 清零后统计为 2026 hit / 3 miss，日志却有 2029 条 `Submitting`；
@@ -55,8 +68,14 @@ ccache 缓存编译器 stderr，`CCACHE_PREFIX=pococc-cc` 的路由日志也在�
 3. 归档 Ninja 命令、两次 ccache 日志、stderr、计数器及 `replay.json`。
    探针使用 `pococc-probe-*` 路径，沿用现有 worker 探针分类，不混入项目性能计量。
 
-**以上新探针尚待 CI 验收。** 分发次数应交叉核对本轮 ccache 统计、journal、distcc
-client 与 worker 记录，不能统计 `Submitting` 行数，也不能对跨运行恢复的累计计数直接相减。
+**三个池的新探针均已通过本轮 CI 验收。** 每池冷跑 1 miss / 1 新 journal，暖跑增加
+1 direct hit / 0 新 journal，两次 stderr 完全相同且各含一条 `Submitting`。
+暖跑 ccache 日志明确记录 `Reading embedded entry #0 <stderr>` 和 `Result: direct_cache_hit`。
+test 的项目构建日志仍有 3824 条 `Submitting`，而本轮实际仅分发 3 次。
+
+分发次数应交叉核对本轮 ccache 统计、journal、distcc client 与 worker 记录，不能统计
+`Submitting` 行数，也不能对跨运行恢复的累计计数直接相减。探针归档在各池
+`pococc-<pool>-diagnostics-1/ccache-replay/`，原始项目计量仍在同 artifact 根目录。
 
 ## 单元测试批处理
 
@@ -88,12 +107,13 @@ ASan/UBSan 下初始化约 12.6 秒，runner 上端到端开销更高。旧分�
 
 ## 后续验收
 
-1. 仅将改动推送至 `diag/shutdown-crash`，在同分支触发 nightly。
-2. 确认 prepare 中的执行器回归测试通过。
-3. 确认三个池的冷/暖探针通过，暖跑没有新增 journal 记录但确有缓存 stderr。
-4. 确认 test 暖缓存命中率和 `perfetto.cc` 是否实际再次分发，以及构建耗时。
-5. 读取 shard 6 的真实耗时、恢复日志、JUnit 失败归属和分片覆盖率。
-6. 确认报告核验 27790 个 CTest 登记项在 20 片中恰好覆盖一次，性能证据无错误。
+1. 等待本轮单测监控唤醒，读取 shard 6 的真实耗时、恢复日志及 JUnit 失败归属。
+2. 等待整轮结束，确认报告核验 27790 个 CTest 登记项在 20 片中恰好覆盖一次，性能证据无错误。
+3. 仅将验收文档更新推送至 `diag/shutdown-crash`；文档更新不需要重新触发构建。
+
+后台监控 PID 为 `212200`，每两分钟检查一次；仅构建完成、单测全部完成、整轮完成或
+构建失败时通过 `codex queue --resume` 唤醒原会话。
+状态和日志分别为 `/tmp/cubium-ci-monitor-42456395241.json`、同名前缀的 `.log`。
 
 为满足只在当前分支验证的约束，Release 发布、image-data 推送和 issue 创建已限制为 main
 运行；诊断分支仍保留所有构建、测试及报告 artifact。
