@@ -1133,6 +1133,8 @@ add_executable(mc_tests
     common/command/arguments/NbtPathTest.cpp
     # NBT 标签赋值语义测试
     common/util/nbt/NbtTagAssignmentTest.cpp
+    # SNBT 文本字面量的类型保真（double 后缀、布尔字面量）
+    common/util/nbt/SnbtLiteralTest.cpp
     common/command/arguments/TimeArgumentTest.cpp
     common/command/arguments/Vec2ArgumentTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
