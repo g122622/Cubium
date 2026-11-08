@@ -289,6 +289,44 @@ protected:
      */
     virtual void onGrowUp() {}
 
+public:
+    // 强制成长进度（喂食加速）。访问器为 public：实体类型转换（LivingEntity::convertTo）
+    // 需要在 AgeableEntity 之外复制这两项，否则幼体已累积的成长加速会丢失。
+
+    /**
+     * @brief 强制成长值（喂食加速累积的量）
+     */
+    [[nodiscard]] i32 getForcedAge() const
+    {
+        return m_forcedAge;
+    }
+
+    /**
+     * @brief 设置强制成长值
+     * @param forcedAge 强制成长值
+     */
+    void setForcedAge(i32 forcedAge)
+    {
+        m_forcedAge = forcedAge;
+    }
+
+    /**
+     * @brief 强制成长计时器（每 tick 递减，归零时结算强制成长值）
+     */
+    [[nodiscard]] i32 getForcedAgeTimer() const
+    {
+        return m_forcedAgeTimer;
+    }
+
+    /**
+     * @brief 设置强制成长计时器
+     * @param forcedAgeTimer 计时器 tick 数
+     */
+    void setForcedAgeTimer(i32 forcedAgeTimer)
+    {
+        m_forcedAgeTimer = forcedAgeTimer;
+    }
+
 private:
     i32 m_growingAge = 0;     // 年龄（负数=幼体）
     i32 m_loveTimer = 0;      // 繁殖冷却/爱心计时器

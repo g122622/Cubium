@@ -3034,11 +3034,13 @@ void LivingEntity::copyConversionStateTo(Entity& converted, const ConversionPara
     auto* toAgeable = dynamic_cast<AgeableEntity*>(toLiving);
     if (fromAgeable != nullptr && toAgeable != nullptr) {
         toAgeable->setGrowingAge(fromAgeable->getGrowingAge());
+        // 强制成长进度随转换保留（vanilla copyDataFrom 一并复制），否则幼体已累积的
+        // 喂食加速进度会丢失。
+        toAgeable->setForcedAge(fromAgeable->getForcedAge());
+        toAgeable->setForcedAgeTimer(fromAgeable->getForcedAgeTimer());
     } else if (auto* toChildHolder = dynamic_cast<AgeableEntity*>(toLiving); isChild() && toChildHolder != nullptr) {
         toChildHolder->setChild(true);
     }
-    // TODO(convert-forced-age): AgeableEntity 的 m_forcedAge / m_forcedAgeTimer 为私有且无
-    //   访问器，vanilla copyDataFrom 会一并复制；待补充 getter/setter 后在此复制。
 
     auto* fromMob = dynamic_cast<MobEntity*>(this);
     auto* toMob = dynamic_cast<MobEntity*>(toLiving);
