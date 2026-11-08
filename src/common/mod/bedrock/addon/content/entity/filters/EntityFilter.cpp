@@ -157,6 +157,8 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         "in_nether",
         "in_overworld",
         "is_altitude",
+        "has_nametag",
+        "on_ladder",
         "distance_to_nearest_player"};
     if (!supported.contains(test)) {
         // TODO: 接入生物群系温度等过滤测试。
@@ -196,7 +198,8 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         test == "has_target" || test == "is_daytime" || test == "is_owner" || test == "has_container_open" ||
         test == "on_ground" || test == "in_water" || test == "in_lava" || test == "in_water_or_rain" ||
         test == "is_baby" || test == "is_sleeping" || test == "on_fire" || test == "is_leashed" ||
-        test == "is_riding" || test == "in_nether" || test == "in_overworld";
+        test == "is_riding" || test == "in_nether" || test == "in_overworld" || test == "has_nametag" ||
+        test == "on_ladder";
     if (!filter.contains("value") && boolean) {
         filter["value"] = true;
     }
@@ -497,6 +500,14 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
     if (test == "is_altitude") {
         // 基岩的 is_altitude 用整数比较脚底高度（方块 Y）。
         return _compare(static_cast<i32>(std::floor(entity->y())), expected, operation);
+    }
+    if (test == "has_nametag") {
+        // 有自定义名字（命名牌或 /summon 指定 CustomName）即为 true。
+        return _compare(entity->hasCustomName(), expected, operation);
+    }
+    if (test == "on_ladder") {
+        // 基岩的 on_ladder 对应"是否贴在可攀爬方块上"。
+        return _compare(entity->isOnLadder(), expected, operation);
     }
     if (test == "has_target") {
         const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);

@@ -314,9 +314,6 @@ TEST_F(EntityFilterTest, TypeTagAndBasicEntityStateTests)
     check({{"test", "has_target"}, {"value", false}}, true);
 }
 
-// 新增接入的实体状态型过滤（is_baby / on_fire / is_sleeping / is_leashed / is_riding / rider_count）。
-// 关键字断言：非生物实体上这些测试必须恒为 false，而不是报错——基岩侧对"实体没有该概念"
-// 的处理就是条件不成立，若返回 Unsupported 会让整包加载失败。
 // 维度与高度型过滤：in_nether / in_overworld 读实体维度，is_altitude 读脚底方块 Y。
 TEST_F(EntityFilterTest, DimensionAndAltitudeFiltersFollowEntityState)
 {
@@ -336,6 +333,20 @@ TEST_F(EntityFilterTest, DimensionAndAltitudeFiltersFollowEntityState)
     check({{"test", "is_altitude"}, {"operator", "<"}, {"value", 64}}, false);
 }
 
+// has_nametag / on_ladder 必须跟随实体真实状态，而不是恒 false。
+TEST_F(EntityFilterTest, NameTagAndLadderFiltersFollowEntityState)
+{
+    check({{"test", "has_nametag"}, {"value", false}}, true);
+    entity.setCustomName("Filtered");
+    check({{"test", "has_nametag"}, {"value", true}}, true);
+
+    // 裸 Entity 不在梯子上；攀爬状态由 setLastClimbPos 表达（isOnLadder 读该状态）。
+    check({{"test", "on_ladder"}, {"value", false}}, true);
+}
+
+// 实体状态型过滤（is_baby / on_fire / is_sleeping / is_leashed / is_riding / rider_count）。
+// 关键断言：非生物实体上这些测试必须恒为 false，而不是报错——基岩侧对"实体没有该概念"
+// 的处理就是条件不成立，若返回 Unsupported 会让整包加载失败。
 TEST_F(EntityFilterTest, EntityStateFiltersAreFalseOnNonLivingEntity)
 {
     // 裸 Entity 既不是 LivingEntity 也不是 MobEntity，也没有乘客。
