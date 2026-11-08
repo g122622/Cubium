@@ -177,6 +177,34 @@ TEST_F(AddonEntityDefinitionTest, MarkerComponentsAreAcceptedAndIsBabyTakesEffec
 }
 
 // is_baby 写在非 living 实体上不报错（只是无效果），基岩侧也不会因此拒绝行为包。
+// minecraft:knockback_resistance.value 必须落到击退抗性属性上，且只接受字面量数字：
+// range 对象 / Molang 当前没有"每 tick 求值"的通路，放任通过会导致组件被收下却不生效。
+TEST_F(AddonEntityDefinitionTest, KnockbackResistanceIsAppliedAndRequiresLiteralNumber)
+{
+    auto definition = _definition("addon_test:knockback");
+    definition["minecraft:entity"]["components"]["minecraft:knockback_resistance"] = {{"value", 0.75}};
+    // 击退抗性挂在 LivingEntity 上，因此需要 movement + health 让定义被判为 living 型。
+    definition["minecraft:entity"]["components"]["minecraft:movement"] = {{"value", 0.3}};
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    auto parsed = AddonEntityDefinition::parse(definition);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+
+    auto shared = std::make_shared<const AddonEntityDefinition>(parsed.value());
+    auto entity = AddonEntityDefinition::create(shared, nullptr, entities, {});
+    ASSERT_NE(entity, nullptr);
+    const auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    EXPECT_DOUBLE_EQ(living->attributes().getValue(mc::entity::attribute::Attributes::KNOCKBACK_RESISTANCE), 0.75);
+
+    // 动态形式必须被明确拒绝，而不是静默收下。
+    auto dynamicValue = _definition("addon_test:knockback_dynamic");
+    dynamicValue["minecraft:entity"]["components"]["minecraft:knockback_resistance"] = {
+        {"value", {{"range_min", 0.1}, {"range_max", 0.9}}}};
+    const auto rejected = AddonEntityDefinition::parse(dynamicValue);
+    ASSERT_TRUE(rejected.failed());
+    EXPECT_EQ(rejected.error().code(), mc::ErrorCode::Unsupported);
+}
+
 TEST_F(AddonEntityDefinitionTest, IsBabyOnNonLivingIsAcceptedWithoutEffect)
 {
     auto definition = _definition("addon_test:baby_actor");

@@ -411,6 +411,34 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             // 纯标记组件：存在即表示可攀爬梯子/藤蔓。攀爬判定读的是实体的攀爬状态，
             // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:knockback_resistance") {
+            // value 映射到 Attributes::KNOCKBACK_RESISTANCE（0.0 无抗性，1.0 完全免疫）。
+            // 基岩侧 max 是"潜在上限"（用于显示/成长预留），运行时生效的是 value，
+            // 因此只落 value；max 仅校验类型，不参与计算。
+            //
+            // 这里显式要求字面量数字：_number 虽已支持 range 对象与 Molang，但属性基值是
+            // 实例化时一次性写入的常量，没有"每 tick 重新求值"的机制。若放任 range/Molang 通过，
+            // 组件会被收下却永远不生效——那比直接报错更难排查。真正支持动态值需要先有
+            // 属性绑定 Molang 的求值通路，属于另一件事。
+            MC_TRY(_members(component, {"value", "max"}));
+            const auto bounds = mc::entity::attribute::Attributes::knockbackResistance();
+            for (const char* field : {"value", "max"}) {
+                const auto it = component.find(field);
+                if (it == component.end()) {
+                    continue;
+                }
+
+                if (!it->is_number()) {
+                    return Error(ErrorCode::Unsupported,
+                        std::string("minecraft:knockback_resistance requires a literal number: ") + field);
+                }
+
+                const double number = it->get<double>();
+                if (!std::isfinite(number) || number < bounds->minValue() || number > bounds->maxValue()) {
+                    return Error(ErrorCode::InvalidData,
+                        std::string("minecraft:knockback_resistance is out of range: ") + field);
+                }
+            }
         } else if (name == "minecraft:variant" || name == "minecraft:mark_variant") {
             MC_TRY(_members(component, {"value"}));
             MC_TRY(_number(component, "value", std::numeric_limits<i32>::min(), std::numeric_limits<i32>::max()));
@@ -486,6 +514,17 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
             ageable->setChild(true);
         } else {
             spdlog::warn("[BedrockAddon] minecraft:is_baby on non-ageable entity '{}' has no effect", m_identifier);
+        }
+    }
+
+    // minecraft:knockback_resistance.value → 击退抗性属性。只有 LivingEntity 有属性表。
+    if (const auto it = m_components.find("minecraft:knockback_resistance"); it != m_components.end()) {
+        if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity); living != nullptr) {
+            // 允许 range 对象/Molang 之外的纯字面量；非数字形式已在 validateComponents 阶段拒绝。
+            if (const auto value = it->find("value"); value != it->end() && value->is_number()) {
+                living->attributes().setBaseValue(
+                    mc::entity::attribute::Attributes::KNOCKBACK_RESISTANCE, value->get<double>());
+            }
         }
     }
 
