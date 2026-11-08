@@ -37,12 +37,14 @@
 #include "common/util/property/Properties.hpp" // BlockStateProperties::NORTH/EAST/SOUTH/WEST（getFenceConnectivity）
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/ILiquidContainer.hpp" // ILiquidContainer::receiveFluid（setFluidContainer）
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
 #include "common/world/block/blocks/redstone/LeverBlock.hpp"          // LeverBlock::toggle（pullLever 接线）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
 #include "common/world/blockentity/BlockEntity.hpp"          // getBlockEntity → dynamic_cast<ContainerBlockEntity*>
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
 #include "common/world/fluid/Fluid.hpp"                      // FluidState（assertIsWaterlogged 判定流体类型）
+#include "common/world/fluid/FluidRegistry.hpp"              // FluidRegistry::getFluid（setFluidContainer）
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/world/redstone/RedstonePower.hpp" // RedstonePower::getSignal（assertRedstonePower）
 #include "server/world/ServerWorld.hpp"
@@ -816,12 +818,44 @@ GameTestResult GameTestHelper::setBlockPermutation(const mc::BlockState& permuta
 
 GameTestResult GameTestHelper::setFluidContainer(BlockPos relativePos, const std::string& fluidType)
 {
-    // TODO: 设 pos 处流体容器（如炼药锅）的流体类型。底层 ILiquidContainer::receiveFluid 写入体系
-    //       未就绪，stub 返回 MethodNotImplemented（绑定层经 _resultToJs 转 GameTestError 抛出）。
-    (void)fluidType;
-    return generateErrorWithContext(GameTestErrorType::MethodNotImplemented,
-        "setFluidContainer not implemented yet (fluid container write system pending)",
-        relativePos);
+    // 对齐基岩 Test.setFluidContainer：把 pos 处的流体容器（炼药锅等）设为指定流体。
+    // 走方块的 ILiquidContainer::receiveFluid（与发射器注水同一路径）。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return generateErrorWithContext(
+            GameTestErrorType::LevelStateModificationFailed, "No block state at fluid container position", relativePos);
+    }
+
+    mc::Block* block = mc::Block::getBlock(state->blockId());
+    auto* liquidContainer = dynamic_cast<mc::ILiquidContainer*>(block);
+    if (liquidContainer == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Block at position is not a fluid container"),
+            relativePos);
+    }
+
+    const auto fullFluidType = normalizeItemType(fluidType);
+    mc::fluid::Fluid* fluid = mc::fluid::FluidRegistry::instance().getFluid(mc::ResourceLocation(fullFluidType));
+    if (fluid == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Unknown fluid type '{}'", fullFluidType),
+            relativePos);
+    }
+
+    if (!liquidContainer->canContainFluid(m_world, worldPos, *state, *fluid)) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Fluid container at position cannot contain '{}'", fullFluidType),
+            relativePos);
+    }
+
+    if (!liquidContainer->receiveFluid(m_world, worldPos, *state, fluid->defaultState())) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Fluid container at position rejected '{}'", fullFluidType),
+            relativePos);
+    }
+
+    return std::nullopt;
 }
 
 void GameTestHelper::triggerInternalBlockEvent(BlockPos /*relativePos*/, const std::string& /*eventName*/)
