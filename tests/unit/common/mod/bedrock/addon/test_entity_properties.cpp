@@ -25,6 +25,8 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
+#include "common/entity/entities/monster/nether/BlazeEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
@@ -637,6 +639,88 @@ TEST_F(AddonEquippableArmorBindingTest, AddEffectAcceptsEffectTypeObject)
             if (subject.getEffect('poison') === undefined) {
                 throw Error('unqualified id via object did not apply');
             }
+        }
+    )");
+}
+
+// Entity.setOnFire 在 useEffects=true 时，火焰免疫实体必须返回 false 且不点燃；
+// useEffects=false 则跳过检查直接设火焰计时（对齐 vanilla）。
+class AddonSetOnFireBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+        // isImmuneToFire() 走 EntityRegistry 查实体类型的 immuneToFire 标志，
+        // 因此必须先注册 vanilla 实体类型，否则烈焰人查不到、被判为不免疫。
+        mc::entity::VanillaEntities::registerAll();
+        // 烈焰人注册为 fireImmune，用来验证免疫门控。
+        // 必须经 EntityType 工厂创建：工厂会 setTypeId 并初始化血量，直接构造的实例
+        // m_typeId 为空，isImmuneToFire() 查不到类型会误判为不免疫。
+        const auto* blazeType = mc::entity::EntityRegistry::instance().getType(mc::entity::EntityTypeKeys::BLAZE);
+        ASSERT_NE(blazeType, nullptr);
+        auto created = blazeType->create(nullptr, registry);
+        ASSERT_NE(created, nullptr);
+        subject = std::unique_ptr<mc::Entity>(std::move(created));
+        context = createContext();
+        ASSERT_NE(context, nullptr);
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    std::unique_ptr<IScriptContext> createContext()
+    {
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        if (!created) {
+            return nullptr;
+        }
+        auto& binding = created->bindingContext();
+        binding.setPackId("onfire-pack");
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        return created;
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "set-on-fire.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-set-on-fire"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::Entity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonSetOnFireBindingTest, FireImmuneEntityRejectsIgnitionWithEffects)
+{
+    check(R"(
+        {
+            const applied = subject.setOnFire(5, true);
+            if (applied !== false) throw Error('fire-immune entity must reject ignition, got ' + applied);
+        }
+    )");
+}
+
+TEST_F(AddonSetOnFireBindingTest, FireImmuneEntityStillAcceptsDirectSetWithoutEffects)
+{
+    // useEffects=false 跳过免疫检查，直接写火焰计时（对齐 vanilla 语义）。
+    check(R"(
+        {
+            const applied = subject.setOnFire(5, false);
+            if (applied !== true) throw Error('useEffects=false should bypass the immunity gate');
         }
     )");
 }

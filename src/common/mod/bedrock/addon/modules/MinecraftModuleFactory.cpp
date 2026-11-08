@@ -1440,9 +1440,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     //     仅在新时间>当前剩余时更新（不覆盖免疫期）。等价 vanilla useEffects 的副作用链。
     //   - useEffects=false → mc::Entity::setFire(seconds*20)（Entity.hpp:1684）：直接设 tick 不检查
     //     不乘属性不清冰冻（对齐 vanilla useEffects=false 跳过条件直接设）。
-    //   返回 true（Cubium igniteForSeconds/setFire 不区分成功失败，统一返 true 对齐"已设置"语义；
-    //   vanilla 的 false 仅在湿/免疫时返回，Cubium igniteForSeconds 仍会写入 fire 字段——为避免误导
-    //   测试，此处不模拟湿/免疫失败，TODO: 后续按 isWet/fireImmune 精确返回 false）。
+    //   返回 true；useEffects=true 时，实体潮湿（isWet）或火焰免疫（isImmuneToFire）则返回 false
+    //   且不写入火焰计时（对齐 vanilla：条件不满足时不点燃）。
     //
     // 用途：集成测试需点燃实体验证灭火链路（如水瓶 _onHitAsWater extinguishFire、雨/水伤害门控、
     // 火焰保护 BURNING_TIME 缩减）。此前脚本层仅 readonly onFireTicksRemaining（无法主动点火），
@@ -1475,8 +1474,14 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             if (useEffects) {
+                // useEffects=true 时点燃会被水与火焰免疫挡下，官方此时返回 false。
+                // 若不在此判定，脚本会收到"点燃成功"而实体实际不燃烧。
+                if (ent->isWet() || ent->isImmuneToFire()) {
+                    return ctx.createBoolean(false);
+                }
                 ent->igniteForSeconds(static_cast<f32>(seconds));
             } else {
+                // useEffects=false 跳过所有条件检查，直接设火焰计时（对齐 vanilla）。
                 ent->setFire(static_cast<i32>(seconds * 20.0));
             }
 
