@@ -208,7 +208,12 @@ TEST_F(TeamCommandTest, AddTeamWithDisplayName)
     // 设置显示名称
     team->setDisplayName(std::make_unique<text::StringTextComponent>("Blue Team"));
 
-    EXPECT_NE(team->getDisplayName(), nullptr);
+    // 脚本侧 Team.displayName 取的是 getUnformattedText()（纯文本、无格式码）。
+    // 这里锁定该契约：显示名必须是自定义值，而不是退化成队伍名 "blue"。
+    const auto* displayName = team->getDisplayName();
+    ASSERT_NE(displayName, nullptr);
+    EXPECT_EQ(displayName->getUnformattedText(), "Blue Team");
+    EXPECT_NE(displayName->getUnformattedText(), team->getName());
 }
 
 TEST_F(TeamCommandTest, AddTeamDuplicateNameFails)

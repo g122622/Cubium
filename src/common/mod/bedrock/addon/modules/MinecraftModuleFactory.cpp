@@ -895,15 +895,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     objectiveReg.readonlyProperty(
         "displayName", [objectiveClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
             // 对齐基岩 Objective.displayName：返回显示名纯文本（无格式码）。Cubium 的 getDisplayName
-            // 返回 ITextComponent*，取纯文本需经 Component flatten。TODO: 未接入 ITextComponent 纯文本
-            // 提取，当前用 name 兜底（/scoreboard objectives add 未指定显示名时 display==name，对测试足够）。
+            // 返回 ITextComponent*，取其 getUnformattedText() 即纯文本；未设置显示名时该组件
+            // 就是名字本身，因此无需额外回退分支。
             auto* objective = static_cast<mc::scoreboard::ScoreObjective*>(
                 ScriptObjectRegistry::unwrap(ctx, thisVal, objectiveClassId));
             if (objective == nullptr) {
                 return ctx.createUndefined();
             }
 
-            return ctx.createString(objective->getName());
+            const auto* displayName = objective->getDisplayName();
+            if (displayName == nullptr) {
+                return ctx.createString(objective->getName());
+            }
+
+            return ctx.createString(displayName->getUnformattedText());
         });
     objectiveReg.method(
         "getScore",
@@ -975,15 +980,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return ctx.createString(team->getName());
     });
     teamReg.readonlyProperty("displayName", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // 对齐基岩无 Team.displayName，此处提供测试用显示名纯文本。TODO: getDisplayName 返 ITextComponent*，
-        // 未接入纯文本提取，当前用 name 兜底（/team add 未指定显示名时 display==name，对测试足够）。
+        // 基岩 Team 无 displayName，此处提供纯文本显示名供测试断言。取 ITextComponent 的
+        // getUnformattedText()（无格式码）；未设置时该组件即名字本身。
         auto* team =
             static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
         if (team == nullptr) {
             return ctx.createUndefined();
         }
 
-        return ctx.createString(team->getName());
+        const auto* displayName = team->getDisplayName();
+        if (displayName == nullptr) {
+            return ctx.createString(team->getName());
+        }
+
+        return ctx.createString(displayName->getUnformattedText());
     });
     teamReg.readonlyProperty("color", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         // 对齐 Java Team.color：返回颜色名（"red"/"blue"/"dark_green" 等），经 text::toName 字符串化。
