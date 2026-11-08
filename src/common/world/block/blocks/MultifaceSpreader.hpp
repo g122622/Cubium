@@ -214,6 +214,22 @@ public:
         bool worldGen) const;
 
     /**
+     * @brief 从 fromFace 朝指定方向扩散一次（确定性，不随机）
+     *
+     * 对应基岩 GameTest `spreadFromFaceTowardDirection` 所需的能力：给定源面与方向，
+     * 只尝试这一个方向，不遍历其他方向。与 `spreadFromFaceTowardRandomDirection` 的区别
+     * 在于方向由调用方指定，因此可用于可复现的测试。
+     *
+     * @return 成功扩散时返回落点，否则返回 nullopt
+     */
+    [[nodiscard]] std::optional<MultifaceSpreadPos> spreadFromFaceTowardDirection(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Direction fromFace,
+        Direction spreadDir,
+        bool worldGen) const;
+
+    /**
      * @brief MC spreadAll：对所有可扩散面，向所有方向尝试扩散，返回成功次数。
      *
      * SculkVein.attemptPlaceSculk 用此在新放置的 sculk 周围蔓延脉络。

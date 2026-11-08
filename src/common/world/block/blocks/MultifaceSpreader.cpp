@@ -114,6 +114,22 @@ std::optional<MultifaceSpreadPos> MultifaceSpreader::spreadToFace(
     return std::nullopt;
 }
 
+std::optional<MultifaceSpreadPos> MultifaceSpreader::spreadFromFaceTowardDirection(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Direction fromFace,
+    Direction spreadDir,
+    bool worldGen) const
+{
+    // 只尝试调用方指定的方向，不做方向遍历，因此结果是确定的。
+    auto spreadPos = getSpreadFromFaceTowardDirection(state, world, pos, fromFace, spreadDir);
+    if (!spreadPos.has_value()) {
+        return std::nullopt;
+    }
+
+    return spreadToFace(world, spreadPos.value(), worldGen);
+}
+
 std::optional<MultifaceSpreadPos> MultifaceSpreader::spreadFromFaceTowardRandomDirection(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,

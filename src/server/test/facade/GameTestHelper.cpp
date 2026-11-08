@@ -40,9 +40,11 @@
 #include "common/util/property/Properties.hpp" // BlockStateProperties::NORTH/EAST/SOUTH/WEST（getFenceConnectivity）
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/ILiquidContainer.hpp" // ILiquidContainer::receiveFluid（setFluidContainer）
+#include "common/world/block/ILiquidContainer.hpp"         // ILiquidContainer::receiveFluid（setFluidContainer）
+#include "common/world/block/blocks/MultifaceSpreader.hpp" // MultifaceSpreader（spreadFromFaceTowardDirection）
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
 #include "common/world/block/blocks/redstone/LeverBlock.hpp"          // LeverBlock::toggle（pullLever 接线）
+#include "common/world/block/blocks/sculk/SculkBlocks.hpp"            // SculkVeinBlock::getSpreader（同上）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
 #include "common/world/blockentity/BlockEntity.hpp"          // getBlockEntity → dynamic_cast<ContainerBlockEntity*>
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
@@ -863,14 +865,41 @@ GameTestResult GameTestHelper::setFluidContainer(BlockPos relativePos, const std
 
 void GameTestHelper::triggerInternalBlockEvent(BlockPos /*relativePos*/, const std::string& /*eventName*/)
 {
-    // TODO: 触发方块内部事件（对齐基岩 triggerInternalBlockEvent）。依赖方块事件分发体系，未就绪 stub。
+    // TODO: 触发方块内部事件（对齐基岩 triggerInternalBlockEvent(blockLocation, event,
+    //   eventParameters?)）。
+    //   基岩该 API 只接受固定的一组事件名：minecraft:drip / grow_stalagtite /
+    //   grow_stalagmite / grow_up / grow_down / grow_sideways。
+    //   已具备：分发通道 IWorld::blockEvent() 与 Block::triggerEvent(state, world, pos, id, type)。
+    //   尚缺：上述事件名对应的**方块侧处理逻辑**——
+    //   ① PointedDripstoneBlock 虽有 canGrow/canTipGrow/canDrip 静态判定，但没有把
+    //      "drip / grow_stalagmite / grow_stalagtite" 接成 triggerEvent 分支；
+    //   ② GrowingPlantBlock / CaveVinesBlock 没有 grow_up / grow_down / grow_sideways 分支；
+    //   ③ Block::triggerEvent 的事件参数是 (i32 id, i32 type)，而该 API 的事件参数是
+    //      number[]，两者之间没有既定的映射表。
+    //   因此这里不是"调一下分发通道"就能补齐的，而是要先给两类方块补上事件处理。
 }
 
-void GameTestHelper::spreadFromFaceTowardDirection(
-    BlockPos /*relativePos*/, Direction /*fromFace*/, Direction /*direction*/)
+void GameTestHelper::spreadFromFaceTowardDirection(BlockPos relativePos, Direction fromFace, Direction direction)
 {
-    // TODO: 测试多方块传播（对齐基岩 spreadFromFaceTowardDirection，用于 sculk/苔藓等）。
-    //       依赖 MultifaceSpreader 接线体系，未就绪 stub。
+    // 对齐基岩 Test.spreadFromFaceTowardDirection：让 pos 处多方块沿指定方向扩散一次。
+    // 走 MultifaceSpreader 的确定性单方向版本（不随机遍历方向），因此结果是可复现的。
+    // 目前只有幽匿脉络（SculkVeinBlock）对外暴露 spreader；其他多方块（如发光地衣）
+    // 尚未接入，遇到时不做任何事。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return;
+    }
+
+    const mc::Block* block = mc::Block::getBlock(state->blockId());
+    const auto* sculkVein = dynamic_cast<const mc::blocks::SculkVeinBlock*>(block);
+    if (sculkVein == nullptr) {
+        return;
+    }
+
+    // 是否成功扩散对该工具方法无意义（失败时方块状态不变），故显式忽略返回值。
+    MC_UNUSED(
+        sculkVein->getSpreader().spreadFromFaceTowardDirection(*state, m_world, worldPos, fromFace, direction, false));
 }
 
 // === 4. 实体断言与 spawn ===
