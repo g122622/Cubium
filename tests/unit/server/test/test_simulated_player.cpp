@@ -175,6 +175,33 @@ TEST(SimulatedPlayerTest, SetItem_SelectSlotOnlyForHotbar)
 // 移动输入：speed 倍率
 // ============================================================================
 
+// Instant 只定向一次；Continuous 每 tick 重新朝向目标（目标相对位置变化后仍跟随）。
+TEST(SimulatedPlayerTest, LookAtBlockDurationInstantVsContinuous)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1011), std::string{"LookBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setPosition(0.0, 64.0, 0.0);
+
+    // Instant：定向到目标方块中心，之后即使目标方向变了也不重新朝向。
+    player->lookAtBlock(BlockPos{0, 64, 10}, mc::test::SimulatedPlayer::LookDuration::Instant);
+    const f32 instantYaw = player->yaw();
+    player->setPosition(10.0, 64.0, 0.0);
+    player->tick();
+    EXPECT_FLOAT_EQ(player->yaw(), instantYaw) << "Instant must not reorient on tick";
+
+    // Continuous：换位后 tick() 必须把朝向重新指向目标（yaw 发生变化）。
+    player->lookAtBlock(BlockPos{0, 64, 10}, mc::test::SimulatedPlayer::LookDuration::Continuous);
+    player->setPosition(10.0, 64.0, 0.0);
+    const f32 beforeTick = player->yaw();
+    player->setPosition(-10.0, 64.0, 0.0);
+    player->tick();
+    EXPECT_NE(player->yaw(), beforeTick) << "Continuous must reorient on tick";
+}
+
 TEST(SimulatedPlayerTest, MoveToLocation_SpeedScalesMovementInput)
 {
     mc::Items::ensureInitialized();
@@ -187,16 +214,40 @@ TEST(SimulatedPlayerTest, MoveToLocation_SpeedScalesMovementInput)
 
     // 目标在 +Z 方向 10 格。speed 作为移动输入倍率传入 Player::handleMovementInput：
     // 1.0 → 前进输入 1；0.5 → 0.5；负值 → 输入方向反转（后退）。
-    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f);
+    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f, true);
     EXPECT_FLOAT_EQ(player->movementInputForward(), 1.0f);
     EXPECT_FLOAT_EQ(player->pitch(), 0.0f); // 移动只改 yaw，不改 pitch
 
-    player->moveToLocation(BlockPos{0, 64, 10}, 0.5f);
+    player->moveToLocation(BlockPos{0, 64, 10}, 0.5f, true);
     EXPECT_FLOAT_EQ(player->movementInputForward(), 0.5f);
 
     // 负倍率：输入方向反转（后退）。
-    player->moveToLocation(BlockPos{0, 64, 10}, -1.0f);
+    player->moveToLocation(BlockPos{0, 64, 10}, -1.0f, true);
     EXPECT_FLOAT_EQ(player->movementInputForward(), -1.0f);
+}
+
+// faceTarget=false 时必须保持原朝向只平移（基岩 MoveToOptions.faceTarget）。
+TEST(SimulatedPlayerTest, MoveToLocation_FaceTargetFalseKeepsRotation)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1010), std::string{"LookAwayBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setPosition(0.0, 64.0, 0.0);
+
+    // 先固定一个与目标方向不同的朝向，再朝 +Z 走。
+    player->setRotation(123.0f, 0.0f);
+    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f, false);
+    EXPECT_FLOAT_EQ(player->yaw(), 123.0f);
+    EXPECT_FLOAT_EQ(player->movementInputForward(), 1.0f);
+
+    // 对照：faceTarget=true 会把 yaw 转向目标。
+    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f, true);
+    // 目标方块中心在 (0.5, 0.5)，玩家在原点，故朝向并非纯 +Z，而是 atan2(-0.5, 10.5)。
+    EXPECT_NEAR(player->yaw(), -2.7263f, 0.01f);
+    EXPECT_NE(player->yaw(), 123.0f) << "faceTarget=true must reorient the player";
 }
 
 // ============================================================================
@@ -246,6 +297,74 @@ TEST(SimulatedPlayerTest, FlyToLocation_CreativeEntersFlightTowardTarget)
     player->flyToLocation(BlockPos{0, 70, 10}, 1.0f);
     EXPECT_FLOAT_EQ(player->movementInputForward(), 1.0f);
     EXPECT_TRUE(player->isFlying());
+}
+
+// fly 受 abilities.canFly 门控；stopFlying/swim/stopSwimming 直接改状态。
+// move 的方向相对 GameTest 结构：玩家朝向不同时，同一个世界方向要分解成不同的前进/横移输入。
+// moveRelative 直接映射输入；rotateBody/setBodyRotation 更新 yaw。
+TEST(SimulatedPlayerTest, MoveDecomposesWorldDirectionAndRotateBodyUpdatesYaw)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1013), std::string{"DirBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setPosition(0.0, 64.0, 0.0);
+
+    // yaw=0 看向 +Z：朝南（northSouth=+1）就是纯前进。
+    player->setRotation(0.0f, 0.0f);
+    player->move(0.0f, 1.0f, 1.0f);
+    EXPECT_NEAR(player->movementInputForward(), 1.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 0.0f, 0.01f);
+
+    // 朝东（westEast=+1）在 yaw=0 下是纯右横移。
+    player->move(1.0f, 0.0f, 1.0f);
+    EXPECT_NEAR(player->movementInputForward(), 0.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 1.0f, 0.01f);
+
+    // moveRelative 直接映射：leftRight=横移、backwardForward=前进。
+    player->moveRelative(0.5f, -1.0f, 1.0f);
+    EXPECT_NEAR(player->movementInputForward(), -1.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 0.5f, 0.01f);
+
+    // stopMoving 清零输入。
+    player->stopMoving();
+    EXPECT_NEAR(player->movementInputForward(), 0.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 0.0f, 0.01f);
+
+    // rotateBody 相对当前朝向累加；setBodyRotation 设为绝对值。
+    player->setRotation(10.0f, 0.0f);
+    player->rotateBody(25.0f);
+    EXPECT_NEAR(player->yaw(), 35.0f, 0.01f);
+    player->setBodyRotation(120.0f);
+    EXPECT_NEAR(player->yaw(), 120.0f, 0.01f);
+}
+
+TEST(SimulatedPlayerTest, FlyRespectsAbilityGateAndSwimTogglesState)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1012), std::string{"FlyBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+
+    // 默认无飞行能力：fly() 必须不生效。
+    ASSERT_FALSE(player->abilities().canFly);
+    player->fly();
+    EXPECT_FALSE(player->isFlying()) << "fly must be gated by abilities.canFly";
+
+    // 授予飞行能力后可起飞，stopFlying 可收回。
+    player->abilities().canFly = true;
+    player->fly();
+    EXPECT_TRUE(player->isFlying());
+    player->stopFlying();
+    EXPECT_FALSE(player->isFlying());
+
+    // 游泳姿态可双向切换。
+    player->swim();
+    EXPECT_TRUE(player->isSwimming());
+    player->stopSwimming();
+    EXPECT_FALSE(player->isSwimming());
 }
 
 TEST(SimulatedPlayerTest, Jump_ReportsWhetherJumpHappened)

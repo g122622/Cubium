@@ -42,8 +42,8 @@
 #include "common/entity/core/MobEntity.hpp"     // MobEntity（setEquipmentDropChance，EquippableComponent 装备掉落概率）
 #include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect/getEffects 返回效果实例）
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
-#include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
-#include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
+#include "common/entity/entities/monster/basic/CreeperEntity.hpp"   // CreeperEntity（is_charged 组件判定 isPowered）
+#include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（variant 组件判定哞菇红/棕变种）
 #include "common/entity/entities/passive/basic/SheepEntity.hpp" // SheepEntity（color 组件判定羊毛颜色 DyeColor 0-15）
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp" // AbstractChestedHorseEntity（is_chested 组件判定驴/骡/行商羊驼箱子状态，hasChest）

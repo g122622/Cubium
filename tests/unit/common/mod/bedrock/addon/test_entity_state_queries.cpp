@@ -25,6 +25,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
+#include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -193,6 +194,30 @@ TEST_F(AddonEntityStateQueryTest, NativeMarkerComponentsFollowTamingAndChargingT
     check(context, {{"test", "has_component"}, {"subject", "other"}, {"value", "is_charged"}}, false);
     creeper.setPowered(true);
     check(context, {{"test", "has_component"}, {"subject", "other"}, {"value", "is_charged"}}, true);
+}
+
+// 哞菇的红/棕是主变种（基岩 minecraft:variant），不能用 mark_variant 承载——
+// mark_variant 是"附加变种"，语义不同。脚本按官方组件名读取时必须拿到 variant。
+TEST_F(AddonEntityStateQueryTest, MooshroomColorIsReportedAsVariantNotMarkVariant)
+{
+    MooshroomEntity mooshroom(EntityInstanceId(1), registry);
+
+    const auto variantPresent = EntityStateQuery::hasComponent(mooshroom, "minecraft:variant");
+    ASSERT_TRUE(variantPresent.success()) << variantPresent.error().message();
+    EXPECT_TRUE(variantPresent.value());
+
+    const auto markVariantPresent = EntityStateQuery::hasComponent(mooshroom, "minecraft:mark_variant");
+    EXPECT_TRUE(markVariantPresent.failed());
+
+    // 默认红色 = 0，翻转后为棕色 = 1。
+    auto red = EntityStateQuery::variant(mooshroom, "minecraft:variant");
+    ASSERT_TRUE(red.success()) << red.error().message();
+    EXPECT_EQ(red.value(), 0);
+
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
+    auto brown = EntityStateQuery::variant(mooshroom, "minecraft:variant");
+    ASSERT_TRUE(brown.success()) << brown.error().message();
+    EXPECT_EQ(brown.value(), 1);
 }
 
 TEST_F(AddonEntityStateQueryTest, VariantsFollowGroupsAndNbtRoundTripWithoutRestoringRemovedBase)

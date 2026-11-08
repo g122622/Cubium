@@ -337,12 +337,12 @@ def performance_report(directory, run_id):
     lines += ["", f"- 本次配置 {configured_workers} 个 worker，分为 test / release / fuzz 三个独立池；禁用 PCH，严格模式禁止通信失败后本地回退。",
               f"- 本次发生 {retries} 次远端重试。一次调用可以产生多个远端尝试；响应丢失后重复完成的编译也计入 CPU 与传输开销。报告逐源码核对调用、已收取结果、worker 完成数及尝试上限。",
               "- 构建耗时与 CPU 计量覆盖编译、链接阶段，不包含依赖配置安装、节点会合及 artifact 传输。预处理上限是 distcc 的设置，不限制 ccache 自身的哈希预处理。",
-              "- CPU 时间来自进程树资源计量：协调节点含预处理、本地编译、链接、ccache 和 pococc；远端只计实际项目编译，排除 doctor 探针。背景 SSH/cloudflared 服务的 CPU 不在这两个计量范围内。",
+              "- CPU 时间来自进程树资源计量：协调节点含预处理、本地编译、链接、ccache 和 pococc；远端只计实际项目编译，排除 doctor 和缓存诊断探针。背景 SSH/cloudflared 服务的 CPU 不在这两个计量范围内。",
               "- 上下行是 distcc 经 LZO 压缩后的文件载荷（包含对象文件和诊断），不含 SSH/TLS/WebSocket 头、重传或 GitHub artifact 上传。",
               "- 收取及解压时间是两端接收文件的累计计时，包含等待和解压，多个任务可以重叠；不能与构建墙钟时间直接相减，也不等于纯网络延迟。",
               "- 峰值由各 runner 的 UTC 编译区间合并计算，跨机器时钟误差会影响边界；累计任务时间含排队和通信，不作为 CPU 开销。",
               "- ccache 使用 Nightly 相同的持久缓存策略；命中率按本轮构建前后计数差计算，排除恢复的历史统计。暖缓存允许 worker 空闲，逐节点 doctor 探针仍必须通过。",
-              "- 直连与预处理命中都算命中：直接命中需要上次的编译命令逐字相同（同一次运行内不同 target 的同一源文件），跨次运行命中的多为预处理命中，它们决定实际要分发多少编译单元。",
+              "- 直接与预处理命中都算命中，均可跨次运行复用；ccache 命中还会重放缓存中的 pococc stderr，因此不能用 Submitting 日志行数代替本轮 journal 的实际分发数。",
               "- 没有同配置单机基线，不推算加速比。", ""]
     for record in records:
         if record["kind"] == "coordinator":

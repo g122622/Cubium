@@ -11,13 +11,16 @@
 #include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp" // spawnSimulatedPlayer / removeSimulatedPlayer
 
+#include "common/entity/ai/pathfinding/PathNavigator.hpp" // PathNavigator::canReach（assertCanReachLocation）
+#include "common/entity/attribute/Attributes.hpp"         // Attributes::JUMP_STRENGTH（onPlayerJump）
 #include "common/entity/core/AgeableEntity.hpp" // applySpawnEvent 派发 spawn_baby 幼体事件（AgeableEntity::setChild）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EquipmentSlot.hpp"       // EquipmentSlot（assertEntityHasArmor 槽位映射）
-#include "common/entity/core/LivingEntity.hpp"        // killEntity 走 onKillCommand 伤害致死链路
-#include "common/entity/core/MobEntity.hpp"           // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
-#include "common/entity/entities/item/ItemEntity.hpp" // ItemEntity（assertItemEntityPresent 按物品类型过滤）
+#include "common/entity/core/EquipmentSlot.hpp"         // EquipmentSlot（assertEntityHasArmor 槽位映射）
+#include "common/entity/core/LivingEntity.hpp"          // killEntity 走 onKillCommand 伤害致死链路
+#include "common/entity/core/MobEntity.hpp"             // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
+#include "common/entity/entities/item/ItemEntity.hpp"   // ItemEntity（assertItemEntityPresent 按物品类型过滤）
+#include "common/entity/entities/misc/MiscEntities.hpp" // TNTEntity::setFuse（setTntFuse）
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // assertEntityHasComponent 判定 is_charged
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
@@ -35,8 +38,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp" // BlockStateProperties::NORTH/EAST/SOUTH/WEST（getFenceConnectivity）
+#include "common/world/block/blocks/multiface/MultifaceSpreader.hpp" // MultifaceSpreader（spreadFromFaceTowardDirection）
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
 #include "common/world/block/blocks/redstone/LeverBlock.hpp"          // LeverBlock::toggle（pullLever 接线）
+#include "common/world/block/blocks/sculk/SculkBlocks.hpp"            // SculkVeinBlock::getSpreader（同上）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
 #include "common/world/block/capability/ILiquidContainer.hpp" // ILiquidContainer::receiveFluid（setFluidContainer）
 #include "common/world/block/registry/BlockRegistry.hpp"
@@ -315,8 +320,10 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
         auto it = dyeMap.find(dyeName);
         if (it != dyeMap.end()) {
             sheep->setFleeceColor(it->second);
+        } else {
+            // 未知染料名属于调用方拼写错误，静默跳过会让测试"看起来没生效"却查不到原因。
+            spdlog::warn("[gametest] unknown dye name '{}' in sheep spawn event, ignored", dyeName);
         }
-        // 未知 dye 名静默跳过（TODO: 可加日志告警，但 GameTest 无 console）。
         return;
     }
     // 熊猫性格事件：panda<minecraft:aggressive> 等把熊猫主基因设为对应性格基因。
@@ -363,8 +370,10 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
             // 性格相关属性（好斗 ATTACK_DAMAGE=6、虚弱 MAX_HEALTH=10）须按新性格重设——
             // registerAttributes 在构造期据随机性格设过，spawnEvent 改性格后需刷新。
             panda->refreshAttributesForPersonality();
+        } else {
+            // 未知性格名属于调用方拼写错误，静默跳过会让测试"看起来没生效"却查不到原因。
+            spdlog::warn("[gametest] unknown panda personality '{}' in spawn event, ignored", eventName);
         }
-        // 未知性格名静默跳过。
         return;
     }
 
@@ -464,9 +473,10 @@ bool GameTestHelper::isCompleted() const noexcept
 
 bool GameTestHelper::isCleaningUp() const noexcept
 {
-    // 第一阶段无清理阶段状态机（基岩版有 ClearUp 阶段）；暂以"已完成且失败"近似，留 TODO 精化。
-    // TODO: 引入显式 CleaningUp 状态后改为状态判定（见 framework/instance/GameTestState.hpp）
-    return false;
+    // 对齐基岩 Test.isCleaningUp：是否处于测试结束后的清理阶段。
+    // 项目的清理阶段即 runOnFinish 回调执行期间（见 BaseGameTestInstance::_runFinishCallbacks），
+    // 由 instance 侧维护标志，这里直接转发。
+    return m_instance.isCleaningUp();
 }
 
 i32 GameTestHelper::currentTick() const noexcept
@@ -860,14 +870,41 @@ GameTestResult GameTestHelper::setFluidContainer(BlockPos relativePos, const std
 
 void GameTestHelper::triggerInternalBlockEvent(BlockPos /*relativePos*/, const std::string& /*eventName*/)
 {
-    // TODO: 触发方块内部事件（对齐基岩 triggerInternalBlockEvent）。依赖方块事件分发体系，未就绪 stub。
+    // TODO: 触发方块内部事件（对齐基岩 triggerInternalBlockEvent(blockLocation, event,
+    //   eventParameters?)）。
+    //   基岩该 API 只接受固定的一组事件名：minecraft:drip / grow_stalagtite /
+    //   grow_stalagmite / grow_up / grow_down / grow_sideways。
+    //   已具备：分发通道 IWorld::blockEvent() 与 Block::triggerEvent(state, world, pos, id, type)。
+    //   尚缺：上述事件名对应的**方块侧处理逻辑**——
+    //   ① PointedDripstoneBlock 虽有 canGrow/canTipGrow/canDrip 静态判定，但没有把
+    //      "drip / grow_stalagmite / grow_stalagtite" 接成 triggerEvent 分支；
+    //   ② GrowingPlantBlock / CaveVinesBlock 没有 grow_up / grow_down / grow_sideways 分支；
+    //   ③ Block::triggerEvent 的事件参数是 (i32 id, i32 type)，而该 API 的事件参数是
+    //      number[]，两者之间没有既定的映射表。
+    //   因此这里不是"调一下分发通道"就能补齐的，而是要先给两类方块补上事件处理。
 }
 
-void GameTestHelper::spreadFromFaceTowardDirection(
-    BlockPos /*relativePos*/, Direction /*fromFace*/, Direction /*direction*/)
+void GameTestHelper::spreadFromFaceTowardDirection(BlockPos relativePos, Direction fromFace, Direction direction)
 {
-    // TODO: 测试多方块传播（对齐基岩 spreadFromFaceTowardDirection，用于 sculk/苔藓等）。
-    //       依赖 MultifaceSpreader 接线体系，未就绪 stub。
+    // 对齐基岩 Test.spreadFromFaceTowardDirection：让 pos 处多方块沿指定方向扩散一次。
+    // 走 MultifaceSpreader 的确定性单方向版本（不随机遍历方向），因此结果是可复现的。
+    // 目前只有幽匿脉络（SculkVeinBlock）对外暴露 spreader；其他多方块（如发光地衣）
+    // 尚未接入，遇到时不做任何事。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return;
+    }
+
+    const mc::Block* block = mc::Block::getBlock(state->blockId());
+    const auto* sculkVein = dynamic_cast<const mc::blocks::SculkVeinBlock*>(block);
+    if (sculkVein == nullptr) {
+        return;
+    }
+
+    // 是否成功扩散对该工具方法无意义（失败时方块状态不变），故显式忽略返回值。
+    MC_UNUSED(
+        sculkVein->getSpreader().spreadFromFaceTowardDirection(*state, m_world, worldPos, fromFace, direction, false));
 }
 
 // === 4. 实体断言与 spawn ===
@@ -1440,24 +1477,51 @@ GameTestResult GameTestHelper::assertEntityState(
 
 GameTestResult GameTestHelper::assertCanReachLocation(mc::Entity& entity, BlockPos relativePos, bool canReach)
 {
-    // TODO: 断言实体能否寻路到达 pos。依赖 PathNavigator（硬依赖 dynamic_cast<MobEntity*>，Player 不是
-    //       MobEntity）未就绪，stub。寻路做实见 MobEntity
-    //       寻路三层根因（mobentity-navigator-pathfinder-null-global-bug）。
-    (void)entity;
-    (void)relativePos;
-    (void)canReach;
-    return GameTestError{GameTestErrorType::MethodNotImplemented,
-        "assertCanReachLocation not implemented yet (pathfinding system pending)"};
+    // 对齐基岩 Test.assertCanReachLocation：断言实体能否寻路到达 pos。
+    // 只算路径不启动移动（PathNavigator::canReach），因此断言本身不改变实体状态。
+    // 寻路挂在 MobEntity 上；玩家（Player 不是 MobEntity）没有寻路能力，报不支持。
+    auto* mob = dynamic_cast<mc::MobEntity*>(&entity);
+    if (mob == nullptr || mob->navigator() == nullptr) {
+        return GameTestError{GameTestErrorType::MethodNotImplemented,
+            "assertCanReachLocation requires a mob entity with a path navigator"};
+    }
+
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    // 到达半径 1 与 vanilla assertCanReachLocation 的默认 reachRange 一致。
+    const bool actual = mob->navigator()->canReach(worldPos, 1);
+    if (actual != canReach) {
+        return GameTestError{GameTestErrorType::Assert,
+            "Entity {0} canReach {1} is {2}, expected {3}",
+            {entity.getTypeId(), relativePos.toString(), actual ? "true" : "false", canReach ? "true" : "false"}};
+    }
+
+    return std::nullopt;
 }
 
-void GameTestHelper::onPlayerJump(mc::Entity& /*entity*/, i32 /*jumpAmount*/)
+void GameTestHelper::onPlayerJump(mc::Entity& entity, i32 jumpAmount)
 {
-    // TODO: 模拟实体跳跃事件（对齐基岩 onPlayerJump）。依赖跳跃事件分发体系未就绪，stub。
+    // 对齐基岩 Test.onPlayerJump(mob, jumpAmount)：把跳跃强度设为给定值，下一次起跳即生效。
+    // 跳跃强度由 generic.jump_strength 属性承载（默认 0.42），因此这里写属性基础值；
+    // 非 LivingEntity 没有属性表，直接忽略。
+    auto* living = dynamic_cast<mc::LivingEntity*>(&entity);
+    if (living == nullptr) {
+        return;
+    }
+
+    auto* instance = living->attributes().getInstance(mc::entity::attribute::Attributes::JUMP_STRENGTH);
+    if (instance != nullptr) {
+        instance->setBaseValue(static_cast<f64>(jumpAmount));
+    }
 }
 
-void GameTestHelper::setTntFuse(mc::Entity& /*entity*/, i32 /*fuseLength*/)
+void GameTestHelper::setTntFuse(mc::Entity& entity, i32 fuseLength)
 {
-    // TODO: 设可爆炸实体（TNT 等）的引信时长。依赖实体 fuse 体系未就绪，stub。
+    // 对齐基岩 Test.setTntFuse：设置可爆炸实体的引信时长（tick）。
+    // TNTEntity 的 setFuse 同时写同步数据，客户端能看到倒计时。
+    auto* tnt = dynamic_cast<mc::entity::TNTEntity*>(&entity);
+    if (tnt != nullptr) {
+        tnt->setFuse(fuseLength);
+    }
 }
 
 // === 5. 坐标变换 ===
@@ -1489,12 +1553,20 @@ Direction GameTestHelper::rotateDirection(Direction direction) const noexcept
 
 mc::math::Vector3d GameTestHelper::rotateVector(const mc::math::Vector3d& vector) const noexcept
 {
-    // 把向量按 rotation 绕 Y 轴旋转：用 Direction 步进向量近似（整数步进够用，连续旋转 TODO）
-    const Direction in =
-        mc::Directions::fromVector(static_cast<f32>(vector.x), static_cast<f32>(vector.y), static_cast<f32>(vector.z));
-    const Direction out = rotateDirection(in);
-    return mc::math::Vector3d(
-        static_cast<f64>(mc::Directions::xOffset(out)), vector.y, static_cast<f64>(mc::Directions::zOffset(out)));
+    // 把向量按 rotation 绕 Y 轴旋转。rotation 只有 4 个 90° 档位，因此可以精确旋转，
+    // 不需要（也不应该）先压成 Direction 再取整数偏移——那样会丢掉小数分量与非轴向方向。
+    // 约定与 rotateDirection 一致：顺时针 90° 时 (x, z) → (-z, x)。
+    const i32 degrees = mc::Rotations::toDegrees(m_transform.rotation());
+    switch (degrees) {
+        case 90:
+            return mc::math::Vector3d(-vector.z, vector.y, vector.x);
+        case 180:
+            return mc::math::Vector3d(-vector.x, vector.y, -vector.z);
+        case 270:
+            return mc::math::Vector3d(vector.z, vector.y, -vector.x);
+        default:
+            return vector;
+    }
 }
 
 Direction GameTestHelper::getTestDirection() const noexcept
@@ -1556,22 +1628,19 @@ void GameTestHelper::failIf(std::function<GameTestResult()> fn)
 void GameTestHelper::succeedWhenEntityHasComponent(
     const std::string& entityType, const std::string& componentId, BlockPos relativePos, bool hasComponent)
 {
-    // TODO: 每 tick 检查 pos 处实体是否含指定组件，满足时标记成功（对齐基岩 succeedWhenEntityHasComponent）。
-    //       依赖实体组件查询体系未就绪，当前注册恒失败 succeed 条件（保持轮询语义，组件体系做实后补真实判定）。
+    // 每 tick 检查 pos 处实体是否具备指定组件，满足即标记成功（对齐基岩
+    // succeedWhenEntityHasComponent）。判定直接复用 assertEntityHasComponent——
+    // 与 succeedWhenBlockPresent 复用 assertBlockPresent 同构：返回 nullopt 表示条件
+    // 已满足，返回错误表示尚未满足，由框架继续轮询（错误文本会在超时时作为
+    // "last unmet condition" 一并报出）。
     std::string type = entityType;
     std::string comp = componentId;
     BlockPos rel = relativePos;
     bool want = hasComponent;
-    m_instance.registerSucceedCondition([this, type, comp, rel, want]() -> GameTestResult {
-        (void)this;
-        (void)type;
-        (void)comp;
-        (void)rel;
-        (void)want;
-        // 组件查询未就绪：恒返回"未满足"使轮询继续（由 maxTicks 超时兜底），避免假成功。
-        return GameTestError{GameTestErrorType::MethodNotImplemented,
-            "succeedWhenEntityHasComponent not implemented yet (entity component system pending)"};
-    });
+    m_instance.registerSucceedCondition(
+        [this, type = std::move(type), comp = std::move(comp), rel, want]() -> GameTestResult {
+            return assertEntityHasComponent(type, comp, rel, want);
+        });
 }
 
 // === 7. SimulatedPlayer ===

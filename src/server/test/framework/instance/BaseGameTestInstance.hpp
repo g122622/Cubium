@@ -82,6 +82,18 @@ public:
         return m_state;
     }
 
+    /**
+     * @brief 是否正处于测试结束后的清理阶段
+     *
+     * 对齐基岩 `Test.isCleaningUp()`。项目的清理阶段就是 `_runFinishCallbacks()` 执行
+     * `runOnFinish` 回调的那段时间：此时测试终态已定（Succeeded/Failed），但清理尚未完成。
+     * 该标志只在回调执行期间为 true，回调结束后复位。
+     */
+    [[nodiscard]] bool isCleaningUp() const noexcept
+    {
+        return m_isCleaningUp;
+    }
+
     [[nodiscard]] i32 tickCount() const noexcept
     {
         return m_tickCount;
@@ -147,6 +159,8 @@ private:
     std::vector<std::function<GameTestResult()>> m_failConditions;                // failIf
     std::vector<std::function<GameTestResult()>> m_onFinish;                      // runOnFinish
     GameTestState m_state = GameTestState::NotStarted;
+    /// 清理阶段标志：仅在 _runFinishCallbacks() 执行期间为 true
+    bool m_isCleaningUp = false;
     i32 m_tickCount = 0;
     std::optional<GameTestError> m_error;
     /// 最近一次未满足的完成条件，超时时保留具体原因。

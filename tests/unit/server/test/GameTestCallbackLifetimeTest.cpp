@@ -193,6 +193,35 @@ TEST(GameTestCallbackLifetime, CleanupFailureRejectsSuccessAndRunsRemainingCallb
     EXPECT_EQ(callbacksRun, 3);
 }
 
+// isCleaningUp 只在 runOnFinish 回调执行期间为 true（对齐基岩 Test.isCleaningUp）。
+TEST(GameTestCallbackLifetime, CleaningUpFlagIsTrueOnlyDuringFinishCallbacks)
+{
+    int releases = 0;
+    _Function function("cleaning-up", false, releases);
+    _Instance instance(function);
+
+    EXPECT_FALSE(instance.isCleaningUp());
+
+    std::optional<bool> duringFirst;
+    std::optional<bool> duringSecond;
+    instance.registerOnFinish([&]() -> mc::test::GameTestResult {
+        duringFirst = instance.isCleaningUp();
+        return mc::test::pass();
+    });
+    instance.registerOnFinish([&]() -> mc::test::GameTestResult {
+        duringSecond = instance.isCleaningUp();
+        return mc::test::pass();
+    });
+
+    instance.succeed();
+
+    ASSERT_TRUE(duringFirst.has_value());
+    EXPECT_TRUE(*duringFirst) << "flag must be set while finish callbacks run";
+    ASSERT_TRUE(duringSecond.has_value());
+    EXPECT_TRUE(*duringSecond);
+    EXPECT_FALSE(instance.isCleaningUp()) << "flag must be reset after cleanup";
+}
+
 TEST(GameTestCallbackLifetime, CleanupFailureKeepsOriginalTestFailure)
 {
     int releases = 0;
