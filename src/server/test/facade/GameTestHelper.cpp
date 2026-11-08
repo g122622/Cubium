@@ -1235,17 +1235,34 @@ GameTestResult GameTestHelper::spawnAtLocation(
 GameTestResult GameTestHelper::spawnWithoutBehaviors(
     const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity)
 {
-    // TODO: 生成无 AI 行为的实体（对齐基岩 spawnWithoutBehaviors，供 walkTo 等可预测行为测试）。
-    //       依赖行为移除体系（goal 清空/Brain 停用）未就绪，当前退化为普通 spawnEntity。
-    return spawnEntity(entityType, relativePos, outEntity);
+    // 对齐基岩 Test.spawnWithoutBehaviors：生成不运行 AI 的实体，供 walkTo 等可预测行为测试。
+    // 走 MobEntity::setNoAi（与 /summon 的 NoAI:1b 同一开关），非 Mob 实体无 AI，原样返回。
+    GameTestResult spawned = spawnEntity(entityType, relativePos, outEntity);
+    if (spawned.has_value()) {
+        return spawned;
+    }
+
+    if (auto* mob = dynamic_cast<mc::MobEntity*>(outEntity)) {
+        mob->setNoAi(true);
+    }
+
+    return std::nullopt;
 }
 
 GameTestResult GameTestHelper::spawnWithoutBehaviorsAtLocation(
     const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity)
 {
-    // TODO: spawnAtLocation 的无行为变体（对齐基岩 spawnWithoutBehaviorsAtLocation）。
-    //       依赖行为移除体系未就绪，当前退化为普通 spawnAtLocation。
-    return spawnAtLocation(entityType, position, outEntity);
+    // 与 spawnWithoutBehaviors 同义，位置改为任意浮点坐标。
+    GameTestResult spawned = spawnAtLocation(entityType, position, outEntity);
+    if (spawned.has_value()) {
+        return spawned;
+    }
+
+    if (auto* mob = dynamic_cast<mc::MobEntity*>(outEntity)) {
+        mob->setNoAi(true);
+    }
+
+    return std::nullopt;
 }
 
 GameTestResult GameTestHelper::assertEntityHasArmor(const std::string& entityType,
