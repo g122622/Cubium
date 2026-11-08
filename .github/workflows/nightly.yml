@@ -488,6 +488,25 @@ jobs:
             echo "run $i: total_wall=$(echo "$end - $start" | bc)"
             cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
           done
+      - name: Sanitizer option sweep
+        env:
+          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
+        run: |
+          set +e
+          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
+          cd build/tests/unit
+          run_case() {
+            label="$1"; shift
+            rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
+            start=$(date +%s.%N)
+            env "$@" "$BIN" --gtest_filter=MathUtils.LerpDouble > /dev/null 2>&1
+            end=$(date +%s.%N)
+            echo "case[$label]: $(echo "$end - $start" | bc)"
+          }
+          run_case baseline ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          run_case no_fake_stack ASAN_OPTIONS=detect_stack_use_after_return=0:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1
+          run_case no_quarantine ASAN_OPTIONS=quarantine_size_mb=0:thread_local_quarantine_size_kb=0:detect_stack_use_after_return=0:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1
+          run_case no_options ASAN_OPTIONS= UBSAN_OPTIONS=
       - name: Resource usage for the real binary
         run: |
           set +e
