@@ -85,7 +85,7 @@ const biome::BiomeTag* StrongholdStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> StrongholdStructure::generate(
     IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
     // 起始点取区块内第 2 格（`chunkPos.getBlockX(2)`），不是区块中心。
     const i32 startX = chunkX * world::CHUNK_WIDTH + 2;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH + 2;
@@ -142,7 +142,7 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
         const i32 minY = ::mc::world::MIN_BUILD_HEIGHT;
         constexpr i32 kBelowSeaLevelMargin = 10;
 
-        const StructureBoundingBox overall = start->getBoundingBox();
+        const StructureBoundingBox overall = start->piecesBoundingBox();
 
         const i32 topLimit = seaLevel - kBelowSeaLevelMargin;
         i32 topY = (overall.maxY() - overall.minY() + 1) + minY + 1;

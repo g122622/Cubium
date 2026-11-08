@@ -551,7 +551,7 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     }
 
     // ---- 7. 建片段 ----
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
     auto piece = std::make_unique<RuinedPortalPiece>(
         templateName, portalPos, rotation, mirror, setup->placement, props, portalPos);
     piece->setTemplateManager(templateManager);

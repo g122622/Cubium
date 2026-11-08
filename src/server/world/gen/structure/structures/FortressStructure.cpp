@@ -507,7 +507,7 @@ const biome::BiomeTag* FortressStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> FortressStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 计算起始位置
     i32 startX = chunkX * world::CHUNK_WIDTH + 2;

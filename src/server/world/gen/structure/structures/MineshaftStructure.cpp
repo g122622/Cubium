@@ -1145,7 +1145,7 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     // 实测房间高度变成 5 而原版是 10。
     (void)rng.nextDouble();
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 起点固定在区块内偏移 2 的位置，且这里不消耗任何随机数。
     //
@@ -1197,7 +1197,7 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     }
 
     const i32 seaLevel = ::mc::world::SEA_LEVEL;
-    const StructureBoundingBox overall = start->getBoundingBox();
+    const StructureBoundingBox overall = start->piecesBoundingBox();
 
     if (m_config.type == MineshaftType::Mesa) {
         // 恶地矿井贴着地表：以整体包围盒中心的地表高度为准，

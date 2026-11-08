@@ -165,7 +165,7 @@ std::unique_ptr<StructureStart> NetherFossilStructure::generate(
 {
     MC_UNUSED(generator);
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 生物群系校验：原版在求出化石的候选生成点之后、装配模板之前校验。这里沿用
     // 「区块内随机列 + 30..59」的既有落点近似（原版是沿列向下找第一个空气层），

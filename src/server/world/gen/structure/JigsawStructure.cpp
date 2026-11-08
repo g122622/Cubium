@@ -173,7 +173,7 @@ JigsawStructure::JigsawStructure(ResourceLocation id,
 std::unique_ptr<StructureStart> JigsawStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 获取起始模板池
     auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();

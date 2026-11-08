@@ -777,9 +777,19 @@ public:
  *
  * 表示一个结构的起点，包含所有组成片段。
  */
+class Structure;
+
 class StructureStart {
 public:
-    StructureStart(i32 chunkX, i32 chunkZ);
+    /**
+     * @brief 构造一个结构起点
+     *
+     * @param owner 拥有该起点的结构定义：起点包围盒的最终形状由它的地形适配模式决定
+     *              （原版 `StructureStart.getBoundingBox()` 内部调 `structure.adjustBoundingBox`）
+     * @param chunkX 起点所在区块 X 坐标
+     * @param chunkZ 起点所在区块 Z 坐标
+     */
+    StructureStart(const Structure& owner, i32 chunkX, i32 chunkZ);
     StructureStart(const StructureStart&) = delete;
     StructureStart(StructureStart&&) noexcept = default;
     StructureStart& operator=(const StructureStart&) = delete;
@@ -819,31 +829,35 @@ public:
     }
 
     /**
-     * @brief 获取边界框
+     * @brief 获取边界框（片段并集 + 地形适配外扩）
+     *
+     * 惰性重算并缓存，与原版 `StructureStart.getBoundingBox()` 一致：片段增删后第一次读取
+     * 才会重新求并集并套用 `Structure.adjustBoundingBox`。返回引用在下一次片段变动前有效。
      */
-    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const noexcept
+    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const noexcept;
+
+    /**
+     * @brief 片段并集包围盒（**不含**地形适配外扩）
+     *
+     * 对应原版 `StructurePiecesBuilder.getBoundingBox()`（= `PiecesContainer.calculateBoundingBox()`）。
+     * 生成过程中需要"当前片段实际占多大"的地方（例如要塞/矿井的 `moveBelowSeaLevel`）必须用这个，
+     * 而不是 `getBoundingBox()`：后者已按地形适配外扩 12 格，会把整体高度多算 24，下沉量随之偏移。
+     *
+     * @return 片段并集；没有片段时返回无效包围盒
+     */
+    [[nodiscard]] StructureBoundingBox piecesBoundingBox() const noexcept
     {
-        return m_boundingBox;
+        return m_pieceBox;
     }
 
     /**
      * @brief 重新计算结构大小
      *
-     * 根据所有片段的边界框计算整体边界，并按 `m_terrainBoxInflation` 向外膨胀
-     * （对应原版 `StructureStart.getBoundingBox()` 调用的 `Structure.adjustBoundingBox`）。
+     * 根据所有片段的边界框求并集，再交给拥有者结构的 `adjustBoundingBox` 做地形适配外扩，
+     * 与原版 `StructureStart.getBoundingBox()`（`structure.adjustBoundingBox(pieces.calculateBoundingBox())`）
+     * 同义。外扩每次都从并集重算，因此不会被后续 `addPiece` 覆盖掉，也不需要调用方参与。
      */
     void recalculateStructureSize();
-
-    /**
-     * @brief 按地形适配设置整体边界的外扩量
-     *
-     * 原版 `Structure.adjustBoundingBox`：`terrain_adaptation != NONE` 时把起点包围盒
-     * 每侧外扩 12 格（Beardifier 的作用范围）。漏掉这层外扩会让所有带地形适配的结构
-     * （村庄、试炼密室、前哨站等）起点盒比原版小 24 格，进而影响引用判定与区块覆盖。
-     *
-     * @param terrainAdaptation 结构的地形适配模式
-     */
-    void applyTerrainAdaptationInflation(TerrainAdaptation terrainAdaptation);
 
     /**
      * @brief 检查引用计数是否低于最大值
@@ -881,11 +895,13 @@ public:
 
 private:
     std::vector<std::unique_ptr<StructurePiece>> m_pieces;
-    StructureBoundingBox m_boundingBox;
     i32 m_chunkX;
     i32 m_chunkZ;
-    i32 m_references = 0;          ///< 引用计数，用于追踪多少个区块引用此结构
-    i32 m_terrainBoxInflation = 0; ///< 地形适配导致的每侧外扩量（0 表示不膨胀）
+    i32 m_references = 0;                       ///< 引用计数，用于追踪多少个区块引用此结构
+    const Structure* m_owner;                   ///< 拥有该起点的结构定义（决定地形适配外扩）
+    StructureBoundingBox m_pieceBox;            ///< 片段并集（未外扩）
+    mutable StructureBoundingBox m_boundingBox; ///< 外扩后的缓存，失效时按需重算
+    mutable bool m_boundingBoxDirty = true;     ///< 缓存是否失效
 };
 
 /**
@@ -1015,6 +1031,18 @@ public:
     {
         return TerrainAdaptation::None;
     }
+
+    /**
+     * @brief 把起点包围盒按其地形适配模式外扩
+     *
+     * 对应原版 `Structure.adjustBoundingBox`：地形适配非 NONE 时每侧外扩 12 格
+     * （Beardifier 的核作用范围），NONE 时原样返回。起点包围盒必须经这里得到，
+     * 否则所有带地形适配的结构（村庄、试炼密室、前哨站……）的覆盖范围都会比原版小 24 格。
+     *
+     * @param box 片段的并集包围盒
+     * @return 外扩后的包围盒
+     */
+    [[nodiscard]] StructureBoundingBox adjustBoundingBox(const StructureBoundingBox& box) const;
 
     /**
      * @brief 注入数据驱动的地形适配模式
@@ -1155,6 +1183,19 @@ protected:
      * @return 随机数生成器（Xoroshiro128++，由调用方持有所有权）
      */
     [[nodiscard]] static std::unique_ptr<math::IRandom> createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
+
+    /**
+     * @brief 创建一个归属于本结构的起点
+     *
+     * 起点包围盒的最终形状由拥有者的地形适配模式决定（`adjustBoundingBox`），因此子类
+     * 生成起点时必须经此创建，不能直接构造 `StructureStart`——少了拥有者，起点盒永远不会
+     * 按地形适配外扩，STRUCTURE_REFERENCES 与区块覆盖都会偏小。
+     *
+     * @param chunkX 起点所在区块 X 坐标
+     * @param chunkZ 起点所在区块 Z 坐标
+     * @return 空的结构起点
+     */
+    [[nodiscard]] std::unique_ptr<StructureStart> makeStructureStart(i32 chunkX, i32 chunkZ) const;
 
     ResourceLocation m_id; ///< 结构资源位置 ID
 

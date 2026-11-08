@@ -111,7 +111,7 @@ const biome::BiomeTag* EndCityStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> EndCityStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 顺序不能变：原版 findGenerationPoint 先抽旋转，再用这个旋转去取 5x5 四角的最低
     // 高度，最后才判 Y < 60。此前这里是先算 Y（用的还是另一个自造随机源）、再抽旋转，

@@ -44,7 +44,7 @@ std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
 
     using namespace mc::world;
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 原版先按「区块内第 9 格 + 海平面」为中心取 29 半径内的群系，要求全部落在
     // `required_ocean_monument_surrounding` 标签内；再在候选生成点（区块中心、海底高度）

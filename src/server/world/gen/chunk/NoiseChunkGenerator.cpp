@@ -261,11 +261,6 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
             // 原版 `findValidGenerationPoint` 就是在 Stub 位置上过滤的。调用方不做预检——
             // 用区块中心 + 固定 Y 预检会在群系边界与洞穴上方误杀合法结构。
             if (start && start->isValid()) {
-                // 原版 `StructureStart.getBoundingBox()` 会把片段并集交给
-                // `Structure.adjustBoundingBox`：地形适配非 NONE 时每侧外扩 12。
-                // 起点盒是引用判定与区块覆盖的依据，漏掉外扩会让所有带地形适配的结构
-                // （村庄、试炼密室、前哨站……）的覆盖范围比原版小 24 格。
-                start->applyTerrainAdaptationInflation(structure->terrainAdaptation());
                 return {entry->structureId, std::move(start)};
             }
         }

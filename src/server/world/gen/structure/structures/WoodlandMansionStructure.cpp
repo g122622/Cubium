@@ -97,7 +97,7 @@ const biome::BiomeTag* WoodlandMansionStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 原版 `findGenerationPoint`：先取旋转，再在「区块内偏移 7 格」的 5x5 方框四角取最低地表，
     // 低于 Y=60 直接放弃（林地府邸必须建在高地上）。旋转会影响方框的展开方向。

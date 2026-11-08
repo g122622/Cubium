@@ -602,7 +602,7 @@ const biome::BiomeTag* JungleTempleStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> JungleTempleStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // `SinglePieceStructure.findGenerationPoint` 的三步，顺序不可换：
     //   1. 以区块最小角展开 12x15 方框取四角最低地表，低于海平面直接放弃；

@@ -387,7 +387,7 @@ const biome::BiomeTag* OceanRuinStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 生物群系校验落在候选生成点（区块中心、海底高度）上；不匹配即返回空起点。
     if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::OceanFloorWG))) {

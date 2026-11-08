@@ -387,7 +387,7 @@ const biome::BiomeTag* DesertPyramidStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
     IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 使用区块中心位置作为生成点
     const i32 centerX = chunkX * CHUNK_WIDTH + 8;

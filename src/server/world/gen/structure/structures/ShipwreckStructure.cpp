@@ -242,7 +242,7 @@ std::string ShipwreckStructure::_getRandomTemplateName(math::IRandom& rng, bool 
 std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 搁浅与否由结构定义决定（数据包里的 `is_beached`），不是按生成点群系现判。
     const bool isBeached = m_config.isBeached;
