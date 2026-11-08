@@ -21,7 +21,9 @@
  *
  */
 
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
@@ -435,4 +437,84 @@ TEST(AddonEntityStateTest, FloatPropertiesUseSinglePrecisionForDefaultsWritesAnd
             .success());
     ASSERT_TRUE(restored.load(state.save()).success());
     EXPECT_EQ(restored.getProperty("test:value"), expected);
+}
+
+// EquippableComponent 的 totalArmor / totalToughness 必须读实体的护甲属性，
+// 而不是固定返回 0。这里用真实的 LivingEntity 设定属性基值，再从脚本侧读取。
+class AddonEquippableArmorBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+        subject = std::make_unique<mc::LivingEntity>(mc::EntityInstanceId(1), nullptr, registry);
+        subject->attributes().setBaseValue(mc::entity::attribute::Attributes::ARMOR, 7.0);
+        subject->attributes().setBaseValue(mc::entity::attribute::Attributes::ARMOR_TOUGHNESS, 3.0);
+        context = createContext();
+        ASSERT_NE(context, nullptr);
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    std::unique_ptr<IScriptContext> createContext()
+    {
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        if (!created) {
+            return nullptr;
+        }
+        auto& binding = created->bindingContext();
+        binding.setPackId("armor-pack");
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        return created;
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "equippable-armor.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-equippable-armor"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::LivingEntity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonEquippableArmorBindingTest, TotalArmorReadsArmorAttribute)
+{
+    check(R"(
+        const equippable = subject.getComponent('minecraft:equippable');
+        if (equippable === undefined) throw Error('equippable component missing');
+        if (equippable.totalArmor !== 7) throw Error('totalArmor=' + equippable.totalArmor);
+        if (equippable.totalToughness !== 3) throw Error('totalToughness=' + equippable.totalToughness);
+    )");
+}
+
+TEST_F(AddonEquippableArmorBindingTest, TotalArmorTracksAttributeChanges)
+{
+    check(R"(
+        {
+            const equippable = subject.getComponent('minecraft:equippable');
+            if (equippable.totalArmor !== 7) throw Error('initial totalArmor wrong');
+        }
+    )");
+    subject->attributes().setBaseValue(mc::entity::attribute::Attributes::ARMOR, 20.0);
+    check(R"(
+        {
+            const equippable = subject.getComponent('minecraft:equippable');
+            if (equippable.totalArmor !== 20) throw Error('totalArmor did not follow the attribute');
+        }
+    )");
 }

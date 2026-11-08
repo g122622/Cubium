@@ -2458,14 +2458,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ctx.classRegistry().registerClass(equippableClassId, equippableProto, "EquippableComponent");
 
     ClassRegistrar<void> equippableReg(ctx, equippableClassId, equippableProto);
-    equippableReg.readonlyProperty("totalArmor", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: 读 attributes().getValue(Attributes::ARMOR)，属性未必对所有 LivingEntity 注册，暂返 0。
-        return ctx.createFloat64(0.0);
-    });
-    equippableReg.readonlyProperty("totalToughness", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // TODO: 读 attributes().getValue(Attributes::ARMOR_TOUGHNESS)，暂返 0。
-        return ctx.createFloat64(0.0);
-    });
+    equippableReg.readonlyProperty(
+        "totalArmor", [equippableClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            // 读 armor 属性的最终值（含装备修饰符）；非 LivingEntity 或未注册该属性时按 0 处理。
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, equippableClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr) {
+                return ctx.createFloat64(0.0);
+            }
+            return ctx.createFloat64(living->getAttributeValue(mc::entity::attribute::Attributes::ARMOR, 0.0));
+        });
+    equippableReg.readonlyProperty(
+        "totalToughness", [equippableClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, equippableClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr) {
+                return ctx.createFloat64(0.0);
+            }
+            return ctx.createFloat64(
+                living->getAttributeValue(mc::entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
+        });
     equippableReg.method(
         "getEquipment",
         [equippableClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
