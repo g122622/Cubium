@@ -184,6 +184,17 @@ public:
     [[nodiscard]] bool attack();
 
     /**
+     * @brief 朝视线方向与首个命中的方块或实体交互（对齐基岩 SimulatedPlayer::interact）。
+     *
+     * 从头部沿视线方向做 6 格射线：同时求方块命中（DDA）与实体命中，取更近者执行交互。
+     * 方块走空手右键语义（等价 interactWithBlock 的空 ItemStack 路径），实体走
+     * interactWithEntity 的 mobInteract 路径。
+     *
+     * @return 是否发生了成功交互。
+     */
+    [[nodiscard]] bool interact();
+
+    /**
      * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。
      *
      * 转发 Player::jump（地面 + 冷却为 0 才跳），返回是否真的起跳。

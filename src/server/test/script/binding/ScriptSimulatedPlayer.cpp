@@ -1318,11 +1318,16 @@ u64 registerSimulatedPlayerClassBinding(
             return ctx.createUndefined();
         },
         1);
+    // interact() 无参版本：从头部沿视线 6 格 raycast，与首个命中的方块或实体交互。
     reg.method(
         "interact",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "interact");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->interact());
         },
         0);
     reg.method(

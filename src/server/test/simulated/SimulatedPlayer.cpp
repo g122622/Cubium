@@ -14,6 +14,8 @@
 #include "common/item/core/ItemRegistry.hpp"           // ItemRegistry::getItem(itemId) 取非 const Item*
 #include "common/item/core/ItemStack.hpp"              // giveItem/setItem 参数 + useItem 系列
 #include "common/util/math/MathUtils.hpp"              // toDegrees / toRadians / clamp
+#include "common/util/math/ray/Ray.hpp"                // Ray::fromAngles（interact 视线）
+#include "common/util/math/ray/Raycast.hpp"            // raycastBlocks（interact 方块命中）
 #include "common/world/IWorld.hpp"                     // onItemRightClick / ItemUseContext 取 IWorld&
 #include "common/world/block/Block.hpp"                // Block::getBlock（方块侧交互解析）
 #include "common/world/block/BlockRegistry.hpp"        // BlockRegistry::getBlock（placeBlock 解析方块 id）
@@ -470,6 +472,49 @@ bool SimulatedPlayer::attack()
 
     attack(*target);
     return true;
+}
+
+bool SimulatedPlayer::interact()
+{
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::interact: helper not bound");
+
+    auto& world = m_helper->world();
+    // 基岩该 API 固定 6 格最大交互距离。
+    constexpr f32 kInteractRange = 6.0f;
+
+    const mc::math::Vector3f eye{static_cast<f32>(x()), static_cast<f32>(getEyeY()), static_cast<f32>(z())};
+    const mc::Ray ray = mc::Ray::fromAngles(eye, pitch(), yaw());
+
+    // 方块命中（DDA 遍历，含方块 shape 精确相交）。
+    const mc::BlockRaycastResult blockHit = mc::raycastBlocks(mc::RaycastContext(ray, kInteractRange), world);
+    const bool hasBlock = blockHit.isHit();
+    const f32 blockDist = hasBlock ? blockHit.distance() : kInteractRange;
+
+    // 实体命中：复用 attack 的视线筛选，但只接受比方块命中更近的目标。
+    mc::Entity* entityHit = nullptr;
+    f32 entityDist = kInteractRange;
+    if (mc::Entity* candidate = _findAttackTarget(); candidate != nullptr) {
+        const f64 dx = candidate->x() - x();
+        const f64 dy = (candidate->getEyeY() + candidate->y()) * 0.5 - getEyeY();
+        const f64 dz = candidate->z() - z();
+        entityDist = static_cast<f32>(std::sqrt(dx * dx + dy * dy + dz * dz));
+        entityHit = candidate;
+    }
+
+    // 取更近者交互；实体在前（与 vanilla 先实体后方块的命中优先级一致）。
+    if (entityHit != nullptr && entityDist <= blockDist) {
+        const auto result = interactOn(*entityHit, mc::Hand::MainHand);
+        return result == mc::ActionResultType::Success || result == mc::ActionResultType::Consume;
+    }
+
+    if (!hasBlock) {
+        return false;
+    }
+
+    // 方块走空手右键路径（空 ItemStack 跳过 Item.useOn，只执行方块侧交互）。
+    mc::ItemStack emptyStack;
+    const mc::Vector3 faceLocation(0.5f, 1.0f, 0.5f);
+    return useItemOnBlock(emptyStack, blockHit.blockPos(), blockHit.face(), faceLocation);
 }
 
 // === 方块破坏 / 放置 / 疾跑（对齐基岩 SimulatedPlayer::breakBlock/placeBlock/setSprint）===
