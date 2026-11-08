@@ -29,8 +29,8 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/dimension/DimensionType.hpp"
-#include "common/world/level/MoonPhase.hpp"
-#include "common/world/timeline/TimelineRegistry.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
+#include "common/world/time/timeline/TimelineRegistry.hpp"
 
 #include <spdlog/spdlog.h>
 

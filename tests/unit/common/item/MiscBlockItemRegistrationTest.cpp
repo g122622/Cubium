@@ -22,10 +22,10 @@
  *
  */
 
-#include "common/world/block/registry/BambooBlocks.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
-#include "common/world/block/registry/TrailsBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/BambooBlocks.hpp"
+#include "common/world/block/registry/vanilla/NetherBlocks.hpp"
+#include "common/world/block/registry/vanilla/TrailsBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/items/block/BlockItem.hpp"

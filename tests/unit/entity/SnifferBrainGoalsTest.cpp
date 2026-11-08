@@ -41,7 +41,7 @@
 #include "common/entity/ai/goal/goals/special/SnifferGoals.hpp"
 #include "common/entity/entities/passive/special/SnifferEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <vector>
 

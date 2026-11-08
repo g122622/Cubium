@@ -21,7 +21,7 @@ import sys
 src = sys.argv[1]
 out_path = sys.argv[2]
 text = open(src, encoding="utf-8").read()
-header = text[:text.index('#include "common/world/block/registry/BlockMapColorTable.hpp"')]
+header = text[:text.index('#include "common/world/block/registry/vanilla/BlockMapColorTable.hpp"')]
 body = text[text.index("u8 lookupVanillaMapColor"):]
 
 
@@ -114,7 +114,7 @@ header = header.replace(
     "//   - 小麦按 age：成熟后取 WHEAT。")
 assert "kMapColorExceptions" in header, "header comment not rewritten"
 parts = [header.rstrip() + "\n"]
-parts.append('#include "common/world/block/registry/BlockMapColorTable.hpp"')
+parts.append('#include "common/world/block/registry/vanilla/BlockMapColorTable.hpp"')
 parts.append("")
 for include in ("algorithm", "array", "cstddef", "string", "string_view", "utility", "vector"):
     parts.append("#include <{}>".format(include))

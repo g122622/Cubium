@@ -35,11 +35,11 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
 
 using namespace mc;
 using namespace mc::nbt;

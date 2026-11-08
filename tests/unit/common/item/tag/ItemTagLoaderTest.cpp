@@ -28,7 +28,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/InMemoryResourcePack.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 

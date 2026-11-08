@@ -1238,7 +1238,7 @@ void ChestEntity::tick(World& world) {
 
 #### 任务 2.2: ChestBlock 箱子方块
 
-**文件**: `src/common/world/block/blocks/ChestBlock.hpp/cpp`
+**文件**: `src/common/world/block/blocks/container/ChestBlock.hpp/cpp`
 
 **功能需求**:
 - 方块状态属性: FACING, TYPE (SINGLE/LEFT/RIGHT), WATERLOGGED
@@ -1449,7 +1449,7 @@ void AbstractFurnaceEntity::tick(World& world) {
 
 #### 任务 5.1: DoorBlock 门方块
 
-**文件**: `src/common/world/block/blocks/DoorBlock.hpp/cpp`
+**文件**: `src/common/world/block/blocks/door/DoorBlock.hpp/cpp`
 
 **功能需求**:
 - 双方块结构（HALF = UPPER/LOWER）
@@ -1475,7 +1475,7 @@ auto HALF = BlockStateProperties::HALF();
 
 #### 任务 5.2: FenceGateBlock 栅栏门方块
 
-**文件**: `src/common/world/block/blocks/FenceGateBlock.hpp/cpp`
+**文件**: `src/common/world/block/blocks/fencegate/FenceGateBlock.hpp/cpp`
 
 **功能需求**:
 - 方块状态: FACING, OPEN, POWERED, IN_WALL
@@ -1487,7 +1487,7 @@ auto HALF = BlockStateProperties::HALF();
 
 #### 任务 5.3: CauldronBlock 炼药锅方块
 
-**文件**: `src/common/world/block/blocks/CauldronBlock.hpp/cpp`
+**文件**: `src/common/world/block/blocks/cauldron/CauldronBlock.hpp/cpp`
 
 **功能需求**:
 - 水位状态（LEVEL = 0-3）

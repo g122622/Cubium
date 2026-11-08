@@ -31,8 +31,8 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <memory>

@@ -21,9 +21,9 @@
  *
  */
 
-#include "world/block/blocks/HopperBlock.hpp"
+#include "common/world/block/blocks/container/HopperBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "util/property/Properties.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <gtest/gtest.h>
 

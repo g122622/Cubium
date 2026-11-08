@@ -28,10 +28,10 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
@@ -206,7 +206,7 @@ TEST_F(PointedDripstoneBlockTest, Shape_AllThicknesses_NonEmpty)
 
 TEST_F(PointedDripstoneBlockTest, PositionedShapes_AllStatesUseClampedHorizontalOffset)
 {
-    PointedDripstoneBlock block(BlockProperties(Material::ROCK).offsetType(BlockProperties::OffsetType::XZ));
+    PointedDripstoneBlock block(BlockProperties(Material::ROCK).offsetType(BlockOffsetType::XZ));
     using Thickness = BlockStateProperties::DripstoneThickness;
 
     struct ShapeCase {

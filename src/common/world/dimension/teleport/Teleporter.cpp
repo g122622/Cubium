@@ -41,7 +41,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <optional>
 #include <vector>

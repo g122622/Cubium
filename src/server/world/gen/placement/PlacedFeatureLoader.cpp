@@ -38,7 +38,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureRegistry.hpp"

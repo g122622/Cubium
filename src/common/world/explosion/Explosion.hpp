@@ -30,7 +30,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <optional>
 #include <unordered_map>

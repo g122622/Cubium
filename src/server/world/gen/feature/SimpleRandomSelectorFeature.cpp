@@ -23,7 +23,7 @@
 #include "SimpleRandomSelectorFeature.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/placement/PlacedFeature.hpp"

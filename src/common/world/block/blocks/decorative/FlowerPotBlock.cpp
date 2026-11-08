@@ -38,12 +38,12 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/pale_garden/EyeblossomBlock.hpp"
 #include "common/world/block/blocks/pale_garden/EyeblossomEnvironment.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include <unordered_map>
 

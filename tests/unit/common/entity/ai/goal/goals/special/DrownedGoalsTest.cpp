@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/DrownedGoals.hpp"
 #include "entity/entities/monster/undead/DrownedEntity.hpp"

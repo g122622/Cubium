@@ -5,8 +5,8 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 
 namespace mc::test {
 
@@ -34,15 +34,16 @@ void FakeServerConnection::disconnect(const std::string& reason)
 BaseTestServer::BaseTestServer()
     : m_playerManager(20)
     , m_inventoryManager(m_playerManager)
-    , m_connectionManager(m_playerManager)
+    , m_packetSender(m_playerManager)
     , m_timeManager(0, 1000)
-    , m_teleportManager(m_playerManager)
+    , m_playerMovementManager(m_playerManager)
+    , m_teleportManager(m_playerManager, m_playerMovementManager)
     , m_keepAliveManager(m_playerManager)
-    , m_positionTracker(m_playerManager, 10)
-    , m_gameModeManager(m_playerManager, m_connectionManager)
+    , m_gameModeManager(m_playerManager, m_packetSender)
     , m_commandRegistry()
     , m_scoreboard(*this)
 {
+    m_playerManager.chunkSyncManager().setDefaultViewDistance(10);
     // 玩家移除钩子：生产路径由 MinecraftServer 安装（释放区块票据，防止区块永不卸载），
     // PlayerManager::removePlayer 在钩子未安装时硬断言拒绝（先释放后摘除是结构性保证）。
     // 测试桩没有维度/区块管理器，无需真实释放，安装空实现即满足契约并保持可移除语义。
@@ -58,7 +59,7 @@ BaseTestServer::BaseTestServer()
         pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
         pkt.items = mc::buildMenuContent(inventory);
         pkt.carriedItem = mc::network::ir::play::ItemStackView{};
-        m_connectionManager.sendToPlayer(playerId,
+        m_packetSender.sendToPlayer(playerId,
             mc::network::ir::IrPacket{
                 mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
     });

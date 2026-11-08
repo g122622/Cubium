@@ -34,12 +34,12 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/sign/HangingSignBlock.hpp"
+#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "util/property/Properties.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/blocks/HangingSignBlock.hpp"
-#include "world/block/blocks/SignBlock.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
@@ -61,11 +61,11 @@ protected:
 
         // 创建站立告示牌
         standingSign_ = std::make_unique<StandingSignBlock>(
-            BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Oak);
+            BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::OAK);
 
         // 创建墙面告示牌
         wallSign_ =
-            std::make_unique<WallSignBlock>(BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Oak);
+            std::make_unique<WallSignBlock>(BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::OAK);
     }
 
     std::unique_ptr<StandingSignBlock> standingSign_;
@@ -76,7 +76,7 @@ protected:
 
 TEST_F(SignBlockTest, CeilingHangingSign_RotateAndMirrorUpdateRotation)
 {
-    CeilingHangingSignBlock hangingSign(BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Oak);
+    CeilingHangingSignBlock hangingSign(BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::OAK);
 
     const BlockState& state = hangingSign.defaultState();
     ASSERT_EQ(state.get(BlockStateProperties::ROTATION_0_15()), 0);
@@ -113,7 +113,7 @@ TEST_F(SignBlockTest, StandingSignBlock_CreateBlockEntity)
 
 TEST_F(SignBlockTest, StandingSignBlock_WoodType)
 {
-    EXPECT_EQ(standingSign_->getWoodType(), WoodType::Oak);
+    EXPECT_EQ(standingSign_->getWoodType(), WoodTypes::OAK);
 }
 
 TEST_F(SignBlockTest, StandingSignBlock_DefaultRotation)
@@ -189,7 +189,7 @@ TEST_F(SignBlockTest, WallSignBlock_CreateBlockEntity)
 
 TEST_F(SignBlockTest, WallSignBlock_WoodType)
 {
-    EXPECT_EQ(wallSign_->getWoodType(), WoodType::Oak);
+    EXPECT_EQ(wallSign_->getWoodType(), WoodTypes::OAK);
 }
 
 TEST_F(SignBlockTest, WallSignBlock_DefaultFacing)
@@ -242,50 +242,50 @@ TEST_F(SignBlockTest, WallSignBlock_IsOpaque)
 TEST_F(SignBlockTest, WoodType_Spruce)
 {
     auto spruceSign = std::make_unique<StandingSignBlock>(
-        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Spruce);
-    EXPECT_EQ(spruceSign->getWoodType(), WoodType::Spruce);
+        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::SPRUCE);
+    EXPECT_EQ(spruceSign->getWoodType(), WoodTypes::SPRUCE);
 }
 
 TEST_F(SignBlockTest, WoodType_Birch)
 {
-    auto birchSign =
-        std::make_unique<StandingSignBlock>(BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Birch);
-    EXPECT_EQ(birchSign->getWoodType(), WoodType::Birch);
+    auto birchSign = std::make_unique<StandingSignBlock>(
+        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::BIRCH);
+    EXPECT_EQ(birchSign->getWoodType(), WoodTypes::BIRCH);
 }
 
 TEST_F(SignBlockTest, WoodType_Jungle)
 {
     auto jungleSign = std::make_unique<StandingSignBlock>(
-        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Jungle);
-    EXPECT_EQ(jungleSign->getWoodType(), WoodType::Jungle);
+        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::JUNGLE);
+    EXPECT_EQ(jungleSign->getWoodType(), WoodTypes::JUNGLE);
 }
 
 TEST_F(SignBlockTest, WoodType_Acacia)
 {
     auto acaciaSign = std::make_unique<StandingSignBlock>(
-        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Acacia);
-    EXPECT_EQ(acaciaSign->getWoodType(), WoodType::Acacia);
+        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::ACACIA);
+    EXPECT_EQ(acaciaSign->getWoodType(), WoodTypes::ACACIA);
 }
 
 TEST_F(SignBlockTest, WoodType_DarkOak)
 {
     auto darkOakSign = std::make_unique<StandingSignBlock>(
-        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::DarkOak);
-    EXPECT_EQ(darkOakSign->getWoodType(), WoodType::DarkOak);
+        BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodTypes::DARK_OAK);
+    EXPECT_EQ(darkOakSign->getWoodType(), WoodTypes::DARK_OAK);
 }
 
 TEST_F(SignBlockTest, WoodType_Crimson)
 {
     auto crimsonSign = std::make_unique<StandingSignBlock>(
-        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).notSolid(), WoodType::Crimson);
-    EXPECT_EQ(crimsonSign->getWoodType(), WoodType::Crimson);
+        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).notSolid(), WoodTypes::CRIMSON);
+    EXPECT_EQ(crimsonSign->getWoodType(), WoodTypes::CRIMSON);
 }
 
 TEST_F(SignBlockTest, WoodType_Warped)
 {
     auto warpedSign = std::make_unique<StandingSignBlock>(
-        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).notSolid(), WoodType::Warped);
-    EXPECT_EQ(warpedSign->getWoodType(), WoodType::Warped);
+        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).notSolid(), WoodTypes::WARPED);
+    EXPECT_EQ(warpedSign->getWoodType(), WoodTypes::WARPED);
 }
 
 // ========== SignEntity 与 SignBlock 关联测试 ==========

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "block/BlockPos.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 namespace mc {
 

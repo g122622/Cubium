@@ -26,7 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <functional>
 #include <memory>

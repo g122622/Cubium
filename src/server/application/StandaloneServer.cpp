@@ -53,7 +53,7 @@
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/BarrelEntity.hpp"
@@ -62,17 +62,17 @@
 #include "common/world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "common/world/dimension/Dimension.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/PositionTracker.hpp"
-#include "server/core/TeleportManager.hpp"
-#include "server/core/TimeManager.hpp"
+#include "server/access/AccessManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/session/ClientSessionManager.hpp"
 #include "server/network/session/ServerNetwork.hpp"
+#include "server/network/session/keepalive/KeepAliveManager.hpp"
+#include "server/network/sync/player/TeleportManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/movement/PlayerMovementManager.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -80,6 +80,7 @@
 #include "server/world/storage/core/WorldStoragePaths.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
 #include "server/world/storage/request/WorldRequests.hpp"
+#include "server/world/time/TimeManager.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <atomic>
@@ -194,35 +195,35 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     initializeRegistries(true);
 
     // 初始化核心管理器（从设置中读取配置）
-    initializeCoreManagers();
+    initializeDomainServices();
 
     // 加载白名单、封禁列表和 OP 列表
     if (m_gameDirectory.isValid()) {
         const auto& gameRoot = m_gameDirectory.root();
         // 加载白名单
         auto whitelistPath = gameRoot / "whitelist.json";
-        auto whitelistResult = m_whitelistManager->load(whitelistPath);
+        auto whitelistResult = m_accessManager->whitelistLoad(whitelistPath);
         if (whitelistResult.failed()) {
             spdlog::warn("Failed to load whitelist: {}", whitelistResult.error().message());
         }
 
         // 加载玩家封禁列表
         auto bannedPlayersPath = gameRoot / "banned-players.json";
-        auto bannedPlayersResult = m_bannedPlayerList->load(bannedPlayersPath);
+        auto bannedPlayersResult = m_accessManager->playerBanLoad(bannedPlayersPath);
         if (bannedPlayersResult.failed()) {
             spdlog::warn("Failed to load banned players: {}", bannedPlayersResult.error().message());
         }
 
         // 加载 IP 封禁列表
         auto bannedIpsPath = gameRoot / "banned-ips.json";
-        auto bannedIpsResult = m_bannedIpList->load(bannedIpsPath);
+        auto bannedIpsResult = m_accessManager->ipBanLoad(bannedIpsPath);
         if (bannedIpsResult.failed()) {
             spdlog::warn("Failed to load banned IPs: {}", bannedIpsResult.error().message());
         }
 
         // 加载 OP 列表
         auto opsPath = gameRoot / "ops.json";
-        auto opsResult = m_opListManager->load(opsPath);
+        auto opsResult = m_accessManager->operatorLoad(opsPath);
         if (opsResult.failed()) {
             spdlog::warn("Failed to load ops: {}", opsResult.error().message());
         }
@@ -963,7 +964,7 @@ void StandaloneServer::_applySettings()
     });
 
     // 注：viewDistance / simulationDistance 运行时变更回调已下沉至基类
-    // MinecraftServer::_registerDistanceCallbacks（initializeCoreManagers 末尾注册），
+    // MinecraftServer::_registerDistanceCallbacks（initializeDomainServices 末尾注册），
     // 下发各维度 ServerWorld/EntityManager 并广播 SetChunkCacheRadius/SetSimulationDistance。
     // StandaloneServer 不再在此重复注册，避免双重回调。
 

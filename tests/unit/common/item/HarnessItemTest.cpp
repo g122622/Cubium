@@ -29,7 +29,7 @@
 #include "common/item/items/special/HarnessItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/color/DyeColor.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::item::items;

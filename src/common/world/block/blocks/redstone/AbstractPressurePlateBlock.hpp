@@ -22,13 +22,14 @@
  */
 
 #pragma once
+#include "common/world/block/base/family/BlockSetType.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
@@ -59,7 +60,7 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      */
-    AbstractPressurePlateBlock(const BlockProperties& properties);
+    AbstractPressurePlateBlock(const BlockProperties& properties, const BlockSetType& type);
 
     // ========== Block 接口实现 ==========
 
@@ -125,6 +126,7 @@ public:
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
 protected:
+    const BlockSetType& m_type;
     /**
      * @brief 计算当前信号强度
      *
@@ -134,7 +136,7 @@ protected:
      * @param pos 方块位置
      * @return i32 计算出的信号强度
      */
-    [[nodiscard]] virtual i32 calculateSignalStrength(IWorld& world, const BlockPos& pos) const = 0;
+    [[nodiscard]] virtual i32 calculateSignalStrength(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 从方块状态读取持久化的信号强度
@@ -174,7 +176,7 @@ protected:
      * @param pos 方块位置
      * @param pressed true为按下，false为弹起
      */
-    virtual void playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const = 0;
+    void playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const;
 
     /**
      * @brief 检查实体是否可以触发压力板

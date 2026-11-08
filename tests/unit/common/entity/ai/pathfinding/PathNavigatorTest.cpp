@@ -40,9 +40,9 @@
 #include "common/entity/ai/pathfinding/PathType.hpp"
 #include "common/entity/ai/pathfinding/Region.hpp"
 #include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <memory>
 #include <unordered_map>

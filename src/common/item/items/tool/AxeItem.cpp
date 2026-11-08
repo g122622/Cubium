@@ -36,12 +36,12 @@
 #include "common/item/tier/IItemTier.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/capability/oxidation/IOxidizableBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <unordered_map>
 #include <unordered_set>
 
@@ -98,7 +98,7 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
 
             world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
             // 去氧化播放 SCRAPE 粒子效果（worldEvent 3005 已包含音效和粒子）
-            world.playEvent(world::WorldEvents::SCRAPE, pos, 0);
+            world.playEvent(::mc::world::LevelEventId::PARTICLES_SCRAPE, pos, 0);
             // 消耗耐久：操作权威手持（player->getHeldItem(hand)）做 hurtAndBreak（同剥皮分支）。
             // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
             if (context.getPlayer() != nullptr) {
@@ -114,7 +114,7 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
     if (waxedOffState.has_value()) {
         // 除蜡：播放 WAX_OFF 世界事件（包含音效+粒子），无需单独调用 playSound
         world.setBlockState(pos, &waxedOffState.value(), world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
-        world.playEvent(world::WorldEvents::WAX_OFF, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_WAX_OFF, pos, 0);
         // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
         // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
         // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。

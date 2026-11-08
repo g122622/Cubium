@@ -3,8 +3,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/PickupStatus.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <optional>
 #include <string>

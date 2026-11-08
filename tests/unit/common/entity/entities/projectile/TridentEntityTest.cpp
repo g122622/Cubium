@@ -31,7 +31,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>

@@ -22,7 +22,7 @@
  */
 
 #include "MatchingFluidsPredicate.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 namespace mc::world::gen::feature::predicate {

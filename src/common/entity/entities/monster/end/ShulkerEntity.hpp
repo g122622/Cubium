@@ -26,9 +26,9 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/entities/monster/MonsterEntity.hpp"
 #include "util/Direction.hpp"
-#include "world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 

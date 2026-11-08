@@ -1,66 +1,33 @@
-# network/session - 会话生命周期
+# 连接接入、断开与会话生命周期
 
-管理连接对象的归属、集合、每连接协议状态与 tick 泵。本层是 `server/network` 的**对外门面所在层**。
+## 目录结构树
 
-## 目录结构
-
+```text
+session/
+├── keepalive/  # 会话心跳与超时判定
+├── ClientSession.cpp  # 模块接口与实现
+├── ClientSession.hpp  # 单个客户端的会话簿记：协议状态 + 入站派发
+├── ClientSessionManager.cpp  # 模块接口与实现
+├── ClientSessionManager.hpp  # 远程 TCP 会话管理门面（批2c 下沉自 StandaloneServer / IntegratedServer）
+├── PlayerConnectionManager.cpp  # 模块接口与实现
+├── PlayerConnectionManager.hpp  # 连接关闭入口；玩家记录与资源释放委托 PlayerManager。
+├── ServerNetwork.cpp  # 模块接口与实现
+└── ServerNetwork.hpp  # 服务端网络门面：管理所有 ServerClientConnection、TCP accept、协议表
 ```
-src/server/network/session/
-├── README.md
-├── ServerNetwork.hpp/cpp          # 门面：TCP accept + 连接集合 + tick 泵 + 协议表
-├── ClientSession.hpp/cpp          # 单客户端会话：协议状态 + 入站派发链（本地与远程共用）
-└── ClientSessionManager.hpp/cpp   # 远程会话登记/清理（connect → ready → disconnect）
-```
-
-- `ServerNetwork`：进程内唯一。持有 `shared_ptr<ProtocolTables>`（所有连接共享）与
-  `vector<unique_ptr<ServerClientConnection>>`（**连接的所有权**）。同时承载 Local 与 Wire 两种模式，
-  成员不相交故可共存。
-- `ClientSession`：**非拥有**地引用一个 `ServerClientConnection`，值持 `ServerHandshakeStateMachine`、
-  引用 `ServerPlayHandler` 单例门面，并记录 `playerId` 与 `sessionId`。对外只暴露一个
-  `handleInbound(packet)`：握手状态机 → phase/playerId 守卫 → Play 分发，整条派发链在本类内闭合，
-  本地与远程客户端共用。由 `ClientSessionManager` 以 `unique_ptr` 持有（本地客户端目前由
-  `IntegratedServer` 自持）。
-- `ClientSessionManager`：远程 TCP 玩家的会话簿记，仅由 LAN 发布路径装配。本地客户端
-  （`sessionId == 0`）由 `IntegratedServer` 自持，见下文坑位 2。
 
 ## 内部模块关系
 
-```
-ServerNetwork  ──owns──▶  ServerClientConnection（base/）
-      │                          ▲
-      │ onConnect/onDisconnect    │ 非拥有引用
-      ▼                          │
-ClientSessionManager ──owns──▶ ClientSession
-                                   ├─ ServerHandshakeStateMachine（handshake/）
-                                   └─ ServerPlayHandler（play/）
-```
-
-`ServerNetwork::tick()` 在主线程做三件事：`pumpLocal()` 驱动所有 Local 连接、`drainInbound()` 派发
-所有 Wire 连接的入站队列、处理延迟断开列表并回调 `m_onDisconnect`。三者都采用「锁内快照 → 锁外回调」
-模式，避免回调内增删连接导致重入死锁。
+ServerNetwork 管理连接集合；ClientSession/ClientSessionManager 维护协议会话；PlayerConnectionManager 发起关闭并委托 PlayerManager 移除玩家。被动断开同样进入统一玩家生命周期。
 
 ## 上下游外部依赖关系
 
-### 本目录依赖
-
-| 依赖 | 用途 |
-|---|---|
-| `base/ServerClientConnection.hpp` | 连接类型与 `ProtocolTables` 别名 |
-| `handshake/ServerHandshake.hpp` | `ClientSession` 值持的握手状态机 |
-| `play/ServerPlayHandler.hpp` | `ClientSession` 引用的 Play 处理器门面 |
-| `handshake/LoginFlow.hpp`、`server/application/MinecraftServer.hpp` | 握手完成后建号 + 回填 playerId |
-| `common/network/backend/java/JavaBackend.hpp` | 构造共享协议表 |
-| `common/network/transport/{LocalTransport,TcpTransport}.hpp` | Local 配对 / TCP accept |
-
-### 依赖本目录
-
-| 模块 | 用途 |
-|---|---|
-| `server/application/{StandaloneServer,IntegratedServer}` | 建 `ServerNetwork`；`startAccept` / `publishToLan` |
-| `server/application/MinecraftServer` | 持 `ServerNetwork` 与 `ClientSessionManager` 成员 |
-| `tests/common/network/*` | Local 模式与握手的集成测试夹具 |
+连接实现来自 network/base，入站委派 handshake/play；玩家资源释放由应用装配到 PlayerManager。
 
 ## 容易踩的坑
+
+- PacketSender 只投递包，PlayerConnectionManager 关闭连接，PlayerManager 统一移除记录。
+- 玩家移除前释放菜单、实体和区块资源，移除后通知剩余玩家；重复移除不得重复通知。
+- 玩家移动与区块订阅分开，订阅统一使用 ChunkSyncManager 持有的 tracker。
 
 - `startAccept(0, ...)` 由系统分配空闲端口，监听日志必须记录绑定后的实际端口。
 

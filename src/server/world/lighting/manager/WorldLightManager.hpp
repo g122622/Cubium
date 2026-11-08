@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include "common/world/lighting/LightType.hpp"

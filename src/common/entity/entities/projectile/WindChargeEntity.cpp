@@ -34,7 +34,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 

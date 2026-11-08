@@ -77,8 +77,8 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "server/item/instrument/InstrumentLoader.hpp"
 #include "server/item/instrument/InstrumentTagLoader.hpp"
 

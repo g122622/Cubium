@@ -30,7 +30,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <optional>
 #include <string>

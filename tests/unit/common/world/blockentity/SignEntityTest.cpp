@@ -27,8 +27,9 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "util/text/StringTextComponent.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
 #include <gtest/gtest.h>
@@ -574,7 +575,7 @@ public:
         return it != m_uuidToEntity.end() ? it->second : nullptr;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_events.push_back({eventId, pos, data});
     }
@@ -617,7 +618,7 @@ private:
     std::unordered_map<std::string, Entity*> m_uuidToEntity;
 
     struct EventRecord {
-        i32 eventId;
+        ::mc::world::LevelEventId eventId;
         BlockPos pos;
         i32 data;
     };

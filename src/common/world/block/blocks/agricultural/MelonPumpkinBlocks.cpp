@@ -50,16 +50,16 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
-#include "common/world/block/blocks/copper/CopperChestBlock.hpp"
-#include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/base/HorizontalBlock.hpp"
+#include "common/world/block/blocks/container/CopperChestBlock.hpp"
+#include "common/world/block/capability/oxidation/IOxidizableBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <cstddef>
@@ -368,7 +368,7 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
     if (airState != nullptr) {
         world.setBlockState(headPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
-    world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, headPos, 0);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, headPos, 0);
 
     // 移除第一个雪块
     // 注意：world.getBlockState() 返回的是区块调色板容器的内部指针，随后的 setBlockState()
@@ -381,7 +381,7 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
         world.setBlockState(below1, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     if (snowBlock1Id.has_value()) {
-        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below1, *snowBlock1Id);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, below1, *snowBlock1Id);
     }
 
     // 移除第二个雪块
@@ -393,7 +393,7 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
         world.setBlockState(below2, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     if (snowBlock2Id.has_value()) {
-        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below2, *snowBlock2Id);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, below2, *snowBlock2Id);
     }
 
     // 生成雪傀儡实体
@@ -469,7 +469,7 @@ void CarvedPumpkinBlock::spawnIronGolem(
             world.setBlockState(blockPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
         if (blockStateId.has_value()) {
-            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos, *blockStateId);
+            world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, blockPos, *blockStateId);
         }
     }
 
@@ -633,14 +633,14 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
     if (airState != nullptr) {
         world.setBlockState(headPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
-    world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, headPos, 0);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, headPos, 0);
 
     // 步骤 2: 移除铜块
     if (airState != nullptr) {
         world.setBlockState(copperPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     if (copperStateId.has_value()) {
-        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, copperPos, *copperStateId);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, copperPos, *copperStateId);
     }
 
     // 步骤 3: 在南瓜头部位置生成铜傀儡

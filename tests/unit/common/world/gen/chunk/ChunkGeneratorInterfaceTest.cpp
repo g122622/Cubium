@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -34,12 +34,12 @@
 
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/gen/ChunkPyramid.hpp"
-#include "common/world/chunk/gen/ChunkStep.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/pipeline/ChunkStep.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"

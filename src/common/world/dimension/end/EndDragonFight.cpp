@@ -41,10 +41,9 @@
 #include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/pattern/BlockInWorld.hpp"
 #include "common/world/block/state/pattern/BlockPattern.hpp"
 #include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
@@ -55,6 +54,7 @@
 #include "common/world/dimension/end/EndSpikes.hpp"
 #include "common/world/dimension/end/IDragonBossBar.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <algorithm>
 
@@ -774,7 +774,7 @@ void EndDragonFight::_spawnNewGateway(IWorld& world)
 void EndDragonFight::_spawnNewGatewayAt(IWorld& world, const BlockPos& pos)
 {
     // 播放折跃门生成效果
-    world.playEvent(world::WorldEvents::GATEWAY_SPAWN_EFFECTS, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::ANIMATION_END_GATEWAY_SPAWN, pos, 0);
 
     // 直接放置折跃门结构（3x5x3 基岩十字框架 + END_GATEWAY 方块）
     blockentity::EndGatewayEntity::createGatewayStructure(world, pos);

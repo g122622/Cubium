@@ -39,7 +39,7 @@ EntityUtils（已废弃）
 - `src/common/world/IWorld.hpp` - IWorld 接口
 - `src/common/util/math/random/Random.hpp` - 随机数生成器
 - `src/common/util/math/MathConstants.hpp` - 数学常量（TWO_PI, DEG_TO_RAD）
-- `src/common/world/block/BlockPos.hpp` - BlockPos 类
+- `src/common/world/block/base/types/BlockPos.hpp` - BlockPos 类
 
 ### 下游依赖（依赖本模块的）
 

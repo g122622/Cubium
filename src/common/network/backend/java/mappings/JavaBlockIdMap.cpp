@@ -27,7 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/generated/java_block_id_table.gen.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 
 #include <spdlog/spdlog.h>
 

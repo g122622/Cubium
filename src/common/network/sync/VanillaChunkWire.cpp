@@ -31,7 +31,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"

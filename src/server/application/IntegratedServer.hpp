@@ -38,9 +38,9 @@
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/network/session/ClientSession.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <array>
@@ -80,7 +80,7 @@ struct IntegratedServerParams {
     // 任何在 initialize(params) 之前读取 m_params 的路径都会读到栈/堆垃圾——实测 UBSan
     // 报 "load of value 121, which is not a valid value for type 'bool'"
     // （121 == 'y'，即恰好落在结构体区间内的字符串残留字节），发生在
-    // IntegratedServer::resolveOpLevel → core::applyOwnerCheatsBoost 读取 allowCommands 处。
+    // IntegratedServer::resolveOpLevel → applyOwnerCheatsBoost 读取 allowCommands 处。
 };
 
 /**

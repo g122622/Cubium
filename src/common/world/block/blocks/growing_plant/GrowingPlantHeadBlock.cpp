@@ -29,10 +29,10 @@
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/growing_plant/GrowingPlantBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include <algorithm>
 

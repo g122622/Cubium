@@ -25,8 +25,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/growing_plant/GrowingPlantBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 
 namespace mc {

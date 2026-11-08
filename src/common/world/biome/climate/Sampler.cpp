@@ -23,8 +23,8 @@
 #include "world/biome/climate/Sampler.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/generation/density/DensityFunction.hpp"
 #include "world/biome/climate/SpawnFinder.hpp"
 
 namespace mc::world::biome::climate {

@@ -47,9 +47,9 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -524,7 +524,7 @@ void PhantomSweepAttackGoal::tick()
         // 播放攻击音效
         // 世界事件 PHANTOM_BITE_SOUND 是幻翼攻击事件
         if (IWorld* world = m_phantom->world()) {
-            world->playEvent(world::WorldEvents::PHANTOM_BITE_SOUND,
+            world->playEvent(::mc::world::LevelEventId::SOUND_PHANTOM_BITE,
                 BlockPos(math::floorTo<i32>(m_phantom->x()),
                     math::floorTo<i32>(m_phantom->y()),
                     math::floorTo<i32>(m_phantom->z())),

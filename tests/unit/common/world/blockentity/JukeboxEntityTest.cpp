@@ -28,11 +28,12 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/sound/jukebox/JukeboxSongPlayer.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
-#include "common/world/WorldEvents.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/JukeboxEntity.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -50,7 +51,7 @@ namespace {
 class JukeboxTestWorld final : public mc::test::BaseTestWorld {
 public:
     struct PlayEventCall {
-        i32 eventId;
+        ::mc::world::LevelEventId eventId;
         BlockPos pos;
         i32 data;
     };
@@ -60,7 +61,7 @@ public:
         BlockPos pos;
     };
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_playEventCalls.push_back({eventId, pos, data});
     }
@@ -181,12 +182,12 @@ TEST_F(JukeboxEntityTest, SetRecord_BroadcastsPlayEvent)
     ItemStack disc(Items::MUSIC_DISC_13, 1);
     jukebox_->setRecord(disc, *world_);
 
-    // 应该广播 PLAY_RECORD_SOUND 事件，data 为唱片的比较器信号强度
+    // 应该广播 PLAY_RECORD_SOUND 事件，data 为同步歌曲注册编号
     ASSERT_FALSE(world_->playEventCalls().empty());
     const auto& call = world_->playEventCalls().back();
-    EXPECT_EQ(call.eventId, world::WorldEvents::PLAY_RECORD_SOUND);
+    EXPECT_EQ(call.eventId, ::mc::world::LevelEventId::SOUND_PLAY_JUKEBOX_SONG);
     EXPECT_EQ(call.pos, pos_);
-    EXPECT_EQ(call.data, 1); // MUSIC_DISC_13 比较器信号 = 1
+    EXPECT_EQ(call.data, 0); // 第一首歌曲的注册编号
 }
 
 TEST_F(JukeboxEntityTest, SetRecord_EmptyStopsPlaying)
@@ -206,7 +207,7 @@ TEST_F(JukeboxEntityTest, SetRecord_EmptyStopsPlaying)
     // 应该广播停止事件 STOP_RECORD_SOUND (data=0)
     ASSERT_FALSE(world_->playEventCalls().empty());
     const auto& call = world_->playEventCalls().back();
-    EXPECT_EQ(call.eventId, world::WorldEvents::STOP_RECORD_SOUND);
+    EXPECT_EQ(call.eventId, ::mc::world::LevelEventId::SOUND_STOP_JUKEBOX_SONG);
     EXPECT_EQ(call.data, 0);
 }
 
@@ -243,7 +244,7 @@ TEST_F(JukeboxEntityTest, StopPlaying_WhenPlaying_BroadcastsStopEvent)
     // 应该广播停止事件 STOP_RECORD_SOUND
     ASSERT_FALSE(world_->playEventCalls().empty());
     const auto& call = world_->playEventCalls().back();
-    EXPECT_EQ(call.eventId, world::WorldEvents::STOP_RECORD_SOUND);
+    EXPECT_EQ(call.eventId, ::mc::world::LevelEventId::SOUND_STOP_JUKEBOX_SONG);
     EXPECT_EQ(call.data, 0);
 }
 
@@ -489,7 +490,7 @@ TEST_F(JukeboxEntityTest, StopPlaying_TriggersJukeboxStopPlayGameEvent)
     // 也应广播 STOP_RECORD_SOUND 世界事件
     ASSERT_FALSE(world_->playEventCalls().empty());
     const auto& playEventCall = world_->playEventCalls().back();
-    EXPECT_EQ(playEventCall.eventId, world::WorldEvents::STOP_RECORD_SOUND);
+    EXPECT_EQ(playEventCall.eventId, ::mc::world::LevelEventId::SOUND_STOP_JUKEBOX_SONG);
 }
 
 TEST_F(JukeboxEntityTest, StopPlaying_GameEventBeforeLevelEvent)
@@ -507,7 +508,7 @@ TEST_F(JukeboxEntityTest, StopPlaying_GameEventBeforeLevelEvent)
     ASSERT_GE(world_->gameEventCalls().size(), 1u);
     ASSERT_GE(world_->playEventCalls().size(), 1u);
     EXPECT_STREQ(world_->gameEventCalls()[0].event->id(), "jukebox_stop_play");
-    EXPECT_EQ(world_->playEventCalls()[0].eventId, world::WorldEvents::STOP_RECORD_SOUND);
+    EXPECT_EQ(world_->playEventCalls()[0].eventId, ::mc::world::LevelEventId::SOUND_STOP_JUKEBOX_SONG);
 }
 
 TEST_F(JukeboxEntityTest, SetRecord_TriggersJukeboxStopPlayGameEventWhenStopping)
@@ -586,3 +587,20 @@ TEST_F(JukeboxEntityTest, JukeboxPlayEventNotificationRadius)
 }
 
 } // namespace
+
+TEST_F(JukeboxEntityTest, SharedComparatorSignalDoesNotAliasPlaybackId)
+{
+    const auto* first = JukeboxSongs::getSong(ResourceLocation("minecraft:otherside"));
+    const auto* second = JukeboxSongs::getSong(ResourceLocation("minecraft:relic"));
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    ASSERT_EQ(first->getComparatorOutput(), second->getComparatorOutput());
+    JukeboxSongPlayer player([] {}, pos_);
+    player.play(*world_, *first);
+    const auto firstId = world_->playEventCalls().back().data;
+    player.play(*world_, *second);
+    const auto secondId = world_->playEventCalls().back().data;
+    EXPECT_NE(firstId, secondId);
+    EXPECT_EQ(JukeboxSongs::registryKeys()[static_cast<size_t>(firstId)], "minecraft:otherside");
+    EXPECT_EQ(JukeboxSongs::registryKeys()[static_cast<size_t>(secondId)], "minecraft:relic");
+}

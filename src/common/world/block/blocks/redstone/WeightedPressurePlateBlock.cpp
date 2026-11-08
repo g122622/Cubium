@@ -33,8 +33,8 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/redstone/AbstractPressurePlateBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <algorithm>
 #include <memory>
 #include <utility>
@@ -46,8 +46,9 @@ namespace blocks {
 // 测重压力板tick延迟
 static constexpr i32 WEIGHTED_PLATE_DELAY = 10;
 
-WeightedPressurePlateBlock::WeightedPressurePlateBlock(const BlockProperties& properties, Sensitivity sensitivity)
-    : AbstractPressurePlateBlock(properties)
+WeightedPressurePlateBlock::WeightedPressurePlateBlock(
+    const BlockProperties& properties, Sensitivity sensitivity, const BlockSetType& type)
+    : AbstractPressurePlateBlock(properties, type)
     , m_sensitivity(sensitivity)
 {
     // vanilla 测重压力板持久化 power 0-15（非木/石压力板的 powered 布尔）。
@@ -104,19 +105,6 @@ i32 WeightedPressurePlateBlock::getTickDelay(bool oldPowered, bool newPowered) c
     MC_UNUSED(oldPowered);
     MC_UNUSED(newPowered);
     return WEIGHTED_PLATE_DELAY;
-}
-
-void WeightedPressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
-{
-    // 测重压力板（金属材质）点击音效
-    if (!world.isClientSide()) {
-        world.playSound(pressed ? SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_ON
-                                : SoundEvents::BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF,
-            sound::SoundCategory::Blocks,
-            pos.center(),
-            0.3f,
-            0.6f);
-    }
 }
 
 i32 WeightedPressurePlateBlock::_getEntityCount(IWorld& world, const BlockPos& pos) const

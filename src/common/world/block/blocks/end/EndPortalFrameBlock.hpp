@@ -26,8 +26,8 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 
 namespace mc {

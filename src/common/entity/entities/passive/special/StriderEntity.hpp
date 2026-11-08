@@ -34,7 +34,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include <algorithm>
 #include <cmath>

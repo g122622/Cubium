@@ -31,7 +31,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/feature/state/RuleBasedBlockStateProvider.hpp"
 #include "server/world/gen/feature/state/SimpleBlockStateProvider.hpp"

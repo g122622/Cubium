@@ -1,182 +1,59 @@
-# Server World 模块
+# world 模块
 
-服务端世界模块，负责服务端的核心世界管理功能，包括区块管理、实体追踪、自然生成、天气系统等。
+## 目录结构树
 
-## 目录结构
-
-```
-src/server/world/
-├── ServerWorld.hpp/cpp              # 服务端世界核心类（生成器海平面/区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/chunkManager区块访问）
-├── ServerLightQueue.hpp/cpp         # 运行时方块变更光照延迟队列（按区块分组去重，tick drain→submit worker 或 fallback 同步）
-├── RuntimeLightingProvider.hpp/cpp  # 运行时/区块加载光照 worker provider（继承 StarLightLightingProvider；构造时 5×5 shared_ptr 保活；markLightChanged 收集 dirty section 而非回调）
-├── RuntimeLightTask.hpp/cpp         # 运行时光照传播 worker 任务（继承 ITask；execute 经 TLS 引擎调 blocksChangedInChunk 传播→取 dirty→_enqueueLightFlush 入主线程 flush 队列）
-├── ChunkLoadLightTask.hpp/cpp       # 区块加载光照 worker 任务（继承 ITask；execute 经 TLS 引擎 light()/forceHandleEmptySectionChanges+checkChunkEdges→取 dirty→_enqueueLightFlush + _enqueueChunkSend 续延）
-├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调，委托 ChunkTaskScheduler 调度生成）
-├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（票据/显式请求/共享邻居需求汇总、状态推进与等待者）
-├── scheduling/                    # 世界区域依赖与计算任务分发
-│   ├── AreaTaskScheduler.hpp/cpp   # 区域就绪后提交计算池，生成/光照/序列化共用
-│   └── README.md                 # 调度边界与生命周期约束
-├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
-├── ChunkProgressionTask.hpp/cpp     # 单状态推进任务（构建 WorldGenRegion，调用 _executeStepTask，完成后回调 onChunkGenComplete）
-├── StaticChunkCache2D.hpp           # 预分配二维区块缓存模板（构造时一次性填充，无空洞，越界断言）
-├── blockevent/
-│   ├── BlockEventData.hpp           # 方块事件数据结构（位置、方块类型、事件参数）
-│   └── README.md
-├── drop/
-│   ├── BlockDropHandler.hpp/cpp     # 方块掉落处理器（LootTable系统）
-│   └── README.md
-├── entity/
-│   ├── EntityTracker.hpp/cpp        # 实体追踪器（客户端可见性管理）
-│   ├── ItemPickupManager.hpp/cpp    # 物品拾取管理器
-│   └── README.md
-├── player/
-│   ├── ServerPlayerEntityManager.hpp/cpp  # 服务端玩家实体管理
-│   └── README.md
-├── spawn/
-│   ├── NaturalSpawner.hpp/cpp       # 自然生成器（怪物/动物/环境生物）
-│   ├── DespawnManager.hpp/cpp       # 消失管理器（实体消失距离检查）
-│   ├── VillageSiege.hpp/cpp         # 村庄围攻事件
-│   └── README.md
-├── time/
-│   ├── GameTime.hpp/cpp            # 游戏时间（昼夜循环/日光周期）
-│   └── README.md
-└── weather/
-    ├── WeatherManager.hpp/cpp       # 天气管理器（天气周期/闪电）
-    └── README.md
+```text
+world/
+├── blockentity/  # 该领域的子模块
+├── blockevent/  # 该领域的子模块
+├── chunk/  # 该领域的子模块
+├── drop/  # 该领域的子模块
+├── entity/  # 该领域的子模块
+├── gameevent/  # 该领域的子模块
+├── gen/  # 该领域的子模块
+├── lighting/  # 该领域的子模块
+├── player/  # 玩家实体、运行数据与生命周期
+├── scheduling/  # 该领域的子模块
+├── spawn/  # 该领域的子模块
+├── storage/  # 该领域的子模块
+├── structure/  # 该领域的子模块
+├── time/  # 共享时间规则与时间线；服务端目录负责运行时推进
+├── weather/  # 该领域的子模块
+├── ChunkLightingProvider.cpp  # 模块接口与实现
+├── ChunkLightingProvider.hpp  # LIGHT 生成阶段的光照提供者适配器
+├── ChunkLoadLightTask.cpp  # 模块接口与实现
+├── ChunkLoadLightTask.hpp  # 区块加载光照 worker 任务（对齐 Moonrise ThreadedLevelLightEngine）
+├── ChunkProgressionTask.cpp  # 模块接口与实现
+├── ChunkProgressionTask.hpp  # 单状态推进任务（对齐 Moonrise ChunkProgressionTask + ChunkUpgradeGenericStatusTask）
+├── ChunkTaskScheduler.cpp  # 模块接口与实现
+├── ChunkTaskScheduler.hpp  # 区块生成调度核心（对齐 Moonrise ChunkTaskScheduler）
+├── RuntimeLightTask.cpp  # 模块接口与实现
+├── RuntimeLightTask.hpp  # 运行时方块变更光照传播 worker 任务
+├── RuntimeLightingProvider.cpp  # 模块接口与实现
+├── RuntimeLightingProvider.hpp  # 运行时方块变更在 worker 线程传播用的光照提供者
+├── ServerChunkManager.cpp  # 在时间预算内消费入口快照，未处理的旧任务始终排在新任务之前
+├── ServerChunkManager.hpp  # 区块步骤依赖信息
+├── ServerLightQueue.cpp  # 模块接口与实现
+├── ServerLightQueue.hpp  # 运行时方块变更光照延迟队列
+├── ServerWorld.cpp  # 模块接口与实现
+├── ServerWorld.hpp  # 服务端世界配置结构
+├── SingleChunkLifecycleManager.cpp  # 模块接口与实现
+├── SingleChunkLifecycleManager.hpp  # 单区块生命周期管理器（对齐 Moonrise NewChunkHolder）
+└── StaticChunkCache2D.hpp  # 预分配的二维区块缓存，构造时一次性填充所有条目
 ```
 
 ## 内部模块关系
 
-区块存档缺失后的生成调度在区域执行器上获取调度锁；排队期间用共享引用保活 holder，并在执行前校验身份。
-主线程按时间预算消费存档完成、世界后处理和卸载队列，未处理的旧任务先于新任务交付；同步请求持续泵送目标 Future。
-LIGHT 票据释放由后续统一票据推进传播，避免批量发送区块时反复遍历距离图。
-票据回调只尝试取得调度锁；繁忙时合并同坐标的最新级别，后续推进重试，期间暂缓自动卸载。
-随机刻、方块实体和降水使用独立模拟范围：玩家实体模拟距离外再保留一圈方块 tick，显式强票据按级别保留范围。
-
-```
-                    ┌─────────────────┐
-                    │   ServerWorld   │
-                    │  (核心容器)      │
-                    └────────┬────────┘
-                             │
-         ┌───────────────────┼───────────────────┬───────────────────┐
-         │                   │                   │                   │
-         ▼                   ▼                   ▼                   ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ServerChunkManager│ │  EntityTracker  │ │ WeatherManager  │ │ NaturalSpawner  │
-│  (区块管理)      │ │  (实体追踪)      │ │  (天气管理)     │ │  (自然生成)     │
-└────────┬────────┘ └────────┬────────┘ └─────────────────┘ └────────┬────────┘
-         │                   │                                            │
-         ▼                   ▼                                            ▼
-┌─────────────────┐ ┌─────────────────┐                          ┌─────────────────┐
-│ChunkTaskScheduler│ │ItemPickupManager│                          │ 生成规则注册表 │
-│ (生成调度核心)   │ │  (物品拾取)      │                          │  (生成条件)      │
-└────────┬────────┘ └─────────────────┘                          └─────────────────┘
-         │
-         ▼
-┌─────────────────┐  ┌──────────────────────┐
-│ChunkProgressionTask│ │ SingleChunkLifecycleManager │
-│ (单状态推进任务) │  │  (NewChunkHolder 等价物)    │
-└────────┬────────┘  └──────────────────────┘
-         │                   │
-         ▼                   ▼
-┌─────────────────┐ ┌─────────────────┐
-│ UniversalWorkerPool│ │BlockDropHandler │
-│  (区域互斥线程池)│ │  (方块掉落)      │
-└─────────────────┘ └─────────────────┘
-```
-
-**核心依赖链**：
-- `ServerWorld` 持有所有子模块的实例或指针
-- `ServerChunkManager` 依赖 `UniversalWorkerPool`（由 MinecraftServer 注入），委托 `ChunkTaskScheduler` 调度生成
-- `ServerChunkManager` 持有每世界独立的 `AreaTaskScheduler`；`ChunkTaskScheduler` 持有 `ReentrantAreaLock` 保护生成依赖图，并委托世界区域调度器分发任务，协调 `SingleChunkLifecycleManager` 的状态推进
-- `ChunkProgressionTask` 由 `ChunkTaskScheduler` 提交到 worker 池执行，构建 `WorldGenRegion`（邻居从 `StaticChunkCache2D<ChunkPrimer*>` 转换）并调用 `ServerChunkManager::_executeStepTask`
-- `EntityTracker` 与 `ItemPickupManager` 协同处理实体可见性和拾取
-- `NaturalSpawner` 通过公共生成注册表检查放置条件与实体谓词
+各文件承接目录树中标明的单一职责，通过同领域接口组合。独占的辅助实现位于使用者目录下。
 
 ## 上下游外部依赖关系
 
-**上游依赖**：
-- `server/core/MinecraftServer` - 创建 ServerWorld，注入 Worker 池和存储管理器
-- `server/core/ServerDimensionManager` - 多维度管理，协调各维度 ServerWorld
-- `common/world/IWorld` - 世界接口定义
-- `common/world/ICollisionWorld` - 碰撞世界接口
-- `common/world/chunk/` - 区块数据和生命周期管理
-
-**下游消费者**：
-- `server/core/PlayerManager` - 通过 ServerWorld 管理玩家实体
-- `server/network/sync/BlockUpdateSyncManager` - 接收方块变化回调
-- `server/network/sync/ChunkSendManager` - 接收区块加载事件
-- `server/command/` - 命令执行（通过 ServerWorld 接口）
-
-**共享资源**：
-- `SingleLevelStorageManager` - 由 MinecraftServer 创建，所有维度共享
-- `UniversalWorkerPool` - 计算线程池，由 MinecraftServer 统一管理
-
-## 出生点管理
-
-`ServerWorld` 持有存档级世界出生数据（`RespawnData`：维度 + 出生方块 + yaw/pitch）。整个存档只有一份，
-保存在主世界 level.dat 的 `spawn` 复合标签中；新玩家进入世界时从共享出生点附近搜索落点。
-
-### 核心接口
-
-| 接口 | 说明 |
-|------|------|
-| `respawnData()` | 获取原始出生数据（未做边界修正） |
-| `setRespawnData(data)` | 设置出生数据（`/setworldspawn` 调用） |
-| `spawnPosition()` | 出生位置脚部坐标（方块中心 X/Z +0.5，Y 为方块上表面） |
-| `worldBorderAdjustedRespawnData()` | 出生方块在边界外时改取边界中心列的 MOTION_BLOCKING 高度图位置 |
-| `initializeWorldSpawn()` | 新世界首次启动查找出生位置；主世界使用 `Climate::Sampler::findSpawnPosition()` 气候搜索。仅主世界调用 |
-| `applyLevelRuntimeData(data)` | 从 level.dat 读取的运行时数据中恢复出生数据 |
-
-### 数据流
-
-```
-level.dat (spawn 复合标签：dimension/pos/yaw/pitch，initialized 字段)
-    → LevelDatCodec::readRuntimeData 读取
-    → LevelRuntimeData.spawnData + initialized
-    → MinecraftServer::initializeWorld 按 initialized 分支：
-        - initialized=true  → applyLevelRuntimeData 直接使用存档出生数据
-        - initialized=false → applyLevelRuntimeData 后再 initializeWorldSpawn 覆盖为真实出生点
-    → ServerWorld::m_respawnData
-    → MinecraftServer::saveAllWorldData(true) 写回 level.dat（spawn 复合标签，initialized 写 true）
-    → 登录/重生通过 SetDefaultSpawnPosition 下发（经边界修正的有效出生数据）
-    → /setworldspawn 命令修改后广播给所有玩家
-```
-
-**仅主世界持有世界出生数据**：下界/末地不调 `initializeWorldSpawn`，所有出生数据消费路径
-（玩家初始位置、指南针指向、重生兜底）只读主世界 `overworld->world()`。
-
-### initializeWorldSpawn 气候搜索流程
-
-`initializeWorldSpawn()` 对主世界使用 `Climate::Sampler::findSpawnPosition()` 在气候空间中径向搜索最佳出生点：
-
-```
-NoiseChunkGenerator::randomState()  →  RandomState
-                                      ↓
-                                   sampler()  →  Climate::Sampler
-                                                  ↓
-                                              spawnTarget()  →  非空？
-                                                  ↓ 是
-                                              findSpawnPosition()  →  BlockPos
-                                                  ↓
-                                              ChunkPos(climateSpawn)  →  spawnChunk
-                                                  ↓
-                                              在 spawnChunk 内查找有效出生 Y 坐标
-```
-
-**降级行为**：当 `DimensionSettings::spawnTarget` 为空、`NoiseChunkGenerator` 不可用、`RandomState` 未初始化、或 `sampler.spawnTarget()` 为空时，自动降级为 (0,0) 区块作为出生点。
-
-### 注意事项
-
-- **initialized 字段**：level.dat 的 `initialized` 标记世界是否已完成首次出生点计算。`false` 时 `initializeWorld` 会调 `initializeWorldSpawn` 计算真实出生点并覆盖模板占位；`true` 时直接使用存档中的 `spawn` 复合标签。新世界模板写入 `initialized=0` 与默认出生数据。
-- **位置是出生方块本身**：玩家脚部在 `pos.y + 1`。`spawnPosition()` 负责换算；网络包 `SetDefaultSpawnPosition` 下发的是方块坐标。
-- **朝向范围**：`RespawnData::of` 归一化 yaw 到 [-180, 180]、夹紧 pitch 到 [-90, 90]。
-- **保存一致性**：`saveAllWorldData()` 直接写 `world->respawnData()`，保存/加载循环不丢失维度与 pitch。
-- **共享出生点落点搜索**：登录与新玩家进入时由 `PlayerSpawnFinder::findSpawn()` 在 `spawnRadius` 规则范围内寻找无碰撞无液体位置；下界/末地或冒险模式世界只做高度修正。
-- **Dimension 不再持有出生点**：旧 `Dimension::m_spawnPoint` 已删除，跨维度传送必须显式给出目标坐标。
+公共层提供领域类型与接口；服务端通过应用装配连接玩家、网络和世界实现。源文件的构建归属与领域目录一致。
 
 ## 容易踩的坑
+
+- 目录按领域职责组织；跨领域协作通过明确入口和基础类型。
+- 新增或迁移源文件时同步更新所有消费目标的 CMake 清单。
 
 - 每个生成步骤的 WorldGenRegion 必须绑定生成器种子，不能依赖 ServerWorld 是否存在；独立区块管理器同样需要以正确种子进行群系边界抖动和放置过滤。
 
@@ -199,7 +76,7 @@ NoiseChunkGenerator::randomState()  →  RandomState
 - **`ChunkProgressionTask`**：单状态推进任务。`execute` 从 `StaticChunkCache2D<ChunkPrimer*>` 构建 `WorldGenRegion`（转换为 `vector<IChunk*>`，所有邻居已由 `checkNeighbour` 保证达到所需状态），调用 `_executeStepTask`，推进 primer 状态，FULL 完成时 `_finalizeGeneratedChunkSync` 转 `ChunkData` 存入内存缓存。
 - **`StaticChunkCache2D<T>`**（`StaticChunkCache2D.hpp`）：预分配二维缓存模板，构造时一次性填充 `(2*radius+1)²` 个条目，**不允许 nullptr**（loader 必须返回有效值）。替代旧的 `GenerationChunkCache`（增量填充、允许空洞），从根本上消除窗口内 nullptr。
 - **`ReentrantAreaLock`**（`common/util/concurrent/`）：按区块坐标的可重入区域锁，`lock(x,z,radius)` 覆盖 `[x±radius, z±radius]`，同线程重入仅限完全覆盖的子区域。`schedule` 持 `maxAccessRadius` 锁，`onChunkGenComplete` 持 `maxAccessRadius` 锁；解锁后重调度时持 `2*maxAccessRadius` 锁。
-- **`ChunkStep::getRequiredStatusAtRadius(radius)`**（`common/world/chunk/gen/ChunkStep.hpp`）：byRadius[] 查找表，对齐 Moonrise `ChunkStepMixin`。`schedule` 遍历 `[center±neighbourReadRadius]` 范围邻居，按 Chebyshev 距离查询每个邻居所需状态。
+- **`ChunkStep::getRequiredStatusAtRadius(radius)`**（`server/world/chunk/pipeline/ChunkStep.hpp`）：byRadius[] 查找表，对齐 Moonrise `ChunkStepMixin`。`schedule` 遍历 `[center±neighbourReadRadius]` 范围邻居，按 Chebyshev 距离查询每个邻居所需状态。
 - **世界区域依赖**（`scheduling/AreaTaskScheduler`）：各坐标维护任务顺序，全部坐标就绪后才提交通用计算池；生成、加载光照、运行时光照和区块序列化共用一个实例，不同世界互不阻塞。
 
 **并发模型**：邻居在任务执行期间可变（ChunkPrimer 累积式），但调度保证无并发写冲突——`checkNeighbour` 确保任务开始前所有邻居达所需状态，世界 `AreaTaskScheduler` 串行化重叠写区域（等价 Moonrise `AreaDependentQueue`）。这使 FEATURES/LIGHT 跨区块写邻居成为设计预期，而非 bug。

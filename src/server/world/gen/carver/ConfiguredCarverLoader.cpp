@@ -35,7 +35,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "server/world/gen/surface/VerticalAnchor.hpp"
 #include "server/world/gen/valueprovider/FloatProvider.hpp"
 #include "server/world/gen/valueprovider/FloatProviderParser.hpp"

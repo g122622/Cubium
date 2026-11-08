@@ -36,7 +36,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::item::armor;

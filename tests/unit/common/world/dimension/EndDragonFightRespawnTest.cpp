@@ -44,14 +44,14 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/EndDragonFightTestAccessor.hpp"
 #include "common/world/dimension/end/DragonRespawnAnimation.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/end/EndSpikes.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 
 #include <algorithm>
@@ -109,7 +109,7 @@ public:
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_events.push_back({eventId, pos, data});
     }
@@ -239,7 +239,7 @@ public:
     [[nodiscard]] bool playedGrowlSound() const
     {
         return std::any_of(m_events.begin(), m_events.end(), [](const PlayEventCall& e) {
-            return e.eventId == world::WorldEvents::ENDERMAN_GROWL_SOUND;
+            return e.eventId == ::mc::world::LevelEventId::ANIMATION_DRAGON_SUMMON_ROAR;
         });
     }
 
@@ -277,7 +277,7 @@ private:
     EndDragonFight* m_fight = nullptr;
 
     struct PlayEventCall {
-        i32 eventId;
+        ::mc::world::LevelEventId eventId;
         BlockPos pos;
         i32 data;
     };

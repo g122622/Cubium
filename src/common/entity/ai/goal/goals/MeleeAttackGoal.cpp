@@ -35,7 +35,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <algorithm>
 
 namespace mc::entity::ai::goal {

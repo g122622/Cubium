@@ -23,8 +23,8 @@
 
 #include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 namespace mc {

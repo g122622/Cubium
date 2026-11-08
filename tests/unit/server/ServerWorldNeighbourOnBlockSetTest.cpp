@@ -24,9 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "common/TempDirHelper.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"

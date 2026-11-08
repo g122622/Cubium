@@ -25,6 +25,8 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "entity/serialization/NbtHelper.hpp"
@@ -35,8 +37,6 @@
 #include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
 #include "world/block/blocks/decorative/BannerBlock.hpp"
 #include <memory>
 #include <string>

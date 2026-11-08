@@ -25,6 +25,8 @@
 
 #include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/blocks/enchanting/EnchantingTableBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "core/Constants.hpp"
 #include "core/Types.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -32,8 +34,6 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include "world/IWorld.hpp"
 #include "world/IWorldWriter.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/blocks/EnchantingTableBlock.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"

@@ -48,7 +48,7 @@ Entity (core/Entity.hpp)
 - `common/util/Direction.hpp` - 方向枚举和工具
 - `common/util/math/random/Random.hpp` - 随机数
 - `common/world/IWorld.hpp` - 世界接口
-- `common/world/block/Block.hpp` - 方块检测（hasEnoughSolidSide）
+- `common/world/block/core/Block.hpp` - 方块检测（hasEnoughSolidSide）
 - `common/world/gameevent/GameEvents.hpp` - 游戏事件（BLOCK_CHANGE、BLOCK_ATTACH）
 - `common/world/gamerule/GameRules.hpp` - 游戏规则（DO_ENTITY_DROPS）
 - `common/world/redstone/RedstoneSystem.hpp` - 红石系统（updateComparators）

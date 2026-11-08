@@ -73,7 +73,7 @@
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 

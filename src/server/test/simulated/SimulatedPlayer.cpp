@@ -6,23 +6,23 @@
 #include "common/core/BlockRaycastResult.hpp" // BlockRaycastResult::hit（方块侧交互入参）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp" // Player::inventory().add/setItem
-#include "common/item/context/ItemUseContext.hpp"      // useItemOnBlock 构造 ItemUseContext 调 onItemUse
-#include "common/item/core/ActionResult.hpp"           // ActionResultType / ItemActionResult
-#include "common/item/core/BlockActionResult.hpp"      // BlockActionResult（useItemOn/useWithoutItem 返回值）
-#include "common/item/core/Item.hpp"                   // Item::onItemUse/onItemRightClick
-#include "common/item/core/ItemRegistry.hpp"           // ItemRegistry::getItem(itemId) 取非 const Item*
-#include "common/item/core/ItemStack.hpp"              // giveItem/setItem 参数 + useItem 系列
-#include "common/util/math/MathUtils.hpp"              // toDegrees / toRadians / clamp
-#include "common/world/IWorld.hpp"                     // onItemRightClick / ItemUseContext 取 IWorld&
-#include "common/world/block/Block.hpp"                // Block::getBlock（方块侧交互解析）
-#include "common/world/block/BlockRegistry.hpp"        // BlockRegistry::getBlock（placeBlock 解析方块 id）
-#include "common/world/block/BlockState.hpp"           // BlockState::blockId/isAir
-#include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD（spawn 维度注册）
+#include "common/entity/inventory/PlayerInventory.hpp"   // Player::inventory().add/setItem
+#include "common/item/context/ItemUseContext.hpp"        // useItemOnBlock 构造 ItemUseContext 调 onItemUse
+#include "common/item/core/ActionResult.hpp"             // ActionResultType / ItemActionResult
+#include "common/item/core/BlockActionResult.hpp"        // BlockActionResult（useItemOn/useWithoutItem 返回值）
+#include "common/item/core/Item.hpp"                     // Item::onItemUse/onItemRightClick
+#include "common/item/core/ItemRegistry.hpp"             // ItemRegistry::getItem(itemId) 取非 const Item*
+#include "common/item/core/ItemStack.hpp"                // giveItem/setItem 参数 + useItem 系列
+#include "common/util/math/MathUtils.hpp"                // toDegrees / toRadians / clamp
+#include "common/world/IWorld.hpp"                       // onItemRightClick / ItemUseContext 取 IWorld&
+#include "common/world/block/core/Block.hpp"             // Block::getBlock（方块侧交互解析）
+#include "common/world/block/registry/BlockRegistry.hpp" // BlockRegistry::getBlock（placeBlock 解析方块 id）
+#include "common/world/block/state/BlockState.hpp"       // BlockState::blockId/isAir
+#include "common/world/dimension/DimensionManager.hpp"   // DimensionManager::OVERWORLD（spawn 维度注册）
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp" // PlayerManager::nextPlayerId（SimulatedPlayer 分配全局唯一 PlayerId）
 #include "server/dimension/ServerDimensionManager.hpp"    // ServerDimensionManager::playerJoinDimension
 #include "server/interaction/BlockInteractionManager.hpp" // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
+#include "server/player/lifecycle/PlayerManager.hpp" // PlayerManager::nextPlayerId（SimulatedPlayer 分配全局唯一 PlayerId）
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp" // ServerPlayerEntityManager::registerExistingPlayerEntity（打通命令系统实体解析）
 

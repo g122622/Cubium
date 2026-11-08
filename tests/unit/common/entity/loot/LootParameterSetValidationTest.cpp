@@ -28,8 +28,8 @@
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::loot;

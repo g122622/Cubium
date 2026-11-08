@@ -1,7 +1,7 @@
 #include "server/test/facade/GameTestCommand.hpp"
 
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"

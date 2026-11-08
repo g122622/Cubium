@@ -27,7 +27,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateLoader.hpp"
 

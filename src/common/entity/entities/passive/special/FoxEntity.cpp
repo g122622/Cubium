@@ -52,8 +52,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -546,7 +546,8 @@ void FoxEntity::tick()
         BlockPos pos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z()));
         const BlockState* state = worldPtr->getBlockState(pos);
         if (state != nullptr) {
-            worldPtr->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(state->stateId()));
+            worldPtr->playEvent(
+                ::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, pos, static_cast<i32>(state->stateId()));
         }
     }
     // 攻击链路：跟随目标（>6 格启动）→ 接近至 6 格内 follow 结束，resetTask 置 crouching →

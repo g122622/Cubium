@@ -1,61 +1,32 @@
-# Server Player Module
+# 玩家实体、运行数据与生命周期
 
-服务端玩家实体模块，定义服务端专用的玩家实体类。
+## 目录结构树
 
-## 目录结构
-
-```
-src/server/player/
-├── ServerPlayer.hpp           # 服务端玩家实体头文件（网络同步、睡眠、传送、重生点、统计、成就）
-├── ServerPlayer.cpp           # 服务端玩家实体实现
-├── PlayerRespawnManager.hpp   # 玩家重生流程（落点、实体重建、状态迁移、重入发包）
-└── PlayerRespawnManager.cpp   # 玩家重生流程实现
+```text
+player/
+├── gamemode/  # 游戏模式与能力同步
+├── lifecycle/  # 玩家记录、资源释放与退出通知
+├── movement/  # 玩家位置和朝向更新
+├── runtime/  # 玩家运行数据与连接关联
+├── PlayerRespawnManager.cpp  # 模块接口与实现
+├── PlayerRespawnManager.hpp  # 玩家重生管理器
+├── ServerPlayer.cpp  # 模块接口与实现
+└── ServerPlayer.hpp  # 服务端玩家实体。
 ```
 
 ## 内部模块关系
 
-ServerPlayer 继承自 `Player` 基类，是服务端玩家实体的核心实现：
-
-- **网络通信**：消息发送（聊天、系统、状态栏）、经验同步
-- **睡眠系统**：床交互、睡眠验证、重生点设置
-- **重生**：`ServerPlayer` 负责重生点配置与落点计算（床/重生锚/强制点/共享出生点），
-  `PlayerRespawnManager` 负责死亡确认后的实体重建、状态迁移与 Respawn/出生点/经验等重入序列
-- **维度传送**：传送门触发、坐标转换、传送门搜索/创建
-- **统计系统**：合成统计追踪、配方解锁触发器
-- **成就系统**：PlayerAdvancements 管理、配方书
-- **队伍系统**：通过记分板获取队伍信息
-- **PvP 保护**：通过 `canHarmPlayer()` 和 `hurt()` 重写实现 PvP 规则和队伍友伤检查
-- **旁观者跟踪**：摄像机实体跟踪、位置同步、旁观/退出旁观逻辑
+ServerPlayer 承接实体玩法；runtime 保存会话关联数据；lifecycle 管理在线记录与退出顺序；movement 更新位置；gamemode 管理模式及能力；重生流程由 PlayerRespawnManager 协调。
 
 ## 上下游外部依赖关系
 
-### 上游依赖（本模块使用的组件）
-
-| 模块 | 用途 |
-|------|------|
-| `common/entity/entities/player/Player.hpp` | 玩家基类 |
-| `server/network/base/ServerClientConnection.hpp` | ServerClientConnection（网络连接接口） |
-| `common/network/ir/packets/play/*` | IR 网络包（`SystemChat`/`SetActionBarText`/`SetExperience`/`SetTitleText`/`SetSubtitleText`/`SetCamera` 等，经 `connection.send(ir::IrPacket{...})` 发送） |
-| `common/entity/player/SleepManager.hpp` | 睡眠管理器 |
-| `common/world/spawn/RespawnConfig.hpp` | 玩家重生点配置（维度/位置/朝向/forced） |
-| `common/world/spawn/RespawnData.hpp` | 出生数据（世界出生点与个人重生点共用） |
-| `server/world/player/PlayerSpawnFinder.hpp` | 共享出生点附近的落点搜索 |
-| `common/world/dimension/teleport/Teleporter.hpp` | 传送器 |
-| `server/advancement/PlayerAdvancements.hpp` | 玩家成就进度 |
-| `server/stats/StatisticsManager.hpp` | 统计管理器 |
-| `server/scoreboard/ServerScoreboard.hpp` | 服务端记分板 |
-
-### 下游依赖（使用本模块的组件）
-
-| 模块 | 用途 |
-|------|------|
-| `server/world/ServerWorld.hpp` | 世界中的玩家实体管理 |
-| `server/core/PlayerManager.hpp` | 玩家创建、销毁、查询 |
-| `server/dimension/ServerDimension.hpp` | 维度传送时更新玩家世界引用 |
-| `server/application/MinecraftServer.hpp` | 服务器主类持有玩家引用；持有 `PlayerRespawnManager` |
-| `server/network/play/PlayerStateHandler.cpp` | 处理 `ClientCommand(PERFORM_RESPAWN)`，转入重生流程 |
+应用层装配服务，网络处理器调用领域入口；世界玩家实体管理和区块同步分别处理实体可见性与订阅。
 
 ## 容易踩的坑
+
+- PacketSender 只投递包，PlayerConnectionManager 关闭连接，PlayerManager 统一移除记录。
+- 玩家移除前释放菜单、实体和区块资源，移除后通知剩余玩家；重复移除不得重复通知。
+- 玩家移动与区块订阅分开，订阅统一使用 ChunkSyncManager 持有的 tracker。
 
 ### 1. ServerPlayer vs ServerPlayerData 的混淆
 

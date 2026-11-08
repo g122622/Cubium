@@ -23,8 +23,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "util/math/random/Random.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <memory>
 #include <optional>

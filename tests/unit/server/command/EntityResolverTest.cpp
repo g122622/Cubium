@@ -37,7 +37,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/command/ServerCommandSource.hpp"

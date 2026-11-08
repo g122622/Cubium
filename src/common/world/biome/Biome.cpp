@@ -25,14 +25,14 @@
 #include "BiomeClimate.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/cache/Long2FloatLRUCache.hpp"
+#include "common/util/math/noise/PerlinSimplexNoise.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <cmath>
 #include <string_view>
 

@@ -191,9 +191,10 @@ Result<std::unique_ptr<Structure>> createMineshaft(const StructureDefinition& de
 /**
  * @brief 下界化石工厂
  *
- * 化石落点由数据包 `height` 高度提供者决定（原版 `NetherFossilStructure.height`），
- *
- * 缺少该字段就无法复刻落点，直接报错而不是退化成固定高度。
+ * 化石落点由数据包 `height` 高度提供者决定（原版
+ * `NetherFossilStructure.height`），
+
+ * * 缺少该字段就无法复刻落点，直接报错而不是退化成固定高度。
  */
 Result<std::unique_ptr<Structure>> createNetherFossil(const StructureDefinition& def)
 {

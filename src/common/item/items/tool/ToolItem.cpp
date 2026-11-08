@@ -33,10 +33,10 @@
 #include "common/item/items/tool/TieredItem.hpp"
 #include "common/item/items/tool/ToolType.hpp"
 #include "common/item/tier/IItemTier.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/Material.hpp"
-#include "world/block/registry/HarvestToolTable.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/HarvestToolTable.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <string>
 #include <unordered_set>
 #include <utility>

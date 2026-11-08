@@ -40,8 +40,8 @@ ExplosionContext ◄─────────── Explosion ──► Explos
 | 模块 | 用途 |
 |------|------|
 | `common/world/IWorld` | 世界接口，获取方块、实体、流体等 |
-| `common/world/block/Block` | 方块定义，爆炸抗性、掉落表等 |
-| `common/world/block/BlockTags` | 方块标签系统（WITHER_IMMUNE 等） |
+| `common/world/block/core/Block` | 方块定义，爆炸抗性、掉落表等 |
+| `common/world/block/core/BlockTags` | 方块标签系统（WITHER_IMMUNE 等） |
 | `common/world/fluid/Fluid` | 流体状态，影响爆炸抗性计算 |
 | `common/entity/core/Entity` | 实体基类，伤害、击退、免疫检测 |
 | `common/entity/damage/DamageSource` | 伤害来源，爆炸伤害类型 |

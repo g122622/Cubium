@@ -23,14 +23,14 @@
 
 #include "Placement.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/noise/PerlinSimplexNoise.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include <algorithm>

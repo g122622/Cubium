@@ -29,7 +29,7 @@
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <string>
 #include <vector>
 

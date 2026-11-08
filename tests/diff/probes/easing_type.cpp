@@ -85,7 +85,7 @@
  */
 
 #include "common/core/Types.hpp"
-#include "common/world/timeline/EasingType.hpp"
+#include "common/world/time/timeline/EasingType.hpp"
 #include "probe.hpp"
 #include <cstdio>
 #include <cstdlib>

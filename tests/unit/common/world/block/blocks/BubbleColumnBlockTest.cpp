@@ -24,14 +24,14 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/nether/MagmaBlock.hpp"
 #include "world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "world/border/WorldBorder.hpp"

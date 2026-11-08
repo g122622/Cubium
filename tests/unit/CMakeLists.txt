@@ -1055,17 +1055,17 @@ add_executable(mc_tests
     # ChunkSnapshot 已删除（可变 ChunkPrimer 模型取代不可变快照）
     server/test_server_chunk_manager.cpp
     server/world/ChunkGenerationDemandTest.cpp
-    server/core/TimeManagerTest.cpp
-    server/core/PlayerManagerTest.cpp
-    server/core/ConnectionManagerTest.cpp
-    server/core/TeleportManagerTest.cpp
-    server/core/KeepAliveManagerTest.cpp
-    server/core/PositionTrackerTest.cpp
-    server/core/WhitelistManagerTest.cpp
-    server/core/BannedPlayerListTest.cpp
-    server/core/BannedIpListTest.cpp
-    server/core/OpListManagerTest.cpp
-    server/core/PermissionResolverTest.cpp
+    server/world/time/TimeManagerTest.cpp
+    server/player/lifecycle/PlayerManagerTest.cpp
+    server/network/outbound/PacketSenderTest.cpp
+    server/network/sync/player/TeleportManagerTest.cpp
+    server/network/session/keepalive/KeepAliveManagerTest.cpp
+    server/player/movement/PlayerMovementManagerTest.cpp
+    server/access/admission/WhitelistManagerTest.cpp
+    server/access/admission/BannedPlayerListTest.cpp
+    server/access/admission/BannedIpListTest.cpp
+    server/access/permission/OpListManagerTest.cpp
+    server/access/permission/PermissionResolverTest.cpp
     # PacketHandler 测试已删除：handleMoveVehicle/handlePlayerInput/handleEntityAction/
     # handleSteerBoat/handleUseEntity 在新网络层已实现于 ServerPlayHandler，
     # sendVehicleMoveCorrection/isEntityCollidingWithAnythingNew 的 cpp 实现已删除。
@@ -1664,13 +1664,13 @@ add_executable(mc_tests
     # WorldGenRegion区块访问窗口验证测试
     common/world/gen/chunk/WorldGenRegionAccessTest.cpp
     # Timeline 时间线体系单元测试（关键帧采样语义、预定义村民日程）
-    common/world/timeline/TimelineTest.cpp
+    common/world/time/timeline/TimelineTest.cpp
     # EasingType 缓动函数（端点收敛、单调性、具体数值锚定）测试
-    common/world/timeline/EasingTypeTest.cpp
+    common/world/time/timeline/EasingTypeTest.cpp
     # 环境属性系统与预定义时间线（修改器、DAY/MOON/EARLY_GAME、层序与维度装配）测试
     common/world/attribute/EnvironmentAttributeTest.cpp
     # ChunkStep byRadius[] 查找表单元测试（对齐 Moonrise ChunkStepMixin）
-    common/world/chunk/gen/ChunkStepByRadiusTest.cpp
+    server/world/chunk/pipeline/ChunkStepByRadiusTest.cpp
     # NoiseColumn单元测试
     common/world/gen/chunk/NoiseColumnTest.cpp
     # FlatChunkGenerator详细单元测试
@@ -1864,17 +1864,19 @@ add_executable(mc_tests
 # 添加服务端源文件
 target_sources(mc_tests
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/lifecycle/PlayerManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketSender.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/PlayerConnectionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/AccessManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/time/TimeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/player/TeleportManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/keepalive/KeepAliveManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/movement/PlayerMovementManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/gamemode/GameModeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/WhitelistManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedPlayerList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedIpList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/permission/OpListManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/scheduling/AreaTaskScheduler.cpp
@@ -2068,7 +2070,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
-        # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/ConnectionManager.cpp，
+        # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/PacketSender.cpp，
         # 它们引用 ServerNetwork/ServerHandshake/ServerPlayHandler/RegistryDataBuilder 的符号，
         # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）
         # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
@@ -2093,7 +2095,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/SessionSignalHandler.cpp
-        # 出站构造与广播：命令经 builder + connectionManager 投递，
+        # 出站构造与广播：命令经 builder + packetSender 投递，
         # mc_tests 编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
@@ -2109,7 +2111,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkLoadTicketManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/gen/ChunkStatus.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/Heightmap.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
         # 存储系统已抽为 mc_server_storage OBJECT 库（src/server/world/storage/），
@@ -2277,20 +2278,20 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Activity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/attribute/AttributeTypes.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/attribute/EnvironmentAttributes.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/timeline/Timelines.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/time/timeline/Timelines.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/PhysicsEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/CollisionCache.cpp
         # ${CMAKE_SOURCE_DIR}/src/common/physics/collision/BlockCollision.cpp  # 已移除 - 使用新的方块系统
         # 新的方块系统源文件
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/FireInfoRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/base/material/Material.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/core/Block.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/BlockRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/vanilla/VanillaBlocks.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/air/AirBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/SimpleBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/RotatedPillarBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/fire/FireInfoRegistry.cpp
         # 时间系统
         ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
         # 物品系统
@@ -2789,13 +2790,13 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/common/resource/pack/IResourcePack.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/pack/PackMetadata.cpp
             # 方块系统
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/base/material/Material.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/core/Block.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/BlockRegistry.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/vanilla/VanillaBlocks.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/air/AirBlock.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/SimpleBlock.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/RotatedPillarBlock.cpp
             # 设置
             ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
             # 按键绑定（自 common/input 迁入 client/input）

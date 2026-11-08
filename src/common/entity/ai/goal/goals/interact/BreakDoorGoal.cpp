@@ -28,11 +28,11 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <utility>
@@ -159,7 +159,7 @@ void BreakDoorGoal::tick()
     // 随机播放攻击音效和挥臂动画（平均每20 tick一次）
     if (m_breakTime % 20 == 0 && m_breakTime > 0) {
         // 播放僵尸攻击木门音效
-        m_mob->world()->playEvent(world::WorldEvents::ZOMBIE_ATTACK_DOOR_WOOD_SOUND, m_doorPos, 0);
+        m_mob->world()->playEvent(::mc::world::LevelEventId::SOUND_ZOMBIE_WOODEN_DOOR, m_doorPos, 0);
 
         // 挥臂动画
         m_mob->swingArm();
@@ -185,11 +185,11 @@ void BreakDoorGoal::tick()
         const BlockState* doorState = m_mob->world()->getBlockState(m_doorPos);
         if (doorState) {
             // 播放门被破坏的音效
-            m_mob->world()->playEvent(world::WorldEvents::ZOMBIE_BREAK_DOOR_WOOD_SOUND, m_doorPos, 0);
+            m_mob->world()->playEvent(::mc::world::LevelEventId::SOUND_ZOMBIE_DOOR_CRASH, m_doorPos, 0);
 
             // 播放方块破坏粒子效果
             m_mob->world()->playEvent(
-                world::WorldEvents::BREAK_BLOCK_EFFECTS, m_doorPos, static_cast<i32>(doorState->stateId()));
+                ::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, m_doorPos, static_cast<i32>(doorState->stateId()));
 
             // 将门方块设为空气
             const BlockState* airState = BlockRegistry::instance().airState();

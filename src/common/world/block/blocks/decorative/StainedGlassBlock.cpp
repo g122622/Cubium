@@ -26,10 +26,10 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/color/DyeColor.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/IBeaconBeamColorProvider.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/capability/IBeaconBeamColorProvider.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <array>
 
 namespace mc {

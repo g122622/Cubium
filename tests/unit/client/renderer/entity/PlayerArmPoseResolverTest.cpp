@@ -44,7 +44,7 @@
 #include "common/item/core/UseAction.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 

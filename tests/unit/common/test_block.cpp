@@ -32,20 +32,20 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
-#include "common/world/block/blocks/RotatedPillarBlock.hpp"
+#include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/blocks/base/RotatedPillarBlock.hpp"
 #include "common/world/block/blocks/coral/CoralBlock.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/block/blocks/functional/CakeBlock.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -875,7 +875,7 @@ TEST(BlockTest, BlockWithoutExplicitStateContainer_HasValidDefaultState)
 
 TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates)
 {
-    const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 8.0f, 16.0f);
+    const CollisionShape shape = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 8.0f, 16.0f);
     ASSERT_EQ(shape.boxCount(), 1u);
 
     const AxisAlignedBB& box = shape.boxes().front();
@@ -889,7 +889,7 @@ TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates)
 
 TEST(VoxelShapesTest, CubeAcceptsNormalizedCoordinates)
 {
-    const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    const CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
     ASSERT_EQ(shape.boxCount(), 1u);
 
     const AxisAlignedBB& box = shape.boxes().front();

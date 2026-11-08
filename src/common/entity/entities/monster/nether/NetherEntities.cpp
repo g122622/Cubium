@@ -63,10 +63,10 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
+#include "common/world/block/registry/vanilla/NetherBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include <cmath>
 #include <limits>
 #include <memory>

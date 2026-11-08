@@ -24,8 +24,8 @@
 #include "PlaceOnGroundDecorator.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 

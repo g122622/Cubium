@@ -46,19 +46,19 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
-#include "common/world/block/registry/VegetationBlocks.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/registry/vanilla/CaveBlocks.hpp"
+#include "common/world/block/registry/vanilla/VegetationBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -1120,7 +1120,7 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
         world->setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
         // 区别是不播放骨粉使用音效
-        world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
+        world->playEvent(::mc::world::LevelEventId::PARTICLES_BEE_GROWTH, pos, 15);
         return true;
     }
 

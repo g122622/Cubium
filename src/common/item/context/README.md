@@ -93,7 +93,7 @@ BlockItemUseContext(IWorld& world,
 - `common/util/Direction.hpp` - 方向枚举与工具
 - `common/util/math/Vector3.hpp` - 向量类型
 - `common/util/math/ray/Raycast.hpp` - 射线检测结果类型
-- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/block/base/types/BlockPos.hpp` - 方块位置
 
 **依赖本目录的模块：**
 - `item/items/block/BlockItem.cpp` - 在 `onItemUse` 中将 `ItemUseContext` 转换为 `BlockItemUseContext`

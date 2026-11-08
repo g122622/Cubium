@@ -37,11 +37,11 @@
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/pale_garden/CreakingHeartBlock.hpp"
-#include "common/world/block/registry/PaleGardenBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/PaleGardenBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <map>

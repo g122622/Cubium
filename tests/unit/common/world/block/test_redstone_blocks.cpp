@@ -31,14 +31,14 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
-#include "common/world/block/blocks/FenceGateBlock.hpp"
-#include "common/world/block/blocks/HopperBlock.hpp"
-#include "common/world/block/blocks/building/TrapDoorBlock.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/container/HopperBlock.hpp"
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+#include "common/world/block/blocks/fencegate/FenceGateBlock.hpp"
 #include "common/world/block/blocks/redstone/RedstoneTorchBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/trapdoor/TrapDoorBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -392,7 +392,7 @@ TEST_F(RedstoneBlockTest, TrapDoorToggle_WoodenPlaysWoodenSound)
     const BlockState& closedState = trapDoor.defaultState();
 
     world.setBlockAt(pos, closedState);
-    TrapDoorBlock::toggle(world, pos, closedState, true);
+    static_cast<TrapDoorBlock&>(trapDoor).toggle(world, pos, closedState, true);
 
     ASSERT_FALSE(world.playedSoundIds().empty());
     EXPECT_EQ(world.playedSoundIds().back(), ResourceLocation("minecraft:block.wooden_trapdoor.open"));
@@ -406,7 +406,7 @@ TEST_F(RedstoneBlockTest, TrapDoorToggle_IronPlaysIronSound)
     const BlockState& openState = trapDoor.defaultState().with(BlockStateProperties::OPEN(), true);
 
     world.setBlockAt(pos, openState);
-    TrapDoorBlock::toggle(world, pos, openState, false);
+    static_cast<TrapDoorBlock&>(trapDoor).toggle(world, pos, openState, false);
 
     ASSERT_FALSE(world.playedSoundIds().empty());
     EXPECT_EQ(world.playedSoundIds().back(), ResourceLocation("minecraft:block.iron_trapdoor.close"));

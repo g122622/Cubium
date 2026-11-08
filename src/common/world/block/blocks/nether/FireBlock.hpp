@@ -29,11 +29,11 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include <array>
 
 // 测试 fixture 前向声明（全局命名空间，tests/common/world/block/blocks/FireBlockTest.cpp），

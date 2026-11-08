@@ -22,8 +22,8 @@
  */
 
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

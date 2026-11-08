@@ -23,9 +23,9 @@
 #pragma once
 
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/IGrowable.hpp"
-#include "common/world/block/blocks/SimpleBlock.hpp"
-#include "common/world/gen/feature/nether/FungusType.hpp"
+#include "common/world/block/blocks/base/SimpleBlock.hpp"
+#include "common/world/block/blocks/nether/base/FungusType.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
 #include <functional>
 
 namespace mc {

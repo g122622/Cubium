@@ -22,6 +22,7 @@
  */
 
 #include "OpCommand.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
@@ -30,16 +31,16 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -102,10 +103,10 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     // 获取 OP 列表管理器
-    auto& opList = server->opListManager();
+    auto& opList = server->accessManager();
 
     // 检查玩家是否已经是 OP
-    if (opList.isOp(playerData->uuid)) {
+    if (opList.operatorIsOp(playerData->uuid)) {
         std::ostringstream ss;
         ss << "commands.op.failed";
         source.sendError(ss.str());
@@ -114,20 +115,20 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
 
     // 创建 OP 条目
     // 默认 OP 等级为 2（GameMaster），可通过服务器配置设置
-    server::core::OpEntry entry(playerData->uuid,
+    server::OpEntry entry(playerData->uuid,
         playerData->username,
-        server::core::OpLevel::GameMaster, // 默认等级 2
-        false                              // bypassesPlayerLimit
+        server::OpLevel::GameMaster, // 默认等级 2
+        false                        // bypassesPlayerLimit
     );
 
     // 添加到 OP 列表
-    if (!opList.setEntry(entry)) {
+    if (!opList.operatorSetEntry(entry)) {
         source.sendError("commands.op.failed");
         return 0;
     }
 
     // 保存 OP 列表
-    auto saveResult = opList.save();
+    auto saveResult = opList.operatorSave();
     if (saveResult.failed()) {
         spdlog::error("Failed to save ops.json: {}", saveResult.error().message());
     }
@@ -135,13 +136,13 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
     // 更新在线玩家实体的权限等级
     if (auto* world = server->getPlayerWorld(targetId)) {
         if (Player* player = server->playerEntityManager().getPlayerEntity(targetId, *world)) {
-            i32 newLevel = static_cast<i32>(opList.getLevel(playerData->uuid));
+            i32 newLevel = static_cast<i32>(opList.operatorGetLevel(playerData->uuid));
             player->setPermissionLevel(newLevel);
 
-            // 通知客户端权限等级变更并同步命令树（批5b：经 builder + connectionManager
+            // 通知客户端权限等级变更并同步命令树（批5b：经 builder + packetSender
             // 投递，原 IServer::sendPermissionLevelChange 纯虚已删。对齐原实现：先发
             // EntityEvent(24+level)，再发命令树刷新可用命令列表）。
-            auto& conn = server->connectionManager();
+            auto& conn = server->packetSender();
             conn.sendToPlayer(
                 targetId, mc::server::net::buildPermissionLevelChangeIr(static_cast<i32>(player->id()), newLevel));
             if (auto commands = mc::server::net::buildCommandsIr(server->commandRegistry())) {

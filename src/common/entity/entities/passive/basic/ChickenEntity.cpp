@@ -45,8 +45,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 

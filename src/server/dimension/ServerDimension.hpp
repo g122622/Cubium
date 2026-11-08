@@ -25,7 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

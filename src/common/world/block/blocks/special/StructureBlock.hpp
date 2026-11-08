@@ -27,10 +27,10 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/GameMasterBlock.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/capability/GameMasterBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
 

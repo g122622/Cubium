@@ -26,7 +26,7 @@
 #include "common/WorldGenRegistryFixture.hpp"
 #include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"

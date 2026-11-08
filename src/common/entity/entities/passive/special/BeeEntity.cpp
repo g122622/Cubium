@@ -59,10 +59,10 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/attribute/EnvironmentAttributes.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
-#include "common/world/block/registry/VegetationBlocks.hpp"
+#include "common/world/block/registry/vanilla/VegetationBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include <cstdlib>

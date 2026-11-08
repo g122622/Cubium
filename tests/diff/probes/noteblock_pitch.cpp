@@ -60,9 +60,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/redstone/NoteBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include "vanilla_datapack.hpp"
 

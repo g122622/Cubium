@@ -29,7 +29,7 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/base/ScheduledTick.hpp"
 #include "common/world/tick/base/TickPriority.hpp"

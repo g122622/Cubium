@@ -115,7 +115,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/world/block/blocks/functional/CompostableItems.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"

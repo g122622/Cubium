@@ -40,8 +40,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 using namespace mc::trace;
 

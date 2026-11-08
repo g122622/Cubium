@@ -26,9 +26,9 @@
 #include "MapBanner.hpp"
 #include "MapDecoration.hpp"
 #include "MapFrame.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "core/Types.hpp"
 #include "util/nbt/Nbt.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/dimension/MapDimensionId.hpp"
 #include <array>
 #include <map>

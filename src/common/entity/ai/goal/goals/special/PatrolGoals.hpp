@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <string>
 #include <vector>
 

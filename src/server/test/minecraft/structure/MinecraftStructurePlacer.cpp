@@ -1,20 +1,20 @@
 #include "server/test/minecraft/structure/MinecraftStructurePlacer.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 
 #include "common/core/Types.hpp" // i32
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/assert/AssertMacros.hpp"  // MC_ASSERT_RELEASE
-#include "common/world/IWorld.hpp"              // IWorld（setBlockState/getRandom）
-#include "common/world/WorldConstants.hpp"      // MAX_BUILD_HEIGHT
-#include "common/world/block/BlockRegistry.hpp" // mc::BlockRegistry::airState
-#include "common/world/block/BlockState.hpp"
+#include "common/util/assert/AssertMacros.hpp"           // MC_ASSERT_RELEASE
+#include "common/world/IWorld.hpp"                       // IWorld（setBlockState/getRandom）
+#include "common/world/WorldConstants.hpp"               // MAX_BUILD_HEIGHT
+#include "common/world/block/registry/BlockRegistry.hpp" // mc::BlockRegistry::airState
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/ServerChunkManager.hpp" // ServerChunkManager（chunkManager()->ticketManager()）
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/feature/template/Template.hpp"        // Template + PlacementSettings
 #include "server/world/gen/feature/template/TemplateManager.hpp" // TemplateManager
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"           // JigsawAssembler::getTemplateManager
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
 #include <algorithm> // std::max
 #include <spdlog/spdlog.h>

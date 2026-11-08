@@ -26,12 +26,12 @@
 #include "common/TestWorldHelper.hpp"
 
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/BaseBlocks.hpp"
-#include "common/world/block/registry/BuildingVariantBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/BaseBlocks.hpp"
+#include "common/world/block/registry/vanilla/BuildingVariantBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "server/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 

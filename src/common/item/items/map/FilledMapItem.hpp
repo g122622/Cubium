@@ -28,7 +28,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/UseAction.hpp"
 #include "common/item/items/map/AbstractMapItem.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include <string>
 #include <vector>

@@ -26,9 +26,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"

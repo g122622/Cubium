@@ -26,10 +26,10 @@
 
 #include "common/item/Items.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"

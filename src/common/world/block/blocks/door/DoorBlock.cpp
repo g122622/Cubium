@@ -1,0 +1,475 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
+
+namespace mc {
+namespace blocks {
+
+DoorBlock::DoorBlock(const BlockProperties& properties, const BlockSetType& type)
+    : Block(BlockProperties(properties).soundType(type.soundType))
+    , m_type(type)
+{
+    // 原版门全部注册 noOcclusion（Blocks 中每个 *_door 的 Properties 都调用 noOcclusion()）。
+    // 放在构造函数里而不是每个注册点，避免新增门时漏写导致门被当成实心遮挡体
+    // （会错误地挡住天空光、影响面剔除与光照传播）。
+    m_canOcclude = false;
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .add(BlockStateProperties::OPEN())
+            .add(BlockStateProperties::HINGE())
+            .add(BlockStateProperties::POWERED())
+            .create([](const Block& block,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::OPEN(), false)
+            .with(BlockStateProperties::HINGE(), BlockStateProperties::DoorHinge::Left)
+            .with(BlockStateProperties::POWERED(), false));
+
+    // 门极是 3 像素厚的板。索引 0..3 为关闭（贴在与 facing 相反的一侧，与 hinge 无关），
+    // 4..7 为打开（转到垂直方向的侧面，左右由 hinge 决定）。全部按原版 forAllBoxes 实测：
+    //
+    //   关闭 north -> z 0.8125..1   关闭 south -> z 0..0.1875
+    //   关闭 east  -> x 0..0.1875   关闭 west  -> x 0.8125..1
+    //
+    //   打开 north/left  -> x 0..0.1875      打开 north/right -> x 0.8125..1
+    //   打开 east/left   -> z 0..0.1875      打开 east/right  -> z 0.8125..1
+    //   打开 south/left  -> x 0.8125..1      打开 south/right -> x 0..0.1875
+    //   打开 west/left   -> z 0.8125..1      打开 west/right  -> z 0..0.1875
+    constexpr f32 T = 3.0f;  // 板厚（像素）
+    constexpr f32 S = 16.0f; // 边长
+    m_shapes[0] =
+        CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, T, S, S); // 关闭 east  / 打开 north-left / 打开 south-right
+    m_shapes[1] = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, S, S, T); // 关闭 south / 打开 east-left
+    m_shapes[2] =
+        CollisionShape::fromPixelBox(S - T, 0.0f, 0.0f, S, S, S); // 关闭 west  / 打开 north-right / 打开 south-left
+    m_shapes[3] =
+        CollisionShape::fromPixelBox(0.0f, 0.0f, S - T, S, S, S); // 关闭 north / 打开 east-right / 打开 west-left
+    m_shapes[4] = m_shapes[2];
+    m_shapes[5] = m_shapes[1];
+    m_shapes[6] = m_shapes[0];
+    m_shapes[7] = m_shapes[3];
+}
+
+BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    BlockPos pos = context.placementPos();
+    IWorld& world = const_cast<IWorld&>(context.getWorld());
+
+    // 检查上方位置是否可替换（空气、花草、水等 canBeReplaced=true 的方块）
+    // canBeReplaced() 已包含 isAir() 的语义（空气方块的 Material::AIR.isReplaceable()=true）
+    const BlockState* upState = world.getBlockState(pos.up());
+    if (pos.y >= world::MAX_BUILD_HEIGHT - 1 || upState == nullptr || !upState->canBeReplaced()) {
+        return defaultState();
+    }
+
+    const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos) ||
+        world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos.up());
+
+    return defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), context.horizontalDirection())
+        .with(BlockStateProperties::HINGE(), _calculateHingeSide(context))
+        .with(BlockStateProperties::POWERED(), powered)
+        .with(BlockStateProperties::OPEN(), powered)
+        .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+}
+
+void DoorBlock::onBlockPlacedBy(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* placer, const ItemStack& stack)
+{
+    MC_UNUSED(placer);
+    MC_UNUSED(stack);
+
+    BlockPos abovePos = pos.up();
+    BlockState upperState =
+        state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    world.setBlockState(abovePos, &upperState, world::BlockUpdateFlags::UPDATE_ALL);
+}
+
+void DoorBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
+    MC_UNUSED(neighborBlock);
+    MC_UNUSED(neighborPos);
+    MC_UNUSED(isMoving);
+
+    const BlockState* statePtr = world.getBlockState(pos);
+    if (statePtr == nullptr || &statePtr->getBlock() != this) {
+        return;
+    }
+
+    BlockState state = *statePtr;
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    BlockStateProperties::DoubleBlockHalf otherHalf = (half == BlockStateProperties::DoubleBlockHalf::Lower)
+        ? BlockStateProperties::DoubleBlockHalf::Upper
+        : BlockStateProperties::DoubleBlockHalf::Lower;
+    BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower) ? BlockPos(pos.x, pos.y + 1, pos.z)
+                                                                                   : BlockPos(pos.x, pos.y - 1, pos.z);
+
+    const bool powered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos) ||
+        world::redstone::RedstoneSystem::instance().isBlockPowered(world, otherHalfPos);
+    bool wasPowered = state.get(BlockStateProperties::POWERED());
+
+    if (powered != wasPowered) {
+        bool wasOpen = state.get(BlockStateProperties::OPEN());
+        BlockState newState =
+            state.with(BlockStateProperties::POWERED(), powered).with(BlockStateProperties::OPEN(), powered);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+        const BlockState* otherStatePtr = world.getBlockState(otherHalfPos);
+        if (otherStatePtr != nullptr && &otherStatePtr->getBlock() == this &&
+            otherStatePtr->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == otherHalf) {
+            BlockState otherState = newState.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), otherHalf);
+            world.setBlockState(otherHalfPos, &otherState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        }
+        if (wasOpen != powered) {
+            _playSound(world, pos, powered);
+        }
+    }
+}
+
+BlockState DoorBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
+
+    MC_UNUSED(facingPos);
+
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+
+    if (Directions::getAxis(facing) == Axis::Y) {
+        bool isLower = half == BlockStateProperties::DoubleBlockHalf::Lower;
+        bool isUpDirection = facing == Direction::Up;
+
+        if (isLower == isUpDirection) {
+            if (&facingState.getBlock() == this && facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != half) {
+                return state
+                    .with(BlockStateProperties::HORIZONTAL_FACING(),
+                        facingState.get(BlockStateProperties::HORIZONTAL_FACING()))
+                    .with(BlockStateProperties::OPEN(), facingState.get(BlockStateProperties::OPEN()))
+                    .with(BlockStateProperties::HINGE(), facingState.get(BlockStateProperties::HINGE()))
+                    .with(BlockStateProperties::POWERED(), facingState.get(BlockStateProperties::POWERED()));
+            }
+            return VanillaBlocks::AIR->defaultState();
+        }
+    }
+
+    if (half == BlockStateProperties::DoubleBlockHalf::Lower && facing == Direction::Down) {
+        BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState == nullptr || !belowState->isSolidSide(world, belowPos, Direction::Up)) {
+            return VanillaBlocks::AIR->defaultState();
+        }
+    }
+
+    return state;
+}
+
+bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    if (half == BlockStateProperties::DoubleBlockHalf::Lower) {
+        // 对应原版 DoorBlock#canSurvive 的下半分支：
+        //   below.isFaceSturdy(world, belowPos, Direction.UP)   // 默认 SupportType.FULL
+        // 原先用 isSolidSide(UP)，那只是「是固体且有碰撞」，箱子/漏斗这类上表面不满
+        // 14/16 的方块会被误判成能支撑门（由差分能力 block_support 查出）。
+        const BlockPos belowPos = pos.down();
+        const BlockState* belowState = world.getBlockState(belowPos);
+        return belowState != nullptr &&
+            belowState->isFaceSturdy(static_cast<IWorld&>(world), belowPos, Direction::Up, SupportType::Full);
+    }
+
+    const BlockState* belowState = world.getBlockState(pos.down());
+    return belowState != nullptr && &belowState->getBlock() == this &&
+        belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+}
+
+BlockActionResult DoorBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+
+    MC_UNUSED(player);
+    MC_UNUSED(hit);
+
+    if (!m_type.canOpenByHand) {
+        return ActionResultType::Pass;
+    }
+
+    toggleDoor(world, pos, !state.get(BlockStateProperties::OPEN()));
+    return ActionResultType::Success;
+}
+
+void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open)
+{
+    const BlockState* statePtr = world.getBlockState(pos);
+    if (statePtr == nullptr || &statePtr->getBlock() != this) {
+        return;
+    }
+
+    BlockState state = *statePtr;
+    if (state.get(BlockStateProperties::OPEN()) == open) {
+        return;
+    }
+
+    BlockStateProperties::DoubleBlockHalf half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    BlockStateProperties::DoubleBlockHalf otherHalf = (half == BlockStateProperties::DoubleBlockHalf::Lower)
+        ? BlockStateProperties::DoubleBlockHalf::Upper
+        : BlockStateProperties::DoubleBlockHalf::Lower;
+    BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower) ? pos.up() : pos.down();
+
+    BlockState newState = state.with(BlockStateProperties::OPEN(), open);
+    world.setBlockState(
+        pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_IMMEDIATE);
+    BlockState otherState = newState.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), otherHalf);
+    world.setBlockState(
+        otherHalfPos, &otherState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_IMMEDIATE);
+    _playSound(world, pos, open);
+}
+
+const CollisionShape& DoorBlock::getShape(const BlockState& state) const
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    bool open = state.get(BlockStateProperties::OPEN());
+    bool hingeRight = state.get(BlockStateProperties::HINGE()) == BlockStateProperties::DoorHinge::Right;
+    return m_shapes[_getShapeIndex(facing, open, hingeRight)];
+}
+
+const CollisionShape& DoorBlock::getCollisionShape(const BlockState& state) const
+{
+    return getShape(state);
+}
+
+const BlockState& DoorBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    Direction rotated = Directions::rotateDirection(facing, rotation);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), rotated);
+}
+
+const BlockState& DoorBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    if (mirror == Mirror::None) {
+        return state;
+    }
+
+    Rotation rotation = Directions::mirrorToRotation(mirror, state.get(BlockStateProperties::HORIZONTAL_FACING()));
+    const BlockState& rotated = rotate(state, rotation);
+    BlockStateProperties::DoorHinge hinge = rotated.get(BlockStateProperties::HINGE());
+    BlockStateProperties::DoorHinge newHinge = (hinge == BlockStateProperties::DoorHinge::Left)
+        ? BlockStateProperties::DoorHinge::Right
+        : BlockStateProperties::DoorHinge::Left;
+    return rotated.with(BlockStateProperties::HINGE(), newHinge);
+}
+
+bool DoorBlock::isOpen(const BlockState& state) noexcept
+{
+    return state.get(BlockStateProperties::OPEN());
+}
+
+bool DoorBlock::isHandOpenable(const BlockState& state) noexcept
+{
+    const Block* block = &state.getBlock();
+    if (auto* doorBlock = dynamic_cast<const DoorBlock*>(block)) {
+        return doorBlock->type().canOpenByHand;
+    }
+    return false;
+}
+
+BlockStateProperties::DoorHinge DoorBlock::_calculateHingeSide(BlockItemUseContext& context)
+{
+    const IWorld& reader = context.getWorld();
+    BlockPos pos = context.placementPos();
+    Direction facing = context.horizontalDirection();
+
+    Direction leftDir = Directions::rotateYCCW(facing);
+    Direction rightDir = Directions::rotateY(facing);
+
+    BlockPos leftPos(pos.x + Directions::xOffset(leftDir), pos.y, pos.z + Directions::zOffset(leftDir));
+    BlockPos leftUpPos(leftPos.x, leftPos.y + 1, leftPos.z);
+    BlockPos rightPos(pos.x + Directions::xOffset(rightDir), pos.y, pos.z + Directions::zOffset(rightDir));
+    BlockPos rightUpPos(rightPos.x, rightPos.y + 1, rightPos.z);
+
+    const BlockState* leftState = reader.getBlockState(leftPos);
+    const BlockState* leftUpState = reader.getBlockState(leftUpPos);
+    const BlockState* rightState = reader.getBlockState(rightPos);
+    const BlockState* rightUpState = reader.getBlockState(rightUpPos);
+
+    i32 score = 0;
+    if (leftState != nullptr && leftState->hasOpaqueCollisionShape()) {
+        score--;
+    }
+    if (leftUpState != nullptr && leftUpState->hasOpaqueCollisionShape()) {
+        score--;
+    }
+    if (rightState != nullptr && rightState->hasOpaqueCollisionShape()) {
+        score++;
+    }
+    if (rightUpState != nullptr && rightUpState->hasOpaqueCollisionShape()) {
+        score++;
+    }
+
+    bool hasLeftDoor = leftState != nullptr && &leftState->getBlock() == this &&
+        leftState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+    bool hasRightDoor = rightState != nullptr && &rightState->getBlock() == this &&
+        rightState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+
+    if ((!hasLeftDoor || hasRightDoor) && score <= 0) {
+        if ((!hasRightDoor || hasLeftDoor) && score >= 0) {
+            i32 dx = Directions::xOffset(facing);
+            i32 dz = Directions::zOffset(facing);
+            f32 hitX = context.getHitX() - static_cast<f32>(pos.x);
+            f32 hitZ = context.getHitZ() - static_cast<f32>(pos.z);
+
+            if ((dx >= 0 || !(hitZ < 0.5f)) && (dx <= 0 || !(hitZ > 0.5f)) && (dz >= 0 || !(hitX > 0.5f)) &&
+                (dz <= 0 || !(hitX < 0.5f))) {
+                return BlockStateProperties::DoorHinge::Left;
+            }
+            return BlockStateProperties::DoorHinge::Right;
+        }
+        return BlockStateProperties::DoorHinge::Left;
+    }
+    return BlockStateProperties::DoorHinge::Right;
+}
+
+void DoorBlock::_playSound(IWorld& world, const BlockPos& pos, bool isOpening)
+{
+    world.playSound(isOpening ? m_type.doorOpen : m_type.doorClose,
+        sound::SoundCategory::Blocks,
+        pos.center(),
+        1.0f,
+        world.getRandom().nextFloat() * 0.1f + 0.9f);
+
+    // 开/关是方块状态变化，要让附近幽匿感测体听到：开启发 BLOCK_OPEN、关闭发 BLOCK_CLOSE。
+    world.gameEvent(isOpening ? gameevent::GameEvents::BLOCK_OPEN : gameevent::GameEvents::BLOCK_CLOSE,
+        pos,
+        static_cast<const BlockState*>(nullptr));
+}
+
+size_t DoorBlock::_getShapeIndex(Direction facing, bool open, bool hingeRight) noexcept
+{
+    // 关闭：板贴在与 facing 相反的一侧，左右 hinge 不影响几何。
+    if (!open) {
+        switch (facing) {
+            case Direction::East:
+                return 0; // x 0..3
+            case Direction::South:
+                return 1; // z 0..3
+            case Direction::West:
+                return 2; // x 13..16
+            case Direction::North:
+                return 3; // z 13..16
+            default:
+                return 0;
+        }
+    }
+
+    // 打开：板转 90 度贴到侧面，左右由 hinge 决定。
+    if (hingeRight) {
+        switch (facing) {
+            case Direction::East:
+                return 3; // z 13..16
+            case Direction::South:
+                return 0; // x 0..3
+            case Direction::West:
+                return 1; // z 0..3
+            case Direction::North:
+                return 2; // x 13..16
+            default:
+                return 2;
+        }
+    }
+    switch (facing) {
+        case Direction::East:
+            return 1; // z 0..3
+        case Direction::South:
+            return 2; // x 13..16
+        case Direction::West:
+            return 3; // z 13..16
+        case Direction::North:
+            return 0; // x 0..3
+        default:
+            return 0;
+    }
+}
+
+bool DoorBlock::isPathfindable(const BlockState& state, PathComputationType type) const
+{
+    // 门开则 LAND/AIR 可通行；WATER 恒不可通行（门不在水里）。
+    switch (type) {
+        case PathComputationType::Water:
+            return false;
+        case PathComputationType::Land:
+        case PathComputationType::Air:
+        default:
+            return state.get(BlockStateProperties::OPEN());
+    }
+}
+
+} // namespace blocks
+} // namespace mc

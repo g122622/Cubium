@@ -20,12 +20,12 @@
  *
  */
 
-#include "world/block/blocks/LightningRodBlock.hpp"
+#include "common/world/block/blocks/redstone/lightningrod/LightningRodBlock.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/CopperBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/CopperBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"

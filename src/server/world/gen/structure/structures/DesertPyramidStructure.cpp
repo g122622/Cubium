@@ -31,16 +31,16 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/TrailsBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/TrailsBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
 #include <algorithm>
 #include <memory>

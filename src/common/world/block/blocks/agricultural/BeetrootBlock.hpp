@@ -27,9 +27,9 @@
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/IntegerProperty.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <array>
 
 namespace mc {

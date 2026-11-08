@@ -30,8 +30,8 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>

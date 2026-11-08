@@ -30,7 +30,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
 
 #include <cstddef>
 #include <memory>

@@ -1,6 +1,6 @@
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "common/TempDirHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Types.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/storage/db/SectionKey.hpp"

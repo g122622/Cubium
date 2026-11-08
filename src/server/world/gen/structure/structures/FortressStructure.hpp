@@ -27,7 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <memory>

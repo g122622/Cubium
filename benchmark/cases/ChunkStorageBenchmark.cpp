@@ -22,7 +22,7 @@
  */
 
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "server/world/storage/db/SectionCodec.hpp"
 #include <benchmark/benchmark.h>

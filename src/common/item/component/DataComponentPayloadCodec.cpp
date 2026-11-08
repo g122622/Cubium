@@ -39,7 +39,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include <algorithm>
 #include <array>

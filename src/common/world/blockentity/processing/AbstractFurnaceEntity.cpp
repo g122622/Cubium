@@ -30,8 +30,9 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateHolder.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/LockableBlockEntity.hpp"
 #include "item/Items.hpp"
@@ -39,7 +40,6 @@
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include <algorithm>
 #include <initializer_list>
 #include <utility>

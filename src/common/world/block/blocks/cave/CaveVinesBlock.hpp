@@ -30,8 +30,8 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/growing_plant/GrowingPlantHeadBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 namespace blocks {

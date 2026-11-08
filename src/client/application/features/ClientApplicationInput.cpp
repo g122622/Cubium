@@ -31,7 +31,7 @@
 #include "common/network/protocol/GameActions.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/TimeUtils.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 
 #include "client/application/ClientAppStateMachine.hpp"
 #include "client/renderer/Camera.hpp"
@@ -44,8 +44,8 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <GLFW/glfw3.h>
 

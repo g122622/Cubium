@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/core/Constants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gen/SurfaceTestFixture.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

@@ -31,8 +31,9 @@
  */
 
 #include "TestWorldHelper.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/CaveBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
@@ -50,7 +51,6 @@
 #include "server/world/gen/feature/vegetation/BigMushroomFeature.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
 #include "util/math/MathUtils.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include <map>
 #include <gtest/gtest.h>
 

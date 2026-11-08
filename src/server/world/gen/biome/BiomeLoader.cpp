@@ -38,7 +38,7 @@
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "common/world/spawn/MobSpawnInfoJson.hpp"
 #include "server/world/gen/carver/ConfiguredCarverRegistry.hpp"

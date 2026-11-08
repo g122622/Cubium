@@ -22,7 +22,7 @@
  */
 
 #include "DriedKelpBlock.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <utility>
 
 namespace mc {

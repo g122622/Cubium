@@ -42,7 +42,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 

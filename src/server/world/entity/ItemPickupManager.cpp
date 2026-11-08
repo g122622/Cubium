@@ -44,8 +44,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include <algorithm>
@@ -286,7 +286,7 @@ void ItemPickupManager::_sendCollectItem(
     IServer& server, EntityInstanceId entityId, EntityInstanceId collectorId, i32 pickupItemCount)
 {
     // 1.21.11 TakeItemEntity：itemId（被拾取实体）+ playerId（拾取者）+ amount。
-    // 旧路径用 connectionManager().broadcast 向所有玩家广播；新网络层无 IServer 级
+    // 旧路径用 packetSender().broadcast 向所有玩家广播；新网络层无 IServer 级
     // IR 广播接口，改为遍历在线玩家逐一发送（与 _sendItemEntityUpdate 同模式）。
     mc::network::ir::play::TakeItemEntity pkt;
     pkt.itemId = static_cast<i32>(entityId);

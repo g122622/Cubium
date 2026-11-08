@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/framework/instance/BaseGameTestInstance.hpp"
 #include "server/test/minecraft/structure/MinecraftStructurePlacer.hpp"
 #include "server/test/minecraft/structure/StructureBounds.hpp"

@@ -35,7 +35,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"

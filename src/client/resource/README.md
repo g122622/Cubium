@@ -72,7 +72,7 @@ AtlasManager（数据驱动统一图集，由 TridentEngine 持有）
 - `common/core/Types.hpp` - 基础类型
 - `common/core/Result.hpp` - 错误处理
 - `common/resource/` - 资源包接口、ResourceLocation
-- `common/world/block/Block.hpp` - 方块注册表
+- `common/world/block/core/Block.hpp` - 方块注册表
 - `common/item/` - 物品注册表
 - `client/renderer/MeshTypes.hpp` - TextureRegion 定义
 

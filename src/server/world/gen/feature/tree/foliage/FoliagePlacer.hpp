@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"

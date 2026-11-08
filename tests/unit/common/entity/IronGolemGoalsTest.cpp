@@ -30,7 +30,7 @@
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "entity/ai/goal/goals/special/IronGolemGoals.hpp"

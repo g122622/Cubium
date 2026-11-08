@@ -24,7 +24,10 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/misc/MiscEntities.hpp"
@@ -36,9 +39,6 @@
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/Material.hpp"
 #include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"

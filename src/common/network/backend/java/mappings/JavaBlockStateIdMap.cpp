@@ -27,8 +27,8 @@
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/generated/java_block_state_table.gen.hpp"
 #include "common/util/property/IProperty.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <spdlog/spdlog.h>
 

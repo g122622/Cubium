@@ -53,7 +53,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 #include <vector>

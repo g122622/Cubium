@@ -38,19 +38,19 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include "common/world/spawn/RespawnData.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/network/outbound/AttributeSnapshotBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/network/sync/WeatherSyncService.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/PlayerSpawnFinder.hpp"
@@ -506,7 +506,7 @@ void LoginFlow::sendCommandTreePacket(PlayerId playerId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "LoginFlow::sendCommandTreePacket", "playerId", playerId);
 
-    // commandRegistry() 经 unique_ptr 解引用返回引用（initializeCoreManagers 中 make_unique，
+    // commandRegistry() 经 unique_ptr 解引用返回引用（initializeDomainServices 中 make_unique，
     // 仅 shutdownManagers 中 reset），登录流程阶段恒非空，无需 nullptr 断言。
     //
     // 包构造统一走 outbound/PacketBuilders（与 /op、/deop 共用同一份命令树编码）。

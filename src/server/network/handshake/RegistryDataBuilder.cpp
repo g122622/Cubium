@@ -22,6 +22,7 @@
  */
 
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include <array>
@@ -549,28 +550,14 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     }
 
     // 18. jukebox_song（21）。
-    registries.push_back(makeKnownRegistry("minecraft:jukebox_song",
-        {"minecraft:13",
-            "minecraft:cat",
-            "minecraft:blocks",
-            "minecraft:chirp",
-            "minecraft:far",
-            "minecraft:mall",
-            "minecraft:mellohi",
-            "minecraft:stal",
-            "minecraft:strad",
-            "minecraft:ward",
-            "minecraft:11",
-            "minecraft:wait",
-            "minecraft:otherside",
-            "minecraft:5",
-            "minecraft:pigstep",
-            "minecraft:relic",
-            "minecraft:precipice",
-            "minecraft:creator",
-            "minecraft:creator_music_box",
-            "minecraft:tears",
-            "minecraft:lava_chicken"}));
+    {
+        mc::network::ir::configuration::RegistryData songs;
+        songs.registryKey = "minecraft:jukebox_song";
+        for (const auto key : JukeboxSongs::registryKeys()) {
+            songs.entries.push_back({std::string(key), std::nullopt});
+        }
+        registries.push_back(std::move(songs));
+    }
 
     // 19. instrument（8）。
     registries.push_back(makeKnownRegistry("minecraft:instrument",

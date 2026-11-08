@@ -36,11 +36,12 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/SupportType.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -97,7 +98,7 @@ void _spawnCobwebsRandomlyAround(IWorld& world, LivingEntity& entity, i32 maxCob
 
     for (const BlockPos& pos : chosen) {
         world.setBlockState(pos, &VanillaBlocks::COBWEB->defaultState(), 3);
-        world.playEvent(3018, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::ANIMATION_SPAWN_COBWEB, pos, 0);
     }
 }
 

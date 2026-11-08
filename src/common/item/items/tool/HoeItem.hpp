@@ -28,7 +28,7 @@
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tier/IItemTier.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
 #include <unordered_map>
 #include <unordered_set>
 

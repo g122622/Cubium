@@ -34,7 +34,7 @@
 #include "common/util/text/ITextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/bossbar/BossInfo.hpp"
-#include "server/core/ConnectionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include <memory>
 #include <set>
 #include <utility>
@@ -228,7 +228,7 @@ void ServerDragonBossBar::_sendAddPacket(PlayerId playerId)
     evt.overlay = static_cast<i32>(m_overlay);
     evt.flags = packBossFlags(m_darkenSky, m_playEndBossMusic, m_createFog);
 
-    m_server.connectionManager().sendToPlayer(playerId, makePlayPacket(std::move(evt)));
+    m_server.packetSender().sendToPlayer(playerId, makePlayPacket(std::move(evt)));
 }
 
 void ServerDragonBossBar::_sendRemovePacket(PlayerId playerId)
@@ -237,7 +237,7 @@ void ServerDragonBossBar::_sendRemovePacket(PlayerId playerId)
     evt.uuid = m_uuid;
     evt.operation = 1; // REMOVE
 
-    m_server.connectionManager().sendToPlayer(playerId, makePlayPacket(std::move(evt)));
+    m_server.packetSender().sendToPlayer(playerId, makePlayPacket(std::move(evt)));
 }
 
 void ServerDragonBossBar::_broadcastUpdate(network::BossInfoAction action)
@@ -282,7 +282,7 @@ void ServerDragonBossBar::_broadcastUpdate(network::BossInfoAction action)
 
     auto packet = makePlayPacket(std::move(evt));
     for (PlayerId playerId : m_players) {
-        m_server.connectionManager().sendToPlayer(playerId, packet);
+        m_server.packetSender().sendToPlayer(playerId, packet);
     }
 }
 

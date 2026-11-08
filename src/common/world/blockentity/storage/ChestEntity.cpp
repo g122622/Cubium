@@ -29,6 +29,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/blocks/container/ChestBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "common/world/blockentity/core/LockableBlockEntity.hpp"
@@ -44,8 +46,6 @@
 #include "util/Direction.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/blocks/ChestBlock.hpp"
 #include "world/gameevent/GameEvents.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include <algorithm>

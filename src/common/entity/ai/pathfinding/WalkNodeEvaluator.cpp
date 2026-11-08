@@ -23,17 +23,17 @@
 
 #include "WalkNodeEvaluator.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
-#include "common/world/block/blocks/FenceGateBlock.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+#include "common/world/block/blocks/fencegate/FenceGateBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 // 三种铁轨（普通 / 动力 / 探测）都继承自 AbstractRailBlock，必须按基类判定：
 // 原版同样用 `block instanceof BaseRailBlock` 覆盖全部铁轨。
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/block/blocks/vegetation/LeavesBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include <algorithm>

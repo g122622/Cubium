@@ -26,15 +26,9 @@
 #include "common/core/Types.hpp"
 
 // 前向声明（必须在 mc::world::biome 命名空间之外）
-namespace mc {
-namespace world {
-namespace gen {
-namespace noise {
+namespace mc::math::noise {
 class PerlinSimplexNoise;
 }
-} // namespace gen
-} // namespace world
-} // namespace mc
 
 namespace mc {
 namespace world {
@@ -155,7 +149,7 @@ struct BiomeClimate {
  * 种子 1234L，单倍频 [0]，使用 LegacyRandomSource 构造
  * 用于 Y > seaLevel+17 时的高度温度调整
  */
-const world::gen::noise::PerlinSimplexNoise& temperatureNoise();
+const ::mc::math::noise::PerlinSimplexNoise& temperatureNoise();
 
 /**
  * @brief 获取冻结温度噪声实例
@@ -164,7 +158,7 @@ const world::gen::noise::PerlinSimplexNoise& temperatureNoise();
  * 种子 3456L，倍频 [-2, -1, 0]，使用 LegacyRandomSource 构造
  * 用于 TemperatureModifier::Frozen
  */
-const world::gen::noise::PerlinSimplexNoise& frozenTemperatureNoise();
+const ::mc::math::noise::PerlinSimplexNoise& frozenTemperatureNoise();
 
 /**
  * @brief 获取生物群系信息噪声实例
@@ -173,7 +167,7 @@ const world::gen::noise::PerlinSimplexNoise& frozenTemperatureNoise();
  * 种子 2345L，单倍频 [0]，使用 LegacyRandomSource 构造
  * 用于 TemperatureModifier::Frozen 和其他生物群系逻辑
  */
-const world::gen::noise::PerlinSimplexNoise& biomeInfoNoise();
+const ::mc::math::noise::PerlinSimplexNoise& biomeInfoNoise();
 
 /**
  * @brief 应用温度修改器

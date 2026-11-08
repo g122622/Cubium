@@ -37,17 +37,16 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/SupportType.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/SkullBlockEntity.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 #include <cstddef>
 #include <memory>
@@ -222,25 +221,25 @@ void _clearWitherPattern(IWorld& world, const BlockPos& centerSkullPos, bool for
 // AbstractSkullBlock
 // ============================================================================
 
-BlockProperties::Instrument AbstractSkullBlock::_instrumentForSkullType(SkullType type) noexcept
+NoteBlockInstrument AbstractSkullBlock::_instrumentForSkullType(SkullType type) noexcept
 {
     switch (type) {
         case SkullType::Skeleton:
-            return BlockProperties::Instrument::Skeleton;
+            return NoteBlockInstrument::Skeleton;
         case SkullType::WitherSkeleton:
-            return BlockProperties::Instrument::WitherSkeleton;
+            return NoteBlockInstrument::WitherSkeleton;
         case SkullType::Zombie:
-            return BlockProperties::Instrument::Zombie;
+            return NoteBlockInstrument::Zombie;
         case SkullType::Creeper:
-            return BlockProperties::Instrument::Creeper;
+            return NoteBlockInstrument::Creeper;
         case SkullType::Dragon:
-            return BlockProperties::Instrument::Dragon;
+            return NoteBlockInstrument::Dragon;
         case SkullType::Piglin:
-            return BlockProperties::Instrument::Piglin;
+            return NoteBlockInstrument::Piglin;
         case SkullType::Player:
-            return BlockProperties::Instrument::CustomHead;
+            return NoteBlockInstrument::CustomHead;
         default:
-            return BlockProperties::Instrument::Harp;
+            return NoteBlockInstrument::Harp;
     }
 }
 

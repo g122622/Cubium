@@ -23,8 +23,8 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/feature/template/CappedStructureProcessor.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"

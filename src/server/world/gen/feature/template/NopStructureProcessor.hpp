@@ -30,7 +30,7 @@
 #pragma once
 
 #include "StructureProcessor.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/feature/template/BlockInfo.hpp"
 #include "server/world/gen/feature/template/PlacementSettings.hpp"
 #include <memory>

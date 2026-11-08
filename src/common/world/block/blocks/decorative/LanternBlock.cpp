@@ -32,9 +32,9 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

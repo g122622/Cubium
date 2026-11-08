@@ -29,9 +29,9 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
 #include <cmath>
 #include <optional>

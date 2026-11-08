@@ -53,7 +53,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/GlobalPos.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/spawn/RespawnConfig.hpp"
 #include "spdlog/spdlog.h"
 

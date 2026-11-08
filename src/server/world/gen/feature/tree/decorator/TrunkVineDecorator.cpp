@@ -24,7 +24,7 @@
 #include "TrunkVineDecorator.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/feature/tree/decorator/TreeDecorator.hpp"
 
 namespace mc {

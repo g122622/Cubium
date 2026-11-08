@@ -25,7 +25,9 @@
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/util/text/Utf8.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -37,8 +39,6 @@
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/functional/AnvilBlock.hpp"
 #include <algorithm>
 #include <array>
@@ -683,7 +683,7 @@ void AnvilContainer::_damageAnvilIfNecessary(Player& player)
 
     // 创造模式玩家不会触发铁砧损坏，但仍需播放使用音效
     if (player.isCreative()) {
-        m_world->playEvent(world::WorldEvents::ANVIL_USE_SOUND, m_position, 0);
+        m_world->playEvent(::mc::world::LevelEventId::SOUND_ANVIL_USED, m_position, 0);
         return;
     }
 
@@ -712,13 +712,13 @@ void AnvilContainer::_damageAnvilIfNecessary(Player& player)
         }
         // 完全损坏播放 1029 (ANVIL_DESTROYED_SOUND)，降级播放 1030 (ANVIL_USE_SOUND)
         if (damagedState == nullptr) {
-            m_world->playEvent(world::WorldEvents::ANVIL_DESTROYED_SOUND, m_position, 0);
+            m_world->playEvent(::mc::world::LevelEventId::SOUND_ANVIL_BROKEN, m_position, 0);
         } else {
-            m_world->playEvent(world::WorldEvents::ANVIL_USE_SOUND, m_position, 0);
+            m_world->playEvent(::mc::world::LevelEventId::SOUND_ANVIL_USED, m_position, 0);
         }
     } else {
         // 未触发损坏，播放使用音效
-        m_world->playEvent(world::WorldEvents::ANVIL_USE_SOUND, m_position, 0);
+        m_world->playEvent(::mc::world::LevelEventId::SOUND_ANVIL_USED, m_position, 0);
     }
 }
 

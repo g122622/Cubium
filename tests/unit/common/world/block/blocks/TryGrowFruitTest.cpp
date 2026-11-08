@@ -28,10 +28,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 

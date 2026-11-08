@@ -44,7 +44,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/spawner/SpawnerLogic.hpp"

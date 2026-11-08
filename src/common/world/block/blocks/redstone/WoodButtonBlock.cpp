@@ -26,8 +26,8 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -35,18 +35,9 @@ namespace blocks {
 // 木按钮按压持续时间（30 tick = 1.5秒）
 static constexpr i32 WOOD_BUTTON_PRESS_TIME = 30;
 
-WoodButtonBlock::WoodButtonBlock(const BlockProperties& properties)
-    : AbstractButtonBlock(properties, WOOD_BUTTON_PRESS_TIME, true)
+WoodButtonBlock::WoodButtonBlock(const BlockProperties& properties, const BlockSetType& type)
+    : AbstractButtonBlock(properties, WOOD_BUTTON_PRESS_TIME, type)
 {}
-
-void WoodButtonBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
-{
-    world.playSound(pressed ? SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_ON : SoundEvents::BLOCK_WOODEN_BUTTON_CLICK_OFF,
-        sound::SoundCategory::Blocks,
-        pos.center(),
-        0.3f,
-        0.6f);
-}
 
 } // namespace blocks
 } // namespace mc

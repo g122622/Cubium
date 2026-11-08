@@ -29,7 +29,7 @@
  * 脚部坐标换算（spawnPosition）以及位置/朝向的独立访问。
  */
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/spawn/RespawnData.hpp"
 #include "server/world/ServerChunkManager.hpp"

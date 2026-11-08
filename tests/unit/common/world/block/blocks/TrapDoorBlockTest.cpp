@@ -23,11 +23,11 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/blocks/trapdoor/TrapDoorBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "entity/core/Entity.hpp"
 #include "util/property/Properties.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/blocks/building/TrapDoorBlock.hpp"
 
 using namespace mc;
 using namespace mc::blocks;
@@ -41,15 +41,12 @@ protected:
     void SetUp() override
     {
         // 创建木活板门
-        woodenTrapdoor_ =
-            std::make_unique<TrapDoorBlock>(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f),
-                false // not iron
-            );
+        woodenTrapdoor_ = std::make_unique<TrapDoorBlock>(
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f), BlockSetTypes::OAK);
 
         // 创建铁活板门
-        ironTrapdoor_ = std::make_unique<TrapDoorBlock>(BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f),
-            true // is iron
-        );
+        ironTrapdoor_ = std::make_unique<TrapDoorBlock>(
+            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f), BlockSetTypes::IRON);
     }
 
     std::unique_ptr<TrapDoorBlock> woodenTrapdoor_;
@@ -129,11 +126,15 @@ TEST_F(TrapDoorBlockLadderTest, GetShape_ReturnsValidShape)
     const CollisionShape& closedShape = woodenTrapdoor_->getShape(closedState);
     EXPECT_FALSE(closedShape.isEmpty());
 
-    // 打开的活板门没有碰撞形状
+    // 打开后仍有竖直薄板形状，厚度保持 3/16 格。
     BlockState openState = woodenTrapdoor_->defaultState();
     openState = openState.with(BlockStateProperties::OPEN(), true);
     const CollisionShape& openShape = woodenTrapdoor_->getCollisionShape(openState);
-    EXPECT_TRUE(openShape.isEmpty());
+    ASSERT_FALSE(openShape.isEmpty());
+    ASSERT_EQ(openShape.boxes().size(), 1u);
+    const auto& box = openShape.boxes().front();
+    EXPECT_FLOAT_EQ(box.maxY - box.minY, 1.0f);
+    EXPECT_FLOAT_EQ(box.maxZ - box.minZ, 3.0f / 16.0f);
 }
 
 // ========== 材料测试 ==========
@@ -164,7 +165,7 @@ TEST_F(TrapDoorBlockLadderTest, GetPushReaction_ReturnsDestroy)
 TEST(TrapDoorBlockLadderLogicTest, OpenStateCheck)
 {
     // 独立测试OPEN状态的检查逻辑
-    TrapDoorBlock block(BlockProperties(Material::WOOD).hardness(2.0f), false);
+    TrapDoorBlock block(BlockProperties(Material::WOOD).hardness(2.0f), BlockSetTypes::OAK);
 
     // 测试各种状态组合
     BlockState state = block.defaultState();
@@ -209,10 +210,10 @@ class TrapDoorBlockShapeTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        woodenTrapdoor_ =
-            std::make_unique<TrapDoorBlock>(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f), false);
-        ironTrapdoor_ =
-            std::make_unique<TrapDoorBlock>(BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f), true);
+        woodenTrapdoor_ = std::make_unique<TrapDoorBlock>(
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f), BlockSetTypes::OAK);
+        ironTrapdoor_ = std::make_unique<TrapDoorBlock>(
+            BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f), BlockSetTypes::IRON);
     }
 
     std::unique_ptr<TrapDoorBlock> woodenTrapdoor_;

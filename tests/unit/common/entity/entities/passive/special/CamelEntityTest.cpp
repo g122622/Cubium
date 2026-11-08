@@ -42,7 +42,7 @@
 #include "common/item/Items.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 

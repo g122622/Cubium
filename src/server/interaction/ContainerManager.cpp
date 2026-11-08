@@ -33,12 +33,12 @@
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -47,7 +47,7 @@
 
 namespace mc::server::interaction {
 
-ContainerManager::ContainerManager(core::PlayerManager& playerManager)
+ContainerManager::ContainerManager(PlayerManager& playerManager)
     : m_playerManager(playerManager)
 {}
 

@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
@@ -28,8 +29,8 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 
@@ -73,7 +74,7 @@ public:
         return it != m_heights.end() ? it->second : 64;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_events.push_back({eventId, pos, data});
     }
@@ -106,7 +107,7 @@ public:
     }
 
     struct PlayEventCall {
-        i32 eventId;
+        ::mc::world::LevelEventId eventId;
         BlockPos pos;
         i32 data;
     };
@@ -447,7 +448,7 @@ TEST_F(EndDragonFightTest, SetDragonKilled_PlayGatewayEvent3000)
     // 应播放折跃门生成效果事件 3000
     bool foundGatewayEvent = false;
     for (const auto& event : m_world.playedEvents()) {
-        if (event.eventId == 3000) {
+        if (event.eventId == ::mc::world::LevelEventId::ANIMATION_END_GATEWAY_SPAWN) {
             foundGatewayEvent = true;
             break;
         }
@@ -469,7 +470,7 @@ TEST_F(EndDragonFightTest, SetDragonKilled_NoGatewayEventWhenAllConsumed)
     // 不应播放折跃门事件 3000
     bool foundGatewayEvent = false;
     for (const auto& event : m_world.playedEvents()) {
-        if (event.eventId == 3000) {
+        if (event.eventId == ::mc::world::LevelEventId::ANIMATION_END_GATEWAY_SPAWN) {
             foundGatewayEvent = true;
             break;
         }

@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/base/ScheduledTick.hpp"
 #include "common/world/tick/base/TickPriority.hpp"

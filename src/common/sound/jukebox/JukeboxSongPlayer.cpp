@@ -22,13 +22,14 @@
  */
 
 #include "JukeboxSongPlayer.hpp"
+#include "JukeboxSongs.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/jukebox/JukeboxSong.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include <utility>
 
@@ -44,10 +45,8 @@ void JukeboxSongPlayer::play(IWorld& world, const JukeboxSong& song)
     m_song = &song;
     m_ticksSinceSongStarted = 0;
 
-    // 广播播放事件：data 为比较器输出信号强度
-    // 参考 MC 1.21.11: JukeboxSongPlayer.play() 使用注册表ID，
-    // 我们的实现使用比较器输出信号强度，客户端根据此值确定播放哪首曲目
-    world.playEvent(world::WorldEvents::PLAY_RECORD_SOUND, m_blockPos, song.getComparatorOutput());
+    // 世界播放事件携带同步注册编号；比较器信号只用于红石输出。
+    world.playEvent(::mc::world::LevelEventId::SOUND_PLAY_JUKEBOX_SONG, m_blockPos, JukeboxSongs::numericId(song));
 
     if (m_onSongChanged) {
         m_onSongChanged();
@@ -68,7 +67,7 @@ void JukeboxSongPlayer::stop(IWorld& world)
     world.gameEvent(gameevent::GameEvents::JUKEBOX_STOP_PLAY, m_blockPos, nullptr);
 
     // 广播停止事件
-    world.playEvent(world::WorldEvents::STOP_RECORD_SOUND, m_blockPos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_STOP_JUKEBOX_SONG, m_blockPos, 0);
 
     if (m_onSongChanged) {
         m_onSongChanged();

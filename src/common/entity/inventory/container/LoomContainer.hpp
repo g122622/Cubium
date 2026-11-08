@@ -25,10 +25,10 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "util/color/DyeColor.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include <memory>
 #include <vector>

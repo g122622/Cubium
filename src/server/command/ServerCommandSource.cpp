@@ -34,8 +34,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <algorithm>
@@ -118,12 +118,12 @@ void ServerCommandSource::sendMessage(const std::string& message, const std::opt
         return;
     } else if (m_playerId != 0) {
         if (m_server != nullptr) {
-            // 无实体 ServerPlayer 引用但有 playerId（如远程命令源）：经 ConnectionManager 下发
+            // 无实体 ServerPlayer 引用但有 playerId（如远程命令源）：经 PacketSender 下发
             // SystemChat(overlay=false)。消息按纯文本折叠为 StringTag，显示在聊天窗口。
             mc::network::ir::play::SystemChat pkt;
             pkt.content = ::mc::text::plainTextToNbtBytes(message);
             pkt.overlay = false;
-            m_server->connectionManager().sendToPlayer(m_playerId,
+            m_server->packetSender().sendToPlayer(m_playerId,
                 mc::network::ir::IrPacket{
                     mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
             return;

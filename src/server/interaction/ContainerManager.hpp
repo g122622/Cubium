@@ -30,7 +30,7 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -39,9 +39,7 @@
 namespace mc::server {
 
 // 前向声明
-namespace core {
 class PlayerManager;
-}
 
 /**
  * @brief 容器点击结果
@@ -77,7 +75,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit ContainerManager(core::PlayerManager& playerManager);
+    explicit ContainerManager(PlayerManager& playerManager);
 
     /**
      * @brief 设置物品栏管理器（用于创建需要玩家背包的容器菜单）
@@ -260,7 +258,7 @@ private:
         mc::ContainerType type,
         const std::string& title = std::string());
 
-    core::PlayerManager& m_playerManager;
+    PlayerManager& m_playerManager;
     InventoryManager* m_inventoryManager = nullptr;
 
     struct OpenContainer {

@@ -49,10 +49,10 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
 #include <memory>

@@ -22,6 +22,7 @@
  */
 
 #include "DeOpCommand.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
@@ -30,16 +31,16 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -102,10 +103,10 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     // 获取 OP 列表管理器
-    auto& opList = server->opListManager();
+    auto& opList = server->accessManager();
 
     // 检查玩家是否是 OP
-    if (!opList.isOp(playerData->uuid)) {
+    if (!opList.operatorIsOp(playerData->uuid)) {
         std::ostringstream ss;
         ss << "commands.deop.failed";
         source.sendError(ss.str());
@@ -113,13 +114,13 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     // 从 OP 列表移除
-    if (!opList.removeEntry(playerData->uuid)) {
+    if (!opList.operatorRemoveEntry(playerData->uuid)) {
         source.sendError("commands.deop.failed");
         return 0;
     }
 
     // 保存 OP 列表
-    auto saveResult = opList.save();
+    auto saveResult = opList.operatorSave();
     if (saveResult.failed()) {
         spdlog::error("Failed to save ops.json: {}", saveResult.error().message());
     }
@@ -129,10 +130,10 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
         if (Player* player = server->playerEntityManager().getPlayerEntity(targetId, *world)) {
             player->setPermissionLevel(0);
 
-            // 通知客户端权限等级变更并同步命令树（批5b：经 builder + connectionManager
+            // 通知客户端权限等级变更并同步命令树（批5b：经 builder + packetSender
             // 投递，原 IServer::sendPermissionLevelChange 纯虚已删。对齐原实现：先发
             // EntityEvent(24+0)，再发命令树刷新可用命令列表）。
-            auto& conn = server->connectionManager();
+            auto& conn = server->packetSender();
             conn.sendToPlayer(
                 targetId, mc::server::net::buildPermissionLevelChangeIr(static_cast<i32>(player->id()), 0));
             if (auto commands = mc::server::net::buildCommandsIr(server->commandRegistry())) {

@@ -115,7 +115,7 @@ src/server/network/
 | `common/network/backend/java/*` | Java 协议表、wire codec、`JavaLoginHandshaker` |
 | `common/command/*` | 命令树快照（`CommandTreeEncoder` 的输入） |
 | `server/application/MinecraftServer.hpp` | `LoginFlow`/`PlayerBroadcaster`/`ServerPlayHandler` 的处理体入口 |
-| `server/core/*` | `PlayerManager`、`ConnectionManager`、区块推送记账的宿主 |
+| `server/{player,network,access,world/time}` | `PlayerManager`、`PacketSender`、区块推送记账的宿主 |
 | `server/world/ServerWorld.hpp` | 区块加载事件、方块变化事件、地图脏数据 |
 
 ### 依赖本模块的外部模块
@@ -124,7 +124,7 @@ src/server/network/
 |---|---|
 | `server/application/{StandaloneServer,IntegratedServer}` | 建 `ServerNetwork`、`startAccept` / `publishToLan` |
 | `server/application/MinecraftServer` | 持 `ServerNetwork`、`ClientSessionManager`、`ServerPlayHandler` 门面 |
-| `server/core/{PlayerManager,ServerPlayerData}` | 经 `IServerClientConnection*` 发包；持 `ChunkSyncManager`/`PlayerChunkTracker` |
+| `server/player/` | 经 `IServerClientConnection*` 发包；持 `ChunkSyncManager`/`PlayerChunkTracker` |
 | `server/dimension/ServerDimension` | 持 `sync/` 各管理器 |
 | `server/command/commands/*` | 经 `outbound/PacketBuilders` 构造命令回包 |
 | `server/player/ServerPlayer` | 持 `ServerClientConnection*` |
@@ -153,7 +153,7 @@ swap 出来逐 sid 回调 `m_onDisconnect`。所有 session map 变动与玩家�
 
 ### 4. 构造顺序：ClientSession 必须在 playHandler 之后构造
 
-`ClientSession` 构造时要取 `MinecraftServer::playHandler()` 的引用。若在 `initializeCoreManagers()`
+`ClientSession` 构造时要取 `MinecraftServer::playHandler()` 的引用。若在 `initializeDomainServices()`
 之前构造，会拿到空悬引用，表现为首个 `AcceptTeleportation` 包触发 ACCESS_VIOLATION（已踩过一次）。
 
 ### 5. accept 线程关闭（Linux 关服卡死）

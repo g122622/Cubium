@@ -31,8 +31,8 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/redstone/AbstractPressurePlateBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <vector>
 
 namespace mc {
@@ -41,57 +41,15 @@ namespace blocks {
 // 石头压力板tick延迟
 static constexpr i32 STONE_PLATE_DELAY = 10;
 
-StonePressurePlateBlock::StonePressurePlateBlock(const BlockProperties& properties)
-    : AbstractPressurePlateBlock(properties)
+StonePressurePlateBlock::StonePressurePlateBlock(const BlockProperties& properties, const BlockSetType& type)
+    : AbstractPressurePlateBlock(properties, type)
 {}
-
-i32 StonePressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const
-{
-    // 石头压力板（及磨制黑石压力板）只能被生物实体触发
-    // 对应 MC Java 的 PressurePlateSensitivity.MOBS：使用 LivingEntity.class 过滤
-    // 物品、箭矢等非生物实体不会触发石头压力板
-
-    // 创建压力板上方的碰撞箱
-    AxisAlignedBB detectionBox(static_cast<f32>(pos.x) + 0.125f,
-        static_cast<f32>(pos.y) + 0.0f,
-        static_cast<f32>(pos.z) + 0.125f,
-        static_cast<f32>(pos.x) + 0.875f,
-        static_cast<f32>(pos.y) + 0.25f,
-        static_cast<f32>(pos.z) + 0.875f);
-
-    // 查询碰撞箱内的实体
-    std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
-
-    // 石头压力板只被生物实体（LivingEntity）触发
-    // 同时排除不触发压力板的实体（蝙蝠、标记模式盔甲架等）
-    for (Entity* entity : entities) {
-        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
-            // 对应 MC Java 的 getEntitiesOfClass(LivingEntity.class, ...)
-            // 使用 dynamic_cast 检查是否为生物实体
-            if (dynamic_cast<LivingEntity*>(entity) != nullptr) {
-                return 15; // 有生物就输出最大信号
-            }
-        }
-    }
-
-    return 0;
-}
 
 i32 StonePressurePlateBlock::getTickDelay(bool oldPowered, bool newPowered) const
 {
     MC_UNUSED(oldPowered);
     MC_UNUSED(newPowered);
     return STONE_PLATE_DELAY;
-}
-
-void StonePressurePlateBlock::playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const
-{
-    world.playSound(
-        pressed ? SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_ON : SoundEvents::BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF,
-        sound::SoundCategory::Blocks,
-        pos.center(),
-        0.3f,
-        0.6f);
 }
 
 } // namespace blocks

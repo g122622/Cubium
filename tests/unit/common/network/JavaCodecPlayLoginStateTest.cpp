@@ -35,7 +35,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 
 #include <gtest/gtest.h>
 

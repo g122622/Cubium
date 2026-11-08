@@ -26,11 +26,11 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/MathUtils.hpp"
-#include "world/block/BlockTags.hpp"
 #include <cstdlib>
 #include <memory>
 #include <optional>

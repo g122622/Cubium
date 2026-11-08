@@ -27,7 +27,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/village/raid/Raid.hpp"
 #include "common/world/village/raid/RaiderType.hpp"
 

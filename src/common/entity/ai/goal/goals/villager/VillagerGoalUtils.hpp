@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <unordered_map>
 
 namespace mc {

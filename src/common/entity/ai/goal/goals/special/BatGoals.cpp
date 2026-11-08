@@ -37,8 +37,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {

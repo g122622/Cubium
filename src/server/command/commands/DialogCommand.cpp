@@ -7,9 +7,9 @@
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include <nlohmann/json.hpp>
 
 namespace mc::command {
@@ -27,7 +27,7 @@ i32 _show(CommandContext<ServerCommandSource>& context)
     const auto targets = support::resolvePlayerIds(source, context.getArgument<EntitySelector>("targets"));
     i32 sent = 0;
     for (const auto playerId : targets) {
-        if (source.server()->connectionManager().sendToPlayer(playerId, packet.value())) {
+        if (source.server()->packetSender().sendToPlayer(playerId, packet.value())) {
             ++sent;
         }
     }
@@ -42,7 +42,7 @@ i32 _clear(CommandContext<ServerCommandSource>& context)
         mc::network::ir::PlayPacket{mc::network::ir::play::ClearDialog{}}};
     i32 sent = 0;
     for (const auto playerId : targets) {
-        if (source.server()->connectionManager().sendToPlayer(playerId, packet)) {
+        if (source.server()->packetSender().sendToPlayer(playerId, packet)) {
             ++sent;
         }
     }

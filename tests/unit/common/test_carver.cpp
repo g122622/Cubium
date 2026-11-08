@@ -22,9 +22,10 @@
  */
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/BaseBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/BaseBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
@@ -42,7 +43,6 @@
 #include "util/math/random/Random.hpp"
 #include "world/WorldConstants.hpp"
 #include "world/biome/BiomeSource.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

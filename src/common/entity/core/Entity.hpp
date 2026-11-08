@@ -55,7 +55,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include <algorithm>
 #include <array>

@@ -28,7 +28,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <cmath>
 
 using namespace mc;

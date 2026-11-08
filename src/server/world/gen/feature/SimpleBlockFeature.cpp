@@ -24,9 +24,9 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include <memory>

@@ -23,9 +23,9 @@
 
 #pragma once
 
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "core/Types.hpp"
 #include "util/nbt/Nbt.hpp"
-#include "world/block/BlockPos.hpp"
 #include <string>
 
 namespace mc::world::map {

@@ -30,7 +30,7 @@
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/ai/goal/goals/special/MoveToBlockGoal.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <string>
 
 namespace mc {

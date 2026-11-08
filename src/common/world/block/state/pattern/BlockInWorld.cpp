@@ -24,7 +24,7 @@
 #include "BlockInWorld.hpp"
 
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include <functional>
 #include <utility>

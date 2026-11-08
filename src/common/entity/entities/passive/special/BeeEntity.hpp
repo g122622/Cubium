@@ -32,7 +32,7 @@
 #include "common/entity/interfaces/IAngerable.hpp"
 #include "common/entity/interfaces/IFlyingAnimal.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <optional>
 

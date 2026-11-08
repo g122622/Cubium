@@ -27,7 +27,7 @@
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <array>
 #include <functional>
 #include <string>

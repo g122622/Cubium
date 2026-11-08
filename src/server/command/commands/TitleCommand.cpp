@@ -39,7 +39,7 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -120,7 +120,7 @@ i32 broadcastIrPacket(
         return 0;
     }
 
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
     i32 successCount = 0;
     for (PlayerId playerId : playerIds) {
         if (connMgr.sendToPlayer(playerId, packet)) {

@@ -49,7 +49,7 @@
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/MerchantOffer.hpp"
 #include "common/world/village/trade/TradeRandom.hpp"

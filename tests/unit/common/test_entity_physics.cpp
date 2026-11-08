@@ -25,14 +25,14 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "entity/attribute/AttributeMap.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "physics/PhysicsConstants.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockPos.hpp"
 
 using namespace mc;
 

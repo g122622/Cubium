@@ -40,10 +40,10 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
-#include "common/world/block/registry/BuildingBlocks.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/BuildingBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -143,14 +143,14 @@ void AnvilBlock::onEndFalling(IWorld& world,
 {
     MC_UNUSED(entity);
     // 播放铁砧落地音效
-    world.playEvent(world::WorldEvents::ANVIL_LAND_SOUND, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_ANVIL_LAND, pos, 0);
 }
 
 void AnvilBlock::onBroken(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity)
 {
     MC_UNUSED(entity);
     // 播放铁砧破碎音效
-    world.playEvent(world::WorldEvents::ANVIL_DESTROYED_SOUND, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_ANVIL_BROKEN, pos, 0);
 }
 
 BlockState AnvilBlock::getStateForPlacement(BlockItemUseContext& context)

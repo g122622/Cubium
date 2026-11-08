@@ -37,7 +37,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include <memory>
@@ -230,7 +230,7 @@ void OminousItemSpawnerEntity::spawnItem()
 
     // 播放不祥物品生成器的粒子效果
     BlockPos pos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z()));
-    m_world->playEvent(world::WorldEvents::TRIAL_SPAWNER_SPAWN_ITEM, pos, 1);
+    m_world->playEvent(::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN_ITEM, pos, 1);
 
     // 触发游戏事件（用于幽匿感测体检测）
     if (spawnedEntity != nullptr) {

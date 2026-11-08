@@ -26,9 +26,9 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <cstddef>
 #include <memory>
 #include <vector>

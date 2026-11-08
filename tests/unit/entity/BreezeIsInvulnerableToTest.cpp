@@ -68,7 +68,7 @@
 #include "common/entity/entities/monster/breeze/BreezeEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 

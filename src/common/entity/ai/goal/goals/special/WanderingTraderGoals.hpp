@@ -30,7 +30,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <optional>
 #include <string>

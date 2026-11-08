@@ -2,7 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp" // Rotation / Direction
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/base/coords/TestTransform.hpp"
 #include "server/test/base/error/GameTestResult.hpp"
 

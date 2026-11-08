@@ -24,10 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <memory>
 #include <string>

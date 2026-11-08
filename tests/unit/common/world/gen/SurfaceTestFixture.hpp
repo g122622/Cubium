@@ -3,7 +3,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

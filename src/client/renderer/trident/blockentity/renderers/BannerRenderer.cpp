@@ -33,8 +33,8 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/decorative/BannerBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include <cmath>
 #include <vector>

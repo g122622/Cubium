@@ -52,8 +52,8 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include <algorithm>
 #include <cmath>
 #include <functional>

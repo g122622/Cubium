@@ -35,7 +35,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/map/MapData.hpp"

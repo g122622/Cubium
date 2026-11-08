@@ -26,7 +26,7 @@
 #include "ITickList.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include <cstddef>
 

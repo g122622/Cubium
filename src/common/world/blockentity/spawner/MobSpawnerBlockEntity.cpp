@@ -39,13 +39,13 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/WorldEvents.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/SpawnerLogic.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/IWorldSpawnAdapter.hpp"
@@ -435,7 +435,7 @@ void MobSpawnerBlockEntity::_serverTick(IWorld& world)
     if (spawnedAny) {
         // 通知客户端播放刷怪笼生成粒子效果
         // 参考 MC: BaseSpawner.serverTick() 中成功生成后调用 levelEvent(2004, pos, 0)
-        world.playEvent(world::WorldEvents::MOB_SPAWNER_PARTICLES, m_pos, 0);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_MOBBLOCK_SPAWN, m_pos, 0);
 
         // 发送方块事件，使客户端重置生成延迟产生视觉"弹出"效果
         // 参考 MC Java: BaseSpawner.serverTick() 中调用 level.blockEvent(pos, block, 1, 0)

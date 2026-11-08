@@ -23,17 +23,17 @@
 
 #include <gtest/gtest.h>
 
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -58,7 +58,7 @@ protected:
         // 创建玩家管理器
         // 新网络层 addPlayer 第4参为 ServerClientConnection*；本测试只验证回调/解析器逻辑，
         // 不依赖连接真发包，故传 nullptr（与 BaseTestServer::addTestPlayer 一致）。
-        m_playerManager = std::make_unique<server::core::PlayerManager>();
+        m_playerManager = std::make_unique<server::PlayerManager>();
         m_player = m_playerManager->addPlayer(m_playerId,
             mc::util::uuidToString(mc::util::generateOfflineUuid("CallbackTester")),
             "CallbackTester",
@@ -84,10 +84,10 @@ protected:
         });
 
         // 创建连接管理器
-        m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
+        m_packetSender = std::make_unique<server::PacketSender>(*m_playerManager);
 
         // 创建挖掘管理器
-        m_miningManager = std::make_unique<server::interaction::MiningManager>(*m_playerManager, *m_connectionManager);
+        m_miningManager = std::make_unique<server::interaction::MiningManager>(*m_playerManager, *m_packetSender);
         m_miningManager->setInventoryManager(m_inventoryManager.get());
     }
 
@@ -95,15 +95,15 @@ protected:
     {
         m_miningManager.reset();
         m_inventoryManager.reset();
-        m_connectionManager.reset();
+        m_packetSender.reset();
         m_playerManager.reset();
     }
 
 protected:
     static constexpr PlayerId m_playerId = 1;
 
-    std::unique_ptr<server::core::PlayerManager> m_playerManager;
-    std::unique_ptr<server::core::ConnectionManager> m_connectionManager;
+    std::unique_ptr<server::PlayerManager> m_playerManager;
+    std::unique_ptr<server::PacketSender> m_packetSender;
     std::unique_ptr<PlayerInventory> m_testInventory;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
     std::unique_ptr<server::interaction::MiningManager> m_miningManager;

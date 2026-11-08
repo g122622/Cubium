@@ -41,7 +41,7 @@
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/EndDragonFightTestAccessor.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/end/IDragonBossBar.hpp"

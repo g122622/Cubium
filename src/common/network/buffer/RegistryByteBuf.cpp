@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/item/core/Item.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc::network::buffer {
 

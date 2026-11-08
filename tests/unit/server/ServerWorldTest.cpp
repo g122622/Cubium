@@ -27,7 +27,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/blockentity/processing/FurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"

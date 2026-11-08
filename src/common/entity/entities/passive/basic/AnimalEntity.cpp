@@ -45,8 +45,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 namespace mc {
 

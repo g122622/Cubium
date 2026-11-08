@@ -22,8 +22,8 @@
  */
 
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

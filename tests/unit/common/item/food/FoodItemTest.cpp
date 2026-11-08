@@ -47,7 +47,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/food/Food.hpp"
 #include "common/item/items/food/FoodItem.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"

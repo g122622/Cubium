@@ -48,7 +48,7 @@
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"

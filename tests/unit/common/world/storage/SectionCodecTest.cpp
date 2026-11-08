@@ -27,8 +27,8 @@
 #undef BYTE_SIZE
 
 #include "server/world/storage/db/SectionCodec.hpp"
-#include "common/world/block/registry/BaseBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/BaseBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Types.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
 #include "world/chunk/data/ChunkData.hpp"

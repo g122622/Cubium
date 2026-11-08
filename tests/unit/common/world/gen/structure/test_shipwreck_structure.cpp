@@ -25,8 +25,8 @@
 
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/structure/structures/ShipwreckStructure.hpp"

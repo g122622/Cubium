@@ -24,12 +24,12 @@
 #include <gtest/gtest.h>
 
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/noise/PerlinSimplexNoise.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/placement/Placement.hpp"
@@ -43,6 +43,7 @@
 
 #include <nlohmann/json.hpp>
 
+using ::mc::math::noise::PerlinSimplexNoise;
 using namespace mc;
 namespace vp = mc::world::gen::valueprovider;
 using mc::world::chunk::heightmapTypeFromString;

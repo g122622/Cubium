@@ -28,9 +28,9 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/jigsaw/TemplatePool.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include <memory>
 #include <optional>

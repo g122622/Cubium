@@ -63,9 +63,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include "probe.hpp"
 #include "vanilla_datapack.hpp"

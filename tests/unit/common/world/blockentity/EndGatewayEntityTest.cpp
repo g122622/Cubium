@@ -22,9 +22,9 @@
 
 #include "world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "world/WorldConstants.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
 #include "world/chunk/data/ChunkData.hpp"

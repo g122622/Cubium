@@ -44,11 +44,11 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/dimension/DimensionType.hpp"
-#include "common/world/level/MoonPhase.hpp"
-#include "common/world/timeline/AttributeTrackSampler.hpp"
-#include "common/world/timeline/Timeline.hpp"
-#include "common/world/timeline/TimelineRegistry.hpp"
-#include "common/world/timeline/Timelines.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
+#include "common/world/time/timeline/AttributeTrackSampler.hpp"
+#include "common/world/time/timeline/Timeline.hpp"
+#include "common/world/time/timeline/TimelineRegistry.hpp"
+#include "common/world/time/timeline/Timelines.hpp"
 
 #include <nlohmann/json.hpp>
 

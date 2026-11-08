@@ -29,7 +29,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/BlockPositionRandom.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/weather/WeatherState.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include <cstddef>

@@ -135,7 +135,7 @@ network/
 | `common/core/Types.hpp` | 基础类型定义（u8, u16, i32, f32, std::string 等） |
 | `common/core/Result.hpp` | 错误处理（Result<T>, Error, ErrorCode） |
 | `common/world/chunk/ChunkData.hpp` | 区块数据结构 |
-| `common/world/block/BlockPos.hpp` | 方块位置 |
+| `common/world/block/base/types/BlockPos.hpp` | 方块位置 |
 | `common/entity/EntityDataManager.hpp` | 实体数据管理 |
 | `common/entity/Player.hpp` | 玩家实体 |
 | `common/entity/inventory/` | 背包系统 |
@@ -147,10 +147,10 @@ network/
 
 | 模块 | 用途 |
 |------|------|
-| `server/core/ConnectionManager.hpp` | 服务端 IR 发送门面，封装 `ir::IrPacket` 发送/广播 |
+| `server/network/outbound/PacketSender.hpp` | 服务端 IR 发送门面，封装 `ir::IrPacket` 发送/广播 |
 | `server/network/session/ServerNetwork.hpp` | 服务端网络门面（accept + 管理连接），持有 `ServerClientConnection` |
 | `server/network/play/ServerPlayHandler.hpp` | 入站 Play 包分发器（`holds_alternative` 链 over `ir::PlayPacket`） |
-| `server/core/PlayerManager.hpp` | 玩家管理器，持 `server/network/sync/chunk/ChunkSyncManager` |
+| `server/player/lifecycle/PlayerManager.hpp` | 玩家管理器，持 `server/network/sync/chunk/ChunkSyncManager` |
 | `server/player/ServerPlayer.hpp` | 服务端玩家持有连接引用 |
 | `server/network/sync/ChunkSendManager.hpp` | 服务端区块发送管理 |
 | `client/network/ClientNetwork.hpp` | 客户端网络通信门面（取代旧 `NetworkClient`） |

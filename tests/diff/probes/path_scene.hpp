@@ -47,10 +47,10 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <array>
 #include <cmath>

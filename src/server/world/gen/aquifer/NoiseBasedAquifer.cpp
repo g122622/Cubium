@@ -26,8 +26,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/density/NoiseChunk.hpp"
 #include "server/world/gen/density/NoiseRouter.hpp"
 #include <algorithm>

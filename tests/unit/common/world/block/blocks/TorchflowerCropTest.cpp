@@ -25,10 +25,10 @@
 
 #include "common/item/Items.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/agricultural/TorchflowerCropBlock.hpp"
 #include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::blocks;

@@ -22,6 +22,7 @@
  */
 
 #include "server/network/outbound/PlayerBroadcaster.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -39,14 +40,14 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "server/application/MinecraftServer.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <cmath>
 #include <memory>
@@ -436,11 +437,11 @@ void PlayerBroadcaster::broadcastSetEntityLinkInRange(
 // 世界事件
 // ============================================================================
 
-void PlayerBroadcaster::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
+void PlayerBroadcaster::broadcastWorldEvent(::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)
 {
     // 1.21.11 LevelEvent：type + blockPosPacked + data + globalEvent。
     mc::network::ir::play::LevelEvent pkt;
-    pkt.type = eventId;
+    pkt.type = static_cast<i32>(eventId);
     pkt.blockPosPacked = BlockPos(x, y, z).asLong();
     pkt.data = data;
     pkt.globalEvent = false;
@@ -450,10 +451,11 @@ void PlayerBroadcaster::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i3
     });
 }
 
-void PlayerBroadcaster::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
+void PlayerBroadcaster::broadcastWorldEventInRange(
+    ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
 {
     mc::network::ir::play::LevelEvent pkt;
-    pkt.type = eventId;
+    pkt.type = static_cast<i32>(eventId);
     pkt.blockPosPacked = BlockPos(x, y, z).asLong();
     pkt.data = data;
     pkt.globalEvent = false;
@@ -478,9 +480,9 @@ void PlayerBroadcaster::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i3
 }
 
 void PlayerBroadcaster::broadcastGlobalLevelEvent(
-    DimensionId sourceDimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data)
+    DimensionId sourceDimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)
 {
-    // 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
+    // 对应 MC Java: ServerLevel.globalLevelEvent(::mc::world::LevelEventId, BlockPos, i32)
     // 遍历全服所有玩家（跨维度），对每个玩家计算事件位置：
     //   - 同维度且距离<32格：使用真实事件位置
     //   - 同维度且距离>=32格：钳制到距玩家32格方向
@@ -516,7 +518,7 @@ void PlayerBroadcaster::broadcastGlobalLevelEvent(
             // 构造 globalEvent=true 的 LevelEvent 包并逐玩家发送
             // 坐标取整对齐 vanilla BlockPos.containing（Mth.floor，非截断）——负坐标下二者不同。
             mc::network::ir::play::LevelEvent pkt;
-            pkt.type = eventId;
+            pkt.type = static_cast<i32>(eventId);
             pkt.blockPosPacked = BlockPos(
                 math::floorTo<i32>(targetPos.x), math::floorTo<i32>(targetPos.y), math::floorTo<i32>(targetPos.z))
                                      .asLong();

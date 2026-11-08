@@ -36,7 +36,7 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/entity/inventory/container/LoomContainer.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <string>
 #include <utility>

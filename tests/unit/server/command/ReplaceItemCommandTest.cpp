@@ -40,7 +40,7 @@
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/ReplaceItemCommand.hpp"

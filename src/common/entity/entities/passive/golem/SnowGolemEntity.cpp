@@ -47,9 +47,9 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>

@@ -28,7 +28,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <algorithm>
 #include <cmath>
 #include <vector>

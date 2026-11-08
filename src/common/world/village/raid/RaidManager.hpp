@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,9 +24,9 @@
 #pragma once
 
 #include "command/ICommandSource.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/village/raid/RaiderType.hpp"
 #include "core/Types.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/village/raid/Raid.hpp"
 
 #include <cstddef>

@@ -31,7 +31,7 @@
 #include "common/world/biome/BiomeManager.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/aquifer/FluidStatus.hpp"
 #include "server/world/gen/carver/CarverConfiguration.hpp"

@@ -26,8 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 #include <string>

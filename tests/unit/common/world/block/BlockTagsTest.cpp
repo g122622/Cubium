@@ -23,13 +23,13 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/block/registry/ColoredBlocks.hpp"
-#include "common/world/block/registry/CopperBlocks.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/ColoredBlocks.hpp"
+#include "common/world/block/registry/vanilla/CopperBlocks.hpp"
+#include "common/world/block/registry/vanilla/NetherBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 using namespace mc;
 

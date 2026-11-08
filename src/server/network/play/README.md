@@ -57,7 +57,7 @@ ServerPlayHandler::route          ← 唯一的 switch 分发表
 | `common/entity/*`、`common/item/*`、`common/world/*` | 各处理体的实体/物品/世界操作 |
 | `common/advancement/*` | `ChatHandler` 之外的成就触发（方块使用 / 实体交互） |
 | `server/application/MinecraftServer.hpp` | 各处理体的业务入口与 4 个纯虚 |
-| `server/core/*`、`server/interaction/*`、`server/player/ServerPlayer.hpp` | 玩家/挖掘/方块交互 |
+| `server/{player,network,access,world/time}`、`server/interaction/*`、`server/player/ServerPlayer.hpp` | 玩家/挖掘/方块交互 |
 | `server/command/*` | `ChatHandler` 的命令执行 |
 | `server/network/outbound/*` | 部分处理体经其构造回包 |
 

@@ -27,7 +27,8 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/effect/EffectInstance.hpp"
@@ -38,7 +39,6 @@
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 
 #include <algorithm>
 #include <array>

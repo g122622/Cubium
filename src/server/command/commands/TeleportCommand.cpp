@@ -35,15 +35,15 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/TeleportManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp" // getPlayerDimension/getDimension（跨维度判定 + 实体当前维度世界）
+#include "server/network/sync/player/TeleportManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <cmath>

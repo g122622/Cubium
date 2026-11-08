@@ -34,7 +34,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include "common/world/spawn/RespawnConfig.hpp"

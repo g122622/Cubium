@@ -34,9 +34,9 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -190,7 +190,7 @@ std::vector<PlayerId> resolveTargetPlayerIds(ServerCommandSource& source, const 
 std::string getPlayerName(ServerCommandSource& source, PlayerId playerId, Player* player)
 {
     if (source.server() != nullptr) {
-        mc::server::core::PlayerManager& pm = source.server()->playerManager();
+        mc::server::PlayerManager& pm = source.server()->playerManager();
         mc::server::ServerPlayerData* playerData = pm.getPlayer(playerId);
         if (playerData != nullptr) {
             return playerData->username;

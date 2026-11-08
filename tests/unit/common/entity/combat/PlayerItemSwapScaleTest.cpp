@@ -16,7 +16,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 

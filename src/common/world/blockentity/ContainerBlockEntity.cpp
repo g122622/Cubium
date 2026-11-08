@@ -26,7 +26,7 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 
 namespace mc {

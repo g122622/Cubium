@@ -35,7 +35,7 @@
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 using mc::BlockPos;
 using mc::EntityInstanceId;

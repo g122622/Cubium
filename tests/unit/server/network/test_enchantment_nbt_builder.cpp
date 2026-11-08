@@ -51,9 +51,9 @@
 #include "common/resource/pack/InMemoryResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockTagLoader.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTagLoader.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 

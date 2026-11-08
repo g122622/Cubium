@@ -32,7 +32,7 @@ sculk/
 - `TickManager` — 方块 tick 调度
 - `BlockTags::VIBRATION_RESONATORS` — 共振方块标签（紫水晶块等）
 - `GameEvents` — 游戏事件常量（SCULK_SENSOR_TENDRILS_CLICKING、SHRIEK 等）
-- `WorldEvents` — 世界事件常量（SCULK_SHRIEK = 3007 粒子效果等）
+- `LevelEventId` — 世界事件常量（SCULK_SHRIEK = 3007 粒子效果等）
 
 ### 被依赖
 

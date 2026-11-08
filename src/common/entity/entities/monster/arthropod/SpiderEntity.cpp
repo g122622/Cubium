@@ -39,7 +39,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <cmath>
 #include <memory>
 

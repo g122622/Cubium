@@ -45,10 +45,10 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/FlowerPotBlocks.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/FlowerPotBlocks.hpp"
+#include "common/world/block/registry/vanilla/NetherBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 #include <unordered_map>
 

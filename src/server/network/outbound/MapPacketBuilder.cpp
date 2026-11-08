@@ -35,7 +35,7 @@
 #include "common/world/map/MapDataManager.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/ConnectionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -75,7 +75,7 @@ void MapPacketBuilder::pushDirtyMaps(ServerWorld& world)
         return;
     }
 
-    auto& connMgr = server->connectionManager();
+    auto& connMgr = server->packetSender();
     auto& playerEntityMgr = server->playerEntityManager();
     namespace irplay = mc::network::ir::play;
 

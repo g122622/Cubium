@@ -36,7 +36,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/base/data/TestData.hpp"
 #include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/framework/batch/GameTestBatch.hpp"

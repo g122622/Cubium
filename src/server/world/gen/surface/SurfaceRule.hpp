@@ -23,7 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/surface/SurfaceCondition.hpp"
 #include <memory>
 #include <utility>

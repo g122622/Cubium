@@ -26,7 +26,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "decorator/TreeDecorator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/Feature.hpp"

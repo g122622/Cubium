@@ -33,8 +33,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include <algorithm>
 #include <array>
@@ -362,7 +362,7 @@ void ShadowRenderer::renderBlockShadow(VkCommandBuffer cmd,
     // 检查方块渲染类型是否不可见
     // 参考 MC 1.16.5: blockstate.getRenderType() != BlockRenderType.INVISIBLE
     const Block& belowBlock = belowState->getBlock();
-    if (belowBlock.getRenderType(*belowState) == Block::RenderType::INVISIBLE) {
+    if (belowBlock.getRenderType(*belowState) == BlockRenderType::INVISIBLE) {
         return;
     }
 

@@ -37,7 +37,7 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/carver/CarvingContext.hpp"
 #include "server/world/gen/density/Beardifier.hpp"
 #include <gtest/gtest.h>

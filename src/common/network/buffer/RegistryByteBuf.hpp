@@ -29,7 +29,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/registry/RegistryAccess.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <optional>
 

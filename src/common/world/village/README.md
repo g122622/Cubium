@@ -68,7 +68,7 @@ trade::（独立模块，被VillagerEntity使用）
 
 **上游依赖（本目录依赖）：**
 - `common/core/Types.hpp` - 基础类型（u8/u16/u32/u64/i32/i64/f32、EntityId、Uuid）
-- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/block/base/types/BlockPos.hpp` - 方块位置
 - `common/world/chunk/ChunkPos.hpp` - 区块坐标
 - `common/world/IWorld.hpp` - 世界接口（实体生成、tick、难度查询）
 - `common/util/nbt/` - NBT 序列化

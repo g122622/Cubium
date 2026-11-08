@@ -128,7 +128,7 @@ util/
 | `common/core/Types.hpp` | 基础类型定义（i8, i32, f32, u64 等） |
 | `common/core/Constants.hpp` | 常量定义（PI, EPSILON, CHUNK_WIDTH 等） |
 | `common/world/IWorld.hpp` | 世界接口（射线检测） |
-| `common/world/block/Block.hpp` | 方块定义（射线检测返回值） |
+| `common/world/block/core/Block.hpp` | 方块定义（射线检测返回值） |
 | `common/command/ICommandSource.hpp` | Uuid 类型定义 |
 | `spdlog` | 日志（断言处理器可选） |
 | `<random>` | 随机数基础（Mt19937Random） |

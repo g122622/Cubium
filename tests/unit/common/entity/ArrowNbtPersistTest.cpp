@@ -40,7 +40,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 

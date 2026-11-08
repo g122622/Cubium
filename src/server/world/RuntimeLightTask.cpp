@@ -27,7 +27,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "server/world/lighting/engine/BlockLightEngine.hpp"

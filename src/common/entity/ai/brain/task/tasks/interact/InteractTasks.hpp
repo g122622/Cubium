@@ -44,8 +44,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
 namespace entity {

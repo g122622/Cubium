@@ -36,8 +36,8 @@
 
 #include "Region.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 

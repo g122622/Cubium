@@ -25,7 +25,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/WorldGenRegistryFixture.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/structure/StructureSet.hpp"
 
 using namespace mc;

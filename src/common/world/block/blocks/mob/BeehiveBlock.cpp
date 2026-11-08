@@ -40,8 +40,8 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 

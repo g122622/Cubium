@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,7 +33,7 @@ namespace mc::command {
 /**
  * @brief `/kick` 命令。
  *
- * 当前实现面向项目现有独立服务端主路径，直接通过 `ConnectionManager`
+ * 当前实现面向项目现有独立服务端主路径，直接通过 `PacketSender`
  * 断开在线玩家连接，并同步清理 `PlayerManager` 中的在线状态。
  *
  * 已支持的形式：

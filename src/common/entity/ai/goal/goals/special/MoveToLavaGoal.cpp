@@ -35,7 +35,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include <cmath>

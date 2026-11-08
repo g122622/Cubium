@@ -26,9 +26,9 @@
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/noise/SimplexNoise.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
-#include "common/world/gen/noise/SimplexNoise.hpp"
+#include "common/world/generation/density/DensityFunction.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "server/world/gen/noise/NormalNoise.hpp"
 #include <algorithm>
@@ -1795,7 +1795,7 @@ private:
     [[nodiscard]] f32 getHeightValue(i32 x, i32 z) const;
 
     u64 m_seed;
-    std::unique_ptr<noise::SimplexNoise> m_islandNoise;
+    std::unique_ptr<::mc::math::noise::SimplexNoise> m_islandNoise;
 };
 
 // ============================================================================

@@ -27,7 +27,7 @@
 #include "common/command/ICommandSource.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "entity/core/LivingEntity.hpp"

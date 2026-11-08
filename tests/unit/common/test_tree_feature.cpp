@@ -23,10 +23,11 @@
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/blocks/RotatedPillarBlock.hpp"
-#include "common/world/block/registry/GardenBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/base/RotatedPillarBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/GardenBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
@@ -43,7 +44,6 @@
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
 #include "util/math/MathUtils.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include <array>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>

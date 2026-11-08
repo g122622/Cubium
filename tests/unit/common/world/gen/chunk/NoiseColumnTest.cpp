@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,8 +32,8 @@
 // ============================================================================
 
 #include "server/world/gen/chunk/NoiseColumn.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

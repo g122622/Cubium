@@ -40,7 +40,7 @@ minecraft/
 
 ## 上下游外部依赖关系
 
-**上游（本目录依赖）**：`base/`+`framework/`（全部抽象）；`mc::server::ServerWorld`（`src/server/world/`）、`mc::server::core::TimeManager`、`mc::server::WeatherManager`、`mc::world::gen::feature::template_::Template`/`TemplateManager`/`PlacementSettings`、`mc::world::gen::jigsaw::JigsawAssembler`、`mc::BlockRegistry`、`mc::resource::ResourceLocation`、spdlog。
+**上游（本目录依赖）**：`base/`+`framework/`（全部抽象）；`mc::server::ServerWorld`（`src/server/world/`）、`mc::server::TimeManager`、`mc::server::WeatherManager`、`mc::world::gen::feature::template_::Template`/`TemplateManager`/`PlacementSettings`、`mc::world::gen::jigsaw::JigsawAssembler`、`mc::BlockRegistry`、`mc::resource::ResourceLocation`、spdlog。
 
 **下游（依赖本目录）**：
 - `facade/GameTestHelper`（1F）构造收 `MinecraftGameTestInstance` 的 origin/bounds。

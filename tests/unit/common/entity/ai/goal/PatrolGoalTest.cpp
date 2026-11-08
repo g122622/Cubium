@@ -21,10 +21,10 @@
  *
  */
 
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/ai/goal/goals/special/PatrolGoals.hpp"
 #include "entity/core/MobEntity.hpp"
 #include "entity/entities/monster/illager/PatrollerEntity.hpp"
-#include "world/block/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"

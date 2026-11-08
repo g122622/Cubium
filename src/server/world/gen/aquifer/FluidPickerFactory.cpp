@@ -22,8 +22,8 @@
 
 #include "FluidPickerFactory.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/aquifer/FluidStatus.hpp"
 #include <algorithm>
 

@@ -26,8 +26,13 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/MultifaceBlock.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/multiface/MultifaceBlock.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -37,15 +42,10 @@
 #include "util/math/MathUtils.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockTags.hpp"
-#include "world/block/SupportType.hpp"
-#include "world/block/WaterLoggableHelpers.hpp"
 
-#include "world/block/blocks/MultifaceSpreader.hpp"
+#include "common/world/block/blocks/multiface/MultifaceSpreader.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "world/block/blocks/sculk/SculkSpreader.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/sculk/SculkSensorBlockEntity.hpp"
 #include "world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
@@ -1102,7 +1102,7 @@ void SculkShriekerBlock::shriek(IWorld& world, const BlockPos& pos, const BlockS
     world.tickManager().scheduleBlockTick(pos, state.getBlock(), SHRIEKING_TICKS);
 
     // 3. 发出尖啸粒子效果（事件 ID 3007）
-    world.playEvent(mc::world::WorldEvents::SCULK_SHRIEK, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_SCULK_SHRIEK, pos, 0);
 
     // 4. 发出 SHRIEK 游戏事件（通知附近的幽匿感测体/尖啸体振动系统）
     const BlockState* currentState = world.getBlockState(pos);

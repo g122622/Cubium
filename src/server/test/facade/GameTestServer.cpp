@@ -1,14 +1,14 @@
 #include "server/test/facade/GameTestServer.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityReference.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->engine().addModuleFactory
@@ -37,6 +37,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/storage/core/WorldStoragePaths.hpp"
+#include "server/world/time/TimeManager.hpp"
 
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
 #include "server/world/gen/feature/template/TemplateManager.hpp"
@@ -246,7 +247,7 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     spdlog::info("World: {}, Seed: {}", params.worldName, params.seed);
 
     // === 核心管理器 ===
-    initializeCoreManagers();
+    initializeDomainServices();
 
     // 注册 @minecraft/server-gametest JS 绑定模块工厂到脚本引擎。
     // GameTestServer 是 server 专属（不与 client 共享编译），可安全 include server/test/script/ 头。
@@ -268,7 +269,7 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     // 加载 OP 列表（allowCommands=true 时 GameTestServer 自身需 OP 权限执行 /gametest）
     if (m_gameDirectory.isValid()) {
         const auto opsPath = m_gameDirectory.root() / "ops.json";
-        auto opsResult = m_opListManager->load(opsPath);
+        auto opsResult = m_accessManager->operatorLoad(opsPath);
         if (opsResult.failed()) {
             spdlog::warn("Failed to load ops: {}", opsResult.error().message());
         }

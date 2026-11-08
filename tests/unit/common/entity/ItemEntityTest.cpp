@@ -34,7 +34,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"

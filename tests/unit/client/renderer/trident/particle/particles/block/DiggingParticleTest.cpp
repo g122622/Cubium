@@ -28,9 +28,9 @@
 #include "client/renderer/trident/particle/particles/block/DiggingParticle.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <cmath>
 #include <memory>

@@ -29,7 +29,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <cmath>
 #include <memory>
 

@@ -28,9 +28,9 @@
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
 using namespace mc;
@@ -325,9 +325,9 @@ public:
         return true;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
-        m_lastEventId = eventId;
+        m_lastEventId = static_cast<i32>(eventId);
         m_lastEventPos = pos;
         m_lastEventData = data;
     }
@@ -480,7 +480,7 @@ TEST_F(EatGrassGoalGameRuleTest, GrassBlockTurnsToDirt_WhenMobGriefingEnabled)
     EXPECT_TRUE(initialState->is(VanillaBlocks::GRASS_BLOCK));
 
     // 模拟吃草方块的逻辑
-    world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS,
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK,
         BlockPos(0, 63, 0),
         static_cast<i32>(VanillaBlocks::GRASS_BLOCK->defaultState().stateId()));
     world.setBlockState(0, 63, 0, &VanillaBlocks::DIRT->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
@@ -491,7 +491,7 @@ TEST_F(EatGrassGoalGameRuleTest, GrassBlockTurnsToDirt_WhenMobGriefingEnabled)
     EXPECT_TRUE(finalState->is(VanillaBlocks::DIRT));
 
     // 验证 playEvent 被调用
-    EXPECT_EQ(world.getLastEventId(), world::WorldEvents::BREAK_BLOCK_EFFECTS);
+    EXPECT_EQ(world.getLastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK));
 }
 
 // 测试 mobGriefing=false 时草方块不被改变

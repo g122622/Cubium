@@ -22,16 +22,17 @@
  */
 
 #include "BanListCommand.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/core/Types.hpp"
+#include "server/access/base/BannedIpListTypes.hpp"
+#include "server/access/base/BannedPlayerListTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/BannedPlayerList.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -81,11 +82,11 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    auto& playerBanList = server->bannedPlayerList();
-    auto& ipBanList = server->bannedIpList();
+    auto& playerBanList = server->accessManager();
+    auto& ipBanList = server->accessManager();
 
-    auto bannedPlayers = playerBanList.getAllBannedNames();
-    auto bannedIps = ipBanList.getAllBannedIps();
+    auto bannedPlayers = playerBanList.playerBanGetAllBannedNames();
+    auto bannedIps = ipBanList.ipBanGetAllBannedIps();
 
     size_t total = bannedPlayers.size() + bannedIps.size();
 
@@ -139,8 +140,8 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    auto& banList = server->bannedPlayerList();
-    auto entries = banList.getAllEntries();
+    auto& banList = server->accessManager();
+    auto entries = banList.playerBanGetAllEntries();
 
     if (entries.empty()) {
         source.sendMessage("There are no banned players");
@@ -148,9 +149,8 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
     }
 
     // 按名称排序
-    std::sort(entries.begin(),
-        entries.end(),
-        [](const server::core::BannedPlayerEntry& a, const server::core::BannedPlayerEntry& b) {
+    std::sort(
+        entries.begin(), entries.end(), [](const server::BannedPlayerEntry& a, const server::BannedPlayerEntry& b) {
             return a.name < b.name;
         });
 
@@ -177,8 +177,8 @@ i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    auto& banList = server->bannedIpList();
-    auto entries = banList.getAllEntries();
+    auto& banList = server->accessManager();
+    auto entries = banList.ipBanGetAllEntries();
 
     if (entries.empty()) {
         source.sendMessage("There are no banned IPs");
@@ -186,10 +186,9 @@ i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context)
     }
 
     // 按 IP 排序
-    std::sort(
-        entries.begin(), entries.end(), [](const server::core::BannedIpEntry& a, const server::core::BannedIpEntry& b) {
-            return a.ip < b.ip;
-        });
+    std::sort(entries.begin(), entries.end(), [](const server::BannedIpEntry& a, const server::BannedIpEntry& b) {
+        return a.ip < b.ip;
+    });
 
     std::ostringstream ss;
     ss << "There are " << entries.size() << " banned IP(s): ";

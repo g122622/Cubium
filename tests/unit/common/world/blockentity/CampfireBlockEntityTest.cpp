@@ -22,9 +22,9 @@
  */
 
 #include "world/blockentity/processing/CampfireBlockEntity.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
-#include "world/block/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"

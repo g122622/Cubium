@@ -31,7 +31,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include <gtest/gtest.h>
 

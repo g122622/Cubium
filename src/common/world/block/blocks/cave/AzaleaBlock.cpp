@@ -29,13 +29,13 @@
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/IGrowable.hpp"
-#include "common/world/block/PlantType.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/PlantType.hpp"
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <utility>
 
 namespace mc {

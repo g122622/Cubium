@@ -24,7 +24,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 
 using namespace mc;

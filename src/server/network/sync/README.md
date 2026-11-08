@@ -82,7 +82,7 @@ src/server/network/sync/
 | `server/dimension/ServerDimension` | 创建并持有各同步管理器实例 |
 | `server/world/ServerWorld` | 光照 flush/send 编排、方块变化事件源、地图数据 |
 | `server/application/MinecraftServer` | 设置网络发送回调 |
-| `server/core/{PlayerManager,ServerPlayerData}` | 持 `chunk/ChunkSyncManager` 与 `chunk/PlayerChunkTracker` |
+| `server/player/` | 持 `chunk/ChunkSyncManager` 与 `chunk/PlayerChunkTracker` |
 | `server/network/handshake/LoginFlow` | 经 `WeatherSyncService` 推初始天气 |
 
 ## 容易踩的坑

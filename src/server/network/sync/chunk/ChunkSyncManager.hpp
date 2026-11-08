@@ -94,6 +94,17 @@ public:
         }
     }
 
+    void setViewDistance(PlayerId playerId, i32 distance)
+    {
+        getTracker(playerId)->setViewDistance(distance);
+    }
+
+    [[nodiscard]] i32 getViewDistance(PlayerId playerId) const
+    {
+        const auto it = m_trackers.find(playerId);
+        return it != m_trackers.end() ? it->second->viewDistance() : m_defaultViewDistance;
+    }
+
     // 全局设置
     void setDefaultViewDistance(i32 distance)
     {

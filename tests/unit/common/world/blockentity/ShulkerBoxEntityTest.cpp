@@ -24,7 +24,11 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/container/ShulkerBoxBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
@@ -34,10 +38,6 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/WorldConstants.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/blocks/ShulkerBoxBlock.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 

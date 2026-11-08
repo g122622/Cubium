@@ -2,7 +2,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 
 namespace mc::ecs {

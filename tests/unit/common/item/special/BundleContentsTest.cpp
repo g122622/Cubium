@@ -27,7 +27,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/util/color/DyeColor.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::item::items;

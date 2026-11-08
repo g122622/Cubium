@@ -41,11 +41,11 @@
 #include "server/application/console/ui/StatusPanelComponent.hpp"
 #include "server/application/console/ui/TerminalUi.hpp"
 #include "server/command/CommandRegistry.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/network/session/ClientSessionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include <algorithm>

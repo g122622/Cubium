@@ -25,9 +25,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/sculk/SculkBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"

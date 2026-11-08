@@ -32,7 +32,7 @@
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <algorithm>
 #include <cstring>
 #include <string>

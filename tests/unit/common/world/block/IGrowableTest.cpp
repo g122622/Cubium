@@ -24,9 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"

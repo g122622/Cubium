@@ -34,7 +34,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 
 #include <algorithm>
 #include <cmath>

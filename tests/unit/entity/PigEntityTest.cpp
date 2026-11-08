@@ -29,7 +29,7 @@
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::math;

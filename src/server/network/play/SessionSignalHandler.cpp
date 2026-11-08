@@ -29,9 +29,9 @@
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "server/application/MinecraftServer.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/network/session/keepalive/KeepAliveManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include <variant>
 #include <spdlog/spdlog.h>
 

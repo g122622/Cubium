@@ -36,7 +36,7 @@
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 #include <nlohmann/json.hpp>

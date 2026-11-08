@@ -58,7 +58,7 @@
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/item/core/Item.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include "probe.hpp"
 

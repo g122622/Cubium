@@ -24,7 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -34,8 +36,6 @@
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/block/blocks/special/SpongeBlock.hpp"
 #include "world/block/blocks/special/WetSpongeBlock.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -161,7 +161,7 @@ public:
     }
 
     // 记录的方法
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_playedEvents.push_back({eventId, pos, data});
     }
@@ -176,7 +176,7 @@ public:
     }
 
     // 访问记录的事件
-    const std::vector<std::tuple<i32, BlockPos, i32>>& getPlayedEvents() const
+    const std::vector<std::tuple<::mc::world::LevelEventId, BlockPos, i32>>& getPlayedEvents() const
     {
         return m_playedEvents;
     }
@@ -210,7 +210,7 @@ private:
     bool m_ultraWarm = false;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     // 记录的事件
-    std::vector<std::tuple<i32, BlockPos, i32>> m_playedEvents;
+    std::vector<std::tuple<::mc::world::LevelEventId, BlockPos, i32>> m_playedEvents;
     std::vector<std::tuple<ResourceLocation, sound::SoundCategory, Vector3, f32, f32>> m_playedSounds;
     std::vector<std::pair<BlockPos, const BlockState*>> m_blockChanges;
 };
@@ -332,7 +332,7 @@ TEST_F(SpongeBlockTest, SpongeAbsorbsWaterSource)
     EXPECT_FALSE(events.empty());
     bool foundBreakEvent = false;
     for (const auto& [eventId, pos, data] : events) {
-        if (eventId == world::WorldEvents::BREAK_BLOCK_EFFECTS) {
+        if (eventId == ::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK) {
             foundBreakEvent = true;
             break;
         }
@@ -406,7 +406,7 @@ TEST_F(WetSpongeBlockTest, WetSpongeDriesInNether)
     const auto& events = world.getPlayedEvents();
     bool foundDryEvent = false;
     for (const auto& [eventId, pos, data] : events) {
-        if (eventId == world::WorldEvents::WET_SPONGE_DRY) {
+        if (eventId == ::mc::world::LevelEventId::PARTICLES_WATER_EVAPORATING) {
             foundDryEvent = true;
             break;
         }
@@ -458,11 +458,11 @@ protected:
 TEST_F(WorldEventsTest, WetSpongeDryEventValue)
 {
     // 验证事件常量值正确
-    EXPECT_EQ(world::WorldEvents::WET_SPONGE_DRY, 2009);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_WATER_EVAPORATING), 2009);
 }
 
 TEST_F(WorldEventsTest, BreakBlockEffectsValue)
 {
     // 验证事件常量值正确
-    EXPECT_EQ(world::WorldEvents::BREAK_BLOCK_EFFECTS, 2001);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK), 2001);
 }

@@ -43,13 +43,13 @@
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
+#include "server/access/AccessManager.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
-#include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/network/handshake/LoginFlow.hpp"
@@ -60,6 +60,7 @@
 #include "server/world/storage/core/WorldStoragePaths.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
 #include "server/world/storage/request/WorldRequests.hpp"
+#include "server/world/time/TimeManager.hpp"
 
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
@@ -76,7 +77,7 @@
 #include "common/world/WorldConfig.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/dimension/Dimension.hpp"
-#include "server/core/OpListManager.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
 #include "server/network/session/ServerNetwork.hpp"
 #include <algorithm>
@@ -222,12 +223,12 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     };
 
     // 初始化核心管理器
-    initializeCoreManagers();
+    initializeDomainServices();
 
     // 创建本地客户端会话（离线模式，集成服禁用压缩 threshold=-1，sessionId=0）。
-    // 【顺序约束】必须在 initializeCoreManagers 之后：ClientSession 构造要取
+    // 【顺序约束】必须在 initializeDomainServices 之后：ClientSession 构造要取
     // ServerPlayHandler&（经 playHandler() 即 *m_playHandler 取引用），而 m_playHandler
-    // 在 initializeCoreManagers 内才 make_unique。若会话先于 init 构造，playHandler()
+    // 在 initializeDomainServices 内才 make_unique。若会话先于 init 构造，playHandler()
     // 会返回 *nullptr 形成空悬引用，运行期首个 Play 包经 route 解引用即崩
     // （表现：玩家 join 后第一个 AcceptTeleportation 包 ACCESS_VIOLATION read 0x0）。
     m_clientSession = std::make_unique<mc::server::net::ClientSession>(*m_clientConnection,
@@ -246,7 +247,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
 
     // 加载 OP 列表（集成服务器使用默认路径）
     // 白名单和封禁列表在集成服务器中通常不需要
-    auto opsResult = m_opListManager->load("ops.json");
+    auto opsResult = m_accessManager->operatorLoad("ops.json");
     if (opsResult.failed()) {
         spdlog::error("No ops.json found or failed to load: {}", opsResult.error().message());
     }
@@ -533,7 +534,7 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
     spdlog::info("Player '{}' attempting to join (handshake complete)", username);
 
     // 白名单检查（白名单启用时拒绝不在名单中的玩家）
-    if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
+    if (m_accessManager->whitelistIsEnabled() && !m_accessManager->whitelistIsNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);
         // 本项目白名单检查时机晚于 vanilla（vanilla 在 Login 阶段 handleHello 即拒；
         // 本项目在 Configuration 完成、出站已切 Play 的 onPlayerReady 回调里检查）。
@@ -976,7 +977,7 @@ void IntegratedServer::_tickOpenContainer()
 
 i32 IntegratedServer::resolveOpLevel(const std::string& uuid) const noexcept
 {
-    const i32 base = static_cast<i32>(m_opListManager->getLevel(uuid));
+    const i32 base = static_cast<i32>(m_accessManager->operatorGetLevel(uuid));
 
     // 主机身份动态判定：m_clientPlayerId 登录后非 0，playerManager 持有其 UUID。
     // 复用 isSingleplayerOwner 的 playerId 判定，再比对 uuid（本方法接收 uuid 而非 playerId）。
@@ -986,7 +987,7 @@ i32 IntegratedServer::resolveOpLevel(const std::string& uuid) const noexcept
         isOwner = (host != nullptr && host->uuid == uuid);
     }
 
-    return core::applyOwnerCheatsBoost(base, isOwner, m_params.allowCommands);
+    return applyOwnerCheatsBoost(base, isOwner, m_params.allowCommands);
 }
 
 bool IntegratedServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)

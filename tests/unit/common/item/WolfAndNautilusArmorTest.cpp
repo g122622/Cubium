@@ -31,7 +31,7 @@
 #include "common/item/items/armor/NautilusArmorItem.hpp"
 #include "common/item/items/armor/WolfArmorItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::item::armor;

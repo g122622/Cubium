@@ -24,8 +24,8 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include <array>

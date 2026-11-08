@@ -50,8 +50,8 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 

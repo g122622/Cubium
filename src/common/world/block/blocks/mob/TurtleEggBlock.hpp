@@ -27,9 +27,9 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include <array>
 
 namespace mc {

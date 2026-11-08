@@ -29,6 +29,7 @@
  * 在线玩家回退逻辑以及命令的整体功能。
  */
 
+#include "server/access/AccessManager.hpp"
 #include <gtest/gtest.h>
 
 #include "common/BaseTestServer.hpp"
@@ -107,11 +108,11 @@ TEST_F(WhitelistBanCommandTest, WhitelistAddOfflinePlayerGeneratesCorrectOffline
     ASSERT_TRUE(result.success());
 
     // 验证白名单中包含 Steve
-    auto& whitelist = m_server.whitelistManager();
-    EXPECT_TRUE(whitelist.isNameWhitelisted("Steve"));
+    auto& whitelist = m_server.accessManager();
+    EXPECT_TRUE(whitelist.whitelistIsNameWhitelisted("Steve"));
 
     // 验证 UUID 是 MC 原版离线 UUID 算法生成的
-    auto entry = whitelist.getEntryByName("Steve");
+    auto entry = whitelist.whitelistGetEntryByName("Steve");
     ASSERT_TRUE(entry.has_value());
 
     // 使用 util::generateOfflineUuid 独立计算期望的 UUID
@@ -133,11 +134,11 @@ TEST_F(WhitelistBanCommandTest, BanOfflinePlayerGeneratesCorrectOfflineUuid)
     ASSERT_TRUE(result.success());
 
     // 验证封禁列表中包含 Alex
-    auto& banList = m_server.bannedPlayerList();
-    EXPECT_TRUE(banList.isNameBanned("Alex"));
+    auto& banList = m_server.accessManager();
+    EXPECT_TRUE(banList.playerBanIsNameBanned("Alex"));
 
     // 验证 UUID 是 MC 原版离线 UUID 算法生成的
-    auto entry = banList.getEntryByName("Alex");
+    auto entry = banList.playerBanGetEntryByName("Alex");
     ASSERT_TRUE(entry.has_value());
 
     // 使用 util::generateOfflineUuid 独立计算期望的 UUID
@@ -159,8 +160,8 @@ TEST_F(WhitelistBanCommandTest, OfflineUuidFormatConformsToUuidV3)
     // 添加离线玩家
     m_server.commandRegistry().execute("whitelist add TestPlayer", m_console);
 
-    auto& whitelist = m_server.whitelistManager();
-    auto entry = whitelist.getEntryByName("TestPlayer");
+    auto& whitelist = m_server.accessManager();
+    auto entry = whitelist.whitelistGetEntryByName("TestPlayer");
     ASSERT_TRUE(entry.has_value());
 
     const std::string& uuid = entry->uuid;
@@ -192,9 +193,9 @@ TEST_F(WhitelistBanCommandTest, DifferentPlayerNamesGenerateDifferentUuids)
     m_server.commandRegistry().execute("whitelist add Alice", m_console);
     m_server.commandRegistry().execute("whitelist add Bob", m_console);
 
-    auto& whitelist = m_server.whitelistManager();
-    auto aliceEntry = whitelist.getEntryByName("Alice");
-    auto bobEntry = whitelist.getEntryByName("Bob");
+    auto& whitelist = m_server.accessManager();
+    auto aliceEntry = whitelist.whitelistGetEntryByName("Alice");
+    auto bobEntry = whitelist.whitelistGetEntryByName("Bob");
     ASSERT_TRUE(aliceEntry.has_value());
     ASSERT_TRUE(bobEntry.has_value());
 
@@ -211,8 +212,8 @@ TEST_F(WhitelistBanCommandTest, OfflineUuidGenerationIsDeterministic)
     // 通过命令添加
     m_server.commandRegistry().execute("whitelist add DeterminismTest", m_console);
 
-    auto& whitelist = m_server.whitelistManager();
-    auto entry = whitelist.getEntryByName("DeterminismTest");
+    auto& whitelist = m_server.accessManager();
+    auto entry = whitelist.whitelistGetEntryByName("DeterminismTest");
     ASSERT_TRUE(entry.has_value());
 
     // 通过 util 函数独立计算
@@ -247,12 +248,12 @@ TEST_F(WhitelistBanCommandTest, OfflineUuidGenerationIsCaseSensitive)
  */
 TEST_F(WhitelistBanCommandTest, WhitelistOnEnablesWhitelist)
 {
-    auto& whitelist = m_server.whitelistManager();
-    EXPECT_FALSE(whitelist.isEnabled());
+    auto& whitelist = m_server.accessManager();
+    EXPECT_FALSE(whitelist.whitelistIsEnabled());
 
     const auto result = m_server.commandRegistry().execute("whitelist on", m_console);
     EXPECT_TRUE(result.success());
-    EXPECT_TRUE(whitelist.isEnabled());
+    EXPECT_TRUE(whitelist.whitelistIsEnabled());
 }
 
 /**
@@ -260,13 +261,13 @@ TEST_F(WhitelistBanCommandTest, WhitelistOnEnablesWhitelist)
  */
 TEST_F(WhitelistBanCommandTest, WhitelistOffDisablesWhitelist)
 {
-    auto& whitelist = m_server.whitelistManager();
-    whitelist.setEnabled(true);
-    EXPECT_TRUE(whitelist.isEnabled());
+    auto& whitelist = m_server.accessManager();
+    whitelist.whitelistSetEnabled(true);
+    EXPECT_TRUE(whitelist.whitelistIsEnabled());
 
     const auto result = m_server.commandRegistry().execute("whitelist off", m_console);
     EXPECT_TRUE(result.success());
-    EXPECT_FALSE(whitelist.isEnabled());
+    EXPECT_FALSE(whitelist.whitelistIsEnabled());
 }
 
 /**
@@ -274,12 +275,12 @@ TEST_F(WhitelistBanCommandTest, WhitelistOffDisablesWhitelist)
  */
 TEST_F(WhitelistBanCommandTest, WhitelistAddAndRemove)
 {
-    auto& whitelist = m_server.whitelistManager();
+    auto& whitelist = m_server.accessManager();
 
     // 添加玩家
     const auto addResult = m_server.commandRegistry().execute("whitelist add TestPlayer", m_console);
     EXPECT_TRUE(addResult.success());
-    EXPECT_TRUE(whitelist.isNameWhitelisted("TestPlayer"));
+    EXPECT_TRUE(whitelist.whitelistIsNameWhitelisted("TestPlayer"));
 
     // 重复添加应失败
     const auto addAgainResult = m_server.commandRegistry().execute("whitelist add TestPlayer", m_console);
@@ -288,7 +289,7 @@ TEST_F(WhitelistBanCommandTest, WhitelistAddAndRemove)
     // 移除玩家
     const auto removeResult = m_server.commandRegistry().execute("whitelist remove TestPlayer", m_console);
     EXPECT_TRUE(removeResult.success());
-    EXPECT_FALSE(whitelist.isNameWhitelisted("TestPlayer"));
+    EXPECT_FALSE(whitelist.whitelistIsNameWhitelisted("TestPlayer"));
 }
 
 /**
@@ -299,8 +300,8 @@ TEST_F(WhitelistBanCommandTest, WhitelistListShowsEntries)
     m_server.commandRegistry().execute("whitelist add Player1", m_console);
     m_server.commandRegistry().execute("whitelist add Player2", m_console);
 
-    auto& whitelist = m_server.whitelistManager();
-    auto names = whitelist.getAllNames();
+    auto& whitelist = m_server.accessManager();
+    auto names = whitelist.whitelistGetAllNames();
     EXPECT_EQ(names.size(), 2u);
 }
 
@@ -334,10 +335,10 @@ TEST_F(WhitelistBanCommandTest, BanOfflinePlayer)
     const auto result = m_server.commandRegistry().execute("ban BadPlayer Griefing", m_console);
     EXPECT_TRUE(result.success());
 
-    auto& banList = m_server.bannedPlayerList();
-    EXPECT_TRUE(banList.isNameBanned("BadPlayer"));
+    auto& banList = m_server.accessManager();
+    EXPECT_TRUE(banList.playerBanIsNameBanned("BadPlayer"));
 
-    auto entry = banList.getEntryByName("BadPlayer");
+    auto entry = banList.playerBanGetEntryByName("BadPlayer");
     ASSERT_TRUE(entry.has_value());
     EXPECT_EQ(entry->name, "BadPlayer");
     EXPECT_EQ(entry->reason, "Griefing");
@@ -351,8 +352,8 @@ TEST_F(WhitelistBanCommandTest, BanDefaultReason)
     const auto result = m_server.commandRegistry().execute("ban RuleBreaker", m_console);
     EXPECT_TRUE(result.success());
 
-    auto& banList = m_server.bannedPlayerList();
-    auto entry = banList.getEntryByName("RuleBreaker");
+    auto& banList = m_server.accessManager();
+    auto entry = banList.playerBanGetEntryByName("RuleBreaker");
     ASSERT_TRUE(entry.has_value());
     EXPECT_EQ(entry->reason, "Banned by an operator");
 }
@@ -364,8 +365,8 @@ TEST_F(WhitelistBanCommandTest, BanOfflinePlayerUuidMatchesOfflineAlgorithm)
 {
     m_server.commandRegistry().execute("ban OfflineBannedPlayer", m_console);
 
-    auto& banList = m_server.bannedPlayerList();
-    auto entry = banList.getEntryByName("OfflineBannedPlayer");
+    auto& banList = m_server.accessManager();
+    auto entry = banList.playerBanGetEntryByName("OfflineBannedPlayer");
     ASSERT_TRUE(entry.has_value());
 
     // UUID 应与独立计算的离线 UUID 一致
@@ -429,8 +430,8 @@ TEST_F(WhitelistBanCommandTest, OnlinePlayerUsesRealUuid)
     const auto result = m_server.commandRegistry().execute("whitelist add OnlineSteve", m_console);
     EXPECT_TRUE(result.success());
 
-    auto& whitelist = m_server.whitelistManager();
-    auto entry = whitelist.getEntryByName("OnlineSteve");
+    auto& whitelist = m_server.accessManager();
+    auto entry = whitelist.whitelistGetEntryByName("OnlineSteve");
     ASSERT_TRUE(entry.has_value());
 
     // 白名单中存储的 UUID 应为带连字符的标准格式

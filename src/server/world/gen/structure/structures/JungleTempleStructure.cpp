@@ -32,9 +32,9 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <memory>

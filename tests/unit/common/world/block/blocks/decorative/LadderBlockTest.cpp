@@ -24,14 +24,14 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/block/registry/VegetationBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VegetationBlocks.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/Direction.hpp"
 #include "util/math/Vector3.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/block/blocks/decorative/LadderBlock.hpp"
 
 #include <memory>

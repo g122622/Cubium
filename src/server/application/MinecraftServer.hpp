@@ -40,24 +40,18 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
+#include "server/access/AccessManager.hpp"
+#include "server/access/base/BannedIpListTypes.hpp"
+#include "server/access/base/BannedPlayerListTypes.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
+#include "server/access/base/WhitelistManagerTypes.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/application/console/ServerConsole.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/command/data/DataAccessor.hpp"
-#include "server/core/BannedIpList.hpp"
-#include "server/core/BannedPlayerList.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/GameModeManager.hpp"
-#include "server/core/KeepAliveManager.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/PositionTracker.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/TeleportManager.hpp"
-#include "server/core/TimeManager.hpp"
-#include "server/core/WhitelistManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/function/TimerQueue.hpp"
@@ -66,8 +60,16 @@
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/network/session/PlayerConnectionManager.hpp"
 #include "server/network/session/ServerNetwork.hpp"
+#include "server/network/session/keepalive/KeepAliveManager.hpp"
+#include "server/network/sync/player/TeleportManager.hpp"
 #include "server/player/PlayerRespawnManager.hpp"
+#include "server/player/gamemode/GameModeManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/movement/PlayerMovementManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
@@ -75,6 +77,7 @@
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/GlobalStorageManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/time/TimeManager.hpp"
 #include <atomic>
 #include <cmath>
 #include <cstddef>
@@ -248,121 +251,101 @@ public:
 
     // ========== 核心管理器 ==========
 
-    [[nodiscard]] core::PlayerManager& playerManager() override
+    [[nodiscard]] AccessManager& accessManager() override
+    {
+        return *m_accessManager;
+    }
+
+    [[nodiscard]] const AccessManager& accessManager() const override
+    {
+        return *m_accessManager;
+    }
+
+    [[nodiscard]] PlayerManager& playerManager() override
     {
         return *m_playerManager;
     }
 
-    [[nodiscard]] const core::PlayerManager& playerManager() const override
+    [[nodiscard]] const PlayerManager& playerManager() const override
     {
         return *m_playerManager;
     }
 
-    [[nodiscard]] core::ConnectionManager& connectionManager() override
+    [[nodiscard]] PlayerConnectionManager& playerConnections() override
     {
-        return *m_connectionManager;
+        return *m_playerConnections;
     }
 
-    [[nodiscard]] const core::ConnectionManager& connectionManager() const override
+    [[nodiscard]] const PlayerConnectionManager& playerConnections() const override
     {
-        return *m_connectionManager;
+        return *m_playerConnections;
     }
 
-    [[nodiscard]] core::TimeManager& timeManager() override
+    [[nodiscard]] PacketSender& packetSender() override
+    {
+        return *m_packetSender;
+    }
+
+    [[nodiscard]] const PacketSender& packetSender() const override
+    {
+        return *m_packetSender;
+    }
+
+    [[nodiscard]] TimeManager& timeManager() override
     {
         return *m_timeManager;
     }
 
-    [[nodiscard]] const core::TimeManager& timeManager() const override
+    [[nodiscard]] const TimeManager& timeManager() const override
     {
         return *m_timeManager;
     }
 
-    [[nodiscard]] core::TeleportManager& teleportManager() override
+    [[nodiscard]] TeleportManager& teleportManager() override
     {
         return *m_teleportManager;
     }
 
-    [[nodiscard]] const core::TeleportManager& teleportManager() const override
+    [[nodiscard]] const TeleportManager& teleportManager() const override
     {
         return *m_teleportManager;
     }
 
-    [[nodiscard]] core::KeepAliveManager& keepAliveManager() override
+    [[nodiscard]] KeepAliveManager& keepAliveManager() override
     {
         return *m_keepAliveManager;
     }
 
-    [[nodiscard]] const core::KeepAliveManager& keepAliveManager() const override
+    [[nodiscard]] const KeepAliveManager& keepAliveManager() const override
     {
         return *m_keepAliveManager;
     }
 
-    [[nodiscard]] core::PositionTracker& positionTracker() override
+    [[nodiscard]] PlayerMovementManager& playerMovementManager() override
     {
-        return *m_positionTracker;
+        return *m_playerMovementManager;
     }
 
-    [[nodiscard]] const core::PositionTracker& positionTracker() const override
+    [[nodiscard]] const PlayerMovementManager& playerMovementManager() const override
     {
-        return *m_positionTracker;
+        return *m_playerMovementManager;
     }
 
-    [[nodiscard]] core::GameModeManager& gameModeManager() override
+    [[nodiscard]] GameModeManager& gameModeManager() override
     {
         return *m_gameModeManager;
     }
 
-    [[nodiscard]] const core::GameModeManager& gameModeManager() const override
+    [[nodiscard]] const GameModeManager& gameModeManager() const override
     {
         return *m_gameModeManager;
     }
 
     // ========== 白名单管理器 ==========
 
-    [[nodiscard]] core::WhitelistManager& whitelistManager() override
-    {
-        return *m_whitelistManager;
-    }
-
-    [[nodiscard]] const core::WhitelistManager& whitelistManager() const override
-    {
-        return *m_whitelistManager;
-    }
-
     // ========== 封禁管理器 ==========
 
-    [[nodiscard]] core::BannedPlayerList& bannedPlayerList() override
-    {
-        return *m_bannedPlayerList;
-    }
-
-    [[nodiscard]] const core::BannedPlayerList& bannedPlayerList() const override
-    {
-        return *m_bannedPlayerList;
-    }
-
-    [[nodiscard]] core::BannedIpList& bannedIpList() override
-    {
-        return *m_bannedIpList;
-    }
-
-    [[nodiscard]] const core::BannedIpList& bannedIpList() const override
-    {
-        return *m_bannedIpList;
-    }
-
     // ========== OP 管理器 ==========
-
-    [[nodiscard]] core::OpListManager& opListManager() override
-    {
-        return *m_opListManager;
-    }
-
-    [[nodiscard]] const core::OpListManager& opListManager() const override
-    {
-        return *m_opListManager;
-    }
 
     // ========== 世界访问（维度感知）==========
 
@@ -624,7 +607,7 @@ public:
      *
      * 调用 ServerScriptManager::loadPlugins 扫描 `gameDirectory().behaviorPacksDir()`
      * 下的行为包，解析 manifest，加载并启动脚本插件。须在以下条件均满足后调用：
-     * 1. initializeCoreManagers 已执行（m_scriptManager 已创建并 initialize）；
+     * 1. initializeDomainServices 已执行（m_scriptManager 已创建并 initialize）；
      * 2. 所有 JS 模块工厂已注册（如 @minecraft/server-gametest 工厂），否则
      *    行为包内 `import "@minecraft/server-gametest"` 会因模块未注册而失败。
      *
@@ -922,7 +905,7 @@ protected:
     /**
      * @brief 初始化核心管理器
      */
-    void initializeCoreManagers();
+    void initializeDomainServices();
 
     /**
      * @brief 初始化世界
@@ -1167,7 +1150,7 @@ public:
 
 protected:
     // 注：sendCommandTreePacket/sendPermissionLevelChange 已于批6 迁入 LoginFlow
-    // （登录流程整簇下沉）。/op、/deop 命令走 buildPermissionLevelChangeIr + connectionManager。
+    // （登录流程整簇下沉）。/op、/deop 命令走 buildPermissionLevelChangeIr + packetSender。
 
     // ========== 数据包处理方法 ==========
     //
@@ -1407,18 +1390,18 @@ protected:
      *
      * 世界事件包括音效和粒子效果，如门开关声音、唱片播放、方块破坏等。
      *
-     * @param eventId 事件ID，参见 WorldEvents 命名空间
+     * @param eventId 事件ID，参见 LevelEventId 枚举
      * @param x X坐标
      * @param y Y坐标
      * @param z Z坐标
      * @param data 事件数据（含义因事件而异）
      */
-    void broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
+    void broadcastWorldEvent(::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data);
 
     /**
      * @brief 广播全局世界事件给全服玩家（跨维度）
      *
-     * 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
+     * 对应 MC Java: ServerLevel.globalLevelEvent(::mc::world::LevelEventId, BlockPos, i32)
      * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
      * 遍历全服所有玩家，对每个玩家计算事件位置：
      *   - 同维度且距离<32格：使用真实事件位置
@@ -1434,7 +1417,8 @@ protected:
      * @param z Z坐标
      * @param data 事件数据
      */
-    void broadcastGlobalLevelEvent(DimensionId sourceDimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data);
+    void broadcastGlobalLevelEvent(
+        DimensionId sourceDimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data);
 
     /**
      * @brief 广播世界事件给指定范围内的玩家
@@ -1446,7 +1430,8 @@ protected:
      * @param data 事件数据
      * @param range 广播范围（格），默认 64 格
      */
-    void broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
+    void broadcastWorldEventInRange(
+        ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
 
     /**
      * @brief 广播方块破坏进度动画给指定范围内的玩家
@@ -1680,7 +1665,7 @@ protected:
     /**
      * @brief 注册 viewDistance / simulationDistance 运行时变更回调
      *
-     * 在 initializeCoreManagers 末尾调用（m_dimensionManager / m_playerManager 已就绪）。
+     * 在 initializeDomainServices 末尾调用（m_dimensionManager / m_playerManager 已就绪）。
      * 二者变更时：① 经 forEachDimension 把新值下发各维度 ServerWorld 的 EntityManager
      * （viewDistance 走 setConfig，simulationDistance 走 setSimulationDistance）；
      * ② 向所有在线玩家广播 SetChunkCacheRadius(id=93) / SetSimulationDistance(id=109)。
@@ -1733,17 +1718,15 @@ protected:
     i32 m_playerIdleTimeoutMinutes = 0;
 
     // 核心管理器
-    std::unique_ptr<core::PlayerManager> m_playerManager;
-    std::unique_ptr<core::ConnectionManager> m_connectionManager;
-    std::unique_ptr<core::TimeManager> m_timeManager;
-    std::unique_ptr<core::TeleportManager> m_teleportManager;
-    std::unique_ptr<core::KeepAliveManager> m_keepAliveManager;
-    std::unique_ptr<core::PositionTracker> m_positionTracker;
-    std::unique_ptr<core::GameModeManager> m_gameModeManager;
-    std::unique_ptr<core::WhitelistManager> m_whitelistManager;
-    std::unique_ptr<core::BannedPlayerList> m_bannedPlayerList;
-    std::unique_ptr<core::BannedIpList> m_bannedIpList;
-    std::unique_ptr<core::OpListManager> m_opListManager;
+    std::unique_ptr<PlayerManager> m_playerManager;
+    std::unique_ptr<AccessManager> m_accessManager;
+    std::unique_ptr<PacketSender> m_packetSender;
+    std::unique_ptr<PlayerConnectionManager> m_playerConnections;
+    std::unique_ptr<TimeManager> m_timeManager;
+    std::unique_ptr<TeleportManager> m_teleportManager;
+    std::unique_ptr<KeepAliveManager> m_keepAliveManager;
+    std::unique_ptr<PlayerMovementManager> m_playerMovementManager;
+    std::unique_ptr<GameModeManager> m_gameModeManager;
 
     // 世界级共享存储
     world::storage::GlobalStorageManager m_globalStorage;

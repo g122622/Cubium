@@ -23,9 +23,9 @@
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include <atomic>
 #include <cstddef>
 #include <functional>

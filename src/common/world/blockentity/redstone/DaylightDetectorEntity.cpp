@@ -22,7 +22,7 @@
  */
 
 #include "DaylightDetectorEntity.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>

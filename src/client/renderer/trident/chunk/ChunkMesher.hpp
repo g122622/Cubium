@@ -31,7 +31,7 @@
 #include "client/world/color/blend/blend.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>

@@ -30,8 +30,8 @@
 #include "common/world/attribute/EnvironmentAttribute.hpp"
 #include "common/world/attribute/EnvironmentAttributeLayer.hpp"
 #include "common/world/attribute/EnvironmentAttributeMap.hpp"
-#include "common/world/level/MoonPhase.hpp"
-#include "common/world/timeline/AttributeTrackSampler.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
+#include "common/world/time/timeline/AttributeTrackSampler.hpp"
 
 #include <any>
 #include <concepts>

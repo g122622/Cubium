@@ -23,9 +23,9 @@
 
 #include "world/blockentity/BlockEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 
 namespace mc {

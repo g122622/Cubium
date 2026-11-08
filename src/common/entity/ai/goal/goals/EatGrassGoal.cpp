@@ -33,10 +33,10 @@
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <utility>
@@ -161,7 +161,7 @@ void EatGrassGoal::_eatGrass()
         if (currentState != nullptr && currentState->is(VanillaBlocks::GRASS_BLOCK)) {
             if (canGrief) {
                 // 播放方块破坏效果（粒子 + 音效）
-                m_world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS,
+                m_world->playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK,
                     m_targetPos,
                     static_cast<i32>(VanillaBlocks::GRASS_BLOCK->defaultState().stateId()));
 

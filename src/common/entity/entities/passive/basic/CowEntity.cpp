@@ -38,8 +38,8 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <memory>
 #include <optional>
 

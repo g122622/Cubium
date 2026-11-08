@@ -26,7 +26,7 @@
 #include "command/ICommandSource.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "util/math/Vector3.hpp"
 #include <memory>

@@ -25,7 +25,7 @@
 #include "CarvingContext.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/carver/CarverConfiguration.hpp"
 #include "server/world/gen/carver/CaveCarver.hpp"
 

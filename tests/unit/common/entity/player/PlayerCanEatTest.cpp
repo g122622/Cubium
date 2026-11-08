@@ -41,7 +41,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {

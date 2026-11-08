@@ -43,7 +43,7 @@ EndTeleporter 提供以下功能：
 |----------|------|
 | `common/core/Types.hpp` | 基础类型定义 |
 | `common/world/IWorld.hpp` | 世界接口，用于方块操作和区块访问 |
-| `common/world/block/BlockPos.hpp` | 方块位置类型 |
+| `common/world/block/base/types/BlockPos.hpp` | 方块位置类型 |
 | `common/util/Direction.hpp` | 方向和轴向枚举 |
 | `common/util/math/random/Random.hpp` | 随机数生成（传送门轴向选择） |
 | `dimension/DimensionType.hpp` | 维度类型，提供坐标转换方法 |
