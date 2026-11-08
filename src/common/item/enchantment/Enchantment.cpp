@@ -26,6 +26,9 @@
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
+#include "common/item/items/armor/HorseArmorItem.hpp"
+#include "common/item/items/armor/NautilusArmorItem.hpp"
+#include "common/item/items/armor/WolfArmorItem.hpp"
 #include "common/item/items/tool/ShearsItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
 #include "common/item/items/tool/ToolItem.hpp"
@@ -85,18 +88,19 @@ namespace {
 /**
  * @brief 是否为动物铠甲（马铠 / 狼铠 / 鹦鹉螺铠）
  *
- * 它们都是 `ArmorItem` 且带耐久，但原版**不在任何 enchantable 标签里**，
- * 因此不能附保护、耐久、经验修补、消失诅咒等附魔。
- * 目前按物品 ID 后缀近似判定；接入物品标签后可替换。
+ * 它们都带耐久，但原版**不在 enchantable 系列标签里**，因此不能附保护、耐久、经验修补、
+ * 消失诅咒等附魔。用专门的物品类型判定，而不是按 ID 后缀猜测——后缀判定会把自定义
+ * 命名空间里名字恰好以 `_horse_armor` 等结尾的物品也算进来。
  *
- * TODO: 接入 `#minecraft:enchantable/` 系列与 `#minecraft:horse_armors` 等标签后
- * 删除这段按 ID 后缀的近似判定。
+ * 注：三类铠甲各有独立类型（`HorseArmorItem` / `NautilusArmorItem` 直接继承 `Item`，
+ * `WolfArmorItem` 继承 `DyeableArmorItem`），所以不能靠"是 ArmorItem 但不在护甲槽标签里"
+ * 反推——后者要求先有 enchantable 系列标签，而当前数据包并没有那组标签。
  */
 bool _isAnimalArmor(const Item& item)
 {
-    const auto& id = item.itemLocation().path();
-    return (id.size() > 11 && id.substr(id.size() - 11) == "_horse_armor") || id == "wolf_armor" ||
-        (id.size() > 13 && id.substr(id.size() - 13) == "_nautilus_armor");
+    return dynamic_cast<const item::items::HorseArmorItem*>(&item) != nullptr ||
+        dynamic_cast<const item::items::WolfArmorItem*>(&item) != nullptr ||
+        dynamic_cast<const item::items::NautilusArmorItem*>(&item) != nullptr;
 }
 
 } // namespace
