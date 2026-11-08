@@ -22,6 +22,10 @@
  */
 
 #include "world/blockentity/processing/CampfireBlockEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/item/crafting/SmeltingRecipe.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
@@ -59,8 +63,37 @@ protected:
     void SetUp() override
     {
         Items::ensureInitialized();
-        campfire_ = std::make_unique<CampfireBlockEntity>(BlockPos(10, 20, 30));
         m_testItem = ensureTestItem("beef");
+
+        // addItem 会先用 RecipeManager 校验「该物品能否在营火上烹饪」，查不到配方直接
+        // 返回 false。测试必须自己登记一条营火烹饪配方，否则被测路径根本走不到槽位写入。
+        registerCampfireRecipe();
+        campfire_ = std::make_unique<CampfireBlockEntity>(BlockPos(10, 20, 30));
+    }
+
+    void TearDown() override
+    {
+        // 配方表是进程级单例：每个用例退出时清空，避免污染其它套件。
+        crafting::RecipeManager::instance().clear();
+    }
+
+    /**
+     * @brief 登记一条 beef → cooked_beef 的营火烹饪配方。
+     *
+     * `addItem` 只在找到匹配配方时才写入槽位，因此这是被测路径的前置条件，
+     * 不是被测目标本身。
+     */
+    void registerCampfireRecipe()
+    {
+        Item* cookedBeef = ensureTestItem("cooked_beef");
+        crafting::RecipeManager::instance().registerSmeltingRecipe(
+            std::make_unique<crafting::CampfireCookingRecipe>(ResourceLocation("minecraft", "beef_from_campfire"),
+                std::string{},
+                crafting::Ingredient::fromItem(*m_testItem),
+                ItemStack(*cookedBeef, 1),
+                0.35f,
+                600,
+                crafting::CookingBookCategory::Food));
     }
 
     std::unique_ptr<CampfireBlockEntity> campfire_;

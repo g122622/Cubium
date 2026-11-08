@@ -503,9 +503,13 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
         }
         case DataComponentType::Bees:
         case DataComponentType::Trim:
-        case DataComponentType::Recipes: {
+        case DataComponentType::Recipes:
+        case DataComponentType::ChickenVariant:
+        case DataComponentType::ProvidesTrimMaterial: {
             // 未落地结构化载荷的组件：以原始 NBT（JSON 形式）承载，保证 copy_components /
-            // set_components 能原样复制数据包组件而不丢失内容
+            // set_components 能原样复制数据包组件而不丢失内容。
+            // ChickenVariant 与 ProvidesTrimMaterial 都是 EitherHolder 形态（直接值或注册表引用），
+            // 与 ItemStack::rawComponents 的分组保持一致——两边漏一边就会在 NBT 往返时丢载荷。
             const auto& raw = std::get<nlohmann::json>(payload);
             auto encoded = nbt::jsonToNbt(raw);
             return encoded != nullptr ? std::move(encoded) : std::make_unique<compound_tag>();
@@ -728,6 +732,8 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         }
         case DataComponentType::Bees:
         case DataComponentType::Trim:
+        case DataComponentType::ChickenVariant:
+        case DataComponentType::ProvidesTrimMaterial:
         case DataComponentType::Recipes:
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, nbt::nbtToJson(tag)};
         case DataComponentType::Unbreakable: {

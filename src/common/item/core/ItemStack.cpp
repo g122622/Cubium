@@ -1587,7 +1587,8 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::Bees:
             case DataComponentType::Trim:
             case DataComponentType::Recipes:
-            case DataComponentType::ChickenVariant: {
+            case DataComponentType::ChickenVariant:
+            case DataComponentType::ProvidesTrimMaterial: {
                 auto name = componentName(*type);
                 if (name.has_value()) {
                     _ensureExtras().rawComponents[std::string(*name)] = std::get<nlohmann::json>(entry.value);
@@ -1719,6 +1720,8 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::Bees:
             case DataComponentType::Trim:
             case DataComponentType::Recipes:
+            case DataComponentType::ChickenVariant:
+            case DataComponentType::ProvidesTrimMaterial:
                 if (m_extras) {
                     auto name = componentName(*type);
                     if (name.has_value()) {
@@ -1899,9 +1902,10 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 {
     // 空堆写作空气 + 数量 1。原版 `ItemStack.CODEC` 的 count 是 intRange(1, 99)，写 0
     // 之后再读回来会直接失败——空堆因此必须落在区间内，靠 id=air 表达「空」。
-    // TODO: 原版 `ItemStack.CODEC` 其实拒绝 air（"Item must not be minecraft:air"），
-    //       空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`。这里沿用 air+1 是因为
-    //       存档里空槽另有约定，改动牵涉存档格式；需要与存档层一起调整。
+    // TODO: 原版 `ItemStack.CODEC` 拒绝 air（"Item must not be minecraft:air"），
+    //       空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`。本项目沿用 air+count=1 是因为
+    //       存档层空槽另有约定，切到 `{}` 需要与存档格式一起调整。fromNbt 已配套接受 air，
+    //       因此当前形态是往返自洽的；真正要改的是两处一起切。
     if (isEmpty()) {
         tag.put(nbt_keys::ID, std::string("minecraft:air"));
         tag.put(nbt_keys::COUNT, static_cast<i32>(1));
@@ -1942,8 +1946,13 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
     if (item == nullptr) {
         return Error(ErrorCode::InvalidData, "ItemStack NBT has unknown item '" + itemId + "'");
     }
+    // 空堆（air）必须能读回空堆：`toNbt` 对空堆写出的是 `id=air, count=1`，若这里拒绝 air，
+    // 就会造成「写出去读不回来」的不对称——同一份数据过一遍 toNbt/fromNbt 就损坏。
+    // 原版 `ItemStack.CODEC` 确实拒绝 air（"Item must not be minecraft:air"），空堆的正规表示
+    // 是 `OPTIONAL_CODEC` 的 `{}`；本项目的存档格式沿用 air+1 表达空槽（见 toNbt 的说明），
+    // 因此解码侧必须接受它，才能保证往返自洽。二者要一起改才能切到 `{}` 形态。
     if (itemLocation == ResourceLocation("minecraft:air")) {
-        return Error(ErrorCode::InvalidData, "ItemStack NBT must not be minecraft:air");
+        return ItemStack::EMPTY;
     }
 
     // 数量：1.21.11 键名 "count"，原版是 `ExtraCodecs.intRange(1, 99).orElse(1)`

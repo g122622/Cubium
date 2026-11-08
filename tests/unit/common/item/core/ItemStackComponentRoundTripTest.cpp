@@ -227,6 +227,38 @@ TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_PreservesAllComponents)
     EXPECT_EQ(restoredTag->at("custom").at("n").get<i32>(), 42);
 }
 
+// provides_trim_material 与 chicken/variant 都是 EitherHolder 形态的原始 JSON 组件。
+// 它们此前只在 ItemStack::rawComponents 里登记，DataComponentPayloadCodec 的编解码 switch
+// 里没有对应分支——编码会落到 default 当作空 compound 写出，NBT 往返后载荷静默丢失。
+TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_PreservesEitherHolderComponents)
+{
+    const Item* stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
+    ASSERT_NE(stick, nullptr);
+    ItemStack stack(*stick, 1);
+
+    // 原版形态：{"id": "minecraft:gold"}（引用注册表条目）
+    const nlohmann::json trimMaterial = {{"id", "minecraft:gold"}};
+    const nlohmann::json chickenVariant = {{"id", "minecraft:warm"}};
+    stack.setComponent(
+        item::component::DataComponentType::ProvidesTrimMaterial, item::component::DataComponentPayload{trimMaterial});
+    stack.setComponent(
+        item::component::DataComponentType::ChickenVariant, item::component::DataComponentPayload{chickenVariant});
+
+    compound_tag tag;
+    stack.toNbt(tag);
+    auto result = ItemStack::fromNbt(tag);
+    ASSERT_TRUE(result.success()) << "fromNbt 应成功";
+
+    const auto& restored = result.value();
+    const auto* restoredTrim = restored.rawComponent(item::component::DataComponentType::ProvidesTrimMaterial);
+    ASSERT_NE(restoredTrim, nullptr) << "provides_trim_material 不得在 NBT 往返中丢失";
+    EXPECT_EQ(*restoredTrim, trimMaterial);
+
+    const auto* restoredChicken = restored.rawComponent(item::component::DataComponentType::ChickenVariant);
+    ASSERT_NE(restoredChicken, nullptr) << "chicken/variant 不得在 NBT 往返中丢失";
+    EXPECT_EQ(*restoredChicken, chickenVariant);
+}
+
 TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_NoComponents_OmitsComponentsSection)
 {
     ItemStack plain(*m_sword, 1);

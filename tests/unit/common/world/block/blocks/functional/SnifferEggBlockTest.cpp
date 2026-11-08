@@ -724,14 +724,16 @@ TEST_F(SnifferEntityTest, IsBreedingItem_TorchflowerSeeds_ReturnsTrue)
     }
 }
 
-TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsTrue)
+TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsFalse)
 {
     auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
 
-    // 瓶草荚果是嗅探兽食物
+    // `#minecraft:sniffer_food` 只有 torchflower_seeds 一项，瓶草荚果不在其中——
+    // 原版 Sniffer.isFood 就是查这个标签，因此瓶草荚果不是繁殖物品。
+    // 此前这里断言为 true，是把"嗅探兽能挖出瓶草"与"吃瓶草"混为一谈了。
     if (Items::PITCHER_POD != nullptr) {
         ItemStack food(Items::PITCHER_POD, 1);
-        EXPECT_TRUE(sniffer->isBreedingItem(food));
+        EXPECT_FALSE(sniffer->isBreedingItem(food));
     }
 }
 
