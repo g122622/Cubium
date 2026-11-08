@@ -1595,9 +1595,22 @@ void GameTestHelper::succeedWhen(std::function<GameTestResult()> fn)
 
 void GameTestHelper::succeedIf(std::function<GameTestResult()> fn)
 {
-    // succeedIf 与 succeedWhen 在第一阶段语义等价（都注册为 succeed 条件）。
-    // 基岩版 succeedIf 仅检查一次（瞬时），succeedWhen 持续检查——区别待状态机细化（TODO）。
-    m_instance.registerSucceedCondition(std::move(fn));
+    // 对齐基岩 succeedIf：**只立即执行一次**。回调不抛错则测试成功；抛错则测试立即失败，
+    // 不会每 tick 重试。
+    //
+    // 之前把它注册成 succeed 条件（与 succeedWhen 同一条路径），后果是断言失败时会一直
+    // 轮询到 maxTicks 超时——失败被拖成"超时"，既延长了测试时间，也让失败原因从
+    // "某个断言不成立"变成含义模糊的 timeout。
+    if (!fn) {
+        return;
+    }
+
+    if (const auto result = fn()) {
+        m_instance.fail(*result);
+        return;
+    }
+
+    m_instance.succeed();
 }
 
 void GameTestHelper::succeedOnTick(i32 tick)
