@@ -58,6 +58,7 @@ std::vector<u8> _makePng(i32 width, i32 height, u8 r, u8 g, u8 b, u8 a)
     struct PngWriteContext {
         std::vector<u8> buffer;
     };
+
     PngWriteContext ctx;
     stbi_write_png_to_func(
         [](void* userdata, void* data, i32 size) {

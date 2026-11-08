@@ -41,12 +41,7 @@ Result<std::vector<u8>> SkinImageValidator::validateAndNormalize(const std::vect
     i32 channels = 0;
 
     // 强制解码为 RGBA：后续按 4 通道处理，避免 3 通道输入造成的步长错位。
-    u8* pixels = stbi_load_from_memory(pngData.data(),
-        static_cast<i32>(pngData.size()),
-        &width,
-        &height,
-        &channels,
-        4);
+    u8* pixels = stbi_load_from_memory(pngData.data(), static_cast<i32>(pngData.size()), &width, &height, &channels, 4);
     if (pixels == nullptr) {
         return Error(ErrorCode::InvalidData, "Failed to decode skin image");
     }
