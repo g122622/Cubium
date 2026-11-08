@@ -113,6 +113,47 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
     return nullptr;
 }
 
+// 解析基岩 MoveToOptions {faceTarget?: boolean, speed?: number}。
+// 缺省值取基岩文档：options 本身可省略，speed 省略时按 1.0，faceTarget 省略时按 true。
+// 字段存在但类型不对时报类型错误（不静默取默认值，避免拼写错误被吞掉）。
+bool _parseMoveToOptions(
+    mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg, f32& speedOut, bool& faceTargetOut)
+{
+    speedOut = 1.0f;
+    faceTargetOut = true;
+
+    if (arg == nullptr || !ctx.isObject(arg)) {
+        return true; // 省略 options 视为全部取默认值
+    }
+
+    // getPropertyFloat/Bool 在字段缺失或类型不符时都返回 nullopt；用 getPropertyNames 区分
+    // "没写这个字段"（取默认值）与"写了但类型不对"（报错）两种情形。
+    const std::vector<std::string> keys = ctx.getPropertyNames(arg);
+    const auto hasKey = [&keys](const char* name) {
+        return std::find(keys.begin(), keys.end(), name) != keys.end();
+    };
+
+    if (hasKey("speed")) {
+        auto parsed = ctx.getPropertyFloat(arg, "speed");
+        if (!parsed) {
+            MC_UNUSED(ctx.throwTypeError("MoveToOptions.speed must be a number"));
+            return false;
+        }
+        speedOut = static_cast<f32>(*parsed);
+    }
+
+    if (hasKey("faceTarget")) {
+        auto parsed = ctx.getPropertyBool(arg, "faceTarget");
+        if (!parsed) {
+            MC_UNUSED(ctx.throwTypeError("MoveToOptions.faceTarget must be a boolean"));
+            return false;
+        }
+        faceTargetOut = *parsed;
+    }
+
+    return true;
+}
+
 // 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（@minecraft/server 注册，opaque 持 mc::ItemStack*）。
 // 同一上下文内每个插件都会各自执行一次 @minecraft/server 模组工厂，同名类分多次登记到不同
 // classId；按名解参必须遍历全部同名 classId，否则其它批次包装出的 ItemStack 会被判为类型不符。
@@ -856,7 +897,7 @@ u64 registerSimulatedPlayerClassBinding(
             player->setSneaking(*b);
         });
 
-    // --- moveToLocation(blockPos, speed?) ---
+    // --- moveToLocation(blockPos, options?) ---
     reg.method(
         "moveToLocation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -866,7 +907,7 @@ u64 registerSimulatedPlayerClassBinding(
             }
 
             if (argc < 1 || !ctx.isObject(args[0])) {
-                return ctx.throwTypeError("moveToLocation(pos, speed?)");
+                return ctx.throwTypeError("moveToLocation(pos, options?)");
             }
 
             BlockPos pos;
@@ -875,14 +916,12 @@ u64 registerSimulatedPlayerClassBinding(
             }
 
             f32 speed = 1.0f;
-            if (argc >= 2 && ctx.isNumber(args[1])) {
-                auto s = ctx.toFloat64(args[1]);
-                if (s) {
-                    speed = static_cast<f32>(*s);
-                }
+            bool faceTarget = true;
+            if (argc >= 2 && !_parseMoveToOptions(ctx, args[1], speed, faceTarget)) {
+                return nullptr;
             }
 
-            player->moveToLocation(pos, speed);
+            player->moveToLocation(pos, speed, faceTarget);
 
             return ctx.createUndefined();
         },
@@ -1001,7 +1040,7 @@ u64 registerSimulatedPlayerClassBinding(
         2);
 
     // --- moveToBlock(blockLocation, options?) ---
-    // options（MoveToOptions）当前忽略，TODO。speed 默认 1.0。
+    // options 按基岩 MoveToOptions 解析（speed 默认 1.0、faceTarget 默认 true）。
     reg.method(
         "moveToBlock",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -1018,8 +1057,12 @@ u64 registerSimulatedPlayerClassBinding(
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
-            // TODO: 解析 MoveToOptions（maxStraightLineReach/speed 等）。
-            player->moveToBlock(pos, 1.0f);
+            f32 speed = 1.0f;
+            bool faceTarget = true;
+            if (argc >= 2 && !_parseMoveToOptions(ctx, args[1], speed, faceTarget)) {
+                return nullptr;
+            }
+            player->moveToBlock(pos, speed, faceTarget);
 
             return ctx.createUndefined();
         },

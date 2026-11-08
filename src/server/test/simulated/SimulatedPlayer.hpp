@@ -107,8 +107,10 @@ public:
      * @param relativePos 结构相对坐标（经 helper 变换为世界绝对坐标）。
      * @param speed 行走速度倍率（1.0=默认）：作为移动输入缩放传入 handleMovementInput，
      *        <1 放慢逼近、<0 后退；物理推进仍由每 tick 的 updatePhysics 完成。
+     * @param faceTarget 是否在迈步时把朝向转向目标（基岩 MoveToOptions.faceTarget，
+     *        默认 true）。为 false 时保持当前朝向、只平移，用于测试"边走边看别处"。
      */
-    void moveToLocation(BlockPos relativePos, f32 speed);
+    void moveToLocation(BlockPos relativePos, f32 speed, bool faceTarget);
 
     /**
      * @brief 转头朝向某方块位置（设置 yaw / pitch + 头部旋转）。
@@ -143,12 +145,13 @@ public:
     /**
      * @brief 朝目标方块位置行走（对齐基岩 SimulatedPlayer::moveToBlock）。
      *
-     * 语义等同 moveToLocation（直线单步驱动）。options（maxStraightLineReach 等）当前忽略，TODO。
+     * 语义等同 moveToLocation（直线单步驱动）。
      *
      * @param relativePos 结构相对坐标。
      * @param speed 行走速度倍率（语义同 moveToLocation）。
+     * @param faceTarget 是否在迈步时把朝向转向目标（语义同 moveToLocation）。
      */
-    void moveToBlock(BlockPos relativePos, f32 speed);
+    void moveToBlock(BlockPos relativePos, f32 speed, bool faceTarget);
 
     /**
      * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。

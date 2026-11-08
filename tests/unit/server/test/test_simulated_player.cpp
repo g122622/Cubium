@@ -187,16 +187,40 @@ TEST(SimulatedPlayerTest, MoveToLocation_SpeedScalesMovementInput)
 
     // 目标在 +Z 方向 10 格。speed 作为移动输入倍率传入 Player::handleMovementInput：
     // 1.0 → 前进输入 1；0.5 → 0.5；负值 → 输入方向反转（后退）。
-    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f);
+    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f, true);
     EXPECT_FLOAT_EQ(player->movementInputForward(), 1.0f);
     EXPECT_FLOAT_EQ(player->pitch(), 0.0f); // 移动只改 yaw，不改 pitch
 
-    player->moveToLocation(BlockPos{0, 64, 10}, 0.5f);
+    player->moveToLocation(BlockPos{0, 64, 10}, 0.5f, true);
     EXPECT_FLOAT_EQ(player->movementInputForward(), 0.5f);
 
     // 负倍率：输入方向反转（后退）。
-    player->moveToLocation(BlockPos{0, 64, 10}, -1.0f);
+    player->moveToLocation(BlockPos{0, 64, 10}, -1.0f, true);
     EXPECT_FLOAT_EQ(player->movementInputForward(), -1.0f);
+}
+
+// faceTarget=false 时必须保持原朝向只平移（基岩 MoveToOptions.faceTarget）。
+TEST(SimulatedPlayerTest, MoveToLocation_FaceTargetFalseKeepsRotation)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1010), std::string{"LookAwayBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setPosition(0.0, 64.0, 0.0);
+
+    // 先固定一个与目标方向不同的朝向，再朝 +Z 走。
+    player->setRotation(123.0f, 0.0f);
+    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f, false);
+    EXPECT_FLOAT_EQ(player->yaw(), 123.0f);
+    EXPECT_FLOAT_EQ(player->movementInputForward(), 1.0f);
+
+    // 对照：faceTarget=true 会把 yaw 转向目标。
+    player->moveToLocation(BlockPos{0, 64, 10}, 1.0f, true);
+    // 目标方块中心在 (0.5, 0.5)，玩家在原点，故朝向并非纯 +Z，而是 atan2(-0.5, 10.5)。
+    EXPECT_NEAR(player->yaw(), -2.7263f, 0.01f);
+    EXPECT_NE(player->yaw(), 123.0f) << "faceTarget=true must reorient the player";
 }
 
 // ============================================================================

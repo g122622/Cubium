@@ -120,7 +120,7 @@ SimulatedPlayer* SimulatedPlayer::spawn(
 
 // === GameTest 便捷方法 ===
 
-void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed)
+void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed, bool faceTarget)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::moveToLocation: helper not bound");
 
@@ -136,8 +136,11 @@ void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed)
     }
 
     // 转向目标：MC yaw=0→+Z, yaw=90→-X，故 yaw = atan2(-dx, dz)
-    const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
-    setRotation(yawDeg, pitch());
+    // faceTarget=false 时保持当前朝向，只平移（基岩 MoveToOptions.faceTarget 语义）。
+    if (faceTarget) {
+        const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
+        setRotation(yawDeg, pitch());
+    }
 
     // 向前走一步（直线，不绕障；TODO: 接 PathNavigator 实现真实寻路）。
     // speed 作为输入缩放倍率：1.0=正常速度，<1 放慢逼近，<0 后退（对齐基岩 speed 参数语义）。
@@ -186,11 +189,10 @@ void SimulatedPlayer::lookAtBlock(BlockPos relativePos)
     lookAtLocation(relativePos);
 }
 
-void SimulatedPlayer::moveToBlock(BlockPos relativePos, f32 speed)
+void SimulatedPlayer::moveToBlock(BlockPos relativePos, f32 speed, bool faceTarget)
 {
-    // 语义等同 moveToLocation（直线单步驱动）。options 当前忽略。
-    // TODO: 支持 MoveToOptions（maxStraightLineReach 等）。
-    moveToLocation(relativePos, speed);
+    // 语义等同 moveToLocation（直线单步驱动）。
+    moveToLocation(relativePos, speed, faceTarget);
 }
 
 bool SimulatedPlayer::jump()
