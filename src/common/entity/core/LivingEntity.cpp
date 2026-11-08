@@ -3048,8 +3048,8 @@ void LivingEntity::copyConversionStateTo(Entity& converted, const ConversionPara
     if (params.preserveCanPickUpLoot) {
         toMob->setCanPickUpLoot(fromMob->canPickUpLoot());
     }
-    // TODO(convert-left-handed): MobEntity 尚无 isLeftHanded 状态接口；vanilla convertCommon
-    //   会复制 Mob 的左手标志，待该字段落地后补上。
+    // 左手持物标记随转换保留（vanilla convertCommon 会复制 Mob 的左手标志）。
+    toMob->setLeftHanded(fromMob->isLeftHanded());
     toMob->setNoAi(fromMob->isNoAi());
     if (fromMob->isNoDespawnRequired()) {
         toMob->enablePersistence();

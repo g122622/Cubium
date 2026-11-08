@@ -194,6 +194,28 @@ public:
     }
 
     /**
+     * @brief 是否左手持物
+     *
+     * 对齐 vanilla Mob.isLeftHanded()（MOB_FLAG_LEFTHANDED 位）。影响主手槽位渲染与
+     * 部分行为判定；僵尸村民治愈等转换流程会复制该标记。
+     *
+     * @return 左手持物时返回 true
+     */
+    [[nodiscard]] bool isLeftHanded() const
+    {
+        return m_leftHanded;
+    }
+
+    /**
+     * @brief 设置是否左手持物
+     * @param leftHanded true 表示左手持物
+     */
+    void setLeftHanded(bool leftHanded)
+    {
+        m_leftHanded = leftHanded;
+    }
+
+    /**
      * @brief 获取"激怒"标志位的位掩码（供客户端解析 DATA_MOB_FLAGS_PARAM 使用）
      *
      * 对应 MC 1.21.11 Mob.MOB_FLAG_AGGRESSIVE（位 2，0x04）。
@@ -1570,8 +1592,9 @@ protected:
 
     // AI 状态
     bool m_aiEnabled = true;
-    bool m_aggroed = false; // 激怒状态
-    i32 m_idleTime = 0;     // 空闲时间（用于随机漫步等）
+    bool m_aggroed = false;    // 激怒状态
+    bool m_leftHanded = false; // 左手持物（vanilla Mob.isLeftHanded，对应 MOB_FLAG_LEFTHANDED）
+    i32 m_idleTime = 0;        // 空闲时间（用于随机漫步等）
     i32 m_livingSoundTime = 0;
 
     // 经验值（死亡时掉落）
