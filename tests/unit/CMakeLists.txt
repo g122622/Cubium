@@ -1767,6 +1767,8 @@ add_executable(mc_tests
     common/skin/test_skin_manager.cpp
     common/skin/test_default_skin_provider.cpp
     common/skin/test_skin_loader_async.cpp
+    # 皮肤 PNG 校验/规范化（FileSkinLoader 与 HttpSkinLoader 共用）
+    common/skin/SkinImageValidatorTest.cpp
     # 富文本系统测试
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp

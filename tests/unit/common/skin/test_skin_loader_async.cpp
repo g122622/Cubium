@@ -438,13 +438,15 @@ protected:
     std::unique_ptr<HttpSkinLoader> loader_;
 };
 
-TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithoutPoolReturnsUnsupported)
+TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithoutPoolRejectsUnsupportedScheme)
 {
+    // 不再依赖外网：用一个不受支持的 scheme，验证请求在建立连接前就被拒绝，
+    // 并确认错误沿回调传回。这样用例既覆盖了新增的 URL 解析，也不会因网络状况而波动。
     std::atomic<bool> callbackCalled{false};
     std::atomic<bool> callbackFailed{false};
     mc::ErrorCode errorCode = mc::ErrorCode::Success;
 
-    loader_->loadAsync("http://textures.minecraft.net/texture/abc123", [&](Result<SkinLoadResult> result) {
+    loader_->loadAsync("ftp://textures.minecraft.net/texture/abc123", [&](Result<SkinLoadResult> result) {
         callbackCalled = true;
         callbackFailed = result.failed();
         if (result.failed()) {
@@ -452,13 +454,12 @@ TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithoutPoolReturnsUnsupported)
         }
     });
 
-    // _httpGet 未实现，返回 Unsupported
     EXPECT_TRUE(callbackCalled.load());
     EXPECT_TRUE(callbackFailed.load());
-    EXPECT_EQ(errorCode, mc::ErrorCode::Unsupported);
+    EXPECT_EQ(errorCode, mc::ErrorCode::InvalidArgument);
 }
 
-TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsUnsupported)
+TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithPoolRejectsUnsupportedScheme)
 {
     UniversalWorkerPool pool(2, "HttpSkinTestWorker", 900);
     pool.start();
@@ -470,7 +471,7 @@ TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsUnsupported)
     std::mutex resultMutex;
     std::condition_variable resultCv;
 
-    loader_->loadAsync("http://textures.minecraft.net/texture/abc123", [&](Result<SkinLoadResult> result) {
+    loader_->loadAsync("ftp://textures.minecraft.net/texture/abc123", [&](Result<SkinLoadResult> result) {
         std::lock_guard<std::mutex> lock(resultMutex);
         failed = result.failed();
         if (result.failed()) {
@@ -489,7 +490,7 @@ TEST_F(HttpSkinLoaderAsyncTest, LoadAsyncWithPoolReturnsUnsupported)
 
     EXPECT_TRUE(completed.load());
     EXPECT_TRUE(failed.load());
-    EXPECT_EQ(errorCode, mc::ErrorCode::Unsupported);
+    EXPECT_EQ(errorCode, mc::ErrorCode::InvalidArgument);
 
     loader_->setWorkerPool(nullptr);
     pool.shutdown();
