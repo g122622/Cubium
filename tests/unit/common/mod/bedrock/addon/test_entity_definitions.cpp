@@ -295,12 +295,48 @@ TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplic
     result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
-    definition = _definition("addon_test:unsupported");
+}
+
+// 组件数值的三种合法写法都要接受：字面数字、范围对象（range_min/range_max）、Molang 表达式。
+// 基岩 minecraft:health 等组件的 value/max 均支持后两种形式，缺了它们合法行为包会被挡在门外。
+TEST_F(AddonEntityDefinitionTest, RangeObjectAndMolangComponentValuesAreAccepted)
+{
+    auto definition = _definition("addon_test:value_forms");
     definition["minecraft:entity"]["components"]["minecraft:health"] = {
-        {"value", {{"range_min", 10}, {"range_max", 20}}}};
-    result = AddonEntityDefinition::parse(definition);
-    ASSERT_TRUE(result.failed());
-    EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
+        {"max", {{"range_min", 40}, {"range_max", 60}}}, {"value", {{"range_max", 30}}}};
+    definition["minecraft:entity"]["components"]["minecraft:movement"] = {{"value", "math.random(0.1, 0.3)"}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(definition).success());
+}
+
+// 范围对象本身写错时必须报 InvalidData，而不是静默接受：
+// 未知字段、非数字边界、缺两个边界、range_min > range_max 都要拒绝。
+TEST_F(AddonEntityDefinitionTest, MalformedRangeObjectsAreRejected)
+{
+    std::vector<nlohmann::json> invalid;
+    auto base = _definition("addon_test:bad_range");
+
+    auto broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {
+        {"value", {{"range_min", 10}, {"range_max", 20}, {"x", 1}}}};
+    invalid.push_back(broken);
+
+    broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {{"value", {{"range_min", "ten"}}}};
+    invalid.push_back(broken);
+
+    broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {{"value", nlohmann::json::object()}};
+    invalid.push_back(broken);
+
+    broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {{"value", {{"range_min", 20}, {"range_max", 10}}}};
+    invalid.push_back(broken);
+
+    for (const auto& document : invalid) {
+        const auto result = AddonEntityDefinition::parse(document);
+        ASSERT_TRUE(result.failed());
+        EXPECT_EQ(result.error().code(), mc::ErrorCode::InvalidData) << result.error().message();
+    }
 }
 
 TEST_F(AddonEntityDefinitionTest, MalformedSchemasAndComponentValuesAreRejected)
