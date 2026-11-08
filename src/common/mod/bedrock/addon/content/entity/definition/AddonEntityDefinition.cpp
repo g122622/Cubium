@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/AgeableEntity.hpp" // minecraft:is_baby → AgeableEntity::setChild
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
@@ -175,11 +176,14 @@ private:
     std::shared_ptr<const AddonEntityDefinition> m_definition;
 };
 
-class _AddonMob final : public mc::CreatureEntity {
+// 继承 AgeableEntity 而非 CreatureEntity：基岩 addon 的 mob 普遍带 minecraft:is_baby 与年龄
+// 语义（幼体体型缩放、成长计时），AgeableEntity 才是能承载这些的基类（它是 CreatureEntity 的子类，
+// 不会丢任何现有能力）。此前继承 CreatureEntity 使 is_baby 无处落地。
+class _AddonMob final : public mc::AgeableEntity {
 public:
     _AddonMob(
         std::shared_ptr<const AddonEntityDefinition> definition, mc::IWorld* world, mc::ecs::EntityRegistry& registry)
-        : CreatureEntity(mc::EntityInstanceId(0), registry)
+        : AgeableEntity(mc::EntityInstanceId(0), registry)
         , m_definition(std::move(definition))
     {
         setWorld(world);
@@ -400,6 +404,13 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             }
         } else if (name == "minecraft:fire_immune") {
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:is_baby") {
+            // 纯标记组件：存在即表示按幼体生成。实际生效在 _initialize 里调 AgeableEntity::setChild。
+            MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:can_climb") {
+            // 纯标记组件：存在即表示可攀爬梯子/藤蔓。攀爬判定读的是实体的攀爬状态，
+            // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
+            MC_TRY(_members(component, {}));
         } else if (name == "minecraft:variant" || name == "minecraft:mark_variant") {
             MC_TRY(_members(component, {"value"}));
             MC_TRY(_number(component, "value", std::numeric_limits<i32>::min(), std::numeric_limits<i32>::max()));
@@ -465,6 +476,19 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
         return definitions.error();
     }
     MC_TRY(entity.getOrAddComponent<EntityAddonState>().defineProperties(definitions.value()));
+
+    // minecraft:is_baby 是纯标记组件，存在即按幼体生成。living 型 addon 实体（_AddonMob）
+    // 继承 AgeableEntity，因此能真正落地（体型经 babyScale 缩放、可成长）。
+    // 非 living 型（_AddonActor，无年龄概念）上挂该组件无意义，记 warn 而不报错——基岩侧同样
+    // 不会因为把组件放在无年龄实体上就拒绝整个行为包。
+    if (m_components.contains("minecraft:is_baby")) {
+        if (auto* ageable = dynamic_cast<mc::AgeableEntity*>(&entity); ageable != nullptr) {
+            ageable->setChild(true);
+        } else {
+            spdlog::warn("[BedrockAddon] minecraft:is_baby on non-ageable entity '{}' has no effect", m_identifier);
+        }
+    }
+
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
     //   is_spawnable 本身已保存（见 canSpawn()），缺的是刷怪蛋物品注册与生成规则挂接。
