@@ -34,6 +34,7 @@
 #include "common/mod/bedrock/addon/content/molang/MolangExpression.hpp" // _number：组件数值的 Molang 形式
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -217,8 +218,77 @@ public:
             return;
         }
         mc::CreatureEntity::tick();
+        _pushTowardsClosestSpace();
         components->tickEnvironment(*this);
         components->tickTimers(*this);
+    }
+
+    /**
+     * @brief 卡进方块时把实体推向最近的可容纳空间
+     *
+     * 对应 `minecraft:physics` 的 `push_towards_closest_space`（默认 false）。该字段为 true 时，
+     * 实体若整格陷在方块里（自身碰撞箱与方块碰撞相交），应被推到最近的空位，而不是永久卡住。
+     *
+     * 搜索范围有意收紧到 ±2 格水平、±1 格垂直：脱困只需要挪出相邻一格，搜索过大的半径
+     * 会让实体在一 tick 内"瞬移"很远，反而偏离原版手感，且平白增加每 tick 的碰撞查询次数。
+     * 候选按到当前位置的距离平方升序检查，第一个无碰撞的位置即采纳。
+     */
+    void _pushTowardsClosestSpace()
+    {
+        if (noClip()) {
+            // 无碰撞实体不可能被方块卡住，直接跳过。
+            return;
+        }
+        mc::IWorld* world = this->world();
+        if (world == nullptr) {
+            return;
+        }
+
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* physics = components != nullptr ? components->component("minecraft:physics") : nullptr;
+        if (physics == nullptr || !physics->value("push_towards_closest_space", false)) {
+            return;
+        }
+
+        mc::AxisAlignedBB box = boundingBox();
+        if (!world->hasBlockCollision(box)) {
+            return;
+        }
+
+        const mc::Vector3 origin = position();
+        mc::Vector3 best = origin;
+        f32 bestDistanceSq = std::numeric_limits<f32>::max();
+        bool found = false;
+        for (i32 dy = -1; dy <= 1; ++dy) {
+            for (i32 dz = -2; dz <= 2; ++dz) {
+                for (i32 dx = -2; dx <= 2; ++dx) {
+                    if (dx == 0 && dy == 0 && dz == 0) {
+                        continue;
+                    }
+                    const mc::Vector3 candidate(origin.x + static_cast<f32>(dx),
+                        origin.y + static_cast<f32>(dy),
+                        origin.z + static_cast<f32>(dz));
+                    const f32 distanceSq = (candidate.x - origin.x) * (candidate.x - origin.x) +
+                        (candidate.y - origin.y) * (candidate.y - origin.y) +
+                        (candidate.z - origin.z) * (candidate.z - origin.z);
+                    if (distanceSq >= bestDistanceSq) {
+                        continue;
+                    }
+                    mc::AxisAlignedBB candidateBox = box;
+                    candidateBox.offset(candidate.x - origin.x, candidate.y - origin.y, candidate.z - origin.z);
+                    if (world->hasBlockCollision(candidateBox)) {
+                        continue;
+                    }
+                    best = candidate;
+                    bestDistanceSq = distanceSq;
+                    found = true;
+                }
+            }
+        }
+
+        if (found) {
+            setPosition(best);
+        }
     }
 
     bool isImmuneToFire() const override
@@ -373,10 +443,9 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             for (const char* field : {"has_collision", "has_gravity", "push_towards_closest_space"}) {
                 MC_TRY(_boolean(component, field));
             }
-            if (component.value("push_towards_closest_space", false)) {
-                // TODO: 复用实体脱困检测实现 push_towards_closest_space。
-                return Error(ErrorCode::Unsupported, "Entity closest-space physics is not implemented");
-            }
+            // 三个字段都在 AddonEntityComponents::_apply 里落地：has_gravity → setNoGravity、
+            // has_collision → setNoClip、push_towards_closest_space → 卡进方块时的脱困推挤
+            // （见 _AddonMob::_pushTowardsClosestSpace）。
         } else if (name == "minecraft:health") {
             MC_TRY(_members(component, {"value", "max"}));
             const auto bounds = mc::entity::attribute::Attributes::maxHealth();

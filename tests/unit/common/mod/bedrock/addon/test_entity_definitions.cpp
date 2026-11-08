@@ -130,6 +130,38 @@ protected:
 };
 } // namespace
 
+TEST_F(AddonEntityDefinitionTest, PhysicsPushTowardsClosestSpaceIsAccepted)
+{
+    // 此前 push_towards_closest_space 为 true 会让整个实体定义加载失败（解析期直接返回
+    // Unsupported），合法 addon 用不了这个字段。现在它被接受，并由 _AddonMob 的脱困推挤
+    // 消费（卡进方块时移到最近空位）。
+    auto definition = _definition("addon_test:pusher");
+    definition["minecraft:entity"]["components"]["minecraft:physics"]["push_towards_closest_space"] = true;
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/pusher.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:pusher");
+    ASSERT_NE(actor, nullptr);
+    // 该字段只影响"卡住时是否脱困"，不改变无重力/碰撞这类静态物理状态。
+    EXPECT_TRUE(actor->hasNoGravity());
+    EXPECT_FALSE(actor->noClip());
+}
+
+TEST_F(AddonEntityDefinitionTest, PhysicsPushTowardsClosestSpaceRejectsNonBoolean)
+{
+    // 字段本身仍必须是布尔值：这里只放开"实现了行为"，不放过类型错误。
+    auto definition = _definition("addon_test:bad_pusher");
+    definition["minecraft:entity"]["components"]["minecraft:physics"]["push_towards_closest_space"] = "true";
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_pusher.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_pusher"));
+}
+
 TEST_F(AddonEntityDefinitionTest, DataOnlyPackInstallsPropertiesDimensionsAndPhysics)
 {
     const auto directory = pack("data", _PACK, std::nullopt);

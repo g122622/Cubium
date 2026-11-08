@@ -21,17 +21,17 @@
  *
  */
 
+#include "common/item/crafting/SmithingTrimRecipe.hpp"
+#include "common/TempDirHelper.hpp"
 #include "common/item/armortrim/TrimMaterials.hpp"
 #include "common/item/armortrim/TrimPatterns.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/Ingredient.hpp"
-#include "common/item/crafting/SmithingTrimRecipe.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
-#include "common/TempDirHelper.hpp"
 #include "item/Items.hpp"
 #include <filesystem>
 #include <fstream>
