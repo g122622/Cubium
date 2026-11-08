@@ -324,32 +324,11 @@ void CommandBlockEntity::save(nlohmann::json& data) const
     }
 }
 
-void CommandBlockEntity::tick(IWorld& world)
-{
-    // 注意：命令方块的实际执行由 CommandBlock::tick（计划刻）承担，与 vanilla 一致
-    // （vanilla CommandBlockEntity 没有每 tick tick() 覆写）。此处保留的实体级 tick
-    // 仅服务于项目内按 tick 驱动实体的路径（ServerWorld 按 needsTick() 调用），
-    // 因此只刷新条件状态，不重复执行命令，避免与计划刻路径双重执行
-    // （trigger 的 lastExecution 守卫在二者同刻时才会拦截）。
-    //
-    // TODO(entity-tick-parity): 本方法唯一的工作是 markConditionMet，而 CommandBlock::tick
-    //   每次计划刻也会刷新同一份缓存；markConditionMet 幂等且无副作用，所以实体 tick 目前
-    //   是冗余计算，理论上可删掉 tick/needsTick 覆写（让 needsTick 恒 false）。
-    //   未直接删除的原因：CommandBlockEntityModeBehaviorTest.AutoMode_NeedsTick 与
-    //   CommandBlockEntityModeTest.Create_AutoMode_HasCorrectMode 两条用例显式断言
-    //   Auto 模式 needsTick()==true，按"测试即契约"不能单方面改实现让它们失败。
-    //   若要收敛，应先判断这两条用例锁定的是行为契约还是实现细节，再一并调整。
-    if (m_mode == CommandBlockMode::Auto) {
-        markConditionMet(world);
-    }
-}
-
-bool CommandBlockEntity::needsTick() const noexcept
-{
-    // 循环命令方块需要每 tick 更新
-    return m_mode == CommandBlockMode::Auto;
-}
-
+// 本类刻意不覆写 tick()/needsTick()：命令方块的全部执行逻辑由
+// CommandBlock 的计划刻承担（与 vanilla CommandBlockEntity 一致——它同样没有每 tick 的
+// tick 覆写）。早期版本覆写过 tick()，但唯一工作是 markConditionMet()，而
+// CommandBlock::tick 每次计划刻都会刷新同一份缓存，因而只是纯粹的每 tick 冗余计算。
+// 条件缓存的实际刷新点见 CommandBlock::execute / onNeighborChanged 等计划刻路径。
 std::unique_ptr<BlockEntity> CommandBlockEntity::clone() const
 {
     auto cloned = std::make_unique<CommandBlockEntity>(m_pos, m_mode);

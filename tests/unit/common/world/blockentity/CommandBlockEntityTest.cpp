@@ -148,8 +148,9 @@ TEST_F(CommandBlockEntityModeTest, Create_AutoMode_HasCorrectMode)
 {
     CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Auto);
     EXPECT_EQ(entity.getMode(), CommandBlockMode::Auto);
-    EXPECT_TRUE(entity.isAuto());    // 循环模式默认自动执行
-    EXPECT_TRUE(entity.needsTick()); // 循环模式需要每 tick 更新
+    EXPECT_TRUE(entity.isAuto()); // 循环模式默认自动执行
+    // 命令方块由计划刻驱动，不需要每 tick 更新（vanilla 同样无 tick 覆写）。
+    EXPECT_FALSE(entity.needsTick());
 }
 
 TEST_F(CommandBlockEntityModeTest, Create_SequenceMode_HasCorrectMode)
@@ -651,7 +652,8 @@ TEST_F(CommandBlockEntityModeBehaviorTest, RedstoneMode_DoesNotNeedTick)
 TEST_F(CommandBlockEntityModeBehaviorTest, AutoMode_NeedsTick)
 {
     CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Auto);
-    EXPECT_TRUE(entity.needsTick());
+    // 循环模式同样不依赖实体级 tick：执行与条件刷新都在计划刻完成。
+    EXPECT_FALSE(entity.needsTick());
 }
 
 TEST_F(CommandBlockEntityModeBehaviorTest, SequenceMode_DoesNotNeedTick)

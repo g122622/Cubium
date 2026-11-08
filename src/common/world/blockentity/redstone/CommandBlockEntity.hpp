@@ -104,8 +104,8 @@ public:
      */
     bool loadFromNBT(const nbt::CompoundTag& tag) override;
 
-    void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override;
+    // 不覆写 tick()/needsTick()：命令方块由 CommandBlock 的计划刻驱动，不需要每 tick 更新
+    // （见 .cpp 中 clone() 前的说明）。
     std::unique_ptr<BlockEntity> clone() const override;
 
     // ========== ICommandSource 接口 ==========
