@@ -25,7 +25,10 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
+#include "common/entity/entities/monster/end/ShulkerEntity.hpp" // color 组件：ShulkerColor→PaletteColor
 #include "common/entity/entities/monster/nether/BlazeEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp" // color 组件：羊直接暴露 DyeColor
+#include "common/entity/entities/passive/horse/LlamaEntity.hpp" // color 组件：LlamaColor→PaletteColor
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
@@ -35,6 +38,7 @@
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
+#include "common/util/color/DyeColor.hpp" // DyeColor（PaletteColor 数值来源）
 
 #include <limits>
 #include <memory>
@@ -722,5 +726,106 @@ TEST_F(AddonSetOnFireBindingTest, FireImmuneEntityStillAcceptsDirectSetWithoutEf
             const applied = subject.setOnFire(5, false);
             if (applied !== true) throw Error('useEffects=false should bypass the immunity gate');
         }
+    )");
+}
+
+// ColorComponent（minecraft:color）的 value 必须换算成 PaletteColor(DyeColor) 数值。
+// 三个实体的枚举互不相同：羊直接用 DyeColor；羊驼 LlamaColor 与潜影贝 ShulkerColor 都是
+// 各自的自有序号，尤其潜影贝首项 Purple=0 而 PaletteColor 的 Purple=10，直接 static_cast 会读错。
+class AddonColorComponentBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    // 把给定实体包成脚本侧 subject 并建上下文；每个 TEST 各自调用一次。
+    void bind(std::unique_ptr<mc::Entity> entity, const char* packId)
+    {
+        subject = std::move(entity);
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        ASSERT_TRUE(created != nullptr);
+        auto& binding = created->bindingContext();
+        binding.setPackId(packId);
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        context = std::move(created);
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "color-component.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-color-component"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::Entity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonColorComponentBindingTest, SheepReportsDyeColorDirectly)
+{
+    auto sheep = std::make_unique<mc::SheepEntity>(mc::EntityInstanceId(1), registry);
+    sheep->setFleeceColor(mc::DyeColor::LightBlue);
+    bind(std::move(sheep), "color-sheep");
+
+    check(R"(
+        const comp = subject.getComponent('minecraft:color');
+        if (comp === undefined) throw Error('color component missing');
+        if (comp.value !== 3) throw Error('sheep value=' + comp.value);
+    )");
+}
+
+// 潜影贝默认色是 Purple(ShulkerColor=0)，必须读成 PaletteColor 的 10 而不是 0。
+TEST_F(AddonColorComponentBindingTest, ShulkerPurpleMapsToPalettePurpleNotIndexZero)
+{
+    auto shulker = std::make_unique<mc::ShulkerEntity>(mc::EntityInstanceId(2), registry);
+    shulker->setColor(mc::ShulkerEntity::ShulkerColor::Purple);
+    bind(std::move(shulker), "color-shulker");
+
+    check(R"(
+        const comp = subject.getComponent('minecraft:color');
+        if (comp === undefined) throw Error('color component missing');
+        if (comp.value !== 10) throw Error('shulker purple should be 10, got ' + comp.value);
+    )");
+}
+
+// 羊驼 Creamy(0) 是羊驼自己的序号，对应 PaletteColor 的 White(0) 而非同名序号错位；
+// 这里用 Brown(2) 验映射不依赖偏移：PaletteColor 的 Brown 是 12。
+TEST_F(AddonColorComponentBindingTest, LlamaBrownMapsByPaletteNotByOrdinal)
+{
+    auto llama = std::make_unique<mc::LlamaEntity>(mc::EntityInstanceId(3), registry);
+    llama->setColor(mc::LlamaEntity::LlamaColor::Brown);
+    bind(std::move(llama), "color-llama");
+
+    check(R"(
+        const comp = subject.getComponent('minecraft:color');
+        if (comp === undefined) throw Error('color component missing');
+        if (comp.value !== 12) throw Error('llama brown should be 12, got ' + comp.value);
+    )");
+}
+
+// 非羊/羊驼/潜影贝不提供该组件。
+TEST_F(AddonColorComponentBindingTest, NonColorEntityHasNoColorComponent)
+{
+    bind(std::make_unique<mc::LivingEntity>(mc::EntityInstanceId(4), nullptr, registry), "color-plain");
+
+    check(R"(
+        if (subject.getComponent('minecraft:color') !== undefined) throw Error('plain entity must not expose color');
     )");
 }

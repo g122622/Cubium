@@ -42,12 +42,14 @@
 #include "common/entity/core/MobEntity.hpp"     // MobEntity（setEquipmentDropChance，EquippableComponent 装备掉落概率）
 #include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect/getEffects 返回效果实例）
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
-#include "common/entity/entities/monster/basic/CreeperEntity.hpp"   // CreeperEntity（is_charged 组件判定 isPowered）
+#include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
+#include "common/entity/entities/monster/end/ShulkerEntity.hpp"   // ShulkerEntity（color 组件：ShulkerColor→DyeColor）
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（variant 组件判定哞菇红/棕变种）
 #include "common/entity/entities/passive/basic/SheepEntity.hpp" // SheepEntity（color 组件判定羊毛颜色 DyeColor 0-15）
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp" // AbstractChestedHorseEntity（is_chested 组件判定驴/骡/行商羊驼箱子状态，hasChest）
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // AbstractHorseEntity（is_saddled 组件判定马类鞍状态，马类不实现 IRideable 但有 hasSaddle）
+#include "common/entity/entities/passive/horse/LlamaEntity.hpp" // LlamaEntity（color 组件：LlamaColor→DyeColor）
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp" // TameableEntity（is_tamed 组件判定驯服状态，狼/猫/鹦鹉等驯服类基类）
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp" // GlowSquidEntity（glow_squid_dark_ticks 组件判定受惊暗化剩余 tick）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
@@ -76,6 +78,7 @@
 #include "common/scoreboard/core/TeamEnums.hpp" // teamVisibilityToString/teamCollisionRuleToString（Team 属性字符串化）
 #include "common/util/AxisAlignedBB.hpp"        // Dimension.getEntities 构造查询包围盒
 #include "common/util/Direction.hpp"            // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
+#include "common/util/color/DyeColor.hpp"       // DyeColor（color 组件的 PaletteColor 数值）
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/TextStyle.hpp"             // text::toName(TextFormatting)（Team.color 字符串化）
 #include "common/world/GlobalPos.hpp"                 // GlobalPos（Player.getRespawnConfig 返回的维度+方块位置）
@@ -1701,11 +1704,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 // 对齐基岩 EntityColorComponent（componentId="minecraft:color"）：
                 // "Defines the entity's color. Only works on certain entities that have predefined color
                 // values (e.g. sheep, llama, shulker)"，value 为 PaletteColor 0-15（与 DyeColor 数值一致）。
-                // 此处先覆盖 SheepEntity（羊毛颜色经 getFleeceColor 返回 DyeColor 0-15）。羊驼 LlamaColor
-                // (0-3)/潜影贝 ShulkerColor 枚举与 PaletteColor 数值不统一，留 TODO 按需补全。
-                // 非羊返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
-                auto* sheep = dynamic_cast<mc::SheepEntity*>(ent);
-                if (sheep == nullptr) {
+                // 三个实体的枚举数值互不相同，下面各自换算成 DyeColor 数值后再暴露：
+                //   - 羊：getFleeceColor() 直接返回 DyeColor（0-15），原样使用；
+                //   - 羊驼：LlamaColor 是 0-3 的自有序号（Creamy/White/Brown/Gray），不是 PaletteColor；
+                //   - 潜影贝：ShulkerColor 也是自有序号且首项是 Purple=0（PaletteColor 的 Purple 是 10）。
+                // 非这三类返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                if (dynamic_cast<mc::SheepEntity*>(ent) == nullptr && dynamic_cast<mc::LlamaEntity*>(ent) == nullptr &&
+                    dynamic_cast<mc::ShulkerEntity*>(ent) == nullptr) {
                     return ctx.createUndefined();
                 }
 
@@ -1893,10 +1898,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 无 property/method：组件对象存在即 chested（与基岩 EntityIsChestedComponent 一致）。
 
     // --- ColorComponent类（minecraft:color，承载实体颜色）---
-    // opaque 持 mc::Entity*。对齐基岩 EntityColorComponent：value 为 PaletteColor 0-15（与 DyeColor 数值
-    // 一致）。getComponent 已按 SheepEntity 过滤，此处 dynamic_cast 现取羊毛颜色。readonly value：i32
-    // 0-15（DyeColor 枚举底层数值，White=0..Black=15）。供集成测试断言唤魔者 Wololo 变色（蓝11→红14）、
-    // 染料染色等链路。羊驼/潜影贝颜色枚举不统一留 TODO。
+    // opaque 持 mc::Entity*。对齐基岩 EntityColorComponent：value 为 PaletteColor 0-16（与 DyeColor
+    // 数值一致）。readonly value：i32（DyeColor 枚举底层数值，White=0..Black=15）。
+    // 三种实体各自的枚举都换算成 DyeColor 数值：羊直接取 DyeColor；羊驼 LlamaColor（Creamy/White/
+    // Brown/Gray）与潜影贝 ShulkerColor 都是各自的自有序号，需查表，不能直接 static_cast
+    // （否则羊驼的 Creamy(0) 会被读成 DyeColor::White(0)，潜影贝默认 Purple(0) 会被读成 White）。
+    // 供集成测试断言唤魔者 Wololo 变色（蓝11→红14）、染料染色、潜影贝颜色等链路。
     u64 colorClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* colorProto = builder.exportClass("ColorComponent", colorClassId);
     ctx.classRegistry().registerClass(colorClassId, colorProto, "ColorComponent");
@@ -1904,12 +1911,103 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ClassRegistrar<void> colorReg(ctx, colorClassId, colorProto);
     colorReg.readonlyProperty("value", [colorClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, colorClassId));
-        auto* sheep = dynamic_cast<mc::SheepEntity*>(ent);
-        if (sheep == nullptr) {
-            return ctx.createUndefined();
+
+        // 羊：getFleeceColor 已是 DyeColor，static_cast 取底层数值即 PaletteColor。
+        if (auto* sheep = dynamic_cast<mc::SheepEntity*>(ent); sheep != nullptr) {
+            return ctx.createInt32(static_cast<i32>(sheep->getFleeceColor()));
         }
-        // DyeColor : u8，static_cast 取枚举底层数值（0-15，与基岩 PaletteColor 一致）。
-        return ctx.createInt32(static_cast<i32>(sheep->getFleeceColor()));
+
+        // 羊驼：LlamaColor 序号 → DyeColor。Creamy 对应白色系（原版羊驼无奶油色染料对应，
+        // 取 White），White 对应 White，Brown 对应 Brown，Gray 对应 Gray。
+        if (auto* llama = dynamic_cast<mc::LlamaEntity*>(ent); llama != nullptr) {
+            i32 palette = 0;
+            switch (llama->getColor()) {
+                case mc::LlamaEntity::LlamaColor::Creamy:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+                case mc::LlamaEntity::LlamaColor::White:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+                case mc::LlamaEntity::LlamaColor::Brown:
+                    palette = static_cast<i32>(mc::DyeColor::Brown);
+                    break;
+                case mc::LlamaEntity::LlamaColor::Gray:
+                    palette = static_cast<i32>(mc::DyeColor::Gray);
+                    break;
+                default:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+            }
+
+            return ctx.createInt32(palette);
+        }
+
+        // 潜影贝：ShulkerColor 序号 → DyeColor。其枚举首项是 Purple=0（与 PaletteColor 的
+        // Purple=10 完全不同），必须按名字逐个映射，不能靠偏移。
+        if (auto* shulker = dynamic_cast<mc::ShulkerEntity*>(ent); shulker != nullptr) {
+            i32 palette = 0;
+            switch (shulker->getColor()) {
+                case mc::ShulkerEntity::ShulkerColor::Purple:
+                    palette = static_cast<i32>(mc::DyeColor::Purple);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::White:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Orange:
+                    palette = static_cast<i32>(mc::DyeColor::Orange);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Magenta:
+                    palette = static_cast<i32>(mc::DyeColor::Magenta);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::LightBlue:
+                    palette = static_cast<i32>(mc::DyeColor::LightBlue);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Yellow:
+                    palette = static_cast<i32>(mc::DyeColor::Yellow);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Lime:
+                    palette = static_cast<i32>(mc::DyeColor::Lime);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Pink:
+                    palette = static_cast<i32>(mc::DyeColor::Pink);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Gray:
+                    palette = static_cast<i32>(mc::DyeColor::Gray);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::LightGray:
+                    palette = static_cast<i32>(mc::DyeColor::LightGray);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Cyan:
+                    palette = static_cast<i32>(mc::DyeColor::Cyan);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Purple2:
+                    // ShulkerColor 的 Purple2 是"另一种紫"，原版对应 PaletteColor 的 Purple（10）。
+                    palette = static_cast<i32>(mc::DyeColor::Purple);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Blue:
+                    palette = static_cast<i32>(mc::DyeColor::Blue);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Brown:
+                    palette = static_cast<i32>(mc::DyeColor::Brown);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Green:
+                    palette = static_cast<i32>(mc::DyeColor::Green);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Red:
+                    palette = static_cast<i32>(mc::DyeColor::Red);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Black:
+                    palette = static_cast<i32>(mc::DyeColor::Black);
+                    break;
+                default:
+                    palette = static_cast<i32>(mc::DyeColor::Purple);
+                    break;
+            }
+
+            return ctx.createInt32(palette);
+        }
+
+        return ctx.createUndefined();
     });
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
