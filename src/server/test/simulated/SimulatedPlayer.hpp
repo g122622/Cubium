@@ -39,9 +39,17 @@ namespace mc::test {
  * handleMovementInput + 朝向目标的 yaw 计算手动驱动；lookAtEntity / lookAtLocation 用 setRotation
  * 直接定向。完整寻路（绕障、跳跃、门）待 PathNavigator 适配非 Mob 拥有者后实现（TODO）。
  *
- * 第一阶段实现最小可用集：spawn / moveToLocation(直线) / lookAtLocation / lookAtEntity / chat /
- * respawn / discard；fly / glide / swim / attack / interact / useItem / breakBlock / placeBlock 等 =
- * TODO stub（依赖红石 / 物品 / 交互体系）。
+ * 已实现：spawn / discard / respawn / chat、moveToLocation / moveToBlock（含 MoveToOptions 的
+ * speed 与 faceTarget）、lookAtLocation / lookAtBlock / lookAtEntity（含 LookDuration 的
+ * Instant / Continuous / UntilMove）、jump、attack / interact（视线选目标）、
+ * fly / stopFlying、glide / stopGliding、swim / stopSwimming、breakBlock / placeBlock、
+ * useItem / useItemInSlot / useItemOnBlock / useItemInSlotOnBlock、giveItem / setItem、
+ * setFoodLevel、setSprint / setSneaking 等状态设置。
+ *
+ * 仍为 stub（绑定层报 notImplemented）：navigateTo*（需 PathNavigator 适配非 Mob 拥有者）、
+ * move / moveRelative / stopMoving（需连续输入驱动）、startBuild / stopBuild、
+ * stopBreakingBlock / stopInteracting（需使用中状态机）、rotateBody / setBodyRotation
+ * （需身体旋转插值）、dropSelectedItem（需掉落物体系）。
  *
  * 生命周期：经 spawn(helper, name, relativePos, gameMode) 静态工厂构造并注入世界，
  * 实例所有权由 ServerWorld 的 EntityManager 持有（spawnEntity 接管 unique_ptr）；
