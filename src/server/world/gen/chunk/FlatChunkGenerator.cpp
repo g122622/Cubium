@@ -397,7 +397,7 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
             if (structIt != structuresByStage.end()) {
                 for (const auto& [structure, start] : structIt->second) {
                     worldgenRandom.setFeatureSeed(decorSeed, structureIndex, stageOrdinal);
-                    structure->placeInChunk(region, chunk, *start, chunkX, chunkZ, this);
+                    structure->placeInChunk(region, chunk, *start, chunkX, chunkZ, worldgenRandom, this);
                     ++structureIndex;
                 }
             }

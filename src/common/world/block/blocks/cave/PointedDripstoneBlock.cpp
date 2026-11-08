@@ -378,18 +378,9 @@ const BlockState& PointedDripstoneBlock::rotate(const BlockState& state, Rotatio
     return state;
 }
 
-const BlockState& PointedDripstoneBlock::mirror(const BlockState& state, Mirror mirror) const
+const BlockState& PointedDripstoneBlock::mirror(const BlockState& state, Mirror /*mirror*/) const
 {
-    // 对于VERTICAL_DIRECTION，镜像时Up/Down互换
-    Direction verticalDir = state.get(BlockStateProperties::VERTICAL_DIRECTION());
-    if (mirror == Mirror::FrontBack || mirror == Mirror::LeftRight) {
-        if (verticalDir == Direction::Up) {
-            return state.with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
-        }
-        if (verticalDir == Direction::Down) {
-            return state.with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
-        }
-    }
+    // 滴水石只带竖直朝向，水平镜像不影响任何属性（原版没有覆写 mirror）。
     return state;
 }
 

@@ -64,8 +64,10 @@ namespace mc::diff::probe {
  * 只实现 IWorld 的纯虚函数与几处「不实现就只能崩溃」的访问器；其余走 IWorld 的
  * 默认实现（返回空、返回 0、返回默认值）。注意 ECS registry 必须真的存在，
  * 否则实体工厂 `EntityType::create` 拿不到 registry 会直接返回空指针。
+ *
+ * 需要记录/回放少量方块状态的能力可以继承它，只覆盖方块访问相关的几个虚函数。
  */
-class NullWorld final : public IWorld {
+class NullWorld : public IWorld {
 public:
     explicit NullWorld(const loot::LootTableManager* tables = nullptr)
         : m_tables(tables)

@@ -260,11 +260,11 @@ const BlockState& FenceBlock::mirror(const BlockState& state, Mirror mirror) con
     bool south = state.get(BlockStateProperties::SOUTH());
 
     if (mirror == Mirror::LeftRight) {
-        // 左右镜像（X轴）：east<->west
-        return state.with(BlockStateProperties::EAST(), west).with(BlockStateProperties::WEST(), east);
-    } else if (mirror == Mirror::FrontBack) {
-        // 前后镜像（Z轴）：north<->south
+        // 左右镜像（沿 Z 轴）：north<->south
         return state.with(BlockStateProperties::NORTH(), south).with(BlockStateProperties::SOUTH(), north);
+    } else if (mirror == Mirror::FrontBack) {
+        // 前后镜像（沿 X 轴）：east<->west
+        return state.with(BlockStateProperties::EAST(), west).with(BlockStateProperties::WEST(), east);
     }
 
     return state;

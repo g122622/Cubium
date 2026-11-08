@@ -369,12 +369,12 @@ void StrongholdStraight::generate(IWorldWriter& world,
     // 生成出口门
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 6);
     // 生成侧面开口
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     if (m_expandsLeft) {
-        fillWithBlocks(world, chunkBounds, 0, 1, 2, 0, 3, 4, air, air, false);
+        fillWithBlocks(world, chunkBounds, 0, 1, 2, 0, 3, 4, caveAir, caveAir, false);
     }
     if (m_expandsRight) {
-        fillWithBlocks(world, chunkBounds, 4, 1, 2, 4, 3, 4, air, air, false);
+        fillWithBlocks(world, chunkBounds, 4, 1, 2, 4, 3, 4, caveAir, caveAir, false);
     }
     (void)chunkX;
     (void)chunkZ;
@@ -475,11 +475,11 @@ void StrongholdPrison::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 8, 4, 10, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
-    fillWithBlocks(world, chunkBounds, 1, 1, 10, 3, 3, 10, air, air, false);
+    fillWithBlocks(world, chunkBounds, 1, 1, 10, 3, 3, 10, caveAir, caveAir, false);
     // 简化监狱栏杆
     for (i32 i = 1; i <= 3; ++i) {
         setBlockState(world, ironBars, 4, i, 4, chunkBounds);
@@ -568,14 +568,14 @@ void StrongholdLeftTurn::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
     Direction dir = getCoordBaseMode();
     if (dir != Direction::North && dir != Direction::East) {
-        fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, air, air, false);
+        fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, caveAir, caveAir, false);
     } else {
-        fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, air, air, false);
+        fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, caveAir, caveAir, false);
     }
     (void)chunkX;
     (void)chunkZ;
@@ -669,14 +669,14 @@ void StrongholdRightTurn::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
     Direction dir = getCoordBaseMode();
     if (dir != Direction::North && dir != Direction::East) {
-        fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, air, air, false);
+        fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, caveAir, caveAir, false);
     } else {
-        fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, air, air, false);
+        fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, caveAir, caveAir, false);
     }
     (void)chunkX;
     (void)chunkZ;
@@ -768,16 +768,16 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
     const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
     const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 10, 6, 10, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 4, 1, 0);
-    fillWithBlocks(world, chunkBounds, 4, 1, 10, 6, 3, 10, air, air, false);
-    fillWithBlocks(world, chunkBounds, 0, 1, 4, 0, 3, 6, air, air, false);
-    fillWithBlocks(world, chunkBounds, 10, 1, 4, 10, 3, 6, air, air, false);
+    fillWithBlocks(world, chunkBounds, 4, 1, 10, 6, 3, 10, caveAir, caveAir, false);
+    fillWithBlocks(world, chunkBounds, 0, 1, 4, 0, 3, 6, caveAir, caveAir, false);
+    fillWithBlocks(world, chunkBounds, 10, 1, 4, 10, 3, 6, caveAir, caveAir, false);
     // 根据房间类型生成不同内容
     switch (m_roomType) {
         case 0: // 喷泉房间
@@ -1171,22 +1171,22 @@ void StrongholdCrossing::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 9, 8, 10, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 4, 3, 0);
     if (m_leftLow) {
-        fillWithBlocks(world, chunkBounds, 0, 3, 1, 0, 5, 3, air, air, false);
+        fillWithBlocks(world, chunkBounds, 0, 3, 1, 0, 5, 3, caveAir, caveAir, false);
     }
     if (m_rightLow) {
-        fillWithBlocks(world, chunkBounds, 9, 3, 1, 9, 5, 3, air, air, false);
+        fillWithBlocks(world, chunkBounds, 9, 3, 1, 9, 5, 3, caveAir, caveAir, false);
     }
     if (m_leftHigh) {
-        fillWithBlocks(world, chunkBounds, 0, 5, 7, 0, 7, 9, air, air, false);
+        fillWithBlocks(world, chunkBounds, 0, 5, 7, 0, 7, 9, caveAir, caveAir, false);
     }
     if (m_rightHigh) {
-        fillWithBlocks(world, chunkBounds, 9, 5, 7, 9, 7, 9, air, air, false);
+        fillWithBlocks(world, chunkBounds, 9, 5, 7, 9, 7, 9, caveAir, caveAir, false);
     }
-    fillWithBlocks(world, chunkBounds, 5, 1, 10, 7, 3, 10, air, air, false);
+    fillWithBlocks(world, chunkBounds, 5, 1, 10, 7, 3, 10, caveAir, caveAir, false);
     (void)chunkX;
     (void)chunkZ;
 }
@@ -1666,16 +1666,16 @@ void StrongholdCorridor::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     for (i32 i = 0; i < m_steps; ++i) {
         for (i32 x = 0; x < 5; ++x) {
             setBlockState(world, stoneBricks, x, 0, i, chunkBounds);
         }
         for (i32 y = 1; y <= 3; ++y) {
             setBlockState(world, stoneBricks, 0, y, i, chunkBounds);
-            setBlockState(world, air, 1, y, i, chunkBounds);
-            setBlockState(world, air, 2, y, i, chunkBounds);
-            setBlockState(world, air, 3, y, i, chunkBounds);
+            setBlockState(world, caveAir, 1, y, i, chunkBounds);
+            setBlockState(world, caveAir, 2, y, i, chunkBounds);
+            setBlockState(world, caveAir, 3, y, i, chunkBounds);
             setBlockState(world, stoneBricks, 4, y, i, chunkBounds);
         }
         for (i32 x = 0; x < 5; ++x) {

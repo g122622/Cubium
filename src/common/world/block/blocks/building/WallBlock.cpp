@@ -342,12 +342,14 @@ const BlockState& WallBlock::mirror(const BlockState& state, Mirror mirror) cons
     BlockStateProperties::WallHeight west = state.get(BlockStateProperties::WALL_HEIGHT_WEST());
 
     if (mirror == Mirror::LeftRight) {
-        return state.with(BlockStateProperties::WALL_HEIGHT_EAST(), west)
-            .with(BlockStateProperties::WALL_HEIGHT_WEST(), east);
-    }
-    if (mirror == Mirror::FrontBack) {
+        // 左右镜像（沿 Z 轴）：north<->south
         return state.with(BlockStateProperties::WALL_HEIGHT_NORTH(), south)
             .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), north);
+    }
+    if (mirror == Mirror::FrontBack) {
+        // 前后镜像（沿 X 轴）：east<->west
+        return state.with(BlockStateProperties::WALL_HEIGHT_EAST(), west)
+            .with(BlockStateProperties::WALL_HEIGHT_WEST(), east);
     }
 
     return state;

@@ -102,41 +102,9 @@ StructureManager::StructureManager(i64 seed)
     : m_seed(seed)
 {}
 
-std::unique_ptr<StructureStart> StructureManager::generateStructureStart(const Structure& structure,
-    IWorldWriter& /*world*/,
-    IChunkGenerator& generator,
-    math::IRandom& rng,
-    i32 chunkX,
-    i32 chunkZ)
-{
-    // 调用结构的生成方法（不写方块，方块写入延迟到 FEATURES 阶段）
-    return structure.generate(generator, rng, chunkX, chunkZ);
-}
-
-void StructureManager::placeStructureInChunk(
-    const Structure& structure, IWorldWriter& world, ChunkPrimer& chunk, StructureStart& start, i32 chunkX, i32 chunkZ)
-{
-    // 调用结构的放置方法
-    structure.placeInChunk(world, chunk, start, chunkX, chunkZ);
-
-    // 调用放置后的钩子
-    structure.afterPlace(world, start, chunkX, chunkZ);
-}
-
 void StructureManager::clearCache()
 {
     m_structureCheck.clearCache();
-}
-
-std::unique_ptr<math::IRandom> StructureManager::_createRandom(i32 chunkX, i32 chunkZ, i32 salt) const
-{
-    // 结构生成使用的常量种子混合参数
-    constexpr u64 CHUNK_X_MULTIPLIER = 341873128712ULL;
-    constexpr u64 CHUNK_Z_MULTIPLIER = 132897987541ULL;
-
-    u64 combinedSeed = static_cast<u64>(chunkX) * CHUNK_X_MULTIPLIER + static_cast<u64>(chunkZ) * CHUNK_Z_MULTIPLIER +
-        static_cast<u64>(m_seed) + static_cast<u64>(salt);
-    return std::make_unique<math::Random>(static_cast<i64>(combinedSeed));
 }
 
 } // namespace mc::world::gen::structure

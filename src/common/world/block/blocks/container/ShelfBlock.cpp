@@ -761,17 +761,17 @@ const BlockState& ShelfBlock::mirror(const BlockState& state, Mirror mirror) con
 
     switch (mirror) {
         case Mirror::LeftRight:
-            if (facing == Direction::East) {
-                newFacing = Direction::West;
-            } else if (facing == Direction::West) {
-                newFacing = Direction::East;
-            }
-            break;
-        case Mirror::FrontBack:
             if (facing == Direction::North) {
                 newFacing = Direction::South;
             } else if (facing == Direction::South) {
                 newFacing = Direction::North;
+            }
+            break;
+        case Mirror::FrontBack:
+            if (facing == Direction::East) {
+                newFacing = Direction::West;
+            } else if (facing == Direction::West) {
+                newFacing = Direction::East;
             }
             break;
         case Mirror::None:

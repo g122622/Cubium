@@ -94,8 +94,8 @@ enum class Rotation : u8 {
  */
 enum class Mirror : u8 {
     None = 0,      ///< 无镜像
-    LeftRight = 1, ///< 左右镜像（X轴）
-    FrontBack = 2  ///< 前后镜像（Z轴）
+    LeftRight = 1, ///< 左右镜像：沿 Z 轴翻转（南北互换），对应原版 `INVERT_Z`
+    FrontBack = 2  ///< 前后镜像：沿 X 轴翻转（东西互换），对应原版 `INVERT_X`
 };
 
 /**
@@ -972,13 +972,11 @@ inline i32 mirrorRotation(i32 rotation, Mirror mirror, i32 max = 16)
 {
     switch (mirror) {
         case Mirror::LeftRight:
-            // 左右镜像：关于南北轴镜像
-            // 0->0, 1->15, 2->14, ..., 7->9, 8->8
-            return (max - rotation) % max;
-        case Mirror::FrontBack:
-            // 前后镜像：关于东西轴镜像
-            // 4->4, 5->3, 6->2, ..., 12->12, 13->11
+            // 左右镜像（沿 Z 轴）：0->8, 1->7, 2->6, ..., 8->0, 9->15, ...
             return ((max / 2) - rotation + max) % max;
+        case Mirror::FrontBack:
+            // 前后镜像（沿 X 轴）：0->0, 1->15, 2->14, ..., 7->9, 8->8
+            return (max - rotation) % max;
         case Mirror::None:
         default:
             return rotation;

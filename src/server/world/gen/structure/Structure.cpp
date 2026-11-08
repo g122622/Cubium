@@ -305,9 +305,10 @@ void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world,
         for (i32 x = minX; x <= maxX; ++x) {
             for (i32 z = minZ; z <= maxZ; ++z) {
                 if (worldReader) {
+                    // 未初始化的方块（`ChunkData` 里空气即 nullptr）同样是空气：
+                    // 原版 `getBlock(...).isAir()` 对空区块为 true，`skipAir=true` 时整块跳过。
                     const BlockState* currentState = getBlockStateFromPos(*worldReader, x, y, z, bounds);
-                    if (currentState && currentState->isAir()) {
-                        // 跳过空气方块
+                    if (currentState == nullptr || currentState->isAir()) {
                         continue;
                     }
                 }
@@ -438,7 +439,9 @@ void StructurePiece::replaceAirAndLiquidDownwards(
         return;
     }
 
-    while (worldY > world::MIN_BUILD_HEIGHT) {
+    // 下界这类维度的最低高度不是全局的 -64，必须按世界自己的高度取；原版循环到
+    // `getMinY() + 1` 为止（最低写入 y = getMinY() + 2）。
+    while (worldY > world.getMinBuildHeight() + 1) {
         const BlockState* current = world.getBlockState(worldX, worldY, worldZ);
         if (current == nullptr || current->isAir() || current->getMaterial().isLiquid()) {
             world.setBlockState(worldX, worldY, worldZ, state, world::BlockUpdateFlags::UPDATE_CLIENTS);
@@ -457,12 +460,13 @@ const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& p
 
     Direction solidDirection = Direction::None;
 
-    // 四个水平方向
+    // 四个水平方向：顺序沿用原版 `Direction.Plane.HORIZONTAL`（N/E/S/W）。
+    // 「恰好一个方向有完整实心方块」的判定依赖于此遍历顺序。
     static constexpr Direction horizontalDirs[] = {
         Direction::North,
+        Direction::East,
         Direction::South,
         Direction::West,
-        Direction::East,
     };
 
     for (Direction dir : horizontalDirs) {
@@ -552,13 +556,15 @@ void StructurePiece::generateChest(IWorldWriter& world,
         return;
     }
 
-    // 如果能获取世界接口，自动确定朝向；否则使用默认状态
+    // 如果能获取世界接口，自动确定朝向；否则使用默认状态。
+    // `reorientChest` 的返回值已经是**世界坐标下的朝向**（按四周方块推出的），
+    // 不能再经过构件旋转/镜像；原版这里直接 `level.setBlock`，不是 `placeBlock`。
     if (iworld != nullptr) {
-        BlockPos chestPos(worldX, worldY, worldZ);
+        const BlockPos chestPos(worldX, worldY, worldZ);
         const BlockState* orientedState = reorientChest(*iworld, chestPos, chestState);
-        setBlockState(world, orientedState, x, y, z, bounds);
+        world.setBlockState(worldX, worldY, worldZ, orientedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
-        setBlockState(world, chestState, x, y, z, bounds);
+        world.setBlockState(worldX, worldY, worldZ, chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 
     // 设置战利品表
@@ -715,16 +721,17 @@ void Structure::placeInChunk(IWorldWriter& world,
     StructureStart& start,
     i32 chunkX,
     i32 chunkZ,
+    math::IRandom& rng,
     IChunkGenerator* generator) const
 {
     StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
 
-    std::unique_ptr<math::IRandom> rng = createRandom(
-        static_cast<i64>(chunkX) * 341873128712LL ^ static_cast<i64>(chunkZ) * 132897987541LL, chunkX, chunkZ, 0);
-
+    // 随机源由调用方按 `applyBiomeDecoration` 的口径准备：每区块一份 worldgen 随机源，
+    // 放置前 `setFeatureSeed(decorSeed, index, stage)`。所有构件共用同一个实例、依序消费，
+    // 与逐构件另起随机源的结果不同（宝箱等会用到它）。
     for (const auto& piece : start.pieces()) {
         if (piece->intersectsChunk(chunkX, chunkZ)) {
-            piece->generate(world, *rng, chunkX, chunkZ, chunkBounds, &chunk, generator);
+            piece->generate(world, rng, chunkX, chunkZ, chunkBounds, &chunk, generator);
         }
     }
 }
@@ -732,13 +739,6 @@ void Structure::placeInChunk(IWorldWriter& world,
 void Structure::afterPlace(IWorldWriter& /*world*/, StructureStart& /*start*/, i32 /*chunkX*/, i32 /*chunkZ*/) const
 {
     // 默认实现为空，子类可以覆盖以在放置后执行额外操作
-}
-
-std::unique_ptr<math::IRandom> Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
-{
-    u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
-        static_cast<u64>(seed) + static_cast<u64>(salt);
-    return std::make_unique<math::Random>(static_cast<i64>(combinedSeed));
 }
 
 StructureBoundingBox Structure::adjustBoundingBox(const StructureBoundingBox& box) const

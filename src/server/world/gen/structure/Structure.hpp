@@ -1140,6 +1140,7 @@ public:
      * @param start 结构起点
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
+     * @param rng 世界生成随机源（调用方已按 `setFeatureSeed` 设定本结构在本区块的种子）
      * @param generator 区块生成器（传递给含 FeatureJigsawPiece 的拼图片段用于放置配置化地物，可为 nullptr）
      */
     virtual void placeInChunk(IWorldWriter& world,
@@ -1147,6 +1148,7 @@ public:
         StructureStart& start,
         i32 chunkX,
         i32 chunkZ,
+        math::IRandom& rng,
         IChunkGenerator* generator = nullptr) const;
 
     /**
@@ -1170,19 +1172,6 @@ protected:
     explicit Structure(ResourceLocation id)
         : m_id(std::move(id))
     {}
-
-    /**
-     * @brief 创建结构随机数生成器
-     *
-     * 使用世界种子、区块坐标和盐值生成确定性的随机数序列。
-     *
-     * @param seed 世界种子
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @param salt 盐值
-     * @return 随机数生成器（Xoroshiro128++，由调用方持有所有权）
-     */
-    [[nodiscard]] static std::unique_ptr<math::IRandom> createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
 
     /**
      * @brief 创建一个归属于本结构的起点

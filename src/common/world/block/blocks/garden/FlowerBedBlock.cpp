@@ -154,17 +154,17 @@ const BlockState& FlowerBedBlock::mirror(const BlockState& state, Mirror mirror)
 
     switch (mirror) {
         case Mirror::LeftRight:
-            if (currentFacing == Direction::East) {
-                newFacing = Direction::West;
-            } else if (currentFacing == Direction::West) {
-                newFacing = Direction::East;
-            }
-            break;
-        case Mirror::FrontBack:
             if (currentFacing == Direction::North) {
                 newFacing = Direction::South;
             } else if (currentFacing == Direction::South) {
                 newFacing = Direction::North;
+            }
+            break;
+        case Mirror::FrontBack:
+            if (currentFacing == Direction::East) {
+                newFacing = Direction::West;
+            } else if (currentFacing == Direction::West) {
+                newFacing = Direction::East;
             }
             break;
         case Mirror::None:
