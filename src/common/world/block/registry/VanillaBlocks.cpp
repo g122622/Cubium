@@ -26,8 +26,6 @@
 #include "world/block/FireInfoRegistry.hpp"
 #include "world/block/registry/HarvestToolTable.hpp"
 
-#include <chrono>
-
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/world/block/registry/AgriculturalBlocks.hpp"
@@ -72,151 +70,114 @@ void VanillaBlocks::initialize()
         return;
     }
 
-    // TEMP-DIAG：定位 CI 上首次方块注册耗时（验证后回退）。
-    const auto diagStart = std::chrono::steady_clock::now();
-    const auto diagMark = [&diagStart](const char* step) {
-        spdlog::info("[BlockTiming] {} {}ms",
-            step,
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - diagStart)
-                .count());
-    };
-    diagMark("initialize_enter");
-
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBaseBlocks");
         block_registry::registerBaseBlocks();
-        diagMark("registerBaseBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBuildingBlocks");
         block_registry::registerBuildingBlocks();
-        diagMark("registerBuildingBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCaveBlocks");
         block_registry::registerCaveBlocks();
-        diagMark("registerCaveBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerDeepslateBlocks");
         block_registry::registerDeepslateBlocks();
-        diagMark("registerDeepslateBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCopperBlocks");
         block_registry::registerCopperBlocks();
-        diagMark("registerCopperBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerNetherBlocks");
         block_registry::registerNetherBlocks();
-        diagMark("registerNetherBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerVegetationBlocks");
         block_registry::registerVegetationBlocks();
-        diagMark("registerVegetationBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerNaturalBlocks");
         block_registry::registerNaturalBlocks();
-        diagMark("registerNaturalBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerAgriculturalBlocks");
         block_registry::registerAgriculturalBlocks();
-        diagMark("registerAgriculturalBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerColoredBlocks");
         block_registry::registerColoredBlocks();
-        diagMark("registerColoredBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerRedstoneBlocks");
         block_registry::registerRedstoneBlocks();
-        diagMark("registerRedstoneBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerSignBannerBlocks");
         block_registry::registerSignBannerBlocks();
-        diagMark("registerSignBannerBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBuildingVariantBlocks");
         block_registry::registerBuildingVariantBlocks();
-        diagMark("registerBuildingVariantBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCherryBlocks");
         block_registry::registerCherryBlocks();
-        diagMark("registerCherryBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerBambooBlocks");
         block_registry::registerBambooBlocks();
-        diagMark("registerBambooBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerTrailsBlocks");
         block_registry::registerTrailsBlocks();
-        diagMark("registerTrailsBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerSculkBlocks");
         block_registry::registerSculkBlocks();
-        diagMark("registerSculkBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerMangroveBlocks");
         block_registry::registerMangroveBlocks();
-        diagMark("registerMangroveBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerMudBlocks");
         block_registry::registerMudBlocks();
-        diagMark("registerMudBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerWildBlocks");
         block_registry::registerWildBlocks();
-        diagMark("registerWildBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerTuffBlocks");
         block_registry::registerTuffBlocks();
-        diagMark("registerTuffBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerTrialBlocks");
         block_registry::registerTrialBlocks();
-        diagMark("registerTrialBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerPaleGardenBlocks");
         block_registry::registerPaleGardenBlocks();
-        diagMark("registerPaleGardenBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerGardenBlocks");
         block_registry::registerGardenBlocks();
-        diagMark("registerGardenBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerShelfBlocks");
         block_registry::registerShelfBlocks();
-        diagMark("registerShelfBlocks_done");
     }
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerCandleBlocks");
         block_registry::registerCandleBlocks();
-        diagMark("registerCandleBlocks_done");
     }
     {
         // 花盆方块必须在所有内容物方块（花卉、树苗、蘑菇、仙人掌、下界菌、杜鹃花等）注册之后
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "registerFlowerPotBlocks");
         block_registry::registerFlowerPotBlocks();
-        diagMark("registerFlowerPotBlocks_done");
     }
 
     // 刷新全部状态的光照缓存（必须在所有方块构造完成后）。
@@ -232,7 +193,6 @@ void VanillaBlocks::initialize()
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeBlockTags");
         spdlog::info("[VanillaBlocks] Initializing block tags...");
         BlockTags::initialize();
-        diagMark("block_tags_done");
         spdlog::info("[VanillaBlocks] Block tags initialized");
     }
 
@@ -240,12 +200,10 @@ void VanillaBlocks::initialize()
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeVanillaFireInfos");
         blocks::FireInfoRegistry::instance().initializeVanillaFireInfos();
-        diagMark("fire_infos_done");
         spdlog::info("[VanillaBlocks] Fire info initialized");
     }
 
     s_initialized = true;
-    diagMark("initialize_done");
 }
 
 } // namespace mc

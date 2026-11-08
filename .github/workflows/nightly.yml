@@ -450,139 +450,6 @@ jobs:
           retention-days: 7
     env:
       POCOCC_CI_ARTIFACT_PREFIX: pococc-${{ matrix.pool }}-
-  # 临时诊断作业：直接跑单个测试用例，把进程内各阶段时间线一次性打出来（约 1 分钟出结果），
-  # 用于定位单进程 8 秒固定开销的来源。调查结束后删除。
-  timing-probe:
-    name: Unit Test Timing Probe
-    needs: [build, release-build]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-datapack
-      - uses: actions/download-artifact@v4
-        with:
-          name: pococc-test-build-artifacts
-      - name: Prepare environment
-        run: |
-          set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
-          if [ -d vcpkg-libs ]; then
-            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
-          fi
-          tar -xzf ctest-meta.tar.gz || true
-      - uses: ./.github/actions/setup-sanitizer-symbolizer
-      - name: Probe one test process
-        env:
-          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
-        run: |
-          set +e
-          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
-          cd build/tests/unit
-          for i in 1 2 3; do
-            rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
-            start=$(date +%s.%N)
-            # 保留 stdout：临时诊断会打印 [BlockTiming] 分段耗时。
-            "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "\[BlockTiming\]" | head -40
-            end=$(date +%s.%N)
-            echo "run $i: total_wall=$(echo "$end - $start" | bc)"
-            cat "$MC_SETUP_TIMING_DIR/setup-timing.log"
-          done
-      - uses: actions/download-artifact@v4
-        with:
-          name: pococc-release-build-artifacts
-          path: /tmp/release
-      - name: Compare with the non-sanitized release server
-        run: |
-          set +e
-          find /tmp/release -maxdepth 4 -name "minecraft-server" -type f | head -5
-          SERVER=$(find /tmp/release -maxdepth 4 -name "minecraft-server" -type f | head -1)
-          chmod +x "$SERVER" 2>/dev/null
-          # Release 构建不含 sanitizer：同一份初始化代码在同样机器上的基线耗时。
-          /usr/bin/time -f "release-server wall=%e user=%U sys=%S" timeout 90 "$SERVER" --profiler_enabled=false > /tmp/release-server.log 2>/tmp/release-server.time
-          cat /tmp/release-server.time
-          # 进程首条日志与方块初始化日志的时间差 = 无 sanitizer 时的方块初始化耗时。
-          head -70 /tmp/release-server.log | grep -E "^\[20" | head -3
-          grep -nE "\[VanillaBlocks\]|Registered [0-9]+ block items" /tmp/release-server.log | head -10
-      - name: Sanitizer option sweep
-        env:
-          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
-        run: |
-          set +e
-          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
-          cd build/tests/unit
-          run_case() {
-            label="$1"; shift
-            rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
-            start=$(date +%s.%N)
-            env "$@" "$BIN" --gtest_filter=MathUtils.LerpDouble > /dev/null 2>&1
-            end=$(date +%s.%N)
-            echo "case[$label]: $(echo "$end - $start" | bc)"
-          }
-          run_case baseline ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
-          run_case no_fake_stack ASAN_OPTIONS=detect_stack_use_after_return=0:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1
-          run_case no_quarantine ASAN_OPTIONS=quarantine_size_mb=0:thread_local_quarantine_size_kb=0:detect_stack_use_after_return=0:detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1
-          run_case no_options ASAN_OPTIONS= UBSAN_OPTIONS=
-      - name: Resource usage for the real binary
-        run: |
-          set +e
-          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
-          cd build/tests/unit
-          echo "===== full run ====="
-          /usr/bin/time -v "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "Elapsed|User time|System time|Maximum resident|Minor|Major|File system inputs|Voluntary"
-          echo "===== empty filter ====="
-          /usr/bin/time -v "$BIN" --gtest_filter=NoSuchTest 2>&1 | grep -E "Elapsed|User time|System time|Maximum resident|Minor|Major|File system inputs|Voluntary"
-          echo "===== second full run (warm) ====="
-          /usr/bin/time -v "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "Elapsed|User time|System time|Maximum resident|Minor|Major|File system inputs|Voluntary"
-      - name: Minimal gtest control experiment
-        run: |
-          set +e
-          sudo apt-get install -y --no-install-recommends libgtest-dev >/dev/null 2>&1
-          echo 'I2luY2x1ZGUgPGd0ZXN0L2d0ZXN0Lmg+CiNpbmNsdWRlIDxjaHJvbm8+CiNpbmNsdWRlIDxjc3RkaW8+CnN0YXRpYyBsb25nIGxvbmcgdDAgPSAwOwpzdGF0aWMgbG9uZyBsb25nIG1zKCkgewogIHJldHVybiBzdGQ6OmNocm9ubzo6ZHVyYXRpb25fY2FzdDxzdGQ6OmNocm9ubzo6bWlsbGlzZWNvbmRzPigKICAgICAgICAgICAgIHN0ZDo6Y2hyb25vOjpzdGVhZHlfY2xvY2s6Om5vdygpLnRpbWVfc2luY2VfZXBvY2goKSkuY291bnQoKSAtIHQwOwp9CmNsYXNzIEVudiA6IHB1YmxpYyA6OnRlc3Rpbmc6OkVudmlyb25tZW50IHsKcHVibGljOgogIHZvaWQgU2V0VXAoKSBvdmVycmlkZSB7IHN0ZDo6cHJpbnRmKCJtaW5pIGVudl9zZXR1cF9lbnRlciAlbGxkXG4iLCBtcygpKTsgfQp9OwpURVNUKE1pbmksIE9rKSB7IHN0ZDo6cHJpbnRmKCJtaW5pIGJvZHkgJWxsZFxuIiwgbXMoKSk7IFNVQ0NFRUQoKTsgfQppbnQgbWFpbihpbnQgYXJnYywgY2hhcioqIGFyZ3YpIHsKICB0MCA9IHN0ZDo6Y2hyb25vOjpkdXJhdGlvbl9jYXN0PHN0ZDo6Y2hyb25vOjptaWxsaXNlY29uZHM+KAogICAgICAgICAgIHN0ZDo6Y2hyb25vOjpzdGVhZHlfY2xvY2s6Om5vdygpLnRpbWVfc2luY2VfZXBvY2goKSkuY291bnQoKTsKICA6OnRlc3Rpbmc6OkluaXRHb29nbGVUZXN0KCZhcmdjLCBhcmd2KTsKICA6OnRlc3Rpbmc6OkFkZEdsb2JhbFRlc3RFbnZpcm9ubWVudChuZXcgRW52KCkpOwogIHN0ZDo6cHJpbnRmKCJtaW5pIGJlZm9yZV9ydW4gJWxsZFxuIiwgbXMoKSk7CiAgY29uc3QgaW50IHIgPSBSVU5fQUxMX1RFU1RTKCk7CiAgc3RkOjpwcmludGYoIm1pbmkgYWZ0ZXJfcnVuICVsbGRcbiIsIG1zKCkpOwogIHJldHVybiByOwp9Cg==' | base64 -d > /tmp/mini_gtest.cpp
-          # 对照 1：普通构建；对照 2：ASan+UBSan 构建（与 mc_tests 相同的插桩）。
-          clang++ -std=c++20 -O1 -g /tmp/mini_gtest.cpp -o /tmp/mini_gtest -lgtest -pthread
-          clang++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all \
-            -fno-omit-frame-pointer /tmp/mini_gtest.cpp -o /tmp/mini_gtest_asan -lgtest -pthread
-          for bin in /tmp/mini_gtest /tmp/mini_gtest_asan; do
-            for i in 1 2 3; do
-              /usr/bin/time -f "$bin wall=%e user=%U sys=%S" $bin --gtest_filter=Mini.Ok
-            done
-          done
-      - name: Sample the slow process with gdb
-        env:
-          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
-        run: |
-          set +e
-          command -v gdb >/dev/null || sudo apt-get install -y --no-install-recommends gdb
-          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
-          cd build/tests/unit
-          "$BIN" --gtest_filter=MathUtils.LerpDouble > /dev/null 2>&1 &
-          pid=$!
-          sleep 3
-          for i in 1 2 3; do
-            echo "===== sample $i ====="
-            timeout -s INT 5 gdb -q -batch -ex run -ex "thread apply all bt 20" --args "$BIN" --gtest_filter=MathUtils.LerpDouble 2>&1 | grep -E "^#|^Thread" | head -60
-            sleep 2
-          done
-          wait "$pid"
-      - name: Compare list mode and empty filter
-        env:
-          MC_SETUP_TIMING_DIR: ${{ runner.temp }}
-        run: |
-          set +e
-          BIN="${PWD}/build/bin/RelWithDebInfo/mc_tests"
-          cd build/tests/unit
-          for mode in "--gtest_list_tests" "--gtest_filter=NoSuchTest" "--gtest_filter=MathUtils.LerpDouble" \
-                      "--gtest_filter=MathUtils.*" "--gtest_filter=-MathUtils.LerpDouble" \
-                      "--gtest_filter=MathUtils.LerpDouble --gtest_catch_exceptions=0"; do
-            rm -f "$MC_SETUP_TIMING_DIR/setup-timing.log"
-            start=$(date +%s.%N)
-            "$BIN" $mode > /dev/null 2>&1
-            end=$(date +%s.%N)
-            echo "mode [$mode]: total_wall=$(echo "$end - $start" | bc)"
-            cat "$MC_SETUP_TIMING_DIR/setup-timing.log" 2>/dev/null
-          done
-
   unit-tests:
     name: Unit Tests (CTest shard ${{ matrix.shard }}/20)
     needs: build
@@ -591,8 +458,6 @@ jobs:
     env:
       ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-      # 临时诊断：测试进程把入口各阶段时刻追加到该文件（见 tests/unit/test_main_entry.hpp）。
-      MC_SETUP_TIMING_DIR: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-datapack
@@ -631,16 +496,22 @@ jobs:
       - name: Run unit tests
         run: |
           set +e
-          first=$((SHARD + 1))
-          cd build
-          # --output-junit 产出机器可读的失败清单（report job 的汇总脚本依赖它）。
-          ctest --build-config RelWithDebInfo -I "$first,,20" \
-                --output-on-failure \
-                --output-junit ../ctest-results.xml \
-                --timeout 300 \
-                -j2 2>&1 | tee ../ctest-output.log
-          echo "ctest exit code: ${PIPESTATUS[0]}"
-          # 单元测试按既定口径不阻塞 CI：此处恒以 0 退出，失败清单由 report job 汇总。
+          # 直接调用测试二进制按批执行本分片的用例，而不是让 ctest 为每个用例起一个进程：
+          # mc_tests 每进程都要重建全部方块/标签/世界生成注册表（ASan+UBSan 下约 12.6s），
+          # 逐用例起进程会让初始化开销主导整条流水线。脚本仍按 ctest 的分片编号选取用例，
+          # 并产出 ctest-output.log / ctest-results.xml（report job 与覆盖率校验依赖它们）。
+          python3 scripts/ci/run_unit_tests_batched.py \
+                --build-dir build \
+                --config RelWithDebInfo \
+                --inventory ctest-inventory.json \
+                --shard-index "$SHARD" \
+                --shard-count 20 \
+                --batch-size 60 \
+                --jobs 4 \
+                --out-log ctest-output.log \
+                --out-junit ctest-results.xml
+          echo "unit test runner exit code: $?"
+          # 单元测试按既定口径不阻塞 CI：失败清单由 report job 汇总。
           exit 0
         env:
           SHARD: ${{ matrix.shard }}
@@ -655,13 +526,9 @@ jobs:
           name: pococc-unit-test-results-${{ matrix.shard }}
           retention-days: 30
           if-no-files-found: warn
-          # 临时诊断：测试进程在每个启动阶段都向 setup-timing.log 追加一行（见
-          # tests/unit/test_main_entry.hpp），用于把每个进程的固定开销归因到具体阶段。
           path: |
             ctest-output.log
             ctest-results.xml
-            setup-timing.log
-            build/Testing/
             runner-info.json
             ctest-partition.json
     strategy:
