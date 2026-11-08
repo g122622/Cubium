@@ -1,4 +1,4 @@
-﻿# Windows 服务端内存诊断脚本
+# Windows 服务端内存诊断脚本
 
 用于定位 `minecraft-server.exe` 在 Windows 上的内存占用构成。方法论与实测数据见 `docs/MEMORY.md`。
 

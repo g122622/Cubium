@@ -32,9 +32,9 @@ using namespace mc;
 namespace {
 
 /**
- * @brief ����Դ·����ע���������Ʒ��
- * @param path ��Դ·����
- * @return ��ע����Ʒָ�롣
+ * @brief 按资源路径懒注册测试用物品。
+ * @param path 资源路径。
+ * @return 已注册物品指针。
  */
 Item* ensureTestItem(const char* path)
 {
