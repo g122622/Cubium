@@ -1560,7 +1560,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
 
                 if (normalized == "minecraft:health" || normalized == "minecraft:movement") {
-                    // TODO: 已经交给脚本的组件引用也需在所属组件被移除时失效。
+                    // 组件存在于实体上时才返回组件对象；否则 undefined（对齐基岩"组件不存在返 undefined"）。
+                    // 注意这只保证"取的时候"正确：getComponent 返回的对象与实体同寿命（登记在同一
+                    // entityId 上，实体销毁时 invalidateAll 一并置空防 UAF），但**不跟组件本身的
+                    // 增删**——脚本先拿到 HealthComponent，随后行为包移除该组件，旧引用仍然可用并
+                    // 继续读到属性。
+                    //
+                    // TODO(component-invalidation): 基岩侧该引用会随之失效。要支持需要让
+                    //   ScriptHandleRegistry 从"按实体地址失效"扩展出"按 (实体, 组件 id) 失效"的
+                    //   维度（当前 registerHandle/invalidateAll 只有实体一个键），并在组件移除路径上
+                    //   触发。属于脚本绑定生命周期机制的扩展，不是本处能单点补齐的。
                     const auto* components = ent->tryGetComponent<AddonEntityComponents>();
                     if (components != nullptr && !components->has(normalized)) {
                         return ctx.createUndefined();
@@ -3321,8 +3330,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createInt32(stack->getCount());
         },
         [](IScriptBindingContext& ctx, void* thisVal, void* value) {
-            // amount setter：设数量（setCount 内部 <=0 置空）。仅当 owned（Equippable.getEquipment 拷贝）
-            // 时安全写回；非拥有快照写入会被 C++ 侧覆盖，故非拥有时静默忽略留 TODO。
+            // amount setter：设数量（setCount 内部 <=0 置空）。
+            // 非拥有快照（如 Container.getItem 返回的副本）改它没有意义——下次读取会重新从
+            // 权威槽拷一份，写入被静默丢弃。
+            //
+            // TODO(snapshot-writeback): 目前对非拥有快照也照常写入，只是写到了即将被丢弃的副本上。
+            //   理想行为是"非拥有时抛错，提示调用方改用容器/装备槽的写接口"，但这需要绑定层能查询
+            //   当前句柄是否 owned：ScriptObjectRegistry 只有 wrap(...owned...) 的写入方向，
+            //   ScriptHandleRegistry 也只维护 ptr 失效、不暴露 owned 标志，IScriptBindingContext
+            //   同样没有对应查询。因此这一步要先把 owned 状态在句柄上可读，属于脚本绑定底层改动，
+            //   不是本处能单点补齐的。在此之前保持静默写入（不报假错），避免误伤 owned 路径。
             auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
             if (stack == nullptr) {
                 return;
