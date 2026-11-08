@@ -320,8 +320,10 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
         auto it = dyeMap.find(dyeName);
         if (it != dyeMap.end()) {
             sheep->setFleeceColor(it->second);
+        } else {
+            // 未知染料名属于调用方拼写错误，静默跳过会让测试"看起来没生效"却查不到原因。
+            spdlog::warn("[gametest] unknown dye name '{}' in sheep spawn event, ignored", dyeName);
         }
-        // 未知 dye 名静默跳过（TODO: 可加日志告警，但 GameTest 无 console）。
         return;
     }
     // 熊猫性格事件：panda<minecraft:aggressive> 等把熊猫主基因设为对应性格基因。
@@ -368,8 +370,10 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
             // 性格相关属性（好斗 ATTACK_DAMAGE=6、虚弱 MAX_HEALTH=10）须按新性格重设——
             // registerAttributes 在构造期据随机性格设过，spawnEvent 改性格后需刷新。
             panda->refreshAttributesForPersonality();
+        } else {
+            // 未知性格名属于调用方拼写错误，静默跳过会让测试"看起来没生效"却查不到原因。
+            spdlog::warn("[gametest] unknown panda personality '{}' in spawn event, ignored", eventName);
         }
-        // 未知性格名静默跳过。
         return;
     }
 
