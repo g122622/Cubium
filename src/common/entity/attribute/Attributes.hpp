@@ -511,7 +511,8 @@ inline std::unique_ptr<Attribute> stepHeight()
  *
  * 决定碰撞箱、渲染与视高的整体缩放比例（幼年生物、缩小/放大效果）。
  *
- * TODO: 接通消费点——实体尺寸目前由 EntitySize 直接给出，没有乘以本属性。
+ * 消费点：`LivingEntity::getDimensions(pose)` 对非睡眠姿态返回基础尺寸 × `getScale()`，
+ * 因此碰撞箱、视高以及由它们派生的判定都随之变化。睡眠姿态使用不缩放的固定尺寸。
  *
  * 默认值: 1.0
  * 范围: 0.0625 ~ 16.0

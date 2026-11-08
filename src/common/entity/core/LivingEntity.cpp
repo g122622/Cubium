@@ -1414,6 +1414,10 @@ void LivingEntity::registerAttributes()
     // 并由 maxUpStep() 消费（本项目的等价点是 stepHeight()）。马、掠夺者等把默认值调高到
     // 1.0 的生物应通过该属性（而非 setStepHeight）表达，这样数据包/命令也能调整。
     attributes().registerAttribute(*entity::attribute::Attributes::stepHeight());
+    // 尺寸缩放属性（默认 1.0）。vanilla LivingEntity.getDimensions(pose) 对非睡眠姿态返回
+    // getDefaultDimensions(pose).scale(getScale())，因此碰撞箱、视高、渲染尺寸都随它变化；
+    // 命令 `/attribute <target> minecraft:scale base set <v>` 或缩放效果即通过它生效。
+    attributes().registerAttribute(*entity::attribute::Attributes::scale());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -1459,6 +1463,22 @@ void LivingEntity::setStepHeight(f32 height)
     if (!attributes().setBaseValue(entity::attribute::Attributes::STEP_HEIGHT, height)) {
         Entity::setStepHeight(height);
     }
+}
+
+f32 LivingEntity::getScale() const
+{
+    return static_cast<f32>(getAttributeValue(entity::attribute::Attributes::SCALE, 1.0));
+}
+
+entity::EntitySize LivingEntity::getDimensions(EntityPose pose) const
+{
+    // 睡眠姿态直接沿用基类的固定尺寸，不参与缩放（该尺寸对所有生物都是同一常量）。
+    if (pose == EntityPose::Sleeping) {
+        return Entity::getDimensions(pose);
+    }
+
+    // 非睡眠姿态：实体类型在该姿态下的基础尺寸整体乘以 scale 属性。
+    return Entity::getDimensions(pose).scale(getScale());
 }
 
 f32 LivingEntity::getBlockSpeedFactor()

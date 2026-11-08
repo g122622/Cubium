@@ -162,6 +162,30 @@ public:
      */
     void setStepHeight(f32 height) override;
 
+    // ========== 尺寸 ==========
+
+    /**
+     * @brief 获取实体尺寸缩放系数
+     *
+     * 直接读取 `scale` 属性（默认 1.0）。该属性决定碰撞箱、视高与渲染尺寸的整体比例，
+     * 幼年生物、`/attribute ... minecraft:scale` 与缩小/放大效果都通过它生效。
+     *
+     * @return 缩放系数（属性值范围 0.0625 ~ 16.0）
+     */
+    [[nodiscard]] f32 getScale() const;
+
+    /**
+     * @brief 获取指定姿态下的实体尺寸（应用 scale 属性）
+     *
+     * 非睡眠姿态返回"该实体类型在该姿态下的基础尺寸 × getScale()"；睡眠姿态沿用基类的
+     * 固定尺寸 (0.2, 0.2, eye 0.2)，不参与缩放——睡眠尺寸对所有生物都是同一常量，缩放会
+     * 让躺下的判定尺寸偏离原版。
+     *
+     * @param pose 目标姿态
+     * @return 应用缩放后的尺寸
+     */
+    [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
+
     // ========== 生命值 ==========
 
     /**

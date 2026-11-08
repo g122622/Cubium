@@ -398,6 +398,8 @@ add_executable(mc_tests
     common/entity/core/EquipmentUpdateTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
+    # 生物尺寸缩放（scale 属性消费点）
+    common/entity/core/EntityScaleTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
     common/entity/core/EntityIsInRainTest.cpp
     # Entity::isOnLadder() 可攀爬判定测试（CLIMBABLE 标签 + Block::isLadder 虚函数两条来源）
