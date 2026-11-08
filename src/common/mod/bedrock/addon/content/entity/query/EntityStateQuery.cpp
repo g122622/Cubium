@@ -158,8 +158,10 @@ Result<bool> EntityStateQuery::hasComponent(const mc::Entity& entity, const std:
         return Error(
             ErrorCode::Unsupported, "Native inventory component mapping is not implemented: " + entity.getTypeId());
     }
-    if (name == "minecraft:mark_variant" && dynamic_cast<const mc::MooshroomEntity*>(&entity) != nullptr) {
-        // TODO: 将原有测试专用哞菇标记变种迁移至独立测试接口，避免占用标准基岩组件。
+    if (name == "minecraft:variant" && dynamic_cast<const mc::MooshroomEntity*>(&entity) != nullptr) {
+        // 哞菇的红/棕是**主变种**（基岩 `minecraft:variant`，0=红、1=棕），
+        // 不是 `minecraft:mark_variant`（那是"附加变种"，用于进一步区分同一主变种，
+        // 如马的花纹）。此前占用 mark_variant 承载它，会让脚本按官方组件名读到 undefined。
         return true;
     }
     // TODO: 将其余原版实体组件的存在条件接入统一描述表。
@@ -173,7 +175,7 @@ Result<i32> EntityStateQuery::variant(const mc::Entity& entity, const std::strin
         const auto* value = components->component(name);
         return value != nullptr ? value->value("value", i32{0}) : i32{0};
     }
-    if (name == "minecraft:mark_variant") {
+    if (name == "minecraft:variant") {
         if (const auto* mooshroom = dynamic_cast<const mc::MooshroomEntity*>(&entity)) {
             return static_cast<i32>(mooshroom->getMooshroomType());
         }

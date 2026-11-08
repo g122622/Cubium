@@ -59,13 +59,13 @@ function countItemInInventory(player: any, typeId: string): number {
 // 播放 convert 音效 + 客户端粒子。无难度门控（转化产物仍是哞菇，无和平消失问题，区别于 PigEntity 转化需非 Peaceful）。
 // 哞菇 10 血，重构后不调基类 hurt 不受伤，保持 10 血存活，转化当 tick 完成，实体仍在（不 remove、不换 typeId）。
 //
-// 判定手段：读 minecraft:mark_variant 组件（Cubium 绑定 MinecraftModuleFactory.cpp getComponent，
-// 对 MooshroomEntity 返回 MarkVariantComponent，readonly value 为 MooshroomType 枚举值 Red=0/Brown=1，
+// 判定手段：读 minecraft:variant 组件（Cubium 绑定 MinecraftModuleFactory.cpp getComponent，
+// 对 MooshroomEntity 返回 EntityVariantComponent，readonly value 为 MooshroomType 枚举值 Red=0/Brown=1，
 // 与 NBT "Type" 字段一致）。
 //
 // 对照组设计：生成两只哞菇——实验组 (2,2,3) 与闪电同格被劈（应翻转为棕色 value=1），
 // 对照组 (5,2,5) 远离闪电（距实验组 >3 命中范围，未被劈，保持红色 value=0）。
-// 双断言组合：实验组棕色 + 对照组红色，精确验证"被劈才翻转"——对照组排除 mark_variant 组件默认恒为
+// 双断言组合：实验组棕色 + 对照组红色，精确验证"被劈才翻转"——对照组排除 variant 组件默认恒为
 // 某值（如恒 1）的假通过，实验组排除默认棕色的假通过。两组均存活（闪电仅命中实验组范围）。
 //
 // 环境选择：creeper_pit（7×5×7 开放坑）y=0 grass_block 脚踩，无围墙不影响闪电命中。
@@ -92,13 +92,13 @@ function mooshroomLightningConvert(test: Test): void {
   test.runAtTickTime(20, () => {
     test.assertEntityPresentInArea(mooshroomType, true);
 
-    const struckVariant = struck.getComponent("minecraft:mark_variant");
-    test.assert(struckVariant !== undefined, "struck mooshroom has no mark_variant component");
+    const struckVariant = struck.getComponent("minecraft:variant");
+    test.assert(struckVariant !== undefined, "struck mooshroom has no variant component");
     test.assert((struckVariant as any).value === 1,
       `struck mooshroom did not convert to brown, value=${(struckVariant as any).value}`);
 
-    const controlVariant = control.getComponent("minecraft:mark_variant");
-    test.assert(controlVariant !== undefined, "control mooshroom has no mark_variant component");
+    const controlVariant = control.getComponent("minecraft:variant");
+    test.assert(controlVariant !== undefined, "control mooshroom has no variant component");
     test.assert((controlVariant as any).value === 0,
       `control mooshroom was not red, value=${(controlVariant as any).value}`);
 
