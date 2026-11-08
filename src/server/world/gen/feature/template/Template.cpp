@@ -1617,8 +1617,10 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(const BlockPos& /*
 {
     // 使用位置种子创建确定性随机数生成器
     // 关键：使用变换后的世界坐标 (blockInfo.pos)，而非模板内坐标
+    // 原版 RandomSource.create(long) 返回 LegacyRandomSource（48 位 LCG），
+    // 不是世界生成用的 Xoroshiro，这里必须用 JavaLegacyRandom 才能逐抽样一致。
     u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
-    math::Random rng(seed);
+    math::JavaLegacyRandom rng(seed);
 
     // 完整度 >= 1.0：保留所有方块
     // 随机判断是否保留方块：nextFloat() 返回 [0.0, 1.0)，所以 <= integrity 的概率正好是 integrity
@@ -1651,9 +1653,9 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(const BlockPos
     const PlacementSettings& settings)
 {
     // 遍历所有规则，找到第一个匹配的规则
-    // 使用位置种子创建确定性随机数生成器
+    // 使用位置种子创建确定性随机数生成器（原版 RandomSource.create → LegacyRandomSource）
     u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
-    math::Random rng(seed);
+    math::JavaLegacyRandom rng(seed);
 
     // 获取输入方块状态
     const BlockState* inputState = BlockRegistry::instance().getBlockState(rawBlockInfo.blockStateId);
@@ -1909,17 +1911,16 @@ const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::IRandom& rng, 
     const BlockState& defaultState = stairsBlock.defaultState();
     const BlockState* result = &defaultState;
 
-    // 设置随机水平朝向
-    static constexpr Direction horizontalDirs[] = {
-        Direction::North, Direction::South, Direction::East, Direction::West};
-    Direction facing = horizontalDirs[rng.nextInt(4)];
+    // 设置随机水平朝向。用 Directions::horizontal()（NORTH, EAST, SOUTH, WEST）：
+    // 它决定 nextInt(4) 的下标映射，顺序错了朝向整体错位。
+    const auto horizontalDirs = Directions::horizontal();
+    Direction facing = horizontalDirs[static_cast<std::size_t>(rng.nextInt(4))];
     if (defaultState.hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
         result = &defaultState.with(BlockStateProperties::HORIZONTAL_FACING(), facing);
     }
 
-    // 设置随机上半/下半
+    // 设置随机上半/下半（Half 声明顺序 Top=0、Bottom=1）
     if (result->hasProperty(BlockStateProperties::HALF())) {
-        // Half 枚举值：Bottom(0), Top(1)
         auto half = static_cast<BlockStateProperties::Half>(rng.nextInt(2));
         result = &result->with(BlockStateProperties::HALF(), half);
     }

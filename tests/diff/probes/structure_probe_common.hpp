@@ -22,6 +22,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTagLoader.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -132,6 +133,11 @@ inline void initializeStructureRegistries()
         fluid::FluidRegistry::instance().initialize();
 
         auto& repo = dataPackRepository();
+        // 方块标签只来自数据包：不加载的话 STAIRS/SLABS/WALLS/FEATURES_CANNOT_REPLACE
+        // 全为空，BlockAgeProcessor / ProtectedBlocksProcessor 会静默退化成空操作。
+        if (BlockTagLoader::loadFromDataPackRepository(repo).failed()) {
+            throw std::runtime_error("structure probe: block tag loading failed");
+        }
         PlacementRegistry::instance().initialize();
         world::gen::feature::initializeBuiltinFeatureTypes();
         world::gen::feature::ConfiguredFeatureLoader::loadFromDataPackRepository(repo);

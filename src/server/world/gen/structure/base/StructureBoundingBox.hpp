@@ -130,12 +130,15 @@ public:
         return m_maxZ - m_minZ + 1;
     }
 
+    // 中心点按「最小角 + 跨度/2」取整（`min + (max - min + 1) / 2`），而不是 `(min + max) / 2`：
+    // 偶数跨度时两者相差一格，原版 BoundingBox#getCenter 用的是前者，结构放置会直接读它。
+
     /**
      * @brief 获取中心 X 坐标
      */
     [[nodiscard]] i32 centerX() const noexcept
     {
-        return (m_minX + m_maxX) / 2;
+        return m_minX + (m_maxX - m_minX + 1) / 2;
     }
 
     /**
@@ -143,7 +146,7 @@ public:
      */
     [[nodiscard]] i32 centerY() const noexcept
     {
-        return (m_minY + m_maxY) / 2;
+        return m_minY + (m_maxY - m_minY + 1) / 2;
     }
 
     /**
@@ -151,7 +154,7 @@ public:
      */
     [[nodiscard]] i32 centerZ() const noexcept
     {
-        return (m_minZ + m_maxZ) / 2;
+        return m_minZ + (m_maxZ - m_minZ + 1) / 2;
     }
 
     [[nodiscard]] bool isValid() const noexcept

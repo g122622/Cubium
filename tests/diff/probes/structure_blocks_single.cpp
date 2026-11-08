@@ -85,7 +85,10 @@ public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         const auto found = m_blocks.find(BlockPos(x, y, z).asLong());
-        return found == m_blocks.end() ? nullptr : found->second;
+        // 空位必须返回**空气状态**而不是 nullptr：规则处理器把 nullptr 当作「读不到
+        // 方块」并直接判定位置谓词失败，导致所有带位置谓词的替换规则在空世界里静默
+        // 失效（原版空中位置读到的是 Blocks.AIR.defaultBlockState()）。
+        return found == m_blocks.end() ? &VanillaBlocks::AIR->defaultState() : found->second;
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
@@ -95,6 +98,12 @@ public:
     }
 
     [[nodiscard]] i32 getMinBuildHeight() const override
+    {
+        return m_minBuildHeight;
+    }
+
+    /// 空世界没有地形：与原版 oracle 的桩一致，高度图顶端固定为世界最低点。
+    [[nodiscard]] i32 getHeight(i32, i32) const override
     {
         return m_minBuildHeight;
     }

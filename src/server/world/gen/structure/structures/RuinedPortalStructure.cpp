@@ -27,6 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -233,16 +234,28 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
         return;
     }
 
+    // 原版 RuinedPortalPiece#postProcess 只有「本区块包含模板盒中心」时才做任何事：
+    // 先用 encapsulate 把可写区扩到整个模板盒，再一次性放完整座传送门（否则每个相交
+    // 区块都会重复写一遍，而且共享随机源会被多消费）。
+    const i32 centerX = m_minX + (m_maxX - m_minX + 1) / 2;
+    const i32 centerY = m_minY + (m_maxY - m_minY + 1) / 2;
+    const i32 centerZ = m_minZ + (m_maxZ - m_minZ + 1) / 2;
+    if (!chunkBounds.isInside(centerX, centerY, centerZ)) {
+        return;
+    }
+    StructureBoundingBox writable = chunkBounds;
+    writable.expandTo(pieceBounds);
+
     // 创建放置设置
     feature::template_::PlacementSettings settings;
     settings.setRotation(m_rotation);
     settings.setMirror(m_mirror);
     settings.setCenterOffset(m_centerOffset);
-    settings.setBoundingBox(&chunkBounds);
+    settings.setBoundingBox(&writable);
 
     // 设置世界引用（ProtectedBlocksProcessor / LavaSubmergingProcessor 等需要 IWorld 读取世界方块）
-    const IWorld* iworld = dynamic_cast<const IWorld*>(&world);
-    if (iworld) {
+    IWorld* iworld = dynamic_cast<IWorld*>(&world);
+    if (iworld != nullptr) {
         settings.setWorld(iworld);
     }
 
@@ -324,6 +337,211 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
         settings,
         rng,
         world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+
+    // ===== 放置后的地狱岩/岩浆块点缀 =====
+    //
+    // 这些步骤在空世界里也常常会写入方块（模板自身的地狱岩会触发下方垂滴列），
+    // 因此必须逐抽样复刻，不能省略。
+    if (iworld == nullptr) {
+        return;
+    }
+    _spreadNetherrack(*iworld, rng);
+    _addNetherrackDripColumnsBelowPortal(*iworld, rng);
+    if (m_properties.vines || m_properties.overgrown) {
+        // 迭代顺序必须与原版 `BlockPos.betweenClosedStream(box)` 一致：x 最快、y 次之、z 最慢。
+        // 藤蔓与树叶分支都会消费随机数，顺序错了整个随机流就会错位。
+        for (i32 z = m_minZ; z <= m_maxZ; ++z) {
+            for (i32 y = m_minY; y <= m_maxY; ++y) {
+                for (i32 x = m_minX; x <= m_maxX; ++x) {
+                    const BlockPos pos(x, y, z);
+                    if (m_properties.vines) {
+                        _maybeAddVines(*iworld, rng, pos);
+                    }
+                    if (m_properties.overgrown) {
+                        _maybeAddLeavesAbove(*iworld, rng, pos);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// RuinedPortalPiece 放置后点缀
+// ============================================================================
+
+i32 RuinedPortalPiece::_surfaceY(const IWorld& world, i32 x, i32 z) const
+{
+    // 原版 getSurfaceY 取高度图后减一；海底放置用 OCEAN_FLOOR_WG，其余用 WORLD_SURFACE_WG。
+    // 本项目的世界接口只提供一张高度图（等价于 WORLD_SURFACE_WG），空世界执行路径下
+    // 两种高度图取值相同，故不需要再区分类别。
+    return world.getHeight(x, z) - 1;
+}
+
+bool RuinedPortalPiece::_canBeReplacedByNetherrackOrMagma(const IWorld& world, const BlockPos& pos) const
+{
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || state->isAir()) {
+        return false;
+    }
+    if (state->is(VanillaBlocks::OBSIDIAN)) {
+        return false;
+    }
+    if (BlockTags::FEATURES_CANNOT_REPLACE().contains(state->getBlock())) {
+        return false;
+    }
+    if (m_location != RuinedPortalLocation::InNether && state->is(VanillaBlocks::LAVA)) {
+        return false;
+    }
+    return true;
+}
+
+void RuinedPortalPiece::_placeNetherrackOrMagma(IWorld& world, math::IRandom& rng, const BlockPos& pos)
+{
+    const Block* block = nullptr;
+    if (!m_properties.cold && rng.nextFloat() < PROBABILITY_OF_MAGMA_INSTEAD_OF_NETHERRACK) {
+        block = VanillaBlocks::MAGMA;
+    } else {
+        block = VanillaBlocks::NETHERRACK;
+    }
+    if (block != nullptr) {
+        world.setBlockState(pos.x, pos.y, pos.z, &block->defaultState());
+    }
+}
+
+void RuinedPortalPiece::_addNetherrackDripColumn(IWorld& world, math::IRandom& rng, const BlockPos& pos)
+{
+    BlockPos cursor = pos;
+    _placeNetherrackOrMagma(world, rng, cursor);
+    i32 remaining = 8;
+    while (remaining > 0 && rng.nextFloat() < 0.5F) {
+        cursor = BlockPos(cursor.x, cursor.y - 1, cursor.z);
+        --remaining;
+        _placeNetherrackOrMagma(world, rng, cursor);
+    }
+}
+
+void RuinedPortalPiece::_addNetherrackDripColumnsBelowPortal(IWorld& world, math::IRandom& rng)
+{
+    for (i32 x = m_minX + 1; x < m_maxX; ++x) {
+        for (i32 z = m_minZ + 1; z < m_maxZ; ++z) {
+            const BlockPos pos(x, m_minY, z);
+            const BlockState* state = world.getBlockState(pos);
+            if (state != nullptr && state->is(VanillaBlocks::NETHERRACK)) {
+                _addNetherrackDripColumn(world, rng, BlockPos(x, m_minY - 1, z));
+            }
+        }
+    }
+}
+
+void RuinedPortalPiece::_spreadNetherrack(IWorld& world, math::IRandom& rng)
+{
+    const bool useSurface =
+        m_location == RuinedPortalLocation::OnLandSurface || m_location == RuinedPortalLocation::OnOceanFloor;
+
+    const i32 centerX = m_minX + (m_maxX - m_minX + 1) / 2;
+    const i32 centerZ = m_minZ + (m_maxZ - m_minZ + 1) / 2;
+
+    // 曼哈顿距离 → 概率衰减表
+    static constexpr std::array<f32, 14> RADIAL_PROBABILITY = {
+        1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 0.9F, 0.9F, 0.8F, 0.7F, 0.6F, 0.4F, 0.2F};
+    constexpr i32 RADIUS = static_cast<i32>(RADIAL_PROBABILITY.size());
+
+    const i32 horizontalSpan = ((m_maxX - m_minX + 1) + (m_maxZ - m_minZ + 1)) / 2;
+    const i32 jitter = rng.nextInt(std::max(1, 8 - horizontalSpan / 2));
+
+    for (i32 x = centerX - RADIUS; x <= centerX + RADIUS; ++x) {
+        for (i32 z = centerZ - RADIUS; z <= centerZ + RADIUS; ++z) {
+            const i32 manhattan = std::abs(x - centerX) + std::abs(z - centerZ);
+            const i32 index = std::max(0, manhattan + jitter);
+            if (index >= RADIUS) {
+                continue;
+            }
+            if (rng.nextDouble() >= static_cast<f64>(RADIAL_PROBABILITY[index])) {
+                continue;
+            }
+
+            const i32 surfaceY = _surfaceY(world, x, z);
+            const i32 y = useSurface ? surfaceY : std::min(m_minY, surfaceY);
+            const BlockPos pos(x, y, z);
+            if (std::abs(y - m_minY) > 3) {
+                continue;
+            }
+            if (!_canBeReplacedByNetherrackOrMagma(world, pos)) {
+                continue;
+            }
+
+            _placeNetherrackOrMagma(world, rng, pos);
+            if (m_properties.overgrown) {
+                _maybeAddLeavesAbove(world, rng, pos);
+            }
+            _addNetherrackDripColumn(world, rng, BlockPos(x, y - 1, z));
+        }
+    }
+}
+
+void RuinedPortalPiece::_maybeAddVines(IWorld& world, math::IRandom& rng, const BlockPos& pos)
+{
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || state->isAir() || state->is(VanillaBlocks::VINE)) {
+        return;
+    }
+
+    // 水平方向表（NORTH, EAST, SOUTH, WEST）决定 nextInt(4) 的下标映射
+    const auto horizontalDirs = Directions::horizontal();
+    const Direction direction = horizontalDirs[static_cast<std::size_t>(rng.nextInt(4))];
+    const BlockPos adjacent(pos.x + Directions::xOffset(direction),
+        pos.y + Directions::yOffset(direction),
+        pos.z + Directions::zOffset(direction));
+
+    const BlockState* neighbor = world.getBlockState(adjacent);
+    if (neighbor != nullptr && !neighbor->isAir()) {
+        return;
+    }
+    if (!Block::isFaceFull(state->getCollisionShape(), direction)) {
+        return;
+    }
+
+    const Direction opposite = Directions::opposite(direction);
+    const BooleanProperty* property = nullptr;
+    switch (opposite) {
+        case Direction::North:
+            property = &BlockStateProperties::NORTH();
+            break;
+        case Direction::South:
+            property = &BlockStateProperties::SOUTH();
+            break;
+        case Direction::East:
+            property = &BlockStateProperties::EAST();
+            break;
+        case Direction::West:
+            property = &BlockStateProperties::WEST();
+            break;
+        default:
+            return;
+    }
+
+    const BlockState& vine = VanillaBlocks::VINE->defaultState().with(*property, true);
+    world.setBlockState(adjacent.x, adjacent.y, adjacent.z, &vine);
+}
+
+void RuinedPortalPiece::_maybeAddLeavesAbove(IWorld& world, math::IRandom& rng, const BlockPos& pos)
+{
+    if (rng.nextFloat() >= 0.5F) {
+        return;
+    }
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || !state->is(VanillaBlocks::NETHERRACK)) {
+        return;
+    }
+    const BlockPos above(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(above);
+    if (aboveState != nullptr && !aboveState->isAir()) {
+        return;
+    }
+    const BlockState& leaves =
+        VanillaBlocks::JUNGLE_LEAVES->defaultState().with(BlockStateProperties::PERSISTENT(), true);
+    world.setBlockState(above.x, above.y, above.z, &leaves);
 }
 
 // ============================================================================
