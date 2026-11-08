@@ -163,47 +163,56 @@ class Runner:
             return -1, True, (output + errors)[-8000:]
 
     def _execute_batch(self, names: list[str], xml_path: Path) -> list[dict]:
-        """执行一个批次；进程异常退出或结果不完整时退化为逐用例执行。"""
-        xml_path.unlink(missing_ok=True)
-        returncode, timed_out, batch_output = self._run_gtest(names, xml_path, self.options.batch_timeout)
-        results = self._parse_batch(xml_path) if xml_path.exists() else []
+        """执行一个批次，返回每条用例的结果。"""
+        return self._execute_subset(names, xml_path, [0])
+
+    def _execute_subset(self, names: list[str], xml_path: Path, counter: list[int]) -> list[dict]:
+        """执行一组用例；进程崩溃/超时时二分缩小子集，只让出问题的那部分退化为单跑。
+
+        gtest 的 XML 只在进程正常收尾时落盘，因此进程被信号杀掉时整批结果都没有。此时若把
+        整批都改为逐用例执行，一个坏用例就会让该批次多付几十次进程启动的固定开销（实测
+        60 个用例的批次会因此从 ~13s 变成 ~13min）。二分后健康的一半仍批量执行，进程数
+        只随崩溃用例数按对数增长。
+        """
+        counter[0] += 1
+        part_xml = xml_path.with_name(f"{xml_path.stem}_{counter[0]}.xml")
+        part_xml.unlink(missing_ok=True)
+        returncode, timed_out, output = self._run_gtest(names, part_xml, self.options.batch_timeout)
+        results = self._parse_batch(part_xml) if part_xml.exists() else []
+        part_xml.unlink(missing_ok=True)
+
+        wanted = set(names)
+        results = [result for result in results if result["name"] in wanted]
         reported = {result["name"] for result in results}
         missing = [name for name in names if name not in reported]
         if not missing:
-            # 用例结果齐全且退出码为 0 或确有失败用例：归属已经清楚，直接返回。
-            if returncode == 0 or any(r["status"] in ("failure", "error") for r in results):
-                return [result for result in results if result["name"] in set(names)]
-            # 结果齐全但退出码非零、且没有用例失败：典型是退出阶段才报出的运行时问题
-            # （ASan 泄漏检测、静态析构里的断言）。逐用例重跑，让问题归属到具体用例，
-            # 否则这类发现会因为"整批结果齐全"而被静默吞掉。
-            print(f"batch exited with {returncode} without a failing test; "
-                  f"re-running {len(names)} test(s) individually", flush=True)
-            missing = list(names)
+            # 结果齐全但退出码非零、且没有用例失败：问题出在进程退出阶段（ASan 泄漏检测、
+            # 静态析构里的断言），无法归属到单个用例。原样打印现场，避免被静默吞掉。
+            if returncode != 0 and not any(r["status"] in ("failure", "error") for r in results):
+                print(f"[BatchExitIssue] {len(names)} test(s) reported results but the process "
+                      f"exited with {returncode}:\n{output[-2000:]}", flush=True)
+            return results
 
-        # 进程崩溃/超时/结果缺失：gtest 的 XML 只在进程正常收尾时落盘，此时整批结果都不存在，
-        # 只能逐用例重跑，确保失败能归属到具体用例。
-        if timed_out:
-            print(f"batch timed out ({len(names)} tests); re-running individually", flush=True)
-        elif missing:
-            print(f"batch exited with {returncode}; re-running {len(missing)} missing test(s) individually",
-                  flush=True)
-        # 只保留不属于重跑集合的结果，重跑项以单跑结果为准。
-        rerun_names = set(missing)
-        rerun = [result for result in results
-                 if result["name"] in set(names) and result["name"] not in rerun_names]
-        for name in missing:
-            single = self._run_single(name, xml_path, batch_output=batch_output)
-            rerun.append(single)
+        if len(names) == 1:
+            # 单个用例仍然没有结果：进程在报告前就终止了，保留失败现场供失败清单展示。
+            return [self._run_single(names[0], batch_output=output)]
 
-        return [self._recheck_single(result, xml_path) for result in rerun]
+        reason = "timed out" if timed_out else f"exited with {returncode}"
+        print(f"batch of {len(names)} {reason}; bisecting {len(missing)} unreported test(s)", flush=True)
+        if len(missing) == 1:
+            results.append(self._run_single(missing[0], batch_output=output))
+            return results
+        middle = len(missing) // 2
+        results.extend(self._execute_subset(missing[:middle], xml_path, counter))
+        results.extend(self._execute_subset(missing[middle:], xml_path, counter))
+        return results
 
-    def _run_single(self, name: str, xml_path: Path, batch_output: str) -> dict:
+    def _run_single(self, name: str, batch_output: str = "") -> dict:
         """在独立进程里跑一个用例，返回它的结果。"""
-        single_xml = xml_path.with_name(xml_path.stem + "_single.xml")
-        single_xml.unlink(missing_ok=True)
-        _, single_timed_out, single_output = self._run_gtest([name], single_xml, self.options.test_timeout)
-        parsed = self._parse_batch(single_xml) if single_xml.exists() else []
-        single_xml.unlink(missing_ok=True)
+        with tempfile.TemporaryDirectory(prefix="mc-single-") as scratch:
+            xml_path = Path(scratch) / "single.xml"
+            _, single_timed_out, single_output = self._run_gtest([name], xml_path, self.options.test_timeout)
+            parsed = self._parse_batch(xml_path) if xml_path.exists() else []
         if parsed:
             return parsed[0]
 
@@ -216,7 +225,7 @@ class Runner:
             message += "\n" + evidence
         return {"name": name, "status": "error", "time": 0.0, "message": message}
 
-    def _recheck_single(self, result: dict, xml_path: Path) -> dict:
+    def _recheck_single(self, result: dict) -> dict:
         """对批次内失败的用例单独复核，区分「真实失败」与「批内污染」。
 
         同一进程连续跑多个用例时，前一个用例对全局单例（注册表、标签表等）的改动会泄漏给
@@ -227,7 +236,7 @@ class Runner:
         """
         if result["status"] not in ("failure", "error"):
             return result
-        single = self._run_single(result["name"], xml_path, batch_output="")
+        single = self._run_single(result["name"])
         if single["status"] == "passed":
             return {**result, "status": "passed", "polluted_from_batch": True,
                     "message": "failed inside a batch but passed when run alone"}
@@ -280,7 +289,18 @@ class Runner:
         # 过滤模式里的 `?` 可能顺带命中同分片的相邻用例（重复执行一次，结果按名字去重），
         # 这里只保留本分片真正要的用例，避免把别人的结果写进本分片报告。
         selected_names = set(wanted)
-        return [result for result in results if result["name"] in selected_names]
+        by_name: dict[str, dict] = {}
+        for result in results:
+            if result["name"] in selected_names:
+                by_name.setdefault(result["name"], result)
+
+        # 批次内失败的用例统一单跑复核（并发执行）：区分批内全局状态污染与真实回归。
+        failed = [result for result in by_name.values() if result["status"] in ("failure", "error")]
+        if failed:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.options.jobs) as pool:
+                for rechecked in pool.map(self._recheck_single, failed):
+                    by_name[rechecked["name"]] = rechecked
+        return list(by_name.values())
 
     # ------------------------------------------------------------------ 产出
 
