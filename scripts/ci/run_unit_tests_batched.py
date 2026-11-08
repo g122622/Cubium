@@ -196,14 +196,28 @@ class Runner:
             return results, []
 
         if len(names) == 1:
-            # 单个用例仍然没有结果：进程在报告前就终止了，保留失败现场供失败清单展示。
+            # 单个用例仍然没有结果：进程在报告前就终止了（崩溃或卡死），保留现场供失败清单展示。
+            # 已经超时过的不再单跑一遍，否则一个卡死的用例要付两次完整超时。
+            if timed_out:
+                return [{
+                    "name": names[0], "status": "error", "time": 0.0, "timed_out": True,
+                    "message": "test process timed out\n" + output.strip()[-4000:],
+                }], []
             return [self._run_single(names[0], batch_output=output)], []
         if len(missing) == 1:
             results.append(self._run_single(missing[0], batch_output=output))
             return results, []
 
-        reason = "timed out" if timed_out else f"exited with {returncode}"
-        print(f"batch of {len(names)} {reason}; bisecting {len(missing)} unreported test(s)", flush=True)
+        if timed_out:
+            # 卡死与崩溃要分开处理：崩溃是快速的信号终止，二分每层只花一次进程启动；而卡死
+            # 会让包含它的每个子集都跑满超时，二分反而成倍放大代价。超时直接展开为单用例，
+            # 让卡死用例各自在 `--test-timeout` 上暴露，其余用例正常完成。
+            print(f"batch of {len(names)} timed out; running {len(missing)} test(s) individually",
+                  flush=True)
+            return results, [[name] for name in missing]
+
+        print(f"batch of {len(names)} exited with {returncode}; "
+              f"bisecting {len(missing)} unreported test(s)", flush=True)
         middle = len(missing) // 2
         return results, [missing[:middle], missing[middle:]]
 
@@ -223,7 +237,8 @@ class Runner:
         evidence = (single_output or batch_output).strip()
         if evidence:
             message += "\n" + evidence
-        return {"name": name, "status": "error", "time": 0.0, "message": message}
+        return {"name": name, "status": "error", "time": 0.0, "timed_out": single_timed_out,
+                "message": message}
 
     def _recheck_single(self, result: dict) -> dict:
         """对批次内失败的用例单独复核，区分「真实失败」与「批内污染」。
@@ -235,6 +250,9 @@ class Runner:
         区分开：单跑通过即按通过上报，并把污染事件写进日志留待修复。
         """
         if result["status"] not in ("failure", "error"):
+            return result
+        if result.get("timed_out"):
+            # 超时的用例已经单独跑过（并在超时上限上被杀），再复核只会重复付一次超时。
             return result
         single = self._run_single(result["name"])
         if single["status"] == "passed":
@@ -389,7 +407,9 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=200,
                         help="每个进程执行的用例数；越大初始化摊薄得越彻底，但崩溃影响面越大")
     parser.add_argument("--jobs", type=int, default=4, help="并发进程数")
-    parser.add_argument("--batch-timeout", type=float, default=900.0)
+    parser.add_argument("--batch-timeout", type=float, default=300.0,
+                        help="单个批次的墙钟上限；正常批次在 CI 上约 40~90 秒，留足余量即可，"
+                             "设得过大只会让卡死的批次更晚暴露")
     parser.add_argument("--test-timeout", type=float, default=300.0)
     parser.add_argument("--out-log", type=Path, required=True)
     parser.add_argument("--out-junit", type=Path, required=True)
