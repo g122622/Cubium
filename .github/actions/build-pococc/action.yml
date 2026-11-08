@@ -135,8 +135,7 @@ runs:
         JOBS=$((WORKERS * POCOCC_CI_WORKER_SLOTS + 2))
         # GitHub Actions 的总缓存配额（10G）由三个编译池与 vcpkg 缓存共享，上限必须按池分配，
         # 否则一个池涨到上限就会把其它池整条挤掉（容量清理按整条缓存淘汰）。
-        # 实测 test 池 2G 时只能容纳 7793 个缓存文件，约 30% 的 TU 每轮因淘汰而重新分发；
-        # 3816 个 TU 全量缓存约需 3G，给 5G 留足余量。
+        # 2G 时频繁清理；提高上限后可保留更多对象与 direct-mode manifest。
         case "$VARIANT" in
           test)    ccache --max-size 5G ;;
           release) ccache --max-size 2G ;;
@@ -156,6 +155,15 @@ runs:
           -- cmake --build --preset "$PRESET" --parallel "$JOBS" -- -k 0
         python3 scripts/ci/verify_pococc_build.py --build-dir "$BUILD_DIR" --variant "$VARIANT" \
           --performance pococc-diagnostics/pococc-performance.json
+    - name: Verify ccache launcher and cached stderr replay
+      shell: bash
+      env:
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        python3 scripts/ci/verify_ccache_replay.py --build-dir "$BUILD_DIR" --variant "$VARIANT" \
+          --pococc "$POCOCC_CI_BINARY_DIR/pococc" --compiler "$CI_COMPILER" \
+          --out pococc-diagnostics/ccache-replay
     - name: Publish coordinator completion
       shell: bash
       env:

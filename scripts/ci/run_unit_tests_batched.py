@@ -18,8 +18,8 @@ CI runner 上单个测试进程的端到端开销（ELF 装载 + sanitizer 运�
 而用例体本身通常只有几毫秒。判定逻辑没有问题，纯粹是「初始化次数 × 进程数」。
 
 本脚本把同一分片内的用例按 `--batch-size` 合并到少量进程里执行，初始化次数降为批次数；
-某个批次崩溃或超时（没有产出完整结果）时，仅该批次退化为逐用例执行以定位失败用例，
-既保住失败归属，也不会因为一个坏用例丢掉整批结果。
+某个批次崩溃或超时（没有产出完整 XML）时，从完整 gtest 输出恢复已结束的用例，
+只将中断用例单跑复核，未开始的用例继续成批执行；没有进度时才二分或展开为单例。
 
 同进程连跑也带来了逐用例进程没有的「批内污染」：前一个用例对注册表等全局单例的改动会
 泄漏给后一个用例。因此批次内失败的用例会再单跑复核一次——单跑通过说明是该批次的污染
@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -149,6 +150,9 @@ class Runner:
             str(self.binary),
             "--gtest_filter=" + ":".join(filter_pattern(self.filter_of[name]) for name in names),
             "--gtest_also_run_disabled_tests",
+            "--gtest_color=no",
+            "--gtest_brief=0",
+            "--gtest_print_time=1",
             "--gtest_output=xml:" + str(xml_path),
         ]
         try:
@@ -156,7 +160,7 @@ class Runner:
                 command, cwd=self.work_dir, capture_output=True, text=True, timeout=timeout, check=False
             )
             # 进程没写出结果时（崩溃、超时），这段输出就是唯一的现场证据（ASan/UBSan 报告等）。
-            return completed.returncode, False, (completed.stdout + completed.stderr)[-8000:]
+            return completed.returncode, False, completed.stdout + completed.stderr
         except subprocess.TimeoutExpired as expired:
             output = expired.stdout or b""
             errors = expired.stderr or b""
@@ -164,19 +168,43 @@ class Runner:
                 output = output.decode("utf-8", "replace")
             if isinstance(errors, bytes):
                 errors = errors.decode("utf-8", "replace")
-            return -1, True, (output + errors)[-8000:]
+            return -1, True, output + errors
+
+    def _parse_progress(self, output: str, names: list[str]) -> tuple[list[dict], str | None]:
+        """从完整的 gtest 逐用例输出恢复完成事件，以及中断时正在运行的用例。
+
+        XML 只在进程收尾时写出；控制台的成对 RUN/结束事件已确认用例完成，不能因为后面的
+        用例卡死而丢弃。只接受本批次的实际过滤名，并忽略末尾汇总中的 FAILED/SKIPPED 行。
+        """
+        expected = {self.filter_of[name]: name for name in names}
+        results = []
+        active = None
+        details = []
+        for line in output.splitlines():
+            start = re.fullmatch(r"\[ RUN      \] (.+)", line)
+            if start and start[1] in expected:
+                active = start[1]
+                details = []
+                continue
+            end = re.fullmatch(r"\[\s*(OK|FAILED|SKIPPED)\s*\] (.+) \((\d+) ms\)", line)
+            if end and active is not None and (end[2] == active or end[2].startswith(active + ", where ")):
+                status = {"OK": "passed", "FAILED": "failure", "SKIPPED": "skipped"}[end[1]]
+                results.append({"name": expected[active], "status": status,
+                                "time": int(end[3]) / 1000,
+                                "message": "\n".join(details) if status != "passed" else ""})
+                active = None
+            elif active is not None:
+                details.append(line)
+        return results, expected[active] if active is not None else None
 
     def _execute_subset(self, names: list[str], xml_path: Path) -> tuple[list[dict], list[list[str]]]:
-        """执行一组用例；进程崩溃/超时时二分缩小子集，只让出问题的那部分退化为单跑。
+        """恢复中断前的完成事件，只重试未完成的子集；没有进度时保留原有定位方式。
 
-        gtest 的 XML 只在进程正常收尾时落盘，因此进程被信号杀掉时整批结果都没有。此时若把
-        整批都改为逐用例执行，一个坏用例就会让该批次多付几十次进程启动的固定开销（单进程
-        在 CI 上约 38 秒，60 个用例整批重跑要十分钟量级）。二分后健康的一半仍批量执行，
-        进程数只随崩溃用例数按对数增长。
-
-        返回 `(结果, 待继续二分的子集)`：子集由调用方重新提交到线程池，这样崩溃后的多次
-        二分仍能并发推进，而不是在单个工作线程里串行等完。
+        返回 `(结果, 待执行的子集)`，子集重新提交到线程池，避免恢复工作串行推进。
         """
+        if len(names) == 1:
+            return [self._run_single(names[0])], []
+
         part_xml = xml_path.with_name(f"{xml_path.stem}_{uuid.uuid4().hex[:8]}.xml")
         part_xml.unlink(missing_ok=True)
         returncode, timed_out, output = self._run_gtest(names, part_xml, self.options.batch_timeout)
@@ -186,6 +214,12 @@ class Runner:
         wanted = set(names)
         results = [result for result in results if result["name"] in wanted]
         reported = {result["name"] for result in results}
+        progress, interrupted = self._parse_progress(output, names)
+        if returncode != 0 or timed_out:
+            for result in progress:
+                if result["name"] not in reported:
+                    results.append(result)
+                    reported.add(result["name"])
         missing = [name for name in names if name not in reported]
         if not missing:
             # 结果齐全但退出码非零、且没有用例失败：问题出在进程退出阶段（ASan 泄漏检测、
@@ -195,15 +229,16 @@ class Runner:
                       f"exited with {returncode}:\n{output[-2000:]}", flush=True)
             return results, []
 
-        if len(names) == 1:
-            # 单个用例仍然没有结果：进程在报告前就终止了（崩溃或卡死），保留现场供失败清单展示。
-            # 已经超时过的不再单跑一遍，否则一个卡死的用例要付两次完整超时。
-            if timed_out:
-                return [{
-                    "name": names[0], "status": "error", "time": 0.0, "timed_out": True,
-                    "message": "test process timed out\n" + output.strip()[-4000:],
-                }], []
-            return [self._run_single(names[0], batch_output=output)], []
+        if interrupted in missing:
+            # gtest 明确给出了中断位置：只单跑该用例，尚未开始的用例继续成批执行。
+            # 这避免反复执行已完成的前缀，也避免一次卡死展开为数百个初始化进程。
+            remaining = [name for name in missing if name != interrupted]
+            splits = [[interrupted]]
+            if remaining:
+                splits.append(remaining)
+            print(f"batch interrupted in {interrupted}; recovered {len(results)} result(s), "
+                  f"retrying {len(remaining)} unstarted test(s) as a batch", flush=True)
+            return results, splits
         if len(missing) == 1:
             results.append(self._run_single(missing[0], batch_output=output))
             return results, []
@@ -228,7 +263,7 @@ class Runner:
             _, single_timed_out, single_output = self._run_gtest([name], xml_path, self.options.test_timeout)
             parsed = self._parse_batch(xml_path) if xml_path.exists() else []
         if parsed:
-            return parsed[0]
+            return {**parsed[0], "isolated": True}
 
         detail = "timed out" if single_timed_out else "exited before reporting a result"
         message = f"test process {detail}"
@@ -238,6 +273,7 @@ class Runner:
         if evidence:
             message += "\n" + evidence
         return {"name": name, "status": "error", "time": 0.0, "timed_out": single_timed_out,
+                "isolated": True,
                 "message": message}
 
     def _recheck_single(self, result: dict) -> dict:
@@ -251,8 +287,8 @@ class Runner:
         """
         if result["status"] not in ("failure", "error"):
             return result
-        if result.get("timed_out"):
-            # 超时的用例已经单独跑过（并在超时上限上被杀），再复核只会重复付一次超时。
+        if result.get("isolated"):
+            # 已单跑的失败不再重复复核，避免崩溃和超时各支付两次进程成本。
             return result
         single = self._run_single(result["name"])
         if single["status"] == "passed":
