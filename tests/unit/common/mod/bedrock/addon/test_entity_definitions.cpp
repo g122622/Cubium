@@ -150,6 +150,24 @@ TEST_F(AddonEntityDefinitionTest, DataOnlyPackInstallsPropertiesDimensionsAndPhy
     EXPECT_EQ(actor->entityType()->name(), "addon_test:actor");
 }
 
+// description.is_spawnable 此前只校验类型就丢弃，运行时读不到。现在必须如实保存：
+// 缺省为 false，显式 true 时为 true，且与 is_summonable 相互独立。
+TEST_F(AddonEntityDefinitionTest, SpawnableAndSummonableFlagsAreParsedIndependently)
+{
+    auto neither = AddonEntityDefinition::parse(_definition("addon_test:neither"));
+    ASSERT_TRUE(neither.success()) << neither.error().message();
+    EXPECT_FALSE(neither.value().canSpawn());
+    EXPECT_TRUE(neither.value().canSummon()) << "fixture sets is_summonable=true";
+
+    auto spawnOnly = _definition("addon_test:spawn_only");
+    spawnOnly["minecraft:entity"]["description"]["is_spawnable"] = true;
+    spawnOnly["minecraft:entity"]["description"]["is_summonable"] = false;
+    auto parsed = AddonEntityDefinition::parse(spawnOnly);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+    EXPECT_TRUE(parsed.value().canSpawn());
+    EXPECT_FALSE(parsed.value().canSummon());
+}
+
 TEST_F(AddonEntityDefinitionTest, LivingComponentsInitializeHealthAndMovement)
 {
     const auto directory = pack("living", _PACK, std::nullopt);

@@ -280,6 +280,9 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     result.m_document = document;
     result.m_identifier = id;
     result.m_canSummon = description.value("is_summonable", false);
+    // is_spawnable 此前只校验了类型就丢弃，导致该字段对运行时毫无影响。
+    // 保存下来供自然生成/刷怪蛋逻辑判断；真正生成刷怪蛋仍是 TODO（见 _initialize）。
+    result.m_canSpawn = description.value("is_spawnable", false);
     auto properties = EntityPropertyDefinitions::compile(description.value("properties", nlohmann::json::object()));
     if (properties.failed()) {
         return properties.error();
@@ -464,6 +467,7 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
     MC_TRY(entity.getOrAddComponent<EntityAddonState>().defineProperties(definitions.value()));
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
+    //   is_spawnable 本身已保存（见 canSpawn()），缺的是刷怪蛋物品注册与生成规则挂接。
     return Result<void>::ok();
 }
 
@@ -490,6 +494,11 @@ f32 AddonEntityDefinition::height() const
 bool AddonEntityDefinition::canSummon() const
 {
     return m_canSummon;
+}
+
+bool AddonEntityDefinition::canSpawn() const
+{
+    return m_canSpawn;
 }
 
 bool AddonEntityDefinition::fireImmune() const
