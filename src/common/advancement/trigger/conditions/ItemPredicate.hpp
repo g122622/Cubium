@@ -287,8 +287,11 @@ private:
     /// 物品集合（vanilla ItemPredicate.items = HolderSet<Item>：多元素 items 数组写法）
     /// 为空表示未提供；非空时物品须属于该集合，标签成员也已展开并入。
     std::vector<ResourceLocation> m_items;
-    IntBounds m_count;                                      ///< 数量范围
-    IntBounds m_durability;                                 ///< 耐久范围
+    IntBounds m_count;      ///< 数量范围
+    IntBounds m_durability; ///< 剩余耐久范围
+    /// 已损耗的 damage 值范围（DataComponentMatchers 的 minecraft:damage 谓词）。
+    /// 与 m_durability 互补：原版 DamagePredicate 同时接受 durability 与 damage 两个子范围。
+    IntBounds m_damage;
     std::optional<ResourceLocation> m_potion;               ///< 药水类型
     std::vector<EnchantmentPredicate> m_enchantments;       ///< 附魔谓词列表
     std::vector<EnchantmentPredicate> m_storedEnchantments; ///< 存储附魔谓词列表（附魔书）
