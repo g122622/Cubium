@@ -144,12 +144,17 @@ Result<bool> EntityStateQuery::hasComponent(const mc::Entity& entity, const std:
         return entity.isOnFire();
     }
     if (name == "minecraft:inventory") {
+        // 具备"可查询库存"这一组件的实体：玩家、马类、商人，以及承载物品的载具
+        // （箱子矿车/漏斗矿车/箱子船）。判定口径与 _inventory 的查询分支保持一致，
+        // 否则会出现"组件报告存在、却查不到库存"或反之的不一致。
         if (dynamic_cast<const mc::Player*>(&entity) != nullptr ||
             dynamic_cast<const mc::AbstractHorseEntity*>(&entity) != nullptr ||
-            dynamic_cast<const mc::entity::AbstractVillagerEntity*>(&entity) != nullptr) {
+            dynamic_cast<const mc::entity::AbstractVillagerEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::ChestMinecartEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::HopperMinecartEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::ChestBoatEntity*>(&entity) != nullptr) {
             return true;
         }
-        // TODO: 接入剩余原版容器实体的 inventory 组件存在条件。
         return Error(
             ErrorCode::Unsupported, "Native inventory component mapping is not implemented: " + entity.getTypeId());
     }
