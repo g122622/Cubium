@@ -688,8 +688,11 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseEntityPropertiesCo
 {
     // 解析 entity 目标
     EntityPropertiesCondition::EntityTarget target = EntityPropertiesCondition::EntityTarget::This;
-    if (json.contains("entity") && json["entity"].is_string()) {
-        target = EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>());
+    if (json.contains("entity")) {
+        if (!json["entity"].is_string()) {
+            return Error(ErrorCode::InvalidData, "Loot condition entity target must be a string", "LootSerializers");
+        }
+        MC_TRY_ASSIGN(target, EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>()));
     }
 
     // 解析 predicate
@@ -715,8 +718,11 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseEntityScoresCondit
 {
     // 解析 entity 目标
     EntityPropertiesCondition::EntityTarget target = EntityPropertiesCondition::EntityTarget::This;
-    if (json.contains("entity") && json["entity"].is_string()) {
-        target = EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>());
+    if (json.contains("entity")) {
+        if (!json["entity"].is_string()) {
+            return Error(ErrorCode::InvalidData, "Loot condition entity target must be a string", "LootSerializers");
+        }
+        MC_TRY_ASSIGN(target, EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>()));
     }
 
     // 解析 scores 映射

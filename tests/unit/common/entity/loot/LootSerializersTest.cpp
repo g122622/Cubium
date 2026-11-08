@@ -96,6 +96,29 @@ protected:
 // RandomValueRange Parsing Tests
 // ============================================================================
 
+// entity_properties / entity_scores 的 entity 目标名必须是已知名称；未知名称此前被静默
+// 回落到 target_entity，往返序列化后数据包里的拼写错误就再也查不出来。
+TEST_F(LootSerializersTest, EntityPropertiesRejectsUnknownEntityTarget)
+{
+    const nlohmann::json valid = {
+        {"condition", "minecraft:entity_properties"}, {"entity", "attacker"}, {"predicate", nlohmann::json::object()}};
+    EXPECT_TRUE(LootSerializers::parseCondition(valid).success());
+
+    const nlohmann::json unknown = {{"condition", "minecraft:entity_properties"},
+        {"entity", "not_a_real_target"},
+        {"predicate", nlohmann::json::object()}};
+    const auto rejected = LootSerializers::parseCondition(unknown);
+    ASSERT_TRUE(rejected.failed());
+    EXPECT_EQ(rejected.error().code(), mc::ErrorCode::InvalidData);
+
+    // entity_scores 走同一个目标解析函数，行为必须一致。
+    const nlohmann::json unknownScores = {
+        {"condition", "minecraft:entity_scores"}, {"entity", "nope"}, {"scores", nlohmann::json::object()}};
+    const auto rejectedScores = LootSerializers::parseCondition(unknownScores);
+    ASSERT_TRUE(rejectedScores.failed());
+    EXPECT_EQ(rejectedScores.error().code(), mc::ErrorCode::InvalidData);
+}
+
 TEST_F(LootSerializersTest, ParseRandomValueRange_FixedInteger)
 {
     nlohmann::json json = 5;
