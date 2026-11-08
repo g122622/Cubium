@@ -144,7 +144,18 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // numberformat 本身可执行（等价于 blank），其下 fixed <contents> / styled <style> / blank。
     auto numberFormatNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("numberformat");
     numberFormatNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
+        // TODO(numberformat): 数字格式的写入尚未实现。完整的 vanilla NumberFormat 是
+        //   三变体联合：blank（无载荷）/ styled（Style 载荷）/ fixed（Component 载荷），
+        //   需要：
+        //   ① ScoreObjective 增加 numberFormat 字段（结构化模型，非字符串）；
+        //   ② Style 的 wire 编码子系统——styled 变体要把颜色/粗体/斜体/下划线/点击事件等
+        //      完整编码进 NumberFormat payload，项目目前没有 Style 的 STREAM_CODEC 等价物
+        //      （只有 TextColor::serialize 与 Component 的 NBT 编码）；
+        //   ③ 持久化（NBT）与 ServerScoreboard::_createObjectivePacket 的 wire 填充
+        //      （IR 侧 pkt.numberFormat 是 std::vector<u8> 透传，见 JavaPlayCodecsExtended）。
+        //   已具备：Component NBT 编码（componentToNbtBytes，可承载 fixed 变体的载荷）、
+        //      TextColor 序列化、命令树形态。
+        //   缺 ② 会让 styled 变体无法正确编码，因此不做部分实现。
         ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
         return 0;
     });
