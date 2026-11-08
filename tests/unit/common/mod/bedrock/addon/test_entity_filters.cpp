@@ -32,6 +32,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <limits>
 #include <gtest/gtest.h>
@@ -316,6 +317,25 @@ TEST_F(EntityFilterTest, TypeTagAndBasicEntityStateTests)
 // 新增接入的实体状态型过滤（is_baby / on_fire / is_sleeping / is_leashed / is_riding / rider_count）。
 // 关键字断言：非生物实体上这些测试必须恒为 false，而不是报错——基岩侧对"实体没有该概念"
 // 的处理就是条件不成立，若返回 Unsupported 会让整包加载失败。
+// 维度与高度型过滤：in_nether / in_overworld 读实体维度，is_altitude 读脚底方块 Y。
+TEST_F(EntityFilterTest, DimensionAndAltitudeFiltersFollowEntityState)
+{
+    // 裸 Entity 默认在主世界。
+    check({{"test", "in_overworld"}, {"value", true}}, true);
+    check({{"test", "in_nether"}, {"value", false}}, true);
+
+    entity.setDimension(DimensionManager::NETHER);
+    check({{"test", "in_nether"}, {"value", true}}, true);
+    check({{"test", "in_overworld"}, {"value", false}}, true);
+
+    // is_altitude 比较的是方块 Y（向下取整），不是浮点高度。
+    entity.setDimension(DimensionManager::OVERWORLD);
+    entity.setPosition(0.0f, 64.7f, 0.0f);
+    check({{"test", "is_altitude"}, {"operator", "=="}, {"value", 64}}, true);
+    check({{"test", "is_altitude"}, {"operator", ">"}, {"value", 63}}, true);
+    check({{"test", "is_altitude"}, {"operator", "<"}, {"value", 64}}, false);
+}
+
 TEST_F(EntityFilterTest, EntityStateFiltersAreFalseOnNonLivingEntity)
 {
     // 裸 Entity 既不是 LivingEntity 也不是 MobEntity，也没有乘客。

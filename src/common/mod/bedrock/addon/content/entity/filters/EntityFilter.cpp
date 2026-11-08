@@ -34,6 +34,7 @@
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -153,6 +154,9 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         "is_leashed",
         "is_riding",
         "rider_count",
+        "in_nether",
+        "in_overworld",
+        "is_altitude",
         "distance_to_nearest_player"};
     if (!supported.contains(test)) {
         // TODO: 接入生物群系温度等过滤测试。
@@ -191,7 +195,8 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
     const bool boolean = test == "bool_property" || test == "is_alive" || test == "is_sneaking" ||
         test == "has_target" || test == "is_daytime" || test == "is_owner" || test == "has_container_open" ||
         test == "on_ground" || test == "in_water" || test == "in_lava" || test == "in_water_or_rain" ||
-        test == "is_baby" || test == "is_sleeping" || test == "on_fire" || test == "is_leashed" || test == "is_riding";
+        test == "is_baby" || test == "is_sleeping" || test == "on_fire" || test == "is_leashed" ||
+        test == "is_riding" || test == "in_nether" || test == "in_overworld";
     if (!filter.contains("value") && boolean) {
         filter["value"] = true;
     }
@@ -210,9 +215,9 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
             return Error(ErrorCode::InvalidData, "Entity filter value must be boolean");
         }
     } else if (test == "int_property" || test == "float_property" || test == "distance_to_nearest_player" ||
-        test == "is_variant" || test == "is_mark_variant" || test == "rider_count") {
-        const bool integer =
-            test == "int_property" || test == "is_variant" || test == "is_mark_variant" || test == "rider_count";
+        test == "is_variant" || test == "is_mark_variant" || test == "rider_count" || test == "is_altitude") {
+        const bool integer = test == "int_property" || test == "is_variant" || test == "is_mark_variant" ||
+            test == "rider_count" || test == "is_altitude";
         MC_TRY(_numeric(value, integer));
         if (integer &&
             (value.get<double>() < std::numeric_limits<i32>::min() ||
@@ -482,6 +487,16 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
     }
     if (test == "rider_count") {
         return _compare(static_cast<i32>(entity->getPassengers().size()), expected, operation);
+    }
+    if (test == "in_nether") {
+        return _compare(entity->dimension() == DimensionManager::NETHER, expected, operation);
+    }
+    if (test == "in_overworld") {
+        return _compare(entity->dimension() == DimensionManager::OVERWORLD, expected, operation);
+    }
+    if (test == "is_altitude") {
+        // 基岩的 is_altitude 用整数比较脚底高度（方块 Y）。
+        return _compare(static_cast<i32>(std::floor(entity->y())), expected, operation);
     }
     if (test == "has_target") {
         const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);
