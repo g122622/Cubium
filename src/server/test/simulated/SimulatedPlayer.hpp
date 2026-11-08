@@ -238,6 +238,49 @@ public:
     void stopSwimming();
 
     /**
+     * @brief 朝 GameTest 结构坐标系给定方向行走（对齐基岩 SimulatedPlayer::move）。
+     *
+     * 参数是相对结构的方向（westEast = 东为 +1，northSouth = 南为 +1），不随玩家朝向变化。
+     * 实现按当前朝向把世界方向分解为前进/横移输入，因此结果是"朝那个世界方向走"。
+     *
+     * @param westEast 东西分量（正为东）
+     * @param northSouth 南北分量（正为南）
+     * @param speed 速度倍率
+     */
+    void move(f32 westEast, f32 northSouth, f32 speed);
+
+    /**
+     * @brief 按玩家自身朝向行走（对齐基岩 SimulatedPlayer::moveRelative）。
+     *
+     * 直接映射到移动输入：leftRight 为横移、backwardForward 为前进，语义与
+     * handleMovementInput 的 strafe/forward 一致。
+     *
+     * @param leftRight 横移分量（正为右）
+     * @param backwardForward 前后分量（正为前）
+     * @param speed 速度倍率
+     */
+    void moveRelative(f32 leftRight, f32 backwardForward, f32 speed);
+
+    /**
+     * @brief 停止移动（对齐基岩 SimulatedPlayer::stopMoving）。
+     *
+     * 清空移动输入，物理推进照常执行（由惯性继续减速）。
+     */
+    void stopMoving();
+
+    /**
+     * @brief 相对当前朝向转身（对齐基岩 SimulatedPlayer::rotateBody）。
+     * @param angleInDegrees 旋转角度（度，正为顺时针/yaw 增加）
+     */
+    void rotateBody(f32 angleInDegrees);
+
+    /**
+     * @brief 转身到指定绝对方位（对齐基岩 SimulatedPlayer::setBodyRotation）。
+     * @param angleInDegrees 目标角度（度，相对 GameTest 结构坐标系）
+     */
+    void setBodyRotation(f32 angleInDegrees);
+
+    /**
      * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。
      *
      * 转发 Player::jump（地面 + 冷却为 0 才跳），返回是否真的起跳。

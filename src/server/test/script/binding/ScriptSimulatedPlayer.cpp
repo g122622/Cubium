@@ -1257,25 +1257,78 @@ u64 registerSimulatedPlayerClassBinding(
             return _throwNotImplemented(ctx, "navigateToLocations");
         },
         2);
+    // move(westEast, northSouth, speed?)：方向相对 GameTest 结构，不随玩家朝向变化。
     reg.method(
         "move",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "move");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isNumber(args[1])) {
+                return ctx.throwTypeError("move(westEast, northSouth, speed?)");
+            }
+
+            auto westEast = ctx.toFloat64(args[0]);
+            auto northSouth = ctx.toFloat64(args[1]);
+            if (!westEast || !northSouth) {
+                return ctx.throwTypeError("move(westEast, northSouth, speed?)");
+            }
+
+            f32 speed = 1.0f;
+            if (argc >= 3 && ctx.isNumber(args[2])) {
+                auto parsed = ctx.toFloat64(args[2]);
+                if (parsed) {
+                    speed = static_cast<f32>(*parsed);
+                }
+            }
+
+            player->move(static_cast<f32>(*westEast), static_cast<f32>(*northSouth), speed);
+            return ctx.createUndefined();
         },
         3);
+    // moveRelative(leftRight, backwardForward, speed?)：方向相对玩家当前朝向。
     reg.method(
         "moveRelative",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "moveRelative");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isNumber(args[1])) {
+                return ctx.throwTypeError("moveRelative(leftRight, backwardForward, speed?)");
+            }
+
+            auto leftRight = ctx.toFloat64(args[0]);
+            auto backwardForward = ctx.toFloat64(args[1]);
+            if (!leftRight || !backwardForward) {
+                return ctx.throwTypeError("moveRelative(leftRight, backwardForward, speed?)");
+            }
+
+            f32 speed = 1.0f;
+            if (argc >= 3 && ctx.isNumber(args[2])) {
+                auto parsed = ctx.toFloat64(args[2]);
+                if (parsed) {
+                    speed = static_cast<f32>(*parsed);
+                }
+            }
+
+            player->moveRelative(static_cast<f32>(*leftRight), static_cast<f32>(*backwardForward), speed);
+            return ctx.createUndefined();
         },
         3);
     reg.method(
         "stopMoving",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopMoving");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopMoving();
+            return ctx.createUndefined();
         },
         0);
 
@@ -1687,20 +1740,48 @@ u64 registerSimulatedPlayerClassBinding(
         },
         0);
 
-    // === 旋转 stub（依赖插值/身体旋转状态机）===
-    // TODO: rotateBody/setBodyRotation 待玩家身体旋转插值体系实现后做实。
+    // === 转身 ===
+    // rotateBody 相对当前朝向旋转；setBodyRotation 设为绝对朝向。两者同时更新 yaw、头部与身体朝向。
     reg.method(
         "rotateBody",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "rotateBody");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("rotateBody(angleInDegrees)");
+            }
+
+            auto angle = ctx.toFloat64(args[0]);
+            if (!angle) {
+                return ctx.throwTypeError("rotateBody: angle must be a number");
+            }
+
+            player->rotateBody(static_cast<f32>(*angle));
+            return ctx.createUndefined();
         },
         1);
     reg.method(
         "setBodyRotation",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "setBodyRotation");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("setBodyRotation(angleInDegrees)");
+            }
+
+            auto angle = ctx.toFloat64(args[0]);
+            if (!angle) {
+                return ctx.throwTypeError("setBodyRotation: angle must be a number");
+            }
+
+            player->setBodyRotation(static_cast<f32>(*angle));
+            return ctx.createUndefined();
         },
         1);
 

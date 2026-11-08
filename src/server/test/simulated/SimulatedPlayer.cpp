@@ -546,6 +546,52 @@ void SimulatedPlayer::stopGliding()
     stopFallFlying();
 }
 
+void SimulatedPlayer::move(f32 westEast, f32 northSouth, f32 speed)
+{
+    // 基岩该 API 的方向是相对 GameTest 结构的绝对方位（东为 +X、南为 +Z），不随玩家朝向变化。
+    // 因此先按当前朝向把目标世界方向分解成「前进/横移」输入。
+    const f64 yawRad = mc::math::toRadians(static_cast<f64>(yaw()));
+    // 前方向量（yaw=0 看向 +Z；yaw=90 看向 -X）与右方向量。
+    const f64 forwardX = -std::sin(yawRad);
+    const f64 forwardZ = std::cos(yawRad);
+    const f64 rightX = std::cos(yawRad);
+    const f64 rightZ = std::sin(yawRad);
+
+    const f64 dirX = static_cast<f64>(westEast);
+    const f64 dirZ = static_cast<f64>(northSouth);
+    const f64 forward = dirX * forwardX + dirZ * forwardZ;
+    const f64 strafe = dirX * rightX + dirZ * rightZ;
+
+    handleMovementInput(static_cast<f32>(forward), static_cast<f32>(strafe), false, false, speed);
+}
+
+void SimulatedPlayer::moveRelative(f32 leftRight, f32 backwardForward, f32 speed)
+{
+    // leftRight 对应横移（正为右）、backwardForward 对应前进（正为前），与移动输入同一语义。
+    handleMovementInput(backwardForward, leftRight, false, false, speed);
+}
+
+void SimulatedPlayer::stopMoving()
+{
+    // 清空输入；已有速度由物理推进按摩擦自然衰减。
+    handleMovementInput(0.0f, 0.0f, false, false, 0.0f);
+}
+
+void SimulatedPlayer::rotateBody(f32 angleInDegrees)
+{
+    const f32 targetYaw = yaw() + angleInDegrees;
+    setRotation(targetYaw, pitch());
+    setYHeadRot(targetYaw);
+    setYBodyRot(targetYaw);
+}
+
+void SimulatedPlayer::setBodyRotation(f32 angleInDegrees)
+{
+    setRotation(angleInDegrees, pitch());
+    setYHeadRot(angleInDegrees);
+    setYBodyRot(angleInDegrees);
+}
+
 void SimulatedPlayer::swim()
 {
     setSwimming(true);

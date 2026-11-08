@@ -300,6 +300,47 @@ TEST(SimulatedPlayerTest, FlyToLocation_CreativeEntersFlightTowardTarget)
 }
 
 // fly 受 abilities.canFly 门控；stopFlying/swim/stopSwimming 直接改状态。
+// move 的方向相对 GameTest 结构：玩家朝向不同时，同一个世界方向要分解成不同的前进/横移输入。
+// moveRelative 直接映射输入；rotateBody/setBodyRotation 更新 yaw。
+TEST(SimulatedPlayerTest, MoveDecomposesWorldDirectionAndRotateBodyUpdatesYaw)
+{
+    mc::Items::ensureInitialized();
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1013), std::string{"DirBot"}, mc::test::testEcsRegistry());
+    ASSERT_NE(player, nullptr);
+    mc::test::NullGameTestHelper helper;
+    player->setHelper(helper);
+    player->setPosition(0.0, 64.0, 0.0);
+
+    // yaw=0 看向 +Z：朝南（northSouth=+1）就是纯前进。
+    player->setRotation(0.0f, 0.0f);
+    player->move(0.0f, 1.0f, 1.0f);
+    EXPECT_NEAR(player->movementInputForward(), 1.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 0.0f, 0.01f);
+
+    // 朝东（westEast=+1）在 yaw=0 下是纯右横移。
+    player->move(1.0f, 0.0f, 1.0f);
+    EXPECT_NEAR(player->movementInputForward(), 0.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 1.0f, 0.01f);
+
+    // moveRelative 直接映射：leftRight=横移、backwardForward=前进。
+    player->moveRelative(0.5f, -1.0f, 1.0f);
+    EXPECT_NEAR(player->movementInputForward(), -1.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 0.5f, 0.01f);
+
+    // stopMoving 清零输入。
+    player->stopMoving();
+    EXPECT_NEAR(player->movementInputForward(), 0.0f, 0.01f);
+    EXPECT_NEAR(player->movementInputStrafe(), 0.0f, 0.01f);
+
+    // rotateBody 相对当前朝向累加；setBodyRotation 设为绝对值。
+    player->setRotation(10.0f, 0.0f);
+    player->rotateBody(25.0f);
+    EXPECT_NEAR(player->yaw(), 35.0f, 0.01f);
+    player->setBodyRotation(120.0f);
+    EXPECT_NEAR(player->yaw(), 120.0f, 0.01f);
+}
+
 TEST(SimulatedPlayerTest, FlyRespectsAbilityGateAndSwimTogglesState)
 {
     mc::Items::ensureInitialized();
