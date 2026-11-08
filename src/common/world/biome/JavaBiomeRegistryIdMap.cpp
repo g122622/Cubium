@@ -246,6 +246,22 @@ u32 JavaBiomeRegistryIdMap::toJavaRegistryId(BiomeId internalBiomeId) const
     return 40; // plains 兜底
 }
 
+std::optional<std::string> JavaBiomeRegistryIdMap::javaNameOf(BiomeId internalBiomeId) const
+{
+    if (!m_initialized) {
+        return std::nullopt;
+    }
+    const auto found = m_toJava.find(internalBiomeId);
+    if (found == m_toJava.end()) {
+        return std::nullopt;
+    }
+    const auto& names = vanillaBiomeNames();
+    if (found->second >= names.size()) {
+        return std::nullopt;
+    }
+    return names[found->second];
+}
+
 BiomeId JavaBiomeRegistryIdMap::fromJavaRegistryId(u32 javaRegistryId) const
 {
     if (!m_initialized) {

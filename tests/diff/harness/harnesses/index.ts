@@ -242,6 +242,7 @@ import { strongholdSmallDoorDeclaration } from "./stronghold_small_door.ts";
 import { endCityPiecesDeclaration } from "./end_city_pieces.ts";
 import { jigsawJointOrderDeclaration } from "./jigsaw_joint_order.ts";
 import { beardifierDensityDeclaration } from "./beardifier_density.ts";
+import { biomeSourceSampleDeclaration } from "./biome_source_sample.ts";
 import { structureStartSingleDeclaration } from "./structure_start_single.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
 import { villagerTradesDeclaration } from "./villager_trades.ts";
@@ -705,6 +706,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     structureDensityDeclaration(),
     mansionGridDeclaration(),
     beardifierDensityDeclaration(),
+    biomeSourceSampleDeclaration(),
     structureStartSingleDeclaration(),
     structureStartsDeclaration(),
     mineshaftPiecesDeclaration(),
