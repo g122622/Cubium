@@ -150,9 +150,8 @@ PillagerEntity::PillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registr
     // 显式调用。Pillager 的 registerGoals 加专属 SwimGoal / Crossbow / 近战等目标。
     registerGoals();
 
-    // 灾厄村民（非亡灵）不在阳光下燃烧。MonsterEntity::handleDaylightBurning() 读成员
-    // m_burnsInDaylight（而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），
-    // 故用 setBurnsInDaylight(false) 生效。
+    // 灾厄村民（非亡灵）不在阳光下燃烧。该标志经虚函数 shouldBurnInDaylight() 读取，
+    // 由 MonsterEntity::handleDaylightBurning() 调用，因此 setBurnsInDaylight(false) 即生效。
     setBurnsInDaylight(false);
 
     // 默认主手持弩：掠夺者使用弩远程攻击，RangedCrossbowAttackGoal::shouldExecute 依赖主手持弩
@@ -346,9 +345,8 @@ VindicatorEntity::VindicatorEntity(EntityInstanceId id, ecs::EntityRegistry& reg
 {
     registerAttributes();
 
-    // 灾厄村民（非亡灵）不在阳光下燃烧。MonsterEntity::handleDaylightBurning() 读成员
-    // m_burnsInDaylight（而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），
-    // 故用 setBurnsInDaylight(false) 生效。
+    // 灾厄村民（非亡灵）不在阳光下燃烧。该标志经虚函数 shouldBurnInDaylight() 读取，
+    // 由 MonsterEntity::handleDaylightBurning() 调用，因此 setBurnsInDaylight(false) 即生效。
     setBurnsInDaylight(false);
 
     // 补调 registerGoals：基类构造期间 vtable 指向基类，派生 override 永不执行，须在派生类构造
