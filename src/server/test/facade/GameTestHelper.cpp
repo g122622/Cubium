@@ -1553,12 +1553,20 @@ Direction GameTestHelper::rotateDirection(Direction direction) const noexcept
 
 mc::math::Vector3d GameTestHelper::rotateVector(const mc::math::Vector3d& vector) const noexcept
 {
-    // 把向量按 rotation 绕 Y 轴旋转：用 Direction 步进向量近似（整数步进够用，连续旋转 TODO）
-    const Direction in =
-        mc::Directions::fromVector(static_cast<f32>(vector.x), static_cast<f32>(vector.y), static_cast<f32>(vector.z));
-    const Direction out = rotateDirection(in);
-    return mc::math::Vector3d(
-        static_cast<f64>(mc::Directions::xOffset(out)), vector.y, static_cast<f64>(mc::Directions::zOffset(out)));
+    // 把向量按 rotation 绕 Y 轴旋转。rotation 只有 4 个 90° 档位，因此可以精确旋转，
+    // 不需要（也不应该）先压成 Direction 再取整数偏移——那样会丢掉小数分量与非轴向方向。
+    // 约定与 rotateDirection 一致：顺时针 90° 时 (x, z) → (-z, x)。
+    const i32 degrees = mc::Rotations::toDegrees(m_transform.rotation());
+    switch (degrees) {
+        case 90:
+            return mc::math::Vector3d(-vector.z, vector.y, vector.x);
+        case 180:
+            return mc::math::Vector3d(-vector.x, vector.y, -vector.z);
+        case 270:
+            return mc::math::Vector3d(vector.z, vector.y, -vector.x);
+        default:
+            return vector;
+    }
 }
 
 Direction GameTestHelper::getTestDirection() const noexcept
