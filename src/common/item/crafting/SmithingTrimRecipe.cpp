@@ -78,9 +78,13 @@ ItemStack SmithingTrimRecipe::assemble(const IInventory& inventory) const
     // 与地图扩展同口径：数据包只声明配方存在，材料匹配由配方的原料表（模板 / 可纹饰盔甲
     // 标签 / 纹饰材料标签）负责，这里只算结果。
     //
-    // TODO: 纹饰系统（TrimMaterial/TrimPattern 注册表、ArmorTrim、TRIM 数据组件）未实现，
-    // 当前不写入 TRIM 组件、也不做「已有相同纹饰」的去重（原版此时返回空），待纹饰系统
-    // 接入后补全；在此之前合成结果就是底材的副本，数量为 1。
+    // TODO(armor-trim): 纹饰注册表（`item::armortrim::TrimMaterials` / `TrimPatterns`，
+    // 均从数据包加载并有 `get()` 查询）**已经可用**，缺的是上面那层组合与写入：
+    //   ① `ArmorTrim` 值类型（material + pattern 的组合，原版为 record）；
+    //   ② TRIM 数据组件的载荷读写（`DataComponentType::Trim` 已占位 = 54，但还没有
+    //      可序列化的 `ArmorTrim` 负载类型）；
+    //   ③ 有了 ①② 才能写入 TRIM，并据此做"已有相同纹饰则返回空"的去重。
+    // 因此在此之前合成结果只是底材副本（数量 1），纹饰不会体现在产物上。
     if (inventory.getContainerSize() <= SLOT_ADDITION) {
         return ItemStack::EMPTY;
     }
@@ -89,7 +93,7 @@ ItemStack SmithingTrimRecipe::assemble(const IInventory& inventory) const
         return ItemStack::EMPTY;
     }
 
-    // 纹饰色/图案的写入依赖 TRIM 组件（见 TODO），此处只产出底材的副本。
+    // 纹饰色/图案的写入依赖 TRIM 组件载荷（见上面的 TODO(armor-trim)），此处只产出底材的副本。
     ItemStack result = baseStack.copy();
     result.setCount(1);
     return result;
