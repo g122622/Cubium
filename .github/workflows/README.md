@@ -43,4 +43,5 @@ vcpkg 二进制缓存只由 shard 0 回写，避免四个分片争抢同一 cach
 - 单元测试分为 20 片，最多 20 台并行；GameTest 分为 10 片，最多 10 台并行。选择步长、矩阵和覆盖校验的分片数须同步。
 - nightly-legacy 没有自动触发器；concurrency、Release 标签和 issue 标签与正式流程分开。
 - 正式 nightly 没有旧实验的活跃检查，避免查询自身运行后跳过；report 始终执行。
+- 只有 main 上的运行发布 Release、推送 image-data 图表并创建 issue；其他分支保留构建、测试及报告 artifact。
 - ccache/vcpkg 使用持久缓存；按构建范围保留最新 ccache，容量紧张时清理旧 Nightly 缓存。

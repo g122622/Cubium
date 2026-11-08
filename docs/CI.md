@@ -6,7 +6,7 @@ nightly.yml 使用固定提交的 pococc 和 Clang 22，保留完整测试、发
 34 个 worker 分为 test/release/fuzz 三个池，分别为 24/4/6 个节点，每节点四个槽位，
 分别提供 96/16/24 个远端槽位。Ninja 并行度由槽位数加两个本地任务动态计算，为 98/18/26。
 三个协调节点与 worker 同时运行，编译阶段共需 37 个并发 job。
-测试执行阶段单元测试分为 20 片、最多 20 台并行，每台 CTest 并发两个用例；
+测试执行阶段单元测试分为 20 片、最多 20 台并行，每片四个进程并发，每批 200 个用例；
 GameTest 分为 10 片、最多 10 台并行。报告分别核验 20/10 片无遗漏、无重复。
 worker 矩阵的 `max-parallel=34` 允许全部编译节点同时启动；不能沿用旧值 32，
 否则前排节点等待协调节点结束、后排节点排队，协调节点等待缺失连接信息直至超时。
@@ -16,6 +16,14 @@ worker 通过经过 SSH 认证的临时隧道编译。PCH、modules 扫描和 na
 CTest 分为 20 片（最多 20 片并行），GameTest 分为 10 片（最多 10 片并行）。
 汇总校验每个登记项恰好分配一次，并记录远端执行、并行峰值、CPU、压缩载荷和本轮缓存命中率。
 ccache/vcpkg 使用持久缓存，各 ccache 范围保存后保留最新一份，容量紧张时清理旧 Nightly 缓存。
+三个池的 ccache 上限分别为 test 5 GB、release 2 GB、fuzz 1.5 GB，另为共享 vcpkg 留出配额。
+ccache 缓存编译器 stderr，命中时也可能打印历史 `Submitting`；实际分发数以本轮
+`pococc.tsv`、清零后的 ccache 统计和 worker 执行记录交叉核对。构建后检查 Ninja 的真实
+launcher，并用独立缓存的冷/暖探针验证 stderr 重放，证据随各池 diagnostics artifact 归档。
+
+单测执行器保持 CTest 的全局编号与分片清单，输出兼容的日志和 JUnit。批次崩溃或超时时，
+从完整 gtest RUN/结束事件恢复已完成结果，仅将中断用例单跑，其余未开始的用例继续批量执行；
+没有可用进度时才二分或展开为单例。批内失败须单跑复核，已单跑的错误不再重复复核。
 
 旧流程保留为 nightly-legacy.yml，名称为 Nightly CI Legacy，只允许手动触发，
 不参与每日 CI；其 concurrency、Release 标签和 issue 标签使用独立 legacy 范围。
@@ -29,6 +37,8 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 1. 每晚跑一次完整测试（单元 / 集成 / e2e / fuzz / benchmark）；
 2. 每晚产出可部署的服务端二进制（GitHub Release）；
 3. 把失败结果归档为 artifact 并自动建一个 issue，供人工与 AI 助手排查。
+
+Release、image-data 图表推送与 issue 创建仅在 main 上执行；其他分支手动运行时保留完整构建、测试和报告 artifact。
 
 > 历史：项目曾有一份 `ci.yml`（push/PR 触发，含 Windows/Linux 构建与 ASan/TSan/栈保护等 job）
 > 与一份 `self-heal.yml`（CI 失败时用 GitHub Models 分析根因并派发给 @copilot）。`ci.yml` 的 5 个
@@ -100,7 +110,7 @@ fuzz ──（独立，自行构建）
 | `workers` | 34 个临时编译节点，真实编译探针和性能采集 | 是 |
 | `build` | `linux-clang-ci-tests`，RelWithDebInfo + ASan/UBSan，仅供测试 | 是 |
 | `release-build` | `linux-clang-ci-release`，Release、无调试信息/profiler/sanitizer，公开发布 | 是 |
-| `unit-tests` | `ctest` 全量单元测试，20 片、最多 20 片并行 | **否**（仅归档） |
+| `unit-tests` | 按 CTest 清单批量执行单元测试，20 片、最多 20 片并行 | **否**（仅归档） |
 | `integrated-tests` | `scripts/test/run-gametests.ts`，10 片、最多 10 片并行（含失败隔离重跑） | 用例失败不阻塞；超时、崩溃、报告错误阻塞 |
 | `e2e-tests` | `tests/e2e/bot` 的 `regress` 模式（仅 Cubium，不与 vanilla 双跑） | 是 |
 | `fuzz` | 9 个 libFuzzer 目标各 `-max_total_time=300` | 是（崩溃/OOM 即失败） |

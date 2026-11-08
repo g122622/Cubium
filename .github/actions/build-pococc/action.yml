@@ -133,7 +133,19 @@ runs:
         POCOCC_CCACHE_RESTORE_KEY: ${{ steps.ccache.outputs.cache-matched-key }}
       run: |
         JOBS=$((WORKERS * POCOCC_CI_WORKER_SLOTS + 2))
+        # GitHub Actions 的总缓存配额（10G）由三个编译池与 vcpkg 缓存共享，上限必须按池分配，
+        # 否则一个池涨到上限就会把其它池整条挤掉（容量清理按整条缓存淘汰）。
+        # 2G 时频繁清理；提高上限后可保留更多对象与 direct-mode manifest。
+        case "$VARIANT" in
+          test)    ccache --max-size 5G ;;
+          release) ccache --max-size 2G ;;
+          fuzz)    ccache --max-size 1.5G ;;
+          *) echo "Unsupported cache scope: $VARIANT" >&2; exit 1 ;;
+        esac
         mkdir -p pococc-diagnostics
+        # 统计文件随 .ccache 一起恢复，不清零的话 --show-stats 给出的是多轮累计值，
+        # 无法判断本轮命中率（日志里也只看得见未命中时的 distcc 提交）。
+        ccache --zero-stats > /dev/null
         python3 scripts/ci/pococc_performance.py build --pool "$POOL" --workers "$WORKERS" \
           --slots "$POCOCC_CI_WORKER_SLOTS" --jobs "$JOBS" --preprocess-jobs 4 \
           --out pococc-diagnostics/pococc-performance.json --journal "$BUILD_DIR/pococc.tsv" \
@@ -143,6 +155,15 @@ runs:
           -- cmake --build --preset "$PRESET" --parallel "$JOBS" -- -k 0
         python3 scripts/ci/verify_pococc_build.py --build-dir "$BUILD_DIR" --variant "$VARIANT" \
           --performance pococc-diagnostics/pococc-performance.json
+    - name: Verify ccache launcher and cached stderr replay
+      shell: bash
+      env:
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        python3 scripts/ci/verify_ccache_replay.py --build-dir "$BUILD_DIR" --variant "$VARIANT" \
+          --pococc "$POCOCC_CI_BINARY_DIR/pococc" --compiler "$CI_COMPILER" \
+          --out pococc-diagnostics/ccache-replay
     - name: Publish coordinator completion
       shell: bash
       env:
@@ -182,7 +203,8 @@ runs:
         VARIANT: ${{ inputs.variant }}
       run: |
         mkdir -p pococc-diagnostics
-        ccache --show-stats --verbose > pococc-diagnostics/ccache-stats.txt
+        # 同时打到作业日志：构建前已清零统计，这里就是本轮的真实命中率。
+        ccache --show-stats --verbose | tee pococc-diagnostics/ccache-stats.txt
         if [ -f "$BUILD_DIR/pococc.tsv" ]; then
           "$POCOCC_CI_BINARY_DIR/pococc" stats "$BUILD_DIR/pococc.tsv" > pococc-diagnostics/pococc-stats.txt
           cp "$BUILD_DIR/pococc.tsv" pococc-diagnostics/

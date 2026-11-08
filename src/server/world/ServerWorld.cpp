@@ -337,6 +337,8 @@ Result<size_t> ServerWorld::saveDirtyChunks(bool sync)
 
 void ServerWorld::shutdown()
 {
+    // TEMP-DIAG：定位关服崩溃（验证后回退）。
+    spdlog::info("DIAG world(dim={}): shutdown enter", static_cast<i32>(m_config.dimension));
     if (!m_initialized && m_chunkManager == nullptr && m_weatherManager == nullptr && m_lightManager == nullptr &&
         m_tickManager == nullptr && m_physicsEngine == nullptr && m_collisionCache == nullptr &&
         m_villageManager == nullptr && m_raidManager == nullptr) {
@@ -359,6 +361,7 @@ void ServerWorld::shutdown()
             // 逐区块收集"先删前缀、再写存活实体"的落盘意图，最后用一个批次一次性提交。
             // 绝不能让每个区块各自提交：那是区块数量次 WAL fsync，视野距离 16 下 1089 个
             // 区块实测约 3.4 秒，而其中绝大多数区块根本没有实体、整段删除是空操作。
+            spdlog::info("DIAG world(dim={}): save-entities begin", static_cast<i32>(m_config.dimension));
             std::vector<world::storage::ChunkEntityWrite> writes;
             size_t loadedChunkCount = 0;
 
@@ -403,6 +406,7 @@ void ServerWorld::shutdown()
             }
         }
     }
+    spdlog::info("DIAG world(dim={}): save-entities done", static_cast<i32>(m_config.dimension));
 
     // 先清理袭击管理器（可能引用村庄）
     m_raidManager.reset();
@@ -439,6 +443,7 @@ void ServerWorld::shutdown()
 
     m_chunkManager.reset();
 
+    spdlog::info("DIAG world(dim={}): shutdown body returned", static_cast<i32>(m_config.dimension));
     spdlog::info("Server world shut down");
 }
 

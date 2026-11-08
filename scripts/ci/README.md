@@ -7,6 +7,8 @@ ci/
 ├── summarize_failures.py       # 汇总失败、跳过和报告错误，生成简要及完整报告
 ├── collect_runner_info.py      # 采集各 job 的硬件、系统镜像和实际工具版本
 ├── verify_pococc_build.py       # 核验无 PCH sanitizer 配置与严格编译分发记录
+├── verify_ccache_replay.py      # 核验 Ninja launcher 和冷/暖缓存的 stderr 重放
+├── run_unit_tests_batched.py    # 分片内批量执行单测，恢复中断前完成事件并隔离复核
 ├── prepare_build_artifacts.py  # 核验 ELF 与构建配置，归档实际动态库依赖
 ├── compare_benchmark.py        # 归一化两轮实际耗时与内存指标，输出图表及 JSON
 ├── report_plots.py             # 渲染性能、硬件容量、型号分布与工具版本图表
@@ -27,6 +29,8 @@ PNG/SVG 汇总到 `_report_charts`，由工作流发布到 `image-data/ci-report
 ## 容易踩的坑
 
 - pococc 实验同时核验真实 PCH 开关和编译命令；缓存命中不要求出现在 pococc journal。
+- ccache 会重放 pococc 的 stderr，不能通过 `Submitting` 行数统计实际分发次数。
+- 批次被中断时，gtest XML 尚未落盘；完整的 RUN/结束事件可恢复已完成结果，避免数百个用例重复初始化。
 
 - JUnit 和日志不能截断输入，否则后段失败会被判为不存在。
 - 跳过与失败分别列出，跳过不能算作通过；报告缺失或损坏必须公开上报。

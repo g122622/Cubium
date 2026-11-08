@@ -22,7 +22,7 @@
  */
 
 /**
- * @brief 差分能力：`Mth.fastInvSqrt` 与 `Mth.sqrt`（纯计算）。
+ * @brief 差分能力：`Mth.lerpInt` / `Mth.lerpDiscrete` / `Mth.binarySearch`（纯计算）。
  *
  * `list`：一组「模式|参数…」单元
  * `run` ：同上一行 → { "value": ... }
@@ -30,65 +30,41 @@
  * 复刻原版 `net.minecraft.util.Mth`：
  *
  * ```java
- * @Deprecated
- * public static double fastInvSqrt(double x) {
- *     double half = 0.5 * x;
- *     long bits = Double.doubleToRawLongBits(x);
- *     bits = 6910469410427058090L - (bits >> 1);     // 有符号右移！魔数近似
- *     x = Double.longBitsToDouble(bits);
- *     return x * (1.5 - half * x * x);                // 一次牛顿迭代
+ * public static int lerpInt(float delta, int start, int end) {
+ *     return start + Mth.floor(delta * (float)(end - start));
  * }
  *
- * public static float sqrt(float x) {
- *     return (float) Math.sqrt(x);
+ * public static int lerpDiscrete(float delta, int start, int end) {
+ *     int i = end - start;
+ *     return start + Mth.floor(delta * (float)(i - 1)) + (delta > 0.0F ? 1 : 0);
  * }
+ *
+ * public static int binarySearch(int min, int max, IntPredicate predicate) { ... }
  * ```
  *
- * ## 四个关键点
+ * ## 三处关键点
  *
- * 1. **这是 Quake 快速平方根倒数的双精度变体——结果是近似值，不是精确值。**
+ * 1. **`lerpInt` 乘的是 `span`，`lerpDiscrete` 乘的是 `span - 1`。**
  *
- *    魔数 `6910469410427058090L` 的十六进制是 `0x5FE6EB50C7B537A9`，与经典的
- *    `0x5FE6EB50C7B537A9`（float 版 `0x5f3759df` 的 double 推广）对应。
+ *    离散取值有 `to - from + 1` 个候选端点，要让 `t = 1` 恰好落在 `to` 上，
+ *    跨度只能是 `span - 1`。混用会让按进度挑选离散档位（音高、粒子数量）永远取不到末项。
  *
- *    **一次牛顿迭代后相对误差约 `1e-4`**，比 `1/sqrt(x)` 差得多，但速度快。
+ * 2. **`lerpDiscrete` 末尾对 `t > 0` 补 1，`lerpInt` 没有。**
  *
- *    `fastInvSqrt(4.0)` 不会精确等于 `0.5`。
+ *    `t = 0.001` 时 `lerpInt` 返回 `from`，`lerpDiscrete` 返回 `from + 1`；而 `t = 0`
+ *    两者都返回 `from`。这是两个函数最容易被写成一体的地方。
  *
- * 2. **`bits >> 1` 是「有符号」右移，不是 `>>>`。**
+ * 3. **`t` 是 f32，结果不夹取。**
  *
- *    对正数输入（`x > 0`），`bits` 的高位是 `0`，`>>` 与 `>>>` 结果相同。
- *
- *    但**对负数输入（`x < 0`），`bits` 的最高位是 1，`>>` 会保留符号位**——这与 `>>>` 差异巨大。
- *    `fastInvSqrt` 对负数没有语义意义（`sqrt` 无定义），但**代码路径仍然会执行并返回某个数值**。
- *
- * 3. **`x = 0` 时返回 `0`，`x` 为负时返回 `NaN` 或某个无意义值。**
- *
- *    - `fastInvSqrt(0.0)`：`bits = 0`，`0x5FE6... - 0` = 魔数，其数值约 `1.7e153`；
- *      再乘 `(1.5 - 0) = 1.5` → 约 `2.5e153`（**不是 `Infinity`**）
- *    - `fastInvSqrt(-1.0)`：无意义
- *
- *    **没有任何特殊值保护**——与 `1/Math.sqrt(x)` 的行为完全不同。
- *
- * 4. **`Mth.sqrt(float)` 只是 `(float) Math.sqrt(x)`，把 `double` 结果降回 `float`。**
- *
- *    这意味着：`sqrt` 先在 `double` 精度上算，再**一次舍入**到 `float`。
- *
- *    与直接调用 `std::sqrt(float)`（`float` 精度的库函数）**不保证逐位相同**——
- *    虽然 IEEE 754 要求两者都正确舍入，但中间位宽不同会放大差异。
- *
- *    本能力直接验证这一点。
+ *    `t` 超出 `[0, 1]` 时结果会跑出 `[from, to]`；`span` 为 0 时 `lerpDiscrete`
+ *    的乘数是 `-1`，同样不特殊处理。
  *
  * 单元格式：
- * - `fast|<x>` —— `fastInvSqrt(double)`
- * - `sqrtF|<x>` —— `sqrt(float)`
+ * - `lerpInt|<t>|<from>|<to>`
+ * - `lerpDiscrete|<t>|<from>|<to>`
+ * - `search|<from>|<to>|<threshold>` —— 谓词为 `value >= threshold`
  *
- * 全部按 `%.9g` 格式化后去尾零（**不处理指数形式的尾零会报假差异**，
- * 见 [`mth_frac`](./mth_frac.md)）。
- *
- * TODO: 未覆盖 `Mth.invSqrt(float)` / `invSqrt(double)`（委托给 `org.joml.Math.invsqrt`，
- * 该库方法在 oracle 侧无法单独验证其实现）、`Mth.atan2`（依赖 257 项 `ASIN_TAB` / `COS_TAB`，
- * 而这些表由 `Math.sin` 填充）。
+ * 全部返回整数，无需浮点归一化。
  */
 #include <cmath>
 #include <cstdio>
