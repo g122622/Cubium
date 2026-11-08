@@ -38,6 +38,7 @@
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
 #include "common/world/blockentity/BlockEntity.hpp"          // getBlockEntity → dynamic_cast<ContainerBlockEntity*>
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
+#include "common/world/fluid/Fluid.hpp"                      // FluidState（assertIsWaterlogged 判定流体类型）
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -691,9 +692,24 @@ GameTestResult GameTestHelper::assertRedstonePower(BlockPos relativePos, i32 pow
 
 GameTestResult GameTestHelper::assertIsWaterlogged(BlockPos relativePos, bool isWaterlogged)
 {
-    // TODO: 读取方块 Waterlogged 属性断言（属性体系就绪前 stub）
-    (void)relativePos;
-    (void)isWaterlogged;
+    // 对齐基岩 Test.assertIsWaterlogged：断言 pos 处方块是否被水淹没。
+    // 判定口径与脚本 Block.isWaterlogged 一致——读该方块状态的流体，是水即视为含水。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const mc::BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return generateErrorWithContext(
+            GameTestErrorType::LevelStateModificationFailed, "No block state at {0}", relativePos);
+    }
+
+    const mc::fluid::FluidState* fluidState = state->getFluidState();
+    const bool actual = fluidState != nullptr && !fluidState->isEmpty() &&
+        fluidState->getFluid().fluidLocation() == mc::ResourceLocation("minecraft:water");
+    if (actual != isWaterlogged) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            fmt::format("Block waterlogged is {}, expected {}", actual, isWaterlogged),
+            relativePos);
+    }
+
     return std::nullopt;
 }
 
