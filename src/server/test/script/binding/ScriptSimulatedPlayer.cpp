@@ -1732,11 +1732,18 @@ u64 registerSimulatedPlayerClassBinding(
             });
         },
         0);
+    // dropSelectedItem() -> boolean
+    // 基岩语义：丢弃选中槽的物品（等同玩家按 Q）。转发 Player::drop(false)，
+    // 即"从主手选中槽丢一个"；返回是否真的生成了掉落物。
     reg.method(
         "dropSelectedItem",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "dropSelectedItem");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->drop(false) != nullptr);
         },
         0);
 
