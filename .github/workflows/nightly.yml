@@ -499,8 +499,11 @@ jobs:
           SERVER=$(find /tmp/release -maxdepth 4 -name "minecraft-server" -type f | head -1)
           chmod +x "$SERVER" 2>/dev/null
           # Release 构建不含 sanitizer：同一份初始化代码在同样机器上的基线耗时。
-          timeout 90 "$SERVER" --profiler_enabled=false > /tmp/release-server.log 2>&1
-          grep -nE "\[VanillaBlocks\]|Registered [0-9]+ block items" /tmp/release-server.log | head -20
+          /usr/bin/time -f "release-server wall=%e user=%U sys=%S" timeout 90 "$SERVER" --profiler_enabled=false > /tmp/release-server.log 2>/tmp/release-server.time
+          cat /tmp/release-server.time
+          # 进程首条日志与方块初始化日志的时间差 = 无 sanitizer 时的方块初始化耗时。
+          head -70 /tmp/release-server.log | grep -E "^\[20" | head -3
+          grep -nE "\[VanillaBlocks\]|Registered [0-9]+ block items" /tmp/release-server.log | head -10
       - name: Sanitizer option sweep
         env:
           MC_SETUP_TIMING_DIR: ${{ runner.temp }}
