@@ -502,30 +502,43 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     return arr;
                 }
             }
-            // 无 location/volume：退化为全类型遍历（仅按 type 过滤），对齐基岩空 query 语义。
-            // TODO: 无区域约束的全局遍历在大世界性能差，GameTest 小范围场景可接受；生产侧慎用。
-            if (hasType) {
-                auto entities = world->getEntitiesByType(normalizedType);
-                void* arr = ctx.createArray();
-                u32 outIdx = 0;
-                const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
-                void* entProto = ctx.classRegistry().proto(entClassId);
-                for (auto* ent : entities) {
-                    if (ent == nullptr || entProto == nullptr) {
-                        continue;
-                    }
-
-                    void* jsEnt =
-                        ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
-                    ctx.setArrayElement(arr, outIdx, jsEnt);
-                    ctx.releaseValue(jsEnt);
-                    ++outIdx;
+            // 无 location/volume：退化为"该维度内全部实体"（仅按 type 过滤，若有）。
+            // 对齐基岩 EntityQueryOptions：location/volume 都是可选字段，都不给时查询的是整维度的
+            // 实体集合，而不是空集合。
+            //
+            // 注意这里的遍历范围：用覆盖整个世界的 AABB 走空间索引（getEntitiesInAABB），
+            // 而不是把水平范围写成任意大数。水平方向取到 f32 的安全上界附近没有意义——世界
+            // 边界由 build height 约束，水平也是有限世界，但项目里没有"世界水平半径"常量，
+            // 因此这里用一个足以覆盖任何实际存档的固定半径，并在注释里标明这是遍历范围而非语义约束。
+            constexpr f32 kQueryAllHorizontalRadius = 3.0e7f; // 与基岩"世界边界"量级一致（±30M）
+            const mc::AxisAlignedBB worldBox(-kQueryAllHorizontalRadius,
+                static_cast<f32>(mc::world::MIN_BUILD_HEIGHT),
+                -kQueryAllHorizontalRadius,
+                kQueryAllHorizontalRadius,
+                static_cast<f32>(mc::world::MAX_BUILD_HEIGHT),
+                kQueryAllHorizontalRadius);
+            auto entities = world->getEntitiesInAABB(worldBox, nullptr);
+            void* arr = ctx.createArray();
+            u32 outIdx = 0;
+            const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entProto = ctx.classRegistry().proto(entClassId);
+            for (auto* ent : entities) {
+                if (ent == nullptr || entProto == nullptr) {
+                    continue;
                 }
 
-                return arr;
+                if (hasType && ent->getTypeId() != normalizedType) {
+                    continue;
+                }
+
+                void* jsEnt =
+                    ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
+                ctx.setArrayElement(arr, outIdx, jsEnt);
+                ctx.releaseValue(jsEnt);
+                ++outIdx;
             }
 
-            return ctx.createArray();
+            return arr;
         },
         1);
 
@@ -1716,7 +1729,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
                 return wrapComponent("ColorComponent");
             }
-            // TODO: 其他基岩合法 componentId（is_baby/lava_movement 等标记/属性族，羊驼/潜影贝 color）按需补全。
+            // TODO: 其他基岩合法 componentId（is_baby / lava_movement 等标记或属性族）按需补全。
+            // color 已覆盖羊/羊驼/潜影贝（见上方 minecraft:color 分支）。
             return ctx.createUndefined();
         },
         1);
