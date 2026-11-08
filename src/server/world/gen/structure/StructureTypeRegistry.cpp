@@ -188,6 +188,21 @@ Result<std::unique_ptr<Structure>> createMineshaft(const StructureDefinition& de
     return toBase(std::make_unique<MineshaftStructure>(def.id, MineshaftType::Normal));
 }
 
+/**
+ * @brief 下界化石工厂
+ *
+ * 化石落点由数据包 `height` 高度提供者决定（原版 `NetherFossilStructure.height`），
+ *
+ * 缺少该字段就无法复刻落点，直接报错而不是退化成固定高度。
+ */
+Result<std::unique_ptr<Structure>> createNetherFossil(const StructureDefinition& def)
+{
+    if (def.height == nullptr) {
+        return Error(ErrorCode::InvalidData, "nether_fossil structure '" + def.id.toString() + "' is missing 'height'");
+    }
+    return toBase(std::make_unique<NetherFossilStructure>(def.id, def.height->clone()));
+}
+
 /// 程序化零参构造子类工厂（无变体分流，运行时按生物群系判定变体）
 template <typename T>
 Result<std::unique_ptr<Structure>> createZeroArg(const StructureDefinition& def)
@@ -315,7 +330,7 @@ void initializeBuiltinStructureTypes()
     // 类型名必须与数据包 structure/*.json 的 "type" 字段逐字一致：不一致会导致该文件
     // 解析失败、结构未注册，进而其所在结构集被整集跳过（静默消失）。
     reg.registerType("jungle_temple", createZeroArg<JungleTempleStructure>);
-    reg.registerType("nether_fossil", createZeroArg<NetherFossilStructure>);
+    reg.registerType("nether_fossil", createNetherFossil);
     // 原版 1.21 已把该类型由 minecraft:monument 改名为 minecraft:ocean_monument。
     reg.registerType("ocean_monument", createZeroArg<OceanMonumentStructure>);
     reg.registerType("ocean_ruin", createOceanRuin);

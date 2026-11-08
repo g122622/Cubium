@@ -56,7 +56,7 @@ interface Sample {
 const LINE_BREAK = new RegExp(`${String.fromCharCode(92)}r?${String.fromCharCode(92)}n`);
 
 /** 参与采样的维度。 */
-const DIMENSIONS = ["overworld", "the_end"] as const;
+const DIMENSIONS = ["overworld", "the_nether", "the_end"] as const;
 
 /** 种子与区块坐标：正负坐标与远距离各取一些。 */
 const SEEDS = [0, 12345];

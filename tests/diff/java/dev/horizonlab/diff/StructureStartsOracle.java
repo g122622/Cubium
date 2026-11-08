@@ -142,6 +142,13 @@ public final class StructureStartsOracle {
             settingsHolder = lookup.lookupOrThrow(Registries.NOISE_SETTINGS).getOrThrow(NoiseGeneratorSettings.OVERWORLD);
             levelKey = Level.OVERWORLD;
             height = LevelHeightAccessor.create(-64, 384);
+        } else if (name.equals("the_nether")) {
+            biomeSource = MultiNoiseBiomeSource.createFromPreset(
+                    lookup.lookupOrThrow(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST)
+                            .getOrThrow(MultiNoiseBiomeSourceParameterLists.NETHER));
+            settingsHolder = lookup.lookupOrThrow(Registries.NOISE_SETTINGS).getOrThrow(NoiseGeneratorSettings.NETHER);
+            levelKey = Level.NETHER;
+            height = LevelHeightAccessor.create(0, 256);
         } else if (name.equals("the_end")) {
             biomeSource = TheEndBiomeSource.create(lookup.lookupOrThrow(Registries.BIOME));
             settingsHolder = lookup.lookupOrThrow(Registries.NOISE_SETTINGS).getOrThrow(NoiseGeneratorSettings.END);
@@ -408,7 +415,7 @@ public final class StructureStartsOracle {
         }
         DataPackRegistries registries = DataPackRegistries.load();
         StringBuilder lines = new StringBuilder();
-        for (String dimensionName : List.of("overworld", "the_end")) {
+        for (String dimensionName : List.of("overworld", "the_nether", "the_end")) {
             for (String seedText : seedTexts) {
                 long seed = Long.parseLong(seedText);
                 Dimension dimension = makeDimension(dimensionName, seed, registries.lookup);

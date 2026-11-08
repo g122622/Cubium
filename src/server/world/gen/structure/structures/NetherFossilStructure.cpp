@@ -33,10 +33,13 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/NoiseColumn.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
@@ -151,9 +154,12 @@ void NetherFossilPiece::generate(IWorldWriter& world,
 // NetherFossilStructure
 // ============================================================================
 
-NetherFossilStructure::NetherFossilStructure(ResourceLocation id)
+NetherFossilStructure::NetherFossilStructure(ResourceLocation id, std::unique_ptr<valueprovider::HeightProvider> height)
     : Structure(std::move(id))
-{}
+    , m_height(std::move(height))
+{
+    MC_ASSERT_RELEASE_MSG(m_height != nullptr, "nether_fossil requires a height provider from the data pack");
+}
 
 const biome::BiomeTag* NetherFossilStructure::defaultBiomeTag() const
 {
@@ -163,24 +169,40 @@ const biome::BiomeTag* NetherFossilStructure::defaultBiomeTag() const
 std::unique_ptr<StructureStart> NetherFossilStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
-
     auto start = makeStructureStart(chunkX, chunkZ);
 
-    // 生物群系校验：原版在求出化石的候选生成点之后、装配模板之前校验。这里沿用
-    // 「区块内随机列 + 30..59」的既有落点近似（原版是沿列向下找第一个空气层），
-    // TODO: 按原版 `findGenerationPoint` 的列扫描重写落点，届时把校验挪到扫描完成之后。
-    const BlockPos candidate(chunkX * world::CHUNK_WIDTH, 30, chunkZ * world::CHUNK_WIDTH);
-    if (!isValidBiomeAt(generator, candidate)) {
+    // 原版 `NetherFossilStructure.findGenerationPoint`：先在区块内随机挑一列，再沿着这一列
+    // 自上而下找「空气 + 下方可承重」的第一处，作为化石骨架的落点。
+    const i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    const i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    const i32 seaLevel = generator.seaLevel();
+    const valueprovider::WorldGenerationContext heightContext(generator.getMinY(), generator.getGenDepth());
+    i32 y = m_height->sample(rng, heightContext);
+
+    const NoiseColumn column = generator.getBaseColumn(x, z);
+    while (y > seaLevel) {
+        const BlockState* current = column.getBlock(y);
+        const BlockState* below = column.getBlock(--y);
+        const bool currentAir = current == nullptr || current->isAir();
+        // 原版 `below.is(Blocks.SOUL_SAND) || below.isFaceSturdy(EmptyBlockGetter, pos, UP)`：
+        // FULL 支撑判定只读方块自身的支撑形状，与所在世界无关，因此不需要真的构造一个空世界。
+        const bool belowSturdy = below != nullptr &&
+            (below->is(VanillaBlocks::SOUL_SAND) ||
+                Block::isFaceFull(below->getBlockSupportShapeAt(BlockPos(x, y, z)), Direction::Up));
+        if (currentAir && belowSturdy) {
+            break;
+        }
+    }
+    if (y <= seaLevel) {
         return start;
     }
 
-    // 计算生成位置
-    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-
-    // 下界化石在 Y=30-60 之间生成
-    i32 y = 30 + rng.nextInt(30);
+    // 生物群系校验落在候选生成点上（原版 `Structure.findValidGenerationPoint` 即在
+    // GenerationStub 位置采样），不是区块最小角。
+    const BlockPos candidate(x, y, z);
+    if (!isValidBiomeAt(generator, candidate)) {
+        return start;
+    }
 
     // 随机旋转
     Rotation rotation = static_cast<Rotation>(rng.nextInt(4));

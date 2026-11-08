@@ -67,6 +67,22 @@ NormalNoise::NormalNoise(math::IRandom& rng, i32 firstOctave, std::vector<f64> a
     computeValueFactor();
 }
 
+std::shared_ptr<NormalNoise> NormalNoise::createLegacyNetherBiome(
+    math::IRandom& rng, i32 firstOctave, std::vector<f64> amplitudes)
+{
+    // 走 PerlinNoise 的**旧版**构造（共享 RandomSource 顺序消费），两个 PerlinNoise
+    // 依次从同一个随机源取数；这正是原版 createLegacyForLegacyNetherBiome 的语义。
+    // 私有构造只能经 new 取用（make_shared 无法访问私有构造函数中的默认构造）。
+    std::shared_ptr<NormalNoise> noise(new NormalNoise());
+    noise->m_seed = std::nullopt;
+    noise->m_firstOctave = firstOctave;
+    noise->m_amplitudes = std::move(amplitudes);
+    noise->m_first = std::make_unique<PerlinNoise>(rng, firstOctave, noise->m_amplitudes);
+    noise->m_second = std::make_unique<PerlinNoise>(rng, firstOctave, noise->m_amplitudes);
+    noise->computeValueFactor();
+    return noise;
+}
+
 f64 NormalNoise::getValue(f64 x, f64 y, f64 z) const
 {
     // 第二个噪声使用缩放坐标（乘以 INPUT_FACTOR）
@@ -98,7 +114,9 @@ void NormalNoise::computeValueFactor()
         }
     }
 
-    const i32 octaveRange = maxNonZero - minNonZero;
+    // 全零振幅（旧版维度的位移噪声）时没有任何倍频参与，原版的 k - j 落在 int 溢出语义上
+    // （MIN_VALUE - MAX_VALUE 回绕成 1）；这里按同一口径取 1，避免减法溢出成 UB。
+    const i32 octaveRange = (minNonZero > maxNonZero) ? 1 : (maxNonZero - minNonZero);
     m_valueFactor = VALUE_FACTOR_BASE / expectedDeviation(octaveRange);
     m_maxValue = (m_first->maxValue() + m_second->maxValue()) * m_valueFactor;
 }

@@ -26,6 +26,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
 #include "server/world/gen/density/NoiseBindingVisitor.hpp"
@@ -215,6 +216,33 @@ void RandomState::compileRouter()
     compileSlot(RouterSlot::VeinGap, m_router->veinGap());
 }
 
+std::shared_ptr<noise::NormalNoise> RandomState::_createNoiseForName(const std::string& name) const
+{
+    // 原版 `RandomState.NoiseWiringHelper.visitNoise` 的旧版分支：`legacy_random_source`
+    // 为 true 的维度（下界/末地）把温度与湿度换成 **旧版下界生物群系噪声**——
+    // 参数固定为 (-7, 1.0, 1.0)，随机源是 `LegacyRandomSource(世界种子 + 0/1)`，
+    // 两个 PerlinNoise 顺序消费同一随机流。不替换会让这两个维度的气候值整体偏离，
+    // 群系分布随之全错。
+    if (m_settings.noise.useLegacyRandomSource) {
+        if (name == "minecraft:temperature" || name == "minecraft:vegetation") {
+            const u64 offset = (name == "minecraft:temperature") ? 0ULL : 1ULL;
+            math::JavaLegacyRandom legacyRng(static_cast<u64>(m_worldSeed) + offset);
+            return noise::NormalNoise::createLegacyNetherBiome(legacyRng, -7, {1.0, 1.0});
+        }
+        if (name == "minecraft:offset") {
+            // 旧版维度把位移噪声压成零振幅：`shifted_noise` 的位移量恒为 0，
+            // 温度/湿度因此直接按原始坐标采样。振幅为零时不会创建任何倍频，
+            // 随机源的具体 hash 不影响结果。
+            const auto rng = m_positionalRandom->fromHashOf(name);
+            return std::make_shared<noise::NormalNoise>(*rng, 0, std::vector<f64>{0.0});
+        }
+    }
+
+    const noise::NoiseParameters& params = noise::Noises::get(name);
+    auto rng = m_positionalRandom->fromHashOf(name);
+    return std::make_shared<noise::NormalNoise>(*rng, params.firstOctave, params.amplitudes);
+}
+
 noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
 {
     // 命中路径：shared_lock 并发读
@@ -234,15 +262,8 @@ noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
     }
 
     // MC 1.21: RandomState.getOrCreateNoise()
-    // 1. 从 Noises 注册表获取参数
-    const noise::NoiseParameters& params = noise::Noises::get(name);
-
-    // 2. 使用 fromHashOf(name) 创建随机源
-    //    NormalNoise 构造函数会调用 rng.forkPositional() 两次来创建两个 PerlinNoise
-    auto rng = m_positionalRandom->fromHashOf(name);
-
-    // 3. 创建 NormalNoise（shared_ptr 存储，供数据驱动噪声叶子共享所有权）
-    auto noise = std::make_shared<noise::NormalNoise>(*rng, params.firstOctave, params.amplitudes);
+    // 旧版维度（下界/末地）的温度与湿度走专用噪声，见 _createNoiseForName。
+    auto noise = _createNoiseForName(name);
 
     auto& ref = *noise;
     m_noiseCache.emplace(name, std::move(noise));
@@ -267,9 +288,7 @@ std::shared_ptr<const noise::NormalNoise> RandomState::getOrCreateNoiseShared(co
         return it->second;
     }
 
-    const noise::NoiseParameters& params = noise::Noises::get(name);
-    auto rng = m_positionalRandom->fromHashOf(name);
-    auto noise = std::make_shared<noise::NormalNoise>(*rng, params.firstOctave, params.amplitudes);
+    auto noise = _createNoiseForName(name);
     m_noiseCache.emplace(name, noise);
     return noise;
 }
