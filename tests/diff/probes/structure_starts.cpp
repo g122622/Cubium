@@ -88,6 +88,7 @@
 #include "server/world/gen/structure/StructureTagLoader.hpp"
 #include "server/world/gen/structure/pools/Pools.hpp"
 #include "server/world/gen/structure/structures/EndCityStructure.hpp"
+#include "server/world/gen/structure/structures/NetherFossilStructure.hpp"
 #include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
 #include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "structure_probe_common.hpp"
@@ -182,6 +183,10 @@ json summarisePiece(const world::gen::structure::StructurePiece& piece)
             // 末地城存的是裸文件名（`end_city/base_floor` 的文件名部分），与原版
             // `TemplateStructurePiece.templateName` 逐字一致，不能补命名空间。
             return city->templateName();
+        }
+        if (const auto* fossil = dynamic_cast<const world::gen::structure::NetherFossilPiece*>(&piece)) {
+            // 化石存的是完整资源位置（`Identifier.toString()`），与 oracle 反射读到的值同口径。
+            return fossil->templateName();
         }
         return std::string(piece.templateLocation());
     }();

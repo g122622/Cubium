@@ -64,20 +64,20 @@ using namespace mc::Biomes;
 const std::string NetherFossilStructure::s_name = "Nether_Fossil";
 
 // 下界化石模板名称（共14个）
-const std::vector<std::string> NetherFossilStructure::s_fossilTemplates = {"nether_fossils/fossil_1",
-    "nether_fossils/fossil_2",
-    "nether_fossils/fossil_3",
-    "nether_fossils/fossil_4",
-    "nether_fossils/fossil_5",
-    "nether_fossils/fossil_6",
-    "nether_fossils/fossil_7",
-    "nether_fossils/fossil_8",
-    "nether_fossils/fossil_9",
-    "nether_fossils/fossil_10",
-    "nether_fossils/fossil_11",
-    "nether_fossils/fossil_12",
-    "nether_fossils/fossil_13",
-    "nether_fossils/fossil_14"};
+const std::vector<std::string> NetherFossilStructure::s_fossilTemplates = {"minecraft:nether_fossils/fossil_1",
+    "minecraft:nether_fossils/fossil_2",
+    "minecraft:nether_fossils/fossil_3",
+    "minecraft:nether_fossils/fossil_4",
+    "minecraft:nether_fossils/fossil_5",
+    "minecraft:nether_fossils/fossil_6",
+    "minecraft:nether_fossils/fossil_7",
+    "minecraft:nether_fossils/fossil_8",
+    "minecraft:nether_fossils/fossil_9",
+    "minecraft:nether_fossils/fossil_10",
+    "minecraft:nether_fossils/fossil_11",
+    "minecraft:nether_fossils/fossil_12",
+    "minecraft:nether_fossils/fossil_13",
+    "minecraft:nether_fossils/fossil_14"};
 
 // ============================================================================
 // NetherFossilPiece
@@ -87,31 +87,42 @@ NetherFossilPiece::NetherFossilPiece(const std::string& templateName, const Bloc
     : StructurePiece(
           StructurePieceTypes::NETHER_FOSSIL, position.x, position.y, position.z, position.x, position.y, position.z)
     , m_templateName(templateName)
-    , m_rotation(rotation)
+    , m_templatePosition(position)
     , m_size(1, 1, 1)
-{}
+{
+    // 旋转与镜像存进基类：子类同名成员会遮蔽基类，`getRotation()` 读的正是基类那个。
+    setRotation(rotation);
+    setMirror(Mirror::None);
+    // 原版 `TemplateStructurePiece` 在构造期就以模板真实包围盒确定几何；等到后处理阶段才展开
+    // 会让 STRUCTURE_STARTS 阶段每个构件退化成一个点。
+    _loadTemplate();
+}
 
 void NetherFossilPiece::_loadTemplate()
 {
-    if (!m_templateManager) {
+    if (m_templateManager == nullptr) {
+        m_templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
+    }
+    m_template = m_templateManager->getTemplate(ResourceLocation(m_templateName));
+    if (m_template == nullptr) {
         return;
     }
+    m_size = m_template->getSize();
+    _updateBoundingBox();
+}
 
-    ResourceLocation location(m_templateName);
-    m_template = m_templateManager->getTemplate(location);
-
-    if (m_template) {
-        m_size = m_template->getSize();
-        // 更新边界框（考虑旋转）
-        i32 sizeX = m_size.x;
-        i32 sizeZ = m_size.z;
-        if (m_rotation == Rotation::Clockwise90 || m_rotation == Rotation::CounterClockwise90) {
-            std::swap(sizeX, sizeZ);
-        }
-        m_maxX = m_minX + sizeX - 1;
-        m_maxY = m_minY + m_size.y - 1;
-        m_maxZ = m_minZ + sizeZ - 1;
-    }
+void NetherFossilPiece::_updateBoundingBox()
+{
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(getRotation());
+    settings.setMirror(Mirror::None);
+    const StructureBoundingBox box = m_template->getBoundingBox(settings, m_templatePosition);
+    m_minX = box.minX();
+    m_minY = box.minY();
+    m_minZ = box.minZ();
+    m_maxX = box.maxX();
+    m_maxY = box.maxY();
+    m_maxZ = box.maxZ();
 }
 
 void NetherFossilPiece::generate(IWorldWriter& world,
@@ -122,11 +133,7 @@ void NetherFossilPiece::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    if (!m_templateManager) {
-        return;
-    }
-
-    // 延迟加载模板
+    // 构造期模板管理器还没装好时补一次加载。
     if (!m_template) {
         _loadTemplate();
     }
@@ -138,13 +145,15 @@ void NetherFossilPiece::generate(IWorldWriter& world,
 
     // 创建放置设置
     feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
+    settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
+    // TODO: 原版化石的设置里还带 `BlockIgnoreProcessor.STRUCTURE_AND_AIR`（跳过结构方块与空气），
+    //       本项目缺对应的“按方块身份忽略”处理器，接入后再补上。
 
-    // 放置模板
+    // 放置模板（原点即模板位置，不是包围盒最小角）
     m_template->place(world,
-        BlockPos(m_minX, m_minY, m_minZ),
+        m_templatePosition,
         settings,
         rng,
         world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);

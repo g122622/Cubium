@@ -48,9 +48,7 @@ import type { HarnessDeclaration, HarnessContext } from "../core/types.ts";
 const SEEDS = [0, 9248738493917] as const;
 
 /** 维度名，与两侧的维度枚举同名。 */
-// TODO: 下界尚未接入——原版要塞是程序化构件（NetherFortressPieces），本项目仍是旧的
-// 模板池实现，整类起点都不会一致；先把下界要塞按原版重写，再把 "the_nether" 加进来。
-const DIMENSIONS = ["overworld", "the_end"] as const;
+const DIMENSIONS = ["overworld", "the_nether", "the_end"] as const;
 
 /** 每个维度从原版候选区块里取多少个（均匀抽样，保证间隔覆盖整张表）。 */
 const PER_DIMENSION = 40;

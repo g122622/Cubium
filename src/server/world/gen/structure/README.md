@@ -52,6 +52,7 @@ structure/
     ├── IglooStructure.*              # 雪屋（模板堆叠）
     ├── JungleTempleStructure.*       # 丛林神庙（程序化）
     ├── MineshaftStructure.*          # 废弃矿井（程序化片段）
+    ├── NetherFortressPieces.*        # 下界要塞片段（桥/城堡，程序化装配）
     ├── NetherFossilStructure.*       # 下界化石（模板）
     ├── OceanMonumentPieces.*         # 海洋纪念碑片段
     ├── OceanMonumentStructure.*      # 海洋纪念碑（程序化）
