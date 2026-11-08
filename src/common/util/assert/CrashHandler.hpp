@@ -51,10 +51,6 @@ using CrashCleanupCallback = std::function<void()>;
  * 前提条件：
  * - RelWithDebInfo 或 Debug 构建模式（PDB/调试符号可用）
  * - Windows 上需要 dbghelp.lib（已自动链接）
- *
- * 局部变量说明：
- * - RelWithDebInfo 下部分局部变量会被编译器优化掉，无法保证所有变量都能枚举
- * - 每个栈帧会尽可能尝试输出局部变量名和类型，但信息可能不完整
  */
 class CrashHandler {
 public:

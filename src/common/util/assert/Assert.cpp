@@ -176,7 +176,7 @@ bool AssertManager::handleRecoverableFailure(
 std::string AssertManager::captureStackTrace() const
 {
     // 委托给 CrashHandler 的统一实现：使用 StackWalk64 + 一次性符号初始化，
-    // 并尝试枚举每帧局部变量，质量优于 CaptureStackBackTrace 裸调用。
+    // 质量优于 CaptureStackBackTrace 裸调用。
     // 不跳过任何帧（skipFrames=0），完整保留断言处理链与调用方栈帧。
     return "Stack trace:\n" + CrashHandler::captureStackTrace(0);
 }
