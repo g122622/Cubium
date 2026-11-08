@@ -117,6 +117,7 @@ add_executable(mc_tests
     common/item/crafting/RecipeManagerTest.cpp
     common/item/crafting/ShapedRecipeTest.cpp
     common/item/crafting/ShapelessRecipeTest.cpp
+    common/item/crafting/SmithingTrimRecipeTest.cpp
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/crafting/RecipeFormatTest.cpp
     common/item/crafting/RecipeSerializersTest.cpp

@@ -33,6 +33,8 @@
 #include "common/entity/tag/EntityTypeTagLoader.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/armortrim/TrimMaterials.hpp"
+#include "common/item/armortrim/TrimPatterns.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
@@ -244,6 +246,28 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
             spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().message());
         } else {
             spdlog::info("Loaded {} item tags from data packs", dataPackLoadResult.value());
+        }
+    }
+
+    // 盔甲纹饰注册表（trim_material / trim_pattern）。两者都是纯数据包注册表，没有任何
+    // 硬编码默认值，必须在这里加载——否则 smithing_trim 配方查不到图案、纹饰材料物品也
+    // 无从反查材质，纹饰功能整体失效（此前这两个加载器就从未被调用过，注册表恒为空）。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::ArmorTrim");
+        mc::TrimMaterials::clearAll();
+        auto trimMaterialResult = mc::TrimMaterials::loadFromDataPackRepository(m_dataPackList);
+        if (trimMaterialResult.failed()) {
+            spdlog::error("Failed to load trim materials from data packs: {}", trimMaterialResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} trim materials from data packs", trimMaterialResult.value());
+        }
+
+        mc::TrimPatterns::clearAll();
+        auto trimPatternResult = mc::TrimPatterns::loadFromDataPackRepository(m_dataPackList);
+        if (trimPatternResult.failed()) {
+            spdlog::error("Failed to load trim patterns from data packs: {}", trimPatternResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} trim patterns from data packs", trimPatternResult.value());
         }
     }
 
