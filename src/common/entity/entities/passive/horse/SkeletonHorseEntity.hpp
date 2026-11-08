@@ -81,7 +81,7 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    // ========== 骑乘���统 ==========
+    // ========== 骑乘系统 ==========
 
     // ========== 繁殖系统 ==========
 

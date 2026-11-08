@@ -13,8 +13,9 @@ scripts/
 │   ├── _bedrock_single.ts       # 单项基岩行为验证工具
 │   ├── _fix_structure_origin.mjs # 结构原点修正工具
 │   └── _rebuild_creeper_pit.ts  # 测试结构重建工具
-├── format/                      # C++ 代码格式化
+├── format/                      # C++ 代码格式化与文本编码校验
 │   ├── clang_format_all.ts      # 按 .clang-format 原地格式化 src/ 与 tests/ 的 .cpp/.hpp
+│   ├── check_encoding.ts        # 校验全部文本文件为 UTF-8：无 BOM、无 U+FFFD、非 GBK
 │   └── normalize_includes.ts    # 把含 ../ 的 include 改写为项目根路径
 ├── tidy/                        # clang-tidy wrapper
 │   ├── tidy.sh                  # Linux：直接使用 compile_commands.json
@@ -33,7 +34,7 @@ scripts/
 ├── diag/windows-memory/         # Windows 服务端内存归因（UMDH / VMMap / 逐页驻留）
 ├── diff/                        # 差分测试辅助
 │   └── compact_block_map_color.py       # 压缩逐状态方块颜色快照，缩减编译体积
-├── trace_analysis/              # Perfetto trace 分析脚本与历史输出
+├── trace_analysis/              # Perfetto trace 分析脚本（输出为本地一次性产物，不入库）
 ├── addLicense.ts                # 为源码批量补充/更新 license header
 ├── check_includes.ts            # 校验 include 路径大小写与 git 中的实际文件一致
 ├── countLines.ts                # 统计仓库代码行数（按目录与扩展名分组）
@@ -64,6 +65,8 @@ CI 使用说明见 `docs/CI.md`。
 - Windows 的链接器由 clang 驱动决定：项目只在 Linux 追加 `-fuse-ld=lld`，Windows 实际使用 MSVC `link.exe`；
   `CMakeCache.txt` 中的 `CMAKE_LINKER=lld-link.exe` 不参与 Ninja 链接命令，不要据此判断。
 - C++ 格式化脚本要求 Node.js 24，只处理 `.cpp`/`.hpp`，并跳过 `.gen.cpp/.gen.hpp`。
+- 全仓库文本统一 UTF-8（无 BOM，`*.ps1` 例外保留 BOM）；提交前可跑
+  `node --experimental-strip-types scripts/format/check_encoding.ts` 检查存量 GBK 与 U+FFFD 乱码。
 - `iwyu.sh` 只打印建议；批量落地用 `fix_includes.ts`，其中 `.hpp` 的 include 移除默认禁用。
 - `baking/` 的产物是数据包中不存在的内嵌快照，会与原版注册表漂移；上游数据变更后必须重新烘焙。
 - 测试输出可能很大；CI 解析必须读取完整输入，长度限制只适用于展示结果。

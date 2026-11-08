@@ -134,7 +134,7 @@ public:
      *
      * @param resourceManager 资源管理器
      * @return 成功或错误
-     * @warning 需要��渲染器已初始化后调用。
+     * @warning 需要在渲染器已初始化后调用。
      */
     [[nodiscard]] Result<void> reloadTexture(mc::ResourceManager* resourceManager);
 
