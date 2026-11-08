@@ -42,7 +42,7 @@ class GameTestHelper final : public IGameTestHelper {
 public:
     GameTestHelper(
         mc::server::ServerWorld& world, BlockPos origin, const StructureBounds* bounds, BaseGameTestInstance& instance);
-    ~GameTestHelper() override; // 需完整类型 GameTestSequence 析构，定义在 .cpp
+    ~GameTestHelper() override; // 析构时清场（移除结构范围内实体），定义在 .cpp
 
     GameTestHelper(const GameTestHelper&) = delete;
     GameTestHelper& operator=(const GameTestHelper&) = delete;
@@ -199,7 +199,6 @@ private:
     TestTransform m_transform;
     // 实例的派生成员先于基类 helper 析构；保存包围盒值，确保清场不依赖结构对象的寿命。
     std::optional<mc::world::gen::structure::StructureBoundingBox> m_bounds;
-    std::unique_ptr<GameTestSequence> m_sequence; // 懒构造，startSequence 首次调用时建
 };
 
 /**

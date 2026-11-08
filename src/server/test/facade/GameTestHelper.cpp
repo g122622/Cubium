@@ -498,14 +498,9 @@ Rotation GameTestHelper::rotation() const noexcept
 
 GameTestSequence& GameTestHelper::startSequence()
 {
-    if (!m_sequence) {
-        m_sequence = std::make_unique<GameTestSequence>(*this);
-        // 序列注册到 instance 以便 tick 推进：但 BaseGameTestInstance::createSequence 已封装此逻辑。
-        // 为保持单一序列路径，这里把 helper 持有的序列也挂到 instance（instance tick 会推进它）。
-        // TODO: 当前 instance::createSequence 与 helper::m_sequence 双轨，需统一为 instance 单一持有；
-        //       第一阶段样例测试仅用 startSequence().thenSucceed()，双轨暂不冲突。
-    }
-    // 经 instance.createSequence() 取得 instance 持有并 tick 推进的序列（对齐基岩 GameTestHelper.startSequence）
+    // 序列由 instance 单一持有并负责 tick 推进（对齐基岩 GameTestHelper.startSequence）。
+    // 此前这里还额外懒构造了一个 helper 私有的 m_sequence，但从未被读取或推进——
+    // 每次 startSequence() 白白构造一个对象，且与 instance 的序列构成"双轨"。
     return m_instance.createSequence();
 }
 
@@ -1703,10 +1698,14 @@ FenceConnectivity GameTestHelper::getFenceConnectivity(BlockPos relativePos) con
 
 std::unique_ptr<mc::blocks::SculkSpreader> GameTestHelper::getSculkSpreader(BlockPos /*relativePos*/) const
 {
-    // 对齐基岩 Test.getSculkSpreader：取 pos 处的幽匿扩散器。项目无 SculkCatalystBlockEntity
-    // （vanilla 中持 SculkSpreader 的载体），无法按 pos 取真实 spreader。返回新建空 spreader 快照
-    // （maxCharge=kMaxCharge 做实，cursors 空），供 JS 侧只读访问属性。
-    // TODO: SculkCatalystBlockEntity 实现后改为按 pos 取真实 spreader（owned 快照或非拥有引用）。
+    // 对齐基岩 Test.getSculkSpreader：取 pos 处的幽匿扩散器。
+    // 项目有 SculkCatalystBlock（方块侧）与 SculkSpreader（扩散逻辑），但**没有**
+    // SculkCatalystBlockEntity——该方块未覆写 createBlockEntity，因此世界里不存在
+    // "持有 spreader 的载体"，无法按 pos 取真实实例。
+    // 当前返回新建的空 spreader 快照（createLevelSpreader，maxCharge/cursors 上限都正确），
+    // 与基岩的差别是它不带该位置累积的 charge 与 cursors 状态——即"形状对、状态空"。
+    // TODO: SculkCatalystBlockEntity 落地后改为按 pos 取真实 spreader（owned 快照或非拥有引用），
+    //   届时本方法才能用于断言"催化剂已累积多少幽匿电荷"这类行为。
     return std::make_unique<mc::blocks::SculkSpreader>(mc::blocks::SculkSpreader::createLevelSpreader());
 }
 
