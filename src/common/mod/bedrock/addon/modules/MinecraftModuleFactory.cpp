@@ -2047,10 +2047,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // - 显式 checkForBlocks=true → 走 attemptTeleport（带 findSafeTeleportPosition + 碰撞检测）。
     // tryTeleport 默认 checkForBlocks=true（见下方），与 teleport 默认相反。
     //
-    // 注意：changeDimension 不接受自定义位置（位置由 Teleporter 计算：末地固定 (100,49,0)，
-    // 下界 1:8 缩放），故跨维度时 location 参数被忽略。这与基岩 teleport 跨维度支持 location 有差异。
-    // TODO: 若需支持跨维度自定义位置，需扩展 changeDimension 接受 optional<Vector3d> 并传给
-    //       transferPlayerToDimension（其已支持 position 参数）。
+    // 跨维度走 teleportToDimension（/tp 语义），location 参数被采用；非玩家实体基类返回
+    // false，此时 teleport 抛错、tryTeleport 返回 false。
     entityReg.method(
         "teleport",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -2095,9 +2093,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             if (crossDim) {
-                // 跨维度：经虚派发 changeDimension（ServerPlayer override 调真实实现）。
-                // 非 Player 实体基类返回 false（不传送），对齐当前 Cubium 限制。
-                ent->changeDimension(targetDim);
+                // 跨维度：走 teleportToDimension（/tp 语义，接受调用方指定的坐标），
+                // 而非 changeDimension（传送门语义，坐标由 Teleporter 计算、会忽略 location 参数）。
+                // ServerPlayer override 调真实迁移实现；非 Player 实体基类返回 false，不会传送。
+                if (!ent->teleportToDimension(targetDim, Vector3d(x, y, z), Vector2f(ent->yaw(), ent->pitch()))) {
+                    // 非玩家实体暂不支持跨维度传送（基类默认 false）。
+                    return ctx.throwTypeError("teleport across dimensions is only supported for players");
+                }
             } else if (checkForBlocks) {
                 // 同维度 + 检查碰撞：attemptTeleport（findSafeTeleportPosition + 碰撞检测）。
                 ent->attemptTeleport(x, y, z, false);
@@ -2155,7 +2157,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             if (crossDim) {
-                bool ok = ent->changeDimension(targetDim);
+                // 与 teleport 一致：跨维度走 teleportToDimension，尊重调用方给出的坐标。
+                bool ok = ent->teleportToDimension(targetDim, Vector3d(x, y, z), Vector2f(ent->yaw(), ent->pitch()));
 
                 return ctx.createBoolean(ok);
             }
@@ -3383,7 +3386,11 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 同范式（createObject + setPropertyInt）。getDamage/getMaxDamage 是 const 只读，owned 拷贝
     // （Equippable.getEquipment）与非 owned 快照（Container.getItem）均安全。
     //
-    // TODO: 其他 item componentId（enchantable/food/cooldown 等）按需补全——当前仅 durability 有测试需求。
+    // 目前只分发 minecraft:durability。基岩的 enchantable/food/cooldown 等组件各自是一套
+    // 有方法的组件类（EnchantableComponent 就有 addEnchantment/getEnchantments/canAddEnchantment
+    // 等 8 个方法），需要注册独立脚本类并管理句柄生命周期，不是加一个分支能完成的。
+    // 附魔的读写已由 ItemStack 上的 getEnchantments/addEnchantment 提供（见上文），
+    // 语义等价，因此这里不缺能力，只是未按组件类形态暴露。
     itemStackReg.method(
         "getComponent",
         [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
