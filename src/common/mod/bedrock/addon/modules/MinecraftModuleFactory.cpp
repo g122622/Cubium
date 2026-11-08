@@ -42,12 +42,14 @@
 #include "common/entity/core/MobEntity.hpp"     // MobEntity（setEquipmentDropChance，EquippableComponent 装备掉落概率）
 #include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect/getEffects 返回效果实例）
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
-#include "common/entity/entities/monster/basic/CreeperEntity.hpp"   // CreeperEntity（is_charged 组件判定 isPowered）
+#include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
+#include "common/entity/entities/monster/end/ShulkerEntity.hpp"   // ShulkerEntity（color 组件：ShulkerColor→DyeColor）
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（variant 组件判定哞菇红/棕变种）
 #include "common/entity/entities/passive/basic/SheepEntity.hpp" // SheepEntity（color 组件判定羊毛颜色 DyeColor 0-15）
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp" // AbstractChestedHorseEntity（is_chested 组件判定驴/骡/行商羊驼箱子状态，hasChest）
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // AbstractHorseEntity（is_saddled 组件判定马类鞍状态，马类不实现 IRideable 但有 hasSaddle）
+#include "common/entity/entities/passive/horse/LlamaEntity.hpp" // LlamaEntity（color 组件：LlamaColor→DyeColor）
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp" // TameableEntity（is_tamed 组件判定驯服状态，狼/猫/鹦鹉等驯服类基类）
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp" // GlowSquidEntity（glow_squid_dark_ticks 组件判定受惊暗化剩余 tick）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
@@ -76,6 +78,7 @@
 #include "common/scoreboard/core/TeamEnums.hpp" // teamVisibilityToString/teamCollisionRuleToString（Team 属性字符串化）
 #include "common/util/AxisAlignedBB.hpp"        // Dimension.getEntities 构造查询包围盒
 #include "common/util/Direction.hpp"            // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
+#include "common/util/color/DyeColor.hpp"       // DyeColor（color 组件的 PaletteColor 数值）
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/TextStyle.hpp"             // text::toName(TextFormatting)（Team.color 字符串化）
 #include "common/world/GlobalPos.hpp"                 // GlobalPos（Player.getRespawnConfig 返回的维度+方块位置）
@@ -499,30 +502,43 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     return arr;
                 }
             }
-            // 无 location/volume：退化为全类型遍历（仅按 type 过滤），对齐基岩空 query 语义。
-            // TODO: 无区域约束的全局遍历在大世界性能差，GameTest 小范围场景可接受；生产侧慎用。
-            if (hasType) {
-                auto entities = world->getEntitiesByType(normalizedType);
-                void* arr = ctx.createArray();
-                u32 outIdx = 0;
-                const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
-                void* entProto = ctx.classRegistry().proto(entClassId);
-                for (auto* ent : entities) {
-                    if (ent == nullptr || entProto == nullptr) {
-                        continue;
-                    }
-
-                    void* jsEnt =
-                        ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
-                    ctx.setArrayElement(arr, outIdx, jsEnt);
-                    ctx.releaseValue(jsEnt);
-                    ++outIdx;
+            // 无 location/volume：退化为"该维度内全部实体"（仅按 type 过滤，若有）。
+            // 对齐基岩 EntityQueryOptions：location/volume 都是可选字段，都不给时查询的是整维度的
+            // 实体集合，而不是空集合。
+            //
+            // 注意这里的遍历范围：用覆盖整个世界的 AABB 走空间索引（getEntitiesInAABB），
+            // 而不是把水平范围写成任意大数。水平方向取到 f32 的安全上界附近没有意义——世界
+            // 边界由 build height 约束，水平也是有限世界，但项目里没有"世界水平半径"常量，
+            // 因此这里用一个足以覆盖任何实际存档的固定半径，并在注释里标明这是遍历范围而非语义约束。
+            constexpr f32 kQueryAllHorizontalRadius = 3.0e7f; // 与基岩"世界边界"量级一致（±30M）
+            const mc::AxisAlignedBB worldBox(-kQueryAllHorizontalRadius,
+                static_cast<f32>(mc::world::MIN_BUILD_HEIGHT),
+                -kQueryAllHorizontalRadius,
+                kQueryAllHorizontalRadius,
+                static_cast<f32>(mc::world::MAX_BUILD_HEIGHT),
+                kQueryAllHorizontalRadius);
+            auto entities = world->getEntitiesInAABB(worldBox, nullptr);
+            void* arr = ctx.createArray();
+            u32 outIdx = 0;
+            const u64 entClassId = ctx.classRegistry().classIdByName("Entity");
+            void* entProto = ctx.classRegistry().proto(entClassId);
+            for (auto* ent : entities) {
+                if (ent == nullptr || entProto == nullptr) {
+                    continue;
                 }
 
-                return arr;
+                if (hasType && ent->getTypeId() != normalizedType) {
+                    continue;
+                }
+
+                void* jsEnt =
+                    ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
+                ctx.setArrayElement(arr, outIdx, jsEnt);
+                ctx.releaseValue(jsEnt);
+                ++outIdx;
             }
 
-            return ctx.createArray();
+            return arr;
         },
         1);
 
@@ -1544,7 +1560,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
 
                 if (normalized == "minecraft:health" || normalized == "minecraft:movement") {
-                    // TODO: 已经交给脚本的组件引用也需在所属组件被移除时失效。
+                    // 组件存在于实体上时才返回组件对象；否则 undefined（对齐基岩"组件不存在返 undefined"）。
+                    // 注意这只保证"取的时候"正确：getComponent 返回的对象与实体同寿命（登记在同一
+                    // entityId 上，实体销毁时 invalidateAll 一并置空防 UAF），但**不跟组件本身的
+                    // 增删**——脚本先拿到 HealthComponent，随后行为包移除该组件，旧引用仍然可用并
+                    // 继续读到属性。
+                    //
+                    // TODO(component-invalidation): 基岩侧该引用会随之失效。要支持需要让
+                    //   ScriptHandleRegistry 从"按实体地址失效"扩展出"按 (实体, 组件 id) 失效"的
+                    //   维度（当前 registerHandle/invalidateAll 只有实体一个键），并在组件移除路径上
+                    //   触发。属于脚本绑定生命周期机制的扩展，不是本处能单点补齐的。
                     const auto* components = ent->tryGetComponent<AddonEntityComponents>();
                     if (components != nullptr && !components->has(normalized)) {
                         return ctx.createUndefined();
@@ -1701,17 +1726,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 // 对齐基岩 EntityColorComponent（componentId="minecraft:color"）：
                 // "Defines the entity's color. Only works on certain entities that have predefined color
                 // values (e.g. sheep, llama, shulker)"，value 为 PaletteColor 0-15（与 DyeColor 数值一致）。
-                // 此处先覆盖 SheepEntity（羊毛颜色经 getFleeceColor 返回 DyeColor 0-15）。羊驼 LlamaColor
-                // (0-3)/潜影贝 ShulkerColor 枚举与 PaletteColor 数值不统一，留 TODO 按需补全。
-                // 非羊返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
-                auto* sheep = dynamic_cast<mc::SheepEntity*>(ent);
-                if (sheep == nullptr) {
+                // 三个实体的枚举数值互不相同，下面各自换算成 DyeColor 数值后再暴露：
+                //   - 羊：getFleeceColor() 直接返回 DyeColor（0-15），原样使用；
+                //   - 羊驼：LlamaColor 是 0-3 的自有序号（Creamy/White/Brown/Gray），不是 PaletteColor；
+                //   - 潜影贝：ShulkerColor 也是自有序号且首项是 Purple=0（PaletteColor 的 Purple 是 10）。
+                // 非这三类返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                if (dynamic_cast<mc::SheepEntity*>(ent) == nullptr && dynamic_cast<mc::LlamaEntity*>(ent) == nullptr &&
+                    dynamic_cast<mc::ShulkerEntity*>(ent) == nullptr) {
                     return ctx.createUndefined();
                 }
 
                 return wrapComponent("ColorComponent");
             }
-            // TODO: 其他基岩合法 componentId（is_baby/lava_movement 等标记/属性族，羊驼/潜影贝 color）按需补全。
+            // TODO: 其他基岩合法 componentId（is_baby / lava_movement 等标记或属性族）按需补全。
+            // color 已覆盖羊/羊驼/潜影贝（见上方 minecraft:color 分支）。
             return ctx.createUndefined();
         },
         1);
@@ -1893,10 +1921,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 无 property/method：组件对象存在即 chested（与基岩 EntityIsChestedComponent 一致）。
 
     // --- ColorComponent类（minecraft:color，承载实体颜色）---
-    // opaque 持 mc::Entity*。对齐基岩 EntityColorComponent：value 为 PaletteColor 0-15（与 DyeColor 数值
-    // 一致）。getComponent 已按 SheepEntity 过滤，此处 dynamic_cast 现取羊毛颜色。readonly value：i32
-    // 0-15（DyeColor 枚举底层数值，White=0..Black=15）。供集成测试断言唤魔者 Wololo 变色（蓝11→红14）、
-    // 染料染色等链路。羊驼/潜影贝颜色枚举不统一留 TODO。
+    // opaque 持 mc::Entity*。对齐基岩 EntityColorComponent：value 为 PaletteColor 0-16（与 DyeColor
+    // 数值一致）。readonly value：i32（DyeColor 枚举底层数值，White=0..Black=15）。
+    // 三种实体各自的枚举都换算成 DyeColor 数值：羊直接取 DyeColor；羊驼 LlamaColor（Creamy/White/
+    // Brown/Gray）与潜影贝 ShulkerColor 都是各自的自有序号，需查表，不能直接 static_cast
+    // （否则羊驼的 Creamy(0) 会被读成 DyeColor::White(0)，潜影贝默认 Purple(0) 会被读成 White）。
+    // 供集成测试断言唤魔者 Wololo 变色（蓝11→红14）、染料染色、潜影贝颜色等链路。
     u64 colorClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* colorProto = builder.exportClass("ColorComponent", colorClassId);
     ctx.classRegistry().registerClass(colorClassId, colorProto, "ColorComponent");
@@ -1904,12 +1934,103 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ClassRegistrar<void> colorReg(ctx, colorClassId, colorProto);
     colorReg.readonlyProperty("value", [colorClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, colorClassId));
-        auto* sheep = dynamic_cast<mc::SheepEntity*>(ent);
-        if (sheep == nullptr) {
-            return ctx.createUndefined();
+
+        // 羊：getFleeceColor 已是 DyeColor，static_cast 取底层数值即 PaletteColor。
+        if (auto* sheep = dynamic_cast<mc::SheepEntity*>(ent); sheep != nullptr) {
+            return ctx.createInt32(static_cast<i32>(sheep->getFleeceColor()));
         }
-        // DyeColor : u8，static_cast 取枚举底层数值（0-15，与基岩 PaletteColor 一致）。
-        return ctx.createInt32(static_cast<i32>(sheep->getFleeceColor()));
+
+        // 羊驼：LlamaColor 序号 → DyeColor。Creamy 对应白色系（原版羊驼无奶油色染料对应，
+        // 取 White），White 对应 White，Brown 对应 Brown，Gray 对应 Gray。
+        if (auto* llama = dynamic_cast<mc::LlamaEntity*>(ent); llama != nullptr) {
+            i32 palette = 0;
+            switch (llama->getColor()) {
+                case mc::LlamaEntity::LlamaColor::Creamy:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+                case mc::LlamaEntity::LlamaColor::White:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+                case mc::LlamaEntity::LlamaColor::Brown:
+                    palette = static_cast<i32>(mc::DyeColor::Brown);
+                    break;
+                case mc::LlamaEntity::LlamaColor::Gray:
+                    palette = static_cast<i32>(mc::DyeColor::Gray);
+                    break;
+                default:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+            }
+
+            return ctx.createInt32(palette);
+        }
+
+        // 潜影贝：ShulkerColor 序号 → DyeColor。其枚举首项是 Purple=0（与 PaletteColor 的
+        // Purple=10 完全不同），必须按名字逐个映射，不能靠偏移。
+        if (auto* shulker = dynamic_cast<mc::ShulkerEntity*>(ent); shulker != nullptr) {
+            i32 palette = 0;
+            switch (shulker->getColor()) {
+                case mc::ShulkerEntity::ShulkerColor::Purple:
+                    palette = static_cast<i32>(mc::DyeColor::Purple);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::White:
+                    palette = static_cast<i32>(mc::DyeColor::White);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Orange:
+                    palette = static_cast<i32>(mc::DyeColor::Orange);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Magenta:
+                    palette = static_cast<i32>(mc::DyeColor::Magenta);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::LightBlue:
+                    palette = static_cast<i32>(mc::DyeColor::LightBlue);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Yellow:
+                    palette = static_cast<i32>(mc::DyeColor::Yellow);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Lime:
+                    palette = static_cast<i32>(mc::DyeColor::Lime);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Pink:
+                    palette = static_cast<i32>(mc::DyeColor::Pink);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Gray:
+                    palette = static_cast<i32>(mc::DyeColor::Gray);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::LightGray:
+                    palette = static_cast<i32>(mc::DyeColor::LightGray);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Cyan:
+                    palette = static_cast<i32>(mc::DyeColor::Cyan);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Purple2:
+                    // ShulkerColor 的 Purple2 是"另一种紫"，原版对应 PaletteColor 的 Purple（10）。
+                    palette = static_cast<i32>(mc::DyeColor::Purple);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Blue:
+                    palette = static_cast<i32>(mc::DyeColor::Blue);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Brown:
+                    palette = static_cast<i32>(mc::DyeColor::Brown);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Green:
+                    palette = static_cast<i32>(mc::DyeColor::Green);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Red:
+                    palette = static_cast<i32>(mc::DyeColor::Red);
+                    break;
+                case mc::ShulkerEntity::ShulkerColor::Black:
+                    palette = static_cast<i32>(mc::DyeColor::Black);
+                    break;
+                default:
+                    palette = static_cast<i32>(mc::DyeColor::Purple);
+                    break;
+            }
+
+            return ctx.createInt32(palette);
+        }
+
+        return ctx.createUndefined();
     });
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
@@ -3209,8 +3330,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createInt32(stack->getCount());
         },
         [](IScriptBindingContext& ctx, void* thisVal, void* value) {
-            // amount setter：设数量（setCount 内部 <=0 置空）。仅当 owned（Equippable.getEquipment 拷贝）
-            // 时安全写回；非拥有快照写入会被 C++ 侧覆盖，故非拥有时静默忽略留 TODO。
+            // amount setter：设数量（setCount 内部 <=0 置空）。
+            // 非拥有快照（如 Container.getItem 返回的副本）改它没有意义——下次读取会重新从
+            // 权威槽拷一份，写入被静默丢弃。
+            //
+            // TODO(snapshot-writeback): 目前对非拥有快照也照常写入，只是写到了即将被丢弃的副本上。
+            //   理想行为是"非拥有时抛错，提示调用方改用容器/装备槽的写接口"，但这需要绑定层能查询
+            //   当前句柄是否 owned：ScriptObjectRegistry 只有 wrap(...owned...) 的写入方向，
+            //   ScriptHandleRegistry 也只维护 ptr 失效、不暴露 owned 标志，IScriptBindingContext
+            //   同样没有对应查询。因此这一步要先把 owned 状态在句柄上可读，属于脚本绑定底层改动，
+            //   不是本处能单点补齐的。在此之前保持静默写入（不报假错），避免误伤 owned 路径。
             auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
             if (stack == nullptr) {
                 return;
@@ -3307,9 +3436,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // EnchantmentTypeUnknownIdError），避免写入未注册的垃圾附魔 id。校验通过后调
     // ItemStack::addEnchantment(id, level) 写入附魔容器（EnchantmentContainer::set，同 id 覆盖等级）。
     //
-    // 注意：基岩 addEnchantment 会做附魔兼容性校验（canAddEnchantment，与现有附魔冲突时抛
-    // EnchantmentTypeNotCompatibleError），Cubium 未接入兼容性校验（火焰保护/水下呼吸等保护类互相兼容，
-    // 测试场景不触发冲突；TODO: 需要时接入 Enchantment::checkCompatibility）。
+    // 兼容性校验：与已有附魔冲突时抛错（对齐基岩 EnchantmentTypeNotCompatibleError），
+    // 判据复用 Enchantment::isCompatibleWith，与铁砧合并附魔同源。
     itemStackReg.method(
         "addEnchantment",
         [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -3366,6 +3494,25 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     " exceeds max level " + std::to_string(ench->maxLevel()) + " for '" + typeId + "'";
 
                 return ctx.throwTypeError(msg.c_str());
+            }
+
+            // 兼容性校验（对齐基岩 EnchantableComponent.addEnchantment 的 canAddEnchantment）：
+            // 与已有附魔冲突时抛错（对应 EnchantmentTypeNotCompatibleError）。判据是
+            // Enchantment::isCompatibleWith —— 与铁砧 AnvilContainer 合并附魔用的是同一个方法，
+            // 因此脚本路径与铁砧路径的兼容性规则不会分叉。
+            for (const auto& [existing, existingLevel] :
+                mc::item::enchant::EnchantmentHelper::getEnchantments(*stack)) {
+                MC_UNUSED(existingLevel);
+                if (existing == nullptr || existing == ench) {
+                    continue;
+                }
+
+                if (!ench->isCompatibleWith(*existing)) {
+                    const std::string msg = "ItemStack.addEnchantment: '" + typeId +
+                        "' is not compatible with existing enchantment '" + existing->id() + "'";
+
+                    return ctx.throwTypeError(msg.c_str());
+                }
             }
 
             stack->addEnchantment(typeId, level);

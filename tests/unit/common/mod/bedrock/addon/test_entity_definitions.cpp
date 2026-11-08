@@ -150,6 +150,24 @@ TEST_F(AddonEntityDefinitionTest, DataOnlyPackInstallsPropertiesDimensionsAndPhy
     EXPECT_EQ(actor->entityType()->name(), "addon_test:actor");
 }
 
+// description.is_spawnable 此前只校验类型就丢弃，运行时读不到。现在必须如实保存：
+// 缺省为 false，显式 true 时为 true，且与 is_summonable 相互独立。
+TEST_F(AddonEntityDefinitionTest, SpawnableAndSummonableFlagsAreParsedIndependently)
+{
+    auto neither = AddonEntityDefinition::parse(_definition("addon_test:neither"));
+    ASSERT_TRUE(neither.success()) << neither.error().message();
+    EXPECT_FALSE(neither.value().canSpawn());
+    EXPECT_TRUE(neither.value().canSummon()) << "fixture sets is_summonable=true";
+
+    auto spawnOnly = _definition("addon_test:spawn_only");
+    spawnOnly["minecraft:entity"]["description"]["is_spawnable"] = true;
+    spawnOnly["minecraft:entity"]["description"]["is_summonable"] = false;
+    auto parsed = AddonEntityDefinition::parse(spawnOnly);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+    EXPECT_TRUE(parsed.value().canSpawn());
+    EXPECT_FALSE(parsed.value().canSummon());
+}
+
 TEST_F(AddonEntityDefinitionTest, LivingComponentsInitializeHealthAndMovement)
 {
     const auto directory = pack("living", _PACK, std::nullopt);
@@ -295,12 +313,48 @@ TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplic
     result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
-    definition = _definition("addon_test:unsupported");
+}
+
+// 组件数值的三种合法写法都要接受：字面数字、范围对象（range_min/range_max）、Molang 表达式。
+// 基岩 minecraft:health 等组件的 value/max 均支持后两种形式，缺了它们合法行为包会被挡在门外。
+TEST_F(AddonEntityDefinitionTest, RangeObjectAndMolangComponentValuesAreAccepted)
+{
+    auto definition = _definition("addon_test:value_forms");
     definition["minecraft:entity"]["components"]["minecraft:health"] = {
-        {"value", {{"range_min", 10}, {"range_max", 20}}}};
-    result = AddonEntityDefinition::parse(definition);
-    ASSERT_TRUE(result.failed());
-    EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
+        {"max", {{"range_min", 40}, {"range_max", 60}}}, {"value", {{"range_max", 30}}}};
+    definition["minecraft:entity"]["components"]["minecraft:movement"] = {{"value", "math.random(0.1, 0.3)"}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(definition).success());
+}
+
+// 范围对象本身写错时必须报 InvalidData，而不是静默接受：
+// 未知字段、非数字边界、缺两个边界、range_min > range_max 都要拒绝。
+TEST_F(AddonEntityDefinitionTest, MalformedRangeObjectsAreRejected)
+{
+    std::vector<nlohmann::json> invalid;
+    auto base = _definition("addon_test:bad_range");
+
+    auto broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {
+        {"value", {{"range_min", 10}, {"range_max", 20}, {"x", 1}}}};
+    invalid.push_back(broken);
+
+    broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {{"value", {{"range_min", "ten"}}}};
+    invalid.push_back(broken);
+
+    broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {{"value", nlohmann::json::object()}};
+    invalid.push_back(broken);
+
+    broken = base;
+    broken["minecraft:entity"]["components"]["minecraft:health"] = {{"value", {{"range_min", 20}, {"range_max", 10}}}};
+    invalid.push_back(broken);
+
+    for (const auto& document : invalid) {
+        const auto result = AddonEntityDefinition::parse(document);
+        ASSERT_TRUE(result.failed());
+        EXPECT_EQ(result.error().code(), mc::ErrorCode::InvalidData) << result.error().message();
+    }
 }
 
 TEST_F(AddonEntityDefinitionTest, MalformedSchemasAndComponentValuesAreRejected)

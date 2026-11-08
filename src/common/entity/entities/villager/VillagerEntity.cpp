@@ -1308,64 +1308,18 @@ void VillagerEntity::stopSleeping()
         return;
     }
 
-    // 如果有睡眠位置，根据床的朝向计算唤醒位置
-    if (m_sleepingPos.has_value() && m_world) {
-        BlockPos bedPos = m_sleepingPos.value();
-        const BlockState* bedState = m_world->getBlockState(bedPos);
-
-        // 在 setBlockState 之前提取所需属性值，避免悬挂指针
-        bool hasOccupied = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED()));
-        bool hasFacing = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING()));
-        Direction bedFacing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
-
-        // 清除床的占用状态
-        if (hasOccupied) {
-            BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
-            m_world->setBlockState(bedPos, &newBedState, world::BlockUpdateFlags::UPDATE_ALL);
-        }
-
-        // 使用床的朝向计算起床位置
-        if (hasFacing) {
-            const auto standUp = blocks::BedBlock::findStandUpPosition(*m_world,
-                bedPos,
-                bedFacing,
-                yaw(),
-                static_cast<f32>(width()),
-                static_cast<f32>(height()),
-                false,
-                false);
-            if (!standUp.has_value()) {
-                return;
-            }
-            const Vector3& wakePos = *standUp;
-
-            // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
-            Vector3d bedCenter(bedPos.x + 0.5, bedPos.y, bedPos.z + 0.5);
-            Vector3d dirToBed = bedCenter - Vector3d(wakePos.x, wakePos.y, wakePos.z);
-            f32 dirLen = std::sqrt(dirToBed.x * dirToBed.x + dirToBed.z * dirToBed.z);
-            if (dirLen > 0.001) {
-                dirToBed.x /= dirLen;
-                dirToBed.z /= dirLen;
-                f32 yawDeg = static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f;
-                yawDeg = math::wrapDegrees(yawDeg);
-                setRotation(yawDeg, 0.0f);
-            }
-
-            setPosition(wakePos.x, wakePos.y, wakePos.z);
-        } else {
-            // 回退：床头正上方
-            BlockPos aboveBed = bedPos.up();
-            setPosition(aboveBed.x + 0.5, aboveBed.y + 0.1, aboveBed.z + 0.5);
-        }
+    // 通用部分（清除睡眠位置、回站立姿态、复位床 OCCUPIED、寻床边落脚点并转身）由基类完成。
+    // 基类读的是 DATA_SLEEPING_POS_PARAM，而村民的睡眠位置另有 m_sleepingPos 镜像，
+    // 因此这里先把它同步给数据参数，再交给基类，避免基类读不到位置而跳过床侧收尾。
+    if (m_sleepingPos.has_value()) {
+        const BlockPos& bedPos = m_sleepingPos.value();
+        m_dataManager.set(
+            DATA_SLEEPING_POS_PARAM, entity::OptionalBlockPosValue{true, Vector3i(bedPos.x, bedPos.y, bedPos.z)});
     }
+    LivingEntity::stopSleeping();
 
-    // 恢复站立姿态
-    setPose(EntityPose::Standing);
-
-    // 清除睡眠位置
+    // 村民特有：清除自身镜像并记录醒来时刻到 Brain。
     m_sleepingPos = std::nullopt;
-
-    // 记录上次醒来时间到Brain记忆
     if (m_brain && m_world) {
         m_brain->setMemory(ai::brain::memory::MemoryModuleTypes::LAST_WOKEN, static_cast<i64>(m_world->currentTick()));
     }

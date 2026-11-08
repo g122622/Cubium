@@ -30,6 +30,7 @@
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/timer/EntityTimerState.hpp"
+#include "common/mod/bedrock/addon/content/molang/MolangExpression.hpp" // _number：组件数值的 Molang 形式
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include <spdlog/spdlog.h>
@@ -63,12 +64,58 @@ Result<void> _number(const nlohmann::json& value, const char* field, double mini
     if (found == value.end()) {
         return Result<void>::ok();
     }
-    if (!found->is_number()) {
-        // TODO: 支持组件数值的范围对象和 Molang 表达式。
-        return Error(ErrorCode::Unsupported, std::string("Entity component requires a literal number: ") + field);
+
+    // 基岩允许三种写法，加载期都要接受：
+    //   1) 字面数字：          "value": 20
+    //   2) 范围对象：          "value": { "range_min": 10, "range_max": 20 }（实体实例化时在区间取值）
+    //   3) Molang 表达式字符串："value": "math.random(10, 20)"
+    // 后两种此前一律被以 Unsupported 拒绝，等于把合法行为包挡在门外。
+    double resolvedMin = 0.0;
+    double resolvedMax = 0.0;
+
+    if (found->is_number()) {
+        resolvedMin = resolvedMax = found->get<double>();
+    } else if (found->is_object()) {
+        // 范围对象只认 range_min / range_max；其他键说明作者写错了字段名，直接报错而不是忽略。
+        for (const auto& [key, member] : found->items()) {
+            if (key != "range_min" && key != "range_max") {
+                return Error(ErrorCode::InvalidData, std::string("Unsupported range object field: ") + key);
+            }
+
+            if (!member.is_number()) {
+                return Error(ErrorCode::InvalidData,
+                    std::string("Entity component range bound must be a literal number: ") + field);
+            }
+        }
+
+        const auto minIt = found->find("range_min");
+        const auto maxIt = found->find("range_max");
+        if (minIt == found->end() && maxIt == found->end()) {
+            return Error(ErrorCode::InvalidData,
+                std::string("Entity component range object requires range_min or range_max: ") + field);
+        }
+
+        resolvedMin = minIt != found->end() ? minIt->get<double>() : maxIt->get<double>();
+        resolvedMax = maxIt != found->end() ? maxIt->get<double>() : resolvedMin;
+        if (resolvedMin > resolvedMax) {
+            return Error(ErrorCode::InvalidData, std::string("Entity component range_min exceeds range_max: ") + field);
+        }
+    } else if (found->is_string()) {
+        // Molang：加载期只校验能编译，取值推迟到实体实例化（此时没有查询上下文可代入）。
+        const std::string expression = found->get<std::string>();
+        if (auto compiled = MolangExpression::compile(expression); !compiled.success()) {
+            return Error(ErrorCode::InvalidData,
+                std::string("Invalid Molang expression for ") + field + ": " + compiled.error().message());
+        }
+
+        // Molang 结果无法在加载期静态确定，跳过范围校验——范围在求值后才可知。
+        return Result<void>::ok();
+    } else {
+        return Error(ErrorCode::InvalidData,
+            std::string("Entity component field must be a number, range object or Molang string: ") + field);
     }
-    const double number = found->get<double>();
-    if (!std::isfinite(number) || number < minimum || number > maximum) {
+
+    if (!std::isfinite(resolvedMin) || !std::isfinite(resolvedMax) || resolvedMin < minimum || resolvedMax > maximum) {
         return Error(ErrorCode::InvalidData, std::string("Entity component number is out of range: ") + field);
     }
     return Result<void>::ok();
@@ -233,6 +280,9 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     result.m_document = document;
     result.m_identifier = id;
     result.m_canSummon = description.value("is_summonable", false);
+    // is_spawnable 此前只校验了类型就丢弃，导致该字段对运行时毫无影响。
+    // 保存下来供自然生成/刷怪蛋逻辑判断；真正生成刷怪蛋仍是 TODO（见 _initialize）。
+    result.m_canSpawn = description.value("is_spawnable", false);
     auto properties = EntityPropertyDefinitions::compile(description.value("properties", nlohmann::json::object()));
     if (properties.failed()) {
         return properties.error();
@@ -417,6 +467,7 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
     MC_TRY(entity.getOrAddComponent<EntityAddonState>().defineProperties(definitions.value()));
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
+    //   is_spawnable 本身已保存（见 canSpawn()），缺的是刷怪蛋物品注册与生成规则挂接。
     return Result<void>::ok();
 }
 
@@ -443,6 +494,11 @@ f32 AddonEntityDefinition::height() const
 bool AddonEntityDefinition::canSummon() const
 {
     return m_canSummon;
+}
+
+bool AddonEntityDefinition::canSpawn() const
+{
+    return m_canSpawn;
 }
 
 bool AddonEntityDefinition::fireImmune() const

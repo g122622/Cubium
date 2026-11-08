@@ -55,7 +55,12 @@ namespace {
 //   upside_down_bit: 0=bottom,1=top
 // 映射到 Java stairs 的 facing(east/west/south/north) + half(bottom/top)。
 // 未识别的方块名或缺失 data 时返回空字符串（退化为按方块类型过滤）。
-// TODO: 仅覆盖 stairs；按钮/活板门/原木等方块的 data 语义需逐类补全。
+// TODO: 仅覆盖 stairs。扩展需要基岩各方块的 data 位定义，而本项目与手头的逆向头文件
+//   （LeviLamina）里都没有这些定义（检索 weirdo_direction / upside_down_bit / open_bit /
+//   button_pressed_bit 均无结果），wiki 也没有逐方块的位表。已确认楼梯用的是
+//   "0-3 方向 + bit2 上下"，但活板门/按钮/原木的位布局无法从这里推断——活板门还要编码
+//   open_bit、按钮要编码 button_pressed_bit，位位置靠猜会静默产出错误的方块状态。
+//   因此保留"未识别即返回空串（退化为按方块类型过滤）"这一安全回退，等有权威 data 位表再补。
 std::string bedrockCloneFilterDataToJavaProps(const std::string& blockTok, const std::string& dataTok)
 {
     if (dataTok.empty()) {
@@ -306,10 +311,17 @@ void CommandBlockEntity::tick(IWorld& world)
 {
     // 注意：命令方块的实际执行由 CommandBlock::tick（计划刻）承担，与 vanilla 一致
     // （vanilla CommandBlockEntity 没有每 tick tick() 覆写）。此处保留的实体级 tick
-    // 仅服务于项目内按 tick 驱动实体的路径，因此只刷新条件状态，不重复执行命令，
-    // 避免与计划刻路径双重执行（trigger 的 lastExecution 守卫在二者同刻时才会拦截）。
-    // TODO(entity-tick-parity): 确认命令方块实体无需每 tick tick 后，删除 needsTick/tick
-    //   覆写（CommandBlock.needsTick 恒为 false 时本方法不会被项目驱动调用）。
+    // 仅服务于项目内按 tick 驱动实体的路径（ServerWorld 按 needsTick() 调用），
+    // 因此只刷新条件状态，不重复执行命令，避免与计划刻路径双重执行
+    // （trigger 的 lastExecution 守卫在二者同刻时才会拦截）。
+    //
+    // TODO(entity-tick-parity): 本方法唯一的工作是 markConditionMet，而 CommandBlock::tick
+    //   每次计划刻也会刷新同一份缓存；markConditionMet 幂等且无副作用，所以实体 tick 目前
+    //   是冗余计算，理论上可删掉 tick/needsTick 覆写（让 needsTick 恒 false）。
+    //   未直接删除的原因：CommandBlockEntityModeBehaviorTest.AutoMode_NeedsTick 与
+    //   CommandBlockEntityModeTest.Create_AutoMode_HasCorrectMode 两条用例显式断言
+    //   Auto 模式 needsTick()==true，按"测试即契约"不能单方面改实现让它们失败。
+    //   若要收敛，应先判断这两条用例锁定的是行为契约还是实现细节，再一并调整。
     if (m_mode == CommandBlockMode::Auto) {
         markConditionMet(world);
     }
@@ -571,8 +583,8 @@ bool CommandBlockEntity::trigger(IWorld& world)
     // 附加到方块名（如 stairs 的 data=3 → [facing=north,half=bottom]），使 filtered clone 能按
     // 朝向等属性精确过滤（vanilla Java clone filtered 仅按 filter 显式属性匹配）。
     // 仅处理 "filtered <mode> <block> [<data>]" 模式（mode ∈ normal|force|move）。
-    // TODO: 基岩命令体系完整支持后，此适配可移除；data→props 映射目前仅覆盖 stairs，其他方块
-    // （如按钮/活板门）的 data 语义需逐类补全。
+    // TODO: 基岩命令体系完整支持后，此适配可移除。data→props 映射目前仅覆盖 stairs，
+    //   其余方块的位布局缺口与原因见 bedrockCloneFilterDataToJavaProps 上方的说明。
     std::string cmdToRun = m_command;
     {
         const std::string marker = " filtered ";
