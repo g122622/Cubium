@@ -2587,7 +2587,27 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 根据是否在地面选择不同的移动因子
     f32 moveFactor;
-    if (m_builtIn.physicsState->m_onGround) {
+    // 液体中的移动输入因子。vanilla 在 travelInWater/travelInLava 里给的是独立的常量 0.02，
+    // 而不是空中的 m_jumpMovementFactor；两者虽然量级接近，但水中还叠加了深海探索者的插值。
+    // 这一步只算"输入被放大多少"，速度衰减（WaterSlowDown）仍由下方的阻力分支处理。
+    const bool inWater = isInWater();
+    const bool inLava = !inWater && isInLava();
+    if (inWater) {
+        // f1 = 0.02；f2 = WATER_MOVEMENT_EFFICIENCY（不在地面时减半）
+        //   f1 += (getSpeed() - f1) * f2
+        moveFactor = physics::SWIM_SPEED_BASE;
+        f32 waterMovementEfficiency =
+            static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
+        if (!m_builtIn.physicsState->m_onGround) {
+            waterMovementEfficiency *= 0.5f;
+        }
+        if (waterMovementEfficiency > 0.0f) {
+            moveFactor += (moveSpeed - moveFactor) * waterMovementEfficiency;
+        }
+    } else if (inLava) {
+        // 岩浆没有深海探索者等价物，输入速度就是常量 0.02。
+        moveFactor = physics::SWIM_SPEED_BASE;
+    } else if (m_builtIn.physicsState->m_onGround) {
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
 
@@ -2722,9 +2742,8 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
         // 水中移动效率（深海探索者）：对齐 vanilla LivingEntity.travelInWater
         // 用属性值在「当前阻力」与「陆地上限 0.54600006」之间线性插值。
-        // TODO: 原版还会把输入速度（0.02）向 getSpeed() 插值，本函数只处理速度衰减，
-        // 移动输入在 Player::_handleWaterMovement 里单独算，非玩家生物的水中水平输入
-        // 尚未接入同一套插值（属于独立的「生物水中移动」缺口，不在本次附魔对齐范围内）。
+        // 输入速度那一路的插值（f1 += (getSpeed() - f1) * f2）在函数上半段计算 moveFactor 时
+        // 已经做过，此处只负责速度衰减这一半，两处共用同一个属性值。
         f32 waterMovementEfficiency =
             static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
         if (!m_builtIn.physicsState->m_onGround) {

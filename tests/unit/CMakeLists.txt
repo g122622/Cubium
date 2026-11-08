@@ -1617,6 +1617,7 @@ add_executable(mc_tests
     common/entity/player/SleepManagerTest.cpp
     # 玩家移动测试
     common/entity/PlayerMovementTest.cpp
+    common/entity/test_water_movement.cpp
     # Assert 库测试
     common/util/assert/AssertTest.cpp
     # UniversalWorkerPool 测试
