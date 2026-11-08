@@ -17,7 +17,7 @@
 最近已完成构建验收的运行：
 [42456395241](https://github.com/g122622/Cubium/actions/runs/42456395241)，提交 `cc1f4d44d`。
 本轮已通过 prepare 的 7 项执行器回归测试，以及三个编译池的构建、真实 launcher 和冷暖探针。
-单测分片及最终覆盖率报告仍在等待后台监控唤醒后验收。
+20 个单测分片已全部完成，恢复逻辑及 shard 6 的失败归属已验收；最终全局覆盖率报告仍待整轮结束。
 
 | 指标 | 旧运行 42452181845 | 运行 42453916366 | 本轮 42456395241 |
 |---|---:|---:|---:|
@@ -89,8 +89,8 @@ ASan/UBSan 下初始化约 12.6 秒，runner 上端到端开销更高。旧分�
 遗留长尾集中于 shard 6：
 
 - `GlazedTerracottaBlockTest.PistonLandingAppliesRotation`：SIGABRT；
-- `ServerChunkManagerTest.ConcurrentGenerateAndUnloadRace`：watchdog 卡死；
-- `StructureReferencesRaceTest.MovePlayerAndGenerate_RaceRepro`：watchdog 卡死。
+- `ServerChunkManagerTest.ConcurrentGenerateAndUnloadRace`：watchdog 检出 holder 泄漏并 abort；
+- `StructureReferencesRaceTest.MovePlayerAndGenerate_RaceRepro`：watchdog 检出 promise 泄漏并 abort。
 
 旧实现只有进程结束后的 XML；崩溃时反复二分，超时时整批展开为单例，
 会重复初始化大量已经完成或尚未开始的用例。将批次超时降至 300 秒仍不能解决这一点。
@@ -103,13 +103,38 @@ ASan/UBSan 下初始化约 12.6 秒，runner 上端到端开销更高。旧分�
 - 无可用进度时保留二分/单例恢复；单例直接使用 test timeout，不重复复核已隔离失败。
 - 在 nightly 的 prepare 阶段验证恢复逻辑，包括崩溃、超时、参数化名、跳过、完整输出和 XML 优先级。
 
-**以上恢复改动尚待 CI 验收。** 不修改实际失败用例；与 CI 性能无关的存量失败另行处理。
+**恢复改动已通过本轮 CI 验收。** 20 片的 `Run unit tests` 步骤耗时范围为 113～448 秒，
+中位数 199.5 秒；除 shard 6 外，其余 19 片均在 261 秒内完成。这里统计步骤墙钟时间，
+不含 job 的产物下载；shard 6 执行器自身测得 446.6 秒，比原批处理长尾 1956 秒缩短约 77.2%。
+
+shard 6 的三次恢复日志：
+
+| 中断用例 | 已完成并恢复的结果 | 未开始、继续批量执行的用例 |
+|---|---:|---:|
+| `GlazedTerracottaBlockTest.PistonLandingAppliesRotation` | 174 | 25 |
+| `StructureReferencesRaceTest.MovePlayerAndGenerate_RaceRepro` | 123 | 76 |
+| `ServerChunkManagerTest.ConcurrentGenerateAndUnloadRace` | 51 | 148 |
+
+三个批次的 600 个用例分为 348 个恢复结果、249 个继续批量执行的用例和 3 个单独复核的
+中断用例，没有整批退化为单例。三个单独复核仍异常退出，JUnit 分别保留在对应 testcase 的
+`error` 节点：GlazedTerracotta 为 ASan `stack-use-after-return`，另外两个为 watchdog abort。
+
+shard 6 的 JUnit 含 1390 条 testcase：1378 通过、6 个断言失败、3 个进程错误、3 个跳过，
+没有丢失中断用例的失败归属。已知批内污染
+`EnderDragonEntityTest.CheckCrystals_HealsEveryTenTicksWhileNotFull` 单跑通过，仍以
+`[BatchPollution]` 记录。job 成功不代表全部用例通过；不扩展调查与 CI 性能无关的存量失败。
+
+本轮证据：job `128658208056` 的恢复日志和执行器摘要，以及
+`pococc-unit-test-results-6/ctest-results.xml`。
+
+20 份 JUnit 合计 27790 条记录：27629 通过、97 个断言失败、12 个进程错误、52 个跳过，
+没有 `test did not run` 占位结果。这是产物统计；最终无遗漏、无重复仍由 CI report 的
+全局编号覆盖校验裁决，不能仅凭 testcase 总数替代覆盖率验证。
 
 ## 后续验收
 
-1. 等待本轮单测监控唤醒，读取 shard 6 的真实耗时、恢复日志及 JUnit 失败归属。
-2. 等待整轮结束，确认报告核验 27790 个 CTest 登记项在 20 片中恰好覆盖一次，性能证据无错误。
-3. 仅将验收文档更新推送至 `diag/shutdown-crash`；文档更新不需要重新触发构建。
+1. 等待整轮结束，确认报告核验 27790 个 CTest 登记项在 20 片中恰好覆盖一次，性能证据无错误。
+2. 仅将验收文档更新推送至 `diag/shutdown-crash`；文档更新不需要重新触发构建。
 
 后台监控 PID 为 `212200`，每两分钟检查一次；仅构建完成、单测全部完成、整轮完成或
 构建失败时通过 `codex queue --resume` 唤醒原会话。
