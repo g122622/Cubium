@@ -3307,9 +3307,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // EnchantmentTypeUnknownIdError），避免写入未注册的垃圾附魔 id。校验通过后调
     // ItemStack::addEnchantment(id, level) 写入附魔容器（EnchantmentContainer::set，同 id 覆盖等级）。
     //
-    // 注意：基岩 addEnchantment 会做附魔兼容性校验（canAddEnchantment，与现有附魔冲突时抛
-    // EnchantmentTypeNotCompatibleError），Cubium 未接入兼容性校验（火焰保护/水下呼吸等保护类互相兼容，
-    // 测试场景不触发冲突；TODO: 需要时接入 Enchantment::checkCompatibility）。
+    // 兼容性校验：与已有附魔冲突时抛错（对齐基岩 EnchantmentTypeNotCompatibleError），
+    // 判据复用 Enchantment::isCompatibleWith，与铁砧合并附魔同源。
     itemStackReg.method(
         "addEnchantment",
         [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -3366,6 +3365,25 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     " exceeds max level " + std::to_string(ench->maxLevel()) + " for '" + typeId + "'";
 
                 return ctx.throwTypeError(msg.c_str());
+            }
+
+            // 兼容性校验（对齐基岩 EnchantableComponent.addEnchantment 的 canAddEnchantment）：
+            // 与已有附魔冲突时抛错（对应 EnchantmentTypeNotCompatibleError）。判据是
+            // Enchantment::isCompatibleWith —— 与铁砧 AnvilContainer 合并附魔用的是同一个方法，
+            // 因此脚本路径与铁砧路径的兼容性规则不会分叉。
+            for (const auto& [existing, existingLevel] :
+                mc::item::enchant::EnchantmentHelper::getEnchantments(*stack)) {
+                MC_UNUSED(existingLevel);
+                if (existing == nullptr || existing == ench) {
+                    continue;
+                }
+
+                if (!ench->isCompatibleWith(*existing)) {
+                    const std::string msg = "ItemStack.addEnchantment: '" + typeId +
+                        "' is not compatible with existing enchantment '" + existing->id() + "'";
+
+                    return ctx.throwTypeError(msg.c_str());
+                }
             }
 
             stack->addEnchantment(typeId, level);

@@ -367,6 +367,35 @@ TEST_F(AddonItemPropertiesBindingTest, AddEnchantmentRejectsLevelsAboveMaxLevel)
     )");
 }
 
+// ItemStack.addEnchantment 的兼容性校验：与已有附魔冲突时必须抛错，且不得改动已写入的附魔。
+// 锋利与亡灵杀手同属 DamageEnchantment（DAMAGE_EXCLUSIVE 组），互相排斥。
+TEST_F(AddonItemPropertiesBindingTest, AddEnchantmentRejectsIncompatibleEnchantment)
+{
+    mc::item::enchant::EnchantmentRegistry::initialize();
+    const auto* sharpness = mc::item::enchant::EnchantmentRegistry::get("minecraft:sharpness");
+    const auto* smite = mc::item::enchant::EnchantmentRegistry::get("minecraft:smite");
+    ASSERT_NE(sharpness, nullptr);
+    ASSERT_NE(smite, nullptr);
+    ASSERT_FALSE(sharpness->isCompatibleWith(*smite)) << "precondition: sharpness and smite must be exclusive";
+
+    // 先写入锋利，再尝试写入亡灵杀手：必须被拒绝。
+    check(*first, R"(
+        subject.addEnchantment({type: 'minecraft:sharpness', level: 1});
+    )");
+    check(*first, R"(
+        let rejected = false;
+        try { subject.addEnchantment({type: 'minecraft:smite', level: 1}); } catch { rejected = true; }
+        if (!rejected) throw Error('incompatible enchantment was accepted');
+    )");
+
+    // 拒绝后已写入的锋利必须原样保留，冲突项不得混入。
+    check(*first, R"(
+        const list = subject.getEnchantments();
+        if (list.length !== 1) throw Error('list changed after rejected write');
+        if (list[0].type !== 'minecraft:sharpness') throw Error('existing enchantment was replaced');
+    )");
+}
+
 // Container.transferItem(fromSlot, toContainer, toSlot)：跨容器搬运，源槽清空、目标槽写入。
 TEST_F(AddonItemPropertiesBindingTest, TransferItemMovesStackAcrossContainers)
 {
