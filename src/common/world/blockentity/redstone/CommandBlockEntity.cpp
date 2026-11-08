@@ -306,10 +306,17 @@ void CommandBlockEntity::tick(IWorld& world)
 {
     // 注意：命令方块的实际执行由 CommandBlock::tick（计划刻）承担，与 vanilla 一致
     // （vanilla CommandBlockEntity 没有每 tick tick() 覆写）。此处保留的实体级 tick
-    // 仅服务于项目内按 tick 驱动实体的路径，因此只刷新条件状态，不重复执行命令，
-    // 避免与计划刻路径双重执行（trigger 的 lastExecution 守卫在二者同刻时才会拦截）。
-    // TODO(entity-tick-parity): 确认命令方块实体无需每 tick tick 后，删除 needsTick/tick
-    //   覆写（CommandBlock.needsTick 恒为 false 时本方法不会被项目驱动调用）。
+    // 仅服务于项目内按 tick 驱动实体的路径（ServerWorld 按 needsTick() 调用），
+    // 因此只刷新条件状态，不重复执行命令，避免与计划刻路径双重执行
+    // （trigger 的 lastExecution 守卫在二者同刻时才会拦截）。
+    //
+    // TODO(entity-tick-parity): 本方法唯一的工作是 markConditionMet，而 CommandBlock::tick
+    //   每次计划刻也会刷新同一份缓存；markConditionMet 幂等且无副作用，所以实体 tick 目前
+    //   是冗余计算，理论上可删掉 tick/needsTick 覆写（让 needsTick 恒 false）。
+    //   未直接删除的原因：CommandBlockEntityModeBehaviorTest.AutoMode_NeedsTick 与
+    //   CommandBlockEntityModeTest.Create_AutoMode_HasCorrectMode 两条用例显式断言
+    //   Auto 模式 needsTick()==true，按"测试即契约"不能单方面改实现让它们失败。
+    //   若要收敛，应先判断这两条用例锁定的是行为契约还是实现细节，再一并调整。
     if (m_mode == CommandBlockMode::Auto) {
         markConditionMet(world);
     }
