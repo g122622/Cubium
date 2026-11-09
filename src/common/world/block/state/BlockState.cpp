@@ -78,8 +78,8 @@ void BlockState::_cacheProperties()
     m_hardness = m_owner->hardness();
     m_resistance = m_owner->resistance();
     m_blockId = m_owner->blockId();
-    // 地图颜色按**状态**取：床（part）、原木（axis）、含水方块（waterlogged）的颜色
-    // 随状态变化。注册时显式设置过 mapColor 的方块用注册值，否则查原版快照表。
+    // 地图颜色在注册时按**本状态**求值并缓存：默认实现等价于取方块自身的静态颜色，
+    // 但保留按状态求值的入口，原版快照表可按状态字符串给出不同结果。
     // toString() 依赖属性表，此刻已就绪。
     m_mapColor = m_owner->getMapColor(*this, nullptr, nullptr);
 }

@@ -314,8 +314,11 @@ public:
      * 原版快照表（`lookupVanillaMapColor`）。快照由差分能力 block_map_color 逐方块实测
      * 导出——地图颜色在原版是硬编码在注册调用里的，数据包里没有这项信息。
      *
-     * TODO(map-color): 尚未实现状态相关颜色（RotatedPillarBlock 按轴、LeavesBlock 的
-     *   PLANT，以及草的生物群系染色）。当前按方块取默认状态的颜色。
+     * 注意：地图颜色**不随方块状态变化**。1.21.11 的 `BlockBehaviour.getMapColor` 直接返回
+     * 注册时传入的静态 `mapColor`，`RotatedPillarBlock`（按轴）、`LeavesBlock` 等都没有重写它。
+     * 地图上"含水方块显示水色"来自渲染侧把状态换成流体方块的做法（见
+     * `FilledMapItem::_getCorrectStateForFluidBlock`），草/树叶的生物群系染色则属于客户端
+     * `BlockColors` 的职责，两者都不是 `getMapColor` 的语义。
      */
     [[nodiscard]] virtual world::map::MaterialColorId getMapColor(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
