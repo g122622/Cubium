@@ -406,7 +406,9 @@ bool MineshaftPiece::_isInterior(IWorld& world, i32 x, i32 y, i32 z, const Struc
     if (!bounds.isInside(worldX, worldY, worldZ)) {
         return false;
     }
-    return worldY < world.getHeight(worldX, worldZ);
+    // 原版用 OCEAN_FLOOR_WG 高度图，且 `LevelReader.getHeight` 返回首个可放置 Y
+    // （最高方块 Y + 1）；本项目的 `IWorld::getHeight` 返回最高方块 Y，需要 +1。
+    return worldY < world.getHeight(worldX, worldZ, HeightmapType::OceanFloorWG) + 1;
 }
 
 bool MineshaftPiece::_isSupportingBox(

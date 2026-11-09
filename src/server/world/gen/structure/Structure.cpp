@@ -40,6 +40,7 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <utility>
@@ -345,7 +346,9 @@ bool StructurePiece::isInterior(IWorld& world, i32 x, i32 y, i32 z, const Struct
         return false;
     }
 
-    return worldY < world.getHeight(worldX, worldZ);
+    // 原版用 OCEAN_FLOOR_WG 高度图，且 `LevelReader.getHeight` 返回首个可放置 Y
+    // （最高方块 Y + 1）；本项目的 `IWorld::getHeight` 返回最高方块 Y，需要 +1。
+    return worldY < world.getHeight(worldX, worldZ, world::chunk::HeightmapType::OceanFloorWG) + 1;
 }
 
 void StructurePiece::maybeFillWithBlocks(IWorldWriter& world,

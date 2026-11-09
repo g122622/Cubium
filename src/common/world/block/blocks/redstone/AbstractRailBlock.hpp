@@ -132,6 +132,19 @@ public:
     // ========== 形状 ==========
 
     /**
+     * @brief 旋转铁轨状态
+     *
+     * 铁轨的形状跟随结构旋转重映射（南北↔东西、升降方向与弯轨方位同步旋转），
+     * 否则按朝向生成的走廊/楼梯会把铁轨摆成与世界走向垂直的方向。
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像铁轨状态
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    /**
      * @brief 获取形状
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;

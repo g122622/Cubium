@@ -365,10 +365,13 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
 
 i32 RuinedPortalPiece::_surfaceY(const IWorld& world, i32 x, i32 z) const
 {
-    // 原版 getSurfaceY 取高度图后减一；海底放置用 OCEAN_FLOOR_WG，其余用 WORLD_SURFACE_WG。
-    // 本项目的世界接口只提供一张高度图（等价于 WORLD_SURFACE_WG），空世界执行路径下
-    // 两种高度图取值相同，故不需要再区分类别。
-    return world.getHeight(x, z) - 1;
+    // 原版 getSurfaceY = `level.getHeight(type, x, z) - 1`，即最高方块 Y。本项目的
+    // `IWorld::getHeight(x, z, type)` 直接返回最高方块 Y（已替你减过这一步），因此不能再减 1。
+    // 海底放置用 OCEAN_FLOOR_WG，其余用 WORLD_SURFACE_WG。
+    const HeightmapType type = m_location == RuinedPortalSetupDefinition::Placement::OnOceanFloor
+        ? HeightmapType::OceanFloorWG
+        : HeightmapType::WorldSurfaceWG;
+    return world.getHeight(x, z, type);
 }
 
 bool RuinedPortalPiece::_canBeReplacedByNetherrackOrMagma(const IWorld& world, const BlockPos& pos) const

@@ -329,3 +329,25 @@ TODO: 以下结构的数据标记仍未实现（目前只保证方块几何一�
 `RuinedPortalPiece`、`WoodlandMansionPiece`（宝箱与灾厄村民）。实现时注意：DATA 标记方块
 本身**不参与**正常方块放置（由 BlockIgnore 处理器忽略），其位置由
 `getDataMarkers()` 按放置设置换算到世界坐标。
+
+### 14. 世界高度接口返回的是「最高方块 Y」，原版返回「首个可放置 Y」
+
+`IWorld::getHeight(x, z, type)` 与 `IWorld::getTopBlockY` 一样返回**最高方块本身的 Y**
+（空列返回 `MIN_BUILD_HEIGHT - 1`）；而原版 `LevelReader.getHeight(type, x, z)` 返回
+`ChunkAccess.getHeight(...) + 1`，即最高方块上一格的空气 Y。
+
+因此凡是对应原版 `level.getHeight(...)` 的调用点都必须 **+1**，否则整个结构下沉一格：
+
+- `StructurePiece::isInterior`、`MineshaftPiece::_isInterior`（原版用 `OCEAN_FLOOR_WG`）
+- `OceanRuinPiece::generate` 的贴地（`OCEAN_FLOOR_WG`）
+- `ShipwreckPiece::generate` 的逐列平均高度（`OCEAN_FLOOR_WG` / `WORLD_SURFACE_WG`）
+- `RuinedPortalPiece::_surfaceY` 对应原版 `getHeight(type) - 1`，在 Cubium 侧直接取
+  `getHeight(type)`，**不能再减 1**，且必须按垂直放置位置区分 `OCEAN_FLOOR_WG` /
+  `WORLD_SURFACE_WG`。
+
+注意与 `IChunkGenerator::getHeight(...)` 区分：生成器侧返回的是「首个可放置 Y」，对应原版
+`ChunkGenerator.getBaseHeight`，调用方按原版语义 `-1` 取方块 Y（如废弃传送门的起点阶段）。
+两侧口径不同，不能互相套用。
+
+差分能力 `structure_blocks_terrain_single` 用平坦地形（主世界 y<=50 石头、51..62 水）专门
+覆盖这一类「读地形再决定写哪里」的路径；空世界差分不会暴露它们。
