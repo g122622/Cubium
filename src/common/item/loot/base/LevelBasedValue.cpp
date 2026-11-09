@@ -247,8 +247,7 @@ std::unique_ptr<LevelBasedValue> LevelBasedValue::levelsSquared(f32 added)
     return std::make_unique<LevelsSquaredValue>(added);
 }
 
-std::unique_ptr<LevelBasedValue> LevelBasedValue::clamped(
-    std::unique_ptr<LevelBasedValue> value, f32 min, f32 max)
+std::unique_ptr<LevelBasedValue> LevelBasedValue::clamped(std::unique_ptr<LevelBasedValue> value, f32 min, f32 max)
 {
     MC_ASSERT_RELEASE(value != nullptr);
     return std::make_unique<ClampedValue>(std::move(value), min, max);
