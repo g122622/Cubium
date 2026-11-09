@@ -26,7 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/combat/AttackContext.hpp"
+#include "common/entity/combat/CombatRules.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -804,7 +804,7 @@ TEST(DamageSourceTest, DamageSourcesFactory)
     EXPECT_TRUE(playerAttack.isPlayerSource());
 }
 
-TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness)
+TEST(MeleeDamageAttributeTest, StrengthAndWeaknessApplyThroughAttributeModifiers)
 {
     // commit 66a6ae396 起，力量/虚弱不再由 AttackContext::calculateFinalDamage
     // 手动加减，而是通过 EffectAttributeModifiers 以 Addition 操作应用到
@@ -833,19 +833,30 @@ TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness)
     EXPECT_DOUBLE_EQ(attacker.attributes().getValue(Attributes::ATTACK_DAMAGE), 1.0);
 }
 
-TEST(AttackContextTest, MeleeDamageUsesArmorToughnessFormula)
+// 护甲减伤以 CombatRules::getDamageAfterAbsorb 为唯一实现（LivingEntity 的
+// getDamageAfterArmorAbsorb 也转发到它）。20 护甲 + 8 韧性对抗 10 点伤害：
+//   f  = 2 + 8/4 = 4；effectiveArmor = clamp(20 - 10/4, 20*0.2, 20) = clamp(17.5, 4, 20) = 17.5
+//   armorRatio = 17.5/25 = 0.7；final = 10 * (1 - 0.7) = 3
+TEST(CombatRulesTest, ArmorToughnessFormulaReducesDamage)
 {
-    TestLivingEntity attacker;
-    TestLivingEntity target;
+    const f32 result = mc::entity::combat::CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 8.0f);
+    EXPECT_FLOAT_EQ(result, 3.0f);
+}
 
-    target.setAttributeBaseValue(Attributes::ARMOR, 20.0);
-    target.setAttributeBaseValue(Attributes::ARMOR_TOUGHNESS, 8.0);
+// 无护甲时不应掉伤害（避免公式在 armor=0 时误减）。
+TEST(CombatRulesTest, NoArmorLeavesDamageUnchanged)
+{
+    const f32 result = mc::entity::combat::CombatRules::getDamageAfterAbsorb(10.0f, 0.0f, 0.0f);
+    EXPECT_FLOAT_EQ(result, 10.0f);
+}
 
-    mc::entity::combat::AttackContext context(&attacker, &target);
-    context.setBaseDamage(10.0f);
-    context.setAttackType(mc::entity::combat::AttackType::Melee);
+// 破甲附魔（Breach）每级把 armorRatio 抬高 0.15，等效减伤下降。
+TEST(CombatRulesTest, BreachIncreasesFinalDamage)
+{
+    const f32 withoutBreach = mc::entity::combat::CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 8.0f, 0);
+    const f32 withBreach = mc::entity::combat::CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 8.0f, 2);
 
-    EXPECT_FLOAT_EQ(context.calculateFinalDamage(), 3.0f);
+    EXPECT_GT(withBreach, withoutBreach) << "Breach must make the target take more damage";
 }
 
 // ============================================================================
