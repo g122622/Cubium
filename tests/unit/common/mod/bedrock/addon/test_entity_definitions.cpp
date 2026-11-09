@@ -29,6 +29,8 @@
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPlugin.hpp"
 
+#include "common/entity/ai/pathfinding/FlyNodeEvaluator.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp" // is_baby → setChild/isChild 断言
@@ -334,6 +336,47 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
 // 本轮接入解析与字段校验，并让 seat_count 驱动 getMaxPassengers。
 // minecraft:burns_in_daylight 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
 // minecraft:experience_reward 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// minecraft:can_fly 此前落在"未实现组件"分支；它同时暴露了 FlyNodeEvaluator 从未被接入。
+TEST_F(AddonEntityDefinitionTest, CanFlyComponentIsAcceptedAndSwapsNavigator)
+{
+    auto flyer = _definition("addon_test:flyer");
+    flyer["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    flyer["minecraft:entity"]["components"]["minecraft:can_fly"] = nlohmann::json::object();
+
+    auto walker = _definition("addon_test:walker");
+    walker["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/flyer.json", flyer);
+    write(directory / "entities/walker.json", walker);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    // 两者都必须有导航器（基类默认创建地面导航器）；声明 can_fly 后应被替换成飞行求值器。
+    auto flyerEntity = create("addon_test:flyer");
+    ASSERT_NE(flyerEntity, nullptr);
+    auto* flyerMob = dynamic_cast<mc::MobEntity*>(flyerEntity.get());
+    ASSERT_NE(flyerMob, nullptr);
+    ASSERT_NE(flyerMob->navigator(), nullptr) << "an addon mob must always have a navigator";
+
+    auto walkerEntity = create("addon_test:walker");
+    ASSERT_NE(walkerEntity, nullptr);
+    auto* walkerMob = dynamic_cast<mc::MobEntity*>(walkerEntity.get());
+    ASSERT_NE(walkerMob, nullptr);
+    ASSERT_NE(walkerMob->navigator(), nullptr);
+
+    // 导航器都是 GroundPathNavigator，差别在内层求值器：飞行用 FlyNodeEvaluator。
+    // 用 dynamic_cast 判断而不是比较 typeid 名称（后者是实现定义字符串，不可靠）。
+    auto* flyerEvaluator = flyerMob->navigator()->nodeEvaluator();
+    auto* walkerEvaluator = walkerMob->navigator()->nodeEvaluator();
+    ASSERT_NE(flyerEvaluator, nullptr);
+    ASSERT_NE(walkerEvaluator, nullptr);
+    EXPECT_NE(dynamic_cast<mc::entity::ai::pathfinding::FlyNodeEvaluator*>(flyerEvaluator), nullptr)
+        << "can_fly must install the flying node evaluator";
+    EXPECT_EQ(dynamic_cast<mc::entity::ai::pathfinding::FlyNodeEvaluator*>(walkerEvaluator), nullptr)
+        << "an addon mob without can_fly must keep the ground evaluator";
+}
+
 TEST_F(AddonEntityDefinitionTest, ExperienceRewardComponentIsAccepted)
 {
     // 三种写法都要认：字面数字、Molang 字符串、{expression,version} 对象。
@@ -1184,7 +1227,7 @@ TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplic
     auto definition = _definition("addon_test:unsupported");
     // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable / rideable / burns_in_daylight
     // 都已接入。
-    definition["minecraft:entity"]["components"]["minecraft:can_fly"] = nlohmann::json::object();
+    definition["minecraft:entity"]["components"]["minecraft:damage_sensor"] = nlohmann::json::array();
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

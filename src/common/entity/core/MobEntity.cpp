@@ -1064,6 +1064,12 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
     return ActionResultType::Pass;
 }
 
+void MobEntity::setNavigator(std::unique_ptr<entity::ai::pathfinding::PathNavigator> navigator)
+{
+    MC_ASSERT_RELEASE(navigator != nullptr);
+    m_navigator = std::move(navigator);
+}
+
 bool MobEntity::shouldBurnInDaylight() const
 {
     // 基类默认不燃烧：只有亡灵类（MonsterEntity 覆写）与声明了

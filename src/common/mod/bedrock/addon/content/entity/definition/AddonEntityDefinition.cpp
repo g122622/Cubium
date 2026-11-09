@@ -1030,6 +1030,10 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
             //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
             //   在此之前这些字段只做类型校验，不生效。
+        } else if (name == "minecraft:can_fly") {
+            // 纯标记组件，没有任何字段：存在即表示该实体可飞行寻路（走 FlyNodeEvaluator）。
+            // 消费点在 AddonEntityComponents::_apply（组件安装后替换导航器）。
+            MC_TRY(_members(component, {}));
         } else if (name == "minecraft:experience_reward") {
             // on_death / on_bred 各有三种写法：字面数字、{"expression","version"} 对象、纯 Molang 字符串。
             //

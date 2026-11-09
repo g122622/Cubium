@@ -453,6 +453,17 @@ public:
      */
     [[nodiscard]] entity::ai::pathfinding::PathNavigator* navigator();
     [[nodiscard]] const entity::ai::pathfinding::PathNavigator* navigator() const;
+
+    /**
+     * @brief 替换寻路导航器
+     *
+     * 默认导航器使用地面求值器（WalkNodeEvaluator）。飞行生物需要换成
+     * FlyNodeEvaluator（它继承 WalkNodeEvaluator，只放开下方必须有实心方块的限制）。
+     * 数据驱动的 addon 实体（minecraft:can_fly）通过此接口在组件安装后替换。
+     *
+     * @param navigator 新导航器，不可为空
+     */
+    void setNavigator(std::unique_ptr<entity::ai::pathfinding::PathNavigator> navigator);
     [[nodiscard]] entity::ai::EntitySenses* senses();
     [[nodiscard]] const entity::ai::EntitySenses* senses() const;
 

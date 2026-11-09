@@ -22,6 +22,10 @@
  */
 
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
+#include "common/entity/ai/pathfinding/FlyNodeEvaluator.hpp"
+#include "common/entity/ai/pathfinding/GroundPathNavigator.hpp"
+#include "common/entity/ai/pathfinding/PathFinder.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -80,7 +84,8 @@ void AddonEntityComponents::initialize(mc::Entity& entity)
              "minecraft:movement",
              "minecraft:timer",
              "minecraft:on_death",
-             "minecraft:environment_sensor"}) {
+             "minecraft:environment_sensor",
+             "minecraft:can_fly"}) {
         _apply(entity, name);
     }
 }
@@ -164,6 +169,20 @@ void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name)
             auto sensor = EntityEnvironmentSensor::compile(*value);
             MC_ASSERT_RELEASE(sensor.success());
             m_environmentSensor = std::move(sensor.value());
+        }
+    } else if (name == "minecraft:can_fly") {
+        // 声明即具备飞行寻路：换成 FlyNodeEvaluator（继承 WalkNodeEvaluator，只是放开
+        // "下方必须有实心方块"的限制）。移除该组件时换回地面求值器。
+        auto* mob = dynamic_cast<mc::MobEntity*>(&entity);
+        if (mob != nullptr) {
+            auto evaluator = value != nullptr ? std::unique_ptr<mc::entity::ai::pathfinding::NodeEvaluator>(
+                                                    std::make_unique<mc::entity::ai::pathfinding::FlyNodeEvaluator>())
+                                              : std::unique_ptr<mc::entity::ai::pathfinding::NodeEvaluator>(
+                                                    std::make_unique<mc::entity::ai::pathfinding::WalkNodeEvaluator>());
+            auto pathFinder = std::make_unique<mc::entity::ai::pathfinding::PathFinder>(
+                std::move(evaluator), mc::entity::ai::pathfinding::PathFinder::DEFAULT_VISITED_NODES);
+            mob->setNavigator(
+                std::make_unique<mc::entity::ai::pathfinding::GroundPathNavigator>(mob, std::move(pathFinder)));
         }
     } else if (name == "minecraft:on_death") {
         if (value == nullptr) {
