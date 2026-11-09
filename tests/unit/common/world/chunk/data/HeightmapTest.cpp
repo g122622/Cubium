@@ -410,5 +410,35 @@ TEST_F(HeightmapStorageTest, SelectiveRebuildResetsSelectedTypesAndPreservesOthe
     }
 }
 
+// ============================================================================
+// MotionBlocking 的流体判定
+// ============================================================================
+
+/**
+ * @brief MOTION_BLOCKING 必须把流体计入高度。
+ *
+ * 原版判据是 blocksMotion() || !getFluidState().isEmpty()。此前项目用 isLiquid() 近似，
+ * 会把含水方块（自身不是液体但持有源水）漏掉。这里验证水作为基准，并用含水台阶验证
+ * "方块本身不是液体但持有流体"这条路径。
+ */
+TEST_F(HeightmapStorageTest, MotionBlockingCountsFluidState)
+{
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    const BlockState* air = &VanillaBlocks::AIR->defaultState();
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+
+    EXPECT_TRUE(Heightmap::isOpaqueForType(HeightmapType::MotionBlocking, water))
+        << "water holds a fluid state and must count toward MOTION_BLOCKING";
+    EXPECT_FALSE(Heightmap::isOpaqueForType(HeightmapType::MotionBlocking, air));
+    EXPECT_TRUE(Heightmap::isOpaqueForType(HeightmapType::MotionBlocking, stone));
+
+    // 水同样应计入 NoLeaves 变体（水不是树叶）。
+    EXPECT_TRUE(Heightmap::isOpaqueForType(HeightmapType::MotionBlockingNoLeaves, water));
+
+    // OceanFloor 的判据只有 blocksMotion，不含流体：水底高度图不应被水体本身抬高。
+    EXPECT_FALSE(Heightmap::isOpaqueForType(HeightmapType::OceanFloor, water))
+        << "OCEAN_FLOOR uses blocksMotion only and must ignore fluid";
+}
+
 } // namespace
 } // namespace mc::world::chunk

@@ -28,6 +28,7 @@
 #include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <array>
 #include <cstddef>
 
@@ -189,14 +190,14 @@ bool Heightmap::isOpaqueForType(HeightmapType type, const BlockState* state)
             return _blocksMotion(block, *state);
 
         case HeightmapType::MotionBlocking:
-            // 原版 blocksMotion() || !fluidState.isEmpty()
-            // 项目用 isLiquid() 近似流体判定（仅方块自身是水/岩浆；
-            // 含水方块中的源水未计入，见 TODO）
-            return _blocksMotion(block, *state) || state->isLiquid();
+            // 原版 blocksMotion() || !getFluidState().isEmpty()。
+            // 必须查流体状态而不是 isLiquid()：含水方块（台阶、栅栏、箱子等）自身不是
+            // 液体，但持有一格源水，同样应当计入 MOTION_BLOCKING 高度图。
+            return _blocksMotion(block, *state) || _hasFluid(block, *state);
 
         case HeightmapType::MotionBlockingNoLeaves:
             // 原版 (blocksMotion() || hasFluid) && !(block instanceof LeavesBlock)
-            return (_blocksMotion(block, *state) || state->isLiquid()) && _isNotLeaf(block);
+            return (_blocksMotion(block, *state) || _hasFluid(block, *state)) && _isNotLeaf(block);
 
         case HeightmapType::LightBlocking:
             // 原版 getOpacity(state) > 0（纯挡光判定，无 isSolid 前置；
@@ -206,6 +207,14 @@ bool Heightmap::isOpaqueForType(HeightmapType type, const BlockState* state)
         default:
             return !block.isAir(*state);
     }
+}
+
+bool Heightmap::_hasFluid(const Block& block, const BlockState& state)
+{
+    // 原版判据是 !getFluidState().isEmpty()：含水方块的 fluidState 非空，
+    // 因此比 isLiquid() 更准确。getFluidState 返回空指针表示无流体。
+    const fluid::FluidState* fluidState = block.getFluidState(state);
+    return fluidState != nullptr && !fluidState->isEmpty();
 }
 
 bool Heightmap::_blocksMotion(const Block& block, const BlockState& state)
