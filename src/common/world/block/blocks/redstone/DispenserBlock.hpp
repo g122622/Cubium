@@ -74,6 +74,21 @@ public:
     // DropperBlock 不重写该方法，靠继承复用）。
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    /**
+     * @brief 旋转方块状态
+     *
+     * 原版 `DispenserBlock#rotate`：只旋转 FACING 属性。结构放置按构件旋转整块模板，
+     * 漏掉这里会让发射器/投掷器保持模板内朝向（试炼密室的发射器朝向差异即由此暴露）。
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像方块状态
+     *
+     * 原版 `DispenserBlock#mirror`：先按 FACING 求镜像对应的旋转，再旋转 FACING。
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     void neighborChanged(

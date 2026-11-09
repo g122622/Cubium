@@ -80,6 +80,7 @@ const FEATURES = [
   { structureSet: "minecraft:strongholds", structure: "minecraft:stronghold", dimension: "overworld" },
   { structureSet: "minecraft:nether_fossils", structure: "minecraft:nether_fossil", dimension: "the_nether" },
   { structureSet: "minecraft:nether_complexes", structure: "minecraft:fortress", dimension: "the_nether" },
+  { structureSet: "minecraft:nether_complexes", structure: "minecraft:bastion_remnant", dimension: "the_nether" },
 ] as const;
 
 /** 每个结构取多少个落点。 */

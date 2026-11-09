@@ -73,6 +73,22 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    /**
+     * @brief 旋转方块状态
+     *
+     * 原版床继承 `HorizontalDirectionalBlock`，其 `rotate` 会旋转 HORIZONTAL_FACING。
+     * 结构放置按构件旋转整块模板，漏掉这里会让床保持模板内朝向（试炼密室的床朝向差异
+     * 即由此暴露）。
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像方块状态
+     *
+     * 原版 `HorizontalDirectionalBlock#mirror`：由当前朝向求出镜像对应的旋转，再旋转朝向。
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,

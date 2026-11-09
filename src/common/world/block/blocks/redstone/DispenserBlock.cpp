@@ -98,6 +98,22 @@ BlockState DispenserBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState().with(BlockStateProperties::FACING(), facing);
 }
 
+const BlockState& DispenserBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    // 原版 `DispenserBlock#rotate`：`state.setValue(FACING, rotation.rotate(state.getValue(FACING)))`。
+    // Up/Down 在水平旋转下保持不变，交由 `Directions::rotateDirection` 处理。
+    return state.with(BlockStateProperties::FACING(), Directions::rotateDirection(getFacing(state), rotation));
+}
+
+const BlockState& DispenserBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    // 原版 `DispenserBlock#mirror`：`state.rotate(mirror.getRotation(state.getValue(FACING)))`，
+    // 即先由当前朝向求出镜像对应的旋转，再旋转 FACING。
+    const Direction facing = getFacing(state);
+    return state.with(BlockStateProperties::FACING(),
+        Directions::rotateDirection(facing, Directions::mirrorToRotation(mirror, facing)));
+}
+
 bool DispenserBlock::isTriggered(const BlockState& state)
 {
     return state.get(BlockStateProperties::TRIGGERED());

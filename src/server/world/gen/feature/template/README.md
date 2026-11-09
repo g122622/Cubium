@@ -275,3 +275,24 @@ RandomSource.create(level.getSeed()).forkPositional().at(templatePos)
 - **洗牌顺序**：`Util.toShuffledList` 是**反向** Fisher-Yates（`j` 从 size 递减到 2，`nextInt(j)` 与 `j-1` 交换），不是正向、也不是 `std::shuffle`。
 
 任何一项写错，转换数量可能仍然正确，但落点会整体漂移（海洋废墟的可疑沙砾就是这样暴露的：方块种类和数量都对，坐标对不上）。
+
+### 21. `final_state` 解析必须从默认状态出发，只覆盖显式给出的属性
+
+原版 `BlockStateParser.parseForBlock` 先取 `block.defaultBlockState()`，再逐属性 `setValue`；
+未写出的属性保持默认值。不能实现成「枚举 `validStates()` 取第一个匹配给定子集的候选」——
+那样未指定的属性会随状态枚举顺序取值。
+
+- 症状：`final_state = minecraft:waxed_copper_bulb[lit=true]` 被解析成
+  `lit=true,powered=true`（试炼密室的铜灯差异），而原版是 `lit=true,powered=false`。
+- 修法是 `state = &state->withValueIndex(*prop, *parsedValue)`，逐个属性叠加。
+
+### 22. `RuleStructureProcessor` 的输入谓词作用于「当前已处理状态」
+
+原版 `RuleProcessor` 用 `blockInfo.state()`（链上处理器处理后的状态）做输入匹配，
+`rawBlockInfo` 只提供模板内坐标。若误用原始状态，`JigsawReplacement` 产出的
+`final_state` 永远不会参与规则匹配。
+
+- 症状：堡垒遗迹里由拼图连接点 final_state 生成的 `polished_blackstone_bricks` 不会按
+  `bastion_generic_degradation` 的 30% 概率变成裂纹砖；试炼密室的铜灯也不会走降级规则。
+- 位置谓词的两个坐标不要混：`originalPos` 取 `rawBlockInfo.pos`（模板内），
+  `worldPos` 取 `blockInfo.pos`（世界坐标）。
