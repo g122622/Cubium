@@ -147,16 +147,16 @@ void SingleJigsawPiece::place(IWorldWriter& world,
     settings.setBoundingBox(bounds);
 
     // 构建处理器链（按 MC 1.21 SinglePoolElement.getSettings() 顺序）：
-    // 1. BlockIgnoreStructureProcessor — legacy 用 STRUCTURE_AND_AIR，standard 用 STRUCTURE_BLOCK
+    // 1. BlockIgnoreStructureProcessor — 标准构件只忽略 structure_block，必须排在
+    //    JigsawReplacement 之前
     // 2. JigsawReplacementStructureProcessor — 替换 jigsaw 方块为 final_state
     // 3. Piece 自带 processor list — 从 ProcessorListRegistry 查找
     // 4. GravityStructureProcessor — terrain_matching 投影时添加
+    // 5. BlockIgnoreStructureProcessor — **仅 legacy 构件**，替换 1 中的忽略器并追加在最后
     StructureProcessorList processorList;
 
-    // 1. BlockIgnore: legacy 忽略 structure_block + air，standard 只忽略 structure_block
-    if (isLegacy()) {
-        processorList.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(getStructureAndAirBlockIds()));
-    } else {
+    // 1. 标准构件的 structure_block 忽略
+    if (!isLegacy()) {
         processorList.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(getStructureBlockIds()));
     }
 
@@ -180,6 +180,14 @@ void SingleJigsawPiece::place(IWorldWriter& world,
     // 4. 投影处理器（terrain_matching → GravityStructureProcessor）
     if (placed.projection == JigsawPlacementBehaviour::TerrainMatching) {
         processorList.addProcessor(std::make_unique<GravityStructureProcessor>(0, -1));
+    }
+
+    // 5. legacy 构件：原版 `LegacySinglePoolElement#getSettings` 把 super 里的
+    //    `STRUCTURE_BLOCK` 忽略器替换成 `STRUCTURE_AND_AIR`，追加在**整条链的末尾**。
+    //    顺序不能提前：拼图方块的 `final_state` 往往是 air，必须等 JigsawReplacement
+    //    把它换成空气之后才能被忽略掉（提前忽略只会看到 jigsaw 方块本身）。
+    if (isLegacy()) {
+        processorList.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(getStructureAndAirBlockIds()));
     }
 
     settings.setProcessors(&processorList);

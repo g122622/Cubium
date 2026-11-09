@@ -125,6 +125,21 @@ BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
+const BlockState& BedBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    // 原版 `HorizontalDirectionalBlock#rotate`：旋转水平朝向。
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(),
+        Directions::rotateDirection(state.get(BlockStateProperties::HORIZONTAL_FACING()), rotation));
+}
+
+const BlockState& BedBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    // 原版 `HorizontalDirectionalBlock#mirror`：由当前朝向求出镜像对应的旋转，再旋转朝向。
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(),
+        Directions::rotateDirection(facing, Directions::mirrorToRotation(mirror, facing)));
+}
+
 BlockState BedBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,

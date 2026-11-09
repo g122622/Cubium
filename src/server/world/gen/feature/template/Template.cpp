@@ -1481,10 +1481,12 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
     // 获取默认状态
     const BlockState* state = &block->defaultState();
 
-    // 应用属性
+    // 应用属性：原版 `BlockStateParser` 从**默认状态**出发，逐个性设置显式给出的属性，
+    // 未给出的属性保持默认值。不能用「枚举全部状态取第一个匹配子集」的写法：那样未指定
+    // 的属性会随状态枚举顺序取值（如拼图 final_state 只写 `lit=true` 时，铜灯的
+    // `powered` 可能被意外置为 true）。
     if (!properties.empty()) {
         const auto& container = block->stateContainer();
-        std::unordered_map<const IProperty*, size_t> wanted;
 
         for (const auto& [key, value] : properties) {
             const IProperty* prop = container.getProperty(key);
@@ -1497,34 +1499,11 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
                 continue;
             }
 
-            wanted[prop] = *parsedValue;
-        }
-
-        // 查找匹配的状态
-        if (!wanted.empty()) {
-            for (const auto& candidate : container.validStates()) {
-                if (!candidate) {
-                    continue;
-                }
-
-                bool matches = true;
-                for (const auto& [prop, index] : wanted) {
-                    const auto valueIndex = candidate->getValueIndex(*prop);
-                    if (!valueIndex.has_value() || *valueIndex != index) {
-                        matches = false;
-                        break;
-                    }
-                }
-
-                if (matches) {
-                    state = candidate.get();
-                    break;
-                }
-            }
+            state = &state->withValueIndex(*prop, *parsedValue);
         }
     }
 
-    return state ? state->stateId() : 0;
+    return state != nullptr ? state->stateId() : 0;
 }
 
 IntegrityProcessor::IntegrityProcessor(f32 integrity)
@@ -1579,8 +1558,11 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(const BlockPos
     u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
     math::JavaLegacyRandom rng(seed);
 
-    // 获取输入方块状态
-    const BlockState* inputState = BlockRegistry::instance().getBlockState(rawBlockInfo.blockStateId);
+    // 输入谓词作用于**当前已处理状态**（原版 `RuleProcessor` 取 `blockInfo.state()`，而不是
+    // 模板原始状态）。两者在纯规则链里通常相同，但链前存在 `JigsawReplacement` 等会改写
+    // 状态的处理器时不同：拼图方块的 `final_state` 必须先替换，规则才能匹配到它
+    // （堡垒遗迹的裂纹砖、试炼密室的铜灯等差异都由此暴露）。
+    const BlockState* inputState = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
 
     // 获取世界位置方块状态（通过 PlacementSettings 中的世界访问）。
     // 生产路径 world 总是非空；world 缺失时（仅单元测试）回退到输入方块状态，

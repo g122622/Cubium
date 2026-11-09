@@ -188,13 +188,22 @@ JSON 文件路径：`data/<namespace>/worldgen/template_pool/<path>.json`。支�
 
 必须在 `JigsawPlacer::placePieces()` 之前完成注册，否则 piece 自带处理器会找不到。
 
-### 12. 处理器链顺序
+### 12. 处理器链顺序（标准构件与 legacy 构件不同）
 
-放置时处理器链的顺序必须严格遵循 MC 源码：BlockIgnore → JigsawReplacement → Piece processors → Gravity。顺序错误会导致村庄道路、僵尸化效果、前哨站腐坏等异常。
+放置时处理器链的顺序必须严格遵循原版 `SinglePoolElement#getSettings`：
 
-### 13. LegacySingleJigsawPiece 的空气忽略
+- **标准构件**：BlockIgnore(STRUCTURE_BLOCK) → JigsawReplacement → Piece processors → Gravity。
+- **legacy 构件**：JigsawReplacement → Piece processors → Gravity → BlockIgnore(STRUCTURE_AND_AIR)。
+  原版 `LegacySinglePoolElement#getSettings` 先 `popProcessor(STRUCTURE_BLOCK)`，再把
+  `STRUCTURE_AND_AIR` **追加到链尾**——它必须排在 `JigsawReplacement` 之后。
+
+顺序错误会导致村庄道路、僵尸化效果、前哨站腐坏等异常。
+
+### 13. LegacySingleJigsawPiece 的空气忽略必须放在链尾
 
 `LegacySingleJigsawPiece` 在放置时会忽略空气方块（不覆盖已有方块），这对村庄旧版模板至关重要。如果误用 `SingleJigsawPiece`，空气方块会覆盖已有地形。
+
+但**忽略器放在链首同样是错的**：拼图方块的 `final_state` 常是 `minecraft:air`，链首忽略只会看到 jigsaw 方块本身（不是空气），替换后的空气会照常落进世界。症状是结构内部出现零星的空气写入（前哨站模板的 31 个连接点），实际地形会被挖出小洞。凡是「忽略项可能由前面的处理器产生」的过滤器，都要排在产生者之后。
 
 ### 14. VoxelShape 空间追踪（freeShape）
 
