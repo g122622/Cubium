@@ -210,15 +210,31 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
     // 入口"成功"但 register 等从未执行）；Pending 则推进 pending jobs 至 settle（顶层 await 场景）。
     if (evalFlags == JS_EVAL_TYPE_MODULE && JS_IsPromise(val)) {
         // 推进 pending jobs 直至 Promise settle 或无更多 job。同步模块体立即 settle，循环 0 次。
-        // TODO: 顶层 await 的长时异步模块需设上限避免无限等待，当前行为包入口均为同步。
+        //
+        // 除"settle"与"无 job"两个正常出口外，还有第三种可能：job 不断自我追加（例如模块里
+        // 反复调度定时器/微任务）。此时前两个条件永远不成立，会卡死整个服务端。因此给循环
+        // 加一个执行次数上限——它不是精确的超时语义，但能把"无限等待"变成"明确失败"，
+        // 让有问题的行为包在加载期就报错，而不是让进程静默挂住。
+        constexpr i32 MAX_PENDING_JOBS_PER_EVAL = 100000;
         JSPromiseStateEnum state = JS_PromiseState(m_context, val);
         JSRuntime* rt = JS_GetRuntime(m_context);
+        i32 executedJobs = 0;
         while (state == JS_PROMISE_PENDING && JS_IsJobPending(rt)) {
+            if (executedJobs >= MAX_PENDING_JOBS_PER_EVAL) {
+                spdlog::error("[AddonScript] module '{}' did not settle after {} pending jobs; "
+                              "aborting module evaluation to avoid an infinite loop",
+                    filename,
+                    MAX_PENDING_JOBS_PER_EVAL);
+                JS_FreeValue(m_context, val);
+                return ScriptResult::error("Module did not settle within the pending-job budget");
+            }
+
             JSContext* pctx = nullptr;
             i32 jobRet = JS_ExecutePendingJob(rt, &pctx);
             if (jobRet <= 0) {
                 break; // 无更多 job 或 job 自身抛错
             }
+            ++executedJobs;
 
             state = JS_PromiseState(m_context, val);
         }

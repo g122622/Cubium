@@ -417,3 +417,20 @@ TEST_F(AddonRuntimeContractTest, PlayerPrototypeInheritsEntityPrototype)
     EXPECT_EQ(number("adventure"), 1);
     EXPECT_EQ(number("spectator"), 1);
 }
+
+// 顶层 await 的模块若不断自我追加微任务，Promise 永远不会 settle，而 job 队列永远非空。
+// 旧实现只靠"settle 或 无 job 可执行"两个出口，遇到这种模块会卡死整个服务端。
+// 现在有 job 执行预算：超限即报错返回，让有问题的行为包在加载期就明确失败。
+TEST_F(AddonRuntimeContractTest, SelfSchedulingModuleFailsInsteadOfHanging)
+{
+    const auto result = context->evaluateModule(R"(
+        await new Promise(() => {
+            const spin = () => { queueMicrotask(spin); };
+            queueMicrotask(spin);
+        });
+    )",
+        "contracts/runaway.js");
+
+    ASSERT_FALSE(result.success()) << "自调度模块必须在预算耗尽后失败，而不是无限等待";
+    EXPECT_NE(result.errorMessage().find("pending-job budget"), std::string::npos) << result.errorMessage();
+}
