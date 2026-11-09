@@ -332,6 +332,78 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
 // minecraft:healable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
 // minecraft:rideable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
 // 本轮接入解析与字段校验，并让 seat_count 驱动 getMaxPassengers。
+// minecraft:burns_in_daylight 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+TEST_F(AddonEntityDefinitionTest, BurnsInDaylightComponentIsAccepted)
+{
+    for (const auto& [id, slot] :
+        std::array<std::pair<const char*, const char*>, 5>{std::pair{"addon_test:burn_head", "slot.armor.head"},
+            std::pair{"addon_test:burn_body", "slot.armor.body"},
+            std::pair{"addon_test:burn_chest", "slot.armor.chest"},
+            std::pair{"addon_test:burn_mainhand", "slot.weapon.mainhand"},
+            std::pair{"addon_test:burn_bare", "head"}}) {
+        auto definition = _definition(id);
+        definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+        definition["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = {{"protection_slot", slot}};
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).success()) << slot;
+    }
+
+    // 官方示例的写法就是空对象（默认头盔位保护）。
+    auto minimal = _definition("addon_test:burn_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = nlohmann::json::object();
+    EXPECT_TRUE(AddonEntityDefinition::parse(minimal).success());
+}
+
+TEST_F(AddonEntityDefinitionTest, BurnsInDaylightRejectsUnknownProtectionSlot)
+{
+    auto definition = _definition("addon_test:bad_burn");
+    definition["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = {
+        {"protection_slot", "slot.armor.tail"}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed())
+        << "an unknown protection slot must be rejected rather than silently ignored";
+
+    auto wrongType = _definition("addon_test:bad_burn_type");
+    wrongType["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = {{"protection_slot", 3}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(wrongType).failed());
+}
+
+// 声明该组件就必须日光燃烧；防护槽位穿了装备则免疫（基岩默认头盔位）。
+TEST_F(AddonEntityDefinitionTest, BurnsInDaylightDrivesSunBurningAndHelmetProtection)
+{
+    auto burner = _definition("addon_test:sunburner");
+    burner["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    burner["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = nlohmann::json::object();
+
+    auto plain = _definition("addon_test:no_sunburn");
+    plain["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/sunburner.json", burner);
+    write(directory / "entities/no_sunburn.json", plain);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto burning = create("addon_test:sunburner");
+    ASSERT_NE(burning, nullptr);
+    auto* burningMob = dynamic_cast<mc::MobEntity*>(burning.get());
+    ASSERT_NE(burningMob, nullptr);
+    EXPECT_TRUE(burningMob->shouldBurnInDaylight()) << "declaring the component must enable sun burning";
+
+    // 默认 protection_slot 是头盔位：戴上头盔后必须免疫。
+    const auto* helmet = mc::Items::DIAMOND_HELMET;
+    if (helmet != nullptr) {
+        burningMob->setEquipment(mc::EquipmentSlot::Head, mc::ItemStack(*helmet, 1));
+        EXPECT_FALSE(burningMob->shouldBurnInDaylight())
+            << "a helmet in the default protection slot must prevent burning";
+    }
+
+    auto plainEntity = create("addon_test:no_sunburn");
+    ASSERT_NE(plainEntity, nullptr);
+    auto* plainMob = dynamic_cast<mc::MobEntity*>(plainEntity.get());
+    ASSERT_NE(plainMob, nullptr);
+    EXPECT_FALSE(plainMob->shouldBurnInDaylight()) << "without the component an addon entity must not burn in daylight";
+}
+
 TEST_F(AddonEntityDefinitionTest, RideableComponentIsAccepted)
 {
     auto full = _definition("addon_test:rideable_mob");
@@ -1033,8 +1105,9 @@ TEST_F(AddonEntityDefinitionTest, DuplicateDefinitionsWithinOnePackAreRejected)
 TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplicitFailures)
 {
     auto definition = _definition("addon_test:unsupported");
-    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable / rideable 都已接入。
-    definition["minecraft:entity"]["components"]["minecraft:scale"] = {{"value", 2.0}};
+    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable / rideable / burns_in_daylight
+    // 都已接入。
+    definition["minecraft:entity"]["components"]["minecraft:damage_sensor"] = nlohmann::json::array();
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

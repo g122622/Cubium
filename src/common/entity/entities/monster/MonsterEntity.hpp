@@ -175,7 +175,7 @@ public:
      * @brief 检查是否应该在阳光下燃烧
      * @return 如果应该在阳光下燃烧返回true
      */
-    [[nodiscard]] virtual bool shouldBurnInDaylight() const
+    [[nodiscard]] bool shouldBurnInDaylight() const override
     {
         return m_burnsInDaylight;
     }

@@ -1064,6 +1064,13 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
     return ActionResultType::Pass;
 }
 
+bool MobEntity::shouldBurnInDaylight() const
+{
+    // 基类默认不燃烧：只有亡灵类（MonsterEntity 覆写）与声明了
+    // minecraft:burns_in_daylight 的数据驱动实体（_AddonMob 覆写）才在阳光下燃烧。
+    return false;
+}
+
 bool MobEntity::tryHealFromItem(ItemStack& stack, Player& player)
 {
     // 基类不治疗：只有数据驱动实体（addon minecraft:healable）覆写本方法。

@@ -27,6 +27,7 @@
 #include "common/entity/core/AgeableEntity.hpp" // minecraft:is_baby → AgeableEntity::setChild
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
@@ -48,6 +49,48 @@
 #include <unordered_set>
 
 namespace mc::mod::bedrock::addon {
+
+/**
+ * @brief 判定基岩风格的防护槽位名是否合法
+ *
+ * 基岩写成 `slot.armor.head` / `slot.weapon.mainhand` / `slot.armor.body`，
+ * 项目 `EquipmentSlotNames::fromName` 只认裸名（head / mainhand / body）。
+ * 这里统一剥掉 `slot.armor.` 与 `slot.weapon.` 前缀后再比对，避免两套命名各写一份映射。
+ *
+ * @param name 基岩风格槽位名
+ * @return 是否为已知槽位
+ */
+bool _isProtectionSlotName(const std::string& name)
+{
+    std::string_view bare = name;
+    for (const std::string_view prefix : {"slot.armor.", "slot.weapon."}) {
+        if (bare.starts_with(prefix)) {
+            bare.remove_prefix(prefix.size());
+            break;
+        }
+    }
+    return entity::serialization::EquipmentSlotNames::fromName(bare).has_value();
+}
+
+/**
+ * @brief 把基岩风格槽位名转换为 EquipmentSlot
+ *
+ * @param name 基岩风格槽位名
+ * @return 对应槽位；无法识别时返回 Head（基岩默认 protection_slot）
+ */
+EquipmentSlot _protectionSlotFromName(const std::string& name)
+{
+    std::string_view bare = name;
+    for (const std::string_view prefix : {"slot.armor.", "slot.weapon."}) {
+        if (bare.starts_with(prefix)) {
+            bare.remove_prefix(prefix.size());
+            break;
+        }
+    }
+    const auto slot = entity::serialization::EquipmentSlotNames::fromName(bare);
+    return slot.has_value() ? *slot : EquipmentSlot::Head;
+}
+
 namespace {
 
 Result<void> _members(const nlohmann::json& value, std::initializer_list<std::string_view> allowed)
@@ -342,6 +385,30 @@ public:
      * 对应 `minecraft:rideable.seat_count`（默认
      * 1）。未声明该组件时沿用基类默认。
      */
+    /**
+     * @brief 是否应在白天阳光下燃烧
+     *
+     * 声明 `minecraft:burns_in_daylight` 即会燃烧；其 `protection_slot` 指定的槽位
+     * 若有装备则免疫（基岩默认头盔位）。水中与阴影由 burnUndead 侧的光照/浸水判定负责。
+     */
+    [[nodiscard]] bool shouldBurnInDaylight() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* burn =
+            components != nullptr ? components->component("minecraft:burns_in_daylight") : nullptr;
+        if (burn == nullptr) {
+            return mc::AgeableEntity::shouldBurnInDaylight();
+        }
+
+        // 防护槽位有装备时免疫：基岩把"戴头盔的亡灵不燃烧"做成数据配置而非硬编码。
+        std::string slotName = "slot.armor.head";
+        if (const auto slot = burn->find("protection_slot"); slot != burn->end() && slot->is_string()) {
+            slotName = slot->get<std::string>();
+        }
+        const EquipmentSlot slot = _protectionSlotFromName(slotName);
+        return getEquipment(slot).isEmpty();
+    }
+
     [[nodiscard]] i32 getMaxPassengers() const override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -513,6 +580,10 @@ public:
         }
         mc::CreatureEntity::tick();
         _pushTowardsClosestSpace();
+        // 日光燃烧：声明 minecraft:burns_in_daylight 的实体在阳光下着火（见 shouldBurnInDaylight）。
+        if (shouldBurnInDaylight()) {
+            burnUndead();
+        }
         components->tickEnvironment(*this);
         components->tickTimers(*this);
     }
@@ -649,6 +720,7 @@ public:
 private:
     std::shared_ptr<const AddonEntityDefinition> m_definition;
 };
+
 } // namespace
 
 Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json& document)
@@ -867,6 +939,16 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
             //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
             //   在此之前这些字段只做类型校验，不生效。
+        } else if (name == "minecraft:burns_in_daylight") {
+            // 唯一字段 protection_slot：该装备槽里有物品时不会燃烧（默认头盔位）。
+            // 取值形如 slot.armor.head，与项目 EquipmentSlotNames 的裸名（head/chest）差一个前缀。
+            MC_TRY(_members(component, {"protection_slot"}));
+            if (const auto slot = component.find("protection_slot"); slot != component.end()) {
+                if (!slot->is_string() || !_isProtectionSlotName(slot->get<std::string>())) {
+                    return Error(ErrorCode::InvalidData,
+                        "minecraft:burns_in_daylight protection_slot must be a known equipment slot");
+                }
+            }
         } else if (name == "minecraft:rideable") {
             // 官方 schema 字段很多，但服务端真正决定"能否被骑、能坐几个"的只有
             // seat_count（默认 1）。其余字段的处理见下方 TODO。

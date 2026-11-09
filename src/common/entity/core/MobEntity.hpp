@@ -1393,6 +1393,17 @@ public:
      */
     void burnUndead();
 
+    /**
+     * @brief 是否应在白天阳光下燃烧
+     *
+     * 与 @ref burnUndead 成对使用：判定在这里，实际燃烧在 burnUndead。
+     * 基类默认返回 false（普通生物不会日光燃烧）；亡灵类由 MonsterEntity 覆写，
+     * 数据驱动的 addon 实体由 _AddonMob 覆写读取 `minecraft:burns_in_daylight`。
+     *
+     * @return 如果应在阳光下燃烧返回 true
+     */
+    [[nodiscard]] virtual bool shouldBurnInDaylight() const;
+
     // ========== 攻击目标类型判断 ==========
 
     /**
