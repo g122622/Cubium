@@ -315,6 +315,21 @@ public:
      * 对应 `minecraft:nameable.allow_name_tag_renaming`（默认 true）。为 false 时命名牌对该
      * 实体无效。未声明该组件时沿用基类默认（允许）。
      */
+    /**
+     * @brief 是否可以被拴绳拴住
+     *
+     * 声明 `minecraft:leashable` 即可被拴（该组件本身不是开关，而是"具备拴绳能力"的标记，
+     * 具体开关在 presets/can_be_stolen 等子字段里）。未声明时沿用基类判断：敌对生物不可拴。
+     */
+    [[nodiscard]] bool canBeLeashed() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        if (components != nullptr && components->has("minecraft:leashable")) {
+            return true;
+        }
+        return mc::AgeableEntity::canBeLeashed();
+    }
+
     bool isNameableByTag() const override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -663,6 +678,47 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             }
             // TODO: name_actions（按名字匹配触发事件）与 default_trigger 需要"实体获得名字"这一
             //       事件源。目前 NameTagItem 直接写名字，没有统一的命名事件派发点，待补。
+        } else if (name == "minecraft:leashable") {
+            // 官方 schema 的字段分三类：
+            //   - can_be_cut / can_be_stolen / unleash_on_removal / on_unleash_interact_only：布尔，校验；
+            //   - soft_distance / hard_distance / max_distance：整数距离，校验非负；
+            //   - presets（按 filter 选弹簧参数）与 on_leash / on_unleash 事件：需要弹簧物理与
+            //     命名事件派发，尚未落地，见下方 TODO。
+            // 实际生效的只有"可否被拴"这一条（由 _AddonMob::canBeLeashed 消费）。
+            MC_TRY(_members(component,
+                {"can_be_cut",
+                    "can_be_stolen",
+                    "hard_distance",
+                    "max_distance",
+                    "on_leash",
+                    "on_unleash",
+                    "on_unleash_interact_only",
+                    "presets",
+                    "soft_distance",
+                    "unleash_on_removal"}));
+            for (const char* field :
+                {"can_be_cut", "can_be_stolen", "unleash_on_removal", "on_unleash_interact_only"}) {
+                MC_TRY(_boolean(component, field));
+            }
+            for (const char* field : {"soft_distance", "hard_distance", "max_distance"}) {
+                if (const auto it = component.find(field); it != component.end()) {
+                    if (!it->is_number_integer()) {
+                        return Error(
+                            ErrorCode::InvalidData, std::string("minecraft:leashable requires an integer: ") + field);
+                    }
+                    if (it->get<i64>() < 0) {
+                        return Error(ErrorCode::InvalidData,
+                            std::string("minecraft:leashable distance cannot be negative: ") + field);
+                    }
+                }
+            }
+            if (const auto presets = component.find("presets"); presets != component.end() && !presets->is_array()) {
+                return Error(ErrorCode::InvalidData, "minecraft:leashable presets must be an array");
+            }
+            // TODO: presets 的弹簧参数（soft/hard/max_distance、spring_type、rotation_adjustment）
+            //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
+            //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
+            //   在此之前这些字段只做类型校验，不生效。
         } else if (name == "minecraft:inventory") {
             // 6 个字段与官方 schema 对齐。inventory_size 是核心（默认 5）。
             // TODO: 目前只做解析与校验，实体尚未真正持有库存容器——addon 实体的可交互背包

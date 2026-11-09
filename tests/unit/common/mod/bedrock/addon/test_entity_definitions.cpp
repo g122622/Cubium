@@ -322,6 +322,74 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
 
 // minecraft:inventory 此前落在"未实现"分支，含该组件的 addon 实体定义直接加载失败。
 // 本轮接入解析与字段校验（实体持有真实库存容器仍是 TODO，见定义处说明）。
+// minecraft:leashable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// 本轮接入解析与字段校验，并让 _AddonMob::canBeLeashed 消费它（声明即可被拴）。
+TEST_F(AddonEntityDefinitionTest, LeashableComponentIsAccepted)
+{
+    auto full = _definition("addon_test:leashable_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    full["minecraft:entity"]["components"]["minecraft:leashable"] = {{"can_be_cut", false},
+        {"can_be_stolen", true},
+        {"soft_distance", 4},
+        {"hard_distance", 6},
+        {"max_distance", 10},
+        {"unleash_on_removal", false},
+        {"on_unleash_interact_only", true},
+        {"presets", nlohmann::json::array({{{"hard_distance", 7}}})}};
+
+    // 官方文档给所有字段都定了默认值，空对象写法同样必须接受。
+    auto minimal = _definition("addon_test:leashable_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:leashable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/leashable_mob.json", full);
+    write(directory / "entities/leashable_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, LeashableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"soft_distance", "near"}}, "non-integer soft_distance"},
+        {{{"max_distance", -1}}, "negative max_distance"},
+        {{{"can_be_cut", "yes"}}, "non-boolean can_be_cut"},
+        {{{"presets", "one"}}, "non-array presets"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_leashable");
+        definition["minecraft:entity"]["components"]["minecraft:leashable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// 声明 leashable 的 addon 生物必须可以被拴；未声明时沿用基类判断（敌对生物不可拴）。
+TEST_F(AddonEntityDefinitionTest, LeashableDrivesCanBeLeashed)
+{
+    auto definition = _definition("addon_test:leashed_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    definition["minecraft:entity"]["components"]["minecraft:leashable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/leashed_mob.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto entity = create("addon_test:leashed_mob");
+    ASSERT_NE(entity, nullptr);
+    auto* mob = dynamic_cast<mc::MobEntity*>(entity.get());
+    ASSERT_NE(mob, nullptr);
+    EXPECT_TRUE(mob->canBeLeashed()) << "declaring minecraft:leashable must make the mob leasable";
+}
+
 TEST_F(AddonEntityDefinitionTest, InventoryComponentIsAccepted)
 {
     // 一次性把「全字段」与「空对象（全默认）」两个定义都写入同一个数据包再统一加载：
@@ -719,8 +787,8 @@ TEST_F(AddonEntityDefinitionTest, DuplicateDefinitionsWithinOnePackAreRejected)
 TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplicitFailures)
 {
     auto definition = _definition("addon_test:unsupported");
-    // 用一个确实尚未支持的组件作样本：inventory 已在上一轮接入，不能再当反例。
-    definition["minecraft:entity"]["components"]["minecraft:leashable"] = {{"max_distance", 10}};
+    // 用一个确实尚未支持的组件作样本：inventory / leashable 都已接入，不能再当反例。
+    definition["minecraft:entity"]["components"]["minecraft:breathable"] = {{"total_supply", 15}};
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);
