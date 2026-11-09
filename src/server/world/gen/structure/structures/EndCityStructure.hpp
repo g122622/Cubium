@@ -122,6 +122,20 @@ public:
         IChunkGenerator* generator = nullptr) override;
 
     /**
+     * @brief 处理模板数据标记
+     *
+     * 原版 `EndCityPieces.EndCityPiece#handleDataMarker`：
+     * - `Chest...`：给标记下方的容器挂末地城战利品表；
+     * - `Sentry...`：在标记位置生成潜影贝；
+     * - `Elytra...`：在标记位置生成挂着鞘翅的物品展示框。
+     */
+    void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds) override;
+
+    /**
      * @brief 计算连接位置
      *
      * 计算从当前模板的某个位置连接到新模板的位置偏移

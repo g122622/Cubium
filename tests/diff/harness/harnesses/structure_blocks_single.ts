@@ -30,8 +30,8 @@
  *
  * 语料沿用 `structure_start_single` 的候选区块导出（由原版放置规则算出）。
  *
- * TODO: 末地城与林地府邸暂未纳入：模板的数据标记会生成潜影贝/灾厄村民，原版 oracle 的
- *       空世界桩没有真实服务端，实体构造即抛 NPE。等桩具备最小实体生成环境后再加回来。
+ * 末地城与林地府邸的数据标记会生成潜影贝/灾厄村民；oracle 的世界桩已具备最小服务端
+ * 替身（`addFreshEntity` 直接接受），因此这两者也在语料里。
  */
 
 import { execFileSync } from "node:child_process";
@@ -78,6 +78,8 @@ const FEATURES = [
   { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_warm", dimension: "overworld" },
   { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck", dimension: "overworld" },
   { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck_beached", dimension: "overworld" },
+  { structureSet: "minecraft:woodland_mansions", structure: "minecraft:mansion", dimension: "overworld" },
+  { structureSet: "minecraft:end_cities", structure: "minecraft:end_city", dimension: "the_end" },
 ] as const;
 
 /** 每个结构取多少个落点。 */

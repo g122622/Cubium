@@ -23,7 +23,13 @@
 
 #include "EndCityStructure.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/hanging/HangingEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -35,6 +41,8 @@
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
@@ -89,6 +97,21 @@ const BridgeAttachment FAT_TOWER_BRIDGES[] = {
 feature::template_::Rotation addRotation(feature::template_::Rotation a, feature::template_::Rotation b)
 {
     return static_cast<feature::template_::Rotation>((static_cast<i32>(a) + static_cast<i32>(b)) % 4);
+}
+
+/// 水平方向 → 悬挂实体的内部方向枚举（两者都表示“实体朝向”，按名字一一对应）
+entity::HangingEntity::Direction toHangingDirection(Direction direction)
+{
+    switch (direction) {
+        case Direction::West:
+            return entity::HangingEntity::Direction::WEST;
+        case Direction::North:
+            return entity::HangingEntity::Direction::NORTH;
+        case Direction::East:
+            return entity::HangingEntity::Direction::EAST;
+        default:
+            return entity::HangingEntity::Direction::SOUTH;
+    }
 }
 
 } // namespace
@@ -334,7 +357,76 @@ void CityTemplate::generate(IWorldWriter& world,
     feature::template_::PlacementSettings settings = m_settings.copy();
     settings.setBoundingBox(&chunkBounds);
 
-    templ->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    if (!templ->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS)) {
+        return;
+    }
+
+    // 原版 `TemplateStructurePiece#postProcess`：放完模板后按 DATA 标记生成战利品容器 /
+    // 潜影贝 / 鞘翅展示框。
+    for (const auto& marker : templ->getDataMarkers(m_templatePosition, settings)) {
+        handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
+    }
+}
+
+void CityTemplate::handleDataMarker(const std::string& metadata,
+    const BlockPos& pos,
+    IWorld& world,
+    math::IRandom& rng,
+    const StructureBoundingBox& chunkBounds)
+{
+    // 原版 `EndCityPieces.EndCityPiece#handleDataMarker`。
+    if (metadata.rfind("Chest", 0) == 0) {
+        // 战利品容器挂在标记方块**下方**一格。
+        const BlockPos below(pos.x, pos.y - 1, pos.z);
+        if (!chunkBounds.contains(below.x, below.y, below.z)) {
+            return;
+        }
+        BlockEntity* blockEntity = world.getBlockEntity(below);
+        auto* container = dynamic_cast<blockentity::LootableContainerBlockEntity*>(blockEntity);
+        if (container != nullptr) {
+            static const ResourceLocation endCityTreasure("minecraft:chests/end_city_treasure");
+            container->setLootTable(endCityTreasure, rng.nextLong());
+        }
+        return;
+    }
+
+    if (!chunkBounds.contains(pos.x, pos.y, pos.z)) {
+        return;
+    }
+
+    if (metadata.rfind("Sentry", 0) == 0) {
+        ecs::EntityRegistry* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+        const entity::EntityType* shulkerType =
+            entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::SHULKER);
+        if (shulkerType == nullptr) {
+            return;
+        }
+        auto shulker = shulkerType->create(&world, *registry);
+        if (shulker == nullptr) {
+            return;
+        }
+        shulker->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+        world.spawnEntity(std::move(shulker));
+        return;
+    }
+
+    if (metadata.rfind("Elytra", 0) == 0) {
+        ecs::EntityRegistry* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+        // 原版 `new ItemFrame(level, pos, rotation.rotate(Direction.SOUTH))`。
+        auto frame = std::make_unique<entity::ItemFrameEntity>(
+            pos, toHangingDirection(Directions::rotateDirection(Direction::South, m_rotation)), *registry);
+        frame->setTypeId(entity::EntityTypeKeys::ITEM_FRAME);
+        if (Items::ELYTRA != nullptr) {
+            frame->setDisplayedItem(ItemStack(*Items::ELYTRA), false);
+        }
+        world.spawnEntity(std::move(frame));
+    }
 }
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const

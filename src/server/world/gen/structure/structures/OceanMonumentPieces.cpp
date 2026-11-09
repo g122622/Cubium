@@ -2,6 +2,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "common/util/Direction.hpp"
@@ -259,7 +261,14 @@ bool OceanMonumentPiece::spawnElderGuardian(
     if (registry == nullptr) {
         return false;
     }
-    auto elder = ElderGuardianEntity::create(fullWorld, *registry);
+    // 经实体类型注册表创建：`EntityType::create` 会写入 typeId，直接调用
+    // `ElderGuardianEntity::create` 得到的实体没有类型标识。
+    const entity::EntityType* elderType =
+        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::ELDER_GUARDIAN);
+    if (elderType == nullptr) {
+        return false;
+    }
+    auto elder = elderType->create(fullWorld, *registry);
     auto* entity = dynamic_cast<ElderGuardianEntity*>(elder.get());
     if (entity == nullptr) {
         return false;

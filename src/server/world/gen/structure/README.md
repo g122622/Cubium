@@ -322,13 +322,17 @@ if (StructureTags::DOLPHIN_LOCATED().contains(ResourceLocation("minecraft", "shi
 
 Cubium 的链路是 `Template::getDataMarkers()` 取出放置后的数据标记位置，结构片段重写
 `StructurePiece::handleDataMarker()` 分派。**已实现**：`ShipwreckPiece`（`map_chest` /
-`treasure_chest` / `supplies_chest` 等）与 `OceanRuinPiece`（`chest` / `drowned`）。
+`treasure_chest` / `supplies_chest` 等）、`OceanRuinPiece`（`chest` / `drowned`）与
+`CityTemplate`（末地船 `Chest` / `Sentry` 潜影贝 / `Elytra` 展示框）。
 
 TODO: 以下结构的数据标记仍未实现（目前只保证方块几何一致）：`IglooPiece`（地窖入口与
-地下室箱子）、`NetherFossilPiece`、`CityTemplate`（末地船宝箱与潜影贝）、
-`RuinedPortalPiece`、`WoodlandMansionPiece`（宝箱与灾厄村民）。实现时注意：DATA 标记方块
-本身**不参与**正常方块放置（由 BlockIgnore 处理器忽略），其位置由
-`getDataMarkers()` 按放置设置换算到世界坐标。
+地下室箱子）、`NetherFossilPiece`、`RuinedPortalPiece`、`WoodlandMansionPiece`（宝箱与
+灾厄村民）。实现时注意：DATA 标记方块本身**不参与**正常方块放置（由 BlockIgnore 处理器
+忽略），其位置由 `getDataMarkers()` 按放置设置换算到世界坐标。
+
+结构数据标记生成实体时，必须经 `EntityType::create`（实体类型注册表）创建，工厂会写入
+`typeId`；直接调用 `XxxEntity::create` 得到的实体没有类型标识，网络同步、战利品表与
+差分能力都取不到类型。
 
 ### 14. 世界高度接口返回的是「最高方块 Y」，原版返回「首个可放置 Y」
 

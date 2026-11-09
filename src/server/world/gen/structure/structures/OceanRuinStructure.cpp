@@ -26,8 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/entity/entities/monster/undead/DrownedEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -504,7 +504,13 @@ void OceanRuinPiece::handleDataMarker(const std::string& metadata,
     if (registry == nullptr) {
         return;
     }
-    auto entity = DrownedEntity::create(&world, *registry);
+    // 经实体类型注册表创建：`EntityType::create` 会写入 typeId，直接调用
+    // `DrownedEntity::create` 得到的实体没有类型标识，网络同步与战利品表都取不到类型。
+    const entity::EntityType* drownedType = entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::DROWNED);
+    if (drownedType == nullptr) {
+        return;
+    }
+    auto entity = drownedType->create(&world, *registry);
     if (entity == nullptr) {
         return;
     }

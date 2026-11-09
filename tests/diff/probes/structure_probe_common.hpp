@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "common/core/Types.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
@@ -115,13 +116,6 @@ inline world::gen::feature::template_::TemplateManagerHostBinding& templateBindi
  * 顺序与 `RegistryBootstrap::initializeAll` 一致：模板池必须先于结构定义，结构标签必须先于
  * 结构集。注册表是进程级单例，重复调用幂等。
  */
-
-/**
- * @brief 按服务端启动顺序装配全部世界生成注册表
- *
- * 顺序与 `RegistryBootstrap::initializeAll` 一致：模板池必须先于结构定义，结构标签必须先于
- * 结构集。注册表是进程级单例，重复调用幂等。
- */
 inline void initializeStructureRegistries()
 {
     static const bool initialized = [] {
@@ -170,6 +164,10 @@ inline void initializeStructureRegistries()
             throw std::runtime_error("structure probe: structure set loading failed");
         }
         world::gen::structure::StructureSetRegistry::instance().validateAgainstStructureRegistry();
+
+        // 结构放置会按类型名创建实体（海洋废墟的溺尸、海底神殿的长老守卫），
+        // 实体类型注册表必须先就绪；`EntityType::create` 依赖它写入 typeId。
+        entity::VanillaEntities::registerAll();
         return true;
     }();
     (void)initialized;

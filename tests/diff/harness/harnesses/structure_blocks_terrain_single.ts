@@ -79,6 +79,8 @@ const FEATURES = [
   { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_warm", dimension: "overworld" },
   { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck", dimension: "overworld" },
   { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck_beached", dimension: "overworld" },
+  { structureSet: "minecraft:woodland_mansions", structure: "minecraft:mansion", dimension: "overworld" },
+  { structureSet: "minecraft:end_cities", structure: "minecraft:end_city", dimension: "the_end" },
 ] as const;
 
 /** 每个结构取多少个落点。 */
