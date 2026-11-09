@@ -133,6 +133,42 @@ public:
     void preRemoveSideEffects(const BlockPos& pos, const BlockState& state) override;
 
     /**
+     * @brief 保存容器物品栏到 NBT
+     *
+     * 物品写入 "Items" 复合列表，每项含 Slot 与 ItemStack 自身字段。空槽不写出。
+     * 所有容器子类的 NBT 持久化都经由此方法，避免各自重复实现。
+     *
+     * @param tag 目标复合标签
+     * @param inventory 待保存的物品栏
+     */
+    /**
+     * @brief 保存容器数据到 NBT
+     *
+     * 与 save(nlohmann::json&) 保持同一字段集（Items / CustomName）。此前本类只实现了
+     * JSON 路径，NBT 存档会让漏斗、熔炉、酿酒台等容器的物品栏全部丢失。
+     */
+    void saveToNBT(nbt::CompoundTag& tag) const override;
+
+    /**
+     * @brief 从 NBT 读取容器数据
+     *
+     * 与 load(const nlohmann::json&) 对称。
+     */
+    bool loadFromNBT(const nbt::CompoundTag& tag) override;
+
+    void saveItemsToNBT(nbt::CompoundTag& tag, const IInventory& inventory) const;
+
+    /**
+     * @brief 从 NBT 读取容器物品栏
+     *
+     * 先清空物品栏再按 Slot 回填；越界或无法解析的条目跳过。
+     *
+     * @param tag 源复合标签
+     * @param inventory 待填充的物品栏
+     */
+    void loadItemsFromNBT(const nbt::CompoundTag& tag, IInventory& inventory);
+
+    /**
      * @brief 检查玩家是否可以使用此容器
      * @param player 玩家
      * @param maxDistanceSq 最大距离的平方（默认64.0，即8格）
