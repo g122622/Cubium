@@ -324,6 +324,84 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
 // 本轮接入解析与字段校验（实体持有真实库存容器仍是 TODO，见定义处说明）。
 // minecraft:leashable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
 // 本轮接入解析与字段校验，并让 _AddonMob::canBeLeashed 消费它（声明即可被拴）。
+// minecraft:breathable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// 原版 schema 同时给 snake_case 与 camelCase 两套键，两种都必须接受。
+TEST_F(AddonEntityDefinitionTest, BreathableComponentIsAccepted)
+{
+    auto snakeCase = _definition("addon_test:breather_snake");
+    snakeCase["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    snakeCase["minecraft:entity"]["components"]["minecraft:breathable"] = {
+        {"total_supply", 15}, {"suffocate_time", 0}, {"breathes_water", true}, {"generates_bubbles", false}};
+
+    auto camelCase = _definition("addon_test:breather_camel");
+    camelCase["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    camelCase["minecraft:entity"]["components"]["minecraft:breathable"] = {{"totalSupply", 15}, {"suffocateTime", 0}};
+
+    auto minimal = _definition("addon_test:breather_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:breathable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/breather_snake.json", snakeCase);
+    write(directory / "entities/breather_camel.json", camelCase);
+    write(directory / "entities/breather_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, BreathableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"total_supply", -1}}, "negative total_supply"},
+        {{{"total_supply", "long"}}, "non-numeric total_supply"},
+        {{{"breathes_water", "yes"}}, "non-boolean breathes_water"},
+        {{{"breathe_blocks", "stone"}}, "non-array breathe_blocks"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_breather");
+        definition["minecraft:entity"]["components"]["minecraft:breathable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// total_supply 的单位是秒，项目空气量按 tick 计；15 秒应换算为 300（vanilla 默认值）。
+TEST_F(AddonEntityDefinitionTest, BreathableDrivesMaxAirAndUnderwaterBreathing)
+{
+    auto definition = _definition("addon_test:breathing_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    definition["minecraft:entity"]["components"]["minecraft:breathable"] = {
+        {"total_supply", 15}, {"breathes_water", true}};
+
+    auto camel = _definition("addon_test:breathing_camel_mob");
+    camel["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    camel["minecraft:entity"]["components"]["minecraft:breathable"] = {{"totalSupply", 5}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/breathing_mob.json", definition);
+    write(directory / "entities/breathing_camel_mob.json", camel);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto entity = create("addon_test:breathing_mob");
+    ASSERT_NE(entity, nullptr);
+    EXPECT_EQ(entity->maxAir(), 300) << "15 seconds must convert to 300 ticks";
+    auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    EXPECT_TRUE(living->canBreatheUnderwater()) << "breathes_water=true must allow underwater breathing";
+
+    // camelCase 键同样要能驱动换算，否则原版实体的写法会被静默忽略。
+    auto camelEntity = create("addon_test:breathing_camel_mob");
+    ASSERT_NE(camelEntity, nullptr);
+    EXPECT_EQ(camelEntity->maxAir(), 100) << "5 seconds must convert to 100 ticks";
+}
+
 TEST_F(AddonEntityDefinitionTest, LeashableComponentIsAccepted)
 {
     auto full = _definition("addon_test:leashable_mob");
@@ -787,8 +865,8 @@ TEST_F(AddonEntityDefinitionTest, DuplicateDefinitionsWithinOnePackAreRejected)
 TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplicitFailures)
 {
     auto definition = _definition("addon_test:unsupported");
-    // 用一个确实尚未支持的组件作样本：inventory / leashable 都已接入，不能再当反例。
-    definition["minecraft:entity"]["components"]["minecraft:breathable"] = {{"total_supply", 15}};
+    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable 都已接入。
+    definition["minecraft:entity"]["components"]["minecraft:damage_sensor"] = nlohmann::json::array();
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

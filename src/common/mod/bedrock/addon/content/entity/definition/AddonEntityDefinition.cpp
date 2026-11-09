@@ -321,6 +321,59 @@ public:
      * 声明 `minecraft:leashable` 即可被拴（该组件本身不是开关，而是"具备拴绳能力"的标记，
      * 具体开关在 presets/can_be_stolen 等子字段里）。未声明时沿用基类判断：敌对生物不可拴。
      */
+    /**
+     * @brief 最大空气值（憋气时长）
+     *
+     * 基岩 `minecraft:breathable.total_supply` 的单位是**秒**，而项目的空气量按 tick 计
+     * （vanilla 默认 300 = 15 秒 × 20）。未声明该组件时沿用基类默认。
+     */
+    [[nodiscard]] i32 maxAir() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* breathable =
+            components != nullptr ? components->component("minecraft:breathable") : nullptr;
+        if (breathable == nullptr) {
+            return mc::AgeableEntity::maxAir();
+        }
+
+        // 两套键名都要认：原版实体定义里 total_supply 与 totalSupply 都出现过。
+        const nlohmann::json* supply = nullptr;
+        if (const auto it = breathable->find("total_supply"); it != breathable->end()) {
+            supply = &*it;
+        } else if (const auto it = breathable->find("totalSupply"); it != breathable->end()) {
+            supply = &*it;
+        }
+        if (supply == nullptr || !supply->is_number()) {
+            return mc::AgeableEntity::maxAir();
+        }
+
+        const f64 seconds = supply->get<double>();
+        // 至少 1 tick：0 秒会让空气一瞬间耗尽，与"不需要呼吸"是两种语义，后者应由
+        // breathes_air 表达。这里不允许把 0 秒放大成"无限憋气"。
+        return std::max(1, static_cast<i32>(std::lround(seconds * 20.0)));
+    }
+
+    /**
+     * @brief 能否在水下呼吸
+     *
+     * 基岩 `minecraft:breathable.breathes_water` 为 true 时该生物可在水中呼吸。
+     * 未声明该组件时沿用基类判断（源自实体类型的固有水生属性）。
+     */
+    [[nodiscard]] bool canBreatheUnderwater() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* breathable =
+            components != nullptr ? components->component("minecraft:breathable") : nullptr;
+        if (breathable == nullptr) {
+            return mc::AgeableEntity::canBreatheUnderwater();
+        }
+
+        if (const auto it = breathable->find("breathes_water"); it != breathable->end() && it->is_boolean()) {
+            return it->get<bool>();
+        }
+        return mc::AgeableEntity::canBreatheUnderwater();
+    }
+
     [[nodiscard]] bool canBeLeashed() const override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -719,6 +772,58 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
             //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
             //   在此之前这些字段只做类型校验，不生效。
+        } else if (name == "minecraft:breathable") {
+            // 官方 schema 同时给了 snake_case 与 camelCase 两套键（suffocate_time/suffocateTime、
+            // total_supply/totalSupply），原版实体定义里两种都出现过，必须都接受。
+            // 生效的部分：total_supply 驱动 maxAir()（秒 → tick 由消费侧换算），
+            // breathes_water / breathes_air / breathes_lava 驱动 canBreatheUnderwater() 等判定。
+            MC_TRY(_members(component,
+                {"breathe_blocks",
+                    "breathes_air",
+                    "breathes_lava",
+                    "breathes_solids",
+                    "breathes_water",
+                    "generates_bubbles",
+                    "inhale_time",
+                    "non_breathe_blocks",
+                    "suffocate_time",
+                    "suffocateTime",
+                    "total_supply",
+                    "totalSupply"}));
+            for (const char* field :
+                {"breathes_air", "breathes_lava", "breathes_solids", "breathes_water", "generates_bubbles"}) {
+                MC_TRY(_boolean(component, field));
+            }
+            for (const char* field : {"breathe_blocks", "non_breathe_blocks"}) {
+                if (const auto it = component.find(field); it != component.end() && !it->is_array()) {
+                    return Error(
+                        ErrorCode::InvalidData, std::string("minecraft:breathable requires an array: ") + field);
+                }
+            }
+            // suffocate_time 在 schema 里默认 -20，允许负数；total_supply 是憋气秒数，不能为负。
+            for (const char* field : {"total_supply", "totalSupply"}) {
+                if (const auto it = component.find(field); it != component.end()) {
+                    if (!it->is_number() || !std::isfinite(it->get<double>())) {
+                        return Error(
+                            ErrorCode::InvalidData, std::string("minecraft:breathable requires a number: ") + field);
+                    }
+                    if (it->get<double>() < 0.0) {
+                        return Error(ErrorCode::InvalidData,
+                            std::string("minecraft:breathable total supply cannot be negative: ") + field);
+                    }
+                }
+            }
+            for (const char* field : {"suffocate_time", "suffocateTime", "inhale_time"}) {
+                if (const auto it = component.find(field);
+                    it != component.end() && (!it->is_number() || !std::isfinite(it->get<double>()))) {
+                    return Error(
+                        ErrorCode::InvalidData, std::string("minecraft:breathable requires a number: ") + field);
+                }
+            }
+            // TODO: breathe_blocks / non_breathe_blocks 是按方块白/黑名单改写呼吸环境，
+            //   需要"实体所在方块"逐类判定；当前 canBreatheUnderwater 只区分水/非水，
+            //   无法表达任意方块名单。inhale_time 与 suffocate_time 也还需要接入空气恢复
+            //   与窒息计时，当前沿用基类的固定速率与固定间隔。
         } else if (name == "minecraft:inventory") {
             // 6 个字段与官方 schema 对齐。inventory_size 是核心（默认 5）。
             // TODO: 目前只做解析与校验，实体尚未真正持有库存容器——addon 实体的可交互背包
