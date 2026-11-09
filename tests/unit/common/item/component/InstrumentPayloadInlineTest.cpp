@@ -52,8 +52,7 @@ item::instrument::InstrumentDefinition _makeInlineDefinition()
 }
 
 /// @brief 在组件补丁里找到 instrument 条目；没有则返回 nullptr
-const item::component::DataComponentPayload* _findInstrumentPayload(
-    const item::component::DataComponentPatch& patch)
+const item::component::DataComponentPayload* _findInstrumentPayload(const item::component::DataComponentPatch& patch)
 {
     const i32 wantedId = item::component::componentTypeId(item::component::DataComponentType::Instrument);
     for (const auto& entry : patch.added()) {
@@ -138,6 +137,5 @@ TEST(InstrumentPayloadInlineTest, PlainRegistryIdStringStaysReferenceOnly)
     const auto* restoredPayload = std::get_if<item::component::InstrumentPayload>(found);
     ASSERT_NE(restoredPayload, nullptr);
     EXPECT_EQ(restoredPayload->instrumentId, "minecraft:ponder_goat_horn");
-    EXPECT_FALSE(restoredPayload->inlineDefinition.has_value())
-        << "a bare id must not fabricate an inline definition";
+    EXPECT_FALSE(restoredPayload->inlineDefinition.has_value()) << "a bare id must not fabricate an inline definition";
 }
