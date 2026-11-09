@@ -375,9 +375,33 @@ std::vector<ScriptValue> convertArgsToScriptValues(JSContext* ctx, i32 argc, JSV
             const char* str = JS_ToCString(ctx, argv[i]);
             scriptArgs.emplace_back(std::string(str ? str : ""));
             JS_FreeCString(ctx, str);
-        } else {
-            // TODO: 对象、数组、函数等复杂类型作为参数传递暂不支持，需要扩展ScriptValue类型系统
+        } else if (JS_IsFunction(ctx, argv[i])) {
+            // 函数不可跨边界序列化为值：明确降级为 undefined 而不是伪装成对象。
             scriptArgs.emplace_back();
+        } else {
+            // 对象与数组统一走 JSON：这是唯一能表达嵌套混合结构的载体。
+            // JSON.stringify 的结果再解析回来，与直接遍历属性等价，且复用 QuickJS 自己的序列化，
+            // 不会漏掉 getter、Symbol.iterator 等由引擎处理的细节。
+            JSValue dumped = JS_JSONStringify(ctx, argv[i], JS_UNDEFINED, JS_UNDEFINED);
+            if (JS_IsException(dumped)) {
+                JS_FreeValue(ctx, dumped);
+                scriptArgs.emplace_back();
+                continue;
+            }
+            const char* text = JS_ToCString(ctx, dumped);
+            const bool isArray = JS_IsArray(argv[i]);
+            if (text != nullptr) {
+                nlohmann::json parsed = nlohmann::json::parse(text, nullptr, false);
+                JS_FreeCString(ctx, text);
+                if (parsed.is_discarded()) {
+                    scriptArgs.emplace_back();
+                } else {
+                    scriptArgs.emplace_back(std::move(parsed), isArray);
+                }
+            } else {
+                scriptArgs.emplace_back();
+            }
+            JS_FreeValue(ctx, dumped);
         }
     }
 
@@ -401,9 +425,14 @@ JSValue convertScriptValueToJSValue(JSContext* ctx, const ScriptValue& result)
         case ScriptValueType::String:
             return JS_NewStringLen(ctx, result.asString().c_str(), result.asString().size());
         case ScriptValueType::Object:
-        case ScriptValueType::Array:
+        case ScriptValueType::Array: {
+            // JSON 承载的对象/数组还原成真实 JS 值：解析文本再求值，等价于引擎自己的 JSON 反序列化。
+            const std::string text = result.asJson().dump();
+            JSValue parsed = JS_ParseJSON(ctx, text.c_str(), text.size(), "<script-value>");
+            return JS_IsException(parsed) ? JS_UNDEFINED : parsed;
+        }
         case ScriptValueType::Function:
-            // TODO: 对象、数组、函数等复杂类型暂不支持，需要扩展ScriptValue类型系统
+            // 函数不可由 JSON 还原；该类型只用于"脚本传入的函数"标记，原生侧不会主动产出。
             return JS_UNDEFINED;
     }
 

@@ -434,3 +434,103 @@ TEST_F(AddonRuntimeContractTest, SelfSchedulingModuleFailsInsteadOfHanging)
     ASSERT_FALSE(result.success()) << "自调度模块必须在预算耗尽后失败，而不是无限等待";
     EXPECT_NE(result.errorMessage().find("pending-job budget"), std::string::npos) << result.errorMessage();
 }
+
+// 脚本对象/数组跨原生边界：此前 convertArgsToScriptValues 对非标量一律降级成 undefined，
+// convertScriptValueToJSValue 对 Object/Array 也返回 undefined。表现是注册给脚本的原生函数
+// 收到对象参数时静默变成 undefined——脚本侧看不到任何错误，只是数据凭空消失。
+// 现在统一以 JSON 承载，双向都能完整往返。
+TEST_F(AddonRuntimeContractTest, ObjectAndArrayArgumentsRoundTripThroughNativeBoundary)
+{
+    // 只验证对象形态；数组形态由下一条用例单独覆盖（两者在脚本侧的语义不同）。
+    std::vector<ScriptValue> objectArg;
+    ASSERT_TRUE(context->registerGlobalFunction(
+        "__captureObject", [&objectArg](const std::vector<ScriptValue>& args) -> ScriptValue {
+            objectArg = args;
+            return ScriptValue();
+        }));
+    evaluate(R"(__captureObject({ name: 'zombie', health: 20, nested: { flag: true }, list: [1, 2, 3] });)");
+    ASSERT_EQ(objectArg.size(), 1u);
+    EXPECT_TRUE(objectArg[0].isObject());
+    EXPECT_EQ(objectArg[0].asJson()["name"], "zombie");
+    EXPECT_EQ(objectArg[0].asJson()["health"], 20);
+    EXPECT_TRUE(objectArg[0].asJson()["nested"]["flag"]);
+    ASSERT_TRUE(objectArg[0].asJson()["list"].is_array());
+    EXPECT_EQ(objectArg[0].asJson()["list"].size(), 3u);
+}
+
+TEST_F(AddonRuntimeContractTest, ArrayArgumentIsDistinguishedFromObject)
+{
+    std::vector<ScriptValue> received;
+    ASSERT_TRUE(context->registerGlobalFunction(
+        "__captureArray", [&received](const std::vector<ScriptValue>& args) -> ScriptValue {
+            received = args;
+            return ScriptValue();
+        }));
+
+    evaluate(R"(__captureArray([10, 'twenty', false, null]);)");
+
+    ASSERT_EQ(received.size(), 1u);
+    // 数组必须被识别为 Array 而不是 Object：两者在脚本侧语义不同（length、索引、迭代器）。
+    EXPECT_TRUE(received[0].isArray());
+    EXPECT_FALSE(received[0].isObject());
+    ASSERT_TRUE(received[0].asJson().is_array());
+    EXPECT_EQ(received[0].asJson()[0], 10);
+    EXPECT_EQ(received[0].asJson()[1], "twenty");
+    EXPECT_EQ(received[0].asJson()[2], false);
+    EXPECT_TRUE(received[0].asJson()[3].is_null());
+}
+
+// 原生侧返回对象/数组时，脚本必须拿到真实值而不是 undefined。
+TEST_F(AddonRuntimeContractTest, NativeReturnValueCanBeAnObjectOrArray)
+{
+    ASSERT_TRUE(context->registerGlobalFunction("__makeObject", [](const std::vector<ScriptValue>&) -> ScriptValue {
+        nlohmann::json object = {{"id", "minecraft:zombie"}, {"count", 3}, {"tags", {"hostile", "undead"}}};
+        return ScriptValue(std::move(object), false);
+    }));
+    ASSERT_TRUE(context->registerGlobalFunction("__makeArray", [](const std::vector<ScriptValue>&) -> ScriptValue {
+        nlohmann::json array = nlohmann::json::array({1, "two", true});
+        return ScriptValue(std::move(array), true);
+    }));
+
+    evaluate(R"(
+        globalThis.fromObject = __makeObject();
+        globalThis.fromArray = __makeArray();
+    )");
+
+    const auto id = context->getGlobalVariable("fromObject");
+    ASSERT_TRUE(id.has_value());
+
+    // 脚本侧直接读属性，验证拿到的是真实对象而非 undefined。
+    evaluate(R"(
+        globalThis.objectId = __makeObject().id;
+        globalThis.objectCount = __makeObject().count;
+        globalThis.objectTagCount = __makeObject().tags.length;
+        globalThis.arrayLength = __makeArray().length;
+        globalThis.arraySecond = __makeArray()[1];
+        globalThis.arrayIsArray = Array.isArray(__makeArray());
+    )");
+
+    const auto objectId = context->getGlobalVariable("objectId");
+    ASSERT_TRUE(objectId.has_value());
+    EXPECT_EQ(objectId->asString(), "minecraft:zombie");
+
+    const auto objectCount = context->getGlobalVariable("objectCount");
+    ASSERT_TRUE(objectCount.has_value());
+    EXPECT_DOUBLE_EQ(objectCount->asNumber(), 3.0);
+
+    const auto objectTagCount = context->getGlobalVariable("objectTagCount");
+    ASSERT_TRUE(objectTagCount.has_value());
+    EXPECT_DOUBLE_EQ(objectTagCount->asNumber(), 2.0);
+
+    const auto arrayLength = context->getGlobalVariable("arrayLength");
+    ASSERT_TRUE(arrayLength.has_value());
+    EXPECT_DOUBLE_EQ(arrayLength->asNumber(), 3.0);
+
+    const auto arraySecond = context->getGlobalVariable("arraySecond");
+    ASSERT_TRUE(arraySecond.has_value());
+    EXPECT_EQ(arraySecond->asString(), "two");
+
+    const auto arrayIsArray = context->getGlobalVariable("arrayIsArray");
+    ASSERT_TRUE(arrayIsArray.has_value());
+    EXPECT_TRUE(arrayIsArray->asBoolean());
+}
