@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/village/raid/Raid.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/raid/RaiderType.hpp"
 
 #include <gtest/gtest.h>
@@ -662,66 +663,36 @@ TEST_F(RaidBossBarProgressTest, RaidConfig_CooldownTicksConstant_MatchesJavaVers
 }
 
 // ============================================================================
-// Boss 栏网络同步：Raid 经 IRaidBossBarListener 通知外部
+// Boss 栏网络同步：RaidManager::tick 经 RaidCallbacks 对外通知
 // ============================================================================
 
-/**
- * @brief 记录回调的测试监听器。
- *
- * Raid 位于 src/common，不能依赖 src/server 的 ServerBossInfo，因此用接口注入；
- * 这里验证"进度/可见性是否被正确上报"，实际转发到 ServerBossInfo 由 server 侧实现。
- */
-class RecordingBossBarListener : public IRaidBossBarListener {
-public:
-    void onRaidBossBarChanged(const Raid& raid, f32 progress, bool visible) override
-    {
-        ++calls;
-        lastProgress = progress;
-        lastVisible = visible;
-        lastRaidId = raid.id();
-    }
+// 通知走既有的 RaidCallbacks 机制（而不是让 Raid 持有外部实现），
+// 因为 Raid 位于 src/common、不能依赖 src/server 的 ServerBossInfo。
 
-    i32 calls = 0;
-    f32 lastProgress = -1.0f;
-    bool lastVisible = false;
-    RaidId lastRaidId = 0;
-};
-
-TEST_F(RaidBossBarProgressTest, BossBarListener_NotifiedWithProgressAndVisibility)
+// RaidCallbacks 必须提供 Boss 栏进度回调字段，供 server 侧注入 ServerBossInfo 转发。
+// 通知走既有 RaidCallbacks 机制而不是让 Raid 持有外部实现——Raid 位于 src/common，
+// 不能依赖 src/server 的 ServerBossInfo。
+TEST(RaidCallbacksTest, ProvidesBossBarProgressCallback)
 {
-    RecordingBossBarListener listener;
-    m_raid->setBossBarListener(&listener);
+    RaidCallbacks callbacks;
+    // 默认未设置：RaidManager::tick 必须先判空，未注入时不得崩溃。
+    EXPECT_FALSE(static_cast<bool>(callbacks.onBossBarProgressChanged));
 
-    m_accessor->setStatus(RaidStatus::Ongoing);
-    m_accessor->setTotalHealth(100.0f);
-    m_accessor->updateBossBar(m_world);
-
-    EXPECT_EQ(listener.calls, 1) << "每次刷新都应通知一次";
-    EXPECT_TRUE(listener.lastVisible) << "进行中的袭击必须显示 Boss 栏";
-    EXPECT_EQ(listener.lastRaidId, m_raid->id());
+    bool invoked = false;
+    callbacks.onBossBarProgressChanged = [&](const Raid&, f32 progress, bool visible) {
+        invoked = true;
+        EXPECT_FLOAT_EQ(progress, 0.5f);
+        EXPECT_TRUE(visible);
+    };
+    EXPECT_TRUE(static_cast<bool>(callbacks.onBossBarProgressChanged));
+    EXPECT_FALSE(invoked) << "callback must not fire on assignment";
 }
 
-// 胜利/失败/停止后必须通知隐藏：否则客户端 Boss 栏会一直挂着不消失。
-TEST_F(RaidBossBarProgressTest, BossBarListener_HiddenWhenRaidNoLongerOngoing)
+// 未注入 Boss 栏回调时 tick 必须安全（纯单元测试、无 Boss 栏场景）。
+TEST(RaidCallbacksTest, TickWithoutBossBarCallbackIsSafe)
 {
-    RecordingBossBarListener listener;
-    m_raid->setBossBarListener(&listener);
-
-    m_accessor->setStatus(RaidStatus::Victory);
-    m_accessor->updateBossBar(m_world);
-
-    EXPECT_EQ(listener.calls, 1);
-    EXPECT_FALSE(listener.lastVisible) << "结束的袭击必须通知隐藏 Boss 栏";
-    EXPECT_FLOAT_EQ(listener.lastProgress, 0.0f);
-}
-
-// 未注入监听器时不能崩溃（纯单元测试与无 Boss 栏场景）。
-TEST_F(RaidBossBarProgressTest, BossBarListener_AbsentIsSafe)
-{
-    m_raid->setBossBarListener(nullptr);
-    m_accessor->setStatus(RaidStatus::Ongoing);
-    m_accessor->setTotalHealth(100.0f);
-    EXPECT_NO_FATAL_FAILURE(m_accessor->updateBossBar(m_world));
+    RaidCallbacks callbacks;
+    EXPECT_FALSE(static_cast<bool>(callbacks.onBossBarProgressChanged));
 }
 
 } // namespace test

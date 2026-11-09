@@ -213,10 +213,17 @@ void RaidManager::onPlayerEnterVillageWithCallback(const BadOmenCheckCallback& c
 
 void RaidManager::tick()
 {
-    // 更新所有袭击
+    // 更新所有袭击，并在每次推进后把 Boss 栏状态通知出去。
+    // 放在这里而不是 Raid 内部：Raid 位于 common，不能持有 server 侧实现。
     for (auto& raid : m_raids) {
         if (raid) {
             raid->tick(m_world);
+            if (m_callbacks.onBossBarProgressChanged) {
+                // 只有进行中的袭击才显示；胜利/失败/停止后一律通知隐藏，
+                // 否则客户端 Boss 栏会一直挂着不消失。
+                m_callbacks.onBossBarProgressChanged(
+                    *raid, raid->getBossBarProgress(), raid->status() == RaidStatus::Ongoing);
+            }
         }
     }
 
