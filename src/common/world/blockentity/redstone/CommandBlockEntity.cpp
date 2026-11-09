@@ -102,6 +102,27 @@ std::string bedrockCloneFilterDataToJavaProps(const std::string& blockTok, const
     return std::string("[facing=") + facing + ",half=" + (upsideDown ? "top" : "bottom") + "]";
 }
 
+/**
+ * @brief 把项目命令方块模式映射成基岩 LPCommandMode 的取值
+ *
+ * 基岩：0=脉冲、1=循环、2=连锁；项目枚举为 Sequence=0 / Auto=1 / Redstone=2，取值不同，
+ * 不能直接强转。读取侧有反向映射，两处必须成对维护。
+ *
+ * @param mode 项目命令方块模式
+ * @return 基岩 LPCommandMode 取值
+ */
+i8 _modeToBedrockByte(blockentity::CommandBlockMode mode)
+{
+    switch (mode) {
+        case blockentity::CommandBlockMode::Auto:
+            return 1; // 循环 Repeating
+        case blockentity::CommandBlockMode::Sequence:
+            return 2; // 连锁 Chain
+        case blockentity::CommandBlockMode::Redstone:
+        default:
+            return 0; // 脉冲 Normal
+    }
+}
 } // namespace
 
 // ============================================================================
@@ -264,9 +285,16 @@ bool CommandBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
     if (auto v = nh::tryGetBool(tag, "ExecuteOnFirstTick")) {
         setExecuteOnFirstTick(*v);
     }
-    // LPCondionalMode / LPRedstoneMode 仍无对应字段：它们控制基岩"条件"与"红石"开关的
-    // 存档表示，项目用 m_conditionMet 与 m_powered 的运行时状态表达，不持久化这两个开关。
-    // TODO: 若需要完整支持基岩命令方块 UI 开关的存档往返，再补这两个字段。
+    // 基岩版红石模式开关：LPRedstoneMode 1=需要红石、0=始终保持开启，与项目的 m_auto
+    // （true=无需红石、自动执行）取值相反，因此取反后写入。该字段在 tick 路径生效
+    // （见 CommandBlock::tick 中 isAuto() 决定是否响应红石脉冲）。
+    if (auto v = nh::tryGetByte(tag, "LPRedstoneMode")) {
+        setAuto(*v == 0);
+    }
+    // TODO: LPCondionalMode（条件模式开关）无法在此落地：conditional 存在方块状态的
+    //   CONDITIONAL 属性里（见 isConditional），而 load/loadFromNBT 都没有世界参数，
+    //   加载期改不了方块状态。要支持需让方块实体加载流程在写入世界后回调一次，按该字段
+    //   更新 CONDITIONAL。在此之前该字段读进来会被丢弃。
 
     return true;
 }
@@ -321,6 +349,53 @@ void CommandBlockEntity::save(nlohmann::json& data) const
     }
     if (!m_executeOnFirstTick) {
         data["ExecuteOnFirstTick"] = false;
+    }
+    // 模式与红石模式开关：与读取侧的 LPCommandMode / LPRedstoneMode 映射成对。
+    // LPRedstoneMode 只在"需要红石"时写出（基岩默认 0 = 始终保持开启）。
+    data["LPCommandMode"] = _modeToBedrockByte(m_mode);
+    if (!m_auto) {
+        data["LPRedstoneMode"] = 1;
+    }
+}
+
+void CommandBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
+{
+    BlockEntity::saveToNBT(tag);
+
+    // 与 save(nlohmann::json&) 保持同一字段集：两条存档路径写出的内容必须一致，
+    // 否则从 NBT 读回的命令方块会丢掉命令、模式与所有开关状态，变成一个空命令方块。
+    if (!m_command.empty()) {
+        tag.put("Command", m_command);
+    }
+    if (m_successCount > 0) {
+        tag.put("SuccessCount", m_successCount);
+    }
+    if (!m_customName.empty() && m_customName != "@") {
+        tag.put("CustomName", m_customName);
+    }
+    if (m_trackOutput && !m_lastOutput.empty()) {
+        tag.put("LastOutput", m_lastOutput);
+    }
+    // NBT 没有布尔类型，布尔统一以 Byte 的 0/1 表示（与基岩存档一致）。
+    tag.put("TrackOutput", static_cast<i8>(m_trackOutput ? 1 : 0));
+    tag.put("powered", static_cast<i8>(m_powered ? 1 : 0));
+    tag.put("conditionMet", static_cast<i8>(m_conditionMet ? 1 : 0));
+    tag.put("auto", static_cast<i8>(m_auto ? 1 : 0));
+    if (m_updateLastExecution && m_lastExecution >= 0) {
+        tag.put("LastExecution", m_lastExecution);
+    }
+    tag.put("UpdateLastExecution", static_cast<i8>(m_updateLastExecution ? 1 : 0));
+    if (m_tickDelay != 0) {
+        tag.put("TickDelay", m_tickDelay);
+    }
+    if (!m_executeOnFirstTick) {
+        tag.put("ExecuteOnFirstTick", static_cast<i8>(0));
+    }
+    // 模式必须写出，否则读回来永远是方块类型默认的模式（脉冲/循环/连锁会退化）。
+    tag.put("LPCommandMode", static_cast<i8>(_modeToBedrockByte(m_mode)));
+    // 与读取侧取反逻辑对称：需要红石时写 1。
+    if (!m_auto) {
+        tag.put("LPRedstoneMode", static_cast<i8>(1));
     }
 }
 
