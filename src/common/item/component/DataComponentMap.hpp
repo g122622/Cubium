@@ -33,6 +33,7 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/item/instrument/InstrumentDefinition.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
 #include <memory>
@@ -75,11 +76,16 @@ struct PotionContentsPayload {
 /**
  * @brief instrument 组件载荷
  *
- * 对应 Java 1.21.11 Holder<Instrument>。项目暂无乐器注册表，以乐器注册表键的
- * 资源位置字符串承载，山羊角等乐器物品按注册表键解析音色。
+ * 对应 Java 1.21.11 的 `Holder<Instrument>`（`EitherHolder`），有两种形态：
+ * - **注册表引用**：只记资源位置，音色由 `InstrumentRegistry` 按 id 查表得到；
+ * - **内联定义**：组件里直接写全 sound_event / use_duration / range / description，
+ *   此时不依赖注册表命中（数据包可以定义一次性乐器）。
+ *
+ * 两者可同时存在：`inlineDefinition` 有值时优先用它，否则退回按 `instrumentId` 查表。
  */
 struct InstrumentPayload {
-    std::string instrumentId; ///< 乐器的资源位置（如 "minecraft:ponder_goat_horn"）
+    std::string instrumentId; ///< 乐器的资源位置（如 "minecraft:ponder_goat_horn"）；内联形态下可能为空
+    std::optional<item::instrument::InstrumentDefinition> inlineDefinition; ///< 内联的完整乐器定义
 };
 
 /**

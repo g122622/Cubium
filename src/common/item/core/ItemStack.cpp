@@ -1431,8 +1431,8 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         }
         if (m_extras->instrument.has_value()) {
             patch.add(DataComponentType::Instrument,
-                DataComponentPayload{
-                    std::in_place_index<ComponentPayloadIndex::Instrument>, InstrumentPayload{*m_extras->instrument}});
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Instrument>,
+                    InstrumentPayload{*m_extras->instrument, std::nullopt}});
         }
         if (m_extras->tool.has_value()) {
             patch.add(DataComponentType::Tool,
