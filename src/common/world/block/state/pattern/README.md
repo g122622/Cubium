@@ -69,18 +69,21 @@ if (match.has_value()) {
 |---------|--------|------|
 | `Predicate<BlockInWorld>` | `std::function<bool(const BlockInWorld&)>` | C++ 无函数式接口，使用 std::function |
 | `Predicate<BlockState>` | `std::function<bool(const BlockState&)>` | 同上 |
-| `LoadingCache<BlockPos, BlockInWorld>` | `BlockInWorld` 内部缓存 | C++ 无 Guava Cache，改为 BlockInWorld 自身缓存 |
+| `LoadingCache<BlockPos, BlockInWorld>`（`find()` 全程共享） | 每个匹配格新建 `BlockInWorld`，仅对象内惰性缓存 | 未引入跨候选位置的缓存；同一世界坐标在 `find()` 期间会被重复查询，见“性能考虑” |
 | `@Nullable BlockPatternMatch` | `std::optional<BlockPatternMatch>` | C++ 语义化空值 |
 | `BlockPredicate.forBlock(block)` | `[](const BlockState& s){ return s.is(block); }` | Cubium 无 BlockPredicate 层级 |
 
 ## 主要使用方
 
+- `EndPortalFrameBlock::getOrCreatePortalShape()` + `EnderEyeItem` - 12 个嵌眼框架围成 3×3 后填充末地传送门
 - `EndDragonFight::_findExitPortal()` - 通过 `exitPortalPattern` 精确定位末地出口讲台
 - `EndDragonFight::_respawnDragon()` - 遍历匹配的讲台方块，替换基岩/末地传送门为末地石
+
+原版的 `CarvedPumpkinBlock`（铁 / 雪 / 铜傀儡）与 `WitherSkullBlock`（凋灵）在 Cubium 中目前是手写坐标判定，未使用本模块。
 
 ## 性能考虑
 
 - `find()` 的搜索范围为 `[pos, pos + (max-1)^3]`，其中 `max = max(width, height, depth)`
 - 每个候选位置尝试 24 种方向组合，最坏情况下复杂度为 `O(max^3 * 24 * pattern_size)`
-- `BlockInWorld` 缓存避免重复查询世界，但每次 `find()` 仍会创建大量临时对象
+- **注意**：MC Java 在 `find()` 开始时创建一个 `LoadingCache<BlockPos, BlockInWorld>` 并在整个搜索过程中共享；Cubium 在 `matches()` 中为每个格子新建 `BlockInWorld`，`BlockPatternMatch::getBlock()` 也每次新建。因此单次 `find()` 内同一世界坐标会被重复查询，且匹配成功后再读取方块得到的是“当前”状态而非匹配时刻的快照。`BlockInWorld` 的惰性缓存只在同一个对象被重复使用时生效。
 - 对于已知大致位置的场景（如 `EndDragonFight`），优先在 END_PORTAL 方块位置附近搜索
