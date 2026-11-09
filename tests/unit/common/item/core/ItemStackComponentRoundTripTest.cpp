@@ -30,6 +30,7 @@
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
+#include "common/item/component/DataComponentPayloadCodec.hpp"
 #include "common/item/component/FireworkExplosion.hpp"
 #include "common/item/component/Fireworks.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
@@ -80,6 +81,12 @@ ItemStack makeFullyComponentedStack(const Item* sword)
     fireworks.explosions.push_back(*stack.getFireworkExplosion());
     fireworks.explosions.emplace_back();
     stack.setFireworks(std::move(fireworks));
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Chest;
+    equippable.equipSound = "minecraft:item.armor.equip_diamond";
+    equippable.damageOnHurt = false;
+    equippable.equipOnInteract = true;
+    stack.setEquippable(std::move(equippable));
     auto& tag = stack.getOrCreateTag();
     tag = nlohmann::json::object();
     tag["display"]["color"] = 0xFF0000;
@@ -454,4 +461,90 @@ TEST_F(ItemStackComponentRoundTripTest, BlockEntityData_CopyIsIndependent)
 
     EXPECT_EQ(stack.getBlockEntityData().at("Command"), "say a");
     EXPECT_EQ(copied.getBlockEntityData().at("Command"), "say b");
+}
+
+// equippable 组件：slot 必填，其余字段可省略。JSON 与 NBT 两条路径都要能往返。
+TEST_F(ItemStackComponentRoundTripTest, EquippableRoundTripsThroughJson)
+{
+    ItemStack stack(*Items::DIAMOND_CHESTPLATE, 1);
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Chest;
+    equippable.equipSound = "minecraft:item.armor.equip_diamond";
+    equippable.dispensable = false;
+    equippable.swappable = false;
+    equippable.damageOnHurt = false;
+    equippable.equipOnInteract = true;
+    equippable.canBeSheared = true;
+    equippable.shearingSound = "minecraft:item.shears.snip";
+    stack.setEquippable(equippable);
+
+    const auto json = stack.toJson();
+    ASSERT_TRUE(json.contains("minecraft:equippable"));
+    EXPECT_EQ(json["minecraft:equippable"]["slot"], "chest");
+    EXPECT_EQ(json["minecraft:equippable"]["damage_on_hurt"], false);
+
+    const auto parsed = ItemStack::fromJson(json);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+    const auto& restored = parsed.value().getEquippable();
+    ASSERT_TRUE(restored.has_value());
+    EXPECT_EQ(restored->slot, EquipmentSlot::Chest);
+    EXPECT_EQ(restored->equipSound, "minecraft:item.armor.equip_diamond");
+    EXPECT_FALSE(restored->dispensable);
+    EXPECT_FALSE(restored->swappable);
+    EXPECT_FALSE(restored->damageOnHurt);
+    EXPECT_TRUE(restored->equipOnInteract);
+    EXPECT_TRUE(restored->canBeSheared);
+    EXPECT_EQ(restored->shearingSound, "minecraft:item.shears.snip");
+}
+
+// 默认值必须省略，与 vanilla 的 optionalFieldOf 一致；否则存档里会堆满冗余键。
+TEST_F(ItemStackComponentRoundTripTest, EquippableOmitsDefaultFields)
+{
+    ItemStack stack(*Items::DIAMOND_CHESTPLATE, 1);
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Chest;
+    stack.setEquippable(equippable);
+
+    const auto json = stack.toJson();
+    const auto& component = json["minecraft:equippable"];
+    EXPECT_EQ(component.size(), 1u) << "only slot should be written for an all-default component";
+    EXPECT_EQ(component["slot"], "chest");
+}
+
+// slot 缺失或名称非法时整条组件丢弃：装备槽位是必填语义，猜一个默认槽会让物品静默戴错位置。
+TEST_F(ItemStackComponentRoundTripTest, EquippableRejectsMissingOrInvalidSlot)
+{
+    const auto noSlot = ItemStack::fromJson(nlohmann::json{
+        {"id", "minecraft:diamond_chestplate"}, {"Count", 1}, {"minecraft:equippable", nlohmann::json::object()}});
+    ASSERT_TRUE(noSlot.success());
+    EXPECT_FALSE(noSlot.value().getEquippable().has_value()) << "missing slot must drop the whole component";
+
+    const auto badSlot = ItemStack::fromJson(nlohmann::json{
+        {"id", "minecraft:diamond_chestplate"}, {"Count", 1}, {"minecraft:equippable", {{"slot", "tail"}}}});
+    ASSERT_TRUE(badSlot.success());
+    EXPECT_FALSE(badSlot.value().getEquippable().has_value()) << "unknown slot name must drop the whole component";
+}
+
+// NBT 路径同样要能编解码，否则存档往返会丢失装备语义。
+TEST_F(ItemStackComponentRoundTripTest, EquippableRoundTripsThroughNbt)
+{
+    ItemStack stack(*Items::DIAMOND_CHESTPLATE, 1);
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Legs;
+    equippable.damageOnHurt = false;
+    equippable.canBeSheared = true;
+    stack.setEquippable(equippable);
+
+    const auto encoded = item::component::detail::payloadToNbt(
+        item::component::DataComponentType::Equippable, item::component::DataComponentPayload{equippable});
+    ASSERT_NE(encoded, nullptr);
+    ASSERT_EQ(encoded->id(), TagId::Compound);
+
+    const auto decoded =
+        item::component::detail::nbtToPayload(item::component::DataComponentType::Equippable, *encoded);
+    ASSERT_TRUE(std::holds_alternative<item::component::EquippablePayload>(decoded));
+    const auto& restored = std::get<item::component::EquippablePayload>(decoded);
+    EXPECT_EQ(restored.slot, EquipmentSlot::Legs);
+    EXPECT_FALSE(restored.damageOnHurt);
+    EXPECT_TRUE(restored.canBeSheared);
 }

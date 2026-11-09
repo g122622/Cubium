@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentType.hpp"
@@ -153,7 +154,7 @@ constexpr std::array<std::string_view, 16> _colorNames{"white",
         result.reserve(generic->value.size());
         for (const auto& element : generic->value) {
             if (element != nullptr && element->id() == TagId::String) {
-                result.push_back(dynamic_cast<const string_tag&>(*element).value);
+                result.push_back(dynamic_cast<const nbt::tags::string_tag&>(*element).value);
             }
         }
     }
@@ -492,6 +493,34 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             }
             return compound;
         }
+        case DataComponentType::Equippable: {
+            // Equippable.CODEC：slot 必填，其余均为 optionalFieldOf，等于默认值就省略。
+            const auto& eq = std::get<EquippablePayload>(payload);
+            auto compound = std::make_unique<compound_tag>();
+            compound->put("slot", std::string(entity::serialization::EquipmentSlotNames::toName(eq.slot)));
+            if (!eq.equipSound.empty()) {
+                compound->put("equip_sound", eq.equipSound);
+            }
+            if (!eq.dispensable) {
+                compound->put("dispensable", static_cast<i8>(0));
+            }
+            if (!eq.swappable) {
+                compound->put("swappable", static_cast<i8>(0));
+            }
+            if (!eq.damageOnHurt) {
+                compound->put("damage_on_hurt", static_cast<i8>(0));
+            }
+            if (eq.equipOnInteract) {
+                compound->put("equip_on_interact", static_cast<i8>(1));
+            }
+            if (eq.canBeSheared) {
+                compound->put("can_be_sheared", static_cast<i8>(1));
+            }
+            if (!eq.shearingSound.empty()) {
+                compound->put("shearing_sound", eq.shearingSound);
+            }
+            return compound;
+        }
         case DataComponentType::OminousBottleAmplifier:
         case DataComponentType::MapId: {
             // 可选整数：未设置时写空 compound（vanilla optionalFieldOf 的空值表示）
@@ -603,7 +632,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             // （sound_event / use_duration / range / description），见 payloadToNbt。
             std::string instrument;
             if (tag.id() == TagId::String) {
-                instrument = dynamic_cast<const string_tag&>(tag).value;
+                instrument = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
             } else if (tag.id() == TagId::Compound) {
                 // TODO: 内联定义目前无法反查到注册名——InstrumentPayload 只承载资源位置。
                 //       要支持内联定义，需要让载荷也能持有完整定义（而不是只记一个 id）。
@@ -688,7 +717,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                     if (idIt == value.value.end() || idIt->second->id() != TagId::String) {
                         continue;
                     }
-                    const auto& effectId = dynamic_cast<const string_tag&>(*idIt->second).value;
+                    const auto& effectId = dynamic_cast<const nbt::tags::string_tag&>(*idIt->second).value;
                     auto effectType = entity::effect::getEffectByResourceLocation(ResourceLocation::parse(effectId));
                     if (!effectType.has_value()) {
                         spdlog::warn("Ignoring suspicious stew effect with unknown id '{}'", effectId);
@@ -718,6 +747,54 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             return DataComponentPayload{
                 std::in_place_index<ComponentPayloadIndex::DeathProtection>, std::move(deathProtection)};
         }
+        case DataComponentType::Equippable: {
+            // slot 缺失或名称无效时返回空载荷：装备槽位是必填语义，猜一个默认槽会让物品
+            // 静默戴到错误的位置。
+            EquippablePayload equippable;
+            bool slotResolved = false;
+            if (tag.id() == TagId::Compound) {
+                const auto& c = dynamic_cast<const compound_tag&>(tag);
+                if (auto slotIt = c.value.find("slot");
+                    slotIt != c.value.end() && slotIt->second->id() == TagId::String) {
+                    const auto& slotName = dynamic_cast<const nbt::tags::string_tag&>(*slotIt->second);
+                    if (auto slot = entity::serialization::EquipmentSlotNames::fromName(slotName.value);
+                        slot.has_value()) {
+                        equippable.slot = *slot;
+                        slotResolved = true;
+                    }
+                }
+                if (!slotResolved) {
+                    return DataComponentPayload{};
+                }
+                if (auto it = c.value.find("equip_sound"); it != c.value.end() && it->second->id() == TagId::String) {
+                    equippable.equipSound = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+                }
+                if (auto it = c.value.find("dispensable"); it != c.value.end() && it->second->id() == TagId::Byte) {
+                    equippable.dispensable = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+                }
+                if (auto it = c.value.find("swappable"); it != c.value.end() && it->second->id() == TagId::Byte) {
+                    equippable.swappable = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+                }
+                if (auto it = c.value.find("damage_on_hurt"); it != c.value.end() && it->second->id() == TagId::Byte) {
+                    equippable.damageOnHurt = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+                }
+                if (auto it = c.value.find("equip_on_interact");
+                    it != c.value.end() && it->second->id() == TagId::Byte) {
+                    equippable.equipOnInteract = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+                }
+                if (auto it = c.value.find("can_be_sheared"); it != c.value.end() && it->second->id() == TagId::Byte) {
+                    equippable.canBeSheared = dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+                }
+                if (auto it = c.value.find("shearing_sound");
+                    it != c.value.end() && it->second->id() == TagId::String) {
+                    equippable.shearingSound = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+                }
+            }
+            if (!slotResolved) {
+                return DataComponentPayload{};
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Equippable>, std::move(equippable)};
+        }
         case DataComponentType::OminousBottleAmplifier:
         case DataComponentType::MapId: {
             if (tag.id() == TagId::Int) {
@@ -743,7 +820,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         case DataComponentType::Rarity: {
             ItemRarity rarity = ItemRarity::Common;
             if (tag.id() == TagId::String) {
-                const auto& s = dynamic_cast<const string_tag&>(tag).value;
+                const auto& s = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
                 rarity = rarityFromName(s).value_or(ItemRarity::Common);
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Rarity>, rarity};
@@ -751,7 +828,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         case DataComponentType::ItemModel: {
             std::string model;
             if (tag.id() == TagId::String) {
-                model = dynamic_cast<const string_tag&>(tag).value;
+                model = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Identifier>, std::move(model)};
         }
@@ -789,7 +866,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         case DataComponentType::CustomName:
         case DataComponentType::ItemName: {
             if (tag.id() == TagId::String) {
-                const auto& s = dynamic_cast<const string_tag&>(tag).value;
+                const auto& s = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
                 if (!s.empty()) {
                     // 写侧存的是组件 JSON 字符串（见 payloadToNbt），这里用
                     // ITextComponent::fromJson 解析回组件；TextParser::parse 只认
@@ -819,7 +896,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                             if (element == nullptr || element->id() != TagId::String) {
                                 continue;
                             }
-                            const auto& text = dynamic_cast<const string_tag&>(*element).value;
+                            const auto& text = dynamic_cast<const nbt::tags::string_tag&>(*element).value;
                             lines.push_back(text::ITextComponent::fromJson(nlohmann::json::parse(text)));
                         }
                     }
@@ -843,7 +920,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 const auto& c = dynamic_cast<const compound_tag&>(tag);
                 auto it = c.value.find("potion");
                 if (it != c.value.end() && it->second->id() == TagId::String) {
-                    pc.potionId = dynamic_cast<const string_tag&>(*it->second).value;
+                    pc.potionId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
                 }
                 auto colorIt = c.value.find("custom_color");
                 if (colorIt != c.value.end() && colorIt->second->id() == TagId::Int) {
@@ -859,7 +936,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 }
                 auto nameIt = c.value.find("custom_name");
                 if (nameIt != c.value.end() && nameIt->second->id() == TagId::String) {
-                    pc.customName = dynamic_cast<const string_tag&>(*nameIt->second).value;
+                    pc.customName = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
                 }
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::PotionContents>, std::move(pc)};
@@ -941,7 +1018,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 const auto& c = dynamic_cast<const compound_tag&>(tag);
                 auto shapeIt = c.value.find("shape");
                 if (shapeIt != c.value.end() && shapeIt->second->id() == TagId::String) {
-                    const auto name = dynamic_cast<const string_tag&>(*shapeIt->second).value;
+                    const auto name = dynamic_cast<const nbt::tags::string_tag&>(*shapeIt->second).value;
                     explosion.shape = fireworkShapeFromName(name).value_or(FireworkShape::SmallBall);
                 }
                 explosion.colors = _readIntList(c, "colors");

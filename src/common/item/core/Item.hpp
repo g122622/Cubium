@@ -476,6 +476,29 @@ public:
     }
 
     /**
+     * @brief 获取物品的默认 equippable 组件
+     *
+     * 物品栈覆盖值优先（见 ItemStack::getEquippable），此处为物品类型默认值。
+     * 护甲、鞘翅、鞍等物品在注册阶段设置该默认值。
+     *
+     * @return 默认装备定义，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<item::component::EquippablePayload>& defaultEquippable() const
+    {
+        return m_defaultEquippable;
+    }
+
+    /**
+     * @brief 设置物品的默认 equippable 组件
+     *
+     * @param equippable 装备定义
+     */
+    void setDefaultEquippable(item::component::EquippablePayload equippable)
+    {
+        m_defaultEquippable = std::move(equippable);
+    }
+
+    /**
      * @brief 获取物品基础附魔能力
      *
      * 返回值仅为物品类型自身的附魔能力（enchantable 组件的缺省值）。运行时判定
@@ -1039,6 +1062,7 @@ protected:
     const item::food::Food* m_food = nullptr;                                        ///< 食物属性（非食物为nullptr）
     const ItemGroup* m_creativeTab = nullptr;                                        ///< 创造模式物品组
     std::optional<item::component::DeathProtectionPayload> m_defaultDeathProtection; ///< 默认 death_protection 组件
+    std::optional<item::component::EquippablePayload> m_defaultEquippable;           ///< 默认 equippable 组件
 };
 
 } // namespace mc

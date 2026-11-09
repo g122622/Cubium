@@ -31,6 +31,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentPatchNbt.hpp"
@@ -371,6 +372,16 @@ const std::optional<item::component::DeathProtectionPayload>& ItemStack::getDeat
     }
     static const std::optional<item::component::DeathProtectionPayload> EMPTY;
     return m_item != nullptr ? m_item->defaultDeathProtection() : EMPTY;
+}
+
+const std::optional<item::component::EquippablePayload>& ItemStack::getEquippable() const
+{
+    // 物品栈覆盖优先；未覆盖时回退物品类型的默认值（护甲/鞘翅/鞍等在注册阶段设置）。
+    if (m_extras != nullptr && m_extras->equippable.has_value()) {
+        return m_extras->equippable;
+    }
+    static const std::optional<item::component::EquippablePayload> EMPTY;
+    return m_item != nullptr ? m_item->defaultEquippable() : EMPTY;
 }
 
 void ItemStack::setFireworks(item::component::Fireworks fireworks)
@@ -1017,6 +1028,34 @@ nlohmann::json ItemStack::toJson() const
             json["minecraft:fireworks"] = {
                 {"flight_duration", m_extras->fireworks->flightDuration}, {"explosions", std::move(explosions)}};
         }
+        if (m_extras->equippable.has_value()) {
+            const auto& eq = *m_extras->equippable;
+            nlohmann::json component = {
+                {"slot", std::string(entity::serialization::EquipmentSlotNames::toName(eq.slot))}};
+            // 与 vanilla 的 optionalFieldOf 一致：等于默认值就省略，避免存档里堆满冗余键。
+            if (!eq.equipSound.empty()) {
+                component["equip_sound"] = eq.equipSound;
+            }
+            if (!eq.dispensable) {
+                component["dispensable"] = false;
+            }
+            if (!eq.swappable) {
+                component["swappable"] = false;
+            }
+            if (!eq.damageOnHurt) {
+                component["damage_on_hurt"] = false;
+            }
+            if (eq.equipOnInteract) {
+                component["equip_on_interact"] = true;
+            }
+            if (eq.canBeSheared) {
+                component["can_be_sheared"] = true;
+            }
+            if (!eq.shearingSound.empty()) {
+                component["shearing_sound"] = eq.shearingSound;
+            }
+            json["minecraft:equippable"] = std::move(component);
+        }
     }
 
     return json;
@@ -1127,6 +1166,43 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
             range.mobFactor = ar["mob_factor"].get<f32>();
         }
         stack.setAttackRange(range);
+    }
+    if (json.contains("minecraft:equippable") && json["minecraft:equippable"].is_object()) {
+        const auto& eq = json["minecraft:equippable"];
+        item::component::EquippablePayload equippable{};
+        // slot 在 vanilla 是必填字段；缺失时无法确定装备槽位，整条组件丢弃而不是猜一个默认槽。
+        bool slotResolved = false;
+        if (eq.contains("slot") && eq["slot"].is_string()) {
+            if (auto slot = entity::serialization::EquipmentSlotNames::fromName(eq["slot"].get<std::string>());
+                slot.has_value()) {
+                equippable.slot = *slot;
+                slotResolved = true;
+            }
+        }
+        if (slotResolved) {
+            if (eq.contains("equip_sound") && eq["equip_sound"].is_string()) {
+                equippable.equipSound = eq["equip_sound"].get<std::string>();
+            }
+            if (eq.contains("dispensable") && eq["dispensable"].is_boolean()) {
+                equippable.dispensable = eq["dispensable"].get<bool>();
+            }
+            if (eq.contains("swappable") && eq["swappable"].is_boolean()) {
+                equippable.swappable = eq["swappable"].get<bool>();
+            }
+            if (eq.contains("damage_on_hurt") && eq["damage_on_hurt"].is_boolean()) {
+                equippable.damageOnHurt = eq["damage_on_hurt"].get<bool>();
+            }
+            if (eq.contains("equip_on_interact") && eq["equip_on_interact"].is_boolean()) {
+                equippable.equipOnInteract = eq["equip_on_interact"].get<bool>();
+            }
+            if (eq.contains("can_be_sheared") && eq["can_be_sheared"].is_boolean()) {
+                equippable.canBeSheared = eq["can_be_sheared"].get<bool>();
+            }
+            if (eq.contains("shearing_sound") && eq["shearing_sound"].is_string()) {
+                equippable.shearingSound = eq["shearing_sound"].get<std::string>();
+            }
+            stack.setEquippable(std::move(equippable));
+        }
     }
     if (json.contains("minecraft:firework_explosion") && json["minecraft:firework_explosion"].is_object()) {
         stack.setFireworkExplosion(_fireworkExplosionFromJson(json["minecraft:firework_explosion"]));
