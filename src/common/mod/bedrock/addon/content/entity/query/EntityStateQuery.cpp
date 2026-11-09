@@ -197,6 +197,25 @@ Result<bool> EntityStateQuery::hasComponent(const mc::Entity& entity, const std:
         // 如马的花纹）。此前占用 mark_variant 承载它，会让脚本按官方组件名读到 undefined。
         return true;
     }
+    // ---- 原版实体的固有组件 ----
+    // 下面这组不依赖数据包：它们是 Java 侧实体模型本就直接具备的能力，因此对原生实体恒为 true。
+    // 与 addon 实体不同（addon 走上面的 components->has 分支，只有数据包里真的写了才算存在）。
+    if (name == "minecraft:physics" || name == "minecraft:collision_box" || name == "minecraft:type_family" ||
+        name == "minecraft:nameable") {
+        // 每个实体都有重力/碰撞开关、碰撞箱、类型家族，也都可以被命名。
+        return true;
+    }
+    if (name == "minecraft:attack" || name == "minecraft:breathable") {
+        // 攻击伤害与氧气都是 LivingEntity 才具备的能力（属性表 / 空气供应）。
+        return dynamic_cast<const mc::LivingEntity*>(&entity) != nullptr;
+    }
+    if (name == "minecraft:pushable") {
+        return entity.isPushable();
+    }
+    if (name == "minecraft:leashable") {
+        // 只有 MobEntity 实现了拴绳状态机。
+        return dynamic_cast<const mc::MobEntity*>(&entity) != nullptr;
+    }
     // TODO: 将其余原版实体组件的存在条件接入统一描述表。
     return Error(ErrorCode::Unsupported, "Native Bedrock component mapping is not implemented: " + name);
 }
