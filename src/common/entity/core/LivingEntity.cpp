@@ -3784,7 +3784,7 @@ bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effe
     //   - IMMUNE_TO_INFESTED 免疫 INFESTED；IMMUNE_TO_OOZING 免疫 OOZING
     // Cubium EntityTypeTags::IGNORES_POISON_AND_REGEN 标签成员与 vanilla 完全一致
     // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。IMMUNE_TO_INFESTED / IMMUNE_TO_OOZING
-    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 Infested 的 onMobHurt TODO）。
+    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 spawnInfestedSilverfish）。
     //
     // 亡灵免疫 Poison/Regen 是 vanilla 核心语义：亡灵被中毒效果不应扣血、被再生效果不应治疗。
     // 此前 Cubium EffectManager::addEffect 不调 isPotionApplicable，亡灵会被中毒扣血——与 vanilla 相反。

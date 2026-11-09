@@ -396,10 +396,22 @@ f32 Raid::getBossBarProgress() const
  *         倒计时启动瞬间为 0、归零时为 1.0；
  *       - 庆祝/结束：状态非 Ongoing 时由 getBossBarProgress() 直接返回 0。
  */
+void Raid::_notifyBossBar()
+{
+    if (m_bossBarListener == nullptr) {
+        return;
+    }
+    // 只有进行中的袭击才显示 Boss 栏；其余状态一律通知隐藏。
+    m_bossBarListener->onRaidBossBarChanged(*this, m_cachedProgress, m_status == RaidStatus::Ongoing);
+}
+
 void Raid::_updateBossBar(IWorld& world)
 {
+    // 所有路径最终都经 _notifyBossBar 统一通知，避免某个 early return 漏推导致
+    // Boss 栏停在旧进度上（胜利/失败后尤其要推 visible=false 把栏收掉）。
     if (m_status != RaidStatus::Ongoing) {
         m_cachedProgress = 0.0f;
+        _notifyBossBar();
         return;
     }
 
@@ -408,6 +420,7 @@ void Raid::_updateBossBar(IWorld& world)
         const f32 cooldownProgress = static_cast<f32>(RaidConfig::RAID_COOLDOWN_TICKS - m_raidCooldownTicks) /
             static_cast<f32>(RaidConfig::RAID_COOLDOWN_TICKS);
         m_cachedProgress = std::clamp(cooldownProgress, 0.0f, 1.0f);
+        _notifyBossBar();
         return;
     }
 
@@ -415,11 +428,13 @@ void Raid::_updateBossBar(IWorld& world)
     // 此时进度视为 1.0（满血），与 Java 版 totalHealth == 0 时的退化情况一致。
     if (m_totalHealth <= 0.0f) {
         m_cachedProgress = 1.0f;
+        _notifyBossBar();
         return;
     }
 
     const f32 livingHealth = _getHealthOfLivingRaiders(world);
     m_cachedProgress = std::clamp(livingHealth / m_totalHealth, 0.0f, 1.0f);
+    _notifyBossBar();
 }
 
 /**

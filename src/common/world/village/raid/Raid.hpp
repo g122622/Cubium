@@ -86,14 +86,34 @@ struct RaidParticipant {
  * 负责管理波次推进、袭击者生成、胜负判定与 Boss 栏基础状态。
  * 当前实现保持接口稳定，后续可继续向更贴近 Java 版逻辑的波次配置演进。
  *
- * @note TODO(bossbar-network-sync): 当前 Raid 仅在内部计算并缓存 Boss 栏进度，
- *       尚未接入 ServerBossInfo 网络同步层，因此 m_cachedProgress
- *       不会真正推送到客户端。原因：Raid 位于 src/common，而 ServerBossInfo 位于
- *       src/server，且客户端 ir::play::BossEvent 处理路径尚未实现。待客户端 BossEvent
- *       处理器落地、且 BossInfo 系统能在 Raid 构造期注入后，再在 _updateBossBar()
- *       中追加 ServerBossInfo::setProgress() 调用，并由 RaidManager 持有
- *       ServerBossInfo 引用以同步 addPlayer/removePlayer。
+ * @note Boss 栏同步：Raid 位于 src/common、不能依赖 src/server 的 ServerBossInfo，
+ *       因此通过 IRaidBossBarListener 接口对外通知（见 setBossBarListener）。
+ *       每次 _updateBossBar() 都会通知最新进度与可见性；未注入实现时静默丢弃。
+ *       剩余工作：server 侧实现该接口并转发到 ServerBossInfo（含 addPlayer/removePlayer）。
  */
+class Raid;
+
+/**
+ * @brief 袭击 Boss 栏的状态变更通知接口
+ *
+ * `Raid` 位于 src/common，不能依赖 src/server 的 ServerBossInfo（分层约束：common
+ * 不允许依赖 server）。因此这里定义纯虚通知接口，由 server 侧实现并注入，把 Boss 栏
+ * 进度转发到 ServerBossInfo。未注入实现时（如纯单元测试）通知静默丢弃，袭击逻辑不受影响。
+ */
+class IRaidBossBarListener {
+public:
+    virtual ~IRaidBossBarListener() = default;
+
+    /**
+     * @brief 袭击 Boss 栏应显示的内容发生变化
+     *
+     * @param raid 发生变化的袭击
+     * @param progress 进度（0.0 ~ 1.0）
+     * @param visible 是否应当显示（袭击进行中为 true，结束/停止后为 false）
+     */
+    virtual void onRaidBossBarChanged(const Raid& raid, f32 progress, bool visible) = 0;
+};
+
 class Raid {
 public:
     /**
@@ -319,11 +339,23 @@ public:
      *       的三段式语义：战斗中按存活血量比例、波间冷却按 300 tick 倒计时比例、
      *       胜利/失败/停止后归零。
      *
-     * @note TODO(bossbar-network-sync): 该值目前仅作为公共 API 暴露给潜在的
-     *       调用方（命令系统、调试接口、未来的 BossInfo 网络包等），尚未被任何
-     *       下游模块消费。完整的 Boss 栏网络同步链路见 _updateBossBar() 注释。
+     * @note 该值同时用于 getBossBarProgress() 与经 IRaidBossBarListener 的外部通知。
+     *       剩余工作：server 侧实现监听器并转发到 ServerBossInfo。
      */
     [[nodiscard]] f32 getBossBarProgress() const;
+
+    /**
+     * @brief 设置 Boss 栏变更监听器
+     *
+     * 由 RaidManager 在创建袭击时注入（server 侧实现 IRaidBossBarListener 并转发到
+     * ServerBossInfo）。传 nullptr 可解除监听。
+     *
+     * @param listener 监听器指针，不取得所有权
+     */
+    void setBossBarListener(IRaidBossBarListener* listener)
+    {
+        m_bossBarListener = listener;
+    }
 
     /**
      * @brief 获取不祥之兆等级。
@@ -404,17 +436,19 @@ private:
      * @note 该方法在每次 tick() 末尾调用，依据当前袭击阶段（战斗 / 波间冷却 /
      *       庆祝）按 Java 版 1.21.11 的语义计算进度并写入 m_cachedProgress。
      *
-     * @note TODO(bossbar-network-sync): 当前仅写入本地缓存 m_cachedProgress，
-     *       未调用 ServerBossInfo::setProgress() 推送到客户端。原因：Raid 位于
-     *       src/common，无法直接依赖 src/server 的 ServerBossInfo；且客户端
-     *       ir::play::BossEvent 处理路径尚未实现。完整的网络同步集成需要：
-     *       1) 在 RaidManager 中为每个 Raid 关联一个 ServerBossInfo 实例；
-     *       2) 在 _updateBossBar() 末尾调用 serverBossInfo->setProgress(m_cachedProgress)；
-     *       3) 实现 RaidCallbacks::onBossBarProgressChanged 回调或类似机制，
-     *          由 RaidManager 转发到 ServerBossInfo；
-     *       4) 客户端实现 BossEvent 处理器以渲染 Boss 栏 UI。
+     * @note 结果同时缓存到 m_cachedProgress 并经 _notifyBossBar 通知监听器。
+     *       剩余工作：server 侧实现 IRaidBossBarListener 并转发到 ServerBossInfo
+     *       （含 addPlayer/removePlayer 与结束时的隐藏）。
      */
     void _updateBossBar(IWorld& world);
+
+    /**
+     * @brief 把当前 Boss 栏状态推给监听器
+     *
+     * 进度取 m_cachedProgress；可见性取决于袭击是否仍在进行中
+     * （胜利/失败/停止后必须通知隐藏，否则栏会一直挂在客户端）。
+     */
+    void _notifyBossBar();
 
     /**
      * @brief 计算当前所有存活袭击者的总血量。
@@ -499,6 +533,9 @@ private:
     f32 m_totalHealth = 0.0f;
     i32 m_raidCooldownTicks = 0;
     f32 m_cachedProgress = 0.0f;
+
+    /// Boss 栏变更监听器（server 侧注入，不取得所有权；为空时通知静默丢弃）。
+    IRaidBossBarListener* m_bossBarListener = nullptr;
 
     // 英雄追踪
     std::unordered_set<Uuid, UuidHash> m_heroes; ///< 参与袭击的玩家 UUID
