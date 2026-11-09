@@ -374,12 +374,12 @@ TEST_F(FenceBlockTest, Mirror_SwapsConnections)
                                  .with(BlockStateProperties::WEST(), false)
                                  .with(BlockStateProperties::WATERLOGGED(), false);
 
-    // 左右镜像: East <-> West
+    // 左右镜像（沿 Z 轴翻转）: North <-> South，East/West 不变
     const BlockState& mirrored = fence.mirror(state, Mirror::LeftRight);
-    EXPECT_TRUE(mirrored.get(BlockStateProperties::NORTH()));
-    EXPECT_FALSE(mirrored.get(BlockStateProperties::EAST()));
-    EXPECT_FALSE(mirrored.get(BlockStateProperties::SOUTH()));
-    EXPECT_TRUE(mirrored.get(BlockStateProperties::WEST()));
+    EXPECT_FALSE(mirrored.get(BlockStateProperties::NORTH()));
+    EXPECT_TRUE(mirrored.get(BlockStateProperties::EAST()));
+    EXPECT_TRUE(mirrored.get(BlockStateProperties::SOUTH()));
+    EXPECT_FALSE(mirrored.get(BlockStateProperties::WEST()));
 }
 
 TEST_F(FenceBlockTest, Waterlogged_ReturnsCorrectFluidState)

@@ -135,6 +135,16 @@ public:
     [[nodiscard]] static Direction getFacing(const BlockState& state) noexcept;
 
     /**
+     * @brief 旋转朝向（原版 `HorizontalDirectionalBlock#rotate`，只转 FACING）
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像朝向（原版 `HorizontalDirectionalBlock#mirror`）
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    /**
      * @brief 获取按钮附着的方块方向（附面方向）
      *
      * 地板按钮附在上方方块（Up），天花板按钮附在下方方块（Down），墙按钮附在 FACING 方向。

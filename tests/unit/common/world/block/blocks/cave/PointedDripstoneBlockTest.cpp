@@ -290,22 +290,21 @@ TEST_F(PointedDripstoneBlockTest, Rotate_DoesNotChangeDirection)
         Direction::Down);
 }
 
-TEST_F(PointedDripstoneBlockTest, Mirror_SwapsUpAndDown)
+TEST_F(PointedDripstoneBlockTest, Mirror_KeepsVerticalDirection)
 {
     auto stateUp = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
     auto stateDown = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
 
-    // FrontBack镜像：Up→Down，Down→Up
+    // 原版 `PointedDripstoneBlock` 没有覆写 mirror，镜像保持原状态
     EXPECT_EQ(
-        block_->mirror(stateUp, Mirror::FrontBack).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Down);
+        block_->mirror(stateUp, Mirror::FrontBack).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Up);
     EXPECT_EQ(
-        block_->mirror(stateDown, Mirror::FrontBack).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Up);
+        block_->mirror(stateDown, Mirror::FrontBack).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Down);
 
-    // LeftRight镜像：Up→Down，Down→Up
     EXPECT_EQ(
-        block_->mirror(stateUp, Mirror::LeftRight).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Down);
+        block_->mirror(stateUp, Mirror::LeftRight).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Up);
     EXPECT_EQ(
-        block_->mirror(stateDown, Mirror::LeftRight).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Up);
+        block_->mirror(stateDown, Mirror::LeftRight).get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Down);
 }
 
 TEST_F(PointedDripstoneBlockTest, Mirror_None_DoesNotChangeDirection)

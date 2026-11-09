@@ -183,36 +183,6 @@ const BlockState& AnvilBlock::rotate(const BlockState& state, Rotation rotation)
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const BlockState& AnvilBlock::mirror(const BlockState& state, Mirror mirror) const
-{
-    Direction currentFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction newFacing = currentFacing;
-
-    switch (mirror) {
-        case Mirror::LeftRight:
-            // 左右镜像（沿 Z 轴 / 南北互换）
-            if (currentFacing == Direction::North) {
-                newFacing = Direction::South;
-            } else if (currentFacing == Direction::South) {
-                newFacing = Direction::North;
-            }
-            break;
-        case Mirror::FrontBack:
-            // 前后镜像（沿 X 轴 / 东西互换）
-            if (currentFacing == Direction::East) {
-                newFacing = Direction::West;
-            } else if (currentFacing == Direction::West) {
-                newFacing = Direction::East;
-            }
-            break;
-        case Mirror::None:
-        default:
-            break;
-    }
-
-    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
-}
-
 const CollisionShape& AnvilBlock::getShape(const BlockState& state) const
 {
     const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());

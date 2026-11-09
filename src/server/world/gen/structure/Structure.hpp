@@ -444,6 +444,38 @@ public:
         BlockSelector& selector);
 
     /**
+     * @brief 按概率填充区域（原版 `generateMaybeBox`）
+     *
+     * 每个位置都先抽一次 `nextFloat`，未命中才跳过；两个 require 条件在随机之后判定，
+     * 因此不管最终是否放置，随机流都与原版一致。
+     *
+     * @param probability 每个位置放置方块的概率
+     * @param boundaryBlock 边界位置使用的方块
+     * @param insideBlock 内部位置使用的方块
+     * @param requireNonAir 仅在该位置已有非空气方块时放置
+     * @param requireInterior 仅在该位置「上方一格仍在地表之下」时放置（原版 `isInterior`）
+     */
+    void maybeFillWithBlocks(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::IRandom& rng,
+        f32 probability,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        const BlockState* boundaryBlock,
+        const BlockState* insideBlock,
+        bool requireNonAir,
+        bool requireInterior);
+
+    /**
+     * @brief 该位置上方一格是否仍在地表之下（原版 `StructurePiece.isInterior`）
+     */
+    [[nodiscard]] bool isInterior(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const;
+
+    /**
      * @brief 随机放置单个方块
      */
     void randomlyPlaceBlock(IWorldWriter& world,

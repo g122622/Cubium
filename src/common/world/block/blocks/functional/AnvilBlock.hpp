@@ -108,13 +108,10 @@ public:
 
     /**
      * @brief 旋转方块状态
+     *
+     * 原版 `AnvilBlock` 只覆写了旋转，镜像沿用基类的恒等实现，因此这里也不提供 mirror。
      */
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
-
-    /**
-     * @brief 镜像方块状态
-     */
-    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     /**
      * @brief 获取方块的视觉形状

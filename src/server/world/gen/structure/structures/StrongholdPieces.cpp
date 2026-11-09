@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/core/Block.hpp"
@@ -122,21 +123,29 @@ void StrongholdPiece::generateDoor(
     (void)rng; // 不需要随机数，保持接口一致
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
-    const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
-    const BlockState* oakDoor = VanillaBlocks::getState(VanillaBlocks::OAK_DOOR);
-    const BlockState* ironDoor = VanillaBlocks::getState(VanillaBlocks::IRON_DOOR);
-    const BlockState* stoneButton = VanillaBlocks::getState(VanillaBlocks::STONE_BUTTON);
+
+    // 门的两个半块、铁栏杆的两种连接态、按钮的两种朝向都带属性，直接给默认状态会
+    // 与原版差出属性值（例如铁栏杆全 false、门缺 half=upper）。
+    const BlockState oakDoorLower = VanillaBlocks::OAK_DOOR->defaultState();
+    const BlockState oakDoorUpper =
+        oakDoorLower.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    const BlockState ironDoorLower = VanillaBlocks::IRON_DOOR->defaultState();
+    const BlockState ironDoorUpper =
+        ironDoorLower.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    const BlockState barsWest = VanillaBlocks::IRON_BARS->defaultState().with(BlockStateProperties::WEST(), true);
+    const BlockState barsEast = VanillaBlocks::IRON_BARS->defaultState().with(BlockStateProperties::EAST(), true);
+    const BlockState barsEastWest = VanillaBlocks::IRON_BARS->defaultState()
+                                        .with(BlockStateProperties::EAST(), true)
+                                        .with(BlockStateProperties::WEST(), true);
+    const BlockState buttonNorth =
+        VanillaBlocks::STONE_BUTTON->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const BlockState buttonSouth =
+        VanillaBlocks::STONE_BUTTON->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
     switch (door) {
         case Door::Opening:
-            // 简单的 3x3 开口
-            for (i32 dx = 0; dx < 3; ++dx) {
-                for (i32 dy = 0; dy < 3; ++dy) {
-                    setBlockState(world, caveAir, x + dx, y + dy, z, bounds);
-                }
-            }
+            fillWithBlocks(world, bounds, x, y, z, x + 2, y + 2, z, caveAir, caveAir, false);
             break;
-        case Door::WoodDoor: {
-            // 石砖框架
+        case Door::WoodDoor:
             setBlockState(world, stoneBricks, x, y, z, bounds);
             setBlockState(world, stoneBricks, x, y + 1, z, bounds);
             setBlockState(world, stoneBricks, x, y + 2, z, bounds);
@@ -144,24 +153,21 @@ void StrongholdPiece::generateDoor(
             setBlockState(world, stoneBricks, x + 2, y + 2, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y + 1, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y, z, bounds);
-            // 木门
-            setBlockState(world, oakDoor, x + 1, y, z, bounds);
+            setBlockState(world, &oakDoorLower, x + 1, y, z, bounds);
+            setBlockState(world, &oakDoorUpper, x + 1, y + 1, z, bounds);
             break;
-        }
         case Door::Grates:
-            // 铁栏杆门
             setBlockState(world, caveAir, x + 1, y, z, bounds);
             setBlockState(world, caveAir, x + 1, y + 1, z, bounds);
-            setBlockState(world, ironBars, x, y, z, bounds);
-            setBlockState(world, ironBars, x, y + 1, z, bounds);
-            setBlockState(world, ironBars, x, y + 2, z, bounds);
-            setBlockState(world, ironBars, x + 1, y + 2, z, bounds);
-            setBlockState(world, ironBars, x + 2, y + 2, z, bounds);
-            setBlockState(world, ironBars, x + 2, y + 1, z, bounds);
-            setBlockState(world, ironBars, x + 2, y, z, bounds);
+            setBlockState(world, &barsWest, x, y, z, bounds);
+            setBlockState(world, &barsWest, x, y + 1, z, bounds);
+            setBlockState(world, &barsEastWest, x, y + 2, z, bounds);
+            setBlockState(world, &barsEastWest, x + 1, y + 2, z, bounds);
+            setBlockState(world, &barsEastWest, x + 2, y + 2, z, bounds);
+            setBlockState(world, &barsEast, x + 2, y + 1, z, bounds);
+            setBlockState(world, &barsEast, x + 2, y, z, bounds);
             break;
-        case Door::IronDoor: {
-            // 石砖框架 + 铁门
+        case Door::IronDoor:
             setBlockState(world, stoneBricks, x, y, z, bounds);
             setBlockState(world, stoneBricks, x, y + 1, z, bounds);
             setBlockState(world, stoneBricks, x, y + 2, z, bounds);
@@ -169,13 +175,11 @@ void StrongholdPiece::generateDoor(
             setBlockState(world, stoneBricks, x + 2, y + 2, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y + 1, z, bounds);
             setBlockState(world, stoneBricks, x + 2, y, z, bounds);
-            // 铁门
-            setBlockState(world, ironDoor, x + 1, y, z, bounds);
-            // 石按钮
-            setBlockState(world, stoneButton, x + 2, y + 1, z + 1, bounds);
-            setBlockState(world, stoneButton, x + 2, y + 1, z - 1, bounds);
+            setBlockState(world, &ironDoorLower, x + 1, y, z, bounds);
+            setBlockState(world, &ironDoorUpper, x + 1, y + 1, z, bounds);
+            setBlockState(world, &buttonNorth, x + 2, y + 1, z + 1, bounds);
+            setBlockState(world, &buttonSouth, x + 2, y + 1, z - 1, bounds);
             break;
-        }
     }
 }
 
@@ -368,6 +372,15 @@ void StrongholdStraight::generate(IWorldWriter& world,
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
     // 生成出口门
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 6);
+    // 两侧墙上的火把：每个位置独立以 0.1 概率放置（随机流在侧面开口之前消耗）
+    const BlockState torchEast =
+        VanillaBlocks::WALL_TORCH->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    const BlockState torchWest =
+        VanillaBlocks::WALL_TORCH->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    randomlyPlaceBlock(world, chunkBounds, rng, 0.1f, 1, 2, 1, &torchEast);
+    randomlyPlaceBlock(world, chunkBounds, rng, 0.1f, 3, 2, 1, &torchWest);
+    randomlyPlaceBlock(world, chunkBounds, rng, 0.1f, 1, 2, 5, &torchEast);
+    randomlyPlaceBlock(world, chunkBounds, rng, 0.1f, 3, 2, 5, &torchWest);
     // 生成侧面开口
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     if (m_expandsLeft) {
@@ -476,16 +489,45 @@ void StrongholdPrison::generate(IWorldWriter& world,
 {
     StrongholdStonesSelector selector;
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
-    const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
+    const BlockState barsNorthSouth = VanillaBlocks::IRON_BARS->defaultState()
+                                          .with(BlockStateProperties::NORTH(), true)
+                                          .with(BlockStateProperties::SOUTH(), true);
+    const BlockState barsNorthSouthEast = VanillaBlocks::IRON_BARS->defaultState()
+                                              .with(BlockStateProperties::NORTH(), true)
+                                              .with(BlockStateProperties::SOUTH(), true)
+                                              .with(BlockStateProperties::EAST(), true);
+    const BlockState barsWestEast = VanillaBlocks::IRON_BARS->defaultState()
+                                        .with(BlockStateProperties::WEST(), true)
+                                        .with(BlockStateProperties::EAST(), true);
+    const BlockState ironDoorLower =
+        VanillaBlocks::IRON_DOOR->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    const BlockState ironDoorUpper =
+        ironDoorLower.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 8, 4, 10, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
     fillWithBlocks(world, chunkBounds, 1, 1, 10, 3, 3, 10, caveAir, caveAir, false);
-    // 简化监狱栏杆
+    // 中间隔墙的四根石柱
+    fillWithRandomizedBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 1, false, rng, selector);
+    fillWithRandomizedBlocks(world, chunkBounds, 4, 1, 3, 4, 3, 3, false, rng, selector);
+    fillWithRandomizedBlocks(world, chunkBounds, 4, 1, 7, 4, 3, 7, false, rng, selector);
+    fillWithRandomizedBlocks(world, chunkBounds, 4, 1, 9, 4, 3, 9, false, rng, selector);
+
+    // 三间牢房的铁栏杆（连接态由所在位置决定，必须显式给出）
     for (i32 i = 1; i <= 3; ++i) {
-        setBlockState(world, ironBars, 4, i, 4, chunkBounds);
-        setBlockState(world, ironBars, 4, i, 5, chunkBounds);
-        setBlockState(world, ironBars, 4, i, 6, chunkBounds);
+        setBlockState(world, &barsNorthSouth, 4, i, 4, chunkBounds);
+        setBlockState(world, &barsNorthSouthEast, 4, i, 5, chunkBounds);
+        setBlockState(world, &barsNorthSouth, 4, i, 6, chunkBounds);
+        setBlockState(world, &barsWestEast, 5, i, 5, chunkBounds);
+        setBlockState(world, &barsWestEast, 6, i, 5, chunkBounds);
+        setBlockState(world, &barsWestEast, 7, i, 5, chunkBounds);
     }
+
+    setBlockState(world, &barsNorthSouth, 4, 3, 2, chunkBounds);
+    setBlockState(world, &barsNorthSouth, 4, 3, 8, chunkBounds);
+    setBlockState(world, &ironDoorLower, 4, 1, 2, chunkBounds);
+    setBlockState(world, &ironDoorUpper, 4, 2, 2, chunkBounds);
+    setBlockState(world, &ironDoorLower, 4, 1, 8, chunkBounds);
+    setBlockState(world, &ironDoorUpper, 4, 2, 8, chunkBounds);
     (void)chunkX;
     (void)chunkZ;
 }
@@ -571,6 +613,7 @@ void StrongholdLeftTurn::generate(IWorldWriter& world,
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
+    // 左转的开口：西北向开在 x=4，东南向开在 x=0。
     Direction dir = getCoordBaseMode();
     if (dir != Direction::North && dir != Direction::East) {
         fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, caveAir, caveAir, false);
@@ -672,11 +715,12 @@ void StrongholdRightTurn::generate(IWorldWriter& world,
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
+    // 右转的开口与左转相反：西北向开在 x=0，东南向开在 x=4。
     Direction dir = getCoordBaseMode();
     if (dir != Direction::North && dir != Direction::East) {
-        fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, caveAir, caveAir, false);
-    } else {
         fillWithBlocks(world, chunkBounds, 0, 1, 1, 0, 3, 3, caveAir, caveAir, false);
+    } else {
+        fillWithBlocks(world, chunkBounds, 4, 1, 1, 4, 3, 3, caveAir, caveAir, false);
     }
     (void)chunkX;
     (void)chunkZ;
@@ -770,7 +814,7 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
     StrongholdStonesSelector selector;
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-    const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
+    const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::SMOOTH_STONE_SLAB);
     const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
     const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 10, 6, 10, true, rng, selector);
@@ -780,33 +824,96 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
     fillWithBlocks(world, chunkBounds, 10, 1, 4, 10, 3, 6, caveAir, caveAir, false);
     // 根据房间类型生成不同内容
     switch (m_roomType) {
-        case 0: // 喷泉房间
-            for (i32 i = 0; i < 5; ++i) {
-                setBlockState(world, stoneBricks, 3, 1, 3 + i, chunkBounds);
-                setBlockState(world, stoneBricks, 7, 1, 3 + i, chunkBounds);
-                setBlockState(world, stoneBricks, 3 + i, 1, 3, chunkBounds);
-                setBlockState(world, stoneBricks, 3 + i, 1, 7, chunkBounds);
+        case 0: {
+            // 中央石柱 + 四向火把 + 环绕石板
+            setBlockState(world, stoneBricks, 5, 1, 5, chunkBounds);
+            setBlockState(world, stoneBricks, 5, 2, 5, chunkBounds);
+            setBlockState(world, stoneBricks, 5, 3, 5, chunkBounds);
+            const BlockState torchWest = VanillaBlocks::WALL_TORCH->defaultState().with(
+                BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+            const BlockState torchEast = VanillaBlocks::WALL_TORCH->defaultState().with(
+                BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+            const BlockState torchSouth = VanillaBlocks::WALL_TORCH->defaultState().with(
+                BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+            const BlockState torchNorth = VanillaBlocks::WALL_TORCH->defaultState().with(
+                BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+            setBlockState(world, &torchWest, 4, 3, 5, chunkBounds);
+            setBlockState(world, &torchEast, 6, 3, 5, chunkBounds);
+            setBlockState(world, &torchSouth, 5, 3, 4, chunkBounds);
+            setBlockState(world, &torchNorth, 5, 3, 6, chunkBounds);
+            setBlockState(world, stoneSlab, 4, 1, 4, chunkBounds);
+            setBlockState(world, stoneSlab, 4, 1, 5, chunkBounds);
+            setBlockState(world, stoneSlab, 4, 1, 6, chunkBounds);
+            setBlockState(world, stoneSlab, 6, 1, 4, chunkBounds);
+            setBlockState(world, stoneSlab, 6, 1, 5, chunkBounds);
+            setBlockState(world, stoneSlab, 6, 1, 6, chunkBounds);
+            setBlockState(world, stoneSlab, 5, 1, 4, chunkBounds);
+            setBlockState(world, stoneSlab, 5, 1, 6, chunkBounds);
+            break;
+        }
+        case 1: {
+            // 正方形石柱框 + 顶部水流
+            for (i32 i1 = 0; i1 < 5; ++i1) {
+                setBlockState(world, stoneBricks, 3, 1, 3 + i1, chunkBounds);
+                setBlockState(world, stoneBricks, 7, 1, 3 + i1, chunkBounds);
+                setBlockState(world, stoneBricks, 3 + i1, 1, 3, chunkBounds);
+                setBlockState(world, stoneBricks, 3 + i1, 1, 7, chunkBounds);
             }
             setBlockState(world, stoneBricks, 5, 1, 5, chunkBounds);
             setBlockState(world, stoneBricks, 5, 2, 5, chunkBounds);
             setBlockState(world, stoneBricks, 5, 3, 5, chunkBounds);
+            const BlockState* water = VanillaBlocks::getState(VanillaBlocks::WATER);
+            setBlockState(world, water, 5, 4, 5, chunkBounds);
             break;
-        case 2: // 宝箱房间
+        }
+        case 2: {
+            // 圆石环 + 中央火把 + 木板吊顶 + 梯子 + 宝箱
             for (i32 i = 1; i <= 9; ++i) {
                 setBlockState(world, cobblestone, 1, 3, i, chunkBounds);
                 setBlockState(world, cobblestone, 9, 3, i, chunkBounds);
-                setBlockState(world, cobblestone, i, 3, 1, chunkBounds);
-                setBlockState(world, cobblestone, i, 3, 9, chunkBounds);
             }
+            for (i32 j = 1; j <= 9; ++j) {
+                setBlockState(world, cobblestone, j, 3, 1, chunkBounds);
+                setBlockState(world, cobblestone, j, 3, 9, chunkBounds);
+            }
+            setBlockState(world, cobblestone, 5, 1, 4, chunkBounds);
+            setBlockState(world, cobblestone, 5, 1, 6, chunkBounds);
+            setBlockState(world, cobblestone, 5, 3, 4, chunkBounds);
+            setBlockState(world, cobblestone, 5, 3, 6, chunkBounds);
+            setBlockState(world, cobblestone, 4, 1, 5, chunkBounds);
+            setBlockState(world, cobblestone, 6, 1, 5, chunkBounds);
+            setBlockState(world, cobblestone, 4, 3, 5, chunkBounds);
+            setBlockState(world, cobblestone, 6, 3, 5, chunkBounds);
+            for (i32 k = 1; k <= 3; ++k) {
+                setBlockState(world, cobblestone, 4, k, 4, chunkBounds);
+                setBlockState(world, cobblestone, 6, k, 4, chunkBounds);
+                setBlockState(world, cobblestone, 4, k, 6, chunkBounds);
+                setBlockState(world, cobblestone, 6, k, 6, chunkBounds);
+            }
+            // 原版这里是 `Blocks.WALL_TORCH.defaultBlockState()`（默认朝向 NORTH），
+            // 不是落地火把：墙火把会随构件一起旋转/镜像。
+            const BlockState* torch = &VanillaBlocks::WALL_TORCH->defaultState();
+            setBlockState(world, torch, 5, 3, 5, chunkBounds);
             for (i32 l = 2; l <= 8; ++l) {
                 setBlockState(world, oakPlanks, 2, 3, l, chunkBounds);
                 setBlockState(world, oakPlanks, 3, 3, l, chunkBounds);
+                if (l <= 3 || l >= 7) {
+                    setBlockState(world, oakPlanks, 4, 3, l, chunkBounds);
+                    setBlockState(world, oakPlanks, 5, 3, l, chunkBounds);
+                    setBlockState(world, oakPlanks, 6, 3, l, chunkBounds);
+                }
                 setBlockState(world, oakPlanks, 7, 3, l, chunkBounds);
                 setBlockState(world, oakPlanks, 8, 3, l, chunkBounds);
             }
+            const BlockState ladder =
+                VanillaBlocks::LADDER->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+            setBlockState(world, &ladder, 9, 1, 3, chunkBounds);
+            setBlockState(world, &ladder, 9, 2, 3, chunkBounds);
+            setBlockState(world, &ladder, 9, 3, 3, chunkBounds);
             generateChest(
                 world, chunkBounds, rng, 3, 4, 8, ResourceLocation("minecraft", "chests/stronghold_crossing"));
             break;
+        }
         default:
             break;
     }
@@ -895,15 +1002,16 @@ void StrongholdStairsStraight::generate(IWorldWriter& world,
     IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
-    const BlockState* cobblestoneStairs = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE_STAIRS);
+    const BlockState cobblestoneStairs = VanillaBlocks::COBBLESTONE_STAIRS->defaultState().with(
+        BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 10, 7, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 7, 0);
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 7);
     for (i32 i = 0; i < 6; ++i) {
-        setBlockState(world, cobblestoneStairs, 1, 6 - i, 1 + i, chunkBounds);
-        setBlockState(world, cobblestoneStairs, 2, 6 - i, 1 + i, chunkBounds);
-        setBlockState(world, cobblestoneStairs, 3, 6 - i, 1 + i, chunkBounds);
+        setBlockState(world, &cobblestoneStairs, 1, 6 - i, 1 + i, chunkBounds);
+        setBlockState(world, &cobblestoneStairs, 2, 6 - i, 1 + i, chunkBounds);
+        setBlockState(world, &cobblestoneStairs, 3, 6 - i, 1 + i, chunkBounds);
         if (i < 5) {
             setBlockState(world, stoneBricks, 1, 5 - i, 1 + i, chunkBounds);
             setBlockState(world, stoneBricks, 2, 5 - i, 1 + i, chunkBounds);
@@ -998,7 +1106,7 @@ void StrongholdStairs::generate(IWorldWriter& world,
 {
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-    const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
+    const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::SMOOTH_STONE_SLAB);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 10, 4, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 7, 0);
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 4);
@@ -1187,6 +1295,27 @@ void StrongholdCrossing::generate(IWorldWriter& world,
         fillWithBlocks(world, chunkBounds, 9, 5, 7, 9, 7, 9, caveAir, caveAir, false);
     }
     fillWithBlocks(world, chunkBounds, 5, 1, 10, 7, 3, 10, caveAir, caveAir, false);
+
+    // 中央平台、两侧楼梯与顶层台阶（原版逐块给出的装饰，顺序固定）
+    fillWithRandomizedBlocks(world, chunkBounds, 1, 2, 1, 8, 2, 6, false, rng, selector);
+    fillWithRandomizedBlocks(world, chunkBounds, 4, 1, 5, 4, 4, 9, false, rng, selector);
+    fillWithRandomizedBlocks(world, chunkBounds, 8, 1, 5, 8, 4, 9, false, rng, selector);
+    fillWithRandomizedBlocks(world, chunkBounds, 1, 4, 7, 3, 4, 9, false, rng, selector);
+    fillWithRandomizedBlocks(world, chunkBounds, 1, 3, 5, 3, 3, 6, false, rng, selector);
+    const BlockState* slab = VanillaBlocks::getState(VanillaBlocks::SMOOTH_STONE_SLAB);
+    const BlockState doubleSlab = VanillaBlocks::SMOOTH_STONE_SLAB->defaultState().with(
+        BlockStateProperties::SLAB_TYPE(), BlockStateProperties::SlabType::Double);
+    fillWithBlocks(world, chunkBounds, 1, 3, 4, 3, 3, 4, slab, slab, false);
+    fillWithBlocks(world, chunkBounds, 1, 4, 6, 3, 4, 6, slab, slab, false);
+    fillWithRandomizedBlocks(world, chunkBounds, 5, 1, 7, 7, 1, 8, false, rng, selector);
+    fillWithBlocks(world, chunkBounds, 5, 1, 9, 7, 1, 9, slab, slab, false);
+    fillWithBlocks(world, chunkBounds, 5, 2, 7, 7, 2, 7, slab, slab, false);
+    fillWithBlocks(world, chunkBounds, 4, 5, 7, 4, 5, 9, slab, slab, false);
+    fillWithBlocks(world, chunkBounds, 8, 5, 7, 8, 5, 9, slab, slab, false);
+    fillWithBlocks(world, chunkBounds, 5, 5, 7, 7, 5, 9, &doubleSlab, &doubleSlab, false);
+    const BlockState wallTorchSouth =
+        VanillaBlocks::WALL_TORCH->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+    setBlockState(world, &wallTorchSouth, 6, 5, 6, chunkBounds);
     (void)chunkX;
     (void)chunkZ;
 }
@@ -1302,13 +1431,18 @@ void StrongholdChestCorridor::generate(IWorldWriter& world,
 {
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-    const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_SLAB);
+    const BlockState* stoneSlab = VanillaBlocks::getState(VanillaBlocks::STONE_BRICK_SLAB);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 4, 4, 6, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 1, 1, 0);
     generateDoor(world, chunkBounds, rng, Door::Opening, 1, 1, 6);
     fillWithBlocks(world, chunkBounds, 3, 1, 2, 3, 1, 4, stoneBricks, stoneBricks, false);
     setBlockState(world, stoneSlab, 3, 1, 1, chunkBounds);
     setBlockState(world, stoneSlab, 3, 1, 5, chunkBounds);
+    setBlockState(world, stoneSlab, 3, 2, 2, chunkBounds);
+    setBlockState(world, stoneSlab, 3, 2, 4, chunkBounds);
+    for (i32 i = 2; i <= 4; ++i) {
+        setBlockState(world, stoneSlab, 2, 1, i, chunkBounds);
+    }
     if (!m_hasChest) {
         i32 chestX = getXWithOffset(3, 3);
         i32 chestY = getYWithOffset(2);
@@ -1409,11 +1543,19 @@ void StrongholdLibrary::generate(IWorldWriter& world,
     i32 height = m_isLargeRoom ? 11 : 6;
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 13, height - 1, 14, true, rng, selector);
     generateDoor(world, chunkBounds, rng, entryDoor(), 4, 1, 0);
-    randomlyRareFillWithBlocks(world, chunkBounds, 2, 1, 1, 11, 4, 13, cobweb);
+    // 蜘蛛网：每个位置独立 7% 概率（不是整块实心填充）
+    maybeFillWithBlocks(world, chunkBounds, rng, 0.07f, 2, 1, 1, 11, 4, 13, cobweb, cobweb, false, false);
+
+    const BlockState torchEast =
+        VanillaBlocks::WALL_TORCH->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    const BlockState torchWest =
+        VanillaBlocks::WALL_TORCH->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
     for (i32 l = 1; l <= 13; ++l) {
         if ((l - 1) % 4 == 0) {
             fillWithBlocks(world, chunkBounds, 1, 1, l, 1, 4, l, oakPlanks, oakPlanks, false);
             fillWithBlocks(world, chunkBounds, 12, 1, l, 12, 4, l, oakPlanks, oakPlanks, false);
+            setBlockState(world, &torchEast, 2, 3, l, chunkBounds);
+            setBlockState(world, &torchWest, 11, 3, l, chunkBounds);
             if (m_isLargeRoom) {
                 fillWithBlocks(world, chunkBounds, 1, 6, l, 1, 9, l, oakPlanks, oakPlanks, false);
                 fillWithBlocks(world, chunkBounds, 12, 6, l, 12, 9, l, oakPlanks, oakPlanks, false);
@@ -1432,6 +1574,89 @@ void StrongholdLibrary::generate(IWorldWriter& world,
         fillWithBlocks(world, chunkBounds, 6, 1, l1, 7, 3, l1, bookshelf, bookshelf, false);
         fillWithBlocks(world, chunkBounds, 9, 1, l1, 10, 3, l1, bookshelf, bookshelf, false);
     }
+
+    if (m_isLargeRoom) {
+        // 高书架室：上层露台、栏杆、梯子与吊灯
+        fillWithBlocks(world, chunkBounds, 1, 5, 1, 3, 5, 13, oakPlanks, oakPlanks, false);
+        fillWithBlocks(world, chunkBounds, 10, 5, 1, 12, 5, 13, oakPlanks, oakPlanks, false);
+        fillWithBlocks(world, chunkBounds, 4, 5, 1, 9, 5, 2, oakPlanks, oakPlanks, false);
+        fillWithBlocks(world, chunkBounds, 4, 5, 12, 9, 5, 13, oakPlanks, oakPlanks, false);
+        setBlockState(world, oakPlanks, 9, 5, 11, chunkBounds);
+        setBlockState(world, oakPlanks, 8, 5, 11, chunkBounds);
+        setBlockState(world, oakPlanks, 9, 5, 10, chunkBounds);
+
+        const BlockState fenceWestEast = VanillaBlocks::OAK_FENCE->defaultState()
+                                             .with(BlockStateProperties::WEST(), true)
+                                             .with(BlockStateProperties::EAST(), true);
+        const BlockState fenceNorthSouth = VanillaBlocks::OAK_FENCE->defaultState()
+                                               .with(BlockStateProperties::NORTH(), true)
+                                               .with(BlockStateProperties::SOUTH(), true);
+        fillWithBlocks(world, chunkBounds, 3, 6, 3, 3, 6, 11, &fenceNorthSouth, &fenceNorthSouth, false);
+        fillWithBlocks(world, chunkBounds, 10, 6, 3, 10, 6, 9, &fenceNorthSouth, &fenceNorthSouth, false);
+        fillWithBlocks(world, chunkBounds, 4, 6, 2, 9, 6, 2, &fenceWestEast, &fenceWestEast, false);
+        fillWithBlocks(world, chunkBounds, 4, 6, 12, 7, 6, 12, &fenceWestEast, &fenceWestEast, false);
+        const BlockState fenceNorthEast = VanillaBlocks::OAK_FENCE->defaultState()
+                                              .with(BlockStateProperties::NORTH(), true)
+                                              .with(BlockStateProperties::EAST(), true);
+        const BlockState fenceSouthEast = VanillaBlocks::OAK_FENCE->defaultState()
+                                              .with(BlockStateProperties::SOUTH(), true)
+                                              .with(BlockStateProperties::EAST(), true);
+        const BlockState fenceNorthWest = VanillaBlocks::OAK_FENCE->defaultState()
+                                              .with(BlockStateProperties::NORTH(), true)
+                                              .with(BlockStateProperties::WEST(), true);
+        const BlockState fenceSouthWest = VanillaBlocks::OAK_FENCE->defaultState()
+                                              .with(BlockStateProperties::SOUTH(), true)
+                                              .with(BlockStateProperties::WEST(), true);
+        setBlockState(world, &fenceNorthEast, 3, 6, 2, chunkBounds);
+        setBlockState(world, &fenceSouthEast, 3, 6, 12, chunkBounds);
+        setBlockState(world, &fenceNorthWest, 10, 6, 2, chunkBounds);
+
+        for (i32 i1 = 0; i1 <= 2; ++i1) {
+            setBlockState(world, &fenceSouthWest, 8 + i1, 6, 12 - i1, chunkBounds);
+            if (i1 != 2) {
+                setBlockState(world, &fenceNorthEast, 8 + i1, 6, 11 - i1, chunkBounds);
+            }
+        }
+
+        const BlockState ladder =
+            VanillaBlocks::LADDER->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+        for (i32 y = 1; y <= 7; ++y) {
+            setBlockState(world, &ladder, 10, y, 13, chunkBounds);
+        }
+
+        const BlockState fenceEast = VanillaBlocks::OAK_FENCE->defaultState().with(BlockStateProperties::EAST(), true);
+        const BlockState fenceWest = VanillaBlocks::OAK_FENCE->defaultState().with(BlockStateProperties::WEST(), true);
+        const BlockState fenceAll = VanillaBlocks::OAK_FENCE->defaultState()
+                                        .with(BlockStateProperties::NORTH(), true)
+                                        .with(BlockStateProperties::SOUTH(), true)
+                                        .with(BlockStateProperties::WEST(), true)
+                                        .with(BlockStateProperties::EAST(), true);
+        setBlockState(world, &fenceEast, 6, 9, 7, chunkBounds);
+        setBlockState(world, &fenceWest, 7, 9, 7, chunkBounds);
+        setBlockState(world, &fenceEast, 6, 8, 7, chunkBounds);
+        setBlockState(world, &fenceWest, 7, 8, 7, chunkBounds);
+        setBlockState(world, &fenceAll, 6, 7, 7, chunkBounds);
+        setBlockState(world, &fenceAll, 7, 7, 7, chunkBounds);
+        setBlockState(world, &fenceEast, 5, 7, 7, chunkBounds);
+        setBlockState(world, &fenceWest, 8, 7, 7, chunkBounds);
+        const BlockState fenceEastNorth = fenceEast.with(BlockStateProperties::NORTH(), true);
+        const BlockState fenceEastSouth = fenceEast.with(BlockStateProperties::SOUTH(), true);
+        const BlockState fenceWestNorth = fenceWest.with(BlockStateProperties::NORTH(), true);
+        const BlockState fenceWestSouth = fenceWest.with(BlockStateProperties::SOUTH(), true);
+        setBlockState(world, &fenceEastNorth, 6, 7, 6, chunkBounds);
+        setBlockState(world, &fenceEastSouth, 6, 7, 8, chunkBounds);
+        setBlockState(world, &fenceWestNorth, 7, 7, 6, chunkBounds);
+        setBlockState(world, &fenceWestSouth, 7, 7, 8, chunkBounds);
+
+        const BlockState* torch = VanillaBlocks::getState(VanillaBlocks::TORCH);
+        setBlockState(world, torch, 5, 8, 7, chunkBounds);
+        setBlockState(world, torch, 8, 8, 7, chunkBounds);
+        setBlockState(world, torch, 6, 8, 6, chunkBounds);
+        setBlockState(world, torch, 6, 8, 8, chunkBounds);
+        setBlockState(world, torch, 7, 8, 6, chunkBounds);
+        setBlockState(world, torch, 7, 8, 8, chunkBounds);
+    }
+
     generateChest(world, chunkBounds, rng, 3, 3, 5, ResourceLocation("minecraft", "chests/stronghold_library"));
     // 大型图书馆在高层增加第二个宝箱
     if (m_isLargeRoom) {
@@ -1513,8 +1738,15 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
 {
     StrongholdStonesSelector selector;
     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
-    const BlockState* ironBars = VanillaBlocks::getState(VanillaBlocks::IRON_BARS);
-    const BlockState* cobblestoneStairs = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE_STAIRS);
+    const BlockState barsNorthSouth = VanillaBlocks::IRON_BARS->defaultState()
+                                          .with(BlockStateProperties::NORTH(), true)
+                                          .with(BlockStateProperties::SOUTH(), true);
+    const BlockState barsWestEast = VanillaBlocks::IRON_BARS->defaultState()
+                                        .with(BlockStateProperties::WEST(), true)
+                                        .with(BlockStateProperties::EAST(), true);
+    // 原版楼梯用石砖楼梯（朝向 NORTH），不是圆石楼梯
+    const BlockState stoneBrickStairs = VanillaBlocks::STONE_BRICK_STAIRS->defaultState().with(
+        BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
     const BlockState* spawner = VanillaBlocks::getState(VanillaBlocks::SPAWNER);
     const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
     fillWithRandomizedBlocks(world, chunkBounds, 0, 0, 0, 10, 7, 15, false, rng, selector);
@@ -1530,24 +1762,24 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
     fillWithBlocks(world, chunkBounds, 9, 1, 1, 9, 1, 3, lava, lava, false);
     fillWithRandomizedBlocks(world, chunkBounds, 3, 1, 8, 7, 1, 12, false, rng, selector);
     fillWithBlocks(world, chunkBounds, 4, 1, 9, 6, 1, 11, lava, lava, false);
-    // 铁栏杆
+    // 铁栏杆：两侧墙用南北向连接态，尽头墙用东西向连接态
     for (i32 j = 3; j < 14; j += 2) {
-        setBlockState(world, ironBars, 0, 3, j, chunkBounds);
-        setBlockState(world, ironBars, 0, 4, j, chunkBounds);
-        setBlockState(world, ironBars, 10, 3, j, chunkBounds);
-        setBlockState(world, ironBars, 10, 4, j, chunkBounds);
+        setBlockState(world, &barsNorthSouth, 0, 3, j, chunkBounds);
+        setBlockState(world, &barsNorthSouth, 0, 4, j, chunkBounds);
+        setBlockState(world, &barsNorthSouth, 10, 3, j, chunkBounds);
+        setBlockState(world, &barsNorthSouth, 10, 4, j, chunkBounds);
     }
     for (i32 i1 = 2; i1 < 9; i1 += 2) {
-        setBlockState(world, ironBars, i1, 3, 15, chunkBounds);
-        setBlockState(world, ironBars, i1, 4, 15, chunkBounds);
+        setBlockState(world, &barsWestEast, i1, 3, 15, chunkBounds);
+        setBlockState(world, &barsWestEast, i1, 4, 15, chunkBounds);
     }
     fillWithRandomizedBlocks(world, chunkBounds, 4, 1, 5, 6, 1, 7, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 4, 2, 6, 6, 2, 7, false, rng, selector);
     fillWithRandomizedBlocks(world, chunkBounds, 4, 3, 7, 6, 3, 7, false, rng, selector);
     for (i32 k = 4; k <= 6; ++k) {
-        setBlockState(world, cobblestoneStairs, k, 1, 4, chunkBounds);
-        setBlockState(world, cobblestoneStairs, k, 2, 5, chunkBounds);
-        setBlockState(world, cobblestoneStairs, k, 3, 6, chunkBounds);
+        setBlockState(world, &stoneBrickStairs, k, 1, 4, chunkBounds);
+        setBlockState(world, &stoneBrickStairs, k, 2, 5, chunkBounds);
+        setBlockState(world, &stoneBrickStairs, k, 3, 6, chunkBounds);
     }
     // 末地传送门框架 - 带随机眼睛状态
     // MC: 每个框架有 10% 概率已有眼睛（nextFloat() > 0.9F）

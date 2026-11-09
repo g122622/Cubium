@@ -88,12 +88,16 @@ public:
         // 空位必须返回**空气状态**而不是 nullptr：规则处理器把 nullptr 当作「读不到
         // 方块」并直接判定位置谓词失败，导致所有带位置谓词的替换规则在空世界里静默
         // 失效（原版空中位置读到的是 Blocks.AIR.defaultBlockState()）。
-        return found == m_blocks.end() ? &VanillaBlocks::AIR->defaultState() : found->second;
+        return found == m_blocks.end() ? &VanillaBlocks::AIR->defaultState() : &found->second;
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
-        m_blocks[BlockPos(x, y, z).asLong()] = state;
+        // 按值保存：结构代码可以把「默认状态 + with(...)」的 BlockState 放在局部变量里
+        // 传进来（生产世界在 setBlockState 中立即拷贝进区块，没有生命周期问题），
+        // 记录指针则会在 generate 返回后悬空。nullptr 表示清空，按空气记录。
+        m_blocks.insert_or_assign(
+            BlockPos(x, y, z).asLong(), state != nullptr ? *state : VanillaBlocks::AIR->defaultState());
         return true;
     }
 
@@ -108,14 +112,14 @@ public:
         return m_minBuildHeight;
     }
 
-    [[nodiscard]] const std::unordered_map<i64, const BlockState*>& blocks() const
+    [[nodiscard]] const std::unordered_map<i64, BlockState>& blocks() const
     {
         return m_blocks;
     }
 
 private:
     i32 m_minBuildHeight;
-    std::unordered_map<i64, const BlockState*> m_blocks;
+    std::unordered_map<i64, BlockState> m_blocks;
 };
 
 const Structure& findStructure(const ResourceLocation& id)
@@ -228,7 +232,7 @@ std::string runLine(std::string_view inputLine)
     std::vector<std::pair<BlockPos, const BlockState*>> sorted;
     sorted.reserve(world.blocks().size());
     for (const auto& [key, state] : world.blocks()) {
-        sorted.emplace_back(BlockPos::fromLong(key), state);
+        sorted.emplace_back(BlockPos::fromLong(key), &state);
     }
     std::sort(sorted.begin(), sorted.end(), [](const auto& left, const auto& right) {
         const auto& a = left.first;

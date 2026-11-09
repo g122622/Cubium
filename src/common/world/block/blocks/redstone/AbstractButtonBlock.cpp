@@ -127,6 +127,17 @@ BlockState AbstractButtonBlock::withPowered(BlockState state, bool powered) noex
     return state.with(BlockStateProperties::POWERED(), powered);
 }
 
+const BlockState& AbstractButtonBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(),
+        Directions::rotateDirection(state.get(BlockStateProperties::HORIZONTAL_FACING()), rotation));
+}
+
+const BlockState& AbstractButtonBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    return rotate(state, Directions::mirrorToRotation(mirror, state.get(BlockStateProperties::HORIZONTAL_FACING())));
+}
+
 Direction AbstractButtonBlock::getFacing(const BlockState& state) noexcept
 {
     return state.get(BlockStateProperties::HORIZONTAL_FACING());

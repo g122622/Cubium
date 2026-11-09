@@ -192,6 +192,51 @@ const CollisionShape& PaneBlock::getShape(const BlockState& state) const
     return getCollisionShape(state);
 }
 
+const BlockState& PaneBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    const bool north = state.get(BlockStateProperties::NORTH());
+    const bool east = state.get(BlockStateProperties::EAST());
+    const bool south = state.get(BlockStateProperties::SOUTH());
+    const bool west = state.get(BlockStateProperties::WEST());
+    switch (rotation) {
+        case Rotation::Clockwise180:
+            return state.with(BlockStateProperties::NORTH(), south)
+                .with(BlockStateProperties::EAST(), west)
+                .with(BlockStateProperties::SOUTH(), north)
+                .with(BlockStateProperties::WEST(), east);
+        case Rotation::CounterClockwise90:
+            return state.with(BlockStateProperties::NORTH(), east)
+                .with(BlockStateProperties::EAST(), south)
+                .with(BlockStateProperties::SOUTH(), west)
+                .with(BlockStateProperties::WEST(), north);
+        case Rotation::Clockwise90:
+            return state.with(BlockStateProperties::NORTH(), west)
+                .with(BlockStateProperties::EAST(), north)
+                .with(BlockStateProperties::SOUTH(), east)
+                .with(BlockStateProperties::WEST(), south);
+        case Rotation::None:
+        default:
+            return state;
+    }
+}
+
+const BlockState& PaneBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    const bool north = state.get(BlockStateProperties::NORTH());
+    const bool south = state.get(BlockStateProperties::SOUTH());
+    const bool east = state.get(BlockStateProperties::EAST());
+    const bool west = state.get(BlockStateProperties::WEST());
+    switch (mirror) {
+        case Mirror::LeftRight:
+            return state.with(BlockStateProperties::NORTH(), south).with(BlockStateProperties::SOUTH(), north);
+        case Mirror::FrontBack:
+            return state.with(BlockStateProperties::EAST(), west).with(BlockStateProperties::WEST(), east);
+        case Mirror::None:
+        default:
+            return state;
+    }
+}
+
 const fluid::FluidState* PaneBlock::getFluidState(const BlockState& state) const
 {
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);

@@ -335,6 +335,63 @@ void StructurePiece::randomlyPlaceBlock(IWorldWriter& world,
     }
 }
 
+bool StructurePiece::isInterior(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const
+{
+    const i32 worldX = getXWithOffset(x, z);
+    const i32 worldY = getYWithOffset(y + 1);
+    const i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return false;
+    }
+
+    return worldY < world.getHeight(worldX, worldZ);
+}
+
+void StructurePiece::maybeFillWithBlocks(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::IRandom& rng,
+    f32 probability,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    const BlockState* boundaryBlock,
+    const BlockState* insideBlock,
+    bool requireNonAir,
+    bool requireInterior)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "maybeFillWithBlocks requires an IWorld");
+
+    for (i32 y = minY; y <= maxY; ++y) {
+        for (i32 x = minX; x <= maxX; ++x) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                // 随机数先于其余条件消耗：原版对每个位置都抽一次 nextFloat。
+                if (rng.nextFloat() > probability) {
+                    continue;
+                }
+
+                if (requireNonAir) {
+                    const BlockState* current = getBlockStateFromPos(*reader, x, y, z, bounds);
+                    if (current == nullptr || current->isAir()) {
+                        continue;
+                    }
+                }
+
+                if (requireInterior && !isInterior(*reader, x, y, z, bounds)) {
+                    continue;
+                }
+
+                const bool isBoundary = x == minX || x == maxX || y == minY || y == maxY || z == minZ || z == maxZ;
+                setBlockState(world, isBoundary ? boundaryBlock : insideBlock, x, y, z, bounds);
+            }
+        }
+    }
+}
+
 void StructurePiece::randomlyRareFillWithBlocks(IWorldWriter& world,
     const StructureBoundingBox& bounds,
     i32 minX,
@@ -381,38 +438,38 @@ void StructurePiece::placeEndPortalFrames(IWorldWriter& world,
         return;
     }
 
-    const BlockState* frameDefault = &VanillaBlocks::END_PORTAL_FRAME->defaultState();
+    const BlockState& frameDefault = VanillaBlocks::END_PORTAL_FRAME->defaultState();
+
+    // 四个方向的框架状态按原版显式配置。`with` 返回注册表里的全局状态引用，
+    // 这里落成具名变量是为了让下方「再加 EYE」的两步链路保持可读。
+    const BlockState frameNorth = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const BlockState frameSouth = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+    // 注意方向：西侧（x = centerX - 2）的框架朝东，东侧（x = centerX + 2）的框架朝西。
+    const BlockState frameEast = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    const BlockState frameWest = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
 
     // 北边框架（z = centerZ - 2）：3 个框架，凸起朝北（FACING=NORTH）
-    const BlockState* frameNorth = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
     for (i32 dx = -1; dx <= 1; ++dx) {
-        i32 idx = dx + 1; // 0, 1, 2
-        const BlockState* state = &frameNorth->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX + dx, y, centerZ - 2, bounds);
+        const BlockState state = frameNorth.with(BlockStateProperties::EYE(), eyeStates[dx + 1]);
+        setBlockState(world, &state, centerX + dx, y, centerZ - 2, bounds);
     }
 
     // 南边框架（z = centerZ + 2）：3 个框架，凸起朝南（FACING=SOUTH）
-    const BlockState* frameSouth = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
     for (i32 dx = -1; dx <= 1; ++dx) {
-        i32 idx = dx + 4; // 3, 4, 5
-        const BlockState* state = &frameSouth->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX + dx, y, centerZ + 2, bounds);
+        const BlockState state = frameSouth.with(BlockStateProperties::EYE(), eyeStates[dx + 4]);
+        setBlockState(world, &state, centerX + dx, y, centerZ + 2, bounds);
     }
 
-    // 西边框架（x = centerX - 2）：3 个框架，凸起朝西（FACING=WEST）
-    const BlockState* frameWest = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    // 西侧框架（x = centerX - 2）：3 个框架，凸起朝东（FACING=EAST）
     for (i32 dz = -1; dz <= 1; ++dz) {
-        i32 idx = dz + 7; // 6, 7, 8
-        const BlockState* state = &frameWest->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX - 2, y, centerZ + dz, bounds);
+        const BlockState state = frameEast.with(BlockStateProperties::EYE(), eyeStates[dz + 7]);
+        setBlockState(world, &state, centerX - 2, y, centerZ + dz, bounds);
     }
 
-    // 东边框架（x = centerX + 2）：3 个框架，凸起朝东（FACING=EAST）
-    const BlockState* frameEast = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    // 东侧框架（x = centerX + 2）：3 个框架，凸起朝西（FACING=WEST）
     for (i32 dz = -1; dz <= 1; ++dz) {
-        i32 idx = dz + 10; // 9, 10, 11
-        const BlockState* state = &frameEast->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX + 2, y, centerZ + dz, bounds);
+        const BlockState state = frameWest.with(BlockStateProperties::EYE(), eyeStates[dz + 10]);
+        setBlockState(world, &state, centerX + 2, y, centerZ + dz, bounds);
     }
 
     // 当所有框架都有末影之眼时，在内部 3×3 区域放置末地传送门方块

@@ -137,6 +137,16 @@ public:
      */
     [[nodiscard]] static bool connectsTo(const BlockState& state, Direction facing) noexcept;
 
+    /**
+     * @brief 旋转四个连接方向（原版 `CrossCollisionBlock#rotate`）
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像四个连接方向（原版 `CrossCollisionBlock#mirror`）
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
 protected:
     /**
      * @brief 检查是否应该连接到相邻方块

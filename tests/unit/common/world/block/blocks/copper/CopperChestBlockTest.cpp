@@ -830,12 +830,14 @@ TEST_F(CopperChestBlockTestFixture, Rotate_ChangesFacing)
     EXPECT_EQ(rotated.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
 }
 
-TEST_F(CopperChestBlockTestFixture, Mirror_SwapsLeftRight)
+TEST_F(CopperChestBlockTestFixture, Mirror_RotatesFacingOnly)
 {
     const BlockState leftState = VanillaBlocks::COPPER_CHEST->defaultState().with(
         BlockStateProperties::CHEST_TYPE(), BlockStateProperties::ChestType::Left);
     const BlockState& mirrored = VanillaBlocks::COPPER_CHEST->mirror(leftState, Mirror::LeftRight);
 
-    // 镜像后 LEFT 变 RIGHT
-    EXPECT_EQ(mirrored.get(BlockStateProperties::CHEST_TYPE()), BlockStateProperties::ChestType::Right);
+    // 箱子镜像是「按朝向推出一个旋转再走 rotate」，只改朝向；
+    // 左右类型由 updateShape 依据邻居重新计算，镜像本身不改
+    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::CHEST_TYPE()), BlockStateProperties::ChestType::Left);
 }
