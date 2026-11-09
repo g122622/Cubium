@@ -26,6 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/backend/java/JavaBackend.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -260,10 +261,14 @@ TEST(Constants, WorldConstants)
 
 TEST(Constants, NetworkConstants)
 {
-    // MC 1.16.5 Java版默认端口是 25565
+    // Java版默认端口是 25565
     EXPECT_EQ(network::DEFAULT_PORT, 25565);
-    EXPECT_EQ(network::MAX_PACKET_SIZE, 2097152u);
     EXPECT_EQ(network::CONNECT_TIMEOUT_MS, 30000u);
+
+    // 协议版本与尺寸上限不在 Constants.hpp：
+    // 版本由 JavaBackend::kJavaProtocolVersion 持有，尺寸上限由 ZlibCodec 持有。
+    // 这两个值一旦再次被复制到这里，就会和真正的实现漂移（历史上 754 就是这么留下的）。
+    EXPECT_EQ(mc::network::backend::java::kJavaProtocolVersion, 774);
 }
 
 // ============================================================================

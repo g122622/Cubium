@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/crypto/ZlibCodec.hpp"
 
 #include <vector>
 
@@ -47,18 +48,15 @@ public:
     /**
      * @brief 单帧 payload（不含长度前缀）的最大合法长度
      *
-     * 帧 payload 即压缩层输出：启用压缩时为 VarInt(数据长度)+zlib 流，其上限由
-     * `crypto::ZlibCodec::kMaxCompressed`（2MB）约束；未启用压缩（threshold<0）时
-     * 为原始 packetID+payload，长度取决于发送方编码（本项目最大为 Configuration
-     * 阶段的全量注册表 NBT，实测远小于 8MB）。故此处取 8MB 作为宽松上界——目的是
-     * 拦住"声明 4GB 帧长让对端无上限累积入站缓冲"的畸形报文，不追求贴合协议上限。
+     * 帧 payload 即压缩层输出：启用压缩时为 VarInt(数据长度)+zlib 流，其中 zlib 流受
+     * `crypto::ZlibCodec::kMaxCompressed`（2MB）约束；未启用压缩（threshold<0）时为原始
+     * packetID+payload，其长度上限即解压后的上限 `crypto::ZlibCodec::kMaxUncompressed`。
      *
-     * TODO: 本值与 core/Constants.hpp 的 MAX_PACKET_SIZE / MAX_UNCOMPRESSED_SIZE
-     *       （两者均为 2MB）不一致，而那两个常量目前全项目未被任何网络路径使用，
-     *       且与 crypto/ZlibCodec 内部的 8MB/2MB 限制也对不上。待协议尺寸常量统一后，
-     *       本值应改为引用统一常量，而不是各自定义。
+     * 两种情形下 8MB 都是覆盖上界，因此直接引用 `kMaxUncompressed` 作为唯一来源，
+     * 不再各自定义一份。这里的目的始终是拦住"声明 4GB 帧长让对端无上限累积入站缓冲"
+     * 的畸形报文，不追求贴合协议上限。
      */
-    static constexpr u32 kMaxFramePayloadSize = 8u * 1024u * 1024u;
+    static constexpr u32 kMaxFramePayloadSize = crypto::ZlibCodec::kMaxUncompressed;
 
     /**
      * @brief 给 payload 加 VarInt 长度前缀，输出完整帧
