@@ -130,6 +130,76 @@ protected:
 };
 } // namespace
 
+TEST_F(AddonEntityDefinitionTest, PushableDrivesIsPushableAndPistonReaction)
+{
+    // is_pushable 决定实体能否被其他实体推动（同时影响实体碰撞与方块放置判定）；
+    // is_pushable_by_piston 为 false 时活塞扫过应跳过该实体（PushReaction::Ignore）。
+    auto definition = _definition("addon_test:anchor");
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {
+        {"is_pushable", false}, {"is_pushable_by_piston", false}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/anchor.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:anchor");
+    ASSERT_NE(actor, nullptr);
+    EXPECT_FALSE(actor->isPushable());
+    EXPECT_EQ(actor->getPushReaction(), mc::PushReaction::Ignore);
+}
+
+TEST_F(AddonEntityDefinitionTest, PushableDefaultsKeepVanillaBehavior)
+{
+    // 字面上等价于缺省值的配置必须与不写该组件一致：is_pushable=true 仍可推，
+    // is_pushable_by_piston=true 不返回 Ignore。这条用例防止实现把默认值写反。
+    auto definition = _definition("addon_test:pushy");
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {
+        {"is_pushable", true}, {"is_pushable_by_piston", true}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/pushy.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:pushy");
+    ASSERT_NE(actor, nullptr);
+    EXPECT_TRUE(actor->isPushable());
+    EXPECT_NE(actor->getPushReaction(), mc::PushReaction::Ignore);
+}
+
+TEST_F(AddonEntityDefinitionTest, PushableRejectsNonBoolean)
+{
+    auto definition = _definition("addon_test:bad_pushable");
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {{"is_pushable", "no"}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_pushable.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_pushable"));
+}
+
+TEST_F(AddonEntityDefinitionTest, PushableAppliesToLivingMobsToo)
+{
+    // pushable 同时适用于非生物 actor 与生物 mob。带 minecraft:health 的定义会走 _AddonMob，
+    // 这里确认生物分支也读到了同一组件（两条实现分别位于两个类，漏一个就会静默失效）。
+    auto definition = _definition("addon_test:heavy_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {
+        {"is_pushable", false}, {"is_pushable_by_piston", false}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/heavy_mob.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto mob = create("addon_test:heavy_mob");
+    ASSERT_NE(mob, nullptr);
+    ASSERT_NE(dynamic_cast<mc::LivingEntity*>(mob.get()), nullptr) << "带 health 的定义应创建生物";
+    EXPECT_FALSE(mob->isPushable());
+    EXPECT_EQ(mob->getPushReaction(), mc::PushReaction::Ignore);
+}
+
 TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesIsAccepted)
 {
     // 此前 remove_child_entities 为 true 会让整个实体定义加载失败（解析期返回 Unsupported）。

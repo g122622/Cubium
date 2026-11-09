@@ -173,6 +173,39 @@ public:
         return components != nullptr ? components->has("minecraft:fire_immune") : m_definition->fireImmune();
     }
 
+    /**
+     * @brief 是否可被其他实体推动
+     *
+     * 对应 `minecraft:pushable` 的 `is_pushable`（默认 true）。非生物实体同样受该字段约束：
+     * `isPushable` 为真的实体才计入实体碰撞，进而影响"能否在该位置放置方块"。
+     * 未声明该组件时沿用基类默认值。
+     */
+    bool isPushable() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* pushable = components != nullptr ? components->component("minecraft:pushable") : nullptr;
+        if (pushable == nullptr) {
+            return mc::Entity::isPushable();
+        }
+        return pushable->value("is_pushable", true);
+    }
+
+    /**
+     * @brief 被活塞推动时的反应
+     *
+     * 对应 `minecraft:pushable` 的 `is_pushable_by_piston`（默认 true）。为 false 时返回
+     * `Ignore`，活塞扫过时跳过该实体；其余情况沿用基类反应。
+     */
+    PushReaction getPushReaction() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* pushable = components != nullptr ? components->component("minecraft:pushable") : nullptr;
+        if (pushable == nullptr || pushable->value("is_pushable_by_piston", true)) {
+            return mc::Entity::getPushReaction();
+        }
+        return PushReaction::Ignore;
+    }
+
 private:
     std::shared_ptr<const AddonEntityDefinition> m_definition;
 };
@@ -295,6 +328,39 @@ public:
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
         return components != nullptr ? components->has("minecraft:fire_immune") : m_definition->fireImmune();
+    }
+
+    /**
+     * @brief 是否可被其他实体推动
+     *
+     * 对应 `minecraft:pushable` 的 `is_pushable`（默认 true）。该判定不只影响生物互相推挤：
+     * `isPushable` 为真的实体才计入实体碰撞，进而影响"能否在该位置放置方块"。
+     * 未声明该组件时沿用基类默认值。
+     */
+    bool isPushable() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* pushable = components != nullptr ? components->component("minecraft:pushable") : nullptr;
+        if (pushable == nullptr) {
+            return mc::CreatureEntity::isPushable();
+        }
+        return pushable->value("is_pushable", true);
+    }
+
+    /**
+     * @brief 被活塞推动时的反应
+     *
+     * 对应 `minecraft:pushable` 的 `is_pushable_by_piston`（默认 true）。为 false 时返回
+     * `Ignore`，活塞扫过时跳过该实体；其余情况沿用基类反应。
+     */
+    PushReaction getPushReaction() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* pushable = components != nullptr ? components->component("minecraft:pushable") : nullptr;
+        if (pushable == nullptr || pushable->value("is_pushable_by_piston", true)) {
+            return mc::CreatureEntity::getPushReaction();
+        }
+        return PushReaction::Ignore;
     }
 
     bool hurt(mc::DamageSource& source, f32 amount) override
@@ -486,6 +552,13 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             // 纯标记组件：存在即表示可攀爬梯子/藤蔓。攀爬判定读的是实体的攀爬状态，
             // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:pushable") {
+            // 两个字段由 _AddonMob 的 isPushable / getPushReaction 覆写消费：
+            // is_pushable 决定能否被其他实体推动（并影响实体碰撞与方块放置判定），
+            // is_pushable_by_piston 为 false 时活塞扫过会跳过该实体。
+            MC_TRY(_members(component, {"is_pushable", "is_pushable_by_piston"}));
+            MC_TRY(_boolean(component, "is_pushable"));
+            MC_TRY(_boolean(component, "is_pushable_by_piston"));
         } else if (name == "minecraft:follow_range") {
             // value 映射到 Attributes::FOLLOW_RANGE（单位：方块）。基岩侧 max 是"最大追击距离"
             // 的上限设定，运行时用于 cap 目标搜索；项目属性模型只有一个上限为 2048 的 follow_range，
