@@ -37,6 +37,7 @@
 #include "common/item/items/BannerPatternItem.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/armor/ElytraItem.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
 #include "common/item/items/armor/NautilusArmorItem.hpp"
 #include "common/item/items/armor/WolfArmorItem.hpp"
@@ -2291,8 +2292,10 @@ void Items::_registerArmor()
     // ========================================================================
     // 鞘翅
     // ========================================================================
-    ELYTRA = &registry.registerItem(
-        ResourceLocation("minecraft:elytra"), ItemProperties().maxDamage(432).rarity(ItemRarity::Uncommon));
+    // 鞘翅必须用 ElytraItem：它覆写了滑翔相关的物品行为，并挂默认 equippable 组件。
+    // 此前这里直接注册普通 Item，导致 ElytraItem 整个类成为死代码，鞘翅也没有装备语义。
+    ELYTRA = &registry.registerItem<item::items::ElytraItem>(
+        ResourceLocation("minecraft:elytra"), ItemProperties().rarity(ItemRarity::Uncommon));
 
     // ========================================================================
     // 马铠 - 用于装备马提供护甲

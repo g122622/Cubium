@@ -45,6 +45,7 @@
 #include "common/util/text/TextParser.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 
+#include <array>
 #include <nlohmann/json.hpp>
 
 using namespace mc;
@@ -514,13 +515,14 @@ TEST_F(ItemStackComponentRoundTripTest, EquippableOmitsDefaultFields)
 // slot 缺失或名称非法时整条组件丢弃：装备槽位是必填语义，猜一个默认槽会让物品静默戴错位置。
 TEST_F(ItemStackComponentRoundTripTest, EquippableRejectsMissingOrInvalidSlot)
 {
+    // 用没有默认 equippable 的物品（剑）作载体：护甲自带默认组件，断言会被默认值掩盖。
     const auto noSlot = ItemStack::fromJson(nlohmann::json{
-        {"id", "minecraft:diamond_chestplate"}, {"Count", 1}, {"minecraft:equippable", nlohmann::json::object()}});
+        {"id", "minecraft:diamond_sword"}, {"Count", 1}, {"minecraft:equippable", nlohmann::json::object()}});
     ASSERT_TRUE(noSlot.success());
     EXPECT_FALSE(noSlot.value().getEquippable().has_value()) << "missing slot must drop the whole component";
 
-    const auto badSlot = ItemStack::fromJson(nlohmann::json{
-        {"id", "minecraft:diamond_chestplate"}, {"Count", 1}, {"minecraft:equippable", {{"slot", "tail"}}}});
+    const auto badSlot = ItemStack::fromJson(
+        nlohmann::json{{"id", "minecraft:diamond_sword"}, {"Count", 1}, {"minecraft:equippable", {{"slot", "tail"}}}});
     ASSERT_TRUE(badSlot.success());
     EXPECT_FALSE(badSlot.value().getEquippable().has_value()) << "unknown slot name must drop the whole component";
 }
@@ -547,4 +549,40 @@ TEST_F(ItemStackComponentRoundTripTest, EquippableRoundTripsThroughNbt)
     EXPECT_EQ(restored.slot, EquipmentSlot::Legs);
     EXPECT_FALSE(restored.damageOnHurt);
     EXPECT_TRUE(restored.canBeSheared);
+}
+
+// 护甲/鞘翅等物品必须在构造时挂默认 equippable 组件，否则 LivingEntity::doHurtEquipment
+// 会因为"无组件"而永不磨损——表现为护甲打不坏，与 vanilla 直接冲突。
+TEST(DefaultEquippableComponentTest, ArmorItemsCarrySlotSpecificEquippable)
+{
+    struct Case {
+        const char* label;
+        const Item* item;
+        EquipmentSlot expected;
+    };
+
+    const std::array<Case, 5> cases{{
+        {"helmet", Items::DIAMOND_HELMET, EquipmentSlot::Head},
+        {"chestplate", Items::DIAMOND_CHESTPLATE, EquipmentSlot::Chest},
+        {"leggings", Items::DIAMOND_LEGGINGS, EquipmentSlot::Legs},
+        {"boots", Items::DIAMOND_BOOTS, EquipmentSlot::Feet},
+        {"elytra", Items::ELYTRA, EquipmentSlot::Chest},
+    }};
+
+    for (const auto& testCase : cases) {
+        ASSERT_NE(testCase.item, nullptr) << testCase.label;
+        ItemStack stack(*testCase.item, 1);
+        const auto& equippable = stack.getEquippable();
+        ASSERT_TRUE(equippable.has_value()) << testCase.label << " must carry a default equippable component";
+        EXPECT_EQ(equippable->slot, testCase.expected) << testCase.label;
+        // vanilla 默认 damage_on_hurt 为 true：护甲受伤会掉耐久。
+        EXPECT_TRUE(equippable->damageOnHurt) << testCase.label;
+    }
+}
+
+// 非装备物品没有该组件，因此不会被误磨损。
+TEST(DefaultEquippableComponentTest, NonEquipmentItemsHaveNoEquippable)
+{
+    ItemStack stack(*Items::DIAMOND_SWORD, 1);
+    EXPECT_FALSE(stack.getEquippable().has_value());
 }

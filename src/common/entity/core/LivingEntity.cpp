@@ -849,10 +849,8 @@ void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initia
         }
         // vanilla 还要求 Equippable.damageOnHurt 为 true 才磨损（默认 true，可被数据包关闭）。
         // 没有 equippable 组件的物品不磨损——这与 vanilla"无 EQUIPPABLE 即不磨损"一致。
-        //
-        // TODO: 物品默认 equippable 组件尚未在注册阶段批量设置（护甲/鞘翅/wolf_armor 等），
-        //   因此目前只有显式在数据包/物品栈上声明了 equippable 的物品才会进入磨损。
-        //   补齐默认注册后，此处的判断口径不需要再改。
+        // 护甲/鞘翅/马铠/鹦鹉螺铠甲/狼铠在各自构造时已挂默认 equippable 组件（见 ArmorItem
+        // 与各护甲子类），因此它们的磨损行为就是 vanilla 的默认行为。
         const auto& equippable = equipment.getEquippable();
         if (!equippable.has_value() || !equippable->damageOnHurt) {
             continue;

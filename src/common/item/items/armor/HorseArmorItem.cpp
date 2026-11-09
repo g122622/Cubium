@@ -37,7 +37,12 @@ HorseArmorItem::HorseArmorItem(const ItemProperties& properties, i32 armorValue,
     : Item(properties)
     , m_armorValue(armorValue)
     , m_texturePath(texturePath)
-{}
+{
+    // 马铠穿在 Body 槽位；没有 equippable 组件就不会被 doHurtEquipment 磨损。
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Body;
+    setDefaultEquippable(std::move(equippable));
+}
 
 item::ItemAttributeModifiers HorseArmorItem::getAttributeModifiers(i32 equipmentSlot) const
 {
