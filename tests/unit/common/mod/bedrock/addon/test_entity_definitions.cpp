@@ -320,6 +320,54 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
     EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_nameable"));
 }
 
+// minecraft:inventory 此前落在"未实现"分支，含该组件的 addon 实体定义直接加载失败。
+// 本轮接入解析与字段校验（实体持有真实库存容器仍是 TODO，见定义处说明）。
+TEST_F(AddonEntityDefinitionTest, InventoryComponentIsAccepted)
+{
+    // 一次性把「全字段」与「空对象（全默认）」两个定义都写入同一个数据包再统一加载：
+    // 同一 manager 上重复 loadPacks 会触发重复注册，无法区分是解析失败还是装载冲突。
+    auto full = _definition("addon_test:container_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    full["minecraft:entity"]["components"]["minecraft:inventory"] = {{"inventory_size", 27},
+        {"container_type", "container"},
+        {"private", true},
+        {"can_be_siphoned_from", true},
+        {"restrict_to_owner", false},
+        {"additional_slots_per_strength", 1}};
+
+    auto minimal = _definition("addon_test:container_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:inventory"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/container_mob.json", full);
+    write(directory / "entities/container_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, InventoryComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"inventory_size", "many"}}, "non-integer inventory_size"},
+        {{{"inventory_size", -1}}, "negative inventory_size"},
+        {{{"private", "yes"}}, "non-boolean private"},
+        {{{"container_type", ""}}, "empty container_type"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_container");
+        definition["minecraft:entity"]["components"]["minecraft:inventory"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
 TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesIsAccepted)
 {
     // 此前 remove_child_entities 为 true 会让整个实体定义加载失败（解析期返回 Unsupported）。
@@ -671,7 +719,8 @@ TEST_F(AddonEntityDefinitionTest, DuplicateDefinitionsWithinOnePackAreRejected)
 TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplicitFailures)
 {
     auto definition = _definition("addon_test:unsupported");
-    definition["minecraft:entity"]["components"]["minecraft:inventory"] = {{"inventory_size", 9}};
+    // 用一个确实尚未支持的组件作样本：inventory 已在上一轮接入，不能再当反例。
+    definition["minecraft:entity"]["components"]["minecraft:leashable"] = {{"max_distance", 10}};
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

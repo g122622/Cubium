@@ -663,6 +663,43 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             }
             // TODO: name_actions（按名字匹配触发事件）与 default_trigger 需要"实体获得名字"这一
             //       事件源。目前 NameTagItem 直接写名字，没有统一的命名事件派发点，待补。
+        } else if (name == "minecraft:inventory") {
+            // 6 个字段与官方 schema 对齐。inventory_size 是核心（默认 5）。
+            // TODO: 目前只做解析与校验，实体尚未真正持有库存容器——addon 实体的可交互背包
+            //   需要 IInventory 实例 + NBT 序列化 + 死亡掉落 + 容器菜单接入，属独立特性。
+            //   在此之前脚本 query.has_component("minecraft:inventory") 会返回 false（见
+            //   EntityStateQuery），与"组件已声明但查不到"的自洽性由该处一并维持。
+            MC_TRY(_members(component,
+                {"additional_slots_per_strength",
+                    "can_be_siphoned_from",
+                    "container_type",
+                    "inventory_size",
+                    "private",
+                    "restrict_to_owner"}));
+            for (const char* field : {"additional_slots_per_strength", "inventory_size"}) {
+                if (component.contains(field) && !component[field].is_number_integer()) {
+                    return Error(
+                        ErrorCode::InvalidData, std::string("minecraft:inventory requires an integer: ") + field);
+                }
+            }
+            // 槽位数不能为负：负值会让后续按该值分配的容器直接失效。
+            if (const auto size = component.find("inventory_size"); size != component.end() && size->get<i64>() < 0) {
+                return Error(ErrorCode::InvalidData, "minecraft:inventory inventory_size cannot be negative");
+            }
+            if (const auto extra = component.find("additional_slots_per_strength");
+                extra != component.end() && extra->get<i64>() < 0) {
+                return Error(
+                    ErrorCode::InvalidData, "minecraft:inventory additional_slots_per_strength cannot be negative");
+            }
+            for (const char* field : {"can_be_siphoned_from", "private", "restrict_to_owner"}) {
+                MC_TRY(_boolean(component, field));
+            }
+            if (const auto type = component.find("container_type"); type != component.end()) {
+                if (!type->is_string() || type->get_ref<const std::string&>().empty()) {
+                    return Error(
+                        ErrorCode::InvalidData, "minecraft:inventory container_type must be a nonempty string");
+                }
+            }
         } else if (name == "minecraft:pushable") {
             // 两个字段由 _AddonMob / _AddonActor 的 isPushable / getPushReaction 覆写消费：
             // is_pushable 决定能否被其他实体推动（并影响实体碰撞与方块放置判定），
