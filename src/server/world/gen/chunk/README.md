@@ -333,3 +333,12 @@ if (noiseChunk.aquifer() == nullptr) {
 ### 16. 放置阶段的群系查询
 
 `WorldGenRegion::getBiome` 用 `BiomeManager` 选择经抖动的 quart 角点，再读取区域内已生成的区块群系。直接按方块所在的原始 quart 取值会使群系过滤器在边界放错树木和植被。`setSeed` 同时刷新群系缩放种子；不能重新计算噪声源代替读取存档群系。
+
+### 17. 生成期计划刻必须写进 ChunkPrimer，不能丢
+
+`IChunkGenerator` 自行组装一个生成期的 `TickManager`：方块/流体列表都是 `DelegatingTickList`，`scheduleTick` 被转发到 `scheduleTick(pos, target, delay)`，最终写入 `ChunkPrimer::addPendingBlockTick` / `addPendingFluidTick`。
+
+- **不要给 `WorldGenRegion::tickManager()` 返回世界的 TickManager**：生成期区块尚未发布，直接写世界列表会让刻在错误的时间执行，且在 worker 线程上访问主线程状态。
+- **方块刻与流体刻都要登记**：只补方块刻会让含水方块的重新调度（水浸楼梯等）在发布后完全丢失。
+- **调度去重**：`ChunkPrimer` 对同一 (位置, 目标) 只保留一条；延迟换算以 `scheduledTick` 记录，区块发布时由 `ServerChunkManager::_postProcessChunk` 把已流逝的游戏刻从 `delay` 中扣除后再交给世界 `TickManager`。
+- **生成器是每个维度一个实例**：`m_tickManager` 与两个列表都属于 `IChunkGenerator`，不要做成全局单例，否则多维度并行生成会互相污染。

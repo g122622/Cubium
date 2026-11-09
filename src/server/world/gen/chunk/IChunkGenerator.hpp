@@ -37,6 +37,8 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/list/ITickList.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/chunk/pipeline/ChunkStep.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
@@ -869,7 +871,7 @@ public:
     // ========================================================================
 
     /**
-     * @brief 调度方块刻（对齐 vanilla WorldGenRegion.scheduleTick）
+     * @brief 调度方块刻
      *
      * WorldGenRegion 是临时对象，而方块刻需要保留到区块发布并由世界 tick 列表执行，
      * 因此此处不立即入队，而是把请求记录到目标区块（中心区块或其半径内的邻居）的
@@ -889,6 +891,27 @@ public:
     void scheduleTick(const BlockPos& pos, const Block& block, i32 delay)
     {
         scheduleTick(pos, block, delay, world::tick::TickPriority::Normal);
+    }
+
+    /**
+     * @brief 调度流体刻
+     *
+     * 与方块刻一致：写入目标区块 ChunkPrimer 的待执行流体刻列表，随区块发布由
+     * ServerChunkManager 转交给世界 TickManager。
+     *
+     * @param pos 流体位置
+     * @param fluid 目标流体
+     * @param delay 延迟 tick 数（<=0 视为 0）
+     * @param priority 执行优先级
+     */
+    void scheduleTick(const BlockPos& pos, const fluid::Fluid& fluid, i32 delay, world::tick::TickPriority priority);
+
+    /**
+     * @brief 调度流体刻（普通优先级）
+     */
+    void scheduleTick(const BlockPos& pos, const fluid::Fluid& fluid, i32 delay)
+    {
+        scheduleTick(pos, fluid, delay, world::tick::TickPriority::Normal);
     }
 
     /**
@@ -942,6 +965,12 @@ private:
     math::Random m_random;
     world::border::WorldBorder m_worldBorder;
 
+    // 生成期 tick 调度：调度请求落到目标区块的待执行刻容器，区块发布后由
+    // ServerChunkManager 转交世界 TickManager。声明顺序保证 TickManager 先于列表析构。
+    std::unique_ptr<world::tick::ITickList<Block>> m_blockTickList;
+    std::unique_ptr<world::tick::ITickList<fluid::Fluid>> m_fluidTickList;
+    std::unique_ptr<world::tick::TickManager> m_tickManager;
+
     // 调试追踪
     std::string m_currentlyGenerating; ///< 当前正在生成的结构/特性名称（崩溃报告上下文）
 
@@ -949,6 +978,18 @@ private:
     WorldGenRegionChunkManager m_chunkManager{*this};
 
     [[nodiscard]] i32 _centerIndex() const;
+
+    /// 创建委托到 ChunkPrimer 待执行刻容器的 tick 列表与 TickManager
+    void _initTickManager();
+
+    /// 按方块坐标定位目标区块的 ChunkPrimer（非生成中的区块返回 nullptr）
+    [[nodiscard]] const ChunkPrimer* _findPrimer(const BlockPos& pos) const;
+
+    /// 查询目标区块是否已记录该方块刻
+    [[nodiscard]] bool _isBlockTickScheduled(const BlockPos& pos, const Block& block) const;
+
+    /// 查询目标区块是否已记录该流体刻
+    [[nodiscard]] bool _isFluidTickScheduled(const BlockPos& pos, const fluid::Fluid& fluid) const;
 };
 
 // ============================================================================

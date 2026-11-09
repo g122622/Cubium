@@ -141,7 +141,7 @@ public:
      * @param currentTick 当前游戏刻
      * @param maxTicks 最大处理数量（默认65536）
      */
-    void tick(u64 currentTick, size_t maxTicks = 65536);
+    void tick(u64 currentTick, size_t maxTicks = MAX_TICKS_PER_TICK) override;
 
     /**
      * @brief 获取区块范围内的待处理tick
@@ -155,7 +155,7 @@ public:
      * @return tick列表
      */
     [[nodiscard]] std::vector<ScheduledTick<T>> getPendingTicks(
-        i32 chunkX, i32 chunkZ, bool remove, bool skipCompleted);
+        i32 chunkX, i32 chunkZ, bool remove, bool skipCompleted) override;
 
     /**
      * @brief 复制tick到新位置
@@ -187,7 +187,7 @@ public:
     /**
      * @brief 获取已执行的数量（用于调试）
      */
-    [[nodiscard]] size_t executedThisTickCount() const
+    [[nodiscard]] size_t executedThisTickCount() const override
     {
         return m_executedThisTick.size();
     }
@@ -197,7 +197,7 @@ public:
      *
      * @param tick 当前游戏刻
      */
-    void setCurrentTick(u64 tick)
+    void setCurrentTick(u64 tick) override
     {
         mCurrentTick = tick;
     }
@@ -205,7 +205,7 @@ public:
     /**
      * @brief 获取当前游戏刻
      */
-    [[nodiscard]] u64 currentTick() const
+    [[nodiscard]] u64 currentTick() const override
     {
         return mCurrentTick;
     }

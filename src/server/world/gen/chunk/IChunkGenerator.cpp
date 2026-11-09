@@ -42,6 +42,7 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/tick/list/DelegatingTickList.hpp"
 #include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
@@ -51,7 +52,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <memory>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>
@@ -99,6 +99,7 @@ WorldGenRegion::WorldGenRegion(
 {
     MC_ASSERT_RELEASE(m_chunkRadius >= 0);
     MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
+    _initTickManager();
 }
 
 WorldGenRegion::WorldGenRegion(ChunkCoord mainX,
@@ -116,18 +117,15 @@ WorldGenRegion::WorldGenRegion(ChunkCoord mainX,
 {
     MC_ASSERT_RELEASE(m_chunkRadius >= 0);
     MC_ASSERT_RELEASE(static_cast<i32>(m_chunks.size()) == m_chunkDiameter * m_chunkDiameter);
+    _initTickManager();
 }
 
 void WorldGenRegion::scheduleTick(
     const BlockPos& pos, const Block& block, i32 delay, world::tick::TickPriority priority)
 {
-    // 对齐 vanilla WorldGenRegion.scheduleTick：写入生成区块的待执行刻容器。
-    // 生成期只允许本区域（中心区块及其半径内邻居）内的位置；区域外的调度在 vanilla 中会写入
-    // 邻居区块的 proto chunk，本实现同样交给对应区块的 ChunkPrimer 记录。
-    const ChunkCoord cx = static_cast<ChunkCoord>(pos.x >> 4);
-    const ChunkCoord cz = static_cast<ChunkCoord>(pos.z >> 4);
-    // getIChunk 本身返回可变指针，无需 const_cast。
-    auto* primer = dynamic_cast<ChunkPrimer*>(getIChunk(cx, cz));
+    // 写入生成区块的待执行刻容器：生成期只允许本区域（中心区块及其半径内邻居）内的位置；
+    // 区域外的调度同样交给对应区块的 ChunkPrimer 记录。
+    auto* primer = const_cast<ChunkPrimer*>(_findPrimer(pos));
     if (primer == nullptr) {
         // 目标区块不是生成中的 proto chunk（例如已发布区块）：无 proto 容器可记录，
         // 且生成期不允许写入世界 TickManager（主线程独占），因此直接丢弃。
@@ -136,6 +134,95 @@ void WorldGenRegion::scheduleTick(
         return;
     }
     primer->addPendingBlockTick(pos, block, currentTick(), delay, priority);
+}
+
+void WorldGenRegion::scheduleTick(
+    const BlockPos& pos, const fluid::Fluid& fluid, i32 delay, world::tick::TickPriority priority)
+{
+    // 与方块刻同一语义：写入目标区块的待执行流体刻容器，随区块发布转交世界 TickManager。
+    auto* primer = const_cast<ChunkPrimer*>(_findPrimer(pos));
+    if (primer == nullptr) {
+        // TODO(gen-schedule-outside-region): 同方块刻，区域外/已发布区块的调度暂直接丢弃。
+        return;
+    }
+    primer->addPendingFluidTick(pos, fluid, currentTick(), delay, priority);
+}
+
+void WorldGenRegion::_initTickManager()
+{
+    // 生成期没有世界 tick 存储：调度请求直接落到目标区块的 ChunkPrimer 待执行刻列表。
+    m_blockTickList = std::make_unique<world::tick::DelegatingTickList<Block>>(
+        [this](const BlockPos& pos, const Block& block, i32 delay, world::tick::TickPriority priority) {
+            scheduleTick(pos, block, delay, priority);
+        },
+        [this](const BlockPos& pos, const Block& block) {
+            return _isBlockTickScheduled(pos, block);
+        },
+        [](const BlockPos&, const Block&) {
+            // 生成期不执行 tick，不存在"本刻待执行"状态。
+            return false;
+        },
+        [](const BlockPos&, const Block&) {
+            // 生成期没有取消刻的场景，重复调度由 ChunkPrimer 自行去重。
+            return false;
+        },
+        [] {
+            return size_t{0};
+        });
+
+    m_fluidTickList = std::make_unique<world::tick::DelegatingTickList<fluid::Fluid>>(
+        [this](const BlockPos& pos, const fluid::Fluid& fluid, i32 delay, world::tick::TickPriority priority) {
+            scheduleTick(pos, fluid, delay, priority);
+        },
+        [this](const BlockPos& pos, const fluid::Fluid& fluid) {
+            return _isFluidTickScheduled(pos, fluid);
+        },
+        [](const BlockPos&, const fluid::Fluid&) {
+            return false;
+        },
+        [](const BlockPos&, const fluid::Fluid&) {
+            return false;
+        },
+        [] {
+            return size_t{0};
+        });
+
+    m_tickManager = std::make_unique<world::tick::TickManager>(*m_blockTickList, *m_fluidTickList);
+}
+
+const ChunkPrimer* WorldGenRegion::_findPrimer(const BlockPos& pos) const
+{
+    const ChunkCoord cx = static_cast<ChunkCoord>(pos.x >> world::CHUNK_SHIFT);
+    const ChunkCoord cz = static_cast<ChunkCoord>(pos.z >> world::CHUNK_SHIFT);
+    return dynamic_cast<const ChunkPrimer*>(getIChunk(cx, cz));
+}
+
+bool WorldGenRegion::_isBlockTickScheduled(const BlockPos& pos, const Block& block) const
+{
+    const ChunkPrimer* primer = _findPrimer(pos);
+    if (primer == nullptr) {
+        return false;
+    }
+    for (const world::chunk::PendingBlockTick& tick : primer->pendingBlockTicks()) {
+        if (tick.pos == pos && tick.block == &block) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool WorldGenRegion::_isFluidTickScheduled(const BlockPos& pos, const fluid::Fluid& fluid) const
+{
+    const ChunkPrimer* primer = _findPrimer(pos);
+    if (primer == nullptr) {
+        return false;
+    }
+    for (const world::chunk::PendingFluidTick& tick : primer->pendingFluidTicks()) {
+        if (tick.pos == pos && tick.fluid == &fluid) {
+            return true;
+        }
+    }
+    return false;
 }
 
 IChunk* WorldGenRegion::getChunkAt(i32 relX, i32 relZ)
@@ -625,13 +712,12 @@ std::vector<Entity*> WorldGenRegion::getEntitiesInRange(const Vector3& pos, f32 
 
 world::tick::TickManager& WorldGenRegion::tickManager()
 {
-    // 生成区域不支持 tick 调度
-    throw std::logic_error("WorldGenRegion does not support tickManager");
+    return *m_tickManager;
 }
 
 const world::tick::TickManager& WorldGenRegion::tickManager() const
 {
-    throw std::logic_error("WorldGenRegion does not support tickManager");
+    return *m_tickManager;
 }
 
 // ============================================================================

@@ -39,7 +39,6 @@
 #include <cstdlib>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,6 +53,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/tick/list/EmptyTickList.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc::diff::probe {
@@ -247,13 +247,12 @@ public:
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
-        // 探针不跑 tick：任何战利品条件/函数都不该在掷骰期间读取 tick 管理器。
-        throw std::logic_error("NullWorld::tickManager 不可用：战利品掷骰不应依赖世界 tick");
+        return m_tickManager;
     }
 
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
-        throw std::logic_error("NullWorld::tickManager 不可用：战利品掷骰不应依赖世界 tick");
+        return m_tickManager;
     }
 
     // ========== ECS ==========
@@ -288,6 +287,10 @@ private:
     const loot::LootTableManager* m_tables;
     world::border::WorldBorder m_worldBorder;
     math::Random m_random{0};
+    // 探针不执行 tick：调度请求被静默接受并丢弃。结构放置过程中的水浸楼梯/下落方块
+    // 会经形状重算调度计划刻，因此这里必须是一个可用的门面，而不是抛异常的占位。
+    world::tick::TickManager m_tickManager{
+        world::tick::EmptyTickList<Block>::get(), world::tick::EmptyTickList<fluid::Fluid>::get()};
     // IWorld::entityRegistry 返回可空指针，这里的 registry 只在构造实体时需要，
     // 探针不持有长生命周期的实体，故用独占指针表达所有权。
     std::unique_ptr<ecs::EntityRegistry> m_entityRegistry = std::make_unique<ecs::EntityRegistry>("diff_loot");

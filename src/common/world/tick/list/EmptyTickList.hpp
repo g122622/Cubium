@@ -64,25 +64,32 @@ public:
 
     [[nodiscard]] bool isTickScheduled(const BlockPos& pos, const T& target) const noexcept override
     {
-        MC_UNUSED(pos, target);
+        MC_UNUSED(pos);
+        MC_UNUSED(target);
         return false;
     }
 
     [[nodiscard]] bool isTickPending(const BlockPos& pos, const T& target) const noexcept override
     {
-        MC_UNUSED(pos, target);
+        MC_UNUSED(pos);
+        MC_UNUSED(target);
         return false;
     }
 
     void scheduleTick(const BlockPos& pos, const T& target, i32 delay) noexcept override
     {
-        MC_UNUSED(pos, target, delay);
+        MC_UNUSED(pos);
+        MC_UNUSED(target);
+        MC_UNUSED(delay);
         // 空操作
     }
 
     void scheduleTick(const BlockPos& pos, const T& target, i32 delay, TickPriority priority) noexcept override
     {
-        MC_UNUSED(pos, target, delay, priority);
+        MC_UNUSED(pos);
+        MC_UNUSED(target);
+        MC_UNUSED(delay);
+        MC_UNUSED(priority);
         // 空操作
     }
 

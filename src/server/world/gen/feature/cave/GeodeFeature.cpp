@@ -184,10 +184,10 @@ bool GeodeFeature::place(
                     // d6 < d4 时跳过（外层壁之外）。
                 } else if (generateCrack && d7 >= d5 && d6 < d1) {
                     safeSetBlock(world, blockpos3, nullptr, cannotReplace);
-                    // MC 在此对 crack 邻居流体调 scheduleTick(blockpos2, fluid, 0) 使其立即流动填补裂缝。
-                    // 项目 WorldGenRegion 不支持 worldgen 期间调度（tickManager() 抛 std::logic_error），
-                    // 流体更新改由区块后处理流水线（ServerChunkManager::_postProcessChunk 扫描 isLiquid 方块
-                    // 调 scheduleFluidTick）负责，与 LakeFeature/SpringFeature 的处理一致。
+                    // TODO(geode-fluid-tick): 原版对 crack 邻居流体调 scheduleTick(blockpos2, fluid, 0)
+                    // 使其立即流填补裂缝；当前仅依赖区块后处理流水线（ServerChunkManager::_postProcessChunk
+                    // 扫描 isLiquid 方块调 scheduleFluidTick）补偿。WorldGenRegion 现已支持生成期调度，
+                    // 该定向调度可以补齐。
                 } else if (d6 >= d1) {
                     const BlockState* state =
                         blocks.fillingProvider->getState(world, random, blockpos3.x, blockpos3.y, blockpos3.z);

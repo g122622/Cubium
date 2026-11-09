@@ -10,9 +10,10 @@ tick/
 │   ├── TickPriority.hpp           # Tick执行优先级枚举
 │   └── ScheduledTick.hpp          # 调度条目结构体模板
 ├── list/                           # Tick列表实现
-│   ├── ITickList.hpp              # Tick列表接口
-│   ├── EmptyTickList.hpp          # 空实现（客户端用）
-│   └── ServerTickList.hpp         # 服务端实现
+│   ├── ITickList.hpp              # Tick列表接口（含执行/序列化的默认空实现）
+│   ├── EmptyTickList.hpp          # 空实现（客户端与生成期探针用）
+│   ├── ServerTickList.hpp         # 服务端实现
+│   └── DelegatingTickList.hpp     # 委托实现（只转交调度/查询，不排队也不执行）
 └── manager/                        # 管理器
     ├── TickManager.hpp            # Tick管理器头文件
     └── TickManager.cpp            # Tick管理器实现
@@ -23,19 +24,24 @@ tick/
 ```
 ITickList<T> (接口)
     ↑
-    ├── EmptyTickList<T> (客户端空实现)
-    │
-    └── ServerTickList<T> (服务端实现)
+    ├── EmptyTickList<T> (空实现)
+    ├── ServerTickList<T> (服务端实现)
+    └── DelegatingTickList<T> (委托实现，回调由构造方提供)
             ↑
             │
        TickManager (外观类)
-            ├── ServerTickList<Block>
-            └── ServerTickList<Fluid>
+            ├── 默认构造：自建 ServerTickList<Block>/<Fluid>
+            └── 注入构造：只引用外部传入的 ITickList<Block>/<Fluid>
 ```
 
 - **base/**: 定义基础数据类型，被 list/ 依赖
 - **list/**: 定义tick列表接口和实现，被 manager/ 依赖
 - **manager/**: 对外提供统一的tick管理API，封装方块和流体tick列表
+
+`DelegatingTickList` 只把 `scheduleTick`/`isTickScheduled`/`isTickPending`/`pendingCount`
+转交出去，自身不保存条目、不执行 tick，`tick()`/`getPendingTicks()` 等执行与序列化接口
+保持空实现。生成期由 `IChunkGenerator` 用它把调度写入当前区块的 `ChunkPrimer`，从而让
+`WorldGenRegion` 在不了解 tick 存储的前提下仍能提供 `tickManager()`。
 
 ## 上下游外部依赖
 
@@ -49,6 +55,8 @@ ITickList<T> (接口)
 
 ### 被依赖
 - `ServerWorld`: 使用 TickManager 管理方块和流体tick
+- `IChunkGenerator`: 生成期的 TickManager 门面，通过 DelegatingTickList 把调度写入 `ChunkPrimer`
+- `ServerChunkManager`: 区块发布时把 `ChunkPrimer` 中累计的方块/流体刻转入世界 TickManager
 - 区块序列化系统: 调用 `getPendingBlockTicks/getPendingFluidTicks` 保存tick数据
 
 ## 容易踩的坑
@@ -65,17 +73,12 @@ ITickList<T> (接口)
 
 6. **线程安全**: 所有操作应在主线程执行，非线程安全
 
-7. **const 正确性**: `ScheduledTick<T>::target` 类型为 `const T*`，`ITickList`/`ServerTickList`/`EmptyTickList`/`TickManager` 的所有接口参数均为 `const T&`。tick 回调签名 `TickCallback = std::function<void(IWorld&, const BlockPos&, const T&)>`，回调内部通过 `const_cast` 调用 `Block::tick()` 等非 const 虚方法。调用方无需 `const_cast`。
+7. **const 正确性**: `ScheduledTick<T>::target` 类型为 `const T*`，`ITickList`/`ServerTickList`/`EmptyTickList`/`DelegatingTickList`/`TickManager` 的所有接口参数均为 `const T&`。tick 回调签名 `TickCallback = std::function<void(IWorld&, const BlockPos&, const T&)>`，回调内部通过 `const_cast` 调用 `Block::tick()` 等非 const 虚方法。调用方无需 `const_cast`。
 
 8. **双向容器同步**: `m_pendingTicksTree` 和 `m_pendingTicksSet` 需要保持同步，代码中有自动修复机制
 
-## 与 Minecraft Java 1.16.5 对应关系
+9. **注入构造不接管所有权**: `TickManager(ITickList&, ITickList&)` 只持有引用，调用方必须保证两个列表的存活期覆盖 TickManager；默认构造才会自建 `ServerTickList` 并拥有它们。不要把栈上临时对象传进注入构造。
 
-| 本项目类 | MC Java 1.16.5类 |
-|---------|-----------------|
-| `TickPriority` | `net.minecraft.world.TickPriority` |
-| `ScheduledTick` | `net.minecraft.world.NextTickListEntry` |
-| `ITickList` | `net.minecraft.world.ITickList` |
-| `EmptyTickList` | `net.minecraft.world.EmptyTickList` |
-| `ServerTickList` | `net.minecraft.world.server.ServerTickList` |
-| `TickManager` | `World.pendingBlockTicks` + `World.pendingFluidTicks` |
+10. **DelegatingTickList 不执行 tick**: 它继承自 `ITickList`，但 `tick()`/`getPendingTicks()`/`executedThisTickCount()` 保持基类的空默认实现。想让它执行 tick 是语义错误——生成期只负责登记调度，实际执行由区块发布后世界的 `TickManager` 承担。
+
+11. **生成期调度的延迟折算**: 生成期写入 `ChunkPrimer` 的 `scheduledTick` 是相对时刻，区块发布时 `ServerChunkManager` 会用当前游戏刻减去它，把已流逝的部分从 `delay` 中扣除，再交给世界 TickManager。

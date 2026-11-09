@@ -59,6 +59,10 @@
 #include <utility>
 #include <vector>
 
+namespace mc::fluid {
+class Fluid;
+} // namespace mc::fluid
+
 namespace mc::world::chunk {
 
 // 前向声明：ChunkPrimer 在生成阶段经 friend 接口调用无锁写入路径（见 setBlockStateUnlocked）。
@@ -77,6 +81,20 @@ class ChunkPrimer;
 struct PendingBlockTick {
     BlockPos pos;                       ///< 方块绝对位置
     const Block* block;                 ///< 目标方块
+    u64 scheduledTick;                  ///< 调度时的世界游戏刻
+    i32 delay;                          ///< 延迟 tick 数（从 scheduledTick 起算）
+    world::tick::TickPriority priority; ///< 执行优先级
+};
+
+/**
+ * @brief 生成期调度、尚未转交给世界 TickManager 的流体刻
+ *
+ * 与 PendingBlockTick 对称：WorldGenRegion 在生成阶段记录，区块发布后由
+ * ServerChunkManager 在主线程转交给世界 TickManager。
+ */
+struct PendingFluidTick {
+    BlockPos pos;                       ///< 流体绝对位置
+    const fluid::Fluid* fluid;          ///< 目标流体
     u64 scheduledTick;                  ///< 调度时的世界游戏刻
     i32 delay;                          ///< 延迟 tick 数（从 scheduledTick 起算）
     world::tick::TickPriority priority; ///< 执行优先级
@@ -649,6 +667,30 @@ public:
         m_pendingBlockTicks.clear();
     }
 
+    /**
+     * @brief 待执行流体刻（生成期调度，尚未转交 TickManager）
+     */
+    [[nodiscard]] const std::vector<PendingFluidTick>& pendingFluidTicks() const noexcept
+    {
+        return m_pendingFluidTicks;
+    }
+
+    /**
+     * @brief 追加待执行流体刻（从 ChunkPrimer 转移）
+     */
+    void addPendingFluidTicks(const std::vector<PendingFluidTick>& ticks)
+    {
+        m_pendingFluidTicks.insert(m_pendingFluidTicks.end(), ticks.begin(), ticks.end());
+    }
+
+    /**
+     * @brief 清空待执行流体刻（转交 TickManager 后调用）
+     */
+    void clearPendingFluidTicks() noexcept
+    {
+        m_pendingFluidTicks.clear();
+    }
+
     void clearPostProcessingForSection(i32 sectionIndex);
 
     /**
@@ -842,8 +884,9 @@ private:
     // 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
     std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS> m_postProcessingSections;
 
-    // 生成期调度的待执行方块刻（ChunkPrimer::toChunkData 转移；发布后清空）
+    // 生成期调度的待执行方块刻/流体刻（ChunkPrimer::toChunkData 转移；发布后清空）
     std::vector<PendingBlockTick> m_pendingBlockTicks;
+    std::vector<PendingFluidTick> m_pendingFluidTicks;
 
     // 后处理是否已完成（_postProcessChunk 执行后置 true）。保证主线程后处理至多执行一次。
     // 不持久化：存档区块后处理位置为空且 needsPostProcess=false，重新加载后为 false 安全。
