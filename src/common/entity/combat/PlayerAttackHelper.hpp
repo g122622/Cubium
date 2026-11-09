@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "AttackContext.hpp"
 #include "common/core/Types.hpp"
 
 namespace mc {
@@ -31,33 +30,30 @@ namespace mc {
 // 前向声明
 class Player;
 class LivingEntity;
-class Entity;
+class ItemStack;
 
 namespace entity::combat {
 
 /**
  * @brief 玩家攻击辅助类
  *
- * 提供玩家攻击相关的辅助函数，包括：
- * - 暴击判定
- * - 攻击冷却
- * - 附魔伤害加成
- * - 火焰附加
- * - 横扫攻击
+ * 只保留**真正被攻击管线调用**的两项能力：
+ * - 暴击判定（`Player::attack` 使用）
+ * - 附魔伤害加成汇总（`Player::attack` 与 `MobEntity::doHurtTarget` 使用）
  *
- * 击退计算由 LivingEntity::getKnockback() 和 LivingEntity::causeExtraKnockback() 处理。
+ * 伤害的其余环节各有权威实现，不要在本类里再写一份：
+ * - 攻击冷却系数、暴击倍率、击退强度：`Player::attack` 内联
+ * - 护甲/韧性/破甲减伤：`CombatRules::getDamageAfterAbsorb`
+ * - 抗性药水与附魔保护：`LivingEntity::applyPotionDamageCalculations`
+ * - 火焰附加：`Player::attack` 调用 `target.setRemainingFireTicks`
  */
 class PlayerAttackHelper {
 public:
-    // ========== 暴击判定 ==========
-
     /**
-     * @brief 检查是否为暴击
+     * @brief 判断一次攻击是否构成暴击
      *
-     * 暴击条件（必须全部满足）：
-     * - 玩家正在下落（垂直速度 < 0，即 velocity.y < 0）
-     * - 玩家不在地面
-     * - 玩家不在水中
+     * 条件（全部满足）：
+     * - 玩家在下落（fallDistance > 0）
      * - 玩家不在梯子/藤蔓上
      * - 玩家没有失明效果
      * - 玩家没有骑乘
@@ -66,100 +62,6 @@ public:
      * @return 是否满足暴击条件
      */
     [[nodiscard]] static bool isCriticalHit(const Player& player);
-
-    // ========== 伤害计算 ==========
-
-    /**
-     * @brief 计算攻击伤害
-     *
-     * 伤害计算流程：
-     * 1. 获取武器基础伤害
-     * 2. 应用攻击冷却影响（冷却不足时伤害降低）
-     * 3. 应用力量药水加成
-     * 4. 应用虚弱药水减益
-     * 5. （在 AttackContext 中应用暴击加成和护甲减伤）
-     *
-     * @param player 玩家
-     * @param baseDamage 基础伤害
-     * @param cooldownProgress 攻击冷却进度 (0-1)
-     * @return 计算后的伤害值
-     */
-    [[nodiscard]] static f32 calculateDamage(const Player& player, f32 baseDamage, f32 cooldownProgress);
-
-    // ========== 攻击冷却 ==========
-
-    /**
-     * @brief 应用攻击冷却影响
-     *
-     * 冷却不足时伤害 = 原伤害 × cooldownProgress²
-     * 只有当 cooldownProgress >= 0.9 时才造成完整伤害
-     *
-     * @param damage 原始伤害
-     * @param cooldownProgress 攻击冷却进度 (0-1)
-     * @return 调整后的伤害
-     */
-    [[nodiscard]] static f32 applyCooldown(f32 damage, f32 cooldownProgress);
-
-    /**
-     * @brief 检查攻击冷却是否足够
-     *
-     * @param cooldownProgress 攻击冷却进度 (0-1)
-     * @param threshold 阈值（默认 0.9）
-     * @return 是否可以造成完整伤害
-     */
-    [[nodiscard]] static bool isCooldownReady(f32 cooldownProgress, f32 threshold = 0.9f);
-
-    /**
-     * @brief 获取攻击冷却进度
-     *
-     * cooldownProgress = ticksSinceLastAttack / (20 / attackSpeed)
-     * 结果范围 [0, 1]
-     *
-     * @param ticksSinceLastAttack 自上次攻击以来的 tick 数
-     * @param attackSpeed 攻击速度属性值
-     * @return 冷却进度 (0-1)
-     */
-    [[nodiscard]] static f32 getCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed);
-
-    /**
-     * @brief 将 ticks 转换为冷却进度
-     *
-     * @param ticksSinceLastAttack 自上次攻击以来的 tick 数
-     * @param attackSpeed 攻击速度属性值
-     * @return 冷却进度 (0-1)
-     */
-    [[nodiscard]] static f32 ticksToCooldownProgress(i32 ticksSinceLastAttack, f32 attackSpeed);
-
-    // ========== 火焰附加 ==========
-
-    /**
-     * @brief 应用火焰附加
-     *
-     * 火焰持续时间 = 80 × fireAspectLevel ticks（每级4秒）
-     * 但如果目标已经有火焰，时间延长
-     *
-     * @param target 目标
-     * @param fireAspectLevel 火焰附加等级
-     * @return 是否成功应用
-     */
-    static bool applyFireAspect(LivingEntity& target, i32 fireAspectLevel);
-
-    // ========== 横扫攻击 ==========
-
-    /**
-     * @brief 计算横扫攻击伤害比例
-     *
-     * 横扫之刃附魔：
-     * - I: 50% 伤害传递
-     * - II: 67% 伤害传递
-     * - III: 75% 伤害传递
-     *
-     * @param sweepingLevel 横扫之刃等级 (0-3)
-     * @return 伤害比例 (0.0-1.0)
-     */
-    [[nodiscard]] static f32 getSweepingDamageRatio(i32 sweepingLevel);
-
-    // ========== 附魔伤害加成 ==========
 
     /**
      * @brief 计算附魔伤害加成
@@ -173,24 +75,6 @@ public:
      * @return 附加伤害值
      */
     [[nodiscard]] static f32 getEnchantmentDamageBonus(const ItemStack& weapon, const LivingEntity* target);
-
-    // ========== 创建攻击上下文 ==========
-
-    /**
-     * @brief 创建攻击上下文
-     *
-     * @param player 攻击玩家
-     * @param target 目标
-     * @param cooldownProgress 攻击冷却进度
-     * @return 配置好的攻击上下文
-     */
-    [[nodiscard]] static AttackContext createContext(Player& player, LivingEntity& target, f32 cooldownProgress);
-
-private:
-    // 常量
-    static constexpr f32 CRITICAL_MULTIPLIER = 1.5f;    // 暴击伤害倍率
-    static constexpr f32 SPRINT_KNOCKBACK_BONUS = 0.5f; // 疾跑击退加成
-    static constexpr i32 FIRE_ASPECT_DURATION = 80;     // 火焰附加基础持续时间（4秒）
 };
 
 } // namespace entity::combat

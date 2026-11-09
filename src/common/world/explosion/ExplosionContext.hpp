@@ -173,9 +173,13 @@ private:
  * - 大小为 BLOCKS_WIND_CHARGE_EXPLOSIONS 标签（屏障/基岩）的方块抗性视为无穷大，
  *   不被扣除爆炸强度（对齐 vanilla immuneBlocks 分支返回 3.6e6）。
  *
- * 与 vanilla 的唯一偏差：vanilla 风弹爆炸使用 TRIGGER 触发式交互（触发 TNT/风弹链式引爆），
- * Cubium Explosion 尚无该模式，此处以 ExplosionMode::None 实现（不破坏、不燃火），
- * 风弹链式引爆待 Explosion 引入 Trigger 模式后补齐（见 Explosion::_shouldAffectBlocklikeEntities 的 TODO）。
+ * 与数据包语义的唯一偏差：风弹爆炸在原版用 `TRIGGER_BLOCK` 交互模式（触发 TNT、
+ * 引燃其他风弹做链式引爆，但不破坏方块）。Cubium 的 `ExplosionMode` 目前只有
+ * None / Break / Destroy，没有"仅触发"这一档，因此这里用 `ExplosionMode::None`
+ * 近似（不破坏、不燃火）。
+ *
+ * TODO: 待 `ExplosionMode` 增加 `TriggerBlock` 后，风弹的链式引爆（触发 TNT 与其他
+ *   风弹）需要在该模式下补齐；相关判定位置见 Explosion::_shouldAffectBlocklikeEntities。
  */
 class WindChargeExplosionContext : public EntityExplosionContext {
 public:

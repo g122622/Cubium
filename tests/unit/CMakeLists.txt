@@ -596,6 +596,8 @@ add_executable(mc_tests
     common/world/lighting/InternalLightUtilsTest.cpp
     common/world/LightLevelTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
+    # 头颅方块实体的 note_block_sound 持久化与 ItemStack 组件读写
+    common/world/blockentity/SkullBlockEntityNoteBlockSoundTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
     common/world/blockentity/HopperEntityTest.cpp

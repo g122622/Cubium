@@ -234,6 +234,12 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             const auto* p = std::get_if<std::string>(&payload);
             return std::make_unique<string_tag>(p ? *p : std::string{});
         }
+        case DataComponentType::NoteBlockSound: {
+            // 值就是声音事件资源位置（如 `minecraft:block.note_block.bell`），
+            // 与 ItemModel 一样以裸字符串承载，无需专门的 payload 结构体。
+            const auto* p = std::get_if<std::string>(&payload);
+            return std::make_unique<string_tag>(p ? *p : std::string{});
+        }
         case DataComponentType::CustomName:
         case DataComponentType::ItemName: {
             const auto& p = std::get<std::unique_ptr<text::ITextComponent>>(payload);
@@ -831,6 +837,13 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 model = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Identifier>, std::move(model)};
+        }
+        case DataComponentType::NoteBlockSound: {
+            std::string sound;
+            if (tag.id() == TagId::String) {
+                sound = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Identifier>, std::move(sound)};
         }
         case DataComponentType::AttackRange: {
             AttackRange ar{};

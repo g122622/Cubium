@@ -23,8 +23,8 @@
 
 #include <gtest/gtest.h>
 
-#include "common/item/loot/base/LevelBasedValue.hpp"
 #include "common/item/loot/LootSerializers.hpp"
+#include "common/item/loot/base/LevelBasedValue.hpp"
 
 #include <memory>
 #include <vector>
@@ -96,8 +96,7 @@ TEST(LevelBasedValueTest, FractionDividesNumeratorByDenominator)
 // 分母为 0 时必须返回 0，而不是 inf/NaN。
 TEST(LevelBasedValueTest, FractionWithZeroDenominatorReturnsZero)
 {
-    const auto value = LevelBasedValue::fraction(
-        LevelBasedValue::constant(5.0f), LevelBasedValue::constant(0.0f));
+    const auto value = LevelBasedValue::fraction(LevelBasedValue::constant(5.0f), LevelBasedValue::constant(0.0f));
     const f32 result = value->calculate(1);
     EXPECT_FLOAT_EQ(result, 0.0f);
     EXPECT_FALSE(std::isnan(result));
@@ -107,8 +106,7 @@ TEST(LevelBasedValueTest, FractionWithZeroDenominatorReturnsZero)
 // 指数：pow(base, power)。
 TEST(LevelBasedValueTest, ExponentRaisesBaseToPower)
 {
-    const auto value = LevelBasedValue::exponent(
-        LevelBasedValue::constant(2.0f), LevelBasedValue::constant(3.0f));
+    const auto value = LevelBasedValue::exponent(LevelBasedValue::constant(2.0f), LevelBasedValue::constant(3.0f));
     EXPECT_NEAR(value->calculate(1), 8.0f, kEps);
 }
 
@@ -147,6 +145,7 @@ namespace loot {
 /// 类名必须是 mc::loot::LevelBasedValueParseTest：LootSerializers 以
 /// `friend class ::mc::loot::LevelBasedValueParseTest` 授予私有静态方法访问权。
 class LevelBasedValueParseTest : public ::testing::Test {};
+
 // ============================================================================
 // JSON 解析
 // ============================================================================

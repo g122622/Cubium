@@ -147,6 +147,32 @@ const BlockPattern& _witherFullPattern()
 // 并在发射器（DispenseItemBehavior）放置凋灵骷髅头的路径中接入。当前 Cubium 的发射器尚未走该路径，
 // 为避免形成无调用方的孤岛 API，本次只迁移 checkSpawn 的完整图案匹配。
 
+/**
+ * @brief 把物品上的 `minecraft:note_block_sound` 组件写入头颅方块实体
+ *
+ * 该组件对任意头颅都有效（玩家头、生物头皆可），头颅放在音符盒上方时音符盒改用这个
+ * 声音。原版在 `SkullBlock` 的放置路径统一搬运该组件，这里同样做成共享助手，
+ * 避免四个 `onBlockPlacedBy` 重写里各写一遍。
+ */
+void _applyNoteBlockSoundToSkull(IWorld& world, const BlockPos& pos, const ItemStack& stack)
+{
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr) {
+        return;
+    }
+    auto* skull = dynamic_cast<blockentity::SkullBlockEntity*>(blockEntity);
+    if (skull == nullptr) {
+        return;
+    }
+
+    // 组件缺失时不动方块实体（保持其原有值），而不是清空——
+    // 结构模板放置等场景可能已经写好了值。
+    const std::string* sound = stack.getNoteBlockSound();
+    if (sound != nullptr) {
+        skull->setNoteBlockSound(*sound);
+    }
+}
+
 } // namespace
 
 // ============================================================================
@@ -406,6 +432,7 @@ void PlayerHeadBlock::onBlockPlacedBy(
             }
         }
     }
+    _applyNoteBlockSoundToSkull(world, pos, stack);
 }
 
 PlayerWallHeadBlock::PlayerWallHeadBlock(const BlockProperties& properties)
@@ -429,6 +456,7 @@ void PlayerWallHeadBlock::onBlockPlacedBy(
             }
         }
     }
+    _applyNoteBlockSoundToSkull(world, pos, stack);
 }
 
 // ============================================================================
@@ -444,7 +472,7 @@ void WitherSkullBlock::onBlockPlacedBy(
 {
     MC_UNUSED(state);
     MC_UNUSED(placer);
-    MC_UNUSED(stack);
+    _applyNoteBlockSoundToSkull(world, pos, stack);
     checkSpawn(world, pos);
 }
 
@@ -530,7 +558,7 @@ void WitherWallSkullBlock::onBlockPlacedBy(
 {
     MC_UNUSED(state);
     MC_UNUSED(placer);
-    MC_UNUSED(stack);
+    _applyNoteBlockSoundToSkull(world, pos, stack);
     WitherSkullBlock::checkSpawn(world, pos);
 }
 

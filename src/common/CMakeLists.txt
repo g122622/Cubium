@@ -381,7 +381,6 @@ add_library(mc_common STATIC
     item/loot/functions/SetBookCoverFunction.cpp
     item/loot/functions/SetBannerPatternFunction.cpp
     item/loot/functions/LootFunctionBuilder.cpp
-    entity/combat/AttackContext.cpp
     entity/combat/PlayerAttackHelper.cpp
     entity/combat/DifficultyHelper.cpp
     entity/combat/DifficultyInstance.cpp
