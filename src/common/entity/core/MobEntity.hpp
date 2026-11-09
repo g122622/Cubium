@@ -1509,15 +1509,27 @@ public:
      * 掉落前对非保整的可损伤装备随机化耐久度（对齐 vanilla setDamageValue(maxDamage - random)）。
      * 掉落后清空槽位（setItemSlot(slot, EMPTY)）。
      *
-     * 注：vanilla 还调 EnchantmentHelper.processEquipmentDropChance 应用掠夺附魔
-     * （通过 equipment_drops effect component）对掉落概率的加成。Cubium 掠夺附魔体系是
-     * 1.20 风格的 EnchantedCountIncreaseFunction（loot function），未实现 1.21 的
-     * effect component 子系统，故此处暂不应用掠夺加成（TODO，待 effect component 体系就绪接入）。
+     * 掠夺附魔（equipment_drops effect component）对掉落概率的加成已接入：按
+     * data/minecraft/enchantment/looting.json 的 add + linear（base 0.01、每级 +0.01）
+     * 计算，作用于击杀者主手武器，且在 f != 0 守卫之后叠加（顺序与 vanilla 一致）。
      *
      * @param cause 死亡伤害来源（vanilla 用 cause.getEntity() 取击杀者 LivingEntity）
      * @param recentlyHitByPlayer 最近是否被玩家伤害过（影响非保整装备是否尝试掉落）
      */
     void dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlayer) override;
+
+    /**
+     * @brief 掠夺附魔对装备掉落概率的加成
+     *
+     * 对应数据包 data/minecraft/enchantment/looting.json 的 equipment_drops 效果：
+     * add + linear（base 0.01、per_level_above_first 0.01），作用于 attacker 的 mainhand。
+     * 因此 1 级 +0.01、2 级 +0.02、3 级 +0.03。原版通过数据驱动的 effect component 求值，
+     * 本项目的附魔效果尚未数据驱动化，故按该数据包的等效公式直接计算。
+     *
+     * @param attacker 击杀者（持有武器的一方）
+     * @return 掉落概率加成（0 表示无加成）
+     */
+    [[nodiscard]] static f32 lootingEquipmentDropChanceBonus(const LivingEntity& attacker);
 
     /**
      * @brief 掉落保留装备并返回保留的槽位集合
