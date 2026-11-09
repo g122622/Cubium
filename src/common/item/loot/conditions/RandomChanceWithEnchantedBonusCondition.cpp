@@ -46,13 +46,12 @@ RandomChanceWithEnchantedBonusCondition::RandomChanceWithEnchantedBonusCondition
 bool RandomChanceWithEnchantedBonusCondition::test(LootContext& context) const
 {
     // 原版从 ATTACKING_ENTITY 身上取附魔等级（`EnchantmentHelper#getEnchantmentLevel`，
-    // 该重载会扫描实体的全部装备槽）。没有攻击者或不是生物时等级为 0。
+    // 该重载按附魔的适用槽位扫描装备）。没有攻击者或不是生物时等级为 0。
     i32 level = 0;
     if (auto* entity = context.get<Entity>(LootParams::KILLER_ENTITY); entity != nullptr) {
         if (auto* living = dynamic_cast<LivingEntity*>(entity); living != nullptr) {
-            // 原版是「遍历该附魔适用的所有装备槽取最大值」，这里按主手读取。
-            // TODO(loot-enchantment-slots): 原版 `Enchantment#getSlotItems` 会扫描全部适用槽位
-            //   （头盔/胸甲/护腿/靴子/主手/副手）；当前只读主手，掠夺附魔是主手附魔，暂不受影响。
+            // 走实体重载：它会按该附魔自身的 `slots` 声明筛选槽位后取最大等级，
+            // 与 `Enchantment#getSlotItems` 一致（掠夺只认主手，保护认四个护甲槽）。
             level = item::enchant::EnchantmentHelper::getEnchantmentLevel(*living, m_enchantmentId);
         }
     }

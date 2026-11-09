@@ -46,7 +46,7 @@ EnchantedCountIncreaseFunction::EnchantedCountIncreaseFunction(
 
 ItemStack EnchantedCountIncreaseFunction::run(ItemStack stack, LootContext& context) const
 {
-    // 对齐原版：等级取自 ATTACKING_ENTITY 的装备（`EnchantmentHelper#getEnchantmentLevel`）。
+    // 等级取自 ATTACKING_ENTITY 的装备（按附魔适用槽位扫描，见 EnchantmentHelper）。
     // 没有攻击者、不是生物、或附魔等级为 0 时**直接返回且不消耗随机数**——原版在这里
     // 已经 return，随机数的消耗时机因此与「先抽数再判断」完全不同。
     i32 enchantmentLevel = 0;
