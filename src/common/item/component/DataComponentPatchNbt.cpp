@@ -289,6 +289,9 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
         }
         case DataComponentType::ItemModel:
             return _readResourceId(json, out);
+        case DataComponentType::NoteBlockSound:
+            // 值就是一个声音事件资源位置；与 item_model 共用资源位置读取逻辑。
+            return _readResourceId(json, out);
         case DataComponentType::Enchantable: {
             // vanilla Enchantable.CODEC 是 record {value: int}，持久形态必须是复合对象。
             // 早先按裸整数解析：数据包写 `{"value": 17}` 时整体解析失败，组件被丢掉。

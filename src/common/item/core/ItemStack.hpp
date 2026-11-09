@@ -135,6 +135,7 @@ struct ItemExtras {
     bool unbreakable = false;                                            // unbreakable
     std::unique_ptr<text::ITextComponent> itemName;                      // item_name
     std::optional<std::string> itemModel;                                // item_model（仅序列化）
+    std::optional<std::string> noteBlockSound;                           // note_block_sound（头颅作音符盒音效）
     std::optional<ItemRarity> rarityOverride;                            // rarity
     std::optional<i32> enchantableOverride;                              // enchantable（附魔能力）
     std::optional<item::component::AttackRange> attackRange;             // attack_range
@@ -173,6 +174,7 @@ struct ItemExtras {
         , unbreakable(other.unbreakable)
         , itemName(other.itemName ? other.itemName->deepCopy() : nullptr)
         , itemModel(other.itemModel)
+        , noteBlockSound(other.noteBlockSound)
         , rarityOverride(other.rarityOverride)
         , enchantableOverride(other.enchantableOverride)
         , attackRange(other.attackRange)
@@ -207,6 +209,7 @@ struct ItemExtras {
             unbreakable = other.unbreakable;
             itemName = other.itemName ? other.itemName->deepCopy() : nullptr;
             itemModel = other.itemModel;
+            noteBlockSound = other.noteBlockSound;
             rarityOverride = other.rarityOverride;
             enchantableOverride = other.enchantableOverride;
             attackRange = other.attackRange;
@@ -235,7 +238,7 @@ struct ItemExtras {
     [[nodiscard]] bool hasComponentOverrides() const noexcept
     {
         return maxStackSizeOverride.has_value() || maxDamageOverride.has_value() || unbreakable ||
-            itemName != nullptr || itemModel.has_value() || rarityOverride.has_value() ||
+            itemName != nullptr || itemModel.has_value() || noteBlockSound.has_value() || rarityOverride.has_value() ||
             enchantableOverride.has_value() || attackRange.has_value() || fireworkExplosion.has_value() ||
             fireworks.has_value() || !removedComponents.empty();
     }
@@ -506,6 +509,23 @@ public:
      * @param model 模型资源位置（空串清除）
      */
     void setItemModel(const std::string& model);
+
+    /**
+     * @brief 获取 note_block_sound 组件（头颅作为音符盒音效时的声音事件）
+     *
+     * @return 声音事件资源位置指针；未设置时返回 nullptr
+     */
+    [[nodiscard]] const std::string* getNoteBlockSound() const
+    {
+        return (m_extras && m_extras->noteBlockSound) ? &*m_extras->noteBlockSound : nullptr;
+    }
+
+    /**
+     * @brief 设置 note_block_sound 组件
+     *
+     * @param sound 声音事件资源位置；传空字符串等价于清除
+     */
+    void setNoteBlockSound(const std::string& sound);
 
     /**
      * @brief 获取附魔能力（enchantable 组件覆盖，缺省回退物品自身附魔能力）

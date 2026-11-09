@@ -310,6 +310,18 @@ void ItemStack::setItemModel(const std::string& model)
     _ensureExtras().itemModel = model;
 }
 
+void ItemStack::setNoteBlockSound(const std::string& sound)
+{
+    // 与 setItemModel 同构：空串表示清除，避免留下"有值但为空"的中间态。
+    if (sound.empty()) {
+        if (m_extras) {
+            m_extras->noteBlockSound.reset();
+        }
+        return;
+    }
+    _ensureExtras().noteBlockSound = sound;
+}
+
 i32 ItemStack::getEnchantmentValue() const
 {
     if (isEmpty()) {
@@ -1380,6 +1392,10 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
             patch.add(
                 DataComponentType::ItemModel, DataComponentPayload{std::in_place_index<10>, *m_extras->itemModel});
         }
+        if (m_extras->noteBlockSound.has_value()) {
+            patch.add(DataComponentType::NoteBlockSound,
+                DataComponentPayload{std::in_place_index<10>, *m_extras->noteBlockSound});
+        }
         // rarity 的值等于物品原型自带的稀有度时，原版补丁里根本不会出现这个键
         // （`asPatch()` 只报相对原型的差异）。照搬原型值写进去会让补丁凭空多一项——
         // 对命令方块、鞘翅、龙头这类本来就「非 common」的物品尤其明显。
@@ -1590,6 +1606,10 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             }
             case DataComponentType::ItemModel: {
                 setItemModel(std::get<std::string>(entry.value));
+                break;
+            }
+            case DataComponentType::NoteBlockSound: {
+                setNoteBlockSound(std::get<std::string>(entry.value));
                 break;
             }
             case DataComponentType::Rarity: {
@@ -1824,6 +1844,9 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::ItemModel:
                 setItemModel(std::string{});
                 break;
+            case DataComponentType::NoteBlockSound:
+                setNoteBlockSound(std::string{});
+                break;
             case DataComponentType::Rarity:
                 if (m_extras) {
                     m_extras->rarityOverride.reset();
@@ -1904,6 +1927,8 @@ bool ItemStack::hasComponent(item::component::DataComponentType type) const
             return m_extras->itemName != nullptr;
         case DataComponentType::ItemModel:
             return m_extras->itemModel.has_value();
+        case DataComponentType::NoteBlockSound:
+            return m_extras->noteBlockSound.has_value();
         case DataComponentType::Rarity:
             return m_extras->rarityOverride.has_value();
         case DataComponentType::Unbreakable:

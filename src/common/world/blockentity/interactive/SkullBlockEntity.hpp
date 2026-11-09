@@ -83,6 +83,28 @@ public:
 
     void setCustomName(const std::string& name) override;
 
+    // ========== 音符盒音效 ==========
+
+    /**
+     * @brief 获取该头颅作为音符盒音效时播放的声音事件
+     *
+     * 来源是物品的 `minecraft:note_block_sound` 数据组件。头颅放在音符盒上方时，
+     * 音符盒改用这个声音而不是按头颅类型推断的固定音效。
+     *
+     * @return 声音事件资源位置；未设置时返回空
+     */
+    [[nodiscard]] const std::optional<std::string>& getNoteBlockSound() const noexcept
+    {
+        return m_noteBlockSound;
+    }
+
+    /**
+     * @brief 设置音符盒音效
+     *
+     * @param sound 声音事件资源位置；传空字符串等价于清除
+     */
+    void setNoteBlockSound(const std::string& sound);
+
     // ========== 动画（龙首/猪灵头张嘴） ==========
 
     /**
@@ -117,10 +139,11 @@ public:
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 private:
-    std::optional<skin::GameProfile> m_owner; ///< 所有者档案（玩家头颅皮肤）
-    std::string m_customName;                 ///< 自定义名称
-    i32 m_animationTickCount = 0;             ///< 动画计数
-    bool m_isAnimating = false;               ///< 是否正在动画
+    std::optional<skin::GameProfile> m_owner;    ///< 所有者档案（玩家头颅皮肤）
+    std::string m_customName;                    ///< 自定义名称
+    std::optional<std::string> m_noteBlockSound; ///< 音符盒音效（`minecraft:note_block_sound`）
+    i32 m_animationTickCount = 0;                ///< 动画计数
+    bool m_isAnimating = false;                  ///< 是否正在动画
 };
 
 } // namespace blockentity
