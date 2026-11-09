@@ -246,6 +246,7 @@ import { biomeSourceSampleDeclaration } from "./biome_source_sample.ts";
 import { climateSampleDeclaration } from "./climate_sample.ts";
 import { structureStartSingleDeclaration } from "./structure_start_single.ts";
 import { structureBlocksSingleDeclaration } from "./structure_blocks_single.ts";
+import { structureBlocksTerrainSingleDeclaration } from "./structure_blocks_terrain_single.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
 import { villagerTradesDeclaration } from "./villager_trades.ts";
 import { textEncodeDeclaration } from "./text_encode.ts";
@@ -712,6 +713,7 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     climateSampleDeclaration(),
     structureStartSingleDeclaration(),
     structureBlocksSingleDeclaration(),
+    structureBlocksTerrainSingleDeclaration(),
     structureStartsDeclaration(),
     mineshaftPiecesDeclaration(),
     strongholdPiecesDeclaration(),

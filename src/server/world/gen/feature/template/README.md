@@ -259,3 +259,19 @@ math::IRandom& rng = borrowed != nullptr ? *borrowed : *owned;
 
 未设预设随机源时借用指针就是 **nullptr**，直接解引用即空指针解引用（表现为 ACCESS_VIOLATION at 0x0，栈落在调用点而非 `getRandom` 内部）。此时由 `owned` 持有对象，必须活到本次处理结束。
 
+
+### 20. `CappedStructureProcessor` 的随机源是「世界种子 + 模板原点」的位置派生
+
+原版 `CappedProcessor.finalizeProcessing`：
+
+```java
+RandomSource.create(level.getSeed()).forkPositional().at(templatePos)
+```
+
+它决定「哪几个命中方块被转换」，与结构随机源、`Mth.getSeed(pos)` 都不同。三条必须同时满足：
+
+- **世界种子**：`PlacementSettings::getWorld()->seed()`；调用方没有 `setWorld` 时退化到 0，只适用于单元测试。
+- **forkPositional 的 flavor**：`RandomSource.create(long)` 是 Legacy 版，`forkPositional()` 会先消耗一次 `nextLong()`；不要用 `math::Random` 直接代替。
+- **洗牌顺序**：`Util.toShuffledList` 是**反向** Fisher-Yates（`j` 从 size 递减到 2，`nextInt(j)` 与 `j-1` 交换），不是正向、也不是 `std::shuffle`。
+
+任何一项写错，转换数量可能仍然正确，但落点会整体漂移（海洋废墟的可疑沙砾就是这样暴露的：方块种类和数量都对，坐标对不上）。

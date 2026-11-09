@@ -70,25 +70,77 @@ using nlohmann::json;
 using namespace world::gen::structure;
 
 /**
- * @brief 只记录写入的空世界。
+ * @brief 确定性平坦地形。
  *
- * 读取一律返回「没有方块」（探针侧的空气语义），写入按坐标去重后保留最后一次写入。
- * 最低高度按维度给出：`fillColumnDown` 会一路填到世界底部，写穿维度范围会引入
- * 与结构无关的差异。
+ * 探针与 oracle 各自按同一份参数构造地形：`surfaceY` 及以下是固体，`waterTopY` 及以下
+ * （且高于 `surfaceY`）是水源方块。`enabled=false` 时保持空世界。
+ */
+struct TerrainConfig {
+    bool enabled = false;
+    i32 surfaceY = 0;
+    i32 waterTopY = 0;
+    const BlockState* solid = nullptr;
+    const BlockState* fluid = nullptr;
+};
+
+/**
+ * @brief 按维度选择固定地形参数。
+ *
+ * 主世界：y<=50 石头、51..62 水；下界：y<=31 下界岩；末地：y<=50 末地石。
+ * 数值固定而不用随机高度，是为了让探针与 oracle 完全不共享代码也能对上。
+ */
+TerrainConfig makeTerrainConfig(std::string_view dimension, bool enabled)
+{
+    TerrainConfig config;
+    config.enabled = enabled;
+    if (!enabled) {
+        return config;
+    }
+
+    if (dimension == "the_nether") {
+        config.surfaceY = 31;
+        config.waterTopY = 31;
+        config.solid = &VanillaBlocks::NETHERRACK->defaultState();
+        return config;
+    }
+    if (dimension == "the_end") {
+        config.surfaceY = 50;
+        config.waterTopY = 50;
+        config.solid = &VanillaBlocks::END_STONE->defaultState();
+        return config;
+    }
+
+    config.surfaceY = 50;
+    config.waterTopY = 62;
+    config.solid = &VanillaBlocks::STONE->defaultState();
+    config.fluid = &VanillaBlocks::WATER->defaultState();
+    return config;
+}
+
+/**
+ * @brief 只记录写入的假世界（可选平坦地形）。
+ *
+ * 读取先查写入记录，未命中时返回地形方块（无地形时是空气），写入按坐标去重后保留
+ * 最后一次写入。最低高度按维度给出：`fillColumnDown` 会一路填到世界底部，写穿维度
+ * 范围会引入与结构无关的差异。
  */
 class RecordingWorld final : public probe::NullWorld {
 public:
-    explicit RecordingWorld(i32 minBuildHeight)
+    RecordingWorld(i32 minBuildHeight, TerrainConfig terrain)
         : m_minBuildHeight(minBuildHeight)
+        , m_terrain(terrain)
     {}
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         const auto found = m_blocks.find(BlockPos(x, y, z).asLong());
+        if (found != m_blocks.end()) {
+            return &found->second;
+        }
         // 空位必须返回**空气状态**而不是 nullptr：规则处理器把 nullptr 当作「读不到
         // 方块」并直接判定位置谓词失败，导致所有带位置谓词的替换规则在空世界里静默
         // 失效（原版空中位置读到的是 Blocks.AIR.defaultBlockState()）。
-        return found == m_blocks.end() ? &VanillaBlocks::AIR->defaultState() : &found->second;
+        return _terrainStateAt(y);
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
@@ -103,7 +155,7 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
-        // 与 oracle 的 FakeLevel 一致：流体状态由当前记录到的方块推导。这样多个构件
+        // 与 oracle 的 FakeLevel 一致：流体状态由当前读到的方块推导。这样多个构件
         // 叠放时，后放的构件能读到前一个构件经数据标记写入的水，从而正确补上水浸。
         return getBlockState(x, y, z)->getFluidState();
     }
@@ -113,10 +165,31 @@ public:
         return m_minBuildHeight;
     }
 
-    /// 空世界没有地形：与原版 oracle 的桩一致，高度图顶端固定为世界最低点。
+    /// 返回最高方块 Y（Cubium 语义）。无地形即没有方块，返回 minY - 1；
+    /// 原版 oracle 的空世界桩返回首个可放置 Y（minY），两者正好相差这一格。
     [[nodiscard]] i32 getHeight(i32, i32) const override
     {
-        return m_minBuildHeight;
+        if (!m_terrain.enabled) {
+            return m_minBuildHeight - 1;
+        }
+        return m_terrain.fluid != nullptr ? m_terrain.waterTopY : m_terrain.surfaceY;
+    }
+
+    /**
+     * @brief 按高度图类型返回最高方块 Y。
+     *
+     * 这是 Cubium IWorld 的契约（返回方块本身的 Y，不是原版 LevelReader 的「首个可放置
+     * Y」）。oracle 侧对应返回原版语义（+1），两侧的差值正是这条能力要暴露的差异。
+     */
+    [[nodiscard]] i32 getHeight(i32, i32, world::chunk::HeightmapType type) const override
+    {
+        if (!m_terrain.enabled) {
+            return m_minBuildHeight - 1;
+        }
+        if (type == world::chunk::HeightmapType::OceanFloor || type == world::chunk::HeightmapType::OceanFloorWG) {
+            return m_terrain.surfaceY;
+        }
+        return m_terrain.fluid != nullptr ? m_terrain.waterTopY : m_terrain.surfaceY;
     }
 
     [[nodiscard]] const std::unordered_map<i64, BlockState>& blocks() const
@@ -125,7 +198,22 @@ public:
     }
 
 private:
+    [[nodiscard]] const BlockState* _terrainStateAt(i32 y) const
+    {
+        if (!m_terrain.enabled) {
+            return &VanillaBlocks::AIR->defaultState();
+        }
+        if (y <= m_terrain.surfaceY) {
+            return m_terrain.solid;
+        }
+        if (m_terrain.fluid != nullptr && y <= m_terrain.waterTopY) {
+            return m_terrain.fluid;
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
     i32 m_minBuildHeight;
+    TerrainConfig m_terrain;
     std::unordered_map<i64, BlockState> m_blocks;
 };
 
@@ -203,7 +291,7 @@ std::string runLine(std::string_view inputLine)
     const i32 minChunkZ = startBox.minZ() >> world::CHUNK_SHIFT;
     const i32 maxChunkZ = startBox.maxZ() >> world::CHUNK_SHIFT;
 
-    RecordingWorld world(generator.getMinY());
+    RecordingWorld world(generator.getMinY(), makeTerrainConfig(dimensionName, input.value("terrain", false)));
     ::mc::world::chunk::ChunkPrimer chunk(chunkX, chunkZ);
 
     const i32 minY = generator.getMinY();

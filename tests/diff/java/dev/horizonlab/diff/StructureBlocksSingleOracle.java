@@ -123,6 +123,7 @@ public final class StructureBlocksSingleOracle {
     private static JsonObject runSample(JsonObject input, DataPackRegistries registries) {
         final String unit = input.has("unit") ? input.get("unit").getAsString() : "";
         final String dimensionName = input.get("dimension").getAsString();
+        final boolean terrain = input.has("terrain") && input.get("terrain").getAsBoolean();
         final long seed = input.get("seed").getAsLong();
         final int chunkX = input.get("chunkX").getAsInt();
         final int chunkZ = input.get("chunkZ").getAsInt();
@@ -160,7 +161,7 @@ public final class StructureBlocksSingleOracle {
         if (valid) {
             int minY = dimension.height().getMinY();
             int maxY = dimension.height().getMaxY();
-            FakeLevel level = FakeLevel.create(registries, minY, maxY, seed);
+            FakeLevel level = FakeLevel.create(registries, minY, maxY, seed, terrain, dimensionName);
             BoundingBox startBox = start.getBoundingBox();
             int minChunkX = startBox.minX() >> 4;
             int maxChunkX = startBox.maxX() >> 4;
@@ -259,8 +260,16 @@ public final class StructureBlocksSingleOracle {
         // Unsafe 分配不会执行字段初始化器，这两个表必须在 create() 里显式建出来。
         Map<Long, BlockState> blocks;
         Map<Long, ProtoChunk> chunks;
+        // 可选确定性地形（与探针共用同一组常量）：
+        // 主世界 y<=50 石头、51..62 水；下界 y<=31 下界岩；末地 y<=50 末地石。
+        boolean terrain;
+        int surfaceY;
+        int waterTopY;
+        BlockState solidState;
+        BlockState waterState;
 
-        static FakeLevel create(DataPackRegistries registries, int minY, int maxY, long seed) {
+        static FakeLevel create(DataPackRegistries registries, int minY, int maxY, long seed,
+                boolean terrain, String dimensionName) {
             try {
                 Field field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
                 field.setAccessible(true);
@@ -287,6 +296,25 @@ public final class StructureBlocksSingleOracle {
                 level.blocks = new HashMap<>();
                 level.chunks = new HashMap<>();
                 level.server = allocateFakeServer(unsafe);
+                level.terrain = terrain;
+                if (terrain) {
+                    if ("the_nether".equals(dimensionName)) {
+                        level.surfaceY = 31;
+                        level.waterTopY = 31;
+                        level.solidState = Blocks.NETHERRACK.defaultBlockState();
+                        level.waterState = null;
+                    } else if ("the_end".equals(dimensionName)) {
+                        level.surfaceY = 50;
+                        level.waterTopY = 50;
+                        level.solidState = Blocks.END_STONE.defaultBlockState();
+                        level.waterState = null;
+                    } else {
+                        level.surfaceY = 50;
+                        level.waterTopY = 62;
+                        level.solidState = Blocks.STONE.defaultBlockState();
+                        level.waterState = Blocks.WATER.defaultBlockState();
+                    }
+                }
                 return level;
             } catch (ReflectiveOperationException error) {
                 throw new IllegalStateException("StructureBlocksSingleOracle: cannot allocate fake level", error);
@@ -322,7 +350,25 @@ public final class StructureBlocksSingleOracle {
 
         @Override
         public BlockState getBlockState(BlockPos pos) {
-            return blocks.getOrDefault(pos.asLong(), Blocks.AIR.defaultBlockState());
+            BlockState recorded = blocks.get(pos.asLong());
+            if (recorded != null) {
+                return recorded;
+            }
+            return terrainState(pos.getY());
+        }
+
+        /** 未写入位置的地形方块（无水地形时高于表面的位置是空气）。 */
+        private BlockState terrainState(int y) {
+            if (!terrain) {
+                return Blocks.AIR.defaultBlockState();
+            }
+            if (y <= surfaceY) {
+                return solidState;
+            }
+            if (waterState != null && y <= waterTopY) {
+                return waterState;
+            }
+            return Blocks.AIR.defaultBlockState();
         }
 
         @Override
@@ -353,7 +399,14 @@ public final class StructureBlocksSingleOracle {
 
         @Override
         public int getHeight(Heightmap.Types type, int x, int z) {
-            return minY;
+            if (!terrain) {
+                return minY;
+            }
+            // 原版 LevelReader 语义：返回「首个可放置 Y」= 最高方块 Y + 1。
+            if (type == Heightmap.Types.OCEAN_FLOOR || type == Heightmap.Types.OCEAN_FLOOR_WG) {
+                return surfaceY + 1;
+            }
+            return (waterState != null ? waterTopY : surfaceY) + 1;
         }
 
         @Override

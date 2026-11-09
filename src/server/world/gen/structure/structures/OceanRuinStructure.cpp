@@ -51,6 +51,8 @@
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
+#include "server/world/gen/feature/template/CappedStructureProcessor.hpp"
+#include "server/world/gen/feature/template/RuleTest.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
@@ -407,7 +409,10 @@ void OceanRuinPiece::generate(IWorldWriter& world,
     MC_ASSERT_RELEASE_MSG(reader != nullptr, "OceanRuinPiece::generate requires an IWorld");
 
     // 贴地：起点阶段的 Y 只是占位，先按海底高度图落到海床，再按模板足迹的水深修正。
-    m_templatePosition.y = reader->getHeight(m_templatePosition.x, m_templatePosition.z, HeightmapType::OceanFloorWG);
+    // `IWorld::getHeight` 返回最高方块 Y，原版 `LevelReader.getHeight` 返回首个可放置 Y
+    // （最高方块 Y + 1），模板原点按原版语义要落在海床上方一格。
+    m_templatePosition.y =
+        reader->getHeight(m_templatePosition.x, m_templatePosition.z, HeightmapType::OceanFloorWG) + 1;
     const BlockPos farCorner = feature::template_::Template::transformBlockPos(
         BlockPos(m_size.x - 1, 0, m_size.z - 1), Mirror::None, getRotation(), BlockPos(0, 0, 0));
     const BlockPos scanEnd(
@@ -419,6 +424,8 @@ void OceanRuinPiece::generate(IWorldWriter& world,
     settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
+    // CappedStructureProcessor 的随机源取世界种子，必须提供读取器
+    settings.setWorld(reader);
 
     // 添加完整度处理器
     feature::template_::StructureProcessorList processors;
@@ -432,6 +439,23 @@ void OceanRuinPiece::generate(IWorldWriter& world,
         blocksToIgnore.push_back(structureState->blockId());
     }
     processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
+
+    // 原版 `COLD/WARM_SUSPICIOUS_BLOCK_PROCESSOR`：每座废墟最多把 5 个沙砾（冷）或
+    // 沙子（暖）替换成可疑方块。
+    // TODO: 原版通过 `AppendLoot` 给可疑方块挂上考古战利品表，本项目尚未把战利品表写入
+    //       方块实体 NBT；当前只对齐方块状态。
+    {
+        const Block* sourceBlock = m_type == OceanRuinType::Cold ? VanillaBlocks::GRAVEL : VanillaBlocks::SAND;
+        const Block* outputBlock =
+            m_type == OceanRuinType::Cold ? VanillaBlocks::SUSPICIOUS_GRAVEL : VanillaBlocks::SUSPICIOUS_SAND;
+        std::vector<std::unique_ptr<feature::template_::RuleEntry>> rules;
+        rules.push_back(std::make_unique<feature::template_::RuleEntry>(
+            std::make_unique<feature::template_::BlockMatchRuleTest>(sourceBlock),
+            std::make_unique<feature::template_::AlwaysTrueRuleTest>(),
+            outputBlock->defaultState().stateId()));
+        processors.addProcessor(std::make_unique<feature::template_::CappedStructureProcessor>(
+            std::make_unique<feature::template_::RuleStructureProcessor>(std::move(rules)), 5));
+    }
     settings.setProcessors(&processors);
 
     // 放置模板：完整版会在放完后按邻居重算方块形状，并按世界流体补上水浸状态。

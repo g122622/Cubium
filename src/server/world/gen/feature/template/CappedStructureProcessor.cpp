@@ -24,8 +24,11 @@
 #include "CappedStructureProcessor.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
@@ -85,23 +88,28 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
         return processedBlocks;
     }
 
-    // 使用确定性随机源：基于种子位置创建随机数生成器
-    u64 seed = math::getPositionRandom(seedPos.x, 0, seedPos.z);
-    math::Random rng(seed);
+    // 随机源口径：`RandomSource.create(level.getSeed()).forkPositional().at(模板原点)`。
+    // 它决定「哪几个命中方块被转换」，与结构随机源、位置哈希都不同；换成别的随机源会让
+    // 转换落点整体漂移（海洋废墟的可疑沙砾即由此对齐）。世界缺失只可能出现在单元测试里，
+    // 此时种子退化到 0。
+    const IWorld* level = settings.getWorld();
+    math::JavaLegacyRandom levelRandom(level != nullptr ? level->seed() : 0);
+    math::PositionalRandomFactory factory = levelRandom.forkPositional();
+    std::unique_ptr<math::IRandom> rng = factory.at(seedPos.x, seedPos.y, seedPos.z);
 
     // 采样 IntProvider 得到实际限制次数
-    i32 effectiveLimit = std::min(m_limitProvider->sample(rng), static_cast<i32>(processedBlocks.size()));
+    i32 effectiveLimit = std::min(m_limitProvider->sample(*rng), static_cast<i32>(processedBlocks.size()));
     if (effectiveLimit < 1) {
         return processedBlocks;
     }
 
-    // 生成打乱的索引序列
+    // 生成打乱的索引序列：反向 Fisher-Yates（`j` 从 size 递减到 2，`nextInt(j)` 与
+    // `j-1` 交换），与 `Util.toShuffledList(IntStream, RandomSource)` 完全一致。
     std::vector<i32> indices(processedBlocks.size());
     std::iota(indices.begin(), indices.end(), 0);
-    // Fisher-Yates 洗牌算法，使用确定性随机源
-    for (i32 i = static_cast<i32>(indices.size()) - 1; i > 0; --i) {
-        i32 j = rng.nextInt(i + 1);
-        std::swap(indices[i], indices[j]);
+    for (i32 j = static_cast<i32>(indices.size()); j > 1; --j) {
+        const i32 k = rng->nextInt(j);
+        std::swap(indices[static_cast<size_t>(j - 1)], indices[static_cast<size_t>(k)]);
     }
 
     // 遍历打乱后的索引，调用 delegate.process() 尝试替换

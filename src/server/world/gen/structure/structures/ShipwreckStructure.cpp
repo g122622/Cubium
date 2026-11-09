@@ -206,12 +206,14 @@ void ShipwreckPiece::generate(IWorldWriter& world,
         const i32 columnCount = m_size.x * m_size.z;
         i32 lowest = reader->getMaxBuildHeight();
         i32 average = 0;
+        // `IWorld::getHeight` 返回最高方块 Y，原版 `LevelReader.getHeight` 返回首个可放置 Y
+        // （最高方块 Y + 1）；模板原点按原版语义贴在海床/地表上方一格。
         if (columnCount == 0) {
-            average = reader->getHeight(m_templatePosition.x, m_templatePosition.z, heightmapType);
+            average = reader->getHeight(m_templatePosition.x, m_templatePosition.z, heightmapType) + 1;
         } else {
             for (i32 z = m_templatePosition.z; z < m_templatePosition.z + m_size.z; ++z) {
                 for (i32 x = m_templatePosition.x; x < m_templatePosition.x + m_size.x; ++x) {
-                    const i32 height = reader->getHeight(x, z, heightmapType);
+                    const i32 height = reader->getHeight(x, z, heightmapType) + 1;
                     average += height;
                     lowest = std::min(lowest, height);
                 }

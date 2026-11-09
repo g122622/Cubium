@@ -71,6 +71,169 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isS
     m_shapes[static_cast<size_t>(RailShape::SouthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::NorthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::NorthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+
+    // ========== 形状旋转/镜像 ==========
+}
+
+namespace {
+
+/// 旋转铁轨形状（对应原版 BaseRailBlock.rotate(RailShape, Rotation) 的映射表）
+[[nodiscard]] RailShape _rotateRailShape(RailShape shape, Rotation rotation)
+{
+    switch (rotation) {
+        case Rotation::Clockwise180:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingWest;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingEast;
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingNorth;
+                case RailShape::NorthSouth:
+                case RailShape::EastWest:
+                    return shape;
+                case RailShape::SouthEast:
+                    return RailShape::NorthWest;
+                case RailShape::SouthWest:
+                    return RailShape::NorthEast;
+                case RailShape::NorthWest:
+                    return RailShape::SouthEast;
+                case RailShape::NorthEast:
+                    return RailShape::SouthWest;
+            }
+            break;
+        case Rotation::CounterClockwise90:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingNorth;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingWest;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingEast;
+                case RailShape::NorthSouth:
+                    return RailShape::EastWest;
+                case RailShape::EastWest:
+                    return RailShape::NorthSouth;
+                case RailShape::SouthEast:
+                    return RailShape::NorthEast;
+                case RailShape::SouthWest:
+                    return RailShape::SouthEast;
+                case RailShape::NorthWest:
+                    return RailShape::SouthWest;
+                case RailShape::NorthEast:
+                    return RailShape::NorthWest;
+            }
+            break;
+        case Rotation::Clockwise90:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingNorth;
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingEast;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingWest;
+                case RailShape::NorthSouth:
+                    return RailShape::EastWest;
+                case RailShape::EastWest:
+                    return RailShape::NorthSouth;
+                case RailShape::SouthEast:
+                    return RailShape::SouthWest;
+                case RailShape::SouthWest:
+                    return RailShape::NorthWest;
+                case RailShape::NorthWest:
+                    return RailShape::NorthEast;
+                case RailShape::NorthEast:
+                    return RailShape::SouthEast;
+            }
+            break;
+        case Rotation::None:
+            break;
+    }
+    return shape;
+}
+
+/// 镜像铁轨形状（对应原版 BaseRailBlock.mirror(RailShape, Mirror) 的映射表）
+[[nodiscard]] RailShape _mirrorRailShape(RailShape shape, Mirror mirror)
+{
+    switch (mirror) {
+        case Mirror::LeftRight:
+            switch (shape) {
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingNorth;
+                case RailShape::SouthEast:
+                    return RailShape::NorthEast;
+                case RailShape::SouthWest:
+                    return RailShape::NorthWest;
+                case RailShape::NorthWest:
+                    return RailShape::SouthWest;
+                case RailShape::NorthEast:
+                    return RailShape::SouthEast;
+                default:
+                    return shape;
+            }
+        case Mirror::FrontBack:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingWest;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingEast;
+                case RailShape::SouthEast:
+                    return RailShape::SouthWest;
+                case RailShape::SouthWest:
+                    return RailShape::SouthEast;
+                case RailShape::NorthWest:
+                    return RailShape::NorthEast;
+                case RailShape::NorthEast:
+                    return RailShape::NorthWest;
+                default:
+                    return shape;
+            }
+        case Mirror::None:
+            break;
+    }
+    return shape;
+}
+
+} // namespace
+
+const BlockState& AbstractRailBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    if (rotation == Rotation::None) {
+        return state;
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE(),
+            _rotateRailShape(state.get(BlockStateProperties::RAIL_SHAPE()), rotation));
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE_STRAIGHT())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE_STRAIGHT(),
+            _rotateRailShape(state.get(BlockStateProperties::RAIL_SHAPE_STRAIGHT()), rotation));
+    }
+    return state;
+}
+
+const BlockState& AbstractRailBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    if (mirror == Mirror::None) {
+        return state;
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE(),
+            _mirrorRailShape(state.get(BlockStateProperties::RAIL_SHAPE()), mirror));
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE_STRAIGHT())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE_STRAIGHT(),
+            _mirrorRailShape(state.get(BlockStateProperties::RAIL_SHAPE_STRAIGHT()), mirror));
+    }
+    return state;
 }
 
 BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
