@@ -217,6 +217,8 @@ add_executable(mc_tests
     common/item/enchantment/LocationEnchantmentTest.cpp
     # 附魔每 tick 效果派发（runTickEffects / Enchantment::onTick）与灵魂疾行 TICK 组件
     common/item/enchantment/EnchantmentTickEffectsTest.cpp
+    # LevelBasedValue（以等级为自变量的数值表达式）的求值与 JSON 解析
+    common/item/loot/LevelBasedValueTest.cpp
     common/item/enchantment/BlastProtectionAttributeTest.cpp
     # 附魔提示框：tooltip_order 排序、附魔全名（颜色 + 罗马数字等级）、Item::addInformation 附魔行
     common/item/enchantment/EnchantmentTooltipTest.cpp

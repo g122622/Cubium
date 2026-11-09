@@ -36,12 +36,13 @@ namespace mc {
 namespace loot {
 
 RandomChanceWithEnchantedBonusCondition::RandomChanceWithEnchantedBonusCondition(
-    f32 unenchantedChance, f32 enchantedBase, f32 perLevelAboveFirst, std::string enchantmentId)
+    f32 unenchantedChance, std::unique_ptr<LevelBasedValue> enchantedChance, std::string enchantmentId)
     : m_unenchantedChance(unenchantedChance)
-    , m_enchantedBase(enchantedBase)
-    , m_perLevelAboveFirst(perLevelAboveFirst)
+    , m_enchantedChance(std::move(enchantedChance))
     , m_enchantmentId(std::move(enchantmentId))
-{}
+{
+    MC_ASSERT_RELEASE(m_enchantedChance != nullptr);
+}
 
 bool RandomChanceWithEnchantedBonusCondition::test(LootContext& context) const
 {
@@ -56,16 +57,15 @@ bool RandomChanceWithEnchantedBonusCondition::test(LootContext& context) const
         }
     }
 
-    // LevelBasedValue.Linear: base + per_level_above_first * (level - 1)
-    const f32 chance =
-        level > 0 ? m_enchantedBase + m_perLevelAboveFirst * static_cast<f32>(level - 1) : m_unenchantedChance;
+    // 等级为 0 时用固定概率；否则用 enchanted_chance 表达式求值。
+    const f32 chance = level > 0 ? m_enchantedChance->calculate(level) : m_unenchantedChance;
     return context.getRandom().nextFloat() < chance;
 }
 
 std::unique_ptr<LootCondition> RandomChanceWithEnchantedBonusCondition::clone() const noexcept
 {
     return std::make_unique<RandomChanceWithEnchantedBonusCondition>(
-        m_unenchantedChance, m_enchantedBase, m_perLevelAboveFirst, m_enchantmentId);
+        m_unenchantedChance, m_enchantedChance->clone(), m_enchantmentId);
 }
 
 } // namespace loot
