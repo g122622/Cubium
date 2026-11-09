@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/item/loot/base/LevelBasedValue.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include <memory>
@@ -35,24 +36,22 @@ namespace loot {
 /**
  * @brief 随机概率条件（按攻击者附魔等级提升概率）
  *
- * 对齐原版 `LootItemRandomChanceWithEnchantedBonusCondition`：
- * `minecraft:random_chance_with_enchanted_bonus`。
+ * 对应 `minecraft:random_chance_with_enchanted_bonus`。
  *
- * 读数路径与原版一致：从上下文的 `ATTACKING_ENTITY` 读取实体的附魔等级。
- * 等级为 0 时用 `unenchanted_chance`，否则用 `enchanted_chance` 的
- * `LevelBasedValue.Linear` 求值（`base + per_level_above_first * (level - 1)`）。
+ * 读数路径：从上下文的 `ATTACKING_ENTITY` 读取实体的附魔等级（按该附魔的适用
+ * 槽位筛选后取最大值）。等级为 0 时用 `unenchanted_chance`，否则用
+ * `enchanted_chance` 表达式的求值结果。
  */
 class RandomChanceWithEnchantedBonusCondition : public LootCondition {
 public:
     /**
      * @brief 构造条件
      * @param unenchantedChance 无附魔时的概率
-     * @param enchantedBase 有附魔时的基础概率（等级 1）
-     * @param perLevelAboveFirst 每高一级增加的概率
+     * @param enchantedChance 有附魔时的概率表达式（以等级为自变量）
      * @param enchantmentId 参与计算的附魔 ID
      */
     RandomChanceWithEnchantedBonusCondition(
-        f32 unenchantedChance, f32 enchantedBase, f32 perLevelAboveFirst, std::string enchantmentId);
+        f32 unenchantedChance, std::unique_ptr<LevelBasedValue> enchantedChance, std::string enchantmentId);
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
@@ -67,14 +66,9 @@ public:
         return m_unenchantedChance;
     }
 
-    [[nodiscard]] f32 getEnchantedBase() const
+    [[nodiscard]] const LevelBasedValue& getEnchantedChance() const
     {
-        return m_enchantedBase;
-    }
-
-    [[nodiscard]] f32 getPerLevelAboveFirst() const
-    {
-        return m_perLevelAboveFirst;
+        return *m_enchantedChance;
     }
 
     [[nodiscard]] const std::string& getEnchantmentId() const
@@ -84,8 +78,7 @@ public:
 
 private:
     f32 m_unenchantedChance;
-    f32 m_enchantedBase;
-    f32 m_perLevelAboveFirst;
+    std::unique_ptr<LevelBasedValue> m_enchantedChance;
     std::string m_enchantmentId;
 };
 

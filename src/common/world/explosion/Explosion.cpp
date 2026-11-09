@@ -26,6 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
@@ -308,13 +309,32 @@ LivingEntity* Explosion::getIndirectSourceEntity() const
 
 bool Explosion::_shouldAffectBlocklikeEntities() const
 {
-    // mobGriefing 开启时，所有爆炸都影响方块类实体；否则只有破坏方块的爆炸
-    // （ExplosionMode 非 None）才影响。
-    // 简化前提：风弹/风爆附魔不走 Explosion 类，故 m_source 永非风弹源，
-    // vanilla shouldAffectBlocklikeEntities() 中的"非风弹源"判定恒真，退化为下式。
-    // TODO: 若未来风弹改走 Explosion，需引入 Trigger 模式并恢复完整判定。
+    // 完整对齐 ServerExplosion.shouldAffectBlocklikeEntities：
+    //   flag  = mobGriefing
+    //   flag1 = source == null || source 不是风弹
+    //   return flag ? flag1 : blockInteraction.shouldAffectBlocklikeEntities() && flag1
+    //
+    // 其中 blockInteraction.shouldAffectBlocklikeEntities 在 KEEP / TRIGGER_BLOCK 为 false、
+    // 在 DESTROY / DESTROY_WITH_DECAY 为 true，与项目的 `mode != None` 等价——
+    // 但项目缺少 TRIGGER_BLOCK 这一取值（见 TODO）。
     const bool mobGriefing = m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
-    return mobGriefing || m_mode != ExplosionMode::None;
+
+    // flag1：风弹作为爆源时不波及其他方块类实体（风弹靠专门的风爆逻辑处理）。
+    // 项目目前只有一种风弹实体（minecraft:wind_charge）；旋风人的
+    // minecraft:breeze_wind_charge 尚未注册实体类型（BreezeShootGoal 还未真正发射投射物），
+    // 因此这里只列已存在的类型。
+    // TODO: 注册 minecraft:breeze_wind_charge 后，需把该类型一并加入此判定，
+    //   否则旋风人的风弹会错误地波及方块类实体。
+    const bool nonWindChargeSource =
+        m_source == nullptr || m_source->getTypeId() != entity::EntityTypeKeys::WIND_CHARGE;
+
+    if (mobGriefing) {
+        return nonWindChargeSource;
+    }
+    // TODO: 风爆附魔（WindBurstEnchantment）当前只实现了附魔兼容性，未实现其爆炸效果；
+    //   接入时需要新增 ExplosionMode::TriggerBlock（原版 TRIGGER_BLOCK 不破坏方块，
+    //   只触发 TNT/苦力怕等），届时此处即可自然区分"破坏方块"与"仅触发"两种爆炸。
+    return m_mode != ExplosionMode::None && nonWindChargeSource;
 }
 
 // ============================================================================

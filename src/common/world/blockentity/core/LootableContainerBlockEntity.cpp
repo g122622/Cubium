@@ -236,54 +236,6 @@ void LootableContainerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
     }
 }
 
-// ========== 容器物品 NBT 序列化辅助 ==========
-
-void LootableContainerBlockEntity::saveItemsToNBT(nbt::CompoundTag& tag, const IInventory& inventory) const
-{
-    auto itemsList = std::make_unique<nbt::tags::compound_list_tag>();
-    const i32 containerSize = inventory.getContainerSize();
-    for (i32 slot = 0; slot < containerSize; ++slot) {
-        const ItemStack& stack = inventory.getItem(slot);
-        if (stack.isEmpty()) {
-            continue;
-        }
-        nbt::tags::compound_tag itemTag;
-        itemTag.put("Slot", static_cast<i8>(slot));
-        stack.toNbt(itemTag);
-        itemsList->value.push_back(std::move(itemTag));
-    }
-    tag.value.insert_or_assign(ITEMS_TAG, std::move(itemsList));
-}
-
-void LootableContainerBlockEntity::loadItemsFromNBT(const nbt::CompoundTag& tag, IInventory& inventory)
-{
-    namespace nbt_helper = mc::entity::serialization::nbt_helper;
-
-    inventory.clear();
-
-    const auto* listTag = nbt_helper::tryGetList(tag, ITEMS_TAG);
-    if (listTag == nullptr || listTag->element_id() != nbt::TagId::Compound) {
-        return;
-    }
-
-    const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
-    const i32 containerSize = inventory.getContainerSize();
-    for (const auto& itemTag : compoundList.value) {
-        i8 slot = 0;
-        if (auto slotOpt = nbt_helper::tryGetByte(itemTag, "Slot")) {
-            slot = *slotOpt;
-        }
-        if (slot < 0 || slot >= containerSize) {
-            continue;
-        }
-        auto stackResult = ItemStack::fromNbt(itemTag);
-        if (!stackResult.success()) {
-            continue;
-        }
-        inventory.setItem(slot, stackResult.value());
-    }
-}
-
 // ========== 战利品填充 ==========
 
 void LootableContainerBlockEntity::fillWithLoot(Player* player)

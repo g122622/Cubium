@@ -50,7 +50,7 @@ public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
         const auto it = m_blocks.find(key(x, y, z));
-        return it != m_blocks.end() ? it->second : &VanillaBlocks::AIR->defaultState();
+        return it != m_blocks.end() ? &it->second : &VanillaBlocks::AIR->defaultState();
     }
 
     [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override
@@ -60,10 +60,12 @@ public:
         return y >= mc::world::MIN_BUILD_HEIGHT && y < mc::world::MAX_BUILD_HEIGHT;
     }
 
-    // IWorld 接口实现 - 同时作为测试辅助方法
+    // 按值持有状态副本：调用方（如 BedBlock::onBlockPlacedBy）常把局部 BlockState 的地址传进来，
+    // 直接存指针会在其返回后悬垂，表现为读到垃圾属性。真实世界也是把状态写进区块存储的。
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
-        m_blocks[key(x, y, z)] = state;
+        MC_ASSERT_RELEASE(state != nullptr);
+        m_blocks.insert_or_assign(key(x, y, z), *state);
         return true;
     }
 
@@ -91,15 +93,11 @@ public:
     {
         // 遍历所有方块检查碰撞
         for (const auto& [posKey, state] : m_blocks) {
-            if (!state || state->isAir()) {
+            if (state.isAir()) {
                 continue;
             }
 
-            const CollisionShape& shape = state->getCollisionShape();
-            if (shape.isEmpty()) {
-                continue;
-            }
-
+            const CollisionShape& shape = state.getCollisionShape();
             // 从 key 解码坐标
             i32 x = static_cast<i32>(posKey >> 40);
             i32 y = static_cast<i32>((posKey >> 20) & 0xFFFFF);
@@ -239,7 +237,7 @@ private:
         return (static_cast<i64>(x) << 40) ^ (static_cast<i64>(y) << 20) ^ static_cast<i64>(z & 0xFFFFF);
     }
 
-    std::unordered_map<i64, const BlockState*> m_blocks;
+    std::unordered_map<i64, BlockState> m_blocks;
     world::border::WorldBorder m_worldBorder;
     AxisAlignedBB m_entityCollisionBox;
     bool m_hasEntityCollision = false;
@@ -477,9 +475,15 @@ TEST_F(BlockItemTest, PlacementCallsOnBlockPlacedByOfPlacedBlock)
     TestBlockReader world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
+    // 放置链路会用到放置者（如创造模式免消耗判定），传 nullptr 会在后续解引用处崩溃。
+    // 朝向显式设为 yaw=0，保证床的水平朝向由测试而非玩家默认值决定。
+    Player player(1, "placer", mc::test::testEcsRegistry());
+    player.setYaw(0.0f);
+
     ItemStack stack(*Items::WHITE_BED, 1);
+
     ItemUseContext context(world,
-        nullptr,
+        &player,
         stack,
         Vector3(0.5f, 64.0f, 0.5f),
         BlockPos(0, 63, 0),

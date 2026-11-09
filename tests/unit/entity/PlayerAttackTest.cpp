@@ -557,29 +557,30 @@ protected:
     void TearDown() override {}
 };
 
-TEST_F(SweepDamageTest, GetSweepingDamageRatio_Formula)
+TEST_F(SweepDamageTest, AttributeModifierIsAuthoritativeSource)
 {
-    // 验证横扫之刃伤害比例公式：1.0 - 1.0 / (level + 1)
-    // 等级 I: 1.0 - 1.0/2 = 0.5
-    // 等级 II: 1.0 - 1.0/3 = 0.667
-    // 等级 III: 1.0 - 1.0/4 = 0.75
+    // 横扫比例的唯一权威来源是 sweeping_damage_ratio 属性修饰符，
+    // 而不再是按物品堆现算的辅助函数：多件装备的修饰符要按原版规则合并。
+    item::enchant::SweepingEnchantment enchantment;
 
-    EXPECT_FLOAT_EQ(item::enchant::SweepingEnchantment::getSweepingDamageRatio(1), 0.5f);
-    EXPECT_NEAR(item::enchant::SweepingEnchantment::getSweepingDamageRatio(2), 0.667f, 0.01f);
-    EXPECT_FLOAT_EQ(item::enchant::SweepingEnchantment::getSweepingDamageRatio(3), 0.75f);
+    const item::ItemAttributeModifiers level1 = enchantment.getAttributeModifiers(1);
+    const item::ItemAttributeModifiers level3 = enchantment.getAttributeModifiers(3);
+
+    // 每条修饰符都应挂在 sweeping_damage_ratio 上，且等级越高数值越大。
+    const std::vector<item::ItemAttributeModifiers::Entry>& entries1 = level1.getEntries();
+    const std::vector<item::ItemAttributeModifiers::Entry>& entries3 = level3.getEntries();
+    ASSERT_EQ(entries1.size(), 1u);
+    ASSERT_EQ(entries3.size(), 1u);
+
+    EXPECT_EQ(entries1[0].attributeName, "minecraft:sweeping_damage_ratio");
+    EXPECT_LT(entries1[0].modifier.amount(), entries3[0].modifier.amount());
 }
 
-TEST_F(SweepDamageTest, GetSweepingDamageRatio_LevelZero)
+TEST_F(SweepDamageTest, ZeroLevelAddsNoModifier)
 {
-    // 等级 0 时应该返回 0（无横扫之刃附魔）
-    EXPECT_FLOAT_EQ(item::enchant::SweepingEnchantment::getSweepingDamageRatio(0), 0.0f);
-}
-
-TEST_F(SweepDamageTest, GetSweepingDamageRatio_HighLevel)
-{
-    // 高等级横扫之刃接近 100% 伤害
-    EXPECT_FLOAT_EQ(item::enchant::SweepingEnchantment::getSweepingDamageRatio(9), 0.9f);
-    EXPECT_FLOAT_EQ(item::enchant::SweepingEnchantment::getSweepingDamageRatio(19), 0.95f);
+    // 等级 0 表示没有横扫之刃，不应产生任何修饰符。
+    item::enchant::SweepingEnchantment enchantment;
+    EXPECT_TRUE(enchantment.getAttributeModifiers(0).isEmpty());
 }
 
 // ============================================================================

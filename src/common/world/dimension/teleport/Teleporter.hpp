@@ -52,30 +52,24 @@ struct PortalInfo {
 /**
  * @brief 传送器基类
  *
- * 处理实体在维度间的传送逻辑。
+ * 提供传送门坐标换算、搜索与创建能力。
  *
- * 使用示例:
+ * 本类**不负责**执行维度切换：那需要维度管理器处理区块加载/卸载、
+ * 实体移交与数据包发送，属于 server 侧职责（见 ServerPlayer::changeDimension）。
+ * common 层拿不到目标维度世界，因此这里只暴露与具体世界实例无关的传送门操作。
+ *
+ * 使用示例：
  * @code
  * NetherTeleporter teleporter;
- * bool success = teleporter.teleport(entity, DimensionManager::NETHER);
+ * auto info = teleporter.findPortal(*targetWorld, targetPos);
+ * if (!info.has_value()) {
+ *     info = teleporter.createPortal(*targetWorld, targetPos);
+ * }
  * @endcode
  */
 class Teleporter {
 public:
     virtual ~Teleporter() = default;
-
-    // ========== 核心传送方法 ==========
-
-    /**
-     * @brief 将实体传送到目标维度
-     *
-     * @param entity 要传送的实体
-     * @param targetDim 目标维度ID
-     * @return 是否成功传送
-     */
-    virtual bool teleport(Entity& entity, DimensionId targetDim) = 0;
-
-    // ========== 传送门搜索 ==========
 
     /**
      * @brief 在目标世界查找已存在的传送门
@@ -174,7 +168,6 @@ public:
 
     // ========== Teleporter 接口实现 ==========
 
-    bool teleport(Entity& entity, DimensionId targetDim) override;
     [[nodiscard]] std::optional<PortalInfo> findPortal(IWorld& world, const Vector3d& pos) override;
     [[nodiscard]] PortalInfo createPortal(IWorld& world, const Vector3d& pos) override;
 
@@ -226,7 +219,6 @@ public:
 
     // ========== Teleporter 接口实现 ==========
 
-    bool teleport(Entity& entity, DimensionId targetDim) override;
     [[nodiscard]] std::optional<PortalInfo> findPortal(IWorld& world, const Vector3d& pos) override;
     [[nodiscard]] PortalInfo createPortal(IWorld& world, const Vector3d& pos) override;
 

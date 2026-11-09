@@ -104,8 +104,16 @@ public:
      */
     bool loadFromNBT(const nbt::CompoundTag& tag) override;
 
-    void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override;
+    /**
+     * @brief 保存数据到 NBT
+     *
+     * 字段集与 save(nlohmann::json&) 一致。两条存档路径必须写出相同内容，
+     * 否则 NBT 往返会丢失命令、模式与开关状态。
+     */
+    void saveToNBT(nbt::CompoundTag& tag) const override;
+
+    // 不覆写 tick()/needsTick()：命令方块由 CommandBlock 的计划刻驱动，不需要每 tick 更新
+    // （见 .cpp 中 clone() 前的说明）。
     std::unique_ptr<BlockEntity> clone() const override;
 
     // ========== ICommandSource 接口 ==========

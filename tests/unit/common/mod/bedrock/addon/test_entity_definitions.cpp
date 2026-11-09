@@ -29,14 +29,19 @@
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPlugin.hpp"
 
+#include "common/entity/ai/pathfinding/FlyNodeEvaluator.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp" // is_baby → setChild/isChild 断言
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
@@ -129,6 +134,812 @@ protected:
     ScriptManager manager;
 };
 } // namespace
+
+TEST_F(AddonEntityDefinitionTest, PushableDrivesIsPushableAndPistonReaction)
+{
+    // is_pushable 决定实体能否被其他实体推动（同时影响实体碰撞与方块放置判定）；
+    // is_pushable_by_piston 为 false 时活塞扫过应跳过该实体（PushReaction::Ignore）。
+    auto definition = _definition("addon_test:anchor");
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {
+        {"is_pushable", false}, {"is_pushable_by_piston", false}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/anchor.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:anchor");
+    ASSERT_NE(actor, nullptr);
+    EXPECT_FALSE(actor->isPushable());
+    EXPECT_EQ(actor->getPushReaction(), mc::PushReaction::Ignore);
+}
+
+TEST_F(AddonEntityDefinitionTest, PushableDefaultsKeepVanillaBehavior)
+{
+    // 字面上等价于缺省值的配置必须与不写该组件一致：is_pushable=true 仍可推，
+    // is_pushable_by_piston=true 不返回 Ignore。这条用例防止实现把默认值写反。
+    auto definition = _definition("addon_test:pushy");
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {
+        {"is_pushable", true}, {"is_pushable_by_piston", true}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/pushy.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:pushy");
+    ASSERT_NE(actor, nullptr);
+    EXPECT_TRUE(actor->isPushable());
+    EXPECT_NE(actor->getPushReaction(), mc::PushReaction::Ignore);
+}
+
+TEST_F(AddonEntityDefinitionTest, PushableRejectsNonBoolean)
+{
+    auto definition = _definition("addon_test:bad_pushable");
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {{"is_pushable", "no"}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_pushable.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_pushable"));
+}
+
+TEST_F(AddonEntityDefinitionTest, PushableAppliesToLivingMobsToo)
+{
+    // pushable 同时适用于非生物 actor 与生物 mob。带 minecraft:health 的定义会走 _AddonMob，
+    // 这里确认生物分支也读到了同一组件（两条实现分别位于两个类，漏一个就会静默失效）。
+    auto definition = _definition("addon_test:heavy_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    definition["minecraft:entity"]["components"]["minecraft:pushable"] = {
+        {"is_pushable", false}, {"is_pushable_by_piston", false}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/heavy_mob.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto mob = create("addon_test:heavy_mob");
+    ASSERT_NE(mob, nullptr);
+    ASSERT_NE(dynamic_cast<mc::LivingEntity*>(mob.get()), nullptr) << "带 health 的定义应创建生物";
+    EXPECT_FALSE(mob->isPushable());
+    EXPECT_EQ(mob->getPushReaction(), mc::PushReaction::Ignore);
+}
+
+TEST_F(AddonEntityDefinitionTest, AttackDamageAcceptsThreeShapes)
+{
+    // 官方文档给出三种承载形态，基岩原版实体定义里三种都出现过，只认一种会让合法 addon 加载失败。
+    // 同时验证区间取中值写入 attack_damage 属性。
+    struct Case {
+        const char* file;
+        const char* id;
+        nlohmann::json damage;
+        mc::f64 expected;
+    };
+
+    const std::array<Case, 3> cases{{
+        {"attacker_number", "addon_test:attacker_number", 5, 5.0},
+        {"attacker_array", "addon_test:attacker_array", nlohmann::json::array({4, 8}), 6.0},
+        {"attacker_range", "addon_test:attacker_range", {{"range_min", 3}, {"range_max", 7}}, 5.0},
+    }};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    for (const auto& testCase : cases) {
+        auto definition = _definition(testCase.id);
+        definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+        definition["minecraft:entity"]["components"]["minecraft:attack"] = {{"damage", testCase.damage}};
+        write(directory / (std::string("entities/") + testCase.file + ".json"), definition);
+    }
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    for (const auto& testCase : cases) {
+        auto entity = create(testCase.id);
+        ASSERT_NE(entity, nullptr) << testCase.id;
+        auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+        ASSERT_NE(living, nullptr) << testCase.id;
+        EXPECT_DOUBLE_EQ(
+            living->getAttributeValue(mc::entity::attribute::Attributes::ATTACK_DAMAGE, 0.0), testCase.expected)
+            << testCase.id;
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, AttackDamageRejectsMalformedShapes)
+{
+    // 形态不认识必须报错，不能静默当成 0 或默认值——那会让"攻击不疼"变成无法定位的问题。
+    const std::array<nlohmann::json, 3> invalid{
+        nlohmann::json::array({1, 2, 3}), // 数组元素个数不对
+        nlohmann::json{{"range_min", 1}}, // 缺 range_max
+        "five",                           // 既非数字也非数组/对象
+    };
+
+    for (const auto& damage : invalid) {
+        auto definition = _definition("addon_test:bad_attack");
+        definition["minecraft:entity"]["components"]["minecraft:attack"] = {{"damage", damage}};
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << damage.dump();
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, AttackEffectFieldsAreTypeChecked)
+{
+    // effect_name 必须是非空字符串；duration / amplifier 必须是非负数字/整数。
+    const std::array<nlohmann::json, 3> invalid{
+        nlohmann::json{{"damage", 3}, {"effect_name", ""}},
+        nlohmann::json{{"damage", 3}, {"effect_name", "minecraft:poison"}, {"effect_duration", -1}},
+        nlohmann::json{{"damage", 3}, {"effect_name", "minecraft:poison"}, {"effect_amplifier", -1}},
+    };
+
+    for (const auto& component : invalid) {
+        auto definition = _definition("addon_test:bad_effect");
+        definition["minecraft:entity"]["components"]["minecraft:attack"] = component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << component.dump();
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, NameableDrivesNameTagRenaming)
+{
+    // allow_name_tag_renaming 为 false 时命名牌对该实体无效（NameTagItem 查询 isNameableByTag）。
+    // 默认（不写该组件、或写 true）必须保持"可改名"，否则正常 addon 实体会被误锁。
+    auto refusing = _definition("addon_test:unnameable");
+    refusing["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    refusing["minecraft:entity"]["components"]["minecraft:nameable"] = {{"allow_name_tag_renaming", false}};
+
+    auto accepting = _definition("addon_test:nameable");
+    accepting["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    accepting["minecraft:entity"]["components"]["minecraft:nameable"] = {{"allow_name_tag_renaming", true}};
+
+    auto implicit = _definition("addon_test:nameable_default");
+    implicit["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/unnameable.json", refusing);
+    write(directory / "entities/nameable.json", accepting);
+    write(directory / "entities/nameable_default.json", implicit);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto refusingEntity = create("addon_test:unnameable");
+    auto* refusingMob = dynamic_cast<mc::MobEntity*>(refusingEntity.get());
+    ASSERT_NE(refusingMob, nullptr);
+    EXPECT_FALSE(refusingMob->isNameableByTag());
+
+    auto acceptingEntity = create("addon_test:nameable");
+    auto* acceptingMob = dynamic_cast<mc::MobEntity*>(acceptingEntity.get());
+    ASSERT_NE(acceptingMob, nullptr);
+    EXPECT_TRUE(acceptingMob->isNameableByTag());
+
+    auto implicitEntity = create("addon_test:nameable_default");
+    auto* implicitMob = dynamic_cast<mc::MobEntity*>(implicitEntity.get());
+    ASSERT_NE(implicitMob, nullptr);
+    EXPECT_TRUE(implicitMob->isNameableByTag());
+}
+
+TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
+{
+    auto definition = _definition("addon_test:bad_nameable");
+    definition["minecraft:entity"]["components"]["minecraft:nameable"] = {{"always_show", "yes"}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_nameable.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_nameable"));
+}
+
+// minecraft:inventory 此前落在"未实现"分支，含该组件的 addon 实体定义直接加载失败。
+// 本轮接入解析与字段校验（实体持有真实库存容器仍是 TODO，见定义处说明）。
+// minecraft:leashable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// 本轮接入解析与字段校验，并让 _AddonMob::canBeLeashed 消费它（声明即可被拴）。
+// minecraft:breathable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// 原版 schema 同时给 snake_case 与 camelCase 两套键，两种都必须接受。
+// minecraft:healable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// minecraft:rideable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// 本轮接入解析与字段校验，并让 seat_count 驱动 getMaxPassengers。
+// minecraft:burns_in_daylight 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// minecraft:experience_reward 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// minecraft:can_fly 此前落在"未实现组件"分支；它同时暴露了 FlyNodeEvaluator 从未被接入。
+TEST_F(AddonEntityDefinitionTest, CanFlyComponentIsAcceptedAndSwapsNavigator)
+{
+    auto flyer = _definition("addon_test:flyer");
+    flyer["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    flyer["minecraft:entity"]["components"]["minecraft:can_fly"] = nlohmann::json::object();
+
+    auto walker = _definition("addon_test:walker");
+    walker["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/flyer.json", flyer);
+    write(directory / "entities/walker.json", walker);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    // 两者都必须有导航器（基类默认创建地面导航器）；声明 can_fly 后应被替换成飞行求值器。
+    auto flyerEntity = create("addon_test:flyer");
+    ASSERT_NE(flyerEntity, nullptr);
+    auto* flyerMob = dynamic_cast<mc::MobEntity*>(flyerEntity.get());
+    ASSERT_NE(flyerMob, nullptr);
+    ASSERT_NE(flyerMob->navigator(), nullptr) << "an addon mob must always have a navigator";
+
+    auto walkerEntity = create("addon_test:walker");
+    ASSERT_NE(walkerEntity, nullptr);
+    auto* walkerMob = dynamic_cast<mc::MobEntity*>(walkerEntity.get());
+    ASSERT_NE(walkerMob, nullptr);
+    ASSERT_NE(walkerMob->navigator(), nullptr);
+
+    // 导航器都是 GroundPathNavigator，差别在内层求值器：飞行用 FlyNodeEvaluator。
+    // 用 dynamic_cast 判断而不是比较 typeid 名称（后者是实现定义字符串，不可靠）。
+    auto* flyerEvaluator = flyerMob->navigator()->nodeEvaluator();
+    auto* walkerEvaluator = walkerMob->navigator()->nodeEvaluator();
+    ASSERT_NE(flyerEvaluator, nullptr);
+    ASSERT_NE(walkerEvaluator, nullptr);
+    EXPECT_NE(dynamic_cast<mc::entity::ai::pathfinding::FlyNodeEvaluator*>(flyerEvaluator), nullptr)
+        << "can_fly must install the flying node evaluator";
+    EXPECT_EQ(dynamic_cast<mc::entity::ai::pathfinding::FlyNodeEvaluator*>(walkerEvaluator), nullptr)
+        << "an addon mob without can_fly must keep the ground evaluator";
+}
+
+TEST_F(AddonEntityDefinitionTest, ExperienceRewardComponentIsAccepted)
+{
+    // 三种写法都要认：字面数字、Molang 字符串、{expression,version} 对象。
+    nlohmann::json rewards = {{"on_death", 5}, {"on_bred", "Math.Random(1,7)"}};
+    auto plain = _definition("addon_test:xp_plain");
+    plain["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    plain["minecraft:entity"]["components"]["minecraft:experience_reward"] = rewards;
+
+    auto objectForm = _definition("addon_test:xp_object");
+    objectForm["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    objectForm["minecraft:entity"]["components"]["minecraft:experience_reward"] = {
+        {"on_death", {{"expression", "query.last_hit_by_player ? 10 : 0"}, {"version", 12}}}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/xp_plain.json", plain);
+    write(directory / "entities/xp_object.json", objectForm);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, ExperienceRewardRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    std::vector<Case> invalid;
+    invalid.push_back({{{("on_death"), -3}}, "negative on_death"});
+    invalid.push_back({{{("on_death"), ""}}, "empty expression string"});
+    invalid.push_back({{{("on_death"), {{"version", 12}}}}, "object form without expression"});
+    invalid.push_back({{{("on_death"), {{"expression", "5"}, {"unknow_key", 1}}}}, "unknown object field"});
+    invalid.push_back({{{("on_death"), nlohmann::json::array()}}, "array is not a valid form"});
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_xp");
+        definition["minecraft:entity"]["components"]["minecraft:experience_reward"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// on_death 必须在死亡时求值并驱动 experienceValue；未声明该组件的实体不带经验。
+TEST_F(AddonEntityDefinitionTest, ExperienceRewardDrivesDeathExperience)
+{
+    auto numeric = _definition("addon_test:xp_numeric");
+    numeric["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    numeric["minecraft:entity"]["components"]["minecraft:experience_reward"] = {{"on_death", 7}};
+
+    auto none = _definition("addon_test:xp_none");
+    none["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/xp_numeric.json", numeric);
+    write(directory / "entities/xp_none.json", none);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto rewarded = create("addon_test:xp_numeric");
+    ASSERT_NE(rewarded, nullptr);
+    auto* rewardedMob = dynamic_cast<mc::MobEntity*>(rewarded.get());
+    ASSERT_NE(rewardedMob, nullptr);
+    EXPECT_EQ(rewardedMob->experienceValue(), 0) << "experience must not be granted before death";
+    // 直接触发经验掉落：数值型 on_death 应写入 experienceValue。
+    rewardedMob->dropExperience();
+    EXPECT_EQ(rewardedMob->experienceValue(), 7) << "numeric on_death must drive the experience value";
+
+    auto plain = create("addon_test:xp_none");
+    ASSERT_NE(plain, nullptr);
+    auto* plainMob = dynamic_cast<mc::MobEntity*>(plain.get());
+    ASSERT_NE(plainMob, nullptr);
+    plainMob->dropExperience();
+    EXPECT_EQ(plainMob->experienceValue(), 0)
+        << "without minecraft:experience_reward the entity must carry no experience";
+}
+
+TEST_F(AddonEntityDefinitionTest, BurnsInDaylightComponentIsAccepted)
+{
+    for (const auto& [id, slot] :
+        std::array<std::pair<const char*, const char*>, 5>{std::pair{"addon_test:burn_head", "slot.armor.head"},
+            std::pair{"addon_test:burn_body", "slot.armor.body"},
+            std::pair{"addon_test:burn_chest", "slot.armor.chest"},
+            std::pair{"addon_test:burn_mainhand", "slot.weapon.mainhand"},
+            std::pair{"addon_test:burn_bare", "head"}}) {
+        auto definition = _definition(id);
+        definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+        definition["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = {{"protection_slot", slot}};
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).success()) << slot;
+    }
+
+    // 官方示例的写法就是空对象（默认头盔位保护）。
+    auto minimal = _definition("addon_test:burn_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = nlohmann::json::object();
+    EXPECT_TRUE(AddonEntityDefinition::parse(minimal).success());
+}
+
+TEST_F(AddonEntityDefinitionTest, BurnsInDaylightRejectsUnknownProtectionSlot)
+{
+    auto definition = _definition("addon_test:bad_burn");
+    definition["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = {
+        {"protection_slot", "slot.armor.tail"}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed())
+        << "an unknown protection slot must be rejected rather than silently ignored";
+
+    auto wrongType = _definition("addon_test:bad_burn_type");
+    wrongType["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = {{"protection_slot", 3}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(wrongType).failed());
+}
+
+// 声明该组件就必须日光燃烧；防护槽位穿了装备则免疫（基岩默认头盔位）。
+TEST_F(AddonEntityDefinitionTest, BurnsInDaylightDrivesSunBurningAndHelmetProtection)
+{
+    auto burner = _definition("addon_test:sunburner");
+    burner["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    burner["minecraft:entity"]["components"]["minecraft:burns_in_daylight"] = nlohmann::json::object();
+
+    auto plain = _definition("addon_test:no_sunburn");
+    plain["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/sunburner.json", burner);
+    write(directory / "entities/no_sunburn.json", plain);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto burning = create("addon_test:sunburner");
+    ASSERT_NE(burning, nullptr);
+    auto* burningMob = dynamic_cast<mc::MobEntity*>(burning.get());
+    ASSERT_NE(burningMob, nullptr);
+    EXPECT_TRUE(burningMob->shouldBurnInDaylight()) << "declaring the component must enable sun burning";
+
+    // 默认 protection_slot 是头盔位：戴上头盔后必须免疫。
+    const auto* helmet = mc::Items::DIAMOND_HELMET;
+    if (helmet != nullptr) {
+        burningMob->setEquipment(mc::EquipmentSlot::Head, mc::ItemStack(*helmet, 1));
+        EXPECT_FALSE(burningMob->shouldBurnInDaylight())
+            << "a helmet in the default protection slot must prevent burning";
+    }
+
+    auto plainEntity = create("addon_test:no_sunburn");
+    ASSERT_NE(plainEntity, nullptr);
+    auto* plainMob = dynamic_cast<mc::MobEntity*>(plainEntity.get());
+    ASSERT_NE(plainMob, nullptr);
+    EXPECT_FALSE(plainMob->shouldBurnInDaylight()) << "without the component an addon entity must not burn in daylight";
+}
+
+TEST_F(AddonEntityDefinitionTest, RideableComponentIsAccepted)
+{
+    auto full = _definition("addon_test:rideable_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    full["minecraft:entity"]["components"]["minecraft:rideable"] = {{"seat_count", 2},
+        {"controlling_seat", 0},
+        {"crouching_skip_interact", false},
+        {"family_types", nlohmann::json::array({"player"})},
+        {"interact_text", "action.interact.mount"},
+        {"dismount_mode", "on_top_center"},
+        {"pull_in_entities", true},
+        {"rider_can_interact", true}};
+
+    auto minimal = _definition("addon_test:rideable_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:rideable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/rideable_mob.json", full);
+    write(directory / "entities/rideable_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, RideableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"seat_count", 0}}, "zero seat_count is self-contradictory"},
+        {{{"seat_count", "two"}}, "non-integer seat_count"},
+        {{{"family_types", "player"}}, "non-array family_types"},
+        {{{"dismount_mode", "sideways"}}, "unknown dismount_mode"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_rideable");
+        definition["minecraft:entity"]["components"]["minecraft:rideable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// seat_count 必须驱动 getMaxPassengers；未声明 rideable 的实体不得接受乘客。
+TEST_F(AddonEntityDefinitionTest, RideableDrivesPassengerCapacity)
+{
+    auto twoSeats = _definition("addon_test:two_seater");
+    twoSeats["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    twoSeats["minecraft:entity"]["components"]["minecraft:rideable"] = {{"seat_count", 3}};
+
+    auto noRide = _definition("addon_test:not_rideable");
+    noRide["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/two_seater.json", twoSeats);
+    write(directory / "entities/not_rideable.json", noRide);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto seater = create("addon_test:two_seater");
+    ASSERT_NE(seater, nullptr);
+    EXPECT_EQ(seater->getMaxPassengers(), 3) << "seat_count must drive the passenger capacity";
+    EXPECT_TRUE(seater->couldAcceptPassenger()) << "declaring minecraft:rideable must allow passengers";
+
+    auto noRideEntity = create("addon_test:not_rideable");
+    ASSERT_NE(noRideEntity, nullptr);
+    EXPECT_FALSE(noRideEntity->couldAcceptPassenger())
+        << "an addon entity without minecraft:rideable must not accept passengers";
+}
+
+TEST_F(AddonEntityDefinitionTest, HealableComponentIsAccepted)
+{
+    auto full = _definition("addon_test:healable_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    nlohmann::json cookieEffect = {{"name", "poison"}, {"duration", 100}};
+    nlohmann::json cookie = {
+        {"item", "minecraft:cookie"}, {"heal_amount", 0}, {"effects", nlohmann::json::array({cookieEffect})}};
+    nlohmann::json hay = {{"item", "minecraft:hay_block"}, {"heal_amount", 10}};
+    nlohmann::json wheat = {{"item", "minecraft:wheat"}, {"heal_amount", 2}};
+    full["minecraft:entity"]["components"]["minecraft:healable"] = {{"force_use", true},
+        {"filters", {{"test", "is_riding"}, {"operator", "!="}, {"value", true}}},
+        {"items", nlohmann::json::array({wheat, hay, cookie})}};
+
+    auto minimal = _definition("addon_test:healable_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    minimal["minecraft:entity"]["components"]["minecraft:healable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/healable_mob.json", full);
+    write(directory / "entities/healable_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, HealableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"items", "wheat"}}, "non-array items"},
+        {{{"items", nlohmann::json::array({{{"heal_amount", 2}}})}}, "entry missing item"},
+        {{{"items", nlohmann::json::array({{{"item", "minecraft:wheat"}, {"heal_amount", -1}}})}},
+            "negative heal_amount"},
+        {{{"force_use", "yes"}}, "non-boolean force_use"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_healable");
+        definition["minecraft:entity"]["components"]["minecraft:healable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// 喂食治疗是服务端行为：声明 healable 的生物被喂对应物品时必须回血，且物品被消耗。
+TEST_F(AddonEntityDefinitionTest, HealableRestoresHealthFromMatchingItem)
+{
+    if (mc::Items::WHEAT == nullptr || mc::Items::DIRT == nullptr) {
+        GTEST_SKIP() << "item registry not initialized";
+    }
+
+    auto definition = _definition("addon_test:fed_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    definition["minecraft:entity"]["components"]["minecraft:healable"] = {
+        {"items", nlohmann::json::array({{{"item", "minecraft:wheat"}, {"heal_amount", 5}}})}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/fed_mob.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto entity = create("addon_test:fed_mob");
+    ASSERT_NE(entity, nullptr);
+    auto* mob = dynamic_cast<mc::MobEntity*>(entity.get());
+    ASSERT_NE(mob, nullptr);
+
+    // 掉血到 10，喂小麦应回到 15。
+    mob->setHealth(10.0f);
+    mc::ItemStack wheat(mc::Items::WHEAT, 3);
+    mc::Player player(mc::EntityInstanceId(9001), "Feeder", entities);
+    ASSERT_TRUE(mob->tryHealFromItem(wheat, player));
+    EXPECT_FLOAT_EQ(mob->health(), 15.0f);
+    EXPECT_EQ(wheat.getCount(), 2) << "survival feeding must consume one item";
+
+    // 不匹配的物品不治疗，也不消耗。
+    mc::ItemStack dirt(mc::Items::DIRT, 1);
+    EXPECT_FALSE(mob->tryHealFromItem(dirt, player));
+    EXPECT_EQ(dirt.getCount(), 1);
+
+    // 满血时不治疗（force_use 默认 false）。
+    mob->setHealth(20.0f);
+    mc::ItemStack spare(mc::Items::WHEAT, 1);
+    EXPECT_FALSE(mob->tryHealFromItem(spare, player));
+    EXPECT_EQ(spare.getCount(), 1) << "no consumption when already at full health";
+}
+
+TEST_F(AddonEntityDefinitionTest, BreathableComponentIsAccepted)
+{
+    auto snakeCase = _definition("addon_test:breather_snake");
+    snakeCase["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    snakeCase["minecraft:entity"]["components"]["minecraft:breathable"] = {
+        {"total_supply", 15}, {"suffocate_time", 0}, {"breathes_water", true}, {"generates_bubbles", false}};
+
+    auto camelCase = _definition("addon_test:breather_camel");
+    camelCase["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    camelCase["minecraft:entity"]["components"]["minecraft:breathable"] = {{"totalSupply", 15}, {"suffocateTime", 0}};
+
+    auto minimal = _definition("addon_test:breather_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:breathable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/breather_snake.json", snakeCase);
+    write(directory / "entities/breather_camel.json", camelCase);
+    write(directory / "entities/breather_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, BreathableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"total_supply", -1}}, "negative total_supply"},
+        {{{"total_supply", "long"}}, "non-numeric total_supply"},
+        {{{"breathes_water", "yes"}}, "non-boolean breathes_water"},
+        {{{"breathe_blocks", "stone"}}, "non-array breathe_blocks"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_breather");
+        definition["minecraft:entity"]["components"]["minecraft:breathable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// total_supply 的单位是秒，项目空气量按 tick 计；15 秒应换算为 300（vanilla 默认值）。
+TEST_F(AddonEntityDefinitionTest, BreathableDrivesMaxAirAndUnderwaterBreathing)
+{
+    auto definition = _definition("addon_test:breathing_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    definition["minecraft:entity"]["components"]["minecraft:breathable"] = {
+        {"total_supply", 15}, {"breathes_water", true}};
+
+    auto camel = _definition("addon_test:breathing_camel_mob");
+    camel["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    camel["minecraft:entity"]["components"]["minecraft:breathable"] = {{"totalSupply", 5}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/breathing_mob.json", definition);
+    write(directory / "entities/breathing_camel_mob.json", camel);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto entity = create("addon_test:breathing_mob");
+    ASSERT_NE(entity, nullptr);
+    EXPECT_EQ(entity->maxAir(), 300) << "15 seconds must convert to 300 ticks";
+    auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    EXPECT_TRUE(living->canBreatheUnderwater()) << "breathes_water=true must allow underwater breathing";
+
+    // camelCase 键同样要能驱动换算，否则原版实体的写法会被静默忽略。
+    auto camelEntity = create("addon_test:breathing_camel_mob");
+    ASSERT_NE(camelEntity, nullptr);
+    EXPECT_EQ(camelEntity->maxAir(), 100) << "5 seconds must convert to 100 ticks";
+}
+
+TEST_F(AddonEntityDefinitionTest, LeashableComponentIsAccepted)
+{
+    auto full = _definition("addon_test:leashable_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    full["minecraft:entity"]["components"]["minecraft:leashable"] = {{"can_be_cut", false},
+        {"can_be_stolen", true},
+        {"soft_distance", 4},
+        {"hard_distance", 6},
+        {"max_distance", 10},
+        {"unleash_on_removal", false},
+        {"on_unleash_interact_only", true},
+        {"presets", nlohmann::json::array({{{"hard_distance", 7}}})}};
+
+    // 官方文档给所有字段都定了默认值，空对象写法同样必须接受。
+    auto minimal = _definition("addon_test:leashable_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:leashable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/leashable_mob.json", full);
+    write(directory / "entities/leashable_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, LeashableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"soft_distance", "near"}}, "non-integer soft_distance"},
+        {{{"max_distance", -1}}, "negative max_distance"},
+        {{{"can_be_cut", "yes"}}, "non-boolean can_be_cut"},
+        {{{"presets", "one"}}, "non-array presets"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_leashable");
+        definition["minecraft:entity"]["components"]["minecraft:leashable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// 声明 leashable 的 addon 生物必须可以被拴；未声明时沿用基类判断（敌对生物不可拴）。
+TEST_F(AddonEntityDefinitionTest, LeashableDrivesCanBeLeashed)
+{
+    auto definition = _definition("addon_test:leashed_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    definition["minecraft:entity"]["components"]["minecraft:leashable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/leashed_mob.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto entity = create("addon_test:leashed_mob");
+    ASSERT_NE(entity, nullptr);
+    auto* mob = dynamic_cast<mc::MobEntity*>(entity.get());
+    ASSERT_NE(mob, nullptr);
+    EXPECT_TRUE(mob->canBeLeashed()) << "declaring minecraft:leashable must make the mob leasable";
+}
+
+TEST_F(AddonEntityDefinitionTest, InventoryComponentIsAccepted)
+{
+    // 一次性把「全字段」与「空对象（全默认）」两个定义都写入同一个数据包再统一加载：
+    // 同一 manager 上重复 loadPacks 会触发重复注册，无法区分是解析失败还是装载冲突。
+    auto full = _definition("addon_test:container_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    full["minecraft:entity"]["components"]["minecraft:inventory"] = {{"inventory_size", 27},
+        {"container_type", "container"},
+        {"private", true},
+        {"can_be_siphoned_from", true},
+        {"restrict_to_owner", false},
+        {"additional_slots_per_strength", 1}};
+
+    auto minimal = _definition("addon_test:container_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:inventory"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/container_mob.json", full);
+    write(directory / "entities/container_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, InventoryComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"inventory_size", "many"}}, "non-integer inventory_size"},
+        {{{"inventory_size", -1}}, "negative inventory_size"},
+        {{{"private", "yes"}}, "non-boolean private"},
+        {{{"container_type", ""}}, "empty container_type"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_container");
+        definition["minecraft:entity"]["components"]["minecraft:inventory"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesIsAccepted)
+{
+    // 此前 remove_child_entities 为 true 会让整个实体定义加载失败（解析期返回 Unsupported）。
+    // 现在它被接受，并由 AddonEntityComponents::despawnIfRequested 消费：discard 自身前，
+    // 把拴在本实体身上的子实体（leashHolderUuid == 本实体 uuid）一并 discard。
+    //
+    // 子实体清理需要真实 IWorld 才能枚举周边实体，而本夹具用 world=nullptr 建实体，
+    // 因此这里只守"定义能被接受且实体可创建"这一段；实体侧行为由 tick 路径保证。
+    auto definition = _definition("addon_test:despawner");
+    definition["minecraft:entity"]["components"]["minecraft:instant_despawn"] = {{"remove_child_entities", true}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/despawner.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:despawner");
+    ASSERT_NE(actor, nullptr);
+    const auto* components = actor->tryGetComponent<mc::mod::bedrock::addon::AddonEntityComponents>();
+    ASSERT_NE(components, nullptr);
+    EXPECT_TRUE(components->has("minecraft:instant_despawn"));
+}
+
+TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesRejectsNonBoolean)
+{
+    // 放开的是"行为未实现"，不是类型校验：字符串形态仍必须被拒绝。
+    auto definition = _definition("addon_test:bad_despawner");
+    definition["minecraft:entity"]["components"]["minecraft:instant_despawn"] = {{"remove_child_entities", "yes"}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_despawner.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_despawner"));
+}
+
+TEST_F(AddonEntityDefinitionTest, PhysicsPushTowardsClosestSpaceIsAccepted)
+{
+    // 此前 push_towards_closest_space 为 true 会让整个实体定义加载失败（解析期直接返回
+    // Unsupported），合法 addon 用不了这个字段。现在它被接受，并由 _AddonMob 的脱困推挤
+    // 消费（卡进方块时移到最近空位）。
+    auto definition = _definition("addon_test:pusher");
+    definition["minecraft:entity"]["components"]["minecraft:physics"]["push_towards_closest_space"] = true;
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/pusher.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:pusher");
+    ASSERT_NE(actor, nullptr);
+    // 该字段只影响"卡住时是否脱困"，不改变无重力/碰撞这类静态物理状态。
+    EXPECT_TRUE(actor->hasNoGravity());
+    EXPECT_FALSE(actor->noClip());
+}
+
+TEST_F(AddonEntityDefinitionTest, PhysicsPushTowardsClosestSpaceRejectsNonBoolean)
+{
+    // 字段本身仍必须是布尔值：这里只放开"实现了行为"，不放过类型错误。
+    auto definition = _definition("addon_test:bad_pusher");
+    definition["minecraft:entity"]["components"]["minecraft:physics"]["push_towards_closest_space"] = "true";
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_pusher.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_pusher"));
+}
 
 TEST_F(AddonEntityDefinitionTest, DataOnlyPackInstallsPropertiesDimensionsAndPhysics)
 {
@@ -414,7 +1225,9 @@ TEST_F(AddonEntityDefinitionTest, DuplicateDefinitionsWithinOnePackAreRejected)
 TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplicitFailures)
 {
     auto definition = _definition("addon_test:unsupported");
-    definition["minecraft:entity"]["components"]["minecraft:inventory"] = {{"inventory_size", 9}};
+    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable / rideable / burns_in_daylight
+    // 都已接入。
+    definition["minecraft:entity"]["components"]["minecraft:damage_sensor"] = nlohmann::json::array();
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

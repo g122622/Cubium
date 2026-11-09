@@ -201,17 +201,20 @@ TEST_F(ItemSlotTest, ToPlayerInventorySlot_EquipmentMapping)
     // weapon.offhand -> OFFHAND (40)
     EXPECT_EQ(ItemSlot(99).toPlayerInventorySlot(), 40);
 
-    // armor.feet (100) -> ARMOR_FEET (39)
-    EXPECT_EQ(ItemSlot(100).toPlayerInventorySlot(), 39);
+    // 护甲槽位号以 Inventory.EQUIPMENT_SLOT_MAPPING 为准：四个槽位都是 getIndex(36)，
+    // 即 36 + 该槽在 HUMANOID_ARMOR 类内的索引（FEET=0/LEGS=1/CHEST=2/HEAD=3）。
+    // 因此 FEET=36、LEGS=37、CHEST=38、HEAD=39 —— 脚在最小号，不是最大号。
+    // armor.feet (100) -> ARMOR_FEET (36)
+    EXPECT_EQ(ItemSlot(100).toPlayerInventorySlot(), 36);
 
-    // armor.legs (101) -> ARMOR_LEGS (38)
-    EXPECT_EQ(ItemSlot(101).toPlayerInventorySlot(), 38);
+    // armor.legs (101) -> ARMOR_LEGS (37)
+    EXPECT_EQ(ItemSlot(101).toPlayerInventorySlot(), 37);
 
-    // armor.chest (102) -> ARMOR_CHEST (37)
-    EXPECT_EQ(ItemSlot(102).toPlayerInventorySlot(), 37);
+    // armor.chest (102) -> ARMOR_CHEST (38)
+    EXPECT_EQ(ItemSlot(102).toPlayerInventorySlot(), 38);
 
-    // armor.head (103) -> ARMOR_HEAD (36)
-    EXPECT_EQ(ItemSlot(103).toPlayerInventorySlot(), 36);
+    // armor.head (103) -> ARMOR_HEAD (39)
+    EXPECT_EQ(ItemSlot(103).toPlayerInventorySlot(), 39);
 
     // armor.body -> -1 (玩家无 Body 槽位，仅非玩家实体使用)
     EXPECT_EQ(ItemSlot(105).toPlayerInventorySlot(), -1);

@@ -844,17 +844,15 @@ void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initia
     const i32 durabilityLoss = static_cast<i32>(std::max(1.0f, amount / 4.0f));
     for (EquipmentSlot slot : slots) {
         ItemStack& equipment = getMutableEquipment(slot);
-        // TODO(equippable-component): vanilla 还要求 Equippable.damageOnHurt 为 true
-        //   （默认 true，可被数据包关闭）。Cubium 未实现 EQUIPPABLE 组件，此处按默认值处理。
-        //   缺的只是"按数据包关闭磨损"这一条开关语义；其余行为已经是正确的：
-        //   - 调用方只有 Player::hurtArmor（FEET/LEGS/CHEST/HEAD）与 hurtHelmet（HEAD），
-        //     主手/副手的工具不会被传入，所以不存在"误磨主手工具"的问题；
-        //   - 护甲槽里的非耐久物品（头盔槽里的南瓜等）由下面的 isDamageable() 挡掉，
-        //     这与 vanilla"无 EQUIPPABLE 组件即不磨损"的结果一致。
-        //   落地顺序：① EQUIPPABLE 结构化载荷 + 编解码（slot/equip_sound/damage_on_hurt 等）
-        //   → ② 物品默认组件注册（护甲/鞘翅/wolf_armor）→ ③ 此处改读 stack.get(Equippable)。
-        //   MobEntity::getEquipmentSlotForItem 的「未落地组件→护甲槽位」近似可在那之后再收敛。
         if (equipment.isEmpty() || !equipment.isDamageable() || !equipment.canBeHurtBy(source)) {
+            continue;
+        }
+        // vanilla 还要求 Equippable.damageOnHurt 为 true 才磨损（默认 true，可被数据包关闭）。
+        // 没有 equippable 组件的物品不磨损——这与 vanilla"无 EQUIPPABLE 即不磨损"一致。
+        // 护甲/鞘翅/马铠/鹦鹉螺铠甲/狼铠在各自构造时已挂默认 equippable 组件（见 ArmorItem
+        // 与各护甲子类），因此它们的磨损行为就是 vanilla 的默认行为。
+        const auto& equippable = equipment.getEquippable();
+        if (!equippable.has_value() || !equippable->damageOnHurt) {
             continue;
         }
         hurtAndBreak(equipment, durabilityLoss, this, slot);
@@ -3786,7 +3784,7 @@ bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effe
     //   - IMMUNE_TO_INFESTED 免疫 INFESTED；IMMUNE_TO_OOZING 免疫 OOZING
     // Cubium EntityTypeTags::IGNORES_POISON_AND_REGEN 标签成员与 vanilla 完全一致
     // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。IMMUNE_TO_INFESTED / IMMUNE_TO_OOZING
-    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 Infested 的 onMobHurt TODO）。
+    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 spawnInfestedSilverfish）。
     //
     // 亡灵免疫 Poison/Regen 是 vanilla 核心语义：亡灵被中毒效果不应扣血、被再生效果不应治疗。
     // 此前 Cubium EffectManager::addEffect 不调 isPotionApplicable，亡灵会被中毒扣血——与 vanilla 相反。

@@ -53,8 +53,17 @@ const Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCon
         }
         case EntityPropertiesCondition::EntityTarget::TargetEntity:
         case EntityPropertiesCondition::EntityTarget::InteractingEntity:
-            // TODO(loot-context-targets): TARGET_ENTITY / INTERACTING_ENTITY 参数尚未在
-            //   LootContext 中提供，按"目标实体不存在"处理（条件不匹配），避免误用 this。
+            // 这两个目标在原版由 TARGET_ENTITY / INTERACTING_ENTITY 参数提供，项目尚未定义
+            // 这两个 LootParameter，因此按"目标实体不存在"处理（条件不匹配）。
+            //
+            // 这不是待补的实现缺口：原版数据包中 1324 张战利品表全部没有引用这两个目标，
+            // 也就是说没有任何内容依赖它们。等真正出现需要它们的战利品表（或自定义数据包）
+            // 时，再补 LootParameter 并在构造 LootContext 的调用点填充——届时只需在
+            // LootParams 加两个常量、在对应场景（实体被攻击 / 被交互）写入，条件本身无需改动。
+            //
+            // 注意不要退化成返回 THIS_ENTITY：那会让 `target_entity` 条件静默匹配错实体，
+            // 比恒不匹配更难排查。
+            // TODO: 若接入 TARGET_ENTITY / INTERACTING_ENTITY，此处改为从 context 读取。
             return nullptr;
     }
     return nullptr;

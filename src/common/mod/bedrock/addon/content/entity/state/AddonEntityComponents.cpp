@@ -22,16 +22,22 @@
  */
 
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
+#include "common/entity/ai/pathfinding/FlyNodeEvaluator.hpp"
+#include "common/entity/ai/pathfinding/GroundPathNavigator.hpp"
+#include "common/entity/ai/pathfinding/PathFinder.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeEvaluator.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -78,7 +84,8 @@ void AddonEntityComponents::initialize(mc::Entity& entity)
              "minecraft:movement",
              "minecraft:timer",
              "minecraft:on_death",
-             "minecraft:environment_sensor"}) {
+             "minecraft:environment_sensor",
+             "minecraft:can_fly"}) {
         _apply(entity, name);
     }
 }
@@ -162,6 +169,20 @@ void AddonEntityComponents::_apply(mc::Entity& entity, const std::string& name)
             auto sensor = EntityEnvironmentSensor::compile(*value);
             MC_ASSERT_RELEASE(sensor.success());
             m_environmentSensor = std::move(sensor.value());
+        }
+    } else if (name == "minecraft:can_fly") {
+        // 声明即具备飞行寻路：换成 FlyNodeEvaluator（继承 WalkNodeEvaluator，只是放开
+        // "下方必须有实心方块"的限制）。移除该组件时换回地面求值器。
+        auto* mob = dynamic_cast<mc::MobEntity*>(&entity);
+        if (mob != nullptr) {
+            auto evaluator = value != nullptr ? std::unique_ptr<mc::entity::ai::pathfinding::NodeEvaluator>(
+                                                    std::make_unique<mc::entity::ai::pathfinding::FlyNodeEvaluator>())
+                                              : std::unique_ptr<mc::entity::ai::pathfinding::NodeEvaluator>(
+                                                    std::make_unique<mc::entity::ai::pathfinding::WalkNodeEvaluator>());
+            auto pathFinder = std::make_unique<mc::entity::ai::pathfinding::PathFinder>(
+                std::move(evaluator), mc::entity::ai::pathfinding::PathFinder::DEFAULT_VISITED_NODES);
+            mob->setNavigator(
+                std::make_unique<mc::entity::ai::pathfinding::GroundPathNavigator>(mob, std::move(pathFinder)));
         }
     } else if (name == "minecraft:on_death") {
         if (value == nullptr) {
@@ -306,9 +327,35 @@ void AddonEntityComponents::tickEnvironment(mc::Entity& entity)
 
 bool AddonEntityComponents::despawnIfRequested(mc::Entity& entity) const
 {
-    if (!has("minecraft:instant_despawn")) {
+    const nlohmann::json* instantDespawn = component("minecraft:instant_despawn");
+    if (instantDespawn == nullptr) {
         return false;
     }
+
+    // `remove_child_entities` 为 true 时，拴在本实体身上的子实体一并 despawn。
+    //
+    // 基岩的"子实体关系"在项目里对应拴绳（leash）：`MobEntity::leashHolderUuid()` 可以指向
+    // 任意实体而不只是玩家，因此当某生物的 holder 等于本实体 uuid 时，它就是本实体的子实体。
+    // 这里必须用 holder 反查，不能用骑乘列表代替——被拴住的生物并不骑乘任何东西。
+    if (instantDespawn->value("remove_child_entities", false)) {
+        mc::IWorld* world = entity.world();
+        if (world != nullptr) {
+            const std::string& parentUuid = entity.uuid();
+            const mc::Vector3 center = entity.position();
+            // 拴绳长度约 10 格，取 16 格覆盖半径保证不漏掉任何仍然有效的链接。
+            std::vector<mc::Entity*> nearby = world->getEntitiesInRange(center, 16.0f);
+            for (mc::Entity* candidate : nearby) {
+                auto* mob = dynamic_cast<mc::MobEntity*>(candidate);
+                if (mob == nullptr || mob == &entity || mob->isRemoved()) {
+                    continue;
+                }
+                if (mob->isLeashed() && mob->leashHolderUuid().has_value() && *mob->leashHolderUuid() == parentUuid) {
+                    mob->discard();
+                }
+            }
+        }
+    }
+
     entity.discard();
     return true;
 }

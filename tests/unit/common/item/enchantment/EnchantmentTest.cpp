@@ -404,3 +404,83 @@ TEST(EnchantmentInstanceTest, GetEnchantment)
 
     EnchantmentRegistry::clear();
 }
+
+// ============================================================================
+// 附魔生效槽位（matchesSlot）
+// ============================================================================
+
+/**
+ * @brief 槽位过滤决定「从实体身上取附魔等级」时扫描哪些槽位
+ *
+ * 判据来自数据包中各附魔定义的 `slots` 字段。没有这层过滤时，主手掠夺 I 加上
+ * 靴子上另一把掠夺 III 会取到 III，高估掉落加成。
+ */
+class EnchantmentSlotTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        EnchantmentRegistry::clear();
+        EnchantmentRegistry::initialize();
+    }
+
+    void TearDown() override
+    {
+        EnchantmentRegistry::clear();
+    }
+
+    [[nodiscard]] static bool matches(const char* id, EquipmentSlot slot)
+    {
+        const Enchantment* enchantment = EnchantmentRegistry::get(id);
+        EXPECT_NE(enchantment, nullptr) << "missing enchantment: " << id;
+        return enchantment != nullptr && enchantment->matchesSlot(slot);
+    }
+};
+
+// 掠夺只作用于主手：护甲与副手都不算。
+TEST_F(EnchantmentSlotTest, LootingIsMainHandOnly)
+{
+    EXPECT_TRUE(matches("minecraft:looting", EquipmentSlot::MainHand));
+    EXPECT_FALSE(matches("minecraft:looting", EquipmentSlot::OffHand)) << "offhand looting must not contribute";
+    EXPECT_FALSE(matches("minecraft:looting", EquipmentSlot::Feet)) << "boots looting must not contribute";
+    EXPECT_FALSE(matches("minecraft:looting", EquipmentSlot::Head));
+}
+
+// 保护类作用于全部四个护甲槽，不含双手。
+TEST_F(EnchantmentSlotTest, ProtectionCoversAllArmorSlots)
+{
+    EXPECT_TRUE(matches("minecraft:protection", EquipmentSlot::Head));
+    EXPECT_TRUE(matches("minecraft:protection", EquipmentSlot::Chest));
+    EXPECT_TRUE(matches("minecraft:protection", EquipmentSlot::Legs));
+    EXPECT_TRUE(matches("minecraft:protection", EquipmentSlot::Feet));
+    EXPECT_FALSE(matches("minecraft:protection", EquipmentSlot::MainHand))
+        << "armor protection must not read from the main hand";
+}
+
+// 单槽护甲附魔只认自己那一个槽位。
+TEST_F(EnchantmentSlotTest, SingleSlotArmorEnchantments)
+{
+    EXPECT_TRUE(matches("minecraft:respiration", EquipmentSlot::Head));
+    EXPECT_FALSE(matches("minecraft:respiration", EquipmentSlot::Chest));
+
+    EXPECT_TRUE(matches("minecraft:swift_sneak", EquipmentSlot::Legs));
+    EXPECT_FALSE(matches("minecraft:swift_sneak", EquipmentSlot::Feet));
+
+    EXPECT_TRUE(matches("minecraft:depth_strider", EquipmentSlot::Feet));
+    EXPECT_FALSE(matches("minecraft:depth_strider", EquipmentSlot::Legs));
+}
+
+// 双手附魔（激流/突进）主副手都算。
+TEST_F(EnchantmentSlotTest, HandEnchantmentsCoverBothHands)
+{
+    EXPECT_TRUE(matches("minecraft:riptide", EquipmentSlot::MainHand));
+    EXPECT_TRUE(matches("minecraft:riptide", EquipmentSlot::OffHand));
+    EXPECT_FALSE(matches("minecraft:riptide", EquipmentSlot::Head));
+}
+
+// 未列入槽位表的附魔（含 slots 为 any 的）退化为全部槽位，不吞掉效果。
+TEST_F(EnchantmentSlotTest, UnlistedEnchantmentAcceptsEverySlot)
+{
+    EXPECT_TRUE(matches("minecraft:mending", EquipmentSlot::MainHand));
+    EXPECT_TRUE(matches("minecraft:mending", EquipmentSlot::OffHand));
+    EXPECT_TRUE(matches("minecraft:mending", EquipmentSlot::Head));
+}

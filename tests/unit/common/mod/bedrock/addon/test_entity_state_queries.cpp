@@ -240,6 +240,38 @@ TEST_F(AddonEntityStateQueryTest, NativeStateComponentsFollowEntityState)
     check(context, {{"test", "has_component"}, {"value", "minecraft:fire_immune"}, {"operator", "not"}}, true);
 }
 
+// 原版实体的固有组件：physics / collision_box / type_family / nameable 对任何实体都存在，
+// 而 attack / breathable 只有 LivingEntity 具备，leashable 只有 MobEntity 具备。
+// 这组判定不依赖数据包，与 addon 实体走 components->has 的路径不同。
+TEST_F(AddonEntityStateQueryTest, NativeIntrinsicComponentsAreReportedPerEntityCapability)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+    LivingEntity living(EntityInstanceId(2), nullptr, registry);
+
+    for (const char* universal :
+        {"minecraft:physics", "minecraft:collision_box", "minecraft:type_family", "minecraft:nameable"}) {
+        const auto present = EntityStateQuery::hasComponent(plain, universal);
+        ASSERT_TRUE(present.success()) << universal << ": " << present.error().message();
+        EXPECT_TRUE(present.value()) << universal << " 对任何实体都应存在";
+    }
+
+    // attack / breathable 依赖 LivingEntity 的属性表与氧气机制
+    for (const char* livingOnly : {"minecraft:attack", "minecraft:breathable"}) {
+        const auto onPlain = EntityStateQuery::hasComponent(plain, livingOnly);
+        ASSERT_TRUE(onPlain.success()) << livingOnly;
+        EXPECT_FALSE(onPlain.value()) << livingOnly << " 不应出现在非生物实体上";
+
+        const auto onLiving = EntityStateQuery::hasComponent(living, livingOnly);
+        ASSERT_TRUE(onLiving.success()) << livingOnly;
+        EXPECT_TRUE(onLiving.value()) << livingOnly << " 应出现在生物实体上";
+    }
+
+    // leashable：非生物没有拴绳状态机
+    const auto leashedPlain = EntityStateQuery::hasComponent(plain, "minecraft:leashable");
+    ASSERT_TRUE(leashedPlain.success());
+    EXPECT_FALSE(leashedPlain.value());
+}
+
 // 哞菇的红/棕是主变种（基岩 minecraft:variant），不能用 mark_variant 承载——
 // mark_variant 是"附加变种"，语义不同。脚本按官方组件名读取时必须拿到 variant。
 TEST_F(AddonEntityStateQueryTest, MooshroomColorIsReportedAsVariantNotMarkVariant)

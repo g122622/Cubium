@@ -37,6 +37,7 @@
 #include "common/item/items/BannerPatternItem.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/armor/ElytraItem.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
 #include "common/item/items/armor/NautilusArmorItem.hpp"
 #include "common/item/items/armor/WolfArmorItem.hpp"
@@ -51,6 +52,7 @@
 #include "common/item/items/food/HoneyBottleItem.hpp"
 #include "common/item/items/map/EmptyMapItem.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
+#include "common/item/items/potion/GlassBottleItem.hpp"
 #include "common/item/items/potion/LingeringPotionItem.hpp"
 #include "common/item/items/potion/PotionItem.hpp"
 #include "common/item/items/potion/SplashPotionItem.hpp"
@@ -2291,8 +2293,10 @@ void Items::_registerArmor()
     // ========================================================================
     // 鞘翅
     // ========================================================================
-    ELYTRA = &registry.registerItem(
-        ResourceLocation("minecraft:elytra"), ItemProperties().maxDamage(432).rarity(ItemRarity::Uncommon));
+    // 鞘翅必须用 ElytraItem：它覆写了滑翔相关的物品行为，并挂默认 equippable 组件。
+    // 此前这里直接注册普通 Item，导致 ElytraItem 整个类成为死代码，鞘翅也没有装备语义。
+    ELYTRA = &registry.registerItem<item::items::ElytraItem>(
+        ResourceLocation("minecraft:elytra"), ItemProperties().rarity(ItemRarity::Uncommon));
 
     // ========================================================================
     // 马铠 - 用于装备马提供护甲
@@ -2940,9 +2944,10 @@ void Items::_registerPotions()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 玻璃瓶 - 用于装水和酿造
-    GLASS_BOTTLE =
-        &registry.registerItem(ResourceLocation("minecraft:glass_bottle"), ItemProperties().maxStackSize(64));
+    // 玻璃瓶 - 用于装水和酿造。必须用 GlassBottleItem：它实现了右键装水/取药水的行为。
+    // 此前这里直接注册普通 Item，导致 GlassBottleItem 整个类成为死代码，玻璃瓶无法装水。
+    GLASS_BOTTLE = &registry.registerItem<item::GlassBottleItem>(
+        ResourceLocation("minecraft:glass_bottle"), ItemProperties().maxStackSize(64));
 
     // 药水 - 饮用药水
     POTION = &registry.registerItem<item::PotionItem>(

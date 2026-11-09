@@ -30,6 +30,7 @@
 #include <string>
 #include <utility>
 #include <variant>
+#include <nlohmann/json.hpp>
 
 namespace mc::mod::bedrock::addon {
 
@@ -104,6 +105,20 @@ public:
         , m_data(std::move(val))
     {}
 
+    /**
+     * @brief 以 JSON 承载脚本对象或数组
+     *
+     * 脚本对象/数组跨边界时统一降为 JSON：这是唯一能同时表达嵌套对象、数组、
+     * 字符串/数字/布尔混合结构的载体。函数无法这样表达（不可序列化），因此不在此列。
+     *
+     * @param val 对象或数组形态的 JSON
+     * @param isArray true 表示该值来自 JS 数组
+     */
+    ScriptValue(nlohmann::json val, bool isArray)
+        : m_type(isArray ? ScriptValueType::Array : ScriptValueType::Object)
+        , m_data(std::move(val))
+    {}
+
     [[nodiscard]] ScriptValueType type() const
     {
         return m_type;
@@ -159,9 +174,19 @@ public:
         return std::get<std::string>(m_data);
     }
 
+    /**
+     * @brief 读取对象或数组的 JSON 形态
+     *
+     * 仅在 isObject() 或 isArray() 为真时有效。
+     */
+    [[nodiscard]] const nlohmann::json& asJson() const
+    {
+        return std::get<nlohmann::json>(m_data);
+    }
+
 private:
     ScriptValueType m_type;
-    std::variant<std::monostate, bool, f64, std::string> m_data;
+    std::variant<std::monostate, bool, f64, std::string, nlohmann::json> m_data;
 };
 
 /**

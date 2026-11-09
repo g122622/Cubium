@@ -39,7 +39,12 @@ namespace item::items {
 
 ElytraItem::ElytraItem(ItemProperties properties)
     : Item(std::move(properties).maxDamage(MAX_DURABILITY))
-{}
+{
+    // 鞘翅穿在胸甲位；没有 equippable 组件就不会被 doHurtEquipment 磨损。
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Chest;
+    setDefaultEquippable(std::move(equippable));
+}
 
 ItemActionResult ElytraItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
 {

@@ -131,12 +131,12 @@ TEST_F(InventorySlotsTest, ConstantsAreCorrect)
     EXPECT_EQ(InventorySlots::ARMOR_START, 36);
     EXPECT_EQ(InventorySlots::ARMOR_END, 39);
     EXPECT_EQ(InventorySlots::ARMOR_SIZE, 4);
-    EXPECT_EQ(InventorySlots::ARMOR_HEAD, 36);
-    EXPECT_EQ(InventorySlots::ARMOR_CHEST, 37);
-    EXPECT_EQ(InventorySlots::ARMOR_LEGS, 38);
-    EXPECT_EQ(InventorySlots::ARMOR_FEET, 39);
-
-    // 副手
+    // 背包槽 36-39 是 FEET→LEGS→CHEST→HEAD（与菜单槽 5-8 的 HEAD→CHEST→LEGS→FEET 方向相反），
+    // 因此 HEAD 落在最高的 39 而不是 36。
+    EXPECT_EQ(InventorySlots::ARMOR_HEAD, 39);
+    EXPECT_EQ(InventorySlots::ARMOR_CHEST, 38);
+    EXPECT_EQ(InventorySlots::ARMOR_LEGS, 37);
+    EXPECT_EQ(InventorySlots::ARMOR_FEET, 36);
     EXPECT_EQ(InventorySlots::OFFHAND, 40);
 
     // 总大小
@@ -267,15 +267,15 @@ TEST_F(PlayerInventoryTest, AddItemMerging)
     i32 remaining = m_inventory->add(stack);
 
     // 槽位 0 从 50 变成 64（堆叠上限），剩余 6 个会放到下一个空槽位
-    // MC 1.16.5 行为: 空槽位优先级是 选中槽 → 副手 → 快捷栏 → 主背包
-    // 所以剩余的 6 个会放到副手槽 (slot 40)，而不是 slot 1
-    // add 返回"剩余未添加"数量（0 = 全部成功），20 个全部合并/放入空槽故 remaining=0。
+    // 空槽优先级：选中槽 → 副手（仅在合并已有同类时才参与）→ 快捷栏 → 主背包。
+    // 副手槽不参与"找空槽"（原版 getFreeSlot 只扫 36 个普通槽），因此剩余 6 个落在
+    // 第一个空槽 slot 1，而不是副手槽 40。
     EXPECT_EQ(remaining, 0);                           // 全部添加成功
     EXPECT_EQ(m_inventory->getItem(0).getCount(), 64); // 达到堆叠上限
     EXPECT_TRUE(stack.isEmpty());                      // 全部添加成功，stack 变空
 
-    // 剩余的 6 个应该放在副手槽 (slot 40)
-    EXPECT_EQ(m_inventory->getItem(40).getCount(), 6);
+    // 剩余的 6 个落在第一个空槽（slot 1）。
+    EXPECT_EQ(m_inventory->getItem(1).getCount(), 6);
 }
 
 TEST_F(PlayerInventoryTest, AddMultipleItems)

@@ -117,6 +117,13 @@ ArmorItem::ArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot
     , m_slot(slot)
 {
     _buildAttributeModifiers(getDefense());
+
+    // 护甲默认带 equippable 组件（vanilla 在物品注册时挂 Equippable）：槽位由护甲部位决定，
+    // 穿脱音效与磨损开关取默认值。没有这一步，LivingEntity::doHurtEquipment 会因为
+    // "无 equippable 组件"而永不磨损护甲，与 vanilla 的"护甲受伤会掉耐久"直接冲突。
+    item::component::EquippablePayload equippable{};
+    equippable.slot = static_cast<EquipmentSlot>(armorSlotToEquipmentSlot(m_slot));
+    setDefaultEquippable(std::move(equippable));
 }
 
 void ArmorItem::_buildAttributeModifiers(i32 defense)

@@ -66,6 +66,11 @@ bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player, Liv
         return false;
     }
 
+    // 基岩 `minecraft:nameable.allow_name_tag_renaming` 为 false 的实体拒绝改名（addon 数据驱动）。
+    if (!mob->isNameableByTag()) {
+        return false;
+    }
+
     // 获取物品的自定义名称
     const text::ITextComponent* customName = stack.getCustomNameComponent();
     if (customName == nullptr) {

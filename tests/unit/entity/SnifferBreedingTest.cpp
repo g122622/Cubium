@@ -226,7 +226,7 @@ TEST_F(SnifferBreedingTest, SpawnChildFromBreeding_NoopWithoutServerWorld)
     EXPECT_TRUE(m_world.spawnedEntities().empty());
 }
 
-// 繁殖物品来自 SNIFFER_FOOD 标签（火把花种子 / 瓶草荚果），其它物品不可繁殖。
+// 繁殖物品来自 SNIFFER_FOOD 标签；原版该标签只含火把花种子，不含瓶草荚果。
 TEST_F(SnifferBreedingTest, IsBreedingItem_UsesSnifferFoodTag)
 {
     SnifferEntity sniffer(EntityInstanceId(1), mc::test::testEcsRegistry());
@@ -237,7 +237,8 @@ TEST_F(SnifferBreedingTest, IsBreedingItem_UsesSnifferFoodTag)
     ASSERT_NE(Items::WHEAT, nullptr);
 
     EXPECT_TRUE(sniffer.isBreedingItem(ItemStack(Items::TORCHFLOWER_SEEDS)));
-    EXPECT_TRUE(sniffer.isBreedingItem(ItemStack(Items::PITCHER_POD)));
+    // 瓶草荚果不在 sniffer_food 标签内，不能用于繁殖（原版 sniffer_food.json 仅含火把花种子）。
+    EXPECT_FALSE(sniffer.isBreedingItem(ItemStack(Items::PITCHER_POD)));
     EXPECT_FALSE(sniffer.isBreedingItem(ItemStack(Items::WHEAT)));
     EXPECT_FALSE(sniffer.isBreedingItem(ItemStack()));
 }

@@ -62,17 +62,23 @@ i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const std::st
 
 i32 EnchantmentHelper::getEnchantmentLevel(const LivingEntity& entity, const std::string& enchantmentId)
 {
-    // 原版：for (EquipmentSlot slot : EquipmentSlot.VALUES) level = max(level, get(slot));
-    // TODO(enchantment-slots): 原版按附魔自身的 `definition.slots()` 过滤槽位；附魔定义
-    // 目前不携带槽位表，这里退化为「遍历全部槽位取最大值」——主手上的附魔结果相同，
-    // 只在副手/护甲上另有一把同名附魔时才会高估。
+    // 原版 `EnchantmentHelper.getEnchantmentLevel(Holder, LivingEntity)` 走
+    // `Enchantment.getSlotItems(entity)`：先按该附魔自身的 `slots` 声明过滤槽位，
+    // 再在过滤后的槽位里取最大等级。这里同样先查 `matchesSlot`，避免把副手/护甲上
+    // 恰好同名的附魔算进来（例如主手掠夺 I、靴子掠夺 III 时不应取到 III）。
+    //
     // 必须经虚函数 `getEquipment` 取槽位：玩家的装备存在 PlayerInventory 里（Player 重写了
     // getEquipment/setEquipment），直接读 EquipmentComponent 对玩家恒为空槽，导致「玩家手持
     // 掠夺附魔武器击杀」的掠夺加成全部落空。
+    const Enchantment* enchantment = EnchantmentRegistry::get(enchantmentId);
     i32 best = 0;
     for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
-        best = std::max(
-            best, getEnchantmentLevel(entity.getEquipment(static_cast<EquipmentSlot>(slotIndex)), enchantmentId));
+        const auto slot = static_cast<EquipmentSlot>(slotIndex);
+        // 附魔定义查不到时不做槽位过滤，保持与旧行为一致（宁可高估也不吞掉效果）。
+        if (enchantment != nullptr && !enchantment->matchesSlot(slot)) {
+            continue;
+        }
+        best = std::max(best, getEnchantmentLevel(entity.getEquipment(slot), enchantmentId));
     }
     return best;
 }
@@ -333,16 +339,6 @@ i32 EnchantmentHelper::getRiptideLevel(const ItemStack& stack)
 bool EnchantmentHelper::hasChanneling(const ItemStack& stack)
 {
     return hasEnchantment(stack, "minecraft:channeling");
-}
-
-f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack)
-{
-    i32 level = getEnchantmentLevel(stack, "minecraft:sweeping_edge");
-    if (level <= 0) {
-        return 0.0f;
-    }
-    // MC 1.16.5: I=1.0-1.0/(1+level)=0.5, II=0.667, III=0.75
-    return 1.0f - 1.0f / static_cast<f32>(1 + level);
 }
 
 i32 EnchantmentHelper::getFishingLuckBonus(const ItemStack& stack)

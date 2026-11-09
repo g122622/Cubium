@@ -26,6 +26,9 @@
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
+#include "common/item/items/armor/HorseArmorItem.hpp"
+#include "common/item/items/armor/NautilusArmorItem.hpp"
+#include "common/item/items/armor/WolfArmorItem.hpp"
 #include "common/item/items/tool/ShearsItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
 #include "common/item/items/tool/ToolItem.hpp"
@@ -35,6 +38,7 @@
 #include "common/item/items/weapon/FishingRodItem.hpp"
 #include "common/item/items/weapon/SpearItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <string>
 
@@ -84,21 +88,126 @@ namespace {
 /**
  * @brief 是否为动物铠甲（马铠 / 狼铠 / 鹦鹉螺铠）
  *
- * 它们都是 `ArmorItem` 且带耐久，但原版**不在任何 enchantable 标签里**，
- * 因此不能附保护、耐久、经验修补、消失诅咒等附魔。
- * 目前按物品 ID 后缀近似判定；接入物品标签后可替换。
+ * 它们都带耐久，但原版**不在 enchantable 系列标签里**，因此不能附保护、耐久、经验修补、
+ * 消失诅咒等附魔。用专门的物品类型判定，而不是按 ID 后缀猜测——后缀判定会把自定义
+ * 命名空间里名字恰好以 `_horse_armor` 等结尾的物品也算进来。
  *
- * TODO: 接入 `#minecraft:enchantable/` 系列与 `#minecraft:horse_armors` 等标签后
- * 删除这段按 ID 后缀的近似判定。
+ * 注：三类铠甲各有独立类型（`HorseArmorItem` / `NautilusArmorItem` 直接继承 `Item`，
+ * `WolfArmorItem` 继承 `DyeableArmorItem`），所以不能靠"是 ArmorItem 但不在护甲槽标签里"
+ * 反推——后者要求先有 enchantable 系列标签，而当前数据包并没有那组标签。
  */
 bool _isAnimalArmor(const Item& item)
 {
-    const auto& id = item.itemLocation().path();
-    return (id.size() > 11 && id.substr(id.size() - 11) == "_horse_armor") || id == "wolf_armor" ||
-        (id.size() > 13 && id.substr(id.size() - 13) == "_nautilus_armor");
+    return dynamic_cast<const item::items::HorseArmorItem*>(&item) != nullptr ||
+        dynamic_cast<const item::items::WolfArmorItem*>(&item) != nullptr ||
+        dynamic_cast<const item::items::NautilusArmorItem*>(&item) != nullptr;
+}
+
+// ============================================================================
+// 附魔的生效槽位表
+// ============================================================================
+//
+// 判据来自数据包中各附魔定义文件的 `slots` 字段。原版用它实现
+// `Enchantment.getSlotItems`：从实体身上取附魔等级时，只扫描该附魔声明过的槽位，
+// 避免把副手/护甲上恰好同名的附魔也算进来。
+//
+// 维护约定：这张表必须与数据包一致。新增附魔时同步补一行；表里缺项的附魔按
+// "全部槽位"处理（即退化为不筛选），不会漏掉附魔效果，只是可能高估等级。
+
+/// 单个槽位在掩码中的位序，直接用 EquipmentSlot 的枚举值。
+constexpr u32 _slotBit(EquipmentSlot slot)
+{
+    return 1u << static_cast<u32>(slot);
+}
+
+/// 四个护甲槽（靴/腿/胸/头）——数据包里的 `armor`。
+constexpr u32 _armorSlots = _slotBit(EquipmentSlot::Feet) | _slotBit(EquipmentSlot::Legs) |
+    _slotBit(EquipmentSlot::Chest) | _slotBit(EquipmentSlot::Head);
+
+/// 双手——数据包里的 `hand`。
+constexpr u32 _handSlots = _slotBit(EquipmentSlot::MainHand) | _slotBit(EquipmentSlot::OffHand);
+
+/// 全部槽位——数据包里的 `any`，也是表项缺失时的退化值。
+constexpr u32 _allSlots = _slotBit(EquipmentSlot::MainHand) | _slotBit(EquipmentSlot::OffHand) |
+    _slotBit(EquipmentSlot::Feet) | _slotBit(EquipmentSlot::Legs) | _slotBit(EquipmentSlot::Chest) |
+    _slotBit(EquipmentSlot::Head) | _slotBit(EquipmentSlot::Body) | _slotBit(EquipmentSlot::Saddle);
+
+/**
+ * @brief 附魔 ID 到槽位掩码的映射
+ *
+ * 只列数据包中 `slots` 不是 `any` 的附魔；`any` 与未列出的附魔都走 `_allSlots`。
+ */
+struct SlotMaskEntry {
+    std::string_view id;
+    u32 mask;
+};
+
+constexpr SlotMaskEntry _kSlotMasks[] = {
+    // 护甲（armor）
+    {"minecraft:binding_curse", _armorSlots},
+    {"minecraft:blast_protection", _armorSlots},
+    {"minecraft:feather_falling", _armorSlots},
+    {"minecraft:fire_protection", _armorSlots},
+    {"minecraft:projectile_protection", _armorSlots},
+    {"minecraft:protection", _armorSlots},
+    // 单槽护甲
+    {"minecraft:aqua_affinity", _slotBit(EquipmentSlot::Head)},
+    {"minecraft:respiration", _slotBit(EquipmentSlot::Head)},
+    {"minecraft:swift_sneak", _slotBit(EquipmentSlot::Legs)},
+    {"minecraft:depth_strider", _slotBit(EquipmentSlot::Feet)},
+    {"minecraft:frost_walker", _slotBit(EquipmentSlot::Feet)},
+    {"minecraft:soul_speed", _slotBit(EquipmentSlot::Feet)},
+    // 双手
+    {"minecraft:lunge", _handSlots},
+    {"minecraft:riptide", _handSlots},
+    // 主手 + 副手（quick_charge 在数据包里显式列出两槽）
+    {"minecraft:quick_charge", _handSlots},
+    // 主手
+    {"minecraft:bane_of_arthropods", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:breach", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:channeling", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:density", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:efficiency", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:fire_aspect", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:flame", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:fortune", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:impaling", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:infinity", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:knockback", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:looting", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:loyalty", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:luck_of_the_sea", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:lure", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:multishot", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:piercing", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:power", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:punch", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:sharpness", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:silk_touch", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:smite", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:sweeping_edge", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:wind_burst", _slotBit(EquipmentSlot::MainHand)},
+};
+
+/// 查表得到附魔的槽位掩码；表项缺失时返回 _allSlots（退化为不筛选）。
+u32 _slotMaskForId(std::string_view id)
+{
+    for (const SlotMaskEntry& entry : _kSlotMasks) {
+        if (entry.id == id) {
+            return entry.mask;
+        }
+    }
+    return _allSlots;
 }
 
 } // namespace
+
+bool Enchantment::matchesSlot(EquipmentSlot slot) const
+{
+    // 原版 `Enchantment.matchingSlot`：该附魔的 slots 声明是否包含此槽位。
+    // 查表默认值 _allSlots 保证表项缺失时行为不变（全部计入）。
+    return (_slotMaskForId(id()) & _slotBit(slot)) != 0;
+}
 
 bool Enchantment::canApplyToItem(const ItemStack& stack) const
 {
@@ -262,10 +371,9 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
                     armorItem->isBoots();
             }
             const auto itemId = item->itemLocation().path();
-            // TODO: 接入 `#minecraft:skulls` 物品标签后删除这段按 ID 后缀的近似判定。
-            return itemId == "elytra" || itemId == "carved_pumpkin" ||
-                (itemId.size() > 5 && itemId.substr(itemId.size() - 5) == "_head") ||
-                (itemId.size() > 6 && itemId.substr(itemId.size() - 6) == "_skull");
+            // 头颅走 `#minecraft:skulls` 标签（内容来自数据包），不再按 `_head` / `_skull`
+            // 后缀猜测——后缀判定会把自定义命名空间里名字恰好以 _head 结尾的物品也算进来。
+            return itemId == "elytra" || itemId == "carved_pumpkin" || item::tag::ItemTags::SKULLS().contains(item);
         }
         case EnchantmentType::Vanishable: {
             // 原版 `#enchantable/vanishing` = `#enchantable/durability` ∪ 指南针 ∪
@@ -275,10 +383,8 @@ bool Enchantment::canApplyToItem(const ItemStack& stack) const
                 return true;
             }
             const auto itemId = item->itemLocation().path();
-            // TODO: 接入 `#minecraft:skulls` 物品标签后删除这段按 ID 后缀的近似判定。
-            return itemId == "compass" || itemId == "carved_pumpkin" ||
-                (itemId.size() > 5 && itemId.substr(itemId.size() - 5) == "_head") ||
-                (itemId.size() > 6 && itemId.substr(itemId.size() - 6) == "_skull");
+            // 头颅同样走标签，理由见 Wearable 分支。
+            return itemId == "compass" || itemId == "carved_pumpkin" || item::tag::ItemTags::SKULLS().contains(item);
         }
         // 武器类六种类型已在函数开头统一处理，这里不会走到。
         case EnchantmentType::Weapon:

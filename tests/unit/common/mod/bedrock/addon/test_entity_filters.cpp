@@ -517,3 +517,31 @@ TEST_F(EntityFilterTest, SingleConditionArrayWrappingPreservesTheConditionAndNes
     ASSERT_TRUE(ambiguous.failed());
     EXPECT_EQ(ambiguous.error().code(), ErrorCode::Unsupported);
 }
+
+// is_temperature_value：把所在生物群系温度与给定值（0.0 最冷 ~ 1.0 最热）比较。
+// 编译期必须接受该测试，并拒绝超出 [0, 1] 的取值——否则写错范围的过滤器会静默永不命中。
+TEST_F(EntityFilterTest, TemperatureValueIsCompiledAndRangeChecked)
+{
+    auto valid = EntityFilter::compile({{"test", "is_temperature_value"}, {"value", 0.5}});
+    ASSERT_TRUE(valid.success()) << valid.error().message();
+
+    // 取值域是 [0, 1]，越界必须报错而不是静默当成 0/1
+    EXPECT_TRUE(EntityFilter::compile({{"test", "is_temperature_value"}, {"value", -0.1}}).failed());
+    EXPECT_TRUE(EntityFilter::compile({{"test", "is_temperature_value"}, {"value", 1.5}}).failed());
+
+    // 边界值本身合法
+    EXPECT_TRUE(EntityFilter::compile({{"test", "is_temperature_value"}, {"value", 0.0}}).success());
+    EXPECT_TRUE(EntityFilter::compile({{"test", "is_temperature_value"}, {"value", 1.0}}).success());
+}
+
+// 实体未绑定世界时无法查生物群系：必须报 Unsupported，而不是把温度当成 0 参与比较
+// （那会让所有温度过滤器在无世界实体上恒等于"0 度"，静默给出错误结论）。
+TEST_F(EntityFilterTest, TemperatureValueRequiresAWorldBoundEntity)
+{
+    auto filter = EntityFilter::compile({{"test", "is_temperature_value"}, {"value", 0.5}});
+    ASSERT_TRUE(filter.success()) << filter.error().message();
+
+    const auto matches = filter.value().matches(context);
+    ASSERT_TRUE(matches.failed());
+    EXPECT_EQ(matches.error().code(), ErrorCode::Unsupported);
+}

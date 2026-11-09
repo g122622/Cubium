@@ -609,10 +609,11 @@ TEST_F(FireChargeItemTest, OnItemUse_AlreadyLitBlock_ReturnsFail)
 
     ActionResultType result = Items::FIRE_CHARGE->onItemUse(context);
 
-    // 已点燃的营火 → LIT=true，不进入点燃分支，进入放置火焰分支
-    // 上方为空气时放置火焰
-    // 营火上方面 (0, 65, 0) 是空气 → 放置火焰 → Success
-    EXPECT_EQ(result, ActionResultType::Success);
+    // 已点燃的营火：CampfireBlock.canLight 为 false（要求未点燃），因此不进点燃分支；
+    // 转而尝试在上方 (0,65,0) 放火。但火焰 canSurvive 需要下方顶面为 Full 支撑或相邻可燃，
+    // 营火顶面不是 Full、本身也不可燃，两条都不满足 → 返回 Fail。
+    // 此前这里断言为 Success，是把"上方是空气"当成了充分条件，漏掉了 canSurvive。
+    EXPECT_EQ(result, ActionResultType::Fail);
 }
 
 TEST_F(FireChargeItemTest, OnItemUse_AlreadyLitBlock_NonAirAbove_ReturnsFail)

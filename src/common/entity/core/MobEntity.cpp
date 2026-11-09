@@ -582,6 +582,20 @@ void MobEntity::dropExperience()
     entity::ExperienceDropHandler::spawnHostileMobExperience(m_world, x(), y(), z(), m_experienceValue, &rng);
 }
 
+f32 MobEntity::lootingEquipmentDropChanceBonus(const LivingEntity& attacker)
+{
+    // 掠夺只附在近战主手武器上（looting.json 的 slots 为 mainhand）。
+    const ItemStack& weapon = attacker.getEquipment(EquipmentSlot::MainHand);
+    if (weapon.isEmpty()) {
+        return 0.0f;
+    }
+    const i32 level = item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, "minecraft:looting");
+    if (level <= 0) {
+        return 0.0f;
+    }
+    return 0.01f * static_cast<f32>(level);
+}
+
 void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlayer)
 {
     // 对齐 MC Java 1.21.11 Mob.dropCustomDeathLoot（Mob.java:846-877）。
@@ -592,12 +606,8 @@ void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlaye
         return;
     }
 
-    // 击杀者 LivingEntity（vanilla cause.getEntity() instanceof LivingEntity）：用于掠夺附魔
-    // processEquipmentDropChance 加成（vanilla Mob.java:853-855）。Cubium 掠夺附魔体系是 1.20 风格的
-    // EnchantedCountIncreaseFunction（loot function），未实现 1.21 的 equipment_drops effect component 子系统，
-    // 故此处暂不应用掠夺加成（TODO，待 effect component 体系就绪接入）。
-    Entity* causingEntity = cause.getEntity();
-    (void)causingEntity; // 预留 processEquipmentDropChance 接入点，当前未使用。
+    // 击杀者：掠夺附魔的 equipment_drops 加成只对"攻击者是生物"的情况生效。
+    auto* causingLiving = dynamic_cast<LivingEntity*>(cause.getEntity());
 
     math::IRandom& rng = getRandom();
 
@@ -610,7 +620,7 @@ void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlaye
         // 因 ItemBySlot 返回的是装备数组内对象；Cubium getEquipment 返回 const 引用，setDamage 需可写，
         // 故先拷贝，随机化后用拷贝掉落，再清空原槽位）。
         const ItemStack& equipmentRef = getEquipment(slot);
-        const f32 dropChance = getEquipmentDropChance(slot); // vanilla dropChances.byEquipment(equipmentslot)
+        f32 dropChance = getEquipmentDropChance(slot); // vanilla dropChances.byEquipment(equipmentslot)
 
         // f == 0.0：永不掉落（vanilla Mob.java:850 if (f != 0.0F) 守卫）。
         if (dropChance == 0.0f) {
@@ -619,10 +629,14 @@ void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlaye
 
         const bool isPreserved = isEquipmentDropPreserved(slot); // vanilla dropChances.isPreserved(equipmentslot)
 
-        // TODO: 掠夺附魔加成（vanilla f = EnchantmentHelper.processEquipmentDropChance(serverlevel, livingentity,
-        // cause, f)）。
-        //       Cubium 未实现 1.21 equipment_drops effect component 子系统，当前 f 不变。待 effect component
-        //       体系就绪后，在此用 causingEntity（LivingEntity）的武器掠夺等级修正 f。
+        // 掠夺附魔加成（vanilla f = EnchantmentHelper.processEquipmentDropChance(serverlevel, livingentity,
+        // cause, f)）：只对"攻击者是生物"生效，且在 f != 0 守卫之后才叠加——顺序与原版一致。
+        // 原版走数据驱动的 minecraft:equipment_drops effect component（见 looting.json：
+        // add + linear，base 0.01、每级 +0.01），本项目的附魔效果未做数据驱动，
+        // 因此在这里按该数据包的等效公式直接叠加：每级 +0.01。
+        if (causingLiving != nullptr) {
+            dropChance += lootingEquipmentDropChanceBonus(*causingLiving);
+        }
 
         // 掉落条件（对齐 vanilla Mob.java:864-865）：
         //   !itemstack.isEmpty()
@@ -994,6 +1008,13 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
         }
         return ActionResultType::Pass;
     }
+    // 3.5 物品驱动的治疗（addon `minecraft:healable`）：喂食治疗先于装备交互，
+    //     与原版"喂食优先于穿戴"的交互顺序一致。基类默认不治疗。
+    if (item != nullptr && isAlive()) {
+        if (tryHealFromItem(heldItem, player)) {
+            return ActionResultType::Success;
+        }
+    }
 
     // 4. 物品驱动的右键装备（如快乐恶魂挽具）
     //    对齐 vanilla Entity.interactOn 中 itemstack.interactLivingEntity(...) 早于 mobInteract 的调用顺序：
@@ -1055,6 +1076,27 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
 {
     // 基类默认返回 Pass，子类可重写以处理特定交互
     return ActionResultType::Pass;
+}
+
+void MobEntity::setNavigator(std::unique_ptr<entity::ai::pathfinding::PathNavigator> navigator)
+{
+    MC_ASSERT_RELEASE(navigator != nullptr);
+    m_navigator = std::move(navigator);
+}
+
+bool MobEntity::shouldBurnInDaylight() const
+{
+    // 基类默认不燃烧：只有亡灵类（MonsterEntity 覆写）与声明了
+    // minecraft:burns_in_daylight 的数据驱动实体（_AddonMob 覆写）才在阳光下燃烧。
+    return false;
+}
+
+bool MobEntity::tryHealFromItem(ItemStack& stack, Player& player)
+{
+    // 基类不治疗：只有数据驱动实体（addon minecraft:healable）覆写本方法。
+    MC_UNUSED(stack);
+    MC_UNUSED(player);
+    return false;
 }
 
 bool MobEntity::canBeLeashed() const

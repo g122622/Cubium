@@ -147,8 +147,9 @@ struct ItemExtras {
     std::optional<i32> ominousBottleAmplifier;                           // ominous_bottle_amplifier
     std::optional<item::component::SuspiciousStewEffectsPayload> stewEffects; // suspicious_stew_effects
     std::optional<item::component::DeathProtectionPayload> deathProtection;   // death_protection
-    nlohmann::json blockEntityData; // block_entity_data 组件（放置时写入方块实体）
+    std::optional<item::component::EquippablePayload> equippable;             // equippable
     nlohmann::json rawComponents;   // 未落地结构组件的原始 JSON（以资源位置为键）
+    nlohmann::json blockEntityData; // block_entity_data 组件（放置时写入方块实体）
 
     /**
      * 被**显式移除**的组件（存档 components 段里 `"!name"` 形式的键）。
@@ -184,6 +185,7 @@ struct ItemExtras {
         , ominousBottleAmplifier(other.ominousBottleAmplifier)
         , stewEffects(other.stewEffects)
         , deathProtection(other.deathProtection)
+        , equippable(other.equippable)
         , rawComponents(other.rawComponents)
         , removedComponents(other.removedComponents)
     {
@@ -1287,6 +1289,23 @@ public:
     void setDeathProtection(std::optional<item::component::DeathProtectionPayload> value)
     {
         _ensureExtras().deathProtection = std::move(value);
+    }
+
+    /**
+     * @brief 获取 equippable 组件
+     *
+     * 物品栈覆盖优先，未覆盖时回退物品类型的默认值（护甲/鞘翅/鞍等注册时设置）。
+     *
+     * @return 装备定义，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<item::component::EquippablePayload>& getEquippable() const;
+
+    /**
+     * @brief 设置物品栈的 equippable 组件覆盖（nullopt 表示移除覆盖，回退物品默认值）
+     */
+    void setEquippable(std::optional<item::component::EquippablePayload> value)
+    {
+        _ensureExtras().equippable = std::move(value);
     }
 
     /**

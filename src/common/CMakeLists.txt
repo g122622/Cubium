@@ -291,6 +291,7 @@ add_library(mc_common STATIC
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Item - Loot System
+    item/loot/base/LevelBasedValue.cpp
     item/loot/conditions/RandomChanceCondition.cpp
     item/loot/conditions/RandomChanceWithEnchantedBonusCondition.cpp
     item/loot/conditions/NotCondition.cpp

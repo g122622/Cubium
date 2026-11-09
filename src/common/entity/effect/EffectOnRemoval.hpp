@@ -43,7 +43,7 @@ namespace effect {
  *   - WEAVING  → 掉落后在实体周围随机生成蜘蛛网（WeavingMobEffect）
  *   - OOZING   → 掉落时生成小史莱姆（OozingMobEffect）
  *   - WIND_CHARGED → 掉落时触发风弹式爆炸（WindChargedMobEffect）
- *   - INFESTED → 无 onMobRemoved 行为（其效果在 onMobHurt 时触发，见 TODO）
+ *   - INFESTED → 无 onMobRemoved 行为（其效果在受击时触发，见 spawnInfestedSilverfish）
  *   - 其余效果 → 空实现
  *
  * 与 EffectManager::tick / addEffect 的风格一致：世界上下文由调用方经参数传入，

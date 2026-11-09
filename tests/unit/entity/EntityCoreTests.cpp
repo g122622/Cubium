@@ -25,8 +25,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
-#include "entity/core/DataParameter.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/EntityClassification.hpp"
 #include "entity/core/EntityDataManager.hpp"
@@ -917,4 +918,33 @@ TEST(EntityInteractionTest, PolymorphicCallWorks)
 
     // 验证基类指针指向正确的对象
     EXPECT_EQ(basePtr->id(), EntityInstanceId(1));
+}
+
+// 掠夺附魔对装备掉落概率的加成：数据包 looting.json 为 add + linear（base 0.01、每级 +0.01），
+// 因此 1 级 +0.01、3 级 +0.03。这个值是 dropCustomDeathLoot 唯一依赖的输入，直接验证它即可。
+TEST(MobEntityLootingBonus, ScalesWithLootingLevel)
+{
+    mc::Items::ensureInitialized();
+    if (mc::Items::IRON_SWORD == nullptr) {
+        GTEST_SKIP() << "item registry not initialized";
+    }
+
+    mc::ecs::EntityRegistry registry{"looting-bonus"};
+    mc::Player player(mc::EntityInstanceId(7001), "Looter", registry);
+
+    // 空手：无加成。
+    EXPECT_FLOAT_EQ(mc::MobEntity::lootingEquipmentDropChanceBonus(player), 0.0f);
+
+    // 主手放无附魔武器：仍无加成。
+    player.setEquipment(mc::EquipmentSlot::MainHand, mc::ItemStack(*mc::Items::IRON_SWORD, 1));
+    EXPECT_FLOAT_EQ(mc::MobEntity::lootingEquipmentDropChanceBonus(player), 0.0f);
+
+    // 逐级验证：与 looting.json 的 base 0.01 + 每级 0.01 一致。
+    for (i32 level = 1; level <= 3; ++level) {
+        mc::ItemStack sword(*mc::Items::IRON_SWORD, 1);
+        sword.addEnchantment("minecraft:looting", level);
+        player.setEquipment(mc::EquipmentSlot::MainHand, sword);
+        EXPECT_FLOAT_EQ(mc::MobEntity::lootingEquipmentDropChanceBonus(player), 0.01f * static_cast<f32>(level))
+            << "looting level " << level;
+    }
 }

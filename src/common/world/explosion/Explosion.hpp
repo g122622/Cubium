@@ -51,6 +51,11 @@ class ItemStack;
 // _getBlockDensity 验证专用视线 DDA 与公共 raycastBlocks 的行为等价性。
 class ExplosionLosBlockTest;
 
+/**
+ * @brief 测试 fixture：验证 _shouldAffectBlocklikeEntities 的完整判定（含风弹源排除）。
+ */
+class ExplosionBlocklikeEntitiesTest;
+
 namespace entity {
 class TNTEntity;
 class ProjectileEntity;
@@ -85,6 +90,10 @@ public:
     // 端到端视线遮挡回归测试需访问私有 _getBlockDensity 以逐采样点对比专用 DDA
     // 与公共 raycastBlocks 的等价性（见 ExplosionLosBlockTest）。
     friend class ::mc::ExplosionLosBlockTest;
+    /**
+     * @brief 测试 fixture：验证 _shouldAffectBlocklikeEntities 的完整判定。
+     */
+    friend class ::mc::ExplosionBlocklikeEntitiesTest;
     /**
      * @brief 构造爆炸对象
      *

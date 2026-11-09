@@ -42,6 +42,7 @@
 #include "common/item/loot/LootPool.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/StatePropertiesPredicate.hpp"
+#include "common/item/loot/base/LevelBasedValue.hpp"
 #include "common/item/loot/conditions/BlockStateCondition.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
@@ -104,6 +105,13 @@ namespace loot {
  * }
  * @endcode
  */
+/**
+ * @brief 测试夹具（tests/unit/common/item/loot/LevelBasedValueTest.cpp）
+ *
+ * 仅为经 friend 访问 `_parseLevelBasedValue` 而前置声明。
+ */
+class LevelBasedValueParseTest;
+
 class LootSerializers {
 public:
     // ========================================================================
@@ -172,6 +180,20 @@ public:
      * @brief 从 JSON 解析掉落条件
      */
     static Result<std::unique_ptr<LootCondition>> parseCondition(const nlohmann::json& json);
+
+    /**
+     * @brief 解析以等级为自变量的数值表达式（`LevelBasedValue`）
+     *
+     * 支持 constant / linear / levels_squared / clamped / fraction / exponent / lookup
+     * 七种形态，各形态可嵌套。JSON 既可以是裸数字（等价于 constant），也可以是带
+     * `type` 的对象。
+     *
+     * 公开是为了让测试能直接验证解析结果；生产代码通常经 `parseCondition` 间接使用。
+     *
+     * @param json 表达式 JSON
+     * @return 表达式对象；形态无法识别或字段缺失时返回错误
+     */
+    static Result<std::unique_ptr<LevelBasedValue>> parseLevelBasedValue(const nlohmann::json& json);
 
     /**
      * @brief 从 JSON 数组解析条件列表
@@ -290,11 +312,24 @@ public:
     static std::string toJsonString(const LootTable& table, i32 indent = -1);
 
 private:
+    /**
+     * @brief 测试夹具：直接验证 LevelBasedValue 的 JSON 解析
+     *
+     * 解析是纯函数（输入 JSON、输出表达式树），没有更好的公开入口，
+     * 因此按项目既有做法用 friend 授予测试访问权。
+     *
+     * 注：`TEST_F` 生成的是本类的**派生类**，friend 不传递给派生类，
+     * 所以这条声明只对测试夹具自身的成员有效；实际测试通过
+     * `parseLevelBasedValueForTest` 这个公开转发入口访问。
+     */
+    friend class ::mc::loot::LevelBasedValueParseTest;
     // ========================================================================
     // 条件解析辅助方法
     // ========================================================================
 
     static Result<std::unique_ptr<LootCondition>> _parseRandomChanceCondition(const nlohmann::json& json);
+
+    static Result<std::unique_ptr<LevelBasedValue>> _parseLevelBasedValue(const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseRandomChanceWithEnchantedBonusCondition(
         const nlohmann::json& json);
     static Result<std::unique_ptr<LootCondition>> _parseInvertedCondition(const nlohmann::json& json);
