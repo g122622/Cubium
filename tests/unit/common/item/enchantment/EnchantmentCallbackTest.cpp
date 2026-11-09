@@ -565,14 +565,6 @@ TEST_F(EnchantmentHelperToolTest, ShouldIgnoreDurabilityLoss)
     EXPECT_LT(ignoreCount, 300);
 }
 
-TEST_F(EnchantmentHelperToolTest, GetSweepingDamageRatio)
-{
-    EXPECT_FLOAT_EQ(EnchantmentHelper::getSweepingDamageRatio(ItemStack::EMPTY), 0.0f);
-
-    // 需要有横扫之刃附魔的物品才能测试
-    // 由于 ItemStack::EMPTY 没有附魔，这里只测试返回值
-}
-
 TEST_F(EnchantmentHelperToolTest, GetFishingLuckBonus)
 {
     EXPECT_EQ(EnchantmentHelper::getFishingLuckBonus(ItemStack::EMPTY), 0);

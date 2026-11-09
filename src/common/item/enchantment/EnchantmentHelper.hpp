@@ -352,18 +352,6 @@ public:
     [[nodiscard]] static bool hasChanneling(const ItemStack& stack);
 
     /**
-     * @brief 获取横扫之刃伤害比例
-     *
-     * TODO: 已无生产调用方——横扫攻击改为读取 sweeping_damage_ratio 属性（修饰符由
-     * SweepingEnchantment::getAttributeModifiers 提供，多件装备按原版规则合并）。
-     * 保留仅为过渡，待确认无外部调用后连同 SweepingEnchantment::getSweepingDamageRatio 一并删除。
-     *
-     * @param stack 物品堆
-     * @return 横扫伤害比例（0.0-1.0）
-     */
-    [[nodiscard]] static f32 getSweepingDamageRatio(const ItemStack& stack);
-
-    /**
      * @brief 获取钓鱼运气加成
      *
      * @param stack 物品堆

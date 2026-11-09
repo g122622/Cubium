@@ -335,16 +335,6 @@ bool EnchantmentHelper::hasChanneling(const ItemStack& stack)
     return hasEnchantment(stack, "minecraft:channeling");
 }
 
-f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack)
-{
-    i32 level = getEnchantmentLevel(stack, "minecraft:sweeping_edge");
-    if (level <= 0) {
-        return 0.0f;
-    }
-    // MC 1.16.5: I=1.0-1.0/(1+level)=0.5, II=0.667, III=0.75
-    return 1.0f - 1.0f / static_cast<f32>(1 + level);
-}
-
 i32 EnchantmentHelper::getFishingLuckBonus(const ItemStack& stack)
 {
     return getEnchantmentLevel(stack, "minecraft:luck_of_the_sea");
