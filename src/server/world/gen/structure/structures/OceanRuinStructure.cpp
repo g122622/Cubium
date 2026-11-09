@@ -24,9 +24,15 @@
 #include "OceanRuinStructure.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/undead/DrownedEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -36,7 +42,13 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
@@ -46,6 +58,7 @@
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <utility>
@@ -325,6 +338,50 @@ void OceanRuinPiece::_loadTemplate()
     }
 }
 
+i32 OceanRuinPiece::_scanHeight(const BlockPos& start, const BlockPos& end, IWorld& world)
+{
+    BlockTag* iceTag = BlockTags::getTag(ResourceLocation("minecraft:ice"));
+    const i32 minY = world.getMinBuildHeight();
+
+    const i32 startY = start.y;
+    i32 lowest = 512;
+    const i32 headingY = startY - 1;
+    i32 deepColumns = 0;
+
+    const i32 minX = std::min(start.x, end.x);
+    const i32 maxX = std::max(start.x, end.x);
+    const i32 minZ = std::min(start.z, end.z);
+    const i32 maxZ = std::max(start.z, end.z);
+
+    for (i32 x = minX; x <= maxX; ++x) {
+        for (i32 z = minZ; z <= maxZ; ++z) {
+            i32 y = headingY;
+            // 和原版一致：空气、水、冰都算「未到底」，一直扫到世界底部附近。
+            while (y > minY + 1) {
+                const BlockState* state = world.getBlockState(x, y, z);
+                const fluid::FluidState* fluid = world.getFluidState(x, y, z);
+                const bool isAir = state == nullptr || state->isAir();
+                const bool isWater = fluid != nullptr && fluid->getFluid().isIn(fluid::FluidTags::WATER());
+                const bool isIce = iceTag != nullptr && state != nullptr && iceTag->contains(*state);
+                if (!isAir && !isWater && !isIce) {
+                    break;
+                }
+                --y;
+            }
+            lowest = std::min(lowest, y);
+            if (y < headingY - 2) {
+                ++deepColumns;
+            }
+        }
+    }
+
+    const i32 spanX = std::abs(start.x - end.x);
+    if (headingY - lowest > 2 && deepColumns > spanX - 2) {
+        return lowest + 1;
+    }
+    return startY;
+}
+
 void OceanRuinPiece::generate(IWorldWriter& world,
     math::IRandom& rng,
     i32 /*chunkX*/,
@@ -346,6 +403,17 @@ void OceanRuinPiece::generate(IWorldWriter& world,
         return;
     }
 
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "OceanRuinPiece::generate requires an IWorld");
+
+    // 贴地：起点阶段的 Y 只是占位，先按海底高度图落到海床，再按模板足迹的水深修正。
+    m_templatePosition.y = reader->getHeight(m_templatePosition.x, m_templatePosition.z, HeightmapType::OceanFloorWG);
+    const BlockPos farCorner = feature::template_::Template::transformBlockPos(
+        BlockPos(m_size.x - 1, 0, m_size.z - 1), Mirror::None, getRotation(), BlockPos(0, 0, 0));
+    const BlockPos scanEnd(
+        m_templatePosition.x + farCorner.x, m_templatePosition.y, m_templatePosition.z + farCorner.z);
+    m_templatePosition.y = _scanHeight(m_templatePosition, scanEnd, *reader);
+
     // 创建放置设置
     feature::template_::PlacementSettings settings;
     settings.setRotation(getRotation());
@@ -355,20 +423,83 @@ void OceanRuinPiece::generate(IWorldWriter& world,
     // 添加完整度处理器
     feature::template_::StructureProcessorList processors;
     processors.addProcessor(std::make_unique<feature::template_::IntegrityProcessor>(m_integrity));
-    // 添加空气忽略处理器
+    // 原版 `BlockIgnoreProcessor.STRUCTURE_AND_AIR`：结构方块（含 DATA 标记）与空气都不放置。
     std::vector<u32> blocksToIgnore;
     if (auto* airState = VanillaBlocks::getState(VanillaBlocks::AIR)) {
         blocksToIgnore.push_back(airState->blockId());
     }
+    if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+        blocksToIgnore.push_back(structureState->blockId());
+    }
     processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
     settings.setProcessors(&processors);
 
-    // 放置模板
-    m_template->place(world,
-        m_templatePosition,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+    // 放置模板：完整版会在放完后按邻居重算方块形状，并按世界流体补上水浸状态。
+    if (!m_template->placeInWorld(*reader,
+            m_templatePosition,
+            settings,
+            rng,
+            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)) {
+        return;
+    }
+
+    // 原版 `TemplateStructurePiece#postProcess`：放完模板后再处理 DATA 标记。
+    for (const auto& marker : m_template->getDataMarkers(m_templatePosition, settings)) {
+        handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
+    }
+}
+
+void OceanRuinPiece::handleDataMarker(const std::string& metadata,
+    const BlockPos& pos,
+    IWorld& world,
+    math::IRandom& rng,
+    const StructureBoundingBox& /*chunkBounds*/)
+{
+    if (metadata == "chest") {
+        const fluid::FluidState* fluid = world.getFluidState(pos);
+        const bool waterlogged = fluid != nullptr && fluid->getFluid().isIn(fluid::FluidTags::WATER());
+        const BlockState chest =
+            VanillaBlocks::CHEST->defaultState().with(BlockStateProperties::WATERLOGGED(), waterlogged);
+        world.setBlockState(pos.x, pos.y, pos.z, &chest, 2);
+
+        // 原版 `RandomizableContainer.setBlockEntityLootTable`：只有方块实体确实是战利品容器
+        // 时才消耗随机数并挂表。
+        BlockEntity* blockEntity = world.getBlockEntity(pos);
+        auto* container = dynamic_cast<blockentity::LootableContainerBlockEntity*>(blockEntity);
+        if (container != nullptr) {
+            static const ResourceLocation lootTable("minecraft:chests/underwater_ruin_big");
+            static const ResourceLocation smallLootTable("minecraft:chests/underwater_ruin_small");
+            container->setLootTable(m_isLarge ? lootTable : smallLootTable, rng.nextLong());
+        }
+        return;
+    }
+
+    if (metadata != "drowned") {
+        return;
+    }
+
+    // 原版生成溺尸后按海平面把标记方块替换成空气或水。
+    ecs::EntityRegistry* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto entity = DrownedEntity::create(&world, *registry);
+    if (entity == nullptr) {
+        return;
+    }
+    auto* mob = dynamic_cast<MobEntity*>(entity.get());
+    if (mob != nullptr) {
+        mob->enablePersistence();
+        mob->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+        mob->setRotation(0.0f, 0.0f);
+        const entity::combat::DifficultyInstance difficulty = entity::combat::DifficultyInstance::at(world, pos);
+        mob->finalizeSpawn(world, difficulty, world::spawn::SpawnReason::Structure);
+    }
+    world.spawnEntity(std::move(entity));
+
+    const BlockState* replacement = pos.y > world.seaLevel() ? VanillaBlocks::getState(VanillaBlocks::AIR)
+                                                             : VanillaBlocks::getState(VanillaBlocks::WATER);
+    world.setBlockState(pos.x, pos.y, pos.z, replacement, 2);
 }
 
 // ============================================================================

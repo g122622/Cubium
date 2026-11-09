@@ -75,6 +75,18 @@ public:
         IChunkGenerator* generator = nullptr) override;
 
     /**
+     * @brief 沉船数据标记：给标记正下方的箱子挂上战利品表
+     *
+     * 原版 `ShipwreckPieces.ShipwreckPiece#handleDataMarker`：`map_chest` /
+     * `treasure_chest` / `supply_chest` 分别对应三种沉船战利品表。
+     */
+    void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds) override;
+
+    /**
      * @brief 设置模板管理器
      *
      * 必须在 generate 之前调用

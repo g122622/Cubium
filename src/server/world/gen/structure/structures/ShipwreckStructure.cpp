@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -36,6 +37,8 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
@@ -191,6 +194,36 @@ void ShipwreckPiece::generate(IWorldWriter& world,
         return;
     }
 
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "ShipwreckPiece::generate requires an IWorld");
+
+    // 贴地：起点阶段的 Y=90 只是占位，真正的落点在这里按高度图逐区块重算。
+    // 超大模板在起点阶段已经贴过地（对应原版 `isTooBigToFitInWorldGenRegion` 分支），
+    // 后处理不再重复调整。
+    const bool tooBig = m_size.x > 32 || m_size.y > 32;
+    if (!tooBig) {
+        const HeightmapType heightmapType = m_isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
+        const i32 columnCount = m_size.x * m_size.z;
+        i32 lowest = reader->getMaxBuildHeight();
+        i32 average = 0;
+        if (columnCount == 0) {
+            average = reader->getHeight(m_templatePosition.x, m_templatePosition.z, heightmapType);
+        } else {
+            for (i32 z = m_templatePosition.z; z < m_templatePosition.z + m_size.z; ++z) {
+                for (i32 x = m_templatePosition.x; x < m_templatePosition.x + m_size.x; ++x) {
+                    const i32 height = reader->getHeight(x, z, heightmapType);
+                    average += height;
+                    lowest = std::min(lowest, height);
+                }
+            }
+            average /= columnCount;
+        }
+
+        // 搁浅沉船沿最低列再下沉半高并随机再降 0..2 格；随机数必须在放置模板前消耗。
+        const i32 targetY = m_isBeached ? lowest - m_size.y / 2 - rng.nextInt(3) : average;
+        adjustPositionHeight(targetY);
+    }
+
     // 创建放置设置
     feature::template_::PlacementSettings settings;
     settings.setRotation(getRotation());
@@ -198,21 +231,63 @@ void ShipwreckPiece::generate(IWorldWriter& world,
     settings.setRotationPivot(STRUCTURE_OFFSET);
     settings.setBoundingBox(&chunkBounds);
 
-    // 添加空气和结构方块忽略处理器
+    // 原版 `BlockIgnoreProcessor.STRUCTURE_AND_AIR`：结构方块（含 DATA 标记）与空气都不放置。
     std::vector<u32> blocksToIgnore;
     if (auto* airState = VanillaBlocks::getState(VanillaBlocks::AIR)) {
         blocksToIgnore.push_back(airState->blockId());
+    }
+    if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+        blocksToIgnore.push_back(structureState->blockId());
     }
     feature::template_::StructureProcessorList processors;
     processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
     settings.setProcessors(&processors);
 
     // 包围盒由模板原点绕枢轴展开，放置位置就是模板原点本身。
-    m_template->place(world,
-        m_templatePosition,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+    // 用完整版放置：它会在放完后按邻居重算方块形状（楼梯/栅栏等），与原版一致。
+    if (!m_template->placeInWorld(*reader,
+            m_templatePosition,
+            settings,
+            rng,
+            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)) {
+        return;
+    }
+
+    // 原版 `TemplateStructurePiece#postProcess`：放完模板后再按 DATA 标记生成箱子内容。
+    for (const auto& marker : m_template->getDataMarkers(m_templatePosition, settings)) {
+        handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
+    }
+}
+
+void ShipwreckPiece::handleDataMarker(const std::string& metadata,
+    const BlockPos& pos,
+    IWorld& world,
+    math::IRandom& rng,
+    const StructureBoundingBox& /*chunkBounds*/)
+{
+    static const ResourceLocation mapLoot("minecraft:chests/shipwreck_map");
+    static const ResourceLocation treasureLoot("minecraft:chests/shipwreck_treasure");
+    static const ResourceLocation supplyLoot("minecraft:chests/shipwreck_supply");
+
+    const ResourceLocation* lootTable = nullptr;
+    if (metadata == "map_chest") {
+        lootTable = &mapLoot;
+    } else if (metadata == "treasure_chest") {
+        lootTable = &treasureLoot;
+    } else if (metadata == "supply_chest") {
+        lootTable = &supplyLoot;
+    }
+    if (lootTable == nullptr) {
+        return;
+    }
+
+    // 原版 `RandomizableContainer.setBlockEntityLootTable`：只有下方确实是战利品容器时
+    // 才消耗随机数并挂表。
+    BlockEntity* blockEntity = world.getBlockEntity(BlockPos(pos.x, pos.y - 1, pos.z));
+    auto* container = dynamic_cast<blockentity::LootableContainerBlockEntity*>(blockEntity);
+    if (container != nullptr) {
+        container->setLootTable(*lootTable, rng.nextLong());
+    }
 }
 
 // ============================================================================

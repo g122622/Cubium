@@ -117,6 +117,16 @@ struct ProcessedBlockInfo {
 };
 
 /**
+ * @brief 模板中的数据标记（原版 `mode=DATA` 的结构方块）
+ *
+ * 数据标记不参与正常方块放置，而是由所属结构片段读取 `metadata` 后再生成箱子/生物等。
+ */
+struct TemplateDataMarker {
+    BlockPos pos;         ///< 已按放置设置换算到世界坐标的位置
+    std::string metadata; ///< 原版结构方块的 `metadata` 字符串
+};
+
+/**
  * @brief 放置设置
  */
 class PlacementSettings {
@@ -664,6 +674,19 @@ public:
 
     [[nodiscard]] structure::StructureBoundingBox getBoundingBox(
         const PlacementSettings& settings, const BlockPos& pos) const;
+
+    /**
+     * @brief 取出模板中的全部数据标记（原版 `StructureTemplate#filterBlocks` + `mode=DATA` 筛选）
+     *
+     * 标记位置按放置设置（镜像/旋转/枢轴 + 模板原点）换算到世界坐标，并遵守放置包围盒；
+     * 与方块放置不同，数据标记不经过处理器链，也不参与正常方块写入。
+     *
+     * @param templatePosition 模板放置原点
+     * @param settings 放置设置
+     * @return 数据标记列表（按模板方块顺序）
+     */
+    [[nodiscard]] std::vector<TemplateDataMarker> getDataMarkers(
+        const BlockPos& templatePosition, const PlacementSettings& settings) const;
 
     /**
      * @brief 放置模板到世界（基础版本）

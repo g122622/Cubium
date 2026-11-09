@@ -48,8 +48,14 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.debug.ServerDebugSubscribers;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.flag.FeatureFlags;
@@ -73,6 +79,7 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.ticks.TickPriority;
 
 /**
  * 单个结构在指定区块上的方块产物（原版参照实现）。
@@ -245,6 +252,7 @@ public final class StructureBlocksSingleOracle {
         int maxY;
         long seed;
         Holder<Biome> biome;
+        MinecraftServer server;
         net.minecraft.world.attribute.EnvironmentAttributeSystem attributes;
         final net.minecraft.world.level.border.WorldBorder border =
                 new net.minecraft.world.level.border.WorldBorder();
@@ -278,10 +286,33 @@ public final class StructureBlocksSingleOracle {
                         .build();
                 level.blocks = new HashMap<>();
                 level.chunks = new HashMap<>();
+                level.server = allocateFakeServer(unsafe);
                 return level;
             } catch (ReflectiveOperationException error) {
                 throw new IllegalStateException("StructureBlocksSingleOracle: cannot allocate fake level", error);
             }
+        }
+
+        /**
+         * 只满足 `PathNavigation` 构造的服务器桩。
+         *
+         * <p>模板的数据标记会真的构造实体（海底废墟的溺尸、雪屋的村民、末地城的潜影贝），
+         * 实体构造链上的 `PathNavigation` 会读 {@code level.getServer().debugSubscribers()}。
+         * 空世界里没有任何调试订阅，返回一个订阅表为空的桩即可。
+         */
+        private static MinecraftServer allocateFakeServer(Object unsafe) throws ReflectiveOperationException {
+            // `MinecraftServer` 是抽象类，Unsafe 只能实例化具体子类；专用服务器即可。
+            MinecraftServer server = (MinecraftServer) unsafe.getClass()
+                    .getMethod("allocateInstance", Class.class)
+                    .invoke(unsafe, net.minecraft.server.dedicated.DedicatedServer.class);
+            Field subscribersField = MinecraftServer.class.getDeclaredField("debugSubscribers");
+            long offset = (long) unsafe.getClass()
+                    .getMethod("objectFieldOffset", Field.class)
+                    .invoke(unsafe, subscribersField);
+            unsafe.getClass()
+                    .getMethod("putObject", Object.class, long.class, Object.class)
+                    .invoke(unsafe, server, offset, new ServerDebugSubscribers(server));
+            return server;
         }
 
         @Override
@@ -380,6 +411,55 @@ public final class StructureBlocksSingleOracle {
         @Override
         public void scheduleTick(BlockPos pos, Fluid fluid, int delay) {
             // 空世界没有刻调度器；结构放置阶段对液体只登记刻，不产生方块差异。
+        }
+
+        @Override
+        public void scheduleTick(BlockPos pos, Block block, int delay) {
+            // 模板放置会经 `FallingBlock#updateShape` 给沙子/沙砾登记刻；默认实现要读
+            // LevelData 的游戏刻，桩世界没有，直接吞掉。
+        }
+
+        @Override
+        public void scheduleTick(BlockPos pos, Block block, int delay, TickPriority priority) {
+            // 同上。
+        }
+
+        @Override
+        public MinecraftServer getServer() {
+            return server;
+        }
+
+        @Override
+        public long getGameTime() {
+            return 0L;
+        }
+
+        @Override
+        public int getSeaLevel() {
+            // 海平面只影响海底废墟「把标记方块替换成空气还是水」；原版主世界是 63。
+            return 63;
+        }
+
+        @Override
+        public DifficultyInstance getCurrentDifficultyAt(BlockPos pos) {
+            // 实体 finalizeSpawn 会读难度；固定为普通难度、零游戏时间，结果确定。
+            return new DifficultyInstance(Difficulty.NORMAL, 0L, 0L, 0.0F);
+        }
+
+        @Override
+        public boolean addFreshEntity(Entity entity) {
+            // 本能力只比较方块；实体本身不入表，也不产生方块差异。
+            return true;
+        }
+
+        @Override
+        public void addFreshEntityWithPassengers(Entity entity) {
+            // 同上。
+        }
+
+        @Override
+        public void setBlockEntity(BlockEntity blockEntity) {
+            // 模板里的箱子会带战利品表 NBT；桩世界不维护方块实体，直接忽略。
         }
     }
 }

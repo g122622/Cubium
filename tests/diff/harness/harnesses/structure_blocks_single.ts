@@ -73,6 +73,11 @@ const FEATURES = [
   { structureSet: "minecraft:buried_treasures", structure: "minecraft:buried_treasure", dimension: "overworld" },
   { structureSet: "minecraft:ruined_portals", structure: "minecraft:ruined_portal", dimension: "overworld" },
   { structureSet: "minecraft:nether_fossils", structure: "minecraft:nether_fossil", dimension: "the_nether" },
+  { structureSet: "minecraft:igloos", structure: "minecraft:igloo", dimension: "overworld" },
+  { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_cold", dimension: "overworld" },
+  { structureSet: "minecraft:ocean_ruins", structure: "minecraft:ocean_ruin_warm", dimension: "overworld" },
+  { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck", dimension: "overworld" },
+  { structureSet: "minecraft:shipwrecks", structure: "minecraft:shipwreck_beached", dimension: "overworld" },
 ] as const;
 
 /** 每个结构取多少个落点。 */

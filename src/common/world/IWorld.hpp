@@ -44,6 +44,7 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/effect/base/LevelEventId.hpp"
 #include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
@@ -691,6 +692,22 @@ public:
      * @return 最高方块 Y 坐标
      */
     [[nodiscard]] virtual i32 getHeight(i32 x, i32 z) const = 0;
+
+    /**
+     * @brief 获取指定高度图在该列的最高方块 Y
+     *
+     * 对应 MC Java 版 `LevelReader.getHeight(Heightmap.Types, x, z)`。没有高度图信息的
+     * 桩世界（差分探针的空世界、单元测试的假世界）退化为无类型的 `getHeight(x, z)`。
+     *
+     * @param x, z 水平坐标
+     * @param type 高度图类型
+     * @return 该高度图记录的方块 Y 坐标
+     */
+    [[nodiscard]] virtual i32 getHeight(i32 x, i32 z, world::chunk::HeightmapType type) const
+    {
+        (void)type;
+        return getHeight(x, z);
+    }
 
     // ========== 光照查询 ==========
 

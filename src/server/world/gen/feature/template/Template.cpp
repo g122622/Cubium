@@ -29,6 +29,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -622,6 +623,51 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
         pos.x + std::max(cornerA.x, cornerB.x),
         pos.y + std::max(cornerA.y, cornerB.y),
         pos.z + std::max(cornerA.z, cornerB.z));
+}
+
+std::vector<TemplateDataMarker> Template::getDataMarkers(
+    const BlockPos& templatePosition, const PlacementSettings& settings) const
+{
+    std::vector<TemplateDataMarker> markers;
+
+    const Palette* palette = selectPalette(settings, templatePosition);
+    if (palette == nullptr) {
+        if (m_palettes.empty()) {
+            return markers;
+        }
+        palette = &m_palettes[0];
+    }
+
+    const Block* structureBlock = VanillaBlocks::STRUCTURE_BLOCK;
+    const auto* bounds = settings.getBoundingBox();
+    const auto& blocks = palette->blocks();
+    for (size_t index = 0; index < blocks.size(); ++index) {
+        const BlockState* state = BlockRegistry::instance().getBlockState(blocks[index].blockStateId);
+        if (state == nullptr || &state->getBlock() != structureBlock) {
+            continue;
+        }
+
+        const nbt::CompoundTag* tag = palette->nbtAt(index);
+        if (tag == nullptr) {
+            continue;
+        }
+        const auto mode = entity::serialization::nbt_helper::tryGetString(*tag, "mode");
+        if (!mode.has_value() || *mode != "DATA") {
+            continue;
+        }
+
+        const BlockPos worldPos = templatePosition +
+            transformBlockPos(
+                blocks[index].pos(), settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
+        if (bounds != nullptr && !bounds->contains(worldPos.x, worldPos.y, worldPos.z)) {
+            continue;
+        }
+
+        markers.push_back(TemplateDataMarker{
+            worldPos, entity::serialization::nbt_helper::tryGetString(*tag, "metadata").value_or("")});
+    }
+
+    return markers;
 }
 
 bool Template::place(

@@ -772,7 +772,7 @@ public:
      * 供世界生成特征（如 OreFeature 的放置前提判定）使用——它们依赖
      * `getHeight(...) >= 某 Y` 这种比较，空列必须落到最小值而非被抬到 MIN_BUILD_HEIGHT。
      */
-    [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const;
+    [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
 
     /**
      * @brief 设置种子（用于生成）

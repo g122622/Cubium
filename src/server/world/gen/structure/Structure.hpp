@@ -666,6 +666,31 @@ public:
         ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) = 0;
 
+    /**
+     * @brief 处理模板中的数据标记（原版 `TemplateStructurePiece#handleDataMarker`）
+     *
+     * 模板中 `mode=DATA` 的结构方块不参与方块放置，由所属构件在放好模板后按
+     * `metadata` 生成箱子、生物或入口方块。默认实现什么都不做。
+     *
+     * @param metadata 标记内容（原版结构方块的 `metadata` 字符串）
+     * @param pos 标记的世界坐标
+     * @param world 世界读写接口
+     * @param rng 区块随机源
+     * @param chunkBounds 当前区块的放置范围
+     */
+    virtual void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds)
+    {
+        (void)metadata;
+        (void)pos;
+        (void)world;
+        (void)rng;
+        (void)chunkBounds;
+    }
+
     // ========== Jigsaw 结构支持 ==========
 
     /**

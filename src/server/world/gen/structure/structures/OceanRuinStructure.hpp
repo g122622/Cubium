@@ -89,6 +89,19 @@ public:
         IChunkGenerator* generator = nullptr) override;
 
     /**
+     * @brief 海底废墟数据标记：埋藏宝箱与溺尸
+     *
+     * 原版 `OceanRuinPieces.OceanRuinPiece#handleDataMarker`：`chest` 标记放一只
+     * （可能水浸的）箱子并挂战利品表；`drowned` 标记生成溺尸，并把标记方块替换成
+     * 空气（高于海平面）或水。
+     */
+    void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds) override;
+
+    /**
      * @brief 设置模板管理器
      *
      * 必须在 generate 之前调用
@@ -120,6 +133,19 @@ public:
 
 private:
     void _loadTemplate();
+
+    /**
+     * @brief 在水中寻找模板远角下方最高的实体地形（原版 `OceanRuinPiece#getHeight`）
+     *
+     * 从 `start.y - 1` 向下扫过空气/水/冰，取所有列的最低可用高度；当整个足迹内
+     * 有足够多的列明显低于起点时，把放置高度抬到该最低列上方一格。
+     *
+     * @param start 扫描起点（模板位置，Y 已按高度图落位）
+     * @param end 模板对角的远角
+     * @param world 世界读取接口
+     * @return 调整后的模板 Y
+     */
+    [[nodiscard]] static i32 _scanHeight(const BlockPos& start, const BlockPos& end, IWorld& world);
 
     std::string m_templateName;
     BlockPos m_templatePosition;
