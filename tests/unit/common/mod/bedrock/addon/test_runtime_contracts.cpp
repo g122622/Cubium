@@ -534,3 +534,81 @@ TEST_F(AddonRuntimeContractTest, NativeReturnValueCanBeAnObjectOrArray)
     ASSERT_TRUE(arrayIsArray.has_value());
     EXPECT_TRUE(arrayIsArray->asBoolean());
 }
+
+// callFunction / setGlobalVariable / getGlobalVariable 走的是成员函数 _jsValueToScriptValue
+// 与 _scriptValueToJSValue，与全局函数回调路径是两套实现。上一轮只补了回调路径，
+// 成员函数路径仍然把对象/数组降级成 undefined——同一个缺陷有两个入口。
+TEST_F(AddonRuntimeContractTest, CallFunctionPassesAndReturnsObjects)
+{
+    evaluate(R"(
+        globalThis.echoObject = (payload) => ({ received: payload, size: payload.items.length });
+    )");
+
+    nlohmann::json payload = {{"items", {1, 2, 3}}, {"label", "stack"}};
+    std::vector<ScriptValue> args;
+    args.emplace_back(std::move(payload), false);
+
+    const auto result = context->callFunction("echoObject", args);
+    ASSERT_TRUE(result.success()) << result.errorMessage();
+
+    ASSERT_TRUE(result.value().isObject());
+    EXPECT_EQ(result.value().asJson()["size"], 3);
+    EXPECT_EQ(result.value().asJson()["received"]["label"], "stack");
+    ASSERT_TRUE(result.value().asJson()["received"]["items"].is_array());
+    EXPECT_EQ(result.value().asJson()["received"]["items"][2], 3);
+}
+
+TEST_F(AddonRuntimeContractTest, CallFunctionPassesArrays)
+{
+    evaluate(R"(
+        globalThis.sumArray = (values) => values.reduce((total, next) => total + next, 0);
+    )");
+
+    nlohmann::json values = nlohmann::json::array({1, 2, 3, 4});
+    std::vector<ScriptValue> args;
+    args.emplace_back(std::move(values), true);
+
+    const auto result = context->callFunction("sumArray", args);
+    ASSERT_TRUE(result.success()) << result.errorMessage();
+    ASSERT_TRUE(result.value().isNumber());
+    // 数组若被降级成 undefined，reduce 会抛错，因此这里同时验证了参数确实到达。
+    EXPECT_DOUBLE_EQ(result.value().asNumber(), 10.0);
+}
+
+TEST_F(AddonRuntimeContractTest, GlobalVariablesCarryObjectsAndArrays)
+{
+    nlohmann::json object = {{"id", "minecraft:zombie"}, {"count", 3}};
+    ASSERT_TRUE(context->setGlobalVariable("objVar", ScriptValue(std::move(object), false)));
+
+    nlohmann::json array = nlohmann::json::array({"a", "b"});
+    ASSERT_TRUE(context->setGlobalVariable("arrVar", ScriptValue(std::move(array), true)));
+
+    evaluate(R"(
+        globalThis.objReadBack = objVar.id;
+        globalThis.arrReadBack = arrVar.length;
+        globalThis.arrIsArray = Array.isArray(arrVar);
+    )");
+
+    const auto objReadBack = context->getGlobalVariable("objReadBack");
+    ASSERT_TRUE(objReadBack.has_value());
+    EXPECT_EQ(objReadBack->asString(), "minecraft:zombie");
+
+    const auto arrReadBack = context->getGlobalVariable("arrReadBack");
+    ASSERT_TRUE(arrReadBack.has_value());
+    EXPECT_DOUBLE_EQ(arrReadBack->asNumber(), 2.0);
+
+    const auto arrIsArray = context->getGlobalVariable("arrIsArray");
+    ASSERT_TRUE(arrIsArray.has_value());
+    EXPECT_TRUE(arrIsArray->asBoolean());
+
+    // 读取路径同样要还原成对象，而不是 undefined
+    const auto objVar = context->getGlobalVariable("objVar");
+    ASSERT_TRUE(objVar.has_value());
+    ASSERT_TRUE(objVar->isObject());
+    EXPECT_EQ(objVar->asJson()["id"], "minecraft:zombie");
+
+    const auto arrVar = context->getGlobalVariable("arrVar");
+    ASSERT_TRUE(arrVar.has_value());
+    ASSERT_TRUE(arrVar->isArray());
+    EXPECT_EQ(arrVar->asJson().size(), 2u);
+}

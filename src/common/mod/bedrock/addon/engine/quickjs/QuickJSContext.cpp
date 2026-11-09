@@ -691,36 +691,42 @@ ScriptValue QuickJSContext::_jsValueToScriptValue(JSValue val)
 
         return ScriptValue(std::move(result));
     }
-    // 对象、数组、函数等暂时作为undefined返回
-    // TODO: 绑定层通过ScriptClassBinding和ClassRegistrar直接操作JSValue，需要完善此处的转换逻辑
-    return ScriptValue();
+
+    // 对象与数组统一以 JSON 承载，与全局函数回调路径共用同一套转换（见匿名命名空间的
+    // convertScriptValueToJSValue）。函数不可序列化，明确降级为 undefined。
+    if (JS_IsFunction(m_context, val)) {
+        return ScriptValue();
+    }
+
+    JSValue dumped = JS_JSONStringify(m_context, val, JS_UNDEFINED, JS_UNDEFINED);
+    if (JS_IsException(dumped)) {
+        JS_FreeValue(m_context, dumped);
+        return ScriptValue();
+    }
+
+    const char* text = JS_ToCString(m_context, dumped);
+    const bool isArray = JS_IsArray(val);
+    ScriptValue converted;
+    if (text != nullptr) {
+        nlohmann::json parsed = nlohmann::json::parse(text, nullptr, false);
+        JS_FreeCString(m_context, text);
+        if (!parsed.is_discarded()) {
+            converted = ScriptValue(std::move(parsed), isArray);
+        }
+    }
+    JS_FreeValue(m_context, dumped);
+
+    return converted;
 }
 
 JSValue QuickJSContext::_scriptValueToJSValue(const ScriptValue& val)
 {
+    // convertScriptValueToJSValue 直接用 ctx 构造 JS 值，上下文未初始化时必须提前返回。
     if (!m_context) {
         return JS_UNDEFINED;
     }
 
-    switch (val.type()) {
-        case ScriptValueType::Undefined:
-            return JS_UNDEFINED;
-        case ScriptValueType::Null:
-            return JS_NULL;
-        case ScriptValueType::Boolean:
-            return JS_NewBool(m_context, val.asBoolean() ? 1 : 0);
-        case ScriptValueType::Number:
-            return JS_NewFloat64(m_context, val.asNumber());
-        case ScriptValueType::String:
-            return JS_NewStringLen(m_context, val.asString().c_str(), val.asString().size());
-        case ScriptValueType::Object:
-        case ScriptValueType::Array:
-        case ScriptValueType::Function:
-            // 绑定层通过ScriptObjectRegistry直接管理JSValue
-            return JS_UNDEFINED;
-    }
-
-    return JS_UNDEFINED;
+    return convertScriptValueToJSValue(m_context, val);
 }
 
 } // namespace mc::mod::bedrock::addon
