@@ -792,7 +792,7 @@ add_executable(mc_tests
     common/world/block/BlockStateMutableTest.cpp
     common/world/block/BuildingVariantRegistrationTest.cpp
     common/world/block/BlockPushEntitiesUpTest.cpp
-    common/world/block/state/pattern/BlockPatternTest.cpp
+    common/world/block/pattern/BlockPatternTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp

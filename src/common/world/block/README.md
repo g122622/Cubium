@@ -10,16 +10,17 @@ block/
 ├── core/  # 方块身份、状态容器与行为扩展入口
 ├── dispense/  # 该领域的子模块
 ├── fire/  # 可燃参数查询
+├── pattern/  # 3D 方块模式匹配（末地传送门、出口讲台、傀儡、凋灵）
 ├── properties/  # 方块注册属性构建与状态谓词
 ├── registry/  # 方块注册与状态索引
-├── state/  # 不可变方块状态与匹配模式
+├── state/  # 不可变方块状态
 ├── support/  # 附着方块的支撑形状判定
 └── tags/  # 数据包方块标签
 ```
 
 ## 内部模块关系
 
-Block 定义共享行为入口，BlockState 维护不可变状态；BlockProperties 与方块族描述在注册时绑定。注册表持有方块和状态，原版装配位于 registry/vanilla。
+Block 定义共享行为入口，BlockState 维护不可变状态；BlockProperties 与方块族描述在注册时绑定。注册表持有方块和状态，原版装配位于 registry/vanilla。`pattern/` 提供基于方块状态谓词的三维结构匹配。
 
 ## 上下游外部依赖关系
 

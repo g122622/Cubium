@@ -33,11 +33,11 @@
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/end/EndPortalFrameBlock.hpp"
 #include "common/world/block/core/Block.hpp"
+#include "common/world/block/pattern/BlockInWorld.hpp"
+#include "common/world/block/pattern/BlockPattern.hpp"
+#include "common/world/block/pattern/BlockPatternBuilder.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
-#include "common/world/block/state/pattern/BlockInWorld.hpp"
-#include "common/world/block/state/pattern/BlockPattern.hpp"
-#include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
 #include "common/world/effect/base/LevelEventId.hpp"
 
 #include <memory>

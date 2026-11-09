@@ -185,6 +185,18 @@ public:
         m_eventCount++;
     }
 
+    // clearPatternBlocks/updatePatternBlocks 会通知每个模式格子的邻居；
+    // 测试桩只记录调用次数，用于验证迁移后的傀儡生成链路。
+    void updateNeighbors(const BlockPos& /*pos*/, Block& /*sourceBlock*/) override
+    {
+        ++m_updateNeighborsCount;
+    }
+
+    [[nodiscard]] i32 updateNeighborsCount() const
+    {
+        return m_updateNeighborsCount;
+    }
+
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -309,6 +321,7 @@ private:
     i32 m_lastEventId = 0;
     i32 m_lastEventData = 0;
     i32 m_eventCount = 0;
+    i32 m_updateNeighborsCount = 0;
     BlockPos m_lastEventPos{0, 0, 0};
 };
 
@@ -402,7 +415,7 @@ TEST_F(SnowGolemSpawnTest, CarvedPumpkin_SnowGolemPattern_SpawnsEntity)
 {
     // 设置雪傀儡模式：南瓜 + 雪块 + 雪块
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0); // 第一块雪块
     world_->setSnowBlockAt(0, 8, 0); // 第二块雪块
 
@@ -423,7 +436,7 @@ TEST_F(SnowGolemSpawnTest, JackOLantern_SnowGolemPattern_SpawnsEntity)
 {
     // 设置雪傀儡模式：南瓜灯 + 雪块 + 雪块
     BlockPos pumpkinPos(5, 20, 5);
-    world_->setBlockAt(pumpkinPos, &jackOLantern_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::JACK_O_LANTERN));
     world_->setSnowBlockAt(5, 19, 5); // 第一块雪块
     world_->setSnowBlockAt(5, 18, 5); // 第二块雪块
 
@@ -444,7 +457,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_RemovesBlocks)
 {
     // 设置雪傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0);
     world_->setSnowBlockAt(0, 8, 0);
 
@@ -469,7 +482,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_PlaysBreakEvent)
 {
     // 设置雪傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0);
     world_->setSnowBlockAt(0, 8, 0);
 
@@ -485,7 +498,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_IncompletePattern_NoSpawn)
 {
     // 只有一个雪块，不完整模式
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0); // 只有一个雪块
 
     // 触发 onBlockAdded
@@ -499,7 +512,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_WrongBlock_NoSpawn)
 {
     // 使用错误的方块（铁块代替雪块）
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(0, 9, 0); // 铁块不是雪块
     world_->setIronBlockAt(0, 8, 0);
 
@@ -539,7 +552,7 @@ protected:
         i32 px = pumpkinPos.x, py = pumpkinPos.y, pz = pumpkinPos.z;
 
         // 南瓜位置
-        world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+        world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
 
         // 手臂（中层东西方向）
         world_->setIronBlockAt(px - 1, py - 1, pz); // 西
@@ -565,7 +578,7 @@ protected:
         i32 px = pumpkinPos.x, py = pumpkinPos.y, pz = pumpkinPos.z;
 
         // 南瓜位置
-        world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+        world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
 
         // 手臂（中层南北方向）
         world_->setIronBlockAt(px, py - 1, pz - 1); // 北
@@ -608,7 +621,7 @@ TEST_F(IronGolemSpawnTest, JackOLantern_IronGolemEastWest_SpawnsEntity)
 
     // 使用南瓜灯
     i32 px = pumpkinPos.x, py = pumpkinPos.y, pz = pumpkinPos.z;
-    world_->setBlockAt(pumpkinPos, &jackOLantern_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::JACK_O_LANTERN));
     world_->setIronBlockAt(px - 1, py - 1, pz);
     world_->setIronBlockAt(px, py - 1, pz);
     world_->setIronBlockAt(px + 1, py - 1, pz);
@@ -681,7 +694,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_MissingArmBlock_NoSpawn)
 {
     // 缺少一侧手臂铁块
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(0, 9, 0); // 中央
     world_->setIronBlockAt(1, 9, 0); // 东（缺少西）
     world_->setIronBlockAt(0, 8, 0); // 身体
@@ -697,7 +710,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_MissingBodyBlock_NoSpawn)
 {
     // 缺少身体铁块
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(-1, 9, 0);
     world_->setIronBlockAt(0, 9, 0);
     world_->setIronBlockAt(1, 9, 0);
@@ -748,7 +761,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_WrongBlock_NoSpawn)
 {
     // 使用泥土块代替铁块（泥土不会触发任何傀儡模式）
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     // 设置T形结构但用泥土块
     if (VanillaBlocks::DIRT) {
         world_->setBlockAt(-1, 9, 0, &VanillaBlocks::DIRT->defaultState());
@@ -787,7 +800,7 @@ TEST_F(GolemPatternPriorityTest, SnowGolemHasPriorityOverIronGolem)
     // 这里测试雪傀儡模式优先被检测
 
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0);
     world_->setSnowBlockAt(0, 8, 0);
 
@@ -823,7 +836,7 @@ TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnSnowGolem)
 {
     // 设置雪傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0);
     world_->setSnowBlockAt(0, 8, 0);
 
@@ -842,7 +855,7 @@ TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnIronGolem)
 {
     // 设置铁傀儡模式
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(-1, 9, 0);
     world_->setIronBlockAt(0, 9, 0);
     world_->setIronBlockAt(1, 9, 0);
@@ -875,7 +888,7 @@ TEST_F(GolemBoundaryTest, EmptyWorld_NoSpawn)
 {
     // 空世界，没有构成方块
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
 
     // 触发 onBlockAdded
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
@@ -888,7 +901,7 @@ TEST_F(GolemBoundaryTest, HighYCoordinate_SnowGolemSpawns)
 {
     // 高Y坐标测试
     BlockPos pumpkinPos(1000, 256, 1000);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(1000, 255, 1000);
     world_->setSnowBlockAt(1000, 254, 1000);
 
@@ -903,7 +916,7 @@ TEST_F(GolemBoundaryTest, NegativeCoordinate_IronGolemSpawns)
 {
     // 负坐标测试
     BlockPos pumpkinPos(-100, 50, -200);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(-101, 49, -200);
     world_->setIronBlockAt(-100, 49, -200);
     world_->setIronBlockAt(-99, 49, -200);
@@ -920,7 +933,7 @@ TEST_F(GolemBoundaryTest, MultipleAttempts_AfterPatternDestroyed)
 {
     // 第一次生成
     BlockPos pumpkinPos1(0, 10, 0);
-    world_->setBlockAt(pumpkinPos1, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos1, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0);
     world_->setSnowBlockAt(0, 8, 0);
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos1, carvedPumpkin_->defaultState(), false);
@@ -934,7 +947,7 @@ TEST_F(GolemBoundaryTest, MultipleAttempts_AfterPatternDestroyed)
 
     // 第二次生成
     BlockPos pumpkinPos2(10, 20, 10);
-    world_->setBlockAt(pumpkinPos2, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos2, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(10, 19, 10);
     world_->setSnowBlockAt(10, 18, 10);
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos2, carvedPumpkin_->defaultState(), false);
@@ -979,7 +992,7 @@ TEST_F(JackOLanternGolemTest, SnowGolem_SpawnsWithJackOLantern)
 {
     // 南瓜灯 + 雪块 + 雪块 应该生成雪傀儡
     BlockPos jackPos(5, 15, 5);
-    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setBlockAt(jackPos, VanillaBlocks::getState(VanillaBlocks::JACK_O_LANTERN));
     world_->setSnowBlockAt(5, 14, 5);
     world_->setSnowBlockAt(5, 13, 5);
 
@@ -996,7 +1009,7 @@ TEST_F(JackOLanternGolemTest, IronGolem_SpawnsWithJackOLantern_EastWest)
 {
     // 南瓜灯 + T形铁块（东西方向）应该生成铁傀儡
     BlockPos jackPos(5, 20, 5);
-    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setBlockAt(jackPos, VanillaBlocks::getState(VanillaBlocks::JACK_O_LANTERN));
     world_->setIronBlockAt(4, 19, 5); // 西
     world_->setIronBlockAt(5, 19, 5); // 中央
     world_->setIronBlockAt(6, 19, 5); // 东
@@ -1016,7 +1029,7 @@ TEST_F(JackOLanternGolemTest, IronGolem_SpawnsWithJackOLantern_NorthSouth)
 {
     // 南瓜灯 + T形铁块（南北方向）应该生成铁傀儡
     BlockPos jackPos(5, 25, 5);
-    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setBlockAt(jackPos, VanillaBlocks::getState(VanillaBlocks::JACK_O_LANTERN));
     world_->setIronBlockAt(5, 24, 4); // 北
     world_->setIronBlockAt(5, 24, 5); // 中央
     world_->setIronBlockAt(5, 24, 6); // 南
@@ -1035,7 +1048,7 @@ TEST_F(JackOLanternGolemTest, NoGolem_WithoutPattern)
 {
     // 南瓜灯单独放置不应生成傀儡
     BlockPos jackPos(5, 10, 5);
-    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setBlockAt(jackPos, VanillaBlocks::getState(VanillaBlocks::JACK_O_LANTERN));
 
     jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState(), false);
 
@@ -1061,12 +1074,12 @@ protected:
 TEST_F(IronGolemDirectionTest, NorthSouth_RemovesCorrectBlocks)
 {
     // 南北方向铁傀儡：验证南北方向的铁块被正确移除
-    // 注意：当十字形存在时（东西+南北都有铁块），MC原版优先检测东西方向，
+    // 注意：当十字形存在时（东西+南北都有铁块），优先检测东西方向，
     // 因此本测试只设置南北方向的T形，不添加东西方向的铁块
     BlockPos pumpkinPos(0, 10, 0);
 
     // 设置南北方向的 T 形（仅南北，无东西）
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(0, 9, -1); // 北
     world_->setIronBlockAt(0, 9, 0);  // 中央
     world_->setIronBlockAt(0, 9, 1);  // 南
@@ -1092,7 +1105,7 @@ TEST_F(IronGolemDirectionTest, EastWest_RemovesCorrectBlocks)
     BlockPos pumpkinPos(0, 10, 0);
 
     // 设置东西方向的 T 形
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(-1, 9, 0); // 西
     world_->setIronBlockAt(0, 9, 0);  // 中央
     world_->setIronBlockAt(1, 9, 0);  // 东
@@ -1122,12 +1135,12 @@ TEST_F(IronGolemDirectionTest, EastWest_RemovesCorrectBlocks)
 
 TEST_F(IronGolemDirectionTest, CrossShape_PrefersEastWestDirection)
 {
-    // 十字形铁傀儡：MC原版优先检测东西方向
+    // 十字形铁傀儡：优先检测东西方向
     // 当十字形存在时（东西+南北都有铁块），东西方向先被检测并移除
     BlockPos pumpkinPos(0, 10, 0);
 
     // 设置十字形（东西+南北都有铁块）
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     // 东西方向手臂
     world_->setIronBlockAt(-1, 9, 0); // 西
     world_->setIronBlockAt(0, 9, 0);  // 中央
@@ -1328,7 +1341,7 @@ protected:
      */
     void setupCopperGolem(const BlockPos& pumpkinPos, const Block* copperBlock)
     {
-        world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+        world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
         if (copperBlock != nullptr) {
             world_->setBlockAtPos(pumpkinPos.down(), copperBlock);
         }
@@ -1370,7 +1383,7 @@ TEST_F(CopperGolemSpawnTest, JackOLantern_CopperGolemPattern_SpawnsEntity)
     }
 
     BlockPos jackPos(5, 20, 5);
-    world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
+    world_->setBlockAt(jackPos, VanillaBlocks::getState(VanillaBlocks::JACK_O_LANTERN));
     world_->setCopperBlockAt(5, 19, 5);
 
     jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState(), false);
@@ -1428,7 +1441,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_NoCopperBlock_NoSpawn)
 {
     // 没有铜块，不应生成铜傀儡
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
 
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
@@ -1439,7 +1452,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_WrongBlock_NoSpawn)
 {
     // 错误的方块（铁块不是铜块），不应生成铜傀儡
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(0, 9, 0); // 铁块不是铜块
 
     carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
@@ -1557,7 +1570,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_PriorityAfterSnowAndIron)
     // 但满足铜傀儡（南瓜 + 任意铜块，只要铜块紧邻南瓜下方）
     // 这里铜块在雪块下方，不紧邻南瓜，所以不满足铜傀儡
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0);   // 雪块
     world_->setCopperBlockAt(0, 8, 0); // 铜块（不紧邻南瓜）
 
@@ -1594,7 +1607,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_ReplacesCopperWithChest)
 TEST_F(CopperGolemSpawnTest, CopperGolem_SpawnPosition_AtPumpkinLevel)
 {
     // 验证铜傀儡在南瓜头部位置生成（不是铜块位置）
-    // 对应 MC 1.21.11 spawnGolemInWorld 使用 getBlock(0, 0, 0) = 南瓜位置
+    // 使用 getBlock(0, 0, 0) = 南瓜位置
     if (VanillaBlocks::COPPER_BLOCK == nullptr || VanillaBlocks::COPPER_CHEST == nullptr) {
         GTEST_SKIP() << "Copper blocks not registered";
     }
@@ -1641,7 +1654,7 @@ TEST_F(GolemPriorityWithCopperTest, SnowGolem_PriorityOverCopperGolem)
     }
 
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setSnowBlockAt(0, 9, 0);
     world_->setCopperBlockAt(0, 8, 0); // 铜块在底部，不紧邻南瓜
 
@@ -1649,6 +1662,76 @@ TEST_F(GolemPriorityWithCopperTest, SnowGolem_PriorityOverCopperGolem)
 
     // 不满足任何模式（雪傀儡需要两个雪块，铜傀儡需要铜块紧邻南瓜）
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+// ============================================================================
+// 完整模式（含南瓜头部）负例：full pattern 的 '^' 位置必须是雕刻南瓜/南瓜灯
+// ============================================================================
+
+TEST_F(SnowGolemSpawnTest, SnowGolem_WrongHeadBlock_NoSpawn)
+{
+    if (VanillaBlocks::DIRT == nullptr) {
+        GTEST_SKIP() << "DIRT not registered";
+    }
+
+    // 身体两格雪块齐全，但头部位置被泥土占据 → full pattern 不匹配。
+    BlockPos headPos(0, 10, 0);
+    world_->setBlockAt(headPos, &VanillaBlocks::DIRT->defaultState());
+    world_->setSnowBlockAt(0, 9, 0);
+    world_->setSnowBlockAt(0, 8, 0);
+
+    carvedPumpkin_->onBlockAdded(*world_, headPos, carvedPumpkin_->defaultState(), false);
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+TEST_F(IronGolemSpawnTest, IronGolem_WrongHeadBlock_NoSpawn)
+{
+    if (VanillaBlocks::DIRT == nullptr) {
+        GTEST_SKIP() << "DIRT not registered";
+    }
+
+    // T 形铁块齐全，但头部位置被泥土占据 → full pattern 不匹配。
+    BlockPos headPos(0, 10, 0);
+    world_->setBlockAt(headPos, &VanillaBlocks::DIRT->defaultState());
+    world_->setIronBlockAt(-1, 9, 0);
+    world_->setIronBlockAt(0, 9, 0);
+    world_->setIronBlockAt(1, 9, 0);
+    world_->setIronBlockAt(0, 8, 0);
+
+    carvedPumpkin_->onBlockAdded(*world_, headPos, carvedPumpkin_->defaultState(), false);
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+TEST_F(CopperGolemSpawnTest, CopperGolem_WrongHeadBlock_NoSpawn)
+{
+    if (VanillaBlocks::DIRT == nullptr || VanillaBlocks::COPPER_BLOCK == nullptr) {
+        GTEST_SKIP() << "DIRT or COPPER_BLOCK not registered";
+    }
+
+    // 铜块身体齐全，但头部位置被泥土占据 → full pattern 不匹配。
+    BlockPos headPos(0, 10, 0);
+    world_->setBlockAt(headPos, &VanillaBlocks::DIRT->defaultState());
+    world_->setCopperBlockAt(0, 9, 0);
+
+    carvedPumpkin_->onBlockAdded(*world_, headPos, carvedPumpkin_->defaultState(), false);
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 0u);
+}
+
+TEST_F(SnowGolemSpawnTest, SnowGolem_NotifiesPatternNeighbors)
+{
+    // updatePatternBlocks 会通知模式内每个格子的邻居。
+    BlockPos pumpkinPos(0, 10, 0);
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
+    world_->setSnowBlockAt(0, 9, 0);
+    world_->setSnowBlockAt(0, 8, 0);
+
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
+
+    EXPECT_EQ(world_->spawnedEntityCount(), 1u);
+    EXPECT_GT(world_->updateNeighborsCount(), 0);
 }
 
 TEST_F(GolemPriorityWithCopperTest, IronGolem_PriorityOverCopperGolem)
@@ -1663,7 +1746,7 @@ TEST_F(GolemPriorityWithCopperTest, IronGolem_PriorityOverCopperGolem)
     }
 
     BlockPos pumpkinPos(0, 10, 0);
-    world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
+    world_->setBlockAt(pumpkinPos, VanillaBlocks::getState(VanillaBlocks::CARVED_PUMPKIN));
     world_->setIronBlockAt(-1, 9, 0);
     world_->setIronBlockAt(0, 9, 0);
     world_->setIronBlockAt(1, 9, 0);

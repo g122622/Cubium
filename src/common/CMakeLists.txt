@@ -812,9 +812,10 @@ add_library(mc_common STATIC
     world/block/registry/vanilla/BlockStatePredicates.cpp
     world/block/tags/BlockTagLoader.cpp
     world/block/support/SupportType.cpp
-    world/block/state/pattern/BlockInWorld.cpp
-    world/block/state/pattern/BlockPattern.cpp
-    world/block/state/pattern/BlockPatternBuilder.cpp
+    world/block/pattern/BlockInWorld.cpp
+    world/block/pattern/BlockPattern.cpp
+    world/block/pattern/BlockPatternBuilder.cpp
+    world/block/pattern/BlockPatternCache.cpp
     world/block/registry/vanilla/AgriculturalBlocks.cpp
     world/block/registry/vanilla/BaseBlocks.cpp
     world/block/registry/vanilla/HarvestToolTable.cpp

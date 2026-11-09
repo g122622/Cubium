@@ -56,6 +56,9 @@
 #include "common/world/block/blocks/container/CopperChestBlock.hpp"
 #include "common/world/block/capability/oxidation/IOxidizableBlock.hpp"
 #include "common/world/block/core/Block.hpp"
+#include "common/world/block/pattern/BlockInWorld.hpp"
+#include "common/world/block/pattern/BlockPattern.hpp"
+#include "common/world/block/pattern/BlockPatternBuilder.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
@@ -67,9 +70,118 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace blocks {
+
+namespace {
+
+using blockpattern::BlockInWorld;
+using blockpattern::BlockPattern;
+using blockpattern::BlockPatternBuilder;
+using blockpattern::BlockPatternMatch;
+
+/// 傀儡头部谓词：雕刻南瓜或南瓜灯。
+bool _isPumpkinHeadState(const BlockState& state)
+{
+    return state.is(VanillaBlocks::CARVED_PUMPKIN) || state.is(VanillaBlocks::JACK_O_LANTERN);
+}
+
+/// 空气谓词：模式中的 '~' 要求该位置为空气。
+bool _isAirState(const BlockState& state)
+{
+    return state.isAir();
+}
+
+/// 铜块谓词：COPPER 方块标签。
+bool _isCopperBlockState(const BlockState& state)
+{
+    return BlockTags::COPPER().contains(state);
+}
+
+// 六个模式（base/full × 雪/铁/铜）在首次使用时构建；
+// 方块注册完成后才会触发（onBlockAdded），因此静态缓存的构建时机是安全的。
+
+const BlockPattern& _snowGolemBasePattern()
+{
+    static const std::unique_ptr<BlockPattern> pattern =
+        BlockPatternBuilder::start()
+            .aisle({" ", "#", "#"})
+            .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                return s.is(VanillaBlocks::SNOW_BLOCK);
+            }))
+            .build();
+    return *pattern;
+}
+
+const BlockPattern& _snowGolemFullPattern()
+{
+    static const std::unique_ptr<BlockPattern> pattern =
+        BlockPatternBuilder::start()
+            .aisle({"^", "#", "#"})
+            .where('^', BlockInWorld::hasState(&_isPumpkinHeadState))
+            .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                return s.is(VanillaBlocks::SNOW_BLOCK);
+            }))
+            .build();
+    return *pattern;
+}
+
+const BlockPattern& _ironGolemBasePattern()
+{
+    static const std::unique_ptr<BlockPattern> pattern =
+        BlockPatternBuilder::start()
+            .aisle({"~ ~", "###", "~#~"})
+            .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                return s.is(VanillaBlocks::IRON_BLOCK);
+            }))
+            .where('~', BlockInWorld::hasState(&_isAirState))
+            .build();
+    return *pattern;
+}
+
+const BlockPattern& _ironGolemFullPattern()
+{
+    static const std::unique_ptr<BlockPattern> pattern =
+        BlockPatternBuilder::start()
+            .aisle({"~^~", "###", "~#~"})
+            .where('^', BlockInWorld::hasState(&_isPumpkinHeadState))
+            .where('#', BlockInWorld::hasState([](const BlockState& s) {
+                return s.is(VanillaBlocks::IRON_BLOCK);
+            }))
+            .where('~', BlockInWorld::hasState(&_isAirState))
+            .build();
+    return *pattern;
+}
+
+const BlockPattern& _copperGolemBasePattern()
+{
+    static const std::unique_ptr<BlockPattern> pattern =
+        BlockPatternBuilder::start().aisle({" ", "#"}).where('#', BlockInWorld::hasState(&_isCopperBlockState)).build();
+    return *pattern;
+}
+
+const BlockPattern& _copperGolemFullPattern()
+{
+    static const std::unique_ptr<BlockPattern> pattern = BlockPatternBuilder::start()
+                                                             .aisle({"^", "#"})
+                                                             .where('^', BlockInWorld::hasState(&_isPumpkinHeadState))
+                                                             .where('#', BlockInWorld::hasState(&_isCopperBlockState))
+                                                             .build();
+    return *pattern;
+}
+
+// 傀儡生成函数：定义在下方，trySpawnGolem 需要先看到声明。
+bool _spawnSnowGolem(IWorld& world, const BlockPatternMatch& match);
+bool _spawnIronGolem(IWorld& world, const BlockPatternMatch& match);
+bool _spawnCopperGolem(IWorld& world,
+    const BlockPatternMatch& match,
+    const Block* copperBlock,
+    Direction facing,
+    entity::CopperGolemWeatherState weatherState);
+
+} // anonymous namespace
 
 // ============================================================================
 // MelonBlock
@@ -117,10 +229,8 @@ BlockActionResult PumpkinBlock::useItemOn(ItemStack& stack,
         return ActionResultType::TryEmptyHandInteraction;
     }
 
-    // 计算雕刻南瓜的朝向
-    // 点上下两面时朝向取玩家的反方向（原版 `player.getDirection().getOpposite()`）。
-    // 直接复用 `Directions::fromYRot` —— 它就是原版 `Direction.fromYRot` 的逐字对应，
-    // 手写四档 if 容易和它的边界（±45° 取最近象限）悄悄错开。
+    // 计算雕刻南瓜的朝向：点上下两面时朝向取玩家的反方向。
+    // 直接复用 `Directions::fromYRot`，手写四档 if 容易和它的边界（±45° 取最近象限）悄悄错开。
     Direction facing = hit.face();
     if (facing == Direction::Up || facing == Direction::Down) {
         facing = Directions::opposite(Directions::fromYRot(static_cast<f64>(player.yaw())));
@@ -168,7 +278,7 @@ BlockActionResult PumpkinBlock::useItemOn(ItemStack& stack,
 BlockActionResult PumpkinBlock::useWithoutItem(
     const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    // 本方块无空手交互分支。
     (void)state;
     (void)world;
     (void)pos;
@@ -215,38 +325,39 @@ void CarvedPumpkinBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
 
 bool CarvedPumpkinBlock::canSpawnGolem(IWorld& world, const BlockPos& pos)
 {
-    // 对应 MC 1.21.11: CarvedPumpkinBlock.canSpawnGolem(LevelReader, BlockPos)
-    //   return this.getOrCreateSnowGolemBase().find(world, pos) != null
-    //       || this.getOrCreateIronGolemBase().find(world, pos) != null
-    //       || this.getOrCreateCopperGolemBase().find(world, pos) != null;
-    //
-    // 仅检测身体部分（雪块/铁块/铜块），不检查头部（头部由调用方提供）。
-    BlockPos outBodyPos;
-    bool outIsEastWest = false;
-    BlockPos outCopperPos;
-    return checkSnowGolemPattern(world, pos) || checkIronGolemPattern(world, pos, outBodyPos, outIsEastWest) ||
-        checkCopperGolemPattern(world, pos, outCopperPos);
+    // 仅检测身体部分（base pattern 的头部位置为任意方块），不检查头部。
+    return _snowGolemBasePattern().find(world, pos).has_value() ||
+        _ironGolemBasePattern().find(world, pos).has_value() || _copperGolemBasePattern().find(world, pos).has_value();
 }
 
 bool CarvedPumpkinBlock::trySpawnGolem(IWorld& world, const BlockPos& pos)
 {
-    // 优先级：雪傀儡 > 铁傀儡 > 铜傀儡（与 MC 1.21.11 一致）
-    if (checkSnowGolemPattern(world, pos)) {
-        spawnSnowGolem(world, pos);
-        return true;
+    // 优先级：雪傀儡 > 铁傀儡 > 铜傀儡。
+    // 每个分支先创建实体，创建成功才清除图案方块（实体创建失败时不修改世界）。
+    if (auto match = _snowGolemFullPattern().find(world, pos)) {
+        if (_spawnSnowGolem(world, *match)) {
+            return true;
+        }
     }
 
-    BlockPos bodyPos;
-    bool isEastWestArm = false;
-    if (checkIronGolemPattern(world, pos, bodyPos, isEastWestArm)) {
-        spawnIronGolem(world, pos, pos.down(), isEastWestArm);
-        return true;
+    if (auto match = _ironGolemFullPattern().find(world, pos)) {
+        if (_spawnIronGolem(world, *match)) {
+            return true;
+        }
     }
 
-    BlockPos copperPos;
-    if (checkCopperGolemPattern(world, pos, copperPos)) {
-        spawnCopperGolem(world, pos, copperPos);
-        return true;
+    if (auto match = _copperGolemFullPattern().find(world, pos)) {
+        const BlockState* pumpkinState = match->getBlock(0, 0, 0).getState();
+        const BlockState* copperState = match->getBlock(0, 1, 0).getState();
+        MC_ASSERT_RELEASE(pumpkinState != nullptr);
+        MC_ASSERT_RELEASE(copperState != nullptr);
+
+        const Direction facing = pumpkinState->get(BlockStateProperties::HORIZONTAL_FACING());
+        // 氧化等级必须在清除方块前计算；Block 指针指向注册表对象，清除后仍然有效。
+        const entity::CopperGolemWeatherState weather = getWeatherStateFromCopperBlock(*copperState);
+        if (_spawnCopperGolem(world, *match, &copperState->getBlock(), facing, weather)) {
+            return true;
+        }
     }
 
     return false;
@@ -261,304 +372,192 @@ bool CarvedPumpkinBlock::isPumpkinHead(const BlockState* state)
     return &block == VanillaBlocks::CARVED_PUMPKIN || &block == VanillaBlocks::JACK_O_LANTERN;
 }
 
-bool CarvedPumpkinBlock::isAir(const BlockState* state)
+void CarvedPumpkinBlock::clearPatternBlocks(IWorld& world, const blockpattern::BlockPatternMatch& match)
 {
-    if (state == nullptr) {
-        return true; // 超出世界边界视为空气
-    }
-    return state->isAir();
-}
-
-bool CarvedPumpkinBlock::checkSnowGolemPattern(IWorld& world, const BlockPos& pos)
-{
-    // 雪傀儡模式：从上到下依次为南瓜头部、雪块、雪块
-    const BlockState* below1 = world.getBlockState(pos.down());
-    if (below1 == nullptr || !below1->is(VanillaBlocks::SNOW_BLOCK)) {
-        return false;
-    }
-
-    const BlockState* below2 = world.getBlockState(pos.down(2));
-    if (below2 == nullptr || !below2->is(VanillaBlocks::SNOW_BLOCK)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool CarvedPumpkinBlock::checkIronGolemPattern(
-    IWorld& world, const BlockPos& pos, BlockPos& outBodyPos, bool& outIsEastWest)
-{
-    // 铁傀儡模式 - T形结构
-    // 顶层：空气、南瓜头部、空气  (~^~)
-    // 中层：铁块、铁块、铁块 (###) - 手臂
-    // 底层：空气、铁块、空气 (~#~) - 身体
-
-    // 南瓜头部正下方应该是铁块（手臂中央）
-    const BlockState* armCenter = world.getBlockState(pos.down());
-    if (armCenter == nullptr || !armCenter->is(VanillaBlocks::IRON_BLOCK)) {
-        return false;
-    }
-
-    // 再下方应该是铁块（身体）
-    const BlockState* body = world.getBlockState(pos.down(2));
-    if (body == nullptr || !body->is(VanillaBlocks::IRON_BLOCK)) {
-        return false;
-    }
-
-    // 检查手臂方向：东西或南北
-    const BlockPos armPos = pos.down();
-
-    // 尝试东西方向
-    const BlockState* armEast = world.getBlockState(armPos.east());
-    const BlockState* armWest = world.getBlockState(armPos.west());
-    bool eastWestValid = (armEast != nullptr && armEast->is(VanillaBlocks::IRON_BLOCK)) &&
-        (armWest != nullptr && armWest->is(VanillaBlocks::IRON_BLOCK));
-
-    if (eastWestValid) {
-        // 检查顶层南瓜两侧和底层身体两侧是否为空气
-        if (!isAir(world.getBlockState(pos.east())) || !isAir(world.getBlockState(pos.west()))) {
-            eastWestValid = false;
-        }
-        if (eastWestValid &&
-            (!isAir(world.getBlockState(armPos.east().down())) || !isAir(world.getBlockState(armPos.west().down())))) {
-            eastWestValid = false;
-        }
-    }
-
-    if (eastWestValid) {
-        outBodyPos = pos.down(2);
-        outIsEastWest = true;
-        return true;
-    }
-
-    // 尝试南北方向
-    const BlockState* armNorth = world.getBlockState(armPos.north());
-    const BlockState* armSouth = world.getBlockState(armPos.south());
-    bool northSouthValid = (armNorth != nullptr && armNorth->is(VanillaBlocks::IRON_BLOCK)) &&
-        (armSouth != nullptr && armSouth->is(VanillaBlocks::IRON_BLOCK));
-
-    if (northSouthValid) {
-        if (!isAir(world.getBlockState(pos.north())) || !isAir(world.getBlockState(pos.south()))) {
-            northSouthValid = false;
-        }
-        if (northSouthValid &&
-            (!isAir(world.getBlockState(armPos.north().down())) ||
-                !isAir(world.getBlockState(armPos.south().down())))) {
-            northSouthValid = false;
-        }
-    }
-
-    if (northSouthValid) {
-        outBodyPos = pos.down(2);
-        outIsEastWest = false;
-        return true;
-    }
-
-    return false;
-}
-
-void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
-{
-    BlockPos below1 = headPos.down();
-    BlockPos below2 = headPos.down(2);
-
+    // 遍历 width × height（depth 固定 0），每格设空气并播放 2001 破坏粒子。
     const BlockState* airState = BlockRegistry::instance().airState();
+    MC_ASSERT_RELEASE_MSG(airState != nullptr, "CarvedPumpkinBlock::clearPatternBlocks: air state is not registered");
 
-    // 移除南瓜头部
-    if (airState != nullptr) {
-        world.setBlockState(headPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-    }
-    world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, headPos, 0);
+    for (i32 i = 0; i < match.width(); ++i) {
+        for (i32 j = 0; j < match.height(); ++j) {
+            const BlockInWorld& blockInWorld = match.getBlock(i, j, 0);
+            const BlockState* state = blockInWorld.getState();
+            MC_ASSERT_RELEASE_MSG(state != nullptr, "CarvedPumpkinBlock::clearPatternBlocks: cached state is null");
 
-    // 移除第一个雪块
-    // 注意：world.getBlockState() 返回的是区块调色板容器的内部指针，随后的 setBlockState()
-    // 可能重分配/改写该容器而使指针悬空，因此必须在写方块之前把 stateId 取成值。
-    const BlockState* snowBlock1 = world.getBlockState(below1);
-    const std::optional<i32> snowBlock1Id =
-        snowBlock1 != nullptr ? std::optional<i32>(static_cast<i32>(snowBlock1->stateId())) : std::nullopt;
-    snowBlock1 = nullptr;
-    if (airState != nullptr) {
-        world.setBlockState(below1, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+            // 必须在写方块前取 stateId：blockInWorld 的缓存可能指向区块/测试世界的状态对象，
+            // setBlockState 之后该对象可能被销毁（测试世界尤为明显）。
+            const i32 stateId = static_cast<i32>(state->stateId());
+            world.setBlockState(blockInWorld.pos(), airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+            world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, blockInWorld.pos(), stateId);
+        }
     }
-    if (snowBlock1Id.has_value()) {
-        world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, below1, *snowBlock1Id);
-    }
+}
 
-    // 移除第二个雪块
-    const BlockState* snowBlock2 = world.getBlockState(below2);
-    const std::optional<i32> snowBlock2Id =
-        snowBlock2 != nullptr ? std::optional<i32>(static_cast<i32>(snowBlock2->stateId())) : std::nullopt;
-    snowBlock2 = nullptr;
-    if (airState != nullptr) {
-        world.setBlockState(below2, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+void CarvedPumpkinBlock::updatePatternBlocks(IWorld& world, const blockpattern::BlockPatternMatch& match)
+{
+    // 对每个模式格子通知邻居。
+    MC_ASSERT_RELEASE_MSG(
+        VanillaBlocks::AIR != nullptr, "CarvedPumpkinBlock::updatePatternBlocks: AIR is not registered");
+    for (i32 i = 0; i < match.width(); ++i) {
+        for (i32 j = 0; j < match.height(); ++j) {
+            world.updateNeighbors(match.getBlock(i, j, 0).pos(), *VanillaBlocks::AIR);
+        }
     }
-    if (snowBlock2Id.has_value()) {
-        world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, below2, *snowBlock2Id);
-    }
+}
 
-    // 生成雪傀儡实体
+void CarvedPumpkinBlock::triggerSummonedEntity(IWorld& world, Entity& entity, f32 radius)
+{
+    // 对半径内所有玩家触发 SUMMONED_ENTITY 进度。
+    for (Entity* candidate : world.getPlayers()) {
+        auto* player = dynamic_cast<Player*>(candidate);
+        if (player == nullptr) {
+            continue;
+        }
+        if (player->distanceTo(entity) <= radius) {
+            world.onSummonedEntity(player->playerId(), &entity);
+        }
+    }
+}
+
+namespace {
+
+bool _spawnSnowGolem(IWorld& world, const BlockPatternMatch& match)
+{
+    // 先创建实体，成功后才清除模式方块。
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* snowGolemType = registry.getType(entity::EntityTypeKeys::SNOW_GOLEM);
     if (snowGolemType == nullptr) {
-        return;
+        spdlog::warn("CarvedPumpkinBlock: snow golem entity type is not registered");
+        return false;
     }
 
-    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
     auto* ecsRegistry = world.entityRegistry();
     if (ecsRegistry == nullptr) {
-        return;
+        return false;
     }
 
     std::unique_ptr<Entity> entity = snowGolemType->create(&world, *ecsRegistry);
     if (entity == nullptr) {
-        return;
+        return false;
     }
 
-    // 位置设置在底部雪块的中心，Y偏移0.05
+    // 雪傀儡生成在最底层雪块（pattern 的 (0, 2, 0)）中心。
+    const BlockPos spawnPos = match.getBlock(0, 2, 0).pos();
+    CarvedPumpkinBlock::clearPatternBlocks(world, match);
     entity->setPosition(
-        static_cast<f32>(below2.x) + 0.5f, static_cast<f32>(below2.y) + 0.05f, static_cast<f32>(below2.z) + 0.5f);
+        static_cast<f32>(spawnPos.x) + 0.5f, static_cast<f32>(spawnPos.y) + 0.05f, static_cast<f32>(spawnPos.z) + 0.5f);
     entity->setRotation(0.0f, 0.0f);
 
-    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-    if (mobEntity != nullptr) {
-        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, below2);
-        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
-    }
-
+    Entity* spawnedEntity = entity.get();
     world.spawnEntity(std::move(entity));
+    CarvedPumpkinBlock::triggerSummonedEntity(world, *spawnedEntity, 5.0f);
+    CarvedPumpkinBlock::updatePatternBlocks(world, match);
+    return true;
 }
 
-void CarvedPumpkinBlock::spawnIronGolem(
-    IWorld& world, const BlockPos& headPos, const BlockPos& armCenterPos, bool isEastWest)
+bool _spawnIronGolem(IWorld& world, const BlockPatternMatch& match)
 {
-    const BlockState* airState = BlockRegistry::instance().airState();
-
-    // 收集所有需要移除的位置
-    BlockPos bodyPos = armCenterPos.down();
-    std::vector<BlockPos> blocksToRemove;
-
-    if (isEastWest) {
-        // 东西方向手臂
-        blocksToRemove = {
-            bodyPos,             // 身体（底层中央）
-            armCenterPos,        // 手臂中央（中层）
-            armCenterPos.east(), // 手臂东
-            armCenterPos.west(), // 手臂西
-            headPos,             // 南瓜头部
-        };
-    } else {
-        // 南北方向手臂
-        blocksToRemove = {
-            bodyPos,              // 身体（底层中央）
-            armCenterPos,         // 手臂中央（中层）
-            armCenterPos.north(), // 手臂北
-            armCenterPos.south(), // 手臂南
-            headPos,              // 南瓜头部
-        };
-    }
-
-    // 移除所有方块
-    // 注意：world.getBlockState() 返回区块调色板容器的内部指针，随后的 setBlockState()
-    // 可能使该指针悬空，因此必须在写方块之前把 stateId 取成值（见 ASAN heap-use-after-free）。
-    for (const BlockPos& blockPos : blocksToRemove) {
-        const BlockState* blockState = world.getBlockState(blockPos);
-        const std::optional<i32> blockStateId =
-            blockState != nullptr ? std::optional<i32>(static_cast<i32>(blockState->stateId())) : std::nullopt;
-        blockState = nullptr;
-        if (airState != nullptr) {
-            world.setBlockState(blockPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-        }
-        if (blockStateId.has_value()) {
-            world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, blockPos, *blockStateId);
-        }
-    }
-
-    // 生成铁傀儡实体
+    // 先创建实体，成功后才清除模式方块。
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* ironGolemType = registry.getType(entity::EntityTypeKeys::IRON_GOLEM);
     if (ironGolemType == nullptr) {
-        return;
+        spdlog::warn("CarvedPumpkinBlock: iron golem entity type is not registered");
+        return false;
     }
 
-    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
     auto* ecsRegistry = world.entityRegistry();
     if (ecsRegistry == nullptr) {
-        return;
+        return false;
     }
 
     std::unique_ptr<Entity> entity = ironGolemType->create(&world, *ecsRegistry);
     if (entity == nullptr) {
-        return;
+        return false;
     }
 
-    // 位置设置在身体位置中心，Y偏移0.05
-    entity->setPosition(
-        static_cast<f32>(bodyPos.x) + 0.5f, static_cast<f32>(bodyPos.y) + 0.05f, static_cast<f32>(bodyPos.z) + 0.5f);
-    entity->setRotation(0.0f, 0.0f);
-
-    // 玩家建造的铁傀儡不攻击玩家
-    IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get());
-    if (ironGolem != nullptr) {
+    // 玩家建造的铁傀儡不攻击玩家。
+    if (auto* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get())) {
         ironGolem->setPlayerCreated(true);
     }
 
-    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-    if (mobEntity != nullptr) {
-        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, bodyPos);
-        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+    // 铁傀儡生成在底层中央铁块（pattern 的 (1, 2, 0)）中心。
+    const BlockPos spawnPos = match.getBlock(1, 2, 0).pos();
+    CarvedPumpkinBlock::clearPatternBlocks(world, match);
+    entity->setPosition(
+        static_cast<f32>(spawnPos.x) + 0.5f, static_cast<f32>(spawnPos.y) + 0.05f, static_cast<f32>(spawnPos.z) + 0.5f);
+    entity->setRotation(0.0f, 0.0f);
+
+    Entity* spawnedEntity = entity.get();
+    world.spawnEntity(std::move(entity));
+    CarvedPumpkinBlock::triggerSummonedEntity(world, *spawnedEntity, 5.0f);
+    CarvedPumpkinBlock::updatePatternBlocks(world, match);
+    return true;
+}
+
+bool _spawnCopperGolem(IWorld& world,
+    const BlockPatternMatch& match,
+    const Block* copperBlock,
+    Direction facing,
+    entity::CopperGolemWeatherState weatherState)
+{
+    // 流程：清除图案 → 定位 → 生成实体 → 通知玩家 → 更新邻居 → 替换铜箱子 → 初始化氧化等级。
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* copperGolemType = registry.getType(entity::EntityTypeKeys::COPPER_GOLEM);
+    if (copperGolemType == nullptr) {
+        spdlog::warn("CarvedPumpkinBlock: copper golem entity type is not registered");
+        return false;
     }
 
+    auto* ecsRegistry = world.entityRegistry();
+    if (ecsRegistry == nullptr) {
+        return false;
+    }
+
+    std::unique_ptr<Entity> entity = copperGolemType->create(&world, *ecsRegistry);
+    if (entity == nullptr) {
+        return false;
+    }
+
+    // 铜傀儡生成在南瓜头部（pattern 的 (0, 0, 0)）中心；铜块位置 (0, 1, 0) 会被替换为铜箱子。
+    const BlockPos spawnPos = match.getBlock(0, 0, 0).pos();
+    const BlockPos copperPos = match.getBlock(0, 1, 0).pos();
+
+    CarvedPumpkinBlock::clearPatternBlocks(world, match);
+    entity->setPosition(
+        static_cast<f32>(spawnPos.x) + 0.5f, static_cast<f32>(spawnPos.y) + 0.05f, static_cast<f32>(spawnPos.z) + 0.5f);
+    entity->setRotation(0.0f, 0.0f);
+
+    Entity* spawnedEntity = entity.get();
     world.spawnEntity(std::move(entity));
+    CarvedPumpkinBlock::triggerSummonedEntity(world, *spawnedEntity, 5.0f);
+    CarvedPumpkinBlock::updatePatternBlocks(world, match);
+
+    // 把铜块位置替换为对应氧化等级的铜箱子。
+    MC_ASSERT_RELEASE_MSG(copperBlock != nullptr, "CarvedPumpkinBlock: copper block is null");
+    BlockState chestState = CopperChestBlock::getFromCopperBlock(copperBlock, facing, world, copperPos);
+    world.setBlockState(copperPos, &chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+    // 设置氧化等级并播放生成音效。
+    if (auto* copperGolem = dynamic_cast<CopperGolemEntity*>(spawnedEntity)) {
+        copperGolem->spawnFromStatue(weatherState);
+    }
+    return true;
 }
+
+} // anonymous namespace
 
 // ============================================================================
 // 铜傀儡生成
 // ============================================================================
 
-bool CarvedPumpkinBlock::checkCopperGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outCopperPos)
-{
-    // 铜傀儡模式：南瓜头部（pos）+ 铜块（pos.down()）
-    // 对应 MC 1.21.11: CarvedPumpkinBlock.getOrCreateCopperGolemBase
-    //   .aisle(" ", "#")
-    //   .where('#', BlockInWorld.hasState(p -> p.is(BlockTags.COPPER)))
-    //
-    // 注意：MC 的 BlockPattern "^" 在顶部（y=1），"#" 在底部（y=0）。
-    // Cubium 中 pos 为南瓜头部位置，铜块在 pos.down()。
-    const BlockPos copperPos = pos.down();
-    const BlockState* copperState = world.getBlockState(copperPos);
-    if (copperState == nullptr) {
-        return false;
-    }
-
-    // 检查是否为任意铜块（BlockTags::COPPER 标签包含所有铜质方块：基础/氧化/涂蜡变种）
-    if (!BlockTags::COPPER().contains(*copperState)) {
-        return false;
-    }
-
-    outCopperPos = copperPos;
-    return true;
-}
-
 entity::CopperGolemWeatherState CarvedPumpkinBlock::getWeatherStateFromCopperBlock(const BlockState& copperState)
 {
-    // 对应 MC 1.21.11: CarvedPumpkinBlock.getWeatherStateFromPattern
-    //   BlockState blockstate = pattern.getBlock(0, 1, 0).getState();
-    //   return blockstate.getBlock() instanceof WeatheringCopper weatheringcopper
-    //       ? weatheringcopper.getAge()
-    //       : Optional.ofNullable(HoneycombItem.WAX_OFF_BY_BLOCK.get().get(blockstate.getBlock()))
-    //           .filter(p -> p instanceof WeatheringCopper)
-    //           .map(p -> (WeatheringCopper)p)
-    //           .orElse((WeatheringCopper)Blocks.COPPER_BLOCK)
-    //           .getAge();
-    //
-    // MC 的 WeatheringCopper.getAge() 返回 WeatherState 枚举（UNAFFECTED/EXPOSED/WEATHERED/OXIDIZED），
-    // 对应本项目的 CopperGolemWeatherState。
-    //
-    // 转换优先级：
+    // 氧化等级（UNAFFECTED/EXPOSED/WEATHERED/OXIDIZED）对应
+    // CopperGolemWeatherState。转换优先级：
     // 1. 铜块本身实现 IOxidizableBlock（暴露/锈蚀/氧化变种）→ 直接取氧化等级
     // 2. 涂蜡铜块（不实现 IOxidizableBlock）→ 通过 HoneycombItem::getWaxOffMap 查找未涂蜡变种，
     //    再取未涂蜡变种的氧化等级
-    // 3. 兜底回退到 Unaffected（与 MC 默认 Blocks.COPPER_BLOCK.getAge() 一致）
+    // 3. 兜底回退到 Unaffected
 
     const Block& block = copperState.getBlock();
 
@@ -580,112 +579,6 @@ entity::CopperGolemWeatherState CarvedPumpkinBlock::getWeatherStateFromCopperBlo
 
     // 路径 3：兜底回退到 Unaffected（对应 MC 的 Blocks.COPPER_BLOCK.getAge() = UNAFFECTED）
     return entity::CopperGolemWeatherState::Unaffected;
-}
-
-void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos, const BlockPos& copperPos)
-{
-    // 对应 MC 1.21.11: CarvedPumpkinBlock.trySpawnGolem 铜傀儡分支 +
-    //   spawnGolemInWorld + replaceCopperBlockWithChest
-    //
-    // MC 流程：
-    //   1. spawnGolemInWorld:
-    //      - clearPatternBlocks: 将南瓜和铜块都设为 air
-    //      - 铜傀儡 snapTo 到南瓜头部位置（顶部的 BlockInWorld 坐标）+ y+0.05
-    //      - addFreshEntity
-    //      - 触发 SUMMONED_ENTITY 进度
-    //      - updatePatternBlocks: 通知邻居更新
-    //   2. replaceCopperBlockWithChest:
-    //      - 在铜块位置放置对应氧化等级的铜箱子（FACING 来自南瓜）
-    //      - 调用 CopperChestBlock.getFromCopperBlock(copperBlock, facing, world, copperPos)
-    //
-    // 注意：MC 的 BlockPattern y 坐标中，y=0 是顶部（南瓜），y=1 是底部（铜块）。
-    // spawnGolemInWorld 使用 getBlock(0, 0, 0) = 南瓜位置作为生成点，
-    // replaceCopperBlockWithChest 在 getBlock(0, 1, 0) = 铜块位置放置箱子。
-    // Cubium 中 headPos = 南瓜位置（顶部），copperPos = headPos.down() = 铜块位置（底部）。
-
-    // 缓存铜块状态（清除后会失效）：保存原始 Block 指针与 BlockState 副本
-    // BlockState 无默认构造函数，使用 std::optional 延迟构造
-    const BlockState* copperStatePtr = world.getBlockState(copperPos);
-    std::optional<BlockState> copperStateCopy;
-    const Block* copperBlockPtr = nullptr;
-    // stateId 必须提前取成值：copperStatePtr 指向区块调色板容器内部，随后的 setBlockState()
-    // 可能使其悬空（见 ASAN heap-use-after-free）。
-    std::optional<i32> copperStateId;
-    if (copperStatePtr != nullptr) {
-        copperStateCopy.emplace(*copperStatePtr);
-        copperBlockPtr = &copperStatePtr->getBlock();
-        copperStateId = static_cast<i32>(copperStatePtr->stateId());
-    }
-    copperStatePtr = nullptr;
-
-    // 缓存南瓜方块的 FACING（铜箱子朝向继承自南瓜）
-    Direction facing = Direction::North;
-    const BlockState* pumpkinStatePtr = world.getBlockState(headPos);
-    if (pumpkinStatePtr != nullptr && pumpkinStatePtr->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
-        facing = pumpkinStatePtr->get(BlockStateProperties::HORIZONTAL_FACING());
-    }
-    // 同上：该指针在下面的 setBlockState 之后即失效，不可再使用。
-    pumpkinStatePtr = nullptr;
-
-    const BlockState* airState = BlockRegistry::instance().airState();
-
-    // 步骤 1: 移除南瓜头部
-    if (airState != nullptr) {
-        world.setBlockState(headPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-    }
-    world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, headPos, 0);
-
-    // 步骤 2: 移除铜块
-    if (airState != nullptr) {
-        world.setBlockState(copperPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-    }
-    if (copperStateId.has_value()) {
-        world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, copperPos, *copperStateId);
-    }
-
-    // 步骤 3: 在南瓜头部位置生成铜傀儡
-    auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* copperGolemType = registry.getType(entity::EntityTypeKeys::COPPER_GOLEM);
-    if (copperGolemType != nullptr) {
-        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
-        auto* ecsRegistry = world.entityRegistry();
-        if (ecsRegistry != nullptr) {
-            std::unique_ptr<Entity> entity = copperGolemType->create(&world, *ecsRegistry);
-            if (entity != nullptr) {
-                // 铜傀儡在南瓜头部位置生成（与雪/铁傀儡在底部生成不同，
-                // 因为铜块底部会被铜箱子占据，傀儡需要站在箱子顶部）
-                entity->setPosition(static_cast<f32>(headPos.x) + 0.5f,
-                    static_cast<f32>(headPos.y) + 0.05f,
-                    static_cast<f32>(headPos.z) + 0.5f);
-                entity->setRotation(0.0f, 0.0f);
-
-                // 设置氧化等级并播放生成音效
-                auto* copperGolem = dynamic_cast<CopperGolemEntity*>(entity.get());
-                if (copperGolem != nullptr) {
-                    const entity::CopperGolemWeatherState weatherState = copperStateCopy.has_value()
-                        ? CarvedPumpkinBlock::getWeatherStateFromCopperBlock(*copperStateCopy)
-                        : entity::CopperGolemWeatherState::Unaffected;
-                    copperGolem->spawnFromStatue(weatherState);
-                }
-
-                auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-                if (mobEntity != nullptr) {
-                    entity::combat::DifficultyInstance difficultyInstance =
-                        entity::combat::DifficultyInstance::at(world, copperPos);
-                    mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
-                }
-
-                world.spawnEntity(std::move(entity));
-            }
-        }
-    }
-
-    // 步骤 4: 用铜箱子替换铜块位置
-    // 对应 MC: replaceCopperBlockWithChest -> CopperChestBlock.getFromCopperBlock
-    if (copperBlockPtr != nullptr) {
-        BlockState chestState = blocks::CopperChestBlock::getFromCopperBlock(copperBlockPtr, facing, world, copperPos);
-        world.setBlockState(copperPos, &chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-    }
 }
 
 // ============================================================================

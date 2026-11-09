@@ -23,9 +23,9 @@
 
 #pragma once
 
+#include "BlockInWorld.hpp"
 #include "BlockPattern.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/state/pattern/BlockInWorld.hpp"
 #include <memory>
 #include <set>
 #include <string>
@@ -36,8 +36,6 @@ namespace mc::blockpattern {
 
 /**
  * @brief 方块模式构建器
- *
- * 对应 MC Java: net.minecraft.world.level.block.state.pattern.BlockPatternBuilder
  *
  * 流式 API 构建 3D 方块模式：
  * @code
@@ -67,8 +65,6 @@ public:
     /**
      * @brief 添加一层模式（aisle）
      *
-     * 对应 MC Java: BlockPatternBuilder.aisle(String...)
-     *
      * @param aisle 高度方向的字符串数组，每个字符串代表一行的宽度
      * @return 自身引用（支持链式调用）
      */
@@ -84,8 +80,6 @@ public:
 
     /**
      * @brief 绑定字符到谓词
-     *
-     * 对应 MC Java: BlockPatternBuilder.where(char, Predicate<BlockInWorld>)
      *
      * @param c 字符
      * @param predicate 谓词
@@ -105,8 +99,6 @@ public:
 private:
     /**
      * @brief 构建三维谓词数组
-     *
-     * 对应 MC Java: BlockPatternBuilder.createPattern()
      */
     [[nodiscard]] std::vector<std::vector<std::vector<BlockPattern::Predicate>>> _createPattern() const;
 

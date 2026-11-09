@@ -7,6 +7,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { Direction, ItemStack } from "@minecraft/server";
 
 // ghast_arena 结构尺寸（15×30×15），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -157,6 +158,52 @@ function witherProactivelyTargetsAndShootsPlayer(test: Test): void {
   });
 }
 
+// 玩家建造凋灵：3 个凋灵骷髅头 + 灵魂沙 T 形。
+// 前两个头颅用 setBlockType 放置（直接 setBlockState，不触发 onBlockPlacedBy，不会提前召唤）；
+// 最后一个头颅必须由模拟玩家通过物品放置，触发 WitherSkullBlock::onBlockPlacedBy → checkSpawn。
+//
+// C++ 链路（对齐 MC 1.21.11 WitherSkullBlock）：
+//   checkSpawn → witherFullPattern.find(world, pos)
+//   → CarvedPumpkinBlock::clearPatternBlocks（清除 3×3 图案，含空气格）
+//   → 在 match.getBlock(1, 2, 0)（顶点头颅位）生成 wither + makeInvulnerable。
+//
+// ghast_arena（15×30×15）布局（helper 相对坐标）：
+//   顶层 y=4：(2,4,3)(3,4,3)(4,4,3)=wither_skeleton_skull
+//   中层 y=3：(2,3,3)(3,3,3)(4,3,3)=soul_sand
+//   底层 y=2：(3,2,3)=soul_sand，两侧空气
+// 模拟玩家 (1,2,1) 持凋灵骷髅头点击中层中央灵魂沙顶面 → 头颅落到 (3,4,3) → 触发 checkSpawn。
+function witherBuiltByPlayer(test: Test): void {
+  // 中层 3 个灵魂沙 + 底层中央灵魂沙。
+  test.setBlockType("minecraft:soul_sand", { x: 2, y: 3, z: 3 });
+  test.setBlockType("minecraft:soul_sand", { x: 3, y: 3, z: 3 });
+  test.setBlockType("minecraft:soul_sand", { x: 4, y: 3, z: 3 });
+  test.setBlockType("minecraft:soul_sand", { x: 3, y: 2, z: 3 });
+
+  // 顶层两侧头颅（setBlockType 不触发 checkSpawn）。
+  test.setBlockType("minecraft:wither_skeleton_skull", { x: 2, y: 4, z: 3 });
+  test.setBlockType("minecraft:wither_skeleton_skull", { x: 4, y: 4, z: 3 });
+
+  // 最后一个头颅由模拟玩家放置：点击中层中央灵魂沙顶面，头颅落到 (3,4,3)。
+  const builder = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "builder");
+  const skull = new ItemStack("minecraft:wither_skeleton_skull", 1);
+  const used = builder.useItemOnBlock(
+    skull as unknown as Parameters<typeof builder.useItemOnBlock>[0],
+    { x: 3, y: 3, z: 3 },
+    Direction.Up,
+  );
+  test.assert(used, "placing the final wither skeleton skull should succeed");
+
+  // 召唤是放置回调同步触发的；succeedWhen 每 tick 轮询 wither 出现。
+  test.succeedWhen(() => {
+    const withers = test.getDimension().getEntities({
+      type: "wither",
+      location: test.worldLocation(ARENA_FROM),
+      volume: ARENA_VOLUME,
+    });
+    test.assert(withers.length >= 1, `wither not built, count=${withers.length}`);
+  });
+}
+
 export function registerWitherTests(): void {
   GameTest.register("MobBehaviorTests", "wither_shoots_skull_at_player_after_attacked", witherShootsSkullAtPlayerAfterAttacked)
     .structureName("gametests:ghast_arena")
@@ -165,4 +212,8 @@ export function registerWitherTests(): void {
   GameTest.register("MobBehaviorTests", "wither_proactively_targets_and_shoots_player", witherProactivelyTargetsAndShootsPlayer)
     .structureName("gametests:ghast_arena")
     .maxTicks(400);
+
+  GameTest.register("MobBehaviorTests", "wither_built_by_player", witherBuiltByPlayer)
+    .structureName("gametests:ghast_arena")
+    .maxTicks(200);
 }

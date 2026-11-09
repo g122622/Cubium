@@ -30,11 +30,11 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/core/Block.hpp"
+#include "common/world/block/pattern/BlockInWorld.hpp"
+#include "common/world/block/pattern/BlockPattern.hpp"
+#include "common/world/block/pattern/BlockPatternBuilder.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
-#include "common/world/block/state/pattern/BlockInWorld.hpp"
-#include "common/world/block/state/pattern/BlockPattern.hpp"
-#include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

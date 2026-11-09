@@ -25,7 +25,7 @@
  * @file WitherSkullBlockTest.cpp
  * @brief 凋灵召唤（WitherSkullBlock::checkSpawn）单元测试
  *
- * 参考 MC 1.21.11 WitherSkullBlock：放置凋灵骷髅头颅构成 T 形图案
+ * 放置凋灵骷髅头颅构成 T 形图案
  * （3 头颅 / 3 基座 / 空气-基座-空气）时，清空图案方块并生成凋灵。
  * 覆盖：东西/南北朝向、图案不完整不生成、非凋灵头颅不触发、
  *       和平难度不生成、生成后图案方块被清除、客户端不生成。
@@ -96,6 +96,18 @@ public:
         return m_difficulty;
     }
 
+    // BlockPattern 通过 hasChunkInMem 判断区块是否已加载，测试桩必须报告已加载，
+    // 否则 loadChunks=false 的 BlockInWorld 会拒绝读取内存方块表。
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntities.push_back(std::move(entity));
@@ -119,6 +131,17 @@ public:
         }
     }
 
+    // clearPatternBlocks/updatePatternBlocks 会通知每个模式格子的邻居。
+    void updateNeighbors(const BlockPos& /*pos*/, Block& /*sourceBlock*/) override
+    {
+        ++m_updateNeighborsCount;
+    }
+
+    [[nodiscard]] i32 updateNeighborsCount() const
+    {
+        return m_updateNeighborsCount;
+    }
+
     [[nodiscard]] bool isAirAt(i32 x, i32 y, i32 z) const
     {
         const BlockState* s = getBlockState(x, y, z);
@@ -133,8 +156,10 @@ public:
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     bool m_isClientSide = false;
     Difficulty m_difficulty = Difficulty::Normal;
+    i32 m_updateNeighborsCount = 0;
 };
 
 } // namespace
@@ -228,6 +253,9 @@ TEST_F(WitherSkullBlockTest, PatternBlocksCleared_AfterSpawn)
     EXPECT_TRUE(world_->isAirAt(0, 9, 0));
     EXPECT_TRUE(world_->isAirAt(1, 9, 0));
     EXPECT_TRUE(world_->isAirAt(0, 8, 0));
+
+    // clearPatternBlocks 后 updatePatternBlocks 会通知模式内每个格子的邻居。
+    EXPECT_GT(world_->updateNeighborsCount(), 0);
 }
 
 TEST_F(WitherSkullBlockTest, IncompletePattern_MissingHead_NoSpawn)
@@ -304,7 +332,7 @@ TEST_F(WitherSkullBlockTest, WitherSpawnedStartsInvulnerablePhase)
     ASSERT_EQ(world_->spawnedEntities().size(), 1U);
     auto* wither = dynamic_cast<entity::WitherEntity*>(world_->spawnedEntities()[0].get());
     ASSERT_NE(wither, nullptr);
-    // 对齐 vanilla makeInvulnerable：设置 220 tick 生成无敌计时器（而非永久无敌标志）
+    // 进入生成无敌阶段：设置 220 tick 生成无敌计时器（而非永久无敌标志）
     EXPECT_EQ(wither->getInvulTime(), 220);
     EXPECT_FALSE(wither->isInvulnerable());
 }

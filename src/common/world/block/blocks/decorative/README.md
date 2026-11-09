@@ -13,6 +13,7 @@ decorative/
 ├── FlowerPotBlock.hpp/cpp      # 花盆（空花盆 + 37 种 potted_* 盆栽变体，反查映射表，眼眸花昼夜切换）
 ├── LanternBlock.hpp/cpp        # 灯笼（悬挂/站立、含水支持）
 ├── ChainBlock.hpp/cpp          # 锁链（轴向放置、含水支持，MC 1.21+ 注册为 iron_chain）
+├── SkullBlock.hpp/cpp          # 头颅方块（朝向/墙挂、凋灵建造检测）
 ├── LadderBlock.hpp/cpp         # 梯子（攀爬、需背面支撑）
 ├── ScaffoldingBlock.hpp/cpp    # 脚手架（攀爬、距离支撑计算、含水支持）
 ├── CampfireBlock.hpp/cpp       # 营火（烹饪、光照、信号火、含水支持）
@@ -158,3 +159,7 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
   - 复用工具：`EyeblossomEnvironment`、`EyeblossomBlock::spawnTransformParticle` / `longSwitchSoundOf` / `particleColorOf`（详见 `pale_garden/README.md`）
 - **物品映射**: 38 个花盆方块共享同一个 `minecraft:flower_pot` 物品（通过 `BlockItemRegistry::registerSimpleBlock` 自动派生物品名）
 - **参考**: MC 1.21.11 `net.minecraft.world.level.block.FlowerPotBlock`
+
+### SkullBlock 凋灵建造使用 BlockPattern
+
+凋灵结构由 `SkullBlock::checkSpawn` 通过 `world/block/pattern/` 匹配 `^^^` / `###` / `~#~`：`#` 为 `WITHER_SUMMON_BASE_BLOCKS` 标签内的方块（灵魂沙/灵魂土），`~` 必须为空气。匹配成功后定位中间头颅（`getBlock(1,2,0)`），以 `forwards` 决定凋灵朝向，清除图案方块（含 2001 粒子）再生成实体并通知 50 格内玩家。**不要**手写坐标判定；`WitherSkullBlock` 的发射器路径（`getOrCreateWitherBase` / `canSpawnMob`）尚未实现，代码中有 TODO。

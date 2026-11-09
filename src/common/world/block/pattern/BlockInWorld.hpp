@@ -39,15 +39,13 @@ namespace blockpattern {
 /**
  * @brief 世界中方块的轻量级缓存包装器
  *
- * 对应 MC Java: net.minecraft.world.level.block.state.pattern.BlockInWorld
- *
  * 延迟加载方块状态和方块实体，避免在模式匹配预扫描阶段大量查询世界。
- * 区块未加载时 getState() 返回 nullopt（loadChunks=false 路径）。
+ * 区块未加载时 getState() 返回 nullptr（loadChunks=false 路径）；区块已加载时，
+ * 空气/未初始化 section 返回非 null 的空气状态。
  *
  * 设计说明：
- * - MC Java 的 hasState(Predicate<BlockState>) 返回 Predicate<BlockInWorld>，
- *   Cubium 由于不存在 BlockPredicate 层级，改为 hasState(std::function<bool(const BlockState&)>)
- *   并接受 const BlockState&。调用方通过 lambda 传入具体判断逻辑（如 is(block)）。
+ * - hasState 接受 std::function<bool(const BlockState&)>，返回
+ *   std::function<bool(const BlockInWorld&)>；调用方通过 lambda 传入具体判断逻辑（如 is(block)）。
  */
 class BlockInWorld {
 public:
@@ -56,7 +54,7 @@ public:
      *
      * @param world 世界引用
      * @param pos 方块位置（按值拷贝，作为不可变缓存）
-     * @param loadChunks 区块未加载时是否强制加载（true）或返回 nullopt（false）
+     * @param loadChunks 区块未加载时是否仍尝试读取（true）或返回 nullptr（false）
      */
     BlockInWorld(IWorld& world, BlockPos pos, bool loadChunks)
         : m_world(world)
@@ -68,9 +66,13 @@ public:
      * @brief 获取方块状态（延迟加载）
      *
      * - loadChunks=true：始终查询世界，返回实际方块状态
-     * - loadChunks=false：仅当区块已加载时返回方块状态，否则返回 nullopt
+     * - loadChunks=false：仅当区块已加载时返回方块状态，否则返回 nullptr
      *
-     * @return 方块状态指针；nullptr 表示区块未加载或方块为空气
+     * 区块已加载但位置为空（未初始化 section/超出建造高度）时返回空气状态，
+     * 而不是 nullptr——空气同样以非 null 的状态对象表示。
+     * 未加载区块的结果不缓存，区块随后加载时同一对象可以重新读取。
+     *
+     * @return 方块状态指针；nullptr 仅表示区块未加载
      */
     [[nodiscard]] const BlockState* getState() const;
 
@@ -99,8 +101,6 @@ public:
 
     /**
      * @brief 创建状态谓词
-     *
-     * 对应 MC Java: BlockInWorld.hasState(Predicate<BlockState>)
      *
      * 返回一个接受 const BlockInWorld* 的谓词，当 BlockInWorld 非空
      * 且其方块状态满足 predicate 时返回 true。

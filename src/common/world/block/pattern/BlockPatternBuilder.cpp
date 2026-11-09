@@ -22,25 +22,21 @@
  */
 
 #include "BlockPatternBuilder.hpp"
+#include "BlockPattern.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/state/pattern/BlockPattern.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 #include <cstddef>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
-#include <spdlog/spdlog.h>
 
 namespace mc::blockpattern {
 
 BlockPatternBuilder& BlockPatternBuilder::aisle(std::vector<std::string> aisle)
 {
-    // 对应 MC Java: BlockPatternBuilder.aisle
-    if (aisle.empty() || aisle[0].empty()) {
-        throw std::invalid_argument("Empty pattern for aisle");
-    }
+    MC_ASSERT_RELEASE_MSG(!aisle.empty() && !aisle[0].empty(), "BlockPatternBuilder::aisle: empty pattern for aisle");
 
     if (m_pattern.empty()) {
         m_height = static_cast<i32>(aisle.size());
@@ -48,14 +44,16 @@ BlockPatternBuilder& BlockPatternBuilder::aisle(std::vector<std::string> aisle)
     }
 
     if (static_cast<i32>(aisle.size()) != m_height) {
-        throw std::invalid_argument("Expected aisle with height of " + std::to_string(m_height) +
-            ", but was given one with a height of " + std::to_string(aisle.size()) + ")");
+        const std::string message = "BlockPatternBuilder::aisle: expected height " + std::to_string(m_height) +
+            ", got " + std::to_string(aisle.size());
+        MC_ASSERT_RELEASE_MSG(false, message.c_str());
     }
 
     for (const std::string& s : aisle) {
         if (static_cast<i32>(s.size()) != m_width) {
-            throw std::invalid_argument("Not all rows in the given aisle are the correct width (expected " +
-                std::to_string(m_width) + ", found one with " + std::to_string(s.size()) + ")");
+            const std::string message = "BlockPatternBuilder::aisle: expected width " + std::to_string(m_width) +
+                ", got " + std::to_string(s.size());
+            MC_ASSERT_RELEASE_MSG(false, message.c_str());
         }
 
         for (char c : s) {
@@ -91,8 +89,8 @@ std::vector<std::vector<std::vector<BlockPattern::Predicate>>> BlockPatternBuild
             }
             chars += c;
         }
-        spdlog::error("BlockPatternBuilder: Predicates for character(s) {} are missing", chars);
-        throw std::runtime_error("Predicates for character(s) " + chars + " are missing");
+        const std::string message = "BlockPatternBuilder::build: predicates for character(s) " + chars + " are missing";
+        MC_ASSERT_RELEASE_MSG(false, message.c_str());
     }
 
     // predicate[depth][height][width]
@@ -106,10 +104,9 @@ std::vector<std::vector<std::vector<BlockPattern::Predicate>>> BlockPatternBuild
             for (size_t k = 0; k < static_cast<size_t>(m_width); ++k) {
                 const char c = m_pattern[i][j][k];
                 auto it = m_lookup.find(c);
-                if (it == m_lookup.end()) {
-                    // 不应到达此处（unknownCharacters 已校验），防御性抛异常
-                    throw std::runtime_error("Missing predicate for character");
-                }
+                // 上面的 unknownCharacters 校验保证所有字符都已绑定；此处断言防御内部实现失配。
+                MC_ASSERT_RELEASE_MSG(
+                    it != m_lookup.end(), "BlockPatternBuilder::build: missing predicate for character");
                 predicate[i][j][k] = it->second;
             }
         }

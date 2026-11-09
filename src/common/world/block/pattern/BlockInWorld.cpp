@@ -23,7 +23,9 @@
 
 #include "BlockInWorld.hpp"
 
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include <functional>
@@ -33,12 +35,26 @@ namespace mc::blockpattern {
 
 const BlockState* BlockInWorld::getState() const
 {
-    if (!m_stateCached) {
-        if (m_loadChunks || m_world.chunkManager()->hasChunkInMem(m_pos.chunkX(), m_pos.chunkZ())) {
-            m_state = m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
-        }
-        m_stateCached = true;
+    if (m_stateCached) {
+        return m_state;
     }
+
+    // loadChunks=false 时，未加载区块不视为空气：返回 nullptr 且不缓存，
+    // 允许区块随后加载后同一 BlockInWorld 重新读取（state==null 视为未就绪，不写入缓存）。
+    if (!m_loadChunks && !m_world.chunkManager()->hasChunkInMem(m_pos.chunkX(), m_pos.chunkZ())) {
+        return nullptr;
+    }
+
+    const BlockState* state = m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
+    if (state == nullptr) {
+        // 区块已加载但该位置没有方块（未初始化 section/超出建造高度）：
+        // 此时返回空气 BlockState，而不是 nullptr。
+        state = BlockRegistry::instance().airState();
+        MC_ASSERT_RELEASE_MSG(state != nullptr, "BlockInWorld::getState: air state is not registered");
+    }
+
+    m_state = state;
+    m_stateCached = true;
     return m_state;
 }
 

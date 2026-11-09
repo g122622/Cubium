@@ -43,10 +43,10 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/pattern/BlockInWorld.hpp"
+#include "common/world/block/pattern/BlockPattern.hpp"
+#include "common/world/block/pattern/BlockPatternBuilder.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "common/world/block/state/pattern/BlockInWorld.hpp"
-#include "common/world/block/state/pattern/BlockPattern.hpp"
-#include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -981,7 +981,7 @@ void EndDragonFight::_respawnDragon(IWorld& world, std::vector<entity::EnderCrys
             for (i32 i = 0; i < m_exitPortalPattern->width(); ++i) {
                 for (i32 j = 0; j < m_exitPortalPattern->height(); ++j) {
                     for (i32 k = 0; k < m_exitPortalPattern->depth(); ++k) {
-                        blockpattern::BlockInWorld blockInWorld = match->getBlock(i, j, k);
+                        const blockpattern::BlockInWorld& blockInWorld = match->getBlock(i, j, k);
                         const BlockState* state = blockInWorld.getState();
                         if (state != nullptr && (state->is(bedrockBlock) || state->is(endPortalBlock))) {
                             world.setBlockState(blockInWorld.pos(), endStoneState, world::BlockUpdateFlags::UPDATE_ALL);

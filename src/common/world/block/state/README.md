@@ -1,17 +1,16 @@
-# 不可变方块状态与匹配模式
+# 不可变方块状态
 
 ## 目录结构树
 
 ```text
 state/
-├── pattern/  # 该领域的子模块
 ├── BlockState.cpp  # 模块接口与实现
 └── BlockState.hpp  # 方块状态
 ```
 
 ## 内部模块关系
 
-BlockState 使用属性布局和值索引表示不可变状态，缓存静态属性并把上下文查询委派给 Block；pattern 提供组合匹配。
+BlockState 使用属性布局和值索引表示不可变状态，缓存静态属性并把上下文查询委派给 Block。3D 多方块匹配位于同级 `../pattern/`。
 
 ## 上下游外部依赖关系
 
