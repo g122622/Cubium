@@ -1440,6 +1440,7 @@ add_executable(mc_tests
     common/world/explosion/WitherSkullExplosionContextTest.cpp
     common/world/explosion/ExplosionIgnoreTest.cpp
     common/world/explosion/ExplosionLosBlockTest.cpp
+    common/world/explosion/ExplosionBlocklikeEntitiesTest.cpp
     common/world/explosion/ExplosionRedirectProjectileTest.cpp
     # 射线检测测试
     common/math/RaycastTest.cpp
