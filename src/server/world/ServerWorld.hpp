@@ -1888,6 +1888,9 @@ private:
     std::mutex m_pendingLightFlushesMutex;
     std::vector<std::pair<LightType, SectionPos>> m_pendingLightFlushes;
 
+    /// 方块坐标处的群系（Voronoi 抖动缩放，对齐 vanilla LevelReader.getBiome）
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
+
     /// 世界坐标（含小数）处的群系（Voronoi 抖动缩放，对齐 vanilla Level.getBiome）
     [[nodiscard]] BiomeId _biomeAt(const Vector3& pos) const;
 

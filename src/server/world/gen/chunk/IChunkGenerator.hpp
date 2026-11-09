@@ -726,7 +726,7 @@ public:
     /**
      * @brief 获取世界坐标处的生物群系
      */
-    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const;
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
 
     /**
      * @brief 获取方块实体（IWorld 接口）

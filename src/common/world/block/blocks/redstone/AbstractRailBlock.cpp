@@ -45,45 +45,6 @@ namespace mc {
 namespace blocks {
 
 // ============================================================================
-// RailShapeProperty
-// ============================================================================
-
-RailShapeProperty::RailShapeProperty(const std::string& name)
-    : EnumProperty<RailShape>(name,
-          {RailShape::NorthSouth,
-              RailShape::EastWest,
-              RailShape::AscendingEast,
-              RailShape::AscendingWest,
-              RailShape::AscendingNorth,
-              RailShape::AscendingSouth,
-              RailShape::SouthEast,
-              RailShape::SouthWest,
-              RailShape::NorthWest,
-              RailShape::NorthEast})
-{}
-
-RailShapeProperty::RailShapeProperty(const std::string& name, std::vector<RailShape> values)
-    : EnumProperty<RailShape>(name, std::move(values))
-{}
-
-std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const std::string& name)
-{
-    return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name));
-}
-
-std::unique_ptr<RailShapeProperty> RailShapeProperty::createStraight(const std::string& name)
-{
-    // vanilla 矿车铁轨（动力/探测/激活）shape 仅 6 值：南北、东西、4 个斜坡，不含弯轨。
-    return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name,
-        {RailShape::NorthSouth,
-            RailShape::EastWest,
-            RailShape::AscendingEast,
-            RailShape::AscendingWest,
-            RailShape::AscendingNorth,
-            RailShape::AscendingSouth}));
-}
-
-// ============================================================================
 // AbstractRailBlock
 // ============================================================================
 
@@ -293,44 +254,4 @@ const fluid::FluidState* AbstractRailBlock::getFluidState(const BlockState& stat
 }
 
 } // namespace blocks
-} // namespace mc
-
-// ============================================================================
-// EnumProperty<RailShape> Traits 实现 - 必须在 mc 命名空间
-// ============================================================================
-
-namespace mc {
-
-std::string EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape& value)
-{
-    static const char* names[] = {"north_south",
-        "east_west",
-        "ascending_east",
-        "ascending_west",
-        "ascending_north",
-        "ascending_south",
-        "south_east",
-        "south_west",
-        "north_west",
-        "north_east"};
-    return names[static_cast<size_t>(value)];
-}
-
-std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(std::string_view name)
-{
-    static const std::unordered_map<std::string, blocks::RailShape> map = {
-        {"north_south", blocks::RailShape::NorthSouth},
-        {"east_west", blocks::RailShape::EastWest},
-        {"ascending_east", blocks::RailShape::AscendingEast},
-        {"ascending_west", blocks::RailShape::AscendingWest},
-        {"ascending_north", blocks::RailShape::AscendingNorth},
-        {"ascending_south", blocks::RailShape::AscendingSouth},
-        {"south_east", blocks::RailShape::SouthEast},
-        {"south_west", blocks::RailShape::SouthWest},
-        {"north_west", blocks::RailShape::NorthWest},
-        {"north_east", blocks::RailShape::NorthEast}};
-    auto it = map.find(std::string(name));
-    return it != map.end() ? std::optional<blocks::RailShape>(it->second) : std::nullopt;
-}
-
 } // namespace mc

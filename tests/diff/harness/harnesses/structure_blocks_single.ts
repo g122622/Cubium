@@ -30,10 +30,9 @@
  *
  * 语料沿用 `structure_start_single` 的候选区块导出（由原版放置规则算出）。
  *
- * TODO: 矿井（minecraft:mineshaft）与要塞（minecraft:stronghold）目前仍有差异：
- *       矿井的 postProcess 还是自造的简化实现（不按原版开凿 cave_air，也不做邻接判定），
- *       要塞的装饰件（门框/门的上半、铁栏杆连接状态、按钮、火把、台阶）尚未按原版补齐。
- *       两者都要按原版逐个片段重写；完成后删掉 KNOWN_GAP_STRUCTURES 登记，让它们回到必须全绿。
+ * TODO: 要塞（minecraft:stronghold）仍有差异：装饰件（门框/门的上半、铁栏杆连接状态、
+ *       按钮、火把、台阶）尚未按原版补齐，需要逐个片段重写；完成后删掉
+ *       KNOWN_GAP_STRUCTURES 里对应的前缀，让要塞回到必须全绿。
  *
  * TODO: 末地城与林地府邸暂未纳入：模板的数据标记会生成潜影贝/灾厄村民，原版 oracle 的
  *       空世界桩没有真实服务端，实体构造即抛 NPE。等桩具备最小实体生成环境后再加回来。
@@ -89,7 +88,7 @@ const PER_STRUCTURE = 5;
  * 登记为已知差异而不是从语料里剔除：差异照常产生并出现在报告里，但不会让整个能力变红。
  * 修好后必须删除这里对应的前缀。
  */
-const KNOWN_GAP_STRUCTURES = ["minecraft:mineshaft/", "minecraft:stronghold/"];
+const KNOWN_GAP_STRUCTURES = ["minecraft:stronghold/"];
 
 
 /** 语料种子。 */

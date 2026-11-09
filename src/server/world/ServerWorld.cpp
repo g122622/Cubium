@@ -1633,9 +1633,9 @@ bool ServerWorld::isCreakingActive(const BlockPos& pos) const
     return system.getValue(world::attribute::EnvironmentAttributes::CREAKING_ACTIVE(), pos.center());
 }
 
-BiomeId ServerWorld::_biomeAt(const Vector3& pos) const
+BiomeId ServerWorld::getBiome(i32 x, i32 y, i32 z) const
 {
-    // 对齐 vanilla Level.getBiome(pos)：按 Voronoi 抖动缩放的群系查询（不依赖区块是否加载）
+    // 对齐 vanilla LevelReader.getBiome(pos)：按 Voronoi 抖动缩放的群系查询（不依赖区块是否加载）
     if (m_chunkManager == nullptr) {
         return world::biome::Biomes::Plains;
     }
@@ -1643,7 +1643,12 @@ BiomeId ServerWorld::_biomeAt(const Vector3& pos) const
     if (noiseGenerator == nullptr) {
         return world::biome::Biomes::Plains;
     }
-    return noiseGenerator->getBiomeAtWorldPosition(
+    return noiseGenerator->getBiomeAtWorldPosition(x, y, z);
+}
+
+BiomeId ServerWorld::_biomeAt(const Vector3& pos) const
+{
+    return getBiome(
         static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
 }
 

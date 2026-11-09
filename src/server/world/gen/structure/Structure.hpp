@@ -370,8 +370,11 @@ public:
 
     /**
      * @brief 在指定位置放置方块（应用镜像和旋转）
+     *
+     * 虚函数：矿井据此插入「不得覆盖已有木板/原木/栅栏/铁链」的 `canBeReplaced` 判定
+     * （原版 `StructurePiece.placeBlock` 会先问 `canBeReplaced`）。
      */
-    void setBlockState(
+    virtual void setBlockState(
         IWorldWriter& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
 
     /**

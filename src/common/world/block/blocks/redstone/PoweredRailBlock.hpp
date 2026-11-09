@@ -109,8 +109,7 @@ public:
      */
     static const EnumProperty<RailShape>& SHAPE()
     {
-        static auto prop = RailShapeProperty::createStraight("shape");
-        return *prop;
+        return BlockStateProperties::RAIL_SHAPE_STRAIGHT();
     }
 
     /**

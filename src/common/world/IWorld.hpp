@@ -26,6 +26,7 @@
 #include "IWorldWriter.hpp"
 #include "WorldConstants.hpp"
 #include "biome/BiomeClimate.hpp"
+#include "biome/BiomeIds.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -1367,6 +1368,23 @@ public:
     [[nodiscard]] virtual bool isThundering() const
     {
         return false;
+    }
+
+    /**
+     * @brief 读取方块坐标处的生物群系（vanilla `LevelReader.getBiome(BlockPos)` 语义）
+     *
+     * 按 BiomeManager 的 Voronoi 抖动选格，而不是直接取该方块所在 quart。
+     * 没有群系信息的桩世界（差分探针的空世界、单元测试的假世界）返回平原：
+     * 与参照实现里空世界桩的固定群系保持一致。
+     *
+     * @param x 方块 X
+     * @param y 方块 Y
+     * @param z 方块 Z
+     * @return 该位置的生物群系 ID
+     */
+    [[nodiscard]] virtual BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const
+    {
+        return world::biome::Biomes::Plains;
     }
 
     /**

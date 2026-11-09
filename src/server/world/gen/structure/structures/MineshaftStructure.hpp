@@ -77,8 +77,10 @@ struct MineshaftConfig {
  *
  * @param parent 发起这次开口的构件（原版 `generateAndAddPiece` 的 p_227707_）
  * @param origin 起始房间，距离限制以它的包围盒为基准；为 nullptr 时不做距离限制
+ * @return 新建的构件指针（未创建时为空），对应原版 `generateAndAddPiece` 的返回值；
+ *         交叉点要靠它记录四条边的开口盒
  */
-void addMineshaftPiece(MineshaftPiece* parent,
+[[nodiscard]] MineshaftPiece* addMineshaftPiece(MineshaftPiece* parent,
     const MineshaftPiece* origin,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::IRandom& rng,
@@ -133,17 +135,130 @@ public:
     virtual void buildComponent(
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) = 0;
 
+    /// 放置方块前先判 `canBeReplaced`：木板/原木/栅栏/铁链不会被后续填充覆盖
+    void setBlockState(
+        IWorldWriter& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) override;
+
+    /// 木板状态（普通矿井橡木、恶地深色橡木）
+    [[nodiscard]] const BlockState* planksState() const noexcept;
+    /// 原木状态
+    [[nodiscard]] const BlockState* woodState() const noexcept;
+    /// 栅栏状态
+    [[nodiscard]] const BlockState* fenceState() const noexcept;
+
 protected:
     /**
      * @brief 检查位置是否可以放置片段
      */
     [[nodiscard]] static bool _canPlaceAt(i32 x, i32 y, i32 z);
 
-    /**
-     * @brief 生成木板支撑
-     */
-    void _generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::IRandom& rng);
+    // 下列 helper 与原版 StructurePiece / MineShaftPiece 的对应方法一一对应，
+    // 局部坐标 -> 世界坐标的换算统一走 getXWithOffset/getYWithOffset/getZWithOffset。
 
+    /// 读取方块（越界或读不到时按空气处理，返回非空）
+    [[nodiscard]] const BlockState* _getBlock(
+        IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const;
+
+    /// 位置上方一格是否在地表高度图之下（原版 `isInterior`）
+    [[nodiscard]] bool _isInterior(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const;
+
+    /// 支撑判定：x∈[x1,x2] 的一排、上方一格全部非空气（原版 `isSupportingBox`）
+    [[nodiscard]] bool _isSupportingBox(
+        IWorld& world, const StructureBoundingBox& bounds, i32 x1, i32 x2, i32 y, i32 z) const;
+
+    /// 结构盒范围内是否浸液或处于禁忌生物群系（原版 `isInInvalidLocation`）
+    [[nodiscard]] bool _isInInvalidLocation(IWorld& world, const StructureBoundingBox& bounds) const;
+
+    /// 该位置是否可以被矿井覆盖（木板/原木/栅栏/铁链之外都可）
+    [[nodiscard]] bool _canBeReplaced(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const;
+
+    /// 原版 `isReplaceableByStructures`：空气、液体、发光地衣、海草
+    [[nodiscard]] static bool _isReplaceableByStructures(const BlockState& state);
+
+    /// 按概率填充盒体（原版 `generateMaybeBox`）
+    void _generateMaybeBox(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::IRandom& rng,
+        f32 probability,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        const BlockState* boundaryBlock,
+        const BlockState* insideBlock,
+        bool requireNonAir,
+        bool requireInterior);
+
+    /// 按概率放置单个方块（原版 `maybeGenerateBlock`）
+    void _maybeGenerateBlock(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::IRandom& rng,
+        f32 probability,
+        i32 x,
+        i32 y,
+        i32 z,
+        const BlockState* state);
+
+    /// 上部半球填充（原版 `generateUpperHalfSphere`）
+    void _generateUpperHalfSphere(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        const BlockState* state,
+        bool requireNonAir);
+
+    /// 地面木板：仅当位置是内部且下方不是满格支撑面时铺板（原版 `setPlanksBlock`）
+    void _setPlanksBlock(
+        IWorldWriter& world, const StructureBoundingBox& bounds, const BlockState& planks, i32 x, i32 y, i32 z);
+
+    /// 向下填充整列（原版 `fillColumnDown`）
+    void _fillColumnDown(
+        IWorldWriter& world, const BlockState& state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
+
+    /// 向下找支撑柱 / 向上挂铁链（原版 `fillPillarDownOrChainUp`）
+    void _fillPillarDownOrChainUp(
+        IWorldWriter& world, const BlockState& state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
+
+    /// 走廊每段的木柱/栅栏支撑（原版 `placeSupport`）
+    void _placeSupport(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 x1,
+        i32 y,
+        i32 z,
+        i32 x2,
+        i32 topY,
+        math::IRandom& rng);
+
+    /// 按概率放蜘蛛网（原版 `maybePlaceCobWeb`）
+    void _maybePlaceCobWeb(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::IRandom& rng,
+        f32 probability,
+        i32 x,
+        i32 y,
+        i32 z);
+
+private:
+    /// 原版 `canPlaceColumnOnTopOf`：该方块上面能站柱
+    [[nodiscard]] bool _canPlaceColumnOnTopOf(IWorld& world, const BlockPos& pos) const;
+
+    /// 原版 `canHangChainBelow`：下方能挂铁链
+    [[nodiscard]] bool _canHangChainBelow(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+
+    /// 在 [fromY, toY) 之间连续填同一方块（原版 `fillColumnBetween`）
+    void _fillColumnBetween(IWorldWriter& world, const BlockState& state, i32 x, i32 fromY, i32 toY, i32 z) const;
+
+    /// 原版 `hasSturdyNeighbours`：周围至少 count 个方向有坚固面
+    [[nodiscard]] bool _hasSturdyNeighbours(
+        IWorld& world, const StructureBoundingBox& bounds, i32 x, i32 y, i32 z, i32 count) const;
+
+protected:
     MineshaftType m_mineshaftType;
 
     /// 朝向：0=北 1=南 2=西 3=东；房间为 -1
@@ -178,8 +293,12 @@ public:
     void buildComponent(
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) override;
 
+    /// 开口盒是房间的额外位置状态，必须随整体平移一起移动（原版 `move`）
+    void offset(i32 dx, i32 dy, i32 dz) override;
+
 private:
-    /// 出口方向列表
+    /// 四条边开口盒（原版 `childEntranceBoxes`）：Room 生成时按它把每条支路的入口挖通
+    std::vector<StructureBoundingBox> m_childEntranceBoxes;
 };
 
 // ============================================================================
@@ -216,49 +335,18 @@ public:
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) override;
 
 private:
-    /**
-     * @brief 生成走廊地板
-     */
-    void _generateFloor(IWorldWriter& world,
-        i32 x1,
-        i32 z1,
-        i32 x2,
-        i32 z2,
+    /// 走廊两端的木柱/铁链：位置是木板才继续（原版 `placeDoubleLowerOrUpperSupport`）
+    void _placeDoubleLowerOrUpperSupport(
+        IWorldWriter& world, IWorld& reader, const StructureBoundingBox& chunkBounds, i32 x, i32 y, i32 z);
+
+    /// 1% 概率的宝箱矿车（原版覆盖的 `createChest`）
+    void _createChest(IWorldWriter& world,
+        IWorld& reader,
         math::IRandom& rng,
+        i32 x,
+        i32 y,
+        i32 z,
         const StructureBoundingBox& chunkBounds);
-
-    /**
-     * @brief 生成走廊天花板
-     */
-    void _generateCeiling(IWorldWriter& world,
-        i32 x1,
-        i32 z1,
-        i32 x2,
-        i32 z2,
-        math::IRandom& rng,
-        const StructureBoundingBox& chunkBounds);
-
-    /**
-     * @brief 生成支撑柱
-     */
-    void _generatePillars(
-        IWorldWriter& world, i32 sectionIndex, math::IRandom& rng, const StructureBoundingBox& chunkBounds);
-
-    /**
-     * @brief 生成铁轨
-     */
-    void _generateRails(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds);
-
-    /**
-     * @brief 生成蜘蛛刷怪笼
-     */
-    void _generateSpawner(IWorldWriter& world, i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds);
-
-    /**
-     * @brief 生成宝箱矿车
-     */
-    void _generateChestMinecart(
-        IWorldWriter& world, i32 x, i32 y, i32 z, math::IRandom& rng, const StructureBoundingBox& chunkBounds);
 
     bool m_hasRails;
     bool m_hasSpiders;
@@ -299,6 +387,8 @@ public:
         std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth) override;
 
 private:
+    /// 包围盒高度超过 3 时是双层交叉点（原版 `isTwoFloored`）
+    bool m_isTwoFloored = false;
 };
 
 // ============================================================================
