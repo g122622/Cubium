@@ -35,8 +35,11 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
@@ -326,6 +329,96 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
 // 本轮接入解析与字段校验，并让 _AddonMob::canBeLeashed 消费它（声明即可被拴）。
 // minecraft:breathable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
 // 原版 schema 同时给 snake_case 与 camelCase 两套键，两种都必须接受。
+// minecraft:healable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+TEST_F(AddonEntityDefinitionTest, HealableComponentIsAccepted)
+{
+    auto full = _definition("addon_test:healable_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    nlohmann::json cookieEffect = {{"name", "poison"}, {"duration", 100}};
+    nlohmann::json cookie = {
+        {"item", "minecraft:cookie"}, {"heal_amount", 0}, {"effects", nlohmann::json::array({cookieEffect})}};
+    nlohmann::json hay = {{"item", "minecraft:hay_block"}, {"heal_amount", 10}};
+    nlohmann::json wheat = {{"item", "minecraft:wheat"}, {"heal_amount", 2}};
+    full["minecraft:entity"]["components"]["minecraft:healable"] = {{"force_use", true},
+        {"filters", {{"test", "is_riding"}, {"operator", "!="}, {"value", true}}},
+        {"items", nlohmann::json::array({wheat, hay, cookie})}};
+
+    auto minimal = _definition("addon_test:healable_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    minimal["minecraft:entity"]["components"]["minecraft:healable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/healable_mob.json", full);
+    write(directory / "entities/healable_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, HealableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"items", "wheat"}}, "non-array items"},
+        {{{"items", nlohmann::json::array({{{"heal_amount", 2}}})}}, "entry missing item"},
+        {{{"items", nlohmann::json::array({{{"item", "minecraft:wheat"}, {"heal_amount", -1}}})}},
+            "negative heal_amount"},
+        {{{"force_use", "yes"}}, "non-boolean force_use"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_healable");
+        definition["minecraft:entity"]["components"]["minecraft:healable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// 喂食治疗是服务端行为：声明 healable 的生物被喂对应物品时必须回血，且物品被消耗。
+TEST_F(AddonEntityDefinitionTest, HealableRestoresHealthFromMatchingItem)
+{
+    if (mc::Items::WHEAT == nullptr || mc::Items::DIRT == nullptr) {
+        GTEST_SKIP() << "item registry not initialized";
+    }
+
+    auto definition = _definition("addon_test:fed_mob");
+    definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 20}, {"max", 20}};
+    definition["minecraft:entity"]["components"]["minecraft:healable"] = {
+        {"items", nlohmann::json::array({{{"item", "minecraft:wheat"}, {"heal_amount", 5}}})}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/fed_mob.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto entity = create("addon_test:fed_mob");
+    ASSERT_NE(entity, nullptr);
+    auto* mob = dynamic_cast<mc::MobEntity*>(entity.get());
+    ASSERT_NE(mob, nullptr);
+
+    // 掉血到 10，喂小麦应回到 15。
+    mob->setHealth(10.0f);
+    mc::ItemStack wheat(mc::Items::WHEAT, 3);
+    mc::Player player(mc::EntityInstanceId(9001), "Feeder", entities);
+    ASSERT_TRUE(mob->tryHealFromItem(wheat, player));
+    EXPECT_FLOAT_EQ(mob->health(), 15.0f);
+    EXPECT_EQ(wheat.getCount(), 2) << "survival feeding must consume one item";
+
+    // 不匹配的物品不治疗，也不消耗。
+    mc::ItemStack dirt(mc::Items::DIRT, 1);
+    EXPECT_FALSE(mob->tryHealFromItem(dirt, player));
+    EXPECT_EQ(dirt.getCount(), 1);
+
+    // 满血时不治疗（force_use 默认 false）。
+    mob->setHealth(20.0f);
+    mc::ItemStack spare(mc::Items::WHEAT, 1);
+    EXPECT_FALSE(mob->tryHealFromItem(spare, player));
+    EXPECT_EQ(spare.getCount(), 1) << "no consumption when already at full health";
+}
+
 TEST_F(AddonEntityDefinitionTest, BreathableComponentIsAccepted)
 {
     auto snakeCase = _definition("addon_test:breather_snake");
@@ -865,8 +958,8 @@ TEST_F(AddonEntityDefinitionTest, DuplicateDefinitionsWithinOnePackAreRejected)
 TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplicitFailures)
 {
     auto definition = _definition("addon_test:unsupported");
-    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable 都已接入。
-    definition["minecraft:entity"]["components"]["minecraft:damage_sensor"] = nlohmann::json::array();
+    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable 都已接入。
+    definition["minecraft:entity"]["components"]["minecraft:rideable"] = {{"seat_count", 1}};
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

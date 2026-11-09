@@ -26,6 +26,9 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp" // minecraft:is_baby → AgeableEntity::setChild
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
@@ -327,6 +330,58 @@ public:
      * 基岩 `minecraft:breathable.total_supply` 的单位是**秒**，而项目的空气量按 tick 计
      * （vanilla 默认 300 = 15 秒 × 20）。未声明该组件时沿用基类默认。
      */
+    /**
+     * @brief 用玩家手持物品治疗本实体
+     *
+     * 对应 `minecraft:healable.items`：匹配 `item` 资源位置，按 `heal_amount` 回血。
+     * 满血时不消耗（除非 `force_use` 为 true）。
+     */
+    [[nodiscard]] bool tryHealFromItem(ItemStack& stack, Player& player) override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* healable = components != nullptr ? components->component("minecraft:healable") : nullptr;
+        if (healable == nullptr || stack.isEmpty()) {
+            return false;
+        }
+
+        const auto items = healable->find("items");
+        if (items == healable->end() || !items->is_array()) {
+            return false;
+        }
+
+        const std::string& heldId = stack.getItem()->itemLocation().toString();
+        for (const auto& entry : *items) {
+            if (!entry.is_object()) {
+                continue;
+            }
+            const auto itemId = entry.find("item");
+            if (itemId == entry.end() || !itemId->is_string() || itemId->get<std::string>() != heldId) {
+                continue;
+            }
+
+            // 满血时是否仍可使用由 force_use 决定（原版默认 false：满血不消耗物品）。
+            const bool forceUse = healable->value("force_use", false);
+            if (!forceUse && health() >= maxHealth()) {
+                return false;
+            }
+
+            i32 healAmount = 1;
+            if (const auto amount = entry.find("heal_amount"); amount != entry.end() && amount->is_number_integer()) {
+                healAmount = static_cast<i32>(amount->get<i64>());
+            }
+            if (healAmount > 0) {
+                heal(static_cast<f32>(healAmount));
+            }
+
+            // 生存模式消耗一个物品；创造模式不消耗（与原版喂食一致）。
+            if (!player.isCreative()) {
+                stack.shrink(1);
+            }
+            return true;
+        }
+        return false;
+    }
+
     [[nodiscard]] i32 maxAir() const override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -772,6 +827,47 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
             //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
             //   在此之前这些字段只做类型校验，不生效。
+        } else if (name == "minecraft:healable") {
+            // 三个字段：filters（交互前置条件）、force_use（满血也能用）、items（物品 → 治疗量）。
+            // items 每项含 item（必填资源位置）、heal_amount（默认 1）、effects（可选效果列表）。
+            MC_TRY(_members(component, {"filters", "force_use", "items"}));
+            MC_TRY(_boolean(component, "force_use"));
+            if (const auto filters = component.find("filters"); filters != component.end() && !filters->is_object()) {
+                return Error(ErrorCode::InvalidData, "minecraft:healable filters must be an object");
+            }
+
+            const auto items = component.find("items");
+            if (items != component.end()) {
+                if (!items->is_array()) {
+                    return Error(ErrorCode::InvalidData, "minecraft:healable items must be an array");
+                }
+                for (const auto& entry : *items) {
+                    if (!entry.is_object()) {
+                        return Error(ErrorCode::InvalidData, "minecraft:healable items entries must be objects");
+                    }
+                    const auto itemId = entry.find("item");
+                    if (itemId == entry.end() || !itemId->is_string() ||
+                        itemId->get_ref<const std::string&>().empty()) {
+                        return Error(
+                            ErrorCode::InvalidData, "minecraft:healable items entries require a nonempty item");
+                    }
+                    if (const auto amount = entry.find("heal_amount"); amount != entry.end()) {
+                        if (!amount->is_number_integer()) {
+                            return Error(ErrorCode::InvalidData, "minecraft:healable heal_amount must be an integer");
+                        }
+                        if (amount->get<i64>() < 0) {
+                            return Error(ErrorCode::InvalidData, "minecraft:healable heal_amount cannot be negative");
+                        }
+                    }
+                    if (const auto effects = entry.find("effects"); effects != entry.end() && !effects->is_array()) {
+                        return Error(ErrorCode::InvalidData, "minecraft:healable effects must be an array");
+                    }
+                }
+            }
+            // TODO: filters（过滤器组）与 items[].effects（施加状态效果）尚未接入：
+            //   - filters 需要把 EntityFilter 接到"玩家对生物使用物品"这条交互上下文上；
+            //   - effects 需要在治疗成功后对实体施加状态效果（含 chance 判定）。
+            //   目前生效的只有"物品 → 治疗量"这一条（见 _AddonMob::tryHealFromItem）。
         } else if (name == "minecraft:breathable") {
             // 官方 schema 同时给了 snake_case 与 camelCase 两套键（suffocate_time/suffocateTime、
             // total_supply/totalSupply），原版实体定义里两种都出现过，必须都接受。

@@ -994,6 +994,13 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
         }
         return ActionResultType::Pass;
     }
+    // 3.5 物品驱动的治疗（addon `minecraft:healable`）：喂食治疗先于装备交互，
+    //     与原版"喂食优先于穿戴"的交互顺序一致。基类默认不治疗。
+    if (item != nullptr && isAlive()) {
+        if (tryHealFromItem(heldItem, player)) {
+            return ActionResultType::Success;
+        }
+    }
 
     // 4. 物品驱动的右键装备（如快乐恶魂挽具）
     //    对齐 vanilla Entity.interactOn 中 itemstack.interactLivingEntity(...) 早于 mobInteract 的调用顺序：
@@ -1055,6 +1062,14 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
 {
     // 基类默认返回 Pass，子类可重写以处理特定交互
     return ActionResultType::Pass;
+}
+
+bool MobEntity::tryHealFromItem(ItemStack& stack, Player& player)
+{
+    // 基类不治疗：只有数据驱动实体（addon minecraft:healable）覆写本方法。
+    MC_UNUSED(stack);
+    MC_UNUSED(player);
+    return false;
 }
 
 bool MobEntity::canBeLeashed() const

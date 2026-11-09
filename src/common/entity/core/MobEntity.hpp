@@ -1565,6 +1565,21 @@ public:
      */
     [[nodiscard]] virtual bool canBeLeashed() const;
 
+    /**
+     * @brief 尝试用玩家手持物品治疗本实体
+     *
+     * 数据驱动的生物（addon `minecraft:healable`）覆写此方法；基类默认不治疗，
+     * 与原版"只有声明了 healable 的生物才能被喂食治疗"一致。
+     *
+     * 调用方：`processInitialInteract`，在命名牌/刷怪蛋/拴绳之后、`interactMob` 之前。
+     * 治疗成功后由调用方负责消耗一个物品。
+     *
+     * @param stack 玩家手持物品（可能需要消耗，故为可写引用）
+     * @param player 交互玩家
+     * @return 是否发生了治疗
+     */
+    [[nodiscard]] virtual bool tryHealFromItem(ItemStack& stack, Player& player);
+
     // ========== NBT 序列化 ==========
 
     /**
