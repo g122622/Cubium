@@ -892,8 +892,8 @@ Result<std::unique_ptr<SmithingTrimRecipe>> RecipeSerializers::parseSmithingTrim
     }
 
     // pattern（必选，TrimPattern 的 ResourceLocation）
-    // TODO: 纹饰系统（TrimPattern 注册表）未实现，当前仅解析为 ResourceLocation 暂存，
-    // 待纹饰注册表接入后解析为 Holder<TrimPattern>。
+    // 存 id 而非 TrimPattern 指针：TRIM 组件的持久形态就是 `{"material": <id>, "pattern": <id>}`，
+    // 配方装配时由 SmithingTrimRecipe::assemble 用 TrimPatterns::get 校验该 id 存在。
     if (!json.contains("pattern") || !json["pattern"].is_string()) {
         return Error(ErrorCode::ResourceParseError, "Smithing trim recipe missing 'pattern' string");
     }

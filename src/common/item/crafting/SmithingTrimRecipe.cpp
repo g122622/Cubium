@@ -98,9 +98,10 @@ SmithingTrimRecipe::SmithingTrimRecipe(const ResourceLocation& id,
 
 bool SmithingTrimRecipe::matches(const IInventory& inventory) const
 {
-    // TODO: 锻造台容器槽位语义待对齐。项目当前无 SmithingMenu 实现，
-    // 此处按原版 1.21+ 锻造台 3 槽（template=0/base=1/addition=2）匹配。
-    // 待锻造台容器接入后，需根据实际槽位布局调整 SLOT_* 常量与此处读取。
+    // 槽位语义已与 SmithingMenu.java 核对一致：TEMPLATE_SLOT=0 / BASE_SLOT=1 /
+    // ADDITIONAL_SLOT=2，与下方 SLOT_* 常量逐项对应，接入锻造台容器时无需调整。
+    // TODO: 项目尚无 SmithingMenu（锻造台容器/界面），本方法目前只被单元测试以
+    //   长度≥3 的 inventory 直接驱动；容器落地后应确认实际槽位布局仍与上述一致。
     if (inventory.getContainerSize() < 3) {
         return false;
     }
