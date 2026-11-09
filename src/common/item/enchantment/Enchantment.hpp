@@ -245,6 +245,21 @@ public:
     [[nodiscard]] virtual bool canApplyToItem(const ItemStack& stack) const;
 
     /**
+     * @brief 该附魔是否作用于指定装备槽位
+     *
+     * 对应原版 `Enchantment.matchingSlot(EquipmentSlot)`，判据来自各附魔的
+     * `slots` 字段（数据包中各附魔定义文件的 `slots` 字段）。原版用它实现
+     * `getSlotItems` 的槽位过滤，进而决定「从实体身上取附魔等级」时扫描哪些槽位。
+     *
+     * 默认实现查 `_slotMaskForId` 中的静态表；表里没有的附魔按「全部槽位」处理，
+     * 与不提供槽位信息时的既有行为一致。子类通常无需覆写。
+     *
+     * @param slot 装备槽位
+     * @return 该槽位上的附魔等级应被计入时返回 true
+     */
+    [[nodiscard]] virtual bool matchesSlot(EquipmentSlot slot) const;
+
+    /**
      * @brief 检查是否可以出现在村民交易中
      * @return 如果可以出现在村民交易返回true
      */

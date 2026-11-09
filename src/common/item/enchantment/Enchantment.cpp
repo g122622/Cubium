@@ -103,7 +103,111 @@ bool _isAnimalArmor(const Item& item)
         dynamic_cast<const item::items::NautilusArmorItem*>(&item) != nullptr;
 }
 
+// ============================================================================
+// 附魔的生效槽位表
+// ============================================================================
+//
+// 判据来自数据包中各附魔定义文件的 `slots` 字段。原版用它实现
+// `Enchantment.getSlotItems`：从实体身上取附魔等级时，只扫描该附魔声明过的槽位，
+// 避免把副手/护甲上恰好同名的附魔也算进来。
+//
+// 维护约定：这张表必须与数据包一致。新增附魔时同步补一行；表里缺项的附魔按
+// "全部槽位"处理（即退化为不筛选），不会漏掉附魔效果，只是可能高估等级。
+
+/// 单个槽位在掩码中的位序，直接用 EquipmentSlot 的枚举值。
+constexpr u32 _slotBit(EquipmentSlot slot)
+{
+    return 1u << static_cast<u32>(slot);
+}
+
+/// 四个护甲槽（靴/腿/胸/头）——数据包里的 `armor`。
+constexpr u32 _armorSlots = _slotBit(EquipmentSlot::Feet) | _slotBit(EquipmentSlot::Legs) |
+    _slotBit(EquipmentSlot::Chest) | _slotBit(EquipmentSlot::Head);
+
+/// 双手——数据包里的 `hand`。
+constexpr u32 _handSlots = _slotBit(EquipmentSlot::MainHand) | _slotBit(EquipmentSlot::OffHand);
+
+/// 全部槽位——数据包里的 `any`，也是表项缺失时的退化值。
+constexpr u32 _allSlots = _slotBit(EquipmentSlot::MainHand) | _slotBit(EquipmentSlot::OffHand) |
+    _slotBit(EquipmentSlot::Feet) | _slotBit(EquipmentSlot::Legs) | _slotBit(EquipmentSlot::Chest) |
+    _slotBit(EquipmentSlot::Head) | _slotBit(EquipmentSlot::Body) | _slotBit(EquipmentSlot::Saddle);
+
+/**
+ * @brief 附魔 ID 到槽位掩码的映射
+ *
+ * 只列数据包中 `slots` 不是 `any` 的附魔；`any` 与未列出的附魔都走 `_allSlots`。
+ */
+struct SlotMaskEntry {
+    std::string_view id;
+    u32 mask;
+};
+
+constexpr SlotMaskEntry _kSlotMasks[] = {
+    // 护甲（armor）
+    {"minecraft:binding_curse", _armorSlots},
+    {"minecraft:blast_protection", _armorSlots},
+    {"minecraft:feather_falling", _armorSlots},
+    {"minecraft:fire_protection", _armorSlots},
+    {"minecraft:projectile_protection", _armorSlots},
+    {"minecraft:protection", _armorSlots},
+    // 单槽护甲
+    {"minecraft:aqua_affinity", _slotBit(EquipmentSlot::Head)},
+    {"minecraft:respiration", _slotBit(EquipmentSlot::Head)},
+    {"minecraft:swift_sneak", _slotBit(EquipmentSlot::Legs)},
+    {"minecraft:depth_strider", _slotBit(EquipmentSlot::Feet)},
+    {"minecraft:frost_walker", _slotBit(EquipmentSlot::Feet)},
+    {"minecraft:soul_speed", _slotBit(EquipmentSlot::Feet)},
+    // 双手
+    {"minecraft:lunge", _handSlots},
+    {"minecraft:riptide", _handSlots},
+    // 主手 + 副手（quick_charge 在数据包里显式列出两槽）
+    {"minecraft:quick_charge", _handSlots},
+    // 主手
+    {"minecraft:bane_of_arthropods", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:breach", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:channeling", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:density", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:efficiency", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:fire_aspect", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:flame", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:fortune", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:impaling", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:infinity", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:knockback", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:looting", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:loyalty", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:luck_of_the_sea", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:lure", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:multishot", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:piercing", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:power", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:punch", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:sharpness", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:silk_touch", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:smite", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:sweeping_edge", _slotBit(EquipmentSlot::MainHand)},
+    {"minecraft:wind_burst", _slotBit(EquipmentSlot::MainHand)},
+};
+
+/// 查表得到附魔的槽位掩码；表项缺失时返回 _allSlots（退化为不筛选）。
+u32 _slotMaskForId(std::string_view id)
+{
+    for (const SlotMaskEntry& entry : _kSlotMasks) {
+        if (entry.id == id) {
+            return entry.mask;
+        }
+    }
+    return _allSlots;
+}
+
 } // namespace
+
+bool Enchantment::matchesSlot(EquipmentSlot slot) const
+{
+    // 原版 `Enchantment.matchingSlot`：该附魔的 slots 声明是否包含此槽位。
+    // 查表默认值 _allSlots 保证表项缺失时行为不变（全部计入）。
+    return (_slotMaskForId(id()) & _slotBit(slot)) != 0;
+}
 
 bool Enchantment::canApplyToItem(const ItemStack& stack) const
 {
