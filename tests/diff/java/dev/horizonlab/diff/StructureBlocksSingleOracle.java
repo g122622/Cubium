@@ -124,6 +124,8 @@ public final class StructureBlocksSingleOracle {
         final String unit = input.has("unit") ? input.get("unit").getAsString() : "";
         final String dimensionName = input.get("dimension").getAsString();
         final boolean terrain = input.has("terrain") && input.get("terrain").getAsBoolean();
+        // 输出模式：方块产物或数据标记实体产物，两者共用同一套放置流程。
+        final boolean entityOutput = input.has("output") && "entities".equals(input.get("output").getAsString());
         final long seed = input.get("seed").getAsLong();
         final int chunkX = input.get("chunkX").getAsInt();
         final int chunkZ = input.get("chunkZ").getAsInt();
@@ -157,6 +159,7 @@ public final class StructureBlocksSingleOracle {
                 .orElse(null);
 
         JsonArray blocks = new JsonArray();
+        List<JsonObject> spawnedEntities = new ArrayList<>();
         boolean valid = start != null && start.isValid();
         if (valid) {
             int minY = dimension.height().getMinY();
@@ -181,6 +184,8 @@ public final class StructureBlocksSingleOracle {
                 }
             }
 
+            spawnedEntities.addAll(level.entities);
+
             List<Map.Entry<Long, BlockState>> entries = new ArrayList<>(level.blocks.entrySet());
             entries.sort(Comparator
                     .comparingInt((Map.Entry<Long, BlockState> e) -> BlockPos.getX(e.getKey()))
@@ -197,10 +202,23 @@ public final class StructureBlocksSingleOracle {
             }
         }
 
+        JsonArray entities = new JsonArray();
+        List<JsonObject> sortedEntities = new ArrayList<>(spawnedEntities);
+        sortedEntities.sort(Comparator
+                .comparing((JsonObject o) -> o.get("type").getAsString())
+                .thenComparingInt(o -> o.get("x").getAsInt())
+                .thenComparingInt(o -> o.get("y").getAsInt())
+                .thenComparingInt(o -> o.get("z").getAsInt()));
+        sortedEntities.forEach(entities::add);
+
         JsonObject result = new JsonObject();
         result.addProperty("unit", unit);
         result.addProperty("valid", valid);
-        result.add("blocks", blocks);
+        if (entityOutput) {
+            result.add("entities", entities);
+        } else {
+            result.add("blocks", blocks);
+        }
         return result;
     }
 
@@ -257,9 +275,10 @@ public final class StructureBlocksSingleOracle {
         net.minecraft.world.attribute.EnvironmentAttributeSystem attributes;
         final net.minecraft.world.level.border.WorldBorder border =
                 new net.minecraft.world.level.border.WorldBorder();
-        // Unsafe 分配不会执行字段初始化器，这两个表必须在 create() 里显式建出来。
+        // Unsafe 分配不会执行字段初始化器，这几个表必须在 create() 里显式建出来。
         Map<Long, BlockState> blocks;
         Map<Long, ProtoChunk> chunks;
+        List<JsonObject> entities;
         // 可选确定性地形（与探针共用同一组常量）：
         // 主世界 y<=50 石头、51..62 水；下界 y<=31 下界岩；末地 y<=50 末地石。
         boolean terrain;
@@ -295,6 +314,7 @@ public final class StructureBlocksSingleOracle {
                         .build();
                 level.blocks = new HashMap<>();
                 level.chunks = new HashMap<>();
+                level.entities = new ArrayList<>();
                 level.server = allocateFakeServer(unsafe);
                 level.terrain = terrain;
                 if (terrain) {
@@ -501,13 +521,27 @@ public final class StructureBlocksSingleOracle {
 
         @Override
         public boolean addFreshEntity(Entity entity) {
-            // 本能力只比较方块；实体本身不入表，也不产生方块差异。
+            // 与探针同口径：只记录类型与位置（千分之一单位）。模板 NBT 中的 UUID 每侧随机，
+            // 生物初始化也不是结构产物；偏航角对部分生物（潜影贝）由实例随机源初始化，
+            // 原版两次运行之间都不一样，不能作为确定性比较项。
+            // 携带乘客的坐骑（溺尸的僵尸鹦鹉螺等）同样是生物初始化的副产物，跳过。
+            if (entity.isVehicle()) {
+                return true;
+            }
+            JsonObject row = new JsonObject();
+            row.addProperty("type",
+                    net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+            row.addProperty("x", Math.round(entity.getX() * 1000.0));
+            row.addProperty("y", Math.round(entity.getY() * 1000.0));
+            row.addProperty("z", Math.round(entity.getZ() * 1000.0));
+            entities.add(row);
             return true;
         }
 
         @Override
         public void addFreshEntityWithPassengers(Entity entity) {
-            // 同上。
+            // 原版 `ServerLevel#addFreshEntityWithPassengers` 会连同乘客一起加入世界。
+            entity.getSelfAndPassengers().forEach(this::addFreshEntity);
         }
 
         @Override

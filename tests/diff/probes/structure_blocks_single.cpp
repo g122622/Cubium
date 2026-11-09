@@ -37,10 +37,12 @@
  */
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -48,6 +50,8 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -197,6 +201,45 @@ public:
         return m_blocks;
     }
 
+    /**
+     * @brief 模板数据标记生成的实体（结构放置的实体产物）。
+     *
+     * 与 oracle 一致，只保留**类型与位置**：模板 NBT 里的 UUID 每侧随机，生物初始化
+     * 也算不上结构放置的产物；偏航角对部分生物（潜影贝）由实例随机源初始化，原版两次
+     * 运行之间都不一样，不能作为确定性比较项。坐标以千分之一为单位取整输出，避免
+     * f32/f64 的十进制表示差异被当成真实差异。
+     */
+    struct SpawnedEntity {
+        std::string type;
+        i32 xMilli;
+        i32 yMilli;
+        i32 zMilli;
+    };
+
+    [[nodiscard]] const std::vector<SpawnedEntity>& spawnedEntities() const
+    {
+        return m_entities;
+    }
+
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        if (!entity) {
+            return 0;
+        }
+        // 携带乘客的实体（坐骑）来自生物初始化（如溺尸的僵尸鹦鹉螺），不是数据标记直接
+        // 产生的结构产物；它们依赖世界随机与生物初始化，与结构放置无关，不参与比较。
+        if (entity->hasPassengers()) {
+            return 0;
+        }
+        const entity::EntityType* type = entity->entityType();
+        const Vector3 pos = entity->position();
+        m_entities.push_back(SpawnedEntity{type != nullptr ? type->name() : std::string(),
+            static_cast<i32>(std::lround(static_cast<f64>(pos.x) * 1000.0)),
+            static_cast<i32>(std::lround(static_cast<f64>(pos.y) * 1000.0)),
+            static_cast<i32>(std::lround(static_cast<f64>(pos.z) * 1000.0))});
+        return static_cast<EntityInstanceId>(m_entities.size());
+    }
+
 private:
     [[nodiscard]] const BlockState* _terrainStateAt(i32 y) const
     {
@@ -215,6 +258,7 @@ private:
     i32 m_minBuildHeight;
     TerrainConfig m_terrain;
     std::unordered_map<i64, BlockState> m_blocks;
+    std::vector<SpawnedEntity> m_entities;
 };
 
 const Structure& findStructure(const ResourceLocation& id)
@@ -281,7 +325,9 @@ std::string runLine(std::string_view inputLine)
     const Structure& structure = findStructure(structureId);
     auto start = structure.generate(generator, &region, structureRng, chunkX, chunkZ);
     if (start == nullptr || !start->isValid()) {
-        return json{{"unit", input.value("unit", "")}, {"valid", false}, {"blocks", json::array()}}.dump();
+        return json{
+            {"unit", input.value("unit", "")}, {"valid", false}, {"blocks", json::array()}, {"entities", json::array()}}
+            .dump();
     }
 
     // 起点覆盖的区块范围：原版对每个区块各跑一次 `StructureStart.placeInChunk`。
@@ -322,6 +368,22 @@ std::string runLine(std::string_view inputLine)
                 piece->generate(world, rng, cx, cz, writable, &chunk, &generator);
             }
         }
+    }
+
+    // 实体产物模式：只输出模板数据标记生成的实体，与方块产物共用同一套放置流程。
+    if (input.value("output", std::string("blocks")) == "entities") {
+        auto entities = world.spawnedEntities();
+        std::sort(entities.begin(), entities.end(), [](const auto& left, const auto& right) {
+            return std::tie(left.type, left.xMilli, left.yMilli, left.zMilli) <
+                std::tie(right.type, right.xMilli, right.yMilli, right.zMilli);
+        });
+
+        json out = json::array();
+        for (const auto& entity : entities) {
+            out.push_back(
+                json{{"type", entity.type}, {"x", entity.xMilli}, {"y", entity.yMilli}, {"z", entity.zMilli}});
+        }
+        return json{{"unit", input.value("unit", "")}, {"valid", true}, {"entities", std::move(out)}}.dump();
     }
 
     std::vector<std::pair<BlockPos, const BlockState*>> sorted;
