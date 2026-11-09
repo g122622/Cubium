@@ -471,10 +471,8 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
         } else if (name == "minecraft:instant_despawn") {
             MC_TRY(_members(component, {"remove_child_entities"}));
             MC_TRY(_boolean(component, "remove_child_entities"));
-            if (component.value("remove_child_entities", false)) {
-                // TODO: 接入基岩子实体关系，包括被拴住的实体，不能用骑乘列表代替。
-                return Error(ErrorCode::Unsupported, "Despawning linked child entities is not implemented");
-            }
+            // remove_child_entities 在 AddonEntityComponents::despawnIfRequested 里消费：
+            // 为 true 时连同拴在本实体身上的子实体一起 despawn。
         } else if (name == "minecraft:fire_immune") {
             MC_TRY(_members(component, {}));
         } else if (name == "minecraft:is_baby") {

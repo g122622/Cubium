@@ -26,12 +26,14 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/content/entity/definition/AddonEntityDefinition.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -306,9 +308,35 @@ void AddonEntityComponents::tickEnvironment(mc::Entity& entity)
 
 bool AddonEntityComponents::despawnIfRequested(mc::Entity& entity) const
 {
-    if (!has("minecraft:instant_despawn")) {
+    const nlohmann::json* instantDespawn = component("minecraft:instant_despawn");
+    if (instantDespawn == nullptr) {
         return false;
     }
+
+    // `remove_child_entities` 为 true 时，拴在本实体身上的子实体一并 despawn。
+    //
+    // 基岩的"子实体关系"在项目里对应拴绳（leash）：`MobEntity::leashHolderUuid()` 可以指向
+    // 任意实体而不只是玩家，因此当某生物的 holder 等于本实体 uuid 时，它就是本实体的子实体。
+    // 这里必须用 holder 反查，不能用骑乘列表代替——被拴住的生物并不骑乘任何东西。
+    if (instantDespawn->value("remove_child_entities", false)) {
+        mc::IWorld* world = entity.world();
+        if (world != nullptr) {
+            const std::string& parentUuid = entity.uuid();
+            const mc::Vector3 center = entity.position();
+            // 拴绳长度约 10 格，取 16 格覆盖半径保证不漏掉任何仍然有效的链接。
+            std::vector<mc::Entity*> nearby = world->getEntitiesInRange(center, 16.0f);
+            for (mc::Entity* candidate : nearby) {
+                auto* mob = dynamic_cast<mc::MobEntity*>(candidate);
+                if (mob == nullptr || mob == &entity || mob->isRemoved()) {
+                    continue;
+                }
+                if (mob->isLeashed() && mob->leashHolderUuid().has_value() && *mob->leashHolderUuid() == parentUuid) {
+                    mob->discard();
+                }
+            }
+        }
+    }
+
     entity.discard();
     return true;
 }

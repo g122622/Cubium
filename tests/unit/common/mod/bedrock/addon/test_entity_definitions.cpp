@@ -130,6 +130,41 @@ protected:
 };
 } // namespace
 
+TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesIsAccepted)
+{
+    // 此前 remove_child_entities 为 true 会让整个实体定义加载失败（解析期返回 Unsupported）。
+    // 现在它被接受，并由 AddonEntityComponents::despawnIfRequested 消费：discard 自身前，
+    // 把拴在本实体身上的子实体（leashHolderUuid == 本实体 uuid）一并 discard。
+    //
+    // 子实体清理需要真实 IWorld 才能枚举周边实体，而本夹具用 world=nullptr 建实体，
+    // 因此这里只守"定义能被接受且实体可创建"这一段；实体侧行为由 tick 路径保证。
+    auto definition = _definition("addon_test:despawner");
+    definition["minecraft:entity"]["components"]["minecraft:instant_despawn"] = {{"remove_child_entities", true}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/despawner.json", definition);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto actor = create("addon_test:despawner");
+    ASSERT_NE(actor, nullptr);
+    const auto* components = actor->tryGetComponent<mc::mod::bedrock::addon::AddonEntityComponents>();
+    ASSERT_NE(components, nullptr);
+    EXPECT_TRUE(components->has("minecraft:instant_despawn"));
+}
+
+TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesRejectsNonBoolean)
+{
+    // 放开的是"行为未实现"，不是类型校验：字符串形态仍必须被拒绝。
+    auto definition = _definition("addon_test:bad_despawner");
+    definition["minecraft:entity"]["components"]["minecraft:instant_despawn"] = {{"remove_child_entities", "yes"}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_despawner.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_despawner"));
+}
+
 TEST_F(AddonEntityDefinitionTest, PhysicsPushTowardsClosestSpaceIsAccepted)
 {
     // 此前 push_towards_closest_space 为 true 会让整个实体定义加载失败（解析期直接返回

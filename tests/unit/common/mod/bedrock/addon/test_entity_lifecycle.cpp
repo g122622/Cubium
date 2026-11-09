@@ -224,18 +224,26 @@ TEST_F(AddonEntityLifecycleTest, AddedDespawnGroupStopsSameTickTimerAndRemovalCa
     EXPECT_EQ(notifications, std::vector<std::string>{"test:death"});
 }
 
-TEST_F(AddonEntityLifecycleTest, InvalidDeathReferencesAndUnsupportedChildRemovalFailAtLoad)
+TEST_F(AddonEntityLifecycleTest, InvalidDeathReferencesFailAtLoad)
 {
     auto document = _definition(true);
     document["minecraft:entity"]["components"]["minecraft:on_death"] = {{"event", "test:missing"}};
     EXPECT_TRUE(AddonEntityDefinition::parse(document).failed());
     document["minecraft:entity"]["components"]["minecraft:on_death"] = {{"event", "test:death"}, {"target", "other"}};
     EXPECT_TRUE(AddonEntityDefinition::parse(document).failed());
-    document = _definition(false);
+}
+
+TEST_F(AddonEntityLifecycleTest, InstantDespawnWithChildRemovalParsesSuccessfully)
+{
+    // `remove_child_entities` 此前会让整个定义加载失败（Unsupported）。现在它被接受：该字段
+    // 由 AddonEntityComponents::despawnIfRequested 消费，discard 自身前把拴在本实体身上的
+    // 子实体一并 discard。解析层只保留布尔类型校验。
+    auto document = _definition(false);
     document["minecraft:entity"]["components"]["minecraft:instant_despawn"] = {{"remove_child_entities", true}};
-    auto unsupported = AddonEntityDefinition::parse(document);
-    ASSERT_TRUE(unsupported.failed());
-    EXPECT_EQ(unsupported.error().code(), ErrorCode::Unsupported);
+    EXPECT_TRUE(AddonEntityDefinition::parse(document).success());
+
+    document["minecraft:entity"]["components"]["minecraft:instant_despawn"] = {{"remove_child_entities", "true"}};
+    EXPECT_TRUE(AddonEntityDefinition::parse(document).failed());
 }
 
 TEST_F(AddonEntityLifecycleTest, DamageFilterHasNoStaleContextAndNeverAppliesToTheAttacker)
