@@ -52,6 +52,7 @@
 #include "common/item/items/food/HoneyBottleItem.hpp"
 #include "common/item/items/map/EmptyMapItem.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
+#include "common/item/items/potion/GlassBottleItem.hpp"
 #include "common/item/items/potion/LingeringPotionItem.hpp"
 #include "common/item/items/potion/PotionItem.hpp"
 #include "common/item/items/potion/SplashPotionItem.hpp"
@@ -2943,9 +2944,10 @@ void Items::_registerPotions()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 玻璃瓶 - 用于装水和酿造
-    GLASS_BOTTLE =
-        &registry.registerItem(ResourceLocation("minecraft:glass_bottle"), ItemProperties().maxStackSize(64));
+    // 玻璃瓶 - 用于装水和酿造。必须用 GlassBottleItem：它实现了右键装水/取药水的行为。
+    // 此前这里直接注册普通 Item，导致 GlassBottleItem 整个类成为死代码，玻璃瓶无法装水。
+    GLASS_BOTTLE = &registry.registerItem<item::GlassBottleItem>(
+        ResourceLocation("minecraft:glass_bottle"), ItemProperties().maxStackSize(64));
 
     // 药水 - 饮用药水
     POTION = &registry.registerItem<item::PotionItem>(
