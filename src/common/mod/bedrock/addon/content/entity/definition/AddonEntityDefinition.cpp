@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <string_view>
 #include <unordered_set>
 
@@ -129,6 +130,73 @@ Result<void> _boolean(const nlohmann::json& value, const char* field)
         return Error(ErrorCode::InvalidData, std::string("Entity component field must be boolean: ") + field);
     }
     return Result<void>::ok();
+}
+
+/**
+ * @brief 解析 `minecraft:attack` 的 damage 值并校验其形态与范围
+ *
+ * 官方文档给出三种承载形态：单个数字、`[min, max]` 数组、`{range_min, range_max}` 对象。
+ * 三种都必须接受——基岩原版实体定义里三种写法都出现过，只认其中一种会让合法 addon 加载失败。
+ *
+ * 下限允许负数：文档明确"负值改为治疗目标"。
+ *
+ * @param damage damage 字段的 JSON 值
+ * @return 校验结果
+ */
+Result<void> _attackDamageRange(const nlohmann::json& damage)
+{
+    const auto checkBound = [](const nlohmann::json& bound, const char* field) -> Result<void> {
+        if (!bound.is_number() || !std::isfinite(bound.get<double>())) {
+            return Error(
+                ErrorCode::InvalidData, std::string("minecraft:attack damage must be a finite number: ") + field);
+        }
+        return Result<void>::ok();
+    };
+
+    if (damage.is_number()) {
+        return checkBound(damage, "damage");
+    }
+
+    if (damage.is_array()) {
+        if (damage.size() != 2) {
+            return Error(ErrorCode::InvalidData, "minecraft:attack damage array must have exactly two entries");
+        }
+        MC_TRY(checkBound(damage[0], "damage[0]"));
+        return checkBound(damage[1], "damage[1]");
+    }
+
+    if (damage.is_object()) {
+        if (!damage.contains("range_min") || !damage.contains("range_max")) {
+            return Error(ErrorCode::InvalidData, "minecraft:attack damage object requires range_min and range_max");
+        }
+        MC_TRY(checkBound(damage["range_min"], "range_min"));
+        return checkBound(damage["range_max"], "range_max");
+    }
+
+    return Error(ErrorCode::InvalidData, "minecraft:attack damage must be a number, [min, max] array, or range object");
+}
+
+/**
+ * @brief 取 `minecraft:attack` damage 的代表值（区间取中值）
+ *
+ * 属性只能承载单个基值，而基岩的 damage 可以是区间。取中值使"平均伤害"与原版一致，
+ * 是区间信息在单值属性模型下损失最小的投影。
+ *
+ * @param damage 已通过 _attackDamageRange 校验的 damage 字段
+ * @return 代表值；形态不认识时返回 nullopt
+ */
+std::optional<f64> _attackDamageRepresentative(const nlohmann::json& damage)
+{
+    if (damage.is_number()) {
+        return damage.get<double>();
+    }
+    if (damage.is_array() && damage.size() == 2) {
+        return (damage[0].get<double>() + damage[1].get<double>()) / 2.0;
+    }
+    if (damage.is_object() && damage.contains("range_min") && damage.contains("range_max")) {
+        return (damage["range_min"].get<double>() + damage["range_max"].get<double>()) / 2.0;
+    }
+    return std::nullopt;
 }
 
 class _AddonActor final : public mc::Entity {
@@ -225,6 +293,20 @@ public:
         // 表现是 getValue(FOLLOW_RANGE) 返回 0 而不是默认 16。这里显式再调一次补上。
         registerAttributes();
         setWorld(world);
+    }
+
+    /**
+     * @brief 注册 addon 生物需要的属性
+     *
+     * 除基类已注册的属性外，还要补 `attack_damage`：基岩实体的 `minecraft:attack.damage`
+     * 映射到该属性，而 `MobEntity::registerAttributes` 只注册了 `follow_range`，
+     * 具体生物类型各自注册攻击伤害。不注册的话 setBaseValue 无处落地，
+     * `getAttributeValue(ATTACK_DAMAGE)` 恒为 0（表现为"这个怪打人不掉血"）。
+     */
+    void registerAttributes() override
+    {
+        mc::AgeableEntity::registerAttributes();
+        attributes().registerAttribute(*mc::entity::attribute::Attributes::attackDamage());
     }
 
     f32 width() const override
@@ -553,12 +635,38 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
             MC_TRY(_members(component, {}));
         } else if (name == "minecraft:pushable") {
-            // 两个字段由 _AddonMob 的 isPushable / getPushReaction 覆写消费：
+            // 两个字段由 _AddonMob / _AddonActor 的 isPushable / getPushReaction 覆写消费：
             // is_pushable 决定能否被其他实体推动（并影响实体碰撞与方块放置判定），
             // is_pushable_by_piston 为 false 时活塞扫过会跳过该实体。
             MC_TRY(_members(component, {"is_pushable", "is_pushable_by_piston"}));
             MC_TRY(_boolean(component, "is_pushable"));
             MC_TRY(_boolean(component, "is_pushable_by_piston"));
+        } else if (name == "minecraft:attack") {
+            // damage 支持三种形态：数字、[min, max] 数组、{range_min, range_max} 对象。
+            // 属性只能承载单个基值，因此区间形态取中值写基值；区间随机尚无运行时通路，
+            // 见 _initialize 里对应的 TODO。
+            MC_TRY(_members(component, {"damage", "effect_name", "effect_duration", "effect_amplifier"}));
+            if (const auto damage = component.find("damage"); damage != component.end()) {
+                MC_TRY(_attackDamageRange(*damage));
+            }
+            if (const auto effect = component.find("effect_name"); effect != component.end()) {
+                if (!effect->is_string() || effect->get_ref<const std::string&>().empty()) {
+                    return Error(ErrorCode::InvalidData, "minecraft:attack effect_name must be a nonempty string");
+                }
+            }
+            if (const auto duration = component.find("effect_duration"); duration != component.end()) {
+                if (!duration->is_number() || !std::isfinite(duration->get<double>()) ||
+                    duration->get<double>() < 0.0) {
+                    return Error(
+                        ErrorCode::InvalidData, "minecraft:attack effect_duration must be a nonnegative number");
+                }
+            }
+            if (const auto amplifier = component.find("effect_amplifier"); amplifier != component.end()) {
+                if (!amplifier->is_number_integer() || amplifier->get<i64>() < 0) {
+                    return Error(
+                        ErrorCode::InvalidData, "minecraft:attack effect_amplifier must be a nonnegative integer");
+                }
+            }
         } else if (name == "minecraft:follow_range") {
             // value 映射到 Attributes::FOLLOW_RANGE（单位：方块）。基岩侧 max 是"最大追击距离"
             // 的上限设定，运行时用于 cap 目标搜索；项目属性模型只有一个上限为 2048 的 follow_range，
@@ -717,6 +825,36 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
         }
     }
 
+    // minecraft:attack.damage → 攻击伤害属性。只有 LivingEntity 有属性表。
+    if (const auto it = m_components.find("minecraft:attack"); it != m_components.end()) {
+        if (auto* living = dynamic_cast<mc::LivingEntity*>(&entity); living != nullptr) {
+            if (const auto damage = it->find("damage"); damage != it->end()) {
+                if (const auto representative = _attackDamageRepresentative(*damage); representative.has_value()) {
+                    const double clamped = std::clamp(*representative, 0.0, 2048.0);
+                    if (clamped != *representative) {
+                        // 负 damage（基岩语义：治疗目标）与超过属性上限的值无法写进属性基值。
+                        // 这里记 warn 并夹到属性可达范围，而不是静默丢弃整条攻击配置。
+                        spdlog::warn("[BedrockAddon] minecraft:attack damage {} on '{}' is outside the "
+                                     "attack_damage attribute range, clamping to {}",
+                            *representative,
+                            m_identifier,
+                            clamped);
+                    }
+                    living->attributes().setBaseValue(mc::entity::attribute::Attributes::ATTACK_DAMAGE, clamped);
+                }
+            }
+            // TODO: effect_name / effect_duration / effect_amplifier 需要"近战命中后对目标施加状态
+            //       效果"的挂接点；addon 实体的近战路径尚未接入完整 doHurtTarget 管线，因此这三项
+            //       目前只做校验。务必 warn 而不是静默——否则服主会以为效果已生效。
+            if (it->contains("effect_name")) {
+                spdlog::warn("[BedrockAddon] minecraft:attack effect_name on '{}' is validated but not applied: "
+                             "melee effect application is not wired for addon mobs yet",
+                    m_identifier);
+            }
+        } else {
+            spdlog::warn("[BedrockAddon] minecraft:attack on non-living entity '{}' has no effect", m_identifier);
+        }
+    }
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
     //   is_spawnable 本身已保存（见 canSpawn()），缺的是刷怪蛋物品注册与生成规则挂接。

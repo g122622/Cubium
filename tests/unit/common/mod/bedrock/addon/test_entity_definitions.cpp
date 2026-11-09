@@ -200,6 +200,77 @@ TEST_F(AddonEntityDefinitionTest, PushableAppliesToLivingMobsToo)
     EXPECT_EQ(mob->getPushReaction(), mc::PushReaction::Ignore);
 }
 
+TEST_F(AddonEntityDefinitionTest, AttackDamageAcceptsThreeShapes)
+{
+    // 官方文档给出三种承载形态，基岩原版实体定义里三种都出现过，只认一种会让合法 addon 加载失败。
+    // 同时验证区间取中值写入 attack_damage 属性。
+    struct Case {
+        const char* file;
+        const char* id;
+        nlohmann::json damage;
+        mc::f64 expected;
+    };
+
+    const std::array<Case, 3> cases{{
+        {"attacker_number", "addon_test:attacker_number", 5, 5.0},
+        {"attacker_array", "addon_test:attacker_array", nlohmann::json::array({4, 8}), 6.0},
+        {"attacker_range", "addon_test:attacker_range", {{"range_min", 3}, {"range_max", 7}}, 5.0},
+    }};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    for (const auto& testCase : cases) {
+        auto definition = _definition(testCase.id);
+        definition["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+        definition["minecraft:entity"]["components"]["minecraft:attack"] = {{"damage", testCase.damage}};
+        write(directory / (std::string("entities/") + testCase.file + ".json"), definition);
+    }
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    for (const auto& testCase : cases) {
+        auto entity = create(testCase.id);
+        ASSERT_NE(entity, nullptr) << testCase.id;
+        auto* living = dynamic_cast<mc::LivingEntity*>(entity.get());
+        ASSERT_NE(living, nullptr) << testCase.id;
+        EXPECT_DOUBLE_EQ(
+            living->getAttributeValue(mc::entity::attribute::Attributes::ATTACK_DAMAGE, 0.0), testCase.expected)
+            << testCase.id;
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, AttackDamageRejectsMalformedShapes)
+{
+    // 形态不认识必须报错，不能静默当成 0 或默认值——那会让"攻击不疼"变成无法定位的问题。
+    const std::array<nlohmann::json, 3> invalid{
+        nlohmann::json::array({1, 2, 3}), // 数组元素个数不对
+        nlohmann::json{{"range_min", 1}}, // 缺 range_max
+        "five",                           // 既非数字也非数组/对象
+    };
+
+    for (const auto& damage : invalid) {
+        auto definition = _definition("addon_test:bad_attack");
+        definition["minecraft:entity"]["components"]["minecraft:attack"] = {{"damage", damage}};
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << damage.dump();
+    }
+}
+
+TEST_F(AddonEntityDefinitionTest, AttackEffectFieldsAreTypeChecked)
+{
+    // effect_name 必须是非空字符串；duration / amplifier 必须是非负数字/整数。
+    const std::array<nlohmann::json, 3> invalid{
+        nlohmann::json{{"damage", 3}, {"effect_name", ""}},
+        nlohmann::json{{"damage", 3}, {"effect_name", "minecraft:poison"}, {"effect_duration", -1}},
+        nlohmann::json{{"damage", 3}, {"effect_name", "minecraft:poison"}, {"effect_amplifier", -1}},
+    };
+
+    for (const auto& component : invalid) {
+        auto definition = _definition("addon_test:bad_effect");
+        definition["minecraft:entity"]["components"]["minecraft:attack"] = component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << component.dump();
+    }
+}
+
 TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesIsAccepted)
 {
     // 此前 remove_child_entities 为 true 会让整个实体定义加载失败（解析期返回 Unsupported）。
