@@ -333,6 +333,83 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
 // minecraft:rideable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
 // 本轮接入解析与字段校验，并让 seat_count 驱动 getMaxPassengers。
 // minecraft:burns_in_daylight 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// minecraft:experience_reward 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+TEST_F(AddonEntityDefinitionTest, ExperienceRewardComponentIsAccepted)
+{
+    // 三种写法都要认：字面数字、Molang 字符串、{expression,version} 对象。
+    nlohmann::json rewards = {{"on_death", 5}, {"on_bred", "Math.Random(1,7)"}};
+    auto plain = _definition("addon_test:xp_plain");
+    plain["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    plain["minecraft:entity"]["components"]["minecraft:experience_reward"] = rewards;
+
+    auto objectForm = _definition("addon_test:xp_object");
+    objectForm["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    objectForm["minecraft:entity"]["components"]["minecraft:experience_reward"] = {
+        {"on_death", {{"expression", "query.last_hit_by_player ? 10 : 0"}, {"version", 12}}}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/xp_plain.json", plain);
+    write(directory / "entities/xp_object.json", objectForm);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, ExperienceRewardRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    std::vector<Case> invalid;
+    invalid.push_back({{{("on_death"), -3}}, "negative on_death"});
+    invalid.push_back({{{("on_death"), ""}}, "empty expression string"});
+    invalid.push_back({{{("on_death"), {{"version", 12}}}}, "object form without expression"});
+    invalid.push_back({{{("on_death"), {{"expression", "5"}, {"unknow_key", 1}}}}, "unknown object field"});
+    invalid.push_back({{{("on_death"), nlohmann::json::array()}}, "array is not a valid form"});
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_xp");
+        definition["minecraft:entity"]["components"]["minecraft:experience_reward"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// on_death 必须在死亡时求值并驱动 experienceValue；未声明该组件的实体不带经验。
+TEST_F(AddonEntityDefinitionTest, ExperienceRewardDrivesDeathExperience)
+{
+    auto numeric = _definition("addon_test:xp_numeric");
+    numeric["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    numeric["minecraft:entity"]["components"]["minecraft:experience_reward"] = {{"on_death", 7}};
+
+    auto none = _definition("addon_test:xp_none");
+    none["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/xp_numeric.json", numeric);
+    write(directory / "entities/xp_none.json", none);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto rewarded = create("addon_test:xp_numeric");
+    ASSERT_NE(rewarded, nullptr);
+    auto* rewardedMob = dynamic_cast<mc::MobEntity*>(rewarded.get());
+    ASSERT_NE(rewardedMob, nullptr);
+    EXPECT_EQ(rewardedMob->experienceValue(), 0) << "experience must not be granted before death";
+    // 直接触发经验掉落：数值型 on_death 应写入 experienceValue。
+    rewardedMob->dropExperience();
+    EXPECT_EQ(rewardedMob->experienceValue(), 7) << "numeric on_death must drive the experience value";
+
+    auto plain = create("addon_test:xp_none");
+    ASSERT_NE(plain, nullptr);
+    auto* plainMob = dynamic_cast<mc::MobEntity*>(plain.get());
+    ASSERT_NE(plainMob, nullptr);
+    plainMob->dropExperience();
+    EXPECT_EQ(plainMob->experienceValue(), 0)
+        << "without minecraft:experience_reward the entity must carry no experience";
+}
+
 TEST_F(AddonEntityDefinitionTest, BurnsInDaylightComponentIsAccepted)
 {
     for (const auto& [id, slot] :
@@ -1107,7 +1184,7 @@ TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplic
     auto definition = _definition("addon_test:unsupported");
     // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable / rideable / burns_in_daylight
     // 都已接入。
-    definition["minecraft:entity"]["components"]["minecraft:damage_sensor"] = nlohmann::json::array();
+    definition["minecraft:entity"]["components"]["minecraft:can_fly"] = nlohmann::json::object();
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

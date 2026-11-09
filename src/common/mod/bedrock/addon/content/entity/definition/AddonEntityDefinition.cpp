@@ -50,6 +50,8 @@
 
 namespace mc::mod::bedrock::addon {
 
+namespace {
+
 /**
  * @brief 判定基岩风格的防护槽位名是否合法
  *
@@ -91,7 +93,75 @@ EquipmentSlot _protectionSlotFromName(const std::string& name)
     return slot.has_value() ? *slot : EquipmentSlot::Head;
 }
 
-namespace {
+/**
+ * @brief 求值 `minecraft:experience_reward` 中某个字段的经验值
+ *
+ * 支持三种写法：字面数字、Molang 字符串、`{"expression","version"}` 对象。
+ * 求值失败（含尚未支持的 `query.*` 实体查询）时记 warn 并返回 0——不能因为一条
+ * 经验表达式就让实体定义或死亡流程出错。
+ *
+ * @param reward 组件 JSON
+ * @param field 字段名（on_death / on_bred）
+ * @return 经验值；无法求值时返回 0
+ */
+i32 _evaluateExperienceReward(const nlohmann::json& reward, const char* field, math::IRandom& random)
+{
+    const auto value = reward.find(field);
+    if (value == reward.end()) {
+        return 0;
+    }
+    if (value->is_number()) {
+        return static_cast<i32>(std::max(0.0, value->get<double>()));
+    }
+
+    std::string source;
+    if (value->is_string()) {
+        source = value->get<std::string>();
+    } else if (value->is_object()) {
+        const auto expression = value->find("expression");
+        if (expression == value->end() || !expression->is_string()) {
+            return 0;
+        }
+        source = expression->get<std::string>();
+    } else {
+        return 0;
+    }
+    if (source.empty()) {
+        return 0;
+    }
+
+    // 此处才编译：加载期编译会让含未支持 query 的合法行为包整体加载失败。
+    auto compiled = MolangExpression::compile(source);
+    if (compiled.failed()) {
+        spdlog::warn("minecraft:experience_reward {} expression cannot be compiled ({}), defaulting to 0: {}",
+            field,
+            compiled.error().message(),
+            source);
+        return 0;
+    }
+
+    // 经验表达式常引用 query.last_hit_by_player 等实体查询，当前 Molang 求值器不支持，
+    // 只提供随机数与属性读取。
+    // TODO: 补齐 query.last_hit_by_player / query.equipment_count 等实体查询后，
+    //   基岩最常见的 `query.last_hit_by_player ? 10 : 0` 写法才能真正生效。
+    math::Random fallback(0);
+    MolangEvaluationContext context{fallback, [](std::string_view) {
+                                        return std::optional<MolangValue>{};
+                                    }};
+    auto evaluated = compiled.value().evaluate(context);
+    if (evaluated.failed()) {
+        spdlog::warn("minecraft:experience_reward {} expression failed to evaluate ({}), defaulting to 0: {}",
+            field,
+            evaluated.error().message(),
+            source);
+        return 0;
+    }
+    const auto* number = std::get_if<f32>(&evaluated.value());
+    if (number == nullptr) {
+        return 0;
+    }
+    return static_cast<i32>(std::max(0.0f, *number));
+}
 
 Result<void> _members(const nlohmann::json& value, std::initializer_list<std::string_view> allowed)
 {
@@ -567,6 +637,27 @@ public:
         return components != nullptr ? components->height() : m_definition->height();
     }
 
+    /**
+     * @brief 死亡时按 `minecraft:experience_reward.on_death` 掉落经验
+     *
+     * 求值推迟到此刻而不是构造期：表达式常引用 `query.last_hit_by_player` 这类
+     * "死亡那一刻才有意义"的实体查询。求值失败（如含尚未支持的 query）时记 warn 并
+     * 回退到 0，不影响基类的守卫与掉落流程。
+     */
+    void dropExperience() override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* reward =
+            components != nullptr ? components->component("minecraft:experience_reward") : nullptr;
+        if (reward != nullptr) {
+            const i32 amount = _evaluateExperienceReward(*reward, "on_death", getRandom());
+            if (amount > 0) {
+                setExperienceValue(amount);
+            }
+        }
+        mc::AgeableEntity::dropExperience();
+    }
+
     void tick() override
     {
         auto* events = tryGetComponent<AddonEntityEvents>();
@@ -939,6 +1030,59 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
             //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
             //   在此之前这些字段只做类型校验，不生效。
+        } else if (name == "minecraft:experience_reward") {
+            // on_death / on_bred 各有三种写法：字面数字、{"expression","version"} 对象、纯 Molang 字符串。
+            //
+            // 这里**只做结构校验、不编译 Molang**。基岩最常见的写法是
+            // `query.last_hit_by_player ? 10 : 0`，而项目的 Molang 求值器目前只支持
+            // query.property / query.has_property，没有实体查询。若在加载期编译，
+            // 这类合法行为包会让**整个实体定义**加载失败——比"该组件不生效"更糟。
+            // 因此求值推迟到 dropExperience 时，失败仅该实体不掉经验并记 warn。
+            MC_TRY(_members(component, {"on_bred", "on_death"}));
+            for (const char* field : {"on_death", "on_bred"}) {
+                const auto value = component.find(field);
+                if (value == component.end()) {
+                    continue;
+                }
+                if (value->is_number()) {
+                    if (value->get<double>() < 0.0) {
+                        return Error(ErrorCode::InvalidData,
+                            std::string("minecraft:experience_reward cannot be negative: ") + field);
+                    }
+                    continue;
+                }
+                if (value->is_string()) {
+                    if (value->get_ref<const std::string&>().empty()) {
+                        return Error(ErrorCode::InvalidData,
+                            std::string("minecraft:experience_reward expression cannot be empty: ") + field);
+                    }
+                    continue;
+                }
+                if (value->is_object()) {
+                    // 对象形式必须带 expression；version 是表达式方言版本，仅允许为整数。
+                    for (const auto& [key, member] : value->items()) {
+                        if (key != "expression" && key != "version") {
+                            return Error(ErrorCode::InvalidData,
+                                std::string("Unsupported minecraft:experience_reward field: ") + key);
+                        }
+                    }
+                    const auto expression = value->find("expression");
+                    if (expression == value->end() || !expression->is_string()) {
+                        return Error(ErrorCode::InvalidData,
+                            std::string("minecraft:experience_reward requires a string expression: ") + field);
+                    }
+                    if (const auto version = value->find("version");
+                        version != value->end() && !version->is_number_integer()) {
+                        return Error(ErrorCode::InvalidData,
+                            std::string("minecraft:experience_reward version must be an integer: ") + field);
+                    }
+                    continue;
+                }
+                return Error(ErrorCode::InvalidData,
+                    std::string("minecraft:experience_reward must be a number, string or object: ") + field);
+            }
+            // TODO: on_bred（成功繁殖时的经验）尚无消费点——BreedGoal 的经验链路当前只走
+            //   固定的繁殖经验常量，没有接入实体级配置。
         } else if (name == "minecraft:burns_in_daylight") {
             // 唯一字段 protection_slot：该装备槽里有物品时不会燃烧（默认头盔位）。
             // 取值形如 slot.armor.head，与项目 EquipmentSlotNames 的裸名（head/chest）差一个前缀。
