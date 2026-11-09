@@ -141,8 +141,12 @@ public:
      *
      * 所有文本通过 LanguageManager 从翻译键翻译后显示。
      *
-     * TODO: 待锻造台配方系统（SmithingTransformRecipe / SmithingTrimRecipe）集成后，
-     * 此类应与 TrimPattern 注册表关联，并提供空槽位图标路径用于客户端锻造台界面渲染。
+     * 注意：本类与 `TrimPattern` **没有**关联——原版 `SmithingTemplateItem` 也从不引用
+     * TrimPattern，纹饰图案由配方的 `pattern` 字段声明（见 `SmithingTrimRecipe`）。
+     *
+     * TODO: 尚未承载原版的 `baseSlotEmptyIcons` / `additionalSlotEmptyIcons`（空槽位图标
+     *   纹理 ID 列表）。这两项只被客户端锻造台界面读取，而客户端已停止维护，故暂不实现；
+     *   恢复客户端时再补，届时服务端只需把图标 ID 原样下发，不参与任何逻辑。
      */
     void addInformation(
         const ItemStack& stack, IWorld* world, std::vector<std::string>& tooltip, bool advanced) const override;

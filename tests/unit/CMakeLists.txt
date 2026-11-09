@@ -113,6 +113,8 @@ add_executable(mc_tests
     common/test_item_entity.cpp
     common/test_container.cpp
     common/item/crafting/IngredientTest.cpp
+    # instrument 组件的两种 Holder 形态（注册表引用 / 内联定义）NBT 往返
+    common/item/component/InstrumentPayloadInlineTest.cpp
     common/item/crafting/RecipeBookTest.cpp
     common/item/crafting/RecipeManagerTest.cpp
     common/item/crafting/ShapedRecipeTest.cpp

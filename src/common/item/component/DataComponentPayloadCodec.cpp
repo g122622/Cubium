@@ -423,12 +423,14 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             // description），不是资源位置字符串。写成字符串能被写进存档，但读回来
             // EitherHolder 会当成「只有注册名、没有内联定义」，与原版存档互不兼容。
             const auto& instrument = std::get<InstrumentPayload>(payload);
-            const item::instrument::InstrumentDefinition* definition =
-                item::instrument::InstrumentRegistry::instance().get(ResourceLocation::parse(instrument.instrumentId));
+
+            // 内联定义优先：数据包可以把乐器定义直接写进组件，此时不查注册表。
+            const item::instrument::InstrumentDefinition* definition = instrument.inlineDefinition.has_value()
+                ? &instrument.inlineDefinition.value()
+                : item::instrument::InstrumentRegistry::instance().get(
+                      ResourceLocation::parse(instrument.instrumentId));
             if (definition == nullptr) {
-                // 注册表里没有该乐器：只能退回资源位置字符串，避免丢掉「引用了哪个乐器」。
-                // TODO: 数据包把乐器定义内联进组件时（EitherHolder 的左值分支），需要在这里
-                //       序列化内联定义，而不是依赖注册表命中。
+                // 既无内联定义、注册表也查不到：只能退回资源位置字符串，避免丢掉「引用了哪个乐器」。
                 return std::make_unique<string_tag>(instrument.instrumentId);
             }
             // 四个字段的类型逐一对照 vanilla Instrument.DIRECT_CODEC：
@@ -636,19 +638,49 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         case DataComponentType::Instrument: {
             // 两种形态都要认：字符串是「只给注册名」，compound 是内联的完整定义
             // （sound_event / use_duration / range / description），见 payloadToNbt。
-            std::string instrument;
+            InstrumentPayload instrument{};
             if (tag.id() == TagId::String) {
-                instrument = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
+                instrument.instrumentId = dynamic_cast<const nbt::tags::string_tag&>(tag).value;
             } else if (tag.id() == TagId::Compound) {
-                // TODO: 内联定义目前无法反查到注册名——InstrumentPayload 只承载资源位置。
-                //       要支持内联定义，需要让载荷也能持有完整定义（而不是只记一个 id）。
-                //       在此之前按「空引用」处理，至少不会把 player 侧的随机记忆带进结果。
                 const auto& c = dynamic_cast<const compound_tag&>(tag);
-                auto sound = c.value.find("sound_event");
-                static_cast<void>(sound);
+
+                // sound_event 的持久形态是复合对象 {sound_id: "..."}，与 payloadToNbt 对应。
+                ResourceLocation soundEvent;
+                if (auto soundIt = c.value.find("sound_event"); soundIt != c.value.end() &&
+                    soundIt->second != nullptr && soundIt->second->id() == TagId::Compound) {
+                    const auto& soundCompound = dynamic_cast<const compound_tag&>(*soundIt->second);
+                    if (auto idIt = soundCompound.value.find("sound_id"); idIt != soundCompound.value.end() &&
+                        idIt->second != nullptr && idIt->second->id() == TagId::String) {
+                        soundEvent = ResourceLocation(dynamic_cast<const nbt::tags::string_tag&>(*idIt->second).value);
+                    }
+                }
+
+                auto readFloat = [&c](const char* key, f32 fallback) -> f32 {
+                    auto it = c.value.find(key);
+                    if (it == c.value.end() || it->second == nullptr) {
+                        return fallback;
+                    }
+                    switch (it->second->id()) {
+                        case TagId::Float:
+                            return dynamic_cast<const float_tag&>(*it->second).value;
+                        case TagId::Double:
+                            return static_cast<f32>(dynamic_cast<const nbt::tags::double_tag&>(*it->second).value);
+                        case TagId::Int:
+                            return static_cast<f32>(dynamic_cast<const int_tag&>(*it->second).value);
+                        default:
+                            return fallback;
+                    }
+                };
+
+                std::unique_ptr<text::ITextComponent> description;
+                if (auto descIt = c.value.find("description"); descIt != c.value.end() && descIt->second != nullptr) {
+                    description = text::ITextComponent::fromJson(nbt::nbtToJson(*descIt->second));
+                }
+
+                instrument.inlineDefinition = item::instrument::InstrumentDefinition(
+                    soundEvent, readFloat("use_duration", 1.0f), readFloat("range", 0.0f), std::move(description));
             }
-            return DataComponentPayload{
-                std::in_place_index<ComponentPayloadIndex::Instrument>, InstrumentPayload{std::move(instrument)}};
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Instrument>, std::move(instrument)};
         }
         case DataComponentType::Tool: {
             ToolPayload tool{};

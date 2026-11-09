@@ -284,20 +284,44 @@ TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_NoComponents_OmitsComponent
     EXPECT_EQ(result.value().getDamage(), 0);
 }
 
-TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_EmptyStack_RoundTripsToAir)
+// 空堆写成空 compound（`{}`），对应原版 `ItemStack.OPTIONAL_CODEC`。
+// 不能写 `id=minecraft:air`——`ItemStack.CODEC` 明确拒绝空气。
+TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_EmptyStack_WritesEmptyCompound)
 {
     ItemStack empty;
 
     compound_tag tag;
     empty.toNbt(tag);
 
-    ASSERT_NE(tag.value.find("id"), tag.value.end());
-    const auto& idTag = dynamic_cast<const string_tag&>(*tag.value.at("id"));
-    EXPECT_EQ(idTag.value, "minecraft:air");
+    EXPECT_TRUE(tag.value.empty()) << "empty stack must serialize to a bare '{}' compound";
+    EXPECT_EQ(tag.value.find("id"), tag.value.end()) << "empty stack must not carry an id";
+    EXPECT_EQ(tag.value.find("count"), tag.value.end()) << "empty stack must not carry a count";
 
     auto result = ItemStack::fromNbt(tag);
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().isEmpty());
+}
+
+// 反过来：把 air 当物品 id 写进去必须被拒绝，否则非法存档会被静默接受。
+TEST_F(ItemStackComponentRoundTripTest, NbtDecode_RejectsAirItemId)
+{
+    compound_tag tag;
+    tag.put("id", std::string("minecraft:air"));
+    tag.put("count", static_cast<i32>(1));
+
+    auto result = ItemStack::fromNbt(tag);
+    EXPECT_FALSE(result.success()) << "vanilla ItemStack.CODEC rejects minecraft:air";
+}
+
+// 未知物品同样必须失败，不能被吞成空堆。
+TEST_F(ItemStackComponentRoundTripTest, NbtDecode_RejectsUnknownItemId)
+{
+    compound_tag tag;
+    tag.put("id", std::string("minecraft:definitely_not_an_item"));
+    tag.put("count", static_cast<i32>(1));
+
+    auto result = ItemStack::fromNbt(tag);
+    EXPECT_FALSE(result.success());
 }
 
 // ============================================================================

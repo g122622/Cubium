@@ -57,8 +57,8 @@ namespace crafting {
  * @endcode
  *
  * 注意：项目当前尚无 SmithingMenu/SmithingContainer 实现（锻造台交互未完整），
- * 本类仅完成数据结构层面的解析与注册，matches 的槽位语义按原版 3 槽实现并留 TODO，
- * 待锻造台容器接入后对齐。
+ * 本类仅完成数据结构层面的解析与注册。matches 的 3 槽语义已与 SmithingMenu.java
+ * 的 TEMPLATE_SLOT=0 / BASE_SLOT=1 / ADDITIONAL_SLOT=2 核对一致，接入容器时无需调整。
  *
  * 参考: net.minecraft.world.item.crafting.SmithingTransformRecipe
  */

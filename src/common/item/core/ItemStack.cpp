@@ -1431,8 +1431,8 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         }
         if (m_extras->instrument.has_value()) {
             patch.add(DataComponentType::Instrument,
-                DataComponentPayload{
-                    std::in_place_index<ComponentPayloadIndex::Instrument>, InstrumentPayload{*m_extras->instrument}});
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Instrument>,
+                    InstrumentPayload{*m_extras->instrument, std::nullopt}});
         }
         if (m_extras->tool.has_value()) {
             patch.add(DataComponentType::Tool,
@@ -2001,15 +2001,15 @@ i32 ItemStack::_itemDefaultOminousBottleAmplifier() const
 
 void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 {
-    // 空堆写作空气 + 数量 1。原版 `ItemStack.CODEC` 的 count 是 intRange(1, 99)，写 0
-    // 之后再读回来会直接失败——空堆因此必须落在区间内，靠 id=air 表达「空」。
-    // TODO: 原版 `ItemStack.CODEC` 拒绝 air（"Item must not be minecraft:air"），
-    //       空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`。本项目沿用 air+count=1 是因为
-    //       存档层空槽另有约定，切到 `{}` 需要与存档格式一起调整。fromNbt 已配套接受 air，
-    //       因此当前形态是往返自洽的；真正要改的是两处一起切。
+    // 空堆写成**空 compound**（不写 id / count），对应原版 `ItemStack.OPTIONAL_CODEC` 的 `{}`。
+    //
+    // 不能写成 `id=minecraft:air`：`ItemStack.CODEC` 明确拒绝空气
+    // （"Item must not be minecraft:air"），写出去的就变成一份对方解不出来的数据。
+    // 写成 `{}` 则两侧都能读：本侧 fromNbt 见不到 id 即返回空堆，原版 OPTIONAL_CODEC 同样返回空堆。
+    //
+    // 生产存档路径（容器、装备、背包）都会先判 isEmpty 再调用本函数，因此空堆实际很少走到这里，
+    // 但差分能力与测试会直接驱动它，语义必须与原版一致。
     if (isEmpty()) {
-        tag.put(nbt_keys::ID, std::string("minecraft:air"));
-        tag.put(nbt_keys::COUNT, static_cast<i32>(1));
         return;
     }
 
@@ -2031,29 +2031,30 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 
 Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
 {
-    // 获取物品ID
+    // 获取物品ID。缺少 id 即空堆：对应原版 `ItemStack.OPTIONAL_CODEC` 的 `{}` 形态，
+    // `toNbt` 对空堆正是写出一个不含 id 的空 compound。
     auto it = tag.value.find(nbt_keys::ID);
-    if (it == tag.value.end() || it->second->id() != nbt::TagId::String) {
-        return Error(ErrorCode::InvalidData, "ItemStack NBT missing 'id' field");
+    if (it == tag.value.end()) {
+        return ItemStack::EMPTY;
+    }
+    if (it->second->id() != nbt::TagId::String) {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT 'id' field is not a string");
     }
 
     std::string itemId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
 
-    // 查找物品。原版 `ItemStack.CODEC` 明确拒绝空气（"Item must not be minecraft:air"）：
-    // 空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`，而不是一个 id 为 air 的物品堆。
-    // 未知物品同理——查不到注册项就是解码失败，而不是静默变成空堆，否则坏存档会被吞掉。
+    // 空气是合法物品 id，但 `ItemStack.CODEC` 显式拒绝它
+    // （"Item must not be minecraft:air"），空堆只能走上面的 `{}` 形态。
+    // 这里如实报错而不是静默变成空堆——否则一份非法存档会被无声吞掉，差分也测不出偏差。
+    if (itemId == "minecraft:air") {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT must not use 'minecraft:air' as an item id");
+    }
+
+    // 查找物品。查不到注册项就是解码失败，而不是静默变成空堆，否则坏存档会被吞掉。
     ResourceLocation itemLocation(itemId);
     const Item* item = ItemRegistry::instance().getItem(itemLocation);
     if (item == nullptr) {
         return Error(ErrorCode::InvalidData, "ItemStack NBT has unknown item '" + itemId + "'");
-    }
-    // 空堆（air）必须能读回空堆：`toNbt` 对空堆写出的是 `id=air, count=1`，若这里拒绝 air，
-    // 就会造成「写出去读不回来」的不对称——同一份数据过一遍 toNbt/fromNbt 就损坏。
-    // 原版 `ItemStack.CODEC` 确实拒绝 air（"Item must not be minecraft:air"），空堆的正规表示
-    // 是 `OPTIONAL_CODEC` 的 `{}`；本项目的存档格式沿用 air+1 表达空槽（见 toNbt 的说明），
-    // 因此解码侧必须接受它，才能保证往返自洽。二者要一起改才能切到 `{}` 形态。
-    if (itemLocation == ResourceLocation("minecraft:air")) {
-        return ItemStack::EMPTY;
     }
 
     // 数量：1.21.11 键名 "count"，原版是 `ExtraCodecs.intRange(1, 99).orElse(1)`

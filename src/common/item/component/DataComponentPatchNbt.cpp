@@ -194,7 +194,7 @@ bool _readInstrument(const nlohmann::json& value, DataComponentPayload& out)
         return false;
     }
     out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Instrument>,
-        InstrumentPayload{_normalizeId(value.get<std::string>())}};
+        InstrumentPayload{_normalizeId(value.get<std::string>()), std::nullopt}};
     return true;
 }
 
