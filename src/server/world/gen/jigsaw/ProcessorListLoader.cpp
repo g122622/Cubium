@@ -692,9 +692,10 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
                         ResourceLocation blockLoc(std::string(strResult.value()));
                         Block* block = BlockRegistry::instance().getBlock(blockLoc);
                         if (block != nullptr) {
-                            blocksToIgnore.push_back(block->defaultState().stateId());
+                            // 处理器按方块 ID 忽略，任意状态都会被跳过。
+                            blocksToIgnore.push_back(block->blockId());
                         } else {
-                            spdlog::info(
+                            spdlog::warn(
                                 "block_ignore: unknown block '{}' in ignore list, skipping", blockLoc.toString());
                         }
                     }
@@ -702,9 +703,12 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
                     auto objResult = blockEntryVal.get_object();
                     if (objResult.error() == simdjson::SUCCESS) {
                         auto blockEntryObj = objResult.value();
-                        u32 stateId = parseOutputBlockStateId(blockEntryObj);
-                        if (stateId != 0) {
-                            blocksToIgnore.push_back(stateId);
+                        const u32 stateId = parseOutputBlockStateId(blockEntryObj);
+                        const BlockState* state = BlockRegistry::instance().getBlockState(stateId);
+                        if (state != nullptr) {
+                            blocksToIgnore.push_back(state->blockId());
+                        } else {
+                            spdlog::warn("block_ignore: unknown block state id {} in ignore list, skipping", stateId);
                         }
                     }
                 }

@@ -76,3 +76,5 @@ CubePointRange ──► DiscreteCubeMerger (优化路径)
 7. **Shapes::slice 坐标提取**：`slice()` 在切片轴上使用 `{0.0, 1.0}` 替换原坐标，非切片轴必须取完整的 `size + 1` 个坐标值（即 `endX + 1`、`endY + 1`、`endZ + 1`），不能遗漏末尾坐标。坐标数量不匹配会导致后续 VoxelShape 操作（如 `isCubeLike()`、`joinIsNotEmpty()`）产生错误结果。
 
 8. **Shapes::fromCollisionShape 多盒合并**：`fromCollisionShape()` 将 `CollisionShape` 转换为 `VoxelShape`，对多碰撞盒形状使用 `Shapes::or_()` 合并。光照引擎、区块网格生成、墙方块等模块共用此函数，不要在局部重复实现简化版。
+
+9. **`DiscreteVoxelShape::forAllFaces` 的坐标还原**：该函数分 NONE/FORWARD/BACKWARD 三个旋转通道遍历面。每个通道用 `axiscycle = 原循环的逆` 去调用 `isFull`，因此**回调里输出的体素坐标也必须用同一个逆循环还原**（与 `isFull` 使用的是同一个映射）。若输出用原循环，FORWARD/BACKWARD 两通道会把面报到另一格上——非立方体形状（楼梯、栅栏等）的暴露面列表会漏面/串位，表现为结构放置时边界方块形状更新作用到错误位置。`forAllEdges`/`forAllBoxes` 是另一套代码，不受此影响。

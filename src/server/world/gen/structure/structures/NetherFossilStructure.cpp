@@ -143,20 +143,29 @@ void NetherFossilPiece::generate(IWorldWriter& world,
         return;
     }
 
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "NetherFossilPiece::generate requires an IWorld");
+
     // 创建放置设置
     feature::template_::PlacementSettings settings;
     settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
-    // TODO: 原版化石的设置里还带 `BlockIgnoreProcessor.STRUCTURE_AND_AIR`（跳过结构方块与空气），
-    //       本项目缺对应的“按方块身份忽略”处理器，接入后再补上。
+
+    // 结构方块（含数据标记）与空气都是模板占位，不写入世界
+    std::vector<u32> blocksToIgnore;
+    if (auto* airState = VanillaBlocks::getState(VanillaBlocks::AIR)) {
+        blocksToIgnore.push_back(airState->blockId());
+    }
+    if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+        blocksToIgnore.push_back(structureState->blockId());
+    }
+    feature::template_::StructureProcessorList processors;
+    processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
+    settings.setProcessors(&processors);
 
     // 放置模板（原点即模板位置，不是包围盒最小角）
-    m_template->place(world,
-        m_templatePosition,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+    m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 // ============================================================================

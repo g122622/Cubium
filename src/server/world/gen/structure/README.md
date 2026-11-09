@@ -314,18 +314,18 @@ if (StructureTags::DOLPHIN_LOCATED().contains(ResourceLocation("minecraft", "shi
 }
 ```
 
-### 13. 模板里的 `mode: DATA` 结构方块（数据标记）尚无人处理
+### 13. 模板里的 `mode: DATA` 结构方块（数据标记）
 
 原版把模板中 `mode=DATA` 的结构方块当作「数据标记（data marker）」：放置后由所属结构片段
 （`TemplateStructurePiece::postProcess`）或拼图元素（`SinglePoolElement::place` →
-`handleDataMarker`）读取其 `metadata` 字符串，再生成箱子/生物/入口方块（`ShipwreckPieces`、
-`OceanRuinPieces`、`IglooPieces`、`NetherFossilPieces`、`EndCityPieces`、`RuinedPortalPiece`
-各自重写）。
+`handleDataMarker`）读取其 `metadata` 字符串，再生成箱子/生物/入口方块。
 
-Cubium 目前**没有任何** `handleDataMarker` 等价实现，也不读取 `metadata`：数据标记方块会被当作
-普通结构方块放置或按忽略规则丢弃，`metadata` 里描述的内容（如沉船宝箱、海底废墟的埋藏物）
-因此缺失。
+Cubium 的链路是 `Template::getDataMarkers()` 取出放置后的数据标记位置，结构片段重写
+`StructurePiece::handleDataMarker()` 分派。**已实现**：`ShipwreckPiece`（`map_chest` /
+`treasure_chest` / `supplies_chest` 等）与 `OceanRuinPiece`（`chest` / `drowned`）。
 
-TODO: 在 `Template::place` 之后补一遍「筛出 DATA 模式结构方块 → 分派给结构片段」的链路
-（对应 `TemplateStructurePiece::postProcess` 与 `SinglePoolElement::place` 中的两处数据标记处理），
-再逐个结构实现其 `handleDataMarker`。注意原版中 DATA 标记**不参与**正常方块放置。
+TODO: 以下结构的数据标记仍未实现（目前只保证方块几何一致）：`IglooPiece`（地窖入口与
+地下室箱子）、`NetherFossilPiece`、`CityTemplate`（末地船宝箱与潜影贝）、
+`RuinedPortalPiece`、`WoodlandMansionPiece`（宝箱与灾厄村民）。实现时注意：DATA 标记方块
+本身**不参与**正常方块放置（由 BlockIgnore 处理器忽略），其位置由
+`getDataMarkers()` 按放置设置换算到世界坐标。

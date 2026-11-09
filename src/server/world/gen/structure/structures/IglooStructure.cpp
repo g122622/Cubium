@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -155,17 +156,16 @@ void IglooPiece::generate(IWorldWriter& world,
         return;
     }
 
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "IglooPiece::generate requires an IWorld");
+
     feature::template_::PlacementSettings settings;
     settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
     settings.setRotationPivot(shapeOf(m_templateName).pivot);
     settings.setBoundingBox(&chunkBounds);
 
-    m_template->place(world,
-        m_templatePosition,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+    m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 // ============================================================================

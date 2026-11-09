@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -255,9 +256,8 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
 
     // 设置世界引用（ProtectedBlocksProcessor / LavaSubmergingProcessor 等需要 IWorld 读取世界方块）
     IWorld* iworld = dynamic_cast<IWorld*>(&world);
-    if (iworld != nullptr) {
-        settings.setWorld(iworld);
-    }
+    MC_ASSERT_RELEASE_MSG(iworld != nullptr, "RuinedPortalPiece::generate requires an IWorld");
+    settings.setWorld(iworld);
 
     // 添加处理器
     feature::template_::StructureProcessorList processors;
@@ -332,19 +332,12 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
 
     // 放置原点必须是**候选生成点**本身：模板的方块坐标是相对该点、绕 (size/2) 轴心变换后
     // 再相加的。用包围盒的 min 当原点会重复扣掉轴心，整座传送门平移半个模板边长。
-    m_template->place(world,
-        m_candidatePos,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+    m_template->placeInWorld(*iworld, m_candidatePos, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // ===== 放置后的地狱岩/岩浆块点缀 =====
     //
     // 这些步骤在空世界里也常常会写入方块（模板自身的地狱岩会触发下方垂滴列），
     // 因此必须逐抽样复刻，不能省略。
-    if (iworld == nullptr) {
-        return;
-    }
     _spreadNetherrack(*iworld, rng);
     _addNetherrackDripColumnsBelowPortal(*iworld, rng);
     if (m_properties.vines || m_properties.overgrown) {

@@ -101,6 +101,13 @@ public:
         return true;
     }
 
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        // 与 oracle 的 FakeLevel 一致：流体状态由当前记录到的方块推导。这样多个构件
+        // 叠放时，后放的构件能读到前一个构件经数据标记写入的水，从而正确补上水浸。
+        return getBlockState(x, y, z)->getFluidState();
+    }
+
     [[nodiscard]] i32 getMinBuildHeight() const override
     {
         return m_minBuildHeight;

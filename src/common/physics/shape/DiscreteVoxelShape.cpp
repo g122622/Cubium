@@ -630,19 +630,21 @@ void DiscreteVoxelShape::_forAllAxisFaces(const IntFaceConsumer& consumer, AxisC
                 const bool isFull = (k != kSize) && DiscreteVoxelShape::isFull(invCycle, i, j, k);
 
                 if (!wasFull && isFull) {
-                    // 开始的面（负方向）
+                    // 开始的面（负方向）。坐标必须用**逆循环**还原回体素坐标：
+                    // isFull 用 invCycle 把 (i, j, k) 映射到存储坐标，输出若再用原循环
+                    // 映射，得到的是另一格（FORWARD 与 BACKWARD 互为逆，不等于自身）。
                     consumer(negDir,
-                        AxisCycles::cycle(cycle, i, j, k, Axis::X),
-                        AxisCycles::cycle(cycle, i, j, k, Axis::Y),
-                        AxisCycles::cycle(cycle, i, j, k, Axis::Z));
+                        AxisCycles::cycle(invCycle, i, j, k, Axis::X),
+                        AxisCycles::cycle(invCycle, i, j, k, Axis::Y),
+                        AxisCycles::cycle(invCycle, i, j, k, Axis::Z));
                 }
 
                 if (wasFull && !isFull) {
                     // 结束的面（正方向）
                     consumer(posDir,
-                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::X),
-                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::Y),
-                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::Z));
+                        AxisCycles::cycle(invCycle, i, j, k - 1, Axis::X),
+                        AxisCycles::cycle(invCycle, i, j, k - 1, Axis::Y),
+                        AxisCycles::cycle(invCycle, i, j, k - 1, Axis::Z));
                 }
 
                 wasFull = isFull;

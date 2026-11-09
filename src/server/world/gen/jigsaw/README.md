@@ -51,7 +51,7 @@ JigsawPiece ──包含──> JigsawJoint ──使用──> JigsawOrientatio
 
 ### 关键模块
 
-- **JigsawPiece**：拼图块基类，`virtual place()` 多态分发到各子类（Single/List/Feature/Empty）。子类在 `place()` 中构造处理器链并调用 `Template::place()`。
+- **JigsawPiece**：拼图块基类，`virtual place()` 多态分发到各子类（Single/List/Feature/Empty）。子类在 `place()` 中构造处理器链并调用 `Template::placeInWorld()`（拼图构件设置 `knownShape=true`，不再重算形状）。
 - **JigsawAssembler**：核心组装算法。使用 `SequencedPriorityIterator`（按 placementPriority 降序）替代 FIFO 队列；通过 VoxelShape 空间追踪（`freeShape`）保证结构不重叠不越界；集成 `PoolAliasBinding` 实现池别名随机化。
 - **JigsawPlacer**：放置器，遍历 `PlacedPiece` 调用 `piece->place()`（多态分发）。提供 `placePiece`（单块）和 `placePieces`（批量）入口。
 - **JigsawTransform**：坐标/连接点变换、边界框计算（从原 JigsawManager 提取）。

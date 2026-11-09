@@ -193,6 +193,7 @@ private:
     std::string m_templatePath;
     BlockPos m_templatePosition;
     bool m_overwrite;
+    feature::template_::StructureProcessorList m_processorList;
     feature::template_::PlacementSettings m_settings;
     BlockPos m_size;
 };

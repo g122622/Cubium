@@ -435,11 +435,8 @@ void OceanRuinPiece::generate(IWorldWriter& world,
     settings.setProcessors(&processors);
 
     // 放置模板：完整版会在放完后按邻居重算方块形状，并按世界流体补上水浸状态。
-    if (!m_template->placeInWorld(*reader,
-            m_templatePosition,
-            settings,
-            rng,
-            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)) {
+    if (!m_template->placeInWorld(
+            *reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS)) {
         return;
     }
 

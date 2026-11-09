@@ -45,7 +45,6 @@ namespace mc {
 
 class BlockState;
 class Block;
-class IWorldWriter;
 class IWorld;
 
 namespace world {
@@ -192,6 +191,19 @@ public:
     PlacementSettings& setKeepLiquids(bool keep);
 
     /**
+     * @brief 是否跳过放置后的形状重算
+     *
+     * 为 true 时模板方块的连接/附着属性直接采用模板记录的值，不再按周围方块重算
+     * （拼图池构件在装配阶段已保证形状正确）。默认 false，即放完后重算一次。
+     */
+    [[nodiscard]] bool knownShape() const
+    {
+        return m_knownShape;
+    }
+
+    PlacementSettings& setKnownShape(bool known);
+
+    /**
      * @brief 获取世界读取器（用于 GravityStructureProcessor 等需要高度信息的处理器）
      */
     [[nodiscard]] const IWorld* getWorld() const
@@ -240,7 +252,9 @@ private:
     Rotation m_rotation = Rotation::None;
     Mirror m_mirror = Mirror::None;
     bool m_ignoreEntities = false;
-    bool m_keepLiquids = false;
+    // 默认按世界当前位置的流体补上水浸（APPLY_WATERLOGGING）。
+    bool m_keepLiquids = true;
+    bool m_knownShape = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
     BlockPos m_rotationPivot = BlockPos(0, 0, 0);
@@ -689,26 +703,8 @@ public:
         const BlockPos& templatePosition, const PlacementSettings& settings) const;
 
     /**
-     * @brief 放置模板到世界（基础版本）
+     * @brief 放置模板到世界
      *
-     * 仅放置方块，不处理液体、TileEntity 和实体。
-     * 适用于不需要完整世界访问的场景。
-     *
-     * @param world 世界写入器
-     * @param pos 放置位置
-     * @param settings 放置设置
-     * @param rng 随机数生成器
-     * @param flags 方块更新标志
-     * @return 是否成功放置
-     */
-    bool place(IWorldWriter& world,
-        const BlockPos& pos,
-        const PlacementSettings& settings,
-        math::IRandom& rng,
-        i32 flags) const;
-
-    /**
-     * @brief 放置模板到世界（完整版本）
      * 完整实现包括：
      * - 方块放置
      * - 液体处理（水、岩浆填充容器）
@@ -819,6 +815,8 @@ private:
 
 /**
  * @brief 方块忽略结构处理器
+ *
+ * 按**方块 ID** 忽略：命中方块后，该方块的任意状态都不会被放置。
  */
 class BlockIgnoreStructureProcessor : public StructureProcessor {
 public:

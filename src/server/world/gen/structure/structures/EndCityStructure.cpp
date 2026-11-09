@@ -204,6 +204,19 @@ CityTemplate::CityTemplate(
     m_settings.setRotation(rotation);
     m_settings.setIgnoreEntities(true);
 
+    // 结构方块只是模板占位标记：覆盖模式只忽略结构方块，非覆盖模式连空气一起忽略
+    std::vector<u32> blocksToIgnore;
+    if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+        blocksToIgnore.push_back(structureState->blockId());
+    }
+    if (!overwrite) {
+        if (auto* airState = VanillaBlocks::getState(VanillaBlocks::AIR)) {
+            blocksToIgnore.push_back(airState->blockId());
+        }
+    }
+    m_processorList.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
+    m_settings.setProcessors(&m_processorList);
+
     // 【包围盒必须在构造期就确定】原版 `TemplateStructurePiece` 的构造直接用模板算出
     // 包围盒（`StructureTemplate.getBoundingBox(templatePosition, settings)`），后续
     // `move()` 只是平移这个盒子。这里原本把 m_min*/m_max* 全设成 pos，尺寸要等到
@@ -314,13 +327,14 @@ void CityTemplate::generate(IWorldWriter& world,
         return;
     }
 
-    // 放置模板：覆盖模式声明形状已知（跳过形状重算），非覆盖模式仅同步客户端
-    templ->place(world,
-        m_templatePosition,
-        m_settings,
-        rng,
-        m_overwrite ? (world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
-                    : world::BlockUpdateFlags::UPDATE_CLIENTS);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "CityTemplate::generate requires an IWorld");
+
+    // 每次放置都以当前区块的可写范围作为包围盒，避免越界写入其他区块
+    feature::template_::PlacementSettings settings = m_settings.copy();
+    settings.setBoundingBox(&chunkBounds);
+
+    templ->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const

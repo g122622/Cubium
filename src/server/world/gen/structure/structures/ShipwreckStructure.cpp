@@ -245,11 +245,8 @@ void ShipwreckPiece::generate(IWorldWriter& world,
 
     // 包围盒由模板原点绕枢轴展开，放置位置就是模板原点本身。
     // 用完整版放置：它会在放完后按邻居重算方块形状（楼梯/栅栏等），与原版一致。
-    if (!m_template->placeInWorld(*reader,
-            m_templatePosition,
-            settings,
-            rng,
-            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)) {
+    if (!m_template->placeInWorld(
+            *reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS)) {
         return;
     }
 

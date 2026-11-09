@@ -248,7 +248,9 @@ TEST_F(TemplateTest, PlacementSettings_DefaultValues)
     EXPECT_EQ(settings.getCenterOffset().z, 0);
     EXPECT_EQ(settings.getBlockUpdateFlags(),
         mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-    EXPECT_EQ(settings.keepLiquids(), false);
+    // 默认按世界当前流体补上水浸（对应原版 APPLY_WATERLOGGING）
+    EXPECT_EQ(settings.keepLiquids(), true);
+    EXPECT_EQ(settings.knownShape(), false);
     EXPECT_EQ(settings.getProcessors(), nullptr);
 }
 

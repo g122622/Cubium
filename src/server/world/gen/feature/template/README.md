@@ -6,45 +6,28 @@
 
 ```
 template/
-├── Template.hpp                      # 模板类（PaletteBlock、BlockInfo、PlacementSettings、StructureProcessor、Palette等）
-├── Template.cpp                      # 模板类实现（含所有处理器实现）
-├── TemplateLoader.hpp                # NBT 模板加载器，从资源包加载 .nbt 文件
+├── Template.hpp                      # 模板类（PaletteBlock、BlockInfo、PlacementSettings、StructureProcessor、Palette 与全部处理器声明）
+├── Template.cpp                      # 模板类与全部处理器的唯一实现
+├── TemplateLoader.hpp                # NBT 模板加载器，从资源包加载 .nbt / .mcstructure 文件
 ├── TemplateLoader.cpp                # 模板加载实现
 ├── TemplateManager.hpp               # 模板管理器（模板缓存 + 来源注入，来源注入接口私有）
 ├── TemplateManager.cpp               # 模板管理实现
 ├── TemplateManagerHostBinding.hpp    # 模板管理器宿主资源绑定令牌（RAII 绑/解绑，防悬垂指针）
 ├── TemplateManagerHostBinding.cpp    # 绑定令牌实现
+├── IStructurePackSource.hpp          # 结构包资源源接口
 ├── RuleTest.hpp                      # 规则测试类（用于 RuleStructureProcessor）
 ├── RuleTest.cpp                      # 规则测试实现
-├── CappedStructureProcessor.hpp  # 限制次数处理器（limit 支持 IntProvider 随机范围）
-├── CappedStructureProcessor.cpp  # 限制次数处理器实现
-├── BlockAgeProcessor.hpp             # [未编译] 方块老化处理器独立声明（实现在 Template.cpp）
-├── BlockAgeProcessor.cpp             # [未编译] 方块老化处理器独立实现（实现在 Template.cpp）
-├── BlackstoneReplacementProcessor.hpp # [未编译] 黑石替换处理器
-├── BlackstoneReplacementProcessor.cpp # [未编译] 黑石替换处理器
-├── BlockIgnoreStructureProcessor.hpp # [未编译] 方块忽略处理器
-├── BlockIgnoreStructureProcessor.cpp # [未编译] 方块忽略处理器
-├── GravityStructureProcessor.hpp     # [未编译] 重力处理器
-├── GravityStructureProcessor.cpp     # [未编译] 重力处理器
-├── IntegrityProcessor.hpp            # [未编译] 完整度处理器
-├── IntegrityProcessor.cpp            # [未编译] 完整度处理器
-├── JigsawReplacementStructureProcessor.hpp # [未编译] 拼图替换处理器
-├── JigsawReplacementStructureProcessor.cpp # [未编译] 拼图替换处理器
-├── LavaSubmergingProcessor.hpp       # [未编译] 岩浆淹没处理器
-├── LavaSubmergingProcessor.cpp       # [未编译] 岩浆淹没处理器
-├── NopStructureProcessor.hpp         # [未编译] 空处理器
-├── NopStructureProcessor.cpp         # [未编译] 空处理器
-├── BlockInfo.hpp                     # [未编译] 方块信息
-├── BlockInfo.cpp                     # [未编译] 方块信息
-├── PlacementSettings.hpp             # [未编译] 放置设置
-├── PlacementSettings.cpp             # [未编译] 放置设置
-├── StructureProcessor.hpp            # [未编译] 处理器基类
-├── StructureProcessor.cpp            # [未编译] 处理器基类
-├── TemplateEntityInfo.hpp            # [未编译] 模板实体信息
-└── TemplateEntityInfo.cpp            # [未编译] 模板实体信息
+├── CappedStructureProcessor.hpp      # 限制次数处理器（limit 支持 IntProvider 随机范围）
+├── CappedStructureProcessor.cpp      # 限制次数处理器实现
+├── ProtectedBlocksProcessor.hpp      # 受保护方块处理器（数据包标签驱动）
+├── ProtectedBlocksProcessor.cpp      # 受保护方块处理器实现
+└── README.md
 ```
 
-**注意**：标记为 `[未编译]` 的文件不在 CMakeLists.txt 编译列表中，其功能已在 `Template.hpp/cpp` 中统一实现。这些文件保留作为参考，未来可能重构为独立编译单元。
+其余处理器（BlockAge / BlackstoneReplacement / BlockIgnore / Gravity / Integrity /
+JigsawReplacement / LavaSubmerging / Nop / RuleStructure）与盒模型（BlockInfo、
+ProcessedBlockInfo、PlacementSettings、StructureProcessor、TemplateEntityInfo）的声明和实现
+全部集中在 `Template.hpp` / `Template.cpp` 中，不再保留同名独立文件。
 
 ## 内部模块关系
 
@@ -74,7 +57,7 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
 **关键依赖链**：
 - `TemplateLoader` 解析 NBT 文件创建 `Template` 对象
 - `TemplateManager` 提供模板缓存；模板来源（数据包仓库 / 结构包资源源）经 `TemplateManagerHostBinding` 注入
-- `Template::place()` 遍历方块并调用 `StructureProcessor` 链处理
+- `Template::placeInWorld()` 遍历方块并调用 `StructureProcessor` 链处理（唯一的放置入口）
 - `RuleStructureProcessor` 使用 `RuleTest` 进行条件匹配
 - `BlockAgeProcessor` 使用 `BlockTags::STAIRS/SLABS/WALLS` 进行标签化方块匹配，使用 `withPropertiesOf()` 保留原方块属性
 
@@ -123,9 +106,21 @@ auto chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
 settings.setBoundingBox(&chunkBounds);
 ```
 
-### 4. 方块更新标志不当
+### 4. 放置入口、flags 与 knownShape 必须配套
 
-放置方块后可能产生过多更新。使用适当的标志（默认 18：通知邻居和观察者）。
+`Template::placeInWorld()` 是唯一放置入口（旧的基础版 `place()` 已删除，它不做液体、形状与方块实体处理）。
+
+- **拼图池构件**（`SingleJigsawPiece`）：构件在装配阶段已保证形状正确，必须 `settings.setKnownShape(true)`，并传 `UPDATE_CLIENTS | UPDATE_KNOWN_SHAPE`（18）。
+- **手工实现的构件**（海洋废墟、沉船、雪屋、下界化石、废弃传送门、林地府邸、末地城，对应原版 `TemplateStructurePiece`）：必须保持 `knownShape=false`，并传 `UPDATE_CLIENTS`（2）。放置后要按邻居重算连接状态。
+- 两者写反的症状都是「方块朝向/连接看似合理但对不上原版」：拼图误开形状重算，会在空世界把模板记录好的栅栏连接重算掉；手工构件误设 `knownShape=true`，则后放置的相邻构件无法刷新先放构件的连接状态。
+
+### 4.1 液体处理分三段，缺一不可
+
+1. 放置每个方块前读取原位流体；方块自身是流体源头（水方块或 `waterlogged=true`）时记入 `sourceFluidPositions`。
+2. 否则若方块实现 `ILiquidContainer`，用原位流体尝试灌入，并把「原位不是源头」的位置记入 `fluidUpdatePositions`。
+3. 全部方块落位后，对 `fluidUpdatePositions` 反复扫描上/北/东/南/西，从相邻水源（且不在 `sourceFluidPositions` 中）灌注，直到不再变化。
+
+只实现第 2 段（只看放置前原位有没有非源流体）会漏掉「干燥容器被相邻水源补成水浸」：海洋废墟叠放构件时，前一个构件的数据标记写下水源，后一个构件的楼梯即使放在空气上也应变成 `waterlogged=true`。
 
 ### 5. 实体位置精度
 
@@ -186,9 +181,14 @@ IntegrityProcessor 等使用位置哈希进行确定性随机。必须使用 `Ma
 
 **注意**：`withPropertiesOf()` 只复制两个方块状态共有的属性，不会添加目标方块不支持的属性，也不会删除目标方块独有的属性。
 
-### 12. 未编译的独立处理器文件
+### 12. 形状重算必须包含放置体积的外露面
 
-目录中存在多个标记为 `[未编译]` 的独立处理器文件（如 `BlockAgeProcessor.hpp/cpp`、`BlackstoneReplacementProcessor.hpp/cpp` 等），这些文件不在 `CMakeLists.txt` 编译列表中。它们的功能已在 `Template.hpp/cpp` 中统一实现。修改处理器逻辑时，务必修改 `Template.hpp/cpp` 中的实现，而非仅修改独立文件。
+`placeInWorld` 在 `knownShape=false` 时执行两步，缺一不可：
+
+1. 用本次放置位置构造 `DiscreteVoxelShape`，对所有**外露面**调用两侧方块的 `updatePostPlacement`（`_updateShapeAtEdge`）；
+2. 对本次放置的每个方块调用 `Block::updateFromNeighbourShapes`。
+
+只做第 2 步会漏掉「后放置的构件紧贴先放置构件」的情况：先放构件的栅栏/墙/玻璃板连接状态仍停在模板记录值，新邻居不会触发它刷新（沉船跨构件栅栏连接的差异来源）。第 1 步的坐标必须来自 `DiscreteVoxelShape::forAllFaces`，其 FORWARD/BACKWARD 通道要用**逆循环**把体素坐标还原回来，否则面会落到错误的格子上（详见 `src/common/physics/shape/README.md`）。
 
 ### 13. 战利品容器 LootTableSeed 注入
 

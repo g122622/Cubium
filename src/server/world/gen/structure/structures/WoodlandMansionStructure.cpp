@@ -233,11 +233,9 @@ void WoodlandMansionPiece::generate(IWorldWriter& world,
 
     // TODO: 处理模板数据标记（ChestWest/ChestEast/ChestSouth/ChestNorth 宝箱、Mage/Warrior
     //       生成灾厄村民）——需要战利品表与实体生成接口，当前只保证方块几何一致。
-    m_template->place(world,
-        m_templatePosition,
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "WoodlandMansionPiece::generate requires an IWorld");
+    m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 namespace woodland_mansion {
