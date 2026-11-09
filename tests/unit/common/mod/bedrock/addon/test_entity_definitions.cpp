@@ -330,6 +330,81 @@ TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
 // minecraft:breathable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
 // 原版 schema 同时给 snake_case 与 camelCase 两套键，两种都必须接受。
 // minecraft:healable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// minecraft:rideable 此前落在"未实现组件"分支，含该组件的 addon 实体定义直接加载失败。
+// 本轮接入解析与字段校验，并让 seat_count 驱动 getMaxPassengers。
+TEST_F(AddonEntityDefinitionTest, RideableComponentIsAccepted)
+{
+    auto full = _definition("addon_test:rideable_mob");
+    full["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    full["minecraft:entity"]["components"]["minecraft:rideable"] = {{"seat_count", 2},
+        {"controlling_seat", 0},
+        {"crouching_skip_interact", false},
+        {"family_types", nlohmann::json::array({"player"})},
+        {"interact_text", "action.interact.mount"},
+        {"dismount_mode", "on_top_center"},
+        {"pull_in_entities", true},
+        {"rider_can_interact", true}};
+
+    auto minimal = _definition("addon_test:rideable_default");
+    minimal["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    minimal["minecraft:entity"]["components"]["minecraft:rideable"] = nlohmann::json::object();
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/rideable_mob.json", full);
+    write(directory / "entities/rideable_default.json", minimal);
+
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+}
+
+TEST_F(AddonEntityDefinitionTest, RideableComponentRejectsInvalidFields)
+{
+    struct Case {
+        nlohmann::json component;
+        const char* label;
+    };
+
+    const std::array<Case, 4> invalid{{
+        {{{"seat_count", 0}}, "zero seat_count is self-contradictory"},
+        {{{"seat_count", "two"}}, "non-integer seat_count"},
+        {{{"family_types", "player"}}, "non-array family_types"},
+        {{{"dismount_mode", "sideways"}}, "unknown dismount_mode"},
+    }};
+
+    for (const auto& testCase : invalid) {
+        auto definition = _definition("addon_test:bad_rideable");
+        definition["minecraft:entity"]["components"]["minecraft:rideable"] = testCase.component;
+        EXPECT_TRUE(AddonEntityDefinition::parse(definition).failed()) << testCase.label;
+    }
+}
+
+// seat_count 必须驱动 getMaxPassengers；未声明 rideable 的实体不得接受乘客。
+TEST_F(AddonEntityDefinitionTest, RideableDrivesPassengerCapacity)
+{
+    auto twoSeats = _definition("addon_test:two_seater");
+    twoSeats["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    twoSeats["minecraft:entity"]["components"]["minecraft:rideable"] = {{"seat_count", 3}};
+
+    auto noRide = _definition("addon_test:not_rideable");
+    noRide["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/two_seater.json", twoSeats);
+    write(directory / "entities/not_rideable.json", noRide);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto seater = create("addon_test:two_seater");
+    ASSERT_NE(seater, nullptr);
+    EXPECT_EQ(seater->getMaxPassengers(), 3) << "seat_count must drive the passenger capacity";
+    EXPECT_TRUE(seater->couldAcceptPassenger()) << "declaring minecraft:rideable must allow passengers";
+
+    auto noRideEntity = create("addon_test:not_rideable");
+    ASSERT_NE(noRideEntity, nullptr);
+    EXPECT_FALSE(noRideEntity->couldAcceptPassenger())
+        << "an addon entity without minecraft:rideable must not accept passengers";
+}
+
 TEST_F(AddonEntityDefinitionTest, HealableComponentIsAccepted)
 {
     auto full = _definition("addon_test:healable_mob");
@@ -958,8 +1033,8 @@ TEST_F(AddonEntityDefinitionTest, DuplicateDefinitionsWithinOnePackAreRejected)
 TEST_F(AddonEntityDefinitionTest, UnsupportedComponentsAndEventSectionsAreExplicitFailures)
 {
     auto definition = _definition("addon_test:unsupported");
-    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable 都已接入。
-    definition["minecraft:entity"]["components"]["minecraft:rideable"] = {{"seat_count", 1}};
+    // 用一个确实尚未支持的组件作样本：inventory / leashable / breathable / healable / rideable 都已接入。
+    definition["minecraft:entity"]["components"]["minecraft:scale"] = {{"value", 2.0}};
     auto result = AddonEntityDefinition::parse(definition);
     ASSERT_TRUE(result.failed());
     EXPECT_EQ(result.error().code(), mc::ErrorCode::Unsupported);

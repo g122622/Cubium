@@ -336,6 +336,46 @@ public:
      * 对应 `minecraft:healable.items`：匹配 `item` 资源位置，按 `heal_amount` 回血。
      * 满血时不消耗（除非 `force_use` 为 true）。
      */
+    /**
+     * @brief 最大乘客数
+     *
+     * 对应 `minecraft:rideable.seat_count`（默认
+     * 1）。未声明该组件时沿用基类默认。
+     */
+    [[nodiscard]] i32 getMaxPassengers() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* rideable = components != nullptr ? components->component("minecraft:rideable") : nullptr;
+        if (rideable == nullptr) {
+            return mc::AgeableEntity::getMaxPassengers();
+        }
+        const auto seats = rideable->find("seat_count");
+        if (seats == rideable->end() || !seats->is_number_integer()) {
+            return mc::AgeableEntity::getMaxPassengers();
+        }
+        return static_cast<i32>(seats->get<i64>());
+    }
+
+    /**
+     * @brief 是否可能接受乘客
+     *
+     * 只有声明了 `minecraft:rideable` 的 addon
+     * 实体才能被骑；否则一律拒绝。
+     * 这是骑乘检查的硬门槛，比 getMaxPassengers 更早生效。
+     *
+     *
+     * 注意这里**不回退基类**：基类默认返回 true（Java 侧"实体普遍可被骑"的宽松前提），
+     * 而 addon
+     * 实体是纯数据驱动的——没有显式声明 rideable 就代表作者没打算让它可骑。
+     * 回退基类会让所有 addon
+     * 实体凭空变成可骑，与行为包意图相反。
+     */
+    [[nodiscard]] bool couldAcceptPassenger() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        return components != nullptr && components->has("minecraft:rideable");
+    }
+
     [[nodiscard]] bool tryHealFromItem(ItemStack& stack, Player& player) override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -827,6 +867,65 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
             //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
             //   在此之前这些字段只做类型校验，不生效。
+        } else if (name == "minecraft:rideable") {
+            // 官方 schema 字段很多，但服务端真正决定"能否被骑、能坐几个"的只有
+            // seat_count（默认 1）。其余字段的处理见下方 TODO。
+            MC_TRY(_members(component,
+                {"controlling_seat",
+                    "crouching_skip_interact",
+                    "dismount_mode",
+                    "family_types",
+                    "interact_text",
+                    "on_rider_enter_event",
+                    "on_rider_exit_event",
+                    "passenger_max_width",
+                    "priority",
+                    "pull_in_entities",
+                    "pulls_in_entities",
+                    "rider_can_interact",
+                    "seat_count",
+                    "seats"}));
+            if (const auto seats = component.find("seat_count"); seats != component.end()) {
+                if (!seats->is_number_integer()) {
+                    return Error(ErrorCode::InvalidData, "minecraft:rideable seat_count must be an integer");
+                }
+                // 0 座位的 rideable 是自相矛盾的配置：声明可骑却没有任何座位。
+                // 夹到 1 而不是接受 0，避免"看起来可骑、实际永远上不去"。
+                if (seats->get<i64>() < 1) {
+                    return Error(ErrorCode::InvalidData, "minecraft:rideable seat_count must be at least 1");
+                }
+            }
+            for (const char* field :
+                {"crouching_skip_interact", "pull_in_entities", "pulls_in_entities", "rider_can_interact"}) {
+                MC_TRY(_boolean(component, field));
+            }
+            if (const auto seat = component.find("controlling_seat"); seat != component.end()) {
+                if (!seat->is_number_integer() || seat->get<i64>() < 0) {
+                    return Error(
+                        ErrorCode::InvalidData, "minecraft:rideable controlling_seat must be a nonnegative integer");
+                }
+            }
+            if (const auto types = component.find("family_types"); types != component.end()) {
+                if (!types->is_array()) {
+                    return Error(ErrorCode::InvalidData, "minecraft:rideable family_types must be an array");
+                }
+            }
+            if (const auto mode = component.find("dismount_mode"); mode != component.end()) {
+                if (!mode->is_string() ||
+                    (mode->get<std::string>() != "default" && mode->get<std::string>() != "on_top_center")) {
+                    return Error(ErrorCode::InvalidData,
+                        "minecraft:rideable dismount_mode must be 'default' or 'on_top_center'");
+                }
+            }
+            if (const auto text = component.find("interact_text");
+                text != component.end() && (!text->is_string() || text->get_ref<const std::string&>().empty())) {
+                return Error(ErrorCode::InvalidData, "minecraft:rideable interact_text must be a nonempty string");
+            }
+            // TODO: seats 的每座位坐标（position）与旋转（rotate_rider_by 等 Molang）、
+            //   family_types 的白名单过滤、pull_in_entities 的吸附、dismount_mode 的下马落点、
+            //   on_rider_enter/exit_event 的事件派发均未接入。这些都需要骑乘座位点的运行时表达，
+            //   而项目当前只有"乘客挂在载具上"这一个整体关系、没有多座位概念。
+            //   目前已生效的只有 seat_count（见 _AddonMob::getMaxPassengers）。
         } else if (name == "minecraft:healable") {
             // 三个字段：filters（交互前置条件）、force_use（满血也能用）、items（物品 → 治疗量）。
             // items 每项含 item（必填资源位置）、heal_amount（默认 1）、effects（可选效果列表）。
