@@ -309,6 +309,22 @@ public:
         attributes().registerAttribute(*mc::entity::attribute::Attributes::attackDamage());
     }
 
+    /**
+     * @brief 是否允许用命名牌改名
+     *
+     * 对应 `minecraft:nameable.allow_name_tag_renaming`（默认 true）。为 false 时命名牌对该
+     * 实体无效。未声明该组件时沿用基类默认（允许）。
+     */
+    bool isNameableByTag() const override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* nameable = components != nullptr ? components->component("minecraft:nameable") : nullptr;
+        if (nameable == nullptr) {
+            return mc::AgeableEntity::isNameableByTag();
+        }
+        return nameable->value("allow_name_tag_renaming", true);
+    }
+
     f32 width() const override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -634,6 +650,19 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             // 纯标记组件：存在即表示可攀爬梯子/藤蔓。攀爬判定读的是实体的攀爬状态，
             // 因此这里只做接受，运行期由物理/移动逻辑沿用既有 canClimb 路径。
             MC_TRY(_members(component, {}));
+        } else if (name == "minecraft:nameable") {
+            // allow_name_tag_renaming 由 _AddonMob::isNameableByTag 消费（NameTagItem 查询）。
+            // always_show 是纯客户端展示（名字常显），客户端已停止维护，因此只校验不落地。
+            // default_trigger / name_actions 需要"命名时触发事件"的挂接点，见下方 TODO。
+            MC_TRY(_members(component, {"allow_name_tag_renaming", "always_show", "default_trigger", "name_actions"}));
+            MC_TRY(_boolean(component, "allow_name_tag_renaming"));
+            MC_TRY(_boolean(component, "always_show"));
+            if (const auto trigger = component.find("default_trigger"); trigger != component.end() &&
+                (!trigger->is_string() || trigger->get_ref<const std::string&>().empty())) {
+                return Error(ErrorCode::InvalidData, "minecraft:nameable default_trigger must be a nonempty string");
+            }
+            // TODO: name_actions（按名字匹配触发事件）与 default_trigger 需要"实体获得名字"这一
+            //       事件源。目前 NameTagItem 直接写名字，没有统一的命名事件派发点，待补。
         } else if (name == "minecraft:pushable") {
             // 两个字段由 _AddonMob / _AddonActor 的 isPushable / getPushReaction 覆写消费：
             // is_pushable 决定能否被其他实体推动（并影响实体碰撞与方块放置判定），

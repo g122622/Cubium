@@ -271,6 +271,55 @@ TEST_F(AddonEntityDefinitionTest, AttackEffectFieldsAreTypeChecked)
     }
 }
 
+TEST_F(AddonEntityDefinitionTest, NameableDrivesNameTagRenaming)
+{
+    // allow_name_tag_renaming 为 false 时命名牌对该实体无效（NameTagItem 查询 isNameableByTag）。
+    // 默认（不写该组件、或写 true）必须保持"可改名"，否则正常 addon 实体会被误锁。
+    auto refusing = _definition("addon_test:unnameable");
+    refusing["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    refusing["minecraft:entity"]["components"]["minecraft:nameable"] = {{"allow_name_tag_renaming", false}};
+
+    auto accepting = _definition("addon_test:nameable");
+    accepting["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    accepting["minecraft:entity"]["components"]["minecraft:nameable"] = {{"allow_name_tag_renaming", true}};
+
+    auto implicit = _definition("addon_test:nameable_default");
+    implicit["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/unnameable.json", refusing);
+    write(directory / "entities/nameable.json", accepting);
+    write(directory / "entities/nameable_default.json", implicit);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto refusingEntity = create("addon_test:unnameable");
+    auto* refusingMob = dynamic_cast<mc::MobEntity*>(refusingEntity.get());
+    ASSERT_NE(refusingMob, nullptr);
+    EXPECT_FALSE(refusingMob->isNameableByTag());
+
+    auto acceptingEntity = create("addon_test:nameable");
+    auto* acceptingMob = dynamic_cast<mc::MobEntity*>(acceptingEntity.get());
+    ASSERT_NE(acceptingMob, nullptr);
+    EXPECT_TRUE(acceptingMob->isNameableByTag());
+
+    auto implicitEntity = create("addon_test:nameable_default");
+    auto* implicitMob = dynamic_cast<mc::MobEntity*>(implicitEntity.get());
+    ASSERT_NE(implicitMob, nullptr);
+    EXPECT_TRUE(implicitMob->isNameableByTag());
+}
+
+TEST_F(AddonEntityDefinitionTest, NameableRejectsNonBoolean)
+{
+    auto definition = _definition("addon_test:bad_nameable");
+    definition["minecraft:entity"]["components"]["minecraft:nameable"] = {{"always_show", "yes"}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/bad_nameable.json", definition);
+    EXPECT_TRUE(manager.loadPacks("", root.string()).failed());
+    EXPECT_FALSE(mc::entity::EntityRegistry::instance().hasType("addon_test:bad_nameable"));
+}
+
 TEST_F(AddonEntityDefinitionTest, InstantDespawnRemoveChildEntitiesIsAccepted)
 {
     // 此前 remove_child_entities 为 true 会让整个实体定义加载失败（解析期返回 Unsupported）。

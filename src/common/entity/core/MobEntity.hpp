@@ -1296,6 +1296,19 @@ public:
     }
 
     /**
+     * @brief 是否允许用命名牌改名
+     *
+     * 基岩 `minecraft:nameable` 的 `allow_name_tag_renaming` 为 false 时，命名牌对该实体无效。
+     * 默认允许；数据驱动的实体（如 addon 实体）覆写本方法读取自身配置。
+     *
+     * @return 允许改名返回 true
+     */
+    [[nodiscard]] virtual bool isNameableByTag() const
+    {
+        return true;
+    }
+
+    /**
      * @brief 检查是否应阻止消失
      *
      * 当实体正在被骑乘时，不应消失。
