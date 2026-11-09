@@ -106,7 +106,11 @@ constexpr u16 DEFAULT_RCON_PORT = 25575; // RCON 默认端口
 // 数据包/压缩尺寸上限不在这里：实际生效的是 `network/crypto/ZlibCodec.hpp` 的
 // `kMaxUncompressed`(8MB) 与 `kMaxCompressed`(2MB)，以及 `VarintFraming::kMaxFramePayloadSize`。
 // 原先此处的 `MAX_PACKET_SIZE` / `MAX_UNCOMPRESSED_SIZE`（均 2MB）无人引用且与上面两个对不上。
-constexpr Size MIN_COMPRESSION_THRESHOLD = 256;
+
+// 握手压缩阈值：Java 版默认 256，负值表示禁用压缩。
+// 之所以是 i32 而不是 Size：`ZlibCodec::encode` 与 `ServerHandshake` 都用 `threshold < 0`
+// 判定"不启用压缩"，无符号类型表达不了这个状态。
+constexpr i32 DEFAULT_COMPRESSION_THRESHOLD = 256;
 
 // 超时
 constexpr u32 CONNECT_TIMEOUT_MS = 30000;

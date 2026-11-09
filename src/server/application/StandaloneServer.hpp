@@ -25,6 +25,7 @@
 
 #include "MinecraftServer.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
+#include "common/core/Constants.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -175,9 +176,10 @@ private:
     // 批9：门面成员 m_clientSessionManager 已上提 MinecraftServer 基类，initialize() 经
     // 基类 _setupRemoteSessions 构造、stop() 经基类 _shutdownRemoteSessions 保销毁顺序
     // （session 持 ServerClientConnection&，须先于 m_serverNetwork 销毁）。
-    /// 独立服压缩阈值（Java 默认 256）。在线模式按 server.properties online-mode 决定
+    /// 独立服压缩阈值。取共享默认值，避免与集成服各存一份同样的 256。
+    /// 在线模式按 server.properties online-mode 决定
     /// （批8：默认 false 离线基线，置 true 走 RSA+AES 加密链路支持真 Java 互通）。
-    static constexpr i32 kStandaloneCompressionThreshold = 256;
+    static constexpr i32 kStandaloneCompressionThreshold = mc::network::DEFAULT_COMPRESSION_THRESHOLD;
 
     ServerSettings m_settings;
     // 当前会话生效的设置文件路径（加载/自动保存/退出保存统一使用）
