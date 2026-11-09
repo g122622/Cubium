@@ -34,9 +34,7 @@
 
 namespace mc::weather {
 
-namespace {
-
-[[nodiscard]] const mc::Biome* getBiomeAt(const mc::IWorld& world, const mc::BlockPos& pos)
+const mc::Biome* WeatherUtils::getBiomeAt(const mc::IWorld& world, const mc::BlockPos& pos)
 {
     const mc::world::chunk::ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
     if (chunk == nullptr) {
@@ -46,8 +44,6 @@ namespace {
     const mc::BiomeId biomeId = chunk->getBiomeAtBlock(pos.localX(), pos.y, pos.localZ());
     return &mc::BiomeRegistry::instance().get(biomeId);
 }
-
-} // namespace
 
 bool WeatherUtils::canSeeSky(const mc::IWorld& world, const mc::BlockPos& pos)
 {
