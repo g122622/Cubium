@@ -103,12 +103,17 @@ TEST(SimulatedPlayerTest, GiveItem_SelectSlotPicksSlotReceivingItem)
 
     EXPECT_TRUE(player->giveItem(mc::ItemStack(mc::Items::DIAMOND_SWORD, 1), true));
 
-    // 背包分配顺序为 选中槽 → 副手 → 快捷栏 → 背包：选中槽被占用时新物品落入副手槽；
-    // 副手槽在快捷栏之外，故 selectSlot 钳制到快捷栏范围（选中槽仍为持有物品的 0）。
-    const i32 offhandSlot = mc::InventorySlots::OFFHAND;
-    EXPECT_EQ(player->inventory().getItem(offhandSlot).getItem(), mc::Items::DIAMOND_SWORD);
+    // 背包分配顺序：先找可合并的同类未满槽（选中槽 → 副手槽 → 其余普通槽），
+    // 再找第一个空槽（只扫 36 个普通槽位，副手不在其中）。
+    // 选中槽已被泥土占住且泥土无法与剑合并，因此剑落入快捷栏第一个空槽（索引 1），
+    // 不会进副手槽——副手槽只在"合并"阶段参与，不参与"找空槽"。
     const i32 selected = player->inventory().getSelectedSlot();
     EXPECT_LT(selected, mc::PlayerInventory::HOTBAR_SIZE);
+    EXPECT_EQ(player->inventory().getItem(selected).getItem(), mc::Items::DIAMOND_SWORD)
+        << "the newly added item must be the one now held in the selected hotbar slot";
+    EXPECT_NE(selected, 0) << "slot 0 is occupied by dirt, so the sword must land in a different slot";
+    EXPECT_TRUE(player->inventory().getItem(mc::InventorySlots::OFFHAND).isEmpty())
+        << "offhand only participates in the merge pass, never in free-slot allocation";
 }
 
 TEST(SimulatedPlayerTest, GiveItem_MergeIntoExistingStack_SelectsThatSlot)
