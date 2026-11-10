@@ -30,7 +30,6 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <cstddef>
 #include <memory>
@@ -174,15 +173,6 @@ public:
 
     PlacementSettings& setRotationPivot(const BlockPos& pivot);
 
-    // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
-    //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
-    [[nodiscard]] i32 getBlockUpdateFlags() const
-    {
-        return m_blockUpdateFlags;
-    }
-
-    PlacementSettings& setBlockUpdateFlags(i32 flags);
-
     [[nodiscard]] bool keepLiquids() const
     {
         return m_keepLiquids;
@@ -258,7 +248,6 @@ private:
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
     BlockPos m_rotationPivot = BlockPos(0, 0, 0);
-    i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;   // 可选的世界读取器
     math::IRandom* m_random = nullptr; // 可选的预设随机数生成器

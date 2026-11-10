@@ -331,7 +331,6 @@ PlacementSettings::PlacementSettings()
     , m_mirror(Mirror::None)
     , m_boundingBox(nullptr)
     , m_centerOffset(0, 0, 0)
-    , m_blockUpdateFlags(world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
 {}
 
 PlacementSettings& PlacementSettings::setRotation(Rotation rotation)
@@ -375,12 +374,6 @@ PlacementSettings& PlacementSettings::setRotationPivot(const BlockPos& pivot)
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setBlockUpdateFlags(i32 flags)
-{
-    m_blockUpdateFlags = flags;
-    return *this;
-}
-
 PlacementSettings& PlacementSettings::setKeepLiquids(bool keep)
 {
     m_keepLiquids = keep;
@@ -419,7 +412,6 @@ PlacementSettings PlacementSettings::copy() const
     result.m_boundingBox = m_boundingBox;
     result.m_centerOffset = m_centerOffset;
     result.m_rotationPivot = m_rotationPivot;
-    result.m_blockUpdateFlags = m_blockUpdateFlags;
     result.m_processors = m_processors;
     result.m_world = m_world;
     result.m_random = m_random;
