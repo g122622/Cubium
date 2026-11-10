@@ -58,9 +58,11 @@ namespace movement {
 
 using namespace memory;
 
-// TODO: 当前所有任务直接调用 owner->brain()，未检查空指针。
-// 这是因为模板参数 E 必须是拥有 brain() 方法的实体类型（如 VillagerEntity），
-// 但后续如果需要在可能没有 Brain 的实体上使用这些任务，需要添加空指针保护。
+// 本文件所有任务都直接调用 `owner->brain()`，不做空指针检查——这是刻意的契约，不是疏漏：
+// 模板参数 E 必须是带 brain() 的实体类型（VillagerEntity 等），类型不满足时编译即失败；
+// 而 brain() 返回的是实体内嵌 Brain 的**引用**，不可能为空。
+// 若将来真要让「没有 Brain 的实体」复用这些任务，正确做法是另写一套任务或用概念约束模板，
+// 而不是在这里加 if 兜底——那只会掩盖错误的用法。
 
 /**
  * @brief 移动到行走目标任务（对应 MC MoveToTargetSink）

@@ -1309,9 +1309,12 @@ public:
     // ========== 物理 ==========
 
     /**
-     * @brief 设置物理引擎（已废弃，优先使用 World 的物理引擎）
+     * @brief 设置显式物理引擎
+     *
+     * 用于没有世界（或世界尚未挂载）的实体：`physicsEngine()` 优先取世界的引擎，取不到时
+     * 回退到这里设置的值。掉落物、经验球等在生成时会显式注入，模拟玩家也需要手动设置。
+     *
      * @param engine 物理引擎指针（不拥有所有权）
-     * @deprecated 使用 World::physicsEngine() 替代
      */
     void setPhysicsEngine(PhysicsEngine* engine)
     {
