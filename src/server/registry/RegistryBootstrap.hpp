@@ -72,10 +72,11 @@ public:
      *
      * 严格按依赖顺序加载：方块 → 物品 → 唱片机歌曲 → 附魔 → 方块物品 → 物品标签
      * → 数据包物品标签 → 发射器行为 → 战利品表 → 战利品谓词 → 配方 → 函数 → 进度
+     * → 实体类型（可选，须早于 biome：spawner 解码校验实体类型已注册）
      * → 噪声 → 密度函数 → noise_settings → 模板池 → 结构 → 处理器列表 → jigsaw
      * 模板管理 → 放置器 → 特征类型 → configured/placed feature → carver → biome
-     * → biome 标签 → flat preset → world preset → 结构标签 → 结构集合 → 实体类型
-     * （可选）→ 实体类型标签 → 伤害类型标签 → 日程 → 记忆模块 → 村民交易 → Java id 映射。
+     * → biome 标签 → flat preset → world preset → 结构标签 → 结构集合
+     * → 实体类型标签 → 伤害类型标签 → 日程 → 记忆模块 → 村民交易 → Java id 映射。
      *
      * @param registerEntities 是否注册实体类型（独立服 true，集成服 false）
      */

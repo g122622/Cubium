@@ -26,6 +26,7 @@
 
 #include "common/core/GameDirectory.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -101,6 +102,13 @@ public:
         mc::VanillaBlocks::initialize();
         mc::Items::ensureInitialized();
         mc::BlockItemRegistry::instance().initializeVanillaBlockItems();
+
+        // 注册原版实体类型。biome 数据包加载逐条校验 spawner 引用的实体类型已注册，
+        // 未注册会让整份 biome JSON 加载失败 → 该群系的 features / carvers 一并丢失，
+        // 生成结果只剩地形（无洞穴、无矿脉、无植被）。生产路径同样在加载 biome 之前注册实体
+        // （见 RegistryBootstrap::initializeAll）。registerAll 以 minecraft:pig 为哨兵且幂等，
+        // 各用例重复调用无副作用。
+        mc::entity::VanillaEntities::registerAll();
 
         const auto dataPackDir = mc::GameDirectory::defaultDirectory().dataPacksDir();
         if (!std::filesystem::exists(dataPackDir)) {

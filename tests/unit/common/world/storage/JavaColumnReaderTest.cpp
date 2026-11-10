@@ -54,7 +54,7 @@ TEST(DimensionTypeNetherTest, Properties)
     const auto type = DimensionType::nether();
     EXPECT_EQ(type.id(), -1);
     EXPECT_EQ(type.minHeight(), 0);   // 下界从 Y=0 开始
-    EXPECT_EQ(type.maxHeight(), 128); // 下界最高到 Y=128
+    EXPECT_EQ(type.maxHeight(), 256); // 原版 height=256、min_y=0（logical_height 才是 128）
     EXPECT_FALSE(type.hasSkyLight()); // 下界没有天空光照
     EXPECT_TRUE(type.hasCeiling());   // 下界有基岩顶板
     EXPECT_TRUE(type.ultraWarm());    // 下界超热（水会蒸发）
@@ -68,9 +68,10 @@ TEST(DimensionTypeTheEndTest, Properties)
 {
     const auto type = DimensionType::theEnd();
     EXPECT_EQ(type.id(), 1);
-    EXPECT_EQ(type.minHeight(), world::MIN_BUILD_HEIGHT); // -64
-    EXPECT_EQ(type.maxHeight(), world::MAX_BUILD_HEIGHT); // 320
-    EXPECT_FALSE(type.hasSkyLight());                     // 末地没有天空光照
+    EXPECT_EQ(type.minHeight(), 0); // 原版 the_end: min_y=0、height=256
+    EXPECT_EQ(type.maxHeight(), 256);
+    // 原版 the_end dimension_type 的 has_skylight=true（只是没有昼夜变化）。
+    EXPECT_TRUE(type.hasSkyLight());
     EXPECT_FALSE(type.hasCeiling());
     EXPECT_FALSE(type.ultraWarm());
     EXPECT_FALSE(type.natural()); // 末地不是自然维度
@@ -107,27 +108,27 @@ TEST(DimensionSpecificSectionRangeTest, OverworldSectionRange)
 
 TEST(DimensionSpecificSectionRangeTest, NetherSectionRange)
 {
-    // 下界: minHeight=0, maxHeight=128
+    // 下界: minHeight=0, maxHeight=256（logical_height=128 只限制逻辑高度，不裁剪区块段）
     const auto type = DimensionType::nether();
     const i32 minSectionY = type.minHeight() / world::CHUNK_SECTION_HEIGHT;
     const i32 maxSectionY = (type.maxHeight() - 1) / world::CHUNK_SECTION_HEIGHT;
 
-    // 下界 section Y 范围: 0 到 7（8个section）
+    // 下界 section Y 范围: 0 到 15（16个section = 256 / 16）
     EXPECT_EQ(minSectionY, 0);
-    EXPECT_EQ(maxSectionY, 7);
-    EXPECT_EQ(maxSectionY - minSectionY + 1, 8); // 128 / 16 = 8 sections
+    EXPECT_EQ(maxSectionY, 15);
+    EXPECT_EQ(maxSectionY - minSectionY + 1, 16);
 }
 
 TEST(DimensionSpecificSectionRangeTest, TheEndSectionRange)
 {
-    // 末地: minHeight=-64, maxHeight=320
+    // 末地: minHeight=0, maxHeight=256（与主世界共享的 MIN/MAX_BUILD_HEIGHT 无关）
     const auto type = DimensionType::theEnd();
     const i32 minSectionY = type.minHeight() / world::CHUNK_SECTION_HEIGHT;
     const i32 maxSectionY = (type.maxHeight() - 1) / world::CHUNK_SECTION_HEIGHT;
 
-    // 末地 section Y 范围与主世界相同: -4 到 19
-    EXPECT_EQ(minSectionY, -4);
-    EXPECT_EQ(maxSectionY, 19);
+    // 末地 section Y 范围: 0 到 15
+    EXPECT_EQ(minSectionY, 0);
+    EXPECT_EQ(maxSectionY, 15);
 }
 
 TEST(DimensionSpecificSectionRangeTest, OverworldRejectsOutOfBoundsSections)
@@ -148,26 +149,27 @@ TEST(DimensionSpecificSectionRangeTest, OverworldRejectsOutOfBoundsSections)
 
 TEST(DimensionSpecificSectionRangeTest, NetherRejectsOutOfBoundsSections)
 {
-    // 下界: section Y 范围 [0, 7]
+    // 下界: section Y 范围 [0, 15]
     const auto type = DimensionType::nether();
     const i32 minSectionY = type.minHeight() / world::CHUNK_SECTION_HEIGHT;
     const i32 maxSectionY = (type.maxHeight() - 1) / world::CHUNK_SECTION_HEIGHT;
 
     // 下界不应接受 section Y=-4（主世界底部section，在下界范围外）
     EXPECT_LT(-4, minSectionY);
-    // 下界不应接受 section Y=8
-    EXPECT_GT(8, maxSectionY);
-    // 下界应接受 section Y=0 到 7
+    // 下界不应接受 section Y=16
+    EXPECT_GT(16, maxSectionY);
+    // 下界应接受 section Y=0 到 15
     EXPECT_GE(0, minSectionY);
-    EXPECT_LE(7, maxSectionY);
+    EXPECT_LE(15, maxSectionY);
 }
 
-TEST(DimensionSpecificSkyLightTest, OnlyOverworldHasSkyLight)
+TEST(DimensionSpecificSkyLightTest, OverworldAndEndHaveSkyLight)
 {
-    // 对应 MC Java SerializableChunkData.read() 中的 hasSkyLight 门控
+    // 对应 MC Java SerializableChunkData.read() 中的 hasSkyLight 门控：
+    // overworld/the_end 的 dimension_type 都是 has_skylight=true，下界为 false。
     EXPECT_TRUE(DimensionType::overworld().hasSkyLight());
     EXPECT_FALSE(DimensionType::nether().hasSkyLight());
-    EXPECT_FALSE(DimensionType::theEnd().hasSkyLight());
+    EXPECT_TRUE(DimensionType::theEnd().hasSkyLight());
 }
 
 TEST(DimensionSpecificHeightmapOffsetTest, HeightOffsetMatchesMinHeight)
@@ -179,8 +181,8 @@ TEST(DimensionSpecificHeightmapOffsetTest, HeightOffsetMatchesMinHeight)
     const i32 endOffset = DimensionType::theEnd().minHeight();
 
     EXPECT_EQ(overworldOffset, -64); // 主世界高度偏移
-    EXPECT_EQ(netherOffset, 0);      // 下界高度偏移为0
-    EXPECT_EQ(endOffset, -64);       // 末地高度偏移与主世界相同
+    EXPECT_EQ(netherOffset, 0);      // 下界高度偏移为 0
+    EXPECT_EQ(endOffset, 0);         // 末地同样是 min_y=0
 }
 
 TEST(DimensionSpecificBiomeBaseSectionYTest, BiomeBaseSectionY)
@@ -194,8 +196,8 @@ TEST(DimensionSpecificBiomeBaseSectionYTest, BiomeBaseSectionY)
     EXPECT_EQ(overworldBase, -4);
     // 下界: 0 / 16 = 0（不同于全局 MIN_BUILD_HEIGHT / 16 = -4）
     EXPECT_EQ(netherBase, 0);
-    // 末地: -64 / 16 = -4
-    EXPECT_EQ(endBase, -4);
+    // 末地: 0 / 16 = 0
+    EXPECT_EQ(endBase, 0);
 }
 
 // ============================================================================

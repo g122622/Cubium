@@ -126,22 +126,24 @@ public:
     /**
      * @brief 任务身份感知的失败回调
      *
-     * 由 submitTask 回调调用。仅当 holder.m_generationTask 仍指向 task 时才执行失败处理
-     * （markFailed + clearGenerationTask + _failWaiters），避免以下竞态：
-     *   - 任务 A 被取消（abortSignal=true），execute 返回 false
-     *   - cancelActiveWork 清空 m_generationTask 后，新 submitRequest 调度任务 B 并 setGenerationTask(B)
-     *   - onCancel→cancelGeneration(holder, A) 是 no-op（generationTask()==B ≠ A）
-     *   - 回调若用 hasGenerationTask() 判定（B 非空）会误触发 onChunkGenFailed，markFailed 一个仍有
-     *     活跃任务 B 的 holder 并 clearGenerationTask 清掉 B → 依赖图永久阻塞 → 测试挂起。
-     * 用 generationTask()==task 比对：B ≠ A → no-op，B 继续正常运行。
+     * 由 submitTask 回调调用。仅当 holder 仍在使用本次任务捕获的取消令牌、该令牌未被置位、
+     * 且确有进行中的生成任务时才执行失败处理（markFailed + clearGenerationTask + _failWaiters）。
      *
-     * 持调度锁做身份比对，消除 execute 返回与回调之间的 TOCTOU 窗口。
+     * 不能以任务裸指针做身份比对：区域调度器在回调前已释放任务体，地址可能被后续调度的任务 B
+     * 复用，从而把 B 误判为本次任务。取消令牌则天然逐代唯一——cancelActiveWork 置位旧令牌，
+     * schedule→reviveForScheduling 为后继任务分配新令牌，因此「令牌已被置位」或「holder 已换用
+     * 新令牌」都精确表示本次任务已被取消/取代，此时 execute 返回 false 属正常取消而非失败：
+     *   - 任务 A 被取消后，cancelGeneration 已 clearGenerationTask（或后继任务 B 已 setGenerationTask(B)）
+     *   - 回调若仍走失败处理，会 markFailed 一个已取消或仍有活跃任务 B 的 holder（并清掉 B 的任务身份），
+     *     导致依赖图永久阻塞。
+     *
+     * 持调度锁做令牌比对与任务非空检查，消除 execute 返回与回调之间的 TOCTOU 窗口。
      *
      * @param holder 任务所属的生命周期管理器
-     * @param task 调用回调的任务（rawTask），用于身份比对
+     * @param generationSignal 任务提交时捕获的取消令牌，用于身份比对
      */
-    void onChunkGenFailed(
-        mc::world::chunk::SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task);
+    void onChunkGenFailed(mc::world::chunk::SingleChunkLifecycleManager& holder,
+        const std::shared_ptr<std::atomic<bool>>& generationSignal);
 
     /**
      * @brief 取消 holder 的生成任务并清理依赖图（对齐 Moonrise cancelGenTask + onChunkGenComplete(null)）

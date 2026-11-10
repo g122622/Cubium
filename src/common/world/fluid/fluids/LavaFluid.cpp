@@ -72,10 +72,11 @@ const BlockState* LavaFluid::getBlockState(const FluidState& state) const
         return nullptr;
     }
 
-    // 计算方块level
+    // 计算方块level。原版 getLegacyLevel 对源头**无条件**返回 0（不看 FALLING），
+    // 详见 WaterFluid 同名实现处的注释。
     i32 blockLevel;
     if (isSource(state)) {
-        blockLevel = state.isFalling() ? SOURCE_LEVEL : 0;
+        blockLevel = 0;
     } else {
         i32 fluidLevel = state.getLevel();
         blockLevel = SOURCE_LEVEL - fluidLevel;

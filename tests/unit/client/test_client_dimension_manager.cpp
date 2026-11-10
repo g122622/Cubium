@@ -79,7 +79,8 @@ TEST(ClientDimensionManagerTest, InitializeWithIds)
     ASSERT_NE(endInfo, nullptr);
     EXPECT_EQ(endInfo->id, 1);
     EXPECT_EQ(endInfo->name, "minecraft:the_end");
-    EXPECT_FALSE(endInfo->hasSkyLight);
+    // 原版 the_end dimension_type 的 has_skylight=true。
+    EXPECT_TRUE(endInfo->hasSkyLight);
     EXPECT_FALSE(endInfo->hasCeiling);
 }
 
@@ -256,7 +257,8 @@ TEST(ClientDimensionManagerTest, GetDimensionType)
     const DimensionType* endType = manager.getDimensionType(1);
     ASSERT_NE(endType, nullptr);
     EXPECT_EQ(endType->id(), 1);
-    EXPECT_FALSE(endType->hasSkyLight());
+    // 原版 the_end dimension_type 的 has_skylight=true。
+    EXPECT_TRUE(endType->hasSkyLight());
     EXPECT_FALSE(endType->hasCeiling());
 
     // 不存在的维度

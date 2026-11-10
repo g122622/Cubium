@@ -653,7 +653,7 @@ TEST_F(SkullBlockTest, Rotate_WallSkull_UpdatesFacing)
     EXPECT_EQ(rotated.get(BlockStateProperties::HORIZONTAL_FACING()), Directions::rotateY(Direction::North));
 }
 
-TEST_F(SkullBlockTest, WallSkull_IsValidPosition_RequiresSturdyWall)
+TEST_F(SkullBlockTest, WallSkull_DoesNotValidateWallInOnePointTwentyOne)
 {
     NewContentTestWorld world;
     const BlockPos skullPos(4, 2, 4);
@@ -661,29 +661,29 @@ TEST_F(SkullBlockTest, WallSkull_IsValidPosition_RequiresSturdyWall)
     BlockState state = VanillaBlocks::SKELETON_WALL_SKULL->defaultState().with(
         BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
 
-    // 南面无方块：不可存活
-    EXPECT_FALSE(VanillaBlocks::SKELETON_WALL_SKULL->isValidPosition(state, world, skullPos));
+    // 1.21.11 的 WallSkullBlock 不再覆写 canSurvive/isValidPosition：墙面缺失时
+    // 头颅不会自毁，放置约束由 getStateForPlacement 负责。
+    EXPECT_TRUE(VanillaBlocks::SKELETON_WALL_SKULL->isValidPosition(state, world, skullPos));
 
-    // 南面放置石头：可存活
     world.setBlockAt(skullPos.offset(Direction::South), &VanillaBlocks::STONE->defaultState());
     EXPECT_TRUE(VanillaBlocks::SKELETON_WALL_SKULL->isValidPosition(state, world, skullPos));
 }
 
-TEST_F(SkullBlockTest, WallSkull_UpdatePostPlacement_RemovedWhenWallGone)
+TEST_F(SkullBlockTest, WallSkull_UpdatePostPlacement_KeepsSkullWhenWallGone)
 {
     NewContentTestWorld world;
     const BlockPos skullPos(4, 2, 4);
     BlockState state = VanillaBlocks::SKELETON_WALL_SKULL->defaultState().with(
         BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
 
-    // 墙面位于 opposite(FACING) = South，故南侧变化触发自毁
+    // 1.21.11 的 WallSkullBlock 没有 updateShape 覆写，墙体消失不会移除头颅。
     BlockState result = VanillaBlocks::SKELETON_WALL_SKULL->updatePostPlacement(state,
         Direction::South,
         VanillaBlocks::AIR->defaultState(),
         world,
         skullPos,
         skullPos.offset(Direction::South));
-    EXPECT_TRUE(result.isAir());
+    EXPECT_TRUE(result.is(VanillaBlocks::SKELETON_WALL_SKULL));
 }
 
 TEST_F(SkullBlockTest, PiglinStandingHead_HasLargerShape)

@@ -319,13 +319,14 @@ TEST_F(PlaceEndPortalFramesTest, FacingDirections_CorrectInSouthDirection)
 
     m_piece->placeEndPortalFrames(*m_region, m_bounds, 5, 3, 10, eyeStates, true);
 
-    // Direction::South 时，setBlockState 会应用 LeftRight 镜像，但 HORIZONTAL_FACING
-    // 也会被镜像变换。由于要塞房间方向通过 setCoordBaseMode 设置，
-    // 传送门框架的方向会被自动处理。
+    // Direction::South 时，setBlockState 会应用 LeftRight 镜像，HORIZONTAL_FACING
+    // 也随之变换。由于要塞房间方向通过 setCoordBaseMode 设置，传送门框架的方向会被
+    // 自动处理。
     //
-    // 对于 South 方向（LeftRight 镜像），FACING 属性会被镜像：
-    // North -> South, South -> North, West -> West, East -> East
-    // 这确保了在所有方向下，框架凸起都正确朝外
+    // LeftRight 镜像只翻转 Z 轴方向（North <-> South），East/West 保持不变：
+    // 局部北排 FACING=NORTH -> 世界 SOUTH，局部南排 FACING=SOUTH -> 世界 NORTH；
+    // 局部西侧 FACING=EAST 与局部东侧 FACING=WEST 保持原样。
+    // 无论哪种朝向，框架凸起都指向传送门内部。
 
     // 验证北边框架（局部 FACING=NORTH，经 South 方向镜像后变为 FACING=SOUTH）
     const BlockState* northFrame = getBlockState(4, 63, 8);
@@ -343,19 +344,19 @@ TEST_F(PlaceEndPortalFramesTest, FacingDirections_CorrectInSouthDirection)
     // South 方向镜像: South -> North
     EXPECT_EQ(southFacing.value(), Direction::North);
 
-    // 验证西边框架（局部 FACING=WEST，经 LeftRight 镜像不变）
+    // 验证西侧框架（局部 FACING=EAST，经 LeftRight 镜像不变）：凸起朝东指向门内
     const BlockState* westFrame = getBlockState(3, 63, 10);
     ASSERT_NE(westFrame, nullptr);
     auto westFacing = westFrame->getOptional(BlockStateProperties::HORIZONTAL_FACING());
     EXPECT_TRUE(westFacing.has_value());
-    EXPECT_EQ(westFacing.value(), Direction::West);
+    EXPECT_EQ(westFacing.value(), Direction::East);
 
-    // 验证东边框架（局部 FACING=EAST，经 LeftRight 镜像不变）
+    // 验证东侧框架（局部 FACING=WEST，经 LeftRight 镜像不变）：凸起朝西指向门内
     const BlockState* eastFrame = getBlockState(7, 63, 10);
     ASSERT_NE(eastFrame, nullptr);
     auto eastFacing = eastFrame->getOptional(BlockStateProperties::HORIZONTAL_FACING());
     EXPECT_TRUE(eastFacing.has_value());
-    EXPECT_EQ(eastFacing.value(), Direction::East);
+    EXPECT_EQ(eastFacing.value(), Direction::West);
 }
 
 // ============================================================================

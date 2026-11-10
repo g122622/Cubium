@@ -125,9 +125,8 @@ TEST_F(PhantomEntityTest, CreatureAttribute_IsUndead)
 
 TEST_F(PhantomEntityTest, EyeHeight_IsCorrect)
 {
-    // MC 1.16.5: height * 0.35F
-    f32 expectedEyeHeight = phantom->height() * 0.35f;
-    EXPECT_FLOAT_EQ(phantom->eyeHeight(), expectedEyeHeight);
+    // 原版 EntityType.PHANTOM 注册时显式 eyeHeight(0.175F)，不随幻翼体型缩放。
+    EXPECT_FLOAT_EQ(phantom->eyeHeight(), 0.175f);
 }
 
 // ==================== PhantomAttackPlayerTargetGoal Tests ====================
@@ -880,14 +879,13 @@ TEST_F(PhantomEntityTest, Dimensions_ScaleWithSize)
     EXPECT_FLOAT_EQ(size10.height(), 0.5f * 2.5f);
 }
 
-TEST_F(PhantomEntityTest, EyeHeight_UsesBaseHeight)
+TEST_F(PhantomEntityTest, EyeHeight_IsFixedIndependentOfSize)
 {
-    // PhantomEntity::eyeHeight() 返回 height() * 0.35f
-    // 注意：Entity::height() 默认返回 1.8f，子类可以覆盖
-    // PhantomEntity 未覆盖 height()，因此 eyeHeight() = 1.8f * 0.35f = 0.63f
-    f32 eyeHeight = phantom->eyeHeight();
-    EXPECT_FLOAT_EQ(eyeHeight, phantom->height() * 0.35f);
-    EXPECT_FLOAT_EQ(eyeHeight, 1.8f * 0.35f);
+    // 幻翼的眼睛高度是固定值 0.175（原版 Phantom 覆写 getEyeHeight），
+    // 既不随幻翼体型（phantomSize）缩放，也不由 height() 派生。
+    EXPECT_FLOAT_EQ(phantom->eyeHeight(), 0.175f);
+    phantom->setPhantomSize(10);
+    EXPECT_FLOAT_EQ(phantom->eyeHeight(), 0.175f);
 }
 
 TEST_F(PhantomEntityTest, OrbitOffset_CanBeSetAndRetrieved)

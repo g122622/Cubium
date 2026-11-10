@@ -348,10 +348,11 @@ bool BlockState::isInvisibleRenderType() const
 
 bool BlockState::canBeReplacedByFluid() const
 {
-    // 对应 MC 的 BlockBehaviour.canBeReplaced(BlockState, Fluid)：
-    // canBeReplaced() || !isSolid()
-    // 即：replaceable 方块（空气、水、花草等）或非固体方块（门、告示牌等）可被流体替换
-    return m_canBeReplaced || !m_isSolid;
+    // 对应 MC 的 BlockBehaviour.canBeReplaced(BlockState, Fluid)：canBeReplaced() || !isSolid()。
+    // 不可用构造期缓存 m_isSolid：门/告示牌/梯子等动态形状方块在状态容器构造时还没设置碰撞
+    // 形状，缓存会把它们判成非固体，使流体误认为可以流入（门/梯子因此被错误替换）。
+    // isSolid() 实时按当前碰撞形状计算，与原版 initCache 之后再取 legacySolid 的时序等价。
+    return m_canBeReplaced || !isSolid();
 }
 
 bool BlockState::canStickTo(const BlockState& other) const

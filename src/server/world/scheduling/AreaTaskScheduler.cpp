@@ -68,9 +68,18 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             }
             m_type = m_dispatch.task->body->type();
             m_description = m_dispatch.task->body->description();
-            const bool success = m_dispatch.task->body->execute(abortSignal);
-            releaseBody();
-            return success;
+            // 任务体抛异常时 worker 池会捕获并转成失败回调，但异常路径会跳过下面的
+            // releaseBody()。若此时不释放，任务体将活到 _finish 的断言之后，既不满足
+            // 「完成即释放」的时序约定，也让区域锁释放在断言处中断。
+            try {
+                const bool success = m_dispatch.task->body->execute(abortSignal);
+                releaseBody();
+                return success;
+            }
+            catch (...) {
+                releaseBody();
+                throw;
+            }
         }
 
         void onCancel() override

@@ -68,3 +68,11 @@ src/common/world/entity/spatial/
 ### 7. `getEntityIdsInChunkColumn` 遍历 24 个 section
 
 区块卸载取实体遍历该 chunk 列 y 从 `MIN_SECTION_Y(-4)` 到 `MAX_SECTION_Y(19)` 共 24 个 section。区块卸载是低频操作（由票级越过加载阈值触发、按每 tick 保底批量推进），24 次哈希查找可忽略。不要把它用于热路径查询。
+
+### 8. 大范围 AABB 查询必须走占用桶遍历
+
+`collectEntitiesInAABB` 默认按 AABB 覆盖的 section 逐格枚举。查询盒一旦是“整维度”量级
+（如脚本 `Dimension.getEntities` 无 location/volume 时传 ±3e7 的世界包围盒），逐格枚举
+等于 3.7M×3.7M×24 次哈希查找——表现为服务器 tick 永久卡死。实现按「覆盖 section 数 >
+占用桶数」切换到遍历 `m_sections` 并逐个做 AABB 精筛（复杂度 O(占用桶数)）。新增查询
+入口时不要绕开这个分支自己写三重循环。

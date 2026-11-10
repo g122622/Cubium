@@ -529,7 +529,10 @@ bool WallBlock::isCovered(const VoxelShape& testShape, const VoxelShape& coverSh
 
 bool WallBlock::isWall(const BlockState& state)
 {
-    return BlockTags::WALLS().contains(state);
+    // 原版判据是 `state.getBlock() instanceof WallBlock || state.is(BlockTags.WALLS)` 的并集：
+    // 只查标签会漏掉未登记进数据包标签的墙实例（测试夹具常直接构造 WallBlock，
+    // 自定义/数据包新增的墙也未必进标签），而只做类型判断又覆盖不到数据包标签。
+    return dynamic_cast<const WallBlock*>(&state.getBlock()) != nullptr || BlockTags::WALLS().contains(state);
 }
 
 size_t WallBlock::_getShapeIndex(bool up,

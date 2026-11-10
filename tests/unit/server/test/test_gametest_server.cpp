@@ -508,7 +508,10 @@ protected:
         p.tickRate = 20;
         p.viewDistance = 4;
         p.simulationDistance = 4;
-        p.maxTicks = 600; // 行为包测试 maxTicks 最高 410（simpleMobTest），留余量
+        // 行为包测试声明的 maxTicks 最高为 simpleMobTest 的 1200；此上限是整轮 run() 的
+        // 硬性 tick 预算，低于该值会让批处理在测试自身的 fail 判定之前被整体中止
+        // （表现为 0 passed / 0 failed、exitCode=124）。留出 setup 与调度的余量。
+        p.maxTicks = 1500;
         p.testsPerRow = 4;
         return p;
     }

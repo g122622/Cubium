@@ -138,6 +138,44 @@ void EntitySpatialIndex::collectEntitiesInAABB(
     const SectionPos minSec{BlockPos{Vector3(box.minX, box.minY, box.minZ)}};
     const SectionPos maxSec{BlockPos{Vector3(box.maxX, box.maxY, box.maxZ)}};
 
+    // 覆盖的 section 数可能远超实际占用的桶：脚本 Dimension.getEntities 的"整维度"查询会传
+    // ±3e7 的世界包围盒，逐格枚举相当于 3.7M×3.7M×24 次哈希查找（实际上等同死循环）。
+    // 跨度之积大于占用桶数时改为遍历已有桶逐一精筛，复杂度 O(占用桶数)，结果与逐格枚举一致。
+    // 先做饱和乘法，避免极值跨度在 i64 上回绕成小值而误判。
+    const auto span = [](i32 minValue, i32 maxValue) -> i64 {
+        return static_cast<i64>(maxValue) - static_cast<i64>(minValue) + 1;
+    };
+    constexpr i64 kMaxSectionCount = std::numeric_limits<i64>::max();
+    const auto saturatingMul = [](i64 a, i64 b) -> i64 {
+        if (a <= 0 || b <= 0) {
+            return 0;
+        }
+        return a > kMaxSectionCount / b ? kMaxSectionCount : a * b;
+    };
+    const i64 coveredSections =
+        saturatingMul(saturatingMul(span(minSec.x, maxSec.x), span(minSec.z, maxSec.z)), span(minSec.y, maxSec.y));
+
+    if (coveredSections > static_cast<i64>(m_sections.size())) {
+        // 桶遍历：每个桶内实体逐个做 AABB 精筛。先复制桶内指针列表——回调内实体 move
+        // 可能触发桶内 swap-remove 乃至空桶回收，持有引用会悬垂。
+        for (const auto& [key, bucket] : m_sections) {
+            MC_UNUSED(key);
+            const std::vector<Entity*> entities = bucket.allEntities();
+            for (Entity* e : entities) {
+                if (e == nullptr || e == except) {
+                    continue;
+                }
+                if (!box.intersects(e->boundingBox())) {
+                    continue;
+                }
+                if (!callback(*e)) {
+                    return;
+                }
+            }
+        }
+        return;
+    }
+
     for (i32 sy = minSec.y; sy <= maxSec.y; ++sy) {
         for (ChunkCoord sz = minSec.z; sz <= maxSec.z; ++sz) {
             for (ChunkCoord sx = minSec.x; sx <= maxSec.x; ++sx) {

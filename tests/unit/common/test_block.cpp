@@ -1056,13 +1056,15 @@ TEST(VanillaBlocksTest, Initialization)
     EXPECT_EQ(VanillaBlocks::AIR->defaultState().getOpacity(), 0);
     EXPECT_TRUE(VanillaBlocks::AIR->defaultState().propagatesSkylightDown());
 
-    EXPECT_EQ(VanillaBlocks::WATER->defaultState().getOpacity(), 0);
+    // 水：LiquidBlock 显式 propagatesSkylightDown=false；getLightBlock 落到默认公式
+    // （非 solidRender → propagates ? 0 : 1），因此 lightBlock=1，每格天空光衰减 1 级。
+    EXPECT_EQ(VanillaBlocks::WATER->defaultState().getOpacity(), 1);
     EXPECT_FALSE(VanillaBlocks::WATER->defaultState().propagatesSkylightDown());
 
-    // 玻璃：noOcclusion，但遮挡形状是完整立方体且未重写 getLightBlock，故
-    // propagatesSkylightDown=false、lightBlock=1（天空光衰减 1 级），不是 0。
-    EXPECT_EQ(VanillaBlocks::GLASS->defaultState().getOpacity(), 1);
-    EXPECT_FALSE(VanillaBlocks::GLASS->defaultState().propagatesSkylightDown());
+    // 玻璃：TransparentBlock 显式 propagatesSkylightDown=true，且 noOcclusion 使其
+    // solidRender=false，故 lightBlock=0（天空光完全透传，不衰减）。
+    EXPECT_EQ(VanillaBlocks::GLASS->defaultState().getOpacity(), 0);
+    EXPECT_TRUE(VanillaBlocks::GLASS->defaultState().propagatesSkylightDown());
 }
 
 TEST(BlockStateTest, Caching)
@@ -1808,14 +1810,16 @@ TEST(BlockStateCanBeReplacedTest, SolidBlocksAreNotReplaceable)
     EXPECT_FALSE(VanillaBlocks::OAK_PLANKS->defaultState().canBeReplaced());
 }
 
-TEST(BlockStateCanBeReplacedTest, VegetationBlocksAreReplaceable)
+TEST(BlockStateCanBeReplacedTest, VegetationReplaceableFlagsMatchVanilla)
 {
     VanillaBlocks::initialize();
 
-    // 花草类方块应可替换（Material::REPLACEABLE_PLANT 或 Material::PLANT 都设置了 replaceable）
+    // `canBeReplaced()` 读的是注册时 Properties.replaceable() 设置的标志，与 Material 无关：
+    // 原版只有 short_grass/fern/dead_bush/bush 等少数植物调用了 replaceable()，
+    // 蒲公英、虞美人等花卉**没有**该标志（它们靠 segment/花盆等各自逻辑处理，不会被放置覆盖）。
     EXPECT_TRUE(VanillaBlocks::SHORT_GRASS->defaultState().canBeReplaced());
-    EXPECT_TRUE(VanillaBlocks::DANDELION->defaultState().canBeReplaced());
-    EXPECT_TRUE(VanillaBlocks::POPPY->defaultState().canBeReplaced());
+    EXPECT_FALSE(VanillaBlocks::DANDELION->defaultState().canBeReplaced());
+    EXPECT_FALSE(VanillaBlocks::POPPY->defaultState().canBeReplaced());
 }
 
 TEST(BlockStateCanBeReplacedTest, LiquidBlocksAreReplaceable)
@@ -1882,12 +1886,12 @@ TEST(BlockStateCanBeReplacedTest, CanBeReplacedByFluidNonSolidBlocks)
     }
 }
 
-TEST(BlockStateCanBeReplacedTest, CanBeReplacedConsistentWithMaterial)
+TEST(BlockStateCanBeReplacedTest, CanBeReplacedFlagIsIndependentFromMaterial)
 {
     VanillaBlocks::initialize();
 
-    // canBeReplaced() 应与 isAir() || getMaterial().isReplaceable() 等价
-    // 这是 canBeReplaced() 的语义定义
+    // canBeReplaced() 只取决于注册时的 Properties.replaceable() 标志，不能用
+    // Material::isReplaceable() 代替：原版花卉虽然是 PLANT 材质，却没有 replaceable 标志。
 
     // 空气：isAir()=true，canBeReplaced()=true
     EXPECT_TRUE(VanillaBlocks::AIR->defaultState().isAir());
@@ -1898,12 +1902,12 @@ TEST(BlockStateCanBeReplacedTest, CanBeReplacedConsistentWithMaterial)
     EXPECT_FALSE(VanillaBlocks::STONE->defaultState().getMaterial().isReplaceable());
     EXPECT_FALSE(VanillaBlocks::STONE->defaultState().canBeReplaced());
 
-    // 花：isAir()=false，Material::REPLACEABLE_PLANT.isReplaceable()=true，canBeReplaced()=true
+    // 花：isAir()=false，材质 isReplaceable()=true，但未设置 replaceable 标志 → canBeReplaced()=false
     EXPECT_FALSE(VanillaBlocks::DANDELION->defaultState().isAir());
     EXPECT_TRUE(VanillaBlocks::DANDELION->defaultState().getMaterial().isReplaceable());
-    EXPECT_TRUE(VanillaBlocks::DANDELION->defaultState().canBeReplaced());
+    EXPECT_FALSE(VanillaBlocks::DANDELION->defaultState().canBeReplaced());
 
-    // 水：isAir()=false，Material::WATER.isReplaceable()=true，canBeReplaced()=true
+    // 水：isAir()=false，Material::WATER.isReplaceable()=true，且注册时显式 replaceable() → true
     EXPECT_FALSE(VanillaBlocks::WATER->defaultState().isAir());
     EXPECT_TRUE(VanillaBlocks::WATER->defaultState().getMaterial().isReplaceable());
     EXPECT_TRUE(VanillaBlocks::WATER->defaultState().canBeReplaced());
@@ -1930,26 +1934,24 @@ TEST(BlockStateCanBeReplacedTest, LiquidBlocksCanBeReplacedByFluid)
     EXPECT_FALSE(VanillaBlocks::WATER->defaultState().isSolid());
 }
 
-TEST(BlockStateCanBeReplacedTest, BlacklistBlocksCanBeReplacedByFluidButBlockedByFlowingFluid)
+TEST(BlockStateCanBeReplacedTest, DoorAndSignAreSolidAndNotFluidReplaceableLadderIsNotSolid)
 {
     VanillaBlocks::initialize();
 
-    // 门、告示牌等方块在 MC Java 中 isSolid()=false（通过 BlockProperties::notSolid() 设置），
-    // 因此 canBeReplacedByFluid() 应返回 true。
-    // FlowingFluid::isBlocked() 对这些方块有专门的黑名单返回 true（阻挡流体流入）。
-
-    // 门方块：不可替换，isSolid()=false（BlockProperties 设置了 notSolid()），canBeReplacedByFluid()=true
+    // isSolid() 走原版 calculateSolid：forceSolidOn/Off 优先，否则看碰撞盒包围尺寸
+    // 是否 >= 0.7291666（或 y 方向 >= 1）。
+    // 门（2 格高）与站立告示牌（原版 forceSolidOn）都判为实体，canBeReplacedByFluid 为 false。
     EXPECT_FALSE(VanillaBlocks::OAK_DOOR->defaultState().canBeReplaced());
-    EXPECT_FALSE(VanillaBlocks::OAK_DOOR->defaultState().isSolid());
-    EXPECT_TRUE(VanillaBlocks::OAK_DOOR->defaultState().canBeReplacedByFluid());
-    // FlowingFluid::isBlocked() 的黑名单仍会正确阻挡流体流入门方块
+    EXPECT_TRUE(VanillaBlocks::OAK_DOOR->defaultState().isSolid());
+    EXPECT_FALSE(VanillaBlocks::OAK_DOOR->defaultState().canBeReplacedByFluid());
 
-    // 告示牌方块同理
     EXPECT_FALSE(VanillaBlocks::OAK_SIGN->defaultState().canBeReplaced());
-    EXPECT_FALSE(VanillaBlocks::OAK_SIGN->defaultState().isSolid());
-    EXPECT_TRUE(VanillaBlocks::OAK_SIGN->defaultState().canBeReplacedByFluid());
+    EXPECT_TRUE(VanillaBlocks::OAK_SIGN->defaultState().isSolid());
+    EXPECT_FALSE(VanillaBlocks::OAK_SIGN->defaultState().canBeReplacedByFluid());
 
-    // 梯子同理
+    // 梯子原版注册带 forceSolidOff：isSolid()=false，故 canBeReplacedByFluid()=true。
+    // 流体实际仍然流不进来——原版 FlowingFluid.canHoldAnyFluid 对梯子有显式黑名单
+    // （见 FlowingFluid::isBlocked），不能仅凭 canBeReplacedByFluid 判断。
     EXPECT_FALSE(VanillaBlocks::LADDER->defaultState().canBeReplaced());
     EXPECT_FALSE(VanillaBlocks::LADDER->defaultState().isSolid());
     EXPECT_TRUE(VanillaBlocks::LADDER->defaultState().canBeReplacedByFluid());
@@ -1977,13 +1979,12 @@ TEST(BlockStateCanBeReplacedTest, CanBeReplacedByFluidSemanticsVerification)
         EXPECT_FALSE(state.canBeReplacedByFluid());
     }
 
-    // 3. 不可替换且非固体（门方块通过 BlockProperties::notSolid() 设置）→ canBeReplacedByFluid()=true
-    // 门方块在 MC Java 中 isSolid()=false，通过 BlockProperties::notSolid() 正确反映
+    // 3. 不可替换且固体（门：碰撞盒跨 2 格高）→ canBeReplacedByFluid()=false
     {
         const BlockState& state = VanillaBlocks::OAK_DOOR->defaultState();
         EXPECT_FALSE(state.canBeReplaced());
-        EXPECT_FALSE(state.isSolid());
-        EXPECT_TRUE(state.canBeReplacedByFluid());
+        EXPECT_TRUE(state.isSolid());
+        EXPECT_FALSE(state.canBeReplacedByFluid());
     }
 
     // 4. 可替换且非固体（液体）→ canBeReplacedByFluid()=true
@@ -2086,14 +2087,15 @@ TEST(GetShadeBrightnessTest, StructureVoidReturns10)
     EXPECT_FLOAT_EQ(voidState.getAmbientOcclusionLightValue(), 1.0f);
 }
 
-TEST(GetShadeBrightnessTest, LeafBlockReturns10)
+TEST(GetShadeBrightnessTest, LeafBlockReturns02)
 {
     VanillaBlocks::initialize();
 
-    // 树叶方块是非不透明方块，应返回 1.0F
+    // LeavesBlock 不重写 getShadeBrightness，走默认公式：碰撞形状覆盖整格 → 0.2。
+    // （noOcclusion 只影响光照遮挡面，不影响阴影亮度判定。）
     const auto& leafState = VanillaBlocks::OAK_LEAVES->defaultState();
-    EXPECT_FLOAT_EQ(leafState.getShadeBrightness(), 1.0f);
-    EXPECT_FLOAT_EQ(leafState.getAmbientOcclusionLightValue(), 1.0f);
+    EXPECT_FLOAT_EQ(leafState.getShadeBrightness(), 0.2f);
+    EXPECT_FLOAT_EQ(leafState.getAmbientOcclusionLightValue(), 0.2f);
 }
 
 // 脚本 Block.isWaterlogged 的判定依赖 getFluidState()：水方块的流体状态必须是水、

@@ -649,11 +649,12 @@ public:
     /**
      * @brief 检查此方块状态是否可被流体替换
      *
-     * 对应 MC 的 BlockState.canBeReplaced(Fluid)，默认实现为 canBeReplaced() || !isSolid()。
-     * 非固体方块即使不是 replaceable，也可以被流体流入（如门、告示牌等）。
+     * 对应 MC 的 BlockState.canBeReplaced(Fluid)，即 canBeReplaced() || !isSolid()。
+     * 非固体方块即使不是 replaceable，也可以被流体流入（如花草、甘蔗等）。注意 isSolid()
+     * 必须实时计算：门/告示牌/梯子等动态形状方块在状态构造期还没有碰撞形状。
      *
-     * 用于：流体流动判断、桶放置流体等场景。
-     * 方块子类可重写 Block::canBeReplacedByFluid() 来拒绝流体替换（如末地传送门）。
+     * 用于：流体流动判断、桶放置流体等场景。原版对传送门、结构空位等另有 canHoldAnyFluid
+     * 黑名单（见 FlowingFluid::isBlocked），不在本方法内表达。
      */
     [[nodiscard]] bool canBeReplacedByFluid() const;
 

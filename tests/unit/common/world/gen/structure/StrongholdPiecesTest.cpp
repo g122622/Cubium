@@ -319,11 +319,13 @@ TEST_F(GeneratePieceTest, ImposedPiece_CrossingIsCreated)
     // 强制片段类型应被消费
     EXPECT_EQ(m_start->imposedPieceType(), -1);
 
-    // 对应权重的 instancesSpawned 应增加
+    // 强制片段不占用实例额度：原版 imposedPiece 分支只做「取出—清空—创建—返回」，
+    // 不递增 placeCount。若这里递增，CROSSING 会比原版提前用尽。
     bool found = false;
     for (const auto& w : weights) {
         if (w.pieceType == StrongholdPieceTypes::CROSSING) {
-            EXPECT_EQ(w.instancesSpawned, 1);
+            EXPECT_EQ(w.instancesSpawned, 0);
+            EXPECT_EQ(w.weight, 5);
             found = true;
         }
     }
@@ -356,30 +358,35 @@ TEST_F(GeneratePieceTest, ImposedPiece_ConsumedAfterUse)
     }
 }
 
-TEST_F(GeneratePieceTest, ImposedPiece_WeightZeroedWhenLimitReached)
+TEST_F(GeneratePieceTest, ImposedPiece_DoesNotConsumeWeightQuota)
 {
-    // PortalRoom 的限制为 1，设置强制片段为 PORTAL_ROOM
+    // PortalRoom 的限制为 1；先把已生成数留在 limit-1（即 0），再强制生成一个 PORTAL_ROOM
     m_start->setImposedPieceType(StrongholdPieceTypes::PORTAL_ROOM);
+    auto& weights = m_start->weights();
+    StrongholdPieceWeight* portalWeight = nullptr;
+    for (auto& w : weights) {
+        if (w.pieceType == StrongholdPieceTypes::PORTAL_ROOM) {
+            w.instancesSpawned = w.instancesLimit - 1;
+            portalWeight = &w;
+            break;
+        }
+    }
+    ASSERT_NE(portalWeight, nullptr);
 
     math::Random rng(42);
-    auto& weights = m_start->weights();
     i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
-    // 先确保深度足够（PortalRoom minDepth == 5）
+    // depth=10 满足 PortalRoom 的 minDepth=5
     auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 10, weights, lastPlacedIndex);
     StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
+    ASSERT_NE(piece, nullptr);
+    EXPECT_EQ(piece->type(), StrongholdPieceTypes::PORTAL_ROOM);
+    EXPECT_EQ(m_start->imposedPieceType(), -1); // 已消费
 
-    if (piece != nullptr) {
-        // 找到 PORTAL_ROOM 的权重
-        for (const auto& w : weights) {
-            if (w.pieceType == StrongholdPieceTypes::PORTAL_ROOM) {
-                // instancesLimit == 1，已生成 1 个，权重应被设为 0
-                EXPECT_EQ(w.instancesSpawned, 1);
-                EXPECT_EQ(w.weight, 0);
-            }
-        }
-    }
+    // 原版 imposedPiece 分支不递增 placeCount：额度不变，权重也不会被移除。
+    EXPECT_EQ(portalWeight->instancesSpawned, portalWeight->instancesLimit - 1);
+    EXPECT_EQ(portalWeight->weight, 20);
 }
 
 TEST_F(GeneratePieceTest, NoImposedPiece_NormalWeightSelection)
@@ -429,7 +436,7 @@ TEST_F(GeneratePieceTest, AllLimitedExhausted_ReturnsNullptr)
     EXPECT_EQ(piece, nullptr);
 }
 
-TEST_F(GeneratePieceTest, ImposedPieceOverridesExhaustedWeights)
+TEST_F(GeneratePieceTest, ImposedPieceNotCreatedWhenAllLimitedExhausted)
 {
     auto& weights = m_start->weights();
 
@@ -440,57 +447,47 @@ TEST_F(GeneratePieceTest, ImposedPieceOverridesExhaustedWeights)
         }
     }
 
-    // 设置强制片段类型（即使 canAdd 返回 false，强制片段仍应被创建）
     m_start->setImposedPieceType(StrongholdPieceTypes::STRAIGHT);
 
     math::Random rng(42);
     i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
-    // 强制片段应在 canAdd 返回 false 时仍被创建
+    // 原版在 updatePieceWeight() 为假时直接返回 null，这一步发生在 imposedPiece
+    // 分支之前：所有受限类型用尽时，强制片段既不会被创建，也不会被消费。
     auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
-    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
-
-    // 强制片段类型为 STRAIGHT（无限制类型），应该能创建
-    ASSERT_NE(piece, nullptr);
-    EXPECT_EQ(piece->type(), StrongholdPieceTypes::STRAIGHT);
+    EXPECT_EQ(pieceOwner.get(), nullptr);
+    EXPECT_EQ(m_start->imposedPieceType(), StrongholdPieceTypes::STRAIGHT);
 }
 
 // ============================================================================
 // 权重置零逻辑测试
 // ============================================================================
 
-TEST_F(GeneratePieceTest, WeightZeroedWhenLimitReached)
+TEST_F(GeneratePieceTest, ExhaustedWeightIsRemovedFromDrawTable)
 {
     auto& weights = m_start->weights();
 
-    // 将 PRISON 的 instancesSpawned 设为比限制少 1
-    for (auto& w : weights) {
-        if (w.pieceType == StrongholdPieceTypes::PRISON) {
-            w.instancesSpawned = w.instancesLimit - 1; // 限制 5，已生成 4
-            break;
+    // 只保留 PRISON 参与抽签，并把额度用到只剩 1 个，保证下一次必然抽中它。
+    for (auto it = weights.begin(); it != weights.end();) {
+        if (it->pieceType != StrongholdPieceTypes::PRISON) {
+            it = weights.erase(it);
+            continue;
         }
+        it->instancesSpawned = it->instancesLimit - 1; // 限制 5，已生成 4
+        ++it;
     }
 
-    // 设置强制片段为 PRISON
-    m_start->setImposedPieceType(StrongholdPieceTypes::PRISON);
-
+    i32 lastPlacedIndex = -1;
     math::Random rng(42);
-    i32 lastPlacedIndex = m_start->lastPlacedIndex();
 
     auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlacedIndex);
-    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
+    ASSERT_NE(pieceOwner.get(), nullptr);
+    EXPECT_EQ(pieceOwner->type(), StrongholdPieceTypes::PRISON);
 
-    if (piece != nullptr) {
-        // PRISON 的 instancesSpawned 应该达到限制，权重应被置 0
-        for (const auto& w : weights) {
-            if (w.pieceType == StrongholdPieceTypes::PRISON) {
-                EXPECT_EQ(w.instancesSpawned, w.instancesLimit);
-                EXPECT_EQ(w.weight, 0);
-            }
-        }
-    }
+    // 原版 `currentPieces.remove(weight)`：用尽的类型被移出抽签表。
+    EXPECT_TRUE(weights.empty());
 }
 
 TEST_F(GeneratePieceTest, UnlimitedTypeWeightNeverZeroed)

@@ -57,7 +57,7 @@ namespace {
 ///
 /// 快照逐状态导出 29196 条，其中 29 个方块的默认色随一个属性变化（见 kMapColorExceptions），
 /// 其余状态与方块默认色相同。
-constexpr std::array<MapColorBlock, 1165> kMapColorBlocks = {{
+constexpr std::array<MapColorBlock, 1166> kMapColorBlocks = {{
     {"minecraft:acacia_button", static_cast<u8>(0)},
     {"minecraft:acacia_door", static_cast<u8>(15)},
     {"minecraft:acacia_fence", static_cast<u8>(15)},
@@ -246,6 +246,7 @@ constexpr std::array<MapColorBlock, 1165> kMapColorBlocks = {{
     {"minecraft:cherry_wood", static_cast<u8>(43)},
     {"minecraft:chest", static_cast<u8>(13)},
     {"minecraft:chipped_anvil", static_cast<u8>(6)},
+    {"minecraft:chiseled_bookshelf", static_cast<u8>(13)},
     {"minecraft:chiseled_copper", static_cast<u8>(15)},
     {"minecraft:chiseled_deepslate", static_cast<u8>(59)},
     {"minecraft:chiseled_nether_bricks", static_cast<u8>(35)},

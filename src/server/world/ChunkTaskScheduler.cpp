@@ -276,33 +276,25 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
     // 保证 execute 返回后的回调期间 holder 不被 unloadChunkSync 销毁。
     // 区域调度器在任务结束（含取消）时已经释放任务体，因此回调只按 success 与 holder 状态处理，
     // 不再经由 rawTask 反查任务身份（失败处理内部本就以 holder.generationTask() 做身份比对）。
-    auto callback = [this, x, z, holder](bool success, util::ITask* /*rawTask*/) {
+    auto callback = [this, x, z, holder, abortSignal](bool success, util::ITask* /*rawTask*/) {
         if (holder == nullptr) {
             return;
         }
         // onChunkGenFailed 仅在「本任务真正失败（execute 返回 false 且未被取消）」时触发。
-        // 用任务身份比对（generationTask()==rawTask）而非 hasGenerationTask()：
-        //
-        // 取消场景（abortSignal=true）：executeTask 已调用 onCancel→cancelGeneration(holder, this)。
-        //   - 若本任务仍是当前任务（generationTask()==rawTask）：cancelGeneration 清理依赖图、
-        //     释放邻居引用计数、clearGenerationTask。清理后 generationTask()==nullptr ≠ rawTask。
-        //   - 若本任务已被取代（cancelActiveWork 清空 m_generationTask 后，新 submitRequest 调度了
-        //     新任务 B 并 setGenerationTask(B)）：cancelGeneration(holder, this) 是 no-op
-        //     （generationTask()==B ≠ this），m_generationTask 仍指向 B。此时 hasGenerationTask()=true
-        //     但本任务已被取代，不应触发 onChunkGenFailed（否则会 markFailed 一个仍有活跃任务 B 的 holder，
-        //     并 clearGenerationTask 清掉 B，导致 B 在已失败的 holder 上运行 → 依赖图永久阻塞 → 测试挂起）。
-        //     用 generationTask()==rawTask 比对：B ≠ rawTask → no-op。
-        //
-        // 真正失败场景（execute 返回 false 且未被取消，如 primer 为空）：onCancel 未调用，
-        // m_generationTask 仍指向本任务 → generationTask()==rawTask → 触发 onChunkGenFailed。
-        //
-        // 成功场景：execute 返回 true，execute 内部已调用 onChunkGenComplete→clearGenerationTask，
-        // generationTask()==nullptr ≠ rawTask → no-op。
-        //
-        // 身份比对在 onChunkGenFailed(holder, task) 内部持调度锁进行，消除 execute 返回与回调之间的
-        // TOCTOU 窗口（另一线程可能在回调前 setGenerationTask(B)）。
+        // 取消与失败的区分靠取消令牌而非任务裸指针：区域调度器在回调前已释放任务体
+        // （DispatchTask::releaseBody），裸指针地址可能被后继任务复用，不能作为身份。
+        // 令牌逐代唯一：cancelActiveWork 置位旧令牌，schedule→reviveForScheduling 为后继
+        // 任务分配新令牌，因此下列两种情形都表示本次任务已被取消/取代，属正常取消：
+        //   - 本次任务捕获的令牌已被置位（abortSignal=true）；
+        //   - holder 已换用新令牌（holder->abortSignal() != abortSignal），即后继任务 B 已调度。
+        // 真正的失败（如 primer 为空、存档状态非法）不会置位令牌，也不会更换令牌，
+        // 此时 holder 的 generationTask 仍指向本任务，由 onChunkGenFailed 在调度锁内复核。
         if (!success) {
-            onChunkGenFailed(*holder, holder->generationTask());
+            const bool cancelled = abortSignal != nullptr && abortSignal->load(std::memory_order::acquire);
+            const bool superseded = holder->abortSignal() != abortSignal;
+            if (!cancelled && !superseded) {
+                onChunkGenFailed(*holder, abortSignal);
+            }
         }
         // 成功时 onChunkGenComplete 已由 ChunkProgressionTask::execute 内部调用
     };
@@ -526,21 +518,31 @@ void ChunkTaskScheduler::_releaseDependencyEdgesOnFailure(SingleChunkLifecycleMa
     MC_UNUSED(unblockedWaiters);
 }
 
-void ChunkTaskScheduler::onChunkGenFailed(SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task)
+void ChunkTaskScheduler::onChunkGenFailed(
+    SingleChunkLifecycleManager& holder, const std::shared_ptr<std::atomic<bool>>& generationSignal)
 {
     const i32 lockRadius = 2 * getMaxAccessRadius();
     auto lock = m_schedulingLockArea.lock(holder.x(), holder.z(), lockRadius);
 
-    // 任务身份感知：仅当 holder.m_generationTask 仍指向 task 时才执行失败处理。
-    // 消除 execute 返回与回调之间的 TOCTOU 窗口：另一线程可能在回调前 cancelActiveWork
-    // 清空 m_generationTask 并 setGenerationTask(B)，此时本任务已被取代，不应 markFailed holder
-    // （否则 B 在已失败的 holder 上运行，依赖图永久阻塞）。
-    // - 真正失败（execute 返回 false 且未被取消）：onCancel 未调用，m_generationTask 仍指向 task → 执行。
-    // - 取消且未被取代：onCancel→cancelGeneration(holder, task) 已 clearGenerationTask，
-    //   m_generationTask==nullptr ≠ task → no-op。
-    // - 取消且已被取代：cancelGeneration(holder, task) 是 no-op，m_generationTask==B ≠ task → no-op。
-    // - 成功：execute 内部 onChunkGenComplete 已 clearGenerationTask，m_generationTask==nullptr ≠ task → no-op。
-    if (holder.generationTask() != task) {
+    // 取消令牌身份感知：仅当 holder 仍使用本次任务的令牌、该令牌未被置位、且确有进行中的
+    // 生成任务时才执行失败处理。消除 execute 返回与回调之间的 TOCTOU 窗口：另一线程可能在
+    // 回调前 cancelActiveWork（置位旧令牌并清空 m_generationTask）或调度后继任务 B
+    // （reviveForScheduling 换用新令牌并 setGenerationTask(B)），此时本次任务已被取消/取代，
+    // 不应 markFailed holder（否则 B 在已失败的 holder 上运行，依赖图永久阻塞）。
+    // - 真正失败（execute 返回 false 且未被取消）：令牌未置位、holder 仍持有同一令牌，
+    //   m_generationTask 仍指向本任务 → 执行。
+    // - 取消且未被取代：cancelGeneration 已 clearGenerationTask，generationTask()==nullptr → no-op。
+    // - 取消且已被取代：holder 已换用新令牌 → no-op。
+    // - 成功：execute 内部 onChunkGenComplete 已 clearGenerationTask → no-op。
+    if (holder.generationTask() == nullptr) {
+        return;
+    }
+    if (generationSignal != nullptr &&
+        (holder.abortSignal() != generationSignal || generationSignal->load(std::memory_order::acquire))) {
+        return;
+    }
+    // 无令牌任务（未登记取消令牌）在等待期若被后继任务取代，holder 必已持有新令牌。
+    if (generationSignal == nullptr && holder.abortSignal() != nullptr) {
         return;
     }
 

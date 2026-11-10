@@ -492,33 +492,38 @@ TEST(DensityFunctionsLerpTest, DeltaHalf_ReturnsMidpoint)
     EXPECT_DOUBLE_EQ(lerp->compute(0, 0, 0), 5.0);
 }
 
-TEST(DensityFunctionsLerpTest, DeltaNegative_ReturnsStart)
+TEST(DensityFunctionsLerpTest, DeltaNegative_ExtrapolatesStart)
 {
+    // 原版 lerp = start * (1 - delta) + end * delta，delta **不做 clamp**：
+    // delta=-0.5 → 5 + (-0.5) * 5 = 2.5。
     auto delta = constantFunc(-0.5);
     auto start = constantFunc(5.0);
     auto end = constantFunc(10.0);
     auto lerp = factory::lerp(std::move(delta), std::move(start), std::move(end));
-    EXPECT_DOUBLE_EQ(lerp->compute(0, 0, 0), 5.0);
+    EXPECT_DOUBLE_EQ(lerp->compute(0, 0, 0), 2.5);
 }
 
-TEST(DensityFunctionsLerpTest, DeltaGreaterThanOne_ReturnsEnd)
+TEST(DensityFunctionsLerpTest, DeltaGreaterThanOne_ExtrapolatesEnd)
 {
+    // delta=1.5 → 5 + 1.5 * 5 = 12.5（同样不 clamp）。
     auto delta = constantFunc(1.5);
     auto start = constantFunc(5.0);
     auto end = constantFunc(10.0);
     auto lerp = factory::lerp(std::move(delta), std::move(start), std::move(end));
-    EXPECT_DOUBLE_EQ(lerp->compute(0, 0, 0), 10.0);
+    EXPECT_DOUBLE_EQ(lerp->compute(0, 0, 0), 12.5);
 }
 
 TEST(DensityFunctionsLerpTest, MinMaxValues)
 {
+    // lerp 在 AST 中展开为 add(mul(start, 1-delta), mul(end, delta))，bounds 按该
+    // 复合表达式推导：delta=0.5 时 start*0.5 ∈ [-1.5, 3.5]、end*0.5 ∈ [-0.5, 1.0]，
+    // 相加后 min=-2.0、max=4.5（不是简单的 start/end 边界并集）。
     auto delta = constantFunc(0.5);
     auto start = factory::yClampedGradient(0, 100, -3.0, 7.0);
     auto end = factory::yClampedGradient(0, 100, -1.0, 2.0);
     auto lerp = factory::lerp(std::move(delta), std::move(start), std::move(end));
-    // lerp 的 bounds = min/max of all start/end bounds
-    EXPECT_DOUBLE_EQ(lerp->minValue(), -3.0);
-    EXPECT_DOUBLE_EQ(lerp->maxValue(), 7.0);
+    EXPECT_DOUBLE_EQ(lerp->minValue(), -2.0);
+    EXPECT_DOUBLE_EQ(lerp->maxValue(), 4.5);
 }
 
 // ============================================================================

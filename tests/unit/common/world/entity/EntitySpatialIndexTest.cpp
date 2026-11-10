@@ -411,6 +411,41 @@ TEST_F(EntitySpatialIndexTest, LargeScaleAABBMatchesOracle)
     }
 }
 
+TEST_F(EntitySpatialIndexTest, WorldSizedAABBScansOccupiedBucketsOnly)
+{
+    // "整维度"查询（脚本 Dimension.getEntities 无 location/volume 时传 ±3e7 包围盒）：
+    // 按 section 逐格枚举是 3.7M×3.7M×24 次哈希查找，等同死循环。此处断言结果正确；
+    // 若退化为逐格枚举，本用例会因超时失败（这是回归门禁）。
+    std::vector<std::unique_ptr<TestEntity>> entities;
+    for (int i = 0; i < 50; ++i) {
+        auto e = std::make_unique<TestEntity>(mc::test::testEcsRegistry(), EntityTypeKeys::PIG);
+        e->setPosition(static_cast<f32>(i * 1000), 64.0f, static_cast<f32>(-i * 1000));
+        m_index.addEntity(*e);
+        entities.push_back(std::move(e));
+    }
+
+    constexpr f32 kRadius = 3.0e7f;
+    const AxisAlignedBB worldBox(-kRadius,
+        static_cast<f32>(world::MIN_BUILD_HEIGHT),
+        -kRadius,
+        kRadius,
+        static_cast<f32>(world::MAX_BUILD_HEIGHT),
+        kRadius);
+
+    std::vector<Entity*> fromIndex;
+    m_index.collectEntitiesInAABB(worldBox, nullptr, [&](Entity& e) -> bool {
+        fromIndex.push_back(&e);
+        return true;
+    });
+
+    std::unordered_set<Entity*> idxSet(fromIndex.begin(), fromIndex.end());
+    std::unordered_set<Entity*> orcSet;
+    for (const auto& e : entities) {
+        orcSet.insert(e.get());
+    }
+    EXPECT_EQ(idxSet, orcSet);
+}
+
 // ============================================================================
 // 重复 remove 不崩溃（未登记实体直接 removeEntity）
 // ============================================================================
