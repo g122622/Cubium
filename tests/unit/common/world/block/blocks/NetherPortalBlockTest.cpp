@@ -284,12 +284,21 @@ void _buildCompletePortal(NetherPortalTestWorld& world, Axis axis)
 
 TEST_F(NetherPortalBlockTest, CompleteFrameAndInteriorAreValidOnBothAxes)
 {
+    // 原版没有 NetherPortalBlock#isValidPosition；门户是否完整由 updateShape 内的
+    // PortalShape 校验决定。这里用一个门平面内的空气邻居（模拟相邻门方块被移除）
+    // 触发该校验：框架与内部完整时应保留门方块。
     for (const Axis axis : {Axis::X, Axis::Z}) {
         NetherPortalTestWorld world;
         _buildCompletePortal(world, axis);
         const auto& state =
             VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
-        EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 65, 5)));
+        const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(state,
+            Direction::Down,
+            *BlockRegistry::instance().airState(),
+            world,
+            BlockPos(5, 65, 5),
+            BlockPos(5, 64, 5));
+        EXPECT_TRUE(result.is(VanillaBlocks::NETHER_PORTAL));
     }
 }
 
@@ -301,7 +310,6 @@ TEST_F(NetherPortalBlockTest, MissingInteriorInvalidatesRemainingPortalOnBothAxe
         const auto& state =
             VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
         world.clearBlockAt(BlockPos(5, 64, 5));
-        EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 65, 5)));
         const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(state,
             Direction::Down,
             *BlockRegistry::instance().airState(),
@@ -328,7 +336,10 @@ TEST_F(NetherPortalBlockTest, SingleObsidianNeighborDoesNotValidatePortal)
     NetherPortalTestWorld world;
     world.setBlockAt(BlockPos(5, 63, 5), &VanillaBlocks::OBSIDIAN->defaultState());
     const auto& state = VanillaBlocks::NETHER_PORTAL->defaultState();
-    EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 64, 5)));
+    // 只有一块黑曜石无法构成完整门户：门平面内的邻居变化应让门方块自毁。
+    const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(
+        state, Direction::Down, *BlockRegistry::instance().airState(), world, BlockPos(5, 64, 5), BlockPos(5, 63, 5));
+    EXPECT_TRUE(result.isAir());
 }
 
 TEST_F(NetherPortalBlockTest, UpdateOutsidePortalPlaneDoesNotRemovePortal)

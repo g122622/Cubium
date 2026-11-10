@@ -312,25 +312,35 @@ TEST_F(BigDripleafBlockTest, Create_HasCorrectDefaultTilt)
 // getShape：渲染/选择形状（叶片薄层 ∪ 茎连接，对齐 vanilla makeShapes）
 // ============================================================================
 
-TEST_F(BigDripleafBlockTest, GetShape_NoneTilt_NorthFacing_TwoBoxes)
+TEST_F(BigDripleafBlockTest, GetShape_NoneTilt_NorthFacing_FiveBoxes)
 {
-    // NONE tilt + NORTH facing：叶片薄层(16,11,15) ∪ 茎连接(x[0,6],z[4,10],y[0,13]) —— 两个碰撞盒。
+    // NONE tilt + NORTH facing：叶片薄层(16,11,15) ∪ 茎连接(column(6,0,13).move(0,0,0.25))
+    // 的并集在原版 VoxelShape 中分解为 5 个盒：茎 + 十字形四片叶。
+    constexpr f32 P = 1.0f / 16.0f;
     auto state = block_->defaultState()
                      .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None)
                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
     const CollisionShape& shape = block_->getShape(state);
-    EXPECT_EQ(shape.boxCount(), 2u) << "叶片薄层 + 茎连接应合并为 2 个盒";
+    EXPECT_EQ(shape.boxCount(), 5u) << "茎 + 四片叶应分解为 5 个盒";
 
-    // 叶片薄层：y∈[11/16, 15/16]，xz 满宽
-    constexpr f32 P = 1.0f / 16.0f;
-    bool foundLeaf = false;
+    // 茎：x∈[5/16,11/16]、z∈[9/16,15/16]、y∈[0,15/16]
+    bool foundStem = false;
     for (const auto& box : shape.boxes()) {
-        if (box.minY == 11.0f * P && box.maxY == 15.0f * P && box.minX == 0.0f && box.maxX == 1.0f &&
-            box.minZ == 0.0f && box.maxZ == 1.0f) {
-            foundLeaf = true;
+        if (box.minX == 5.0f * P && box.maxX == 11.0f * P && box.minY == 0.0f && box.maxY == 15.0f * P &&
+            box.minZ == 9.0f * P && box.maxZ == 15.0f * P) {
+            foundStem = true;
         }
     }
-    EXPECT_TRUE(foundLeaf) << "应含叶片薄层 (0,11/16,0)-(1,15/16,1)";
+    EXPECT_TRUE(foundStem) << "应含茎连接 (5/16,0,9/16)-(11/16,15/16,15/16)";
+
+    // 叶片：四片都位于 y∈[11/16,15/16]
+    std::size_t bladeCount = 0;
+    for (const auto& box : shape.boxes()) {
+        if (box.minY == 11.0f * P && box.maxY == 15.0f * P) {
+            ++bladeCount;
+        }
+    }
+    EXPECT_EQ(bladeCount, 4u) << "十字形叶片应分解为 4 个盒";
 }
 
 TEST_F(BigDripleafBlockTest, GetShape_FullTilt_OnlyStemBox)
@@ -345,26 +355,28 @@ TEST_F(BigDripleafBlockTest, GetShape_FullTilt_OnlyStemBox)
 
 TEST_F(BigDripleafBlockTest, GetShape_PartialTilt_LeafIsThinner)
 {
-    // PARTIAL tilt：叶片薄层 y∈[11/16,13/16]（更薄），仍与茎连接合并为 2 个盒。
+    // PARTIAL tilt：叶片薄层 y∈[11/16,13/16]（更薄），茎的上沿也压到 13/16；
+    // 并集同样分解为 5 个盒。
     auto state = block_->defaultState()
                      .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Partial)
                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
     const CollisionShape& shape = block_->getShape(state);
-    EXPECT_EQ(shape.boxCount(), 2u);
+    EXPECT_EQ(shape.boxCount(), 5u);
 
     constexpr f32 P = 1.0f / 16.0f;
-    bool foundLeaf = false;
+    std::size_t bladeCount = 0;
     for (const auto& box : shape.boxes()) {
         if (box.minY == 11.0f * P && box.maxY == 13.0f * P) {
-            foundLeaf = true;
+            ++bladeCount;
         }
     }
-    EXPECT_TRUE(foundLeaf) << "PARTIAL 叶片薄层应为 y∈[11/16,13/16]";
+    EXPECT_EQ(bladeCount, 4u) << "PARTIAL 叶片薄层应为 y∈[11/16,13/16]，共 4 片";
 }
 
 TEST_F(BigDripleafBlockTest, GetShape_StemRotatesWithFacing)
 {
-    // 茎连接随 FACING 绕 Y 旋转：NORTH 时 z∈[4,10]（x 方向窄）；EAST 时 x∈[4,10]（z 方向窄）。
+    // 茎连接随 FACING 绕 Y 旋转（FULL tilt 只剩茎，单盒）：
+    //   基础形状 column(6,0,13).move(0,0,0.25) → x∈[5/16,11/16]、z∈[9/16,15/16]。
     constexpr f32 P = 1.0f / 16.0f;
 
     auto northState = block_->defaultState()
@@ -372,21 +384,22 @@ TEST_F(BigDripleafBlockTest, GetShape_StemRotatesWithFacing)
                           .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
     const CollisionShape& northShape = block_->getShape(northState);
     ASSERT_EQ(northShape.boxCount(), 1u);
-    EXPECT_FLOAT_EQ(northShape.boxes()[0].minX, 0.0f);
-    EXPECT_FLOAT_EQ(northShape.boxes()[0].maxX, 6.0f * P); // x 方向窄
-    EXPECT_FLOAT_EQ(northShape.boxes()[0].minZ, 4.0f * P);
-    EXPECT_FLOAT_EQ(northShape.boxes()[0].maxZ, 10.0f * P);
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].minX, 5.0f * P);
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].maxX, 11.0f * P);
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].minZ, 9.0f * P);
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].maxZ, 15.0f * P);
 
     auto eastState = block_->defaultState()
                          .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full)
                          .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
     const CollisionShape& eastShape = block_->getShape(eastState);
     ASSERT_EQ(eastShape.boxCount(), 1u);
-    // EAST = 顺时针 90°：(x,z)→(1-z,x)：原 x∈[0,6],z∈[4,10] → x∈[1-10/16,1-4/16]=[6/16,12/16], z∈[0,6/16]
-    EXPECT_FLOAT_EQ(eastShape.boxes()[0].minX, 6.0f * P);
-    EXPECT_FLOAT_EQ(eastShape.boxes()[0].maxX, 12.0f * P);
-    EXPECT_FLOAT_EQ(eastShape.boxes()[0].minZ, 0.0f);
-    EXPECT_FLOAT_EQ(eastShape.boxes()[0].maxZ, 6.0f * P);
+    // EAST = 顺时针 90°：(x,z)→(1-z,x)：x∈[5/16,11/16],z∈[9/16,15/16]
+    // → x∈[1-15/16,1-9/16]=[1/16,7/16], z∈[5/16,11/16]
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].minX, 1.0f * P);
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].maxX, 7.0f * P);
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].minZ, 5.0f * P);
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].maxZ, 11.0f * P);
 }
 
 TEST_F(BigDripleafBlockTest, Create_HasCorrectDefaultFacing)

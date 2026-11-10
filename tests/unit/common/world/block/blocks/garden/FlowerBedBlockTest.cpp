@@ -475,20 +475,15 @@ TEST_F(FlowerBedBlockTest, Shape_AmountFour_CoversFullBlock)
                      .with(BlockStateProperties::FLOWER_AMOUNT(), 4);
     const CollisionShape& shape = flowerBed_->getShape(state);
 
+    // 原版 SegmentableBlock.getShapeCalculator 末尾调用 singleEncompassing()，
+    // 四个分段合并成 1 个覆盖整格水平面积的包围盒。
     const auto& boxes = shape.boxes();
-    ASSERT_EQ(boxes.size(), 4u);
-    f32 minX = boxes[0].minX, maxX = boxes[0].maxX;
-    f32 minZ = boxes[0].minZ, maxZ = boxes[0].maxZ;
-    for (const auto& box : boxes) {
-        minX = std::min(minX, box.minX);
-        maxX = std::max(maxX, box.maxX);
-        minZ = std::min(minZ, box.minZ);
-        maxZ = std::max(maxZ, box.maxZ);
-    }
-    EXPECT_FLOAT_EQ(minX, 0.0f);
-    EXPECT_FLOAT_EQ(minZ, 0.0f);
-    EXPECT_FLOAT_EQ(maxX, 1.0f);
-    EXPECT_FLOAT_EQ(maxZ, 1.0f);
+    ASSERT_EQ(boxes.size(), 1u);
+    const auto& box = boxes[0];
+    EXPECT_FLOAT_EQ(box.minX, 0.0f);
+    EXPECT_FLOAT_EQ(box.minZ, 0.0f);
+    EXPECT_FLOAT_EQ(box.maxX, 1.0f);
+    EXPECT_FLOAT_EQ(box.maxZ, 1.0f);
 }
 
 TEST_F(FlowerBedBlockTest, Shape_AmountOne_IsQuadrant)
@@ -508,15 +503,21 @@ TEST_F(FlowerBedBlockTest, Shape_AmountOne_IsQuadrant)
     EXPECT_FLOAT_EQ(boxes[0].maxZ, 0.5f);
 }
 
-TEST_F(FlowerBedBlockTest, Shape_BoxCount_IncreasesWithAmount)
+TEST_F(FlowerBedBlockTest, Shape_SingleEncompassingBoxGrowsWithAmount)
 {
-    // AMOUNT=1 应有1个盒子，AMOUNT=2 应有2个，以此类推
+    // 原版 getShapeCalculator 对分段并集调用 singleEncompassing()：任何 AMOUNT 都是 1 个盒，
+    // 随 AMOUNT 增大的是包围盒的水平面积（分段逐个并入同一包围区）。
+    f32 previousArea = 0.0f;
     for (i32 amount = 1; amount <= 4; ++amount) {
         auto state = flowerBed_->defaultState()
                          .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
                          .with(BlockStateProperties::FLOWER_AMOUNT(), amount);
         const CollisionShape& shape = flowerBed_->getShape(state);
-        EXPECT_EQ(shape.boxCount(), static_cast<u32>(amount)) << "Box count should match amount for amount=" << amount;
+        EXPECT_EQ(shape.boxCount(), 1u) << "singleEncompassing 后应恒为 1 个盒, amount=" << amount;
+        const auto& box = shape.boxes()[0];
+        const f32 area = (box.maxX - box.minX) * (box.maxZ - box.minZ);
+        EXPECT_GE(area, previousArea) << "包围盒面积不应随 AMOUNT 增大而缩小, amount=" << amount;
+        previousArea = area;
     }
 }
 
@@ -662,17 +663,19 @@ TEST_F(FlowerBedRegistrationTest, WildflowersDefaultState)
     EXPECT_EQ(state.get(BlockStateProperties::FLOWER_AMOUNT()), 1);
 }
 
-TEST_F(FlowerBedRegistrationTest, PinkPetalsIsReplaceable)
+TEST_F(FlowerBedRegistrationTest, PinkPetalsIsNotReplaceableWithoutContext)
 {
-    // 花瓣床应标记为 replaceable 以支持堆叠放置
+    // 无上下文 canBeReplaced() 读的是 replaceable 标志；花瓣床没有设置它。
+    // 用同一物品继续堆叠是 FlowerBedBlock::canBeReplaced(state, context) 的语义，
+    // 与无参版本无关。
     const auto& state = mc::block_registry::TrailsBlocks::PINK_PETALS->defaultState();
-    EXPECT_TRUE(state.canBeReplaced());
+    EXPECT_FALSE(state.canBeReplaced());
 }
 
-TEST_F(FlowerBedRegistrationTest, WildflowersIsReplaceable)
+TEST_F(FlowerBedRegistrationTest, WildflowersIsNotReplaceableWithoutContext)
 {
     const auto& state = mc::block_registry::GardenBlocks::WILDFLOWERS->defaultState();
-    EXPECT_TRUE(state.canBeReplaced());
+    EXPECT_FALSE(state.canBeReplaced());
 }
 
 TEST_F(FlowerBedRegistrationTest, PinkPetalsIsNotSolid)

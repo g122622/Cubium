@@ -219,10 +219,12 @@ TEST_F(StainedGlassBlockTest, Create_HasCorrectProperties)
     EXPECT_NE(whiteGlass_, nullptr);
 }
 
-TEST_F(StainedGlassBlockTest, IsSolid_ReturnsFalse)
+TEST_F(StainedGlassBlockTest, IsSolid_ReturnsTrue)
 {
+    // isSolid 走 calculateSolid：碰撞盒是整格，包围尺寸满足阈值 → true。
+    // 染色玻璃不透明与否（noOcclusion）不影响该判定。
     const auto& state = redGlass_->defaultState();
-    EXPECT_FALSE(redGlass_->isSolid(state));
+    EXPECT_TRUE(redGlass_->isSolid(state));
 }
 
 TEST_F(StainedGlassBlockTest, GetBeaconColor_ReturnsCorrectColor)

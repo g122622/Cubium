@@ -312,8 +312,9 @@ bool PaneBlock::shouldConnectTo(
     const Block& neighborBlock = neighborState.getBlock();
     const Direction oppositeDirection = Directions::opposite(direction);
 
-    // 同类方块互相连接
-    if (&neighborBlock == this) {
+    // 同类方块互相连接。用类型判断而不是 `&neighborBlock == this`：玻璃板、染色玻璃板、
+    // 铁栏杆是不同的 Block 实例，但它们在原版都 instanceof IronBarsBlock，必须互相连接。
+    if (dynamic_cast<const PaneBlock*>(&neighborBlock) != nullptr) {
         return true;
     }
 
@@ -322,7 +323,7 @@ bool PaneBlock::shouldConnectTo(
         return true;
     }
 
-    // 墙总是连接
+    // 墙总是连接（原版 `instanceof WallBlock || is(BlockTags.WALLS)`，两者都要）
     if (WallBlock::isWall(neighborState)) {
         return true;
     }

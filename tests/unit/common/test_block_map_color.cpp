@@ -227,7 +227,9 @@ TEST(BlockMapColorTableTest, WaterloggedStateTakesWaterColor)
 TEST(BlockMapColorTableTest, UnknownStateFallsBackToAirColor)
 {
     EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:not_a_block"), 0);
-    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:stone[not_an_attribute=true]"), 0);
+    // 方块名命中时，未知属性会被忽略（快照只记录四个变色属性，无法也不应校验全部属性），
+    // 因此返回该方块的默认色（stone = 11），而不是 AIR。
+    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:stone[not_an_attribute=true]"), 11);
     EXPECT_EQ(world::block::lookupVanillaMapColor(""), 0);
 }
 
@@ -284,9 +286,11 @@ TEST(BlockMapColorTableTest, ColorIsInvariantUnderColourNeutralTransformations)
             continue;
         }
         const std::string blockName = name.substr(0, name.find('['));
-        // 已知的变色方块：原木按轴、床按 part、barrier/light 按 waterlogged。
+        // 已知的变色方块：原木/竹块按轴、床按 part、barrier/light 按 waterlogged。
+        // bamboo_block 与普通原木一样按 axis 取内皮/树皮色，但它不以 _log 结尾，需单列。
         if (blockName.ends_with("_log") || blockName.ends_with("_wood") || blockName.ends_with("_bed") ||
-            blockName == "minecraft:barrier" || blockName == "minecraft:light") {
+            blockName == "minecraft:bamboo_block" || blockName == "minecraft:barrier" ||
+            blockName == "minecraft:light") {
             continue;
         }
         for (const auto& [key, values] : transforms) {

@@ -442,50 +442,53 @@ TEST_F(PaleHangingMossBlockTest, IsValidPosition_AirAbove_ReturnsFalse)
 
 TEST_F(PaleHangingMossBlockTest, GetShape_TipState_ReturnsTipShape)
 {
-    // TIP=true 时应使用末端形状（更短）
+    // TIP=true 时使用 SHAPE_TIP = Block.column(14.0, 2.0, 16.0)（归一化坐标）：
+    //   x/z ∈ [1/16, 15/16]，y ∈ [2/16, 1]。
+    constexpr f32 P = 1.0f / 16.0f;
     auto tipState = moss_->defaultState().with(BlockStateProperties::TIP(), true);
     const CollisionShape& tipShape = moss_->getShape(tipState);
     EXPECT_FALSE(tipShape.isEmpty());
     EXPECT_EQ(tipShape.boxCount(), 1u);
 
-    // 末端形状: box(2, 0, 2, 14, 10, 14) — 使用方块局部坐标
     const auto& box = tipShape.boxes()[0];
-    EXPECT_FLOAT_EQ(box.minX, 2.0f);
-    EXPECT_FLOAT_EQ(box.minY, 0.0f);
-    EXPECT_FLOAT_EQ(box.minZ, 2.0f);
-    EXPECT_FLOAT_EQ(box.maxX, 14.0f);
-    EXPECT_FLOAT_EQ(box.maxY, 10.0f);
-    EXPECT_FLOAT_EQ(box.maxZ, 14.0f);
+    EXPECT_FLOAT_EQ(box.minX, 1.0f * P);
+    EXPECT_FLOAT_EQ(box.minY, 2.0f * P);
+    EXPECT_FLOAT_EQ(box.minZ, 1.0f * P);
+    EXPECT_FLOAT_EQ(box.maxX, 15.0f * P);
+    EXPECT_FLOAT_EQ(box.maxY, 1.0f);
+    EXPECT_FLOAT_EQ(box.maxZ, 15.0f * P);
 }
 
 TEST_F(PaleHangingMossBlockTest, GetShape_BodyState_ReturnsBodyShape)
 {
-    // TIP=false 时应使用身体形状（更长）
+    // TIP=false 时使用 SHAPE_BASE = Block.column(14.0, 0.0, 16.0)（归一化坐标）：
+    //   x/z ∈ [1/16, 15/16]，y ∈ [0, 1]。
+    constexpr f32 P = 1.0f / 16.0f;
     auto bodyState = moss_->defaultState().with(BlockStateProperties::TIP(), false);
     const CollisionShape& bodyShape = moss_->getShape(bodyState);
     EXPECT_FALSE(bodyShape.isEmpty());
     EXPECT_EQ(bodyShape.boxCount(), 1u);
 
-    // 身体形状: box(2, 0, 2, 14, 16, 14) — 使用方块局部坐标
     const auto& box = bodyShape.boxes()[0];
-    EXPECT_FLOAT_EQ(box.minX, 2.0f);
+    EXPECT_FLOAT_EQ(box.minX, 1.0f * P);
     EXPECT_FLOAT_EQ(box.minY, 0.0f);
-    EXPECT_FLOAT_EQ(box.minZ, 2.0f);
-    EXPECT_FLOAT_EQ(box.maxX, 14.0f);
-    EXPECT_FLOAT_EQ(box.maxY, 16.0f);
-    EXPECT_FLOAT_EQ(box.maxZ, 14.0f);
+    EXPECT_FLOAT_EQ(box.minZ, 1.0f * P);
+    EXPECT_FLOAT_EQ(box.maxX, 15.0f * P);
+    EXPECT_FLOAT_EQ(box.maxY, 1.0f);
+    EXPECT_FLOAT_EQ(box.maxZ, 15.0f * P);
 }
 
 TEST_F(PaleHangingMossBlockTest, GetShape_TipShorterThanBody)
 {
-    // 末端形状比身体形状短（maxY 更小）
+    // 两种形状的 maxY 都是 1（垂苔长度由下方方块决定），区别在底部起点：
+    // 末端形状从 y=2/16 开始，比身体形状（y=0）短 2 像素。
     auto tipState = moss_->defaultState().with(BlockStateProperties::TIP(), true);
     auto bodyState = moss_->defaultState().with(BlockStateProperties::TIP(), false);
 
     const CollisionShape& tipShape = moss_->getShape(tipState);
     const CollisionShape& bodyShape = moss_->getShape(bodyState);
 
-    EXPECT_LT(tipShape.boxes()[0].maxY, bodyShape.boxes()[0].maxY);
+    EXPECT_GT(tipShape.boxes()[0].minY, bodyShape.boxes()[0].minY);
 }
 
 TEST_F(PaleHangingMossBlockTest, GetCollisionShape_AlwaysEmpty)

@@ -240,13 +240,13 @@ FluidState FlowingFluid::getFlowingState(i32 level, bool falling) const
 
 FluidState FlowingFluid::getStillState(bool falling) const
 {
-    // 源头level=8，但isSource=true
+    // 源头level=8，但isSource=true。
+    // FALLING 必须显式写入：BooleanProperty 的值顺序是 {true,false}，baseState 的
+    // FALLING 恰为 true；原版 `getSource(falling)` 也是无条件 setValue(FALLING, falling)，
+    // 不能图省事直接返回默认状态。
     const FluidState& state = const_cast<FlowingFluid*>(this)->getStill().defaultState();
     auto& fallingProp = FluidProperties::FALLING();
-    if (falling) {
-        return state.with(fallingProp, true);
-    }
-    return state;
+    return state.with(fallingProp, falling);
 }
 
 void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state)
@@ -663,9 +663,9 @@ bool FlowingFluid::isBlocked(IWorld& world, const BlockPos& pos, const BlockStat
         return !container->canContainFluid(world, pos, *block, fluid);
     }
 
-    // MC Java 的 canHoldAnyFluid 黑名单排除：
-    // 这些方块的 canBeReplacedByFluid() 返回 true（因为 isSolid=false），
-    // 但 MC Java 明确禁止流体流入这些方块
+    // MC Java 的 canHoldAnyFluid 黑名单排除：即使方块本身不是固体/可替换，原版也明确禁止
+    // 流体流入这些方块。黑名单必须与 canBeReplacedByFluid() 分开维护——后者只表达
+    // canBeReplaced() || !isSolid()，无法区分甘蔗、气泡柱这类“非固体但挡流体”的方块。
     const std::string& path = blockRef.blockLocation().path();
     if (hasSuffix(path, "_door") || hasSuffix(path, "_sign") || path == "ladder" || path == "sugar_cane" ||
         path == "bubble_column") {

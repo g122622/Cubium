@@ -194,9 +194,10 @@ TEST_F(BuildingVariantRegistrationTest, Slabs_PropertiesMatchMC)
     EXPECT_FLOAT_EQ(VanillaBlocks::SMOOTH_STONE_SLAB->hardness(), 2.0f);
     EXPECT_FLOAT_EQ(VanillaBlocks::SMOOTH_STONE_SLAB->resistance(), 6.0f);
 
-    // 石化橡木台阶: 硬度2.0, 抗性2.0, 可燃
+    // 石化橡木台阶: 硬度2.0, 抗性6.0（原版 strength(2.0F, 6.0F)），且 requiresCorrectToolForDrops
     EXPECT_FLOAT_EQ(VanillaBlocks::PETRIFIED_OAK_SLAB->hardness(), 2.0f);
-    EXPECT_FLOAT_EQ(VanillaBlocks::PETRIFIED_OAK_SLAB->resistance(), 2.0f);
+    EXPECT_FLOAT_EQ(VanillaBlocks::PETRIFIED_OAK_SLAB->resistance(), 6.0f);
+    EXPECT_TRUE(VanillaBlocks::PETRIFIED_OAK_SLAB->requiresTool());
     EXPECT_EQ(&VanillaBlocks::PETRIFIED_OAK_SLAB->material(), &Material::WOOD);
 
     // 下界砖台阶: 硬度2.0, 抗性6.0

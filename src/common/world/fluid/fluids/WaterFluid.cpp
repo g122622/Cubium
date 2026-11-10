@@ -71,10 +71,13 @@ const BlockState* WaterFluid::getBlockState(const FluidState& state) const
         return nullptr;
     }
 
-    // 计算方块level
+    // 计算方块level。原版 getLegacyLevel 对源头**无条件**返回 0（不看 FALLING）：
+    //   isSource() ? 0 : 8 - min(amount, 8) + (FALLING ? 8 : 0)
+    // 源头 FluidState 的 FALLING 默认值是 true（BooleanProperty 值顺序 true=0 决定
+    // baseState），因此若按 isFalling() 判源头会得到 LEVEL=8 的下落水方块。
     i32 blockLevel;
     if (isSource(state)) {
-        blockLevel = state.isFalling() ? SOURCE_LEVEL : 0;
+        blockLevel = 0;
     } else {
         i32 fluidLevel = state.getLevel();
         blockLevel = SOURCE_LEVEL - fluidLevel;

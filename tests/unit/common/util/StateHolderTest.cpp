@@ -171,8 +171,12 @@ TEST_F(StateHolderWithValueIndexTest, WithValueIndex_SameValueReturnsSameState)
     const IProperty* litProp = container.getProperty("lit");
     ASSERT_NE(litProp, nullptr);
 
-    // lit 默认为 false (index=0)，设置 index=0 应返回同一状态
-    const BlockState& sameState = defaultState.withValueIndex(*litProp, 0);
+    // BooleanProperty 的值顺序是 {true=false 对应 0/1 之外的 true=0, false=1}
+    // （原版 BooleanProperty.VALUES = List.of(true, false)）：默认状态 lit=false，
+    // 对应的值索引是 1，不是 0。用 parseValue 取真实索引，避免把 true 当成默认值。
+    auto litFalseIndex = litProp->parseValue("false");
+    ASSERT_TRUE(litFalseIndex.has_value());
+    const BlockState& sameState = defaultState.withValueIndex(*litProp, *litFalseIndex);
     EXPECT_EQ(&sameState, &defaultState);
 }
 
@@ -185,7 +189,7 @@ TEST_F(StateHolderWithValueIndexTest, WithValueIndex_InvalidIndexReturnsCurrentS
     const IProperty* litProp = container.getProperty("lit");
     ASSERT_NE(litProp, nullptr);
 
-    // lit 只有 2 个值 (0=false, 1=true)，index=99 超出范围应返回当前状态
+    // lit 只有 2 个值（BooleanProperty.VALUES = {true, false}），index=99 超出范围应返回当前状态
     const BlockState& result = defaultState.withValueIndex(*litProp, 99);
     EXPECT_EQ(&result, &defaultState);
 }
