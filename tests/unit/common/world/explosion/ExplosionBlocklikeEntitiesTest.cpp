@@ -94,4 +94,17 @@ TEST_F(ExplosionBlocklikeEntitiesTest, NonWindChargeSourceIsNotExcluded)
         << "a non-wind-charge source must not be excluded";
 }
 
+// TriggerBlock 虽然会调方块的爆炸回调，但不破坏方块，因此在原版算作"不波及方块类实体"
+// （BlockInteraction.TRIGGER_BLOCK(false)）。它与 None 的区别不在这个判定上。
+TEST_F(ExplosionBlocklikeEntitiesTest, TriggerBlockNeverAffectsBlocklikeEntities)
+{
+    setMobGriefing(false);
+    EXPECT_FALSE(shouldAffect(m_world, world::explosion::ExplosionMode::TriggerBlock, nullptr))
+        << "TriggerBlock must not be treated as a destructive explosion";
+
+    // mobGriefing 开启时被 flag1 放过，与 TriggerBlock 本身无关——这里只确认它不等于 Break。
+    setMobGriefing(true);
+    EXPECT_TRUE(shouldAffect(m_world, world::explosion::ExplosionMode::TriggerBlock, nullptr));
+}
+
 } // namespace mc

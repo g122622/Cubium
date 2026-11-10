@@ -47,7 +47,7 @@ const CollisionShape& CarpetBlock::getShape(const BlockState& state) const
 const CollisionShape& CarpetBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // 对齐原版：CarpetBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape 的结果
+    // CarpetBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape 的结果
     // （`Block.column(16.0, 0.0, 1.0)`，即 1/16 厚的完整薄片）。
     //
     // 此前这里返回空形状，注释理由是「地毯没有碰撞箱（可以穿过）」——**这是错的**：

@@ -51,13 +51,10 @@ bool SwimGoal::shouldExecute()
         return false;
     }
 
-    // 检查是否在水中且水位超过眼睛高度，或者在岩浆中
-    if (m_mob->isInWater()) {
-        f32 fluidHeight = m_mob->getFluidHeight();
-        f32 eyeHeight = m_mob->eyeHeight();
-        return fluidHeight > eyeHeight;
-    }
-    return m_mob->isInLava();
+    // 水中且水深超过跳跃阈值，或在岩浆中。
+    // 阈值取 `getFluidJumpThreshold()`（眼高 < 0.4 的矮实体为 0，其余 0.4），比较的是**水**
+    // 的浸入高度——不能用 lava 高度，也不能用眼高当阈值（眼高 1.74 的僵尸将永远不触发）。
+    return (m_mob->isInWater() && m_mob->waterHeight() > m_mob->getFluidJumpThreshold()) || m_mob->isInLava();
 }
 
 void SwimGoal::tick()

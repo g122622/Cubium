@@ -168,18 +168,20 @@ private:
  * @brief 风弹式爆炸上下文（对齐 vanilla SimpleExplosionDamageCalculator）
  *
  * 用于风充能效果击杀附体实体时触发的"风弹爆炸"（WindChargedMobEffect.onMobRemoved）：
- * - 不破坏方块（对齐 vanilla explodeBlocks=false）；
- * - 不直接伤害实体（对齐 vanilla damagesEntities=false），但以默认击退倍率推开附近实体；
+ * - 不破坏方块（原版 explodeBlocks=false）；
+ * - 不直接伤害实体（原版 damagesEntities=false），但以默认击退倍率推开附近实体；
  * - 大小为 BLOCKS_WIND_CHARGE_EXPLOSIONS 标签（屏障/基岩）的方块抗性视为无穷大，
- *   不被扣除爆炸强度（对齐 vanilla immuneBlocks 分支返回 3.6e6）。
+ *   不被扣除爆炸强度（原版 immuneBlocks 分支返回 3.6e6）。
  *
- * 与数据包语义的唯一偏差：风弹爆炸在原版用 `TRIGGER_BLOCK` 交互模式（触发 TNT、
- * 引燃其他风弹做链式引爆，但不破坏方块）。Cubium 的 `ExplosionMode` 目前只有
- * None / Break / Destroy，没有"仅触发"这一档，因此这里用 `ExplosionMode::None`
- * 近似（不破坏、不燃火）。
+ * 风弹在原版用的是 `TRIGGER_BLOCK` 交互模式：不破坏方块，但会对范围内每个方块调用
+ * 爆炸回调，因此能引爆 TNT、引燃其他风弹做链式引爆。`ExplosionMode::TriggerBlock`
+ * 已按此语义实现（见 `Explosion::_destroyBlocks` 与 `_shouldAffectBlocklikeEntities`）。
  *
- * TODO: 待 `ExplosionMode` 增加 `TriggerBlock` 后，风弹的链式引爆（触发 TNT 与其他
- *   风弹）需要在该模式下补齐；相关判定位置见 Explosion::_shouldAffectBlocklikeEntities。
+ * TODO: `WindChargeEntity` 目前有一条**自己手写的爆炸路径**（自行算击退、广播 Explosion IR），
+ *   它只把射线检测用于伤害衰减，从不调用方块的爆炸回调，所以风弹引爆 TNT、风弹之间链式
+ *   引爆仍然缺失。补齐有两条路：要么让该路径对范围内方块调 `Block::onBlockExploded`，
+ *   要么改为复用 `Explosion` 并传 `ExplosionMode::TriggerBlock`（后者需先确认不会破坏现有的
+ *   "服务端不改玩家速度、击退只由客户端经 Explosion IR 应用"契约）。
  */
 class WindChargeExplosionContext : public EntityExplosionContext {
 public:

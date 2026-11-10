@@ -31,6 +31,7 @@
 
 namespace mc::nbt::tags {
 struct compound_tag;
+struct tag;
 } // namespace mc::nbt::tags
 
 namespace mc::network::buffer {
@@ -73,6 +74,21 @@ namespace nbt_io {
  * 内部往返；本函数写完整根 NBT，用于发往真 Java 客户端。
  */
 [[nodiscard]] std::vector<u8> serializeRootCompoundToBytes(const mc::nbt::tags::compound_tag& tag);
+
+/**
+ * @brief 将任意标签以【根 NBT】线格式序列化为字节向量
+ *
+ * 同样是 Java `NbtIo.writeAnyTag` 的线格式：`writeByte(tag.id())` + `tag.write()`，无 root name。
+ * `serializeRootCompoundToBytes` 是它在 CompoundTag 上的特化（复用同一实现）。
+ *
+ * 供 Component 这类「根标签可能是 StringTag 也可能是 CompoundTag」的字段使用：原版
+ * `ComponentSerialization.TRUSTED_STREAM_CODEC` 经 `NbtOps` 编码后可能是折叠的 StringTag，
+ * 因此不能假定根一定是 Compound。
+ *
+ * @param tag 任意标签
+ * @return 含类型字节的完整根 NBT 字节
+ */
+[[nodiscard]] std::vector<u8> serializeRootTagToBytes(const mc::nbt::tags::tag& tag);
 
 /**
  * @brief 将复合标签以【根 NBT】线格式写入 buf（= writeBytes(serializeRootCompoundToBytes)）

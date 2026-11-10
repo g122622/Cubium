@@ -235,7 +235,7 @@ const CollisionShape& LadderBlock::getShape(const BlockState& state) const
 
 const CollisionShape& LadderBlock::getCollisionShape(const BlockState& state) const
 {
-    // 对齐原版：LadderBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape
+    // LadderBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape
     // （贴着墙的薄板，厚 3/16）。
     //
     // 此前这里返回空形状，注释理由是「梯子没有碰撞箱」——**这是错的**：梯子的碰撞箱虽薄

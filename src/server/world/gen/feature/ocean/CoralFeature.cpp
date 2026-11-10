@@ -414,33 +414,6 @@ bool CoralFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
     return false;
 }
 
-// TODO: 当前无调用方（形状放置统一走 placeCoralWithDecorations 的公共辅助函数），
-// 保留待珊瑚特征细分形状逻辑接入后再启用或删除。
-void CoralFeature::_placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const
-{
-    [[maybe_unused]] const bool placed = placeCoralBase(world, pos, color, false);
-}
-
-// TODO: 当前无调用方，理由同 _placeCoralBlock。
-void CoralFeature::_placeCoralFan(
-    WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const
-{
-    if (!isWaterAt(world, pos)) {
-        return;
-    }
-
-    if (direction == Direction::Up) {
-        if (const BlockState* fanState = getCoralFanState(color, false); fanState != nullptr) {
-            world.setBlockState(pos, fanState);
-        }
-        return;
-    }
-
-    if (const BlockState* wallFanState = getCoralWallFanState(color, direction, false); wallFanState != nullptr) {
-        world.setBlockState(pos, wallFanState);
-    }
-}
-
 // ============================================================================
 // ConfiguredCoralFeature 实现
 // ============================================================================

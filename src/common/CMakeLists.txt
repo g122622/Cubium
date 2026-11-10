@@ -417,8 +417,6 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/EatGrassGoal.cpp
     entity/ai/goal/goals/FleeSunGoal.cpp
     entity/ai/goal/goals/RestrictSunGoal.cpp
-    entity/ai/goal/goals/FindShelterGoal.cpp
-    entity/ai/goal/goals/FlyGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.cpp
     entity/ai/goal/goals/interact/DoorInteractGoal.cpp
@@ -467,7 +465,6 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/GhastGoals.cpp
     entity/ai/goal/goals/special/SilverfishGoals.cpp
     entity/ai/goal/goals/special/DrownedGoals.cpp
-    entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/AvoidHostileGoal.cpp
     entity/ai/goal/goals/villager/CongregateGoal.cpp
@@ -1371,10 +1368,14 @@ add_library(mc_common STATIC
     # Text System (Rich Text)
     util/text/Utf8.cpp
     util/text/TextStyle.cpp
+    util/text/StyleNbt.cpp
     util/text/ITextComponent.cpp
     util/text/TextParser.cpp
     util/text/TranslationTextComponent.cpp
     util/text/ComponentNbtSerialization.cpp
+    # 数字格式（记分板分数的渲染格式：blank / styled / fixed）
+    util/text/numbers/NumberFormat.cpp
+    util/text/numbers/NumberFormatCodec.cpp
 
     # NibbleArray (4-bit compact storage for lighting)
     util/NibbleArray.cpp

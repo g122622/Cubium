@@ -476,7 +476,8 @@ namespace play_ext_detail {
  *
  * 项目 IR 以 `std::vector<u8>` 承载 NumberFormat 的原始 wire 字节（空 vector 表示 absent）。
  * 本函数写 Bool(present)：absent→写 0；present→写 1 + 透传 vector 内的 wire 字节（已含
- * VarInt(typeId) + 变体 payload，由业务侧或未来 NumberFormat 工具产出）。
+ * VarInt(typeId) + 变体 payload）。这些字节由 `mc::text::numbers::numberFormatToWireBytes`
+ * 产出（见 `common/util/text/numbers/NumberFormatCodec.hpp`），本层只负责透传。
  */
 inline void writeNumberFormat(B& buf, const std::vector<u8>& nfmt)
 {

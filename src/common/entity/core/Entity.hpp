@@ -1309,9 +1309,12 @@ public:
     // ========== 物理 ==========
 
     /**
-     * @brief 设置物理引擎（已废弃，优先使用 World 的物理引擎）
+     * @brief 设置显式物理引擎
+     *
+     * 用于没有世界（或世界尚未挂载）的实体：`physicsEngine()` 优先取世界的引擎，取不到时
+     * 回退到这里设置的值。掉落物、经验球等在生成时会显式注入，模拟玩家也需要手动设置。
+     *
      * @param engine 物理引擎指针（不拥有所有权）
-     * @deprecated 使用 World::physicsEngine() 替代
      */
     void setPhysicsEngine(PhysicsEngine* engine)
     {
@@ -2062,12 +2065,16 @@ public:
     }
 
     /**
-     * @brief 获取实体浸入水的高度
-     * @return 流体高度（0.0-1.0），如果不在水中返回0
+     * @brief 流体跳跃阈值
+     *
+     * 判定「水深是否足以起跳」的门槛：眼高小于 0.4 的矮实体（鱼、鱿鱼等）门槛为 0，
+     * 其余为 0.4。与 `waterHeight()` / `lavaHeight()` 比较使用。
+     *
+     * @return 阈值高度（方块单位）
      */
-    [[nodiscard]] virtual f32 getFluidHeight() const
+    [[nodiscard]] f32 getFluidJumpThreshold() const
     {
-        return m_fluidHeight;
+        return eyeHeight() < 0.4f ? 0.0f : 0.4f;
     }
 
     /**
@@ -2086,14 +2093,6 @@ public:
     [[nodiscard]] f32 lavaHeight() const
     {
         return m_lavaHeight;
-    }
-
-    /**
-     * @brief 设置流体高度
-     */
-    void setFluidHeight(f32 height)
-    {
-        m_fluidHeight = height;
     }
 
     /**
@@ -3757,7 +3756,6 @@ protected:
     bool m_inLava = false;
     bool m_eyesInWater = false; // 眼睛是否在水下
     bool m_eyesInLava = false;  // 眼睛是否在岩浆中
-    f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位，已废弃）
     f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
     f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
     // m_fire（剩余着火时间）已迁入 ecs::FireComponent，经 m_entityContext->tryGetComponent 读写。

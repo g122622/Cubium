@@ -275,9 +275,30 @@ const CollisionShape& ScaffoldingBlock::getShape(const BlockState& state) const 
 const CollisionShape& ScaffoldingBlock::getCollisionShape(const BlockState& state) const noexcept
 {
     MC_UNUSED(state);
-    // 空实体上下文的 isAbove(..., true) 返回 true，因此总取顶部平台与四角支柱。
-    // TODO: 在带实体的查询中补全放置、下行穿过平台及底部平台分支。
+    // 无实体上下文（方块放置预检、AI 寻路、渲染等）时按"站在方块上方"处理，取可站立的稳定形状。
     return m_stableShape;
+}
+
+const CollisionShape& ScaffoldingBlock::getCollisionShapeForEntity(
+    const BlockState& state, const EntityCollisionContext& ctx, i32 blockY) const
+{
+    // 三分支，与 vanilla ScaffoldingBlock.getCollisionShape(state, level, pos, ctx) 一致：
+    // 1) 实体站在本格顶面且未处于下降（潜行）状态 → 稳定形状，可正常站立行走；
+    // 2) 否则若本格是"距离非 0 且带底板"的脚手架，并且实体脚部已到本格内部（位于下方整格之上）
+    //    → 只给底部平台，玩家踩在平台上而身体可穿过上部结构；
+    // 3) 其余情况给空形状：玩家可以跳进脚手架内部向上攀爬，潜行时也能穿过平台向下落。
+    if (ctx.isAbove(blockY) && !ctx.descending) {
+        return m_stableShape;
+    }
+
+    // vanilla 的 `isAbove(SHAPE_BELOW_BLOCK, pos, true)`：SHAPE_BELOW_BLOCK 是向下平移一格的
+    // 完整方块，其顶面正好等于本格底面 blockY，故等价于 isAbove(blockY - 1)。
+    if (state.get(BlockStateProperties::DISTANCE_0_7()) != 0 && state.get(BlockStateProperties::BOTTOM()) &&
+        ctx.isAbove(blockY - 1)) {
+        return m_baseShape;
+    }
+
+    return m_emptyShape;
 }
 
 // ========== IWaterLoggable 接口实现 ==========

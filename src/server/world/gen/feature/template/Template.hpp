@@ -30,7 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <cstddef>
 #include <memory>
@@ -186,15 +186,6 @@ public:
 
     PlacementSettings& setRotationPivot(const BlockPos& pivot);
 
-    // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
-    //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
-    [[nodiscard]] i32 getBlockUpdateFlags() const
-    {
-        return m_blockUpdateFlags;
-    }
-
-    PlacementSettings& setBlockUpdateFlags(i32 flags);
-
     [[nodiscard]] bool keepLiquids() const
     {
         return m_keepLiquids;
@@ -270,7 +261,6 @@ private:
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
     BlockPos m_rotationPivot = BlockPos(0, 0, 0);
-    i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;   // 可选的世界读取器
     math::IRandom* m_random = nullptr; // 可选的预设随机数生成器
@@ -821,11 +811,15 @@ private:
 };
 
 /**
- * @brief 重力结构处理器
+ * @brief 重力结构处理器（对应原版 `GravityProcessor`）
+ *
+ * 把方块贴到**指定高度图**的地面上：`新 Y = 高度图取值 + offset + 模板内局部 Y`。
+ * `heightmapType` 就是原版构造参数里的 `Heightmap.Types`，由数据包的 `heightmap` 字段决定
+ * （terrain_matching 的拼图构件用它把街道、平台等地表构件贴到地形上）。
  */
 class GravityStructureProcessor : public StructureProcessor {
 public:
-    explicit GravityStructureProcessor(i32 heightmapType = 0, i32 offset = 0);
+    explicit GravityStructureProcessor(world::chunk::HeightmapType heightmapType, i32 offset);
 
     [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
@@ -838,7 +832,7 @@ public:
         return std::make_unique<GravityStructureProcessor>(m_heightmapType, m_offset);
     }
 
-    [[nodiscard]] i32 heightmapType() const
+    [[nodiscard]] world::chunk::HeightmapType heightmapType() const
     {
         return m_heightmapType;
     }
@@ -849,7 +843,7 @@ public:
     }
 
 private:
-    i32 m_heightmapType;
+    world::chunk::HeightmapType m_heightmapType;
     i32 m_offset;
 };
 

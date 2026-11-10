@@ -24,6 +24,9 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/text/numbers/NumberFormat.hpp"
+#include <memory>
+#include <optional>
 #include <string>
 
 namespace mc::scoreboard {
@@ -141,6 +144,40 @@ public:
         m_locked = locked;
     }
 
+    // ========== 数字格式覆盖 ==========
+
+    /**
+     * @brief 获取本分数条目的数字格式覆盖
+     *
+     * 对应 vanilla `Score.numberFormat()`（`/scoreboard players display numberformat ...` 设置）。
+     * 未设置时返回 `std::nullopt`，渲染方应回退到目标的数字格式。
+     *
+     * @return 覆盖格式，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<text::numbers::NumberFormat>& getNumberFormatOverride() const noexcept
+    {
+        return m_numberFormat;
+    }
+
+    /**
+     * @brief 设置本分数条目的数字格式覆盖
+     *
+     * @param numberFormat 覆盖格式；`std::nullopt` 表示清除覆盖、回退到目标格式
+     */
+    void setNumberFormatOverride(std::optional<text::numbers::NumberFormat> numberFormat);
+
+    /**
+     * @brief 把本分数渲染成组件
+     *
+     * 对应 vanilla `PlayerScoreEntry.formatValue(NumberFormat)`：覆盖格式优先，否则用
+     * `objectiveFallback`（目标格式或调用方的默认格式）。
+     *
+     * @param objectiveFallback 目标级（或调用方默认）数字格式
+     * @return 渲染结果组件
+     */
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> formatValue(
+        const text::numbers::NumberFormat& objectiveFallback) const;
+
     // ========== 信息获取 ==========
 
     /**
@@ -208,6 +245,8 @@ private:
     i32 m_score = 0;
     bool m_locked = false;
     bool m_forceUpdate = false;
+    /// 本分数条目的数字格式覆盖（vanilla `Score.numberFormat`，nullopt = 用目标格式）
+    std::optional<text::numbers::NumberFormat> m_numberFormat;
 };
 
 } // namespace mc::scoreboard

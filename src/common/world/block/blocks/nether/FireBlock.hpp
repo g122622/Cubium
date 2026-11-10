@@ -273,8 +273,9 @@ protected:
      * 潮湿/特殊群系（vanilla 8 个：swamp/mangrove_swamp/jungle/bamboo_jungle/mushroom_fields/
      * frozen_peaks/jagged_peaks/snowy_slopes）置 true，恒定生效（与是否下雨无关）。
      *
-     * TODO: 完整 EnvironmentAttributes 系统实现后，迁移到
-     * world.environmentAttributes().getValue(INCREASED_FIRE_BURNOUT, pos)。
+     * 实现优先读环境属性系统 `EnvironmentAttributes.INCREASED_FIRE_BURNOUT`（数据包对群系声明的
+     * 该属性即由此生效，也纳入维度常量层等其它层的覆盖）；仅当世界未提供属性系统（生成期、测试
+     * 夹具等 `attributeCount() == 0`）时，才回退到区块群系表的 `isIncreasedFireBurnout` 标志。
      *
      * @param world 世界引用
      * @param pos 火焰位置

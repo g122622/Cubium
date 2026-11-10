@@ -45,6 +45,7 @@ src/server/scoreboard/storage/
 | `common/scoreboard/core/` | Scoreboard、ScoreObjective、ScorePlayerTeam | ScoreboardSaveData |
 | `common/util/nbt/Nbt.hpp` | NBT 序列化 | ScoreboardSaveData |
 | `common/util/text/ITextComponent.hpp` | 文本组件 JSON 序列化 | ScoreboardSaveData |
+| `common/util/text/numbers/NumberFormatCodec.hpp` | 数字格式的 NBT 编解码 | ScoreboardSaveData |
 | `world/storage/SingleLevelStorageManager` | 世界存储门面 | ScoreboardDataManager |
 
 ### 被哪些模块依赖
@@ -71,6 +72,13 @@ src/server/scoreboard/storage/
 ### displayName 可能为空
 
 目标/队伍的 displayName 是可选的，加载时需要检查是否为空再解析 JSON，避免解析空字符串导致异常。
+
+### format 字段缺失 ≠ blank
+
+目标的 `ObjectiveData::numberFormat` 与分数的 `ScoreData::numberFormat` 对应存档里的 `format` 键
+（原版 `optionalFieldOf("format")` 的字段名）。**键缺失表示「没有自定义格式」**，此时渲染方用自己的
+默认格式；`NumberFormat()`（blank）则是显式要求不显示数字。读取时不要用「缺省就构造一个默认格式」把
+两者合并。格式本身解析失败时只丢格式、保留整条记录，不要让一个坏字段毁掉整个目标或分数。
 
 ### 分数键的 playerName 可能包含冒号
 
