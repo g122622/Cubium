@@ -252,10 +252,12 @@ void ShipwreckPiece::generate(IWorldWriter& world,
         return;
     }
 
-    // 原版 `TemplateStructurePiece#postProcess`：放完模板后再按 DATA 标记生成箱子内容。
+    // 原版 `TemplateStructurePiece#postProcess`：放完模板后再按 DATA 标记生成箱子内容，
+    // 最后把拼图方块按 `final_state` 覆盖。
     for (const auto& marker : m_template->getDataMarkers(m_templatePosition, settings)) {
         handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
     }
+    m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
 }
 
 void ShipwreckPiece::handleDataMarker(const std::string& metadata,

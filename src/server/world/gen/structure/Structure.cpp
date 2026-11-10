@@ -488,7 +488,7 @@ void StructurePiece::placeEndPortalFrames(IWorldWriter& world,
     }
 }
 
-void StructurePiece::replaceAirAndLiquidDownwards(
+void StructurePiece::fillColumnDown(
     IWorld& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds)
 {
     i32 worldX = getXWithOffset(x, z);
@@ -503,13 +503,19 @@ void StructurePiece::replaceAirAndLiquidDownwards(
     // `getMinY() + 1` 为止（最低写入 y = getMinY() + 2）。
     while (worldY > world.getMinBuildHeight() + 1) {
         const BlockState* current = world.getBlockState(worldX, worldY, worldZ);
-        if (current == nullptr || current->isAir() || current->getMaterial().isLiquid()) {
+        if (current == nullptr || isReplaceableByStructures(*current)) {
             world.setBlockState(worldX, worldY, worldZ, state, world::BlockUpdateFlags::UPDATE_CLIENTS);
             --worldY;
         } else {
             break;
         }
     }
+}
+
+bool StructurePiece::isReplaceableByStructures(const BlockState& state)
+{
+    return state.isAir() || state.isLiquid() || state.is(VanillaBlocks::GLOW_LICHEN) ||
+        state.is(VanillaBlocks::SEAGRASS) || state.is(VanillaBlocks::TALL_SEAGRASS);
 }
 
 const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& pos, const BlockState* defaultState)
@@ -585,52 +591,44 @@ const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& p
     return &defaultState->with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
-void StructurePiece::generateChest(IWorldWriter& world,
+bool StructurePiece::createChestAt(IWorldWriter& world,
     const StructureBoundingBox& bounds,
     math::IRandom& rng,
-    i32 x,
-    i32 y,
-    i32 z,
+    const BlockPos& pos,
     const ResourceLocation& lootTable)
 {
-    i32 worldX = getXWithOffset(x, z);
-    i32 worldY = getYWithOffset(y);
-    i32 worldZ = getZWithOffset(x, z);
-
-    if (!bounds.contains(worldX, worldY, worldZ)) {
-        return;
+    if (!bounds.contains(pos.x, pos.y, pos.z)) {
+        return false;
     }
 
     // 检查该位置是否已有宝箱（避免重复放置）
     IWorld* iworld = dynamic_cast<IWorld*>(&world);
     if (iworld != nullptr) {
-        const BlockState* existingState = iworld->getBlockState(worldX, worldY, worldZ);
+        const BlockState* existingState = iworld->getBlockState(pos);
         if (existingState != nullptr && existingState->is(VanillaBlocks::CHEST)) {
-            return;
+            return false;
         }
     }
 
     // 获取默认宝箱状态，通过 reorientChest 自动确定朝向
     const BlockState* chestState = VanillaBlocks::getState(VanillaBlocks::CHEST);
     if (chestState == nullptr) {
-        return;
+        return false;
     }
 
     // 如果能获取世界接口，自动确定朝向；否则使用默认状态。
     // `reorientChest` 的返回值已经是**世界坐标下的朝向**（按四周方块推出的），
     // 不能再经过构件旋转/镜像；原版这里直接 `level.setBlock`，不是 `placeBlock`。
     if (iworld != nullptr) {
-        const BlockPos chestPos(worldX, worldY, worldZ);
-        const BlockState* orientedState = reorientChest(*iworld, chestPos, chestState);
-        world.setBlockState(worldX, worldY, worldZ, orientedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        const BlockState* orientedState = reorientChest(*iworld, pos, chestState);
+        world.setBlockState(pos.x, pos.y, pos.z, orientedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
-        world.setBlockState(worldX, worldY, worldZ, chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        world.setBlockState(pos.x, pos.y, pos.z, chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 
-    // 设置战利品表
+    // 设置战利品表：只有方块实体确实是战利品容器时才消耗随机数并挂表。
     if (iworld != nullptr) {
-        BlockPos chestPos(worldX, worldY, worldZ);
-        BlockEntity* blockEntity = iworld->getBlockEntity(chestPos);
+        BlockEntity* blockEntity = iworld->getBlockEntity(pos);
         if (blockEntity != nullptr) {
             if (blockEntity->getType() == BlockEntityType::Chest ||
                 blockEntity->getType() == BlockEntityType::TrappedChest) {
@@ -639,6 +637,20 @@ void StructurePiece::generateChest(IWorldWriter& world,
             }
         }
     }
+    return true;
+}
+
+void StructurePiece::generateChest(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::IRandom& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    const ResourceLocation& lootTable)
+{
+    // 模板坐标重载保持原有的 void 语义：越界或已有宝箱时静默跳过。
+    (void)createChestAt(
+        world, bounds, rng, BlockPos(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z)), lootTable);
 }
 
 void StructurePiece::generateChest(IWorldWriter& world,

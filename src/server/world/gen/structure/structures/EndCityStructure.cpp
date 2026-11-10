@@ -362,10 +362,11 @@ void CityTemplate::generate(IWorldWriter& world,
     }
 
     // 原版 `TemplateStructurePiece#postProcess`：放完模板后按 DATA 标记生成战利品容器 /
-    // 潜影贝 / 鞘翅展示框。
+    // 潜影贝 / 鞘翅展示框，最后把拼图方块按 `final_state` 覆盖。
     for (const auto& marker : templ->getDataMarkers(m_templatePosition, settings)) {
         handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
     }
+    templ->applyJigsawReplacements(*reader, m_templatePosition, settings);
 }
 
 void CityTemplate::handleDataMarker(const std::string& metadata,

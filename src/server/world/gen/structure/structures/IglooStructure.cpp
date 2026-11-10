@@ -166,6 +166,10 @@ void IglooPiece::generate(IWorldWriter& world,
     settings.setBoundingBox(&chunkBounds);
 
     m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+    // 原版 `TemplateStructurePiece.postProcess` 末尾的拼图方块 `final_state` 覆盖。
+    // TODO: 雪屋的数据标记（地窖入口与地下室箱子）仍未实现，届时需排在 jigsaw 覆盖之前。
+    m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
 }
 
 // ============================================================================

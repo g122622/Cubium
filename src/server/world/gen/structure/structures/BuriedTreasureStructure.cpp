@@ -24,10 +24,14 @@
 #include "BuriedTreasureStructure.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -49,11 +53,6 @@ BuriedTreasurePiece::BuriedTreasurePiece(i32 x, i32 y, i32 z)
     : StructurePiece(StructurePieceTypes::BURIED_TREASURE, x, y, z, x, y, z)
 {}
 
-bool BuriedTreasurePiece::_isInBounds(i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds) const
-{
-    return chunkBounds.contains(x, y, z);
-}
-
 void BuriedTreasurePiece::generate(IWorldWriter& world,
     math::IRandom& rng,
     i32 /*chunkX*/,
@@ -62,37 +61,77 @@ void BuriedTreasurePiece::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    const BlockState* goldState = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "BuriedTreasurePiece::generate requires an IWorld");
+
     const BlockState* sandState = VanillaBlocks::getState(VanillaBlocks::SAND);
-    const BlockState* stoneState = VanillaBlocks::getState(VanillaBlocks::STONE);
+    MC_ASSERT_RELEASE(sandState != nullptr);
 
-    // 包围盒是单点盒，宝藏就落在这一格上（原版落点同样直接取包围盒的 min 角）。
-    i32 centerX = minX();
-    i32 centerY = minY();
-    i32 centerZ = minZ();
+    const auto isAir = [](const BlockState* state) {
+        return state == nullptr || state->isAir();
+    };
+    const auto isLiquid = [](const BlockState* state) {
+        return state != nullptr && (state->is(VanillaBlocks::WATER) || state->is(VanillaBlocks::LAVA));
+    };
+    // 原版只认这五种「下方地层」，其余方块（含沙子）不算命中。
+    const auto isTreasureFloor = [](const BlockState* state) {
+        return state != nullptr &&
+            (state->is(VanillaBlocks::SANDSTONE) || state->is(VanillaBlocks::STONE) ||
+                state->is(VanillaBlocks::ANDESITE) || state->is(VanillaBlocks::GRANITE) ||
+                state->is(VanillaBlocks::DIORITE));
+    };
 
-    if (_isInBounds(centerX, centerY, centerZ, chunkBounds)) {
-        // 放置金块作为宝藏占位符（箱子方块尚未实现）
-        if (goldState) {
-            world.setBlockState(centerX, centerY, centerZ, goldState);
-        }
-    }
+    // 原版从 `getHeight(OCEAN_FLOOR_WG)`（首个可放置 Y）沿列向下找第一层「下方是石质地层」
+    // 的位置。本项目 `IWorld::getHeight` 返回最高方块 Y，故 +1 后才与原版光标起点一致。
+    const i32 columnX = m_minX;
+    const i32 columnZ = m_minZ;
+    const i32 minY = reader->getMinBuildHeight();
+    i32 cursorY = reader->getHeight(columnX, columnZ, HeightmapType::OceanFloorWG) + 1;
 
-    // 在周围放置沙子/石头作为保护
-    for (i32 dx = -1; dx <= 1; ++dx) {
-        for (i32 dz = -1; dz <= 1; ++dz) {
-            if (dx == 0 && dz == 0) {
-                continue; // 跳过中心
+    while (cursorY > minY) {
+        const BlockState* state = reader->getBlockState(columnX, cursorY, columnZ);
+        const BlockState* belowState = reader->getBlockState(columnX, cursorY - 1, columnZ);
+        if (isTreasureFloor(belowState)) {
+            // 宝藏格保留原方块；原方块是空气/液体时铺沙子。
+            const BlockState* cellState = (!isAir(state) && !isLiquid(state)) ? state : sandState;
+
+            // 遍历顺序必须是 `Direction.values()`：Down/Up/North/South/West/East。
+            // 侧面下方是空腔时铺地层方块，否则铺宝藏格方块，全部写入后才放箱子。
+            for (Direction direction : Directions::all()) {
+                const BlockPos neighbor(columnX + Directions::xOffset(direction),
+                    cursorY + Directions::yOffset(direction),
+                    columnZ + Directions::zOffset(direction));
+                const BlockState* neighborState = reader->getBlockState(neighbor);
+                if (!isAir(neighborState) && !isLiquid(neighborState)) {
+                    continue;
+                }
+
+                const BlockState* neighborBelow = reader->getBlockState(neighbor.x, neighbor.y - 1, neighbor.z);
+                if ((isAir(neighborBelow) || isLiquid(neighborBelow)) && direction != Direction::Up) {
+                    world.setBlockState(
+                        neighbor.x, neighbor.y, neighbor.z, belowState, world::BlockUpdateFlags::UPDATE_ALL);
+                } else {
+                    world.setBlockState(
+                        neighbor.x, neighbor.y, neighbor.z, cellState, world::BlockUpdateFlags::UPDATE_ALL);
+                }
             }
 
-            i32 x = centerX + dx;
-            i32 y = centerY - 1;
-            i32 z = centerZ + dz;
-
-            if (_isInBounds(x, y, z, chunkBounds)) {
-                world.setBlockState(x, y, z, stoneState ? stoneState : sandState);
-            }
+            // 原版把片段包围盒收缩为落点这一格，再以该格为锚点生成宝箱。
+            m_minX = columnX;
+            m_maxX = columnX;
+            m_minY = cursorY;
+            m_maxY = cursorY;
+            m_minZ = columnZ;
+            m_maxZ = columnZ;
+            // 原版也忽略放置结果（越界或已有箱子时不放置，这里同样只需尝试一次）。
+            (void)createChestAt(world,
+                chunkBounds,
+                rng,
+                BlockPos(columnX, cursorY, columnZ),
+                ResourceLocation("minecraft", "chests/buried_treasure"));
+            return;
         }
+        --cursorY;
     }
 }
 

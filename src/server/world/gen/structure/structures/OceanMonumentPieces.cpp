@@ -16,12 +16,15 @@
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -48,15 +51,31 @@ constexpr std::array<Direction, 6> ROOM_DIRECTIONS = {
     const i32 gridZ = gridRem / 5;
     const i32 gridX = gridRem % 5;
 
-    const i32 minX = gridX * 8;
-    const i32 minY = gridY * 4;
-    const i32 minZ = gridZ * 8;
-    const i32 maxX = minX + sizeX * 8 - 1;
-    const i32 maxY = minY + sizeY * 4 - 1;
-    const i32 maxZ = minZ + sizeZ * 8 - 1;
+    // 原版 `OceanMonumentPieces.Piece` 的网格盒构造：房间沿哪个轴展开取决于朝向。
+    // 东西向房间的模板 X/Z 等于参数的 Z/X，且盒子的落点偏移也随之交换；
+    // 直接按 `gridX*8` 铺开会把整个房间图摊到错误的位置。
+    StructureBoundingBox box;
+    if (direction != Direction::North && direction != Direction::South) {
+        box = StructureBoundingBox(0, 0, 0, sizeZ * 8 - 1, sizeY * 4 - 1, sizeX * 8 - 1);
+    } else {
+        box = StructureBoundingBox(0, 0, 0, sizeX * 8 - 1, sizeY * 4 - 1, sizeZ * 8 - 1);
+    }
 
-    StructureBoundingBox box(minX, minY, minZ, maxX, maxY, maxZ);
-    (void)direction;
+    switch (direction) {
+        case Direction::North:
+            box.offset(gridX * 8, gridY * 4, -(gridZ + sizeZ) * 8 + 1);
+            break;
+        case Direction::South:
+            box.offset(gridX * 8, gridY * 4, gridZ * 8);
+            break;
+        case Direction::West:
+            box.offset(-(gridZ + sizeZ) * 8 + 1, gridY * 4, gridX * 8);
+            break;
+        case Direction::East:
+        default:
+            box.offset(gridZ * 8, gridY * 4, gridX * 8);
+            break;
+    }
     return box;
 }
 
@@ -207,7 +226,10 @@ void OceanMonumentPiece::generateBoxOnFillOnly(IWorldWriter& world,
     for (i32 y = minY; y <= maxY; ++y) {
         for (i32 x = minX; x <= maxX; ++x) {
             for (i32 z = minZ; z <= maxZ; ++z) {
-                if (getBlockStateFromPos(*readableWorld, x, y, z, bounds) == s_water) {
+                // 按方块比较（原版 `.is(Blocks.WATER)`）：实测世界的读取结果可能是
+                // 状态拷贝，指针比较在这里不可靠。
+                const BlockState* current = getBlockStateFromPos(*readableWorld, x, y, z, bounds);
+                if (current != nullptr && current->is(VanillaBlocks::WATER)) {
                     setBlockState(world, state, x, y, z, bounds);
                 }
             }
@@ -227,9 +249,23 @@ void OceanMonumentPiece::makeOpening(
     for (i32 y = y1; y <= y2; ++y) {
         for (i32 x = x1; x <= x2; ++x) {
             for (i32 z = z1; z <= z2; ++z) {
+                // 原版 `generateWaterBox` 用 `.is(Blocks.*)` 比较方块身份；本项目不能按
+                // 状态指针比较——实测世界返回的可能是状态拷贝。
+                // 保留集只含冰与水；海晶石系列会被随后的水层整片覆盖，不能跳过。
                 const BlockState* current = getBlockStateFromPos(*readableWorld, x, y, z, bounds);
-                if (current != s_roughPrismarine && current != s_bricksPrismarine && current != s_darkPrismarine &&
-                    current != s_seaLantern) {
+                const bool isKeepBlock = current != nullptr &&
+                    (current->is(VanillaBlocks::ICE) || current->is(VanillaBlocks::PACKED_ICE) ||
+                        current->is(VanillaBlocks::BLUE_ICE) || current->is(VanillaBlocks::WATER));
+                if (isKeepBlock) {
+                    continue;
+                }
+
+                // 海平面及以上、且原本不是水的位置（空世界里的空气）放空气，
+                // 否则灌水——这是外圈水层顶部不会「冒尖」的原因。
+                const bool isWater = current != nullptr && current->is(VanillaBlocks::WATER);
+                if (getYWithOffset(y) >= readableWorld->seaLevel() && !isWater) {
+                    setBlockState(world, &VanillaBlocks::AIR->defaultState(), x, y, z, bounds);
+                } else {
                     setBlockState(world, s_water, x, y, z, bounds);
                 }
             }
@@ -240,12 +276,19 @@ void OceanMonumentPiece::makeOpening(
 bool OceanMonumentPiece::doesChunkIntersect(
     const StructureBoundingBox& chunkBounds, i32 x1, i32 z1, i32 x2, i32 z2) const
 {
-    StructureBoundingBox box(getXWithOffset(x1, z1),
+    // 原版用 `BoundingBox.fromCorners` 规范化两个角：旋转 90°/270° 时
+    // `getXWithOffset(x2, z2)` 可能落在 `getXWithOffset(x1, z1)` 之前，直接构造会得到
+    // min > max 的反向盒子，相交判定随之失效，整段墙壁在本区块被错误跳过。
+    const i32 cornerAX = getXWithOffset(x1, z1);
+    const i32 cornerAZ = getZWithOffset(x1, z1);
+    const i32 cornerBX = getXWithOffset(x2, z2);
+    const i32 cornerBZ = getZWithOffset(x2, z2);
+    const StructureBoundingBox box(std::min(cornerAX, cornerBX),
         getYWithOffset(0),
-        getZWithOffset(x1, z1),
-        getXWithOffset(x2, z2),
+        std::min(cornerAZ, cornerBZ),
+        std::max(cornerAX, cornerBX),
         getYWithOffset(8),
-        getZWithOffset(x2, z2));
+        std::max(cornerAZ, cornerBZ));
     return box.intersects(chunkBounds);
 }
 
@@ -1169,7 +1212,8 @@ void OceanMonumentPenthouse::generate(IWorldWriter& world,
 
 OceanMonumentWingRoom::OceanMonumentWingRoom(Direction direction, const StructureBoundingBox& bounds, i32 design)
     : OceanMonumentPiece(OceanMonumentPieceTypes::WING_ROOM, direction, bounds)
-    , m_mainDesign(design)
+    // 原版只保留最低位：两翼各取同一个随机数的相邻两个值，奇偶决定内部布局。
+    , m_mainDesign(design & 1)
 {}
 
 void OceanMonumentWingRoom::generate(IWorldWriter& world,
@@ -1285,20 +1329,28 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::IRandom& rng, i32 x, i32 z, D
 {
     auto roomList = _generateRoomGraph(rng);
     MC_ASSERT_RELEASE(!roomList.empty());
-    m_sourceRoom = roomList.front();
+    // `m_sourceRoom` 由房间图确定（网格源房间），不能拿洗牌后的首元素顶替。
+    MC_ASSERT_RELEASE(m_sourceRoom != nullptr);
+    m_sourceRoom->setClaimed(true);
 
+    // 入口房间与核心房间都排在普通房间**之前**：核心房间的构造不消耗随机数，
+    // 但顺序决定它在结构中的叠放次序，且原版就是先加二者再遍历房间图。
     m_childPieces.emplace_back(std::make_unique<OceanMonumentEntryRoom>(direction, m_sourceRoom));
+    MC_ASSERT_RELEASE(m_coreRoom != nullptr);
+    m_childPieces.emplace_back(std::make_unique<OceanMonumentCoreRoom>(direction, m_coreRoom));
 
     for (OceanMonumentRoomDefinition* room : roomList) {
         if (room == nullptr || room->isClaimed() || room->isSpecial()) {
             continue;
         }
 
+        // 适配器顺序与原版一致：双联房按 X/Y、Y/Z、Z、X、Y 的顺序尝试，
+        // 多个适配器同时成立时取第一个，顺序错了房间类型就会不同。
         std::array<std::unique_ptr<IMonumentRoomFitHelper>, 7> fitHelpers = {std::make_unique<XYDoubleRoomFitHelper>(),
             std::make_unique<YZDoubleRoomFitHelper>(),
+            std::make_unique<ZDoubleRoomFitHelper>(),
             std::make_unique<XDoubleRoomFitHelper>(),
             std::make_unique<YDoubleRoomFitHelper>(),
-            std::make_unique<ZDoubleRoomFitHelper>(),
             std::make_unique<FitSimpleRoomTopHelper>(),
             std::make_unique<FitSimpleRoomHelper>()};
 
@@ -1309,11 +1361,6 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::IRandom& rng, i32 x, i32 z, D
             }
         }
     }
-
-    OceanMonumentRoomDefinition* coreRoom = m_roomDefinitions[static_cast<size_t>(GRIDROOM_TOP_CONNECT_INDEX)].get();
-    coreRoom->setClaimed(true);
-    m_coreRoom = coreRoom;
-    m_childPieces.emplace_back(std::make_unique<OceanMonumentCoreRoom>(direction, coreRoom));
 
     // MC 1.21.11: 将房间子片段的边界框从网格相对坐标偏移到世界坐标
     // 原版中 Room/EntryRoom/CoreRoom 使用 createRoomBox() 生成网格相对坐标，
@@ -1326,11 +1373,36 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::IRandom& rng, i32 x, i32 z, D
         childPiece->offset(offsetX, offsetY, offsetZ);
     }
 
-    StructureBoundingBox leftWingBox(minX() + 8, minY() + 4, minZ() + 29, minX() + 24, minY() + 11, minZ() + 49);
-    StructureBoundingBox rightWingBox(minX() + 33, minY() + 4, minZ() + 29, minX() + 49, minY() + 11, minZ() + 49);
-    StructureBoundingBox penthouseBox(minX() + 21, minY() + 13, minZ() + 21, minX() + 36, minY() + 16, minZ() + 36);
-    m_childPieces.emplace_back(std::make_unique<OceanMonumentWingRoom>(direction, leftWingBox, 0));
-    m_childPieces.emplace_back(std::make_unique<OceanMonumentWingRoom>(direction, rightWingBox, 1));
+    // 翼楼与顶层的盒按**局部模板坐标**给出，经带旋转的 `getXWithOffset`/`getZWithOffset`
+    // 换算后两端可能互换，必须按 min/max 规范化（原版 `BoundingBox.createProper`）。
+    const auto properBox = [&](i32 x1, i32 y1, i32 z1, i32 x2, i32 y2, i32 z2) {
+        return StructureBoundingBox(
+            std::min(x1, x2), std::min(y1, y2), std::min(z1, z2), std::max(x1, x2), std::max(y1, y2), std::max(z1, z2));
+    };
+    const StructureBoundingBox leftWingBox = properBox(getXWithOffset(1, 1),
+        getYWithOffset(1),
+        getZWithOffset(1, 1),
+        getXWithOffset(23, 21),
+        getYWithOffset(8),
+        getZWithOffset(23, 21));
+    const StructureBoundingBox rightWingBox = properBox(getXWithOffset(34, 1),
+        getYWithOffset(1),
+        getZWithOffset(34, 1),
+        getXWithOffset(56, 21),
+        getYWithOffset(8),
+        getZWithOffset(56, 21));
+    const StructureBoundingBox penthouseBox = properBox(getXWithOffset(22, 22),
+        getYWithOffset(13),
+        getZWithOffset(22, 22),
+        getXWithOffset(35, 35),
+        getYWithOffset(17),
+        getZWithOffset(35, 35));
+    // 两座翼楼的样式由一次 `nextInt()` 的连续两个值决定（原版 `i++` 复用同一个随机数），
+    // 不能写死：样式决定翼楼内部的门廊与海晶灯布置。int 溢出按 Java 语义回绕。
+    const i32 wingDesign = rng.nextInt();
+    m_childPieces.emplace_back(std::make_unique<OceanMonumentWingRoom>(direction, leftWingBox, wingDesign));
+    m_childPieces.emplace_back(std::make_unique<OceanMonumentWingRoom>(
+        direction, rightWingBox, static_cast<i32>(static_cast<u32>(wingDesign) + 1u)));
     m_childPieces.emplace_back(std::make_unique<OceanMonumentPenthouse>(direction, penthouseBox));
 }
 
@@ -1477,14 +1549,58 @@ void OceanMonumentBuilding::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    MC_UNUSED(rng);
-    fillWithBlocks(world, chunkBounds, 0, 0, 0, 57, 22, 57, s_bricksPrismarine, s_water, false);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "OceanMonumentBuilding::generate requires an IWorld");
+
+    // 步骤顺序与原版 `MonumentBuilding.postProcess` 逐行一致：随机流贯穿整条链，
+    // 任何重排都会让各房间的装饰整体偏移。
+    const i32 waterHeight = std::max(reader->seaLevel(), 64) - getYWithOffset(0);
+    makeOpening(world, chunkBounds, 0, 0, 0, 58, waterHeight, 58);
+    _generateWing(false, 0, world, rng, chunkBounds);
+    _generateWing(true, 33, world, rng, chunkBounds);
     _generateEntranceArchs(world, rng, chunkBounds);
     _generateEntranceWall(world, rng, chunkBounds);
+    _generateRoofPiece(world, rng, chunkBounds);
     _generateLowerWall(world, rng, chunkBounds);
     _generateMiddleWall(world, rng, chunkBounds);
     _generateUpperWall(world, rng, chunkBounds);
-    _generateRoofPiece(world, rng, chunkBounds);
+
+    // 7×7 网格的承重立柱：每根柱子先在主楼底面放一格，再一路向下填补到不可替换层。
+    // 空海洋世界里下方没有任何地形，柱子会一直填到世界底部——海岸线外的整根柱体
+    // 都属于纪念碑的地基，不能省略。
+    for (i32 gridX = 0; gridX < 7; ++gridX) {
+        i32 gridZ = 0;
+        while (gridZ < 7) {
+            // 中心那一格（gridZ=0 且 gridX=3）是入口，跳过。
+            if (gridZ == 0 && gridX == 3) {
+                gridZ = 6;
+            }
+
+            const i32 baseX = gridX * 9;
+            const i32 baseZ = gridZ * 9;
+            for (i32 dx = 0; dx < 4; ++dx) {
+                for (i32 dz = 0; dz < 4; ++dz) {
+                    setBlockState(world, s_bricksPrismarine, baseX + dx, 0, baseZ + dz, chunkBounds);
+                    fillColumnDown(*reader, s_bricksPrismarine, baseX + dx, -1, baseZ + dz, chunkBounds);
+                }
+            }
+
+            // 首尾两行逐格推进，中间行一次跳过 6 格（只保留边界柱）。
+            if (gridX == 0 || gridX == 6) {
+                ++gridZ;
+            } else {
+                gridZ += 6;
+            }
+        }
+    }
+
+    // 建筑外圈 5 层水：每层向外扩一圈、向下扩两格。
+    for (i32 i = 0; i < 5; ++i) {
+        makeOpening(world, chunkBounds, -1 - i, 0 + i * 2, -1 - i, -1 - i, 23, 58 + i);
+        makeOpening(world, chunkBounds, 58 + i, 0 + i * 2, -1 - i, 58 + i, 23, 58 + i);
+        makeOpening(world, chunkBounds, 0 - i, 0 + i * 2, -1 - i, 57 + i, 23, -1 - i);
+        makeOpening(world, chunkBounds, 0 - i, 0 + i * 2, 58 + i, 57 + i, 23, 58 + i);
+    }
 
     for (const auto& childPiece : m_childPieces) {
         if (childPiece->intersectsChunk(chunkX, chunkZ)) {
@@ -1582,24 +1698,24 @@ void OceanMonumentBuilding::_generateWing(
         world, chunkBounds, startX + 18, 4, 4, startX + 20, 4, 20, s_roughPrismarine, s_roughPrismarine, false);
     fillWithBlocks(
         world, chunkBounds, startX + 11, 8, 11, startX + 13, 8, 20, s_roughPrismarine, s_roughPrismarine, false);
-    setBlockState(world, s_seaLantern, startX + 12, 9, 12, chunkBounds);
-    setBlockState(world, s_seaLantern, startX + 12, 9, 15, chunkBounds);
-    setBlockState(world, s_seaLantern, startX + 12, 9, 18, chunkBounds);
+    setBlockState(world, s_bricksPrismarine, startX + 12, 9, 12, chunkBounds);
+    setBlockState(world, s_bricksPrismarine, startX + 12, 9, 15, chunkBounds);
+    setBlockState(world, s_bricksPrismarine, startX + 12, 9, 18, chunkBounds);
 
     const i32 innerColumnX = startX + (isLeft ? 19 : 5);
     const i32 outerColumnX = startX + (isLeft ? 5 : 19);
 
     for (i32 z = 20; z >= 5; z -= 3) {
-        setBlockState(world, s_seaLantern, innerColumnX, 5, z, chunkBounds);
+        setBlockState(world, s_bricksPrismarine, innerColumnX, 5, z, chunkBounds);
     }
     for (i32 z = 19; z >= 7; z -= 3) {
-        setBlockState(world, s_seaLantern, outerColumnX, 5, z, chunkBounds);
+        setBlockState(world, s_bricksPrismarine, outerColumnX, 5, z, chunkBounds);
     }
     for (i32 index = 0; index < 4; ++index) {
         const i32 x = isLeft ? startX + 24 - (17 - index * 3) : startX + 17 - index * 3;
-        setBlockState(world, s_seaLantern, x, 5, 5, chunkBounds);
+        setBlockState(world, s_bricksPrismarine, x, 5, 5, chunkBounds);
     }
-    setBlockState(world, s_seaLantern, outerColumnX, 5, 5, chunkBounds);
+    setBlockState(world, s_bricksPrismarine, outerColumnX, 5, 5, chunkBounds);
 
     fillWithBlocks(
         world, chunkBounds, startX + 11, 1, 12, startX + 13, 7, 12, s_roughPrismarine, s_roughPrismarine, false);
@@ -1800,9 +1916,9 @@ void OceanMonumentBuilding::_generateLowerWall(
                 false);
         }
         for (i32 z = 23; z < 53; z += 3) {
-            setBlockState(world, s_seaLantern, 5, 5, z, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, 5, 5, z, chunkBounds);
         }
-        setBlockState(world, s_seaLantern, 5, 5, 52, chunkBounds);
+        setBlockState(world, s_bricksPrismarine, 5, 5, 52, chunkBounds);
         fillWithBlocks(world, chunkBounds, 4, 1, 52, 6, 3, 52, s_roughPrismarine, s_roughPrismarine, false);
         fillWithBlocks(world, chunkBounds, 5, 1, 51, 5, 3, 53, s_roughPrismarine, s_roughPrismarine, false);
     }
@@ -1826,9 +1942,9 @@ void OceanMonumentBuilding::_generateLowerWall(
                 false);
         }
         for (i32 z = 23; z < 53; z += 3) {
-            setBlockState(world, s_seaLantern, 52, 5, z, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, 52, 5, z, chunkBounds);
         }
-        setBlockState(world, s_seaLantern, 52, 5, 52, chunkBounds);
+        setBlockState(world, s_bricksPrismarine, 52, 5, 52, chunkBounds);
         fillWithBlocks(world, chunkBounds, 51, 1, 52, 53, 3, 52, s_roughPrismarine, s_roughPrismarine, false);
         fillWithBlocks(world, chunkBounds, 52, 1, 51, 52, 3, 53, s_roughPrismarine, s_roughPrismarine, false);
     }
@@ -1876,7 +1992,7 @@ void OceanMonumentBuilding::_generateMiddleWall(
                 false);
         }
         for (i32 z = 21; z <= 45; z += 3) {
-            setBlockState(world, s_seaLantern, 12, 9, z, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, 12, 9, z, chunkBounds);
         }
     }
 
@@ -1899,7 +2015,7 @@ void OceanMonumentBuilding::_generateMiddleWall(
                 false);
         }
         for (i32 z = 21; z <= 45; z += 3) {
-            setBlockState(world, s_seaLantern, 45, 9, z, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, 45, 9, z, chunkBounds);
         }
     }
 
@@ -1908,19 +2024,19 @@ void OceanMonumentBuilding::_generateMiddleWall(
         makeOpening(world, chunkBounds, 14, 1, 44, 43, 10, 50);
 
         for (i32 x = 12; x <= 45; x += 3) {
-            setBlockState(world, s_seaLantern, x, 9, 45, chunkBounds);
-            setBlockState(world, s_seaLantern, x, 9, 52, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, x, 9, 45, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, x, 9, 52, chunkBounds);
             if (x == 12 || x == 18 || x == 24 || x == 33 || x == 39 || x == 45) {
-                setBlockState(world, s_seaLantern, x, 9, 47, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 9, 50, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 10, 45, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 10, 46, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 10, 51, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 10, 52, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 11, 47, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 11, 50, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 12, 48, chunkBounds);
-                setBlockState(world, s_seaLantern, x, 12, 49, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 9, 47, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 9, 50, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 10, 45, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 10, 46, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 10, 51, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 10, 52, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 11, 47, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 11, 50, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 12, 48, chunkBounds);
+                setBlockState(world, s_bricksPrismarine, x, 12, 49, chunkBounds);
             }
         }
 
@@ -1967,7 +2083,7 @@ void OceanMonumentBuilding::_generateUpperWall(
                 false);
         }
         for (i32 z = 23; z <= 39; z += 3) {
-            setBlockState(world, s_seaLantern, 19, 13, z, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, 19, 13, z, chunkBounds);
         }
     }
 
@@ -1991,7 +2107,7 @@ void OceanMonumentBuilding::_generateUpperWall(
                 false);
         }
         for (i32 z = 23; z <= 39; z += 3) {
-            setBlockState(world, s_seaLantern, 38, 13, z, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, 38, 13, z, chunkBounds);
         }
     }
 
@@ -2014,7 +2130,7 @@ void OceanMonumentBuilding::_generateUpperWall(
                 false);
         }
         for (i32 x = 21; x <= 36; x += 3) {
-            setBlockState(world, s_seaLantern, x, 13, 38, chunkBounds);
+            setBlockState(world, s_bricksPrismarine, x, 13, 38, chunkBounds);
         }
     }
 }
@@ -2033,7 +2149,10 @@ std::unique_ptr<OceanMonumentPiece> FitSimpleRoomHelper::create(
 
 bool FitSimpleRoomTopHelper::fits(OceanMonumentRoomDefinition* definition)
 {
-    return definition != nullptr && !definition->isClaimed() && definition->getIndex() / 25 == 2;
+    // 原版判据是「四周与上方都没有开口」——这种封闭房间才升到顶层样式，
+    // 而不是简单按楼层（index / 25）判断。
+    return definition != nullptr && !definition->hasOpening(4) && !definition->hasOpening(5) &&
+        !definition->hasOpening(2) && !definition->hasOpening(3) && !definition->hasOpening(1);
 }
 
 std::unique_ptr<OceanMonumentPiece> FitSimpleRoomTopHelper::create(

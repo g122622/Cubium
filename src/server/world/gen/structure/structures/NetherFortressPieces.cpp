@@ -435,7 +435,7 @@ void NetherBridgePiece::_fillColumnDown(
     }
     IWorld* readableWorld = dynamic_cast<IWorld*>(&world);
     MC_ASSERT_RELEASE_MSG(readableWorld != nullptr, "nether fortress fillColumnDown requires an IWorld-capable writer");
-    replaceAirAndLiquidDownwards(*readableWorld, state, x, y, z, bounds);
+    fillColumnDown(*readableWorld, state, x, y, z, bounds);
 }
 
 // ============================================================================
