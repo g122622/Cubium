@@ -424,5 +424,43 @@ protected:
     MapChunkManager m_chunkManager{m_chunks};
 };
 
+/**
+ * @brief 按方块位置存储方块状态的测试世界
+ *
+ * `BaseTestWorld` 已实现 IWorld 的全部纯虚成员，但 `getBlockState` 恒返回 nullptr、
+ * `setBlockState` 恒返回 false，无法支撑「放置方块后断言方块行为」这类测试。
+ * 本类只补上按位置存取，其余成员沿用 `BaseTestWorld`。
+ *
+ * 需求难度相关的断言（如 `isSpawningMonsters()`）时，通过构造参数指定难度，
+ * 或派生本类覆写 `difficulty()`。
+ */
+class MapBackedTestWorld : public BaseTestWorld {
+public:
+    explicit MapBackedTestWorld(Difficulty difficulty)
+        : m_difficulty(difficulty)
+    {}
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        return it == m_blocks.end() ? nullptr : it->second;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        m_blocks[BlockPos(x, y, z)] = state;
+        return true;
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+private:
+    std::unordered_map<BlockPos, const BlockState*> m_blocks;
+    Difficulty m_difficulty;
+};
+
 } // namespace test
 } // namespace mc
