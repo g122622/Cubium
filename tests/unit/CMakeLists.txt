@@ -1121,6 +1121,8 @@ add_executable(mc_tests
     server/command/BossBarCommandTest.cpp
     # /scoreboard ... numberformat 命令测试（目标级格式与分数级覆盖）
     server/command/ScoreboardNumberFormatCommandTest.cpp
+    # /scoreboard players display name 命令测试（分数级自定义显示名）
+    server/command/ScoreboardDisplayNameCommandTest.cpp
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
     server/command/SetWorldSpawnCommandTest.cpp

@@ -77,6 +77,10 @@ public:
         bool locked = false; // 用于 trigger 判据
         /// 本分数条目的数字格式覆盖（vanilla Score.Packed 的 `format` 字段，nullopt = 用目标格式）
         std::optional<text::numbers::NumberFormat> numberFormat;
+        /// 本分数条目的自定义显示名（vanilla Score.Packed 的 `display` 字段）。
+        /// 内存里用组件 JSON 文本承载，落盘时转成真正的 Component 标签——这样
+        /// ScoreData 保持可拷贝，同时存档形态与原版一致。
+        std::optional<std::string> display;
 
         [[nodiscard]] nbt::tags::compound_tag toNbt() const;
         static Result<ScoreData> fromNbt(const nbt::tags::compound_tag& tag);

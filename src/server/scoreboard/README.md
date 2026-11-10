@@ -23,6 +23,9 @@ src/server/scoreboard/
 - `_createSetScorePacket` 填 `SetScore::numberFormat`（单条分数的覆盖格式）
 两者都经 `numberFormatToWireBytes` 编码；空 vector 表示 absent。
 
+分数条目的自定义显示名（`Score::getDisplay`，`/scoreboard players display name`）与数字格式走同一条
+`SetScore::displayName` 通道，存档里是 `Score.Packed` 的兄弟字段 `display`。
+
 ## 上下游外部依赖关系
 
 **上游依赖**：`common/scoreboard/core`（模型）、`common/util/text/numbers`（数字格式编解码）、
@@ -37,7 +40,10 @@ src/server/scoreboard/
 - **IR 里 `numberFormat` 的空 vector 表示 absent**，`blank` 也要占 1 字节（`VarInt(0)`）。把 blank 写成空
   vector 会被客户端当成「没有格式」，从而回退到默认格式。
 - **发送时机**：分数值不变但格式变化（`Score::setNumberFormatOverride`）同样要重发 `SetScore`，否则客户端
-  仍按旧格式渲染；不要只在 `setScorePoints` 里发。
+  仍按旧格式渲染；不要只在 `setScorePoints` 里发。自定义显示名（`Score::setDisplay`）同理。
+- **存档必须按整条 `ScoreData` 落盘**：`ScoreboardDataManager::saveScore` 曾把分数拆成
+  `objectiveName/playerName/score/locked` 四个标量传，导致数字格式覆盖与自定义显示名被静默丢弃。
+  新增分数条目字段时保持整结构传递，不要拆参。
 - **无玩家时广播是空操作**：`sendToAllPlayers` 走 `PlayerManager::forEachPlayer`，单测里没有玩家也能安全调用。
 - 新增出站字段时优先复用 `ComponentNbtSerialization` / `numbers::NumberFormatCodec`，不要在 `ServerScoreboard`
   里手写 NBT 结构。

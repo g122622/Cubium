@@ -93,9 +93,13 @@ protected:
     }
 
     // 辅助方法：保存一个分数
-    void saveScore(const std::string& objectiveName, const std::string& playerName, i32 score, bool locked = false)
+    void saveScore(const std::string& objectiveName, const std::string& playerName, i32 score)
     {
-        auto result = dataManager->saveScore(objectiveName, playerName, score, locked);
+        mc::scoreboard::ScoreboardSaveData::ScoreData data;
+        data.objectiveName = objectiveName;
+        data.playerName = playerName;
+        data.score = score;
+        auto result = dataManager->saveScore(data);
         ASSERT_TRUE(result.success()) << "saveScore failed: " << result.error().message();
     }
 

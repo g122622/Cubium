@@ -103,6 +103,18 @@ private:
     static i32 _modifyPlayerNumberFormat(
         CommandContext<ServerCommandSource>& context, std::optional<text::numbers::NumberFormat> numberFormat);
 
+    /**
+     * @brief 设置或清除分数持有者的自定义显示名
+     *
+     * 对应 `/scoreboard players display name <targets> <objective> [<name>]`。
+     * `targets` 支持逗号分隔的多个持有者与 `*`（所有已记录分数的持有者）。
+     *
+     * @param context 命令上下文
+     * @param displayJson 显示名的组件 JSON 文本；nullopt 表示清除覆盖、回退到持有者名字
+     */
+    static i32 _modifyPlayerDisplayName(
+        CommandContext<ServerCommandSource>& context, const std::optional<std::string>& displayJson);
+
     static i32 _operateScore(CommandContext<ServerCommandSource>& context);
 };
 

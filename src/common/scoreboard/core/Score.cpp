@@ -96,6 +96,15 @@ void Score::setNumberFormatOverride(std::optional<text::numbers::NumberFormat> n
     m_scoreboard.onScoreChanged(*this);
 }
 
+void Score::setDisplay(std::unique_ptr<text::ITextComponent> display)
+{
+    m_display = std::move(display);
+
+    // 显示名变了要重发 SetScore，否则客户端仍显示旧名字。
+    // 分数值本身没变，走的不是 setScorePoints 那条路径，故这里单独通知。
+    m_scoreboard.onScoreChanged(*this);
+}
+
 std::unique_ptr<text::ITextComponent> Score::formatValue(const text::numbers::NumberFormat& objectiveFallback) const
 {
     const auto& format = m_numberFormat.has_value() ? *m_numberFormat : objectiveFallback;

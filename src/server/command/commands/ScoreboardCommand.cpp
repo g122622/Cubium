@@ -320,15 +320,14 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
         auto [targets, objective] = makeDisplayTarget();
         // 原版 objective 本身可执行（清空该分数的自定义名），name <name> 覆盖显示名。
         objective->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            // TODO: 分数持有者的自定义显示名（vanilla Score.display）尚未实现：需要 Score 增加
-            //   display 字段（Component）、存档 format 兄弟节点 display 的读写，以及这里按
-            //   <targets> 批量写入。数字格式（numberformat）已实现，可参照其写法。
-            ctx.getSource().sendError("Score display name is not implemented yet");
-            return 0;
+            return _modifyPlayerDisplayName(ctx, std::nullopt);
         });
         auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
             "name", ComponentArgumentType::component());
-        nameArg->setCommand(objective->getCommand());
+        nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            const auto name = ctx.getArgument<ComponentTextPtr>("name");
+            return _modifyPlayerDisplayName(ctx, name->text);
+        });
         objective->addChild(nameArg);
         playerDisplayNameNode->addChild(targets);
     }
@@ -1093,6 +1092,58 @@ i32 ScoreboardCommand::_modifyPlayerNumberFormat(
         source.sendMessage("Set number format of " + who + " in objective '" + objectiveName + "'");
     } else {
         source.sendMessage("Cleared number format of " + who + " in objective '" + objectiveName + "'");
+    }
+    return static_cast<i32>(holders.size());
+}
+
+i32 ScoreboardCommand::_modifyPlayerDisplayName(
+    CommandContext<ServerCommandSource>& context, const std::optional<std::string>& displayJson)
+{
+    auto& source = context.getSource();
+    const std::string targets = context.getArgument<std::string>("targets");
+    const std::string objectiveName = context.getArgument<std::string>("objective");
+
+    auto* scoreboard = getScoreboard(source);
+    if (scoreboard == nullptr) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+    auto* objective = scoreboard->getObjective(objectiveName);
+    if (objective == nullptr) {
+        source.sendError("Unknown objective '" + objectiveName + "'");
+        return 0;
+    }
+
+    std::vector<std::string> holders;
+    if (targets == "*") {
+        holders = scoreboard->getTrackedPlayerNames();
+    } else {
+        std::istringstream stream(targets);
+        std::string holder;
+        while (std::getline(stream, holder, ',')) {
+            if (!holder.empty()) {
+                holders.push_back(holder);
+            }
+        }
+    }
+    if (holders.empty()) {
+        source.sendError("No score holders matched '" + targets + "'");
+        return 0;
+    }
+
+    // 每个持有者各持有一份组件：Score 拥有它，不能在多个条目间共享同一个对象。
+    for (const auto& holder : holders) {
+        auto* score = scoreboard->getOrCreateScore(holder, *objective);
+        if (score != nullptr) {
+            score->setDisplay(displayJson.has_value() ? _parseCommandComponent(*displayJson) : nullptr);
+        }
+    }
+
+    const std::string who = _describeTargets(holders);
+    if (displayJson.has_value()) {
+        source.sendMessage("Set display name of " + who + " in objective '" + objectiveName + "'");
+    } else {
+        source.sendMessage("Cleared display name of " + who + " in objective '" + objectiveName + "'");
     }
     return static_cast<i32>(holders.size());
 }

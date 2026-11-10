@@ -28,6 +28,7 @@
 #include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
@@ -81,6 +82,46 @@ void _writeNumberFormat(nbt::tags::compound_tag& tag, const std::optional<text::
     tag.value.emplace(NUMBER_FORMAT_KEY,
         std::unique_ptr<nbt::tags::tag>(
             std::make_unique<nbt::tags::compound_tag>(text::numbers::numberFormatToNbt(*format))));
+}
+
+/// 分数条目自定义显示名在存档里的键名（原版 Score.Packed 的 `optionalFieldOf("display")`）
+constexpr const char* DISPLAY_KEY = "display";
+
+/// 读取可选的自定义显示名；字段缺失或损坏时返回 nullopt（只丢显示名，不让整条分数读不出来）
+std::optional<std::string> _readDisplay(const nbt::tags::compound_tag& tag)
+{
+    const auto it = tag.value.find(DISPLAY_KEY);
+    if (it == tag.value.end()) {
+        return std::nullopt;
+    }
+    auto component = text::componentFromNbtTag(*it->second);
+    if (component.failed()) {
+        spdlog::warn("Scoreboard save: failed to parse score display name: {}", component.error().message());
+        return std::nullopt;
+    }
+    return component.value()->toJson().dump();
+}
+
+/// 写入可选的自定义显示名（nullopt 时不写该键），落盘形态是真正的 Component 标签
+void _writeDisplay(nbt::tags::compound_tag& tag, const std::optional<std::string>& display)
+{
+    if (!display.has_value()) {
+        return;
+    }
+    nlohmann::json json;
+    try {
+        json = nlohmann::json::parse(*display);
+    }
+    catch (const nlohmann::json::exception&) {
+        spdlog::warn("Scoreboard save: score display name is not valid JSON, ignoring");
+        return;
+    }
+    auto component = text::ITextComponent::fromJson(json);
+    if (component == nullptr) {
+        spdlog::warn("Scoreboard save: score display name is not a valid component, ignoring");
+        return;
+    }
+    tag.value.emplace(DISPLAY_KEY, text::componentToNbtTag(component.get()));
 }
 
 } // namespace
@@ -174,6 +215,7 @@ nbt::tags::compound_tag ScoreboardSaveData::ScoreData::toNbt() const
     lockedTag->value = locked ? 1 : 0;
     tag.value.emplace("Locked", std::move(lockedTag));
     _writeNumberFormat(tag, numberFormat);
+    _writeDisplay(tag, display);
     return tag;
 }
 
@@ -218,6 +260,7 @@ Result<ScoreboardSaveData::ScoreData> ScoreboardSaveData::ScoreData::fromNbt(con
     }
 
     data.numberFormat = _readNumberFormat(tag);
+    data.display = _readDisplay(tag);
 
     return data;
 }
@@ -461,6 +504,9 @@ ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboa
             scoreData.score = score->getScorePoints();
             scoreData.locked = score->isLocked();
             scoreData.numberFormat = score->getNumberFormatOverride();
+            if (auto* display = score->getDisplay()) {
+                scoreData.display = display->toJson().dump();
+            }
             data.addScore(std::move(scoreData));
         }
     }
@@ -565,6 +611,16 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
             score->setScorePoints(scoreData.score);
             score->setLocked(scoreData.locked);
             score->setNumberFormatOverride(scoreData.numberFormat);
+            // 显示名是可选字段：缺失时必须保持未设置，不能凭空造一个覆盖。
+            if (scoreData.display.has_value()) {
+                try {
+                    const auto json = nlohmann::json::parse(*scoreData.display);
+                    score->setDisplay(text::ITextComponent::fromJson(json));
+                }
+                catch (const nlohmann::json::exception&) {
+                    spdlog::warn("Scoreboard load: score display name is not valid JSON, ignoring");
+                }
+            }
         }
     }
 
