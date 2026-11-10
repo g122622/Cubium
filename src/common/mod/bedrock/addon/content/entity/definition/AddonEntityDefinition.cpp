@@ -738,6 +738,26 @@ public:
         mc::AgeableEntity::dropExperience();
     }
 
+    /**
+     * @brief 繁殖生成的经验球数量按 `minecraft:experience_reward.on_bred` 求值
+     *
+     * 与原版一致：经验球每个价值 1，个数由 on_bred 决定。定义里未写 on_bred、或求值结果为 0 时
+     * 回退到基类默认（nextInt(7) + 1），保持 vanilla 行为。
+     */
+    [[nodiscard]] i32 breedingExperience() override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* reward =
+            components != nullptr ? components->component("minecraft:experience_reward") : nullptr;
+        if (reward != nullptr) {
+            const i32 amount = _evaluateExperienceReward(*reward, "on_bred", getRandom());
+            if (amount > 0) {
+                return amount;
+            }
+        }
+        return mc::AgeableEntity::breedingExperience();
+    }
+
     void tick() override
     {
         auto* events = tryGetComponent<AddonEntityEvents>();

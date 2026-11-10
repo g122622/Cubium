@@ -211,7 +211,9 @@ void BreedGoal::spawnBaby()
         return;
     }
     mc::math::IRandom& rng = m_animal->getRandom();
-    i32 xpCount = 1 + rng.nextInt(7);
+    // 经验球个数由实体决定：默认 nextInt(7)+1（原版），addon 实体按
+    // minecraft:experience_reward.on_bred 覆写 breedingExperience()。
+    const i32 xpCount = m_animal->breedingExperience();
     for (i32 i = 0; i < xpCount; ++i) {
         auto xpOrb =
             std::make_unique<ExperienceOrbEntity>(world, m_animal->x(), m_animal->y(), m_animal->z(), 1, *registry);

@@ -45,6 +45,21 @@ public:
      * @param id 实体ID
      */
     AgeableEntity(EntityInstanceId id, ecs::EntityRegistry& registry) noexcept;
+    /**
+     * @brief 本次繁殖应生成的经验球数量
+     *
+     * 原版在 `Animal.finalizeSpawnChildFromBreeding` 里生成
+     * `getRandom().nextInt(7) + 1` 个经验球，
+     * 每个价值 1。基岩版行为包可通过
+     * `minecraft:experience_reward.on_bred` 覆盖这个数量，
+     * 因此把"个数"抽成可覆写方法，由 `BreedGoal`
+     * 调用；addon 实体覆写它返回定义值。
+     * 声明在 AgeableEntity 而非 AnimalEntity：addon 实体直接继承前者。
+
+     * *
+     * @return 经验球个数（>= 0，0 表示不生成）
+     */
+    [[nodiscard]] virtual i32 breedingExperience();
     ~AgeableEntity() override = default;
 
     /// 本类继承链标识（parent = CreatureEntity::classInfo()）。见 Entity::classInfo()。
