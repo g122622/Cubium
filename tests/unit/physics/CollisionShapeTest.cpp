@@ -440,6 +440,66 @@ TEST_F(CollisionShapeTest, CombineOrWithFullBlock)
     EXPECT_TRUE(combined.isFullBlock());
 }
 
+// AND（交集）：两块各自半高、在中间重叠 1/4 高，交集应只有那一小段。
+TEST_F(CollisionShapeTest, CombineAndKeepsOverlap)
+{
+    CollisionShape a = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    CollisionShape b = CollisionShape::box(0.0f, 0.25f, 0.0f, 1.0f, 0.75f, 1.0f);
+
+    const CollisionShape overlapped = CollisionShape::combine(a, b, CollisionShape::CombineOp::AND);
+    ASSERT_EQ(overlapped.boxCount(), 1u);
+    const AxisAlignedBB& box = overlapped.boxes().front();
+    EXPECT_FLOAT_EQ(box.minY, 0.25f);
+    EXPECT_FLOAT_EQ(box.maxY, 0.5f);
+}
+
+// AND：不相交的两块交集为空。
+TEST_F(CollisionShapeTest, CombineAndWithoutOverlapIsEmpty)
+{
+    CollisionShape a = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.25f, 1.0f);
+    CollisionShape b = CollisionShape::box(0.0f, 0.75f, 0.0f, 1.0f, 1.0f, 1.0f);
+
+    EXPECT_TRUE(CollisionShape::combine(a, b, CollisionShape::CombineOp::AND).isEmpty());
+}
+
+// NOT（差集）：满方块挖掉正中的一个盒子，剩下的碎块不应再覆盖被挖区域。
+TEST_F(CollisionShapeTest, CombineNotSubtractsVolume)
+{
+    const CollisionShape full = CollisionShape::fullBlock();
+    const CollisionShape hole = CollisionShape::box(0.25f, 0.25f, 0.25f, 0.75f, 0.75f, 0.75f);
+
+    const CollisionShape carved = CollisionShape::combine(full, hole, CollisionShape::CombineOp::NOT);
+    EXPECT_FALSE(carved.isEmpty()) << "carving a hole must leave the surrounding shell";
+    // 挖掉之后不再是完整方块。
+    EXPECT_FALSE(carved.isFullBlock());
+
+    // 差集后的碎块不能与被挖掉的区域相交。
+    const AxisAlignedBB holeWorld = hole.boxes().front();
+    for (const AxisAlignedBB& piece : carved.boxes()) {
+        EXPECT_FALSE(piece.intersects(holeWorld)) << "a subtracted region must not be re-covered";
+    }
+}
+
+// NOT：减去不相交的形状是恒等操作。
+TEST_F(CollisionShapeTest, CombineNotWithDisjointShapeKeepsOriginal)
+{
+    CollisionShape a = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    CollisionShape b = CollisionShape::box(0.0f, 0.75f, 0.0f, 1.0f, 1.0f, 1.0f);
+
+    const CollisionShape result = CollisionShape::combine(a, b, CollisionShape::CombineOp::NOT);
+    ASSERT_EQ(result.boxCount(), 1u);
+    EXPECT_FLOAT_EQ(result.boxes().front().maxY, 0.5f);
+}
+
+// NOT：a 完全被 b 覆盖时结果为空。
+TEST_F(CollisionShapeTest, CombineNotFullyCoveredIsEmpty)
+{
+    const CollisionShape inner = CollisionShape::box(0.25f, 0.25f, 0.25f, 0.75f, 0.75f, 0.75f);
+    const CollisionShape outer = CollisionShape::fullBlock();
+
+    EXPECT_TRUE(CollisionShape::combine(inner, outer, CollisionShape::CombineOp::NOT).isEmpty());
+}
+
 // ============================================================================
 // coversFullBlock 测试
 // ============================================================================

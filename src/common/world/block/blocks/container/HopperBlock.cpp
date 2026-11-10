@@ -239,27 +239,24 @@ void HopperBlock::_updateState(IWorld& world, const BlockPos& pos, const BlockSt
 
 void HopperBlock::_initShapes()
 {
-    // 原版 HopperBlock#makeShapes 的顶部件是：
-    //   Shapes.join(column(16,10,16) ∪ column(8,4,10), column(12,11,16), ONLY_FIRST)
-    // `ONLY_FIRST` 即「a 减去 b」，所以顶部并不是实心 16×16，而是从 y=11 到 y=16
-    // **外框 16×16、中间挖空 12×12** 的环形。这里原先写成实心全宽（y 从 10 起），
-    // 上表面因此被当作完整面，凡是「下方需坚固」的方块（门、蜡烛、花、海龟蛋……）
-    // 都被判成能放在漏斗上。由差分能力 block_support 查出：单是漏斗底座就有 108 处误判。
+    // 原版 HopperBlock#makeShapes 的顶部件：
+    //   a = column(16,10,16) ∪ column(8,4,10)      —— 16×16 从 y=10 起的底座 + 中间细颈
+    //   b = column(12,11,16)                       —— y=11 以上、水平 12×12（居中，即 2..14）
+    //   结果 = Shapes.join(a, b, ONLY_FIRST)        —— 即 a 减去 b
     //
-    // CollisionShape::combine 目前只实现并集（CombineOp::AND/NOT 未实现），
-    // 因此这里用四条边显式拼出环形，而不依赖差集。
-    // TODO: 补全 CollisionShape::combine 的 AND/NOT 后，这里可改回一次差集表达。
-    CollisionShape inputShape = CollisionShape::fromPixelBox(0, 10, 0, 16, 11, 16);
-    const CollisionShape rimNorth = CollisionShape::fromPixelBox(0, 11, 0, 16, 16, 2);
-    const CollisionShape rimSouth = CollisionShape::fromPixelBox(0, 11, 14, 16, 16, 16);
-    const CollisionShape rimWest = CollisionShape::fromPixelBox(0, 11, 2, 2, 16, 14);
-    const CollisionShape rimEast = CollisionShape::fromPixelBox(14, 11, 2, 16, 16, 14);
-    inputShape = CollisionShape::combine(inputShape, rimNorth, CollisionShape::CombineOp::OR);
-    inputShape = CollisionShape::combine(inputShape, rimSouth, CollisionShape::CombineOp::OR);
-    inputShape = CollisionShape::combine(inputShape, rimWest, CollisionShape::CombineOp::OR);
-    inputShape = CollisionShape::combine(inputShape, rimEast, CollisionShape::CombineOp::OR);
-    CollisionShape middleShape = CollisionShape::fromPixelBox(4, 4, 4, 12, 10, 12);
-    CollisionShape baseShape = CollisionShape::combine(inputShape, middleShape, CollisionShape::CombineOp::OR);
+    // 所以顶部不是实心 16×16，而是 y=11..16 **外框 16×16、中间挖空 12×12** 的环形。
+    // 原先写成实心全宽（y 从 10 起），上表面因此被当作完整面，凡是「下方需坚固」的方块
+    // （门、蜡烛、花、海龟蛋……）都被判成能放在漏斗上；由差分能力 block_support 查出，
+    // 单是漏斗底座就有 108 处误判。
+    //
+    // 用一次 NOT 差集直接表达（CollisionShape 的 AND/NOT 均已实现，见 _combineNot/_subtractBox）。
+    CollisionShape a = CollisionShape::fromPixelBox(0, 10, 0, 16, 16, 16);
+    const CollisionShape neck = CollisionShape::fromPixelBox(4, 4, 4, 12, 10, 12);
+    a = CollisionShape::combine(a, neck, CollisionShape::CombineOp::OR);
+
+    const CollisionShape hollow = CollisionShape::fromPixelBox(2, 11, 2, 14, 16, 14);
+    // 原版 voxelshape1 = Shapes.join(a, b, ONLY_FIRST)。细颈已在 a 里，无需再并一次。
+    const CollisionShape baseShape = CollisionShape::combine(a, hollow, CollisionShape::CombineOp::NOT);
 
     CollisionShape downSpout = CollisionShape::fromPixelBox(6, 0, 6, 10, 4, 10);
     m_shapes[static_cast<size_t>(Direction::Down)] =
@@ -283,7 +280,8 @@ void HopperBlock::_initShapes()
 
     m_shapes[static_cast<size_t>(Direction::Up)] = baseShape;
 
-    CollisionShape insideBowl = CollisionShape::fromPixelBox(2, 11, 2, 14, 16, 14);
+    // 光线追踪形状用的"内腔"与上面差集挖掉的那块是同一个盒子，直接复用。
+    const CollisionShape& insideBowl = hollow;
     m_raytraceShapes[static_cast<size_t>(Direction::Down)] = insideBowl;
     m_raytraceShapes[static_cast<size_t>(Direction::Up)] = insideBowl;
     m_raytraceShapes[static_cast<size_t>(Direction::North)] = CollisionShape::combine(
