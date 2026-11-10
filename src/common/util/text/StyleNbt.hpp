@@ -40,15 +40,16 @@ namespace mc::text {
  * | `color` | StringTag | 具名色写名字（`"red"`），自定义色写 `"#RRGGBB"` |
  * | `bold` / `italic` / `underlined` / `strikethrough` / `obfuscated` | ByteTag | 三态：只有显式设置过才写出 |
  * | `insertion` | StringTag | 点击后填入聊天框的文本 |
+ * | `shadow_color` | IntTag | ARGB **打包整数**（`ExtraCodecs.ARGB_COLOR_CODEC` 的主形态） |
+ * | `font` | StringTag | 字体资源位置（`FontDescription.CODEC` 只支持 Resource 变体） |
  *
  * 这是**唯一**的 Style NBT 实现：Component 的 NBT 序列化（`ComponentNbtSerialization`）与
  * 数字格式（`text/numbers/NumberFormat`）都走这里，避免出现两份会各自漂移的字段清单。
  *
- * TODO: `click_event` / `hover_event` / `shadow_color` / `font` 四个字段尚未编码。项目的
- * `ClickEvent` / `HoverEvent` 仍是「action + value 字符串」模型，缺少 1.21.11 各动作的具名
- * 分量（`url` / `command` / `path` / `id` / `count` / `components`）与 Component 化的 hover
- * 载荷，无法产出合规 NBT；强行写旧形状会让真 Java 客户端在解码 Style 时失败。补齐需先重做
- * 事件模型，属独立任务。
+ * TODO: `click_event` / `hover_event` 两个字段尚未编码。项目的 `ClickEvent` / `HoverEvent`
+ * 仍是「action + value 字符串」模型，缺少 1.21.11 各动作的具名分量（`url` / `command` /
+ * `path` / `id` / `count` / `components`）与 Component 化的 hover 载荷，无法产出合规 NBT；
+ * 强行写旧形状会让真 Java 客户端在解码 Style 时失败。补齐需先重做事件模型，属独立任务。
  */
 /// 把 Style 的字段平铺写入复合标签（不清理 out 中已有键）
 void styleToNbt(nbt::tags::compound_tag& out, const Style& style);

@@ -269,6 +269,8 @@ Style Style::applyTo(const Style& other) const
     result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : other.m_clickEvent;
     result.m_hoverEvent = m_hoverEvent.has_value() ? m_hoverEvent : other.m_hoverEvent;
     result.m_insertion = m_insertion.has_value() ? m_insertion : other.m_insertion;
+    result.m_shadowColor = m_shadowColor.has_value() ? m_shadowColor : other.m_shadowColor;
+    result.m_font = m_font.has_value() ? m_font : other.m_font;
     return result;
 }
 
@@ -294,6 +296,8 @@ Style Style::mergeWithParent(const Style& parent) const noexcept
     result.m_clickEvent = m_clickEvent.has_value() ? m_clickEvent : parent.m_clickEvent;
     result.m_hoverEvent = m_hoverEvent.has_value() ? m_hoverEvent : parent.m_hoverEvent;
     result.m_insertion = m_insertion.has_value() ? m_insertion : parent.m_insertion;
+    result.m_shadowColor = m_shadowColor.has_value() ? m_shadowColor : parent.m_shadowColor;
+    result.m_font = m_font.has_value() ? m_font : parent.m_font;
 
     return result;
 }
@@ -303,7 +307,7 @@ bool Style::isEmpty() const noexcept
     // 三态：任一标志被显式设置（true 或 false）就不算空样式。
     return !m_color.has_value() && !m_bold.has_value() && !m_italic.has_value() && !m_underlined.has_value() &&
         !m_strikethrough.has_value() && !m_obfuscated.has_value() && !m_clickEvent.has_value() &&
-        !m_hoverEvent.has_value() && !m_insertion.has_value();
+        !m_hoverEvent.has_value() && !m_insertion.has_value() && !m_shadowColor.has_value() && !m_font.has_value();
 }
 
 nlohmann::json Style::toJson() const
@@ -345,6 +349,15 @@ nlohmann::json Style::toJson() const
     if (m_insertion.has_value()) {
         json["insertion"] = *m_insertion;
     }
+    // 键名与顺序按原版 `Style.Serializer.MAP_CODEC`：`shadow_color` 是 ARGB **整数**，
+    // `font` 是资源位置字符串。这两个字段此前完全缺失，导致读取带它们的文本再写回时
+    // 静默丢字段（不是显示差异，是数据丢失）。
+    if (m_shadowColor.has_value()) {
+        json["shadow_color"] = *m_shadowColor;
+    }
+    if (m_font.has_value()) {
+        json["font"] = *m_font;
+    }
     return json;
 }
 
@@ -384,6 +397,13 @@ Style Style::fromJson(const nlohmann::json& json)
     if (json.contains("insertion") && json["insertion"].is_string()) {
         style.m_insertion = json["insertion"].get<std::string>();
     }
+    // ARGB 颜色按整数读取；原版 `Codec.INT` 不接受浮点，这里同样只认整型。
+    if (json.contains("shadow_color") && json["shadow_color"].is_number_integer()) {
+        style.m_shadowColor = json["shadow_color"].get<i32>();
+    }
+    if (json.contains("font") && json["font"].is_string()) {
+        style.m_font = json["font"].get<std::string>();
+    }
 
     return style;
 }
@@ -393,7 +413,8 @@ bool Style::operator==(const Style& other) const noexcept
     return m_color == other.m_color && m_bold == other.m_bold && m_italic == other.m_italic &&
         m_underlined == other.m_underlined && m_strikethrough == other.m_strikethrough &&
         m_obfuscated == other.m_obfuscated && m_clickEvent == other.m_clickEvent &&
-        m_hoverEvent == other.m_hoverEvent && m_insertion == other.m_insertion;
+        m_hoverEvent == other.m_hoverEvent && m_insertion == other.m_insertion &&
+        m_shadowColor == other.m_shadowColor && m_font == other.m_font;
 }
 
 // ========== 工具函数 ==========

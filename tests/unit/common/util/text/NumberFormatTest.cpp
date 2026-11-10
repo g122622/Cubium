@@ -495,11 +495,13 @@ TEST(StyleNbtTest, NumericFlagsAreAccepted)
     EXPECT_EQ(parsed.value().italic(), false);
 }
 
+// 未知键一律忽略。注意不能拿 `shadow_color` / `font` 当样本：这两个字段已经实现，
+// 现在会被解码出来（此前正是因为未实现才被当作"未知键"的代表）。
 TEST(StyleNbtTest, UnknownKeysAreIgnored)
 {
     nbt::tags::compound_tag tag;
-    tag.put("shadow_color", 0);
-    tag.put("font", std::string("minecraft:uniform"));
+    tag.put("unrecognized_style_key", 0);
+    tag.put("another_unknown_key", std::string("value"));
     auto parsed = text::styleFromNbt(tag);
     ASSERT_TRUE(parsed.success());
     EXPECT_TRUE(parsed.value().isEmpty());

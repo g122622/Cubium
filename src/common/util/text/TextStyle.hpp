@@ -409,6 +409,49 @@ public:
         m_insertion = std::move(insertion);
     }
 
+    // ========== 阴影色与字体 ==========
+
+    /**
+     * @brief 获取文字阴影色，对应原版 `Style.getShadowColor`
+     *
+     * 原版字段类型是 `@Nullable Integer`，值是 **ARGB 打包整数**（例如 `-16777216`
+     * 表示不透明黑），不是 `#RRGGBB` 字符串——`ExtraCodecs.ARGB_COLOR_CODEC`
+     * 以 `Codec.INT` 为主形态。未设置时返回 nullopt。
+     */
+    [[nodiscard]] const std::optional<i32>& getShadowColor() const noexcept
+    {
+        return m_shadowColor;
+    }
+
+    /**
+     * @brief 设置文字阴影色，对应原版 `Style.withShadowColor`
+     */
+    void setShadowColor(std::optional<i32> shadowColor) noexcept
+    {
+        m_shadowColor = shadowColor;
+    }
+
+    /**
+     * @brief 获取字体，对应原版 `Style.getFont`
+     *
+     * 原版 1.21.11 的 `FontDescription.CODEC` 只支持 `FontDescription.Resource`（用
+     * `Identifier.CODEC.flatComapMap` 构造），因此形态就是**资源位置字符串**；其余
+     * 变体（AtlasSprite / PlayerSprite）在该 codec 上无法编码。未设置时返回 nullopt，
+     * 原版此时 `getFont()` 回落到 `minecraft:default`。
+     */
+    [[nodiscard]] const std::optional<std::string>& getFont() const noexcept
+    {
+        return m_font;
+    }
+
+    /**
+     * @brief 设置字体，对应原版 `Style.withFont`
+     */
+    void setFont(std::optional<std::string> font) noexcept
+    {
+        m_font = std::move(font);
+    }
+
     // ========== 父样式继承 ==========
 
     /**
@@ -498,6 +541,8 @@ private:
     std::optional<ClickEvent> m_clickEvent;
     std::optional<HoverEvent> m_hoverEvent;
     std::optional<std::string> m_insertion;
+    std::optional<i32> m_shadowColor;
+    std::optional<std::string> m_font;
 };
 
 /**
