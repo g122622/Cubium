@@ -301,7 +301,9 @@ TEST_F(NetherPortalBlockTest, MissingInteriorInvalidatesRemainingPortalOnBothAxe
         const auto& state =
             VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
         world.clearBlockAt(BlockPos(5, 64, 5));
-        EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 65, 5)));
+        // 注意：不能断言 isValidPosition 为 false。原版 NetherPortalBlock 只重写 updateShape，
+        // 没有 canSurvive 覆写——传送门方块本身"能存活"恒为真，整扇门的失效完全由
+        // updateShape（PortalShape.findAnyShape 判定不完整）驱动。下面这条才是真正的契约。
         const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(state,
             Direction::Down,
             *BlockRegistry::instance().airState(),
@@ -323,12 +325,15 @@ TEST_F(NetherPortalBlockTest, MissingFrameInvalidatesRemainingPortal)
     EXPECT_TRUE(result.isAir());
 }
 
-TEST_F(NetherPortalBlockTest, SingleObsidianNeighborDoesNotValidatePortal)
+TEST_F(NetherPortalBlockTest, LoneSkullBlockWithOneObsidianNeighborStaysValidBlock)
 {
     NetherPortalTestWorld world;
     world.setBlockAt(BlockPos(5, 63, 5), &VanillaBlocks::OBSIDIAN->defaultState());
     const auto& state = VanillaBlocks::NETHER_PORTAL->defaultState();
-    EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 64, 5)));
+    // 原版 NetherPortalBlock 没有 canSurvive 覆写，isValidPosition 恒为 true：
+    // 只有一侧黑曜石的孤立传送门方块仍是"可存活的方块"，整扇门的失效由 updateShape 负责
+    // （见 MissingFrameInvalidatesRemainingPortal / MissingInteriorInvalidatesRemainingPortalOnBothAxes）。
+    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 64, 5)));
 }
 
 TEST_F(NetherPortalBlockTest, UpdateOutsidePortalPlaneDoesNotRemovePortal)
