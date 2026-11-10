@@ -33,6 +33,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
+#include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
@@ -527,6 +528,28 @@ public:
         const auto items = healable->find("items");
         if (items == healable->end() || !items->is_array()) {
             return false;
+        }
+
+        // 组件级 filters：不满足时整次喂食都不生效（原版 healable 的 filters 语义）。
+        // 交互参与者映射：self=本生物、player/other=使用物品的玩家；damage/parent/target
+        // 在本交互里不存在，显式传 nullptr。
+        if (const auto filtersIt = healable->find("filters"); filtersIt != healable->end()) {
+            const Result<EntityFilter> compiled = EntityFilter::compile(*filtersIt);
+            if (compiled.failed()) {
+                spdlog::warn(
+                    "minecraft:healable filters failed to compile ({}), heal ignored", compiled.error().message());
+                return false;
+            }
+            const EntityFilterContext filterContext{*this, &player, &player, nullptr, nullptr, nullptr, nullptr};
+            const Result<bool> matched = compiled.value().matches(filterContext);
+            if (matched.failed()) {
+                spdlog::warn(
+                    "minecraft:healable filters evaluation failed ({}), heal ignored", matched.error().message());
+                return false;
+            }
+            if (!matched.value()) {
+                return false;
+            }
         }
 
         const std::string& heldId = stack.getItem()->itemLocation().toString();
