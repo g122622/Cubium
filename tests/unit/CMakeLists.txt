@@ -23,6 +23,7 @@ add_executable(mc_tests
     common/test_math.cpp
     common/test_network.cpp
     common/network/test_bytebuf.cpp
+    common/network/DataComponentPatchCodecAdventureTest.cpp
     common/network/TcpTransportReceiveTest.cpp
     common/network/ConnectionWireAsyncTest.cpp
     common/network/test_registry_bytebuf.cpp
