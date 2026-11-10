@@ -315,8 +315,9 @@ bool Explosion::_shouldAffectBlocklikeEntities() const
     //   return flag ? flag1 : blockInteraction.shouldAffectBlocklikeEntities() && flag1
     //
     // 其中 blockInteraction.shouldAffectBlocklikeEntities 在 KEEP / TRIGGER_BLOCK 为 false、
-    // 在 DESTROY / DESTROY_WITH_DECAY 为 true，与项目的 `mode != None` 等价——
-    // 但项目缺少 TRIGGER_BLOCK 这一取值（见 TODO）。
+    // 在 DESTROY / DESTROY_WITH_DECAY 为 true。本项目 KEEP 对应 None，DESTROY 对应
+    // Break / Destroy，TRIGGER_BLOCK 对应 TriggerBlock——因此 Break/Destroy 为真，
+    // None 与 TriggerBlock 都为假。
     const bool mobGriefing = m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
 
     // flag1：风弹作为爆源时不波及其他方块类实体（风弹靠专门的风爆逻辑处理）。
@@ -331,10 +332,11 @@ bool Explosion::_shouldAffectBlocklikeEntities() const
     if (mobGriefing) {
         return nonWindChargeSource;
     }
-    // TODO: 风爆附魔（WindBurstEnchantment）当前只实现了附魔兼容性，未实现其爆炸效果；
-    //   接入时需要新增 ExplosionMode::TriggerBlock（原版 TRIGGER_BLOCK 不破坏方块，
-    //   只触发 TNT/苦力怕等），届时此处即可自然区分"破坏方块"与"仅触发"两种爆炸。
-    return m_mode != ExplosionMode::None && nonWindChargeSource;
+
+    // 只有真正破坏方块的模式才"波及方块类实体"；TriggerBlock 会调方块的爆炸回调，
+    // 但不破坏方块，因此在原版算作不波及（见 BlockInteraction.TRIGGER_BLOCK(false)）。
+    const bool destroysBlocks = m_mode == ExplosionMode::Break || m_mode == ExplosionMode::Destroy;
+    return destroysBlocks && nonWindChargeSource;
 }
 
 // ============================================================================
@@ -778,8 +780,14 @@ void Explosion::_destroyBlocks()
         // 获取方块对象
         const Block& block = state->getBlock();
 
-        // 调用方块的爆炸回调
+        // 调用方块的爆炸回调。TriggerBlock 只走到这里——回调负责"被引爆/被激活"，
+        // 方块本身保留。TNT 正是在 onBlockExploded 里 prime 出点燃的 TNT 实体。
         block.onBlockExploded(m_world, pos, *state, this);
+
+        // TriggerBlock：不破坏方块、不产生掉落物，只保留上面那次回调的效果。
+        if (m_mode == ExplosionMode::TriggerBlock) {
+            continue;
+        }
 
         // 检查方块是否可以被爆炸掉落
         bool canDrop = block.canDropFromExplosion(*state);
