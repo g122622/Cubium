@@ -42,7 +42,7 @@ namespace {
  *
  * 继承 IBlockReader，提供最小化测试环境
  */
-class NetherPortalTestWorld final : public IBlockReader {
+class NetherPortalTestWorld : public IBlockReader {
 public:
     using IWorld::getBlockState;
 
@@ -368,6 +368,47 @@ TEST_F(NetherPortalBlockTest, PortalIsNotOpaque)
     const BlockState& state = portal->defaultState();
 
     EXPECT_FALSE(portal->isOpaque(state));
+}
+
+// ============================================================================
+// IWorld::isSpawningMonsters() 默认实现
+//
+// 对应原版 ServerLevel.isSpawningMonsters() = 难度非和平 && SPAWN_MOBS && SPAWN_MONSTERS。
+// 传送门刷僵尸猪灵等按概率生成怪物的逻辑都以它为前提。
+// ============================================================================
+
+namespace {
+
+/// 可指定难度的测试世界；其余行为沿用 NetherPortalTestWorld。
+class SpawnRuleTestWorld : public NetherPortalTestWorld {
+public:
+    explicit SpawnRuleTestWorld(Difficulty difficulty)
+        : m_difficulty(difficulty)
+    {}
+
+    [[nodiscard]] Difficulty difficulty() const override
+    {
+        return m_difficulty;
+    }
+
+private:
+    Difficulty m_difficulty;
+};
+
+} // namespace
+
+TEST(WorldSpawnRuleTest, IsSpawningMonsters_NormalDifficultyAndDefaultRulesIsTrue)
+{
+    SpawnRuleTestWorld world(Difficulty::Normal);
+    // 默认 GameRules 中 SPAWN_MOBS 与 SPAWN_MONSTERS 均开启
+    EXPECT_TRUE(world.isSpawningMonsters());
+}
+
+TEST(WorldSpawnRuleTest, IsSpawningMonsters_PeacefulDifficultyIsFalse)
+{
+    // 和平难度下无论游戏规则如何都不生成敌对生物
+    SpawnRuleTestWorld world(Difficulty::Peaceful);
+    EXPECT_FALSE(world.isSpawningMonsters());
 }
 
 } // namespace
