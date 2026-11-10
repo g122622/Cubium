@@ -823,13 +823,17 @@ TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_ShortGrassAsMiddleBloc
 
 TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_DandelionAsMiddleBlock)
 {
-    // 附魔台在(0,0,0)，书架在(2,0,0)，中间(1,0,0)是蒲公英（canBeReplaced=true）
+    // 附魔台在(0,0,0)，书架在(2,0,0)，中间(1,0,0)是蒲公英。
+    // 蒲公英**不传导**附魔力量：数据包 tags/block/enchantment_power_transmitter.json 的内容就是
+    // "#minecraft:replaceable"，而 replaceable 标签只含空气/水/草/蕨/藤等，**不含任何花**。
+    // 因此这朵蒲公英会阻断该书架，isValidBookshelf 必须为 false（正向对例见
+    // EnchantingTableRecalculateEnchantPower_ShortGrassAllowsPower：短草在 replaceable 内）。
     DummyWorld world;
     VanillaBlocks::initialize();
 
     const BlockState* dandelion = VanillaBlocks::getState(VanillaBlocks::DANDELION);
     ASSERT_NE(dandelion, nullptr);
-    ASSERT_TRUE(dandelion->canBeReplaced());
+    ASSERT_FALSE(dandelion->canBeReplaced());
 
     // 先将所有候选书架位置设为nullptr
     for (i32 x = -2; x <= 2; ++x) {
@@ -847,7 +851,7 @@ TEST(BlockEntityTodoTest, EnchantingTableIsValidBookshelf_DandelionAsMiddleBlock
     world.setBlockState(1, 0, 0, dandelion);
 
     BlockPos offset(2, 0, 0);
-    EXPECT_TRUE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
+    EXPECT_FALSE(blockentity::EnchantingTableEntity::isValidBookshelf(world, BlockPos(0, 0, 0), offset));
 }
 
 TEST(BlockEntityTodoTest, EnchantingTableRecalculateEnchantPower_ShortGrassAllowsPower)
