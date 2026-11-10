@@ -46,7 +46,7 @@ cmake --build --preset windows-clang-relwithdebinfo-server
 
 #### 构建非默认 preset（如 release-noprof）
 
-`scripts/configure.{sh,bat,ps1}` 的无参模式与 `build` 快捷模式均**硬编码**使用 `windows-clang-relwithdebinfo-server` preset，无法直接切换到其他 preset。构建非默认 preset 时须使用脚本的 pass-through 模式，将 `--preset <name>` 透传给 cmake（前文 `--preset windows-clang-debug` 示例即此用法）：
+`scripts/configure.{sh,bat,ps1}` 的无参模式与 `build` 快捷模式均**硬编码**使用 `windows-clang-relwithdebinfo-server` preset，无法直接切换到其他 preset。构建非默认 preset 时须使用脚本的 pass-through 模式，将 `--preset <name>` 透传给 cmake（前文 `--preset windows-clang-release` 示例即此用法）：
 
 ```bash
 # Configure（注入 VS 开发环境 + 指定 preset，仅配置不构建）
@@ -83,9 +83,26 @@ cmake --build --preset windows-clang-release-noprof
 
 > **注意**：`windows-clang-release-noprof` 与 `windows-clang-release` 的 `MC_BUILD_TESTS=OFF`，不会生成 `mc_tests`；回归测试须切回 `windows-clang-relwithdebinfo-server` preset 构建。
 
+#### 调试信息等级（RelWithDebInfo）
+
+`RelWithDebInfo` 不使用 CMake 默认的 `-O2 -g -DNDEBUG`，而是固定为：
+
+```
+-O2 -DNDEBUG -gline-tables-only -gno-pubnames
+```
+
+原因是本工程的调试信息规模异常：模板实例化 + 头文件密集（`std::variant` 承载上百种数据包、
+codec 层层内联），默认 `-g` 会为每个实例化、每个内联副本生成完整的类型与变量 DIE。实测单个
+`.cpp` 产出的 `.o` 达 188 MB，其中 `__debug_str`（类型名字符串表）142 MB，而代码段仅 0.9 MB；
+整个 `build/` 曾膨胀到 74 GB。改为行号级调试信息后同一 `.o` 降到 41 MB（-78%），单 TU 编译
+时间下降约 25%，崩溃栈仍能给出文件与行号。
+
+需要观察变量值时使用日志输出（项目规范要求日志用英文），不依赖调试器。`-gz=zlib` 在 Mach-O 上
+不生效，已实测排除。
+
 #### 注意事项
 
-- 即使在开发过程中，也要尽量使用 relwithdebinfo 构建，因为 Debug 运行非常慢，除非必要否则不要用。
+- 本项目**只支持 `RelWithDebInfo` 与 `Release` 两种配置**，Debug（`-O0`）已从 preset、CI 和本文档中移除：区块生成与网络编解码在 `-O0` 下慢一个数量级，实测不具备可用性。调试需求一律通过日志解决。
 - 构建命令除了编译 C++ 代码之外，还会编译着色器。
 - 对于 macOS 等系统，默认只会启动一个核心构建，建议加上 `-jxxx`，并耐心等待 10 分钟左右以完成构建。
 - Windows 不需要加 `-j` 后缀，系统会自动吃满全部核心。
@@ -251,10 +268,9 @@ CMakePresets.json 中预置的 Linux preset（均设 `MC_BUILD_CLIENT=OFF`，服
 | preset | buildType | tests | binaryDir | 说明 |
 |--------|-----------|-------|-----------|------|
 | `linux-relwithdebinfo` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认） |
-| `linux-debug` | Debug | ON | `build` | Debug 调试 |
 | `linux-release-noprof` | Release | OFF | `build-release-noprof` | 可分发发布版：关插桩 + 不含测试/benchmark |
 
-> **注意**：`linux-debug` 与 `linux-relwithdebinfo` 共用 `build/` 目录，切换时需重新 configure；`linux-release-noprof` 使用独立的 `build-release-noprof` 目录，可并存。
+> **注意**：`linux-relwithdebinfo` 与 `linux-clang-ci-*` 共用 `build/` 目录，切换时需重新 configure；`linux-release-noprof` 使用独立的 `build-release-noprof` 目录，可并存。
 
 ### Linux 已知问题及解决方案
 
@@ -362,7 +378,7 @@ CI 发布前还检查 ELF，并移除静态依赖库可能带入的调试节；�
 # ASan + UBSan
 cmake -B build-sanitize -G Ninja \
   -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DMC_BUILD_CLIENT=OFF -DMC_BUILD_SERVER=ON -DMC_BUILD_TESTS=ON \
   -DMC_ENABLE_SANITIZERS=ON \
   -DVCPKG_TARGET_TRIPLET=x64-linux \
@@ -374,7 +390,7 @@ cmake -B build-sanitize -G Ninja \
 # TSan
 cmake -B build-tsan -G Ninja \
   -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DMC_BUILD_CLIENT=OFF -DMC_BUILD_SERVER=ON -DMC_BUILD_TESTS=ON \
   -DMC_ENABLE_SANITIZERS=ON \
   -DVCPKG_TARGET_TRIPLET=x64-linux \
