@@ -28,6 +28,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/StyleNbt.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
 
@@ -45,21 +46,6 @@ namespace mc::text {
 
 namespace {
 
-/// 写 StringTag 线格式字节（0x08 + U16 大端长度 + UTF8），对齐 vanilla NbtIo.writeAnyTag(StringTag)
-std::vector<u8> stringTagToBytes(const std::string& text)
-{
-    std::vector<u8> bytes;
-    bytes.push_back(0x08); // StringTag tag id
-    const usize len = text.size();
-    bytes.push_back(static_cast<u8>((len >> 8) & 0xFF)); // U16 大端高字节
-    bytes.push_back(static_cast<u8>(len & 0xFF));        // U16 大端低字节
-    if (len > 0) {
-        bytes.insert(
-            bytes.end(), reinterpret_cast<const u8*>(text.data()), reinterpret_cast<const u8*>(text.data()) + len);
-    }
-    return bytes;
-}
-
 /// 判断组件是否可折叠为纯文本 StringTag（对齐 Component.tryCollapseToString）：
 /// 纯 StringTextComponent + 空 style + 无 siblings
 bool isCollapsible(const ITextComponent& component)
@@ -69,27 +55,6 @@ bool isCollapsible(const ITextComponent& component)
         return false;
     }
     return component.getStyle().isEmpty() && component.getSiblings().empty();
-}
-
-/// 把 Style 序列化为 compound_tag 的 style 相关键（color/bold/italic/underlined/strikethrough/obfuscated）。
-/// 对齐 vanilla Style.Serializer.MAP_CODEC（snake_case 键名，bool 字段以 ByteTag 承载）。
-void writeStyleToCompound(nbt::tags::compound_tag& comp, const Style& style)
-{
-    if (const auto color = style.getColor(); color.has_value() && *color != TextFormatting::None) {
-        comp.put("color", ::mc::text::toName(*color));
-    }
-    // 三态：显式 false 也要写成 0b。原版 `Style.Serializer` 用 Optional<Boolean>，
-    // 「显式 false」与「未设置」在存档与网络里是两种值。
-    const auto putFlag = [&comp](const char* key, const std::optional<bool>& value) {
-        if (value.has_value()) {
-            comp.put(key, static_cast<std::int8_t>(*value ? 1 : 0));
-        }
-    };
-    putFlag("bold", style.bold());
-    putFlag("italic", style.italic());
-    putFlag("underlined", style.underlined());
-    putFlag("strikethrough", style.strikethrough());
-    putFlag("obfuscated", style.obfuscated());
 }
 
 /// 把不可折叠组件递归序列化为 compound_tag（contents + style + extra）。
@@ -128,8 +93,8 @@ void writeComponentToCompound(nbt::tags::compound_tag& comp, const ITextComponen
         comp.put("text", component.getUnformattedText());
     }
 
-    // style
-    writeStyleToCompound(comp, component.getStyle());
+    // style：与数字格式、Sign 等所有 NBT 场景共用同一份样式编解码
+    styleToNbt(comp, component.getStyle());
 
     // extra（siblings）→ ListTag of CompoundTag
     const auto& siblings = component.getSiblings();
@@ -152,24 +117,114 @@ void writeComponentToCompound(nbt::tags::compound_tag& comp, const ITextComponen
 
 } // namespace
 
-std::vector<u8> componentToNbtBytes(const ITextComponent* component)
+std::unique_ptr<nbt::tags::tag> componentToNbtTag(const ITextComponent* component)
 {
     if (component == nullptr) {
-        return stringTagToBytes(std::string{});
+        return std::make_unique<nbt::tags::string_tag>(std::string{});
     }
     if (isCollapsible(*component)) {
         // 可折叠 → StringTag（对齐 tryCollapseToString）
-        return stringTagToBytes(static_cast<const StringTextComponent*>(component)->getText());
+        return std::make_unique<nbt::tags::string_tag>(static_cast<const StringTextComponent*>(component)->getText());
     }
-    // 不可折叠 → CompoundTag（0x0A + entries + 0x00，无 root name）
-    nbt::tags::compound_tag comp;
-    writeComponentToCompound(comp, *component);
-    return ::mc::network::buffer::nbt_io::serializeRootCompoundToBytes(comp);
+    auto comp = std::make_unique<nbt::tags::compound_tag>();
+    writeComponentToCompound(*comp, *component);
+    return comp;
+}
+
+std::vector<u8> componentToNbtBytes(const ITextComponent* component)
+{
+    const auto tag = componentToNbtTag(component);
+    return ::mc::network::buffer::nbt_io::serializeRootTagToBytes(*tag);
+}
+
+namespace {
+
+/// 取某个键的字符串标签值；键不存在返回 nullptr
+const nbt::tags::string_tag* _findString(const nbt::tags::compound_tag& tag, const char* key)
+{
+    const auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return nullptr;
+    }
+    return dynamic_cast<const nbt::tags::string_tag*>(it->second.get());
+}
+
+} // namespace
+
+Result<std::unique_ptr<ITextComponent>> componentFromNbtTag(const nbt::tags::tag& tag)
+{
+    // StringTag：折叠的纯文本
+    if (tag.id() == nbt::TagId::String) {
+        return std::unique_ptr<ITextComponent>(
+            std::make_unique<StringTextComponent>(dynamic_cast<const nbt::tags::string_tag&>(tag).value));
+    }
+    if (tag.id() != nbt::TagId::Compound) {
+        return Error(ErrorCode::InvalidData,
+            "Component NBT must be String or Compound, got tag id " + std::to_string(static_cast<i32>(tag.id())),
+            "text::componentFromNbtTag");
+    }
+
+    const auto& comp = dynamic_cast<const nbt::tags::compound_tag&>(tag);
+
+    // contents：text 优先，其次 translate（与写出方向对称）
+    std::unique_ptr<ITextComponent> result;
+    if (const auto* textTag = _findString(comp, "text"); textTag != nullptr) {
+        result = std::make_unique<StringTextComponent>(textTag->value);
+    } else if (const auto* translateTag = _findString(comp, "translate"); translateTag != nullptr) {
+        std::vector<std::unique_ptr<ITextComponent>> params;
+        const auto withIt = comp.value.find("with");
+        if (withIt != comp.value.end()) {
+            if (withIt->second->id() != nbt::TagId::List) {
+                return Error(ErrorCode::InvalidData, "Component 'with' must be a list", "text::componentFromNbtTag");
+            }
+            const auto& withList = dynamic_cast<const nbt::tags::list_tag&>(*withIt->second);
+            for (size_t i = 0; i < withList.size(); ++i) {
+                const auto element = withList[i];
+                auto param = componentFromNbtTag(*element);
+                if (param.failed()) {
+                    return param.error();
+                }
+                params.push_back(param.value());
+            }
+        }
+        result = std::make_unique<TranslationTextComponent>(translateTag->value, std::move(params));
+    } else {
+        return Error(
+            ErrorCode::InvalidData, "Component NBT has neither 'text' nor 'translate'", "text::componentFromNbtTag");
+    }
+
+    // style（字段与 contents 同层平铺）
+    auto style = styleFromNbt(comp);
+    if (style.failed()) {
+        return style.error();
+    }
+    result->setStyle(style.value());
+
+    // extra（siblings）
+    const auto extraIt = comp.value.find("extra");
+    if (extraIt != comp.value.end()) {
+        if (extraIt->second->id() != nbt::TagId::List) {
+            return Error(ErrorCode::InvalidData, "Component 'extra' must be a list", "text::componentFromNbtTag");
+        }
+        const auto& extraList = dynamic_cast<const nbt::tags::list_tag&>(*extraIt->second);
+        for (size_t i = 0; i < extraList.size(); ++i) {
+            const auto element = extraList[i];
+            auto sibling = componentFromNbtTag(*element);
+            if (sibling.failed()) {
+                return sibling.error();
+            }
+            result->append(sibling.value());
+        }
+    }
+
+    return result;
 }
 
 std::vector<u8> plainTextToNbtBytes(const std::string& text)
 {
-    return stringTagToBytes(text);
+    // 等价于对一个纯 StringTextComponent 走 componentToNbtBytes（可折叠 → StringTag）。
+    const StringTextComponent component(text);
+    return componentToNbtBytes(&component);
 }
 
 std::vector<u8> parseJsonComponentToNbtBytes(const std::string& jsonStr)
@@ -186,7 +241,7 @@ std::vector<u8> parseJsonComponentToNbtBytes(const std::string& jsonStr)
         spdlog::warn("parseJsonComponentToNbtBytes: JSON parse failed ({}), fallback to plain text", e.what());
     }
     // 解析失败降级为纯文本 StringTag
-    return stringTagToBytes(jsonStr);
+    return plainTextToNbtBytes(jsonStr);
 }
 
 namespace {

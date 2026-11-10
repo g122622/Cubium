@@ -1115,6 +1115,8 @@ add_executable(mc_tests
     server/command/AttributeCommandTest.cpp
     # /bossbar 命令测试（add/remove/list/set/get 全子命令）
     server/command/BossBarCommandTest.cpp
+    # /scoreboard ... numberformat 命令测试（目标级格式与分数级覆盖）
+    server/command/ScoreboardNumberFormatCommandTest.cpp
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
     server/command/SetWorldSpawnCommandTest.cpp
@@ -1138,6 +1140,8 @@ add_executable(mc_tests
     common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
+    # style 参数（SNBT 复合标签 → Style，供 /scoreboard ... numberformat styled 使用）
+    common/command/arguments/StyleArgumentTest.cpp
     # NBT 标签赋值语义测试
     common/util/nbt/NbtTagAssignmentTest.cpp
     # SNBT 文本字面量的类型保真（double 后缀、布尔字面量）
@@ -1786,6 +1790,8 @@ add_executable(mc_tests
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp
     common/util/text/ComponentNbtSerializationTest.cpp
+    # 数字格式（记分板 blank/styled/fixed 的渲染、NBT 存档与线格式编码）
+    common/util/text/NumberFormatTest.cpp
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
     # 调色板容器单元测试

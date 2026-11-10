@@ -93,4 +93,21 @@ void ScoreObjective::setDisplayAutoUpdate(bool displayAutoUpdate)
     }
 }
 
+const text::numbers::NumberFormat& ScoreObjective::numberFormatOrDefault(
+    const text::numbers::NumberFormat& fallback) const noexcept
+{
+    return m_numberFormat.has_value() ? *m_numberFormat : fallback;
+}
+
+void ScoreObjective::setNumberFormat(std::optional<text::numbers::NumberFormat> numberFormat)
+{
+    // 值未变则不广播：与 setRenderType / setDisplayAutoUpdate 的「只在真正变化时通知」一致，
+    // 避免重复执行同一条命令时反复给所有玩家发 SetObjective。
+    if (m_numberFormat == numberFormat) {
+        return;
+    }
+    m_numberFormat = std::move(numberFormat);
+    m_scoreboard.onObjectiveChanged(*this);
+}
+
 } // namespace mc::scoreboard

@@ -25,8 +25,10 @@
 
 #include "ScoreCriteriaRenderType.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
+#include "common/util/text/numbers/NumberFormat.hpp"
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace mc::scoreboard {
@@ -160,6 +162,40 @@ public:
      */
     void setDisplayAutoUpdate(bool displayAutoUpdate);
 
+    // ========== 数字格式 ==========
+
+    /**
+     * @brief 获取目标级的数字格式
+     *
+     * 对应 vanilla `Objective.numberFormat()`：`/scoreboard objectives modify <objective> numberformat ...`
+     * 设置的自定义格式。未设置时返回 `std::nullopt`——此时渲染方使用自己的默认格式
+     * （原版 `Objective.numberFormatOrDefault(default)`），而不是「不显示数字」。
+     *
+     * @return 数字格式，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<text::numbers::NumberFormat>& getNumberFormat() const noexcept
+    {
+        return m_numberFormat;
+    }
+
+    /**
+     * @brief 取数字格式，未设置时回退到给定默认格式
+     *
+     * 对应 vanilla `Objective.numberFormatOrDefault(NumberFormat)`。
+     *
+     * @param fallback 未设置自定义格式时使用的默认格式
+     * @return 目标实际生效的数字格式（引用，生命周期与入参或本对象相同）
+     */
+    [[nodiscard]] const text::numbers::NumberFormat& numberFormatOrDefault(
+        const text::numbers::NumberFormat& fallback) const noexcept;
+
+    /**
+     * @brief 设置目标级数字格式
+     *
+     * @param numberFormat 数字格式；`std::nullopt` 表示清除自定义格式
+     */
+    void setNumberFormat(std::optional<text::numbers::NumberFormat> numberFormat);
+
     // ========== 所属记分板 ==========
 
     /**
@@ -189,6 +225,8 @@ private:
     std::unique_ptr<text::ITextComponent> m_formattedDisplayName;
     RenderType m_renderType;
     bool m_displayAutoUpdate = true; ///< 显示名自动更新（vanilla 默认为 true）
+    /// 目标级数字格式（vanilla `Objective.numberFormat`，nullopt = 未设置自定义格式）
+    std::optional<text::numbers::NumberFormat> m_numberFormat;
 };
 
 } // namespace mc::scoreboard

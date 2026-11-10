@@ -34,6 +34,7 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/util/text/numbers/NumberFormatCodec.hpp"
 #include "server/application/IServer.hpp"
 #include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -331,8 +332,9 @@ mc::network::ir::play::SetObjective ServerScoreboard::_createObjectivePacket(Sco
     if (method == 0 || method == 2) {
         pkt.displayName = componentToBytes(objective.getDisplayName(), objective.getName());
         pkt.renderType = renderTypeToOrdinal(objective.getRenderType());
-        // numberFormat 留空（absent）：vanilla Optional<NumberFormat>，空 vector 经
-        // writeNumberFormat 写 Bool(false)。业务侧暂不设置自定义数字格式。
+        // numberFormat：目标级自定义格式，absent（空 vector）表示未设置——客户端据此回退到自己的
+        // 默认格式（vanilla Optional<NumberFormat>）。
+        pkt.numberFormat = ::mc::text::numbers::numberFormatToWireBytes(objective.getNumberFormat());
     }
 
     return pkt;
@@ -344,8 +346,11 @@ mc::network::ir::play::SetScore ServerScoreboard::_createSetScorePacket(Score& s
     pkt.owner = score.getPlayerName();
     pkt.objectiveName = score.getObjective().getName();
     pkt.score = change ? score.getScorePoints() : 0;
-    // display/numberFormat 留空（absent）：vanilla Optional<Component>/Optional<NumberFormat>，
-    // 空 vector 经 writeOptionalComponentNbt/writeNumberFormat 写 Bool(false)。
+    // numberFormat：本条分数的覆盖格式（/scoreboard players display numberformat），absent 表示
+    // 未覆盖、由客户端回退到目标的格式。
+    pkt.numberFormat = ::mc::text::numbers::numberFormatToWireBytes(score.getNumberFormatOverride());
+    // display 留空（absent）：vanilla Optional<Component>，空 vector 经 writeOptionalComponentNbt 写
+    // Bool(false)。分数持有者的自定义显示名（/scoreboard players display name）尚未实现。
     return pkt;
 }
 
