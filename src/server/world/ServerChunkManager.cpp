@@ -2197,7 +2197,7 @@ void ServerChunkManager::_debugDumpStuckHolders()
 }
 
 // ============================================================================
-// TODO(临时诊断): primer 状态普查（稳态归因用）。定位完成后删除本段。
+// primer 状态普查（基准测试的稳态归因用）
 // ============================================================================
 
 std::vector<ServerChunkManager::PrimerStatsRow> ServerChunkManager::debugCollectPrimerStats() const
