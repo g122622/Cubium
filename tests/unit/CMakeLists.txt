@@ -738,6 +738,7 @@ add_executable(mc_tests
     common/world/block/blocks/FireBlockCollisionTest.cpp
     common/world/block/blocks/FireBlockTest.cpp
     common/world/block/blocks/NetherPortalBlockTest.cpp
+    common/world/block/core/BlockIsValidSpawnTest.cpp
     common/world/block/blocks/BubbleColumnBlockTest.cpp
     common/world/block/blocks/AnimateTickTest.cpp
     common/world/block/blocks/FallingBlockTest.cpp
