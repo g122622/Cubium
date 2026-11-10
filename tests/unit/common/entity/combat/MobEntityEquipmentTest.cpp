@@ -28,6 +28,7 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/illager/IllagerEntities.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
@@ -640,4 +641,32 @@ TEST_F(MobEntityEquipmentTest, CanPickUpLoot_ProbabilityByDifficulty)
 
     DifficultyInstance hard(Difficulty::Hard);
     EXPECT_FLOAT_EQ(0.55f * hard.getSpecialMultiplier(), 0.275f);
+}
+
+// 巡逻队长的头部掉落率是 2.0（vanilla `PatrollingMonster#finalizeSpawn` 在给队长戴上
+// 不祥旗帜后紧接一句 setDropChance(HEAD, 2.0F)，含义是"必掉且不受抢夺影响"）。
+// 这里能测的前提是掉落率接口本身早已接到实体上（`MobEntity::setEquipmentDropChance`），
+// 此前缺的只是 finalizeSpawn 里漏掉的那一行调用。
+TEST_F(MobEntityEquipmentTest, PatrolLeaderForcesHeadDropChance)
+{
+    PillagerEntity pillager(EntityInstanceId(1), mc::test::testEcsRegistry());
+    pillager.setWorld(m_world.get());
+    pillager.setLeader(true);
+
+    DifficultyInstance normal(Difficulty::Normal);
+    pillager.finalizeSpawn(*m_world, normal, world::spawn::SpawnReason::Patrol);
+
+    EXPECT_FLOAT_EQ(pillager.getEquipmentDropChance(EquipmentSlot::Head), 2.0f);
+}
+
+// 非队长不应被顺手改成 2.0——掉率仍为默认值（0.085）。
+TEST_F(MobEntityEquipmentTest, NonLeaderKeepsDefaultHeadDropChance)
+{
+    PillagerEntity pillager(EntityInstanceId(2), mc::test::testEcsRegistry());
+    pillager.setWorld(m_world.get());
+
+    DifficultyInstance normal(Difficulty::Normal);
+    pillager.finalizeSpawn(*m_world, normal, world::spawn::SpawnReason::Patrol);
+
+    EXPECT_FLOAT_EQ(pillager.getEquipmentDropChance(EquipmentSlot::Head), MobEntity::DEFAULT_EQUIPMENT_DROP_CHANCE);
 }
