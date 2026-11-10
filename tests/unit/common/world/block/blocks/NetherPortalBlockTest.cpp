@@ -382,29 +382,9 @@ TEST_F(NetherPortalBlockTest, PortalIsNotOpaque)
 // 传送门刷僵尸猪灵等按概率生成怪物的逻辑都以它为前提。
 // ============================================================================
 
-namespace {
-
-/// 可指定难度的测试世界；其余行为沿用 NetherPortalTestWorld。
-class SpawnRuleTestWorld : public NetherPortalTestWorld {
-public:
-    explicit SpawnRuleTestWorld(Difficulty difficulty)
-        : m_difficulty(difficulty)
-    {}
-
-    [[nodiscard]] Difficulty difficulty() const override
-    {
-        return m_difficulty;
-    }
-
-private:
-    Difficulty m_difficulty;
-};
-
-} // namespace
-
 TEST(WorldSpawnRuleTest, IsSpawningMonsters_NormalDifficultyAndDefaultRulesIsTrue)
 {
-    SpawnRuleTestWorld world(Difficulty::Normal);
+    mc::test::MapBackedTestWorld world(Difficulty::Normal);
     // 默认 GameRules 中 SPAWN_MOBS 与 SPAWN_MONSTERS 均开启
     EXPECT_TRUE(world.isSpawningMonsters());
 }
@@ -412,7 +392,7 @@ TEST(WorldSpawnRuleTest, IsSpawningMonsters_NormalDifficultyAndDefaultRulesIsTru
 TEST(WorldSpawnRuleTest, IsSpawningMonsters_PeacefulDifficultyIsFalse)
 {
     // 和平难度下无论游戏规则如何都不生成敌对生物
-    SpawnRuleTestWorld world(Difficulty::Peaceful);
+    mc::test::MapBackedTestWorld world(Difficulty::Peaceful);
     EXPECT_FALSE(world.isSpawningMonsters());
 }
 
