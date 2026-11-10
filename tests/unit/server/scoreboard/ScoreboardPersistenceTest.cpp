@@ -932,4 +932,86 @@ TEST_F(ScoreboardPersistenceTest, Scoreboard_NumberFormatSurvivesSaveAndLoad)
     EXPECT_EQ(loadedScore->formatValue(*loadedObjective->getNumberFormat())->getUnformattedText(), "");
 }
 
+// 自定义显示名（vanilla Score.display）：内存里用组件承载，存档里是真正的 Component 标签。
+TEST_F(ScoreboardPersistenceTest, ScoreData_DisplayRoundTrip)
+{
+    ScoreboardSaveData::ScoreData data;
+    data.playerName = "Steve";
+    data.objectiveName = "kills";
+    data.score = 7;
+    data.display = text::StringTextComponent("Red Steve").toJson().dump();
+
+    const nbt::tags::compound_tag tag = data.toNbt();
+    ASSERT_EQ(tag.value.count("display"), 1u);
+    // 落盘形态必须是 Component 标签，而不是"组件 JSON 字符串"——后者原版读不出来。
+    // 纯文本组件在 Component NBT 里被折叠成 StringTag（非纯文本才是 CompoundTag）。
+    EXPECT_EQ(tag.value.at("display")->id(), nbt::TagId::String);
+    EXPECT_EQ(tag.get<nbt::tags::string_tag>("display"), "Red Steve");
+
+    auto restored = ScoreboardSaveData::ScoreData::fromNbt(tag);
+    ASSERT_TRUE(restored.success()) << restored.error().message();
+    ASSERT_TRUE(restored.value().display.has_value());
+    EXPECT_EQ(nlohmann::json::parse(*restored.value().display).at("text").get<std::string>(), "Red Steve");
+}
+
+TEST_F(ScoreboardPersistenceTest, MissingDisplayReadsAsAbsent)
+{
+    ScoreboardSaveData::ScoreData data;
+    data.playerName = "Steve";
+    data.objectiveName = "kills";
+    data.score = 3;
+
+    const nbt::tags::compound_tag tag = data.toNbt();
+    EXPECT_EQ(tag.value.count("display"), 0u);
+
+    auto restored = ScoreboardSaveData::ScoreData::fromNbt(tag);
+    ASSERT_TRUE(restored.success());
+    EXPECT_FALSE(restored.value().display.has_value());
+}
+
+// 损坏的 display 字段只丢显示名，不能让整条分数记录读不出来。
+TEST_F(ScoreboardPersistenceTest, CorruptDisplayIsDroppedWithoutLosingTheScore)
+{
+    ScoreboardSaveData::ScoreData data;
+    data.playerName = "Steve";
+    data.objectiveName = "kills";
+    data.score = 11;
+
+    nbt::tags::compound_tag tag = data.toNbt();
+    tag.value.emplace("display", std::make_unique<nbt::tags::int_tag>());
+
+    auto restored = ScoreboardSaveData::ScoreData::fromNbt(tag);
+    ASSERT_TRUE(restored.success()) << restored.error().message();
+    EXPECT_FALSE(restored.value().display.has_value());
+    EXPECT_EQ(restored.value().score, 11);
+}
+
+TEST_F(ScoreboardPersistenceTest, Scoreboard_DisplayNameSurvivesSaveAndLoad)
+{
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    ASSERT_NE(criteria, nullptr);
+
+    auto* objective = scoreboard.addObjective("kills", *criteria, std::make_unique<text::StringTextComponent>("Kills"));
+    ASSERT_NE(objective, nullptr);
+
+    auto* score = scoreboard.getOrCreateScore("Steve", *objective);
+    ASSERT_NE(score, nullptr);
+    score->setScorePoints(5);
+    score->setDisplay(std::make_unique<text::StringTextComponent>("Red Steve"));
+
+    const ScoreboardSaveData saveData = ScoreboardSaveData::fromScoreboard(scoreboard);
+    Scoreboard loaded;
+    const auto applyResult = saveData.applyToScoreboard(loaded);
+    ASSERT_TRUE(applyResult.success()) << applyResult.error().message();
+
+    auto* loadedObjective = loaded.getObjective("kills");
+    ASSERT_NE(loadedObjective, nullptr);
+    auto* loadedScore = loaded.getScore("Steve", *loadedObjective);
+    ASSERT_NE(loadedScore, nullptr);
+    ASSERT_NE(loadedScore->getDisplay(), nullptr) << "the custom display name must survive a save/load round trip";
+    EXPECT_EQ(loadedScore->getDisplay()->getUnformattedText(), "Red Steve");
+    EXPECT_EQ(loadedScore->getScorePoints(), 5);
+}
+
 // main 函数由 gtest_main 库提供

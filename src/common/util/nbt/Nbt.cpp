@@ -30,6 +30,7 @@
 
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/Utf8.hpp"
 #include <cctype>
 #include <cerrno>
 #include <cstdint>
@@ -654,6 +655,40 @@ Result<TagId> deduce_tag(std::istream& input)
 
 namespace tags {
 
+namespace {
+
+/**
+ * @brief 读取 SNBT `\uXXXX` 转义里的 4 位十六进制码元
+ *
+ * Java 的 `\uXXXX` 是 **UTF-16 码元**（不是码点），由调用方决定是否合并代理对。
+ *
+ * @param input 输入流
+ * @return 16 位码元值；不足 4 位或含非十六进制字符时报错
+ */
+Result<u32> _readUnicodeUnit(std::istream& input)
+{
+    u32 value = 0;
+    for (i32 index = 0; index < 4; ++index) {
+        i32 read = 0;
+        MC_TRY_ASSIGN(read, cheof(input));
+        const char digit = static_cast<char>(read);
+        u32 nibble = 0;
+        if (digit >= '0' && digit <= '9') {
+            nibble = static_cast<u32>(digit - '0');
+        } else if (digit >= 'a' && digit <= 'f') {
+            nibble = static_cast<u32>(digit - 'a' + 10);
+        } else if (digit >= 'A' && digit <= 'F') {
+            nibble = static_cast<u32>(digit - 'A' + 10);
+        } else {
+            return Error(ErrorCode::InvalidData, "NBT: unicode escape requires 4 hex digits");
+        }
+        value = (value << 4) | nibble;
+    }
+    return value;
+}
+
+} // namespace
+
 Result<std::string> read_string_text(std::istream& input)
 {
     MC_TRY(skip_space(input));
@@ -710,9 +745,34 @@ Result<std::string> read_string_text(std::istream& input)
                         case 't':
                             result.push_back('\t');
                             break;
-                        case 'u':
-                            // TODO: 支持 SNBT 的 \uXXXX 转义（当前版本按未实现处理并报错）
-                            return Error(ErrorCode::Unsupported, "NBT: unicode escape sequences are not supported yet");
+                        case 'u': {
+                            u32 unit = 0;
+                            MC_TRY_ASSIGN(unit, _readUnicodeUnit(input));
+                            // Java 的 `\uXXXX` 是 UTF-16 码元：高位代理必须与紧随的低位代理
+                            // 合并成一个码点，否则没法用 UTF-8 表示；孤立代理在 Java 里也是
+                            // 无法编码成合法 UTF-8 的，因此这里明确报错而不是产出坏字节。
+                            if (unit >= 0xD800 && unit <= 0xDBFF) {
+                                i32 prefixRead = 0;
+                                i32 tagRead = 0;
+                                MC_TRY_ASSIGN(prefixRead, cheof(input));
+                                MC_TRY_ASSIGN(tagRead, cheof(input));
+                                if (static_cast<char>(prefixRead) != '\\' || static_cast<char>(tagRead) != 'u') {
+                                    return Error(ErrorCode::InvalidData,
+                                        "NBT: high surrogate must be followed by a low surrogate");
+                                }
+                                u32 low = 0;
+                                MC_TRY_ASSIGN(low, _readUnicodeUnit(input));
+                                if (low < 0xDC00 || low > 0xDFFF) {
+                                    return Error(ErrorCode::InvalidData,
+                                        "NBT: high surrogate must be followed by a low surrogate");
+                                }
+                                unit = 0x10000U + ((unit - 0xD800U) << 10) + (low - 0xDC00U);
+                            } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+                                return Error(ErrorCode::InvalidData, "NBT: unexpected low surrogate in unicode escape");
+                            }
+                            util::text::utf8Append(result, unit);
+                            break;
+                        }
                         default:
                             result.push_back('\\');
                             result.push_back(static_cast<char>(escaped));

@@ -180,3 +180,48 @@ TEST(SnbtLiteralTest, BooleanInByteListParsesAsByte)
     ASSERT_NE(first, nullptr) << "list element true must parse as byte_tag";
     EXPECT_EQ(first->value, 1);
 }
+
+// ============================================================================
+// \uXXXX 转义
+// ============================================================================
+
+TEST(SnbtLiteralTest, UnicodeEscapeDecodesToUtf8)
+{
+    // 基本多语言平面：\u00e9 是 é（2 字节 UTF-8）
+    auto parsed = _parse(R"({"name":"caf\u00e9"})");
+    ASSERT_NE(parsed, nullptr);
+    const auto* name = _child<nbt::tags::string_tag>(parsed.get(), "name");
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(name->value, "café");
+
+    // 十六进制大小写都要接受
+    auto upper = _parse(R"({"name":"\u00E9"})");
+    ASSERT_NE(upper, nullptr);
+    const auto* upperName = _child<nbt::tags::string_tag>(upper.get(), "name");
+    ASSERT_NE(upperName, nullptr);
+    EXPECT_EQ(upperName->value, "é");
+}
+
+TEST(SnbtLiteralTest, SurrogatePairDecodesToSingleCodePoint)
+{
+    // \uD83D\uDE00 是 U+1F600（😀），Java 里由一对 UTF-16 代理表示。
+    // 必须合并成一个 4 字节 UTF-8 码点，不能编码成两个非法字节序列。
+    auto parsed = _parse(R"({"name":"\uD83D\uDE00"})");
+    ASSERT_NE(parsed, nullptr);
+    const auto* name = _child<nbt::tags::string_tag>(parsed.get(), "name");
+    ASSERT_NE(name, nullptr);
+    EXPECT_EQ(name->value, "\xF0\x9F\x98\x80");
+    EXPECT_EQ(name->value.size(), 4u);
+}
+
+TEST(SnbtLiteralTest, MalformedUnicodeEscapesAreRejected)
+{
+    // 不足 4 位 / 非十六进制 / 孤立代理：都无法产出合法 UTF-8，必须报错而不是产出坏字节。
+    for (const char* text : {R"({"name":"\u12"})",
+             R"({"name":"\uZZZZ"})",
+             R"({"name":"\uD83D"})",
+             R"({"name":"\uD83Dx"})",
+             R"({"name":"\uDE00"})"}) {
+        EXPECT_EQ(_parse(text), nullptr) << text;
+    }
+}

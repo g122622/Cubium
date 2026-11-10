@@ -106,16 +106,13 @@ TEST_F(GiveCommandTest, GiveCommandRequiresPermissionLevel2)
 {
     ServerCommandSource lowPermSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "test");
 
-    bool permissionDenied = false;
-    try {
-        const auto result = m_server.commandRegistry().execute("give @p minecraft:stone 1", lowPermSource);
-        permissionDenied = (result.value() == 0);
-    }
-    catch (...) {
-        permissionDenied = true;
-    }
-
-    EXPECT_TRUE(permissionDenied);
+    // 权限不足时派发器直接返回 PermissionDenied 错误。
+    // 注意不能用 try/catch 接异常：`Result::value()` 在 failed() 时是断言崩溃而不是抛异常，
+    // 旧写法会把整个测试进程带走。
+    const auto result = m_server.commandRegistry().execute("give @p minecraft:stone 1", lowPermSource);
+    ASSERT_TRUE(result.failed()) << "a permission level 0 source must not be allowed to run /give";
+    EXPECT_NE(result.error().message().find("commands.permission.denied"), std::string::npos)
+        << "expected the permission-denied error, got: " << result.error().message();
 }
 
 TEST_F(GiveCommandTest, GiveCommandParsesItemWithNamespace)

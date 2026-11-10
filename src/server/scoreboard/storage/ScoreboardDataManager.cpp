@@ -291,17 +291,12 @@ Result<std::vector<ScoreboardSaveData::ObjectiveData>> ScoreboardDataManager::lo
 
 // ========== 分数操作 ==========
 
-Result<void> ScoreboardDataManager::saveScore(
-    const std::string& objectiveName, const std::string& playerName, i32 score, bool locked)
+Result<void> ScoreboardDataManager::saveScore(const ScoreboardSaveData::ScoreData& score)
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
 
-    // 创建分数数据
-    ScoreboardSaveData::ScoreData scoreData;
-    scoreData.playerName = playerName;
-    scoreData.objectiveName = objectiveName;
-    scoreData.score = score;
-    scoreData.locked = locked;
+    // 整条 ScoreData 直接落盘：数字格式覆盖与自定义显示名都随之一并保存。
+    const ScoreboardSaveData::ScoreData& scoreData = score;
 
     // 序列化
     auto serializeResult = serializeNbtToBytes(scoreData.toNbt());
@@ -310,15 +305,15 @@ Result<void> ScoreboardDataManager::saveScore(
     }
 
     // 写入数据库
-    auto key = makeScoreKey(objectiveName, playerName);
+    auto key = makeScoreKey(scoreData.objectiveName, scoreData.playerName);
     auto putResult = m_storage._database()->put(world::storage::cf::SCOREBOARD, key, serializeResult.value(), true);
     if (putResult.failed()) {
         return putResult.error();
     }
 
     // 更新缓存
-    m_scoreCache[objectiveName][playerName] = scoreData;
-    m_dirtyScores.erase(objectiveName + ":" + playerName);
+    m_scoreCache[scoreData.objectiveName][scoreData.playerName] = scoreData;
+    m_dirtyScores.erase(scoreData.objectiveName + ":" + scoreData.playerName);
 
     return {};
 }
@@ -728,7 +723,7 @@ Result<void> ScoreboardDataManager::saveScoreboard(const Scoreboard& scoreboard)
 
     // 保存所有分数
     for (const auto& score : data.scores()) {
-        auto result = saveScore(score.objectiveName, score.playerName, score.score, score.locked);
+        auto result = saveScore(score);
         if (result.failed()) {
             return result.error();
         }
@@ -834,7 +829,7 @@ Result<size_t> ScoreboardDataManager::saveAllDirty()
             if (objIt != m_scoreCache.end()) {
                 auto playerIt = objIt->second.find(playerName);
                 if (playerIt != objIt->second.end()) {
-                    auto result = saveScore(objectiveName, playerName, playerIt->second.score, playerIt->second.locked);
+                    auto result = saveScore(playerIt->second);
                     if (result.success()) {
                         ++savedCount;
                     }

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/numbers/NumberFormat.hpp"
 #include <memory>
 #include <optional>
@@ -178,6 +179,26 @@ public:
     [[nodiscard]] std::unique_ptr<text::ITextComponent> formatValue(
         const text::numbers::NumberFormat& objectiveFallback) const;
 
+    // ========== 显示名覆盖 ==========
+
+    /**
+     * @brief 获取本分数条目的自定义显示名
+     *
+     * 对应 vanilla `Score.display()`（`/scoreboard players display name ...` 设置）。
+     * 未设置时返回 nullptr，渲染方应回退到持有者自身的名字。
+     */
+    [[nodiscard]] text::ITextComponent* getDisplay() const noexcept
+    {
+        return m_display.get();
+    }
+
+    /**
+     * @brief 设置本分数条目的自定义显示名
+     *
+     * @param display 显示名组件；传 nullptr 表示清除覆盖、回退到持有者名字
+     */
+    void setDisplay(std::unique_ptr<text::ITextComponent> display);
+
     // ========== 信息获取 ==========
 
     /**
@@ -247,6 +268,8 @@ private:
     bool m_forceUpdate = false;
     /// 本分数条目的数字格式覆盖（vanilla `Score.numberFormat`，nullopt = 用目标格式）
     std::optional<text::numbers::NumberFormat> m_numberFormat;
+    /// 本分数条目的自定义显示名（vanilla `Score.display`，nullptr = 用持有者名字）
+    std::unique_ptr<text::ITextComponent> m_display;
 };
 
 } // namespace mc::scoreboard

@@ -113,14 +113,14 @@ public:
     /**
      * @brief 保存分数
      *
-     * @param objectiveName 目标名称
-     * @param playerName 玩家名称
-     * @param score 分数值
-     * @param locked 是否锁定（用于 trigger）
+     * 按整条 `ScoreData` 落盘，而不是把字段拆成标量逐个传：分数条目除了分数值与
+     * 锁定状态，还带有数字格式覆盖与自定义显示名，拆开传会静默丢掉这些字段。
+     * 与相邻的 `saveObjective(const ObjectiveData&)` / `saveTeam(const TeamData&)` 保持同一形态。
+     *
+     * @param score 分数数据
      * @return 成功或错误
      */
-    Result<void> saveScore(
-        const std::string& objectiveName, const std::string& playerName, i32 score, bool locked = false);
+    Result<void> saveScore(const ScoreboardSaveData::ScoreData& score);
 
     /**
      * @brief 加载分数

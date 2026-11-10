@@ -107,14 +107,10 @@ TEST_F(ExecuteCommandTest, ExecuteCommandRequiresPermissionLevel2)
     mc::command::ServerCommandSource lowPermSource(
         &m_server, nullptr, 0, mc::Vector3d(0, 0, 0), mc::Vector2f(0, 0), 0, 0, "test");
 
-    bool permissionDenied = false;
-    try {
-        const auto result = m_server.commandRegistry().execute("execute run help", lowPermSource);
-        permissionDenied = (result.value() == 0);
-    }
-    catch (...) {
-        permissionDenied = true;
-    }
+    // 权限不足时派发器直接返回 PermissionDenied 错误，不需要接异常：
+    // `Result::value()` 在 failed() 时是断言崩溃而不是抛异常，旧写法会带走整个测试进程。
+    const auto result = m_server.commandRegistry().execute("execute run help", lowPermSource);
+    const bool permissionDenied = result.failed() || result.value() == 0;
 
     EXPECT_TRUE(permissionDenied);
 }

@@ -40,6 +40,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/map/MapBlockColor.hpp"
 #include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDataManager.hpp"
 #include "common/world/map/MapDecoration.hpp"
@@ -425,7 +426,7 @@ u8 FilledMapItem::_getTopBlockColor(IWorld& world, i32 x, i32 z, i32 scale, i32 
 
         // 含水方块（waterlogged 等）若顶面不完整，地图上应显示成水而不是它本身的颜色。
         // 做法是把状态换成流体的 legacy 方块（水 → 水方块）再取色。
-        const BlockState* colored = _getCorrectStateForFluidBlock(world, *blockState, BlockPos(x, y, z));
+        const BlockState* colored = world::map::mapColorStateFor(world, *blockState, BlockPos(x, y, z));
 
         const world::map::MaterialColorId mapColor = colored->getMapColor();
         // 无色方块（MaterialColorId::AIR 即原版 MapColor.NONE）要继续往下找，
@@ -440,27 +441,6 @@ u8 FilledMapItem::_getTopBlockColor(IWorld& world, i32 x, i32 z, i32 scale, i32 
 
     outHeight = 0.0;
     return static_cast<u8>(world::map::MaterialColorId::AIR);
-}
-
-const BlockState* FilledMapItem::_getCorrectStateForFluidBlock(
-    IWorld& world, const BlockState& state, const BlockPos& pos)
-{
-    // TODO: 本函数尚无单元测试。它依赖完整的 IWorld（isFaceSturdy 需要世界参数），而
-    //   tests 里没有地图子系统的 IWorld 夹具；补齐时需要先写一个约 250 行的 IWorld 桩，
-    //   再对 FilledMapItem 开放 friend。当前正确性由实现与数据包行为对照保证。
-    // 只有"含流体且顶面不是完整支撑面"时才替换：例如水下的台阶、栅栏等，
-    // 地图应显示水色。顶面完整的含水方块（如 waterlogged 石台阶朝上）仍显示自身颜色。
-    const fluid::FluidState* fluidState = state.getBlock().getFluidState(state);
-    if (fluidState == nullptr || fluidState->isEmpty()) {
-        return &state;
-    }
-
-    if (state.isFaceSturdy(world, pos, Direction::Up, SupportType::Full)) {
-        return &state;
-    }
-
-    const BlockState* legacyBlock = fluidState->getBlockState();
-    return legacyBlock != nullptr ? legacyBlock : &state;
 }
 
 } // namespace mc::item::items
