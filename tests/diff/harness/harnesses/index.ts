@@ -246,8 +246,10 @@ import { biomeSourceSampleDeclaration } from "./biome_source_sample.ts";
 import { climateSampleDeclaration } from "./climate_sample.ts";
 import { structureStartSingleDeclaration } from "./structure_start_single.ts";
 import { structureBlocksSingleDeclaration } from "./structure_blocks_single.ts";
+import { structureBlocksSeedsSingleDeclaration } from "./structure_blocks_seeds_single.ts";
 import { structureBlocksTerrainSingleDeclaration } from "./structure_blocks_terrain_single.ts";
 import { structureBlocksJigsawSingleDeclaration } from "./structure_blocks_jigsaw_single.ts";
+import { structureBlocksJigsawSeedsSingleDeclaration } from "./structure_blocks_jigsaw_seeds_single.ts";
 import { structureBlocksJigsawTerrainSingleDeclaration } from "./structure_blocks_jigsaw_terrain_single.ts";
 import { structureEntitiesSingleDeclaration } from "./structure_entities_single.ts";
 import { structureStartsDeclaration } from "./structure_starts.ts";
@@ -716,8 +718,10 @@ export const HARNESSES: readonly HarnessDeclaration[] = [
     climateSampleDeclaration(),
     structureStartSingleDeclaration(),
     structureBlocksSingleDeclaration(),
+    structureBlocksSeedsSingleDeclaration(),
     structureBlocksTerrainSingleDeclaration(),
     structureBlocksJigsawSingleDeclaration(),
+    structureBlocksJigsawSeedsSingleDeclaration(),
     structureBlocksJigsawTerrainSingleDeclaration(),
     structureEntitiesSingleDeclaration(),
     structureStartsDeclaration(),

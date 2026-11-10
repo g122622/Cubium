@@ -35,6 +35,7 @@
 #include "common/world/block/blocks/building/WallBlock.hpp"
 #include "common/world/block/capability/WaterLoggableHelpers.hpp"
 #include "common/world/block/core/Block.hpp"
+#include "common/world/block/support/SupportType.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
 #include <cstddef>
 #include <memory>
@@ -326,9 +327,10 @@ bool PaneBlock::shouldConnectTo(
         return true;
     }
 
-    // 固体方块连接（排除连接例外方块）
-    bool isSolidSide = neighborBlock.isSolidSide(neighborState, world, pos, oppositeDirection);
-    return !Block::isExceptionForConnection(neighborState) && isSolidSide;
+    // 邻居朝向本方块的一面必须完整：楼梯、半砖等只有半边的方块不算支撑面，
+    // 只看材质/碰撞会把这些方块误判成可连接，铁栏杆就会多出不该有的连接。
+    const bool isSideSolid = neighborState.isFaceSturdy(world, pos, oppositeDirection, SupportType::Full);
+    return !Block::isExceptionForConnection(neighborState) && isSideSolid;
 }
 
 size_t PaneBlock::getShapeIndex(bool north, bool east, bool south, bool west) noexcept

@@ -250,6 +250,19 @@ BlockState TripWireHookBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
+const BlockState& TripWireHookBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), Directions::rotateDirection(facing, rotation));
+}
+
+const BlockState& TripWireHookBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(),
+        Directions::rotateDirection(facing, Directions::mirrorToRotation(mirror, facing)));
+}
+
 [[nodiscard]] i32 TripWireHookBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {

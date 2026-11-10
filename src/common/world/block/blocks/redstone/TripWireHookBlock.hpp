@@ -94,6 +94,18 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    /**
+     * @brief 随结构旋转朝向
+     *
+     * 绊线钩的朝向是水平四向枚举，模板旋转时不跟着转会让钩子指向错误方向。
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 随结构镜像朝向
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
