@@ -105,6 +105,20 @@ public:
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override;
 
+    /**
+     * @brief 获取带实体上下文的碰撞形状
+     *
+     * 脚手架的碰撞随实体状态变化：站在顶面且未潜伏时给可站立的稳定形状；从上方下沉/穿入格内
+     * 时只给底部平台（或直接给空形状），从而支持"跳进脚手架内部向上攀爬"与"潜行穿过平台下落"。
+     *
+     * @param state 方块状态
+     * @param ctx 实体碰撞上下文
+     * @param blockY 方块世界 Y 坐标
+     * @return 碰撞形状
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShapeForEntity(
+        const BlockState& state, const EntityCollisionContext& ctx, i32 blockY) const override;
+
     // ========== 攀爬 ==========
 
     /**

@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/physics/collision/EntityCollisionContext.hpp"
 #include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
@@ -519,4 +520,80 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_WaterloggedStatePreserved_InFalling
     ASSERT_NE(finalState, nullptr);
     EXPECT_TRUE(finalState->isAir());
     EXPECT_EQ(world_.spawnedEntityCount(), 1);
+}
+
+// ============================================================================
+// 带实体上下文的碰撞形状（getCollisionShapeForEntity）
+//
+// 脚手架的碰撞随实体状态变化，这是「跳进脚手架内部向上攀爬」与「潜行穿过平台下落」两个玩法的
+// 基础：站在顶面时给可站立的稳定形状，进入格内只给底板，其余情况给空形状。
+// ============================================================================
+
+namespace {
+
+/// 构造一个脚部位于给定世界 Y 的实体碰撞箱（宽 0.6、高 1.8，与玩家一致）。
+AxisAlignedBB _entityBoxAt(f32 feetY)
+{
+    return AxisAlignedBB(0.2f, feetY, 0.2f, 0.8f, feetY + 1.8f, 0.8f);
+}
+
+} // namespace
+
+TEST_F(ScaffoldingBlockTest, GetCollisionShapeForEntity_StandingOnTop_ReturnsStableShape)
+{
+    constexpr i32 BLOCK_Y = 64;
+    const BlockState& state = scaffolding_->defaultState();
+
+    EntityCollisionContext ctx;
+    const AxisAlignedBB box = _entityBoxAt(static_cast<f32>(BLOCK_Y) + 1.0f); // 脚部落在方块顶面
+    ctx.entityBox = &box;
+    ctx.descending = false;
+
+    const CollisionShape& shape = scaffolding_->getCollisionShapeForEntity(state, ctx, BLOCK_Y);
+    EXPECT_FALSE(shape.isEmpty());
+    EXPECT_EQ(&shape, &scaffolding_->getCollisionShape(state));
+}
+
+TEST_F(ScaffoldingBlockTest, GetCollisionShapeForEntity_DescendingThroughPlatform_ReturnsEmptyShape)
+{
+    constexpr i32 BLOCK_Y = 64;
+    const BlockState& state = scaffolding_->defaultState();
+
+    // 潜行（descending）时脚部仍在方块内部：让实体穿过平台下落
+    EntityCollisionContext ctx;
+    const AxisAlignedBB box = _entityBoxAt(static_cast<f32>(BLOCK_Y) + 0.5f);
+    ctx.entityBox = &box;
+    ctx.descending = true;
+
+    const CollisionShape& shape = scaffolding_->getCollisionShapeForEntity(state, ctx, BLOCK_Y);
+    EXPECT_TRUE(shape.isEmpty());
+}
+
+TEST_F(ScaffoldingBlockTest, GetCollisionShapeForEntity_InsideBottomScaffolding_ReturnsBottomPlatform)
+{
+    constexpr i32 BLOCK_Y = 64;
+    // 距离非 0 且带底板：这一格是脚手架柱的底端，只有底板参与碰撞
+    auto state = scaffolding_->defaultState()
+                     .with(BlockStateProperties::DISTANCE_0_7(), 3)
+                     .with(BlockStateProperties::BOTTOM(), true);
+
+    EntityCollisionContext ctx;
+    const AxisAlignedBB box = _entityBoxAt(static_cast<f32>(BLOCK_Y) + 0.25f);
+    ctx.entityBox = &box;
+    ctx.descending = false;
+
+    const CollisionShape& shape = scaffolding_->getCollisionShapeForEntity(state, ctx, BLOCK_Y);
+    EXPECT_FALSE(shape.isEmpty());
+    // 底板形状只占本格最下方 2/16，与可站立的稳定形状不是同一个对象
+    EXPECT_NE(&shape, &scaffolding_->getCollisionShape(state));
+}
+
+TEST_F(ScaffoldingBlockTest, GetCollisionShapeForEntity_NoEntityContext_ReturnsEmptyShape)
+{
+    constexpr i32 BLOCK_Y = 64;
+    const BlockState& state = scaffolding_->defaultState();
+
+    EntityCollisionContext ctx; // entityBox 为空，isAbove 恒为 false
+    const CollisionShape& shape = scaffolding_->getCollisionShapeForEntity(state, ctx, BLOCK_Y);
+    EXPECT_TRUE(shape.isEmpty());
 }
