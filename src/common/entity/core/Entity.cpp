@@ -1256,9 +1256,6 @@ void Entity::updateEnvironmentState()
             }
         }
     }
-
-    // 兼容旧代码：设置 m_fluidHeight
-    m_fluidHeight = std::max(m_waterHeight, m_lavaHeight);
 }
 
 bool Entity::isInRain() const
