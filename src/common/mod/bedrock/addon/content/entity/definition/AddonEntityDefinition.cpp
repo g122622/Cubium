@@ -144,8 +144,9 @@ i32 _evaluateExperienceReward(const nlohmann::json& reward, const char* field, m
     // 只提供随机数与属性读取。
     // TODO: 补齐 query.last_hit_by_player / query.equipment_count 等实体查询后，
     //   基岩最常见的 `query.last_hit_by_player ? 10 : 0` 写法才能真正生效。
-    math::Random fallback(0);
-    MolangEvaluationContext context{fallback, [](std::string_view) {
+    // 随机源必须用调用方传入的 random：早期这里用固定种子 math::Random(0) 占位，
+    // 会让表达式里的 math.random(a,b) 每次返回同一值，经验奖励恒定。
+    MolangEvaluationContext context{random, [](std::string_view) {
                                         return std::optional<MolangValue>{};
                                     }};
     auto evaluated = compiled.value().evaluate(context);
