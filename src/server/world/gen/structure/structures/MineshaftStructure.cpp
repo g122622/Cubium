@@ -486,12 +486,6 @@ bool MineshaftPiece::_canBeReplaced(IWorld& world, i32 x, i32 y, i32 z, const St
     return true;
 }
 
-bool MineshaftPiece::_isReplaceableByStructures(const BlockState& state)
-{
-    return state.isAir() || state.isLiquid() || state.is(VanillaBlocks::GLOW_LICHEN) ||
-        state.is(VanillaBlocks::SEAGRASS) || state.is(VanillaBlocks::TALL_SEAGRASS);
-}
-
 void MineshaftPiece::setBlockState(
     IWorldWriter& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds)
 {
@@ -619,7 +613,7 @@ void MineshaftPiece::_fillColumnDown(
     const i32 topY = pos.y;
     while (true) {
         const BlockState* current = reader->getBlockState(pos);
-        if (current == nullptr || !_isReplaceableByStructures(*current) || pos.y <= reader->getMinBuildHeight() + 1) {
+        if (current == nullptr || !isReplaceableByStructures(*current) || pos.y <= reader->getMinBuildHeight() + 1) {
             break;
         }
         pos.y -= 1;
@@ -671,7 +665,7 @@ void MineshaftPiece::_fillPillarDownOrChainUp(
             const i32 probeY = startY - step;
             const BlockState* probe = reader->getBlockState(base.x, probeY, base.z);
             const bool replaceable =
-                probe != nullptr && _isReplaceableByStructures(*probe) && !probe->is(VanillaBlocks::LAVA);
+                probe != nullptr && isReplaceableByStructures(*probe) && !probe->is(VanillaBlocks::LAVA);
             if (!replaceable && probe != nullptr && _canPlaceColumnOnTopOf(*reader, BlockPos(base.x, probeY, base.z))) {
                 _fillColumnBetween(world, state, base.x, probeY + 1, startY, base.z);
                 return;
@@ -682,7 +676,7 @@ void MineshaftPiece::_fillPillarDownOrChainUp(
         if (up) {
             const i32 probeY = startY + step;
             const BlockState* probe = reader->getBlockState(base.x, probeY, base.z);
-            const bool replaceable = probe != nullptr && _isReplaceableByStructures(*probe);
+            const bool replaceable = probe != nullptr && isReplaceableByStructures(*probe);
             if (!replaceable && probe != nullptr &&
                 _canHangChainBelow(*reader, BlockPos(base.x, probeY, base.z), *probe)) {
                 world.setBlockState(base.x, startY + 1, base.z, fenceState(), world::BlockUpdateFlags::UPDATE_CLIENTS);

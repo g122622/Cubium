@@ -233,9 +233,13 @@ void WoodlandMansionPiece::generate(IWorldWriter& world,
 
     // TODO: 处理模板数据标记（ChestWest/ChestEast/ChestSouth/ChestNorth 宝箱、Mage/Warrior
     //       生成灾厄村民）——需要战利品表与实体生成接口，当前只保证方块几何一致。
+    //       它们需要排在下方 jigsaw 覆盖之前（与原版 postProcess 的顺序一致）。
     IWorld* reader = dynamic_cast<IWorld*>(&world);
     MC_ASSERT_RELEASE_MSG(reader != nullptr, "WoodlandMansionPiece::generate requires an IWorld");
     m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+    // 原版 `TemplateStructurePiece.postProcess` 末尾的拼图方块 `final_state` 覆盖。
+    m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
 }
 
 namespace woodland_mansion {

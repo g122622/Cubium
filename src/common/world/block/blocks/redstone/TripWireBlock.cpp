@@ -230,6 +230,49 @@ BlockState TripWireBlock::updatePostPlacement(const BlockState& state,
     }
 }
 
+const BlockState& TripWireBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    const bool north = state.get(BlockStateProperties::NORTH());
+    const bool east = state.get(BlockStateProperties::EAST());
+    const bool south = state.get(BlockStateProperties::SOUTH());
+    const bool west = state.get(BlockStateProperties::WEST());
+    switch (rotation) {
+        case Rotation::Clockwise180:
+            return state.with(BlockStateProperties::NORTH(), south)
+                .with(BlockStateProperties::EAST(), west)
+                .with(BlockStateProperties::SOUTH(), north)
+                .with(BlockStateProperties::WEST(), east);
+        case Rotation::CounterClockwise90:
+            return state.with(BlockStateProperties::NORTH(), east)
+                .with(BlockStateProperties::EAST(), south)
+                .with(BlockStateProperties::SOUTH(), west)
+                .with(BlockStateProperties::WEST(), north);
+        case Rotation::Clockwise90:
+            return state.with(BlockStateProperties::NORTH(), west)
+                .with(BlockStateProperties::EAST(), north)
+                .with(BlockStateProperties::SOUTH(), east)
+                .with(BlockStateProperties::WEST(), south);
+        case Rotation::None:
+        default:
+            return state;
+    }
+}
+
+const BlockState& TripWireBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    switch (mirror) {
+        case Mirror::LeftRight:
+            return state.with(BlockStateProperties::NORTH(), state.get(BlockStateProperties::SOUTH()))
+                .with(BlockStateProperties::SOUTH(), state.get(BlockStateProperties::NORTH()));
+        case Mirror::FrontBack:
+            return state.with(BlockStateProperties::EAST(), state.get(BlockStateProperties::WEST()))
+                .with(BlockStateProperties::WEST(), state.get(BlockStateProperties::EAST()));
+        case Mirror::None:
+        default:
+            return state;
+    }
+}
+
 i32 TripWireBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {

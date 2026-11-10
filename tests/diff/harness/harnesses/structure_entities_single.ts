@@ -89,14 +89,17 @@ const FEATURES = [
 /** 每个结构取多少个落点。 */
 const PER_STRUCTURE = 5;
 
-/** 语料种子。 */
-const SEED = 0;
+/** 语料种子：多个种子扩大覆盖（不同种子抽到的构件组合不同）。 */
+const SEEDS = [0, 9248738493917] as const;
 
 let units: Sample[] = [];
 
-/** 导出某个结构集的候选区块表。 */
-function exportCandidates(directory: string, classpath: string, structureSet: string): string[] {
-  const outputPath = path.join(directory, `${CANDIDATES_FILE_PREFIX}${structureSet.replace(":", "_")}.txt`);
+/** 导出某个结构集在指定种子下的候选区块表。 */
+function exportCandidates(directory: string, classpath: string, structureSet: string, seed: number): string[] {
+  const outputPath = path.join(
+    directory,
+    `${CANDIDATES_FILE_PREFIX}${structureSet.replace(":", "_")}_${seed}.txt`,
+  );
   execFileSync(
     "java",
     [
@@ -106,7 +109,7 @@ function exportCandidates(directory: string, classpath: string, structureSet: st
       "candidates",
       "--only",
       structureSet,
-      String(SEED),
+      String(seed),
       outputPath,
     ],
     { cwd: directory, stdio: ["ignore", "pipe", "pipe"] },
@@ -118,33 +121,40 @@ function exportCandidates(directory: string, classpath: string, structureSet: st
     .filter((line) => line !== "");
 }
 
-/** 展平成逐个单元：每个结构取候选表里均匀分布的若干落点。 */
-function buildUnits(readCandidates: (structureSet: string) => string[]): Sample[] {
+/** 展平成逐个单元：每个结构在每个种子的候选表里各取均匀分布的若干落点。 */
+function buildUnits(readCandidates: (structureSet: string, seed: number) => string[]): Sample[] {
   const result: Sample[] = [];
   for (const feature of FEATURES) {
-    const rows = readCandidates(feature.structureSet)
-      .map((line) => line.split(/\s+/))
-      .filter(([dimension, , , , setId]) => dimension === feature.dimension && setId === feature.structureSet);
-    if (rows.length === 0) {
-      throw new Error(`structure_entities_single: 结构集 ${feature.structureSet} 在扫描窗口内没有任何候选区块`);
-    }
-    const picked = Array.from({ length: Math.min(PER_STRUCTURE, rows.length) }, (_, index) => {
-      return rows[Math.floor((index * rows.length) / Math.max(PER_STRUCTURE, 1))];
-    });
-    for (const [, seedText, xText, zText] of picked) {
-      const chunkX = Number(xText);
-      const chunkZ = Number(zText);
-      result.push({
-        unit: `${feature.structure}/${SEED}/${chunkX}/${chunkZ}`,
-        input: {
-          dimension: feature.dimension,
-          seed: Number(seedText),
-          chunkX,
-          chunkZ,
-          structure: feature.structure,
-          output: "entities",
-        },
+    let pickedAny = false;
+    for (const seed of SEEDS) {
+      const rows = readCandidates(feature.structureSet, seed)
+        .map((line) => line.split(/\s+/))
+        .filter(([dimension, , , , setId]) => dimension === feature.dimension && setId === feature.structureSet);
+      if (rows.length === 0) {
+        continue;
+      }
+      pickedAny = true;
+      const picked = Array.from({ length: Math.min(PER_STRUCTURE, rows.length) }, (_, index) => {
+        return rows[Math.floor((index * rows.length) / Math.max(PER_STRUCTURE, 1))];
       });
+      for (const [, seedText, xText, zText] of picked) {
+        const chunkX = Number(xText);
+        const chunkZ = Number(zText);
+        result.push({
+          unit: `${feature.structure}/${seed}/${chunkX}/${chunkZ}`,
+          input: {
+            dimension: feature.dimension,
+            seed: Number(seedText),
+            chunkX,
+            chunkZ,
+            structure: feature.structure,
+            output: "entities",
+          },
+        });
+      }
+    }
+    if (!pickedAny) {
+      throw new Error(`structure_entities_single: 结构集 ${feature.structureSet} 在扫描窗口内没有任何候选区块`);
     }
   }
   return result;
@@ -185,7 +195,7 @@ export function structureEntitiesSingleDeclaration(): HarnessDeclaration {
       // 候选表由现有 oracle 导出（按真实放置规则算，不手抄坐标）。
       context.compileOracle("StructureStartsOracle", "structure_entities_single");
       const classpath = context.oracleClasspath(context.classesDirectory("structure_entities_single"));
-      units = buildUnits((structureSet) => exportCandidates(directory, classpath, structureSet));
+      units = buildUnits((structureSet, seed) => exportCandidates(directory, classpath, structureSet, seed));
       runOracle(directory, classpath, units);
     },
   } satisfies HarnessDeclaration;

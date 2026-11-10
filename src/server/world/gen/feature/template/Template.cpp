@@ -713,6 +713,63 @@ std::vector<TemplateDataMarker> Template::getDataMarkers(
     return markers;
 }
 
+std::vector<TemplateJigsawReplacement> Template::getJigsawReplacements(
+    const BlockPos& templatePosition, const PlacementSettings& settings) const
+{
+    std::vector<TemplateJigsawReplacement> replacements;
+
+    const Palette* palette = selectPalette(settings, templatePosition);
+    if (palette == nullptr) {
+        if (m_palettes.empty()) {
+            return replacements;
+        }
+        palette = &m_palettes[0];
+    }
+
+    const Block* jigsawBlock = VanillaBlocks::JIGSAW;
+    const auto* bounds = settings.getBoundingBox();
+    const auto& blocks = palette->blocks();
+    for (size_t index = 0; index < blocks.size(); ++index) {
+        const BlockState* state = BlockRegistry::instance().getBlockState(blocks[index].blockStateId);
+        if (state == nullptr || &state->getBlock() != jigsawBlock) {
+            continue;
+        }
+
+        const nbt::CompoundTag* tag = palette->nbtAt(index);
+        if (tag == nullptr) {
+            continue;
+        }
+
+        const BlockPos worldPos = templatePosition +
+            transformBlockPos(
+                blocks[index].pos(), settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
+        if (bounds != nullptr && !bounds->contains(worldPos.x, worldPos.y, worldPos.z)) {
+            continue;
+        }
+
+        // 原版 `getStringOr("final_state", "minecraft:air")`：缺失时按空气覆盖。
+        replacements.push_back(TemplateJigsawReplacement{
+            worldPos, entity::serialization::nbt_helper::tryGetString(*tag, "final_state").value_or("minecraft:air")});
+    }
+
+    return replacements;
+}
+
+void Template::applyJigsawReplacements(
+    IWorld& world, const BlockPos& templatePosition, const PlacementSettings& settings) const
+{
+    for (const auto& replacement : getJigsawReplacements(templatePosition, settings)) {
+        const u32 stateId = JigsawReplacementStructureProcessor::parseBlockStateString(replacement.finalState);
+        const BlockState* state = BlockRegistry::instance().getBlockState(stateId);
+        if (state == nullptr) {
+            spdlog::warn("[Template] Cannot resolve jigsaw final_state '{}'; skipping", replacement.finalState);
+            continue;
+        }
+        world.setBlockState(
+            replacement.pos.x, replacement.pos.y, replacement.pos.z, state, world::BlockUpdateFlags::UPDATE_ALL);
+    }
+}
+
 bool Template::placeInWorld(
     IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const
 {
@@ -747,8 +804,10 @@ bool Template::placeInWorld(
         const nbt::CompoundTag* blockNbt = selectedPalette->nbtAt(blockIndex);
         const BlockPos localPos = block.pos();
 
+        // 旋转/镜像绕设置的旋转枢轴展开（原版 `calculateRelativePosition`），
+        // 枢轴非零的结构（沉船、废弃传送门）偏移整个方块集，不能用世界原点当枢轴。
         BlockPos transformedPos =
-            transformBlockPos(localPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+            transformBlockPos(localPos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
         BlockPos worldPos = pos + transformedPos;
 
         BlockInfo blockInfo(worldPos, block.blockStateId);
@@ -1019,9 +1078,10 @@ bool Template::placeInWorld(
         auto* ecsRegistry = world.entityRegistry();
 
         for (const auto& entityInfo : m_entities) {
-            // 变换实体方块位置（用于边界框检查）
-            BlockPos transformedBlockPos =
-                transformBlockPos(entityInfo.blockPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+            // 变换实体方块位置（用于边界框检查）。与原版一致，实体的旋转/镜像同样
+            // 绕设置的旋转枢轴展开，而不是世界原点。
+            BlockPos transformedBlockPos = transformBlockPos(
+                entityInfo.blockPos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
             BlockPos entityBlockPos = pos + transformedBlockPos;
 
             // 检查边界框
@@ -1036,8 +1096,8 @@ bool Template::placeInWorld(
             // 变换实体精确位置（f64），对应 MC 1.21.11 StructureTemplate#transform(Vec3, ...)
             // 实体使用 block-corner 坐标系：镜像用 1.0 - coord，旋转含 +1 偏移
             math::Vector3d templatePos(entityInfo.posx, entityInfo.posy, entityInfo.posz);
-            math::Vector3d transformedPos =
-                transformEntityPos(templatePos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+            math::Vector3d transformedPos = transformEntityPos(
+                templatePos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
 
             // 加上世界偏移
             f64 entityX = transformedPos.x + static_cast<f64>(pos.x);

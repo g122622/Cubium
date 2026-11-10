@@ -126,6 +126,18 @@ struct TemplateDataMarker {
 };
 
 /**
+ * @brief 模板中拼图方块的 `final_state` 覆盖项
+ *
+ * `TemplateStructurePiece` 语义的模板（沉船、废弃传送门、雪屋、下界化石、海底废墟、
+ * 林地府邸、末地城）在整座模板放置完成后，会把每个 `minecraft:jigsaw` 方块按自身 NBT
+ * 的 `final_state` 覆盖成目标方块。这一覆盖独立于处理器链，也不保留拼图方块的 NBT。
+ */
+struct TemplateJigsawReplacement {
+    BlockPos pos;           ///< 已按放置设置换算到世界坐标的位置
+    std::string finalState; ///< 原版拼图方块的 `final_state` 字符串
+};
+
+/**
  * @brief 放置设置
  */
 class PlacementSettings {
@@ -693,6 +705,34 @@ public:
         const BlockPos& templatePosition, const PlacementSettings& settings) const;
 
     /**
+     * @brief 取出模板中全部拼图方块的 `final_state` 覆盖项
+     *
+     * 位置与数据标记同样按放置设置换算到世界坐标，并遵守放置包围盒；但拼图方块的
+     * `final_state` 是**覆盖**语义，不经过处理器链，也不参与正常方块写入。
+     *
+     * @param templatePosition 模板放置原点
+     * @param settings 放置设置
+     * @return 覆盖项列表（按模板方块顺序）；没有 `final_state` 的拼图方块按原版缺省
+     *         `minecraft:air` 记录
+     */
+    [[nodiscard]] std::vector<TemplateJigsawReplacement> getJigsawReplacements(
+        const BlockPos& templatePosition, const PlacementSettings& settings) const;
+
+    /**
+     * @brief 应用拼图方块的 `final_state` 覆盖
+     *
+     * 对应原版 `TemplateStructurePiece.postProcess` 在 `placeInWorld` 之后对拼图方块的
+     * 逐方块覆盖：读取 `final_state`（缺省 `minecraft:air`）并直接写回该位置，
+     * 更新标志固定为 `UPDATE_ALL`（原版 `setBlock(..., 3)`）。
+     *
+     * @param world 世界接口
+     * @param templatePosition 模板放置原点
+     * @param settings 放置设置
+     */
+    void applyJigsawReplacements(
+        IWorld& world, const BlockPos& templatePosition, const PlacementSettings& settings) const;
+
+    /**
      * @brief 放置模板到世界
      *
      * 完整实现包括：
@@ -858,7 +898,6 @@ public:
         return std::make_unique<JigsawReplacementStructureProcessor>();
     }
 
-private:
     /**
      * @brief 解析方块状态字符串
      * @param stateStr 方块状态字符串，如 "minecraft:stone[axis=y]"

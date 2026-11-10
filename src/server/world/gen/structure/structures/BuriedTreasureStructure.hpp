@@ -56,12 +56,6 @@ public:
         const StructureBoundingBox& chunkBounds,
         ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) override;
-
-private:
-    /**
-     * @brief 检查位置是否在区块边界内
-     */
-    [[nodiscard]] bool _isInBounds(i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds) const;
 };
 
 /**

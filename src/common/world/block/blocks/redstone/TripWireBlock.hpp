@@ -88,6 +88,19 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    /**
+     * @brief 随结构旋转四个连接方向
+     *
+     * 绊线是四向连接方块，模板旋转时若只转方块本体、不转连接属性，整段绊线会保持
+     * 模板原始朝向（试炼密室的绊线走廊差异就是这样暴露的）。
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 随结构镜像四个连接方向
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
     // 不重写 canProvidePower：原版 TripWireBlock 没有重写 isSignalSource（只有绊线钩
     // TripWireHookBlock 是信号源）。绊线自身只把「被踩到」的状态报告给钩子，不直接向
     // 相邻方块输出红石信号；早期写成恒 true，使绊线格被当作信号源参与红石线计算。

@@ -172,9 +172,6 @@ protected:
     /// 该位置是否可以被矿井覆盖（木板/原木/栅栏/铁链之外都可）
     [[nodiscard]] bool _canBeReplaced(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const;
 
-    /// 原版 `isReplaceableByStructures`：空气、液体、发光地衣、海草
-    [[nodiscard]] static bool _isReplaceableByStructures(const BlockState& state);
-
     /// 按概率填充盒体（原版 `generateMaybeBox`）
     void _generateMaybeBox(IWorldWriter& world,
         const StructureBoundingBox& bounds,

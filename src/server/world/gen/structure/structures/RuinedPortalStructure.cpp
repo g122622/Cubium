@@ -334,6 +334,10 @@ void RuinedPortalPiece::generate(IWorldWriter& world,
     // 再相加的。用包围盒的 min 当原点会重复扣掉轴心，整座传送门平移半个模板边长。
     m_template->placeInWorld(*iworld, m_candidatePos, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
+    // 原版 `TemplateStructurePiece.postProcess`：模板放置完成后，把拼图方块按各自 NBT 的
+    // `final_state` 覆盖（废弃传送门模板里带 jigsaw 方块，放置阶段会原样写进世界）。
+    m_template->applyJigsawReplacements(*iworld, m_candidatePos, settings);
+
     // ===== 放置后的地狱岩/岩浆块点缀 =====
     //
     // 这些步骤在空世界里也常常会写入方块（模板自身的地狱岩会触发下方垂滴列），
