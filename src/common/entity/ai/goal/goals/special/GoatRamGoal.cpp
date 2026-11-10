@@ -282,8 +282,13 @@ bool GoatRamGoal::_chooseRamStartPosition()
 
 bool GoatRamGoal::_isWalkableBlock(const BlockPos& pos) const
 {
-    // TODO(pathwalk-loading): vanilla 用导航器的 isStableDestination + 路径代价判定；
-    // Cubium 此处退化为"脚下是实心方块、身体所在两格为空气"的静态近似。
+    // TODO(goat-ram-brain): 这里的静态近似在「山羊迁移到 Brain 系统」时应整体替换。
+    // 说明：原版 1.21.11 的冲撞是 `RamTarget extends Behavior<Goat>`，从 RAM_TARGET 记忆读出
+    // 目标点后写入 WALK_TARGET，由导航器真正寻路与判定可达——**没有** 旧版本里的
+    // `NodeEvaluator.isStableDestination`（该方法在 1.21.11 已不存在，别去找）。
+    // 项目侧山羊仍是 Goal 移植（不是 Brain 实体），因此这里只能退化为
+    // 「脚下实心 + 身体两格为空气」的静态可站立判定；迁移 Brain 时应改为设置 WALK_TARGET
+    // 并交给导航器，届时本函数随之删除。
     const IWorld* worldPtr = m_goat->world();
     if (worldPtr == nullptr) {
         return false;
