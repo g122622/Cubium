@@ -91,6 +91,17 @@ nlohmann::json _variantDefinition()
                     {{"changed",
                         {{"minecraft:variant", {{"value", 7}}}, {"minecraft:mark_variant", {{"value", 3}}}}}}}}}};
 }
+
+/** @brief 取出 Molang 查询结果里的数值，未取到时报错并返回 0，便于用 ASSERT 风格逐项断言。 */
+f32 _molangNumber(const std::optional<MolangValue>& value)
+{
+    EXPECT_TRUE(value.has_value()) << "query must be implemented";
+    if (!value.has_value()) {
+        return 0.0f;
+    }
+    EXPECT_TRUE(std::holds_alternative<f32>(*value)) << "query must resolve to a number";
+    return std::holds_alternative<f32>(*value) ? std::get<f32>(*value) : 0.0f;
+}
 } // namespace
 
 TEST_F(AddonEntityStateQueryTest, HandDomainsAndUnqualifiedItemNamesReadActualEquipment)
@@ -458,4 +469,80 @@ TEST_F(AddonEntityStateQueryTest, VehicleReportsInventoryComponent)
     auto plainResult = EntityStateQuery::hasComponent(plain, "minecraft:inventory");
     EXPECT_FALSE(plainResult.success());
     EXPECT_EQ(plainResult.error().code(), ErrorCode::Unsupported);
+}
+
+// entity.onGround / isSneaking / isRiding / isOnFire 这些状态查询必须读真实实体状态，
+// 而不是恒返回 0；这里断言新建实体的默认值即可暴露"接线错了导致永远是 0"的实现。
+TEST_F(AddonEntityStateQueryTest, MolangQueriesReportEntityPhysicsState)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+    for (const char* query : {"query.is_on_ground", "query.is_sneaking", "query.is_riding", "query.is_on_fire"}) {
+        EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(plain, query)), 0.0f) << query;
+    }
+
+    plain.setOnGround(true);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(plain, "query.is_on_ground")), 1.0f);
+
+    // 潜行状态只有 Player 提供了设置入口，用玩家来验证查询真的读了 isSneaking()。
+    Player player(EntityInstanceId(2), "Sneaking", registry);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(player, "query.is_sneaking")), 0.0f);
+    player.setSneaking(true);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(player, "query.is_sneaking")), 1.0f);
+}
+
+// health / max_health 必须取 LivingEntity 的实际数值，且非生物实体上取 0（而不是 nullopt）。
+TEST_F(AddonEntityStateQueryTest, MolangHealthQueriesReadLivingEntityValues)
+{
+    LivingEntity living(EntityInstanceId(1), nullptr, registry);
+    living.registerAttributes();
+    EXPECT_FLOAT_EQ(_molangNumber(EntityStateQuery::molangQuery(living, "query.health")), living.health());
+    EXPECT_FLOAT_EQ(_molangNumber(EntityStateQuery::molangQuery(living, "query.max_health")), living.maxHealth());
+
+    Entity plain(EntityInstanceId(2), nullptr, registry);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(plain, "query.health")), 0.0f);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(plain, "query.max_health")), 0.0f);
+}
+
+// equipment_count 统计真正装有物品的装备槽，鞍槽不属于基岩定义的"装备"。
+TEST_F(AddonEntityStateQueryTest, MolangEquipmentCountCountsOccupiedEquipmentSlots)
+{
+    LivingEntity living(EntityInstanceId(1), nullptr, registry);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(living, "query.equipment_count")), 0.0f);
+
+    living.setEquipment(EquipmentSlot::MainHand, ItemStack(*item, 1));
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(living, "query.equipment_count")), 1.0f);
+    living.setEquipment(EquipmentSlot::Head, ItemStack(*item, 1));
+    living.setEquipment(EquipmentSlot::Body, ItemStack(*item, 1));
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(living, "query.equipment_count")), 3.0f);
+
+    // 鞍槽不计入。
+    living.setEquipment(EquipmentSlot::Saddle, ItemStack(*item, 1));
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(living, "query.equipment_count")), 3.0f);
+
+    living.setEquipment(EquipmentSlot::Head, ItemStack::EMPTY);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(living, "query.equipment_count")), 2.0f);
+}
+
+// is_baby 只对 AgeableEntity 有意义；其余实体恒为成年（0），不能返回 nullopt。
+TEST_F(AddonEntityStateQueryTest, MolangBabyQueryFollowsAgeableState)
+{
+    AgeableEntity mob(EntityInstanceId(1), registry);
+    mob.registerAttributes();
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(mob, "query.is_baby")), 0.0f);
+    mob.setChild(true);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(mob, "query.is_baby")), 1.0f);
+
+    Entity plain(EntityInstanceId(2), nullptr, registry);
+    EXPECT_EQ(_molangNumber(EntityStateQuery::molangQuery(plain, "query.is_baby")), 0.0f);
+}
+
+// "已实现但该实体不适用"（取 0）与"尚未实现"（nullopt）必须区分开，
+// 否则上层会把不适用也记成"查询未实现"，产生误导性日志。
+TEST_F(AddonEntityStateQueryTest, MolangQuerySeparatesUnimplementedFromNotApplicable)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+    EXPECT_TRUE(EntityStateQuery::molangQuery(plain, "query.health").has_value())
+        << "an implemented query must resolve even when the entity does not support it";
+    EXPECT_FALSE(EntityStateQuery::molangQuery(plain, "query.has_target").has_value())
+        << "an unimplemented query must report nullopt";
 }
