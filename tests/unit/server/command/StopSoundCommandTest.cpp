@@ -108,14 +108,10 @@ TEST_F(StopSoundCommandTest, StopSoundCommandRequiresPermissionLevel2)
 {
     ServerCommandSource lowPermSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "test");
 
-    bool permissionDenied = false;
-    try {
-        const auto result = m_server.commandRegistry().execute("stopsound Steve", lowPermSource);
-        permissionDenied = (result.value() == 0);
-    }
-    catch (...) {
-        permissionDenied = true;
-    }
+    // 权限不足时派发器直接返回 PermissionDenied 错误，不需要接异常：
+    // `Result::value()` 在 failed() 时是断言崩溃而不是抛异常，旧写法会带走整个测试进程。
+    const auto result = m_server.commandRegistry().execute("stopsound Steve", lowPermSource);
+    const bool permissionDenied = result.failed() || result.value() == 0;
 
     EXPECT_TRUE(permissionDenied);
 }

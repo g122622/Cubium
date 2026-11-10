@@ -124,14 +124,10 @@ TEST_F(EnchantCommandTest, EnchantCommandRequiresPermissionLevel2)
         "test");
 
     // 应该因为没有权限而被拒绝
-    bool permissionDenied = false;
-    try {
-        const auto result = m_server.commandRegistry().execute("enchant @p sharpness 5", lowPermSource);
-        permissionDenied = (result.value() == 0);
-    }
-    catch (...) {
-        permissionDenied = true;
-    }
+    // 权限不足时派发器直接返回 PermissionDenied 错误，不需要接异常：
+    // `Result::value()` 在 failed() 时是断言崩溃而不是抛异常，旧写法会带走整个测试进程。
+    const auto result = m_server.commandRegistry().execute("enchant @p sharpness 5", lowPermSource);
+    const bool permissionDenied = result.failed() || result.value() == 0;
 
     EXPECT_TRUE(permissionDenied);
 }
