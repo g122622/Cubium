@@ -33,6 +33,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <gtest/gtest.h>
@@ -284,14 +285,25 @@ TEST(BlockMapColorTableTest, ColorIsInvariantUnderColourNeutralTransformations)
 
     std::size_t checked = 0;
     std::size_t mismatched = 0;
+
+    // 先按方块归组，统计每个方块自身所有状态的色值集合。集合大小 > 1 说明该方块的颜色本来就
+    // 随状态变化（原版 29 个例外方块：原木按 axis、床按 part、barrier/light 按 waterlogged 等），
+    // 这类方块必须跳过——否则会把"颜色本就该变"误判成"变换破坏了颜色"。
+    // 用快照自身的数据判定，而不是维护一份硬编码的方块名单：后者会随原版更新而失效（本次失败
+    // 就是硬编码名单只列了 5 项、漏掉其余 24 个例外方块导致的）。
+    std::unordered_map<std::string, std::unordered_set<u8>> colorsByBlock;
+    for (const std::string& name : names) {
+        const std::size_t bracket = name.find('[');
+        const std::string blockName = bracket == std::string::npos ? name : name.substr(0, bracket);
+        colorsByBlock[blockName].insert(world::block::lookupVanillaMapColor(name));
+    }
+
     for (const std::string& name : names) {
         if (name.find('[') == std::string::npos || name.rfind("minecraft:air", 0) == 0) {
             continue;
         }
         const std::string blockName = name.substr(0, name.find('['));
-        // 已知的变色方块：原木按轴、床按 part、barrier/light 按 waterlogged。
-        if (blockName.ends_with("_log") || blockName.ends_with("_wood") || blockName.ends_with("_bed") ||
-            blockName == "minecraft:barrier" || blockName == "minecraft:light") {
+        if (colorsByBlock[blockName].size() > 1) {
             continue;
         }
         for (const auto& [key, values] : transforms) {
