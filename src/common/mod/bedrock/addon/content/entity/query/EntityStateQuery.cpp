@@ -291,4 +291,66 @@ bool EntityStateQuery::isOwner(const mc::Entity& caller, const mc::Entity& subje
     return false;
 }
 
+std::optional<MolangValue> EntityStateQuery::molangQuery(const mc::Entity& entity, std::string_view name)
+{
+    // 布尔查询统一走 1/0；基岩的 query.* 布尔量就是数值 0/1。
+    const auto flag = [](bool value) {
+        return std::optional<MolangValue>(MolangValue(value ? 1.0f : 0.0f));
+    };
+
+    if (name == "query.is_on_ground") {
+        return flag(entity.onGround());
+    }
+    if (name == "query.is_sneaking") {
+        return flag(entity.isSneaking());
+    }
+    if (name == "query.is_riding") {
+        return flag(entity.isRiding());
+    }
+    if (name == "query.is_on_fire") {
+        return flag(entity.isOnFire());
+    }
+    if (name == "query.is_alive") {
+        return flag(entity.isAlive());
+    }
+    if (name == "query.is_baby") {
+        // 只有 AgeableEntity 有年龄概念；其余实体恒为成年。
+        const auto* ageable = dynamic_cast<const mc::AgeableEntity*>(&entity);
+        return flag(ageable != nullptr && ageable->isChild());
+    }
+
+    // 以下查询只有 LivingEntity 具备对应状态。已实现的查询在非 LivingEntity 上取 0
+    // （与基岩一致），而不是返回 nullopt——后者会被当成"查询未实现"记 warn。
+    const auto* living = dynamic_cast<const mc::LivingEntity*>(&entity);
+    if (name == "query.health") {
+        return MolangValue(living != nullptr ? living->health() : 0.0f);
+    }
+    if (name == "query.max_health") {
+        return MolangValue(living != nullptr ? living->maxHealth() : 0.0f);
+    }
+    if (name == "query.is_sleeping") {
+        return flag(living != nullptr && living->isSleeping());
+    }
+    if (name == "query.last_hit_by_player") {
+        // lastHurtByPlayerMemoryTime > 0 表示"最近被玩家击中"，正是该查询的语义。
+        return flag(living != nullptr && living->lastHurtByPlayerMemoryTime() > 0);
+    }
+    if (name == "query.equipment_count") {
+        if (living == nullptr) {
+            return MolangValue(0.0f);
+        }
+        // 统计真正装有物品的装备槽。鞍槽（Saddle）不属于基岩定义的装备，故不计入。
+        i32 count = 0;
+        for (i32 slot = 0; slot < static_cast<i32>(mc::EquipmentSlot::Saddle); ++slot) {
+            if (!living->getEquipment(static_cast<mc::EquipmentSlot>(slot)).isEmpty()) {
+                ++count;
+            }
+        }
+        return MolangValue(static_cast<f32>(count));
+    }
+    // TODO: 继续接入 query.* 的其余查询（如 query.has_target、query.is_owner、
+    //   query.ground_speed、query.temperature 等），未实现时调用方按 0 处理并记 warn。
+    return std::nullopt;
+}
+
 } // namespace mc::mod::bedrock::addon

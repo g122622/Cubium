@@ -55,9 +55,10 @@ Result<EntityPropertyDefinitions> EntityPropertyDefinitions::compile(const nlohm
         if (expression.failed()) {
             return expression.error();
         }
-        if (expression.value().usesPropertyQueries()) {
-            // 默认表达式计算时实体属性尚未建立，不能读取其他属性或依赖定义顺序。
-            return Error(ErrorCode::Unsupported, "Entity property defaults cannot query entity properties: " + name);
+        if (expression.value().usesQueries()) {
+            // 默认表达式计算时实体宿主尚不存在，任何 query.* 都无法取值；
+            // 且默认值不能依赖其他属性的定义顺序。在声明阶段直接拒绝。
+            return Error(ErrorCode::Unsupported, "Entity property defaults cannot query entity state: " + name);
         }
         result.m_defaults.emplace(name, std::move(expression.value()));
         if (type == "bool") {
@@ -88,12 +89,9 @@ const nlohmann::json& EntityPropertyDefinitions::literalSchema() const
 Result<nlohmann::json> EntityPropertyDefinitions::instantiate(mc::math::IRandom& random) const
 {
     nlohmann::json definitions = m_literalSchema;
-    // 定义实例化发生在加载期，此时还没有实体宿主，query.* 无法取值（显式传 nullptr）。
-    MolangEvaluationContext context{random,
-        [](std::string_view) -> std::optional<MolangValue> {
-            return std::nullopt;
-        },
-        nullptr};
+    // 定义实例化发生在加载期，此时还没有实体宿主：任何 query.* 都已在声明阶段被拒绝，
+    // 因此这里两个查询入口都留空，求值一旦真的发起查询就说明前述校验被绕过。
+    MolangEvaluationContext context{random, nullptr, nullptr};
     for (const auto& [name, expression] : m_defaults) {
         auto value = expression.evaluate(context);
         if (value.failed()) {

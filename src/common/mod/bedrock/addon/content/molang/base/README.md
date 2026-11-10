@@ -9,7 +9,7 @@ base/
 
 ## 内部模块关系
 
-MolangValue 表示表达式结果，MolangEvaluationContext 提供随机源和声明属性读取函数。
+MolangValue 表示表达式结果，MolangEvaluationContext 提供随机源、具名查询（`query.*`）与动态属性（`query.property`）两个独立读取入口。
 
 ## 上下游外部依赖关系
 
@@ -19,3 +19,5 @@ MolangValue 表示表达式结果，MolangEvaluationContext 提供随机源和�
 
 - 查询布尔属性时转换为数值零或一，枚举属性保留字符串。
 - 不能将跨实体或跨 tick 的宿主引用保存在编译程序中。
+- 具名查询与动态属性是两个独立的键空间：前者键是完整查询名（`query.is_baby`），后者键是属性名（`test:count`），不要合并成一个回调。
+- 宿主未实现的具名查询按基岩语义取 0 并记 warn，不返回错误；但宿主完全没有提供查询入口时属于调用方缺陷，求值直接报错。

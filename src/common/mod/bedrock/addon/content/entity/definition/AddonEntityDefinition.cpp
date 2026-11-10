@@ -35,6 +35,7 @@
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
+#include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/timer/EntityTimerState.hpp"
@@ -144,23 +145,16 @@ i32 _evaluateExperienceReward(
         return 0;
     }
 
-    // 已支持的查询：query.last_hit_by_player（见下方回调）。
-    // TODO: 其余实体查询（query.equipment_count、query.is_baby 等）尚未提供，
-    //   表达式一旦引用它们仍会求值失败并回退到 0。
+    // 已支持的查询见 EntityStateQuery::molangQuery（含 query.last_hit_by_player、
+    // query.is_baby、query.equipment_count 等）；未实现的查询按基岩语义取 0 并记 warn。
     // 随机源必须用调用方传入的 random：早期这里用固定种子 math::Random(0) 占位，
     // 会让表达式里的 math.random(a,b) 每次返回同一值，经验奖励恒定。
     MolangEvaluationContext context{random,
         [entity](std::string_view name) -> std::optional<MolangValue> {
-            // query.last_hit_by_player：最近一次伤害来源是否玩家。
-            // LivingEntity 已用 lastHurtByPlayerMemoryTime 记录该记忆（> 0 表示"最近被玩家击中"），
-            // 这正是基岩 `query.last_hit_by_player ? 10 : 0` 这类写法所需的状态。
-            if (name == "query.last_hit_by_player") {
-                const auto* living = dynamic_cast<const LivingEntity*>(entity);
-                return MolangValue{living != nullptr && living->lastHurtByPlayerMemoryTime() > 0 ? 1.0f : 0.0f};
-            }
-            return std::nullopt;
+            return entity != nullptr ? EntityStateQuery::molangQuery(*entity, name) : std::nullopt;
         },
-        entity};
+        // 经验奖励不涉及 `minecraft:properties` 动态属性，因此不提供属性入口。
+        nullptr};
     auto evaluated = compiled.value().evaluate(context);
     if (evaluated.failed()) {
         spdlog::warn("minecraft:experience_reward {} expression failed to evaluate ({}), defaulting to 0: {}",

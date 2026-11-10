@@ -30,10 +30,6 @@
 #include <string_view>
 #include <variant>
 
-namespace mc {
-class Entity;
-}
-
 namespace mc::math {
 class IRandom;
 }
@@ -43,12 +39,18 @@ namespace mc::mod::bedrock::addon {
 /** @brief Molang 数值使用单精度，字符串供属性比较和枚举结果使用。 */
 using MolangValue = std::variant<f32, std::string>;
 
-/** @brief 每次求值的宿主访问入口，随机数与属性读取均由调用方明确提供。 */
+/**
+ * @brief 每次求值的宿主访问入口，随机数与查询读取均由调用方明确提供。
+ *
+ * 具名查询与动态属性分成两个入口：前者按完整查询名（如 `query.is_baby`）取值，
+ * 后者按属性名（如 `test:count`）取值，两者键空间不同，不能合并成一个回调。
+ */
 struct MolangEvaluationContext {
     mc::math::IRandom& random;
+    /// 具名零参查询的解析入口；返回 std::nullopt 表示该查询尚未实现（求值按 0 处理）。
+    std::function<std::optional<MolangValue>(std::string_view)> query;
+    /// 动态属性读取入口，参数是 `query.property('ns:name')` 里的属性名本身。
     std::function<std::optional<MolangValue>(std::string_view)> property;
-    /// 求值宿主实体，供 `query.*` 读取实体状态；加载期（尚无实体）显式传 nullptr。
-    const mc::Entity* entity;
 };
 
 } // namespace mc::mod::bedrock::addon

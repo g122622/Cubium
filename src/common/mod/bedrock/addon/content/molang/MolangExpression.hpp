@@ -41,8 +41,12 @@ public:
     /** @brief 使用本次调用提供的属性和随机数入口求值。 */
     [[nodiscard]] Result<MolangValue> evaluate(MolangEvaluationContext& context) const;
 
-    /** @brief 默认值等受限求值位置可据此禁止实体属性查询。 */
-    [[nodiscard]] bool usesPropertyQueries() const;
+    /**
+     * @brief 判断表达式是否引用了任何 `query.*`（含 `query.property` 与具名实体查询）。
+     *
+     * 默认值等"尚无实体宿主"的受限求值位置据此在声明阶段就拒绝，避免拖到求值期才失败。
+     */
+    [[nodiscard]] bool usesQueries() const;
 
 private:
     /** @brief 仅由编译入口接收完整有效的程序。 */

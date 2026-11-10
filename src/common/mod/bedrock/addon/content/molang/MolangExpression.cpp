@@ -44,11 +44,10 @@ Result<MolangValue> MolangExpression::evaluate(MolangEvaluationContext& context)
     return detail::evaluateMolang(*m_program, context);
 }
 
-bool MolangExpression::usesPropertyQueries() const
+bool MolangExpression::usesQueries() const
 {
     return std::any_of(m_program->nodes.begin(), m_program->nodes.end(), [](const detail::MolangNode& node) {
-        return node.kind == detail::MolangNodeKind::Call &&
-            (node.text == "query.property" || node.text == "query.has_property");
+        return node.kind == detail::MolangNodeKind::Call && node.text.starts_with("query.");
     });
 }
 } // namespace mc::mod::bedrock::addon

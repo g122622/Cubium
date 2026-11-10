@@ -216,6 +216,19 @@ Result<MolangValue> evaluateMolang(const MolangProgram& program, MolangEvaluatio
                 }
                 return *value;
             }
+            // 零参具名查询：宿主未实现时按基岩语义取 0，而不是让整条表达式求值失败，
+            // 否则一条引用了尚未支持查询的合法行为包会让实体事件整体失效。
+            if (node.inputs.empty() && node.text.starts_with("query.")) {
+                if (!context.query) {
+                    return Error(ErrorCode::InvalidState, "Molang query has no host resolver: " + node.text);
+                }
+                const auto value = context.query(node.text);
+                if (!value) {
+                    spdlog::warn("Molang query is not implemented: {}", node.text);
+                    return MolangValue(0.0f);
+                }
+                return *value;
+            }
             return _math(node.text, arguments, context);
         }
         auto left = evaluate(node.inputs[0], depth + 1);
