@@ -30,6 +30,10 @@
 #include <string_view>
 #include <variant>
 
+namespace mc {
+class Entity;
+}
+
 namespace mc::math {
 class IRandom;
 }
@@ -43,6 +47,8 @@ using MolangValue = std::variant<f32, std::string>;
 struct MolangEvaluationContext {
     mc::math::IRandom& random;
     std::function<std::optional<MolangValue>(std::string_view)> property;
+    /// 求值宿主实体，供 `query.*` 读取实体状态；加载期（尚无实体）显式传 nullptr。
+    const mc::Entity* entity;
 };
 
 } // namespace mc::mod::bedrock::addon

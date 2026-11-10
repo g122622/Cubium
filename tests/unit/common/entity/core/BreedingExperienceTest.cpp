@@ -10,9 +10,9 @@
 
 #include <memory>
 
+#include "common/TestWorldHelper.hpp"
 #include "core/Types.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
-#include "common/TestWorldHelper.hpp"
 
 namespace {
 

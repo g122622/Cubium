@@ -197,8 +197,8 @@ Result<EntityEventExecution> EntityEventProgram::execute(
     MC_ASSERT_RELEASE(state != nullptr);
     EntityAddonState validator;
     MC_TRY(validator.defineProperties(m_properties));
-    MolangEvaluationContext evaluation{
-        entity.getRandom(), [state](std::string_view name) -> std::optional<MolangValue> {
+    MolangEvaluationContext evaluation{entity.getRandom(),
+        [state](std::string_view name) -> std::optional<MolangValue> {
             const auto value = state->getProperty(std::string(name));
             if (!value) {
                 return std::nullopt;
@@ -210,7 +210,8 @@ Result<EntityEventExecution> EntityEventProgram::execute(
                 return MolangValue(value->get<std::string>());
             }
             return MolangValue(value->get<mc::f32>());
-        }};
+        },
+        &entity};
     std::vector<std::pair<std::string, nlohmann::json>> writes;
     EntityEventExecution execution;
     std::size_t steps = 0;

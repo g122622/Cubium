@@ -107,7 +107,8 @@ EquipmentSlot _protectionSlotFromName(const std::string& name)
  * @param field 字段名（on_death / on_bred）
  * @return 经验值；无法求值时返回 0
  */
-i32 _evaluateExperienceReward(const nlohmann::json& reward, const char* field, math::IRandom& random)
+i32 _evaluateExperienceReward(
+    const nlohmann::json& reward, const char* field, math::IRandom& random, const Entity* entity)
 {
     const auto value = reward.find(field);
     if (value == reward.end()) {
@@ -143,15 +144,23 @@ i32 _evaluateExperienceReward(const nlohmann::json& reward, const char* field, m
         return 0;
     }
 
-    // 经验表达式常引用 query.last_hit_by_player 等实体查询，当前 Molang 求值器不支持，
-    // 只提供随机数与属性读取。
-    // TODO: 补齐 query.last_hit_by_player / query.equipment_count 等实体查询后，
-    //   基岩最常见的 `query.last_hit_by_player ? 10 : 0` 写法才能真正生效。
+    // 已支持的查询：query.last_hit_by_player（见下方回调）。
+    // TODO: 其余实体查询（query.equipment_count、query.is_baby 等）尚未提供，
+    //   表达式一旦引用它们仍会求值失败并回退到 0。
     // 随机源必须用调用方传入的 random：早期这里用固定种子 math::Random(0) 占位，
     // 会让表达式里的 math.random(a,b) 每次返回同一值，经验奖励恒定。
-    MolangEvaluationContext context{random, [](std::string_view) {
-                                        return std::optional<MolangValue>{};
-                                    }};
+    MolangEvaluationContext context{random,
+        [entity](std::string_view name) -> std::optional<MolangValue> {
+            // query.last_hit_by_player：最近一次伤害来源是否玩家。
+            // LivingEntity 已用 lastHurtByPlayerMemoryTime 记录该记忆（> 0 表示"最近被玩家击中"），
+            // 这正是基岩 `query.last_hit_by_player ? 10 : 0` 这类写法所需的状态。
+            if (name == "query.last_hit_by_player") {
+                const auto* living = dynamic_cast<const LivingEntity*>(entity);
+                return MolangValue{living != nullptr && living->lastHurtByPlayerMemoryTime() > 0 ? 1.0f : 0.0f};
+            }
+            return std::nullopt;
+        },
+        entity};
     auto evaluated = compiled.value().evaluate(context);
     if (evaluated.failed()) {
         spdlog::warn("minecraft:experience_reward {} expression failed to evaluate ({}), defaulting to 0: {}",
@@ -730,7 +739,7 @@ public:
         const nlohmann::json* reward =
             components != nullptr ? components->component("minecraft:experience_reward") : nullptr;
         if (reward != nullptr) {
-            const i32 amount = _evaluateExperienceReward(*reward, "on_death", getRandom());
+            const i32 amount = _evaluateExperienceReward(*reward, "on_death", getRandom(), this);
             if (amount > 0) {
                 setExperienceValue(amount);
             }
@@ -750,7 +759,7 @@ public:
         const nlohmann::json* reward =
             components != nullptr ? components->component("minecraft:experience_reward") : nullptr;
         if (reward != nullptr) {
-            const i32 amount = _evaluateExperienceReward(*reward, "on_bred", getRandom());
+            const i32 amount = _evaluateExperienceReward(*reward, "on_bred", getRandom(), this);
             if (amount > 0) {
                 return amount;
             }
@@ -1138,10 +1147,9 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             // on_death / on_bred 各有三种写法：字面数字、{"expression","version"} 对象、纯 Molang 字符串。
             //
             // 这里**只做结构校验、不编译 Molang**。基岩最常见的写法是
-            // `query.last_hit_by_player ? 10 : 0`，而项目的 Molang 求值器目前只支持
-            // query.property / query.has_property，没有实体查询。若在加载期编译，
-            // 这类合法行为包会让**整个实体定义**加载失败——比"该组件不生效"更糟。
-            // 因此求值推迟到 dropExperience 时，失败仅该实体不掉经验并记 warn。
+            // `query.last_hit_by_player ? 10 : 0`，而求值期才注入实体宿主，加载期没有实体。
+            // 若在加载期编译，这类合法行为包会让**整个实体定义**加载失败——比"该组件不生效"更糟。
+            // 因此求值推迟到 dropExperience / breedingExperience 时，失败仅该次奖励为 0 并记 warn。
             MC_TRY(_members(component, {"on_bred", "on_death"}));
             for (const char* field : {"on_death", "on_bred"}) {
                 const auto value = component.find(field);

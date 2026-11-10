@@ -88,9 +88,12 @@ const nlohmann::json& EntityPropertyDefinitions::literalSchema() const
 Result<nlohmann::json> EntityPropertyDefinitions::instantiate(mc::math::IRandom& random) const
 {
     nlohmann::json definitions = m_literalSchema;
-    MolangEvaluationContext context{random, [](std::string_view) -> std::optional<MolangValue> {
-                                        return std::nullopt;
-                                    }};
+    // 定义实例化发生在加载期，此时还没有实体宿主，query.* 无法取值（显式传 nullptr）。
+    MolangEvaluationContext context{random,
+        [](std::string_view) -> std::optional<MolangValue> {
+            return std::nullopt;
+        },
+        nullptr};
     for (const auto& [name, expression] : m_defaults) {
         auto value = expression.evaluate(context);
         if (value.failed()) {
