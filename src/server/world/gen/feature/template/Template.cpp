@@ -1286,7 +1286,7 @@ BlockPos Template::getTransformedPosition(const BlockPos& pos, Rotation rotation
 // Processors
 // ============================================================================
 
-GravityStructureProcessor::GravityStructureProcessor(i32 heightmapType, i32 offset)
+GravityStructureProcessor::GravityStructureProcessor(world::chunk::HeightmapType heightmapType, i32 offset)
     : m_heightmapType(heightmapType)
     , m_offset(offset)
 {}
@@ -1318,16 +1318,18 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const Block
     //    terrain_matching，路面 dirt_path 在局部 y=0、jigsaw 在局部 y=1）会因此把路面
     //    埋到地表以下一格，在地面上表现为"村庄里看不见路"。
     //
-    // TODO: 原版在 `level instanceof ServerLevel` 时把 WORLD_SURFACE_WG 换成 WORLD_SURFACE
-    // （OCEAN_FLOOR_WG → OCEAN_FLOOR），用于运行时 `/place` 类路径；项目的 IWorld 查询
-    // 恒用 WorldSurfaceWG，运行时路径的高度图类型尚未区分。
+    // TODO: 原版在 `level instanceof ServerLevel`（运行时放置，如结构方块/`/place`）时把
+    // WORLD_SURFACE_WG 换成 WORLD_SURFACE（OCEAN_FLOOR_WG → OCEAN_FLOOR）；项目目前没有运行时
+    // 结构放置路径（结构方块的 SAVE/LOAD 尚未实现），所有调用都发生在 worldgen 的
+    // WorldGenRegion 上，故这里直接用构造时配置的高度图类型，不做 WG → 非 WG 替换。
+    // 接入运行时放置时，必须在此处按「世界是否为 WorldGenRegion」选择类型。
     const IWorld* world = settings.getWorld();
 
     ProcessedBlockInfo result = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     if (world) {
-        // 完整实现：使用高度图获取地面高度
-        const i32 heightmapFirstFreeY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z) + 1;
+        // 完整实现：按配置的高度图取地面高度（原版 GravityProcessor 的 heightmap 字段）
+        const i32 heightmapFirstFreeY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z, m_heightmapType) + 1;
         result.pos = BlockPos(blockInfo.pos.x, heightmapFirstFreeY + m_offset + rawBlockInfo.pos.y, blockInfo.pos.z);
     } else {
         // 简化实现：仅应用偏移量

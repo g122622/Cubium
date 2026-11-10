@@ -177,9 +177,10 @@ void SingleJigsawPiece::place(IWorldWriter& world,
         }
     }
 
-    // 4. 投影处理器（terrain_matching → GravityStructureProcessor）
+    // 4. 投影处理器（terrain_matching → GravityStructureProcessor，按 WORLD_SURFACE_WG 贴地）
     if (placed.projection == JigsawPlacementBehaviour::TerrainMatching) {
-        processorList.addProcessor(std::make_unique<GravityStructureProcessor>(0, -1));
+        processorList.addProcessor(
+            std::make_unique<GravityStructureProcessor>(world::chunk::HeightmapType::WorldSurfaceWG, -1));
     }
 
     // 5. legacy 构件：原版 `LegacySinglePoolElement#getSettings` 把 super 里的
