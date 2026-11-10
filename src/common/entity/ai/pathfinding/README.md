@@ -162,3 +162,12 @@ if (++searched >= limit) break;
 
 `FlyNodeEvaluator::getStart` 用固定的候选列枚举代替原版的随机采样。
 这是一处**有意的偏差**：非确定性会让差分对比失去意义。其余逻辑与原版一致。
+
+### 14. 走到实体目标的到达半径是 1，不是 16
+
+`PathNavigator::moveTo(const LivingEntity&, speed)` 对齐原版
+`PathNavigation.moveTo(Entity, double)` → `createPath(entity, 1)`：搜索半径 16、
+起点取实体脚上方一格、**到达半径 1**。16 是搜索半径，误把它当成到达半径会让 A* 在起点
+就判定“已到达”，`reconstructPath` 只回溯出单节点路径（`Path::isDone()` 立即可为真），
+表现为实体有攻击目标却原地不动、导航 `hasPath()` 为 false。所有 `moveTo(Entity, ...)`
+的调用方（`MeleeAttackGoal`、`FollowOwnerGoal` 等）都依赖这条语义。

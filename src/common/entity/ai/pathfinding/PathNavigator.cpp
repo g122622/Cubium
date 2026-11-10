@@ -44,8 +44,13 @@ namespace {
 /// 建路径时世界区域的水平半径（原版在 `createPath` 里为地面导航硬编码 8）。
 constexpr i32 GROUND_SEARCH_RANGE = 8;
 
-/// 走到实体时的到达半径（原版 `EntityPathNavigation.createPath(Entity, int)` 传 16）。
-constexpr i32 ENTITY_REACH_RANGE = 16;
+/// 走到实体目标时的搜索半径（原版 `PathNavigation.createPath(Entity, int)` 内层传的第二个参数 16）。
+/// 注意这不是到达半径：原版 `moveTo(Entity, double)` 的到达半径固定为 1。
+constexpr i32 ENTITY_SEARCH_RANGE = 16;
+
+/// 走到实体目标的到达半径（原版 `PathNavigation.moveTo(Entity, double)` 转调 `createPath(entity, 1)`）。
+/// 取 16 会让 A* 在起点就判定“已到达”，只回溯出单节点路径，实体永远不会移动。
+constexpr i32 ENTITY_REACH_RANGE = 1;
 
 /// 走不到目标时「尽力而为」路径的终点离目标至少要小于这个距离才算有效
 constexpr f64 MIN_PROGRESS = 1.0e-5;
@@ -202,7 +207,11 @@ bool PathNavigator::moveTo(const LivingEntity& target, f64 speed)
     const BlockPos pos(static_cast<i32>(std::floor(target.x())),
         static_cast<i32>(std::floor(target.y())),
         static_cast<i32>(std::floor(target.z())));
-    return moveTo(_createPath(pos, ENTITY_REACH_RANGE, 16.0f), speed);
+    // 对齐原版 `PathNavigation.moveTo(Entity, double)`：
+    //   createPath(entity, 1) → createPath({entity.blockPosition()}, 16, above=true, reachRange=1)。
+    return moveTo(
+        _createPath(std::vector<BlockPos>{pos}, ENTITY_SEARCH_RANGE, true, ENTITY_REACH_RANGE, m_requiredPathLength),
+        speed);
 }
 
 bool PathNavigator::moveTo(std::optional<Path> path, f64 speed)
