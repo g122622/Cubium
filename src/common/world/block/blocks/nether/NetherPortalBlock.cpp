@@ -157,10 +157,9 @@ const CollisionShape& NetherPortalBlock::getCollisionShape(const BlockState& sta
 void NetherPortalBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(state);
-    // TODO: 本函数尚无单元测试覆盖。补测需要一个能提供 difficulty / GameRules /
-    //       environmentAttributes / anyPlayerCloseEnoughTo / entityRegistry / spawnEntity 的
-    //       IWorld 桩；负路径（和平难度、属性为假、附近无玩家、下方不可生成）可逐一断言"未生成实体"，
-    //       正路径可用固定种子构造 nextInt(2000) 命中的随机源。
+    // 覆盖测试见 tests/unit/common/world/block/blocks/NetherPortalSpawnTest.cpp：
+    // 该测试世界用位置层把 NETHER_PORTAL_SPAWNS_PIGLINS 钉成 true，从而能正面断言生成，
+    // 而不只是断言各条早退。
     // 与原版一致：仅服务端、允许生成敌对生物、该维度声明了「传送门刷猪灵」属性、
     // 按难度概率命中、且附近有玩家时才继续。
     if (world.isClientSide() || !world.isSpawningMonsters()) {

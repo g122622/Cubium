@@ -731,6 +731,7 @@ add_executable(mc_tests
     common/world/block/blocks/SignBlockEditTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SnowBlockTest.cpp
+    common/world/block/blocks/NetherPortalSpawnTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/nether/NyliumBlockTest.cpp
     common/world/block/blocks/nether/NetherWoodBlocksTest.cpp
