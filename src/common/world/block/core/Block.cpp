@@ -283,6 +283,15 @@ const CollisionShape& Block::getCollisionShapeForEntity(
     return getCollisionShape(state);
 }
 
+bool Block::isValidSpawn(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const entity::EntityType& entityType) const
+{
+    MC_UNUSED(entityType);
+    // 原版默认谓词（BlockBehaviour.Properties.isValidSpawn）：顶面为完整支撑面，且自身发光等级 < 14。
+    // 传送到此生成的生物需要站在实心、非高亮的方块上方。
+    return state.isFaceSturdy(world, pos, Direction::Up, SupportType::Full) && state.lightLevel() < 14;
+}
+
 const CollisionShape& Block::getOcclusionShape(const BlockState& state) const
 {
     // 返回方块的"遮挡形状"。注意本方法同时被两处使用：

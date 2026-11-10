@@ -1350,6 +1350,17 @@ public:
     [[nodiscard]] virtual Difficulty difficulty() const = 0;
 
     /**
+     * @brief 当前是否允许生成敌对生物
+     *
+     * 对应原版 `ServerLevel.isSpawningMonsters()`：难度非和平、且 `doMobSpawning` 与
+     * `doMobSpawning` 中的怪物开关（`SPAWN_MOBS` / `SPAWN_MONSTERS`）都打开时才算允许。
+     * 传送门刷僵尸猪灵、末影珍珠生成末影螨等按概率生成怪物的逻辑都以此为前提。
+     *
+     * @return 允许生成敌对生物返回 true
+     */
+    [[nodiscard]] virtual bool isSpawningMonsters() const;
+
+    /**
      * @brief 是否允许玩家对玩家造成伤害（PvP）
      *
      * 读取 PVP 游戏规则判断是否允许 PvP。客户端世界默认返回 true。

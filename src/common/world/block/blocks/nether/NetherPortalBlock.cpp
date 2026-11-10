@@ -24,6 +24,7 @@
 #include "NetherPortalBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
@@ -32,6 +33,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
@@ -150,6 +152,70 @@ const CollisionShape& NetherPortalBlock::getCollisionShape(const BlockState& sta
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
+}
+
+void NetherPortalBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(state);
+    // TODO: 本函数尚无单元测试覆盖。补测需要一个能提供 difficulty / GameRules /
+    //       environmentAttributes / anyPlayerCloseEnoughTo / entityRegistry / spawnEntity 的
+    //       IWorld 桩；负路径（和平难度、属性为假、附近无玩家、下方不可生成）可逐一断言"未生成实体"，
+    //       正路径可用固定种子构造 nextInt(2000) 命中的随机源。
+    // 与原版一致：仅服务端、允许生成敌对生物、该维度声明了「传送门刷猪灵」属性、
+    // 按难度概率命中、且附近有玩家时才继续。
+    if (world.isClientSide() || !world.isSpawningMonsters()) {
+        return;
+    }
+
+    const Vector3 queryPos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
+    if (!world.environmentAttributes().getValue(
+            world::attribute::EnvironmentAttributes::NETHER_PORTAL_SPAWNS_PIGLINS(), queryPos)) {
+        return;
+    }
+
+    // 难度 id：和平=0 已在 isSpawningMonsters 中排除，简单=1、普通=2、困难=3。
+    if (random.nextInt(2000) >= static_cast<i32>(world.difficulty())) {
+        return;
+    }
+
+    // 128 格内有玩家才生成（与原版 anyPlayerCloseEnoughForSpawning 等价）。
+    constexpr i32 SPAWN_PLAYER_RADIUS = 128;
+    if (!world.anyPlayerCloseEnoughTo(pos, SPAWN_PLAYER_RADIUS)) {
+        return;
+    }
+
+    // 向下找到门体下方第一格（门柱底部），生成位置在其上方。
+    BlockPos spawnBase = pos;
+    const BlockState* current = world.getBlockState(spawnBase);
+    while (current != nullptr && current->is(VanillaBlocks::NETHER_PORTAL)) {
+        spawnBase = spawnBase.down();
+        current = world.getBlockState(spawnBase);
+    }
+    if (current == nullptr || world.entityRegistry() == nullptr) {
+        return;
+    }
+
+    const entity::EntityType* piglinType =
+        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::ZOMBIFIED_PIGLIN);
+    if (piglinType == nullptr) {
+        return;
+    }
+
+    if (!current->getBlock().isValidSpawn(world, spawnBase, *current, *piglinType)) {
+        return;
+    }
+
+    std::unique_ptr<Entity> piglin = piglinType->create(&world, *world.entityRegistry());
+    if (piglin == nullptr) {
+        return;
+    }
+
+    const BlockPos spawnPos = spawnBase.up();
+    piglin->setPosition(
+        static_cast<f32>(spawnPos.x) + 0.5f, static_cast<f32>(spawnPos.y), static_cast<f32>(spawnPos.z) + 0.5f);
+    // 生成后立刻设置传送门冷却，避免新生成的僵尸猪灵被同一扇门带走。
+    piglin->triggerPortalCooldown();
+    world.spawnEntity(std::move(piglin));
 }
 
 } // namespace blocks

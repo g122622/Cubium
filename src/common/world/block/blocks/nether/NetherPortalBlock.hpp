@@ -71,6 +71,23 @@ public:
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
 
+    // ========== 随机刻 ==========
+
+    /**
+     * @brief 随机刻：按原版概率在门内生成僵尸猪灵
+     *
+     * 判定链与 vanilla `NetherPortalBlock.randomTick` 一致：允许生成敌对生物
+     * （`isSpawningMonsters()`）→ 环境属性 `NETHER_PORTAL_SPAWNS_PIGLINS` 为真 →
+     * `nextInt(2000) < 难度 id` → 附近有玩家（128 格）→ 向下找到门体下方第一格并
+     * 校验 `isValidSpawn` → 生成僵尸猪灵并设置传送门冷却。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param random 随机数生成器
+     */
+    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
     // ========== 实体交互 ==========
 
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
