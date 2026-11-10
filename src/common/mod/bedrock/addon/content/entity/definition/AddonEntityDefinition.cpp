@@ -1189,8 +1189,17 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                             return Error(ErrorCode::InvalidData, "minecraft:healable heal_amount cannot be negative");
                         }
                     }
-                    if (const auto effects = entry.find("effects"); effects != entry.end() && !effects->is_array()) {
-                        return Error(ErrorCode::InvalidData, "minecraft:healable effects must be an array");
+                    if (const auto effects = entry.find("effects"); effects != entry.end()) {
+                        if (!effects->is_array()) {
+                            return Error(ErrorCode::InvalidData, "minecraft:healable effects must be an array");
+                        }
+                        // 声明了 effects 但当前不施加，必须显式告警：否则行为包作者会以为配置写错
+                        // （加载不报错、运行无效果），这种"静默失效"比直接报错更难排查。
+                        if (!effects->empty()) {
+                            spdlog::warn("minecraft:healable items[].effects is declared but not yet applied "
+                                         "({} entries ignored)",
+                                effects->size());
+                        }
                     }
                 }
             }
