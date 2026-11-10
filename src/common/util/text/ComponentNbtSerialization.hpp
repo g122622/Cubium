@@ -79,6 +79,22 @@ namespace mc::text {
 [[nodiscard]] Result<std::unique_ptr<ITextComponent>> componentFromNbtTag(const nbt::tags::tag& tag);
 
 /**
+ * @brief 从 Component NBT wire 字节还原 ITextComponent（`componentToNbtBytes` 的逆向）
+ *
+ * 处理 `readComponentNbt`（Java codec 层）返回的原始字节：首字节是标签类型，
+ * `0x08` 为折叠纯文本（U16 大端长度 + UTF8），`0x0A` 为复合标签（交给
+ * `componentFromNbtTag`）。这是网络解码路径上「字节 → 结构化组件」的唯一入口，
+ * 供物品自定义名/描述等 S→C 字段使用。
+ *
+ * 与 `componentNbtBytesToPlainText` 的区别：本函数保真还原 style / extra / translate，
+ * 后者是有损的纯文本近似，只应在「不支持的 contents 类型」降级时使用。
+ *
+ * @param bytes Component NBT wire 字节
+ * @return 还原出的组件，或错误（空输入、未知标签类型、截断、不支持的 contents）
+ */
+[[nodiscard]] Result<std::unique_ptr<ITextComponent>> componentFromNbtBytes(const std::vector<u8>& bytes);
+
+/**
  * @brief 把 ITextComponent 序列化为 1.21.11 Component NBT wire 字节
  *
  * @param component 文本组件（可为 nullptr，此时返回空 StringTag 字节）

@@ -33,6 +33,7 @@
  * - Style ↔ NBT 往返（具名色 / 自定义 RGB / 三态标志 / insertion）
  */
 
+#include "common/util/text/numbers/NumberFormat.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -43,7 +44,6 @@
 #include "common/util/text/StyleNbt.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
-#include "common/util/text/numbers/NumberFormat.hpp"
 #include "common/util/text/numbers/NumberFormatCodec.hpp"
 
 #include <gtest/gtest.h>
@@ -101,9 +101,8 @@ TEST(NumberFormatTest, TypeIdsMatchRegistryOrder)
 
 TEST(NumberFormatTest, TypeNamesRoundTrip)
 {
-    for (const auto type : {numbers::NumberFormatType::Blank,
-             numbers::NumberFormatType::Styled,
-             numbers::NumberFormatType::Fixed}) {
+    for (const auto type :
+        {numbers::NumberFormatType::Blank, numbers::NumberFormatType::Styled, numbers::NumberFormatType::Fixed}) {
         const auto name = numbers::numberFormatTypeName(type);
         const auto parsed = numbers::numberFormatTypeFromName(name);
         ASSERT_TRUE(parsed.has_value()) << "name=" << name;
@@ -378,7 +377,8 @@ TEST(NumberFormatWireTest, AbsentOptionalEncodesToEmptyVector)
     // IR 里空 vector = absent（原版 Optional<NumberFormat> 的 false），与 blank（存在但无载荷）不同
     EXPECT_TRUE(numbers::numberFormatToWireBytes(std::optional<numbers::NumberFormat>()).empty());
 
-    const auto present = numbers::numberFormatToWireBytes(std::optional<numbers::NumberFormat>(numbers::NumberFormat()));
+    const auto present =
+        numbers::numberFormatToWireBytes(std::optional<numbers::NumberFormat>(numbers::NumberFormat()));
     ASSERT_EQ(present.size(), 1u);
     EXPECT_EQ(present[0], 0x00);
 }

@@ -220,6 +220,46 @@ Result<std::unique_ptr<ITextComponent>> componentFromNbtTag(const nbt::tags::tag
     return result;
 }
 
+Result<std::unique_ptr<ITextComponent>> componentFromNbtBytes(const std::vector<u8>& bytes)
+{
+    if (bytes.empty()) {
+        return Error(ErrorCode::InvalidData, "Component NBT bytes are empty", "text::componentFromNbtBytes");
+    }
+
+    const u8 tagId = bytes.front();
+    if (tagId == 0x08) {
+        // StringTag：0x08 + U16 大端长度 + UTF8（折叠纯文本）
+        if (bytes.size() < 3) {
+            return Error(ErrorCode::InvalidData, "Truncated component StringTag", "text::componentFromNbtBytes");
+        }
+        const auto length = static_cast<usize>((static_cast<u16>(bytes[1]) << 8) | bytes[2]);
+        if (3 + length > bytes.size()) {
+            return Error(
+                ErrorCode::InvalidData, "Truncated component StringTag payload", "text::componentFromNbtBytes");
+        }
+        return std::unique_ptr<ITextComponent>(std::make_unique<StringTextComponent>(
+            std::string(reinterpret_cast<const char*>(bytes.data() + 3), length)));
+    }
+
+    if (tagId == 0x0A) {
+        network::buffer::ByteBuf buf(bytes.data(), bytes.size());
+        auto root = network::buffer::nbt_io::readRootCompound(buf);
+        if (root.failed()) {
+            return root.error();
+        }
+        // 所有权只取一次（value() 是转移语义）
+        std::unique_ptr<nbt::tags::compound_tag> tag = root.value();
+        if (tag == nullptr) {
+            return Error(ErrorCode::InvalidData, "Component NBT root is null", "text::componentFromNbtBytes");
+        }
+        return componentFromNbtTag(*tag);
+    }
+
+    return Error(ErrorCode::InvalidData,
+        "Component NBT must start with StringTag(0x08) or CompoundTag(0x0A), got " + std::to_string(tagId),
+        "text::componentFromNbtBytes");
+}
+
 std::vector<u8> plainTextToNbtBytes(const std::string& text)
 {
     // 等价于对一个纯 StringTextComponent 走 componentToNbtBytes（可折叠 → StringTag）。

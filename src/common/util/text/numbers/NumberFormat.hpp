@@ -140,6 +140,7 @@ public:
     [[nodiscard]] std::unique_ptr<ITextComponent> format(i32 value) const;
 
     bool operator==(const NumberFormat& other) const noexcept;
+
     bool operator!=(const NumberFormat& other) const noexcept
     {
         return !(*this == other);

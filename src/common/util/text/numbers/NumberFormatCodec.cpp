@@ -82,9 +82,8 @@ Result<NumberFormat> numberFormatFromNbt(const nbt::tags::compound_tag& tag)
 
     const auto type = numberFormatTypeFromName(typeTag->value);
     if (!type.has_value()) {
-        return Error(ErrorCode::InvalidData,
-            "Unknown NumberFormat type: " + typeTag->value,
-            "numbers::numberFormatFromNbt");
+        return Error(
+            ErrorCode::InvalidData, "Unknown NumberFormat type: " + typeTag->value, "numbers::numberFormatFromNbt");
     }
 
     switch (*type) {
@@ -100,9 +99,8 @@ Result<NumberFormat> numberFormatFromNbt(const nbt::tags::compound_tag& tag)
         case NumberFormatType::Fixed: {
             const auto it = tag.value.find("value");
             if (it == tag.value.end()) {
-                return Error(ErrorCode::InvalidData,
-                    "Fixed NumberFormat NBT has no 'value'",
-                    "numbers::numberFormatFromNbt");
+                return Error(
+                    ErrorCode::InvalidData, "Fixed NumberFormat NBT has no 'value'", "numbers::numberFormatFromNbt");
             }
             auto component = ::mc::text::componentFromNbtTag(*it->second);
             if (component.failed()) {

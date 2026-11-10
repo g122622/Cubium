@@ -59,6 +59,7 @@
 #include <variant>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::network::backend::java {
 
@@ -148,6 +149,22 @@ using nbt::tags::compound_tag;
     const usize end = buf.readPosition();
     const u8* base = buf.data() + start;
     return std::vector<u8>(base, base + (end - start));
+}
+
+/// 把 Component NBT wire 字节还原为 ITextComponent。
+///
+/// 优先完整还原（style / extra / translate 都保真）；只有「项目尚未建模的 contents」
+/// （keybind/score/selector/nbt）或损坏字节才会失败，此时降级为纯文本并记警告——这类字段
+/// 出现在真 Java 对端发来的自定义名/描述里时，宁可丢样式也不能让整个物品栈解码失败。
+[[nodiscard]] std::unique_ptr<::mc::text::ITextComponent> _decodeComponentNbt(const std::vector<u8>& nbtBytes)
+{
+    auto parsed = ::mc::text::componentFromNbtBytes(nbtBytes);
+    if (parsed.success()) {
+        return parsed.value();
+    }
+    spdlog::warn(
+        "DataComponentPatchCodec: component decode failed ({}), falling back to plain text", parsed.error().message());
+    return std::make_unique<::mc::text::StringTextComponent>(::mc::text::componentNbtBytesToPlainText(nbtBytes));
 }
 
 // Filterable 的未过滤形式是裸值，带过滤形式为 {raw, filtered}。
@@ -485,11 +502,8 @@ void _writeColorList(buffer::ByteBuf& buf, const std::vector<i32>& colors)
         case DataComponentType::ItemName: {
             std::vector<u8> nbtBytes;
             MC_TRY_ASSIGN(nbtBytes, readComponentNbtBytes(buf));
-            // 把 NBT wire 字节还原为 ITextComponent：解析为纯文本后构造 StringTextComponent。
-            // TODO: 完整 Component 还原（style/extra）待后续；此处取纯文本保业务可用。
-            const auto plain = text::componentNbtBytesToPlainText(nbtBytes);
-            std::unique_ptr<text::ITextComponent> comp = std::make_unique<text::StringTextComponent>(plain);
-            return DataComponentPayload{std::in_place_index<2>, std::move(comp)};
+            // 完整还原（style / extra / translate 保真），不再退化为纯文本
+            return DataComponentPayload{std::in_place_index<2>, _decodeComponentNbt(nbtBytes)};
         }
         case DataComponentType::Lore: {
             std::vector<std::unique_ptr<text::ITextComponent>> lines;
@@ -501,8 +515,7 @@ void _writeColorList(buffer::ByteBuf& buf, const std::vector<i32>& colors)
             for (i32 i = 0; i < count; ++i) {
                 std::vector<u8> nbtBytes;
                 MC_TRY_ASSIGN(nbtBytes, readComponentNbtBytes(buf));
-                lines.push_back(
-                    std::make_unique<text::StringTextComponent>(text::componentNbtBytesToPlainText(nbtBytes)));
+                lines.push_back(_decodeComponentNbt(nbtBytes));
             }
             return DataComponentPayload{std::in_place_index<3>, std::move(lines)};
         }

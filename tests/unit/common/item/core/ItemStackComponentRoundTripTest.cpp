@@ -42,7 +42,9 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextParser.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 
 #include <array>
@@ -372,6 +374,51 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_PreservesAllComponents)
     ASSERT_NE(restoredTag, nullptr);
     EXPECT_EQ(restoredTag->at("display").at("color").get<i32>(), 0xFF0000);
     EXPECT_EQ(restoredTag->at("custom").at("n").get<i32>(), 42);
+}
+
+TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_StyledCustomNameAndLoreKeepStyle)
+{
+    // 自定义名/描述经 DataComponentPatch 线格式往返时必须保真样式：此前解码方向退化为
+    // 纯文本（丢颜色/粗体/extra），完整还原由 text::componentFromNbtBytes 承担。
+    ItemStack original(*m_sword, 1);
+
+    auto name = std::make_unique<text::StringTextComponent>("Golden Blade");
+    text::Style nameStyle;
+    nameStyle.setColor(text::TextFormatting::Gold);
+    nameStyle.setBold(true);
+    name->setStyle(nameStyle);
+    name->append(std::make_unique<text::StringTextComponent>(" !"));
+    original.setCustomNameComponent(std::move(name));
+
+    auto loreLine = std::make_unique<text::StringTextComponent>("cursed");
+    text::Style loreStyle;
+    loreStyle.setColor(text::TextFormatting::DarkRed);
+    loreStyle.setItalic(true);
+    loreLine->setStyle(loreStyle);
+    std::vector<std::unique_ptr<text::ITextComponent>> lore;
+    lore.push_back(std::move(loreLine));
+    original.setLore(std::move(lore));
+
+    const auto view = network::ir::toItemStackView(original);
+    auto result = network::ir::fromItemStackView(view);
+    ASSERT_TRUE(result.success()) << "fromItemStackView 应成功";
+    const auto& restored = result.value();
+
+    // 自定义名：文本、颜色、粗体、子组件都要在
+    const auto* restoredName = restored.getCustomNameComponent();
+    ASSERT_NE(restoredName, nullptr);
+    EXPECT_EQ(restoredName->getUnformattedText(), "Golden Blade !");
+    EXPECT_EQ(restoredName->getStyle().getColor(), text::TextFormatting::Gold);
+    EXPECT_EQ(restoredName->getStyle().bold(), true);
+    ASSERT_EQ(restoredName->getSiblings().size(), 1u);
+
+    // 描述行：颜色与斜体保真
+    ASSERT_EQ(restored.getLore().size(), 1u);
+    const auto& restoredLore = restored.getLore().front();
+    ASSERT_NE(restoredLore, nullptr);
+    EXPECT_EQ(restoredLore->getUnformattedText(), "cursed");
+    EXPECT_EQ(restoredLore->getStyle().getColor(), text::TextFormatting::DarkRed);
+    EXPECT_EQ(restoredLore->getStyle().italic(), true);
 }
 
 TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_NoComponents_HasEmptyPatch)
