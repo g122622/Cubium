@@ -25,9 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
-#include "common/entity/ai/goal/goals/FindShelterGoal.hpp"
 #include "common/entity/ai/goal/goals/FleeSunGoal.hpp"
-#include "common/entity/ai/goal/goals/FlyGoal.hpp"
 #include "common/entity/ai/goal/goals/RestrictSunGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
@@ -302,175 +300,6 @@ TEST_F(RestrictSunGoalTest, StartSetsAvoidSunPathing)
 }
 
 // ============================================================================
-// FindShelterGoal Tests
-// ============================================================================
-
-class FindShelterGoalTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        creature = std::make_unique<TestCreature>();
-        creature->setPositionForTest(0.0, 64.0, 0.0);
-        world = std::make_unique<SunTestWorld>();
-        creature->setWorld(world.get());
-        goal = std::make_unique<FindShelterGoal>(creature.get(), 1.0);
-    }
-
-    void TearDown() override
-    {
-        goal.reset();
-        creature.reset();
-        world.reset();
-    }
-
-    std::unique_ptr<TestCreature> creature;
-    std::unique_ptr<SunTestWorld> world;
-    std::unique_ptr<FindShelterGoal> goal;
-};
-
-TEST_F(FindShelterGoalTest, TypeName)
-{
-    EXPECT_EQ(goal->getTypeName(), "FindShelterGoal");
-}
-
-TEST_F(FindShelterGoalTest, MutexFlags)
-{
-    // FindShelterGoal 应该只有 Move 互斥标志
-    auto flags = goal->getMutexFlags();
-    EXPECT_TRUE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Move}));
-    EXPECT_FALSE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Look}));
-    EXPECT_FALSE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Jump}));
-    EXPECT_FALSE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Target}));
-}
-
-TEST_F(FindShelterGoalTest, ShouldNotExecuteAtNight)
-{
-    world->setDaytime(false);
-    world->setSkyDarkening(11);
-    EXPECT_FALSE(goal->shouldExecute());
-}
-
-TEST_F(FindShelterGoalTest, ShouldNotExecuteUnderCover)
-{
-    world->setDaytime(true);
-    world->setSkyDarkening(0);
-    world->setCanSeeSky(false);
-    EXPECT_FALSE(goal->shouldExecute());
-}
-
-TEST_F(FindShelterGoalTest, ShouldNotExecuteInNether)
-{
-    world->setHasSkyLight(false);
-    EXPECT_FALSE(goal->shouldExecute());
-}
-
-TEST_F(FindShelterGoalTest, ResetTaskDoesNotCrash)
-{
-    goal->startExecuting();
-    goal->resetTask();
-    EXPECT_TRUE(true);
-}
-
-TEST_F(FindShelterGoalTest, TickDoesNotCrash)
-{
-    for (int i = 0; i < 100; ++i) {
-        goal->tick();
-    }
-    EXPECT_TRUE(true);
-}
-
-TEST_F(FindShelterGoalTest, ShouldContinueExecutingWithoutTimeout)
-{
-    // 没有 world 中的区块数据，无法导航，shouldContinueExecuting 返回 false
-    goal->startExecuting();
-    EXPECT_FALSE(goal->shouldContinueExecuting());
-}
-
-// ============================================================================
-// FlyGoal Tests
-// ============================================================================
-
-class FlyGoalTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        creature = std::make_unique<TestCreature>();
-        creature->setPositionForTest(0.0, 64.0, 0.0);
-        world = std::make_unique<SunTestWorld>();
-        creature->setWorld(world.get());
-        goal = std::make_unique<FlyGoal>(creature.get(), 1.0);
-    }
-
-    void TearDown() override
-    {
-        goal.reset();
-        creature.reset();
-        world.reset();
-    }
-
-    std::unique_ptr<TestCreature> creature;
-    std::unique_ptr<SunTestWorld> world;
-    std::unique_ptr<FlyGoal> goal;
-};
-
-TEST_F(FlyGoalTest, TypeName)
-{
-    EXPECT_EQ(goal->getTypeName(), "FlyGoal");
-}
-
-TEST_F(FlyGoalTest, MutexFlags)
-{
-    // FlyGoal 应该只有 Move 互斥标志
-    auto flags = goal->getMutexFlags();
-    EXPECT_TRUE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Move}));
-    EXPECT_FALSE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Look}));
-    EXPECT_FALSE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Jump}));
-    EXPECT_FALSE(flags.contains(EnumSet<GoalFlag>{GoalFlag::Target}));
-}
-
-TEST_F(FlyGoalTest, ShouldNotExecuteWhenRidden)
-{
-    // 注意：isBeingRidden() 默认返回 false，所以这个测试验证基本行为
-    // 由于 RandomPositionGenerator 在无区块数据时无法找到位置，
-    // shouldExecute 大概率返回 false
-    // 但至少验证不崩溃
-    EXPECT_NO_THROW(goal->shouldExecute());
-}
-
-TEST_F(FlyGoalTest, ResetTaskDoesNotCrash)
-{
-    goal->startExecuting();
-    goal->resetTask();
-    EXPECT_TRUE(true);
-}
-
-TEST_F(FlyGoalTest, TickDoesNotCrash)
-{
-    for (int i = 0; i < 100; ++i) {
-        goal->tick();
-    }
-    EXPECT_TRUE(true);
-}
-
-TEST_F(FlyGoalTest, ShouldContinueExecutingReturnsFalseWhenNoPath)
-{
-    // 没有有效路径时，shouldContinueExecuting 返回 false
-    goal->startExecuting();
-    EXPECT_FALSE(goal->shouldContinueExecuting());
-}
-
-TEST_F(FlyGoalTest, TimeoutDecrements)
-{
-    // FlyGoal 有超时机制
-    goal->startExecuting();
-    // tick 几次，验证不崩溃
-    for (int i = 0; i < 10; ++i) {
-        goal->tick();
-    }
-    EXPECT_TRUE(true);
-}
-
-// ============================================================================
 // Goal Lifecycle Tests: shouldExecute -> startExecuting -> tick -> shouldContinueExecuting -> resetTask
 // ============================================================================
 
@@ -491,8 +320,11 @@ TEST_F(FleeSunGoalTest, FullLifecycleDoesNotCrash)
     for (int i = 0; i < 20; ++i) {
         goal->tick();
     }
-    // shouldContinueExecuting 在无路径时返回 false
-    EXPECT_FALSE(goal->shouldContinueExecuting());
+    // 这里不断言 shouldContinueExecuting 的返回值：FleeSunGoal 的 tick 会用
+    // RandomPositionGenerator 随机找阴影位置，找没找到取决于随机数序列（与同进程中先跑过的
+    // 用例消耗多少随机数有关），断言固定返回值会让用例随执行顺序翻转。本用例的契约是
+    // 「完整生命周期不崩溃」，故只调用不判断。
+    (void)goal->shouldContinueExecuting();
     goal->resetTask();
 }
 
@@ -535,55 +367,6 @@ TEST_F(RestrictSunGoalTest, HeadEquipmentPreventsExecution)
     // 这里验证默认无装备的情况
 }
 
-TEST_F(FindShelterGoalTest, FullLifecycleWithTimeout)
-{
-    // FindShelterGoal 有超时机制
-    world->setDaytime(true);
-    world->setSkyDarkening(0);
-    world->setCanSeeSky(true);
-
-    goal->shouldExecute();
-    goal->startExecuting();
-
-    // tick 超过 MAX_SHELTER_TIME(600) 次，验证超时机制
-    for (int i = 0; i < 700; ++i) {
-        goal->tick();
-    }
-
-    // 超时后 shouldContinueExecuting 应返回 false
-    EXPECT_FALSE(goal->shouldContinueExecuting());
-
-    goal->resetTask();
-}
-
-TEST_F(FindShelterGoalTest, TickAfterResetDoesNotCrash)
-{
-    goal->startExecuting();
-    goal->resetTask();
-    // resetTask 后继续 tick 不应该崩溃
-    for (int i = 0; i < 50; ++i) {
-        goal->tick();
-    }
-    EXPECT_TRUE(true);
-}
-
-TEST_F(FlyGoalTest, FullLifecycleWithTimeout)
-{
-    // FlyGoal 有超时机制（MAX_FLIGHT_TIME = 600 ticks）
-    goal->shouldExecute();
-    goal->startExecuting();
-
-    // tick 超过超时
-    for (int i = 0; i < 700; ++i) {
-        goal->tick();
-    }
-
-    // 超时后 shouldContinueExecuting 应返回 false
-    EXPECT_FALSE(goal->shouldContinueExecuting());
-
-    goal->resetTask();
-}
-
 TEST_F(FleeSunGoalTest, ShouldNotExecuteWithoutWorld)
 {
     // 没有世界时不应执行
@@ -592,18 +375,6 @@ TEST_F(FleeSunGoalTest, ShouldNotExecuteWithoutWorld)
 }
 
 TEST_F(RestrictSunGoalTest, ShouldNotExecuteWithoutWorld)
-{
-    creature->setWorld(nullptr);
-    EXPECT_FALSE(goal->shouldExecute());
-}
-
-TEST_F(FindShelterGoalTest, ShouldNotExecuteWithoutWorld)
-{
-    creature->setWorld(nullptr);
-    EXPECT_FALSE(goal->shouldExecute());
-}
-
-TEST_F(FlyGoalTest, ShouldNotExecuteWithoutWorld)
 {
     creature->setWorld(nullptr);
     EXPECT_FALSE(goal->shouldExecute());

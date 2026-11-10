@@ -873,8 +873,8 @@ add_executable(mc_tests
     common/entity/ai/goal/LookAtGoalTest.cpp
     # FishSwimGoal 鱼类游泳目标测试
     common/entity/ai/goal/FishSwimGoalTest.cpp
-    # FleeSunGoal/RestrictSunGoal/FindShelterGoal/FlyGoal 阳光和飞行目标测试
-    common/entity/ai/goal/SunAndFlyGoalsTest.cpp
+    # FleeSunGoal/RestrictSunGoal 阳光躲避目标测试
+    common/entity/ai/goal/SunGoalsTest.cpp
     # AvoidBlockGoal 方块回避目标测试
     common/entity/ai/goal/AvoidBlockGoalTest.cpp
     # MoveTowardsRestrictionGoal 向家范围移动目标测试

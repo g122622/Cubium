@@ -417,8 +417,6 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/EatGrassGoal.cpp
     entity/ai/goal/goals/FleeSunGoal.cpp
     entity/ai/goal/goals/RestrictSunGoal.cpp
-    entity/ai/goal/goals/FindShelterGoal.cpp
-    entity/ai/goal/goals/FlyGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.cpp
     entity/ai/goal/goals/interact/DoorInteractGoal.cpp
@@ -467,7 +465,6 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/GhastGoals.cpp
     entity/ai/goal/goals/special/SilverfishGoals.cpp
     entity/ai/goal/goals/special/DrownedGoals.cpp
-    entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/AvoidHostileGoal.cpp
     entity/ai/goal/goals/villager/CongregateGoal.cpp

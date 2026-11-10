@@ -57,7 +57,6 @@
 │       ├── SwimGoal.hpp / cpp #游泳（防溺水）
 │       ├── SwimUpGoal.hpp / cpp #向上游动
 │       ├── TemptGoal.hpp / cpp #食物诱惑
-│       ├── AdditionalGoals.hpp / cpp #通用目标集合
 │       ├── attack / #攻击类目标
 │       │   └── RangedAttackGoals.hpp / cpp #远程攻击目标
 │       ├── interact / #交互类目标
