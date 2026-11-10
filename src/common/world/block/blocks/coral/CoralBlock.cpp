@@ -321,7 +321,7 @@ CoralWallFanBlock::CoralWallFanBlock(CoralColor color, u32 deadBlock, const Bloc
 BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // vanilla 墙珊瑚扇只能贴附在水平面上：facing 仅水平 4 向。
-    // HORIZONTAL_FACING 不接受 up/down（with 会抛 invalid_argument），故点击地面/天花板时
+    // HORIZONTAL_FACING 不接受 up/down（with 会断言崩溃），故点击地面/天花板时
     // 退化为 North（随后 isValidPosition 会因对面无支撑方块而拒绝放置）。
     Direction clickedFace = context.getClickedFace();
     Direction facing =

@@ -222,41 +222,47 @@ TEST_F(SettingsTest, NoiseSettings_DefaultConstructed_MinYIsZero)
 }
 
 // ============================================================================
-// NoiseSettings guardY 验证
+// NoiseSettings::validateDimensions 校验
 // ============================================================================
 
-TEST_F(SettingsTest, NoiseSettings_GuardY_ValidSettings)
+TEST_F(SettingsTest, NoiseSettings_ValidateDimensions_ValidSettings)
 {
-    // 正常参数不应抛出
-    EXPECT_NO_THROW(NoiseSettings::create(-64, 384, 1, 2));
-    EXPECT_NO_THROW(NoiseSettings::create(0, 128, 1, 2));
-    EXPECT_NO_THROW(NoiseSettings::create(0, 256, 2, 1));
+    // 合法参数不应报错
+    EXPECT_FALSE(NoiseSettings::validateDimensions(-64, 384, 1, 2).has_value());
+    EXPECT_FALSE(NoiseSettings::validateDimensions(0, 128, 1, 2).has_value());
+    EXPECT_FALSE(NoiseSettings::validateDimensions(0, 256, 2, 1).has_value());
 }
 
-TEST_F(SettingsTest, NoiseSettings_GuardY_HeightNotMultipleOf16)
+TEST_F(SettingsTest, NoiseSettings_ValidateDimensions_HeightNotMultipleOf16)
 {
-    // height 不是16的倍数应抛出
-    EXPECT_THROW(NoiseSettings::create(0, 100, 1, 2), std::invalid_argument);
+    // height 不是 16 的倍数应报错
+    EXPECT_TRUE(NoiseSettings::validateDimensions(0, 100, 1, 2).has_value());
 }
 
-TEST_F(SettingsTest, NoiseSettings_GuardY_MinYNotMultipleOf16)
+TEST_F(SettingsTest, NoiseSettings_ValidateDimensions_MinYNotMultipleOf16)
 {
-    // minY 不是16的倍数应抛出
-    EXPECT_THROW(NoiseSettings::create(-10, 384, 1, 2), std::invalid_argument);
+    // minY 不是 16 的倍数应报错
+    EXPECT_TRUE(NoiseSettings::validateDimensions(-10, 384, 1, 2).has_value());
 }
 
-TEST_F(SettingsTest, NoiseSettings_GuardY_SizeHorizontalOutOfRange)
+TEST_F(SettingsTest, NoiseSettings_ValidateDimensions_SizeHorizontalOutOfRange)
 {
-    // sizeHorizontal 超出 [1,4] 范围应抛出
-    EXPECT_THROW(NoiseSettings::create(0, 128, 0, 2), std::invalid_argument);
-    EXPECT_THROW(NoiseSettings::create(0, 128, 5, 2), std::invalid_argument);
+    // sizeHorizontal 超出 [1,4] 范围应报错
+    EXPECT_TRUE(NoiseSettings::validateDimensions(0, 128, 0, 2).has_value());
+    EXPECT_TRUE(NoiseSettings::validateDimensions(0, 128, 5, 2).has_value());
 }
 
-TEST_F(SettingsTest, NoiseSettings_GuardY_SizeVerticalOutOfRange)
+TEST_F(SettingsTest, NoiseSettings_ValidateDimensions_SizeVerticalOutOfRange)
 {
-    // sizeVertical 超出 [1,4] 范围应抛出
-    EXPECT_THROW(NoiseSettings::create(0, 128, 1, 0), std::invalid_argument);
-    EXPECT_THROW(NoiseSettings::create(0, 128, 1, 5), std::invalid_argument);
+    // sizeVertical 超出 [1,4] 范围应报错
+    EXPECT_TRUE(NoiseSettings::validateDimensions(0, 128, 1, 0).has_value());
+    EXPECT_TRUE(NoiseSettings::validateDimensions(0, 128, 1, 5).has_value());
+}
+
+TEST_F(SettingsTest, NoiseSettings_ValidateDimensions_ExceedsMaxY)
+{
+    // minY + height 越过 NOISE_MAX_Y + 1 应报错
+    EXPECT_TRUE(NoiseSettings::validateDimensions(NOISE_MAX_Y - 16, 32, 1, 1).has_value());
 }
 
 // ============================================================================

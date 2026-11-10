@@ -103,7 +103,7 @@ TEST_F(StateHolderWithValueIndexTest, WithValueIndex_SetsBooleanProperty)
     // 默认状态：facing=north, lit=false
     EXPECT_FALSE(defaultState.get(BlockStateProperties::LIT()));
 
-    // 使用 withValueIndex 将 lit 设为 true (index=1)
+    // 使用 withValueIndex 将 lit 设为 true（索引由 parseValue 给出，不硬编码）
     const IProperty* litProp = container.getProperty("lit");
     ASSERT_NE(litProp, nullptr);
 
@@ -171,8 +171,12 @@ TEST_F(StateHolderWithValueIndexTest, WithValueIndex_SameValueReturnsSameState)
     const IProperty* litProp = container.getProperty("lit");
     ASSERT_NE(litProp, nullptr);
 
-    // lit 默认为 false (index=0)，设置 index=0 应返回同一状态
-    const BlockState& sameState = defaultState.withValueIndex(*litProp, 0);
+    // lit 默认为 false；BooleanProperty 的取值顺序是 true=0、false=1，
+    // 故这里按名称取 default 对应的值索引，而不是硬编码 0。
+    const auto litFalseIndex = litProp->parseValue("false");
+    ASSERT_TRUE(litFalseIndex.has_value());
+
+    const BlockState& sameState = defaultState.withValueIndex(*litProp, *litFalseIndex);
     EXPECT_EQ(&sameState, &defaultState);
 }
 
@@ -185,7 +189,7 @@ TEST_F(StateHolderWithValueIndexTest, WithValueIndex_InvalidIndexReturnsCurrentS
     const IProperty* litProp = container.getProperty("lit");
     ASSERT_NE(litProp, nullptr);
 
-    // lit 只有 2 个值 (0=false, 1=true)，index=99 超出范围应返回当前状态
+    // lit 只有 2 个值，index=99 超出范围应返回当前状态
     const BlockState& result = defaultState.withValueIndex(*litProp, 99);
     EXPECT_EQ(&result, &defaultState);
 }

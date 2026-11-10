@@ -27,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
@@ -34,7 +35,6 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -201,10 +201,9 @@ public:
      */
     void setDimensionChangeCallback(DimensionChangeCallback callback)
     {
-        // 不允许多次注册
-        if (m_dimensionChangeCallback) {
-            throw std::invalid_argument("Dimension change callback already set");
-        }
+        // 不允许多次注册：重复注册属于调用方违约，直接断言崩溃暴露问题
+        MC_ASSERT_RELEASE_MSG(
+            !m_dimensionChangeCallback, "ServerDimensionManager::setDimensionChangeCallback: callback already set");
         m_dimensionChangeCallback = std::move(callback);
     }
 

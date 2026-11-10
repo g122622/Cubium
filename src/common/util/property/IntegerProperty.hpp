@@ -25,17 +25,17 @@
 
 #include "Property.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/IProperty.hpp"
 #include <cstddef>
-#include <exception>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <fmt/format.h>
 
 namespace mc {
 
@@ -71,17 +71,15 @@ public:
      * @param min 最小值（包含）
      * @param max 最大值（包含）
      * @return 属性实例
-     * @throws std::invalid_argument 如果 min < 0 或 max <= min
+     *
+     * @note min < 0 或 max <= min 属于注册期的编程错误，当场断言崩溃。
      */
     [[nodiscard]] static std::unique_ptr<IntegerProperty> create(const std::string& name, i32 min, i32 max)
     {
-        if (min < 0) {
-            throw std::invalid_argument("Min value of " + name + " must be 0 or greater");
-        }
-        if (max <= min) {
-            throw std::invalid_argument(
-                "Max value of " + name + " must be greater than min (" + std::to_string(min) + ")");
-        }
+        MC_ASSERT_RELEASE_MSG(
+            min >= 0, fmt::format("IntegerProperty '{}': min value must be 0 or greater", name).c_str());
+        MC_ASSERT_RELEASE_MSG(max > min,
+            fmt::format("IntegerProperty '{}': max value ({}) must be greater than min ({})", name, max, min).c_str());
         return std::unique_ptr<IntegerProperty>(new IntegerProperty(name, min, max));
     }
 

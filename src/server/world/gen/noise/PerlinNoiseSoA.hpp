@@ -269,9 +269,8 @@ private:
 #else
         void* p = std::aligned_alloc(64, (size + 63) & ~size_t(63));
 #endif
-        if (p == nullptr) {
-            throw std::bad_alloc();
-        }
+        // 分配失败属于不可恢复的资源耗尽，直接断言崩溃（对齐 STL 在 -fno-exceptions 下的行为）。
+        MC_ASSERT_RELEASE_MSG(p != nullptr, "PerlinNoiseSoA: aligned allocation failed");
         return p;
     }
 

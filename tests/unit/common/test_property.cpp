@@ -21,7 +21,9 @@
  *
  */
 
+#include "common/ScopedAssertThrowHandler.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/BooleanProperty.hpp"
 #include "common/util/property/DirectionProperty.hpp"
 #include "common/util/property/EnumProperty.hpp"
@@ -225,12 +227,16 @@ TEST(IntegerPropertyTest, ParseValue)
 
 TEST(IntegerPropertyTest, InvalidRange)
 {
-    // min < 0 should throw
-    EXPECT_THROW(IntegerProperty::create("invalid1", -1, 5), std::invalid_argument);
+    // 非法范围属于注册期的编程错误，现在由 MC_ASSERT_RELEASE 处理（默认处理器终止进程），
+    // 这里临时改用抛出 AssertException 的处理器以验证断言路径。
+    test::ScopedAssertThrowHandler guard;
 
-    // max <= min should throw
-    EXPECT_THROW(IntegerProperty::create("invalid2", 5, 5), std::invalid_argument);
-    EXPECT_THROW(IntegerProperty::create("invalid3", 5, 3), std::invalid_argument);
+    // min < 0 应断言失败
+    EXPECT_THROW(MC_UNUSED(IntegerProperty::create("invalid1", -1, 5)), assert::AssertException);
+
+    // max <= min 应断言失败
+    EXPECT_THROW(MC_UNUSED(IntegerProperty::create("invalid2", 5, 5)), assert::AssertException);
+    EXPECT_THROW(MC_UNUSED(IntegerProperty::create("invalid3", 5, 3)), assert::AssertException);
 }
 
 TEST(IntegerPropertyTest, Equals)

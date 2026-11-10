@@ -22,12 +22,13 @@
 
 #include "Noises.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <mutex>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <fmt/format.h>
 
 namespace mc::world::gen::noise {
 
@@ -48,9 +49,9 @@ const NoiseParameters& Noises::get(const std::string& name)
         std::call_once(s_initFlag, initialize);
     }
     auto it = s_registry.find(name);
-    if (it == s_registry.end()) {
-        throw std::out_of_range("Unknown noise: " + name);
-    }
+    // 未注册的噪声名说明数据包的 noise_router 引用了不存在的噪声，属数据包自洽性错误：
+    // 此时构造密度函数已无法继续（返回值必须存在），故当场断言暴露。
+    MC_ASSERT_RELEASE_MSG(it != s_registry.end(), fmt::format("Noises::get: unknown noise '{}'", name).c_str());
     return it->second;
 }
 

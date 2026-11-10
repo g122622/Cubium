@@ -78,7 +78,6 @@ util/
 ├── NibbleArray.hpp/cpp            # 4 位数组（光照数据）
 ├── PlatformInfo.hpp/cpp           # 平台信息
 ├── PngInfo.hpp                    # PNG 头解析（签名 + IHDR 宽高）
-├── RateLimiter.hpp                # 限流器
 ├── StringUtils.hpp                # 字符串工具
 ├── TimeUtils.hpp                  # 时间工具（时间戳、file_time_type 跨平台转换）
 ├── SpecialDates.hpp               # 特殊日期工具
@@ -107,7 +106,6 @@ util/
 │  LinkedHashSet (独立, 仅依赖 STL)                                 │
 │  NibbleArray (独立)                                               │
 │  PlatformInfo (独立)                                              │
-│  RateLimiter (独立)                                               │
 │  StringUtils (独立)                                               │
 │  TimeUtils (独立)                                                 │
 │  DateTimeUtils ← TimeUtils（概念关联，无代码依赖）                 │

@@ -32,25 +32,8 @@
 namespace mc {
 
 class Entity;
-class IWorld;
-
-namespace ecs {
-class EntityRegistry;
-}
 
 namespace loot {
-
-/**
- * @brief 取世界持有的实体注册表
- *
- * 战利品表掷骰由调用方发起，产出既可能落进容器、也可能直接变成掉落物；接收方
- * （实体注册表）由调用方按「这个世界的实体」取得。世界没有接入 ECS 时抛
- * `std::logic_error`——静默回退会让产出落到错误的地方。
- *
- * @param world 世界
- * @return 该世界的实体注册表
- */
-[[nodiscard]] ecs::EntityRegistry& registryOf(IWorld& world);
 
 /**
  * @brief 把指定附魔写到实体主手上

@@ -26,20 +26,9 @@
 #include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/components/EquipmentComponent.hpp"
-#include "common/world/IWorld.hpp"
-#include <stdexcept>
 
 namespace mc {
 namespace loot {
-
-ecs::EntityRegistry& registryOf(IWorld& world)
-{
-    ecs::EntityRegistry* registry = world.entityRegistry();
-    if (registry == nullptr) {
-        throw std::logic_error("loot: 世界没有接入 ECS，无法取得战利品投递的接收实体");
-    }
-    return *registry;
-}
 
 void equipLooting(Entity& attacker, i32 level, const std::string& enchantmentId, const std::string& fallbackItemId)
 {

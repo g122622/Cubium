@@ -26,13 +26,14 @@
 #include "Item.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <fmt/format.h>
 
 namespace mc {
 
@@ -85,9 +86,11 @@ public:
         auto existingIt = m_items.find(id);
         if (existingIt != m_items.end()) {
             auto* existing = dynamic_cast<ItemType*>(existingIt->second.get());
-            if (existing == nullptr) {
-                throw std::logic_error("Item id already registered with different type: " + id.toString());
-            }
+            // 同一资源位置注册成两种 Item 类型属于注册期的编程错误，直接断言崩溃。
+            MC_ASSERT_RELEASE_MSG(existing != nullptr,
+                fmt::format(
+                    "ItemRegistry::registerItem: item id '{}' already registered with different type", id.toString())
+                    .c_str());
             return *existing;
         }
 

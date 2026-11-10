@@ -76,7 +76,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -648,10 +647,7 @@ public:
     void setOnPlaySound(
         std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> callback)
     {
-        if (m_onPlaySound) {
-            throw std::runtime_error("Sound callback already set");
-        }
-
+        MC_ASSERT_RELEASE_MSG(!m_onPlaySound, "ServerWorld::setOnPlaySound: sound callback already set");
         m_onPlaySound = std::move(callback);
     }
 
@@ -701,10 +697,7 @@ public:
 
     void setOnOpenContainer(OpenContainerCallback callback)
     {
-        if (m_onOpenContainer) {
-            throw std::runtime_error("Open container callback already set");
-        }
-
+        MC_ASSERT_RELEASE_MSG(!m_onOpenContainer, "ServerWorld::setOnOpenContainer: callback already set");
         m_onOpenContainer = std::move(callback);
     }
 
@@ -715,10 +708,7 @@ public:
 
     void setOnOpenEntityContainer(OpenEntityContainerCallback callback)
     {
-        if (m_onOpenEntityContainer) {
-            throw std::runtime_error("Open entity container callback already set");
-        }
-
+        MC_ASSERT_RELEASE_MSG(!m_onOpenEntityContainer, "ServerWorld::setOnOpenEntityContainer: callback already set");
         m_onOpenEntityContainer = std::move(callback);
     }
 
@@ -1443,9 +1433,7 @@ public:
 
     void setOnLightChanged(std::function<void(LightType, const SectionPos&)> callback)
     {
-        if (m_onLightChanged) {
-            throw std::runtime_error("Light change callback already set");
-        }
+        MC_ASSERT_RELEASE_MSG(!m_onLightChanged, "ServerWorld::setOnLightChanged: light callback already set");
         m_onLightChanged = std::move(callback);
     }
 
@@ -1453,9 +1441,7 @@ public:
 
     void setOnBlockChanged(std::function<void(const BlockPos&, u32)> callback)
     {
-        if (m_onBlockChanged) {
-            throw std::runtime_error("Block change callback already set");
-        }
+        MC_ASSERT_RELEASE_MSG(!m_onBlockChanged, "ServerWorld::setOnBlockChanged: block callback already set");
         m_onBlockChanged = std::move(callback);
     }
 

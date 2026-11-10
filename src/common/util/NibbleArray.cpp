@@ -28,12 +28,13 @@
 
 #include "NibbleArray.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <algorithm>
 #include <cstddef>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+#include <fmt/format.h>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
@@ -45,10 +46,9 @@ namespace mc {
 
 NibbleArray::NibbleArray(std::vector<u8> data)
 {
-    if (data.size() != BYTE_SIZE && !data.empty()) {
-        throw std::invalid_argument(
-            "NibbleArray data must be " + std::to_string(BYTE_SIZE) + " bytes, got " + std::to_string(data.size()));
-    }
+    // 长度不符说明上游解码/填充逻辑出错（不属于可恢复的用户输入错误），当场断言暴露。
+    MC_ASSERT_RELEASE_MSG(data.size() == BYTE_SIZE || data.empty(),
+        fmt::format("NibbleArray: data must be {} bytes, got {}", BYTE_SIZE, data.size()).c_str());
     m_data = std::move(data);
 }
 

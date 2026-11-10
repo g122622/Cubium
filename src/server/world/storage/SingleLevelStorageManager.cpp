@@ -1246,9 +1246,8 @@ Result<void> SingleLevelStorageManager::saveDragonFightData(const nlohmann::json
 
 SectionManager& SingleLevelStorageManager::_sectionManager(DimensionId dimension)
 {
-    if (!isOpen()) {
-        throw std::runtime_error("Storage not open");
-    }
+    // 未打开存档就读写 section 属于调用方违约（门面类的使用前置条件），直接断言崩溃。
+    MC_ASSERT_RELEASE_MSG(isOpen(), "SingleLevelStorageManager::_sectionManager: storage is not open");
 
     {
         std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
@@ -1258,35 +1257,10 @@ SectionManager& SingleLevelStorageManager::_sectionManager(DimensionId dimension
         }
     }
 
-    auto* manager = _createSectionManager(dimension);
-    if (!manager) {
-        throw std::runtime_error(
-            fmt::format("Failed to create SectionManager for dimension {}", static_cast<i32>(dimension)));
-    }
-    return *manager;
+    return _createSectionManager(dimension);
 }
 
-const SectionManager& SingleLevelStorageManager::_sectionManager(DimensionId dimension) const
-{
-    if (!isOpen()) {
-        throw std::runtime_error("Storage not open");
-    }
-
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    auto it = m_sectionManagers.find(dimension);
-    if (it == m_sectionManagers.end()) {
-        throw std::runtime_error(fmt::format("SectionManager not found for dimension {}", static_cast<i32>(dimension)));
-    }
-    return *it->second;
-}
-
-bool SingleLevelStorageManager::_hasSectionManager(DimensionId dimension) const
-{
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    return m_sectionManagers.find(dimension) != m_sectionManagers.end();
-}
-
-SectionManager* SingleLevelStorageManager::_createSectionManager(DimensionId dimension)
+SectionManager& SingleLevelStorageManager::_createSectionManager(DimensionId dimension)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "SingleLevelStorageManager::createSectionManager",
@@ -1296,11 +1270,10 @@ SectionManager* SingleLevelStorageManager::_createSectionManager(DimensionId dim
     auto manager = std::make_unique<SectionManager>(*m_db, dimension, m_config.consistencyMode);
 
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    auto [it, inserted] = m_sectionManagers.emplace(dimension, std::move(manager));
-    if (!inserted) {
-        return nullptr;
-    }
-    return it->second.get();
+    // 并发首访同一维度时先插入者胜出，后到者复用同一实例（不再把冲突当成错误）。
+    auto [it, inserted] = m_sectionManagers.try_emplace(dimension, std::move(manager));
+    MC_UNUSED(inserted);
+    return *it->second;
 }
 
 void SingleLevelStorageManager::setConsistencyMode(ConsistencyMode mode)

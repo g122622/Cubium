@@ -32,7 +32,6 @@
 #include <memory>
 #include <optional>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -111,10 +110,10 @@ public:
     [[nodiscard]] typename Property<T>::ValueReturnType get(const Property<T>& prop) const
     {
         const size_t slotIndex = findPropertySlot(prop);
-        if (slotIndex == kInvalidIndex) {
-            throw std::invalid_argument(
-                "Cannot get property " + prop.name() + " as it does not exist in " + ownerName());
-        }
+        // 取一个本状态不存在的属性属于调用方违约（应先 hasProperty），直接崩溃暴露问题。
+        // 外部的属性名（NBT/JSON/命令输入）必须先经 StateContainer::getProperty 校验，
+        // 不得把用户字符串直接拼成 Property 再调到这里。
+        MC_ASSERT_RELEASE_MSG(slotIndex != kInvalidIndex, "StateHolder::get: property does not exist on this state");
         return static_cast<const Property<T>&>(prop).valueAt(m_valueIndices[slotIndex]);
     }
 
@@ -139,25 +138,19 @@ public:
     [[nodiscard]] const State& with(const Property<T>& prop, const T& value) const
     {
         const size_t slotIndex = findPropertySlot(prop);
-        if (slotIndex == kInvalidIndex) {
-            throw std::invalid_argument(
-                "Cannot set property " + prop.name() + " as it does not exist in " + ownerName());
-        }
+        MC_ASSERT_RELEASE_MSG(slotIndex != kInvalidIndex, "StateHolder::with: property does not exist on this state");
 
         auto optIndex = prop.indexOf(value);
-        if (!optIndex) {
-            throw std::invalid_argument("Invalid value for property " + prop.name());
-        }
+        // 值不在属性的允许集合内同样属于调用方违约：外部输入须先经 IProperty::parseValue 校验。
+        MC_ASSERT_RELEASE_MSG(optIndex.has_value(), "StateHolder::with: value is not allowed by the property");
 
         if (m_valueIndices[slotIndex] == *optIndex) {
             return static_cast<const State&>(*this);
         }
 
         const PropertyLayout& layout = propertyLayouts()[slotIndex];
-        if (layout.property != &prop) {
-            throw std::invalid_argument("Cannot set property " + prop.name() + " to " + prop.valueToString(value) +
-                " on " + ownerName() + ", it is not an allowed value");
-        }
+        MC_ASSERT_RELEASE_MSG(layout.property == &prop,
+            "StateHolder::with: property at the resolved slot does not match the requested property");
 
         const size_t currentIndex = static_cast<size_t>(m_stateIndex);
         const size_t currentValueIndex = m_valueIndices[slotIndex];
@@ -204,10 +197,7 @@ public:
     [[nodiscard]] const State& cycle(const Property<T>& prop) const
     {
         const size_t slotIndex = findPropertySlot(prop);
-        if (slotIndex == kInvalidIndex) {
-            throw std::invalid_argument(
-                "Cannot cycle property " + prop.name() + " as it does not exist in " + ownerName());
-        }
+        MC_ASSERT_RELEASE_MSG(slotIndex != kInvalidIndex, "StateHolder::cycle: property does not exist on this state");
 
         const auto& values = prop.allowedValues();
         size_t currentIndex = m_valueIndices[slotIndex];

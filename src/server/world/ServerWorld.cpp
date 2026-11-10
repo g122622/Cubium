@@ -21,8 +21,8 @@
  *
  */
 
-// 在macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
-// 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
+// macOS 系统头文件 <mach/arm/vm_param.h> 把 BYTE_SIZE 定义成宏（=8），会与区块/光照头文件里
+// 同名静态常量冲突；这里用 pragma push_macro/pop_macro 在整段 include 期间屏蔽该宏。
 #pragma push_macro("BYTE_SIZE")
 #undef BYTE_SIZE
 
@@ -55,7 +55,6 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/NibbleArray.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/core/CoordConverter.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -162,7 +161,6 @@ using namespace mc::trace;
 namespace mc::server {
 
 using mc::LightType;
-using mc::NibbleArray;
 using mc::StarLightLightingProvider;
 using mc::WorldLightManager;
 using mc::util::core::CoordConverter;

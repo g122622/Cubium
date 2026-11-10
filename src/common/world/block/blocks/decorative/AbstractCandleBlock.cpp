@@ -62,8 +62,8 @@ bool AbstractCandleBlock::isLit(const BlockState& state)
     //   return state.hasProperty(LIT) && (state.is(CANDLES) || state.is(CANDLE_CAKES)) && state.getValue(LIT);
     // 三重短路门控：
     //   1. hasProperty(LIT) 前置守护——对无 LIT 属性的方块（grass_block/air 等）短路返回 false，
-    //      绝不调 getValue(LIT)，后者对无该属性的方块抛 std::invalid_argument（StateHolder::get:86），
-    //      C++ 异常穿过 JS 边界致 fatal error。
+    //      绝不调 getValue(LIT)，后者对无该属性的方块会断言崩溃（StateHolder::get），
+    //      崩溃整服。
     //   2. (is(CANDLES) || is(CANDLE_CAKES)) 中段标签门控——只对蜡烛/蜡烛蛋糕返回 true，
     //      防止其他含 LIT 属性的方块（如营火 minecraft:campfire、红石矿石 minecraft:redstone_ore）
     //      被误判为蜡烛。曾因缺此门控，PotionEntity::_dowseFire 的 if-else 链中营火先命中
