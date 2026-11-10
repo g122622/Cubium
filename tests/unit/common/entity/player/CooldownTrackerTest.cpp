@@ -99,11 +99,17 @@ TEST_F(CooldownTrackerTest, SetCooldown_ZeroTicks_DoesNotSet)
     EXPECT_FALSE(tracker->hasCooldown(item));
 }
 
-TEST_F(CooldownTrackerTest, SetCooldown_NegativeTicks_DoesNotSet)
+TEST_F(CooldownTrackerTest, SetCooldown_NegativeTicks_OnCooldownUntilNextTick)
 {
     auto item = createTestItem();
 
+    // 原版 addCooldown 无条件 put；isOnCooldown 看的是 getCooldownPercent > 0。
+    // ticks=-5 时 endTime=now-5、duration=-5，剩余/时长 = 1，clamp 后仍为 1，
+    // 因此**立即查询仍在冷却中**；下一次 tick 过期清理后才消失。
     tracker->setCooldown(item, -5);
+    EXPECT_TRUE(tracker->hasCooldown(item));
+
+    tracker->tick();
     EXPECT_FALSE(tracker->hasCooldown(item));
 }
 

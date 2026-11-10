@@ -97,8 +97,8 @@ TEST_F(BatEntityTest, FlyingAndResting_CanCoexist)
 
 TEST_F(BatEntityTest, EyeHeight_ReturnsSmallValue)
 {
-    // 蝙蝠眼睛高度很小（0.1）
-    EXPECT_FLOAT_EQ(bat->eyeHeight(), 0.1f);
+    // 原版 EntityType.BAT 注册 `.sized(0.5F, 0.9F).eyeHeight(0.45F)`。
+    EXPECT_FLOAT_EQ(bat->eyeHeight(), 0.45f);
 }
 
 TEST_F(BatEntityTest, RestingTickSnapsToCeilingAndStops)

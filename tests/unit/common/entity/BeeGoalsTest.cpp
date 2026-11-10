@@ -1636,8 +1636,8 @@ TEST_F(BeePollinationTargetTest, SweetBerryBush_MaxAgeCannotGrowFurther)
 
 TEST_F(BeePollinationTargetTest, WorldEvents_BonemealParticlesValue)
 {
-    // 验证 BONEMEAL_PARTICLES(2005) 的值正确
-    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH), 2005);
+    // 原版 LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH = 1505
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH), 1505);
 }
 
 TEST_F(BeePollinationTargetTest, WorldEvents_PlantGrowthParticlesValue)

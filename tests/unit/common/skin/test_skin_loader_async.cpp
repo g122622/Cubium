@@ -519,10 +519,12 @@ TEST_F(HttpSkinLoaderAsyncTest, ShutdownWaitsForPendingTasks)
 
     std::atomic<int> completedCount{0};
 
-    // 提交多个任务
+    // 提交多个任务。用回环地址的未监听端口：连接会立即被拒绝，
+    // 回调必然触发且不依赖外网/DNS（访问 textures.minecraft.net 会在无网络
+    // 环境里卡住解析，令本用例超时）。
     for (int i = 0; i < 3; ++i) {
         loader_->loadAsync(
-            "http://textures.minecraft.net/texture/abc" + std::to_string(i), [&](Result<SkinLoadResult> /*result*/) {
+            "http://127.0.0.1:1/texture/abc" + std::to_string(i), [&](Result<SkinLoadResult> /*result*/) {
                 completedCount++;
             });
     }

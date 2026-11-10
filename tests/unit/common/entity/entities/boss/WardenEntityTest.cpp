@@ -142,7 +142,9 @@ TEST_F(WardenEntityTest, Dimensions_MatchMCJavaValues)
     entity::WardenEntity warden(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(warden.width(), 0.9f);
     EXPECT_FLOAT_EQ(warden.height(), 2.9f);
-    EXPECT_FLOAT_EQ(warden.eyeHeight(), 2.4f);
+    // 原版 WARDEN 未显式指定 eyeHeight，走 EntityDimensions 默认的 height * 0.85
+    // = 2.9 * 0.85 = 2.465。
+    EXPECT_FLOAT_EQ(warden.eyeHeight(), 2.465f);
 }
 
 // ========== 属性测试 ==========

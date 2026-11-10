@@ -491,10 +491,10 @@ TEST_F(BreezeEntityTest, Height_Is177)
     EXPECT_FLOAT_EQ(m_breeze.height(), 1.77f);
 }
 
-TEST_F(BreezeEntityTest, EyeHeight_Is152)
+TEST_F(BreezeEntityTest, EyeHeight_Is13452)
 {
-    // MC 1.21.11: Breeze 眼睛高度 1.52
-    EXPECT_FLOAT_EQ(m_breeze.eyeHeight(), 1.52f);
+    // 原版 EntityType.BREEZE 注册 `.sized(0.6F, 1.77F).eyeHeight(1.3452F)`。
+    EXPECT_FLOAT_EQ(m_breeze.eyeHeight(), 1.3452f);
 }
 
 // ==================== canAttackType 白名单测试 ====================

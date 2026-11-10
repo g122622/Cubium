@@ -170,8 +170,8 @@ TEST(AttributeMapComprehensiveTest, AddAndRemoveModifierViaMap)
     // 添加第二个修饰符
     AttributeModifier mod2("mod2", "Health Multiplier", 0.5, Operation::MultiplyBase);
     map.addModifier(Attributes::MAX_HEALTH, mod2);
-    // 20 + 10 + 20*0.5 = 40.0
-    EXPECT_DOUBLE_EQ(map.getValue(Attributes::MAX_HEALTH), 40.0);
+    // MultiplyBase 以「基础值 + 加法修饰符」为基数：(20 + 10) + (20 + 10)*0.5 = 45.0
+    EXPECT_DOUBLE_EQ(map.getValue(Attributes::MAX_HEALTH), 45.0);
 
     // 移除第一个修饰符
     bool removed = map.removeModifier(Attributes::MAX_HEALTH, "mod1");

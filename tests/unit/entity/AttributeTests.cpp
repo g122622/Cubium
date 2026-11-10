@@ -185,13 +185,13 @@ TEST(AttributeInstance, MixedModifiers)
     // Addition: 10 + 5 = 15
     instance.addModifier(AttributeModifier("mod-1", "Add 5", 5.0, Operation::Addition));
 
-    // MultiplyBase: 15 + (10 * 0.5) = 20
+    // MultiplyBase 以「基础值 + 全部加法修饰符」为基数：15 + 15 * 0.5 = 22.5
     instance.addModifier(AttributeModifier("mod-2", "Mult Base", 0.5, Operation::MultiplyBase));
 
-    // MultiplyTotal: 20 * 1.1 = 22
+    // MultiplyTotal: 22.5 * 1.1 = 24.75
     instance.addModifier(AttributeModifier("mod-3", "Mult Total", 0.1, Operation::MultiplyTotal));
 
-    EXPECT_DOUBLE_EQ(instance.getValue(), 22.0);
+    EXPECT_DOUBLE_EQ(instance.getValue(), 24.75);
 }
 
 TEST(AttributeInstance, RemoveModifier)

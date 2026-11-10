@@ -197,8 +197,9 @@ TEST_F(EntityPeacefulFlagTest, PassiveMobsAllowedInPeaceful)
 
 // ============================================================================
 // isAllowedInPeaceful 与 canSummon 独立性：
-// giant 不可召唤（canSummon==false）但仍标 notInPeaceful（和平禁召语义独立于可召唤性）。
-// 验证 notInPeaceful 标注不依赖 canSummon（giant 特殊：无 canSummon(true) 但有 notInPeaceful）。
+// 原版 EntityType.Builder 的默认值是 serialize=true、summon=true；GIANT 只调用
+// notInPeaceful()，没有 noSummon()，因此 canSummon 仍为 true（/summon giant 可用），
+// 但和平难度下被 notInPeaceful 禁止生成/召唤。
 // ============================================================================
 TEST_F(EntityPeacefulFlagTest, NotInPeacefulIndependentFromCanSummon)
 {
@@ -206,7 +207,7 @@ TEST_F(EntityPeacefulFlagTest, NotInPeacefulIndependentFromCanSummon)
     if (giant == nullptr) {
         GTEST_SKIP();
     }
-    EXPECT_FALSE(giant->canSummon()) << "giant should not be summonable";
+    EXPECT_TRUE(giant->canSummon()) << "giant keeps the Builder's default summon flag";
     EXPECT_FALSE(giant->isAllowedInPeaceful())
         << "giant should be blocked on peaceful (notInPeaceful set independent of canSummon)";
     EXPECT_TRUE(giant->hasFlag(entity::EntityFlags::NotInPeaceful));
