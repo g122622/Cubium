@@ -26,6 +26,8 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp" // minecraft:is_baby → AgeableEntity::setChild
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/item/core/Item.hpp"
@@ -549,6 +551,60 @@ public:
             }
             if (healAmount > 0) {
                 heal(static_cast<f32>(healAmount));
+            }
+
+            // items[].effects：治疗成功后按 chance 施加状态效果。
+            // 基岩 schema 里 duration 单位是**秒**（转换成本项目的 tick 需 ×20），
+            // chance 为 0~1 的概率，amplifier 与 Java 一致从 0 起算。
+            if (const auto effects = entry.find("effects"); effects != entry.end() && effects->is_array()) {
+                for (const auto& effectEntry : *effects) {
+                    if (!effectEntry.is_object()) {
+                        continue;
+                    }
+                    const auto nameIt = effectEntry.find("name");
+                    if (nameIt == effectEntry.end() || !nameIt->is_string()) {
+                        continue;
+                    }
+                    const std::optional<mc::entity::effect::EffectType> effectType =
+                        mc::entity::effect::getEffectByResourceLocation(ResourceLocation(nameIt->get<std::string>()));
+                    if (!effectType.has_value()) {
+                        spdlog::warn("minecraft:healable effects entry has unknown effect '{}', skipped",
+                            nameIt->get<std::string>());
+                        continue;
+                    }
+
+                    // chance 缺省为 1（必然施加）；超出 0~1 视为配置错误。
+                    f64 chance = 1.0;
+                    if (const auto chanceIt = effectEntry.find("chance"); chanceIt != effectEntry.end()) {
+                        if (!chanceIt->is_number()) {
+                            spdlog::warn("minecraft:healable effects[].chance must be a number, using 1");
+                        } else {
+                            chance = chanceIt->get<f64>();
+                        }
+                    }
+                    if (chance <= 0.0 || getRandom().nextFloat() >= static_cast<f32>(chance)) {
+                        continue;
+                    }
+
+                    i32 durationSeconds = 0;
+                    if (const auto durationIt = effectEntry.find("duration");
+                        durationIt != effectEntry.end() && durationIt->is_number()) {
+                        durationSeconds = static_cast<i32>(durationIt->get<f64>());
+                    } else {
+                        spdlog::warn("minecraft:healable effects[] entry for '{}' has no duration, skipped",
+                            mc::entity::effect::getEffectResourceName(*effectType));
+                        continue;
+                    }
+
+                    i32 amplifier = 0;
+                    if (const auto amplifierIt = effectEntry.find("amplifier");
+                        amplifierIt != effectEntry.end() && amplifierIt->is_number_integer()) {
+                        amplifier = static_cast<i32>(amplifierIt->get<i64>());
+                    }
+
+                    addEffect(mc::entity::effect::EffectInstance(
+                        *effectType, std::max(1, durationSeconds) * 20, std::max(0, amplifier)));
+                }
             }
 
             // 生存模式消耗一个物品；创造模式不消耗（与原版喂食一致）。
@@ -1189,24 +1245,14 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                             return Error(ErrorCode::InvalidData, "minecraft:healable heal_amount cannot be negative");
                         }
                     }
-                    if (const auto effects = entry.find("effects"); effects != entry.end()) {
-                        if (!effects->is_array()) {
-                            return Error(ErrorCode::InvalidData, "minecraft:healable effects must be an array");
-                        }
-                        // 声明了 effects 但当前不施加，必须显式告警：否则行为包作者会以为配置写错
-                        // （加载不报错、运行无效果），这种"静默失效"比直接报错更难排查。
-                        if (!effects->empty()) {
-                            spdlog::warn("minecraft:healable items[].effects is declared but not yet applied "
-                                         "({} entries ignored)",
-                                effects->size());
-                        }
+                    if (const auto effects = entry.find("effects"); effects != entry.end() && !effects->is_array()) {
+                        return Error(ErrorCode::InvalidData, "minecraft:healable effects must be an array");
                     }
                 }
             }
-            // TODO: filters（过滤器组）与 items[].effects（施加状态效果）尚未接入：
-            //   - filters 需要把 EntityFilter 接到"玩家对生物使用物品"这条交互上下文上；
-            //   - effects 需要在治疗成功后对实体施加状态效果（含 chance 判定）。
-            //   目前生效的只有"物品 → 治疗量"这一条（见 _AddonMob::tryHealFromItem）。
+            // TODO: filters（过滤器组）尚未接入：需要把 EntityFilter 接到"玩家对生物使用物品"这条
+            //   交互上下文上；目前生效的是"物品 → 治疗量"与"effects → 状态效果"两条
+            //   （见 _AddonMob::tryHealFromItem）。
         } else if (name == "minecraft:breathable") {
             // 官方 schema 同时给了 snake_case 与 camelCase 两套键（suffocate_time/suffocateTime、
             // total_supply/totalSupply），原版实体定义里两种都出现过，必须都接受。
