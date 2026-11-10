@@ -89,9 +89,9 @@ NoiseSettings noise = NoiseSettings::nether();
 
 矿脉生成由 `DimensionSettings::oreVeinsEnabled` 字段控制，而非硬编码的 `dimensionKind` 判断。所有新维度预设必须正确设置此字段。
 
-### 6. NoiseSettings::create() 验证
+### 6. NoiseSettings::validateDimensions() 验证
 
-`NoiseSettings::create()` 工厂方法会在创建时验证参数合法性（height 是 16 的倍数、minY 是 16 的倍数、sizeHorizontal/sizeVertical 在 [1, 4] 范围内）。预设方法（overworld/nether/end 等）不经过此验证，因为它们已知合法。
+`NoiseSettings::validateDimensions()` 校验 4 个尺寸参数（height/minY 是 16 的倍数、minY+height 不超过 `NOISE_MAX_Y + 1`、sizeHorizontal/sizeVertical 在 [1, 4] 内），返回 `std::optional<std::string>` 错误描述。**数据包 `noise_settings` JSON 必须经过它**（`DimensionSettings::fromJson` 会转成 `Result` 错误并跳过该设置），否则坏数据会直接进入噪声采样。C++ 预设（overworld/nether/end 等）已知合法，不经过此校验。
 
 ### 7. FillLayerEntry 与 updateLayers() 的配合
 

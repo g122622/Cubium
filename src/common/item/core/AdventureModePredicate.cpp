@@ -146,13 +146,15 @@ std::shared_ptr<nbt::tags::compound_tag> AdventureModePredicate::parseNbt(const 
     const std::string nbtStr = predicate.substr(nbtStart);
 
     // 使用项目的 Mojangson 解析器解析 NBT 字符串
-    auto tag = nbt::parseMojangson(nbtStr);
-    if (tag == nullptr) {
+    auto tagResult = nbt::parseMojangson(nbtStr);
+    if (tagResult.failed()) {
         // NBT 解析失败，记录警告但不影响其他匹配
+        spdlog::warn(
+            "AdventureModePredicate: failed to parse NBT predicate '{}': {}", nbtStr, tagResult.error().message());
         return nullptr;
     }
 
-    return std::shared_ptr<nbt::tags::compound_tag>(std::move(tag));
+    return std::shared_ptr<nbt::tags::compound_tag>(std::move(tagResult).value());
 }
 
 bool AdventureModePredicate::test(const BlockState& state) const

@@ -50,9 +50,15 @@ using namespace mc::world::gen::structure::placement;
 namespace {
 
 /// 要塞结构集合 JSON（placement 为 concentric_rings，preferred_biomes 引用标签）
-const char* strongholdJson(const std::string& tagRef)
+/// 生成一份 stronghold 结构集合 JSON（preferred_biomes 指向给定标签）。
+///
+/// 返回值必须是 std::string 而不是 const char*：StructureSetLoader 同时提供
+/// `loadFromJson(const std::string&)` 与 `loadFromJson(const nlohmann::json&)` 两个重载，
+/// 传字面量/`const char*` 时两边都要经过一次用户自定义转换，调用会变成歧义
+/// （PCH 让 nlohmann::json 在本 TU 可见后就会暴露）。
+std::string strongholdJson(const std::string& tagRef)
 {
-    static std::string buf;
+    std::string buf;
     buf = R"({
         "structures": [ { "structure": "minecraft:stronghold", "weight": 1 } ],
         "placement": {
@@ -65,7 +71,7 @@ const char* strongholdJson(const std::string& tagRef)
             "salt": 0
         }
     })";
-    return buf.c_str();
+    return buf;
 }
 
 /// 取已注册的 stronghold_biased_to 标签并填充若干 BiomeId（若尚未注册返回 nullptr）

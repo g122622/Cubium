@@ -287,7 +287,17 @@ private:
         }
         const auto arity = _arity(token.text);
         if (!arity) {
-            // TODO: 继续接入其他查询、变量和数学函数。
+            // 裸写的 `query.<名>` 是零参实体查询（如 query.is_baby、query.last_hit_by_player）；
+            // 基岩允许带空括号的等价写法 `query.is_baby()`，两种都要接受。
+            // `query.property` / `query.has_property` 在 _arity 表里，因此仍走下面的带参路径。
+            if (token.text.starts_with("query.")) {
+                if (_consume("(") && !_consume(")")) {
+                    return Error(
+                        ErrorCode::InvalidData, "Molang zero-argument query must not take arguments: " + token.text);
+                }
+                return _node({MolangNodeKind::Call, 0, token.text, {}});
+            }
+            // TODO: 继续接入其他变量和数学函数。
             return Error(ErrorCode::Unsupported, "Molang function or variable is not implemented: " + token.text);
         }
         if (!_consume("(")) {

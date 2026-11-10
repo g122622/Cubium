@@ -6,7 +6,7 @@
 # Usage:
 #   .\configure.ps1                         - Configure with relwithdebinfo preset (server-only; client unmaintained)
 #   .\configure.ps1 -Build                  - Configure + build
-#   .\configure.ps1 -CmakeArgs @("--preset","windows-clang-debug")
+#   .\configure.ps1 -CmakeArgs @("--preset","windows-clang-release")
 #                                           - Run cmake with custom args
 # ============================================================
 

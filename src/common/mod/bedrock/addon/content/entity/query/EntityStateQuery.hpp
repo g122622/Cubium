@@ -25,7 +25,10 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/content/molang/base/MolangTypes.hpp"
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace mc {
 class Entity;
@@ -45,6 +48,16 @@ public:
         const mc::Entity& entity, const std::string& domain, const std::string& item);
     /** @brief 判断 subject 是否是 caller 记录的主人，不依赖主人当前所在维度。 */
     [[nodiscard]] static bool isOwner(const mc::Entity& caller, const mc::Entity& subject);
+    /**
+     * @brief 把基岩 `query.*` 具名零参查询解析为实体当前状态。
+     *
+     * 查询名必须带 `query.` 前缀且已小写化，与 Molang 表达式里的写法一致。
+     *
+     * @param entity 求值宿主实体
+     * @param name 完整查询名
+     * @return 查询结果；std::nullopt 表示该查询尚未实现，调用方按基岩语义取 0
+     */
+    [[nodiscard]] static std::optional<MolangValue> molangQuery(const mc::Entity& entity, std::string_view name);
 };
 
 } // namespace mc::mod::bedrock::addon

@@ -51,6 +51,7 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "core/Types.hpp"
 
 #include <algorithm>
@@ -125,16 +126,15 @@ namespace mc {
 namespace nbt {
 
 /**
- * @brief 从输入流读取一个字符，遇到EOF抛出异常
+ * @brief 从输入流读取一个字符
  * @param input 输入流
- * @return 读取的字符
- * @throws std::runtime_error 如果到达EOF
+ * @return 读取到的字符；流已结束（EOF）时返回 `ErrorCode::InvalidData`
  */
-inline i32 cheof(std::istream& input)
+inline Result<i32> cheof(std::istream& input)
 {
-    i32 value = input.get();
+    const i32 value = input.get();
     if (value == EOF) {
-        throw std::runtime_error("Unexpected EOF while reading NBT data");
+        return Error(ErrorCode::InvalidData, "NBT: unexpected end of stream while reading tag data");
     }
     return value;
 }
@@ -315,7 +315,7 @@ number_t correct_order(number_t number, const Context::Order order)
 /**
  * @brief 从输入流加载VarInt
  */
-std::int32_t load_varint(std::istream& input);
+Result<std::int32_t> load_varint(std::istream& input);
 
 /**
  * @brief 向输出流写入VarInt
@@ -325,7 +325,7 @@ void dump_varint(std::ostream& output, std::int32_t value);
 /**
  * @brief 从输入流加载VarLong
  */
-std::int64_t load_varlong(std::istream& input);
+Result<std::int64_t> load_varlong(std::istream& input);
 
 /**
  * @brief 向输出流写入VarLong
@@ -341,7 +341,7 @@ void dump_varlong(std::ostream& output, std::int64_t value);
  * 循环 `emplace_back`，直到耗尽内存（fuzz 实测 malloc(2GB) 的 OOM）。
  */
 template <typename number_t>
-number_t load_flat(std::istream& input, const Context::Order order)
+Result<number_t> load_flat(std::istream& input, const Context::Order order)
 {
     constexpr std::size_t n = sizeof(number_t);
 
@@ -352,7 +352,7 @@ number_t load_flat(std::istream& input, const Context::Order order)
 
     input.read(tmp.data, n);
     if (!input) {
-        throw std::runtime_error("NBT: unexpected end of stream while reading a fixed-width number");
+        return Error(ErrorCode::InvalidData, "NBT: unexpected end of stream while reading a fixed-width number");
     }
     return correct_order(tmp.number, order);
 }
@@ -361,69 +361,74 @@ number_t load_flat(std::istream& input, const Context::Order order)
  * @brief 从输入流加载文本格式数值（特化版本）
  */
 template <typename number_t>
-number_t load_text(std::istream& input)
+Result<number_t> load_text(std::istream& input)
 {
-    return static_cast<number_t>(load_text<std::make_signed_t<number_t>>(input));
+    std::make_signed_t<number_t> signedValue{};
+    MC_TRY_ASSIGN(signedValue, load_text<std::make_signed_t<number_t>>(input));
+    return static_cast<number_t>(signedValue);
 }
 
 template <>
-std::int8_t load_text<std::int8_t>(std::istream& input);
+Result<std::int8_t> load_text<std::int8_t>(std::istream& input);
 
 template <>
-std::int16_t load_text<std::int16_t>(std::istream& input);
+Result<std::int16_t> load_text<std::int16_t>(std::istream& input);
 
 template <>
-std::int32_t load_text<std::int32_t>(std::istream& input);
+Result<std::int32_t> load_text<std::int32_t>(std::istream& input);
 
 template <>
-std::int64_t load_text<std::int64_t>(std::istream& input);
+Result<std::int64_t> load_text<std::int64_t>(std::istream& input);
 
 template <>
-f32 load_text<f32>(std::istream& input);
+Result<f32> load_text<f32>(std::istream& input);
 
 template <>
-f64 load_text<f64>(std::istream& input);
+Result<f64> load_text<f64>(std::istream& input);
 
 /**
  * @brief 根据上下文格式从输入流加载数值
  */
 template <typename number_t>
-number_t load(std::istream& input, const Context& ctxt)
+Result<number_t> load(std::istream& input, const Context& ctxt)
 {
     if (ctxt.format == Context::Format::Mojangson) {
         return load_text<number_t>(input);
-    } else {
-        return load_flat<number_t>(input, ctxt.order);
     }
+    return load_flat<number_t>(input, ctxt.order);
 }
 
 template <>
-std::int32_t load<std::int32_t>(std::istream& input, const Context& ctxt);
+Result<std::int32_t> load<std::int32_t>(std::istream& input, const Context& ctxt);
 
 template <>
-inline std::uint32_t load<std::uint32_t>(std::istream& input, const Context& ctxt)
+inline Result<std::uint32_t> load<std::uint32_t>(std::istream& input, const Context& ctxt)
 {
-    return static_cast<std::uint32_t>(load<std::int32_t>(input, ctxt));
+    std::int32_t value = 0;
+    MC_TRY_ASSIGN(value, load<std::int32_t>(input, ctxt));
+    return static_cast<std::uint32_t>(value);
 }
 
 template <>
-std::int64_t load<std::int64_t>(std::istream& input, const Context& ctxt);
+Result<std::int64_t> load<std::int64_t>(std::istream& input, const Context& ctxt);
 
 template <>
-inline std::uint64_t load<std::uint64_t>(std::istream& input, const Context& ctxt)
+inline Result<std::uint64_t> load<std::uint64_t>(std::istream& input, const Context& ctxt)
 {
-    return static_cast<std::uint64_t>(load<std::int64_t>(input, ctxt));
+    std::int64_t value = 0;
+    MC_TRY_ASSIGN(value, load<std::int64_t>(input, ctxt));
+    return static_cast<std::uint64_t>(value);
 }
 
 /**
  * @brief 跳过空白字符
  */
-void skip_space(std::istream& input);
+Result<void> skip_space(std::istream& input);
 
 /**
  * @brief 加载数组/列表大小
  */
-std::size_t load_size(std::istream& input, const Context& ctxt);
+Result<std::size_t> load_size(std::istream& input, const Context& ctxt);
 
 /**
  * @brief 写入数组/列表大小
@@ -434,26 +439,29 @@ void dump_size(std::ostream& output, const Context& ctxt, std::size_t size);
  * @brief 扫描文本格式的序列
  */
 template <typename F>
-void scan_sequence_text(std::istream& input, F element_action)
+Result<void> scan_sequence_text(std::istream& input, F element_action)
 {
     for (;;) {
         skip_space(input);
-        i32 nextChar = cheof(input);
-        char c = static_cast<char>(nextChar);
+        i32 nextChar = 0;
+        MC_TRY_ASSIGN(nextChar, cheof(input));
+        const char c = static_cast<char>(nextChar);
         if (c == ']') {
-            break;
+            return Result<void>::ok();
         }
         input.putback(c);
-        element_action();
+        MC_TRY(element_action());
         skip_space(input);
-        i32 next = cheof(input);
+        i32 next = 0;
+        MC_TRY_ASSIGN(next, cheof(input));
         switch (next) {
             case ',':
                 continue;
             case ']':
-                return;
+                return Result<void>::ok();
             default:
-                throw std::runtime_error(std::string("unexpected character: ") + static_cast<char>(next));
+                return Error(ErrorCode::InvalidData,
+                    std::string("NBT: unexpected character '") + static_cast<char>(next) + "' in text sequence");
         }
     }
 }
@@ -462,7 +470,7 @@ void scan_sequence_text(std::istream& input, F element_action)
  * @brief 加载文本格式数组
  */
 template <typename number_t>
-std::vector<number_t> load_array_text(std::istream& input);
+Result<std::vector<number_t>> load_array_text(std::istream& input);
 
 /**
  * @brief reserve 的保守预分配上限
@@ -518,38 +526,43 @@ inline constexpr std::size_t MAX_NBT_RESERVE_HINT = 4096;
  * @param elementBytes 单个元素的最小线上字节数（数组传 sizeof(number_t)，列表传 1）
  * @param what         诊断用的字段名
  *
- * @throws std::runtime_error 声明长度超过剩余可读字节所能容纳的上限
+ * @return 声明长度可信返回成功；超过剩余可读字节所能容纳的上限时返回错误
  */
-inline void validateBinaryElementCount(
+inline Result<void> validateBinaryElementCount(
     std::istream& input, std::size_t count, std::size_t elementBytes, const char* what)
 {
     const auto remaining = remainingStreamBytes(input);
     if (!remaining.has_value()) {
-        return; // 流不可寻址，无法校验
+        return Result<void>::ok(); // 流不可寻址，无法校验
     }
     if (elementBytes == 0) {
         elementBytes = 1;
     }
     // 用除法比较，避免 count * elementBytes 溢出。
     if (count > *remaining / elementBytes) {
-        throw std::runtime_error(std::string(what) + ": declared element count " + std::to_string(count) + " exceeds " +
-            std::to_string(*remaining) + " remaining bytes");
+        return Error(ErrorCode::InvalidData,
+            std::string("NBT ") + what + ": declared element count " + std::to_string(count) + " exceeds " +
+                std::to_string(*remaining) + " remaining bytes");
     }
+    return Result<void>::ok();
 }
 
 /**
  * @brief 加载二进制格式数组
  */
 template <typename number_t>
-std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt)
+Result<std::vector<number_t>> load_array_bin(std::istream& input, const Context& ctxt)
 {
-    const auto size = load_size(input, ctxt);
+    std::size_t size = 0;
+    MC_TRY_ASSIGN(size, load_size(input, ctxt));
     // 每个元素占 sizeof(number_t) 字节，声明长度不得超过剩余字节所能容纳的数量。
-    validateBinaryElementCount(input, size, sizeof(number_t), "NBT array");
+    MC_TRY(validateBinaryElementCount(input, size, sizeof(number_t), "array"));
     std::vector<number_t> result;
     result.reserve(std::min(size, MAX_NBT_RESERVE_HINT));
     for (std::size_t i = 0; i < size; i++) {
-        result.emplace_back(load<number_t>(input, ctxt));
+        number_t value{};
+        MC_TRY_ASSIGN(value, load<number_t>(input, ctxt));
+        result.emplace_back(value);
     }
     return result;
 }
@@ -558,13 +571,12 @@ std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt)
  * @brief 根据上下文格式加载数组
  */
 template <typename number_t>
-std::vector<number_t> load_array(std::istream& input, const Context& ctxt)
+Result<std::vector<number_t>> load_array(std::istream& input, const Context& ctxt)
 {
     if (ctxt.format == Context::Format::Mojangson) {
         return load_array_text<number_t>(input);
-    } else {
-        return load_array_bin<number_t>(input, ctxt);
     }
+    return load_array_bin<number_t>(input, ctxt);
 }
 
 /**
@@ -706,24 +718,33 @@ void dump_list(std::ostream& output, TagId aid, const std::vector<element_type>&
  * @brief 加载列表
  */
 template <typename tag_type, typename F>
-std::unique_ptr<tag_type> load_list(std::istream& input, F action)
+Result<std::unique_ptr<tag_type>> load_list(std::istream& input, F action)
 {
     const Context& ctxt = Context::get(input);
     auto ptr = std::make_unique<tag_type>();
     typename tag_type::value_type& result = ptr->value;
     if (ctxt.format != Context::Format::Mojangson) {
-        std::size_t size = load_size(input, ctxt);
+        std::size_t size = 0;
+        MC_TRY_ASSIGN(size, load_size(input, ctxt));
         // 二进制列表：最紧凑的元素（int8/Byte）也占 1 字节，故声明长度不得超过剩余
         // 可读字节数。缺失此校验时畸形报文可用一个巨大长度诱导数 GB 预分配。
-        validateBinaryElementCount(input, size, 1, "NBT list");
+        MC_TRY(validateBinaryElementCount(input, size, 1, "list"));
         result.reserve(std::min(size, MAX_NBT_RESERVE_HINT));
         for (std::size_t i = 0; i < size; i++) {
-            result.emplace_back(action(ctxt));
+            typename tag_type::element_type element{};
+            MC_TRY_ASSIGN(element, action(ctxt));
+            result.emplace_back(std::move(element));
         }
     } else {
-        scan_sequence_text(input, [&] {
-            result.emplace_back(action(ctxt));
+        auto sequenceResult = scan_sequence_text(input, [&]() -> Result<void> {
+            typename tag_type::element_type element{};
+            MC_TRY_ASSIGN(element, action(ctxt));
+            result.emplace_back(std::move(element));
+            return Result<void>::ok();
         });
+        if (sequenceResult.failed()) {
+            return sequenceResult.error();
+        }
     }
     result.shrink_to_fit();
     return ptr;
@@ -732,7 +753,7 @@ std::unique_ptr<tag_type> load_list(std::istream& input, F action)
 /**
  * @brief 推断文本格式的标签类型
  */
-TagId deduce_tag(std::istream& input);
+Result<TagId> deduce_tag(std::istream& input);
 
 /**
  * @brief NBT标签命名空间
@@ -768,7 +789,7 @@ struct find_by;
 template <typename value_type>
 struct find_of;
 
-std::unique_ptr<tag> read(TagId tid, std::istream& input);
+Result<std::unique_ptr<tag>> read(TagId tid, std::istream& input);
 
 template <typename tag_type>
 std::unique_ptr<tag_type> cast(std::unique_ptr<tag>&& ptr)
@@ -846,9 +867,11 @@ struct numeric_tag : public tag {
         : value(number)
     {}
 
-    static std::unique_ptr<numeric_tag> read(std::istream& input)
+    static Result<std::unique_ptr<numeric_tag>> read(std::istream& input)
     {
-        return std::make_unique<numeric_tag>(load<value_type>(input, Context::get(input)));
+        value_type value{};
+        MC_TRY_ASSIGN(value, load<value_type>(input, Context::get(input)));
+        return std::make_unique<numeric_tag>(value);
     }
 
     virtual void write(std::ostream& output) const override
@@ -909,10 +932,12 @@ struct array_tag final : public tag {
         : value(std::move(array))
     {}
 
-    static std::unique_ptr<array_tag> read(std::istream& input)
+    static Result<std::unique_ptr<array_tag>> read(std::istream& input)
     {
         const Context& ctxt = Context::get(input);
-        return std::make_unique<array_tag>(load_array<element_type>(input, ctxt));
+        value_type array;
+        MC_TRY_ASSIGN(array, load_array<element_type>(input, ctxt));
+        return std::make_unique<array_tag>(std::move(array));
     }
 
     virtual void write(std::ostream& output) const override
@@ -961,7 +986,7 @@ struct string_tag final : public tag {
     string_tag() = default;
     string_tag(const value_type& string);
     string_tag(value_type&& string);
-    static std::unique_ptr<string_tag> read(std::istream& input);
+    static Result<std::unique_ptr<string_tag>> read(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
 
@@ -997,7 +1022,7 @@ struct list_tag : public tag {
     virtual size_t size() const noexcept = 0;
     virtual bool heavy() const noexcept = 0;
     virtual std::unique_ptr<tag> operator[](size_t i) const = 0;
-    static std::unique_ptr<list_tag> read(std::istream& input);
+    static Result<std::unique_ptr<list_tag>> read(std::istream& input);
     virtual tag_list_tag as_tags() = 0;
 
     /**
@@ -1222,7 +1247,7 @@ struct end_list_tag final : public list_tag {
 
     virtual std::unique_ptr<tag> operator[](size_t i) const override;
     end_list_tag() = default;
-    static std::unique_ptr<end_list_tag> read_content(std::istream& input);
+    static Result<std::unique_ptr<end_list_tag>> read_content(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
@@ -1300,9 +1325,9 @@ struct number_list_tag final : public list_tag {
         : value(std::move(list))
     {}
 
-    static std::unique_ptr<number_list_tag> read_content(std::istream& input)
+    static Result<std::unique_ptr<number_list_tag>> read_content(std::istream& input)
     {
-        return load_list<number_list_tag>(input, [&input](const Context&) -> element_type {
+        return load_list<number_list_tag>(input, [&input](const Context&) -> Result<element_type> {
             return load<element_type>(input, Context::get(input));
         });
     }
@@ -1408,9 +1433,9 @@ struct array_list_tag final : public list_tag {
         : value(std::move(list))
     {}
 
-    static std::unique_ptr<array_list_tag> read_content(std::istream& input)
+    static Result<std::unique_ptr<array_list_tag>> read_content(std::istream& input)
     {
-        return load_list<array_list_tag>(input, [&input](const Context& ctxt) -> element_type {
+        return load_list<array_list_tag>(input, [&input](const Context& ctxt) -> Result<element_type> {
             return load_array<typename element_type::value_type>(input, ctxt);
         });
     }
@@ -1500,7 +1525,7 @@ struct string_list_tag final : public list_tag {
     string_list_tag() = default;
     string_list_tag(const value_type& list);
     string_list_tag(value_type&& list);
-    static std::unique_ptr<string_list_tag> read_content(std::istream& input);
+    static Result<std::unique_ptr<string_list_tag>> read_content(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
@@ -1559,7 +1584,7 @@ struct list_list_tag final : public list_tag {
     list_list_tag(const list_list_tag& other);
     list_list_tag(const value_type& list);
     list_list_tag(value_type&& list);
-    static std::unique_ptr<list_list_tag> read_content(std::istream& input);
+    static Result<std::unique_ptr<list_list_tag>> read_content(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
@@ -1632,7 +1657,7 @@ struct compound_tag final : public tag {
     explicit compound_tag(bool root);
     compound_tag(const value_type& map, bool root = false);
     compound_tag(value_type&& map, bool root = false);
-    static std::unique_ptr<compound_tag> read(std::istream& input);
+    static Result<std::unique_ptr<compound_tag>> read(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     compound_tag& operator=(const compound_tag& other);
@@ -1734,7 +1759,7 @@ struct compound_list_tag final : public list_tag {
     compound_list_tag() = default;
     compound_list_tag(const value_type& list);
     compound_list_tag(value_type&& list);
-    static std::unique_ptr<compound_list_tag> read_content(std::istream& input);
+    static Result<std::unique_ptr<compound_list_tag>> read_content(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
     virtual tag_list_tag as_tags() override;
@@ -1787,9 +1812,13 @@ tag_of<std::decay_t<T>> wrap(T&& value)
  * @brief 根据标签ID读取标签
  */
 template <TagId tid>
-std::unique_ptr<tag> read(std::istream& input)
+Result<std::unique_ptr<tag>> read(std::istream& input)
 {
-    return tag_by<tid>::read(input);
+    auto result = tag_by<tid>::read(input);
+    if (result.failed()) {
+        return result.error();
+    }
+    return std::unique_ptr<tag>(std::move(result).value());
 }
 
 } // namespace tags
@@ -1874,9 +1903,16 @@ inline bool operator!=(const tags::compound_tag& a, const tags::compound_tag& b)
 }
 
 /**
- * @brief 从输入流读取复合标签
+ * @brief 从输入流读取复合标签（整体填充给定对象）
+ *
+ * 取代原先的 `operator>>(std::istream&, compound_tag&)`：运算符无法表达失败，
+ * 而 NBT 解析必须能把「格式错误」作为 `Result` 返回。
+ *
+ * @param input 输入流（上下文取自流上已设置的 Context）
+ * @param compound 目标复合标签，成功后内容被整体填充
+ * @return 解析成功返回 ok，失败返回错误
  */
-std::istream& operator>>(std::istream& input, tags::compound_tag& compound);
+Result<void> readCompoundInto(std::istream& input, tags::compound_tag& compound);
 
 /**
  * @brief 向输出流写入标签
@@ -1885,25 +1921,32 @@ std::ostream& operator<<(std::ostream& output, const tags::tag& tag);
 
 // 数组文本格式读写模板（定义在末尾）
 template <typename number_t>
-std::vector<number_t> load_array_text_impl(std::istream& input)
+Result<std::vector<number_t>> load_array_text_impl(std::istream& input)
 {
     std::vector<number_t> result;
     skip_space(input);
-    char a = static_cast<char>(cheof(input));
+    i32 a = 0;
+    MC_TRY_ASSIGN(a, cheof(input));
     if (a != '[') {
-        throw std::runtime_error("failed to open array tag");
+        return Error(ErrorCode::InvalidData, "NBT: failed to open array tag");
     }
-    a = static_cast<char>(cheof(input));
+    MC_TRY_ASSIGN(a, cheof(input));
     if (a != tags::tag_of<std::vector<number_t>>::prefix) {
-        throw std::runtime_error("wrong array tag type");
+        return Error(ErrorCode::InvalidData, "NBT: wrong array tag type");
     }
-    a = static_cast<char>(cheof(input));
+    MC_TRY_ASSIGN(a, cheof(input));
     if (a != ';') {
-        throw std::runtime_error("unexpected symbol in array tag");
+        return Error(ErrorCode::InvalidData, "NBT: unexpected symbol in array tag");
     }
-    scan_sequence_text(input, [&] {
-        result.push_back(load_text<number_t>(input));
+    auto sequenceResult = scan_sequence_text(input, [&]() -> Result<void> {
+        number_t value{};
+        MC_TRY_ASSIGN(value, load_text<number_t>(input));
+        result.push_back(value);
+        return Result<void>::ok();
     });
+    if (sequenceResult.failed()) {
+        return sequenceResult.error();
+    }
     result.shrink_to_fit();
     return result;
 }
@@ -1927,11 +1970,11 @@ void dump_array_text_impl(std::ostream& output, const std::vector<number_t>& arr
 
 // 特化声明
 template <>
-std::vector<std::int8_t> load_array_text<std::int8_t>(std::istream& input);
+Result<std::vector<std::int8_t>> load_array_text<std::int8_t>(std::istream& input);
 template <>
-std::vector<std::int32_t> load_array_text<std::int32_t>(std::istream& input);
+Result<std::vector<std::int32_t>> load_array_text<std::int32_t>(std::istream& input);
 template <>
-std::vector<std::int64_t> load_array_text<std::int64_t>(std::istream& input);
+Result<std::vector<std::int64_t>> load_array_text<std::int64_t>(std::istream& input);
 
 template <>
 void dump_array_text<std::int8_t>(std::ostream& output, const std::vector<std::int8_t>& array);

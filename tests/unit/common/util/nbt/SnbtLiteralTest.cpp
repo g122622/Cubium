@@ -60,7 +60,11 @@ std::string _dump(const nbt::tags::tag& tag)
  */
 std::unique_ptr<nbt::tags::compound_tag> _parse(const std::string& text)
 {
-    return nbt::parseMojangson(text);
+    auto result = nbt::parseMojangson(text);
+    if (result.failed()) {
+        return nullptr;
+    }
+    return std::move(result).value();
 }
 
 /**

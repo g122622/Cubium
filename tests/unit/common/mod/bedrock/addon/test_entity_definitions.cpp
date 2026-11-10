@@ -453,6 +453,46 @@ TEST_F(AddonEntityDefinitionTest, ExperienceRewardDrivesDeathExperience)
         << "without minecraft:experience_reward the entity must carry no experience";
 }
 
+TEST_F(AddonEntityDefinitionTest, ExperienceRewardEvaluatesEntityQueries)
+{
+    // 用"else 分支非零"的表达式区分两种失败模式：
+    //   - 查询被正确解析并求值（未被玩家击中 → 0）→ 取 else 分支 5；
+    //   - 表达式编译失败 → 整条奖励回退 0。
+    // 若断言写成 `? 10 : 0`，两种模式都得到 0，测试会失去判别力。
+    auto hitByPlayer = _definition("addon_test:xp_query");
+    hitByPlayer["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    hitByPlayer["minecraft:entity"]["components"]["minecraft:experience_reward"] = {
+        {"on_death", "query.last_hit_by_player ? 10 : 5"}};
+
+    // 尚未实现的查询按基岩语义取 0，同样落到 else 分支，不能拖垮整条奖励。
+    auto unimplemented = _definition("addon_test:xp_query_unknown");
+    unimplemented["minecraft:entity"]["components"]["minecraft:health"] = {{"value", 10}, {"max", 10}};
+    unimplemented["minecraft:entity"]["components"]["minecraft:experience_reward"] = {
+        {"on_death", "query.not_implemented ? 10 : 5"}};
+
+    const auto directory = pack("data", _PACK, std::nullopt);
+    write(directory / "entities/xp_query.json", hitByPlayer);
+    write(directory / "entities/xp_query_unknown.json", unimplemented);
+    const auto loaded = manager.loadPacks("", root.string());
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+
+    auto queried = create("addon_test:xp_query");
+    ASSERT_NE(queried, nullptr);
+    auto* queriedMob = dynamic_cast<mc::MobEntity*>(queried.get());
+    ASSERT_NE(queriedMob, nullptr);
+    queriedMob->dropExperience();
+    EXPECT_EQ(queriedMob->experienceValue(), 5)
+        << "query.last_hit_by_player must resolve to 0 for an entity never hit by a player";
+
+    auto unknown = create("addon_test:xp_query_unknown");
+    ASSERT_NE(unknown, nullptr);
+    auto* unknownMob = dynamic_cast<mc::MobEntity*>(unknown.get());
+    ASSERT_NE(unknownMob, nullptr);
+    unknownMob->dropExperience();
+    EXPECT_EQ(unknownMob->experienceValue(), 5)
+        << "an unimplemented query must evaluate to 0 instead of failing the whole reward";
+}
+
 TEST_F(AddonEntityDefinitionTest, BurnsInDaylightComponentIsAccepted)
 {
     for (const auto& [id, slot] :

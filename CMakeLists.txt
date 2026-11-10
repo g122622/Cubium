@@ -24,6 +24,25 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ============================================================================
+# 构建配置与调试信息等级
+#
+# 本项目只支持 RelWithDebInfo 与 Release 两种配置。Debug（-O0）在区块生成、网络
+# 包编解码等热路径上慢一个数量级，实测没有可用性，已从 preset、CI 与文档中彻底移除。
+#
+# RelWithDebInfo 的调试信息只保留「文件 / 行号 / 函数名」：
+# 默认的 -g 会为每个模板实例化、每个内联副本生成完整的类型与变量 DIE。本工程
+# 单个 .cpp 的 .o 曾达 188 MB，其中 __debug_str（类型名字符串表）占 142 MB，而代码段
+# 仅 0.9 MB；整个 build/ 曾膨胀到 74 GB。改用 -gline-tables-only 后同一 .o 降到 41 MB
+# （-78%），单 TU 编译时间也下降约 25%，同时仍能给出崩溃栈的文件与行号。
+# -gno-pubnames 去掉 __debug_names 加速表（调试器按名字查类型用，行号级调试不需要）。
+# 需要观察变量值时按项目规范用日志输出，不依赖调试器。
+# ============================================================================
+set(CMAKE_CONFIGURATION_TYPES "RelWithDebInfo;Release" CACHE STRING "Supported build configurations" FORCE)
+
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -DNDEBUG -gline-tables-only -gno-pubnames")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -DNDEBUG -gline-tables-only -gno-pubnames")
+
 # 编译选项
 option(MC_BUILD_CLIENT "Build client application" ON)
 option(MC_BUILD_SERVER "Build server application" ON)
@@ -37,7 +56,7 @@ option(MC_BUILD_FUZZERS "Build libFuzzer protocol fuzz targets (tests/fuzz)" OFF
 # 默认 OFF：依赖原版数据（minecraft-data 的 blocks.json 等）与 Java oracle，属于专门的
 # 一致性验证流程。开启后目标仍为 EXCLUDE_FROM_ALL，须显式 --target diff_probes 构建。
 option(MC_BUILD_DIFF_PROBES "Build differential probes (tests/diff)" OFF)
-option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
+option(MC_ENABLE_SANITIZERS "Enable sanitizers for the CI sanitizer builds" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
 # Tracy 默认关闭：它带来可观的常驻内存开销，且不经系统 malloc（无法用常规手段观测）。
@@ -183,8 +202,10 @@ endif()
 string(TIMESTAMP MC_BUILD_TIME UTC)
 
 # 构建类型
+# 多配置生成器（Ninja Multi-Config）下 CMAKE_BUILD_TYPE 为空，实际配置由 --config 决定；
+# 此时按默认 preset 使用的配置记为 RelWithDebInfo，避免版本信息里误写成 Release。
 if(CMAKE_BUILD_TYPE STREQUAL "")
-    set(MC_BUILD_TYPE "Release")
+    set(MC_BUILD_TYPE "RelWithDebInfo")
 else()
     set(MC_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
 endif()
@@ -336,17 +357,17 @@ else()
         add_compile_options(-mavx2) # 启用 AVX2 指令集（仅 x86_64，arm64 不支持）
     endif()
     add_compile_options(-fno-stack-protector -fno-stack-check) # 关闭栈保护，减少性能开销（注意安全风险）
-    # 链接时优化。只在release构建启用
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
-        add_link_options(-flto=thin)
-        # 链接器本身在文件上方按平台选择（全平台使用 lld）。
-        # 移除未引用的函数和数据：GNU 风格为 --gc-sections，MSVC 风格为 /OPT:REF。
-        if(WIN32)
-            add_link_options(/OPT:REF)
-        elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            add_link_options(-Wl,-gc-sections)
-        endif()
+    # 链接时优化。只在 Release 配置启用。
+    # 多配置生成器下不能用 CMAKE_BUILD_TYPE 判断：它是 configure 时的单一值，而
+    # add_compile_options 会作用到所有配置，导致 RelWithDebInfo 也吃进 -flto。
+    add_compile_options($<$<CONFIG:Release>:-flto=thin>) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
+    add_link_options($<$<CONFIG:Release>:-flto=thin>)
+    # 链接器本身在文件上方按平台选择（全平台使用 lld）。
+    # 移除未引用的函数和数据：GNU 风格为 --gc-sections，MSVC 风格为 /OPT:REF。
+    if(WIN32)
+        add_link_options($<$<CONFIG:Release>:/OPT:REF>)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_link_options($<$<CONFIG:Release>:-Wl,--gc-sections>)
     endif()
 endif()
 

@@ -25,10 +25,11 @@
 
 #include "Types.hpp"
 
+#include "common/util/assert/AssertMacros.hpp"
+
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -307,27 +308,23 @@ public:
     }
 
     // 获取值
+    /// 取失败结果的 value() 属于调用方违约（必须先判 success()），此处断言崩溃并带上
+    /// 原始错误信息，避免静默返回默认值或让异常越过 Result 边界。
     [[nodiscard]] T& value() &
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!failed(), error().toString().c_str());
         return *m_value;
     }
 
     [[nodiscard]] const T& value() const&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!failed(), error().toString().c_str());
         return *m_value;
     }
 
     [[nodiscard]] T&& value() &&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!failed(), error().toString().c_str());
         return std::move(*m_value);
     }
 
@@ -509,27 +506,23 @@ public:
         return m_success;
     }
 
+    /// 取失败结果的 value() 属于调用方违约（必须先判 success()），此处断言崩溃并带上
+    /// 原始错误信息，避免静默返回空指针或让异常越过 Result 边界。
     [[nodiscard]] std::unique_ptr<T, Deleter> value() &
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!failed(), error().toString().c_str());
         return takeValue();
     }
 
     [[nodiscard]] std::unique_ptr<T, Deleter> value() const&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!failed(), error().toString().c_str());
         return const_cast<Result*>(this)->takeValue();
     }
 
     [[nodiscard]] std::unique_ptr<T, Deleter> value() &&
     {
-        if (failed()) {
-            throw std::runtime_error("Result contains error: " + error().toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!failed(), error().toString().c_str());
         return takeValue();
     }
 
@@ -585,7 +578,7 @@ private:
         if (_result.failed()) {           \
             return _result.error();       \
         }                                 \
-        var = std::move(_result.value()); \
+        var = std::move(_result).value(); \
     } while (0)
 
 } // namespace mc

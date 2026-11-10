@@ -532,10 +532,10 @@ private:
     std::condition_variable m_asyncOperationCondition;
     size_t m_asyncOperationCount = 0;
 
+    /// 取（必要时创建）指定维度的 SectionManager。要求存档已 open，否则断言崩溃。
     SectionManager& _sectionManager(DimensionId dimension);
-    const SectionManager& _sectionManager(DimensionId dimension) const;
-    [[nodiscard]] bool _hasSectionManager(DimensionId dimension) const;
-    SectionManager* _createSectionManager(DimensionId dimension);
+    /// 创建并登记 SectionManager；并发冲突的调用方复用同一实例。
+    SectionManager& _createSectionManager(DimensionId dimension);
 
     Result<void> _openNativeFormat(const std::filesystem::path& worldPath);
     Result<void> _openForeignFormat(const std::filesystem::path& worldPath);

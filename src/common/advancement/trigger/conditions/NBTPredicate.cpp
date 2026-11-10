@@ -116,11 +116,11 @@ Result<NBTPredicate> NBTPredicate::fromJson(const nlohmann::json& json)
     if (json.is_string()) {
         std::string nbtString = json.get<std::string>();
         auto parsedTag = nbt::parseMojangson(nbtString);
-        if (!parsedTag) {
-            return Error(
-                ErrorCode::InvalidArgument, fmt::format("Failed to parse Mojangson NBT string: {}", nbtString));
+        if (parsedTag.failed()) {
+            return Error(ErrorCode::InvalidArgument,
+                fmt::format("Failed to parse Mojangson NBT string '{}': {}", nbtString, parsedTag.error().message()));
         }
-        return NBTPredicate(std::move(parsedTag));
+        return NBTPredicate(std::move(parsedTag).value());
     }
 
     // 对象格式：JSON对象直接转换为NBT compound tag

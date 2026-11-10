@@ -61,20 +61,6 @@
       }
     },
     {
-      "name": "windows-clang-debug",
-      "displayName": "Windows Clang Debug",
-      "inherits": "windows-clang-base",
-      "binaryDir": "${sourceDir}/build",
-      "installDir": "${sourceDir}/dist",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "MC_BUILD_CLIENT": "ON",
-        "MC_BUILD_SERVER": "ON",
-        "MC_BUILD_TESTS": "ON",
-        "MC_ENABLE_SANITIZERS": "OFF"
-      }
-    },
-    {
       "name": "windows-clang-relwithdebinfo",
       "displayName": "Windows Clang RelWithDebInfo",
       "inherits": "windows-clang-base",
@@ -160,18 +146,6 @@
         "MC_ENABLE_TRACING": "OFF",
         "MC_ENABLE_TRACY": "OFF",
         "MC_ENABLE_MEMORY": "OFF"
-      }
-    },
-    {
-      "name": "macos-debug",
-      "displayName": "macOS Debug",
-      "inherits": "macos-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "MC_BUILD_CLIENT": "ON",
-        "MC_BUILD_SERVER": "ON",
-        "MC_BUILD_TESTS": "ON",
-        "MC_ENABLE_SANITIZERS": "OFF"
       }
     },
     {
@@ -273,20 +247,6 @@
       }
     },
     {
-      "name": "linux-debug",
-      "displayName": "Linux Clang Debug (server-only)",
-      "inherits": "linux-base",
-      "binaryDir": "${sourceDir}/build",
-      "installDir": "${sourceDir}/dist",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "MC_BUILD_CLIENT": "OFF",
-        "MC_BUILD_SERVER": "ON",
-        "MC_BUILD_TESTS": "ON",
-        "MC_ENABLE_SANITIZERS": "OFF"
-      }
-    },
-    {
       "name": "linux-clang-fuzz",
       "displayName": "Linux Clang Fuzz (libFuzzer harnesses, tests/fuzz)",
       "inherits": "linux-relwithdebinfo",
@@ -301,12 +261,6 @@
     }
   ],
   "buildPresets": [
-    {
-      "name": "windows-clang-debug",
-      "configurePreset": "windows-clang-debug",
-      "configuration": "Debug",
-      "jobs": 16
-    },
     {
       "name": "windows-clang-relwithdebinfo",
       "configurePreset": "windows-clang-relwithdebinfo",
@@ -368,12 +322,6 @@
       "jobs": 10
     },
     {
-      "name": "macos-debug",
-      "configurePreset": "macos-debug",
-      "configuration": "Debug",
-      "jobs": 10
-    },
-    {
       "name": "macos-release",
       "configurePreset": "macos-release",
       "configuration": "Release",
@@ -390,25 +338,25 @@
       "configurePreset": "linux-clang-ci-tests",
       "configuration": "RelWithDebInfo",
       "jobs": 0,
-      "targets": ["minecraft-server", "mc_tests"]
+      "targets": [
+        "minecraft-server",
+        "mc_tests"
+      ]
     },
     {
       "name": "linux-clang-ci-release",
       "configurePreset": "linux-clang-ci-release",
       "configuration": "Release",
       "jobs": 0,
-      "targets": ["minecraft-server", "mc_benchmark"]
+      "targets": [
+        "minecraft-server",
+        "mc_benchmark"
+      ]
     },
     {
       "name": "linux-release-noprof",
       "configurePreset": "linux-release-noprof",
       "configuration": "Release",
-      "jobs": 0
-    },
-    {
-      "name": "linux-debug",
-      "configurePreset": "linux-debug",
-      "configuration": "Debug",
       "jobs": 0
     },
     {
@@ -432,32 +380,8 @@
   ],
   "testPresets": [
     {
-      "name": "windows-clang-debug",
-      "configurePreset": "windows-clang-debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "macos-debug",
-      "configurePreset": "macos-debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
       "name": "linux-relwithdebinfo",
       "configurePreset": "linux-relwithdebinfo",
-      "output": {
-        "outputOnFailure": true
-      },
-      "execution": {
-        "timeout": 300
-      }
-    },
-    {
-      "name": "linux-debug",
-      "configurePreset": "linux-debug",
       "output": {
         "outputOnFailure": true
       },

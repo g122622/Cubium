@@ -299,14 +299,224 @@ foreach(_ftxui_target ftxui::screen ftxui::dom ftxui::component)
     endif()
 endforeach()
 
+# ===========================================================================
+# mc_server_shared - minecraft-server 与 mc_tests 共用的服务端实现 OBJECT 库
+#
+# 这些 .cpp 原先在可执行文件与 mc_tests 里各编译一遍（mc_tests 侧共 182 个文件），
+# 同一份实现产生两份 .o、两份调试信息与两倍编译时间。抽成 OBJECT 库后只编译一次。
+#
+# 用 OBJECT 而不是 STATIC：服务端存在依赖静态初始化顺序的注册表装配，静态库下
+# 未被引用的 .o 会被链接器整段丢弃，行为会静默改变。
+#
+# 只收「无进程入口、无 FTXUI 依赖」的文件：main.cpp / ServerApplicationEntry.cpp /
+# StandaloneServer.cpp 与 application/console/ui/** 留在可执行文件内部，因为
+# mc_tests 不链接 FTXUI。
+# ===========================================================================
+add_library(mc_server_shared OBJECT
+    access/AccessManager.cpp
+    access/admission/BannedIpList.cpp
+    access/admission/BannedPlayerList.cpp
+    access/admission/WhitelistManager.cpp
+    access/permission/OpListManager.cpp
+    advancement/PlayerAdvancements.cpp
+    application/IntegratedServer.cpp
+    application/MinecraftServer.cpp
+    application/console/bridge/ConsoleCommandQueue.cpp
+    application/console/buffer/EventRingBuffer.cpp
+    application/console/buffer/LogRingBuffer.cpp
+    application/console/input/CommandCompletion.cpp
+    application/console/render/LineWrapper.cpp
+    application/console/render/PanelStats.cpp
+    application/console/render/PanelStatsCollector.cpp
+    bossbar/BossInfo.cpp
+    bossbar/CustomServerBossInfo.cpp
+    bossbar/CustomServerBossInfoManager.cpp
+    bossbar/ServerBossInfo.cpp
+    bossbar/ServerDragonBossBar.cpp
+    command/CommandRegistry.cpp
+    command/ServerCommandSource.cpp
+    command/data/DataAccessor.cpp
+    command/support/EffectResolver.cpp
+    command/support/EntityResolver.cpp
+    command/support/FunctionSuggestionProvider.cpp
+    command/support/PlayerResolver.cpp
+    command/support/SpreadAlgorithm.cpp
+    dimension/ServerDimension.cpp
+    dimension/ServerDimensionManager.cpp
+    event/ServerEventBus.cpp
+    function/CommandFunction.cpp
+    function/FunctionLoader.cpp
+    function/FunctionManager.cpp
+    function/MacroFunction.cpp
+    function/StringTemplate.cpp
+    function/TimerQueue.cpp
+    interaction/BlockInteractionManager.cpp
+    interaction/ContainerManager.cpp
+    interaction/DigSpeed.cpp
+    interaction/InventoryManager.cpp
+    interaction/MiningManager.cpp
+    interaction/SignCommandHelper.cpp
+    item/instrument/InstrumentLoader.cpp
+    item/instrument/InstrumentTagLoader.cpp
+    menu/CraftingMenu.cpp
+    mod/bedrock/addon/ServerScriptManager.cpp
+    mod/bedrock/addon/bridge/EventBridge.cpp
+    mod/bedrock/addon/bridge/ServerEventSignals.cpp
+    network/base/ServerClientConnection.cpp
+    network/handshake/EnchantmentNbtBuilder.cpp
+    network/handshake/LoginFlow.cpp
+    network/handshake/RegistryDataBuilder.cpp
+    network/handshake/ServerHandshake.cpp
+    network/outbound/DialogPacketBuilder.cpp
+    network/outbound/MapPacketBuilder.cpp
+    network/outbound/PacketBuilders.cpp
+    network/outbound/PacketSender.cpp
+    network/outbound/PlayerBroadcaster.cpp
+    network/play/BlockActionHandler.cpp
+    network/play/ChatHandler.cpp
+    network/play/ContainerActionHandler.cpp
+    network/play/EntityActionHandler.cpp
+    network/play/MovementHandler.cpp
+    network/play/PlayerStateHandler.cpp
+    network/play/ServerPlayHandler.cpp
+    network/play/SessionSignalHandler.cpp
+    network/session/ClientSession.cpp
+    network/session/ClientSessionManager.cpp
+    network/session/PlayerConnectionManager.cpp
+    network/session/ServerNetwork.cpp
+    network/session/keepalive/KeepAliveManager.cpp
+    network/sync/BlockUpdateSyncManager.cpp
+    network/sync/ChunkSendManager.cpp
+    network/sync/WeatherSyncService.cpp
+    network/sync/chunk/ChunkSyncManager.cpp
+    network/sync/chunk/PlayerChunkTracker.cpp
+    network/sync/player/TeleportManager.cpp
+    player/PlayerRespawnManager.cpp
+    player/ServerPlayer.cpp
+    player/gamemode/GameModeManager.cpp
+    player/lifecycle/PlayerManager.cpp
+    player/movement/PlayerMovementManager.cpp
+    registry/RegistryBootstrap.cpp
+    scoreboard/ServerScoreboard.cpp
+    scoreboard/storage/ScoreboardDataManager.cpp
+    scoreboard/storage/ScoreboardSaveData.cpp
+    settings/ServerSettings.cpp
+    stats/Stat.cpp
+    stats/StatRegistry.cpp
+    stats/StatType.cpp
+    stats/StatisticsManager.cpp
+    test/base/coords/TestTransform.cpp
+    test/base/data/TestData.cpp
+    test/base/error/GameTestError.cpp
+    test/facade/GameTestCommand.cpp
+    test/facade/GameTestHelper.cpp
+    test/facade/GameTestRegistrar.cpp
+    test/facade/GameTestServer.cpp
+    test/framework/batch/BaseGameTestBatchRunner.cpp
+    test/framework/batch/GameTestBatch.cpp
+    test/framework/environment/AllOfEnvironment.cpp
+    test/framework/environment/EnvironmentRegistry.cpp
+    test/framework/environment/FunctionsEnvironment.cpp
+    test/framework/environment/SetGameRulesEnvironment.cpp
+    test/framework/environment/TimeOfDayEnvironment.cpp
+    test/framework/environment/WeatherEnvironment.cpp
+    test/framework/function/BaseGameTestFunction.cpp
+    test/framework/helper/NullGameTestHelper.cpp
+    test/framework/instance/BaseGameTestInstance.cpp
+    test/framework/registry/GameTestRegistry.cpp
+    test/framework/sequence/GameTestSequence.cpp
+    test/framework/ticker/GameTestTicker.cpp
+    test/minecraft/batch/MinecraftGameTestBatchRunner.cpp
+    test/minecraft/environment/MinecraftEnvironmentApplier.cpp
+    test/minecraft/helper/MinecraftGameTestHelperProvider.cpp
+    test/minecraft/instance/MinecraftGameTestInstance.cpp
+    test/minecraft/listener/WorldVisualizationListener.cpp
+    test/minecraft/structure/BehaviorPackStructureSource.cpp
+    test/minecraft/structure/GameTestStructureBootstrap.cpp
+    test/minecraft/structure/MinecraftStructurePlacer.cpp
+    test/minecraft/structure/StructureBounds.cpp
+    test/native/NativeGameTestFunction.cpp
+    test/native/NativeTestRegistrationBuilder.cpp
+    test/native/builtin/BuiltinNativeTests.cpp
+    test/runner/GameTestRunner.cpp
+    test/runner/GameTestRunnerBuilder.cpp
+    test/runner/reporter/FailedTestCollector.cpp
+    test/runner/reporter/GlobalTestReporter.cpp
+    test/runner/reporter/JUnitTestReporter.cpp
+    test/runner/reporter/LogTestReporter.cpp
+    test/runner/spawner/StructureGridSpawner.cpp
+    test/script/GameTestModuleBinding.cpp
+    test/script/binding/ScriptAsyncGameTestRunResult.cpp
+    test/script/binding/ScriptGameTestError.cpp
+    test/script/binding/ScriptGameTestFunction.cpp
+    test/script/binding/ScriptGameTestTypes.cpp
+    test/script/binding/ScriptRegister.cpp
+    test/script/binding/ScriptRegistrationBuilder.cpp
+    test/script/binding/ScriptRegistrationBuilderBinding.cpp
+    test/script/binding/ScriptSequence.cpp
+    test/script/binding/ScriptSimulatedPlayer.cpp
+    test/script/binding/ScriptTestHelper.cpp
+    test/script/context/ScriptBindingRegistry.cpp
+    test/script/context/ScriptGameTestAccessor.cpp
+    test/simulated/SimulatedPlayer.cpp
+    world/ChunkLightingProvider.cpp
+    world/ChunkLoadLightTask.cpp
+    world/ChunkProgressionTask.cpp
+    world/ChunkTaskScheduler.cpp
+    world/RuntimeLightTask.cpp
+    world/RuntimeLightingProvider.cpp
+    world/ServerChunkManager.cpp
+    world/ServerLightQueue.cpp
+    world/ServerWorld.cpp
+    world/SingleChunkLifecycleManager.cpp
+    world/blockentity/sculk/SculkShriekerHelper.cpp
+    world/blockentity/sculk/SculkVibrationSystem.cpp
+    world/drop/BlockDropHandler.cpp
+    world/entity/EntityTracker.cpp
+    world/entity/ItemPickupManager.cpp
+    world/entity/waypoint/WaypointManager.cpp
+    world/gameevent/DynamicGameEventListener.cpp
+    world/gameevent/GameEventDispatcher.cpp
+    world/gameevent/GameEventListenerRegistry.cpp
+    world/gameevent/PositionSource.cpp
+    world/gameevent/VibrationSystemServer.cpp
+    world/lighting/engine/BaseLightEngine.cpp
+    world/lighting/engine/BlockLightEngine.cpp
+    world/lighting/engine/SkyLightEngine.cpp
+    world/lighting/manager/WorldLightManager.cpp
+    world/player/PlayerSpawnFinder.cpp
+    world/player/ServerPlayerEntityManager.cpp
+    world/scheduling/AreaTaskScheduler.cpp
+    world/spawn/DespawnManager.cpp
+    world/spawn/NaturalSpawner.cpp
+    world/spawn/VillageSiege.cpp
+    world/spawn/WanderingTraderSpawner.cpp
+    world/structure/StructureLocator.cpp
+    world/time/GameTime.cpp
+    world/time/TimeManager.cpp
+    world/weather/WeatherManager.cpp
+)
+
+target_link_libraries(mc_server_shared
+    PRIVATE
+        mc_common
+        mc_gen
+        mc_server_storage
+        nlohmann_json::nlohmann_json
+)
+
+# mc_tests 侧的编译定义（MC_SOURCE_DIR/MC_SOURCE_ROOT）只有 ServerApplicationEntry.cpp 使用，
+# 该文件不在本库内；这里仍注入 MC_SOURCE_ROOT，保证任何后续引用它的实现行为一致。
+target_compile_definitions(mc_server_shared PRIVATE MC_SOURCE_ROOT="${CMAKE_SOURCE_DIR}")
+
+# 复用 mc_common 的 PCH：本库与 minecraft-server 编译同一批实现，PCH 头内容通用。
+target_precompile_headers(mc_server_shared REUSE_FROM mc_common)
+mc_set_compiler_warnings(mc_server_shared)
+
 add_executable(minecraft-server
     main.cpp
     # 数据包驱动的物品定义加载器（乐器；注册表与标签容器位于 common）
-    item/instrument/InstrumentLoader.cpp
-    item/instrument/InstrumentTagLoader.cpp
     application/StandaloneServer.cpp
-    application/IntegratedServer.cpp
-    application/MinecraftServer.cpp
     application/ServerApplicationEntry.cpp
     # 交互式终端（--interactive）：日志区 + 状态面板 + 命令输入框（FTXUI）
     application/console/ServerConsole.cpp
@@ -316,172 +526,48 @@ add_executable(minecraft-server
     application/console/ui/StatusPanelComponent.cpp
     application/console/ui/CommandLineComponent.cpp
     application/console/ui/CompletionPopupComponent.cpp
-    application/console/buffer/LogRingBuffer.cpp
-    application/console/buffer/EventRingBuffer.cpp
     application/console/bridge/ConsoleLogConsumer.cpp
     application/console/bridge/GameEventFeed.cpp
     application/console/bridge/TerminalCommandSource.cpp
-    application/console/bridge/ConsoleCommandQueue.cpp
     application/console/bridge/CompletionRequestQueue.cpp
-    application/console/input/CommandCompletion.cpp
     application/console/metrics/ServerMetricsSnapshot.cpp
-    application/console/render/LineWrapper.cpp
-    application/console/render/PanelStats.cpp
-    application/console/render/PanelStatsCollector.cpp
-    settings/ServerSettings.cpp
     # 新网络层（1.21.11 IR）：连接基座 + 会话门面 + 握手/配置 + Play 入站 + 出站构造
     # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
-    network/base/ServerClientConnection.cpp
     # 会话生命周期门面（accept + 连接表 + tick 泵）
-    network/session/ServerNetwork.cpp
     # 单客户端会话（协议状态 + 入站派发链，本地与远程共用）
-    network/session/ClientSession.cpp
     # 远程 TCP 会话管理门面（远程会话四件套下沉自 StandaloneServer/IntegratedServer）
-    network/session/ClientSessionManager.cpp
     # 握手/登录/配置阶段（四阶段状态机 + Configuration 载荷构造 + Play 入场序列）
-    network/handshake/ServerHandshake.cpp
-    network/handshake/RegistryDataBuilder.cpp
-    network/handshake/EnchantmentNbtBuilder.cpp
-    network/handshake/LoginFlow.cpp
     # Play 阶段入站处理（ServerPlayHandler::route + 13 个非纯虚 handle*Packet +
     # updateEntityTrackingForPlayer 整簇下沉自 MinecraftServer）
-    network/play/ServerPlayHandler.cpp
     # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
-    network/play/MovementHandler.cpp
-    network/play/BlockActionHandler.cpp
-    network/play/ContainerActionHandler.cpp
-    network/play/EntityActionHandler.cpp
-    network/play/ChatHandler.cpp
-    network/play/PlayerStateHandler.cpp
-    network/play/SessionSignalHandler.cpp
     # 出站构造与广播（Play/Configuration 单包 IR 构造 + 距离过滤广播 + 地图周期推送）
-    network/outbound/PacketBuilders.cpp
-    network/outbound/DialogPacketBuilder.cpp
-    network/outbound/PlayerBroadcaster.cpp
-    network/outbound/MapPacketBuilder.cpp
     # 注册表装配门面（vanilla 注册表初始化下沉自 MinecraftServer::initializeRegistries）
-    registry/RegistryBootstrap.cpp
     # 核心模块
-    player/lifecycle/PlayerManager.cpp
-    network/outbound/PacketSender.cpp
-    network/session/PlayerConnectionManager.cpp
-    access/AccessManager.cpp
-    world/time/TimeManager.cpp
-    network/sync/player/TeleportManager.cpp
-    network/session/keepalive/KeepAliveManager.cpp
-    player/movement/PlayerMovementManager.cpp
-    player/gamemode/GameModeManager.cpp
-    access/admission/WhitelistManager.cpp
-    access/admission/BannedPlayerList.cpp
-    access/admission/BannedIpList.cpp
-    access/permission/OpListManager.cpp
     # 维度模块
-    dimension/ServerDimension.cpp
-    dimension/ServerDimensionManager.cpp
     # 世界模块
-    world/ServerWorld.cpp
-    world/ChunkTaskScheduler.cpp
-    world/scheduling/AreaTaskScheduler.cpp
-    world/ChunkProgressionTask.cpp
-    world/ChunkLightingProvider.cpp
-    world/ServerChunkManager.cpp
-    world/SingleChunkLifecycleManager.cpp
-    world/ServerLightQueue.cpp
-    world/RuntimeLightingProvider.cpp
-    world/RuntimeLightTask.cpp
-    world/ChunkLoadLightTask.cpp
     # 世界模块 - 光照引擎与管理器（自 common/world/lighting 迁入）
-    world/lighting/engine/BaseLightEngine.cpp
-    world/lighting/engine/BlockLightEngine.cpp
-    world/lighting/engine/SkyLightEngine.cpp
-    world/lighting/manager/WorldLightManager.cpp
     # 世界模块 - 游戏时间（自 common/world/time 迁入）
-    world/time/GameTime.cpp
-    world/drop/BlockDropHandler.cpp
-    world/spawn/NaturalSpawner.cpp
-    world/spawn/DespawnManager.cpp
-    world/spawn/VillageSiege.cpp
-    world/spawn/WanderingTraderSpawner.cpp
-    world/entity/EntityTracker.cpp
-    world/entity/waypoint/WaypointManager.cpp
-    world/entity/ItemPickupManager.cpp
-    world/player/ServerPlayerEntityManager.cpp
-    world/player/PlayerSpawnFinder.cpp
-    world/weather/WeatherManager.cpp
     # 结构定位算法门面（findNearestStructure/findNearestMapStructure 下沉自 ServerWorld）
-    world/structure/StructureLocator.cpp
     # 世界模块 - 游戏事件系统
-    world/gameevent/PositionSource.cpp
-    world/gameevent/GameEventListenerRegistry.cpp
-    world/gameevent/GameEventDispatcher.cpp
-    world/gameevent/DynamicGameEventListener.cpp
-    world/gameevent/VibrationSystemServer.cpp
 
     # 世界模块 - 幽匿方块实体（服务端方法）
-    world/blockentity/sculk/SculkVibrationSystem.cpp
-    world/blockentity/sculk/SculkShriekerHelper.cpp
 
-    player/ServerPlayer.cpp
-    player/PlayerRespawnManager.cpp
     # 成就系统
-    advancement/PlayerAdvancements.cpp
     # 事件系统
-    event/ServerEventBus.cpp
     # 记分板系统
-    scoreboard/ServerScoreboard.cpp
-    scoreboard/storage/ScoreboardDataManager.cpp
-    scoreboard/storage/ScoreboardSaveData.cpp
     # 统计系统
-    stats/StatType.cpp
-    stats/Stat.cpp
-    stats/StatRegistry.cpp
-    stats/StatisticsManager.cpp
     # 交互管理器
-    interaction/BlockInteractionManager.cpp
-    interaction/DigSpeed.cpp
-    interaction/MiningManager.cpp
-    interaction/ContainerManager.cpp
-    interaction/InventoryManager.cpp
-    interaction/SignCommandHelper.cpp
     physics/TravelTick.cpp
     # 同步管理器
-    network/sync/BlockUpdateSyncManager.cpp
-    network/sync/ChunkSendManager.cpp
-    network/sync/WeatherSyncService.cpp
     # 区块推送记账（ChunkView/PlayerChunkTracker/ChunkSyncManager，
     # 自 common/network/sync/ChunkSync.hpp 迁入；双向共用的 ChunkSerializer 留在 common）
-    network/sync/chunk/PlayerChunkTracker.cpp
-    network/sync/chunk/ChunkSyncManager.cpp
     # 命令系统
-    command/ServerCommandSource.cpp
-    command/CommandRegistry.cpp
-    command/support/PlayerResolver.cpp
-    command/support/EntityResolver.cpp
-    command/support/EffectResolver.cpp
-    command/support/FunctionSuggestionProvider.cpp
-    command/support/SpreadAlgorithm.cpp
-    command/data/DataAccessor.cpp
     # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 mc_benchmark 共用）
     ${MC_SERVER_COMMAND_SOURCES}
     # 菜单系统
-    menu/CraftingMenu.cpp
     # Boss栏系统
-    bossbar/BossInfo.cpp
-    bossbar/ServerBossInfo.cpp
-    bossbar/CustomServerBossInfo.cpp
-    bossbar/CustomServerBossInfoManager.cpp
-    bossbar/ServerDragonBossBar.cpp
     # 函数系统
-    function/CommandFunction.cpp
-    function/FunctionLoader.cpp
-    function/FunctionManager.cpp
-    function/MacroFunction.cpp
-    function/StringTemplate.cpp
-    function/TimerQueue.cpp
     # 脚本系统集成
-    mod/bedrock/addon/ServerScriptManager.cpp
-    mod/bedrock/addon/bridge/EventBridge.cpp
-    mod/bedrock/addon/bridge/ServerEventSignals.cpp
 
     # -------------------------------------------------------------------
     # gen 源文件已提取为 mc_gen OBJECT 库（见本文件末尾），供所有需要
@@ -495,6 +581,7 @@ add_executable(minecraft-server
 
 target_link_libraries(minecraft-server
     PRIVATE
+        mc_server_shared
         mc_gen
         mc_server_storage
         mc_common
@@ -526,68 +613,14 @@ mc_copy_runtime_dlls(minecraft-server)
 target_sources(minecraft-server
     PRIVATE
         # base/ - 末梢基础类型（依赖链最底，被所有层依赖）
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/base/error/GameTestError.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/base/data/TestData.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/base/coords/TestTransform.cpp
         # framework/ - 引擎无关抽象核心
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/function/BaseGameTestFunction.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/helper/NullGameTestHelper.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/sequence/GameTestSequence.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/registry/GameTestRegistry.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/instance/BaseGameTestInstance.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/batch/GameTestBatch.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/batch/BaseGameTestBatchRunner.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/ticker/GameTestTicker.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/AllOfEnvironment.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/EnvironmentRegistry.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/SetGameRulesEnvironment.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/TimeOfDayEnvironment.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/WeatherEnvironment.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/FunctionsEnvironment.cpp
         # native/ - 原生测试函数族注册机制（被 GameTestRegistrar 封装）
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/native/NativeGameTestFunction.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/native/NativeTestRegistrationBuilder.cpp
         # facade/ - 对外门面层
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestServer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestCommand.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestHelper.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestRegistrar.cpp
         # minecraft/ - ServerWorld 具体绑定
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/instance/MinecraftGameTestInstance.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/batch/MinecraftGameTestBatchRunner.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/helper/MinecraftGameTestHelperProvider.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/MinecraftStructurePlacer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/StructureBounds.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/GameTestStructureBootstrap.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/BehaviorPackStructureSource.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/listener/WorldVisualizationListener.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/environment/MinecraftEnvironmentApplier.cpp
         # runner/ - 编排
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/GameTestRunner.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/GameTestRunnerBuilder.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/spawner/StructureGridSpawner.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/GlobalTestReporter.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/LogTestReporter.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/JUnitTestReporter.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/FailedTestCollector.cpp
         # native/ - 内置样例测试（保链接期保留 TU）
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/native/builtin/BuiltinNativeTests.cpp
         # simulated/ - SimulatedPlayer
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/simulated/SimulatedPlayer.cpp
         # script/ - @minecraft/server-gametest JS 绑定骨架
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/GameTestModuleBinding.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/context/ScriptGameTestAccessor.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/context/ScriptBindingRegistry.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegister.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptTestHelper.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptGameTestError.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptGameTestTypes.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegistrationBuilder.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegistrationBuilderBinding.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptSequence.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptSimulatedPlayer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptGameTestFunction.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptAsyncGameTestRunResult.cpp
 )
 
 # ============================================================================

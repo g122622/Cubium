@@ -112,8 +112,14 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
                     if (!decompressed.empty()) {
                         std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
                         stream >> mc::nbt::contexts::java;
-                        auto root = mc::nbt::tags::compound_tag::read(stream);
-                        if (root) {
+                        auto rootResult = mc::nbt::tags::compound_tag::read(stream);
+                        if (rootResult.failed()) {
+                            // 外部存档的 level.dat 可能损坏：记录后继续按其它格式判定
+                            spdlog::warn("SaveFormatDetector: failed to parse level.dat as Java NBT: {}",
+                                rootResult.error().message());
+                        }
+                        if (rootResult.success()) {
+                            auto root = std::move(rootResult).value();
                             // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
                             const mc::nbt::tags::compound_tag& levelData = mc::nbt::unwrapRootCompound(*root);
                             // 本项目写出的世界（Version.Name == "Cubium"）此时既没有 region/ 也没有 db/，
@@ -151,8 +157,13 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
                     // 检查是否能按 Bedrock 格式解析
                     std::istringstream stream(std::string(compressed.begin() + 8, compressed.end()));
                     stream >> mc::nbt::contexts::bedrock_disk;
-                    auto root = mc::nbt::tags::compound_tag::read(stream);
-                    if (root) {
+                    auto rootResult = mc::nbt::tags::compound_tag::read(stream);
+                    if (rootResult.failed()) {
+                        spdlog::warn("SaveFormatDetector: failed to parse level.dat as Bedrock NBT: {}",
+                            rootResult.error().message());
+                    }
+                    if (rootResult.success()) {
+                        auto root = std::move(rootResult).value();
                         auto versionResult = _detectBedrockVersion(worldDir);
                         if (versionResult.success()) {
                             return versionResult;
@@ -274,10 +285,11 @@ Result<SaveFormatInfo> SaveFormatDetector::_detectJavaVersion(const std::filesys
 
         std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
         stream >> mc::nbt::contexts::java;
-        auto root = mc::nbt::tags::compound_tag::read(stream);
-        if (!root) {
-            return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT");
+        auto rootResult = mc::nbt::tags::compound_tag::read(stream);
+        if (rootResult.failed()) {
+            return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT: " + rootResult.error().message());
         }
+        auto root = std::move(rootResult).value();
 
         // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
         const mc::nbt::tags::compound_tag& levelData = mc::nbt::unwrapRootCompound(*root);
@@ -368,10 +380,12 @@ Result<SaveFormatInfo> SaveFormatDetector::_detectBedrockVersion(const std::file
 
         std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
         stream >> mc::nbt::contexts::bedrock_disk;
-        auto root = mc::nbt::tags::compound_tag::read(stream);
-        if (!root) {
-            return Error(ErrorCode::FileCorrupted, "Failed to parse Bedrock level.dat NBT");
+        auto rootResult = mc::nbt::tags::compound_tag::read(stream);
+        if (rootResult.failed()) {
+            return Error(
+                ErrorCode::FileCorrupted, "Failed to parse Bedrock level.dat NBT: " + rootResult.error().message());
         }
+        auto root = std::move(rootResult).value();
 
         SaveFormatInfo info;
         info.format = SaveFormat::BedrockLDB;

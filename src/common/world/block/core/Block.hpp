@@ -59,9 +59,13 @@ class BlockItemUseContext;
 class Player;
 class BlockEntity;
 class Entity;
-class IPlantable;              // 前向声明植物接口
-class ItemStack;               // 前向声明物品堆
-class SupportType;             // 前向声明支撑类型
+class IPlantable;  // 前向声明植物接口
+class ItemStack;   // 前向声明物品堆
+class SupportType; // 前向声明支撑类型
+
+namespace entity {
+class EntityType; // 前向声明实体类型（isValidSpawn 的区分参数）
+} // namespace entity
 enum class ContainerType : u8; // 前向声明容器类型（定义于 entity/inventory/ContainerTypes.hpp）
 
 namespace world::explosion {
@@ -526,6 +530,22 @@ public:
      */
     [[nodiscard]] virtual const CollisionShape& getCollisionShapeForEntity(
         const BlockState& state, const EntityCollisionContext& ctx, i32 blockY) const;
+
+    /**
+     * @brief 该位置是否允许生成指定类型的生物
+     *
+     * 对应 vanilla `BlockBehaviour.BlockStateBase#isValidSpawn(BlockGetter, BlockPos, EntityType)`，
+     * 其默认谓词为「该方块的顶面是完整支撑面，且自身发光等级 < 14」。传送门刷僵尸猪灵、
+     * 结构/刷怪蛋等「在此方块上方生成实体」的场景都用它做最后一道位置校验。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     * @param entityType 待生成的实体类型（默认谓词不使用，供覆写区分生物）
+     * @return 允许生成返回 true
+     */
+    [[nodiscard]] virtual bool isValidSpawn(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const entity::EntityType& entityType) const;
 
     /**
      * @brief 获取遮挡形状

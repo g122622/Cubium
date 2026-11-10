@@ -142,10 +142,11 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
 {
     std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
     stream >> contexts::java;
-    auto root = compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::ChunkCorrupted, "Failed to parse chunk NBT");
+    auto rootResult = compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::ChunkCorrupted, "Failed to parse chunk NBT: " + rootResult.error().message());
     }
+    auto root = std::move(rootResult).value();
 
     // 剥掉 Java 文件的根标签前缀层（根 id+name）
     const compound_tag& columnNbt = unwrapRootCompound(*root);

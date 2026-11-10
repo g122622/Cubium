@@ -80,10 +80,11 @@ Result<std::unique_ptr<compound_tag>> JavaLevelDatReader::_readGzipNbt(const std
 
     std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
     stream >> contexts::java;
-    auto root = compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT");
+    auto rootResult = compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT: " + rootResult.error().message());
     }
+    auto root = std::move(rootResult).value();
 
     // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
     if (const compound_tag& unwrapped = unwrapRootCompound(*root); &unwrapped != root.get()) {

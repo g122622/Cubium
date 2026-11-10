@@ -306,6 +306,12 @@ Result<DimensionSettings> DimensionSettings::fromJson(const json& root, const re
     // 用户决策：JSON 只提供 4 尺寸字段，scaling/slides/densityFactor/densityOffset/
     // simplexSurfaceNoise/randomDensityOffset/isAmplified/aquifersEnabled/useLegacyRandomSource
     // 全部由 dimensionKind 对应的 C++ 预设 noise 带入（上面基底已设），仅覆盖 4 尺寸。
+    // 数据包属于外部不可信输入：尺寸不合法时返回错误并跳过该设置，绝不让坏数据进入噪声采样。
+    const auto dimensionError =
+        NoiseSettings::validateDimensions(minY.value(), height.value(), sizeH.value(), sizeV.value());
+    if (dimensionError) {
+        return Error(ErrorCode::InvalidData, "noise_settings: " + *dimensionError);
+    }
     settings.noise.minY = minY.value();
     settings.noise.height = height.value();
     settings.noise.sizeHorizontal = sizeH.value();

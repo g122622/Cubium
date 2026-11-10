@@ -55,11 +55,16 @@ protected:
 
     mc::math::Random random{123};
     std::map<std::string, MolangValue> properties;
-    MolangEvaluationContext context{random, [this](std::string_view name) -> std::optional<MolangValue> {
-                                        const auto found = properties.find(std::string(name));
-                                        return found == properties.end() ? std::nullopt
-                                                                         : std::optional<MolangValue>(found->second);
-                                    }};
+    std::map<std::string, MolangValue> queries;
+    MolangEvaluationContext context{random,
+        [this](std::string_view name) -> std::optional<MolangValue> {
+            const auto found = queries.find(std::string(name));
+            return found == queries.end() ? std::nullopt : std::optional<MolangValue>(found->second);
+        },
+        [this](std::string_view name) -> std::optional<MolangValue> {
+            const auto found = properties.find(std::string(name));
+            return found == properties.end() ? std::nullopt : std::optional<MolangValue>(found->second);
+        }};
 };
 } // namespace
 
@@ -100,6 +105,51 @@ TEST_F(MolangExpressionTest, PropertyQueriesAndMissingPropertySemantics)
     number("q.has_property('test:missing')", 0);
     number("q.property('test:missing')", 0);
     number("q.has_property('test:missing') ? q.property('test:missing') : 5", 5);
+}
+
+TEST_F(MolangExpressionTest, BareNamedQueriesDispatchThroughHostResolver)
+{
+    queries["query.equipment_count"] = 3.0f;
+    // 三种写法（全名、q. 别名、大写）都要落到同一个查询上。
+    number("query.equipment_count + 1", 4);
+    number("q.equipment_count + 1", 4);
+    number("QUERY.EQUIPMENT_COUNT + 1", 4);
+    // 基岩允许零参查询带空括号。
+    number("query.equipment_count() + 1", 4);
+
+    queries["query.is_baby"] = 0.0f;
+    number("query.is_baby ? 10 : 0", 0);
+    queries["query.is_baby"] = 1.0f;
+    number("query.is_baby ? 10 : 0", 10);
+    number("q.is_baby && 1", 1);
+}
+
+TEST_F(MolangExpressionTest, UnresolvedQueryEvaluatesToZeroInsteadOfFailing)
+{
+    // 宿主未实现的查询按基岩语义取 0，不能让整条表达式失败。
+    number("query.not_implemented + 5", 5);
+    number("q.not_implemented ? 1 : 2", 2);
+}
+
+TEST_F(MolangExpressionTest, QueryWithoutHostResolverIsAnEvaluationError)
+{
+    MolangEvaluationContext bare{random, nullptr, nullptr};
+    auto expression = MolangExpression::compile("query.is_baby");
+    ASSERT_TRUE(expression.success());
+    EXPECT_TRUE(expression.value().evaluate(bare).failed());
+}
+
+TEST_F(MolangExpressionTest, UsesQueriesDetectsPropertyAndNamedQueries)
+{
+    auto named = MolangExpression::compile("q.is_baby ? 1 : 0");
+    ASSERT_TRUE(named.success());
+    EXPECT_TRUE(named.value().usesQueries());
+    auto property = MolangExpression::compile("q.property('test:count')");
+    ASSERT_TRUE(property.success());
+    EXPECT_TRUE(property.value().usesQueries());
+    auto plain = MolangExpression::compile("1 + 2 * 3");
+    ASSERT_TRUE(plain.success());
+    EXPECT_FALSE(plain.value().usesQueries());
 }
 
 TEST_F(MolangExpressionTest, StringsPreserveCaseAndCanBeConditionalEnumResults)

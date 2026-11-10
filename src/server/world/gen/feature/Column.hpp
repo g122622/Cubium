@@ -24,13 +24,13 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 
 namespace mc {
 
@@ -103,9 +103,8 @@ public:
         : m_floor(floor)
         , m_ceiling(ceiling)
     {
-        if (height() < 0) {
-            throw std::invalid_argument("Column of negative height");
-        }
+        // 负高度区间属于构造函数调用方的编程错误，直接断言崩溃。
+        MC_ASSERT_RELEASE_MSG(height() >= 0, "Column::Range: negative height");
     }
 
     [[nodiscard]] std::optional<i32> getCeiling() const override

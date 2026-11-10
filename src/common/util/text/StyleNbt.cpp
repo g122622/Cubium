@@ -92,6 +92,17 @@ void styleToNbt(nbt::tags::compound_tag& out, const Style& style)
     if (const auto& insertion = style.getInsertion(); insertion.has_value()) {
         out.put("insertion", *insertion);
     }
+
+    // 阴影色：原版 `ExtraCodecs.ARGB_COLOR_CODEC` 以 `Codec.INT` 为主形态，
+    // 在 NbtOps 下就是 IntTag（ARGB 打包整数，可为负）。
+    if (const auto& shadowColor = style.getShadowColor(); shadowColor.has_value()) {
+        out.put("shadow_color", *shadowColor);
+    }
+
+    // 字体：`FontDescription.CODEC` 是 `Identifier.CODEC.flatComapMap`，形态是资源位置字符串。
+    if (const auto& font = style.getFont(); font.has_value()) {
+        out.put("font", *font);
+    }
 }
 
 Result<Style> styleFromNbt(const nbt::tags::compound_tag& tag)
@@ -124,6 +135,15 @@ Result<Style> styleFromNbt(const nbt::tags::compound_tag& tag)
 
     if (const auto* insertionTag = _findString(tag, "insertion"); insertionTag != nullptr) {
         style.setInsertion(insertionTag->value);
+    }
+
+    // 原版 `Codec.INT` 在 NbtOps 下接受任意数值标签，再按 `intValue()` 截断成 32 位。
+    if (const auto value = _findInteger(tag, "shadow_color"); value.has_value()) {
+        style.setShadowColor(static_cast<i32>(*value));
+    }
+
+    if (const auto* fontTag = _findString(tag, "font"); fontTag != nullptr) {
+        style.setFont(fontTag->value);
     }
 
     return style;

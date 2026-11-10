@@ -31,11 +31,12 @@
 #pragma once
 
 #include "Nbt.hpp"
+#include "common/core/Result.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <istream>
 #include <ostream>
-#include <stdexcept>
+#include <string>
 #include <type_traits>
 
 namespace mc {
@@ -72,20 +73,23 @@ constexpr std::enable_if_t<std::is_signed_v<numeric>, std::size_t> zint_max()
  * @brief 从输入流加载VarNum
  */
 template <typename number_t>
-number_t load_varnum(std::istream& input)
+Result<number_t> load_varnum(std::istream& input)
 {
     std::size_t numRead = 0;
     number_t value = 0;
-    i32 read;
-    do {
-        read = cheof(input);
-        number_t tmp = static_cast<number_t>(read & 0b01111111);
+    for (;;) {
+        i32 read = 0;
+        MC_TRY_ASSIGN(read, cheof(input));
+        const number_t tmp = static_cast<number_t>(read & 0b01111111);
         value |= (tmp << (7 * numRead));
         numRead++;
         if (numRead > varnum_max<number_t>()) {
-            throw std::runtime_error("varint is too big");
+            return Error(ErrorCode::InvalidData, "NBT: varint is too big");
         }
-    } while ((read & 0b10000000) != 0);
+        if ((read & 0b10000000) == 0) {
+            break;
+        }
+    }
     return value;
 }
 
@@ -110,7 +114,7 @@ void dump_varnum(std::ostream& output, number_t value)
  * @brief 从输入流加载Zint（无符号版本）
  */
 template <typename numeric>
-std::enable_if_t<std::is_unsigned_v<numeric>, numeric> load_zint(std::istream& input)
+std::enable_if_t<std::is_unsigned_v<numeric>, Result<numeric>> load_zint(std::istream& input)
 {
     return load_varnum<numeric>(input);
 }
@@ -119,26 +123,28 @@ std::enable_if_t<std::is_unsigned_v<numeric>, numeric> load_zint(std::istream& i
  * @brief 从输入流加载Zint（有符号版本）
  */
 template <typename numeric>
-std::enable_if_t<std::is_signed_v<numeric>, numeric> load_zint(std::istream& input)
+std::enable_if_t<std::is_signed_v<numeric>, Result<numeric>> load_zint(std::istream& input)
 {
-    std::uint8_t read = cheof(input);
-    bool sign = read & 1;
+    i32 firstRead = 0;
+    MC_TRY_ASSIGN(firstRead, cheof(input));
+    std::uint8_t read = static_cast<std::uint8_t>(firstRead);
+    const bool sign = (read & 1) != 0;
     numeric value = (read >> 1) & 0b00111111;
     unsigned numRead = 0;
     while ((read & 0b10000000) != 0) {
-        read = cheof(input);
-        numeric tmp = (read & 0b01111111);
+        MC_TRY_ASSIGN(firstRead, cheof(input));
+        read = static_cast<std::uint8_t>(firstRead);
+        const numeric tmp = (read & 0b01111111);
         value |= (tmp << (7 * numRead + 6));
         ++numRead;
         if (numRead > zint_max<numeric>() - 1) {
-            throw std::runtime_error("szint is too big");
+            return Error(ErrorCode::InvalidData, "NBT: szint is too big");
         }
     }
     if (sign) {
         return -value;
-    } else {
-        return value;
     }
+    return value;
 }
 
 /**

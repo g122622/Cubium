@@ -709,24 +709,21 @@ std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vecto
     }
 
     // 解析 NBT
-    try {
-        std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
-        stream >> nbt::contexts::java;
+    std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
+    stream >> nbt::contexts::java;
 
-        // 读取根复合标签
-        auto root = nbt::CompoundTag::read(stream);
-        if (!root) {
-            return nullptr;
-        }
-
-        // 解包根标签前缀层：NBT 库的 compound_tag::read 不跳过根 id+name，
-        // 结构文件根 name 为空，root = {"": <真内容>}，须解包才能取到 size/blocks/palette。
-        // 详见 nbt::unwrapRootCompound 的说明。
-        return loadFromNbt(nbt::unwrapRootCompound(*root));
-    }
-    catch (...) {
+    // 读取根复合标签
+    auto rootResult = nbt::CompoundTag::read(stream);
+    if (rootResult.failed()) {
+        spdlog::warn("TemplateLoader: failed to parse structure NBT: {}", rootResult.error().message());
         return nullptr;
     }
+    auto root = std::move(rootResult).value();
+
+    // 解包根标签前缀层：NBT 库的 compound_tag::read 不跳过根 id+name，
+    // 结构文件根 name 为空，root = {"": <真内容>}，须解包才能取到 size/blocks/palette。
+    // 详见 nbt::unwrapRootCompound 的说明。
+    return loadFromNbt(nbt::unwrapRootCompound(*root));
 }
 
 std::unique_ptr<Template> TemplateLoader::loadFromBedrockMcStructure(const std::vector<u8>& data)
@@ -737,28 +734,20 @@ std::unique_ptr<Template> TemplateLoader::loadFromBedrockMcStructure(const std::
         return nullptr;
     }
 
-    try {
-        std::istringstream stream(std::string(data.begin(), data.end()));
-        stream >> nbt::contexts::bedrock_disk;
+    std::istringstream stream(std::string(data.begin(), data.end()));
+    stream >> nbt::contexts::bedrock_disk;
 
-        auto root = nbt::CompoundTag::read(stream);
-        if (!root) {
-            spdlog::warn("GameTest: .mcstructure CompoundTag::read returned null, size={}", data.size());
-            return nullptr;
-        }
-
-        // 解包根标签前缀层（.mcstructure 根 name 为空，
-        // root = {"": <真内容>}，须解包才能取到 size/structure 等键）。
-        return _loadFromBedrockNbt(nbt::unwrapRootCompound(*root));
-    }
-    catch (const std::exception& e) {
-        spdlog::warn("GameTest: loadFromBedrockMcStructure exception: {}", e.what());
+    auto rootResult = nbt::CompoundTag::read(stream);
+    if (rootResult.failed()) {
+        spdlog::warn(
+            "GameTest: failed to parse .mcstructure NBT, size={}: {}", data.size(), rootResult.error().message());
         return nullptr;
     }
-    catch (...) {
-        spdlog::warn("GameTest: loadFromBedrockMcStructure unknown exception");
-        return nullptr;
-    }
+    auto root = std::move(rootResult).value();
+
+    // 解包根标签前缀层（.mcstructure 根 name 为空，
+    // root = {"": <真内容>}，须解包才能取到 size/structure 等键）。
+    return _loadFromBedrockNbt(nbt::unwrapRootCompound(*root));
 }
 
 std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::CompoundTag& root)

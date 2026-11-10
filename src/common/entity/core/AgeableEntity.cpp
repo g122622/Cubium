@@ -251,4 +251,10 @@ Result<void> AgeableEntity::readAdditionalSaveData(const nbt::tags::compound_tag
     return Result<void>::ok();
 }
 
+i32 AgeableEntity::breedingExperience()
+{
+    // 原版 Animal.finalizeSpawnChildFromBreeding：每个经验球价值 1，个数为 nextInt(7) + 1。
+    return 1 + getRandom().nextInt(7);
+}
+
 } // namespace mc

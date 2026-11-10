@@ -33,6 +33,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <gtest/gtest.h>
@@ -227,10 +228,13 @@ TEST(BlockMapColorTableTest, WaterloggedStateTakesWaterColor)
 TEST(BlockMapColorTableTest, UnknownStateFallsBackToAirColor)
 {
     EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:not_a_block"), 0);
-    // 方块名命中时，未知属性会被忽略（快照只记录四个变色属性，无法也不应校验全部属性），
-    // 因此返回该方块的默认色（stone = 11），而不是 AIR。
-    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:stone[not_an_attribute=true]"), 11);
     EXPECT_EQ(world::block::lookupVanillaMapColor(""), 0);
+    // 方块名命中后，属性段只要不含例外表里的变色属性，就仍取该方块的默认色。
+    // 不能要求这种情况返回 AIR：非例外方块携带属性是**生产中的常态**
+    // （例如 chest 的 facing/type/waterlogged，chest 不在 29 个例外方块内），
+    // 若把「属性未命中例外表」判为未知状态，这些方块的地图色会全部退化成 0。
+    // 因此这里断言 stone 取自身颜色（STONE = 11），真正"查不到"的是上面的未知方块名。
+    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:stone[not_an_attribute=true]"), 11);
 }
 
 /**
@@ -281,16 +285,25 @@ TEST(BlockMapColorTableTest, ColorIsInvariantUnderColourNeutralTransformations)
 
     std::size_t checked = 0;
     std::size_t mismatched = 0;
+
+    // 先按方块归组，统计每个方块自身所有状态的色值集合。集合大小 > 1 说明该方块的颜色本来就
+    // 随状态变化（原版 29 个例外方块：原木按 axis、床按 part、barrier/light 按 waterlogged 等），
+    // 这类方块必须跳过——否则会把"颜色本就该变"误判成"变换破坏了颜色"。
+    // 用快照自身的数据判定，而不是维护一份硬编码的方块名单：后者会随原版更新而失效（本次失败
+    // 就是硬编码名单只列了 5 项、漏掉其余 24 个例外方块导致的）。
+    std::unordered_map<std::string, std::unordered_set<u8>> colorsByBlock;
+    for (const std::string& name : names) {
+        const std::size_t bracket = name.find('[');
+        const std::string blockName = bracket == std::string::npos ? name : name.substr(0, bracket);
+        colorsByBlock[blockName].insert(world::block::lookupVanillaMapColor(name));
+    }
+
     for (const std::string& name : names) {
         if (name.find('[') == std::string::npos || name.rfind("minecraft:air", 0) == 0) {
             continue;
         }
         const std::string blockName = name.substr(0, name.find('['));
-        // 已知的变色方块：原木/竹块按轴、床按 part、barrier/light 按 waterlogged。
-        // bamboo_block 与普通原木一样按 axis 取内皮/树皮色，但它不以 _log 结尾，需单列。
-        if (blockName.ends_with("_log") || blockName.ends_with("_wood") || blockName.ends_with("_bed") ||
-            blockName == "minecraft:bamboo_block" || blockName == "minecraft:barrier" ||
-            blockName == "minecraft:light") {
+        if (colorsByBlock[blockName].size() > 1) {
             continue;
         }
         for (const auto& [key, values] : transforms) {

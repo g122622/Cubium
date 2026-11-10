@@ -731,6 +731,7 @@ add_executable(mc_tests
     common/world/block/blocks/SignBlockEditTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SnowBlockTest.cpp
+    common/world/block/blocks/NetherPortalSpawnTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/nether/NyliumBlockTest.cpp
     common/world/block/blocks/nether/NetherWoodBlocksTest.cpp
@@ -738,6 +739,7 @@ add_executable(mc_tests
     common/world/block/blocks/FireBlockCollisionTest.cpp
     common/world/block/blocks/FireBlockTest.cpp
     common/world/block/blocks/NetherPortalBlockTest.cpp
+    common/world/block/core/BlockIsValidSpawnTest.cpp
     common/world/block/blocks/BubbleColumnBlockTest.cpp
     common/world/block/blocks/AnimateTickTest.cpp
     common/world/block/blocks/FallingBlockTest.cpp
@@ -1033,6 +1035,7 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/target/DrownedRegisterGoalsTest.cpp
     # GoalSelector 目标选择器测试（removeGoalsOfType 等）
     common/entity/ai/goal/GoalSelectorTest.cpp
+    common/entity/core/BreedingExperienceTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/PathWeightOverrideTest.cpp
@@ -1880,290 +1883,13 @@ add_executable(mc_tests
 # 添加服务端源文件
 target_sources(mc_tests
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/server/player/lifecycle/PlayerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketSender.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/session/PlayerConnectionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/AccessManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/time/TimeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/player/TeleportManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/session/keepalive/KeepAliveManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/movement/PlayerMovementManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/gamemode/GameModeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/admission/WhitelistManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedPlayerList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedIpList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/permission/OpListManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/scheduling/AreaTaskScheduler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/thread/UniversalWorkerPool.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
-        # 光照引擎与管理器（自 common/world/lighting 迁入 server，与 server/CMakeLists.txt 一致）
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BaseLightEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BlockLightEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/SkyLightEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/manager/WorldLightManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
-        # 结构定位算法门面：ServerWorld::findNearestStructure/findNearestMapStructure 委托，
-        # mc_tests 编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
-        # 游戏事件系统（服务端实现）
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/PlayerRespawnManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
-        # 事件系统
-        ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
-        # 记分板系统
-        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreObjective.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Score.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteriaRenderType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScorePlayerTeam.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DummyCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TriggerCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DeathCountCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardDataManager.cpp
-        # Boss 栏系统
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerDragonBossBar.cpp
-        # 函数系统
-        ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/MacroFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/StringTemplate.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
-        # 统计系统
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp
-        # GameTest 集成测试框架 - 整体作为 server 一部分（原 mc_test 库已取消）
-        # mc_tests 编译 IntegratedServer.cpp 故需同 minecraft-server 一致登记 GameTest 源，
-        # 否则 /gametest 命令与 GameTestServer 门面符号缺失。GameTestModuleBinding 注册在
-        # GameTestServer.cpp（server 专属），不影响 ServerScriptManager.cpp（client 共享）。
-        # base/+framework/+native/ 核心层源（原 mc_test 库内容）随 facade 一起登记。
-        # base/ - 末梢基础类型
-        ${CMAKE_SOURCE_DIR}/src/server/test/base/error/GameTestError.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/base/data/TestData.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/base/coords/TestTransform.cpp
-        # framework/ - 引擎无关抽象核心
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/function/BaseGameTestFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/helper/NullGameTestHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/sequence/GameTestSequence.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/registry/GameTestRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/instance/BaseGameTestInstance.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/batch/GameTestBatch.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/batch/BaseGameTestBatchRunner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/ticker/GameTestTicker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/AllOfEnvironment.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/EnvironmentRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/SetGameRulesEnvironment.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/TimeOfDayEnvironment.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/WeatherEnvironment.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/FunctionsEnvironment.cpp
-        # native/ - 原生测试函数族注册机制
-        ${CMAKE_SOURCE_DIR}/src/server/test/native/NativeGameTestFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/native/NativeTestRegistrationBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestServer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestRegistrar.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/instance/MinecraftGameTestInstance.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/batch/MinecraftGameTestBatchRunner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/helper/MinecraftGameTestHelperProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/MinecraftStructurePlacer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/StructureBounds.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/GameTestStructureBootstrap.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/BehaviorPackStructureSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/listener/WorldVisualizationListener.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/environment/MinecraftEnvironmentApplier.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/runner/GameTestRunner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/runner/GameTestRunnerBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/runner/spawner/StructureGridSpawner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/GlobalTestReporter.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/LogTestReporter.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/JUnitTestReporter.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/FailedTestCollector.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/native/builtin/BuiltinNativeTests.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/simulated/SimulatedPlayer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/GameTestModuleBinding.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/context/ScriptGameTestAccessor.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/context/ScriptBindingRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegister.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptTestHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestError.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestTypes.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegistrationBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegistrationBuilderBinding.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptSequence.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptSimulatedPlayer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptAsyncGameTestRunResult.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/player/PlayerSpawnFinder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
-        # 交互式终端中不依赖 FTXUI 的纯逻辑部分（缓冲/命令队列/输入规范化/补全状态机）。
-        # UI 组件依赖 FTXUI，仅 minecraft-server exe 链接，不在此编译。
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/buffer/LogRingBuffer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/buffer/EventRingBuffer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/bridge/ConsoleCommandQueue.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/input/CommandCompletion.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/LineWrapper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStats.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStatsCollector.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
-        # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 minecraft-server / mc_benchmark 共用）
+        # 服务端实现（世界/网络/注册表/GameTest 框架/终端纯逻辑等）统一由 mc_server_shared
+        # OBJECT 库提供（定义见 src/server/CMakeLists.txt），此处不再逐个登记源文件——
+        # 同一份实现被 minecraft-server 与 mc_tests 各编译一遍会让本目录体积翻倍。
+        # 存储系统另有 mc_server_storage、worldgen 另有 mc_gen，均通过链接复用。
+        # 命令实现仍需在此登记：它们不在 mc_server_shared 内（仅 exe 与 mc_benchmark 共用清单），
+        # 而 mc_tests 的 GameTest/命令测试直接编译命令实现。
         ${MC_SERVER_COMMAND_SOURCES_ABS}
-        # P3 命令
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/SpreadAlgorithm.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
-        # 交互管理器
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/DigSpeed.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/SignCommandHelper.cpp
-        # 维度模块
-        # 统计系统
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
-        # 同步管理器
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/BlockUpdateSyncManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/WeatherSyncService.cpp
-        # 区块推送记账：mc_tests 编译 PlayerManager.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/PlayerChunkTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/ChunkSyncManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSerializer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
-        # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/PacketSender.cpp，
-        # 它们引用 ServerNetwork/ServerHandshake/ServerPlayHandler/RegistryDataBuilder 的符号，
-        # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）
-        # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
-        ${CMAKE_SOURCE_DIR}/src/server/network/base/ServerClientConnection.cpp
-        # 会话生命周期门面（accept + 连接表 + tick 泵）
-        ${CMAKE_SOURCE_DIR}/src/server/network/session/ServerNetwork.cpp
-        # 单客户端会话与远程会话门面：mc_tests 编译 IntegratedServer.cpp 故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSession.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSessionManager.cpp
-        # 握手/登录/配置阶段：mc_tests 编译 IntegratedServer.cpp/MinecraftServer.cpp 故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/ServerHandshake.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/LoginFlow.cpp
-        # Play 阶段入站处理：mc_tests 编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayHandler.cpp
-        # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/ContainerActionHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/SessionSignalHandler.cpp
-        # 出站构造与广播：命令经 builder + packetSender 投递，
-        # mc_tests 编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
-        # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
-        # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
-        # 数据包驱动的物品定义加载器（乐器），RegistryBootstrap 直接调用
-        ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/item/instrument/InstrumentTagLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkData.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkLoadTicketManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/Heightmap.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-        # 存储系统已抽为 mc_server_storage OBJECT 库（src/server/world/storage/），
-        # mc_tests 通过 target_link_libraries(mc_server_storage) 复用同一批 .o，
-        # 不再在此直接编译 GlobalStorageManager/SingleLevelStorageManager/db/backend/
-        # reader/entity/player/section/save/snapshot/task 等 .cpp 源文件。
-        # 村庄系统
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/Village.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageGossip.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterest.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestStorage.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/Raid.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaidManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaiderType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/ItemCost.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/TradeContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/TradeRandom.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/VillagerTrades.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/WanderingTraderTrades.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeGenerationSettings.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeTag.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeTags.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeFactoryOverworld.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeFactoryNether.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeFactoryEnd.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/OverworldBiomeBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Sampler.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/SpawnFinder.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/weather/WeatherUtils.cpp
         # 生物群系颜色解析器
         ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
@@ -2268,194 +1994,17 @@ target_sources(mc_tests
         # 粒子实现 - 液体（新增）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfoJson.cpp
-        # ${CMAKE_SOURCE_DIR}/src/common/world/BlockID.cpp  # 已移除 - 使用新的方块系统
-        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/player/Player.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/player/SleepManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
         # EndermanEntity 用于 HeldBlockLayer 测试
-        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/end/EndermanEntity.cpp
         # NetherEntities 用于恶魂测试
-        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/monster/nether/NetherEntities.cpp
         # EndermanGoals 用于注视检测测试
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/EndermanGoals.cpp
         # GhastGoals 用于恶魂 AI 测试
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/GhastGoals.cpp
         # FoxGoals 用于狐狸 AI 测试
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/FoxGoals.cpp
         # PandaGoals 用于熊猫打滚 AI 测试
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/PandaGoals.cpp
         # GhastMovementController 用于恶魂飞行控制器测试
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/controller/GhastMovementController.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/memory/MemoryModuleType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Activity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/attribute/AttributeTypes.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/attribute/EnvironmentAttributes.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/time/timeline/Timelines.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/physics/PhysicsEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/physics/CollisionCache.cpp
-        # ${CMAKE_SOURCE_DIR}/src/common/physics/collision/BlockCollision.cpp  # 已移除 - 使用新的方块系统
-        # 新的方块系统源文件
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/base/material/Material.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/core/Block.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/vanilla/VanillaBlocks.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/air/AirBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/SimpleBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/RotatedPillarBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/fire/FireInfoRegistry.cpp
-        # 时间系统
-        ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
-        # 物品系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRarity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/AdventureModePredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/component/AttackRange.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/Items.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItemRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/context/ItemUseContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/context/BlockItemUseContext.cpp
-        # 工具层级系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/tier/IItemTier.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tier/ItemTiers.cpp
-        # 工具系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ToolType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/TieredItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ToolItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/PickaxeItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/AxeItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ShovelItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/HoeItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/SwordItem.cpp
-        # 收纳袋
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/special/bundle/BundleContents.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/special/bundle/BundleItem.cpp
-        # 背包系统
-        ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/Slot.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerInventory.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerEnderChestInventory.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/CraftingInventory.cpp
-        # 合成系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/Ingredient.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTag.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTagLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTags.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/ShapedRecipe.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/ShapelessRecipe.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeSerializers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeBook.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/crafting/TransmuteRecipe.cpp
-        # 方块实体系统
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntityType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/LockableBlockEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/SimpleInventory.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/BlockEntityRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/ChestEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/TrappedChestEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/EnderChestEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/DoubleSidedInventory.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/AbstractFurnaceEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/BlastFurnaceEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/SmokerEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceInventory.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/BeaconEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/ConduitEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/HopperEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/IHopper.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/redstone/CommandBlockEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/interactive/EnchantingTableEntity.cpp
-        # 试炼类方块实体
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/VaultBlockEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/TrialSpawnerBlockEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/CrafterBlockEntity.cpp
-        # 物品实体和掉落表
-        ${CMAKE_SOURCE_DIR}/src/common/entity/entities/item/ItemEntity.cpp
-        # 掉落系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootContextBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootParameterSet.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootParams.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootParameterSets.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/math/random/RandomRanges.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/LootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/EmptyLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/ItemLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/TableLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/TagLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/DynamicLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/AlternativesLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/SequenceLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/GroupLootEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/entries/LootEntryBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootPool.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTable.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTableManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootSerializers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/RandomChanceCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/RandomChanceWithEnchantedBonusCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/NotCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/AndCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/OrCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/BlockStateCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/ToolTypeCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/SurvivesExplosionCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/KilledByPlayerCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/EntityPropertiesCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/EntityScoresCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/LocationCheckCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/WeatherCheckCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/TimeCheckCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/DamageSourcePropertiesCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/ReferenceCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/FishingOpenWaterCondition.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/conditions/LootConditionBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/StatePropertiesPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootTableLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootPredicateManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/loot/LootPredicateLoader.cpp
-        # 成就系统
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/Advancement.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementProgress.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementDisplay.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementRewards.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementList.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/AdvancementManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/Criterion.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/CriterionTrigger.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/CriterionTriggers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/ItemPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityFlagsPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EntityEquipmentPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/NBTPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/EnchantmentPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/LocationPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/BlockPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/conditions/MobEffectsPredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/TickTrigger.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/InventoryChangedTrigger.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EntityTriggers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EffectTriggers.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/AvoidVibrationTrigger.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/GenericTriggers.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
-        # 天体计算
+        # 以下 common/ 实现（方块、物品、背包、合成、掉落、成就等）由 mc_common 静态库提供，
+        # 不再在 mc_tests 里重复编译。
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/sky/CelestialCalculations.cpp
         # 射线检测
-        ${CMAKE_SOURCE_DIR}/src/common/util/math/ray/Raycast.cpp
         # 设置系统
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         # 按键绑定（自 common/input 迁入 client/input）
@@ -2561,7 +2110,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireTextureLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireAnimationState.cpp
 
-        ${CMAKE_SOURCE_DIR}/src/common/resource/VanillaResources.cpp
         # Kagero UI 模板系统（仅核心解析组件）
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Ast.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/AstVisitor.cpp
@@ -2599,34 +2147,11 @@ target_sources(mc_tests
         # SignEditScreen 测试依赖：告示牌编辑屏幕实现（Tab切换/Enter提交/ESC取消）
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/SignEditScreen.cpp
         # Assert 库
-        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
-        ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha1.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Md5.cpp
         # UUID utilities
-        ${CMAKE_SOURCE_DIR}/src/common/util/UuidUtils.cpp
         # 声音系统 - Common
-        ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvent.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvents.cpp
         # Jukebox
-        ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSong.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSongs.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/sound/jukebox/JukeboxSongPlayer.cpp
         # Skin System
-        ${CMAKE_SOURCE_DIR}/src/common/skin/core/SkinTypes.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/core/GameProfile.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/core/SkinTextures.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/manager/SkinCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/manager/DefaultSkinProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/manager/SkinManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/loader/SkinLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/loader/FileSkinLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/loader/HttpSkinLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/parser/SkinMetadataParser.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/network/PlayerSkinInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/skin/network/SkinPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/client/skin/ClientSkinManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/skin/SkinTextureUploader.cpp
         # 声音系统 - Client
@@ -2656,6 +2181,7 @@ target_sources(mc_tests
 
 target_link_libraries(mc_tests
     PRIVATE
+        mc_server_shared
         mc_gen
         mc_server_storage
         mc_common
@@ -2689,6 +2215,11 @@ target_compile_definitions(mc_tests
         # 使 gtest 进程内 GameTestServer 能加载仓库内集成行为包（无论运行时 CWD 如何）。
         MC_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
 )
+
+# 复用 mc_common 的 PCH：mc_tests 是 TU 数最多的目标（约 1500 个），其中绝大多数都包含
+# common/ 头文件，先前完全没有 PCH，每个 TU 都要重新解析一遍标准库与项目头，是编译时间
+# 最大的单点开销。PCH 头内容与 common 侧一致，可直接复用。
+target_precompile_headers(mc_tests REUSE_FROM mc_common)
 
 # RealPackGameTestServerFixture 会加载 tests/integrated 行为包跑 JS 测试，须保证 .js 产物已编译。
 # 复用 src/server/CMakeLists.txt 的 add_custom_command 产出的 stamp（路径约定一致），
@@ -2798,21 +2329,7 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
             # 常用资源
-            ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackRepository.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackListBase.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/FolderResourcePack.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/ZipResourcePack.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/IResourcePack.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/resource/pack/PackMetadata.cpp
             # 方块系统
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/base/material/Material.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/core/Block.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/BlockRegistry.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/vanilla/VanillaBlocks.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/air/AirBlock.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/SimpleBlock.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/RotatedPillarBlock.cpp
             # 设置
             ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
             # 按键绑定（自 common/input 迁入 client/input）

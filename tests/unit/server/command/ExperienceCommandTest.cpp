@@ -115,16 +115,9 @@ TEST_F(ExperienceCommandTest, ExperienceCommandRequiresPermissionLevel2)
 {
     ServerCommandSource lowPermSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "test");
 
-    bool permissionDenied = false;
-    try {
-        const auto result = m_server.commandRegistry().execute("experience add @p 100", lowPermSource);
-        permissionDenied = (result.value() == 0);
-    }
-    catch (...) {
-        permissionDenied = true;
-    }
-
-    EXPECT_TRUE(permissionDenied);
+    // Result::value() 在失败时断言崩溃，不再抛异常，因此必须显式判 failed()。
+    const auto result = m_server.commandRegistry().execute("experience add @p 100", lowPermSource);
+    EXPECT_TRUE(result.failed()) << "low permission level must reject the experience command";
 }
 
 TEST_F(ExperienceCommandTest, AddPointsSyntax)

@@ -96,7 +96,7 @@ BushBlock (来自 agricultural/ 模块)
 
 ### 2.1 灵魂火不响应刻（继承隔离陷阱）
 
-`SoulFireBlock` 继承 `FireBlock` 仅为复用放置/碰撞逻辑，但构造时把状态容器覆盖为空（无 `AGE_0_15`，与 vanilla 一致）。`FireBlock::tick`/`randomTick`/`getAge` 依赖 `AGE_0_15`，soul_fire 继承后若不隔离会读不存在的属性抛 `std::invalid_argument`（`StateHolder::get` → fatal）。故 `SoulFireBlock` 必须重写 `ticksRandomly()=false` 与 `tick`/`randomTick` 为空。vanilla 中 `SoulFireBlock` 继承 `BaseFireBlock`（非 `FireBlock`），本就无 tick 实现，靠 `updatePostPlacement` 自毁。
+`SoulFireBlock` 继承 `FireBlock` 仅为复用放置/碰撞逻辑，但构造时把状态容器覆盖为空（无 `AGE_0_15`，与 vanilla 一致）。`FireBlock::tick`/`randomTick`/`getAge` 依赖 `AGE_0_15`，soul_fire 继承后若不隔离会读不存在的属性而断言崩溃（`StateHolder::get`）。故 `SoulFireBlock` 必须重写 `ticksRandomly()=false` 与 `tick`/`randomTick` 为空。vanilla 中 `SoulFireBlock` 继承 `BaseFireBlock`（非 `FireBlock`），本就无 tick 实现，靠 `updatePostPlacement` 自毁。
 
 ### 3. 下界疣只能种在灵魂沙
 

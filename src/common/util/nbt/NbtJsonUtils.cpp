@@ -26,7 +26,6 @@
 #include "Nbt.hpp"
 #include "common/core/Types.hpp"
 #include <cstddef>
-#include <exception>
 #include <limits>
 #include <memory>
 #include <sstream>
@@ -449,24 +448,22 @@ std::unique_ptr<tags::compound_tag> jsonToNbt(const nlohmann::json& json)
 // parseMojangson 实现
 // ============================================================================
 
-std::unique_ptr<tags::compound_tag> parseMojangson(const std::string& mojangsonString)
+Result<std::unique_ptr<tags::compound_tag>> parseMojangson(const std::string& mojangsonString)
 {
     if (mojangsonString.empty()) {
-        return nullptr;
+        return Error(ErrorCode::InvalidData, "SNBT: empty input");
     }
 
-    try {
-        std::istringstream iss(mojangsonString);
-        iss >> contexts::mojangson;
-        auto result = tags::compound_tag::read(iss);
-        if (!result || iss.fail()) {
-            return nullptr;
-        }
-        return result;
+    std::istringstream iss(mojangsonString);
+    iss >> contexts::mojangson;
+    auto result = tags::compound_tag::read(iss);
+    if (result.failed()) {
+        return result.error();
     }
-    catch (const std::exception&) {
-        return nullptr;
+    if (iss.fail()) {
+        return Error(ErrorCode::InvalidData, "SNBT: trailing content or stream failure after root compound");
     }
+    return std::move(result).value();
 }
 
 } // namespace mc::nbt

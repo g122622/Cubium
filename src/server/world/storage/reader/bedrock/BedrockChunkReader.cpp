@@ -381,10 +381,12 @@ Result<u32> BedrockChunkReader::_readPaletteEntry(const std::vector<u8>& data, s
     std::string payload(reinterpret_cast<const char*>(data.data() + pos), data.size() - pos);
     std::istringstream stream(payload);
     stream >> contexts::bedrock_disk;
-    auto root = compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::ChunkCorrupted, "Failed to parse Bedrock palette NBT entry");
+    auto rootResult = compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(
+            ErrorCode::ChunkCorrupted, "Failed to parse Bedrock palette NBT entry: " + rootResult.error().message());
     }
+    auto root = std::move(rootResult).value();
 
     const auto consumed = static_cast<size_t>(stream.tellg());
     if (consumed == static_cast<size_t>(-1)) {

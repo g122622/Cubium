@@ -24,6 +24,7 @@
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyValue.hpp"
+#include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 
@@ -197,8 +198,12 @@ Result<EntityEventExecution> EntityEventProgram::execute(
     MC_ASSERT_RELEASE(state != nullptr);
     EntityAddonState validator;
     MC_TRY(validator.defineProperties(m_properties));
-    MolangEvaluationContext evaluation{
-        entity.getRandom(), [state](std::string_view name) -> std::optional<MolangValue> {
+    MolangEvaluationContext evaluation{entity.getRandom(),
+        [&entity](std::string_view name) -> std::optional<MolangValue> {
+            // 具名实体查询走统一解析入口；未实现的查询由求值器按 0 处理并记 warn。
+            return EntityStateQuery::molangQuery(entity, name);
+        },
+        [state](std::string_view name) -> std::optional<MolangValue> {
             const auto value = state->getProperty(std::string(name));
             if (!value) {
                 return std::nullopt;

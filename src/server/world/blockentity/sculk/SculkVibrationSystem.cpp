@@ -81,7 +81,7 @@ bool SculkSensorVibrationUser::canReceiveVibration(ServerWorld& world,
     // 活跃或冷却期间不能再次被激活
     // 注意：这里必须读监听器自身位置（m_entity.getPos()，即感测体方块位置）的方块状态，
     // 而非振动源位置 pos（pos 是发事件方块位置，如炼药锅，其方块状态没有 sculk_sensor_phase 属性，
-    // 调 canActivate 会触发 StateHolder::get 抛 std::invalid_argument）。
+    // 调 canActivate 会触发 StateHolder::get 断言崩溃）。
     const BlockPos sensorPos = m_entity.getPos();
     const BlockState* state = world.getBlockState(sensorPos);
     if (state == nullptr) {
@@ -119,7 +119,7 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
 
     // 获取监听器自身位置（感测体方块位置）的方块状态。
     // 注意：不能用振动源位置 pos（pos 是发事件方块位置，如炼药锅，其方块状态没有
-    // sculk_sensor_phase/power 属性，activate 内 state.with 会抛 std::invalid_argument）。
+    // sculk_sensor_phase/power 属性，activate 内 state.with 会断言崩溃）。
     const BlockPos sensorPos = m_entity.getPos();
     const BlockState* state = world.getBlockState(sensorPos);
     if (state == nullptr) {

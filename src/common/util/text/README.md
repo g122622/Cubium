@@ -131,6 +131,11 @@ text->appendText("World");
 颜色一律用 `Style::getTextColor()`（`TextColor::serialize()`，具名色写名字、自定义 RGB 写 `#RRGGBB`），
 **不要**用 `getColor()`：后者只覆盖具名色，自定义 RGB 会被静默丢弃。
 
+`shadow_color` **不是**颜色字符串，而是 **ARGB 打包整数**（`ExtraCodecs.ARGB_COLOR_CODEC` 的主形态是
+`Codec.INT`），写成 `"#RRGGBB"` 会让真客户端解码失败；`font` 是资源位置字符串
+（1.21.11 的 `FontDescription.CODEC` 只支持 `Resource` 变体）。这两个字段与 `color` 的类型完全不同，
+不要顺手按 `color` 的写法处理。
+
 ### 9. `Result<std::unique_ptr<T>>::value()` 只能取一次
 
 `componentFromNbtTag` 等返回 `Result<std::unique_ptr<T>>`，`value()` 内部会转移所有权。同一表达式里

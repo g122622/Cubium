@@ -56,7 +56,8 @@ public:
      * @brief 获取命名噪声的参数
      * @param name 噪声名称（如 "minecraft:surface"）
      * @return 噪声参数引用
-     * @throws std::out_of_range 如果名称不存在
+     *
+     * @note 名称不存在时断言崩溃：调用方的噪声名来自数据包 noise_router，缺项说明数据包自洽性被破坏。
      */
     [[nodiscard]] static const NoiseParameters& get(const std::string& name);
 

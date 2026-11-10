@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+
 #include <memory>
 #include <string>
 #include <nlohmann/json.hpp>
@@ -77,8 +79,8 @@ namespace mc::nbt {
  * 支持标准 Mojangson 语法，如 {key:value, key2:42b}
  *
  * @param mojangsonString Mojangson 格式字符串
- * @return 解析后的 compound_tag，如果解析失败返回 nullptr
+ * @return 成功返回解析后的 compound_tag；语法错误返回 `ErrorCode::InvalidData` 及原因
  */
-[[nodiscard]] std::unique_ptr<tags::compound_tag> parseMojangson(const std::string& mojangsonString);
+[[nodiscard]] Result<std::unique_ptr<tags::compound_tag>> parseMojangson(const std::string& mojangsonString);
 
 } // namespace mc::nbt

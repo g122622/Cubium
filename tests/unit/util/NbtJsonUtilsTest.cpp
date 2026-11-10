@@ -31,6 +31,24 @@ using namespace mc;
 using namespace mc::nbt;
 using namespace mc::nbt::tags;
 
+namespace {
+
+/**
+ * @brief 测试辅助：把 `Result<unique_ptr<compound_tag>>` 折叠成「失败为 nullptr」的旧式语义
+ *
+ * 保持用例主体可读；解析失败的原因由生产代码记录，测试只关心成功/失败。
+ */
+std::unique_ptr<compound_tag> _parseMojangsonOrNull(const std::string& text)
+{
+    auto result = parseMojangson(text);
+    if (result.failed()) {
+        return nullptr;
+    }
+    return std::move(result).value();
+}
+
+} // namespace
+
 // ========== nbtToJson 测试 ==========
 
 class NbtToJsonTest : public ::testing::Test {
@@ -332,19 +350,19 @@ protected:
 
 TEST_F(ParseMojangsonTest, EmptyStringReturnsNullptr)
 {
-    auto result = parseMojangson("");
+    auto result = _parseMojangsonOrNull("");
     EXPECT_EQ(result, nullptr);
 }
 
 TEST_F(ParseMojangsonTest, InvalidStringReturnsNullptr)
 {
-    auto result = parseMojangson("not valid nbt");
+    auto result = _parseMojangsonOrNull("not valid nbt");
     EXPECT_EQ(result, nullptr);
 }
 
 TEST_F(ParseMojangsonTest, SimpleCompound)
 {
-    auto result = parseMojangson(R"({name:"Test"})");
+    auto result = _parseMojangsonOrNull(R"({name:"Test"})");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("name") > 0);
     auto* tag = result->value.at("name").get();
@@ -356,14 +374,14 @@ TEST_F(ParseMojangsonTest, SimpleCompound)
 
 TEST_F(ParseMojangsonTest, CompoundWithInt)
 {
-    auto result = parseMojangson(R"({count:42})");
+    auto result = _parseMojangsonOrNull(R"({count:42})");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("count") > 0);
 }
 
 TEST_F(ParseMojangsonTest, CompoundWithMultipleEntries)
 {
-    auto result = parseMojangson(R"({name:"Test",count:42,active:1b})");
+    auto result = _parseMojangsonOrNull(R"({name:"Test",count:42,active:1b})");
     ASSERT_NE(result, nullptr);
     EXPECT_GE(result->value.size(), 3u);
     EXPECT_TRUE(result->value.count("name") > 0);
@@ -373,7 +391,7 @@ TEST_F(ParseMojangsonTest, CompoundWithMultipleEntries)
 
 TEST_F(ParseMojangsonTest, NestedCompound)
 {
-    auto result = parseMojangson(R"({outer:{inner:10}})");
+    auto result = _parseMojangsonOrNull(R"({outer:{inner:10}})");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("outer") > 0);
     auto* outerTag = result->value.at("outer").get();
@@ -383,7 +401,7 @@ TEST_F(ParseMojangsonTest, NestedCompound)
 
 TEST_F(ParseMojangsonTest, CompoundWithList)
 {
-    auto result = parseMojangson(R"({items:["a","b","c"]})");
+    auto result = _parseMojangsonOrNull(R"({items:["a","b","c"]})");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("items") > 0);
     auto* itemsTag = result->value.at("items").get();
@@ -393,7 +411,7 @@ TEST_F(ParseMojangsonTest, CompoundWithList)
 
 TEST_F(ParseMojangsonTest, CompoundWithByteTag)
 {
-    auto result = parseMojangson("{flag:1b}");
+    auto result = _parseMojangsonOrNull("{flag:1b}");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("flag") > 0);
     auto* tag = result->value.at("flag").get();
@@ -403,7 +421,7 @@ TEST_F(ParseMojangsonTest, CompoundWithByteTag)
 
 TEST_F(ParseMojangsonTest, CompoundWithShortTag)
 {
-    auto result = parseMojangson("{shortVal:100s}");
+    auto result = _parseMojangsonOrNull("{shortVal:100s}");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("shortVal") > 0);
     auto* tag = result->value.at("shortVal").get();
@@ -413,7 +431,7 @@ TEST_F(ParseMojangsonTest, CompoundWithShortTag)
 
 TEST_F(ParseMojangsonTest, CompoundWithLongTag)
 {
-    auto result = parseMojangson("{longVal:9999999999l}");
+    auto result = _parseMojangsonOrNull("{longVal:9999999999l}");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("longVal") > 0);
     auto* tag = result->value.at("longVal").get();
@@ -423,7 +441,7 @@ TEST_F(ParseMojangsonTest, CompoundWithLongTag)
 
 TEST_F(ParseMojangsonTest, CompoundWithFloatTag)
 {
-    auto result = parseMojangson("{ratio:3.14f}");
+    auto result = _parseMojangsonOrNull("{ratio:3.14f}");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("ratio") > 0);
     auto* tag = result->value.at("ratio").get();
@@ -433,7 +451,7 @@ TEST_F(ParseMojangsonTest, CompoundWithFloatTag)
 
 TEST_F(ParseMojangsonTest, CompoundWithDoubleTag)
 {
-    auto result = parseMojangson("{ratio:3.14d}");
+    auto result = _parseMojangsonOrNull("{ratio:3.14d}");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("ratio") > 0);
     auto* tag = result->value.at("ratio").get();
@@ -443,7 +461,7 @@ TEST_F(ParseMojangsonTest, CompoundWithDoubleTag)
 
 TEST_F(ParseMojangsonTest, UnquotedStringValue)
 {
-    auto result = parseMojangson("{name:Test}");
+    auto result = _parseMojangsonOrNull("{name:Test}");
     ASSERT_NE(result, nullptr);
     ASSERT_TRUE(result->value.count("name") > 0);
     auto* tag = result->value.at("name").get();

@@ -44,6 +44,9 @@ server/
 
 - 目录按领域职责组织；跨领域协作通过明确入口和基础类型。
 - 新增或迁移源文件时同步更新所有消费目标的 CMake 清单。
+- 服务端实现被拆成三个共享编译单元，加文件前先判断该放哪：`mc_server_storage`（`world/storage/`）、`mc_gen`（`world/gen/` 等 worldgen 实现）、`mc_server_shared`（其余被 `minecraft-server` 与 `mc_tests` 共用的实现）。把文件同时写进 `minecraft-server` 与 `mc_tests` 会重复编译并让 `build/` 体积翻倍，正确做法是加进 `mc_server_shared` 的清单。
+- `application/console/ui/**`、`main.cpp`、`ServerApplicationEntry.cpp`、`StandaloneServer.cpp` 留在可执行文件内部，不能进 `mc_server_shared`：该库被 `mc_tests` 链接，而 `mc_tests` 不链接 FTXUI。
+- 共享库一律用 `OBJECT` 而不是 `STATIC`：服务端有依赖静态初始化顺序的注册表装配，静态库下未被引用的 `.o` 会被链接器丢弃，行为会静默改变。
 
 ### 1. 线程安全
 

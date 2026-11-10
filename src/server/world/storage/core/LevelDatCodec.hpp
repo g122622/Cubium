@@ -323,12 +323,18 @@ public:
     static Result<void> updateScheduledEvents(
         const std::filesystem::path& worldDir, const nbt::tags::compound_list_tag& events);
 
-private:
     /**
-     * @brief 从 gzip 文件读取 NBT
+     * @brief 读取 level.dat 的 gzip NBT 根标签
+     *
+     * 供需要原始根标签（而非摘要）的调用方复用，例如存档格式探测器。
+     * 文件损坏/解压失败/NBT 格式非法均以 `Result` 返回，不会抛出异常。
+     *
+     * @param filePath level.dat 文件路径
+     * @return 成功返回根复合标签，失败返回错误
      */
-    static Result<std::unique_ptr<nbt::tags::compound_tag>> _readGzipNbt(const std::filesystem::path& filePath);
+    static Result<std::unique_ptr<nbt::tags::compound_tag>> readRootCompound(const std::filesystem::path& filePath);
 
+private:
     /**
      * @brief 将 NBT 写入 gzip 文件
      */

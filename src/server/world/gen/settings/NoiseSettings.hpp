@@ -28,10 +28,13 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
-#include <stdexcept>
+#include <optional>
 #include <string>
 
 namespace mc {
+
+/// 原版 DimensionType.MAX_Y：世界可用 Y 上限（不含），noise 尺寸不得越过它。
+inline constexpr i32 NOISE_MAX_Y = 2032;
 
 /**
  * @brief 噪声地形生成设置
@@ -109,34 +112,42 @@ struct NoiseSettings {
         return horizontalNoiseGranularity();
     }
 
-    // === 工厂方法（带验证） ===
+    // === 尺寸参数校验 ===
 
     /**
-     * @brief 创建经过验证的 NoiseSettings
+     * @brief 校验噪声尺寸参数的合法性
      *
-     * 验证规则：
+     * 数据包 `noise_settings` JSON 等外部来源的尺寸参数**必须**先经过此校验：
+     * 校验失败返回可读原因，由调用方转成 `Result` 错误向上传播（外部数据不触发崩溃）。
+     *
+     * 规则：
      * - height 必须是 16 的倍数
      * - minY 必须是 16 的倍数
-     * - sizeHorizontal 和 sizeVertical 必须在 [1, 4] 范围内
      * - minY + height 不能超过 MAX_Y + 1
+     * - sizeHorizontal 和 sizeVertical 必须在 [1, 4] 范围内
      *
-     * @throws std::invalid_argument 如果参数不合法
+     * @return 合法时返回 std::nullopt，否则返回错误描述
      */
-    static NoiseSettings create(i32 minY, i32 height, i32 sizeHorizontal, i32 sizeVertical)
+    [[nodiscard]] static std::optional<std::string> validateDimensions(
+        i32 minY, i32 height, i32 sizeHorizontal, i32 sizeVertical)
     {
-        guardY(minY, height);
+        if (height % 16 != 0) {
+            return "height (" + std::to_string(height) + ") must be a multiple of 16";
+        }
+        if (minY % 16 != 0) {
+            return "min_y (" + std::to_string(minY) + ") must be a multiple of 16";
+        }
+        if (minY + height > NOISE_MAX_Y + 1) {
+            return "min_y + height (" + std::to_string(minY + height) + ") must not exceed " +
+                std::to_string(NOISE_MAX_Y + 1);
+        }
         if (sizeHorizontal < 1 || sizeHorizontal > 4) {
-            throw std::invalid_argument("NoiseSettings: sizeHorizontal must be in [1, 4]");
+            return "size_horizontal (" + std::to_string(sizeHorizontal) + ") must be in [1, 4]";
         }
         if (sizeVertical < 1 || sizeVertical > 4) {
-            throw std::invalid_argument("NoiseSettings: sizeVertical must be in [1, 4]");
+            return "size_vertical (" + std::to_string(sizeVertical) + ") must be in [1, 4]";
         }
-        NoiseSettings s;
-        s.minY = minY;
-        s.height = height;
-        s.sizeHorizontal = sizeHorizontal;
-        s.sizeVertical = sizeVertical;
-        return s;
+        return std::nullopt;
     }
 
     // === 预设 ===
@@ -239,25 +250,6 @@ struct NoiseSettings {
         settings.aquifersEnabled = false;
         settings.useLegacyRandomSource = true;
         return settings;
-    }
-
-private:
-    /**
-     * @brief 验证 minY 和 height 的合法性
-     * @throws std::invalid_argument 如果参数不合法
-     */
-    static void guardY(i32 minY, i32 height)
-    {
-        constexpr i32 MAX_Y = 2032; // DimensionType.MAX_Y + 1 - 1 + 2032
-        if (minY + height > MAX_Y + 1) {
-            throw std::invalid_argument("NoiseSettings: minY + height must not exceed " + std::to_string(MAX_Y + 1));
-        }
-        if (height % 16 != 0) {
-            throw std::invalid_argument("NoiseSettings: height must be a multiple of 16");
-        }
-        if (minY % 16 != 0) {
-            throw std::invalid_argument("NoiseSettings: minY must be a multiple of 16");
-        }
     }
 };
 

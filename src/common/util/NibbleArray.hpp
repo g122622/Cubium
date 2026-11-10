@@ -89,8 +89,9 @@ public:
 
     /**
      * @brief 从现有数据构造
-     * @param data 字节数组（必须为2048字节）
-     * @throws std::invalid_argument 如果数据大小不正确
+     * @param data 字节数组（必须为2048字节，或为空表示未分配）
+     *
+     * @note 大小既不是 2048 也非空时断言崩溃：说明上游解码/填充逻辑出错。
      */
     explicit NibbleArray(std::vector<u8> data);
 

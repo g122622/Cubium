@@ -37,13 +37,13 @@
 #include <memory>
 #include <regex>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <fmt/format.h>
 
 namespace mc {
 
@@ -86,9 +86,7 @@ public:
          */
         Builder& add(std::unique_ptr<IProperty> prop)
         {
-            if (!prop) {
-                throw std::invalid_argument("Property cannot be null");
-            }
+            MC_ASSERT_RELEASE_MSG(prop != nullptr, "StateContainer::Builder::add: property cannot be null");
             validateProperty(*prop);
             const std::string name = prop->name();
             const IProperty* rawProp = prop.get();
@@ -103,9 +101,7 @@ public:
          */
         Builder& add(const IProperty* prop)
         {
-            if (!prop) {
-                throw std::invalid_argument("Property cannot be null");
-            }
+            MC_ASSERT_RELEASE_MSG(prop != nullptr, "StateContainer::Builder::add: property cannot be null");
             validateProperty(*prop);
             m_properties[prop->name()] = prop;
             m_declarationOrder.push_back(prop);
@@ -182,22 +178,23 @@ public:
 
         void validateProperty(const IProperty& prop)
         {
+            // 属性名/值名格式与重复注册都属于注册期的编程错误，一旦出错必须当场崩溃，
+            // 否则会生成错误的属性布局，后续 with() 会把方块切到不相干的状态。
             static const std::regex NAME_PATTERN("^[a-z0-9_]+$");
-            if (!std::regex_match(prop.name(), NAME_PATTERN)) {
-                throw std::invalid_argument("Invalid property name: " + prop.name());
-            }
-            if (prop.valueCount() <= 1) {
-                throw std::invalid_argument("Property " + prop.name() + " must have more than 1 possible value");
-            }
+            MC_ASSERT_RELEASE_MSG(std::regex_match(prop.name(), NAME_PATTERN),
+                fmt::format("StateContainer::Builder: invalid property name '{}'", prop.name()).c_str());
+            MC_ASSERT_RELEASE_MSG(prop.valueCount() > 1,
+                fmt::format("StateContainer::Builder: property '{}' must have more than 1 possible value", prop.name())
+                    .c_str());
             for (size_t i = 0; i < prop.valueCount(); ++i) {
-                if (!std::regex_match(prop.valueToString(i), NAME_PATTERN)) {
-                    throw std::invalid_argument(
-                        "Property " + prop.name() + " has invalid value name: " + prop.valueToString(i));
-                }
+                MC_ASSERT_RELEASE_MSG(std::regex_match(prop.valueToString(i), NAME_PATTERN),
+                    fmt::format("StateContainer::Builder: property '{}' has invalid value name '{}'",
+                        prop.name(),
+                        prop.valueToString(i))
+                        .c_str());
             }
-            if (m_properties.find(prop.name()) != m_properties.end()) {
-                throw std::invalid_argument("Duplicate property: " + prop.name());
-            }
+            MC_ASSERT_RELEASE_MSG(m_properties.find(prop.name()) == m_properties.end(),
+                fmt::format("StateContainer::Builder: duplicate property '{}'", prop.name()).c_str());
         }
     };
 

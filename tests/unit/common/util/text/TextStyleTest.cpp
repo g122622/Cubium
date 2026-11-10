@@ -23,6 +23,7 @@
 
 #include "util/text/TextStyle.hpp"
 #include "core/Types.hpp"
+#include "util/text/StyleNbt.hpp"
 #include "util/text/TextEvents.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -290,6 +291,102 @@ TEST_F(StyleTest, Equality)
 
     EXPECT_EQ(style1, style2);
     EXPECT_NE(style1, style3);
+}
+
+// ============================================================================
+// 阴影色与字体（原版 Style.shadowColor / Style.font）
+// ============================================================================
+
+TEST_F(StyleTest, ShadowColorAndFontAreThreeStateFields)
+{
+    Style style;
+    EXPECT_FALSE(style.getShadowColor().has_value());
+    EXPECT_FALSE(style.getFont().has_value());
+
+    // 阴影色是 ARGB 打包整数，允许负值（高位 alpha 置 1）。
+    style.setShadowColor(-16777216);
+    style.setFont("minecraft:uniform");
+    EXPECT_EQ(*style.getShadowColor(), -16777216);
+    EXPECT_EQ(*style.getFont(), "minecraft:uniform");
+    EXPECT_FALSE(style.isEmpty()) << "shadow color alone must make a style non-empty";
+
+    Style fontOnly;
+    fontOnly.setFont("minecraft:default");
+    EXPECT_FALSE(fontOnly.isEmpty()) << "font alone must make a style non-empty";
+
+    // 相等性必须覆盖这两个新字段，否则两个仅阴影色不同的样式会被判为相等。
+    Style same;
+    same.setShadowColor(-16777216);
+    same.setFont("minecraft:uniform");
+    EXPECT_EQ(style, same);
+    same.setShadowColor(0);
+    EXPECT_NE(style, same);
+}
+
+TEST_F(StyleTest, ShadowColorAndFontParticipateInInheritance)
+{
+    Style parent;
+    parent.setShadowColor(0x00FFFFFF);
+    parent.setFont("minecraft:uniform");
+
+    Style child;
+    child.setBold(true);
+    const Style merged = child.mergeWithParent(parent);
+    ASSERT_TRUE(merged.getShadowColor().has_value());
+    ASSERT_TRUE(merged.getFont().has_value());
+    EXPECT_EQ(*merged.getShadowColor(), 0x00FFFFFF);
+    EXPECT_EQ(*merged.getFont(), "minecraft:uniform");
+
+    // 子样式显式给出时优先。
+    Style overriding;
+    overriding.setShadowColor(0);
+    overriding.setFont("minecraft:alt");
+    const Style overridden = overriding.mergeWithParent(parent);
+    EXPECT_EQ(*overridden.getShadowColor(), 0);
+    EXPECT_EQ(*overridden.getFont(), "minecraft:alt");
+
+    // applyTo 同样是「本样式优先、other 兜底」。
+    const Style applied = parent.applyTo(child);
+    EXPECT_EQ(*applied.getShadowColor(), 0x00FFFFFF);
+    EXPECT_EQ(*applied.getFont(), "minecraft:uniform");
+}
+
+TEST_F(StyleTest, ShadowColorAndFontSurviveJsonRoundTrip)
+{
+    Style style;
+    style.setShadowColor(-16777216);
+    style.setFont("minecraft:uniform");
+
+    const nlohmann::json json = style.toJson();
+    // 原版 `Style.Serializer.MAP_CODEC`：shadow_color 是整数，font 是字符串。
+    ASSERT_TRUE(json.contains("shadow_color"));
+    ASSERT_TRUE(json["shadow_color"].is_number_integer());
+    EXPECT_EQ(json["shadow_color"].get<mc::i32>(), -16777216);
+    ASSERT_TRUE(json.contains("font"));
+    EXPECT_EQ(json["font"].get<std::string>(), "minecraft:uniform");
+
+    const Style parsed = Style::fromJson(json);
+    EXPECT_EQ(parsed, style);
+}
+
+// 这两个字段此前完全缺失，读入带它们的文本再写回会静默丢字段——属于数据丢失而非显示差异。
+TEST_F(StyleTest, ShadowColorAndFontSurviveNbtRoundTrip)
+{
+    Style style;
+    style.setColor(TextFormatting::Red);
+    style.setShadowColor(-16777216);
+    style.setFont("minecraft:uniform");
+
+    mc::nbt::tags::compound_tag tag;
+    styleToNbt(tag, style);
+
+    // compound_tag::get<T> 直接返回底层值（int_tag → int、string_tag → std::string）。
+    EXPECT_EQ(tag.get<mc::nbt::tags::int_tag>("shadow_color"), -16777216);
+    EXPECT_EQ(tag.get<mc::nbt::tags::string_tag>("font"), "minecraft:uniform");
+
+    const auto parsed = styleFromNbt(tag);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+    EXPECT_EQ(parsed.value(), style);
 }
 
 // ============================================================================

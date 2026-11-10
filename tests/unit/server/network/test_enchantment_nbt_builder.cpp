@@ -92,7 +92,11 @@ std::unique_ptr<compound_tag> parseRootNbtBytes(const std::vector<u8>& bytes)
     std::string s(reinterpret_cast<const char*>(bytes.data()) + 1, bytes.size() - 1);
     std::istringstream in(s);
     in >> mc::nbt::Contexts::java;
-    return compound_tag::read(in);
+    auto result = compound_tag::read(in);
+    if (result.failed()) {
+        return nullptr;
+    }
+    return std::move(result).value();
 }
 
 class EnchantmentNbtBuilderTest : public ::testing::Test {

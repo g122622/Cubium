@@ -240,4 +240,13 @@ bool IWorld::destroyBlock(const BlockPos& pos, bool dropBlock, const Entity* ent
     return written;
 }
 
+bool IWorld::isSpawningMonsters() const
+{
+    if (difficulty() == Difficulty::Peaceful) {
+        return false;
+    }
+    const world::gamerule::GameRules& rules = getGameRules();
+    return rules.getBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS) &&
+        rules.getBoolean(world::gamerule::GameRuleKeys::SPAWN_MONSTERS);
+}
 } // namespace mc

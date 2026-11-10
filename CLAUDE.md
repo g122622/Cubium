@@ -94,8 +94,8 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `Result<T>` / `Result<void>` - 可能失败操作的结果类型（定义在 `src/common/core/Result.hpp`）
 - `ErrorCode` - **独立的顶层枚举** `mc::ErrorCode`（不是 `Error` 的嵌套类型），含 `Success`/`InvalidArgument`/`NotFound`/`OutOfMemory` 等，分组编号见 `Result.hpp`
 - `Error` - 错误容器，构造为 `Error(ErrorCode code, std::string_view message, std::string_view source)`，并提供静态工厂 `Error::ok()` / `Error::invalidArgument()` / `Error::notFound()` / `Error::fileNotFound()` / `Error::connectionFailed()` / `Error::unknown()`
-- 【重要】`Result::value()` 在结果失败时会 **`throw std::runtime_error`**（`Result<T>` 与 `Result<std::unique_ptr<T, D>>` 都是如此）。取 `value()` 之前必须已经确认 `success()`，否则会绕过整个 Result 体系抛出异常。
-- 新增代码不允许使用c++异常，统一走Result/Error体系（上面这条 `value()` 的隐式抛出是既存实现，不是可以依赖的错误处理手段）。
+- 【重要】`Result::value()` 在结果失败时会 **断言崩溃**（`MC_ASSERT_RELEASE`，消息带原始错误信息；`Result<T>` 与 `Result<std::unique_ptr<T, D>>` 都是如此）。取 `value()` 之前必须已经确认 `success()`，否则进程会直接终止。
+- 新增代码不允许使用c++异常，统一走Result/Error体系。
 
 ### 设置类型
 - `BooleanOption`, `RangeOption`, `FloatOption` - 设置选项类型
@@ -955,7 +955,7 @@ Result<Chunk*> loadChunk(ChunkPos pos) {
     // 也可以直接用工厂：return Error::notFound(...);
 }
 
-// ⚠️ 注意：Result::value() 在 failed() 时 throw std::runtime_error，
+// ⚠️ 注意：Result::value() 在 failed() 时会断言崩溃（MC_ASSERT_RELEASE），
 //    必须先用 success() 判断再取 value()，不要依赖异常传递。
 ```
 
@@ -1061,8 +1061,8 @@ void processMessage(const std::string& message) {
 该脚本在 Windows 上只是转调 `scripts/configure.bat`，而 `configure.bat` / `configure.ps1` / `configure.sh` 的默认模式与 `build` 快捷模式都**硬编码** `windows-clang-relwithdebinfo-server`，在这个模式下无法切换 preset。需要构建其它 preset 时走 pass-through 模式，把 `--preset` 透传给 cmake：
 
 ```bash
-./scripts/configure.sh --preset windows-clang-debug
-cmake --build --preset windows-clang-debug
+./scripts/configure.sh --preset windows-clang-release
+cmake --build --preset windows-clang-release
 ```
 
 在macos上：
@@ -1082,19 +1082,22 @@ preset 定义在 `CMakePresets.json`，关键选项为 `MC_BUILD_CLIENT` / `MC_B
 | preset | 客户端 | 测试 | 说明 |
 |---|---|---|---|
 | `windows-clang-relwithdebinfo-server` | OFF | ON | **Windows 默认**，`configure.sh build` 用的就是它 |
-| `windows-clang-debug` | ON | ON | Debug 构建 |
 | `windows-clang-relwithdebinfo` | ON | ON | 含客户端 |
 | `windows-clang-release` / `windows-clang-release-noprof` | ON | OFF | Release / 无 profiler 可分发版 |
 | `windows-clang-relwithdebinfo-noprof` | ON | ON | 无 profiler，`binaryDir` 为 `build-noprof/` |
 | `windows-clang-fuzz` / `linux-clang-fuzz` | — | OFF | 只构建 `tests/fuzz` 下的 libFuzzer 目标 |
 | `macos-relwithdebinfo-server` | OFF | ON | **macOS 默认**（`configure.sh` 的 macOS 分支用它） |
-| `macos-relwithdebinfo` / `macos-debug` / `macos-release` | ON | 视 preset | 含客户端 |
-| `linux-relwithdebinfo` / `linux-debug` | OFF | ON | **Linux 默认** |
+| `macos-relwithdebinfo` / `macos-release` | ON | 视 preset | 含客户端 |
+| `linux-relwithdebinfo` | OFF | ON | **Linux 默认** |
 | `linux-clang-ci-tests` | — | ON | CI 用，**ASan + UBSan**；build preset 只构建 `minecraft-server` + `mc_tests` |
 | `linux-clang-ci-release` | — | OFF | CI 用，build preset 只构建 `minecraft-server` + `mc_benchmark` |
 | `linux-release-noprof` | OFF | OFF | 无 profiler 可分发版 |
 
 `tests/diff` 下的差分包默认**不**参与常规构建，需显式配置 `-DMC_BUILD_DIFF_PROBES=ON` 才会生成 `diff_*` 可执行文件。
+
+【重要】**本项目只支持 `RelWithDebInfo` 与 `Release` 两种配置，Debug 构建已被彻底移除**（`CMAKE_CONFIGURATION_TYPES` 固定为 `RelWithDebInfo;Release`，preset 中不再有 debug 项）。原因：`-O0` 下区块生成、网络包编解码慢一个数量级，没有实用价值。
+
+`RelWithDebInfo` 的编译选项固定为 `-O2 -DNDEBUG -gline-tables-only -gno-pubnames`，不使用 CMake 默认的 `-g`：本工程模板实例化密集，默认 `-g` 曾使单个 `.o` 达到 188 MB（其中类型名字符串表 142 MB、代码段 0.9 MB），整个 `build/` 膨胀到 74 GB。行号级调试信息把同一 `.o` 降到 41 MB（-78%），单 TU 编译时间也下降约 25%，崩溃栈仍能给出文件与行号。**调试一律用日志（日志必须是英文），不要指望调试器看变量**。
 
 ### 判断构建是否真的结束（不要被重定向日志骗了）
 

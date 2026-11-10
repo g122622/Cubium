@@ -30,15 +30,16 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <fmt/format.h>
 
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
@@ -96,9 +97,11 @@ public:
         auto existingIt = m_blocks.find(id);
         if (existingIt != m_blocks.end()) {
             auto* existing = dynamic_cast<BlockType*>(existingIt->second.get());
-            if (existing == nullptr) {
-                throw std::logic_error("Block id already registered with different type: " + id.toString());
-            }
+            // 同一资源位置注册成两种 Block 类型属于注册期的编程错误，直接断言崩溃。
+            MC_ASSERT_RELEASE_MSG(existing != nullptr,
+                fmt::format(
+                    "BlockRegistry::registerBlock: block id '{}' already registered with different type", id.toString())
+                    .c_str());
             return *existing;
         }
 
@@ -122,14 +125,13 @@ public:
 
         // 注册所有状态
         const auto& validStates = block->stateContainer().validStates();
-        if (validStates.empty()) {
-            throw std::logic_error("Block has no valid states: " + id.toString());
-        }
+        MC_ASSERT_RELEASE_MSG(!validStates.empty(),
+            fmt::format("BlockRegistry::registerBlock: block '{}' has no valid states", id.toString()).c_str());
 
         for (const auto& state : validStates) {
-            if (!state) {
-                throw std::logic_error("Block has null state in container: " + id.toString());
-            }
+            MC_ASSERT_RELEASE_MSG(state != nullptr,
+                fmt::format("BlockRegistry::registerBlock: block '{}' has a null state in its container", id.toString())
+                    .c_str());
 
             state->m_blockId = block->m_blockId;
             state->m_mapColor = block->getMapColor(*state, nullptr, nullptr);
