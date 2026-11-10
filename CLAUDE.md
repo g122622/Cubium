@@ -94,8 +94,8 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `Result<T>` / `Result<void>` - 可能失败操作的结果类型（定义在 `src/common/core/Result.hpp`）
 - `ErrorCode` - **独立的顶层枚举** `mc::ErrorCode`（不是 `Error` 的嵌套类型），含 `Success`/`InvalidArgument`/`NotFound`/`OutOfMemory` 等，分组编号见 `Result.hpp`
 - `Error` - 错误容器，构造为 `Error(ErrorCode code, std::string_view message, std::string_view source)`，并提供静态工厂 `Error::ok()` / `Error::invalidArgument()` / `Error::notFound()` / `Error::fileNotFound()` / `Error::connectionFailed()` / `Error::unknown()`
-- 【重要】`Result::value()` 在结果失败时会 **`throw std::runtime_error`**（`Result<T>` 与 `Result<std::unique_ptr<T, D>>` 都是如此）。取 `value()` 之前必须已经确认 `success()`，否则会绕过整个 Result 体系抛出异常。
-- 新增代码不允许使用c++异常，统一走Result/Error体系（上面这条 `value()` 的隐式抛出是既存实现，不是可以依赖的错误处理手段）。
+- 【重要】`Result::value()` 在结果失败时会 **断言崩溃**（`MC_ASSERT_RELEASE`，消息带原始错误信息；`Result<T>` 与 `Result<std::unique_ptr<T, D>>` 都是如此）。取 `value()` 之前必须已经确认 `success()`，否则进程会直接终止。
+- 新增代码不允许使用c++异常，统一走Result/Error体系。
 
 ### 设置类型
 - `BooleanOption`, `RangeOption`, `FloatOption` - 设置选项类型
@@ -955,7 +955,7 @@ Result<Chunk*> loadChunk(ChunkPos pos) {
     // 也可以直接用工厂：return Error::notFound(...);
 }
 
-// ⚠️ 注意：Result::value() 在 failed() 时 throw std::runtime_error，
+// ⚠️ 注意：Result::value() 在 failed() 时会断言崩溃（MC_ASSERT_RELEASE），
 //    必须先用 success() 判断再取 value()，不要依赖异常传递。
 ```
 
