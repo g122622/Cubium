@@ -35,17 +35,23 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/block/support/SupportType.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/map/MapBiomePreview.hpp"
 #include "common/world/map/MapBlockColor.hpp"
+
 #include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDataManager.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include "common/world/map/MaterialColor.hpp"
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
@@ -443,4 +449,14 @@ u8 FilledMapItem::_getTopBlockColor(IWorld& world, i32 x, i32 z, i32 scale, i32 
     return static_cast<u8>(world::map::MaterialColorId::AIR);
 }
 
+void FilledMapItem::renderBiomePreviewMap(IWorld& world, ItemStack& stack)
+{
+    world::map::MapData* mapData = getMapData(stack, world);
+    if (mapData == nullptr) {
+        return;
+    }
+
+    // ??????????? map ???????????????????
+    world::map::renderBiomePreviewMap(world, *mapData);
+}
 } // namespace mc::item::items

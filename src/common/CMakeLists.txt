@@ -1236,6 +1236,7 @@ add_library(mc_common STATIC
     # World - Map
     world/map/MaterialColor.cpp
     world/map/MapBlockColor.cpp
+    world/map/MapBiomePreview.cpp
 
     # World - Generation (gen) — 从 server 迁移的纯接口/数据类型
     # 架构规则：common 不得依赖 server。以下 gen 类型只依赖 common，

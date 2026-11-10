@@ -92,9 +92,10 @@ ItemStack ExplorationMapFunction::run(ItemStack stack, LootContext& context) con
     // 建图：trackingPosition 与 unlimitedTracking 均为 true
     ItemStack mapStack = item::items::FilledMapItem::setupNewMap(world, foundPos->x, foundPos->z, m_zoom, true, true);
 
-    // TODO: 原版建图后调用 MapItem.renderBiomePreviewMap 绘制生物群系预览底图，
-    //  本项目地图数据尚无生物群系颜色预览实现，探险地图目前缺少预览底图，
-    //  待地图数据支持按生物群系填充预览像素后在此补上（在地图中心定下后、添加装饰前调用）。
+    // 建图后按生物群系画出预览底图（原版 MapItem.renderBiomePreviewMap）：
+    // 让玩家一眼看出目标周围是海还是陆。必须在中心定下之后、添加装饰之前调用，
+    // 否则装饰会被随后的像素覆盖。
+    item::items::FilledMapItem::renderBiomePreviewMap(world, mapStack);
 
     // 添加目标装饰标记
     item::items::FilledMapItem::addTargetDecoration(mapStack, foundPos.value(), "+", m_decoration);
