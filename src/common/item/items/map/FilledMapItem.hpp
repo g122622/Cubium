@@ -179,20 +179,6 @@ private:
      */
     [[nodiscard]] static u8 _getTopBlockColor(
         IWorld& world, i32 x, i32 z, i32 scale, i32 centerX, i32 centerZ, f64& outHeight);
-
-    /**
-     * @brief 取用于地图取色的方块状态
-     *
-     * 含流体且顶面不是完整支撑面的方块（水下台阶、水中的栅栏等）在地图上应显示水色，
-     * 因此把状态换成该流体的 legacy 方块（water → 水方块）后再取色。
-     *
-     * @param world 世界
-     * @param state 原始方块状态
-     * @param pos 方块位置
-     * @return 用于取色的状态（多数情况就是 state 本身）
-     */
-    [[nodiscard]] static const BlockState* _getCorrectStateForFluidBlock(
-        IWorld& world, const BlockState& state, const BlockPos& pos);
 };
 
 } // namespace item::items

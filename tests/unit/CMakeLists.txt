@@ -186,6 +186,7 @@ add_executable(mc_tests
     common/item/special/SpecialToolsItemsTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
+    common/world/map/MapBlockColorTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
     common/item/food/FoodItemTest.cpp
     common/item/food/FoodsTest.cpp
