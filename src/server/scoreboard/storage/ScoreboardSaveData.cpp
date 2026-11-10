@@ -780,11 +780,11 @@ static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector
 {
     std::istringstream iss(std::string(data.begin(), data.end()), std::ios::binary);
     iss >> nbt::Contexts::java;
-    auto root = nbt::tags::compound_tag::read(iss);
-    if (!root) {
-        return Error(ErrorCode::InvalidData, "Failed to deserialize NBT");
+    auto rootResult = nbt::tags::compound_tag::read(iss);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::InvalidData, "Failed to deserialize NBT: " + rootResult.error().message());
     }
-    return std::move(*root);
+    return std::move(*std::move(rootResult).value());
 }
 
 Result<std::vector<u8>> ScoreboardSaveData::serialize() const

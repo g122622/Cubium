@@ -356,15 +356,14 @@ void CommandStorage::load(const nlohmann::json& json)
             std::string nbtStr = it->get<std::string>();
             std::istringstream ss(nbtStr);
             ss >> nbt::contexts::mojangson;
-            try {
-                auto compound = nbt::tags::compound_tag::read(ss);
-                if (compound) {
-                    m_storage[it.key()] = std::move(compound);
-                }
+            auto compoundResult = nbt::tags::compound_tag::read(ss);
+            if (compoundResult.failed()) {
+                // 存档中的单条命令存储损坏：记录并跳过，不影响其余条目
+                spdlog::warn(
+                    "CommandStorage: skipping malformed entry '{}': {}", it.key(), compoundResult.error().message());
+                continue;
             }
-            catch (...) {
-                // 解析失败，跳过
-            }
+            m_storage[it.key()] = std::move(compoundResult).value();
         }
     }
     m_dirty = false;

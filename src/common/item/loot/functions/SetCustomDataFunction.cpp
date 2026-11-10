@@ -45,10 +45,12 @@ Result<std::unique_ptr<SetCustomDataFunction>> SetCustomDataFunction::create(con
     // 加载期即解析（对应 vanilla 在 codec 阶段用 TagParser 解析 tag）：非法文本必须让整张战利品表加载失败，
     // 而不是在掉落时才静默丢弃。
     auto parsedTag = nbt::parseMojangson(nbtString);
-    if (!parsedTag) {
-        return Error(ErrorCode::InvalidData, "set_custom_data: malformed tag '" + nbtString + "'");
+    if (parsedTag.failed()) {
+        return Error(ErrorCode::InvalidData,
+            "set_custom_data: malformed tag '" + nbtString + "': " + parsedTag.error().message());
     }
-    return std::make_unique<SetCustomDataFunction>(nbtString, nbt::nbtToJson(*parsedTag));
+    auto tag = std::move(parsedTag).value();
+    return std::make_unique<SetCustomDataFunction>(nbtString, nbt::nbtToJson(*tag));
 }
 
 ItemStack SetCustomDataFunction::run(ItemStack stack, LootContext& context) const

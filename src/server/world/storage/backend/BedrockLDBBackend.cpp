@@ -348,10 +348,11 @@ Result<std::optional<PlayerSaveData>> BedrockLDBBackend::loadPlayer(const std::s
     const auto& bytes = playerResult.value().value();
     std::istringstream stream(std::string(bytes.begin(), bytes.end()));
     stream >> contexts::bedrock_disk;
-    auto root = compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::FileCorrupted, "Failed to parse Bedrock player NBT");
+    auto rootResult = compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse Bedrock player NBT: " + rootResult.error().message());
     }
+    auto root = std::move(rootResult).value();
 
     auto parseResult = parseBedrockPlayerData(*root, key.empty() ? uuid : std::string(key.begin(), key.end()));
     if (parseResult.failed()) {

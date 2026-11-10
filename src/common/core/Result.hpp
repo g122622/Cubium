@@ -578,7 +578,7 @@ private:
         if (_result.failed()) {           \
             return _result.error();       \
         }                                 \
-        var = std::move(_result.value()); \
+        var = std::move(_result).value(); \
     } while (0)
 
 } // namespace mc

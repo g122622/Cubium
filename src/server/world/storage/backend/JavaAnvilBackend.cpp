@@ -180,10 +180,12 @@ Result<std::optional<PlayerSaveData>> JavaAnvilBackend::loadPlayer(const std::st
 
     std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
     stream >> mc::nbt::contexts::java;
-    auto root = mc::nbt::tags::compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse player NBT: {}", playerPath.string()));
+    auto rootResult = mc::nbt::tags::compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::FileCorrupted,
+            fmt::format("Failed to parse player NBT at {}: {}", playerPath.string(), rootResult.error().message()));
     }
+    auto root = std::move(rootResult).value();
 
     // Java 写出的 playerdata 根标签带 id+name 前缀，读取时会多出一层空键包装
     auto playerResult = PlayerSaveData::fromNbt(mc::nbt::unwrapRootCompound(*root));

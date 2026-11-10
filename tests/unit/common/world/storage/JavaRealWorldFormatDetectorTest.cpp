@@ -100,10 +100,11 @@ std::string readLevelDatVersionName(const std::filesystem::path& dir)
     }
     std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
     stream >> nbt::contexts::java;
-    auto root = nbt::tags::compound_tag::read(stream);
-    if (!root) {
+    auto rootResult = nbt::tags::compound_tag::read(stream);
+    if (rootResult.failed()) {
         return {};
     }
+    auto root = std::move(rootResult).value();
     // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
     const auto& levelData = nbt::unwrapRootCompound(*root);
     if (levelData.value.count("Data") == 0) {

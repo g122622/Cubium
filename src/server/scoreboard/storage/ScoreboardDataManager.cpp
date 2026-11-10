@@ -102,18 +102,13 @@ static Result<std::vector<u8>> serializeNbtToBytes(const nbt::tags::compound_tag
 
 static Result<nbt::tags::compound_tag> deserializeNbtFromBytes(const std::vector<u8>& data)
 {
-    try {
-        std::istringstream iss(std::string(data.begin(), data.end()), std::ios::binary);
-        iss >> nbt::Contexts::java;
-        auto root = nbt::tags::compound_tag::read(iss);
-        if (!root) {
-            return Error(ErrorCode::InvalidData, "Failed to parse NBT");
-        }
-        return std::move(*root);
+    std::istringstream iss(std::string(data.begin(), data.end()), std::ios::binary);
+    iss >> nbt::Contexts::java;
+    auto rootResult = nbt::tags::compound_tag::read(iss);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("Failed to deserialize NBT: ") + rootResult.error().message());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to deserialize NBT: ") + e.what());
-    }
+    return std::move(*std::move(rootResult).value());
 }
 
 // ========== 构造/析构 ==========

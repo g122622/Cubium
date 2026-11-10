@@ -287,10 +287,11 @@ Result<std::unique_ptr<compound_tag>> JavaWorldReader::_parseJavaRoot(const std:
 {
     std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
     stream >> contexts::java;
-    auto root = compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::ChunkCorrupted, "Failed to parse Java chunk NBT");
+    auto rootResult = compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::ChunkCorrupted, "Failed to parse Java chunk NBT: " + rootResult.error().message());
     }
+    auto root = std::move(rootResult).value();
     // 剥掉 Java 文件的根标签前缀层，使调用方按真实键名访问
     if (const compound_tag& unwrapped = unwrapRootCompound(*root); &unwrapped != root.get()) {
         return std::make_unique<compound_tag>(unwrapped);

@@ -757,19 +757,13 @@ Result<PlayerSaveData> PlayerSaveData::deserialize(const std::vector<u8>& data)
     }
 
     // 解析NBT
-    try {
-        std::istringstream iss(std::string(decompressed.begin(), decompressed.end()));
-        iss >> nbt::contexts::java;
-        auto root = nbt::tags::compound_tag::read(iss);
-        if (!root) {
-            return Error(ErrorCode::InvalidData, "Failed to parse player data NBT");
-        }
-
-        return fromNbt(*root);
+    std::istringstream iss(std::string(decompressed.begin(), decompressed.end()));
+    iss >> nbt::contexts::java;
+    auto rootResult = nbt::tags::compound_tag::read(iss);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::InvalidData, "Failed to parse player data NBT: " + rootResult.error().message());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, fmt::format("Failed to deserialize player data: {}", e.what()));
-    }
+    return fromNbt(*std::move(rootResult).value());
 }
 
 } // namespace world::storage

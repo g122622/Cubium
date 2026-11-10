@@ -71,10 +71,12 @@ Result<std::unique_ptr<compound_tag>> BedrockLevelDatReader::_readBedrockNbt(con
 
     std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
     stream >> contexts::bedrock_disk;
-    auto root = compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::FileCorrupted, "Failed to parse Bedrock level.dat NBT");
+    auto rootResult = compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(
+            ErrorCode::FileCorrupted, "Failed to parse Bedrock level.dat NBT: " + rootResult.error().message());
     }
+    auto root = std::move(rootResult).value();
 
     return root;
 }

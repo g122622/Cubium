@@ -114,7 +114,7 @@ LevelRuntimeData::LevelRuntimeData(LevelSummaryData summary,
     , difficultyLocked(difficultyLocked)
 {}
 
-Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::_readGzipNbt(const std::filesystem::path& filePath)
+Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::readRootCompound(const std::filesystem::path& filePath)
 {
     // 读取整个文件
     std::ifstream file(filePath, std::ios::binary);
@@ -135,16 +135,16 @@ Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::_readGzipNbt(con
         return Error(ErrorCode::DecompressionFailed, "Failed to decompress level.dat: " + filePath.string());
     }
 
-    // 解析 NBT
+    // 解析 NBT：NBT 库以 Result 报告格式错误，损坏文件不会终止进程
     std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
     stream >> nbt::contexts::java;
-
-    auto root = nbt::tags::compound_tag::read(stream);
-    if (!root) {
-        return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT: " + filePath.string());
+    auto rootResult = nbt::tags::compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::FileCorrupted,
+            "Failed to parse level.dat NBT (" + filePath.string() + "): " + rootResult.error().message());
     }
 
-    return root;
+    return std::move(rootResult).value();
 }
 
 Result<void> LevelDatCodec::_writeGzipNbt(const std::filesystem::path& filePath, const nbt::tags::compound_tag& root)
@@ -181,10 +181,10 @@ Result<LevelSummaryData> LevelDatCodec::readSummary(const std::filesystem::path&
     std::filesystem::path levelDatOld = worldDir / "level.dat_old";
 
     // 尝试读取 level.dat
-    auto rootResult = _readGzipNbt(levelDat);
+    auto rootResult = readRootCompound(levelDat);
     if (rootResult.failed()) {
         // 尝试读取 level.dat_old
-        rootResult = _readGzipNbt(levelDatOld);
+        rootResult = readRootCompound(levelDatOld);
         if (rootResult.failed()) {
             return rootResult.error();
         }
@@ -614,7 +614,7 @@ Result<void> LevelDatCodec::_readDataCompound(const std::filesystem::path& world
     std::unique_ptr<nbt::tags::compound_tag>& outRoot,
     nbt::tags::compound_tag*& outData)
 {
-    auto rootResult = _readGzipNbt(worldDir / "level.dat");
+    auto rootResult = readRootCompound(worldDir / "level.dat");
     if (rootResult.failed()) {
         return rootResult.error();
     }
@@ -661,10 +661,10 @@ Result<void> LevelDatCodec::updateLastPlayed(const std::filesystem::path& worldD
 Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::path& worldDir)
 {
     // 读取 level.dat 文件
-    auto rootResult = _readGzipNbt(worldDir / "level.dat");
+    auto rootResult = readRootCompound(worldDir / "level.dat");
     if (rootResult.failed()) {
         // 尝试读取备份文件
-        rootResult = _readGzipNbt(worldDir / "level.dat_old");
+        rootResult = readRootCompound(worldDir / "level.dat_old");
         if (rootResult.failed()) {
             return rootResult.error();
         }
@@ -840,9 +840,9 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
 Result<std::unique_ptr<nbt::tags::compound_list_tag>> LevelDatCodec::readScheduledEvents(
     const std::filesystem::path& worldDir)
 {
-    auto rootResult = _readGzipNbt(worldDir / "level.dat");
+    auto rootResult = readRootCompound(worldDir / "level.dat");
     if (rootResult.failed()) {
-        rootResult = _readGzipNbt(worldDir / "level.dat_old");
+        rootResult = readRootCompound(worldDir / "level.dat_old");
         if (rootResult.failed()) {
             return rootResult.error();
         }

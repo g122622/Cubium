@@ -190,19 +190,14 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(
     inflateEnd(&stream);
 
     // 解析 NBT
-    try {
-        std::istringstream iss(std::string(decompressed.begin(), decompressed.end()));
-        iss >> nbt::contexts::java;
-        auto root = nbt::tags::compound_tag::read(iss);
-        if (!root) {
-            return Error(ErrorCode::InvalidData, "Failed to parse entity NBT");
-        }
+    std::istringstream iss(std::string(decompressed.begin(), decompressed.end()));
+    iss >> nbt::contexts::java;
+    auto rootResult = nbt::tags::compound_tag::read(iss);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::InvalidData, "Failed to parse entity NBT: " + rootResult.error().message());
+    }
 
-        return deserialize(*root, registry);
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, fmt::format("Failed to deserialize entity from binary: {}", e.what()));
-    }
+    return deserialize(*std::move(rootResult).value(), registry);
 }
 
 Result<std::vector<u8>> EntityDeserializer::serializeToBinary(const Entity& entity)

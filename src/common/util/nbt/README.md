@@ -118,11 +118,23 @@ src/common/util/nbt/
 
 ### 2. 列表类型不匹配
 
-NBT 列表只能包含相同类型的元素，写入时类型不一致会抛出异常。
+NBT 列表只能包含相同类型的元素。写入时元素类型与声明的元素 ID 不一致属于容器构造错误，
+由 `MC_ASSERT_RELEASE` 断言崩溃。
 
-### 3. 动态类型访问错误
+### 3. 读取入口一律返回 `Result`
 
-使用 `get<T>()` 时类型不匹配会抛出 `std::bad_cast`。不确定类型时，先检查标签 ID：
+`tags::compound_tag::read` / `tags::read` / `parseMojangson` 等所有读取入口都返回 `Result`，
+库内**不再抛出任何 C++ 异常**：长度越界、非法 tag id、截断流、SNBT 语法错误都转成 `Error`
+（多为 `ErrorCode::InvalidData`）。调用方必须检查 `failed()` 再取 `value()`。
+
+- 二进制复合标签：`tags::compound_tag::read(stream)`（先 `stream >> contexts::xxx`）
+- 任意标签：`tags::read(TagId, stream)`
+- SNBT 文本：`parseMojangson(text)`
+- 覆盖写入已存在对象：`readCompoundInto(stream, compound)`（取代旧的 `operator>>`）
+
+### 4. 动态类型访问错误
+
+使用 `get<T>()` 时类型不匹配会抛出 `std::bad_cast`（写路径的既有实现）。不确定类型时，先检查标签 ID：
 
 ```cpp
 auto it = compound.value.find("someKey");
@@ -131,27 +143,27 @@ if (it != compound.value.end() && it->second->id() == TagId::Int) {
 }
 ```
 
-### 4. 空列表的类型推断
+### 5. 空列表的类型推断
 
 空列表在二进制格式中需要指定元素类型，写入时会使用 `TagId::End`。
 
-### 5. 根复合标签的特殊处理
+### 6. 根复合标签的特殊处理
 
 根复合标签在写入时不需要结束标记：`tags::compound_tag root(true);  // is_root = true`
 
-### 6. gzip 压缩
+### 7. gzip 压缩
 
 Java Edition 的 NBT 文件（如 level.dat）通常使用 gzip 压缩，需要使用 zlib 或其他库先解压。
 
-### 7. NbtInternal.hpp 不应被外部包含
+### 8. NbtInternal.hpp 不应被外部包含
 
 `NbtInternal.hpp` 仅供 `Nbt.cpp` 内部使用，包含 VarNum/Zint 模板实现细节，外部代码不应直接引用。
 
-### 8. compound_tag 拷贝赋值是“整体覆盖”
+### 9. compound_tag 拷贝赋值是“整体覆盖”
 
 `compound_tag::operator=` 会先清空目标再逐键深拷贝，目标上源标签没有的键会被移除。标准容器把 `unique_ptr<tag>` 槽位整体替换时依赖这一点（例如复合列表 `erase` 后的元素搬移），不要改回 `emplace`（`emplace` 命中已有键时不会覆盖，会导致搬移后的元素保留旧值）。
 
-### 9. 深度比较标签时使用 equals 方法
+### 10. 深度比较标签时使用 equals 方法
 
 `tag` 基类提供了 `virtual bool equals(const tag& other) const` 虚方法，支持所有标签类型的深度递归比较。对于 `compound_tag`，会递归比较所有键值对；对于 `list_tag`，按顺序比较所有元素；对于基本类型标签，直接比较值。同时提供了 `operator==` 和 `operator!=` 自由函数。
 

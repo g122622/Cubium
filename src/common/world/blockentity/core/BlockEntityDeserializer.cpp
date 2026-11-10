@@ -242,10 +242,14 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityDeserializer::deser
     const auto& decompressed = decompressedResult.value();
 
     // 解析 NBT
-    try {
+    {
         std::istringstream iss(std::string(decompressed.begin(), decompressed.end()));
         iss >> nbt::contexts::java;
-        auto root = nbt::tags::compound_tag::read(iss);
+        auto rootResult = nbt::tags::compound_tag::read(iss);
+        if (rootResult.failed()) {
+            return Error(ErrorCode::InvalidData, "Failed to parse block entity NBT: " + rootResult.error().message());
+        }
+        auto root = std::move(rootResult).value();
 
         // 根标签可能是包含 "block_entities" 列表的复合标签，或直接是列表
         // 也可能是列表标签 — 尝试两种格式
@@ -282,10 +286,6 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityDeserializer::deser
                 }
             }
         }
-    }
-    catch (const std::exception& e) {
-        return Error(
-            ErrorCode::InvalidData, fmt::format("Failed to deserialize block entity list from binary: {}", e.what()));
     }
 
     return result;

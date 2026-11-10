@@ -40,7 +40,6 @@
 #include <memory>
 #include <ostream>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -48,13 +47,14 @@
 namespace mc {
 namespace nbt {
 
-void skip_space(std::istream& input)
+Result<void> skip_space(std::istream& input)
 {
     for (;;) {
-        i32 next = cheof(input);
+        i32 next = 0;
+        MC_TRY_ASSIGN(next, cheof(input));
         if (!std::isspace(next)) {
             input.putback(next);
-            return;
+            return Result<void>::ok();
         }
     }
 }
@@ -99,7 +99,7 @@ void Context::set(std::ios_base& ios) const
     }
 }
 
-std::int32_t load_varint(std::istream& input)
+Result<std::int32_t> load_varint(std::istream& input)
 {
     return load_varnum<std::int32_t>(input);
 }
@@ -109,7 +109,7 @@ void dump_varint(std::ostream& output, std::int32_t value)
     dump_varnum(output, value);
 }
 
-std::int64_t load_varlong(std::istream& input)
+Result<std::int64_t> load_varlong(std::istream& input)
 {
     return load_varnum<std::int64_t>(input);
 }
@@ -212,20 +212,20 @@ bool read_text_number(std::istream& input, std::string& literal)
 
 /**
  * @brief 把文本整数转换为目标数值类型，并校验取值范围
- * @throws std::runtime_error 字面量非法或超出目标类型范围
+ * @return 成功返回转换结果；字面量非法或超出目标类型范围时返回错误
  */
 template <typename number_t>
-number_t convert_text_integer(const std::string& literal)
+Result<number_t> convert_text_integer(const std::string& literal)
 {
     errno = 0;
     char* end = nullptr;
     const i64 parsed = std::strtoll(literal.c_str(), &end, 10);
     if (end == literal.c_str() || *end != '\0' || errno == ERANGE) {
-        throw std::runtime_error("failed to parse number: " + literal);
+        return Error(ErrorCode::InvalidData, "NBT: failed to parse number literal '" + literal + "'");
     }
     if (parsed < static_cast<i64>(std::numeric_limits<number_t>::min()) ||
         parsed > static_cast<i64>(std::numeric_limits<number_t>::max())) {
-        throw std::runtime_error("number out of range: " + literal);
+        return Error(ErrorCode::InvalidData, "NBT: number literal out of range for target type: '" + literal + "'");
     }
     return static_cast<number_t>(parsed);
 }
@@ -295,11 +295,11 @@ bool peek_bool_literal(std::istream& input, std::int8_t& outValue, std::size_t& 
  * @param suffix 类型后缀（如 'b'、's'、'l'，大小写均可），'\0' 表示该类型没有后缀
  */
 template <typename number_t>
-number_t load_text_integer(std::istream& input, char suffix)
+Result<number_t> load_text_integer(std::istream& input, char suffix)
 {
     std::string literal;
     if (!read_text_number(input, literal)) {
-        throw std::runtime_error("failed to parse number");
+        return Error(ErrorCode::InvalidData, "NBT: failed to parse number");
     }
     if (suffix != '\0') {
         const i32 next = input.peek();
@@ -317,11 +317,11 @@ number_t load_text_integer(std::istream& input, char suffix)
  * @param convert 转换函数（std::strtof 或 std::strtod）
  */
 template <typename number_t>
-number_t load_text_floating(std::istream& input, char suffix, number_t (*convert)(const char*, char**))
+Result<number_t> load_text_floating(std::istream& input, char suffix, number_t (*convert)(const char*, char**))
 {
     std::string literal;
     if (!read_text_number(input, literal)) {
-        throw std::runtime_error("failed to parse number");
+        return Error(ErrorCode::InvalidData, "NBT: failed to parse number");
     }
     if (suffix != '\0') {
         const i32 next = input.peek();
@@ -332,7 +332,7 @@ number_t load_text_floating(std::istream& input, char suffix, number_t (*convert
     char* end = nullptr;
     const number_t value = convert(literal.c_str(), &end);
     if (end == nullptr || *end != '\0') {
-        throw std::runtime_error("failed to parse number: " + literal);
+        return Error(ErrorCode::InvalidData, "NBT: failed to parse number literal '" + literal + "'");
     }
     return value;
 }
@@ -340,7 +340,7 @@ number_t load_text_floating(std::istream& input, char suffix, number_t (*convert
 } // namespace
 
 template <>
-std::int8_t load_text<std::int8_t>(std::istream& input)
+Result<std::int8_t> load_text<std::int8_t>(std::istream& input)
 {
     // SNBT 的 true/false 是布尔字面量，等价于 1b/0b，必须先于数字解析处理。
     std::int8_t boolValue = 0;
@@ -355,37 +355,37 @@ std::int8_t load_text<std::int8_t>(std::istream& input)
 }
 
 template <>
-std::int16_t load_text<std::int16_t>(std::istream& input)
+Result<std::int16_t> load_text<std::int16_t>(std::istream& input)
 {
     return load_text_integer<std::int16_t>(input, 's');
 }
 
 template <>
-std::int32_t load_text<std::int32_t>(std::istream& input)
+Result<std::int32_t> load_text<std::int32_t>(std::istream& input)
 {
     return load_text_integer<std::int32_t>(input, '\0');
 }
 
 template <>
-std::int64_t load_text<std::int64_t>(std::istream& input)
+Result<std::int64_t> load_text<std::int64_t>(std::istream& input)
 {
     return load_text_integer<std::int64_t>(input, 'l');
 }
 
 template <>
-f32 load_text<f32>(std::istream& input)
+Result<f32> load_text<f32>(std::istream& input)
 {
     return load_text_floating<f32>(input, 'f', &std::strtof);
 }
 
 template <>
-f64 load_text<f64>(std::istream& input)
+Result<f64> load_text<f64>(std::istream& input)
 {
     return load_text_floating<f64>(input, 'd', &std::strtod);
 }
 
 template <>
-std::int32_t load<std::int32_t>(std::istream& input, const Context& ctxt)
+Result<std::int32_t> load<std::int32_t>(std::istream& input, const Context& ctxt)
 {
     switch (ctxt.format) {
         case Context::Format::Bin:
@@ -401,7 +401,7 @@ std::int32_t load<std::int32_t>(std::istream& input, const Context& ctxt)
 }
 
 template <>
-std::int64_t load<std::int64_t>(std::istream& input, const Context& ctxt)
+Result<std::int64_t> load<std::int64_t>(std::istream& input, const Context& ctxt)
 {
     switch (ctxt.format) {
         case Context::Format::Bin:
@@ -486,13 +486,19 @@ void dump_text<f64>(std::ostream& output, f64 number)
     output << number << 'd';
 }
 
-std::size_t load_size(std::istream& input, const Context& ctxt)
+Result<std::size_t> load_size(std::istream& input, const Context& ctxt)
 {
     if (ctxt.format == Context::Format::Bin) {
-        return load_flat<std::uint32_t>(input, ctxt.order);
-    } else {
-        return static_cast<std::size_t>(load_varint(input));
+        std::uint32_t value = 0;
+        MC_TRY_ASSIGN(value, load_flat<std::uint32_t>(input, ctxt.order));
+        return static_cast<std::size_t>(value);
     }
+    std::int32_t value = 0;
+    MC_TRY_ASSIGN(value, load_varint(input));
+    if (value < 0) {
+        return Error(ErrorCode::InvalidData, "NBT: negative element count declared");
+    }
+    return static_cast<std::size_t>(value);
 }
 
 void dump_size(std::ostream& output, const Context& ctxt, std::size_t size)
@@ -510,16 +516,20 @@ std::ostream& operator<<(std::ostream& output, TagId tid)
     return output << std::to_string(tid);
 }
 
-TagId deduce_tag(std::istream& input)
+Result<TagId> deduce_tag(std::istream& input)
 {
-    skip_space(input);
-    char a = cheof(input);
+    MC_TRY(skip_space(input));
+    i32 first = 0;
+    MC_TRY_ASSIGN(first, cheof(input));
+    char a = static_cast<char>(first);
     if (a == '}' || a == ']') {
         input.putback(a);
         return TagId::End;
     }
     if (a == '[') {
-        char b = cheof(input);
+        i32 secondRead = 0;
+        MC_TRY_ASSIGN(secondRead, cheof(input));
+        char b = static_cast<char>(secondRead);
         TagId id;
         switch (b) {
             case 'B':
@@ -536,7 +546,7 @@ TagId deduce_tag(std::istream& input)
                 break;
         }
         if (id != TagId::List) {
-            char c = input.peek();
+            const i32 c = input.peek();
             if (c != ';') {
                 id = TagId::List;
             }
@@ -553,7 +563,9 @@ TagId deduce_tag(std::istream& input)
         std::string buffer(&a, 1);
         TagId deduced = TagId::Int; // 默认为Int类型
         for (;;) {
-            char b = cheof(input);
+            i32 readChar = 0;
+            MC_TRY_ASSIGN(readChar, cheof(input));
+            char b = static_cast<char>(readChar);
             buffer.push_back(b);
             if (std::isdigit(b)) {
                 continue;
@@ -568,18 +580,20 @@ TagId deduce_tag(std::istream& input)
             } else if (b == 'd' || b == 'D') {
                 deduced = TagId::Double;
             } else if (b == 'e' || b == 'E') {
-                char c = cheof(input);
+                i32 exponentRead = 0;
+                MC_TRY_ASSIGN(exponentRead, cheof(input));
+                char c = static_cast<char>(exponentRead);
                 buffer.push_back(c);
                 if (std::isdigit(c) || c == '-' || c == '+') {
                     for (;;) {
-                        char d = cheof(input);
+                        i32 digitRead = 0;
+                        MC_TRY_ASSIGN(digitRead, cheof(input));
+                        char d = static_cast<char>(digitRead);
                         buffer.push_back(d);
                         if (std::isdigit(d)) {
                             continue;
                         } else if (d == 'f' || d == 'F') {
                             deduced = TagId::Float;
-                        } else if (d == 'd' || d == 'D') {
-                            deduced = TagId::Double;
                         } else {
                             deduced = TagId::Double;
                         }
@@ -590,20 +604,22 @@ TagId deduce_tag(std::istream& input)
                 }
             } else if (b == '.') {
                 for (;;) {
-                    char c = cheof(input);
+                    i32 fractionRead = 0;
+                    MC_TRY_ASSIGN(fractionRead, cheof(input));
+                    char c = static_cast<char>(fractionRead);
                     buffer.push_back(c);
                     if (std::isdigit(c)) {
                         continue;
                     } else if (c == 'e' || c == 'E') {
-                        char d = cheof(input);
+                        i32 exponentRead = 0;
+                        MC_TRY_ASSIGN(exponentRead, cheof(input));
+                        char d = static_cast<char>(exponentRead);
                         buffer.push_back(d);
                         if (std::isdigit(d) || d == '-' || d == '+') {
                             continue;
                         }
                     } else if (c == 'f' || c == 'F') {
                         deduced = TagId::Float;
-                    } else if (c == 'd' || c == 'D') {
-                        deduced = TagId::Double;
                     } else {
                         deduced = TagId::Double;
                     }
@@ -638,31 +654,35 @@ TagId deduce_tag(std::istream& input)
 
 namespace tags {
 
-std::string read_string_text(std::istream& input)
+Result<std::string> read_string_text(std::istream& input)
 {
-    skip_space(input);
-    char first = cheof(input);
+    MC_TRY(skip_space(input));
+    i32 firstRead = 0;
+    MC_TRY_ASSIGN(firstRead, cheof(input));
+    char first = static_cast<char>(firstRead);
     if (first == '"' || first == '\'') {
-        char quote = first;
+        const char quote = first;
         std::string result;
         for (;;) {
-            i32 c = cheof(input);
+            i32 c = 0;
+            MC_TRY_ASSIGN(c, cheof(input));
             switch (c) {
                 case '\'':
                     if (quote == '\'') {
                         return result;
                     }
-                    result.push_back(c);
+                    result.push_back(static_cast<char>(c));
                     break;
                 case '"':
                     if (quote == '"') {
                         return result;
                     }
-                    result.push_back(c);
+                    result.push_back(static_cast<char>(c));
                     break;
                 case '\\': {
-                    i32 s = cheof(input);
-                    switch (s) {
+                    i32 escaped = 0;
+                    MC_TRY_ASSIGN(escaped, cheof(input));
+                    switch (escaped) {
                         case '"':
                             result.push_back('"');
                             break;
@@ -691,41 +711,53 @@ std::string read_string_text(std::istream& input)
                             result.push_back('\t');
                             break;
                         case 'u':
-                            throw std::runtime_error("Unicode escape sequences not yet supported");
+                            // TODO: 支持 SNBT 的 \uXXXX 转义（当前版本按未实现处理并报错）
+                            return Error(ErrorCode::Unsupported, "NBT: unicode escape sequences are not supported yet");
                         default:
                             result.push_back('\\');
-                            result.push_back(s);
+                            result.push_back(static_cast<char>(escaped));
                             break;
                     }
                     break;
                 }
                 default:
-                    result.push_back(c);
+                    result.push_back(static_cast<char>(c));
                     break;
             }
         }
     } else {
         std::string result(&first, 1);
         for (;;) {
-            i32 c = cheof(input);
-            if (is_valid_char(c)) {
-                result.push_back(c);
+            i32 c = 0;
+            MC_TRY_ASSIGN(c, cheof(input));
+            if (is_valid_char(static_cast<char>(c))) {
+                result.push_back(static_cast<char>(c));
             } else {
-                input.putback(c);
+                input.putback(static_cast<char>(c));
                 return result;
             }
         }
     }
 }
 
-std::string read_string_bin(std::istream& input, const Context& ctxt)
+Result<std::string> read_string_bin(std::istream& input, const Context& ctxt)
 {
-    std::uint32_t size = (ctxt.format == Context::Format::Zigzag || ctxt.format == Context::Format::Zint)
-        ? load_varint(input)
-        : load_flat<std::uint16_t>(input, ctxt.order);
+    std::size_t size = 0;
+    if (ctxt.format == Context::Format::Zigzag || ctxt.format == Context::Format::Zint) {
+        std::int32_t declared = 0;
+        MC_TRY_ASSIGN(declared, load_varint(input));
+        if (declared < 0) {
+            return Error(ErrorCode::InvalidData, "NBT string: negative length declared");
+        }
+        size = static_cast<std::size_t>(declared);
+    } else {
+        std::uint16_t declared = 0;
+        MC_TRY_ASSIGN(declared, load_flat<std::uint16_t>(input, ctxt.order));
+        size = static_cast<std::size_t>(declared);
+    }
     // Java 格式下长度是 uint16（≤65535，天然有界），但基岩格式（Zigzag/Zint）用 VarInt，
     // 可声明至 4GB。统一按"剩余可读字节数"校验，避免畸形输入诱导巨大分配。
-    validateBinaryElementCount(input, static_cast<std::size_t>(size), 1, "NBT string");
+    MC_TRY(validateBinaryElementCount(input, size, 1, "string"));
     std::string result;
     result.resize(size);
     input.read(result.data(), static_cast<std::streamsize>(size));
@@ -733,18 +765,17 @@ std::string read_string_bin(std::istream& input, const Context& ctxt)
     // 的字符串。必须显式判错：否则畸形输入可静默产出垃圾数据，且失败态会让后续所有
     // remainingStreamBytes 校验失效（见该函数的说明）。
     if (!input) {
-        throw std::runtime_error("NBT string: stream ended before the declared length was read");
+        return Error(ErrorCode::InvalidData, "NBT string: stream ended before the declared length was read");
     }
     return result;
 }
 
-std::string read_string(std::istream& input, const Context& ctxt)
+Result<std::string> read_string(std::istream& input, const Context& ctxt)
 {
     if (ctxt.format == Context::Format::Mojangson) {
         return read_string_text(input);
-    } else {
-        return read_string_bin(input, ctxt);
     }
+    return read_string_bin(input, ctxt);
 }
 
 void write_string_text(std::ostream& output, const std::string& string)
@@ -799,51 +830,59 @@ void write_string(std::ostream& output, const std::string& string, const Context
 }
 
 template <TagId tid>
-std::unique_ptr<tag> read_bridge(TagId id, std::istream& input)
+Result<std::unique_ptr<tag>> read_bridge(TagId id, std::istream& input)
 {
     if (id == tid) {
-        return read<tid>(input);
-    } else {
-        return read_bridge<static_cast<TagId>(static_cast<std::int8_t>(tid) - 1)>(id, input);
+        auto result = read<tid>(input);
+        if (result.failed()) {
+            return result.error();
+        }
+        return std::unique_ptr<tag>(std::move(result).value());
     }
+    return read_bridge<static_cast<TagId>(static_cast<std::int8_t>(tid) - 1)>(id, input);
 }
 
 template <>
-std::unique_ptr<tag> read_bridge<TagId::End>(TagId, std::istream&)
+Result<std::unique_ptr<tag>> read_bridge<TagId::End>(TagId, std::istream&)
 {
-    throw std::runtime_error("end tag not for reading");
+    return Error(ErrorCode::InvalidData, "NBT: TAG_End is not a readable tag");
 }
 
-std::unique_ptr<tag> read(TagId tid, std::istream& input)
+Result<std::unique_ptr<tag>> read(TagId tid, std::istream& input)
 {
     return read_bridge<TagId::LongArray>(tid, input);
 }
 
 template <TagId tid>
-std::unique_ptr<list_tag> read_list_content_bridge(TagId id, std::istream& input)
+Result<std::unique_ptr<list_tag>> read_list_content_bridge(TagId id, std::istream& input)
 {
     if (id == tid) {
-        return list_by<tid>::read_content(input);
-    } else {
-        return read_list_content_bridge<static_cast<TagId>(static_cast<std::int8_t>(tid) - 1)>(id, input);
+        auto result = list_by<tid>::read_content(input);
+        if (result.failed()) {
+            return result.error();
+        }
+        return std::unique_ptr<list_tag>(std::move(result).value());
     }
+    return read_list_content_bridge<static_cast<TagId>(static_cast<std::int8_t>(tid) - 1)>(id, input);
 }
 
 template <>
-std::unique_ptr<list_tag> read_list_content_bridge<TagId::End>(TagId id, std::istream& input)
+Result<std::unique_ptr<list_tag>> read_list_content_bridge<TagId::End>(TagId id, std::istream& input)
 {
     // id == End 是合法情况：NBT 空列表的元素类型字节就是 End(0)。
     if (id == TagId::End) {
-        return list_by<TagId::End>::read_content(input);
+        auto result = list_by<TagId::End>::read_content(input);
+        if (result.failed()) {
+            return result.error();
+        }
+        return std::unique_ptr<list_tag>(std::move(result).value());
     }
     // 其余情况说明该元素类型字节不是任何合法 TagId（分发自 LongArray 逐级降到 End）。
-    // 该字节来自不可信输入，绝不能用断言处理：MC_ASSERT_RELEASE 直接终止进程，使畸形
-    // 报文成为远程拒绝服务。改为抛错——本库的错误模型就是异常，且网络侧调用点
-    // （nbt_io::readCompound / IdDispatchCodec::decode）已统一把异常转成 Result 错误。
-    throw std::runtime_error("invalid list element tag id: " + std::to_string(static_cast<i32>(id)));
+    // 该字节来自不可信输入，必须以错误返回，绝不能用断言终止进程。
+    return Error(ErrorCode::InvalidData, "NBT: invalid list element tag id " + std::to_string(static_cast<i32>(id)));
 }
 
-std::unique_ptr<list_tag> read_list_content(TagId tid, std::istream& input)
+Result<std::unique_ptr<list_tag>> read_list_content(TagId tid, std::istream& input)
 {
     return read_list_content_bridge<TagId::LongArray>(tid, input);
 }
@@ -866,10 +905,12 @@ string_tag::string_tag(value_type&& string)
     : value(std::move(string))
 {}
 
-std::unique_ptr<string_tag> string_tag::read(std::istream& input)
+Result<std::unique_ptr<string_tag>> string_tag::read(std::istream& input)
 {
     const Context& ctxt = Context::get(input);
-    return std::make_unique<string_tag>(read_string(input, ctxt));
+    std::string value;
+    MC_TRY_ASSIGN(value, read_string(input, ctxt));
+    return std::make_unique<string_tag>(std::move(value));
 }
 
 void string_tag::write(std::ostream& output) const
@@ -883,21 +924,24 @@ std::unique_ptr<tag> string_tag::copy() const
     return std::make_unique<string_tag>(value);
 }
 
-std::unique_ptr<list_tag> list_tag::read(std::istream& input)
+Result<std::unique_ptr<list_tag>> list_tag::read(std::istream& input)
 {
     const Context& ctxt = Context::get(input);
     if (ctxt.format == Context::Format::Mojangson) {
-        skip_space(input);
-        char a = cheof(input);
-        if (a != '[') {
-            throw std::runtime_error("failed to open list tag");
+        MC_TRY(skip_space(input));
+        i32 openRead = 0;
+        MC_TRY_ASSIGN(openRead, cheof(input));
+        if (static_cast<char>(openRead) != '[') {
+            return Error(ErrorCode::InvalidData, "NBT: failed to open list tag");
         }
-        TagId type = deduce_tag(input);
-        return read_list_content(type, input);
-    } else {
-        TagId type = static_cast<TagId>(cheof(input));
+        TagId type = TagId::End;
+        MC_TRY_ASSIGN(type, deduce_tag(input));
         return read_list_content(type, input);
     }
+    i32 typeRead = 0;
+    MC_TRY_ASSIGN(typeRead, cheof(input));
+    const TagId type = static_cast<TagId>(typeRead);
+    return read_list_content(type, input);
 }
 
 std::unique_ptr<tag> tag_list_tag::operator[](size_t i) const
@@ -940,9 +984,8 @@ void tag_list_tag::write(std::ostream& output) const
 {
     TagId aid = element_id();
     dump_list(output, aid, value, [&output, aid](const std::unique_ptr<tag>& tag, const Context&) {
-        if (aid != tag->id()) {
-            throw std::runtime_error("wrong tag id");
-        }
+        // 列表元素类型与声明的元素 ID 不一致属于容器构造错误（编程错误），断言暴露。
+        MC_ASSERT_RELEASE_MSG(aid == tag->id(), "NBT: list element tag id does not match the declared element id");
         tag->write(output);
     });
 }
@@ -959,10 +1002,12 @@ tag_list_tag tag_list_tag::as_tags()
 
 std::unique_ptr<tag> end_list_tag::operator[](size_t) const
 {
-    throw std::out_of_range("end list tag always empty");
+    // 空列表恒无元素，越界取元素属于调用方违约，断言暴露。
+    MC_ASSERT_RELEASE_MSG(false, "NBT: end list tag is always empty; indexing it is invalid");
+    return nullptr;
 }
 
-std::unique_ptr<end_list_tag> end_list_tag::read_content(std::istream& input)
+Result<std::unique_ptr<end_list_tag>> end_list_tag::read_content(std::istream& input)
 {
     const Context& ctxt = Context::get(input);
     if (ctxt.format != Context::Format::Mojangson) {
@@ -971,9 +1016,10 @@ std::unique_ptr<end_list_tag> end_list_tag::read_content(std::istream& input)
         // 此前实现仅读 1 字节并断言为 0，遗留 3 字节使外层 Compound 把它误读为 End 提前结束，
         // 丢失后续键——基岩 .mcstructure 的 structure.entities 为 List[End] n=0 时致 palette 键丢失，
         // 结构模板退化为空，GameTest 按钮识别/方块放置全失效。
-        const std::size_t size = load_size(input, ctxt);
+        std::size_t size = 0;
+        MC_TRY_ASSIGN(size, load_size(input, ctxt));
         if (size != 0) {
-            throw std::runtime_error("end list tag should be empty");
+            return Error(ErrorCode::InvalidData, "NBT: TAG_End list must declare zero elements");
         }
     }
     return std::make_unique<end_list_tag>();
@@ -1015,9 +1061,9 @@ string_list_tag::string_list_tag(value_type&& list)
     : value(std::move(list))
 {}
 
-std::unique_ptr<string_list_tag> string_list_tag::read_content(std::istream& input)
+Result<std::unique_ptr<string_list_tag>> string_list_tag::read_content(std::istream& input)
 {
-    return load_list<string_list_tag>(input, [&input](const Context& ctxt) -> std::string {
+    return load_list<string_list_tag>(input, [&input](const Context& ctxt) -> Result<std::string> {
         return read_string(input, ctxt);
     });
 }
@@ -1072,9 +1118,9 @@ list_list_tag::list_list_tag(value_type&& list)
     : value(std::move(list))
 {}
 
-std::unique_ptr<list_list_tag> list_list_tag::read_content(std::istream& input)
+Result<std::unique_ptr<list_list_tag>> list_list_tag::read_content(std::istream& input)
 {
-    return load_list<list_list_tag>(input, [&input](const Context&) -> element_type {
+    return load_list<list_list_tag>(input, [&input](const Context&) -> Result<element_type> {
         return list_tag::read(input);
     });
 }
@@ -1128,10 +1174,10 @@ compound_tag::compound_tag(value_type&& map, bool root)
     , value(std::move(map))
 {}
 
-std::unique_ptr<compound_tag> compound_tag::read(std::istream& input)
+Result<std::unique_ptr<compound_tag>> compound_tag::read(std::istream& input)
 {
     auto ptr = std::make_unique<compound_tag>();
-    input >> *ptr;
+    MC_TRY(readCompoundInto(input, *ptr));
     return ptr;
 }
 
@@ -1226,11 +1272,11 @@ compound_list_tag::compound_list_tag(value_type&& list)
     : value(std::move(list))
 {}
 
-std::unique_ptr<compound_list_tag> compound_list_tag::read_content(std::istream& input)
+Result<std::unique_ptr<compound_list_tag>> compound_list_tag::read_content(std::istream& input)
 {
-    return load_list<compound_list_tag>(input, [&input](const Context&) -> compound_tag {
+    return load_list<compound_list_tag>(input, [&input](const Context&) -> Result<compound_tag> {
         compound_tag element;
-        input >> element;
+        MC_TRY(readCompoundInto(input, element));
         return element;
     });
 }
@@ -1327,78 +1373,98 @@ bool compound_tag::equals(const struct tag& other) const
 
 } // namespace tags
 
-void read_compound_text(std::istream& input, tags::compound_tag& compound, const Context& ctxt)
+Result<void> read_compound_text(std::istream& input, tags::compound_tag& compound, const Context& ctxt)
 {
-    skip_space(input);
-    char a = cheof(input);
-    if (a != '{') {
-        throw std::runtime_error("failed to open compound");
+    MC_TRY(skip_space(input));
+    i32 openRead = 0;
+    MC_TRY_ASSIGN(openRead, cheof(input));
+    if (static_cast<char>(openRead) != '{') {
+        return Error(ErrorCode::InvalidData, "NBT: failed to open compound tag");
     }
     for (;;) {
-        TagId key_type = deduce_tag(input);
-        switch (key_type) {
-            case TagId::End:
-                skip_space(input);
-                if (cheof(input) != '}') {
-                    throw std::runtime_error("failed to close compound tag");
+        TagId keyType = TagId::End;
+        MC_TRY_ASSIGN(keyType, deduce_tag(input));
+        switch (keyType) {
+            case TagId::End: {
+                MC_TRY(skip_space(input));
+                i32 closeRead = 0;
+                MC_TRY_ASSIGN(closeRead, cheof(input));
+                if (static_cast<char>(closeRead) != '}') {
+                    return Error(ErrorCode::InvalidData, "NBT: failed to close compound tag");
                 }
-                return;
+                return Result<void>::ok();
+            }
             case TagId::String:
                 break;
             default:
-                throw std::runtime_error("invalid key tag (tag_string expected, got " + std::to_string(key_type) + ')');
+                return Error(ErrorCode::InvalidData,
+                    "NBT: invalid compound key type (expected string, got " +
+                        std::to_string(static_cast<i32>(keyType)) + ")");
         }
-        std::string key = tags::read_string(input, ctxt);
-        skip_space(input);
-        char a = cheof(input);
-        if (a != ':') {
-            throw std::runtime_error(std::string("key-value delimiter expected, got ") + a);
+        std::string key;
+        MC_TRY_ASSIGN(key, tags::read_string(input, ctxt));
+        MC_TRY(skip_space(input));
+        i32 delimiterRead = 0;
+        MC_TRY_ASSIGN(delimiterRead, cheof(input));
+        if (static_cast<char>(delimiterRead) != ':') {
+            return Error(ErrorCode::InvalidData,
+                std::string("NBT: key-value delimiter expected in compound, got '") + static_cast<char>(delimiterRead) +
+                    "'");
         }
-        TagId value_type = deduce_tag(input);
-        if (value_type == TagId::End) {
-            throw std::runtime_error(std::string("value expected"));
+        TagId valueType = TagId::End;
+        MC_TRY_ASSIGN(valueType, deduce_tag(input));
+        if (valueType == TagId::End) {
+            return Error(ErrorCode::InvalidData, "NBT: compound value expected");
         }
-        compound.value.emplace(std::move(key), tags::read(value_type, input));
-        skip_space(input);
-        a = cheof(input);
-        if (a == '}') {
-            return;
+        std::unique_ptr<tags::tag> value;
+        MC_TRY_ASSIGN(value, tags::read(valueType, input));
+        compound.value.emplace(std::move(key), std::move(value));
+        MC_TRY(skip_space(input));
+        i32 nextRead = 0;
+        MC_TRY_ASSIGN(nextRead, cheof(input));
+        const char next = static_cast<char>(nextRead);
+        if (next == '}') {
+            return Result<void>::ok();
         }
-        if (a != ',' && a != ';') {
-            throw std::runtime_error(std::string("next tag or end expected, got ") + a);
+        if (next != ',' && next != ';') {
+            return Error(
+                ErrorCode::InvalidData, std::string("NBT: next tag or end expected in compound, got '") + next + "'");
         }
     }
 }
 
-void read_compound_bin(std::istream& input, tags::compound_tag& compound, const Context& ctxt)
+Result<void> read_compound_bin(std::istream& input, tags::compound_tag& compound, const Context& ctxt)
 {
     for (;;) {
-        auto id_numeric = input.get();
+        const auto idNumeric = input.get();
         if (!input) {
             compound.is_root = true;
             break;
         }
-        auto id = static_cast<TagId>(id_numeric);
+        const auto id = static_cast<TagId>(idNumeric);
         if (id > TagId::LongArray) {
-            throw std::out_of_range("unknown tag id: " + std::to_string(id_numeric));
+            return Error(ErrorCode::InvalidData,
+                "NBT: unknown tag id " + std::to_string(static_cast<i32>(idNumeric)) + " in compound");
         }
         if (id == TagId::End) {
             break;
         }
-        std::string key = tags::read_string(input, ctxt);
-        compound.value.emplace(std::move(key), tags::read(id, input));
+        std::string key;
+        MC_TRY_ASSIGN(key, tags::read_string(input, ctxt));
+        std::unique_ptr<tags::tag> value;
+        MC_TRY_ASSIGN(value, tags::read(id, input));
+        compound.value.emplace(std::move(key), std::move(value));
     }
+    return Result<void>::ok();
 }
 
-std::istream& operator>>(std::istream& input, tags::compound_tag& compound)
+Result<void> readCompoundInto(std::istream& input, tags::compound_tag& compound)
 {
     const Context& ctxt = Context::get(input);
     if (ctxt.format == Context::Format::Mojangson) {
-        read_compound_text(input, compound, ctxt);
-    } else {
-        read_compound_bin(input, compound, ctxt);
+        return read_compound_text(input, compound, ctxt);
     }
-    return input;
+    return read_compound_bin(input, compound, ctxt);
 }
 
 std::ostream& operator<<(std::ostream& output, const tags::tag& tag)
@@ -1409,19 +1475,19 @@ std::ostream& operator<<(std::ostream& output, const tags::tag& tag)
 
 // 数组文本格式特化
 template <>
-std::vector<std::int8_t> load_array_text<std::int8_t>(std::istream& input)
+Result<std::vector<std::int8_t>> load_array_text<std::int8_t>(std::istream& input)
 {
     return load_array_text_impl<std::int8_t>(input);
 }
 
 template <>
-std::vector<std::int32_t> load_array_text<std::int32_t>(std::istream& input)
+Result<std::vector<std::int32_t>> load_array_text<std::int32_t>(std::istream& input)
 {
     return load_array_text_impl<std::int32_t>(input);
 }
 
 template <>
-std::vector<std::int64_t> load_array_text<std::int64_t>(std::istream& input)
+Result<std::vector<std::int64_t>> load_array_text<std::int64_t>(std::istream& input)
 {
     return load_array_text_impl<std::int64_t>(input);
 }

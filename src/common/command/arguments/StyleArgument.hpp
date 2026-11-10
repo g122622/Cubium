@@ -63,10 +63,11 @@ public:
 
         // SNBT → NBT 复合标签 → Style。两条失败路径都必须报错而不是返回空样式：
         // 静默回退会让写错的命令看起来成功、实际把格式清成了「无样式」。
-        const auto tag = nbt::parseMojangson(text);
-        if (tag == nullptr) {
+        auto tagResult = nbt::parseMojangson(text);
+        if (tagResult.failed()) {
             throw CommandException(CommandErrorType::Unknown, "Invalid style (not valid SNBT): " + text, start);
         }
+        auto tag = std::move(tagResult).value();
         auto style = text::styleFromNbt(*tag);
         if (style.failed()) {
             throw CommandException(

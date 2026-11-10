@@ -167,10 +167,11 @@ struct JavaRealWorld {
     {
         std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
         stream >> nbt::contexts::java;
-        auto root = nbt::tags::compound_tag::read(stream);
-        if (!root) {
+        auto rootResult = nbt::tags::compound_tag::read(stream);
+        if (rootResult.failed()) {
             return nullptr;
         }
+        auto root = std::move(rootResult).value();
         // Java 写出的 NBT 根标签带 id+name 前缀，读取时会多出一层空键包装
         const nbt::tags::compound_tag& unwrapped = nbt::unwrapRootCompound(*root);
         if (&unwrapped != root.get()) {
