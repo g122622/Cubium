@@ -47,3 +47,7 @@ src/server/scoreboard/
 - **无玩家时广播是空操作**：`sendToAllPlayers` 走 `PlayerManager::forEachPlayer`，单测里没有玩家也能安全调用。
 - 新增出站字段时优先复用 `ComponentNbtSerialization` / `numbers::NumberFormatCodec`，不要在 `ServerScoreboard`
   里手写 NBT 结构。
+- **队伍枚举字段解析失败要让整次读取失败**：`applyToScoreboard` 返回 `Result<void>`，
+  `nameTagVisibility` / `deathMessageVisibility` / `collisionRule` 遇到未知字符串时必须返回
+  `ErrorCode::InvalidData`（与原版 `CODEC.byName` 返回 null 一致）。静默降级成默认值会让损坏的存档
+  以「队伍行为诡异」的形式很晚才暴露。缺失字段本身是合法的——`TeamData::fromNbt` 会把它填成 `"always"`。
