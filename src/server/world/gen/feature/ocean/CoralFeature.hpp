@@ -91,9 +91,6 @@ public:
 protected:
     [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
     [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
-    void _placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const;
-    void _placeCoralFan(
-        WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
 };
 
 /**
