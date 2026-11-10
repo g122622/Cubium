@@ -637,6 +637,10 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
         hit = chunkOpt.has_value();
         if (hit) {
             std::unique_ptr<ChunkData> loadedChunk = std::make_unique<ChunkData>(std::move(chunkOpt.value()));
+            // 存档载入的区块进入内存即为 Loaded。ChunkData 默认状态是 Empty，而运行时方块变更的
+            // 光照任务（BlockStarLightEngine::canUseChunk）只接受 Generated/Loaded——漏设会让读档
+            // 世界的方块光更新全部被静默跳过（放荧光石后邻格 blockLight 恒 0）。
+            loadedChunk->setStatus(ChunkLoadStatus::Loaded);
             // 对象级内存追踪由 ChunkData 内置守卫 m_memTrack 负责（ctor 发 alloc、dtor 发
             // free，move 时重绑定），无需在此调用点插桩。shared_ptr 析构时机不确定的问题
             // 由守卫随对象走天然解决——无论几个 shared_ptr 持有，对象只构造/析构一次。

@@ -131,8 +131,9 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
         return;
     }
 
-    // 生产路径：逐区块构造 RuntimeLightTask，提交到区域互斥池（writeRadius=2）
-    // callback 为空：dirty section 在 execute 末尾经 _enqueueLightFlush 入主线程 flush 队列
+    // 生产路径：逐区块构造 RuntimeLightTask，提交到区域互斥池（writeRadius=2）。
+    // 任务结束后置 dirty section 由 execute 末尾的 _enqueueLightFlush 入主线程 flush 队列；
+    // 提交回调只负责递减在途计数（GameTest 的 tick 循环据此等待光照结算）。
     for (auto& [chunkKey, task] : tasks) {
         if (task.changedPositionLongs.empty()) {
             continue;
@@ -143,8 +144,16 @@ void ServerLightQueue::drainAndProcess(ServerWorld& world)
 
         auto taskPtr =
             std::make_unique<RuntimeLightTask>(world, chunkX, chunkZ, _positionsFromLongs(task.changedPositionLongs));
+        m_inFlightTasks.fetch_add(1, std::memory_order::acq_rel);
         cm->areaTasks().submit(
-            std::move(taskPtr), nullptr, ChunkPos(chunkX, chunkZ), 2, util::TaskPriority::Normal, nullptr);
+            std::move(taskPtr),
+            [this](bool /*success*/, util::ITask* /*task*/) {
+                m_inFlightTasks.fetch_sub(1, std::memory_order::acq_rel);
+            },
+            ChunkPos(chunkX, chunkZ),
+            2,
+            util::TaskPriority::Normal,
+            nullptr);
     }
 }
 

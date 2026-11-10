@@ -2919,6 +2919,11 @@ bool ServerWorld::hasPendingLightWork() const noexcept
     return !m_lightQueue.empty() || !m_pendingLightFlushes.empty() || !m_pendingChunkSends.empty();
 }
 
+bool ServerWorld::hasInFlightLightTasks() const noexcept
+{
+    return m_lightQueue.hasInFlightTasks();
+}
+
 void ServerWorld::_drainPendingChunkSends()
 {
     // 主线程调用（在 _drainPendingLightFlushes 之后）：swap 出队列后逐区块 send +
