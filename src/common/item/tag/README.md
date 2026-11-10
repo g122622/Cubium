@@ -164,9 +164,16 @@ tag/
 
 ### 1.1 便捷访问器的缓存指针会被 `clear()` 打失效
 
-`ItemTags::FLOWERS()` 等访问器把 `ItemTag*` 缓存在 static 局部变量里。`clear()` 释放标签
-对象后，旧指针既悬垂、又会让访问器永远返回过期内容。因此每个访问器都调用 `_isLive(tag)`
-复核指针仍指向标签表中的同一对象——新增访问器必须照抄这个守卫。
+`ItemTags::FLOWERS()` 等访问器把 `ItemTag*` 缓存在 static 局部变量里，`clear()` 必须让这些
+缓存失效，否则访问器永远返回过期内容。**守卫绝不能解引用缓存指针**：对象此时已释放，
+`tag->getId()` 会读到垃圾 `std::string` 并在 `ResourceLocation::hash` 崩溃（同进程连跑多个
+服务器实例时实测 `ACCESS_VIOLATION - Read access at 0xffffffffffffffff`）。当前实现：
+
+- `clear()` 先把标签内容清空、再把对象移入退役区（`retiredTags()`）冻结地址——避免分配器把
+  同一地址复用给之后注册的**另一个**标签，令守卫误判存活；
+- `liveTags()` 记录当前表内对象地址，`_isLive()` 只查集合、不解引用。
+
+新增访问器必须照抄 `_isLive` 守卫。
 
 ### 1.2 不要内置标签快照
 

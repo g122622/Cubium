@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include <atomic>
 #include <cstddef>
 #include <unordered_map>
 #include <unordered_set>
@@ -92,6 +93,18 @@ public:
         return m_chunkTasks.size();
     }
 
+    /**
+     * @brief 是否有已提交、尚未完成的 worker 光照任务
+     *
+     * 主线程查询（原子读）。任务从提交到区域调度器起计数，执行结束（含被取消/拒绝）
+     * 的回调中递减。GameTest 的 tick 循环据此在 tick 之间让出时间，避免基于 tick 的
+     * 光照轮询在 worker 完成前就耗尽。
+     */
+    [[nodiscard]] bool hasInFlightTasks() const noexcept
+    {
+        return m_inFlightTasks.load(std::memory_order::acquire) != 0;
+    }
+
 private:
     /**
      * @brief 单个区块的待处理方块变更集合
@@ -105,6 +118,9 @@ private:
 
     /// 按 ChunkPos::toId() 分组的待处理任务
     std::unordered_map<u64, _ChunkLightTasks> m_chunkTasks;
+
+    /// 已提交给区域调度器、尚未执行完的 worker 光照任务数
+    std::atomic<size_t> m_inFlightTasks{0};
 };
 
 } // namespace mc::server

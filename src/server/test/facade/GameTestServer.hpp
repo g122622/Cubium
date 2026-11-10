@@ -184,6 +184,14 @@ private:
     void tickOnce();
     /** @brief 发布当前批次与整轮中更早的期限，覆盖结构放置和清理。 */
     void _armBatchWatchdog();
+    /**
+     * @brief 等待运行时方块照明 worker 任务结算
+     *
+     * GameTest 的 tick 循环不做 20 TPS 限速，而运行时方块光在计算池上异步传播。
+     * 若不在 tick 之间让出时间，基于 tick 的光照轮询会在 worker 完成前耗尽，
+     * 表现为"放/拆光源后邻格光照不变"的假失败。仅在确有在途任务时等待。
+     */
+    void _waitForRuntimeLightingToSettle();
 
     /// 从 `GameTestRegistry` 选测试（应用 `testsFilter`）并构造批次。
     [[nodiscard]] bool _selectAndBuildRunner();

@@ -3,22 +3,16 @@
 // wiki「部分光照透明」（tech_亮度.txt#部分光照透明）：遮挡形状不完整但存在完整遮挡面的方块（半砖、
 // 楼梯、雪层等），光线只从完整遮挡面射入/射出时被阻挡。
 //
-// Cubium 实际阻断机制（核查 SkyLightEngine.cpp:316-351 列传播，非 wiki 描述的形状遮挡）：
+// Cubium 阻断机制（SkyLightEngine::tryPropagateSkylight 列传播）：
 //   列传播每格 current 依次检查：① above 的 Down 面形状遮挡 ② current 的 Up 面形状遮挡 ③ current opacity。
-//   - bottom slab（box(0,0,0,1,0.5,1)）：Up 面投影为空（maxY=0.5 不触及 Up 面，getFaceShape 返回空），
-//     故形状遮挡分支 faceShapeOccludes(empty,空)=false 不 break（行 339）；随后 opacity=15>0 break（行 348）。
-//   - double slab：useShapeForLightOcclusion=false → isConditionallyFullOpaque=false → 不进形状遮挡分支，
-//     纯 opacity=15 break（行 348）。
-//   - straight 下半楼梯：getShape=SLAB_BOTTOM(box 0,0,0,1,0.5,1) 同 bottom slab，Up 面空，opacity=15 break。
-//   故三测试的阻断机制均为 opacity=15 break，形状遮挡分支未独立触发。
+//   - bottom slab / straight 下半楼梯（box(0,0,0,1,0.5,1)）：isSolidRender=false → opacity=0，
+//     列传播不在遮挡格 break——遮挡格自身仍由上方垂直列得 15。但走到下一格时 above=slab，
+//     其 Down 面完整（faceShapeOccludes(empty, downFace)=true）→ 列在此终止，
+//     正下方改由水平露天邻居侧传衰减 1 得 14。
+//   - double slab：isSolidRender=true → opacity=15 break，遮挡格自身不入队得 0，正下方侧传得 14。
 //
-// Cubium 与 vanilla 语义差异（不为该差异另写测试，此处仅标注）：
-//   vanilla bottom slab getLightBlock(isSolidRender)=0，靠形状遮挡（Down 面完整）阻断天空光，opacity 不参与；
-//   Cubium Block::getOpacity 用 isOpaque(material)（ROCK/WOOD opaque→15）而非 vanilla isSolidRender，
-//   致 slab/stairs opacity=15 抢先 break，形状遮挡分支冗余。此差异是 BuildingBlocks 等 TODO(光照) 待修项。
-//
-// 数值断言（与 Cubium 实际行为一致）：遮挡格自身 skyLight=0（opacity break 不入队），正下方 PROBE 由水平
-// 露天邻居侧传衰减1 得 14，canSeeSky=false（14<15）。断言值正确，仅上方机制注释此前误标为「形状遮挡」。
+// 数值断言：bottom slab / straight 楼梯 的遮挡格自身 skyLight=15、正下方 PROBE=14、
+// canSeeSky(PROBE)=false（Cubium canSeeSky=skyLight>=15）；double slab 遮挡格自身=0、PROBE=14。
 //
 // 设计：grass_pen + skyAccess(true) + setupTicks(20)。OCCLUDER=(4,4,3) 放部分透明方块，PROBE=(4,3,3) 正下方。
 //
@@ -35,18 +29,17 @@ import { getSkyLight, getCanSeeSky } from "../utils/lightAssert.js";
 const OCCLUDER = { x: 4, y: 4, z: 3 };
 const PROBE = { x: 4, y: 3, z: 3 };
 
-// 单层下半砖阻断天空光：OCCLUDER 放 stone_brick_slab half=bottom（单层下半，box(0,0,0,1,0.5,1)）。
-// useShapeForLightOcclusion=true（单层），opacity=15（ROCK 材质 isOpaque）→ isConditionallyFullOpaque=true。
-// 列传播：Up 面投影为空（maxY=0.5 不触及 Up 面）→ 形状遮挡分支不 break；opacity=15>0 break（行 348）。
-// 遮挡格自身 skyLight=0（break 不入队），正下方侧传得 14。验证单层半砖阻断垂直天空光（机制为 opacity break，
-// 非形状遮挡——Cubium 与 vanilla 语义差异，详见文件头）。
+// 单层下半砖阻断向下天空光：OCCLUDER 放 stone_brick_slab half=bottom（单层下半，box(0,0,0,1,0.5,1)）。
+// isSolidRender=false（形状非完整立方体）→ opacity=0，列传播不在遮挡格 break：
+// 光照从上方经不完整的 Up 面进入，遮挡格自身 skyLight=15；
+// 但遮挡格 Down 面完整，垂直列在遮挡格下方终止，PROBE 由水平露天邻居侧传得 14（canSeeSky=false）。
 function bottomSlabTopFaceBlocksSkyLight(test: Test): void {
     test.setBlockWithStates("minecraft:stone_brick_slab", OCCLUDER, "type=bottom");
     pollUntilSucceed(
         test,
         () => {
             return (
-                getSkyLight(test, OCCLUDER.x, OCCLUDER.y, OCCLUDER.z) === 0 &&
+                getSkyLight(test, OCCLUDER.x, OCCLUDER.y, OCCLUDER.z) === 15 &&
                 getSkyLight(test, PROBE.x, PROBE.y, PROBE.z) === 14 &&
                 getCanSeeSky(test, PROBE.x, PROBE.y, PROBE.z) === false
             );
@@ -59,7 +52,7 @@ function bottomSlabTopFaceBlocksSkyLight(test: Test): void {
                 test.assert(
                     false,
                     `bottom slab: OCCLUDER skyLight=${getSkyLight(test, OCCLUDER.x, OCCLUDER.y, OCCLUDER.z)} ` +
-                        `PROBE skyLight=${getSkyLight(test, PROBE.x, PROBE.y, PROBE.z)} expected 0/14`,
+                        `PROBE skyLight=${getSkyLight(test, PROBE.x, PROBE.y, PROBE.z)} expected 15/14`,
                 );
             },
         },
@@ -96,18 +89,17 @@ function doubleSlabBlocksSkyLight(test: Test): void {
     );
 }
 
-// 直线下半楼梯阻断天空光：OCCLUDER 放 oak_stairs half=bottom shape=straight。
-// useShapeForLightOcclusion=true（StairsBlock.hpp:101），opacity=15（WOOD 材质 isOpaque）→ isConditionallyFullOpaque=true。
-// straight 下半 getShape=SLAB_BOTTOM（box(0,0,0,1,0.5,1)，无角），Up 面投影为空（maxY=0.5 不触及 Up 面）
-// → 形状遮挡分支不 break；opacity=15>0 break（行 348）。遮挡格自身=0，正下方侧传得 14。
-// 与 bottom slab 同机制（opacity break，非形状遮挡）。Cubium straight 楼梯形状简化为纯下半台阶（无角）。
+// 直线下半楼梯阻断向下天空光：OCCLUDER 放 oak_stairs half=bottom shape=straight。
+// isSolidRender=false（形状非完整立方体）→ opacity=0，列传播不在遮挡格 break：
+// 遮挡格自身 skyLight=15；遮挡格 Down 面完整，列在其下方终止，PROBE 由水平侧传得 14。
+// 与 bottom slab 同机制。Cubium straight 楼梯形状简化为纯下半台阶（无角）。
 function straightBottomStairsBlockSkyLight(test: Test): void {
     test.setBlockWithStates("minecraft:oak_stairs", OCCLUDER, "half=bottom,shape=straight");
     pollUntilSucceed(
         test,
         () => {
             return (
-                getSkyLight(test, OCCLUDER.x, OCCLUDER.y, OCCLUDER.z) === 0 &&
+                getSkyLight(test, OCCLUDER.x, OCCLUDER.y, OCCLUDER.z) === 15 &&
                 getSkyLight(test, PROBE.x, PROBE.y, PROBE.z) === 14 &&
                 getCanSeeSky(test, PROBE.x, PROBE.y, PROBE.z) === false
             );
@@ -124,7 +116,7 @@ function straightBottomStairsBlockSkyLight(test: Test): void {
                         OCCLUDER.x,
                         OCCLUDER.y,
                         OCCLUDER.z,
-                    )} PROBE skyLight=${getSkyLight(test, PROBE.x, PROBE.y, PROBE.z)} expected 0/14`,
+                    )} PROBE skyLight=${getSkyLight(test, PROBE.x, PROBE.y, PROBE.z)} expected 15/14`,
                 );
             },
         },

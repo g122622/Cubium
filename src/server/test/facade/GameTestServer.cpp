@@ -757,6 +757,9 @@ void GameTestServer::tickOnce()
     }
     // 基类世界 tick（维度/实体/时间/区块）
     MinecraftServer::tick();
+    // 运行时方块照明在 worker 上异步传播：本 tick 提交的任务可能尚未完成。
+    // 在测试实例推进前让出时间，使光照在后续 tick 的 poll 前结算。
+    _waitForRuntimeLightingToSettle();
     // GameTestTicker 推进测试实例状态机（单例）
     GameTestTicker::instance().tick();
     // 批次调度会同步放置下一批结构，不属于游戏 tick，但受批次和整轮期限约束。
@@ -768,6 +771,33 @@ void GameTestServer::tickOnce()
     // 本 tick 已消化批内实例的启动工作（ticker 在同一次 tick 内启动整批实例）。
     if (batchStartupTick) {
         m_batchStartupPending = false;
+    }
+}
+
+void GameTestServer::_waitForRuntimeLightingToSettle()
+{
+    // 单 tick 仅几十微秒，而 RuntimeLightTask 的执行受计算池与 5×5 区域锁排程，
+    // 实测可延迟数十毫秒。等待上限取 500ms：低于普通 tick 的 2 秒看门狗期限，
+    // 又远大于观察到的排队延迟。
+    constexpr auto kMaxWait = std::chrono::milliseconds(500);
+    constexpr auto kPollInterval = std::chrono::microseconds(200);
+    const auto deadline = std::chrono::steady_clock::now() + kMaxWait;
+    for (;;) {
+        bool pending = false;
+        m_dimensionManager->forEachDimension([&pending](Dimension& dim) {
+            server::ServerWorld* world = static_cast<ServerDimension*>(&dim)->world();
+            if (world != nullptr && world->hasInFlightLightTasks()) {
+                pending = true;
+            }
+        });
+        if (!pending) {
+            return;
+        }
+        if (std::chrono::steady_clock::now() >= deadline) {
+            spdlog::warn("GameTestServer: runtime lighting tasks still in flight after {} ms", kMaxWait.count());
+            return;
+        }
+        std::this_thread::sleep_for(kPollInterval);
     }
 }
 

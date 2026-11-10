@@ -84,6 +84,10 @@ world/
 
 详见 `docs/BUG-WorldGenRegion-Access-Window.md`（问题根因）。
 
+### 存档命中区块的加载状态必须显式置为 Loaded
+
+`ChunkData` 构造时默认 `ChunkLoadStatus::Empty`，而运行时方块变更的光照任务（`BlockStarLightEngine::canUseChunk`）只接受 `Generated`/`Loaded`。存档命中路径（`ServerChunkManager::_onChunkLoadComplete`）必须显式 `setStatus(ChunkLoadStatus::Loaded)`，否则读档世界的方块光更新会被静默跳过：放/拆光源后邻格 blockLight 恒为旧值，且没有任何日志。
+
 ### 区块可用性的宣告必须与区块安装同时生效
 
 `SingleChunkLifecycleManager` 对外宣告"该区块在某个状态可用"（`sourceState ∈ {LoadedFromStorage, Ready}` 或 `currentGenStatus` 达标）时，`m_currentChunk` 必须已经非空。存档命中路径统一走 `publishStorageLoaded(primer)`：在**同一临界区**内安装 primer、把 `currentGenStatus` 推进到 FULL（存档区块即完整区块）、把 `sourceState` 推进到 `LoadedFromStorage`；`noteStorageMissing()` 只负责"确认存档缺失"。任何"先推进状态、后安装区块"的写法都会让并发调度者（`schedule` 的空区块分支、`checkNeighbour` 的就绪判定、`buildNeighbourCache` 的 primer 取用）观察到"状态已就绪但区块缺失"，据此为该 holder 重复调度一次 EMPTY 加载，最终让依赖邻居取到空 primer 并在生成区域里崩溃。`markLoadedFromStorageReady` 与 `setCurrentChunk` 内均有不变量断言把关。

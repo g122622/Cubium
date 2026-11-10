@@ -46,15 +46,27 @@ bool ItemTags::s_initialized = false;
 bool ItemTags::_isLive(const ItemTag* tag)
 {
     // 各便捷访问器缓存了 ItemTag*（static 局部变量）。clear() 之后标签对象已释放，
-    // 旧指针既会悬垂、也会让它永远返回过期内容；这里按 ID 向标签表复核一次。
-    const ItemTag* current = tag == nullptr ? nullptr : getTag(tag->getId());
-    return current == tag;
+    // 缓存指针悬垂——绝不能解引用它（tag->getId() 会读到垃圾字符串并在哈希时崩溃）。
+    // 改为查活指针集合：地址在集合中即为当前对象，地址冻结机制见 retiredTags()。
+    return tag != nullptr && liveTags().contains(tag);
 }
 
 std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>>& ItemTags::tags()
 {
     static std::unordered_map<ResourceLocation, std::unique_ptr<ItemTag>> s_tags;
     return s_tags;
+}
+
+std::vector<std::unique_ptr<ItemTag>>& ItemTags::retiredTags()
+{
+    static std::vector<std::unique_ptr<ItemTag>> s_retired;
+    return s_retired;
+}
+
+std::unordered_set<const ItemTag*>& ItemTags::liveTags()
+{
+    static std::unordered_set<const ItemTag*> s_live;
+    return s_live;
 }
 
 ItemTag& ItemTags::registerTag(const ResourceLocation& id)
@@ -67,6 +79,7 @@ ItemTag& ItemTags::registerTag(const ResourceLocation& id)
     }
 
     auto inserted = allTags.emplace(id, std::make_unique<ItemTag>(id, false));
+    liveTags().insert(inserted.first->second.get());
     return *inserted.first->second;
 }
 
@@ -508,7 +521,16 @@ void ItemTags::initialize()
 
 void ItemTags::clear()
 {
-    tags().clear();
+    auto& allTags = tags();
+    auto& retired = retiredTags();
+    retired.reserve(retired.size() + allTags.size());
+    for (auto& entry : allTags) {
+        // 清空内容再移入退役区：冻结地址，避免访问器的缓存指针被新标签复用后误判存活。
+        entry.second->clear();
+        retired.push_back(std::move(entry.second));
+    }
+    allTags.clear();
+    liveTags().clear();
 }
 
 Result<nlohmann::json> ItemTags::mergeTagVersions(

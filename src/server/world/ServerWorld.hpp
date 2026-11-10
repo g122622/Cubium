@@ -1408,6 +1408,14 @@ public:
      */
     [[nodiscard]] bool hasPendingLightWork() const noexcept;
 
+    /**
+     * @brief 是否有已提交、尚未执行完的运行时方块照明 worker 任务
+     *
+     * 与 hasPendingLightWork 不同，这里只统计 worker 在途任务（不含尚未 drain 的变更队列
+     * 和已完成待 flush 的脏段）。GameTest 的 tick 循环用它决定是否在 tick 之间让出时间。
+     */
+    [[nodiscard]] bool hasInFlightLightTasks() const noexcept;
+
     // ========== 光照管理 ==========
 
     [[nodiscard]] WorldLightManager* lightManager() noexcept

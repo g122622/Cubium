@@ -155,9 +155,21 @@ bool BlockTags::s_initialized = false;
 bool BlockTags::_isLive(const BlockTag* tag)
 {
     // 各便捷访问器缓存了 BlockTag*（static 局部变量）。clear() 之后标签对象已释放，
-    // 旧指针既会悬垂、也会让它永远返回过期内容；这里按 ID 向标签表复核一次。
-    const BlockTag* current = tag == nullptr ? nullptr : getTag(tag->getId());
-    return current == tag;
+    // 缓存指针悬垂——绝不能解引用它（tag->getId() 会读到垃圾字符串并在哈希时崩溃）。
+    // 改为查活指针集合：地址在集合中即为当前对象，地址冻结机制见 _getRetiredTags。
+    return tag != nullptr && _getLiveTags().contains(tag);
+}
+
+std::vector<std::unique_ptr<BlockTag>>& BlockTags::_getRetiredTags()
+{
+    static std::vector<std::unique_ptr<BlockTag>> retired;
+    return retired;
+}
+
+std::unordered_set<const BlockTag*>& BlockTags::_getLiveTags()
+{
+    static std::unordered_set<const BlockTag*> live;
+    return live;
 }
 
 std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& BlockTags::_getTags()
@@ -1312,7 +1324,16 @@ void BlockTags::initialize()
 
 void BlockTags::clear()
 {
-    _getTags().clear();
+    auto& tags = _getTags();
+    auto& retired = _getRetiredTags();
+    retired.reserve(retired.size() + tags.size());
+    for (auto& entry : tags) {
+        // 清空内容（释放成员集合等大对象），再把仅剩外壳的对象移入退役区冻结地址。
+        entry.second->clear();
+        retired.push_back(std::move(entry.second));
+    }
+    tags.clear();
+    _getLiveTags().clear();
 }
 
 BlockTag* BlockTags::getTag(const ResourceLocation& id)
@@ -1333,6 +1354,7 @@ BlockTag& BlockTags::registerTag(const ResourceLocation& id)
         return *it->second;
     }
     auto inserted = tags.emplace(id, std::make_unique<BlockTag>(id));
+    _getLiveTags().insert(inserted.first->second.get());
     return *inserted.first->second;
 }
 
