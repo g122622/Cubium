@@ -840,10 +840,12 @@ template class AvoidEntitySensor<VillagerEntity>;
 template class InteractableDoorsSensor<VillagerEntity>;
 template class TemptingPlayerSensor<VillagerEntity>;
 template class OwnerHurtBySensor<VillagerEntity>;
-// TODO: OwnerHurtBySensor 目前为 VillagerEntity 实例化用于测试，
-// 但 VillagerEntity 不是 TameableEntity 子类，因此该传感器对 VillagerEntity 无实际效果。
-// 当 TameableEntity 子类（WolfEntity、CatEntity 等）集成 Brain 系统后，
-// 需要在对应实体的 initializeBrain() 中注册 OwnerHurtBySensor 并实例化对应模板。
+// 为 VillagerEntity 显式实例化，供 BrainInteractTaskTests 验证该传感器的记忆模块声明
+// （UsedMemories/OnlyWantedMemories）。村民不是 TameableEntity，运行时注册它没有意义，
+// 因此 VillagerEntity::initializeBrain 并不注册本传感器——这里存在的作用仅是让模板在本 TU
+// 有定义、单测可链接。切勿因为"村民没有主人"就删掉这行：删了会让该单测链接失败。
+// TODO: WolfEntity / CatEntity 等 TameableEntity 子类接入 Brain 系统后，需在它们的
+// initializeBrain() 中注册 OwnerHurtBySensor，并在此处补显式实例化对应类型。
 // TODO: TemptingPlayerSensor 和 FollowParentTask/BabySensor 需要在 AnimalEntity 子类（如
 // CowEntity、PigEntity、SheepEntity 等） 集成 Brain 系统后进行注册和实例化。
 
