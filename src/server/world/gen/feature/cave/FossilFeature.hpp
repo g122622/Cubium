@@ -27,8 +27,8 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 

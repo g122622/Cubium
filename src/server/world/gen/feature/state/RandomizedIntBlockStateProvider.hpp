@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/IntegerProperty.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>

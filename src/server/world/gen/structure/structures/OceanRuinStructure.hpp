@@ -50,9 +50,9 @@ enum class OceanRuinType : u8 {
  * @brief 海底废墟配置
  */
 struct OceanRuinConfig {
-    OceanRuinType biomeType = OceanRuinType::Cold;
-    f32 largeProbability = 0.3f;   ///< 大型废墟概率
-    f32 clusterProbability = 0.9f; ///< 集群概率
+    OceanRuinType biomeType; ///< 废墟风格（按生成点群系判定后填入）
+    f32 largeProbability;    ///< 大型废墟概率（数据包 `large_probability`）
+    f32 clusterProbability;  ///< 集群概率（数据包 `cluster_probability`）
 };
 
 /**
@@ -89,6 +89,19 @@ public:
         IChunkGenerator* generator = nullptr) override;
 
     /**
+     * @brief 海底废墟数据标记：埋藏宝箱与溺尸
+     *
+     * 原版 `OceanRuinPieces.OceanRuinPiece#handleDataMarker`：`chest` 标记放一只
+     * （可能水浸的）箱子并挂战利品表；`drowned` 标记生成溺尸，并把标记方块替换成
+     * 空气（高于海平面）或水。
+     */
+    void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds) override;
+
+    /**
      * @brief 设置模板管理器
      *
      * 必须在 generate 之前调用
@@ -121,7 +134,21 @@ public:
 private:
     void _loadTemplate();
 
+    /**
+     * @brief 在水中寻找模板远角下方最高的实体地形（原版 `OceanRuinPiece#getHeight`）
+     *
+     * 从 `start.y - 1` 向下扫过空气/水/冰，取所有列的最低可用高度；当整个足迹内
+     * 有足够多的列明显低于起点时，把放置高度抬到该最低列上方一格。
+     *
+     * @param start 扫描起点（模板位置，Y 已按高度图落位）
+     * @param end 模板对角的远角
+     * @param world 世界读取接口
+     * @return 调整后的模板 Y
+     */
+    [[nodiscard]] static i32 _scanHeight(const BlockPos& start, const BlockPos& end, IWorld& world);
+
     std::string m_templateName;
+    BlockPos m_templatePosition;
     // 不能用「子类同名成员」保存旋转：它会遮蔽 StructurePiece::m_rotation，
     // 而 getRotation()/getMirror() 读的是基类成员，差分里表现为「抽到了旋转却始终输出 NONE」。
     f32 m_integrity;
@@ -150,13 +177,9 @@ public:
      * @brief 获取结构关联的生物群系标签
      *
      * 返回 minecraft:has_structure/ocean_ruin_cold 标签。
-     * 海底废墟同时处理冷海和暖海两种变体，
-     * 实际变体区分在 canGenerate() 中根据生物群系判断。
+     * 暖/冷变体由结构定义 JSON 的 `biome_temp` 决定，不按落点群系现判。
      */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
-
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
@@ -170,7 +193,7 @@ public:
     }
 
     /**
-     * @brief 设置配置
+     * @brief 设置配置（两个概率来自数据包的 `large_probability` / `cluster_probability`）
      */
     void setConfig(const OceanRuinConfig& config)
     {
@@ -193,50 +216,6 @@ public:
     static const std::vector<std::string> s_mossyBigTemplates;
 
 private:
-    /**
-     * @param templateManager 模板管理器
-     * @param pos 放置位置
-     * @param rotation 旋转
-     * @param pieces 输出片段列表
-     * @param rng 随机数生成器
-     * @param config 配置
-     * @param isLarge 是否为大型废墟
-     * @param integrity 完整度
-     */
-    void generatePiece(feature::template_::TemplateManager& templateManager,
-        const BlockPos& pos,
-        Rotation rotation,
-        std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::IRandom& rng,
-        const OceanRuinConfig& config,
-        bool isLarge,
-        f32 integrity) const;
-
-    /**
-     * @brief 生成集群片段
-     * @param templateManager 模板管理器
-     * @param rng 随机数生成器
-     * @param rotation 旋转
-     * @param pos 放置位置
-     * @param config 配置
-     * @param pieces 输出片段列表
-     */
-    void generateClusterPieces(feature::template_::TemplateManager& templateManager,
-        math::IRandom& rng,
-        Rotation rotation,
-        const BlockPos& pos,
-        const OceanRuinConfig& config,
-        std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
-
-    /**
-     * @brief 获取候选位置列表
-     * @param rng 随机数生成器
-     * @param x X 坐标
-     * @param z Z 坐标
-     * @return 候选位置列表
-     */
-    [[nodiscard]] std::vector<BlockPos> getCandidatePositions(math::IRandom& rng, i32 x, i32 z) const;
-
     [[nodiscard]] bool _isWarmBiome(BiomeId biomeId) const noexcept;
 
     static const std::string m_name;

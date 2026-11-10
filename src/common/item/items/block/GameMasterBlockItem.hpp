@@ -26,8 +26,8 @@
 #include "BlockItem.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/Item.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
 

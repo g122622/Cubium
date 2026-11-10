@@ -41,13 +41,12 @@
 #include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/block/state/pattern/BlockInWorld.hpp"
-#include "common/world/block/state/pattern/BlockPattern.hpp"
-#include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/pattern/BlockInWorld.hpp"
+#include "common/world/block/pattern/BlockPattern.hpp"
+#include "common/world/block/pattern/BlockPatternBuilder.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -55,6 +54,7 @@
 #include "common/world/dimension/end/EndSpikes.hpp"
 #include "common/world/dimension/end/IDragonBossBar.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <algorithm>
 
@@ -774,7 +774,7 @@ void EndDragonFight::_spawnNewGateway(IWorld& world)
 void EndDragonFight::_spawnNewGatewayAt(IWorld& world, const BlockPos& pos)
 {
     // 播放折跃门生成效果
-    world.playEvent(world::WorldEvents::GATEWAY_SPAWN_EFFECTS, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::ANIMATION_END_GATEWAY_SPAWN, pos, 0);
 
     // 直接放置折跃门结构（3x5x3 基岩十字框架 + END_GATEWAY 方块）
     blockentity::EndGatewayEntity::createGatewayStructure(world, pos);
@@ -981,7 +981,7 @@ void EndDragonFight::_respawnDragon(IWorld& world, std::vector<entity::EnderCrys
             for (i32 i = 0; i < m_exitPortalPattern->width(); ++i) {
                 for (i32 j = 0; j < m_exitPortalPattern->height(); ++j) {
                     for (i32 k = 0; k < m_exitPortalPattern->depth(); ++k) {
-                        blockpattern::BlockInWorld blockInWorld = match->getBlock(i, j, k);
+                        const blockpattern::BlockInWorld& blockInWorld = match->getBlock(i, j, k);
                         const BlockState* state = blockInWorld.getState();
                         if (state != nullptr && (state->is(bedrockBlock) || state->is(endPortalBlock))) {
                             world.setBlockState(blockInWorld.pos(), endStoneState, world::BlockUpdateFlags::UPDATE_ALL);

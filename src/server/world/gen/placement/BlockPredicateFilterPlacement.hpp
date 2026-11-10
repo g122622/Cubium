@@ -26,7 +26,7 @@
 #include "Placement.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/feature/predicate/BlockPredicate.hpp"
 #include <memory>
 #include <utility>

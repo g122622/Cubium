@@ -32,7 +32,7 @@
 #include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace mc;

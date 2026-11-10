@@ -40,8 +40,9 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 
 ### 游戏类型
 - `ChunkCoord`, `BlockCoord`, `WorldHeight` - 坐标类型
-- `BlockId`, `ItemId`, `EntityId`, `BiomeId`, `DimensionId` - ID 类型
-- `PlayerId` - 玩家标识符
+- `ItemId`(`u32`), `BiomeId`(`u16`), `DimensionId`(`i32`), `PlayerId`(`u64`) - ID 类型（别名都定义在 `Types.hpp`）
+- `EntityInstanceId`(`u64`) - 实体实例 ID（**没有** `EntityId` 这个别名；无效值用 `INVALID_ENTITY_ID`）
+- 方块没有独立的 ID 别名：方块用 `BlockRegistry` 注册返回的 `u32 blockId`，方块状态用 `BlockState`/stateId 表达
 
 ### 世界类型
 - `ChunkPos`, `BlockPos`, `SectionPos`, `GlobalPos`(相当于BlockPos+维度id) - 位置类型
@@ -78,7 +79,11 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `pipeline::Connection<RegistryByteBuf>` - 网络管道连接，对外 API 为 `send(ir::IrPacket)` / `onPacket(listener)`，位于 `network/pipeline/Connection.hpp`
 - `transport::LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
 
-**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `ConnectionManager::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除，入站分发改为 `ServerPlayRouter`（服务端）和客户端 `ClientPlayVisitor`，均通过 `std::visit` 遍历 `ir::PlayPacket`。
+**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `PacketSender::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除。
+
+**入站分发**（两条链路职责与实现方式不同，不要混为一谈）：
+- **服务端**：`ClientSession::handleInbound(const ir::IrPacket&)` 先交给握手处理器，再转到 `ServerPlayHandler::route(PlayerId, const ir::IrPacket&)`（`server/network/play/ServerPlayHandler.hpp`）。`route` 是**集中的 if/`std::holds_alternative` 分发表**（不是 `std::visit`），按包族转调 `MovementHandler` / `BlockActionHandler` / `EntityActionHandler` / `ChatHandler` / `PlayerStateHandler` / `SessionSignalHandler`。新增服务端入站包时在 `route` 里加一个分支并转调对应 handler，不要另起一套分发器。
+- **客户端**：`ClientNetwork` 的入站回调委托给 `ClientPlayVisitor::handle`（Play 阶段）与 `handleConfiguration`（Configuration 阶段），这两个方法内部才是 `std::visit` 遍历 IR variant。客户端已停止维护，修改前先确认任务是否真的需要动它。
 
 **业务枚举**（位于 `network/protocol/`）：
 - `EntityAnimation` / `EntityStatus` → `protocol/EntityEvents.hpp`
@@ -86,10 +91,11 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `TitleAction` → `protocol/TitleActions.hpp`
 
 ### 错误处理
-- `Result<T>` - 可能失败操作的结果类型
-- `Error` - 包含错误码和消息的错误容器
-- `ErrorCode` - 错误码枚举
-- 新增代码不允许使用c++异常，统一走Result/Error体系。
+- `Result<T>` / `Result<void>` - 可能失败操作的结果类型（定义在 `src/common/core/Result.hpp`）
+- `ErrorCode` - **独立的顶层枚举** `mc::ErrorCode`（不是 `Error` 的嵌套类型），含 `Success`/`InvalidArgument`/`NotFound`/`OutOfMemory` 等，分组编号见 `Result.hpp`
+- `Error` - 错误容器，构造为 `Error(ErrorCode code, std::string_view message, std::string_view source)`，并提供静态工厂 `Error::ok()` / `Error::invalidArgument()` / `Error::notFound()` / `Error::fileNotFound()` / `Error::connectionFailed()` / `Error::unknown()`
+- 【重要】`Result::value()` 在结果失败时会 **`throw std::runtime_error`**（`Result<T>` 与 `Result<std::unique_ptr<T, D>>` 都是如此）。取 `value()` 之前必须已经确认 `success()`，否则会绕过整个 Result 体系抛出异常。
+- 新增代码不允许使用c++异常，统一走Result/Error体系（上面这条 `value()` 的隐式抛出是既存实现，不是可以依赖的错误处理手段）。
 
 ### 设置类型
 - `BooleanOption`, `RangeOption`, `FloatOption` - 设置选项类型
@@ -121,32 +127,27 @@ src/common/world/
 ├── IWorldWriter.hpp            # 世界写入接口（生成用）
 ├── WorldConstants.hpp          # 世界常量和坐标转换工具，如世界高度限制、区块尺寸等
 ├── WorldConfig.hpp             # 世界配置
-├── WorldEvents.hpp             # 世界事件ID常量
+├── effect/base/LevelEventId.hpp # 客户端世界效果编号
 ├── GlobalPos.hpp               # 全局位置类型
 
 src/common/world/chunk/
 ├── base/                       # 位置与标识纯值类型（ChunkPos、SectionPos、ChunkId）
-├── data/                       # 区块数据模型（ChunkData、ChunkPrimer、ChunkSection、Heightmap、BiomeContainer、IChunk）
-├── gen/                        # 生成管线（ChunkStatus、ChunkPyramid、ChunkStep、ChunkDependencies）
+├── data/                       # 区块数据模型（ChunkData、ChunkSection、Heightmap、BiomeContainer、IChunk）
 └── load/                       # 加载票据系统（ChunkLoadTicket、ChunkLoadTicketManager、ChunkDistanceGraph、ChunkLoadLevel）
 
+生成阶段与邻居依赖模型位于 `src/server/world/chunk/pipeline/`；生成中间区块位于 `src/server/world/gen/chunk/`。
+
 block/
-├── Block.hpp/cpp                   # 方块基类，定义核心属性和行为
-├── BlockState.hpp/cpp              # 方块状态类，不可变状态对象
-├── BlockPos.hpp                    # 方块位置坐标类
-├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
-├── BlockSoundType.hpp/cpp          # 方块声音类型定义
-├── BlockTags.hpp/cpp               # 方块标签系统（分组判断），可用于判断方块类型，推荐首选！
-├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
-├── HarvestTool.hpp                 # 挖掘工具类型定义
-├── IBeaconBeamColorProvider.hpp    # 信标光束颜色提供者接口
-├── IBucketPickupHandler.hpp        # 桶提取接口
-├── IGrowable.hpp                   # 可生长方块接口
-├── ILiquidContainer.hpp            # 液体容器接口
-├── IWaterLoggable.hpp/cpp          # 含水方块接口
-├── Material.hpp/cpp                # 材质系统（物理属性）
-├── PlantType.hpp                   # 植物类型定义
-├── WaterLoggableHelpers.hpp        # 含水方块工具函数
+├── core/                       # Block 身份与行为扩展入口
+├── properties/                 # BlockProperties 与状态谓词
+├── state/                      # BlockState 与匹配模式
+├── base/                       # 基础类型、材质、声音组合与方块族
+├── capability/                 # 生长、含水、氧化等可选能力
+├── registry/                   # 通用注册入口与 vanilla 原版内容装配
+├── support/                    # 附着与支撑形状判定
+├── tags/                       # 数据包方块标签
+├── fire/                       # 可燃参数
+└── blocks/                     # 按主要行为组织的方块实现
 
 ```
 
@@ -169,46 +170,24 @@ block/
 
 **游戏常量** (`src/common/core/Constants.hpp`)
 
-`mc::game` 命名空间：
-- `PLAYER_HEIGHT`, `PLAYER_EYE_HEIGHT`, `PLAYER_WIDTH`, `PLAYER_SNEAK_HEIGHT` - 玩家尺寸
-- `PLAYER_MAX_HEALTH`, `PLAYER_MAX_AIR` - 玩家生命值/氧气
-- `MAX_LIGHT_LEVEL`（一般为15）, `MIN_LIGHT_LEVEL`（一般为0） - 光照等级范围
-- `DAY_LENGTH_TICKS`, `DAY_LENGTH_SECONDS` - 游戏日长度
+`mc::game`（玩家尺寸/生命/氧气、`MAX_LIGHT_LEVEL`、`DAY_LENGTH_TICKS` 等）、`mc::entity`、`mc::item`、`mc::capacity`（缓冲区、容器初始容量、字符串长度限制）均为扁平常量族，**用前直接读 `Constants.hpp`，以该文件为准**。
 
-`mc::network` 命名空间：
-- `PROTOCOL_VERSION` - 协议版本
-- `DEFAULT_PORT`, `DEFAULT_RCON_PORT` - 默认端口
-- `MAX_PACKET_SIZE`, `MAX_UNCOMPRESSED_SIZE`, `MIN_COMPRESSION_THRESHOLD` - 数据包限制
-- `CONNECT_TIMEOUT_MS`, `READ_TIMEOUT_MS`, `WRITE_TIMEOUT_MS` - 超时设置
-- `KEEP_ALIVE_INTERVAL_MS`, `KEEP_ALIVE_TIMEOUT_MS` - 心跳设置
-- `MAX_PACKETS_PER_SECOND`, `MAX_LOGIN_ATTEMPTS` - 速率限制
+`mc::network`：
+- `PROTOCOL_VERSION` - 协议版本。【警示】**当前值仍是 1.16.5 的 `754`，与项目目标 1.21.11 不一致**，`Constants.hpp` 注释也还写着"目标是 1.16.5"。判断线上实际协议版本以 `network/protocol/ProtocolInfo` 与 Java 后端协议表为准，不要直接引用本常量；若任务涉及它，按 1.21.11 修正并删除该处过期注释。
+- `DEFAULT_PORT` / `MAX_PACKET_SIZE` / `MAX_UNCOMPRESSED_SIZE` / `MIN_COMPRESSION_THRESHOLD` / 各类 `*_TIMEOUT_MS` / `KEEP_ALIVE_*` / `MAX_PACKETS_PER_SECOND`
 
-`mc::world` 命名空间：
-- `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制。【重要】只能使用这些mc::world下的常量作为高度限制，不能硬编码0、256等数字，因为未来可能会频繁修改这些高度限制。
-- `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS` - 区块尺寸。【重要】只能使用这些mc::world下的常量作为区块尺寸，不能硬编码16等数字，因为未来可能会频繁修改区块尺寸。另外，有些地方可能使用位运算来计算区块坐标（例如 `x >> CHUNK_SHIFT`），务必使用这些常量来确保位运算的正确性，而不是简单 >> 4。
-【重要】CHUNK_HEIGHT和MAX_BUILD_HEIGHT值不同，语义也完全不同。CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT = 320 - (-64) = 384，而MAX_BUILD_HEIGHT = 320。使用的时候务必小心这个区别！
-- `CHUNK_SHIFT`, `SECTION_SHIFT`, `CHUNK_MASK` - 区块位运算常量
-- `CHUNK_LOAD_RADIUS` - 默认区块加载半径
-- `SPAWN_CHUNK_RADIUS` - 出生点常驻区块半径
-
-世界常量、尺寸与坐标换算工具统一定义在 `src/common/world/WorldConstants.hpp`（`Constants.hpp` 通过 include 重新导出）。使用时直接 include 该头文件并引用其中常量/函数，不要硬编码数字；具体清单以该文件为准，本文档不再重复罗列——重复罗列会随代码演进迅速失真。
-
-`mc::entity` 命名空间：
-- `MAX_ENTITIES_PER_CHUNK`, `MAX_ENTITIES` - 实体数量限制
-
-`mc::item` 命名空间：
-- `DEFAULT_MAX_STACK_SIZE` - 物品默认最大堆叠数（64）
-
-`mc::capacity` 命名空间：
-- `DEFAULT_BUFFER_SIZE`, `PACKET_BUFFER_SIZE` - 缓冲区大小
-- `ENTITY_LIST_INITIAL`, `CHUNK_MAP_INITIAL`, `PLAYER_LIST_INITIAL` - 容器初始容量
-- `MAX_PLAYER_NAME_LENGTH`, `MAX_CHAT_MESSAGE_LENGTH`, `MAX_COMMAND_LENGTH`, `MAX_PATH_LENGTH` - 字符串限制
+`mc::world`：
+- 【重要】高度限制（`MIN_BUILD_HEIGHT` / `MAX_BUILD_HEIGHT` / `SEA_LEVEL`）与区块尺寸（`CHUNK_WIDTH` / `CHUNK_HEIGHT` / `CHUNK_SECTION_HEIGHT` / `CHUNK_SECTIONS` / `CHUNK_SHIFT` / `SECTION_SHIFT` / `CHUNK_MASK`）**必须只用常量，禁止硬编码 0/16/256**；位运算也要用 `CHUNK_SHIFT` 而不是 `>> 4`。
+- 【重要】`CHUNK_HEIGHT` ≠ `MAX_BUILD_HEIGHT`，语义完全不同：`CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT = 320 - (-64) = 384`，而 `MAX_BUILD_HEIGHT = 320`。
+- `CHUNK_LOAD_RADIUS`、`SPAWN_CHUNK_RADIUS` 等其余清单见 `src/common/world/WorldConstants.hpp`（`Constants.hpp` 通过 include 重新导出）。**具体清单以该文件为准**，不要依赖本文档的罗列。
 
 **数学函数** (`src/common/util/math/MathUtils.hpp`)
 - `toRadians()`, `toDegrees()`, `clamp()`, `lerp()`, `smoothstep()`
 - `square()`, `cube()`, `isZero()`, `approxEqual()`
-- `fastInverseSqrt()`, `floorTo<T>()`, `ceilTo<T>()`, `roundTo<T>()`
+- `floorTo<T>()`, `ceilTo<T>()`, `roundTo<T>()`
 - `toChunkCoord()`, `wrapDegrees()`, `distanceSq()`, `distanceHorizontalSq()`
+
+注意：仓库里**没有** `fastInverseSqrt()`。需要倒数平方根时用 `1.0f / std::sqrt(x)`，不要凭记忆调用不存在的工具函数。
 
 **射线** (`src/common/util/math/ray/Ray.hpp`)
 - `Ray` - 射线类，支持 `at(t)` 获取点、`fromAngles()` 从角度创建
@@ -216,11 +195,18 @@ block/
 ### 几何工具
 
 **方向枚举** (`src/common/util/Direction.hpp`)
-- `Direction` - 方向枚举（Down, Up, North, South, West, East, None）
+
+`Direction.hpp` 在 `mc` 命名空间下并列提供了**五个**命名空间，按查询对象分开，不要只在 `Directions` 里找：
+
+- `Direction` - 方向枚举（Down, Up, North, South, West, East, None），索引顺序 Down=0, Up=1, North=2, South=3, West=4, East=5
 - `Axis` - 轴向枚举（X, Y, Z）
 - `Rotation` - 旋转枚举（None, Clockwise90, Clockwise180, CounterClockwise90）
-- `Mirror` - 镜像枚举
-- `Directions` 命名空间：`opposite()`, `xOffset()`, `yOffset()`, `zOffset()`, `getAxis()`, `isHorizontal()`, `isVertical()`, `rotateY()`, `fromName()`, `toBlockFace()`
+- `Mirror` - 镜像枚举（None, LeftRight, FrontBack）
+- `Directions` - 方向相关：`opposite()`, `xOffset()`, `yOffset()`, `zOffset()`, `getAxis()`, `isHorizontal()`, `isVertical()`, `rotateY()`, `fromName()`, `toBlockFace()`, `all()`, `horizontal()` 等
+- `Rotations` - 旋转相关：`add()`, `getRotated()`, `getInverse()`, `rotate()`, `toDegrees()`
+- `Mirrors` - 镜像相关：`getInverse()`
+- `Axes` - 轴相关：`all()`, `fromName()`, `toString()`, `getPositive()`, `getNegative()`, `getPlane()`, `isHorizontal()`, `isVertical()`, `choose()`
+- `AxisCycles` - 轴循环相关：`all()`, `cycle()`, `inverse()`, `between()`
 
 **轴对齐包围盒** (`src/common/util/AxisAlignedBB.hpp`)
 - `AxisAlignedBB` - 碰撞检测核心类
@@ -265,12 +251,12 @@ block/
 - `spawnItemEntities()` - 批量生成物品实体
 - `DEFAULT_PICKUP_DELAY = 10` - 默认拾取延迟（ticks）
 - `DEFAULT_LIFETIME = 6000` - 默认存活时间（ticks）
-- 参考 MC Java `InventoryHelper.spawnItemStack()`、`Entity.entityDropItem()`（对齐 1.21.11）
+- 上述 `spawnItem*` 与速度函数的签名都要求显式传入 `math::IRandom&`、位置、拾取延迟等，不允许再包一层省略参数的便捷重载（见"关于配置和传参"）
 
 ### NBT 系统 (`src/common/util/nbt/`)
 
 **核心类型**
-- `TagId` - NBT 标签类型枚举（End, Byte, Short, Int, Long, Float, Double, ByteArray, std::string, List, Compound, IntArray, LongArray）
+- `TagId` - NBT 标签类型枚举（`End`, `Byte`, `Short`, `Int`, `Long`, `Float`, `Double`, `ByteArray`, `String`, `List`, `Compound`, `IntArray`, `LongArray`），注意字符串标签的枚举项叫 `String`，不叫 `std::string`
 - `tags::tag` - 抽象基类
 - `tags::compound_tag` - 复合标签（键值对映射）
 - `tags::list_tag` - 列表基类（同类型元素）
@@ -295,13 +281,11 @@ auto& str = tag.get<mc::nbt::tags::string_tag>("name");
 项目内置两套 profiler 后端，可独立开关、同时启用（双轨录制），对外 `MC_TRACE_*` API 宏名统一：
 
 - **Perfetto**（`MC_ENABLE_TRACING`，默认 ON）：进程内录制到 `.perfetto-trace` 文件，供 ui.perfetto.dev 分析。
-- **Tracy**（`MC_ENABLE_TRACY`，**默认 OFF**）：in-memory 采集，client 自动监听 8086 端口，用 tracy GUI 连接拉取查看（进程内不写文件）。采集范围另受 `MC_TRACY_ON_DEMAND`（默认 ON）控制：**仅在有 GUI 连接时记录事件**。原因是 Tracy 默认会把事件无条件写入进程内生产者队列，而该队列只在 GUI 连接时被排空，长驻进程（服务端）下会无限增长。因此抓取服务端启动阶段的 trace 须先连上 GUI，或改用 Perfetto（不受此项影响）。
-  - 默认关闭的原因：Tracy 带来可观的常驻内存开销（Windows 上其符号解析线程会载入全部模块调试符号约 96 MB，自带的 rpmalloc 按 4 MiB 为单位 `VirtualAlloc`），且**不受 `--profiler-enabled=false` 影响**。实测对比见 `docs/MEMORY.md`。需要时显式 `-DMC_ENABLE_TRACY=ON -DMC_ENABLE_MEMORY=ON`。
-- 两者同时启用时，`MC_TRACE_*` 宏会同时向两套后端发事件；两者皆关时所有宏空展开、零开销。
+- **Tracy**（`MC_ENABLE_TRACY`，**默认 OFF**）：in-memory 采集，client 自动监听 8086 端口，用 tracy GUI 连接拉取查看。
 
 #### 追踪类别
 
-追踪类别参见 `src\common\profiler\TraceCategories.hpp` 中的 `mc::trace::TraceEvents` 枚举树。你只能使用这棵树上的叶子节点（如 `TraceEvents.Server.Tick`），其字符串值已在该文件的 `PERFETTO_DEFINE_CATEGORIES` 中注册（仅 Perfetto 后端需要注册，Tracy 侧不消费 category）。使用树外的类别会导致编译错误（仅 Perfetto 启用时）。
+追踪类别参见 `src\common\profiler\TraceCategories.hpp` 中的 `mc::trace::TraceEvents` 枚举树。
 
 #### 用法
 
@@ -326,11 +310,7 @@ MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "FPS", fps);
 MC_TRACE_INSTANT_EVENT(TraceEvents.Game.Tick, "SomethingHappened");
 ```
 
-在 `.cpp` 中通常在 include 区后加 `using namespace mc::trace;`，即可直接写 `TraceEvents.Server.Tick`；在 `.hpp` 中用全限定 `::mc::trace::TraceEvents.X.Y`，不要在头文件加 `using namespace`。
-
 可用宏：`MC_TRACE_SCOPED_EVENT`（作用域事件，最常用）、`MC_TRACE_INSTANT_EVENT`（瞬时事件）、`MC_TRACE_COUNTER`（计数器）、`MC_TRACE_EVENT_BEGIN`/`MC_TRACE_EVENT_END`（手动跨函数配对）、`MC_TRACE_SET_THREAD_NAME`（线程命名）。
-
-双轨说明：`MC_TRACE_SCOPED_EVENT` 双轨启用时同时发 Perfetto `TRACE_EVENT` 与 Tracy `ZoneScopedN`（变量名按 `__LINE__` 唯一化，允许同一作用域多个）；`MC_TRACE_COUNTER` 同时发 `TRACE_COUNTER` 与 `TracyPlot`（转 double，>2^53 大值会丢精度）；`MC_TRACE_INSTANT_EVENT`/`BEGIN`/`END` 在 Tracy 侧降级为 message 边界标记。`MC_TRACE_SET_THREAD_NAME` 转调 `ProfilerManager::setThreadName`，由门面同时写两套后端。
 
 你必须保证传入的枚举叶节点在 `src\common\profiler\TraceCategories.hpp` 中已注册，否则会导致编译错误（仅 Perfetto 后端启用时生效；Tracy 不消费 category）。
 
@@ -406,9 +386,6 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 
 ## 重要说明
 
-### MC Java 源码参考
-你可以在 `D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft` 访问 MC Java 1.21.11 源码作为参考。本项目旨在尽可能复制 Java 版游戏玩法。
-
 ### 代码质量
 - 必须有断言和单元测试
 - 每个方法都要有文档注释
@@ -416,7 +393,7 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 - "测试即契约"原则
 
 ### 目录结构
-保持整洁优雅的目录结构，适当使用子目录。永远不要在一个目录里堆放大量文件。
+保持整洁优雅的目录结构，充分使用子目录、子目录的子目录，永远不要在一个目录里堆放大量文件，这会很乱！
 
 ### 命名空间使用
 使用嵌套命名空间来隔离子系统：
@@ -432,14 +409,13 @@ enum class Operation : u8 { ... };
 
 本节记录项目中反复出现、难以排查的陷阱。新增同类代码前务必先核对这里，避免重蹈覆辙。各子目录 README 的"容易踩的坑"章节记录更局部的坑，本节只收录跨模块、影响面大的通用坑。
 
-### 0. 【最重要的架构偏好】原版数据一律运行时从数据包读取，不要生成 C++ 代码
+### 0. 原版数据一律运行时从数据包读取，不要生成 C++ 代码
 
 项目要像原版 MC 一样：**在初始化阶段读取数据包**，而不是把数据包内容展开成 `.gen.cpp` 编译进去。区块生成系统、`ItemTagLoader`、`BlockTagLoader` 都是这条路线。
 
 - ✅ 正确做法：`data/<ns>/...` 下的 JSON 在启动期由加载器读取（`GenericTagLoader` / `ItemTagLoader` / `BlockTagLoader` 等），支持多数据包合并与 `replace` 语义，改数据包即改行为，无需重编译。
 - ❌ 错误做法：写脚本把数据包展开成 `*.gen.cpp` 内嵌进二进制。这类文件与数据包会无声漂移，且玩家/服务端无法通过数据包定制。
 - 例外仅限**数据包中根本不存在**的信息（如原版硬编码在注册代码里的属性）。这类数据以「实测快照」形式内嵌，并在注释中写明：它为什么无法从数据包得到、数值从何而来。
-- 存量违反项（`VanillaBlockTags.gen.cpp`、`VanillaItemTags.gen.cpp`）属于历史遗留，改动相关模块时应顺带迁移到运行时加载。
 
 ### 1. 高度图 +1 语义：`ctx.getHeight` vs `getTopBlockY`
 
@@ -447,24 +423,11 @@ MC 1.21.11 生成期间，`WorldGenContext.getHeight(...)` 走 `WorldGenRegion.g
 
 项目的 `WorldGenRegion::getTopBlockY` 转发 `ChunkPrimer::getTopBlockY`，返回 blockY（等价 MC `ChunkAccess.getHeight`），**少了这个 +1**。因此：**凡是对应 MC `ctx.getHeight(...)` 调用的 placement/feature 代码，必须对 `getTopBlockY` 结果 +1**。
 
-漏掉 +1 的典型后果：`HeightmapPlacement` 返回草方块本身 Y → `TreeFeature` 的 `startPos` 落在草方块上 → `_calculateAvailableHeight` 在 `y=0` 检查草方块（不可替换）立即返回 -2 → 所有依赖 heightmap 的 feature（含全部树木）判定"空间不足"而生成失败，且**无任何报错**（feature 失败本就是常态，静默返回 false）。目前已 +1 的有 `HeightmapPlacement`、`SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement`、`GravityStructureProcessor`；新增同类代码务必核对 MC 源码确认调用方是否走 `WorldGenRegion.getHeight`。
-
-`GravityStructureProcessor`（terrain_matching 投影贴地）另有一处配套语义：落点是
-`newY = getHeight(...) + offset + 模板内局部 Y`，**局部 Y 不可省**——整块模板沿 Y 平移，使局部 y=0 落在高度图处（村庄街道的路面在局部 y=0、jigsaw 在局部 y=1）。漏掉局部 Y 会把构件压扁到同一层，路面 dirt_path 被上层方块覆盖，表现为"村庄里看不见路"。
-
-### 2. random_selector / simple_random_selector 子特征引用是 PlacedFeature id
-
-MC 1.21.11 中 `RandomFeatureConfiguration.features[]` / `default` 是 `WeightedPlacedFeature` / `Holder<PlacedFeature>`，即 **PlacedFeature 引用**，命中后调用其 `place(origin)`（先走该 PlacedFeature 自带的 placement 链，再放置其配置化特征）。**不是 ConfiguredFeature 引用**。
-
-项目的数据包存在两种写法（均合法）：(1) 字符串 id 指向已注册 placed_feature（如 `"minecraft:spruce_checked"`、`"minecraft:oak_checked"`）；(2) 内联对象 `{"feature":"<configured_id>","placement":[]}`，加载器提取出 configured id（如 `"minecraft:oak_bees_005"`，无对应 placed_feature 文件）。
-
-若错误地仅按 `ConfiguredFeatureRegistry` 解析这些 id，则所有以 placed_feature id 作 default 的 trees_*（snowy/taiga/jungle/savanna/water/windswept_hills 等）都会因注册表查不到而 `default-miss` 静默失败，**整个生物群系的树木都不生成，且无报错**。正确做法：解析子特征 id 时**先查 `PlacedFeatureRegistry`，未命中再查 `ConfiguredFeatureRegistry`** 兜底（见 `RandomSelectorFeature.cpp` 的 `dispatchChildFeature`）。新增同类 selector feature 必须沿用此双注册表解析。
-
 ## 【重要】README.md 使用指南
 
 几乎每个目录下都有一个简体中文编写的 README.md，它很重要，在你探索项目实现的时候，提前看看它，能节省不少多余的文件查找与查看，节省不少上下文开销。
 
-【重要】为了节省上下文，请你尽量阅读各级目录的 README.md 来获取你需要的信息，而不是直接查看代码文件。
+【重要】为了节省上下文，请你尽量阅读各级目录的 README.md 来获取你需要的信息，而不是直接查看代码文件。但需注意，README.md内容可能存在过时、有误、缺乏重要信息的情况，必要时需要结合真实代码进行交叉求证和更正。
 
 例如：当你修改想修改或查看`src\common\world\chunk\ChunkLoadTicketManager.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
 
@@ -475,7 +438,7 @@ MC 1.21.11 中 `RandomFeatureConfiguration.features[]` / `default` 是 `Weighted
 
 同理，当你对代码职责、接口、架构等做了修改，必须视情况决定是否递归修改/新增目录链上的各级README.md！
 
-如果你发现当前的README.md内容过时了，或者不够清晰了，或者缺乏重要信息了，你必须更正/更新它！如果你发现自己途径的目录没有README.md了，你必须新增一个！
+如果你发现当前的README.md内容过时、有误、缺乏重要信息的时候，你必须更正/更新它！如果你发现自己途径的目录没有README.md了，你必须新增一个！
 
 注意，tests目录不考虑，不要写 README.md。
 
@@ -527,6 +490,10 @@ src/client/renderer/
 - 对于一个子系统下的基础文件（比如类型声明、工具库等），且它们是依赖链的末梢，则将他们放在该子系统的base目录下。例如：`base/buffer/`、`base/codec/`、`base/types/`等。
 - 不允许出现容易让人混淆的api/类名/方法名等。这里的混淆，既包括单个的混淆，也包括相互之间的混淆。
 
+### 关于“对齐MC”这件事的边界
+
+我希望能在逻辑、数值、时序、协议等方面完整对齐MC，但在对齐过程中，务必使用更清晰的架构、更高性能的实现等。此外，**不要**对诸如“浮点精度”、“数学精度”、“-ffast-math”、“溢出”、“精度累积”的这种细枝末节的地方进行对齐，避免因此增加开发复杂度和性能负担。我能容忍浮点数误差、精度误差等带来的偏差！对于浮点数，比较的时候给个容许的误差范围就行了，避免逐位比较导致失败！
+
 ### 对于重构类任务的准则
 
 1.不做任何api兼容，直接一步到位新代码（因此主调者需要修改，这符合预期）
@@ -564,42 +531,9 @@ src/client/renderer/
 
 不要过度防御性编程，这会导致代码臃肿、不易发现真正的bug和架构缺陷。只在必要的边界和不受信任的输入处进行防御性检查，其他地方可以假设前置条件已经满足。
 
-❌ 不好的例子：
+典型反例（❌ 错误）：`if (m_chunkManager && pendingTasksCount >= 0) { ... m_chunkManager->tick(...); }`、`if (m_lightManager && m_lightManager->hasLightWork())`、`if (m_skyLight != nullptr)` —— 对约定非空的成员做冗余判空，把职责不变量检查混进调用点。
 
-```cpp
-    // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
-    if (m_chunkManager && pendingTasksCount >= 0) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::ChunkTick");
-        m_chunkManager->tick(pendingTasksCount);
-    }
-
-    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
-    if (m_lightManager && m_lightManager->hasLightWork()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
-        m_lightManager->tick(32768, true, true);
-    }
-
-    if (m_skyLight != nullptr) {
-        m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
-    }
-```
-
-✅ 正确例子，最佳实践：
-
-```cpp
-    // 区块 tick - 包括区块内实体、方块随机刻、区块状态更新等
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::ChunkTick");
-    MC_ASSERT_RELEASE(pendingTasksCount >= 0); // 转为断言，便于迅速暴露问题
-    m_chunkManager->tick(pendingTasksCount);
-
-    // 光照更新 - 限制每 tick 最多处理 32768 个区块，避免过长卡顿
-    if (m_lightManager->hasLightWork()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::LightManager");
-        m_lightManager->tick(32768, true, true);
-    }
-
-    m_skyLight->forceHandleEmptySectionChanges(m_provider, chunk, emptySections);
-```
+✅ 正确：约定非空的成员直接使用（`m_chunkManager->tick(pendingTasksCount);`、`m_lightManager->hasLightWork()`、`m_skyLight->forceHandleEmptySectionChanges(...)`），把"不可能为负/为空"转成 `MC_ASSERT_RELEASE(...)` 就近暴露问题，而不是 if 兜底。
 
 这可能会导致一些空指针访问，但这通常是由于架构设计缺陷或其他bug引起的，过度防御会掩盖这些问题。正确的做法是通过单元测试、集成测试和代码审查来发现和修复这些问题，而不是在每个调用处添加冗余检查。
 
@@ -669,47 +603,26 @@ if (!result.success()) {
 ### 2.4 类设计规范
 
 ```cpp
-// ✅ 推荐：Rule of Five
+// ✅ 推荐：Rule of Five（含移动语义；私有方法用 _ 前缀）
 class Chunk {
 public:
-    Chunk();                                    // 默认构造函数
-    Chunk(const Chunk& other);                  // 拷贝构造
-    Chunk(Chunk&& other) noexcept;              // 移动构造
-    Chunk& operator=(const Chunk& other);       // 拷贝赋值
-    Chunk& operator=(Chunk&& other) noexcept;   // 移动赋值
-    ~Chunk();                                   // 析构函数
-    
-    // 工厂方法
-    static std::unique_ptr<Chunk> create(int32_t x, int32_t z);
-    
+    Chunk();
+    Chunk(const Chunk& other);
+    Chunk(Chunk&& other) noexcept;
+    Chunk& operator=(const Chunk& other);
+    Chunk& operator=(Chunk&& other) noexcept;
+    ~Chunk();
+
+    static std::unique_ptr<Chunk> create(ChunkCoord x, ChunkCoord z);  // 工厂方法
+
 private:
-    // 数据成员
     std::vector<Block> m_blocks;
     ChunkPos m_position;
-    // 私有方法（私有方法必须加前缀_以示区分）
     void _loadFromDisk();
 };
 
-// ✅ 必须：明确指定访问控制
-class Entity {
-public:
-    // 公共接口
-    void update(float deltaTime);
-    
-protected:
-    // 派生类可访问
-    virtual void onTick();
-    
-private:
-    // 私有实现
-    void _internalUpdate();
-    EntityID m_id;
-};
-
-// ❌ 禁止：友元滥用
-class A {
-    friend class B;  // 除非必要，否则避免
-};
+// ✅ 必须：明确指定 public/protected/private 访问控制
+// ❌ 禁止：滥用 friend
 ```
 
 ### 2.5 函数设计规范
@@ -994,49 +907,59 @@ Result<void> initialize() {
     if (!result.success()) {
         return result;  // 传播错误
     }
-    
+
     result = createRenderer();
     if (!result.success()) {
         return result;
     }
-    
+
     return Result<void>::ok();
 }
 
+// ✅ 推荐：用 MC_TRY / MC_TRY_ASSIGN 宏简化传播（宏名带 MC_ 前缀，没有裸 TRY 宏）
 Result<void> initialize() {
-    TRY(createWindow());
-    TRY(createRenderer());
+    MC_TRY(createWindow());
+    MC_TRY(createRenderer());
     return Result<void>::ok();
+}
+
+Result<Renderer> makeRenderer() {
+    Renderer renderer;
+    MC_TRY_ASSIGN(renderer, createRenderer());  // 失败时直接向上传播 error
+    return renderer;
 }
 
 // ✅ 推荐：携带错误信息
+// ErrorCode 是独立的顶层枚举 mc::ErrorCode，不是 Error 的嵌套类型（定义见 Result.hpp:48）
+enum class ErrorCode : i32 { Success = 0, Unknown = -1, InvalidArgument = -2, NotFound = -100, OutOfMemory = -103, ... };
+
 class Error {
 public:
-    enum class Code {
-        Success = 0,
-        NotFound,
-        InvalidArgument,
-        OutOfMemory,
-        // ...
-    };
-    
-    Code code() const;
-    const std::string& message() const;
-    const std::string& source() const;  // 错误位置
+    Error(ErrorCode code, std::string_view message = "", std::string_view source = "");
+
+    [[nodiscard]] ErrorCode code() const noexcept;
+    [[nodiscard]] const std::string& message() const noexcept;
+    [[nodiscard]] const std::string& source() const noexcept;  // 错误位置
+
+    // 静态工厂
+    static Error invalidArgument(std::string_view message = "");
+    static Error notFound(std::string_view message = "");
+    static Error fileNotFound(std::string_view path = "");
 };
 
 // 使用
 Result<Chunk*> loadChunk(ChunkPos pos) {
     if (!chunkExists(pos)) {
-        return Error{
-            Error::Code::NotFound,
-            fmt::format("Chunk at {} not found", pos),
-            "ChunkManager::loadChunk"
-        };
+        return Error(ErrorCode::NotFound, fmt::format("Chunk at {} not found", pos), "ChunkManager::loadChunk");
     }
-    // ...
+    // 也可以直接用工厂：return Error::notFound(...);
 }
+
+// ⚠️ 注意：Result::value() 在 failed() 时 throw std::runtime_error，
+//    必须先用 success() 判断再取 value()，不要依赖异常传递。
 ```
+
+【重要】要使用错误码时，必须参照 `Result.hpp` 中的 `mc::ErrorCode` 定义，不要按 MC 原版的 `Error.Code` 写法臆造。
 
 ---
 
@@ -1135,13 +1058,43 @@ void processMessage(const std::string& message) {
 ./scripts/configure.sh build
 ```
 
+该脚本在 Windows 上只是转调 `scripts/configure.bat`，而 `configure.bat` / `configure.ps1` / `configure.sh` 的默认模式与 `build` 快捷模式都**硬编码** `windows-clang-relwithdebinfo-server`，在这个模式下无法切换 preset。需要构建其它 preset 时走 pass-through 模式，把 `--preset` 透传给 cmake：
+
+```bash
+./scripts/configure.sh --preset windows-clang-debug
+cmake --build --preset windows-clang-debug
+```
+
 在macos上：
 ```bash
-cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
+cmake --build --preset macos-relwithdebinfo-server -- -j{当前机器核心数减去2}
 # 当前机器核心数要通过命令获取
+# 必须用 -server 后缀（MC_BUILD_CLIENT=OFF）。不带后缀的 macos-relwithdebinfo 会打开客户端构建，
+# 与"客户端已停止维护"的现状不符。
 ```
 
 如果仍然对于构建过程存在疑难问题，可参考`docs/BUILD.md`
+
+### preset 体系（先看清楚再决定用哪个）
+
+preset 定义在 `CMakePresets.json`，关键选项为 `MC_BUILD_CLIENT` / `MC_BUILD_SERVER` / `MC_BUILD_TESTS` / `MC_BUILD_BENCHMARKS` / `MC_BUILD_DIFF_PROBES` / `MC_BUILD_FUZZERS` / `MC_ENABLE_SANITIZERS`。所有 preset 的 `binaryDir` 都是仓库根 `build/`（`*-noprof` 为 `build-noprof/`），产物统一落在 `build/bin/<Config>/`。
+
+| preset | 客户端 | 测试 | 说明 |
+|---|---|---|---|
+| `windows-clang-relwithdebinfo-server` | OFF | ON | **Windows 默认**，`configure.sh build` 用的就是它 |
+| `windows-clang-debug` | ON | ON | Debug 构建 |
+| `windows-clang-relwithdebinfo` | ON | ON | 含客户端 |
+| `windows-clang-release` / `windows-clang-release-noprof` | ON | OFF | Release / 无 profiler 可分发版 |
+| `windows-clang-relwithdebinfo-noprof` | ON | ON | 无 profiler，`binaryDir` 为 `build-noprof/` |
+| `windows-clang-fuzz` / `linux-clang-fuzz` | — | OFF | 只构建 `tests/fuzz` 下的 libFuzzer 目标 |
+| `macos-relwithdebinfo-server` | OFF | ON | **macOS 默认**（`configure.sh` 的 macOS 分支用它） |
+| `macos-relwithdebinfo` / `macos-debug` / `macos-release` | ON | 视 preset | 含客户端 |
+| `linux-relwithdebinfo` / `linux-debug` | OFF | ON | **Linux 默认** |
+| `linux-clang-ci-tests` | — | ON | CI 用，**ASan + UBSan**；build preset 只构建 `minecraft-server` + `mc_tests` |
+| `linux-clang-ci-release` | — | OFF | CI 用，build preset 只构建 `minecraft-server` + `mc_benchmark` |
+| `linux-release-noprof` | OFF | OFF | 无 profiler 可分发版 |
+
+`tests/diff` 下的差分包默认**不**参与常规构建，需显式配置 `-DMC_BUILD_DIFF_PROBES=ON` 才会生成 `diff_*` 可执行文件。
 
 ### 判断构建是否真的结束（不要被重定向日志骗了）
 
@@ -1150,25 +1103,42 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 正确的判据（任选其一，必要时组合）：
 
 1. **后台任务输出里的完成标记**：`cmake --build ... > /tmp/x.log 2>&1; echo exit=$?` 中 `echo exit=$?` 的输出会进到后台任务自己的输出文件，看到 `exit=0` 才是真的结束了；
-2. **产物 mtime**：`stat -c '%y' build/bin/RelWithDebInfo/mc_tests.exe`，若 mtime 晚于本次构建启动时刻，说明链接已完成；
+2. **产物 mtime**：`stat -c '%y' build/bin/RelWithDebInfo/mc_tests.exe`，若 mtime 晚于本次构建启动时刻，说明链接已完成。该判据的前提是当前 preset 开启了 `MC_BUILD_TESTS`（见上表）；
 3. **幂等验证**：再跑一次同样的 `cmake --build`，若输出 `ninja: no work to do.` 就说明上一次已经完整结束、依赖图已闭合。
 
 排查「是否真的卡死」的标准动作：`tasklist` 查 `ninja.exe` / `clang++.exe` / `lld-link.exe` / 目标 exe 是否还在；都不在 = 没有进程在等，就是已经结束。
 
 ## 运行
 
-```bash
-./build/bin/RelWithDebInfo/minecraft-client --quick-play-new # 客户端（会同时启动内置服务端）
-./build/bin/RelWithDebInfo/minecraft-server --profiler_enabled=false # 服务端（命令行参数由 gflags 解析，可用 --gametest 无头跑测试、--config 指定配置） 建议绝大多数场景下明确传入--profiler_enabled=false，除非是在CPU性能分析场景下才需要启用这个flag
-./build/bin/RelWithDebInfo/minecraft-server.exe --gametest # 服务端无头跑集成测试
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="*GameTestServer*" # GameTestServer自动化集成测试
-./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="你的测试过滤器" # 其他单元测试
+产物路径统一为 `build/bin/<Config>/`，Windows 上配置名为 `RelWithDebInfo`、`Debug`、`Release` 等。
 
+```bash
+./build/bin/RelWithDebInfo/minecraft-server --profiler_enabled=false  # 服务端（命令行参数由 gflags 解析，可用 --gametest 无头跑测试、--config 指定配置、--interactive 进交互式终端）。建议绝大多数场景下明确传入 --profiler_enabled=false，除非是在 CPU 性能分析场景下才需要启用
+./build/bin/RelWithDebInfo/minecraft-server --gametest               # 服务端无头跑 GameTest（可配 --gametest_packs / --gametest_report / --gametest_tests / --gametest_world / --gametest_shard）
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter="*GameTestServer*" # GameTestServer 门面相关单元测试
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter="你的测试过滤器"     # 其他单元测试
 ```
+
+【重要】**客户端已停止维护，默认 preset 不再构建 `minecraft-client`**（见上文 preset 表，`MC_BUILD_CLIENT=OFF`）。`build/bin/RelWithDebInfo/minecraft-client` 若存在，也是历史构建的残留产物，不代表当前代码可构建出客户端；需要客户端时必须显式选 `MC_BUILD_CLIENT=ON` 的 preset 并自行承担后果。
 
 运行过程中的日志也会一并输出到控制台，如果你要抓日志来调试，请编译后直接执行上述命令即可，尽量不要让用户手动去执行。
 
 日志一般非常大，请尽量不要读取全文，只抓取你需要的部分。
+
+### 测试入口地图（四类测试，别混用）
+
+仓库有四类测试，各自有独立的入口，**不要**以为只有 `mc_tests`：
+
+| 类型 | 位置 | 怎么跑 | 参考文档 |
+|---|---|---|---|
+| 单元测试 | `tests/unit/` | `./build/bin/RelWithDebInfo/mc_tests --gtest_filter="..."` | `docs/test/UNIT_TEST.md` |
+| GameTest 集成测试 | `tests/integrated/`（行为包）+ `src/server/test/`（框架） | 单进程：`minecraft-server --gametest`；全量编排（分片 + 失败隔离重跑 + JUnit 聚合）：`node scripts/test/run-gametests.ts --filter='mob_*'` | `src/server/test/README.md`、`docs/test/INTEGRATED_TEST.md` |
+| 差分测试 | `tests/diff/`（C++ probe + Java oracle） | 需 `-DMC_BUILD_DIFF_PROBES=ON` 重新配置，产物为 `build/bin/RelWithDebInfo/diff_*`；跨服务端对拍：`node scripts/test/run_diff.ts` | `tests/diff/README.md`、`docs/test/diff/` |
+| 模糊测试 | `tests/fuzz/` | 用 `windows-clang-fuzz` / `linux-clang-fuzz` preset 构建 | `docs/test/FUZZING.md` |
+
+补充入口：`node scripts/test/setup.ts` 是一次性环境准备（构建 `tests/integrated` 行为包产物、建 junction、改基岩 `server.properties`），跑 `run_diff.ts` 之前需要先执行它。
+
+`src/server/test/README.md` 完整描述了 GameTest 框架的七层结构（`base/` / `framework/` / `native/` / `facade/` / `minecraft/` / `runner/` / `script/`），改动或新增 GameTest 前应先读它。
 
 ## 测试
 
@@ -1184,6 +1154,8 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 
 你新增单元测试的时候，务必记得把新增的测试文件编入Cmake列表，否则这个文件无法被编译和运行！
 
+未经用户明确允许，否则严禁以“全量回归”的理由跑全量测试（包括但不限于严禁全量单元测试、严禁全量集成测试、严禁全量diff测试等），以便节省时间！
+
 ## 代码格式化
 
 提交代码之前，必须使用clang-format对你修改的文件进行格式化：
@@ -1193,6 +1165,10 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 ```
 
 格式化完成后，不要重新编译一遍，以免浪费时间；如果出现了超出你预期文件范围的改动，属于正常现象，一起提交即可。
+
+### 文本编码
+
+仓库内所有代码与文档统一为 **UTF-8（无 BOM）**、LF 换行，由 `.editorconfig` 与 `.gitattributes` 共同约束；`*.ps1` 例外保留 UTF-8 BOM（Windows PowerShell 5.1 缺少 BOM 时会按 ANSI 解码）。禁止写入 GBK/GB2312/GB18030 编码的内容。提交前可运行 `node --experimental-strip-types scripts/format/check_encoding.ts` 检查非 UTF-8 文件、BOM 与 U+FFFD 乱码。
 
 ## clang-tidy 抑制注释（NOLINT）写法
 

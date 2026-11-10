@@ -40,8 +40,8 @@
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/tool/PickaxeItem.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 using namespace mc;
 using namespace mc::entity::effect;
@@ -475,6 +475,48 @@ TEST_F(PlayerDiggingTest, CombinedEffects)
     // 总乘数: 1.4 * 0.09 = 0.126
     f32 expectedMultiplier = 1.4f * 0.09f;
     EXPECT_FLOAT_EQ(combinedSpeed, baseSpeed * expectedMultiplier);
+}
+
+// ============================================================================
+// block_break_speed 属性（原版 Player.getDestroySpeed 的乘算项）
+// ============================================================================
+
+TEST_F(PlayerDiggingTest, BlockBreakSpeedAttributeScalesDigSpeed)
+{
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    if (!diamondPickaxe) {
+        GTEST_SKIP() << "diamond pickaxe not registered";
+    }
+
+    setHeldItem(*diamondPickaxe);
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+    const f32 baseSpeed = m_player->getDigSpeed(*stoneState);
+    ASSERT_GT(baseSpeed, 1.0f);
+
+    // block_break_speed 默认 1.0；加 1.0 后整体翻倍（原版是乘算，不是加算）。
+    m_player->attributes().addModifier(entity::attribute::Attributes::BLOCK_BREAK_SPEED,
+        entity::attribute::AttributeModifier(
+            "test:block_break_speed", "test", 1.0, entity::attribute::Operation::Addition));
+
+    EXPECT_FLOAT_EQ(m_player->getDigSpeed(*stoneState), baseSpeed * 2.0f);
+}
+
+TEST_F(PlayerDiggingTest, BlockBreakSpeedZeroMakesBreakingImpossible)
+{
+    const Item* diamondPickaxe = Items::DIAMOND_PICKAXE;
+    if (!diamondPickaxe) {
+        GTEST_SKIP() << "diamond pickaxe not registered";
+    }
+
+    setHeldItem(*diamondPickaxe);
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+
+    // 属性下限是 0.0：置零后挖掘速度归零，对应"永远挖不动"。
+    m_player->attributes().addModifier(entity::attribute::Attributes::BLOCK_BREAK_SPEED,
+        entity::attribute::AttributeModifier(
+            "test:block_break_speed_zero", "test", -1.0, entity::attribute::Operation::Addition));
+
+    EXPECT_FLOAT_EQ(m_player->getDigSpeed(*stoneState), 0.0f);
 }
 
 } // namespace

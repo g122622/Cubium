@@ -38,19 +38,19 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/SupportType.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
-#include "common/world/block/blocks/CauldronBlock.hpp"
-#include "common/world/block/blocks/LavaCauldronBlock.hpp"
-#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
-#include "common/world/block/registry/BuildingBlocks.hpp"
-#include "common/world/block/registry/MudBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/cauldron/CauldronBlock.hpp"
+#include "common/world/block/blocks/cauldron/LavaCauldronBlock.hpp"
+#include "common/world/block/blocks/cauldron/LayeredCauldronBlock.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/BuildingBlocks.hpp"
+#include "common/world/block/registry/vanilla/MudBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/fluid/Fluids.hpp"
@@ -378,18 +378,9 @@ const BlockState& PointedDripstoneBlock::rotate(const BlockState& state, Rotatio
     return state;
 }
 
-const BlockState& PointedDripstoneBlock::mirror(const BlockState& state, Mirror mirror) const
+const BlockState& PointedDripstoneBlock::mirror(const BlockState& state, Mirror /*mirror*/) const
 {
-    // 对于VERTICAL_DIRECTION，镜像时Up/Down互换
-    Direction verticalDir = state.get(BlockStateProperties::VERTICAL_DIRECTION());
-    if (mirror == Mirror::FrontBack || mirror == Mirror::LeftRight) {
-        if (verticalDir == Direction::Up) {
-            return state.with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
-        }
-        if (verticalDir == Direction::Down) {
-            return state.with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
-        }
-    }
+    // 滴水石只带竖直朝向，水平镜像不影响任何属性（原版没有覆写 mirror）。
     return state;
 }
 
@@ -961,7 +952,7 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
         const BlockState* clayState = &VanillaBlocks::CLAY->defaultState();
         world.setBlockState(fluidPos, clayState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, fluidPos, clayState);
-        world.playEvent(world::WorldEvents::DRIPSTONE_DRIP, tipPos, 0);
+        world.playEvent(::mc::world::LevelEventId::DRIPSTONE_DRIP, tipPos, 0);
         return;
     }
 
@@ -969,7 +960,7 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     std::optional<BlockPos> cauldronPosOpt = findFillableCauldronBelow(world, tipPos, *fluid);
     if (cauldronPosOpt.has_value()) {
         BlockPos cauldronPos = cauldronPosOpt.value();
-        world.playEvent(world::WorldEvents::DRIPSTONE_DRIP, tipPos, 0);
+        world.playEvent(::mc::world::LevelEventId::DRIPSTONE_DRIP, tipPos, 0);
         // 计算延迟：50 + (尖端Y - 炼药锅Y) tick
         i32 delay = 50 + (tipPos.y - cauldronPos.y);
         const BlockState* cauldronState = world.getBlockState(cauldronPos);

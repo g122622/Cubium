@@ -51,6 +51,7 @@
 #include "common/entity/experience/ExperienceManager.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/entity/player/SleepResult.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -92,8 +93,8 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -212,6 +213,27 @@ Player::Player(EntityInstanceId id, const std::string& username, ecs::EntityRegi
 }
 
 Player::~Player() = default;
+
+PlayerInventory& Player::_inventory()
+{
+    return m_inventory;
+}
+
+const PlayerInventory& Player::_inventoryConst() const
+{
+    return m_inventory;
+}
+
+i32 Player::selectedSlot() const
+{
+    return m_inventory.getSelectedSlot();
+}
+
+void Player::setSelectedSlot(i32 slot)
+{
+    // 越界夹取由 PlayerInventory::setSelectedSlot 统一处理（它自身 clamp 到快捷栏范围）。
+    m_inventory.setSelectedSlot(slot);
+}
 
 void Player::registerData()
 {
@@ -1237,38 +1259,77 @@ Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const
         return movement;
     }
 
-    // 获取当前碰撞箱
-    AxisAlignedBB box = boundingBox();
+    // 沿边缘逐 0.05 步回退，X 与 Z 分别处理，最后再处理斜向组合。
+    //
+    // 分轴回退是必须的：玩家贴边斜向移动时，只有「让他掉下去的那个分量」该被削掉，
+    // 另一个分量要保留，否则会变成贴着墙一样被完全卡住。曾经这里做的是「取移动后的
+    // 整个位置一次性判定，没有支撑就 X/Z 全归零」，表现为贴着方块边缘斜走时走不动。
+    //
+    // 每个循环在 |位移| <= 0.05 时归零并跳出，因此最多回退到 0，不会越过原点。
+    const AxisAlignedBB box = boundingBox();
+    const f32 stepUp = stepHeight();
 
-    // 计算移动后的位置
-    f32 newX = m_builtIn.stateVector->m_pos.x + movement.x;
-    f32 newZ = m_builtIn.stateVector->m_pos.z + movement.z;
+    f32 dx = movement.x;
+    f32 dz = movement.z;
+    constexpr f32 BACK_OFF_STEP = 0.05f;
+    const f32 stepX = (dx > 0.0f ? BACK_OFF_STEP : (dx < 0.0f ? -BACK_OFF_STEP : 0.0f));
+    const f32 stepZ = (dz > 0.0f ? BACK_OFF_STEP : (dz < 0.0f ? -BACK_OFF_STEP : 0.0f));
 
-    // 检查移动后的位置下方是否有方块
-    // 向下检测一小段距离
-    AxisAlignedBB testBox = AxisAlignedBB(newX - PLAYER_WIDTH / 2.0f,
-        m_builtIn.stateVector->m_pos.y - SNEAK_EDGE_DISTANCE,
-        newZ - PLAYER_WIDTH / 2.0f,
-        newX + PLAYER_WIDTH / 2.0f,
-        m_builtIn.stateVector->m_pos.y,
-        newZ + PLAYER_WIDTH / 2.0f);
-
-    // 检查是否有碰撞
-    // 传 this 构造实体碰撞上下文，使细雪等按实体区分碰撞形状的方块在潜行边缘检测中正确判定
-    // （穿皮革靴的玩家在细雪上潜行不应把细雪当无碰撞而误阻止移动）。
-    EntityCollisionContext ctx;
-    ctx.entity = this;
-    ctx.entityBox = &testBox;
-    ctx.descending = false;
-    std::vector<AxisAlignedBB> boxes;
-    m_physicsEngine->collectCollisionBoxes(ctx, testBox, boxes);
-
-    if (boxes.empty()) {
-        // 没有支撑，阻止移动
-        return Vector3(0.0f, movement.y, 0.0f);
+    while (dx != 0.0f && _canFallAtLeast(box, dx, 0.0f, stepUp)) {
+        if (std::abs(dx) <= BACK_OFF_STEP) {
+            dx = 0.0f;
+            break;
+        }
+        dx -= stepX;
     }
 
-    return movement;
+    while (dz != 0.0f && _canFallAtLeast(box, 0.0f, dz, stepUp)) {
+        if (std::abs(dz) <= BACK_OFF_STEP) {
+            dz = 0.0f;
+            break;
+        }
+        dz -= stepZ;
+    }
+
+    while (dx != 0.0f && dz != 0.0f && _canFallAtLeast(box, dx, dz, stepUp)) {
+        if (std::abs(dx) <= BACK_OFF_STEP) {
+            dx = 0.0f;
+        } else {
+            dx -= stepX;
+        }
+        if (std::abs(dz) <= BACK_OFF_STEP) {
+            dz = 0.0f;
+        } else {
+            dz -= stepZ;
+        }
+    }
+
+    return Vector3(dx, movement.y, dz);
+}
+
+bool Player::_canFallAtLeast(const AxisAlignedBB& box, f32 offsetX, f32 offsetZ, f32 stepHeight) const
+{
+    // 把碰撞箱沿水平方向平移、沿垂直方向向下扩张 stepHeight，盒子里没有任何碰撞箱
+    // 就意味着「这个位置会掉下去」。四周各内缩 1e-7，避免与脚下方块的侧壁误判为支撑。
+    //
+    // 传 this 构造实体碰撞上下文，使细雪等按实体区分碰撞形状的方块在此检测中正确判定
+    // （穿皮革靴的玩家在细雪上潜行不应把细雪当无碰撞而误阻止移动）。
+    constexpr f32 EPSILON = 1.0e-7f;
+    const AxisAlignedBB probeBox(box.minX + EPSILON + offsetX,
+        box.minY - stepHeight - EPSILON,
+        box.minZ + EPSILON + offsetZ,
+        box.maxX - EPSILON + offsetX,
+        box.minY,
+        box.maxZ - EPSILON + offsetZ);
+
+    EntityCollisionContext ctx;
+    ctx.entity = this;
+    ctx.entityBox = &probeBox;
+    ctx.descending = false;
+
+    std::vector<AxisAlignedBB> boxes;
+    m_physicsEngine->collectCollisionBoxes(ctx, probeBox, boxes);
+    return boxes.empty();
 }
 
 void Player::updatePhysics()
@@ -1582,14 +1643,18 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
         }
     }
 
-    // 5. 水下挖掘惩罚
+    // 5. 方块破坏速度倍率（block_break_speed 属性）
+    // 原版在挖掘疲劳之后、水下惩罚之前乘上它；默认 1.0 不改变速度，供数据包/命令调参。
+    speed *= static_cast<f32>(getAttributeValue(entity::attribute::Attributes::BLOCK_BREAK_SPEED, 1.0));
+
+    // 6. 水下挖掘惩罚
     // 对齐 vanilla Player.getDestroySpeed：眼睛在水中时速度乘以 submerged_mining_speed 属性
     // （默认 0.2 = 陆地的 1/5），水下速掘附魔把该属性乘到 1.0（add_multiplied_total +4.0）。
     if (areEyesInWater()) {
         speed *= static_cast<f32>(getAttributeValue(entity::attribute::Attributes::SUBMERGED_MINING_SPEED, 0.2));
     }
 
-    // 6. 空中挖掘惩罚（不在地面时）
+    // 7. 空中挖掘惩罚（不在地面时）
     if (!m_builtIn.physicsState->m_onGround) {
         speed /= 5.0f;
     }
@@ -2925,8 +2990,7 @@ void Player::attack(Entity& target)
         // 15.5 触发攻击型附魔的 onEntityDamaged 回调。onAttackEntity 内部读主手武器附魔，调
         //   applyArthropodEnchantmentDamage 派发到各附魔的 onEntityDamaged（节肢杀手据此对节肢生物
         //   施加缓慢 IV 副作用，仅近战直接伤害触发）。此前 Player::attack 只用 getEnchantmentDamageBonus
-        //   取伤害数值，从不调 onAttackEntity，致玩家持节肢杀手剑攻击节肢生物时缓慢副作用完全不触发
-        //  （PlayerAttackHelper::applyEnchantmentEffects 封装了此调用却全仓零调用，为死代码）。
+        //   取伤害数值，从不调 onAttackEntity，致玩家持节肢杀手剑攻击节肢生物时缓慢副作用完全不触发。
         //   攻击成功后显式调用 onAttackEntity 接通回调链。
         onAttackEntity(target);
 

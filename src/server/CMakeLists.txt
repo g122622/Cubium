@@ -212,14 +212,12 @@ add_library(mc_gen OBJECT
     world/gen/structure/structures/ShipwreckStructure.cpp
     world/gen/structure/structures/OceanRuinStructure.cpp
     world/gen/structure/structures/FortressStructure.cpp
+    world/gen/structure/structures/NetherFortressPieces.cpp
     world/gen/structure/structures/IglooStructure.cpp
     world/gen/structure/structures/SwampHutStructure.cpp
     world/gen/structure/structures/NetherFossilStructure.cpp
-    world/gen/structure/structures/PillagerOutpostStructure.cpp
     world/gen/structure/structures/EndCityStructure.cpp
     world/gen/structure/structures/WoodlandMansionStructure.cpp
-    world/gen/structure/structures/BastionRemnantStructure.cpp
-    world/gen/structure/structures/TrialChambersStructure.cpp
     world/gen/structure/JigsawStructure.cpp
     world/gen/jigsaw/JigsawAssembler.cpp
     world/gen/jigsaw/JigsawPiece.cpp
@@ -364,17 +362,19 @@ add_executable(minecraft-server
     # 注册表装配门面（vanilla 注册表初始化下沉自 MinecraftServer::initializeRegistries）
     registry/RegistryBootstrap.cpp
     # 核心模块
-    core/PlayerManager.cpp
-    core/ConnectionManager.cpp
-    core/TimeManager.cpp
-    core/TeleportManager.cpp
-    core/KeepAliveManager.cpp
-    core/PositionTracker.cpp
-    core/GameModeManager.cpp
-    core/WhitelistManager.cpp
-    core/BannedPlayerList.cpp
-    core/BannedIpList.cpp
-    core/OpListManager.cpp
+    player/lifecycle/PlayerManager.cpp
+    network/outbound/PacketSender.cpp
+    network/session/PlayerConnectionManager.cpp
+    access/AccessManager.cpp
+    world/time/TimeManager.cpp
+    network/sync/player/TeleportManager.cpp
+    network/session/keepalive/KeepAliveManager.cpp
+    player/movement/PlayerMovementManager.cpp
+    player/gamemode/GameModeManager.cpp
+    access/admission/WhitelistManager.cpp
+    access/admission/BannedPlayerList.cpp
+    access/admission/BannedIpList.cpp
+    access/permission/OpListManager.cpp
     # 维度模块
     dimension/ServerDimension.cpp
     dimension/ServerDimensionManager.cpp
@@ -667,3 +667,10 @@ if(WIN32)
         target_link_options(minecraft-server PRIVATE -Wl,--stack,16777216)
     endif()
 endif()
+
+target_sources(mc_gen PRIVATE
+    world/chunk/pipeline/ChunkDependencies.cpp
+    world/chunk/pipeline/ChunkPyramid.cpp
+    world/chunk/pipeline/ChunkStatus.cpp
+    world/gen/structure/base/StructureBoundingBox.cpp
+)

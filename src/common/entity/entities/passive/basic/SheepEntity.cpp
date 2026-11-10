@@ -43,7 +43,7 @@
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <memory>
 #include <optional>
 #include <tuple>

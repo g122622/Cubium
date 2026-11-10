@@ -24,20 +24,26 @@
 #include "MineshaftStructure.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <array>
 #include <cmath>
 #include <memory>
@@ -60,6 +66,27 @@ constexpr i32 kStartRoomDepth = 0;
 
 /// 展开层数上限（原版 `MineshaftPieces.MAX_DEPTH`）。判据比较的是父构件的深度。
 constexpr i32 kMaxMineshaftDepth = 8;
+
+/**
+ * @brief 矿井片段的方向编码（0=北 1=南 2=西 3=东）转 Direction
+ *
+ * 走廊与楼梯的 generate 用局部坐标（x 0..2、z 沿通道伸）书写方块，必须靠
+ * `setCoordBaseMode` 才能映射到世界坐标；房间与交叉点则直接使用世界坐标。
+ */
+Direction directionFromIndex(i32 direction)
+{
+    switch (direction) {
+        case 1:
+            return Direction::South;
+        case 2:
+            return Direction::West;
+        case 3:
+            return Direction::East;
+        case 0:
+        default:
+            return Direction::North;
+    }
+}
 
 } // namespace
 
@@ -272,7 +299,8 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
     return created;
 }
 
-void addMineshaftPiece(MineshaftPiece* parent,
+MineshaftPiece* addMineshaftPiece(MineshaftPiece* parent,
+    const MineshaftPiece* origin,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
     math::IRandom& rng,
     i32 x,
@@ -288,30 +316,32 @@ void addMineshaftPiece(MineshaftPiece* parent,
     MC_ASSERT_RELEASE_MSG(
         parentDepth >= kStartRoomDepth, "mineshaft piece depth must not go below the start room depth");
     if (parentDepth > kStartRoomDepth + kMaxMineshaftDepth) {
-        return;
+        return nullptr;
     }
 
-    // 检查距离限制（防止无限扩展）
-    if (parent) {
-        i32 dx = std::abs(x - parent->minX());
-        i32 dz = std::abs(z - parent->minZ());
-        if (dx > 80 || dz > 80) {
-            return;
+    // 距离限制：原版以**起点房间**的包围盒为基准（`p_227707_` 始终是起始构件），
+    // 而不是发起这次开口的父构件。用父构件作基准会让远处分支被过早截断，
+    // 整棵树的长短与原版不同。
+    if (origin != nullptr) {
+        if (std::abs(x - origin->minX()) > 80 || std::abs(z - origin->minZ()) > 80) {
+            return nullptr;
         }
     }
 
     // 创建新片段
     auto piece = createMineshaftPiece(pieces, rng, x, y, z, direction, parentDepth + 1, type);
     if (!piece) {
-        return;
+        return nullptr;
     }
 
     // 必须**先登记再展开子构件**。原版 generateAndAddPiece 的顺序是
     //   accessor.addPiece(piece); piece.addChildren(...);
     // 此前这里先展开、由调用方随后才 push，结果是子构件排在父构件之前，
     // 整座矿井的 pieces 顺序完全倒置。
+    MineshaftPiece* created = piece.get();
     pieces.push_back(std::move(piece));
-    pieces.back()->buildComponent(pieces, rng, 8);
+    created->buildComponent(pieces, rng, 8);
+    return created;
 }
 
 // ============================================================================
@@ -329,20 +359,404 @@ bool MineshaftPiece::_canPlaceAt(i32 /*x*/, i32 y, i32 /*z*/)
     return world::isValidY(y) && y > world::MIN_BUILD_HEIGHT + 4;
 }
 
-void MineshaftPiece::_generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::IRandom& rng)
+const BlockState* MineshaftPiece::planksState() const noexcept
 {
-    const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
-    const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
+    return m_mineshaftType == MineshaftType::Mesa ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
+                                                  : VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
+}
 
-    // 生成原木柱（代替栅栏柱）
-    for (i32 dy = 0; dy < height; ++dy) {
-        world.setBlockState(x, y + dy, z, fenceState);
+const BlockState* MineshaftPiece::woodState() const noexcept
+{
+    return m_mineshaftType == MineshaftType::Mesa ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_LOG)
+                                                  : VanillaBlocks::getState(VanillaBlocks::OAK_LOG);
+}
+
+const BlockState* MineshaftPiece::fenceState() const noexcept
+{
+    return m_mineshaftType == MineshaftType::Mesa ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_FENCE)
+                                                  : VanillaBlocks::getState(VanillaBlocks::OAK_FENCE);
+}
+
+namespace {
+
+/// 空世界的「读不到方块」在结构逻辑里一律按空气处理（原版 `getBlock` 越界返回 AIR）
+const BlockState& airState()
+{
+    return VanillaBlocks::AIR->defaultState();
+}
+
+} // namespace
+
+const BlockState* MineshaftPiece::_getBlock(
+    IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const
+{
+    const BlockPos pos(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z));
+    if (!bounds.isInside(pos.x, pos.y, pos.z)) {
+        return &airState();
+    }
+    const BlockState* state = world.getBlockState(pos);
+    return state != nullptr ? state : &airState();
+}
+
+bool MineshaftPiece::_isInterior(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const
+{
+    const i32 worldX = getXWithOffset(x, z);
+    const i32 worldY = getYWithOffset(y + 1);
+    const i32 worldZ = getZWithOffset(x, z);
+    if (!bounds.isInside(worldX, worldY, worldZ)) {
+        return false;
+    }
+    // 原版用 OCEAN_FLOOR_WG 高度图，且 `LevelReader.getHeight` 返回首个可放置 Y
+    // （最高方块 Y + 1）；本项目的 `IWorld::getHeight` 返回最高方块 Y，需要 +1。
+    return worldY < world.getHeight(worldX, worldZ, HeightmapType::OceanFloorWG) + 1;
+}
+
+bool MineshaftPiece::_isSupportingBox(
+    IWorld& world, const StructureBoundingBox& bounds, i32 x1, i32 x2, i32 y, i32 z) const
+{
+    for (i32 x = x1; x <= x2; ++x) {
+        if (_getBlock(world, x, y + 1, z, bounds)->isAir()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool MineshaftPiece::_isInInvalidLocation(IWorld& world, const StructureBoundingBox& bounds) const
+{
+    const i32 minX = std::max(m_minX - 1, bounds.minX());
+    const i32 minY = std::max(m_minY - 1, bounds.minY());
+    const i32 minZ = std::max(m_minZ - 1, bounds.minZ());
+    const i32 maxX = std::min(m_maxX + 1, bounds.maxX());
+    const i32 maxY = std::min(m_maxY + 1, bounds.maxY());
+    const i32 maxZ = std::min(m_maxZ + 1, bounds.maxZ());
+
+    // 原版 `level.getBiome(center).is(BiomeTags.MINESHAFT_BLOCKING)`：群系取自世界本身，
+    // 不走生成器。世界侧按 vanilla 的 Voronoi 抖动选格，空世界桩固定返回非阻挡群系。
+    if (biome::BiomeTags::MINESHAFT_BLOCKING().contains(
+            world.getBiome((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2))) {
+        return true;
     }
 
-    // 顶部放置木板
-    if (rng.nextFloat() < 0.7f) {
-        world.setBlockState(x, y + height, z, planksState);
+    auto isLiquidAt = [&world](i32 x, i32 y, i32 z) {
+        const BlockState* state = world.getBlockState(x, y, z);
+        return state != nullptr && state->isLiquid();
+    };
+
+    for (i32 x = minX; x <= maxX; ++x) {
+        for (i32 z = minZ; z <= maxZ; ++z) {
+            if (isLiquidAt(x, minY, z) || isLiquidAt(x, maxY, z)) {
+                return true;
+            }
+        }
     }
+    for (i32 x = minX; x <= maxX; ++x) {
+        for (i32 y = minY; y <= maxY; ++y) {
+            if (isLiquidAt(x, y, minZ) || isLiquidAt(x, y, maxZ)) {
+                return true;
+            }
+        }
+    }
+    for (i32 z = minZ; z <= maxZ; ++z) {
+        for (i32 y = minY; y <= maxY; ++y) {
+            if (isLiquidAt(minX, y, z) || isLiquidAt(maxX, y, z)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool MineshaftPiece::_canBeReplaced(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const
+{
+    const BlockState* state = _getBlock(world, x, y, z, bounds);
+    const Block* block = &state->getBlock();
+    if (planksState() != nullptr && block == &planksState()->getBlock()) {
+        return false;
+    }
+    if (woodState() != nullptr && block == &woodState()->getBlock()) {
+        return false;
+    }
+    if (fenceState() != nullptr && block == &fenceState()->getBlock()) {
+        return false;
+    }
+    if (VanillaBlocks::CHAIN != nullptr && block == VanillaBlocks::CHAIN) {
+        return false;
+    }
+    return true;
+}
+
+bool MineshaftPiece::_isReplaceableByStructures(const BlockState& state)
+{
+    return state.isAir() || state.isLiquid() || state.is(VanillaBlocks::GLOW_LICHEN) ||
+        state.is(VanillaBlocks::SEAGRASS) || state.is(VanillaBlocks::TALL_SEAGRASS);
+}
+
+void MineshaftPiece::setBlockState(
+    IWorldWriter& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
+    if (!_canBeReplaced(*reader, x, y, z, bounds)) {
+        return;
+    }
+    StructurePiece::setBlockState(world, state, x, y, z, bounds);
+}
+
+void MineshaftPiece::_generateMaybeBox(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::IRandom& rng,
+    f32 probability,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    const BlockState* boundaryBlock,
+    const BlockState* insideBlock,
+    bool requireNonAir,
+    bool requireInterior)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
+    for (i32 y = minY; y <= maxY; ++y) {
+        for (i32 x = minX; x <= maxX; ++x) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                if (rng.nextFloat() > probability) {
+                    continue;
+                }
+                if (requireNonAir && _getBlock(*reader, x, y, z, bounds)->isAir()) {
+                    continue;
+                }
+                if (requireInterior && !_isInterior(*reader, x, y, z, bounds)) {
+                    continue;
+                }
+                const bool isBoundary = x == minX || x == maxX || y == minY || y == maxY || z == minZ || z == maxZ;
+                setBlockState(world, isBoundary ? boundaryBlock : insideBlock, x, y, z, bounds);
+            }
+        }
+    }
+}
+
+void MineshaftPiece::_maybeGenerateBlock(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::IRandom& rng,
+    f32 probability,
+    i32 x,
+    i32 y,
+    i32 z,
+    const BlockState* state)
+{
+    if (rng.nextFloat() < probability) {
+        setBlockState(world, state, x, y, z, bounds);
+    }
+}
+
+void MineshaftPiece::_generateUpperHalfSphere(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    const BlockState* state,
+    bool requireNonAir)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
+    const f32 spanX = static_cast<f32>(maxX - minX + 1);
+    const f32 spanY = static_cast<f32>(maxY - minY + 1);
+    const f32 spanZ = static_cast<f32>(maxZ - minZ + 1);
+    const f32 centerX = static_cast<f32>(minX) + spanX / 2.0F;
+    const f32 centerZ = static_cast<f32>(minZ) + spanZ / 2.0F;
+
+    for (i32 y = minY; y <= maxY; ++y) {
+        const f32 dy = static_cast<f32>(y - minY) / spanY;
+        for (i32 x = minX; x <= maxX; ++x) {
+            const f32 dx = (static_cast<f32>(x) - centerX) / (spanX * 0.5F);
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                const f32 dz = (static_cast<f32>(z) - centerZ) / (spanZ * 0.5F);
+                if (requireNonAir && _getBlock(*reader, x, y, z, bounds)->isAir()) {
+                    continue;
+                }
+                if (dx * dx + dy * dy + dz * dz <= 1.05F) {
+                    setBlockState(world, state, x, y, z, bounds);
+                }
+            }
+        }
+    }
+}
+
+void MineshaftPiece::_setPlanksBlock(
+    IWorldWriter& world, const StructureBoundingBox& bounds, const BlockState& planks, i32 x, i32 y, i32 z)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
+    if (!_isInterior(*reader, x, y, z, bounds)) {
+        return;
+    }
+    const BlockPos pos(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z));
+    const BlockState* existing = reader->getBlockState(pos);
+    if (existing == nullptr) {
+        existing = &airState();
+    }
+    if (!existing->isFaceSturdy(*reader, pos, Direction::Up, SupportType::Full)) {
+        setBlockState(world, &planks, x, y, z, bounds);
+    }
+}
+
+void MineshaftPiece::_fillColumnDown(
+    IWorldWriter& world, const BlockState& state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
+    BlockPos pos(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z));
+    if (!bounds.isInside(pos.x, pos.y, pos.z)) {
+        return;
+    }
+    const i32 topY = pos.y;
+    while (true) {
+        const BlockState* current = reader->getBlockState(pos);
+        if (current == nullptr || !_isReplaceableByStructures(*current) || pos.y <= reader->getMinBuildHeight() + 1) {
+            break;
+        }
+        pos.y -= 1;
+    }
+    const BlockState* below = reader->getBlockState(pos);
+    if (below != nullptr && _canPlaceColumnOnTopOf(*reader, pos)) {
+        while (pos.y < topY) {
+            pos.y += 1;
+            world.setBlockState(pos.x, pos.y, pos.z, &state, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        }
+    }
+}
+
+bool MineshaftPiece::_canPlaceColumnOnTopOf(IWorld& world, const BlockPos& pos) const
+{
+    const BlockState* state = world.getBlockState(pos);
+    return state != nullptr && state->isFaceSturdy(world, pos, Direction::Up, SupportType::Full);
+}
+
+bool MineshaftPiece::_canHangChainBelow(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
+    return Block::canSupportCenter(const_cast<IWorld&>(world), pos, Direction::Down) &&
+        dynamic_cast<const blocks::FallingBlock*>(&state.getBlock()) == nullptr;
+}
+
+void MineshaftPiece::_fillColumnBetween(
+    IWorldWriter& world, const BlockState& state, i32 x, i32 fromY, i32 toY, i32 z) const
+{
+    for (i32 y = fromY; y < toY; ++y) {
+        world.setBlockState(x, y, z, &state, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    }
+}
+
+void MineshaftPiece::_fillPillarDownOrChainUp(
+    IWorldWriter& world, const BlockState& state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
+    const BlockPos base(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z));
+    if (!bounds.isInside(base.x, base.y, base.z)) {
+        return;
+    }
+
+    const i32 startY = base.y;
+    bool down = true;
+    bool up = true;
+    for (i32 step = 1; down || up; ++step) {
+        if (down) {
+            const i32 probeY = startY - step;
+            const BlockState* probe = reader->getBlockState(base.x, probeY, base.z);
+            const bool replaceable =
+                probe != nullptr && _isReplaceableByStructures(*probe) && !probe->is(VanillaBlocks::LAVA);
+            if (!replaceable && probe != nullptr && _canPlaceColumnOnTopOf(*reader, BlockPos(base.x, probeY, base.z))) {
+                _fillColumnBetween(world, state, base.x, probeY + 1, startY, base.z);
+                return;
+            }
+            down = step <= 20 && replaceable && probeY > reader->getMinBuildHeight() + 1;
+        }
+
+        if (up) {
+            const i32 probeY = startY + step;
+            const BlockState* probe = reader->getBlockState(base.x, probeY, base.z);
+            const bool replaceable = probe != nullptr && _isReplaceableByStructures(*probe);
+            if (!replaceable && probe != nullptr &&
+                _canHangChainBelow(*reader, BlockPos(base.x, probeY, base.z), *probe)) {
+                world.setBlockState(base.x, startY + 1, base.z, fenceState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
+                _fillColumnBetween(
+                    world, VanillaBlocks::CHAIN->defaultState(), base.x, startY + 2, startY + step, base.z);
+                return;
+            }
+            up = step <= 50 && replaceable && probeY < reader->getMaxBuildHeight() - 1;
+        }
+    }
+}
+
+void MineshaftPiece::_placeSupport(
+    IWorldWriter& world, const StructureBoundingBox& bounds, i32 x1, i32 y, i32 z, i32 x2, i32 topY, math::IRandom& rng)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
+    if (!_isSupportingBox(*reader, bounds, x1, x2, topY, z)) {
+        return;
+    }
+    const BlockState* planks = planksState();
+    const BlockState* fence = fenceState();
+    // 两侧竖向栅栏（朝内的连接位），顶上一根横梁把两根栅栏连起来。
+    const BlockState& westFence = fence->with(BlockStateProperties::WEST(), true);
+    const BlockState& eastFence = fence->with(BlockStateProperties::EAST(), true);
+    fillWithBlocks(world, bounds, x1, y, z, x1, topY - 1, z, &westFence, nullptr, false);
+    fillWithBlocks(world, bounds, x2, y, z, x2, topY - 1, z, &eastFence, nullptr, false);
+    if (rng.nextInt(4) == 0) {
+        fillWithBlocks(world, bounds, x1, topY, z, x1, topY, z, planks, nullptr, false);
+        fillWithBlocks(world, bounds, x2, topY, z, x2, topY, z, planks, nullptr, false);
+    } else {
+        fillWithBlocks(world, bounds, x1, topY, z, x2, topY, z, planks, nullptr, false);
+        const BlockState& southTorch =
+            VanillaBlocks::WALL_TORCH->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+        const BlockState& northTorch =
+            VanillaBlocks::WALL_TORCH->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+        _maybeGenerateBlock(world, bounds, rng, 0.05F, x1 + 1, topY, z - 1, &southTorch);
+        _maybeGenerateBlock(world, bounds, rng, 0.05F, x1 + 1, topY, z + 1, &northTorch);
+    }
+}
+
+void MineshaftPiece::_maybePlaceCobWeb(
+    IWorldWriter& world, const StructureBoundingBox& bounds, math::IRandom& rng, f32 probability, i32 x, i32 y, i32 z)
+{
+    IWorld& reader = *dynamic_cast<IWorld*>(&world);
+    if (_isInterior(reader, x, y, z, bounds) && rng.nextFloat() < probability &&
+        _hasSturdyNeighbours(reader, bounds, x, y, z, 2)) {
+        setBlockState(world, &VanillaBlocks::COBWEB->defaultState(), x, y, z, bounds);
+    }
+}
+
+bool MineshaftPiece::_hasSturdyNeighbours(
+    IWorld& world, const StructureBoundingBox& bounds, i32 x, i32 y, i32 z, i32 count) const
+{
+    BlockPos pos(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z));
+    i32 sturdy = 0;
+    for (const Direction direction : Directions::all()) {
+        pos.x += Directions::xOffset(direction);
+        pos.y += Directions::yOffset(direction);
+        pos.z += Directions::zOffset(direction);
+        if (bounds.isInside(pos.x, pos.y, pos.z)) {
+            const BlockState* state = world.getBlockState(pos);
+            if (state != nullptr &&
+                state->isFaceSturdy(world, pos, Directions::opposite(direction), SupportType::Full)) {
+                if (++sturdy >= count) {
+                    return true;
+                }
+            }
+        }
+        pos.x -= Directions::xOffset(direction);
+        pos.y -= Directions::yOffset(direction);
+        pos.z -= Directions::zOffset(direction);
+    }
+    return false;
 }
 
 // ============================================================================
@@ -395,36 +809,52 @@ void MineshaftRoom::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
-    const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
+    MC_UNUSED(rng);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
 
-    // 生成房间地板
-    for (i32 x = minX(); x <= maxX(); ++x) {
-        for (i32 z = minZ(); z <= maxZ(); ++z) {
-            if (chunkBounds.contains(x, minY(), z)) {
-                world.setBlockState(x, minY(), z, planksState);
-            }
-        }
+    if (_isInInvalidLocation(*reader, chunkBounds)) {
+        return;
     }
 
-    // 生成角落支撑柱
-    for (i32 dx = 0; dx <= 7; dx += 7) {
-        for (i32 dz = 0; dz <= 7; dz += 7) {
-            i32 x = minX() + dx;
-            i32 z = minZ() + dz;
-            if (chunkBounds.contains(x, minY() + 1, z)) {
-                _generateSupport(world, x, minY() + 1, z, 3, rng);
-            }
-        }
+    // 起点房间是一个实心壳：下方一层洞穴空气掏空、上方半球掏空，四边各留一条
+    // 通到子构件入口的隧道。房间没有朝向（coordBaseMode == None），这里的坐标
+    // 就是世界坐标。
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
+    fillWithBlocks(world,
+        chunkBounds,
+        m_minX,
+        m_minY + 1,
+        m_minZ,
+        m_maxX,
+        std::min(m_minY + 3, m_maxY),
+        m_maxZ,
+        caveAir,
+        caveAir,
+        false);
+
+    for (const StructureBoundingBox& entrance : m_childEntranceBoxes) {
+        fillWithBlocks(world,
+            chunkBounds,
+            entrance.minX(),
+            entrance.maxY() - 2,
+            entrance.minZ(),
+            entrance.maxX(),
+            entrance.maxY(),
+            entrance.maxZ(),
+            caveAir,
+            caveAir,
+            false);
     }
 
-    // 随机放置一些额外的栅栏
-    for (i32 i = 0; i < 4 + rng.nextInt(4); ++i) {
-        i32 x = minX() + 1 + rng.nextInt(6);
-        i32 z = minZ() + 1 + rng.nextInt(6);
-        if (chunkBounds.contains(x, minY() + 1, z)) {
-            world.setBlockState(x, minY() + 1, z, fenceState);
-        }
+    _generateUpperHalfSphere(world, chunkBounds, m_minX, m_minY + 4, m_minZ, m_maxX, m_maxY, m_maxZ, caveAir, false);
+}
+
+void MineshaftRoom::offset(i32 dx, i32 dy, i32 dz)
+{
+    MineshaftPiece::offset(dx, dy, dz);
+    for (auto& box : m_childEntranceBoxes) {
+        box.offset(dx, dy, dz);
     }
 }
 
@@ -449,14 +879,13 @@ void MineshaftRoom::buildComponent(
     // 原版 addChildren 不做深度提前返回：截断只发生在 generateAndAddPiece
     // 与走廊第 2 段的 `i < 8` 里。这里多一层返回会少掉深度 8 构件开出的分支。
     const i32 depth = genDepth();
-    MC_UNUSED(maxDepth);
     i32 k = (maxY() - minY() + 1) - 3 - 1;
     if (k <= 0) {
         k = 1;
     }
 
-    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir) {
-        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, depth, m_mineshaftType);
+    auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir) -> MineshaftPiece* {
+        return addMineshaftPiece(this, pieces.front().get(), pieces, rng, cx, cy, cz, dir, depth, m_mineshaftType);
     };
 
     const i32 xSpan = maxX() - minX() + 1;
@@ -470,7 +899,10 @@ void MineshaftRoom::buildComponent(
         }
         const i32 cx = minX() + offset;
         const i32 cy = minY() + rng.nextInt(k) + 1; // 独立语句：实参求值顺序未指定
-        addChild(cx, cy, minZ() - 1, 0);
+        if (MineshaftPiece* child = addChild(cx, cy, minZ() - 1, 0)) {
+            const StructureBoundingBox box = child->boundingBox();
+            m_childEntranceBoxes.emplace_back(box.minX(), box.minY(), minZ(), box.maxX(), box.maxY(), minZ() + 1);
+        }
         offset += 4;
     }
 
@@ -482,7 +914,10 @@ void MineshaftRoom::buildComponent(
         }
         const i32 cx = minX() + offset;
         const i32 cy = minY() + rng.nextInt(k) + 1;
-        addChild(cx, cy, maxZ() + 1, 1);
+        if (MineshaftPiece* child = addChild(cx, cy, maxZ() + 1, 1)) {
+            const StructureBoundingBox box = child->boundingBox();
+            m_childEntranceBoxes.emplace_back(box.minX(), box.minY(), maxZ() - 1, box.maxX(), box.maxY(), maxZ());
+        }
         offset += 4;
     }
 
@@ -494,7 +929,10 @@ void MineshaftRoom::buildComponent(
         }
         const i32 cz = minZ() + offset;
         const i32 cy = minY() + rng.nextInt(k) + 1;
-        addChild(minX() - 1, cy, cz, 2);
+        if (MineshaftPiece* child = addChild(minX() - 1, cy, cz, 2)) {
+            const StructureBoundingBox box = child->boundingBox();
+            m_childEntranceBoxes.emplace_back(minX(), box.minY(), box.minZ(), minX() + 1, box.maxY(), box.maxZ());
+        }
         offset += 4;
     }
 
@@ -506,7 +944,10 @@ void MineshaftRoom::buildComponent(
         }
         const i32 cz = minZ() + offset;
         const i32 cy = minY() + rng.nextInt(k) + 1;
-        addChild(maxX() + 1, cy, cz, 3);
+        if (MineshaftPiece* child = addChild(maxX() + 1, cy, cz, 3)) {
+            const StructureBoundingBox box = child->boundingBox();
+            m_childEntranceBoxes.emplace_back(maxX() - 1, box.minY(), box.minZ(), maxX(), box.maxY(), box.maxZ());
+        }
         offset += 4;
     }
 }
@@ -532,11 +973,15 @@ MineshaftCorridor::MineshaftCorridor(i32 componentType,
     m_hasRails = rng.nextInt(3) == 0;                   // 33% 概率有铁轨
     m_hasSpiders = !m_hasRails && rng.nextInt(23) == 0; // ~4% 概率有蜘蛛刷怪笼
 
-    // 计算段数
+    // 走廊的方块用局部坐标书写（x 0..2、z 沿通道），必须记录朝向才能映射到世界坐标。
+    setCoordBaseMode(directionFromIndex(direction));
+
+    // 段数按**跨度**算（max - min + 1），与原版 `boundingBox.getZSpan() / 5` 一致。
+    // 此前漏了 +1：长度为 10 的走廊会少算一段，通道因此短 5 格。
     if (direction == 0 || direction == 1) {
-        m_sectionCount = (maxZ - minZ) / 5;
+        m_sectionCount = (maxZ - minZ + 1) / 5;
     } else {
-        m_sectionCount = (maxX - minX) / 5;
+        m_sectionCount = (maxX - minX + 1) / 5;
     }
 }
 
@@ -548,216 +993,143 @@ void MineshaftCorridor::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    // 生成地板和天花板
-    if (m_direction == 0 || m_direction == 1) {
-        // 南北方向
-        for (i32 z = minZ(); z <= maxZ(); ++z) {
-            _generateFloor(world, minX(), z, maxX(), z, rng, chunkBounds);
-            _generateCeiling(world, minX(), z, maxX(), z, rng, chunkBounds);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
 
-            // 每5格放置支撑柱
-            if ((z - minZ()) % 5 == 2) {
-                i32 sectionIndex = (z - minZ()) / 5;
-                _generatePillars(world, sectionIndex, rng, chunkBounds);
-            }
+    if (_isInInvalidLocation(*reader, chunkBounds)) {
+        return;
+    }
+
+    const i32 sectionLength = m_sectionCount * 5 - 1;
+    const BlockState* planks = planksState();
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
+
+    // 走廊主体：先掏出一条 3 格宽、2 格高的通行空间，再按 0.8 的概率把上半层
+    // （y=2）也掏空——这样天花板高低起伏。
+    fillWithBlocks(world, chunkBounds, 0, 0, 0, 2, 1, sectionLength, caveAir, caveAir, false);
+    _generateMaybeBox(world, chunkBounds, rng, 0.8F, 0, 2, 0, 2, 2, sectionLength, caveAir, caveAir, false, false);
+
+    if (m_hasSpiders) {
+        // 蜘蛛走廊：上半层再按 0.6 概率铺蜘蛛网（只在内部、且该格本身非空气时）。
+        _generateMaybeBox(world,
+            chunkBounds,
+            rng,
+            0.6F,
+            0,
+            0,
+            0,
+            2,
+            1,
+            sectionLength,
+            &VanillaBlocks::COBWEB->defaultState(),
+            caveAir,
+            false,
+            true);
+    }
+
+    for (i32 section = 0; section < m_sectionCount; ++section) {
+        const i32 sectionZ = 2 + section * 5;
+
+        _placeSupport(world, chunkBounds, 0, 0, sectionZ, 2, 2, rng);
+
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.1F, 0, 2, sectionZ - 1);
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.1F, 2, 2, sectionZ - 1);
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.1F, 0, 2, sectionZ + 1);
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.1F, 2, 2, sectionZ + 1);
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.05F, 0, 2, sectionZ - 2);
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.05F, 2, 2, sectionZ - 2);
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.05F, 0, 2, sectionZ + 2);
+        _maybePlaceCobWeb(world, chunkBounds, rng, 0.05F, 2, 2, sectionZ + 2);
+
+        if (rng.nextInt(100) == 0) {
+            _createChest(world, *reader, rng, 2, 0, sectionZ - 1, chunkBounds);
         }
-    } else {
-        // 东西方向
-        for (i32 x = minX(); x <= maxX(); ++x) {
-            _generateFloor(world, x, minZ(), x, maxZ(), rng, chunkBounds);
-            _generateCeiling(world, x, minZ(), x, maxZ(), rng, chunkBounds);
+        if (rng.nextInt(100) == 0) {
+            _createChest(world, *reader, rng, 0, 0, sectionZ + 1, chunkBounds);
+        }
 
-            // 每5格放置支撑柱
-            if ((x - minX()) % 5 == 2) {
-                i32 sectionIndex = (x - minX()) / 5;
-                _generatePillars(world, sectionIndex, rng, chunkBounds);
+        if (m_hasSpiders && !m_spawnerPlaced) {
+            const i32 zOffset = sectionZ - 1 + rng.nextInt(3);
+            const BlockPos spawnerPos(getXWithOffset(1, zOffset), getYWithOffset(0), getZWithOffset(1, zOffset));
+            if (chunkBounds.isInside(spawnerPos.x, spawnerPos.y, spawnerPos.z) &&
+                _isInterior(*reader, 1, 0, zOffset, chunkBounds)) {
+                m_spawnerPlaced = true;
+                setBlockState(world, &VanillaBlocks::SPAWNER->defaultState(), 1, 0, zOffset, chunkBounds);
+                IWorld* readableWorld = dynamic_cast<IWorld*>(&world);
+                if (readableWorld != nullptr) {
+                    BlockEntity* blockEntity = readableWorld->getBlockEntity(spawnerPos);
+                    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
+                        static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity)
+                            ->setEntityId(ResourceLocation(entity::EntityTypeKeys::CAVE_SPIDER), rng);
+                    }
+                }
             }
         }
     }
 
-    // 生成铁轨
+    // 底部木板：只有当该位置「在内部」（上方一格仍在地表之下）且脚下不是满格
+    // 支撑面时才铺。
+    for (i32 x = 0; x <= 2; ++x) {
+        for (i32 z = 0; z <= sectionLength; ++z) {
+            _setPlanksBlock(world, chunkBounds, *planks, x, -1, z);
+        }
+    }
+
+    _placeDoubleLowerOrUpperSupport(world, *reader, chunkBounds, 0, -1, 2);
+    if (m_sectionCount > 1) {
+        _placeDoubleLowerOrUpperSupport(world, *reader, chunkBounds, 0, -1, sectionLength - 2);
+    }
+
     if (m_hasRails) {
-        _generateRails(world, rng, chunkBounds);
-    }
-
-    // 生成蜘蛛刷怪笼
-    if (m_hasSpiders && !m_spawnerPlaced && rng.nextInt(3) == 0) {
-        i32 sx = (minX() + maxX()) / 2;
-        i32 sz = (minZ() + maxZ()) / 2;
-        _generateSpawner(world, sx, minY() + 1, sz, chunkBounds);
-        m_spawnerPlaced = true;
-    }
-
-    // 随机生成宝箱矿车（概率为 1%）
-    if (rng.nextInt(100) == 0) {
-        i32 cx = minX() + rng.nextInt(maxX() - minX());
-        i32 cz = minZ() + rng.nextInt(maxZ() - minZ());
-        _generateChestMinecart(world, cx, minY() + 1, cz, rng, chunkBounds);
-    }
-}
-
-void MineshaftCorridor::_generateFloor(
-    IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
-{
-    const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
-    const BlockState* cobblestoneState = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
-
-    for (i32 x = x1; x <= x2; ++x) {
-        for (i32 z = z1; z <= z2; ++z) {
-            if (chunkBounds.contains(x, minY(), z)) {
-                // 恶地矿井使用深色橡木
-                const BlockState* floorState = (m_mineshaftType == MineshaftType::Mesa)
-                    ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
-                    : planksState;
-
-                // 70% 概率放置地板，模拟损坏效果
-                if (rng.nextInt(100) < 70) {
-                    world.setBlockState(x, minY(), z, floorState);
-                } else {
-                    // 使用圆石作为损坏的地板
-                    world.setBlockState(x, minY(), z, cobblestoneState);
-                }
+        const BlockState& railSouthNorth = VanillaBlocks::RAIL->defaultState().with(
+            BlockStateProperties::RAIL_SHAPE(), BlockStateProperties::RailShape::NorthSouth);
+        for (i32 z = 0; z <= sectionLength; ++z) {
+            const BlockState* below = _getBlock(*reader, 1, -1, z, chunkBounds);
+            if (!below->isAir() && below->isSolidRender()) {
+                const f32 probability = _isInterior(*reader, 1, 0, z, chunkBounds) ? 0.7F : 0.9F;
+                _maybeGenerateBlock(world, chunkBounds, rng, probability, 1, 0, z, &railSouthNorth);
             }
         }
     }
 }
 
-void MineshaftCorridor::_generateCeiling(
-    IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
+void MineshaftCorridor::_placeDoubleLowerOrUpperSupport(
+    IWorldWriter& world, IWorld& reader, const StructureBoundingBox& chunkBounds, i32 x, i32 y, i32 z)
 {
-    const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
-
-    for (i32 x = x1; x <= x2; ++x) {
-        for (i32 z = z1; z <= z2; ++z) {
-            if (chunkBounds.contains(x, maxY(), z)) {
-                // 60% 概率放置天花板，模拟损坏效果
-                if (rng.nextInt(100) < 60) {
-                    const BlockState* ceilingState = (m_mineshaftType == MineshaftType::Mesa)
-                        ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
-                        : planksState;
-                    world.setBlockState(x, maxY(), z, ceilingState);
-                }
-            }
-        }
+    const BlockState* planks = planksState();
+    if (_getBlock(reader, x, y, z, chunkBounds)->is(&planks->getBlock())) {
+        _fillPillarDownOrChainUp(world, *woodState(), x, y, z, chunkBounds);
+    }
+    if (_getBlock(reader, x + 2, y, z, chunkBounds)->is(&planks->getBlock())) {
+        _fillPillarDownOrChainUp(world, *woodState(), x + 2, y, z, chunkBounds);
     }
 }
 
-void MineshaftCorridor::_generatePillars(
-    IWorldWriter& world, i32 /*sectionIndex*/, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
+void MineshaftCorridor::_createChest(IWorldWriter& world,
+    IWorld& reader,
+    math::IRandom& rng,
+    i32 x,
+    i32 y,
+    i32 z,
+    const StructureBoundingBox& chunkBounds)
 {
-    if (m_direction == 0 || m_direction == 1) {
-        // 南北方向：支撑柱在东西两侧
-        i32 z = minZ() + (m_sectionCount / 2) * 5 + 2;
-        if (z > maxZ()) {
-            z = (minZ() + maxZ()) / 2;
-        }
-
-        // 西侧支撑柱
-        if (chunkBounds.contains(minX(), minY() + 1, z)) {
-            _generateSupport(world, minX(), minY() + 1, z, 2, rng);
-        }
-        // 东侧支撑柱
-        if (chunkBounds.contains(maxX(), minY() + 1, z)) {
-            _generateSupport(world, maxX(), minY() + 1, z, 2, rng);
-        }
-    } else {
-        // 东西方向：支撑柱在南北两侧
-        i32 x = minX() + (m_sectionCount / 2) * 5 + 2;
-        if (x > maxX()) {
-            x = (minX() + maxX()) / 2;
-        }
-
-        // 北侧支撑柱
-        if (chunkBounds.contains(x, minY() + 1, minZ())) {
-            _generateSupport(world, x, minY() + 1, minZ(), 2, rng);
-        }
-        // 南侧支撑柱
-        if (chunkBounds.contains(x, minY() + 1, maxZ())) {
-            _generateSupport(world, x, minY() + 1, maxZ(), 2, rng);
-        }
-    }
-}
-
-void MineshaftCorridor::_generateRails(
-    IWorldWriter& world, math::IRandom& /*rng*/, const StructureBoundingBox& chunkBounds)
-{
-    const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::RAIL);
-    if (!railState) {
-        railState = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
-    }
-
-    if (m_direction == 0 || m_direction == 1) {
-        // 南北方向
-        i32 centerX = (minX() + maxX()) / 2;
-        for (i32 z = minZ(); z <= maxZ(); ++z) {
-            if (chunkBounds.contains(centerX, minY() + 1, z)) {
-                world.setBlockState(centerX, minY() + 1, z, railState);
-            }
-        }
-    } else {
-        // 东西方向
-        i32 centerZ = (minZ() + maxZ()) / 2;
-        for (i32 x = minX(); x <= maxX(); ++x) {
-            if (chunkBounds.contains(x, minY() + 1, centerZ)) {
-                world.setBlockState(x, minY() + 1, centerZ, railState);
-            }
-        }
-    }
-}
-
-void MineshaftCorridor::_generateSpawner(
-    IWorldWriter& world, i32 x, i32 y, i32 z, const StructureBoundingBox& chunkBounds)
-{
-    if (!chunkBounds.contains(x, y, z)) {
+    const BlockPos pos(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z));
+    const BlockState* atPos = reader.getBlockState(pos);
+    const BlockState* below = reader.getBlockState(pos.x, pos.y - 1, pos.z);
+    const bool posIsAir = atPos == nullptr || atPos->isAir();
+    const bool belowIsAir = below == nullptr || below->isAir();
+    if (!chunkBounds.isInside(pos.x, pos.y, pos.z) || !posIsAir || belowIsAir) {
         return;
     }
 
-    const BlockState* centerState = VanillaBlocks::getState(VanillaBlocks::COBWEB);
-    if (!centerState) {
-        centerState = VanillaBlocks::getState(VanillaBlocks::MOSSY_COBBLESTONE);
-    }
-    if (centerState) {
-        world.setBlockState(x, y, z, centerState);
-    }
+    const BlockState& rail = VanillaBlocks::RAIL->defaultState().with(BlockStateProperties::RAIL_SHAPE(),
+        rng.nextBoolean() ? BlockStateProperties::RailShape::NorthSouth : BlockStateProperties::RailShape::EastWest);
+    setBlockState(world, &rail, x, y, z, chunkBounds);
 
-    const BlockState* webState = VanillaBlocks::getState(VanillaBlocks::COBWEB);
-    if (webState) {
-        for (i32 dx = -1; dx <= 1; ++dx) {
-            for (i32 dz = -1; dz <= 1; ++dz) {
-                if ((dx == 0 && dz == 0) || !chunkBounds.contains(x + dx, y, z + dz)) {
-                    continue;
-                }
-                world.setBlockState(x + dx,
-                    y,
-                    z + dz,
-                    webState,
-                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-            }
-        }
-    }
-}
-
-void MineshaftCorridor::_generateChestMinecart(
-    IWorldWriter& world, i32 x, i32 y, i32 z, math::IRandom& /*rng*/, const StructureBoundingBox& chunkBounds)
-{
-    if (!chunkBounds.contains(x, y, z)) {
-        return;
-    }
-
-    const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::RAIL);
-    const BlockState* lootMarker = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
-
-    if (railState) {
-        world.setBlockState(
-            x, y, z, railState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-    }
-    if (lootMarker) {
-        world.setBlockState(x,
-            y + 1,
-            z,
-            lootMarker,
-            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-    }
+    // 原版在这里生成一辆宝箱矿车，并用 nextLong() 播种它的战利品表。
+    // 结构探针的空世界没有实体容器，下一行只保留随机流消费以保证后续抽样一致。
+    // TODO: 接入实体系统，在真实服务端里把宝箱矿车实体真正加进世界。
+    (void)rng.nextLong();
 }
 
 void MineshaftCorridor::buildComponent(
@@ -788,7 +1160,7 @@ void MineshaftCorridor::buildComponent(
     MC_UNUSED(maxDepth);
 
     auto addChild = [&](i32 cx, i32 cy, i32 cz, i32 dir, i32 childDepth) {
-        addMineshaftPiece(this, pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
+        (void)addMineshaftPiece(this, pieces.front().get(), pieces, rng, cx, cy, cz, dir, childDepth, m_mineshaftType);
     };
 
     // ---- 第 1 段：主口 ----
@@ -888,6 +1260,7 @@ MineshaftCross::MineshaftCross(
 
 {
     m_direction = direction;
+    m_isTwoFloored = (maxY - minY + 1) > 3;
 }
 
 void MineshaftCross::generate(IWorldWriter& world,
@@ -898,29 +1271,60 @@ void MineshaftCross::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
+    MC_UNUSED(rng);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
 
-    // 生成地板
-    for (i32 x = minX(); x <= maxX(); ++x) {
-        for (i32 z = minZ(); z <= maxZ(); ++z) {
-            if (chunkBounds.contains(x, minY(), z)) {
-                const BlockState* floorState = (m_mineshaftType == MineshaftType::Mesa)
-                    ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
-                    : planksState;
-                if (rng.nextInt(10) < 7) { // 70% 概率
-                    world.setBlockState(x, minY(), z, floorState);
-                }
-            }
-        }
+    if (_isInInvalidLocation(*reader, chunkBounds)) {
+        return;
     }
 
-    // 生成角落支撑柱
-    i32 pillarPositions[][2] = {{0, 0}, {4, 0}, {0, 4}, {4, 4}};
-    for (const auto& pos : pillarPositions) {
-        i32 px = minX() + pos[0];
-        i32 pz = minZ() + pos[1];
-        if (chunkBounds.contains(px, minY() + 1, pz)) {
-            _generateSupport(world, px, minY() + 1, pz, 2, rng);
+    // 交叉点没有朝向（coordBaseMode == None），下面用的都是世界坐标。
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
+    if (m_isTwoFloored) {
+        // 双层交叉点：下层 + 上层各掏一条十字，中间留一层楼板。
+        fillWithBlocks(
+            world, chunkBounds, m_minX + 1, m_minY, m_minZ, m_maxX - 1, m_minY + 2, m_maxZ, caveAir, caveAir, false);
+        fillWithBlocks(
+            world, chunkBounds, m_minX, m_minY, m_minZ + 1, m_maxX, m_minY + 2, m_maxZ - 1, caveAir, caveAir, false);
+        fillWithBlocks(
+            world, chunkBounds, m_minX + 1, m_maxY - 2, m_minZ, m_maxX - 1, m_maxY, m_maxZ, caveAir, caveAir, false);
+        fillWithBlocks(
+            world, chunkBounds, m_minX, m_maxY - 2, m_minZ + 1, m_maxX, m_maxY, m_maxZ - 1, caveAir, caveAir, false);
+        fillWithBlocks(world,
+            chunkBounds,
+            m_minX + 1,
+            m_minY + 3,
+            m_minZ + 1,
+            m_maxX - 1,
+            m_minY + 3,
+            m_maxZ - 1,
+            caveAir,
+            caveAir,
+            false);
+    } else {
+        fillWithBlocks(
+            world, chunkBounds, m_minX + 1, m_minY, m_minZ, m_maxX - 1, m_maxY, m_maxZ, caveAir, caveAir, false);
+        fillWithBlocks(
+            world, chunkBounds, m_minX, m_minY, m_minZ + 1, m_maxX, m_maxY, m_maxZ - 1, caveAir, caveAir, false);
+    }
+
+    // 四个内角各立一根柱子（顶端若已有方块才立，避免顶穿地面）。
+    const BlockState* planks = planksState();
+    auto placeSupportPillar = [&](i32 x, i32 z) {
+        if (!_getBlock(*reader, x, m_maxY + 1, z, chunkBounds)->isAir()) {
+            fillWithBlocks(world, chunkBounds, x, m_minY, z, x, m_maxY, z, planks, caveAir, false);
+        }
+    };
+    placeSupportPillar(m_minX + 1, m_minZ + 1);
+    placeSupportPillar(m_minX + 1, m_maxZ - 1);
+    placeSupportPillar(m_maxX - 1, m_minZ + 1);
+    placeSupportPillar(m_maxX - 1, m_maxZ - 1);
+
+    const i32 floorY = m_minY - 1;
+    for (i32 x = m_minX; x <= m_maxX; ++x) {
+        for (i32 z = m_minZ; z <= m_maxZ; ++z) {
+            _setPlanksBlock(world, chunkBounds, *planks, x, floorY, z);
         }
     }
 }
@@ -944,7 +1348,7 @@ void MineshaftCross::buildComponent(
     // 此前这里遍历四个方向、每个方向以 nextInt(3) 决定是否跳过，既不匹配原版的
     // 分支表，又多吃了最多四个随机数。
     auto addChild = [&](i32 nx, i32 ny, i32 nz, i32 dir) {
-        addMineshaftPiece(this, pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
+        (void)addMineshaftPiece(this, pieces.front().get(), pieces, rng, nx, ny, nz, dir, depth, m_mineshaftType);
     };
 
     switch (m_direction) {
@@ -1007,6 +1411,8 @@ MineshaftStairs::MineshaftStairs(
 
 {
     m_direction = direction;
+    // 楼梯同样用局部坐标书写方块，朝向必须记录。
+    setCoordBaseMode(directionFromIndex(direction));
 }
 
 void MineshaftStairs::generate(IWorldWriter& world,
@@ -1017,57 +1423,20 @@ void MineshaftStairs::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
+    MC_UNUSED(rng);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "mineshaft placement requires an IWorld");
 
-    i32 length = (m_direction == 0 || m_direction == 1) ? (maxZ() - minZ()) : (maxX() - minX());
-    i32 stepCount = length / 2; // 每两格下降一格
+    if (_isInInvalidLocation(*reader, chunkBounds)) {
+        return;
+    }
 
-    for (i32 i = 0; i < stepCount; ++i) {
-        i32 stepY = minY() - i;
-        i32 x, z;
-
-        if (m_direction == 0 || m_direction == 1) {
-            x = (minX() + maxX()) / 2;
-            z = minZ() + i * 2;
-        } else {
-            x = minX() + i * 2;
-            z = (minZ() + maxZ()) / 2;
-        }
-
-        // 生成楼梯地板
-        for (i32 dx = -1; dx <= 1; ++dx) {
-            for (i32 dz = -1; dz <= 1; ++dz) {
-                i32 bx = x + dx;
-                i32 bz = z + dz;
-                if (chunkBounds.contains(bx, stepY, bz)) {
-                    const BlockState* floorState = (m_mineshaftType == MineshaftType::Mesa)
-                        ? VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS)
-                        : planksState;
-                    if (rng.nextInt(10) < 7) {
-                        world.setBlockState(bx, stepY, bz, floorState);
-                    }
-                }
-            }
-        }
-
-        // 生成支撑柱
-        if (i % 2 == 0) {
-            if (m_direction == 0 || m_direction == 1) {
-                if (chunkBounds.contains(minX(), stepY + 1, z)) {
-                    _generateSupport(world, minX(), stepY + 1, z, 2, rng);
-                }
-                if (chunkBounds.contains(maxX(), stepY + 1, z)) {
-                    _generateSupport(world, maxX(), stepY + 1, z, 2, rng);
-                }
-            } else {
-                if (chunkBounds.contains(x, stepY + 1, minZ())) {
-                    _generateSupport(world, x, stepY + 1, minZ(), 2, rng);
-                }
-                if (chunkBounds.contains(x, stepY + 1, maxZ())) {
-                    _generateSupport(world, x, stepY + 1, maxZ(), 2, rng);
-                }
-            }
-        }
+    // 楼梯片段：顶部平台 + 底部过渡 + 五级台阶，逐级下沉。
+    const BlockState* caveAir = VanillaBlocks::getState(VanillaBlocks::CAVE_AIR);
+    fillWithBlocks(world, chunkBounds, 0, 5, 0, 2, 7, 1, caveAir, caveAir, false);
+    fillWithBlocks(world, chunkBounds, 0, 0, 7, 2, 2, 8, caveAir, caveAir, false);
+    for (i32 i = 0; i < 5; ++i) {
+        fillWithBlocks(world, chunkBounds, 0, 5 - i - (i < 4 ? 1 : 0), 2 + i, 2, 7 - i, 2 + i, caveAir, caveAir, false);
     }
 }
 
@@ -1110,7 +1479,7 @@ void MineshaftStairs::buildComponent(
             break;
     }
 
-    addMineshaftPiece(this, pieces, rng, x, minY(), z, m_direction, depth, m_mineshaftType);
+    (void)addMineshaftPiece(this, pieces.front().get(), pieces, rng, x, minY(), z, m_direction, depth, m_mineshaftType);
 }
 
 // ============================================================================
@@ -1134,16 +1503,6 @@ const biome::BiomeTag* MineshaftStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_MINESHAFT();
 }
 
-bool MineshaftStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
-{
-    // 间距与频率缩减（mineshaft 的 frequency = 0.004）都由结构集的放置器
-    // （RandomSpreadStructurePlacement::isStructureChunk → applyAdditionalChunkRestrictions）负责。
-    // 原版 MineshaftStructure 在候选区块确定后没有任何额外门槛，这里**不能再抽一次概率**：
-    // 多抽一次等于把频率再乘 0.004，且白耗一次世界随机数，使后续构件的分支选择整体错位。
-    return true;
-}
-
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
@@ -1154,7 +1513,7 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     // 实测房间高度变成 5 而原版是 10。
     (void)rng.nextDouble();
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 起点固定在区块内偏移 2 的位置，且这里不消耗任何随机数。
     //
@@ -1206,7 +1565,7 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     }
 
     const i32 seaLevel = ::mc::world::SEA_LEVEL;
-    const StructureBoundingBox overall = start->getBoundingBox();
+    const StructureBoundingBox overall = start->piecesBoundingBox();
 
     if (m_config.type == MineshaftType::Mesa) {
         // 恶地矿井贴着地表：以整体包围盒中心的地表高度为准，
@@ -1227,6 +1586,15 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
             piece->offset(0, mesaOffset, 0);
         }
         start->recalculateStructureSize();
+
+        // 生物群系校验（恶地分支同样要做）：原版候选点是
+        // `(区块中心 X, 50 + 下移量, 区块最小 Z)`，恶地的下移量来自上面的地表对齐。
+        // 漏掉这一步会让恶地矿井在任意群系都被接受。
+        const i32 mesaCandidateX = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+        if (!isValidBiomeAt(generator, BlockPos(mesaCandidateX, baseY + mesaOffset, chunkZ * world::CHUNK_WIDTH))) {
+            start->pieces().clear();
+            start->recalculateStructureSize();
+        }
         return start;
     }
 
@@ -1252,6 +1620,16 @@ std::unique_ptr<StructureStart> MineshaftStructure::generate(
     // 只平移集合盒会让 STRUCTURE_STARTS 阶段报出一个悬在下移前高度的盒子
     // （构件都在 -25..-4，起点的盒子却是 40..61）。原版的 start 盒永远是片段的并集。
     start->recalculateStructureSize();
+
+    // 生物群系校验：原版在 `findGenerationPoint` 把候选点取成
+    // `(区块中心 X, 50 + 下移量, 区块最小 Z)` 之后校验。下移量必须用本次实际下移的结果。
+    const i32 candidateX = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    const i32 candidateZ = chunkZ * world::CHUNK_WIDTH;
+    if (!isValidBiomeAt(generator, BlockPos(candidateX, baseY + seaOffset, candidateZ))) {
+        start->pieces().clear();
+        start->recalculateStructureSize();
+        return start;
+    }
 
     return start;
 }

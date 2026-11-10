@@ -135,6 +135,7 @@ struct ItemExtras {
     bool unbreakable = false;                                            // unbreakable
     std::unique_ptr<text::ITextComponent> itemName;                      // item_name
     std::optional<std::string> itemModel;                                // item_model（仅序列化）
+    std::optional<std::string> noteBlockSound;                           // note_block_sound（头颅作音符盒音效）
     std::optional<ItemRarity> rarityOverride;                            // rarity
     std::optional<i32> enchantableOverride;                              // enchantable（附魔能力）
     std::optional<item::component::AttackRange> attackRange;             // attack_range
@@ -147,8 +148,9 @@ struct ItemExtras {
     std::optional<i32> ominousBottleAmplifier;                           // ominous_bottle_amplifier
     std::optional<item::component::SuspiciousStewEffectsPayload> stewEffects; // suspicious_stew_effects
     std::optional<item::component::DeathProtectionPayload> deathProtection;   // death_protection
-    nlohmann::json blockEntityData; // block_entity_data 组件（放置时写入方块实体）
+    std::optional<item::component::EquippablePayload> equippable;             // equippable
     nlohmann::json rawComponents;   // 未落地结构组件的原始 JSON（以资源位置为键）
+    nlohmann::json blockEntityData; // block_entity_data 组件（放置时写入方块实体）
 
     /**
      * 被**显式移除**的组件（存档 components 段里 `"!name"` 形式的键）。
@@ -172,6 +174,7 @@ struct ItemExtras {
         , unbreakable(other.unbreakable)
         , itemName(other.itemName ? other.itemName->deepCopy() : nullptr)
         , itemModel(other.itemModel)
+        , noteBlockSound(other.noteBlockSound)
         , rarityOverride(other.rarityOverride)
         , enchantableOverride(other.enchantableOverride)
         , attackRange(other.attackRange)
@@ -184,6 +187,7 @@ struct ItemExtras {
         , ominousBottleAmplifier(other.ominousBottleAmplifier)
         , stewEffects(other.stewEffects)
         , deathProtection(other.deathProtection)
+        , equippable(other.equippable)
         , rawComponents(other.rawComponents)
         , removedComponents(other.removedComponents)
     {
@@ -205,6 +209,7 @@ struct ItemExtras {
             unbreakable = other.unbreakable;
             itemName = other.itemName ? other.itemName->deepCopy() : nullptr;
             itemModel = other.itemModel;
+            noteBlockSound = other.noteBlockSound;
             rarityOverride = other.rarityOverride;
             enchantableOverride = other.enchantableOverride;
             attackRange = other.attackRange;
@@ -233,7 +238,7 @@ struct ItemExtras {
     [[nodiscard]] bool hasComponentOverrides() const noexcept
     {
         return maxStackSizeOverride.has_value() || maxDamageOverride.has_value() || unbreakable ||
-            itemName != nullptr || itemModel.has_value() || rarityOverride.has_value() ||
+            itemName != nullptr || itemModel.has_value() || noteBlockSound.has_value() || rarityOverride.has_value() ||
             enchantableOverride.has_value() || attackRange.has_value() || fireworkExplosion.has_value() ||
             fireworks.has_value() || !removedComponents.empty();
     }
@@ -504,6 +509,23 @@ public:
      * @param model 模型资源位置（空串清除）
      */
     void setItemModel(const std::string& model);
+
+    /**
+     * @brief 获取 note_block_sound 组件（头颅作为音符盒音效时的声音事件）
+     *
+     * @return 声音事件资源位置指针；未设置时返回 nullptr
+     */
+    [[nodiscard]] const std::string* getNoteBlockSound() const
+    {
+        return (m_extras && m_extras->noteBlockSound) ? &*m_extras->noteBlockSound : nullptr;
+    }
+
+    /**
+     * @brief 设置 note_block_sound 组件
+     *
+     * @param sound 声音事件资源位置；传空字符串等价于清除
+     */
+    void setNoteBlockSound(const std::string& sound);
 
     /**
      * @brief 获取附魔能力（enchantable 组件覆盖，缺省回退物品自身附魔能力）
@@ -1287,6 +1309,23 @@ public:
     void setDeathProtection(std::optional<item::component::DeathProtectionPayload> value)
     {
         _ensureExtras().deathProtection = std::move(value);
+    }
+
+    /**
+     * @brief 获取 equippable 组件
+     *
+     * 物品栈覆盖优先，未覆盖时回退物品类型的默认值（护甲/鞘翅/鞍等注册时设置）。
+     *
+     * @return 装备定义，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<item::component::EquippablePayload>& getEquippable() const;
+
+    /**
+     * @brief 设置物品栈的 equippable 组件覆盖（nullopt 表示移除覆盖，回退物品默认值）
+     */
+    void setEquippable(std::optional<item::component::EquippablePayload> value)
+    {
+        _ensureExtras().equippable = std::move(value);
     }
 
     /**

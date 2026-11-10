@@ -41,7 +41,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <optional>
 #include <vector>
@@ -151,23 +151,6 @@ void Teleporter::placePortalBlocks(IWorld& world, const BlockPos& corner, i32 wi
 // ============================================================================
 // NetherTeleporter
 // ============================================================================
-
-bool NetherTeleporter::teleport(Entity& entity, DimensionId targetDim)
-{
-    // TODO: 此方法返回 false，因为下界传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
-    // 维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
-    // 此方法提供传送门搜索和创建逻辑，供 ServerPlayer 调用。
-    // 未来如有非玩家实体穿越下界传送门的需求，需在此方法中实现完整的传送流程。
-    //
-    // 传送流程：
-    // 1. ServerPlayer::onPortalTriggered() 确定目标维度
-    // 2. ServerPlayer::changeDimension() 使用 transformPosition() 计算目标坐标
-    // 3. 调用 findPortal() 搜索已有传送门，或 createPortal() 创建新传送门
-    // 4. 调用 ServerDimensionManager::transferPlayerToDimension() 执行维度切换
-    MC_UNUSED(entity);
-    MC_UNUSED(targetDim);
-    return false;
-}
 
 std::optional<PortalInfo> NetherTeleporter::findPortal(IWorld& world, const Vector3d& pos)
 {
@@ -347,23 +330,6 @@ void NetherTeleporter::placeObsidianFrame(IWorld& world, const BlockPos& corner,
 // ============================================================================
 // EndTeleporter
 // ============================================================================
-
-bool EndTeleporter::teleport(Entity& entity, DimensionId targetDim)
-{
-    // TODO: 此方法返回 false，因为末地传送器的完整传送逻辑由 ServerPlayer::changeDimension() 协调，
-    // 维度切换需要 ServerDimensionManager 处理区块加载/卸载和数据包发送。
-    // 未来如有非玩家实体进入末地传送门的需求，需在此方法中实现完整的传送流程。
-    //
-    // 传送流程：
-    // 1. EndPortalBlock::onEntityCollision() 检测实体进入末地传送门方块
-    // 2. 对于主世界 -> 末地：调用 createEndSpawnPlatform() 创建出生平台，
-    //    传送到固定位置 (100.5, 50.0, 0.5)
-    // 3. 对于末地 -> 主世界：使用玩家的重生点
-    // 4. 调用 ServerDimensionManager::transferPlayerToDimension() 执行维度切换
-    MC_UNUSED(entity);
-    MC_UNUSED(targetDim);
-    return false;
-}
 
 std::optional<PortalInfo> EndTeleporter::findPortal(IWorld& world, const Vector3d& pos)
 {

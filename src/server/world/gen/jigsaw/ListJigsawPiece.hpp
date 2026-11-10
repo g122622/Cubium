@@ -51,6 +51,30 @@ public:
 
     void addPiece(std::unique_ptr<JigsawPiece> piece);
 
+    /**
+     * @brief 连接点 = **首个子块**的连接点
+     *
+     * 对应原版 `ListPoolElement.getShuffledJigsawBlocks`：只有 `elements.get(0)` 的连接点参与
+     * 候选枚举，其余子块纯属放置内容。用空连接点会让整块构件永远无法被接上（装配少一整块），
+     * 用全部子块的并集会多接出不存在的连接。
+     */
+    const std::vector<JigsawJoint>& getJoints() const override;
+
+    /**
+     * @brief 尺寸 = 各子块尺寸按轴取最大
+     *
+     * 对应原版 `ListPoolElement.getSize`。
+     */
+    [[nodiscard]] BlockPos getSize() const override;
+
+    /**
+     * @brief 包围盒 = 各子块包围盒的并集
+     *
+     * 对应原版 `ListPoolElement.getBoundingBox`（跳过空元素，结果为空则抛异常——
+     * 这里由加载器保证至少有一个子块）。
+     */
+    [[nodiscard]] structure::StructureBoundingBox getBoundingBox(const BlockPos& pos, Rotation rotation) const override;
+
     const std::vector<std::unique_ptr<JigsawPiece>>& getPieces() const
     {
         return m_pieces;

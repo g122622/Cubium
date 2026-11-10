@@ -22,17 +22,18 @@
  */
 
 #include "PardonIpCommand.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/core/Types.hpp"
+#include "server/access/base/BannedIpListTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
-#include "server/core/BannedIpList.hpp"
 
 #include <memory>
 #include <regex>
@@ -98,10 +99,10 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    auto& banList = server->bannedIpList();
+    auto& banList = server->accessManager();
 
     // 检查 IP 是否被封禁
-    if (!banList.isBanned(target)) {
+    if (!banList.ipBanIsBanned(target)) {
         std::ostringstream ss;
         ss << "Could not unban IP " << target << " (not banned)";
         source.sendError(ss.str());
@@ -109,7 +110,7 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
     }
 
     // 移除封禁
-    if (!banList.removeEntry(target)) {
+    if (!banList.ipBanRemoveEntry(target)) {
         std::ostringstream ss;
         ss << "Failed to remove IP " << target << " from ban list";
         source.sendError(ss.str());
@@ -117,7 +118,7 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
     }
 
     // 保存封禁列表
-    auto saveResult = banList.save();
+    auto saveResult = banList.ipBanSave();
     if (saveResult.failed()) {
         spdlog::error("Failed to save banned IPs list: {}", saveResult.error().message());
     }

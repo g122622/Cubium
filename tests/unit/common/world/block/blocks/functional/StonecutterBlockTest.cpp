@@ -29,10 +29,11 @@
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/blocks/functional/StonecutterBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -40,7 +41,6 @@
 #include "core/Constants.hpp"
 #include "core/Types.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
-#include "world/block/BlockRegistry.hpp"
 
 #include <memory>
 #include <unordered_map>

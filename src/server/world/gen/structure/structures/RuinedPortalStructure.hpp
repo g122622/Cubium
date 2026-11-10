@@ -149,6 +149,32 @@ private:
     void _loadTemplate();
     void _updateBoundingBox();
 
+    // ===== 放置后的地狱岩/藤蔓点缀（原版 RuinedPortalPiece#postProcess 的尾段） =====
+
+    /// 世界高度图顶端方块 Y（原版 `getSurfaceY`：Heightmap 高度 - 1）
+    [[nodiscard]] i32 _surfaceY(const IWorld& world, i32 x, i32 z) const;
+
+    /// 该位置能否被地狱岩/岩浆块替换（原版 `canBlockBeReplacedByNetherrackOrMagma`）
+    [[nodiscard]] bool _canBeReplacedByNetherrackOrMagma(const IWorld& world, const BlockPos& pos) const;
+
+    /// 按 cold 属性以 7% 概率写岩浆块，否则写地狱岩（原版 `placeNetherrackOrMagma`）
+    void _placeNetherrackOrMagma(IWorld& world, math::IRandom& rng, const BlockPos& pos);
+
+    /// 从 pos 起向下概率性垂滴最多 8 格（原版 `addNetherrackDripColumn`）
+    void _addNetherrackDripColumn(IWorld& world, math::IRandom& rng, const BlockPos& pos);
+
+    /// 传送门底面每一格地狱岩下方补垂滴列（原版 `addNetherrackDripColumnsBelowPortal`）
+    void _addNetherrackDripColumnsBelowPortal(IWorld& world, math::IRandom& rng);
+
+    /// 以包围盒中心为原点按曼哈顿距离衰减概率铺开地狱岩/岩浆块（原版 `spreadNetherrack`）
+    void _spreadNetherrack(IWorld& world, math::IRandom& rng);
+
+    /// 实心方块的某个空侧面挂一格藤蔓（原版 `maybeAddVines`）
+    void _maybeAddVines(IWorld& world, math::IRandom& rng, const BlockPos& pos);
+
+    /// 地狱岩上方以 50% 概率长一格丛林树叶（原版 `maybeAddLeavesAbove`）
+    void _maybeAddLeavesAbove(IWorld& world, math::IRandom& rng, const BlockPos& pos);
+
     std::string m_templateName;
     // 旋转与镜像必须用基类 StructurePiece::m_rotation / m_mirror：子类另起同名成员会把
     // 基类那份遮蔽掉，而 getRotation()/getMirror() 读的是基类成员，差分里表现为
@@ -193,24 +219,15 @@ public:
      */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
-    /**
-     * @brief 生物群系校验在 generate() 返回之后、以片段锚点（候选点）为采样点进行
-     *
-     * 原版把校验放在 `GenerationStub` 的 Consumer 里，即候选点算出之后；本实现把候选
-     * 生成点记在片段上，由调用方在 generate() 之后复核（见 isValidAtCandidatePoint）。
-     * 用区块中心的 y=0 代替会采到洞穴群系，群系边界附近判反。
-     */
-    [[nodiscard]] bool isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const override;
-
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
-     * @brief 带生成区域重载：落点扫描计入已放置结构对地形的整平贡献
+     * @brief 带生成区域重载：落点扫描从生成区域取整列地形
      *
-     * 原版 `getBaseColumn(x, z, level, randomState)` 命中的是带 Beardifier 的 NoiseChunk，
-     * 山地里已有结构（村庄、试炼密室等）会把四周地形整平/垫高，废墟传送门因此扫描到
-     * 的是整平后的高度。只有拿到 region 才能复刻这一步。
+     * 原版 `getBaseColumn` / `getBaseHeight` 在结构落点扫描阶段固定使用
+     * `DensityFunctions.BeardifierMarker`（不含任何结构贡献），因此扫描看到的一直是
+     * **原始地形**，与区域内是否已有其它结构无关。region 只是地形列的来源。
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, WorldGenRegion* region, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;

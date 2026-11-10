@@ -230,6 +230,65 @@ number_t convert_text_integer(const std::string& literal)
     return static_cast<number_t>(parsed);
 }
 
+inline bool is_valid_char(char c)
+{
+    return std::isalnum(c) || c == '-' || c == '_' || c == '+' || c == '.';
+}
+
+/**
+ * @brief 窥探流中是否为 SNBT 布尔字面量 true/false（大小写不敏感）
+ *
+ * SNBT 规范把未加引号的 `true`/`false` 解析为 ByteTag 的 1b/0b，而非 StringTag。
+ * 未加引号 token 的边界与 read_string_text 的对应分支一致，即连续 is_valid_char
+ * 字符；因此 `trueblue` 这类以 true 开头的标识符不会被误判为布尔。
+ *
+ * 无论是否命中布尔，返回前都已把窥探的字符全部回退，流位置保持不变。
+ *
+ * @param input 输入流
+ * @param outValue 命中布尔字面量时写入 1(true) / 0(false)
+ * @param outLength 命中布尔字面量时写入 token 字符数（用于消费）
+ * @return 是否命中布尔字面量
+ */
+bool peek_bool_literal(std::istream& input, std::int8_t& outValue, std::size_t& outLength)
+{
+    const i32 first = input.peek();
+    if (first == EOF || first == '"' || first == '\'' || !is_valid_char(static_cast<char>(first))) {
+        return false;
+    }
+
+    std::vector<char> token;
+    for (;;) {
+        const i32 c = input.peek();
+        if (c == EOF || !is_valid_char(static_cast<char>(c))) {
+            break;
+        }
+        token.push_back(static_cast<char>(input.get()));
+    }
+
+    // 回退整个 token，调用方（或后续读取）需要重新消费它。
+    for (auto iter = token.crbegin(), end = token.crend(); iter != end; ++iter) {
+        input.putback(*iter);
+    }
+
+    std::string lower;
+    lower.reserve(token.size());
+    for (char c : token) {
+        lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    }
+
+    if (lower == "true") {
+        outValue = 1;
+        outLength = token.size();
+        return true;
+    }
+    if (lower == "false") {
+        outValue = 0;
+        outLength = token.size();
+        return true;
+    }
+    return false;
+}
+
 /**
  * @brief 读取文本格式整数并消费其类型后缀
  * @param input 输入流
@@ -283,6 +342,15 @@ number_t load_text_floating(std::istream& input, char suffix, number_t (*convert
 template <>
 std::int8_t load_text<std::int8_t>(std::istream& input)
 {
+    // SNBT 的 true/false 是布尔字面量，等价于 1b/0b，必须先于数字解析处理。
+    std::int8_t boolValue = 0;
+    std::size_t boolLength = 0;
+    if (peek_bool_literal(input, boolValue, boolLength)) {
+        for (std::size_t i = 0; i < boolLength; ++i) {
+            input.get();
+        }
+        return boolValue;
+    }
     return load_text_integer<std::int8_t>(input, 'b');
 }
 
@@ -413,9 +481,9 @@ void dump_text<f32>(std::ostream& output, f32 number)
 template <>
 void dump_text<f64>(std::ostream& output, f64 number)
 {
-    // TODO: 文本格式的双精度标签没有输出类型后缀 'd'，取值为整数时（如 3.0）会被打印成
-    //   "3"，重新解析时退化为 IntTag；需要补上后缀以保证文本往返不丢失类型。
-    output << number;
+    // 双精度标签必须带 'd' 后缀：否则取值为整数时（如 3.0）会被打印成 "3"，重新解析时
+    // 退化为 IntTag，文本往返丢失类型。解析端 load_text_floating<f64> 已接受 'd'/'D'。
+    output << number << 'd';
 }
 
 std::size_t load_size(std::istream& input, const Context& ctxt)
@@ -440,11 +508,6 @@ void dump_size(std::ostream& output, const Context& ctxt, std::size_t size)
 std::ostream& operator<<(std::ostream& output, TagId tid)
 {
     return output << std::to_string(tid);
-}
-
-inline bool is_valid_char(char c)
-{
-    return std::isalnum(c) || c == '-' || c == '_' || c == '+' || c == '.';
 }
 
 TagId deduce_tag(std::istream& input)
@@ -556,10 +619,17 @@ TagId deduce_tag(std::istream& input)
         }
         return deduced;
     }
-    // TODO: 布尔字面量 true/false 尚未支持，当前会落到这里被当作未引用字符串解析为
-    //   StringTag（例如 "{flag:true}" 得到字符串 "true"），按 SNBT 语义应解析为 1b/0b。
+    // 布尔字面量 true/false（大小写不敏感）在 SNBT 中解析为 ByteTag 的 1b/0b，而不是
+    // StringTag。这里先窥探完整的未引用 token 再回退，保持与 read_string_text 的
+    // 未引用分支（连续 is_valid_char 字符）完全一致的切分边界，避免把 "trueblue"
+    // 之类以 true 开头的标识符误判为布尔。
     if (a == '"' || a == '\'' || is_valid_char(a)) {
         input.putback(a);
+        std::int8_t boolValue = 0;
+        std::size_t boolLength = 0;
+        if (peek_bool_literal(input, boolValue, boolLength)) {
+            return TagId::Byte;
+        }
         return TagId::String;
     }
     input.putback(a);

@@ -29,7 +29,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -149,7 +149,7 @@ public:
     /**
      * @brief 遍历所有边
      */
-    void forAllEdges(const DoubleLineConsumer& consumer);
+    void forAllEdges(const DoubleLineConsumer& consumer) const;
 
     /**
      * @brief 遍历所有盒子

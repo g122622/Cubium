@@ -32,8 +32,8 @@
 #include "common/item/potion/Potions.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/cauldron/LayeredCauldronBlock.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
@@ -149,3 +149,16 @@ TEST_F(GlassBottleItemTest, OnItemRightClick_WhenNothingMatches_PassesThroughHel
 
 } // namespace
 } // namespace mc
+
+// 注册表里必须真的挂上 GlassBottleItem，而不只是"这个类能编译、被单元测试直接构造"。
+// 此前 Items.cpp 把 glass_bottle 注册成了普通 Item，导致 GlassBottleItem 成为死代码，
+// 而上面所有直接构造该类的测试依然全绿——正是本用例要挡住的盲区。
+TEST(GlassBottleItemRegistrationTest, RegistryRegistersGlassBottleItemType)
+{
+    if (mc::Items::GLASS_BOTTLE == nullptr) {
+        GTEST_SKIP() << "item registry not initialized";
+    }
+
+    EXPECT_NE(dynamic_cast<const mc::item::GlassBottleItem*>(mc::Items::GLASS_BOTTLE), nullptr)
+        << "minecraft:glass_bottle must be registered as GlassBottleItem, not a plain Item";
+}

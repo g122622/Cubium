@@ -33,15 +33,15 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
-#include "common/world/block/blocks/ChestBlock.hpp"
-#include "common/world/block/blocks/copper/CopperChestBlock.hpp"
-#include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/container/ChestBlock.hpp"
+#include "common/world/block/blocks/container/CopperChestBlock.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/capability/oxidation/IOxidizableBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
@@ -830,12 +830,14 @@ TEST_F(CopperChestBlockTestFixture, Rotate_ChangesFacing)
     EXPECT_EQ(rotated.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
 }
 
-TEST_F(CopperChestBlockTestFixture, Mirror_SwapsLeftRight)
+TEST_F(CopperChestBlockTestFixture, Mirror_RotatesFacingOnly)
 {
     const BlockState leftState = VanillaBlocks::COPPER_CHEST->defaultState().with(
         BlockStateProperties::CHEST_TYPE(), BlockStateProperties::ChestType::Left);
     const BlockState& mirrored = VanillaBlocks::COPPER_CHEST->mirror(leftState, Mirror::LeftRight);
 
-    // 镜像后 LEFT 变 RIGHT
-    EXPECT_EQ(mirrored.get(BlockStateProperties::CHEST_TYPE()), BlockStateProperties::ChestType::Right);
+    // 箱子镜像是「按朝向推出一个旋转再走 rotate」，只改朝向；
+    // 左右类型由 updateShape 依据邻居重新计算，镜像本身不改
+    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::CHEST_TYPE()), BlockStateProperties::ChestType::Left);
 }

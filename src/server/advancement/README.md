@@ -82,7 +82,7 @@ server/advancement/
 - `common/world/IWorld.hpp` - 世界接口（获取世界种子）
 - `server/event/` - 服务端事件总线（订阅事件，含 ServerTickEvent）
 - `server/application/IServer.hpp` - 服务器接口（获取 LootTableManager、ServerWorld、ServerPlayerEntityManager）
-- `server/core/PlayerManager.hpp` - 玩家管理器（UUID 查找）
+- `server/player/lifecycle/PlayerManager.hpp` - 玩家管理器（UUID 查找）
 - `server/player/ServerPlayer.hpp` - 服务端玩家实体（经验值发放、配方解锁）
 - `server/world/ServerWorld.hpp` - 服务端世界
 - `server/world/player/ServerPlayerEntityManager.hpp` - 玩家实体管理

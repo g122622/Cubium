@@ -25,12 +25,13 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -395,6 +396,27 @@ TEST(AnimalEntitySetInLoveTest, ResetInLoveClearsState)
 
     animal.resetInLove();
     EXPECT_FALSE(animal.isInLove());
+}
+
+// ============================================================================
+// tempt_range 属性
+// ============================================================================
+
+TEST(AnimalEntityTemptRangeTest, AnimalRegistersDefaultTemptRange)
+{
+    // 原版 Animal.createAnimalAttributes() 把 TEMPT_RANGE 注册在动物基类上，默认 10.0；
+    // TemptGoal 与 brain 的诱惑任务都通过该属性确定跟随距离。
+    TestAnimalEntity animal(EntityInstanceId(1));
+    EXPECT_DOUBLE_EQ(animal.attributes().getValue(entity::attribute::Attributes::TEMPT_RANGE, 10.0), 10.0);
+}
+
+TEST(AnimalEntityTemptRangeTest, TemptRangeIsAdjustableViaAttribute)
+{
+    // 属性可被数据包/命令调整，这是"接通消费点"的关键：改属性即可改变诱惑距离。
+    TestAnimalEntity animal(EntityInstanceId(1));
+    ASSERT_TRUE(animal.attributes().setBaseValue(entity::attribute::Attributes::TEMPT_RANGE, 24.0));
+
+    EXPECT_DOUBLE_EQ(animal.attributes().getValue(entity::attribute::Attributes::TEMPT_RANGE, 10.0), 24.0);
 }
 
 } // anonymous namespace

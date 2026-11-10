@@ -108,6 +108,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -128,80 +129,25 @@ i32 argbColor(i32 alpha, i32 red, i32 green, i32 blue)
     return ((alpha & 0xFF) << 24) | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF);
 }
 
-/**
- * @brief 原版 `Mth.hsvToArgb`。
- *
- * @throws 当色相区间落在 `0..5` 之外（负 `h` 会出现）。
- */
+/// 原版 `Mth.hsvToArgb`。
+///
+/// 直接转调生产代码：探针内保留副本会让生产实现的缺陷隐身。
+/// 生产返回 `u32`，这里转成 `i32` 以便与原版的 `int` 一致比较。
 i32 hsvToArgb(f32 h, f32 s, f32 v, i32 alpha)
 {
-    const i32 i = static_cast<i32>(h * 6.0f) % 6;
-    const f32 f = h * 6.0f - static_cast<f32>(i);
-    const f32 f1 = v * (1.0f - s);
-    const f32 f2 = v * (1.0f - f * s);
-    const f32 f3 = v * (1.0f - (1.0f - f) * s);
-
-    f32 r = 0.0f;
-    f32 g = 0.0f;
-    f32 b = 0.0f;
-    switch (i) {
-        case 0:
-            r = v;
-            g = f3;
-            b = f1;
-            break;
-        case 1:
-            r = f2;
-            g = v;
-            b = f1;
-            break;
-        case 2:
-            r = f1;
-            g = v;
-            b = f3;
-            break;
-        case 3:
-            r = f1;
-            g = f2;
-            b = v;
-            break;
-        case 4:
-            r = f3;
-            g = f1;
-            b = v;
-            break;
-        case 5:
-            r = v;
-            g = f1;
-            b = f2;
-            break;
-        default:
-            throw std::runtime_error("mth_color: HSV 转 RGB 失败，输入为 " + std::to_string(h) + ", " +
-                std::to_string(s) + ", " + std::to_string(v));
-    }
-
-    return argbColor(alpha,
-        clampInt(static_cast<i32>(r * 255.0f), 0, 255),
-        clampInt(static_cast<i32>(g * 255.0f), 0, 255),
-        clampInt(static_cast<i32>(b * 255.0f), 0, 255));
+    return static_cast<i32>(math::hsvToArgb(h, s, v, alpha));
 }
 
 /// 原版 `Mth.hsvToRgb`。
 i32 hsvToRgb(f32 h, f32 s, f32 v)
 {
-    return hsvToArgb(h, s, v, 0);
+    return static_cast<i32>(math::hsvToRgb(h, s, v));
 }
 
-/// 原版 `Mth.murmurHash3Mixer`：`>>>` 是逻辑右移，乘数溢出环绕。
+/// 原版 `Mth.murmurHash3Mixer`。
 i32 murmurHash3Mixer(i32 value)
 {
-    u32 v = static_cast<u32>(value);
-    v ^= v >> 16;
-    v *= static_cast<u32>(-2048144789);
-    v ^= v >> 13;
-    v *= static_cast<u32>(-1028477387);
-    v ^= v >> 16;
-    return static_cast<i32>(v);
+    return math::murmurHash3Mixer(value);
 }
 
 /// 从打包值取通道。

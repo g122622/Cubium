@@ -27,7 +27,7 @@ src/common/world/entity/spatial/
 | `EntityType` | `common/entity/core/EntityType.hpp` | 类型分桶 key（`const EntityType*` 指针稳定） |
 | `VanillaEntityTypeKeys` | `common/entity/registry/VanillaEntityTypeKeys.hpp` | 玩家专表判定（`PLAYER`） |
 | `SectionPos` | `common/world/chunk/base/SectionPos.hpp` | section 坐标打包（`toLong/fromLong`） |
-| `BlockPos` | `common/world/block/BlockPos.hpp` | AABB 中心 → section 坐标（`BlockPos(Vector3)` floor） |
+| `BlockPos` | `common/world/block/base/types/BlockPos.hpp` | AABB 中心 → section 坐标（`BlockPos(Vector3)` floor） |
 | `AxisAlignedBB` | `common/util/AxisAlignedBB.hpp` | 精筛（`intersects/distanceToSqr/center`） |
 | `WorldConstants` | `common/world/WorldConstants.hpp` | `MIN_SECTION_Y/MAX_SECTION_Y`（chunk 列 24 section 遍历） |
 

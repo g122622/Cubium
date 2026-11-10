@@ -641,3 +641,60 @@ TEST_F(ItemPredicateTest, MultipleItemsArray_ExpandsTagMembers)
     ASSERT_NE(Items::DIAMOND, nullptr);
     EXPECT_FALSE(predicate.test(ItemStack(*Items::DIAMOND, 1)));
 }
+
+// ========== minecraft:damage 组件谓词 ==========
+
+// 原版 DamagePredicate 同时接受 durability（剩余耐久）与 damage（已损耗值）两个子范围。
+// 此前 predicates 分支把 durability 硬编码为空范围，这两维全部被丢弃。
+TEST_F(ItemPredicateTest, DamagePredicateMatchesLostDamage)
+{
+    ASSERT_NE(Items::DIAMOND_SWORD, nullptr);
+
+    const nlohmann::json json = {
+        {"items", {"minecraft:diamond_sword"}}, {"predicates", {{"minecraft:damage", {{"damage", {{"min", 10}}}}}}}};
+
+    auto result = ItemPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    EXPECT_FALSE(result.value().isAny());
+
+    ItemStack worn(*Items::DIAMOND_SWORD, 1);
+    worn.setDamage(15);
+    EXPECT_TRUE(result.value().test(worn));
+
+    ItemStack fresh(*Items::DIAMOND_SWORD, 1);
+    fresh.setDamage(2);
+    EXPECT_FALSE(result.value().test(fresh)) << "damage below the lower bound must not match";
+}
+
+TEST_F(ItemPredicateTest, DamagePredicateMatchesRemainingDurability)
+{
+    ASSERT_NE(Items::DIAMOND_SWORD, nullptr);
+
+    ItemStack stack(*Items::DIAMOND_SWORD, 1);
+    const i32 maxDamage = stack.getMaxDamage();
+    ASSERT_GT(maxDamage, 0);
+
+    // durability 子范围按剩余耐久（maxDamage - damage）判定。
+    const nlohmann::json json = {{"items", {"minecraft:diamond_sword"}},
+        {"predicates", {{"minecraft:damage", {{"durability", {{"min", maxDamage - 5}}}}}}}};
+
+    auto result = ItemPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    ItemStack nearlyFull(*Items::DIAMOND_SWORD, 1);
+    nearlyFull.setDamage(3);
+    EXPECT_TRUE(result.value().test(nearlyFull));
+
+    ItemStack worn(*Items::DIAMOND_SWORD, 1);
+    worn.setDamage(50);
+    EXPECT_FALSE(result.value().test(worn)) << "remaining durability below bound must not match";
+}
+
+TEST_F(ItemPredicateTest, DamagePredicateIsNotAnyWhenOnlyDamageGiven)
+{
+    const nlohmann::json json = {{"predicates", {{"minecraft:damage", {{"damage", {{"min", 1}}}}}}}};
+
+    auto result = ItemPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    EXPECT_FALSE(result.value().isAny()) << "a damage-only predicate must not collapse to match-anything";
+}

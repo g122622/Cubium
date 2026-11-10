@@ -35,8 +35,8 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <memory>
 #include <sstream>

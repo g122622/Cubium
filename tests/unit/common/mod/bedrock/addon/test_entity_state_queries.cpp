@@ -21,13 +21,18 @@
  *
  */
 
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
+#include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/entity/inventory/CraftingInventory.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/item/Items.hpp"
@@ -138,6 +143,24 @@ TEST_F(AddonEntityStateQueryTest, ArmorBodyAndInventoryDomainsDoNotOverlap)
     check(context, inventoryFilter, false);
 }
 
+// 狐狸叼着的物品放在主手槽，inventory 域必须能查到它。
+TEST_F(AddonEntityStateQueryTest, FoxMouthItemIsQueryableThroughInventoryDomain)
+{
+    FoxEntity fox(EntityInstanceId(7), registry);
+    EntityFilterContext context{fox, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    const nlohmann::json inventoryFilter = {{"test", "has_equipment"}, {"domain", "inventory"}, {"value", "stick"}};
+
+    // 未叼物品时查不到。
+    check(context, inventoryFilter, false);
+
+    // 狐狸把叼着的物品放在主手槽，因此装备到主手后 inventory 域就应能查到。
+    fox.setEquipment(EquipmentSlot::MainHand, ItemStack(*item, 1));
+    check(context, inventoryFilter, true);
+
+    fox.setEquipment(EquipmentSlot::MainHand, ItemStack::EMPTY);
+    check(context, inventoryFilter, false);
+}
+
 TEST_F(AddonEntityStateQueryTest, OwnerFilterUsesCallerOwnershipAndCanonicalUuid)
 {
     WolfEntity tameable(EntityInstanceId(1), registry);
@@ -191,6 +214,86 @@ TEST_F(AddonEntityStateQueryTest, NativeMarkerComponentsFollowTamingAndChargingT
     check(context, {{"test", "has_component"}, {"subject", "other"}, {"value", "is_charged"}}, false);
     creeper.setPowered(true);
     check(context, {{"test", "has_component"}, {"subject", "other"}, {"value", "is_charged"}}, true);
+}
+
+// 原生标记组件（fire_immune / is_baby / is_sleeping / is_leashed / is_riding / is_sneaking）
+// 的存在条件必须读实体真实状态，而不是恒 false 或报 Unsupported。
+TEST_F(AddonEntityStateQueryTest, NativeStateComponentsFollowEntityState)
+{
+    AgeableEntity mob(EntityInstanceId(9), registry);
+    mob.registerAttributes();
+    EntityFilterContext context{mob, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
+    // 幼体状态：新建为非幼体，setChild 后组件才存在。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_baby"}, {"operator", "not"}}, true);
+    mob.setChild(true);
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_baby"}}, true);
+
+    // 睡眠状态同理。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_sleeping"}, {"operator", "not"}}, true);
+
+    // 攀爬与骑乘默认都不成立。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_riding"}, {"operator", "not"}}, true);
+    check(context, {{"test", "has_component"}, {"value", "minecraft:is_leashed"}, {"operator", "not"}}, true);
+
+    // fire_immune 是实体固有属性，普通生物不免疫火焰。
+    check(context, {{"test", "has_component"}, {"value", "minecraft:fire_immune"}, {"operator", "not"}}, true);
+}
+
+// 原版实体的固有组件：physics / collision_box / type_family / nameable 对任何实体都存在，
+// 而 attack / breathable 只有 LivingEntity 具备，leashable 只有 MobEntity 具备。
+// 这组判定不依赖数据包，与 addon 实体走 components->has 的路径不同。
+TEST_F(AddonEntityStateQueryTest, NativeIntrinsicComponentsAreReportedPerEntityCapability)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+    LivingEntity living(EntityInstanceId(2), nullptr, registry);
+
+    for (const char* universal :
+        {"minecraft:physics", "minecraft:collision_box", "minecraft:type_family", "minecraft:nameable"}) {
+        const auto present = EntityStateQuery::hasComponent(plain, universal);
+        ASSERT_TRUE(present.success()) << universal << ": " << present.error().message();
+        EXPECT_TRUE(present.value()) << universal << " 对任何实体都应存在";
+    }
+
+    // attack / breathable 依赖 LivingEntity 的属性表与氧气机制
+    for (const char* livingOnly : {"minecraft:attack", "minecraft:breathable"}) {
+        const auto onPlain = EntityStateQuery::hasComponent(plain, livingOnly);
+        ASSERT_TRUE(onPlain.success()) << livingOnly;
+        EXPECT_FALSE(onPlain.value()) << livingOnly << " 不应出现在非生物实体上";
+
+        const auto onLiving = EntityStateQuery::hasComponent(living, livingOnly);
+        ASSERT_TRUE(onLiving.success()) << livingOnly;
+        EXPECT_TRUE(onLiving.value()) << livingOnly << " 应出现在生物实体上";
+    }
+
+    // leashable：非生物没有拴绳状态机
+    const auto leashedPlain = EntityStateQuery::hasComponent(plain, "minecraft:leashable");
+    ASSERT_TRUE(leashedPlain.success());
+    EXPECT_FALSE(leashedPlain.value());
+}
+
+// 哞菇的红/棕是主变种（基岩 minecraft:variant），不能用 mark_variant 承载——
+// mark_variant 是"附加变种"，语义不同。脚本按官方组件名读取时必须拿到 variant。
+TEST_F(AddonEntityStateQueryTest, MooshroomColorIsReportedAsVariantNotMarkVariant)
+{
+    MooshroomEntity mooshroom(EntityInstanceId(1), registry);
+
+    const auto variantPresent = EntityStateQuery::hasComponent(mooshroom, "minecraft:variant");
+    ASSERT_TRUE(variantPresent.success()) << variantPresent.error().message();
+    EXPECT_TRUE(variantPresent.value());
+
+    const auto markVariantPresent = EntityStateQuery::hasComponent(mooshroom, "minecraft:mark_variant");
+    EXPECT_TRUE(markVariantPresent.failed());
+
+    // 默认红色 = 0，翻转后为棕色 = 1。
+    auto red = EntityStateQuery::variant(mooshroom, "minecraft:variant");
+    ASSERT_TRUE(red.success()) << red.error().message();
+    EXPECT_EQ(red.value(), 0);
+
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
+    auto brown = EntityStateQuery::variant(mooshroom, "minecraft:variant");
+    ASSERT_TRUE(brown.success()) << brown.error().message();
+    EXPECT_EQ(brown.value(), 1);
 }
 
 TEST_F(AddonEntityStateQueryTest, VariantsFollowGroupsAndNbtRoundTripWithoutRestoringRemovedBase)
@@ -309,4 +412,50 @@ TEST_F(AddonEntityStateQueryTest, ScriptVariantReferenceReadsCurrentGroupAndReje
     ASSERT_TRUE(result.success()) << result.errorMessage();
     context.reset();
     engine->shutdown();
+}
+
+// 载具容器（箱子矿车/漏斗矿车/箱子船）的 inventory 域查询：
+// 这些实体都提供了不修改库存的只读访问接口，has_equipment 的 inventory 域应当能查到。
+TEST_F(AddonEntityStateQueryTest, VehicleContainerInventoryIsQueryable)
+{
+    entity::ChestMinecartEntity minecart(EntityInstanceId(1), registry);
+    minecart.setInventoryItem(3, ItemStack(*item, 1));
+
+    Entity caller(EntityInstanceId(2), nullptr, registry);
+    EntityFilterContext minecartContext{caller, &minecart, nullptr, nullptr, nullptr, nullptr, nullptr};
+    check(minecartContext,
+        {{"test", "has_equipment"}, {"subject", "other"}, {"domain", "inventory"}, {"value", "minecraft:stick"}},
+        true);
+    check(minecartContext,
+        {{"test", "has_equipment"}, {"subject", "other"}, {"domain", "inventory"}, {"value", "minecraft:diamond"}},
+        false);
+
+    entity::ChestBoatEntity boat(entity::BoatEntity::Type::OAK, registry);
+    boat.setInventoryItem(0, ItemStack(*item, 1));
+    EntityFilterContext boatContext{caller, &boat, nullptr, nullptr, nullptr, nullptr, nullptr};
+    check(boatContext,
+        {{"test", "has_equipment"}, {"subject", "other"}, {"domain", "inventory"}, {"value", "minecraft:stick"}},
+        true);
+}
+
+// 载具也承载库存，因此必须报告 minecraft:inventory 组件；否则会出现
+// "组件说不存在、inventory 域却查得到"的自相矛盾，依赖 has_component 的过滤条件会误判。
+TEST_F(AddonEntityStateQueryTest, VehicleReportsInventoryComponent)
+{
+    entity::ChestMinecartEntity minecart(EntityInstanceId(1), registry);
+    Entity caller(EntityInstanceId(2), nullptr, registry);
+
+    EntityFilterContext minecartContext{caller, &minecart, nullptr, nullptr, nullptr, nullptr, nullptr};
+    check(minecartContext, {{"test", "has_component"}, {"subject", "other"}, {"value", "minecraft:inventory"}}, true);
+
+    entity::ChestBoatEntity boat(entity::BoatEntity::Type::OAK, registry);
+    EntityFilterContext boatContext{caller, &boat, nullptr, nullptr, nullptr, nullptr, nullptr};
+    check(boatContext, {{"test", "has_component"}, {"subject", "other"}, {"value", "minecraft:inventory"}}, true);
+
+    // 不承载库存的实体不应报告该组件：接口以 Unsupported 表达"该实体类型没有映射"，
+    // 而不是返回 false，因此这里直接断言返回值的形态。
+    Entity plain(EntityInstanceId(3), nullptr, registry);
+    auto plainResult = EntityStateQuery::hasComponent(plain, "minecraft:inventory");
+    EXPECT_FALSE(plainResult.success());
+    EXPECT_EQ(plainResult.error().code(), ErrorCode::Unsupported);
 }

@@ -53,6 +53,19 @@ namespace mc {
  */
 class CollisionShape {
 public:
+    /** @brief 共享空形状，供返回引用的方块接口使用。 */
+    [[nodiscard]] static const CollisionShape& emptyShape() noexcept
+    {
+        static const CollisionShape shape = empty();
+        return shape;
+    }
+
+    /** @brief 共享完整方块形状，供返回引用的方块接口使用。 */
+    [[nodiscard]] static const CollisionShape& fullBlockShape() noexcept
+    {
+        static const CollisionShape shape = fullBlock();
+        return shape;
+    }
     /**
      * @brief 形状类型
      */

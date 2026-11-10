@@ -29,7 +29,7 @@
 #include "common/world/gameevent/DynamicGameEventListener.hpp"
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"

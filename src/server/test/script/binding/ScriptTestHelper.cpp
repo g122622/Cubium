@@ -22,7 +22,7 @@
  */
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 
 #include "common/entity/core/EntityClassification.hpp" // entity::EntityClassification（spawnNaturalAt category 映射）
 #include "common/item/core/ItemStack.hpp"              // mc::ItemStack（_unwrapItemStack/assertContainerContains）
@@ -34,9 +34,9 @@
 #include "common/util/math/Vector3.hpp"    // mc::math::Vector3d（worldPosition/rotateVector 等）
 #include "common/world/IWorld.hpp"         // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
 #include "common/world/biome/BiomeIds.hpp" // Biomes::Plains 等（spawnNaturalAt biome 注入映射）
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp" // mc::BlockState（_unwrapBlockPermutation/setBlockPermutation）
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp" // mc::blocks::SculkSpreader（getSculkSpreader wrap/delete 需完整类型）
+#include "common/world/block/state/BlockState.hpp" // mc::BlockState（_unwrapBlockPermutation/setBlockPermutation）
 #include "server/test/base/error/GameTestError.hpp"
 #include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
@@ -1106,10 +1106,10 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         4);
 
-    // --- spawnItem(itemType, location) -> Entity ---
-    // 基岩 spawnItem(itemStack: ItemStack, location: Vector3) -> Entity。项目 ItemStack JS 类未充实（空壳），
-    // 此处简化接受 itemType 字符串（偏离基岩签名），内部转 spawnItemAt(itemType, Vector3d)。
-    // TODO: ItemStack JS 类充实后改为接受 ItemStack 对象（解析 typeId/amount 构造 ItemStack 调 spawnItemAt）。
+    // --- spawnItem(itemStack | itemType, location) -> Entity ---
+    // 基岩 spawnItem(itemStack: ItemStack, location: Vector3) -> Entity。现已接受 ItemStack 对象，
+    // 完整保留数量/附魔/自定义名；同时保留 itemType 字符串形式（项目早期简化签名，集成测试在用），
+    // 字符串路径等价于 count=1 的空堆。
     // 返回 Entity JS 对象（经 ScriptClassRegistry 跨模块 wrap，与 spawn 同）。
     reg.method(
         "spawnItem",
@@ -1119,13 +1119,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return nullptr;
             }
 
-            if (argc < 2 || !ctx.isString(args[0])) {
-                return ctx.throwTypeError("spawnItem(itemType, location)");
-            }
-
-            auto itemType = ctx.toString(args[0]);
-            if (!itemType) {
-                return ctx.throwInternalError("Failed to read itemType");
+            if (argc < 2) {
+                return ctx.throwTypeError("spawnItem(itemStack | itemType, location)");
             }
 
             mc::math::Vector3d loc;
@@ -1134,7 +1129,22 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             }
 
             mc::Entity* outEntity = nullptr;
-            auto result = helper->spawnItemAt(*itemType, loc, outEntity);
+            mc::test::GameTestResult result;
+
+            // ItemStack 对象优先：拷贝一份再传，避免把脚本句柄里的实例跟物品实体共享。
+            if (auto* stack = _unwrapItemStack(ctx, args[0]); stack != nullptr) {
+                result = helper->spawnItemAt(*stack, loc, outEntity);
+            } else if (ctx.isString(args[0])) {
+                auto itemType = ctx.toString(args[0]);
+                if (!itemType) {
+                    return ctx.throwInternalError("Failed to read itemType");
+                }
+
+                result = helper->spawnItemAt(*itemType, loc, outEntity);
+            } else {
+                return ctx.throwTypeError("spawnItem: first arg must be an ItemStack or an item type string");
+            }
+
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
 
@@ -2631,7 +2641,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         2);
 
-    // spawnItem 已绑定（上方，简化接受 itemType 字符串，TODO ItemStack 充实后改对象）。
+    // spawnItem 已绑定（上方，接受 ItemStack 对象或 itemType 字符串）。
     // Test 类方法已全部桥接（含批次4 新增 17 方法：assertBlockState/getBlock(stub 待 Block wrap helper)/
     // assertContainerContains/assertContainerEmpty/setBlockPermutation/setFluidContainer/triggerInternalBlockEvent/
     // spreadFromFaceTowardDirection/spawnAtLocation/spawnWithoutBehaviors/spawnWithoutBehaviorsAtLocation/

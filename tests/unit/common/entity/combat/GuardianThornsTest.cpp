@@ -71,7 +71,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 using namespace mc;
 

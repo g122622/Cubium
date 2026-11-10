@@ -1,146 +1,27 @@
-# Chunk 模块
+# chunk 模块
 
-本目录包含 Minecraft 区块系统的核心实现。
+## 目录结构树
 
-## 目录结构
-
-```
-src/common/world/chunk/
-├── IChunkManager.hpp                 # 区块管理器窄接口（IWorld::chunkManager() 的返回类型）+ EmptyChunkManager 空对象
-├── base/
-│   ├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
-│   ├── ChunkPos.hpp                   # 区块位置类型
-│   └── SectionPos.hpp                 # 区块段位置类型
-├── data/
-│   ├── BiomeContainer.hpp/cpp        # 生物群系容器
-│   ├── ChunkData.hpp/cpp             # 完整区块数据（实现 IChunk）
-│   ├── ChunkPrimer.hpp/cpp           # 区块生成中间状态
-│   ├── ChunkSection.hpp/cpp          # 区块段（16x16x16 方块）
-│   ├── Heightmap.hpp/cpp             # 高度图
-│   └── IChunk.hpp/cpp                # 区块接口和基础类型
-├── gen/
-│   ├── ChunkDependencies.hpp/cpp     # 区块依赖关系
-│   ├── ChunkPyramid.hpp/cpp          # 区块生成金字塔（含 ChunkLevel 合并方法）
-│   ├── ChunkStatus.hpp/cpp           # 区块生成阶段定义
-│   └── ChunkStep.hpp                 # 区块生成步骤
-├── load/
-│   ├── ChunkDistanceGraph.hpp/cpp     # 区块距离图（BFS 级别传播算法）
-│   ├── ChunkLoadLevel.hpp            # 区块加载级别枚举与工具函数
-│   ├── ChunkLoadTicket.hpp           # 显式 ticket 类型与集合定义
-│   └── ChunkLoadTicketManager.hpp/cpp # 票据管理器与玩家来源聚合器
-└── README.md
+```text
+chunk/
+├── base/  # 本领域共享的基础类型与定义
+├── data/  # 该领域的子模块
+├── load/  # 该领域的子模块
+└── IChunkManager.hpp  # 区块管理器接口
 ```
 
-**已迁移到 server/**：
-- `SingleChunkLifecycleManager.hpp/cpp` → `src/server/world/`
+## 内部模块关系
 
-**已合并**：
-- `ChunkLevel.hpp/cpp` → 方法合并到 `ChunkPyramid`，常量移到 `ChunkLoadLevel`
+各文件承接目录树中标明的单一职责，通过同领域接口组合。独占的辅助实现位于使用者目录下。
 
-## 模块关系
+## 上下游外部依赖关系
 
-```mermaid
-flowchart LR
-    A[显式ticket变化/玩家source变化] --> B[ChunkLoadTicketManager]
-    B --> C[ServerChunkManager]
-    C --> D[SingleChunkLifecycleManager]
-    D --> E[UniversalWorkerPool]
-    E --> F[ChunkPrimer]
-    F --> G[ChunkData]
-
-    style A fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1
-    style B fill:#f3e5f5,stroke:#8e24aa,color:#4a148c
-    style C fill:#e8f5e9,stroke:#43a047,color:#1b5e20
-    style D fill:#fff3e0,stroke:#fb8c00,color:#e65100
-    style E fill:#ede7f6,stroke:#5e35b1,color:#311b92
-    style F fill:#e0f7fa,stroke:#00acc1,color:#006064
-    style G fill:#fce4ec,stroke:#d81b60,color:#880e4f
-```
-
-## 子目录职责
-
-### IChunkManager.hpp — 区块管理器窄接口
-
-`IWorld::chunkManager()` 的返回类型，供 common 层游戏逻辑按区块粒度取数，只含 `tryToGetChunkInMem` / `hasChunkInMem` / `requestFullChunkSync` 三个操作。`ServerChunkManager`（server 层）实现它，`ServerWorld::chunkManager()` 借协变返回类型返回具体类型；`EmptyChunkManager` 是默认空对象（语义为"所有区块均未加载"），供客户端只读适配器与测试桩世界使用。详见 `src/common/world/README.md` 第 16 节。
-
-### base/ — 位置与标识类型
-
-无外部依赖的纯值类型：
-- **ChunkPos** — 区块坐标（x, z）
-- **SectionPos** — 区块段坐标（x, y, z）
-- **ChunkId** — 区块唯一标识（x, z, dimension）
-
-### data/ — 数据模型
-
-区块数据存储与访问：
-- **IChunk** — 区块接口（定义 HeightmapType、ChunkLoadStatus 等）
-- **ChunkSection** — 16x16x16 方块段（状态ID存储、随机刻计数；**不含光照**，光照归 ChunkData 的 SWMRNibbleArray）
-- **PalettedContainer** — 段内方块状态存储：调色板 + 位压缩 storage + 开放寻址反向哈希表（唯一值只有 1 个时为均匀态：`bits=0`、不分配 storage/哈希表）；位宽 = `max(1, ceil(log2(唯一值个数)))`（**只有这一种工作模式**，见 docs/BENCHMARK.md 的设计变更记录）
-- **ChunkData** — 完整区块数据（实现 IChunk，包含段数组、高度图、方块实体、光照等）
-- **ChunkPrimer** — 生成中间状态（ProtoChunk）
-- **BiomeContainer** — 生物群系采样容器
-- **Heightmap** — 高度图（7 种类型，每列存最高方块 Y+1）
-
-### gen/ — 生成管线
-
-区块生成阶段与依赖：
-- **ChunkStatus** — 12 阶段生成链（EMPTY → FULL）
-- **ChunkDependencies** — 按半径索引的依赖关系
-- **ChunkStep** — 目标状态 + 直接依赖 + 累积依赖 + 可写半径 + byRadius[] 查找表（`getRequiredStatusAtRadius`/`neighbourReadRadius`，对齐 Moonrise ChunkStepMixin）
-- **ChunkPyramid** — 生成金字塔（含 `radiusAroundFullChunk()`、`maxLevel()`、`generationStatus()` 等方法）
-
-### load/ — 加载票据系统
-
-区块加载优先级管理：
-- **ChunkLoadLevel** — 加载级别枚举 + `shouldChunkLoad()`/`viewDistanceToLevel()` + `FULL_CHUNK_LEVEL`/`BLOCK_TICKING_LEVEL`/`ENTITY_TICKING_LEVEL` 常量
-- **ChunkLoadTicket** — 票据类型与集合；带生命周期票据按**剩余 tick 倒计时**（`tickLifetime()`，存活期从加入时刻起算）
-- **ChunkDistanceGraph** — BFS 级别传播算法
-- **ChunkLoadTicketManager** — 聚合显式 ticket 和玩家 source；`tick()` 每 tick 递减带生命周期票据并处理传播，并通过「存在可过期票据的区块」索引把过期处理限制在这些区块上
-
-## 生成依赖模型
-
-使用 `ChunkPyramid::generationPyramid()` 定义区块生成阶段的依赖关系：
-
-| 阶段 | 直接依赖 | 可写半径 |
-|------|---------|---------|
-| EMPTY | — | -1 |
-| STRUCTURE_STARTS | [EMPTY] | -1 |
-| STRUCTURE_REFERENCES | [STRUCTURE_STARTS(8)] | -1 |
-| BIOMES | [STRUCTURE_STARTS(8)] | -1 |
-| NOISE | [STRUCTURE_STARTS(8), BIOMES(1)] | 0 |
-| SURFACE | [STRUCTURE_STARTS(8), BIOMES(1)] | 0 |
-| CARVERS | [STRUCTURE_STARTS(8)] | 0 |
-| FEATURES | [STRUCTURE_STARTS(8), CARVERS(1)] | 1 |
-| INITIALIZE_LIGHT | [FEATURES] | -1 |
-| LIGHT | [INITIALIZE_LIGHT(1)] | -1 |
-| SPAWN | [BIOMES(1)] | -1 |
-| FULL | [SPAWN] | -1 |
-
-## 上下游依赖关系
-
-**被依赖方（上游）**：
-- `common/core/Types.hpp` — 基础类型
-- `common/core/Result.hpp` — 错误处理
-- `common/world/block/Block.hpp` — 方块状态
-- `common/world/biome/Biome.hpp` — 生物群系
-- `common/world/WorldConstants.hpp` — 世界常量
-- `common/util/NibbleArray.hpp` — 4 位数组
-
-**依赖方（下游）**：
-- `server/world/ServerChunkManager.hpp` — 服务端区块管理器
-- `server/world/SingleChunkLifecycleManager.hpp` — 单区块生命周期（NewChunkHolder 等价物）
-- `server/world/ChunkTaskScheduler.hpp` — 生成调度核心
-- `server/world/ChunkProgressionTask.hpp` — 单状态推进任务
-- `client/world/ClientWorld.hpp` — 客户端世界
-- `server/world/gen/` — 生成器
-- `server/world/lighting/` — 光照引擎与管理器（存储层在 `common/world/chunk/data/light/`）
-- `server/world/storage/` — 存储系统
-
-## 命名空间
-
-所有类型统一在 `mc::world::chunk` 命名空间下。
+公共层提供领域类型与接口；服务端通过应用装配连接玩家、网络和世界实现。源文件的构建归属与领域目录一致。
 
 ## 容易踩的坑
+
+- 目录按领域职责组织；跨领域协作通过明确入口和基础类型。
+- 新增或迁移源文件时同步更新所有消费目标的 CMake 清单。
 
 1. **`ChunkLoadTicketManager::tick()` 必须每 tick 调用一次** — 带生命周期票据（PORTAL 300t、POST_TELEPORT 5t、UNLOAD_COOLDOWN 100t 等）的剩余 tick 只在这里递减；漏调会让它们永不失效，其钉住的票级也不会释放（历史上 `tick()` 无调用方，导致票据过期机制整体失效）。显式 ticket、玩家 source 和追踪系统的更新仍是批处理的，需要在添加/移除后调用 `processUpdates()`
 2. **线程安全** — `SingleChunkLifecycleManager` 使用互斥锁；`ChunkData` 和 `ChunkPrimer` 不是线程安全的

@@ -33,11 +33,12 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/IWaterLoggable.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
-#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/blocks/base/HorizontalBlock.hpp"
+#include "common/world/block/capability/IWaterLoggable.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
@@ -352,7 +353,7 @@ private:
  * - 调度延迟：常规 24000/3 + [0, 300) tick；加速 12000/3 + [0, 300) tick。
  * - 加速条件：下方方块在 BlockTags::SNIFFER_EGG_HATCH_BOOST 标签中（如苔藓块）。
  * - tick 回调推进 HATCH 等级：0→1→2，到 2 时孵化完成生成嗅探兽幼体。
- * - 加速放置时广播 WorldEvents::EGG_CRACK (3009) 粒子事件。
+ * - 加速放置时广播 ::mc::world::LevelEventId::PARTICLES_EGG_CRACK (3009) 粒子事件。
  * - 不再依赖 randomTick，因此 ticksRandomly() 返回 false。
  */
 class SnifferEggBlock : public Block {

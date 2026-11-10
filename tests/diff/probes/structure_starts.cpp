@@ -35,7 +35,6 @@
  * 单元由共同语料决定（`harnesses/structure_starts.ts`），本探针不提供 `list`。
  */
 
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -57,8 +56,8 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "probe.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -89,6 +88,7 @@
 #include "server/world/gen/structure/StructureTagLoader.hpp"
 #include "server/world/gen/structure/pools/Pools.hpp"
 #include "server/world/gen/structure/structures/EndCityStructure.hpp"
+#include "server/world/gen/structure/structures/NetherFossilStructure.hpp"
 #include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
 #include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "structure_probe_common.hpp"
@@ -147,6 +147,9 @@ const char* projectionName(StructurePieceProjection projection)
 json summarisePiece(const world::gen::structure::StructurePiece& piece)
 {
     const auto box = piece.getBoundingBox();
+    // 接线按收集顺序原样输出，与 oracle 的 `getJunctions()` 同口径。接线在父构件上按连接点
+    // 遍历序追加、在子构件上只有被挂接时的那一条，两条实现都必须逐项对齐；若此处再排序，
+    // 装配阶段真的把接线记到了错误的连接点上也会被掩盖掉。
     json junctions = json::array();
     for (const auto& junction : piece.getJunctions()) {
         junctions.push_back(json{{"x", junction.getSourceX()},
@@ -180,6 +183,10 @@ json summarisePiece(const world::gen::structure::StructurePiece& piece)
             // 末地城存的是裸文件名（`end_city/base_floor` 的文件名部分），与原版
             // `TemplateStructurePiece.templateName` 逐字一致，不能补命名空间。
             return city->templateName();
+        }
+        if (const auto* fossil = dynamic_cast<const world::gen::structure::NetherFossilPiece*>(&piece)) {
+            // 化石存的是完整资源位置（`Identifier.toString()`），与 oracle 反射读到的值同口径。
+            return fossil->templateName();
         }
         return std::string(piece.templateLocation());
     }();

@@ -33,9 +33,9 @@
 #include "common/world/chunk/IChunkManager.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/gen/ChunkPyramid.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
+#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/scheduling/AreaTaskScheduler.hpp"
@@ -651,10 +651,11 @@ public:
     void _debugDumpStuckHolders();
 
     // ========================================================================
-    // TODO(临时诊断): primer 状态普查（稳态归因用）。定位完成后删除本段。
+    // primer 状态普查（基准测试的稳态归因用）
     // ========================================================================
 
-    /// 单个 holder 的 primer 状态快照（供 dumpPrimerStats 导出 CSV）
+    /// 单个 holder 的 primer 状态快照
+    /// 消费者是 `benchmark/cases/ChunkGenerationBenchmark.cpp` 的 `dumpPrimerStats`（导出 CSV）。
     struct PrimerStatsRow {
         ChunkCoord x = 0;
         ChunkCoord z = 0;
@@ -670,6 +671,8 @@ public:
     };
 
     /// 收集全部 holder 的 primer 状态快照（无锁 best-effort，仅供诊断）
+    /// 用途：统计 primer 在各生成状态上的分布，判断卡在中间状态的 primer 是否会长期持有
+    /// `m_biomes` / `m_heightmaps` / `m_noiseChunk` 等暂存数据（稳态内存归因）。
     [[nodiscard]] std::vector<PrimerStatsRow> debugCollectPrimerStats() const;
 
     /**

@@ -23,8 +23,8 @@
 
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "common/core/Types.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::server;
@@ -140,7 +140,7 @@ TEST_F(ServerDimensionManagerTest, DimensionTypeIdMapping)
 
 TEST_F(ServerDimensionManagerTest, PlayerManagerPlayerRetrieval)
 {
-    mc::server::core::PlayerManager manager;
+    mc::server::PlayerManager manager;
 
     // PlayerManager 默认最大玩家数为 20
     EXPECT_EQ(manager.maxPlayers(), 20);

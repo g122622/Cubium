@@ -27,5 +27,5 @@
 
 #include "NormalNoise.hpp"
 #include "PerlinNoise.hpp"
-#include "PerlinSimplexNoise.hpp"
-#include "SimplexNoise.hpp"
+#include "common/util/math/noise/PerlinSimplexNoise.hpp"
+#include "common/util/math/noise/SimplexNoise.hpp"

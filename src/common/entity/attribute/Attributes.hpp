@@ -468,12 +468,12 @@ inline std::unique_ptr<Attribute> sneakingSpeed()
  * 对齐 vanilla 1.21.11 的 block_break_speed 属性
  *（Attributes.java:19-21，RangedAttribute("attribute.name.block_break_speed", 1.0, 0.0, 1024.0)）。
  *
- * 消费点：挖掘速度——最终速度乘以本属性值（对齐 vanilla Player.getDestroySpeed 的
- * `f *= getAttributeValue(BLOCK_BREAK_SPEED)`）。默认 1.0 不改变速度；目前原版没有附魔或
- * 效果修饰它，属于「给数据包/命令预留」的属性。
+ * 消费点有两个，二者都必须乘上本属性：
+ * - `Player::getDigSpeed`（客户端预测与方块侧计算），在挖掘疲劳之后、水下惩罚之前相乘；
+ * - `MiningManager::_calculateDigSpeedMultiplier`（服务端权威校验），经 `DigSpeedInputs::blockBreakSpeed`
+ *   参与同一公式（由差分测试的 dig_speed 能力对拍）。
  *
- * TODO: 接通挖掘速度的消费点（Player::getDigSpeed / MiningManager::_calculateDigSpeedMultiplier），
- *       当前只注册了定义，还没有任何代码读取它。
+ * 默认 1.0 不改变速度；原版没有附魔或效果修饰它，属于「给数据包/命令预留」的属性。
  *
  * 默认值: 1.0
  * 范围: 0.0 ~ 1024.0
@@ -484,14 +484,16 @@ inline std::unique_ptr<Attribute> blockBreakSpeed()
 }
 
 /**
- * @brief 台阶高度
+ * @brief 步进高度
  *
  * 对齐 vanilla 1.21.11 的 step_height 属性
  *（Attributes.java:85-87，RangedAttribute("attribute.name.step_height", 0.6, 0.0, 10.0)）。
  *
- * 决定实体不跳跃就能跨过的最大高度。马类与部分生物会把它调高。
+ * 决定实体不跳跃就能跨过的最大高度。消费点是 `LivingEntity::stepHeight()`：它直接读本属性
+ * （并被移动、寻路台阶判定与 `Entity::move` 的自动步进共同使用），因此数据包/命令改属性即可
+ * 改变生物能否走上整格方块。马、掠夺者、末影人、溺尸等把默认值调高到 1.0。
  *
- * TODO: 接通消费点——移动与寻路里的台阶判定目前仍用固定 0.6，没有读这个属性。
+ * 额外规则：被玩家骑乘时至少按 1.0 计，避免玩家骑乘时被半格高度卡住（vanilla 同款）。
  *
  * 默认值: 0.6
  * 范围: 0.0 ~ 10.0
@@ -509,7 +511,8 @@ inline std::unique_ptr<Attribute> stepHeight()
  *
  * 决定碰撞箱、渲染与视高的整体缩放比例（幼年生物、缩小/放大效果）。
  *
- * TODO: 接通消费点——实体尺寸目前由 EntitySize 直接给出，没有乘以本属性。
+ * 消费点：`LivingEntity::getDimensions(pose)` 对非睡眠姿态返回基础尺寸 × `getScale()`，
+ * 因此碰撞箱、视高以及由它们派生的判定都随之变化。睡眠姿态使用不缩放的固定尺寸。
  *
  * 默认值: 1.0
  * 范围: 0.0625 ~ 16.0
@@ -545,7 +548,9 @@ inline std::unique_ptr<Attribute> cameraDistance()
  *
  * 决定手持诱饵物品时生物开始跟随的最大距离（猪/牛/羊/鸡等）。
  *
- * TODO: 接通消费点——TemptGoal 目前用的是写死的 10.0。
+ * 消费点是 `TemptGoal::_temptRange()`：玩家搜索半径与"是否超出范围"的距离判定都用它，
+ * 因此命令/数据包改属性即可调整跟随距离。该属性在 `AnimalEntity::registerAttributes`
+ * 注册（对应 vanilla `Animal.createAnimalAttributes()`），嗅探兽等再把默认值调高。
  *
  * 默认值: 10.0
  * 范围: 0.0 ~ 2048.0

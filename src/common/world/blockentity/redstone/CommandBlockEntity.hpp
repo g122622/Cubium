@@ -26,7 +26,7 @@
 #include "command/ICommandSource.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "util/math/Vector3.hpp"
 #include <memory>
@@ -104,8 +104,16 @@ public:
      */
     bool loadFromNBT(const nbt::CompoundTag& tag) override;
 
-    void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override;
+    /**
+     * @brief 保存数据到 NBT
+     *
+     * 字段集与 save(nlohmann::json&) 一致。两条存档路径必须写出相同内容，
+     * 否则 NBT 往返会丢失命令、模式与开关状态。
+     */
+    void saveToNBT(nbt::CompoundTag& tag) const override;
+
+    // 不覆写 tick()/needsTick()：命令方块由 CommandBlock 的计划刻驱动，不需要每 tick 更新
+    // （见 .cpp 中 clone() 前的说明）。
     std::unique_ptr<BlockEntity> clone() const override;
 
     // ========== ICommandSource 接口 ==========
@@ -230,6 +238,53 @@ public:
     }
 
     /**
+     * @brief 获取循环方块的执行间隔（基岩 TickDelay，单位 tick）。
+     *
+     * 仅对循环（Auto）模式有意义。0 表示每 tick 执行；调度下一方块刻时用的是
+     * max(1, tickDelay)——方块刻本身不接受 0 延迟。
+     */
+    [[nodiscard]] i32 tickDelay() const
+    {
+        return m_tickDelay;
+    }
+
+    /**
+     * @brief 设置循环方块的执行间隔（基岩 TickDelay）。
+     * @param delay 间隔 tick 数，负数按 0 处理
+     */
+    void setTickDelay(i32 delay)
+    {
+        m_tickDelay = delay < 0 ? 0 : delay;
+    }
+
+    /**
+     * @brief 循环方块放下后是否立即执行一次（基岩 ExecuteOnFirstTick）。
+     */
+    [[nodiscard]] bool executeOnFirstTick() const
+    {
+        return m_executeOnFirstTick;
+    }
+
+    /**
+     * @brief 设置循环方块放下后是否立即执行一次。
+     * @param execute 是否首 tick 执行
+     */
+    void setExecuteOnFirstTick(bool execute)
+    {
+        m_executeOnFirstTick = execute;
+    }
+
+    /**
+     * @brief 下一次方块刻的延迟（tick）。
+     *
+     * 方块刻不接受 0 延迟，因此 TickDelay 为 0 时返回 1（等价"每 tick"）。
+     */
+    [[nodiscard]] i32 nextTickDelay() const
+    {
+        return m_tickDelay > 0 ? m_tickDelay : 1;
+    }
+
+    /**
      * @brief 设置自动执行
      *
      * 对齐 vanilla CommandBlockEntity.setAutomatic：由 false 变为 true、且未被供电、
@@ -351,6 +406,11 @@ private:
     bool m_trackOutput = true;                            ///< 是否追踪输出
     bool m_updateLastExecution = true;                    ///< 是否更新最后执行时间
     i64 m_lastExecution = -1;                             ///< 最后执行的游戏时间（防止同一 tick 重复执行）
+    /// 基岩 TickDelay：循环方块的执行间隔（tick）。0 表示每 tick 执行。
+    /// 仅对循环（Auto）模式有意义；脉冲/连锁模式不使用该值。
+    i32 m_tickDelay = 0;
+    /// 基岩 ExecuteOnFirstTick：循环方块放下后是否立即执行一次（不等第一个 TickDelay）。
+    bool m_executeOnFirstTick = true;
 };
 
 } // namespace blockentity

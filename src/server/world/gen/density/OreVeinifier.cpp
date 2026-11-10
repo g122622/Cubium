@@ -26,13 +26,13 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/BaseBlocks.hpp"
-#include "common/world/block/registry/CopperBlocks.hpp"
-#include "common/world/block/registry/DeepslateBlocks.hpp"
-#include "common/world/block/registry/TuffBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/block/registry/vanilla/BaseBlocks.hpp"
+#include "common/world/block/registry/vanilla/CopperBlocks.hpp"
+#include "common/world/block/registry/vanilla/DeepslateBlocks.hpp"
+#include "common/world/block/registry/vanilla/TuffBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/generation/density/DensityFunction.hpp"
 #include <algorithm>
 #include <cstdlib>
 

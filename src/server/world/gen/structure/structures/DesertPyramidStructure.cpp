@@ -31,16 +31,16 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/TrailsBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/TrailsBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -384,35 +384,10 @@ const biome::BiomeTag* DesertPyramidStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_DESERT_PYRAMID();
 }
 
-bool DesertPyramidStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ)
-{
-    // 检查区块中心位置的生物群系是否为沙漠
-    const BiomeId centerBiome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
-    if (!isValidBiome(centerBiome)) {
-        return false;
-    }
-
-    // 检查结构四角最低高度不低于海平面
-    // 沙漠神殿尺寸为 21x21，起始位置为区块最小方块坐标
-    const i32 startX = chunkX * CHUNK_WIDTH;
-    const i32 startZ = chunkZ * CHUNK_WIDTH;
-    constexpr i32 width = 21;
-    constexpr i32 depth = 21;
-
-    const i32 h00 = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    const i32 h10 = generator.getHeight(startX + width, startZ, HeightmapType::WorldSurfaceWG);
-    const i32 h01 = generator.getHeight(startX, startZ + depth, HeightmapType::WorldSurfaceWG);
-    const i32 h11 = generator.getHeight(startX + width, startZ + depth, HeightmapType::WorldSurfaceWG);
-    const i32 lowestY = std::min({h00, h10, h01, h11});
-
-    return lowestY >= generator.seaLevel();
-}
-
 std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
     IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 使用区块中心位置作为生成点
     const i32 centerX = chunkX * CHUNK_WIDTH + 8;
@@ -420,6 +395,21 @@ std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
     const i32 centerY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
 
     BlockPos startPos(centerX, centerY, centerZ);
+
+    // `SinglePieceStructure.findGenerationPoint` 的两道门槛，顺序不能换：
+    // 先判 21x21 方框四角的最低地表不低于海平面，再在候选生成点处校验生物群系。
+    const i32 minX = chunkX * CHUNK_WIDTH;
+    const i32 minZ = chunkZ * CHUNK_WIDTH;
+    const i32 lowest = std::min({generator.getHeight(minX, minZ, HeightmapType::WorldSurfaceWG),
+        generator.getHeight(minX + 21, minZ, HeightmapType::WorldSurfaceWG),
+        generator.getHeight(minX, minZ + 21, HeightmapType::WorldSurfaceWG),
+        generator.getHeight(minX + 21, minZ + 21, HeightmapType::WorldSurfaceWG)});
+    if (lowest < generator.seaLevel()) {
+        return start;
+    }
+    if (!isValidBiomeAt(generator, startPos)) {
+        return start;
+    }
 
     // 创建片段（方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行）
     auto piece = std::make_unique<DesertPyramidPiece>(startPos);

@@ -44,7 +44,11 @@ namespace structure {
  */
 class JungleTemplePiece final : public StructurePiece {
 public:
-    explicit JungleTemplePiece(const BlockPos& startPos);
+    /**
+     * @param startPos 构件原点（区块最小角、Y=64）
+     * @param direction 水平朝向（`getRandomHorizontalDirection` 抽取，决定包围盒展开方向）
+     */
+    JungleTemplePiece(const BlockPos& startPos, Direction direction);
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,
@@ -86,12 +90,6 @@ public:
      * 返回 minecraft:has_structure/jungle_pyramid 标签，用于 O(1) 生物群系查找。
      */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
-
-    /**
-     * @brief 检查是否可以生成
-     */
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成丛林神庙起点（仅创建 StructurePiece，禁止写方块）

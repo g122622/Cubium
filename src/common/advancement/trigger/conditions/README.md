@@ -48,7 +48,7 @@ MobEffectsPredicate ─→ EffectInstancePredicate（单个效果检查）
 - `common/world/biome/BiomeRegistry.hpp` - 生物群系注册表
 - `common/world/chunk/ChunkData.hpp` - 区块数据（生物群系查询）
 - `common/world/fluid/Fluid.hpp` - 流体定义
-- `common/world/block/BlockState.hpp` - 方块状态
+- `common/world/block/state/BlockState.hpp` - 方块状态
 - `common/item/ItemStack.hpp` - 物品堆
 - `common/resource/ResourceLocation.hpp` - 资源位置
 - `common/util/nbt/` - NBT 标签系统

@@ -41,9 +41,9 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -329,6 +329,9 @@ TEST_F(AnvilBlockTest, Rotation)
 
 /**
  * @brief 测试铁砧镜像
+ *
+ * 原版 `AnvilBlock` 只覆写了旋转、没有覆写镜像，镜像走基类恒等实现：
+ * 两种镜像都不改变朝向。
  */
 TEST_F(AnvilBlockTest, Mirror)
 {
@@ -338,11 +341,9 @@ TEST_F(AnvilBlockTest, Mirror)
     // 北朝向
     const BlockState& north = anvil->defaultState();
 
-    // 前后镜像：南北互换
     const BlockState& mirroredFB = anvil->mirror(north, Mirror::FrontBack);
-    EXPECT_EQ(mirroredFB.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+    EXPECT_EQ(mirroredFB.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
 
-    // 左右镜像：北不变
     const BlockState& mirroredLR = anvil->mirror(north, Mirror::LeftRight);
     EXPECT_EQ(mirroredLR.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
 }

@@ -23,6 +23,7 @@
 
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/ContainerListener.hpp"
@@ -34,7 +35,6 @@
 #include "sound/SoundCategory.hpp"
 #include "sound/SoundEvents.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/storage/DoubleSidedInventory.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"

@@ -11,7 +11,8 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "entity/ai/controller/PhantomLookController.hpp"
 #include "entity/ai/controller/PhantomMovementController.hpp"
 #include "entity/entities/monster/basic/PhantomEntity.hpp"
@@ -473,7 +474,7 @@ TEST_F(PhantomEntityTest, PhantomSwoopSoundEvent_IsCorrect)
 TEST_F(PhantomEntityTest, PhantomAttackEventId_IsCorrect)
 {
     // MC 1.16.5: PhantomSweepAttackGoal::tick() 攻击成功时播放世界事件
-    // world.playEvent(1039, blockPos, 0)
+    // world.playEvent(::mc::world::LevelEventId::SOUND_PHANTOM_BITE, blockPos, 0)
     // 事件 ID 1039 是幻翼攻击事件
 
     constexpr i32 PHANTOM_ATTACK_EVENT_ID = 1039;

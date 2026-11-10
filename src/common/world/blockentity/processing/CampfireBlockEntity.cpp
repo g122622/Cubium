@@ -24,6 +24,7 @@
 #include "CampfireBlockEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/crafting/IRecipe.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "entity/utils/ItemDropHelper.hpp"
@@ -31,7 +32,6 @@
 #include "item/crafting/SmeltingRecipe.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockState.hpp"
 #include "world/block/blocks/decorative/CampfireBlock.hpp"
 #include <algorithm>
 #include <cstddef>

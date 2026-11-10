@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,7 +26,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -36,7 +37,6 @@
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
 

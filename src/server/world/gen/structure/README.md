@@ -52,6 +52,7 @@ structure/
     ├── IglooStructure.*              # 雪屋（模板堆叠）
     ├── JungleTempleStructure.*       # 丛林神庙（程序化）
     ├── MineshaftStructure.*          # 废弃矿井（程序化片段）
+    ├── NetherFortressPieces.*        # 下界要塞片段（桥/城堡，程序化装配）
     ├── NetherFossilStructure.*       # 下界化石（模板）
     ├── OceanMonumentPieces.*         # 海洋纪念碑片段
     ├── OceanMonumentStructure.*      # 海洋纪念碑（程序化）
@@ -313,18 +314,44 @@ if (StructureTags::DOLPHIN_LOCATED().contains(ResourceLocation("minecraft", "shi
 }
 ```
 
-### 13. 模板里的 `mode: DATA` 结构方块（数据标记）尚无人处理
+### 13. 模板里的 `mode: DATA` 结构方块（数据标记）
 
 原版把模板中 `mode=DATA` 的结构方块当作「数据标记（data marker）」：放置后由所属结构片段
 （`TemplateStructurePiece::postProcess`）或拼图元素（`SinglePoolElement::place` →
-`handleDataMarker`）读取其 `metadata` 字符串，再生成箱子/生物/入口方块（`ShipwreckPieces`、
-`OceanRuinPieces`、`IglooPieces`、`NetherFossilPieces`、`EndCityPieces`、`RuinedPortalPiece`
-各自重写）。
+`handleDataMarker`）读取其 `metadata` 字符串，再生成箱子/生物/入口方块。
 
-Cubium 目前**没有任何** `handleDataMarker` 等价实现，也不读取 `metadata`：数据标记方块会被当作
-普通结构方块放置或按忽略规则丢弃，`metadata` 里描述的内容（如沉船宝箱、海底废墟的埋藏物）
-因此缺失。
+Cubium 的链路是 `Template::getDataMarkers()` 取出放置后的数据标记位置，结构片段重写
+`StructurePiece::handleDataMarker()` 分派。**已实现**：`ShipwreckPiece`（`map_chest` /
+`treasure_chest` / `supplies_chest` 等）、`OceanRuinPiece`（`chest` / `drowned`）与
+`CityTemplate`（末地船 `Chest` / `Sentry` 潜影贝 / `Elytra` 展示框）。
 
-TODO: 在 `Template::place` 之后补一遍「筛出 DATA 模式结构方块 → 分派给结构片段」的链路
-（对应 `TemplateStructurePiece::postProcess` 与 `SinglePoolElement::place` 中的两处数据标记处理），
-再逐个结构实现其 `handleDataMarker`。注意原版中 DATA 标记**不参与**正常方块放置。
+TODO: 以下结构的数据标记仍未实现（目前只保证方块几何一致）：`IglooPiece`（地窖入口与
+地下室箱子）、`NetherFossilPiece`、`RuinedPortalPiece`、`WoodlandMansionPiece`（宝箱与
+灾厄村民）。实现时注意：DATA 标记方块本身**不参与**正常方块放置（由 BlockIgnore 处理器
+忽略），其位置由 `getDataMarkers()` 按放置设置换算到世界坐标。
+
+结构数据标记生成实体时，必须经 `EntityType::create`（实体类型注册表）创建，工厂会写入
+`typeId`；直接调用 `XxxEntity::create` 得到的实体没有类型标识，网络同步、战利品表与
+差分能力都取不到类型。
+
+### 14. 世界高度接口返回的是「最高方块 Y」，原版返回「首个可放置 Y」
+
+`IWorld::getHeight(x, z, type)` 与 `IWorld::getTopBlockY` 一样返回**最高方块本身的 Y**
+（空列返回 `MIN_BUILD_HEIGHT - 1`）；而原版 `LevelReader.getHeight(type, x, z)` 返回
+`ChunkAccess.getHeight(...) + 1`，即最高方块上一格的空气 Y。
+
+因此凡是对应原版 `level.getHeight(...)` 的调用点都必须 **+1**，否则整个结构下沉一格：
+
+- `StructurePiece::isInterior`、`MineshaftPiece::_isInterior`（原版用 `OCEAN_FLOOR_WG`）
+- `OceanRuinPiece::generate` 的贴地（`OCEAN_FLOOR_WG`）
+- `ShipwreckPiece::generate` 的逐列平均高度（`OCEAN_FLOOR_WG` / `WORLD_SURFACE_WG`）
+- `RuinedPortalPiece::_surfaceY` 对应原版 `getHeight(type) - 1`，在 Cubium 侧直接取
+  `getHeight(type)`，**不能再减 1**，且必须按垂直放置位置区分 `OCEAN_FLOOR_WG` /
+  `WORLD_SURFACE_WG`。
+
+注意与 `IChunkGenerator::getHeight(...)` 区分：生成器侧返回的是「首个可放置 Y」，对应原版
+`ChunkGenerator.getBaseHeight`，调用方按原版语义 `-1` 取方块 Y（如废弃传送门的起点阶段）。
+两侧口径不同，不能互相套用。
+
+差分能力 `structure_blocks_terrain_single` 用平坦地形（主世界 y<=50 石头、51..62 水）专门
+覆盖这一类「读地形再决定写哪里」的路径；空世界差分不会暴露它们。

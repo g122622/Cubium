@@ -31,6 +31,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentPatchNbt.hpp"
@@ -47,9 +48,9 @@
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -309,6 +310,18 @@ void ItemStack::setItemModel(const std::string& model)
     _ensureExtras().itemModel = model;
 }
 
+void ItemStack::setNoteBlockSound(const std::string& sound)
+{
+    // 与 setItemModel 同构：空串表示清除，避免留下"有值但为空"的中间态。
+    if (sound.empty()) {
+        if (m_extras) {
+            m_extras->noteBlockSound.reset();
+        }
+        return;
+    }
+    _ensureExtras().noteBlockSound = sound;
+}
+
 i32 ItemStack::getEnchantmentValue() const
 {
     if (isEmpty()) {
@@ -371,6 +384,16 @@ const std::optional<item::component::DeathProtectionPayload>& ItemStack::getDeat
     }
     static const std::optional<item::component::DeathProtectionPayload> EMPTY;
     return m_item != nullptr ? m_item->defaultDeathProtection() : EMPTY;
+}
+
+const std::optional<item::component::EquippablePayload>& ItemStack::getEquippable() const
+{
+    // 物品栈覆盖优先；未覆盖时回退物品类型的默认值（护甲/鞘翅/鞍等在注册阶段设置）。
+    if (m_extras != nullptr && m_extras->equippable.has_value()) {
+        return m_extras->equippable;
+    }
+    static const std::optional<item::component::EquippablePayload> EMPTY;
+    return m_item != nullptr ? m_item->defaultEquippable() : EMPTY;
 }
 
 void ItemStack::setFireworks(item::component::Fireworks fireworks)
@@ -1017,6 +1040,34 @@ nlohmann::json ItemStack::toJson() const
             json["minecraft:fireworks"] = {
                 {"flight_duration", m_extras->fireworks->flightDuration}, {"explosions", std::move(explosions)}};
         }
+        if (m_extras->equippable.has_value()) {
+            const auto& eq = *m_extras->equippable;
+            nlohmann::json component = {
+                {"slot", std::string(entity::serialization::EquipmentSlotNames::toName(eq.slot))}};
+            // 与 vanilla 的 optionalFieldOf 一致：等于默认值就省略，避免存档里堆满冗余键。
+            if (!eq.equipSound.empty()) {
+                component["equip_sound"] = eq.equipSound;
+            }
+            if (!eq.dispensable) {
+                component["dispensable"] = false;
+            }
+            if (!eq.swappable) {
+                component["swappable"] = false;
+            }
+            if (!eq.damageOnHurt) {
+                component["damage_on_hurt"] = false;
+            }
+            if (eq.equipOnInteract) {
+                component["equip_on_interact"] = true;
+            }
+            if (eq.canBeSheared) {
+                component["can_be_sheared"] = true;
+            }
+            if (!eq.shearingSound.empty()) {
+                component["shearing_sound"] = eq.shearingSound;
+            }
+            json["minecraft:equippable"] = std::move(component);
+        }
     }
 
     return json;
@@ -1127,6 +1178,43 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
             range.mobFactor = ar["mob_factor"].get<f32>();
         }
         stack.setAttackRange(range);
+    }
+    if (json.contains("minecraft:equippable") && json["minecraft:equippable"].is_object()) {
+        const auto& eq = json["minecraft:equippable"];
+        item::component::EquippablePayload equippable{};
+        // slot 在 vanilla 是必填字段；缺失时无法确定装备槽位，整条组件丢弃而不是猜一个默认槽。
+        bool slotResolved = false;
+        if (eq.contains("slot") && eq["slot"].is_string()) {
+            if (auto slot = entity::serialization::EquipmentSlotNames::fromName(eq["slot"].get<std::string>());
+                slot.has_value()) {
+                equippable.slot = *slot;
+                slotResolved = true;
+            }
+        }
+        if (slotResolved) {
+            if (eq.contains("equip_sound") && eq["equip_sound"].is_string()) {
+                equippable.equipSound = eq["equip_sound"].get<std::string>();
+            }
+            if (eq.contains("dispensable") && eq["dispensable"].is_boolean()) {
+                equippable.dispensable = eq["dispensable"].get<bool>();
+            }
+            if (eq.contains("swappable") && eq["swappable"].is_boolean()) {
+                equippable.swappable = eq["swappable"].get<bool>();
+            }
+            if (eq.contains("damage_on_hurt") && eq["damage_on_hurt"].is_boolean()) {
+                equippable.damageOnHurt = eq["damage_on_hurt"].get<bool>();
+            }
+            if (eq.contains("equip_on_interact") && eq["equip_on_interact"].is_boolean()) {
+                equippable.equipOnInteract = eq["equip_on_interact"].get<bool>();
+            }
+            if (eq.contains("can_be_sheared") && eq["can_be_sheared"].is_boolean()) {
+                equippable.canBeSheared = eq["can_be_sheared"].get<bool>();
+            }
+            if (eq.contains("shearing_sound") && eq["shearing_sound"].is_string()) {
+                equippable.shearingSound = eq["shearing_sound"].get<std::string>();
+            }
+            stack.setEquippable(std::move(equippable));
+        }
     }
     if (json.contains("minecraft:firework_explosion") && json["minecraft:firework_explosion"].is_object()) {
         stack.setFireworkExplosion(_fireworkExplosionFromJson(json["minecraft:firework_explosion"]));
@@ -1304,6 +1392,10 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
             patch.add(
                 DataComponentType::ItemModel, DataComponentPayload{std::in_place_index<10>, *m_extras->itemModel});
         }
+        if (m_extras->noteBlockSound.has_value()) {
+            patch.add(DataComponentType::NoteBlockSound,
+                DataComponentPayload{std::in_place_index<10>, *m_extras->noteBlockSound});
+        }
         // rarity 的值等于物品原型自带的稀有度时，原版补丁里根本不会出现这个键
         // （`asPatch()` 只报相对原型的差异）。照搬原型值写进去会让补丁凭空多一项——
         // 对命令方块、鞘翅、龙头这类本来就「非 common」的物品尤其明显。
@@ -1339,8 +1431,8 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         }
         if (m_extras->instrument.has_value()) {
             patch.add(DataComponentType::Instrument,
-                DataComponentPayload{
-                    std::in_place_index<ComponentPayloadIndex::Instrument>, InstrumentPayload{*m_extras->instrument}});
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Instrument>,
+                    InstrumentPayload{*m_extras->instrument, std::nullopt}});
         }
         if (m_extras->tool.has_value()) {
             patch.add(DataComponentType::Tool,
@@ -1516,6 +1608,10 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setItemModel(std::get<std::string>(entry.value));
                 break;
             }
+            case DataComponentType::NoteBlockSound: {
+                setNoteBlockSound(std::get<std::string>(entry.value));
+                break;
+            }
             case DataComponentType::Rarity: {
                 if (std::holds_alternative<ItemRarity>(entry.value)) {
                     _ensureExtras().rarityOverride = std::get<ItemRarity>(entry.value);
@@ -1587,7 +1683,8 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::Bees:
             case DataComponentType::Trim:
             case DataComponentType::Recipes:
-            case DataComponentType::ChickenVariant: {
+            case DataComponentType::ChickenVariant:
+            case DataComponentType::ProvidesTrimMaterial: {
                 auto name = componentName(*type);
                 if (name.has_value()) {
                     _ensureExtras().rawComponents[std::string(*name)] = std::get<nlohmann::json>(entry.value);
@@ -1719,6 +1816,8 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::Bees:
             case DataComponentType::Trim:
             case DataComponentType::Recipes:
+            case DataComponentType::ChickenVariant:
+            case DataComponentType::ProvidesTrimMaterial:
                 if (m_extras) {
                     auto name = componentName(*type);
                     if (name.has_value()) {
@@ -1744,6 +1843,9 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             case DataComponentType::ItemModel:
                 setItemModel(std::string{});
+                break;
+            case DataComponentType::NoteBlockSound:
+                setNoteBlockSound(std::string{});
                 break;
             case DataComponentType::Rarity:
                 if (m_extras) {
@@ -1825,6 +1927,8 @@ bool ItemStack::hasComponent(item::component::DataComponentType type) const
             return m_extras->itemName != nullptr;
         case DataComponentType::ItemModel:
             return m_extras->itemModel.has_value();
+        case DataComponentType::NoteBlockSound:
+            return m_extras->noteBlockSound.has_value();
         case DataComponentType::Rarity:
             return m_extras->rarityOverride.has_value();
         case DataComponentType::Unbreakable:
@@ -1897,14 +2001,15 @@ i32 ItemStack::_itemDefaultOminousBottleAmplifier() const
 
 void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 {
-    // 空堆写作空气 + 数量 1。原版 `ItemStack.CODEC` 的 count 是 intRange(1, 99)，写 0
-    // 之后再读回来会直接失败——空堆因此必须落在区间内，靠 id=air 表达「空」。
-    // TODO: 原版 `ItemStack.CODEC` 其实拒绝 air（"Item must not be minecraft:air"），
-    //       空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`。这里沿用 air+1 是因为
-    //       存档里空槽另有约定，改动牵涉存档格式；需要与存档层一起调整。
+    // 空堆写成**空 compound**（不写 id / count），对应原版 `ItemStack.OPTIONAL_CODEC` 的 `{}`。
+    //
+    // 不能写成 `id=minecraft:air`：`ItemStack.CODEC` 明确拒绝空气
+    // （"Item must not be minecraft:air"），写出去的就变成一份对方解不出来的数据。
+    // 写成 `{}` 则两侧都能读：本侧 fromNbt 见不到 id 即返回空堆，原版 OPTIONAL_CODEC 同样返回空堆。
+    //
+    // 生产存档路径（容器、装备、背包）都会先判 isEmpty 再调用本函数，因此空堆实际很少走到这里，
+    // 但差分能力与测试会直接驱动它，语义必须与原版一致。
     if (isEmpty()) {
-        tag.put(nbt_keys::ID, std::string("minecraft:air"));
-        tag.put(nbt_keys::COUNT, static_cast<i32>(1));
         return;
     }
 
@@ -1926,24 +2031,30 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 
 Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
 {
-    // 获取物品ID
+    // 获取物品ID。缺少 id 即空堆：对应原版 `ItemStack.OPTIONAL_CODEC` 的 `{}` 形态，
+    // `toNbt` 对空堆正是写出一个不含 id 的空 compound。
     auto it = tag.value.find(nbt_keys::ID);
-    if (it == tag.value.end() || it->second->id() != nbt::TagId::String) {
-        return Error(ErrorCode::InvalidData, "ItemStack NBT missing 'id' field");
+    if (it == tag.value.end()) {
+        return ItemStack::EMPTY;
+    }
+    if (it->second->id() != nbt::TagId::String) {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT 'id' field is not a string");
     }
 
     std::string itemId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
 
-    // 查找物品。原版 `ItemStack.CODEC` 明确拒绝空气（"Item must not be minecraft:air"）：
-    // 空堆的正规表示是 `ItemStack.OPTIONAL_CODEC` 的 `{}`，而不是一个 id 为 air 的物品堆。
-    // 未知物品同理——查不到注册项就是解码失败，而不是静默变成空堆，否则坏存档会被吞掉。
+    // 空气是合法物品 id，但 `ItemStack.CODEC` 显式拒绝它
+    // （"Item must not be minecraft:air"），空堆只能走上面的 `{}` 形态。
+    // 这里如实报错而不是静默变成空堆——否则一份非法存档会被无声吞掉，差分也测不出偏差。
+    if (itemId == "minecraft:air") {
+        return Error(ErrorCode::InvalidData, "ItemStack NBT must not use 'minecraft:air' as an item id");
+    }
+
+    // 查找物品。查不到注册项就是解码失败，而不是静默变成空堆，否则坏存档会被吞掉。
     ResourceLocation itemLocation(itemId);
     const Item* item = ItemRegistry::instance().getItem(itemLocation);
     if (item == nullptr) {
         return Error(ErrorCode::InvalidData, "ItemStack NBT has unknown item '" + itemId + "'");
-    }
-    if (itemLocation == ResourceLocation("minecraft:air")) {
-        return Error(ErrorCode::InvalidData, "ItemStack NBT must not be minecraft:air");
     }
 
     // 数量：1.21.11 键名 "count"，原版是 `ExtraCodecs.intRange(1, 99).orElse(1)`

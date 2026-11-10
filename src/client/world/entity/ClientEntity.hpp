@@ -29,7 +29,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <algorithm>
 #include <array>
 #include <functional>

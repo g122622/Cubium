@@ -57,14 +57,14 @@
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/functional/TrailsBlocks.hpp"
-#include "common/world/block/registry/TrailsBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/TrailsBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
@@ -134,12 +134,12 @@ public:
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
-    void playEvent(i32 eventId, const BlockPos& /*pos*/, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& /*pos*/, i32 data) override
     {
         // 只记录事件 id：data 是方块状态的全局 id（原版用 Block.getId），
         // 跨实现不可比，本能力不比对它。
         MC_UNUSED(data);
-        m_levelEvents.push_back(eventId);
+        m_levelEvents.push_back(static_cast<i32>(eventId));
     }
 
     void gameEvent(const gameevent::GameEvent& event,

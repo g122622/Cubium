@@ -25,7 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/screen/ScreenType.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"

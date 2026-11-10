@@ -37,17 +37,20 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/SupportType.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/pattern/BlockInWorld.hpp"
+#include "common/world/block/pattern/BlockPattern.hpp"
+#include "common/world/block/pattern/BlockPatternBuilder.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/SkullBlockEntity.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 #include <cstddef>
 #include <memory>
@@ -115,105 +118,59 @@ i32 _facingIndex(Direction facing)
     }
 }
 
-/// 判断方块状态是否为凋灵骷髅头颅（站立或墙挂）
-bool _isWitherSkeletonSkull(const BlockState* state)
+using blockpattern::BlockInWorld;
+using blockpattern::BlockPattern;
+using blockpattern::BlockPatternBuilder;
+
+/// 凋灵召唤完整图案：
+/// 顶层 3 个凋灵骷髅头，中层 3 个基座，底层 空气-基座-空气。
+const BlockPattern& _witherFullPattern()
 {
-    return state != nullptr &&
-        (state->is(VanillaBlocks::WITHER_SKELETON_SKULL) || state->is(VanillaBlocks::WITHER_SKELETON_WALL_SKULL));
+    static const std::unique_ptr<BlockPattern> pattern =
+        BlockPatternBuilder::start()
+            .aisle({"^^^", "###", "~#~"})
+            .where('^', BlockInWorld::hasState([](const BlockState& state) {
+                return state.is(VanillaBlocks::WITHER_SKELETON_SKULL) ||
+                    state.is(VanillaBlocks::WITHER_SKELETON_WALL_SKULL);
+            }))
+            .where('#', BlockInWorld::hasState([](const BlockState& state) {
+                return BlockTags::WITHER_SUMMON_BASE_BLOCKS().contains(state);
+            }))
+            .where('~', BlockInWorld::hasState([](const BlockState& state) {
+                return state.isAir();
+            }))
+            .build();
+    return *pattern;
 }
 
-/// 判断方块状态是否为凋灵召唤基座方块（灵魂沙/灵魂土）
-bool _isWitherBaseBlock(const BlockState* state)
-{
-    return state != nullptr && BlockTags::WITHER_SUMMON_BASE_BLOCKS().contains(*state);
-}
-
-/// 判断方块状态是否为空气
-bool _isAirState(const BlockState* state)
-{
-    return state != nullptr && state->isAir();
-}
+// TODO: 实现 WitherSkullBlock.getOrCreateWitherBase()/canSpawnMob(Level, BlockPos, ItemStack)，
+// 并在发射器（DispenseItemBehavior）放置凋灵骷髅头的路径中接入。当前 Cubium 的发射器尚未走该路径，
+// 为避免形成无调用方的孤岛 API，本次只迁移 checkSpawn 的完整图案匹配。
 
 /**
- * @brief 匹配凋灵 T 形图案（vanilla witherPatternFull）
+ * @brief 把物品上的 `minecraft:note_block_sound` 组件写入头颅方块实体
  *
- * 图案（一个 3x3 局部平面，letters aisle "^^^"/"###"/"~#~"）：
- * ```text
- *   ^  ^  ^    三个凋灵骷髅头颅（顶层）
- *   #  #  #    三个基座方块（中层）
- *   ~  #  ~    顶层两侧为空气、中央为基座（底层）
- * ```
- * 图案可绕 Y 轴以 90 度旋转（X 轴或 Z 轴朝向）。命中时输出顶点头颅坐标与朝向轴。
- *
- * @param world 世界
- * @param pos 新放置的头颅位置（作为匹配起点）
- * @param outSkullPos [出参] 顶层中央头颅坐标
- * @param outForwardsAxisIsX [出参] 图案前行轴是否为 X 轴（true=X，false=Z）
- * @return 是否命中
+ * 该组件对任意头颅都有效（玩家头、生物头皆可），头颅放在音符盒上方时音符盒改用这个
+ * 声音。原版在 `SkullBlock` 的放置路径统一搬运该组件，这里同样做成共享助手，
+ * 避免四个 `onBlockPlacedBy` 重写里各写一遍。
  */
-bool _matchWitherPattern(IWorld& world, const BlockPos& pos, BlockPos& outSkullPos, bool& outForwardsAxisIsX)
+void _applyNoteBlockSoundToSkull(IWorld& world, const BlockPos& pos, const ItemStack& stack)
 {
-    // 图案的“前行”方向（从顶点头颅指向同排另一个头颅）可为 X 轴（east/west）或 Z 轴（north/south）。
-    // 以候选顶点头颅为中心，分别沿两个轴向展开 3x3 检查。
-    for (bool forwardsAxisIsX : {true, false}) {
-        const BlockPos dx = forwardsAxisIsX ? BlockPos(1, 0, 0) : BlockPos(0, 0, 1);
-        // pos 可能是顶层 3 个头颅中的任意一个：center  ∈ {pos-dx, pos, pos+dx}
-        // （pos 为右端头颅时 center=pos-dx；pos 为中心时 center=pos；pos 为左端时 center=pos+dx）。
-        for (i32 headOffset = -1; headOffset <= 1; ++headOffset) {
-            const BlockPos center = BlockPos(pos.x + dx.x * headOffset, pos.y, pos.z + dx.z * headOffset);
-            const BlockPos left = BlockPos(center.x - dx.x, center.y, center.z - dx.z);
-            const BlockPos right = BlockPos(center.x + dx.x, center.y, center.z + dx.z);
-
-            // 顶层：三个头颅
-            if (!_isWitherSkeletonSkull(world.getBlockState(left)) ||
-                !_isWitherSkeletonSkull(world.getBlockState(center)) ||
-                !_isWitherSkeletonSkull(world.getBlockState(right))) {
-                continue;
-            }
-
-            // 中层：三个基座方块
-            const bool midOk = _isWitherBaseBlock(world.getBlockState(left.down())) &&
-                _isWitherBaseBlock(world.getBlockState(center.down())) &&
-                _isWitherBaseBlock(world.getBlockState(right.down()));
-            if (!midOk) {
-                continue;
-            }
-
-            // 底层：两端空气、中央基座
-            const bool botOk = _isAirState(world.getBlockState(left.down(2))) &&
-                _isWitherBaseBlock(world.getBlockState(center.down(2))) &&
-                _isAirState(world.getBlockState(right.down(2)));
-            if (!botOk) {
-                continue;
-            }
-
-            outSkullPos = center;
-            outForwardsAxisIsX = forwardsAxisIsX;
-            return true;
-        }
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr) {
+        return;
     }
-    return false;
-}
-
-/// 清除凋灵图案涉及的全部方块（3 头颅 + 3 中层基座 + 1 底层中央基座 = 7 个方块）。
-/// 仅沿命中时确定的图案轴向清除，避免误清垂直于该轴的邻近结构。
-void _clearWitherPattern(IWorld& world, const BlockPos& centerSkullPos, bool forwardsAxisIsX)
-{
-    const BlockState* airState = BlockRegistry::instance().airState();
-    if (airState == nullptr) {
+    auto* skull = dynamic_cast<blockentity::SkullBlockEntity*>(blockEntity);
+    if (skull == nullptr) {
         return;
     }
 
-    const BlockPos dx = forwardsAxisIsX ? BlockPos(1, 0, 0) : BlockPos(0, 0, 1);
-    for (i32 i = -1; i <= 1; ++i) {
-        const BlockPos top(centerSkullPos.x + dx.x * i, centerSkullPos.y, centerSkullPos.z + dx.z * i);
-        world.setBlockState(top, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-        world.setBlockState(top.down(), airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    // 组件缺失时不动方块实体（保持其原有值），而不是清空——
+    // 结构模板放置等场景可能已经写好了值。
+    const std::string* sound = stack.getNoteBlockSound();
+    if (sound != nullptr) {
+        skull->setNoteBlockSound(*sound);
     }
-    // 底层中央基座
-    world.setBlockState(BlockPos(centerSkullPos.x, centerSkullPos.y - 2, centerSkullPos.z),
-        airState,
-        world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 } // namespace
@@ -222,25 +179,25 @@ void _clearWitherPattern(IWorld& world, const BlockPos& centerSkullPos, bool for
 // AbstractSkullBlock
 // ============================================================================
 
-BlockProperties::Instrument AbstractSkullBlock::_instrumentForSkullType(SkullType type) noexcept
+NoteBlockInstrument AbstractSkullBlock::_instrumentForSkullType(SkullType type) noexcept
 {
     switch (type) {
         case SkullType::Skeleton:
-            return BlockProperties::Instrument::Skeleton;
+            return NoteBlockInstrument::Skeleton;
         case SkullType::WitherSkeleton:
-            return BlockProperties::Instrument::WitherSkeleton;
+            return NoteBlockInstrument::WitherSkeleton;
         case SkullType::Zombie:
-            return BlockProperties::Instrument::Zombie;
+            return NoteBlockInstrument::Zombie;
         case SkullType::Creeper:
-            return BlockProperties::Instrument::Creeper;
+            return NoteBlockInstrument::Creeper;
         case SkullType::Dragon:
-            return BlockProperties::Instrument::Dragon;
+            return NoteBlockInstrument::Dragon;
         case SkullType::Piglin:
-            return BlockProperties::Instrument::Piglin;
+            return NoteBlockInstrument::Piglin;
         case SkullType::Player:
-            return BlockProperties::Instrument::CustomHead;
+            return NoteBlockInstrument::CustomHead;
         default:
-            return BlockProperties::Instrument::Harp;
+            return NoteBlockInstrument::Harp;
     }
 }
 
@@ -344,7 +301,7 @@ const CollisionShape& SkullBlock::getShape(const BlockState& state) const
 
 BlockState SkullBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 旋转值：根据玩家 yaw 换算为 0-15（每 22.5 度），对齐 vanilla RotationSegment.convertToSegment
+    // 旋转值：根据玩家 yaw 换算为 0-15（每 22.5 度为一段）
     i32 rotation = static_cast<i32>(std::floor((180.0f + context.getPlayerYaw()) * 16.0f / 360.0f + 0.5f)) & 15;
 
     bool powered = world::redstone::RedstonePower::isPowered(context.getWorld(), context.placementPos());
@@ -411,8 +368,8 @@ const CollisionShape& WallSkullBlock::getShape(const BlockState& state) const
 
 BlockState WallSkullBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 对齐 vanilla WallSkullBlock.getStateForPlacement：遍历最近视线方向，取首个水平方向的
-    // 反方向作为 FACING，且要求该方向的相邻方块不可替换（即有可附着的实心墙面）。
+    // 遍历最近视线方向，取首个水平方向的反方向作为 FACING，
+    // 且要求该方向的相邻方块不可替换（即有可附着的实心墙面）。
     IWorld& world = context.getWorld();
     const BlockPos pos = context.placementPos();
 
@@ -462,7 +419,7 @@ void PlayerHeadBlock::onBlockPlacedBy(
 {
     MC_UNUSED(state);
     MC_UNUSED(placer);
-    // 从物品的 SkullOwner 组件恢复档案写入方块实体（对齐 vanilla PlayerHeadBlock.setPlacedBy）
+    // 从物品的 SkullOwner 组件恢复档案写入方块实体
     if (BlockEntity* be = world.getBlockEntity(pos)) {
         auto* skull = dynamic_cast<blockentity::SkullBlockEntity*>(be);
         if (skull != nullptr) {
@@ -475,6 +432,7 @@ void PlayerHeadBlock::onBlockPlacedBy(
             }
         }
     }
+    _applyNoteBlockSoundToSkull(world, pos, stack);
 }
 
 PlayerWallHeadBlock::PlayerWallHeadBlock(const BlockProperties& properties)
@@ -498,6 +456,7 @@ void PlayerWallHeadBlock::onBlockPlacedBy(
             }
         }
     }
+    _applyNoteBlockSoundToSkull(world, pos, stack);
 }
 
 // ============================================================================
@@ -513,13 +472,13 @@ void WitherSkullBlock::onBlockPlacedBy(
 {
     MC_UNUSED(state);
     MC_UNUSED(placer);
-    MC_UNUSED(stack);
+    _applyNoteBlockSoundToSkull(world, pos, stack);
     checkSpawn(world, pos);
 }
 
 void WitherSkullBlock::checkSpawn(IWorld& world, const BlockPos& pos)
 {
-    // 对齐 vanilla WitherSkullBlock.checkSpawn(Level, BlockPos)：
+    // 召唤流程：
     //   仅服务端判定；头颅方块须为凋灵骷髅头颅（站立或墙挂）；
     //   y >= 世界最低高度且难度非和平；匹配凋灵 T 形图案后清除图案方块并生成凋灵。
     if (world.isClientSide()) {
@@ -541,15 +500,14 @@ void WitherSkullBlock::checkSpawn(IWorld& world, const BlockPos& pos)
         return;
     }
 
-    // 凋灵图案（含头颅层）：以头颅为顶点向下一层为 3 个基座方块、再下一层为空气-基座-空气。
-    // 图案可绕 Y 轴旋转（东西或南北方向），故先试以 pos 为顶点，再试其他头颅位置。
-    BlockPos skullPos;
-    bool forwardsAxisIsX = false;
-    if (!_matchWitherPattern(world, pos, skullPos, forwardsAxisIsX)) {
+    // 凋灵图案（含头颅层）：顶层 3 个头颅、中层 3 个基座、底层 空气-基座-空气。
+    // find() 枚举候选起点与 24 种朝向，因此 3 个头颅中任意一个作为触发点都能命中。
+    auto match = _witherFullPattern().find(world, pos);
+    if (!match.has_value()) {
         return;
     }
 
-    // 生成凋灵实体：对应 vanilla EntityType.WITHER.create(level, TRIGGERED)。
+    // 创建凋灵实体。
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* witherType = registry.getType(entity::EntityTypeKeys::WITHER);
     if (witherType == nullptr) {
@@ -565,27 +523,30 @@ void WitherSkullBlock::checkSpawn(IWorld& world, const BlockPos& pos)
         return;
     }
 
-    // 清除图案方块（3 个基座方块 + 3 个中层基座 + 1 个底层中央基座）后于顶点生成凋灵。
-    _clearWitherPattern(world, skullPos, forwardsAxisIsX);
+    // 清除图案方块（遍历全部 3×3 格子，含空气格）后于顶点生成凋灵。
+    CarvedPumpkinBlock::clearPatternBlocks(world, *match);
 
-    // 凋灵生成于图案顶点下方一层的中心（vanilla: match.getBlock(1, 2, 0) 即顶点头颅位）。
+    // 凋灵生成于图案顶点头颅位置，y + 0.55。
+    const BlockPos spawnPos = match->getBlock(1, 2, 0).pos();
     entity->setPosition(
-        static_cast<f32>(skullPos.x) + 0.5f, static_cast<f32>(skullPos.y) + 0.55f, static_cast<f32>(skullPos.z) + 0.5f);
-    // 朝向按图案轴向决定（vanilla：X 轴 0 度、Z 轴 90 度）。
-    entity->setRotation(forwardsAxisIsX ? 0.0f : 90.0f, 0.0f);
+        static_cast<f32>(spawnPos.x) + 0.5f, static_cast<f32>(spawnPos.y) + 0.55f, static_cast<f32>(spawnPos.z) + 0.5f);
 
-    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-    if (mobEntity != nullptr) {
-        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, skullPos);
-        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
-    }
+    // 朝向按图案前向轴决定（X 轴 0 度、Z 轴 90 度），并同步身体/头部朝向。
+    const f32 yaw = Directions::getAxis(match->forwards()) == Axis::X ? 0.0f : 90.0f;
+    entity->setRotation(yaw, 0.0f);
+    entity->setYBodyRot(yaw);
+    entity->setYHeadRot(yaw);
 
-    // 对齐 vanilla：凋灵生成后进入 220 tick 生成无敌阶段（WitherBoss.makeInvulnerable）。
+    // 凋灵生成后进入 220 tick 生成无敌阶段。
     if (auto* wither = dynamic_cast<entity::WitherEntity*>(entity.get())) {
         wither->makeInvulnerable();
     }
 
+    Entity* spawnedEntity = entity.get();
     world.spawnEntity(std::move(entity));
+    // 对 50 格内玩家触发 SUMMONED_ENTITY 进度。
+    CarvedPumpkinBlock::triggerSummonedEntity(world, *spawnedEntity, 50.0f);
+    CarvedPumpkinBlock::updatePatternBlocks(world, *match);
 }
 
 WitherWallSkullBlock::WitherWallSkullBlock(const BlockProperties& properties)
@@ -597,7 +558,7 @@ void WitherWallSkullBlock::onBlockPlacedBy(
 {
     MC_UNUSED(state);
     MC_UNUSED(placer);
-    MC_UNUSED(stack);
+    _applyNoteBlockSoundToSkull(world, pos, stack);
     WitherSkullBlock::checkSpawn(world, pos);
 }
 

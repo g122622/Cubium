@@ -28,6 +28,7 @@
 // 这与 MC Java 中 RandomizableContainerBlockEntity 的行为一致。
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -37,7 +38,6 @@
 #include "item/loot/LootTableManager.hpp"
 #include "item/loot/entries/ItemLootEntry.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"

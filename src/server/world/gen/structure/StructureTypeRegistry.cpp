@@ -32,7 +32,6 @@
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
-#include "structures/BastionRemnantStructure.hpp"
 #include "structures/BuriedTreasureStructure.hpp"
 #include "structures/DesertPyramidStructure.hpp"
 #include "structures/EndCityStructure.hpp"
@@ -43,12 +42,10 @@
 #include "structures/NetherFossilStructure.hpp"
 #include "structures/OceanMonumentStructure.hpp"
 #include "structures/OceanRuinStructure.hpp"
-#include "structures/PillagerOutpostStructure.hpp"
 #include "structures/RuinedPortalStructure.hpp"
 #include "structures/ShipwreckStructure.hpp"
 #include "structures/StrongholdStructure.hpp"
 #include "structures/SwampHutStructure.hpp"
-#include "structures/TrialChambersStructure.hpp"
 #include "structures/WoodlandMansionStructure.hpp"
 #include <memory>
 #include <string>
@@ -161,36 +158,16 @@ void applyDefinitionOverrides(Structure& structure, const StructureDefinition& d
 /**
  * @brief jigsaw 类型工厂
  *
- * 按 def.id 分流：
- * - pillager_outpost / trial_chambers：委托子类（构造期硬编码 JigsawConfig + 特殊逻辑：
- *   村庄距离检查 / 池别名创建）。
- * - bastion_remnant：委托 BastionRemnantStructure（运行时加权选 4 种堡垒）。
- * - 其余 id（village_* / ancient_city / trail_ruins / 自定义）：裸 JigsawStructure，
- *   JigsawConfig 从 def 填充。
+ * 原版 1.21.11 只有 `JigsawStructure` 一个拼图结构类：村庄、掠夺者前哨站、试炼密室、
+ * 堡垒遗迹等全部是同一个类的实例，差异只来自结构定义 JSON（start_pool / size /
+ * start_height / pool_aliases / project_start_to_heightmap / use_expansion_hack /
+ * terrain_adaptation）。因此这里不再按 id 分支：任何硬编码子类都会让数据包改动静默失效。
+ *
+ * 必须提供 start_pool（默认 ResourceLocation 命名空间为 "minecraft"、路径为空，
+ * 故以路径非空判定是否显式提供池）。
  */
 Result<std::unique_ptr<Structure>> createJigsaw(const StructureDefinition& def)
 {
-    const std::string& p = def.id.path();
-
-    if (p == "pillager_outpost") {
-        return toBase(std::make_unique<PillagerOutpostStructure>(def.id));
-    }
-    if (p == "trial_chambers") {
-        // 起始高度/最大距离/维度填充/池别名一律取自数据包：此前子类把 start_height 硬编码成
-        // absolute(-40..-20)，与数据包同值时无差别，但任何数据包改动都会静默失效。
-        return toBase(std::make_unique<TrialChambersStructure>(def.id, buildJigsawConfig(def)));
-    }
-    if (p == "bastion_remnant") {
-        return toBase(std::make_unique<BastionRemnantStructure>(def.id));
-    }
-    // 裸 JigsawStructure：必须提供 start_pool（默认 ResourceLocation 命名空间为 "minecraft"、
-    // 路径为空，故以路径非空判定是否显式提供池）。
-    //
-    // 村庄同样走这条通用路径：它的结构定义 JSON（start_pool / size / start_height /
-    // project_start_to_heightmap / use_expansion_hack / terrain_adaptation）与拼图结构完全同构，
-    // 而只有通用路径会按 start_jigsaw_name 选出真正的起始连接点。早期给村庄单写了一套装配
-    // 流程，其中两处差异让整座村庄错位：起始旋转在抽起始块**之前**消耗随机数，且不按
-    // start_jigsaw_name 过滤起始块——两者叠加使选中的起始块与装配走向都偏离原版。
     if (def.startPool.path().empty()) {
         return Error(ErrorCode::InvalidData, "jigsaw structure '" + def.id.toString() + "' missing 'start_pool'");
     }
@@ -211,11 +188,52 @@ Result<std::unique_ptr<Structure>> createMineshaft(const StructureDefinition& de
     return toBase(std::make_unique<MineshaftStructure>(def.id, MineshaftType::Normal));
 }
 
+/**
+ * @brief 下界化石工厂
+ *
+ * 化石落点由数据包 `height` 高度提供者决定（原版
+ * `NetherFossilStructure.height`），
+
+ * * 缺少该字段就无法复刻落点，直接报错而不是退化成固定高度。
+ */
+Result<std::unique_ptr<Structure>> createNetherFossil(const StructureDefinition& def)
+{
+    if (def.height == nullptr) {
+        return Error(ErrorCode::InvalidData, "nether_fossil structure '" + def.id.toString() + "' is missing 'height'");
+    }
+    return toBase(std::make_unique<NetherFossilStructure>(def.id, def.height->clone()));
+}
+
 /// 程序化零参构造子类工厂（无变体分流，运行时按生物群系判定变体）
 template <typename T>
 Result<std::unique_ptr<Structure>> createZeroArg(const StructureDefinition& def)
 {
     return toBase(std::make_unique<T>(def.id));
+}
+
+/**
+ * @brief 海底废墟工厂
+ *
+ * `large_probability` / `cluster_probability` 写在数据包里（原版编解码器字段），直接决定
+ * 大型判定与集群判定，必须逐文件下发，不能用子类里的硬编码默认值。
+ */
+Result<std::unique_ptr<Structure>> createOceanRuin(const StructureDefinition& def)
+{
+    auto structure = std::make_unique<OceanRuinStructure>(def.id);
+    structure->setConfig(def.oceanRuinConfig);
+    return toBase(std::move(structure));
+}
+
+/**
+ * @brief 沉船工厂
+ *
+ * 搁浅与否写在数据包里（`is_beached`），决定模板表与最终高度算法，必须逐文件下发。
+ */
+Result<std::unique_ptr<Structure>> createShipwreck(const StructureDefinition& def)
+{
+    auto structure = std::make_unique<ShipwreckStructure>(def.id);
+    structure->setConfig(ShipwreckConfig{def.shipwreckBeached});
+    return toBase(std::move(structure));
 }
 
 /**
@@ -313,12 +331,12 @@ void initializeBuiltinStructureTypes()
     // 类型名必须与数据包 structure/*.json 的 "type" 字段逐字一致：不一致会导致该文件
     // 解析失败、结构未注册，进而其所在结构集被整集跳过（静默消失）。
     reg.registerType("jungle_temple", createZeroArg<JungleTempleStructure>);
-    reg.registerType("nether_fossil", createZeroArg<NetherFossilStructure>);
+    reg.registerType("nether_fossil", createNetherFossil);
     // 原版 1.21 已把该类型由 minecraft:monument 改名为 minecraft:ocean_monument。
     reg.registerType("ocean_monument", createZeroArg<OceanMonumentStructure>);
-    reg.registerType("ocean_ruin", createZeroArg<OceanRuinStructure>);
+    reg.registerType("ocean_ruin", createOceanRuin);
     reg.registerType("ruined_portal", createRuinedPortal);
-    reg.registerType("shipwreck", createZeroArg<ShipwreckStructure>);
+    reg.registerType("shipwreck", createShipwreck);
     reg.registerType("stronghold", createZeroArg<StrongholdStructure>);
     reg.registerType("swamp_hut", createZeroArg<SwampHutStructure>);
     reg.registerType("woodland_mansion", createZeroArg<WoodlandMansionStructure>);

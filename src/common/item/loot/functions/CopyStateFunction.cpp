@@ -27,8 +27,8 @@
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/property/IProperty.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <string>
 #include <vector>

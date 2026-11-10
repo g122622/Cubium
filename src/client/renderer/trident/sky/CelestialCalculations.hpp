@@ -216,16 +216,6 @@ private:
     static constexpr f64 OVERWORLD_BASE_SKY_B = 1.0;
 
     /// 月相亮度因子 (满月=1.0, 新月=0.0)
-    static constexpr f64 MOON_PHASE_FACTORS[8] = {
-        1.0,  // 满月
-        0.75, // 盈凸月
-        0.5,  // 上弦月
-        0.25, // 盈月
-        0.0,  // 新月
-        0.25, // 亏月
-        0.5,  // 下弦月
-        0.75  // 亏凸月
-    };
 };
 
 } // namespace mc::client

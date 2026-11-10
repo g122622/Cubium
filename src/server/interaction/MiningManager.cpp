@@ -36,12 +36,12 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/DigSpeed.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <algorithm>
 #include <cmath>
@@ -79,9 +79,9 @@ constexpr size_t MINING_FATIGUE_MULTIPLIERS_COUNT = 4;
 // 构造函数
 // ============================================================================
 
-MiningManager::MiningManager(core::PlayerManager& playerManager, core::ConnectionManager& connectionManager)
+MiningManager::MiningManager(PlayerManager& playerManager, PacketSender& packetSender)
     : m_playerManager(playerManager)
-    , m_connectionManager(connectionManager)
+    , m_packetSender(packetSender)
 {}
 
 // ============================================================================

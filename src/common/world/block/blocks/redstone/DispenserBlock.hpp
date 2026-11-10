@@ -26,8 +26,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <memory>
 
@@ -73,6 +73,21 @@ public:
     // 与 vanilla 严重分歧。修复后与 vanilla 严格对齐。投掷器继承本类自动获得正确朝向（vanilla
     // DropperBlock 不重写该方法，靠继承复用）。
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    /**
+     * @brief 旋转方块状态
+     *
+     * 原版 `DispenserBlock#rotate`：只旋转 FACING 属性。结构放置按构件旋转整块模板，
+     * 漏掉这里会让发射器/投掷器保持模板内朝向（试炼密室的发射器朝向差异即由此暴露）。
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像方块状态
+     *
+     * 原版 `DispenserBlock#mirror`：先按 FACING 求镜像对应的旋转，再旋转 FACING。
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 

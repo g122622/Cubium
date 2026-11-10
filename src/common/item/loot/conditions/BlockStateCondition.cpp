@@ -26,7 +26,7 @@
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParams.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <string>
 #include <utility>

@@ -265,6 +265,14 @@ private:
     [[nodiscard]] static bool _blocksMotion(const Block& block, const BlockState& state);
 
     /**
+     * @brief 方块是否持有流体（原版 `!getFluidState().isEmpty()`）
+     *
+     * 比 `isLiquid()` 更准确：含水方块（台阶、栅栏、箱子等）自身不是液体但持有一格源水，
+     * 同样应当计入 MOTION_BLOCKING 高度图。
+     */
+    [[nodiscard]] static bool _hasFluid(const Block& block, const BlockState& state);
+
+    /**
      * @brief 是否非树叶方块（原版 !(block instanceof LeavesBlock)）
      *
      * 项目树叶 isSolid=false 已被上层 _blocksMotion 过滤，但 NoLeaves 仍需显式排除。

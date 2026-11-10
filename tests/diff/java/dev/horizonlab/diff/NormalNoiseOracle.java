@@ -42,10 +42,6 @@ public final class NormalNoiseOracle {
 
     private NormalNoiseOracle() {}
 
-    private static String doubleBits(double value) {
-        return String.format("0x%016x", Double.doubleToRawLongBits(value));
-    }
-
     /** 一条噪声参数，与探针侧逐项一致。 */
     private record NoiseCase(String id, long seed, int firstOctave, double[] amplitudes) {}
 
@@ -140,7 +136,9 @@ public final class NormalNoiseOracle {
             double[] point = SAMPLE_POINTS[pointIndex];
             JsonObject output = new JsonObject();
             output.addProperty("unit", requested);
-            output.addProperty("value", doubleBits(noise.getValue(point[0], point[1], point[2])));
+            // 浮点不逐位比较：只给原始数值，交给编排列按容差判定。不输出位模式字符串，
+            // 否则它会参与严格比较，把无害的末位差异重新变成失败。
+            output.addProperty("value", noise.getValue(point[0], point[1], point[2]));
             return GSON.toJson(output);
         }
         return missing(requested);

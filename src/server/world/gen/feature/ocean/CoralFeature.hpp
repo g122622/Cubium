@@ -26,9 +26,9 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/coral/CoralBlock.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include <memory>
@@ -91,9 +91,6 @@ public:
 protected:
     [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
     [[nodiscard]] bool _isWater(WorldGenRegion& world, const BlockPos& pos) const;
-    void _placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const;
-    void _placeCoralFan(
-        WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const;
 };
 
 /**

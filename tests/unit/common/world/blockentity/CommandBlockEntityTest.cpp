@@ -22,11 +22,13 @@
  */
 
 #include "world/blockentity/redstone/CommandBlockEntity.hpp"
-#include "world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace mc;
@@ -67,6 +69,38 @@ TEST_F(CommandBlockEntityTest, Create_DefaultSuccessCountIsZero)
 TEST_F(CommandBlockEntityTest, Create_DefaultModeIsRedstone)
 {
     EXPECT_EQ(entity_->getMode(), CommandBlockMode::Redstone);
+}
+
+// 基岩 TickDelay / ExecuteOnFirstTick：循环方块的执行节奏，且必须随 clone 复制。
+TEST_F(CommandBlockEntityTest, TickDelayAndExecuteOnFirstTickRoundTripThroughClone)
+{
+    CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Auto);
+
+    // 默认：每 tick 执行（delay 0 → 调度延迟 1），首 tick 执行。
+    EXPECT_EQ(entity.tickDelay(), 0);
+    EXPECT_TRUE(entity.executeOnFirstTick());
+    EXPECT_EQ(entity.nextTickDelay(), 1) << "block ticks cannot be scheduled with 0 delay";
+
+    entity.setTickDelay(20);
+    EXPECT_EQ(entity.tickDelay(), 20);
+    EXPECT_EQ(entity.nextTickDelay(), 20);
+    entity.setExecuteOnFirstTick(false);
+    EXPECT_FALSE(entity.executeOnFirstTick());
+
+    // 负延迟按 0 归一，不允许出现"比每 tick 更快"的间隔。
+    entity.setTickDelay(-5);
+    EXPECT_EQ(entity.tickDelay(), 0);
+    EXPECT_EQ(entity.nextTickDelay(), 1);
+
+    // clone 必须复制这两个字段，否则结构复制/方块移动会丢失执行节奏。
+    entity.setTickDelay(7);
+    entity.setExecuteOnFirstTick(false);
+    const auto cloned = entity.clone();
+    ASSERT_NE(cloned, nullptr);
+    const auto* clonedCommand = dynamic_cast<const CommandBlockEntity*>(cloned.get());
+    ASSERT_NE(clonedCommand, nullptr);
+    EXPECT_EQ(clonedCommand->tickDelay(), 7);
+    EXPECT_FALSE(clonedCommand->executeOnFirstTick());
 }
 
 TEST_F(CommandBlockEntityTest, Create_DefaultAutoIsFalse)
@@ -116,8 +150,9 @@ TEST_F(CommandBlockEntityModeTest, Create_AutoMode_HasCorrectMode)
 {
     CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Auto);
     EXPECT_EQ(entity.getMode(), CommandBlockMode::Auto);
-    EXPECT_TRUE(entity.isAuto());    // 循环模式默认自动执行
-    EXPECT_TRUE(entity.needsTick()); // 循环模式需要每 tick 更新
+    EXPECT_TRUE(entity.isAuto()); // 循环模式默认自动执行
+    // 命令方块由计划刻驱动，不需要每 tick 更新（vanilla 同样无 tick 覆写）。
+    EXPECT_FALSE(entity.needsTick());
 }
 
 TEST_F(CommandBlockEntityModeTest, Create_SequenceMode_HasCorrectMode)
@@ -619,7 +654,8 @@ TEST_F(CommandBlockEntityModeBehaviorTest, RedstoneMode_DoesNotNeedTick)
 TEST_F(CommandBlockEntityModeBehaviorTest, AutoMode_NeedsTick)
 {
     CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Auto);
-    EXPECT_TRUE(entity.needsTick());
+    // 循环模式同样不依赖实体级 tick：执行与条件刷新都在计划刻完成。
+    EXPECT_FALSE(entity.needsTick());
 }
 
 TEST_F(CommandBlockEntityModeBehaviorTest, SequenceMode_DoesNotNeedTick)
@@ -746,4 +782,101 @@ TEST_F(CommandBlockEntityEdgeCaseTest, SetLastOutput_EmptyString_ClearsOutput)
     ASSERT_EQ(entity_->getLastOutput(), "previous output");
     entity_->setLastOutput("");
     EXPECT_TRUE(entity_->getLastOutput().empty());
+}
+
+// 基岩 LPRedstoneMode 与项目 m_auto 语义相反：1=需要红石、0=始终保持开启。
+// 若不取反，基岩存档里"需要红石"的脉冲方块会变成自动执行——红石电路整体行为翻反，
+// 且表面上完全看不出是解析层的问题。
+TEST_F(CommandBlockEntityTest, BedrockRedstoneModeMapsInvertedOntoAuto)
+{
+    {
+        // LPRedstoneMode=1（需要红石）→ m_auto=false（不自动执行）
+        mc::nbt::tags::compound_tag tag;
+        tag.put("id", std::string("minecraft:command_block"));
+        tag.put("LPRedstoneMode", static_cast<mc::i8>(1));
+
+        CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Redstone);
+        ASSERT_TRUE(entity.loadFromNBT(tag));
+        EXPECT_FALSE(entity.isAuto()) << "bedrock 'needs redstone' must not become auto-executing";
+    }
+
+    {
+        // LPRedstoneMode=0（始终保持开启）→ m_auto=true（自动执行）
+        mc::nbt::tags::compound_tag tag;
+        tag.put("id", std::string("minecraft:command_block"));
+        tag.put("LPRedstoneMode", static_cast<mc::i8>(0));
+
+        CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Redstone);
+        ASSERT_TRUE(entity.loadFromNBT(tag));
+        EXPECT_TRUE(entity.isAuto()) << "bedrock 'always active' must become auto-executing";
+    }
+
+    {
+        // 字段缺失时保持方块类型决定的默认值，不能被误置。
+        mc::nbt::tags::compound_tag tag;
+        tag.put("id", std::string("minecraft:command_block"));
+
+        CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Redstone);
+        ASSERT_TRUE(entity.loadFromNBT(tag));
+        EXPECT_FALSE(entity.isAuto()) << "absent LPRedstoneMode must not change the default";
+    }
+}
+
+// 写出侧与读取侧必须对称：需要红石时写 LPRedstoneMode=1，自动执行时不写（基岩默认 0）。
+TEST_F(CommandBlockEntityTest, BedrockRedstoneModeRoundTripsThroughNbt)
+{
+    mc::nbt::tags::compound_tag needsRedstoneTag;
+    needsRedstoneTag.put("id", std::string("minecraft:command_block"));
+    needsRedstoneTag.put("LPRedstoneMode", static_cast<mc::i8>(1));
+
+    CommandBlockEntity needsRedstone(BlockPos(0, 0, 0), CommandBlockMode::Redstone);
+    ASSERT_TRUE(needsRedstone.loadFromNBT(needsRedstoneTag));
+
+    mc::nbt::tags::compound_tag written;
+    needsRedstone.saveToNBT(written);
+    const auto writtenMode = mc::entity::serialization::nbt_helper::tryGetByte(written, "LPRedstoneMode");
+    ASSERT_TRUE(writtenMode.has_value()) << "needs-redstone state must be persisted";
+    EXPECT_EQ(*writtenMode, 1);
+
+    // 自动执行的方块不写出该字段：基岩默认 0 已表达"始终保持开启"，无需冗余键。
+    CommandBlockEntity alwaysActive(BlockPos(0, 0, 0), CommandBlockMode::Redstone);
+    alwaysActive.setAuto(true);
+
+    mc::nbt::tags::compound_tag writtenAuto;
+    alwaysActive.saveToNBT(writtenAuto);
+    EXPECT_FALSE(mc::entity::serialization::nbt_helper::tryGetByte(writtenAuto, "LPRedstoneMode").has_value())
+        << "always-active state must rely on the bedrock default instead of writing a redundant key";
+}
+
+// NBT 往返必须保留全部命令方块状态。此前本类只覆写了 loadFromNBT 而**没有覆写
+// saveToNBT**，基类默认实现只写 id/x/y/z——命令、模式、各类开关在 NBT 存档路径上
+// 全部丢失，读回来是一个空命令方块。JSON 路径正常，所以问题只在 NBT 存档里出现。
+
+TEST_F(CommandBlockEntityTest, NbtRoundTripPreservesEveryCommandBlockField)
+{
+    CommandBlockEntity source(BlockPos(3, 70, -5), CommandBlockMode::Sequence);
+    source.setCommand("/say hello");
+    source.setSuccessCount(7);
+    source.setCustomName("My Block");
+    source.setTrackOutput(true);
+    source.setPowered(true);
+    source.setTickDelay(12);
+    source.setExecuteOnFirstTick(false);
+
+    mc::nbt::tags::compound_tag written;
+    source.saveToNBT(written);
+
+    CommandBlockEntity restored(BlockPos(0, 0, 0), CommandBlockMode::Redstone);
+    ASSERT_TRUE(restored.loadFromNBT(written));
+
+    EXPECT_EQ(restored.getCommand(), "/say hello");
+    EXPECT_EQ(restored.getSuccessCount(), 7);
+    EXPECT_EQ(restored.getCustomName(), "My Block");
+    // 此前本类未覆写 saveToNBT，基类默认只写 id/x/y/z——以上字段在 NBT 路径上全部丢失。
+    EXPECT_TRUE(restored.shouldTrackOutput());
+    EXPECT_TRUE(restored.isPowered());
+    EXPECT_EQ(restored.tickDelay(), 12);
+    EXPECT_FALSE(restored.executeOnFirstTick());
+    // 模式必须靠 LPCommandMode 往返，否则会退化成方块类型默认的脉冲模式。
+    EXPECT_EQ(restored.getMode(), CommandBlockMode::Sequence);
 }

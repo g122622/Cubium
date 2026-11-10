@@ -352,14 +352,14 @@ bool DiscreteVoxelShape::isXZRectangleFull(i32 fromX, i32 toX, i32 fromZ, i32 to
 // 遍历
 // ============================================================================
 
-void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simplify)
+void DiscreteVoxelShape::forAllEdges(const IntLineConsumer& consumer, bool simplify) const
 {
     _forAllAxisEdges(consumer, AxisCycle::NONE, simplify);
     _forAllAxisEdges(consumer, AxisCycle::FORWARD, simplify);
     _forAllAxisEdges(consumer, AxisCycle::BACKWARD, simplify);
 }
 
-void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify)
+void DiscreteVoxelShape::forAllBoxes(const IntLineConsumer& consumer, bool simplify) const
 {
     // 空形状直接返回
     if (isEmpty()) {
@@ -559,7 +559,7 @@ void DiscreteVoxelShape::recalculateBounds() const
     m_boundsDirty = false;
 }
 
-void DiscreteVoxelShape::_forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify)
+void DiscreteVoxelShape::_forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify) const
 {
     const AxisCycle invCycle = AxisCycles::inverse(cycle);
     const i32 jSize = getSize(AxisCycles::cycle(invCycle, Axis::X));
@@ -590,20 +590,20 @@ void DiscreteVoxelShape::_forAllAxisEdges(const IntLineConsumer& consumer, AxisC
                             start = k1;
                         }
                     } else {
-                        consumer(AxisCycles::cycle(cycle, i1, j1, k1, Axis::X),
-                            AxisCycles::cycle(cycle, i1, j1, k1, Axis::Y),
-                            AxisCycles::cycle(cycle, i1, j1, k1, Axis::Z),
-                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::X),
-                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::Y),
-                            AxisCycles::cycle(cycle, i1, j1, k1 + 1, Axis::Z));
+                        consumer(AxisCycles::cycle(invCycle, i1, j1, k1, Axis::X),
+                            AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Y),
+                            AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Z),
+                            AxisCycles::cycle(invCycle, i1, j1, k1 + 1, Axis::X),
+                            AxisCycles::cycle(invCycle, i1, j1, k1 + 1, Axis::Y),
+                            AxisCycles::cycle(invCycle, i1, j1, k1 + 1, Axis::Z));
                     }
                 } else if (start != -1) {
-                    consumer(AxisCycles::cycle(cycle, i1, j1, start, Axis::X),
-                        AxisCycles::cycle(cycle, i1, j1, start, Axis::Y),
-                        AxisCycles::cycle(cycle, i1, j1, start, Axis::Z),
-                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::X),
-                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::Y),
-                        AxisCycles::cycle(cycle, i1, j1, k1, Axis::Z));
+                    consumer(AxisCycles::cycle(invCycle, i1, j1, start, Axis::X),
+                        AxisCycles::cycle(invCycle, i1, j1, start, Axis::Y),
+                        AxisCycles::cycle(invCycle, i1, j1, start, Axis::Z),
+                        AxisCycles::cycle(invCycle, i1, j1, k1, Axis::X),
+                        AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Y),
+                        AxisCycles::cycle(invCycle, i1, j1, k1, Axis::Z));
                     start = -1;
                 }
             }
@@ -630,19 +630,21 @@ void DiscreteVoxelShape::_forAllAxisFaces(const IntFaceConsumer& consumer, AxisC
                 const bool isFull = (k != kSize) && DiscreteVoxelShape::isFull(invCycle, i, j, k);
 
                 if (!wasFull && isFull) {
-                    // 开始的面（负方向）
+                    // 开始的面（负方向）。坐标必须用**逆循环**还原回体素坐标：
+                    // isFull 用 invCycle 把 (i, j, k) 映射到存储坐标，输出若再用原循环
+                    // 映射，得到的是另一格（FORWARD 与 BACKWARD 互为逆，不等于自身）。
                     consumer(negDir,
-                        AxisCycles::cycle(cycle, i, j, k, Axis::X),
-                        AxisCycles::cycle(cycle, i, j, k, Axis::Y),
-                        AxisCycles::cycle(cycle, i, j, k, Axis::Z));
+                        AxisCycles::cycle(invCycle, i, j, k, Axis::X),
+                        AxisCycles::cycle(invCycle, i, j, k, Axis::Y),
+                        AxisCycles::cycle(invCycle, i, j, k, Axis::Z));
                 }
 
                 if (wasFull && !isFull) {
                     // 结束的面（正方向）
                     consumer(posDir,
-                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::X),
-                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::Y),
-                        AxisCycles::cycle(cycle, i, j, k - 1, Axis::Z));
+                        AxisCycles::cycle(invCycle, i, j, k - 1, Axis::X),
+                        AxisCycles::cycle(invCycle, i, j, k - 1, Axis::Y),
+                        AxisCycles::cycle(invCycle, i, j, k - 1, Axis::Z));
                 }
 
                 wasFull = isFull;

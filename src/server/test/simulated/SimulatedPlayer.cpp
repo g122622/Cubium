@@ -6,23 +6,25 @@
 #include "common/core/BlockRaycastResult.hpp" // BlockRaycastResult::hit（方块侧交互入参）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp" // Player::inventory().add/setItem
-#include "common/item/context/ItemUseContext.hpp"      // useItemOnBlock 构造 ItemUseContext 调 onItemUse
-#include "common/item/core/ActionResult.hpp"           // ActionResultType / ItemActionResult
-#include "common/item/core/BlockActionResult.hpp"      // BlockActionResult（useItemOn/useWithoutItem 返回值）
-#include "common/item/core/Item.hpp"                   // Item::onItemUse/onItemRightClick
-#include "common/item/core/ItemRegistry.hpp"           // ItemRegistry::getItem(itemId) 取非 const Item*
-#include "common/item/core/ItemStack.hpp"              // giveItem/setItem 参数 + useItem 系列
-#include "common/util/math/MathUtils.hpp"              // toDegrees / toRadians / clamp
-#include "common/world/IWorld.hpp"                     // onItemRightClick / ItemUseContext 取 IWorld&
-#include "common/world/block/Block.hpp"                // Block::getBlock（方块侧交互解析）
-#include "common/world/block/BlockRegistry.hpp"        // BlockRegistry::getBlock（placeBlock 解析方块 id）
-#include "common/world/block/BlockState.hpp"           // BlockState::blockId/isAir
-#include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD（spawn 维度注册）
+#include "common/entity/inventory/PlayerInventory.hpp"   // Player::inventory().add/setItem
+#include "common/item/context/ItemUseContext.hpp"        // useItemOnBlock 构造 ItemUseContext 调 onItemUse
+#include "common/item/core/ActionResult.hpp"             // ActionResultType / ItemActionResult
+#include "common/item/core/BlockActionResult.hpp"        // BlockActionResult（useItemOn/useWithoutItem 返回值）
+#include "common/item/core/Item.hpp"                     // Item::onItemUse/onItemRightClick
+#include "common/item/core/ItemRegistry.hpp"             // ItemRegistry::getItem(itemId) 取非 const Item*
+#include "common/item/core/ItemStack.hpp"                // giveItem/setItem 参数 + useItem 系列
+#include "common/util/math/MathUtils.hpp"                // toDegrees / toRadians / clamp
+#include "common/util/math/ray/Ray.hpp"                  // Ray::fromAngles（interact 视线）
+#include "common/util/math/ray/Raycast.hpp"              // raycastBlocks（interact 方块命中）
+#include "common/world/IWorld.hpp"                       // onItemRightClick / ItemUseContext 取 IWorld&
+#include "common/world/block/core/Block.hpp"             // Block::getBlock（方块侧交互解析）
+#include "common/world/block/registry/BlockRegistry.hpp" // BlockRegistry::getBlock（placeBlock 解析方块 id）
+#include "common/world/block/state/BlockState.hpp"       // BlockState::blockId/isAir
+#include "common/world/dimension/DimensionManager.hpp"   // DimensionManager::OVERWORLD（spawn 维度注册）
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp" // PlayerManager::nextPlayerId（SimulatedPlayer 分配全局唯一 PlayerId）
 #include "server/dimension/ServerDimensionManager.hpp"    // ServerDimensionManager::playerJoinDimension
 #include "server/interaction/BlockInteractionManager.hpp" // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
+#include "server/player/lifecycle/PlayerManager.hpp" // PlayerManager::nextPlayerId（SimulatedPlayer 分配全局唯一 PlayerId）
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp" // ServerPlayerEntityManager::registerExistingPlayerEntity（打通命令系统实体解析）
 
@@ -120,7 +122,7 @@ SimulatedPlayer* SimulatedPlayer::spawn(
 
 // === GameTest 便捷方法 ===
 
-void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed)
+void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed, bool faceTarget)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::moveToLocation: helper not bound");
 
@@ -136,61 +138,115 @@ void SimulatedPlayer::moveToLocation(BlockPos relativePos, f32 speed)
     }
 
     // 转向目标：MC yaw=0→+Z, yaw=90→-X，故 yaw = atan2(-dx, dz)
-    const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
-    setRotation(yawDeg, pitch());
+    // faceTarget=false 时保持当前朝向，只平移（基岩 MoveToOptions.faceTarget 语义）。
+    if (faceTarget) {
+        const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
+        setRotation(yawDeg, pitch());
+    }
 
     // 向前走一步（直线，不绕障；TODO: 接 PathNavigator 实现真实寻路）。
     // speed 作为输入缩放倍率：1.0=正常速度，<1 放慢逼近，<0 后退（对齐基岩 speed 参数语义）。
     handleMovementInput(1.0f, 0.0f, false, false, speed);
 }
 
-void SimulatedPlayer::lookAtLocation(BlockPos relativePos)
+void SimulatedPlayer::lookAtLocation(BlockPos relativePos, LookDuration duration)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::lookAtLocation: helper not bound");
 
-    const BlockPos worldPos = m_helper->worldBlockPosition(relativePos);
-    const f64 dx = static_cast<f64>(worldPos.x) + 0.5 - static_cast<f64>(x());
-    const f64 dy = static_cast<f64>(worldPos.y) + 0.5 - getEyeY();
-    const f64 dz = static_cast<f64>(worldPos.z) + 0.5 - static_cast<f64>(z());
-
-    const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
-    const f64 horizDist = std::sqrt(dx * dx + dz * dz);
-    // pitch: 正值向下看，负值向上看；dy>0（目标在上方）应得负 pitch
-    const f32 pitchDeg = -mc::math::toDegrees(static_cast<f32>(std::atan2(dy, horizDist)));
-    setRotation(yawDeg, pitchDeg);
-    // 同步头部旋转（LivingEntity 重写，写 m_rotationYawHead）
-    setYHeadRot(yawDeg);
+    // 方块目标按世界绝对坐标记录，供 Continuous/UntilMove 每 tick 重新定向。
+    m_lookTargetKind = LookTargetKind::Block;
+    m_lookTargetBlock = m_helper->worldBlockPosition(relativePos);
+    m_lookTargetEntityId = INVALID_ENTITY_ID;
+    m_lookDuration = duration;
+    m_lookActive = duration != LookDuration::Instant;
+    // UntilMove 的移动判定基准取当前水平位置，避免把"调用前的历史位移"误判为移动。
+    m_lastLookTickX = static_cast<f32>(x());
+    m_lastLookTickZ = static_cast<f32>(z());
+    _applyLookTarget();
 }
 
-void SimulatedPlayer::lookAtEntity(const mc::Entity& target)
+void SimulatedPlayer::lookAtEntity(const mc::Entity& target, LookDuration duration)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::lookAtEntity: helper not bound");
-    (void)m_helper; // 当前直接用绝对坐标算朝向，不经 helper 相对化
+    (void)m_helper; // 直接按实体绝对坐标算朝向，不经 helper 相对化
 
-    const f64 dx = static_cast<f64>(target.x()) - static_cast<f64>(x());
-    const f64 dy = target.getEyeY() - getEyeY();
-    const f64 dz = static_cast<f64>(target.z()) - static_cast<f64>(z());
-
-    const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
-    const f64 horizDist = std::sqrt(dx * dx + dz * dz);
-    const f32 pitchDeg = -mc::math::toDegrees(static_cast<f32>(std::atan2(dy, horizDist)));
-    setRotation(yawDeg, pitchDeg);
-    setYHeadRot(yawDeg);
-    // TODO: 对齐基岩 lookAt 的 deltaYaw/deltaPitch 插值（当前为瞬时定向）
+    // 记录实体 id（不是裸指针）：目标被销毁后 _applyLookTarget 会查不到并自动解除追踪。
+    m_lookTargetKind = LookTargetKind::Entity;
+    m_lookTargetEntityId = target.id();
+    m_lookDuration = duration;
+    m_lookActive = duration != LookDuration::Instant;
+    // UntilMove 的移动判定基准取当前水平位置，避免把"调用前的历史位移"误判为移动。
+    m_lastLookTickX = static_cast<f32>(x());
+    m_lastLookTickZ = static_cast<f32>(z());
+    _applyLookTarget();
 }
 
-void SimulatedPlayer::lookAtBlock(BlockPos relativePos)
+void SimulatedPlayer::lookAtBlock(BlockPos relativePos, LookDuration duration)
 {
-    // 语义等同 lookAtLocation（都接结构相对 BlockPos 朝向其中心）。duration 当前忽略（瞬时）。
-    // TODO: 支持 LookDuration（Continuous/Instant/UntilMove）插值语义。
-    lookAtLocation(relativePos);
+    // 语义等同 lookAtLocation（都接结构相对 BlockPos 朝向其中心）。
+    lookAtLocation(relativePos, duration);
 }
 
-void SimulatedPlayer::moveToBlock(BlockPos relativePos, f32 speed)
+void SimulatedPlayer::_applyLookTarget()
 {
-    // 语义等同 moveToLocation（直线单步驱动）。options 当前忽略。
-    // TODO: 支持 MoveToOptions（maxStraightLineReach 等）。
-    moveToLocation(relativePos, speed);
+    const auto aimAt = [this](f64 dx, f64 dy, f64 dz) {
+        const f32 yawDeg = mc::math::toDegrees(static_cast<f32>(std::atan2(-dx, dz)));
+        const f64 horizDist = std::sqrt(dx * dx + dz * dz);
+        // pitch: 正值向下看，负值向上看；dy>0（目标在上方）应得负 pitch。
+        const f32 pitchDeg = -mc::math::toDegrees(static_cast<f32>(std::atan2(dy, horizDist)));
+        setRotation(yawDeg, pitchDeg);
+        // 同步头部旋转（LivingEntity 重写，写 m_rotationYawHead）。
+        setYHeadRot(yawDeg);
+    };
+
+    if (m_lookTargetKind == LookTargetKind::Entity) {
+        const mc::Entity* target = m_helper->world().getEntity(m_lookTargetEntityId);
+        if (target == nullptr || !target->isAlive()) {
+            // 目标已消失：解除追踪，避免每 tick 查询一个永远查不到的 id。
+            m_lookTargetKind = LookTargetKind::None;
+            m_lookActive = false;
+            return;
+        }
+        aimAt(static_cast<f64>(target->x()) - static_cast<f64>(x()),
+            target->getEyeY() - getEyeY(),
+            static_cast<f64>(target->z()) - static_cast<f64>(z()));
+        return;
+    }
+
+    if (m_lookTargetKind == LookTargetKind::Block) {
+        aimAt(static_cast<f64>(m_lookTargetBlock.x) + 0.5 - static_cast<f64>(x()),
+            static_cast<f64>(m_lookTargetBlock.y) + 0.5 - getEyeY(),
+            static_cast<f64>(m_lookTargetBlock.z) + 0.5 - static_cast<f64>(z()));
+    }
+}
+
+void SimulatedPlayer::tick()
+{
+    ServerPlayer::tick();
+
+    if (!m_lookActive || m_lookDuration == LookDuration::Instant) {
+        return;
+    }
+
+    // UntilMove：一旦发生位移就终止追踪（移动优先于持续注视）。
+    if (m_lookDuration == LookDuration::UntilMove && m_lookTargetKind != LookTargetKind::None) {
+        const bool moved = std::abs(static_cast<f32>(x()) - m_lastLookTickX) > 0.001f ||
+            std::abs(static_cast<f32>(z()) - m_lastLookTickZ) > 0.001f;
+        m_lastLookTickX = static_cast<f32>(x());
+        m_lastLookTickZ = static_cast<f32>(z());
+        if (moved) {
+            m_lookActive = false;
+            return;
+        }
+    }
+
+    _applyLookTarget();
+}
+
+void SimulatedPlayer::moveToBlock(BlockPos relativePos, f32 speed, bool faceTarget)
+{
+    // 语义等同 moveToLocation（直线单步驱动）。
+    moveToLocation(relativePos, speed, faceTarget);
 }
 
 bool SimulatedPlayer::jump()
@@ -347,6 +403,203 @@ void SimulatedPlayer::attack(mc::Entity& target)
     // SimulatedPlayer 经 ServerPlayer→Player 继承，无网络连接时发包路径 no-op（setConnection(nullptr)）。
     // 直接调 Player::attack（非 ServerPlayer::attack）以跳过 ServerPlayer 的旁观者 setCamera 网络路径。
     Player::attack(target);
+}
+
+mc::Entity* SimulatedPlayer::_findAttackTarget()
+{
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::_findAttackTarget: helper not bound");
+
+    auto& world = m_helper->world();
+    // 攻击距离取自玩家属性（entity_interaction_range，默认 3.0），与真实玩家一致。
+    const f64 reach = getAttributeValue(mc::entity::attribute::Attributes::ENTITY_INTERACTION_RANGE, 3.0);
+
+    // 视线方向：yaw=0→+Z、yaw=90→-X；pitch 正值向下。
+    const f64 yawRad = mc::math::toRadians(static_cast<f64>(yaw()));
+    const f64 pitchRad = mc::math::toRadians(static_cast<f64>(pitch()));
+    const f64 cosPitch = std::cos(pitchRad);
+    const Vector3d lookDir{-std::sin(yawRad) * cosPitch, -std::sin(pitchRad), std::cos(yawRad) * cosPitch};
+
+    const f64 eyeX = x();
+    const f64 eyeY = getEyeY();
+    const f64 eyeZ = z();
+
+    // 先取以眼睛为中心、半径 reach 的立方体，再按视线夹角筛选。
+    const AxisAlignedBB searchBox(eyeX - reach, eyeY - reach, eyeZ - reach, eyeX + reach, eyeY + reach, eyeZ + reach);
+
+    mc::Entity* best = nullptr;
+    f64 bestScore = -2.0; // 视线方向点积，越大越靠近视线中心
+    for (mc::Entity* candidate : world.getEntitiesInAABB(searchBox, this)) {
+        if (candidate == nullptr || candidate == this || !candidate->isAlive()) {
+            continue;
+        }
+
+        const f64 dx = candidate->x() - eyeX;
+        const f64 dy = (candidate->getEyeY() + candidate->y()) * 0.5 - eyeY;
+        const f64 dz = candidate->z() - eyeZ;
+        const f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist > reach || dist < 1.0e-6) {
+            continue;
+        }
+
+        // 与视线的夹角余弦；要求目标大致在正前方（cos >= 0.5 ≈ 60° 半角）。
+        const f64 dot = (dx * lookDir.x + dy * lookDir.y + dz * lookDir.z) / dist;
+        if (dot < 0.5) {
+            continue;
+        }
+
+        // 取"最正对视线"者；同分时近者优先。
+        const f64 score = dot - dist * 0.001;
+        if (score > bestScore) {
+            bestScore = score;
+            best = candidate;
+        }
+    }
+
+    return best;
+}
+
+bool SimulatedPlayer::attack()
+{
+    // 冷却未就绪时不挥击（基岩：返回 false 且不产生攻击）。
+    if (getCooledAttackStrength(0.0f) < 1.0f) {
+        return false;
+    }
+
+    mc::Entity* target = _findAttackTarget();
+    if (target == nullptr) {
+        return false;
+    }
+
+    attack(*target);
+    return true;
+}
+
+bool SimulatedPlayer::interact()
+{
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::interact: helper not bound");
+
+    auto& world = m_helper->world();
+    // 基岩该 API 固定 6 格最大交互距离。
+    constexpr f32 kInteractRange = 6.0f;
+
+    const mc::math::Vector3f eye{static_cast<f32>(x()), static_cast<f32>(getEyeY()), static_cast<f32>(z())};
+    const mc::Ray ray = mc::Ray::fromAngles(eye, pitch(), yaw());
+
+    // 方块命中（DDA 遍历，含方块 shape 精确相交）。
+    const mc::BlockRaycastResult blockHit = mc::raycastBlocks(mc::RaycastContext(ray, kInteractRange), world);
+    const bool hasBlock = blockHit.isHit();
+    const f32 blockDist = hasBlock ? blockHit.distance() : kInteractRange;
+
+    // 实体命中：复用 attack 的视线筛选，但只接受比方块命中更近的目标。
+    mc::Entity* entityHit = nullptr;
+    f32 entityDist = kInteractRange;
+    if (mc::Entity* candidate = _findAttackTarget(); candidate != nullptr) {
+        const f64 dx = candidate->x() - x();
+        const f64 dy = (candidate->getEyeY() + candidate->y()) * 0.5 - getEyeY();
+        const f64 dz = candidate->z() - z();
+        entityDist = static_cast<f32>(std::sqrt(dx * dx + dy * dy + dz * dz));
+        entityHit = candidate;
+    }
+
+    // 取更近者交互；实体在前（与 vanilla 先实体后方块的命中优先级一致）。
+    if (entityHit != nullptr && entityDist <= blockDist) {
+        const auto result = interactOn(*entityHit, mc::Hand::MainHand);
+        return result == mc::ActionResultType::Success || result == mc::ActionResultType::Consume;
+    }
+
+    if (!hasBlock) {
+        return false;
+    }
+
+    // 方块走空手右键路径（空 ItemStack 跳过 Item.useOn，只执行方块侧交互）。
+    mc::ItemStack emptyStack;
+    const mc::Vector3 faceLocation(0.5f, 1.0f, 0.5f);
+    return useItemOnBlock(emptyStack, blockHit.blockPos(), blockHit.face(), faceLocation);
+}
+
+// === 飞行 / 滑翔 / 游泳（对齐基岩 SimulatedPlayer::fly/glide/swim 系列）===
+
+void SimulatedPlayer::fly()
+{
+    // 起飞需要飞行能力（创造/旁观模式由 GameMode 设置 abilities.canFly）。
+    if (!abilities().canFly) {
+        spdlog::warn("[gametest] SimulatedPlayer::fly ignored: player has no flight ability");
+        return;
+    }
+
+    setFlying(true);
+}
+
+void SimulatedPlayer::stopFlying()
+{
+    setFlying(false);
+}
+
+bool SimulatedPlayer::glide()
+{
+    // tryToStartFallFlying 内部已检查 canGlide()（装备鞘翅）与水中/已飞行等前置条件。
+    return tryToStartFallFlying();
+}
+
+void SimulatedPlayer::stopGliding()
+{
+    stopFallFlying();
+}
+
+void SimulatedPlayer::move(f32 westEast, f32 northSouth, f32 speed)
+{
+    // 基岩该 API 的方向是相对 GameTest 结构的绝对方位（东为 +X、南为 +Z），不随玩家朝向变化。
+    // 因此先按当前朝向把目标世界方向分解成「前进/横移」输入。
+    const f64 yawRad = mc::math::toRadians(static_cast<f64>(yaw()));
+    // 前方向量（yaw=0 看向 +Z；yaw=90 看向 -X）与右方向量。
+    const f64 forwardX = -std::sin(yawRad);
+    const f64 forwardZ = std::cos(yawRad);
+    const f64 rightX = std::cos(yawRad);
+    const f64 rightZ = std::sin(yawRad);
+
+    const f64 dirX = static_cast<f64>(westEast);
+    const f64 dirZ = static_cast<f64>(northSouth);
+    const f64 forward = dirX * forwardX + dirZ * forwardZ;
+    const f64 strafe = dirX * rightX + dirZ * rightZ;
+
+    handleMovementInput(static_cast<f32>(forward), static_cast<f32>(strafe), false, false, speed);
+}
+
+void SimulatedPlayer::moveRelative(f32 leftRight, f32 backwardForward, f32 speed)
+{
+    // leftRight 对应横移（正为右）、backwardForward 对应前进（正为前），与移动输入同一语义。
+    handleMovementInput(backwardForward, leftRight, false, false, speed);
+}
+
+void SimulatedPlayer::stopMoving()
+{
+    // 清空输入；已有速度由物理推进按摩擦自然衰减。
+    handleMovementInput(0.0f, 0.0f, false, false, 0.0f);
+}
+
+void SimulatedPlayer::rotateBody(f32 angleInDegrees)
+{
+    const f32 targetYaw = yaw() + angleInDegrees;
+    setRotation(targetYaw, pitch());
+    setYHeadRot(targetYaw);
+    setYBodyRot(targetYaw);
+}
+
+void SimulatedPlayer::setBodyRotation(f32 angleInDegrees)
+{
+    setRotation(angleInDegrees, pitch());
+    setYHeadRot(angleInDegrees);
+    setYBodyRot(angleInDegrees);
+}
+
+void SimulatedPlayer::swim()
+{
+    setSwimming(true);
+}
+
+void SimulatedPlayer::stopSwimming()
+{
+    setSwimming(false);
 }
 
 // === 方块破坏 / 放置 / 疾跑（对齐基岩 SimulatedPlayer::breakBlock/placeBlock/setSprint）===

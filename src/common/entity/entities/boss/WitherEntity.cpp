@@ -58,10 +58,10 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -849,11 +849,11 @@ void WitherEntity::_explodeOnSpawn()
         this   // 爆炸源
     );
 
-    // 对齐原版: this.level().globalLevelEvent(1023, this.blockPosition(), 0)
-    // 凋灵生成音效全服跨维度广播，受 GameRules.GLOBAL_SOUND_EVENTS 门控。
+    // 对齐原版: this.level().globalLevelEvent(::mc::world::LevelEventId::SOUND_WITHER_BOSS_SPAWN, this.blockPosition(),
+    // 0) 凋灵生成音效全服跨维度广播，受 GameRules.GLOBAL_SOUND_EVENTS 门控。
     const BlockPos blockPos(
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
-    worldPtr->globalLevelEvent(world::WorldEvents::WITHER_SPAWN_SOUND, blockPos, 0);
+    worldPtr->globalLevelEvent(::mc::world::LevelEventId::SOUND_WITHER_BOSS_SPAWN, blockPos, 0);
 }
 
 void WitherEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)

@@ -65,10 +65,10 @@
 #include "common/item/Items.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/StateHolder.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include "vanilla_datapack.hpp"
 

@@ -590,6 +590,11 @@ public:
         return m_attackAnimationTicks;
     }
 
+    void setFlingAnimationTicks(i32 ticks) override
+    {
+        m_attackAnimationTicks = ticks;
+    }
+
     void tick() override;
 
     // ========== 撞飞型近战攻击 ==========
@@ -677,6 +682,11 @@ public:
     [[nodiscard]] i32 getFlingAnimationTicks() const override
     {
         return m_attackAnimationTicks;
+    }
+
+    void setFlingAnimationTicks(i32 ticks) override
+    {
+        m_attackAnimationTicks = ticks;
     }
 
     /**

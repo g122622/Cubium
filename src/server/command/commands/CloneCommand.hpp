@@ -82,15 +82,18 @@ private:
      * @param context 命令上下文
      * @param filterMode 方块过滤模式
      * @param cloneMode 克隆模式
+     * @param strict 严格模式：抑制写入期间的方块副作用，写完后统一补发邻居更新
      */
-    static i32 _doCloneStatic(CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode);
+    static i32 _doCloneStatic(
+        CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode, bool strict);
 
     /**
      * @brief 执行过滤克隆操作
      * @param context 命令上下文
      * @param cloneMode 克隆模式
+     * @param strict 严格模式：抑制写入期间的方块副作用，写完后统一补发邻居更新
      */
-    static i32 _doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode);
+    static i32 _doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode, bool strict);
 };
 
 } // namespace command

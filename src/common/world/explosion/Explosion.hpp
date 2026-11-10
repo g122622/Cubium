@@ -30,7 +30,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -50,6 +50,11 @@ class ItemStack;
 // 测试 fixture（tests/common/world/explosion/ExplosionLosBlockTest.cpp），经 friend 访问私有
 // _getBlockDensity 验证专用视线 DDA 与公共 raycastBlocks 的行为等价性。
 class ExplosionLosBlockTest;
+
+/**
+ * @brief 测试 fixture：验证 _shouldAffectBlocklikeEntities 的完整判定（含风弹源排除）。
+ */
+class ExplosionBlocklikeEntitiesTest;
 
 namespace entity {
 class TNTEntity;
@@ -85,6 +90,10 @@ public:
     // 端到端视线遮挡回归测试需访问私有 _getBlockDensity 以逐采样点对比专用 DDA
     // 与公共 raycastBlocks 的等价性（见 ExplosionLosBlockTest）。
     friend class ::mc::ExplosionLosBlockTest;
+    /**
+     * @brief 测试 fixture：验证 _shouldAffectBlocklikeEntities 的完整判定。
+     */
+    friend class ::mc::ExplosionBlocklikeEntitiesTest;
     /**
      * @brief 构造爆炸对象
      *

@@ -154,7 +154,7 @@ cmake --build --preset windows-clang-relwithdebinfo-server
 
 ```bash
 # 安装依赖
-brew install cmake ninja pkg-config glslang molten-vk
+brew install cmake ninja pkg-config glslang molten-vk lld
 
 # 克隆并配置 vcpkg
 git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
@@ -183,8 +183,8 @@ export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
 | `TRUE`/`FALSE` 宏冲突 | macOS `<mach/boolean.h>` 定义 `#define TRUE 1` / `#define FALSE 0`，与 `BooleanOp::TRUE()`/`FALSE()` 冲突 | 在 `BooleanOp.hpp` 中使用 `#pragma push_macro`/`#undef`/`#pragma pop_macro` 屏蔽 |
 | `resident_size_max` 不存在 | macOS `task_vm_info` 结构体中字段名为 `resident_size_peak` | 使用 `resident_size_peak` 替代 `resident_size_max` |
 | `noexcept` override 不匹配 | Apple Clang 21 严格要求 override 函数的异常规范与基类一致 | 在 override 方法声明中添加 `noexcept` |
-| `-fuse-ld=lld` 不可用 | macOS 没有 lld 链接器 | CMakeLists.txt 已添加平台判断，仅在 Windows/Linux 下使用 lld |
-| `-Wl,-gc-sections` 不支持 | macOS 的 ld64 不支持 GNU 风格链接器选项 | CMakeLists.txt 已添加平台判断，仅在 Windows/Linux 下使用 |
+| `ld64.lld` 缺失 | Homebrew 自 LLVM 19 起把 lld 拆成独立 formula，`brew install llvm` 不再附带 | 执行 `brew install lld`；CMakeLists.txt 统一为全平台使用 lld，找不到时在配置阶段直接失败 |
+| `-Wl,-gc-sections` 不支持 | macOS 的 ld64 不支持 GNU 风格链接器选项 | CMakeLists.txt 已添加平台判断，仅在 Linux 下使用 |
 
 > **注意**：macOS 构建需要着色器编译器。安装 `glslang`（提供 `glslangValidator`）或 Vulkan SDK（提供 `glslc`）。
 

@@ -8,13 +8,19 @@
 text/
 ├── Utf8.hpp/cpp             # UTF-8 编码/解码/迭代工具函数
 ├── TextStyle.hpp/cpp       # 文本样式和格式化类型（颜色、粗体、斜体等）
+├── StyleNbt.hpp/cpp        # Style ↔ NBT 复合标签编解码（组件与数字格式共用）
 ├── TextEvents.hpp          # 点击和悬停事件定义
 ├── ITextComponent.hpp/cpp  # 文本组件抽象接口及 BaseTextComponent
 ├── ITextComponentFwd.hpp   # 前向声明（避免循环依赖）
 ├── StringTextComponent.hpp # 纯文本组件实现
 ├── TranslationTextComponent.hpp/cpp  # 翻译键组件（支持多语言）
 ├── ComponentUtils.hpp      # 文本组件工具函数（wrapInSquareBrackets 等）
-└── TextParser.hpp/cpp      # § 代码解析器（传统格式转 ITextComponent）
+├── ComponentNbtSerialization.hpp/cpp # ITextComponent ↔ NBT 标签/线格式字节
+├── TextParser.hpp/cpp      # § 代码解析器（传统格式转 ITextComponent）
+└── numbers/                # 数字格式（记分板分数的 blank/styled/fixed 渲染格式）
+    ├── NumberFormat.hpp/cpp      # NumberFormatType 与 NumberFormat 值类型
+    ├── NumberFormatCodec.hpp/cpp # 存档 NBT 编码 + Java 线格式编码
+    └── README.md
 ```
 
 ## 内部模块关系
@@ -24,6 +30,8 @@ TextEvents.hpp (独立)
      ↓
 TextStyle.hpp (依赖 TextEvents)
      ↓
+StyleNbt.hpp (依赖 TextStyle + nbt)          ← 唯一的 Style NBT 实现
+     ↓
 ITextComponent.hpp (依赖 TextStyle)
      ↓
 ┌───────────────────┬────────────────────────┐
@@ -32,6 +40,10 @@ StringTextComponent.hpp   TranslationTextComponent.hpp
 │                        (依赖 LanguageManager)
 │
 ├── ComponentUtils.hpp (依赖 ITextComponent + TranslationTextComponent)
+│
+ComponentNbtSerialization.hpp (依赖 ITextComponent + StyleNbt + NbtIo)
+     ↓
+numbers/NumberFormatCodec.hpp (styled 用 StyleNbt、fixed 用 ComponentNbtSerialization)
 │
 TextParser.hpp (依赖 ITextComponent, TextStyle)
 ```
@@ -54,7 +66,8 @@ TextParser.hpp (依赖 ITextComponent, TextStyle)
 - **common/item/** - ItemStack 显示名称和 Lore（`ItemStack.hpp`）
 - **common/world/blockentity/** - SignEntity 告示牌文本、BannerEntity 旗帜名称
 - **common/world/map/** - MapBanner、MapData、MapDecoration 地图标记文本
-- **common/scoreboard/** - ScorePlayerTeam 队伍名称格式化、ScoreObjective 显示名称
+- **common/scoreboard/** - ScorePlayerTeam 队伍名称格式化、ScoreObjective 显示名称与数字格式
+- **common/util/text/numbers/** - 数字格式的 styled/fixed 载荷（Style 与 Component 的 NBT 编码）
 - **common/advancement/** - 进度显示名称和描述
 - **common/network/ir/packets/play/** - Title 系列 IR 包（`SetTitleText`/`SetSubtitleText`/`SetActionBarText`，旧 `TitlePacket` 已删除）
 - **common/skin/** - SkinPackets 皮肤文本
@@ -109,6 +122,25 @@ text->appendText("World");
 - `shallowCopy()` - 仅复制当前组件，不含子组件
 
 根据使用场景选择正确的拷贝方法。
+
+### 8. Style 的 NBT 只有一份实现（StyleNbt）
+
+组件序列化与数字格式（`numbers/`）都必须走 `StyleNbt.hpp` 的 `styleToNbt`/`styleFromNbt`，不要在
+别处另写一份字段清单——两份清单必然漂移，表现为「组件里的颜色对了、数字格式里的丢了」。
+
+颜色一律用 `Style::getTextColor()`（`TextColor::serialize()`，具名色写名字、自定义 RGB 写 `#RRGGBB`），
+**不要**用 `getColor()`：后者只覆盖具名色，自定义 RGB 会被静默丢弃。
+
+### 9. `Result<std::unique_ptr<T>>::value()` 只能取一次
+
+`componentFromNbtTag` 等返回 `Result<std::unique_ptr<T>>`，`value()` 内部会转移所有权。同一表达式里
+调用两次，第二次拿到 nullptr —— 后续解引用即空指针崩溃。必须先把所有权取到局部变量：`auto v = r.value();`
+
+### 10. Component 根标签不一定是 Compound
+
+`ComponentSerialization` 经 `NbtOps` 编码后，可折叠纯文本是 **StringTag(0x08)**，只有带样式/siblings
+的才是 CompoundTag(0x0A)。读线格式字节时不能假定根是 `0x0A`；写出请用
+`nbt_io::serializeRootTagToBytes`（任意标签），它和 `serializeRootCompoundToBytes` 同一实现。
 
 ## 参考
 

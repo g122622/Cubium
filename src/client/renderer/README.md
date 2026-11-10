@@ -183,7 +183,7 @@ src/client/renderer/
 - `common/core/Types.hpp` - 基础类型
 - `common/core/Result.hpp` - 错误处理
 - `common/world/chunk/ChunkData.hpp` - 区块数据
-- `common/world/block/Block.hpp` - 方块定义
+- `common/world/block/core/Block.hpp` - 方块定义
 - `common/resource/ResourceLocation.hpp` - 资源定位
 - `client/ui/Font.hpp` - 字体渲染
 - `client/resource/ResourceManager.hpp` - 资源管理

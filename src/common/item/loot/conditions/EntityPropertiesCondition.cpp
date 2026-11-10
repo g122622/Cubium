@@ -53,8 +53,17 @@ const Entity* getConditionTargetEntity(LootContext& context, EntityPropertiesCon
         }
         case EntityPropertiesCondition::EntityTarget::TargetEntity:
         case EntityPropertiesCondition::EntityTarget::InteractingEntity:
-            // TODO(loot-context-targets): TARGET_ENTITY / INTERACTING_ENTITY 参数尚未在
-            //   LootContext 中提供，按"目标实体不存在"处理（条件不匹配），避免误用 this。
+            // 这两个目标在原版由 TARGET_ENTITY / INTERACTING_ENTITY 参数提供，项目尚未定义
+            // 这两个 LootParameter，因此按"目标实体不存在"处理（条件不匹配）。
+            //
+            // 这不是待补的实现缺口：原版数据包中 1324 张战利品表全部没有引用这两个目标，
+            // 也就是说没有任何内容依赖它们。等真正出现需要它们的战利品表（或自定义数据包）
+            // 时，再补 LootParameter 并在构造 LootContext 的调用点填充——届时只需在
+            // LootParams 加两个常量、在对应场景（实体被攻击 / 被交互）写入，条件本身无需改动。
+            //
+            // 注意不要退化成返回 THIS_ENTITY：那会让 `target_entity` 条件静默匹配错实体，
+            // 比恒不匹配更难排查。
+            // TODO: 若接入 TARGET_ENTITY / INTERACTING_ENTITY，此处改为从 context 读取。
             return nullptr;
     }
     return nullptr;
@@ -118,10 +127,10 @@ std::unique_ptr<LootCondition> EntityPropertiesCondition::clone() const noexcept
     return std::make_unique<EntityPropertiesCondition>(m_target, m_predicate);
 }
 
-EntityPropertiesCondition::EntityTarget EntityPropertiesCondition::parseEntityTarget(const std::string& str)
+Result<EntityPropertiesCondition::EntityTarget> EntityPropertiesCondition::parseEntityTarget(const std::string& str)
 {
-    // 对齐 vanilla LootContext.EntityTarget 名称；"killer" / "direct_killer" /
-    // "killer_player" 为旧版（1.16）名称，保留兼容映射。
+    // vanilla LootContext.EntityTarget 名称；"killer" / "direct_killer" / "killer_player"
+    // 为旧版（1.16）名称，保留兼容映射。
     if (str == "this") {
         return EntityTarget::This;
     }
@@ -140,9 +149,10 @@ EntityPropertiesCondition::EntityTarget EntityPropertiesCondition::parseEntityTa
     if (str == "interacting_entity") {
         return EntityTarget::InteractingEntity;
     }
-    // 未知目标：返回 This 会静默改变语义，故显式按"目标缺失"处理。
-    // TODO(loot-context-targets): 数据包新增目标类型时在此补充映射。
-    return EntityTarget::TargetEntity;
+    // 未知目标必须显式报错：此前一律回落到 TargetEntity，会让拼错的目标名被静默当成
+    // 合法值，进而经 entityTargetToString 往返写成 "target_entity"，数据包里的错误就
+    // 再也查不出来了。数据包新增目标类型时在此补充映射。
+    return Error(ErrorCode::InvalidData, "Unknown loot entity target: " + str, "EntityPropertiesCondition");
 }
 
 std::string EntityPropertiesCondition::entityTargetToString(EntityTarget target)

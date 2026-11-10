@@ -25,7 +25,7 @@
 
 #include "common/world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "common/world/block/blocks/end/ChorusPlantBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

@@ -50,8 +50,8 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
 #include <memory>
@@ -74,8 +74,8 @@ RavagerEntity::RavagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractRaiderEntity(id, registry)
 {
     // 劫掠兽不在阳光下燃烧：劫掠兽是袭击生物（非亡灵），wiki tech_劫掠兽.txt 通篇未提阳光燃烧。
-    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员 m_burnsInDaylight
-    // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
+    // 对齐原版，在构造时关闭日光燃烧。该标志经虚函数 shouldBurnInDaylight() 读取，
+    // 由 MonsterEntity::handleDaylightBurning() 调用，因此 setBurnsInDaylight(false) 即生效。
     setBurnsInDaylight(false);
 
     // 劫掠兽可以走上1格高的方块

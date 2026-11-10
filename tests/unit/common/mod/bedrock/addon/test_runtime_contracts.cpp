@@ -417,3 +417,198 @@ TEST_F(AddonRuntimeContractTest, PlayerPrototypeInheritsEntityPrototype)
     EXPECT_EQ(number("adventure"), 1);
     EXPECT_EQ(number("spectator"), 1);
 }
+
+// 顶层 await 的模块若不断自我追加微任务，Promise 永远不会 settle，而 job 队列永远非空。
+// 旧实现只靠"settle 或 无 job 可执行"两个出口，遇到这种模块会卡死整个服务端。
+// 现在有 job 执行预算：超限即报错返回，让有问题的行为包在加载期就明确失败。
+TEST_F(AddonRuntimeContractTest, SelfSchedulingModuleFailsInsteadOfHanging)
+{
+    const auto result = context->evaluateModule(R"(
+        await new Promise(() => {
+            const spin = () => { queueMicrotask(spin); };
+            queueMicrotask(spin);
+        });
+    )",
+        "contracts/runaway.js");
+
+    ASSERT_FALSE(result.success()) << "自调度模块必须在预算耗尽后失败，而不是无限等待";
+    EXPECT_NE(result.errorMessage().find("pending-job budget"), std::string::npos) << result.errorMessage();
+}
+
+// 脚本对象/数组跨原生边界：此前 convertArgsToScriptValues 对非标量一律降级成 undefined，
+// convertScriptValueToJSValue 对 Object/Array 也返回 undefined。表现是注册给脚本的原生函数
+// 收到对象参数时静默变成 undefined——脚本侧看不到任何错误，只是数据凭空消失。
+// 现在统一以 JSON 承载，双向都能完整往返。
+TEST_F(AddonRuntimeContractTest, ObjectAndArrayArgumentsRoundTripThroughNativeBoundary)
+{
+    // 只验证对象形态；数组形态由下一条用例单独覆盖（两者在脚本侧的语义不同）。
+    std::vector<ScriptValue> objectArg;
+    ASSERT_TRUE(context->registerGlobalFunction(
+        "__captureObject", [&objectArg](const std::vector<ScriptValue>& args) -> ScriptValue {
+            objectArg = args;
+            return ScriptValue();
+        }));
+    evaluate(R"(__captureObject({ name: 'zombie', health: 20, nested: { flag: true }, list: [1, 2, 3] });)");
+    ASSERT_EQ(objectArg.size(), 1u);
+    EXPECT_TRUE(objectArg[0].isObject());
+    EXPECT_EQ(objectArg[0].asJson()["name"], "zombie");
+    EXPECT_EQ(objectArg[0].asJson()["health"], 20);
+    EXPECT_TRUE(objectArg[0].asJson()["nested"]["flag"]);
+    ASSERT_TRUE(objectArg[0].asJson()["list"].is_array());
+    EXPECT_EQ(objectArg[0].asJson()["list"].size(), 3u);
+}
+
+TEST_F(AddonRuntimeContractTest, ArrayArgumentIsDistinguishedFromObject)
+{
+    std::vector<ScriptValue> received;
+    ASSERT_TRUE(context->registerGlobalFunction(
+        "__captureArray", [&received](const std::vector<ScriptValue>& args) -> ScriptValue {
+            received = args;
+            return ScriptValue();
+        }));
+
+    evaluate(R"(__captureArray([10, 'twenty', false, null]);)");
+
+    ASSERT_EQ(received.size(), 1u);
+    // 数组必须被识别为 Array 而不是 Object：两者在脚本侧语义不同（length、索引、迭代器）。
+    EXPECT_TRUE(received[0].isArray());
+    EXPECT_FALSE(received[0].isObject());
+    ASSERT_TRUE(received[0].asJson().is_array());
+    EXPECT_EQ(received[0].asJson()[0], 10);
+    EXPECT_EQ(received[0].asJson()[1], "twenty");
+    EXPECT_EQ(received[0].asJson()[2], false);
+    EXPECT_TRUE(received[0].asJson()[3].is_null());
+}
+
+// 原生侧返回对象/数组时，脚本必须拿到真实值而不是 undefined。
+TEST_F(AddonRuntimeContractTest, NativeReturnValueCanBeAnObjectOrArray)
+{
+    ASSERT_TRUE(context->registerGlobalFunction("__makeObject", [](const std::vector<ScriptValue>&) -> ScriptValue {
+        nlohmann::json object = {{"id", "minecraft:zombie"}, {"count", 3}, {"tags", {"hostile", "undead"}}};
+        return ScriptValue(std::move(object), false);
+    }));
+    ASSERT_TRUE(context->registerGlobalFunction("__makeArray", [](const std::vector<ScriptValue>&) -> ScriptValue {
+        nlohmann::json array = nlohmann::json::array({1, "two", true});
+        return ScriptValue(std::move(array), true);
+    }));
+
+    evaluate(R"(
+        globalThis.fromObject = __makeObject();
+        globalThis.fromArray = __makeArray();
+    )");
+
+    const auto id = context->getGlobalVariable("fromObject");
+    ASSERT_TRUE(id.has_value());
+
+    // 脚本侧直接读属性，验证拿到的是真实对象而非 undefined。
+    evaluate(R"(
+        globalThis.objectId = __makeObject().id;
+        globalThis.objectCount = __makeObject().count;
+        globalThis.objectTagCount = __makeObject().tags.length;
+        globalThis.arrayLength = __makeArray().length;
+        globalThis.arraySecond = __makeArray()[1];
+        globalThis.arrayIsArray = Array.isArray(__makeArray());
+    )");
+
+    const auto objectId = context->getGlobalVariable("objectId");
+    ASSERT_TRUE(objectId.has_value());
+    EXPECT_EQ(objectId->asString(), "minecraft:zombie");
+
+    const auto objectCount = context->getGlobalVariable("objectCount");
+    ASSERT_TRUE(objectCount.has_value());
+    EXPECT_DOUBLE_EQ(objectCount->asNumber(), 3.0);
+
+    const auto objectTagCount = context->getGlobalVariable("objectTagCount");
+    ASSERT_TRUE(objectTagCount.has_value());
+    EXPECT_DOUBLE_EQ(objectTagCount->asNumber(), 2.0);
+
+    const auto arrayLength = context->getGlobalVariable("arrayLength");
+    ASSERT_TRUE(arrayLength.has_value());
+    EXPECT_DOUBLE_EQ(arrayLength->asNumber(), 3.0);
+
+    const auto arraySecond = context->getGlobalVariable("arraySecond");
+    ASSERT_TRUE(arraySecond.has_value());
+    EXPECT_EQ(arraySecond->asString(), "two");
+
+    const auto arrayIsArray = context->getGlobalVariable("arrayIsArray");
+    ASSERT_TRUE(arrayIsArray.has_value());
+    EXPECT_TRUE(arrayIsArray->asBoolean());
+}
+
+// callFunction / setGlobalVariable / getGlobalVariable 走的是成员函数 _jsValueToScriptValue
+// 与 _scriptValueToJSValue，与全局函数回调路径是两套实现。上一轮只补了回调路径，
+// 成员函数路径仍然把对象/数组降级成 undefined——同一个缺陷有两个入口。
+TEST_F(AddonRuntimeContractTest, CallFunctionPassesAndReturnsObjects)
+{
+    evaluate(R"(
+        globalThis.echoObject = (payload) => ({ received: payload, size: payload.items.length });
+    )");
+
+    nlohmann::json payload = {{"items", {1, 2, 3}}, {"label", "stack"}};
+    std::vector<ScriptValue> args;
+    args.emplace_back(std::move(payload), false);
+
+    const auto result = context->callFunction("echoObject", args);
+    ASSERT_TRUE(result.success()) << result.errorMessage();
+
+    ASSERT_TRUE(result.value().isObject());
+    EXPECT_EQ(result.value().asJson()["size"], 3);
+    EXPECT_EQ(result.value().asJson()["received"]["label"], "stack");
+    ASSERT_TRUE(result.value().asJson()["received"]["items"].is_array());
+    EXPECT_EQ(result.value().asJson()["received"]["items"][2], 3);
+}
+
+TEST_F(AddonRuntimeContractTest, CallFunctionPassesArrays)
+{
+    evaluate(R"(
+        globalThis.sumArray = (values) => values.reduce((total, next) => total + next, 0);
+    )");
+
+    nlohmann::json values = nlohmann::json::array({1, 2, 3, 4});
+    std::vector<ScriptValue> args;
+    args.emplace_back(std::move(values), true);
+
+    const auto result = context->callFunction("sumArray", args);
+    ASSERT_TRUE(result.success()) << result.errorMessage();
+    ASSERT_TRUE(result.value().isNumber());
+    // 数组若被降级成 undefined，reduce 会抛错，因此这里同时验证了参数确实到达。
+    EXPECT_DOUBLE_EQ(result.value().asNumber(), 10.0);
+}
+
+TEST_F(AddonRuntimeContractTest, GlobalVariablesCarryObjectsAndArrays)
+{
+    nlohmann::json object = {{"id", "minecraft:zombie"}, {"count", 3}};
+    ASSERT_TRUE(context->setGlobalVariable("objVar", ScriptValue(std::move(object), false)));
+
+    nlohmann::json array = nlohmann::json::array({"a", "b"});
+    ASSERT_TRUE(context->setGlobalVariable("arrVar", ScriptValue(std::move(array), true)));
+
+    evaluate(R"(
+        globalThis.objReadBack = objVar.id;
+        globalThis.arrReadBack = arrVar.length;
+        globalThis.arrIsArray = Array.isArray(arrVar);
+    )");
+
+    const auto objReadBack = context->getGlobalVariable("objReadBack");
+    ASSERT_TRUE(objReadBack.has_value());
+    EXPECT_EQ(objReadBack->asString(), "minecraft:zombie");
+
+    const auto arrReadBack = context->getGlobalVariable("arrReadBack");
+    ASSERT_TRUE(arrReadBack.has_value());
+    EXPECT_DOUBLE_EQ(arrReadBack->asNumber(), 2.0);
+
+    const auto arrIsArray = context->getGlobalVariable("arrIsArray");
+    ASSERT_TRUE(arrIsArray.has_value());
+    EXPECT_TRUE(arrIsArray->asBoolean());
+
+    // 读取路径同样要还原成对象，而不是 undefined
+    const auto objVar = context->getGlobalVariable("objVar");
+    ASSERT_TRUE(objVar.has_value());
+    ASSERT_TRUE(objVar->isObject());
+    EXPECT_EQ(objVar->asJson()["id"], "minecraft:zombie");
+
+    const auto arrVar = context->getGlobalVariable("arrVar");
+    ASSERT_TRUE(arrVar.has_value());
+    ASSERT_TRUE(arrVar->isArray());
+    EXPECT_EQ(arrVar->asJson().size(), 2u);
+}

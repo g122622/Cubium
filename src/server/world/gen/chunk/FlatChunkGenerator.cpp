@@ -34,11 +34,11 @@
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseColumn.hpp"
@@ -397,7 +397,7 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
             if (structIt != structuresByStage.end()) {
                 for (const auto& [structure, start] : structIt->second) {
                     worldgenRandom.setFeatureSeed(decorSeed, structureIndex, stageOrdinal);
-                    structure->placeInChunk(region, chunk, *start, chunkX, chunkZ, this);
+                    structure->placeInChunk(region, chunk, *start, chunkX, chunkZ, worldgenRandom, this);
                     ++structureIndex;
                 }
             }

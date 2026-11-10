@@ -25,10 +25,10 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/nether/NyliumBlock.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/registry/vanilla/NetherBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"

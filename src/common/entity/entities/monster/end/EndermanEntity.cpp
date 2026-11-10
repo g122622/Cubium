@@ -31,6 +31,8 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "entity/ai/goal/goals/movement/MovementGoals.hpp"
@@ -42,8 +44,6 @@
 #include "util/math/MathConstants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include <cmath>
 #include <memory>
 #include <optional>

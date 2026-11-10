@@ -28,9 +28,9 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/StatePropertiesPredicate.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <cmath>
 #include <string>

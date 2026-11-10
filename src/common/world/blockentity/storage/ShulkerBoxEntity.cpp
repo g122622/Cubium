@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,7 +25,9 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/blocks/ShulkerBoxBlock.hpp"
+#include "common/world/block/blocks/container/ShulkerBoxBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/core/Entity.hpp"
@@ -36,8 +38,6 @@
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockState.hpp"
 #include <memory>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>

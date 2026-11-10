@@ -59,24 +59,29 @@ Result<void> writeCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag)
     return Result<void>::ok();
 }
 
-std::vector<u8> serializeRootCompoundToBytes(const mc::nbt::tags::compound_tag& tag)
+std::vector<u8> serializeRootTagToBytes(const mc::nbt::tags::tag& tag)
 {
     // 对齐 Java FriendlyByteBuf.writeNbt = NbtIo.writeAnyTag：
-    //   writeByte(0x0A)        // TAG_Compound 类型字节
-    //   tag.write()            // entries + End（compound_tag::write 默认 is_root=false 已含 0x00 End）
-    // **无 root name 前缀**：writeAnyTag 只写类型字节 + tag.write()（compound 的 write 写 entries+End，
-    // 不写 name）。readAnyTag 对称：读类型字节后直接进 CompoundTag.loadCompound 读 body。
-    // 早先误加 writeUTF("") 写 0x00 0x00（u16 空 name），客户端 readAnyTag 读 0x0A 后把 0x00 当
-    // 空 compound 的 End → 游标错位，跨多条目级联致 "Expected non-null compound tag"
-    // （disconnect-2026-07-29_13.51.13-client.txt，ByteBufCodecs.tagCodec:295-296）。
-    // 注意：is_root=true 会去掉 End（错向），此处须保持 is_root=false 默认。
+    //   writeByte(tag.getId())   // 类型字节
+    //   tag.write()              // payload（Compound 的 write 写 entries + 0x00 End，不写 name）
+    // **无 root name 前缀**（writeAnyTag / readAnyTag 都不写不读 name）。
+    // 注意：compound_tag 的 is_root=true 会去掉 End（错向），此处须保持 is_root=false 默认。
     std::ostringstream out;
     out << mc::nbt::Contexts::java;
-    out.put(static_cast<char>(mc::nbt::TagId::Compound)); // 0x0A 类型字节（无 root name）
-    tag.write(out);                                       // entries + 0x00 End
+    out.put(static_cast<char>(tag.id()));
+    tag.write(out);
     const std::string bytes = out.str();
     return std::vector<u8>(
         reinterpret_cast<const u8*>(bytes.data()), reinterpret_cast<const u8*>(bytes.data()) + bytes.size());
+}
+
+std::vector<u8> serializeRootCompoundToBytes(const mc::nbt::tags::compound_tag& tag)
+{
+    // Compound 只是「根标签是复合」的特化，复用同一写出实现。
+    // 早先误加 writeUTF("") 写 0x00 0x00（u16 空 name），客户端 readAnyTag 读 0x0A 后把 0x00 当
+    // 空 compound 的 End → 游标错位，跨多条目级联致 "Expected non-null compound tag"
+    // （disconnect-2026-07-29_13.51.13-client.txt，ByteBufCodecs.tagCodec:295-296）。
+    return serializeRootTagToBytes(tag);
 }
 
 Result<void> writeRootCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag)

@@ -21,11 +21,11 @@
  *
  */
 
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/items/block/BlockItem.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -67,9 +67,10 @@ TEST_F(AnvilLightningRodItemRegistrationTest, AnvilItems_RegistryLookup)
     }
 }
 
-TEST_F(AnvilLightningRodItemRegistrationTest, AnvilItems_MaxStackSizeIsOne)
+TEST_F(AnvilLightningRodItemRegistrationTest, AnvilItems_MaxStackSizeIsSixtyFour)
 {
-    // MC 原版铁砧最大堆叠数为1
+    // 铁砧是普通方块物品，堆叠上限与其它方块一致（64）。它不是工具/护甲，没有 max_stack_size
+    // 覆盖；此前这里断言为 1，会把铁砧在物品栏里限制成一格一个。
     const char* anvilNames[] = {
         "anvil",
         "chipped_anvil",
@@ -78,7 +79,7 @@ TEST_F(AnvilLightningRodItemRegistrationTest, AnvilItems_MaxStackSizeIsOne)
     for (const char* name : anvilNames) {
         auto* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
         ASSERT_NE(item, nullptr) << "Missing anvil block item: minecraft:" << name;
-        EXPECT_EQ(item->maxStackSize(), 1) << "Anvil item should have max stack size 1: minecraft:" << name;
+        EXPECT_EQ(item->maxStackSize(), 64) << "Anvil item should have max stack size 64: minecraft:" << name;
     }
 }
 

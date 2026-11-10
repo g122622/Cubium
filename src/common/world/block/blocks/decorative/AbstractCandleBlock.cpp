@@ -36,10 +36,10 @@
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/IBlockAnimateContext.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/capability/IBlockAnimateContext.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include <utility>
 
 namespace mc {

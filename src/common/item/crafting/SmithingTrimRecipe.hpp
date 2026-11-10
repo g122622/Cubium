@@ -55,9 +55,13 @@ namespace crafting {
  * }
  * @endcode
  *
- * 注意：项目当前尚无 SmithingMenu 实现，且纹饰系统（TrimMaterial/TrimPattern 注册表）
- * 未实现。本类仅完成数据结构层面的解析与注册：assemble 暂返回 base 副本（TODO），
- * 待纹饰系统接入后补全 TRIM 组件写入逻辑。
+ * 纹饰注册表（`TrimMaterials` / `TrimPatterns`）已从数据包加载；材质由 addition 物品的
+ * `provides_trim_material` 组件反查，图案取配方自身的 `pattern` 字段。二者写入 TRIM 组件
+ * （载荷为 `{"material": <id>, "pattern": <id>}`），若 base 已有相同纹饰则产出为空。
+ *
+ * TODO: 项目当前尚无 SmithingMenu。`SLOT_*` 已与 SmithingMenu.java 的
+ * TEMPLATE_SLOT=0 / BASE_SLOT=1 / ADDITIONAL_SLOT=2 核对一致；容器落地后仍需确认
+ * 实际槽位布局与之一致。
  *
  * 参考: net.minecraft.world.item.crafting.SmithingTrimRecipe
  */
@@ -76,7 +80,7 @@ public:
      * @param templateIngredient 模板原料
      * @param base 基础物品原料（可纹饰盔甲）
      * @param addition 添加物原料（纹饰材料）
-     * @param pattern 纹饰图案 ResourceLocation（对应 TrimPattern，纹饰注册表未实现）
+     * @param pattern 纹饰图案 id（对应 TrimPatterns 注册表，装配时校验存在性）
      */
     SmithingTrimRecipe(const ResourceLocation& id,
         Ingredient templateIngredient,
@@ -159,7 +163,7 @@ private:
     Ingredient m_template;                 ///< 模板原料
     Ingredient m_base;                     ///< 基础物品原料（可纹饰盔甲）
     Ingredient m_addition;                 ///< 添加物原料（纹饰材料）
-    ResourceLocation m_pattern;            ///< 纹饰图案（TODO: 待 TrimPattern 注册表接入后解析为 Holder）
+    ResourceLocation m_pattern;            ///< 纹饰图案 id（持久化形态与 TRIM 组件一致，装配时查 TrimPatterns）
     std::vector<Ingredient> m_ingredients; ///< 缓存的原料列表（template + base + addition）
 };
 

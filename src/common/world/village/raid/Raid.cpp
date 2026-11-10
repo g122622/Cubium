@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -398,6 +398,8 @@ f32 Raid::getBossBarProgress() const
  */
 void Raid::_updateBossBar(IWorld& world)
 {
+    // 只计算并缓存进度；对外通知由 RaidManager::tick 经 RaidCallbacks 统一发出，
+    // 避免 Raid 反向持有外部实现（分层约束：common 不依赖 server）。
     if (m_status != RaidStatus::Ongoing) {
         m_cachedProgress = 0.0f;
         return;

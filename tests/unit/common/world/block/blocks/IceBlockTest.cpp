@@ -25,7 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"

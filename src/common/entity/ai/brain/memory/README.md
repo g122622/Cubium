@@ -38,7 +38,7 @@ IPositionTarget.hpp (接口)
 **依赖（上游）**：
 - `common/core/Types.hpp` - 基础类型定义
 - `common/util/math/Vector3.hpp` - 位置目标依赖
-- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/block/base/types/BlockPos.hpp` - 方块位置
 - `common/util/assert/AssertAll.hpp` - 断言宏
 
 ## 容易踩的坑

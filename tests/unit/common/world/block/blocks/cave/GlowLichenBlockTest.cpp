@@ -26,10 +26,10 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/blocks/cave/GlowLichenBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <memory>
 #include <unordered_map>
 

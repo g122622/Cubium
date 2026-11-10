@@ -26,7 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <optional>
 #include <unordered_set>

@@ -46,7 +46,12 @@ NautilusArmorItem::NautilusArmorItem(const ItemProperties& properties, const arm
     , m_armorValue(material.getDefense(armor::ArmorSlot::Body))
     , m_equipSound(material.getEquipSound())
     , m_material(material)
-{}
+{
+    // 鹦鹉螺铠甲穿在 Body 槽位；没有 equippable 组件就不会被 doHurtEquipment 磨损。
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Body;
+    setDefaultEquippable(std::move(equippable));
+}
 
 item::ItemAttributeModifiers NautilusArmorItem::getAttributeModifiers(i32 equipmentSlot) const
 {

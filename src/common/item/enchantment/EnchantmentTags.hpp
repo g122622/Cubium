@@ -30,6 +30,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 
@@ -48,11 +49,9 @@ class DataPackRepository;
  * `on_mob_spawn_equipment` / `on_traded_equipment`）、某些方块行为是否被抑制
  * （`prevents_ice_melting` 等），以及提示框排序（`tooltip_order`，**它是有序的**）。
  *
- * 在此之前 Cubium 只用 `Enchantment::isTreasure()` / `isCurse()` 两个硬编码布尔值
- * 表达其中两个标签，其余 13 个没有对应物——等于把数据包里的 15 个标签压成了 2 个开关。
- *
- * TODO: `tooltip_order` 的**顺序**语义当前没有承载（成员集是无序 set）。若后续要用它
- * 排序提示框，需要额外保留一份有序数组。
+ * 顺序语义由 {@link EnchantmentTag::getOrderedEnchantmentIds} 承载：加载器按标签 JSON
+ * 的声明顺序写入成员，供附魔提示框排序使用（见
+ * `Item::addInformation` 与 `EnchantmentHelper::getSortedEnchantmentsForTooltip`）。
  */
 class EnchantmentTags {
 public:
@@ -92,6 +91,8 @@ public:
      * 走通用两阶段加载器：第一遍收集所有成员 id 与 `#` 标签引用，第二遍按依赖顺序
      * 递归展开（被引用的标签先填充）。原版这批标签普遍用引用写法，例如
      * `double_trade_price` 就是 `{"values": ["#minecraft:treasure"]}`。
+     *
+     * 成员顺序按标签 JSON 的声明顺序保留（`#` 引用就地展开），供 `tooltip_order` 使用。
      *
      * @return 处理成功的标签数量，或错误
      */

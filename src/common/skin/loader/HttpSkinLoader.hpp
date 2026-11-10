@@ -51,7 +51,8 @@ namespace mc::skin {
  * 异步加载通过注入的 UniversalWorkerPool 实现，回调在 worker 线程触发。
  * 若未注入线程池，loadAsync 降级为同步执行后立即回调。
  *
- * 注意：_httpGet 当前未实现（返回 Unsupported），HTTP 下载功能待后续补充。
+ * 下载走 asio 同步 connect/read，HTTPS 由 OpenSSL 提供并校验 SNI 与证书主机名；
+ * 响应体支持 Content-Length 与 chunked 两种长度表达。
  */
 class HttpSkinLoader : public ISkinLoader {
 public:

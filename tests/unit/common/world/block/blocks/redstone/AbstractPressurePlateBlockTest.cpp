@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/core/Block.hpp"
 #include "physics/collision/CollisionShape.hpp"
 #include "util/property/Properties.hpp"
-#include "world/block/Block.hpp"
 #include "world/block/blocks/redstone/AbstractPressurePlateBlock.hpp"
 
 using namespace mc;
@@ -38,7 +38,7 @@ using namespace mc::blocks;
 class TestPressurePlateBlock : public AbstractPressurePlateBlock {
 public:
     TestPressurePlateBlock(const BlockProperties& properties, i32 tickDelay = 10)
-        : AbstractPressurePlateBlock(properties)
+        : AbstractPressurePlateBlock(properties, BlockSetTypes::OAK)
         , m_tickDelay(tickDelay)
     {}
 
@@ -55,13 +55,6 @@ public:
         MC_UNUSED(oldPowered);
         MC_UNUSED(newPowered);
         return m_tickDelay;
-    }
-
-    void playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const override
-    {
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(pressed);
     }
 
     void setHasEntity(bool hasEntity)

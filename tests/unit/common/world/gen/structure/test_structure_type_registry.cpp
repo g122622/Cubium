@@ -35,7 +35,6 @@
 #include "server/world/gen/structure/JigsawStructure.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/StructureTypeRegistry.hpp"
-#include "server/world/gen/structure/structures/BastionRemnantStructure.hpp"
 #include "server/world/gen/structure/structures/BuriedTreasureStructure.hpp"
 #include "server/world/gen/structure/structures/DesertPyramidStructure.hpp"
 #include "server/world/gen/structure/structures/EndCityStructure.hpp"
@@ -46,12 +45,10 @@
 #include "server/world/gen/structure/structures/NetherFossilStructure.hpp"
 #include "server/world/gen/structure/structures/OceanMonumentStructure.hpp"
 #include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
-#include "server/world/gen/structure/structures/PillagerOutpostStructure.hpp"
 #include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "server/world/gen/structure/structures/ShipwreckStructure.hpp"
 #include "server/world/gen/structure/structures/StrongholdStructure.hpp"
 #include "server/world/gen/structure/structures/SwampHutStructure.hpp"
-#include "server/world/gen/structure/structures/TrialChambersStructure.hpp"
 #include "server/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
 #include <gtest/gtest.h>
@@ -247,33 +244,20 @@ TEST_F(StructureTypeRegistryTest, MineshaftDispatchesByVariantId)
 }
 
 // ============================================================================
-// jigsaw 类型分派：按 def.id 委托子类或裸 JigsawStructure
+// jigsaw 类型分派：任何 id 都构造通用 JigsawStructure
 // ============================================================================
 
-TEST_F(StructureTypeRegistryTest, JigsawDispatchesToSpecializedSubclasses)
+TEST_F(StructureTypeRegistryTest, JigsawAlwaysUsesGenericStructure)
 {
     auto& reg = StructureTypeRegistry::instance();
 
-    // pillager_outpost → PillagerOutpostStructure
-    {
-        auto def = makeJigsawDef("pillager_outpost");
+    // 原版 1.21.11 只有 JigsawStructure 一个拼图结构类：前哨站、试炼密室、堡垒遗迹
+    // 全部由结构定义 JSON 配置，不存在专属子类。任何按 id 分支的工厂都会让数据包改动静默失效。
+    for (const auto& idPath : {"pillager_outpost", "trial_chambers", "bastion_remnant"}) {
+        auto def = makeJigsawDef(idPath);
         auto result = reg.create("jigsaw", def);
-        ASSERT_TRUE(result.success());
-        EXPECT_NE(dynamic_cast<PillagerOutpostStructure*>(result.value().get()), nullptr);
-    }
-    // trial_chambers → TrialChambersStructure
-    {
-        auto def = makeJigsawDef("trial_chambers");
-        auto result = reg.create("jigsaw", def);
-        ASSERT_TRUE(result.success());
-        EXPECT_NE(dynamic_cast<TrialChambersStructure*>(result.value().get()), nullptr);
-    }
-    // bastion_remnant → BastionRemnantStructure
-    {
-        auto def = makeJigsawDef("bastion_remnant");
-        auto result = reg.create("jigsaw", def);
-        ASSERT_TRUE(result.success());
-        EXPECT_NE(dynamic_cast<BastionRemnantStructure*>(result.value().get()), nullptr);
+        ASSERT_TRUE(result.success()) << "id=" << idPath;
+        EXPECT_NE(dynamic_cast<JigsawStructure*>(result.value().get()), nullptr) << "id=" << idPath;
     }
 }
 
@@ -292,10 +276,6 @@ TEST_F(StructureTypeRegistryTest, JigsawVillageUsesGenericPath)
         ASSERT_NE(structure, nullptr);
         // 村庄结构必须构造为通用 JigsawStructure（不是任何专属子类）
         EXPECT_NE(dynamic_cast<JigsawStructure*>(structure.get()), nullptr) << "id=" << idPath;
-        // 不应落到任何带专属子类的类型
-        EXPECT_EQ(dynamic_cast<PillagerOutpostStructure*>(structure.get()), nullptr);
-        EXPECT_EQ(dynamic_cast<TrialChambersStructure*>(structure.get()), nullptr);
-        EXPECT_EQ(dynamic_cast<BastionRemnantStructure*>(structure.get()), nullptr);
     }
 }
 
@@ -310,12 +290,8 @@ TEST_F(StructureTypeRegistryTest, JigsawBareStructureForUnknownId)
         ASSERT_TRUE(result.success()) << "id=" << idPath;
         auto structure = result.value();
         ASSERT_NE(structure, nullptr);
-        // 应为 JigsawStructure（含其子类之外的裸类型）
+        // 应为 JigsawStructure
         EXPECT_NE(dynamic_cast<JigsawStructure*>(structure.get()), nullptr) << "id=" << idPath;
-        // 不应为带专属子类的类型
-        EXPECT_EQ(dynamic_cast<PillagerOutpostStructure*>(structure.get()), nullptr);
-        EXPECT_EQ(dynamic_cast<TrialChambersStructure*>(structure.get()), nullptr);
-        EXPECT_EQ(dynamic_cast<BastionRemnantStructure*>(structure.get()), nullptr);
     }
 }
 

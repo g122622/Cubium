@@ -23,9 +23,10 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
@@ -44,7 +45,6 @@
 #include "util/math/random/Random.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/mob/BeehiveBlock.hpp"
 #include "world/block/blocks/mob/DragonBreathBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
@@ -181,24 +181,24 @@ TEST_F(BeehiveBlockTest, Mirror_UpdatesFacingCorrectly)
 {
     const auto& defaultState = beehive_->defaultState();
 
-    // LeftRight 镜像：沿 Z 轴镜像，东西互换，南北不变
-    // North -> Mirror(LR) -> North (不变)
+    // LeftRight 镜像：沿 Z 轴翻转，南北互换，东西不变
+    // North -> Mirror(LR) -> South
     const auto& mirroredLR = beehive_->mirror(defaultState, Mirror::LeftRight);
-    EXPECT_EQ(mirroredLR.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
+    EXPECT_EQ(mirroredLR.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
 
-    // East -> Mirror(LR) -> West (东西互换)
+    // East -> Mirror(LR) -> East (东西不变)
     BlockState eastState = defaultState.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
     const auto& mirroredEastLR = beehive_->mirror(eastState, Mirror::LeftRight);
-    EXPECT_EQ(mirroredEastLR.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::West);
+    EXPECT_EQ(mirroredEastLR.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
 
-    // FrontBack 镜像：沿 X 轴镜像，南北互换，东西不变
-    // North -> Mirror(FB) -> South (南北互换)
+    // FrontBack 镜像：沿 X 轴翻转，东西互换，南北不变
+    // North -> Mirror(FB) -> North (南北不变)
     const auto& mirroredFB = beehive_->mirror(defaultState, Mirror::FrontBack);
-    EXPECT_EQ(mirroredFB.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+    EXPECT_EQ(mirroredFB.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
 
-    // East -> Mirror(FB) -> East (东西不变)
+    // East -> Mirror(FB) -> West (东西互换)
     const auto& mirroredEastFB = beehive_->mirror(eastState, Mirror::FrontBack);
-    EXPECT_EQ(mirroredEastFB.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
+    EXPECT_EQ(mirroredEastFB.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::West);
 }
 
 // ========== 状态容器测试 ==========

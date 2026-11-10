@@ -35,11 +35,11 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/SupportType.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/support/SupportType.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -640,6 +640,75 @@ void RedstoneWireBlock::_notifyDiagonalNeighbors(
             if (diagUpState && !diagUpState->isAir()) {
                 Block& diagBlock = diagUpState->getBlockMutable();
                 diagBlock.neighborChanged(world, diagUpPos, *this, pos, false);
+            }
+        }
+    }
+}
+
+void RedstoneWireBlock::updateIndirectNeighbourShapes(
+    const BlockState& state, IWorld& world, const BlockPos& pos, i32 flags, i32 recursionLeft, bool movedByPiston)
+{
+    // 只处理"有连接、但直接邻居不是红石线"的方向：直接邻居是红石线时，常规的
+    // updateNeighbourShapes 已经更新过它，这里不需要重发。
+    for (Direction direction : Directions::horizontal()) {
+        BlockStateProperties::RedstoneSide connection = BlockStateProperties::RedstoneSide::None;
+        switch (direction) {
+            case Direction::North:
+                connection = state.get(BlockStateProperties::REDSTONE_NORTH());
+                break;
+            case Direction::East:
+                connection = state.get(BlockStateProperties::REDSTONE_EAST());
+                break;
+            case Direction::South:
+                connection = state.get(BlockStateProperties::REDSTONE_SOUTH());
+                break;
+            case Direction::West:
+                connection = state.get(BlockStateProperties::REDSTONE_WEST());
+                break;
+            default:
+                break;
+        }
+        if (connection == BlockStateProperties::RedstoneSide::None) {
+            continue;
+        }
+
+        const BlockPos neighborPos = pos.offset(direction);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState != nullptr && neighborState->is(this)) {
+            continue;
+        }
+
+        // 邻居下方：那根红石线向上爬升连到本线。
+        const BlockPos belowPos = neighborPos.down();
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState != nullptr && belowState->is(this)) {
+            const BlockPos belowSourcePos = belowPos.offset(Directions::opposite(direction));
+            const BlockState* belowSourceState = world.getBlockState(belowSourcePos);
+            if (belowSourceState != nullptr) {
+                world.notifyShapeChanged(Directions::opposite(direction),
+                    belowPos,
+                    belowSourcePos,
+                    *belowSourceState,
+                    flags,
+                    recursionLeft,
+                    movedByPiston);
+            }
+        }
+
+        // 邻居上方：本线向上连到那根红石线。
+        const BlockPos abovePos = neighborPos.up();
+        const BlockState* aboveState = world.getBlockState(abovePos);
+        if (aboveState != nullptr && aboveState->is(this)) {
+            const BlockPos aboveSourcePos = abovePos.offset(Directions::opposite(direction));
+            const BlockState* aboveSourceState = world.getBlockState(aboveSourcePos);
+            if (aboveSourceState != nullptr) {
+                world.notifyShapeChanged(Directions::opposite(direction),
+                    abovePos,
+                    aboveSourcePos,
+                    *aboveSourceState,
+                    flags,
+                    recursionLeft,
+                    movedByPiston);
             }
         }
     }

@@ -31,14 +31,14 @@
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/CarrotBlock.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -260,7 +260,7 @@ void RaidGardenGoal::_raidCarrot(const BlockPos& carrotPos, const BlockState* ca
 
         // 对应 MC：level.levelEvent(2001, blockpos, Block.getId(blockstate));
         // levelEvent(2001) 的 data 参数为方块状态 ID（Block.getId(blockstate)）
-        world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, carrotPos, carrotStateId);
+        world->playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, carrotPos, carrotStateId);
     }
 
     // 对应 MC：this.rabbit.moreCarrotTicks = 40;

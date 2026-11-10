@@ -32,8 +32,8 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include <array>
 #include <memory>

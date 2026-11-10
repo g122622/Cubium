@@ -22,6 +22,7 @@
  */
 
 #include "WhitelistCommand.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
@@ -31,15 +32,15 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "server/access/base/WhitelistManagerTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/WhitelistManager.hpp"
+#include "server/network/session/PlayerConnectionManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -125,16 +126,16 @@ i32 WhitelistCommand::_whitelistOn(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    auto& whitelistManager = server->whitelistManager();
+    auto& whitelistManager = server->accessManager();
 
     // 检查是否已启用
-    if (whitelistManager.isEnabled()) {
+    if (whitelistManager.whitelistIsEnabled()) {
         source.sendError("commands.whitelist.alreadyOn");
         return 0;
     }
 
     // 启用白名单
-    whitelistManager.setEnabled(true);
+    whitelistManager.whitelistSetEnabled(true);
     source.sendMessage("commands.whitelist.enabled");
 
     // 踢出不在白名单的玩家
@@ -152,16 +153,16 @@ i32 WhitelistCommand::_whitelistOff(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    auto& whitelistManager = server->whitelistManager();
+    auto& whitelistManager = server->accessManager();
 
     // 检查是否已禁用
-    if (!whitelistManager.isEnabled()) {
+    if (!whitelistManager.whitelistIsEnabled()) {
         source.sendError("commands.whitelist.alreadyOff");
         return 0;
     }
 
     // 禁用白名单
-    whitelistManager.setEnabled(false);
+    whitelistManager.whitelistSetEnabled(false);
     source.sendMessage("commands.whitelist.disabled");
 
     return 1;
@@ -176,8 +177,8 @@ i32 WhitelistCommand::_whitelistList(CommandContext<ServerCommandSource>& contex
         return 0;
     }
 
-    auto& whitelistManager = server->whitelistManager();
-    auto names = whitelistManager.getAllNames();
+    auto& whitelistManager = server->accessManager();
+    auto names = whitelistManager.whitelistGetAllNames();
 
     if (names.empty()) {
         source.sendMessage("commands.whitelist.list.none");
@@ -252,19 +253,19 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    auto& whitelistManager = server->whitelistManager();
+    auto& whitelistManager = server->accessManager();
 
     // 检查是否已在白名单中
-    if (whitelistManager.isNameWhitelisted(playerName)) {
+    if (whitelistManager.whitelistIsNameWhitelisted(playerName)) {
         source.sendError("commands.whitelist.add.failed");
         return 0;
     }
 
     // 添加到白名单
-    mc::server::core::WhitelistEntry entry(playerUuid, playerName);
-    if (whitelistManager.addEntry(entry)) {
+    mc::server::WhitelistEntry entry(playerUuid, playerName);
+    if (whitelistManager.whitelistAddEntry(entry)) {
         // 保存白名单
-        auto saveResult = whitelistManager.save();
+        auto saveResult = whitelistManager.whitelistSave();
         if (saveResult.failed()) {
             spdlog::error("Failed to save whitelist: {}", saveResult.error().message());
         }
@@ -314,18 +315,18 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    auto& whitelistManager = server->whitelistManager();
+    auto& whitelistManager = server->accessManager();
 
     // 检查是否在白名单中
-    if (!whitelistManager.isNameWhitelisted(playerName)) {
+    if (!whitelistManager.whitelistIsNameWhitelisted(playerName)) {
         source.sendError("commands.whitelist.remove.failed");
         return 0;
     }
 
     // 从白名单移除
-    if (whitelistManager.removeEntryByName(playerName)) {
+    if (whitelistManager.whitelistRemoveEntryByName(playerName)) {
         // 保存白名单
-        auto saveResult = whitelistManager.save();
+        auto saveResult = whitelistManager.whitelistSave();
         if (saveResult.failed()) {
             spdlog::error("Failed to save whitelist: {}", saveResult.error().message());
         }
@@ -335,7 +336,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
         source.sendMessage(ss.str());
 
         // 踢出不在白名单的玩家（如果白名单已启用）
-        if (whitelistManager.isEnabled()) {
+        if (whitelistManager.whitelistIsEnabled()) {
             _kickNonWhitelistedPlayers(source);
         }
 
@@ -355,10 +356,10 @@ i32 WhitelistCommand::_whitelistReload(CommandContext<ServerCommandSource>& cont
         return 0;
     }
 
-    auto& whitelistManager = server->whitelistManager();
+    auto& whitelistManager = server->accessManager();
 
     // 重新加载白名单
-    auto loadResult = whitelistManager.reload();
+    auto loadResult = whitelistManager.whitelistReload();
     if (loadResult.failed()) {
         spdlog::error("Failed to reload whitelist: {}", loadResult.error().message());
         source.sendError("commands.whitelist.reloaded.failed");
@@ -368,7 +369,7 @@ i32 WhitelistCommand::_whitelistReload(CommandContext<ServerCommandSource>& cont
     source.sendMessage("commands.whitelist.reloaded");
 
     // 踢出不在白名单的玩家（如果白名单已启用）
-    if (whitelistManager.isEnabled()) {
+    if (whitelistManager.whitelistIsEnabled()) {
         _kickNonWhitelistedPlayers(source);
     }
 
@@ -382,23 +383,23 @@ void WhitelistCommand::_kickNonWhitelistedPlayers(ServerCommandSource& source)
         return;
     }
 
-    auto& whitelistManager = server->whitelistManager();
+    auto& whitelistManager = server->accessManager();
     auto& playerManager = server->playerManager();
-    auto& connectionManager = server->connectionManager();
+    auto& playerConnections = server->playerConnections();
 
     // 收集需要踢出的玩家
     std::vector<PlayerId> playersToKick;
 
     playerManager.forEachPlayer([&](const mc::server::ServerPlayerData& player) {
         // 检查玩家是否在白名单中
-        if (!whitelistManager.isNameWhitelisted(player.username)) {
+        if (!whitelistManager.whitelistIsNameWhitelisted(player.username)) {
             playersToKick.push_back(player.playerId);
         }
     });
 
     // 踢出玩家
     for (PlayerId playerId : playersToKick) {
-        connectionManager.disconnectPlayer(playerId, "You are not white-listed on this server!");
+        playerConnections.disconnectPlayer(playerId, "You are not white-listed on this server!");
     }
 
     if (!playersToKick.empty()) {

@@ -46,8 +46,8 @@
 #include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 #include <cmath>
@@ -844,8 +844,8 @@ void TrialSpawnerBlockEntity::spawnMob(IWorld& world)
     // 参考 MC Java: levelEvent(3011, spawnerPos, flameParticle) + levelEvent(3012, mobPos, flameParticle)
     // flameParticle: 0=普通(FLAME), 1=不祥(SOUL_FIRE_FLAME)
     i32 flameParticle = m_ominous ? 1 : 0;
-    world.playEvent(world::WorldEvents::TRIAL_SPAWNER_SPAWN, m_pos, flameParticle);
-    world.playEvent(world::WorldEvents::TRIAL_SPAWNER_SPAWN_MOB_AT, spawnBlockPos, flameParticle);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN, m_pos, flameParticle);
+    world.playEvent(::mc::world::LevelEventId::PARTICLES_TRIAL_SPAWNER_SPAWN_MOB_AT, spawnBlockPos, flameParticle);
 
     setChanged();
 }

@@ -40,9 +40,9 @@
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/aquifer/FluidPickerFactory.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/carver/CarvingContext.hpp"
@@ -240,20 +240,7 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
         }
         MC_ASSERT_RELEASE(structure != nullptr);
 
-        // 生物群系校验。原版在"候选生成点已求出、构件尚未装配"时校验，采样点是候选点本身
-        // （jigsaw 结构为起始块中心、高度为投影后的地面线），而非区块中心。
-        // 候选点依赖随机数的结构（要先抽起始块）无法由调用方预先算出，两种处理：
-        //   - `validatesBiomeOnCandidatePoint()`：结构在 generate() 内校验，失败返回 nullptr；
-        //   - `isValidAtCandidatePoint()`：结构照常产出起点，由这里用**结构给出的候选点**复核。
-        // 其余情况在本区块中心预检。任何一条路径都不得用错误的采样点误杀结构。
-        bool biomeOk = true;
-        if (!structure->validatesBiomeOnCandidatePoint()) {
-            const BiomeId biomeAtCandidate =
-                getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
-            biomeOk = structure->isValidBiome(biomeAtCandidate);
-        }
-
-        if (biomeOk) {
+        {
             // 【必须是独立的随机源】原版里"结构集内的条目选择"与"结构自身的生成"用的是
             // **两个各自 setLargeFeatureSeed 同一种子的 WorldgenRandom 实例**：
             //   - 条目选择：ChunkGenerator.createStructures 内 `wg.setLargeFeatureSeed(...)` 后
@@ -270,12 +257,11 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
             // StructureStart（构件数为 0，如起始模板池为空）不算生成成功，必须继续
             // 用同一个随机源重抽其余条目；若把它当成成功，会静默吞掉该结构集在本区块的
             // 其余候选，使结构整片缺失。
+            // 生物群系校验由各结构在 generate() 内、按**它自己的候选生成点**完成：
+            // 原版 `findValidGenerationPoint` 就是在 Stub 位置上过滤的。调用方不做预检——
+            // 用区块中心 + 固定 Y 预检会在群系边界与洞穴上方误杀合法结构。
             if (start && start->isValid()) {
-                // 原版把群系校验放在 `GenerationStub` 的 Consumer **内部**（候选点算完之后）：
-                // 起点存在并不等于落点合法。这里对声明了候选点复核的结构补上同一步。
-                if (structure->isValidAtCandidatePoint(*this, *start)) {
-                    return {entry->structureId, std::move(start)};
-                }
+                return {entry->structureId, std::move(start)};
             }
         }
 
@@ -550,7 +536,9 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     const ChunkCoord targetChunkX = chunk.x();
     const ChunkCoord targetChunkZ = chunk.z();
 
-    CarvingMask& carvingMask = chunk.carvingMask();
+    // 掩码的几何必须与雕刻上下文同源：两者都用本维度的生成设置，
+    // 否则 (y - minY) 的位移基准错位，雕刻结果会落到错误的格子上。
+    CarvingMask& carvingMask = chunk.carvingMask(m_settings.noise.minY, m_settings.noise.height);
 
     // 从 ChunkPrimer 缓存的 NoiseChunk 获取 Aquifer
     world::gen::aquifer::Aquifer* aquifer = nullptr;
@@ -750,7 +738,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
         if (structIt != structuresByStage.end()) {
             for (const auto& [structure, start] : structIt->second) {
                 worldgenRandom.setFeatureSeed(decorSeed, structureIndex, stageOrdinal);
-                structure->placeInChunk(region, chunk, *start, chunkX, chunkZ, this);
+                structure->placeInChunk(region, chunk, *start, chunkX, chunkZ, worldgenRandom, this);
                 ++structureIndex;
             }
         }
@@ -830,11 +818,6 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 
 NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 {
-    return getBaseColumnWithStructures(x, z, nullptr);
-}
-
-NoiseColumn NoiseChunkGenerator::getBaseColumnWithStructures(i32 x, i32 z, WorldGenRegion* region) const
-{
     if (!m_randomState) {
         return NoiseColumn(m_settings.noise.minY, m_settings.noise.height);
     }
@@ -855,21 +838,10 @@ NoiseColumn NoiseChunkGenerator::getBaseColumnWithStructures(i32 x, i32 z, World
     const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
     const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
-    // 结构地形贡献：原版这里取的是 RandomState 缓存里**已经带 Beardifier** 的 NoiseChunk。
-    // 结构生成期该列所在区块通常已经建过 NoiseChunk（含已放置结构对密度的贡献），因此
-    // 结构落点扫描看到的是被结构整平/垫高后的地形，而不是原始地形。没有缓存命中时才
-    // 退化成零贡献的 BeardifierMarker（与 getHeight 一致）。
-    std::unique_ptr<world::gen::density::DensityFunction> beardifier =
-        std::make_unique<world::gen::density::BeardifierMarker>();
-    if (region != nullptr) {
-        const i32 chunkMinX = math::floorDiv(x, world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-        const i32 chunkMinZ = math::floorDiv(z, world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
-        const auto starts = _collectStructureStarts(*region, chunkMinX, chunkMinZ);
-        const auto data = world::gen::density::collectBeardifierData(starts, chunkMinX, chunkMinZ);
-        if (!data.pieces.empty() || !data.junctions.empty()) {
-            beardifier = std::make_unique<world::gen::density::Beardifier>(data.pieces, data.junctions);
-        }
-    }
+    // 原版 `iterateNoiseColumn` 固定使用 `DensityFunctions.BeardifierMarker.INSTANCE`：
+    // 结构落点扫描看到的是**原始地形**，不叠加任何已放置结构的地形贡献。结构地形适配
+    // （Beardifier）只在真正生成区块的噪声块（`_buildBeardifier`）里参与。
+    auto beardifier = std::make_unique<world::gen::density::BeardifierMarker>();
 
     // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
     // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。

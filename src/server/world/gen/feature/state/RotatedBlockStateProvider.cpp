@@ -27,8 +27,8 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/blocks/RotatedPillarBlock.hpp"
+#include "common/world/block/blocks/base/RotatedPillarBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include <cstddef>
 #include <memory>

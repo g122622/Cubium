@@ -38,8 +38,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
@@ -758,7 +758,7 @@ void InteractableDoorsSensor<E>::update(IWorld* world, E* entity)
                 }
 
                 // 检查是否为木门（isWooden 已排除铁门等非木门）
-                if (!blocks::DoorBlock::isWooden(*state)) {
+                if (!blocks::DoorBlock::isHandOpenable(*state)) {
                     continue;
                 }
 

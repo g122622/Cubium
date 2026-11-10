@@ -81,6 +81,7 @@ private:
     static i32 killSpawn(CommandContext<ServerCommandSource>& context);
     static i32 killInsert(CommandContext<ServerCommandSource>& context);
     static i32 killReplaceEntity(CommandContext<ServerCommandSource>& context);
+    static i32 killReplaceBlock(CommandContext<ServerCommandSource>& context);
 
     // ========== /loot mine <pos> [tool] → 目标 ==========
 
@@ -88,6 +89,7 @@ private:
     static i32 mineSpawn(CommandContext<ServerCommandSource>& context);
     static i32 mineInsert(CommandContext<ServerCommandSource>& context);
     static i32 mineReplaceBlock(CommandContext<ServerCommandSource>& context);
+    static i32 mineReplaceEntity(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

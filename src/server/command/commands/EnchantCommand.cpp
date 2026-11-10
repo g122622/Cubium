@@ -188,8 +188,9 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    // 获取附魔显示名称（带等级）
-    std::string enchantDisplayName = enchantment->getNameKey(level);
+    // 获取附魔显示名（含等级后缀，与提示框同口径：诅咒红、其余灰）
+    const std::string enchantDisplayName =
+        item::enchant::EnchantmentHelper::getFullName(*enchantment, level, enchantment->isCurse());
 
     if (successCount == 1) {
         std::ostringstream ss;

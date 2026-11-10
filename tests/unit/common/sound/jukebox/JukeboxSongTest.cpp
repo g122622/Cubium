@@ -27,8 +27,8 @@
 #include "common/sound/jukebox/JukeboxSong.hpp"
 #include "common/sound/jukebox/JukeboxSongPlayer.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 using namespace mc;
 

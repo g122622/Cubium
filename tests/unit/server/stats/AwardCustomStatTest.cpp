@@ -27,7 +27,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/stats/Stats.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/stats/StatRegistry.hpp"
 #include "server/stats/StatisticsManager.hpp"

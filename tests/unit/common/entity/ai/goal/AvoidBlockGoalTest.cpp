@@ -28,7 +28,7 @@
 #include "common/entity/ai/goal/goals/AvoidBlockGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 using namespace mc;
 using namespace mc::entity::ai::goal;

@@ -24,7 +24,7 @@ src/server/world/entity/
 
 **被依赖方（上游）**：
 - `server/application/IServer`, `MinecraftServer` - 服务器接口和主类
-- `server/core/PlayerManager`, `ConnectionManager`, `ServerPlayerData` - 玩家/连接管理
+- `server/player/lifecycle/PlayerManager`, `PacketSender`, `ServerPlayerData` - 玩家/连接管理
 - `common/entity/core/Entity`, `LivingEntity`, `MobEntity`, `ItemEntity`, `Player` - 实体类型
 - `common/world/entity/EntityManager` - 实体管理器
 - `common/network/ir/packets/play/*` - IR 网络包（`AddEntity` 生成、`SetEntityData` 元数据、`SetEntityMotion` 速度、`RemoveEntities` 销毁等；旧 `EntityPackets`/`InventoryPackets` 已删除）

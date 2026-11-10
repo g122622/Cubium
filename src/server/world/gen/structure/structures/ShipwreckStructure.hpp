@@ -75,6 +75,18 @@ public:
         IChunkGenerator* generator = nullptr) override;
 
     /**
+     * @brief 沉船数据标记：给标记正下方的箱子挂上战利品表
+     *
+     * 原版 `ShipwreckPieces.ShipwreckPiece#handleDataMarker`：`map_chest` /
+     * `treasure_chest` / `supply_chest` 分别对应三种沉船战利品表。
+     */
+    void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds) override;
+
+    /**
      * @brief 设置模板管理器
      *
      * 必须在 generate 之前调用
@@ -97,15 +109,31 @@ public:
     // 结构偏移
     static const BlockPos STRUCTURE_OFFSET;
 
+    /** @brief 模板尺寸 */
+    [[nodiscard]] const BlockPos& templateSize() const
+    {
+        return m_size;
+    }
+
+    /** @brief 把模板原点移到给定高度（原版 `adjustPositionHeight`） */
+    void adjustPositionHeight(i32 y);
+
+    /** @brief 模板原点（原版 `TemplateStructurePiece.templatePosition`） */
+    [[nodiscard]] const BlockPos& templatePosition() const
+    {
+        return m_templatePosition;
+    }
+
 private:
     void _loadTemplate();
+    void _updateBoundingBox();
 
     std::string m_templateName;
-    Rotation m_rotation;
     bool m_isBeached;
     feature::template_::TemplateManager* m_templateManager = nullptr;
     const feature::template_::Template* m_template = nullptr;
     BlockPos m_size;
+    BlockPos m_templatePosition;
 };
 
 /**
@@ -123,9 +151,6 @@ public:
     }
 
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
-
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;

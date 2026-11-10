@@ -23,14 +23,14 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
-#include "world/block/Material.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 

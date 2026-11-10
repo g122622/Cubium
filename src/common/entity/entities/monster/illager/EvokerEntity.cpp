@@ -51,7 +51,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
@@ -75,8 +75,8 @@ EvokerEntity::EvokerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : SpellcastingIllagerEntity(id, registry)
 {
     // 唤魔者不在阳光下燃烧：唤魔者是灾厄村民（非亡灵），wiki tech_唤魔者.txt 通篇未提阳光燃烧。
-    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员 m_burnsInDaylight
-    // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
+    // 对齐原版，在构造时关闭日光燃烧。该标志经虚函数 shouldBurnInDaylight() 读取，
+    // 由 MonsterEntity::handleDaylightBurning() 调用，因此 setBurnsInDaylight(false) 即生效。
     setBurnsInDaylight(false);
 
     // 对齐 vanilla Evoker.java:49：xpReward = 10（基类 Monster 给的是 5）。

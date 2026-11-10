@@ -27,16 +27,13 @@
 #include "common/resource/PackType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/skin/loader/SkinImageValidator.hpp"
 #include "common/skin/loader/SkinLoader.hpp"
 #include "common/util/crypto/Sha1.hpp"
 #include "common/util/thread/ITask.hpp"
 #include <fstream>
 #include <spdlog/spdlog.h>
 
-// stb_image for PNG loading
-#include <stb_image.h>
-
-// stb_image_write for PNG encoding
 #include <atomic>
 #include <cstddef>
 #include <cstring>
@@ -50,7 +47,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <stb_image_write.h>
 
 namespace mc::skin {
 
@@ -333,85 +329,9 @@ Result<SkinLoadResult> FileSkinLoader::_loadFromResourcePack(const ResourceLocat
 
 Result<std::vector<u8>> FileSkinLoader::_validateAndConvertSkin(const std::vector<u8>& pngData)
 {
-    // 使用 stb_image 解析 PNG
-    i32 width = 0;
-    i32 height = 0;
-    i32 channels = 0;
-
-    u8* pixels = stbi_load_from_memory(pngData.data(),
-        static_cast<i32>(pngData.size()),
-        &width,
-        &height,
-        &channels,
-        4 // 强制 RGBA
-    );
-
-    if (!pixels) {
-        return Error(ErrorCode::InvalidData, "Failed to parse skin PNG");
-    }
-
-    // 验证尺寸
-    if (width != 64) {
-        stbi_image_free(pixels);
-        return Error(ErrorCode::InvalidData, "Invalid skin width: expected 64, got " + std::to_string(width));
-    }
-
-    if (height != 64 && height != 32) {
-        stbi_image_free(pixels);
-        return Error(ErrorCode::InvalidData, "Invalid skin height: expected 32 or 64, got " + std::to_string(height));
-    }
-
-    std::vector<u8> result;
-
-    if (height == 32) {
-        // 旧版皮肤，需要转换为 64x64
-        result.resize(64 * 64 * 4, 0);
-
-        // 复制上半部分（0-31 行）
-        for (i32 y = 0; y < 32; ++y) {
-            const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
-            const size_t dstOffset = static_cast<size_t>(y * 64 * 4);
-            std::memcpy(result.data() + dstOffset, pixels + srcOffset, 64 * 4);
-        }
-
-        spdlog::info("FileSkinLoader: Converted legacy 64x32 skin to 64x64");
-    } else {
-        // 64x64 皮肤，直接复制
-        result.resize(64 * 64 * 4);
-        std::memcpy(result.data(), pixels, 64 * 64 * 4);
-    }
-
-    stbi_image_free(pixels);
-
-    // 使用 stb_image_write 将 RGBA 数据编码为 PNG 格式
-    // 使用内存写入模式，避免临时文件
-    struct PngWriteContext {
-        std::vector<u8> buffer;
-    };
-
-    PngWriteContext ctx;
-    stbi_write_png_to_func(
-        [](void* userdata, void* data, i32 size) {
-            auto* context = static_cast<PngWriteContext*>(userdata);
-            auto* bytes = static_cast<u8*>(data);
-            context->buffer.insert(context->buffer.end(), bytes, bytes + size);
-        },
-        &ctx,
-        64,     // width
-        height, // height
-        4,      // components (RGBA)
-        result.data(),
-        64 * 4 // stride
-    );
-
-    if (ctx.buffer.empty()) {
-        return Error(ErrorCode::InvalidData, "Failed to encode skin data to PNG");
-    }
-
-    // 用编码后的 PNG 数据替换原始 RGBA 数据
-    result = std::move(ctx.buffer);
-
-    return result;
+    // 校验与规范化规则收在 SkinImageValidator 里，与 HttpSkinLoader 共用同一份实现：
+    // 两个来源必须产出完全一致的字节，否则同一张皮肤的缓存哈希会分裂。
+    return SkinImageValidator::validateAndNormalize(pngData);
 }
 
 std::string FileSkinLoader::_calculateHash(const std::vector<u8>& data)

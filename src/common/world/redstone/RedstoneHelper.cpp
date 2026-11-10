@@ -30,7 +30,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <algorithm>
 #include <vector>
 

@@ -26,9 +26,9 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/RotatedPillarBlock.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/base/RotatedPillarBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <algorithm>
 #include <cmath>

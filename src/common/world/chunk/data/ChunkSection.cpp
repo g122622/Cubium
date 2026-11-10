@@ -29,7 +29,7 @@
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 #include <algorithm>

@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/GlobalPos.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <optional>
 #include <string>
 

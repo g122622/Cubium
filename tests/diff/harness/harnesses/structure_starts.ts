@@ -48,7 +48,7 @@ import type { HarnessDeclaration, HarnessContext } from "../core/types.ts";
 const SEEDS = [0, 9248738493917] as const;
 
 /** 维度名，与两侧的维度枚举同名。 */
-const DIMENSIONS = ["overworld", "the_end"] as const;
+const DIMENSIONS = ["overworld", "the_nether", "the_end"] as const;
 
 /** 每个维度从原版候选区块里取多少个（均匀抽样，保证间隔覆盖整张表）。 */
 const PER_DIMENSION = 40;
@@ -60,19 +60,19 @@ const RING_SAMPLES = 24;
 const CANDIDATES_FILE = "structure_starts_candidates.txt";
 
 interface Candidate {
-    readonly dimension: string;
-    readonly seed: number;
-    readonly chunkX: number;
-    readonly chunkZ: number;
+  readonly dimension: string;
+  readonly seed: number;
+  readonly chunkX: number;
+  readonly chunkZ: number;
 }
 
 /** 自乘同余序列：固定种子、全平台一致。 */
 function randomSource(seed: number): (bound: number) => number {
-    let state = seed >>> 0;
-    return (bound: number): number => {
-        state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-        return Math.floor((state / 0x100000000) * bound);
-    };
+  let state = seed >>> 0;
+  return (bound: number): number => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return Math.floor((state / 0x100000000) * bound);
+  };
 }
 
 /**
@@ -82,19 +82,24 @@ function randomSource(seed: number): (bound: number) => number {
  * 在不同运行之间漂移；等距取样还能把列表的首尾（最远/最近的环）都覆盖到。
  */
 function evenly<T>(items: readonly T[], count: number): T[] {
-    if (items.length <= count) {
-        return [...items];
-    }
-    const result: T[] = [];
-    for (let i = 0; i < count; i++) {
-        result.push(items[Math.floor((i * items.length) / count)]);
-    }
-    return result;
+  if (items.length <= count) {
+    return [...items];
+  }
+  const result: T[] = [];
+  for (let i = 0; i < count; i++) {
+    result.push(items[Math.floor((i * items.length) / count)]);
+  }
+  return result;
 }
 
 function parseCandidate(line: string): Candidate {
-    const [dimension, seedText, xText, zText] = line.trim().split(/\s+/);
-    return { dimension, seed: Number(seedText), chunkX: Number(xText), chunkZ: Number(zText) };
+  const [dimension, seedText, xText, zText] = line.trim().split(/\s+/);
+  return {
+    dimension,
+    seed: Number(seedText),
+    chunkX: Number(xText),
+    chunkZ: Number(zText),
+  };
 }
 
 /**
@@ -105,89 +110,119 @@ function parseCandidate(line: string): Candidate {
  * 永远测不出来。
  */
 function pickUnits(lines: readonly string[]): Candidate[] {
-    const groups = new Map<string, Candidate[]>();
-    for (const line of lines) {
-        if (line.trim() === "") {
-            continue;
-        }
-        const candidate = parseCandidate(line);
-        const key = `${candidate.dimension}/${candidate.seed}`;
-        const bucket = groups.get(key);
-        if (bucket === undefined) {
-            groups.set(key, [candidate]);
-        } else {
-            bucket.push(candidate);
-        }
+  const groups = new Map<string, Candidate[]>();
+  for (const line of lines) {
+    if (line.trim() === "") {
+      continue;
     }
-    const units: Candidate[] = [];
-    for (const bucket of groups.values()) {
-        const ring = bucket.filter((candidate) => candidate.chunkX * candidate.chunkX + candidate.chunkZ * candidate.chunkZ > 4096);
-        const spread = bucket.filter((candidate) => !ring.includes(candidate));
-        for (const candidate of evenly(spread, PER_DIMENSION)) {
-            units.push(candidate);
-            units.push({ ...candidate, chunkX: candidate.chunkX + 1 });
-            units.push({ ...candidate, chunkZ: candidate.chunkZ - 1 });
-        }
-        for (const candidate of evenly(ring, RING_SAMPLES)) {
-            units.push(candidate);
-        }
+    const candidate = parseCandidate(line);
+    const key = `${candidate.dimension}/${candidate.seed}`;
+    const bucket = groups.get(key);
+    if (bucket === undefined) {
+      groups.set(key, [candidate]);
+    } else {
+      bucket.push(candidate);
     }
-    // 再补几个「大概率什么都没有」的区块：靠近原点的普通区块，覆盖「整个维度无落点」的路径。
-    const next = randomSource(0x53545354); // "STST"
-    for (const dimension of DIMENSIONS) {
-        for (const seed of SEEDS) {
-            for (let i = 0; i < 8; i++) {
-                units.push({ dimension, seed, chunkX: next(64) - 32, chunkZ: next(64) - 32 });
-            }
-        }
+  }
+  const units: Candidate[] = [];
+  for (const bucket of groups.values()) {
+    const ring = bucket.filter(
+      (candidate) =>
+        candidate.chunkX * candidate.chunkX +
+          candidate.chunkZ * candidate.chunkZ >
+        4096,
+    );
+    const spread = bucket.filter((candidate) => !ring.includes(candidate));
+    for (const candidate of evenly(spread, PER_DIMENSION)) {
+      units.push(candidate);
+      units.push({ ...candidate, chunkX: candidate.chunkX + 1 });
+      units.push({ ...candidate, chunkZ: candidate.chunkZ - 1 });
     }
-    return units;
+    for (const candidate of evenly(ring, RING_SAMPLES)) {
+      units.push(candidate);
+    }
+  }
+  // 再补几个「大概率什么都没有」的区块：靠近原点的普通区块，覆盖「整个维度无落点」的路径。
+  const next = randomSource(0x53545354); // "STST"
+  for (const dimension of DIMENSIONS) {
+    for (const seed of SEEDS) {
+      for (let i = 0; i < 8; i++) {
+        units.push({
+          dimension,
+          seed,
+          chunkX: next(64) - 32,
+          chunkZ: next(64) - 32,
+        });
+      }
+    }
+  }
+  return units;
 }
 
 function unitKey(candidate: Candidate): string {
-    return `${candidate.dimension}/${candidate.seed}/${candidate.chunkX}/${candidate.chunkZ}`;
+  return `${candidate.dimension}/${candidate.seed}/${candidate.chunkX}/${candidate.chunkZ}`;
 }
 
 /** 单元键：`<维度>/<种子>/<区块X>/<区块Z>`，两侧按同一份语料构造。 */
 export function structureStartsDeclaration(): HarnessDeclaration {
-    let units: { readonly unit: string; readonly input: Candidate }[] = [];
-    return {
-        name: "structure_starts",
-        probe: "structure_starts",
-        oracle: "StructureStartsOracle",
-        key: "unit",
-        units: {
-            kind: "computed",
-            units: (): string[] => units.map((entry) => entry.unit),
+  let units: { readonly unit: string; readonly input: Candidate }[] = [];
+  return {
+    name: "structure_starts",
+    probe: "structure_starts",
+    oracle: "StructureStartsOracle",
+    key: "unit",
+    units: {
+      kind: "computed",
+      units: (): string[] => units.map((entry) => entry.unit),
+    },
+    input: (unit: string): unknown => {
+      const entry = units.find((candidate) => candidate.unit === unit);
+      if (entry === undefined) {
+        throw new Error(`structure_starts: unknown unit ${unit}`);
+      }
+      return { ...entry.input, unit };
+    },
+    beforeUnits: (context: HarnessContext): void => {
+      // 候选区块由参照实现给出：本项目的放置规则是否与原版一致，正是要测的东西之一。
+      // 若改成由探针导出，两侧的放置偏差就永远无法暴露。
+      const directory = context.outputDirectory("structure_starts", "oracle");
+      context.compileOracle("StructureStartsOracle", "structure_starts");
+      const candidatesPath = path.join(directory, CANDIDATES_FILE);
+      execFileSync(
+        "java",
+        [
+          "-cp",
+          context.oracleClasspath(context.classesDirectory("structure_starts")),
+          "dev.horizonlab.diff.StructureStartsOracle",
+          "candidates",
+          String(SEEDS[0]),
+          String(SEEDS[1]),
+          candidatesPath,
+        ],
+        {
+          cwd: directory,
+          env: context.environment,
+          stdio: ["ignore", "pipe", "pipe"],
         },
-        input: (unit: string): unknown => {
-            const entry = units.find((candidate) => candidate.unit === unit);
-            if (entry === undefined) {
-                throw new Error(`structure_starts: unknown unit ${unit}`);
-            }
-            return { ...entry.input, unit };
-        },
-        beforeUnits: (context: HarnessContext): void => {
-            // 候选区块由参照实现给出：本项目的放置规则是否与原版一致，正是要测的东西之一。
-            // 若改成由探针导出，两侧的放置偏差就永远无法暴露。
-            const directory = context.outputDirectory("structure_starts", "oracle");
-            context.compileOracle("StructureStartsOracle", "structure_starts");
-            const candidatesPath = path.join(directory, CANDIDATES_FILE);
-            execFileSync(
-                "java",
-                [
-                    "-cp",
-                    context.oracleClasspath(context.classesDirectory("structure_starts")),
-                    "dev.horizonlab.diff.StructureStartsOracle",
-                    "candidates",
-                    String(SEEDS[0]),
-                    String(SEEDS[1]),
-                    candidatesPath,
-                ],
-                { cwd: directory, env: context.environment, stdio: ["ignore", "pipe", "pipe"] },
-            );
-            const candidates = pickUnits(fs.readFileSync(candidatesPath, "utf8").split(/\r?\n/));
-            units = candidates.map((candidate) => ({ unit: unitKey(candidate), input: candidate }));
-        },
-    } satisfies HarnessDeclaration;
+      );
+      const candidates = pickUnits(
+        fs.readFileSync(candidatesPath, "utf8").split(/\r?\n/),
+      );
+      units = candidates.map((candidate) => ({
+        unit: unitKey(candidate),
+        input: candidate,
+      }));
+      // 落点位置不是这条能力的比较项（构件序列由 stronghold_pieces 逐条比对），但落点
+      // 偏差会把「装配分叉」与「位置不同」混为一谈；排查时打开开关即可看到候选落点。
+      if (process.env.MC_DIFF_TRACE_CANDIDATES === "1") {
+        const lines = fs
+          .readFileSync(candidatesPath, "utf8")
+          .split(/\r?\n/)
+          .filter((line) => line.trim().length > 0);
+        for (const line of lines.slice(0, 8)) {
+          console.log("[cand]", line);
+        }
+      }
+    },
+  } satisfies HarnessDeclaration;
 }

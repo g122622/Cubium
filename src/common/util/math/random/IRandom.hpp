@@ -227,6 +227,27 @@ public:
     }
 
     /**
+     * @brief 区间内的随机浮点，对应原版 `Mth.randomBetween`
+     *
+     * `nextFloat() * (max - min) + min`——**先减后乘再加**，运算顺序不能换：
+     * 写成 `min + nextFloat() * (max - min)` 在浮点下是同一式的不同舍入，末位可能不同。
+     */
+    [[nodiscard]] f32 randomBetween(f32 min, f32 max)
+    {
+        return nextFloat() * (max - min) + min;
+    }
+
+    /**
+     * @brief 闭区间随机整数，对应原版 `Mth.randomBetweenInclusive`
+     *
+     * 与 `nextIntBetweenInclusive` 语义相同，只是参数顺序按原版的 (rng, min, max) 排列。
+     */
+    [[nodiscard]] i32 randomBetweenInclusive(i32 min, i32 max)
+    {
+        return nextInt(max - min + 1) + min;
+    }
+
+    /**
      * @brief 返回随机 64 位长整数
      * @return 随机 i64 值
      *

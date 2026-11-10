@@ -26,11 +26,13 @@
 #include "AssemblyTypes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
+#include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -65,6 +67,52 @@ void ListJigsawPiece::addPiece(std::unique_ptr<JigsawPiece> piece)
     if (piece) {
         m_pieces.push_back(std::move(piece));
     }
+}
+
+const std::vector<JigsawJoint>& ListJigsawPiece::getJoints() const
+{
+    // 原版 `ListPoolElement.getShuffledJigsawBlocks` 只取 `elements.get(0)` 的连接点。
+    // 列表为空（加载器异常）时返回基类的空集合，装配期表现为"该构件接不上"。
+    static const std::vector<JigsawJoint> kEmptyJoints;
+    if (m_pieces.empty()) {
+        return kEmptyJoints;
+    }
+    return m_pieces.front()->getJoints();
+}
+
+BlockPos ListJigsawPiece::getSize() const
+{
+    // 原版 `ListPoolElement.getSize`：逐轴取子块尺寸的最大值。
+    i32 sizeX = 0;
+    i32 sizeY = 0;
+    i32 sizeZ = 0;
+    for (const auto& child : m_pieces) {
+        const BlockPos size = child->getSize();
+        sizeX = std::max(sizeX, size.x);
+        sizeY = std::max(sizeY, size.y);
+        sizeZ = std::max(sizeZ, size.z);
+    }
+    return BlockPos(sizeX, sizeY, sizeZ);
+}
+
+structure::StructureBoundingBox ListJigsawPiece::getBoundingBox(const BlockPos& pos, Rotation rotation) const
+{
+    // 原版 `ListPoolElement.getBoundingBox`：所有非空子块包围盒的并集。
+    std::optional<structure::StructureBoundingBox> merged;
+    for (const auto& child : m_pieces) {
+        if (!child || child->isEmpty()) {
+            continue;
+        }
+        const auto box = child->getBoundingBox(pos, rotation);
+        if (!merged.has_value()) {
+            merged = box;
+        } else {
+            merged->expandToInclude(box.minX(), box.minY(), box.minZ());
+            merged->expandToInclude(box.maxX(), box.maxY(), box.maxZ());
+        }
+    }
+    MC_ASSERT_RELEASE_MSG(merged.has_value(), "list_pool_element has no non-empty child; cannot compute bounding box");
+    return *merged;
 }
 
 void ListJigsawPiece::place(IWorldWriter& world,

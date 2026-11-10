@@ -79,12 +79,14 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/property/Properties.hpp" // BlockStateProperties::OCCUPIED / HORIZONTAL_FACING
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockSoundType.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/sound/BlockSoundType.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/functional/BedBlock.hpp" // BedBlock::findStandUpPosition（stopSleeping 起身落点）
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
@@ -768,28 +770,35 @@ void LivingEntity::_applyDeathProtectionEffects(const item::component::DeathProt
                 break;
             }
             case item::component::ConsumeEffectKind::TeleportRandomly: {
-                // 对齐 vanilla TeleportRandomlyConsumeEffect.apply 的 16 次尝试循环：
+                // 原版 TeleportRandomlyConsumeEffect.apply：最多 16 次尝试，
                 //   目标 = 当前位置 + (random - 0.5) * diameter（Y 钳到世界可建造范围），
-                //   乘坐中先下骑，再调 randomTeleport 落点搜索，成功即停并触发 TELEPORT 游戏事件。
-                // Entity::randomTeleport(range) 以目标为中心做安全落点搜索，等价 vanilla
-                // LivingEntity.randomTeleport(x, y, z, true) 的落点语义。
+                //   每个候选都要通过落点安全校验才传送，成功即停并触发 TELEPORT 游戏事件。
+                // 安全校验直接复用 Entity::findSafeTeleportPosition（碰撞箱 + 液体），
+                // 它内部已经包含 isSafeTeleportPosition 的逐项检查。
                 if (m_world == nullptr || m_world->isClientSide()) {
                     break;
                 }
+
+                constexpr i32 MAX_TELEPORT_ATTEMPTS = 16;
                 const f64 minY = static_cast<f64>(m_world->getMinBuildHeight());
-                for (i32 attempt = 0; attempt < 16; ++attempt) {
+                const f64 maxY = static_cast<f64>(m_world->getMaxBuildHeight() - 1);
+                for (i32 attempt = 0; attempt < MAX_TELEPORT_ATTEMPTS; ++attempt) {
                     const f64 targetX = x() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
-                    const f64 targetY = std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter,
-                        minY,
-                        static_cast<f64>(m_world->getMaxBuildHeight() - 1));
+                    const f64 targetY =
+                        std::clamp(y() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter, minY, maxY);
                     const f64 targetZ = z() + (m_random.nextDouble() - 0.5) * effect.teleportDiameter;
+
+                    // 落点不安全就换下一个候选，16 次全失败则原地不动。
+                    const auto safe = findSafeTeleportPosition(targetX, targetY, targetZ, true);
+                    if (!safe.has_value()) {
+                        continue;
+                    }
+
                     if (isRiding()) {
                         stopRiding();
                     }
                     const Vector3 previous = position();
-                    // TODO(consume-effect): Cubium 尚无 vanilla RandomTeleport 的安全落点搜索
-                    //   （逐候选做碰撞/液体校验），此处直接落到目标坐标；接入落点搜索后改为校验通过才传送。
-                    setPosition(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
+                    setPosition(static_cast<f32>(safe->x), static_cast<f32>(safe->y), static_cast<f32>(safe->z));
                     gameEvent(gameevent::GameEvents::TELEPORT, BlockPos(previous));
                     break;
                 }
@@ -835,16 +844,15 @@ void LivingEntity::doHurtEquipment(DamageSource& source, f32 amount, std::initia
     const i32 durabilityLoss = static_cast<i32>(std::max(1.0f, amount / 4.0f));
     for (EquipmentSlot slot : slots) {
         ItemStack& equipment = getMutableEquipment(slot);
-        // TODO(equippable-component): vanilla 还要求 Equippable.damageOnHurt 为 true
-        //   （默认 true，可被数据包关闭）。Cubium 未实现 EQUIPPABLE 组件，此处按默认值处理。
-        //   新发现的缺陷（待同一改造解决）：本函数还会对主手工具等非装备物品磨损耐久，而 vanilla
-        //   只有 Player.hurtArmor 传入的四个护甲槽与 hurtHelmet 传入的头盔槽会走到这里；护甲槽内
-        //   的非护甲物品（如头盔槽里的南瓜）在 vanilla 无 EQUIPPABLE 组件 → 不磨损。
-        //   落地顺序：① EQUIPPABLE 结构化载荷 + 编解码（slot/equip_sound/damage_on_hurt 等）
-        //   → ② 物品默认组件注册（护甲/鞘翅/wolf_armor）→ ③ 此处改读 stack.get(Equippable)，
-        //   并同步修正 MobEntity::getEquipmentSlotForItem 的「未落地组件→护甲槽位」近似
-        //   （MobEntity.cpp:1463）。
         if (equipment.isEmpty() || !equipment.isDamageable() || !equipment.canBeHurtBy(source)) {
+            continue;
+        }
+        // vanilla 还要求 Equippable.damageOnHurt 为 true 才磨损（默认 true，可被数据包关闭）。
+        // 没有 equippable 组件的物品不磨损——这与 vanilla"无 EQUIPPABLE 即不磨损"一致。
+        // 护甲/鞘翅/马铠/鹦鹉螺铠甲/狼铠在各自构造时已挂默认 equippable 组件（见 ArmorItem
+        // 与各护甲子类），因此它们的磨损行为就是 vanilla 的默认行为。
+        const auto& equippable = equipment.getEquippable();
+        if (!equippable.has_value() || !equippable->damageOnHurt) {
             continue;
         }
         hurtAndBreak(equipment, durabilityLoss, this, slot);
@@ -1322,15 +1330,69 @@ bool LivingEntity::isSleeping() const
 
 void LivingEntity::stopSleeping()
 {
-    // 对齐 vanilla LivingEntity.stopSleeping 的状态机部分：清除睡眠位置并回到站立姿态。
-    // 原版还会把床方块的 OCCUPIED 置回 false 并计算起身位置；Cubium 的床占用状态由
-    // Player/ServerPlayer 的睡眠流程维护，基类仅处理通用状态。
-    // TODO(bed-sleep): 床方块 OCCUPIED 复位与 findStandUpPosition 起身落点随床方块体系落地后
-    //   在此补全（vanilla LivingEntity.stopSleeping:3654-3671），并供非玩家实体复用。
+    // 清除睡眠位置并回到站立姿态。
+    const entity::OptionalBlockPosValue sleepingPos =
+        m_dataManager.get<entity::OptionalBlockPosValue>(DATA_SLEEPING_POS_PARAM);
     m_dataManager.set(DATA_SLEEPING_POS_PARAM, entity::OptionalBlockPosValue{false, {}});
     if (pose() == EntityPose::Sleeping) {
         setPose(EntityPose::Standing);
     }
+
+    // 床侧收尾：复位 OCCUPIED 并把实体移到床边的安全落脚点。
+    // Player 重写本方法自行处理（它有独立的 m_isSleeping/m_sleepingPosition 状态与
+    // ServerPlayer 的睡眠协调），因此能走到这里的是非玩家实体。
+    if (!sleepingPos.present || m_world == nullptr) {
+        return;
+    }
+
+    const BlockPos bedPos(sleepingPos.pos.x, sleepingPos.pos.y, sleepingPos.pos.z);
+    const BlockState* bedState = m_world->getBlockState(bedPos);
+
+    // 先取出所需属性值再写方块，避免 setBlockState 后 bedState 悬挂。
+    const bool hasOccupied = bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED());
+    const bool hasFacing = bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING());
+    const Direction bedFacing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
+
+    if (hasOccupied) {
+        const BlockState freeBed = bedState->with(BlockStateProperties::OCCUPIED(), false);
+        m_world->setBlockState(bedPos, &freeBed, world::BlockUpdateFlags::UPDATE_ALL);
+    }
+
+    // 没有朝向（方块已被替换/破坏）时退回床头正上方，保证实体不会留在床里。
+    if (!hasFacing) {
+        const BlockPos aboveBed = bedPos.up();
+        setPosition(aboveBed.x + 0.5, aboveBed.y + 0.1, aboveBed.z + 0.5);
+        return;
+    }
+
+    const auto standUp = blocks::BedBlock::findStandUpPosition(*m_world,
+        bedPos,
+        bedFacing,
+        yaw(),
+        static_cast<f32>(width()),
+        static_cast<f32>(height()),
+        false,
+        isImmuneToFire());
+    if (!standUp.has_value()) {
+        // 床边找不到落脚点：留在原地。调用方（如 AI goal）会重新规划，强行传送可能卡进方块。
+        spdlog::warn(
+            "[entity] stopSleeping: no stand-up position near bed at ({}, {}, {})", bedPos.x, bedPos.y, bedPos.z);
+        return;
+    }
+
+    // 面向床中心：由落脚点指向床底中心的水平方向换算成 yaw。
+    const Vector3& wakePos = *standUp;
+    const Vector3d bedCenter(bedPos.x + 0.5, bedPos.y, bedPos.z + 0.5);
+    Vector3d dirToBed = bedCenter - Vector3d(wakePos.x, wakePos.y, wakePos.z);
+    const f32 dirLen = std::sqrt(dirToBed.x * dirToBed.x + dirToBed.z * dirToBed.z);
+    if (dirLen > 0.001f) {
+        dirToBed.x /= dirLen;
+        dirToBed.z /= dirLen;
+        setRotation(
+            math::wrapDegrees(static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f), 0.0f);
+    }
+
+    setPosition(wakePos.x, wakePos.y, wakePos.z);
 }
 
 void LivingEntity::onKillCommand()
@@ -1410,6 +1472,14 @@ void LivingEntity::registerAttributes()
     // travelInWater 消费，深海探索者魔咒通过 enchantment.depth_strider 修饰符（每级 +0.33333334
     // ADD_VALUE，FEET 槽位）注入。所有生物都具备该属性（原版如此），因此注册在基类。
     attributes().registerAttribute(*entity::attribute::Attributes::waterMovementEfficiency());
+    // 步进高度属性（默认 0.6）。vanilla LivingEntity.createLivingAttributes() 也注册它，
+    // 并由 maxUpStep() 消费（本项目的等价点是 stepHeight()）。马、掠夺者等把默认值调高到
+    // 1.0 的生物应通过该属性（而非 setStepHeight）表达，这样数据包/命令也能调整。
+    attributes().registerAttribute(*entity::attribute::Attributes::stepHeight());
+    // 尺寸缩放属性（默认 1.0）。vanilla LivingEntity.getDimensions(pose) 对非睡眠姿态返回
+    // getDefaultDimensions(pose).scale(getScale())，因此碰撞箱、视高、渲染尺寸都随它变化；
+    // 命令 `/attribute <target> minecraft:scale base set <v>` 或缩放效果即通过它生效。
+    attributes().registerAttribute(*entity::attribute::Attributes::scale());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -1424,9 +1494,53 @@ f64 LivingEntity::getAttributeValue(const std::string& name, f64 defaultValue) c
     return attributes().getValue(name, defaultValue);
 }
 
+f32 LivingEntity::stepHeight() const
+{
+    // 对应 vanilla `LivingEntity#maxUpStep`：直接读 step_height 属性，因此数据包/命令
+    // 改该属性即可改变生物能否走上整格方块（马、掠夺者等就是把默认值调高到 1.0）。
+    f32 height = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::STEP_HEIGHT, 0.6));
+
+    // 被玩家骑乘时至少一格高：否则玩家骑着生物走到整格方块前会被卡住（vanilla 同款规则）。
+    const EntityInstanceId passengerId = getControllingPassenger();
+    if (passengerId != INVALID_ENTITY_ID && m_world != nullptr) {
+        const Entity* passenger = m_world->getEntity(passengerId);
+        if (dynamic_cast<const Player*>(passenger) != nullptr) {
+            height = std::max(height, 1.0f);
+        }
+    }
+
+    return height;
+}
+
 void LivingEntity::setAttributeBaseValue(const std::string& name, f64 value)
 {
     attributes().setBaseValue(name, value);
+}
+
+void LivingEntity::setStepHeight(f32 height)
+{
+    // 与 stepHeight() 共用同一事实来源：写入属性基础值，而不是另存一份 m_stepHeight。
+    // 属性未注册（子类漏调 registerAttributes）时 setBaseValue 返回 false，此时回退到
+    // 成员变量，保证构造期的 setStepHeight 调用不会静默丢失。
+    if (!attributes().setBaseValue(entity::attribute::Attributes::STEP_HEIGHT, height)) {
+        Entity::setStepHeight(height);
+    }
+}
+
+f32 LivingEntity::getScale() const
+{
+    return static_cast<f32>(getAttributeValue(entity::attribute::Attributes::SCALE, 1.0));
+}
+
+entity::EntitySize LivingEntity::getDimensions(EntityPose pose) const
+{
+    // 睡眠姿态直接沿用基类的固定尺寸，不参与缩放（该尺寸对所有生物都是同一常量）。
+    if (pose == EntityPose::Sleeping) {
+        return Entity::getDimensions(pose);
+    }
+
+    // 非睡眠姿态：实体类型在该姿态下的基础尺寸整体乘以 scale 属性。
+    return Entity::getDimensions(pose).scale(getScale());
 }
 
 f32 LivingEntity::getBlockSpeedFactor()
@@ -2265,25 +2379,9 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
         return;
     }
 
-    // 计算摔落伤害（对齐 vanilla LivingEntity.calculateFallDamage/calculateFallPower:
-    //   fallPower = distance + 1e-6 - SAFE_FALL_DISTANCE;
-    //   fallDamage = floor(fallPower * damageMultiplier * FALL_DAMAGE_MULTIPLIER);）
-    // - SAFE_FALL_DISTANCE 默认 3.0，JumpBoost 药水通过 Addition 修饰符每级 +1
-    //   （等价于原先在 distance 上减 jumpBoostLevel，现统一走属性体系）。
-    // - FALL_DAMAGE_MULTIPLIER 默认 1.0，马类覆盖为 0.5。
-    // - damageMultiplier 由调用方传入（普通方块 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0）。
-    // - 1e-6 偏移消除浮点边界：恰好等于安全距离时不产生伤害。
-    // - floor 整体取整：伤害按整数格结算（vanilla calculateFallDamage 返回 i32）。
-    // 注意：摔落保护附魔的减伤在 actuallyHurt 管线的 applyPotionDamageCalculations
-    //   统一处理（对 isFall() 伤害），此处不再重复减伤（此前此处重复减伤为 bug）。
-    const f32 safeFallDistance =
-        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 3.0));
-    const f32 fallDamageMultiplier =
-        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0));
-    const f32 fallPower = distance + 1.0e-6f - safeFallDistance;
-    const i32 rawDamage = static_cast<i32>(std::floor(fallPower * damageMultiplier * fallDamageMultiplier));
-    // 子类减免（对齐 vanilla calculateFallDamage 的 `super.calculateFallDamage(...) - 减免`，山羊 -10）。
-    const i32 damage = rawDamage - fallDamageReduction();
+    // 计算摔落伤害。距离取 double 参与运算：伤害最终按整数格结算，若中途落到 f32，
+    // 恰好落在整数边界上的距离（如 4.0）会因为 +1e-6 的修正被 f32 吃掉而少算一格。
+    const i32 damage = calculateFallDamage(static_cast<f64>(distance), damageMultiplier);
 
     if (damage > 0) {
         auto sourceClone = source.clone();
@@ -2292,6 +2390,27 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
 
     // 播放摔落音效
     playFallSound(distance);
+}
+
+i32 LivingEntity::calculateFallDamage(f64 distance, f32 damageMultiplier) const
+{
+    // fallPower = distance + 1e-6 - SAFE_FALL_DISTANCE
+    //
+    // - SAFE_FALL_DISTANCE 默认 3.0，跳跃提升通过 Addition 修饰符每级 +1。
+    // - FALL_DAMAGE_MULTIPLIER 默认 1.0，马类覆写为 0.5。
+    // - damageMultiplier 由调用方给出：普通方块 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0。
+    // - 1e-6 用来消除浮点边界：恰好等于安全距离时不产生伤害。
+    // - 整体 floor：伤害按整数格结算。
+    //
+    // 摔落保护附魔的减伤不在这里，它由 actuallyHurt 管线按 isFall() 统一处理。
+    const f64 safeFallDistance = attributes().getValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 3.0);
+    const f64 fallDamageMultiplier = attributes().getValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0);
+    const f64 fallPower = distance + 1.0e-6 - safeFallDistance;
+    const i32 rawDamage =
+        static_cast<i32>(std::floor(fallPower * static_cast<f64>(damageMultiplier) * fallDamageMultiplier));
+
+    // 子类减免（山羊 -10）。
+    return rawDamage - fallDamageReduction();
 }
 
 // ============================================================================
@@ -2473,7 +2592,27 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 根据是否在地面选择不同的移动因子
     f32 moveFactor;
-    if (m_builtIn.physicsState->m_onGround) {
+    // 液体中的移动输入因子。vanilla 在 travelInWater/travelInLava 里给的是独立的常量 0.02，
+    // 而不是空中的 m_jumpMovementFactor；两者虽然量级接近，但水中还叠加了深海探索者的插值。
+    // 这一步只算"输入被放大多少"，速度衰减（WaterSlowDown）仍由下方的阻力分支处理。
+    const bool inWater = isInWater();
+    const bool inLava = !inWater && isInLava();
+    if (inWater) {
+        // f1 = 0.02；f2 = WATER_MOVEMENT_EFFICIENCY（不在地面时减半）
+        //   f1 += (getSpeed() - f1) * f2
+        moveFactor = physics::SWIM_SPEED_BASE;
+        f32 waterMovementEfficiency =
+            static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
+        if (!m_builtIn.physicsState->m_onGround) {
+            waterMovementEfficiency *= 0.5f;
+        }
+        if (waterMovementEfficiency > 0.0f) {
+            moveFactor += (moveSpeed - moveFactor) * waterMovementEfficiency;
+        }
+    } else if (inLava) {
+        // 岩浆没有深海探索者等价物，输入速度就是常量 0.02。
+        moveFactor = physics::SWIM_SPEED_BASE;
+    } else if (m_builtIn.physicsState->m_onGround) {
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
 
@@ -2608,9 +2747,8 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
         // 水中移动效率（深海探索者）：对齐 vanilla LivingEntity.travelInWater
         // 用属性值在「当前阻力」与「陆地上限 0.54600006」之间线性插值。
-        // TODO: 原版还会把输入速度（0.02）向 getSpeed() 插值，本函数只处理速度衰减，
-        // 移动输入在 Player::_handleWaterMovement 里单独算，非玩家生物的水中水平输入
-        // 尚未接入同一套插值（属于独立的「生物水中移动」缺口，不在本次附魔对齐范围内）。
+        // 输入速度那一路的插值（f1 += (getSpeed() - f1) * f2）在函数上半段计算 moveFactor 时
+        // 已经做过，此处只负责速度衰减这一半，两处共用同一个属性值。
         f32 waterMovementEfficiency =
             static_cast<f32>(getAttributeValue(entity::attribute::Attributes::WATER_MOVEMENT_EFFICIENCY, 0.0));
         if (!m_builtIn.physicsState->m_onGround) {
@@ -2977,11 +3115,13 @@ void LivingEntity::copyConversionStateTo(Entity& converted, const ConversionPara
     auto* toAgeable = dynamic_cast<AgeableEntity*>(toLiving);
     if (fromAgeable != nullptr && toAgeable != nullptr) {
         toAgeable->setGrowingAge(fromAgeable->getGrowingAge());
+        // 强制成长进度随转换保留（vanilla copyDataFrom 一并复制），否则幼体已累积的
+        // 喂食加速进度会丢失。
+        toAgeable->setForcedAge(fromAgeable->getForcedAge());
+        toAgeable->setForcedAgeTimer(fromAgeable->getForcedAgeTimer());
     } else if (auto* toChildHolder = dynamic_cast<AgeableEntity*>(toLiving); isChild() && toChildHolder != nullptr) {
         toChildHolder->setChild(true);
     }
-    // TODO(convert-forced-age): AgeableEntity 的 m_forcedAge / m_forcedAgeTimer 为私有且无
-    //   访问器，vanilla copyDataFrom 会一并复制；待补充 getter/setter 后在此复制。
 
     auto* fromMob = dynamic_cast<MobEntity*>(this);
     auto* toMob = dynamic_cast<MobEntity*>(toLiving);
@@ -2991,8 +3131,8 @@ void LivingEntity::copyConversionStateTo(Entity& converted, const ConversionPara
     if (params.preserveCanPickUpLoot) {
         toMob->setCanPickUpLoot(fromMob->canPickUpLoot());
     }
-    // TODO(convert-left-handed): MobEntity 尚无 isLeftHanded 状态接口；vanilla convertCommon
-    //   会复制 Mob 的左手标志，待该字段落地后补上。
+    // 左手持物标记随转换保留（vanilla convertCommon 会复制 Mob 的左手标志）。
+    toMob->setLeftHanded(fromMob->isLeftHanded());
     toMob->setNoAi(fromMob->isNoAi());
     if (fromMob->isNoDespawnRequired()) {
         toMob->enablePersistence();
@@ -3644,7 +3784,7 @@ bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effe
     //   - IMMUNE_TO_INFESTED 免疫 INFESTED；IMMUNE_TO_OOZING 免疫 OOZING
     // Cubium EntityTypeTags::IGNORES_POISON_AND_REGEN 标签成员与 vanilla 完全一致
     // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。IMMUNE_TO_INFESTED / IMMUNE_TO_OOZING
-    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 Infested 的 onMobHurt TODO）。
+    // 亦按原版互斥分支顺序判定（效果本体行为见 entity/effect/EffectOnRemoval 与 spawnInfestedSilverfish）。
     //
     // 亡灵免疫 Poison/Regen 是 vanilla 核心语义：亡灵被中毒效果不应扣血、被再生效果不应治疗。
     // 此前 Cubium EffectManager::addEffect 不调 isPotionApplicable，亡灵会被中毒扣血——与 vanilla 相反。

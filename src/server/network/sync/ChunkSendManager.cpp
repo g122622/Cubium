@@ -30,9 +30,9 @@
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include <algorithm>
 #include <atomic>
 #include <functional>

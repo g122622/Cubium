@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/base/ScheduledTick.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -62,11 +62,24 @@ namespace mc::world::tick {
 class TickManager {
 public:
     /**
-     * @brief 构造TickManager
+     * @brief 构造服务端TickManager
+     *
+     * 自建两套 `ServerTickList`，由本对象持有并负责执行。
      *
      * @param world IWorld引用
      */
     explicit TickManager(IWorld& world);
+
+    /**
+     * @brief 构造使用外部存储的TickManager
+     *
+     * 本对象只做调度门面，不拥有、也不执行 tick：所有调度转发给传入的两个列表。
+     * 用于世界生成（存储是区块的待执行刻容器）与不需要执行 tick 的世界。
+     *
+     * @param blockTicks 方块刻存储
+     * @param fluidTicks 流体刻存储
+     */
+    TickManager(ITickList<Block>& blockTicks, ITickList<fluid::Fluid>& fluidTicks);
 
     /**
      * @brief 析构函数
@@ -233,33 +246,35 @@ public:
     /**
      * @brief 获取方块tick列表
      */
-    [[nodiscard]] ServerTickList<Block>& blockTicks()
+    [[nodiscard]] ITickList<Block>& blockTicks()
     {
-        return *m_blockTicks;
+        return m_blockTicks;
     }
 
-    [[nodiscard]] const ServerTickList<Block>& blockTicks() const
+    [[nodiscard]] const ITickList<Block>& blockTicks() const
     {
-        return *m_blockTicks;
+        return m_blockTicks;
     }
 
     /**
      * @brief 获取流体tick列表
      */
-    [[nodiscard]] ServerTickList<fluid::Fluid>& fluidTicks()
+    [[nodiscard]] ITickList<fluid::Fluid>& fluidTicks()
     {
-        return *m_fluidTicks;
+        return m_fluidTicks;
     }
 
-    [[nodiscard]] const ServerTickList<fluid::Fluid>& fluidTicks() const
+    [[nodiscard]] const ITickList<fluid::Fluid>& fluidTicks() const
     {
-        return *m_fluidTicks;
+        return m_fluidTicks;
     }
 
 private:
-    IWorld& m_world;
-    std::unique_ptr<ServerTickList<Block>> m_blockTicks;
-    std::unique_ptr<ServerTickList<fluid::Fluid>> m_fluidTicks;
+    // 服务端构造时拥有实际存储；外部注入构造时两个 owning 指针为空。
+    std::unique_ptr<ServerTickList<Block>> m_ownedBlockTicks;
+    std::unique_ptr<ServerTickList<fluid::Fluid>> m_ownedFluidTicks;
+    ITickList<Block>& m_blockTicks;
+    ITickList<fluid::Fluid>& m_fluidTicks;
 };
 
 } // namespace mc::world::tick

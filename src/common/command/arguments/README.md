@@ -16,6 +16,7 @@ src/common/command/arguments/
 ├── ItemSlotArgument.hpp        # 物品槽位参数类型 + ItemSlot 索引类
 ├── NbtPath.hpp/.cpp            # NBT 路径类和节点实现
 ├── NbtPathArgumentType.hpp/.cpp # NBT 路径/复合标签/标签参数类型
+├── StyleArgument.hpp           # 样式参数类型（SNBT 复合标签 → text::Style，供 numberformat styled 使用）
 └── TimeArgument.hpp            # 时间参数类型（支持 s/d/t 后缀，解析为 tick 数）
 ```
 
@@ -35,6 +36,7 @@ ArgumentType.hpp (基类模板)
     └── ItemPredicateArgumentType → 继承 ArgumentType<ItemPredicateInput>（解析物品谓词：* / #tag / item）
     ├── ItemSlotArgument.hpp    → 继承 ArgumentType<ItemSlot>（槽位名称→索引映射）
     ├── NbtPathArgumentType.hpp → 继承 ArgumentType<NbtPath>
+    ├── StyleArgument.hpp       → 继承 ArgumentType<shared_ptr<text::Style>>（SNBT → Style）
     └── TimeArgument.hpp        → 继承 ArgumentType<i32>（时间字符串→tick 数，支持 s/d/t 后缀）
 
 FunctionArgument.hpp
@@ -62,7 +64,7 @@ EntityArgument.hpp
 - `common/core/Types` - 基础类型定义（GameMode 等）
 - `common/resource/ResourceLocation` - 资源位置解析
 - `common/item/core/ItemRegistry` - 物品查找
-- `common/world/block/BlockRegistry` - 方块查找
+- `common/world/block/core/BlockRegistry` - 方块查找
 - `common/util/nbt/Nbt` - NBT 标签系统
 - `common/util/math/Vector2`、`Vector3` - 向量类型
 
@@ -72,6 +74,12 @@ EntityArgument.hpp
 - 各具体命令实现（如 `/gamemode`、`/give`、`/summon`、`/data` 等）
 
 ## 容易踩的坑
+
+### 0. 值类型能否默认构造，决定它会不会被当成「没有命令」
+
+参数节点用「默认值」表示「这一层没有设置命令」（见 `ArgumentType::kDefaultConstructible`）。所以凡是
+**语义上可能等于默认值**的解析结果，都必须包一层指针——例如 `StyleArgumentType` 返回
+`shared_ptr<text::Style>` 而不是 `Style`，否则 `styled {}`（空样式）会被误判成没有命令。
 
 ### 1. 游标回退
 

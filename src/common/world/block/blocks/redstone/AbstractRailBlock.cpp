@@ -30,9 +30,9 @@
 #include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <cstddef>
 #include <memory>
@@ -43,45 +43,6 @@
 
 namespace mc {
 namespace blocks {
-
-// ============================================================================
-// RailShapeProperty
-// ============================================================================
-
-RailShapeProperty::RailShapeProperty(const std::string& name)
-    : EnumProperty<RailShape>(name,
-          {RailShape::NorthSouth,
-              RailShape::EastWest,
-              RailShape::AscendingEast,
-              RailShape::AscendingWest,
-              RailShape::AscendingNorth,
-              RailShape::AscendingSouth,
-              RailShape::SouthEast,
-              RailShape::SouthWest,
-              RailShape::NorthWest,
-              RailShape::NorthEast})
-{}
-
-RailShapeProperty::RailShapeProperty(const std::string& name, std::vector<RailShape> values)
-    : EnumProperty<RailShape>(name, std::move(values))
-{}
-
-std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const std::string& name)
-{
-    return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name));
-}
-
-std::unique_ptr<RailShapeProperty> RailShapeProperty::createStraight(const std::string& name)
-{
-    // vanilla 矿车铁轨（动力/探测/激活）shape 仅 6 值：南北、东西、4 个斜坡，不含弯轨。
-    return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name,
-        {RailShape::NorthSouth,
-            RailShape::EastWest,
-            RailShape::AscendingEast,
-            RailShape::AscendingWest,
-            RailShape::AscendingNorth,
-            RailShape::AscendingSouth}));
-}
 
 // ============================================================================
 // AbstractRailBlock
@@ -110,6 +71,169 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isS
     m_shapes[static_cast<size_t>(RailShape::SouthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::NorthWest)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
     m_shapes[static_cast<size_t>(RailShape::NorthEast)] = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.125f, 1.0f);
+
+    // ========== 形状旋转/镜像 ==========
+}
+
+namespace {
+
+/// 旋转铁轨形状（对应原版 BaseRailBlock.rotate(RailShape, Rotation) 的映射表）
+[[nodiscard]] RailShape _rotateRailShape(RailShape shape, Rotation rotation)
+{
+    switch (rotation) {
+        case Rotation::Clockwise180:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingWest;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingEast;
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingNorth;
+                case RailShape::NorthSouth:
+                case RailShape::EastWest:
+                    return shape;
+                case RailShape::SouthEast:
+                    return RailShape::NorthWest;
+                case RailShape::SouthWest:
+                    return RailShape::NorthEast;
+                case RailShape::NorthWest:
+                    return RailShape::SouthEast;
+                case RailShape::NorthEast:
+                    return RailShape::SouthWest;
+            }
+            break;
+        case Rotation::CounterClockwise90:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingNorth;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingWest;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingEast;
+                case RailShape::NorthSouth:
+                    return RailShape::EastWest;
+                case RailShape::EastWest:
+                    return RailShape::NorthSouth;
+                case RailShape::SouthEast:
+                    return RailShape::NorthEast;
+                case RailShape::SouthWest:
+                    return RailShape::SouthEast;
+                case RailShape::NorthWest:
+                    return RailShape::SouthWest;
+                case RailShape::NorthEast:
+                    return RailShape::NorthWest;
+            }
+            break;
+        case Rotation::Clockwise90:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingNorth;
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingEast;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingWest;
+                case RailShape::NorthSouth:
+                    return RailShape::EastWest;
+                case RailShape::EastWest:
+                    return RailShape::NorthSouth;
+                case RailShape::SouthEast:
+                    return RailShape::SouthWest;
+                case RailShape::SouthWest:
+                    return RailShape::NorthWest;
+                case RailShape::NorthWest:
+                    return RailShape::NorthEast;
+                case RailShape::NorthEast:
+                    return RailShape::SouthEast;
+            }
+            break;
+        case Rotation::None:
+            break;
+    }
+    return shape;
+}
+
+/// 镜像铁轨形状（对应原版 BaseRailBlock.mirror(RailShape, Mirror) 的映射表）
+[[nodiscard]] RailShape _mirrorRailShape(RailShape shape, Mirror mirror)
+{
+    switch (mirror) {
+        case Mirror::LeftRight:
+            switch (shape) {
+                case RailShape::AscendingNorth:
+                    return RailShape::AscendingSouth;
+                case RailShape::AscendingSouth:
+                    return RailShape::AscendingNorth;
+                case RailShape::SouthEast:
+                    return RailShape::NorthEast;
+                case RailShape::SouthWest:
+                    return RailShape::NorthWest;
+                case RailShape::NorthWest:
+                    return RailShape::SouthWest;
+                case RailShape::NorthEast:
+                    return RailShape::SouthEast;
+                default:
+                    return shape;
+            }
+        case Mirror::FrontBack:
+            switch (shape) {
+                case RailShape::AscendingEast:
+                    return RailShape::AscendingWest;
+                case RailShape::AscendingWest:
+                    return RailShape::AscendingEast;
+                case RailShape::SouthEast:
+                    return RailShape::SouthWest;
+                case RailShape::SouthWest:
+                    return RailShape::SouthEast;
+                case RailShape::NorthWest:
+                    return RailShape::NorthEast;
+                case RailShape::NorthEast:
+                    return RailShape::NorthWest;
+                default:
+                    return shape;
+            }
+        case Mirror::None:
+            break;
+    }
+    return shape;
+}
+
+} // namespace
+
+const BlockState& AbstractRailBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    if (rotation == Rotation::None) {
+        return state;
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE(),
+            _rotateRailShape(state.get(BlockStateProperties::RAIL_SHAPE()), rotation));
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE_STRAIGHT())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE_STRAIGHT(),
+            _rotateRailShape(state.get(BlockStateProperties::RAIL_SHAPE_STRAIGHT()), rotation));
+    }
+    return state;
+}
+
+const BlockState& AbstractRailBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    if (mirror == Mirror::None) {
+        return state;
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE(),
+            _mirrorRailShape(state.get(BlockStateProperties::RAIL_SHAPE()), mirror));
+    }
+    if (state.hasProperty(BlockStateProperties::RAIL_SHAPE_STRAIGHT())) {
+        return state.with(BlockStateProperties::RAIL_SHAPE_STRAIGHT(),
+            _mirrorRailShape(state.get(BlockStateProperties::RAIL_SHAPE_STRAIGHT()), mirror));
+    }
+    return state;
 }
 
 BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -293,44 +417,4 @@ const fluid::FluidState* AbstractRailBlock::getFluidState(const BlockState& stat
 }
 
 } // namespace blocks
-} // namespace mc
-
-// ============================================================================
-// EnumProperty<RailShape> Traits 实现 - 必须在 mc 命名空间
-// ============================================================================
-
-namespace mc {
-
-std::string EnumProperty<blocks::RailShape>::Traits::toString(const blocks::RailShape& value)
-{
-    static const char* names[] = {"north_south",
-        "east_west",
-        "ascending_east",
-        "ascending_west",
-        "ascending_north",
-        "ascending_south",
-        "south_east",
-        "south_west",
-        "north_west",
-        "north_east"};
-    return names[static_cast<size_t>(value)];
-}
-
-std::optional<blocks::RailShape> EnumProperty<blocks::RailShape>::Traits::fromName(std::string_view name)
-{
-    static const std::unordered_map<std::string, blocks::RailShape> map = {
-        {"north_south", blocks::RailShape::NorthSouth},
-        {"east_west", blocks::RailShape::EastWest},
-        {"ascending_east", blocks::RailShape::AscendingEast},
-        {"ascending_west", blocks::RailShape::AscendingWest},
-        {"ascending_north", blocks::RailShape::AscendingNorth},
-        {"ascending_south", blocks::RailShape::AscendingSouth},
-        {"south_east", blocks::RailShape::SouthEast},
-        {"south_west", blocks::RailShape::SouthWest},
-        {"north_west", blocks::RailShape::NorthWest},
-        {"north_east", blocks::RailShape::NorthEast}};
-    auto it = map.find(std::string(name));
-    return it != map.end() ? std::optional<blocks::RailShape>(it->second) : std::nullopt;
-}
-
 } // namespace mc

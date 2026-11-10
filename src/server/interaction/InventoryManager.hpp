@@ -32,10 +32,8 @@
 
 namespace mc::server {
 
-namespace core {
 class PlayerManager;
-class ConnectionManager;
-} // namespace core
+class PacketSender;
 
 namespace interaction {
 
@@ -62,7 +60,7 @@ public:
      * @brief 构造函数
      * @param playerManager 玩家管理器引用（用于遍历在线玩家）
      */
-    explicit InventoryManager(core::PlayerManager& playerManager);
+    explicit InventoryManager(PlayerManager& playerManager);
 
     /// 析构函数
     ~InventoryManager() = default;
@@ -143,7 +141,7 @@ public:
     void setOnInventoryUpdate(std::function<void(PlayerId, const PlayerInventory&)> callback);
 
 private:
-    core::PlayerManager& m_playerManager;
+    PlayerManager& m_playerManager;
 
     std::function<PlayerInventory*(PlayerId)> m_resolveInventory;
 

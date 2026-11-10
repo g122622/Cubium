@@ -183,6 +183,26 @@ void BaseGameTestInstance::fail(GameTestError error)
 
 GameTestResult BaseGameTestInstance::_runFinishCallbacks()
 {
+    // 清理阶段标志：回调执行期间 isCleaningUp() 为 true，结束后复位（用 RAII 保证
+    // 回调抛错或提前返回时也能复位）。
+    struct CleaningUpScope {
+        bool& flag;
+
+        explicit CleaningUpScope(bool& target)
+            : flag(target)
+        {
+            flag = true;
+        }
+
+        ~CleaningUpScope()
+        {
+            flag = false;
+        }
+
+        CleaningUpScope(const CleaningUpScope&) = delete;
+        CleaningUpScope& operator=(const CleaningUpScope&) = delete;
+    } scope(m_isCleaningUp);
+
     // 回调中允许登记任务；移出容器保持本次清理遍历和闭包生命周期稳定。
     auto callbacks = std::move(m_onFinish);
     std::string errors;

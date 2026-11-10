@@ -42,7 +42,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 #include <cmath>

@@ -52,9 +52,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
 
 #include "probe.hpp"

@@ -27,7 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/NoiseColumn.hpp"
 #include "server/world/gen/feature/FeatureSorter.hpp"

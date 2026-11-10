@@ -27,7 +27,7 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/PotterySherdItem.hpp"
-#include "world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>

@@ -34,8 +34,8 @@
  */
 
 #include "world/block/blocks/decorative/StainedGlassBlock.hpp"
-#include "world/block/IBeaconBeamColorProvider.hpp"
-#include "world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/capability/IBeaconBeamColorProvider.hpp"
 #include <array>
 #include <cmath>
 #include <gtest/gtest.h>

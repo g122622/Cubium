@@ -23,12 +23,16 @@
 
 #include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/Item.hpp"
@@ -79,13 +83,49 @@ Result<bool> _inventory(const mc::Entity& entity, const mc::ResourceLocation& it
         const auto& inventory = villager->inventory();
         return _inventoryMatches(inventory, 0, inventory.getContainerSize(), item);
     }
-    const auto& id = entity.getTypeId();
-    if (id == "minecraft:chest_minecart" || id == "minecraft:hopper_minecart" || id.ends_with("chest_boat") ||
-        id.ends_with("chest_raft")) {
-        // TODO: 为载具容器提供不修改库存的公共只读访问接口。
-        return Error(ErrorCode::Unsupported, "Native vehicle inventory query is not implemented: " + id);
+    // 载具容器：矿车与箱船都提供了不修改库存的只读访问接口（getContainerSize +
+    // getInventoryItem），逐个槽位比对即可，与商人/马类走同一套 _matches 判定。
+    // 这里按实体类型判定而非 getTypeId() 字符串：矿车/船实体并不各自覆写 getTypeId，
+    // 依赖字符串会漏判。
+    if (const auto* chestMinecart = dynamic_cast<const entity::ChestMinecartEntity*>(&entity)) {
+        const i32 size = chestMinecart->getContainerSize();
+        for (i32 slot = 0; slot < size; ++slot) {
+            if (_matches(chestMinecart->getInventoryItem(slot), item)) {
+                return true;
+            }
+        }
+        return false;
     }
-    // TODO: 随其他原生携物生物和 addon inventory 组件接入统一背包查询。
+    if (const auto* hopperMinecart = dynamic_cast<const entity::HopperMinecartEntity*>(&entity)) {
+        const i32 size = hopperMinecart->getContainerSize();
+        for (i32 slot = 0; slot < size; ++slot) {
+            if (_matches(hopperMinecart->getInventoryItem(slot), item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (const auto* chestBoat = dynamic_cast<const entity::ChestBoatEntity*>(&entity)) {
+        // ChestBoatEntity::getInventoryItem 会先触发战利品表懒解包（首次访问时填充库存），
+        // 因此不是 const 成员；这里只是读取，用 const_cast 是安全的。
+        auto& mutableChestBoat = const_cast<entity::ChestBoatEntity&>(*chestBoat);
+        const i32 size = mutableChestBoat.getContainerSize();
+        for (i32 slot = 0; slot < size; ++slot) {
+            if (_matches(mutableChestBoat.getInventoryItem(slot), item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (const auto* fox = dynamic_cast<const mc::FoxEntity*>(&entity)) {
+        // 狐狸把叼着的物品放在主手槽（vanilla 的狐狸没有独立口中槽位），
+        // 因此查主手即可；未叼物品时主手为空，_matches 自然返回 false。
+        return _matches(fox->getMainHandItem(), item);
+    }
+    // 其余携物生物（狐狸等）见上方分支。仍未覆盖的两类：
+    //   - addon `minecraft:inventory` 组件声明的自定义背包（需要组件侧提供槽位读取）；
+    //   - 玩家末影箱等"非实体自带"的库存（不属于实体携带物品语义）。
+    // TODO: addon inventory 组件接入后在此扩展。
     return false;
 }
 
@@ -110,22 +150,71 @@ Result<bool> EntityStateQuery::hasComponent(const mc::Entity& entity, const std:
         const auto* creeper = dynamic_cast<const mc::CreeperEntity*>(&entity);
         return creeper != nullptr && creeper->isPowered();
     }
+    if (name == "minecraft:fire_immune") {
+        // 火焰免疫是实体固有属性（烈焰人、恶魂等），不依赖数据包组件。
+        return entity.isImmuneToFire();
+    }
+    if (name == "minecraft:is_baby") {
+        // 幼体状态：AgeableEntity 才有年龄概念，非 AgeableEntity 上该组件不存在。
+        const auto* ageable = dynamic_cast<const mc::AgeableEntity*>(&entity);
+        return ageable != nullptr && ageable->isChild();
+    }
+    if (name == "minecraft:is_sleeping") {
+        const auto* living = dynamic_cast<const mc::LivingEntity*>(&entity);
+        return living != nullptr && living->isSleeping();
+    }
+    if (name == "minecraft:is_leashed") {
+        const auto* mob = dynamic_cast<const mc::MobEntity*>(&entity);
+        return mob != nullptr && mob->isLeashed();
+    }
+    if (name == "minecraft:is_riding" || name == "minecraft:riding") {
+        return entity.isRiding();
+    }
+    if (name == "minecraft:is_sneaking") {
+        return entity.isSneaking();
+    }
     if (name == "minecraft:onfire") {
         return entity.isOnFire();
     }
     if (name == "minecraft:inventory") {
+        // 具备"可查询库存"这一组件的实体：玩家、马类、商人，以及承载物品的载具
+        // （箱子矿车/漏斗矿车/箱子船）。判定口径与 _inventory 的查询分支保持一致，
+        // 否则会出现"组件报告存在、却查不到库存"或反之的不一致。
         if (dynamic_cast<const mc::Player*>(&entity) != nullptr ||
             dynamic_cast<const mc::AbstractHorseEntity*>(&entity) != nullptr ||
-            dynamic_cast<const mc::entity::AbstractVillagerEntity*>(&entity) != nullptr) {
+            dynamic_cast<const mc::entity::AbstractVillagerEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::ChestMinecartEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::HopperMinecartEntity*>(&entity) != nullptr ||
+            dynamic_cast<const entity::ChestBoatEntity*>(&entity) != nullptr) {
             return true;
         }
-        // TODO: 接入剩余原版容器实体的 inventory 组件存在条件。
         return Error(
             ErrorCode::Unsupported, "Native inventory component mapping is not implemented: " + entity.getTypeId());
     }
-    if (name == "minecraft:mark_variant" && dynamic_cast<const mc::MooshroomEntity*>(&entity) != nullptr) {
-        // TODO: 将原有测试专用哞菇标记变种迁移至独立测试接口，避免占用标准基岩组件。
+    if (name == "minecraft:variant" && dynamic_cast<const mc::MooshroomEntity*>(&entity) != nullptr) {
+        // 哞菇的红/棕是**主变种**（基岩 `minecraft:variant`，0=红、1=棕），
+        // 不是 `minecraft:mark_variant`（那是"附加变种"，用于进一步区分同一主变种，
+        // 如马的花纹）。此前占用 mark_variant 承载它，会让脚本按官方组件名读到 undefined。
         return true;
+    }
+    // ---- 原版实体的固有组件 ----
+    // 下面这组不依赖数据包：它们是 Java 侧实体模型本就直接具备的能力，因此对原生实体恒为 true。
+    // 与 addon 实体不同（addon 走上面的 components->has 分支，只有数据包里真的写了才算存在）。
+    if (name == "minecraft:physics" || name == "minecraft:collision_box" || name == "minecraft:type_family" ||
+        name == "minecraft:nameable") {
+        // 每个实体都有重力/碰撞开关、碰撞箱、类型家族，也都可以被命名。
+        return true;
+    }
+    if (name == "minecraft:attack" || name == "minecraft:breathable") {
+        // 攻击伤害与氧气都是 LivingEntity 才具备的能力（属性表 / 空气供应）。
+        return dynamic_cast<const mc::LivingEntity*>(&entity) != nullptr;
+    }
+    if (name == "minecraft:pushable") {
+        return entity.isPushable();
+    }
+    if (name == "minecraft:leashable") {
+        // 只有 MobEntity 实现了拴绳状态机。
+        return dynamic_cast<const mc::MobEntity*>(&entity) != nullptr;
     }
     // TODO: 将其余原版实体组件的存在条件接入统一描述表。
     return Error(ErrorCode::Unsupported, "Native Bedrock component mapping is not implemented: " + name);
@@ -138,7 +227,7 @@ Result<i32> EntityStateQuery::variant(const mc::Entity& entity, const std::strin
         const auto* value = components->component(name);
         return value != nullptr ? value->value("value", i32{0}) : i32{0};
     }
-    if (name == "minecraft:mark_variant") {
+    if (name == "minecraft:variant") {
         if (const auto* mooshroom = dynamic_cast<const mc::MooshroomEntity*>(&entity)) {
             return static_cast<i32>(mooshroom->getMooshroomType());
         }

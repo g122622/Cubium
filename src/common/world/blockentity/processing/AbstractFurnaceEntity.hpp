@@ -29,7 +29,7 @@
 #include "common/item/crafting/IRecipe.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"

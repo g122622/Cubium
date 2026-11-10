@@ -27,13 +27,13 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/SupportType.hpp"
-#include "common/world/block/blocks/MultifaceBlock.hpp"
-#include "common/world/block/registry/SculkBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/multiface/MultifaceBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/SculkBlocks.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -210,7 +210,7 @@ void SculkSpreader::updateCursors(IWorld& world, const BlockPos& origin, math::I
         cursor.update(world, origin, random, *this, shouldUpdateBlocks);
 
         if (cursor.charge() <= 0) {
-            world.playEvent(world::WorldEvents::SCULK_CHARGE, cursor.pos(), 0);
+            world.playEvent(::mc::world::LevelEventId::PARTICLES_SCULK_CHARGE, cursor.pos(), 0);
             continue;
         }
 
@@ -255,7 +255,7 @@ void SculkSpreader::updateCursors(IWorld& world, const BlockPos& origin, math::I
         }
         const i32 level = static_cast<i32>(std::log1p(static_cast<f64>(total)) / 2.3f) + 1;
         const i32 data = (level << 6) | static_cast<i32>(MultifaceBlock::pack(representative.facingData().value()));
-        world.playEvent(world::WorldEvents::SCULK_CHARGE, representative.pos(), data);
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_SCULK_CHARGE, representative.pos(), data);
     }
 
     m_cursors = std::move(nextCursors);

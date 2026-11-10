@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <memory>
 #include <glm/ext/vector_float3.hpp>
 
@@ -41,7 +42,7 @@ namespace mc::client::renderer::trident::particle::particles {
  * @brief 白色烟雾粒子
  *
  * 与 SmokeParticle 类似，但使用偏白灰色调，用于：
- * - 合成器发射物品时的方向性白烟 (WorldEvents::SHOOT_WHITE_SMOKE)
+ * - 合成器发射物品时的方向性白烟 (::mc::world::LevelEventId::PARTICLES_SHOOT_WHITE_SMOKE)
  * - 干涸恶魂方块的环境粒子
  *
  * 继承自 Particle 基类，物理参数：friction=0.96, gravity=-0.1, hasPhysics=true

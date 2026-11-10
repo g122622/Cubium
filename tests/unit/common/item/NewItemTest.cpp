@@ -21,7 +21,9 @@
  *
  */
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "core/Constants.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
@@ -31,8 +33,6 @@
 #include "item/items/special/MilkBucketItem.hpp"
 #include "item/items/tool/ShearsItem.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/tick/manager/TickManager.hpp"
 #include <gtest/gtest.h>

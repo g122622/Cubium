@@ -26,7 +26,7 @@
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 namespace mc {
 

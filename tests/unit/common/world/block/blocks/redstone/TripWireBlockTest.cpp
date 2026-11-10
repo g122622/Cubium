@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/core/Block.hpp"
 #include "physics/collision/CollisionShape.hpp"
 #include "util/property/Properties.hpp"
-#include "world/block/Block.hpp"
 #include "world/block/blocks/redstone/TripWireBlock.hpp"
 
 using namespace mc;

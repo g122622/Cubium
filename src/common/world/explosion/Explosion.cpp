@@ -26,6 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
@@ -50,10 +51,10 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
@@ -308,13 +309,34 @@ LivingEntity* Explosion::getIndirectSourceEntity() const
 
 bool Explosion::_shouldAffectBlocklikeEntities() const
 {
-    // mobGriefing 开启时，所有爆炸都影响方块类实体；否则只有破坏方块的爆炸
-    // （ExplosionMode 非 None）才影响。
-    // 简化前提：风弹/风爆附魔不走 Explosion 类，故 m_source 永非风弹源，
-    // vanilla shouldAffectBlocklikeEntities() 中的"非风弹源"判定恒真，退化为下式。
-    // TODO: 若未来风弹改走 Explosion，需引入 Trigger 模式并恢复完整判定。
+    // 完整对齐 ServerExplosion.shouldAffectBlocklikeEntities：
+    //   flag  = mobGriefing
+    //   flag1 = source == null || source 不是风弹
+    //   return flag ? flag1 : blockInteraction.shouldAffectBlocklikeEntities() && flag1
+    //
+    // 其中 blockInteraction.shouldAffectBlocklikeEntities 在 KEEP / TRIGGER_BLOCK 为 false、
+    // 在 DESTROY / DESTROY_WITH_DECAY 为 true。本项目 KEEP 对应 None，DESTROY 对应
+    // Break / Destroy，TRIGGER_BLOCK 对应 TriggerBlock——因此 Break/Destroy 为真，
+    // None 与 TriggerBlock 都为假。
     const bool mobGriefing = m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
-    return mobGriefing || m_mode != ExplosionMode::None;
+
+    // flag1：风弹作为爆源时不波及其他方块类实体（风弹靠专门的风爆逻辑处理）。
+    // 项目目前只有一种风弹实体（minecraft:wind_charge）；旋风人的
+    // minecraft:breeze_wind_charge 尚未注册实体类型（BreezeShootGoal 还未真正发射投射物），
+    // 因此这里只列已存在的类型。
+    // TODO: 注册 minecraft:breeze_wind_charge 后，需把该类型一并加入此判定，
+    //   否则旋风人的风弹会错误地波及方块类实体。
+    const bool nonWindChargeSource =
+        m_source == nullptr || m_source->getTypeId() != entity::EntityTypeKeys::WIND_CHARGE;
+
+    if (mobGriefing) {
+        return nonWindChargeSource;
+    }
+
+    // 只有真正破坏方块的模式才"波及方块类实体"；TriggerBlock 会调方块的爆炸回调，
+    // 但不破坏方块，因此在原版算作不波及（见 BlockInteraction.TRIGGER_BLOCK(false)）。
+    const bool destroysBlocks = m_mode == ExplosionMode::Break || m_mode == ExplosionMode::Destroy;
+    return destroysBlocks && nonWindChargeSource;
 }
 
 // ============================================================================
@@ -758,8 +780,14 @@ void Explosion::_destroyBlocks()
         // 获取方块对象
         const Block& block = state->getBlock();
 
-        // 调用方块的爆炸回调
+        // 调用方块的爆炸回调。TriggerBlock 只走到这里——回调负责"被引爆/被激活"，
+        // 方块本身保留。TNT 正是在 onBlockExploded 里 prime 出点燃的 TNT 实体。
         block.onBlockExploded(m_world, pos, *state, this);
+
+        // TriggerBlock：不破坏方块、不产生掉落物，只保留上面那次回调的效果。
+        if (m_mode == ExplosionMode::TriggerBlock) {
+            continue;
+        }
 
         // 检查方块是否可以被爆炸掉落
         bool canDrop = block.canDropFromExplosion(*state);

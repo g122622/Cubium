@@ -27,12 +27,12 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/IBucketPickupHandler.hpp"
-#include "common/world/block/blocks/LiquidBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/fluid/LiquidBlock.hpp"
+#include "common/world/block/capability/IBucketPickupHandler.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
 #include <functional>
@@ -62,7 +62,7 @@ bool SpongeBlock::tryAbsorbWater(IWorld& world, const BlockPos& pos)
 
         // 播放水被吸收的视觉效果（事件 2001，data 为水的方块状态 ID）
         const BlockState& waterState = VanillaBlocks::WATER->defaultState();
-        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, waterState.stateId());
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, pos, waterState.stateId());
 
         return true;
     }

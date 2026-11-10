@@ -1,98 +1,33 @@
-# Math 模块
+# math 模块
 
-本目录包含 Cubium 项目的数学工具模块，提供向量运算、随机数生成、射线检测、视锥剔除等核心数学功能。
+## 目录结构树
 
-## 目录结构
-
-```
-src/common/util/math/
-├── MathUtils.hpp                  # 数学工具函数（角度转换、插值、坐标变换等）
-├── MathUtils.cpp                  # 占位文件（函数已在头文件内联）
-├── Vector2.hpp                    # 2D 向量类
-├── Vector3.hpp                    # 3D 向量类
-├── Vector4.hpp                    # 4D 向量模板类
-├── frustum/                       # 视锥剔除子系统
-│   ├── Frustum.hpp                # 视锥类定义
-│   ├── Frustum.cpp                # 视锥类实现
-│   └── README.md                  # 视锥模块文档
-├── random/                        # 随机数生成子系统
-│   ├── IRandom.hpp                # 随机数生成器接口
-│   ├── IRandom.cpp                # 接口默认实现
-│   ├── Random.hpp                 # 具体实现别名（通过宏选择算法，默认 xoroshiro128++）
-│   ├── JavaLegacyRandom.hpp/cpp   # Java LegacyRandomSource（48 位 LCG）
-│   ├── WorldgenRandom.hpp/cpp     # 世界生成装饰种子包装器（委托内层 RNG）
-│   ├── LcgRandom.hpp              # 线性同余生成器
-│   ├── LcgRandom.cpp              # 线性同余实现
-│   ├── Mt19937Random.hpp          # Mersenne Twister 生成器
-│   ├── Mt19937Random.cpp          # Mersenne Twister 实现
-│   ├── Xoroshiro128ppRandom.hpp   # xoroshiro128++ 生成器（默认算法）
-│   ├── Xoroshiro128ppRandom.cpp   # xoroshiro128++ 实现
-│   ├── Xoshiro256ppRandom.hpp     # xoshiro256++ 生成器
-│   ├── Xoshiro256ppRandom.cpp     # xoshiro256++ 实现
-│   ├── PositionalRandomFactory.hpp/cpp  # 位置随机工厂（Xoroshiro / Legacy 两种 flavor）
-│   ├── UniformIntDistribution.hpp    # 均匀整数分布
-│   ├── UniformIntDistribution.cpp    # 均匀整数分布实现
-│   ├── UniformRealDistribution.hpp   # 均匀实数分布
-│   ├── UniformRealDistribution.cpp   # 均匀实数分布实现
-│   ├── RandomRanges.hpp           # 随机值范围工具类（用于掉落表）
-│   └── RandomRanges.cpp           # 随机值范围实现
-└── ray/                           # 射线检测子系统
-    ├── Ray.hpp                    # 射线数据结构
-    ├── Raycast.hpp                # 射线检测上下文和接口
-    └── Raycast.cpp                # DDA 算法实现
+```text
+math/
+├── frustum/  # 该领域的子模块
+├── noise/  # 共享的确定性数学噪声
+├── random/  # 该领域的子模块
+├── ray/  # 该领域的子模块
+├── MathConstants.hpp  # 模块接口与实现
+├── MathUtils.cpp  # 模块接口与实现
+├── MathUtils.hpp  # 度转弧度
+├── Vector2.hpp  # 2D向量模板类
+├── Vector3.hpp  # 3D向量模板类
+└── Vector4.hpp  # 4D向量模板类
 ```
 
 ## 内部模块关系
 
-```
-                    MathUtils.hpp
-                         │
-          ┌──────────────┼──────────────┐
-          │              │              │
-     Vector2.hpp    Vector3.hpp     IRandom.hpp
-          │              │              │
-          │              │              ├──── LcgRandom
-          │              │              ├──── Mt19937Random
-          │              │              ├──── Xoroshiro128ppRandom
-          │              │              ├──── Xoshiro256ppRandom
-          │              │              │
-          │              │         Random.hpp (统一封装)
-          │              │              │
-          │              │         UniformIntDistribution
-          │              │         UniformRealDistribution
-          │              │
-          └──────────────┴──── Ray.hpp
-                               │
-                          Raycast.hpp/cpp
-                               │
-                         BlockRaycastResult (core/)
-```
-
-- **MathUtils**：提供基础数学函数，被所有其他模块依赖
-- **Vector2/3/4**：向量类型，独立于随机模块
-- **random/**：随机数生成子系统，IRandom 定义接口，Random.hpp 统一封装多种算法（通过宏选择：xoroshiro128++、xoshiro256++、LCG、MT19937）
-- **ray/**：射线检测模块，依赖 Vector3 和 MathUtils，使用 DDA 算法
-- **frustum/**：视锥剔除模块，独立于其他子模块
+各文件承接目录树中标明的单一职责，通过同领域接口组合。独占的辅助实现位于使用者目录下。
 
 ## 上下游外部依赖关系
 
-**被依赖（上游调用方）**：
-- `common/world/` - 世界生成、区块处理使用坐标转换函数
-- `common/entity/` - 实体物理、移动使用向量和射线检测
-- `server/world/gen/` - 噪声生成使用随机数
-- `client/renderer/` - 渲染使用向量和视锥剔除
-- `server/` - 服务端逻辑使用随机数和坐标转换
-
-**依赖（下游依赖）**：
-- `common/core/Types.hpp` - 基础类型定义（i8, i32, f32, u64 等）
-- `common/core/Constants.hpp` - 常量定义（PI, EPSILON, CHUNK_WIDTH 等）
-- `common/core/BlockRaycastResult.hpp` - 射线检测结果
-- `common/world/IWorld.hpp` - 世界接口（方块读取）
-- `common/world/block/Block.hpp` - 方块定义
-- `common/util/Direction.hpp` - 方向枚举
-- `<cmath>`, `<algorithm>`, `<limits>`, `<functional>` - 标准库
+公共层提供领域类型与接口；服务端通过应用装配连接玩家、网络和世界实现。源文件的构建归属与领域目录一致。
 
 ## 容易踩的坑
+
+- 目录按领域职责组织；跨领域协作通过明确入口和基础类型。
+- 新增或迁移源文件时同步更新所有消费目标的 CMake 清单。
 
 ### 0. 世界生成的装饰种子必须走 `WorldgenRandom`，不能用裸 `Xoroshiro128ppRandom`
 

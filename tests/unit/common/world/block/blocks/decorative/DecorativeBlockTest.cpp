@@ -46,12 +46,12 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/base/SimpleBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "util/property/Properties.hpp"
-#include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/decorative/CarpetBlock.hpp"
 #include "world/block/blocks/decorative/FlowerPotBlock.hpp"
 #include "world/block/blocks/decorative/LadderBlock.hpp"
@@ -107,12 +107,20 @@ TEST_F(LadderBlockTest, GetShape_ReturnsValidShape)
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(LadderBlockTest, GetCollisionShape_ReturnsEmpty)
+TEST_F(LadderBlockTest, GetCollisionShape_EqualsShapeThinSlab)
 {
     const auto& state = ladder_->defaultState();
     const auto& shape = ladder_->getCollisionShape(state);
-    // 梯子没有碰撞箱
-    EXPECT_TRUE(shape.isEmpty());
+
+    // 梯子碰撞箱虽然薄但**确实存在**：原版 LadderBlock 只覆写 getShape、不覆写
+    // getCollisionShape，因此碰撞形状就是那块 3/16 厚的板。玩家撞上去会被挡住，
+    // 只是能贴着它攀爬；它同时充当火把/告示牌等的附着面（getBlockSupportShape 默认取碰撞形状）。
+    EXPECT_FALSE(shape.isEmpty()) << "a ladder must have a (thin) collision box";
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    // 厚度 3/16：贴墙侧为满格，另一侧从 13/16 起。
+    const AxisAlignedBB& box = shape.boxes().front();
+    EXPECT_NEAR(box.maxZ - box.minZ, 3.0f / 16.0f, 1e-5f);
 }
 
 TEST_F(LadderBlockTest, Rotate_ChangesFacing)
@@ -152,12 +160,19 @@ TEST_F(CarpetBlockTest, GetShape_ReturnsValidShape)
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(CarpetBlockTest, GetCollisionShape_ReturnsEmpty)
+TEST_F(CarpetBlockTest, GetCollisionShape_EqualsShapeThinSlab)
 {
     const auto& state = carpet_->defaultState();
     const auto& shape = carpet_->getCollisionShape(state);
-    // 地毯没有碰撞箱
-    EXPECT_TRUE(shape.isEmpty());
+
+    // 地毯碰撞箱确实存在：原版 CarpetBlock 只覆写 getShape、不覆写 getCollisionShape，
+    // 碰撞形状就是 `Block.column(16.0, 0.0, 1.0)` 那块 1/16 厚的完整薄片。
+    // 玩家能站在地毯上，它只是比整格矮。
+    EXPECT_FALSE(shape.isEmpty()) << "a carpet must have a (thin) collision box";
+    ASSERT_EQ(shape.boxCount(), 1u);
+
+    const AxisAlignedBB& box = shape.boxes().front();
+    EXPECT_NEAR(box.maxY - box.minY, 1.0f / 16.0f, 1e-5f);
 }
 
 // ========== FlowerPotBlock 基础测试 ==========

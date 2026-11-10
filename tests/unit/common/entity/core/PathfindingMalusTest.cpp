@@ -42,7 +42,7 @@
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <unordered_map>
 

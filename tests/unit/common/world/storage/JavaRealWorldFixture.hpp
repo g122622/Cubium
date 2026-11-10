@@ -45,7 +45,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/storage/backend/JavaAnvilBackend.hpp"
 #include "server/world/storage/core/SaveFormat.hpp"
 #include "server/world/storage/reader/java/JavaBiomeMapper.hpp"

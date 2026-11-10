@@ -24,10 +24,10 @@
 #include "entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "item/Items.hpp"
-#include "world/block/BlockPos.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

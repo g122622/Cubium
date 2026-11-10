@@ -34,12 +34,12 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/functional/TrailsBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/Fluids.hpp"
@@ -149,7 +149,7 @@ public:
         // 测试中忽略声音播放
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_playedEvents.push_back({eventId, pos, data});
     }
@@ -204,7 +204,7 @@ public:
         m_spawnedEntities.clear();
     }
 
-    [[nodiscard]] const std::vector<std::tuple<i32, BlockPos, i32>>& playedEvents() const
+    [[nodiscard]] const std::vector<std::tuple<::mc::world::LevelEventId, BlockPos, i32>>& playedEvents() const
     {
         return m_playedEvents;
     }
@@ -230,7 +230,7 @@ public:
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
-    std::vector<std::tuple<i32, BlockPos, i32>> m_playedEvents;
+    std::vector<std::tuple<::mc::world::LevelEventId, BlockPos, i32>> m_playedEvents;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
     world::gamerule::GameRules m_gameRules;
@@ -541,7 +541,7 @@ TEST_F(SnifferEggBlockTest, OnBlockAdded_WithMossBelow_FiresEggCrackEvent)
     // 验证：播放了 EGG_CRACK (3009) 事件
     bool foundEggCrack = false;
     for (const auto& [eventId, pos, data] : world_.playedEvents()) {
-        if (eventId == world::WorldEvents::EGG_CRACK && pos == eggPos) {
+        if (eventId == ::mc::world::LevelEventId::PARTICLES_EGG_CRACK && pos == eggPos) {
             foundEggCrack = true;
             break;
         }
@@ -561,7 +561,7 @@ TEST_F(SnifferEggBlockTest, OnBlockAdded_WithoutMossBelow_DoesNotFireEggCrackEve
     // 验证：没有播放 EGG_CRACK (3009) 事件
     bool foundEggCrack = false;
     for (const auto& [eventId, pos, data] : world_.playedEvents()) {
-        if (eventId == world::WorldEvents::EGG_CRACK) {
+        if (eventId == ::mc::world::LevelEventId::PARTICLES_EGG_CRACK) {
             foundEggCrack = true;
             break;
         }
@@ -724,14 +724,16 @@ TEST_F(SnifferEntityTest, IsBreedingItem_TorchflowerSeeds_ReturnsTrue)
     }
 }
 
-TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsTrue)
+TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsFalse)
 {
     auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
 
-    // 瓶草荚果是嗅探兽食物
+    // `#minecraft:sniffer_food` 只有 torchflower_seeds 一项，瓶草荚果不在其中——
+    // 原版 Sniffer.isFood 就是查这个标签，因此瓶草荚果不是繁殖物品。
+    // 此前这里断言为 true，是把"嗅探兽能挖出瓶草"与"吃瓶草"混为一谈了。
     if (Items::PITCHER_POD != nullptr) {
         ItemStack food(Items::PITCHER_POD, 1);
-        EXPECT_TRUE(sniffer->isBreedingItem(food));
+        EXPECT_FALSE(sniffer->isBreedingItem(food));
     }
 }
 

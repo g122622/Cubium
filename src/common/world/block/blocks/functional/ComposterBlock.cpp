@@ -41,9 +41,9 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
@@ -197,7 +197,7 @@ BlockState ComposterBlock::attemptCompost(
         // 通过 WorldEvent 广播堆肥成功事件（客户端同时播放音效和粒子效果）
         // data=1 表示成功升级，data=0 表示仅填充未升级
         if (!world.isClientSide()) {
-            world.playEvent(world::WorldEvents::COMPOSTER_FILLED_UP, pos, 1);
+            world.playEvent(::mc::world::LevelEventId::COMPOSTER_FILL, pos, 1);
         }
 
         // 如果达到等级7，调度 20 tick 后的转变
@@ -211,7 +211,7 @@ BlockState ComposterBlock::attemptCompost(
     // 堆肥失败（尝试堆肥但没增加等级）
     // 通过 WorldEvent 广播堆肥失败事件
     if (!world.isClientSide()) {
-        world.playEvent(world::WorldEvents::COMPOSTER_FILLED_UP, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::COMPOSTER_FILL, pos, 0);
     }
 
     return state;

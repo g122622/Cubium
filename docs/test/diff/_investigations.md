@@ -939,3 +939,155 @@ TODO: 对齐 `getFaceShape` 的投影语义后继续收敛。
 装备上）与各附魔的等级区间都和原版不同。修法是把附魔定义搬成数据驱动（或至少补齐这四张表），
 属于独立的一轮工作；这些单元已在 `villager_gen` 里登记为已知差异，抽取序列、价格、次数、
 经验仍然逐字段严格比对。
+
+## 世界生成、实体物理与物品：已查出的问题
+
+这一轮补齐三块能力时，harness 查出七处真实缺陷，全部已修。它们有个共同点：**都不崩溃、不报错，
+只让游戏表现细微偏离**，靠肉眼或普通单测几乎无法定位。
+
+### 雕刻掩码的三处问题（carving_mask）
+
+原版 `CarvingMask` 的索引公式是 `x & 15 | (z & 15) << 4 | (y - minY) << 8`，
+掩码记录「这一格已经刻过」，雕刻器每次写入前都要查它。
+
+- **索引漏了 X/Z 掩码**：Cubium 写成 `x | (z << 4) | ((y - minY) << 8)`，少了 `& 15`。
+  Y 位移用的还是 `CHUNK_SHIFT + SECTION_SHIFT`（= 8），恰好与 `<< 8` 同值所以看不出来；
+  真正的差别是 X/Z 越界时的行为。补上掩码后与原版逐位一致。
+- **构造函数带世界常量兜底**：`CarvingMask(chunkX, chunkZ, minY = -64, height = 384)` 有默认参数，
+  调用点 `ChunkPrimer::carvingMask()` 直接用了默认值。下界（`minY=0, height=128`）与
+  末地（`0/256`）因此拿到主世界的基准，`(y - minY)` 整体错位——洞穴在区块边界处多刻或少刻，
+  表现在玩家眼里是「有断层的洞穴」。现在掩码的几何由调用方传入，并在重复取用时断言一致。
+- **两个从未被读取的成员**：`m_chunkX` / `m_chunkZ` 只在构造里赋值，原版 `CarvingMask`
+  根本没有区块坐标字段，一并删除。
+
+另外，原版 `carveEllipsoid` 的循环边界把 Y 夹在 `[minGenY + 1, minGenY + genDepth - 1 - j1]`、
+X/Z 夹在 `[0, 15]`，`BitSet.set(负索引)` 在原版逻辑里不可达。第一版探针构造了 Y 越界的场景，
+在原版侧直接抛 `IndexOutOfBoundsException`——那是**测了一整段两边都不该走的代码**，
+已改为只覆盖真实可达的几何。
+
+### 朝向计算的 45° 边界（direction_rotate）
+
+`fromYRot` 比 `floor(yaw / 90 + 0.5)`。`-ffast-math` 允许把除法改写成乘倒数，
+而 `1/90` 无法用二进制精确表示：`yaw = -45` 时算出略小于 `-0.5` 的值，加 0.5 后
+落到零的负侧，`floor` 得 `-1`，`&-1 & 3` 变成 3（East）——原版是 South。
+`yaw` 为 45° 的奇数倍（±45、±135、±225、±315）全部会踩到，
+表现为**按玩家朝向放置的方块在斜 45° 时朝反方向**（熔炉、织布机、中继器、按钮等一大票方块）。
+
+修法是让那次除法在 double 下精确完成（`volatile` 中转），不改任何数值。
+
+### 密度函数的区间传播（density_nested）
+
+`Lerp` 的 `minValue/maxValue` 原本按「先算 `d * (e - s)` 的区间，再加上 `s` 的区间」合并。
+但 `s` 同时出现在因子 `(e - s)` 里和最后的加项上，**两者不独立**。
+`d ∈ [0,1]`、`s = 1`、`e = -3` 时原实现得到 `-3 + (-1) = -4`，真实下界是 `-3`。
+
+这个下界会传给上游的 `Clamp`、`RangeChoice` 与缓存调度，是地形判定偏移的来源之一。
+该式对 `d`、`s`、`e` 都是线性的，极值必定落在 8 个角点上，逐个枚举即可。
+
+### 潜行边缘保护退化（edge_backoff）
+
+原版 `Player.maybeBackOffFromEdge` 逐 0.05 步回退，**X 与 Z 分别处理**，最后再处理斜向组合，
+每个循环在 `|位移| <= 0.05` 时归零跳出。这样玩家贴边斜走时只削掉会让他掉下去的那个分量，
+另一个分量保留，因此能沿边缘滑行。
+
+Cubium 原本是一次性取移动后的整个位置判定，没有支撑就把 X/Z **全部归零**——
+表现是贴着方块边缘斜向走时**完全走不动**。
+
+### 物品冷却的两处防御性分支（item_cooldowns）
+
+- `setCooldown` 对 `ticks <= 0` 特判成 `removeCooldown`，原版 `addCooldown` 无条件 put；
+- `getCooldownProgress` 用 `duration > 0 ? clamp(...) : 0`，把 0/0 的 NaN 掩盖成 0。
+  原版 `Mth.clamp` 对 NaN 返回 NaN（两条比较都为 false，返回原值），而 `std::clamp`
+  在 `-ffast-math` 下对 NaN 的行为不保证，所以这里改用显式比较。
+
+`hasCooldown` 也顺带对齐：原版看的是**进度是否为正**而不是剩余 tick 是否为正，
+两者只在时长为负这种非常规输入上分叉。
+
+### 护甲槽位顺序整体颠倒（inventory_slot_mapping）
+
+背包有两套索引：**内部索引**（0..40，背包对象自己的存储顺序）与**菜单槽**（0..45，
+`ContainerSetContent` / `ContainerSetSlot` 包里 slot 字段的含义，客户端按它摆物品）。
+网络同步按菜单槽逐个反查内部索引再取物品，所以这张表直接决定客户端看到的背包界面。
+
+原版 `EquipmentSlot` 枚举的 `index` 字段是 **FEET=0、LEGS=1、CHEST=2、HEAD=3**，
+背包槽号取 `getIndex(36)`，于是 **36=脚、37=腿、38=胸、39=头**。
+Cubium 的 `InventorySlots` 写成了 **36=头、39=脚**，四个护甲槽的顺序整个反了。
+
+后果：玩家戴头盔时实际存进脚部槽，穿靴子存进头部槽；装备界面显示错位，耐久损耗与
+附魔加成全部作用在错误的槽位上。服务端自身完全自洽，只有和原版逐槽比对才看得出来。
+
+它同时带出四处依赖该假设的映射，都已改正：
+
+- `InventorySlotMapping` 的双向映射原本是整体平移（`slot - 31` / `slot + 31`），
+  两套索引方向相反，必须改成递减映射；
+- `PlayerInventory::hurtArmor` 的槽位到 `EquipmentSlot` 数组按索引递增遍历，
+  顺序必须随常量一起改成 FEET→LEGS→CHEST→HEAD；
+- 命令槽位 `armor.head` / `armor.feet` 原本硬编码 36 / 39，改用常量。
+
+差分能力本身也能抓到 oracle 侧的同类错误：第一版 oracle 把菜单槽 5..8 误判成合成槽，
+探针侧算对的地方反而报了差异，逐条核对后才确认是 oracle 写错。
+
+### 物品进包的装填顺序三处错误（inventory_add）
+
+原版 Inventory.add 分两步：getSlotWithRemainingSpace 找**能合并**的槽（选中槽 → 副手槽 40
+→ 从 0 递增扫全部 36 个槽），再 getFreeSlot 从 0 递增找**第一个空槽**。三处实现错误：
+
+- **只合并一个槽就转去填空槽**：槽 1 有 50 个、要加入 20 个时，补满 64 后还剩 6 个。
+  原版把这 6 个继续并进下一个同类未满的槽（槽 3），Cubium 却新开一个空槽，同一批物品
+  被拆散到两个槽里。现在合并写成循环，直到装完或再也找不到能装的槽。
+- **找空槽时副手槽排在快捷栏之前**：原版 getFreeSlot 只扫 items（长度 36），副手不在
+  候选里；副手只在第一步以「能不能合并」的身份出现。Cubium 把它插在快捷栏前面，捡到的
+  东西会凭空出现在副手槽。
+- **整个堆叠塞进一个空槽，不按上限拆分**：100 个石头会挤进同一格，超出堆叠上限。
+
+单元口径只比「实际进了背包多少个」+ 每个槽的内容。不直接比 dd 的返回值（原版是 bool
+「有没有装进去一点」，空堆叠恒 false；Cubium 返回剩余量，两者在空堆叠上分叉），也不比
+堆叠的残留数量（空气这类物品两侧的归一化时机不同，会造出与游戏表现无关的假差异）。
+
+### 摔落伤害的公式与钳位（all_damage）
+
+公式本身与原版一致，但实现方式带来两处问题，已一并整理：
+
+- **公式内联在 causeFallDamage 里，没有独立成方法**。原版 calculateFallDamage 是独立
+  的 protected 方法，可以被子类覆盖、也可以单独验证；内联写法既无法单独测试，也让子类
+  只能去重写整条 causeFallDamage（连带复制免疫判定与音效逻辑）。现已抽成
+  irtual i32 calculateFallDamage(f64 distance, f32 damageMultiplier) const，与原版同构。
+- **距离运算从 f32 改为 f64**。伤害最终按整数格结算，+1e-6 这一项在 f32 下会被舍入吃掉，
+  整数边界附近整格偏差。
+
+顺带修正青蛙：它原本重写 causeFallDamage、把减免 5 点折算成「等效摔落距离」再交给基类。
+但 **floor 不可逆**——先折算距离再取整，与「先取整再减 5」在非整数倍率下结果不同
+（例如倍率 0.2、距离 20 格：原版取整得 3、减 5 后不造成伤害；折算版把距离压到安全距离
+以下，走的是另一条分支）。现改为重写 allDamageReduction()，这正是该钩子存在的意义。
+
+### 地表规则的条件判定（surface_rule）
+
+三种条件（水面 / 石头深度 / Y 高度）逐字核对后**与原版一致**，没有查出缺陷。这个能力
+的价值在防回归：三条判定都是单行整数比较，任何一处边界改动都会让整片地形错乱，
+而且不会崩、不会报错。
+
+已覆盖的边界：
+
+- 水面条件的 waterHeight == INT_MIN 哨兵——它表示「这一列没有水」，条件**恒真**。
+  写成恒假会让所有非含水地形少铺一层。
+- 石头深度的 <= 而不是 <：深度从 1 起计，1 就是最表面那一层。
+- secondary_depth_range 非 0 时叠加的次级噪声映射：(v+1)/2 * range 再取整。
+- Y 锚点的两种方向：bove_bottom 从下往上、elow_top 从上往下（minY + height - 1 - offset）。
+
+## 写这类 oracle 时踩到的坑
+
+原版把相关类型都藏得很深，这轮为了调用它们踩了几个坑，记下来避免重复摸索：
+
+- SurfaceRules.Context 是 protected static final class，构造要求 SurfaceSystem、
+  ChunkAccess、NoiseChunk。但条件只读几个标量字段，所以用反射构造后**直接写字段**即可。
+- SurfaceRules.Condition 与 Condition.test() 都是 private，必须反射。
+- ConditionSource 不是普通接口，它 extends Function<Context, Condition>，
+  所以 pply 要从 Function 上取，而不是从 ConditionSource 上找 pply(Context)。
+- WorldGenerationContext 的构造函数会解引用 ChunkGenerator 与 LevelHeightAccessor，
+  而只需要它承载两个整数——用 sun.misc.Unsafe.allocateInstance 跳过构造再写 inal 字段。
+- Cubium 侧的 SurfaceRuleContext 要求 NoiseChunk，而 NoiseChunk 要求 RandomState，
+  后者会断言「noise_settings 已从数据包加载」。差分探针不加载数据包，所以**这条链走不通**。
+  最终探针只内联三条判定式，不构造任何上下文对象。
+- FALL_DAMAGE 那边的 LivingEntity 是抽象类，EntityType.ZOMBIE 的类型参数是 Zombie
+  而构造签名要 EntityType<? extends LivingEntity>，通配符不接受隐式向上转换；
+  改用具体子类 Zombie 构造实例，再用反射调它的 protected calculateFallDamage。

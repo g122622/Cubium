@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "server/world/gen/feature/template/RuleTest.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/jigsaw/ProcessorListRegistry.hpp"

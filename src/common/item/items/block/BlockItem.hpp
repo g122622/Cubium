@@ -26,7 +26,7 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 

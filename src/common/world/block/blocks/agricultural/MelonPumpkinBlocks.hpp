@@ -28,18 +28,23 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/base/HorizontalBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
 
 class IWorld;
 class BlockItemUseContext;
+class Entity;
 
 namespace entity {
 enum class CopperGolemWeatherState : u8;
+}
+
+namespace blockpattern {
+class BlockPatternMatch;
 }
 
 namespace blocks {
@@ -159,12 +164,12 @@ private:
  * 有 FACING 属性的南瓜，可以用于制作雪傀儡、铁傀儡和铜傀儡。
  * 傀儡生成的核心逻辑在此类中实现，JackOLanternBlock 复用此类的静态方法。
  *
- * 三种傀儡模式（与 MC 1.21.11 一致）：
+ * 三种傀儡模式：
  * - 雪傀儡：南瓜 + 雪块 + 雪块（垂直 3 格）
  * - 铁傀儡：南瓜 + T 形铁块结构（十字手臂 + 中央身体）
  * - 铜傀儡：南瓜 + 任意铜块（垂直 2 格，铜块替换为铜箱子）
  *
- * 优先级：雪傀儡 > 铁傀儡 > 铜傀儡（与 MC 1.21.11 trySpawnGolem 顺序一致）
+ * 优先级：雪傀儡 > 铁傀儡 > 铜傀儡
  */
 class CarvedPumpkinBlock : public HorizontalBlock {
 public:
@@ -194,7 +199,7 @@ public:
      * 检测雪傀儡、铁傀儡和铜傀儡三种模式。如果匹配，移除方块并生成对应实体。
      * 此方法为静态方法，供 CarvedPumpkinBlock 和 JackOLanternBlock 共用。
      *
-     * 优先级（与 MC 1.21.11 trySpawnGolem 一致）：
+     * 优先级：
      * 1. 雪傀儡（垂直 3 格：南瓜 + 雪块 + 雪块）
      * 2. 铁傀儡（T 形铁块结构）
      * 3. 铜傀儡（垂直 2 格：南瓜 + 铜块，铜块替换为铜箱子）
@@ -209,7 +214,6 @@ public:
      * @brief 检查方块状态是否为南瓜类型（可作为傀儡头部）
      *
      * 刻过的南瓜和南瓜灯都可以作为傀儡的头部方块。
-     * 对应 MC 原版的 PUMPKINS_PREDICATE。
      *
      * @param state 方块状态
      * @return 是否为南瓜类型
@@ -226,116 +230,51 @@ public:
      * - canSpawnGolem 仅检测身体模式，不消耗方块也不生成实体
      * - trySpawnGolem 检测完整模式（含头部）并实际生成傀儡
      *
-     * 对应 MC 1.21.11: CarvedPumpkinBlock.canSpawnGolem(LevelReader, BlockPos)
-     *
      * @param world 世界引用（只读访问）
      * @param pos 南瓜头部位置（身体在该位置下方）
      * @return 是否匹配任意一种傀儡身体模式
      */
     [[nodiscard]] static bool canSpawnGolem(IWorld& world, const BlockPos& pos);
 
+    /**
+     * @brief 清除匹配结果覆盖的全部模式方块（width × height，depth=0）
+     *
+     * 将每个模式格子设为空气并播放方块破坏粒子（levelEvent 2001）。
+     * 凋灵召唤也复用此方法。
+     *
+     * @param world 世界引用
+     * @param match 模式匹配结果
+     */
+    static void clearPatternBlocks(IWorld& world, const blockpattern::BlockPatternMatch& match);
+
+    /**
+     * @brief 通知匹配结果覆盖的全部模式方块的邻居
+     *
+     * 对每个模式格子调用 updateNeighborsAt(pos, AIR)。
+     * 凋灵召唤也复用此方法。
+     *
+     * @param world 世界引用
+     * @param match 模式匹配结果
+     */
+    static void updatePatternBlocks(IWorld& world, const blockpattern::BlockPatternMatch& match);
+
+    /**
+     * @brief 对实体周围指定半径内的玩家触发 SUMMONED_ENTITY 进度
+     *
+     * @param world 世界引用
+     * @param entity 被召唤的实体
+     * @param radius 触发半径（傀儡 5 格，凋灵 50 格）
+     */
+    static void triggerSummonedEntity(IWorld& world, Entity& entity, f32 radius);
+
 private:
     /**
-     * @brief 检测雪傀儡模式
-     *
-     * 模式：从上到下依次为南瓜头部、雪块、雪块（垂直线形）
-     */
-    [[nodiscard]] static bool checkSnowGolemPattern(IWorld& world, const BlockPos& pos);
-
-    /**
-     * @brief 检测铁傀儡模式
-     *
-     * 模式：T形铁块结构
-     * 顶层：空气、南瓜头部、空气
-     * 中层：铁块、铁块、铁块（手臂）
-     * 底层：空气、铁块、空气（身体）
-     *
-     * @param world 世界引用
-     * @param pos 南瓜头部位置
-     * @param outBodyPos 输出铁傀儡身体位置（模式匹配时填充）
-     * @param outIsEastWest 输出手臂是否为东西方向（模式匹配时填充）
-     * @return 是否匹配铁傀儡模式
-     */
-    [[nodiscard]] static bool checkIronGolemPattern(
-        IWorld& world, const BlockPos& pos, BlockPos& outBodyPos, bool& outIsEastWest);
-
-    /**
-     * @brief 检测铜傀儡模式
-     *
-     * 模式：2格垂直结构
-     * 顶层：南瓜头部（pos）
-     * 底层：任意铜块（BlockTags::COPPER 标签内的方块）
-     *
-     * 对应 MC 1.21.11: CarvedPumpkinBlock.getOrCreateCopperGolemBase
-     *   .aisle(" ", "#")
-     *   .where('#', BlockInWorld.hasState(p -> p.is(BlockTags.COPPER)))
-     *
-     * @param world 世界引用
-     * @param pos 南瓜头部位置
-     * @param outCopperPos 输出铜块位置（模式匹配时填充，= pos.down()）
-     * @return 是否匹配铜傀儡模式
-     */
-    [[nodiscard]] static bool checkCopperGolemPattern(IWorld& world, const BlockPos& pos, BlockPos& outCopperPos);
-
-    /**
-     * @brief 执行雪傀儡生成：移除方块并生成实体
-     */
-    static void spawnSnowGolem(IWorld& world, const BlockPos& headPos);
-
-    /**
-     * @brief 执行铁傀儡生成：移除方块并生成实体
-     *
-     * @param world 世界引用
-     * @param headPos 南瓜头部位置
-     * @param armCenterPos 手臂中央位置（中层铁块）
-     * @param isEastWest 手臂是否为东西方向
-     */
-    static void spawnIronGolem(IWorld& world, const BlockPos& headPos, const BlockPos& armCenterPos, bool isEastWest);
-
-    /**
-     * @brief 执行铜傀儡生成：移除方块、生成实体、用铜箱子替换铜块
-     *
-     * 流程对应 MC 1.21.11 CarvedPumpkinBlock.trySpawnGolem 中的铜傀儡分支 +
-     * spawnGolemInWorld + replaceCopperBlockWithChest：
-     * 1. 移除南瓜头部方块（铜傀儡在头部位置生成，与雪/铁傀儡在底部生成不同）
-     * 2. 移除铜块方块（之后会用铜箱子替换）
-     * 3. 在南瓜头部位置生成 CopperGolemEntity，调用 spawnFromStatue 设置氧化等级与音效
-     * 4. 用对应氧化等级的铜箱子替换铜块位置（保留方块实体内容）
-     *
-     * 铜傀儡的氧化等级由铜块状态决定：
-     * - 若铜块实现 IOxidizableBlock，直接取其氧化等级
-     * - 若铜块是涂蜡变种（IOxidizableBlock 不实现），通过 HoneycombItem::getWaxOffMap
-     *   查找未涂蜡变种后取其氧化等级
-     * - 兜底回退到 Unaffected（与 MC 1.21.11 默认 Blocks.COPPER_BLOCK.getAge() 一致）
-     *
-     * @param world 世界引用
-     * @param headPos 南瓜头部位置
-     * @param copperPos 铜块位置（headPos.down()）
-     */
-    static void spawnCopperGolem(IWorld& world, const BlockPos& headPos, const BlockPos& copperPos);
-
-    /**
      * @brief 从铜块状态推导铜傀儡氧化等级
-     *
-     * 对应 MC 1.21.11: CarvedPumpkinBlock.getWeatherStateFromPattern
-     *   BlockState blockstate = pattern.getBlock(0, 1, 0).getState();
-     *   return blockstate.getBlock() instanceof WeatheringCopper weatheringcopper
-     *       ? weatheringcopper.getAge()
-     *       : Optional.ofNullable(HoneycombItem.WAX_OFF_BY_BLOCK.get().get(blockstate.getBlock()))
-     *           .filter(p -> p instanceof WeatheringCopper)
-     *           .map(p -> (WeatheringCopper)p)
-     *           .orElse((WeatheringCopper)Blocks.COPPER_BLOCK)
-     *           .getAge();
      *
      * @param copperState 铜块状态
      * @return 对应的铜傀儡氧化等级
      */
     [[nodiscard]] static entity::CopperGolemWeatherState getWeatherStateFromCopperBlock(const BlockState& copperState);
-
-    /**
-     * @brief 检查方块是否为空气
-     */
-    [[nodiscard]] static bool isAir(const BlockState* state);
 };
 
 /**

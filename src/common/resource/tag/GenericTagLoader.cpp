@@ -388,6 +388,7 @@ Result<size_t> GenericTagLoader::loadFromDataPackRepository(const resource::Data
                     continue;
                 }
 
+                // 单包内条目按声明顺序保留（依赖成员顺序的语义，如 tooltip_order，需要它）。
                 _mergeInto(mergedTags, location, parseResult.value());
             }
         }

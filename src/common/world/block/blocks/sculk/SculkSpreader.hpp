@@ -27,9 +27,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/sculk/SculkBehaviour.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 #include <cstddef>
 #include <optional>

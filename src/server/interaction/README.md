@@ -57,14 +57,14 @@ src/server/interaction/
 
 **内部依赖**：
 - `server/world/ServerWorld.hpp` - 世界操作
-- `server/core/PlayerManager.hpp` - 玩家数据
-- `server/core/ConnectionManager.hpp` - 网络广播
-- `server/core/ServerPlayerData.hpp` - 玩家实体数据
+- `server/player/lifecycle/PlayerManager.hpp` - 玩家数据
+- `server/network/outbound/PacketSender.hpp` - 网络广播
+- `server/player/runtime/ServerPlayerData.hpp` - 玩家实体数据
 - `server/world/drop/BlockDropHandler.hpp` - 掉落物生成
 
 **公共依赖**：
 - `common/core/Types.hpp`, `common/core/Result.hpp`
-- `common/world/block/BlockPos.hpp`, `common/world/block/Block.hpp`
+- `common/world/block/base/types/BlockPos.hpp`, `common/world/block/core/Block.hpp`
 - `common/entity/inventory/PlayerInventory.hpp`, `common/entity/inventory/AbstractContainerMenu.hpp`
 - `common/item/ItemStack.hpp`, `common/item/BlockItemRegistry.hpp`
 - `common/entity/inventory/ContainerTypeUtils.hpp` - 容器点击类型转换工具（`toClickType` 等，从旧 `ContainerTypes::` 迁出）

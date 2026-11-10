@@ -55,10 +55,10 @@
 #include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -298,6 +298,36 @@ TEST_F(SpawnEggItemTest, SpawnEntity_RealRegistryPigSucceeds)
     auto spawned = m_world->takeSpawnedEntities();
     ASSERT_EQ(spawned.size(), 1u);
     EXPECT_EQ(spawned[0]->getTypeId(), "minecraft:pig");
+}
+
+TEST_F(SpawnEggItemTest, SpawnEntity_CamelHuskEggResolvesRegisteredEntity)
+{
+    // camel_husk 的实体类型已在 VanillaEntities 注册，刷怪蛋必须能真正生成实体。
+    // 该用例同时锁定"注册状态"这一事实，避免注释与实际再次漂移。
+    ASSERT_NE(Items::CAMEL_HUSK_SPAWN_EGG, nullptr);
+    auto* egg = static_cast<item::SpawnEggItem*>(Items::CAMEL_HUSK_SPAWN_EGG);
+
+    const BlockPos pos(10, 64, 20);
+    EXPECT_TRUE(egg->spawnEntity(*m_world, pos, world::spawn::SpawnReason::SpawnEgg));
+    EXPECT_EQ(m_world->spawnedEntityCount(), 1u);
+
+    auto spawned = m_world->takeSpawnedEntities();
+    ASSERT_EQ(spawned.size(), 1u);
+    EXPECT_EQ(spawned[0]->getTypeId(), "minecraft:camel_husk");
+}
+
+TEST_F(SpawnEggItemTest, SpawnEntity_HappyGhastEggResolvesRegisteredEntity)
+{
+    ASSERT_NE(Items::HAPPY_GHAST_SPAWN_EGG, nullptr);
+    auto* egg = static_cast<item::SpawnEggItem*>(Items::HAPPY_GHAST_SPAWN_EGG);
+
+    const BlockPos pos(10, 64, 20);
+    EXPECT_TRUE(egg->spawnEntity(*m_world, pos, world::spawn::SpawnReason::SpawnEgg));
+    EXPECT_EQ(m_world->spawnedEntityCount(), 1u);
+
+    auto spawned = m_world->takeSpawnedEntities();
+    ASSERT_EQ(spawned.size(), 1u);
+    EXPECT_EQ(spawned[0]->getTypeId(), "minecraft:happy_ghast");
 }
 
 TEST_F(SpawnEggItemTest, SpawnEntity_UnknownEntityTypeReturnsFalse)

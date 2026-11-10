@@ -22,8 +22,8 @@
 #include "JigsawPiece.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 #include <algorithm>
 #include <vector>
@@ -109,25 +109,8 @@ std::vector<JigsawJoint> JigsawTransform::getTransformedJoints(
 structure::StructureBoundingBox JigsawTransform::calculateBoundingBox(
     const JigsawPiece& piece, const BlockPos& pos, Rotation rotation)
 {
-    // 对应 MC StructureTemplate.getBoundingBox(pos, rot, pivot=ZERO, mirror)：
-    // 把模板的两个对角点（0 与 size-1）各自变换后归一化，再整体平移到 pos。
-    // 变换以原点角为轴，故旋转后坐标可为负 —— 不能用"旋转后尺寸直接铺在 pos 上"代替。
-    const BlockPos size = piece.getSize();
-    if (size.x <= 0 || size.y <= 0 || size.z <= 0) {
-        // 退化模板（地物池元素的 getSize 为 Vec3i.ZERO）：没有实体范围，包围盒退化到 pos
-        return structure::StructureBoundingBox(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
-    }
-
-    const BlockPos cornerA = transformPosition(BlockPos(0, 0, 0), rotation, Mirror::None, BlockPos(0, 0, 0));
-    const BlockPos cornerB =
-        transformPosition(BlockPos(size.x - 1, size.y - 1, size.z - 1), rotation, Mirror::None, BlockPos(0, 0, 0));
-
-    return structure::StructureBoundingBox(pos.x + std::min(cornerA.x, cornerB.x),
-        pos.y + std::min(cornerA.y, cornerB.y),
-        pos.z + std::min(cornerA.z, cornerB.z),
-        pos.x + std::max(cornerA.x, cornerB.x),
-        pos.y + std::max(cornerA.y, cornerB.y),
-        pos.z + std::max(cornerA.z, cornerB.z));
+    // 包围盒由构件自身给出：单模板构件按模板尺寸算，列表构件是所有子构件包围盒的并集。
+    return piece.getBoundingBox(pos, rotation);
 }
 
 Rotation JigsawTransform::getRandomRotation(math::IRandom& rng)

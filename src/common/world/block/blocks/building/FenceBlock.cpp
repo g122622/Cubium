@@ -30,10 +30,11 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/FenceGateHelpers.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/blocks/fencegate/FenceGateHelpers.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/support/SupportType.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <cstddef>
 #include <memory>
@@ -128,7 +129,7 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
 
 BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    const IWorld& world = context.getWorld();
+    IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
     // 计算初始连接状态
@@ -142,10 +143,21 @@ BlockState FenceBlock::getStateForPlacement(BlockItemUseContext& context)
     const BlockState* southState = world.getBlockState(southPos);
     const BlockState* westState = world.getBlockState(westPos);
 
-    bool connectNorth = northState && _canConnect(*northState, northState->isSolid(), Direction::North);
-    bool connectEast = eastState && _canConnect(*eastState, eastState->isSolid(), Direction::East);
-    bool connectSouth = southState && _canConnect(*southState, southState->isSolid(), Direction::South);
-    bool connectWest = westState && _canConnect(*westState, westState->isSolid(), Direction::West);
+    // 连接依据是邻居朝向本方块的面是否完整（如台阶只有半边有支撑面），不能只看 isSolid()。
+    bool connectNorth = northState &&
+        _canConnect(*northState,
+            northState->isFaceSturdy(world, northPos, Direction::South, SupportType::Full),
+            Direction::North);
+    bool connectEast = eastState &&
+        _canConnect(
+            *eastState, eastState->isFaceSturdy(world, eastPos, Direction::West, SupportType::Full), Direction::East);
+    bool connectSouth = southState &&
+        _canConnect(*southState,
+            southState->isFaceSturdy(world, southPos, Direction::North, SupportType::Full),
+            Direction::South);
+    bool connectWest = westState &&
+        _canConnect(
+            *westState, westState->isFaceSturdy(world, westPos, Direction::East, SupportType::Full), Direction::West);
 
     // 检查是否含水
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
@@ -173,8 +185,9 @@ BlockState FenceBlock::updatePostPlacement(const BlockState& state,
 
     // 只处理水平方向的更新
     if (Directions::getAxis(facing) != Axis::Y) {
-        // 检查对面方向是否为固体
-        bool isSideSolid = facingState.isSolid();
+        // 邻居朝向本方块的一面是否完整（如台阶只有半边有支撑面），不能只看 isSolid()。
+        const bool isSideSolid =
+            facingState.isFaceSturdy(world, facingPos, Directions::opposite(facing), SupportType::Full);
         bool shouldConnect = _canConnect(facingState, isSideSolid, facing);
 
         switch (facing) {
@@ -260,11 +273,11 @@ const BlockState& FenceBlock::mirror(const BlockState& state, Mirror mirror) con
     bool south = state.get(BlockStateProperties::SOUTH());
 
     if (mirror == Mirror::LeftRight) {
-        // 左右镜像（X轴）：east<->west
-        return state.with(BlockStateProperties::EAST(), west).with(BlockStateProperties::WEST(), east);
-    } else if (mirror == Mirror::FrontBack) {
-        // 前后镜像（Z轴）：north<->south
+        // 左右镜像（沿 Z 轴）：north<->south
         return state.with(BlockStateProperties::NORTH(), south).with(BlockStateProperties::SOUTH(), north);
+    } else if (mirror == Mirror::FrontBack) {
+        // 前后镜像（沿 X 轴）：east<->west
+        return state.with(BlockStateProperties::EAST(), west).with(BlockStateProperties::WEST(), east);
     }
 
     return state;

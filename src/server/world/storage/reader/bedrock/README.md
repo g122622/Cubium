@@ -46,7 +46,7 @@ BedrockLDBBackend (位于 backend/)
 ### 下游（这个目录依赖了谁）
 
 - `common/world/chunk/ChunkData` / `ChunkSection` - 区块数据结构
-- `common/world/block/BlockState` - 方块状态
+- `common/world/block/core/BlockState` - 方块状态
 - `common/util/nbt` - NBT 解析（contexts::bedrock_disk）
 - `common/core/Result` - 错误处理
 - `leveldb` - LevelDB 数据库（第三方库）

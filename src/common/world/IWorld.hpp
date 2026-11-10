@@ -26,8 +26,7 @@
 #include "IWorldWriter.hpp"
 #include "WorldConstants.hpp"
 #include "biome/BiomeClimate.hpp"
-#include "block/BlockPos.hpp"
-#include "block/BlockUpdateFlags.hpp"
+#include "biome/BiomeIds.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -42,7 +41,11 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/attribute/EnvironmentAttributeSystem.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
 #include "gameevent/GameEvent.hpp"
@@ -363,6 +366,29 @@ public:
      */
     virtual void updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Direction except);
 
+    /**
+     * @brief 邻居形状更新（对应 vanilla `LevelAccessor#neighborShapeChanged`）
+     *
+     * 方块变化后，让 `neighborPos` 处的方块按"哪一侧变了、变成什么"重算自己的形状，
+     * 结果不同即写回。这是形状更新级联的**唯一入口**：`Block::updateNeighbourShapes`
+     * 与 `Block::updateIndirectNeighbourShapes` 都经由它转发。
+     *
+     * @param direction 从 `neighborPos` 指向 `sourcePos` 的方向（即邻居的更新方向）
+     * @param neighborPos 被更新的邻居位置
+     * @param sourcePos 变化来源位置
+     * @param sourceState 变化来源方块的（新）状态
+     * @param flags 形状更新标志；含 UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE 时跳过红石线
+     * @param recursionLeft 剩余的形状更新递归预算（每次级联递减 1）
+     * @param movedByPiston 是否由活塞推动引发（传递给被更新方块的回调）
+     */
+    virtual void notifyShapeChanged(Direction direction,
+        const BlockPos& neighborPos,
+        const BlockPos& sourcePos,
+        const BlockState& sourceState,
+        i32 flags,
+        i32 recursionLeft,
+        bool movedByPiston);
+
     // ========== 流体访问 ==========
 
     /**
@@ -495,11 +521,11 @@ public:
      * 世界事件是服务端广播给客户端的游戏事件，用于触发音效和粒子效果。
      * 例如：门开关音效、铁砧使用、方块破坏粒子等。
      *
-     * @param eventId 事件ID，参见 WorldEvents 命名空间
+     * @param eventId 事件ID，参见 LevelEventId 枚举
      * @param pos 事件位置
      * @param data 事件数据（含义因事件而异）
      */
-    virtual void playEvent(i32 eventId, const BlockPos& pos, i32 data)
+    virtual void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data)
     {
         (void)eventId;
         (void)pos;
@@ -509,7 +535,7 @@ public:
     /**
      * @brief 全局世界事件广播
      *
-     * 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
+     * 对应 MC Java: ServerLevel.globalLevelEvent(::mc::world::LevelEventId, BlockPos, i32)
      * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
      * 遍历全服所有玩家（跨维度），对每个玩家计算事件位置：
      *   - 同维度且距离<32格：使用真实事件位置
@@ -522,7 +548,7 @@ public:
      * @param pos 事件位置
      * @param data 事件数据
      */
-    virtual void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
+    virtual void globalLevelEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data)
     {
         // 默认降级为普通 playEvent（等价 vanilla globalSoundEvents=false 时的行为）；
         // 服务端世界覆写本方法，按 gamerule 选择全局广播或普通事件。
@@ -666,6 +692,22 @@ public:
      * @return 最高方块 Y 坐标
      */
     [[nodiscard]] virtual i32 getHeight(i32 x, i32 z) const = 0;
+
+    /**
+     * @brief 获取指定高度图在该列的最高方块 Y
+     *
+     * 对应 MC Java 版 `LevelReader.getHeight(Heightmap.Types, x, z)`。没有高度图信息的
+     * 桩世界（差分探针的空世界、单元测试的假世界）退化为无类型的 `getHeight(x, z)`。
+     *
+     * @param x, z 水平坐标
+     * @param type 高度图类型
+     * @return 该高度图记录的方块 Y 坐标
+     */
+    [[nodiscard]] virtual i32 getHeight(i32 x, i32 z, world::chunk::HeightmapType type) const
+    {
+        (void)type;
+        return getHeight(x, z);
+    }
 
     // ========== 光照查询 ==========
 
@@ -1343,6 +1385,23 @@ public:
     [[nodiscard]] virtual bool isThundering() const
     {
         return false;
+    }
+
+    /**
+     * @brief 读取方块坐标处的生物群系（vanilla `LevelReader.getBiome(BlockPos)` 语义）
+     *
+     * 按 BiomeManager 的 Voronoi 抖动选格，而不是直接取该方块所在 quart。
+     * 没有群系信息的桩世界（差分探针的空世界、单元测试的假世界）返回平原：
+     * 与参照实现里空世界桩的固定群系保持一致。
+     *
+     * @param x 方块 X
+     * @param y 方块 Y
+     * @param z 方块 Z
+     * @return 该位置的生物群系 ID
+     */
+    [[nodiscard]] virtual BiomeId getBiome(i32 /*x*/, i32 /*y*/, i32 /*z*/) const
+    {
+        return world::biome::Biomes::Plains;
     }
 
     /**

@@ -24,7 +24,12 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/container/ChestBlock.hpp"
+#include "common/world/block/blocks/trapdoor/TrapDoorBlock.hpp"
+#include "common/world/block/capability/IWaterLoggable.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -32,14 +37,9 @@
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/IWaterLoggable.hpp"
-#include "world/block/WaterLoggableHelpers.hpp"
-#include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/building/FenceBlock.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
-#include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/ChainBlock.hpp"
 #include "world/block/blocks/decorative/LadderBlock.hpp"
@@ -379,7 +379,7 @@ protected:
 
 TEST_F(TrapDoorBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
 {
-    TrapDoorBlock trapdoor(BlockProperties(Material::WOOD).hardness(3.0f), false);
+    TrapDoorBlock trapdoor(BlockProperties(Material::WOOD).hardness(3.0f), BlockSetTypes::OAK);
 
     BlockState waterloggedState = trapdoor.defaultState().with(BlockStateProperties::WATERLOGGED(), true);
     const fluid::FluidState* fluidState = trapdoor.getFluidState(waterloggedState);
@@ -390,7 +390,7 @@ TEST_F(TrapDoorBlockWaterlogTest, GetFluidState_ReturnsWaterWhenWaterlogged)
 
 TEST_F(TrapDoorBlockWaterlogTest, Placement_WaterloggedInWater)
 {
-    TrapDoorBlock trapdoor(BlockProperties(Material::WOOD).hardness(3.0f), false);
+    TrapDoorBlock trapdoor(BlockProperties(Material::WOOD).hardness(3.0f), BlockSetTypes::OAK);
     WaterlogTestWorld world;
 
     BlockPos pos(8, 8, 8);

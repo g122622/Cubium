@@ -24,9 +24,11 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -35,8 +37,6 @@
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/building/FenceBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/PaneBlock.hpp"
@@ -374,12 +374,12 @@ TEST_F(FenceBlockTest, Mirror_SwapsConnections)
                                  .with(BlockStateProperties::WEST(), false)
                                  .with(BlockStateProperties::WATERLOGGED(), false);
 
-    // 左右镜像: East <-> West
+    // 左右镜像（沿 Z 轴翻转）: North <-> South，East/West 不变
     const BlockState& mirrored = fence.mirror(state, Mirror::LeftRight);
-    EXPECT_TRUE(mirrored.get(BlockStateProperties::NORTH()));
-    EXPECT_FALSE(mirrored.get(BlockStateProperties::EAST()));
-    EXPECT_FALSE(mirrored.get(BlockStateProperties::SOUTH()));
-    EXPECT_TRUE(mirrored.get(BlockStateProperties::WEST()));
+    EXPECT_FALSE(mirrored.get(BlockStateProperties::NORTH()));
+    EXPECT_TRUE(mirrored.get(BlockStateProperties::EAST()));
+    EXPECT_TRUE(mirrored.get(BlockStateProperties::SOUTH()));
+    EXPECT_FALSE(mirrored.get(BlockStateProperties::WEST()));
 }
 
 TEST_F(FenceBlockTest, Waterlogged_ReturnsCorrectFluidState)

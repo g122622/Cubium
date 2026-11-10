@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 
 #include <array>
-#include <bit>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -19,13 +18,6 @@ namespace {
 using json = nlohmann::json;
 using world::gen::density::DensityFunction;
 using world::gen::density::EndIslands;
-
-std::string doubleBits(f64 value)
-{
-    char buffer[24];
-    std::snprintf(buffer, sizeof(buffer), "0x%016llx", static_cast<unsigned long long>(std::bit_cast<u64>(value)));
-    return buffer;
-}
 
 /**
  * @brief 末地岛屿密度的用例
@@ -111,9 +103,9 @@ std::string runLine(std::string_view inputLine)
     const auto& point = samplePoints()[index];
     const f64 value = function.compute(point[0], point[1], point[2]);
     return json{{"unit", requested},
-        {"value", doubleBits(value)},
-        {"min", doubleBits(function.minValue())},
-        {"max", doubleBits(function.maxValue())}}
+        {"value", encodeFloat(value)},
+        {"min", encodeFloat(function.minValue())},
+        {"max", encodeFloat(function.maxValue())}}
         .dump();
 }
 

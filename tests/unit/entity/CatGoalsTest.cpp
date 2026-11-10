@@ -30,7 +30,7 @@
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 namespace mc {
 namespace {

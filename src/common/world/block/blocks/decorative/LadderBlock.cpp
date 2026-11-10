@@ -31,11 +31,11 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/SupportType.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/capability/WaterLoggableHelpers.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/support/SupportType.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -235,7 +235,7 @@ const CollisionShape& LadderBlock::getShape(const BlockState& state) const
 
 const CollisionShape& LadderBlock::getCollisionShape(const BlockState& state) const
 {
-    // 对齐原版：LadderBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape
+    // LadderBlock **没有**覆写 getCollisionShape，故碰撞形状等于 getShape
     // （贴着墙的薄板，厚 3/16）。
     //
     // 此前这里返回空形状，注释理由是「梯子没有碰撞箱」——**这是错的**：梯子的碰撞箱虽薄

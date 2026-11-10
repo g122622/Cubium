@@ -28,8 +28,8 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/world/block/registry/BaseBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/BaseBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 
 using namespace mc;

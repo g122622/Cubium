@@ -30,8 +30,8 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -118,6 +118,13 @@ void PathNavigator::setCanWalkOverFences(bool canWalkOverFences)
 std::optional<Path> PathNavigator::_createPath(const BlockPos& target, i32 reachRange, f32 maxPathLength)
 {
     return _createPath(std::vector<BlockPos>{target}, GROUND_SEARCH_RANGE, false, reachRange, maxPathLength);
+}
+
+bool PathNavigator::canReach(const BlockPos& target, i32 reachRange)
+{
+    // 只算路径不启动跟随：与 moveTo 共用 maxPathLength=16 的口径，保证"能不能到"
+    // 与"实际会不会去"使用同一限制。
+    return _createPath(target, reachRange, 16.0f).has_value();
 }
 
 std::optional<Path> PathNavigator::_createPath(

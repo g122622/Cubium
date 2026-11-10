@@ -33,8 +33,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/CappedStructureProcessor.hpp"
 #include "server/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
@@ -108,6 +108,38 @@ std::optional<std::string> optString(simdjson::ondemand::object& obj, std::strin
         return std::nullopt;
     }
     return std::string(strResult.value());
+}
+
+/**
+ * @brief 把处理器 JSON 里的 `heightmap` 名字解析为高度图类型
+ *
+ * 名字对应原版 `Heightmap.Types` 的序列化名（大写，如 `WORLD_SURFACE_WG`），数据包里也可能
+ * 写成小写形式，两种都接受。无法识别时返回 `std::nullopt`，由调用方决定降级与告警。
+ *
+ * @param name 已去掉 `minecraft:` 前缀的高度图名
+ * @return 解析出的高度图类型，无法识别返回 nullopt
+ */
+std::optional<world::chunk::HeightmapType> _heightmapTypeFromName(const std::string& name)
+{
+    if (name == "WORLD_SURFACE_WG" || name == "world_surface_wg") {
+        return world::chunk::HeightmapType::WorldSurfaceWG;
+    }
+    if (name == "OCEAN_FLOOR_WG" || name == "ocean_floor_wg") {
+        return world::chunk::HeightmapType::OceanFloorWG;
+    }
+    if (name == "WORLD_SURFACE" || name == "world_surface") {
+        return world::chunk::HeightmapType::WorldSurface;
+    }
+    if (name == "OCEAN_FLOOR" || name == "ocean_floor") {
+        return world::chunk::HeightmapType::OceanFloor;
+    }
+    if (name == "MOTION_BLOCKING" || name == "motion_blocking") {
+        return world::chunk::HeightmapType::MotionBlocking;
+    }
+    if (name == "MOTION_BLOCKING_NO_LEAVES" || name == "motion_blocking_no_leaves") {
+        return world::chunk::HeightmapType::MotionBlockingNoLeaves;
+    }
+    return std::nullopt;
 }
 
 /**
@@ -692,9 +724,10 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
                         ResourceLocation blockLoc(std::string(strResult.value()));
                         Block* block = BlockRegistry::instance().getBlock(blockLoc);
                         if (block != nullptr) {
-                            blocksToIgnore.push_back(block->defaultState().stateId());
+                            // 处理器按方块 ID 忽略，任意状态都会被跳过。
+                            blocksToIgnore.push_back(block->blockId());
                         } else {
-                            spdlog::info(
+                            spdlog::warn(
                                 "block_ignore: unknown block '{}' in ignore list, skipping", blockLoc.toString());
                         }
                     }
@@ -702,9 +735,12 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
                     auto objResult = blockEntryVal.get_object();
                     if (objResult.error() == simdjson::SUCCESS) {
                         auto blockEntryObj = objResult.value();
-                        u32 stateId = parseOutputBlockStateId(blockEntryObj);
-                        if (stateId != 0) {
-                            blocksToIgnore.push_back(stateId);
+                        const u32 stateId = parseOutputBlockStateId(blockEntryObj);
+                        const BlockState* state = BlockRegistry::instance().getBlockState(stateId);
+                        if (state != nullptr) {
+                            blocksToIgnore.push_back(state->blockId());
+                        } else {
+                            spdlog::warn("block_ignore: unknown block state id {} in ignore list, skipping", stateId);
                         }
                     }
                 }
@@ -734,25 +770,24 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockRotProcessor
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseGravityProcessor(
     simdjson::ondemand::object& processorObj)
 {
-    // gravity 处理器：重力偏移
-    // JSON: { "processor_type": "minecraft:gravity", "heightmap": "WORLD_SURFACE_WG" }
-    i32 heightmapType = 0; // 默认 WORLD_SURFACE_WG
+    // gravity 处理器：把构件贴到指定高度图的地面上
+    // JSON: { "processor_type": "minecraft:gravity", "heightmap": "WORLD_SURFACE_WG", "offset": -1 }
+    // heightmap 的取值是原版 `Heightmap.Types` 的注册名（默认 WORLD_SURFACE_WG）。
+    world::chunk::HeightmapType heightmapType = world::chunk::HeightmapType::WorldSurfaceWG;
     auto heightmap = optString(processorObj, "heightmap");
     if (heightmap) {
-        std::string hm = stripMinecraftPrefix(*heightmap);
-
-        if (hm == "WORLD_SURFACE_WG" || hm == "world_surface_wg") {
-            heightmapType = 0;
-        } else if (hm == "OCEAN_FLOOR_WG" || hm == "ocean_floor_wg") {
-            heightmapType = 1;
-        } else if (hm == "MOTION_BLOCKING" || hm == "motion_blocking") {
-            heightmapType = 2;
+        const std::string hm = stripMinecraftPrefix(*heightmap);
+        const std::optional<world::chunk::HeightmapType> parsed = _heightmapTypeFromName(hm);
+        if (parsed.has_value()) {
+            heightmapType = *parsed;
         } else {
-            spdlog::info("gravity: unknown heightmap '{}', defaulting to WORLD_SURFACE_WG", hm);
+            // 未知名字是数据包错误（原版解析会直接失败），这里降级为默认值但必须告警
+            spdlog::warn("gravity: unknown heightmap '{}', defaulting to WORLD_SURFACE_WG", hm);
         }
     }
 
-    return std::make_unique<GravityStructureProcessor>(heightmapType);
+    // offset 由调用方（拼图构件）按投影方式决定，这里只解析高度图类型。
+    return std::make_unique<GravityStructureProcessor>(heightmapType, 0);
 }
 
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseJigsawReplacementProcessor()

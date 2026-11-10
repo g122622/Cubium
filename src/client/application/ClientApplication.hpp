@@ -60,7 +60,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IntegratedServer.hpp"
 
 #include <atomic>
@@ -463,7 +463,7 @@ private:
      *
      * 对应 MC Java 的 LevelEventHandler.levelEvent()，根据事件ID播放音效和粒子效果。
      *
-     * @param eventId 事件ID（参见 WorldEvents 命名空间）
+     * @param eventId 事件ID（参见 LevelEventId 枚举）
      * @param x 事件位置 X
      * @param y 事件位置 Y
      * @param z 事件位置 Z

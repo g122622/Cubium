@@ -40,10 +40,10 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
-#include "common/world/block/registry/BuildingBlocks.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/BuildingBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -143,14 +143,14 @@ void AnvilBlock::onEndFalling(IWorld& world,
 {
     MC_UNUSED(entity);
     // 播放铁砧落地音效
-    world.playEvent(world::WorldEvents::ANVIL_LAND_SOUND, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_ANVIL_LAND, pos, 0);
 }
 
 void AnvilBlock::onBroken(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity)
 {
     MC_UNUSED(entity);
     // 播放铁砧破碎音效
-    world.playEvent(world::WorldEvents::ANVIL_DESTROYED_SOUND, pos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_ANVIL_BROKEN, pos, 0);
 }
 
 BlockState AnvilBlock::getStateForPlacement(BlockItemUseContext& context)
@@ -176,36 +176,6 @@ const BlockState& AnvilBlock::rotate(const BlockState& state, Rotation rotation)
             newFacing = Directions::rotateYCCW(currentFacing);
             break;
         case Rotation::None:
-        default:
-            break;
-    }
-
-    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
-}
-
-const BlockState& AnvilBlock::mirror(const BlockState& state, Mirror mirror) const
-{
-    Direction currentFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction newFacing = currentFacing;
-
-    switch (mirror) {
-        case Mirror::LeftRight:
-            // 南北镜像：东西互换
-            if (currentFacing == Direction::East) {
-                newFacing = Direction::West;
-            } else if (currentFacing == Direction::West) {
-                newFacing = Direction::East;
-            }
-            break;
-        case Mirror::FrontBack:
-            // 前后镜像：南北互换
-            if (currentFacing == Direction::North) {
-                newFacing = Direction::South;
-            } else if (currentFacing == Direction::South) {
-                newFacing = Direction::North;
-            }
-            break;
-        case Mirror::None:
         default:
             break;
     }

@@ -23,7 +23,7 @@
 
 #include "FlyNodeEvaluator.hpp"
 #include "common/util/AxisAlignedBB.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include <algorithm>

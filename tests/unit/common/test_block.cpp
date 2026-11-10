@@ -32,20 +32,20 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
-#include "common/world/block/blocks/RotatedPillarBlock.hpp"
+#include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/blocks/base/RotatedPillarBlock.hpp"
 #include "common/world/block/blocks/coral/CoralBlock.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/block/blocks/functional/CakeBlock.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -875,7 +875,7 @@ TEST(BlockTest, BlockWithoutExplicitStateContainer_HasValidDefaultState)
 
 TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates)
 {
-    const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 16.0f, 8.0f, 16.0f);
+    const CollisionShape shape = CollisionShape::fromPixelBox(0.0f, 0.0f, 0.0f, 16.0f, 8.0f, 16.0f);
     ASSERT_EQ(shape.boxCount(), 1u);
 
     const AxisAlignedBB& box = shape.boxes().front();
@@ -889,7 +889,7 @@ TEST(VoxelShapesTest, CubeAcceptsPixelCoordinates)
 
 TEST(VoxelShapesTest, CubeAcceptsNormalizedCoordinates)
 {
-    const CollisionShape shape = VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    const CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
     ASSERT_EQ(shape.boxCount(), 1u);
 
     const AxisAlignedBB& box = shape.boxes().front();
@@ -2094,4 +2094,36 @@ TEST(GetShadeBrightnessTest, LeafBlockReturns10)
     const auto& leafState = VanillaBlocks::OAK_LEAVES->defaultState();
     EXPECT_FLOAT_EQ(leafState.getShadeBrightness(), 1.0f);
     EXPECT_FLOAT_EQ(leafState.getAmbientOcclusionLightValue(), 1.0f);
+}
+
+// 脚本 Block.isWaterlogged 的判定依赖 getFluidState()：水方块的流体状态必须是水、
+// 空气必须是空。这里锁定这条契约，避免上游流体状态改动让 isWaterlogged 静默失效。
+TEST(BlockFluidStateContractTest, WaterBlockStateReportsWaterFluid)
+{
+    VanillaBlocks::initialize();
+    const auto& waterState = VanillaBlocks::WATER->defaultState();
+    const fluid::FluidState* fluidState = waterState.getFluidState();
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_FALSE(fluidState->isEmpty());
+    EXPECT_EQ(fluidState->getFluid().fluidLocation(), ResourceLocation("minecraft:water"));
+}
+
+TEST(BlockFluidStateContractTest, AirBlockStateReportsEmptyFluid)
+{
+    VanillaBlocks::initialize();
+    const auto& airState = VanillaBlocks::AIR->defaultState();
+    const fluid::FluidState* fluidState = airState.getFluidState();
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_TRUE(fluidState->isEmpty());
+}
+
+TEST(BlockFluidStateContractTest, LavaBlockStateIsNotEmptyButNotWater)
+{
+    VanillaBlocks::initialize();
+    const auto& lavaState = VanillaBlocks::LAVA->defaultState();
+    const fluid::FluidState* fluidState = lavaState.getFluidState();
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_FALSE(fluidState->isEmpty());
+    // 岩浆不是水，isWaterlogged 对它必须为 false。
+    EXPECT_NE(fluidState->getFluid().fluidLocation(), ResourceLocation("minecraft:water"));
 }

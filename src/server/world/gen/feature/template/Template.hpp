@@ -29,9 +29,9 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -45,7 +45,6 @@ namespace mc {
 
 class BlockState;
 class Block;
-class IWorldWriter;
 class IWorld;
 
 namespace world {
@@ -117,6 +116,16 @@ struct ProcessedBlockInfo {
 };
 
 /**
+ * @brief 模板中的数据标记（原版 `mode=DATA` 的结构方块）
+ *
+ * 数据标记不参与正常方块放置，而是由所属结构片段读取 `metadata` 后再生成箱子/生物等。
+ */
+struct TemplateDataMarker {
+    BlockPos pos;         ///< 已按放置设置换算到世界坐标的位置
+    std::string metadata; ///< 原版结构方块的 `metadata` 字符串
+};
+
+/**
  * @brief 放置设置
  */
 class PlacementSettings {
@@ -158,14 +167,12 @@ public:
 
     PlacementSettings& setCenterOffset(const BlockPos& offset);
 
-    // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
-    //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
-    [[nodiscard]] i32 getBlockUpdateFlags() const
+    [[nodiscard]] const BlockPos& getRotationPivot() const
     {
-        return m_blockUpdateFlags;
+        return m_rotationPivot;
     }
 
-    PlacementSettings& setBlockUpdateFlags(i32 flags);
+    PlacementSettings& setRotationPivot(const BlockPos& pivot);
 
     [[nodiscard]] bool keepLiquids() const
     {
@@ -173,6 +180,19 @@ public:
     }
 
     PlacementSettings& setKeepLiquids(bool keep);
+
+    /**
+     * @brief 是否跳过放置后的形状重算
+     *
+     * 为 true 时模板方块的连接/附着属性直接采用模板记录的值，不再按周围方块重算
+     * （拼图池构件在装配阶段已保证形状正确）。默认 false，即放完后重算一次。
+     */
+    [[nodiscard]] bool knownShape() const
+    {
+        return m_knownShape;
+    }
+
+    PlacementSettings& setKnownShape(bool known);
 
     /**
      * @brief 获取世界读取器（用于 GravityStructureProcessor 等需要高度信息的处理器）
@@ -223,10 +243,12 @@ private:
     Rotation m_rotation = Rotation::None;
     Mirror m_mirror = Mirror::None;
     bool m_ignoreEntities = false;
-    bool m_keepLiquids = false;
+    // 默认按世界当前位置的流体补上水浸（APPLY_WATERLOGGING）。
+    bool m_keepLiquids = true;
+    bool m_knownShape = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
-    i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
+    BlockPos m_rotationPivot = BlockPos(0, 0, 0);
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;   // 可选的世界读取器
     math::IRandom* m_random = nullptr; // 可选的预设随机数生成器
@@ -658,26 +680,21 @@ public:
         const PlacementSettings& settings, const BlockPos& pos) const;
 
     /**
-     * @brief 放置模板到世界（基础版本）
+     * @brief 取出模板中的全部数据标记（原版 `StructureTemplate#filterBlocks` + `mode=DATA` 筛选）
      *
-     * 仅放置方块，不处理液体、TileEntity 和实体。
-     * 适用于不需要完整世界访问的场景。
+     * 标记位置按放置设置（镜像/旋转/枢轴 + 模板原点）换算到世界坐标，并遵守放置包围盒；
+     * 与方块放置不同，数据标记不经过处理器链，也不参与正常方块写入。
      *
-     * @param world 世界写入器
-     * @param pos 放置位置
+     * @param templatePosition 模板放置原点
      * @param settings 放置设置
-     * @param rng 随机数生成器
-     * @param flags 方块更新标志
-     * @return 是否成功放置
+     * @return 数据标记列表（按模板方块顺序）
      */
-    bool place(IWorldWriter& world,
-        const BlockPos& pos,
-        const PlacementSettings& settings,
-        math::IRandom& rng,
-        i32 flags) const;
+    [[nodiscard]] std::vector<TemplateDataMarker> getDataMarkers(
+        const BlockPos& templatePosition, const PlacementSettings& settings) const;
 
     /**
-     * @brief 放置模板到世界（完整版本）
+     * @brief 放置模板到世界
+     *
      * 完整实现包括：
      * - 方块放置
      * - 液体处理（水、岩浆填充容器）
@@ -716,6 +733,15 @@ public:
     [[nodiscard]] BlockPos getZeroPositionWithTransform(const BlockPos& pos, Mirror mirror, Rotation rotation) const;
 
     /**
+     * @brief 按显式尺寸计算放置原点（对应原版 `StructureTemplate.getZeroPositionWithTransform` 静态版）
+     *
+     * 尺寸以「方块数」给出，内部各减 1 后按镜像/旋转选择偏移分量。用于调用方手里只有
+     * 模板尺寸、没有模板实例的场景（如林地府邸按 7x7 的房间足迹推算放置点）。
+     */
+    [[nodiscard]] static BlockPos getZeroPositionWithTransform(
+        const BlockPos& pos, Mirror mirror, Rotation rotation, i32 sizeX, i32 sizeZ);
+
+    /**
      * @brief 变换实体精确位置（f64）
      *
      * 对应 MC 1.21.11 StructureTemplate#transform(Vec3, Mirror, Rotation, BlockPos)。
@@ -745,11 +771,15 @@ private:
 };
 
 /**
- * @brief 重力结构处理器
+ * @brief 重力结构处理器（对应原版 `GravityProcessor`）
+ *
+ * 把方块贴到**指定高度图**的地面上：`新 Y = 高度图取值 + offset + 模板内局部 Y`。
+ * `heightmapType` 就是原版构造参数里的 `Heightmap.Types`，由数据包的 `heightmap` 字段决定
+ * （terrain_matching 的拼图构件用它把街道、平台等地表构件贴到地形上）。
  */
 class GravityStructureProcessor : public StructureProcessor {
 public:
-    explicit GravityStructureProcessor(i32 heightmapType = 0, i32 offset = 0);
+    explicit GravityStructureProcessor(world::chunk::HeightmapType heightmapType, i32 offset);
 
     [[nodiscard]] std::optional<ProcessedBlockInfo> process(const BlockPos& seedPos,
         const BlockPos& pos,
@@ -762,7 +792,7 @@ public:
         return std::make_unique<GravityStructureProcessor>(m_heightmapType, m_offset);
     }
 
-    [[nodiscard]] i32 heightmapType() const
+    [[nodiscard]] world::chunk::HeightmapType heightmapType() const
     {
         return m_heightmapType;
     }
@@ -773,12 +803,14 @@ public:
     }
 
 private:
-    i32 m_heightmapType;
+    world::chunk::HeightmapType m_heightmapType;
     i32 m_offset;
 };
 
 /**
  * @brief 方块忽略结构处理器
+ *
+ * 按**方块 ID** 忽略：命中方块后，该方块的任意状态都不会被放置。
  */
 class BlockIgnoreStructureProcessor : public StructureProcessor {
 public:

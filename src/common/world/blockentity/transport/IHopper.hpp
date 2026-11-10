@@ -24,10 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "util/AxisAlignedBB.hpp"
 #include "util/Direction.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
 
 namespace mc {
 

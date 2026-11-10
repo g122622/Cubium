@@ -25,7 +25,7 @@
 
 #include "JukeboxSong.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 
 namespace mc {

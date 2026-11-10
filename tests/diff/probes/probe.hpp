@@ -23,10 +23,13 @@
 
 #pragma once
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 /**
  * @file probe.hpp
@@ -52,6 +55,27 @@
  * 确定性要求：同一输入必须永远产出同一输出。凡涉及无序容器、随机数、时间、地址，
  * probe 必须在写入前自行收敛（排序、固定种子、去掉地址），否则差分没有意义。
  */
+
+/**
+ * @brief 把一个浮点结果编码成两侧都能安全表达的 JSON 值。
+ *
+ * 有限值原样返回（JSON number），让编排层按容差比较——项目不对齐浮点精度，
+ * 末位差异不是缺陷。
+ *
+ * 非有限值返回字符串："nan" / "inf" / "-inf"。不能直接交给 JSON 数字：
+ * nlohmann 会写 `null`，Gson 会写裸 `NaN`/`Infinity`（**不是合法 JSON**，编排层
+ * 解析时直接报错）。两侧统一用这三个字符串，NaN 与 NaN 才算相等。
+ */
+inline nlohmann::json encodeFloat(double value)
+{
+    if (std::isnan(value)) {
+        return "nan";
+    }
+    if (std::isinf(value)) {
+        return value > 0 ? "inf" : "-inf";
+    }
+    return value;
+}
 
 namespace mc::diff {
 

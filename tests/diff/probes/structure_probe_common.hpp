@@ -19,10 +19,12 @@
 #include <utility>
 
 #include "common/core/Types.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTagLoader.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
@@ -114,13 +116,6 @@ inline world::gen::feature::template_::TemplateManagerHostBinding& templateBindi
  * 顺序与 `RegistryBootstrap::initializeAll` 一致：模板池必须先于结构定义，结构标签必须先于
  * 结构集。注册表是进程级单例，重复调用幂等。
  */
-
-/**
- * @brief 按服务端启动顺序装配全部世界生成注册表
- *
- * 顺序与 `RegistryBootstrap::initializeAll` 一致：模板池必须先于结构定义，结构标签必须先于
- * 结构集。注册表是进程级单例，重复调用幂等。
- */
 inline void initializeStructureRegistries()
 {
     static const bool initialized = [] {
@@ -132,6 +127,11 @@ inline void initializeStructureRegistries()
         fluid::FluidRegistry::instance().initialize();
 
         auto& repo = dataPackRepository();
+        // 方块标签只来自数据包：不加载的话 STAIRS/SLABS/WALLS/FEATURES_CANNOT_REPLACE
+        // 全为空，BlockAgeProcessor / ProtectedBlocksProcessor 会静默退化成空操作。
+        if (BlockTagLoader::loadFromDataPackRepository(repo).failed()) {
+            throw std::runtime_error("structure probe: block tag loading failed");
+        }
         PlacementRegistry::instance().initialize();
         world::gen::feature::initializeBuiltinFeatureTypes();
         world::gen::feature::ConfiguredFeatureLoader::loadFromDataPackRepository(repo);
@@ -164,6 +164,10 @@ inline void initializeStructureRegistries()
             throw std::runtime_error("structure probe: structure set loading failed");
         }
         world::gen::structure::StructureSetRegistry::instance().validateAgainstStructureRegistry();
+
+        // 结构放置会按类型名创建实体（海洋废墟的溺尸、海底神殿的长老守卫），
+        // 实体类型注册表必须先就绪；`EntityType::create` 依赖它写入 typeId。
+        entity::VanillaEntities::registerAll();
         return true;
     }();
     (void)initialized;
@@ -195,16 +199,25 @@ inline WorldSetup makeWorldSetup(const std::string& name, u64 seed)
 
     static std::unordered_map<std::string, CachedState> cache;
 
+    const auto makeSettings = [&name]() {
+        if (name == "overworld") {
+            return DimensionSettings::overworld();
+        }
+        if (name == "the_nether") {
+            return DimensionSettings::nether();
+        }
+        if (name == "the_end") {
+            return DimensionSettings::end();
+        }
+        throw std::runtime_error("structure probe: unknown dimension " + name);
+    };
+
     const auto found = cache.find(name);
     if (found != cache.end() && found->second.seed == seed) {
-        DimensionSettings settings = name == "overworld" ? DimensionSettings::overworld() : DimensionSettings::end();
-        return {std::move(settings), found->second.state};
+        return {makeSettings(), found->second.state};
     }
 
-    DimensionSettings settings = name == "overworld" ? DimensionSettings::overworld() : DimensionSettings::end();
-    if (name != "overworld" && name != "the_end") {
-        throw std::runtime_error("structure probe: unknown dimension " + name);
-    }
+    DimensionSettings settings = makeSettings();
     auto shared = std::shared_ptr<world::gen::RandomState>(world::gen::RandomState::create(settings, seed));
     cache[name] = CachedState{seed, shared};
     return {std::move(settings), std::move(shared)};
@@ -216,6 +229,9 @@ inline std::unique_ptr<world::biome::IBiomeSource> makeBiomeSource(
 {
     if (name == "overworld") {
         return world::biome::source::MultiNoiseBiomeSource::createOverworld(randomState, false, false);
+    }
+    if (name == "the_nether") {
+        return world::biome::source::MultiNoiseBiomeSource::createNether(randomState);
     }
     if (name == "the_end") {
         return std::make_unique<world::biome::source::EndBiomeSource>(randomState);

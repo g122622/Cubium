@@ -21,7 +21,7 @@
  *
  */
 
-#include "world/block/blocks/ShelfBlock.hpp"
+#include "common/world/block/blocks/container/ShelfBlock.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/ShelfBlockEntity.hpp"

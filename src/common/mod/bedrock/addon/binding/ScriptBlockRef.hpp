@@ -28,8 +28,8 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"    // ScriptObjectRegistry
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"   // classIdByName/protoByName
 #include "common/world/IWorld.hpp"                                    // mc::IWorld
-#include "common/world/block/BlockPos.hpp"                            // mc::BlockPos
-#include "common/world/block/BlockState.hpp"                          // mc::BlockState
+#include "common/world/block/base/types/BlockPos.hpp"                 // mc::BlockPos
+#include "common/world/block/state/BlockState.hpp"                    // mc::BlockState
 #include <memory>
 
 namespace mc::mod::bedrock::addon {

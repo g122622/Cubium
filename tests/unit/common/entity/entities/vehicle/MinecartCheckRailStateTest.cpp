@@ -41,7 +41,7 @@
 #include "common/world/block/blocks/redstone/DetectorRailBlock.hpp"
 #include "common/world/block/blocks/redstone/PoweredRailBlock.hpp"
 #include "common/world/block/blocks/redstone/RailBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <map>
 #include <memory>
 #include <gtest/gtest.h>

@@ -60,18 +60,18 @@ f32 WorldgenRandom::nextFloat()
 
 f64 WorldgenRandom::nextDouble()
 {
-    // BitRandomSource.nextDouble():
+    // BitRandomSource.nextDouble：
     //   i32 i = this.next(26);
     //   i32 j = this.next(27);
     //   long k = ((long)i << 27) + j;
-    //   return k * 1.110223E-16F;
-    // 【字面量是 f32 后缀】Java 的 `long * f32` 会做二元数值提升——k 先被拓宽为
-    // **f32**（丢 29 位有效位）再做 f32 乘法，结果只有 24 位精度（见
-    // JavaLegacyRandom::nextDouble 的同类说明）。必须复刻该中间精度。
+    //   return k * DOUBLE_MULTIPLIER;
+    // 乘数是 f64（2^-53）。实测 1.21.11 的类文件返回 53 位精度的结果，用 f32 乘
+    // 会丢 29 位有效位，按 double 采样的结构（如废墟传送门的地狱岩铺开）会与参照
+    // 实现分叉。
     const i32 i = nextBits(26);
     const i32 j = nextBits(27);
     const i64 k = (static_cast<i64>(i) << 27) + static_cast<i64>(j);
-    return static_cast<f64>(static_cast<f32>(k) * 1.1102230246251565E-16f);
+    return static_cast<f64>(k) * 1.1102230246251565E-16;
 }
 
 PositionalRandomFactory WorldgenRandom::forkPositional()

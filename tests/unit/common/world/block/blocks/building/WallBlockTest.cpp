@@ -26,9 +26,11 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/physics/shape/BooleanOp.hpp"
 #include "common/physics/shape/Shapes.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -37,8 +39,6 @@
 #include "util/math/Vector3.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
@@ -447,12 +447,12 @@ TEST_F(WallBlockTest, Mirror_LeftRight)
             .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
             .with(BlockStateProperties::WATERLOGGED(), false);
 
-    // 左右镜像: East <-> West
+    // 左右镜像（沿 Z 轴翻转）: North <-> South，East/West 不变
     const BlockState& mirrored = wall.mirror(state, Mirror::LeftRight);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::Tall);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::None);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::None);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::Low);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::None);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::Low);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::None);
 }
 
 TEST_F(WallBlockTest, Mirror_FrontBack)
@@ -468,12 +468,12 @@ TEST_F(WallBlockTest, Mirror_FrontBack)
             .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
             .with(BlockStateProperties::WATERLOGGED(), false);
 
-    // 前后镜像: North <-> South
+    // 前后镜像（沿 X 轴翻转）: East <-> West，North/South 不变
     const BlockState& mirrored = wall.mirror(state, Mirror::FrontBack);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::None);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::Low);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::Tall);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::None);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::None);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::None);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::Low);
 }
 
 // ============================================================================

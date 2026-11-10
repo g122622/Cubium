@@ -31,7 +31,9 @@
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/numbers/NumberFormat.hpp"
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -53,8 +55,11 @@ public:
     struct ObjectiveData {
         std::string name;
         std::string criteriaName;
-        std::string displayName; // JSON 格式
-        std::string renderType;  // "integer" 或 "hearts"
+        std::string displayName;       // JSON 格式
+        std::string renderType;        // "integer" 或 "hearts"
+        bool displayAutoUpdate = true; ///< 显示名随分数自动更新（vanilla Objective.displayAutoUpdate）
+        /// 目标级数字格式（vanilla Objective.Packed 的 `format` 字段，nullopt = 无自定义格式）
+        std::optional<text::numbers::NumberFormat> numberFormat;
 
         [[nodiscard]] nbt::tags::compound_tag toNbt() const;
         static Result<ObjectiveData> fromNbt(const nbt::tags::compound_tag& tag);
@@ -70,6 +75,8 @@ public:
         std::string objectiveName;
         i32 score = 0;
         bool locked = false; // 用于 trigger 判据
+        /// 本分数条目的数字格式覆盖（vanilla Score.Packed 的 `format` 字段，nullopt = 用目标格式）
+        std::optional<text::numbers::NumberFormat> numberFormat;
 
         [[nodiscard]] nbt::tags::compound_tag toNbt() const;
         static Result<ScoreData> fromNbt(const nbt::tags::compound_tag& tag);

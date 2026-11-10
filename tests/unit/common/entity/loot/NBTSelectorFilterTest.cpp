@@ -506,7 +506,7 @@ TEST_F(PredicateConditionTest, PredicateIdToString)
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 using namespace mc::loot;

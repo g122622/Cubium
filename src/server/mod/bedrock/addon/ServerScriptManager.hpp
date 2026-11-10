@@ -59,7 +59,7 @@ public:
      * @brief 初始化脚本系统
      *
      * 创建引擎、注册模块工厂、初始化事件总线。
-     * 在MinecraftServer::initializeCoreManagers()中调用。
+     * 在MinecraftServer::initializeDomainServices()中调用。
      *
      * @return 初始化结果
      */

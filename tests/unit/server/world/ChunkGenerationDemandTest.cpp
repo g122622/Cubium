@@ -23,11 +23,11 @@
 
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/chunk/gen/ChunkPyramid.hpp"
-#include "common/world/chunk/gen/ChunkStep.hpp"
 #include "server/world/ChunkTaskScheduler.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/SingleChunkLifecycleManager.hpp"
+#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/pipeline/ChunkStep.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"

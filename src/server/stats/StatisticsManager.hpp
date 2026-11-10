@@ -42,9 +42,7 @@ namespace server {
 // Forward declarations
 class ServerPlayer;
 
-namespace core {
 class PlayerManager;
-}
 
 namespace stats {
 

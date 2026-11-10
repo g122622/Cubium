@@ -67,7 +67,7 @@ Block
 | `util/property/Properties.hpp` | SNOWY 属性定义 |
 | `util/Direction.hpp` | 方向定义 |
 | `item/context/BlockItemUseContext.hpp` | 放置上下文 |
-| `common/world/block/registry/VanillaBlocks.hpp` | 原版方块引用（DIRT, SNOW, SNOW_BLOCK） |
+| `common/world/block/registry/vanilla/VanillaBlocks.hpp` | 原版方块引用（DIRT, SNOW, SNOW_BLOCK） |
 
 ### 下游依赖
 

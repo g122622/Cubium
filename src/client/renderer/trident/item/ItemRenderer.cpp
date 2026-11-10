@@ -32,7 +32,7 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::item {

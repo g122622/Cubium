@@ -92,7 +92,9 @@ namespace InventorySlotMapping {
         return playerInvSlot; // 9-35 → 9-35
     }
     if (playerInvSlot >= ARMOR_START && playerInvSlot <= ARMOR_END) {
-        return playerInvSlot - 31; // 36-39 → 5-8
+        // 背包槽 36..39 是 FEET→LEGS→CHEST→HEAD，菜单槽 5..8 是 HEAD→CHEST→LEGS→FEET，
+        // 方向相反，因此是递减映射而不是整体平移。
+        return InventoryMenuSlots::ARMOR_HEAD + (ARMOR_HEAD - playerInvSlot); // 39→5, 38→6, 37→7, 36→8
     }
     if (playerInvSlot == OFFHAND) {
         return InventoryMenuSlots::OFFHAND; // 40 → 45
@@ -108,7 +110,9 @@ namespace InventorySlotMapping {
         return -1; // 合成结果/合成输入：项目无对应槽
     }
     if (menuSlot >= ARMOR_HEAD && menuSlot <= ARMOR_FEET) {
-        return menuSlot + 31; // 5-8 → 36-39
+        // 菜单槽 5..8 是 HEAD→CHEST→LEGS→FEET，背包槽 36..39 是 FEET→LEGS→CHEST→HEAD，
+        // 两者方向相反，因此是递减映射而不是整体平移。
+        return InventorySlots::ARMOR_HEAD - (menuSlot - ARMOR_HEAD); // 5→39, 6→38, 7→37, 8→36
     }
     if (menuSlot >= MAIN_START && menuSlot <= MAIN_END) {
         return menuSlot; // 9-35 → 9-35

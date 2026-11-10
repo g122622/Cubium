@@ -40,6 +40,7 @@
 #include "common/network/backend/java/codecs/MobEffectInstanceCodec.hpp"
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
@@ -51,6 +52,7 @@
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/Utf8.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 
 #include <memory>
@@ -59,6 +61,7 @@
 #include <variant>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::network::backend::java {
 
@@ -148,6 +151,137 @@ using nbt::tags::compound_tag;
     const usize end = buf.readPosition();
     const u8* base = buf.data() + start;
     return std::vector<u8>(base, base + (end - start));
+}
+
+/// 读取一个 BlockPredicate（vanilla 的 4 段复合结构），转成项目侧的谓词字符串。
+///
+/// vanilla 线格式（`BlockPredicate.STREAM_CODEC`）依次是：
+///   1. `optional(HolderSet<Block>)`            —— 方块集合或方块标签
+///   2. `optional(StatePropertiesPredicate)`    —— 方块状态属性匹配
+///   3. `optional(NbtPredicate)`                —— 方块实体 NBT 匹配
+///   4. `DataComponentMatchers`                 —— 方块实体组件匹配
+///
+/// 项目用「`minecraft:oak_stairs{facing=east}`」这样的字符串承载前两段，故这两段保真还原；
+/// 后两段（NBT、组件匹配）项目侧无对应表达，且**不能丢弃**——丢弃匹配条件会把
+/// `can_place_on` / `can_break` 的限制放宽（安全语义），因此这里返回错误而不是静默降级。
+/// 无论走哪条路径，字节游标都恰好停在 BlockPredicate 末尾，不会让后续字段错位。
+[[nodiscard]] Result<std::vector<std::string>> _readBlockPredicateWire(buffer::ByteBuf& buf)
+{
+    // ---- 第 1 段：optional(HolderSet<Block>) ----
+    bool hasBlocks = false;
+    MC_TRY_ASSIGN(hasBlocks, buf.readBool());
+    if (!hasBlocks) {
+        // 「不限定方块」在项目谓词模型里没有等价写法（空列表语义是"什么都不匹配"）
+        return Error(ErrorCode::InvalidData, "BlockPredicate without blocks is unsupported", "_readBlockPredicateWire");
+    }
+    i32 holderCount = 0;
+    MC_TRY_ASSIGN(holderCount, buf.readVarInt());
+    if (holderCount < 0) {
+        return Error(ErrorCode::InvalidData, "BlockPredicate holder count is negative", "_readBlockPredicateWire");
+    }
+
+    std::vector<std::string> blockNames;
+    if (holderCount == 0) {
+        // 标签引用：n == 0 表示后跟一个 Identifier（"namespace:path"）
+        std::string tagName;
+        MC_TRY_ASSIGN(tagName, buf.readString());
+        blockNames.push_back("#" + tagName);
+    } else {
+        // 直接列表：n - 1 个方块，各为 VarInt 注册表 id
+        const i32 directCount = holderCount - 1;
+        blockNames.reserve(static_cast<usize>(directCount));
+        for (i32 i = 0; i < directCount; ++i) {
+            i32 javaBlockId = 0;
+            MC_TRY_ASSIGN(javaBlockId, buf.readVarInt());
+            if (javaBlockId < 0) {
+                return Error(ErrorCode::InvalidData, "BlockPredicate block id is negative", "_readBlockPredicateWire");
+            }
+            const u32 internalId =
+                network::backend::java::JavaBlockIdMap::instance().fromJavaRegistryId(static_cast<u32>(javaBlockId));
+            const ::mc::Block* block = BlockRegistry::instance().getBlock(internalId);
+            if (block == nullptr) {
+                return Error(
+                    ErrorCode::InvalidData, "BlockPredicate references unknown block", "_readBlockPredicateWire");
+            }
+            blockNames.push_back(block->blockLocation().toString());
+        }
+    }
+
+    // ---- 第 2 段：optional(StatePropertiesPredicate) ----
+    bool hasProperties = false;
+    MC_TRY_ASSIGN(hasProperties, buf.readBool());
+    std::string propertySuffix;
+    if (hasProperties) {
+        i32 matcherCount = 0;
+        MC_TRY_ASSIGN(matcherCount, buf.readVarInt());
+        if (matcherCount < 0) {
+            return Error(
+                ErrorCode::InvalidData, "StatePropertiesPredicate count is negative", "_readBlockPredicateWire");
+        }
+        for (i32 i = 0; i < matcherCount; ++i) {
+            std::string propertyName;
+            MC_TRY_ASSIGN(propertyName, buf.readString());
+            u8 valueKind = 0;
+            MC_TRY_ASSIGN(valueKind, buf.readU8());
+            if (valueKind != 0) {
+                // 区间匹配（RangedMatcher：optional min + optional max）项目侧无法表达，
+                // 丢弃会放宽匹配范围，故直接拒绝。
+                return Error(ErrorCode::InvalidData,
+                    "StatePropertiesPredicate ranged matcher is unsupported",
+                    "_readBlockPredicateWire");
+            }
+            std::string propertyValue;
+            MC_TRY_ASSIGN(propertyValue, buf.readString());
+            propertySuffix += (propertySuffix.empty() ? "{" : ",");
+            propertySuffix += propertyName;
+            propertySuffix += "=";
+            propertySuffix += propertyValue;
+        }
+        if (!propertySuffix.empty()) {
+            propertySuffix += "}";
+        }
+    }
+
+    // ---- 第 3 段：optional(NbtPredicate) ----
+    bool hasNbt = false;
+    MC_TRY_ASSIGN(hasNbt, buf.readBool());
+    if (hasNbt) {
+        return Error(
+            ErrorCode::InvalidData, "BlockPredicate with NBT predicate is unsupported", "_readBlockPredicateWire");
+    }
+
+    // ---- 第 4 段：DataComponentMatchers = exact 列表 + partial 列表 ----
+    i32 exactCount = 0;
+    MC_TRY_ASSIGN(exactCount, buf.readVarInt());
+    i32 partialCount = 0;
+    MC_TRY_ASSIGN(partialCount, buf.readVarInt());
+    if (exactCount != 0 || partialCount != 0) {
+        return Error(
+            ErrorCode::InvalidData, "BlockPredicate with component matchers is unsupported", "_readBlockPredicateWire");
+    }
+
+    std::vector<std::string> predicates;
+    predicates.reserve(blockNames.size());
+    for (const auto& name : blockNames) {
+        predicates.push_back(name + propertySuffix);
+    }
+    return predicates;
+}
+
+/// 把 Component NBT wire 字节还原为 ITextComponent。
+///
+/// 优先完整还原（style / extra / translate 都保真）；只有「项目尚未建模的 contents」
+/// （keybind/score/selector/nbt）或损坏字节才会失败，此时降级为纯文本并记警告——这类字段
+/// 出现在真 Java 对端发来的自定义名/描述里时，宁可丢样式也不能让整个物品栈解码失败。
+[[nodiscard]] std::unique_ptr<::mc::text::ITextComponent> _decodeComponentNbt(const std::vector<u8>& nbtBytes)
+{
+    auto parsed = ::mc::text::componentFromNbtBytes(nbtBytes);
+    if (parsed.success()) {
+        return parsed.value();
+    }
+    spdlog::warn(
+        "DataComponentPatchCodec: component decode failed ({}), falling back to plain text", parsed.error().message());
+    return std::make_unique<::mc::text::StringTextComponent>(::mc::text::componentNbtBytesToPlainText(nbtBytes));
 }
 
 // Filterable 的未过滤形式是裸值，带过滤形式为 {raw, filtered}。
@@ -485,11 +619,8 @@ void _writeColorList(buffer::ByteBuf& buf, const std::vector<i32>& colors)
         case DataComponentType::ItemName: {
             std::vector<u8> nbtBytes;
             MC_TRY_ASSIGN(nbtBytes, readComponentNbtBytes(buf));
-            // 把 NBT wire 字节还原为 ITextComponent：解析为纯文本后构造 StringTextComponent。
-            // TODO: 完整 Component 还原（style/extra）待后续；此处取纯文本保业务可用。
-            const auto plain = text::componentNbtBytesToPlainText(nbtBytes);
-            std::unique_ptr<text::ITextComponent> comp = std::make_unique<text::StringTextComponent>(plain);
-            return DataComponentPayload{std::in_place_index<2>, std::move(comp)};
+            // 完整还原（style / extra / translate 保真），不再退化为纯文本
+            return DataComponentPayload{std::in_place_index<2>, _decodeComponentNbt(nbtBytes)};
         }
         case DataComponentType::Lore: {
             std::vector<std::unique_ptr<text::ITextComponent>> lines;
@@ -501,8 +632,7 @@ void _writeColorList(buffer::ByteBuf& buf, const std::vector<i32>& colors)
             for (i32 i = 0; i < count; ++i) {
                 std::vector<u8> nbtBytes;
                 MC_TRY_ASSIGN(nbtBytes, readComponentNbtBytes(buf));
-                lines.push_back(
-                    std::make_unique<text::StringTextComponent>(text::componentNbtBytesToPlainText(nbtBytes)));
+                lines.push_back(_decodeComponentNbt(nbtBytes));
             }
             return DataComponentPayload{std::in_place_index<3>, std::move(lines)};
         }
@@ -523,15 +653,21 @@ void _writeColorList(buffer::ByteBuf& buf, const std::vector<i32>& colors)
         }
         case DataComponentType::CanPlaceOn:
         case DataComponentType::CanBreak: {
-            // 降级：读空 list（VarInt(0)）；vanilla 发来的非空谓词按 count 跳过每个 BlockPredicate
-            // TODO: 需完整体系，此处仅支持空 list，非空返回空谓词（丢失语义，保互通不崩）。
+            // AdventureModePredicate wire = VarInt(count) + BlockPredicate*，逐个按完整格式解码。
+            // 无法表达的匹配条件（NBT、组件匹配、区间属性）会返回错误，而不是丢弃后放宽限制。
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
-            AdventureModePredicate pred{};
-            // 注：非空 list 的 BlockPredicate 字节未消费，会导致后续错位；当前项目不主动
-            // 发送非空谓词，真 Java 对端发来的非空谓词场景待完整 BlockPredicate 体系落地。
-            (void)count;
-            return DataComponentPayload{std::in_place_index<6>, std::move(pred)};
+            if (count < 0) {
+                return Error(ErrorCode::InvalidData, "AdventureModePredicate count is negative", "_readComponentValue");
+            }
+            std::vector<std::string> predicates;
+            for (i32 i = 0; i < count; ++i) {
+                std::vector<std::string> one;
+                MC_TRY_ASSIGN(one, _readBlockPredicateWire(buf));
+                predicates.insert(
+                    predicates.end(), std::make_move_iterator(one.begin()), std::make_move_iterator(one.end()));
+            }
+            return DataComponentPayload{std::in_place_index<6>, AdventureModePredicate(std::move(predicates))};
         }
         case DataComponentType::BundleContents: {
             i32 count = 0;

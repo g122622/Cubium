@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/chunk/gen/ChunkPyramid.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
+#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 
 using namespace mc;
 using namespace mc::world::chunk;

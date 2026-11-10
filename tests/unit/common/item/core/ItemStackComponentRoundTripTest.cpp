@@ -30,6 +30,7 @@
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
+#include "common/item/component/DataComponentPayloadCodec.hpp"
 #include "common/item/component/FireworkExplosion.hpp"
 #include "common/item/component/Fireworks.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
@@ -41,9 +42,12 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextParser.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 
+#include <array>
 #include <nlohmann/json.hpp>
 
 using namespace mc;
@@ -80,6 +84,12 @@ ItemStack makeFullyComponentedStack(const Item* sword)
     fireworks.explosions.push_back(*stack.getFireworkExplosion());
     fireworks.explosions.emplace_back();
     stack.setFireworks(std::move(fireworks));
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Chest;
+    equippable.equipSound = "minecraft:item.armor.equip_diamond";
+    equippable.damageOnHurt = false;
+    equippable.equipOnInteract = true;
+    stack.setEquippable(std::move(equippable));
     auto& tag = stack.getOrCreateTag();
     tag = nlohmann::json::object();
     tag["display"]["color"] = 0xFF0000;
@@ -227,6 +237,38 @@ TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_PreservesAllComponents)
     EXPECT_EQ(restoredTag->at("custom").at("n").get<i32>(), 42);
 }
 
+// provides_trim_material 与 chicken/variant 都是 EitherHolder 形态的原始 JSON 组件。
+// 它们此前只在 ItemStack::rawComponents 里登记，DataComponentPayloadCodec 的编解码 switch
+// 里没有对应分支——编码会落到 default 当作空 compound 写出，NBT 往返后载荷静默丢失。
+TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_PreservesEitherHolderComponents)
+{
+    const Item* stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
+    ASSERT_NE(stick, nullptr);
+    ItemStack stack(*stick, 1);
+
+    // 原版形态：{"id": "minecraft:gold"}（引用注册表条目）
+    const nlohmann::json trimMaterial = {{"id", "minecraft:gold"}};
+    const nlohmann::json chickenVariant = {{"id", "minecraft:warm"}};
+    stack.setComponent(
+        item::component::DataComponentType::ProvidesTrimMaterial, item::component::DataComponentPayload{trimMaterial});
+    stack.setComponent(
+        item::component::DataComponentType::ChickenVariant, item::component::DataComponentPayload{chickenVariant});
+
+    compound_tag tag;
+    stack.toNbt(tag);
+    auto result = ItemStack::fromNbt(tag);
+    ASSERT_TRUE(result.success()) << "fromNbt 应成功";
+
+    const auto& restored = result.value();
+    const auto* restoredTrim = restored.rawComponent(item::component::DataComponentType::ProvidesTrimMaterial);
+    ASSERT_NE(restoredTrim, nullptr) << "provides_trim_material 不得在 NBT 往返中丢失";
+    EXPECT_EQ(*restoredTrim, trimMaterial);
+
+    const auto* restoredChicken = restored.rawComponent(item::component::DataComponentType::ChickenVariant);
+    ASSERT_NE(restoredChicken, nullptr) << "chicken/variant 不得在 NBT 往返中丢失";
+    EXPECT_EQ(*restoredChicken, chickenVariant);
+}
+
 TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_NoComponents_OmitsComponentsSection)
 {
     ItemStack plain(*m_sword, 1);
@@ -244,20 +286,44 @@ TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_NoComponents_OmitsComponent
     EXPECT_EQ(result.value().getDamage(), 0);
 }
 
-TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_EmptyStack_RoundTripsToAir)
+// 空堆写成空 compound（`{}`），对应原版 `ItemStack.OPTIONAL_CODEC`。
+// 不能写 `id=minecraft:air`——`ItemStack.CODEC` 明确拒绝空气。
+TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_EmptyStack_WritesEmptyCompound)
 {
     ItemStack empty;
 
     compound_tag tag;
     empty.toNbt(tag);
 
-    ASSERT_NE(tag.value.find("id"), tag.value.end());
-    const auto& idTag = dynamic_cast<const string_tag&>(*tag.value.at("id"));
-    EXPECT_EQ(idTag.value, "minecraft:air");
+    EXPECT_TRUE(tag.value.empty()) << "empty stack must serialize to a bare '{}' compound";
+    EXPECT_EQ(tag.value.find("id"), tag.value.end()) << "empty stack must not carry an id";
+    EXPECT_EQ(tag.value.find("count"), tag.value.end()) << "empty stack must not carry a count";
 
     auto result = ItemStack::fromNbt(tag);
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().isEmpty());
+}
+
+// 反过来：把 air 当物品 id 写进去必须被拒绝，否则非法存档会被静默接受。
+TEST_F(ItemStackComponentRoundTripTest, NbtDecode_RejectsAirItemId)
+{
+    compound_tag tag;
+    tag.put("id", std::string("minecraft:air"));
+    tag.put("count", static_cast<i32>(1));
+
+    auto result = ItemStack::fromNbt(tag);
+    EXPECT_FALSE(result.success()) << "vanilla ItemStack.CODEC rejects minecraft:air";
+}
+
+// 未知物品同样必须失败，不能被吞成空堆。
+TEST_F(ItemStackComponentRoundTripTest, NbtDecode_RejectsUnknownItemId)
+{
+    compound_tag tag;
+    tag.put("id", std::string("minecraft:definitely_not_an_item"));
+    tag.put("count", static_cast<i32>(1));
+
+    auto result = ItemStack::fromNbt(tag);
+    EXPECT_FALSE(result.success());
 }
 
 // ============================================================================
@@ -308,6 +374,51 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_PreservesAllComponents)
     ASSERT_NE(restoredTag, nullptr);
     EXPECT_EQ(restoredTag->at("display").at("color").get<i32>(), 0xFF0000);
     EXPECT_EQ(restoredTag->at("custom").at("n").get<i32>(), 42);
+}
+
+TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_StyledCustomNameAndLoreKeepStyle)
+{
+    // 自定义名/描述经 DataComponentPatch 线格式往返时必须保真样式：此前解码方向退化为
+    // 纯文本（丢颜色/粗体/extra），完整还原由 text::componentFromNbtBytes 承担。
+    ItemStack original(*m_sword, 1);
+
+    auto name = std::make_unique<text::StringTextComponent>("Golden Blade");
+    text::Style nameStyle;
+    nameStyle.setColor(text::TextFormatting::Gold);
+    nameStyle.setBold(true);
+    name->setStyle(nameStyle);
+    name->append(std::make_unique<text::StringTextComponent>(" !"));
+    original.setCustomNameComponent(std::move(name));
+
+    auto loreLine = std::make_unique<text::StringTextComponent>("cursed");
+    text::Style loreStyle;
+    loreStyle.setColor(text::TextFormatting::DarkRed);
+    loreStyle.setItalic(true);
+    loreLine->setStyle(loreStyle);
+    std::vector<std::unique_ptr<text::ITextComponent>> lore;
+    lore.push_back(std::move(loreLine));
+    original.setLore(std::move(lore));
+
+    const auto view = network::ir::toItemStackView(original);
+    auto result = network::ir::fromItemStackView(view);
+    ASSERT_TRUE(result.success()) << "fromItemStackView 应成功";
+    const auto& restored = result.value();
+
+    // 自定义名：文本、颜色、粗体、子组件都要在
+    const auto* restoredName = restored.getCustomNameComponent();
+    ASSERT_NE(restoredName, nullptr);
+    EXPECT_EQ(restoredName->getUnformattedText(), "Golden Blade !");
+    EXPECT_EQ(restoredName->getStyle().getColor(), text::TextFormatting::Gold);
+    EXPECT_EQ(restoredName->getStyle().bold(), true);
+    ASSERT_EQ(restoredName->getSiblings().size(), 1u);
+
+    // 描述行：颜色与斜体保真
+    ASSERT_EQ(restored.getLore().size(), 1u);
+    const auto& restoredLore = restored.getLore().front();
+    ASSERT_NE(restoredLore, nullptr);
+    EXPECT_EQ(restoredLore->getUnformattedText(), "cursed");
+    EXPECT_EQ(restoredLore->getStyle().getColor(), text::TextFormatting::DarkRed);
+    EXPECT_EQ(restoredLore->getStyle().italic(), true);
 }
 
 TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_NoComponents_HasEmptyPatch)
@@ -422,4 +533,127 @@ TEST_F(ItemStackComponentRoundTripTest, BlockEntityData_CopyIsIndependent)
 
     EXPECT_EQ(stack.getBlockEntityData().at("Command"), "say a");
     EXPECT_EQ(copied.getBlockEntityData().at("Command"), "say b");
+}
+
+// equippable 组件：slot 必填，其余字段可省略。JSON 与 NBT 两条路径都要能往返。
+TEST_F(ItemStackComponentRoundTripTest, EquippableRoundTripsThroughJson)
+{
+    ItemStack stack(*Items::DIAMOND_CHESTPLATE, 1);
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Chest;
+    equippable.equipSound = "minecraft:item.armor.equip_diamond";
+    equippable.dispensable = false;
+    equippable.swappable = false;
+    equippable.damageOnHurt = false;
+    equippable.equipOnInteract = true;
+    equippable.canBeSheared = true;
+    equippable.shearingSound = "minecraft:item.shears.snip";
+    stack.setEquippable(equippable);
+
+    const auto json = stack.toJson();
+    ASSERT_TRUE(json.contains("minecraft:equippable"));
+    EXPECT_EQ(json["minecraft:equippable"]["slot"], "chest");
+    EXPECT_EQ(json["minecraft:equippable"]["damage_on_hurt"], false);
+
+    const auto parsed = ItemStack::fromJson(json);
+    ASSERT_TRUE(parsed.success()) << parsed.error().message();
+    const auto& restored = parsed.value().getEquippable();
+    ASSERT_TRUE(restored.has_value());
+    EXPECT_EQ(restored->slot, EquipmentSlot::Chest);
+    EXPECT_EQ(restored->equipSound, "minecraft:item.armor.equip_diamond");
+    EXPECT_FALSE(restored->dispensable);
+    EXPECT_FALSE(restored->swappable);
+    EXPECT_FALSE(restored->damageOnHurt);
+    EXPECT_TRUE(restored->equipOnInteract);
+    EXPECT_TRUE(restored->canBeSheared);
+    EXPECT_EQ(restored->shearingSound, "minecraft:item.shears.snip");
+}
+
+// 默认值必须省略，与 vanilla 的 optionalFieldOf 一致；否则存档里会堆满冗余键。
+TEST_F(ItemStackComponentRoundTripTest, EquippableOmitsDefaultFields)
+{
+    ItemStack stack(*Items::DIAMOND_CHESTPLATE, 1);
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Chest;
+    stack.setEquippable(equippable);
+
+    const auto json = stack.toJson();
+    const auto& component = json["minecraft:equippable"];
+    EXPECT_EQ(component.size(), 1u) << "only slot should be written for an all-default component";
+    EXPECT_EQ(component["slot"], "chest");
+}
+
+// slot 缺失或名称非法时整条组件丢弃：装备槽位是必填语义，猜一个默认槽会让物品静默戴错位置。
+TEST_F(ItemStackComponentRoundTripTest, EquippableRejectsMissingOrInvalidSlot)
+{
+    // 用没有默认 equippable 的物品（剑）作载体：护甲自带默认组件，断言会被默认值掩盖。
+    const auto noSlot = ItemStack::fromJson(nlohmann::json{
+        {"id", "minecraft:diamond_sword"}, {"Count", 1}, {"minecraft:equippable", nlohmann::json::object()}});
+    ASSERT_TRUE(noSlot.success());
+    EXPECT_FALSE(noSlot.value().getEquippable().has_value()) << "missing slot must drop the whole component";
+
+    const auto badSlot = ItemStack::fromJson(
+        nlohmann::json{{"id", "minecraft:diamond_sword"}, {"Count", 1}, {"minecraft:equippable", {{"slot", "tail"}}}});
+    ASSERT_TRUE(badSlot.success());
+    EXPECT_FALSE(badSlot.value().getEquippable().has_value()) << "unknown slot name must drop the whole component";
+}
+
+// NBT 路径同样要能编解码，否则存档往返会丢失装备语义。
+TEST_F(ItemStackComponentRoundTripTest, EquippableRoundTripsThroughNbt)
+{
+    ItemStack stack(*Items::DIAMOND_CHESTPLATE, 1);
+    item::component::EquippablePayload equippable{};
+    equippable.slot = EquipmentSlot::Legs;
+    equippable.damageOnHurt = false;
+    equippable.canBeSheared = true;
+    stack.setEquippable(equippable);
+
+    const auto encoded = item::component::detail::payloadToNbt(
+        item::component::DataComponentType::Equippable, item::component::DataComponentPayload{equippable});
+    ASSERT_NE(encoded, nullptr);
+    ASSERT_EQ(encoded->id(), TagId::Compound);
+
+    const auto decoded =
+        item::component::detail::nbtToPayload(item::component::DataComponentType::Equippable, *encoded);
+    ASSERT_TRUE(std::holds_alternative<item::component::EquippablePayload>(decoded));
+    const auto& restored = std::get<item::component::EquippablePayload>(decoded);
+    EXPECT_EQ(restored.slot, EquipmentSlot::Legs);
+    EXPECT_FALSE(restored.damageOnHurt);
+    EXPECT_TRUE(restored.canBeSheared);
+}
+
+// 护甲/鞘翅等物品必须在构造时挂默认 equippable 组件，否则 LivingEntity::doHurtEquipment
+// 会因为"无组件"而永不磨损——表现为护甲打不坏，与 vanilla 直接冲突。
+TEST(DefaultEquippableComponentTest, ArmorItemsCarrySlotSpecificEquippable)
+{
+    struct Case {
+        const char* label;
+        const Item* item;
+        EquipmentSlot expected;
+    };
+
+    const std::array<Case, 5> cases{{
+        {"helmet", Items::DIAMOND_HELMET, EquipmentSlot::Head},
+        {"chestplate", Items::DIAMOND_CHESTPLATE, EquipmentSlot::Chest},
+        {"leggings", Items::DIAMOND_LEGGINGS, EquipmentSlot::Legs},
+        {"boots", Items::DIAMOND_BOOTS, EquipmentSlot::Feet},
+        {"elytra", Items::ELYTRA, EquipmentSlot::Chest},
+    }};
+
+    for (const auto& testCase : cases) {
+        ASSERT_NE(testCase.item, nullptr) << testCase.label;
+        ItemStack stack(*testCase.item, 1);
+        const auto& equippable = stack.getEquippable();
+        ASSERT_TRUE(equippable.has_value()) << testCase.label << " must carry a default equippable component";
+        EXPECT_EQ(equippable->slot, testCase.expected) << testCase.label;
+        // vanilla 默认 damage_on_hurt 为 true：护甲受伤会掉耐久。
+        EXPECT_TRUE(equippable->damageOnHurt) << testCase.label;
+    }
+}
+
+// 非装备物品没有该组件，因此不会被误磨损。
+TEST(DefaultEquippableComponentTest, NonEquipmentItemsHaveNoEquippable)
+{
+    ItemStack stack(*Items::DIAMOND_SWORD, 1);
+    EXPECT_FALSE(stack.getEquippable().has_value());
 }

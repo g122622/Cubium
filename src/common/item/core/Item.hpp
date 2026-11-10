@@ -476,6 +476,29 @@ public:
     }
 
     /**
+     * @brief 获取物品的默认 equippable 组件
+     *
+     * 物品栈覆盖值优先（见 ItemStack::getEquippable），此处为物品类型默认值。
+     * 护甲、鞘翅、鞍等物品在注册阶段设置该默认值。
+     *
+     * @return 默认装备定义，未设置返回 nullopt
+     */
+    [[nodiscard]] const std::optional<item::component::EquippablePayload>& defaultEquippable() const
+    {
+        return m_defaultEquippable;
+    }
+
+    /**
+     * @brief 设置物品的默认 equippable 组件
+     *
+     * @param equippable 装备定义
+     */
+    void setDefaultEquippable(item::component::EquippablePayload equippable)
+    {
+        m_defaultEquippable = std::move(equippable);
+    }
+
+    /**
      * @brief 获取物品基础附魔能力
      *
      * 返回值仅为物品类型自身的附魔能力（enchantable 组件的缺省值）。运行时判定
@@ -783,6 +806,10 @@ public:
      * 可空语义：world 为 null 时，子类应跳过依赖世界的逻辑（如 FilledMapItem 的
      * 缩放级别提示），其他逻辑（如 SmithingTemplateItem 的翻译文本）正常执行。
      *
+     * 默认实现首先追加附魔行（按 `minecraft:tooltip_order` 标签排序，对应原版物品组件
+     * 管线里的 `ItemEnchantments#addToTooltip`），随后子类在行尾追加自己的提示。
+     * 因此重写本方法时**必须先调用 `Item::addInformation`**，否则附魔行会丢失。
+     *
      * @param stack 物品堆
      * @param world 世界指针（可为 null，对应 MC 的 EMPTY TooltipContext）
      * @param tooltip 提示文本列表
@@ -1035,6 +1062,7 @@ protected:
     const item::food::Food* m_food = nullptr;                                        ///< 食物属性（非食物为nullptr）
     const ItemGroup* m_creativeTab = nullptr;                                        ///< 创造模式物品组
     std::optional<item::component::DeathProtectionPayload> m_defaultDeathProtection; ///< 默认 death_protection 组件
+    std::optional<item::component::EquippablePayload> m_defaultEquippable;           ///< 默认 equippable 组件
 };
 
 } // namespace mc

@@ -291,6 +291,7 @@ add_library(mc_common STATIC
     # Entity - Movement
     entity/movement/AutoJump.cpp
     # Item - Loot System
+    item/loot/base/LevelBasedValue.cpp
     item/loot/conditions/RandomChanceCondition.cpp
     item/loot/conditions/RandomChanceWithEnchantedBonusCondition.cpp
     item/loot/conditions/NotCondition.cpp
@@ -380,7 +381,6 @@ add_library(mc_common STATIC
     item/loot/functions/SetBookCoverFunction.cpp
     item/loot/functions/SetBannerPatternFunction.cpp
     item/loot/functions/LootFunctionBuilder.cpp
-    entity/combat/AttackContext.cpp
     entity/combat/PlayerAttackHelper.cpp
     entity/combat/DifficultyHelper.cpp
     entity/combat/DifficultyInstance.cpp
@@ -417,8 +417,6 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/EatGrassGoal.cpp
     entity/ai/goal/goals/FleeSunGoal.cpp
     entity/ai/goal/goals/RestrictSunGoal.cpp
-    entity/ai/goal/goals/FindShelterGoal.cpp
-    entity/ai/goal/goals/FlyGoal.cpp
     entity/ai/goal/goals/interact/TameableGoals.cpp
     entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.cpp
     entity/ai/goal/goals/interact/DoorInteractGoal.cpp
@@ -467,7 +465,6 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/GhastGoals.cpp
     entity/ai/goal/goals/special/SilverfishGoals.cpp
     entity/ai/goal/goals/special/DrownedGoals.cpp
-    entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/AvoidHostileGoal.cpp
     entity/ai/goal/goals/villager/CongregateGoal.cpp
@@ -759,8 +756,8 @@ add_library(mc_common STATIC
     world/attribute/DimensionAttributes.cpp
 
     # World - Timeline
-    world/timeline/Timelines.cpp
-    world/timeline/TimelineRegistry.cpp
+    world/time/timeline/Timelines.cpp
+    world/time/timeline/TimelineRegistry.cpp
 
     # World - Entity
     world/entity/EntityManager.cpp
@@ -801,85 +798,86 @@ add_library(mc_common STATIC
     command/arguments/NbtPathArgumentType.cpp
 
     # World - Block System
-    world/block/Material.cpp
-    world/block/Block.cpp
-    world/block/BlockState.cpp
-    world/block/BlockRegistry.cpp
-    world/block/FireInfoRegistry.cpp
-    world/block/BlockSoundType.cpp
-    world/block/BlockTags.cpp
-    world/block/registry/BlockMapColorTable.gen.cpp
-    world/block/registry/BlockStatePredicates.cpp
-    world/block/BlockTagLoader.cpp
-    world/block/SupportType.cpp
-    world/block/state/pattern/BlockInWorld.cpp
-    world/block/state/pattern/BlockPattern.cpp
-    world/block/state/pattern/BlockPatternBuilder.cpp
-    world/block/registry/AgriculturalBlocks.cpp
-    world/block/registry/BaseBlocks.cpp
-    world/block/registry/HarvestToolTable.cpp
-    world/block/registry/BuildingBlocks.cpp
-    world/block/registry/BuildingVariantBlocks.cpp
-    world/block/registry/ColoredBlocks.cpp
-    world/block/registry/NaturalBlocks.cpp
-    world/block/registry/NetherBlocks.cpp
-    world/block/registry/RedstoneBlocks.cpp
-    world/block/registry/SignBannerBlocks.cpp
-    world/block/registry/VanillaBlocks.cpp
-    world/block/registry/VegetationBlocks.cpp
-    world/block/registry/DeepslateBlocks.cpp
-    world/block/registry/CopperBlocks.cpp
-    world/block/registry/CaveBlocks.cpp
-    world/block/registry/SculkBlocks.cpp
-    world/block/registry/MangroveBlocks.cpp
-    world/block/registry/MudBlocks.cpp
-    world/block/registry/WildBlocks.cpp
-    world/block/registry/CherryBlocks.cpp
-    world/block/registry/BambooBlocks.cpp
-    world/block/registry/TrailsBlocks.cpp
-    world/block/registry/TuffBlocks.cpp
-    world/block/registry/TrialBlocks.cpp
-    world/block/registry/PaleGardenBlocks.cpp
-    world/block/registry/GardenBlocks.cpp
-    world/block/registry/ShelfBlocks.cpp
-    world/block/registry/CandleBlocks.cpp
-    world/block/registry/FlowerPotBlocks.cpp
-    world/block/IWaterLoggable.cpp
-    world/block/ILiquidSealed.cpp
-    world/block/blocks/AirBlock.cpp
-    world/block/blocks/SimpleBlock.cpp
-    world/block/blocks/TransparentBlock.cpp
-    world/block/blocks/DropExperienceBlock.cpp
-    world/block/blocks/FallingBlock.cpp
-    world/block/blocks/ConcretePowderBlock.cpp
-    world/block/blocks/RotatedPillarBlock.cpp
-    world/block/blocks/DirectionalBlock.cpp
-    world/block/blocks/HorizontalBlock.cpp
-    world/block/blocks/MultifaceBlock.cpp
-    world/block/blocks/MultifaceSpreader.cpp
-    world/block/blocks/LiquidBlock.cpp
-    world/block/blocks/CauldronBlock.cpp
-    world/block/blocks/LayeredCauldronBlock.cpp
-    world/block/blocks/LavaCauldronBlock.cpp
-    world/block/blocks/EnchantingTableBlock.cpp
-    world/block/blocks/BookshelfBlock.cpp
-    world/block/blocks/ShelfBlock.cpp
-    world/block/blocks/AbstractFurnaceBlock.cpp
-    world/block/blocks/FurnaceBlock.cpp
-    world/block/blocks/BlastFurnaceBlock.cpp
-    world/block/blocks/SmokerBlock.cpp
-    world/block/blocks/ChestBlock.cpp
-    world/block/blocks/TrappedChestBlock.cpp
-    world/block/blocks/ShulkerBoxBlock.cpp
-    world/block/blocks/HopperBlock.cpp
+    world/block/base/material/Material.cpp
+    world/block/core/Block.cpp
+    world/block/state/BlockState.cpp
+    world/block/registry/BlockRegistry.cpp
+    world/block/fire/FireInfoRegistry.cpp
+    world/block/base/sound/BlockSoundType.cpp
+    world/block/tags/BlockTags.cpp
+    world/block/registry/vanilla/BlockMapColorTable.gen.cpp
+    world/block/registry/vanilla/BlockStatePredicates.cpp
+    world/block/tags/BlockTagLoader.cpp
+    world/block/support/SupportType.cpp
+    world/block/pattern/BlockInWorld.cpp
+    world/block/pattern/BlockPattern.cpp
+    world/block/pattern/BlockPatternBuilder.cpp
+    world/block/pattern/BlockPatternCache.cpp
+    world/block/registry/vanilla/AgriculturalBlocks.cpp
+    world/block/registry/vanilla/BaseBlocks.cpp
+    world/block/registry/vanilla/HarvestToolTable.cpp
+    world/block/registry/vanilla/BuildingBlocks.cpp
+    world/block/registry/vanilla/BuildingVariantBlocks.cpp
+    world/block/registry/vanilla/ColoredBlocks.cpp
+    world/block/registry/vanilla/NaturalBlocks.cpp
+    world/block/registry/vanilla/NetherBlocks.cpp
+    world/block/registry/vanilla/RedstoneBlocks.cpp
+    world/block/registry/vanilla/SignBannerBlocks.cpp
+    world/block/registry/vanilla/VanillaBlocks.cpp
+    world/block/registry/vanilla/VegetationBlocks.cpp
+    world/block/registry/vanilla/DeepslateBlocks.cpp
+    world/block/registry/vanilla/CopperBlocks.cpp
+    world/block/registry/vanilla/CaveBlocks.cpp
+    world/block/registry/vanilla/SculkBlocks.cpp
+    world/block/registry/vanilla/MangroveBlocks.cpp
+    world/block/registry/vanilla/MudBlocks.cpp
+    world/block/registry/vanilla/WildBlocks.cpp
+    world/block/registry/vanilla/CherryBlocks.cpp
+    world/block/registry/vanilla/BambooBlocks.cpp
+    world/block/registry/vanilla/TrailsBlocks.cpp
+    world/block/registry/vanilla/TuffBlocks.cpp
+    world/block/registry/vanilla/TrialBlocks.cpp
+    world/block/registry/vanilla/PaleGardenBlocks.cpp
+    world/block/registry/vanilla/GardenBlocks.cpp
+    world/block/registry/vanilla/ShelfBlocks.cpp
+    world/block/registry/vanilla/CandleBlocks.cpp
+    world/block/registry/vanilla/FlowerPotBlocks.cpp
+    world/block/capability/IWaterLoggable.cpp
+    world/block/capability/ILiquidSealed.cpp
+    world/block/blocks/air/AirBlock.cpp
+    world/block/blocks/base/SimpleBlock.cpp
+    world/block/blocks/base/TransparentBlock.cpp
+    world/block/blocks/base/DropExperienceBlock.cpp
+    world/block/blocks/base/FallingBlock.cpp
+    world/block/blocks/falling/ConcretePowderBlock.cpp
+    world/block/blocks/base/RotatedPillarBlock.cpp
+    world/block/blocks/base/DirectionalBlock.cpp
+    world/block/blocks/base/HorizontalBlock.cpp
+    world/block/blocks/multiface/MultifaceBlock.cpp
+    world/block/blocks/multiface/MultifaceSpreader.cpp
+    world/block/blocks/fluid/LiquidBlock.cpp
+    world/block/blocks/cauldron/CauldronBlock.cpp
+    world/block/blocks/cauldron/LayeredCauldronBlock.cpp
+    world/block/blocks/cauldron/LavaCauldronBlock.cpp
+    world/block/blocks/enchanting/EnchantingTableBlock.cpp
+    world/block/blocks/enchanting/BookshelfBlock.cpp
+    world/block/blocks/container/ShelfBlock.cpp
+    world/block/blocks/furnace/AbstractFurnaceBlock.cpp
+    world/block/blocks/furnace/FurnaceBlock.cpp
+    world/block/blocks/furnace/BlastFurnaceBlock.cpp
+    world/block/blocks/furnace/SmokerBlock.cpp
+    world/block/blocks/container/ChestBlock.cpp
+    world/block/blocks/container/TrappedChestBlock.cpp
+    world/block/blocks/container/ShulkerBoxBlock.cpp
+    world/block/blocks/container/HopperBlock.cpp
 
     # World - Block - Dirt
     world/block/blocks/dirt/SnowyDirtBlock.cpp
     world/block/blocks/dirt/SpreadableSnowyDirtBlock.cpp
     world/block/blocks/dirt/MudBlock.cpp
     world/block/blocks/dirt/DirtPathBlock.cpp
-    world/block/blocks/DoorBlock.cpp
-    world/block/blocks/FenceGateBlock.cpp
+    world/block/blocks/door/DoorBlock.cpp
+    world/block/blocks/fencegate/FenceGateBlock.cpp
 
     # World - Block - Building
     world/block/blocks/building/StairsBlock.cpp
@@ -887,7 +885,7 @@ add_library(mc_common STATIC
     world/block/blocks/building/SlabBlock.cpp
     world/block/blocks/building/WallBlock.cpp
     world/block/blocks/building/FenceBlock.cpp
-    world/block/blocks/building/TrapDoorBlock.cpp
+    world/block/blocks/trapdoor/TrapDoorBlock.cpp
 
     # World - Block - Agricultural
     world/block/blocks/agricultural/BushBlock.cpp
@@ -996,9 +994,9 @@ add_library(mc_common STATIC
     world/block/blocks/ocean/BubbleColumnBlock.cpp
     world/block/blocks/ocean/DriedKelpBlock.cpp
     world/block/blocks/ocean/ConduitBlock.cpp
-    world/block/blocks/SignBlock.cpp
-    world/block/blocks/HangingSignBlock.cpp
-    world/block/blocks/LightningRodBlock.cpp
+    world/block/blocks/sign/SignBlock.cpp
+    world/block/blocks/sign/HangingSignBlock.cpp
+    world/block/blocks/redstone/lightningrod/LightningRodBlock.cpp
 
     # World - Block - Cave
     world/block/blocks/cave/AmethystBlock.cpp
@@ -1024,19 +1022,19 @@ add_library(mc_common STATIC
 
     # World - Block - Copper
     world/block/blocks/copper/CopperBulbBlock.cpp
-    world/block/blocks/copper/CopperChestBlock.cpp
+    world/block/blocks/container/CopperChestBlock.cpp
     world/block/blocks/copper/CopperGolemStatueBlock.cpp
-    world/block/blocks/copper/IOxidizableBlock.cpp
-    world/block/blocks/copper/WeatheringCopperBlock.cpp
+    world/block/capability/oxidation/IOxidizableBlock.cpp
+    world/block/capability/oxidation/WeatheringCopperBlock.cpp
     world/block/blocks/copper/WeatheringCopperBarsBlock.cpp
     world/block/blocks/copper/WeatheringCopperChainBlock.cpp
-    world/block/blocks/copper/WeatheringCopperDoorBlock.cpp
+    world/block/blocks/door/WeatheringCopperDoorBlock.cpp
     world/block/blocks/copper/WeatheringCopperGrateBlock.cpp
     world/block/blocks/copper/WeatheringCopperLanternBlock.cpp
-    world/block/blocks/copper/WeatheringCopperSlabBlock.cpp
-    world/block/blocks/copper/WeatheringCopperStairBlock.cpp
-    world/block/blocks/copper/WeatheringCopperTrapDoorBlock.cpp
-    world/block/blocks/copper/WeatheringLightningRodBlock.cpp
+    world/block/blocks/building/slab/WeatheringCopperSlabBlock.cpp
+    world/block/blocks/building/stairs/WeatheringCopperStairBlock.cpp
+    world/block/blocks/trapdoor/WeatheringCopperTrapDoorBlock.cpp
+    world/block/blocks/redstone/lightningrod/WeatheringLightningRodBlock.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/EnderChestBlock.cpp
@@ -1212,9 +1210,6 @@ add_library(mc_common STATIC
     world/chunk/data/ChunkSection.cpp
     world/chunk/data/PalettedContainer.cpp
     world/chunk/data/Heightmap.cpp
-    world/chunk/gen/ChunkDependencies.cpp
-    world/chunk/gen/ChunkPyramid.cpp
-    world/chunk/gen/ChunkStatus.cpp
     world/chunk/load/ChunkDistanceGraph.cpp
     world/chunk/load/ChunkLoadTicketManager.cpp
 
@@ -1245,9 +1240,8 @@ add_library(mc_common STATIC
     # 架构规则：common 不得依赖 server。以下 gen 类型只依赖 common，
     # 但被 common（BiomeClimate、Biome）和 client（BiomeColors）共用，
     # 因此迁移到 common 以消除反向依赖。
-    world/gen/noise/SimplexNoise.cpp
-    world/gen/noise/PerlinSimplexNoise.cpp
-    world/gen/structure/StructureBoundingBox.cpp
+    util/math/noise/SimplexNoise.cpp
+    util/math/noise/PerlinSimplexNoise.cpp
     world/map/MapDecoration.cpp
     world/map/MapBanner.cpp
     world/map/MapFrame.cpp
@@ -1374,10 +1368,14 @@ add_library(mc_common STATIC
     # Text System (Rich Text)
     util/text/Utf8.cpp
     util/text/TextStyle.cpp
+    util/text/StyleNbt.cpp
     util/text/ITextComponent.cpp
     util/text/TextParser.cpp
     util/text/TranslationTextComponent.cpp
     util/text/ComponentNbtSerialization.cpp
+    # 数字格式（记分板分数的渲染格式：blank / styled / fixed）
+    util/text/numbers/NumberFormat.cpp
+    util/text/numbers/NumberFormatCodec.cpp
 
     # NibbleArray (4-bit compact storage for lighting)
     util/NibbleArray.cpp
@@ -1442,6 +1440,7 @@ add_library(mc_common STATIC
     skin/loader/SkinLoader.cpp
     skin/loader/FileSkinLoader.cpp
     skin/loader/HttpSkinLoader.cpp
+    skin/loader/SkinImageValidator.cpp
     # Skin System - Parser
     skin/parser/SkinMetadataParser.cpp
     # Skin System - Network
@@ -1639,3 +1638,7 @@ set_source_files_properties(${_java_block_id_table_gen_cpp} PROPERTIES GENERATED
 
 # 基岩版Addon兼容模组系统
 add_subdirectory(mod/bedrock/addon)
+
+target_sources(mc_common PRIVATE world/block/properties/BlockProperties.cpp)
+
+target_sources(mc_common PRIVATE world/block/base/family/BlockSetType.cpp world/block/base/family/WoodType.cpp)

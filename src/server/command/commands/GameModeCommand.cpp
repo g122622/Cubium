@@ -35,7 +35,7 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/GameModeManager.hpp"
+#include "server/player/gamemode/GameModeManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp" // getPlayerEntity（实体旁路解析）
 
 #include <memory>

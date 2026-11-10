@@ -22,6 +22,7 @@
  */
 
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
+#include "common/entity/core/AgeableEntity.hpp" // is_baby 过滤读 AgeableEntity::isChild
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -33,6 +34,10 @@
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/weather/WeatherUtils.hpp"
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -146,9 +151,22 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         "has_damage",
         "is_daytime",
         "weather",
+        "is_baby",
+        "is_sleeping",
+        "on_fire",
+        "is_leashed",
+        "is_riding",
+        "rider_count",
+        "in_nether",
+        "in_overworld",
+        "is_altitude",
+        "has_nametag",
+        "on_ladder",
+        "is_temperature_value",
         "distance_to_nearest_player"};
     if (!supported.contains(test)) {
-        // TODO: 接入生物群系温度等过滤测试。
+        // TODO: is_temperature_type 需要基岩的 cold/mild/ocean/warm 分类阈值，官方文档未给出
+        //       具体边界值，无法凭推测硬编码；is_temperature_value 已接入（见下方求值分支）。
         return Error(ErrorCode::Unsupported, "Entity filter test is not implemented: " + test);
     }
     if (!filter.contains("subject")) {
@@ -183,7 +201,10 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
     filter["operator"] = operation;
     const bool boolean = test == "bool_property" || test == "is_alive" || test == "is_sneaking" ||
         test == "has_target" || test == "is_daytime" || test == "is_owner" || test == "has_container_open" ||
-        test == "on_ground" || test == "in_water" || test == "in_lava" || test == "in_water_or_rain";
+        test == "on_ground" || test == "in_water" || test == "in_lava" || test == "in_water_or_rain" ||
+        test == "is_baby" || test == "is_sleeping" || test == "on_fire" || test == "is_leashed" ||
+        test == "is_riding" || test == "in_nether" || test == "in_overworld" || test == "has_nametag" ||
+        test == "on_ladder";
     if (!filter.contains("value") && boolean) {
         filter["value"] = true;
     }
@@ -202,8 +223,11 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
             return Error(ErrorCode::InvalidData, "Entity filter value must be boolean");
         }
     } else if (test == "int_property" || test == "float_property" || test == "distance_to_nearest_player" ||
-        test == "is_variant" || test == "is_mark_variant") {
-        const bool integer = test == "int_property" || test == "is_variant" || test == "is_mark_variant";
+        test == "is_variant" || test == "is_mark_variant" || test == "rider_count" || test == "is_altitude" ||
+        test == "is_temperature_value") {
+        // is_temperature_value 是小数（0.0~1.0），不能归入整数族，否则会被截断成 0 或 1。
+        const bool integer = test == "int_property" || test == "is_variant" || test == "is_mark_variant" ||
+            test == "rider_count" || test == "is_altitude";
         MC_TRY(_numeric(value, integer));
         if (integer &&
             (value.get<double>() < std::numeric_limits<i32>::min() ||
@@ -212,6 +236,10 @@ Result<void> _validate(nlohmann::json& filter, std::size_t depth, std::size_t& c
         }
         if (test == "distance_to_nearest_player" && value.get<double>() < 0) {
             return Error(ErrorCode::InvalidData, "Entity filter distance cannot be negative");
+        }
+        // is_temperature_value 的取值域是 (0.0, 1.0)：0.0 最冷、1.0 最热。
+        if (test == "is_temperature_value" && (value.get<double>() < 0.0 || value.get<double>() > 1.0)) {
+            return Error(ErrorCode::InvalidData, "Entity filter is_temperature_value must be within [0, 1]");
         }
     } else if (!value.is_string() || value.get_ref<const std::string&>().empty()) {
         return Error(ErrorCode::InvalidData, "Entity filter value must be a nonempty string");
@@ -448,6 +476,68 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
     }
     if (test == "in_water_or_rain") {
         return _compare(entity->isWet(), expected, operation);
+    }
+    if (test == "is_baby") {
+        // 基岩的 is_baby 语义就是"是否为幼体"，直接读 AgeableEntity 的年龄状态。
+        // 非 AgeableEntity 没有幼体概念，恒为 false。
+        const auto* ageable = dynamic_cast<const mc::AgeableEntity*>(entity);
+        return _compare(ageable != nullptr && ageable->isChild(), expected, operation);
+    }
+    if (test == "is_sleeping") {
+        // 睡眠状态是 LivingEntity 的概念，非生物实体恒为 false。
+        const auto* living = dynamic_cast<const mc::LivingEntity*>(entity);
+        return _compare(living != nullptr && living->isSleeping(), expected, operation);
+    }
+    if (test == "on_fire") {
+        return _compare(entity->isOnFire(), expected, operation);
+    }
+    if (test == "is_leashed") {
+        // 只有 MobEntity 能被拴绳牵引；非生物实体恒为 false。
+        const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);
+        return _compare(mob != nullptr && mob->isLeashed(), expected, operation);
+    }
+    if (test == "is_riding") {
+        return _compare(entity->isRiding(), expected, operation);
+    }
+    if (test == "rider_count") {
+        return _compare(static_cast<i32>(entity->getPassengers().size()), expected, operation);
+    }
+    if (test == "in_nether") {
+        return _compare(entity->dimension() == DimensionManager::NETHER, expected, operation);
+    }
+    if (test == "in_overworld") {
+        return _compare(entity->dimension() == DimensionManager::OVERWORLD, expected, operation);
+    }
+    if (test == "is_altitude") {
+        // 基岩的 is_altitude 用整数比较脚底高度（方块 Y）。
+        return _compare(static_cast<i32>(std::floor(entity->y())), expected, operation);
+    }
+    if (test == "has_nametag") {
+        // 有自定义名字（命名牌或 /summon 指定 CustomName）即为 true。
+        return _compare(entity->hasCustomName(), expected, operation);
+    }
+    if (test == "on_ladder") {
+        // 基岩的 on_ladder 对应"是否贴在可攀爬方块上"。
+        return _compare(entity->isOnLadder(), expected, operation);
+    }
+    if (test == "is_temperature_value") {
+        // 基岩 is_temperature_value：把所在生物群系的温度与给定值（0.0 最冷 ~ 1.0 最热）比较。
+        // 用高度调整后的温度（与原版降水/降雪判定同源），否则同一生物群系在山顶与海平面
+        // 会给出相同结果，与"当前温度"的语义不符。
+        const mc::IWorld* world = entity->world();
+        if (world == nullptr) {
+            return Error(ErrorCode::Unsupported, "is_temperature_value requires an entity bound to a world");
+        }
+        const mc::BlockPos pos = entity->onPos();
+        const mc::Biome* biome = mc::weather::WeatherUtils::getBiomeAt(*world, pos);
+        if (biome == nullptr) {
+            return Error(
+                ErrorCode::Unsupported, "is_temperature_value could not resolve the biome at the entity position");
+        }
+        const f32 temperature = biome->getHeightAdjustedTemperature(pos.x, pos.y, pos.z, mc::world::SEA_LEVEL);
+        // 归一化到 [0, 1]：生物群系原始温度可低于 0（雪原），而该过滤器约定 0.0 为最冷。
+        const f64 normalized = std::clamp(static_cast<f64>(temperature), 0.0, 1.0);
+        return _compare(normalized, expected, operation);
     }
     if (test == "has_target") {
         const auto* mob = dynamic_cast<const mc::MobEntity*>(entity);

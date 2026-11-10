@@ -36,7 +36,7 @@ namespace gameevent {
  * @brief 游戏事件
  *
  * 代表游戏中发生的可被监听的事件（如方块变化、容器开合、唱片机播放等）。
- * 与 WorldEvents（世界事件/levelEvent，用于广播音效和粒子给客户端）不同，
+ * 与 LevelEventId（世界效果/levelEvent，用于广播音效和粒子给客户端）不同，
  * GameEvent 是服务端内部事件分发机制，主要用于幽匿感测体（SculkSensor）
  * 和幽匿尖啸体（SculkShrieker）等方块检测振动信号。
  *

@@ -81,21 +81,21 @@ namespace mc::server {
 
 // 前向声明
 class ServerScoreboard;
+class AccessManager;
 class CustomServerBossInfoManager;
 
-namespace core {
 class PlayerManager;
-class ConnectionManager;
+class PacketSender;
+class PlayerConnectionManager;
 class TimeManager;
 class TeleportManager;
 class KeepAliveManager;
-class PositionTracker;
+class PlayerMovementManager;
 class GameModeManager;
 class WhitelistManager;
 class BannedPlayerList;
 class BannedIpList;
 class OpListManager;
-} // namespace core
 
 namespace interaction {
 class BlockInteractionManager;
@@ -153,26 +153,30 @@ public:
 
     // ========== 核心管理器 ==========
 
-    [[nodiscard]] virtual core::PlayerManager& playerManager() = 0;
-    [[nodiscard]] virtual const core::PlayerManager& playerManager() const = 0;
+    [[nodiscard]] virtual AccessManager& accessManager() = 0;
+    [[nodiscard]] virtual const AccessManager& accessManager() const = 0;
+    [[nodiscard]] virtual PlayerManager& playerManager() = 0;
+    [[nodiscard]] virtual const PlayerManager& playerManager() const = 0;
 
-    [[nodiscard]] virtual core::ConnectionManager& connectionManager() = 0;
-    [[nodiscard]] virtual const core::ConnectionManager& connectionManager() const = 0;
+    [[nodiscard]] virtual PlayerConnectionManager& playerConnections() = 0;
+    [[nodiscard]] virtual const PlayerConnectionManager& playerConnections() const = 0;
+    [[nodiscard]] virtual PacketSender& packetSender() = 0;
+    [[nodiscard]] virtual const PacketSender& packetSender() const = 0;
 
-    [[nodiscard]] virtual core::TimeManager& timeManager() = 0;
-    [[nodiscard]] virtual const core::TimeManager& timeManager() const = 0;
+    [[nodiscard]] virtual TimeManager& timeManager() = 0;
+    [[nodiscard]] virtual const TimeManager& timeManager() const = 0;
 
-    [[nodiscard]] virtual core::TeleportManager& teleportManager() = 0;
-    [[nodiscard]] virtual const core::TeleportManager& teleportManager() const = 0;
+    [[nodiscard]] virtual TeleportManager& teleportManager() = 0;
+    [[nodiscard]] virtual const TeleportManager& teleportManager() const = 0;
 
-    [[nodiscard]] virtual core::KeepAliveManager& keepAliveManager() = 0;
-    [[nodiscard]] virtual const core::KeepAliveManager& keepAliveManager() const = 0;
+    [[nodiscard]] virtual KeepAliveManager& keepAliveManager() = 0;
+    [[nodiscard]] virtual const KeepAliveManager& keepAliveManager() const = 0;
 
-    [[nodiscard]] virtual core::PositionTracker& positionTracker() = 0;
-    [[nodiscard]] virtual const core::PositionTracker& positionTracker() const = 0;
+    [[nodiscard]] virtual PlayerMovementManager& playerMovementManager() = 0;
+    [[nodiscard]] virtual const PlayerMovementManager& playerMovementManager() const = 0;
 
-    [[nodiscard]] virtual core::GameModeManager& gameModeManager() = 0;
-    [[nodiscard]] virtual const core::GameModeManager& gameModeManager() const = 0;
+    [[nodiscard]] virtual GameModeManager& gameModeManager() = 0;
+    [[nodiscard]] virtual const GameModeManager& gameModeManager() const = 0;
 
     // ========== 白名单管理器 ==========
 
@@ -180,8 +184,6 @@ public:
      * @brief 获取白名单管理器
      * @return 白名单管理器引用
      */
-    [[nodiscard]] virtual core::WhitelistManager& whitelistManager() = 0;
-    [[nodiscard]] virtual const core::WhitelistManager& whitelistManager() const = 0;
 
     // ========== 封禁管理器 ==========
 
@@ -189,15 +191,11 @@ public:
      * @brief 获取玩家封禁列表管理器
      * @return 玩家封禁列表管理器引用
      */
-    [[nodiscard]] virtual core::BannedPlayerList& bannedPlayerList() = 0;
-    [[nodiscard]] virtual const core::BannedPlayerList& bannedPlayerList() const = 0;
 
     /**
      * @brief 获取 IP 封禁列表管理器
      * @return IP 封禁列表管理器引用
      */
-    [[nodiscard]] virtual core::BannedIpList& bannedIpList() = 0;
-    [[nodiscard]] virtual const core::BannedIpList& bannedIpList() const = 0;
 
     // ========== OP 管理器 ==========
 
@@ -205,8 +203,6 @@ public:
      * @brief 获取 OP 列表管理器
      * @return OP 列表管理器引用
      */
-    [[nodiscard]] virtual core::OpListManager& opListManager() = 0;
-    [[nodiscard]] virtual const core::OpListManager& opListManager() const = 0;
 
     // ========== 维度管理器 ==========
 

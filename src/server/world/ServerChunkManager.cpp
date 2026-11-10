@@ -34,20 +34,20 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/gen/ChunkPyramid.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkDistanceGraph.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "server/network/sync/ChunkSendManager.hpp"
+#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/lighting/engine/BlockLightEngine.hpp"
@@ -1214,7 +1214,7 @@ void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& hol
 
 void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
 {
-    // 生成期调度的方块刻：主线程转交世界 TickManager（世界 tick 列表为主线程独占状态）。
+    // 生成期调度的方块刻/流体刻：主线程转交世界 TickManager（世界 tick 列表为主线程独占状态）。
     // 延迟自调度时刻起算；此处把已流逝的游戏刻折算进剩余延迟，避免生成耗时时长改变刻的执行时机。
     if (m_world != nullptr && !chunk.pendingBlockTicks().empty()) {
         const u64 now = m_world->currentTick();
@@ -1227,6 +1227,18 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
         }
     }
     chunk.clearPendingBlockTicks();
+
+    if (m_world != nullptr && !chunk.pendingFluidTicks().empty()) {
+        const u64 now = m_world->currentTick();
+        for (const world::chunk::PendingFluidTick& tick : chunk.pendingFluidTicks()) {
+            const u64 scheduledAt = static_cast<u64>(tick.scheduledTick);
+            const u64 dueTick = scheduledAt + static_cast<u64>(tick.delay);
+            const i32 remainingDelay =
+                now >= dueTick ? 0 : static_cast<i32>(std::min<u64>(dueTick - now, static_cast<u64>(INT32_MAX)));
+            m_world->tickManager().scheduleFluidTick(tick.pos, *tick.fluid, remainingDelay, tick.priority);
+        }
+    }
+    chunk.clearPendingFluidTicks();
 
     // LevelChunk.postProcessGeneration(ServerLevel)
     // 遍历所有后处理位置，调度流体 tick 和方块形状更新
@@ -2185,7 +2197,7 @@ void ServerChunkManager::_debugDumpStuckHolders()
 }
 
 // ============================================================================
-// TODO(临时诊断): primer 状态普查（稳态归因用）。定位完成后删除本段。
+// primer 状态普查（基准测试的稳态归因用）
 // ============================================================================
 
 std::vector<ServerChunkManager::PrimerStatsRow> ServerChunkManager::debugCollectPrimerStats() const

@@ -38,8 +38,8 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
 #include <memory>
 #include <sstream>
 #include <string>

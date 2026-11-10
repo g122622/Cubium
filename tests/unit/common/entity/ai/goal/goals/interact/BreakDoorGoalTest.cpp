@@ -30,12 +30,12 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/ecs/components/PhysicsStateComponent.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
-#include "common/world/block/registry/BuildingVariantBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/BuildingVariantBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
 using namespace mc;
@@ -83,7 +83,7 @@ public:
         return true;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_events.push_back({eventId, pos, data});
     }
@@ -120,7 +120,7 @@ public:
 
     // 事件追踪
     struct Event {
-        i32 id;
+        ::mc::world::LevelEventId id;
         BlockPos pos;
         i32 data;
     };
@@ -560,7 +560,7 @@ TEST_F(BreakDoorGoalTest, MobGriefingCanBeDisabled)
 }
 
 // ============================================================================
-// DoorBlock::isWooden 测试
+// DoorBlock::isHandOpenable 测试
 // ============================================================================
 
 TEST_F(BreakDoorGoalTest, OakDoorIsWooden)
@@ -568,7 +568,7 @@ TEST_F(BreakDoorGoalTest, OakDoorIsWooden)
     // 橡木门应该是木门
     const BlockState* oakDoorState = &BuildingVariantBlocks::OAK_DOOR->defaultState();
     ASSERT_NE(oakDoorState, nullptr);
-    EXPECT_TRUE(DoorBlock::isWooden(*oakDoorState));
+    EXPECT_TRUE(DoorBlock::isHandOpenable(*oakDoorState));
 }
 
 TEST_F(BreakDoorGoalTest, AirIsNotWoodenDoor)
@@ -576,7 +576,7 @@ TEST_F(BreakDoorGoalTest, AirIsNotWoodenDoor)
     // 空气不应该是木门
     const BlockState* airState = &VanillaBlocks::AIR->defaultState();
     ASSERT_NE(airState, nullptr);
-    EXPECT_FALSE(DoorBlock::isWooden(*airState));
+    EXPECT_FALSE(DoorBlock::isHandOpenable(*airState));
 }
 
 // ============================================================================
@@ -645,7 +645,7 @@ TEST_F(BreakDoorGoalTest, DoorBlockRemovedAfterBreakCompletes)
     // 验证门已放置
     const BlockState* initialState = world.getBlockState(0, 65, 0);
     ASSERT_NE(initialState, nullptr);
-    EXPECT_TRUE(DoorBlock::isWooden(*initialState));
+    EXPECT_TRUE(DoorBlock::isHandOpenable(*initialState));
 
     // 获取空气方块
     const BlockState* airState = BlockRegistry::instance().airState();
@@ -671,14 +671,14 @@ TEST_F(BreakDoorGoalTest, WorldEventTrackingWorks)
     world.setDifficulty(Difficulty::Normal);
 
     BlockPos testPos(10, 20, 30);
-    world.playEvent(world::WorldEvents::ZOMBIE_ATTACK_DOOR_WOOD_SOUND, testPos, 0);
-    world.playEvent(world::WorldEvents::ZOMBIE_BREAK_DOOR_WOOD_SOUND, testPos, 1);
+    world.playEvent(::mc::world::LevelEventId::SOUND_ZOMBIE_WOODEN_DOOR, testPos, 0);
+    world.playEvent(::mc::world::LevelEventId::SOUND_ZOMBIE_DOOR_CRASH, testPos, 1);
 
     const auto& events = world.getEvents();
     ASSERT_EQ(events.size(), 2u);
-    EXPECT_EQ(events[0].id, world::WorldEvents::ZOMBIE_ATTACK_DOOR_WOOD_SOUND);
+    EXPECT_EQ(events[0].id, ::mc::world::LevelEventId::SOUND_ZOMBIE_WOODEN_DOOR);
     EXPECT_EQ(events[0].pos.x, 10);
-    EXPECT_EQ(events[1].id, world::WorldEvents::ZOMBIE_BREAK_DOOR_WOOD_SOUND);
+    EXPECT_EQ(events[1].id, ::mc::world::LevelEventId::SOUND_ZOMBIE_DOOR_CRASH);
     EXPECT_EQ(events[1].data, 1);
 }
 

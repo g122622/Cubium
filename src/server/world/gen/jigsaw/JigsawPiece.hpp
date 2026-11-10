@@ -23,7 +23,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -118,11 +118,25 @@ public:
      * 先经 `_ensureLoaded()` 完成惰性加载（见其注释）。子类若在构造期就填满 m_joints
      * （FeatureJigsawPiece 的虚拟连接点），钩子为空实现，无额外开销。
      */
-    const std::vector<JigsawJoint>& getJoints() const
+    virtual const std::vector<JigsawJoint>& getJoints() const
     {
         _ensureLoaded();
         return m_joints;
     }
+
+    /**
+     * @brief 本构件在给定位置与旋转下的包围盒
+     *
+     * 默认按模板尺寸的两个对角点变换后归一化（单模板构件的语义）。列表构件
+     * （ListJigsawPiece）覆写为**各子构件包围盒的并集**——原版
+     * `ListPoolElement.getBoundingBox` 正是如此，用首个子块尺寸会漏掉其余子块的占位，
+     * 使整块构件在碰撞判定里"变矮变窄"，与原版接受/拒绝的候选不同。
+     *
+     * @param pos 构件原点（世界坐标）
+     * @param rotation 旋转
+     * @return 世界坐标包围盒
+     */
+    [[nodiscard]] virtual structure::StructureBoundingBox getBoundingBox(const BlockPos& pos, Rotation rotation) const;
 
     void addJoint(const JigsawJoint& joint)
     {

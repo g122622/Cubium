@@ -26,9 +26,9 @@
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/noise/SimplexNoise.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
-#include "common/world/gen/noise/SimplexNoise.hpp"
+#include "common/world/generation/density/DensityFunction.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "server/world/gen/noise/NormalNoise.hpp"
 #include <algorithm>
@@ -600,9 +600,14 @@ private:
 
     void computeBounds()
     {
-        // 按原版 lerp 的展开式做区间传播：d * (e - s) + s。
-        // 原版把 lerp 展开成 add(mul(d, add(e, constant(-s))), constant(s))，
-        // 边界由 Mul/Add 的区间算术逐层推出，而不是简单取两端点的极值。
+        // 求 `d * (e - s) + s` 在三个自变量各自区间上的极值。
+        //
+        // 不能拆成「先算 d*(e-s) 的区间，再加上 s 的区间」：s 同时出现在因子 (e-s) 里和
+        // 最后的加项上，两者不独立。曾经按 `productMin + sMin` 合并，遇到
+        // d∈[0,1]、s=1、e=-3 时得到 -3 + (-1) = -4，而真实下界是 -3。
+        //
+        // 该式对 d 是线性的，对 s、e 也是线性的，因此极值必定落在 8 个角点上，
+        // 逐个枚举即可，既准确又不依赖任何区间算术的近似。
         const f64 dMin = m_delta->minValue();
         const f64 dMax = m_delta->maxValue();
         const f64 sMin = m_start->minValue();
@@ -610,20 +615,27 @@ private:
         const f64 eMin = m_end->minValue();
         const f64 eMax = m_end->maxValue();
 
-        // 因子的区间。
-        const f64 factorMin = eMin - sMax;
-        const f64 factorMax = eMax - sMin;
+        f64 low = 0.0;
+        f64 high = 0.0;
+        bool first = true;
+        for (const f64 d : {dMin, dMax}) {
+            for (const f64 s : {sMin, sMax}) {
+                for (const f64 e : {eMin, eMax}) {
+                    const f64 candidate = d * (e - s) + s;
+                    if (first) {
+                        low = candidate;
+                        high = candidate;
+                        first = false;
+                    } else {
+                        low = std::min(low, candidate);
+                        high = std::max(high, candidate);
+                    }
+                }
+            }
+        }
 
-        // 乘积区间：两个区间相乘，取四个端点积的极小/极大。
-        const f64 p0 = dMin * factorMin;
-        const f64 p1 = dMin * factorMax;
-        const f64 p2 = dMax * factorMin;
-        const f64 p3 = dMax * factorMax;
-        const f64 productMin = std::min({p0, p1, p2, p3});
-        const f64 productMax = std::max({p0, p1, p2, p3});
-
-        m_minValue = productMin + sMin;
-        m_maxValue = productMax + sMax;
+        m_minValue = low;
+        m_maxValue = high;
     }
 };
 
@@ -1783,7 +1795,7 @@ private:
     [[nodiscard]] f32 getHeightValue(i32 x, i32 z) const;
 
     u64 m_seed;
-    std::unique_ptr<noise::SimplexNoise> m_islandNoise;
+    std::unique_ptr<::mc::math::noise::SimplexNoise> m_islandNoise;
 };
 
 // ============================================================================

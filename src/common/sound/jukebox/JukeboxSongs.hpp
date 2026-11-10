@@ -28,7 +28,9 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace mc {
@@ -49,6 +51,10 @@ public:
      * 必须在使用任何查询方法之前调用。
      */
     static void initialize();
+    /** @brief 登录注册表和世界播放事件共用的歌曲顺序。 */
+    [[nodiscard]] static std::span<const std::string_view> registryKeys();
+    /** @brief 获取已注册歌曲的网络编号，与比较器信号无关。 */
+    [[nodiscard]] static i32 numericId(const JukeboxSong& song);
 
     /**
      * @brief 根据资源位置查找歌曲

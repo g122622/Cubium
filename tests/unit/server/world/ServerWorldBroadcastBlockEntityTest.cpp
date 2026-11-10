@@ -36,7 +36,9 @@
  */
 
 #include "common/TempDirHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -44,7 +46,6 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
-#include "world/block/BlockPos.hpp"
 
 #include <filesystem>
 #include <gtest/gtest.h>
@@ -192,18 +193,19 @@ TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventPassesDimensionAndCo
     i32 capturedZ = 0;
     i32 capturedData = 0;
 
-    world->setOnBroadcastGlobalLevelEvent([&](DimensionId dimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data) {
-        invoked = true;
-        capturedDimension = dimensionId;
-        capturedEventId = eventId;
-        capturedX = x;
-        capturedY = y;
-        capturedZ = z;
-        capturedData = data;
-    });
+    world->setOnBroadcastGlobalLevelEvent(
+        [&](DimensionId dimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data) {
+            invoked = true;
+            capturedDimension = dimensionId;
+            capturedEventId = static_cast<i32>(eventId);
+            capturedX = x;
+            capturedY = y;
+            capturedZ = z;
+            capturedData = data;
+        });
 
     // 世界配置的维度为 0（overworld）。
-    world->globalLevelEvent(2001, BlockPos(10, 64, -30), 7);
+    world->globalLevelEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, BlockPos(10, 64, -30), 7);
 
     EXPECT_TRUE(invoked);
     EXPECT_EQ(capturedDimension, world->dimension());
@@ -221,24 +223,24 @@ TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventFallsBackToPlayEvent
 
     bool globalInvoked = false;
     bool playInvoked = false;
-    world->setOnBroadcastGlobalLevelEvent([&](DimensionId, i32, i32, i32, i32, i32) {
+    world->setOnBroadcastGlobalLevelEvent([&](DimensionId, ::mc::world::LevelEventId, i32, i32, i32, i32) {
         globalInvoked = true;
     });
-    world->setOnBroadcastWorldEvent([&](i32, i32, i32, i32, i32) {
+    world->setOnBroadcastWorldEvent([&](::mc::world::LevelEventId, i32, i32, i32, i32) {
         playInvoked = true;
     });
 
-    world->globalLevelEvent(1028, BlockPos(1, 2, 3), 0);
+    world->globalLevelEvent(::mc::world::LevelEventId::SOUND_DRAGON_DEATH, BlockPos(1, 2, 3), 0);
     EXPECT_FALSE(globalInvoked);
     EXPECT_TRUE(playInvoked);
 
     // 规则恢复默认（true）后重新走全局广播
     world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::GLOBAL_SOUND_EVENTS, true);
-    world->globalLevelEvent(1028, BlockPos(1, 2, 3), 0);
+    world->globalLevelEvent(::mc::world::LevelEventId::SOUND_DRAGON_DEATH, BlockPos(1, 2, 3), 0);
     EXPECT_TRUE(globalInvoked);
 }
 
 TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventWithoutCallbackDoesNotCrash)
 {
-    EXPECT_NO_THROW(world->globalLevelEvent(2001, BlockPos(0, 0, 0), 0));
+    EXPECT_NO_THROW(world->globalLevelEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, BlockPos(0, 0, 0), 0));
 }

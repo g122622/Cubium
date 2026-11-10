@@ -492,11 +492,13 @@ void HappyGhastEntity::registerAttributes()
     // 对齐 vanilla HappyGhast.createAttributes：
     //   Animal.createAnimalAttributes() + MAX_HEALTH=20 + TEMPT_RANGE=16 + FLYING_SPEED=0.05
     //   + MOVEMENT_SPEED=0.05 + FOLLOW_RANGE=16 + CAMERA_DISTANCE=8
-    // （TEMPT_RANGE / CAMERA_DISTANCE 属性本项目未建模，故只设置已存在的四项。）
+    // （CAMERA_DISTANCE 只被客户端相机消费，本项目未建模，故只设置已存在且服务端可观测的项。）
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
     attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.05);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.05);
+    // 快乐恶魂的诱惑范围比普通动物大一格多（16 而非 10），TemptGoal 会读这个值。
+    attributes().setBaseValue(entity::attribute::Attributes::TEMPT_RANGE, 16.0);
 }
 
 } // namespace mc

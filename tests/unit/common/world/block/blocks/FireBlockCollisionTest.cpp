@@ -24,7 +24,8 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/EntityType.hpp"
@@ -32,7 +33,6 @@
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/tick/manager/TickManager.hpp"

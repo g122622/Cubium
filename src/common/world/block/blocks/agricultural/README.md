@@ -132,13 +132,15 @@ Block
 
 **解决方案**：甜菜根需重写 `getBonemealAgeIncrease()` 返回较小范围（0-2），并在 `grow()` 中使用 `min(age, getMaxAge())` 限制。
 
-### 7. 傀儡生成方向一致性
+### 7. 傀儡生成使用 BlockPattern
 
-**问题**：铁傀儡 T 形结构检测时，手臂方向与南瓜朝向不一致会导致生成失败。
+雪/铁/铜傀儡由 `CarvedPumpkinBlock::trySpawnGolem()` 通过 `world/block/pattern/` 的 3D 模式匹配：
 
-**解决方案**：`CarvedPumpkinBlock::checkIronGolemPattern()` 需检测两个垂直方向（东西/南北），南瓜的 FACING 属性决定傀儡朝向。
+- 雪：`^` / `#` / `#`（南瓜 + 2 雪块）
+- 铁：`~^~` / `###` / `~#~`（南瓜 + T 形铁块，`~` 必须为空气）
+- 铜：`^` / `#`（南瓜 + `BlockTags::COPPER` 方块）
 
-**铜傀儡生成**（MC 1.21.11）：`CarvedPumpkinBlock` 同时支持雪/铁/铜三种傀儡模式，优先级为 雪 > 铁 > 铜。铜傀儡模式为垂直 2 格（南瓜 + 任意 `BlockTags::COPPER` 标签内的铜块），生成后会用对应氧化等级的铜箱子替换铜块位置（`CopperChestBlock::getFromCopperBlock`）。铜傀儡的氧化等级由铜块状态推导：直接实现 `IOxidizableBlock` 的铜块取其氧化等级；涂蜡变种通过 `HoneycombItem::getWaxOffMap` 查找未涂蜡变种后取等级。`canSpawnGolem(IWorld, BlockPos)` 公共 API 仅检查身体部分（雪/铁/铜），头部由调用方提供。
+优先级 雪 > 铁 > 铜。匹配后统一执行 `clearPatternBlocks`（含 2001 粒子；写方块前先把 stateId 取成值）→ 生成实体 → 通知邻居 → 铜块替换为对应氧化等级铜箱子。**不要**在方块类中手写坐标扫描；新增多方块结构一律复用 pattern 模块。`canSpawnGolem` 只检查身体（base pattern），头部由调用方提供。
 
 ### 8. 农作物支撑检测
 

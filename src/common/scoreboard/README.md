@@ -6,24 +6,24 @@
 scoreboard/
 ├── core/                                # 核心数据类型
 │   ├── Scoreboard.hpp/cpp               # 记分板管理器（管理目标、分数、队伍）
-│   ├── ScoreObjective.hpp/cpp           # 目标类（判据+显示名称+渲染类型，缓存格式化名称）
-│   ├── Score.hpp/cpp                    # 分数类（玩家名+分数值+锁定状态）
+│   ├── ScoreObjective.hpp/cpp           # 目标类（判据+显示名称+渲染类型+数字格式，缓存格式化名称）
+│   ├── Score.hpp/cpp                    # 分数类（玩家名+分数值+锁定状态+数字格式覆盖）
 │   ├── ScoreCriteria.hpp/cpp            # 判据基类和注册表（ScoreCriteriaRegistry 单例）
 │   ├── ScoreCriteriaRenderType.hpp/cpp  # 渲染类型枚举（Integer/Hearts）和显示槽位枚举
 │   ├── Team.hpp                         # 队伍抽象接口（含 getFormattedDisplayName 虚方法）
 │   ├── ScorePlayerTeam.hpp/cpp          # 队伍实现类（成员管理、颜色、前后缀、可见性、格式化名称）
 │   └── TeamEnums.hpp                    # 队伍枚举（TeamVisibility、TeamCollisionRule）
-├── criteria/                            # 判据实现
-│   ├── DummyCriteria.hpp/cpp            # 手动设置判据（dummy）
-│   ├── TriggerCriteria.hpp/cpp          # 触发器判据（trigger，玩家可通过命令触发）
-│   ├── DeathCountCriteria.hpp/cpp       # 死亡计数判据（deathCount）
-│   ├── KillCountCriteria.hpp/cpp        # 击杀计数判据（playerKillCount/totalKillCount）
-│   ├── ReadOnlyCriteria.hpp/cpp         # 只读判据基类及实现（health/food/air/armor/xp/level）
-│   └── TeamKillCriteria.hpp/cpp         # 队伍击杀判据（teamkill.{color}/killedByTeam.{color}）
-└── storage/                             # 持久化
-    ├── ScoreboardSaveData.hpp/cpp       # 数据序列化结构（ObjectiveData/ScoreData/TeamData）
-    └── ScoreboardDataManager.hpp/cpp    # 数据管理器（缓存+脏标记，依赖 SingleLevelStorageManager）
+└── criteria/                            # 判据实现
+    ├── DummyCriteria.hpp/cpp            # 手动设置判据（dummy）
+    ├── TriggerCriteria.hpp/cpp          # 触发器判据（trigger，玩家可通过命令触发）
+    ├── DeathCountCriteria.hpp/cpp       # 死亡计数判据（deathCount）
+    ├── KillCountCriteria.hpp/cpp        # 击杀计数判据（playerKillCount/totalKillCount）
+    ├── ReadOnlyCriteria.hpp/cpp         # 只读判据基类及实现（health/food/air/armor/xp/level）
+    └── TeamKillCriteria.hpp/cpp         # 队伍击杀判据（teamkill.{color}/killedByTeam.{color}）
 ```
+
+持久化（`ScoreboardSaveData`/`ScoreboardDataManager`）在 `src/server/scoreboard/storage/`，不在本目录——
+它们依赖 `server/world/storage`，属于服务端专属逻辑。
 
 ## 内部模块关系
 
@@ -79,6 +79,7 @@ ScoreCriteria.onPlayerDeath/onPlayerKill → Scoreboard.forAllObjectives → Sco
 | `common/core/Types.hpp` | i32、u8 等基础类型 | 全模块 |
 | `common/core/Result.hpp` | Result<T> 错误处理 | ScoreCriteria、ScoreboardSaveData、ScoreboardDataManager |
 | `common/util/text/ITextComponent.hpp` | 文本组件（显示名称、前缀后缀） | Team、ScoreObjective、ScorePlayerTeam |
+| `common/util/text/numbers/NumberFormat.hpp` | 数字格式（blank/styled/fixed） | ScoreObjective（目标级）、Score（覆盖） |
 | `common/util/text/ComponentUtils.hpp` | wrapInSquareBrackets 方括号包裹工具 | ScoreObjective、ScorePlayerTeam |
 | `common/util/nbt/Nbt.hpp` | NBT 序列化 | ScoreboardSaveData |
 | `common/network/ir/packets/play/PlayPackets.hpp` | IR 网络包结构（SetObjective/SetScore/SetDisplayObjective/SetPlayerTeam） | ServerScoreboard 出站同步 |
@@ -123,6 +124,18 @@ ScoreCriteria.onPlayerDeath/onPlayerKill → Scoreboard.forAllObjectives → Sco
 `ScorePlayerTeam::formatName()` 方法返回的是**新创建的组件**，不是修改原组件。队伍颜色应用到根组件，子组件保留各自样式可覆盖继承的颜色。
 
 `ScorePlayerTeam::getFormattedDisplayName()` 和 `ScoreObjective::getFormattedDisplayName()` 均使用 `ComponentUtils::wrapInSquareBrackets()` 包裹显示名称（翻译键 `chat.square_brackets`），悬停事件显示内部名称。`ScoreObjective` 会缓存格式化结果，在 `setDisplayName` 时自动更新。
+
+### 数字格式的两级覆盖
+
+分数渲染格式有两级，**覆盖优先**：
+
+- `ScoreObjective::getNumberFormat()` —— `/scoreboard objectives modify <obj> numberformat ...`
+- `Score::getNumberFormatOverride()` —— `/scoreboard players display numberformat <targets> <obj> ...`
+
+两者都是 `std::optional<NumberFormat>`：**nullopt = 没有自定义格式**（渲染方用自己的默认格式），
+而 `NumberFormat()`（blank）是**显式要求不显示数字**。这两者在存档与网络里是不同的值，不要合并。
+
+渲染统一走 `Score::formatValue(objectiveFallback)`，不要在两处各写一遍「取覆盖否则取目标」的逻辑。
 
 ### ScoreCriteriaRegistry 初始化
 

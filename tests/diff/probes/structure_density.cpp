@@ -49,11 +49,11 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "probe.hpp"
 #include "server/world/gen/density/Beardifier.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
 namespace mc::diff {
 namespace {

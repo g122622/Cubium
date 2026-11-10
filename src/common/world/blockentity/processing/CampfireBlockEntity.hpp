@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/IInventory.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"

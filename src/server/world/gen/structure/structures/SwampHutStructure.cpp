@@ -32,15 +32,15 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -66,51 +66,24 @@ const biome::BiomeTag* SwampHutStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_SWAMP_HUT();
 }
 
-bool SwampHutStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ)
-{
-    // 检查区块中心位置的生物群系是否为沼泽
-    const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
-    return isValidBiome(biome);
-}
-
 std::unique_ptr<StructureStart> SwampHutStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
-    // 计算生成位置
-    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-
-    // 获取地表高度
-    i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
-
-    // 确保在海平面以上（沼泽小屋通常在水面以上）
-    if (y < world::SEA_LEVEL - 1) {
-        y = world::SEA_LEVEL - 1;
+    // 生物群系校验落在候选生成点（区块中心、地表高度）上；不匹配即返回空起点。
+    if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::WorldSurfaceWG))) {
+        return start;
     }
 
-    // 随机旋转
-    feature::template_::Rotation rotation;
-    i32 rotValue = rng.nextInt(4);
-    switch (rotValue) {
-        case 0:
-            rotation = feature::template_::Rotation::None;
-            break;
-        case 1:
-            rotation = feature::template_::Rotation::Clockwise90;
-            break;
-        case 2:
-            rotation = feature::template_::Rotation::Clockwise180;
-            break;
-        case 3:
-        default:
-            rotation = feature::template_::Rotation::CounterClockwise90;
-            break;
-    }
+    // 生成位置固定为区块最小角、Y=64（原版 `ScatteredFeaturePiece` 构造传 64），
+    // 唯一一次抽样是水平朝向：`Direction.Plane.HORIZONTAL.getRandomDirection` 按
+    // [NORTH, EAST, SOUTH, WEST] 取一个。
+    constexpr Direction kHorizontalFaces[] = {Direction::North, Direction::East, Direction::South, Direction::West};
+    const Direction direction = kHorizontalFaces[rng.nextInt(4)];
 
-    auto piece = std::make_unique<SwampHutPiece>(BlockPos(x, y, z), rotation);
+    auto piece = std::make_unique<SwampHutPiece>(
+        BlockPos(chunkX * world::CHUNK_WIDTH, 64, chunkZ * world::CHUNK_WIDTH), direction);
     start->addPiece(std::move(piece));
 
     return start;
@@ -120,17 +93,23 @@ std::unique_ptr<StructureStart> SwampHutStructure::generate(
 // SwampHutPiece
 // ============================================================================
 
-SwampHutPiece::SwampHutPiece(const BlockPos& pos, feature::template_::Rotation rotation)
-    : StructurePiece(StructurePieceTypes::SWAMP_HUT, pos.x, pos.y, pos.z, pos.x + 7, pos.y + 6, pos.z + 9)
-    , m_rotation(rotation)
+SwampHutPiece::SwampHutPiece(const BlockPos& pos, Direction direction)
+    : StructurePiece(StructurePieceTypes::SWAMP_HUT, pos.x, pos.y, pos.z, pos.x, pos.y, pos.z)
 {
-    // 沼泽小屋尺寸约 7x5x9
+    // 尺寸按 `makeBoundingBox(x, y, z, direction, width=7, height=7, depth=9)` 展开：
+    // 朝向沿 Z 轴（北/南）时深度落在 Z 上，沿 X 轴（东/西）时深度落在 X 上。
+    const i32 width = 7;
+    const i32 height = 7;
+    const i32 depth = 9;
+    const bool alongZ = direction == Direction::North || direction == Direction::South;
     m_minX = pos.x;
     m_minY = pos.y;
     m_minZ = pos.z;
-    m_maxX = pos.x + 6;
-    m_maxY = pos.y + 5;
-    m_maxZ = pos.z + 8;
+    m_maxX = pos.x + (alongZ ? width : depth) - 1;
+    m_maxY = pos.y + height - 1;
+    m_maxZ = pos.z + (alongZ ? depth : width) - 1;
+    // 构件朝向同时决定旋转与镜像（原版 `setOrientation`）。
+    setCoordBaseMode(direction);
 }
 
 void SwampHutPiece::generate(IWorldWriter& world,

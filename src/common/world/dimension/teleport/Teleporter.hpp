@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <optional>
 #include <vector>
 
@@ -52,30 +52,24 @@ struct PortalInfo {
 /**
  * @brief 传送器基类
  *
- * 处理实体在维度间的传送逻辑。
+ * 提供传送门坐标换算、搜索与创建能力。
  *
- * 使用示例:
+ * 本类**不负责**执行维度切换：那需要维度管理器处理区块加载/卸载、
+ * 实体移交与数据包发送，属于 server 侧职责（见 ServerPlayer::changeDimension）。
+ * common 层拿不到目标维度世界，因此这里只暴露与具体世界实例无关的传送门操作。
+ *
+ * 使用示例：
  * @code
  * NetherTeleporter teleporter;
- * bool success = teleporter.teleport(entity, DimensionManager::NETHER);
+ * auto info = teleporter.findPortal(*targetWorld, targetPos);
+ * if (!info.has_value()) {
+ *     info = teleporter.createPortal(*targetWorld, targetPos);
+ * }
  * @endcode
  */
 class Teleporter {
 public:
     virtual ~Teleporter() = default;
-
-    // ========== 核心传送方法 ==========
-
-    /**
-     * @brief 将实体传送到目标维度
-     *
-     * @param entity 要传送的实体
-     * @param targetDim 目标维度ID
-     * @return 是否成功传送
-     */
-    virtual bool teleport(Entity& entity, DimensionId targetDim) = 0;
-
-    // ========== 传送门搜索 ==========
 
     /**
      * @brief 在目标世界查找已存在的传送门
@@ -174,7 +168,6 @@ public:
 
     // ========== Teleporter 接口实现 ==========
 
-    bool teleport(Entity& entity, DimensionId targetDim) override;
     [[nodiscard]] std::optional<PortalInfo> findPortal(IWorld& world, const Vector3d& pos) override;
     [[nodiscard]] PortalInfo createPortal(IWorld& world, const Vector3d& pos) override;
 
@@ -226,7 +219,6 @@ public:
 
     // ========== Teleporter 接口实现 ==========
 
-    bool teleport(Entity& entity, DimensionId targetDim) override;
     [[nodiscard]] std::optional<PortalInfo> findPortal(IWorld& world, const Vector3d& pos) override;
     [[nodiscard]] PortalInfo createPortal(IWorld& world, const Vector3d& pos) override;
 
@@ -245,8 +237,8 @@ public:
      * active=true 时放置末地传送门方块（已击败龙），
      * active=false 时仅放置空气（未击败龙或龙正在重生）。
      *
-     * TODO: 此方法已实现但尚未被调用，等待 EndDragonFight 系统集成。
-     * 在 EnderDragonEntity::_onDeathUpdate() 中龙死亡后应调用此方法。
+     * 调用方：EnderDragonEntity::_onDeathUpdate()（龙死亡动画结束时）与
+     * EndDragonFight（龙重生/重置时以 active=false 清除讲台）。
      *
      * @param world 末地世界
      * @param pos 讲台中心底部位置
@@ -302,11 +294,15 @@ public:
      *
      * 注意：要塞生成中的传送门房间使用 StructurePiece::placeEndPortalFrames()
      * 放置框架，该方法支持结构局部坐标、区块裁剪、镜像旋转和随机末影之眼。
-     * 本方法使用世界绝对坐标，所有框架默认带眼，且总是放置传送门方块，
-     * 适用于运行时传送门创建等非结构生成场景。
+     * 本方法使用世界绝对坐标，所有框架默认带眼，总是放置传送门方块，
+     * 适用于运行时在指定位置搭出一座完整传送门（如调试、自定义内容）。
      *
-     * TODO: 此方法已实现但尚未被调用，等待 EndDragonFight 系统集成。
-     * 在 EnderDragonEntity::_onDeathUpdate() 中龙死亡后应调用此方法。
+     * 与末影龙无关：龙死亡后生成的是**出口讲台**（见 createExitPortal），那是
+     * 另一套结构，不要与要塞的 3×3 框架混淆。
+     *
+     * TODO: 目前只有单元测试调用本方法，没有生产调用点。它的用途是"按世界绝对
+     *   坐标搭一座带眼的完整末地传送门"，若确认没有运行时需求，可与测试一并删除；
+     *   结构生成请继续用 StructurePiece::placeEndPortalFrames。
      *
      * @param world 世界引用
      * @param center 传送门框架中心（传送门内部 3×3 区域的中心）底部位置

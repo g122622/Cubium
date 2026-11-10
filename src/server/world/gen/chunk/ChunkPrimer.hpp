@@ -27,13 +27,13 @@
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/carver/CarvingMask.hpp"
 #include "server/world/gen/spawn/WorldGenSpawner.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -510,7 +510,7 @@ public:
     // ============================================================================
 
     /**
-     * @brief 记录一条待执行的方块刻（对齐 ProtoChunk 的 block ticks 容器）
+     * @brief 记录一条待执行的方块刻
      *
      * 生成期由 WorldGenRegion::scheduleTick 写入，区块发布后由 ServerChunkManager
      * 在主线程转交给世界 TickManager。同一位置 + 同一方块只记录一次。
@@ -540,6 +540,39 @@ public:
     }
 
     /**
+     * @brief 记录一条待执行的流体刻
+     *
+     * 生成期由 WorldGenRegion::scheduleTick 写入，区块发布后由 ServerChunkManager
+     * 在主线程转交给世界 TickManager。同一位置 + 同一流体只记录一次。
+     *
+     * @param pos 流体绝对位置
+     * @param fluid 目标流体
+     * @param delay 延迟 tick 数（从调度时刻算起）
+     * @param priority 执行优先级
+     */
+    void addPendingFluidTick(const BlockPos& pos,
+        const fluid::Fluid& fluid,
+        u64 scheduledTick,
+        i32 delay,
+        world::tick::TickPriority priority);
+
+    /**
+     * @brief 获取全部待执行流体刻
+     */
+    [[nodiscard]] const std::vector<PendingFluidTick>& pendingFluidTicks() const noexcept
+    {
+        return m_pendingFluidTicks;
+    }
+
+    /**
+     * @brief 清空待执行流体刻（toChunkData 转移到 ChunkData 后调用）
+     */
+    void clearPendingFluidTicks() noexcept
+    {
+        m_pendingFluidTicks.clear();
+    }
+
+    /**
      * @brief 从另一个来源合并后处理位置
      *
      * @param packedPositions 打包位置列表
@@ -554,12 +587,17 @@ public:
     /**
      * @brief 获取雕刻掩码
      *
-     * MC原版中，CarvingMask 在 AIR 和 LIQUID 两个雕刻阶段之间共享。
-     * 第一次调用时自动创建掩码。
+     * 掩码在 AIR 与 LIQUID 两个雕刻阶段之间共享，第一次调用时按传入的维度几何创建。
      *
+     * `minY` 与 `height` 必须来自该区块所在维度的生成设置（主世界 -64/384、下界 0/128、
+     * 末地 0/256），不能用世界常量兜底：掩码索引是 `(y - minY) << 8`，基准错位会让
+     * 雕刻结果落到别的格上，表现为洞穴在区块内被刻穿或漏刻，且不报任何错。
+     *
+     * @param minY 该维度最低生成 Y 坐标
+     * @param height 该维度生成高度
      * @return 雕刻掩码引用
      */
-    [[nodiscard]] CarvingMask& carvingMask();
+    [[nodiscard]] CarvingMask& carvingMask(i32 minY, i32 height);
 
     /**
      * @brief 检查是否已有雕刻掩码
@@ -769,8 +807,9 @@ private:
     /// 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
     std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS> m_postProcessingSections;
 
-    /// 生成期调度的方块刻（绝对坐标；区块发布时由主线程转交 TickManager）
+    /// 生成期调度的方块刻/流体刻（绝对坐标；区块发布时由主线程转交 TickManager）
     std::vector<PendingBlockTick> m_pendingBlockTicks;
+    std::vector<PendingFluidTick> m_pendingFluidTicks;
 
     // NoiseChunk 缓存（biomes/noise/surface/carvers 阶段共享）
     std::unique_ptr<mc::world::gen::density::NoiseChunk> m_noiseChunk;

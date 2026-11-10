@@ -21,8 +21,15 @@
  *
  */
 
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
+#include "common/entity/entities/monster/end/ShulkerEntity.hpp" // color 组件：ShulkerColor→PaletteColor
+#include "common/entity/entities/monster/nether/BlazeEntity.hpp"
+#include "common/entity/entities/passive/basic/SheepEntity.hpp" // color 组件：羊直接暴露 DyeColor
+#include "common/entity/entities/passive/horse/LlamaEntity.hpp" // color 组件：LlamaColor→PaletteColor
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptGameObjects.hpp"
@@ -31,6 +38,7 @@
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
+#include "common/util/color/DyeColor.hpp" // DyeColor（PaletteColor 数值来源）
 
 #include <limits>
 #include <memory>
@@ -435,4 +443,389 @@ TEST(AddonEntityStateTest, FloatPropertiesUseSinglePrecisionForDefaultsWritesAnd
             .success());
     ASSERT_TRUE(restored.load(state.save()).success());
     EXPECT_EQ(restored.getProperty("test:value"), expected);
+}
+
+// EquippableComponent 的 totalArmor / totalToughness 必须读实体的护甲属性，
+// 而不是固定返回 0。这里用真实的 LivingEntity 设定属性基值，再从脚本侧读取。
+class AddonEquippableArmorBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+        subject = std::make_unique<mc::LivingEntity>(mc::EntityInstanceId(1), nullptr, registry);
+        subject->attributes().setBaseValue(mc::entity::attribute::Attributes::ARMOR, 7.0);
+        subject->attributes().setBaseValue(mc::entity::attribute::Attributes::ARMOR_TOUGHNESS, 3.0);
+        context = createContext();
+        ASSERT_NE(context, nullptr);
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    std::unique_ptr<IScriptContext> createContext()
+    {
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        if (!created) {
+            return nullptr;
+        }
+        auto& binding = created->bindingContext();
+        binding.setPackId("armor-pack");
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        return created;
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "equippable-armor.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-equippable-armor"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::LivingEntity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonEquippableArmorBindingTest, TotalArmorReadsArmorAttribute)
+{
+    check(R"(
+        const equippable = subject.getComponent('minecraft:equippable');
+        if (equippable === undefined) throw Error('equippable component missing');
+        if (equippable.totalArmor !== 7) throw Error('totalArmor=' + equippable.totalArmor);
+        if (equippable.totalToughness !== 3) throw Error('totalToughness=' + equippable.totalToughness);
+    )");
+}
+
+TEST_F(AddonEquippableArmorBindingTest, TotalArmorTracksAttributeChanges)
+{
+    check(R"(
+        {
+            const equippable = subject.getComponent('minecraft:equippable');
+            if (equippable.totalArmor !== 7) throw Error('initial totalArmor wrong');
+        }
+    )");
+    subject->attributes().setBaseValue(mc::entity::attribute::Attributes::ARMOR, 20.0);
+    check(R"(
+        {
+            const equippable = subject.getComponent('minecraft:equippable');
+            if (equippable.totalArmor !== 20) throw Error('totalArmor did not follow the attribute');
+        }
+    )");
+}
+
+// HealthComponent 的 effectiveMin/defaultValue 与 reset* 方法必须读 max_health 属性，
+// 而不是硬编码 0/20/1。用一个 max_health 默认值被改写的 LivingEntity 验证。
+class AddonHealthAttributeBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+        subject = std::make_unique<mc::LivingEntity>(mc::EntityInstanceId(1), nullptr, registry);
+        context = createContext();
+        ASSERT_NE(context, nullptr);
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    std::unique_ptr<IScriptContext> createContext()
+    {
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        if (!created) {
+            return nullptr;
+        }
+        auto& binding = created->bindingContext();
+        binding.setPackId("health-pack");
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        return created;
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "health-attributes.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-health-attributes"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::LivingEntity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonHealthAttributeBindingTest, EffectiveMinAndDefaultValueComeFromMaxHealthAttribute)
+{
+    // 默认 max_health 属性：defaultValue=20.0、minValue=1.0。
+    check(R"(
+        const health = subject.getComponent('minecraft:health');
+        if (health === undefined) throw Error('health component missing');
+        if (health.effectiveMin !== 1) throw Error('effectiveMin=' + health.effectiveMin);
+        if (health.defaultValue !== 20) throw Error('defaultValue=' + health.defaultValue);
+    )");
+}
+
+TEST_F(AddonHealthAttributeBindingTest, ResetToDefaultValueUsesAttributeDefault)
+{
+    // 把 max_health 基值改成 40 后，defaultValue 应随属性实例里的 default 变化——
+    // 这里只验证 resetToDefaultValue 与 defaultValue 一致，而非写死 20。
+    subject->attributes().setBaseValue(mc::entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    check(R"(
+        {
+            const health = subject.getComponent('minecraft:health');
+            health.setCurrentValue(5);
+            if (health.currentValue !== 5) throw Error('setCurrentValue failed');
+            health.resetToDefaultValue();
+            if (health.currentValue !== health.defaultValue) {
+                throw Error('resetToDefaultValue=' + health.currentValue + ' default=' + health.defaultValue);
+            }
+        }
+    )");
+}
+
+TEST_F(AddonHealthAttributeBindingTest, ResetToMinValueUsesAttributeMin)
+{
+    subject->attributes().setBaseValue(mc::entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    check(R"(
+        {
+            const health = subject.getComponent('minecraft:health');
+            health.setCurrentValue(30);
+            health.resetToMinValue();
+            if (health.currentValue !== health.effectiveMin) {
+                throw Error('resetToMinValue=' + health.currentValue + ' min=' + health.effectiveMin);
+            }
+        }
+    )");
+}
+
+// Entity.addEffect 的 effectType 参数按基岩签名接受 EffectType | string。
+// 对象形式取其 id 属性；字符串形式同时接受带/不带命名空间。
+TEST_F(AddonEquippableArmorBindingTest, AddEffectAcceptsEffectTypeObject)
+{
+    // 三种形态各用不同效果，避免依赖 removeEffect（脚本侧未提供）。
+    check(R"(
+        {
+            subject.addEffect('minecraft:blindness', 200);
+            if (subject.getEffect('minecraft:blindness') === undefined) {
+                throw Error('string form did not apply');
+            }
+        }
+        {
+            subject.addEffect({id: 'minecraft:weakness'}, 200);
+            if (subject.getEffect('minecraft:weakness') === undefined) {
+                throw Error('object form did not apply');
+            }
+        }
+        {
+            subject.addEffect({id: 'poison'}, 100);
+            if (subject.getEffect('poison') === undefined) {
+                throw Error('unqualified id via object did not apply');
+            }
+        }
+    )");
+}
+
+// Entity.setOnFire 在 useEffects=true 时，火焰免疫实体必须返回 false 且不点燃；
+// useEffects=false 则跳过检查直接设火焰计时（对齐 vanilla）。
+class AddonSetOnFireBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+        // isImmuneToFire() 走 EntityRegistry 查实体类型的 immuneToFire 标志，
+        // 因此必须先注册 vanilla 实体类型，否则烈焰人查不到、被判为不免疫。
+        mc::entity::VanillaEntities::registerAll();
+        // 烈焰人注册为 fireImmune，用来验证免疫门控。
+        // 必须经 EntityType 工厂创建：工厂会 setTypeId 并初始化血量，直接构造的实例
+        // m_typeId 为空，isImmuneToFire() 查不到类型会误判为不免疫。
+        const auto* blazeType = mc::entity::EntityRegistry::instance().getType(mc::entity::EntityTypeKeys::BLAZE);
+        ASSERT_NE(blazeType, nullptr);
+        auto created = blazeType->create(nullptr, registry);
+        ASSERT_NE(created, nullptr);
+        subject = std::unique_ptr<mc::Entity>(std::move(created));
+        context = createContext();
+        ASSERT_NE(context, nullptr);
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    std::unique_ptr<IScriptContext> createContext()
+    {
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        if (!created) {
+            return nullptr;
+        }
+        auto& binding = created->bindingContext();
+        binding.setPackId("onfire-pack");
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        return created;
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "set-on-fire.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-set-on-fire"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::Entity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonSetOnFireBindingTest, FireImmuneEntityRejectsIgnitionWithEffects)
+{
+    check(R"(
+        {
+            const applied = subject.setOnFire(5, true);
+            if (applied !== false) throw Error('fire-immune entity must reject ignition, got ' + applied);
+        }
+    )");
+}
+
+TEST_F(AddonSetOnFireBindingTest, FireImmuneEntityStillAcceptsDirectSetWithoutEffects)
+{
+    // useEffects=false 跳过免疫检查，直接写火焰计时（对齐 vanilla 语义）。
+    check(R"(
+        {
+            const applied = subject.setOnFire(5, false);
+            if (applied !== true) throw Error('useEffects=false should bypass the immunity gate');
+        }
+    )");
+}
+
+// ColorComponent（minecraft:color）的 value 必须换算成 PaletteColor(DyeColor) 数值。
+// 三个实体的枚举互不相同：羊直接用 DyeColor；羊驼 LlamaColor 与潜影贝 ShulkerColor 都是
+// 各自的自有序号，尤其潜影贝首项 Purple=0 而 PaletteColor 的 Purple=10，直接 static_cast 会读错。
+class AddonColorComponentBindingTest : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        engine = createScriptEngine();
+        ASSERT_TRUE(engine->initialize());
+    }
+
+    void TearDown() override
+    {
+        context.reset();
+        subject.reset();
+        engine->shutdown();
+    }
+
+    // 把给定实体包成脚本侧 subject 并建上下文；每个 TEST 各自调用一次。
+    void bind(std::unique_ptr<mc::Entity> entity, const char* packId)
+    {
+        subject = std::move(entity);
+        auto created = engine->runtime().createContext(ContextConfig{
+            Capabilities{}, std::nullopt, DEFAULT_CONTEXT_MEMORY_BYTES, DEFAULT_CONTEXT_STACK_SIZE_BYTES});
+        ASSERT_TRUE(created != nullptr);
+        auto& binding = created->bindingContext();
+        binding.setPackId(packId);
+        MinecraftModuleFactory factory;
+        EXPECT_TRUE(factory.registerBindings(*created));
+        void* global = binding.getGlobalObject();
+        void* wrapped = wrapEntity(binding, subject.get());
+        binding.setProperty(global, "subject", wrapped);
+        binding.releaseValue(wrapped);
+        binding.releaseValue(global);
+        context = std::move(created);
+    }
+
+    void check(const std::string& source)
+    {
+        const auto result = context->evaluate(source, "color-component.js", EvalFlags::None);
+        ASSERT_TRUE(result.success()) << result.errorMessage();
+    }
+
+    mc::ecs::EntityRegistry registry{"addon-color-component"};
+    std::unique_ptr<IScriptEngine> engine;
+    std::unique_ptr<mc::Entity> subject;
+    std::unique_ptr<IScriptContext> context;
+};
+
+TEST_F(AddonColorComponentBindingTest, SheepReportsDyeColorDirectly)
+{
+    auto sheep = std::make_unique<mc::SheepEntity>(mc::EntityInstanceId(1), registry);
+    sheep->setFleeceColor(mc::DyeColor::LightBlue);
+    bind(std::move(sheep), "color-sheep");
+
+    check(R"(
+        const comp = subject.getComponent('minecraft:color');
+        if (comp === undefined) throw Error('color component missing');
+        if (comp.value !== 3) throw Error('sheep value=' + comp.value);
+    )");
+}
+
+// 潜影贝默认色是 Purple(ShulkerColor=0)，必须读成 PaletteColor 的 10 而不是 0。
+TEST_F(AddonColorComponentBindingTest, ShulkerPurpleMapsToPalettePurpleNotIndexZero)
+{
+    auto shulker = std::make_unique<mc::ShulkerEntity>(mc::EntityInstanceId(2), registry);
+    shulker->setColor(mc::ShulkerEntity::ShulkerColor::Purple);
+    bind(std::move(shulker), "color-shulker");
+
+    check(R"(
+        const comp = subject.getComponent('minecraft:color');
+        if (comp === undefined) throw Error('color component missing');
+        if (comp.value !== 10) throw Error('shulker purple should be 10, got ' + comp.value);
+    )");
+}
+
+// 羊驼 Creamy(0) 是羊驼自己的序号，对应 PaletteColor 的 White(0) 而非同名序号错位；
+// 这里用 Brown(2) 验映射不依赖偏移：PaletteColor 的 Brown 是 12。
+TEST_F(AddonColorComponentBindingTest, LlamaBrownMapsByPaletteNotByOrdinal)
+{
+    auto llama = std::make_unique<mc::LlamaEntity>(mc::EntityInstanceId(3), registry);
+    llama->setColor(mc::LlamaEntity::LlamaColor::Brown);
+    bind(std::move(llama), "color-llama");
+
+    check(R"(
+        const comp = subject.getComponent('minecraft:color');
+        if (comp === undefined) throw Error('color component missing');
+        if (comp.value !== 12) throw Error('llama brown should be 12, got ' + comp.value);
+    )");
+}
+
+// 非羊/羊驼/潜影贝不提供该组件。
+TEST_F(AddonColorComponentBindingTest, NonColorEntityHasNoColorComponent)
+{
+    bind(std::make_unique<mc::LivingEntity>(mc::EntityInstanceId(4), nullptr, registry), "color-plain");
+
+    check(R"(
+        if (subject.getComponent('minecraft:color') !== undefined) throw Error('plain entity must not expose color');
+    )");
 }

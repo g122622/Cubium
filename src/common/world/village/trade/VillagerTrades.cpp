@@ -35,6 +35,7 @@
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/DyeItemHelper.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/map/FilledMapItem.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/potion/Potion.hpp"
 #include "common/item/potion/PotionBrewing.hpp"
@@ -48,7 +49,7 @@
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/MerchantOffer.hpp"
 #include "common/world/village/trade/TradeRandom.hpp"
@@ -92,6 +93,9 @@ constexpr i32 XP_LEVEL_4_BUY = 30;
 constexpr i32 XP_LEVEL_5_TRADE = 30;
 constexpr f32 LOW_TIER_PRICE_MULTIPLIER = 0.05f;
 constexpr f32 HIGH_TIER_PRICE_MULTIPLIER = 0.2f;
+
+/// 探险家地图的缩放级别：原版 `MapItem.create(level, x, z, (byte)2, true, true)` 的 2。
+constexpr i32 EXPLORATION_MAP_SCALE = 2;
 
 /**
  * @brief 按资源位置取物品
@@ -662,10 +666,8 @@ public:
     [[nodiscard]] nlohmann::json describe(
         TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
     {
-        // 附魔内容与价格都随随机数变化：用确定性随机源重放一次 getOffer。
-        // TODO: 这里不带 TradeContext，附魔池解析器为空 → 只能导出"卖普通书"的价格。
-        //   待 TradeListing::describe 增加上下文参数后再导出真实附魔池与价格，见
-        //   VillagerTrades::describeTrades 的说明。
+        // 附魔内容与价格都随随机数变化：用确定性随机源重放一次 getOffer
+        // （ctx 携带附魔池解析器，因此能抽出真实附魔）。
         ZeroRandom random;
         auto offer = getOffer(ctx, random);
         nlohmann::json sell = nlohmann::json{{"item", std::string("minecraft:enchanted_book")},
@@ -822,9 +824,11 @@ public:
 
 /**
  * @brief 地图装饰类型（vanilla MapDecorationTypes）
+ *
+ * `type` 是真正写进 filled_map 的装饰图标；`nameKey` 是该地图的物品名称翻译键。
  */
 struct MapDecoration {
-    const char* id;
+    world::map::DecorationType decorationType;
     /// 地图名称翻译键（写入 item_name）
     const char* nameKey;
 };
@@ -870,31 +874,37 @@ public:
             static_cast<i32>(std::floor(ctx.trader->z())));
         const auto target = ctx.world->findNearestMapStructure(traderPos, m_structureTag, 100, true);
         if (!target.has_value()) {
+            // 附近没有该结构：原版同样不给这一项交易（不卖空白地图）。
             return nullptr;
         }
 
-        // 原版用 MapItem.create(level, x, z, scale=2, trackingPosition=true, unlimitedTracking=true)，
-        // 本项目的填图物品接口在套件重建过程中，TODO: 接入地图创建与装饰标记后返回真正的探险家地图，
-        // 在此之前返回空交易，避免卖给玩家一张普通空白地图。
-        (void)m_decoration;
-        spdlog::warn("Treasure map trade for structure tag {} skipped: map creation is not available yet",
-            m_structureTag.toString());
-        return nullptr;
+        // 探险家地图：scale=2（1:4 视野），开启位置追踪与无限追踪，
+        // 装饰 id 恒为 "+"（与 vanilla MapItemSavedData.addTargetDecoration 一致）。
+        ItemStack map = item::items::FilledMapItem::setupNewMap(
+            *ctx.world, target->x, target->z, EXPLORATION_MAP_SCALE, true, true);
+        item::items::FilledMapItem::addTargetDecoration(map, *target, "+", m_decoration.decorationType);
+
+        // 价格乘数 0.2：与原版该条目一致（多数交易是 0.05）。
+        return std::make_unique<MerchantOffer>(_emeralds(m_emeraldCost),
+            std::optional<ItemCost>(ItemCost(ItemStack(*_item("minecraft:compass"), 1))),
+            std::move(map),
+            m_maxUses,
+            m_xp,
+            HIGH_TIER_PRICE_MULTIPLIER);
     }
 
     [[nodiscard]] nlohmann::json describe(
         TradeRandomSource& deterministicRandom, const TradeContext& ctx) const override
     {
-        // TODO: 地图创建落地后，成交物应导出带 `treasureMap` 目标结构标签与装饰类型的
-        //   filled_map；当前生产路径恒返回空交易（见 getOffer 的 TODO），导出值只用于
-        //   比对"这张表里登记了哪些地图条目"，不能让地图类条目通过一致性判定。
+        // 成交物是带目标结构装饰的探险家地图：导出静态描述（结构标签、显示名、装饰类型），
+        // 地图本身的具体坐标由运行时结构定位决定，不进入静态描述。
         nlohmann::json sell = nlohmann::json{{"item", std::string("minecraft:filled_map")},
             {"count", 1},
             {"targetTag", m_structureTag.toString()},
             {"displayName", std::string(m_displayNameKey != nullptr ? m_displayNameKey : "")},
-            {"decorationType", std::string(m_decoration.id != nullptr ? m_decoration.id : "")}};
+            {"decorationType", std::string(world::map::decorationTypeToString(m_decoration.decorationType))}};
         return describeFixed(
-            _summariseCost(_emeralds(m_emeraldCost)), std::move(sell), m_maxUses, m_xp, LOW_TIER_PRICE_MULTIPLIER);
+            _summariseCost(_emeralds(m_emeraldCost)), std::move(sell), m_maxUses, m_xp, HIGH_TIER_PRICE_MULTIPLIER);
     }
 
 private:
@@ -2051,10 +2061,15 @@ void VillagerTrades::_addTreasureMap(entity::VillagerProfession profession,
     i32 xp,
     std::initializer_list<entity::VillagerType> types)
 {
+    // 装饰 id 是资源位置字符串，这里解析成枚举；解析失败说明注册表写错了字面量，
+    // 用 RELEASE 断言就地暴露，而不是静默给一个错误的图标。
+    const auto decorationType = world::map::decorationTypeFromString(decorationId);
+    MC_ASSERT_RELEASE_MSG(decorationType.has_value(), "Unknown map decoration type for treasure map trade");
+
     auto map = std::make_unique<TreasureMapListing>(emeraldCost,
         ResourceLocation(structureTag),
         displayNameKey,
-        MapDecoration{decorationId, displayNameKey},
+        MapDecoration{*decorationType, displayNameKey},
         DEFAULT_SUPPLY,
         xp);
     if (types.size() == 0) {

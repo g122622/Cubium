@@ -126,6 +126,26 @@ TEST(StepHeightTest, LivingEntityCanOverrideStepHeight)
     EXPECT_FLOAT_EQ(entity.stepHeight(), 0.3f);
 }
 
+TEST(StepHeightTest, StepHeightAttributeDrivesStepHeight)
+{
+    // 步进高度的唯一事实来源是 step_height 属性：命令/数据包改属性即可改变能否上整格。
+    TestLivingEntity entity;
+    ASSERT_FLOAT_EQ(entity.stepHeight(), 0.6f);
+
+    entity.attributes().setBaseValue("minecraft:step_height", 1.5);
+    EXPECT_FLOAT_EQ(entity.stepHeight(), 1.5f);
+}
+
+TEST(StepHeightTest, SetStepHeightWritesAttributeBaseValue)
+{
+    // setStepHeight 与属性共用同一份数据，不再是并行双轨。
+    TestLivingEntity entity;
+    entity.setStepHeight(0.8f);
+
+    EXPECT_FLOAT_EQ(static_cast<f32>(entity.attributes().getBaseValue("minecraft:step_height", 0.0)), 0.8f);
+    EXPECT_FLOAT_EQ(entity.stepHeight(), 0.8f);
+}
+
 // ============================================================================
 // IronGolemEntity 步高测试
 // ============================================================================

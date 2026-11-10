@@ -27,7 +27,7 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <unordered_map>

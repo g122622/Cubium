@@ -34,10 +34,10 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace mc;
@@ -132,12 +132,12 @@ public:
 
     // playEvent 记录
     struct PlayEventCall {
-        i32 eventId;
+        ::mc::world::LevelEventId eventId;
         BlockPos pos;
         i32 data;
     };
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_playEventCalls.push_back({eventId, pos, data});
     }
@@ -1343,7 +1343,7 @@ TEST_F(MobSpawnerPlayEventTest, Tick_SpawnSuccess_EmitsMobSpawnerParticlesEvent)
     // 验证至少发出了一次 MOB_SPAWNER_PARTICLES 事件
     bool foundMobSpawnerEvent = false;
     for (const auto& call : world_->playEventCalls()) {
-        if (call.eventId == world::WorldEvents::MOB_SPAWNER_PARTICLES) {
+        if (call.eventId == ::mc::world::LevelEventId::PARTICLES_MOBBLOCK_SPAWN) {
             foundMobSpawnerEvent = true;
             // 验证事件位置是刷怪笼位置
             EXPECT_EQ(call.pos.x, 10);
@@ -1369,7 +1369,7 @@ TEST_F(MobSpawnerPlayEventTest, Tick_NoSpawn_NoMobSpawnerParticlesEvent)
 
     // 没有实体ID，不应发出 MOB_SPAWNER_PARTICLES 事件
     for (const auto& call : emptyWorld->playEventCalls()) {
-        EXPECT_NE(call.eventId, world::WorldEvents::MOB_SPAWNER_PARTICLES)
+        EXPECT_NE(call.eventId, ::mc::world::LevelEventId::PARTICLES_MOBBLOCK_SPAWN)
             << "Should not emit MOB_SPAWNER_PARTICLES when no entity ID is set";
     }
 }
@@ -1392,7 +1392,7 @@ TEST_F(MobSpawnerPlayEventTest, Tick_MultipleSpawns_EmitsEventForEachBatch)
     // 统计 MOB_SPAWNER_PARTICLES 事件次数
     size_t eventCount = 0;
     for (const auto& call : world_->playEventCalls()) {
-        if (call.eventId == world::WorldEvents::MOB_SPAWNER_PARTICLES) {
+        if (call.eventId == ::mc::world::LevelEventId::PARTICLES_MOBBLOCK_SPAWN) {
             ++eventCount;
         }
     }
@@ -1511,7 +1511,7 @@ TEST_F(MobSpawnerE2ESpawnTest, Tick_SpawnSuccess_EmitsParticlesEvent)
 
     bool foundMobSpawnerEvent = false;
     for (const auto& call : world_->playEventCalls()) {
-        if (call.eventId == world::WorldEvents::MOB_SPAWNER_PARTICLES) {
+        if (call.eventId == ::mc::world::LevelEventId::PARTICLES_MOBBLOCK_SPAWN) {
             foundMobSpawnerEvent = true;
             EXPECT_EQ(call.pos.x, 10);
             EXPECT_EQ(call.pos.y, 64);

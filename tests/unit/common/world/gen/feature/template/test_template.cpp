@@ -35,10 +35,9 @@
 
 #include "common/TestDataDir.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "server/world/gen/feature/template/RuleTest.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateLoader.hpp"
@@ -246,9 +245,9 @@ TEST_F(TemplateTest, PlacementSettings_DefaultValues)
     EXPECT_EQ(settings.getCenterOffset().x, 0);
     EXPECT_EQ(settings.getCenterOffset().y, 0);
     EXPECT_EQ(settings.getCenterOffset().z, 0);
-    EXPECT_EQ(settings.getBlockUpdateFlags(),
-        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
-    EXPECT_EQ(settings.keepLiquids(), false);
+    // 默认按世界当前流体补上水浸（对应原版 APPLY_WATERLOGGING）
+    EXPECT_EQ(settings.keepLiquids(), true);
+    EXPECT_EQ(settings.knownShape(), false);
     EXPECT_EQ(settings.getProcessors(), nullptr);
 }
 
@@ -262,7 +261,6 @@ TEST_F(TemplateTest, PlacementSettings_ChainedSetters)
                        .setMirror(Mirror::LeftRight)
                        .setIgnoreEntities(true)
                        .setCenterOffset(offset)
-                       .setBlockUpdateFlags(mc::world::BlockUpdateFlags::UPDATE_CLIENTS)
                        .setKeepLiquids(true)
                        .setProcessors(&processorList);
 
@@ -273,7 +271,6 @@ TEST_F(TemplateTest, PlacementSettings_ChainedSetters)
     EXPECT_EQ(settings.getCenterOffset().x, 10);
     EXPECT_EQ(settings.getCenterOffset().y, 20);
     EXPECT_EQ(settings.getCenterOffset().z, 30);
-    EXPECT_EQ(settings.getBlockUpdateFlags(), mc::world::BlockUpdateFlags::UPDATE_CLIENTS);
     EXPECT_EQ(settings.keepLiquids(), true);
     EXPECT_EQ(settings.getProcessors(), &processorList);
 }
@@ -281,19 +278,13 @@ TEST_F(TemplateTest, PlacementSettings_ChainedSetters)
 TEST_F(TemplateTest, PlacementSettings_Copy)
 {
     PlacementSettings original;
-    original.setRotation(Rotation::Clockwise180)
-        .setMirror(Mirror::FrontBack)
-        .setIgnoreEntities(true)
-        .setBlockUpdateFlags(
-            mc::world::BlockUpdateFlags::UPDATE_NEIGHBORS | mc::world::BlockUpdateFlags::UPDATE_INVISIBLE);
+    original.setRotation(Rotation::Clockwise180).setMirror(Mirror::FrontBack).setIgnoreEntities(true);
 
     PlacementSettings copy = original.copy();
 
     EXPECT_EQ(copy.getRotation(), Rotation::Clockwise180);
     EXPECT_EQ(copy.getMirror(), Mirror::FrontBack);
     EXPECT_EQ(copy.ignoreEntities(), true);
-    EXPECT_EQ(copy.getBlockUpdateFlags(),
-        mc::world::BlockUpdateFlags::UPDATE_NEIGHBORS | mc::world::BlockUpdateFlags::UPDATE_INVISIBLE);
 }
 
 // ============================================================================

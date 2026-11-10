@@ -95,18 +95,22 @@ constexpr f32 INFESTED_SPAWN_CHANCE = 0.1f;
 
 namespace network {
 
-// 协议版本 (MC 1.16.5 = 754)
-// 注意：当前项目目标是 MC 1.16.5，协议版本应为 754
-constexpr i32 PROTOCOL_VERSION = 754; // MC 1.16.5
-
 // 端口 (Java版)
 constexpr u16 DEFAULT_PORT = 25565;      // Java版默认端口
 constexpr u16 DEFAULT_RCON_PORT = 25575; // RCON 默认端口
 
-// 数据包限制
-constexpr Size MAX_PACKET_SIZE = 2097152; // 2MB
-constexpr Size MAX_UNCOMPRESSED_SIZE = 2097152;
-constexpr Size MIN_COMPRESSION_THRESHOLD = 256;
+// 协议版本不在这里：Java 后端用 `network/backend/java/JavaBackend.hpp` 的
+// `kJavaProtocolVersion`（当前 774 = MC 1.21.11）。这里原先的 `PROTOCOL_VERSION = 754`
+// 是 1.16.5 的值，全项目无人引用，留着只会误导。
+
+// 数据包/压缩尺寸上限不在这里：实际生效的是 `network/crypto/ZlibCodec.hpp` 的
+// `kMaxUncompressed`(8MB) 与 `kMaxCompressed`(2MB)，以及 `VarintFraming::kMaxFramePayloadSize`。
+// 原先此处的 `MAX_PACKET_SIZE` / `MAX_UNCOMPRESSED_SIZE`（均 2MB）无人引用且与上面两个对不上。
+
+// 握手压缩阈值：Java 版默认 256，负值表示禁用压缩。
+// 之所以是 i32 而不是 Size：`ZlibCodec::encode` 与 `ServerHandshake` 都用 `threshold < 0`
+// 判定"不启用压缩"，无符号类型表达不了这个状态。
+constexpr i32 DEFAULT_COMPRESSION_THRESHOLD = 256;
 
 // 超时
 constexpr u32 CONNECT_TIMEOUT_MS = 30000;

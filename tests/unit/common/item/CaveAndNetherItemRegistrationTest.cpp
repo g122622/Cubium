@@ -32,11 +32,11 @@
  * - 绯红木活板门、诡异木活板门（1.16 下界更新）
  */
 
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/items/block/BlockItem.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

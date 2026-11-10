@@ -1,14 +1,14 @@
 #pragma once
 
 #include "common/util/Direction.hpp" // Rotation / Direction
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/test/base/coords/TestTransform.hpp"
 #include "server/test/base/error/GameTestError.hpp"
 #include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/framework/helper/IGameTestHelper.hpp"
 #include "server/test/native/NativeGameTestFunction.hpp" // NativeGameTestFunction::TestBody（wrapNativeBody 返回类型）
 #include "server/world/ServerWorld.hpp" // ServerWorld 公有继承 IWorld；world() 内联返回 IWorld& 需二者完整类型
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
 #include <memory>
 #include <optional>
@@ -42,7 +42,7 @@ class GameTestHelper final : public IGameTestHelper {
 public:
     GameTestHelper(
         mc::server::ServerWorld& world, BlockPos origin, const StructureBounds* bounds, BaseGameTestInstance& instance);
-    ~GameTestHelper() override; // 需完整类型 GameTestSequence 析构，定义在 .cpp
+    ~GameTestHelper() override; // 析构时清场（移除结构范围内实体），定义在 .cpp
 
     GameTestHelper(const GameTestHelper&) = delete;
     GameTestHelper& operator=(const GameTestHelper&) = delete;
@@ -112,6 +112,8 @@ public:
         const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnItemAt(
         const std::string& itemType, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
+    [[nodiscard]] GameTestResult spawnItemAt(
+        const mc::ItemStack& stack, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnAtLocation(
         const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnWithoutBehaviors(
@@ -199,7 +201,6 @@ private:
     TestTransform m_transform;
     // 实例的派生成员先于基类 helper 析构；保存包围盒值，确保清场不依赖结构对象的寿命。
     std::optional<mc::world::gen::structure::StructureBoundingBox> m_bounds;
-    std::unique_ptr<GameTestSequence> m_sequence; // 懒构造，startSequence 首次调用时建
 };
 
 /**

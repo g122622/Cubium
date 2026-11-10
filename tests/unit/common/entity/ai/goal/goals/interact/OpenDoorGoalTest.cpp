@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
@@ -31,8 +32,8 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/ecs/components/PhysicsStateComponent.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/village/raid/Raid.hpp"
 
@@ -80,7 +81,7 @@ public:
         return true;
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         (void)eventId;
         (void)pos;

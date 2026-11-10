@@ -53,7 +53,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/GlobalPos.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/spawn/RespawnConfig.hpp"
 #include "spdlog/spdlog.h"
 
@@ -2159,6 +2159,20 @@ public:
      */
     [[nodiscard]] Vector3 maybeBackOffFromEdge(const Vector3& movement) const;
 
+    /**
+     * @brief 判定从当前位置按给定水平偏移移动后是否会踏空
+     *
+     * 把碰撞箱沿水平方向平移 (offsetX, offsetZ)、沿垂直方向向下扩张 stepHeight，
+     * 若这个盒子里没有任何碰撞箱，说明脚下没有支撑、会掉下去。
+     *
+     * @param box 当前碰撞箱
+     * @param offsetX 水平 X 偏移
+     * @param offsetZ 水平 Z 偏移
+     * @param stepHeight 向下探测的深度（台阶高度）
+     * @return 是否会踏空
+     */
+    [[nodiscard]] bool _canFallAtLeast(const AxisAlignedBB& box, f32 offsetX, f32 offsetZ, f32 stepHeight) const;
+
     // ========== 背包 ==========
 
     /**
@@ -2166,13 +2180,37 @@ public:
      */
     [[nodiscard]] const PlayerInventory& inventory() const
     {
-        return m_inventory;
+        return _inventoryConst();
     }
 
+    /**
+     * @brief 获取玩家背包（可写）
+     */
     PlayerInventory& inventory()
     {
-        return m_inventory;
+        return _inventory();
     }
+
+    /**
+     * @brief 实际的背包访问点（`inventory()` 两个重载共用）。
+     *
+     * `inventory()` 是头文件内联访问器，直接引用成员会触发模板实参化的成员指针并造成
+     * 不完整类型错误（PlayerInventory 在本头文件中只是前向声明）；把实际的成员访问
+     * 固定在 .cpp 里即可规避（与非虚成员函数的隐式实例化同理）。
+     */
+    [[nodiscard]] PlayerInventory& _inventory();
+    [[nodiscard]] const PlayerInventory& _inventoryConst() const;
+
+    /**
+     * @brief 获取当前选中的快捷栏槽位（对应原版 `Player#getInventory().getSelectedSlot()`）
+     */
+    [[nodiscard]] i32 selectedSlot() const;
+
+    /**
+     * @brief 设置当前选中的快捷栏槽位
+     * @param slot 槽位索引（越界由 PlayerInventory 夹到快捷栏范围）
+     */
+    void setSelectedSlot(i32 slot);
 
     /**
      * @brief 获取末影箱物品栏

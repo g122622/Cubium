@@ -31,17 +31,59 @@
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/util/text/numbers/NumberFormatCodec.hpp"
 #include <cstddef>
 #include <ios>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::scoreboard {
+
+namespace {
+
+/// 数字格式在存档里的键名（原版 Objective.Packed / Score.Packed 的 `optionalFieldOf("format")`）
+constexpr const char* NUMBER_FORMAT_KEY = "format";
+
+/// 读取可选的数字格式字段；字段缺失返回 nullopt，字段存在但非法则记日志并丢弃该字段
+std::optional<text::numbers::NumberFormat> _readNumberFormat(const nbt::tags::compound_tag& tag)
+{
+    const auto it = tag.value.find(NUMBER_FORMAT_KEY);
+    if (it == tag.value.end()) {
+        return std::nullopt;
+    }
+    const auto* formatTag = dynamic_cast<const nbt::tags::compound_tag*>(it->second.get());
+    if (formatTag == nullptr) {
+        spdlog::warn("Scoreboard save: '{}' is not a compound tag, ignoring", NUMBER_FORMAT_KEY);
+        return std::nullopt;
+    }
+    auto format = text::numbers::numberFormatFromNbt(*formatTag);
+    if (format.failed()) {
+        // 存档里的格式损坏时只丢格式本身，不让整条目标/分数记录读不出来
+        spdlog::warn("Scoreboard save: failed to parse number format: {}", format.error().message());
+        return std::nullopt;
+    }
+    return std::move(format.value());
+}
+
+/// 写入可选的数字格式字段（nullopt 时不写该键）
+void _writeNumberFormat(nbt::tags::compound_tag& tag, const std::optional<text::numbers::NumberFormat>& format)
+{
+    if (!format.has_value()) {
+        return;
+    }
+    tag.value.emplace(NUMBER_FORMAT_KEY,
+        std::unique_ptr<nbt::tags::tag>(
+            std::make_unique<nbt::tags::compound_tag>(text::numbers::numberFormatToNbt(*format))));
+}
+
+} // namespace
 
 // ========== ObjectiveData ==========
 
@@ -52,6 +94,8 @@ nbt::tags::compound_tag ScoreboardSaveData::ObjectiveData::toNbt() const
     tag.put("CriteriaName", criteriaName);
     tag.put("DisplayName", displayName);
     tag.put("RenderType", renderType);
+    tag.put("DisplayAutoUpdate", displayAutoUpdate ? std::int8_t{1} : std::int8_t{0});
+    _writeNumberFormat(tag, numberFormat);
     return tag;
 }
 
@@ -103,6 +147,17 @@ Result<ScoreboardSaveData::ObjectiveData> ScoreboardSaveData::ObjectiveData::fro
         data.renderType = "integer";
     }
 
+    // DisplayAutoUpdate：缺省 true（vanilla 默认值），故旧存档读出新字段时为 true。
+    auto autoUpdateIt = tag.value.find("DisplayAutoUpdate");
+    if (autoUpdateIt != tag.value.end()) {
+        auto* autoUpdateTag = dynamic_cast<const nbt::tags::byte_tag*>(autoUpdateIt->second.get());
+        data.displayAutoUpdate = autoUpdateTag == nullptr || autoUpdateTag->value != 0;
+    } else {
+        data.displayAutoUpdate = true;
+    }
+
+    data.numberFormat = _readNumberFormat(tag);
+
     return data;
 }
 
@@ -118,6 +173,7 @@ nbt::tags::compound_tag ScoreboardSaveData::ScoreData::toNbt() const
     auto lockedTag = std::make_unique<nbt::tags::byte_tag>();
     lockedTag->value = locked ? 1 : 0;
     tag.value.emplace("Locked", std::move(lockedTag));
+    _writeNumberFormat(tag, numberFormat);
     return tag;
 }
 
@@ -160,6 +216,8 @@ Result<ScoreboardSaveData::ScoreData> ScoreboardSaveData::ScoreData::fromNbt(con
             data.locked = (lockedTag->value != 0);
         }
     }
+
+    data.numberFormat = _readNumberFormat(tag);
 
     return data;
 }
@@ -388,6 +446,8 @@ ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboa
         }
 
         objData.renderType = renderTypeToString(objective->getRenderType());
+        objData.displayAutoUpdate = objective->getDisplayAutoUpdate();
+        objData.numberFormat = objective->getNumberFormat();
         data.addObjective(std::move(objData));
     }
 
@@ -400,6 +460,7 @@ ScoreboardSaveData ScoreboardSaveData::fromScoreboard(const Scoreboard& scoreboa
             scoreData.objectiveName = objective->getName();
             scoreData.score = score->getScorePoints();
             scoreData.locked = score->isLocked();
+            scoreData.numberFormat = score->getNumberFormatOverride();
             data.addScore(std::move(scoreData));
         }
     }
@@ -487,6 +548,8 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
         if (objective) {
             auto renderType = renderTypeFromString(objData.renderType);
             objective->setRenderType(renderType);
+            objective->setDisplayAutoUpdate(objData.displayAutoUpdate);
+            objective->setNumberFormat(objData.numberFormat);
         }
     }
 
@@ -501,6 +564,7 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
         if (score) {
             score->setScorePoints(scoreData.score);
             score->setLocked(scoreData.locked);
+            score->setNumberFormatOverride(scoreData.numberFormat);
         }
     }
 

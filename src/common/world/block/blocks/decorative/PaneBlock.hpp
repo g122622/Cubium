@@ -32,10 +32,10 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/BooleanProperty.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/IWaterLoggable.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/capability/IWaterLoggable.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 namespace blocks {
@@ -136,6 +136,16 @@ public:
      * @return 如果连接返回true
      */
     [[nodiscard]] static bool connectsTo(const BlockState& state, Direction facing) noexcept;
+
+    /**
+     * @brief 旋转四个连接方向（原版 `CrossCollisionBlock#rotate`）
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像四个连接方向（原版 `CrossCollisionBlock#mirror`）
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
 protected:
     /**

@@ -30,7 +30,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <algorithm>
 #include <string>
@@ -152,14 +152,14 @@ void StructureBlockEntity::setStructureName(const std::string& name)
 
 void StructureBlockEntity::createdBy(const Entity& placer)
 {
-    // vanilla 的 getPlainTextName() 取"可读名称"：有自定义名时用自定义名，否则用实体类型默认名
-    // （玩家即玩家名）。项目 getDisplayName() 对非自定义命名返回基类占位名 "entity"，故占位名时
-    // 玩家回退到 username()、其他实体保留占位名（与基类默认显示名语义一致）。
-    std::string author = placer.getDisplayName()->getUnformattedText();
-    if (author == "entity") {
-        if (const auto* player = dynamic_cast<const Player*>(&placer); player != nullptr) {
-            author = player->username();
-        }
+    // 作者取"可读名称"：有自定义名时用自定义名，否则用实体类型的默认名。
+    // 玩家没有自定义名时要显示玩家名而不是 entity.minecraft.player，故先按类型判定。
+    std::string author;
+    if (const auto* player = dynamic_cast<const Player*>(&placer); player != nullptr) {
+        author = placer.getCustomNameComponent() != nullptr ? placer.getDisplayName()->getUnformattedText()
+                                                            : player->username();
+    } else {
+        author = placer.getDisplayName()->getUnformattedText();
     }
     setAuthor(author);
     setChanged();

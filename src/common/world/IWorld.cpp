@@ -22,15 +22,15 @@
  */
 
 #include "IWorld.hpp"
-#include "WorldEvents.hpp"
-#include "block/Block.hpp"
-#include "block/BlockRegistry.hpp"
-#include "block/BlockState.hpp"
 #include "block/blocks/nether/FireBlock.hpp"
 #include "blockentity/BlockEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "entity/core/Entity.hpp"
 #include "fluid/Fluid.hpp"
 #include "gameevent/GameEvents.hpp"
@@ -143,6 +143,20 @@ void IWorld::updateNeighborsExcept(const BlockPos& pos, Block& sourceBlock, Dire
     world::redstone::RedstoneSystem::instance().updateNeighborsExcept(*this, pos, sourceBlock, except);
 }
 
+void IWorld::notifyShapeChanged(Direction direction,
+    const BlockPos& neighborPos,
+    const BlockPos& sourcePos,
+    const BlockState& sourceState,
+    i32 flags,
+    i32 recursionLeft,
+    bool movedByPiston)
+{
+    // 默认实现与 vanilla `Level` 一致：交给形状更新执行器。需要特殊排队语义的世界
+    // （如收集式邻居更新器）可重写本方法，但形状级联的语义必须保持等价。
+    Block::executeShapeUpdate(
+        direction, sourceState, *this, neighborPos, sourcePos, flags, recursionLeft, movedByPiston);
+}
+
 const world::gamerule::GameRules& IWorld::getGameRules() const
 {
     // 默认实现返回静态默认规则
@@ -210,7 +224,7 @@ bool IWorld::destroyBlock(const BlockPos& pos, bool dropBlock, const Entity* ent
 
     // 火焰方块被移除时不产生破坏粒子（火焰原本就没有对应的破坏音效/粒子）
     if (dynamic_cast<const blocks::FireBlock*>(&block) == nullptr) {
-        playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(brokenState.stateId()));
+        playEvent(::mc::world::LevelEventId::PARTICLES_DESTROY_BLOCK, pos, static_cast<i32>(brokenState.stateId()));
     }
 
     // 掉落物只在服务端生成（Block::dropResources 内部以掉落表管理器为空判定客户端）。

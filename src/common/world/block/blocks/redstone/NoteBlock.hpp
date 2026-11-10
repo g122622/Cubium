@@ -28,9 +28,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "world/block/Block.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
 namespace blocks {
@@ -181,7 +181,7 @@ public:
      * @param block 方块指针
      * @return 对应乐器
      */
-    [[nodiscard]] static BlockProperties::Instrument blockInstrumentByType(const Block* block);
+    [[nodiscard]] static NoteBlockInstrument blockInstrumentByType(const Block* block);
 
 private:
     /**

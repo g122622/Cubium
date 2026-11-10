@@ -47,14 +47,14 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/IBucketPickupHandler.hpp"
-#include "common/world/block/ILiquidContainer.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/blocks/redstone/TNTBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/capability/IBucketPickupHandler.hpp"
+#include "common/world/block/capability/ILiquidContainer.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -166,7 +166,7 @@ void DefaultDispenseItemBehavior::_playSound(IWorld& world, const BlockPos& pos)
 {
     // 播放发射音效（事件ID 1000）
     if (!world.isClientSide()) {
-        world.playEvent(world::WorldEvents::DISPENSER_DISPENSE_SOUND, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::SOUND_DISPENSER_DISPENSE, pos, 0);
     }
 }
 
@@ -175,7 +175,7 @@ void DefaultDispenseItemBehavior::_spawnParticles(IWorld& world, const BlockPos&
     // 生成发射烟雾粒子（事件ID 2000，数据为方向索引）
     if (!world.isClientSide()) {
         // 服务端通过世界事件广播粒子
-        world.playEvent(world::WorldEvents::DISPENSER_SMOKE, pos, static_cast<i32>(direction));
+        world.playEvent(::mc::world::LevelEventId::PARTICLES_SHOOT_SMOKE, pos, static_cast<i32>(direction));
     }
 }
 
@@ -288,8 +288,8 @@ void OptionalDispenseItemBehavior::_playSound(IWorld& world, const BlockPos& pos
     // 成功: 1000 (DISPENSER_DISPENSE_SOUND)
     // 失败: 1001 (DISPENSER_FAIL_SOUND)
     if (!world.isClientSide()) {
-        i32 eventId =
-            m_success ? world::WorldEvents::DISPENSER_DISPENSE_SOUND : world::WorldEvents::DISPENSER_FAIL_SOUND;
+        ::mc::world::LevelEventId eventId = m_success ? ::mc::world::LevelEventId::SOUND_DISPENSER_DISPENSE
+                                                      : ::mc::world::LevelEventId::SOUND_DISPENSER_FAIL;
         world.playEvent(eventId, pos, 0);
     }
 }
@@ -348,7 +348,7 @@ ItemStack ProjectileDispenseBehavior::dispense(
 
     // 播放投掷物发射音效（事件ID 1002）
     if (!world.isClientSide()) {
-        world.playEvent(world::WorldEvents::DISPENSER_LAUNCH_SOUND, pos, 0);
+        world.playEvent(::mc::world::LevelEventId::SOUND_DISPENSER_PROJECTILE_LAUNCH, pos, 0);
     }
 
     // 生成烟雾粒子
@@ -495,7 +495,7 @@ ItemStack BucketDispenseBehavior::dispense(
                 // 在下界等维度中，水会蒸发
                 if (m_fluid->isIn(fluid::FluidTags::WATER()) && world.isUltraWarm()) {
                     // 水在超热维度中蒸发，播放熄灭音效和粒子
-                    world.playEvent(world::WorldEvents::FIRE_EXTINGUISH_SOUND, targetPos, 0);
+                    world.playEvent(::mc::world::LevelEventId::SOUND_EXTINGUISH_FIRE, targetPos, 0);
                     _setSuccess(true);
                     _playSound(world, pos);
                     _spawnParticles(world, pos, direction);
@@ -720,7 +720,7 @@ ItemStack BonemealDispenseBehavior::dispense(
     } else {
         // 播放植物生长效果（粒子 + 音效）
         if (!world.isClientSide()) {
-            world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, targetPos, 15);
+            world.playEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH, targetPos, 15);
         }
     }
 

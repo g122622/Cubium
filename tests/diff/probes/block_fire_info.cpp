@@ -68,8 +68,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/FireInfoRegistry.hpp"
+#include "common/world/block/fire/FireInfoRegistry.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 
 #include "vanilla_datapack.hpp"
 

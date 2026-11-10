@@ -42,11 +42,11 @@
 
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <gtest/gtest.h>

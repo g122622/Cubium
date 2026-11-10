@@ -1492,40 +1492,6 @@ private:
 };
 
 /**
- * @brief `style` 参数类型（原版 {@code StyleArgument}，命令树里叫 {@code style}）
- */
-class StyleKeywordArgumentType : public ArgumentType<std::string> {
-public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
-    {
-        const i32 start = reader.getCursor();
-        const std::string word = reader.readUnquotedString();
-        if (word.empty()) {
-            reader.setCursor(start);
-            throw CommandException(CommandErrorType::StringExpected, "Expected style", start);
-        }
-        return word;
-    }
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "style";
-    }
-
-    /// 原版 StyleArgument 的 properties 是 Variant<String>：内置样式名写字符串，否则写资源位置。
-    [[nodiscard]] nlohmann::json serializeMetadata() const override
-    {
-        return nlohmann::json{{"values",
-            std::vector<std::string>{"bold", "italic", "underlined", "strikethrough", "obfuscated", "reset"}}};
-    }
-
-    [[nodiscard]] std::vector<std::string> getExamples() const override
-    {
-        return {"{color:red}", "{}"};
-    }
-};
-
-/**
  * @brief 方块位置参数，但对外报告成另一个类型名（原版 {@code heightmap} / {@code item_slots}）
  *
  * 原版这两个参数各自有一个 ArgumentTypeInfo（`heightmap`、`item_slots`）：语法是一个方块

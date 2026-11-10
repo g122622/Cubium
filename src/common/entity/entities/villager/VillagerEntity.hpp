@@ -30,7 +30,7 @@
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/village/VillageGossip.hpp"
 #include <memory>
 #include <optional>

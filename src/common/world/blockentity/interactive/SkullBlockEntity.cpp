@@ -27,7 +27,7 @@
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include <utility>
 
@@ -47,6 +47,21 @@ void SkullBlockEntity::setOwnerProfile(const skin::GameProfile& profile)
 void SkullBlockEntity::setCustomName(const std::string& name)
 {
     m_customName = name;
+    setChanged();
+}
+
+void SkullBlockEntity::setNoteBlockSound(const std::string& sound)
+{
+    // 空字符串等价于"没有自定义音效"：清回 nullopt 而不是存一个空串，
+    // 这样消费方只需判 optional 是否有值，不用再判空串。
+    if (sound.empty()) {
+        if (!m_noteBlockSound.has_value()) {
+            return;
+        }
+        m_noteBlockSound.reset();
+    } else {
+        m_noteBlockSound = sound;
+    }
     setChanged();
 }
 
@@ -74,6 +89,16 @@ bool SkullBlockEntity::load(const nlohmann::json& data)
         m_customName = data["custom_name"].get<std::string>();
     }
 
+    // 音符盒音效：JSON 侧用与数据组件同名的键，便于和物品组件直接对照。
+    if (data.contains("note_block_sound") && data["note_block_sound"].is_string()) {
+        const std::string sound = data["note_block_sound"].get<std::string>();
+        if (sound.empty()) {
+            m_noteBlockSound.reset();
+        } else {
+            m_noteBlockSound = sound;
+        }
+    }
+
     // 所有者档案（JSON 内联对象）
     if (data.contains("profile") && data["profile"].is_object()) {
         auto result = skin::GameProfile::fromJson(data["profile"]);
@@ -95,6 +120,9 @@ void SkullBlockEntity::save(nlohmann::json& data) const
     if (!m_customName.empty()) {
         data["custom_name"] = m_customName;
     }
+    if (m_noteBlockSound.has_value()) {
+        data["note_block_sound"] = m_noteBlockSound.value();
+    }
 }
 
 bool SkullBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
@@ -106,6 +134,12 @@ bool SkullBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
     auto nameOpt = entity::serialization::nbt_helper::tryGetString(tag, "CustomName");
     if (nameOpt.has_value()) {
         m_customName = nameOpt.value();
+    }
+
+    // 音符盒音效：存档/结构模板里的键名是 `note_block_sound`，值是声音事件资源位置。
+    auto noteBlockSoundOpt = entity::serialization::nbt_helper::tryGetString(tag, "note_block_sound");
+    if (noteBlockSoundOpt.has_value() && !noteBlockSoundOpt->empty()) {
+        m_noteBlockSound = noteBlockSoundOpt.value();
     }
 
     // 所有者档案：NBT 中以 CompoundTag 形式存储。结构模板/存档使用
@@ -131,6 +165,10 @@ void SkullBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
 
     if (!m_customName.empty()) {
         tag.put("CustomName", m_customName);
+    }
+
+    if (m_noteBlockSound.has_value()) {
+        tag.put("note_block_sound", m_noteBlockSound.value());
     }
 
     if (m_owner.has_value()) {
@@ -163,6 +201,7 @@ std::unique_ptr<BlockEntity> SkullBlockEntity::clone() const
     auto copy = std::make_unique<SkullBlockEntity>(m_pos);
     copy->m_owner = m_owner;
     copy->m_customName = m_customName;
+    copy->m_noteBlockSound = m_noteBlockSound;
     copy->m_animationTickCount = m_animationTickCount;
     copy->m_isAnimating = m_isAnimating;
     return copy;

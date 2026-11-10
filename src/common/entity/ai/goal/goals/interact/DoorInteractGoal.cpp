@@ -32,8 +32,8 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
+#include "common/world/block/blocks/door/DoorBlock.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -88,7 +88,7 @@ bool DoorInteractGoal::shouldExecute()
             }
 
             const BlockState* state = m_world->getBlockState(doorCandidate);
-            if (state && blocks::DoorBlock::isWooden(*state)) {
+            if (state && blocks::DoorBlock::isHandOpenable(*state)) {
                 m_doorPos = doorCandidate;
                 m_hasDoor = true;
                 return true;
@@ -104,7 +104,7 @@ bool DoorInteractGoal::shouldExecute()
     // 检查生物位置上方（Y+1）是否有门
     BlockPos abovePos(entityPos.x, entityPos.y + 1, entityPos.z);
     const BlockState* aboveState = m_world->getBlockState(abovePos);
-    if (aboveState && blocks::DoorBlock::isWooden(*aboveState)) {
+    if (aboveState && blocks::DoorBlock::isHandOpenable(*aboveState)) {
         m_doorPos = abovePos;
         m_hasDoor = true;
         return true;

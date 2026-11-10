@@ -38,10 +38,10 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
@@ -197,12 +197,12 @@ public:
 
     // ========== playEvent 追踪 ==========
     struct EventCall {
-        i32 eventId = 0;
+        ::mc::world::LevelEventId eventId = static_cast<::mc::world::LevelEventId>(0);
         BlockPos pos;
         i32 data = 0;
     };
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_eventCalls.push_back({eventId, pos, data});
     }
@@ -212,7 +212,7 @@ public:
         return m_eventCalls;
     }
 
-    [[nodiscard]] bool hasEvent(i32 eventId) const
+    [[nodiscard]] bool hasEvent(::mc::world::LevelEventId eventId) const
     {
         for (const auto& call : m_eventCalls) {
             if (call.eventId == eventId) {
@@ -573,7 +573,7 @@ TEST_F(BrushableBrushLogicTest, Brush_Completion_TriggersBrushBlockCompleteEvent
     }
 
     // 应触发 BRUSH_BLOCK_COMPLETE (3008) 事件
-    EXPECT_TRUE(world_.hasEvent(static_cast<i32>(world::WorldEvents::BRUSH_BLOCK_COMPLETE)));
+    EXPECT_TRUE(world_.hasEvent(::mc::world::LevelEventId::PARTICLES_AND_SOUND_BRUSH_BLOCK_COMPLETE));
 }
 
 TEST_F(BrushableBrushLogicTest, Brush_WithEmptyLootTable_UnpacksToEmptyItem)

@@ -26,8 +26,11 @@
 #include "ScoreObjective.hpp"
 #include "Scoreboard.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include <algorithm>
+#include <memory>
 #include <string>
+#include <utility>
 
 namespace mc::scoreboard {
 
@@ -79,6 +82,24 @@ void Score::reset()
 {
     setScorePoints(0);
     m_locked = false;
+}
+
+void Score::setNumberFormatOverride(std::optional<text::numbers::NumberFormat> numberFormat)
+{
+    if (m_numberFormat == numberFormat) {
+        return;
+    }
+    m_numberFormat = std::move(numberFormat);
+
+    // 覆盖格式变了要重发 SetScore，否则客户端仍按旧格式渲染数字。
+    // 分数值本身没变，走的不是 setScorePoints 那条路径，故这里单独通知。
+    m_scoreboard.onScoreChanged(*this);
+}
+
+std::unique_ptr<text::ITextComponent> Score::formatValue(const text::numbers::NumberFormat& objectiveFallback) const
+{
+    const auto& format = m_numberFormat.has_value() ? *m_numberFormat : objectiveFallback;
+    return format.format(m_score);
 }
 
 } // namespace mc::scoreboard

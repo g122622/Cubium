@@ -21,10 +21,10 @@
  *
  */
 
-#include "world/block/blocks/ChestBlock.hpp"
+#include "common/world/block/blocks/container/ChestBlock.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/blocks/container/TrappedChestBlock.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
-#include "world/block/blocks/TrappedChestBlock.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include <gtest/gtest.h>

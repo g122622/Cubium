@@ -37,7 +37,7 @@
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -132,7 +132,7 @@ protected:
         ASSERT_TRUE(worldInit.success());
 
         m_server = std::make_unique<BlockInteractionTestServer>(*m_world);
-        m_playerManager = std::make_unique<server::core::PlayerManager>();
+        m_playerManager = std::make_unique<server::PlayerManager>();
         // 新网络层 addPlayer 第4参为 ServerClientConnection*；本测试只验证方块交互逻辑，
         // 不依赖连接真发包，故传 nullptr（与 BaseTestServer::addTestPlayer 一致）。
         m_player = m_playerManager->addPlayer(m_playerId,
@@ -197,7 +197,7 @@ protected:
 
     std::unique_ptr<server::ServerWorld> m_world;
     std::unique_ptr<BlockInteractionTestServer> m_server;
-    std::unique_ptr<server::core::PlayerManager> m_playerManager;
+    std::unique_ptr<server::PlayerManager> m_playerManager;
     std::unique_ptr<PlayerInventory> m_testInventory;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
     std::unique_ptr<server::interaction::BlockInteractionManager> m_blockInteractionManager;

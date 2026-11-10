@@ -249,4 +249,44 @@ TEST_F(LootCommandTest, ConsoleHasSufficientPermission)
     EXPECT_TRUE(m_console.hasPermission(4));
 }
 
+TEST_F(LootCommandTest, ReplaceEntitySupportsAllFourSources)
+{
+    // replace entity 曾把 mine 来源留成 notImplemented 占位；补齐后四个来源都应可达。
+    auto loot = m_server.commandRegistry().dispatcher().getRoot()->getChild("loot");
+    ASSERT_NE(loot, nullptr);
+    auto replace = loot->getChild("replace");
+    ASSERT_NE(replace, nullptr);
+    auto entity = replace->getChild("entity");
+    ASSERT_NE(entity, nullptr);
+    auto entities = entity->getChild("entities");
+    ASSERT_NE(entities, nullptr);
+    auto slot = entities->getChild("slot");
+    ASSERT_NE(slot, nullptr);
+
+    EXPECT_NE(slot->getChild("loot"), nullptr) << "replace entity ... loot should be reachable";
+    EXPECT_NE(slot->getChild("fish"), nullptr) << "replace entity ... fish should be reachable";
+    EXPECT_NE(slot->getChild("kill"), nullptr) << "replace entity ... kill should be reachable";
+    EXPECT_NE(slot->getChild("mine"), nullptr) << "replace entity ... mine should be reachable";
+}
+
+TEST_F(LootCommandTest, ReplaceBlockSupportsAllFourSources)
+{
+    // replace block 曾把 kill 来源留成 notImplemented 占位；补齐后四个来源都应可达。
+    auto loot = m_server.commandRegistry().dispatcher().getRoot()->getChild("loot");
+    ASSERT_NE(loot, nullptr);
+    auto replace = loot->getChild("replace");
+    ASSERT_NE(replace, nullptr);
+    auto block = replace->getChild("block");
+    ASSERT_NE(block, nullptr);
+    auto targetPos = block->getChild("targetPos");
+    ASSERT_NE(targetPos, nullptr);
+    auto slot = targetPos->getChild("slot");
+    ASSERT_NE(slot, nullptr);
+
+    EXPECT_NE(slot->getChild("loot"), nullptr) << "replace block ... loot should be reachable";
+    EXPECT_NE(slot->getChild("fish"), nullptr) << "replace block ... fish should be reachable";
+    EXPECT_NE(slot->getChild("kill"), nullptr) << "replace block ... kill should be reachable";
+    EXPECT_NE(slot->getChild("mine"), nullptr) << "replace block ... mine should be reachable";
+}
+
 } // namespace mc::command

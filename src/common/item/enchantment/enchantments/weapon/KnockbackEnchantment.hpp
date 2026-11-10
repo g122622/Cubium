@@ -41,8 +41,8 @@ namespace enchant {
  * - 击退强度与玩家基础击退叠加计算
  * - 最大 II 级
  *
- * 注意：实际击退计算在 PlayerAttackHelper 中进行，
- * 使用 KNOCKBACK_ENCHANT_BONUS = 0.5f 作为每级加成。
+ * 注意：实际击退由 `Player::attack` 调 `LivingEntity::causeExtraKnockback` 施加，
+ * 击退强度取自 `ATTACK_KNOCKBACK` 属性（本附魔通过属性修饰符贡献，每级 +0.5）。
  */
 class KnockbackEnchantment : public Enchantment {
 public:

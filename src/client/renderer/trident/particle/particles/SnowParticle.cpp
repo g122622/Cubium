@@ -31,7 +31,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <cmath>
 #include <memory>
 #include <vector>

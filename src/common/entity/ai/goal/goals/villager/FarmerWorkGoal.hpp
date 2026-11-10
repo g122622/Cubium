@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 #include <optional>
 #include <string>

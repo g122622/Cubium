@@ -56,6 +56,14 @@ public:
     static ItemTag& BEACON_PAYMENT_ITEMS();
 
     /**
+     * @brief 头颅标签 `#minecraft:skulls`
+     *
+     * 含玩家头颅、各类生物头颅与龙首（原版数据包 `tags/item/skulls.json`）。
+     * 用于判断物品能否接受"可穿戴类"附魔（如绑定诅咒、消失诅咒）。
+     */
+    static ItemTag& SKULLS();
+
+    /**
      * @brief 音符盒顶部乐器物品标签（各类头颅）
      *
      * 对齐 vanilla ItemTags.NOTE_BLOCK_TOP_INSTRUMENTS（数据包键 "noteblock_top_instruments"）。

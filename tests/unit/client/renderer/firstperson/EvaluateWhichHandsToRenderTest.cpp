@@ -19,7 +19,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include <gtest/gtest.h>
 

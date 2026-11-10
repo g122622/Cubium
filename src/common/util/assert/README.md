@@ -11,7 +11,7 @@ src/common/util/assert/
 ├── AssertMacros.hpp    # 断言宏定义（MC_ASSERT_* 系列）
 ├── AssertAll.hpp       # 统一包含入口
 ├── CrashHandler.hpp    # 崩溃处理器接口（SEH/信号/terminate 捕获）
-├── CrashHandler.cpp    # 崩溃处理器实现（调用栈+局部变量输出）
+├── CrashHandler.cpp    # 崩溃处理器实现（调用栈输出）
 └── README.md           # 本文档
 ```
 
@@ -105,10 +105,6 @@ for (int i = 0; i < millions; ++i) {
 
 比较断言（如 `MC_ASSERT_EQ`）要求操作数支持对应的运算符（`==`, `<` 等），自定义类型需要定义相应运算符。
 
-### 8. CrashHandler 局部变量枚举
-
-`CrashHandler` 在 Windows 上尝试枚举每个栈帧的局部变量（使用 `SymSetContext` + `SymEnumSymbols`），但 RelWithDebInfo 下编译器优化会内联/消除局部变量，**输出可能不完整**。如果需要完整的变量信息，请使用 Debug 构建或在崩溃后用调试器附加。
-
-### 9. CrashHandler 与 MC_ASSERT 的关系
+### 8. CrashHandler 与 MC_ASSERT 的关系
 
 `CrashHandler` 捕获的是**未处理的崩溃**（SEH 异常、信号、纯虚函数调用、std::terminate 等）；`MC_ASSERT_*` 触发的断言走 `AssertManager` 的处理流程。两者栈输出机制现已统一：`AssertManager::captureStackTrace()` 委托 `CrashHandler::captureStackTrace()`，断言失败时由 `defaultAssertHandler` 经 `formatFailureBlock` 一并输出调用栈，随后 `std::abort()` 触发 `CrashHandler` 的 `SIGABRT`/SEH 路径（栈可能被二次输出，属正常现象）。

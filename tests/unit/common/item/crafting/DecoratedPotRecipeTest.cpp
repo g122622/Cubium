@@ -26,8 +26,8 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/world/block/registry/TrailsBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/TrailsBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include <gtest/gtest.h>
 

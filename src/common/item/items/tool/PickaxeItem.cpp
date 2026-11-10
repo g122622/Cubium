@@ -27,10 +27,10 @@
 #include "common/item/items/tool/ToolItem.hpp"
 #include "common/item/items/tool/ToolType.hpp"
 #include "common/item/tier/IItemTier.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <unordered_set>
 
 namespace mc {

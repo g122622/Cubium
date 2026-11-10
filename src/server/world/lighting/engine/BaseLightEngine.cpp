@@ -30,7 +30,7 @@
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -642,11 +642,13 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         const i32 totalLightSections = m_maxLightSection - m_minLightSection + 1;
 
         // 与 Moonrise 一致：light() 使用一组"全 NULL 状态"临时 nibble 作为点亮输入。
-        std::vector<SWMRNibbleArray> tempNibbles(static_cast<size_t>(totalLightSections));
+        // 这些 nibble 只作一次性输入：lightChunk 之后由 setNibbles 按移动语义把状态搬进
+        // 区块的 nibble，临时对象随即析构。缓存里存的是它们的裸指针，故必须堆分配以保证
+        // 地址稳定（不能用值数组，扩容/移动会让缓存指针失效）。
+        std::vector<std::unique_ptr<SWMRNibbleArray>> tempNibbles = getFilledEmptyLight(totalLightSections);
         std::vector<SWMRNibbleArray*> tempNibblePtrs(static_cast<size_t>(totalLightSections), nullptr);
         for (i32 i = 0; i < totalLightSections; ++i) {
-            tempNibbles[static_cast<size_t>(i)] = SWMRNibbleArray(nullptr, true);
-            tempNibblePtrs[static_cast<size_t>(i)] = &tempNibbles[static_cast<size_t>(i)];
+            tempNibblePtrs[static_cast<size_t>(i)] = tempNibbles[static_cast<size_t>(i)].get();
         }
 
         // 设置当前区块到缓存

@@ -33,17 +33,17 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include "server/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
 #include <algorithm>
@@ -77,29 +77,7 @@ constexpr i32 ENTRANCE_OFFSET_Y = 4;
 // 楼层高度
 constexpr i32 FLOOR_HEIGHT = 8;
 
-// 辅助函数：添加偏移到 BlockPos
-BlockPos addOffset(const BlockPos& pos, i32 dx, i32 dy, i32 dz)
-{
-    return BlockPos(pos.x + dx, pos.y + dy, pos.z + dz);
-}
 } // namespace
-
-// 辅助函数：将旋转转换为南方向
-static Direction rotationToSouth(feature::template_::Rotation rotation)
-{
-    switch (rotation) {
-        case feature::template_::Rotation::None:
-            return Direction::South;
-        case feature::template_::Rotation::Clockwise90:
-            return Direction::West;
-        case feature::template_::Rotation::Clockwise180:
-            return Direction::North;
-        case feature::template_::Rotation::CounterClockwise90:
-            return Direction::East;
-        default:
-            return Direction::South;
-    }
-}
 
 // ============================================================================
 // WoodlandMansionStructure 实现
@@ -116,44 +94,58 @@ const biome::BiomeTag* WoodlandMansionStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_MANSION();
 }
 
-bool WoodlandMansionStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, SEA_LEVEL, chunkZ * CHUNK_WIDTH + 8);
-    return isValidBiome(biome);
-}
-
 std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
-    // 计算生成位置
-    i32 x = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-    i32 z = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+    // 原版 `findGenerationPoint`：先取旋转，再在「区块内偏移 7 格」的 5x5 方框四角取最低地表，
+    // 低于 Y=60 直接放弃（林地府邸必须建在高地上）。旋转会影响方框的展开方向。
+    const Rotation rotation = static_cast<Rotation>(rng.nextInt(4));
 
-    // 获取地表高度
-    i32 y = generator.getHeight(x, z, HeightmapType::WorldSurface);
+    i32 sizeX = 5;
+    i32 sizeZ = 5;
+    if (rotation == Rotation::Clockwise90) {
+        sizeX = -5;
+    } else if (rotation == Rotation::Clockwise180) {
+        sizeX = -5;
+        sizeZ = -5;
+    } else if (rotation == Rotation::CounterClockwise90) {
+        sizeZ = -5;
+    }
 
-    // 随机旋转
-    feature::template_::Rotation rotation = static_cast<feature::template_::Rotation>(rng.nextInt(4));
+    const i32 baseX = chunkX * world::CHUNK_WIDTH + 7;
+    const i32 baseZ = chunkZ * world::CHUNK_WIDTH + 7;
+    // `getFirstOccupiedHeight` 返回「最高方块上方一格」，本项目的 getHeight 已经是这个口径，
+    // 但世界表面高度图在生成阶段会多算一格顶面，这里减一回落到方块层。
+    const i32 corners[4] = {
+        generator.getHeight(baseX, baseZ, HeightmapType::WorldSurfaceWG) - 1,
+        generator.getHeight(baseX, baseZ + sizeZ, HeightmapType::WorldSurfaceWG) - 1,
+        generator.getHeight(baseX + sizeX, baseZ, HeightmapType::WorldSurfaceWG) - 1,
+        generator.getHeight(baseX + sizeX, baseZ + sizeZ, HeightmapType::WorldSurfaceWG) - 1,
+    };
+    const i32 y = std::min(std::min(corners[0], corners[1]), std::min(corners[2], corners[3]));
+    if (y < 60) {
+        return start;
+    }
 
-    // 使用 MansionGrid 生成布局，然后用 MansionPlacer 放置模板
+    // 生物群系校验落在候选生成点（区块内偏移 7 格处的最低地表）上；不匹配即返回空起点。
+    // 必须在构造网格之前完成：原版候选点校验先于 generatePieces，网格抽样在其后。
+    if (!isValidBiomeAt(generator, BlockPos(baseX, y, baseZ))) {
+        return start;
+    }
+
+    // 网格与放置器共用同一条随机流：网格先构造（消耗大量抽样），放置器再接着抽。
     MansionGrid grid(rng);
-    MansionPlacer placer(rng);
+    MansionPlacer placer(jigsaw::JigsawAssembler::getTemplateManager(), rng);
 
     std::vector<std::unique_ptr<StructurePiece>> pieces;
-    placer.createMansion(BlockPos(x, y, z), rotation, pieces, grid);
+    placer.createMansion(BlockPos(baseX, y, baseZ), rotation, pieces, grid);
 
-    // 将所有片段添加到 StructureStart
     for (auto& piece : pieces) {
         start->addPiece(std::move(piece));
     }
-
+    start->recalculateStructureSize();
     return start;
 }
 
@@ -161,98 +153,90 @@ std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
 // WoodlandMansionPiece 实现
 // ============================================================================
 
-WoodlandMansionPiece::WoodlandMansionPiece(const std::string& templateName,
-    const BlockPos& pos,
-    feature::template_::Rotation rotation,
-    feature::template_::Mirror mirror)
+WoodlandMansionPiece::WoodlandMansionPiece(const std::string& templateName, const BlockPos& pos, Rotation rotation)
+    : WoodlandMansionPiece(templateName, pos, rotation, Mirror::None)
+{}
+
+WoodlandMansionPiece::WoodlandMansionPiece(
+    const std::string& templateName, const BlockPos& pos, Rotation rotation, Mirror mirror)
     : StructurePiece(StructurePieceTypes::WOODLAND_MANSION, pos.x, pos.y, pos.z, pos.x, pos.y, pos.z)
     , m_templateName(templateName)
     , m_templatePosition(pos)
-    , m_rotation(rotation)
-    , m_mirror(mirror)
 {
-    // 边界框将在生成时根据模板大小更新
+    // 旋转/镜像存进基类：界面的 getRotation()/getMirror() 读的正是基类那对字段。
+    setRotation(rotation);
+    setMirror(mirror);
+    m_templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
+    _loadTemplate();
+}
+
+void WoodlandMansionPiece::_loadTemplate()
+{
+    if (m_templateManager == nullptr) {
+        return;
+    }
+    m_template = m_templateManager->getTemplate(ResourceLocation("minecraft", "woodland_mansion/" + m_templateName));
+    if (m_template == nullptr) {
+        return;
+    }
+    m_size = m_template->getSize();
+
+    // 原版 `TemplateStructurePiece` 构造期就用模板包围盒：盒子随旋转/镜像展开，
+    // 起点阶段的所有几何都以它为准。
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(getRotation());
+    settings.setMirror(getMirror());
+    const StructureBoundingBox box = m_template->getBoundingBox(settings, m_templatePosition);
+    m_minX = box.minX();
+    m_minY = box.minY();
+    m_minZ = box.minZ();
+    m_maxX = box.maxX();
+    m_maxY = box.maxY();
+    m_maxZ = box.maxZ();
 }
 
 void WoodlandMansionPiece::generate(IWorldWriter& world,
     math::IRandom& rng,
-    i32 chunkX,
-    i32 chunkZ,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    MC_UNUSED(chunkX);
-    MC_UNUSED(chunkZ);
-    MC_UNUSED(rng);
+    if (m_template == nullptr) {
+        _loadTemplate();
+        if (m_template == nullptr) {
+            spdlog::warn("WoodlandMansionPiece: template '{}' is missing", m_templateName);
+            return;
+        }
+    }
 
-    // 检查边界框是否与区块相交
-    StructureBoundingBox pieceBounds(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
+    const StructureBoundingBox pieceBounds(m_minX, m_minY, m_minZ, m_maxX, m_maxY, m_maxZ);
     if (!pieceBounds.intersects(chunkBounds)) {
         return;
     }
 
-    // 获取模板
-    auto& templateManager = jigsaw::JigsawAssembler::getTemplateManager();
-    const feature::template_::Template* templ =
-        templateManager.getTemplate(ResourceLocation("minecraft", "woodland_mansion/" + m_templateName));
-
-    if (!templ || templ->getBlockCount() == 0) {
-        // 模板未找到，使用占位方块
-        const BlockState* darkOakPlanks = VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS);
-        if (darkOakPlanks) {
-            for (i32 y = 0; y < 8; ++y) {
-                for (i32 x = 0; x < 8; ++x) {
-                    for (i32 z = 0; z < 8; ++z) {
-                        BlockPos worldPos(m_templatePosition.x + x, m_templatePosition.y + y, m_templatePosition.z + z);
-                        if (chunkBounds.contains(worldPos.x, worldPos.y, worldPos.z)) {
-                            world.setBlockState(worldPos.x,
-                                worldPos.y,
-                                worldPos.z,
-                                darkOakPlanks,
-                                world::BlockUpdateFlags::UPDATE_CLIENTS);
-                        }
-                    }
-                }
-            }
-        }
-        return;
-    }
-
-    // 放置模板
     feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
-    settings.setMirror(m_mirror);
+    settings.setRotation(getRotation());
+    settings.setMirror(getMirror());
     settings.setIgnoreEntities(true);
+    settings.setBoundingBox(&chunkBounds);
 
-    // 创建随机数生成器用于模板放置
-    math::Random localRng(0);
-
-    // 应用模板到世界
-    templ->place(world, m_templatePosition, settings, localRng, world::BlockUpdateFlags::UPDATE_CLIENTS);
-
-    // 更新边界框
-    BlockPos size = templ->getSize();
-    // 根据旋转和镜像计算实际尺寸
-    // 简化处理：假设无镜像
-    switch (m_rotation) {
-        case feature::template_::Rotation::None:
-        case feature::template_::Rotation::Clockwise180:
-            m_maxX = m_minX + size.x - 1;
-            m_maxZ = m_minZ + size.z - 1;
-            break;
-        case feature::template_::Rotation::Clockwise90:
-        case feature::template_::Rotation::CounterClockwise90:
-            m_maxX = m_minX + size.z - 1;
-            m_maxZ = m_minZ + size.x - 1;
-            break;
+    // 原版忽略结构方块：它们只是模板里的占位标记。
+    std::vector<u32> blocksToIgnore;
+    if (auto* structureBlock = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+        blocksToIgnore.push_back(structureBlock->blockId());
     }
-    m_maxY = m_minY + size.y - 1;
-}
+    feature::template_::StructureProcessorList processors;
+    processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
+    settings.setProcessors(&processors);
 
-// ============================================================================
-// woodland_mansion::SimpleGrid 实现
-// ============================================================================
+    // TODO: 处理模板数据标记（ChestWest/ChestEast/ChestSouth/ChestNorth 宝箱、Mage/Warrior
+    //       生成灾厄村民）——需要战利品表与实体生成接口，当前只保证方块几何一致。
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "WoodlandMansionPiece::generate requires an IWorld");
+    m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
+}
 
 namespace woodland_mansion {
 
@@ -391,10 +375,12 @@ void MansionGrid::_recursiveCorridor(SimpleGrid& grid, i32 x, i32 y, Direction d
 
     grid.setIf(x + dx, y + dz, 0, 1);
 
-    // 随机分支 - 使用水平方向数组
-    const Direction horizontalDirs[] = {Direction::North, Direction::East, Direction::South, Direction::West};
+    // 随机分支。方向表必须是 `Direction.from2DDataValue` 的顺序
+    // （SOUTH=0, WEST=1, NORTH=2, EAST=3），不是 `Plane.HORIZONTAL` 的 NORTH→EAST→SOUTH→WEST：
+    // 顺序不同会直接换一条走廊走向，整张布局随之后移。
+    const Direction by2DData[] = {Direction::South, Direction::West, Direction::North, Direction::East};
     for (i32 i = 0; i < 8; ++i) {
-        Direction newDir = horizontalDirs[m_rng.nextInt(4)];
+        Direction newDir = by2DData[m_rng.nextInt(4)];
         // 不往回走，且有限制向东
         if (newDir != Directions::opposite(dir) && (newDir != Direction::East || !m_rng.nextBoolean())) {
             i32 nx = x + dx;
@@ -658,336 +644,449 @@ void MansionGrid::_setupThirdFloor()
 // woodland_mansion::MansionPlacer 实现
 // ============================================================================
 
-MansionPlacer::MansionPlacer(math::IRandom& rng)
-    : m_rng(rng)
+namespace {
+
+/// 原版 `BlockPos.offset(Direction, int)`：沿水平方向平移 n 格，Y 不变。
+BlockPos offsetTowards(const BlockPos& pos, Direction dir, i32 n)
+{
+    return BlockPos(pos.x + Directions::xOffset(dir) * n, pos.y, pos.z + Directions::zOffset(dir) * n);
+}
+
+/// 原版 `rotation.rotate(Direction)`：把水平方向按旋转搬到世界朝向。
+Direction rotateDir(Direction dir, Rotation rotation)
+{
+    return Directions::rotateDirection(dir, rotation);
+}
+
+} // namespace
+
+MansionPlacer::MansionPlacer(feature::template_::TemplateManager& templateManager, math::IRandom& rng)
+    : m_templateManager(templateManager)
+    , m_rng(rng)
     , m_startX(0)
     , m_startY(0)
 {}
 
 void MansionPlacer::createMansion(const BlockPos& startPos,
-    feature::template_::Rotation rotation,
+    Rotation rotation,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const MansionGrid& grid)
 {
+    PlacementData ground;
+    ground.position = startPos;
+    ground.rotation = rotation;
+    ground.wallType = "wall_flat";
+
+    PlacementData first;
+    _entrance(pieces, ground);
+    first.position = BlockPos(ground.position.x, ground.position.y + 8, ground.position.z);
+    first.rotation = ground.rotation;
+    first.wallType = "wall_window";
+
+    const SimpleGrid& baseGrid = grid.baseGrid();
+    const SimpleGrid& thirdFloorGrid = grid.thirdFloorGrid();
+
     m_startX = grid.entranceX() + 1;
     m_startY = grid.entranceY() + 1;
+    const i32 entranceCornerX = grid.entranceX() + 1;
+    const i32 entranceCornerY = grid.entranceY();
+    _traverseOuterWalls(
+        pieces, ground, baseGrid, Direction::South, m_startX, m_startY, entranceCornerX, entranceCornerY);
+    _traverseOuterWalls(
+        pieces, first, baseGrid, Direction::South, m_startX, m_startY, entranceCornerX, entranceCornerY);
 
-    // 放置入口
-    BlockPos pos = startPos;
-    feature::template_::Rotation currentRotation = rotation;
-    std::string wallType = "wall_flat";
+    PlacementData second;
+    second.position = BlockPos(ground.position.x, ground.position.y + 19, ground.position.z);
+    second.rotation = ground.rotation;
+    second.wallType = "wall_window";
 
-    _entrance(pieces, currentRotation, pos);
-
-    // 一楼和二楼外墙
-    BlockPos floor1Pos = pos;
-    BlockPos floor2Pos = addOffset(pos, 0, FLOOR_HEIGHT, 0);
-
-    // 遍历外墙
-    _traverseOuterWalls(pieces,
-        grid.baseGrid(),
-        Direction::South,
-        grid.entranceX() + 1,
-        grid.entranceY() + 1,
-        grid.entranceX() + 1,
-        grid.entranceY(),
-        floor1Pos,
-        currentRotation,
-        wallType);
-
-    _traverseOuterWalls(pieces,
-        grid.baseGrid(),
-        Direction::South,
-        grid.entranceX() + 1,
-        grid.entranceY() + 1,
-        grid.entranceX() + 1,
-        grid.entranceY(),
-        floor2Pos,
-        currentRotation,
-        "wall_window");
-
-    // 三楼
-    BlockPos floor3Pos = addOffset(startPos, 0, 19, 0);
-    const SimpleGrid& thirdFloor = grid.thirdFloorGrid();
-
-    // 找到三楼的起始位置
-    bool foundThirdFloor = false;
-    for (i32 y = 0; y < thirdFloor.height() && !foundThirdFloor; ++y) {
-        for (i32 x = thirdFloor.width() - 1; x >= 0 && !foundThirdFloor; --x) {
-            if (MansionGrid::isHouse(thirdFloor, x, y)) {
-                BlockPos thirdPos = floor3Pos;
-                // 调整位置
-                i32 offsetX = x - m_startX;
-                i32 offsetY = y - m_startY;
-
-                // 根据旋转调整偏移
-                switch (rotation) {
-                    case feature::template_::Rotation::None:
-                        thirdPos = addOffset(thirdPos, offsetX * ROOM_SIZE, 0, offsetY * ROOM_SIZE);
-                        break;
-                    case feature::template_::Rotation::Clockwise90:
-                        thirdPos = addOffset(thirdPos, -offsetY * ROOM_SIZE, 0, offsetX * ROOM_SIZE);
-                        break;
-                    case feature::template_::Rotation::Clockwise180:
-                        thirdPos = addOffset(thirdPos, -offsetX * ROOM_SIZE, 0, -offsetY * ROOM_SIZE);
-                        break;
-                    case feature::template_::Rotation::CounterClockwise90:
-                        thirdPos = addOffset(thirdPos, offsetY * ROOM_SIZE, 0, -offsetX * ROOM_SIZE);
-                        break;
-                }
-
-                _traverseWallPiece(pieces, thirdPos, rotation, "wall_window");
-                _traverseOuterWalls(
-                    pieces, thirdFloor, Direction::South, x, y, x, y, thirdPos, currentRotation, "wall_window");
-                foundThirdFloor = true;
+    bool found = false;
+    for (i32 y = 0; y < thirdFloorGrid.height() && !found; ++y) {
+        for (i32 x = thirdFloorGrid.width() - 1; x >= 0 && !found; --x) {
+            if (!MansionGrid::isHouse(thirdFloorGrid, x, y)) {
+                continue;
             }
+            second.position =
+                offsetTowards(second.position, rotateDir(Direction::South, rotation), 8 + (y - m_startY) * 8);
+            second.position = offsetTowards(second.position, rotateDir(Direction::East, rotation), (x - m_startX) * 8);
+            _traverseWallPiece(pieces, second);
+            _traverseOuterWalls(pieces, second, thirdFloorGrid, Direction::South, x, y, x, y);
+            found = true;
         }
     }
 
-    // 屋顶
-    _createRoof(pieces, addOffset(startPos, 0, 16, 0), rotation, grid.baseGrid(), &thirdFloor);
-    _createRoof(pieces, addOffset(startPos, 0, 27, 0), rotation, thirdFloor, nullptr);
+    _createRoof(pieces, BlockPos(startPos.x, startPos.y + 16, startPos.z), rotation, baseGrid, &thirdFloorGrid);
+    _createRoof(pieces, BlockPos(startPos.x, startPos.y + 27, startPos.z), rotation, thirdFloorGrid, nullptr);
 
-    // 走廊地板和房间
-    static FirstFloorRoomCollection firstFloorRooms;
-    static SecondFloorRoomCollection secondFloorRooms;
-    static ThirdFloorRoomCollection thirdFloorRooms;
+    const FirstFloorRoomCollection firstFloorRooms;
+    const SecondFloorRoomCollection secondFloorRooms;
+    const ThirdFloorRoomCollection thirdFloorRooms;
     const RoomCollection* roomCollections[3] = {&firstFloorRooms, &secondFloorRooms, &thirdFloorRooms};
 
     for (i32 floor = 0; floor < 3; ++floor) {
-        BlockPos floorPos = addOffset(startPos, 0, FLOOR_HEIGHT * floor + (floor == 2 ? 3 : 0), 0);
-        const SimpleGrid& floorGrid = floor == 2 ? thirdFloor : grid.baseGrid();
+        const BlockPos floorOrigin(startPos.x, startPos.y + 8 * floor + (floor == 2 ? 3 : 0), startPos.z);
         const SimpleGrid& roomGrid = grid.floorRoom(floor);
+        const SimpleGrid& floorGrid = (floor == 2) ? thirdFloorGrid : baseGrid;
+        const std::string carpetSouth = floor == 0 ? "carpet_south_1" : "carpet_south_2";
+        const std::string carpetWest = floor == 0 ? "carpet_west_1" : "carpet_west_2";
+        const std::string indoorsWall = floor == 0 ? "indoors_wall_1" : "indoors_wall_2";
+        const std::string indoorsDoor = floor == 0 ? "indoors_door_1" : "indoors_door_2";
 
-        // 放置走廊地板
+        // ---- 走廊地板与地毯 ----
         for (i32 y = 0; y < floorGrid.height(); ++y) {
             for (i32 x = 0; x < floorGrid.width(); ++x) {
-                if (floorGrid.get(x, y) == 1) {
-                    BlockPos corridorPos = floorPos;
-                    i32 offsetX = x - m_startX;
-                    i32 offsetY = y - m_startY;
+                if (floorGrid.get(x, y) != 1) {
+                    continue;
+                }
+                BlockPos corridorPos =
+                    offsetTowards(floorOrigin, rotateDir(Direction::South, rotation), 8 + (y - m_startY) * 8);
+                corridorPos = offsetTowards(corridorPos, rotateDir(Direction::East, rotation), (x - m_startX) * 8);
+                pieces.push_back(std::make_unique<WoodlandMansionPiece>("corridor_floor", corridorPos, rotation));
 
-                    switch (rotation) {
-                        case feature::template_::Rotation::None:
-                            corridorPos =
-                                addOffset(corridorPos, offsetX * ROOM_SIZE, 0, offsetY * ROOM_SIZE + ROOM_SIZE);
-                            break;
-                        case feature::template_::Rotation::Clockwise90:
-                            corridorPos =
-                                addOffset(corridorPos, -offsetY * ROOM_SIZE, 0, offsetX * ROOM_SIZE + ROOM_SIZE);
-                            break;
-                        case feature::template_::Rotation::Clockwise180:
-                            corridorPos =
-                                addOffset(corridorPos, -offsetX * ROOM_SIZE, 0, -offsetY * ROOM_SIZE + ROOM_SIZE);
-                            break;
-                        case feature::template_::Rotation::CounterClockwise90:
-                            corridorPos =
-                                addOffset(corridorPos, offsetY * ROOM_SIZE, 0, -offsetX * ROOM_SIZE + ROOM_SIZE);
-                            break;
-                    }
-
-                    pieces.push_back(std::make_unique<WoodlandMansionPiece>("corridor_floor", corridorPos, rotation));
+                if (floorGrid.get(x, y - 1) == 1 || (roomGrid.get(x, y - 1) & 8388608) == 8388608) {
+                    BlockPos pos = offsetTowards(corridorPos, rotateDir(Direction::East, rotation), 1);
+                    pos = BlockPos(pos.x, pos.y + 1, pos.z);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>("carpet_north", pos, rotation));
+                }
+                if (floorGrid.get(x + 1, y) == 1 || (roomGrid.get(x + 1, y) & 8388608) == 8388608) {
+                    BlockPos pos = offsetTowards(corridorPos, rotateDir(Direction::South, rotation), 1);
+                    pos = offsetTowards(pos, rotateDir(Direction::East, rotation), 5);
+                    pos = BlockPos(pos.x, pos.y + 1, pos.z);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>("carpet_east", pos, rotation));
+                }
+                if (floorGrid.get(x, y + 1) == 1 || (roomGrid.get(x, y + 1) & 8388608) == 8388608) {
+                    BlockPos pos = offsetTowards(corridorPos, rotateDir(Direction::South, rotation), 5);
+                    pos = offsetTowards(pos, rotateDir(Direction::West, rotation), 1);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(carpetSouth, pos, rotation));
+                }
+                if (floorGrid.get(x - 1, y) == 1 || (roomGrid.get(x - 1, y) & 8388608) == 8388608) {
+                    BlockPos pos = offsetTowards(corridorPos, rotateDir(Direction::West, rotation), 1);
+                    pos = offsetTowards(pos, rotateDir(Direction::North, rotation), 1);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(carpetWest, pos, rotation));
                 }
             }
         }
 
-        // TODO: 放置房间逻辑，当前为简化实现
+        // ---- 房间：内墙、门与房间模板 ----
+        std::vector<Direction> openSides;
         for (i32 y = 0; y < floorGrid.height(); ++y) {
             for (i32 x = 0; x < floorGrid.width(); ++x) {
-                if (floorGrid.get(x, y) == 2) {
-                    i32 roomValue = roomGrid.get(x, y);
-                    i32 roomType = roomValue & 0xF0000;
-                    MC_UNUSED(roomType);
-                    i32 roomId = roomValue & 0xFFFF;
-                    MC_UNUSED(roomId);
+                bool isStairCell = floor == 2 && floorGrid.get(x, y) == 3;
+                if (floorGrid.get(x, y) != 2 && !isStairCell) {
+                    continue;
+                }
+                const i32 roomValue = roomGrid.get(x, y);
+                const i32 roomType = roomValue & 983040;
+                const i32 roomId = roomValue & 0xFFFF;
+                isStairCell = isStairCell && (roomValue & 8388608) == 8388608;
 
-                    BlockPos roomPos = floorPos;
-                    i32 offsetX = x - m_startX - 1;
-                    i32 offsetY = y - m_startY;
-
-                    switch (rotation) {
-                        case feature::template_::Rotation::None:
-                            roomPos = addOffset(roomPos, offsetX * ROOM_SIZE, 0, offsetY * ROOM_SIZE + ROOM_SIZE);
-                            break;
-                        case feature::template_::Rotation::Clockwise90:
-                            roomPos = addOffset(roomPos, -offsetY * ROOM_SIZE, 0, offsetX * ROOM_SIZE + ROOM_SIZE);
-                            break;
-                        case feature::template_::Rotation::Clockwise180:
-                            roomPos = addOffset(roomPos, -offsetX * ROOM_SIZE, 0, -offsetY * ROOM_SIZE + ROOM_SIZE);
-                            break;
-                        case feature::template_::Rotation::CounterClockwise90:
-                            roomPos = addOffset(roomPos, offsetY * ROOM_SIZE, 0, -offsetX * ROOM_SIZE + ROOM_SIZE);
-                            break;
+                openSides.clear();
+                if ((roomValue & 2097152) == 2097152) {
+                    const Direction planeHorizontal[] = {
+                        Direction::North, Direction::East, Direction::South, Direction::West};
+                    for (const Direction dir : planeHorizontal) {
+                        if (floorGrid.get(x + Directions::xOffset(dir), y + Directions::zOffset(dir)) == 1) {
+                            openSides.push_back(dir);
+                        }
                     }
+                }
 
-                    // 根据房间类型放置房间模板
-                    if (roomType == 65536) {
-                        // 1x1 房间
-                        std::string templateName = roomCollections[floor]->get1x1(m_rng);
-                        pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, roomPos, rotation));
-                    } else if (roomType == 131072) {
-                        // 1x2 房间
-                        std::string templateName = roomCollections[floor]->get1x2SideEntrance(m_rng, false);
-                        pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, roomPos, rotation));
-                    } else if (roomType == 262144) {
-                        // 2x2 房间
-                        std::string templateName = roomCollections[floor]->get2x2(m_rng);
-                        pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, roomPos, rotation));
+                Direction facing = Direction::None;
+                if (!openSides.empty()) {
+                    facing = openSides[static_cast<size_t>(m_rng.nextInt(static_cast<i32>(openSides.size())))];
+                } else if ((roomValue & 1048576) == 1048576) {
+                    facing = Direction::Up;
+                }
+
+                BlockPos roomPos =
+                    offsetTowards(floorOrigin, rotateDir(Direction::South, rotation), 8 + (y - m_startY) * 8);
+                roomPos = offsetTowards(roomPos, rotateDir(Direction::East, rotation), -1 + (x - m_startX) * 8);
+
+                if (MansionGrid::isHouse(floorGrid, x - 1, y) && !grid.isRoomId(floorGrid, x - 1, y, floor, roomId)) {
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        facing == Direction::West ? indoorsDoor : indoorsWall, roomPos, rotation));
+                }
+
+                if (floorGrid.get(x + 1, y) == 1 && !isStairCell) {
+                    BlockPos pos = offsetTowards(roomPos, rotateDir(Direction::East, rotation), 8);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        facing == Direction::East ? indoorsDoor : indoorsWall, pos, rotation));
+                }
+
+                if (MansionGrid::isHouse(floorGrid, x, y + 1) && !grid.isRoomId(floorGrid, x, y + 1, floor, roomId)) {
+                    BlockPos pos = offsetTowards(roomPos, rotateDir(Direction::South, rotation), 7);
+                    pos = offsetTowards(pos, rotateDir(Direction::East, rotation), 7);
+                    pieces.push_back(
+                        std::make_unique<WoodlandMansionPiece>(facing == Direction::South ? indoorsDoor : indoorsWall,
+                            pos,
+                            Rotations::add(rotation, Rotation::Clockwise90)));
+                }
+
+                if (floorGrid.get(x, y - 1) == 1 && !isStairCell) {
+                    BlockPos pos = offsetTowards(roomPos, rotateDir(Direction::North, rotation), 1);
+                    pos = offsetTowards(pos, rotateDir(Direction::East, rotation), 7);
+                    pieces.push_back(
+                        std::make_unique<WoodlandMansionPiece>(facing == Direction::North ? indoorsDoor : indoorsWall,
+                            pos,
+                            Rotations::add(rotation, Rotation::Clockwise90)));
+                }
+
+                if (roomType == 65536) {
+                    _addRoom1x1(pieces, roomPos, rotation, facing, *roomCollections[floor]);
+                } else if (roomType == 131072 && facing != Direction::None) {
+                    const Direction roomDir = grid.get1x2RoomDirection(floorGrid, x, y, floor, roomId);
+                    const bool isStairs = (roomValue & 4194304) == 4194304;
+                    _addRoom1x2(pieces, roomPos, rotation, roomDir, facing, *roomCollections[floor], isStairs);
+                } else if (roomType == 262144 && facing != Direction::None && facing != Direction::Up) {
+                    Direction roomDir = Directions::rotateY(facing);
+                    if (!grid.isRoomId(floorGrid,
+                            x + Directions::xOffset(roomDir),
+                            y + Directions::zOffset(roomDir),
+                            floor,
+                            roomId)) {
+                        roomDir = Directions::opposite(roomDir);
                     }
+                    _addRoom2x2(pieces, roomPos, rotation, roomDir, facing, *roomCollections[floor]);
+                } else if (roomType == 262144 && facing == Direction::Up) {
+                    _addRoom2x2Secret(pieces, roomPos, rotation, *roomCollections[floor]);
                 }
             }
         }
     }
 }
 
-void MansionPlacer::_entrance(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces, feature::template_::Rotation& rotation, BlockPos& pos)
+void MansionPlacer::_entrance(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data)
 {
-    Direction southDir = rotationToSouth(rotation);
-    Direction westDir = Directions::rotateYCCW(southDir);
-    i32 dx = Directions::xOffset(westDir);
-    i32 dz = Directions::zOffset(westDir);
+    const Direction west = rotateDir(Direction::West, data.rotation);
+    pieces.push_back(
+        std::make_unique<WoodlandMansionPiece>("entrance", offsetTowards(data.position, west, 9), data.rotation));
+    data.position = offsetTowards(data.position, rotateDir(Direction::South, data.rotation), 16);
+}
 
-    BlockPos entrancePos = addOffset(pos, dx * 9, 0, dz * 9);
-    pieces.push_back(std::make_unique<WoodlandMansionPiece>("entrance", entrancePos, rotation));
+void MansionPlacer::_traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data)
+{
+    const BlockPos pos = offsetTowards(data.position, rotateDir(Direction::East, data.rotation), 7);
+    pieces.push_back(std::make_unique<WoodlandMansionPiece>(data.wallType, pos, data.rotation));
+    data.position = offsetTowards(data.position, rotateDir(Direction::South, data.rotation), 8);
+}
 
-    // 更新位置（向南移动16格）
-    i32 sdx = Directions::xOffset(southDir);
-    i32 sdz = Directions::zOffset(southDir);
-    pos = addOffset(pos, sdx * 16, 0, sdz * 16);
+void MansionPlacer::_traverseTurn(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data)
+{
+    data.position = offsetTowards(data.position, rotateDir(Direction::South, data.rotation), -1);
+    pieces.push_back(std::make_unique<WoodlandMansionPiece>("wall_corner", data.position, data.rotation));
+    data.position = offsetTowards(data.position, rotateDir(Direction::South, data.rotation), -7);
+    data.position = offsetTowards(data.position, rotateDir(Direction::West, data.rotation), -6);
+    data.rotation = Rotations::add(data.rotation, Rotation::Clockwise90);
+}
+
+void MansionPlacer::_traverseInnerTurn(std::vector<std::unique_ptr<StructurePiece>>& pieces, PlacementData& data)
+{
+    MC_UNUSED(pieces);
+    data.position = offsetTowards(data.position, rotateDir(Direction::South, data.rotation), 6);
+    data.position = offsetTowards(data.position, rotateDir(Direction::East, data.rotation), 8);
+    data.rotation = Rotations::add(data.rotation, Rotation::CounterClockwise90);
 }
 
 void MansionPlacer::_traverseOuterWalls(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    PlacementData& data,
     const SimpleGrid& grid,
     Direction startDir,
     i32 startX,
     i32 startY,
     i32 targetX,
-    i32 targetY,
-    BlockPos& pos,
-    feature::template_::Rotation& rotation,
-    const std::string& wallType)
+    i32 targetY)
 {
     i32 x = startX;
     i32 y = startY;
     Direction dir = startDir;
 
     do {
-        i32 dx = Directions::xOffset(dir);
-        i32 dz = Directions::zOffset(dir);
-
-        if (!MansionGrid::isHouse(grid, x + dx, y + dz)) {
-            // 转角
-            _traverseTurn(pieces, pos, rotation);
-            dir = Directions::rotateY(dir); // CW
-        } else if (MansionGrid::isHouse(grid, x + dx, y + dz) &&
-            MansionGrid::isHouse(grid,
-                x + dx + Directions::xOffset(Directions::rotateYCCW(dir)),
-                y + dz + Directions::zOffset(Directions::rotateYCCW(dir)))) {
-            // 内转角
-            _traverseInnerTurn(pieces, pos, rotation);
-            x += dx;
-            y += dz;
-            dir = Directions::rotateYCCW(dir); // CCW
+        const i32 stepX = x + Directions::xOffset(dir);
+        const i32 stepY = y + Directions::zOffset(dir);
+        if (!MansionGrid::isHouse(grid, stepX, stepY)) {
+            _traverseTurn(pieces, data);
+            dir = Directions::rotateY(dir);
+            if (x != targetX || y != targetY || startDir != dir) {
+                _traverseWallPiece(pieces, data);
+            }
         } else {
-            x += dx;
-            y += dz;
-            if (x != targetX || y != targetY || dir != startDir) {
-                _traverseWallPiece(pieces, pos, rotation, wallType);
+            const Direction sideDir = Directions::rotateYCCW(dir);
+            if (MansionGrid::isHouse(
+                    grid, stepX + Directions::xOffset(sideDir), stepY + Directions::zOffset(sideDir))) {
+                _traverseInnerTurn(pieces, data);
+                x += Directions::xOffset(dir);
+                y += Directions::zOffset(dir);
+                dir = sideDir;
+            } else {
+                x += Directions::xOffset(dir);
+                y += Directions::zOffset(dir);
+                if (x != targetX || y != targetY || startDir != dir) {
+                    _traverseWallPiece(pieces, data);
+                }
             }
         }
-    } while (x != targetX || y != targetY || dir != startDir);
-}
-
-void MansionPlacer::_traverseWallPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    BlockPos& pos,
-    feature::template_::Rotation rotation,
-    const std::string& wallType)
-{
-    // 放置墙块 - rotation 代表朝向南方
-    Direction southDir = rotationToSouth(rotation);
-    Direction eastDir = Directions::rotateY(southDir); // 顺时针旋转得到东方
-    i32 dx = Directions::xOffset(eastDir);
-    i32 dz = Directions::zOffset(eastDir);
-
-    BlockPos wallPos = addOffset(pos, dx * 7, 0, dz * 7);
-    pieces.push_back(std::make_unique<WoodlandMansionPiece>(wallType, wallPos, rotation));
-
-    // 向南移动8格
-    i32 sdx = Directions::xOffset(southDir);
-    i32 sdz = Directions::zOffset(southDir);
-    pos = addOffset(pos, sdx * ROOM_SIZE, 0, sdz * ROOM_SIZE);
-}
-
-void MansionPlacer::_traverseTurn(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation)
-{
-    // 向南移动-1格
-    Direction southDir = rotationToSouth(rotation);
-    i32 dx = Directions::xOffset(southDir);
-    i32 dz = Directions::zOffset(southDir);
-    pos = addOffset(pos, -dx, 0, -dz);
-
-    // 放置转角墙
-    pieces.push_back(std::make_unique<WoodlandMansionPiece>("wall_corner", pos, rotation));
-
-    // 移动并旋转
-    pos = addOffset(pos, -dx * 7, 0, -dz * 7);
-    Direction westDir = Directions::rotateYCCW(southDir);
-    dx = Directions::xOffset(westDir);
-    dz = Directions::zOffset(westDir);
-    pos = addOffset(pos, -dx * 6, 0, -dz * 6);
-    rotation = static_cast<feature::template_::Rotation>((static_cast<i32>(rotation) + 1) % 4);
-}
-
-void MansionPlacer::_traverseInnerTurn(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces, BlockPos& pos, feature::template_::Rotation& rotation)
-{
-    // 移动并旋转
-    Direction southDir = rotationToSouth(rotation);
-    i32 dx = Directions::xOffset(southDir);
-    i32 dz = Directions::zOffset(southDir);
-    pos = addOffset(pos, dx * 6, 0, dz * 6);
-
-    Direction eastDir = Directions::rotateY(southDir);
-    dx = Directions::xOffset(eastDir);
-    dz = Directions::zOffset(eastDir);
-    pos = addOffset(pos, dx * ROOM_SIZE, 0, dz * ROOM_SIZE);
-
-    rotation = static_cast<feature::template_::Rotation>((static_cast<i32>(rotation) + 3) % 4); // CCW
+    } while (x != targetX || y != targetY || startDir != dir);
 }
 
 void MansionPlacer::_createRoof(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& basePos,
-    feature::template_::Rotation rotation,
+    Rotation rotation,
     const SimpleGrid& grid,
     const SimpleGrid* upperGrid)
 {
+    const auto cellOrigin = [&](i32 x, i32 y) {
+        BlockPos pos = offsetTowards(basePos, rotateDir(Direction::South, rotation), 8 + (y - m_startY) * 8);
+        return offsetTowards(pos, rotateDir(Direction::East, rotation), (x - m_startX) * 8);
+    };
+
+    // ---- 平屋顶与四面 roof_front ----
     for (i32 y = 0; y < grid.height(); ++y) {
         for (i32 x = 0; x < grid.width(); ++x) {
-            bool hasUpper = upperGrid && MansionGrid::isHouse(*upperGrid, x, y);
+            const bool coveredAbove = upperGrid != nullptr && MansionGrid::isHouse(*upperGrid, x, y);
+            if (!MansionGrid::isHouse(grid, x, y) || coveredAbove) {
+                continue;
+            }
+            // 只有平屋顶本体上抬 3 格；四面的 roof_front 用未上抬的单元原点。
+            const BlockPos pos = cellOrigin(x, y);
+            pieces.push_back(
+                std::make_unique<WoodlandMansionPiece>("roof", BlockPos(pos.x, pos.y + 3, pos.z), rotation));
 
-            if (MansionGrid::isHouse(grid, x, y) && !hasUpper) {
-                BlockPos roofPos = basePos;
-                i32 offsetX = x - m_startX;
-                i32 offsetY = y - m_startY;
+            if (!MansionGrid::isHouse(grid, x + 1, y)) {
+                const BlockPos front = offsetTowards(pos, rotateDir(Direction::East, rotation), 6);
+                pieces.push_back(std::make_unique<WoodlandMansionPiece>("roof_front", front, rotation));
+            }
+            if (!MansionGrid::isHouse(grid, x - 1, y)) {
+                BlockPos front = offsetTowards(pos, rotateDir(Direction::East, rotation), 0);
+                front = offsetTowards(front, rotateDir(Direction::South, rotation), 7);
+                pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                    "roof_front", front, Rotations::add(rotation, Rotation::Clockwise180)));
+            }
+            if (!MansionGrid::isHouse(grid, x, y - 1)) {
+                const BlockPos front = offsetTowards(pos, rotateDir(Direction::West, rotation), 1);
+                pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                    "roof_front", front, Rotations::add(rotation, Rotation::CounterClockwise90)));
+            }
+            if (!MansionGrid::isHouse(grid, x, y + 1)) {
+                BlockPos front = offsetTowards(pos, rotateDir(Direction::East, rotation), 6);
+                front = offsetTowards(front, rotateDir(Direction::South, rotation), 6);
+                pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                    "roof_front", front, Rotations::add(rotation, Rotation::Clockwise90)));
+            }
+        }
+    }
 
-                switch (rotation) {
-                    case feature::template_::Rotation::None:
-                        roofPos = addOffset(roofPos, offsetX * ROOM_SIZE, 3, offsetY * ROOM_SIZE + ROOM_SIZE);
-                        break;
-                    case feature::template_::Rotation::Clockwise90:
-                        roofPos = addOffset(roofPos, -offsetY * ROOM_SIZE, 3, offsetX * ROOM_SIZE + ROOM_SIZE);
-                        break;
-                    case feature::template_::Rotation::Clockwise180:
-                        roofPos = addOffset(roofPos, -offsetX * ROOM_SIZE, 3, -offsetY * ROOM_SIZE + ROOM_SIZE);
-                        break;
-                    case feature::template_::Rotation::CounterClockwise90:
-                        roofPos = addOffset(roofPos, offsetY * ROOM_SIZE, 3, -offsetX * ROOM_SIZE + ROOM_SIZE);
-                        break;
+    // ---- 上下层交界处的小墙与转角 ----
+    if (upperGrid != nullptr) {
+        for (i32 y = 0; y < grid.height(); ++y) {
+            for (i32 x = 0; x < grid.width(); ++x) {
+                if (!MansionGrid::isHouse(grid, x, y) || !MansionGrid::isHouse(*upperGrid, x, y)) {
+                    continue;
+                }
+                const BlockPos pos = cellOrigin(x, y);
+
+                if (!MansionGrid::isHouse(grid, x + 1, y)) {
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "small_wall", offsetTowards(pos, rotateDir(Direction::East, rotation), 7), rotation));
+                }
+                if (!MansionGrid::isHouse(grid, x - 1, y)) {
+                    BlockPos wall = offsetTowards(pos, rotateDir(Direction::West, rotation), 1);
+                    wall = offsetTowards(wall, rotateDir(Direction::South, rotation), 6);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "small_wall", wall, Rotations::add(rotation, Rotation::Clockwise180)));
+                }
+                if (!MansionGrid::isHouse(grid, x, y - 1)) {
+                    BlockPos wall = offsetTowards(pos, rotateDir(Direction::West, rotation), 0);
+                    wall = offsetTowards(wall, rotateDir(Direction::North, rotation), 1);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "small_wall", wall, Rotations::add(rotation, Rotation::CounterClockwise90)));
+                }
+                if (!MansionGrid::isHouse(grid, x, y + 1)) {
+                    BlockPos wall = offsetTowards(pos, rotateDir(Direction::East, rotation), 6);
+                    wall = offsetTowards(wall, rotateDir(Direction::South, rotation), 7);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "small_wall", wall, Rotations::add(rotation, Rotation::Clockwise90)));
                 }
 
-                pieces.push_back(std::make_unique<WoodlandMansionPiece>("roof", roofPos, rotation));
+                if (!MansionGrid::isHouse(grid, x + 1, y)) {
+                    if (!MansionGrid::isHouse(grid, x, y - 1)) {
+                        BlockPos corner = offsetTowards(pos, rotateDir(Direction::East, rotation), 7);
+                        corner = offsetTowards(corner, rotateDir(Direction::North, rotation), 2);
+                        pieces.push_back(std::make_unique<WoodlandMansionPiece>("small_wall_corner", corner, rotation));
+                    }
+                    if (!MansionGrid::isHouse(grid, x, y + 1)) {
+                        BlockPos corner = offsetTowards(pos, rotateDir(Direction::East, rotation), 8);
+                        corner = offsetTowards(corner, rotateDir(Direction::South, rotation), 7);
+                        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                            "small_wall_corner", corner, Rotations::add(rotation, Rotation::Clockwise90)));
+                    }
+                }
+                if (!MansionGrid::isHouse(grid, x - 1, y)) {
+                    if (!MansionGrid::isHouse(grid, x, y - 1)) {
+                        BlockPos corner = offsetTowards(pos, rotateDir(Direction::West, rotation), 2);
+                        corner = offsetTowards(corner, rotateDir(Direction::North, rotation), 1);
+                        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                            "small_wall_corner", corner, Rotations::add(rotation, Rotation::CounterClockwise90)));
+                    }
+                    if (!MansionGrid::isHouse(grid, x, y + 1)) {
+                        BlockPos corner = offsetTowards(pos, rotateDir(Direction::West, rotation), 1);
+                        corner = offsetTowards(corner, rotateDir(Direction::South, rotation), 8);
+                        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                            "small_wall_corner", corner, Rotations::add(rotation, Rotation::Clockwise180)));
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- 屋顶转角与内转角 ----
+    for (i32 y = 0; y < grid.height(); ++y) {
+        for (i32 x = 0; x < grid.width(); ++x) {
+            const bool coveredAbove = upperGrid != nullptr && MansionGrid::isHouse(*upperGrid, x, y);
+            if (!MansionGrid::isHouse(grid, x, y) || coveredAbove) {
+                continue;
+            }
+            const BlockPos pos = cellOrigin(x, y);
+
+            if (!MansionGrid::isHouse(grid, x + 1, y)) {
+                const BlockPos east = offsetTowards(pos, rotateDir(Direction::East, rotation), 6);
+                if (!MansionGrid::isHouse(grid, x, y + 1)) {
+                    const BlockPos corner = offsetTowards(east, rotateDir(Direction::South, rotation), 6);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>("roof_corner", corner, rotation));
+                } else if (MansionGrid::isHouse(grid, x + 1, y + 1)) {
+                    const BlockPos corner = offsetTowards(east, rotateDir(Direction::South, rotation), 5);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>("roof_inner_corner", corner, rotation));
+                }
+                if (!MansionGrid::isHouse(grid, x, y - 1)) {
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "roof_corner", east, Rotations::add(rotation, Rotation::CounterClockwise90)));
+                } else if (MansionGrid::isHouse(grid, x + 1, y - 1)) {
+                    BlockPos corner = offsetTowards(pos, rotateDir(Direction::East, rotation), 9);
+                    corner = offsetTowards(corner, rotateDir(Direction::North, rotation), 2);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "roof_inner_corner", corner, Rotations::add(rotation, Rotation::Clockwise90)));
+                }
+            }
+
+            if (!MansionGrid::isHouse(grid, x - 1, y)) {
+                const BlockPos west = pos;
+                if (!MansionGrid::isHouse(grid, x, y + 1)) {
+                    const BlockPos corner = offsetTowards(west, rotateDir(Direction::South, rotation), 6);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "roof_corner", corner, Rotations::add(rotation, Rotation::Clockwise90)));
+                } else if (MansionGrid::isHouse(grid, x - 1, y + 1)) {
+                    BlockPos corner = offsetTowards(west, rotateDir(Direction::South, rotation), 8);
+                    corner = offsetTowards(corner, rotateDir(Direction::West, rotation), 3);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "roof_inner_corner", corner, Rotations::add(rotation, Rotation::CounterClockwise90)));
+                }
+                if (!MansionGrid::isHouse(grid, x, y - 1)) {
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "roof_corner", west, Rotations::add(rotation, Rotation::Clockwise180)));
+                } else if (MansionGrid::isHouse(grid, x - 1, y - 1)) {
+                    const BlockPos corner = offsetTowards(west, rotateDir(Direction::South, rotation), 1);
+                    pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+                        "roof_inner_corner", corner, Rotations::add(rotation, Rotation::Clockwise180)));
+                }
             }
         }
     }
@@ -995,81 +1094,171 @@ void MansionPlacer::_createRoof(std::vector<std::unique_ptr<StructurePiece>>& pi
 
 void MansionPlacer::_addRoom1x1(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
-    feature::template_::Rotation rotation,
+    Rotation rotation,
     Direction doorDir,
-    i32 floor)
+    const RoomCollection& rooms)
 {
-    MC_UNUSED(doorDir);
-    static FirstFloorRoomCollection firstFloor;
-    static SecondFloorRoomCollection secondFloor;
-    static ThirdFloorRoomCollection thirdFloor;
+    Rotation roomRotation = Rotation::None;
+    std::string name = rooms.get1x1(m_rng);
+    if (doorDir != Direction::East) {
+        if (doorDir == Direction::North) {
+            roomRotation = Rotations::add(roomRotation, Rotation::CounterClockwise90);
+        } else if (doorDir == Direction::West) {
+            roomRotation = Rotations::add(roomRotation, Rotation::Clockwise180);
+        } else if (doorDir == Direction::South) {
+            roomRotation = Rotations::add(roomRotation, Rotation::Clockwise90);
+        } else {
+            name = rooms.get1x1Secret(m_rng);
+        }
+    }
 
-    const RoomCollection* collection = (floor == 0) ? static_cast<const RoomCollection*>(&firstFloor)
-        : (floor == 1)                              ? static_cast<const RoomCollection*>(&secondFloor)
-                                                    : static_cast<const RoomCollection*>(&thirdFloor);
-
-    std::string templateName = collection->get1x1(m_rng);
-    pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, pos, rotation));
+    BlockPos offset =
+        feature::template_::Template::getZeroPositionWithTransform(BlockPos(1, 0, 0), Mirror::None, roomRotation, 7, 7);
+    roomRotation = Rotations::add(roomRotation, rotation);
+    offset = ::mc::rotate(offset, rotation);
+    const BlockPos roomPos(pos.x + offset.x, pos.y, pos.z + offset.z);
+    pieces.push_back(std::make_unique<WoodlandMansionPiece>(name, roomPos, roomRotation));
 }
 
 void MansionPlacer::_addRoom1x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
-    feature::template_::Rotation rotation,
+    Rotation rotation,
     Direction roomDir,
     Direction doorDir,
-    i32 floor,
+    const RoomCollection& rooms,
     bool isStairs)
 {
-    MC_UNUSED(roomDir);
-    MC_UNUSED(doorDir);
-    static FirstFloorRoomCollection firstFloor;
-    static SecondFloorRoomCollection secondFloor;
-    static ThirdFloorRoomCollection thirdFloor;
+    const Direction east = rotateDir(Direction::East, rotation);
+    const Direction south = rotateDir(Direction::South, rotation);
+    const Direction north = rotateDir(Direction::North, rotation);
+    const Direction west = rotateDir(Direction::West, rotation);
 
-    const RoomCollection* collection = (floor == 0) ? static_cast<const RoomCollection*>(&firstFloor)
-        : (floor == 1)                              ? static_cast<const RoomCollection*>(&secondFloor)
-                                                    : static_cast<const RoomCollection*>(&thirdFloor);
-
-    std::string templateName = collection->get1x2SideEntrance(m_rng, isStairs);
-    pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, pos, rotation));
+    if (doorDir == Direction::East && roomDir == Direction::South) {
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2SideEntrance(m_rng, isStairs), offsetTowards(pos, east, 1), rotation));
+    } else if (doorDir == Direction::East && roomDir == Direction::North) {
+        BlockPos target = offsetTowards(pos, east, 1);
+        target = offsetTowards(target, south, 6);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2SideEntrance(m_rng, isStairs), target, rotation, Mirror::LeftRight));
+    } else if (doorDir == Direction::West && roomDir == Direction::North) {
+        BlockPos target = offsetTowards(pos, east, 7);
+        target = offsetTowards(target, south, 6);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2SideEntrance(m_rng, isStairs), target, Rotations::add(rotation, Rotation::Clockwise180)));
+    } else if (doorDir == Direction::West && roomDir == Direction::South) {
+        const BlockPos target = offsetTowards(pos, east, 7);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2SideEntrance(m_rng, isStairs), target, rotation, Mirror::FrontBack));
+    } else if (doorDir == Direction::South && roomDir == Direction::East) {
+        const BlockPos target = offsetTowards(pos, east, 1);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(rooms.get1x2SideEntrance(m_rng, isStairs),
+            target,
+            Rotations::add(rotation, Rotation::Clockwise90),
+            Mirror::LeftRight));
+    } else if (doorDir == Direction::South && roomDir == Direction::West) {
+        const BlockPos target = offsetTowards(pos, east, 7);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2SideEntrance(m_rng, isStairs), target, Rotations::add(rotation, Rotation::Clockwise90)));
+    } else if (doorDir == Direction::North && roomDir == Direction::West) {
+        BlockPos target = offsetTowards(pos, east, 7);
+        target = offsetTowards(target, south, 6);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(rooms.get1x2SideEntrance(m_rng, isStairs),
+            target,
+            Rotations::add(rotation, Rotation::Clockwise90),
+            Mirror::FrontBack));
+    } else if (doorDir == Direction::North && roomDir == Direction::East) {
+        BlockPos target = offsetTowards(pos, east, 1);
+        target = offsetTowards(target, south, 6);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2SideEntrance(m_rng, isStairs), target, Rotations::add(rotation, Rotation::CounterClockwise90)));
+    } else if (doorDir == Direction::South && roomDir == Direction::North) {
+        BlockPos target = offsetTowards(pos, east, 1);
+        target = offsetTowards(target, north, 8);
+        pieces.push_back(
+            std::make_unique<WoodlandMansionPiece>(rooms.get1x2FrontEntrance(m_rng, isStairs), target, rotation));
+    } else if (doorDir == Direction::North && roomDir == Direction::South) {
+        BlockPos target = offsetTowards(pos, east, 7);
+        target = offsetTowards(target, south, 14);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2FrontEntrance(m_rng, isStairs), target, Rotations::add(rotation, Rotation::Clockwise180)));
+    } else if (doorDir == Direction::West && roomDir == Direction::East) {
+        const BlockPos target = offsetTowards(pos, east, 15);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2FrontEntrance(m_rng, isStairs), target, Rotations::add(rotation, Rotation::Clockwise90)));
+    } else if (doorDir == Direction::East && roomDir == Direction::West) {
+        BlockPos target = offsetTowards(pos, west, 7);
+        target = offsetTowards(target, south, 6);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(rooms.get1x2FrontEntrance(m_rng, isStairs),
+            target,
+            Rotations::add(rotation, Rotation::CounterClockwise90)));
+    } else if (doorDir == Direction::Up && roomDir == Direction::East) {
+        const BlockPos target = offsetTowards(pos, east, 15);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(
+            rooms.get1x2Secret(m_rng), target, Rotations::add(rotation, Rotation::Clockwise90)));
+    } else if (doorDir == Direction::Up && roomDir == Direction::South) {
+        const BlockPos target = offsetTowards(pos, east, 1);
+        pieces.push_back(std::make_unique<WoodlandMansionPiece>(rooms.get1x2Secret(m_rng), target, rotation));
+    }
 }
 
 void MansionPlacer::_addRoom2x2(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
-    feature::template_::Rotation rotation,
+    Rotation rotation,
     Direction roomDir,
     Direction doorDir,
-    i32 floor)
+    const RoomCollection& rooms)
 {
-    MC_UNUSED(roomDir);
-    MC_UNUSED(doorDir);
-    static FirstFloorRoomCollection firstFloor;
-    static SecondFloorRoomCollection secondFloor;
-    static ThirdFloorRoomCollection thirdFloor;
+    i32 offsetX = 0;
+    i32 offsetY = 0;
+    Rotation roomRotation = rotation;
+    Mirror mirror = Mirror::None;
 
-    const RoomCollection* collection = (floor == 0) ? static_cast<const RoomCollection*>(&firstFloor)
-        : (floor == 1)                              ? static_cast<const RoomCollection*>(&secondFloor)
-                                                    : static_cast<const RoomCollection*>(&thirdFloor);
+    if (doorDir == Direction::East && roomDir == Direction::South) {
+        offsetX = -7;
+    } else if (doorDir == Direction::East && roomDir == Direction::North) {
+        offsetX = -7;
+        offsetY = 6;
+        mirror = Mirror::LeftRight;
+    } else if (doorDir == Direction::North && roomDir == Direction::East) {
+        offsetX = 1;
+        offsetY = 14;
+        roomRotation = Rotations::add(rotation, Rotation::CounterClockwise90);
+    } else if (doorDir == Direction::North && roomDir == Direction::West) {
+        offsetX = 7;
+        offsetY = 14;
+        roomRotation = Rotations::add(rotation, Rotation::CounterClockwise90);
+        mirror = Mirror::LeftRight;
+    } else if (doorDir == Direction::South && roomDir == Direction::West) {
+        offsetX = 7;
+        offsetY = -8;
+        roomRotation = Rotations::add(rotation, Rotation::Clockwise90);
+    } else if (doorDir == Direction::South && roomDir == Direction::East) {
+        offsetX = 1;
+        offsetY = -8;
+        roomRotation = Rotations::add(rotation, Rotation::Clockwise90);
+        mirror = Mirror::LeftRight;
+    } else if (doorDir == Direction::West && roomDir == Direction::North) {
+        offsetX = 15;
+        offsetY = 6;
+        roomRotation = Rotations::add(rotation, Rotation::Clockwise180);
+    } else if (doorDir == Direction::West && roomDir == Direction::South) {
+        offsetX = 15;
+        mirror = Mirror::FrontBack;
+    }
 
-    std::string templateName = collection->get2x2(m_rng);
-    pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, pos, rotation));
+    BlockPos target = offsetTowards(pos, rotateDir(Direction::East, rotation), offsetX);
+    target = offsetTowards(target, rotateDir(Direction::South, rotation), offsetY);
+    pieces.push_back(std::make_unique<WoodlandMansionPiece>(rooms.get2x2(m_rng), target, roomRotation, mirror));
 }
 
 void MansionPlacer::_addRoom2x2Secret(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     const BlockPos& pos,
-    feature::template_::Rotation rotation,
-    i32 floor)
+    Rotation rotation,
+    const RoomCollection& rooms)
 {
-    static FirstFloorRoomCollection firstFloor;
-    static SecondFloorRoomCollection secondFloor;
-    static ThirdFloorRoomCollection thirdFloor;
-
-    const RoomCollection* collection = (floor == 0) ? static_cast<const RoomCollection*>(&firstFloor)
-        : (floor == 1)                              ? static_cast<const RoomCollection*>(&secondFloor)
-                                                    : static_cast<const RoomCollection*>(&thirdFloor);
-
-    std::string templateName = collection->get2x2Secret(m_rng);
-    pieces.push_back(std::make_unique<WoodlandMansionPiece>(templateName, pos, rotation));
+    const BlockPos target = offsetTowards(pos, rotateDir(Direction::East, rotation), 1);
+    pieces.push_back(std::make_unique<WoodlandMansionPiece>(rooms.get2x2Secret(m_rng), target, rotation, Mirror::None));
 }
 
 // ============================================================================
@@ -1147,7 +1336,6 @@ std::string SecondFloorRoomCollection::get2x2Secret(math::IRandom& rng) const
 }
 
 } // namespace woodland_mansion
-
 } // namespace structure
 } // namespace gen
 } // namespace world

@@ -22,8 +22,8 @@
 #include "JigsawTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
 #include "common/world/block/blocks/special/JigsawBlock.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include <optional>
 #include <string>
 

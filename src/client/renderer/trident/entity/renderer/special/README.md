@@ -86,7 +86,7 @@ special/
 | `common/entity/entities/effect/EffectEntities.hpp` | 闪电/区域效果云等实体类型 |
 | `common/util/math/MathUtils.hpp` | `clamp` 等数学工具 |
 | `common/util/math/Vector4.hpp` | `Vector4f`（overlayColor 通道） |
-| `common/world/block/Block.hpp` | `BlockState` |
+| `common/world/block/core/Block.hpp` | `BlockState` |
 
 ### 下游依赖（依赖本模块）
 

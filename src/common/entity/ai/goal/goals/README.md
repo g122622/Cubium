@@ -4,16 +4,13 @@
 
 ```text
 goals/
-├── AdditionalGoals.hpp/cpp     # 其他通用行为目标
 ├── AvoidBlockGoal.hpp/cpp      # 躲避指定方块
 ├── AvoidEntityGoal.hpp/cpp     # 躲避指定实体
 ├── BreedGoal.hpp/cpp           # 动物繁殖
 ├── EatGrassGoal.hpp/cpp        # 吃草行为
-├── FindShelterGoal.hpp/cpp     # 寻找庇护所
 ├── FindWaterGoal.hpp/cpp       # 寻找水源
 ├── FishSwimGoal.hpp/cpp        # 鱼类游泳
 ├── FleeSunGoal.hpp/cpp         # 躲避日照
-├── FlyGoal.hpp/cpp             # 飞行行为
 ├── FollowParentGoal.hpp/cpp    # 幼体跟随父母
 ├── LookAtGoal.hpp/cpp          # 注视实体与随机环顾
 ├── MeleeAttackGoal.hpp/cpp     # 近战追击与攻击

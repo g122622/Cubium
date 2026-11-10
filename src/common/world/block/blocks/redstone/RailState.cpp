@@ -24,7 +24,7 @@
 #include "RailState.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include <cstddef>
 #include <memory>

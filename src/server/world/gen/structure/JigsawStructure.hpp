@@ -28,9 +28,9 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/jigsaw/TemplatePool.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include <memory>
 #include <optional>
@@ -203,26 +203,10 @@ public:
     }
 
     /**
-     * @brief 检查是否可以在指定位置生成结构
-     */
-    bool canGenerate(IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
-
-    /**
      * @brief 生成 Jigsaw 结构
      */
     std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
-
-    /**
-     * @brief 在 generate() 内按真实候选生成点完成生物群系校验
-     *
-     * 候选点（起始块中心、投影后的地面线）只有抽出起始块之后才知道，调用方无法预先算出，
-     * 因此由本类在装配后校验，失败返回空起点，调用方继续用同一个随机源重抽其它条目。
-     */
-    [[nodiscard]] bool validatesBiomeOnCandidatePoint() const override
-    {
-        return true;
-    }
 
 protected:
     JigsawConfig m_config;   ///< Jigsaw 配置

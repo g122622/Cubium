@@ -28,7 +28,7 @@
 #include "common/util/TriState.hpp"
 #include "common/world/attribute/AttributeModifier.hpp"
 #include "common/world/attribute/EnvironmentAttribute.hpp"
-#include "common/world/level/MoonPhase.hpp"
+#include "common/world/time/base/MoonPhase.hpp"
 
 #include <cstddef>
 #include <functional>

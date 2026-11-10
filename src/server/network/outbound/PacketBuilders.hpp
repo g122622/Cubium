@@ -59,7 +59,7 @@ namespace mc::server::net {
  *
  * 与 PlayerBroadcaster 的边界：PlayerBroadcaster 承接"转发型广播"（持
  * MinecraftServer& 做距离过滤 + 多态发送）；本构造器只产 IrPacket，不含发送语义、
- * 不持状态——主调者（命令、登录流程）自行经 connectionManager().sendToPlayer 或
+ * 不持状态——主调者（命令、登录流程）自行经 packetSender().sendToPlayer 或
  * sendPacketToPlayer 投递。这样 IServer 不必为这些单包业务暴露纯虚。
  *
  * 数据源全部经入参或 IServer 公开访问器（commandRegistry()/getPlayerWorld()/

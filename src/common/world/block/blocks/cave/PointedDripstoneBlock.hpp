@@ -30,10 +30,10 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/IWaterLoggable.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/capability/IWaterLoggable.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <optional>
 #include <unordered_map>
 

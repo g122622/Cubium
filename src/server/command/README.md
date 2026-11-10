@@ -173,7 +173,7 @@ src/server/command/
 server/command
 ├── common/command/           # 命令框架核心（CommandDispatcher、CommandContext、CommandNode、参数类型、异常）
 ├── server/application/       # 服务器核心（IServer、MinecraftServer）
-├── server/core/              # 核心管理器（PlayerManager、TimeManager、TeleportManager、GameModeManager）
+├── server/player/              # 核心管理器（PlayerManager、TimeManager、TeleportManager、GameModeManager）
 ├── server/player/            # 服务端玩家（ServerPlayer）
 ├── server/world/             # 服务端世界（ServerWorld、WeatherManager）
 ├── common/item/              # 物品系统（ItemStack）

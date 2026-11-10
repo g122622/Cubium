@@ -56,9 +56,11 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/time/TimeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/lifecycle/PlayerManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketSender.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/PlayerConnectionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/AccessManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
         # ServerPlayer/命令源/函数管理器（ServerWorld 回调链引用）
@@ -87,14 +89,14 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
         # 传送管理（ServerPlayer 引用）
-        ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/player/TeleportManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/gamemode/GameModeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/WhitelistManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedPlayerList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedIpList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/permission/OpListManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/keepalive/KeepAliveManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/movement/PlayerMovementManager.cpp
         # 交互管理器（ServerPlayer 引用）
         ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/DigSpeed.cpp

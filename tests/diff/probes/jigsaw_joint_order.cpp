@@ -52,7 +52,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/WorldgenRandom.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "probe.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include "server/world/gen/jigsaw/JigsawTransform.hpp"
@@ -129,17 +129,43 @@ std::string runLine(std::string_view inputLine)
     const auto jointSize = piece.getSize();
     (void)jointSize;
 
+    // 旋转后的朝向（facing + top）必须一并比对：匹配只看"正面相反、aligned 时顶面一致"，
+    // 坐标与顺序完全相同而朝向旋转错一格时，装配会选到另一个旋转的候选块，
+    // 表现为"同一模板、不同旋转、位置相邻"的差异，只比坐标根本定位不到。
+    const auto directionName = [](Direction direction) -> const char* {
+        switch (direction) {
+            case Direction::Down:
+                return "down";
+            case Direction::Up:
+                return "up";
+            case Direction::North:
+                return "north";
+            case Direction::South:
+                return "south";
+            case Direction::West:
+                return "west";
+            case Direction::East:
+                return "east";
+            default:
+                return "none";
+        }
+    };
+
     json result = json::array();
     for (const auto& joint : joints) {
         const BlockPos transformed = world::gen::jigsaw::JigsawTransform::transformPosition(
             joint.sourcePos, rotation, Mirror::None, BlockPos(0, 0, 0));
+        const auto rotatedJoint = world::gen::jigsaw::JigsawOrientations::rotate(joint.orientation, rotation);
         result.push_back(json{{"x", transformed.x},
             {"y", transformed.y},
             {"z", transformed.z},
             {"name", joint.sourceName},
             {"target", joint.targetPool},
             {"selectionPriority", joint.selectionPriority},
-            {"placementPriority", joint.placementPriority}});
+            {"placementPriority", joint.placementPriority},
+            {"front", directionName(world::gen::jigsaw::JigsawOrientations::getFacing(rotatedJoint))},
+            {"top", directionName(world::gen::jigsaw::JigsawOrientations::getRotation(rotatedJoint))},
+            {"joint", joint.jointType == world::gen::jigsaw::JigsawJointType::Rollable ? "rollable" : "aligned"}});
     }
 
     return json{{"unit", input.value("unit", "")}, {"rotation", rotationName(rotation)}, {"joints", std::move(result)}}

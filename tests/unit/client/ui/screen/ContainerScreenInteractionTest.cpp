@@ -45,7 +45,7 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/special/bundle/BundleContents.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"

@@ -23,10 +23,12 @@
 
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 
 namespace mc {
@@ -101,4 +103,85 @@ void ContainerBlockEntity::preRemoveSideEffects(const BlockPos& pos, const Block
     }
 }
 
+void ContainerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
+{
+    BlockEntity::saveToNBT(tag);
+
+    // 与 save(nlohmann::json&) 保持同一字段集。此前本类只实现了 JSON 路径，
+    // 导致漏斗、熔炉、酿酒台等直接派生容器的物品栏在 NBT 存档中全部丢失。
+    const IInventory* inventory = getInventory();
+    if (inventory != nullptr) {
+        saveItemsToNBT(tag, *inventory);
+    }
+
+    if (!getCustomName().empty()) {
+        tag.put("CustomName", getCustomName());
+    }
+}
+
+bool ContainerBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    if (!BlockEntity::loadFromNBT(tag)) {
+        return false;
+    }
+
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+
+    if (auto name = nbt_helper::tryGetString(tag, "CustomName")) {
+        setCustomName(*name);
+    }
+
+    IInventory* inventory = getInventory();
+    if (inventory != nullptr) {
+        loadItemsFromNBT(tag, *inventory);
+    }
+
+    return true;
+}
+
+void ContainerBlockEntity::saveItemsToNBT(nbt::CompoundTag& tag, const IInventory& inventory) const
+{
+    auto itemsList = std::make_unique<nbt::tags::compound_list_tag>();
+    const i32 containerSize = inventory.getContainerSize();
+    for (i32 slot = 0; slot < containerSize; ++slot) {
+        const ItemStack& stack = inventory.getItem(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+        nbt::tags::compound_tag itemTag;
+        itemTag.put("Slot", static_cast<i8>(slot));
+        stack.toNbt(itemTag);
+        itemsList->value.push_back(std::move(itemTag));
+    }
+    tag.value.insert_or_assign("Items", std::move(itemsList));
+}
+
+void ContainerBlockEntity::loadItemsFromNBT(const nbt::CompoundTag& tag, IInventory& inventory)
+{
+    namespace nbt_helper = mc::entity::serialization::nbt_helper;
+
+    inventory.clear();
+
+    const auto* listTag = nbt_helper::tryGetList(tag, "Items");
+    if (listTag == nullptr || listTag->element_id() != nbt::TagId::Compound) {
+        return;
+    }
+
+    const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*listTag);
+    const i32 containerSize = inventory.getContainerSize();
+    for (const auto& itemTag : compoundList.value) {
+        i8 slot = 0;
+        if (auto slotOpt = nbt_helper::tryGetByte(itemTag, "Slot")) {
+            slot = *slotOpt;
+        }
+        if (slot < 0 || slot >= containerSize) {
+            continue;
+        }
+        auto stackResult = ItemStack::fromNbt(itemTag);
+        if (!stackResult.success()) {
+            continue;
+        }
+        inventory.setItem(slot, stackResult.value());
+    }
+}
 } // namespace mc

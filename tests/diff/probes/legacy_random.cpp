@@ -135,6 +135,15 @@ const char* UNITS[] = {
     "555|c:1;i:100",
     // 负种子
     "-12345|i:100;i:100;i:100",
+    // 区间随机浮点：注意运算顺序 (max-min) 先算再乘
+    "42|r:0,1;r:0,1;r:0,1",
+    "42|r:-1,1;r:-1,1;r:-1,1",
+    "42|r:5,5;r:5,5",
+    "42|r:-0.5,0.5;r:-0.5,0.5",
+    // 闭区间随机整数
+    "42|R:0,10;R:0,10;R:0,10",
+    "42|R:5,5;R:5,5",
+    "42|R:-5,5;R:-5,5;R:-5,5",
     // 三角分布：f64 与 f32 走不同的随机流
     "2024|t:1;t:1;t:1;d;d",
     "2024|T:1;T:1;T:1;f;f",
@@ -212,6 +221,36 @@ std::string runLine(std::string_view inputLine)
             }
             // 三角分布（f32）：必须走 nextFloat，与 t 是不同的随机流。
             append(formatFloat(random.triangle(0.0f, std::stof(op.substr(2)))));
+        } else if (kind == 'r') {
+            if (op.size() < 3) {
+                std::fprintf(stderr, "legacy_random: r 需要 <min>,<max>：%s\n", op.c_str());
+                std::exit(1);
+            }
+            // 区间随机浮点：单元写成 r:<min>,<max>
+            const std::string args = op.substr(2);
+            const size_t comma = args.find(',');
+            if (comma == std::string::npos) {
+                std::fprintf(stderr, "legacy_random: r 需要 <min>,<max>：%s\n", op.c_str());
+                std::exit(1);
+            }
+            const f32 lo = std::stof(args.substr(0, comma));
+            const f32 hi = std::stof(args.substr(comma + 1));
+            append(formatFloat(random.randomBetween(lo, hi)));
+        } else if (kind == 'R') {
+            if (op.size() < 3) {
+                std::fprintf(stderr, "legacy_random: R 需要 <min>,<max>：%s\n", op.c_str());
+                std::exit(1);
+            }
+            // 闭区间随机整数：单元写成 R:<min>,<max>
+            const std::string args = op.substr(2);
+            const size_t comma = args.find(',');
+            if (comma == std::string::npos) {
+                std::fprintf(stderr, "legacy_random: R 需要 <min>,<max>：%s\n", op.c_str());
+                std::exit(1);
+            }
+            const i32 lo = std::atoi(args.substr(0, comma).c_str());
+            const i32 hi = std::atoi(args.substr(comma + 1).c_str());
+            append(std::to_string(random.randomBetweenInclusive(lo, hi)));
         } else if (kind == 'n') {
             if (op.size() < 3) {
                 std::fprintf(stderr, "legacy_random: n 需要 <origin>,<bound>：%s\n", op.c_str());

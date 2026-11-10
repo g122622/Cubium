@@ -24,16 +24,16 @@
 #include "MudBlock.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
 namespace blocks {
 
 MudBlock::MudBlock(const BlockProperties& properties)
     : Block(properties)
-    , m_collisionShape(VoxelShapes::cube(0.0f, 0.0f, 0.0f, 1.0f, 14.0f / 16.0f, 1.0f))
+    , m_collisionShape(CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 14.0f / 16.0f, 1.0f))
 {}
 
 const CollisionShape& MudBlock::getCollisionShape(const BlockState& state) const

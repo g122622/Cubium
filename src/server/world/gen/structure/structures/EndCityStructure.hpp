@@ -81,9 +81,6 @@ public:
 
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
-
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
@@ -123,6 +120,20 @@ public:
         const StructureBoundingBox& chunkBounds,
         ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) override;
+
+    /**
+     * @brief 处理模板数据标记
+     *
+     * 原版 `EndCityPieces.EndCityPiece#handleDataMarker`：
+     * - `Chest...`：给标记下方的容器挂末地城战利品表；
+     * - `Sentry...`：在标记位置生成潜影贝；
+     * - `Elytra...`：在标记位置生成挂着鞘翅的物品展示框。
+     */
+    void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds) override;
 
     /**
      * @brief 计算连接位置
@@ -196,6 +207,7 @@ private:
     std::string m_templatePath;
     BlockPos m_templatePosition;
     bool m_overwrite;
+    feature::template_::StructureProcessorList m_processorList;
     feature::template_::PlacementSettings m_settings;
     BlockPos m_size;
 };

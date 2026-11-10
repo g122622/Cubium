@@ -33,7 +33,7 @@
 #include "server/application/IServer.hpp"
 #include "server/bossbar/CustomServerBossInfo.hpp"
 #include "server/bossbar/ServerBossInfo.hpp"
-#include "server/core/ConnectionManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include <memory>
 #include <utility>
@@ -190,7 +190,7 @@ void CustomServerBossInfoManager::sendAddPacket(CustomServerBossInfo& bossInfo, 
     evt.overlay = static_cast<i32>(bossInfo.overlay());
     evt.flags = packBossFlags(bossInfo.darkenSky(), bossInfo.playEndBossMusic(), bossInfo.createFog());
 
-    m_server.connectionManager().sendToPlayer(player.playerId(), makePlayPacket(std::move(evt)));
+    m_server.packetSender().sendToPlayer(player.playerId(), makePlayPacket(std::move(evt)));
 
     // 标记数据需要保存
     markDirty();
@@ -202,7 +202,7 @@ void CustomServerBossInfoManager::sendRemovePacket(CustomServerBossInfo& bossInf
     evt.uuid = bossInfo.uuid();
     evt.operation = 1; // REMOVE
 
-    m_server.connectionManager().sendToPlayer(player.playerId(), makePlayPacket(std::move(evt)));
+    m_server.packetSender().sendToPlayer(player.playerId(), makePlayPacket(std::move(evt)));
 
     // 标记数据需要保存
     markDirty();
@@ -260,7 +260,7 @@ void CustomServerBossInfoManager::broadcastUpdate(CustomServerBossInfo& bossInfo
     // 广播给所有可见玩家
     auto packet = makePlayPacket(std::move(evt));
     for (PlayerId playerId : playerIds) {
-        m_server.connectionManager().sendToPlayer(playerId, packet);
+        m_server.packetSender().sendToPlayer(playerId, packet);
     }
 
     // 标记数据需要保存

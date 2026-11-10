@@ -27,7 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/structure/StructureSet.hpp"
 #include "server/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"

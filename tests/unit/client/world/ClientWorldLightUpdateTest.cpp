@@ -34,7 +34,7 @@
 #include "common/network/sync/ChunkSerializer.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE

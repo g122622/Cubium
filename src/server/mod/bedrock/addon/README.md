@@ -43,7 +43,7 @@ src/server/mod/bedrock/addon/
 - `src/server/application/` — MinecraftServer（广播消息、玩家列表、tick 计数）
 
 ### 被以下模块依赖
-- `src/server/application/MinecraftServer` — 在 initializeCoreManagers() 创建实例
+- `src/server/application/MinecraftServer` — 在 initializeDomainServices() 创建实例
 
 ## 容易踩的坑
 

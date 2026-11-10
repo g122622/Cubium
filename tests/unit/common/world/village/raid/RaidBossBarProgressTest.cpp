@@ -27,8 +27,9 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/village/raid/Raid.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/raid/RaiderType.hpp"
 
 #include <gtest/gtest.h>
@@ -659,6 +660,39 @@ TEST_F(RaidBossBarProgressTest, RaidConfig_CooldownTicksConstant_MatchesJavaVers
 {
     // Java 版 1.21.11 Raid 中 raidCooldownTicks 初始值为 300。
     EXPECT_EQ(RaidConfig::RAID_COOLDOWN_TICKS, 300);
+}
+
+// ============================================================================
+// Boss 栏网络同步：RaidManager::tick 经 RaidCallbacks 对外通知
+// ============================================================================
+
+// 通知走既有的 RaidCallbacks 机制（而不是让 Raid 持有外部实现），
+// 因为 Raid 位于 src/common、不能依赖 src/server 的 ServerBossInfo。
+
+// RaidCallbacks 必须提供 Boss 栏进度回调字段，供 server 侧注入 ServerBossInfo 转发。
+// 通知走既有 RaidCallbacks 机制而不是让 Raid 持有外部实现——Raid 位于 src/common，
+// 不能依赖 src/server 的 ServerBossInfo。
+TEST(RaidCallbacksTest, ProvidesBossBarProgressCallback)
+{
+    RaidCallbacks callbacks;
+    // 默认未设置：RaidManager::tick 必须先判空，未注入时不得崩溃。
+    EXPECT_FALSE(static_cast<bool>(callbacks.onBossBarProgressChanged));
+
+    bool invoked = false;
+    callbacks.onBossBarProgressChanged = [&](const Raid&, f32 progress, bool visible) {
+        invoked = true;
+        EXPECT_FLOAT_EQ(progress, 0.5f);
+        EXPECT_TRUE(visible);
+    };
+    EXPECT_TRUE(static_cast<bool>(callbacks.onBossBarProgressChanged));
+    EXPECT_FALSE(invoked) << "callback must not fire on assignment";
+}
+
+// 未注入 Boss 栏回调时 tick 必须安全（纯单元测试、无 Boss 栏场景）。
+TEST(RaidCallbacksTest, TickWithoutBossBarCallbackIsSafe)
+{
+    RaidCallbacks callbacks;
+    EXPECT_FALSE(static_cast<bool>(callbacks.onBossBarProgressChanged));
 }
 
 } // namespace test

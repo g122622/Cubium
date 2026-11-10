@@ -35,7 +35,7 @@ CooldownTracker.hpp      ← 独立冷却追踪
 - `common/util/Direction.hpp` - 方向枚举（用于床朝向）
 - `common/util/math/Vector3.hpp` - 3D 向量（位置计算）
 - `common/world/GlobalPos.hpp` - 全局位置（维度 + 坐标）
-- `common/world/block/BlockPos.hpp` - 方块位置
+- `common/world/block/base/types/BlockPos.hpp` - 方块位置
 - `common/world/IWorld.hpp` - 世界接口（获取方块状态、实体）
 - `common/item/Item.hpp` - 物品基类（冷却追踪）
 

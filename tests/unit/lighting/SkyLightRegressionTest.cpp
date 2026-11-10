@@ -25,7 +25,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/util/NibbleArray.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/LightEngineUtils.hpp"

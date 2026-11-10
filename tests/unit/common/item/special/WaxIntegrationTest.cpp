@@ -39,14 +39,14 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/blocks/SignBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -97,7 +97,7 @@ public:
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
         m_events.push_back({eventId, pos, data});
     }
@@ -156,7 +156,7 @@ public:
 
     // 事件记录
     struct EventRecord {
-        i32 eventId;
+        ::mc::world::LevelEventId eventId;
         BlockPos pos;
         i32 data;
     };
@@ -247,7 +247,7 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesCopperBlock)
 
     // 应触发 WAX_ON 世界事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_ON);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_AND_SOUND_WAX_ON);
     EXPECT_EQ(m_world.events()[0].pos, BlockPos(0, 64, 0));
 
     // 不应播放单独的音效（WAX_ON 事件已包含音效）
@@ -339,7 +339,7 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesCutCopperStairs)
 
     // 应触发 WAX_ON 事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_ON);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_AND_SOUND_WAX_ON);
 }
 
 // ============================================================================
@@ -376,7 +376,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxesWaxedCopperBlock)
 
     // 应触发 WAX_OFF 世界事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_OFF);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_WAX_OFF);
     EXPECT_EQ(m_world.events()[0].pos, BlockPos(0, 64, 0));
 
     // 不应播放单独的音效（WAX_OFF 事件已包含音效，避免双重音效）
@@ -411,7 +411,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxesWaxedExposedCopper)
 
     // 应触发 WAX_OFF 事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_OFF);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_WAX_OFF);
 }
 
 TEST_F(WaxIntegrationTest, AxeOnItemUse_PassesOnUnwaxedCopper)
@@ -526,7 +526,7 @@ TEST_F(WaxIntegrationTest, WaxThenDeWax_RoundTrip)
 
     // 应触发 WAX_OFF 事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_OFF);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_WAX_OFF);
 }
 
 // ============================================================================
@@ -576,7 +576,7 @@ TEST_F(WaxIntegrationTest, DeWaxNoDoubleSound)
                                              "WAX_OFF event already includes audio";
     // 应有 WAX_OFF 事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_OFF);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_WAX_OFF);
 }
 
 // ============================================================================
@@ -612,7 +612,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesExposedCopper)
 
     // 应触发 SCRAPE 世界事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_SCRAPE);
     EXPECT_EQ(m_world.events()[0].pos, BlockPos(0, 64, 0));
 }
 
@@ -644,7 +644,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesWeatheredCopper)
 
     // 应触发 SCRAPE 事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_SCRAPE);
 }
 
 TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesOxidizedCopper)
@@ -675,7 +675,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesOxidizedCopper)
 
     // 应触发 SCRAPE 事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_SCRAPE);
 }
 
 TEST_F(WaxIntegrationTest, AxeOnItemUse_CannotScrapeUnaffectedCopper)
@@ -734,7 +734,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapingPriorityOverDeWaxing)
 
     // 应触发 SCRAPE 事件（而非 WAX_OFF）
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_SCRAPE);
 }
 
 TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxBeforeScrapeOnWaxedBlock)
@@ -767,7 +767,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxBeforeScrapeOnWaxedBlock)
 
     // 应触发 WAX_OFF 事件（除蜡，非刮削）
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_OFF);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_WAX_OFF);
 }
 
 TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesCutCopperStairs)
@@ -799,7 +799,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesCutCopperStairs)
 
     // 应触发 SCRAPE 事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_SCRAPE);
 }
 
 TEST_F(WaxIntegrationTest, ScrapeThenScrape_MultipleScrapingSteps)
@@ -907,7 +907,7 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesSignEntity)
 
     // 应触发 WAX_ON 世界事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_ON);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_AND_SOUND_WAX_ON);
     EXPECT_EQ(m_world.events()[0].pos, BlockPos(0, 64, 0));
 }
 
@@ -1021,7 +1021,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_WaxesSignWithHoneycomb)
 
     // 应触发 WAX_ON 世界事件
     ASSERT_EQ(m_world.events().size(), 1u);
-    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_ON);
+    EXPECT_EQ(m_world.events()[0].eventId, ::mc::world::LevelEventId::PARTICLES_AND_SOUND_WAX_ON);
     EXPECT_EQ(m_world.events()[0].pos, BlockPos(1, 64, 0));
 
     // 非创造模式下应消耗一个蜜脾

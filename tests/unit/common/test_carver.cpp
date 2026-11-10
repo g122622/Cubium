@@ -22,9 +22,10 @@
  */
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/BaseBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/BaseBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
@@ -42,7 +43,6 @@
 #include "util/math/random/Random.hpp"
 #include "world/WorldConstants.hpp"
 #include "world/biome/BiomeSource.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -57,7 +57,7 @@ class CarvingMaskTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        mask = std::make_unique<CarvingMask>(0, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
+        mask = std::make_unique<CarvingMask>(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
     }
 
     std::unique_ptr<CarvingMask> mask;
@@ -154,7 +154,7 @@ protected:
         VanillaBlocks::initialize();
         carver = std::make_unique<CaveCarver>();
         chunk = std::make_unique<ChunkPrimer>(0, 0);
-        mask = std::make_unique<CarvingMask>(0, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
+        mask = std::make_unique<CarvingMask>(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, 12345);
         biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
@@ -239,7 +239,7 @@ TEST_F(CaveCarverTest, MatchesJavaCaveAndCanyonMasksIncludingBranchesAndNeighbor
                 }
             }
         }
-        CarvingMask targetMask(sample.chunkX, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
+        CarvingMask targetMask(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
         CaveCarverConfiguration fixedConfig(1.0f,
             ConstantHeight::create(VerticalAnchor::absolute(64)),
             ConstantFloat::create(1.0f),
@@ -294,7 +294,7 @@ protected:
         VanillaBlocks::initialize();
         carver = std::make_unique<CanyonCarver>();
         chunk = std::make_unique<ChunkPrimer>(0, 0);
-        mask = std::make_unique<CarvingMask>(0, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
+        mask = std::make_unique<CarvingMask>(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, 12345);
         biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);

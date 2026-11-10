@@ -103,26 +103,25 @@ TEST(TemplatedStructuresTest, RuinedPortalHasCorrectTemplateCount)
 
 // 测试结构片段属性
 
-TEST(TemplatedStructuresTest, IglooPieceHasCorrectDefaults)
+TEST(TemplatedStructuresTest, IglooPieceKeepsTemplatePosition)
 {
-    IglooPiece piece(mc::BlockPos(0, 64, 0), Rotation::None, false, 0);
-
-    EXPECT_FALSE(piece.hasBasement());
-    EXPECT_EQ(piece.middleCount(), 0);
+    IglooPiece top(IglooStructure::s_topTemplateName, mc::BlockPos(0, 64, 0), Rotation::None);
+    EXPECT_EQ(top.templateName(), IglooStructure::s_topTemplateName);
+    EXPECT_EQ(top.templatePosition(), mc::BlockPos(0, 64, 0));
 }
 
-TEST(TemplatedStructuresTest, IglooPieceBasementGeneration)
+TEST(TemplatedStructuresTest, IglooPieceRotationShrinksBox)
 {
-    // 有地下室时，中间层数为1-2
-    IglooPiece pieceWithBasement(mc::BlockPos(0, 64, 0), Rotation::None, true, 2);
+    // 90 度旋转会交换包围盒的 X/Z 跨度：用同一模板的两种旋转比较跨度而非具体坐标。
+    IglooPiece none(IglooStructure::s_topTemplateName, mc::BlockPos(0, 64, 0), Rotation::None);
+    IglooPiece rotated(IglooStructure::s_topTemplateName, mc::BlockPos(0, 64, 0), Rotation::Clockwise90);
 
-    EXPECT_TRUE(pieceWithBasement.hasBasement());
-    EXPECT_EQ(pieceWithBasement.middleCount(), 2);
+    EXPECT_LE(none.getBoundingBox().xSpan(), rotated.getBoundingBox().xSpan());
 }
 
-TEST(TemplatedStructuresTest, OceanRuinConfigDefaults)
+TEST(TemplatedStructuresTest, OceanRuinConfigCarriesPackProbabilities)
 {
-    OceanRuinConfig config;
+    OceanRuinConfig config{OceanRuinType::Cold, 0.3f, 0.9f};
     EXPECT_FLOAT_EQ(config.largeProbability, 0.3f);
     EXPECT_FLOAT_EQ(config.clusterProbability, 0.9f);
     EXPECT_EQ(config.biomeType, OceanRuinType::Cold);

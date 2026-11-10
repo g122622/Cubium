@@ -23,11 +23,11 @@
 
 #include <gtest/gtest.h>
 
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
+#include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include "common/TempDirHelper.hpp"
@@ -40,7 +40,7 @@
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
@@ -100,7 +100,7 @@ protected:
         ASSERT_TRUE(worldInit.success());
 
         // 创建玩家管理器
-        m_playerManager = std::make_unique<server::core::PlayerManager>();
+        m_playerManager = std::make_unique<server::PlayerManager>();
         // 新网络层 addPlayer 第4参为 ServerClientConnection*；本测试只验证挖矿逻辑，
         // 不依赖连接真发包，故传 nullptr（与 BaseTestServer::addTestPlayer 一致）。
         m_player = m_playerManager->addPlayer(
@@ -123,7 +123,7 @@ protected:
         });
 
         // 创建连接管理器
-        m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
+        m_packetSender = std::make_unique<server::PacketSender>(*m_playerManager);
 
         // 把玩家实体放进世界，并像真实服务端（MinecraftServer 注册的解析器）那样
         // 把「会话 ID → 实体 ID」交给挖掘管理器。
@@ -140,7 +140,7 @@ protected:
         ASSERT_NE(playerEntityId, INVALID_ENTITY_ID);
 
         // 创建挖掘管理器
-        m_miningManager = std::make_unique<server::interaction::MiningManager>(*m_playerManager, *m_connectionManager);
+        m_miningManager = std::make_unique<server::interaction::MiningManager>(*m_playerManager, *m_packetSender);
         m_miningManager->setInventoryManager(m_inventoryManager.get());
         m_miningManager->setEntityIdResolver([playerEntityId](PlayerId playerId) -> EntityInstanceId {
             return playerId == m_playerId ? playerEntityId : INVALID_ENTITY_ID;
@@ -151,7 +151,7 @@ protected:
     {
         m_miningManager.reset();
         m_inventoryManager.reset();
-        m_connectionManager.reset();
+        m_packetSender.reset();
         m_playerManager.reset();
 
         if (m_world) {
@@ -212,8 +212,8 @@ protected:
     static constexpr PlayerId m_inventoryId = m_playerId; // 同一个 ID
 
     std::unique_ptr<server::ServerWorld> m_world;
-    std::unique_ptr<server::core::PlayerManager> m_playerManager;
-    std::unique_ptr<server::core::ConnectionManager> m_connectionManager;
+    std::unique_ptr<server::PlayerManager> m_playerManager;
+    std::unique_ptr<server::PacketSender> m_packetSender;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
     std::unique_ptr<server::interaction::MiningManager> m_miningManager;
     server::ServerPlayerData* m_player = nullptr;

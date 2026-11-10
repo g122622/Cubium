@@ -24,7 +24,7 @@
 #include "GroundPathNavigator.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <cmath>
 

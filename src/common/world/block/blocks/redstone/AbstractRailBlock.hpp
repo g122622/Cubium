@@ -30,11 +30,11 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/IWaterLoggable.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/capability/IWaterLoggable.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <array>
 #include <memory>
 #include <optional>
@@ -47,20 +47,11 @@ namespace blocks {
 /**
  * @brief 铁轨形状枚举
  *
- * 定义铁轨的连接形状。
+ * 直接复用 `BlockStateProperties::RailShape`：属性查表按**指针**比较属性对象，
+ * 若各铁轨各自 `create("shape")` 出一个同名属性，`BlockStateProperties::RAIL_SHAPE()`
+ * 在这些方块的状态上就会「找不到属性」。因此枚举与属性对象都必须全局唯一。
  */
-enum class RailShape : u8 {
-    NorthSouth = 0,     // 南北直轨
-    EastWest = 1,       // 东西直轨
-    AscendingEast = 2,  // 向东上升
-    AscendingWest = 3,  // 向西上升
-    AscendingNorth = 4, // 向北上升
-    AscendingSouth = 5, // 向南上升
-    SouthEast = 6,      // 东南弯轨
-    SouthWest = 7,      // 西南弯轨
-    NorthWest = 8,      // 西北弯轨
-    NorthEast = 9       // 东北弯轨
-};
+using RailShape = BlockStateProperties::RailShape;
 
 /**
  * @brief 检查铁轨形状是否为上升/斜坡形状
@@ -139,6 +130,19 @@ public:
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     // ========== 形状 ==========
+
+    /**
+     * @brief 旋转铁轨状态
+     *
+     * 铁轨的形状跟随结构旋转重映射（南北↔东西、升降方向与弯轨方位同步旋转），
+     * 否则按朝向生成的走廊/楼梯会把铁轨摆成与世界走向垂直的方向。
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像铁轨状态
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     /**
      * @brief 获取形状
@@ -278,34 +282,5 @@ protected:
     std::array<CollisionShape, 10> m_shapes;
 };
 
-/**
- * @brief 铁轨形状属性
- */
-class RailShapeProperty : public EnumProperty<RailShape> {
-public:
-    static std::unique_ptr<RailShapeProperty> create(const std::string& name);
-
-    /**
-     * @brief 创建仅含 6 个直线/斜坡形状的属性
-     *
-     * vanilla 动力/探测/激活铁轨的 shape 只有 6 个值（不含 4 个弯轨），
-     * 普通铁轨才允许 10 个值。用此工厂构建矿车铁轨的状态容器以对齐 vanilla。
-     */
-    static std::unique_ptr<RailShapeProperty> createStraight(const std::string& name);
-
-private:
-    RailShapeProperty(const std::string& name, std::vector<RailShape> values);
-    RailShapeProperty(const std::string& name);
-};
-
 } // namespace blocks
-} // namespace mc
-
-// 枚举特征特化 - 必须在命名空间外
-namespace mc {
-template <>
-struct EnumProperty<blocks::RailShape>::Traits {
-    static std::string toString(const blocks::RailShape& value);
-    static std::optional<blocks::RailShape> fromName(std::string_view name);
-};
 } // namespace mc

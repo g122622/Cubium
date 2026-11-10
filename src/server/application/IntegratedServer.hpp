@@ -25,6 +25,7 @@
 
 #include "MinecraftServer.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
+#include "common/core/Constants.hpp"
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
@@ -38,9 +39,9 @@
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/network/session/ClientSession.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <array>
@@ -80,7 +81,7 @@ struct IntegratedServerParams {
     // 任何在 initialize(params) 之前读取 m_params 的路径都会读到栈/堆垃圾——实测 UBSan
     // 报 "load of value 121, which is not a valid value for type 'bool'"
     // （121 == 'y'，即恰好落在结构体区间内的字符串残留字节），发生在
-    // IntegratedServer::resolveOpLevel → core::applyOwnerCheatsBoost 读取 allowCommands 处。
+    // IntegratedServer::resolveOpLevel → applyOwnerCheatsBoost 读取 allowCommands 处。
 };
 
 /**
@@ -267,8 +268,8 @@ private:
 
     // ========== 远程 TCP 玩家支持（局域网发布后启用）==========
 
-    /// 集成服 LAN 发布压缩阈值（Java 默认 256）。离线模式（跳过 RSA）。
-    static constexpr i32 kLanCompressionThreshold = 256;
+    /// 集成服 LAN 发布压缩阈值。取共享默认值，避免与独立服各存一份同样的 256。
+    static constexpr i32 kLanCompressionThreshold = mc::network::DEFAULT_COMPRESSION_THRESHOLD;
 
     // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
     // _onRemoteClientDisconnect）已于批2c 下沉至 ClientSessionManager 门面。本子类不再

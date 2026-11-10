@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,9 +24,9 @@
 #pragma once
 
 #include "command/ICommandSource.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/village/raid/RaiderType.hpp"
 #include "core/Types.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/village/raid/Raid.hpp"
 
 #include <cstddef>
@@ -88,6 +88,19 @@ struct RaidCallbacks {
      * @param spawnPos 生成位置
      */
     std::function<void(const Raid& raid, i32 wave, BlockPos spawnPos)> onWaveStarted;
+
+    /**
+     * @brief Boss 栏进度更新回调。
+     *
+     * 由 RaidManager::tick 在每个袭击推进后调用，携带最新进度与可见性。
+     * 进度取值：战斗中按存活血量比例、波间冷却按 300 tick 倒计时比例；
+     * 状态非 Ongoing（胜利/失败/停止）时 visible 为 false，调用方应隐藏 Boss 栏。
+     *
+     * @param raid 发生变化的袭击
+     * @param progress 进度（0.0 ~ 1.0）
+     * @param visible 是否应当显示
+     */
+    std::function<void(const Raid& raid, f32 progress, bool visible)> onBossBarProgressChanged;
 };
 
 /**

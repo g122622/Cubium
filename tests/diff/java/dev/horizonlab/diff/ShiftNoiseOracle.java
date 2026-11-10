@@ -43,9 +43,6 @@ public final class ShiftNoiseOracle {
 
     private ShiftNoiseOracle() {}
 
-    private static String doubleBits(double value) {
-        return String.format("0x%016x", Double.doubleToRawLongBits(value));
-    }
 
     /** 与探针侧逐项一致。 */
     private record ShiftCase(
@@ -187,9 +184,9 @@ public final class ShiftNoiseOracle {
             };
             JsonObject output = new JsonObject();
             output.addProperty("unit", requested);
-            output.addProperty("value", doubleBits(function.compute(context)));
-            output.addProperty("min", doubleBits(function.minValue()));
-            output.addProperty("max", doubleBits(function.maxValue()));
+            JsonFloats.add(output, "value", function.compute(context));
+            JsonFloats.add(output, "min", function.minValue());
+            JsonFloats.add(output, "max", function.maxValue());
             return GSON.toJson(output);
         }
         return missing(requested);

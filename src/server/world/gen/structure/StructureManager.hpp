@@ -140,39 +140,6 @@ public:
     }
 
     /**
-     * @brief 在指定区块生成结构起点
-     * @param structure 结构类型
-     * @param world 世界写入器
-     * @param generator 区块生成器
-     * @param rng 随机数生成器
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @return 生成的结构起点，如果无法生成则返回 nullptr
-     */
-    [[nodiscard]] std::unique_ptr<StructureStart> generateStructureStart(const Structure& structure,
-        IWorldWriter& world,
-        IChunkGenerator& generator,
-        math::IRandom& rng,
-        i32 chunkX,
-        i32 chunkZ);
-
-    /**
-     * @brief 在区块中放置结构
-     * @param structure 结构类型
-     * @param world 世界写入器
-     * @param chunk 区块
-     * @param start 结构起点
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     */
-    void placeStructureInChunk(const Structure& structure,
-        IWorldWriter& world,
-        ChunkPrimer& chunk,
-        StructureStart& start,
-        i32 chunkX,
-        i32 chunkZ);
-
-    /**
      * @brief 清理所有结构检查缓存
      *
      * 清空 StructureCheck 的精确缓存（m_loadedChunks）和近似缓存（m_featureChecks）。
@@ -209,15 +176,6 @@ private:
 
     /// 结构存在性检查缓存，避免重复执行昂贵的生物群系检查和频率计算
     StructureCheck m_structureCheck;
-
-    /**
-     * @brief 创建结构随机数生成器
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @param salt 盐值
-     * @return 随机数生成器（Xoroshiro128++，由调用方持有所有权）
-     */
-    [[nodiscard]] std::unique_ptr<math::IRandom> _createRandom(i32 chunkX, i32 chunkZ, i32 salt) const;
 };
 
 } // namespace world::gen::structure

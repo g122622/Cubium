@@ -55,9 +55,9 @@ VexEntity::VexEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : MonsterEntity(id, registry)
 {
     // 恼鬼不在阳光下燃烧：wiki tech_恼鬼.txt#行为 章节未提阳光燃烧，原版 Vex 不燃。
-    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员 m_burnsInDaylight
-    // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
-    // hpp 中的 shouldBurnInDaylight() override 语义正确（返回 false）但因死代码不生效，保留以备未来清理。
+    // 对齐原版，在构造时关闭日光燃烧。该标志经虚函数 shouldBurnInDaylight() 读取，
+    // 由 MonsterEntity::handleDaylightBurning() 调用，因此 setBurnsInDaylight(false) 即生效。
+    // hpp 中的 shouldBurnInDaylight() override（返回 false）同样生效，两者结论一致。
     setBurnsInDaylight(false);
 
     // 恼鬼使用专用的飞行移动控制器

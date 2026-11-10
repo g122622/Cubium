@@ -28,11 +28,11 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/IGrowable.hpp"
-#include "common/world/block/PlantType.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/PlantType.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <array>
 #include <utility>
 

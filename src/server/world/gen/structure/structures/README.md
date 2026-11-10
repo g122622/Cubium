@@ -6,7 +6,6 @@
 
 ```text
 structures/
-├── BastionRemnantStructure.hpp/.cpp  # 堡垒遗迹 (Jigsaw)
 ├── BuriedTreasureStructure.hpp/.cpp  # 埋藏宝藏
 ├── DesertPyramidStructure.hpp/.cpp   # 沙漠神殿
 ├── EndCityStructure.hpp/.cpp         # 末地城 (递归生成)
@@ -17,13 +16,11 @@ structures/
 ├── NetherFossilStructure.hpp/.cpp    # 下界化石
 ├── OceanMonumentStructure.hpp/.cpp   # 海洋纪念碑
 ├── OceanRuinStructure.hpp/.cpp       # 海底废墟
-├── PillagerOutpostStructure.hpp/.cpp # 掠夺者前哨站 (Jigsaw)
 ├── RuinedPortalStructure.hpp/.cpp    # 废弃传送门
 ├── ShipwreckStructure.hpp/.cpp       # 沉船
 ├── StrongholdStructure.hpp/.cpp      # 要塞 (递归生成)
 ├── StrongholdPieces.hpp/.cpp         # 要塞片段
 ├── SwampHutStructure.hpp/.cpp        # 沼泽小屋
-├── VillageStructure.hpp/.cpp         # 村庄 (Jigsaw)
 ├── WoodlandMansionStructure.hpp/.cpp # 林地府邸 (模板+程序化)
 ```
 
@@ -38,7 +35,8 @@ structures/
    - `EndCityStructure`、`StrongholdStructure`（配合 `StrongholdPieces`）
 
 3. **Jigsaw 结构**：使用 Jigsaw 拼图系统
-   - `VillageStructure`、`BastionRemnantStructure`、`PillagerOutpostStructure`
+   - 原版 1.21.11 没有拼图结构专属子类：村庄、掠夺者前哨站、试炼密室、堡垒遗迹、古代城市
+     全部由 `JigsawStructure` 按结构定义 JSON 装配，本目录不再提供对应子类。
 
 4. **程序化结构**：完全程序化生成，无模板依赖
    - `BuriedTreasureStructure`、`DesertPyramidStructure`、`FortressStructure`、`JungleTempleStructure`、`MineshaftStructure`、`OceanMonumentStructure`、`SwampHutStructure`
@@ -67,6 +65,13 @@ structures/
 
 ## 容易踩的坑
 
+- **生物群系校验必须落在候选生成点上**：原版在 `Structure.findValidGenerationPoint` 里用
+  `GenerationStub` 的位置（区块中心 / 五乘五方框最低地表 / 起始块中心 + 投影地面线等，
+  各结构不同）采样群系。用区块中心 + 固定 Y（尤其是 y=0 或 64）采样会在群系边界与洞穴上方
+  给出相反结论——村庄、古代城市会整片消失。校验写在各自的 `generate()` 内、
+  用 `onTopOfChunkCenter()` 或结构自己的候选点，不要写回调用方。
+- **`Structure::canGenerate` 已删除**：它曾是死代码（没有任何调用点），群系门槛全部藏在里面，
+  导致所有结构"不校验群系也能生成"。新增门槛请直接写进 `generate()` 并在失败时返回空起点。
 - **方块未注册**：结构使用的新方块若未在 `VanillaBlocks` 注册，会出现空指针或降级方块
 - **阶段顺序错误**：结构过早直接写入世界可能被后续地形阶段覆盖，需结合当前生成链路验证阶段顺序
 - **模板管理器未设置**：模板化结构必须在使用前调用 `setTemplateManager()`，否则模板加载会失败

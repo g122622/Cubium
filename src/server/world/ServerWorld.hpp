@@ -45,6 +45,7 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -92,7 +93,7 @@ namespace particle {
 enum class ParticleTypeId : u16;
 }
 
-namespace server::core {
+namespace server {
 class TimeManager; // 前向声明
 }
 
@@ -136,7 +137,7 @@ struct ServerWorldConfig {
 //
 // 不负责：
 // - 玩家管理（由 PlayerManager 管理）
-// - 网络通信（由 ConnectionManager 管理）
+// - 网络通信（由 PacketSender 管理）
 // - 时间管理（由 TimeManager 管理）
 // - 传送（由 TeleportManager 管理）
 // - 游戏模式（由 GameModeManager 管理）
@@ -223,17 +224,17 @@ public:
 
     // ========== 时间管理（设置外部 TimeManager） ==========
 
-    void setTimeManager(core::TimeManager* timeManager)
+    void setTimeManager(TimeManager* timeManager)
     {
         m_timeManager = timeManager;
     }
 
-    [[nodiscard]] core::TimeManager* timeManager()
+    [[nodiscard]] TimeManager* timeManager()
     {
         return m_timeManager;
     }
 
-    [[nodiscard]] const core::TimeManager* timeManager() const
+    [[nodiscard]] const TimeManager* timeManager() const
     {
         return m_timeManager;
     }
@@ -273,6 +274,22 @@ public:
      * 避免依附类方块（按钮/火把等）在支撑尚未放置时被邻居通知自毁。
      */
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override;
+
+    /**
+     * @brief 方块写入后的统一补发邻居更新，对应原版 `ServerLevel#updateNeighboursOnBlockSet`
+     *
+     * 用于"批量写入期间抑制副作用、写完后统一补发"的场景（`/fill` 与 `/clone` 的 strict 模式
+     * 传 `UPDATE_SKIP_ALL_SIDEEFFECTS` 写入，随后逐位置调用本方法）。
+     *
+     * 与 `setBlockState` 内的即时通知不同，这里以**旧状态**为参照：旧状态所属方块与新状态
+     * 不是同一方块时，先让旧状态处理"被移除后的邻居影响"，再以新状态所属方块为来源通知
+     * 周围 6 向邻居。
+     *
+     * @param pos 刚写入的位置
+     * @param oldState 该位置写入前的状态
+     */
+    void updateNeighboursOnBlockSet(const BlockPos& pos, const BlockState& oldState);
+
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override;
 
     // ========== 方块实体管理 ==========
@@ -646,9 +663,9 @@ public:
 
     // ========== 世界事件 ==========
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override;
 
-    void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data) override;
+    void globalLevelEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override;
 
     void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress) override;
 
@@ -870,7 +887,7 @@ public:
      * 当服务端需要广播世界事件给玩家时调用。
      * 参数：事件ID、位置、数据
      */
-    using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
+    using WorldEventCallback = std::function<void(::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastWorldEvent(WorldEventCallback callback)
     {
@@ -884,7 +901,7 @@ public:
      * 参数：事件ID、位置x/y/z、数据
      */
     using GlobalLevelEventCallback =
-        std::function<void(DimensionId dimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
+        std::function<void(DimensionId dimensionId, ::mc::world::LevelEventId eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastGlobalLevelEvent(GlobalLevelEventCallback callback)
     {
@@ -1871,6 +1888,9 @@ private:
     std::mutex m_pendingLightFlushesMutex;
     std::vector<std::pair<LightType, SectionPos>> m_pendingLightFlushes;
 
+    /// 方块坐标处的群系（Voronoi 抖动缩放，对齐 vanilla LevelReader.getBiome）
+    [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override;
+
     /// 世界坐标（含小数）处的群系（Voronoi 抖动缩放，对齐 vanilla Level.getBiome）
     [[nodiscard]] BiomeId _biomeAt(const Vector3& pos) const;
 
@@ -1885,7 +1905,7 @@ private:
     mutable std::unique_ptr<_EnvironmentAttributes> m_environmentAttributes;
     std::unique_ptr<world::map::MapDataManager> m_mapDataManager;
     server::ItemPickupManager m_itemPickupManager;
-    core::TimeManager* m_timeManager = nullptr;       // 外部引用，不拥有
+    TimeManager* m_timeManager = nullptr;             // 外部引用，不拥有
     std::function<Difficulty()> m_difficultyCallback; ///< 难度获取回调（从 MinecraftServer 获取）
     bool m_initialized = false;
     world::storage::LevelRespawnData m_respawnData; ///< 存档级世界出生数据

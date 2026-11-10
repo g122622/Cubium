@@ -15,7 +15,7 @@ src/server/network/base/
 
 - `IServerClientConnection`：只暴露 `send` / `close` / `isConnected` / `peerAddress` / `disconnect`，
   刻意屏蔽 `raw()`、`setInboundHandler`、`drainInbound`、`setState`、`setupEncryption`。它的存在意义是
-  让 `server/core` 的 `PlayerManager` / `ServerPlayerData` / `ConnectionManager` 不必拖入 asio 与
+  让 `server/core` 的 `PlayerManager` / `ServerPlayerData` / `PacketSender` 不必拖入 asio 与
   `pipeline::Connection` 模板，同时让测试桩无需构造 transport 与协议表。
 - `ServerClientConnection`：包裹 `pipeline::Connection<RegistryByteBuf>` + `HandshakeState` + `sessionId`。
   Local（集成服同进程）与 Wire（TCP）两种模式共用同一套握手/Play 流程，仅构造时注入的 transport 不同。
@@ -44,7 +44,7 @@ Local 模式不使用该队列，由 `pumpLocal()` 主线程直驱。
 
 | 模块 | 用途 |
 |---|---|
-| `server/core/{PlayerManager,ServerPlayerData}` | 持 `IServerClientConnection*` 发包 |
+| `server/player/` | 持 `IServerClientConnection*` 发包 |
 | `server/player/ServerPlayer` | 持 `ServerClientConnection*` |
 | `server/network/session/*` | `ServerNetwork` 拥有连接；`ClientSession` 持非拥有指针 |
 | `server/network/handshake/*` | `ServerHandshakeStateMachine` 构造时绑 `ServerClientConnection&` |

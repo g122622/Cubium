@@ -23,6 +23,7 @@ add_executable(mc_tests
     common/test_math.cpp
     common/test_network.cpp
     common/network/test_bytebuf.cpp
+    common/network/DataComponentPatchCodecAdventureTest.cpp
     common/network/TcpTransportReceiveTest.cpp
     common/network/ConnectionWireAsyncTest.cpp
     common/network/test_registry_bytebuf.cpp
@@ -113,10 +114,13 @@ add_executable(mc_tests
     common/test_item_entity.cpp
     common/test_container.cpp
     common/item/crafting/IngredientTest.cpp
+    # instrument 组件的两种 Holder 形态（注册表引用 / 内联定义）NBT 往返
+    common/item/component/InstrumentPayloadInlineTest.cpp
     common/item/crafting/RecipeBookTest.cpp
     common/item/crafting/RecipeManagerTest.cpp
     common/item/crafting/ShapedRecipeTest.cpp
     common/item/crafting/ShapelessRecipeTest.cpp
+    common/item/crafting/SmithingTrimRecipeTest.cpp
     common/item/crafting/RecipeLoaderTest.cpp
     common/item/crafting/RecipeFormatTest.cpp
     common/item/crafting/RecipeSerializersTest.cpp
@@ -216,7 +220,11 @@ add_executable(mc_tests
     common/item/enchantment/LocationEnchantmentTest.cpp
     # 附魔每 tick 效果派发（runTickEffects / Enchantment::onTick）与灵魂疾行 TICK 组件
     common/item/enchantment/EnchantmentTickEffectsTest.cpp
+    # LevelBasedValue（以等级为自变量的数值表达式）的求值与 JSON 解析
+    common/item/loot/LevelBasedValueTest.cpp
     common/item/enchantment/BlastProtectionAttributeTest.cpp
+    # 附魔提示框：tooltip_order 排序、附魔全名（颜色 + 罗马数字等级）、Item::addInformation 附魔行
+    common/item/enchantment/EnchantmentTooltipTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     # ContainerType 的 wire 取值锁定（数值即菜单注册表项序，偏移会让原版客户端建错窗口）
     common/entity/inventory/ContainerTypeUtilsTest.cpp
@@ -238,6 +246,8 @@ add_executable(mc_tests
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
     common/entity/entities/passive/basic/AnimalEntityTest.cpp
+    # 悦灵音效（手持物品/空手两套环境音 + 专用受伤音）
+    common/entity/entities/passive/allay/AllayEntityTest.cpp
     common/entity/entities/passive/tamable/WolfEntityTest.cpp
     common/entity/entities/passive/tamable/ParrotEntityTest.cpp
     common/entity/entities/passive/tamable/OcelotEntityTest.cpp
@@ -394,6 +404,8 @@ add_executable(mc_tests
     common/entity/core/EquipmentUpdateTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
+    # 生物尺寸缩放（scale 属性消费点）
+    common/entity/core/EntityScaleTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
     common/entity/core/EntityIsInRainTest.cpp
     # Entity::isOnLadder() 可攀爬判定测试（CLIMBABLE 标签 + Block::isLadder 虚函数两条来源）
@@ -587,6 +599,8 @@ add_executable(mc_tests
     common/world/lighting/InternalLightUtilsTest.cpp
     common/world/LightLevelTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
+    # 头颅方块实体的 note_block_sound 持久化与 ItemStack 组件读写
+    common/world/blockentity/SkullBlockEntityNoteBlockSoundTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
     common/world/blockentity/HopperEntityTest.cpp
@@ -786,7 +800,7 @@ add_executable(mc_tests
     common/world/block/BlockStateMutableTest.cpp
     common/world/block/BuildingVariantRegistrationTest.cpp
     common/world/block/BlockPushEntitiesUpTest.cpp
-    common/world/block/state/pattern/BlockPatternTest.cpp
+    common/world/block/pattern/BlockPatternTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp
@@ -797,6 +811,8 @@ add_executable(mc_tests
     common/world/dimension/EndDragonFightFindPortalTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
+    # 实体默认显示名与类型翻译键（entity.minecraft.<path>）
+    entity/EntityDisplayNameTest.cpp
     # 实体同步数据字段 id 对齐 vanilla 1.21.11 黄金表测试（防继承链分配器回归）
     entity/EntityMetadataIdGoldenTest.cpp
     entity/EntityDataManagerStorageTest.cpp
@@ -858,8 +874,8 @@ add_executable(mc_tests
     common/entity/ai/goal/LookAtGoalTest.cpp
     # FishSwimGoal 鱼类游泳目标测试
     common/entity/ai/goal/FishSwimGoalTest.cpp
-    # FleeSunGoal/RestrictSunGoal/FindShelterGoal/FlyGoal 阳光和飞行目标测试
-    common/entity/ai/goal/SunAndFlyGoalsTest.cpp
+    # FleeSunGoal/RestrictSunGoal 阳光躲避目标测试
+    common/entity/ai/goal/SunGoalsTest.cpp
     # AvoidBlockGoal 方块回避目标测试
     common/entity/ai/goal/AvoidBlockGoalTest.cpp
     # MoveTowardsRestrictionGoal 向家范围移动目标测试
@@ -1027,6 +1043,8 @@ add_executable(mc_tests
     common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp
+    # strict 模式（/fill、/clone）的"抑制副作用 + 延后补发邻居更新"通路
+    server/ServerWorldNeighbourOnBlockSetTest.cpp
     server/test_integrated_server.cpp
     server/test_save_player_runtime_state.cpp
     server/BlockDropHandlerTest.cpp
@@ -1045,17 +1063,17 @@ add_executable(mc_tests
     # ChunkSnapshot 已删除（可变 ChunkPrimer 模型取代不可变快照）
     server/test_server_chunk_manager.cpp
     server/world/ChunkGenerationDemandTest.cpp
-    server/core/TimeManagerTest.cpp
-    server/core/PlayerManagerTest.cpp
-    server/core/ConnectionManagerTest.cpp
-    server/core/TeleportManagerTest.cpp
-    server/core/KeepAliveManagerTest.cpp
-    server/core/PositionTrackerTest.cpp
-    server/core/WhitelistManagerTest.cpp
-    server/core/BannedPlayerListTest.cpp
-    server/core/BannedIpListTest.cpp
-    server/core/OpListManagerTest.cpp
-    server/core/PermissionResolverTest.cpp
+    server/world/time/TimeManagerTest.cpp
+    server/player/lifecycle/PlayerManagerTest.cpp
+    server/network/outbound/PacketSenderTest.cpp
+    server/network/sync/player/TeleportManagerTest.cpp
+    server/network/session/keepalive/KeepAliveManagerTest.cpp
+    server/player/movement/PlayerMovementManagerTest.cpp
+    server/access/admission/WhitelistManagerTest.cpp
+    server/access/admission/BannedPlayerListTest.cpp
+    server/access/admission/BannedIpListTest.cpp
+    server/access/permission/OpListManagerTest.cpp
+    server/access/permission/PermissionResolverTest.cpp
     # PacketHandler 测试已删除：handleMoveVehicle/handlePlayerInput/handleEntityAction/
     # handleSteerBoat/handleUseEntity 在新网络层已实现于 ServerPlayHandler，
     # sendVehicleMoveCorrection/isEntityCollidingWithAnythingNew 的 cpp 实现已删除。
@@ -1098,6 +1116,8 @@ add_executable(mc_tests
     server/command/AttributeCommandTest.cpp
     # /bossbar 命令测试（add/remove/list/set/get 全子命令）
     server/command/BossBarCommandTest.cpp
+    # /scoreboard ... numberformat 命令测试（目标级格式与分数级覆盖）
+    server/command/ScoreboardNumberFormatCommandTest.cpp
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
     server/command/SetWorldSpawnCommandTest.cpp
@@ -1121,8 +1141,12 @@ add_executable(mc_tests
     common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
+    # style 参数（SNBT 复合标签 → Style，供 /scoreboard ... numberformat styled 使用）
+    common/command/arguments/StyleArgumentTest.cpp
     # NBT 标签赋值语义测试
     common/util/nbt/NbtTagAssignmentTest.cpp
+    # SNBT 文本字面量的类型保真（double 后缀、布尔字面量）
+    common/util/nbt/SnbtLiteralTest.cpp
     common/command/arguments/TimeArgumentTest.cpp
     common/command/arguments/Vec2ArgumentTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
@@ -1427,6 +1451,7 @@ add_executable(mc_tests
     common/world/explosion/WitherSkullExplosionContextTest.cpp
     common/world/explosion/ExplosionIgnoreTest.cpp
     common/world/explosion/ExplosionLosBlockTest.cpp
+    common/world/explosion/ExplosionBlocklikeEntitiesTest.cpp
     common/world/explosion/ExplosionRedirectProjectileTest.cpp
     # 射线检测测试
     common/math/RaycastTest.cpp
@@ -1504,6 +1529,8 @@ add_executable(mc_tests
     lighting/LightUpdateTest.cpp
     lighting/BlockLightRegressionTest.cpp
     lighting/BaseLightEngineQueueTest.cpp
+    # 点亮流程输入 nibble 工厂（getFilledEmptyLight 的 NULL 状态语义）
+    lighting/FilledEmptyLightTest.cpp
     lighting/SkyLightRegressionTest.cpp
     lighting/WorldLightManagerTest.cpp
     # 主线程读路径 visible 侧回归测试（③-2a）
@@ -1603,6 +1630,7 @@ add_executable(mc_tests
     common/entity/player/SleepManagerTest.cpp
     # 玩家移动测试
     common/entity/PlayerMovementTest.cpp
+    common/entity/test_water_movement.cpp
     # Assert 库测试
     common/util/assert/AssertTest.cpp
     # UniversalWorkerPool 测试
@@ -1637,6 +1665,8 @@ add_executable(mc_tests
     util/NbtJsonUtilsTest.cpp
     # NBT标签深度比较测试
     util/NbtEqualsTest.cpp
+    # list_tag 按下标增删改虚接口（removeAt/clearAll/replaceAt/appendCopy）
+    util/ListTagIndexOpsTest.cpp
     # 调试区块生成器测试（文件实际位于 common/world/gen/）
     common/world/gen/DebugChunkGeneratorTest.cpp
     # 区块生成器MC对齐测试
@@ -1648,13 +1678,13 @@ add_executable(mc_tests
     # WorldGenRegion区块访问窗口验证测试
     common/world/gen/chunk/WorldGenRegionAccessTest.cpp
     # Timeline 时间线体系单元测试（关键帧采样语义、预定义村民日程）
-    common/world/timeline/TimelineTest.cpp
+    common/world/time/timeline/TimelineTest.cpp
     # EasingType 缓动函数（端点收敛、单调性、具体数值锚定）测试
-    common/world/timeline/EasingTypeTest.cpp
+    common/world/time/timeline/EasingTypeTest.cpp
     # 环境属性系统与预定义时间线（修改器、DAY/MOON/EARLY_GAME、层序与维度装配）测试
     common/world/attribute/EnvironmentAttributeTest.cpp
     # ChunkStep byRadius[] 查找表单元测试（对齐 Moonrise ChunkStepMixin）
-    common/world/chunk/gen/ChunkStepByRadiusTest.cpp
+    server/world/chunk/pipeline/ChunkStepByRadiusTest.cpp
     # NoiseColumn单元测试
     common/world/gen/chunk/NoiseColumnTest.cpp
     # FlatChunkGenerator详细单元测试
@@ -1755,10 +1785,14 @@ add_executable(mc_tests
     common/skin/test_skin_manager.cpp
     common/skin/test_default_skin_provider.cpp
     common/skin/test_skin_loader_async.cpp
+    # 皮肤 PNG 校验/规范化（FileSkinLoader 与 HttpSkinLoader 共用）
+    common/skin/SkinImageValidatorTest.cpp
     # 富文本系统测试
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp
     common/util/text/ComponentNbtSerializationTest.cpp
+    # 数字格式（记分板 blank/styled/fixed 的渲染、NBT 存档与线格式编码）
+    common/util/text/NumberFormatTest.cpp
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
     # 调色板容器单元测试
@@ -1846,17 +1880,19 @@ add_executable(mc_tests
 # 添加服务端源文件
 target_sources(mc_tests
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/lifecycle/PlayerManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketSender.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/PlayerConnectionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/AccessManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/time/TimeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/player/TeleportManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/keepalive/KeepAliveManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/movement/PlayerMovementManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/gamemode/GameModeManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/WhitelistManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedPlayerList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedIpList.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/access/permission/OpListManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/scheduling/AreaTaskScheduler.cpp
@@ -2050,7 +2086,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
-        # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/ConnectionManager.cpp，
+        # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/PacketSender.cpp，
         # 它们引用 ServerNetwork/ServerHandshake/ServerPlayHandler/RegistryDataBuilder 的符号，
         # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）
         # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
@@ -2075,7 +2111,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/SessionSignalHandler.cpp
-        # 出站构造与广播：命令经 builder + connectionManager 投递，
+        # 出站构造与广播：命令经 builder + packetSender 投递，
         # mc_tests 编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
@@ -2091,7 +2127,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkLoadTicketManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/gen/ChunkStatus.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/Heightmap.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
         # 存储系统已抽为 mc_server_storage OBJECT 库（src/server/world/storage/），
@@ -2259,20 +2294,20 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Activity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/attribute/AttributeTypes.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/attribute/EnvironmentAttributes.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/timeline/Timelines.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/time/timeline/Timelines.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/PhysicsEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/CollisionCache.cpp
         # ${CMAKE_SOURCE_DIR}/src/common/physics/collision/BlockCollision.cpp  # 已移除 - 使用新的方块系统
         # 新的方块系统源文件
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/FireInfoRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/base/material/Material.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/core/Block.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/BlockRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/vanilla/VanillaBlocks.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/air/AirBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/SimpleBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/RotatedPillarBlock.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/fire/FireInfoRegistry.cpp
         # 时间系统
         ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
         # 物品系统
@@ -2771,13 +2806,13 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/common/resource/pack/IResourcePack.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/pack/PackMetadata.cpp
             # 方块系统
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
-            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/base/material/Material.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/core/Block.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/BlockRegistry.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/vanilla/VanillaBlocks.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/air/AirBlock.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/SimpleBlock.cpp
+            ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/base/RotatedPillarBlock.cpp
             # 设置
             ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
             # 按键绑定（自 common/input 迁入 client/input）

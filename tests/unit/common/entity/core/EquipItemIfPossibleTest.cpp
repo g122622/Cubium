@@ -31,7 +31,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 #include <vector>
@@ -316,4 +316,67 @@ TEST_F(EquipItemIfPossibleTest, PickUpItem_LimitsArmorToSingleItem)
     // 护甲槽容量裁剪为 1
     EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::Head).getItem(), Items::IRON_HELMET);
     EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::Head).getCount(), 1);
+}
+
+// 主手武器比较必须按 vanilla 的属性语义计算攻击力，而不是简单相加各修饰器的 amount。
+//
+// 构造两个物品：攻击力修饰器都作用于 minecraft:attack_damage，但操作类型不同。
+// 实体 ATTACK_DAMAGE 基础值设为 4.0：
+//   - AdditiveWeaponItem : ADD_VALUE(1.0)        → 4.0 + 1.0       = 5.0
+//   - ScaledWeaponItem   : ADD_MULTIPLIED_BASE(0.5) → 4.0 + 4.0*0.5 = 6.0
+// 若按 amount 大小直接比较，ADD_VALUE(1.0) 会被误判为更强；正确语义下 ADD_MULTIPLIED_BASE
+// 才是更强的武器。这条用例锁定 compareWeapons 走 approximateAttributeWith 而非求和。
+class AdditiveWeaponItem final : public Item {
+public:
+    AdditiveWeaponItem()
+        : Item(ItemProperties().maxStackSize(1))
+    {}
+
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        modifiers.add("minecraft:attack_damage",
+            entity::attribute::AttributeModifier("weapon", "additive", 1.0, entity::attribute::Operation::Addition),
+            equipmentSlot);
+        return modifiers;
+    }
+};
+
+class ScaledWeaponItem final : public Item {
+public:
+    ScaledWeaponItem()
+        : Item(ItemProperties().maxStackSize(1))
+    {}
+
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        modifiers.add("minecraft:attack_damage",
+            entity::attribute::AttributeModifier("weapon", "scaled", 0.5, entity::attribute::Operation::MultiplyBase),
+            equipmentSlot);
+        return modifiers;
+    }
+};
+
+TEST_F(EquipItemIfPossibleTest, EquipWeapon_UsesAttributeSemanticsNotModifierSum)
+{
+    // 让实体具备 attack_damage 属性并给一个非零基础值，使 MultiplyBase 与 Addition 产生分歧。
+    m_entity->attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    ASSERT_TRUE(m_entity->attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0));
+
+    // 观察对象需以自定义物品构造 ItemStack（栈只持有 const Item*）。
+    static AdditiveWeaponItem additive;
+    static ScaledWeaponItem scaled;
+
+    // 先装上"求和意义上更强"的加法武器。
+    m_entity->setEquipment(EquipmentSlot::MainHand, ItemStack(additive, 1));
+
+    // 乘法武器在实际攻击力上更强（6.0 > 5.0），应能替换加法武器。
+    const ItemStack replaced = m_entity->equipItemIfPossible(ItemStack(scaled, 1));
+    EXPECT_FALSE(replaced.isEmpty());
+    EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::MainHand).getItem(), &scaled);
+
+    // 反向：加法武器在实际攻击力上更弱，不应替换乘法武器。
+    EXPECT_TRUE(m_entity->equipItemIfPossible(ItemStack(additive, 1)).isEmpty());
+    EXPECT_EQ(m_entity->getEquipment(EquipmentSlot::MainHand).getItem(), &scaled);
 }

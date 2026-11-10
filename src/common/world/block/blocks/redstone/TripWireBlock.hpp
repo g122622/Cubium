@@ -27,10 +27,10 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/Material.hpp"
-#include "world/block/Block.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <vector>
 
 namespace mc {
@@ -112,7 +112,7 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
     {
         MC_UNUSED(state);
-        return VoxelShapes::empty();
+        return CollisionShape::emptyShape();
     }
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const override

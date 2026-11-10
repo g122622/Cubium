@@ -38,7 +38,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <memory>
 

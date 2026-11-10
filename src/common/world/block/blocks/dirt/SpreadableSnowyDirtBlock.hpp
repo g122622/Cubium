@@ -25,9 +25,9 @@
 
 #include "SnowyDirtBlock.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/IBlockAnimateContext.hpp"
-#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/capability/IBlockAnimateContext.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <functional>
 
 namespace mc {

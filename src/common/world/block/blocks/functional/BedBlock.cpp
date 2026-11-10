@@ -42,11 +42,11 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include <array>
@@ -123,6 +123,21 @@ BlockState BedBlock::getStateForPlacement(BlockItemUseContext& context)
 
     // 无法放置完整的床，返回默认状态（放置将失败）
     return defaultState();
+}
+
+const BlockState& BedBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    // 原版 `HorizontalDirectionalBlock#rotate`：旋转水平朝向。
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(),
+        Directions::rotateDirection(state.get(BlockStateProperties::HORIZONTAL_FACING()), rotation));
+}
+
+const BlockState& BedBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    // 原版 `HorizontalDirectionalBlock#mirror`：由当前朝向求出镜像对应的旋转，再旋转朝向。
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(),
+        Directions::rotateDirection(facing, Directions::mirrorToRotation(mirror, facing)));
 }
 
 BlockState BedBlock::updatePostPlacement(const BlockState& state,

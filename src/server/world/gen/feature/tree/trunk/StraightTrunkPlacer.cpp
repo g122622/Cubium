@@ -24,7 +24,7 @@
 #include "StraightTrunkPlacer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <set>
 #include <vector>

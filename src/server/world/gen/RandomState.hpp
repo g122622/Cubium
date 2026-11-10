@@ -191,6 +191,19 @@ public:
     [[nodiscard]] std::shared_ptr<const noise::NormalNoise> getOrCreateNoiseShared(const std::string& name) const;
 
     /**
+     * @brief 按噪声名新建噪声实例（不查缓存）
+     *
+     * 旧版维度（`legacy_random_source = true`）的温度与湿度改走
+     * `NormalNoise.createLegacyNetherBiome`（固定参数 (-7, 1.0, 1.0)、LegacyRandomSource(世界种子+0/1)），
+     * 其余噪声按注册表参数 + `fromHashOf(噪声名)` 派生。两条缓存路径共用本方法，
+     * 保证「先 getOrCreateNoise 还是先 getOrCreateNoiseShared」拿到的是同一种噪声。
+     *
+     * @param name 噪声资源名（如 "minecraft:temperature"）
+     * @return 新建的噪声实例
+     */
+    [[nodiscard]] std::shared_ptr<noise::NormalNoise> _createNoiseForName(const std::string& name) const;
+
+    /**
      * @brief 获取或创建命名位置随机工厂
      *
      * 首次调用时用 fromHashOf(name).forkPositional() 创建，后续调用返回缓存。

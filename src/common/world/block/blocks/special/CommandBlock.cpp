@@ -38,7 +38,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
@@ -168,7 +168,7 @@ void CommandBlock::onUpdated(
     entity.setAuto(defaultAutomatic());
     if (entity.getMode() == blockentity::CommandBlockMode::Auto || entity.isAuto()) {
         entity.markConditionMet(world);
-        world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+        world.tickManager().scheduleBlockTick(pos, *this, entity.nextTickDelay(), world::tick::TickPriority::High);
     }
 }
 
@@ -235,7 +235,8 @@ void CommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
             } else if (commandEntity.isConditional()) {
                 commandEntity.setSuccessCount(0);
             }
-            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+            world.tickManager().scheduleBlockTick(
+                pos, *this, commandEntity.nextTickDelay(), world::tick::TickPriority::High);
         }
     } else if (mode == blockentity::CommandBlockMode::Redstone) {
         executeOrReset();

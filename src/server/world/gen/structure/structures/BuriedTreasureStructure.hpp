@@ -28,7 +28,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <string>
@@ -104,20 +104,12 @@ public:
     }
 
     /**
-     * @brief 检查是否可以生成
-     * 埋藏的宝藏只在沙滩类生物群系生成，且概率较低
-     */
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
-
-    /**
      * @brief 生成埋藏的宝藏起点（仅创建 StructurePiece，禁止写方块）
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    // 注意：canGenerate中使用单独的salt(10387320)来计算概率种子
     static const std::string m_name;
 };
 

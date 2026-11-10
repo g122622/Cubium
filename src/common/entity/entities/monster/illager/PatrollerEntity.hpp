@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <optional>
 
 namespace mc {

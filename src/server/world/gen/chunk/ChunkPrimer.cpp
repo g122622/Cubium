@@ -26,13 +26,13 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/carver/CarvingMask.hpp"
 #include "server/world/gen/density/NoiseChunk.hpp"
 #include <array>
@@ -352,6 +352,18 @@ void ChunkPrimer::addPendingBlockTick(
     m_pendingBlockTicks.push_back(PendingBlockTick{pos, &block, scheduledTick, delay > 0 ? delay : 0, priority});
 }
 
+void ChunkPrimer::addPendingFluidTick(
+    const BlockPos& pos, const fluid::Fluid& fluid, u64 scheduledTick, i32 delay, world::tick::TickPriority priority)
+{
+    // 与方块刻一致：同一位置 + 同一流体只保留最早的一条。
+    for (const auto& tick : m_pendingFluidTicks) {
+        if (tick.pos == pos && tick.fluid == &fluid) {
+            return;
+        }
+    }
+    m_pendingFluidTicks.push_back(PendingFluidTick{pos, &fluid, scheduledTick, delay > 0 ? delay : 0, priority});
+}
+
 void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 {
     // FEATURES 之前调用，本地高度图必然仍在
@@ -398,9 +410,11 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
         section.shrink_to_fit();
     }
 
-    // 将待执行方块刻转移到 ChunkData（区块发布后由 ServerChunkManager 转交 TickManager）
+    // 将待执行方块刻/流体刻转移到 ChunkData（区块发布后由 ServerChunkManager 转交 TickManager）
     m_data->addPendingBlockTicks(m_pendingBlockTicks);
+    m_data->addPendingFluidTicks(m_pendingFluidTicks);
     m_pendingBlockTicks.clear();
+    m_pendingFluidTicks.clear();
 
     // 设置状态
     m_status = ChunkLoadStatus::Generated;
@@ -533,10 +547,14 @@ void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, 
 // 雕刻掩码
 // ============================================================================
 
-CarvingMask& ChunkPrimer::carvingMask()
+CarvingMask& ChunkPrimer::carvingMask(i32 minY, i32 height)
 {
     if (!m_carvingMask) {
-        m_carvingMask = std::make_unique<CarvingMask>(m_x, m_z);
+        m_carvingMask = std::make_unique<CarvingMask>(minY, height);
+    } else {
+        // 掩码在本次生成中只创建一次；几何必须与创建时一致，否则索引会整体错位。
+        MC_ASSERT_RELEASE(m_carvingMask->getMinY() == minY);
+        MC_ASSERT_RELEASE(m_carvingMask->getHeight() == height);
     }
     return *m_carvingMask;
 }

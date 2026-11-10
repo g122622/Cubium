@@ -25,7 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <cstddef>

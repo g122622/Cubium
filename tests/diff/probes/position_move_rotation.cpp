@@ -124,6 +124,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include "probe.hpp"
 
@@ -140,49 +141,14 @@ constexpr i32 RELATIVE_COUNT = 9;
 /// 与原版 `Math.PI` 一致的圆周率常量。
 constexpr f64 PI = 3.141592653589793;
 
-/// 原版 `Mth` 的 65536 项正弦查表。
-struct SinTable {
-    f32 values[65536];
-
-    SinTable()
-    {
-        for (i32 i = 0; i < 65536; ++i) {
-            values[i] = static_cast<f32>(std::sin(static_cast<f64>(i) / 10430.378350470453));
-        }
-    }
-};
-
-const SinTable& sinTable()
-{
-    static const SinTable table;
-    return table;
-}
-
-/// 原版 `Mth.sin(double)`。
-f32 mthSin(f64 value)
-{
-    const i64 index = static_cast<i64>(value * 10430.378350470453) & 65535LL;
-    return sinTable().values[static_cast<i32>(index)];
-}
-
-/// 原版 `Mth.cos(double)`。
-f32 mthCos(f64 value)
-{
-    const i64 index = static_cast<i64>(value * 10430.378350470453 + 16384.0) & 65535LL;
-    return sinTable().values[static_cast<i32>(index)];
-}
-
-/// 原版 `Mth.clamp(float, float, float)`。
-f32 clampF(f32 value, f32 min, f32 max)
-{
-    return value < min ? min : (value > max ? max : value);
-}
+// 正弦查表与 clamp 直接调用生产代码：探针内保留副本会让生产实现的缺陷隐身。
+// 原版 65536 项正弦表在 MathUtils.cpp 内部，此处通过 mthSin/mthCos 间接使用。
 
 /// 原版 `Vec3.xRot(float)`。
 void applyXRot(f64& x, f64& y, f64& z, f32 radians)
 {
-    const f32 cosValue = mthCos(radians);
-    const f32 sinValue = mthSin(radians);
+    const f32 cosValue = math::mthCos(radians);
+    const f32 sinValue = math::mthSin(radians);
     const f64 newY = y * cosValue + z * sinValue;
     const f64 newZ = z * cosValue - y * sinValue;
     y = newY;
@@ -193,8 +159,8 @@ void applyXRot(f64& x, f64& y, f64& z, f32 radians)
 /// 原版 `Vec3.yRot(float)`。
 void applyYRot(f64& x, f64& y, f64& z, f32 radians)
 {
-    const f32 cosValue = mthCos(radians);
-    const f32 sinValue = mthSin(radians);
+    const f32 cosValue = math::mthCos(radians);
+    const f32 sinValue = math::mthSin(radians);
     const f64 newX = x * cosValue + z * sinValue;
     const f64 newZ = z * cosValue - x * sinValue;
     x = newX;
@@ -344,7 +310,7 @@ std::string runLine(std::string_view inputLine)
     const f32 yRotBase = has(mask, 3) ? p1.yRot : 0.0F;
     const f32 xRotBase = has(mask, 4) ? p1.xRot : 0.0F;
     const f32 yRot = yRotBase + p2.yRot;
-    const f32 xRot = clampF(xRotBase + p2.xRot, -90.0F, 90.0F);
+    const f32 xRot = math::clamp(xRotBase + p2.xRot, -90.0F, 90.0F);
 
     // 速度：ROTATE_DELTA 时先按角度差旋转。
     f64 deltaX = p1.deltaX;

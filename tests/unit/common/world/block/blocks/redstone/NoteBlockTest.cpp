@@ -34,12 +34,12 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/redstone/NoteBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/border/WorldBorder.hpp"
 
 #include <cmath>
@@ -198,8 +198,12 @@ protected:
 /**
  * @brief 头颅置于音符盒上方时解析为对应 MOB_HEAD/CUSTOM 乐器
  *
- * 对齐 vanilla NoteBlockInstrument.worksAboveNoteBlock：头颅类的乐器在音符盒上方生效，
- * 取代下方方块决定音色。覆盖 7 种头颅（站立 + 墙挂变体）。
+ * `NoteBlockInstrument.worksAboveNoteBlock` 为真的只有 MOB_HEAD 与 CUSTOM 两类：它们的乐器
+ * 在音符盒上方生效，取代下方方块决定音色。覆盖 7 种头颅的**站立变体**。
+ *
+ * 墙挂变体不参与：它注册时走 `wallVariant(parent, true)`，而 wallVariant 内部用
+ * `Properties.of()` 全新建起属性，只复制战利品表与描述，不复制 instrument，故其
+ * instrument 停留在默认 HARP。这里对墙挂变体断言恰好是 HARP，防止有人误以为它继承乐器。
  */
 TEST_F(NoteBlockTest, InstrumentType_HeadAboveResolvesMobHeadInstrument)
 {
@@ -239,7 +243,7 @@ TEST_F(NoteBlockTest, InstrumentType_HeadAboveResolvesMobHeadInstrument)
         if (c.head == nullptr || c.wallHead == nullptr) {
             continue;
         }
-        // 站立变体
+        // 站立变体：注册时带 `.instrument(...)`，音符盒采纳头颅乐器。
         {
             BlockPos notePos(0, 1, 0);
             m_world->setBlockAt(notePos, VanillaBlocks::NOTE_BLOCK->defaultState());
@@ -248,14 +252,18 @@ TEST_F(NoteBlockTest, InstrumentType_HeadAboveResolvesMobHeadInstrument)
             EXPECT_EQ(placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()), c.expected)
                 << "standing head above note block";
         }
-        // 墙挂变体
+        // 墙挂变体：注册时走 `wallVariant(parent, true)`，而 wallVariant 内部用
+        // `Properties.of()` 全新建起属性，只复制战利品表与描述，**不复制 instrument**，
+        // 因此墙挂头颅的 instrument 停留在默认值 HARP。HARP 属 BASE_BLOCK 类型，
+        // worksAboveNoteBlock 为假，所以音符盒改看下方方块——这里下方是空气，得 HARP。
         {
             BlockPos notePos(0, 1, 0);
             m_world->setBlockAt(notePos, VanillaBlocks::NOTE_BLOCK->defaultState());
             m_world->setBlockAt(BlockPos(0, 2, 0), c.wallHead->defaultState());
             BlockState placed = placeNoteBlock(notePos);
-            EXPECT_EQ(placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()), c.expected)
-                << "wall head above note block";
+            EXPECT_EQ(placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()),
+                BlockStateProperties::NoteBlockInstrument::Harp)
+                << "wall head above note block must not contribute a mob-head instrument";
         }
     }
 }

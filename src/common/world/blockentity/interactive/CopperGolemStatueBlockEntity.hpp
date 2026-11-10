@@ -23,11 +23,11 @@
 
 #pragma once
 
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/nbt/Nbt.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <memory>
 #include <string>

@@ -33,6 +33,8 @@
 #include "common/entity/tag/EntityTypeTagLoader.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/armortrim/TrimMaterials.hpp"
+#include "common/item/armortrim/TrimPatterns.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
@@ -60,20 +62,20 @@
 #include "common/world/attribute/EnvironmentAttributeRegistry.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTagLoader.hpp"
-#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
-#include "common/world/block/registry/HarvestToolTable.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/HarvestToolTable.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTagLoader.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "common/world/fluid/FluidTagLoader.hpp"
 #include "common/world/gameevent/GameEventTagLoader.hpp"
 #include "common/world/gameevent/GameEventTags.hpp"
 #include "common/world/map/MaterialColor.hpp"
-#include "common/world/timeline/TimelineRegistry.hpp"
-#include "common/world/timeline/Timelines.hpp"
+#include "common/world/time/timeline/TimelineRegistry.hpp"
+#include "common/world/time/timeline/Timelines.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "common/world/village/trade/WanderingTraderTrades.hpp"
 #include "server/function/FunctionLoader.hpp"
@@ -244,6 +246,28 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
             spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().message());
         } else {
             spdlog::info("Loaded {} item tags from data packs", dataPackLoadResult.value());
+        }
+    }
+
+    // 盔甲纹饰注册表（trim_material / trim_pattern）。两者都是纯数据包注册表，没有任何
+    // 硬编码默认值，必须在这里加载——否则 smithing_trim 配方查不到图案、纹饰材料物品也
+    // 无从反查材质，纹饰功能整体失效（此前这两个加载器就从未被调用过，注册表恒为空）。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::ArmorTrim");
+        mc::TrimMaterials::clearAll();
+        auto trimMaterialResult = mc::TrimMaterials::loadFromDataPackRepository(m_dataPackList);
+        if (trimMaterialResult.failed()) {
+            spdlog::error("Failed to load trim materials from data packs: {}", trimMaterialResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} trim materials from data packs", trimMaterialResult.value());
+        }
+
+        mc::TrimPatterns::clearAll();
+        auto trimPatternResult = mc::TrimPatterns::loadFromDataPackRepository(m_dataPackList);
+        if (trimPatternResult.failed()) {
+            spdlog::error("Failed to load trim patterns from data packs: {}", trimPatternResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} trim patterns from data packs", trimPatternResult.value());
         }
     }
 

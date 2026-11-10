@@ -89,7 +89,7 @@ src/common/item/crafting/special/
 
 | 模块 | 用途 |
 |------|------|
-| `server/core/MinecraftServer` | 注册特殊配方 |
+| `server/player/MinecraftServer` | 注册特殊配方 |
 | `item/crafting/RecipeManager` | 配方注册表管理 |
 
 ## 容易踩的坑

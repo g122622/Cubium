@@ -27,7 +27,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -164,7 +164,7 @@ TEST_F(AdvancementEventHandlerTest, SetPlayerManagerCompat)
     AdvancementEventHandler handler;
 
     // setPlayerManager 保留用于向后兼容
-    handler.setPlayerManager(reinterpret_cast<core::PlayerManager*>(0x1234));
+    handler.setPlayerManager(reinterpret_cast<PlayerManager*>(0x1234));
 
     SUCCEED();
 }
@@ -175,7 +175,7 @@ TEST_F(AdvancementEventHandlerTest, SetBothServerAndPlayerManager)
 
     // 可以同时设置两个
     handler.setServer(reinterpret_cast<IServer*>(0x1234));
-    handler.setPlayerManager(reinterpret_cast<core::PlayerManager*>(0x5678));
+    handler.setPlayerManager(reinterpret_cast<PlayerManager*>(0x5678));
 
     SUCCEED();
 }

@@ -109,8 +109,12 @@ public:
     [[nodiscard]] virtual std::string id() const = 0;
 
     /**
-     * @brief 获取附魔显示名称
-     * @param level 附魔等级
+     * @brief 获取附魔显示名称的翻译键
+     *
+     * 默认实现由 `id()` 推出 `"enchantment." + 命名空间 + "." + 路径`（如
+     * `enchantment.minecraft.fortune`），与数据包 `description.translate` 一致。
+     *
+     * @param level 附魔等级（名称不随等级变化，保留参数供少数需要区分的子类使用）
      * @return 本地化名称键（如 "enchantment.minecraft.fortune"）
      */
     [[nodiscard]] virtual std::string getNameKey(i32 level = 1) const;
@@ -239,6 +243,21 @@ public:
      * @return 支持返回 true
      */
     [[nodiscard]] virtual bool canApplyToItem(const ItemStack& stack) const;
+
+    /**
+     * @brief 该附魔是否作用于指定装备槽位
+     *
+     * 对应原版 `Enchantment.matchingSlot(EquipmentSlot)`，判据来自各附魔的
+     * `slots` 字段（数据包中各附魔定义文件的 `slots` 字段）。原版用它实现
+     * `getSlotItems` 的槽位过滤，进而决定「从实体身上取附魔等级」时扫描哪些槽位。
+     *
+     * 默认实现查 `_slotMaskForId` 中的静态表；表里没有的附魔按「全部槽位」处理，
+     * 与不提供槽位信息时的既有行为一致。子类通常无需覆写。
+     *
+     * @param slot 装备槽位
+     * @return 该槽位上的附魔等级应被计入时返回 true
+     */
+    [[nodiscard]] virtual bool matchesSlot(EquipmentSlot slot) const;
 
     /**
      * @brief 检查是否可以出现在村民交易中

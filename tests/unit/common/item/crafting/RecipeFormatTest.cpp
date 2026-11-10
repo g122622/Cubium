@@ -17,6 +17,7 @@
  * SOFTWARE.
  */
 
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/crafting/RecipeLoader.hpp"
@@ -24,7 +25,6 @@
 #include "item/crafting/RecipeSerializers.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "resource/ResourceLocation.hpp"
-#include "world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 

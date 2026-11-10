@@ -26,12 +26,12 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/garden/FlowerBedBlock.hpp"
-#include "common/world/block/registry/GardenBlocks.hpp"
-#include "common/world/block/registry/TrailsBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/GardenBlocks.hpp"
+#include "common/world/block/registry/vanilla/TrailsBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/Fluids.hpp"
@@ -371,46 +371,32 @@ TEST_F(FlowerBedBlockTest, Rotate_FullCycle)
 // 镜像测试
 // ============================================================================
 
-TEST_F(FlowerBedBlockTest, Mirror_LeftRight_EastWestSwap)
-{
-    auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
-    const BlockState& mirrored = flowerBed_->mirror(state, Mirror::LeftRight);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::West);
-}
-
-TEST_F(FlowerBedBlockTest, Mirror_LeftRight_WestEastSwap)
-{
-    auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
-    const BlockState& mirrored = flowerBed_->mirror(state, Mirror::LeftRight);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
-}
-
-TEST_F(FlowerBedBlockTest, Mirror_LeftRight_NorthSouthUnchanged)
+TEST_F(FlowerBedBlockTest, Mirror_LeftRight_SwapsNorthSouth)
 {
     auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
     const BlockState& mirrored = flowerBed_->mirror(state, Mirror::LeftRight);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
-}
-
-TEST_F(FlowerBedBlockTest, Mirror_FrontBack_NorthSouthSwap)
-{
-    auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
-    const BlockState& mirrored = flowerBed_->mirror(state, Mirror::FrontBack);
     EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
 }
 
-TEST_F(FlowerBedBlockTest, Mirror_FrontBack_SouthNorthSwap)
+TEST_F(FlowerBedBlockTest, Mirror_LeftRight_KeepsEastWest)
 {
-    auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
-    const BlockState& mirrored = flowerBed_->mirror(state, Mirror::FrontBack);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
+    auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    const BlockState& mirrored = flowerBed_->mirror(state, Mirror::LeftRight);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
 }
 
-TEST_F(FlowerBedBlockTest, Mirror_FrontBack_EastWestUnchanged)
+TEST_F(FlowerBedBlockTest, Mirror_FrontBack_SwapsEastWest)
 {
     auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
     const BlockState& mirrored = flowerBed_->mirror(state, Mirror::FrontBack);
-    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::West);
+}
+
+TEST_F(FlowerBedBlockTest, Mirror_FrontBack_KeepsNorthSouth)
+{
+    auto state = flowerBed_->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const BlockState& mirrored = flowerBed_->mirror(state, Mirror::FrontBack);
+    EXPECT_EQ(mirrored.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
 }
 
 TEST_F(FlowerBedBlockTest, Mirror_None_PreservesFacing)

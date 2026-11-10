@@ -421,6 +421,25 @@ template <typename T>
 }
 
 /**
+ * @brief 向上取整到 64 位整数，对应原版 `Mth.ceilLong(double)`
+ *
+ * 与 `std::ceil` 的差别在于**先截断再比较**：
+ *
+ *   ceilLong(2.1)  → 3
+ *   ceilLong(2.0)  → 2
+ *   ceilLong(-2.1) → -2   （截断得 -2，-2.1 > -2 为假，故不加 1）
+ *   ceilLong(-2.0) → -2
+ *
+ * 负数方向与「数学上的向上取整」一致（-2.1 向上取整是 -2），
+ * 但实现路径不同：它靠一次截断 + 一次比较完成，不调用 libm。
+ */
+[[nodiscard]] inline i64 ceilLong(f64 value)
+{
+    const i64 truncated = static_cast<i64>(value);
+    return value > static_cast<f64>(truncated) ? truncated + 1 : truncated;
+}
+
+/**
  * @brief 钳位线性映射，将值从 [fromMin, fromMax] 映射到 [toMin, toMax] 并 clamp
  *
  * 参考 MC 1.21: Mth.clampedMap
@@ -437,6 +456,43 @@ template <typename T>
     // 同 lerp：乘积先落回标量存储，禁止 FMA 收缩。
     const volatile f64 delta = t * (toMax - toMin);
     return toMin + delta;
+}
+
+/**
+ * @brief 反向线性插值，对应原版 `Mth.inverseLerp(double, double, double)`
+ *
+ * 求 value 在 [from, to] 中的归一化位置：`(value - from) / (to - from)`。
+ *
+ * 区间退化（from == to）时除零，结果是 inf 或 nan；原版不对此做保护，
+ * 调用方需保证区间非退化。
+ */
+[[nodiscard]] inline f64 inverseLerp(f64 value, f64 from, f64 to)
+{
+    return (value - from) / (to - from);
+}
+
+/**
+ * @brief 两数绝对值中的较大者，对应原版 `Mth.absMax(int, int)`
+ *
+ * **`abs(INT_MIN)` 必须按补码回绕处理，不能交给 `std::abs`。**
+ *
+ * Java 的 `Math.abs(Integer.MIN_VALUE)` 仍返回 `Integer.MIN_VALUE`——补码中 INT_MIN
+ * 的相反数不可表示，于是折回自身。原版两个 `absMax` 用例因此得到：
+ *
+ *   absMax(INT_MIN, 0) → max(INT_MIN, 0) = 0
+ *   absMax(INT_MIN, 5) → max(INT_MIN, 5) = 5
+ *
+ * C++ 的 `std::abs(INT_MIN)` 是未定义行为，实测会返回 INT_MIN，
+ * 于是 `max(INT_MIN, 0)` 得到 INT_MIN——与原版相反。
+ */
+[[nodiscard]] inline i32 absMax(i32 a, i32 b)
+{
+    // 用无符号取反再转回，得到与 Java 一致的补码回绕结果。
+    const auto absOf = [](i32 value) {
+        const u32 magnitude = value < 0 ? (0U - static_cast<u32>(value)) : static_cast<u32>(value);
+        return static_cast<i32>(magnitude);
+    };
+    return std::max(absOf(a), absOf(b));
 }
 
 /**

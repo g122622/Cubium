@@ -31,7 +31,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 
 namespace mc {

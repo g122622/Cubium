@@ -33,15 +33,18 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/NoiseColumn.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>
@@ -61,20 +64,20 @@ using namespace mc::Biomes;
 const std::string NetherFossilStructure::s_name = "Nether_Fossil";
 
 // 下界化石模板名称（共14个）
-const std::vector<std::string> NetherFossilStructure::s_fossilTemplates = {"nether_fossils/fossil_1",
-    "nether_fossils/fossil_2",
-    "nether_fossils/fossil_3",
-    "nether_fossils/fossil_4",
-    "nether_fossils/fossil_5",
-    "nether_fossils/fossil_6",
-    "nether_fossils/fossil_7",
-    "nether_fossils/fossil_8",
-    "nether_fossils/fossil_9",
-    "nether_fossils/fossil_10",
-    "nether_fossils/fossil_11",
-    "nether_fossils/fossil_12",
-    "nether_fossils/fossil_13",
-    "nether_fossils/fossil_14"};
+const std::vector<std::string> NetherFossilStructure::s_fossilTemplates = {"minecraft:nether_fossils/fossil_1",
+    "minecraft:nether_fossils/fossil_2",
+    "minecraft:nether_fossils/fossil_3",
+    "minecraft:nether_fossils/fossil_4",
+    "minecraft:nether_fossils/fossil_5",
+    "minecraft:nether_fossils/fossil_6",
+    "minecraft:nether_fossils/fossil_7",
+    "minecraft:nether_fossils/fossil_8",
+    "minecraft:nether_fossils/fossil_9",
+    "minecraft:nether_fossils/fossil_10",
+    "minecraft:nether_fossils/fossil_11",
+    "minecraft:nether_fossils/fossil_12",
+    "minecraft:nether_fossils/fossil_13",
+    "minecraft:nether_fossils/fossil_14"};
 
 // ============================================================================
 // NetherFossilPiece
@@ -84,31 +87,42 @@ NetherFossilPiece::NetherFossilPiece(const std::string& templateName, const Bloc
     : StructurePiece(
           StructurePieceTypes::NETHER_FOSSIL, position.x, position.y, position.z, position.x, position.y, position.z)
     , m_templateName(templateName)
-    , m_rotation(rotation)
+    , m_templatePosition(position)
     , m_size(1, 1, 1)
-{}
+{
+    // 旋转与镜像存进基类：子类同名成员会遮蔽基类，`getRotation()` 读的正是基类那个。
+    setRotation(rotation);
+    setMirror(Mirror::None);
+    // 原版 `TemplateStructurePiece` 在构造期就以模板真实包围盒确定几何；等到后处理阶段才展开
+    // 会让 STRUCTURE_STARTS 阶段每个构件退化成一个点。
+    _loadTemplate();
+}
 
 void NetherFossilPiece::_loadTemplate()
 {
-    if (!m_templateManager) {
+    if (m_templateManager == nullptr) {
+        m_templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
+    }
+    m_template = m_templateManager->getTemplate(ResourceLocation(m_templateName));
+    if (m_template == nullptr) {
         return;
     }
+    m_size = m_template->getSize();
+    _updateBoundingBox();
+}
 
-    ResourceLocation location(m_templateName);
-    m_template = m_templateManager->getTemplate(location);
-
-    if (m_template) {
-        m_size = m_template->getSize();
-        // 更新边界框（考虑旋转）
-        i32 sizeX = m_size.x;
-        i32 sizeZ = m_size.z;
-        if (m_rotation == Rotation::Clockwise90 || m_rotation == Rotation::CounterClockwise90) {
-            std::swap(sizeX, sizeZ);
-        }
-        m_maxX = m_minX + sizeX - 1;
-        m_maxY = m_minY + m_size.y - 1;
-        m_maxZ = m_minZ + sizeZ - 1;
-    }
+void NetherFossilPiece::_updateBoundingBox()
+{
+    feature::template_::PlacementSettings settings;
+    settings.setRotation(getRotation());
+    settings.setMirror(Mirror::None);
+    const StructureBoundingBox box = m_template->getBoundingBox(settings, m_templatePosition);
+    m_minX = box.minX();
+    m_minY = box.minY();
+    m_minZ = box.minZ();
+    m_maxX = box.maxX();
+    m_maxY = box.maxY();
+    m_maxZ = box.maxZ();
 }
 
 void NetherFossilPiece::generate(IWorldWriter& world,
@@ -119,11 +133,7 @@ void NetherFossilPiece::generate(IWorldWriter& world,
     ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)
 {
-    if (!m_templateManager) {
-        return;
-    }
-
-    // 延迟加载模板
+    // 构造期模板管理器还没装好时补一次加载。
     if (!m_template) {
         _loadTemplate();
     }
@@ -133,61 +143,84 @@ void NetherFossilPiece::generate(IWorldWriter& world,
         return;
     }
 
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "NetherFossilPiece::generate requires an IWorld");
+
     // 创建放置设置
     feature::template_::PlacementSettings settings;
-    settings.setRotation(m_rotation);
+    settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
     settings.setBoundingBox(&chunkBounds);
 
-    // 放置模板
-    m_template->place(world,
-        BlockPos(m_minX, m_minY, m_minZ),
-        settings,
-        rng,
-        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+    // 结构方块（含数据标记）与空气都是模板占位，不写入世界
+    std::vector<u32> blocksToIgnore;
+    if (auto* airState = VanillaBlocks::getState(VanillaBlocks::AIR)) {
+        blocksToIgnore.push_back(airState->blockId());
+    }
+    if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+        blocksToIgnore.push_back(structureState->blockId());
+    }
+    feature::template_::StructureProcessorList processors;
+    processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
+    settings.setProcessors(&processors);
+
+    // 放置模板（原点即模板位置，不是包围盒最小角）
+    m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 // ============================================================================
 // NetherFossilStructure
 // ============================================================================
 
-NetherFossilStructure::NetherFossilStructure(ResourceLocation id)
+NetherFossilStructure::NetherFossilStructure(ResourceLocation id, std::unique_ptr<valueprovider::HeightProvider> height)
     : Structure(std::move(id))
-{}
+    , m_height(std::move(height))
+{
+    MC_ASSERT_RELEASE_MSG(m_height != nullptr, "nether_fossil requires a height provider from the data pack");
+}
 
 const biome::BiomeTag* NetherFossilStructure::defaultBiomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_NETHER_FOSSIL();
 }
 
-bool NetherFossilStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    if (!isValidBiome(biome)) {
-        return false;
-    }
-    return true;
-    return false;
-}
-
 std::unique_ptr<StructureStart> NetherFossilStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    // 原版 `NetherFossilStructure.findGenerationPoint`：先在区块内随机挑一列，再沿着这一列
+    // 自上而下找「空气 + 下方可承重」的第一处，作为化石骨架的落点。
+    const i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    const i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    const i32 seaLevel = generator.seaLevel();
+    const valueprovider::WorldGenerationContext heightContext(generator.getMinY(), generator.getGenDepth());
+    i32 y = m_height->sample(rng, heightContext);
 
-    // 计算生成位置
-    i32 x = chunkX * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
-    i32 z = chunkZ * world::CHUNK_WIDTH + rng.nextInt(world::CHUNK_WIDTH);
+    const NoiseColumn column = generator.getBaseColumn(x, z);
+    while (y > seaLevel) {
+        const BlockState* current = column.getBlock(y);
+        const BlockState* below = column.getBlock(--y);
+        const bool currentAir = current == nullptr || current->isAir();
+        // 原版 `below.is(Blocks.SOUL_SAND) || below.isFaceSturdy(EmptyBlockGetter, pos, UP)`：
+        // FULL 支撑判定只读方块自身的支撑形状，与所在世界无关，因此不需要真的构造一个空世界。
+        const bool belowSturdy = below != nullptr &&
+            (below->is(VanillaBlocks::SOUL_SAND) ||
+                Block::isFaceFull(below->getBlockSupportShapeAt(BlockPos(x, y, z)), Direction::Up));
+        if (currentAir && belowSturdy) {
+            break;
+        }
+    }
+    if (y <= seaLevel) {
+        return start;
+    }
 
-    // 下界化石在 Y=30-60 之间生成
-    i32 y = 30 + rng.nextInt(30);
+    // 生物群系校验落在候选生成点上（原版 `Structure.findValidGenerationPoint` 即在
+    // GenerationStub 位置采样），不是区块最小角。
+    const BlockPos candidate(x, y, z);
+    if (!isValidBiomeAt(generator, candidate)) {
+        return start;
+    }
 
     // 随机旋转
     Rotation rotation = static_cast<Rotation>(rng.nextInt(4));

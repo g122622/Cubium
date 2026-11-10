@@ -22,6 +22,7 @@
  */
 
 #include "server/network/play/PlayerStateHandler.hpp"
+#include "server/access/AccessManager.hpp"
 
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/core/Types.hpp"
@@ -33,14 +34,14 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/MinecraftServer.hpp"
-#include "server/core/OpListManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/core/TeleportManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/network/sync/player/TeleportManager.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <variant>
@@ -276,7 +277,7 @@ void PlayerStateHandler::handleChangeDifficultyPacket(PlayerId playerId, const m
     // 权限校验对齐 Java handleChangeDifficulty：主机 或 OP(>=GameMaster) 方可改难度。
     // 主机判定不依赖 allowCommands（与 resolveOpLevel 的作弊提升解耦）。
     const bool permitted = m_server.isSingleplayerOwner(playerId) ||
-        m_server.opListManager().getLevel(player->uuid) >= core::OpLevel::GameMaster;
+        m_server.accessManager().operatorGetLevel(player->uuid) >= OpLevel::GameMaster;
     if (!permitted) {
         spdlog::warn("ChangeDifficulty: player {} has no permission to change difficulty", playerId);
         return;
@@ -298,7 +299,7 @@ void PlayerStateHandler::handleLockDifficultyPacket(PlayerId playerId, const mc:
     }
     // 权限校验对齐 Java handleLockDifficulty：主机 或 OP(>=GameMaster) 方可锁定。
     const bool permitted = m_server.isSingleplayerOwner(playerId) ||
-        m_server.opListManager().getLevel(player->uuid) >= core::OpLevel::GameMaster;
+        m_server.accessManager().operatorGetLevel(player->uuid) >= OpLevel::GameMaster;
     if (!permitted) {
         spdlog::warn("LockDifficulty: player {} has no permission to lock difficulty", playerId);
         return;

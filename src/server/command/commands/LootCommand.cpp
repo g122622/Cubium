@@ -62,9 +62,9 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "server/application/IServer.hpp"
@@ -72,12 +72,12 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -435,11 +435,11 @@ i32 giveItemsToPlayers(
         if (totalAdded > 0) {
             syncInventoryToClient(source, playerId);
 
-            // 播放拾取音效（批5b：经 buildPlaySoundIr + connectionManager 投递，
+            // 播放拾取音效（批5b：经 buildPlaySoundIr + packetSender 投递，
             // 原 IServer::sendSoundToPlayer 纯虚已删）
             math::Random rng(static_cast<u64>(playerId) ^ generateSeed());
             const f32 pitch = (rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.0f;
-            server->connectionManager().sendToPlayer(playerId,
+            server->packetSender().sendToPlayer(playerId,
                 mc::server::net::buildPlaySoundIr(SoundEvents::ENTITY_ITEM_PICKUP,
                     sound::SoundCategory::Players,
                     Vector3(player->x(), player->y(), player->z()),
@@ -755,9 +755,8 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             [](CommandContext<ServerCommandSource>& c) {
                 return killReplaceEntity(c);
             },
-            [](CommandContext<ServerCommandSource>&) -> i32 {
-                // TODO: 接入尚缺失的目标与来源组合。
-                throw CommandException(CommandErrorType::Unknown, "commands.loot.notImplemented");
+            [](CommandContext<ServerCommandSource>& c) {
+                return mineReplaceEntity(c);
             }};
         addSources(*entitySlotArg, entitySources);
         addSources(*entityCountArg, entitySources);
@@ -780,9 +779,8 @@ void LootCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             [](CommandContext<ServerCommandSource>& c) {
                 return fishReplaceBlock(c);
             },
-            [](CommandContext<ServerCommandSource>&) -> i32 {
-                // TODO: 接入尚缺失的目标与来源组合。
-                throw CommandException(CommandErrorType::Unknown, "commands.loot.notImplemented");
+            [](CommandContext<ServerCommandSource>& c) {
+                return killReplaceBlock(c);
             },
             [](CommandContext<ServerCommandSource>& c) {
                 return mineReplaceBlock(c);
@@ -1310,6 +1308,42 @@ i32 LootCommand::killReplaceEntity(CommandContext<ServerCommandSource>& context)
     return count;
 }
 
+i32 LootCommand::killReplaceBlock(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    auto killSelector = context.getArgument<EntitySelector>("entities");
+
+    auto items = collectKillLoot(source, killSelector);
+
+    Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", source);
+    BlockPos blockPos(pos.x, pos.y, pos.z);
+    const i32 slot = context.getArgument<ItemSlot>("slot").slotIndex();
+
+    auto* world = source.world();
+    BlockEntity* blockEntity = world ? world->getBlockEntity(blockPos) : nullptr;
+    auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
+    IInventory* inventory = container ? container->getInventory() : nullptr;
+    if (inventory == nullptr) {
+        source.sendError("No container at that position");
+        return 0;
+    }
+
+    const i32 containerSize = inventory->getContainerSize();
+    if (slot < 0 || slot >= containerSize) {
+        source.sendError("Slot out of range");
+        return 0;
+    }
+
+    ItemStack replacement = items.empty() ? ItemStack::EMPTY : items[0].copy();
+    if (inventory->canPlaceItem(slot, replacement)) {
+        inventory->setItem(slot, replacement);
+        inventory->setChanged();
+    }
+
+    sendSuccessMessage(source, items, "kill");
+    return 1;
+}
+
 // ============================================================================
 // /loot mine <pos> [tool] - 目标分发
 // ============================================================================
@@ -1441,6 +1475,45 @@ i32 LootCommand::mineReplaceBlock(CommandContext<ServerCommandSource>& context)
     std::string sourceDesc = blockState ? blockState->getBlock().getLootTableId() : "mine";
     sendSuccessMessage(source, items, sourceDesc);
     return 1;
+}
+
+i32 LootCommand::mineReplaceEntity(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    auto minePos = BlockPosArgumentType::getBlockPos(context, "origin", source);
+    ItemStack tool = resolveTool(context);
+
+    auto items = generateFromMine(source, minePos, tool);
+
+    auto selector = context.getArgument<EntitySelector>("entities");
+    auto playerIds = support::resolvePlayerIds(source, selector);
+    const i32 slot = context.getArgument<ItemSlot>("slot").slotIndex();
+
+    i32 totalReplaced = 0;
+    for (PlayerId playerId : playerIds) {
+        auto* playerWorld = source.server()->getPlayerWorld(playerId);
+        auto* player =
+            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
+        if (player == nullptr) {
+            continue;
+        }
+
+        PlayerInventory& inventory = player->inventory();
+        if (slot >= 0 && slot < PlayerInventory::TOTAL_SIZE) {
+            ItemStack replacement = items.empty() ? ItemStack::EMPTY : items[0].copy();
+            inventory.setItem(slot, replacement);
+            totalReplaced++;
+        }
+
+        syncInventoryToClient(source, playerId);
+    }
+
+    BlockPos bp(minePos.x, minePos.y, minePos.z);
+    auto* world = source.world();
+    const BlockState* blockState = world ? world->getBlockState(bp) : nullptr;
+    std::string sourceDesc = blockState ? blockState->getBlock().getLootTableId() : "mine";
+    sendSuccessMessage(source, items, sourceDesc);
+    return totalReplaced;
 }
 
 } // namespace command

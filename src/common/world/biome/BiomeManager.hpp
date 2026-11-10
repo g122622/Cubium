@@ -27,7 +27,7 @@
 #include "common/util/crypto/Sha256.hpp"
 #include "common/util/math/random/LinearCongruentialGenerator.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 namespace mc::world::biome {
 

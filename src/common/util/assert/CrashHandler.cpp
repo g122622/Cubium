@@ -65,37 +65,6 @@ static bool s_symInitialized = false;
 namespace {
 
 /**
- * @brief 格式化单个符号（局部变量或参数），追加到输出流
- */
-void formatSymbolEntry(PSYMBOL_INFO symbolInfo, std::ostringstream& oss, bool& hasAny)
-{
-    hasAny = true;
-    oss << "        " << symbolInfo->Name;
-
-    // 尝试输出类型名
-    if (symbolInfo->TypeIndex != 0) {
-        WCHAR* typeName = nullptr;
-        if (SymGetTypeInfo(
-                GetCurrentProcess(), symbolInfo->ModBase, symbolInfo->TypeIndex, TI_GET_SYMNAME, &typeName)) {
-            char narrowName[MAX_SYM_NAME];
-            size_t converted = 0;
-            wcstombs_s(&converted, narrowName, typeName, MAX_SYM_NAME - 1);
-            oss << " : " << narrowName;
-            LocalFree(typeName);
-        }
-    }
-
-    // 标记变量类别
-    if (symbolInfo->Flags & SYMFLAG_PARAMETER) {
-        oss << " [param]";
-    } else if (symbolInfo->Flags & SYMFLAG_LOCAL) {
-        oss << " [local]";
-    }
-
-    oss << "\n";
-}
-
-/**
  * @brief 初始化 DbgHelp 符号处理器
  *
  * 只调用一次（在 install() 中），避免多线程竞争和重复初始化。
@@ -115,100 +84,6 @@ bool initializeSymbols()
 
     s_symInitialized = true;
     return true;
-}
-
-/**
- * @brief 枚举单个栈帧的局部变量和参数
- *
- * 先尝试 SymSetContext + SymEnumSymbols（需要准确的帧指针），
- * 如果失败则回退到搜索函数地址范围内的所有符号。
- *
- * 注意：Clang -O2 会省略帧指针，导致 SymSetContext 失败。
- * 回退方案能输出函数参数（this 等），但局部变量可能丢失。
- */
-std::string enumerateLocalVariables(HANDLE process, DWORD64 address, STACKFRAME64& stackFrame)
-{
-    struct EnumContext {
-        std::ostringstream oss;
-        bool hasAny = false;
-    };
-
-    // 方法1：SymSetContext + SymEnumSymbols（需要准确帧指针）
-    {
-        IMAGEHLP_STACK_FRAME frame{};
-        frame.InstructionOffset = address;
-        frame.FrameOffset = stackFrame.AddrFrame.Offset;
-        frame.StackOffset = stackFrame.AddrStack.Offset;
-
-        if (SymSetContext(process, &frame, nullptr)) {
-            EnumContext ctx;
-            SymEnumSymbols(
-                process,
-                0,
-                nullptr,
-                [](PSYMBOL_INFO symbolInfo, ULONG symbolSize, PVOID userContext) -> BOOL {
-                    (void)symbolSize;
-                    auto* ctx = static_cast<EnumContext*>(userContext);
-
-                    // 包含局部变量和参数
-                    if (symbolInfo->Flags & (SYMFLAG_LOCAL | SYMFLAG_PARAMETER)) {
-                        formatSymbolEntry(symbolInfo, ctx->oss, ctx->hasAny);
-                    }
-
-                    return TRUE;
-                },
-                &ctx);
-
-            if (ctx.hasAny) {
-                return "    Locals:\n" + ctx.oss.str();
-            }
-        }
-    }
-
-    // 方法2：回退方案 - 查找该地址所属函数，搜索函数范围内的符号
-    {
-        SYMBOL_INFO symInfo{};
-        symInfo.SizeOfStruct = sizeof(SYMBOL_INFO);
-        // 需要为名称分配空间
-        constexpr ULONG NAME_BUFFER_SIZE = 256;
-        auto* symbolBuffer = static_cast<SYMBOL_INFO*>(malloc(sizeof(SYMBOL_INFO) + NAME_BUFFER_SIZE));
-        symbolBuffer->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbolBuffer->MaxNameLen = NAME_BUFFER_SIZE;
-
-        DWORD64 displacement = 0;
-        if (SymFromAddr(process, address, &displacement, symbolBuffer)) {
-            EnumContext ctx;
-
-            // 构造搜索掩码：函数名!*
-            std::string mask = std::string(symbolBuffer->Name) + "!*";
-
-            SymEnumSymbols(
-                process,
-                0,
-                mask.c_str(),
-                [](PSYMBOL_INFO symbolInfo, ULONG symbolSize, PVOID userContext) -> BOOL {
-                    (void)symbolSize;
-                    auto* ctx = static_cast<EnumContext*>(userContext);
-
-                    // 只包含局部变量和参数
-                    if (symbolInfo->Flags & (SYMFLAG_LOCAL | SYMFLAG_PARAMETER)) {
-                        formatSymbolEntry(symbolInfo, ctx->oss, ctx->hasAny);
-                    }
-
-                    return TRUE;
-                },
-                &ctx);
-
-            if (ctx.hasAny) {
-                free(symbolBuffer);
-                return "    Locals:\n" + ctx.oss.str();
-            }
-        }
-
-        free(symbolBuffer);
-    }
-
-    return {};
 }
 
 } // namespace
@@ -319,9 +194,6 @@ std::string CrashHandler::captureStackTrace(i32 skipFrames, i32 maxFrames)
             }
 
             oss << "\n";
-
-            // 尝试枚举该帧的局部变量
-            oss << enumerateLocalVariables(process, address, stackFrame);
         }
 
         frameIndex++;
@@ -424,8 +296,6 @@ std::string captureStackTraceFromContext(EXCEPTION_POINTERS* exceptionInfo, i32 
             }
 
             oss << "\n";
-
-            enumerateLocalVariables(process, address, stackFrame);
         }
 
         frameIndex++;

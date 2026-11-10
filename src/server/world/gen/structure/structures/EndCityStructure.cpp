@@ -23,7 +23,13 @@
 
 #include "EndCityStructure.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/hanging/HangingEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -31,12 +37,13 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
@@ -44,6 +51,7 @@
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/jigsaw/JigsawTransform.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <algorithm>
 
 #include <memory>
@@ -91,6 +99,21 @@ feature::template_::Rotation addRotation(feature::template_::Rotation a, feature
     return static_cast<feature::template_::Rotation>((static_cast<i32>(a) + static_cast<i32>(b)) % 4);
 }
 
+/// 水平方向 → 悬挂实体的内部方向枚举（两者都表示“实体朝向”，按名字一一对应）
+entity::HangingEntity::Direction toHangingDirection(Direction direction)
+{
+    switch (direction) {
+        case Direction::West:
+            return entity::HangingEntity::Direction::WEST;
+        case Direction::North:
+            return entity::HangingEntity::Direction::NORTH;
+        case Direction::East:
+            return entity::HangingEntity::Direction::EAST;
+        default:
+            return entity::HangingEntity::Direction::SOUTH;
+    }
+}
+
 } // namespace
 
 // ============================================================================
@@ -108,26 +131,10 @@ const biome::BiomeTag* EndCityStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_END_CITY();
 }
 
-bool EndCityStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
-{
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
-
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    if (!isValidBiome(biome)) {
-        return false;
-    }
-    // 末地城只在高度 >= 60 的位置生成。这里的采样朝向只影响采样列，不参与世界生成
-    // 随机流（原版 canGenerate 也不消耗世界随机数）。
-    return _getYPosition(chunkX, chunkZ, feature::template_::Rotation::None, generator) >= 60;
-}
-
 std::unique_ptr<StructureStart> EndCityStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto start = makeStructureStart(chunkX, chunkZ);
 
     // 顺序不能变：原版 findGenerationPoint 先抽旋转，再用这个旋转去取 5x5 四角的最低
     // 高度，最后才判 Y < 60。此前这里是先算 Y（用的还是另一个自造随机源）、再抽旋转，
@@ -142,6 +149,11 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     const i32 y = _getYPosition(chunkX, chunkZ, rotation, generator);
 
     if (y < 60) {
+        return start;
+    }
+
+    // 生物群系校验落在候选生成点（区块内偏移 7 格处的五乘五最低地表）上；不匹配即返回空起点。
+    if (!isValidBiomeAt(generator, BlockPos(x, y, z))) {
         return start;
     }
 
@@ -214,6 +226,19 @@ CityTemplate::CityTemplate(
     setRotation(rotation);
     m_settings.setRotation(rotation);
     m_settings.setIgnoreEntities(true);
+
+    // 结构方块只是模板占位标记：覆盖模式只忽略结构方块，非覆盖模式连空气一起忽略
+    std::vector<u32> blocksToIgnore;
+    if (auto* structureState = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
+        blocksToIgnore.push_back(structureState->blockId());
+    }
+    if (!overwrite) {
+        if (auto* airState = VanillaBlocks::getState(VanillaBlocks::AIR)) {
+            blocksToIgnore.push_back(airState->blockId());
+        }
+    }
+    m_processorList.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
+    m_settings.setProcessors(&m_processorList);
 
     // 【包围盒必须在构造期就确定】原版 `TemplateStructurePiece` 的构造直接用模板算出
     // 包围盒（`StructureTemplate.getBoundingBox(templatePosition, settings)`），后续
@@ -325,13 +350,83 @@ void CityTemplate::generate(IWorldWriter& world,
         return;
     }
 
-    // 放置模板：覆盖模式声明形状已知（跳过形状重算），非覆盖模式仅同步客户端
-    templ->place(world,
-        m_templatePosition,
-        m_settings,
-        rng,
-        m_overwrite ? (world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
-                    : world::BlockUpdateFlags::UPDATE_CLIENTS);
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "CityTemplate::generate requires an IWorld");
+
+    // 每次放置都以当前区块的可写范围作为包围盒，避免越界写入其他区块
+    feature::template_::PlacementSettings settings = m_settings.copy();
+    settings.setBoundingBox(&chunkBounds);
+
+    if (!templ->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS)) {
+        return;
+    }
+
+    // 原版 `TemplateStructurePiece#postProcess`：放完模板后按 DATA 标记生成战利品容器 /
+    // 潜影贝 / 鞘翅展示框。
+    for (const auto& marker : templ->getDataMarkers(m_templatePosition, settings)) {
+        handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
+    }
+}
+
+void CityTemplate::handleDataMarker(const std::string& metadata,
+    const BlockPos& pos,
+    IWorld& world,
+    math::IRandom& rng,
+    const StructureBoundingBox& chunkBounds)
+{
+    // 原版 `EndCityPieces.EndCityPiece#handleDataMarker`。
+    if (metadata.rfind("Chest", 0) == 0) {
+        // 战利品容器挂在标记方块**下方**一格。
+        const BlockPos below(pos.x, pos.y - 1, pos.z);
+        if (!chunkBounds.contains(below.x, below.y, below.z)) {
+            return;
+        }
+        BlockEntity* blockEntity = world.getBlockEntity(below);
+        auto* container = dynamic_cast<blockentity::LootableContainerBlockEntity*>(blockEntity);
+        if (container != nullptr) {
+            static const ResourceLocation endCityTreasure("minecraft:chests/end_city_treasure");
+            container->setLootTable(endCityTreasure, rng.nextLong());
+        }
+        return;
+    }
+
+    if (!chunkBounds.contains(pos.x, pos.y, pos.z)) {
+        return;
+    }
+
+    if (metadata.rfind("Sentry", 0) == 0) {
+        ecs::EntityRegistry* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+        const entity::EntityType* shulkerType =
+            entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::SHULKER);
+        if (shulkerType == nullptr) {
+            return;
+        }
+        auto shulker = shulkerType->create(&world, *registry);
+        if (shulker == nullptr) {
+            return;
+        }
+        shulker->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+        world.spawnEntity(std::move(shulker));
+        return;
+    }
+
+    if (metadata.rfind("Elytra", 0) == 0) {
+        ecs::EntityRegistry* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+        // 原版 `new ItemFrame(level, pos, rotation.rotate(Direction.SOUTH))`。
+        auto frame = std::make_unique<entity::ItemFrameEntity>(
+            pos, toHangingDirection(Directions::rotateDirection(Direction::South, m_rotation)), *registry);
+        frame->setTypeId(entity::EntityTypeKeys::ITEM_FRAME);
+        if (Items::ELYTRA != nullptr) {
+            frame->setDisplayedItem(ItemStack(*Items::ELYTRA), false);
+        }
+        world.spawnEntity(std::move(frame));
+    }
 }
 
 BlockPos CityTemplate::calculateConnectedPos(const BlockPos& localPos, feature::template_::Rotation newRotation) const

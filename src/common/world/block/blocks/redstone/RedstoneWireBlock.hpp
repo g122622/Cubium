@@ -32,7 +32,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <unordered_map>
 #include <vector>
@@ -85,6 +85,24 @@ public:
         IWorld& world,
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
+
+    /**
+     * @brief 间接邻居形状更新（对应 vanilla `RedStoneWireBlock#updateIndirectNeighbourShapes`）
+     *
+     * 红石线向水平方向有连接（`Side` 或 `Up`）、而该方向的直接邻居**不是**红石线时，
+     * 真正需要跟着重算形状的红石线藏在「邻居的上方/下方」：
+     * - 邻居下方是红石线 → 它通过垂直爬升连到本线；
+     * - 邻居上方是红石线 → 本线通过邻居爬升连到它。
+     *
+     * 直接邻居那次形状更新（`updateNeighbourShapes`）只更新一格高的方块，覆盖不到这两种
+     * 情况；原版因此额外调用本方法，用 `neighborShapeChanged` 补发对斜向红石线的形状更新。
+     */
+    void updateIndirectNeighbourShapes(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        i32 flags,
+        i32 recursionLeft,
+        bool movedByPiston) override;
 
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
@@ -220,7 +238,7 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
-        return VoxelShapes::empty();
+        return CollisionShape::emptyShape();
     }
 
     /**

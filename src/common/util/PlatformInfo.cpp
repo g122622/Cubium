@@ -249,9 +249,9 @@ void PlatformInfo::requestHighResTimer()
 {
     // 仅 0→1 时真正调 timeBeginPeriod。
     if (g_highResTimerRefCount.fetch_add(1, std::memory_order::acq_rel) == 0) {
-        // TODO: Win10 2004 之前 timeBeginPeriod 为全局影响（提升整个 OS 中断频率），
-        //       2004+ 改为进程级。当前目标平台 Win11，故为进程级。若未来需兼容老 Windows
-        //       或在最小化/非运行态省电，可改为按窗口可见性动态 request/release。
+        // Windows 10 2004 之前 timeBeginPeriod 为全局影响（提升整个 OS 中断频率），2004+
+        // 改为进程级。当前目标平台为 Win11，因此这里只影响本进程；若将来需要支持更老的
+        // Windows，或需要在窗口不可见时省电，可以改为按窗口可见性动态 request/release。
         if (timeBeginPeriod(1) != TIMERR_NOERROR) {
             spdlog::warn("timeBeginPeriod(1) failed, sleep_for precision stays at default ~15.6ms");
         }

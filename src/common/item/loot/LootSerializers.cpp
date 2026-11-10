@@ -524,6 +524,142 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseTableBonusConditio
         std::make_unique<TableBonusCondition>(std::move(enchantmentId), std::move(chances)));
 }
 
+Result<std::unique_ptr<LevelBasedValue>> LootSerializers::parseLevelBasedValue(const nlohmann::json& json)
+{
+    return _parseLevelBasedValue(json);
+}
+
+Result<std::unique_ptr<LevelBasedValue>> LootSerializers::_parseLevelBasedValue(const nlohmann::json& json)
+{
+    // 裸数字等价于 constant，数据包里有大量这种简写。
+    if (json.is_number()) {
+        return LevelBasedValue::constant(json.get<f32>());
+    }
+
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "LevelBasedValue must be a number or an object");
+    }
+
+    if (!json.contains("type")) {
+        return Error(ErrorCode::InvalidData, "LevelBasedValue object missing 'type' field");
+    }
+
+    const std::string type = json["type"].get<std::string>();
+    // 数据包里 type 是全限定名；同时接受去命名空间的短名，方便自定义数据包书写。
+    const std::string shortType = type.starts_with("minecraft:") ? type.substr(std::string("minecraft:").size()) : type;
+
+    // 各形态的必填数值字段统一走这个助手，缺失即报错而不是静默取 0——
+    // 静默取 0 会让附魔加成悄悄变成无用数值，很难定位。
+    const auto requireNumber = [&json, &type](const char* field) -> Result<f32> {
+        if (!json.contains(field) || !json[field].is_number()) {
+            return Error(ErrorCode::InvalidData,
+                "LevelBasedValue '" + type + "' missing numeric field '" + std::string(field) + "'");
+        }
+        return json[field].get<f32>();
+    };
+    // 子表达式解析：失败时把错误往上抛。
+    // 注意：本函数是静态成员，lambda 里不能再捕获 this，直接写全名调用即可。
+    const auto parseInner = [](const nlohmann::json& node) -> Result<std::unique_ptr<LevelBasedValue>> {
+        return LootSerializers::_parseLevelBasedValue(node);
+    };
+
+    if (shortType == "constant") {
+        auto value = requireNumber("value");
+        if (!value.success()) {
+            return value.error();
+        }
+        return LevelBasedValue::constant(value.value());
+    }
+
+    if (shortType == "linear") {
+        // 原版 Linear 两个字段都可缺省为 0。
+        const f32 base = json.value("base", 0.0f);
+        const f32 perLevelAboveFirst = json.value("per_level_above_first", 0.0f);
+        return LevelBasedValue::linear(base, perLevelAboveFirst);
+    }
+
+    if (shortType == "levels_squared") {
+        auto added = requireNumber("added");
+        if (!added.success()) {
+            return added.error();
+        }
+        return LevelBasedValue::levelsSquared(added.value());
+    }
+
+    if (shortType == "clamped") {
+        auto min = requireNumber("min");
+        if (!min.success()) {
+            return min.error();
+        }
+        auto max = requireNumber("max");
+        if (!max.success()) {
+            return max.error();
+        }
+        if (!json.contains("value")) {
+            return Error(ErrorCode::InvalidData, "LevelBasedValue 'clamped' missing 'value' field");
+        }
+        auto inner = parseInner(json["value"]);
+        if (!inner.success()) {
+            return inner.error();
+        }
+        return LevelBasedValue::clamped(inner.value(), min.value(), max.value());
+    }
+
+    if (shortType == "fraction") {
+        if (!json.contains("numerator") || !json.contains("denominator")) {
+            return Error(ErrorCode::InvalidData, "LevelBasedValue 'fraction' requires 'numerator' and 'denominator'");
+        }
+        auto numerator = parseInner(json["numerator"]);
+        if (!numerator.success()) {
+            return numerator.error();
+        }
+        auto denominator = parseInner(json["denominator"]);
+        if (!denominator.success()) {
+            return denominator.error();
+        }
+        return LevelBasedValue::fraction(numerator.value(), denominator.value());
+    }
+
+    if (shortType == "exponent") {
+        if (!json.contains("base") || !json.contains("power")) {
+            return Error(ErrorCode::InvalidData, "LevelBasedValue 'exponent' requires 'base' and 'power'");
+        }
+        auto base = parseInner(json["base"]);
+        if (!base.success()) {
+            return base.error();
+        }
+        auto power = parseInner(json["power"]);
+        if (!power.success()) {
+            return power.error();
+        }
+        return LevelBasedValue::exponent(base.value(), power.value());
+    }
+
+    if (shortType == "lookup") {
+        if (!json.contains("values") || !json["values"].is_array() || json["values"].empty()) {
+            return Error(ErrorCode::InvalidData, "LevelBasedValue 'lookup' requires a non-empty 'values' array");
+        }
+        std::vector<f32> values;
+        values.reserve(json["values"].size());
+        for (const auto& entry : json["values"]) {
+            if (!entry.is_number()) {
+                return Error(ErrorCode::InvalidData, "LevelBasedValue 'lookup' entries must be numbers");
+            }
+            values.push_back(entry.get<f32>());
+        }
+        if (!json.contains("fallback")) {
+            return Error(ErrorCode::InvalidData, "LevelBasedValue 'lookup' missing 'fallback' field");
+        }
+        auto fallback = parseInner(json["fallback"]);
+        if (!fallback.success()) {
+            return fallback.error();
+        }
+        return LevelBasedValue::lookup(std::move(values), fallback.value());
+    }
+
+    return Error(ErrorCode::InvalidData, "unknown LevelBasedValue type: " + type);
+}
+
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceCondition(const nlohmann::json& json)
 {
     if (!json.contains("chance")) {
@@ -555,31 +691,19 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceWithEn
     const f32 unenchantedChance = json["unenchanted_chance"].get<f32>();
     const std::string enchantmentId = json["enchantment"].get<std::string>();
 
-    f32 enchantedBase = unenchantedChance;
-    f32 perLevelAboveFirst = 0.0f;
+    // enchanted_chance 缺省时退化为 unenchanted_chance（原版该字段必填，这里保持宽松）。
+    std::unique_ptr<LevelBasedValue> enchantedChance = LevelBasedValue::constant(unenchantedChance);
     if (json.contains("enchanted_chance")) {
-        const auto& enchanted = json["enchanted_chance"];
-        if (enchanted.is_number()) {
-            enchantedBase = enchanted.get<f32>();
-        } else if (enchanted.is_object()) {
-            if (enchanted.contains("base") && enchanted["base"].is_number()) {
-                enchantedBase = enchanted["base"].get<f32>();
-            }
-            if (enchanted.contains("per_level_above_first") && enchanted["per_level_above_first"].is_number()) {
-                perLevelAboveFirst = enchanted["per_level_above_first"].get<f32>();
-            }
-            const std::string type = enchanted.value("type", "minecraft:linear");
-            if (type != "minecraft:linear" && type != "linear") {
-                // TODO(loot-level-based-value): 原版 LevelBasedValue 还有 clamped / fraction /
-                //   levels_squared / exponent / lookup 几种形态，数据包目前只用到 linear。
-                return Error(ErrorCode::InvalidData, "unsupported enchanted_chance type: " + type);
-            }
+        auto parsed = _parseLevelBasedValue(json["enchanted_chance"]);
+        if (!parsed.success()) {
+            return parsed.error();
         }
+        enchantedChance = parsed.value();
     }
 
     return castToBase<RandomChanceWithEnchantedBonusCondition, LootCondition>(
         std::make_unique<RandomChanceWithEnchantedBonusCondition>(
-            unenchantedChance, enchantedBase, perLevelAboveFirst, enchantmentId));
+            unenchantedChance, std::move(enchantedChance), enchantmentId));
 }
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseInvertedCondition(const nlohmann::json& json)
@@ -688,8 +812,11 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseEntityPropertiesCo
 {
     // 解析 entity 目标
     EntityPropertiesCondition::EntityTarget target = EntityPropertiesCondition::EntityTarget::This;
-    if (json.contains("entity") && json["entity"].is_string()) {
-        target = EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>());
+    if (json.contains("entity")) {
+        if (!json["entity"].is_string()) {
+            return Error(ErrorCode::InvalidData, "Loot condition entity target must be a string", "LootSerializers");
+        }
+        MC_TRY_ASSIGN(target, EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>()));
     }
 
     // 解析 predicate
@@ -715,8 +842,11 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseEntityScoresCondit
 {
     // 解析 entity 目标
     EntityPropertiesCondition::EntityTarget target = EntityPropertiesCondition::EntityTarget::This;
-    if (json.contains("entity") && json["entity"].is_string()) {
-        target = EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>());
+    if (json.contains("entity")) {
+        if (!json["entity"].is_string()) {
+            return Error(ErrorCode::InvalidData, "Loot condition entity target must be a string", "LootSerializers");
+        }
+        MC_TRY_ASSIGN(target, EntityPropertiesCondition::parseEntityTarget(json["entity"].get<std::string>()));
     }
 
     // 解析 scores 映射

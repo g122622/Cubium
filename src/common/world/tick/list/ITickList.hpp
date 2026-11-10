@@ -24,17 +24,23 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/tick/base/ScheduledTick.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include <cstddef>
+#include <vector>
 
 namespace mc::world::tick {
+
+/// 单游戏刻最多执行的计划刻数量
+inline constexpr size_t MAX_TICKS_PER_TICK = 65536;
 
 /**
  * @brief Tick调度列表接口
  *
  * 定义tick调度的通用接口，支持方块tick、流体tick等。
- * 实现可以是ServerTickList（服务端）或EmptyTickList（客户端/空实现）。
+ * 实现可以是ServerTickList（服务端实际排队执行）、EmptyTickList（客户端/空实现）
+ * 或 DelegatingTickList（把调度转交给外部）。
  *
  * 用法示例:
  * @code
@@ -121,6 +127,56 @@ public:
      * @brief 获取待处理tick数量
      */
     [[nodiscard]] virtual size_t pendingCount() const = 0;
+
+    // ========== 执行与序列化 ==========
+    // 不实际排队执行 tick 的实现（生成期存储、空实现）沿用下面的默认空行为。
+
+    /**
+     * @brief 设置当前游戏刻
+     *
+     * 调度延迟以当前游戏刻为基准，执行 tick 的实现需要保存该值。
+     */
+    virtual void setCurrentTick(u64 /*currentTick*/) {}
+
+    /**
+     * @brief 获取当前游戏刻
+     */
+    [[nodiscard]] virtual u64 currentTick() const
+    {
+        return 0;
+    }
+
+    /**
+     * @brief 执行到期的 tick
+     *
+     * @param currentTick 当前游戏刻
+     * @param maxTicks 本次最多执行的 tick 数
+     */
+    virtual void tick(u64 /*currentTick*/, size_t /*maxTicks*/) {}
+
+    /**
+     * @brief 本游戏刻已执行的 tick 数量
+     */
+    [[nodiscard]] virtual size_t executedThisTickCount() const
+    {
+        return 0;
+    }
+
+    /**
+     * @brief 取出指定区块范围内的待执行 tick
+     *
+     * 用于区块序列化保存。不存储 tick 的实现返回空列表。
+     *
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @param remove 是否从列表中移除
+     * @param skipCompleted 是否跳过已执行的tick
+     */
+    [[nodiscard]] virtual std::vector<ScheduledTick<T>> getPendingTicks(
+        i32 /*chunkX*/, i32 /*chunkZ*/, bool /*remove*/, bool /*skipCompleted*/)
+    {
+        return {};
+    }
 };
 
 } // namespace mc::world::tick

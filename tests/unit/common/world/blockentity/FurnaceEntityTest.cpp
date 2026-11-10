@@ -23,15 +23,17 @@
 
 #include "world/blockentity/processing/FurnaceEntity.hpp"
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "world/blockentity/processing/FurnaceInventory.hpp"
 #include "world/blockentity/processing/SmokerEntity.hpp"
 #include <gtest/gtest.h>
 
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/nbt/Nbt.hpp"
 using namespace mc;
 using namespace mc::blockentity;
 
@@ -1612,4 +1614,42 @@ TEST_F(FurnaceBurnTimeTest, Stone_IsNotFuel)
     ASSERT_NE(item, nullptr);
     ItemStack stack(static_cast<const Item*>(item), 1);
     EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0);
+}
+
+// ContainerBlockEntity 此前只实现了 JSON 的 save/load，没有覆写 NBT 的 saveToNBT/loadFromNBT。
+// 后果是所有直接派生容器（熔炉、漏斗、酿酒台等）在 NBT 存档路径上物品栏全部丢失——
+// JSON 路径正常，所以问题只在 NBT 存档里出现。这里用熔炉验证修复。
+TEST(FurnaceEntityNbtTest, InventoryRoundTripsThroughNbt)
+{
+    if (Items::IRON_ORE == nullptr || Items::COAL == nullptr) {
+        GTEST_SKIP() << "item registry not initialized";
+    }
+
+    FurnaceEntity source(BlockPos(1, 64, 2));
+    IInventory* sourceInventory = source.getInventory();
+    ASSERT_NE(sourceInventory, nullptr);
+
+    sourceInventory->setItem(FurnaceInventory::SLOT_INPUT, ItemStack(Items::IRON_ORE, 5));
+    sourceInventory->setItem(FurnaceInventory::SLOT_FUEL, ItemStack(Items::COAL, 3));
+    source.setCustomName("My Furnace");
+
+    mc::nbt::tags::compound_tag written;
+    source.saveToNBT(written);
+
+    FurnaceEntity restored(BlockPos(0, 0, 0));
+    ASSERT_TRUE(restored.loadFromNBT(written));
+
+    IInventory* restoredInventory = restored.getInventory();
+    ASSERT_NE(restoredInventory, nullptr);
+
+    const ItemStack& input = restoredInventory->getItem(FurnaceInventory::SLOT_INPUT);
+    EXPECT_FALSE(input.isEmpty()) << "input slot must survive the NBT round trip";
+    EXPECT_EQ(input.getCount(), 5);
+
+    const ItemStack& fuel = restoredInventory->getItem(FurnaceInventory::SLOT_FUEL);
+    EXPECT_FALSE(fuel.isEmpty()) << "fuel slot must survive the NBT round trip";
+    EXPECT_EQ(fuel.getCount(), 3);
+
+    EXPECT_TRUE(restoredInventory->getItem(FurnaceInventory::SLOT_OUTPUT).isEmpty());
+    EXPECT_EQ(restored.getCustomName(), "My Furnace");
 }

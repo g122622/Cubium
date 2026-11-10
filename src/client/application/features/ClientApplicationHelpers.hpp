@@ -27,7 +27,7 @@
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include "client/input/InputManager.hpp"
 

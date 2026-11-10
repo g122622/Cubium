@@ -25,7 +25,7 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/InMemoryResourcePack.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidTagLoader.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 

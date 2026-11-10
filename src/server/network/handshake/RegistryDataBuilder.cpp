@@ -22,6 +22,7 @@
  */
 
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include <array>
@@ -47,6 +48,8 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -73,6 +76,141 @@ mc::network::ir::configuration::RegistryData makeKnownRegistry(
 /// 进程级 datapack 源（服务器启动期由 setRegistryDatapackSource 注册）。
 /// 与 MinecraftServer::m_dataPackList 同生命周期，握手阶段读取安全。
 const mc::resource::DataPackRepository* g_registryDatapackRepo = nullptr;
+
+/// 数据包里的附魔标签全集（顺序与 `minecraft:enchantment` 标签注册表一致）。
+///
+/// 客户端在 Configuration 阶段用 `RegistryDataLoader.loadFromNetwork` 新建**空**注册表后，
+/// 本地 core 包的 `tags/enchantment/` **不会被读取**（网络路径只认 UpdateTags），因此这 15 个
+/// 标签必须由 `buildConfigurationUpdateTags()` 显式下发。漏发时 `EnchantmentTags.CURSE` 与
+/// `TOOLTIP_ORDER` 在客户端上都是空的：附魔行在物品提示框里根本不会出现（`ItemEnchantments`
+/// 只在 `applyTooltip` 阶段渲染附魔，而该阶段是物品组件管线的一部分），诅咒也不会标红。
+/// 服务端读取顺序的成员（tooltip_order）则由 {@link EnchantmentTags} 按声明顺序保留。
+constexpr std::array<std::string_view, 15> _enchantmentTagIds{"minecraft:curse",
+    "minecraft:double_trade_price",
+    "minecraft:in_enchanting_table",
+    "minecraft:non_treasure",
+    "minecraft:on_mob_spawn_equipment",
+    "minecraft:on_random_loot",
+    "minecraft:on_traded_equipment",
+    "minecraft:prevents_bee_spawns_when_mining",
+    "minecraft:prevents_decorated_pot_shattering",
+    "minecraft:prevents_ice_melting",
+    "minecraft:prevents_infested_spawns",
+    "minecraft:smelts_loot",
+    "minecraft:tooltip_order",
+    "minecraft:tradeable",
+    "minecraft:treasure"};
+
+/// 附魔 id → 该附魔在 `buildConfigurationRegistryData()` 的 enchantment 注册表条目中的序号。
+///
+/// 客户端按 RegistryData 条目顺序 register() 并自增分配整数 id（Enchantment.STREAM_CODEC 用的是
+/// holder id），UpdateTags 的元素 id 必须是这个序号，不能另起一套编号。
+std::unordered_map<std::string, i32> _buildEnchantmentElementIds()
+{
+    std::unordered_map<std::string, i32> ids;
+    const auto entries = buildEnchantmentRegistryEntries();
+    ids.reserve(entries.size());
+    for (std::size_t index = 0; index < entries.size(); ++index) {
+        ids.emplace(entries[index].id, static_cast<i32>(index));
+    }
+    return ids;
+}
+
+/// 按数据包 `tags/enchantment/<name>.json` 的**声明顺序**展开某个附魔标签的元素 id。
+///
+/// `listResourceStacks` 返回同一路径在所有已启用数据包中的版本（按优先级从高到低），合并
+/// 语义与 `GenericTagLoader` 一致：逆序（低优先级先）逐包合并，`replace=true` 清空已有条目。
+/// `#` 引用在该位置就地展开，保留声明顺序——`EnchantmentTags.TOOLTIP_ORDER` 的提示框排序
+/// 正是依赖它。
+std::vector<i32> _resolveEnchantmentTagElements(const mc::resource::DataPackRepository& repo,
+    const std::string& tagId,
+    const std::unordered_map<std::string, i32>& elementIds,
+    std::unordered_set<std::string>& resolving)
+{
+    // 成员名或 "#引用"，与数据包标签 JSON 的 values 条目一一对应。
+    struct _Entry {
+        std::string id;
+        bool required;
+    };
+
+    std::vector<i32> elements;
+
+    const auto colon = tagId.find(':');
+    const std::string namespace_ = colon == std::string::npos ? "minecraft" : tagId.substr(0, colon);
+    const std::string directory = namespace_ + "/tags/enchantment";
+    const std::string resourcePath =
+        directory + "/" + (colon == std::string::npos ? tagId : tagId.substr(colon + 1)) + ".json";
+
+    auto versions = repo.listResourceStacks(directory, ".json");
+    if (versions.failed()) {
+        return elements;
+    }
+    const auto it = versions.value().find(resourcePath);
+    if (it == versions.value().end()) {
+        // 标签文件不存在：客户端仍需要一个空标签完成 bindTag，返回空元素列表即可。
+        return elements;
+    }
+
+    std::vector<_Entry> merged;
+    for (auto versionIt = it->second.rbegin(); versionIt != it->second.rend(); ++versionIt) {
+        const auto json = nlohmann::json::parse(versionIt->content, nullptr, false);
+        if (json.is_discarded() || !json.is_object()) {
+            spdlog::warn(
+                "RegistryDataBuilder: failed to parse enchantment tag '{}' from pack '{}'", tagId, versionIt->packName);
+            continue;
+        }
+        if (json.contains("replace") && json["replace"].is_boolean() && json["replace"].get<bool>()) {
+            merged.clear();
+        }
+        if (!json.contains("values") || !json["values"].is_array()) {
+            continue;
+        }
+        for (const auto& value : json["values"]) {
+            if (value.is_string()) {
+                merged.push_back({value.get<std::string>(), true});
+            } else if (value.is_object() && value.contains("id") && value["id"].is_string()) {
+                bool required = true;
+                if (value.contains("required") && value["required"].is_boolean()) {
+                    required = value["required"].get<bool>();
+                }
+                merged.push_back({value["id"].get<std::string>(), required});
+            }
+        }
+    }
+
+    for (const auto& entry : merged) {
+        if (entry.id.empty()) {
+            continue;
+        }
+        if (entry.id[0] == '#') {
+            const std::string referenced = entry.id.substr(1);
+            if (!resolving.insert(referenced).second) {
+                spdlog::warn("RegistryDataBuilder: circular enchantment tag reference '{}' (from '{}'), skipped",
+                    entry.id,
+                    tagId);
+                continue;
+            }
+            for (const i32 element : _resolveEnchantmentTagElements(repo, referenced, elementIds, resolving)) {
+                elements.push_back(element);
+            }
+            resolving.erase(referenced);
+            continue;
+        }
+
+        const auto elementId = elementIds.find(entry.id);
+        if (elementId == elementIds.end()) {
+            if (entry.required) {
+                spdlog::warn("RegistryDataBuilder: enchantment tag '{}' references unknown enchantment '{}', skipped",
+                    tagId,
+                    entry.id);
+            }
+            continue;
+        }
+        elements.push_back(elementId->second);
+    }
+
+    return elements;
+}
 
 /// 与当前数据包来源一起刷新，登录期间只复制已准备的不可变 NBT。
 std::optional<std::vector<mc::network::ir::configuration::RegistryData>> _preparedUnknownRegistries;
@@ -412,28 +550,14 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     }
 
     // 18. jukebox_song（21）。
-    registries.push_back(makeKnownRegistry("minecraft:jukebox_song",
-        {"minecraft:13",
-            "minecraft:cat",
-            "minecraft:blocks",
-            "minecraft:chirp",
-            "minecraft:far",
-            "minecraft:mall",
-            "minecraft:mellohi",
-            "minecraft:stal",
-            "minecraft:strad",
-            "minecraft:ward",
-            "minecraft:11",
-            "minecraft:wait",
-            "minecraft:otherside",
-            "minecraft:5",
-            "minecraft:pigstep",
-            "minecraft:relic",
-            "minecraft:precipice",
-            "minecraft:creator",
-            "minecraft:creator_music_box",
-            "minecraft:tears",
-            "minecraft:lava_chicken"}));
+    {
+        mc::network::ir::configuration::RegistryData songs;
+        songs.registryKey = "minecraft:jukebox_song";
+        for (const auto key : JukeboxSongs::registryKeys()) {
+            songs.entries.push_back({std::string(key), std::nullopt});
+        }
+        registries.push_back(std::move(songs));
+    }
 
     // 19. instrument（8）。
     registries.push_back(makeKnownRegistry("minecraft:instrument",
@@ -544,6 +668,27 @@ std::vector<mc::network::ir::configuration::TagRegistry> buildConfigurationUpdat
         bannerTags.tags.push_back({std::string(tag), {*id}});
     }
     registries.push_back(std::move(bannerTags));
+
+    // enchantment 标签（15 个）。客户端在网络路径上只认 UpdateTags，本地 core 包的
+    // tags/enchantment/ 不会被读取；漏发会让提示框里的附魔行整块消失、诅咒不标红。
+    // 元素 id 与 enchantment 注册表条目的发送序号一致，成员顺序保留数据包声明顺序
+    // （tooltip_order 的提示框排序依赖它）。
+    if (g_registryDatapackRepo != nullptr) {
+        const auto elementIds = _buildEnchantmentElementIds();
+        mc::network::ir::configuration::TagRegistry enchantmentTags{};
+        enchantmentTags.registryKey = "minecraft:enchantment";
+        enchantmentTags.tags.reserve(_enchantmentTagIds.size());
+        for (const auto tagId : _enchantmentTagIds) {
+            std::unordered_set<std::string> resolving{std::string(tagId)};
+            enchantmentTags.tags.push_back({std::string(tagId),
+                _resolveEnchantmentTagElements(*g_registryDatapackRepo, std::string(tagId), elementIds, resolving)});
+        }
+        registries.push_back(std::move(enchantmentTags));
+    } else {
+        // 没有数据包来源时无法计算元素 id：宁可不发，也不要发错误的 id 列表
+        // （错 id 会让客户端把标签绑到别的附魔上，比空标签更难排查）。
+        spdlog::warn("RegistryDataBuilder: datapack source not registered; enchantment tags are NOT sent");
+    }
 
     return registries;
 }

@@ -73,7 +73,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 
 #include "vanilla_datapack.hpp"
 
@@ -120,54 +120,54 @@ const std::vector<BlockEntry>& blocks()
  * 用**原版名字**而不是整数下标：两侧枚举的声明顺序不同（Cubium 把玩家头放在最后，
  * 原版也是，但中间次序未必一致），按下标比会得到一堆伪差异；按名字比才有意义。
  */
-const char* instrumentName(BlockProperties::Instrument instrument)
+const char* instrumentName(NoteBlockInstrument instrument)
 {
     switch (instrument) {
-        case BlockProperties::Instrument::Harp:
+        case NoteBlockInstrument::Harp:
             return "harp";
-        case BlockProperties::Instrument::BaseDrum:
+        case NoteBlockInstrument::BaseDrum:
             return "basedrum";
-        case BlockProperties::Instrument::Snare:
+        case NoteBlockInstrument::Snare:
             return "snare";
-        case BlockProperties::Instrument::Hat:
+        case NoteBlockInstrument::Hat:
             return "hat";
-        case BlockProperties::Instrument::Bass:
+        case NoteBlockInstrument::Bass:
             return "bass";
-        case BlockProperties::Instrument::Flute:
+        case NoteBlockInstrument::Flute:
             return "flute";
-        case BlockProperties::Instrument::Bell:
+        case NoteBlockInstrument::Bell:
             return "bell";
-        case BlockProperties::Instrument::Guitar:
+        case NoteBlockInstrument::Guitar:
             return "guitar";
-        case BlockProperties::Instrument::Chime:
+        case NoteBlockInstrument::Chime:
             return "chime";
-        case BlockProperties::Instrument::Xylophone:
+        case NoteBlockInstrument::Xylophone:
             return "xylophone";
-        case BlockProperties::Instrument::IronXylophone:
+        case NoteBlockInstrument::IronXylophone:
             return "iron_xylophone";
-        case BlockProperties::Instrument::CowBell:
+        case NoteBlockInstrument::CowBell:
             return "cow_bell";
-        case BlockProperties::Instrument::Didgeridoo:
+        case NoteBlockInstrument::Didgeridoo:
             return "didgeridoo";
-        case BlockProperties::Instrument::Bit:
+        case NoteBlockInstrument::Bit:
             return "bit";
-        case BlockProperties::Instrument::Banjo:
+        case NoteBlockInstrument::Banjo:
             return "banjo";
-        case BlockProperties::Instrument::Pling:
+        case NoteBlockInstrument::Pling:
             return "pling";
-        case BlockProperties::Instrument::Zombie:
+        case NoteBlockInstrument::Zombie:
             return "zombie";
-        case BlockProperties::Instrument::Skeleton:
+        case NoteBlockInstrument::Skeleton:
             return "skeleton";
-        case BlockProperties::Instrument::Creeper:
+        case NoteBlockInstrument::Creeper:
             return "creeper";
-        case BlockProperties::Instrument::Dragon:
+        case NoteBlockInstrument::Dragon:
             return "dragon";
-        case BlockProperties::Instrument::WitherSkeleton:
+        case NoteBlockInstrument::WitherSkeleton:
             return "wither_skeleton";
-        case BlockProperties::Instrument::Piglin:
+        case NoteBlockInstrument::Piglin:
             return "piglin";
-        case BlockProperties::Instrument::CustomHead:
+        case NoteBlockInstrument::CustomHead:
             return "custom_head";
     }
     return "unknown";

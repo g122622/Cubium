@@ -25,16 +25,16 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
-#include "common/world/block/blocks/copper/WeatheringCopperBlock.hpp"
-#include "common/world/block/blocks/copper/WeatheringCopperDoorBlock.hpp"
-#include "common/world/block/blocks/copper/WeatheringCopperSlabBlock.hpp"
-#include "common/world/block/blocks/copper/WeatheringCopperStairBlock.hpp"
-#include "common/world/block/blocks/copper/WeatheringCopperTrapDoorBlock.hpp"
-#include "common/world/block/registry/CopperBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/building/slab/WeatheringCopperSlabBlock.hpp"
+#include "common/world/block/blocks/building/stairs/WeatheringCopperStairBlock.hpp"
+#include "common/world/block/blocks/door/WeatheringCopperDoorBlock.hpp"
+#include "common/world/block/blocks/trapdoor/WeatheringCopperTrapDoorBlock.hpp"
+#include "common/world/block/capability/oxidation/IOxidizableBlock.hpp"
+#include "common/world/block/capability/oxidation/WeatheringCopperBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/CopperBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 #include <unordered_map>
 

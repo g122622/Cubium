@@ -26,7 +26,7 @@
  *
  * **本探针调用 Cubium 的真实实现**
  * （`BlockState::isFaceSturdy(IWorld&, BlockPos, Direction, const SupportType&)`，
- * 见 `common/world/block/BlockState.cpp`）。
+ * 见 `common/world/block/state/BlockState.cpp`）。
  *
  * ## 为什么这个能力重要
  *
@@ -91,11 +91,11 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/SupportType.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/support/SupportType.hpp"
 
 #include "probe.hpp"
 

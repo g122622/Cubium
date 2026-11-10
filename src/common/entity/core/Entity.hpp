@@ -55,7 +55,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include <algorithm>
 #include <array>
@@ -1148,7 +1148,7 @@ public:
      *
      * @param height 步进高度
      */
-    void setStepHeight(f32 height)
+    virtual void setStepHeight(f32 height)
     {
         m_stepHeight = height;
     }

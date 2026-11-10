@@ -32,13 +32,13 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/coral/CoralBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -412,33 +412,6 @@ bool CoralFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
     }
 
     return false;
-}
-
-// TODO: 当前无调用方（形状放置统一走 placeCoralWithDecorations 的公共辅助函数），
-// 保留待珊瑚特征细分形状逻辑接入后再启用或删除。
-void CoralFeature::_placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const
-{
-    [[maybe_unused]] const bool placed = placeCoralBase(world, pos, color, false);
-}
-
-// TODO: 当前无调用方，理由同 _placeCoralBlock。
-void CoralFeature::_placeCoralFan(
-    WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const
-{
-    if (!isWaterAt(world, pos)) {
-        return;
-    }
-
-    if (direction == Direction::Up) {
-        if (const BlockState* fanState = getCoralFanState(color, false); fanState != nullptr) {
-            world.setBlockState(pos, fanState);
-        }
-        return;
-    }
-
-    if (const BlockState* wallFanState = getCoralWallFanState(color, direction, false); wallFanState != nullptr) {
-        world.setBlockState(pos, wallFanState);
-    }
 }
 
 // ============================================================================

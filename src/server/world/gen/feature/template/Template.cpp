@@ -29,6 +29,8 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/physics/shape/DiscreteVoxelShape.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -40,18 +42,17 @@
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/IWorldWriter.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/ILiquidContainer.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/capability/ILiquidContainer.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -71,6 +72,50 @@ namespace template_ {
 
 // 使用 namespace
 using fluid::FluidState;
+
+namespace {
+
+/**
+ * @brief 更新放置体积外露面两侧方块的形状
+ *
+ * 遍历离散形状的每个暴露面，面内侧方块与面外侧邻居各按对方状态刷新一次。
+ * 后放置的构件可能与先放置构件的方块贴合，本步骤保证先放置方块的连接状态
+ * （栅栏、墙、玻璃板等）能随新邻居一同刷新；形状刷新只处理本次放置的方块，
+ * 覆盖不到这些位于体积之外、但与体积边界贴合的旧方块。
+ *
+ * @param world 放置目标世界
+ * @param flags 写入标志（更新时清掉邻居通知位，避免形状刷新触发邻居更新级联）
+ * @param shape 本次放置体积的离散形状
+ * @param origin 离散形状原点对应的世界坐标
+ */
+void _updateShapeAtEdge(IWorld& world, i32 flags, DiscreteVoxelShape& shape, const BlockPos& origin)
+{
+    shape.forAllFaces([&](Direction direction, i32 x, i32 y, i32 z) {
+        const BlockPos pos(origin.x + x, origin.y + y, origin.z + z);
+        const BlockPos neighborPos = pos.offset(direction);
+
+        const BlockState* state = world.getBlockState(pos);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (state == nullptr || neighborState == nullptr) {
+            return;
+        }
+
+        // 面内侧方块按邻居刷新；刷新后的状态作为外侧方块看到的新邻居
+        const BlockState updated =
+            state->getBlockMutable().updatePostPlacement(*state, direction, *neighborState, world, pos, neighborPos);
+        if (updated != *state) {
+            world.setBlockState(pos, &updated, flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS);
+        }
+
+        const BlockState neighborUpdated = neighborState->getBlockMutable().updatePostPlacement(
+            *neighborState, Directions::opposite(direction), updated, world, neighborPos, pos);
+        if (neighborUpdated != *neighborState) {
+            world.setBlockState(neighborPos, &neighborUpdated, flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS);
+        }
+    });
+}
+
+} // namespace
 
 // ============================================================================
 // BlockAgeProcessor 常量
@@ -286,7 +331,6 @@ PlacementSettings::PlacementSettings()
     , m_mirror(Mirror::None)
     , m_boundingBox(nullptr)
     , m_centerOffset(0, 0, 0)
-    , m_blockUpdateFlags(world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
 {}
 
 PlacementSettings& PlacementSettings::setRotation(Rotation rotation)
@@ -315,19 +359,30 @@ PlacementSettings& PlacementSettings::setBoundingBox(const structure::StructureB
 
 PlacementSettings& PlacementSettings::setCenterOffset(const BlockPos& offset)
 {
+    // `centerOffset` 与旋转枢轴在放置语义上是同一件事：原版只有 rotationPivot，过去这里
+    // 用 centerOffset 顶替枢轴，于是各自设枢轴的调用方不得不二选一。现在两者由同一份数据
+    // 驱动，避免 A 设了 centerOffset、B 设了 rotationPivot 而彼此看不到。
     m_centerOffset = offset;
+    m_rotationPivot = offset;
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setBlockUpdateFlags(i32 flags)
+PlacementSettings& PlacementSettings::setRotationPivot(const BlockPos& pivot)
 {
-    m_blockUpdateFlags = flags;
+    m_rotationPivot = pivot;
+    m_centerOffset = pivot;
     return *this;
 }
 
 PlacementSettings& PlacementSettings::setKeepLiquids(bool keep)
 {
     m_keepLiquids = keep;
+    return *this;
+}
+
+PlacementSettings& PlacementSettings::setKnownShape(bool known)
+{
+    m_knownShape = known;
     return *this;
 }
 
@@ -353,9 +408,10 @@ PlacementSettings PlacementSettings::copy() const
     result.m_mirror = m_mirror;
     result.m_ignoreEntities = m_ignoreEntities;
     result.m_keepLiquids = m_keepLiquids;
+    result.m_knownShape = m_knownShape;
     result.m_boundingBox = m_boundingBox;
     result.m_centerOffset = m_centerOffset;
-    result.m_blockUpdateFlags = m_blockUpdateFlags;
+    result.m_rotationPivot = m_rotationPivot;
     result.m_processors = m_processors;
     result.m_world = m_world;
     result.m_random = m_random;
@@ -600,7 +656,7 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
     }
 
     const BlockPos last(m_size.x - 1, m_size.y - 1, m_size.z - 1);
-    const BlockPos& pivot = settings.getCenterOffset();
+    const BlockPos& pivot = settings.getRotationPivot();
     const BlockPos cornerA = transformBlockPos(BlockPos(0, 0, 0), settings.getMirror(), settings.getRotation(), pivot);
     const BlockPos cornerB = transformBlockPos(last, settings.getMirror(), settings.getRotation(), pivot);
 
@@ -612,223 +668,56 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
         pos.z + std::max(cornerA.z, cornerB.z));
 }
 
-bool Template::place(
-    IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const
+std::vector<TemplateDataMarker> Template::getDataMarkers(
+    const BlockPos& templatePosition, const PlacementSettings& settings) const
 {
-    // 原版 StructureTemplate.placeInWorld 的 RandomSource 形参在 1.21 已无消费方：
-    // 调色板选择改走 settings.getRandom(pos)（位置派生），处理器链也不接收随机源。
-    // 参数保留是为了与调用方签名一致。
-    (void)rng;
+    std::vector<TemplateDataMarker> markers;
 
-    // 选择调色板
-    const Palette* selectedPalette = selectPalette(settings, pos);
-    if (!selectedPalette || selectedPalette->empty()) {
-        // 位置派生的调色板选择失败或为空时，回退到第一个调色板
+    const Palette* palette = selectPalette(settings, templatePosition);
+    if (palette == nullptr) {
         if (m_palettes.empty()) {
-            return true; // 空模板，无需放置
+            return markers;
         }
-        selectedPalette = &m_palettes[0];
-        if (selectedPalette->empty()) {
-            return true;
-        }
+        palette = &m_palettes[0];
     }
 
-    const Palette::BlockVec& blocks = selectedPalette->blocks();
-
-    // 获取边界框（可选检查）
+    const Block* structureBlock = VanillaBlocks::STRUCTURE_BLOCK;
     const auto* bounds = settings.getBoundingBox();
-
-    // 首先处理方块信息（应用处理器链）
-    std::vector<BlockInfo> originalBlocks;
-    std::vector<ProcessedBlockInfo> processedBlocks;
-    originalBlocks.reserve(blocks.size());
-    processedBlocks.reserve(blocks.size());
-
-    for (size_t blockIndex = 0; blockIndex < blocks.size(); ++blockIndex) {
-        const PaletteBlock& block = blocks[blockIndex];
-        // 模板内坐标 -> 世界坐标；NBT 按索引从调色板的稀疏表取出（绝大多数方块为 nullptr）
-        const nbt::CompoundTag* blockNbt = selectedPalette->nbtAt(blockIndex);
-        const BlockPos localPos = block.pos();
-
-        // 计算变换后的位置
-        BlockPos transformedPos = transformBlockPos(
-            localPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0) // 相对于原点变换
-        );
-
-        // 加上目标位置偏移
-        BlockPos worldPos = pos + transformedPos;
-
-        // 创建待处理的方块信息
-        BlockInfo blockInfo(worldPos, block.blockStateId);
-        if (blockNbt) {
-            blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*blockNbt);
-        }
-
-        // 保存原始方块信息（用于 finalizeProcessing）
-        BlockInfo rawInfo(localPos, block.blockStateId);
-        if (blockNbt) {
-            rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*blockNbt);
-        }
-
-        // 应用处理器链
-        ProcessedBlockInfo processedBlock;
-        processedBlock.pos = worldPos;
-        processedBlock.blockStateId = blockInfo.blockStateId;
-        if (blockInfo.nbt) {
-            processedBlock.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-
-        // 处理器链处理
-        const StructureProcessorList* processors = settings.getProcessors();
-        if (processors) {
-            bool shouldKeep = true;
-            for (const auto& processor : *processors) {
-                if (processor) {
-                    auto result = processor->process(pos, worldPos, rawInfo, blockInfo, settings);
-                    if (!result) {
-                        shouldKeep = false;
-                        break; // 处理器返回空，跳过此方块
-                    }
-                    processedBlock = *result;
-                    // 更新 blockInfo 供下一个处理器使用
-                    blockInfo.pos = processedBlock.pos;
-                    blockInfo.blockStateId = processedBlock.blockStateId;
-                    if (processedBlock.nbt) {
-                        blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*processedBlock.nbt);
-                    }
-                }
-            }
-
-            if (!shouldKeep) {
-                continue; // 跳过此方块
-            }
-        }
-
-        originalBlocks.push_back(std::move(rawInfo));
-        processedBlocks.push_back(std::move(processedBlock));
-    }
-
-    // 后处理阶段：对所有处理器调用 finalizeProcessing
-    if (settings.getProcessors()) {
-        for (const auto& processor : *settings.getProcessors()) {
-            if (processor) {
-                processedBlocks =
-                    processor->finalizeProcessing(pos, settings, originalBlocks, std::move(processedBlocks));
-            }
-        }
-        // 确保原始列表和处理后列表大小一致（finalizeProcessing 可能移除方块）
-        if (processedBlocks.size() < originalBlocks.size()) {
-            originalBlocks.resize(processedBlocks.size());
-        }
-    }
-
-    // 方块排序逻辑：按 Y, X, Z 坐标排序，并分为三类
-    // 1. 普通方块（无 NBT，有opaque碰撞箱）
-    // 2. 其他方块（透明或变量透明度）
-    // 3. 方块实体（有 NBT）
-    // 最终顺序：普通方块 -> 其他方块 -> 方块实体
-
-    // 分类方块
-    std::vector<ProcessedBlockInfo> normalBlocks;      // 有opaque碰撞箱的方块
-    std::vector<ProcessedBlockInfo> otherBlocks;       // 透明/变量透明度方块
-    std::vector<ProcessedBlockInfo> blockEntityBlocks; // 有NBT的方块
-
-    for (auto& block : processedBlocks) {
-        const BlockState* state = BlockRegistry::instance().getBlockState(block.blockStateId);
-        if (!state) {
-            otherBlocks.push_back(std::move(block));
+    const auto& blocks = palette->blocks();
+    for (size_t index = 0; index < blocks.size(); ++index) {
+        const BlockState* state = BlockRegistry::instance().getBlockState(blocks[index].blockStateId);
+        if (state == nullptr || &state->getBlock() != structureBlock) {
             continue;
         }
 
-        if (block.nbt) {
-            // 有 NBT 的方块最后放置
-            blockEntityBlocks.push_back(std::move(block));
-        } else if (state->hasOpaqueCollisionShape()) {
-            // 有opaque碰撞箱的方块首先放置
-            // 当前项目中所有方块默认 variableOpacity = false
-            normalBlocks.push_back(std::move(block));
-        } else {
-            // 透明或变量透明度的方块放在中间
-            otherBlocks.push_back(std::move(block));
+        const nbt::CompoundTag* tag = palette->nbtAt(index);
+        if (tag == nullptr) {
+            continue;
         }
+        const auto mode = entity::serialization::nbt_helper::tryGetString(*tag, "mode");
+        if (!mode.has_value() || *mode != "DATA") {
+            continue;
+        }
+
+        const BlockPos worldPos = templatePosition +
+            transformBlockPos(
+                blocks[index].pos(), settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
+        if (bounds != nullptr && !bounds->contains(worldPos.x, worldPos.y, worldPos.z)) {
+            continue;
+        }
+
+        markers.push_back(TemplateDataMarker{
+            worldPos, entity::serialization::nbt_helper::tryGetString(*tag, "metadata").value_or("")});
     }
 
-    // 排序函数：按 Y, X, Z 坐标排序
-    auto blockComparator = [](const ProcessedBlockInfo& a, const ProcessedBlockInfo& b) {
-        if (a.pos.y != b.pos.y) {
-            return a.pos.y < b.pos.y;
-        }
-        if (a.pos.x != b.pos.x) {
-            return a.pos.x < b.pos.x;
-        }
-        return a.pos.z < b.pos.z;
-    };
-
-    std::sort(normalBlocks.begin(), normalBlocks.end(), blockComparator);
-    std::sort(otherBlocks.begin(), otherBlocks.end(), blockComparator);
-    std::sort(blockEntityBlocks.begin(), blockEntityBlocks.end(), blockComparator);
-
-    // 合并方块列表：普通 -> 其他 -> 方块实体
-    processedBlocks.clear();
-    processedBlocks.reserve(normalBlocks.size() + otherBlocks.size() + blockEntityBlocks.size());
-    for (auto& block : normalBlocks) {
-        processedBlocks.push_back(std::move(block));
-    }
-    for (auto& block : otherBlocks) {
-        processedBlocks.push_back(std::move(block));
-    }
-    for (auto& block : blockEntityBlocks) {
-        processedBlocks.push_back(std::move(block));
-    }
-
-    // 放置所有处理后的方块
-    for (const auto& processedBlock : processedBlocks) {
-        // 检查边界框
-        if (bounds) {
-            if (processedBlock.pos.x < bounds->minX() || processedBlock.pos.x > bounds->maxX() ||
-                processedBlock.pos.y < bounds->minY() || processedBlock.pos.y > bounds->maxY() ||
-                processedBlock.pos.z < bounds->minZ() || processedBlock.pos.z > bounds->maxZ()) {
-                continue; // 跳过边界外的方块
-            }
-        }
-
-        // 获取方块状态
-        const BlockState* state = BlockRegistry::instance().getBlockState(processedBlock.blockStateId);
-        if (!state) {
-            continue; // 跳过无效的方块状态
-        }
-
-        // 应用镜像和旋转变换到方块状态
-        const BlockState* transformedState = state;
-
-        // 先应用镜像
-        if (settings.getMirror() != Mirror::None) {
-            transformedState = &transformedState->getBlock().mirror(*transformedState, settings.getMirror());
-        }
-
-        // 再应用旋转
-        if (settings.getRotation() != Rotation::None) {
-            transformedState = &transformedState->getBlock().rotate(*transformedState, settings.getRotation());
-        }
-
-        // 放置方块
-        world.setBlockState(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, flags);
-
-        // 方块实体数据由 placeInWorld 方法处理
-        // 此处仅负责方块状态放置
-        (void)processedBlock.nbt;
-    }
-
-    // 结构模板中的实体数据由 placeInWorld 方法处理
-    (void)settings;
-
-    return true;
+    return markers;
 }
 
 bool Template::placeInWorld(
     IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const
 {
-    // 同 Template::place：RandomSource 形参已无消费方（见该函数内说明）
+    // RandomSource 形参在 1.21 已无消费方：调色板选择改走 settings.getRandom(pos)（位置派生），
+    // 处理器链也不接收随机源。参数保留是为了与调用方签名一致。
     (void)rng;
 
     // 选择调色板
@@ -923,8 +812,16 @@ bool Template::placeInWorld(
         }
     }
 
-    // 记录需要处理液体的位置
+    // 液体处理的两个位置表：
+    // - sourceFluidPositions：本次放置的方块自身就是流体源头（水方块、waterlogged=true 的方块），
+    //   传播阶段不允许从这些位置取水，避免模板里的水反灌自身构件；
+    // - fluidUpdatePositions：放置后仍未确定水源的液体容器位置，等全部方块落位后
+    //   再从相邻水源补水。
+    std::vector<BlockPos> sourceFluidPositions;
     std::vector<BlockPos> fluidUpdatePositions;
+
+    // 本次成功写入的方块位置：边界形状刷新与整体形状刷新都只处理这一批方块
+    std::vector<BlockPos> placedPositions;
 
     // 放置所有处理后的方块
     for (const auto& processedBlock : processedBlocks) {
@@ -973,6 +870,7 @@ bool Template::placeInWorld(
         if (!placed) {
             continue;
         }
+        placedPositions.push_back(processedBlock.pos);
 
         // 处理 TileEntity NBT
         if (processedBlock.nbt) {
@@ -999,26 +897,28 @@ bool Template::placeInWorld(
             }
         }
 
-        // 处理液体填充
-        if (fluidState && !fluidState->isEmpty()) {
-            Block& block = transformedState->getBlockMutable();
-            ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
-            if (liquidContainer &&
-                liquidContainer->canContainFluid(
-                    world, processedBlock.pos, *transformedState, fluidState->getFluid())) {
-                liquidContainer->receiveFluid(world, processedBlock.pos, *transformedState, *fluidState);
-                // 如果不是源头，记录位置以便后续处理
-                if (!fluidState->isSource()) {
-                    fluidUpdatePositions.push_back(processedBlock.pos);
+        // 处理液体填充：放置前读到的流体若为源头，记录为「本次放置的水源」；
+        // 否则只要方块本身是液体容器，就尝试按原位流体灌入，并登记待传播位置。
+        if (fluidState != nullptr) {
+            const FluidState* placedFluid = transformedState->getFluidState();
+            if (placedFluid != nullptr && placedFluid->isSource()) {
+                sourceFluidPositions.push_back(processedBlock.pos);
+            } else {
+                Block& block = transformedState->getBlockMutable();
+                ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
+                if (liquidContainer != nullptr) {
+                    liquidContainer->receiveFluid(world, processedBlock.pos, *transformedState, *fluidState);
+                    if (!fluidState->isSource()) {
+                        fluidUpdatePositions.push_back(processedBlock.pos);
+                    }
                 }
             }
         }
     }
 
-    // 液体传播处理
-    // 如果方块被放置在非源流体位置，需要处理流体传播
+    // 液体传播：本次放置时没有直接落在水源上的容器，若上下左右存在水源，
+    // 就用水源把容器灌满。多轮执行直到没有新的容器被灌满。
     if (!fluidUpdatePositions.empty() && settings.keepLiquids()) {
-        // 完整实现：追踪相邻流体并填充容器
         static const Direction directions[] = {
             Direction::Up, Direction::North, Direction::East, Direction::South, Direction::West};
 
@@ -1027,39 +927,35 @@ bool Template::placeInWorld(
             changed = false;
             auto it = fluidUpdatePositions.begin();
             while (it != fluidUpdatePositions.end()) {
-                const BlockPos& fluidPos = *it;
-                BlockPos bestPos = fluidPos;
+                const BlockPos fluidPos = *it;
                 const FluidState* bestFluid = world.getFluidState(fluidPos);
 
-                // 查找相邻的最高流体
+                // 取第一个可用的水源：自身是源头就不再看邻居；邻居必须是源头，
+                // 且不能是本次放置自己写下的水源（避免模板内的水回灌构件）。
                 for (const Direction& dir : directions) {
-                    if (!bestFluid || bestFluid->isSource()) {
+                    if (bestFluid != nullptr && bestFluid->isSource()) {
                         break;
                     }
 
-                    BlockPos adjacentPos = fluidPos.offset(dir);
+                    const BlockPos adjacentPos = fluidPos.offset(dir);
                     const FluidState* adjacentFluid = world.getFluidState(adjacentPos);
-                    if (!adjacentFluid || adjacentFluid->isEmpty()) {
+                    if (adjacentFluid == nullptr || !adjacentFluid->isSource()) {
                         continue;
                     }
-
-                    // 比较流体高度：更高的流体或源流体优先
-                    if (adjacentFluid->getActualHeight(world, adjacentPos) >
-                            bestFluid->getActualHeight(world, bestPos) ||
-                        (adjacentFluid->isSource() && !bestFluid->isSource())) {
-                        bestFluid = adjacentFluid;
-                        bestPos = adjacentPos;
+                    if (std::find(sourceFluidPositions.begin(), sourceFluidPositions.end(), adjacentPos) !=
+                        sourceFluidPositions.end()) {
+                        continue;
                     }
+                    bestFluid = adjacentFluid;
                 }
 
-                // 如果找到源流体，填充容器
-                if (bestFluid && bestFluid->isSource()) {
+                // 找到水源就灌入当前容器
+                if (bestFluid != nullptr && bestFluid->isSource()) {
                     const BlockState* blockState = world.getBlockState(fluidPos);
-                    if (blockState) {
+                    if (blockState != nullptr) {
                         Block& block = blockState->getBlockMutable();
                         ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
-                        if (liquidContainer &&
-                            liquidContainer->canContainFluid(world, fluidPos, *blockState, bestFluid->getFluid())) {
+                        if (liquidContainer != nullptr) {
                             liquidContainer->receiveFluid(world, fluidPos, *blockState, *bestFluid);
                             changed = true;
                             it = fluidUpdatePositions.erase(it);
@@ -1073,19 +969,47 @@ bool Template::placeInWorld(
         }
     }
 
-    // 形状更新：对所有放置的方块根据邻居状态更新其形状
-    // 如栅栏连接、楼梯朝向、红石线路形状等需要根据邻居方块确定状态的方块
-    for (const auto& processedBlock : processedBlocks) {
-        const BlockState* currentState = world.getBlockState(processedBlock.pos);
-        if (currentState == nullptr || currentState->isAir()) {
-            continue;
+    // 边界形状更新：本次放置的体积与体积外已有方块贴合时，
+    // 两侧方块的连接/附着状态都要按对方刷新一次。
+    // 模板声明形状已知时跳过，直接采用模板记录的连接属性。
+    if (!settings.knownShape() && !placedPositions.empty()) {
+        i32 minX = placedPositions[0].x;
+        i32 minY = placedPositions[0].y;
+        i32 minZ = placedPositions[0].z;
+        i32 maxX = minX;
+        i32 maxY = minY;
+        i32 maxZ = minZ;
+        for (const BlockPos& placedPos : placedPositions) {
+            minX = std::min(minX, placedPos.x);
+            minY = std::min(minY, placedPos.y);
+            minZ = std::min(minZ, placedPos.z);
+            maxX = std::max(maxX, placedPos.x);
+            maxY = std::max(maxY, placedPos.y);
+            maxZ = std::max(maxZ, placedPos.z);
         }
-        BlockState updated = Block::updateFromNeighbourShapes(*currentState, world, processedBlock.pos);
-        if (updated != *currentState) {
-            world.setBlockState(processedBlock.pos,
-                &updated,
-                world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE |
-                    world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS);
+
+        DiscreteVoxelShape placedVolume(maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1);
+        for (const BlockPos& placedPos : placedPositions) {
+            placedVolume.fill(placedPos.x - minX, placedPos.y - minY, placedPos.z - minZ);
+        }
+        _updateShapeAtEdge(world, flags, placedVolume, BlockPos(minX, minY, minZ));
+    }
+
+    // 形状更新：对本次放置的方块根据邻居状态更新其形状
+    // 如栅栏连接、楼梯朝向、红石线路形状等需要根据邻居方块确定状态的方块
+    if (!settings.knownShape()) {
+        for (const BlockPos& placedPos : placedPositions) {
+            const BlockState* currentState = world.getBlockState(placedPos);
+            if (currentState == nullptr || currentState->isAir()) {
+                continue;
+            }
+            BlockState updated = Block::updateFromNeighbourShapes(*currentState, world, placedPos);
+            if (updated != *currentState) {
+                // 形状刷新不再通知邻居，并声明形状已更新（避免写入时再次递归形状更新）
+                world.setBlockState(placedPos,
+                    &updated,
+                    (flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS) | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
+            }
         }
     }
 
@@ -1228,21 +1152,27 @@ bool Template::placeInWorld(
 
 BlockPos Template::getZeroPositionWithTransform(const BlockPos& pos, Mirror mirror, Rotation rotation) const
 {
+    return getZeroPositionWithTransform(pos, mirror, rotation, m_size.x, m_size.z);
+}
+
+BlockPos Template::getZeroPositionWithTransform(
+    const BlockPos& pos, Mirror mirror, Rotation rotation, i32 sizeX, i32 sizeZ)
+{
     // 对齐 MC 1.21.11 StructureTemplate.java:616-637（static getZeroPositionWithTransform）：
     // 尺寸先各减 1，再按镜像决定偏移分量 i/j，最后按旋转选择偏移组合。全程只做 offset，
     // 不对 pos 本身做镜像/旋转坐标系变换——结果不会离开 pos 的一个模板尺寸邻域。
-    const i32 sizeX = m_size.x - 1;
-    const i32 sizeZ = m_size.z - 1;
-    const i32 i = (mirror == Mirror::FrontBack) ? sizeX : 0;
-    const i32 j = (mirror == Mirror::LeftRight) ? sizeZ : 0;
+    const i32 spanX = sizeX - 1;
+    const i32 spanZ = sizeZ - 1;
+    const i32 i = (mirror == Mirror::FrontBack) ? spanX : 0;
+    const i32 j = (mirror == Mirror::LeftRight) ? spanZ : 0;
 
     switch (rotation) {
         case Rotation::CounterClockwise90:
-            return BlockPos(pos.x + j, pos.y, pos.z + sizeX - i);
+            return BlockPos(pos.x + j, pos.y, pos.z + spanX - i);
         case Rotation::Clockwise90:
-            return BlockPos(pos.x + sizeZ - j, pos.y, pos.z + i);
+            return BlockPos(pos.x + spanZ - j, pos.y, pos.z + i);
         case Rotation::Clockwise180:
-            return BlockPos(pos.x + sizeX - i, pos.y, pos.z + sizeZ - j);
+            return BlockPos(pos.x + spanX - i, pos.y, pos.z + spanZ - j);
         default:
             return BlockPos(pos.x + i, pos.y, pos.z + j);
     }
@@ -1356,7 +1286,7 @@ BlockPos Template::getTransformedPosition(const BlockPos& pos, Rotation rotation
 // Processors
 // ============================================================================
 
-GravityStructureProcessor::GravityStructureProcessor(i32 heightmapType, i32 offset)
+GravityStructureProcessor::GravityStructureProcessor(world::chunk::HeightmapType heightmapType, i32 offset)
     : m_heightmapType(heightmapType)
     , m_offset(offset)
 {}
@@ -1388,16 +1318,18 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const Block
     //    terrain_matching，路面 dirt_path 在局部 y=0、jigsaw 在局部 y=1）会因此把路面
     //    埋到地表以下一格，在地面上表现为"村庄里看不见路"。
     //
-    // TODO: 原版在 `level instanceof ServerLevel` 时把 WORLD_SURFACE_WG 换成 WORLD_SURFACE
-    // （OCEAN_FLOOR_WG → OCEAN_FLOOR），用于运行时 `/place` 类路径；项目的 IWorld 查询
-    // 恒用 WorldSurfaceWG，运行时路径的高度图类型尚未区分。
+    // TODO: 原版在 `level instanceof ServerLevel`（运行时放置，如结构方块/`/place`）时把
+    // WORLD_SURFACE_WG 换成 WORLD_SURFACE（OCEAN_FLOOR_WG → OCEAN_FLOOR）；项目目前没有运行时
+    // 结构放置路径（结构方块的 SAVE/LOAD 尚未实现），所有调用都发生在 worldgen 的
+    // WorldGenRegion 上，故这里直接用构造时配置的高度图类型，不做 WG → 非 WG 替换。
+    // 接入运行时放置时，必须在此处按「世界是否为 WorldGenRegion」选择类型。
     const IWorld* world = settings.getWorld();
 
     ProcessedBlockInfo result = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     if (world) {
-        // 完整实现：使用高度图获取地面高度
-        const i32 heightmapFirstFreeY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z) + 1;
+        // 完整实现：按配置的高度图取地面高度（原版 GravityProcessor 的 heightmap 字段）
+        const i32 heightmapFirstFreeY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z, m_heightmapType) + 1;
         result.pos = BlockPos(blockInfo.pos.x, heightmapFirstFreeY + m_offset + rawBlockInfo.pos.y, blockInfo.pos.z);
     } else {
         // 简化实现：仅应用偏移量
@@ -1417,8 +1349,10 @@ std::optional<ProcessedBlockInfo> BlockIgnoreStructureProcessor::process(const B
     const BlockInfo& blockInfo,
     const PlacementSettings& /*settings*/)
 {
-    // 使用 unordered_set 进行 O(1) 查找
-    if (m_blocksToIgnore.count(blockInfo.blockStateId) > 0) {
+    // 按方块而非具体状态忽略：模板里的同一方块可能是任意状态（如 structure_block[mode=data]），
+    // 只比较方块 ID 才能覆盖它的全部状态。
+    const BlockState* state = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
+    if (state != nullptr && m_blocksToIgnore.count(state->blockId()) > 0) {
         return std::nullopt; // 跳过此方块
     }
 
@@ -1541,10 +1475,12 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
     // 获取默认状态
     const BlockState* state = &block->defaultState();
 
-    // 应用属性
+    // 应用属性：原版 `BlockStateParser` 从**默认状态**出发，逐个性设置显式给出的属性，
+    // 未给出的属性保持默认值。不能用「枚举全部状态取第一个匹配子集」的写法：那样未指定
+    // 的属性会随状态枚举顺序取值（如拼图 final_state 只写 `lit=true` 时，铜灯的
+    // `powered` 可能被意外置为 true）。
     if (!properties.empty()) {
         const auto& container = block->stateContainer();
-        std::unordered_map<const IProperty*, size_t> wanted;
 
         for (const auto& [key, value] : properties) {
             const IProperty* prop = container.getProperty(key);
@@ -1557,34 +1493,11 @@ u32 JigsawReplacementStructureProcessor::parseBlockStateString(const std::string
                 continue;
             }
 
-            wanted[prop] = *parsedValue;
-        }
-
-        // 查找匹配的状态
-        if (!wanted.empty()) {
-            for (const auto& candidate : container.validStates()) {
-                if (!candidate) {
-                    continue;
-                }
-
-                bool matches = true;
-                for (const auto& [prop, index] : wanted) {
-                    const auto valueIndex = candidate->getValueIndex(*prop);
-                    if (!valueIndex.has_value() || *valueIndex != index) {
-                        matches = false;
-                        break;
-                    }
-                }
-
-                if (matches) {
-                    state = candidate.get();
-                    break;
-                }
-            }
+            state = &state->withValueIndex(*prop, *parsedValue);
         }
     }
 
-    return state ? state->stateId() : 0;
+    return state != nullptr ? state->stateId() : 0;
 }
 
 IntegrityProcessor::IntegrityProcessor(f32 integrity)
@@ -1599,8 +1512,10 @@ std::optional<ProcessedBlockInfo> IntegrityProcessor::process(const BlockPos& /*
 {
     // 使用位置种子创建确定性随机数生成器
     // 关键：使用变换后的世界坐标 (blockInfo.pos)，而非模板内坐标
+    // 原版 RandomSource.create(long) 返回 LegacyRandomSource（48 位 LCG），
+    // 不是世界生成用的 Xoroshiro，这里必须用 JavaLegacyRandom 才能逐抽样一致。
     u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
-    math::Random rng(seed);
+    math::JavaLegacyRandom rng(seed);
 
     // 完整度 >= 1.0：保留所有方块
     // 随机判断是否保留方块：nextFloat() 返回 [0.0, 1.0)，所以 <= integrity 的概率正好是 integrity
@@ -1633,12 +1548,15 @@ std::optional<ProcessedBlockInfo> RuleStructureProcessor::process(const BlockPos
     const PlacementSettings& settings)
 {
     // 遍历所有规则，找到第一个匹配的规则
-    // 使用位置种子创建确定性随机数生成器
+    // 使用位置种子创建确定性随机数生成器（原版 RandomSource.create → LegacyRandomSource）
     u64 seed = math::getPositionRandom(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
-    math::Random rng(seed);
+    math::JavaLegacyRandom rng(seed);
 
-    // 获取输入方块状态
-    const BlockState* inputState = BlockRegistry::instance().getBlockState(rawBlockInfo.blockStateId);
+    // 输入谓词作用于**当前已处理状态**（原版 `RuleProcessor` 取 `blockInfo.state()`，而不是
+    // 模板原始状态）。两者在纯规则链里通常相同，但链前存在 `JigsawReplacement` 等会改写
+    // 状态的处理器时不同：拼图方块的 `final_state` 必须先替换，规则才能匹配到它
+    // （堡垒遗迹的裂纹砖、试炼密室的铜灯等差异都由此暴露）。
+    const BlockState* inputState = BlockRegistry::instance().getBlockState(blockInfo.blockStateId);
 
     // 获取世界位置方块状态（通过 PlacementSettings 中的世界访问）。
     // 生产路径 world 总是非空；world 缺失时（仅单元测试）回退到输入方块状态，
@@ -1891,17 +1809,16 @@ const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::IRandom& rng, 
     const BlockState& defaultState = stairsBlock.defaultState();
     const BlockState* result = &defaultState;
 
-    // 设置随机水平朝向
-    static constexpr Direction horizontalDirs[] = {
-        Direction::North, Direction::South, Direction::East, Direction::West};
-    Direction facing = horizontalDirs[rng.nextInt(4)];
+    // 设置随机水平朝向。用 Directions::horizontal()（NORTH, EAST, SOUTH, WEST）：
+    // 它决定 nextInt(4) 的下标映射，顺序错了朝向整体错位。
+    const auto horizontalDirs = Directions::horizontal();
+    Direction facing = horizontalDirs[static_cast<std::size_t>(rng.nextInt(4))];
     if (defaultState.hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
         result = &defaultState.with(BlockStateProperties::HORIZONTAL_FACING(), facing);
     }
 
-    // 设置随机上半/下半
+    // 设置随机上半/下半（Half 声明顺序 Top=0、Bottom=1）
     if (result->hasProperty(BlockStateProperties::HALF())) {
-        // Half 枚举值：Bottom(0), Top(1)
         auto half = static_cast<BlockStateProperties::Half>(rng.nextInt(2));
         result = &result->with(BlockStateProperties::HALF(), half);
     }

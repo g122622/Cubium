@@ -41,8 +41,8 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <algorithm>

@@ -68,6 +68,12 @@ public:
     [[nodiscard]] f32 height() const;
     /** @brief 判断命令和脚本是否可召唤此类型。 */
     [[nodiscard]] bool canSummon() const;
+    /**
+     * @brief 判断此类型是否参与自然生成（对应 description.is_spawnable）。
+     *
+     * 目前仅暴露该标志供生成逻辑判断；按 is_spawnable 生成自定义刷怪蛋与生成规则关联仍是 TODO。
+     */
+    [[nodiscard]] bool canSpawn() const;
     /** @brief 判断实体是否具有火焰免疫组件。 */
     [[nodiscard]] bool fireImmune() const;
 
@@ -84,6 +90,8 @@ private:
     f32 m_width;
     f32 m_height;
     bool m_canSummon;
+    /// description.is_spawnable：是否参与自然生成（刷怪蛋生成仍为 TODO）
+    bool m_canSpawn;
 };
 
 } // namespace mc::mod::bedrock::addon

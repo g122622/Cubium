@@ -32,7 +32,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -209,6 +209,16 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
             def->size = jsonObj["size"].get<i32>();
         }
 
+        if (jsonObj.contains("height") && jsonObj["height"].is_object()) {
+            auto heightResult = valueprovider::HeightProviderParser::parse(jsonObj["height"]);
+            if (heightResult.success()) {
+                def->height = heightResult.value();
+            } else {
+                spdlog::warn("Structure '{}': failed to parse height ({}), structure will not generate",
+                    def->id.toString(),
+                    heightResult.error().message());
+            }
+        }
         if (jsonObj.contains("start_height")) {
             // start_height 两种形式：
             //   简写（单键锚点）：{ "absolute": 0 } / { "above_bottom": N } / { "below_top": N }
@@ -290,6 +300,34 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
         // 解析废墟传送门的 setup 表
         if (jsonObj.contains("setups") && jsonObj["setups"].is_array()) {
             _parseRuinedPortalSetups(jsonObj["setups"], def->ruinedPortalSetups);
+        }
+
+        // 海底废墟的两个概率：原版是 OceanRuinStructure 编解码器的必填字段之外的
+        // `large_probability` / `cluster_probability`，直接参与随机判定，不能写死常量。
+        if (def->type == "minecraft:ocean_ruin") {
+            // 两个字段在原版编解码器里没有默认值，缺失即配置错误，必须报出来而不是补一个猜测值。
+            if (!jsonObj.contains("large_probability") || !jsonObj.contains("cluster_probability")) {
+                return Error(ErrorCode::InvalidData,
+                    "ocean_ruin structure '" + location.toString() +
+                        "' is missing large_probability or cluster_probability");
+            }
+            def->oceanRuinConfig.largeProbability = jsonObj["large_probability"].get<f32>();
+            def->oceanRuinConfig.clusterProbability = jsonObj["cluster_probability"].get<f32>();
+            // 暖/冷变体由结构定义决定（结构集按群系标签各自挑一个），不是按生成点群系现判。
+            if (!jsonObj.contains("biome_temp")) {
+                return Error(
+                    ErrorCode::InvalidData, "ocean_ruin structure '" + location.toString() + "' is missing biome_temp");
+            }
+            const std::string biomeTemp = jsonObj["biome_temp"].get<std::string>();
+            if (biomeTemp == "warm") {
+                def->oceanRuinBiomeTemp = OceanRuinType::Warm;
+            } else if (biomeTemp == "cold") {
+                def->oceanRuinBiomeTemp = OceanRuinType::Cold;
+            } else {
+                return Error(ErrorCode::InvalidData,
+                    "ocean_ruin structure '" + location.toString() + "' has unknown biome_temp '" + biomeTemp + "'");
+            }
+            def->oceanRuinConfig.biomeType = def->oceanRuinBiomeTemp;
         }
 
         // 存储定义

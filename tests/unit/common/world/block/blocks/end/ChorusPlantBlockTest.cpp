@@ -24,13 +24,13 @@
 #include "common/TestWorldHelper.hpp"
 #include <gtest/gtest.h>
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "world/block/blocks/end/ChorusPlantBlock.hpp"
 #include "world/border/WorldBorder.hpp"

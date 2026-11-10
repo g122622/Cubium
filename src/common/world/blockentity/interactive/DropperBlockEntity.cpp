@@ -24,7 +24,7 @@
 #include "DropperBlockEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"

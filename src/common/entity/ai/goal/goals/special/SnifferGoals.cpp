@@ -30,8 +30,8 @@
 #include "common/entity/ai/goal/goals/special/MoveToBlockGoal.hpp"
 #include "common/entity/entities/passive/special/SnifferEntity.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 
 namespace mc::entity::ai::goal {
 

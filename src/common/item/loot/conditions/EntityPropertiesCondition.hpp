@@ -112,8 +112,11 @@ public:
 
     /**
      * @brief 将字符串转换为 EntityTarget
+     *
+     * 未知目标名返回 InvalidData 错误，不回落任何默认值——回落会让拼错的目标名被当成
+     * 合法值，往返序列化后错误就无从发现。
      */
-    [[nodiscard]] static EntityTarget parseEntityTarget(const std::string& str);
+    [[nodiscard]] static Result<EntityTarget> parseEntityTarget(const std::string& str);
 
     /**
      * @brief 将 EntityTarget 转换为字符串

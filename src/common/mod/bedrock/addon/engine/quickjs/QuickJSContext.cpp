@@ -210,15 +210,31 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
     // 入口"成功"但 register 等从未执行）；Pending 则推进 pending jobs 至 settle（顶层 await 场景）。
     if (evalFlags == JS_EVAL_TYPE_MODULE && JS_IsPromise(val)) {
         // 推进 pending jobs 直至 Promise settle 或无更多 job。同步模块体立即 settle，循环 0 次。
-        // TODO: 顶层 await 的长时异步模块需设上限避免无限等待，当前行为包入口均为同步。
+        //
+        // 除"settle"与"无 job"两个正常出口外，还有第三种可能：job 不断自我追加（例如模块里
+        // 反复调度定时器/微任务）。此时前两个条件永远不成立，会卡死整个服务端。因此给循环
+        // 加一个执行次数上限——它不是精确的超时语义，但能把"无限等待"变成"明确失败"，
+        // 让有问题的行为包在加载期就报错，而不是让进程静默挂住。
+        constexpr i32 MAX_PENDING_JOBS_PER_EVAL = 100000;
         JSPromiseStateEnum state = JS_PromiseState(m_context, val);
         JSRuntime* rt = JS_GetRuntime(m_context);
+        i32 executedJobs = 0;
         while (state == JS_PROMISE_PENDING && JS_IsJobPending(rt)) {
+            if (executedJobs >= MAX_PENDING_JOBS_PER_EVAL) {
+                spdlog::error("[AddonScript] module '{}' did not settle after {} pending jobs; "
+                              "aborting module evaluation to avoid an infinite loop",
+                    filename,
+                    MAX_PENDING_JOBS_PER_EVAL);
+                JS_FreeValue(m_context, val);
+                return ScriptResult::error("Module did not settle within the pending-job budget");
+            }
+
             JSContext* pctx = nullptr;
             i32 jobRet = JS_ExecutePendingJob(rt, &pctx);
             if (jobRet <= 0) {
                 break; // 无更多 job 或 job 自身抛错
             }
+            ++executedJobs;
 
             state = JS_PromiseState(m_context, val);
         }
@@ -359,9 +375,33 @@ std::vector<ScriptValue> convertArgsToScriptValues(JSContext* ctx, i32 argc, JSV
             const char* str = JS_ToCString(ctx, argv[i]);
             scriptArgs.emplace_back(std::string(str ? str : ""));
             JS_FreeCString(ctx, str);
-        } else {
-            // TODO: 对象、数组、函数等复杂类型作为参数传递暂不支持，需要扩展ScriptValue类型系统
+        } else if (JS_IsFunction(ctx, argv[i])) {
+            // 函数不可跨边界序列化为值：明确降级为 undefined 而不是伪装成对象。
             scriptArgs.emplace_back();
+        } else {
+            // 对象与数组统一走 JSON：这是唯一能表达嵌套混合结构的载体。
+            // JSON.stringify 的结果再解析回来，与直接遍历属性等价，且复用 QuickJS 自己的序列化，
+            // 不会漏掉 getter、Symbol.iterator 等由引擎处理的细节。
+            JSValue dumped = JS_JSONStringify(ctx, argv[i], JS_UNDEFINED, JS_UNDEFINED);
+            if (JS_IsException(dumped)) {
+                JS_FreeValue(ctx, dumped);
+                scriptArgs.emplace_back();
+                continue;
+            }
+            const char* text = JS_ToCString(ctx, dumped);
+            const bool isArray = JS_IsArray(argv[i]);
+            if (text != nullptr) {
+                nlohmann::json parsed = nlohmann::json::parse(text, nullptr, false);
+                JS_FreeCString(ctx, text);
+                if (parsed.is_discarded()) {
+                    scriptArgs.emplace_back();
+                } else {
+                    scriptArgs.emplace_back(std::move(parsed), isArray);
+                }
+            } else {
+                scriptArgs.emplace_back();
+            }
+            JS_FreeValue(ctx, dumped);
         }
     }
 
@@ -385,9 +425,14 @@ JSValue convertScriptValueToJSValue(JSContext* ctx, const ScriptValue& result)
         case ScriptValueType::String:
             return JS_NewStringLen(ctx, result.asString().c_str(), result.asString().size());
         case ScriptValueType::Object:
-        case ScriptValueType::Array:
+        case ScriptValueType::Array: {
+            // JSON 承载的对象/数组还原成真实 JS 值：解析文本再求值，等价于引擎自己的 JSON 反序列化。
+            const std::string text = result.asJson().dump();
+            JSValue parsed = JS_ParseJSON(ctx, text.c_str(), text.size(), "<script-value>");
+            return JS_IsException(parsed) ? JS_UNDEFINED : parsed;
+        }
         case ScriptValueType::Function:
-            // TODO: 对象、数组、函数等复杂类型暂不支持，需要扩展ScriptValue类型系统
+            // 函数不可由 JSON 还原；该类型只用于"脚本传入的函数"标记，原生侧不会主动产出。
             return JS_UNDEFINED;
     }
 
@@ -646,36 +691,42 @@ ScriptValue QuickJSContext::_jsValueToScriptValue(JSValue val)
 
         return ScriptValue(std::move(result));
     }
-    // 对象、数组、函数等暂时作为undefined返回
-    // TODO: 绑定层通过ScriptClassBinding和ClassRegistrar直接操作JSValue，需要完善此处的转换逻辑
-    return ScriptValue();
+
+    // 对象与数组统一以 JSON 承载，与全局函数回调路径共用同一套转换（见匿名命名空间的
+    // convertScriptValueToJSValue）。函数不可序列化，明确降级为 undefined。
+    if (JS_IsFunction(m_context, val)) {
+        return ScriptValue();
+    }
+
+    JSValue dumped = JS_JSONStringify(m_context, val, JS_UNDEFINED, JS_UNDEFINED);
+    if (JS_IsException(dumped)) {
+        JS_FreeValue(m_context, dumped);
+        return ScriptValue();
+    }
+
+    const char* text = JS_ToCString(m_context, dumped);
+    const bool isArray = JS_IsArray(val);
+    ScriptValue converted;
+    if (text != nullptr) {
+        nlohmann::json parsed = nlohmann::json::parse(text, nullptr, false);
+        JS_FreeCString(m_context, text);
+        if (!parsed.is_discarded()) {
+            converted = ScriptValue(std::move(parsed), isArray);
+        }
+    }
+    JS_FreeValue(m_context, dumped);
+
+    return converted;
 }
 
 JSValue QuickJSContext::_scriptValueToJSValue(const ScriptValue& val)
 {
+    // convertScriptValueToJSValue 直接用 ctx 构造 JS 值，上下文未初始化时必须提前返回。
     if (!m_context) {
         return JS_UNDEFINED;
     }
 
-    switch (val.type()) {
-        case ScriptValueType::Undefined:
-            return JS_UNDEFINED;
-        case ScriptValueType::Null:
-            return JS_NULL;
-        case ScriptValueType::Boolean:
-            return JS_NewBool(m_context, val.asBoolean() ? 1 : 0);
-        case ScriptValueType::Number:
-            return JS_NewFloat64(m_context, val.asNumber());
-        case ScriptValueType::String:
-            return JS_NewStringLen(m_context, val.asString().c_str(), val.asString().size());
-        case ScriptValueType::Object:
-        case ScriptValueType::Array:
-        case ScriptValueType::Function:
-            // 绑定层通过ScriptObjectRegistry直接管理JSValue
-            return JS_UNDEFINED;
-    }
-
-    return JS_UNDEFINED;
+    return convertScriptValueToJSValue(m_context, val);
 }
 
 } // namespace mc::mod::bedrock::addon

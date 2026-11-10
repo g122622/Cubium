@@ -71,8 +71,8 @@
 #include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/NaturalBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include <algorithm>

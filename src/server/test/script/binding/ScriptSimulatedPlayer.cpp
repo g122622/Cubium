@@ -37,7 +37,7 @@
 #include "common/util/math/Vector3.hpp"         // Vector3（faceLocation 参数）
 #include "common/world/GlobalPos.hpp"           // GlobalPos（getRespawnConfig 返回的维度+方块位置）
 #include "common/world/IWorld.hpp"              // IWorld::dimension()（options.dimension 跨维度判定)
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"        // DimensionId（teleport 目标维度类型）
 #include "server/test/base/error/GameTestErrorType.hpp"       // GameTestErrorType::MethodNotImplemented
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（stub 用）
@@ -111,6 +111,78 @@ mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, v
     }
 
     return nullptr;
+}
+
+// 解析基岩 LookDuration 字符串枚举："Continuous" / "Instant" / "UntilMove"（默认 "Instant"）。
+// 该枚举取值是字符串（不是数字），传其他值报 TypeError。
+bool _parseLookDuration(
+    mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg, SimulatedPlayer::LookDuration& out)
+{
+    out = SimulatedPlayer::LookDuration::Instant;
+
+    if (arg == nullptr || ctx.isUndefined(arg)) {
+        return true; // duration 可省略，按瞬时定向
+    }
+
+    auto value = ctx.toString(arg);
+    if (!value) {
+        MC_UNUSED(ctx.throwTypeError("LookDuration must be a string"));
+        return false;
+    }
+
+    if (*value == "Instant") {
+        out = SimulatedPlayer::LookDuration::Instant;
+    } else if (*value == "Continuous") {
+        out = SimulatedPlayer::LookDuration::Continuous;
+    } else if (*value == "UntilMove") {
+        out = SimulatedPlayer::LookDuration::UntilMove;
+    } else {
+        MC_UNUSED(ctx.throwTypeError("LookDuration must be one of Instant/Continuous/UntilMove"));
+        return false;
+    }
+
+    return true;
+}
+
+// 解析基岩 MoveToOptions {faceTarget?: boolean, speed?: number}。
+// 缺省值取基岩文档：options 本身可省略，speed 省略时按 1.0，faceTarget 省略时按 true。
+// 字段存在但类型不对时报类型错误（不静默取默认值，避免拼写错误被吞掉）。
+bool _parseMoveToOptions(
+    mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg, f32& speedOut, bool& faceTargetOut)
+{
+    speedOut = 1.0f;
+    faceTargetOut = true;
+
+    if (arg == nullptr || !ctx.isObject(arg)) {
+        return true; // 省略 options 视为全部取默认值
+    }
+
+    // getPropertyFloat/Bool 在字段缺失或类型不符时都返回 nullopt；用 getPropertyNames 区分
+    // "没写这个字段"（取默认值）与"写了但类型不对"（报错）两种情形。
+    const std::vector<std::string> keys = ctx.getPropertyNames(arg);
+    const auto hasKey = [&keys](const char* name) {
+        return std::find(keys.begin(), keys.end(), name) != keys.end();
+    };
+
+    if (hasKey("speed")) {
+        auto parsed = ctx.getPropertyFloat(arg, "speed");
+        if (!parsed) {
+            MC_UNUSED(ctx.throwTypeError("MoveToOptions.speed must be a number"));
+            return false;
+        }
+        speedOut = static_cast<f32>(*parsed);
+    }
+
+    if (hasKey("faceTarget")) {
+        auto parsed = ctx.getPropertyBool(arg, "faceTarget");
+        if (!parsed) {
+            MC_UNUSED(ctx.throwTypeError("MoveToOptions.faceTarget must be a boolean"));
+            return false;
+        }
+        faceTargetOut = *parsed;
+    }
+
+    return true;
 }
 
 // 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（@minecraft/server 注册，opaque 持 mc::ItemStack*）。
@@ -856,7 +928,7 @@ u64 registerSimulatedPlayerClassBinding(
             player->setSneaking(*b);
         });
 
-    // --- moveToLocation(blockPos, speed?) ---
+    // --- moveToLocation(blockPos, options?) ---
     reg.method(
         "moveToLocation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -866,7 +938,7 @@ u64 registerSimulatedPlayerClassBinding(
             }
 
             if (argc < 1 || !ctx.isObject(args[0])) {
-                return ctx.throwTypeError("moveToLocation(pos, speed?)");
+                return ctx.throwTypeError("moveToLocation(pos, options?)");
             }
 
             BlockPos pos;
@@ -875,20 +947,18 @@ u64 registerSimulatedPlayerClassBinding(
             }
 
             f32 speed = 1.0f;
-            if (argc >= 2 && ctx.isNumber(args[1])) {
-                auto s = ctx.toFloat64(args[1]);
-                if (s) {
-                    speed = static_cast<f32>(*s);
-                }
+            bool faceTarget = true;
+            if (argc >= 2 && !_parseMoveToOptions(ctx, args[1], speed, faceTarget)) {
+                return nullptr;
             }
 
-            player->moveToLocation(pos, speed);
+            player->moveToLocation(pos, speed, faceTarget);
 
             return ctx.createUndefined();
         },
         2);
 
-    // --- lookAtLocation(blockPos) ---
+    // --- lookAtLocation(blockPos, duration?) ---
     reg.method(
         "lookAtLocation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -898,7 +968,7 @@ u64 registerSimulatedPlayerClassBinding(
             }
 
             if (argc < 1 || !ctx.isObject(args[0])) {
-                return ctx.throwTypeError("lookAtLocation(pos)");
+                return ctx.throwTypeError("lookAtLocation(pos, duration?)");
             }
 
             BlockPos pos;
@@ -906,7 +976,11 @@ u64 registerSimulatedPlayerClassBinding(
                 return nullptr;
             }
 
-            player->lookAtLocation(pos);
+            SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
+            if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
+                return nullptr;
+            }
+            player->lookAtLocation(pos, duration);
 
             return ctx.createUndefined();
         },
@@ -952,7 +1026,7 @@ u64 registerSimulatedPlayerClassBinding(
         0);
 
     // --- lookAtEntity(entity, duration?) ---
-    // entity 经 _unwrapEntity 取 mc::Entity*。duration（LookDuration）当前忽略（瞬时定向），TODO。
+    // entity 经 _unwrapEntity 取 mc::Entity*；duration 为基岩 LookDuration（见 _parseLookDuration）。
     reg.method(
         "lookAtEntity",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -969,8 +1043,11 @@ u64 registerSimulatedPlayerClassBinding(
             if (target == nullptr) {
                 return ctx.throwTypeError("lookAtEntity: first arg must be an Entity");
             }
-            // TODO: duration（LookDuration）插值语义，当前瞬时。
-            player->lookAtEntity(*target);
+            SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
+            if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
+                return nullptr;
+            }
+            player->lookAtEntity(*target, duration);
 
             return ctx.createUndefined();
         },
@@ -993,15 +1070,18 @@ u64 registerSimulatedPlayerClassBinding(
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
-            // TODO: duration（LookDuration）插值语义，当前瞬时。
-            player->lookAtBlock(pos);
+            SimulatedPlayer::LookDuration duration = SimulatedPlayer::LookDuration::Instant;
+            if (argc >= 2 && !_parseLookDuration(ctx, args[1], duration)) {
+                return nullptr;
+            }
+            player->lookAtBlock(pos, duration);
 
             return ctx.createUndefined();
         },
         2);
 
     // --- moveToBlock(blockLocation, options?) ---
-    // options（MoveToOptions）当前忽略，TODO。speed 默认 1.0。
+    // options 按基岩 MoveToOptions 解析（speed 默认 1.0、faceTarget 默认 true）。
     reg.method(
         "moveToBlock",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -1018,8 +1098,12 @@ u64 registerSimulatedPlayerClassBinding(
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
-            // TODO: 解析 MoveToOptions（maxStraightLineReach/speed 等）。
-            player->moveToBlock(pos, 1.0f);
+            f32 speed = 1.0f;
+            bool faceTarget = true;
+            if (argc >= 2 && !_parseMoveToOptions(ctx, args[1], speed, faceTarget)) {
+                return nullptr;
+            }
+            player->moveToBlock(pos, speed, faceTarget);
 
             return ctx.createUndefined();
         },
@@ -1173,35 +1257,92 @@ u64 registerSimulatedPlayerClassBinding(
             return _throwNotImplemented(ctx, "navigateToLocations");
         },
         2);
+    // move(westEast, northSouth, speed?)：方向相对 GameTest 结构，不随玩家朝向变化。
     reg.method(
         "move",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "move");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isNumber(args[1])) {
+                return ctx.throwTypeError("move(westEast, northSouth, speed?)");
+            }
+
+            auto westEast = ctx.toFloat64(args[0]);
+            auto northSouth = ctx.toFloat64(args[1]);
+            if (!westEast || !northSouth) {
+                return ctx.throwTypeError("move(westEast, northSouth, speed?)");
+            }
+
+            f32 speed = 1.0f;
+            if (argc >= 3 && ctx.isNumber(args[2])) {
+                auto parsed = ctx.toFloat64(args[2]);
+                if (parsed) {
+                    speed = static_cast<f32>(*parsed);
+                }
+            }
+
+            player->move(static_cast<f32>(*westEast), static_cast<f32>(*northSouth), speed);
+            return ctx.createUndefined();
         },
         3);
+    // moveRelative(leftRight, backwardForward, speed?)：方向相对玩家当前朝向。
     reg.method(
         "moveRelative",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "moveRelative");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isNumber(args[1])) {
+                return ctx.throwTypeError("moveRelative(leftRight, backwardForward, speed?)");
+            }
+
+            auto leftRight = ctx.toFloat64(args[0]);
+            auto backwardForward = ctx.toFloat64(args[1]);
+            if (!leftRight || !backwardForward) {
+                return ctx.throwTypeError("moveRelative(leftRight, backwardForward, speed?)");
+            }
+
+            f32 speed = 1.0f;
+            if (argc >= 3 && ctx.isNumber(args[2])) {
+                auto parsed = ctx.toFloat64(args[2]);
+                if (parsed) {
+                    speed = static_cast<f32>(*parsed);
+                }
+            }
+
+            player->moveRelative(static_cast<f32>(*leftRight), static_cast<f32>(*backwardForward), speed);
+            return ctx.createUndefined();
         },
         3);
     reg.method(
         "stopMoving",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopMoving");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopMoving();
+            return ctx.createUndefined();
         },
         0);
 
     // === 攻击/交互/破坏/建造 ===
-    // attack() 无参版本：基岩语义为攻击当前看向的实体，依赖 raycast 命中检测，TODO 待射线体系就绪。
+    // attack() 无参版本：从头部沿视线 raycast 选目标，命中且冷却就绪返回 true。
     reg.method(
         "attack",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "attack");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->attack());
         },
         0);
     // --- attackEntity(entity) ---
@@ -1230,11 +1371,16 @@ u64 registerSimulatedPlayerClassBinding(
             return ctx.createUndefined();
         },
         1);
+    // interact() 无参版本：从头部沿视线 6 格 raycast，与首个命中的方块或实体交互。
     reg.method(
         "interact",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "interact");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->interact());
         },
         0);
     reg.method(
@@ -1317,11 +1463,27 @@ u64 registerSimulatedPlayerClassBinding(
             return _throwNotImplemented(ctx, "stopInteracting");
         },
         0);
+    // breakBlock(blockLocation, direction?) -> boolean
+    // 基岩语义：按服务端游戏模式规则破坏方块，返回该位置是否为固体方块。
+    // direction 用于"从哪一面开始挖"，当前底层 breakBlock 直接走完整破坏链路，该面不影响结果。
     reg.method(
         "breakBlock",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "breakBlock");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 1) {
+                return ctx.throwTypeError("breakBlock(blockLocation, direction?)");
+            }
+
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+
+            return ctx.createBoolean(player->breakBlock(pos));
         },
         2);
     reg.method(
@@ -1346,48 +1508,78 @@ u64 registerSimulatedPlayerClassBinding(
         },
         0);
 
-    // === 飞行/滑翔/游泳 stub（依赖物理状态机/abilities 细化）===
-    // TODO: fly/glide/swim 物理分支（abilities.flying / fall-flying / swim 状态）实现后做实。
+    // === 飞行 / 滑翔 / 游泳 ===
+    // fly/stopFlying 走 Player::setFlying（受 abilities.canFly 门控）；glide/stopGliding 走
+    // tryToStartFallFlying/stopFallFlying（内部检查鞘翅与水中等前置）；swim/stopSwimming 走 setSwimming。
     reg.method(
         "fly",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "fly");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->fly();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "stopFlying",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopFlying");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopFlying();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "glide",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "glide");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->glide());
         },
         0);
     reg.method(
         "stopGliding",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopGliding");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopGliding();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "swim",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "swim");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->swim();
+            return ctx.createUndefined();
         },
         0);
     reg.method(
         "stopSwimming",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "stopSwimming");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            player->stopSwimming();
+            return ctx.createUndefined();
         },
         0);
 
@@ -1540,28 +1732,63 @@ u64 registerSimulatedPlayerClassBinding(
             });
         },
         0);
+    // dropSelectedItem() -> boolean
+    // 基岩语义：丢弃选中槽的物品（等同玩家按 Q）。转发 Player::drop(false)，
+    // 即"从主手选中槽丢一个"；返回是否真的生成了掉落物。
     reg.method(
         "dropSelectedItem",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "dropSelectedItem");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            return ctx.createBoolean(player->drop(false) != nullptr);
         },
         0);
 
-    // === 旋转 stub（依赖插值/身体旋转状态机）===
-    // TODO: rotateBody/setBodyRotation 待玩家身体旋转插值体系实现后做实。
+    // === 转身 ===
+    // rotateBody 相对当前朝向旋转；setBodyRotation 设为绝对朝向。两者同时更新 yaw、头部与身体朝向。
     reg.method(
         "rotateBody",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "rotateBody");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("rotateBody(angleInDegrees)");
+            }
+
+            auto angle = ctx.toFloat64(args[0]);
+            if (!angle) {
+                return ctx.throwTypeError("rotateBody: angle must be a number");
+            }
+
+            player->rotateBody(static_cast<f32>(*angle));
+            return ctx.createUndefined();
         },
         1);
     reg.method(
         "setBodyRotation",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            return _throwNotImplemented(ctx, "setBodyRotation");
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("setBodyRotation(angleInDegrees)");
+            }
+
+            auto angle = ctx.toFloat64(args[0]);
+            if (!angle) {
+                return ctx.throwTypeError("setBodyRotation: angle must be a number");
+            }
+
+            player->setBodyRotation(static_cast<f32>(*angle));
+            return ctx.createUndefined();
         },
         1);
 

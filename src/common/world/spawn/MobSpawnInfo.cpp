@@ -38,10 +38,9 @@ namespace spawn {
 // net/minecraft/data/worldgen/BiomeDefaultFeatures.java 的 addSpawn 调用），
 // 权重、最小/最大群组数量、分类与生物群系属性（creatureGenerationProbability、spawn cost）一一对应。
 //
-// 与原版的已知偏差（对应实体尚未实现，无法进入 spawn list）：
-//   上述条目若写入刷怪表，会占用权重并在抽取后被 NaturalSpawner 跳过，使实际生成分布偏离原版，
-//   因此暂不加入（内置刷怪表与数据包口径保持一致）。
-// TODO(spawn-list-entities): 上述实体实现并注册后，在此补齐对应 spawn list，并删除本条注释中的相应条目。
+// 原版生物群系刷怪表涉及的全部实体均已实现并收录，不再有"实体缺失导致无法入表"的条目。
+// 蜜蜂、蝌蚪、末影螨、嗅探兽等不在此列是**正确的**：原版也不用生物群系刷怪表生成它们
+// （蜜蜂出自蜂巢、蝌蚪出自蛙卵、末影螨出自刷怪笼与末影珍珠、嗅探兽出自蛋）。
 
 namespace {
 

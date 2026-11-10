@@ -26,8 +26,8 @@
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include <string>
 

@@ -35,7 +35,9 @@
 
 #include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "core/BlockRaycastResult.hpp"
 #include "core/Constants.hpp"
 #include "entity/entities/item/ItemEntity.hpp"
@@ -49,8 +51,6 @@
 #include "util/math/random/Random.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/WorldEvents.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
@@ -177,9 +177,9 @@ public:
         MC_UNUSED(category);
     }
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
-        m_lastEventId = eventId;
+        m_lastEventId = static_cast<i32>(eventId);
         m_lastEventPos = pos;
         m_lastEventData = data;
         m_eventCount++;

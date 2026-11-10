@@ -40,8 +40,8 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>

@@ -45,8 +45,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
 namespace mc {
 
@@ -258,6 +258,9 @@ void AnimalEntity::registerAttributes()
     // 动物的基础属性
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    // 诱惑范围（默认 10.0）：由 TemptGoal 读取，决定手持诱饵时动物开始跟随的最大距离。
+    // 原版 Animal.createAnimalAttributes() 就把它注册在动物基类上，嗅探兽等再自行调高。
+    attributes().registerAttribute(*entity::attribute::Attributes::temptRange());
 }
 
 void AnimalEntity::updateInLove()

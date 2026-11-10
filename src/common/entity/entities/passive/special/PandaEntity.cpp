@@ -48,7 +48,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
 #include "common/entity/core/AgeableEntity.hpp"

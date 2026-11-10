@@ -29,7 +29,7 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include <algorithm>

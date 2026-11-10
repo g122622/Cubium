@@ -41,7 +41,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <array>
 #include <cstddef>
@@ -191,6 +191,28 @@ public:
     void setNoAi(bool noAi)
     {
         m_aiEnabled = !noAi;
+    }
+
+    /**
+     * @brief 是否左手持物
+     *
+     * 对齐 vanilla Mob.isLeftHanded()（MOB_FLAG_LEFTHANDED 位）。影响主手槽位渲染与
+     * 部分行为判定；僵尸村民治愈等转换流程会复制该标记。
+     *
+     * @return 左手持物时返回 true
+     */
+    [[nodiscard]] bool isLeftHanded() const
+    {
+        return m_leftHanded;
+    }
+
+    /**
+     * @brief 设置是否左手持物
+     * @param leftHanded true 表示左手持物
+     */
+    void setLeftHanded(bool leftHanded)
+    {
+        m_leftHanded = leftHanded;
     }
 
     /**
@@ -431,6 +453,17 @@ public:
      */
     [[nodiscard]] entity::ai::pathfinding::PathNavigator* navigator();
     [[nodiscard]] const entity::ai::pathfinding::PathNavigator* navigator() const;
+
+    /**
+     * @brief 替换寻路导航器
+     *
+     * 默认导航器使用地面求值器（WalkNodeEvaluator）。飞行生物需要换成
+     * FlyNodeEvaluator（它继承 WalkNodeEvaluator，只放开下方必须有实心方块的限制）。
+     * 数据驱动的 addon 实体（minecraft:can_fly）通过此接口在组件安装后替换。
+     *
+     * @param navigator 新导航器，不可为空
+     */
+    void setNavigator(std::unique_ptr<entity::ai::pathfinding::PathNavigator> navigator);
     [[nodiscard]] entity::ai::EntitySenses* senses();
     [[nodiscard]] const entity::ai::EntitySenses* senses() const;
 
@@ -1274,6 +1307,19 @@ public:
     }
 
     /**
+     * @brief 是否允许用命名牌改名
+     *
+     * 基岩 `minecraft:nameable` 的 `allow_name_tag_renaming` 为 false 时，命名牌对该实体无效。
+     * 默认允许；数据驱动的实体（如 addon 实体）覆写本方法读取自身配置。
+     *
+     * @return 允许改名返回 true
+     */
+    [[nodiscard]] virtual bool isNameableByTag() const
+    {
+        return true;
+    }
+
+    /**
      * @brief 检查是否应阻止消失
      *
      * 当实体正在被骑乘时，不应消失。
@@ -1357,6 +1403,17 @@ public:
      * 与 MC 原版 burnUndead() 行为一致。
      */
     void burnUndead();
+
+    /**
+     * @brief 是否应在白天阳光下燃烧
+     *
+     * 与 @ref burnUndead 成对使用：判定在这里，实际燃烧在 burnUndead。
+     * 基类默认返回 false（普通生物不会日光燃烧）；亡灵类由 MonsterEntity 覆写，
+     * 数据驱动的 addon 实体由 _AddonMob 覆写读取 `minecraft:burns_in_daylight`。
+     *
+     * @return 如果应在阳光下燃烧返回 true
+     */
+    [[nodiscard]] virtual bool shouldBurnInDaylight() const;
 
     // ========== 攻击目标类型判断 ==========
 
@@ -1452,15 +1509,27 @@ public:
      * 掉落前对非保整的可损伤装备随机化耐久度（对齐 vanilla setDamageValue(maxDamage - random)）。
      * 掉落后清空槽位（setItemSlot(slot, EMPTY)）。
      *
-     * 注：vanilla 还调 EnchantmentHelper.processEquipmentDropChance 应用掠夺附魔
-     * （通过 equipment_drops effect component）对掉落概率的加成。Cubium 掠夺附魔体系是
-     * 1.20 风格的 EnchantedCountIncreaseFunction（loot function），未实现 1.21 的
-     * effect component 子系统，故此处暂不应用掠夺加成（TODO，待 effect component 体系就绪接入）。
+     * 掠夺附魔（equipment_drops effect component）对掉落概率的加成已接入：按
+     * data/minecraft/enchantment/looting.json 的 add + linear（base 0.01、每级 +0.01）
+     * 计算，作用于击杀者主手武器，且在 f != 0 守卫之后叠加（顺序与 vanilla 一致）。
      *
      * @param cause 死亡伤害来源（vanilla 用 cause.getEntity() 取击杀者 LivingEntity）
      * @param recentlyHitByPlayer 最近是否被玩家伤害过（影响非保整装备是否尝试掉落）
      */
     void dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlayer) override;
+
+    /**
+     * @brief 掠夺附魔对装备掉落概率的加成
+     *
+     * 对应数据包 data/minecraft/enchantment/looting.json 的 equipment_drops 效果：
+     * add + linear（base 0.01、per_level_above_first 0.01），作用于 attacker 的 mainhand。
+     * 因此 1 级 +0.01、2 级 +0.02、3 级 +0.03。原版通过数据驱动的 effect component 求值，
+     * 本项目的附魔效果尚未数据驱动化，故按该数据包的等效公式直接计算。
+     *
+     * @param attacker 击杀者（持有武器的一方）
+     * @return 掉落概率加成（0 表示无加成）
+     */
+    [[nodiscard]] static f32 lootingEquipmentDropChanceBonus(const LivingEntity& attacker);
 
     /**
      * @brief 掉落保留装备并返回保留的槽位集合
@@ -1530,6 +1599,21 @@ public:
      */
     [[nodiscard]] virtual bool canBeLeashed() const;
 
+    /**
+     * @brief 尝试用玩家手持物品治疗本实体
+     *
+     * 数据驱动的生物（addon `minecraft:healable`）覆写此方法；基类默认不治疗，
+     * 与原版"只有声明了 healable 的生物才能被喂食治疗"一致。
+     *
+     * 调用方：`processInitialInteract`，在命名牌/刷怪蛋/拴绳之后、`interactMob` 之前。
+     * 治疗成功后由调用方负责消耗一个物品。
+     *
+     * @param stack 玩家手持物品（可能需要消耗，故为可写引用）
+     * @param player 交互玩家
+     * @return 是否发生了治疗
+     */
+    [[nodiscard]] virtual bool tryHealFromItem(ItemStack& stack, Player& player);
+
     // ========== NBT 序列化 ==========
 
     /**
@@ -1570,8 +1654,9 @@ protected:
 
     // AI 状态
     bool m_aiEnabled = true;
-    bool m_aggroed = false; // 激怒状态
-    i32 m_idleTime = 0;     // 空闲时间（用于随机漫步等）
+    bool m_aggroed = false;    // 激怒状态
+    bool m_leftHanded = false; // 左手持物（vanilla Mob.isLeftHanded，对应 MOB_FLAG_LEFTHANDED）
+    i32 m_idleTime = 0;        // 空闲时间（用于随机漫步等）
     i32 m_livingSoundTime = 0;
 
     // 经验值（死亡时掉落）

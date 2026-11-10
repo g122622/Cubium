@@ -54,8 +54,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 
@@ -274,28 +274,6 @@ void FrogEntity::die(DamageSource& source)
     setPose(EntityPose::Standing);
     AnimalEntity::die(source);
 }
-
-// ========== 摔落伤害 ==========
-
-void FrogEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
-{
-    // 对齐 vanilla Frog.calculateFallDamage：super.calculateFallDamage(...) - FROG_FALL_DAMAGE_REDUCTION。
-    // 基类公式已扣除 5 点减免，此处按比例折算回"等效摔落距离"，使基类按减免后的距离结算，
-    // 避免先把伤害施加到实体再补一次负伤害（负伤害会被当成治疗并触发伤害反馈）。
-    const f32 safeFallDistance =
-        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 3.0));
-    const f32 fallDamageMultiplier =
-        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0));
-    const f32 scale = damageMultiplier * fallDamageMultiplier;
-    f32 reducedDistance = distance;
-    if (scale > 0.0f) {
-        // 每格摔落伤害对应 1/scale 格距离；减免 5 点伤害等价于减免 5/scale 格。
-        reducedDistance = std::max(safeFallDistance, distance - static_cast<f32>(FROG_FALL_DAMAGE_REDUCTION) / scale);
-    }
-    AnimalEntity::causeFallDamage(reducedDistance, damageMultiplier, source);
-}
-
-// ========== 音效 ==========
 
 std::optional<ResourceLocation> FrogEntity::getAmbientSound() const
 {

@@ -26,6 +26,7 @@
 #include "MathUtils.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -178,12 +179,16 @@ public:
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
     [[nodiscard]] Vector3 normalized() const noexcept
     {
+        // 长度小于 1e-5 的向量归零，而不是按比例缩放。
+        //
+        // 阈值是 1e-5，不是 EPSILON（1e-6）——后者小一个数量级，会让 1e-6 到 1e-5 之间的
+        // 近零向量被错误地归一化成一个单位向量，方向完全由舍入误差决定。
         const T len = length();
-        if (len > static_cast<T>(EPSILON)) {
-            const T invLen = static_cast<T>(1) / len;
-            return {x * invLen, y * invLen, z * invLen};
+        constexpr T MIN_LENGTH = static_cast<T>(1.0e-5f);
+        if (len < MIN_LENGTH) {
+            return zero();
         }
-        return zero();
+        return {x / len, y / len, z / len};
     }
 
     template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
@@ -314,6 +319,77 @@ public:
     [[nodiscard]] Vector3<U> cast() const noexcept
     {
         return {static_cast<U>(x), static_cast<U>(y), static_cast<U>(z)};
+    }
+
+    /**
+     * @brief 绕 X 轴旋转，对应原版 `Vec3.xRot(float)`
+     *
+     * 角度单位是弧度。X 分量不变，Y/Z 按 (y·cos + z·sin, z·cos - y·sin) 变换。
+     *
+     * **必须用查表的 mthSin/mthCos**：在 90° 的整数倍上查表返回精确的 0 与 ±1，
+     * 而 libm 会给出 ±1e-8 量级的残差。方向向量旋转后再归一化时，
+     * 这点残差会累积成可见的偏差。
+     */
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] Vector3 xRot(f32 radians) const noexcept
+    {
+        const f32 cosValue = math::mthCos(static_cast<f64>(radians));
+        const f32 sinValue = math::mthSin(static_cast<f64>(radians));
+        return {static_cast<T>(x),
+            static_cast<T>(y * cosValue + z * sinValue),
+            static_cast<T>(z * cosValue - y * sinValue)};
+    }
+
+    /**
+     * @brief 绕 Y 轴旋转，对应原版 `Vec3.yRot(float)`
+     *
+     * Y 分量不变，X/Z 按 (x·cos + z·sin, z·cos - x·sin) 变换。
+     */
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] Vector3 yRot(f32 radians) const noexcept
+    {
+        const f32 cosValue = math::mthCos(static_cast<f64>(radians));
+        const f32 sinValue = math::mthSin(static_cast<f64>(radians));
+        return {static_cast<T>(x * cosValue + z * sinValue),
+            static_cast<T>(y),
+            static_cast<T>(z * cosValue - x * sinValue)};
+    }
+
+    /**
+     * @brief 绕 Z 轴旋转，对应原版 `Vec3.zRot(float)`
+     *
+     * Z 分量不变，X/Y 按 (x·cos + y·sin, y·cos - x·sin) 变换。
+     */
+    template <typename U = T, typename = std::enable_if_t<std::is_floating_point_v<U>>>
+    [[nodiscard]] Vector3 zRot(f32 radians) const noexcept
+    {
+        const f32 cosValue = math::mthCos(static_cast<f64>(radians));
+        const f32 sinValue = math::mthSin(static_cast<f64>(radians));
+        return {static_cast<T>(x * cosValue + y * sinValue),
+            static_cast<T>(y * cosValue - x * sinValue),
+            static_cast<T>(z)};
+    }
+
+    /**
+     * @brief 在给定向量上的投影，对应原版 `Vec3.projectedOn(Vec3)`
+     *
+     * 投影向量为零时返回给定向量本身（原版就是如此，不是返回零向量）。
+     */
+    [[nodiscard]] Vector3 projectedOn(const Vector3& axis) const noexcept
+    {
+        const T axisLengthSquared = axis.lengthSquared();
+        if (axisLengthSquared == static_cast<T>(0)) {
+            return axis;
+        }
+        return axis * (dot(axis) / axisLengthSquared);
+    }
+
+    /**
+     * @brief 只保留水平分量，对应原版 `Vec3.horizontal()`
+     */
+    [[nodiscard]] Vector3 horizontal() const noexcept
+    {
+        return {x, static_cast<T>(0), z};
     }
 };
 

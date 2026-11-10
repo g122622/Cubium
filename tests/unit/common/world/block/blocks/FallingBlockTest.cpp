@@ -23,13 +23,13 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/blocks/falling/ConcretePowderBlock.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
-#include "world/block/blocks/ConcretePowderBlock.hpp"
-#include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/tick/manager/TickManager.hpp"

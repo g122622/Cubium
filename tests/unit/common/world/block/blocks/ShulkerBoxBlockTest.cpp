@@ -36,12 +36,12 @@
 #include <gtest/gtest.h>
 
 #include "common/util/color/DyeColor.hpp"
-#include "common/world/block/registry/ColoredBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
-#include "world/block/blocks/ShulkerBoxBlock.hpp"
+#include "common/world/block/blocks/container/ShulkerBoxBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/ColoredBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 
 using namespace mc;

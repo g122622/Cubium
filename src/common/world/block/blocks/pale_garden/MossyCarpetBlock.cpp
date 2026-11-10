@@ -33,9 +33,9 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/blocks/MultifaceBlock.hpp"
+#include "common/world/block/blocks/multiface/MultifaceBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

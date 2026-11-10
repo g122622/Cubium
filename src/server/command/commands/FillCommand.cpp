@@ -32,8 +32,9 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -76,8 +77,13 @@ i32 calculateBlockCount(const Vector3i& from, const Vector3i& to)
 
 /**
  * @brief 执行填充操作
+ *
+ * @param strict 严格模式：抑制本次写入的全部副作用（不触发邻居更新、方块实体副作用、
+ *               掉落与形状更新），并在全部写入完成后统一补发一次邻居更新。
+ *               对应原版 strict 传 `2 | 816`（UPDATE_CLIENTS | UPDATE_SKIP_ALL_SIDEEFFECTS），
+ *               非 strict 传 `2 | 256`（UPDATE_CLIENTS | UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS）。
  */
-i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, const BlockState* filterState = nullptr)
+i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, const BlockState* filterState, bool strict)
 {
     auto& source = context.getSource();
     Vector3i from = BlockPosArgumentType::getBlockPos(context, "from", source);
@@ -114,6 +120,20 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
     i32 maxZ = std::max(from.z, to.z);
 
     i32 blocksModified = 0;
+
+    // 严格模式下把邻居更新推迟到全部写入之后统一补发（原版在写入期间抑制副作用，
+    // 随后按记录的位置逐个调用 updateNeighboursOnBlockSet）。
+    struct UpdatedPosition {
+        BlockPos pos;
+        const BlockState* oldState;
+    };
+
+    std::vector<UpdatedPosition> deferredNeighborUpdates;
+
+    // 写入标志：始终同步客户端；严格模式额外抑制全部副作用，非严格只抑制方块实体副作用。
+    const i32 writeFlags = world::BlockUpdateFlags::UPDATE_CLIENTS |
+        (strict ? world::BlockUpdateFlags::UPDATE_SKIP_ALL_SIDEEFFECTS
+                : world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS);
 
     for (i32 y = minY; y <= maxY; ++y) {
         for (i32 z = minZ; z <= maxZ; ++z) {
@@ -184,13 +204,26 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
                 }
 
                 if (shouldFill) {
-                    if (world->setBlockState(x, y, z, fillState)) {
+                    // 严格模式需要旧状态来补发邻居更新，故在写入前先取。
+                    const BlockState* oldState = strict ? world->getBlockState(x, y, z) : nullptr;
+
+                    if (world->setBlockState(x, y, z, fillState, writeFlags)) {
                         blocksModified++;
+                        if (strict) {
+                            deferredNeighborUpdates.push_back({BlockPos(x, y, z), oldState});
+                        }
                     } else if (destroyedAny) {
                         blocksModified++;
                     }
                 }
             }
+        }
+    }
+
+    // 严格模式：全部写入完成后统一补发邻居更新（原版 updateNeighboursOnBlockSet 的时机）。
+    for (const auto& updated : deferredNeighborUpdates) {
+        if (updated.oldState != nullptr) {
+            world->updateNeighboursOnBlockSet(updated.pos, *updated.oldState);
         }
     }
 
@@ -265,18 +298,24 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     auto filterArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "filter", BlockPredicateArgumentType::blockPredicate());
     filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return executeFill(ctx, FillMode::Replace, ctx.getArgument<BlockStateInput>("filter").state());
+        return executeFill(ctx, FillMode::Replace, ctx.getArgument<BlockStateInput>("filter").state(), false);
     });
 
     // 过滤条件后的模式不再增加来源层，strict 也是这一层的终点。
-    for (const auto& [name, mode] : {std::pair<const char*, FillMode>{"destroy", FillMode::Destroy},
-             std::pair<const char*, FillMode>{"hollow", FillMode::Hollow},
-             std::pair<const char*, FillMode>{"outline", FillMode::Outline},
-             std::pair<const char*, FillMode>{"strict", FillMode::Replace}}) {
-        auto modeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
-        modeNode->setCommand([mode](CommandContext<ServerCommandSource>& ctx) {
-            // TODO: strict 需要通过方块更新标志抑制邻居更新。
-            return executeFill(ctx, mode, ctx.getArgument<BlockStateInput>("filter").state());
+    // strict 的语义是"按 replace 填充 + 抑制副作用"，故 FillMode 仍是 Replace，另以 strict 标志区分。
+    struct ModeEntry {
+        const char* name;
+        FillMode mode;
+        bool strict;
+    };
+
+    for (const ModeEntry& entry : {ModeEntry{"destroy", FillMode::Destroy, false},
+             ModeEntry{"hollow", FillMode::Hollow, false},
+             ModeEntry{"outline", FillMode::Outline, false},
+             ModeEntry{"strict", FillMode::Replace, true}}) {
+        auto modeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(entry.name);
+        modeNode->setCommand([entry](CommandContext<ServerCommandSource>& ctx) {
+            return executeFill(ctx, entry.mode, ctx.getArgument<BlockStateInput>("filter").state(), entry.strict);
         });
         filterArg->addChild(modeNode);
     }
@@ -288,8 +327,10 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     blockArg->addChild(replaceNode);
 
     auto strictNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("strict");
-    // TODO: strict 需要通过方块更新标志抑制邻居更新。
-    strictNode->setCommand(blockArg->getCommand());
+    // /fill <from> <to> <block> strict：与 replace 同模式，但抑制写入期间的全部副作用。
+    strictNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+        return executeFill(ctx, FillMode::Replace, nullptr, true);
+    });
     blockArg->addChild(strictNode);
     toArg->addChild(blockArg);
     fromArg->addChild(toArg);
@@ -300,32 +341,32 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
 i32 FillCommand::_fill(CommandContext<ServerCommandSource>& context)
 {
-    return executeFill(context, FillMode::Replace);
+    return executeFill(context, FillMode::Replace, nullptr, false);
 }
 
 i32 FillCommand::_fillDestroy(CommandContext<ServerCommandSource>& context)
 {
-    return executeFill(context, FillMode::Destroy);
+    return executeFill(context, FillMode::Destroy, nullptr, false);
 }
 
 i32 FillCommand::_fillHollow(CommandContext<ServerCommandSource>& context)
 {
-    return executeFill(context, FillMode::Hollow);
+    return executeFill(context, FillMode::Hollow, nullptr, false);
 }
 
 i32 FillCommand::_fillKeep(CommandContext<ServerCommandSource>& context)
 {
-    return executeFill(context, FillMode::Keep);
+    return executeFill(context, FillMode::Keep, nullptr, false);
 }
 
 i32 FillCommand::_fillOutline(CommandContext<ServerCommandSource>& context)
 {
-    return executeFill(context, FillMode::Outline);
+    return executeFill(context, FillMode::Outline, nullptr, false);
 }
 
 i32 FillCommand::_fillReplace(CommandContext<ServerCommandSource>& context)
 {
-    return executeFill(context, FillMode::Replace);
+    return executeFill(context, FillMode::Replace, nullptr, false);
 }
 
 } // namespace command

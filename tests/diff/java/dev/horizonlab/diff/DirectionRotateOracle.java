@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import net.minecraft.core.Direction;
 
 /**
@@ -57,49 +58,51 @@ public final class DirectionRotateOracle {
     /** 单元表。 */
     private static final List<String> UNITS =
             List.of(
-                    "cw|north",
-                    "cw|east",
-                    "cw|south",
-                    "cw|west",
-                    "ccw|north",
-                    "ccw|east",
-                    "ccw|south",
-                    "ccw|west",
-                    "cw|up",
-                    "cw|down",
-                    "cwaxis|east|x",
-                    "cwaxis|west|x",
-                    "cwaxis|up|y",
-                    "cwaxis|down|y",
-                    "cwaxis|north|z",
-                    "cwaxis|south|z",
-                    "cwaxis|up|x",
-                    "cwaxis|north|y",
-                    "cwaxis|up|z",
-                    "cwaxis|north|x",
-                    "cwaxis|east|z",
-                    "ccwaxis|east|x",
-                    "ccwaxis|up|y",
-                    "ccwaxis|up|z",
-                    "ccwaxis|north|x",
-                    "toyrot|south",
-                    "toyrot|west",
-                    "toyrot|north",
-                    "toyrot|east",
-                    "toyrot|up",
-                    "toyrot|down",
-                    "fromyrot|0",
-                    "fromyrot|90",
-                    "fromyrot|180",
-                    "fromyrot|270",
-                    "fromyrot|45",
-                    "fromyrot|44.9",
-                    "fromyrot|45.1",
-                    "fromyrot|-45",
-                    "fromyrot|-44.9",
-                    "fromyrot|360",
-                    "fromyrot|-90",
-                    "fromyrot|720");
+                      "cw|north",
+                      "cw|east",
+                      "cw|south",
+                      "cw|west",
+                      "ccw|north",
+                      "ccw|east",
+                      "ccw|south",
+                      "ccw|west",
+                      "cwaxis|east|x",
+                      "cwaxis|west|x",
+                      "cwaxis|up|y",
+                      "cwaxis|down|y",
+                      "cwaxis|north|z",
+                      "cwaxis|south|z",
+                      "cwaxis|up|x",
+                      "cwaxis|north|y",
+                      "cwaxis|up|z",
+                      "cwaxis|north|x",
+                      "cwaxis|east|z",
+                      "cwaxis|down|z",
+                      "ccwaxis|east|x",
+                      "ccwaxis|west|x",
+                      "ccwaxis|up|y",
+                      "ccwaxis|up|z",
+                      "ccwaxis|north|x",
+                      "ccwaxis|down|z",
+                      "ccwaxis|east|z",
+                      "toyrot|south",
+                      "toyrot|west",
+                      "toyrot|north",
+                      "toyrot|east",
+                      "toyrot|up",
+                      "toyrot|down",
+                      "fromyrot|0",
+                      "fromyrot|90",
+                      "fromyrot|180",
+                      "fromyrot|270",
+                      "fromyrot|45",
+                      "fromyrot|44.9",
+                      "fromyrot|45.1",
+                      "fromyrot|-45",
+                      "fromyrot|-44.9",
+                      "fromyrot|360",
+                      "fromyrot|-90",
+                      "fromyrot|720");
 
     private DirectionRotateOracle() {}
 
@@ -163,13 +166,12 @@ public final class DirectionRotateOracle {
         String mode = parts[0];
         JsonObject result = new JsonObject();
         result.addProperty("unit", unit);
-        result.addProperty("mode", mode);
 
         try {
             if ((mode.equals("cw") || mode.equals("ccw")) && parts.length == 2) {
                 Direction dir = parseDir(parts[1]);
                 Direction out = mode.equals("cw") ? dir.getClockWise() : dir.getCounterClockWise();
-                result.addProperty("result", out.getName());
+                result.addProperty("value", out.getName());
                 return result;
             }
             if ((mode.equals("cwaxis") || mode.equals("ccwaxis")) && parts.length == 3) {
@@ -179,17 +181,17 @@ public final class DirectionRotateOracle {
                         mode.equals("cwaxis")
                                 ? dir.getClockWise(axis)
                                 : dir.getCounterClockWise(axis);
-                result.addProperty("result", out.getName());
+                result.addProperty("value", out.getName());
                 return result;
             }
             if (mode.equals("toyrot") && parts.length == 2) {
                 Direction dir = parseDir(parts[1]);
-                result.addProperty("result", (int) dir.toYRot());
+                result.addProperty("value", String.format(Locale.ROOT, "%.1f", dir.toYRot()));
                 return result;
             }
             if (mode.equals("fromyrot") && parts.length == 2) {
                 Direction out = Direction.fromYRot(Double.parseDouble(parts[1]));
-                result.addProperty("result", out.getName());
+                result.addProperty("value", out.getName());
                 return result;
             }
         } catch (IllegalStateException ex) {

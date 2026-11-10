@@ -31,8 +31,8 @@
 #include "common/network/protocol/GameActions.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <functional>
 #include <optional>
 #include <string>
@@ -57,10 +57,8 @@ namespace mc::server {
 // 前向声明
 class ServerWorld;
 
-namespace core {
 class PlayerManager;
-class ConnectionManager;
-} // namespace core
+class PacketSender;
 
 namespace interaction {
 class InventoryManager;
@@ -131,7 +129,7 @@ public:
     /**
      * @brief 构造函数
      */
-    BlockInteractionManager(core::PlayerManager& playerManager, loot::LootTableManager& lootTableManager);
+    BlockInteractionManager(PlayerManager& playerManager, loot::LootTableManager& lootTableManager);
 
     /**
      * @brief 设置物品栏管理器（用于物品消耗）
@@ -397,7 +395,7 @@ private:
         ItemStack** outHandStack);
 
 private:
-    core::PlayerManager& m_playerManager;
+    PlayerManager& m_playerManager;
     loot::LootTableManager& m_lootTableManager;
     InventoryManager* m_inventoryManager = nullptr;
     IServer* m_server = nullptr;

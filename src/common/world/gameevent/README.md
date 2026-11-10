@@ -1,6 +1,6 @@
 # 游戏事件系统 (GameEvent System)
 
-服务端内部的游戏事件分发机制。与 `WorldEvents`（世界事件 / levelEvent，用于向客户端广播音效与粒子）
+服务端内部的游戏事件分发机制。与 `LevelEventId`（世界事件 / levelEvent，用于向客户端广播音效与粒子）
 不同，GameEvent 不发送网络包，而是把事件分发给附近的 `GameEventListener`（如幽匿感测体、
 幽匿尖啸体、监守者、悦灵），驱动振动感知。
 

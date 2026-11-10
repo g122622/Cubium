@@ -25,9 +25,9 @@
 #include <gtest/gtest.h>
 
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/list/EmptyTickList.hpp"
 #include "common/world/tick/list/ServerTickList.hpp"

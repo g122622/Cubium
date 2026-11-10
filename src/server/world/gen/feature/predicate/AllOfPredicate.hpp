@@ -24,7 +24,7 @@
 
 #include "BlockPredicate.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <utility>
 #include <vector>

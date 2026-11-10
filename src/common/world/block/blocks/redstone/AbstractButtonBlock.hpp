@@ -22,13 +22,14 @@
  */
 
 #pragma once
+#include "common/world/block/base/family/BlockSetType.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
@@ -60,9 +61,9 @@ public:
      * @brief 构造函数
      * @param properties 方块属性
      * @param ticksToStayPressed 按压持续时间（tick）
-     * @param arrowSensitive 是否可被箭矢持续触发（木按钮为 true，石质按钮为 false）
+     * @param type 方块族声音与激活规则
      */
-    AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed, bool arrowSensitive);
+    AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed, const BlockSetType& type);
 
     // ========== Block 接口实现 ==========
 
@@ -134,6 +135,16 @@ public:
     [[nodiscard]] static Direction getFacing(const BlockState& state) noexcept;
 
     /**
+     * @brief 旋转朝向（原版 `HorizontalDirectionalBlock#rotate`，只转 FACING）
+     */
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    /**
+     * @brief 镜像朝向（原版 `HorizontalDirectionalBlock#mirror`）
+     */
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    /**
      * @brief 获取按钮附着的方块方向（附面方向）
      *
      * 地板按钮附在上方方块（Up），天花板按钮附在下方方块（Down），墙按钮附在 FACING 方向。
@@ -180,11 +191,9 @@ public:
     void press(IWorld& world, const BlockPos& pos, const BlockState& state);
 
 protected:
+    const BlockSetType& m_type;
     /// 按压持续时间（tick）
     i32 m_ticksToStayPressed;
-
-    /// 是否可被箭矢触发（木按钮为 true，石质按钮为 false）
-    bool m_arrowSensitive;
 
     /**
      * @brief 播放点击音效
@@ -193,7 +202,7 @@ protected:
      * @param pos 方块位置
      * @param pressed true为按下，false为弹起
      */
-    virtual void playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const = 0;
+    void playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const;
 
     /**
      * @brief 检查是否可以附着在指定面

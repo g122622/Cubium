@@ -28,11 +28,12 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -80,10 +81,14 @@ public:
     }
 
 private:
+    /// 载入模板并按旋转展开包围盒（构造期调用一次，缺模板时由 generate 补一次）。
     void _loadTemplate();
 
+    /// 用模板真实尺寸 + 旋转重算包围盒（对应原版 `StructureTemplate.getBoundingBox`）。
+    void _updateBoundingBox();
+
     std::string m_templateName;
-    Rotation m_rotation;
+    BlockPos m_templatePosition;
     feature::template_::TemplateManager* m_templateManager = nullptr;
     const feature::template_::Template* m_template = nullptr;
     BlockPos m_size;
@@ -97,7 +102,13 @@ private:
  */
 class NetherFossilStructure : public Structure {
 public:
-    explicit NetherFossilStructure(ResourceLocation id);
+    /**
+     * @brief 构造下界化石结构
+     *
+     * @param id 结构资源位置
+     * @param height 落点高度提供者（数据包字段 `height`，原版 `NetherFossilStructure.height`）
+     */
+    NetherFossilStructure(ResourceLocation id, std::unique_ptr<valueprovider::HeightProvider> height);
 
     [[nodiscard]] const std::string& name() const override
     {
@@ -113,9 +124,6 @@ public:
      * @brief 获取下界化石关联的生物群系标签
      */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
-
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
@@ -133,6 +141,7 @@ public:
 
 private:
     static const std::string s_name;
+    std::unique_ptr<valueprovider::HeightProvider> m_height; ///< 落点高度提供者（数据包 `height`）
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 

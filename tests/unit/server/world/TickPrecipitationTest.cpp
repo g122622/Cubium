@@ -23,7 +23,7 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/gamerule/GameRules.hpp"

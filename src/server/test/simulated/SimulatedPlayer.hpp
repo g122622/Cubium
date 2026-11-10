@@ -2,7 +2,7 @@
 
 #include "common/core/Types.hpp"        // EntityInstanceId / GameMode / Direction / i32 / f32
 #include "common/util/math/Vector3.hpp" // Vector3（useItemOnBlock 的 faceLocation 参数）
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/player/ServerPlayer.hpp"
 
 #include <memory>
@@ -39,9 +39,19 @@ namespace mc::test {
  * handleMovementInput + 朝向目标的 yaw 计算手动驱动；lookAtEntity / lookAtLocation 用 setRotation
  * 直接定向。完整寻路（绕障、跳跃、门）待 PathNavigator 适配非 Mob 拥有者后实现（TODO）。
  *
- * 第一阶段实现最小可用集：spawn / moveToLocation(直线) / lookAtLocation / lookAtEntity / chat /
- * respawn / discard；fly / glide / swim / attack / interact / useItem / breakBlock / placeBlock 等 =
- * TODO stub（依赖红石 / 物品 / 交互体系）。
+ * 已实现：spawn / discard / respawn / chat、moveToLocation / moveToBlock（含 MoveToOptions 的
+ * speed 与 faceTarget）、lookAtLocation / lookAtBlock / lookAtEntity（含 LookDuration 的
+ * Instant / Continuous / UntilMove）、move / moveRelative / stopMoving（结构方向与自身朝向两种）、
+ * rotateBody / setBodyRotation、jump、attack / interact（视线选目标）、
+ * fly / stopFlying、glide / stopGliding、swim / stopSwimming、breakBlock / placeBlock、
+ * dropSelectedItem、useItem / useItemInSlot / useItemOnBlock / useItemInSlotOnBlock、
+ * giveItem / setItem、setFoodLevel、setSprint / setSneaking 等状态设置。
+ *
+ * 仍为 stub（绑定层报 notImplemented，前置条件都确实缺失）：
+ * - navigateTo*（4 个）：需要 PathNavigator，而 Player 不是 MobEntity，无法挂寻路器；
+ * - startBuild / stopBuild：需要"持续建造"输入状态机，项目只有一次性的 placeBlock；
+ * - stopBreakingBlock：需要"持续挖掘"状态机，项目只有一次性的 breakBlock；
+ * - stopInteracting：需要"使用中/交互中"状态机。
  *
  * 生命周期：经 spawn(helper, name, relativePos, gameMode) 静态工厂构造并注入世界，
  * 实例所有权由 ServerWorld 的 EntityManager 持有（spawnEntity 接管 unique_ptr）；
@@ -107,8 +117,23 @@ public:
      * @param relativePos 结构相对坐标（经 helper 变换为世界绝对坐标）。
      * @param speed 行走速度倍率（1.0=默认）：作为移动输入缩放传入 handleMovementInput，
      *        <1 放慢逼近、<0 后退；物理推进仍由每 tick 的 updatePhysics 完成。
+     * @param faceTarget 是否在迈步时把朝向转向目标（基岩 MoveToOptions.faceTarget，
+     *        默认 true）。为 false 时保持当前朝向、只平移，用于测试"边走边看别处"。
      */
-    void moveToLocation(BlockPos relativePos, f32 speed);
+    void moveToLocation(BlockPos relativePos, f32 speed, bool faceTarget);
+
+    /**
+     * @brief 朝向持续语义（基岩 LookDuration）
+     *
+     * - Instant：只在调用瞬间定向；
+     * - Continuous：每 tick 持续朝向目标，直到被新的 lookAt 覆盖；
+     * - UntilMove：每 tick 持续朝向目标，直到玩家发生移动。
+     */
+    enum class LookDuration : u8 {
+        Instant,
+        Continuous,
+        UntilMove,
+    };
 
     /**
      * @brief 转头朝向某方块位置（设置 yaw / pitch + 头部旋转）。
@@ -116,39 +141,146 @@ public:
      * 对齐基岩 SimulatedPlayer::lookAtLocation。
      *
      * @param relativePos 结构相对坐标。
+     * @param duration 朝向持续语义。
      */
-    void lookAtLocation(BlockPos relativePos);
+    void lookAtLocation(BlockPos relativePos, LookDuration duration);
 
     /**
      * @brief 转头朝向某实体。
      *
      * 对齐基岩 SimulatedPlayer::lookAtEntity。Player 不是 MobEntity 故无 MobEntity::lookAt，
-     * 此处用 setRotation 直接定向（瞬时，无插值；TODO: 加插值对齐基岩 deltaYaw / deltaPitch）。
+     * 此处用 setRotation 直接定向。duration 为 Continuous / UntilMove 时由 tick() 每 tick 重新定向
+     * 以跟随目标移动（TODO: 加 deltaYaw/deltaPitch 插值，当前每 tick 瞬时对齐）。
      *
      * @param target 目标实体。
+     * @param duration 朝向持续语义。
      */
-    void lookAtEntity(const mc::Entity& target);
+    void lookAtEntity(const mc::Entity& target, LookDuration duration);
 
     /**
      * @brief 转头朝向某方块位置（对齐基岩 SimulatedPlayer::lookAtBlock）。
      *
-     * 语义等同 lookAtLocation（都接结构相对 BlockPos），duration 参数当前忽略（瞬时定向），
-     * TODO: 加插值对齐基岩 LookDuration（Continuous/Instant/UntilMove）。
+     * 语义等同 lookAtLocation（都接结构相对 BlockPos）。
      *
      * @param relativePos 结构相对坐标。
-     * @param duration 朝向持续时间语义（LookDuration），当前忽略。
+     * @param duration 朝向持续语义。
      */
-    void lookAtBlock(BlockPos relativePos);
+    void lookAtBlock(BlockPos relativePos, LookDuration duration);
+
+    /**
+     * @brief 每 tick 刷新追踪朝向，并处理 UntilMove 在移动时终止追踪。
+     */
+    void tick() override;
 
     /**
      * @brief 朝目标方块位置行走（对齐基岩 SimulatedPlayer::moveToBlock）。
      *
-     * 语义等同 moveToLocation（直线单步驱动）。options（maxStraightLineReach 等）当前忽略，TODO。
+     * 语义等同 moveToLocation（直线单步驱动）。
      *
      * @param relativePos 结构相对坐标。
      * @param speed 行走速度倍率（语义同 moveToLocation）。
+     * @param faceTarget 是否在迈步时把朝向转向目标（语义同 moveToLocation）。
      */
-    void moveToBlock(BlockPos relativePos, f32 speed);
+    void moveToBlock(BlockPos relativePos, f32 speed, bool faceTarget);
+
+    /**
+     * @brief 朝视线方向挥击（对齐基岩 SimulatedPlayer::attack）。
+     *
+     * 从头部沿当前视线方向挑选目标（在 entity_interaction_range 内、且视线夹角最小的存活实体），
+     * 命中则走完整玩家攻击伤害链。
+     *
+     * @return 是否真的挥击成功：必须找到有效目标且攻击冷却已就绪。
+     */
+    [[nodiscard]] bool attack();
+
+    /**
+     * @brief 朝视线方向与首个命中的方块或实体交互（对齐基岩 SimulatedPlayer::interact）。
+     *
+     * 从头部沿视线方向做 6 格射线：同时求方块命中（DDA）与实体命中，取更近者执行交互。
+     * 方块走空手右键语义（等价 interactWithBlock 的空 ItemStack 路径），实体走
+     * interactWithEntity 的 mobInteract 路径。
+     *
+     * @return 是否发生了成功交互。
+     */
+    [[nodiscard]] bool interact();
+
+    /**
+     * @brief 开始创造式飞行（对齐基岩 SimulatedPlayer::fly）。
+     *
+     * 对齐 vanilla：只有具备飞行能力（`abilities().canFly`，创造/旁观模式）才能起飞。
+     * 能力不足时不做任何事（基岩该 API 返回 void，无失败信号）。
+     */
+    void fly();
+
+    /**
+     * @brief 停止创造式飞行（对齐基岩 SimulatedPlayer::stopFlying）。
+     */
+    void stopFlying();
+
+    /**
+     * @brief 开始鞘翅滑翔（对齐基岩 SimulatedPlayer::glide）。
+     *
+     * @return 是否成功开始滑翔（需装备鞘翅且满足起飞条件）。
+     */
+    [[nodiscard]] bool glide();
+
+    /**
+     * @brief 停止鞘翅滑翔（对齐基岩 SimulatedPlayer::stopGliding）。
+     */
+    void stopGliding();
+
+    /**
+     * @brief 进入游泳姿态（对齐基岩 SimulatedPlayer::swim）。
+     */
+    void swim();
+
+    /**
+     * @brief 退出游泳姿态（对齐基岩 SimulatedPlayer::stopSwimming）。
+     */
+    void stopSwimming();
+
+    /**
+     * @brief 朝 GameTest 结构坐标系给定方向行走（对齐基岩 SimulatedPlayer::move）。
+     *
+     * 参数是相对结构的方向（westEast = 东为 +1，northSouth = 南为 +1），不随玩家朝向变化。
+     * 实现按当前朝向把世界方向分解为前进/横移输入，因此结果是"朝那个世界方向走"。
+     *
+     * @param westEast 东西分量（正为东）
+     * @param northSouth 南北分量（正为南）
+     * @param speed 速度倍率
+     */
+    void move(f32 westEast, f32 northSouth, f32 speed);
+
+    /**
+     * @brief 按玩家自身朝向行走（对齐基岩 SimulatedPlayer::moveRelative）。
+     *
+     * 直接映射到移动输入：leftRight 为横移、backwardForward 为前进，语义与
+     * handleMovementInput 的 strafe/forward 一致。
+     *
+     * @param leftRight 横移分量（正为右）
+     * @param backwardForward 前后分量（正为前）
+     * @param speed 速度倍率
+     */
+    void moveRelative(f32 leftRight, f32 backwardForward, f32 speed);
+
+    /**
+     * @brief 停止移动（对齐基岩 SimulatedPlayer::stopMoving）。
+     *
+     * 清空移动输入，物理推进照常执行（由惯性继续减速）。
+     */
+    void stopMoving();
+
+    /**
+     * @brief 相对当前朝向转身（对齐基岩 SimulatedPlayer::rotateBody）。
+     * @param angleInDegrees 旋转角度（度，正为顺时针/yaw 增加）
+     */
+    void rotateBody(f32 angleInDegrees);
+
+    /**
+     * @brief 转身到指定绝对方位（对齐基岩 SimulatedPlayer::setBodyRotation）。
+     * @param angleInDegrees 目标角度（度，相对 GameTest 结构坐标系）
+     */
+    void setBodyRotation(f32 angleInDegrees);
 
     /**
      * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。
@@ -382,6 +514,41 @@ public:
 
 private:
     IGameTestHelper* m_helper = nullptr; // 非拥有回指，spawn 时绑定
+
+    /// 当前追踪的朝向目标类型
+    enum class LookTargetKind : u8 {
+        None,
+        Entity,
+        Block,
+    };
+
+    /// 每 tick 刷新追踪朝向（Continuous / UntilMove）。Instant 或无目标时不做任何事。
+
+    /// 按当前追踪目标重新定向（目标失效时清除追踪）
+    void _applyLookTarget();
+
+    /**
+     * @brief 从头部沿视线方向挑选可攻击目标
+     *
+     * 在 entity_interaction_range 内取存活、非自身、且视线夹角在容差内的最近实体。
+     * 用"视线方向与到目标中心方向的点积"做筛选，等价于一条细圆锥而非严格射线，
+     * 这与原版实体命中判定的"碰撞箱与视线相交"口径接近，且不依赖体素遍历。
+     *
+     * @return 命中的目标实体，没有则 nullptr。
+     */
+    mc::Entity* _findAttackTarget();
+
+    LookDuration m_lookDuration = LookDuration::Instant;
+    LookTargetKind m_lookTargetKind = LookTargetKind::None;
+    /// 追踪的实体目标 id（用 id 而非裸指针，避免实体销毁后悬垂）
+    mc::EntityInstanceId m_lookTargetEntityId = INVALID_ENTITY_ID;
+    /// 追踪的方块目标（世界绝对坐标）
+    BlockPos m_lookTargetBlock{};
+    /// UntilMove 语义下是否仍处于追踪状态（一旦移动即置 false）
+    bool m_lookActive = false;
+    /// 上一 tick 的水平位置，用于判定 UntilMove 期间是否发生了移动
+    f32 m_lastLookTickX = 0.0f;
+    f32 m_lastLookTickZ = 0.0f;
 };
 
 } // namespace mc::test

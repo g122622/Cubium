@@ -34,6 +34,27 @@ using namespace mc;
 using namespace mc::advancement;
 using namespace mc::item::enchant;
 
+// ========== 构造辅助 ==========
+
+namespace {
+
+/**
+ * @brief 用「可选单个附魔 + 等级范围」构造谓词
+ *
+ * 谓词本身持有 HolderSet 语义的条目列表；测试里大量用例只关心单个附魔，
+ * 这里收敛成一个辅助，避免每处都手写 vector。
+ */
+EnchantmentPredicate _makePredicate(const std::optional<ResourceLocation>& enchantment, const IntBounds& levels)
+{
+    std::vector<EnchantmentPredicate::Entry> entries;
+    if (enchantment.has_value()) {
+        entries.push_back(EnchantmentPredicate::Entry{enchantment.value(), false});
+    }
+    return EnchantmentPredicate(std::move(entries), levels);
+}
+
+} // namespace
+
 // ========== isAny 测试 ==========
 
 class EnchantmentPredicateTest : public ::testing::Test {
@@ -45,25 +66,25 @@ TEST_F(EnchantmentPredicateTest, DefaultIsAny)
 {
     EnchantmentPredicate predicate;
     EXPECT_TRUE(predicate.isAny());
-    EXPECT_FALSE(predicate.getEnchantment().has_value());
+    EXPECT_TRUE(predicate.getEntries().empty());
     EXPECT_TRUE(predicate.getLevels().isUnbounded());
 }
 
 TEST_F(EnchantmentPredicateTest, WithEnchantmentOnlyIsNotAny)
 {
     ResourceLocation enchId("minecraft", "sharpness");
-    EnchantmentPredicate predicate(enchId, IntBounds{});
+    const EnchantmentPredicate predicate = _makePredicate(enchId, IntBounds{});
     EXPECT_FALSE(predicate.isAny());
-    EXPECT_TRUE(predicate.getEnchantment().has_value());
+    EXPECT_FALSE(predicate.getEntries().empty());
     EXPECT_TRUE(predicate.getLevels().isUnbounded());
 }
 
 TEST_F(EnchantmentPredicateTest, WithLevelsOnlyIsNotAny)
 {
     IntBounds levels = IntBounds::atLeast(1);
-    EnchantmentPredicate predicate(std::nullopt, levels);
+    const EnchantmentPredicate predicate = _makePredicate(std::nullopt, levels);
     EXPECT_FALSE(predicate.isAny());
-    EXPECT_FALSE(predicate.getEnchantment().has_value());
+    EXPECT_TRUE(predicate.getEntries().empty());
     EXPECT_FALSE(predicate.getLevels().isUnbounded());
 }
 
@@ -71,7 +92,7 @@ TEST_F(EnchantmentPredicateTest, WithBothIsNotAny)
 {
     ResourceLocation enchId("minecraft", "sharpness");
     IntBounds levels = IntBounds::exactly(5);
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
     EXPECT_FALSE(predicate.isAny());
 }
 
@@ -96,7 +117,7 @@ TEST_F(EnchantmentPredicateTest, SpecificEnchantmentMatches)
 {
     ResourceLocation enchId("minecraft", "sharpness");
     IntBounds levels; // unbounded - any level
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
 
     EnchantmentContainer enchants;
     enchants.set("minecraft:sharpness", 5);
@@ -107,7 +128,7 @@ TEST_F(EnchantmentPredicateTest, SpecificEnchantmentMismatch)
 {
     ResourceLocation enchId("minecraft", "sharpness");
     IntBounds levels;
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
 
     EnchantmentContainer enchants;
     enchants.set("minecraft:protection", 4);
@@ -118,7 +139,7 @@ TEST_F(EnchantmentPredicateTest, SpecificEnchantmentWithLevelRange)
 {
     ResourceLocation enchId("minecraft", "sharpness");
     IntBounds levels = IntBounds::between(3, 5);
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
 
     // Level 5 - within range
     EnchantmentContainer enchants1;
@@ -145,7 +166,7 @@ TEST_F(EnchantmentPredicateTest, SpecificEnchantmentNotPresent)
 {
     ResourceLocation enchId("minecraft", "sharpness");
     IntBounds levels = IntBounds::atLeast(1);
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
 
     // Empty container - enchantment not present
     EnchantmentContainer empty;
@@ -161,7 +182,7 @@ TEST_F(EnchantmentPredicateTest, AnyEnchantmentWithLevels)
 {
     // No specific enchantment, but levels must be at least 3
     IntBounds levels = IntBounds::atLeast(3);
-    EnchantmentPredicate predicate(std::nullopt, levels);
+    const EnchantmentPredicate predicate = _makePredicate(std::nullopt, levels);
 
     // Has enchantment at level 5 - should match
     EnchantmentContainer enchants1;
@@ -182,7 +203,7 @@ TEST_F(EnchantmentPredicateTest, AnyEnchantmentWithUnboundedLevels)
 {
     // No specific enchantment, levels unbounded - should match if any enchantment exists
     IntBounds levels; // unbounded
-    EnchantmentPredicate predicate(std::nullopt, levels);
+    const EnchantmentPredicate predicate = _makePredicate(std::nullopt, levels);
 
     // Has enchantment - should match
     EnchantmentContainer enchants;
@@ -197,7 +218,7 @@ TEST_F(EnchantmentPredicateTest, ExactLevelMatch)
 {
     ResourceLocation enchId("minecraft", "sharpness");
     IntBounds levels = IntBounds::exactly(5);
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
 
     EnchantmentContainer enchants1;
     enchants1.set("minecraft:sharpness", 5);
@@ -216,7 +237,7 @@ TEST_F(EnchantmentPredicateTest, AtMostLevel)
 {
     ResourceLocation enchId("minecraft", "protection");
     IntBounds levels = IntBounds::atMost(3);
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
 
     EnchantmentContainer enchants1;
     enchants1.set("minecraft:protection", 3);
@@ -231,7 +252,7 @@ TEST_F(EnchantmentPredicateTest, MultipleEnchantmentsInContainer)
 {
     ResourceLocation enchId("minecraft", "sharpness");
     IntBounds levels = IntBounds::atLeast(3);
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
 
     // Container has multiple enchantments, sharpness at level 5
     EnchantmentContainer enchants;
@@ -244,7 +265,7 @@ TEST_F(EnchantmentPredicateTest, AnyEnchantmentMultipleInContainer)
 {
     // Looking for any enchantment with level >= 3
     IntBounds levels = IntBounds::atLeast(3);
-    EnchantmentPredicate predicate(std::nullopt, levels);
+    const EnchantmentPredicate predicate = _makePredicate(std::nullopt, levels);
 
     // One at level 2, another at level 5 - should match because 5 >= 3
     EnchantmentContainer enchants;
@@ -268,8 +289,8 @@ TEST_F(EnchantmentPredicateTest, FromJsonEnchantmentOnly)
     auto result = EnchantmentPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
     EXPECT_FALSE(result.value().isAny());
-    EXPECT_TRUE(result.value().getEnchantment().has_value());
-    EXPECT_EQ(result.value().getEnchantment().value().toString(), "minecraft:sharpness");
+    EXPECT_FALSE(result.value().getEntries().empty());
+    EXPECT_EQ(result.value().getEntries().front().id.toString(), "minecraft:sharpness");
     EXPECT_TRUE(result.value().getLevels().isUnbounded());
 }
 
@@ -279,7 +300,7 @@ TEST_F(EnchantmentPredicateTest, FromJsonLevelsOnly)
     auto result = EnchantmentPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
     EXPECT_FALSE(result.value().isAny());
-    EXPECT_FALSE(result.value().getEnchantment().has_value());
+    EXPECT_TRUE(result.value().getEntries().empty());
     EXPECT_FALSE(result.value().getLevels().isUnbounded());
     EXPECT_TRUE(result.value().getLevels().getMin().has_value());
     EXPECT_EQ(result.value().getLevels().getMin().value(), 3);
@@ -291,8 +312,8 @@ TEST_F(EnchantmentPredicateTest, FromJsonEnchantmentAndLevels)
     auto result = EnchantmentPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
     EXPECT_FALSE(result.value().isAny());
-    EXPECT_TRUE(result.value().getEnchantment().has_value());
-    EXPECT_EQ(result.value().getEnchantment().value().toString(), "minecraft:protection");
+    EXPECT_FALSE(result.value().getEntries().empty());
+    EXPECT_EQ(result.value().getEntries().front().id.toString(), "minecraft:protection");
     EXPECT_FALSE(result.value().getLevels().isUnbounded());
     EXPECT_EQ(result.value().getLevels().getMin().value(), 1);
     EXPECT_EQ(result.value().getLevels().getMax().value(), 4);
@@ -330,7 +351,7 @@ TEST_F(EnchantmentPredicateTest, ToJsonAnyReturnsNull)
 TEST_F(EnchantmentPredicateTest, ToJsonEnchantmentOnly)
 {
     ResourceLocation enchId("minecraft", "sharpness");
-    EnchantmentPredicate predicate(enchId, IntBounds{});
+    const EnchantmentPredicate predicate = _makePredicate(enchId, IntBounds{});
     auto json = predicate.toJson();
     ASSERT_TRUE(json.is_object());
     EXPECT_EQ(json["enchantment"].get<std::string>(), "minecraft:sharpness");
@@ -340,7 +361,7 @@ TEST_F(EnchantmentPredicateTest, ToJsonEnchantmentOnly)
 TEST_F(EnchantmentPredicateTest, ToJsonLevelsOnly)
 {
     IntBounds levels = IntBounds::atLeast(3);
-    EnchantmentPredicate predicate(std::nullopt, levels);
+    const EnchantmentPredicate predicate = _makePredicate(std::nullopt, levels);
     auto json = predicate.toJson();
     ASSERT_TRUE(json.is_object());
     EXPECT_FALSE(json.contains("enchantment"));
@@ -351,7 +372,7 @@ TEST_F(EnchantmentPredicateTest, ToJsonBothFields)
 {
     ResourceLocation enchId("minecraft", "protection");
     IntBounds levels = IntBounds::between(1, 4);
-    EnchantmentPredicate predicate(enchId, levels);
+    const EnchantmentPredicate predicate = _makePredicate(enchId, levels);
     auto json = predicate.toJson();
     ASSERT_TRUE(json.is_object());
     EXPECT_EQ(json["enchantment"].get<std::string>(), "minecraft:protection");
@@ -363,13 +384,13 @@ TEST_F(EnchantmentPredicateTest, ToJsonBothFields)
 TEST_F(EnchantmentPredicateTest, RoundTripEnchantmentOnly)
 {
     ResourceLocation enchId("minecraft", "sharpness");
-    EnchantmentPredicate original(enchId, IntBounds{});
+    const EnchantmentPredicate original = _makePredicate(enchId, IntBounds{});
 
     auto json = original.toJson();
     auto result = EnchantmentPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
-    EXPECT_TRUE(result.value().getEnchantment().has_value());
-    EXPECT_EQ(result.value().getEnchantment().value().toString(), "minecraft:sharpness");
+    EXPECT_FALSE(result.value().getEntries().empty());
+    EXPECT_EQ(result.value().getEntries().front().id.toString(), "minecraft:sharpness");
     EXPECT_TRUE(result.value().getLevels().isUnbounded());
 }
 
@@ -377,7 +398,7 @@ TEST_F(EnchantmentPredicateTest, RoundTripBothFields)
 {
     ResourceLocation enchId("minecraft", "protection");
     IntBounds levels = IntBounds::between(2, 5);
-    EnchantmentPredicate original(enchId, levels);
+    const EnchantmentPredicate original = _makePredicate(enchId, levels);
 
     auto json = original.toJson();
     auto result = EnchantmentPredicate::fromJson(json);
@@ -396,12 +417,12 @@ TEST_F(EnchantmentPredicateTest, RoundTripBothFields)
 TEST_F(EnchantmentPredicateTest, RoundTripLevelsOnly)
 {
     IntBounds levels = IntBounds::atLeast(5);
-    EnchantmentPredicate original(std::nullopt, levels);
+    const EnchantmentPredicate original = _makePredicate(std::nullopt, levels);
 
     auto json = original.toJson();
     auto result = EnchantmentPredicate::fromJson(json);
     EXPECT_TRUE(result.success());
-    EXPECT_FALSE(result.value().getEnchantment().has_value());
+    EXPECT_TRUE(result.value().getEntries().empty());
     EXPECT_FALSE(result.value().getLevels().isUnbounded());
 
     // Test the restored predicate
@@ -427,4 +448,91 @@ TEST_F(EnchantmentPredicateTest, ItemPredicate_PredicatesWrapperParsesEnchantmen
     EXPECT_FALSE(result.value().isAny());
     const auto& enchantments = result.value().getEnchantments();
     ASSERT_EQ(enchantments.size(), 1u);
+}
+
+// ========== HolderSet 多元素语义 ==========
+
+// 原版 `enchantments` 是 HolderSet，数组里每个元素都参与"任意一个"匹配。
+// 此前只取第一个元素，多元素写法会漏掉其余附魔。
+TEST_F(EnchantmentPredicateTest, MultiElementSetMatchesAnyListedEnchantment)
+{
+    const nlohmann::json json = {
+        {"enchantments", {"minecraft:sharpness", "minecraft:smite"}}, {"levels", {{"min", 1}}}};
+
+    auto result = EnchantmentPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    ASSERT_EQ(result.value().getEntries().size(), 2u);
+
+    EnchantmentContainer smite;
+    smite.set("minecraft:smite", 3);
+    EXPECT_TRUE(result.value().test(smite)) << "second element must also be matchable";
+
+    EnchantmentContainer sharpness;
+    sharpness.set("minecraft:sharpness", 2);
+    EXPECT_TRUE(result.value().test(sharpness));
+
+    EnchantmentContainer unrelated;
+    unrelated.set("minecraft:protection", 4);
+    EXPECT_FALSE(result.value().test(unrelated));
+}
+
+TEST_F(EnchantmentPredicateTest, MultiElementSetHonoursLevelBounds)
+{
+    const nlohmann::json json = {
+        {"enchantments", {"minecraft:sharpness", "minecraft:smite"}}, {"levels", {{"min", 3}}}};
+
+    auto result = EnchantmentPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    // 命中的是列表第二项且等级达标 → 匹配。
+    EnchantmentContainer smite;
+    smite.set("minecraft:smite", 3);
+    EXPECT_TRUE(result.value().test(smite));
+
+    // 命中的是列表第二项但等级不足 → 不匹配。
+    EnchantmentContainer weakSmite;
+    weakSmite.set("minecraft:smite", 1);
+    EXPECT_FALSE(result.value().test(weakSmite));
+}
+
+TEST_F(EnchantmentPredicateTest, MultiElementSetKeepsTagAndIdMixed)
+{
+    const nlohmann::json json = {{"enchantments", {"#minecraft:smelts_loot", "minecraft:fire_aspect"}}};
+
+    auto result = EnchantmentPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+    ASSERT_EQ(result.value().getEntries().size(), 2u);
+    EXPECT_TRUE(result.value().getEntries()[0].isTag);
+    EXPECT_EQ(result.value().getEntries()[0].id.toString(), "minecraft:smelts_loot");
+    EXPECT_FALSE(result.value().getEntries()[1].isTag);
+
+    // 标签解析器给出标签成员，第一项即可命中。
+    const auto tagResolver = [](const ResourceLocation&) {
+        return std::vector<std::string>{"minecraft:silk_touch"};
+    };
+    EnchantmentContainer silkTouch;
+    silkTouch.set("minecraft:silk_touch", 1);
+    EXPECT_TRUE(result.value().test(silkTouch, tagResolver));
+
+    // 混合写法里的第二项（具体 ID）同样可命中。
+    EnchantmentContainer fireAspect;
+    fireAspect.set("minecraft:fire_aspect", 2);
+    EXPECT_TRUE(result.value().test(fireAspect, tagResolver));
+}
+
+TEST_F(EnchantmentPredicateTest, MultiElementSetRoundTripsThroughJson)
+{
+    const nlohmann::json json = {{"enchantments", {"minecraft:sharpness", "minecraft:smite"}}};
+
+    auto parsed = EnchantmentPredicate::fromJson(json);
+    ASSERT_TRUE(parsed.success());
+
+    const nlohmann::json written = parsed.value().toJson();
+    auto roundTripped = EnchantmentPredicate::fromJson(written);
+    ASSERT_TRUE(roundTripped.success());
+    ASSERT_EQ(roundTripped.value().getEntries().size(), 2u);
+
+    EnchantmentContainer smite;
+    smite.set("minecraft:smite", 1);
+    EXPECT_TRUE(roundTripped.value().test(smite));
 }

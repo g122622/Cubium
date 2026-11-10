@@ -208,3 +208,103 @@ TEST(ComponentNbtSerializationTest, SiblingsSerializedAsExtra)
     ASSERT_NE(siblingComp, nullptr);
     EXPECT_EQ(getString(*siblingComp, "text"), "tail");
 }
+
+// ============================================================================
+// 字节 → 组件（componentFromNbtBytes，网络解码方向）
+// ============================================================================
+
+namespace {
+
+/// 取出 Result<unique_ptr<ITextComponent>> 里的组件（value() 只能取一次）
+std::unique_ptr<ITextComponent> takeComponent(Result<std::unique_ptr<ITextComponent>>& result)
+{
+    return result.value();
+}
+
+} // namespace
+
+TEST(ComponentNbtByteDecodeTest, PlainTextStringTagRoundTrips)
+{
+    const StringTextComponent text("Hello");
+    auto parsed = componentFromNbtBytes(componentToNbtBytes(&text));
+    ASSERT_TRUE(parsed.success());
+    const auto restored = takeComponent(parsed);
+    ASSERT_NE(restored, nullptr);
+    EXPECT_EQ(restored->getUnformattedText(), "Hello");
+}
+
+TEST(ComponentNbtByteDecodeTest, StyledComponentKeepsStyle)
+{
+    // 关键点：不能退化成纯文本——style 必须保真（物品自定义名的颜色/粗体依赖这一点）
+    StringTextComponent text("Hero Blade");
+    Style style;
+    style.setColor(TextFormatting::Gold);
+    style.setBold(true);
+    style.setObfuscated(false);
+    text.setStyle(style);
+
+    auto parsed = componentFromNbtBytes(componentToNbtBytes(&text));
+    ASSERT_TRUE(parsed.success());
+    const auto restored = takeComponent(parsed);
+    ASSERT_NE(restored, nullptr);
+    EXPECT_EQ(restored->getUnformattedText(), "Hero Blade");
+    EXPECT_EQ(restored->getStyle(), style);
+}
+
+TEST(ComponentNbtByteDecodeTest, SiblingsAreRestored)
+{
+    StringTextComponent text("root");
+    text.append(std::make_unique<StringTextComponent>("-child"));
+
+    auto parsed = componentFromNbtBytes(componentToNbtBytes(&text));
+    ASSERT_TRUE(parsed.success());
+    const auto restored = takeComponent(parsed);
+    ASSERT_NE(restored, nullptr);
+    ASSERT_EQ(restored->getSiblings().size(), 1u);
+    EXPECT_EQ(restored->getSiblings().front()->getUnformattedText(), "-child");
+}
+
+TEST(ComponentNbtByteDecodeTest, TranslationComponentRoundTrips)
+{
+    std::vector<std::unique_ptr<ITextComponent>> params;
+    params.push_back(std::make_unique<StringTextComponent>("Steve"));
+    const TranslationTextComponent msg("chat.type.text", std::move(params));
+
+    auto parsed = componentFromNbtBytes(componentToNbtBytes(&msg));
+    ASSERT_TRUE(parsed.success());
+    const auto restored = takeComponent(parsed);
+    ASSERT_NE(restored, nullptr);
+    const auto* translatable = dynamic_cast<const TranslationTextComponent*>(restored.get());
+    ASSERT_NE(translatable, nullptr);
+    EXPECT_EQ(translatable->getKey(), "chat.type.text");
+    ASSERT_EQ(translatable->getParams().size(), 1u);
+}
+
+TEST(ComponentNbtByteDecodeTest, EmptyBytesAreRejected)
+{
+    const std::vector<u8> empty;
+    EXPECT_TRUE(componentFromNbtBytes(empty).failed());
+}
+
+TEST(ComponentNbtByteDecodeTest, UnknownTagIdIsRejected)
+{
+    // 0x03 = IntTag，不是合法的 Component 根标签
+    const std::vector<u8> bytes{0x03, 0x00, 0x00, 0x00, 0x2A};
+    EXPECT_TRUE(componentFromNbtBytes(bytes).failed());
+}
+
+TEST(ComponentNbtByteDecodeTest, TruncatedStringTagIsRejected)
+{
+    // 声称长度 10，实际只有 2 字节载荷
+    const std::vector<u8> bytes{0x08, 0x00, 0x0A, 'a', 'b'};
+    EXPECT_TRUE(componentFromNbtBytes(bytes).failed());
+}
+
+TEST(ComponentNbtByteDecodeTest, CompoundWithoutContentsIsRejected)
+{
+    // 只有 style、没有 text/translate：无法确定组件内容
+    nbt::tags::compound_tag comp;
+    comp.put("color", std::string("red"));
+    const auto bytes = network::buffer::nbt_io::serializeRootCompoundToBytes(comp);
+    EXPECT_TRUE(componentFromNbtBytes(bytes).failed());
+}

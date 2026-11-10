@@ -24,11 +24,11 @@
 #include "common/TestWorldHelper.hpp"
 #include <gtest/gtest.h>
 
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockRegistry.hpp"
-#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
 #include "world/border/WorldBorder.hpp"

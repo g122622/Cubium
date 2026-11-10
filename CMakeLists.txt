@@ -273,6 +273,40 @@ endif()
 # 全局编译选项
 add_compile_options(-fcolor-diagnostics)
 
+# 所有平台统一使用 LLVM lld：Linux 用 ld.lld、Windows 用 lld-link、macOS 用 ld64.lld。
+#
+# 本项目的产物体积很大（单测二进制在 RelWithDebInfo + ASan 下约 2.3 GB），GNU ld 链接这种
+# 二进制要两分钟以上，MSVC link.exe 也明显慢于 lld。
+#
+# CMake 4.2 在 Windows + Clang 下默认已经选择 lld-link（此时 CMAKE_LINKER 即 lld-link.exe，
+# 链接命令自带 -fuse-ld=lld-link），不要重复追加。其余平台显式传入 lld 可执行文件的绝对路径，
+# 而不是裸名 -fuse-ld=lld：Apple Clang 不识别裸名（只接受已存在的路径），绝对路径也能避免
+# PATH 中混入旧版本的 lld。找不到 lld 时直接失败，避免静默退回平台默认链接器。
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    get_filename_component(_mc_linker_name "${CMAKE_LINKER}" NAME)
+    if(_mc_linker_name MATCHES "lld")
+        message(STATUS "Linker: lld (${CMAKE_LINKER})")
+    else()
+        if(WIN32)
+            # Visual Studio 自带的 LLVM 把 lld-link.exe 与 clang 放在同一目录。
+            get_filename_component(_mc_clang_bin_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+            find_program(MC_LLD_EXECUTABLE NAMES lld-link HINTS "${_mc_clang_bin_dir}")
+        elseif(APPLE)
+            # Homebrew 自 LLVM 19 起把 lld 拆成独立 formula（brew install lld）。
+            find_program(MC_LLD_EXECUTABLE NAMES ld64.lld HINTS /opt/homebrew/opt/lld/bin /usr/local/opt/lld/bin)
+        else()
+            find_program(MC_LLD_EXECUTABLE NAMES ld.lld)
+        endif()
+
+        if(NOT MC_LLD_EXECUTABLE)
+            message(FATAL_ERROR "LLVM lld not found for ${CMAKE_SYSTEM_NAME}; install it or pass -DMC_LLD_EXECUTABLE=<path>")
+        endif()
+
+        add_link_options("-fuse-ld=${MC_LLD_EXECUTABLE}")
+        message(STATUS "Linker: lld (${MC_LLD_EXECUTABLE})")
+    endif()
+endif()
+
 if(MC_ENABLE_SANITIZERS)
     # Sanitizer 构建：禁用优化和可能干扰 sanitizer 的选项
     # CMAKE_CXX_FLAGS 中由调用者注入具体的 -fsanitize= 选项
@@ -305,13 +339,13 @@ else()
     # 链接时优化。只在release构建启用
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         add_compile_options(-flto=thin) # 启用链接时优化（LTO），使用 thin 模式以减少编译时间
-        if(WIN32 OR LINUX)
-            add_link_options(-flto=thin -fuse-ld=lld)
-        else()
-            add_link_options(-flto=thin)
-        endif()
-        if(WIN32 OR LINUX)
-            add_link_options(-Wl,-gc-sections) # 链接器选项，移除所有未引用的函数和数据（GNU ld/ld.lld）
+        add_link_options(-flto=thin)
+        # 链接器本身在文件上方按平台选择（全平台使用 lld）。
+        # 移除未引用的函数和数据：GNU 风格为 --gc-sections，MSVC 风格为 /OPT:REF。
+        if(WIN32)
+            add_link_options(/OPT:REF)
+        elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            add_link_options(-Wl,-gc-sections)
         endif()
     endif()
 endif()

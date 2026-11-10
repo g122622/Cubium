@@ -30,7 +30,7 @@
  *
  * ## 这个判据的作用
  *
- * 天空光从世界顶部往下传播时，遇���方块要判断「光能不能直接穿过这一格」。
+ * 天空光从世界顶部往下传播时，遇到方块要判断「光能不能直接穿过这一格」。
  * 原版默认实现：
  *
  * ```java
@@ -64,9 +64,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 
 #include "probe.hpp"
 #include "vanilla_datapack.hpp"

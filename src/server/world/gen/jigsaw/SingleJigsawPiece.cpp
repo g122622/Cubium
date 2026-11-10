@@ -22,12 +22,13 @@
 #include "JigsawPlacer.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
@@ -82,37 +83,37 @@ LegacySingleJigsawPiece::LegacySingleJigsawPiece(const std::string& templateName
 {}
 
 /**
- * @brief 获取 Structure Block 的方块状态 ID 列表（用于 BlockIgnore 处理器）
+ * @brief 获取 Structure Block 的方块 ID 列表（用于 BlockIgnore 处理器）
  *
- * BlockIgnoreStructureProcessor::process 比较 blockStateId，因此必须返回 stateId 而非 blockId。
+ * BlockIgnoreStructureProcessor 按方块 ID 忽略，覆盖该方块的全部状态。
  * 延迟初始化，因为 BlockRegistry 可能尚未就绪。
  */
-static std::vector<u32> getStructureBlockStateIds()
+static std::vector<u32> getStructureBlockIds()
 {
     static std::vector<u32> ids;
     if (ids.empty()) {
         if (auto* state = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
-            ids.push_back(state->stateId());
+            ids.push_back(state->blockId());
         }
     }
     return ids;
 }
 
 /**
- * @brief 获取 Structure Block + Air 的方块状态 ID 列表（用于 Legacy BlockIgnore 处理器）
+ * @brief 获取 Structure Block + Air 的方块 ID 列表（用于 Legacy BlockIgnore 处理器）
  *
  * Legacy 拼图块使用此列表，因为旧版结构模板中空气方块是显式放置的，
  * 需要忽略它们以避免覆盖已有地形。
  */
-static std::vector<u32> getStructureAndAirStateIds()
+static std::vector<u32> getStructureAndAirBlockIds()
 {
     static std::vector<u32> ids;
     if (ids.empty()) {
         if (auto* state = VanillaBlocks::getState(VanillaBlocks::STRUCTURE_BLOCK)) {
-            ids.push_back(state->stateId());
+            ids.push_back(state->blockId());
         }
         if (auto* state = VanillaBlocks::getState(VanillaBlocks::AIR)) {
-            ids.push_back(state->stateId());
+            ids.push_back(state->blockId());
         }
     }
     return ids;
@@ -146,17 +147,17 @@ void SingleJigsawPiece::place(IWorldWriter& world,
     settings.setBoundingBox(bounds);
 
     // 构建处理器链（按 MC 1.21 SinglePoolElement.getSettings() 顺序）：
-    // 1. BlockIgnoreStructureProcessor — legacy 用 STRUCTURE_AND_AIR，standard 用 STRUCTURE_BLOCK
+    // 1. BlockIgnoreStructureProcessor — 标准构件只忽略 structure_block，必须排在
+    //    JigsawReplacement 之前
     // 2. JigsawReplacementStructureProcessor — 替换 jigsaw 方块为 final_state
     // 3. Piece 自带 processor list — 从 ProcessorListRegistry 查找
     // 4. GravityStructureProcessor — terrain_matching 投影时添加
+    // 5. BlockIgnoreStructureProcessor — **仅 legacy 构件**，替换 1 中的忽略器并追加在最后
     StructureProcessorList processorList;
 
-    // 1. BlockIgnore: legacy 忽略 structure_block + air，standard 只忽略 structure_block
-    if (isLegacy()) {
-        processorList.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(getStructureAndAirStateIds()));
-    } else {
-        processorList.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(getStructureBlockStateIds()));
+    // 1. 标准构件的 structure_block 忽略
+    if (!isLegacy()) {
+        processorList.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(getStructureBlockIds()));
     }
 
     // 2. JigsawReplacement: 替换 jigsaw 方块为 final_state
@@ -176,21 +177,32 @@ void SingleJigsawPiece::place(IWorldWriter& world,
         }
     }
 
-    // 4. 投影处理器（terrain_matching → GravityStructureProcessor）
+    // 4. 投影处理器（terrain_matching → GravityStructureProcessor，按 WORLD_SURFACE_WG 贴地）
     if (placed.projection == JigsawPlacementBehaviour::TerrainMatching) {
-        processorList.addProcessor(std::make_unique<GravityStructureProcessor>(0, -1));
+        processorList.addProcessor(
+            std::make_unique<GravityStructureProcessor>(world::chunk::HeightmapType::WorldSurfaceWG, -1));
+    }
+
+    // 5. legacy 构件：原版 `LegacySinglePoolElement#getSettings` 把 super 里的
+    //    `STRUCTURE_BLOCK` 忽略器替换成 `STRUCTURE_AND_AIR`，追加在**整条链的末尾**。
+    //    顺序不能提前：拼图方块的 `final_state` 往往是 air，必须等 JigsawReplacement
+    //    把它换成空气之后才能被忽略掉（提前忽略只会看到 jigsaw 方块本身）。
+    if (isLegacy()) {
+        processorList.addProcessor(std::make_unique<BlockIgnoreStructureProcessor>(getStructureAndAirBlockIds()));
     }
 
     settings.setProcessors(&processorList);
 
+    // 拼图构件在装配阶段已保证形状正确，放置后不再按邻居重算形状
+    settings.setKnownShape(true);
+
     // 设置世界引用（GravityStructureProcessor 需要 IWorld 查询高度图）
-    const IWorld* iworld = dynamic_cast<const IWorld*>(&world);
-    if (iworld) {
-        settings.setWorld(iworld);
-    }
+    IWorld* iworld = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(iworld != nullptr, "SingleJigsawPiece::place requires an IWorld");
+    settings.setWorld(iworld);
 
     // 放置模板
-    templ->place(world,
+    templ->placeInWorld(*iworld,
         placed.position,
         settings,
         rng,

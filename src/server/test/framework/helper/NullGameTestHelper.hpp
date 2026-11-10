@@ -225,6 +225,13 @@ public:
         return std::nullopt;
     }
 
+    [[nodiscard]] GameTestResult spawnItemAt(
+        const mc::ItemStack& /*stack*/, const mc::math::Vector3d& /*position*/, mc::Entity*& outEntity) override
+    {
+        outEntity = nullptr;
+        return std::nullopt;
+    }
+
     [[nodiscard]] GameTestResult spawnAtLocation(
         const std::string& /*entityType*/, const mc::math::Vector3d& /*position*/, mc::Entity*& outEntity) override
     {

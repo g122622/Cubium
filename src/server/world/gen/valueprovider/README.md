@@ -6,11 +6,12 @@
 
 ```
 valueprovider/
-├── IntProvider.hpp         # 整数值提供器基类与具体实现（Constant/Uniform/Biased/Clamped/Normal/WeightedList）
-├── IntProviderParser.hpp   # IntProvider JSON 反序列化接口
-├── IntProviderParser.cpp   # IntProvider JSON 反序列化实现（支持 MC 数据包格式）
-├── HeightProvider.hpp      # 高度提供器（Uniform/Biased/Trapezoid）+ WorldGenerationContext
-├── FloatProvider.hpp       # 浮点数值提供器（Constant/Uniform/Trapezoid/Clamped）
+├── IntProvider.hpp         # 整数值提供器基类与具体实现（Constant/Uniform/Biased/Clamped/ClampedNormal/WeightedList）
+├── IntProviderParser.hpp/cpp   # IntProvider JSON 反序列化（支持 MC 数据包格式）
+├── HeightProvider.hpp      # 高度提供器（Constant/Uniform/Biased/VeryBiased/Trapezoid）+ WorldGenerationContext
+├── HeightProviderParser.hpp/cpp # HeightProvider JSON 反序列化（VerticalAnchor + IntProvider 参数）
+├── FloatProvider.hpp       # 浮点数值提供器（Constant/Uniform/Trapezoid/Clamped/ClampedNormal）
+├── FloatProviderParser.hpp/cpp  # FloatProvider JSON 反序列化
 └── README.md               # 本文档
 ```
 
@@ -68,7 +69,7 @@ HeightProvider 依赖 VerticalAnchor（来自 `surface/SurfaceRules.hpp`）解�
 | `common/core/Types.hpp` | 基础类型（i32, f64 等） |
 | `common/core/Result.hpp` | 错误处理（IntProviderParser 使用 Result<T>） |
 | `common/util/math/random/IRandom.hpp` | 随机数接口 |
-| `server/world/gen/surface/SurfaceRules.hpp` | VerticalAnchor |
+| `server/world/gen/surface/VerticalAnchor.hpp` | VerticalAnchor（HeightProvider 解析相对高度） |
 | `nlohmann/json.hpp` | JSON 解析（IntProviderParser 使用） |
 
 ### 下游依赖（依赖本模块）
@@ -110,3 +111,7 @@ MC 1.21 的 IntProvider JSON 使用 `"value"` 子对象包裹参数（如 `unifo
 ### 6. CappedStructureProcessor 使用 POSITIVE_CODEC
 
 MC 原版中 CappedProcessor 的 limit 字段使用 `IntProvider.POSITIVE_CODEC`（minValue >= 1）。IntProviderParser 支持范围校验参数，调用 `parse(json, 1)` 即可启用。
+
+### 7. 与 density 密度函数没有任何关系
+
+本目录与 `server/world/gen/density/` 是两套彼此独立的数值抽象：valueprovider 是**配置参数级的随机标量**（`sample(IRandom&)`，每次采样消耗随机数），密度函数是**地形体积的确定性函数** `(x,y,z) → density`（不消耗随机数，由噪声种子决定）。两者之间没有任何 include/调用关系，勿把密度函数的 Constant/Noise/Spline 节点与 IntProvider/FloatProvider 混用，也勿把 HeightProvider 与密度函数的 `YClampedGradient`/slide 混为一谈（前者决定"在哪放东西"，后者决定"密度随 Y 如何变化"）。两者的消费者也按生成阶段分离：密度函数服务于 BIOMES/NOISE，值提供器服务于 CARVERS/FEATURES/STRUCTURE_STARTS。

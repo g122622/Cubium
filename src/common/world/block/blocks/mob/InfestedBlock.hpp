@@ -24,8 +24,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <utility>
 #include <vector>
 

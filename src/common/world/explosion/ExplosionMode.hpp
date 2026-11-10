@@ -57,7 +57,20 @@ enum class ExplosionMode : u8 {
      * 苦力怕的默认爆炸模式（mobGriefing=true 时）。
      * 方块被移除并生成掉落物实体。
      */
-    Destroy
+    Destroy,
+
+    /**
+     * @brief 不破坏方块，只把爆炸"通知"给方块
+     *
+     * 对应 `Explosion.BlockInteraction.TRIGGER_BLOCK`。
+     *
+     * 与 `None` 的差别只在一点：`None` 完全跳过方块交互，而本模式仍会对每个受影响方块
+     * 调用 `Block::onBlockExploded`，让重写过该钩子的方块自行反应——典型用途是引爆 TNT、
+     * 触发苦力怕等"被爆炸激活"的行为。默认实现什么也不做，因此普通方块原地保留、不掉落。
+     *
+     * 风爆附魔（`minecraft:wind_burst`）用的是这个模式：数据包写 `block_interaction: "trigger"`。
+     */
+    TriggerBlock
 };
 
 } // namespace explosion

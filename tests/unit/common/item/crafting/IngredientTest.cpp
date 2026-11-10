@@ -22,7 +22,7 @@
  */
 
 #include "item/crafting/Ingredient.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"

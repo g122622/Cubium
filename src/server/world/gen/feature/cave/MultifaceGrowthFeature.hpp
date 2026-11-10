@@ -27,9 +27,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/blocks/MultifaceBlock.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/block/blocks/multiface/MultifaceBlock.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 

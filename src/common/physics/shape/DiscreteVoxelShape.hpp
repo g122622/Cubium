@@ -183,14 +183,14 @@ public:
      * @param consumer 消费者函数 (x1, y1, z1, x2, y2, z2)
      * @param simplify 是否简化相邻边
      */
-    void forAllEdges(const IntLineConsumer& consumer, bool simplify = true);
+    void forAllEdges(const IntLineConsumer& consumer, bool simplify = true) const;
 
     /**
      * @brief 遍历所有盒子
      * @param consumer 消费者函数 (x1, y1, z1, x2, y2, z2)
      * @param simplify 是否合并相邻体素
      */
-    void forAllBoxes(const IntLineConsumer& consumer, bool simplify = true);
+    void forAllBoxes(const IntLineConsumer& consumer, bool simplify = true) const;
 
     /**
      * @brief 遍历所有面
@@ -271,7 +271,7 @@ protected:
     void fillUpdateBounds(i32 x, i32 y, i32 z, bool updateBounds);
 
 private:
-    void _forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify);
+    void _forAllAxisEdges(const IntLineConsumer& consumer, AxisCycle cycle, bool simplify) const;
     void _forAllAxisFaces(const IntFaceConsumer& consumer, AxisCycle cycle);
 };
 

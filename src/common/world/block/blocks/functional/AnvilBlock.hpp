@@ -32,10 +32,11 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/base/FallingBlock.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 
 #include <array>
 #include <cstddef>
@@ -80,7 +81,7 @@ public:
     /**
      * @brief 落地成功放置时播放音效
      *
-     * 播放铁砧落地音效 (WorldEvents::ANVIL_LAND_SOUND = 1031)。
+     * 播放铁砧落地音效 (::mc::world::LevelEventId::SOUND_ANVIL_LAND = 1031)。
      */
     void onEndFalling(IWorld& world,
         const BlockPos& pos,
@@ -91,7 +92,7 @@ public:
     /**
      * @brief 破碎时播放音效
      *
-     * 当铁砧无法放置时播放破坏音效 (WorldEvents::ANVIL_DESTROYED_SOUND = 1029)。
+     * 当铁砧无法放置时播放破坏音效 (::mc::world::LevelEventId::SOUND_ANVIL_BROKEN = 1029)。
      */
     void onBroken(IWorld& world, const BlockPos& pos, entity::FallingBlockEntity& entity) override;
 
@@ -107,13 +108,10 @@ public:
 
     /**
      * @brief 旋转方块状态
+     *
+     * 原版 `AnvilBlock` 只覆写了旋转，镜像沿用基类的恒等实现，因此这里也不提供 mirror。
      */
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
-
-    /**
-     * @brief 镜像方块状态
-     */
-    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     /**
      * @brief 获取方块的视觉形状

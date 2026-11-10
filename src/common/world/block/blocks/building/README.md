@@ -1,46 +1,37 @@
-# Building Blocks 模块
+# building 模块
 
-建筑相关方块实现，包括楼梯、台阶、墙、栅栏、活板门等。
+## 目录结构树
 
-## 目录结构
-
-```
+```text
 building/
-├── StairsBlock.hpp/cpp      # 楼梯方块（内角/外角自动检测、含水支持）
-├── SlabBlock.hpp/cpp        # 台阶方块（单层/双层、含水仅限单层）
-├── WallBlock.hpp/cpp        # 墙方块（高度连接检测、含水支持）
-├── FenceBlock.hpp/cpp       # 栅栏方块（连接检测、含水支持）
-├── TrapDoorBlock.hpp/cpp    # 活板门方块（红石控制、攀爬支持）
-└── README.md
+├── slab/  # 该领域的子模块
+├── stairs/  # 该领域的子模块
+├── FenceBlock.cpp  # 模块接口与实现
+├── FenceBlock.hpp  # 栅栏方块
+├── SlabBlock.cpp  # 模块接口与实现
+├── SlabBlock.hpp  # 台阶方块
+├── StairsBlock.cpp  # 根据位域组合形状
+├── StairsBlock.hpp  # 楼梯方块
+├── TintedGlassBlock.cpp  # 模块接口与实现
+├── TintedGlassBlock.hpp  # 遮光玻璃（对齐 vanilla TintedGlassBlock）
+├── WallBlock.cpp  # 模块接口与实现
+└── WallBlock.hpp  # 墙方块
 ```
 
-## 模块关系
+## 内部模块关系
 
-```
-Block (基类)
-├── StairsBlock (楼梯) ──── IWaterLoggable
-├── SlabBlock (台阶) ────── IWaterLoggable
-├── WallBlock (墙) ──────── IWaterLoggable
-├── FenceBlock (栅栏) ───── IWaterLoggable
-└── TrapDoorBlock (活板门) ─ IWaterLoggable
-```
+Block 定义共享行为入口，BlockState 维护不可变状态；BlockProperties 与方块族描述在注册时绑定。注册表持有方块和状态，原版装配位于 registry/vanilla。
 
-## 上下游依赖
+## 上下游外部依赖关系
 
-### 上游依赖
-- `Block.hpp` - 方块基类
-- `BlockRegistry.hpp` - 方块注册表
-- `Properties.hpp` - 状态属性（HORIZONTAL_FACING, HALF, STAIRS_SHAPE, SLAB_TYPE, WALL_HEIGHT_*, OPEN, POWERED 等）
-- `Direction.hpp` - 方向定义
-- `CollisionShape.hpp` - 碰撞形状
-- `WaterLoggableHelpers.hpp` - 含水方块工具函数
-- `FenceGateHelpers.hpp` - 栅栏门连接检测工具函数（FenceBlock、WallBlock 共享）
-- `IWorld.hpp` - 世界接口
-
-### 下游依赖
-- `VanillaBlocks.hpp` - 注册原版建筑方块
+实体、物品、区块和服务端世界消费方块接口；几何运算使用 common/physics，状态属性使用 common/util/property。
 
 ## 容易踩的坑
+
+- 方块和状态由注册表持有，发放的引用必须保持稳定。
+- 形状工厂显式区分 box 的归一化坐标和 fromPixelBox 的像素坐标。
+- 声音事件标识、方块族规则、LevelEventId 与模拟 GameEvent 分别管理。
+- 原版地图颜色策略在注册时绑定，公共模型不直接引用原版快照。
 
 ### 1. SlabBlock 双层台阶不能含水
 

@@ -28,10 +28,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/IntegerProperty.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/IGrowable.hpp"
-#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/base/HorizontalBlock.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <array>
 
 namespace mc {

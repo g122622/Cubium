@@ -30,7 +30,7 @@
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <string>
 

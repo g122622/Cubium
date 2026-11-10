@@ -23,6 +23,7 @@
 
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "EnchantmentTags.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
@@ -32,10 +33,14 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/resource/LanguageManager.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include <algorithm>
 #include <array>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -57,17 +62,23 @@ i32 EnchantmentHelper::getEnchantmentLevel(const ItemStack& stack, const std::st
 
 i32 EnchantmentHelper::getEnchantmentLevel(const LivingEntity& entity, const std::string& enchantmentId)
 {
-    // 原版：for (EquipmentSlot slot : EquipmentSlot.VALUES) level = max(level, get(slot));
-    // TODO(enchantment-slots): 原版按附魔自身的 `definition.slots()` 过滤槽位；附魔定义
-    // 目前不携带槽位表，这里退化为「遍历全部槽位取最大值」——主手上的附魔结果相同，
-    // 只在副手/护甲上另有一把同名附魔时才会高估。
+    // 原版 `EnchantmentHelper.getEnchantmentLevel(Holder, LivingEntity)` 走
+    // `Enchantment.getSlotItems(entity)`：先按该附魔自身的 `slots` 声明过滤槽位，
+    // 再在过滤后的槽位里取最大等级。这里同样先查 `matchesSlot`，避免把副手/护甲上
+    // 恰好同名的附魔算进来（例如主手掠夺 I、靴子掠夺 III 时不应取到 III）。
+    //
     // 必须经虚函数 `getEquipment` 取槽位：玩家的装备存在 PlayerInventory 里（Player 重写了
     // getEquipment/setEquipment），直接读 EquipmentComponent 对玩家恒为空槽，导致「玩家手持
     // 掠夺附魔武器击杀」的掠夺加成全部落空。
+    const Enchantment* enchantment = EnchantmentRegistry::get(enchantmentId);
     i32 best = 0;
     for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
-        best = std::max(
-            best, getEnchantmentLevel(entity.getEquipment(static_cast<EquipmentSlot>(slotIndex)), enchantmentId));
+        const auto slot = static_cast<EquipmentSlot>(slotIndex);
+        // 附魔定义查不到时不做槽位过滤，保持与旧行为一致（宁可高估也不吞掉效果）。
+        if (enchantment != nullptr && !enchantment->matchesSlot(slot)) {
+            continue;
+        }
+        best = std::max(best, getEnchantmentLevel(entity.getEquipment(slot), enchantmentId));
     }
     return best;
 }
@@ -117,6 +128,89 @@ std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getEnchantmen
         if (enchantment) {
             result.emplace_back(enchantment, instance.level);
         }
+    }
+
+    return result;
+}
+
+std::vector<std::pair<const Enchantment*, i32>> EnchantmentHelper::getSortedEnchantmentsForTooltip(
+    const ItemStack& stack)
+{
+    std::vector<std::pair<const Enchantment*, i32>> unsorted = getEnchantments(stack);
+    if (unsorted.empty()) {
+        return unsorted;
+    }
+
+    // 附魔 id → 等级。同名附魔在容器中不会重复，故以 id 为键即可。
+    std::unordered_map<std::string, i32> byId;
+    byId.reserve(unsorted.size());
+    for (const auto& [enchantment, level] : unsorted) {
+        byId.emplace(enchantment->id(), level);
+    }
+
+    std::vector<std::pair<const Enchantment*, i32>> sorted;
+    sorted.reserve(unsorted.size());
+
+    // 第一步：按 `minecraft:tooltip_order` 标签的声明顺序输出标签内的附魔
+    const EnchantmentTag* tooltipOrder = EnchantmentTags::getTag(ResourceLocation("minecraft:tooltip_order"));
+    if (tooltipOrder != nullptr) {
+        for (const auto& enchantmentId : tooltipOrder->getOrderedEnchantmentIds()) {
+            const auto it = byId.find(enchantmentId.toString());
+            if (it == byId.end()) {
+                continue;
+            }
+            const Enchantment* enchantment = EnchantmentRegistry::get(it->first);
+            if (enchantment != nullptr) {
+                sorted.emplace_back(enchantment, it->second);
+            }
+            byId.erase(it);
+        }
+    }
+
+    // 第二步：标签外的附魔按物品自身的存储顺序追加（原版同样是遍历剩余 map 条目）
+    for (const auto& [enchantment, level] : unsorted) {
+        const auto it = byId.find(enchantment->id());
+        if (it == byId.end()) {
+            continue;
+        }
+        sorted.emplace_back(enchantment, level);
+        byId.erase(it);
+    }
+
+    return sorted;
+}
+
+namespace {
+
+/**
+ * @brief 取某附魔在提示框中名称的颜色（§ 代码前缀），对应原版 `Enchantment#getFullname`
+ *
+ * 诅咒独占红色分支，其余全部走默认分支（灰色）。枚举到 § 代码字符的映射交给
+ * `Style::applyLegacyFormat` + `getStyleCodes`，不在此处硬编码颜色字母。
+ */
+std::string _enchantmentNameColorCode(bool isCurse)
+{
+    const mc::text::Style style =
+        mc::text::Style{}.applyLegacyFormat(isCurse ? mc::text::TextFormatting::Red : mc::text::TextFormatting::Gray);
+    return mc::text::getStyleCodes(style);
+}
+
+} // namespace
+
+std::string EnchantmentHelper::getColoredName(const Enchantment& enchantment, bool isCurse)
+{
+    return _enchantmentNameColorCode(isCurse) + resource::LanguageManager::instance().get(enchantment.getNameKey());
+}
+
+std::string EnchantmentHelper::getFullName(const Enchantment& enchantment, i32 level, bool isCurse)
+{
+    std::string result = getColoredName(enchantment, isCurse);
+
+    // 原版：等级不是 1，或该附魔的最大等级不是 1 时追加空格 + `enchantment.level.<等级>`。
+    // 也就是说单级附魔（如精准采集）在 1 级时不显示罗马数字后缀。
+    if (level != 1 || enchantment.maxLevel() != 1) {
+        result += " ";
+        result += resource::LanguageManager::instance().get("enchantment.level." + std::to_string(level));
     }
 
     return result;
@@ -245,16 +339,6 @@ i32 EnchantmentHelper::getRiptideLevel(const ItemStack& stack)
 bool EnchantmentHelper::hasChanneling(const ItemStack& stack)
 {
     return hasEnchantment(stack, "minecraft:channeling");
-}
-
-f32 EnchantmentHelper::getSweepingDamageRatio(const ItemStack& stack)
-{
-    i32 level = getEnchantmentLevel(stack, "minecraft:sweeping_edge");
-    if (level <= 0) {
-        return 0.0f;
-    }
-    // MC 1.16.5: I=1.0-1.0/(1+level)=0.5, II=0.667, III=0.75
-    return 1.0f - 1.0f / static_cast<f32>(1 + level);
 }
 
 i32 EnchantmentHelper::getFishingLuckBonus(const ItemStack& stack)

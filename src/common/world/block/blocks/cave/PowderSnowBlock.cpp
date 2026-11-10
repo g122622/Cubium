@@ -33,10 +33,10 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 
@@ -61,7 +61,7 @@ const CollisionShape& PowderSnowBlock::getCollisionShape(const BlockState& state
     // 无实体上下文时（AI 寻路、方块放置预检、渲染等），细雪默认无碰撞——实体可穿过。
     // 带实体上下文的判定（可行走实体得完整碰撞箱、下落实体得半穿透形状）见 getCollisionShapeForEntity。
     // 对齐 vanilla getCollisionShape 在 isPlacement()（无实体上下文）时返回 Shapes.empty()。
-    return VoxelShapes::empty();
+    return CollisionShape::emptyShape();
 }
 
 const CollisionShape& PowderSnowBlock::getCollisionShapeForEntity(
@@ -71,7 +71,7 @@ const CollisionShape& PowderSnowBlock::getCollisionShapeForEntity(
     // 对齐 vanilla PowderSnowBlock.getCollisionShape（PowderSnowBlock.java:116-132）。
     // 无实体上下文（如纯方块放置预检）时返回空形状（下沉）。
     if (ctx.entity == nullptr) {
-        return VoxelShapes::empty();
+        return CollisionShape::emptyShape();
     }
 
     const Entity& entity = *ctx.entity;
@@ -87,11 +87,11 @@ const CollisionShape& PowderSnowBlock::getCollisionShapeForEntity(
     // 对齐 vanilla CollisionContext.isAbove(Shapes.block(), blockPos, false)；!descending 排除
     // 潜行下降（descending=Entity::isSneaking()，穿皮革靴玩家潜行时主动陷入细雪，见 wiki 第71行）。
     if (canEntityWalkOnPowderSnow(entity) && ctx.isAbove(blockY) && !ctx.descending) {
-        return VoxelShapes::fullCube();
+        return CollisionShape::fullBlockShape();
     }
 
     // 分支 3：否则 → 空形状（实体下沉陷入细雪，对齐 :131）。
-    return VoxelShapes::empty();
+    return CollisionShape::emptyShape();
 }
 
 bool PowderSnowBlock::canEntityWalkOnPowderSnow(const Entity& entity)

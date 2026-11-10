@@ -146,7 +146,7 @@ public:
      * @brief 初始化世界 + 测试运行器（不起线程）。
      *
      * 复用 `IntegratedServer` 世界初始化序列：数据包扫描+vanilla 注入 → `initializeRegistries(true)` →
-     * `initializeCoreManagers()` → 写初始 level.dat → `initializeSharedStorage` → 维度初始化 →
+     * `initializeDomainServices()` → 写初始 level.dat → `initializeSharedStorage` → 维度初始化 →
      * `attachWorldBindings` → `initializeWorld` → 交互/同步管理器 → `setupWorldCallbacks`。
      * 尾段：注册 `/gametest` 命令 + 选测试 + 构造 `GameTestRunner` + 挂 reporter。
      */

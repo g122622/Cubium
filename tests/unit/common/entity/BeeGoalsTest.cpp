@@ -48,16 +48,16 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/block/registry/VegetationBlocks.hpp"
+#include "common/world/block/capability/IGrowable.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VegetationBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include <memory>
@@ -125,9 +125,9 @@ public:
 
     // ========== playEvent 追踪 ==========
 
-    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
-        m_lastEventId = eventId;
+        m_lastEventId = static_cast<i32>(eventId);
         m_lastEventPos = pos;
         m_lastEventData = data;
         m_playEventCount++;
@@ -1637,13 +1637,13 @@ TEST_F(BeePollinationTargetTest, SweetBerryBush_MaxAgeCannotGrowFurther)
 TEST_F(BeePollinationTargetTest, WorldEvents_BonemealParticlesValue)
 {
     // 验证 BONEMEAL_PARTICLES(2005) 的值正确
-    EXPECT_EQ(WorldEvents::BONEMEAL_PARTICLES, 2005);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_AND_SOUND_PLANT_GROWTH), 2005);
 }
 
 TEST_F(BeePollinationTargetTest, WorldEvents_PlantGrowthParticlesValue)
 {
     // 验证 PLANT_GROWTH_PARTICLES(2011) 的值正确
-    EXPECT_EQ(WorldEvents::PLANT_GROWTH_PARTICLES, 2011);
+    EXPECT_EQ(static_cast<::mc::i32>(::mc::world::LevelEventId::PARTICLES_BEE_GROWTH), 2011);
 }
 
 // ============================================================================
@@ -1984,7 +1984,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_WheatAge0ToAge1)
 
     // 验证 playEvent 被调用
     EXPECT_EQ(world.playEventCount(), 1);
-    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
+    EXPECT_EQ(world.lastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_BEE_GROWTH));
     EXPECT_EQ(world.lastEventData(), 15);
 }
 
@@ -2034,7 +2034,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_StemBlockAge0ToAge1)
 
     // 验证 playEvent 被调用
     EXPECT_EQ(world.playEventCount(), 1);
-    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
+    EXPECT_EQ(world.lastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_BEE_GROWTH));
 }
 
 TEST_F(BeeGrowCropTest, GrowCrop_StemBlockAtMaxAgeReturnsFalse)
@@ -2079,7 +2079,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_SweetBerryBushAge0ToAge1)
 
     // 验证 playEvent 被调用
     EXPECT_EQ(world.playEventCount(), 1);
-    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
+    EXPECT_EQ(world.lastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_BEE_GROWTH));
 }
 
 TEST_F(BeeGrowCropTest, GrowCrop_SweetBerryBushAtMaxAgeReturnsFalse)
@@ -2128,7 +2128,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_PlaysPlantGrowthParticlesOnSuccess)
     EXPECT_EQ(world.lastEventPos(), BlockPos(5, 64, 5));
     // 蜜蜂授粉使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)
     // 区别是不播放骨粉使用音效
-    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
+    EXPECT_EQ(world.lastEventId(), static_cast<i32>(::mc::world::LevelEventId::PARTICLES_BEE_GROWTH));
     EXPECT_EQ(world.lastEventData(), 15);
 }
 

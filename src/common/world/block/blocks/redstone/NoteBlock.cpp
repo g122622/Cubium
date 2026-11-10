@@ -36,11 +36,13 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/material/Material.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/interactive/SkullBlockEntity.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -131,7 +133,7 @@ const ResourceLocation& getSoundEventForInstrument(Instrument instrument)
 // 方块对音符盒的有效乐器：若方块显式设置了 instrument 属性则直接使用，否则在
 // NoteBlock::blockInstrumentByType 的默认规则中按方块类型查找（对齐 vanilla 1.20 及以前的
 // NoteBlockInstrument.byState；1.21.11 起同样效果改由各方块注册期显式给出）。
-BlockProperties::Instrument effectiveInstrument(const BlockState& state)
+NoteBlockInstrument effectiveInstrument(const BlockState& state)
 {
     if (state.getBlock().hasExplicitInstrument()) {
         return state.getBlock().getInstrument();
@@ -284,9 +286,9 @@ BlockState NoteBlock::getStateForPlacement(BlockItemUseContext& context)
     return resolveInstrument(context.world(), context.placementPos(), defaultState());
 }
 
-BlockProperties::Instrument NoteBlock::blockInstrumentByType(const Block* block)
+NoteBlockInstrument NoteBlock::blockInstrumentByType(const Block* block)
 {
-    using Instrument = BlockProperties::Instrument;
+    using Instrument = NoteBlockInstrument;
     if (block == nullptr) {
         return Instrument::Harp;
     }
@@ -449,16 +451,30 @@ bool NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i3
     // 玩家头颅（CUSTOM 类）的声音来自**上方头颅方块实体的 note_block_sound**，不是固定的
     // `ui.button.click`。原版 `NoteBlock#triggerEvent` 在取不到自定义音效时直接 `return false`，
     // 一声不出——先前把 `ui.button.click` 当兜底，等于给所有普通玩家头颅配了个按钮音。
-    // TODO: Cubium 的 SkullBlockEntity 尚未保存 note_block_sound（数据组件已注册但无人读取），
-    //       该链路补齐后这里才能取到真实音效；在那之前如实按原版「无自定义音效」处理。
     if (BlockStateProperties::noteBlockInstrumentHasCustomSound(
             static_cast<BlockStateProperties::NoteBlockInstrument>(instrument))) {
-        return false;
+        // 上方那一格必须是头颅方块实体，且物品放置时带了 note_block_sound 组件；
+        // 两者任一不满足即按原版"无自定义音效"处理，直接不发声。
+        const BlockPos above(pos.x, pos.y + 1, pos.z);
+        BlockEntity* blockEntity = world.getBlockEntity(above);
+        auto* skull = dynamic_cast<blockentity::SkullBlockEntity*>(blockEntity);
+        if (skull == nullptr || !skull->getNoteBlockSound().has_value()) {
+            return false;
+        }
+
+        // 头颅类音高固定 1.0，且不产生调音粒子（只有可调音乐器才按音符定音高）。
+        const ResourceLocation customSound(skull->getNoteBlockSound().value());
+        world.playSound(customSound,
+            sound::SoundCategory::Records,
+            pos.center(),
+            3.0f, // 音量
+            1.0f  // 音高
+        );
+        return true;
     }
 
     const ResourceLocation& soundEvent = getSoundEventForInstrument(instrumentEnum);
-    // 对齐 vanilla NoteBlock.triggerEvent：仅可调音乐器（BASE_BLOCK 类）按音符值定音高并产生
-    //   音符粒子；头颅类（MOB_HEAD/CUSTOM）音高固定 1.0 且不产生调音粒子。
+    // 仅可调音乐器（BASE_BLOCK 类）按音符值定音高并产生音符粒子。
     f32 pitch = 1.0f;
     if (_isTunableInstrument(instrument)) {
         pitch = NoteBlock::calculatePitch(note);

@@ -30,8 +30,8 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/IBlockAnimateContext.hpp"
+#include "common/world/block/capability/IBlockAnimateContext.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <vector>
 
 namespace mc {

@@ -33,6 +33,7 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/item/instrument/InstrumentDefinition.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
 #include <memory>
@@ -75,11 +76,16 @@ struct PotionContentsPayload {
 /**
  * @brief instrument 组件载荷
  *
- * 对应 Java 1.21.11 Holder<Instrument>。项目暂无乐器注册表，以乐器注册表键的
- * 资源位置字符串承载，山羊角等乐器物品按注册表键解析音色。
+ * 对应 Java 1.21.11 的 `Holder<Instrument>`（`EitherHolder`），有两种形态：
+ * - **注册表引用**：只记资源位置，音色由 `InstrumentRegistry` 按 id 查表得到；
+ * - **内联定义**：组件里直接写全 sound_event / use_duration / range / description，
+ *   此时不依赖注册表命中（数据包可以定义一次性乐器）。
+ *
+ * 两者可同时存在：`inlineDefinition` 有值时优先用它，否则退回按 `instrumentId` 查表。
  */
 struct InstrumentPayload {
-    std::string instrumentId; ///< 乐器的资源位置（如 "minecraft:ponder_goat_horn"）
+    std::string instrumentId; ///< 乐器的资源位置（如 "minecraft:ponder_goat_horn"）；内联形态下可能为空
+    std::optional<item::instrument::InstrumentDefinition> inlineDefinition; ///< 内联的完整乐器定义
 };
 
 /**
@@ -178,6 +184,29 @@ struct DeathProtectionPayload {
 [[nodiscard]] DeathProtectionPayload totemOfUndyingDeathProtection();
 
 /**
+ * @brief equippable 组件载荷
+ *
+ * 对应 Java 1.21.11 的 Equippable(slot, equipSound, assetId, cameraOverlay, allowedEntities,
+ * dispensable, swappable, damageOnHurt, equipOnInteract, canBeSheared, shearingSound)。
+ *
+ * 只保留服务端有行为语义的字段：
+ * - assetId / cameraOverlay 是纯客户端资源引用（装备贴图与视角覆盖），服务端不消费；
+ * - allowedEntities 是实体类型白名单，需要实体类型注册表按资源位置解析，当前未接入，
+ *   因此这里不收——收下而不校验会让"仅限特定生物穿戴"静默失效。
+ * 两者都不在载荷中，避免出现"字段存在但永不生效"的空转。
+ */
+struct EquippablePayload {
+    EquipmentSlot slot = EquipmentSlot::Head; ///< 装备槽位（唯一必填字段，vanilla 无默认值）
+    std::string equipSound;                   ///< 穿脱音效资源位置；空表示用通用音效
+    bool dispensable = true;                  ///< 发射器能否穿戴
+    bool swappable = true;                    ///< 能否与已穿戴物品交换
+    bool damageOnHurt = true;                 ///< 受伤时是否消耗耐久（vanilla 默认 true）
+    bool equipOnInteract = false;             ///< 右键生物时能否为其穿戴
+    bool canBeSheared = false;                ///< 能否被剪切取下
+    std::string shearingSound;                ///< 剪切音效资源位置；空表示用默认剪切音效
+};
+
+/**
  * @brief 单个数据组件的异构值载荷
  *
  * variant 以 std::monostate 起始，区分"未设置"与"显式设置为某值"。
@@ -205,7 +234,8 @@ using DataComponentPayload = std::variant<std::monostate,
     std::optional<i32>,                                 // OminousBottleAmplifier / MapId 等可选整数
     ToolPayload,                                        // Tool
     SuspiciousStewEffectsPayload,                       // SuspiciousStewEffects
-    DeathProtectionPayload>;                            // DeathProtection
+    DeathProtectionPayload,                             // DeathProtection
+    EquippablePayload>;                                 // Equippable
 
 /**
  * @brief DataComponentPayload 各备选项索引
@@ -232,6 +262,7 @@ constexpr usize OptionalInt = 15;       // optional<i32>
 constexpr usize Tool = 16;              // ToolPayload
 constexpr usize StewEffects = 17;       // SuspiciousStewEffectsPayload
 constexpr usize DeathProtection = 18;   // DeathProtectionPayload
+constexpr usize Equippable = 19;        // EquippablePayload
 } // namespace ComponentPayloadIndex
 
 /**

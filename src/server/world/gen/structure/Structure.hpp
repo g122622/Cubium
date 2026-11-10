@@ -29,9 +29,10 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -184,6 +185,26 @@ public:
     };
 
     StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ);
+
+    /**
+     * @brief 带显式构造原点的构造函数
+     *
+     * 原版的片段定位统一走 `BoundingBox.orientBox(origin, …, direction)`：盒子由
+     * 「原版坐标系里的原点 + 局部偏移」一次算成，之后子构件的落点也在**同一套原版坐标**
+     * 里按 `盒角 ± 偏移` 推出。本项目把方向拆成了 rotation + mirror，盒子本身已换到世界
+     * 坐标，镜像朝向（SOUTH/WEST）下盒角与原版坐标不再对应。
+     *
+     * 因此凡是需要按原版公式推算子构件落点或使用「原版坐标系里的角坐标」的片段，
+     * 必须传入构造原点；`originX()/originY()/originZ()` 给出的就是原版坐标，
+     * 它们随 `offset()` 一起平移。
+     *
+     * @param originX 原版坐标系的原点 X（即 orientBox 的第一个实参）
+     * @param originY 原版坐标系的原点 Y
+     * @param originZ 原版坐标系的原点 Z
+     */
+    StructurePiece(
+        i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 originX, i32 originY, i32 originZ);
+
     virtual ~StructurePiece() = default;
 
     [[nodiscard]] i32 type() const noexcept
@@ -209,6 +230,24 @@ public:
     [[nodiscard]] i32 minZ() const noexcept
     {
         return m_minZ;
+    }
+
+    /** @brief 构造原点 X（原版坐标系，参见三参版本构造函数的说明）。 */
+    [[nodiscard]] i32 originX() const noexcept
+    {
+        return m_originX;
+    }
+
+    /** @brief 构造原点 Y（原版坐标系）。 */
+    [[nodiscard]] i32 originY() const noexcept
+    {
+        return m_originY;
+    }
+
+    /** @brief 构造原点 Z（原版坐标系）。 */
+    [[nodiscard]] i32 originZ() const noexcept
+    {
+        return m_originZ;
     }
 
     [[nodiscard]] i32 maxX() const noexcept
@@ -253,6 +292,17 @@ public:
      * 否则移动后它们仍指向旧位置。
      */
     virtual void offset(i32 dx, i32 dy, i32 dz);
+
+    /** 整体改写包围盒（世界坐标）。构件自身的位置状态由子类按需同步。 */
+    void setBoundingBox(const StructureBoundingBox& bounds) noexcept
+    {
+        m_minX = bounds.minX();
+        m_minY = bounds.minY();
+        m_minZ = bounds.minZ();
+        m_maxX = bounds.maxX();
+        m_maxY = bounds.maxY();
+        m_maxZ = bounds.maxZ();
+    }
 
     /**
      * @brief 获取基础方向
@@ -320,8 +370,11 @@ public:
 
     /**
      * @brief 在指定位置放置方块（应用镜像和旋转）
+     *
+     * 虚函数：矿井据此插入「不得覆盖已有木板/原木/栅栏/铁链」的 `canBeReplaced` 判定
+     * （原版 `StructurePiece.placeBlock` 会先问 `canBeReplaced`）。
      */
-    void setBlockState(
+    virtual void setBlockState(
         IWorldWriter& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
 
     /**
@@ -389,6 +442,38 @@ public:
         bool alwaysReplace,
         math::IRandom& rng,
         BlockSelector& selector);
+
+    /**
+     * @brief 按概率填充区域（原版 `generateMaybeBox`）
+     *
+     * 每个位置都先抽一次 `nextFloat`，未命中才跳过；两个 require 条件在随机之后判定，
+     * 因此不管最终是否放置，随机流都与原版一致。
+     *
+     * @param probability 每个位置放置方块的概率
+     * @param boundaryBlock 边界位置使用的方块
+     * @param insideBlock 内部位置使用的方块
+     * @param requireNonAir 仅在该位置已有非空气方块时放置
+     * @param requireInterior 仅在该位置「上方一格仍在地表之下」时放置（原版 `isInterior`）
+     */
+    void maybeFillWithBlocks(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::IRandom& rng,
+        f32 probability,
+        i32 minX,
+        i32 minY,
+        i32 minZ,
+        i32 maxX,
+        i32 maxY,
+        i32 maxZ,
+        const BlockState* boundaryBlock,
+        const BlockState* insideBlock,
+        bool requireNonAir,
+        bool requireInterior);
+
+    /**
+     * @brief 该位置上方一格是否仍在地表之下（原版 `StructurePiece.isInterior`）
+     */
+    [[nodiscard]] bool isInterior(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const;
 
     /**
      * @brief 随机放置单个方块
@@ -581,6 +666,31 @@ public:
         ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) = 0;
 
+    /**
+     * @brief 处理模板中的数据标记（原版 `TemplateStructurePiece#handleDataMarker`）
+     *
+     * 模板中 `mode=DATA` 的结构方块不参与方块放置，由所属构件在放好模板后按
+     * `metadata` 生成箱子、生物或入口方块。默认实现什么都不做。
+     *
+     * @param metadata 标记内容（原版结构方块的 `metadata` 字符串）
+     * @param pos 标记的世界坐标
+     * @param world 世界读写接口
+     * @param rng 区块随机源
+     * @param chunkBounds 当前区块的放置范围
+     */
+    virtual void handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds)
+    {
+        (void)metadata;
+        (void)pos;
+        (void)world;
+        (void)rng;
+        (void)chunkBounds;
+    }
+
     // ========== Jigsaw 结构支持 ==========
 
     /**
@@ -661,6 +771,15 @@ protected:
     Rotation m_rotation = Rotation::None;
 
     /**
+     * @brief 构造原点（原版坐标系）
+     *
+     * 缺省取盒子的最小角，使未走定向展开的片段仍能给出「与原版等价」的角坐标。
+     */
+    i32 m_originX = 0;
+    i32 m_originY = 0;
+    i32 m_originZ = 0;
+
+    /**
      * @brief 本片段在所属分支上的深度（要塞的 50 层上限）
      *
      * 起始片段为 0，每向下一层加一。组装算法按**单条分支**累计深度，而不是数全部片段总数。
@@ -678,6 +797,20 @@ protected:
     i32 m_genDepth = 0;
 
 public:
+    /**
+     * @brief 原版 `getOrientation()`：构件构造时记录的导入口世界朝向
+     *
+     * 原版用 `setOrientation(Direction)` 存一个独立字段；本项目把同样的信息编码进
+     * rotation + mirror（SOUTH=LEFT_RIGHT+NONE、WEST=LEFT_RIGHT+CW90、EAST=NONE+CW90、
+     * NORTH=NONE+NONE），这里按同一张表反推。房间一类构件从来没有设过朝向，结果为 None。
+     */
+    [[nodiscard]] Direction orientation() const noexcept
+    {
+        // 构造时 setCoordBaseMode 会把「没有朝向」写成 rotation/mirror 双 None，而同一组取值
+        // 也对应 NORTH，仅凭旋转无法区分；以 setCoordBaseMode 记下的原始方向为准。
+        return m_coordBaseMode;
+    }
+
     [[nodiscard]] i32 expansionDepth() const noexcept
     {
         return m_expansionDepth;
@@ -704,9 +837,19 @@ public:
  *
  * 表示一个结构的起点，包含所有组成片段。
  */
+class Structure;
+
 class StructureStart {
 public:
-    StructureStart(i32 chunkX, i32 chunkZ);
+    /**
+     * @brief 构造一个结构起点
+     *
+     * @param owner 拥有该起点的结构定义：起点包围盒的最终形状由它的地形适配模式决定
+     *              （原版 `StructureStart.getBoundingBox()` 内部调 `structure.adjustBoundingBox`）
+     * @param chunkX 起点所在区块 X 坐标
+     * @param chunkZ 起点所在区块 Z 坐标
+     */
+    StructureStart(const Structure& owner, i32 chunkX, i32 chunkZ);
     StructureStart(const StructureStart&) = delete;
     StructureStart(StructureStart&&) noexcept = default;
     StructureStart& operator=(const StructureStart&) = delete;
@@ -746,17 +889,33 @@ public:
     }
 
     /**
-     * @brief 获取边界框
+     * @brief 获取边界框（片段并集 + 地形适配外扩）
+     *
+     * 惰性重算并缓存，与原版 `StructureStart.getBoundingBox()` 一致：片段增删后第一次读取
+     * 才会重新求并集并套用 `Structure.adjustBoundingBox`。返回引用在下一次片段变动前有效。
      */
-    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const noexcept
+    [[nodiscard]] const StructureBoundingBox& getBoundingBox() const noexcept;
+
+    /**
+     * @brief 片段并集包围盒（**不含**地形适配外扩）
+     *
+     * 对应原版 `StructurePiecesBuilder.getBoundingBox()`（= `PiecesContainer.calculateBoundingBox()`）。
+     * 生成过程中需要"当前片段实际占多大"的地方（例如要塞/矿井的 `moveBelowSeaLevel`）必须用这个，
+     * 而不是 `getBoundingBox()`：后者已按地形适配外扩 12 格，会把整体高度多算 24，下沉量随之偏移。
+     *
+     * @return 片段并集；没有片段时返回无效包围盒
+     */
+    [[nodiscard]] StructureBoundingBox piecesBoundingBox() const noexcept
     {
-        return m_boundingBox;
+        return m_pieceBox;
     }
 
     /**
      * @brief 重新计算结构大小
      *
-     * 根据所有片段的边界框计算整体边界。
+     * 根据所有片段的边界框求并集，再交给拥有者结构的 `adjustBoundingBox` 做地形适配外扩，
+     * 与原版 `StructureStart.getBoundingBox()`（`structure.adjustBoundingBox(pieces.calculateBoundingBox())`）
+     * 同义。外扩每次都从并集重算，因此不会被后续 `addPiece` 覆盖掉，也不需要调用方参与。
      */
     void recalculateStructureSize();
 
@@ -796,10 +955,13 @@ public:
 
 private:
     std::vector<std::unique_ptr<StructurePiece>> m_pieces;
-    StructureBoundingBox m_boundingBox;
     i32 m_chunkX;
     i32 m_chunkZ;
-    i32 m_references = 0; ///< 引用计数，用于追踪多少个区块引用此结构
+    i32 m_references = 0;                       ///< 引用计数，用于追踪多少个区块引用此结构
+    const Structure* m_owner;                   ///< 拥有该起点的结构定义（决定地形适配外扩）
+    StructureBoundingBox m_pieceBox;            ///< 片段并集（未外扩）
+    mutable StructureBoundingBox m_boundingBox; ///< 外扩后的缓存，失效时按需重算
+    mutable bool m_boundingBoxDirty = true;     ///< 缓存是否失效
 };
 
 /**
@@ -892,41 +1054,21 @@ public:
     [[nodiscard]] bool isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const;
 
     /**
-     * @brief 本结构是否在 generate() 内部按真实候选生成点完成生物群系校验
+     * @brief 区块中心处的候选生成点（Y 取指定高度图）
      *
-     * 原版的生物群系校验发生在"候选生成点已求出、构件尚未装配"的时刻，采样点是候选点本身
-     * （jigsaw 结构即起始块中心、高度为投影后的地面线）。对于候选点依赖随机数的结构
-     * （要先抽起始块才知道点在哪儿），调用方无法在不重复消耗随机数的前提下预先算出该点，
-     * 故改由结构自身在 generate() 内校验：**校验失败返回 nullptr**，调用方据此回退到结构集
-     * 内的其它条目并继续用同一个随机源重抽（与原版一致）。
-     *
-     * 返回 true 的结构必须在求出候选点之后、装配构件之前调用 isValidBiomeAt()。
-     *
-     * 返回 false（默认）：调用方在区块中心（y=0）处校验，与迁移前的行为一致。
-     * TODO: 其余 jigsaw 结构（掠夺者前哨站、试炼密室等）也应改为按真实候选点校验。
-     */
-    [[nodiscard]] virtual bool validatesBiomeOnCandidatePoint() const
-    {
-        return false;
-    }
-
-    /**
-     * @brief 在结构自己算出的候选点处校验（覆写本方法的结构才走这条路径）
-     *
-     * 与 `isValidBiomeAt` 的区别只在采样时机：调用方在 `generate()` 返回之后用这里给出的
-     * 点校验，不需要结构把校验写进生成流程内部。片段的原点（`pieces()[0]` 的包围盒
-     * 角点之外的锚点）即候选点，由各结构按自己的语义解释。
+     * 等价原版 `Structure.onTopOfChunkCenter`：X/Z 是区块中心定值、Y 取高度图，
+     * 全程不消耗随机数。生物群系校验必须落在候选生成点上（原版
+     * `findValidGenerationPoint` 就是在 Stub 位置上采样的），用区块角落或固定 Y
+     * 采样会在群系边界与洞穴上方判出相反结论。
      *
      * @param generator 区块生成器
-     * @param start 结构刚产出的起点
-     * @return 该起点的候选点是否允许本结构
+     * @param chunkX 区块 X 坐标
+     * @param chunkZ 区块 Z 坐标
+     * @param type 高度图类型（原版各结构用 WORLD_SURFACE_WG 或 OCEAN_FLOOR_WG）
+     * @return 候选生成点
      */
-    [[nodiscard]] virtual bool isValidAtCandidatePoint(IChunkGenerator& generator, const StructureStart& start) const
-    {
-        MC_UNUSED(generator);
-        MC_UNUSED(start);
-        return true;
-    }
+    [[nodiscard]] BlockPos onTopOfChunkCenter(
+        IChunkGenerator& generator, i32 chunkX, i32 chunkZ, HeightmapType type) const;
 
     /**
      * @brief 获取结构的地形适配模式
@@ -949,6 +1091,18 @@ public:
     {
         return TerrainAdaptation::None;
     }
+
+    /**
+     * @brief 把起点包围盒按其地形适配模式外扩
+     *
+     * 对应原版 `Structure.adjustBoundingBox`：地形适配非 NONE 时每侧外扩 12 格
+     * （Beardifier 的核作用范围），NONE 时原样返回。起点包围盒必须经这里得到，
+     * 否则所有带地形适配的结构（村庄、试炼密室、前哨站……）的覆盖范围都会比原版小 24 格。
+     *
+     * @param box 片段的并集包围盒
+     * @return 外扩后的包围盒
+     */
+    [[nodiscard]] StructureBoundingBox adjustBoundingBox(const StructureBoundingBox& box) const;
 
     /**
      * @brief 注入数据驱动的地形适配模式
@@ -1007,18 +1161,6 @@ public:
     }
 
     /**
-     * @brief 检查是否可以在指定位置生成结构
-     * @param world 世界引用
-     * @param generator 区块生成器
-     * @param rng 随机数生成器
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @return 是否可以生成
-     */
-    [[nodiscard]] virtual bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ);
-
-    /**
      * @brief 生成结构起点（仅创建 StructurePiece，禁止写方块）
      *
      * 此方法在 STRUCTURE_STARTS 阶段调用，只能创建 StructureStart 和
@@ -1058,6 +1200,7 @@ public:
      * @param start 结构起点
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
+     * @param rng 世界生成随机源（调用方已按 `setFeatureSeed` 设定本结构在本区块的种子）
      * @param generator 区块生成器（传递给含 FeatureJigsawPiece 的拼图片段用于放置配置化地物，可为 nullptr）
      */
     virtual void placeInChunk(IWorldWriter& world,
@@ -1065,6 +1208,7 @@ public:
         StructureStart& start,
         i32 chunkX,
         i32 chunkZ,
+        math::IRandom& rng,
         IChunkGenerator* generator = nullptr) const;
 
     /**
@@ -1090,17 +1234,17 @@ protected:
     {}
 
     /**
-     * @brief 创建结构随机数生成器
+     * @brief 创建一个归属于本结构的起点
      *
-     * 使用世界种子、区块坐标和盐值生成确定性的随机数序列。
+     * 起点包围盒的最终形状由拥有者的地形适配模式决定（`adjustBoundingBox`），因此子类
+     * 生成起点时必须经此创建，不能直接构造 `StructureStart`——少了拥有者，起点盒永远不会
+     * 按地形适配外扩，STRUCTURE_REFERENCES 与区块覆盖都会偏小。
      *
-     * @param seed 世界种子
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @param salt 盐值
-     * @return 随机数生成器（Xoroshiro128++，由调用方持有所有权）
+     * @param chunkX 起点所在区块 X 坐标
+     * @param chunkZ 起点所在区块 Z 坐标
+     * @return 空的结构起点
      */
-    [[nodiscard]] static std::unique_ptr<math::IRandom> createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
+    [[nodiscard]] std::unique_ptr<StructureStart> makeStructureStart(i32 chunkX, i32 chunkZ) const;
 
     ResourceLocation m_id; ///< 结构资源位置 ID
 

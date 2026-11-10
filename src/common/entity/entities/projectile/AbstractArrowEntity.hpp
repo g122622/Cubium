@@ -33,8 +33,8 @@
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include <memory>
 #include <optional>
 #include <string>

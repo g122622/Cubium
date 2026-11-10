@@ -78,9 +78,9 @@
  */
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "probe.hpp"
 #include <algorithm>
 #include <array>

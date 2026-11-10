@@ -28,13 +28,16 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/StyleArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/criteria/TriggerCriteria.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/numbers/NumberFormat.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -43,10 +46,13 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 namespace command {
@@ -57,6 +63,32 @@ namespace {
 void attachScoreHolderSuggestions(const std::shared_ptr<CommandNode<ServerCommandSource>>& node)
 {
     node->setCustomSuggestions(std::make_shared<ServerSuggestionProvider<ServerCommandSource>>());
+}
+
+/// 把 `component` 参数文本解析成组件：能按 JSON 解析就用结构化组件，否则整段当纯文本。
+/// 与原版 `ComponentArgument` 对裸字符串的处理一致（`"text"` 与 `text` 都合法）。
+std::unique_ptr<text::ITextComponent> _parseCommandComponent(const std::string& text)
+{
+    try {
+        const auto json = nlohmann::json::parse(text);
+        auto component = text::ITextComponent::fromJson(json);
+        if (component != nullptr) {
+            return component;
+        }
+    }
+    catch (const nlohmann::json::exception&) {
+        // 不是 JSON：按纯文本处理（/scoreboard ... fixed <contents> 允许直接写普通文字）
+    }
+    return std::make_unique<text::StringTextComponent>(text);
+}
+
+/// 分数持有者名列表的展示文本（单目标写名字，多目标写数量），用于成功消息。
+std::string _describeTargets(const std::vector<std::string>& names)
+{
+    if (names.size() == 1) {
+        return "'" + names.front() + "'";
+    }
+    return std::to_string(names.size()) + " score holders";
 }
 
 } // namespace
@@ -135,9 +167,7 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto displayAutoUpdateArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
     displayAutoUpdateArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 显示自动更新的写入尚未实现，形态已对齐原版。
-        ctx.getSource().sendError("commands.scoreboard.displayautoupdate.notImplemented");
-        return 0;
+        return _modifyObjectiveDisplayAutoUpdate(ctx);
     });
     displayAutoUpdateNode->addChild(displayAutoUpdateArg);
     modifyNameArg->addChild(displayAutoUpdateNode);
@@ -145,34 +175,30 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     // /scoreboard objectives modify <objective> numberformat ...
     // numberformat 本身可执行（等价于 blank），其下 fixed <contents> / styled <style> / blank。
     auto numberFormatNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("numberformat");
+    // 未给子节点时原版传 null 格式（= 清除自定义格式），不是 blank。
     numberFormatNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
-        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
-        return 0;
+        return _modifyObjectiveNumberFormat(ctx, std::nullopt);
     });
     auto styleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("styled");
-    auto styleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "style", std::make_shared<StyleKeywordArgumentType>());
+    auto styleArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, StylePtr>>("style", StyleArgumentType::style());
     styleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
-        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
-        return 0;
+        const auto style = ctx.getArgument<StylePtr>("style");
+        return _modifyObjectiveNumberFormat(ctx, text::numbers::NumberFormat::styled(*style));
     });
     styleNode->addChild(styleArg);
     auto fixedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("fixed");
     auto contentsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
         "contents", ComponentArgumentType::component());
     contentsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
-        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
-        return 0;
+        const auto contents = ctx.getArgument<ComponentTextPtr>("contents");
+        return _modifyObjectiveNumberFormat(
+            ctx, text::numbers::NumberFormat::fixed(_parseCommandComponent(contents->text)));
     });
     fixedNode->addChild(contentsArg);
     auto blankNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("blank");
     blankNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        // TODO: 数字格式的写入尚未实现，形态已对齐原版。
-        ctx.getSource().sendError("commands.scoreboard.numberformat.notImplemented");
-        return 0;
+        return _modifyObjectiveNumberFormat(ctx, text::numbers::NumberFormat());
     });
     numberFormatNode->addChild(styleNode);
     numberFormatNode->addChild(fixedNode);
@@ -183,10 +209,11 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto renderTypeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("rendertype");
     for (const char* kind : {"hearts", "integer"}) {
         auto kindNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>(kind);
-        kindNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            // TODO: 渲染类型的写入尚未实现，形态已对齐原版。
-            ctx.getSource().sendError("commands.scoreboard.rendertype.notImplemented");
-            return 0;
+        // 渲染类型是字面量分支，直接把对应枚举捕获进回调。
+        const scoreboard::RenderType renderType =
+            scoreboard::renderTypeParse(kind).value_or(scoreboard::RenderType::Integer);
+        kindNode->setCommand([renderType](CommandContext<ServerCommandSource>& ctx) {
+            return _setObjectiveRenderType(ctx, renderType);
         });
         renderTypeNode->addChild(kindNode);
     }
@@ -293,8 +320,10 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
         auto [targets, objective] = makeDisplayTarget();
         // 原版 objective 本身可执行（清空该分数的自定义名），name <name> 覆盖显示名。
         objective->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-            // TODO: 分数持有者的显示设置尚未实现，形态已对齐原版。
-            ctx.getSource().sendError("commands.scoreboard.display.notImplemented");
+            // TODO: 分数持有者的自定义显示名（vanilla Score.display）尚未实现：需要 Score 增加
+            //   display 字段（Component）、存档 format 兄弟节点 display 的读写，以及这里按
+            //   <targets> 批量写入。数字格式（numberformat）已实现，可参照其写法。
+            ctx.getSource().sendError("Score display name is not implemented yet");
             return 0;
         });
         auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
@@ -309,24 +338,30 @@ void ScoreboardCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
     auto displayNumberFormatNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("numberformat");
     {
         auto [targets, objective] = makeDisplayTarget();
-        // 原版 objective 本身可执行（等价于 blank），其下 blank / styled <style> / fixed <contents>。
-        auto displayFormatLeaf = [](CommandContext<ServerCommandSource>& ctx) {
-            // TODO: 分数持有者的显示设置尚未实现，形态已对齐原版。
-            ctx.getSource().sendError("commands.scoreboard.display.notImplemented");
-            return 0;
-        };
-        objective->setCommand(displayFormatLeaf);
+        // 原版 objective 本身可执行（= 清除覆盖，回退到目标格式），其下 blank / styled / fixed。
+        objective->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _modifyPlayerNumberFormat(ctx, std::nullopt);
+        });
         auto blankNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("blank");
-        blankNode->setCommand(displayFormatLeaf);
+        blankNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            return _modifyPlayerNumberFormat(ctx, text::numbers::NumberFormat());
+        });
         auto styledNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("styled");
-        auto styleArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-            "style", std::make_shared<StyleKeywordArgumentType>());
-        styleArg->setCommand(displayFormatLeaf);
+        auto styleArg =
+            std::make_shared<ArgumentCommandNode<ServerCommandSource, StylePtr>>("style", StyleArgumentType::style());
+        styleArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            const auto style = ctx.getArgument<StylePtr>("style");
+            return _modifyPlayerNumberFormat(ctx, text::numbers::NumberFormat::styled(*style));
+        });
         styledNode->addChild(styleArg);
         auto fixedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("fixed");
         auto contentsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ComponentTextPtr>>(
             "contents", ComponentArgumentType::component());
-        contentsArg->setCommand(displayFormatLeaf);
+        contentsArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
+            const auto contents = ctx.getArgument<ComponentTextPtr>("contents");
+            return _modifyPlayerNumberFormat(
+                ctx, text::numbers::NumberFormat::fixed(_parseCommandComponent(contents->text)));
+        });
         fixedNode->addChild(contentsArg);
         objective->addChild(blankNode);
         objective->addChild(styledNode);
@@ -876,6 +911,56 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayName(CommandContext<ServerCommandS
     return 1;
 }
 
+i32 ScoreboardCommand::_modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const std::string name = context.getArgument<std::string>("objective");
+    const bool value = context.getArgument<bool>("value");
+
+    auto* scoreboard = getScoreboard(source);
+    if (!scoreboard) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+    auto* objective = scoreboard->getObjective(name);
+    if (objective == nullptr) {
+        source.sendMessage("Unknown objective '" + name + "'");
+        return 0;
+    }
+
+    objective->setDisplayAutoUpdate(value);
+    source.sendMessage("Set displayAutoUpdate of objective '" + name + "' to " + (value ? "true" : "false"));
+    return 1;
+}
+
+i32 ScoreboardCommand::_setObjectiveRenderType(
+    CommandContext<ServerCommandSource>& context, scoreboard::RenderType renderType)
+{
+    auto& source = context.getSource();
+    const std::string name = context.getArgument<std::string>("objective");
+
+    auto* scoreboard = getScoreboard(source);
+    if (scoreboard == nullptr) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+
+    auto* objective = scoreboard->getObjective(name);
+    if (objective == nullptr) {
+        source.sendMessage("Unknown objective '" + name + "'");
+        return 0;
+    }
+
+    // 原版仅在类型真正变化时才写入并回报，避免重复设置时刷屏。
+    if (objective->getRenderType() != renderType) {
+        objective->setRenderType(renderType);
+        source.sendMessage(
+            "Set render type of objective '" + name + "' to '" + scoreboard::renderTypeToString(renderType) + "'");
+    }
+
+    return 0;
+}
+
 i32 ScoreboardCommand::_setDisplaySlot(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
@@ -930,29 +1015,86 @@ i32 ScoreboardCommand::_listAllPlayers(CommandContext<ServerCommandSource>& cont
     return static_cast<i32>(names.size());
 }
 
-i32 ScoreboardCommand::_displayPlayerScore(CommandContext<ServerCommandSource>& context)
+i32 ScoreboardCommand::_modifyObjectiveNumberFormat(
+    CommandContext<ServerCommandSource>& context, std::optional<text::numbers::NumberFormat> numberFormat)
+{
+    auto& source = context.getSource();
+    const std::string name = context.getArgument<std::string>("objective");
+
+    auto* scoreboard = getScoreboard(source);
+    if (scoreboard == nullptr) {
+        source.sendMessage("Scoreboard is not available");
+        return 0;
+    }
+    auto* objective = scoreboard->getObjective(name);
+    if (objective == nullptr) {
+        source.sendError("Unknown objective '" + name + "'");
+        return 0;
+    }
+
+    objective->setNumberFormat(std::move(numberFormat));
+
+    // 原版对「设置」与「清除」分别回报（objectiveFormat.set / .clear）。
+    if (objective->getNumberFormat().has_value()) {
+        source.sendMessage("Set number format of objective '" + name + "'");
+    } else {
+        source.sendMessage("Cleared number format of objective '" + name + "'");
+    }
+    return 1;
+}
+
+i32 ScoreboardCommand::_modifyPlayerNumberFormat(
+    CommandContext<ServerCommandSource>& context, std::optional<text::numbers::NumberFormat> numberFormat)
 {
     auto& source = context.getSource();
     const std::string targets = context.getArgument<std::string>("targets");
     const std::string objectiveName = context.getArgument<std::string>("objective");
+
     auto* scoreboard = getScoreboard(source);
-    if (!scoreboard) {
+    if (scoreboard == nullptr) {
         source.sendMessage("Scoreboard is not available");
         return 0;
     }
     auto* objective = scoreboard->getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendMessage("Unknown objective '" + objectiveName + "'");
+        source.sendError("Unknown objective '" + objectiveName + "'");
         return 0;
     }
-    auto* score = scoreboard->getScore(targets, *objective);
-    if (score == nullptr) {
-        source.sendMessage("Could not get score for " + targets + " on " + objectiveName);
+
+    // 原版 getNamesWithDefaultWildcard：`*` 展开为「所有已记录分数的持有者」，否则按逗号分隔。
+    std::vector<std::string> holders;
+    if (targets == "*") {
+        holders = scoreboard->getTrackedPlayerNames();
+    } else {
+        std::istringstream stream(targets);
+        std::string holder;
+        while (std::getline(stream, holder, ',')) {
+            if (!holder.empty()) {
+                holders.push_back(holder);
+            }
+        }
+    }
+    if (holders.empty()) {
+        source.sendError("No score holders matched '" + targets + "'");
         return 0;
     }
-    source.sendMessage(
-        "Set display of " + targets + " on " + objectiveName + " to " + std::to_string(score->getScorePoints()));
-    return score->getScorePoints();
+
+    // 原版对每个持有者 getOrCreatePlayerScore(...).numberFormatOverride(...)：即使该持有者本来
+    // 没有分数也会建出条目（与 /scoreboard players display name 的行为一致）。
+    for (const auto& holder : holders) {
+        auto* score = scoreboard->getOrCreateScore(holder, *objective);
+        if (score != nullptr) {
+            score->setNumberFormatOverride(numberFormat);
+        }
+    }
+
+    const std::string who = _describeTargets(holders);
+    if (numberFormat.has_value()) {
+        source.sendMessage("Set number format of " + who + " in objective '" + objectiveName + "'");
+    } else {
+        source.sendMessage("Cleared number format of " + who + " in objective '" + objectiveName + "'");
+    }
+    return static_cast<i32>(holders.size());
 }
 
 i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& context)

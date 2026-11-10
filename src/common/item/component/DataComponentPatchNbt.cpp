@@ -194,7 +194,7 @@ bool _readInstrument(const nlohmann::json& value, DataComponentPayload& out)
         return false;
     }
     out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Instrument>,
-        InstrumentPayload{_normalizeId(value.get<std::string>())}};
+        InstrumentPayload{_normalizeId(value.get<std::string>()), std::nullopt}};
     return true;
 }
 
@@ -288,6 +288,9 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
             return true;
         }
         case DataComponentType::ItemModel:
+            return _readResourceId(json, out);
+        case DataComponentType::NoteBlockSound:
+            // 值就是一个声音事件资源位置；与 item_model 共用资源位置读取逻辑。
             return _readResourceId(json, out);
         case DataComponentType::Enchantable: {
             // vanilla Enchantable.CODEC 是 record {value: int}，持久形态必须是复合对象。

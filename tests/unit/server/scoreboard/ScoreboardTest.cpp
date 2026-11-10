@@ -787,4 +787,77 @@ TEST_F(ScoreboardTest, ForAllObjectivesCreatesScoreOnFirstTrigger)
     EXPECT_EQ(score->getScorePoints(), 1);
 }
 
+// ============================================================================
+// 分数渲染类型（/scoreboard objectives modify <obj> rendertype）
+// ============================================================================
+
+TEST_F(ScoreboardTest, Objective_DefaultRenderTypeIsInteger)
+{
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    auto* objective = scoreboard.addObjective("kills", *criteria);
+    ASSERT_NE(objective, nullptr);
+
+    // 原版新建目标的默认渲染类型是 integer。
+    EXPECT_EQ(objective->getRenderType(), RenderType::Integer);
+}
+
+TEST_F(ScoreboardTest, Objective_SetRenderTypeToHearts)
+{
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    auto* objective = scoreboard.addObjective("health", *criteria);
+    ASSERT_NE(objective, nullptr);
+
+    objective->setRenderType(RenderType::Hearts);
+    EXPECT_EQ(objective->getRenderType(), RenderType::Hearts);
+
+    // 可以再改回来，命令层的"仅类型变化才写入"依赖该读写一致。
+    objective->setRenderType(RenderType::Integer);
+    EXPECT_EQ(objective->getRenderType(), RenderType::Integer);
+}
+
+TEST_F(ScoreboardTest, Objective_DisplayAutoUpdateDefaultsToTrue)
+{
+    // 原版新建目标的 displayAutoUpdate 默认为 true。
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    auto* objective = scoreboard.addObjective("auto", *criteria);
+    ASSERT_NE(objective, nullptr);
+
+    EXPECT_TRUE(objective->getDisplayAutoUpdate());
+}
+
+TEST_F(ScoreboardTest, Objective_SetDisplayAutoUpdateFalse)
+{
+    // /scoreboard objectives modify <objective> displayautoupdate false 的底层写入。
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    auto* objective = scoreboard.addObjective("auto", *criteria);
+    ASSERT_NE(objective, nullptr);
+
+    objective->setDisplayAutoUpdate(false);
+    EXPECT_FALSE(objective->getDisplayAutoUpdate());
+
+    // 可以改回来，持久化层的读写一致性依赖该 setter 生效。
+    objective->setDisplayAutoUpdate(true);
+    EXPECT_TRUE(objective->getDisplayAutoUpdate());
+}
+
+TEST_F(ScoreboardTest, RenderTypeStringRoundTrip)
+{
+    // 命令字面量 -> 枚举 -> 字符串 必须闭环，否则约定的 rendertype 参数会写错值。
+    ASSERT_TRUE(renderTypeParse("hearts").has_value());
+    ASSERT_TRUE(renderTypeParse("integer").has_value());
+
+    EXPECT_EQ(*renderTypeParse("hearts"), RenderType::Hearts);
+    EXPECT_EQ(*renderTypeParse("integer"), RenderType::Integer);
+
+    EXPECT_STREQ(renderTypeToString(RenderType::Hearts), "hearts");
+    EXPECT_STREQ(renderTypeToString(RenderType::Integer), "integer");
+
+    // 未知输入必须明确失败，不能静默回退。
+    EXPECT_FALSE(renderTypeParse("bogus").has_value());
+}
+
 // main 函数由 gtest_main 库提供

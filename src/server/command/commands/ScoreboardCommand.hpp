@@ -26,7 +26,11 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include "common/util/text/numbers/NumberFormat.hpp"
 #include "server/command/ServerCommandSource.hpp"
+
+#include <optional>
 
 namespace mc {
 namespace command {
@@ -54,8 +58,51 @@ private:
     static i32 _listPlayers(CommandContext<ServerCommandSource>& context);
     static i32 _listAllPlayers(CommandContext<ServerCommandSource>& context);
     static i32 _modifyObjectiveDisplayName(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 设置目标的显示名是否随分数自动更新
+     *
+     * 对应 /scoreboard objectives modify <objective> displayautoupdate <bool>。
+     */
+    static i32 _modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 设置目标的分数渲染类型
+     *
+     * 对应原版 `commands.scoreboard.objectives.modify.rendertype`：仅在类型发生变化时写入并
+     * 回报成功，类型不变则不产生任何输出。
+     *
+     * @param context 命令上下文
+     * @param renderType 目标渲染类型（hearts / integer）
+     */
+    static i32 _setObjectiveRenderType(CommandContext<ServerCommandSource>& context, scoreboard::RenderType renderType);
+
     static i32 _setDisplaySlot(CommandContext<ServerCommandSource>& context);
-    static i32 _displayPlayerScore(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 设置目标的数字格式
+     *
+     * 对应 `/scoreboard objectives modify <objective> numberformat [blank|styled <style>|fixed <contents>]`。
+     * 不给子节点时传 `std::nullopt`（清除自定义格式，回退到客户端默认格式），其余情况传具体格式。
+     *
+     * @param context 命令上下文
+     * @param numberFormat 数字格式；nullopt 表示清除
+     */
+    static i32 _modifyObjectiveNumberFormat(
+        CommandContext<ServerCommandSource>& context, std::optional<text::numbers::NumberFormat> numberFormat);
+
+    /**
+     * @brief 设置分数持有者的数字格式覆盖
+     *
+     * 对应 `/scoreboard players display numberformat <targets> <objective> [blank|styled|fixed]`。
+     * `targets` 支持逗号分隔的多个持有者与 `*`（所有已记录分数的持有者）。
+     *
+     * @param context 命令上下文
+     * @param numberFormat 覆盖格式；nullopt 表示清除覆盖、回退到目标格式
+     */
+    static i32 _modifyPlayerNumberFormat(
+        CommandContext<ServerCommandSource>& context, std::optional<text::numbers::NumberFormat> numberFormat);
+
     static i32 _operateScore(CommandContext<ServerCommandSource>& context);
 };
 

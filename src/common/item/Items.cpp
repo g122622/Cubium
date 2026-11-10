@@ -37,6 +37,7 @@
 #include "common/item/items/BannerPatternItem.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/armor/ElytraItem.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
 #include "common/item/items/armor/NautilusArmorItem.hpp"
 #include "common/item/items/armor/WolfArmorItem.hpp"
@@ -51,6 +52,7 @@
 #include "common/item/items/food/HoneyBottleItem.hpp"
 #include "common/item/items/map/EmptyMapItem.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
+#include "common/item/items/potion/GlassBottleItem.hpp"
 #include "common/item/items/potion/LingeringPotionItem.hpp"
 #include "common/item/items/potion/PotionItem.hpp"
 #include "common/item/items/potion/SplashPotionItem.hpp"
@@ -115,7 +117,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/world/block/blocks/functional/CompostableItems.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -2291,8 +2293,10 @@ void Items::_registerArmor()
     // ========================================================================
     // 鞘翅
     // ========================================================================
-    ELYTRA = &registry.registerItem(
-        ResourceLocation("minecraft:elytra"), ItemProperties().maxDamage(432).rarity(ItemRarity::Uncommon));
+    // 鞘翅必须用 ElytraItem：它覆写了滑翔相关的物品行为，并挂默认 equippable 组件。
+    // 此前这里直接注册普通 Item，导致 ElytraItem 整个类成为死代码，鞘翅也没有装备语义。
+    ELYTRA = &registry.registerItem<item::items::ElytraItem>(
+        ResourceLocation("minecraft:elytra"), ItemProperties().rarity(ItemRarity::Uncommon));
 
     // ========================================================================
     // 马铠 - 用于装备马提供护甲
@@ -2940,9 +2944,10 @@ void Items::_registerPotions()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 玻璃瓶 - 用于装水和酿造
-    GLASS_BOTTLE =
-        &registry.registerItem(ResourceLocation("minecraft:glass_bottle"), ItemProperties().maxStackSize(64));
+    // 玻璃瓶 - 用于装水和酿造。必须用 GlassBottleItem：它实现了右键装水/取药水的行为。
+    // 此前这里直接注册普通 Item，导致 GlassBottleItem 整个类成为死代码，玻璃瓶无法装水。
+    GLASS_BOTTLE = &registry.registerItem<item::GlassBottleItem>(
+        ResourceLocation("minecraft:glass_bottle"), ItemProperties().maxStackSize(64));
 
     // 药水 - 饮用药水
     POTION = &registry.registerItem<item::PotionItem>(
@@ -5627,10 +5632,6 @@ void Items::_registerSpawnEggs()
         0xE4DDC9FF,
         ItemProperties().maxStackSize(64));
 
-    // TODO: camel_husk_spawn_egg 依赖 CamelHuskEntity 注册实现。当前 CamelHuskEntity 尚未在
-    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
-    // EntityRegistry::getType("minecraft:camel_husk") 查找实体会返回 nullptr，导致此刷怪蛋
-    // 右键方块/右键生物时无法生成实体。待 CamelHuskEntity 实现并在 VanillaEntities 中注册后生效。
     CAMEL_HUSK_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:camel_husk_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:camel_husk"),
@@ -5773,10 +5774,6 @@ void Items::_registerSpawnEggs()
         0x25D1C2FF,
         ItemProperties().maxStackSize(64));
 
-    // TODO: happy_ghast_spawn_egg 依赖 HappyGhastEntity 注册实现。当前 HappyGhastEntity 尚未在
-    // EntityRegistry 中注册，MobEntity::_spawnOffspringFromSpawnEgg 通过
-    // EntityRegistry::getType("minecraft:happy_ghast") 查找实体会返回 nullptr，导致此刷怪蛋
-    // 右键方块/右键生物时无法生成实体。待 HappyGhastEntity 实现并在 VanillaEntities 中注册后生效。
     HAPPY_GHAST_SPAWN_EGG =
         &registry.registerItem<item::SpawnEggItem>(ResourceLocation("minecraft:happy_ghast_spawn_egg"),
             makeEntityTypeForSpawnEgg("minecraft:happy_ghast"),
@@ -6127,14 +6124,12 @@ void Items::_registerSpawnEggs()
             0x88B1BFFF,
             ItemProperties().maxStackSize(64));
 
-    // TODO: 以下 2 种刷怪蛋对应的实体类型尚未在项目中注册，刷怪蛋物品本身已注册成功，
+    // TODO: creaking_spawn_egg 对应的实体类型尚未在项目中注册，刷怪蛋物品本身已注册成功，
     // 但实际使用时（右键方块/右键生物生成幼体）MobEntity::_spawnOffspringFromSpawnEgg 或
     // SpawnEggItem::spawnEntity 通过 EntityRegistry::getType(name)->create() 查找实体会返回
     // nullptr，导致无法生成实体，功能不完整：
-    //   - creaking_spawn_egg       → 依赖 CreakingEntity
-    //   - happy_ghast_spawn_egg    → 依赖 HappyGhastEntity
-    // （nautilus / zombie_nautilus / parched / camel_husk 的实体已在 VanillaEntities 注册，不在此列）
-    // 待上述实体类型实现并在 VanillaEntities::registerAll() 中注册后，刷怪蛋功能自动生效。
+    //   - creaking_spawn_egg → 依赖 CreakingEntity（EntityTypeKeys::CREAKING 亦未定义）
+    // 其余刷怪蛋的实体均已在 VanillaEntities 注册，功能正常。
 }
 
 } // namespace mc

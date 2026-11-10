@@ -44,18 +44,18 @@ namespace structure {
 /**
  * @brief 雪屋结构片段
  *
- * 使用模板系统生成雪屋，支持地上部分和地下室。
+ * 对应原版 `IglooPieces.IglooPiece`：每个模板（地上 / 中间层 / 地下室）各是一个独立构件，
+ * 它们的包围盒在构造期由模板尺寸绕各自的旋转枢轴展开，后处理的顺序也与装配顺序一致。
  */
 class IglooPiece : public StructurePiece {
 public:
     /**
-     * @brief 构造函数
-     * @param position 放置位置（地上部分的底部）
-     * @param rotation 旋转角度
-     * @param hasBasement 是否有地下室
-     * @param middleCount 中间层数量（0-2）
+     * @brief 构造一个雪屋构件
+     * @param templateName 模板资源路径（`igloo/top`、`igloo/middle`、`igloo/bottom`）
+     * @param position 模板原点附近的地面锚点，组装时已按模板偏移调整过
+     * @param rotation 旋转
      */
-    IglooPiece(const BlockPos& position, Rotation rotation, bool hasBasement, i32 middleCount);
+    IglooPiece(const std::string& templateName, const BlockPos& position, Rotation rotation);
 
     ~IglooPiece() override = default;
 
@@ -77,43 +77,30 @@ public:
         m_templateManager = manager;
     }
 
-    [[nodiscard]] bool hasBasement() const
+    [[nodiscard]] const std::string& templateName() const
     {
-        return m_hasBasement;
+        return m_templateName;
     }
 
-    [[nodiscard]] i32 middleCount() const
+    [[nodiscard]] const BlockPos& templatePosition() const
     {
-        return m_middleCount;
+        return m_templatePosition;
     }
 
 private:
-    void _loadTemplates();
-    void _generateTop(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds);
-    void _generateMiddle(IWorldWriter& world, math::IRandom& rng, i32 index, const StructureBoundingBox& bounds);
-    void _generateBottom(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds);
     void _updateBoundingBox();
 
-    Rotation m_rotation;
-    bool m_hasBasement;
-    i32 m_middleCount; ///< 中间层数量（0-2）
-
+    std::string m_templateName;
+    BlockPos m_templatePosition;
+    BlockPos m_size{1, 1, 1};
     feature::template_::TemplateManager* m_templateManager = nullptr;
-    const feature::template_::Template* m_topTemplate = nullptr;
-    const feature::template_::Template* m_middleTemplate = nullptr;
-    const feature::template_::Template* m_bottomTemplate = nullptr;
-
-    BlockPos m_topSize{1, 1, 1};
-    BlockPos m_middleSize{1, 1, 1};
-    BlockPos m_bottomSize{1, 1, 1};
+    const feature::template_::Template* m_template = nullptr;
 };
 
 /**
  * @brief 雪屋结构
  *
- * 在雪地生物群系中生成的小型雪屋结构。
- * 50% 概率生成地下室。
- * 使用模板系统从 igloo/top.nbt, igloo/middle.nbt, igloo/bottom.nbt 加载。
+ * 生成点是区块中心的最高地表，构件围绕 Y=90 建造；地下室按 50% 概率附带。
  */
 class IglooStructure : public Structure {
 public:
@@ -124,34 +111,23 @@ public:
         return s_name;
     }
 
-    /**
-     * @brief 获取结构关联的生物群系标签
-     *
-     * 返回 minecraft:has_structure/igloo 标签，用于 O(1) 生物群系查找。
-     */
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
-
-    [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
-    /**
-     * @brief 设置模板管理器
-     */
     void setTemplateManager(feature::template_::TemplateManager* manager)
     {
         m_templateManager = manager;
     }
 
-    // 模板名称常量
+    /// 模板路径常量
+    static const std::string s_name;
     static const std::string s_topTemplateName;
     static const std::string s_middleTemplateName;
     static const std::string s_bottomTemplateName;
 
 private:
-    static const std::string s_name;
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 

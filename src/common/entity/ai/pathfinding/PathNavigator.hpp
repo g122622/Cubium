@@ -49,7 +49,7 @@
 #include "WorldRegion.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -272,6 +272,19 @@ public:
      * @brief 给定位置是否是稳定的落脚点（下方方块渲染为实心）
      */
     [[nodiscard]] bool isStableDestination(const BlockPos& pos) const;
+
+    /**
+     * @brief 能否寻路到达目标（只算路径，不启动移动）
+     *
+     * 对齐 vanilla `PathNavigation.createPath(BlockPos, int)` 的判定用途：只做一次寻路
+     * 计算并返回是否找到路径，**不改变实体的寻路状态**，因此可以安全地用于断言/探测。
+     * 与 `moveTo(...)` 的区别在于后者会把算出的路径交给实体开始跟随。
+     *
+     * @param target 目标方块坐标
+     * @param reachRange 判定到达的曼哈顿半径
+     * @return 找到路径返回 true
+     */
+    [[nodiscard]] bool canReach(const BlockPos& target, i32 reachRange);
 
     // ========== 子类接口 ==========
 

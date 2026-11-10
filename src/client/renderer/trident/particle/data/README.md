@@ -110,7 +110,7 @@ auto entityData = std::make_unique<VibrationParticleData>(
 
 | 模块 | 用途 |
 |------|------|
-| `common/world/block/Block.hpp` | BlockState 类型（BlockParticleData） |
+| `common/world/block/core/Block.hpp` | BlockState 类型（BlockParticleData） |
 | `common/item/core/ItemStack.hpp` | ItemStack 类型（ItemParticleData） |
 | `client/renderer/trident/particle/ParticleTypes.hpp` | ParticleTypeId 枚举 |
 | `client/renderer/trident/particle/ParticleRegistry.hpp` | 类型名称查找 |

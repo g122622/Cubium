@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 
 namespace mc {

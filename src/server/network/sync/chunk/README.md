@@ -33,8 +33,8 @@ src/server/network/sync/chunk/
 
 | 依赖本目录 | 用途 |
 |---|---|
-| `server/core/PlayerManager` | 持 `ChunkSyncManager`，驱动 `updatePlayerPosition`/`calculateUpdates` |
-| `server/core/ServerPlayerData` | 持 `shared_ptr<PlayerChunkTracker>` |
+| `server/player/lifecycle/PlayerManager` | 持 `ChunkSyncManager`，驱动 `updatePlayerPosition`/`calculateUpdates` |
+| `server/player/runtime/ServerPlayerData` | 持 `shared_ptr<PlayerChunkTracker>` |
 | `server/network/sync/ChunkSendManager` | 经 `markChunkSent`/`markChunkUnloaded`/`getChunkSubscribers` 记账 |
 
 ## 容易踩的坑

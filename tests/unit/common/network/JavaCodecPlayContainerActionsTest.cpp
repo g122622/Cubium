@@ -16,18 +16,19 @@
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
-#include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IntegratedServer.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <limits>
@@ -242,7 +243,7 @@ public:
         return true;
     }
 
-    void playEvent(i32, const BlockPos&, i32) override {}
+    void playEvent(::mc::world::LevelEventId, const BlockPos&, i32) override {}
 
     BlockEntity* getBlockEntity(const BlockPos&) override
     {
@@ -257,7 +258,7 @@ class _ContainerRequestServer : public server::IntegratedServer {
 public:
     _ContainerRequestServer()
     {
-        m_playerManager = std::make_unique<server::core::PlayerManager>(10);
+        m_playerManager = std::make_unique<server::PlayerManager>(10);
         m_merchant = std::make_unique<_ContainerTestMerchant>();
         m_containerManager = std::make_unique<server::interaction::ContainerManager>(*m_playerManager);
         m_world = std::make_unique<_ContainerRequestWorld>(&VanillaBlocks::ANVIL->defaultState());

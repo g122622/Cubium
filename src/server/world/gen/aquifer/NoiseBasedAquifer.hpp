@@ -27,7 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/aquifer/FluidStatus.hpp"
 #include <vector>
 

@@ -26,9 +26,9 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 
 namespace mc {
 namespace blocks {

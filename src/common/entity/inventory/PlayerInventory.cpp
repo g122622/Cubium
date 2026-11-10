@@ -186,109 +186,87 @@ i32 PlayerInventory::add(ItemStack& stack)
         return 0;
     }
 
-    // MC 1.16.5行为: 损坏的物品直接放入第一个空槽位
-    // 普通物品: 优先尝试合并到现有堆叠
-    // 顺序: 当前选中槽位 → 副手槽 → 快捷栏 → 主背包
+    // 装填分两步，与原版 Inventory.add 的 addResource 一致：
+    //
+    //   1. getSlotWithRemainingSpace：先看选中槽、再看副手槽、最后从 0 开始按索引递增
+    //      扫全部 36 个普通槽位，找**已有同类且未满**的槽；
+    //   2. getFreeSlot：同样从 0 递增找**第一个空槽**。
+    //
+    // 两个细节决定玩家看到的结果：
+    //
+    //   - **扫描与找空槽都从索引 0 递增**，而 0..8 是快捷栏——所以捡东西会先塞满快捷栏
+    //     再去主背包。曾经这里把副手排在快捷栏之前，捡到的东西会凭空出现在副手槽。
+    //   - **副手槽只在第一步参与**（原版 getSlotWithRemainingSpace 显式查 getItem(40)），
+    //     找空槽时不在候选里（getFreeSlot 只扫 items，长度 36）。
+    //
+    // 每次合并都受该槽的堆叠上限约束，超出部分继续找下一个槽；因此 100 个石头会铺成
+    // 64 + 36 两个槽，而不是塞进一个槽里。
+    const i32 maxStackLimit = getMaxStackSize();
 
-    // 1. 首先尝试合并到当前选中槽位
-    if (_canMergeStacks(m_items[static_cast<size_t>(m_selectedSlot)], stack)) {
-        i32 maxStack = std::min(m_items[static_cast<size_t>(m_selectedSlot)].getMaxStackSize(), getMaxStackSize());
-        i32 space = maxStack - m_items[static_cast<size_t>(m_selectedSlot)].getCount();
-        i32 toAdd = std::min(space, stack.getCount());
-        m_items[static_cast<size_t>(m_selectedSlot)].grow(toAdd);
+    // 第一步：反复找能合并的槽，直到装完或再也找不到。
+    //
+    // 原版 addResource 只处理一个槽并把剩余量交回去，由上层循环再次调用；这里等价地
+    // 写成一个循环。「只合并一个槽就转去填空槽」是错的：槽 1 有 50 个、加入 20 个时，
+    // 槽 1 补满 64 后还剩 6 个，应先继续找下一个同类未满的槽（槽 3），而不是新开一个空槽。
+    bool mergedAny = true;
+    while (mergedAny && !stack.isEmpty()) {
+        mergedAny = false;
+
+        i32 mergeSlot = -1;
+        if (_hasRemainingSpaceForItem(m_items[static_cast<size_t>(m_selectedSlot)], stack, maxStackLimit)) {
+            mergeSlot = m_selectedSlot;
+        } else if (_hasRemainingSpaceForItem(
+                       m_items[static_cast<size_t>(InventorySlots::OFFHAND)], stack, maxStackLimit)) {
+            mergeSlot = InventorySlots::OFFHAND;
+        } else {
+            for (i32 i = 0; i < InventorySlots::ARMOR_START; ++i) {
+                if (_hasRemainingSpaceForItem(m_items[static_cast<size_t>(i)], stack, maxStackLimit)) {
+                    mergeSlot = i;
+                    break;
+                }
+            }
+        }
+
+        if (mergeSlot == -1) {
+            break;
+        }
+
+        ItemStack& target = m_items[static_cast<size_t>(mergeSlot)];
+        const i32 space = std::min(target.getMaxStackSize(), maxStackLimit) - target.getCount();
+        const i32 toAdd = std::min(space, stack.getCount());
+        target.grow(toAdd);
         stack.shrink(toAdd);
-        if (stack.isEmpty()) {
-            return 0;
-        }
+        mergedAny = toAdd > 0;
     }
 
-    // 2. 尝试合并到副手槽
-    if (_canMergeStacks(m_items[static_cast<size_t>(InventorySlots::OFFHAND)], stack)) {
-        i32 maxStack =
-            std::min(m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getMaxStackSize(), getMaxStackSize());
-        i32 space = maxStack - m_items[static_cast<size_t>(InventorySlots::OFFHAND)].getCount();
-        i32 toAdd = std::min(space, stack.getCount());
-        m_items[static_cast<size_t>(InventorySlots::OFFHAND)].grow(toAdd);
-        stack.shrink(toAdd);
-        if (stack.isEmpty()) {
-            return 0;
-        }
-    }
-
-    // 3. 尝试合并到快捷栏（排除当前选中槽位）
-    for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
-        if (i == m_selectedSlot) {
-            continue;
-        }
-        if (_canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
-            i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
-            i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
-            i32 toAdd = std::min(space, stack.getCount());
-            m_items[static_cast<size_t>(i)].grow(toAdd);
-            stack.shrink(toAdd);
-            if (stack.isEmpty()) {
-                return 0;
-            }
-        }
-    }
-
-    // 4. 尝试合并到主背包
-    for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
-        if (_canMergeStacks(m_items[static_cast<size_t>(i)], stack)) {
-            i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
-            i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
-            i32 toAdd = std::min(space, stack.getCount());
-            m_items[static_cast<size_t>(i)].grow(toAdd);
-            stack.shrink(toAdd);
-            if (stack.isEmpty()) {
-                return 0;
-            }
-        }
-    }
-
-    // 5. 寻找空槽位（同样按优先顺序）
-    i32 emptySlot = -1;
-
-    // 当前选中槽位
-    if (m_items[static_cast<size_t>(m_selectedSlot)].isEmpty()) {
-        emptySlot = m_selectedSlot;
-    }
-
-    // 副手槽
-    if (emptySlot == -1 && m_items[static_cast<size_t>(InventorySlots::OFFHAND)].isEmpty()) {
-        emptySlot = InventorySlots::OFFHAND;
-    }
-
-    // 快捷栏（排除当前选中槽位）
-    if (emptySlot == -1) {
-        for (i32 i = 0; i < HOTBAR_SIZE; ++i) {
-            if (i != m_selectedSlot && m_items[static_cast<size_t>(i)].isEmpty()) {
-                emptySlot = i;
-                break;
-            }
-        }
-    }
-
-    // 主背包
-    if (emptySlot == -1) {
-        for (i32 i = InventorySlots::MAIN_START; i <= InventorySlots::MAIN_END; ++i) {
+    // 第二步：剩余的按空槽依次铺开，每个槽最多装到上限。
+    while (!stack.isEmpty()) {
+        i32 emptySlot = -1;
+        for (i32 i = 0; i < InventorySlots::ARMOR_START; ++i) {
             if (m_items[static_cast<size_t>(i)].isEmpty()) {
                 emptySlot = i;
                 break;
             }
         }
+        if (emptySlot == -1) {
+            break;
+        }
+
+        const i32 capacity = std::min(stack.getMaxStackSize(), maxStackLimit);
+        const i32 toPlace = std::min(capacity, stack.getCount());
+        ItemStack placed = stack.split(toPlace);
+        m_items[static_cast<size_t>(emptySlot)] = placed;
     }
 
-    if (emptySlot != -1) {
-        m_items[static_cast<size_t>(emptySlot)] = stack;
-        stack = ItemStack::EMPTY;
-        return 0;
-    }
-
-    // 返回剩余未添加的数量（约定见头文件 @return）。此前合并/空槽成功分支误返回 originalCount
-    // （被当作"已添加"），与"剩余"约定相反，致 GiveCommand 等把"已添加"当"剩余"误判未加进而死循环
-    // 掉落。修复：成功加完返回 0（剩余 0），末尾返回 stack.getCount()（实际剩余）。
     return stack.getCount();
+}
+
+bool PlayerInventory::_hasRemainingSpaceForItem(
+    const ItemStack& target, const ItemStack& incoming, i32 maxStackLimit) const
+{
+    // 原版 hasRemainingSpaceForItem：能合并（同类、可堆叠）且还没装满。
+    // 复用已有的 _canMergeStacks，避免在这里重复一套「同类」判定而与它漂移。
+    return _canMergeStacks(target, incoming) && target.getCount() < std::min(target.getMaxStackSize(), maxStackLimit);
 }
 
 i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
@@ -694,12 +672,12 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
     }
 
     // 护甲槽位索引到 EquipmentSlot 的映射
-    // ARMOR_HEAD(36)→Head(5), ARMOR_CHEST(37)→Chest(4), ARMOR_LEGS(38)→Legs(3), ARMOR_FEET(39)→Feet(2)
+    // 从 ARMOR_START(36) 起按索引递增遍历，对应顺序是 FEET→LEGS→CHEST→HEAD
     static constexpr EquipmentSlot armorEquipmentSlots[] = {
-        EquipmentSlot::Head,  // ARMOR_HEAD  = 36
-        EquipmentSlot::Chest, // ARMOR_CHEST = 37
-        EquipmentSlot::Legs,  // ARMOR_LEGS  = 38
-        EquipmentSlot::Feet,  // ARMOR_FEET  = 39
+        EquipmentSlot::Feet,  // ARMOR_FEET  = 36
+        EquipmentSlot::Legs,  // ARMOR_LEGS  = 37
+        EquipmentSlot::Chest, // ARMOR_CHEST = 38
+        EquipmentSlot::Head,  // ARMOR_HEAD  = 39
     };
 
     for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {

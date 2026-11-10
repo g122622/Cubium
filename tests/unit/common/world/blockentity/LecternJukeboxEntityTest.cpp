@@ -25,11 +25,11 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"

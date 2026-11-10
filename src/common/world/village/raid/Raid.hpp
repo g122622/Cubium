@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,7 +26,7 @@
 #include "RaiderType.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 
 #include <optional>
 #include <string>
@@ -86,13 +86,10 @@ struct RaidParticipant {
  * 负责管理波次推进、袭击者生成、胜负判定与 Boss 栏基础状态。
  * 当前实现保持接口稳定，后续可继续向更贴近 Java 版逻辑的波次配置演进。
  *
- * @note TODO(bossbar-network-sync): 当前 Raid 仅在内部计算并缓存 Boss 栏进度，
- *       尚未接入 ServerBossInfo 网络同步层，因此 m_cachedProgress
- *       不会真正推送到客户端。原因：Raid 位于 src/common，而 ServerBossInfo 位于
- *       src/server，且客户端 ir::play::BossEvent 处理路径尚未实现。待客户端 BossEvent
- *       处理器落地、且 BossInfo 系统能在 Raid 构造期注入后，再在 _updateBossBar()
- *       中追加 ServerBossInfo::setProgress() 调用，并由 RaidManager 持有
- *       ServerBossInfo 引用以同步 addPlayer/removePlayer。
+ * @note Boss 栏同步：Raid 位于 src/common、不能依赖 src/server 的 ServerBossInfo，
+ *       因此由 RaidManager::tick 经 RaidCallbacks::onBossBarProgressChanged 对外通知。
+ *       每次 tick 后都会通知最新进度与可见性；未设置回调时静默丢弃。
+ *       剩余工作：server 侧在该回调中转发到 ServerBossInfo（含 addPlayer/removePlayer）。
  */
 class Raid {
 public:
@@ -319,9 +316,8 @@ public:
      *       的三段式语义：战斗中按存活血量比例、波间冷却按 300 tick 倒计时比例、
      *       胜利/失败/停止后归零。
      *
-     * @note TODO(bossbar-network-sync): 该值目前仅作为公共 API 暴露给潜在的
-     *       调用方（命令系统、调试接口、未来的 BossInfo 网络包等），尚未被任何
-     *       下游模块消费。完整的 Boss 栏网络同步链路见 _updateBossBar() 注释。
+     * @note 该值同时用于 getBossBarProgress() 与经 RaidCallbacks 的外部通知。
+     *       剩余工作：server 侧实现监听器并转发到 ServerBossInfo。
      */
     [[nodiscard]] f32 getBossBarProgress() const;
 
@@ -404,15 +400,9 @@ private:
      * @note 该方法在每次 tick() 末尾调用，依据当前袭击阶段（战斗 / 波间冷却 /
      *       庆祝）按 Java 版 1.21.11 的语义计算进度并写入 m_cachedProgress。
      *
-     * @note TODO(bossbar-network-sync): 当前仅写入本地缓存 m_cachedProgress，
-     *       未调用 ServerBossInfo::setProgress() 推送到客户端。原因：Raid 位于
-     *       src/common，无法直接依赖 src/server 的 ServerBossInfo；且客户端
-     *       ir::play::BossEvent 处理路径尚未实现。完整的网络同步集成需要：
-     *       1) 在 RaidManager 中为每个 Raid 关联一个 ServerBossInfo 实例；
-     *       2) 在 _updateBossBar() 末尾调用 serverBossInfo->setProgress(m_cachedProgress)；
-     *       3) 实现 RaidCallbacks::onBossBarProgressChanged 回调或类似机制，
-     *          由 RaidManager 转发到 ServerBossInfo；
-     *       4) 客户端实现 BossEvent 处理器以渲染 Boss 栏 UI。
+     * @note 结果缓存到 m_cachedProgress，由 RaidManager::tick 经 RaidCallbacks 通知外部。
+     *       剩余工作：server 侧在该回调中转发到 ServerBossInfo
+     *       （含 addPlayer/removePlayer 与结束时的隐藏）。
      */
     void _updateBossBar(IWorld& world);
 

@@ -33,10 +33,17 @@ namespace mc {
 class IWorld;
 class BlockPos;
 
+// Biome 实际定义在 mc::world::biome，mc::Biome 是别名（见 Biome.hpp 末尾）。前向声明必须
+// 声明真实类型，否则会与别名冲突。
+namespace world::biome {
+class Biome;
+} // namespace world::biome
+
+using Biome = world::biome::Biome;
+
 namespace math {
 class IRandom;
-}
-
+} // namespace math
 } // namespace mc
 
 // 使用嵌套命名空间定义，避免嵌套包含问题
@@ -66,6 +73,18 @@ namespace WeatherUtils {
     }
     return 1; // Rain
 }
+
+/**
+ * @brief 取指定位置的生物群系
+ *
+ * 由区块内存数据反查生物群系。区块尚未加载时返回 nullptr——调用方必须处理这种情况，
+ * 不要当成"没有生物群系"继续算温度。
+ *
+ * @param world 世界
+ * @param pos 方块位置
+ * @return 生物群系指针；区块不在内存中时返回 nullptr
+ */
+[[nodiscard]] const mc::Biome* getBiomeAt(const mc::IWorld& world, const mc::BlockPos& pos);
 
 /**
  * @brief 判断位置是否可以看到天空

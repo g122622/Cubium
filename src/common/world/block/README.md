@@ -1,237 +1,37 @@
-# Block 模块
+# block 模块
 
-方块系统的核心模块，定义了 Minecraft 中所有方块的基础架构与实现。
-
-## 目录结构
+## 目录结构树
 
 ```text
-src/common/world/block/
-├── Block.hpp/cpp                       # 方块基类（含 updateFromNeighbourShapes 静态方法、UPDATE_SHAPE_ORDER 常量、isExceptionForConnection 连接例外判断）
-├── BlockState.hpp/cpp                  # 方块状态类，不可变状态对象
-├── BlockPos.hpp                        # 方块位置坐标类
-├── BlockRegistry.hpp/cpp               # 方块注册表（单例）
-├── BlockSoundType.hpp/cpp              # 方块声音类型定义
-├── BlockTags.hpp/cpp                   # 方块标签系统（分组判断）
-├── BlockTagLoader.hpp/cpp              # 方块标签数据包加载器（data/<ns>/tags/block/）
-├── FireInfoRegistry.hpp/cpp            # 火焰信息注册表（燃烧 / 蔓延属性）
-├── GameMasterBlock.hpp                 # 游戏管理员方块标记接口（命令方块、结构方块等）
-├── HarvestTool.hpp                     # 挖掘工具类型定义
-├── IBeaconBeamColorProvider.hpp        # 信标光束颜色提供者接口
-├── IBlockAnimateContext.hpp            # 方块动画 tick 上下文接口（客户端粒子 / 音效）
-├── IBucketPickupHandler.hpp            # 桶提取接口（pickupFluid 流体拾取 / pickupItem 非流体拾取双路径）
-├── IGrowable.hpp                       # 可生长方块接口（含 BoneMealType 枚举、getParticlePos）
-├── ILiquidContainer.hpp                # 液体容器接口
-├── ILiquidSealed.hpp/cpp               # 液体密封方块接口（永不接收液体、也不被液体替换；水下植物实现）
-├── IWaterLoggable.hpp/cpp              # 含水方块接口
-├── Material.hpp/cpp                    # 材质系统（物理属性）
-├── SupportType.hpp/cpp                 # 方块支撑类型（Full / Center / Rigid）
-├── PlantType.hpp                       # 植物类型定义
-├── WaterLoggableHelpers.hpp            # 含水方块工具函数
-├── FenceGateHelpers.hpp                # 栅栏门连接检测工具函数
-├── dispense/                           # 发射器行为系统
-│   ├── IDispenseItemBehavior.hpp/cpp   # 发射行为接口与基类
-│   ├── DispenseItemBehaviorRegistry.hpp/cpp # 发射行为注册表
-│   └── README.md
-├── registry/                           # 原版方块注册
-│   ├── VanillaBlocks.hpp/cpp           # 主入口，所有原版方块静态引用
-│   ├── BaseBlocks.hpp/cpp              # 基础方块、矿石、矿物、原木、木板
-│   ├── BuildingBlocks.hpp/cpp          # 建筑、功能方块、石砖、石英、海晶
-│   ├── BuildingVariantBlocks.hpp/cpp   # 楼梯 / 台阶 / 墙 / 门 / 栅栏门 / 活板门
-│   ├── ColoredBlocks.hpp/cpp           # 染色方块（羊毛、地毯、玻璃、混凝土、床）
-│   ├── NaturalBlocks.hpp/cpp           # 自然方块（冰变种、珊瑚、海洋方块）
-│   ├── NetherBlocks.hpp/cpp            # 下界方块、末地方块
-│   ├── RedstoneBlocks.hpp/cpp          # 红石方块、铁轨方块
-│   ├── SignBannerBlocks.hpp/cpp        # 告示牌、旗帜
-│   ├── VegetationBlocks.hpp/cpp        # 植被（草、花、蘑菇、树苗）
-│   └── README.md
-└── blocks/                             # 具体方块实现（详见 blocks/README.md）
-    ├── AirBlock.hpp/cpp                # 空气方块
-    ├── LiquidBlock.hpp/cpp             # 液体方块
-    ├── RotatedPillarBlock.hpp/cpp      # 旋转柱状方块
-    ├── SimpleBlock.hpp/cpp             # 简单方块基类
-    ├── FallingBlock.hpp/cpp            # 可下落方块基类
-    ├── ChestBlock.hpp/cpp              # 箱子方块
-    ├── HopperBlock.hpp/cpp             # 漏斗方块
-    ├── DoorBlock.hpp/cpp               # 门方块
-    ├── FenceGateBlock.hpp/cpp          # 栅栏门方块
-    ├── CauldronBlock.hpp/cpp           # 炼药锅方块（水位0-3，支持水桶/玻璃瓶/皮革盔甲清洗/旗帜清洗/盾牌清洗交互）
-    ├── EnchantingTableBlock.hpp/cpp    # 附魔台方块
-    ├── SignBlock.hpp/cpp               # 告示牌方块
-    ├── HangingSignBlock.hpp/cpp        # 悬挂告示牌
-    ├── ShulkerBoxBlock.hpp/cpp         # 潜影盒方块（16色+无色变体，27格存储，防递归嵌套）
-    ├── LightningRodBlock.hpp/cpp       # 避雷针方块
-    ├── DirectionalBlock.hpp/cpp        # 有朝向的方块基类
-    ├── HorizontalBlock.hpp/cpp         # 水平朝向方块基类
-    ├── AbstractFurnaceBlock.hpp/cpp    # 熔炉基类
-    ├── FurnaceBlock.hpp/cpp            # 普通熔炉
-    ├── BlastFurnaceBlock.hpp/cpp       # 高炉
-    ├── SmokerBlock.hpp/cpp             # 烟熏炉
-    ├── TrappedChestBlock.hpp/cpp       # 陷阱箱
-    ├── agricultural/                   # 农业方块（农作物、农田）
-    │   ├── CropBlock.hpp/cpp           # 作物基类
-    │   ├── WheatBlock.hpp/cpp          # 小麦
-    │   ├── CarrotBlock.hpp/cpp         # 胡萝卜
-    │   ├── PotatoBlock.hpp/cpp         # 土豆
-    │   ├── BeetrootBlock.hpp/cpp       # 甜菜根
-    │   ├── FarmlandBlock.hpp/cpp       # 农田
-    │   ├── StemBlock.hpp/cpp           # 茎（南瓜 / 西瓜茎）
-    │   ├── CocoaBlock.hpp/cpp          # 可可豆
-    │   └── MelonPumpkinBlocks.hpp/cpp  # 南瓜 / 西瓜
-    ├── building/                       # 建筑方块（详见 building/README.md）
-    │   ├── StairsBlock.hpp/cpp         # 楼梯
-    │   ├── SlabBlock.hpp/cpp           # 台阶
-    │   ├── WallBlock.hpp/cpp           # 墙
-    │   ├── FenceBlock.hpp/cpp          # 栅栏
-    │   └── TrapDoorBlock.hpp/cpp       # 活板门
-    ├── cave/                           # 洞穴方块（紫水晶等）
-    ├── copper/                         # 铜方块
-    ├── coral/                          # 珊瑚方块（详见 coral/README.md）
-    ├── decorative/                     # 装饰方块（详见 decorative/README.md）
-    │   ├── BannerBlock.hpp/cpp         # 旗帜
-    │   ├── CampfireBlock.hpp/cpp       # 营火
-    │   ├── CarpetBlock.hpp/cpp         # 地毯
-    │   ├── ChainBlock.hpp/cpp          # 锁链
-    │   ├── FlowerPotBlock.hpp/cpp      # 花盆
-    │   ├── LanternBlock.hpp/cpp        # 灯笼
-    │   ├── LadderBlock.hpp/cpp         # 梯子
-    │   ├── PaneBlock.hpp/cpp           # 玻璃板 / 铁栏杆
-    │   ├── ScaffoldingBlock.hpp/cpp    # 脚手架
-    │   └── StainedGlassBlock.hpp/cpp   # 染色玻璃
-    ├── dirt/                           # 泥土类方块
-    ├── end/                            # 末地方块（详见 end/README.md）
-    ├── functional/                     # 功能方块（详见 functional/README.md）
-    │   ├── BarrelBlock.hpp/cpp         # 木桶
-    │   ├── BeaconBlock.hpp/cpp         # 信标
-    │   ├── BedBlock.hpp/cpp            # 床
-    │   ├── BellBlock.hpp/cpp           # 钟
-    │   ├── BrewingStandBlock.hpp/cpp   # 酿造台
-    │   ├── CakeBlock.hpp/cpp           # 蛋糕
-    │   ├── ComposterBlock.hpp/cpp      # 堆肥桶
-    │   ├── GrindstoneBlock.hpp/cpp     # 砂轮
-    │   ├── JukeboxBlock.hpp/cpp        # 唱片机
-    │   ├── LecternBlock.hpp/cpp        # 讲台
-    │   └── RespawnAnchorBlock.hpp/cpp  # 重生锚
-    ├── ice/                            # 冰方块
-    ├── mangrove/                       # 红树林方块
-    ├── mob/                            # 生物相关方块
-    ├── nether/                         # 下界方块（详见 nether/README.md）
-    │   ├── FireBlock.hpp/cpp           # 火焰
-    │   ├── SoulFireBlock.hpp/cpp       # 灵魂火
-    │   ├── MagmaBlock.hpp/cpp          # 岩浆块
-    │   └── NetherPortalBlock.hpp/cpp   # 下界传送门
-    ├── ocean/                          # 海洋方块（详见 ocean/README.md）
-    │   ├── BubbleColumnBlock.hpp/cpp   # 气泡柱
-    │   ├── ConduitBlock.hpp/cpp        # 潮涌核心
-    │   ├── KelpBlock.hpp/cpp           # 海带
-    │   └── SeagrassBlock.hpp/cpp       # 海草
-    ├── pale_garden/                    # 苍白花园方块
-    ├── redstone/                       # 红石方块（详见 redstone/README.md）
-    │   ├── AbstractButtonBlock.hpp/cpp # 按钮基类
-    │   ├── AbstractPressurePlateBlock.hpp/cpp # 压力板基类
-    │   ├── AbstractRailBlock.hpp/cpp   # 铁轨基类
-    │   ├── RedstoneWireBlock.hpp/cpp   # 红石线
-    │   ├── RedstoneTorchBlock.hpp/cpp  # 红石火把
-    │   ├── RedstoneRepeaterBlock.hpp/cpp # 红石中继器
-    │   ├── RedstoneComparatorBlock.hpp/cpp # 红石比较器
-    │   ├── ObserverBlock.hpp/cpp       # 侦测器
-    │   ├── PistonBlock.hpp/cpp         # 活塞
-    │   ├── DispenserBlock.hpp/cpp      # 发射器
-    │   └── ...                         # 更多红石方块
-    ├── sculk/                          # 幽匿方块
-    ├── special/                        # 特殊方块（详见 special/README.md）
-    ├── trial/                          # 试炼密室方块（TrialSpawnerBlock、VaultBlock、CrafterBlock）
-    └── vegetation/                     # 植被方块（详见 vegetation/README.md）
-        ├── BambooBlock.hpp/cpp         # 竹子
-        ├── CactusBlock.hpp/cpp         # 仙人掌
-        ├── FlowerBlock.hpp/cpp         # 花
-        ├── LeavesBlock.hpp/cpp         # 树叶
-        ├── SaplingBlock.hpp/cpp        # 树苗
-        ├── VineBlock.hpp/cpp           # 藤蔓
-        └── ...                         # 更多植被
+block/
+├── base/  # 本领域共享的基础类型与定义
+├── blocks/  # 按主要行为组织的具体方块
+├── capability/  # 方块可选能力和跨行为族复用的实现
+├── core/  # 方块身份、状态容器与行为扩展入口
+├── dispense/  # 该领域的子模块
+├── fire/  # 可燃参数查询
+├── pattern/  # 3D 方块模式匹配（末地传送门、出口讲台、傀儡、凋灵）
+├── properties/  # 方块注册属性构建与状态谓词
+├── registry/  # 方块注册与状态索引
+├── state/  # 不可变方块状态
+├── support/  # 附着方块的支撑形状判定
+└── tags/  # 数据包方块标签
 ```
 
 ## 内部模块关系
 
-```
-Block（基类）
-├── SimpleBlock（无状态静态方块）
-├── AirBlock（空气方块）
-├── FallingBlock（可下落方块）
-├── RotatedPillarBlock（旋转柱状方块）
-├── LiquidBlock（液体方块，关联 Fluid 系统）
-├── HorizontalBlock / DirectionalBlock（朝向方块基类）
-├── ChestBlock、HopperBlock、DoorBlock 等功能方块
-└── 各子目录中的具体方块实现
+Block 定义共享行为入口，BlockState 维护不可变状态；BlockProperties 与方块族描述在注册时绑定。注册表持有方块和状态，原版装配位于 registry/vanilla。`pattern/` 提供基于方块状态谓词的三维结构匹配。
 
-BlockState（状态对象）
-└── StateHolder<Block, BlockState>（支持 O(1) 状态转换）
+## 上下游外部依赖关系
 
-BlockRegistry（单例注册表）
-├── 管理所有 Block 实例
-└── 提供 ID / 资源位置查找
-
-Material（材质定义）
-└── 描述方块物理属性（固体、透明、可燃等）
-
-ILiquidContainer（液体容器接口）
-├── IWaterLoggable（含水接口）：总是接收水 → canContainFluid 依 WATERLOGGED 属性判定
-├── ILiquidSealed（液体密封接口）：永不接收、也不被替换 → canContainFluid 恒 false
-└── 被 kelp / kelp_plant / seagrass / tall_seagrass 实现（缺此实现会被水流冲毁并掉落物品，见坑 #41）
-
-IWaterLoggable（含水接口）
-├── 继承 ILiquidContainer 与 IBucketPickupHandler
-└── 被 StairsBlock、SlabBlock、WallBlock 等 19+ 种方块实现
-
-GameMasterBlock（管理员方块标记接口）
-├── CommandBlock、StructureBlock、JigsawBlock 实现此接口并重写 Block::isGameMaster() 返回 true
-├── Block::isGameMaster() 虚方法默认返回 false，用于替代 dynamic_cast 做权限检查
-└── BlockInteractionManager::_canBreakBlock() 与 GameMasterBlockItem::getStateForPlacement() 检查此权限
-
-IBlockAnimateContext（方块动画 tick 上下文）
-├── 轻量级接口，为 Block::animateTick 提供客户端操作能力
-├── addAnimateParticle() → 生成粒子效果
-├── playLocalSound() → 播放本地音效
-├── getBlockState() → 查询方块状态
-└── ClientWorld 实现此接口，在 animateTick 调度时传入自身
-
-dispense/ 子模块
-├── IDispenseItemBehavior（发射行为接口）
-├── DispenseItemBehaviorRegistry（行为注册表）
-└── 各种具体发射行为（投射物、船、桶、打火石、骨粉等）
-    ├── BucketDispenseBehavior：装满流体的桶放置流体，成功后替换为空桶
-    ├── EmptyBucketDispenseBehavior：空桶收集流体，成功后替换为满桶
-    ├── FlintAndSteelDispenseBehavior：打火石点燃方块 / 引燃 TNT，消耗耐久
-    └── BonemealDispenseBehavior：骨粉催熟方块 / 水中海草，消耗数量
-```
-
-## 上下游依赖关系
-
-### 上游依赖（本模块依赖）
-
-| 模块 | 用途 |
-|------|------|
-| `core/Types.hpp` | 基础类型定义 |
-| `core/Constants.hpp` | 游戏常量 |
-| `util/Direction.hpp` | 方向枚举 |
-| `util/property/` | 状态属性系统 |
-| `physics/collision/` | 碰撞形状 |
-| `world/fluid/` | 流体系统（LiquidBlock 关联） |
-| `entity/loot/` | 掉落表系统 |
-| `util/math/random/` | 随机数接口 |
-
-### 下游依赖（谁依赖本模块）
-
-| 模块 | 用途 |
-|------|------|
-| `VanillaBlocks.hpp` | 原版方块静态引用 |
-| `world/chunk/` | 区块存储方块状态 |
-| `world/gen/` | 世界生成放置方块 |
-| `renderer/` | 方块渲染 |
-| `entity/` | 实体与方块交互 |
-| `item/` | 物品与方块对应 |
-| `network/` | 方块状态同步 |
+实体、物品、区块和服务端世界消费方块接口；几何运算使用 common/physics，状态属性使用 common/util/property。
 
 ## 容易踩的坑
+
+- 方块和状态由注册表持有，发放的引用必须保持稳定。
+- 形状工厂显式区分 box 的归一化坐标和 fromPixelBox 的像素坐标。
+- 声音事件标识、方块族规则、LevelEventId 与模拟 GameEvent 分别管理。
+- 原版地图颜色策略在注册时绑定，公共模型不直接引用原版快照。
 
 ### 1. 状态不可变性
 

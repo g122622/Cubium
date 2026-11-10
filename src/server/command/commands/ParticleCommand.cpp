@@ -38,8 +38,8 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/network/outbound/PacketSender.hpp"
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -145,11 +145,11 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    // 广播粒子效果（批5b：经 buildLevelParticlesIr + connectionManager.broadcast 投递，
+    // 广播粒子效果（批5b：经 buildLevelParticlesIr + packetSender.broadcast 投递，
     // 原 IServer 弱类型 broadcastParticleInRange 纯虚已删。/particle 为管理员命令，
-    // 全在线玩家广播（原 range=256 距离过滤由 connectionManager.broadcast 替代）。
+    // 全在线玩家广播（原 range=256 距离过滤由 packetSender.broadcast 替代）。
     // 默认速度为 0，数量为 1，偏移为 0。
-    server->connectionManager().broadcast(mc::server::net::buildLevelParticlesIr(
+    server->packetSender().broadcast(mc::server::net::buildLevelParticlesIr(
         particleType.value(), Vector3(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z)), 1));
 
     std::ostringstream ss;

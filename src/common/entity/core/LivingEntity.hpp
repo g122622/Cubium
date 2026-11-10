@@ -139,6 +139,53 @@ public:
      */
     virtual void registerAttributes();
 
+    /**
+     * @brief 获取自动步进的最大高度，对应原版 `LivingEntity#maxUpStep`
+     *
+     * 直接读取 `step_height` 属性（默认 0.6，即半格台阶），因此数据包/命令改属性即可
+     * 改变生物能否走上整格方块——马、掠夺者等就是把该属性调高到 1.0。
+     *
+     * 额外规则（与 vanilla 一致）：被玩家骑乘时至少为 1.0，避免玩家骑乘时被半格高度卡住。
+     *
+     * 注意 `Entity::setStepHeight` 仍然存在，它改写的是无属性系统时的回退值；本类是
+     * `stepHeight()` 的唯一改写点，子类不要再 override 它来调步进高度，改属性即可。
+     */
+    [[nodiscard]] f32 stepHeight() const override;
+
+    /**
+     * @brief 设置步进高度，写入 `step_height` 属性的基础值
+     *
+     * 与 {@link stepHeight} 共用同一事实来源：改这里等价于改属性基础值，命令/数据包改的
+     * 是同一份数据，不会再出现"setStepHeight 设了但没人读"的双轨问题。
+     *
+     * @param height 步进高度（属性值范围 0.0 ~ 10.0）
+     */
+    void setStepHeight(f32 height) override;
+
+    // ========== 尺寸 ==========
+
+    /**
+     * @brief 获取实体尺寸缩放系数
+     *
+     * 直接读取 `scale` 属性（默认 1.0）。该属性决定碰撞箱、视高与渲染尺寸的整体比例，
+     * 幼年生物、`/attribute ... minecraft:scale` 与缩小/放大效果都通过它生效。
+     *
+     * @return 缩放系数（属性值范围 0.0625 ~ 16.0）
+     */
+    [[nodiscard]] f32 getScale() const;
+
+    /**
+     * @brief 获取指定姿态下的实体尺寸（应用 scale 属性）
+     *
+     * 非睡眠姿态返回"该实体类型在该姿态下的基础尺寸 × getScale()"；睡眠姿态沿用基类的
+     * 固定尺寸 (0.2, 0.2, eye 0.2)，不参与缩放——睡眠尺寸对所有生物都是同一常量，缩放会
+     * 让躺下的判定尺寸偏离原版。
+     *
+     * @param pose 目标姿态
+     * @return 应用缩放后的尺寸
+     */
+    [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
+
     // ========== 生命值 ==========
 
     /**
@@ -2266,6 +2313,22 @@ public:
      * 计算逻辑与 handleFallDamage 相同，但使用传入的伤害来源而非默认的 DamageSources::fall()。
      */
     void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
+
+    /**
+     * @brief 计算摔落伤害数值（不做免疫判定、不施加伤害）
+     *
+     * 公式：`floor((distance + 1e-6 - SAFE_FALL_DISTANCE) * damageMultiplier * FALL_DAMAGE_MULTIPLIER)`，
+     * 再减去子类减免。距离取 double 参与运算：伤害按整数格结算，若中途落到 f32，
+     * 恰好落在整数边界上的距离（例如 4.0）会因为 1e-6 被 f32 吃掉而算错一格。
+     *
+     * 免疫判定（FALL_DAMAGE_IMMUNE 标签、缓降效果）不在这里，而在 causeFallDamage 里。
+     *
+     * @param distance 摔落距离（格）
+     * @param damageMultiplier 该次摔落的环境倍率（普通方块 1.0、干草块/蜂蜜块 0.2、
+     *        石笋 2.0、史莱姆块 0），由方块在结算时给出
+     * @return 摔落伤害点数，可能为负（减免大于原始伤害时由调用方判 `> 0`）
+     */
+    [[nodiscard]] virtual i32 calculateFallDamage(f64 distance, f32 damageMultiplier) const;
 
     /**
      * @brief 摔落伤害减免量（对齐 vanilla LivingEntity.calculateFallDamage 的减法项）

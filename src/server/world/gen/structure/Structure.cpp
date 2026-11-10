@@ -32,14 +32,15 @@
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <utility>
@@ -62,6 +63,23 @@ StructurePiece::StructurePiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX,
     , m_maxX(maxX)
     , m_maxY(maxY)
     , m_maxZ(maxZ)
+    , m_originX(minX)
+    , m_originY(minY)
+    , m_originZ(minZ)
+{}
+
+StructurePiece::StructurePiece(
+    i32 type, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ, i32 originX, i32 originY, i32 originZ)
+    : m_type(type)
+    , m_minX(minX)
+    , m_minY(minY)
+    , m_minZ(minZ)
+    , m_maxX(maxX)
+    , m_maxY(maxY)
+    , m_maxZ(maxZ)
+    , m_originX(originX)
+    , m_originY(originY)
+    , m_originZ(originZ)
 {}
 
 StructureBoundingBox StructurePiece::getBoundingBox() const
@@ -98,6 +116,9 @@ void StructurePiece::offset(i32 dx, i32 dy, i32 dz)
     m_maxX += dx;
     m_maxY += dy;
     m_maxZ += dz;
+    m_originX += dx;
+    m_originY += dy;
+    m_originZ += dz;
 }
 
 void StructurePiece::setCoordBaseMode(Direction dir)
@@ -285,9 +306,10 @@ void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world,
         for (i32 x = minX; x <= maxX; ++x) {
             for (i32 z = minZ; z <= maxZ; ++z) {
                 if (worldReader) {
+                    // 未初始化的方块（`ChunkData` 里空气即 nullptr）同样是空气：
+                    // 原版 `getBlock(...).isAir()` 对空区块为 true，`skipAir=true` 时整块跳过。
                     const BlockState* currentState = getBlockStateFromPos(*worldReader, x, y, z, bounds);
-                    if (currentState && currentState->isAir()) {
-                        // 跳过空气方块
+                    if (currentState == nullptr || currentState->isAir()) {
                         continue;
                     }
                 }
@@ -311,6 +333,65 @@ void StructurePiece::randomlyPlaceBlock(IWorldWriter& world,
 {
     if (rng.nextFloat() < chance) {
         setBlockState(world, state, x, y, z, bounds);
+    }
+}
+
+bool StructurePiece::isInterior(IWorld& world, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds) const
+{
+    const i32 worldX = getXWithOffset(x, z);
+    const i32 worldY = getYWithOffset(y + 1);
+    const i32 worldZ = getZWithOffset(x, z);
+
+    if (!bounds.contains(worldX, worldY, worldZ)) {
+        return false;
+    }
+
+    // 原版用 OCEAN_FLOOR_WG 高度图，且 `LevelReader.getHeight` 返回首个可放置 Y
+    // （最高方块 Y + 1）；本项目的 `IWorld::getHeight` 返回最高方块 Y，需要 +1。
+    return worldY < world.getHeight(worldX, worldZ, world::chunk::HeightmapType::OceanFloorWG) + 1;
+}
+
+void StructurePiece::maybeFillWithBlocks(IWorldWriter& world,
+    const StructureBoundingBox& bounds,
+    math::IRandom& rng,
+    f32 probability,
+    i32 minX,
+    i32 minY,
+    i32 minZ,
+    i32 maxX,
+    i32 maxY,
+    i32 maxZ,
+    const BlockState* boundaryBlock,
+    const BlockState* insideBlock,
+    bool requireNonAir,
+    bool requireInterior)
+{
+    IWorld* reader = dynamic_cast<IWorld*>(&world);
+    MC_ASSERT_RELEASE_MSG(reader != nullptr, "maybeFillWithBlocks requires an IWorld");
+
+    for (i32 y = minY; y <= maxY; ++y) {
+        for (i32 x = minX; x <= maxX; ++x) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                // 随机数先于其余条件消耗：原版对每个位置都抽一次 nextFloat。
+                if (rng.nextFloat() > probability) {
+                    continue;
+                }
+
+                if (requireNonAir) {
+                    const BlockState* current = getBlockStateFromPos(*reader, x, y, z, bounds);
+                    if (current == nullptr || current->isAir()) {
+                        continue;
+                    }
+                }
+
+                if (requireInterior && !isInterior(*reader, x, y, z, bounds)) {
+                    continue;
+                }
+
+                const bool isBoundary = x == minX || x == maxX || y == minY || y == maxY || z == minZ || z == maxZ;
+                setBlockState(world, isBoundary ? boundaryBlock : insideBlock, x, y, z, bounds);
+            }
+        }
     }
 }
 
@@ -360,38 +441,38 @@ void StructurePiece::placeEndPortalFrames(IWorldWriter& world,
         return;
     }
 
-    const BlockState* frameDefault = &VanillaBlocks::END_PORTAL_FRAME->defaultState();
+    const BlockState& frameDefault = VanillaBlocks::END_PORTAL_FRAME->defaultState();
+
+    // 四个方向的框架状态按原版显式配置。`with` 返回注册表里的全局状态引用，
+    // 这里落成具名变量是为了让下方「再加 EYE」的两步链路保持可读。
+    const BlockState frameNorth = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const BlockState frameSouth = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+    // 注意方向：西侧（x = centerX - 2）的框架朝东，东侧（x = centerX + 2）的框架朝西。
+    const BlockState frameEast = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    const BlockState frameWest = frameDefault.with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
 
     // 北边框架（z = centerZ - 2）：3 个框架，凸起朝北（FACING=NORTH）
-    const BlockState* frameNorth = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
     for (i32 dx = -1; dx <= 1; ++dx) {
-        i32 idx = dx + 1; // 0, 1, 2
-        const BlockState* state = &frameNorth->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX + dx, y, centerZ - 2, bounds);
+        const BlockState state = frameNorth.with(BlockStateProperties::EYE(), eyeStates[dx + 1]);
+        setBlockState(world, &state, centerX + dx, y, centerZ - 2, bounds);
     }
 
     // 南边框架（z = centerZ + 2）：3 个框架，凸起朝南（FACING=SOUTH）
-    const BlockState* frameSouth = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
     for (i32 dx = -1; dx <= 1; ++dx) {
-        i32 idx = dx + 4; // 3, 4, 5
-        const BlockState* state = &frameSouth->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX + dx, y, centerZ + 2, bounds);
+        const BlockState state = frameSouth.with(BlockStateProperties::EYE(), eyeStates[dx + 4]);
+        setBlockState(world, &state, centerX + dx, y, centerZ + 2, bounds);
     }
 
-    // 西边框架（x = centerX - 2）：3 个框架，凸起朝西（FACING=WEST）
-    const BlockState* frameWest = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West);
+    // 西侧框架（x = centerX - 2）：3 个框架，凸起朝东（FACING=EAST）
     for (i32 dz = -1; dz <= 1; ++dz) {
-        i32 idx = dz + 7; // 6, 7, 8
-        const BlockState* state = &frameWest->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX - 2, y, centerZ + dz, bounds);
+        const BlockState state = frameEast.with(BlockStateProperties::EYE(), eyeStates[dz + 7]);
+        setBlockState(world, &state, centerX - 2, y, centerZ + dz, bounds);
     }
 
-    // 东边框架（x = centerX + 2）：3 个框架，凸起朝东（FACING=EAST）
-    const BlockState* frameEast = &frameDefault->with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    // 东侧框架（x = centerX + 2）：3 个框架，凸起朝西（FACING=WEST）
     for (i32 dz = -1; dz <= 1; ++dz) {
-        i32 idx = dz + 10; // 9, 10, 11
-        const BlockState* state = &frameEast->with(BlockStateProperties::EYE(), eyeStates[idx]);
-        setBlockState(world, state, centerX + 2, y, centerZ + dz, bounds);
+        const BlockState state = frameWest.with(BlockStateProperties::EYE(), eyeStates[dz + 10]);
+        setBlockState(world, &state, centerX + 2, y, centerZ + dz, bounds);
     }
 
     // 当所有框架都有末影之眼时，在内部 3×3 区域放置末地传送门方块
@@ -418,7 +499,9 @@ void StructurePiece::replaceAirAndLiquidDownwards(
         return;
     }
 
-    while (worldY > world::MIN_BUILD_HEIGHT) {
+    // 下界这类维度的最低高度不是全局的 -64，必须按世界自己的高度取；原版循环到
+    // `getMinY() + 1` 为止（最低写入 y = getMinY() + 2）。
+    while (worldY > world.getMinBuildHeight() + 1) {
         const BlockState* current = world.getBlockState(worldX, worldY, worldZ);
         if (current == nullptr || current->isAir() || current->getMaterial().isLiquid()) {
             world.setBlockState(worldX, worldY, worldZ, state, world::BlockUpdateFlags::UPDATE_CLIENTS);
@@ -437,12 +520,13 @@ const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& p
 
     Direction solidDirection = Direction::None;
 
-    // 四个水平方向
+    // 四个水平方向：顺序沿用原版 `Direction.Plane.HORIZONTAL`（N/E/S/W）。
+    // 「恰好一个方向有完整实心方块」的判定依赖于此遍历顺序。
     static constexpr Direction horizontalDirs[] = {
         Direction::North,
+        Direction::East,
         Direction::South,
         Direction::West,
-        Direction::East,
     };
 
     for (Direction dir : horizontalDirs) {
@@ -532,13 +616,15 @@ void StructurePiece::generateChest(IWorldWriter& world,
         return;
     }
 
-    // 如果能获取世界接口，自动确定朝向；否则使用默认状态
+    // 如果能获取世界接口，自动确定朝向；否则使用默认状态。
+    // `reorientChest` 的返回值已经是**世界坐标下的朝向**（按四周方块推出的），
+    // 不能再经过构件旋转/镜像；原版这里直接 `level.setBlock`，不是 `placeBlock`。
     if (iworld != nullptr) {
-        BlockPos chestPos(worldX, worldY, worldZ);
+        const BlockPos chestPos(worldX, worldY, worldZ);
         const BlockState* orientedState = reorientChest(*iworld, chestPos, chestState);
-        setBlockState(world, orientedState, x, y, z, bounds);
+        world.setBlockState(worldX, worldY, worldZ, orientedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
-        setBlockState(world, chestState, x, y, z, bounds);
+        world.setBlockState(worldX, worldY, worldZ, chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 
     // 设置战利品表
@@ -671,22 +757,23 @@ bool Structure::isValidBiome(BiomeId biomeId) const
 
 bool Structure::isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const
 {
-    // 走 BiomeManager 的 fuzzy offset 选格，与 `LevelReader.getBiome(BlockPos)` 同一条路径；
-    // 直接右移两位会漏掉这层偏移，在群系边界附近判出与原版相反的结论。
+    // 采样点必须是候选生成点本身：原版在 `GenerationStub` 位置按 QuartPos.fromBlock
+    // 取噪声群系，路由到 `getNoiseBiome(x>>2, y>>2, z>>2)`，与 `getBiomeAtBlock` 一致。
     const BiomeId biomeId = generator.getBiomeAtBlock(pos.x, pos.y, pos.z);
     return isValidBiome(biomeId);
 }
 
-bool Structure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
+BlockPos Structure::onTopOfChunkCenter(IChunkGenerator& generator, i32 chunkX, i32 chunkZ, HeightmapType type) const
 {
-    return true;
+    const i32 x = chunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    const i32 z = chunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2;
+    return BlockPos(x, generator.getHeight(x, z, type), z);
 }
 
 std::unique_ptr<StructureStart> Structure::generate(
     IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
-    return std::make_unique<StructureStart>(chunkX, chunkZ);
+    return makeStructureStart(chunkX, chunkZ);
 }
 
 void Structure::placeInChunk(IWorldWriter& world,
@@ -694,16 +781,17 @@ void Structure::placeInChunk(IWorldWriter& world,
     StructureStart& start,
     i32 chunkX,
     i32 chunkZ,
+    math::IRandom& rng,
     IChunkGenerator* generator) const
 {
     StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
 
-    std::unique_ptr<math::IRandom> rng = createRandom(
-        static_cast<i64>(chunkX) * 341873128712LL ^ static_cast<i64>(chunkZ) * 132897987541LL, chunkX, chunkZ, 0);
-
+    // 随机源由调用方按 `applyBiomeDecoration` 的口径准备：每区块一份 worldgen 随机源，
+    // 放置前 `setFeatureSeed(decorSeed, index, stage)`。所有构件共用同一个实例、依序消费，
+    // 与逐构件另起随机源的结果不同（宝箱等会用到它）。
     for (const auto& piece : start.pieces()) {
         if (piece->intersectsChunk(chunkX, chunkZ)) {
-            piece->generate(world, *rng, chunkX, chunkZ, chunkBounds, &chunk, generator);
+            piece->generate(world, rng, chunkX, chunkZ, chunkBounds, &chunk, generator);
         }
     }
 }
@@ -713,36 +801,64 @@ void Structure::afterPlace(IWorldWriter& /*world*/, StructureStart& /*start*/, i
     // 默认实现为空，子类可以覆盖以在放置后执行额外操作
 }
 
-std::unique_ptr<math::IRandom> Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
+StructureBoundingBox Structure::adjustBoundingBox(const StructureBoundingBox& box) const
 {
-    u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
-        static_cast<u64>(seed) + static_cast<u64>(salt);
-    return std::make_unique<math::Random>(static_cast<i64>(combinedSeed));
+    // 原版 `Structure.adjustBoundingBox`：地形适配非 NONE 时每侧外扩 12 格
+    // （Beardifier 的核半径），NONE 时原样返回。
+    if (terrainAdaptation() == TerrainAdaptation::None || !box.isValid()) {
+        return box;
+    }
+    constexpr i32 TERRAIN_ADJUSTMENT_INFLATION = 12;
+    return StructureBoundingBox(box.minX() - TERRAIN_ADJUSTMENT_INFLATION,
+        box.minY() - TERRAIN_ADJUSTMENT_INFLATION,
+        box.minZ() - TERRAIN_ADJUSTMENT_INFLATION,
+        box.maxX() + TERRAIN_ADJUSTMENT_INFLATION,
+        box.maxY() + TERRAIN_ADJUSTMENT_INFLATION,
+        box.maxZ() + TERRAIN_ADJUSTMENT_INFLATION);
+}
+
+std::unique_ptr<StructureStart> Structure::makeStructureStart(i32 chunkX, i32 chunkZ) const
+{
+    return std::make_unique<StructureStart>(*this, chunkX, chunkZ);
 }
 
 // ========== StructureStart ==========
 
-StructureStart::StructureStart(i32 chunkX, i32 chunkZ)
+StructureStart::StructureStart(const Structure& owner, i32 chunkX, i32 chunkZ)
     : m_chunkX(chunkX)
     , m_chunkZ(chunkZ)
+    , m_owner(&owner)
 {}
+
+const StructureBoundingBox& StructureStart::getBoundingBox() const noexcept
+{
+    if (m_boundingBoxDirty) {
+        m_boundingBox = m_owner->adjustBoundingBox(m_pieceBox);
+        m_boundingBoxDirty = false;
+    }
+    return m_boundingBox;
+}
 
 void StructureStart::addPiece(std::unique_ptr<StructurePiece> piece)
 {
     if (piece) {
-        m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
-        m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        m_pieceBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
+        m_pieceBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        m_boundingBoxDirty = true;
         m_pieces.push_back(std::move(piece));
     }
 }
 
 void StructureStart::recalculateStructureSize()
 {
-    m_boundingBox = StructureBoundingBox(); // 重置为无效状态
+    m_pieceBox = StructureBoundingBox(); // 重置为无效状态
     for (const auto& piece : m_pieces) {
-        m_boundingBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
-        m_boundingBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
+        m_pieceBox.expandToInclude(piece->minX(), piece->minY(), piece->minZ());
+        m_pieceBox.expandToInclude(piece->maxX(), piece->maxY(), piece->maxZ());
     }
+    // 地形适配外扩在 getBoundingBox() 里按需施加：原版同样从片段并集重算，
+    // 再调 `Structure.adjustBoundingBox`，外扩不会被片段位置"吃掉"。
+    m_boundingBoxDirty = true;
 }
 
 bool StructureStart::isRefCountBelowMax() const noexcept
@@ -755,12 +871,14 @@ void StructureStart::offset(i32 dx, i32 dy, i32 dz)
     for (auto& piece : m_pieces) {
         piece->offset(dx, dy, dz);
     }
-    m_boundingBox = StructureBoundingBox(m_boundingBox.minX() + dx,
-        m_boundingBox.minY() + dy,
-        m_boundingBox.minZ() + dz,
-        m_boundingBox.maxX() + dx,
-        m_boundingBox.maxY() + dy,
-        m_boundingBox.maxZ() + dz);
+    const auto shift = [&](StructureBoundingBox& box) {
+        box = StructureBoundingBox(
+            box.minX() + dx, box.minY() + dy, box.minZ() + dz, box.maxX() + dx, box.maxY() + dy, box.maxZ() + dz);
+    };
+    shift(m_pieceBox);
+    if (!m_boundingBoxDirty) {
+        shift(m_boundingBox);
+    }
 }
 
 } // namespace mc::world::gen::structure

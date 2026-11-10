@@ -25,13 +25,15 @@
 #include "PoolAliasLookup.hpp"
 #include "SequencedPriorityIterator.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace mc {
@@ -68,6 +70,11 @@ class TemplatePoolRegistry;
  * `minY() + groundLevelDelta` 等于目标地面高度（`stubPos.y + 地形高度` 或 `stubPos.y`）。
  * 对应 MC 1.21 JigsawPlacement.addPieces 中 `start.move(0, k - l, 0)` 之后的起点 piece。
  */
+struct AssemblyResult {
+    std::vector<PlacedPiece> pieces; ///< 已放置的构件（顺序即装配顺序，起始块在最前）
+    BlockPos candidatePoint;         ///< 候选生成点（原版 `GenerationStub` 位置，生物群系校验采样于此）
+};
+
 struct StartPlacement {
     BlockPos origin;
     Rotation rotation;
@@ -140,14 +147,18 @@ public:
      * @param chunkOrigin 请求点的区块最小角（X/Z 取原版 `chunkPos.getMinBlockX()/getMinBlockZ()`）
      * @param startHeightY start_height 高度提供者给出的 Y
      * @param rotation 起始块旋转
+     * @param rng 随机数生成器（指定 `start_jigsaw_name` 时洗牌起始块连接点会消耗随机数）
+     * @param startJigsawName 命名起始连接点（可空；对齐 `start_jigsaw_name`）
      * @param generator 区块生成器（投影时查询地形高度）
      * @param projectStartToHeightmap 是否把起始点投影到地形高度图
-     * @return 起始块的摆放结果
+     * @return 起始块的摆放结果；命名连接点在起始块上不存在时为空
      */
-    [[nodiscard]] static StartPlacement resolveStartPlacement(const JigsawPiece& startPiece,
+    [[nodiscard]] static std::optional<StartPlacement> resolveStartPlacement(const JigsawPiece& startPiece,
         const BlockPos& chunkOrigin,
         i32 startHeightY,
         Rotation rotation,
+        math::IRandom& rng,
+        const std::optional<ResourceLocation>& startJigsawName,
         IChunkGenerator& generator,
         bool projectStartToHeightmap);
 
@@ -179,12 +190,13 @@ public:
      * @param rng 随机数生成器
      * @param generator 区块生成器（用于 TerrainMatching 投影查询世界表面高度，以及获取世界高度边界）
      * @param aliases 池别名绑定集合（可空，用于试炼密室等结构的池随机化）
+     * @param startJigsawName 命名起始连接点（可空；对齐 `start_jigsaw_name`）
      * @param maxDistance 距结构中心的最大距离约束（用于初始化 freeShape 可放置空间）
      * @param dimensionPadding 维度填充（可空，控制结构距世界顶/底边界的最小距离）
      * @param structureSeed 关卡种子，用于派生池别名解析的独立随机源（不消耗 rng）
-     * @return 已放置的拼图块列表
+     * @return 装配结果（构件列表 + 候选生成点）；起始块为空池元素或命名连接点缺失时构件列表为空
      */
-    static std::vector<PlacedPiece> assemble(TemplatePoolRegistry& poolRegistry,
+    static AssemblyResult assemble(TemplatePoolRegistry& poolRegistry,
         const TemplatePool& startPool,
         i32 maxDepth,
         const BlockPos& chunkOrigin,
@@ -194,6 +206,7 @@ public:
         math::IRandom& rng,
         IChunkGenerator& generator,
         const PoolAliasBindings* aliases,
+        const std::optional<ResourceLocation>& startJigsawName,
         const structure::MaxDistance* maxDistance,
         const structure::DimensionPadding* dimensionPadding,
         i64 structureSeed);

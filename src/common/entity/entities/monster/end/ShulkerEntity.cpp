@@ -28,6 +28,7 @@
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/special/ShulkerGoals.hpp"
@@ -46,7 +47,6 @@
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/WorldConstants.hpp"
-#include "world/block/Block.hpp"
 
 #include <algorithm>
 #include <cmath>

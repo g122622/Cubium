@@ -31,11 +31,11 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
+#include "common/world/block/core/Block.hpp"
+#include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include <algorithm>
 #include <cstring>
@@ -990,7 +990,14 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     // 若索引数与 size 体积不符，仍按已解析的方块构建（不强制断言，便于容错）
     templ->addPalette(Palette(std::move(blockInfos), std::move(nbtTable)));
 
-    // TODO: 解析 structure.entities（基岩版 mob 实体 schema 与 Java 不同，GameTest 结构通常无 mob，暂不解析）
+    // TODO: 解析 structure.entities。
+    //   基岩 .mcstructure 的实体项 schema（identifier / pos / 实体 NBT 的嵌套形态）在项目内
+    //   没有参考实现——`common/util/nbt/Nbt.cpp` 只处理了它的**空列表读取**（`List[End] n=0`，
+    //   曾因少读 3 字节 size 导致外层 Compound 提前结束、palette 丢失），LeviLamina 逆向头文件
+    //   里也没有结构实体的定义。因此这里不凭猜测写解析，避免把错误 schema 固化下来。
+    //   现状影响：结构里的 mob 不会被解析，`Template::placeEntities` 自然也就放不出它们。
+    //   GameTest 结构（本项目的主要使用者）实测该字段恒为空列表，所以当前无功能损失；
+    //   真正需要时，应先从基岩官方 .mcstructure 文档或实际存档取样确认 schema。
 
     return templ;
 }
@@ -1193,13 +1200,19 @@ TemplateJigsawBlockInfo TemplateLoader::_parseJigsawBlock(
         info.targetName = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target")).value;
     }
 
-    // 连接类型由方块的 orientation 推导，**不读 NBT 的 `joint` 字段**：
-    // 原版 `StructureTemplate.getJointType` 的规则是「front 为水平朝向（东南西北）时 aligned，
-    // 否则 rollable」，NBT 里的 `joint` 只是方块实体的冗余存档，运行期并不使用。
-    // 数据包里大量 jigsaw 方块的这两者互相矛盾（如古代城市的入口构件，全库逾千处），
-    // 照抄 NBT 会让连接点的可连接判定与原版相反，进而多接或少接连接点。
+    // 连接类型：原版 `StructureTemplate.getJointType(nbt, state)` **先读 NBT 的 `joint` 字段**，
+    // 缺失时才回退到方块状态推导的默认值（front 为水平朝向 → aligned，垂直 → rollable）。
+    // 数据包里两者不一致的条目很多（如古代城市的入口构件），只按状态推导会让
+    // aligned/rollable 判反，匹配时接受原版拒绝的旋转，装配结果从某个构件起整体分叉。
     info.jointType = 0;
-    if (blockStateId != 0) {
+    if (nbt->value.count("joint") != 0) {
+        const std::string joint = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("joint")).value;
+        if (joint == "aligned") {
+            info.jointType = 1;
+        } else if (joint == "rollable") {
+            info.jointType = 0;
+        }
+    } else if (blockStateId != 0) {
         const BlockState* state = BlockRegistry::instance().getBlockState(blockStateId);
         if (state != nullptr) {
             const Direction facing =

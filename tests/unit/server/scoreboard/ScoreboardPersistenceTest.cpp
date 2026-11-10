@@ -34,7 +34,9 @@
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
+#include "common/util/text/numbers/NumberFormat.hpp"
 #include "server/scoreboard/storage/ScoreboardSaveData.hpp"
+#include <memory>
 #include <nlohmann/json.hpp>
 
 using namespace mc;
@@ -74,6 +76,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Serialize)
     data.criteriaName = "dummy";
     data.displayName = "Player Kills";
     data.renderType = "integer";
+    data.displayAutoUpdate = false;
 
     nbt::tags::compound_tag tag = data.toNbt();
 
@@ -93,6 +96,10 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Serialize)
     auto* renderTag = dynamic_cast<const nbt::tags::string_tag*>(tag.value.find("RenderType")->second.get());
     ASSERT_NE(renderTag, nullptr);
     EXPECT_EQ(renderTag->value, "integer");
+
+    auto* autoUpdateTag = dynamic_cast<const nbt::tags::byte_tag*>(tag.value.find("DisplayAutoUpdate")->second.get());
+    ASSERT_NE(autoUpdateTag, nullptr);
+    EXPECT_EQ(autoUpdateTag->value, 0);
 }
 
 TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize)
@@ -102,6 +109,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize)
     tag.put("CriteriaName", std::string("deathCount"));
     tag.put("DisplayName", std::string("Death Count"));
     tag.put("RenderType", std::string("hearts"));
+    tag.put("DisplayAutoUpdate", std::int8_t{0});
 
     auto result = ScoreboardSaveData::ObjectiveData::fromNbt(tag);
     ASSERT_TRUE(result.success());
@@ -111,6 +119,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Deserialize)
     EXPECT_EQ(data.criteriaName, "deathCount");
     EXPECT_EQ(data.displayName, "Death Count");
     EXPECT_EQ(data.renderType, "hearts");
+    EXPECT_FALSE(data.displayAutoUpdate);
 }
 
 TEST_F(ScoreboardPersistenceTest, ObjectiveData_MissingFields)
@@ -141,6 +150,7 @@ TEST_F(ScoreboardPersistenceTest, ObjectiveData_Defaults)
     auto data = std::move(result).value();
     EXPECT_EQ(data.displayName, "test");   // 默认使用 name
     EXPECT_EQ(data.renderType, "integer"); // 默认 integer
+    EXPECT_TRUE(data.displayAutoUpdate);   // 默认 true（旧存档同此行为）
 }
 
 // ========== 分数数据序列化测试 ==========
@@ -817,6 +827,109 @@ TEST_F(ScoreboardPersistenceTest, InvalidJson_FallbackToPlainText)
     ASSERT_NE(displayName, nullptr);
     // 无效 JSON 应该回退到纯文本
     EXPECT_EQ(displayName->getUnformattedText(), "Plain Text Display");
+}
+
+// ========== 数字格式（numberFormat）持久化 ==========
+
+TEST_F(ScoreboardPersistenceTest, ObjectiveData_NumberFormatRoundTrip)
+{
+    ScoreboardSaveData::ObjectiveData data;
+    data.name = "kills";
+    data.criteriaName = "dummy";
+    data.displayName = "Player Kills";
+    data.renderType = "integer";
+    text::Style style;
+    style.setColor(text::TextFormatting::Red);
+    style.setBold(true);
+    data.numberFormat = text::numbers::NumberFormat::styled(style);
+
+    const nbt::tags::compound_tag tag = data.toNbt();
+    // 原版 Objective.Packed 的字段名是 format
+    ASSERT_EQ(tag.value.count("format"), 1u);
+
+    auto restored = ScoreboardSaveData::ObjectiveData::fromNbt(tag);
+    ASSERT_TRUE(restored.success());
+    ASSERT_TRUE(restored.value().numberFormat.has_value());
+    EXPECT_EQ(restored.value().numberFormat->type(), text::numbers::NumberFormatType::Styled);
+    ASSERT_NE(restored.value().numberFormat->style(), nullptr);
+    EXPECT_EQ(*restored.value().numberFormat->style(), style);
+}
+
+TEST_F(ScoreboardPersistenceTest, ScoreData_NumberFormatOverrideRoundTrip)
+{
+    ScoreboardSaveData::ScoreData data;
+    data.playerName = "Steve";
+    data.objectiveName = "kills";
+    data.score = 7;
+    data.locked = false;
+    data.numberFormat = text::numbers::NumberFormat::fixed(std::make_unique<text::StringTextComponent>("???"));
+
+    const nbt::tags::compound_tag tag = data.toNbt();
+    ASSERT_EQ(tag.value.count("format"), 1u);
+
+    auto restored = ScoreboardSaveData::ScoreData::fromNbt(tag);
+    ASSERT_TRUE(restored.success());
+    ASSERT_TRUE(restored.value().numberFormat.has_value());
+    EXPECT_EQ(restored.value().numberFormat->type(), text::numbers::NumberFormatType::Fixed);
+    ASSERT_NE(restored.value().numberFormat->value(), nullptr);
+    EXPECT_EQ(restored.value().numberFormat->value()->getUnformattedText(), "???");
+}
+
+TEST_F(ScoreboardPersistenceTest, MissingNumberFormatReadsAsAbsent)
+{
+    // 旧存档没有 format 字段：必须读成「未设置」，而不是 blank（blank 是显式的不显示数字）
+    ScoreboardSaveData::ObjectiveData data;
+    data.name = "kills";
+    data.criteriaName = "dummy";
+    data.displayName = "Player Kills";
+    data.renderType = "integer";
+
+    const nbt::tags::compound_tag tag = data.toNbt();
+    EXPECT_EQ(tag.value.count("format"), 0u);
+
+    auto restored = ScoreboardSaveData::ObjectiveData::fromNbt(tag);
+    ASSERT_TRUE(restored.success());
+    EXPECT_FALSE(restored.value().numberFormat.has_value());
+}
+
+TEST_F(ScoreboardPersistenceTest, Scoreboard_NumberFormatSurvivesSaveAndLoad)
+{
+    Scoreboard scoreboard;
+    auto* criteria = ScoreCriteriaRegistry::instance().getCriteria("dummy");
+    ASSERT_NE(criteria, nullptr);
+
+    auto* objective = scoreboard.addObjective("kills", *criteria, std::make_unique<text::StringTextComponent>("Kills"));
+    ASSERT_NE(objective, nullptr);
+
+    text::Style style;
+    style.setColor(text::TextFormatting::Aqua);
+    objective->setNumberFormat(text::numbers::NumberFormat::styled(style));
+
+    auto* score = scoreboard.getOrCreateScore("Steve", *objective);
+    ASSERT_NE(score, nullptr);
+    score->setScorePoints(5);
+    score->setNumberFormatOverride(text::numbers::NumberFormat());
+
+    // Scoreboard → 存档 → 记分板
+    const ScoreboardSaveData saveData = ScoreboardSaveData::fromScoreboard(scoreboard);
+    Scoreboard loaded;
+    auto applyResult = saveData.applyToScoreboard(loaded);
+    ASSERT_TRUE(applyResult.success());
+
+    auto* loadedObjective = loaded.getObjective("kills");
+    ASSERT_NE(loadedObjective, nullptr);
+    ASSERT_TRUE(loadedObjective->getNumberFormat().has_value());
+    EXPECT_EQ(loadedObjective->getNumberFormat()->type(), text::numbers::NumberFormatType::Styled);
+
+    auto* loadedScore = loaded.getScore("Steve", *loadedObjective);
+    ASSERT_NE(loadedScore, nullptr);
+    ASSERT_TRUE(loadedScore->getNumberFormatOverride().has_value());
+    // blank 覆盖与「没有覆盖」必须区分开
+    EXPECT_EQ(loadedScore->getNumberFormatOverride()->type(), text::numbers::NumberFormatType::Blank);
+    EXPECT_EQ(loadedScore->getScorePoints(), 5);
+
+    // 覆盖优先于目标格式：blank 覆盖渲染成空文本
+    EXPECT_EQ(loadedScore->formatValue(*loadedObjective->getNumberFormat())->getUnformattedText(), "");
 }
 
 // main 函数由 gtest_main 库提供

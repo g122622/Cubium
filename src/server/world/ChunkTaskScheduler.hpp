@@ -23,8 +23,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/concurrent/ReentrantAreaLock.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/StaticChunkCache2D.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 
 #include <atomic>
 #include <functional>

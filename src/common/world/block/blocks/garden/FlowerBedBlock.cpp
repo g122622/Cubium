@@ -38,9 +38,9 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -154,17 +154,17 @@ const BlockState& FlowerBedBlock::mirror(const BlockState& state, Mirror mirror)
 
     switch (mirror) {
         case Mirror::LeftRight:
-            if (currentFacing == Direction::East) {
-                newFacing = Direction::West;
-            } else if (currentFacing == Direction::West) {
-                newFacing = Direction::East;
-            }
-            break;
-        case Mirror::FrontBack:
             if (currentFacing == Direction::North) {
                 newFacing = Direction::South;
             } else if (currentFacing == Direction::South) {
                 newFacing = Direction::North;
+            }
+            break;
+        case Mirror::FrontBack:
+            if (currentFacing == Direction::East) {
+                newFacing = Direction::West;
+            } else if (currentFacing == Direction::West) {
+                newFacing = Direction::East;
             }
             break;
         case Mirror::None:

@@ -40,8 +40,8 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
+#include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 
@@ -133,17 +133,17 @@ const BlockState& BeehiveBlock::mirror(const BlockState& state, Mirror mirror) c
 
     switch (mirror) {
         case Mirror::LeftRight:
-            if (facing == Direction::East) {
-                newFacing = Direction::West;
-            } else if (facing == Direction::West) {
-                newFacing = Direction::East;
-            }
-            break;
-        case Mirror::FrontBack:
             if (facing == Direction::North) {
                 newFacing = Direction::South;
             } else if (facing == Direction::South) {
                 newFacing = Direction::North;
+            }
+            break;
+        case Mirror::FrontBack:
+            if (facing == Direction::East) {
+                newFacing = Direction::West;
+            } else if (facing == Direction::West) {
+                newFacing = Direction::East;
             }
             break;
         case Mirror::None:

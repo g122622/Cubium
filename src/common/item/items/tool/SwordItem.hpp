@@ -28,7 +28,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/items/tool/TieredItem.hpp"
 #include "common/item/tier/IItemTier.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/base/material/Material.hpp"
 
 namespace mc {
 

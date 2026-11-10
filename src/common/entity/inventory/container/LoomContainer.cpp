@@ -28,7 +28,8 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/IInventory.hpp"
@@ -36,7 +37,6 @@
 #include "item/items/BannerPatternItem.hpp"
 #include "item/items/DyeItemHelper.hpp"
 #include "item/items/block/BannerItem.hpp"
-#include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 #include <algorithm>

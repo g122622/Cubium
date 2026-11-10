@@ -20,8 +20,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/base/types/JigsawOrientation.hpp"
 #include <string>
 
 namespace mc {

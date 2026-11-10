@@ -468,7 +468,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/SessionSignalHandler.cpp
-    # 出站构造与广播：命令/登录流程经 builder + connectionManager 投递，
+    # 出站构造与广播：命令/登录流程经 builder + packetSender 投递，
     # 客户端内置服编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
     ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
@@ -481,19 +481,21 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp
     ${CMAKE_SOURCE_DIR}/src/server/settings/ServerSettings.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/player/lifecycle/PlayerManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketSender.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/session/PlayerConnectionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/access/AccessManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/time/TimeManager.cpp
     # 世界模块 - 游戏时间（自 common/world/time 迁入，TimeManager 依赖）
     ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/sync/player/TeleportManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/session/keepalive/KeepAliveManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/player/movement/PlayerMovementManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/player/gamemode/GameModeManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/access/admission/WhitelistManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedPlayerList.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedIpList.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/access/permission/OpListManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/scheduling/AreaTaskScheduler.cpp
