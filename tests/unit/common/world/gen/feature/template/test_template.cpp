@@ -34,6 +34,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestDataDir.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
@@ -1724,4 +1725,51 @@ TEST_F(RuleTestTest, TagMatchRuleTest_Clone)
     TagMatchRuleTest* clonedTest = dynamic_cast<TagMatchRuleTest*>(clone.get());
     EXPECT_NE(clonedTest, nullptr);
     EXPECT_EQ(clonedTest->getTagName(), ResourceLocation("minecraft", "logs"));
+}
+
+// ============================================================================
+// PlacementSettings::getRandom
+// ============================================================================
+
+// 带位置时按位置派生种子，因此两次取到的随机数序列必须一致。
+TEST(PlacementSettingsRandomTest, PositionSeedIsDeterministic)
+{
+    PlacementSettings settings;
+    const BlockPos pos(16, 64, -32);
+
+    auto first = settings.getRandom(&pos);
+    auto second = settings.getRandom(&pos);
+
+    ASSERT_NE(first.second, nullptr);
+    ASSERT_NE(second.second, nullptr);
+    EXPECT_EQ(first.second->nextInt(1000), second.second->nextInt(1000));
+}
+
+// 无位置时用当前毫秒时间做种子（原版 Util.getMillis()），因此结果不可预期，
+// 但必须能正常构造出可用的随机源——这条覆盖的是"assert 崩溃"被替换成真实分支。
+TEST(PlacementSettingsRandomTest, NullPositionYieldsUsableRandom)
+{
+    PlacementSettings settings;
+
+    auto random = settings.getRandom(nullptr);
+
+    ASSERT_NE(random.second, nullptr);
+    // 只验证能取到值且落在区间内；具体数值由时间决定，不能断言。
+    const i32 value = random.second->nextInt(100);
+    EXPECT_GE(value, 0);
+    EXPECT_LT(value, 100);
+}
+
+// 预设了随机源时直接借用，不构造新对象。
+TEST(PlacementSettingsRandomTest, PresetRandomIsBorrowed)
+{
+    math::JavaLegacyRandom preset(12345);
+    PlacementSettings settings;
+    settings.setRandom(&preset);
+
+    const BlockPos pos(1, 2, 3);
+    auto borrowed = settings.getRandom(&pos);
+
+    EXPECT_EQ(borrowed.first, &preset);
+    EXPECT_EQ(borrowed.second, nullptr) << "borrowed random must not transfer ownership";
 }
