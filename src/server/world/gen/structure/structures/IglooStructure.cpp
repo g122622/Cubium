@@ -35,6 +35,8 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
@@ -159,13 +161,48 @@ void IglooPiece::generate(IWorldWriter& world,
     IWorld* reader = dynamic_cast<IWorld*>(&world);
     MC_ASSERT_RELEASE_MSG(reader != nullptr, "IglooPiece::generate requires an IWorld");
 
+    const IglooPieceShape& shape = shapeOf(m_templateName);
     feature::template_::PlacementSettings settings;
     settings.setRotation(getRotation());
     settings.setMirror(Mirror::None);
-    settings.setRotationPivot(shapeOf(m_templateName).pivot);
+    settings.setRotationPivot(shape.pivot);
     settings.setBoundingBox(&chunkBounds);
 
+    // 模板在生成期统一以名义高度 90 装配，真正落位时再整体下移到地表：
+    // 先取模板底面前左角对应的地表探测点（`BlockPos(3 - offsetX, 0, -offsetZ)` 经旋转），
+    // 用世界表面高度图算出地面高度，再让模板原点下移 `groundY - 90 - 1` 格。
+    // 雪屋的三种模板（顶盖/梯井/地下室）都走这一套，梯井因此逐段贴合地面。
+    const BlockPos probeLocal(3 - shape.offset.x, 0, -shape.offset.z);
+    const BlockPos probePos = m_templatePosition +
+        feature::template_::Template::transformBlockPos(probeLocal, Mirror::None, getRotation(), shape.pivot);
+    // 本项目 `IWorld::getHeight` 返回最高方块 Y，原版返回首个可放置 Y，差 1 格。
+    const i32 groundY = reader->getHeight(probePos.x, probePos.z, world::chunk::HeightmapType::WorldSurfaceWG) + 1;
+
+    const BlockPos nominalPosition = m_templatePosition;
+    m_templatePosition = m_templatePosition + BlockPos(0, groundY - 90 - 1, 0);
+
     m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+    // 原版 `TemplateStructurePiece.postProcess` 末尾的拼图方块 `final_state` 覆盖。
+    // TODO: 雪屋的数据标记（地窖入口与地下室箱子）仍未实现，届时需排在 jigsaw 覆盖之前。
+    m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
+
+    // 顶盖模板的入口下方若不是空气/梯子，补一块雪块把梯井封口。
+    if (m_templateName == IglooStructure::s_topTemplateName) {
+        const BlockPos entrancePos = m_templatePosition +
+            feature::template_::Template::transformBlockPos(
+                BlockPos(3, 0, 5), Mirror::None, getRotation(), shape.pivot);
+        const BlockState* below = reader->getBlockState(entrancePos.x, entrancePos.y - 1, entrancePos.z);
+        if (below != nullptr && !below->isAir() && !below->is(VanillaBlocks::LADDER)) {
+            world.setBlockState(entrancePos.x,
+                entrancePos.y,
+                entrancePos.z,
+                &VanillaBlocks::SNOW_BLOCK->defaultState(),
+                world::BlockUpdateFlags::UPDATE_ALL);
+        }
+    }
+
+    m_templatePosition = nominalPosition;
 }
 
 // ============================================================================

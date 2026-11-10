@@ -143,9 +143,16 @@ const BlockPattern& _witherFullPattern()
     return *pattern;
 }
 
-// TODO: 实现 WitherSkullBlock.getOrCreateWitherBase()/canSpawnMob(Level, BlockPos, ItemStack)，
-// 并在发射器（DispenseItemBehavior）放置凋灵骷髅头的路径中接入。当前 Cubium 的发射器尚未走该路径，
-// 为避免形成无调用方的孤岛 API，本次只迁移 checkSpawn 的完整图案匹配。
+// 召唤判定（图案匹配、清图案、生成凋灵、无敌阶段、进度触发）已完整落在 checkSpawn 内，
+// 玩家放置站立/墙挂凋灵骷髅头的两条路径都会调用它。
+// TODO: checkSpawn 目前没有任何单元测试覆盖（正负路径皆无）。补测需要一个能提供
+// `getBlockState` / `difficulty` / `isClientSide` / `entityRegistry` / `spawnEntity` 的
+// IWorld 桩；负路径（非凋灵头、和平难度、图案不完整）只需前四项即可断言"未生成实体"。
+// TODO: 发射器放置凋灵骷髅头时也应触发同一判定。原版是在 `DispenserBlock` 的方块放置
+// 行为里走 `BlockItem.place`，从而间接触发 `onBlockPlacedBy`；项目的 dispense 子系统目前
+// 只有 `IDispenseItemBehavior` 接口与注册表，尚无任何具体行为（含"放置方块"），因此这条
+// 路径要等 dispense 行为落地后在此接入——接入点即"放置方块"行为调用
+// `BlockItem::placeBlock`，不要另写一套召唤逻辑。
 
 /**
  * @brief 把物品上的 `minecraft:note_block_sound` 组件写入头颅方块实体

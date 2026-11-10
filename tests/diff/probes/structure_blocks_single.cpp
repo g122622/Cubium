@@ -130,9 +130,10 @@ TerrainConfig makeTerrainConfig(std::string_view dimension, bool enabled)
  */
 class RecordingWorld final : public probe::NullWorld {
 public:
-    RecordingWorld(i32 minBuildHeight, TerrainConfig terrain)
+    RecordingWorld(i32 minBuildHeight, TerrainConfig terrain, u64 seed)
         : m_minBuildHeight(minBuildHeight)
         , m_terrain(terrain)
+        , m_seed(seed)
     {}
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
@@ -167,6 +168,13 @@ public:
     [[nodiscard]] i32 getMinBuildHeight() const override
     {
         return m_minBuildHeight;
+    }
+
+    /// 世界种子：`CappedStructureProcessor` 等按「世界种子 + 模板原点」派生位置随机源，
+    /// 必须与 oracle 的 `FakeLevel.getSeed()` 一致，否则替换落点整体漂移。
+    [[nodiscard]] u64 seed() const override
+    {
+        return m_seed;
     }
 
     /// 返回最高方块 Y（Cubium 语义）。无地形即没有方块，返回 minY - 1；
@@ -257,6 +265,7 @@ private:
 
     i32 m_minBuildHeight;
     TerrainConfig m_terrain;
+    u64 m_seed;
     std::unordered_map<i64, BlockState> m_blocks;
     std::vector<SpawnedEntity> m_entities;
 };
@@ -337,7 +346,7 @@ std::string runLine(std::string_view inputLine)
     const i32 minChunkZ = startBox.minZ() >> world::CHUNK_SHIFT;
     const i32 maxChunkZ = startBox.maxZ() >> world::CHUNK_SHIFT;
 
-    RecordingWorld world(generator.getMinY(), makeTerrainConfig(dimensionName, input.value("terrain", false)));
+    RecordingWorld world(generator.getMinY(), makeTerrainConfig(dimensionName, input.value("terrain", false)), seed);
     ::mc::world::chunk::ChunkPrimer chunk(chunkX, chunkZ);
 
     const i32 minY = generator.getMinY();

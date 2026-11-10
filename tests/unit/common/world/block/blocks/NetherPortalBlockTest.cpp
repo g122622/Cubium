@@ -42,7 +42,7 @@ namespace {
  *
  * 继承 IBlockReader，提供最小化测试环境
  */
-class NetherPortalTestWorld final : public IBlockReader {
+class NetherPortalTestWorld : public IBlockReader {
 public:
     using IWorld::getBlockState;
 
@@ -301,7 +301,9 @@ TEST_F(NetherPortalBlockTest, MissingInteriorInvalidatesRemainingPortalOnBothAxe
         const auto& state =
             VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
         world.clearBlockAt(BlockPos(5, 64, 5));
-        EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 65, 5)));
+        // 注意：不能断言 isValidPosition 为 false。原版 NetherPortalBlock 只重写 updateShape，
+        // 没有 canSurvive 覆写——传送门方块本身"能存活"恒为真，整扇门的失效完全由
+        // updateShape（PortalShape.findAnyShape 判定不完整）驱动。下面这条才是真正的契约。
         const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(state,
             Direction::Down,
             *BlockRegistry::instance().airState(),
@@ -323,12 +325,15 @@ TEST_F(NetherPortalBlockTest, MissingFrameInvalidatesRemainingPortal)
     EXPECT_TRUE(result.isAir());
 }
 
-TEST_F(NetherPortalBlockTest, SingleObsidianNeighborDoesNotValidatePortal)
+TEST_F(NetherPortalBlockTest, LoneSkullBlockWithOneObsidianNeighborStaysValidBlock)
 {
     NetherPortalTestWorld world;
     world.setBlockAt(BlockPos(5, 63, 5), &VanillaBlocks::OBSIDIAN->defaultState());
     const auto& state = VanillaBlocks::NETHER_PORTAL->defaultState();
-    EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 64, 5)));
+    // 原版 NetherPortalBlock 没有 canSurvive 覆写，isValidPosition 恒为 true：
+    // 只有一侧黑曜石的孤立传送门方块仍是"可存活的方块"，整扇门的失效由 updateShape 负责
+    // （见 MissingFrameInvalidatesRemainingPortal / MissingInteriorInvalidatesRemainingPortalOnBothAxes）。
+    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 64, 5)));
 }
 
 TEST_F(NetherPortalBlockTest, UpdateOutsidePortalPlaneDoesNotRemovePortal)
@@ -368,6 +373,27 @@ TEST_F(NetherPortalBlockTest, PortalIsNotOpaque)
     const BlockState& state = portal->defaultState();
 
     EXPECT_FALSE(portal->isOpaque(state));
+}
+
+// ============================================================================
+// IWorld::isSpawningMonsters() 默认实现
+//
+// 对应原版 ServerLevel.isSpawningMonsters() = 难度非和平 && SPAWN_MOBS && SPAWN_MONSTERS。
+// 传送门刷僵尸猪灵等按概率生成怪物的逻辑都以它为前提。
+// ============================================================================
+
+TEST(WorldSpawnRuleTest, IsSpawningMonsters_NormalDifficultyAndDefaultRulesIsTrue)
+{
+    mc::test::MapBackedTestWorld world(Difficulty::Normal);
+    // 默认 GameRules 中 SPAWN_MOBS 与 SPAWN_MONSTERS 均开启
+    EXPECT_TRUE(world.isSpawningMonsters());
+}
+
+TEST(WorldSpawnRuleTest, IsSpawningMonsters_PeacefulDifficultyIsFalse)
+{
+    // 和平难度下无论游戏规则如何都不生成敌对生物
+    mc::test::MapBackedTestWorld world(Difficulty::Peaceful);
+    EXPECT_FALSE(world.isSpawningMonsters());
 }
 
 } // namespace

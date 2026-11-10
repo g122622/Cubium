@@ -1036,8 +1036,6 @@ void Entity::baseTick()
 
     // 更新传送冷却——已迁入 PortalTickSystem（PostEntityTick 阶段）。
 
-    // 骑乘冷却（m_rideCooldown）已整体移除（对齐 vanilla，详见 addPassenger 注释），不再递减。
-
     // 更新环境状态（包括水中/岩浆/眼睛流体等状态）
     // MC Java: Entity.baseTick() 中在火焰处理之前调用 updateInWaterStateAndDoFluidPushing() + updateFluidOnEyes()
     // 此处将 updateEnvironmentState() 移至火焰处理之前，与 MC 原版时序一致
@@ -1256,9 +1254,6 @@ void Entity::updateEnvironmentState()
             }
         }
     }
-
-    // 兼容旧代码：设置 m_fluidHeight
-    m_fluidHeight = std::max(m_waterHeight, m_lavaHeight);
 }
 
 bool Entity::isInRain() const

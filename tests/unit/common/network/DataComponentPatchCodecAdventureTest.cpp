@@ -48,24 +48,22 @@
 namespace {
 
 using namespace mc;
+using mc::item::component::componentTypeId;
 using mc::item::component::DataComponentPatch;
 using mc::item::component::DataComponentPayload;
 using mc::item::component::DataComponentType;
-using mc::item::component::componentTypeId;
 using mc::network::backend::java::readPatchFromWire;
 using mc::network::buffer::ByteBuf;
-
 
 /// 写一个 BlockPredicate：直接方块列表 + 可选精确属性，NBT 与组件匹配段留空。
 void _writeBlockPredicate(ByteBuf& buf,
     const std::vector<std::string>& blockNames,
     const std::vector<std::pair<std::string, std::string>>& properties)
 {
-    buf.writeBool(true);                             // 第 1 段：方块集合存在
+    buf.writeBool(true);                                      // 第 1 段：方块集合存在
     buf.writeVarInt(static_cast<i32>(blockNames.size()) + 1); // HolderSet: n = size + 1
     for (const auto& name : blockNames) {
-        buf.writeVarInt(
-            static_cast<i32>(network::backend::java::JavaBlockIdMap::instance().toJavaRegistryId(name)));
+        buf.writeVarInt(static_cast<i32>(network::backend::java::JavaBlockIdMap::instance().toJavaRegistryId(name)));
     }
 
     buf.writeBool(!properties.empty()); // 第 2 段：状态属性
@@ -194,8 +192,8 @@ TEST_F(DataComponentPatchCodecAdventureTest, NbtPredicateIsRejectedInsteadOfSile
     payload.writeVarInt(1);
     payload.writeBool(true);
     payload.writeVarInt(2); // 1 个方块
-    payload.writeVarInt(static_cast<i32>(network::backend::java::JavaBlockIdMap::instance().toJavaRegistryId(
-        "minecraft:chest")));
+    payload.writeVarInt(
+        static_cast<i32>(network::backend::java::JavaBlockIdMap::instance().toJavaRegistryId("minecraft:chest")));
     payload.writeBool(false); // 无属性
     payload.writeBool(true);  // 有 NBT 谓词 → 项目无法表达
 
@@ -227,10 +225,10 @@ TEST_F(DataComponentPatchCodecAdventureTest, RangedPropertyMatcherIsRejected)
     payload.writeVarInt(2);
     payload.writeVarInt(
         static_cast<i32>(network::backend::java::JavaBlockIdMap::instance().toJavaRegistryId("minecraft:oak_stairs")));
-    payload.writeBool(true);  // 有属性
+    payload.writeBool(true); // 有属性
     payload.writeVarInt(1);
     payload.writeString("rotation");
-    payload.writeU8(1);       // 1 = 区间匹配（RangedMatcher）→ 项目无法表达
+    payload.writeU8(1); // 1 = 区间匹配（RangedMatcher）→ 项目无法表达
 
     auto decoded = _decodePatch(payload);
     EXPECT_FALSE(decoded.success());

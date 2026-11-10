@@ -166,6 +166,10 @@ void NetherFossilPiece::generate(IWorldWriter& world,
 
     // 放置模板（原点即模板位置，不是包围盒最小角）
     m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
+
+    // 原版 `TemplateStructurePiece.postProcess` 末尾的拼图方块 `final_state` 覆盖。
+    // TODO: 下界化石的数据标记尚未实现，届时需排在 jigsaw 覆盖之前。
+    m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
 }
 
 // ============================================================================

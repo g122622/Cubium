@@ -297,3 +297,21 @@ RandomSource.create(level.getSeed()).forkPositional().at(templatePos)
   `bastion_generic_degradation` 的 30% 概率变成裂纹砖；试炼密室的铜灯也不会走降级规则。
 - 位置谓词的两个坐标不要混：`originalPos` 取 `rawBlockInfo.pos`（模板内），
   `worldPos` 取 `blockInfo.pos`（世界坐标）。
+
+### 23. `placeInWorld` 的旋转/镜像必须绕 `PlacementSettings::getRotationPivot()` 展开
+
+模板内的旋转枢轴不是世界原点。沉船、废弃传送门的枢轴在模板一侧，若用 `BlockPos(0, 0, 0)`
+做枢轴，整批方块会平移到相邻区块甚至可写区之外。
+
+- 症状：沉船的世界坐标整体偏移一格以上，探针记录到的方块数远少于原版（部分写入被边界过滤）。
+- 实体放置同理，必须用同一枢轴换算。
+
+### 24. 拼图方块的 `final_state` 替换不是自动的
+
+`Template::placeInWorld()` 只按调色板原样放置方块，拼图连接点仍是 `minecraft:jigsaw`。
+构造用的 `TemplateStructurePiece` 在放置后还要把每个 jigsaw 方块按 NBT 的 `final_state`
+覆盖一次（缺省 `minecraft:air`），且必须排在数据标记之前/之后按各结构自身顺序执行。
+
+- 症状：沉船、废弃传送门、海底废墟残留 `minecraft:jigsaw` 方块，原版该处是空气或指定方块。
+- 用 `Template::getJigsawReplacements()` 取替换表（已按枢轴换算 + 边界框过滤），
+  再 `applyJigsawReplacements()` 落盘；不要自己重写坐标变换。

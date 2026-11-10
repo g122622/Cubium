@@ -519,6 +519,25 @@ public:
         IWorld& world, const BlockPos& pos, const BlockState* defaultState);
 
     /**
+     * @brief 在**世界坐标**放置带战利品表的宝箱（原版 `StructurePiece#createChest`）
+     *
+     * 与 `generateChest` 的区别：`pos` 已经是世界坐标，不再经过构件的旋转/镜像变换。
+     * 越界、该位置已有宝箱或没有可写世界时返回 false 且不消耗随机数。
+     *
+     * @param world 世界写入接口
+     * @param bounds 结构边界框（通常为当前区块的可写区）
+     * @param rng 随机数生成器（用于战利品表种子）
+     * @param pos 宝箱世界坐标
+     * @param lootTable 战利品表资源位置
+     * @return 是否放置了宝箱
+     */
+    [[nodiscard]] bool createChestAt(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        math::IRandom& rng,
+        const BlockPos& pos,
+        const ResourceLocation& lootTable);
+
+    /**
      * @brief 放置带战利品表的宝箱（自动确定朝向）
      *
      * 在指定位置放置宝箱方块并设置战利品表。
@@ -591,17 +610,28 @@ public:
         const ResourceLocation& lootTable);
 
     /**
-     * @brief 向下替换空气和液体
+     * @brief 从给定位置向下填充方块，直到遇到不可替换的方块或世界底部（原版 `StructurePiece#fillColumnDown`）
+     *
+     * 只替换空气、液体、发光地衣与海草类方块；循环下界是 `getMinBuildHeight() + 1`，
+     * 因此最低可写 y 是 `getMinBuildHeight() + 2`。空海洋世界里这会一路填到世界底部，
+     * 海洋纪念碑的外围立柱依赖这一行为。
+     *
      * @param world 世界接口
      * @param state 要放置的方块状态
      * @param x 相对 X 坐标
-     * @param y 起始 Y 坐标
+     * @param y 起始 Y 坐标（相对坐标）
      * @param z 相对 Z 坐标
-     * @param bounds 边界框
-     * @note 需要子类提供世界读取能力
+     * @param bounds 边界框（只检查起始点是否在内，与原版一致）
      */
-    void replaceAirAndLiquidDownwards(
+    void fillColumnDown(
         IWorld& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
+
+    /**
+     * @brief 结构生成可替换的方块判定（原版 `StructurePiece#isReplaceableByStructures`）
+     *
+     * 空气、液体、发光地衣、海草与高海草都可以被结构生成的填充方块覆盖。
+     */
+    [[nodiscard]] static bool isReplaceableByStructures(const BlockState& state);
 
     /**
      * @brief 放置末地传送门框架方块环
