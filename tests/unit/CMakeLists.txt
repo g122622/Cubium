@@ -1034,6 +1034,7 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/target/DrownedRegisterGoalsTest.cpp
     # GoalSelector 目标选择器测试（removeGoalsOfType 等）
     common/entity/ai/goal/GoalSelectorTest.cpp
+    common/entity/core/BreedingExperienceTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/PathWeightOverrideTest.cpp
