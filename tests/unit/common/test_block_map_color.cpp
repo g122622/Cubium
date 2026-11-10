@@ -227,8 +227,13 @@ TEST(BlockMapColorTableTest, WaterloggedStateTakesWaterColor)
 TEST(BlockMapColorTableTest, UnknownStateFallsBackToAirColor)
 {
     EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:not_a_block"), 0);
-    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:stone[not_an_attribute=true]"), 0);
     EXPECT_EQ(world::block::lookupVanillaMapColor(""), 0);
+    // 方块名命中后，属性段只要不含例外表里的变色属性，就仍取该方块的默认色。
+    // 不能要求这种情况返回 AIR：非例外方块携带属性是**生产中的常态**
+    // （例如 chest 的 facing/type/waterlogged，chest 不在 29 个例外方块内），
+    // 若把「属性未命中例外表」判为未知状态，这些方块的地图色会全部退化成 0。
+    // 因此这里断言 stone 取自身颜色（STONE = 11），真正"查不到"的是上面的未知方块名。
+    EXPECT_EQ(world::block::lookupVanillaMapColor("minecraft:stone[not_an_attribute=true]"), 11);
 }
 
 /**
