@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
@@ -739,6 +740,10 @@ TEST_F(NewStructuresTest, OceanMonument_RoomDefinitionFindsSource)
 
 TEST_F(NewStructuresTest, OceanMonument_PenthouseSpawnsElderGuardian)
 {
+    // spawnElderGuardian 经实体类型注册表创建远古守卫者，必须先登记原版实体类型，
+    // 否则 getType 返回空、生成被静默跳过。
+    entity::VanillaEntities::registerAll();
+
     StructureBoundingBox bounds(0, 39, 0, 57, 61, 57);
     OceanMonumentPenthouse penthouse(Direction::North, bounds);
     StructureTestWorld world = buildMonumentPieceWorld(penthouse);

@@ -136,6 +136,16 @@ void RegistryBootstrap::loadBlockDataPackTags()
     } else {
         spdlog::info("Loaded {} block tags from data packs", blockTagResult.value());
     }
+
+    // 采集规则完全派生自方块标签（mineable/<tool> + needs_*_tool），必须与标签同步重建。
+    // 放在这里而不是 initializeAll 的调用点：任何只加载方块标签的调用方（测试全局环境）
+    // 也应得到可用的采集表；否则 ToolItem::canHarvestBlock 会因空表把一切需要工具的
+    // 方块判成挖不动，且只有实际挖方块时才会暴露。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::HarvestToolTable");
+        block_registry::HarvestToolTable::rebuild();
+        BlockRegistry::instance().applyHarvestToolTable();
+    }
 }
 
 void RegistryBootstrap::initializeAll(bool registerEntities)
@@ -222,18 +232,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     }
     spdlog::info("Block items initialized");
 
-    // 从数据包重建方块标签表（清空后用 BlockTagLoader 重建）。
-    // 位置不可前移：须在方块物品注册完成之后，否则按物品 id 引用的成员会被整条跳过。
+    // 从数据包重建方块标签表（清空后用 BlockTagLoader 重建），并同步重建派生自标签的
+    // 采集规则表。位置不可前移：须在方块物品注册完成之后，否则按物品 id 引用的成员会被整条跳过。
     loadBlockDataPackTags();
-
-    // 从刚加载的方块标签派生采集规则（mineable/<tool> + needs_*_tool），并校验注册处的
-    // requiresTool() 与标签并集一致。原版把「用什么工具、最低哪一档」放在数据包标签里，
-    // 这里与物品标签同口径：数据包是唯一来源，不保留任何编译期快照。
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::HarvestToolTable");
-        block_registry::HarvestToolTable::rebuild();
-        BlockRegistry::instance().applyHarvestToolTable();
-    }
 
     // 物品标签（必须在所有物品注册后）：数据包是标签表的唯一来源，与方块标签一致。
     // 内置标签表只是原版数据的快照，启动时清空后由数据包重新构建，避免两份来源。
@@ -506,6 +507,17 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 它必须在装配开始前绑定（见 MinecraftServer::initializeRegistries），否则上面的模板池加载
     // 会在空指针/悬垂指针下读取模板；解绑由 MinecraftServer 的宿主绑定令牌负责。
 
+    // 注册实体类型（可选）。
+    //
+    // 必须早于 biome 加载：`mobSpawnInfoFromJson` 逐条校验 spawner 引用的实体类型已注册，
+    // 未知类型会让整个 biome JSON 加载失败（BiomeLoader 随即跳过该群系，其 features /
+    // carvers 一并丢失 → 世界只剩地形，没有洞穴、矿脉与植被）。实体注册不依赖任何世界
+    // 生成注册表，放在这里不会引入新的顺序约束。
+    if (registerEntities) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Entities");
+        entity::VanillaEntities::registerAll();
+    }
+
     // ============================================================================
     // 数据驱动世界生成管线
     // ============================================================================
@@ -644,12 +656,6 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
             spdlog::info("Loaded {} structure sets from data packs", setResult.value());
         }
         world::gen::structure::StructureSetRegistry::instance().validateAgainstStructureRegistry();
-    }
-
-    // 注册实体类型（可选）
-    if (registerEntities) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Entities");
-        entity::VanillaEntities::registerAll();
     }
 
     // 初始化实体类型标签（必须在所有实体类型注册后）

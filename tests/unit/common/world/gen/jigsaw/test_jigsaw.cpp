@@ -194,13 +194,12 @@ TEST(TemplatePoolTest, WeightedRandomSelection)
         }
     }
 
-    // 原版 StructureTemplatePool.getRandomTemplate 走的是
-    // `templates.get(nextInt(templates.size()))`：templates 是**折叠**的配对列表，
-    // 每个元素只占一项，weight 不参与索引，因此三个条目被等概率抽中（各 1/3）。
-    // weight 只在按比例展开（getShuffledPieces 之后的拼图放置）时才生效。
-    EXPECT_NEAR(counts["piece_a"], 2000, 300);
+    // 原版 StructureTemplatePool 构造时把 rawTemplates 按 weight **展开**成 templates
+    // 列表（1.21.11 的 `for (int i = 0; i < pair.getSecond(); i++) templates.add(...)`），
+    // getRandomTemplate 在展开后的列表上均匀抽取，因此实际分布是 1:2:3。
+    EXPECT_NEAR(counts["piece_a"], 1000, 300);
     EXPECT_NEAR(counts["piece_b"], 2000, 300);
-    EXPECT_NEAR(counts["piece_c"], 2000, 300);
+    EXPECT_NEAR(counts["piece_c"], 3000, 300);
 }
 
 /**

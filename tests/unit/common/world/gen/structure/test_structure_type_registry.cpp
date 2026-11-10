@@ -209,6 +209,11 @@ TEST_F(StructureTypeRegistryTest, DispatchesProceduralTypesToSubclasses)
                 return setup;
             }());
         }
+        if (type == "nether_fossil") {
+            // 落点高度来自数据包 `height` 高度提供者，工厂缺少该字段会直接报错。
+            def.height =
+                world::gen::valueprovider::ConstantHeight::create(world::gen::surface::VerticalAnchor::absolute(32));
+        }
         auto result = reg.create(type, def);
         ASSERT_TRUE(result.success()) << "type=" << type << " create failed";
         auto structure = result.value();

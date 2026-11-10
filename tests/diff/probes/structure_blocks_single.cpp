@@ -346,8 +346,7 @@ std::string runLine(std::string_view inputLine)
     const i32 minChunkZ = startBox.minZ() >> world::CHUNK_SHIFT;
     const i32 maxChunkZ = startBox.maxZ() >> world::CHUNK_SHIFT;
 
-    RecordingWorld world(
-        generator.getMinY(), makeTerrainConfig(dimensionName, input.value("terrain", false)), seed);
+    RecordingWorld world(generator.getMinY(), makeTerrainConfig(dimensionName, input.value("terrain", false)), seed);
     ::mc::world::chunk::ChunkPrimer chunk(chunkX, chunkZ);
 
     const i32 minY = generator.getMinY();

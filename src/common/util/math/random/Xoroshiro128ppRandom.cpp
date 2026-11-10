@@ -29,8 +29,10 @@
 
 namespace mc::math {
 namespace {
-/// 2^-53 的精确 f64 值，对应原版 `XoroshiroRandomSource.nextDouble()` 的乘数。
-constexpr f64 kUnitDouble = 1.1102230246251565E-16;
+/// 原版 `XoroshiroRandomSource.nextDouble()` 的乘数。源级字面量是 `1.110223E-16F`，
+/// 即 f32 的 2^-53：Java 的 `long * float` 会先把 long 舍入到 f32 再按 f32 相乘，
+/// 结果只有 24 位精度。这里必须同样用 f32 常量，写成 f64 会多出 29 位有效位。
+constexpr f32 kUnitDoubleFloat = 1.1102230246251565E-16f;
 } // namespace
 
 // ============================================================================
@@ -116,13 +118,13 @@ u64 Xoroshiro128ppRandom::nextU64()
 f64 Xoroshiro128ppRandom::nextDouble()
 {
     // MC XoroshiroRandomSource.nextDouble():
-    //   return this.nextBits(53) * 1.1102230246251565E-16;
+    //   return this.nextBits(53) * 1.110223E-16F;
     // nextBits(53) = nextLong() >>> 11，结果落在 [0, 2^53)。
-    // 原版常量是 **f64**（`1.1102230246251565E-16`，即 2^-53 的精确值），不是 f32：
-    // 8 次抽取里有约一半 low 位不为零，用 f32 相乘会把 53 位精度砍到 24 位，
-    // 密度函数与 PerlinNoise 的偏移都会偏离原版。
+    // Java 的 long * float 按二元数值提升先转成 float 再相乘，返回值是 f32 精度
+    // （不是 f64）。原版参照实现逐位验证的黄金值就是 f32 舍入后的结果。
     const u64 val = static_cast<u64>(nextLong()) >> 11;
-    return static_cast<f64>(val) * kUnitDouble;
+    const f32 scaled = static_cast<f32>(val) * kUnitDoubleFloat;
+    return static_cast<f64>(scaled);
 }
 
 f32 Xoroshiro128ppRandom::nextFloat()

@@ -637,10 +637,13 @@ TEST_F(WorldGenRegionDetailedTest, GetSkyLight_Returns15)
     EXPECT_EQ(m_region->getSkyLight(0, 0, 0), 15);
 }
 
-TEST_F(WorldGenRegionDetailedTest, TickManager_ThrowsException)
+TEST_F(WorldGenRegionDetailedTest, TickManager_IsAvailableDuringGeneration)
 {
-    EXPECT_THROW(m_region->tickManager(), std::logic_error);
-    EXPECT_THROW(std::as_const(*m_region).tickManager(), std::logic_error);
+    // 生成期现在持有真实的 TickManager（调度请求落到目标区块的待执行刻容器，
+    // 区块发布后由 ServerChunkManager 转交世界 TickManager），不再抛异常。
+    EXPECT_NO_THROW((void)m_region->tickManager());
+    EXPECT_NO_THROW((void)std::as_const(*m_region).tickManager());
+    EXPECT_EQ(&m_region->tickManager(), &std::as_const(*m_region).tickManager());
 }
 
 // ============================================================================

@@ -573,8 +573,11 @@ Result<size_t> BiomeLoader::loadFromDataPackRepository(const resource::DataPackR
             auto parseResult = loadFromJson(jsonObj, id);
             if (parseResult.success()) {
                 ++loadedCount;
+            } else {
+                // 整份群系被跳过会让它的 features / carvers / spawners 全部丢失（世界只剩
+                // 地形），必须在加载期留下日志，否则只表现为"生成的区块没有矿脉与植被"。
+                spdlog::warn("Failed to load biome {}: {}", id.toString(), parseResult.error().message());
             }
-            // loadFromJson 内部已对可恢复错误 warn + skip，不在此重复日志
         }
     }
 
@@ -621,6 +624,9 @@ Result<size_t> BiomeLoader::loadFromResourcePack(const resource::IResourcePack& 
             auto parseResult = loadFromJson(jsonObj, id);
             if (parseResult.success()) {
                 ++loadedCount;
+            } else {
+                // 整份群系被跳过会让它的 features / carvers / spawners 全部丢失，必须留下日志。
+                spdlog::warn("Failed to load biome {}: {}", id.toString(), parseResult.error().message());
             }
         }
     }
