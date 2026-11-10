@@ -205,5 +205,15 @@ TEST_F(CamelEntityTest, AgeScale_BabyIsFortyFivePercent)
     EXPECT_FLOAT_EQ(camel.getAgeScaleValue(), CamelEntity::BABY_SCALE);
 }
 
+// 骆驼的步高是 1.5（vanilla Camel.createAttributes 里的 step_height）。
+// 这条断言锁住的是"属性名写对"这件事：属性表按名朴素查找，用 1.16.5 的旧名
+// `generic.step_height` 会查不到、setBaseValue 静默返回 false，步高退回默认 0.6，
+// 而 0.6 与 1.5 都是合法值，既不报错也不崩溃。
+TEST_F(CamelEntityTest, StepHeightMatchesVanillaCamel)
+{
+    CamelEntity camel(EntityInstanceId(1), mc::test::testEcsRegistry());
+    EXPECT_FLOAT_EQ(camel.stepHeight(), 1.5f);
+}
+
 } // namespace
 } // namespace mc
