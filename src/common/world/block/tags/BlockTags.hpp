@@ -764,7 +764,20 @@ private:
 
     static std::unordered_map<ResourceLocation, std::unique_ptr<BlockTag>>& _getTags();
 
-    /// 便捷访问器的缓存指针是否仍指向标签表中的同一对象（`clear()` 后旧指针会失效）。
+    /**
+     * @brief 已从标签表移除、但对象本身保留的标签（`clear()` 的退役区）
+     *
+     * 便捷访问器缓存的是裸 `BlockTag*`。若 `clear()` 直接释放对象，缓存指针悬垂；
+     * 更隐蔽的是分配器可能把同一地址复用给之后注册的**另一个**标签，令 `_isLive`
+     * 误判缓存仍有效并返回错误的标签。把对象移到这里可冻结地址，杜绝地址复用。
+     * 对象内容在退役前已清空，只余外壳。
+     */
+    static std::vector<std::unique_ptr<BlockTag>>& _getRetiredTags();
+
+    /// 当前标签表中对象的地址集合；`_isLive` 只查集合，不解引用可能悬垂的缓存指针。
+    static std::unordered_set<const BlockTag*>& _getLiveTags();
+
+    /// 便捷访问器的缓存指针是否仍指向当前标签表中的对象（`clear()` 后旧指针会失效）。
     [[nodiscard]] static bool _isLive(const BlockTag* tag);
 
     static bool s_initialized;

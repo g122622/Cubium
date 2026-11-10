@@ -20,7 +20,6 @@ Block 定义共享行为入口，BlockState 维护不可变状态；BlockPropert
 
 ## 容易踩的坑
 
-- 方块和状态由注册表持有，发放的引用必须保持稳定。
-- 形状工厂显式区分 box 的归一化坐标和 fromPixelBox 的像素坐标。
-- 声音事件标识、方块族规则、LevelEventId 与模拟 GameEvent 分别管理。
-- 原版地图颜色策略在注册时绑定，公共模型不直接引用原版快照。
+- **访问器缓存指针会被 `clear()` 打失效**：`BlockTags::CLIMBABLE()` 等把 `BlockTag*` 缓存在 static 局部变量里。`RegistryBootstrap` 每次服务器启动都调 `clear()`，`_isLive()` 因此**绝不能解引用缓存指针**——对象已释放，`tag->getId()` 会读到垃圾字符串并在 `ResourceLocation::hash` 崩溃（同进程连跑多个服务器实例时实测）。当前实现：`clear()` 把清空内容后的对象移入退役区（`_getRetiredTags()`）冻结地址，`_getLiveTags()` 记录当前表内对象地址，守卫只查集合。新增访问器必须照抄该守卫。
+- **标签内容 100% 来自数据包**：`initialize()` 不填任何编译期快照；`BlockTagLoader` 在启动期展开 `#tag` 引用后写入，改数据包即改行为。
+- **加载顺序**：`BlockTagLoader` 必须在方块注册（`VanillaBlocks::initialize`）之后运行，否则标签中的方块名解析不到，整条标签被拒。
