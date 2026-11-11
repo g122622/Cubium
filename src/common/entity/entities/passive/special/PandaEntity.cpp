@@ -608,6 +608,10 @@ void PandaEntity::registerGoals()
     // 已实现的性格相关 goal：仰躺（懒惰，PandaLieOnBackGoal）、逃避玩家/敌对生物（忧愁，
     // PandaAvoidGoal）、打滚（顽皮/幼体，PandaRollGoal）、好斗反击（PandaAttackGoal +
     // PandaHurtByTargetGoal）、看到玩家（PandaLookAtPlayerGoal）、坐下吃食物（PandaSitGoal）。
+    //
+    // 查找时注意：PandaHurtByTargetGoal 定义在**本文件**的匿名命名空间里（见上方
+    // "熊猫专用子类"），不在 PandaGoals.hpp。只查头文件会漏掉它。
+    // PandaSneezeGoal 不属于性格 goal（是 isBaby 条件的幼年行为），故未列入上面这份清单。
 }
 
 void PandaEntity::registerAttributes()
