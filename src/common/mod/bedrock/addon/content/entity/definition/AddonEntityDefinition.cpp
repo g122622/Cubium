@@ -923,7 +923,13 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
         !document.contains("minecraft:entity") || !document["minecraft:entity"].is_object()) {
         return Error(ErrorCode::InvalidData, "Entity definition requires format_version and minecraft:entity");
     }
-    // TODO: 按实体 format_version 接入完整版本语义矩阵。
+    // format_version 是点分字符串（如 "1.21.0"）。之前只校验了 is_string()，
+    // 垃圾串能直接通过；这里真正解析并保存，供后续版本语义矩阵使用。
+    PackVersion formatVersion;
+    if (!PackVersion::fromString(document["format_version"].get_ref<const std::string&>(), formatVersion)) {
+        return Error(ErrorCode::InvalidData,
+            "Entity definition format_version must be a dotted numeric version such as \"1.21.0\"");
+    }
     const auto& entity = document["minecraft:entity"];
     MC_TRY(_members(entity, {"description", "components", "component_groups", "events"}));
     if (!entity.contains("description") || !entity["description"].is_object()) {
@@ -948,6 +954,7 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     }
 
     AddonEntityDefinition result;
+    result.m_formatVersion = formatVersion;
     result.m_document = document;
     result.m_identifier = id;
     result.m_canSummon = description.value("is_summonable", false);
@@ -1645,6 +1652,11 @@ bool AddonEntityDefinition::canSummon() const
 bool AddonEntityDefinition::canSpawn() const
 {
     return m_canSpawn;
+}
+
+const PackVersion& AddonEntityDefinition::formatVersion() const
+{
+    return m_formatVersion;
 }
 
 bool AddonEntityDefinition::fireImmune() const

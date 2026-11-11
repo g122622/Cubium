@@ -1393,6 +1393,7 @@ add_executable(mc_tests
     server/world/gen/feature/template/TemplateLoaderBedrockPaletteTest.cpp
     server/world/gen/feature/tree/MangroveRootPlacementTest.cpp
     common/world/biome/BiomeSourceGetBiomesWithinTest.cpp
+    common/mod/bedrock/PackVersionFromStringTest.cpp
     common/world/gen/feature/template/TemplateEntityPlacementTest.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
     common/world/gen/feature/template/test_capped_processor.cpp
