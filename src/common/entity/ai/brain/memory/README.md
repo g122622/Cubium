@@ -55,9 +55,14 @@ IPositionTarget.hpp (接口)
 
 记忆类型使用指针作为键，必须使用全局注册的类型指针，不能创建局部实例。
 
-### 4. hasRequiredMemories 行为反直觉
+### 4. hasRequiredMemories 的"无要求"语义
 
-当活动没有配置记忆要求时，`hasRequiredMemories()` 返回 `false`（与 MC 1.16.5 一致）。所有需要条件启动的活动都必须显式配置记忆要求。
+活动没有配置记忆要求时，`_hasRequiredMemories()` 返回 **true**——"没有要求"等于
+"总能进入"。若返回 false，时间线上那些不配要求的活动（WORK / MEET / REST 等）
+会被 `switchTo` 全部退回 fallback（默认 IDLE），作息表就此失效。
+
+需要条件启动的活动必须显式配置记忆要求，否则它会被当作时间线活动、
+不会被事件调度选中。详见 `../README.md` 的 #4 与 #11。
 
 ### 5. OPENED_DOORS 类型
 

@@ -148,10 +148,17 @@ Brain系统是Minecraft的高级AI控制框架，用于更复杂的行为管理�
 
         必须使用全局注册的类型指针（如 `MemoryModuleTypes::HOME`），不能创建局部实例。
 
-        ## #4. hasRequiredMemories 返回 false 的情况
+        ## #4. hasRequiredMemories 的"无要求"语义
 
-        当活动没有配置记忆要求时，`hasRequiredMemories()` 返回 `false`（与 MC
-        1.16.5 一致）。所有需要条件启动的活动都必须显式配置记忆要求。
+        活动没有配置记忆要求时，`_hasRequiredMemories()` 返回 **true**——"没有要求"
+        等于"总能进入"。若返回 false，时间线上那些不配要求的活动（WORK / MEET / REST
+        等）会被 `switchTo` 全部退回 fallback（默认 IDLE），作息表就此失效。
+
+        注意 `Task::_hasRequiredMemories(E*)` 是同名但不同的函数（参数是实体而非活动），
+        它对空要求集合同样是返回 true 的。
+
+        需要条件启动的活动必须显式配置记忆要求，否则它会被当作时间线活动、
+        不会被事件调度选中（见 #8）。
 
         ## #5. OPENED_DOORS 类型
 
@@ -167,6 +174,12 @@ Brain系统是Minecraft的高级AI控制框架，用于更复杂的行为管理�
 创建 `AttributeTrackSampler` 并按 tick 缓存采样结果。活动是离散值，使用阶跃插值——
 采样进度抵达下一关键帧时才切换活动。
 
+时间线只负责"什么时段做什么"，表达不了"被攻击了就反击"这类条件触发；
+后者由 `_tryEventActivity` 叠加处理，两者关系见 #11。
+
+**时间线里引用的活动必须在实体上注册过**，否则会切进一个零任务的活动、
+表现为实体站着不动（例如幼年村民的 `PLAY`）。
+
         ## #8. 传感器更新频率
 
         传感器的构造参数是更新间隔（tick），不要设置过小。例如 `NearestPlayersSensor` 默认 20tick 更新一次。
@@ -178,3 +191,21 @@ Brain系统是Minecraft的高级AI控制框架，用于更复杂的行为管理�
         ## #10. Brain 模板实例化
 
         每个实体类型需要单独实例化 Brain 模板：`Brain<VillagerEntity>`、`Brain<PiglinEntity>` 等。
+
+        ## #11. 事件活动与时间线活动的优先级
+
+        `_updateActivity` 每 20 tick 做两件事，**顺序不能反**：
+
+        1. `_tryEventActivity()`：按 `m_tasks` 的优先级顺序找一个"配了记忆要求且已满足"的活动，
+           切换到它并返回 true；
+        2. 仅当上一步返回 false 时才按时间线采样切换。
+
+        如果反过来（先时间线再事件），事件活动生效期间每 20 tick 会先切到时间线活动、
+        再切回事件活动，**两次 switchTo 各清一轮 `memoriesToForget`**，任务记忆永远跑不完。
+
+        另两点易踩：
+        - `_tryEventActivity` 以 `m_tasks` 为活动来源，而 `registerActivity` 在任务列表为空时
+          不创建条目——**"配了要求但一个任务都没有"的活动对它不可见**。
+        - `_hasRequiredMemories` 的判定粒度是 **activity 级**（存在 `m_requiredMemoryStates`），
+          不是 priority 级。同一个活动分多次 `registerActivity` 时，只需在其中一次传
+          requirements；各优先级的任务都会在该活动激活时一起参与调度。
