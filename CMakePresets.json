@@ -11,7 +11,19 @@
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "MC_ENABLE_TRACY": "OFF",
-        "MC_ENABLE_MEMORY": "OFF"
+        "MC_ENABLE_MEMORY": "OFF",
+        "MC_BUILD_BENCHMARKS": "OFF",
+        "MC_BUILD_CLIENT_TESTS": "OFF",
+        "MC_BUILD_DIFF_PROBES": "OFF",
+        "MC_BUILD_FUZZERS": "OFF",
+        "MC_ENABLE_SANITIZERS": "OFF",
+        "CMAKE_C_FLAGS": "",
+        "CMAKE_CXX_FLAGS": "",
+        "CMAKE_EXE_LINKER_FLAGS": "",
+        "CMAKE_SHARED_LINKER_FLAGS": "",
+        "CMAKE_MODULE_LINKER_FLAGS": "",
+        "MC_ENABLE_TRACING": "ON",
+        "MC_ENABLE_VULKAN_VALIDATION": "OFF"
       }
     },
     {
@@ -64,14 +76,15 @@
       "name": "windows-clang-relwithdebinfo",
       "displayName": "Windows Clang RelWithDebInfo",
       "inherits": "windows-clang-base",
-      "binaryDir": "${sourceDir}/build",
+      "binaryDir": "${sourceDir}/build-client",
       "installDir": "${sourceDir}/dist",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "MC_BUILD_CLIENT": "ON",
         "MC_BUILD_SERVER": "ON",
         "MC_BUILD_TESTS": "ON",
-        "MC_ENABLE_SANITIZERS": "OFF"
+        "MC_ENABLE_SANITIZERS": "OFF",
+        "MC_BUILD_CLIENT_TESTS": "ON"
       }
     },
     {
@@ -92,7 +105,7 @@
       "name": "windows-clang-release",
       "displayName": "Windows Clang Release",
       "inherits": "windows-clang-base",
-      "binaryDir": "${sourceDir}/build",
+      "binaryDir": "${sourceDir}/build-client-release",
       "installDir": "${sourceDir}/dist",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
@@ -116,7 +129,8 @@
         "MC_ENABLE_SANITIZERS": "OFF",
         "MC_ENABLE_TRACING": "OFF",
         "MC_ENABLE_TRACY": "OFF",
-        "MC_ENABLE_MEMORY": "OFF"
+        "MC_ENABLE_MEMORY": "OFF",
+        "MC_BUILD_CLIENT_TESTS": "ON"
       }
     },
     {
@@ -126,7 +140,9 @@
       "cacheVariables": {
         "MC_BUILD_FUZZERS": "ON",
         "MC_FUZZ_ASAN": "ON",
-        "MC_FUZZ_LIBFUZZER_SOURCE_DIR": "E:/dev/llvm-project/compiler-rt/lib/fuzzer"
+        "MC_FUZZ_LIBFUZZER_SOURCE_DIR": "E:/dev/llvm-project/compiler-rt/lib/fuzzer",
+        "MC_BUILD_CLIENT": "OFF",
+        "MC_BUILD_CLIENT_TESTS": "OFF"
       }
     },
     {
@@ -158,7 +174,8 @@
         "MC_BUILD_SERVER": "ON",
         "MC_BUILD_TESTS": "OFF",
         "MC_ENABLE_SANITIZERS": "OFF"
-      }
+      },
+      "binaryDir": "${sourceDir}/build-client-release"
     },
     {
       "name": "macos-relwithdebinfo",
@@ -169,8 +186,10 @@
         "MC_BUILD_CLIENT": "ON",
         "MC_BUILD_SERVER": "ON",
         "MC_BUILD_TESTS": "ON",
-        "MC_ENABLE_SANITIZERS": "OFF"
-      }
+        "MC_ENABLE_SANITIZERS": "OFF",
+        "MC_BUILD_CLIENT_TESTS": "ON"
+      },
+      "binaryDir": "${sourceDir}/build-client"
     },
     {
       "name": "macos-relwithdebinfo-server",
@@ -207,12 +226,9 @@
       "cacheVariables": {
         "MC_BUILD_BENCHMARKS": "OFF",
         "MC_ENABLE_SANITIZERS": "ON",
-        "MC_ENABLE_NATIVE_ARCH": "OFF",
-        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
-        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
-        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
-        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
-      }
+        "MC_ENABLE_NATIVE_ARCH": "OFF"
+      },
+      "binaryDir": "${sourceDir}/build-ci-tests"
     },
     {
       "name": "linux-release-noprof",
@@ -244,7 +260,8 @@
         "CMAKE_EXE_LINKER_FLAGS_RELEASE": "-Wl,--strip-all",
         "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "-Wl,--strip-all",
         "CMAKE_BUILD_RPATH": "$ORIGIN/lib"
-      }
+      },
+      "binaryDir": "${sourceDir}/build-ci-release"
     },
     {
       "name": "linux-clang-fuzz",
@@ -264,32 +281,27 @@
     {
       "name": "windows-clang-relwithdebinfo",
       "configurePreset": "windows-clang-relwithdebinfo",
-      "configuration": "RelWithDebInfo",
-      "jobs": 16
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "windows-clang-relwithdebinfo-server",
       "configurePreset": "windows-clang-relwithdebinfo-server",
-      "configuration": "RelWithDebInfo",
-      "jobs": 16
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "windows-clang-release",
       "configurePreset": "windows-clang-release",
-      "configuration": "Release",
-      "jobs": 16
+      "configuration": "Release"
     },
     {
       "name": "windows-clang-relwithdebinfo-noprof",
       "configurePreset": "windows-clang-relwithdebinfo-noprof",
-      "configuration": "RelWithDebInfo",
-      "jobs": 16
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "windows-clang-fuzz",
       "configurePreset": "windows-clang-fuzz",
       "configuration": "RelWithDebInfo",
-      "jobs": 16,
       "targets": [
         "fuzz_varint_framing",
         "fuzz_compression",
@@ -306,38 +318,32 @@
     {
       "name": "windows-clang-release-noprof",
       "configurePreset": "windows-clang-release-noprof",
-      "configuration": "Release",
-      "jobs": 16
+      "configuration": "Release"
     },
     {
       "name": "macos-relwithdebinfo-server",
       "configurePreset": "macos-relwithdebinfo-server",
-      "configuration": "RelWithDebInfo",
-      "jobs": 16
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "macos-relwithdebinfo",
       "configurePreset": "macos-relwithdebinfo",
-      "configuration": "RelWithDebInfo",
-      "jobs": 10
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "macos-release",
       "configurePreset": "macos-release",
-      "configuration": "Release",
-      "jobs": 10
+      "configuration": "Release"
     },
     {
       "name": "linux-relwithdebinfo",
       "configurePreset": "linux-relwithdebinfo",
-      "configuration": "RelWithDebInfo",
-      "jobs": 0
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "linux-clang-ci-tests",
       "configurePreset": "linux-clang-ci-tests",
       "configuration": "RelWithDebInfo",
-      "jobs": 0,
       "targets": [
         "minecraft-server",
         "mc_tests"
@@ -347,7 +353,6 @@
       "name": "linux-clang-ci-release",
       "configurePreset": "linux-clang-ci-release",
       "configuration": "Release",
-      "jobs": 0,
       "targets": [
         "minecraft-server",
         "mc_benchmark"
@@ -356,14 +361,12 @@
     {
       "name": "linux-release-noprof",
       "configurePreset": "linux-release-noprof",
-      "configuration": "Release",
-      "jobs": 0
+      "configuration": "Release"
     },
     {
       "name": "linux-clang-fuzz",
       "configurePreset": "linux-clang-fuzz",
       "configuration": "RelWithDebInfo",
-      "jobs": 0,
       "targets": [
         "fuzz_varint_framing",
         "fuzz_compression",
@@ -380,13 +383,87 @@
   ],
   "testPresets": [
     {
-      "name": "linux-relwithdebinfo",
-      "configurePreset": "linux-relwithdebinfo",
+      "name": "windows-clang-relwithdebinfo",
+      "configurePreset": "windows-clang-relwithdebinfo",
+      "configuration": "RelWithDebInfo",
       "output": {
         "outputOnFailure": true
       },
       "execution": {
-        "timeout": 300
+        "timeout": 300,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-clang-relwithdebinfo-server",
+      "configurePreset": "windows-clang-relwithdebinfo-server",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-clang-relwithdebinfo-noprof",
+      "configurePreset": "windows-clang-relwithdebinfo-noprof",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "macos-relwithdebinfo",
+      "configurePreset": "macos-relwithdebinfo",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "macos-relwithdebinfo-server",
+      "configurePreset": "macos-relwithdebinfo-server",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "linux-relwithdebinfo",
+      "configurePreset": "linux-relwithdebinfo",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300,
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "linux-clang-ci-tests",
+      "configurePreset": "linux-clang-ci-tests",
+      "configuration": "RelWithDebInfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300,
+        "noTestsAction": "error"
       }
     }
   ]

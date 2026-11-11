@@ -9,8 +9,7 @@ benchmark/
 ├── main.cpp                          # 入口：flag 解析（--benchmark_trace / --benchmark_out 注入）+ 时间戳归档目录
 ├── MemoryProfiler.hpp/.cpp           # MemoryManager 实现（全局 operator new/delete 钩子统计内存指标）
 ├── PerfettoProfilerAdapter.hpp/.cpp  # ProfilerManager 适配器（每用例/每重复一个 .perfetto-trace，默认不注册）
-├── CMakeLists.txt                    # mc_benchmark 目标（源闭包参照 mc_tests 的登记方式；命令实现清单与
-│                                     # minecraft-server/client/mc_tests 共用 cmake/ServerCommandSources.cmake）
+├── CMakeLists.txt                    # mc_benchmark 目标，复用 mc_server_shared、mc_gen 与存储库
 ├── cases/
 │   ├── ChunkStorageBenchmark.cpp     # 原生段紧凑数组批次捕获与直接恢复
 │   ├── ChunkGenerationBenchmark.cpp  # 区块生成吞吐（生产级生成系统，线程数×批量多档）
@@ -73,7 +72,7 @@ benchmark/
 ## 构建与运行
 
 ```bash
-# 构建（也可只构建目标：cmake --build --preset macos-relwithdebinfo -- -j16 mc_benchmark）
+# benchmark 默认关闭，configure 须显式传 -DMC_BUILD_BENCHMARKS=ON；再构建 mc_benchmark
 cmake --build --preset macos-relwithdebinfo
 
 # 在仓库根目录运行（结果输出到 benchmark_results/<时间戳>/）
@@ -128,7 +127,7 @@ google/benchmark 经 libpfm4 支持 `--benchmark_perf_counters=CYCLES,INSTRUCTIO
 2. 计算型用例默认自动迭代即可；一次性事件用 `->Repetitions(N)->Iterations(1)`（**禁止**让进程启动类用例自动校准迭代，会启动几百个进程）
 3. 需要每参数独立装配时用 `->Setup(...)/->Teardown(...)` 回调
 4. 需要每用例独立 trace 文件时，在计时循环前的首行调 `PerfettoProfilerAdapter::setCaseName("名称")`（并提示使用者传 `--benchmark_trace`，否则不会注册适配器、不产 trace）
-5. 在 `benchmark/CMakeLists.txt` 登记源文件；若引用 server 模块符号，按链接错误补齐源包闭包（参照 `tests/unit/CMakeLists.txt` 对 mc_tests 的登记）
+5. 在 `benchmark/CMakeLists.txt` 登记源文件；若引用 server 模块符号，通过共享库提供实现，不要再次登记服务端源文件
 6. 随机访问/访存类用例必须预热，且预热只能放在计时循环**之前**（见下）
 
 ## 容易踩的坑

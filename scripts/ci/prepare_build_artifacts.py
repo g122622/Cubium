@@ -7,6 +7,8 @@ import argparse
 import os
 import re
 import shutil
+import json
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -40,13 +42,28 @@ def verify_configuration(config: dict[str, str], variant: str) -> None:
                 raise RuntimeError(f"Release build must disable debug information: {key}")
     else:
         expected.update({"CMAKE_BUILD_TYPE": "RelWithDebInfo", "MC_ENABLE_SANITIZERS": "ON"})
-        for key in ("CMAKE_C_FLAGS", "CMAKE_CXX_FLAGS"):
-            flags = config.get(key, "").split()
-            if not {"-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-fno-omit-frame-pointer"}.issubset(flags):
-                raise RuntimeError(f"Test build must instrument C and C++ with ASan and UBSan: {key}")
+        flags = config.get("MC_SANITIZER_COMPILE_OPTIONS", "").split(";")
+        if not {"-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-fno-omit-frame-pointer"}.issubset(flags):
+            raise RuntimeError("Test build must instrument C and C++ with ASan and UBSan")
+        if config.get("MC_SANITIZER_LINK_OPTIONS") != "-fsanitize=address,undefined":
+            raise RuntimeError("Test build must link both ASan and UBSan")
     for key, value in expected.items():
         if config.get(key) != value:
             raise RuntimeError(f"Incorrect {variant} configuration: {key}={config.get(key)!r}, expected {value}")
+
+
+def verify_compilation_database(build_dir: Path, variant: str) -> None:
+    """逐条核对真实编译命令，配置元数据不能替代 C/C++ 的实际插桩。"""
+    entries = json.loads((build_dir / "compile_commands.json").read_text(encoding="utf-8"))
+    if not entries:
+        raise RuntimeError("Compile database is empty")
+    required = {"-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-fno-omit-frame-pointer"}
+    for entry in entries:
+        arguments = entry.get("arguments") or shlex.split(entry["command"])
+        if variant == "test" and not required.issubset(arguments):
+            raise RuntimeError(f"Missing ASan and UBSan compilation flags: {entry['file']}")
+        if variant == "release" and any(argument.startswith("-fsanitize") for argument in arguments):
+            raise RuntimeError(f"Release compile command enables sanitizer instrumentation: {entry['file']}")
 
 
 def verify_binary(binary: Path, variant: str) -> None:
@@ -98,6 +115,7 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     try:
         verify_configuration(read_build_config(args.build_dir), args.variant)
+        verify_compilation_database(args.build_dir, args.variant)
         lines = []
         for binary in args.binary:
             if args.variant == "release":
@@ -106,7 +124,7 @@ def main(argv: list[str]) -> int:
             lines.extend([f"Verified {args.variant} binary: {binary}",
                           collect_libraries(binary, args.build_dir, args.library_dir, args.variant)])
         args.report.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
+    except (OSError, RuntimeError, ValueError, KeyError, subprocess.TimeoutExpired) as exc:
         print(f"Build artifact verification failed: {exc}", file=sys.stderr)
         return 1
     print(f"Build artifact verification passed: {args.variant}")

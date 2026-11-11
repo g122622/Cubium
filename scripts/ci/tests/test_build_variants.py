@@ -29,11 +29,15 @@ class BuildVariantsTest(unittest.TestCase):
     def test_test_preset_enables_global_c_and_cpp_instrumentation(self):
         """测试构建须对 C/C++ 和两类链接目标启用 ASan/UBSan。"""
         config = resolve_preset("linux-clang-ci-tests")
+        config.update(MC_SANITIZER_COMPILE_OPTIONS="-fsanitize=address,undefined;-fno-sanitize-recover=all;-fno-omit-frame-pointer",
+                      MC_SANITIZER_LINK_OPTIONS="-fsanitize=address,undefined")
         artifacts.verify_configuration(config, "test")
         self.assertEqual(config["MC_BUILD_BENCHMARKS"], "OFF")
         self.assertEqual(config["MC_BUILD_TESTS"], "ON")
-        self.assertEqual(config["CMAKE_EXE_LINKER_FLAGS"], "-fsanitize=address,undefined")
-        self.assertEqual(config["CMAKE_SHARED_LINKER_FLAGS"], "-fsanitize=address,undefined")
+        self.assertEqual(config["CMAKE_C_FLAGS"], "")
+        self.assertEqual(config["CMAKE_CXX_FLAGS"], "")
+        self.assertEqual(config["CMAKE_EXE_LINKER_FLAGS"], "")
+        self.assertEqual(config["CMAKE_SHARED_LINKER_FLAGS"], "")
 
     def test_release_preset_disables_debug_profiler_and_sanitizers(self):
         """Release 产物保留运行库定位，但关闭调试、profiler 和 sanitizer。"""
@@ -48,15 +52,54 @@ class BuildVariantsTest(unittest.TestCase):
         config = resolve_preset("linux-clang-fuzz")
         self.assertEqual(config["MC_ENABLE_SANITIZERS"], "OFF")
         self.assertEqual(config["MC_FUZZ_ASAN"], "ON")
-        self.assertNotIn("CMAKE_CXX_FLAGS", config)
+        self.assertEqual(config["CMAKE_CXX_FLAGS"], "")
         self.assertEqual(config["CMAKE_BUILD_TYPE"], "RelWithDebInfo")
 
     def test_boolean_option_without_sanitizer_flags_is_rejected(self):
         """配置开关不能替代实际编译插桩参数。"""
         config = resolve_preset("linux-clang-ci-tests")
-        config["CMAKE_CXX_FLAGS"] = ""
+        config["MC_SANITIZER_COMPILE_OPTIONS"] = ""
         with self.assertRaisesRegex(RuntimeError, "ASan and UBSan"):
             artifacts.verify_configuration(config, "test")
+
+    def test_compile_database_checks_c_and_cpp_instrumentation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            required = ["clang", "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-fno-omit-frame-pointer"]
+            entries = [{"file": "engine.c", "arguments": required + ["-c", "engine.c"]},
+                       {"file": "server.cpp", "arguments": required + ["-c", "server.cpp"]}]
+            (root / "compile_commands.json").write_text(json.dumps(entries))
+            artifacts.verify_compilation_database(root, "test")
+            entries[0]["arguments"] = ["clang", "-c", "engine.c"]
+            (root / "compile_commands.json").write_text(json.dumps(entries))
+            with self.assertRaisesRegex(RuntimeError, "engine.c"):
+                artifacts.verify_compilation_database(root, "test")
+            with self.assertRaisesRegex(RuntimeError, "sanitizer instrumentation"):
+                artifacts.verify_compilation_database(root, "release")
+
+    def test_development_and_sanitizer_presets_have_separate_directories(self):
+        rows = {row["name"]: row for row in PRESETS["configurePresets"]}
+        self.assertNotEqual(rows["linux-relwithdebinfo"]["binaryDir"],
+                            rows["linux-clang-ci-tests"]["binaryDir"])
+        self.assertNotEqual(rows["linux-release-noprof"]["binaryDir"],
+                            rows["linux-clang-ci-release"]["binaryDir"])
+        for preset in PRESETS["testPresets"]:
+            self.assertEqual(preset["configuration"], "RelWithDebInfo")
+        names = {preset["name"] for preset in PRESETS["testPresets"]}
+        self.assertIn("macos-relwithdebinfo-server", names)
+        self.assertIn("windows-clang-relwithdebinfo-server", names)
+
+    def test_client_test_dependencies_do_not_leak_into_fuzz_presets(self):
+        """继承客户端开发预设的 fuzz 配置必须显式关闭客户端测试与图形依赖。"""
+        for row in PRESETS["configurePresets"]:
+            if row.get("hidden"):
+                continue
+            config = resolve_preset(row["name"])
+            if config["MC_BUILD_CLIENT_TESTS"] == "ON":
+                self.assertEqual(config["MC_BUILD_TESTS"], "ON", row["name"])
+            if row["name"].endswith("-fuzz"):
+                self.assertEqual(config["MC_BUILD_CLIENT"], "OFF")
+                self.assertEqual(config["MC_BUILD_CLIENT_TESTS"], "OFF")
 
     def test_sanitized_binary_requires_both_runtimes_and_debug_information(self):
         """测试二进制必须同时具备 ASan、UBSan 和调试节。"""

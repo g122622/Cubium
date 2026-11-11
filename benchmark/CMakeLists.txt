@@ -1,6 +1,3 @@
-# 命令实现源清单与 minecraft-server 共用，见 cmake/ServerCommandSources.cmake。
-include(${CMAKE_SOURCE_DIR}/cmake/ServerCommandSources.cmake)
-
 add_executable(mc_benchmark
     main.cpp
     MemoryProfiler.hpp
@@ -15,136 +12,6 @@ add_executable(mc_benchmark
     cases/ServerInitializeBenchmark.cpp
 )
 
-# 光照引擎与管理器（自 common/world/lighting 迁入 server，LightingBenchmark 引用其符号；
-# 区块生成调度链路符号由 mc_gen + 下列 server 源文件提供，与 minecraft-server 的
-# 源登记方式一致，不直接链接 minecraft-server 可执行目标）。
-# 源清单参照 tests/unit/CMakeLists.txt 对 mc_tests 的同链路登记（符号闭包）：
-# - ServerChunkManager 链：ServerChunkManager/ChunkTaskScheduler/ChunkProgressionTask/
-#   SingleChunkLifecycleManager/ServerWorld/ChunkSendManager(onChunkPreUnload)/
-#   ScoreboardDataManager(存储层构造引用)
-# - 光照链：4 个 lighting 引擎文件 + ServerLightQueue/RuntimeLightingProvider/
-#   RuntimeLightTask/ChunkLoadLightTask + ReentrantAreaLock
-target_sources(mc_benchmark
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/scheduling/AreaTaskScheduler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardDataManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp
-        # ServerWorld 传递依赖（构造/回调链引用）：
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/player/PlayerSpawnFinder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/time/TimeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/lifecycle/PlayerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketSender.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/session/PlayerConnectionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/AccessManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
-        # ServerPlayer/命令源/函数管理器（ServerWorld 回调链引用）
-        ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/PlayerRespawnManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
-        # 维度管理（ServerWorld/传送链引用）
-        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
-        # 统计系统（ServerPlayer 引用）
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
-        # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 minecraft-server 共用）
-        ${MC_SERVER_COMMAND_SOURCES_ABS}
-        # /panel 命令引用的面板统计逻辑（纯逻辑，不依赖 FTXUI）
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStats.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/application/console/render/PanelStatsCollector.cpp
-        # 自然生成（ServerWorld::tick 引用）
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/spawn/WanderingTraderSpawner.cpp
-        # 传送管理（ServerPlayer 引用）
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/player/TeleportManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/gamemode/GameModeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/admission/WhitelistManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedPlayerList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedIpList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/access/permission/OpListManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/session/keepalive/KeepAliveManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/movement/PlayerMovementManager.cpp
-        # 交互管理器（ServerPlayer 引用）
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/BlockInteractionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/DigSpeed.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/MiningManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/SignCommandHelper.cpp
-        # 掉落/命令数据访问/支持工具（命令实现引用）
-        ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/SpreadAlgorithm.cpp
-        # 容器菜单（InventoryManager 引用；InventoryCraftingMenu 定义在 CraftingMenu.cpp 中）
-        ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp
-        # Boss 栏（命令引用）
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerDragonBossBar.cpp
-        # 函数系统其余部分（命令/调度引用）
-        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/MacroFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/StringTemplate.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
-        # 命令系统门面（ServerCommandSource 引用）
-        # （无独立 CommandSource.cpp，门面代码在 CommandRegistry.cpp/ServerCommandSource.cpp 中）
-        # 同步管理器（ServerWorld 引用）
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/PlayerChunkTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/ChunkSyncManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/BlockUpdateSyncManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/sync/WeatherSyncService.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BaseLightEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BlockLightEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/SkyLightEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/manager/WorldLightManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
-)
-
 target_include_directories(mc_benchmark
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
@@ -156,6 +23,7 @@ target_link_libraries(mc_benchmark
     PRIVATE
         benchmark::benchmark
         benchmark::benchmark_main
+        mc_server_shared
         mc_gen
         mc_server_storage
         mc_common

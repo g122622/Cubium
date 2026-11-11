@@ -30,7 +30,8 @@ PNG/SVG 汇总到 `_report_charts`，由工作流发布到 `image-data/ci-report
 
 - pococc 实验同时核验真实 PCH 开关和编译命令；缓存命中不要求出现在 pococc journal。
 - ccache 会重放 pococc 的 stderr，不能通过 `Submitting` 行数统计实际分发次数。
-- 批次被中断时，gtest XML 尚未落盘；完整的 RUN/结束事件可恢复已完成结果，避免数百个用例重复初始化。
+- 批次被中断时从完整 RUN/结束事件恢复结果，避免数百个用例重复初始化。进程异常独立写入 `TestProcess` JUnit，不能因已有通过 XML 或单跑通过而清除；原始日志保存在 `unit-test-process-logs/`。
+- 构建契约会核对真实 C/C++ 编译数据库的插桩，行为包依赖由真实 Ninja fixture 验证。
 
 - JUnit 和日志不能截断输入，否则后段失败会被判为不存在。
 - 跳过与失败分别列出，跳过不能算作通过；报告缺失或损坏必须公开上报。

@@ -11,7 +11,7 @@ import shlex
 import sys
 from pathlib import Path
 
-from prepare_build_artifacts import verify_configuration
+from prepare_build_artifacts import verify_configuration, verify_compilation_database
 
 
 def verify_configuration_without_pch(build_dir: Path, variant: str) -> int:
@@ -28,6 +28,7 @@ def verify_configuration_without_pch(build_dir: Path, variant: str) -> int:
                 raise RuntimeError(f"Incorrect fuzz configuration: {key}={config.get(key)!r}")
     else:
         verify_configuration(config, variant)
+        verify_compilation_database(build_dir, variant)
     for key, expected in {
         "CMAKE_DISABLE_PRECOMPILE_HEADERS": "ON",
         "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",

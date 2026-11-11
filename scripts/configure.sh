@@ -103,7 +103,8 @@ run_unix() {
         cmake --build --preset "$preset" || exit $?
         echo ""
         echo "Running tests..."
-        ctest --preset "$preset"
+        shift
+        ctest --preset "$preset" "$@"
         exit $?
     fi
 
@@ -114,7 +115,7 @@ run_unix() {
             exit 1
         fi
         echo "Configuring with preset $2..."
-        cmake --preset "$2"
+        cmake "$@"
         exit $?
     fi
 

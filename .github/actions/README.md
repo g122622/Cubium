@@ -21,5 +21,6 @@ benchmark 与 report 使用绘图依赖步骤，生成 PNG/SVG。
 ## 容易踩的坑
 
 - 编译器版本与 LLVM 运行库须匹配；构建缓存 scope 必须区分测试、发布和 fuzz。
-- vcpkg 二进制依赖缓存可共用，ccache 的对象缓存必须隔离不同构建选项。
+- vcpkg 按构建功能保存缓存，并通过相同 baseline 前缀复用公共包；ccache 对象缓存隔离不同构建选项。
+- X11/Vulkan/Wayland 系统包仅在 `client-dependencies=true` 时安装。
 - 数据包是世界生成的必需输入，不能因 benchmark 改用 Release 而省略。

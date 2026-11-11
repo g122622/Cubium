@@ -1,13 +1,8 @@
-# tests/CMakeLists.txt
+# tests/unit/CMakeLists.txt
 # 测试配置
-
-# 服务端命令实现源清单（mc_tests 链接 CommandRegistry，需要全部 registerTo），
-# 见 cmake/ServerCommandSources.cmake。
-include(${CMAKE_SOURCE_DIR}/cmake/ServerCommandSources.cmake)
 
 find_package(GTest CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
-find_package(OpenAL CONFIG REQUIRED)
 
 function(mc_disable_all_warnings_for_tests target)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -17,7 +12,7 @@ function(mc_disable_all_warnings_for_tests target)
     endif()
 endfunction()
 
-# 通用测试可执行文件
+# 公共模块与服务端测试可执行文件
 add_executable(mc_tests
     main.cpp
     common/test_math.cpp
@@ -58,8 +53,6 @@ add_executable(mc_tests
     common/network/test_server_status.cpp
     common/network/test_itemstack_bridge_extra.cpp
     common/network/test_server_network_local.cpp
-    common/network/test_client_network_local.cpp
-    common/network/ClientPlayVisitorStub.cpp
     common/test_world.cpp
     common/test_core.cpp
     common/GameDirectoryTest.cpp
@@ -78,8 +71,6 @@ add_executable(mc_tests
     common/util/StateHolderTest.cpp
     common/util/DirectionTest.cpp
     common/util/text/Utf8Test.cpp
-    common/TestWorldHelper.cpp
-    common/BaseTestServer.cpp
     common/test_block.cpp
     common/test_block_map_color.cpp
     common/test_pointed_dripstone.cpp
@@ -106,7 +97,6 @@ add_executable(mc_tests
     common/world/gen/feature/state/test_block_state_provider.cpp
     common/test_feature_size.cpp
     common/test_decoration_stage.cpp
-    common/test_time.cpp
     common/test_item.cpp
     common/test_block_item.cpp
     common/test_inventory.cpp
@@ -237,7 +227,6 @@ add_executable(mc_tests
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
-    client/ui/screen/FurnaceScreenTextureTest.cpp
     common/entity/inventory/container/EnchantmentContainerTest.cpp
     common/entity/inventory/container/BrewingStandContainerTest.cpp
     common/entity/inventory/container/AnvilContainerTest.cpp
@@ -334,7 +323,6 @@ add_executable(mc_tests
     # DamageTypeTag 伤害类型标签测试（含 DamageSource::is() 和加载器测试）
     common/entity/damage/DamageTypeTagsTest.cpp
     # damageTilt 完整链路对齐测试（DamageSource.sourcePosition / LivingEntity.hurtDir / 网络包 hurtDir 往返）
-    common/entity/damage/DamageTiltAlignmentTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     # SpiderEntity AI 目标、光照敏感、中毒攻击测试
     entity/SpiderEntityTest.cpp
@@ -699,7 +687,6 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
     # LadderBlock 梯子方块测试（朝向、附着支撑、邻居更新）
     common/world/block/blocks/decorative/LadderBlockTest.cpp
-    common/world/block/blocks/decorative/TorchBlockTest.cpp
     # CampfireBlock 营火方块测试
     common/world/block/blocks/decorative/CampfireBlockTest.cpp
     # CandleBlock 蜡烛方块测试
@@ -874,7 +861,6 @@ add_executable(mc_tests
     # 风弹实体风爆效果测试（玩家击退收集、旁观/创造飞行过滤、broadcastExplosion 调用）
     entity/WindChargeEntityBurstTest.cpp
     # DamagingProjectileEntity 粒子效果测试（水下气泡、拖尾粒子）
-    entity/DamagingProjectileParticleTest.cpp
     # LookAtGoal 类型过滤测试
     common/entity/ai/goal/LookAtGoalTest.cpp
     # FishSwimGoal 鱼类游泳目标测试
@@ -980,9 +966,7 @@ add_executable(mc_tests
     # FireworkRocketEntity 爆炸伤害测试
     common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     # DragonFireballEntity 龙息云和粒子类型测试
-    common/entity/entities/projectile/DragonFireballCloudTest.cpp
     # ShulkerBulletEntity 爆炸粒子效果测试
-    common/entity/entities/projectile/ShulkerBulletParticleTest.cpp
     # TridentEntity 忠诚附魔逻辑测试
     common/entity/entities/projectile/TridentEntityTest.cpp
     # EyeOfEnderEntity 物品字段（默认值/归一化/同步镜像）测试
@@ -1047,7 +1031,6 @@ add_executable(mc_tests
     entity/ElytraAndSpinAttackTest.cpp
     common/entity/entities/EntityDaylightTest.cpp
     common/entity/WaterSplashTest.cpp
-    common/SettingsTest.cpp
     server/ServerWorldTest.cpp
     server/ServerWorldBlockUpdateCallbackTest.cpp
     # strict 模式（/fill、/clone）的"抑制副作用 + 延后补发邻居更新"通路
@@ -1164,114 +1147,44 @@ add_executable(mc_tests
     server/world/player/ServerPlayerEntityManagerTest.cpp
     # SculkShriekerHelper 幽匿尖啸体辅助函数测试
     server/world/blockentity/sculk/SculkShriekerHelperTest.cpp
-    client/world/player/LocalPlayerIdentityTest.cpp
-    client/world/player/PlayerIdentityRegistryTest.cpp
-    client/world/player/ClientPlayerPredictorTest.cpp
-    client/world/entity/ClientEntityTest.cpp
     # ClientEntity 骷髅拉弓状态元数据同步测试（skeleton/stray/bogged/wither_skeleton）
-    client/world/entity/ClientEntitySkeletonSyncTest.cpp
     # ClientEntity Mob 激怒状态元数据同步测试（zombie/husk/drowned/zombie_villager/skeleton/creeper）
-    client/world/entity/ClientEntityAggressiveSyncTest.cpp
     # ClientEntity 凋灵侧头朝向客户端镜像计算测试（tickWitherSideHeads/rotlerp 限速/插值/元数据同步）
-    client/world/entity/ClientEntityWitherSideHeadTest.cpp
     # ClientEntity 钓鱼浮标元数据同步端到端测试（DATA_HOOKED_ENTITY/DATA_BITING 序列化→反序列化→镜像）
-    client/world/entity/ClientEntityFishingBobberSyncTest.cpp
-    client/entity/ClientEntityAnimationTest.cpp
-    client/world/ClientWorldLightUpdateTest.cpp
     # ClientWorld 区块清空测试（维度切换时使用）
-    client/world/ClientWorldClearChunksTest.cpp
     # ClientWorld 天空可见性和高度图查询测试
-    client/world/ClientWorldSkyAndHeightmapTest.cpp
     # ClientWeather 闪电闪烁测试
-    client/world/ClientWeatherLightningFlashTest.cpp
-    client/test_mesh_build_task.cpp
-    client/test_mesh_build_scheduler.cpp
-    client/test_sound_handlers.cpp
-    client/test_client_dimension_manager.cpp
-    client/world/ClientWorldLightUpdateTest.cpp
-    client/renderer/test_renderer.cpp
-    client/renderer/test_trident_api.cpp
-    client/renderer/test_cloud_renderer.cpp
-    client/renderer/entity/AnimalModelTests.cpp
-    client/renderer/entity/BipedModelTest.cpp
     # BipedModel::translateHand 测试
-    client/renderer/entity/BipedModelTranslateHandTest.cpp
     # BipedModel 弩装填/持握动画测试
-    client/renderer/entity/BipedModelCrossbowTest.cpp
     # BipedModel Spyglass/Brush 手臂姿态角度测试
-    client/renderer/entity/BipedModelArmPoseTest.cpp
     # SkeletonModel 手臂姿态委托基类 BipedModel 测试（BowAndArrow/CrossbowCharge/CrossbowHold/isAggressive）
-    client/renderer/entity/SkeletonModelArmPoseTest.cpp
     # ZombieModel::setAngles 激怒状态手臂动画测试（aggressive=true/false、swingProgress 攻击因子、bobArms、变体继承）
-    client/renderer/entity/ZombieModelArmPoseTest.cpp
     # DrownedModel 游泳动画覆盖测试（swimAmount 渐入/手臂/腿部/头部覆盖、ThrowSpear 重应用）
-    client/renderer/entity/DrownedModelSwimAnimationTest.cpp
     # WitherModel 侧头朝向注入测试（setSideHeadRotations/setAngles 度→弧度/主头不受影响/两侧头独立）
-    client/renderer/entity/WitherModelSideHeadTest.cpp
     # EntityRendererManager::_applySkeletonArmPose 契约测试（isChargingBow → BowAndArrow/Empty）
-    client/renderer/entity/ApplySkeletonArmPoseTest.cpp
     # EntityRendererManager::_applyDrownedTridentPose 契约测试（isAggressive → ThrowSpear/Empty）
-    client/renderer/entity/ApplyDrownedTridentPoseTest.cpp
     # BipedModel 鞘翅飞行速度因子测试
-    client/renderer/entity/BipedModelSpeedValueTest.cpp
     # elytra::computeSpeedValue 纯逻辑公式测试（_applyBipedElytraState 单元测试）
-    client/renderer/entity/ElytraSpeedValueTest.cpp
     # dynamic_cast<BipedModel*> 安全性测试（验证非 BipedModel 派生模型不会误触发）
-    client/renderer/entity/BipedModelDynamicCastTest.cpp
     # PlayerModel 手臂渲染测试
-    client/renderer/entity/PlayerModelTest.cpp
     # PlayerArmPoseResolver 手臂姿态解析器测试
-    client/renderer/entity/PlayerArmPoseResolverTest.cpp
-    client/renderer/entity/ArmorLayerVisibilityTest.cpp
-    client/renderer/entity/LlamaModelTest.cpp
-    client/renderer/entity/LlamaRendererTest.cpp
     # RabbitModel 兔子模型跳跃角度测试（setJumpRotation 对 thigh/foot/arm 旋转角度的影响）
-    client/renderer/entity/RabbitModelTest.cpp
     # DolphinModel 海豚模型运动状态注入测试（setMotionMagnitude + 摆尾动画 cos 公式）
-    client/renderer/entity/DolphinModelTest.cpp
     # Fullbright 渲染器 isFullbright() 测试
-    client/renderer/entity/FullbrightRendererTest.cpp
     # WitchModel 女巫模型测试
-    client/renderer/entity/WitchModelTest.cpp
-    client/renderer/entity/test_entity_renderer_manager.cpp
-    client/renderer/entity/ShadowRendererTest.cpp
-    client/renderer/entity/WorldTextRendererTest.cpp
     # HeldBlockLayer 末影人手持方块渲染层测试
-    client/renderer/trident/entity/layer/entity/HeldBlockLayerTest.cpp
     # VillagerLayer 村民多层纹理渲染层测试
-    client/renderer/trident/entity/layer/entity/VillagerLayerTest.cpp
     # WolfCollarLayer 狼项圈渲染层测试（shouldRender + 颜色映射）
-    client/renderer/trident/entity/layer/entity/WolfCollarLayerTest.cpp
     # EnergyGlintLayer 附魔光效渲染层测试
-    client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
     # EntityPipeline BlendMode 枚举契约测试（Multiply/None 专用管线）
-    client/renderer/trident/entity/pipeline/EntityPipelineBlendModeTest.cpp
     # 载具渲染器模型矩阵构建与 TNT 闪烁计算测试
-    client/renderer/trident/entity/renderer/vehicle/VehicleRendererMatrixTest.cpp
     # 特殊实体渲染器（TNT/FallingBlock）模型矩阵与闪烁测试
-    client/renderer/trident/entity/renderer/special/SpecialRendererMatrixTest.cpp
     # BlockMeshBuilder 方块网格构建工具测试
-    client/renderer/trident/entity/util/BlockMeshBuilderTest.cpp
     # PlayerRenderer 层渲染器测试（HeadLayer、CapeLayer、ElytraLayer）
-    client/renderer/entity/test_player_layers.cpp
     # ItemMeshBuilder 回退网格、法线变换、纹理坐标解析测试
-    client/renderer/trident/item/ItemMeshBuilderTest.cpp
-    client/renderer/test_gui_item_color.cpp
-    client/resource/test_entity_texture_loader.cpp
-    client/resource/ItemTextureAtlasTest.cpp
     # 统一图集数据驱动（AtlasSource 体系 + Loader）
-    client/resource/atlas/AtlasSourceTest.cpp
-    client/resource/atlas/AtlasConfigLoaderTest.cpp
-    client/resource/TextureAtlasBuilderTest.cpp
-    client/resource/AnimationTextureTest.cpp
-    client/resource/test_resource_manager_cloud_texture.cpp
     # 资源包/纹理/图集测试（原 mc_resource_tests 并入）
-    client/resource/test_resource_location.cpp
-    client/resource/test_model_loader.cpp
-    client/resource/TexturePathVariantTest.cpp
-    client/resource/test_fire_texture_loader.cpp
     # FireAnimationState 动画状态机单元测试（纯逻辑，不依赖 Vulkan）
-    client/renderer/trident/entity/effect/fire/test_fire_animation_state.cpp
     network/WorldEventPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
@@ -1541,7 +1454,6 @@ add_executable(mc_tests
     # 世界生成确定性测试（文件实际位于 common/world/gen/）
     common/world/gen/WorldGenDeterminismTest.cpp
     # 客户端命令树同步与补全测试
-    client/command/ClientCommandManagerTest.cpp
     # 光照系统测试
     lighting/LightingTest.cpp
     lighting/LightUpdateTest.cpp
@@ -1560,10 +1472,6 @@ add_executable(mc_tests
     # 运行时光照 worker 传播 + 主线程 flush 并发测试（③-1）
     lighting/RuntimeLightConcurrencyTest.cpp
     # 环境光遮蔽测试
-    client/renderer/AmbientOcclusionCalculatorTest.cpp
-    client/renderer/trident/blockentity/ChestModelTest.cpp
-    client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
-    client/renderer/trident/blockentity/BlockEntityRendererGameTimeTest.cpp
     # NaturalSpawner 测试
     server/world/spawn/NaturalSpawnerTest.cpp
     # VillageSiege 测试
@@ -1571,73 +1479,22 @@ add_executable(mc_tests
     # 光照同步测试
     server/LightSyncTests.cpp
     # Kagero UI模板系统测试
-    ui/kagero/template/template_test.cpp
     # Kagero UI Value 类原生 i64/u32/f64 支持测试
-    ui/kagero/template/ValueTypesTest.cpp
     # Kagero UI内置事件测试
-    ui/kagero/template/BuiltinEventsTest.cpp
     # Kagero UI内置 Widget 工厂测试（grid/slot 等属性解析与生效）
-    client/ui/kagero/template/BuiltinWidgetsTest.cpp
     # Kagero UI布局系统测试
-    client/ui/kagero/layout/MeasureSpecTest.cpp
-    client/ui/kagero/layout/LayoutConstraintsTest.cpp
-    client/ui/kagero/layout/FlexLayoutTest.cpp
-    client/ui/kagero/layout/LayoutEngineTest.cpp
-    client/ui/kagero/layout/LayoutEngineIntegrationTest.cpp
-    client/ui/kagero/layout/FlexLayoutAlgorithmTest.cpp
-    client/ui/kagero/layout/GridLayoutTest.cpp
-    client/ui/kagero/layout/AnchorLayoutTest.cpp
     # Kagero UI 状态系统测试
-    client/ui/kagero/state/StateStoreTest.cpp
-    client/ui/kagero/state/ReactiveStateTest.cpp
-    client/ui/kagero/state/StateBindingTest.cpp
-    client/ui/kagero/state/StateObserverTest.cpp
     # Kagero UI事件系统测试
-    ui/kagero/event/event_test.cpp
     # Kagero UI Widget测试
-    client/ui/kagero/widget/WidgetTest.cpp
-    client/ui/kagero/widget/ButtonWidgetTest.cpp
-    client/ui/kagero/widget/ButtonWidgetPaintTest.cpp
-    client/ui/kagero/widget/TextWidgetTest.cpp
-    client/ui/kagero/widget/RichTextWidgetTest.cpp
-    client/ui/kagero/widget/CheckboxWidgetTest.cpp
-    client/ui/kagero/widget/SliderWidgetTest.cpp
-    client/ui/kagero/widget/TextFieldWidgetTest.cpp
-    client/ui/kagero/widget/ContainerWidgetTest.cpp
-    client/ui/kagero/widget/ContainerWidgetEventTest.cpp
-    client/ui/kagero/widget/ScrollableWidgetTest.cpp
-    client/ui/kagero/widget/ListWidgetTest.cpp
-    client/ui/kagero/widget/Viewport3DWidgetTest.cpp
-    client/ui/kagero/widget/SlotWidgetTest.cpp
-    client/ui/kagero/widget/ImageWidgetTest.cpp
     # Tooltip 工具提示组件测试
-    client/ui/kagero/widget/TooltipTest.cpp
-    client/ui/kagero/KageroEngineTest.cpp
     # Kagero Paint 绘制层测试（TextureImage 构造参数、ImageFormat 传播等）
-    client/ui/kagero/paint/TextureImageTest.cpp
-    client/ui/FontObfuscatedTest.cpp
-    client/ui/minecraft/targetinfo/TargetInfoFormatterTest.cpp
-    ${CMAKE_SOURCE_DIR}/src/client/ui/GuiScale.cpp
-    ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/targetinfo/TargetInfo.cpp
-    ${CMAKE_SOURCE_DIR}/src/client/ui/Font.cpp
-    ${CMAKE_SOURCE_DIR}/src/client/ui/FontTextureAtlas.cpp
-    ${CMAKE_SOURCE_DIR}/src/client/ui/FontRenderer.cpp
-    ${CMAKE_SOURCE_DIR}/src/client/ui/DefaultAsciiFont.cpp
-    client/ui/GuiScaleTest.cpp
     # 屏幕工具提示命中检测与位置计算测试
-    client/ui/screen/ScreenTooltipTest.cpp
     # 容器屏幕交互系统测试（Shift+click/数字键/Q键/中键/双击/拖拽/点击外部）
-    client/ui/screen/ContainerScreenInteractionTest.cpp
     # ScreenStackWidget 屏幕栈回调与事件通知测试
-    client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
     # CreateWorldScreen 创建世界界面配置选项与 buildRequest 测试
-    client/ui/minecraft/screens/CreateWorldScreenTest.cpp
     # MessageScreen 通用通知对话框回调与 ESC 关闭测试
-    client/ui/minecraft/screens/MessageScreenTest.cpp
     # SignEditScreen 告示牌编辑屏幕按键交互测试（Tab切换/Enter提交/ESC取消）
-    client/ui/minecraft/screens/SignEditScreenTest.cpp
     # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
-    client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
     # 附魔系统测试
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
@@ -1730,70 +1587,32 @@ add_executable(mc_tests
     # spawnTarget 数据流集成测试（NoiseChunk/RandomState/ServerWorld）
     common/world/gen/density/SpawnTargetIntegrationTest.cpp
     # 生物群系颜色测试
-    client/world/color/BiomeColorsTest.cpp
     # 生物群系颜色混合测试
-    client/world/color/blend/BiomeColorBlenderTest.cpp
     # 粒子系统测试
-    client/renderer/particle/ParticleTest.cpp
-    client/renderer/particle/ParticleRegistryTest.cpp
-    client/renderer/particle/WhiteSmokeParticleTest.cpp
-    client/renderer/particle/ParticleManagerTest.cpp
-    client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
-    client/renderer/trident/particle/particles/special/SpecialParticleTest.cpp
-    client/renderer/trident/particle/particles/special/VibrationSignalParticleTest.cpp
-    client/renderer/trident/particle/data/VibrationParticleDataTest.cpp
     # DustParticleData 粒子数据测试
-    client/renderer/trident/particle/data/DustParticleDataTest.cpp
     # TrailParticleData 粒子数据测试
-    client/renderer/trident/particle/data/TrailParticleDataTest.cpp
     # EntityEffectParticleData 粒子数据测试
-    client/renderer/trident/particle/data/EntityEffectParticleDataTest.cpp
     # ItemParticleData 粒子数据测试
-    client/renderer/trident/particle/data/ItemParticleDataTest.cpp
     # 粒子缩放测试
-    client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # SpellParticle 颜色提取测试
-    client/renderer/trident/particle/particles/effect/SpellParticleColorTest.cpp
     # DiggingParticle 测试
-    client/renderer/trident/particle/particles/block/DiggingParticleTest.cpp
     # DustPillarParticle 测试
-    client/renderer/trident/particle/particles/block/DustPillarParticleTest.cpp
     # 新增粒子类测试
-    client/renderer/trident/particle/particles/NewParticleTest.cpp
     # Effect particle tests
-    client/renderer/trident/particle/particles/effect/EffectParticleTest.cpp
     # Block particle tests
-    client/renderer/trident/particle/particles/block/BlockParticleTest.cpp
     # Ambient particle tests
-    client/renderer/trident/particle/particles/ambient/AmbientParticleTest.cpp
     # Mob particle tests
-    client/renderer/trident/particle/particles/mob/MobParticleTest.cpp
     # Liquid particle tests
-    client/renderer/trident/particle/particles/liquid/LiquidParticleTest.cpp
     # Particle tick behavior tests
-    client/renderer/trident/particle/particles/TickBehaviorTest.cpp
     # 第一人称手部渲染测试
-    client/renderer/firstperson/MatrixStackTest.cpp
-    client/renderer/firstperson/FirstPersonRendererTest.cpp
-    client/renderer/firstperson/ItemInHandRendererTest.cpp
-    client/renderer/firstperson/FirstPersonTransformsTest.cpp
     # D7/D9 evaluateWhichHandsToRender + isScoping 测试
-    client/renderer/firstperson/EvaluateWhichHandsToRenderTest.cpp
     # D12 第一人称手持物品 3D 升级测试
-    client/renderer/firstperson/HeldItemMesh3DTest.cpp
     # 声音系统测试
-    common/sound/SoundCategoryTest.cpp
     common/sound/test_sound_events.cpp
     # JukeboxSong/JukeboxSongs/JukeboxSongPlayer 唱片机歌曲注册表与播放器测试
     common/sound/jukebox/JukeboxSongTest.cpp
-    client/sound/SoundTest.cpp
-    client/sound/SoundRegistryTest.cpp
-    client/sound/TickableSoundTest.cpp
-    client/sound/MovingTickableSoundTest.cpp
     # OpenALBackend 音频后端源计数追踪与功能测试
-    client/sound/OpenALBackendTest.cpp
     # 聊天历史与消息类型测试
-    client/chat/ChatHistoryTest.cpp
     # 皮肤系统测试
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
@@ -1895,358 +1714,35 @@ add_executable(mc_tests
     server/test/test_gametest_script_binding.cpp
 )
 
-# 添加服务端源文件
-target_sources(mc_tests
-    PRIVATE
-        # 服务端实现（世界/网络/注册表/GameTest 框架/终端纯逻辑等）统一由 mc_server_shared
-        # OBJECT 库提供（定义见 src/server/CMakeLists.txt），此处不再逐个登记源文件——
-        # 同一份实现被 minecraft-server 与 mc_tests 各编译一遍会让本目录体积翻倍。
-        # 存储系统另有 mc_server_storage、worldgen 另有 mc_gen，均通过链接复用。
-        # 命令实现仍需在此登记：它们不在 mc_server_shared 内（仅 exe 与 mc_benchmark 共用清单），
-        # 而 mc_tests 的 GameTest/命令测试直接编译命令实现。
-        ${MC_SERVER_COMMAND_SOURCES_ABS}
-        # 生物群系颜色解析器
-        ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
-        # 粒子系统
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/Particle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleFactories.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/SporeBlossomParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BasicParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/DustParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/EntityEffectParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/TrailParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BlockParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/ItemParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/RedstoneParticleData.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/sprite/SimpleSprite.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/sprite/AnimatedSprite.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/RainParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/SnowParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/BubbleParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/BubblePopParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/UnderwaterParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/CloudParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/SuspendedTownParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/DiggingParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/DustPillarParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FlameParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SmokeParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/WhiteSmokeParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/LavaParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/PortalParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/CritParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ExplosionParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/EmitterParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/PoofParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SpellParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DragonBreathParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SoulParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/RedstoneParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/CampfireParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/HeartParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/VillagerParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripWaterParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripstoneDripParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/SplashParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/FishingParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
-        # 粒子实现 - 环境（新增）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/NetherSporeParticle.cpp
-        # 粒子实现 - 效果（新增）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/AshParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/CopperFireFlameParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DamageIndicatorParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DustParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DustPlumeParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/EggCrackParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ElderGuardianParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ElectricSparkParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FireflyParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FireworkParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FlashParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GlowParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GustParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GustEmitterParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/InfestedParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ItemPickupParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/LightParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/NoteParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/OmenParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SculkChargeParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SculkSoulParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ShriekParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SmallFlameParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SonicBoomParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/TrialSpawnerParticle.cpp
-        # 粒子实现 - 生物（新增）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/SpitParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/SquidInkParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/TotemParticle.cpp
-        # 粒子实现 - 特殊（新增）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VaultConnectionParticle.cpp
-        # 粒子实现 - 方块（新增）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ComposterParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ItemParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/LeavesParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ScrapeParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/WaxParticle.cpp
-        # 粒子实现 - 液体（新增）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
-        # EndermanEntity 用于 HeldBlockLayer 测试
-        # NetherEntities 用于恶魂测试
-        # EndermanGoals 用于注视检测测试
-        # GhastGoals 用于恶魂 AI 测试
-        # FoxGoals 用于狐狸 AI 测试
-        # PandaGoals 用于熊猫打滚 AI 测试
-        # GhastMovementController 用于恶魂飞行控制器测试
-        # 以下 common/ 实现（方块、物品、背包、合成、掉落、成就等）由 mc_common 静态库提供，
-        # 不再在 mc_tests 里重复编译。
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/sky/CelestialCalculations.cpp
-        # 射线检测
-        # 设置系统
-        ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
-        # 按键绑定（自 common/input 迁入 client/input）
-        ${CMAKE_SOURCE_DIR}/src/client/input/KeyBinding.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/prediction/BlockStatePredictionHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/network/ClientNetwork.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntityManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/player/LocalPlayerIdentity.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/player/ClientPlayerPredictor.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/world/player/PlayerIdentityRegistry.cpp
-        # 维度管理
-        ${CMAKE_SOURCE_DIR}/src/client/dimension/ClientDimensionManager.cpp
-        # 网格构建线程池
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshDataPool.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshResultQueue.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildScheduler.cpp
-        # 区块网格生成
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityPipeline.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/ModelRenderer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/EntityModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/AgeableModel.cpp
-        # ItemMeshBuilder 物品网格构建测试
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/item/ItemMeshBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/BipedModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/ElytraSpeedValue.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/ChickenModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/CowModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/PigModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/SheepModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/LlamaModel.cpp
-    # RabbitModel 兔子模型跳跃角度测试依赖
-    ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/RabbitModel.cpp
-        # DolphinModel 海豚模型运动状态注入测试依赖（setMotionMagnitude + 摆尾动画）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/aquatic/AquaticModels.cpp
-        # VillagerModel + WitchModel 女巫模型测试依赖
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/VillagerModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/WitchModel.cpp
-        # CreeperModel + SpiderModel 非 BipedModel 派生模型（dynamic_cast 安全性测试依赖）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/CreeperModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpiderModel.cpp
-        # SkeletonModel 手臂姿态委托基类 BipedModel 测试依赖
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SkeletonModel.cpp
-        # ZombieModel 手臂姿态激怒状态测试依赖 + 变体模型继承测试依赖
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/ZombieModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/MonsterVariantModels.cpp
-        # WitherModel 侧头朝向注入测试依赖（SpecialMonsterModels 包含 WitherModel）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/monster/SpecialMonsterModels.cpp
-        # PlayerModel 手臂渲染测试
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/player/PlayerModel.cpp
-        # PlayerArmPoseResolver 手臂姿态解析器（测试依赖）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/player/PlayerArmPoseResolver.cpp
-        # 载具渲染器（BoatRenderer / MinecartRenderer 模型矩阵构建与 TNT 闪烁）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/core/EntityRenderer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/vehicle/VehicleRenderers.cpp
-        # 特殊实体渲染器（TNTRenderer / FallingBlockRenderer 模型矩阵与闪烁）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/renderer/special/SpecialEntityRenderers.cpp
-        # 投射物模型（SpecialEntityRenderers 中 EnderCrystalRenderer 等构造函数依赖）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/projectile/ProjectileModels.cpp
-        # BlockMeshBuilder 方块网格构建工具
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/BlockMeshBuilder.cpp
-        # EntityRenderer 依赖的辅助渲染器
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/ShadowRenderer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/NameTagRenderer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/util/WorldTextRenderer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/pipeline/EntityTextureAtlas.cpp
-        # HeldBlockLayer 测试只测试 EndermanEntity 的方法，不需要 Vulkan 渲染层代码
-        # 方块实体模型
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/BlockEntityModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/ChestModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/BeaconBeamModel.cpp
-        # 第一人称手部渲染
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/MatrixStack.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/PlayerModel.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemInHandRenderer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/FirstPersonTransforms.cpp
-        # 区块模型缓存
-        ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemTextureAtlas.cpp
-        # 统一图集数据驱动（替换硬编码图集系统的纹理收集层）
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/AtlasSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/AtlasSourceParser.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/AtlasConfigLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/IdentifierPattern.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/MissingNo.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/Sources.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/SpriteLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/TexturePathVariant.cpp
-        # 火焰纹理加载与动画状态（原 mc_resource_tests 依赖，mc_tests 此前未登记）
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireTextureLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireAnimationState.cpp
+# 测试辅助实现只编译一次，两个测试进程各自保有全局状态。
+add_library(mc_test_support STATIC common/TestWorldHelper.cpp common/BaseTestServer.cpp)
+target_link_libraries(mc_test_support PUBLIC mc_common GTest::gtest)
+target_include_directories(mc_test_support PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+mc_disable_all_warnings_for_tests(mc_test_support)
 
-        # Kagero UI 模板系统（仅核心解析组件）
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Ast.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/AstVisitor.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Lexer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Parser.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/binder/BindingContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/bindings/BuiltinEvents.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/bindings/BuiltinWidgets.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/compiler/TemplateCompiler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/UpdateScheduler.cpp
-        # Kagero UI布局系统
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/core/LayoutEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/algorithms/FlexLayout.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/algorithms/GridLayout.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/algorithms/AnchorLayout.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/integration/WidgetLayoutAdaptor.cpp
-        # Kagero UI Widget组件
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/Widget.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/KageroEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/TextureImage.cpp
-        # ScreenStackWidget 及 Screen 依赖
-        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/Screen.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/screen/ScreenManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/widgets/ScreenStackWidget.cpp
-        # CreateWorldScreen 测试依赖：模板屏幕基类 + 模板运行时实例 + 创建世界屏幕
-        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/TemplateScreen.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/TemplateInstance.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/CreateWorldScreen.cpp
-        # MessageScreen 测试依赖：通用通知对话框实现
-        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/MessageScreen.cpp
-        # SignEditScreen 测试依赖：告示牌编辑屏幕实现（Tab切换/Enter提交/ESC取消）
-        ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/SignEditScreen.cpp
-        # Assert 库
-        # Crypto utilities
-        # UUID utilities
-        # 声音系统 - Common
-        # Jukebox
-        # Skin System
-        ${CMAKE_SOURCE_DIR}/src/client/skin/ClientSkinManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/skin/SkinTextureUploader.cpp
-        # 声音系统 - Client
-        ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundDefinition.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/StbVorbisImpl.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundPool.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/SoundEngine.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/AudioBufferCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/SoundInstance.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/UnderwaterLoopSound.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/MinecartSound.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/instance/MovingTickableSound.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/backend/AudioBuffer.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/backend/OpenALBackend.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BiomeAmbientHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/UnderwaterAmbientHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/BubbleColumnAmbientHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/EntitySoundHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/sound/handler/WeatherSoundHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/command/ClientCommandManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/chat/ChatHistory.cpp
-        # TemplateInstance.cpp 依赖 Widget 实现，暂时不纳入该测试目标
-)
+function(mc_configure_unit_target targetName)
+    target_link_libraries(${targetName} PRIVATE
+        mc_server_shared mc_gen mc_server_storage mc_common mc_bedrock_addon
+        mc_offset_allocator mc_test_support GTest::gtest asio::asio
+        nlohmann_json::nlohmann_json glm::glm)
+    target_include_directories(${targetName} PRIVATE
+        "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_definitions(${targetName} PRIVATE
+        MC_SOURCE_DIR="${CMAKE_SOURCE_DIR}" MC_SOURCE_ROOT="${CMAKE_SOURCE_DIR}")
+    target_precompile_headers(${targetName} REUSE_FROM mc_common)
+    mc_disable_all_warnings_for_tests(${targetName})
+    mc_copy_runtime_dlls(${targetName})
+    set_target_properties(${targetName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    if(WIN32)
+        target_link_libraries(${targetName} PRIVATE ws2_32)
+        target_link_options(${targetName} PRIVATE "-Xlinker" "/STACK:8388608")
+    endif()
+endfunction()
 
-target_link_libraries(mc_tests
-    PRIVATE
-        mc_server_shared
-        mc_gen
-        mc_server_storage
-        mc_common
-        mc_bedrock_addon
-        mc_offset_allocator
-        GTest::gtest
-        asio::asio
-        nlohmann_json::nlohmann_json
-        glm::glm
-        Vulkan::Vulkan
-        OpenAL::OpenAL
-)
-
-if(WIN32)
-    target_link_libraries(mc_tests PRIVATE ws2_32)
-endif()
-
-target_include_directories(mc_tests
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/include
-        # 测试私有头（TestWorldHelper.hpp / BaseTestServer.hpp 等）以 tests/unit 为根表达
-        ${CMAKE_SOURCE_DIR}/tests/unit
-)
-
-target_compile_definitions(mc_tests
-    PRIVATE
-        MC_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-        # MC_SOURCE_ROOT：供 test_gametest_server.cpp 的 RealPackGameTestServerFixture 拼接
-        # tests/integrated 路径，与 minecraft-server 门面（src/server/CMakeLists.txt）保持一致，
-        # 使 gtest 进程内 GameTestServer 能加载仓库内集成行为包（无论运行时 CWD 如何）。
-        MC_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
-)
-
-# 复用 mc_common 的 PCH：mc_tests 是 TU 数最多的目标（约 1500 个），其中绝大多数都包含
-# common/ 头文件，先前完全没有 PCH，每个 TU 都要重新解析一遍标准库与项目头，是编译时间
-# 最大的单点开销。PCH 头内容与 common 侧一致，可直接复用。
-target_precompile_headers(mc_tests REUSE_FROM mc_common)
-
-# RealPackGameTestServerFixture 会加载 tests/integrated 行为包跑 JS 测试，须保证 .js 产物已编译。
-# 复用 src/server/CMakeLists.txt 的 add_custom_command 产出的 stamp（路径约定一致），
-# target_sources 拉入 stamp 即在构建 mc_tests 前先触发 build.mjs（.ts→.js），避免跑旧产物。
-set(_mc_tests_integrated_stamp "${CMAKE_BINARY_DIR}/tests/integrated/.build.stamp")
-if(EXISTS "${_mc_tests_integrated_stamp}" OR TARGET minecraft-server)
-    set_source_files_properties("${_mc_tests_integrated_stamp}" PROPERTIES GENERATED TRUE)
-    target_sources(mc_tests PRIVATE "${_mc_tests_integrated_stamp}")
-endif()
-
-mc_disable_all_warnings_for_tests(mc_tests)
-mc_copy_runtime_dlls(mc_tests)
+mc_configure_unit_target(mc_tests)
+include(IntegratedPacks)
+mc_add_integrated_packs("${CMAKE_SOURCE_DIR}/tests/integrated")
+add_dependencies(mc_tests mc_integrated_packs)
 
 # 发现测试
 include(GoogleTest)
@@ -2276,135 +1772,12 @@ endfunction()
 
 mc_register_gtests(mc_tests)
 
-# 输出测试可执行文件位置
-set_target_properties(mc_tests PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-
-# QuickJS（quickjs-ng）的栈溢出检查用 uintptr_t 算术：stack_limit = stack_top - stack_size，
-# 与当前栈指针 sp 比较。当 JS 栈限制（DEFAULT_CONTEXT_STACK_SIZE_BYTES=4MB）大于宿主 C 栈
-# （Windows 默认 1MB）时，stack_top - 4MB 会发生无符号下溢，回绕成接近 UINTPTR_MAX 的巨大值，
-# 于是 sp < stack_limit 恒为真——任何 evaluate（哪怕 Promise.resolve().then(...)）都会误报
-# "Maximum call stack size exceeded"。quickjs-ng 自身的 CMake 也因此把可执行文件栈设为 8MB
-# （见 _deps/quickjs-ng-src/CMakeLists.txt 的 /STACK:8388608）。这里为 mc_tests 对齐设置。
-# 注意：本项目用 clang + lld-link（非 MSVC link.exe），不能用 if(MSVC) 判断（clang 下 MSVC 为
-# FALSE）；通过 -Xlinker 把 /STACK 传给 lld-link（lld-link 与 link.exe 一样接受 /STACK）。
-if(WIN32)
-    target_link_options(mc_tests PRIVATE "-Xlinker" "/STACK:8388608")
-endif()
-
-
-# ============================================================================
-# Trident 渲染引擎测试
-# ============================================================================
-
-if(MC_BUILD_CLIENT)
-    # Trident 渲染引擎测试可执行文件
-    # 注意：这里只测试核心组件，不测试 TridentEngine 本体
-    add_executable(mc_trident_tests
-        client/renderer/test_trident_engine.cpp
-        client/renderer/PolarBearAnimationTest.cpp
-        client/renderer/EntityRendererCoverageTest.cpp
-        client/renderer/AnimatedMeshCacheTest.cpp
-    )
-
-    # 添加 Trident 渲染引擎核心组件源文件
-    target_sources(mc_trident_tests
-        PRIVATE
-            # Trident 核心（不含 TridentEngine）
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/TridentContext.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/TridentSwapchain.cpp
-            # Trident 缓冲区
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/buffer/TridentBuffer.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/buffer/TridentStagingBufferPool.cpp
-            # Trident 纹理
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/texture/TridentTexture.cpp
-            # Trident 绠＄嚎
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/pipeline/TridentPipeline.cpp
-            # Trident 渲染管理器
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/FrameManager.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/UniformManager.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/DescriptorManager.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/RenderPassManager.cpp
-            # 资源加载
-            ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelLoader.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp
-            # 缃戞牸鐩稿叧
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
-            # 生物群系颜色
-            ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
-            # 常用资源
-            # 方块系统
-            # 设置
-            ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
-            # 按键绑定（自 common/input 迁入 client/input）
-            ${CMAKE_SOURCE_DIR}/src/client/input/KeyBinding.cpp
-            # AnimationContext
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/core/AnimationContext.cpp
-    )
-
-    target_link_libraries(mc_trident_tests
-        PRIVATE
-            mc_gen
-            mc_common
-            mc_bedrock_addon
-            mc_offset_allocator
-            GTest::gtest_main
-            glfw
-            Vulkan::Vulkan
-            nlohmann_json::nlohmann_json
-            glm::glm
-    )
-
-    target_include_directories(mc_trident_tests
-        PRIVATE
-            ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_SOURCE_DIR}/include
-    )
-
-    mc_disable_all_warnings_for_tests(mc_trident_tests)
-    mc_copy_runtime_dlls(mc_trident_tests)
-
-    mc_register_gtests(mc_trident_tests)
-
-    set_target_properties(mc_trident_tests PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    )
-
-    # GUI 纹理系统测试（纯数据结构测试，不需要 Vulkan）
-    # 这些测试放在主测试套件中，避免 Vulkan 依赖
-    target_sources(mc_tests
-        PRIVATE
-            # GuiSprite 和 GuiNinePatch 测试
-            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteTest.cpp
-            # GuiSpriteManager 测试（不依赖 Vulkan）
-            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteManagerTest.cpp
-            # GuiSpriteParser JSON 解析测试（不需要资源包）
-            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteParserTest.cpp
-            # GuiSpriteRegistry data correctness test (slider/handle/attack indicator coords and nine-patch; no Vulkan)
-            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteRegistryTest.cpp
-            # 源文件（GuiSprite.hpp 是纯头文件）
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiSpriteManager.cpp
-            ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiSpriteParser.cpp
-    )
-
-    # GUI 纹理系统测试（需要 Vulkan 的测试暂时禁用）
-    # GuiTextureAtlas 依赖 GuiRenderer 和 Vulkan，而其功能已被 GuiSpriteManager 测试覆盖
-    # 如果需要测试 GuiTextureAtlas 的 Vulkan 功能，可以添加回来
-    # target_sources(mc_trident_tests
-    #     PRIVATE
-    #         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiTextureAtlas.cpp
-    #         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiSpriteRegistry.cpp
-    #         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiTextureLoader.cpp
-    # )
+# 客户端测试具有独立入口；服务端构建不解析图形、音频实现。
+if(MC_BUILD_CLIENT_TESTS)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/client/Sources.cmake")
+    add_executable(mc_client_tests main.cpp ${MC_CLIENT_TEST_SOURCES})
+    mc_configure_unit_target(mc_client_tests)
+    target_link_libraries(mc_client_tests PRIVATE glfw Vulkan::Vulkan OpenAL::OpenAL)
+    mc_register_gtests(mc_client_tests)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/client/TridentTests.cmake")
 endif()

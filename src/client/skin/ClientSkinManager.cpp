@@ -33,7 +33,7 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
-// stb_image is already implemented elsewhere (TextureAtlasBuilder.cpp)
+// stb_image is already implemented elsewhere (common/resource/image/StbImage.cpp)
 #include <array>
 #include <memory>
 #include <string>

@@ -128,15 +128,6 @@ public:
     static u64 getProcessCommitMB();
 
     /**
-     * @brief 从Vulkan设备属性提取GPU信息
-     *
-     * @param properties Vulkan物理设备属性
-     * @param memoryProperties Vulkan内存属性
-     */
-    static GpuInfo getGpuInfoFromVulkan(const struct VkPhysicalDeviceProperties_T* properties,
-        const struct VkPhysicalDeviceMemoryProperties_T* memoryProperties);
-
-    /**
      * @brief 获取平台名称
      *
      * 返回操作系统名称，如 "Windows 10", "Linux", "macOS"

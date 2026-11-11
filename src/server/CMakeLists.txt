@@ -313,6 +313,7 @@ endforeach()
 # mc_tests 不链接 FTXUI。
 # ===========================================================================
 add_library(mc_server_shared OBJECT
+    ${MC_SERVER_COMMAND_SOURCES}
     access/AccessManager.cpp
     access/admission/BannedIpList.cpp
     access/admission/BannedPlayerList.cpp
@@ -563,7 +564,6 @@ add_executable(minecraft-server
     # 自 common/network/sync/ChunkSync.hpp 迁入；双向共用的 ChunkSerializer 留在 common）
     # 命令系统
     # 命令实现全量（清单见 cmake/ServerCommandSources.cmake，与 mc_benchmark 共用）
-    ${MC_SERVER_COMMAND_SOURCES}
     # 菜单系统
     # Boss栏系统
     # 函数系统
@@ -622,51 +622,6 @@ target_sources(minecraft-server
         # simulated/ - SimulatedPlayer
         # script/ - @minecraft/server-gametest JS 绑定骨架
 )
-
-# ============================================================================
-# 集成测试行为包 TS 编译（tests/integrated）：构建期把 .ts 编译成 .js 供 QuickJS 运行。
-# 行为包源码在仓库内 tests/integrated/（TS 源 + .mcstructure 结构），由 --gametest 门面
-# 经 --gametest-packs 扫描加载。node_modules 不入 git，build.mjs 自管依赖（缺失则 npm install）。
-# 仿 src/common/CMakeLists.txt 的 baking add_custom_command 模式：OUTPUT 用 stamp 文件
-# （build.mjs 一次产多包多文件无单一输出），target_sources 把 stamp 拉入 server 源触发构建。
-# NODE_EXECUTABLE 是 src/common/CMakeLists.txt 的全局 cache 变量，common 先于 server 解析，可直接复用。
-# ============================================================================
-set(_integrated_root "${CMAKE_SOURCE_DIR}/tests/integrated")
-set(_integrated_build_script "${_integrated_root}/build.mjs")
-set(_integrated_build_stamp "${CMAKE_BINARY_DIR}/tests/integrated/.build.stamp")
-add_custom_command(
-    OUTPUT ${_integrated_build_stamp}
-    COMMAND ${NODE_EXECUTABLE} ${_integrated_build_script}
-    COMMAND ${CMAKE_COMMAND} -E touch ${_integrated_build_stamp}
-    DEPENDS ${_integrated_build_script}
-            ${_integrated_root}/package.json
-            ${_integrated_root}/tsconfig.base.json
-            ${_integrated_root}/utils/block/build.ts
-            ${_integrated_root}/utils/entity/assert.ts
-            ${_integrated_root}/challenge/src/main.ts
-            ${_integrated_root}/challenge/src/ChallengeTests.ts
-            ${_integrated_root}/command/src/main.ts
-            ${_integrated_root}/command/src/CommandTests.ts
-            ${_integrated_root}/mob_behavior/src/main.ts
-            ${_integrated_root}/mob_behavior/src/tests/monster/basic/PhantomTests.ts
-            ${_integrated_root}/mob_behavior/src/tests/monster/nether/ZoglinTests.ts
-            ${_integrated_root}/mob_behavior/src/tests/monster/undead/ZombieTests.ts
-            ${_integrated_root}/mob_behavior/src/tests/passive/basic/CowTests.ts
-            ${_integrated_root}/mob_behavior/src/tests/passive/basic/PigTests.ts
-            ${_integrated_root}/mob_behavior/src/tests/passive/basic/SheepTests.ts
-            ${_integrated_root}/mob_behavior/src/tests/passive/basic/ChickenTests.ts
-            ${_integrated_root}/mob_behavior/src/tests/passive/golem/IronGolemTests.ts
-            # 注意：各行为包 src/utils/ 下的 build.ts/assert.ts 是 build.mjs 的 stageUtils()
-            # 在构建期从顶层 tests/integrated/utils/ 复制过去的生成产物，不是源文件，
-            # 不能列入 DEPENDS（否则 ninja 报 "missing and no known rule to make it"）。
-            # 顶层 utils/ 源文件已在上面第 291-292 行声明依赖。
-            ${_integrated_root}/starter/src/StarterTests.ts
-    WORKING_DIRECTORY ${_integrated_root}
-    COMMENT "Compiling integrated behavior packs (TypeScript -> JavaScript)"
-    VERBATIM
-)
-set_source_files_properties(${_integrated_build_stamp} PROPERTIES GENERATED TRUE)
-target_sources(minecraft-server PRIVATE ${_integrated_build_stamp})
 
 # 注入源码根路径宏，使 --gametest 门面能定位仓库内 tests/integrated（无论运行时 CWD 如何）。
 # ServerApplicationEntry.cpp 用 #ifdef MC_SOURCE_ROOT 拼接默认 --gametest-packs 路径。
