@@ -157,8 +157,8 @@
 - `TreeDecorator` / `FeatureTypeRegistry` / `PlacedFeatureLoader` 的 `get<std::string>`：紧邻 `is_string()` 守卫
 - `CopyCustomDataFunction` 的 `context.get<Entity>()`：`LootContext::get` 是 `noexcept` 且返回 `nullptr`
 
-| 7. 开关就绪 | 🟡 部分完成 | 已加 `MC_ENABLE_NO_EXCEPTIONS` 选项（只作用于生产 target，测试保留异常）；`AssertException`/`throwAssertHandler` 已按 `__cpp_exceptions` 条件编译。**未做**：清空头文件剩余 throw（几乎全在命令子系统） |
-| 8. 命令子系统 | 🟡 进行中 | 方案已定（`Result<T, E>` 泛化 + `CommandError` 值类型），`Result` 泛化已落地；实测 126 处 throw 集中在 18 个文件、命令函数签名无需改动。半成品见 `git stash`（详见下节） |
+| 7. 开关就绪 | ✅ 完成 | `MC_ENABLE_NO_EXCEPTIONS` 已实际开启并全量构建通过；新增 `MC_NO_EXCEPTIONS_TARGETS` 支持按 target 灰度（先 mc_common，再 server 各库，最后可执行文件）。**修正了 target 拓扑**：真正编译 src/ 的是 OBJECT 库（mc_gen / mc_server_shared / mc_server_storage / mc_bedrock_addon），只给可执行文件加选项对 99% 代码无效。PCH 须与使用方异常模式一致，故 mc_tests 在开关开启时改为自带 PCH |
+| 8. 命令子系统 | ✅ 完成 | `src/common/command` 与 `src/server/command` 下 **零 throw、零 catch**：CommandError 改为纯值类型、StringReader/ArgumentType/参数类型/CommandNode/CommandDispatcher 全部 Result 化、163 个命令文件解析链路无异常，测试改为断言 Result 失败 |
 
 ### 阶段 8 已定的设计（✅ 方案已选）
 
