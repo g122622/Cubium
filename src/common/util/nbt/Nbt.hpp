@@ -1686,6 +1686,26 @@ struct compound_tag final : public tag {
     }
 
     /**
+     * @brief 按键查找指定类型的子标签（不触发断言）
+     *
+     * 与 `get<TagT>` 的区别：键缺失或类型不符时返回 `nullptr`，**不会崩溃**。
+     * 读取存档等外部数据时必须用它：损坏的存档把 `byte` 写成 `int` 是常见情况，
+     * 用 `get<TagT>` 会直接断言终止进程（即一条坏存档打死整服）。
+     *
+     * @param name 键名
+     * @return 类型匹配时返回标签指针，否则返回 nullptr
+     */
+    template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
+    [[nodiscard]] const TagT* findAs(std::string_view name) const
+    {
+        const auto iter = value.find(std::string(name));
+        if (iter == value.end() || iter->second == nullptr || iter->second->id() != TagT::tid) {
+            return nullptr;
+        }
+        return static_cast<const TagT*>(iter->second.get());
+    }
+
+    /**
      * @brief 获取值（标签类型版本）
      *
      * 键必须存在且类型必须是 `TagT`：两者不满足都属于调用方违约（应先 `find` / `contains`），

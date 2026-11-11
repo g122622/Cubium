@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/multiface/MultifaceBlock.hpp"
@@ -389,10 +390,14 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createEndGateway(const nlohmann::
 {
     auto config = std::make_unique<EndGatewayFeatureConfig>();
     if (configJson.contains("exit") && configJson["exit"].is_array() && configJson["exit"].size() == 3) {
-        const i32 x = configJson["exit"][0].get<i32>();
-        const i32 y = configJson["exit"][1].get<i32>();
-        const i32 z = configJson["exit"][2].get<i32>();
-        config->exactPosition = BlockPos(x, y, z);
+        // exit 三元组必须是整数；非整数属于数据包错误，返回 Error 而不是抛 type_error
+        auto xResult = util::json::getInt32At(configJson["exit"], 0);
+        auto yResult = util::json::getInt32At(configJson["exit"], 1);
+        auto zResult = util::json::getInt32At(configJson["exit"], 2);
+        if (xResult.failed() || yResult.failed() || zResult.failed()) {
+            return Error(ErrorCode::InvalidData, "end_gateway: 'exit' must be an integer array of length 3");
+        }
+        config->exactPosition = BlockPos(xResult.value(), yResult.value(), zResult.value());
         config->isExit = true;
     } else {
         config->isExit = false;
@@ -410,8 +415,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createHugeFungus(const nlohmann::
     FungusType fungusType = FungusType::Crimson;
     if (configJson.contains("stem_state") && configJson["stem_state"].is_object() &&
         configJson["stem_state"].contains("Name") && configJson["stem_state"]["Name"].is_string()) {
-        const std::string& name = configJson["stem_state"]["Name"].get<std::string>();
-        if (name.find("warped_stem") != std::string::npos) {
+        auto nameResult = util::json::getString(configJson["stem_state"], "Name");
+        if (nameResult.success() && nameResult.value().find("warped_stem") != std::string::npos) {
             fungusType = FungusType::Warped;
         }
     }
@@ -707,18 +712,30 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createFossil(const nlohmann::json
     if (!overlayStructures.success()) {
         return overlayStructures.error();
     }
-    if (!configJson.contains("fossil_processors") || !configJson["fossil_processors"].is_string()) {
-        return Error(ErrorCode::InvalidData, "fossil config missing 'fossil_processors'");
+    // 两个处理器列表是必填字符串：缺失或类型错都返回 Error（不抛 type_error）
+    auto fossilProcessorsName = util::json::getString(configJson, "fossil_processors");
+    if (fossilProcessorsName.failed()) {
+        return Error(ErrorCode::InvalidData, "fossil config missing or invalid 'fossil_processors'");
     }
-    if (!configJson.contains("overlay_processors") || !configJson["overlay_processors"].is_string()) {
-        return Error(ErrorCode::InvalidData, "fossil config missing 'overlay_processors'");
+    auto overlayProcessorsName = util::json::getString(configJson, "overlay_processors");
+    if (overlayProcessorsName.failed()) {
+        return Error(ErrorCode::InvalidData, "fossil config missing or invalid 'overlay_processors'");
     }
     auto config = std::make_unique<cave::FossilConfig>();
     config->fossilStructures = std::move(fossilStructures.value());
     config->overlayStructures = std::move(overlayStructures.value());
-    config->fossilProcessors = ResourceLocation(configJson["fossil_processors"].get<std::string>());
-    config->overlayProcessors = ResourceLocation(configJson["overlay_processors"].get<std::string>());
-    config->maxEmptyCornersAllowed = configJson.value("max_empty_corners_allowed", 0);
+    config->fossilProcessors = ResourceLocation(fossilProcessorsName.value());
+    config->overlayProcessors = ResourceLocation(overlayProcessorsName.value());
+    // max_empty_corners_allowed 是可选字段：缺失取 0，但类型错必须报错（value() 在类型不符时仍会抛）
+    if (configJson.contains("max_empty_corners_allowed")) {
+        auto maxEmptyResult = util::json::getInt32(configJson, "max_empty_corners_allowed");
+        if (maxEmptyResult.failed()) {
+            return Error(ErrorCode::InvalidData, "fossil: 'max_empty_corners_allowed' must be an integer");
+        }
+        config->maxEmptyCornersAllowed = maxEmptyResult.value();
+    } else {
+        config->maxEmptyCornersAllowed = 0;
+    }
     return toBase(std::make_unique<cave::ConfiguredFossilFeature>(std::move(config), "fossil"));
 }
 
@@ -1172,8 +1189,13 @@ Result<void> parseRootPlacerCommon(const nlohmann::json& rootJson, RootPlacerCon
         if (!aboveProviderResult.success()) {
             return aboveProviderResult.error();
         }
-        out.aboveRootPlacement = std::make_unique<AboveRootPlacement>(
-            std::move(aboveProviderResult).value(), aboveJson["above_root_placement_chance"].get<f32>());
+        auto chanceResult = util::json::getFloat32(aboveJson, "above_root_placement_chance");
+        if (chanceResult.failed()) {
+            return Error(
+                ErrorCode::InvalidData, "above_root_placement: 'above_root_placement_chance' must be a number");
+        }
+        out.aboveRootPlacement =
+            std::make_unique<AboveRootPlacement>(std::move(aboveProviderResult).value(), chanceResult.value());
     }
     return {};
 }

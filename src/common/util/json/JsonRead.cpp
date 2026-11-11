@@ -60,6 +60,20 @@ const nlohmann::json* _requireType(const nlohmann::json& value,
     return field_value;
 }
 
+/// 取数组元素指针；越界或不是数组返回 nullptr
+const nlohmann::json* _arrayElement(const nlohmann::json& value, std::size_t index)
+{
+    if (!value.is_array() || index >= value.size()) {
+        return nullptr;
+    }
+    return &value[index];
+}
+
+Error _indexOutOfRange(std::size_t index)
+{
+    return Error(ErrorCode::InvalidData, "JSON: array index " + std::to_string(index) + " is out of range");
+}
+
 } // namespace
 
 bool hasField(const nlohmann::json& value, std::string_view field)
@@ -206,6 +220,63 @@ Result<std::string> getString(const nlohmann::json& value, std::string_view fiel
         return error;
     }
     return getString(*field_value);
+}
+
+Result<i32> getInt32At(const nlohmann::json& value, std::size_t index)
+{
+    const auto* element = _arrayElement(value, index);
+    if (element == nullptr) {
+        return _indexOutOfRange(index);
+    }
+    return getInt32(*element);
+}
+
+Result<f32> getFloat32At(const nlohmann::json& value, std::size_t index)
+{
+    const auto* element = _arrayElement(value, index);
+    if (element == nullptr) {
+        return _indexOutOfRange(index);
+    }
+    return getFloat32(*element);
+}
+
+Result<f64> getFloat64At(const nlohmann::json& value, std::size_t index)
+{
+    const auto* element = _arrayElement(value, index);
+    if (element == nullptr) {
+        return _indexOutOfRange(index);
+    }
+    return getFloat64(*element);
+}
+
+Result<bool> getBoolAt(const nlohmann::json& value, std::size_t index)
+{
+    const auto* element = _arrayElement(value, index);
+    if (element == nullptr) {
+        return _indexOutOfRange(index);
+    }
+    return getBool(*element);
+}
+
+Result<std::string> getStringAt(const nlohmann::json& value, std::size_t index)
+{
+    const auto* element = _arrayElement(value, index);
+    if (element == nullptr) {
+        return _indexOutOfRange(index);
+    }
+    return getString(*element);
+}
+
+Result<const nlohmann::json&> getObjectAt(const nlohmann::json& value, std::size_t index)
+{
+    const auto* element = _arrayElement(value, index);
+    if (element == nullptr) {
+        return _indexOutOfRange(index);
+    }
+    if (!element->is_object()) {
+        return Error(ErrorCode::InvalidData, "JSON: array element must be an object");
+    }
+    return *element;
 }
 
 Result<const nlohmann::json&> getObject(const nlohmann::json& value, std::string_view field)

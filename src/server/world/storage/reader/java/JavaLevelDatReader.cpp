@@ -162,44 +162,43 @@ Result<LevelSummaryData> JavaLevelDatReader::_parseSummary(const compound_tag& d
     std::string versionName = "Java Unknown";
     bool snapshot = false;
 
-    if (data.value.count("DataVersion") != 0) {
-        dataVersion = static_cast<i32>(data.get<int_tag>("DataVersion"));
+    if (const auto* tag = data.findAs<int_tag>("DataVersion")) {
+        dataVersion = static_cast<i32>(tag->value);
     }
 
     if (data.value.count("Version") != 0) {
         const auto* version = getCompound(data, "Version");
         if (version) {
-            if (version->value.count("Name") != 0) {
-                versionName = "Java " + version->get<string_tag>("Name");
+            if (const auto* nameTag = version->findAs<string_tag>("Name")) {
+                versionName = "Java " + nameTag->value;
             }
-            if (version->value.count("Snapshot") != 0) {
-                snapshot = static_cast<bool>(version->get<byte_tag>("Snapshot"));
+            if (const auto* snapshotTag = version->findAs<byte_tag>("Snapshot")) {
+                snapshot = snapshotTag->value != 0;
             }
         }
     }
 
-    if (data.value.count("formatVersion") != 0) {
-        storageVersion = static_cast<i32>(data.get<int_tag>("formatVersion"));
+    if (const auto* tag = data.findAs<int_tag>("formatVersion")) {
+        storageVersion = static_cast<i32>(tag->value);
     }
 
     // 读取基本字段
     std::string displayName;
-    if (data.value.count("LevelName") != 0) {
-        displayName = data.get<string_tag>("LevelName");
+    if (const auto* nameTag = data.findAs<string_tag>("LevelName")) {
+        displayName = nameTag->value;
     }
 
     i64 lastPlayedMs = 0;
-    if (data.value.count("LastPlayed") != 0) {
-        lastPlayedMs = data.get<long_tag>("LastPlayed");
+    if (const auto* playedTag = data.findAs<long_tag>("LastPlayed")) {
+        lastPlayedMs = playedTag->value;
     }
 
     u64 seed = 0;
-    if (data.value.count("RandomSeed") != 0) {
-        seed = static_cast<u64>(data.get<long_tag>("RandomSeed"));
-    } else if (data.value.count("WorldGenSettings") != 0) {
-        const auto* worldGen = getCompound(data, "WorldGenSettings");
-        if (worldGen && worldGen->value.count("seed") != 0) {
-            seed = static_cast<u64>(worldGen->get<long_tag>("seed"));
+    if (const auto* seedTag = data.findAs<long_tag>("RandomSeed")) {
+        seed = static_cast<u64>(seedTag->value);
+    } else if (const auto* worldGen = data.findAs<compound_tag>("WorldGenSettings")) {
+        if (const auto* seedTag = worldGen->findAs<long_tag>("seed")) {
+            seed = static_cast<u64>(seedTag->value);
         }
     }
 
@@ -209,13 +208,13 @@ Result<LevelSummaryData> JavaLevelDatReader::_parseSummary(const compound_tag& d
     mc::resource::ResourceLocation worldPresetId = _parseWorldPresetId(data);
 
     bool hardcore = false;
-    if (data.value.count("hardcore") != 0) {
-        hardcore = static_cast<bool>(data.get<byte_tag>("hardcore"));
+    if (const auto* tag = data.findAs<byte_tag>("hardcore")) {
+        hardcore = tag->value != 0;
     }
 
     bool allowCommands = false;
-    if (data.value.count("allowCommands") != 0) {
-        allowCommands = static_cast<bool>(data.get<byte_tag>("allowCommands"));
+    if (const auto* tag = data.findAs<byte_tag>("allowCommands")) {
+        allowCommands = tag->value != 0;
     }
 
     return LevelSummaryData(std::move(displayName),
@@ -251,48 +250,48 @@ Result<LevelRuntimeData> JavaLevelDatReader::_parseRuntimeData(const compound_ta
     }
 
     i64 gameTime = 0;
-    if (data.value.count("Time") != 0) {
-        gameTime = data.get<long_tag>("Time");
+    if (const auto* tag = data.findAs<long_tag>("Time")) {
+        gameTime = tag->value;
     }
 
     i64 dayTime = 0;
-    if (data.value.count("DayTime") != 0) {
-        dayTime = data.get<long_tag>("DayTime");
+    if (const auto* tag = data.findAs<long_tag>("DayTime")) {
+        dayTime = tag->value;
     }
 
     i32 clearWeatherTime = 0;
-    if (data.value.count("clearWeatherTime") != 0) {
-        clearWeatherTime = static_cast<i32>(data.get<int_tag>("clearWeatherTime"));
+    if (const auto* tag = data.findAs<int_tag>("clearWeatherTime")) {
+        clearWeatherTime = static_cast<i32>(tag->value);
     }
 
     i32 rainTime = 0;
-    if (data.value.count("rainTime") != 0) {
-        rainTime = static_cast<i32>(data.get<int_tag>("rainTime"));
+    if (const auto* tag = data.findAs<int_tag>("rainTime")) {
+        rainTime = static_cast<i32>(tag->value);
     }
 
     bool raining = false;
-    if (data.value.count("raining") != 0) {
-        raining = static_cast<bool>(data.get<byte_tag>("raining"));
+    if (const auto* tag = data.findAs<byte_tag>("raining")) {
+        raining = static_cast<bool>(tag->value);
     }
 
     i32 thunderTime = 0;
-    if (data.value.count("thunderTime") != 0) {
-        thunderTime = static_cast<i32>(data.get<int_tag>("thunderTime"));
+    if (const auto* tag = data.findAs<int_tag>("thunderTime")) {
+        thunderTime = static_cast<i32>(tag->value);
     }
 
     bool thundering = false;
-    if (data.value.count("thundering") != 0) {
-        thundering = static_cast<bool>(data.get<byte_tag>("thundering"));
+    if (const auto* tag = data.findAs<byte_tag>("thundering")) {
+        thundering = static_cast<bool>(tag->value);
     }
 
     bool initialized = false;
-    if (data.value.count("initialized") != 0) {
-        initialized = static_cast<bool>(data.get<byte_tag>("initialized"));
+    if (const auto* tag = data.findAs<byte_tag>("initialized")) {
+        initialized = static_cast<bool>(tag->value);
     }
 
     bool difficultyLocked = false;
-    if (data.value.count("DifficultyLocked") != 0) {
-        difficultyLocked = static_cast<bool>(data.get<byte_tag>("DifficultyLocked"));
+    if (const auto* tag = data.findAs<byte_tag>("DifficultyLocked")) {
+        difficultyLocked = static_cast<bool>(tag->value);
     }
 
     return LevelRuntimeData(std::move(summary),
@@ -334,8 +333,8 @@ Result<std::optional<PlayerSaveData>> JavaLevelDatReader::_parseLocalPlayer(cons
 WorldType JavaLevelDatReader::_parseWorldType(const compound_tag& data)
 {
     std::string generatorName;
-    if (data.value.count("generatorName") != 0) {
-        generatorName = data.get<string_tag>("generatorName");
+    if (const auto* tag = data.findAs<string_tag>("generatorName")) {
+        generatorName = tag->value;
     }
 
     if (generatorName == "flat") {
@@ -372,8 +371,8 @@ mc::resource::ResourceLocation JavaLevelDatReader::_parseWorldPresetId(const com
 
 GameMode JavaLevelDatReader::_parseGameMode(const compound_tag& data)
 {
-    if (data.value.count("GameType") != 0) {
-        i32 gameType = static_cast<i32>(data.get<int_tag>("GameType"));
+    if (const auto* tag = data.findAs<int_tag>("GameType")) {
+        const i32 gameType = static_cast<i32>(tag->value);
         switch (gameType) {
             case 0:
                 return GameMode::Survival;
@@ -392,8 +391,8 @@ GameMode JavaLevelDatReader::_parseGameMode(const compound_tag& data)
 
 Difficulty JavaLevelDatReader::_parseDifficulty(const compound_tag& data)
 {
-    if (data.value.count("Difficulty") != 0) {
-        i32 diff = static_cast<i32>(data.get<byte_tag>("Difficulty"));
+    if (const auto* tag = data.findAs<byte_tag>("Difficulty")) {
+        const i32 diff = static_cast<i32>(tag->value);
         switch (diff) {
             case 0:
                 return Difficulty::Peaceful;

@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 
+#include <cstddef>
 #include <iosfwd>
 #include <string_view>
 #include <nlohmann/json.hpp>
@@ -84,6 +85,18 @@ namespace mc::util::json {
  */
 [[nodiscard]] Result<std::string> getString(const nlohmann::json& value, std::string_view field);
 [[nodiscard]] Result<std::string> getString(const nlohmann::json& value);
+
+/**
+ * @brief 按下标取数组元素（必须类型匹配）
+ *
+ * 数组下标越界与类型不符都返回 Error，不抛 `out_of_range` / `type_error`。
+ */
+[[nodiscard]] Result<i32> getInt32At(const nlohmann::json& value, std::size_t index);
+[[nodiscard]] Result<f32> getFloat32At(const nlohmann::json& value, std::size_t index);
+[[nodiscard]] Result<f64> getFloat64At(const nlohmann::json& value, std::size_t index);
+[[nodiscard]] Result<bool> getBoolAt(const nlohmann::json& value, std::size_t index);
+[[nodiscard]] Result<std::string> getStringAt(const nlohmann::json& value, std::size_t index);
+[[nodiscard]] Result<const nlohmann::json&> getObjectAt(const nlohmann::json& value, std::size_t index);
 
 /**
  * @brief 取对象 / 数组的常量引用（必须类型匹配）
