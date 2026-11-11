@@ -1392,6 +1392,7 @@ add_executable(mc_tests
     common/world/gen/feature/template/test_template.cpp
     server/world/gen/feature/template/TemplateLoaderBedrockPaletteTest.cpp
     server/world/gen/feature/tree/MangroveRootPlacementTest.cpp
+    common/world/biome/BiomeSourceGetBiomesWithinTest.cpp
     common/world/gen/feature/template/TemplateEntityPlacementTest.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
     common/world/gen/feature/template/test_capped_processor.cpp
