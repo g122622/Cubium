@@ -855,17 +855,20 @@ void VillagerEntity::initializeBrain()
     //     3. 同步删掉 `VillagerHostilesSensor` 的注册——它写的是 `NEAREST_HOSTILE`，
     //        而全仓没有 task 读那个记忆，留着只是空转（若确认后续要用可保留）。
     //
-    //   【必须接受的语义差异】
-    //   `AvoidEntitySensor` 的判定是通用的（`MobFlagComponent`，即所有 MonsterEntity），
-    //   而村民那 8 个 Goal 是按精确白名单逐个配置的（僵尸/僵尸村民/劫掠兽/掠夺者/
-    //   唤魔者/卫道士/恼鬼/幻术师/疣猪兽，各带不同检测距离）。
-    //   换成通用传感器后，村民会开始躲避**所有**怪物，包括原版不躲的
-    //   （苦力怕/蜘蛛/骷髅等），且丢失"按距离分级"的差异。
+    //   【方案 B 是等价替换——已逐项核对】
+    //   `VillagerHostilesSensor` 的映射表（`Sensors.cpp:267`）与这 8 个 Goal 的谓词
+    //   **覆盖面完全一致**：zombie/drowned/husk/zombie_villager=8、evoker=12、
+    //   illusioner=12、pillager=15、ravager=12、vex=8、vindicator=10、hoglin=10。
+    //   两者都按精确白名单判定（均排除 zombified_piglin），距离也一一对应。
+    //   所以方案 B 不会扩张或收缩村民的躲避范围，是真正的等价替换。
     //
-    //   若要保持原版语义，正确做法是让 `VillagerHostilesSensor` 在写
-    //   `NEAREST_HOSTILE` 的同时也写 `AVOID_TARGET`（两处 set/remove 对称即可，
-    //   见该传感器 update 的 if/else 结构），这样既保留精确白名单，
-    //   又让 FleeTask 拿到它认识的记忆。**这条路比注册通用传感器更正确。**
+    //   走方案 B 后的净变化仅为：躲避的**驱动方**从 GoalSelector 换成 Brain 的
+    //   AVOID 活动。此时必须同步删掉那 8 个 `AvoidEntityGoal` 与 `PanicGoal`，
+    //   否则两套逻辑会同时驱赶同一个村民。
+    //
+    //   注意 `PanicGoal`（`addGoal(1, 0.5)`）与这 8 个 Goal 不是同一机制：它由
+    //   `HurtBySensor` 写 `HURT_BY` 触发，覆盖"任意伤害来源"而非特定怪物。
+    //   删它之前要确认 Brain 侧有等价路径，否则村民会失去受击后的短时逃跑。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(std::make_unique<FleeTask<VillagerEntity>>(1.0f, ai::goal::constants::AVOID_ESCAPE_RANGE),
