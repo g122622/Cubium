@@ -1042,7 +1042,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
         if (!newIsAir && blockTypeChanged && newState->getBlock().hasBlockEntity()) {
             Block& newBlock = newState->getBlockMutable();
 
-// 新方块声明保留旧方块实体（如铜箱子在氧化/涂蜡/除蜡/刮削时）。
+            // 新方块声明保留旧方块实体（如铜箱子在氧化/涂蜡/除蜡/刮削时）。
             // 判定由新方块做出：它检查旧状态是否属于自己兼容的方块族。
             std::unique_ptr<BlockEntity> migratedEntity;
             if (keepOldBlockEntity) {
