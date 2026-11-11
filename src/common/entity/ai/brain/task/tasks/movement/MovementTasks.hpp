@@ -540,6 +540,11 @@ private:
  * **并不存在**。
  * 两处需要补齐：(1) 某个消费方读取 HIDING_PLACE 并在抵达/危险解除后清除它；
  * 或 (2) 若这个记忆本就不需要跨 tick 保留，改成用完即 removeMemory。
+ *
+ * 已做过一次全目录系统扫描（条件：任务自己 setMemory 的某个记忆同时出现在它自己的
+ * VALUE_ABSENT 门槛里）：命中的只有 HIDING_PLACE、WALK_TARGET、BREED_TARGET 三项。
+ * 后两者各有 removeMemory（WALK_TARGET 8 处、BREED_TARGET 1 处）会正常清除，
+ * **只有 HIDING_PLACE 全仓 0 处清除**，因此是本目录内唯一的真自锁。
  */
 template <typename E>
 class FindHiddenBlockTask : public Task<E> {
