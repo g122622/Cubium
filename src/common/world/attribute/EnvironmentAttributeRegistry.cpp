@@ -90,6 +90,10 @@ Result<void> EnvironmentAttributeRegistry::_insertAttribute(std::string name, En
         }
     }
 
+    // 注意：调用方以 `_insertAttribute(std::move(entry.name), entry)` 传入，两个实参的求值顺序
+    // 未指定——`entry.name` 可能在被拷贝进形参之前就被搬空，导致入库条目的名字为空串
+    // （表现为按名查找永远失败，而注册计数照常递增）。因此这里一律以形参 `name` 为准。
+    entry.name = name;
     storage.attributeNamesByAddress.emplace(entry.attribute, entry.name);
     storage.attributes.emplace_back(std::move(entry));
     return Result<void>::ok();
