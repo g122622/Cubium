@@ -32,7 +32,6 @@
 // ============================================================================
 
 #include "server/world/gen/noise/Noises.hpp"
-#include "common/ScopedAssertThrowHandler.hpp"
 #include <thread>
 #include <vector>
 #include <gtest/gtest.h>
@@ -61,11 +60,9 @@ TEST(NoisesTest, HasReturnsFalseForNonexistentNoise)
 
 TEST(NoisesTest, GetAssertsForNonexistentNoise)
 {
-    // 未注册的噪声名现在通过 MC_ASSERT_RELEASE 处理（默认处理器终止进程），
-    // 这里临时改用抛出 AssertException 的处理器以验证断言路径。
-    test::ScopedAssertThrowHandler guard;
-
-    EXPECT_THROW(MC_UNUSED(Noises::get("minecraft:nonexistent")), assert::AssertException);
+    // 未注册的噪声名由 MC_ASSERT_RELEASE 触发默认处理器并终止进程；生产库以
+    // -fno-exceptions 编译，故用 EXPECT_DEATH 验证子进程终止（断言路径的真实契约）。
+    EXPECT_DEATH((void)Noises::get("minecraft:nonexistent"), "");
 }
 
 TEST(NoisesTest, GetReturnsValidReference)

@@ -22,7 +22,6 @@
  */
 
 #include "server/function/StringTemplate.hpp"
-#include "common/ScopedAssertThrowHandler.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -186,11 +185,9 @@ TEST_F(StringTemplateTest, Substitute_CountMismatch_Asserts)
     auto tmpl = _parseTemplate("say $(a) and $(b)");
     ASSERT_TRUE(tmpl.has_value());
 
-    // 实参个数与形参不一致属于调用方违约：默认断言终止进程，这里改用抛 AssertException
-    // 的处理器验证断言路径。
-    test::ScopedAssertThrowHandler guard;
-    EXPECT_THROW(MC_UNUSED(tmpl->substitute({"only_one"})), assert::AssertException);
-    EXPECT_THROW(MC_UNUSED(tmpl->substitute({"a", "b", "c"})), assert::AssertException);
+    // 实参个数与形参不一致属于调用方违约，默认断言终止进程；用 EXPECT_DEATH 验证子进程终止。
+    EXPECT_DEATH(MC_UNUSED(tmpl->substitute({"only_one"})), "");
+    EXPECT_DEATH(MC_UNUSED(tmpl->substitute({"a", "b", "c"})), "");
 }
 
 TEST_F(StringTemplateTest, Substitute_RepeatedVariable)

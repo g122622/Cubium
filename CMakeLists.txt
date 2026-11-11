@@ -502,8 +502,11 @@ if(MC_ENABLE_NO_EXCEPTIONS)
     if(MC_BUILD_SERVER)
         list(APPEND _mc_no_exception_targets minecraft-server)
     endif()
+    # 注意：mc_benchmark **故意不纳入**去异常范围。它含 benchmark/MemoryProfiler.cpp 里的
+    # 全局 operator new 替换（统计分配量、失败时 throw std::bad_alloc，并实现 nothrow 重载），
+    # 这套脚手架本质上依赖异常语义；它是压测工具而非交付产物，保留异常不影响可发布二进制。
     if(MC_BUILD_BENCHMARKS)
-        list(APPEND _mc_no_exception_targets mc_benchmark)
+        message(STATUS "  No exceptions: mc_benchmark excluded (custom operator new needs exceptions)")
     endif()
 
     # 灰度子集：显式指定时只对列出的 target 生效（仍会与上面求交集，避免写错 target 名静默生效）。

@@ -21,7 +21,6 @@
  *
  */
 
-#include "common/ScopedAssertThrowHandler.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/BooleanProperty.hpp"
@@ -227,16 +226,14 @@ TEST(IntegerPropertyTest, ParseValue)
 
 TEST(IntegerPropertyTest, InvalidRange)
 {
-    // 非法范围属于注册期的编程错误，现在由 MC_ASSERT_RELEASE 处理（默认处理器终止进程），
-    // 这里临时改用抛出 AssertException 的处理器以验证断言路径。
-    test::ScopedAssertThrowHandler guard;
-
-    // min < 0 应断言失败
-    EXPECT_THROW(MC_UNUSED(IntegerProperty::create("invalid1", -1, 5)), assert::AssertException);
+    // 非法范围属于注册期的编程错误，由 MC_ASSERT_RELEASE 触发默认处理器并终止进程。
+    // 生产库以 -fno-exceptions 编译，无法用「抛异常」观察断言，故改用 EXPECT_DEATH 验证
+    // 子进程按契约终止（与异常开关无关，才是断言路径的真实契约）。
+    EXPECT_DEATH(MC_UNUSED(IntegerProperty::create("invalid1", -1, 5)), "");
 
     // max <= min 应断言失败
-    EXPECT_THROW(MC_UNUSED(IntegerProperty::create("invalid2", 5, 5)), assert::AssertException);
-    EXPECT_THROW(MC_UNUSED(IntegerProperty::create("invalid3", 5, 3)), assert::AssertException);
+    EXPECT_DEATH(MC_UNUSED(IntegerProperty::create("invalid2", 5, 5)), "");
+    EXPECT_DEATH(MC_UNUSED(IntegerProperty::create("invalid3", 5, 3)), "");
 }
 
 TEST(IntegerPropertyTest, Equals)

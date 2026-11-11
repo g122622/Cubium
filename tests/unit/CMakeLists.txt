@@ -79,6 +79,7 @@ add_executable(mc_tests
     common/util/DirectionTest.cpp
     common/util/NumberParsingTest.cpp
     common/util/JsonReadTest.cpp
+    common/AssertExceptionSupport.cpp
     common/util/text/Utf8Test.cpp
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
@@ -2227,7 +2228,16 @@ target_compile_definitions(mc_tests
 # 复用 mc_common 的 PCH：mc_tests 是 TU 数最多的目标（约 1500 个），其中绝大多数都包含
 # common/ 头文件，先前完全没有 PCH，每个 TU 都要重新解析一遍标准库与项目头，是编译时间
 # 最大的单点开销。PCH 头内容与 common 侧一致，可直接复用。
-target_precompile_headers(mc_tests REUSE_FROM mc_common)
+#
+# 【例外】开启 MC_ENABLE_NO_EXCEPTIONS 时不能复用：PCH 与使用方的异常模式必须一致，
+# 否则 clang 报 "exception handling was disabled in precompiled file ... but is currently
+# enabled"。测试 target 故意保留异常（gtest 的 EXPECT_THROW 等依赖它），因此改为自带 PCH，
+# 用同样的头文件、按测试自己的选项重新编译一份。
+if(MC_ENABLE_NO_EXCEPTIONS)
+    target_precompile_headers(mc_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/common/pch/pch_common.hpp)
+else()
+    target_precompile_headers(mc_tests REUSE_FROM mc_common)
+endif()
 
 # RealPackGameTestServerFixture 会加载 tests/integrated 行为包跑 JS 测试，须保证 .js 产物已编译。
 # 复用 src/server/CMakeLists.txt 的 add_custom_command 产出的 stamp（路径约定一致），
