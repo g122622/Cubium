@@ -207,6 +207,15 @@ struct DestinationInfo {
             //   自行按维度重算目标坐标）之后再写入 `/tp` 显式指定的位置与朝向——
             //   注意它与玩家路径的语义差异：本函数用的是命令给定的坐标，不是传送门搜索出的坐标。
             //   同维度分支当前也仅走 TeleportManager（按 PlayerId），同样需要一条实体路径。
+            //
+            // 已核实可复用的现成东西（下次动手时直接用，不要重写）：
+            //   - 选择器 -> 实体：`support::EntityResolver::resolve(source, selector)` 返回
+            //     `std::vector<Entity*>`（已支持 @e / nbt= / predicate= 过滤），
+            //     ReplaceItemCommand 与 RotateCommand 就是这么用的；
+            //   - 跨维度搬迁：`IWorld::transferEntityToDimension(Entity&, DimensionId)`
+            //     已实现，且 EndPortalBlock 已在用它搬非玩家实体（猪等）。
+            //     注意它会自己按维度重算目标坐标，而 `/tp` 要的是命令给定坐标，
+            //     所以搬完之后还要再 setPosition/setRotation 一次。
             if (playerEntity->teleportToDimension(targetDim, position, rotation)) {
                 ++teleportedCount;
             }
