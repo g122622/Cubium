@@ -1150,6 +1150,8 @@ add_executable(mc_tests
     common/command/arguments/FunctionArgumentTest.cpp
     common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
+    common/command/arguments/SlotRangesTest.cpp
+    common/command/arguments/ItemSlotsArgumentTypeTest.cpp
     common/command/arguments/NbtPathTest.cpp
     # style 参数（SNBT 复合标签 → Style，供 /scoreboard ... numberformat styled 使用）
     common/command/arguments/StyleArgumentTest.cpp
