@@ -22,6 +22,7 @@
  */
 
 #include "NetherFortressPieces.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -1128,10 +1129,14 @@ void CastleEntrance::generate(IWorldWriter& world,
     setBlockState(world, bricks, 6, 0, 6, chunkBounds);
     const BlockPos lavaPos = worldPosOf(*this, 6, 5, 6);
     setBlockState(world, lavaState(), 6, 5, 6, chunkBounds);
-    // TODO: 原版在该处 scheduleTick(LAVA, 0)；生成期计划刻接口尚未接入片段层，
-    // 世界发布后再补（当前仅影响岩浆流动的起始时机，不影响结构形状）。
+    // 原版在此处 scheduleTick(LAVA, 0)：放完岩浆后立即调度一次流体刻，
+    // 让它在结构生成完成后就开始流动（而不是等下一次临接更新）。
+    // 生成期的 scheduleTick 不会立即执行：WorldGenRegion 的 TickManager 是
+    // DelegatingTickList，把它记录到 chunk primer，区块真正上线后才按 delay 执行。
+    if (auto* region = dynamic_cast<IWorld*>(&world); region != nullptr && VanillaBlocks::LAVA != nullptr) {
+        region->tickManager().scheduleBlockTick(lavaPos, *VanillaBlocks::LAVA, 0);
+    }
     MC_UNUSED(chunk);
-    MC_UNUSED(lavaPos);
 }
 
 // ============================================================================
