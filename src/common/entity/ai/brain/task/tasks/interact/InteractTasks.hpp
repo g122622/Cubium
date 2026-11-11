@@ -54,21 +54,6 @@ namespace brain {
 namespace task {
 namespace interact {
 
-// TODO(brain-interact-default-params): 本文件有 5 个任务构造函数带默认参数，
-//   违反项目规范「函数参数和配置结构体不允许使用和设置默认值」：
-//     VillagerInteractTask(f32 range = 3.0f) noexcept
-//     ProtectOwnerTask(f32 speed = 1.5f, f32 protectRange = 16.0f) noexcept
-//     PickupItemTask(f32 speed = 1.0f, f32 pickupRange = 1.5f) noexcept
-//     FollowParentTask(f32 speed = 1.0f, f32 followDistance = 4.0f) noexcept
-//     TemptTask(f32 speed = 1.0f, f32 range = 10.0f) noexcept
-//   注意 `action/ActionTasks.hpp` 与 `movement/MovementTasks.hpp` 的同类问题见各自的
-//   TODO；本文件与它们一并处理更合适，避免三次改动同一批调用点。
-//
-//   与 movement 那边不同，这 5 个任务目前**几乎没有生产调用点**：
-//   VillagerInteractTask 在 MEET 活动里被构造（但门槛 INTERACTION_TARGET 无写入方，
-//   所以实际不执行），其余 4 个目前只在 BrainInteractTaskTests.cpp 里以无参形式构造。
-//   因此去掉默认值的改动面远小于 action/movement，主要工作是补全测试里的显式传参。
-
 using namespace memory;
 
 /**
@@ -80,7 +65,7 @@ using namespace memory;
 template <typename E>
 class VillagerInteractTask : public Task<E> {
 public:
-    VillagerInteractTask(f32 range = 3.0f) noexcept
+    VillagerInteractTask(f32 range) noexcept
         : Task<E>({{MemoryModuleTypes::INTERACTION_TARGET, MemoryModuleStatus::VALUE_PRESENT},
                       {MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::REGISTERED}},
               30,
@@ -505,7 +490,7 @@ private:
 template <typename E>
 class ProtectOwnerTask : public Task<E> {
 public:
-    ProtectOwnerTask(f32 speed = 1.5f, f32 protectRange = 16.0f) noexcept
+    ProtectOwnerTask(f32 speed, f32 protectRange) noexcept
         : Task<E>({{MemoryModuleTypes::OWNER_HURT_BY, MemoryModuleStatus::VALUE_PRESENT},
                       {MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::REGISTERED}},
               60,
@@ -671,7 +656,7 @@ private:
 template <typename E>
 class PickupItemTask : public Task<E> {
 public:
-    PickupItemTask(f32 speed = 1.0f, f32 pickupRange = 1.5f) noexcept
+    PickupItemTask(f32 speed, f32 pickupRange) noexcept
         : Task<E>({{MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM, MemoryModuleStatus::VALUE_PRESENT}}, 20, 60)
         , m_speed(speed)
         , m_pickupRange(pickupRange)
@@ -828,7 +813,7 @@ private:
 template <typename E>
 class FollowParentTask : public Task<E> {
 public:
-    FollowParentTask(f32 speed = 1.0f, f32 followDistance = 4.0f) noexcept
+    FollowParentTask(f32 speed, f32 followDistance) noexcept
         : Task<E>({{MemoryModuleTypes::NEAREST_VISIBLE_ADULT, MemoryModuleStatus::VALUE_PRESENT}}, 60, 200)
         , m_speed(speed)
         , m_followDistance(followDistance)
@@ -994,7 +979,7 @@ private:
 template <typename E>
 class TemptTask : public Task<E> {
 public:
-    TemptTask(f32 speed = 1.0f, f32 range = 10.0f) noexcept
+    TemptTask(f32 speed, f32 range) noexcept
         : Task<E>({{MemoryModuleTypes::TEMPTING_PLAYER, MemoryModuleStatus::VALUE_PRESENT}}, 60, 200)
         , m_speed(speed)
         , m_range(range)

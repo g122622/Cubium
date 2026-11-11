@@ -713,7 +713,7 @@ void VillagerEntity::initializeBrain()
     //   再由某个传感器或任务写入该记忆；具体触发时机需对照原版村民社交逻辑确定。
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         1,
-        makeTasks(std::make_unique<VillagerInteractTask<VillagerEntity>>(),
+        makeTasks(std::make_unique<VillagerInteractTask<VillagerEntity>>(3.0f),
             std::make_unique<MoveToTargetTask<VillagerEntity>>(),
             std::make_unique<StrollTask<VillagerEntity>>(0.5f, 60)),
         {},

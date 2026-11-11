@@ -322,7 +322,7 @@ TEST_F(InteractTaskStatusTest, VillagerInteractTaskNoTarget)
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
-    interact::VillagerInteractTask<VillagerEntity> task;
+    interact::VillagerInteractTask<VillagerEntity> task(3.0f);
     mc::math::Random rng(42);
 
     // 没有 INTERACTION_TARGET 记忆 → 不应执行
@@ -336,7 +336,7 @@ TEST_F(InteractTaskStatusTest, TemptTaskNoPlayer)
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
-    interact::TemptTask<VillagerEntity> task;
+    interact::TemptTask<VillagerEntity> task(1.0f, 10.0f);
     mc::math::Random rng(42);
 
     // 没有 TEMPTING_PLAYER 记忆 → 不应执行
@@ -350,7 +350,7 @@ TEST_F(InteractTaskStatusTest, FollowParentTaskNoAdult)
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
-    interact::FollowParentTask<VillagerEntity> task;
+    interact::FollowParentTask<VillagerEntity> task(1.0f, 4.0f);
     mc::math::Random rng(42);
 
     // 没有 NEAREST_VISIBLE_ADULT 记忆 → 不应执行
