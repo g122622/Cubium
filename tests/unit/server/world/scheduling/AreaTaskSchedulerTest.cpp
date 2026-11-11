@@ -656,6 +656,46 @@ private:
     std::shared_ptr<_TaskProbe> m_probe;
 };
 
+// 执行期间取消且返回失败，强制覆盖计算池在 execute 返回后调用 onCancel 的路径。
+class _CancelDuringExecutionTask final : public ITask {
+public:
+    _CancelDuringExecutionTask(std::shared_ptr<_TaskProbe> probe, std::shared_ptr<std::atomic<bool>> signal)
+        : m_probe(std::move(probe))
+        , m_signal(std::move(signal))
+    {}
+
+    ~_CancelDuringExecutionTask() override
+    {
+        ++m_probe->destructs;
+    }
+
+    bool execute(const std::atomic<bool>&) override
+    {
+        ++m_probe->executes;
+        m_signal->store(true, std::memory_order::release);
+        return false;
+    }
+
+    void onCancel() override
+    {
+        ++m_probe->cancels;
+    }
+
+    TaskType type() const override
+    {
+        return TaskType::Custom;
+    }
+
+    std::string description() const override
+    {
+        return "CancelDuringExecution";
+    }
+
+private:
+    std::shared_ptr<_TaskProbe> m_probe;
+    std::shared_ptr<std::atomic<bool>> m_signal;
+};
+
 class AreaTaskSchedulerLifecycleTest : public ::testing::Test {
 protected:
     void SetUp() override
@@ -899,32 +939,26 @@ TEST_F(AreaTaskSchedulerLifecycleTest, ThrowingTaskAndCallbackStillReleaseRegion
 
 TEST_F(AreaTaskSchedulerLifecycleTest, ExecutedThenCancelledTaskIsCancelledOnlyOnce)
 {
-    // 计算池的取消与执行竞态：任务已执行完（任务体已释放）、尚未进入回调时被取消。调度器在该
-    // 路径上认领区域后必须看到「任务体已释放」，不能对空指针再调一次 onCancel。
-    UniversalWorkerPool pool{1, "AreaCancelRace", 900};
-    pool.start();
-    std::atomic<int> executions{0};
-    for (int round = 0; round < 200; ++round) {
-        AreaTaskScheduler scheduler(&pool);
-        scheduler.submit(
-            std::make_unique<FunctionTask>(
-                TaskType::Custom,
-                "ExecutedThenCancelled",
-                [&executions](const std::atomic<bool>&) -> bool {
-                    ++executions;
-                    return true;
-                },
-                "worker_pool"),
-            [](bool, ITask*) {},
-            ChunkPos(round, 0),
-            0,
-            TaskPriority::Normal,
-            nullptr);
-        scheduler.waitForCompletion();
-        scheduler.shutdown();
-    }
-    pool.shutdown();
-    EXPECT_EQ(executions.load(), 200);
+    auto probe = makeProbe();
+    auto signal = std::make_shared<std::atomic<bool>>(false);
+    scheduler.submit(
+        std::make_unique<_CancelDuringExecutionTask>(probe, signal),
+        [probe](bool success, ITask* body) {
+            EXPECT_FALSE(success);
+            EXPECT_NE(body, nullptr);
+            EXPECT_EQ(probe->cancels.load(), 1);
+            EXPECT_EQ(probe->destructs.load(), 0);
+            ++probe->callbacks;
+        },
+        ChunkPos(0, 0),
+        0,
+        TaskPriority::Normal,
+        signal);
+    scheduler.waitForCompletion();
+    EXPECT_EQ(probe->executes.load(), 1);
+    EXPECT_EQ(probe->cancels.load(), 1);
+    EXPECT_EQ(probe->destructs.load(), 1);
+    EXPECT_EQ(probe->callbacks.load(), 1);
 }
 
 TEST_F(AreaTaskSchedulerLifecycleTest, TaskBodyIsReleasedAtCompletionNotAtShutdown)
@@ -941,10 +975,8 @@ TEST_F(AreaTaskSchedulerLifecycleTest, TaskBodyIsReleasedAtCompletionNotAtShutdo
         TaskPriority::Normal,
         nullptr);
 
-    // 任务体在 execute 结束时就释放，而不必等调度器（服务器侧仍持有其引用）销毁。
-    for (int i = 0; i < 500 && probe->callbacks.load() == 0; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    // 完成语义包含回调和任务体释放，不必等调度器销毁。
+    scheduler.waitForCompletion();
     EXPECT_EQ(probe->callbacks.load(), 1);
     EXPECT_EQ(probe->destructs.load(), 1);
 }

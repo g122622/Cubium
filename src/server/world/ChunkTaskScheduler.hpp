@@ -80,7 +80,7 @@ public:
     /**
      * @brief 主调度入口：把 (x, z) 推进到 targetStatus（一次一步）
      *
-     * 调用者必须持有覆盖 `[x±accessRadius(targetStatus), z±accessRadius(targetStatus)]` 的区域锁。
+     * 调用者必须持有覆盖中心两倍最大访问半径的区域锁，保证递归邻居调度也被覆盖。
      *
      * @param x 区块 X
      * @param z 区块 Z
@@ -113,8 +113,11 @@ public:
      *
      * @param holder 完成任务的生命周期管理器
      * @param completedStatus 本次完成的状态
+     * @param task 仍存活的本次任务，用于身份校验
      */
-    void onChunkGenComplete(mc::world::chunk::SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus);
+    void onChunkGenComplete(mc::world::chunk::SingleChunkLifecycleManager& holder,
+        const ChunkStatus& completedStatus,
+        const ChunkProgressionTask& task);
 
     /**
      * @brief 任务失败回调（对齐 Moonrise：失败即不可恢复）
@@ -123,46 +126,14 @@ public:
      */
     void onChunkGenFailed(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
-    /**
-     * @brief 任务身份感知的失败回调
-     *
-     * 由 submitTask 回调调用。仅当 holder 仍在使用本次任务捕获的取消令牌、该令牌未被置位、
-     * 且确有进行中的生成任务时才执行失败处理（markFailed + clearGenerationTask + _failWaiters）。
-     *
-     * 不能以任务裸指针做身份比对：区域调度器在回调前已释放任务体，地址可能被后续调度的任务 B
-     * 复用，从而把 B 误判为本次任务。取消令牌则天然逐代唯一——cancelActiveWork 置位旧令牌，
-     * schedule→reviveForScheduling 为后继任务分配新令牌，因此「令牌已被置位」或「holder 已换用
-     * 新令牌」都精确表示本次任务已被取消/取代，此时 execute 返回 false 属正常取消而非失败：
-     *   - 任务 A 被取消后，cancelGeneration 已 clearGenerationTask（或后继任务 B 已 setGenerationTask(B)）
-     *   - 回调若仍走失败处理，会 markFailed 一个已取消或仍有活跃任务 B 的 holder（并清掉 B 的任务身份），
-     *     导致依赖图永久阻塞。
-     *
-     * 持调度锁做令牌比对与任务非空检查，消除 execute 返回与回调之间的 TOCTOU 窗口。
-     *
-     * @param holder 任务所属的生命周期管理器
-     * @param generationSignal 任务提交时捕获的取消令牌，用于身份比对
-     */
-    void onChunkGenFailed(mc::world::chunk::SingleChunkLifecycleManager& holder,
-        const std::shared_ptr<std::atomic<bool>>& generationSignal);
+    /** @brief 任务仍存活时按身份结清失败或取消，并失败依赖该任务的上游请求。 */
+    void onChunkGenFailed(mc::world::chunk::SingleChunkLifecycleManager& holder, const ChunkProgressionTask* task);
 
     /**
-     * @brief 取消 holder 的生成任务并清理依赖图（对齐 Moonrise cancelGenTask + onChunkGenComplete(null)）
+     * @brief 无活跃任务时双向摘除依赖并失败未完成请求。
      *
-     * 由 unloadChunkSync（holder 卸载）和 onCancel（任务被 abortSignal 取消）调用。
-     * 与 onChunkGenFailed 的关键区别：不 markFailed（取消不是失败，holder 可被重新创建并重新生成）。
-     *
-     * 清理步骤（持调度锁）：
-     *   1. clearGenerationTask（abortSignal 已由 cancelActiveWork 设置，运行中的任务检测到后 onCancel 调用本方法）
-     *   2. releaseNeighbourRefCounts：补偿释放任务未执行的邻居引用计数（任务取消时 onChunkGenComplete 未运行）
-     *   3. 出向依赖：遍历 m_blockingNeighbours（本 holder 等待的邻居），从每个邻居的 m_waitingNeighbours 移除本 holder
-     *   4. 入向依赖：遍历 m_waitingNeighbours（等本 holder 的邻居），从每个邻居的 m_blockingNeighbours 移除本 holder，
-     *      若邻居不再阻塞且有请求目标，重新调度邻居（邻居的 schedule→checkNeighbour 会通过 getOrCreateHolder
-     *      重建本 holder——旧的已从 m_lifecycleManagers 移除）
-     *   5. 清空本 holder 的 m_blockingNeighbours / m_waitingNeighbours
-     *   6. _failWaiters(takeAllWaiters)：通知请求等待者失败
-     *
-     * 清理后 isSafeToUnload 返回 true（依赖图空、无生成任务），holder 可安全卸载。
-     * 被解除阻塞的邻居通过 rescheduleChunk 重新推进（若仍有请求目标）。
+     * 卸载必须先复核安全性；关闭必须先等待执行器确认退出。禁止用此接口提前
+     * 清除活跃任务身份，带任务身份的取消回调负责释放任务及邻居保活。
      */
     void cancelGeneration(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
@@ -171,8 +142,7 @@ public:
      *
      * 只有任务身份仍匹配时才释放邻居引用和清除任务；最新需求在释放区域锁后重新调度。
      */
-    void cancelGeneration(
-        mc::world::chunk::SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task);
+    void cancelGeneration(mc::world::chunk::SingleChunkLifecycleManager& holder, const ChunkProgressionTask* task);
 
     /**
      * @brief 存档命中完成通知：解除等待该 holder 的邻居的阻塞并重新调度它们
@@ -345,14 +315,7 @@ private:
         std::pair<mc::world::chunk::SingleChunkLifecycleManager*, const mc::world::chunk::ChunkStatus*>>
     clearAllDependencyEdges(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
-    /**
-     * @brief 生成失败时摘除该 holder 的依赖边
-     *
-     * 与取消路径的差别：失败者已不可能再推进状态，因此被解除阻塞的等待者不需要重新调度
-     * （它们会立刻在 checkNeighbour 的失败邻居分支上再次阻塞）。详见实现处注释。
-     *
-     * @warning 调用方必须已持有 holder 的调度区域锁
-     */
+    /** @brief 逐持有者加锁，清除依赖并沿入向依赖传播失败；调用时不得持有调度区域锁。 */
     void _releaseDependencyEdgesOnFailure(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
@@ -371,17 +334,8 @@ private:
         const mc::world::chunk::ChunkStatus& completedStatus,
         std::vector<PendingReschedule>& pending);
 
-    /**
-     * @brief 释放邻居引用计数
-     *
-     * 任务完成后，遍历该步的邻居读取半径范围，对每个使用的邻居调用 removeNeighbourUsingChunk。
-     * 与 scheduleStatusStep 中的 addNeighbourUsingChunk 一一对应。
-     *
-     * @param holder 完成任务的生命周期管理器
-     * @param completedStatus 本次完成的状态
-     */
-    void releaseNeighbourRefCounts(
-        mc::world::chunk::SingleChunkLifecycleManager& holder, const mc::world::chunk::ChunkStatus& completedStatus);
+    /** @brief 释放实际登记的全部邻居保活，覆盖依赖等待及任务执行期间。 */
+    void releaseNeighbourRefCounts(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
      * @brief 创建 EMPTY 加载任务（从存档加载或新建空 Primer）

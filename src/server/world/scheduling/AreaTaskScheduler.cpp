@@ -20,6 +20,8 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         u64 id;
         util::TaskPriority priority;
         std::unique_ptr<util::ITask> body;
+        util::TaskType type;
+        std::string description;
         util::TaskCallback callback;
         std::shared_ptr<std::atomic<bool>> abortSignal;
         std::vector<u64> keys;
@@ -63,56 +65,32 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         {
             m_claimed = m_state->_claim(m_dispatch);
             if (!m_claimed) {
-                // 资格已被撤回：任务体由调度器在 _dispatch 中释放。
                 return false;
             }
-            m_type = m_dispatch.task->body->type();
-            m_description = m_dispatch.task->body->description();
-            // 任务体抛异常时 worker 池会捕获并转成失败回调，但异常路径会跳过下面的
-            // releaseBody()。若此时不释放，任务体将活到 _finish 的断言之后，既不满足
-            // 「完成即释放」的时序约定，也让区域锁释放在断言处中断。
-            try {
-                const bool success = m_dispatch.task->body->execute(abortSignal);
-                releaseBody();
-                return success;
-            }
-            catch (...) {
-                releaseBody();
-                throw;
-            }
+            // 计算池在 execute 返回后才决定是否调用 onCancel。任务体必须保留到这次
+            // 决定完成，否则执行期间收到取消的任务会丢失取消收尾及其持有的依赖引用。
+            return m_dispatch.task->body->execute(abortSignal);
         }
 
         void onCancel() override
         {
             if (!m_claimed) {
-                // 计算池的取消发生在执行之前（出队时发现已取消）：这里认领区域后立即取消任务体。
-                // 此前该分支直接调用 onCancel 而未经 claim，任务体自然也没登记，而执行路径
-                // 结束时已经释放过任务体——认领后就是第二次取消一个已释放的任务体（UBSan 空指针）。
-                // 认领时登记任务体，完成/取消的释放点因此统一。
                 m_claimed = m_state->_claim(m_dispatch);
-                if (m_claimed) {
-                    _cancelBody(m_dispatch.task);
-                    releaseBody();
-                }
+            }
+            if (m_claimed) {
+                _cancelBody(m_dispatch.task);
             }
         }
 
-        /// 任务体释放后，计算池仍会在回调整段查询类型与描述（日志/追踪），
-        /// 故执行前先缓存一份，不能转发到已释放的任务体。
+        // 旧执行凭证可能在任务完成或取消后才被计算池取出，元数据必须独立于任务体。
         util::TaskType type() const override
         {
-            if (m_dispatch.task->body != nullptr) {
-                return m_dispatch.task->body->type();
-            }
-            return m_type;
+            return m_dispatch.task->type;
         }
 
         std::string description() const override
         {
-            if (m_dispatch.task->body != nullptr) {
-                return m_dispatch.task->body->description();
-            }
-            return m_description;
+            return m_dispatch.task->description;
         }
 
         bool claimed() const
@@ -120,59 +98,15 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             return m_claimed;
         }
 
-        /// 任务体自身持有的世界数据（光照任务的 provider 保活 5×5 区块等）随任务体存放。
-        /// 任务一结束（完成或取消）就经此释放，而不是等调度器的最后一个引用消失：世界关闭时
-        /// 服务器侧的 shared_ptr 仍在，若等到那一步再析构任务体，其释放的区块数据惯常先于
-        /// 世界析构，且析构时机落到另一条调用链的上下文里。
-        /// 注销登记后由本对象在此销毁任务体：唯一延迟到这里的窗口是 execute 之后、回调之前，
-        /// 由 shutdown 的补收兜底，因此任务体的销毁时机不会逃出调度器。
-        void releaseBody() noexcept
-        {
-            m_state->unregisterBody(m_dispatch.task);
-            m_dispatch.task->body.reset();
-        }
-
     private:
         std::shared_ptr<State> m_state;
         Dispatch m_dispatch;
         bool m_claimed = false;
-        /// 执行前从任务体抄下的类型与描述：任务体释放后计算池仍会查询它们做日志与追踪。
-        util::TaskType m_type = util::TaskType::Custom;
-        std::string m_description;
     };
 
     explicit State(util::UniversalWorkerPool* pool)
         : executor(pool)
     {}
-
-    /// 仍持有未释放任务体的任务（进行执行或取消收尾的任务）。释放点分散在调度器锁外
-    /// （DispatchTask::execute/onCancel、_cancelPending），任务体之前统一在此登记；
-    /// 调度器关闭时据此补收，保证所有任务体都在 shutdown 返回前析构。
-    void registerBody(const TaskPtr& task)
-    {
-        std::lock_guard lock(bodiesMutex);
-        pendingBodies.insert(task);
-    }
-
-    void unregisterBody(const TaskPtr& task) noexcept
-    {
-        std::lock_guard lock(bodiesMutex);
-        pendingBodies.erase(task);
-    }
-
-    /// 补收尚未释放的任务体（调度器关闭时调用，此时不允许再有任务结束）。
-    void releaseRemainingBodies()
-    {
-        std::vector<TaskPtr> remaining;
-        {
-            std::lock_guard lock(bodiesMutex);
-            remaining.assign(pendingBodies.begin(), pendingBodies.end());
-            pendingBodies.clear();
-        }
-        for (TaskPtr& task : remaining) {
-            task->body.reset();
-        }
-    }
 
     static void _cancelBody(const TaskPtr& task)
     {
@@ -262,7 +196,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         }
         MC_ASSERT_RELEASE(task->waiting == 0);
         task->phase = Phase::Running;
-        registerBody(task);
+        MC_ASSERT_RELEASE(task->body != nullptr);
         for (const u64 key : task->keys) {
             auto& position = positions.at(key);
             MC_ASSERT_RELEASE(position.running == nullptr);
@@ -284,9 +218,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
                 pool = executor;
             }
             if (!stillScheduled) {
-                // 资格已被更高优先级任务撤回。任务体必须在锁外释放：其析构会连带销毁
-                // 任务持有的世界数据（如光照任务保活的区块）。
-                dispatch.task->body.reset();
+                // 仅执行凭证失效，任务仍可能等待重新分发；旧凭证不能销毁它的任务体。
                 continue;
             }
             if (pool == nullptr || !pool->isRunning()) {
@@ -312,16 +244,10 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
     void _finish(const Dispatch& dispatch, bool success)
     {
         const TaskPtr& task = dispatch.task;
-        // 回调可能继续提交本区域任务，必须在锁外调用；当前任务仍占据区域至回调完成。
-        // 任务体已在 DispatchTask::execute 结束时释放，这里 callback 拿到的是空指针。
+        // 失败回调可能仍需按任务身份结清生成状态；回调返回后才能销毁任务体。
+        // 当前任务在回调期间继续占据区域，关闭必须等待释放和回调全部完成。
         _callback(task, success);
-        // 回调是 DispatchTask 的最后一个使用点，随后计算池会销毁它。任务体此时应当已经释放，
-        // 否则会随 DispatchTask 一起销毁，时机就逃出调度器（关服时正是这样落到世界析构链上）。
-        // 在 worker 线程无法安全抛错（断言只输出、不中止），漏释放由 shutdown 的补收兜底。
-        if (task->body != nullptr) {
-            spdlog::critical("[AreaTaskScheduler] task {} finished with body still alive", task->id);
-        }
-        MC_ASSERT_RELEASE_MSG(task->body == nullptr, "AreaTaskScheduler: task body must be released by completion");
+        task->body.reset();
         std::vector<Dispatch> ready;
         {
             std::lock_guard lock(mutex);
@@ -364,7 +290,6 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         for (auto& task : cancelled) {
             _cancelBody(task);
             _callback(task, false);
-            // 任务已结清，立即释放任务体（与运行完成路径同一释放点）。
             task->body.reset();
             std::lock_guard lock(mutex);
             MC_ASSERT_RELEASE(outstanding > 0);
@@ -376,8 +301,6 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
     }
 
     std::mutex mutex;
-    std::mutex bodiesMutex; ///< 保护 pendingBodies；与 mutex 分开，避免释放任务体时夹带调度器锁
-    std::set<TaskPtr> pendingBodies;
     std::condition_variable completion;
     util::UniversalWorkerPool* executor;
     bool stopped = false;
@@ -421,6 +344,8 @@ u64 AreaTaskScheduler::submit(std::unique_ptr<util::ITask> body,
 {
     MC_ASSERT_RELEASE(body != nullptr);
     auto task = std::make_shared<State::Task>();
+    task->type = body->type();
+    task->description = body->description();
     task->body = std::move(body);
     task->callback = std::move(callback);
     task->priority = priority;
@@ -450,6 +375,7 @@ u64 AreaTaskScheduler::submit(std::unique_ptr<util::ITask> body,
     if (!accepted) {
         State::_cancelBody(task);
         State::_callback(task, false);
+        task->body.reset();
         return 0;
     }
     m_state->_dispatch(ready);
@@ -478,8 +404,6 @@ void AreaTaskScheduler::shutdown()
 {
     m_state->_cancelPending(true, 0);
     waitForCompletion();
-    // 所有任务与回调均已结束：补收任何尚未释放的任务体，使本调度器不再连带持有世界数据。
-    m_state->releaseRemainingBodies();
 }
 
 size_t AreaTaskScheduler::pendingTaskCount() const
