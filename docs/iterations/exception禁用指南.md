@@ -204,8 +204,8 @@
 8. 测试（42 个文件）改为断言 `Result` 失败而不是 `EXPECT_THROW`；测试 target 保留异常，
    但调用点必须改，否则编译不过。
 
-**语法校验手段（本轮新增，强烈建议沿用）**：`/tmp/dsh_syn.cxx.sh <file.cpp>` 会从
-`build/compile_commands.json` 取该文件的真实编译参数、去掉 `-o/-c/-Xclang -include-pch`
+**语法校验手段（本轮新增，强烈建议沿用）**：`./scripts/diag/syntax-check/syntax_check.sh <file.cpp>`
+会从 `build/compile_commands.json` 取该文件的真实编译参数、去掉 `-o/-c/-Xclang -include-pch`
 等（注意 `-Xclang -include` 要跳 4 个 token，跳 3 个会把 pch 路径当成输入文件）后加
 `-fsyntax-only` 编译单文件。**不需要整项目构建**就能拿到真实类型错误，非常适合这种
 「不能构建但要保证正确性」的迁移。

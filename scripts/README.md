@@ -20,6 +20,9 @@ scripts/
 ├── tidy/                        # clang-tidy wrapper
 │   ├── tidy.sh                  # Linux：直接使用 compile_commands.json
 │   └── tidy.ps1                 # Windows：注入 MSVC / Windows SDK / vcpkg 头文件路径
+├── diag/
+│   └── syntax-check/
+│       └── syntax_check.sh      # 单文件语法检查：复用 compile_commands.json 参数，加 -fsyntax-only 不产出 .o
 ├── iwyu/                        # clang-include-cleaner 工具
 │   ├── iwyu.sh / iwyu.ps1       # 只打印 include 建议，供人工 review
 │   ├── fix_includes.ts          # 全仓库自动增删 include（支持 dry-run）
