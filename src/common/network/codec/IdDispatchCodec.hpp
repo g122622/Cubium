@@ -123,10 +123,12 @@ public:
      *
      * 未登记的 id 返回 ProtocolError（调用方可按需跳过该包，保留连接）。
      *
-     * 异常兜底：解码路径直接面对**不可信字节**，而它依赖的存量库（如 util/nbt 的
-     * NBT 解析器）以异常报错。任何逃逸到这里的异常都会让进程直接终止——即畸形报文
-     * 可远程打崩服务端（fuzz 实测：非法 NBT tag id 触发 std::out_of_range）。
+     * 异常兜底：解码路径直接面对**不可信字节**，而部分第三方依赖（nlohmann-json、simdjson）
+     * 仍以异常报错。任何逃逸到这里的异常都会让进程直接终止——即畸形报文可远程打崩服务端。
      * 故在唯一的分发点上统一把异常转成协议错误，使各包 codec 无需各自防御。
+     *
+     * TODO: 第三方库改为非抛出调用（nlohmann `json::parse(..., nullptr, false)`、
+     *       simdjson 错误码 API）后删除本 try/catch，使解码路径完全无异常。
      */
     [[nodiscard]] Result<Variant> decode(B& buf) const
     {

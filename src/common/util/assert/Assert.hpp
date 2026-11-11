@@ -151,15 +151,33 @@ private:
  */
 [[noreturn]] void defaultAssertHandler(const AssertFailure& failure);
 
+// ============================================================================
+// 编译期能力探测
+// ============================================================================
+
+/// 当前编译单元是否启用 C++ 异常（`-fno-exceptions` 下未定义 `__cpp_exceptions`）
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+#define MC_ASSERT_WITH_EXCEPTIONS 1
+#else
+#define MC_ASSERT_WITH_EXCEPTIONS 0
+#endif
+
+#if MC_ASSERT_WITH_EXCEPTIONS
+
 /**
  * @brief 异常断言处理器
  *
- * 抛出 AssertException
+ * 抛出 AssertException。**仅在启用 C++ 异常的构建中可用**：生产 target 计划以
+ * `-fno-exceptions` 编译，此时断言一律走 defaultAssertHandler（输出诊断并 abort），
+ * 异常处理器与之相关的类整体不参与编译。
  */
 [[noreturn]] void throwAssertHandler(const AssertFailure& failure);
 
 /**
  * @brief 断言异常
+ *
+ * 仅用于**测试**：断言默认会终止进程，测试想用 `EXPECT_THROW` 验证断言路径时，
+ * 需要把处理器临时换成抛本异常的实现（见 tests/unit/common/ScopedAssertThrowHandler.hpp）。
  */
 class AssertException : public std::exception {
 public:
@@ -179,6 +197,8 @@ private:
     AssertFailure m_failure;
     std::string m_what;
 };
+
+#endif // MC_ASSERT_WITH_EXCEPTIONS
 
 // ============================================================================
 // 断言帮助函数

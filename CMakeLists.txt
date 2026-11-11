@@ -57,6 +57,16 @@ option(MC_BUILD_FUZZERS "Build libFuzzer protocol fuzz targets (tests/fuzz)" OFF
 # 一致性验证流程。开启后目标仍为 EXCLUDE_FROM_ALL，须显式 --target diff_probes 构建。
 option(MC_BUILD_DIFF_PROBES "Build differential probes (tests/diff)" OFF)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for the CI sanitizer builds" OFF)
+# 生产 target 禁用 C++ 异常（-fno-exceptions，Windows 另需 _HAS_EXCEPTIONS=0）。
+#
+# 默认 OFF，因为**命令子系统的去异常化尚未完成**（StringReader / ArgumentType /
+# CommandDispatcher 仍以异常表达解析失败）。该子系统的改造是最后一步：它需要先确定
+# 「错误如何携带 CommandErrorType + 游标」的载体，再改约 180 处调用点。
+#
+# 打开后：生产 target 的断言一律走 defaultAssertHandler（abort + 诊断输出），
+# tests target 仍保留异常（gtest 的 EXPECT_THROW 与 ScopedAssertThrowHandler 依赖它）。
+# 详见 docs/iterations/exception禁用指南.md。
+option(MC_ENABLE_NO_EXCEPTIONS "Compile production targets with -fno-exceptions" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
 # Tracy 默认关闭：它带来可观的常驻内存开销，且不经系统 malloc（无法用常规手段观测）。
@@ -460,6 +470,37 @@ if(MC_BUILD_DIFF_PROBES)
     # 差分测试探针。同样 EXCLUDE_FROM_ALL，须显式 --target diff_probes。
     # 构建与运行方式见 tests/diff/README.md。
     add_subdirectory(tests/diff)
+endif()
+
+# ============================================================================
+# 去异常化开关（MC_ENABLE_NO_EXCEPTIONS）
+# ============================================================================
+#
+# 只作用于**生产 target**：test target 必须保留异常（gtest 的 EXPECT_THROW、
+# tests/unit/common/ScopedAssertThrowHandler.hpp 都依赖它）。
+# 不能放进顶层 add_compile_options：那会连测试一起禁用异常，导致测试目标编译失败。
+if(MC_ENABLE_NO_EXCEPTIONS)
+    set(_mc_no_exception_targets mc_common)
+    if(MC_BUILD_SERVER)
+        list(APPEND _mc_no_exception_targets minecraft-server)
+    endif()
+    if(MC_BUILD_BENCHMARKS)
+        list(APPEND _mc_no_exception_targets mc_benchmark)
+    endif()
+
+    foreach(_mc_target IN LISTS _mc_no_exception_targets)
+        if(TARGET ${_mc_target})
+            target_compile_options(${_mc_target} PRIVATE -fno-exceptions)
+            if(MSVC)
+                # MSVC 的 STL 用 _HAS_EXCEPTIONS 控制内部 throw；-fno-exceptions 不会自动置位，
+                # 不定义时 STL 头文件自身会编译失败（见 docs/iterations/exception禁用指南.md）。
+                target_compile_definitions(${_mc_target} PRIVATE _HAS_EXCEPTIONS=0)
+            endif()
+        endif()
+    endforeach()
+    message(STATUS "  No exceptions:  ON (production targets only)")
+else()
+    message(STATUS "  No exceptions:  OFF")
 endif()
 
 # 安装配置

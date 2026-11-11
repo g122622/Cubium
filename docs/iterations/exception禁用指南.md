@@ -136,7 +136,34 @@
 
 ---
 
-## 七、建议路线图
+## 七、执行进度（滚动更新）
+
+| 阶段 | 状态 | 落地内容 |
+| --- | --- | --- |
+| 0. 低风险断言化 | ✅ 完成 | property/ServerWorld/维度/storage/registry/噪声/杂项共约 40 处改断言；删除 `RateLimiter`、`loot::registryOf`、storage 的 const `_sectionManager`/`_hasSectionManager` 等死代码 |
+| 1. Result 契约 | ✅ 完成 | `Result.hpp` 6 处 `value()` 改断言（消息带原始错误）；审计全库 try 块内 `.value()`，确认无调用点依赖异常 |
+| 2 + 3. NBT | ✅ 完成（合并实施） | 直接对 NBT 库 Result 化，未采用"薄封装"过渡：`NbtInternal`/`Nbt.hpp`/`Nbt.cpp` 内 `throw` 归零，`operator>>(compound_tag&)` 改为 `readCompoundInto`，`parseMojangson` 返回 `Result`；22 处读取调用点全部改为检查 `failed()` |
+| 4. 函数/宏 | ✅ 完成 | `StringTemplate`/`MacroFunction` 改 `Result`，删除 `FunctionInstantiationException` |
+| 5. 隐式异常源 | 🟡 部分完成 | `std::sto*`（18 文件）全部换为 `util::parseXxx`（from_chars）；`std::regex` 全部移除（改逐字符判定 + `util::isValidIpv4`）；`std::any_cast` 全部改指针形式。**未做**：`.at()`（libc++ 在 `-fno-exceptions` 下已退化为 abort，不阻塞编译）、`filesystem` 抛异常重载、`dynamic_cast<T&>`、`std::future` |
+| 6. 第三方隔离 | ⬜ 未开始 | nlohmann 非抛出解析（434 文件）、spdlog/asio 配置、simdjson 错误码 API |
+| 7. 开关就绪 | 🟡 部分完成 | 已加 `MC_ENABLE_NO_EXCEPTIONS` 选项（只作用于生产 target，测试保留异常）；`AssertException`/`throwAssertHandler` 已按 `__cpp_exceptions` 条件编译。**未做**：清空头文件剩余 throw（几乎全在命令子系统） |
+| 8. 命令子系统 | ⬜ 未开始 | 剩余头文件 `throw` 约 66 处全部集中在这里（`GameModeArgument` 24、`StringReader` 14、`ArgumentType` 12 等） |
+
+### 阶段 8 待决的设计问题
+
+命令子系统不能用现有 `Error` 直接替代 `CommandException`：解析错误需要携带
+`CommandErrorType`（决定翻译键/客户端提示）与**游标位置**（客户端高亮出错处），
+而 `Error` 目前只有 `code`/`message`/`source` 三个字符串字段。三种候选：
+
+1. 给 `mc::Error` 增加可选的 `i32 offset` 与错误类别字段（全局影响 `Result`，但保持单一错误类型）；
+2. 为命令子系统引入专用错误类型并配 `Result` 特化（与"统一 Result/Error 体系"冲突）；
+3. 保持 `CommandException` 作为**值类型**（不再 throw），用 `Result<T>` + 该类型做 payload。
+
+需先定方案，再动约 180 处调用点与 42 个测试文件。
+
+---
+
+## 八、建议路线图（原始估算）
 
 | 阶段                        | 内容                                                                                                                                | 规模                   | 预估       |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------- |
@@ -158,7 +185,7 @@
 
 ---
 
-## 八、结论
+## 九、结论
 
 - **技术上完全可行**，但 `-fno-exceptions` 的难点不在 219 处 `throw`，而在 **113 处头文件 throw + 208 个 try 块 + 4 个第三方库 + 约 900 处隐式抛异常的标准库 API**。
 - **性价比最高的第一批**是阶段 0+1+2（约 50 处改动，2–4 天），能立刻消除"编程错误静默/异常逃逸"问题，并为后续铺路。

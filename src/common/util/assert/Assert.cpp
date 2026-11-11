@@ -199,8 +199,10 @@ std::string AssertManager::captureStackTrace() const
     std::abort();
 }
 
+#if MC_ASSERT_WITH_EXCEPTIONS
+
 // ============================================================================
-// 异常断言处理器
+// 异常断言处理器（仅启用异常时编译）
 // ============================================================================
 
 [[noreturn]] void throwAssertHandler(const AssertFailure& failure)
@@ -226,6 +228,8 @@ AssertException::AssertException(const AssertFailure& failure)
 
     m_what = oss.str();
 }
+
+#endif // MC_ASSERT_WITH_EXCEPTIONS
 
 // ============================================================================
 // 帮助函数

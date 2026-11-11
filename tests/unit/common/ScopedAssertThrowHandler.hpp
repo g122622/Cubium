@@ -25,6 +25,10 @@
 
 #include "common/util/assert/AssertAll.hpp"
 
+#if !MC_ASSERT_WITH_EXCEPTIONS
+#error "ScopedAssertThrowHandler requires C++ exceptions; tests must be built with exceptions enabled"
+#endif
+
 namespace mc::test {
 
 /**
