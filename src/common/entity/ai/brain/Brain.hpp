@@ -425,20 +425,26 @@ private:
      * 每 20 ticks 查询一次时间线。采样器按 tick 缓存采样结果，
      * 同一 tick 内的多次查询会复用该结果。
      *
-     * 时间采样之后再由 _tryEventActivity() 叠加一层条件选择：注册时带非空
-     * requirements 的活动（如 Villager 的 FIGHT / RAID / AVOID / HIDE / PANIC）
-     * 只要依赖的记忆就绪，就会按优先级压过时间线活动。
+     * 顺序很关键：**先**处理事件活动，只有当前没有任何事件活动满足时才应用时间线。
+     * 反过来写（先时间线再事件）会导致每 20 tick 来回切两次：
+     * 事件活动激活时 m_activities 里只有 {默认活动, 事件活动}，时间线活动的
+     * hasActivity 为假，于是先 switchTo(时间线活动)、紧接着又 switchTo(事件活动)，
+     * 每次 switchTo 都会清空 m_activities 并按 memoriesToForget 清理记忆——
+     * 相当于每 20 tick 把任务的记忆抹掉两轮，任务永远跑不完。
      */
     void _updateActivity(i32 dayTime, i64 gameTime)
     {
         if (m_timelinePtr && gameTime - m_lastGameTime > 20) {
             m_lastGameTime = gameTime;
             m_currentDayTime = dayTime;
+            // 事件活动优先：它已经在跑就不要再被时间线打断。
+            if (_tryEventActivity()) {
+                return;
+            }
             auto scheduledActivity = m_activitySampler->applyTimeBased(schedule::Activity::IDLE, gameTime);
             if (!hasActivity(scheduledActivity)) {
                 switchTo(scheduledActivity);
             }
-            _tryEventActivity();
         }
     }
 
@@ -453,13 +459,16 @@ private:
      * 已按数值有序），不需要另存映射。
      *
      * 抢占语义：事件活动一旦满足就压过时间线活动；等它的记忆不再满足时，
-     * 下一次时间线采样会重新把时间线活动切回来（见 _updateActivity 的前半段）。
+     * 本方法返回 false，调用方随即按时间线采样把时间线活动切回来。
      * 这与原版"按 schedule 整体重算"的方向一致，不是压栈-弹栈模型。
      *
      * 调用频率：只在 _updateActivity 的 20 tick 节流内调用，避免每 tick
      * 触发 switchTo（它会清空 m_activities 并清理 memoriesToForget）。
+     *
+     * @return true 表示当前有事件活动在生效（已切换过去或本来就在跑），
+     *         此时调用方不应再用时间线活动覆盖它。
      */
-    void _tryEventActivity()
+    bool _tryEventActivity()
     {
         for (const auto& [priority, activityMap] : m_tasks) {
             for (const auto& [activity, taskSet] : activityMap) {
@@ -467,12 +476,18 @@ private:
                 if (m_requiredMemoryStates.find(activity) == m_requiredMemoryStates.end()) {
                     continue;
                 }
-                if (!hasActivity(activity) && _hasRequiredMemories(activity)) {
-                    switchTo(activity);
-                    return;
+                if (!_hasRequiredMemories(activity)) {
+                    continue;
                 }
+                // 已经在跑就保持不动，避免每次节流都重复 switchTo。
+                if (hasActivity(activity)) {
+                    return true;
+                }
+                switchTo(activity);
+                return true;
             }
         }
+        return false;
     }
 
     /**
