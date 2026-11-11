@@ -856,11 +856,15 @@ public:
 
     /**
      * @brief 添加速度增量
+     *
+     * 外部冲量（爆炸冲击、近战击退、抛飞、气泡柱、载具推挤等）统一经此入口写入速度。
+     * 声明为虚函数以支持运动免疫实体：潜影贝恒不受外部冲量影响，重写为空操作。
+     *
      * @param dx X方向增量
      * @param dy Y方向增量
      * @param dz Z方向增量
      */
-    void addVelocity(f32 dx, f32 dy, f32 dz)
+    virtual void addVelocity(f32 dx, f32 dy, f32 dz)
     {
         m_builtIn.velocity->m_velocity.x += dx;
         m_builtIn.velocity->m_velocity.y += dy;

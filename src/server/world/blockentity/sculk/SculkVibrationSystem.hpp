@@ -142,7 +142,9 @@ private:
 /**
  * @brief 幽匿尖啸体的 VibrationSystem::User 实现
  *
- * 配置检测半径为 8 格，仅响应 SHRIEK 事件。
+ * 配置检测半径为 8 格，只监听 `minecraft:shrieker_can_listen` 标签（幽匿感测体的
+ * tendrils clicking）。玩家踩踏的触发不经过振动系统：SculkShriekerBlock::onEntityWalk
+ * 发出 SHRIEK 事件后由 ServerWorld::gameEvent 直接调用 tryShriek（等价原版 stepOn）。
  */
 class SculkShriekerVibrationUser : public gameevent::VibrationSystem::User {
 public:
@@ -165,6 +167,8 @@ public:
     {
         return m_positionSource;
     }
+
+    [[nodiscard]] const gameevent::GameEventTag& getListenableEvents() const override;
 
     [[nodiscard]] bool canReceiveVibration(ServerWorld& world,
         const BlockPos& pos,

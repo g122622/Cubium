@@ -133,14 +133,12 @@ public:
      * @brief 是否在状态变更时保留方块实体
      *
      * 铜箱子在氧化/涂蜡/除蜡/刮削导致方块类型变化时，需要保留方块实体
-     * （物品内容、自定义名称等不丢失）。返回 true 表示当前方块是铜箱子，
-     * 应当保留方块实体。
+     * （物品内容、自定义名称等不丢失）。
+     *
+     * @param state 变换前的旧方块状态
+     * @return 旧状态同属铜箱子族（全部 8 个变体）时返回 true
      */
-    [[nodiscard]] bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
+    [[nodiscard]] bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept override;
 
     // ========== 移除处理 ==========
 

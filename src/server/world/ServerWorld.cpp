@@ -96,6 +96,7 @@
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
@@ -120,6 +121,7 @@
 #include "server/network/sync/ChunkSendManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/RuntimeLightingProvider.hpp"
+#include "server/world/blockentity/sculk/SculkShriekerHelper.hpp"
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/blockevent/BlockEventData.hpp"
 #include "server/world/gen/FeaturePlacer.hpp"
@@ -336,8 +338,6 @@ Result<size_t> ServerWorld::saveDirtyChunks(bool sync)
 
 void ServerWorld::shutdown()
 {
-    // TEMP-DIAG：定位关服崩溃（验证后回退）。
-    spdlog::info("DIAG world(dim={}): shutdown enter", static_cast<i32>(m_config.dimension));
     if (!m_initialized && m_chunkManager == nullptr && m_weatherManager == nullptr && m_lightManager == nullptr &&
         m_tickManager == nullptr && m_physicsEngine == nullptr && m_collisionCache == nullptr &&
         m_villageManager == nullptr && m_raidManager == nullptr) {
@@ -360,7 +360,6 @@ void ServerWorld::shutdown()
             // 逐区块收集"先删前缀、再写存活实体"的落盘意图，最后用一个批次一次性提交。
             // 绝不能让每个区块各自提交：那是区块数量次 WAL fsync，视野距离 16 下 1089 个
             // 区块实测约 3.4 秒，而其中绝大多数区块根本没有实体、整段删除是空操作。
-            spdlog::info("DIAG world(dim={}): save-entities begin", static_cast<i32>(m_config.dimension));
             std::vector<world::storage::ChunkEntityWrite> writes;
             size_t loadedChunkCount = 0;
 
@@ -405,8 +404,6 @@ void ServerWorld::shutdown()
             }
         }
     }
-    spdlog::info("DIAG world(dim={}): save-entities done", static_cast<i32>(m_config.dimension));
-
     // 先清理袭击管理器（可能引用村庄）
     m_raidManager.reset();
     // 再清理村庄管理器
@@ -441,8 +438,6 @@ void ServerWorld::shutdown()
     m_collisionCache.reset();
 
     m_chunkManager.reset();
-
-    spdlog::info("DIAG world(dim={}): shutdown body returned", static_cast<i32>(m_config.dimension));
     spdlog::info("Server world shut down");
 }
 
@@ -545,6 +540,20 @@ void ServerWorld::destroyBlockProgress(EntityInstanceId breakerId, const BlockPo
 void ServerWorld::gameEvent(
     const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context)
 {
+    // 原版 SculkShriekerBlock.stepOn 直接调用 SculkShriekerBlockEntity.tryShriek（不经振动系统）。
+    // Cubium 的 SculkShriekerBlock 位于 common 层、拿不到服务端 helper，故 onEntityWalk 以
+    // SHRIEK 事件作为跨层信号：这里识别「未尖啸的尖啸体收到带玩家的 SHRIEK」即为踩踏信号，
+    // 同步补上原版的直接触发，并且不再向监听器广播这次内部信号（vanilla stepOn 不产生事件）。
+    // shriek() 自身广播的 SHRIEK 发生在 SHRIEKING 置 true 之后，会走正常分发路径。
+    if (&event == &gameevent::GameEvents::SHRIEK) {
+        const BlockState* state = getBlockState(pos);
+        if (state != nullptr && state->is(VanillaBlocks::SCULK_SHRIEKER) &&
+            !state->get(BlockStateProperties::SHRIEKING()) && context.sourceEntity() != nullptr) {
+            SculkShriekerHelper::tryShriek(*this, pos, context.sourceEntity());
+            return;
+        }
+    }
+
     // 通过 GameEventDispatcher 将事件分发给附近的 GameEventListener
     // （如幽匿感测体 SculkSensor、幽匿尖啸体 SculkShrieker 等）。
     // 参考 MC: Level.gameEvent() -> GameEventDispatcher.post()
@@ -940,13 +949,26 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
     const bool skipOnPlace = (flags & world::BlockUpdateFlags::UPDATE_SKIP_ON_PLACE) != 0;
     const bool movedByPiston = (flags & world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON) != 0;
 
-    // 旧方块实体的移除副作用（容器掉落内容物等）。必须在写入区块之前执行：
-    // 区块写入会丢弃旧方块实体，之后再取就取不到了。
-    // 新方块要求保留旧实体时（铜箱子氧化/涂蜡等）跳过该副作用——实体随后由迁移路径复用。
-    if (!oldIsAir && blockTypeChanged && oldState->getBlock().hasBlockEntity() && !skipBlockEntitySideEffects &&
-        !oldState->getBlock().shouldChangedStateKeepBlockEntity(*oldState)) {
-        if (BlockEntity* oldBlockEntity = chunk->getBlockEntity(changedPos)) {
-            oldBlockEntity->preRemoveSideEffects(changedPos, *oldState);
+    // 旧方块实体的丢弃与摘除。方块类型变化且旧方块带方块实体时：
+    //   1) 先执行移除副作用（容器掉落内容物等）；
+    //   2) 再把实体从区块摘除——即使新方块也带方块实体，也一律摘除，由后续创建路径新建干净的实体。
+    // 必须在本函数写入区块之前摘除：旧实体残留后会继续被 tick，而它持有的状态已不属于该方块
+    // （如 SkullBlockEntity 在非头颅状态下读 POWERED 属性会触发 StateHolder 断言崩溃）。
+    // UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 只跳过副作用（掉落/通知），不跳过实体摘除。
+    // 新方块声明保留旧实体时（铜箱子氧化/涂蜡等）跳过整段——实体随后由迁移路径复用。
+    const bool keepOldBlockEntity =
+        !oldIsAir && !newIsAir && blockTypeChanged && newState->getBlock().shouldChangedStateKeepBlockEntity(*oldState);
+    if (!oldIsAir && blockTypeChanged && oldState->getBlock().hasBlockEntity() && !keepOldBlockEntity) {
+        if (!skipBlockEntitySideEffects) {
+            if (BlockEntity* oldBlockEntity = chunk->getBlockEntity(changedPos)) {
+                oldBlockEntity->preRemoveSideEffects(changedPos, *oldState);
+            }
+        }
+
+        std::unique_ptr<BlockEntity> removedEntity = chunk->removeBlockEntity(changedPos);
+        if (removedEntity != nullptr) {
+            // 销毁前先注销振动监听器，避免管理器留下悬垂监听器指针。
+            m_sculkVibrationManager.unregisterSculkBlockEntity(changedPos);
         }
     }
 
@@ -1013,19 +1035,18 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
         // 且可能已被本调用链上游修改（如 JukeboxBlock::useItemOn 先 setRecord 写入唱片再
         // setBlockState 翻转 has_record）。若不带守卫，会 createBlockEntity 新建一个空实体覆盖掉
         // 原实体，导致已写入的数据丢失（唱片机放唱片后实体唱片被清空，取唱片取不出——生产 bug）。
-        // 对齐 vanilla Level.setBlock：BlockEntity 仅在方块类型变化时由 onPlace 触发创建/迁移，
-        // 同方块状态变化保留原实体。
+        // 方块实体仅在方块类型变化时创建/迁移，同方块状态变化保留原实体。
         //
         // shouldChangedStateKeepBlockEntity 迁移路径（铜箱子氧化/涂蜡等跨类型保留实体）仍走
         // blockTypeChanged=true 分支，不受影响。
         if (!newIsAir && blockTypeChanged && newState->getBlock().hasBlockEntity()) {
             Block& newBlock = newState->getBlockMutable();
 
-            // 检查旧方块是否要求保留方块实体（如铜箱子在氧化/涂蜡/除蜡/刮削时）
+            // 新方块声明保留旧方块实体（如铜箱子在氧化/涂蜡/除蜡/刮削时）。
+            // 判定由新方块做出：它检查旧状态是否属于自己兼容的方块族。
             std::unique_ptr<BlockEntity> migratedEntity;
-            if (!oldIsAir && blockTypeChanged && oldState->getBlock().shouldChangedStateKeepBlockEntity(*oldState)) {
-                // 取出旧方块实体（不销毁），用于迁移到新方块
-                // 旧方块的 shouldChangedStateKeepBlockEntity 返回 true 表示新方块语义上兼容旧实体
+            if (keepOldBlockEntity) {
+                // 取出旧方块实体（不销毁），迁移到新方块继续使用
                 migratedEntity = chunk->removeBlockEntity(changedPos);
             }
 

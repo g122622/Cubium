@@ -42,7 +42,7 @@ namespace mc::math {
  *   nextLong()  = ((long)next(32) << 32) + next(32)                 // 消耗 2 次内层 nextLong
  *   nextBoolean() = next(1) != 0
  *   nextFloat()   = next(24) * 5.9604645E-8F
- *   nextDouble()  = (((long)next(26) << 27) + next(27)) * 1.110223E-16F（f32 精度）
+ *   nextDouble()  = (((long)next(26) << 27) + next(27)) * 1.1102230246251565E-16
  *   nextInt(bound) — BitRandomSource 默认实现，基于 next(31) 的拒绝采样
  *
  * 【为什么必须单独实现，不能直接用内层的 nextXxx()】

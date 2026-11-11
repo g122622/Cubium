@@ -64,15 +64,14 @@ f64 WorldgenRandom::nextDouble()
     //   i32 i = this.next(26);
     //   i32 j = this.next(27);
     //   long k = ((long)i << 27) + j;
-    //   return k * 1.110223E-16F;
-    // 乘数是 f32 字面量：Java 的 long * float 先做二元数值提升（long→float），
-    // 再按 f32 相乘，返回值是 f32 精度。用 f64 相乘会多出 29 位有效位，与参照
-    // 实现的逐位黄金值分叉（tests/unit/common/world/gen/WorldgenRandomVanillaGoldenTest）。
+    //   return k * DOUBLE_MULTIPLIER;
+    // 乘数是 f64（2^-53）。实测 1.21.11 的类文件返回 53 位精度的结果，用 f32 乘
+    // 会丢 29 位有效位，按 double 采样的结构（如废墟传送门的地狱岩铺开）会与参照
+    // 实现分叉。
     const i32 i = nextBits(26);
     const i32 j = nextBits(27);
     const i64 k = (static_cast<i64>(i) << 27) + static_cast<i64>(j);
-    const f32 scaled = static_cast<f32>(k) * 1.1102230246251565E-16f;
-    return static_cast<f64>(scaled);
+    return static_cast<f64>(k) * 1.1102230246251565E-16;
 }
 
 PositionalRandomFactory WorldgenRandom::forkPositional()

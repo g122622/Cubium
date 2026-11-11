@@ -71,6 +71,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/map/MaterialColor.hpp"
 #include <algorithm>
 #include <cmath>
@@ -1255,53 +1256,57 @@ void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& 
 
     const Block& block = state.getBlock();
 
-    // 获取方块的掉落表
-    const loot::LootTable* lootTable = block.getLootTable(*lootTableManager);
-    if (lootTable == nullptr) {
-        return;
+    // 物品掉落受 block_drops 游戏规则门控。注意原版把该判定放在最底层的
+    // `Block.popResource` / `popExperience`（1.21.11 为 block_drops），而不是放在
+    // `Block.dropResources` 入口；因此这里只跳过物品掉落，绝不能提前 return，
+    // 否则会把下方的 spawnAfterBreak 一并吞掉（原版 spawnAfterBreak 在生成掉落之后无条件调用，
+    // 由各方块自行检查游戏规则——InfestedBlock 就在 spawnAfterBreak 内自己查 block_drops）。
+    //
+    // 该入口覆盖 /fill destroy、/setblock destroy、爆炸、下落方块等全部世界侧破坏路径；
+    // 玩家挖掘路径走 server 侧 BlockDropHandler::generateDrops，那里另有一道同样的掉落守卫。
+    if (world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::BLOCK_DROPS)) {
+        // 获取方块的掉落表。没有掉落表（或掉落表返回空）只意味着没有物品掉落，
+        // 不影响 spawnAfterBreak。
+        if (const loot::LootTable* lootTable = block.getLootTable(*lootTableManager)) {
+            // 构建掉落上下文（无玩家、无工具，与 MC 原版 Block.dropResources 行为一致）
+            // MC 使用 ServerLevel.random（世界共享随机），不创建新 Random 对象
+            auto contextBuilder = loot::LootContextBuilder(world);
+
+            // 设置方块状态和位置参数
+            contextBuilder.withParameter(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));
+            contextBuilder.withParameter(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
+
+            // ORIGIN：方块掉落的来源位置取方块中心（Vec3.atCenterOf(pos) 的语义），
+            // 供探险地图等按世界坐标搜索结构的掉落函数使用。
+            contextBuilder.withOwnedValue(loot::LootParams::ORIGIN, pos.center());
+
+            // BLOCK_ENTITY：容器类方块（箱子、熔炉等）的掉落表需要它复制名称与组件。
+            // vanilla 通过 LootContextParams.BLOCK_ENTITY 传递，Cubium 以可选参数形式接入。
+            if (blockEntity != nullptr) {
+                contextBuilder.withParameter(loot::LootParams::BLOCK_ENTITY, blockEntity);
+            }
+
+            // 设置掉落表解析器和条件解析器
+            contextBuilder.withLootTableResolver([lootTableManager](const std::string& id) -> const loot::LootTable* {
+                return lootTableManager->getTable(id);
+            });
+            contextBuilder.withPredicateResolver(
+                [lootTableManager](const std::string& id) -> const loot::LootCondition* {
+                    return lootTableManager->getPredicate(id);
+                });
+
+            if (auto context = contextBuilder.build(loot::LootParameterSets::block())) {
+                // 生成掉落物品并在世界中生成掉落物实体
+                auto drops = lootTable->generate(*context);
+                if (!drops.empty()) {
+                    ItemDropHelper::spawnItemEntities(&world, pos, drops, world.getRandom());
+                }
+            }
+        }
     }
 
-    // 构建掉落上下文（无玩家、无工具，与 MC 原版 Block.dropResources 行为一致）
-    // MC 使用 ServerLevel.random（世界共享随机），不创建新 Random 对象
-    auto contextBuilder = loot::LootContextBuilder(world);
-
-    // 设置方块状态和位置参数
-    contextBuilder.withParameter(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));
-    contextBuilder.withParameter(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
-
-    // ORIGIN：方块掉落的来源位置取方块中心（对齐 vanilla LootContextParams.ORIGIN 的
-    // Vec3.atCenterOf(pos) 语义），供探险地图等按世界坐标搜索结构的掉落函数使用。
-    contextBuilder.withOwnedValue(loot::LootParams::ORIGIN, pos.center());
-
-    // BLOCK_ENTITY：容器类方块（箱子、熔炉等）的掉落表需要它复制名称与组件。
-    // vanilla 通过 LootContextParams.BLOCK_ENTITY 传递，Cubium 以可选参数形式接入。
-    if (blockEntity != nullptr) {
-        contextBuilder.withParameter(loot::LootParams::BLOCK_ENTITY, blockEntity);
-    }
-
-    // 设置掉落表解析器和条件解析器
-    contextBuilder.withLootTableResolver([lootTableManager](const std::string& id) -> const loot::LootTable* {
-        return lootTableManager->getTable(id);
-    });
-    contextBuilder.withPredicateResolver([lootTableManager](const std::string& id) -> const loot::LootCondition* {
-        return lootTableManager->getPredicate(id);
-    });
-
-    auto context = contextBuilder.build(loot::LootParameterSets::block());
-    if (context == nullptr) {
-        return;
-    }
-
-    // 生成掉落物品
-    auto drops = lootTable->generate(*context);
-    if (drops.empty()) {
-        return;
-    }
-
-    // 在世界中生成掉落物实体
-    ItemDropHelper::spawnItemEntities(&world, pos, drops, world.getRandom());
-
-    // 调用 spawnAfterBreak 触发额外效果（如刷怪笼生成怪物）
+    // 破坏附加效果（如虫蚀方块生成蠹虫、刷怪笼生成怪物）：无论是否有掉落表、掉落是否为空、
+    // block_drops 是否关闭，都必须调用（原版 Block.dropResources 在掉落之后无条件调用）。
     block.spawnAfterBreak(world, pos, state, nullptr, false);
 }
 

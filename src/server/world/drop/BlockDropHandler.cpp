@@ -72,13 +72,14 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
 {
     std::vector<ItemStack> drops;
 
-    // doTileDrops gamerule 守卫（对齐 Java Block.dropResources：world.getGameRules()
-    // .getBoolean(GameRules.RULE_DOBLOCKDROPS) 为 false 时不掉落任何物品）。
-    // 守卫置于此处（物品掉落的最底层入口）一次覆盖全部调用方：玩家破坏
-    // （BlockInteractionManager::_generateBlockDrops）、/fill destroy（FillCommand）、
-    // /setblock destroy（SetBlockCommand）。vanilla 同样在 dropResources 最底层守卫，
-    // 故三处调用方均自动遵守。注：经验掉落（handleBlockBreakExperience）不受 doTileDrops
-    // 影响（wiki 明示 doTileDrops 只控物品不控经验），故不在经验路径加守卫。
+    // block_drops 游戏规则守卫：规则为 false 时不掉落任何物品。
+    // 本类是**玩家挖掘掉落**入口（BlockInteractionManager::_generateBlockDrops）；
+    // 世界侧破坏（/fill destroy、/setblock destroy、爆炸、下落方块等）走
+    // IWorld::destroyBlock → Block::dropResources，那条链在 Block::dropResources 内对
+    // 物品掉落有同样的守卫。两处都必须保留：它们各自是最底层入口，互不经过对方；
+    // 且都只门控物品，不门控 spawnAfterBreak（虫蚀方块等由方块自身检查该规则）。
+    // 注：经验掉落（handleBlockBreakExperience）不受 block_drops 影响
+    // （wiki 明示 block_drops 只控物品不控经验），故不在经验路径加守卫。
     if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::BLOCK_DROPS)) {
         return drops;
     }

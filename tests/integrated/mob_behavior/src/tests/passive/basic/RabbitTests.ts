@@ -5,11 +5,9 @@ import type { Test } from "@minecraft/server-gametest";
 import { ItemStack } from "@minecraft/server";
 import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
-// creeper_pit / grass_pen 结构尺寸（7×5×7 / 9×5×9），helper 相对坐标。
+// grass_pen 结构尺寸 9×5×9，helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
 // 必须区域限定——Cubium GameTest 批内并行 tick + 不清场，全维度 getEntities({type}) 跨测试污染。
-const PIT_FROM = { x: 0, y: 0, z: 0 };
-const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 const PEN_FROM = { x: 0, y: 0, z: 0 };
 const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
@@ -66,10 +64,13 @@ function rabbitFleesPlayer(test: Test): void {
 //   attackEntityAsMob(玩家, ATTACK_DAMAGE)。ATTACK_DAMAGE 基础值 + EVIL_ATTACK_POWER_MODIFIER(+5)，
 //   杀手兔近战伤害 8（对齐 wiki {{AutoDmg|8}}）。护甲 ARMOR=8。
 //
-// 环境选择：creeper_pit（7×5×7 开放坑）无围墙。关键：NearestAttackableTargetGoal checkSight=true，
-// grass_pen 外圈玻璃墙会挡视线致 attackTarget 恒 null（同 CreeperTests 苦力怕测试注释），故用 creeper_pit
-// 开放坑保证视线通畅。杀手兔(3,2,3)+Survival玩家(4,2,3)，水平距 1 格，NearestAttackableTargetGoal
-// 首次扫描即锁定玩家。脚下放玻璃支撑（creeper_pit y=0 草地本可支撑，玻璃确保实体站立稳定）。
+// 环境选择：grass_pen（9×5×9 玻璃墙围栏，结构 y=0 整片 grass_block 地板 + 四壁玻璃）。
+// 必须用封闭围栏而非 creeper_pit 开放平台：creeper_pit 只有一块 7×7 悬空草地台（四周无遮挡、
+// 台面比下方 flat 地形高 2 格），兔子在 MeleeAttackGoal 启动前的随机跳跃窗口内会跳出平台边缘，
+// 掉到下方地面后与玩家产生 2 格高差，寻路无法爬回，攻击永远不发生（约 2/3 概率失败）。
+// grass_pen 的玻璃墙把兔子物理限制在 9×9 内腔，玩家与兔子都在墙内，视线无遮挡
+// （NearestAttackableTargetGoal checkSight=true 只看两者连线，外圈墙不参与），
+// 杀手兔(2,2,3)+Survival玩家(4,2,3)，水平距 2 格，首次扫描即锁定玩家。
 // 难度：GameTestServer 默认 Difficulty::Normal（GameTestServer.hpp:45），非和平，杀手兔会攻击（对齐
 // wiki"非和平难度下"语义）。
 //
@@ -83,12 +84,9 @@ function rabbitFleesPlayer(test: Test): void {
 function killerRabbitAttacksPlayer(test: Test): void {
   const killerRabbitType = "rabbit<spawn_killer>";
 
-  // 杀手兔 (3,2,3)、Survival 玩家 (4,2,3)，水平距 1 格，同处结构 y=2 层。
-  // 脚下放玻璃支撑。creeper_pit 开放坑无墙，checkSight 视线通畅。
+  // 杀手兔 (2,2,3)、Survival 玩家 (4,2,3)，水平距 2 格，同处 grass_pen 内腔（结构 y=0 草地地板）。
   // "rabbit<spawn_killer>" 后缀触发 applySpawnEvent 派发 setRabbitType(Killer)（GameTestHelper.cpp）。
-  test.setBlockType("minecraft:glass", { x: 3, y: 1, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 4, y: 1, z: 3 });
-  test.spawn(killerRabbitType, { x: 3, y: 2, z: 3 });
+  test.spawn(killerRabbitType, { x: 2, y: 2, z: 3 });
   test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "victim", 0 as any);
 
   // 断言玩家掉血：succeedWhen 每 tick 持续检查玩家 HP<20（被杀手兔近战命中）。
@@ -96,8 +94,8 @@ function killerRabbitAttacksPlayer(test: Test): void {
   test.succeedWhen(() => {
     const players = test.getDimension().getEntities({
       type: "minecraft:player",
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
     });
     test.assert(players.length > 0, "player disappeared");
     const health = players[0].getComponent("minecraft:health");
@@ -206,7 +204,7 @@ export function registerRabbitTests(): void {
     .maxTicks(1000);
 
   GameTest.register("MobBehaviorTests", "killer_rabbit_attacks_player", killerRabbitAttacksPlayer)
-    .structureName("gametests:creeper_pit")
+    .structureName("gametests:grass_pen")
     .maxTicks(800);
 
   GameTest.register("MobBehaviorTests", "rabbit_breeds_when_fed_carrot", rabbitBreedsWhenFedCarrot)
