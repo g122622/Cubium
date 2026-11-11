@@ -153,7 +153,7 @@ std::vector<std::string> MacroFunction::instantiate(const nbt::tags::compound_ta
 FunctionExecuteResult MacroFunction::execute(
     FunctionManager& manager, command::ServerCommandSource& source, const nbt::tags::compound_tag* arguments) const
 {
-    FunctionExecuteResult result{0, 0};
+    FunctionExecuteResult result{};
 
     if (isEmpty()) {
         return result;

@@ -98,16 +98,15 @@ std::vector<i32> readIntSequence(const nbt::Tag& tag)
 // - direction (i32 0-3: 0=north,1=east,2=south,3=west,基岩 CommonDirection)：门/楼梯/按钮等通用朝向
 //   → Java facing（vanilla HORIZONTAL_FACING 4 向，north/south/east/west）
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认数字字符串转换。
-// TODO: 本函数（以及下面的布尔位映射）**只按基岩属性名分派，不看方块类型**，因此对"同一个基岩
-//   属性名在不同方块上语义不同"的情形会产出错误的 Java 属性。已确认的具体缺陷：拉杆。
-//   - 基岩拉杆用 `open_bit` 表示通断，而这里把 `open_bit` 无条件映射成 Java 的 open；
-//     但 Java 拉杆（LeverBlock）的属性是 HORIZONTAL_FACING + POWERED + ATTACH_FACE，
-//     **根本没有 open**——于是拉杆会拿到一个不存在的属性。
-//   - 拉杆的 face（wall/floor/ceiling）也需要从基岩 `direction` 的附加位推出，这里只映射了 facing。
-//   修法：把签名从 (bedrockKey, intVal) 扩成 (blockName, bedrockKey, intVal)，
-//   对 lever 单独分支（open_bit → powered，并按 direction 拆出 face/facing）。
-//   扩签名后注意调用点都在本文件内，且 block 在上层已可拿到，不需要额外查询。
-std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const std::string& bedrockKey, i32 intVal)
+// 两个映射函数都已按方块类型分派（形参 javaBlockName），可处理"同一基岩属性名在不同方块上
+// 语义不同"的情形。已落实的修正：拉杆的 open_bit → powered（Java 拉杆没有 open 属性）。
+// TODO: 拉杆的 face（wall/floor/ceiling）需要从基岩 `direction` 的高位推出，当前只映射了
+//   facing。缺口在于基岩拉杆 direction 的位布局在项目内没有可靠来源（LeviLamina 逆向头文件
+//   里没有 LeverBlock，数据包也不含拉杆），凭猜测写会把错误编码固化下来，故暂按默认
+//   ATTACH_FACE=wall 处理。拿到可靠位布局后应在此补 face 推导。
+//   其余"同属性名不同语义"的方块如果发现，按拉杆的做法在对应分支里加 javaBlockName 判定。
+std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(
+    const std::string& javaBlockName, const std::string& bedrockKey, i32 intVal)
 {
     if (bedrockKey == "facing_direction") {
         switch (intVal) {
@@ -195,7 +194,8 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const s
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认布尔转换逻辑。
 // TODO: 基岩字节属性到 Java 枚举的映射仅覆盖上述常见项，其他（如 top_slot_bit、direction 的 byte
 // 变体等）需逐类补全。
-std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(const std::string& bedrockKey, i8 byteVal)
+std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(
+    const std::string& javaBlockName, const std::string& bedrockKey, i8 byteVal)
 {
     const bool b = (byteVal != 0);
     if (bedrockKey == "upside_down_bit") {
@@ -211,6 +211,13 @@ std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(const 
         return std::make_pair(std::string("hinge"), b ? std::string("right") : std::string("left"));
     }
     if (bedrockKey == "open_bit") {
+        // 拉杆是这里唯一的反例：基岩拉杆用 open_bit 表示通断，而 Java 拉杆
+        // （LeverBlock）的属性是 HORIZONTAL_FACING + ATTACH_FACE + POWERED，**没有 open**。
+        // 若沿用下面的通用映射，拉杆会拿到一个不存在的 open 属性并被静默丢弃，
+        // 通断状态随之丢失。故单独分派到 powered。
+        if (javaBlockName == "minecraft:lever") {
+            return std::make_pair(std::string("powered"), b ? std::string("true") : std::string("false"));
+        }
         // 门/栅栏门/活板门开合：重命名为 open，值 0/1 → false/true
         return std::make_pair(std::string("open"), b ? std::string("true") : std::string("false"));
     }
@@ -1024,6 +1031,9 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
         blockName = mapping.javaName;
     }
 
+    // 已映射到 Java 的方块名，供属性映射按方块类型分派（同一基岩属性名在不同方块上语义不同）。
+    const std::string javaBlockName = blockName;
+
     auto& registry = BlockRegistry::instance();
     auto* block = registry.getBlock(ResourceLocation(blockName));
     if (!block) {
@@ -1061,7 +1071,7 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
                         const i32 iv = dynamic_cast<const nbt::IntTag&>(*valueTag).value;
                         // 基岩方向属性（facing_direction/weirdo_direction 等）是 i32，Java facing 取字符串值，
                         // 需先做属性名+值的映射；未命中映射则按原逻辑转数字字符串（适用于 axis 等少数属性）。
-                        if (auto mapped = bedrockIntStateToJava(key, iv)) {
+                        if (auto mapped = bedrockIntStateToJava(javaBlockName, key, iv)) {
                             javaKey = mapped->first;
                             strVal = mapped->second;
                         } else {
@@ -1073,7 +1083,7 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
                         // 基岩版字节属性：布尔型用 Byte (0/1) → Java "true"/"false"；
                         // 枚举型（如 upside_down_bit → half）需做属性名+值的映射。
                         const i8 bv = dynamic_cast<const nbt::ByteTag&>(*valueTag).value;
-                        if (auto mapped = bedrockByteStateToJava(key, bv)) {
+                        if (auto mapped = bedrockByteStateToJava(javaBlockName, key, bv)) {
                             javaKey = mapped->first;
                             strVal = mapped->second;
                         } else {
