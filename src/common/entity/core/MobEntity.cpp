@@ -555,8 +555,12 @@ std::optional<ResourceLocation> MobEntity::getAmbientSound() const
     //     （0.9 宽 × 2.7 高，眼高 2.3），但 VanillaEntityTypeKeys 里**没有** CREAKING 类型键，
     //     也没有对应的实体类。所以补实现时只需加类型键 + 实体类 + 注册，
     //     **不要重复添加尺寸条目**；那条尺寸目前无任何代码查询，属于预埋数据。
-    // 已实现并各自 override 的实体：allay（AllayEntity，手持物品/空手两套）、
-    // armadillo（受惊返回 nullopt）、camel、goat、frog、happy_ghast。
+    //
+    // 关于"哪些实体已经 override 了本方法"：不要在这里维护清单。
+    // 本条注释曾经列出 6 个（allay / armadillo / camel / goat / frog / happy_ghast），
+    // 而实际已有 **57 个**实体重写了 getAmbientSound（分布在 boss/、monster/、
+    // passive/ 各子目录），清单严重滞后于代码，反而会误导读者以为只有那几个已实现。
+    // 需要确认某实体是否已 override 时，直接搜 `::getAmbientSound()` 的 override 定义。
     return makeSoundEventId("ambient");
 }
 
