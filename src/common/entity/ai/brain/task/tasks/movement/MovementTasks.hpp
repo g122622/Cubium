@@ -533,6 +533,9 @@ private:
  * VALUE_ABSENT，而本任务执行时**自己写入** HIDING_PLACE（见下方 setMemory）。
  * 全仓没有任何代码 getMemory 或 removeMemory 这个记忆——所以首次执行成功后，
  * 门槛永久为 false，该任务此后再也不会运行。
+ * 门槛的强制点在 Task.hpp 的 `_hasRequiredMemories(owner) && shouldExecute(...)`
+ * ——声明的要求先于 shouldExecute 检查，因此本类 shouldExecute 里那套
+ * "被伤害/听到铃声"的判断在 HIDING_PLACE 写入后再也不会被调用。
  * 下方"不清除 HIDING_PLACE 记忆，让其他逻辑决定何时清除"的注释描述的逻辑
  * **并不存在**。
  * 两处需要补齐：(1) 某个消费方读取 HIDING_PLACE 并在抵达/危险解除后清除它；
