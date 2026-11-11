@@ -145,7 +145,7 @@
 | 2 + 3. NBT | ✅ 完成（合并实施） | 直接对 NBT 库 Result 化，未采用"薄封装"过渡：`NbtInternal`/`Nbt.hpp`/`Nbt.cpp` 内 `throw` 归零，`operator>>(compound_tag&)` 改为 `readCompoundInto`，`parseMojangson` 返回 `Result`；22 处读取调用点全部改为检查 `failed()` |
 | 4. 函数/宏 | ✅ 完成 | `StringTemplate`/`MacroFunction` 改 `Result`，删除 `FunctionInstantiationException` |
 | 5. 隐式异常源 | 🟡 部分完成 | `std::sto*`（18 文件）全部换为 `util::parseXxx`（from_chars）；`std::regex` 全部移除（改逐字符判定 + `util::isValidIpv4`）；`std::any_cast` 全部改指针形式。**未做**：`.at()`（libc++ 在 `-fno-exceptions` 下已退化为 abort，不阻塞编译）、`filesystem` 抛异常重载、`dynamic_cast<T&>`、`std::future` |
-| 6. 第三方隔离 | ⬜ 未开始 | nlohmann 非抛出解析（434 文件）、spdlog/asio 配置、simdjson 错误码 API |
+| 6. 第三方隔离 | 🟡 部分完成 | 新增 `util::json` 非抛出访问层；39 处 `catch(json::parse_error)` 全部消除（loader 循环、整函数 try、文件流解析、组件 JSON 共 39 处）；地图/旗帜/变体注册表等 8 处`catch(json::exception)` 改为解析失败回退。**未做**：其余 `.get<T>()`（约 1112 处）与 19 处`catch(json::exception)`（访问控制列表、记分板存档、皮肤缓存、LootSerializers 等），这些点都有异常边界（不会崩），但 `-fno-exceptions` 下会 abort；spdlog/asio/simdjson 配置未动 |
 | 7. 开关就绪 | 🟡 部分完成 | 已加 `MC_ENABLE_NO_EXCEPTIONS` 选项（只作用于生产 target，测试保留异常）；`AssertException`/`throwAssertHandler` 已按 `__cpp_exceptions` 条件编译。**未做**：清空头文件剩余 throw（几乎全在命令子系统） |
 | 8. 命令子系统 | ⬜ 未开始 | 剩余头文件 `throw` 约 66 处全部集中在这里（`GameModeArgument` 24、`StringReader` 14、`ArgumentType` 12 等） |
 

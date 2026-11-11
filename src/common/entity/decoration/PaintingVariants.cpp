@@ -24,6 +24,7 @@
 #include "PaintingVariants.hpp"
 
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <string>
 #include <string_view>
 #include <vector>
@@ -132,15 +133,13 @@ Result<std::size_t> PaintingVariants::loadFromDataPackRepository(const resource:
             // 多数据包叠加时取最后一个（优先级最高）的版本，与原版「后者覆盖前者」一致。
             const auto& content = versions.back();
 
-            nlohmann::json json;
-            try {
-                json = nlohmann::json::parse(content.content);
-            }
-            catch (const std::exception& e) {
-                // 单个文件坏掉不应让整批加载失败，但必须报出来而不是静默跳过。
+            // 外部数据：坏文件以 Error 返回并由上层记录日志，不让解析异常逃逸
+            auto jsonResult = util::json::parse(content.content);
+            if (jsonResult.failed()) {
                 return Error(ErrorCode::InvalidData,
-                    "painting_variant: 解析失败 " + resourcePath + "：" + std::string(e.what()));
+                    "painting_variant: failed to parse " + resourcePath + ": " + jsonResult.error().message());
             }
+            const nlohmann::json& json = jsonResult.value();
 
             const auto id = variantIdFromPath(resourcePath);
             if (!id.has_value()) {

@@ -24,6 +24,7 @@
 #include "TrimPatterns.hpp"
 #include "TrimPattern.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <optional>
 #include <utility>
 #include <nlohmann/json.hpp>
@@ -117,15 +118,13 @@ Result<std::size_t> TrimPatterns::loadFromDataPackRepository(const resource::Dat
             // 多数据包叠加时取最后一个（优先级最高）的版本，与原版「后者覆盖前者」一致。
             const auto& content = versions.back();
 
-            nlohmann::json json;
-            try {
-                json = nlohmann::json::parse(content.content);
+            // 外部数据：坏文件以 Error 返回并由上层记录日志，不让解析异常逃逸
+            auto jsonResult = util::json::parse(content.content);
+            if (jsonResult.failed()) {
+                return Error(ErrorCode::InvalidData,
+                    "trim_pattern: failed to parse " + resourcePath + ": " + jsonResult.error().message());
             }
-            catch (const std::exception& e) {
-                // 单个文件坏掉不应让整批加载失败，但必须报出来而不是静默跳过。
-                return Error(
-                    ErrorCode::InvalidData, "trim_pattern: 解析失败 " + resourcePath + "：" + std::string(e.what()));
-            }
+            const nlohmann::json& json = jsonResult.value();
 
             const auto id = _patternIdFromPath(resourcePath);
             if (!id.has_value()) {
