@@ -21,7 +21,9 @@ ccache 缓存编译器 stderr，命中时也可能打印历史 `Submitting`；�
 `pococc.tsv`、清零后的 ccache 统计和 worker 执行记录交叉核对。构建后检查 Ninja 的真实
 launcher，并用独立缓存的冷/暖探针验证 stderr 重放，证据随各池 diagnostics artifact 归档。
 
-单测执行器保持 CTest 的全局编号与分片清单，输出兼容的日志和 JUnit。批次崩溃或超时时，
+单测执行器保持 CTest 的全局编号与分片清单，输出兼容的日志和 JUnit。
+即使用例 XML 已全部通过，sanitizer、异常退出及超时仍写成独立的 `TestProcess` 错误；
+`unit-test-process-logs/` 保留逐进程完整日志，隔离复跑不能清除这些错误。批次崩溃或超时时，
 从完整 gtest RUN/结束事件恢复已完成结果，仅将中断用例单跑，其余未开始的用例继续批量执行；
 没有可用进度时才二分或展开为单例。批内失败须单跑复核，已单跑的错误不再重复复核。
 
@@ -148,11 +150,11 @@ cron 为 `0 13 * * *`（UTC）—— GitHub 的 cron 一律按 UTC 解释，13:0
 
 ### 两条构建链与发布边界
 
-- 测试构建保留 `build/bin/RelWithDebInfo` 布局与调试符号，C/C++ 都加入
+- 测试构建保留 `build-ci-tests/bin/RelWithDebInfo` 布局与调试符号，C/C++ 都加入
   `-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer`，链接器同样启用 ASan/UBSan。
-  `MC_ENABLE_SANITIZERS=ON` 负责使用适合 sanitizer 的优化选项，不能替代上述插桩参数。
+  `MC_ENABLE_SANITIZERS=ON` 通过 CMake 插桩模块同时添加 C/C++ 编译及链接参数；核验器逐条检查真实编译命令和 ELF，不依赖通用 flags 缓存。
   `pococc-test-build-artifacts` 只供单元、集成与 e2e 下载，不公开发布，也不生成 benchmark。
-- 发布构建使用 `build-release-noprof/bin/Release`，编译明确设 `-g0`，关闭 Perfetto、Tracy、
+- 发布构建使用 `build-ci-release/bin/Release`，编译明确设 `-g0`，关闭 Perfetto、Tracy、
   memory tracing 和 sanitizer；发布前 strip 并检查 ELF 无调试节、无 ASan/UBSan 运行库符号。
   `pococc-release-build-artifacts` 含 Release 服务端和 benchmark；公开 tar.gz 仅含服务端及所需的非系统动态库。
 - 两条构建均关闭 `native-arch`，允许跨 runner 运行；fuzz 的 preset、局部插桩和执行流程保持原状。
@@ -247,7 +249,7 @@ benchmark/report 通过 `setup-report-plots` 安装 Matplotlib 与 Noto CJK 字�
 ./scripts/configure.sh build
 
 # 单元测试（对应 unit-tests job；必须经 ctest 以发挥并行能力并启用单用例限时）
-cd build && ctest --build-config RelWithDebInfo --output-on-failure -j8
+cd build-ci-tests && ctest --build-config RelWithDebInfo --output-on-failure -j8
 
 # 集成测试（对应 integrated-tests job）
 node scripts/test/run-gametests.ts
@@ -262,7 +264,7 @@ build-fuzz/bin/fuzz/RelWithDebInfo/fuzz_java_codec_sb \
   -max_total_time=300 tests/fuzz/corpus/fuzz_java_codec_sb
 
 # benchmark（对应 benchmark job；须在仓库根目录运行）
-./build/bin/RelWithDebInfo/mc_benchmark --benchmark_repetitions=3
+./build-ci-release/bin/Release/mc_benchmark --benchmark_repetitions=3
 python3 scripts/ci/compare_benchmark.py \
   --current benchmark_results/<本次时间戳>/results.json \
   --previous <上次的 results.json> \
@@ -296,19 +298,17 @@ python3 scripts/ci/compare_benchmark.py \
 3. **测试 job 与 build job 的 workspace 路径必须一致**：CTest 元数据里存的是绝对路径
    （`/home/runner/work/<repo>/<repo>`）。标准托管 runner 上两者一致，故可直接解压复用；
    若改用 self-hosted runner 且路径不同，unit-tests job 需改为在本 job 内重新 configure。
-4. **vcpkg 依赖可能是动态库**：build job 会把 `installed/x64-linux/lib` 一并打进 artifact，
+4. **vcpkg 依赖可能是动态库**：build job 会把实际使用的非系统动态库一并打进 artifact，
    测试 job 通过 `LD_LIBRARY_PATH` 引用。若某次构建链接方式改变（改静态链接），这段可以删掉。
 5. **`report` job 必须 `if: always()`**：否则任一前置 job 失败时它不会运行，连 issue 都建不出来。
-6. **行为包的 TS→JS 产物不入 git**：`tests/integrated/*/scripts/` 在 `.gitignore` 中，
-   由 `build.mjs` 在构建期生成。因此任何**不构建**却要跑集成测试或 e2e 的 job，都必须先
-   `node build.mjs` 自行编译一次（`build.mjs` 会在 `node_modules` 缺失时自动 `npm install`）。
+6. **行为包的 TS→JS 产物不入 git**：测试构建的 `mc_integrated_packs` 生成全部 JS 和共享结构，artifact 同时携带两者。测试分片只运行 `node build.mjs --verify`，不重复安装 npm 或编译行为包；Release 不依赖该目标。
 7. **CTest 元数据是构建期产物**：`CTestTestfile.cmake` 与 gtest 的发现文件不在 `bin/` 下，
    故 build job 单独打包为 `ctest-meta.tar.gz` 供 unit-tests job 复用。**这些文件内含绝对路径**，
    两个 job 的 workspace 路径必须一致才能直接解压复用。
 8. **fuzz 的语料目录不能传 `tests/fuzz/corpus` 根**：libFuzzer 会把新语料条目以 sha1 命名
    写进传入的目录，传仓库根语料目录会让工作区变脏。无专属语料的 target 用临时目录起跑。
 9. **Linux 系统依赖不可只装编译器与 ninja**：vcpkg 的 `glfw3` port 依赖 X11 / Vulkan / Wayland
-   开发包，缺失时 configure 会以 `vcpkg install failed` + glfw3 portfile 报错栈的形式失败，
+   开发包（仅显式启用客户端或客户端测试时安装），缺失时 configure 会以 `vcpkg install failed` + glfw3 portfile 报错栈的形式失败，
    真实原因（`Could NOT find X11`）藏在 vcpkg 内部日志里，极难定位。完整清单见
    `.github/actions/setup-linux-build-env/action.yml`。
 10. **clang 必须是 22，不能用 runner 预装的 18**：`cmake/CompilerWarnings.cmake` 使用了

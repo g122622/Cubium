@@ -12,6 +12,8 @@ elseif(EXISTS "$ENV{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake" AND NOT DEFINE
         CACHE STRING "Vcpkg toolchain file")
 endif()
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildOptions.cmake")
+
 # 项目定义
 project(MinecraftReborn
     VERSION 0.1.0
@@ -43,56 +45,6 @@ set(CMAKE_CONFIGURATION_TYPES "RelWithDebInfo;Release" CACHE STRING "Supported b
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -DNDEBUG -gline-tables-only -gno-pubnames")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -DNDEBUG -gline-tables-only -gno-pubnames")
 
-# 编译选项
-option(MC_BUILD_CLIENT "Build client application" ON)
-option(MC_BUILD_SERVER "Build server application" ON)
-option(MC_BUILD_TESTS "Build unit tests" ON)
-option(MC_BUILD_BENCHMARKS "Build benchmark application" ON)
-# 协议模糊测试目标（libFuzzer harness，源码在 tests/fuzz）。
-# 默认 OFF：fuzz 目标需要 clang 的 -fsanitize=fuzzer 运行时，且只在专门的 fuzz preset
-# 下构建（见 docs/test/FUZZING.md）。开启后目标均标 EXCLUDE_FROM_ALL，不参与常规构建。
-option(MC_BUILD_FUZZERS "Build libFuzzer protocol fuzz targets (tests/fuzz)" OFF)
-# 差分测试探针（tests/diff）：同一份输入喂给 Cubium 与参照实现，要求输出逐字节相同。
-# 默认 OFF：依赖原版数据（minecraft-data 的 blocks.json 等）与 Java oracle，属于专门的
-# 一致性验证流程。开启后目标仍为 EXCLUDE_FROM_ALL，须显式 --target diff_probes 构建。
-option(MC_BUILD_DIFF_PROBES "Build differential probes (tests/diff)" OFF)
-option(MC_ENABLE_SANITIZERS "Enable sanitizers for the CI sanitizer builds" OFF)
-option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
-option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
-# Tracy 默认关闭：它带来可观的常驻内存开销，且不经系统 malloc（无法用常规手段观测）。
-# 代价是 Windows 上 Tracy 的 SymbolWorker 会调 SymInitialize/SymLoadModuleEx 把全部模块的
-# 调试符号载入堆（实测约 96 MB 且不释放），其自带的 rpmalloc 还会按 4 MiB 为单位 VirtualAlloc
-# 做 span map。本项目以 Perfetto 为主要追踪后端，故 Tracy 需显式开启。
-option(MC_ENABLE_TRACY "Enable Tracy profiling" OFF)
-# Tracy 默认在无 GUI 连接时也把事件写入进程内队列，而该队列只在 GUI 连接时才被排空，
-# 长驻服务端下会无限增长（实测约 200KB/s）。ON_DEMAND 让无连接时不采集，消除该增长。
-# 仅 MC_ENABLE_TRACY=ON 时被消费。
-option(MC_TRACY_ON_DEMAND "Enable Tracy on-demand profiling (collect only while a GUI is connected)" ON)
-option(MC_ENABLE_MEMORY "Enable memory allocation tracking via Tracy" OFF)
-option(MC_ENABLE_CCACHE "Enable ccache for faster rebuilds" ON)
-# 针对本机 CPU 生成优化指令（-march=native -mtune=native）。
-#
-# 默认 ON 适合「在本机编译并在本机运行」的日常开发。**跨机器场景必须关闭**：
-# -march=native 会按编译机的 CPU 特性（AVX-512 等）生成指令，产物在缺少该特性的
-# 机器上执行会触发 SIGILL（Illegal instruction）。
-#
-# CI 是典型跨机器场景：build job 与各测试 job 跑在**不同的** runner 实例上，
-# 因此 CI 的 configure 必须显式传 -DMC_ENABLE_NATIVE_ARCH=OFF。
-option(MC_ENABLE_NATIVE_ARCH "Optimize for the build machine's CPU (-march=native)" ON)
-
-# ccache 配置（仅 Unix 平台：Linux/macOS）
-if(MC_ENABLE_CCACHE AND UNIX)
-    find_program(CCACHE_PROGRAM ccache)
-    if(CCACHE_PROGRAM)
-        message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
-        set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-        set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-    else()
-        message(STATUS "ccache not found, building without ccache")
-    endif()
-endif()
-
 # PCH 与 ccache 的兼容性（Clang 专用）。
 #
 # Clang 会把 PCH 的创建时间戳写进 .pch，使用方编译时校验该时间戳。CI 每次运行都在新容器
@@ -102,17 +54,17 @@ endif()
 #
 # 官方要求的配置见 ccache 手册「Precompiled headers」：
 #   1. -Xclang -fno-pch-timestamp（本处）——PCH 不再内嵌时间戳，跨机器/跨次构建可比；
-#   2. CCACHE_SLOPPINESS 含 pch_defines,time_macros（在 CI workflow 里以环境变量设置）。
+#   2. CCACHE_SLOPPINESS 含 pch_defines,time_macros（CompilerCache 模块随 launcher 设置）。
 # 二者缺一不可：只设 sloppiness 时命中率仅 ~17%，加上本选项后可达 ~83%（WSL 实测）。
 #
 # 【必须放在顶层，不能放进 src/common/CMakeLists.txt】`add_compile_options` 只对**其后
-# 创建**的目标生效。而 mc_common（唯一使用 PCH 的目标）在 src/common/CMakeLists.txt 第 7 行
+# 创建**的目标生效。而 mc_common 在 src/common/CMakeLists.txt 开头
 # 就创建了，在该文件里添加只会命中文件末尾才创建的 mc_bedrock_addon，等于没加。
 # 放在此处则在 add_subdirectory 之前，对全部子目录生效。
 #
-# 该选项是 Clang 的 no-op 安全开关：不使用 PCH 的 TU（mc_gen / mc_tests / mc_benchmark）
+# 该选项是 Clang 的 no-op 安全开关：不使用 PCH 的 TU（如 mc_gen / mc_benchmark）
 # 带上它后产物与不带时逐字节相同，故统一添加，无需按目标区分。
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Xclang -fno-pch-timestamp)
 endif()
 
@@ -125,6 +77,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # 编译配置
 include(CompilerWarnings)
+include(BuildScheduling)
+include(CompilerCache)
+include(Sanitizers)
 
 # ============================================================
 # 构建信息收集
@@ -242,13 +197,13 @@ find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
-find_package(GTest CONFIG REQUIRED)
+if(MC_BUILD_TESTS)
+    find_package(GTest CONFIG REQUIRED)
+endif()
 find_package(asio CONFIG REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(LibArchive REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(Vulkan REQUIRED)
 find_package(RocksDB CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
@@ -257,8 +212,16 @@ find_package(leveldb CONFIG REQUIRED)
 find_package(gflags CONFIG REQUIRED)
 find_package(asmjit CONFIG REQUIRED)
 
-# 基准测试框架（google/benchmark，仅 mc_benchmark 目标使用）
-find_package(benchmark CONFIG REQUIRED)
+# 图形与音频依赖仅属于客户端及其独立测试。
+if(MC_BUILD_CLIENT OR MC_BUILD_CLIENT_TESTS)
+    find_package(glfw3 CONFIG REQUIRED)
+    find_package(Vulkan REQUIRED)
+    find_package(OpenAL CONFIG REQUIRED)
+endif()
+
+if(MC_BUILD_BENCHMARKS)
+    find_package(benchmark CONFIG REQUIRED)
+endif()
 
 # ============================================================
 # QuickJS-NG - JavaScript 引擎，用于基岩版Addon脚本系统
@@ -329,13 +292,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 if(MC_ENABLE_SANITIZERS)
-    # Sanitizer 构建：禁用优化和可能干扰 sanitizer 的选项
-    # CMAKE_CXX_FLAGS 中由调用者注入具体的 -fsanitize= 选项
+    # Sanitizer 构建：降低优化等级并关闭可能干扰诊断的选项
+    # 具体插桩由 Sanitizers 模块统一添加，不依赖通用 flags 缓存。
     add_compile_options(-O1 -fno-omit-frame-pointer -fno-common)
     add_compile_options(-fno-fast-math) # sanitizer 需要精确浮点语义
     # Sanitizer 插桩可能阻止显式请求的向量化；非 sanitizer 构建仍保留优化失败诊断。
     add_compile_options(-Wno-pass-failed)
-    message(STATUS "Sanitizer build: optimizations reduced, stack protection enabled")
+    message(STATUS "Sanitizer build: ASan/UBSan enabled with -O1 and frame pointers")
 else()
     add_compile_options(-O2) # 不开o3，o3对缓存不友好、增加编译时间且可能存在bug
     # 向量化请求失败（`#pragma clang loop vectorize_width`）只报告为警告。本工程的浮点
@@ -493,12 +456,10 @@ message(STATUS "  Tracing:        ${MC_ENABLE_TRACING}")
 message(STATUS "  Tracy:          ${MC_ENABLE_TRACY}")
 message(STATUS "  Tracy OnDemand: ${MC_TRACY_ON_DEMAND}")
 message(STATUS "  Memory track:   ${MC_ENABLE_MEMORY}")
-if(MC_ENABLE_CCACHE AND UNIX AND CCACHE_PROGRAM)
+if(MC_ENABLE_CCACHE AND CCACHE_PROGRAM)
     message(STATUS "  ccache:         Enabled (${CCACHE_PROGRAM})")
-elseif(MC_ENABLE_CCACHE AND UNIX)
-    message(STATUS "  ccache:         Not found")
 elseif(MC_ENABLE_CCACHE)
-    message(STATUS "  ccache:         Skipped (Unix only)")
+    message(STATUS "  ccache:         Not found")
 else()
     message(STATUS "  ccache:         Disabled")
 endif()

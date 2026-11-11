@@ -30,17 +30,7 @@
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 
-// 只在stb_image.h未被包含时定义实现
-#ifndef STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#endif
 #include <stb_image.h>
-
-// 只在stb_image_write.h未被包含时定义实现
-#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#endif
 #include <stb_image_write.h>
 
 #include <algorithm>

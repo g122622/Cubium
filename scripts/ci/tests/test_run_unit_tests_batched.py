@@ -6,10 +6,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from run_unit_tests_batched import Runner
+from summarize_failures import collect_ctest_failures
 
 
 class BatchedUnitTests(unittest.TestCase):
@@ -18,7 +20,9 @@ class BatchedUnitTests(unittest.TestCase):
         self.addCleanup(self.scratch.cleanup)
         self.root = Path(self.scratch.name)
         self.runner = Runner(argparse.Namespace(build_dir=self.root, config="RelWithDebInfo",
-                                               batch_timeout=300, test_timeout=60))
+                                               batch_timeout=300, test_timeout=60,
+                                               out_log=self.root / "ctest-output.log",
+                                               out_junit=self.root / "ctest-results.xml"))
         self.names = ["Suite.Passed", "Suite.Failed", "Suite.Skipped", "Suite.Hangs", "Suite.Later"]
         self.runner.filter_of = {name: name for name in self.names}
 
@@ -110,6 +114,49 @@ class BatchedUnitTests(unittest.TestCase):
         self.assertEqual(results[0]["time"], 1.25)
         self.assertEqual(results[1]["message"], "XML evidence")
         self.assertEqual(pending, [])
+
+    def test_exit_failure_after_passing_xml_is_archived_separately(self):
+        """全部用例完成后的泄漏、析构崩溃和超时均不能被通过 XML 掩盖。"""
+        for code, timed_out, evidence in ((23, False, "ERROR: LeakSanitizer: leaks"),
+                                         (-6, False, "destructor aborted"),
+                                         (0, True, "shutdown timed out")):
+            with self.subTest(code=code, timed_out=timed_out):
+                self.runner.process_issues.clear()
+
+                def execute(names, output_path, timeout):
+                    output_path.write_text('<testsuites><testsuite><testcase classname="Suite" '
+                                           'name="Passed" time="1"/><testcase classname="Suite" '
+                                           'name="Later" time="2"/></testsuite></testsuites>')
+                    return code, timed_out, evidence
+
+                with patch.object(self.runner, "_run_gtest", side_effect=execute):
+                    results, pending = self.runner._execute_subset(
+                        ["Suite.Passed", "Suite.Later"], self.root / "batch.xml")
+                self.assertEqual([result["status"] for result in results], ["passed", "passed"])
+                self.assertEqual(pending, [])
+                summary = self.runner.write_outputs([(1, "Suite.Passed"), (2, "Suite.Later")], results)
+                self.assertEqual(summary["total"], 3)
+                self.assertEqual(summary["errors"], 1)
+                self.assertIn(evidence, self.runner.options.out_log.read_text(encoding="utf-8"))
+                xml = ET.parse(self.runner.options.out_junit)
+                self.assertIn(evidence, xml.findtext(".//error"))
+                self.assertTrue(collect_ctest_failures(self.root))
+
+    def test_single_passing_xml_does_not_hide_sanitizer_exit(self):
+        def execute(names, output_path, timeout):
+            output_path.write_text('<testsuites><testsuite><testcase classname="Suite" '
+                                   'name="Passed" time="1"/></testsuite></testsuites>')
+            return 1, False, "ERROR: AddressSanitizer: heap-use-after-free"
+
+        with patch.object(self.runner, "_run_gtest", side_effect=execute):
+            result = self.runner._run_single("Suite.Passed")
+        self.assertEqual(result["status"], "passed")
+        self.assertEqual(len(self.runner.process_issues), 1)
+
+    def test_regular_assertion_failure_is_not_a_process_error(self):
+        self.runner._record_process_issue(["Suite.Failed"], 1, False, "assertion failed",
+                                          [{"status": "failure"}])
+        self.assertEqual(self.runner.process_issues, [])
 
 
 if __name__ == "__main__":

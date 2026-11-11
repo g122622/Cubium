@@ -17,6 +17,7 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_MAXSIZE: 2G
   # 每个分片内部并发运行的 clang-tidy 进程数。4 个分片 × 4 线程 = 16 个并发 clang-tidy 进程。
+  TIDY_COMPILE_DB_DIR: build-ci-tests
   TIDY_JOBS: 4
 
 jobs:
@@ -50,10 +51,14 @@ jobs:
           header_file_list="$RUNNER_TEMP/changed-header-files.nul"
           : > "$source_file_list"
           : > "$header_file_list"
+          needs_client=false
           while IFS= read -r -d '' path; do
             # tests/ 下的文件不参与 clang-tidy（测试代码不纳入静态分析门禁）。
             case "$path" in
               tests/*) continue ;;
+            esac
+            case "$path" in
+              src/client/*) needs_client=true ;;
             esac
             case "$path" in
               *.cpp|*.cc|*.cxx)
@@ -68,6 +73,7 @@ jobs:
           source_count=$(tr -cd '\0' < "$source_file_list" | wc -c)
           header_count=$(tr -cd '\0' < "$header_file_list" | wc -c)
           count=$((source_count + header_count))
+          echo "needs_client=$needs_client" >> "$GITHUB_OUTPUT"
           echo "source_list=$source_file_list" >> "$GITHUB_OUTPUT"
           echo "header_list=$header_file_list" >> "$GITHUB_OUTPUT"
           if [ "$count" -gt 0 ]; then
@@ -98,6 +104,7 @@ jobs:
         id: env-setup
         uses: ./.github/actions/setup-linux-build-env
         with:
+          client-dependencies: ${{ steps.changed.outputs.needs_client }}
           cache-scope: ci
           vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
@@ -108,8 +115,10 @@ jobs:
       - name: Configure compilation database
         if: steps.changed.outputs.has_cpp == 'true'
         run: |
-          cmake --preset linux-clang-ci-tests -B build \
+          cmake --preset linux-clang-ci-tests -B build-ci-tests \
             -DMC_ENABLE_NATIVE_ARCH=OFF \
+            -DMC_BUILD_CLIENT=${{ steps.changed.outputs.needs_client == 'true' && 'ON' || 'OFF' }} \
+            -DMC_BUILD_CLIENT_TESTS=${{ steps.changed.outputs.needs_client == 'true' && 'ON' || 'OFF' }} \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
@@ -192,7 +201,7 @@ jobs:
             done
             header_compdb_dir="$RUNNER_TEMP/tidy-header-compdb"
             if python3 scripts/ci/create_header_compile_commands.py \
-              --compile-commands build/compile_commands.json \
+              --compile-commands build-ci-tests/compile_commands.json \
               --headers-list "$shard_header_list" \
               --output "$header_compdb_dir/compile_commands.json"; then
               TIDY_COMPILE_DB_DIR="$header_compdb_dir" \

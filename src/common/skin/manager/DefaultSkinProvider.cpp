@@ -31,7 +31,7 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
-// stb_image 用于解码 PNG 纹理（STB_IMAGE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义）
+// stb_image 用于解码 PNG 纹理（STB_IMAGE_IMPLEMENTATION 已在 common/resource/image/StbImage.cpp 中定义）
 #include <array>
 #include <string>
 #include <utility>

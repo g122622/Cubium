@@ -51,7 +51,7 @@ MC 1.21.1 有 18 种默认皮肤，通过 UUID 哈希选择：
 - `common/skin/parser` - SkinMetadataParser
 - `common/resource` - ResourceLocation、IResourcePack（DefaultSkinProvider 加载默认皮肤 PNG 纹理）
 - `common/util/thread` - UniversalWorkerPool（异步皮肤加载，可选注入）
-- `stb_image` - PNG 解码（STB_IMAGE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义）
+- `stb_image` - PNG 解码（实现由 common/resource/image/StbImage.cpp 统一提供）
 - `nlohmann-json` - 元数据 JSON 序列化
 - `spdlog` - 日志
 

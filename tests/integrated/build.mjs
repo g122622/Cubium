@@ -11,9 +11,10 @@
 // 运行：node build.mjs         编译所有包
 //       node build.mjs --clean 清理所有包的 scripts/ 与复制的 src/utils/（不清 structures/，独有结构是源文件）
 //
-// 由 CMake 在构建期调用（src/server/test/facade 的 add_custom_command），也支持开发者手动运行。
+// 由 cmake/IntegratedPacks.cmake 的独立资源目标在构建期调用，也支持开发者手动运行。
 
 import * as fs from "node:fs";
+import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -33,34 +34,90 @@ const nodeModulesDir = path.join(integratedRoot, "node_modules");
 const sharedStructuresDir = path.join(integratedRoot, "structures", "gametests");
 
 // 行为包目录名（每个目录是一个独立行为包，含 manifest.json + src/ + tsconfig.json）
-const PACKS = ["challenge", "command", "mob_behavior", "block_behavior", "lighting", "starter", "teleport"];
+const PACKS = JSON.parse(fs.readFileSync(path.join(integratedRoot, "packs.json"), "utf8"));
 
 const isClean = process.argv.includes("--clean");
+const isVerify = process.argv.includes("--verify");
+
+/** 递归收集源文件，用于验证已归档的 JS，无需安装 npm 依赖。 */
+function sourceFiles(directory) {
+  const files = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const filename = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...sourceFiles(filename));
+    } else if (entry.isFile()) {
+      files.push(filename);
+    }
+  }
+  return files;
+}
+
+/** 验证测试构建携带的行为包产物，测试分片只消费同一份编译结果。 */
+function verifyProducts() {
+  const missing = [];
+  for (const pack of PACKS) {
+    const packDir = path.join(integratedRoot, pack);
+    const srcDir = path.join(packDir, "src");
+    const sources = sourceFiles(srcDir).filter((file) => !path.relative(srcDir, file).startsWith(`utils${path.sep}`));
+    for (const source of sources) {
+      if (source.endsWith(".ts") && !source.endsWith(".d.ts")) {
+        const output = path.join(packDir, "scripts", path.relative(srcDir, source).replace(/\.ts$/, ".js"));
+        if (!fs.existsSync(output)) {
+          missing.push(output);
+        }
+      }
+    }
+    for (const source of fs.existsSync(utilsDir) ? sourceFiles(utilsDir) : []) {
+      if (source.endsWith(".ts") && !source.endsWith(".d.ts")) {
+        const output = path.join(packDir, "scripts", "utils", path.relative(utilsDir, source).replace(/\.ts$/, ".js"));
+        if (!fs.existsSync(output)) {
+          missing.push(output);
+        }
+      }
+    }
+    for (const name of fs.existsSync(sharedStructuresDir) ? fs.readdirSync(sharedStructuresDir) : []) {
+      if (name.endsWith(".mcstructure") && !fs.existsSync(path.join(packDir, "structures", "gametests", name))) {
+        missing.push(`${pack}/structures/gametests/${name}`);
+      }
+    }
+  }
+  if (missing.length > 0) {
+    console.error(`[build] missing behavior pack products:\n${missing.join("\n")}`);
+    process.exit(1);
+  }
+  console.log(`[build] verified ${PACKS.length} precompiled behavior packs`);
+}
 
 /**
  * 确保 node_modules 已安装（typescript + @minecraft 类型包）。
- * node_modules 不入 git（.gitignore），CMake 构建期首次跑或 clone 后首次跑时需先 npm install。
- * 检测 node_modules/typescript 存在性，缺失则 spawn npm install（在线/离线均可，npm 自行解析）。
- * 幂等：已装则直接返回，不重复安装。
+ * node_modules 不入 git（.gitignore），CMake 构建期首次跑或 clone 后首次跑时需先 npm ci。
+ * package.json 与 lockfile 的摘要一致才复用依赖；变化时用 npm ci 严格恢复锁定版本。
  */
 function ensureDeps() {
-  if (fs.existsSync(tscBin)) {
-    return; // typescript 已就位（@minecraft 包同批安装，假定齐备）
+  const fingerprint = createHash("sha256")
+    .update(fs.readFileSync(path.join(integratedRoot, "package.json")))
+    .update(fs.readFileSync(path.join(integratedRoot, "package-lock.json")))
+    .digest("hex");
+  const stamp = path.join(nodeModulesDir, ".cubium-dependencies.sha256");
+  if (fs.existsSync(tscBin) && fs.existsSync(stamp) && fs.readFileSync(stamp, "utf8") === fingerprint) {
+    return;
   }
-  console.log("[build] node_modules missing, running npm install...");
-  const result = spawnSync("npm", ["install", "--no-audit", "--no-fund"], {
+  console.log("[build] installing locked dependencies with npm ci...");
+  const result = spawnSync("npm", ["ci", "--no-audit", "--no-fund"], {
     stdio: "inherit",
     cwd: integratedRoot,
     shell: process.platform === "win32",
   });
   if (result.status !== 0) {
-    console.error("[build] npm install failed (exit code {})".replace("{}", result.status));
+    console.error("[build] npm ci failed (exit code {})".replace("{}", result.status));
     process.exit(1);
   }
   if (!fs.existsSync(tscBin)) {
-    console.error("[build] npm install completed but tsc still missing at " + tscBin);
+    console.error("[build] npm ci completed but tsc still missing at " + tscBin);
     process.exit(1);
   }
+  fs.writeFileSync(stamp, fingerprint);
 }
 
 /**
@@ -112,11 +169,19 @@ function stageUtils(packDir) {
  * @param packDir 包目录绝对路径
  */
 function stageSharedStructures(packDir) {
-  if (!fs.existsSync(sharedStructuresDir)) {
-    return; // 无共享结构库（如仅编译单包时 structures/ 未建），跳过
-  }
+  const entries = fs.existsSync(sharedStructuresDir)
+    ? fs.readdirSync(sharedStructuresDir, { withFileTypes: true })
+    : [];
   const destDir = path.join(packDir, "structures", "gametests");
-  for (const entry of fs.readdirSync(sharedStructuresDir, { withFileTypes: true })) {
+  const statePath = path.join(packDir, ".cubium-shared-structures.json");
+  const previous = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, "utf8")) : [];
+  const current = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".mcstructure")).map((entry) => entry.name);
+  for (const name of previous) {
+    if (!current.includes(name)) {
+      fs.rmSync(path.join(destDir, name), { force: true });
+    }
+  }
+  for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith(".mcstructure")) {
       continue;
     }
@@ -129,6 +194,7 @@ function stageSharedStructures(packDir) {
     }
     fs.copyFileSync(srcPath, destPath);
   }
+  fs.writeFileSync(statePath, JSON.stringify(current) + "\n");
 }
 
 /**
@@ -142,6 +208,8 @@ function compilePack(packDir) {
     console.warn(`[build] skip ${path.basename(packDir)}: no tsconfig.json`);
     return true;
   }
+  // 清除已经删除的源文件留下的 JS，避免加载旧测试或重复注册。
+  removeDirRecursive(path.join(packDir, "scripts"));
   const args = [tscBin, "-p", tsconfigPath];
   const result = spawnSync(process.execPath, args, { stdio: "inherit", cwd: packDir });
   return result.status === 0;
@@ -155,6 +223,10 @@ function cleanPack(packDir) {
 
 function main() {
   let allOk = true;
+  if (isVerify) {
+    verifyProducts();
+    return;
+  }
   if (isClean) {
     for (const pack of PACKS) {
       cleanPack(path.join(integratedRoot, pack));
@@ -164,7 +236,7 @@ function main() {
   }
 
   // 确保 node_modules 就绪（typescript + @minecraft 类型包）。CMake 构建期首次跑或
-  // clone 后首次跑时 node_modules 缺失，此处自动 npm install；已装则跳过。
+  // clone 后首次跑时 node_modules 缺失，此处自动 npm ci；已装则跳过。
   ensureDeps();
 
   for (const pack of PACKS) {

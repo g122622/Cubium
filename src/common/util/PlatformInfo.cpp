@@ -51,9 +51,6 @@
 #include <sys/sysctl.h>
 #endif
 
-// Vulkan 头文件
-#include <vulkan/vulkan.h>
-
 namespace mc::util {
 
 // ============================================================================
@@ -657,79 +654,6 @@ void PlatformInfo::requestHighResTimer() {}
 
 void PlatformInfo::releaseHighResTimer() {}
 #endif
-
-GpuInfo PlatformInfo::getGpuInfoFromVulkan(
-    const VkPhysicalDeviceProperties_T* properties, const VkPhysicalDeviceMemoryProperties_T* memoryProperties)
-{
-    GpuInfo info = {};
-
-    if (properties == nullptr) {
-        return info;
-    }
-
-    const VkPhysicalDeviceProperties* props = reinterpret_cast<const VkPhysicalDeviceProperties*>(properties);
-    const VkPhysicalDeviceMemoryProperties* memProps =
-        reinterpret_cast<const VkPhysicalDeviceMemoryProperties*>(memoryProperties);
-
-    // 设备名称
-    info.name = props->deviceName;
-
-    // API版本
-    info.apiMajorVersion = VK_API_VERSION_MAJOR(props->apiVersion);
-    info.apiMinorVersion = VK_API_VERSION_MINOR(props->apiVersion);
-
-    // 厂商
-    switch (props->vendorID) {
-        case 0x10DE:
-            info.vendor = "NVIDIA";
-            break;
-        case 0x1002:
-        case 0x1022: // AMD
-            info.vendor = "AMD";
-            break;
-        case 0x8086:
-        case 0x8087: // Intel
-            info.vendor = "Intel";
-            break;
-        case 0x13B5: // ARM
-            info.vendor = "ARM";
-            break;
-        case 0x1010: // Apple
-            info.vendor = "Apple";
-            break;
-        case 0x5143: // Qualcomm
-            info.vendor = "Qualcomm";
-            break;
-        default:
-            info.vendor = "Unknown";
-            break;
-    }
-
-    // 驱动版本
-    info.driverVersion = std::to_string(VK_API_VERSION_MAJOR(props->driverVersion)) + "." +
-        std::to_string(VK_API_VERSION_MINOR(props->driverVersion)) + "." +
-        std::to_string(VK_API_VERSION_PATCH(props->driverVersion));
-
-    // 计算显存
-    if (memProps) {
-        u64 dedicatedVideoMemory = 0;
-        u64 sharedSystemMemory = 0;
-
-        for (u32 i = 0; i < memProps->memoryHeapCount; ++i) {
-            const VkMemoryHeap& heap = memProps->memoryHeaps[i];
-            if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
-                dedicatedVideoMemory += heap.size;
-            } else {
-                sharedSystemMemory += heap.size;
-            }
-        }
-
-        info.dedicatedVideoMB = dedicatedVideoMemory / (1024 * 1024);
-        info.sharedSystemMB = sharedSystemMemory / (1024 * 1024);
-    }
-
-    return info;
-}
 
 bool PlatformInfo::is64BitSystem()
 {

@@ -36,7 +36,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/Direction.hpp"
 
-// stb_image 用于 PNG 加载（实现在 TextureAtlasBuilder.cpp 中）
+// stb_image 用于 PNG 加载（实现在 common/resource/image/StbImage.cpp 中）
 #include <cstddef>
 #include <functional>
 #include <map>

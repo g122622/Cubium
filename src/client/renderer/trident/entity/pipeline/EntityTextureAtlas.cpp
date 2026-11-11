@@ -34,7 +34,7 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 
-// stb_image is already implemented in TextureAtlasBuilder.cpp
+// stb_image is already implemented in common/resource/image/StbImage.cpp
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

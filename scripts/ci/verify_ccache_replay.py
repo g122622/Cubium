@@ -33,7 +33,10 @@ def verify_launcher(build_dir: Path, variant: str, compiler: Path) -> str:
     )
     command = result.stdout.strip().splitlines()[-1]
     arguments = shlex.split(command)
-    if Path(arguments[0]).name != "ccache" or Path(arguments[1]).resolve() != compiler.resolve():
+    cache_index = next((index for index, argument in enumerate(arguments)
+                        if Path(argument).name == "ccache"), -1)
+    if cache_index < 0 or cache_index + 1 >= len(arguments) \
+            or Path(arguments[cache_index + 1]).resolve() != compiler.resolve():
         raise RuntimeError(f"Ninja does not invoke ccache before the real compiler: {command}")
     return command
 

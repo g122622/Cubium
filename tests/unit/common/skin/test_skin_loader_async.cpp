@@ -35,7 +35,7 @@
 #include <gtest/gtest.h>
 
 // stb_image_write for generating test PNG data
-// STB_IMAGE_WRITE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义
+// STB_IMAGE_WRITE_IMPLEMENTATION 已在 common/resource/image/StbImage.cpp 中定义
 #include <stb_image_write.h>
 
 using namespace mc;

@@ -1,5 +1,6 @@
 # Build directories
 build/
+build-*/
 dist/
 out/
 cmake-build-*/
@@ -156,3 +157,6 @@ tests/integrated/*/package-lock.json
 # Python 字节码缓存（scripts/ci 下的 CI 辅助脚本用）
 __pycache__/
 *.pyc
+
+# 行为包共享结构的生成记录
+tests/integrated/*/.cubium-shared-structures.json
