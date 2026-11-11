@@ -37,6 +37,7 @@
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include <algorithm>
+#include <charconv>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -71,10 +72,10 @@ std::string bedrockCloneFilterDataToJavaProps(const std::string& blockTok, const
         return "";
     }
     i32 data = 0;
-    try {
-        data = std::stoi(dataTok);
-    }
-    catch (...) {
+    // 用 from_chars 而非 stoi：stoi 靠抛异常报告非法输入，而本项目不允许用异常做控制流；
+    // 且 stoi 会接受尾随垃圾（"3abc" → 3），这里要求整串都是数字，解析失败即退化为空串。
+    const auto [parseEnd, parseError] = std::from_chars(dataTok.data(), dataTok.data() + dataTok.size(), data);
+    if (parseError != std::errc{} || parseEnd != dataTok.data() + dataTok.size()) {
         return "";
     }
     if (data < 0 || data > 7) {
