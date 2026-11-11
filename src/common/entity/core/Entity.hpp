@@ -3806,8 +3806,8 @@ protected:
     // 乘客/骑乘系统
     std::vector<EntityInstanceId> m_passengers;     // 乘客列表
     EntityInstanceId m_vehicle = INVALID_ENTITY_ID; // 正在骑乘的车辆
-    // 注：原 m_rideCooldown（项目自定义骑乘冷却，非 vanilla 机制）已移除以对齐 vanilla。
-    // 详见 Entity.cpp addPassenger/removePassenger/canBeRidden 注释。
+    // 注意：不要给骑乘加全局冷却（vanilla 无此机制，且会破坏马驯服等反复骑乘玩法，
+    // 理由见 Entity.cpp addPassenger 注释）。
 
     // 反序列化阶段暂存的 Passengers NBT 列表。主实体被 spawnEntity 注入世界、拿到真实 id 后，
     // 由 EntityDeserializer::attachPassengers 递归 spawn 乘客并 startRiding，保证乘客的 m_vehicle
