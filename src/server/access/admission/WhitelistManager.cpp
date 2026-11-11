@@ -233,75 +233,66 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path)
     }
 
     // 读取文件
-    try {
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open whitelist file: {}", path.string()));
-        }
-
-        auto jsonResult = util::json::parse(file);
-        if (jsonResult.failed()) {
-            return Error(ErrorCode::FileCorrupted, "Failed to parse whitelist file: " + jsonResult.error().message());
-        }
-        const nlohmann::json& json = jsonResult.value();
-
-        if (!json.is_array()) {
-            return Error(ErrorCode::FileCorrupted, "Whitelist file must be a JSON array");
-        }
-
-        for (const auto& item : json) {
-            if (!item.is_object()) {
-                spdlog::warn("Skipping invalid whitelist entry: not an object");
-                continue;
-            }
-
-            WhitelistEntry entry;
-
-            // 解析 UUID
-            if (item.contains("uuid")) {
-                entry.uuid = item["uuid"].get<std::string>();
-            } else {
-                spdlog::warn("Skipping whitelist entry: missing uuid");
-                continue;
-            }
-
-            // 解析名称
-            if (item.contains("name")) {
-                entry.name = item["name"].get<std::string>();
-            } else {
-                spdlog::warn("Skipping whitelist entry: missing name");
-                continue;
-            }
-
-            // 验证条目
-            if (!entry.isValid()) {
-                spdlog::warn("Skipping invalid whitelist entry: uuid={}, name={}", entry.uuid, entry.name);
-                continue;
-            }
-
-            // 检查重复 UUID
-            if (m_entriesByUuid.contains(entry.uuid)) {
-                spdlog::warn("Skipping duplicate whitelist entry with uuid: {}", entry.uuid);
-                continue;
-            }
-
-            // 添加条目
-            m_entriesByUuid[entry.uuid] = entry;
-
-            // 添加名称映射
-            m_nameToUuid[_toLower(entry.name)] = entry.uuid;
-        }
-
-        spdlog::info("Loaded {} whitelist entries from {}", m_entriesByUuid.size(), path.string());
-        return {};
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open whitelist file: {}", path.string()));
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse whitelist JSON: {}", e.what()));
+
+    auto jsonResult = util::json::parse(file);
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse whitelist file: " + jsonResult.error().message());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read whitelist file: {}", e.what()));
+    const nlohmann::json& json = jsonResult.value();
+
+    if (!json.is_array()) {
+        return Error(ErrorCode::FileCorrupted, "Whitelist file must be a JSON array");
     }
-}
+
+    for (const auto& item : json) {
+        if (!item.is_object()) {
+            spdlog::warn("Skipping invalid whitelist entry: not an object");
+            continue;
+        }
+
+        WhitelistEntry entry;
+
+        // 解析 UUID
+        if (item.contains("uuid")) {
+            entry.uuid = item["uuid"].get<std::string>();
+        } else {
+            spdlog::warn("Skipping whitelist entry: missing uuid");
+            continue;
+        }
+
+        // 解析名称
+        if (item.contains("name")) {
+            entry.name = item["name"].get<std::string>();
+        } else {
+            spdlog::warn("Skipping whitelist entry: missing name");
+            continue;
+        }
+
+        // 验证条目
+        if (!entry.isValid()) {
+            spdlog::warn("Skipping invalid whitelist entry: uuid={}, name={}", entry.uuid, entry.name);
+            continue;
+        }
+
+        // 检查重复 UUID
+        if (m_entriesByUuid.contains(entry.uuid)) {
+            spdlog::warn("Skipping duplicate whitelist entry with uuid: {}", entry.uuid);
+            continue;
+        }
+
+        // 添加条目
+        m_entriesByUuid[entry.uuid] = entry;
+
+        // 添加名称映射
+        m_nameToUuid[_toLower(entry.name)] = entry.uuid;
+    }
+
+    spdlog::info("Loaded {} whitelist entries from {}", m_entriesByUuid.size(), path.string());
+    return {};}
 
 Result<void> WhitelistManager::save(const std::filesystem::path& path)
 {

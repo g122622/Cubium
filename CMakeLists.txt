@@ -484,7 +484,21 @@ endif()
 # tests/unit/common/ScopedAssertThrowHandler.hpp 都依赖它）。
 # 不能放进顶层 add_compile_options：那会连测试一起禁用异常，导致测试目标编译失败。
 if(MC_ENABLE_NO_EXCEPTIONS)
+    # 注意：真正编译 src/ 代码的是这些库 target，而不是可执行文件。
+    # 可执行文件只含各自的 main/入口。只给可执行文件加 -fno-exceptions 是**无效**的。
     set(_mc_no_exception_targets mc_common)
+    if(TARGET mc_gen)
+        list(APPEND _mc_no_exception_targets mc_gen)
+    endif()
+    if(TARGET mc_server_shared)
+        list(APPEND _mc_no_exception_targets mc_server_shared)
+    endif()
+    if(TARGET mc_server_storage)
+        list(APPEND _mc_no_exception_targets mc_server_storage)
+    endif()
+    if(TARGET mc_bedrock_addon)
+        list(APPEND _mc_no_exception_targets mc_bedrock_addon)
+    endif()
     if(MC_BUILD_SERVER)
         list(APPEND _mc_no_exception_targets minecraft-server)
     endif()

@@ -40,7 +40,16 @@ import sys
 target = os.path.abspath(sys.argv[1])
 database = json.load(open('build/compile_commands.json'))
 
-entry = next((item for item in database if os.path.abspath(item['file']) == target), None)
+matches = [item for item in database if os.path.abspath(item['file']) == target]
+# 同一文件可能被多个 target 编译（如 mc_server_shared + benchmark），标志可能不同。
+# **优先取带 -fno-exceptions 的条目**，否则会出现「检查通过、但实际 target 没开开关」的假通过。
+no_exc = [item for item in matches if '-fno-exceptions' in item['command']]
+entry = None
+if no_exc:
+    entry = no_exc[0]
+elif matches:
+    entry = matches[0]
+    sys.stderr.write('提示: %s 的所有编译条目都没有 -fno-exceptions（该 target 未开去异常化）。\n' % target)
 
 borrowed_from = None
 if entry is None:
