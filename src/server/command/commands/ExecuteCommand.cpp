@@ -53,6 +53,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/commands/ExecuteBlocksCondition.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
@@ -196,6 +197,9 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionLiteral(const char* n
 /// 运算符是字面量，执行链里没有痕迹，靠 LiteralRecordingCommandNode 在解析期写进来。
 inline constexpr const char* kScoreConditionOpKey = "executeScoreConditionOp";
 
+/// 上下文键：`if blocks` 用了哪种比较模式（`all`/`masked`）。理由同上。
+inline constexpr const char* kBlocksConditionModeKey = "executeBlocksConditionMode";
+
 /**
  * @brief 构建 if / unless 的条件子树（对齐原版 ExecuteCommand.Conditions.build）
  *
@@ -234,7 +238,10 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
         auto to = conditionArg("end", BlockPosArgumentType::blockPos(), false);
         auto destination = conditionArg("destination", BlockPosArgumentType::blockPos(), false);
         for (const char* mode : {"all", "masked"}) {
-            auto modeNode = conditionLiteral(mode);
+            // `all`/`masked` 是字面量，执行链拿不到，用记录节点写进上下文，
+            // 执行期从 kBlocksConditionModeKey 读出走了哪个模式。
+            auto modeNode =
+                std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>(mode, kBlocksConditionModeKey);
             modeNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
                 throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
             });
@@ -1027,6 +1034,27 @@ bool ExecuteCommand::_evaluateBlockCondition(
     } else if (context.hasArgument("target")) {
         // score <target> <targetObjective> <op> <source> <sourceObjective> | matches <range>
         return _evaluateScoreCondition(target, context);
+    } else if (context.hasArgument("start")) {
+        // blocks <start> <end> <destination> [all|masked]
+        auto* world = target.world();
+        if (world == nullptr) {
+            return false;
+        }
+        const Vector3i startVec = BlockPosArgumentType::getBlockPos(context, "start", target);
+        const Vector3i endVec = BlockPosArgumentType::getBlockPos(context, "end", target);
+        const Vector3i destinationVec = BlockPosArgumentType::getBlockPos(context, "destination", target);
+        const BlockPos startPos(startVec.x, startVec.y, startVec.z);
+        const BlockPos endPos(endVec.x, endVec.y, endVec.z);
+        const BlockPos destinationPos(destinationVec.x, destinationVec.y, destinationVec.z);
+        const std::string mode = context.getArgumentOr<std::string>(kBlocksConditionModeKey, std::string());
+        // 模式没记上（解析路径异常）按不成立处理，不猜默认值。
+        if (mode != "all" && mode != "masked") {
+            return false;
+        }
+        return blocksMatch(
+            startPos, endPos, destinationPos, mode == "masked", [world](const BlockPos& pos) -> const BlockState* {
+                return world->getBlockState(pos);
+            });
     } else if (context.hasArgument("pos")) {
         // loaded <pos>：pos 所在区块是否已加载
         auto* world = target.world();
@@ -1043,7 +1071,7 @@ bool ExecuteCommand::_evaluateBlockCondition(
         return chunkManager->tryToGetChunkInMem(static_cast<ChunkCoord>(chunkX), static_cast<ChunkCoord>(chunkZ)) !=
             nullptr;
     } else {
-        // blocks / data / items / score / predicate / function / stopwatch 的参数分别落在
+        // data / items / predicate / function / stopwatch 的参数分别落在
         // 各自的参数名上，这里一并按「条件不成立」处理。
         return false;
     }

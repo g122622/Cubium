@@ -1134,6 +1134,7 @@ add_executable(mc_tests
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
+    server/command/ExecuteBlocksConditionTest.cpp
     server/command/ExecuteCommandTest.cpp
     # 命令系统测试（原 mc_command_tests 并入）
     server/command/CommandStorageTest.cpp

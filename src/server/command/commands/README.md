@@ -14,6 +14,7 @@
 ├── SpreadPlayersCommand.hpp /
         SpreadPlayersCommand.cpp #随机分散玩家到区域内（支持 under<maxHeight> 子命令，维度感知高度）
 ├── ExecuteCommand.hpp / ExecuteCommand.cpp #执行嵌套命令，支持多种执行上下文修改（as / at / in / positioned / run /
+├── ExecuteBlocksCondition.hpp / .cpp # `/execute if blocks` 的区域逐格比对（all / masked），接受查方块回调以便单测
         if / unless）
 ├── ExperienceCommand.hpp / ExperienceCommand.cpp #管理经验值和等级
 ├── FillCommand.hpp / FillCommand.cpp #填充区域方块
