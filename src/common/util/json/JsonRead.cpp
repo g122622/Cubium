@@ -257,6 +257,29 @@ Result<std::string> getString(const nlohmann::json& value, std::string_view fiel
     return getString(*field_value);
 }
 
+Result<i32> getInt32FromNumber(const nlohmann::json& value)
+{
+    if (value.is_number_integer()) {
+        return getInt32(value);
+    }
+
+    if (!value.is_number()) {
+        return Error(ErrorCode::InvalidData, "JSON: value must be a number");
+    }
+
+    // 浮点收敛：先按 f64 判定是否落在 int32 可表示区间，再截断
+    const f64 number = value.get<f64>();
+    if (!std::isfinite(number)) {
+        return Error(ErrorCode::InvalidData, "JSON: number is not finite");
+    }
+    if (number < static_cast<f64>(std::numeric_limits<i32>::min()) ||
+        number > static_cast<f64>(std::numeric_limits<i32>::max())) {
+        return Error(ErrorCode::InvalidData, "JSON: number is out of int32 range");
+    }
+
+    return static_cast<i32>(number);
+}
+
 i32 getInt32Or(const nlohmann::json& value, std::string_view field, i32 fallback)
 {
     const auto read = getInt32(value, field);

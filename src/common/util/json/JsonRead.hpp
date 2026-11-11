@@ -87,6 +87,15 @@ namespace mc::util::json {
 [[nodiscard]] Result<std::string> getString(const nlohmann::json& value);
 
 /**
+ * @brief 取「任意 JSON 数字」并收敛为 i32
+ *
+ * 与 `getInt32` 的区别：`getInt32` 只接受整数，本函数同时接受浮点并按截断处理。
+ * 数据包里同一字段常出现 `3` 与 `3.0` 两种写法，这类字段用它读取。
+ * 数值超出 int32 范围时返回 `Error`，不抛 `out_of_range`。
+ */
+[[nodiscard]] Result<i32> getInt32FromNumber(const nlohmann::json& value);
+
+/**
  * @brief 取可选字段，缺失或类型不符时返回调用方给出的兜底值（不抛异常）
  *
  * 用于数据包/存档中"可选但带默认值"的字段：`nlohmann::json::value(key, default)`

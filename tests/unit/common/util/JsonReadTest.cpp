@@ -248,3 +248,18 @@ TEST(JsonReadTest, FallbackGettersUseFallbackOnMissingOrMismatch)
     EXPECT_TRUE(util::json::getObjectOrEmpty(json, "missing").empty());
     EXPECT_TRUE(util::json::getObjectOrEmpty(json, "wrongType").empty());
 }
+
+TEST(JsonReadTest, GetInt32FromNumberAcceptsBothIntegerAndFloat)
+{
+    // 数据包里同一字段常出现 3 与 3.0 两种写法
+    auto document = util::json::parse(R"({"i":3,"f":3.9,"neg":-2.5,"text":"3","huge":1e300})");
+    ASSERT_TRUE(document.success());
+    const auto& json = document.value();
+
+    EXPECT_EQ(util::json::getInt32FromNumber(json.at("i")).value(), 3);
+    EXPECT_EQ(util::json::getInt32FromNumber(json.at("f")).value(), 3); // 截断而非四舍五入
+    EXPECT_EQ(util::json::getInt32FromNumber(json.at("neg")).value(), -2);
+
+    EXPECT_TRUE(util::json::getInt32FromNumber(json.at("text")).failed());
+    EXPECT_TRUE(util::json::getInt32FromNumber(json.at("huge")).failed());
+}

@@ -160,11 +160,13 @@ Result<RandomValueRange> LootSerializers::parseRandomValueRange(const nlohmann::
 {
     // 纯数字 -> 固定值
     if (json.is_number_integer()) {
-        i32 value = json.get<i32>();
+        i32 value = 0;
+        MC_TRY_ASSIGN(value, util::json::getInt32(json));
         return RandomValueRange(static_cast<f32>(value), static_cast<f32>(value));
     }
     if (json.is_number_float()) {
-        f32 value = json.get<f32>();
+        f32 value = 0;
+        MC_TRY_ASSIGN(value, util::json::getFloat32(json));
         return RandomValueRange(value, value);
     }
 
@@ -195,18 +197,14 @@ Result<RandomValueRange> LootSerializers::parseRandomValueRange(const nlohmann::
         f32 max = 0.0f;
 
         if (json.contains("min")) {
-            if (json["min"].is_number_integer()) {
-                min = static_cast<f32>(json["min"].get<i32>());
-            } else if (json["min"].is_number_float()) {
-                min = json["min"].get<f32>();
+            if (json["min"].is_number()) {
+                MC_TRY_ASSIGN(min, util::json::getFloat32(json["min"]));
             }
         }
 
         if (json.contains("max")) {
-            if (json["max"].is_number_integer()) {
-                max = static_cast<f32>(json["max"].get<i32>());
-            } else if (json["max"].is_number_float()) {
-                max = json["max"].get<f32>();
+            if (json["max"].is_number()) {
+                MC_TRY_ASSIGN(max, util::json::getFloat32(json["max"]));
             }
         }
 
@@ -240,12 +238,14 @@ Result<BinomialRange> LootSerializers::parseBinomialRange(const nlohmann::json& 
         return Error(ErrorCode::InvalidData, "BinomialRange missing numeric 'p' field");
     }
 
-    const f64 nValue = json["n"].get<f64>();
+    f64 nValue = 0;
+    MC_TRY_ASSIGN(nValue, util::json::getFloat64(json["n"]));
     if (nValue < 0.0 || nValue > static_cast<f64>(std::numeric_limits<i32>::max())) {
         return Error(ErrorCode::InvalidData, "BinomialRange 'n' out of range");
     }
     i32 n = static_cast<i32>(std::lround(nValue));
-    f32 p = json["p"].get<f32>();
+    f32 p = 0;
+    MC_TRY_ASSIGN(p, util::json::getFloat32(json["p"]));
 
     return BinomialRange(n, p);
 }
@@ -259,7 +259,9 @@ Result<ConstantRange> LootSerializers::parseConstantRange(const nlohmann::json& 
 {
     // 纯数字
     if (json.is_number_integer()) {
-        return ConstantRange(json.get<i32>());
+        i32 constant = 0;
+        MC_TRY_ASSIGN(constant, util::json::getInt32(json));
+        return ConstantRange(constant);
     }
 
     // 对象格式
@@ -272,10 +274,8 @@ Result<ConstantRange> LootSerializers::parseConstantRange(const nlohmann::json& 
     }
 
     i32 value = 0;
-    if (json["value"].is_number_integer()) {
-        value = json["value"].get<i32>();
-    } else if (json["value"].is_number_float()) {
-        value = static_cast<i32>(json["value"].get<f32>());
+    if (json["value"].is_number()) {
+        MC_TRY_ASSIGN(value, util::json::getInt32FromNumber(json["value"]));
     }
 
     return ConstantRange(value);
@@ -290,7 +290,8 @@ Result<std::unique_ptr<math::IRandomRange>> LootSerializers::parseRandomRange(co
 {
     // 纯数字 -> 常量
     if (json.is_number()) {
-        i32 value = json.is_number_integer() ? json.get<i32>() : static_cast<i32>(json.get<f32>());
+        i32 value = 0;
+        MC_TRY_ASSIGN(value, util::json::getInt32FromNumber(json));
         return std::unique_ptr<math::IRandomRange>(std::make_unique<ConstantRange>(value));
     }
 
@@ -513,13 +514,12 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseTableBonusConditio
     std::vector<f32> chances;
     chances.reserve(chancesArray.size());
     for (const auto& chanceVal : chancesArray) {
-        if (chanceVal.is_number_float()) {
-            chances.push_back(chanceVal.get<f32>());
-        } else if (chanceVal.is_number_integer()) {
-            chances.push_back(static_cast<f32>(chanceVal.get<i32>()));
-        } else {
+        if (!chanceVal.is_number()) {
             return Error(ErrorCode::InvalidData, "table_bonus condition 'chances' array contains non-numeric value");
         }
+        f32 chance = 0.0f;
+        MC_TRY_ASSIGN(chance, util::json::getFloat32(chanceVal));
+        chances.push_back(chance);
     }
 
     return castToBase<TableBonusCondition, LootCondition>(
@@ -535,7 +535,9 @@ Result<std::unique_ptr<LevelBasedValue>> LootSerializers::_parseLevelBasedValue(
 {
     // 裸数字等价于 constant，数据包里有大量这种简写。
     if (json.is_number()) {
-        return LevelBasedValue::constant(json.get<f32>());
+        f32 constant = 0.0f;
+        MC_TRY_ASSIGN(constant, util::json::getFloat32(json));
+        return LevelBasedValue::constant(constant);
     }
 
     if (!json.is_object()) {
@@ -557,7 +559,7 @@ Result<std::unique_ptr<LevelBasedValue>> LootSerializers::_parseLevelBasedValue(
             return Error(ErrorCode::InvalidData,
                 "LevelBasedValue '" + type + "' missing numeric field '" + std::string(field) + "'");
         }
-        return json[field].get<f32>();
+        return util::json::getFloat32(json[field]);
     };
     // 子表达式解析：失败时把错误往上抛。
     // 注意：本函数是静态成员，lambda 里不能再捕获 this，直接写全名调用即可。
@@ -647,7 +649,9 @@ Result<std::unique_ptr<LevelBasedValue>> LootSerializers::_parseLevelBasedValue(
             if (!entry.is_number()) {
                 return Error(ErrorCode::InvalidData, "LevelBasedValue 'lookup' entries must be numbers");
             }
-            values.push_back(entry.get<f32>());
+            f32 value = 0.0f;
+            MC_TRY_ASSIGN(value, util::json::getFloat32(entry));
+            values.push_back(value);
         }
         if (!json.contains("fallback")) {
             return Error(ErrorCode::InvalidData, "LevelBasedValue 'lookup' missing 'fallback' field");
@@ -669,10 +673,8 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceCondit
     }
 
     f32 chance = 0.0f;
-    if (json["chance"].is_number_float()) {
-        chance = json["chance"].get<f32>();
-    } else if (json["chance"].is_number_integer()) {
-        chance = static_cast<f32>(json["chance"].get<i32>());
+    if (json["chance"].is_number()) {
+        MC_TRY_ASSIGN(chance, util::json::getFloat32(json["chance"]));
     }
 
     return castToBase<RandomChanceCondition, LootCondition>(std::make_unique<RandomChanceCondition>(chance));
@@ -690,7 +692,8 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseRandomChanceWithEn
     if (!json.contains("enchantment") || !json["enchantment"].is_string()) {
         return Error(ErrorCode::InvalidData, "random_chance_with_enchanted_bonus missing 'enchantment'");
     }
-    const f32 unenchantedChance = json["unenchanted_chance"].get<f32>();
+    f32 unenchantedChance = 0;
+    MC_TRY_ASSIGN(unenchantedChance, util::json::getFloat32(json["unenchanted_chance"]));
     const std::string enchantmentId = json["enchantment"].get<std::string>();
 
     // enchanted_chance 缺省时退化为 unenchanted_chance（原版该字段必填，这里保持宽松）。
@@ -874,13 +877,13 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseLocationCheckCondi
     // 解析偏移量
     i32 offsetX = 0, offsetY = 0, offsetZ = 0;
     if (json.contains("offsetX") && json["offsetX"].is_number_integer()) {
-        offsetX = json["offsetX"].get<i32>();
+        MC_TRY_ASSIGN(offsetX, util::json::getInt32(json["offsetX"]));
     }
     if (json.contains("offsetY") && json["offsetY"].is_number_integer()) {
-        offsetY = json["offsetY"].get<i32>();
+        MC_TRY_ASSIGN(offsetY, util::json::getInt32(json["offsetY"]));
     }
     if (json.contains("offsetZ") && json["offsetZ"].is_number_integer()) {
-        offsetZ = json["offsetZ"].get<i32>();
+        MC_TRY_ASSIGN(offsetZ, util::json::getInt32(json["offsetZ"]));
     }
 
     // 解析 predicate
@@ -916,7 +919,7 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseTimeCheckCondition
 {
     i64 period = 0;
     if (json.contains("period") && json["period"].is_number_integer()) {
-        period = json["period"].get<i64>();
+        MC_TRY_ASSIGN(period, util::json::getInt64(json["period"]));
     }
 
     if (!json.contains("value")) {
@@ -1214,18 +1217,14 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseApplyBonusFunction(
     if (json.contains("parameters") && json["parameters"].is_object()) {
         const auto& params = json["parameters"];
 
-        if (params.contains("bonusMultiplier")) {
-            bonusMultiplier = params["bonusMultiplier"].is_number_integer()
-                ? params["bonusMultiplier"].get<i32>()
-                : static_cast<i32>(params["bonusMultiplier"].get<f32>());
+        if (params.contains("bonusMultiplier") && params["bonusMultiplier"].is_number()) {
+            MC_TRY_ASSIGN(bonusMultiplier, util::json::getInt32FromNumber(params["bonusMultiplier"]));
         }
-        if (params.contains("extra")) {
-            extra = params["extra"].is_number_integer() ? params["extra"].get<i32>()
-                                                        : static_cast<i32>(params["extra"].get<f32>());
+        if (params.contains("extra") && params["extra"].is_number()) {
+            MC_TRY_ASSIGN(extra, util::json::getInt32FromNumber(params["extra"]));
         }
-        if (params.contains("probability")) {
-            probability = params["probability"].is_number_float() ? params["probability"].get<f32>()
-                                                                  : static_cast<f32>(params["probability"].get<i32>());
+        if (params.contains("probability") && params["probability"].is_number()) {
+            MC_TRY_ASSIGN(probability, util::json::getFloat32(params["probability"]));
         }
     }
 
@@ -1256,8 +1255,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseEnchantedCountIncre
     }
 
     if (json.contains("limit") && json["limit"].is_number()) {
-        limit =
-            json["limit"].is_number_integer() ? json["limit"].get<i32>() : static_cast<i32>(json["limit"].get<f64>());
+        MC_TRY_ASSIGN(limit, util::json::getInt32FromNumber(json["limit"]));
     }
 
     return castToBase<EnchantedCountIncreaseFunction, LootFunction>(
@@ -1336,24 +1334,21 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseLimitCountFunction(
     // 原版 `limit` 的类型是 IntRange，其 min/max 是 NumberProvider，
     // 数据包里普遍写成浮点（如 `"max": 4.0`）。早先只认整型，
     // 浮点写法会被**静默丢弃**——最大值 4 的 glowstone 因此一直是 5。
-    const auto toInt = [](const nlohmann::json& value) -> i32 {
-        return value.is_number_integer() ? value.get<i32>() : static_cast<i32>(value.get<f64>());
-    };
-
     if (json.contains("limit")) {
         const auto& limit = json["limit"];
 
         if (limit.is_number()) {
             // 精确定值
-            const i32 value = toInt(limit);
+            i32 value = 0;
+            MC_TRY_ASSIGN(value, util::json::getInt32FromNumber(limit));
             min = value;
             max = value;
         } else if (limit.is_object()) {
             if (limit.contains("min") && limit["min"].is_number()) {
-                min = toInt(limit["min"]);
+                MC_TRY_ASSIGN(min, util::json::getInt32FromNumber(limit["min"]));
             }
             if (limit.contains("max") && limit["max"].is_number()) {
-                max = toInt(limit["max"]);
+                MC_TRY_ASSIGN(max, util::json::getInt32FromNumber(limit["max"]));
             }
         }
     }
@@ -1556,10 +1551,12 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetAttributesFuncti
             if (amountResult.success()) {
                 amount = amountResult.value();
             } else if (mod["amount"].is_number_float()) {
-                f32 val = mod["amount"].get<f32>();
+                f32 val = 0;
+                MC_TRY_ASSIGN(val, util::json::getFloat32(mod["amount"]));
                 amount = math::RandomValueRange(val, val);
             } else if (mod["amount"].is_number_integer()) {
-                f32 val = static_cast<f32>(mod["amount"].get<i32>());
+                f32 val = 0;
+                MC_TRY_ASSIGN(val, util::json::getFloat32(mod["amount"]));
                 amount = math::RandomValueRange(val, val);
             }
 
@@ -1645,7 +1642,9 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetLootTableFunctio
     u64 seed = 0;
 
     if (json.contains("seed") && json["seed"].is_number_integer()) {
-        seed = static_cast<u64>(json["seed"].get<i64>());
+        i64 seedValue = 0;
+        MC_TRY_ASSIGN(seedValue, util::json::getInt64(json["seed"]));
+        seed = static_cast<u64>(seedValue);
     }
 
     return castToBase<SetLootTableFunction, LootFunction>(std::make_unique<SetLootTableFunction>(lootTableId, seed));
@@ -1694,7 +1693,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplorationMapFunct
         if (!zoomJson.is_number_integer()) {
             return Error(ErrorCode::InvalidData, "exploration_map: 'zoom' must be an integer");
         }
-        const i64 zoomValue = zoomJson.get<i64>();
+        i64 zoomValue = 0;
+        MC_TRY_ASSIGN(zoomValue, util::json::getInt64(zoomJson));
         if (zoomValue < std::numeric_limits<i8>::min() || zoomValue > std::numeric_limits<i8>::max()) {
             return Error(ErrorCode::InvalidData,
                 "exploration_map: 'zoom' out of byte range (" + std::to_string(zoomValue) + ")");
@@ -1709,7 +1709,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplorationMapFunct
         if (!radiusJson.is_number_integer()) {
             return Error(ErrorCode::InvalidData, "exploration_map: 'search_radius' must be an integer");
         }
-        const i64 radiusValue = radiusJson.get<i64>();
+        i64 radiusValue = 0;
+        MC_TRY_ASSIGN(radiusValue, util::json::getInt64(radiusJson));
         if (radiusValue < 0 || radiusValue > std::numeric_limits<i32>::max()) {
             return Error(ErrorCode::InvalidData,
                 "exploration_map: 'search_radius' out of range (" + std::to_string(radiusValue) + ")");
@@ -1763,10 +1764,11 @@ std::optional<item::component::FireworkExplosion> _parseFireworkExplosionObject(
         }
         out.clear();
         for (const auto& color : json[key]) {
-            if (!color.is_number_integer()) {
+            const auto read = util::json::getInt32(color);
+            if (read.failed()) {
                 return false;
             }
-            out.push_back(color.get<i32>());
+            out.push_back(read.value());
         }
         return true;
     };
@@ -1839,10 +1841,12 @@ bool _parseListOperationHeader(const nlohmann::json& json, ListOperationKind& ki
         kind = *parsed;
     }
     if (json.contains("offset")) {
-        if (!json["offset"].is_number_integer() || json["offset"].get<i64>() < 0) {
+        const auto offsetValue = util::json::getInt64(json["offset"]);
+        if (offsetValue.failed() || offsetValue.value() < 0 ||
+            offsetValue.value() > static_cast<i64>(std::numeric_limits<i32>::max())) {
             return false;
         }
-        offset = static_cast<i32>(json["offset"].get<i64>());
+        offset = static_cast<i32>(offsetValue.value());
     }
     return true;
 }
@@ -2103,7 +2107,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetFireworksFunctio
         if (!json["flight_duration"].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "set_fireworks: 'flight_duration' must be an integer");
         }
-        const i64 value = json["flight_duration"].get<i64>();
+        i64 value = 0;
+        MC_TRY_ASSIGN(value, util::json::getInt64(json["flight_duration"]));
         if (value < 0 || value > 255) {
             return Error(ErrorCode::InvalidData, "set_fireworks: 'flight_duration' out of range");
         }
@@ -2134,10 +2139,11 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetFireworkExplosio
         std::vector<i32> colors;
         colors.reserve(value.size());
         for (const auto& color : value) {
-            if (!color.is_number_integer()) {
+            const auto read = util::json::getInt32(color);
+            if (read.failed()) {
                 return std::nullopt;
             }
-            colors.push_back(color.get<i32>());
+            colors.push_back(read.value());
         }
         return colors;
     };
@@ -2346,7 +2352,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetBookCoverFunctio
         if (!json["generation"].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "set_book_cover: 'generation' must be an integer");
         }
-        generation = json["generation"].get<i32>();
+        MC_TRY_ASSIGN(generation, util::json::getInt32(json["generation"]));
     }
     return castToBase<SetBookCoverFunction, LootFunction>(
         std::make_unique<SetBookCoverFunction>(author, title, generation));
@@ -2613,12 +2619,16 @@ Result<void> LootSerializers::_parseEntryBase(LootEntry& entry, const nlohmann::
 {
     // 解析权重
     if (json.contains("weight") && json["weight"].is_number_integer()) {
-        entry.setWeight(json["weight"].get<i32>());
+        i32 weight = 0;
+        MC_TRY_ASSIGN(weight, util::json::getInt32(json["weight"]));
+        entry.setWeight(weight);
     }
 
     // 解析质量
     if (json.contains("quality") && json["quality"].is_number_integer()) {
-        entry.setQuality(json["quality"].get<i32>());
+        i32 quality = 0;
+        MC_TRY_ASSIGN(quality, util::json::getInt32(json["quality"]));
+        entry.setQuality(quality);
     }
 
     // 解析条件
@@ -2643,10 +2653,10 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseEmptyEntry(const nlohm
     i32 quality = 0;
 
     if (json.contains("weight") && json["weight"].is_number_integer()) {
-        weight = json["weight"].get<i32>();
+        MC_TRY_ASSIGN(weight, util::json::getInt32(json["weight"]));
     }
     if (json.contains("quality") && json["quality"].is_number_integer()) {
-        quality = json["quality"].get<i32>();
+        MC_TRY_ASSIGN(quality, util::json::getInt32(json["quality"]));
     }
 
     auto entry = std::make_unique<EmptyLootEntry>(weight, quality);
@@ -2689,10 +2699,10 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseItemEntry(const nlohma
     RandomValueRange count(1.0f, 1.0f);
 
     if (json.contains("weight") && json["weight"].is_number_integer()) {
-        weight = json["weight"].get<i32>();
+        MC_TRY_ASSIGN(weight, util::json::getInt32(json["weight"]));
     }
     if (json.contains("quality") && json["quality"].is_number_integer()) {
-        quality = json["quality"].get<i32>();
+        MC_TRY_ASSIGN(quality, util::json::getInt32(json["quality"]));
     }
 
     // 解析数量
@@ -2779,10 +2789,10 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseTagEntry(const nlohman
     bool expand = false;
 
     if (json.contains("weight") && json["weight"].is_number_integer()) {
-        weight = json["weight"].get<i32>();
+        MC_TRY_ASSIGN(weight, util::json::getInt32(json["weight"]));
     }
     if (json.contains("quality") && json["quality"].is_number_integer()) {
-        quality = json["quality"].get<i32>();
+        MC_TRY_ASSIGN(quality, util::json::getInt32(json["quality"]));
     }
     if (json.contains("expand") && json["expand"].is_boolean()) {
         expand = json["expand"].get<bool>();
@@ -2810,10 +2820,10 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseDynamicEntry(const nlo
     i32 quality = 0;
 
     if (json.contains("weight") && json["weight"].is_number_integer()) {
-        weight = json["weight"].get<i32>();
+        MC_TRY_ASSIGN(weight, util::json::getInt32(json["weight"]));
     }
     if (json.contains("quality") && json["quality"].is_number_integer()) {
-        quality = json["quality"].get<i32>();
+        MC_TRY_ASSIGN(quality, util::json::getInt32(json["quality"]));
     }
 
     auto entry = std::make_unique<DynamicLootEntry>(name, weight, quality);
