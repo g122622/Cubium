@@ -1813,7 +1813,8 @@ f32 Player::getSecondsToDisableBlocking() const noexcept
     // Weapon.disableBlockingForSeconds：攻击者主手武器带 WEAPON 组件且 disableBlockingForSeconds>0
     // 时返回该值（斧头 5.0F）。
     //
-    // Cubium 暂无 WEAPON 数据组件体系，改为按物品标签判定：vanilla 1.21.11 物品定义中
+    // 本项目没有"物品类型默认组件"层（ItemStack::setComponent 按 stack 设置，
+    // 物品本身不携带组件默认值），故改为按物品标签判定：vanilla 1.21.11 物品定义中
     // 斧头（含数据包新增的 copper_axe）都带 Weapon(disables_blocking=true, disable_blocking_for_seconds=5.0)，
     // 判定"主手属于 minecraft:axes 标签"即等价于吃到该武器属性；数据包扩充斧类物品时自动生效。
     const ItemStack& mainHand = getHeldItem(Hand::MainHand);
