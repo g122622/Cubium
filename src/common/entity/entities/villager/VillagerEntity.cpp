@@ -755,6 +755,15 @@ void VillagerEntity::initializeBrain()
         {});
 
     // AVOID 活动：逃跑、移动到目标
+    // 注意：本活动目前**不可达**。门槛是 AVOID_TARGET 记忆，而该记忆的唯一写入方是
+    // AvoidEntitySensor —— 本实体的 registerSensor 列表里没有它（见 initializeBrain
+    // 末尾那批注册）。所以村民永远不会"因看到威胁而逃跑"，
+    // 该行为目前由 Goal 系统完整承担、且是另一条独立路径：
+    //   下方 addGoal 里注册了 1 个 PanicGoal 与 8 个 AvoidEntityGoal
+    //   （僵尸/劫毁兽/掠夺者/唤魔者/卫道士/恼鬼/幻术师/疣猪兽）。
+    //   所以这不是"功能缺失"，而是同一行为存在 Brain 版与 Goal 版两套实现，
+    //   而 Brain 版因缺传感器未接通。要启用需在下面注册 AvoidEntitySensor<VillagerEntity>；
+    //   若认定 Goal 版足够，则应删除此 AVOID 活动注册以免误导。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(
