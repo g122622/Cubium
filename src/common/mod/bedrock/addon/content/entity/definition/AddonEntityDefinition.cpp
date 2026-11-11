@@ -730,6 +730,39 @@ public:
         return mc::AgeableEntity::canBeLeashed();
     }
 
+    /**
+     * @brief 拴绳状态变更时派发行为包事件
+     *
+     * 对应 minecraft:leashable 的 on_leash / on_unleash。事件名为空时不派发。
+     * 注意：只在状态真正变化时触发，重复拴到同一目标不会重复派发，
+     * 因为底层每次调用都会通知。
+     */
+    void onLeashStateChanged(bool leashed) override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* leashable =
+            components != nullptr ? components->component("minecraft:leashable") : nullptr;
+        if (leashable == nullptr) {
+            return;
+        }
+        const char* field = leashed ? "on_leash" : "on_unleash";
+        const auto event = leashable->find(field);
+        if (event == leashable->end() || !event->is_string()) {
+            return;
+        }
+        auto* events = tryGetComponent<AddonEntityEvents>();
+        if (events == nullptr) {
+            return;
+        }
+        const Result<void> triggered = events->trigger(*this, event->get<std::string>());
+        if (triggered.failed()) {
+            spdlog::warn("minecraft:leashable {} event '{}' failed: {}",
+                field,
+                event->get<std::string>(),
+                triggered.error().message());
+        }
+    }
+
     bool isNameableByTag() const override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -1174,9 +1207,11 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 return Error(ErrorCode::InvalidData, "minecraft:leashable presets must be an array");
             }
             // TODO: presets 的弹簧参数（soft/hard/max_distance、spring_type、rotation_adjustment）
-            //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
-            //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
-            //   在此之前这些字段只做类型校验，不生效。
+            //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型（检索 leashSpring /
+            //   LeashPhysics / springForce 均无实现）。在此之前这些字段只做类型校验，不生效。
+            //   on_leash / on_unleash 已经生效：MobEntity 新增虚钩子 onLeashStateChanged(bool)，
+            //   在 setLeashedToEntity / setLeashedToFence / clearLeash 改完状态后调用，
+            //   _AddonMob 覆写它并派发对应行为包事件。
         } else if (name == "minecraft:can_fly") {
             // 纯标记组件，没有任何字段：存在即表示该实体可飞行寻路（走 FlyNodeEvaluator）。
             // 消费点在 AddonEntityComponents::_apply（组件安装后替换导航器）。

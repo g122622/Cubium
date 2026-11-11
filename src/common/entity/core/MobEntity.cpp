@@ -1294,6 +1294,12 @@ std::string MobEntity::getLootTableId() const
 // 拴绳系统
 // ============================================================================
 
+void MobEntity::onLeashStateChanged(bool leashed)
+{
+    // 基类默认不做任何事：拴绳状态变更对普通实体没有副作用。
+    MC_UNUSED(leashed);
+}
+
 void MobEntity::setLeashedToEntity(const std::string& holderUuid)
 {
     m_isLeashed = true;
@@ -1308,6 +1314,8 @@ void MobEntity::setLeashedToEntity(const std::string& holderUuid)
             m_world->broadcastSetEntityLink(id(), holder->id());
         }
     }
+
+    onLeashStateChanged(true);
 }
 
 void MobEntity::setLeashedToFence(const BlockPos& pos)
@@ -1329,11 +1337,14 @@ void MobEntity::setLeashedToFence(const BlockPos& pos)
                 m_leashDelayInfo.fencePos = std::nullopt;
                 m_leashDelayInfo.targetUuid = std::nullopt;
                 m_leashDelayInfo.resolveTicks = 0;
+                onLeashStateChanged(true);
                 return;
             }
         }
         // 未找到拴绳结实体，保留 fencePos 延迟信息，tickLeash 会重试
     }
+
+    onLeashStateChanged(true);
 }
 
 void MobEntity::clearLeash()
@@ -1348,6 +1359,8 @@ void MobEntity::clearLeash()
     m_leashFencePos = std::nullopt;
     m_leashDelayInfo.targetUuid = std::nullopt;
     m_leashDelayInfo.fencePos = std::nullopt;
+
+    onLeashStateChanged(false);
 }
 
 void MobEntity::dropLeash()
