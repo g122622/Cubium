@@ -589,9 +589,8 @@ TEST_F(FeatureSorterTest, CycleDetectionThrowsAssert)
 
     // 成环时触发 MC_ASSERT_RELEASE_MSG(false, ...)：子进程应以 42 退出，
     // 说明断言被触发且诊断消息包含 cycle / feature_a / feature_b。
-    EXPECT_EXIT((void)FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry),
-        ::testing::ExitedWithCode(42),
-        "");
+    EXPECT_EXIT(
+        (void)FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry), ::testing::ExitedWithCode(42), "");
 }
 
 TEST_F(FeatureSorterTest, CycleExceptionMessageContainsDiagnosticInfo)
@@ -616,9 +615,8 @@ TEST_F(FeatureSorterTest, CycleExceptionMessageContainsDiagnosticInfo)
 
     // 诊断信息校验已并入夹具处理器：只有消息同时包含 cycle / feature_a / feature_b
     // 才会以 42 退出，否则以 41 退出，因此这里断言退出码即可覆盖原用例意图。
-    EXPECT_EXIT((void)FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry),
-        ::testing::ExitedWithCode(42),
-        "");
+    EXPECT_EXIT(
+        (void)FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry), ::testing::ExitedWithCode(42), "");
 }
 
 TEST_F(FeatureSorterTest, UnregisteredFeatureIdSkipped)

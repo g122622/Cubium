@@ -22,9 +22,9 @@
  */
 
 #include "common/util/assert/AssertAll.hpp"
-#include <cstdlib>
 #include <barrier>
 #include <chrono>
+#include <cstdlib>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -454,7 +454,9 @@ TEST_F(AssertTest, NoStackTraceWhenDisabled)
 
     // handleFailure 在 -fno-exceptions 的库内，不能从中抛异常；改为用退出码回传判定结果：
     // 42 = 栈为空（符合预期），41 = 意外采集了栈。
-    config.handler = [](const AssertFailure& failure) { std::_Exit(failure.stackTrace.empty() ? 42 : 41); };
+    config.handler = [](const AssertFailure& failure) {
+        std::_Exit(failure.stackTrace.empty() ? 42 : 41);
+    };
     AssertManager::instance().setConfig(config);
 
     EXPECT_EXIT(
