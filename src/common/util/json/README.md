@@ -1,7 +1,8 @@
 # 外部输入的 JSON 读取边界
 
 nlohmann-json 在本项目里既是**值类型**也是**解析器**。它的问题在于错误用异常表达：
-`json::parse` 抛 `parse_error`，`.get<T>()` / `.at()` 抛 `type_error` / `out_of_range`。
+`json::parse` 抛 `parse_error`，`.get<T>()` / `.at()` 抛 `type_error` / `out_of_range`
+（**类型不符**与**键缺失**会抛；但**数值越界不会抛**，见下面第 5 条）。
 项目正在推进 `-fno-exceptions`（见 `docs/iterations/exception禁用指南.md`），异常一旦
 出现在 header 或热路径上就是硬阻塞；即使不开该开关，nlohmann 抛出的异常从数据包加载
 路径逃逸也会终止进程——一条坏 JSON 就能打死整服。
@@ -81,10 +82,19 @@ src/common/util/json/
 ### 5. `is_number_integer()` 拦不住越界
 
 nlohmann 的 `number_integer` 是 **int64**、`number_unsigned` 是 **uint64**，
-`json.get<i32>()` 在数值超出 int32 范围时会抛 `out_of_range`——`is_number_integer()`
-只保证"是整数"，不保证"装得下"。同理 `get<f32>()` 在数值超出 f32 范围时会抛
-`out_of_range`。这正是本层 `getInt32` / `getFloat32` 存在的理由：它们先按宽类型取，
-再自行判定范围并返回 `Error`。
+**实测结论（vcpkg 当前 nlohmann 版本）**：数值越界**不抛异常**，而是无检查
+`static_cast` 静默回绕/溢出：
+
+| 输入 | 调用 | 实际结果 |
+| --- | --- | --- |
+| `3000000000` | `get<i32>()` | `-1294967296`（回绕） |
+| `-3000000000` | `get<i32>()` | `1294967296`（回绕） |
+| `18446744073709551615` | `get<i64>()` | `-1`（回绕） |
+| `1e300` | `get<f32>()` | `inf`（溢出） |
+
+也就是说 `is_number_integer()` 只保证"是整数"，不保证"装得下"，而越界是**静默数据错误**
+而不是异常。这正是本层 `getInt32` / `getFloat32` 存在的理由：它们先按宽类型取，
+再自行判定范围并返回 `Error`，把静默回绕变成可上报的错误。
 
 ### 6. 非负整数字面量是 `number_unsigned`
 

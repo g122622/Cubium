@@ -115,7 +115,9 @@ Result<nlohmann::json> parse(std::istream& input)
 
 Result<i32> getInt32(const nlohmann::json& value)
 {
-    // 先按 i64 取，再自行判定是否落在 int32 内：nlohmann 的 get<i32>() 越界会抛 out_of_range
+    // 先按 i64 取，再自行判定是否落在 int32 内。
+    // 注意：nlohmann 的 get<i32>() 越界时**不抛异常**，而是无检查 static_cast 静默回绕
+    // （实测 get<i32>() 于 3000000000 得 -1294967296），所以必须自己判范围。
     const auto wide = getInt64(value);
     if (wide.failed()) {
         return wide.error();
@@ -145,7 +147,8 @@ Result<i32> getInt32(const nlohmann::json& value, std::string_view field)
 
 Result<i64> getInt64(const nlohmann::json& value)
 {
-    // is_number_integer() 对无符号整数同样为真，而 get<i64>() 在超出 int64 时会抛 out_of_range
+    // is_number_integer() 对无符号整数同样为真；get<i64>() 对超出 int64 的无符号值同样静默回绕
+    // （实测 u64 max 得 -1），因此单独处理无符号分支。
     if (value.is_number_unsigned()) {
         const u64 number = value.get<u64>();
         if (number > static_cast<u64>(std::numeric_limits<i64>::max())) {

@@ -37,7 +37,7 @@ namespace mc::util::json {
  * @brief nlohmann-json 的非抛出访问层
  *
  * nlohmann 的 `json::parse` 在文本非法时抛 `parse_error`，`.get<T>()` / `.at()` 在类型或
- * 键不匹配时抛 `type_error` / `out_of_range`。这些异常一旦从数据包加载路径逃逸就会终止
+ * 类型不符时抛 `type_error`、键缺失时 `.at()` 抛 `out_of_range`。这些异常一旦从数据包加载路径逃逸就会终止
  * 进程（`-fno-exceptions` 下 nlohmann 直接 abort），而数据包内容属于**外部不可信输入**。
  *
  * 因此数据包/网络等外部输入统一经本层读取：解析与取值失败都以 `Result` 返回，调用方
@@ -91,7 +91,7 @@ namespace mc::util::json {
  *
  * 与 `getInt32` 的区别：`getInt32` 只接受整数，本函数同时接受浮点并按截断处理。
  * 数据包里同一字段常出现 `3` 与 `3.0` 两种写法，这类字段用它读取。
- * 数值超出 int32 范围时返回 `Error`，不抛 `out_of_range`。
+ * 数值超出 int32 范围时返回 `Error`（nlohmann 原生 `get<i32>()` 此时会静默回绕）。
  */
 [[nodiscard]] Result<i32> getInt32FromNumber(const nlohmann::json& value);
 
