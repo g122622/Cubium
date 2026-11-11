@@ -39,11 +39,13 @@ namespace entity {
  * @brief 悦灵（minecraft:allay）
  *
  * 1.19 加入的被动飞行生物：被玩家给予物品后会四处寻找同类物品并搬运。
- * 尺寸与属性对齐原版 `Allay`：0.35 × 0.6、生命 20、飞行速度 0.1。
+ * 尺寸 0.35 × 0.6、生命 20、飞行速度 0.1。
  *
  * TODO(entity-allay): 行为尚未实现——原版的「给予物品后搬运」逻辑依赖
- * Brain 系统（`AllayAi`），本项目目前没有 Brain，因此这里只提供类型、尺寸、
- * 属性与基础移动能力，不与物品交互。
+ * Brain 系统（`AllayAi`）。Brain 基建（`common/entity/ai/brain/`）**已经存在**，
+ * 村民已完整接入（memory / sensor / activity / task 四层）；
+ * 悦灵缺的是它自己的 sensor 与搬运/返回任务，不是底层基建。
+ * 因此这里只提供类型、尺寸、属性与基础移动能力，不与物品交互。
  */
 class AllayEntity final : public AnimalEntity {
 public:

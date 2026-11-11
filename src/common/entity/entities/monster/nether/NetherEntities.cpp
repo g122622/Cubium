@@ -1068,10 +1068,11 @@ f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     // 中心距离 < 8.0"。注意两个半径方向不同：搜索用水平 8 / 垂直 4 的方形范围（blockPosition 即
     // 实体脚部方块坐标），距离判定用欧氏距离 8（含垂直分量）。
     //
-    // 本项目尚未集成 Brain/Sensor，此处按上述语义在每次调用时直接扫描：先取最近的排斥物方块，
+    // 疣猪兽本身尚未接入 Brain/Sensor（Brain 基建已存在，村民已完整接入），
+    // 此处按上述语义在每次调用时直接扫描：先取最近的排斥物方块，
     // 再判定候选位置到它的距离，结果与原版缓存语义一致。
-    // TODO: 集成 Brain/Sensor 系统后，迁移为 HoglinSpecificSensor + NEAREST_REPELLENT 记忆模块方案，
-    //       避免每次查询都重复扫描。
+    // TODO: 疣猪兽接入 Brain/Sensor 系统后，迁移为 HoglinSpecificSensor + NEAREST_REPELLENT
+    //       记忆模块方案，避免每次查询都重复扫描。
 
     const IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
