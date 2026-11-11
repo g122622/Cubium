@@ -52,11 +52,11 @@ cmake --build --preset windows-clang-relwithdebinfo-server
 # Configure（注入 VS 开发环境 + 指定 preset，仅配置不构建）
 ./scripts/configure.sh --preset <preset-name>
 
-# Build（用同名 build preset 增量构建，Windows 自动吃满核心，无需 -j）
+# Build（用同名 build preset 增量构建，并发由核心数和可用内存共同限制）
 cmake --build --preset <preset-name>
 ```
 
-CMakePresets.json 中预置的全部 preset 见该文件。其中两个 noprof preset 使用**独立的** `binaryDir`，与默认 `build/` 完全隔离、可并存互不干扰；其余 preset 共用默认 `build/` 目录，切换时需重新 configure。客户端已停止维护，脚本默认使用服务端专用 preset（`MC_BUILD_CLIENT=OFF`），需要客户端时显式传 `--preset windows-clang-relwithdebinfo`：
+CMakePresets.json 按用途隔离构建目录：日常服务端使用 `build/`，含客户端的开发/发布配置使用 `build-client/`、`build-client-release/`，sanitizer 使用 `build-ci-tests/`，CI Release 使用 `build-ci-release/`，noprof 与 fuzz 也有独立目录。客户端已停止维护，脚本默认使用服务端专用 preset（`MC_BUILD_CLIENT=OFF`），需要客户端时显式传 `--preset windows-clang-relwithdebinfo`：
 
 | preset | buildType | tests | binaryDir | 说明 |
 |--------|-----------|-------|-----------|------|
@@ -104,8 +104,9 @@ codec 层层内联），默认 `-g` 会为每个实例化、每个内联副本�
 
 - 本项目**只支持 `RelWithDebInfo` 与 `Release` 两种配置**，Debug（`-O0`）已从 preset、CI 和本文档中移除：区块生成与网络编解码在 `-O0` 下慢一个数量级，实测不具备可用性。调试需求一律通过日志解决。
 - 构建命令除了编译 C++ 代码之外，还会编译着色器。
-- 对于 macOS 等系统，默认只会启动一个核心构建，建议加上 `-jxxx`，并耐心等待 10 分钟左右以完成构建。
-- Windows 不需要加 `-j` 后缀，系统会自动吃满全部核心。
+- 各平台默认并发按逻辑核心数减二与可用内存 / 1536 MiB 取较小值，链接串行执行。需要显式覆盖时 configure 传 `-DMC_COMPILE_JOBS=<正整数>`；不再使用固定的 16/10 并发。
+- benchmark 默认关闭；需要时 configure 显式传 `-DMC_BUILD_BENCHMARKS=ON`，再构建 `mc_benchmark`。
+- 客户端测试由 `MC_BUILD_CLIENT_TESTS=ON` 单独开启，产物为 `mc_client_tests` 和 `mc_trident_tests`；服务端主单测不编译客户端实现。
 - 构建可能出现 "cl: 命令行 error D8040: 创建子进程或与子进程通讯时出错" 这种错误，此时只需要重新跑一遍构建命令就行，不用清理构建目录、不用重新生成构建脚本。
 
 #### PowerShell 升级后链接阶段 "The system cannot find the path specified"
@@ -231,35 +232,31 @@ cmake --build --preset linux-relwithdebinfo
 ./build/bin/RelWithDebInfo/mc_tests --gtest_filter="*Math*" --gtest_brief=1
 ```
 
-### ccache 与 PCH 的配合（务必配置，否则缓存形同虚设）
+### 编译缓存（Windows / Linux / macOS）
 
-项目开启了 ccache（`MC_ENABLE_CCACHE`，Linux 默认 ON），同时 `mc_common` 使用了预编译头
-（PCH）。**Clang 会把 PCH 的创建时间戳写进 `.pch`，而使用方编译时会校验该时间戳**，因此
-每次重建 PCH（CI 每次运行、本地清理 `build/` 后）都会让所有使用 PCH 的 TU 退化为
-「不可缓存」，ccache 日志中的表现为 `Result: could_not_use_precompiled_header`。
+`MC_ENABLE_CCACHE=ON` 时通过 ccache 包装 C/C++ 编译。`cmake/CompilerCache.cmake` 自动传入
+PCH 所需的 sloppiness 与基于编译器内容的身份检查；缓存目录、容量、远端存储和
+`CCACHE_PREFIX` 继续使用 ccache 的正常配置。找不到可执行文件时 configure 会明确警告。
 
-要让它真正生效，必须同时满足两条：
+Windows 可从 [ccache 官方发布页](https://github.com/ccache/ccache/releases) 下载 x86_64 压缩包，
+将 `ccache.exe` 放入 PATH 或 `%LOCALAPPDATA%/Cubium/tools/ccache/`；本机已使用 4.14.3。
+Linux 安装 `ccache` 包，macOS 使用 `brew install ccache`。
 
-1. **编译期**：加 `-Xclang -fno-pch-timestamp`（Clang 专用）。项目已在
-   `src/common/CMakeLists.txt` 中对所有 Clang 编译统一添加，无需手动处理。
-2. **运行期**：设置环境变量
+用 `ccache --show-stats --verbose` 查看命中与不可缓存原因。更换编译器、优化参数或调试信息等级
+会产生正常的冷缓存；先验证同配置下的暖缓存，再调整容量和并发。
 
-   ```bash
-   export CCACHE_SLOPPINESS=pch_defines,time_macros,include_file_mtime,include_file_ctime
-   ```
+### Sanitizer 与依赖功能
 
-   前两项是 ccache 手册「Precompiled headers」的硬性要求（ccache 无法在使用 PCH 时探测
-   `#define` 变化与 `__DATE__`/`__TIME__`）；`include_file_mtime,include_file_ctime` 用于
-   应对「每次 checkout 刷新源文件时间戳」的场景，缺失时命中率会从约 83% 掉到约 25%。
+`linux-clang-ci-tests` 使用 `build-ci-tests/`，全局 C/C++ 及链接插桩由
+`cmake/Sanitizers.cmake` 管理，关闭 `MC_ENABLE_SANITIZERS` 即移除这些使用要求。
+不要将插桩参数额外写进通用 `CMAKE_*_FLAGS`。预设显式清空通用 flags，迁移旧构建缓存时
+也不会残留历史 sanitizer 参数；自定义 flags 应在 configure 命令中显式传入。
 
-验证缓存是否真的生效：
+vcpkg 的 `tests`、`benchmarks`、`client`、`server` 功能由 CMake 根据目标开关选择。
+关闭客户端和客户端测试后不安装 GLFW/Vulkan/OpenAL；关闭测试或 benchmark 后不安装对应框架。
 
-```bash
-ccache --show-stats --verbose   # 看 Cacheable calls / Hits
-```
-
-若 `Cacheable calls` 占比很低（大量 `Uncacheable calls`），基本就是上述两项没配齐。
-CI（`nightly.yml`）已在 `env` 中设置 `CCACHE_SLOPPINESS`，并在构建后打印 ccache 统计。
+测试预设均指定 `RelWithDebInfo`，可使用 `ctest --preset <同名开发预设> -R '<测试名>'`。
+`configure.sh test` 也接受后续的 CTest 筛选参数。
 
 ### Linux preset 一览
 
@@ -270,7 +267,7 @@ CMakePresets.json 中预置的 Linux preset（均设 `MC_BUILD_CLIENT=OFF`，服
 | `linux-relwithdebinfo` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认） |
 | `linux-release-noprof` | Release | OFF | `build-release-noprof` | 可分发发布版：关插桩 + 不含测试/benchmark |
 
-> **注意**：`linux-relwithdebinfo` 与 `linux-clang-ci-*` 共用 `build/` 目录，切换时需重新 configure；`linux-release-noprof` 使用独立的 `build-release-noprof` 目录，可并存。
+> **注意**：日常构建、CI sanitizer、CI Release 分别使用 `build/`、`build-ci-tests/`、`build-ci-release/`，可并存。
 
 ### Linux 已知问题及解决方案
 
@@ -371,31 +368,13 @@ nightly 使用两个独立的 Linux preset：`linux-clang-ci-tests` 保留 RelWi
 ASan/UBSan，产出服务端与单测；`linux-clang-ci-release` 在独立目录产出无调试信息、无 profiler、
 无 sanitizer 的 Release 服务端与 benchmark。两者均关闭 native-arch，原开发和 fuzz preset 保持原有配置。
 CI 发布前还检查 ELF，并移除静态依赖库可能带入的调试节；仅设置 Release 不足以保证最终包没有调试信息。
-仅在 `MC_ENABLE_SANITIZERS=ON` 时添加 `-Wno-pass-failed`，避免插桩阻止显式向量化时被 `-Werror` 中断；
-非 sanitizer 构建继续把优化转换失败作为编译错误报告。
+项目保留 `-Wno-pass-failed`，避免显式向量化请求被编译器启发式拒绝时升级为错误；性能差异由 benchmark 检查。
 
 ```bash
-# ASan + UBSan
-cmake -B build-sanitize -G Ninja \
-  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DMC_BUILD_CLIENT=OFF -DMC_BUILD_SERVER=ON -DMC_BUILD_TESTS=ON \
-  -DMC_ENABLE_SANITIZERS=ON \
-  -DVCPKG_TARGET_TRIPLET=x64-linux \
-  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
-  -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
-  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
-  -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
-
-# TSan
-cmake -B build-tsan -G Ninja \
-  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DMC_BUILD_CLIENT=OFF -DMC_BUILD_SERVER=ON -DMC_BUILD_TESTS=ON \
-  -DMC_ENABLE_SANITIZERS=ON \
-  -DVCPKG_TARGET_TRIPLET=x64-linux \
-  -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
-  -DCMAKE_C_FLAGS="-fsanitize=thread -fno-sanitize-recover=thread" \
-  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
-  -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=thread"
+# ASan + UBSan：使用独立目录，开关自动添加 C/C++ 与链接插桩
+cmake --preset linux-clang-ci-tests
+cmake --build --preset linux-clang-ci-tests
+ctest --preset linux-clang-ci-tests -R '<相关测试名>'
 ```
+
+`MC_ENABLE_SANITIZERS` 专用于 ASan/UBSan，不要再叠加另一种 sanitizer 到这个预设。

@@ -978,7 +978,7 @@ cmake --build --preset macos-relwithdebinfo-server -- -j{当前机器核心数�
 
 ### preset 体系（先看清楚再决定用哪个）
 
-preset 定义在 `CMakePresets.json`，关键选项为 `MC_BUILD_CLIENT` / `MC_BUILD_SERVER` / `MC_BUILD_TESTS` / `MC_BUILD_BENCHMARKS` / `MC_BUILD_DIFF_PROBES` / `MC_BUILD_FUZZERS` / `MC_ENABLE_SANITIZERS`。所有 preset 的 `binaryDir` 都是仓库根 `build/`（`*-noprof` 为 `build-noprof/`），产物统一落在 `build/bin/<Config>/`。
+preset 定义在 `CMakePresets.json`，关键选项为 `MC_BUILD_CLIENT` / `MC_BUILD_SERVER` / `MC_BUILD_TESTS` / `MC_BUILD_CLIENT_TESTS` / `MC_BUILD_BENCHMARKS` / `MC_BUILD_DIFF_PROBES` / `MC_BUILD_FUZZERS` / `MC_ENABLE_SANITIZERS`。日常服务端使用 `build/`，客户端开发与发布使用 `build-client/`、`build-client-release/`，sanitizer 使用 `build-ci-tests/`，CI Release 使用 `build-ci-release/`，noprof/fuzz 也有独立目录；产物均位于各目录的 `bin/<Config>/`。
 
 | preset | 客户端 | 测试 | 说明 |
 |---|---|---|---|
@@ -993,6 +993,8 @@ preset 定义在 `CMakePresets.json`，关键选项为 `MC_BUILD_CLIENT` / `MC_B
 | `linux-clang-ci-tests` | — | ON | CI 用，**ASan + UBSan**；build preset 只构建 `minecraft-server` + `mc_tests` |
 | `linux-clang-ci-release` | — | OFF | CI 用，build preset 只构建 `minecraft-server` + `mc_benchmark` |
 | `linux-release-noprof` | OFF | OFF | 无 profiler 可分发版 |
+
+benchmark 默认关闭，需显式传 `-DMC_BUILD_BENCHMARKS=ON`。客户端测试由 `MC_BUILD_CLIENT_TESTS=ON` 开启，独立为 `mc_client_tests` 与 `mc_trident_tests`；服务端主单测不编译客户端实现。并发按核心数和可用内存确定，链接串行；可通过 `MC_COMPILE_JOBS` 覆盖。
 
 `tests/diff` 下的差分包默认**不**参与常规构建，需显式配置 `-DMC_BUILD_DIFF_PROBES=ON` 才会生成 `diff_*` 可执行文件。
 

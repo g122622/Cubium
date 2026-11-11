@@ -5,6 +5,7 @@
 add_subdirectory(profiler)
 
 add_library(mc_common STATIC
+    resource/image/StbImage.cpp
     # Core
     core/Result.cpp
     core/GameDirectory.cpp
@@ -1652,3 +1653,7 @@ add_subdirectory(mod/bedrock/addon)
 target_sources(mc_common PRIVATE world/block/properties/BlockProperties.cpp)
 
 target_sources(mc_common PRIVATE world/block/base/family/BlockSetType.cpp world/block/base/family/WoodType.cpp)
+
+# 第三方单头库实现单独关闭警告，不影响项目源码的警告门禁。
+set_source_files_properties(resource/image/StbImage.cpp PROPERTIES COMPILE_OPTIONS "-w")
+target_include_directories(mc_common PRIVATE ${Stb_INCLUDE_DIR})

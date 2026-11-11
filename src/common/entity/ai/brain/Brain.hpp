@@ -418,6 +418,30 @@ private:
      *
      * 每 20 ticks 查询一次时间线。采样器按 tick 缓存采样结果，
      * 同一 tick 内的多次查询会复用该结果。
+     *
+     * TODO(event-activity-scheduling): 本方法目前**只做时间驱动**，
+     *   而全仓 switchTo() 也只有这里的唯一一处调用，所以"事件活动"
+     *   （注册时传了非空 requirements 的那些，如 Villager 的
+     *   FIGHT / RAID / AVOID / HIDE / PANIC）永远不会被选中——
+     *   无论它们依赖的记忆是否已就绪。
+     *
+     *   补齐需要在时间采样之后再加一段按优先级的条件选择，大致形态：
+     *     1. 按 m_tasks 的既有顺序遍历（它是 PriorityTaskMap，key 是 priority，
+     *        已按数值有序，全类里多处 `for (auto& [priority, activityMap] : m_tasks)`
+     *        就是这么用的）；
+     *     2. 对每个 activity 检查 m_requiredMemoryStates 里是否有非空 requirements
+     *        （没有的属于时间线活动，跳过）；
+     *     3. 取第一个 _hasRequiredMemories(activity) 为真的，switchTo 它；
+     *     4. 都不满足则保持时间线选出的活动。
+     *
+     *   这样**不需要额外存一份 activity → priority 映射**——优先级顺序可以直接从
+     *   m_tasks 的迭代顺序拿到。
+     *
+     *   落地前还需先定两个语义问题（这也是本轮没有直接实现的原因）：
+     *     a. **抢占语义**：事件活动结束后要不要退回时间线活动？
+     *        原版 Brain 是按 schedule 整体重算，不是"压栈再弹出"；
+     *     b. **切换频率**：这段检查不能每 tick 做（switchTo 会清空
+     *        m_activities 并触发 memoriesToForget），需与 20 tick 节流对齐。
      */
     void _updateActivity(i32 dayTime, i64 gameTime)
     {
@@ -432,16 +456,26 @@ private:
     }
 
     /**
-     * @brief 检查是否有活动所需的记忆
+     * @brief 检查活动所需的记忆是否都已满足
      *
-     * 如果活动没有配置记忆要求，返回 false
+     * 活动没有配置记忆要求时返回 **true**——"没有要求"意味着"总是可以进入"。
+     *
+     * 注意：这里曾经返回 false，而 switchTo() 正是据此决定是否切到目标活动、
+     * 否则退回 m_fallbackActivity（默认 IDLE）。两者叠加的后果是：
+     * 时间线上那些没有配置记忆要求的活动（WORK / MEET / REST 等）永远进不去，
+     * 每次切换都退回 IDLE，村民行为实际上退化成只有 IDLE。
+     *
+     * 佐证这条判断是对的：同名同用途的 Task::_hasRequiredMemories(E*)（Task.hpp）
+     * 对空要求集合是返回 true 的（for 循环不执行，直接落到 return true）。
+     * 也就是说 Task 层早就用了正确语义，只有 Brain 层这一份写反了，
+     * 两个同名函数的行为此前并不一致。
      */
     [[nodiscard]] bool _hasRequiredMemories(const schedule::Activity& activity) const noexcept
     {
         auto it = m_requiredMemoryStates.find(activity);
         if (it == m_requiredMemoryStates.end()) {
-            // 活动没有记忆要求配置时返回 false
-            return false;
+            // 没有记忆要求 = 不设门槛，可以进入
+            return true;
         }
 
         for (const auto& [memType, status] : it->second) {

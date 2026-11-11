@@ -16,20 +16,21 @@ ctest --build-config RelWithDebInfo --output-on-failure -j8
 ./build/bin/RelWithDebInfo/mc_tests
 ```
 
-> Windows 下必须带 `--build-config RelWithDebInfo`：本项目用 Ninja Multi-Config 多配置生成器，CTest 默认不知道当前配置，需显式指定。Linux/macOS 单配置生成器可省略。
+> 各平台均使用 Ninja Multi-Config。直接调用 CTest 时须带 `--build-config RelWithDebInfo`；使用同名 test preset 时配置已显式指定。
 
 ## 测试 target
 
-单元测试源码位于 `tests/unit/`（`tests/integrated` 是行为包集成测试数据，不参与 C++ 构建），共 2 个测试可执行文件，全部注册到 CTest（`tests/unit/CMakeLists.txt` 中 `mc_register_gtests`）：
+单元测试源码位于 `tests/unit/`（`tests/integrated` 是行为包集成测试数据，不参与 C++ 构建），最多 3 个测试可执行文件，全部注册到 CTest（`tests/unit/CMakeLists.txt` 中 `mc_register_gtests`）：
 
 | target | 范围 | 注册位置 |
 |---|---|---|
-| `mc_tests` | 主测试套件，覆盖 common/server/client 大部分模块（含命令系统、村庄系统、资源包/纹理/图集等原独立 target 的全部用例） | `tests/unit/CMakeLists.txt:2540` |
-| `mc_trident_tests` | Trident 渲染引擎核心组件（需 `MC_BUILD_CLIENT=ON`） | `tests/unit/CMakeLists.txt:2655` |
+| `mc_tests` | 公共模块与服务端测试（含命令、村庄、资源包等） | `tests/unit/CMakeLists.txt` |
+| `mc_client_tests` | 客户端普通测试（需 `MC_BUILD_CLIENT_TESTS=ON`） | `tests/unit/client/Sources.cmake` |
+| `mc_trident_tests` | Trident 渲染引擎核心组件（需 `MC_BUILD_CLIENT_TESTS=ON`） | `tests/unit/client/TridentTests.cmake` |
 
 > 目录根即 include 根：测试代码引用仓库级头文件用 `common/...`、`server/...` 形式（`-I ${CMAKE_SOURCE_DIR}/tests/unit`），引用测试私有头（`TestWorldHelper.hpp`、`BaseTestServer.hpp` 等）同样按该根表达。
 
-> 历史：`mc_command_tests`/`mc_village_tests`/`mc_resource_tests` 三个独立 target 已合并入 `mc_tests`，以减少构建产物数量。合并后命令/村庄测试随之带上 Vulkan/OpenAL/asio 依赖（mc_tests 现链这些）——纯服务端 CI、无显卡环境将无法运行这些用例。
+> `mc_tests` 只链接公共模块、服务端与测试辅助库，不再依赖 Vulkan/OpenAL。图形和音频依赖由客户端测试目标单独承接。
 
 构建开关 `MC_BUILD_TESTS`（默认 `ON`，根 `CMakeLists.txt:30`）控制是否构建测试。
 
@@ -61,13 +62,17 @@ ctest --build-config RelWithDebInfo --rerun-failed --output-on-failure
 
 Windows 采用 `DISCOVERY_MODE PRE_TEST`（见下文），用例列表在 CTest **实际运行时**才探测生成，预览（`ctest -N`）阶段看不到。直接去掉 `-N` 运行即可。
 
+服务端与公共模块测试使用 `mc_tests`；客户端实现和依赖客户端的用例独立为
+`mc_client_tests`，Trident 保留独立进程。日常服务端构建关闭这两个客户端目标。
+CI 使用 `build-ci-tests/`，所有测试 preset 都显式选择 `RelWithDebInfo`。
+
 ## 跨测试隔离模型
 
 测试有两种运行形态，隔离强度与代价不同，需按场景选择：
 
 | 形态 | 命令 | 隔离强度 | 代价 | 适用 |
 |---|---|---|---|---|
-| **CTest per-case** | `ctest -R '...'` | 强：每用例独立进程，物理隔离全部全局状态 | 慢：每进程重载原版数据包注册表（`WorldGenRegistryEnvironment::SetUp`） | 单用例/小批定位、CI |
+| **CTest per-case** | `ctest -R '...'` | 强：每用例独立进程，物理隔离全部全局状态 | 慢：每进程重载原版数据包注册表（`WorldGenRegistryEnvironment::SetUp`） | 单用例/小批定位 |
 | **全二进制直跑** | `mc_tests --gtest_filter='...'` | 弱：单进程内顺序跑，共享进程级全局状态 | 快：注册表只载一次 | 大批量本地回归、验顺序敏感性 |
 
 全二进制直跑更快，但单进程内跨用例共享状态可能互相污染（典型表现：某用例隔离跑稳定、全二进制偶发 flaky）。已知的污染源与治理：
@@ -131,6 +136,9 @@ cmake -B build -DMC_TEST_TIMEOUT=120 <其余 configure 参数>
 ctest --build-config RelWithDebInfo --timeout 60 -j8
 ```
 
+CI 批处理器将进程级 sanitizer、崩溃和超时独立写入 JUnit，并归档逐进程原始日志，
+即使用例 XML 完整也不会吞掉异常退出。
+
 CI 侧另有全局兜底：`.github/workflows/ci.yml` 中 Linux/asan/tsan job 用 `ctest --output-on-failure --timeout 300 -j$(nproc)`，`--timeout` 是 CTest 进程级兜底，与单用例 `TIMEOUT` 取较小者生效。
 
 ## 并发运行下的注册表初始化
@@ -156,7 +164,7 @@ CI 的 `unit-tests` job 每个分片用 `ctest -j2` 跑，同一分片内**两�
 - 仅 Windows 需要 `--gtest_catch_exceptions=0`（Linux/macOS 用信号处理，gtest 默认不捕获 SIGSEGV）。
 - 配合 `--gtest_filter` 定位到单个用例，栈最干净。`--gtest_break_on_failure` 会让 gtest 抛 `BREAKPOINT`（被 CrashHandler 当作断点，不是原始崩溃点），调试时不要混用。
 
-> 注意：通过 CTest 运行时，gtest 默认仍带 `--gtest_catch_exceptions=1`。需要看栈时请直接运行可执行文件并加 `--gtest_catch_exceptions=0`，或给 CTest 传参：`ctest --build-config RelWithDebInfo -R '用例名' --output-on-failure --gtest_catch_exceptions=0`（CTest 会把额外参数透传给测试命令）。
+> 注意：通过 CTest 运行时，gtest 默认仍带 `--gtest_catch_exceptions=1`。需要看栈时请直接运行可执行文件并加 `--gtest_catch_exceptions=0`。CTest 不会将任意 GoogleTest 参数自动透传给可执行文件。
 
 ## 测试入口与全局环境
 
@@ -169,7 +177,7 @@ CI 的 `unit-tests` job 每个分片用 `ctest -j2` 跑，同一分片内**两�
 ## 编写新测试
 
 - 测试文件命名 `test_*.cpp` 或 `*Test.cpp`，放在 `tests/unit/` 下对应子目录。
-- 新增测试源文件后，需在 `tests/unit/CMakeLists.txt` 的对应 `add_executable` 列表里登记（如 `mc_tests` 列表位于 `tests/unit/CMakeLists.txt:17`）。**未登记的源文件不会编译**。绝大多数新测试应加入 `mc_tests`；仅当被测代码有特殊依赖隔离需求（如 `mc_trident_tests` 仅在 `MC_BUILD_CLIENT=ON` 下构建）时才新建 target。
+- 新增测试源文件后，需在 `tests/unit/CMakeLists.txt` 的对应 `add_executable` 列表里登记（如 `mc_tests` 列表位于 `tests/unit/CMakeLists.txt:17`）。**未登记的源文件不会编译**。绝大多数新测试应加入 `mc_tests`；仅当被测代码有特殊依赖隔离需求（如 客户端测试仅在 `MC_BUILD_CLIENT_TESTS=ON` 下构建）时才新建 target。
 - 新增测试 target 需自行调用 `mc_register_gtests(<target>)` 注册到 CTest，否则不参与 `ctest` 运行、也无单用例限时。
 - **TestSuite 名在 target 内必须唯一**：合并后 `mc_tests` 单进程内运行全部用例，若两个文件注册同名 TestSuite（`TEST(SuiteName, ...)`/`TEST_F(SuiteName, ...)` 的第一个参数），gtest 会重复注册报错。新增测试前先 `grep -rE 'TEST(_F)?\(\s*YourSuiteName' tests/` 确认无重名。
 - 复用被测代码基建时遵循 `docs/PROJECT_CONVENTIONS.md` 与 `docs/CODE_CONVENTIONS.md`。
@@ -178,7 +186,7 @@ CI 的 `unit-tests` job 每个分片用 `ctest -j2` 跑，同一分片内**两�
 ## 容易踩的坑
 
 1. **Windows `ctest -N` 看不到用例**：`PRE_TEST` 探测机制所致，正常现象，直接运行即可。
-2. **忘记 `--build-config RelWithDebInfo`**：多配置生成器下 CTest 默认空配置，会报 "No tests found"。Linux/macOS 单配置可省略。
+2. **忘记 `--build-config RelWithDebInfo`**：多配置生成器下 CTest 默认空配置，会报 "No tests found"。所有平台均使用多配置生成器；测试 preset 已显式设置配置。
 3. **新增测试源文件没登记到 `tests/unit/CMakeLists.txt`**：编译期不会报错，但用例不会出现。排查时先 `grep` 确认文件名在对应 target 的源列表里。
 4. **想看崩溃栈却拿到 "SEH exception ... 不带栈"**：gtest 抢了 SEH，加 `--gtest_catch_exceptions=0` 交给 CrashHandler。
 5. **`--gtest_break_on_failure` 与崩溃调试混用**：它抛的是 `BREAKPOINT`，不是原始崩溃点，定位根因时不要用。

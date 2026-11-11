@@ -44,22 +44,9 @@
 
 ### macOS
 
-macOS 上 Vulkan 加载器（vcpkg 打包的 `libvulkan`）默认不会发现 Homebrew 安装的 MoltenVK 驱动，必须通过 `VK_ICD_FILENAMES` 指向 ICD 清单，否则 `vkCreateInstance` 会返回 `-9`（`VK_ERROR_INCOMPATIBLE_DRIVER`）。启动命令：
-
-```bash
-# 方式 A：作为命令前缀（仅对本次启动生效）
-VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json build/bin/RelWithDebInfo/minecraft-server
-
-# 方式 B：先 export 再运行（当前 shell 后续都生效）
-export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
-build/bin/RelWithDebInfo/minecraft-server
-```
-
-> 注意：`VAR=value;` 单独一行（带分号、另起一行再运行二进制）只会设置 shell 变量而**不会**导出给子进程，进程仍然读不到该变量，会再次报 `-9`。请用上面两种写法之一。
->
-> MoltenVK 经 Homebrew 安装时，ICD 清单路径为 `/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json`；若改用 Vulkan SDK 安装，路径见 SDK 目录下的 `share/vulkan/icd.d/`。
-
-> **说明**：项目目前以服务端为主，Linux/macOS 的默认 preset 均设 `MC_BUILD_CLIENT=OFF`。客户端构建已关闭，如需构建客户端请使用 Windows preset（`windows-clang-*`，设 `MC_BUILD_CLIENT=ON`）。
+默认服务端不依赖 Vulkan、GLFW 或 OpenAL。使用 `macos-relwithdebinfo-server` 构建后，
+直接运行 `build/bin/RelWithDebInfo/minecraft-server`。
+显式启用客户端时才需要 MoltenVK 等图形运行环境，配置见 `docs/BUILD.md`。
 
 ## 测试
 

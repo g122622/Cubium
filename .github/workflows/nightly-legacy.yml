@@ -51,7 +51,8 @@ env:
   # 二者缺一不可。
   CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
   # 构建产物的统一路径（Linux 下无 .exe 后缀）。
-  BIN_DIR: build/bin/RelWithDebInfo
+  BIN_DIR: build-ci-tests/bin/RelWithDebInfo
+  CUBIUM_SERVER_EXE: ${{ github.workspace }}/build-ci-tests/bin/RelWithDebInfo/minecraft-server
 
 jobs:
   # ==========================================================================
@@ -72,6 +73,7 @@ jobs:
       - uses: ./.github/actions/setup-linux-build-env
         id: env-setup
         with:
+          client-dependencies: 'false'
           cache-scope: nightly
           vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
@@ -95,7 +97,7 @@ jobs:
 
       - name: Verify test binaries and collect runtime libraries
         run: |
-          python3 scripts/ci/prepare_build_artifacts.py --variant test --build-dir build \
+          python3 scripts/ci/prepare_build_artifacts.py --variant test --build-dir build-ci-tests \
             --binary "${BIN_DIR}/minecraft-server" --binary "${BIN_DIR}/mc_tests" \
             --library-dir vcpkg-libs --report build-artifact-check.txt
 
@@ -140,7 +142,7 @@ jobs:
         if: always()
         run: |
           set +e
-          find build \
+          find build-ci-tests \
             \( -name 'CTestTestfile.cmake' \
                -o -name 'cmake_test_discovery_*.json' \
                -o -name '*_tests*.cmake' \
@@ -151,7 +153,7 @@ jobs:
             tar -czf ctest-meta.tar.gz --null -T /tmp/ctest-meta.list
             echo "Packaged ${count} CTest metadata files."
             # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。
-            find build -name '*_tests*.cmake' | head -5
+            find build-ci-tests -name '*_tests*.cmake' | head -5
           else
             echo "::warning::未找到任何 CTest 元数据文件，unit-tests job 可能无法用 ctest 运行。"
           fi
@@ -159,7 +161,7 @@ jobs:
       - name: Record runner configuration
         if: always()
         continue-on-error: true
-        run: python3 scripts/ci/collect_runner_info.py --job build --build-dir build --out runner-info.json
+        run: python3 scripts/ci/collect_runner_info.py --job build --build-dir build-ci-tests --out runner-info.json
 
       - name: Upload build artifacts
         if: always()
@@ -171,6 +173,8 @@ jobs:
           path: |
             ${{ env.BIN_DIR }}/minecraft-server
             ${{ env.BIN_DIR }}/mc_tests
+            tests/integrated/*/scripts/
+            tests/integrated/*/structures/
             vcpkg-libs/
             build-artifact-check.txt
             ctest-meta.tar.gz
@@ -184,7 +188,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 300
     env:
-      RELEASE_BIN_DIR: build-release-noprof/bin/Release
+      RELEASE_BIN_DIR: build-ci-release/bin/Release
     steps:
       - uses: actions/checkout@v4
         with:
@@ -193,6 +197,7 @@ jobs:
       - uses: ./.github/actions/setup-linux-build-env
         id: env-setup
         with:
+          client-dependencies: 'false'
           cache-scope: release
           vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
@@ -212,7 +217,7 @@ jobs:
       - name: Verify and package release binaries
         run: |
           set -euo pipefail
-          python3 scripts/ci/prepare_build_artifacts.py --variant release --build-dir build-release-noprof \
+          python3 scripts/ci/prepare_build_artifacts.py --variant release --build-dir build-ci-release \
             --binary "${RELEASE_BIN_DIR}/minecraft-server" --binary "${RELEASE_BIN_DIR}/mc_benchmark" \
             --library-dir release-package/lib --report release-artifact-check.txt
           cp "${RELEASE_BIN_DIR}/minecraft-server" release-package/minecraft-server
@@ -239,7 +244,7 @@ jobs:
       - name: Record runner configuration
         if: always()
         continue-on-error: true
-        run: python3 scripts/ci/collect_runner_info.py --job release-build --build-dir build-release-noprof --out runner-info.json
+        run: python3 scripts/ci/collect_runner_info.py --job release-build --build-dir build-ci-release --out runner-info.json
 
       - name: Upload release build artifacts
         uses: actions/upload-artifact@v4
@@ -307,7 +312,7 @@ jobs:
       - name: Prepare environment
         run: |
           set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          chmod +x build-ci-tests/bin/RelWithDebInfo/* 2>/dev/null || true
           # 若 artifact 带了 vcpkg 动态库，加入库搜索路径。
           if [ -d vcpkg-libs ]; then
             echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
@@ -326,7 +331,7 @@ jobs:
       - name: Run unit tests
         run: |
           set +e
-          cd build
+          cd build-ci-tests
           # --output-junit 产出机器可读的失败清单（report job 的汇总脚本依赖它）。
           ctest --build-config RelWithDebInfo \
                 --output-on-failure \
@@ -352,7 +357,8 @@ jobs:
           path: |
             ctest-output.log
             ctest-results.xml
-            build/Testing/
+            unit-test-process-logs/
+            build-ci-tests/Testing/
             runner-info.json
 
   # ==========================================================================
@@ -385,16 +391,16 @@ jobs:
       - name: Prepare environment
         run: |
           set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          chmod +x build-ci-tests/bin/RelWithDebInfo/* 2>/dev/null || true
           if [ -d vcpkg-libs ]; then
             echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
 
       # 行为包的 TS→JS 产物（tests/integrated/*/scripts/）不入 git，由 build.mjs 在构建期生成。
       # 本 job 不构建，故须自行编译一次（build.mjs 会在 node_modules 缺失时自动 npm install）。
-      - name: Compile integrated behavior packs
+      - name: Verify precompiled integrated behavior packs
         working-directory: tests/integrated
-        run: node build.mjs
+        run: node build.mjs --verify
 
       # run-gametests.ts 自带「失败用例隔离重跑」与 JUnit XML 聚合。
       #
@@ -410,7 +416,7 @@ jobs:
         timeout-minutes: 32
         run: |
           set +e
-          node scripts/test/run-gametests.ts 2>&1 | tee integrated-tests.log
+          node scripts/test/run-gametests.ts --server="${BIN_DIR}/minecraft-server" 2>&1 | tee integrated-tests.log
           code=${PIPESTATUS[0]}
           echo "run-gametests exit code: ${code}"
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 1 ]; then
@@ -430,7 +436,7 @@ jobs:
           set +e
           python3 scripts/ci/symbolize_crash.py \
             --log integrated-tests.log \
-            --binary build/bin/RelWithDebInfo/minecraft-server \
+            --binary build-ci-tests/bin/RelWithDebInfo/minecraft-server \
             --in-place
 
       - name: Record runner configuration
@@ -478,7 +484,7 @@ jobs:
       - name: Prepare environment
         run: |
           set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          chmod +x build-ci-tests/bin/RelWithDebInfo/* 2>/dev/null || true
           if [ -d vcpkg-libs ]; then
             echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
@@ -529,6 +535,7 @@ jobs:
       - uses: ./.github/actions/setup-linux-build-env
         id: env-setup
         with:
+          client-dependencies: 'false'
           cache-scope: fuzz
           vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
@@ -679,7 +686,7 @@ jobs:
       - name: Prepare environment
         run: |
           set -euo pipefail
-          chmod +x build-release-noprof/bin/Release/*
+          chmod +x build-ci-release/bin/Release/*
           if [ -d release-package/lib ]; then
             echo "LD_LIBRARY_PATH=${PWD}/release-package/lib:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
@@ -689,7 +696,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p benchmark-out
-          ./build-release-noprof/bin/Release/mc_benchmark \
+          ./build-ci-release/bin/Release/mc_benchmark \
             --benchmark_context=ci_build_profile=release-noprof-nosan-v1 \
             --benchmark_out=benchmark-out/results.json \
             --benchmark_out_format=json \

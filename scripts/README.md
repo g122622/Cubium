@@ -65,8 +65,8 @@ CI 使用说明见 `docs/CI.md`。
 
 - Windows 构建入口只有 `./scripts/configure.sh build`，它转调 `configure.bat` 并经 `vsenv.bat` 注入 VS 环境；
   直接 `cmake --preset` 会缺少 MSVC / Windows SDK 路径。
-- Windows 的链接器由 clang 驱动决定：项目只在 Linux 追加 `-fuse-ld=lld`，Windows 实际使用 MSVC `link.exe`；
-  `CMakeCache.txt` 中的 `CMAKE_LINKER=lld-link.exe` 不参与 Ninja 链接命令，不要据此判断。
+- 全平台使用 lld；Windows 的实际链接命令应含 `-fuse-ld=lld-link`，仍须核对命令而不能只看缓存变量。
+- ccache 已覆盖 Windows/Linux/macOS；编译并发按核心和内存确定，链接串行。sanitizer 与日常构建使用独立目录。
 - C++ 格式化脚本要求 Node.js 24，只处理 `.cpp`/`.hpp`，并跳过 `.gen.cpp/.gen.hpp`。
 - 全仓库文本统一 UTF-8（无 BOM，`*.ps1` 例外保留 BOM）；提交前可跑
   `node --experimental-strip-types scripts/format/check_encoding.ts` 检查存量 GBK 与 U+FFFD 乱码。

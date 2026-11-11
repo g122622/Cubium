@@ -6,8 +6,8 @@ description: >-
 
   两点必须注意：
 
-  1. **系统包清单不可精简**。除 ninja 与 ccache 外，还必须包含 X11 / Vulkan / Wayland
-     开发包 —— vcpkg 的 `glfw3` port 依赖它们。缺失时 configure 会以
+  1. **客户端系统包按功能安装**。启用客户端或客户端测试时需要 X11 / Vulkan / Wayland
+     开发包 —— vcpkg 的 `glfw3` port 依赖它们。服务端构建无需这些包。缺失时 configure 会以
      `vcpkg install failed` + glfw3 portfile 报错栈的形式失败，而真实原因
      （`Could NOT find X11 (missing: X11_X11_INCLUDE_PATH X11_X11_LIB)`）藏在 vcpkg
      的内部日志里，与根因隔了好几层。
@@ -18,6 +18,9 @@ description: >-
      会直接以 `unknown warning option '-Wno-c2y-extensions'` 编译失败。
 
 inputs:
+  client-dependencies:
+    description: 是否安装客户端的 X11、Vulkan 和 Wayland 开发依赖
+    required: true
   cache-scope:
     description: ccache key 的区分前缀（build / fuzz 各自独立，避免互相覆盖）
     required: true
@@ -38,15 +41,19 @@ runs:
   steps:
     - name: Install system dependencies
       shell: bash
+      env:
+        CLIENT_DEPENDENCIES: ${{ inputs.client-dependencies }}
       run: |
         sudo apt-get update
         # lsb-release / wget / software-properties-common / gnupg 是 apt.llvm.org 的
         # llvm.sh 安装脚本的前置依赖（它会检查这些二进制是否存在并在缺失时报错退出）。
         sudo apt-get install -y \
           ninja-build ccache pkg-config \
-          lsb-release wget software-properties-common gnupg \
-          libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
-          libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+          lsb-release wget software-properties-common gnupg
+        if [ "$CLIENT_DEPENDENCIES" = true ]; then
+          sudo apt-get install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
+            libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+        fi
 
     # 从 LLVM 官方 apt 仓库装 clang 22，并把其 bin 目录前置到 PATH。
     # 用 PATH 前置而非 update-alternatives：/usr/bin/clang 由预装的 clang-18 包提供，
@@ -97,7 +104,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: vcpkg-cache
-        key: vcpkg-linux-${{ inputs.vcpkg-commit }}-${{ hashFiles('vcpkg.json') }}
+        key: vcpkg-linux-${{ inputs.vcpkg-commit }}-${{ hashFiles('vcpkg.json') }}-${{ inputs.cache-scope }}-${{ inputs.client-dependencies }}
         restore-keys: |
           vcpkg-linux-${{ inputs.vcpkg-commit }}-
 

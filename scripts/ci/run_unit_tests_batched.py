@@ -46,6 +46,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import uuid
 import xml.etree.ElementTree as ET
@@ -76,6 +77,10 @@ class Runner:
         # _resolve_names）。
         self.filter_of: dict[str, str] = {}
         self.ctest_name_of: dict[str, str] = {}
+        self.process_issues: list[dict] = []
+        self._issue_lock = threading.Lock()
+        self.process_log_dir = options.out_log.parent / "unit-test-process-logs"
+        self.process_log_dir.mkdir(parents=True, exist_ok=True)
 
     # ---------------------------------------------------------------- 用例清单
 
@@ -160,7 +165,7 @@ class Runner:
                 command, cwd=self.work_dir, capture_output=True, text=True, timeout=timeout, check=False
             )
             # 进程没写出结果时（崩溃、超时），这段输出就是唯一的现场证据（ASan/UBSan 报告等）。
-            return completed.returncode, False, completed.stdout + completed.stderr
+            result = completed.returncode, False, completed.stdout + completed.stderr
         except subprocess.TimeoutExpired as expired:
             output = expired.stdout or b""
             errors = expired.stderr or b""
@@ -168,7 +173,26 @@ class Runner:
                 output = output.decode("utf-8", "replace")
             if isinstance(errors, bytes):
                 errors = errors.decode("utf-8", "replace")
-            return -1, True, output + errors
+            result = -1, True, output + errors
+        log_path = self.process_log_dir / f"process-{uuid.uuid4().hex}.log"
+        log_path.write_text(result[2], encoding="utf-8")
+        return result
+
+    def _record_process_issue(self, names: list[str], returncode: int, timed_out: bool,
+                              output: str, results: list[dict]) -> None:
+        """进程异常独立于用例结果归档，隔离复跑不能清除 sanitizer 或退出阶段错误。"""
+        markers = ("ERROR: AddressSanitizer:", "ERROR: LeakSanitizer:",
+                   "AddressSanitizer:DEADLYSIGNAL", "UndefinedBehaviorSanitizer:", ": runtime error:")
+        has_failure = any(result["status"] in ("failure", "error") for result in results)
+        if not (timed_out or returncode not in (0, 1)
+                or (returncode == 1 and not has_failure)
+                or any(marker in output for marker in markers)):
+            return
+        message = f"Test process {'timed out' if timed_out else 'exited'} with code {returncode}"
+        message += f"; selected tests: {', '.join(names)}\n{output}"
+        with self._issue_lock:
+            self.process_issues.append({"name": f"process-{len(self.process_issues) + 1}",
+                                        "message": message})
 
     def _parse_progress(self, output: str, names: list[str]) -> tuple[list[dict], str | None]:
         """从完整的 gtest 逐用例输出恢复完成事件，以及中断时正在运行的用例。
@@ -221,12 +245,8 @@ class Runner:
                     results.append(result)
                     reported.add(result["name"])
         missing = [name for name in names if name not in reported]
+        self._record_process_issue(names, returncode, timed_out, output, results)
         if not missing:
-            # 结果齐全但退出码非零、且没有用例失败：问题出在进程退出阶段（ASan 泄漏检测、
-            # 静态析构里的断言），无法归属到单个用例。原样打印现场，避免被静默吞掉。
-            if returncode != 0 and not any(r["status"] in ("failure", "error") for r in results):
-                print(f"[BatchExitIssue] {len(names)} test(s) reported results but the process "
-                      f"exited with {returncode}:\n{output[-2000:]}", flush=True)
             return results, []
 
         if interrupted in missing:
@@ -260,8 +280,10 @@ class Runner:
         """在独立进程里跑一个用例，返回它的结果。"""
         with tempfile.TemporaryDirectory(prefix="mc-single-") as scratch:
             xml_path = Path(scratch) / "single.xml"
-            _, single_timed_out, single_output = self._run_gtest([name], xml_path, self.options.test_timeout)
+            returncode, single_timed_out, single_output = self._run_gtest(
+                [name], xml_path, self.options.test_timeout)
             parsed = self._parse_batch(xml_path) if xml_path.exists() else []
+        self._record_process_issue([name], returncode, single_timed_out, single_output, parsed)
         if parsed:
             return {**parsed[0], "isolated": True}
 
@@ -393,17 +415,21 @@ class Runner:
                     log_lines.append(f"    {line}")
 
         total = len(selected)
-        passed = counts["passed"] + counts["skipped"]
+        reported_total = total + len(self.process_issues)
+        passed = counts["passed"]
         log_lines.append("")
-        log_lines.append(f"{100.0 * passed / total if total else 0:.0f}% tests passed, "
-                         f"{counts['failure'] + counts['error']} tests failed out of {total}")
+        log_lines.append(f"{100.0 * passed / reported_total if reported_total else 0:.0f}% tests passed, "
+                         f"{counts['failure'] + counts['error'] + len(self.process_issues)} "
+                         f"tests failed out of {reported_total}")
         if polluted:
             # 批内污染不是本次改动引入的缺陷，但会掩盖真实的用例顺序依赖，必须留在日志里。
             log_lines.append("")
             log_lines.append(f"[BatchPollution] {len(polluted)} test(s) failed inside a batch but passed alone; "
                              f"they depend on process-global state mutated by earlier tests in the same batch:")
             log_lines.extend(f"    {name}" for name in polluted)
-        self.options.out_log.write_text("\n".join(log_lines) + "\n")
+        for issue in self.process_issues:
+            log_lines.extend(["", f"[ProcessError] {issue['name']}", issue["message"]])
+        self.options.out_log.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
         for name in polluted:
             print(f"[BatchPollution] {name}", flush=True)
 
@@ -425,10 +451,19 @@ class Runner:
                 error.text = result["message"]
             elif result["status"] == "skipped":
                 ET.SubElement(case, "skipped", message=result["message"] or "skipped")
+        if self.process_issues:
+            process_suite = ET.SubElement(root, "testsuite", name="TestProcess",
+                                          tests=str(len(self.process_issues)), failures="0",
+                                          errors=str(len(self.process_issues)), skipped="0", time="0")
+            for issue in self.process_issues:
+                case = ET.SubElement(process_suite, "testcase", name=issue["name"],
+                                     classname="TestProcess", time="0")
+                error = ET.SubElement(case, "error", message=issue["message"].splitlines()[0])
+                error.text = issue["message"]
         ET.ElementTree(root).write(self.options.out_junit, encoding="utf-8", xml_declaration=True)
 
-        return {"total": total, "passed": counts["passed"], "failed": counts["failure"],
-                "errors": counts["error"], "skipped": counts["skipped"]}
+        return {"total": reported_total, "passed": counts["passed"], "failed": counts["failure"],
+                "errors": counts["error"] + len(self.process_issues), "skipped": counts["skipped"]}
 
 
 def main() -> int:
@@ -464,7 +499,7 @@ def main() -> int:
     print(f"shard {options.shard_index}/{options.shard_count}: {summary} "
           f"in {time.monotonic() - started:.1f}s "
           f"(batch={options.batch_size}, jobs={options.jobs})")
-    return 0
+    return 2 if runner.process_issues else 1 if summary["failed"] or summary["errors"] else 0
 
 
 if __name__ == "__main__":

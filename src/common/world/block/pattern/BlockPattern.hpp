@@ -28,6 +28,7 @@
 #include "common/util/Direction.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <vector>

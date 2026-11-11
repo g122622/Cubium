@@ -37,7 +37,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
 
-// stb_image - only header, implementation in TextureAtlasBuilder.cpp
+// stb_image - only header, implementation in common/resource/image/StbImage.cpp
 #include <algorithm>
 #include <cstdint>
 #include <cstring>

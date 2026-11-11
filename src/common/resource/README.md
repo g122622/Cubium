@@ -8,6 +8,7 @@
 src/common/resource/
 ├── ResourceLocation.hpp/cpp        # 资源定位符（namespace:path）解析与路径转换
 ├── PackType.hpp                    # 资源包类型枚举（ClientResources→assets/，ServerData→data/）
+├── image/                          # 公共 PNG 编解码实现（stb_image / stb_image_write）
 ├── pack/                           # 资源包接口与实现
 │   ├── IResourcePack.hpp/cpp       # 资源包抽象接口，支持 PackType 参数
 │   ├── FolderResourcePack.hpp/cpp  # 文件夹资源包，从目录读取资源
@@ -80,3 +81,5 @@ src/common/resource/
 - **`InMemoryResourcePack` 统一接口**：使用 `addResource(PackType, path, content)` 方法，`addClientResource`/`addServerDataResource` 为便捷方法。
 - **`GenericTagLoader` 是通用骨架，不直接面向成员类型**：它只负责 JSON 解析、多数据包合并、`#` 引用依赖解析，成员解析 / 读取 / 写入通过三个回调（`TagMemberResolver` / `TagMemberReader` / `TagFiller`）注入。具体标签系统（`BlockTagLoader` / `FluidTagLoader` / `GameEventTagLoader`）各自提供回调，把成员映射为 `size_t` 索引并落回自身注册表。新增一类标签时复用此骨架，不要重写两阶段加载逻辑。
 - **回调须在 `loadFrom*` 调用期间保持有效**：`GenericTagLoader` 不持有回调的所有权，三个回调（及其捕获的成员池）必须在调用返回前保持存活。
+
+- PNG 编解码实现只在 `image/StbImage.cpp` 定义；公共皮肤模块不能依赖客户端图集提供链接符号。

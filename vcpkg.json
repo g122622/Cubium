@@ -7,14 +7,11 @@
     "glm",
     "spdlog",
     "nlohmann-json",
-    "gtest",
     "asio",
-    "glfw3",
     "stb",
     "zlib",
     "openssl",
     "libarchive",
-    "openal-soft",
     "zstd",
     {
       "name": "rocksdb",
@@ -27,19 +24,36 @@
     "leveldb",
     "gflags",
     "asmjit",
-    "benchmark",
-    "simdjson",
-    "ftxui"
+    "simdjson"
   ],
   "features": {
-    "vulkan": {
-      "description": "Vulkan rendering support",
+    "server": {
+      "description": "Dedicated server terminal",
       "dependencies": [
+        "ftxui"
+      ]
+    },
+    "tests": {
+      "description": "Unit test framework",
+      "dependencies": [
+        "gtest"
+      ]
+    },
+    "benchmarks": {
+      "description": "Performance benchmarks",
+      "dependencies": [
+        "benchmark"
+      ]
+    },
+    "client": {
+      "description": "Client rendering, audio and client tests",
+      "dependencies": [
+        "glfw3",
+        "openal-soft",
         "vulkan",
         "vulkan-memory-allocator"
       ]
     }
   },
-  "default-features": ["vulkan"],
   "builtin-baseline": "39a6cc0e44641977a7ccdfdb01a14eaf832aa330"
 }

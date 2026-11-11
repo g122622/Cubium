@@ -18,21 +18,24 @@ class VerifyPococcBuildTests(unittest.TestCase):
                 "CMAKE_BUILD_TYPE:STRING=RelWithDebInfo\nMC_ENABLE_SANITIZERS:BOOL=ON\n"
                 "MC_ENABLE_NATIVE_ARCH:BOOL=OFF\nCMAKE_DISABLE_PRECOMPILE_HEADERS:BOOL=ON\n"
                 "CMAKE_CXX_SCAN_FOR_MODULES:BOOL=OFF\n"
-                "CMAKE_C_FLAGS:STRING=-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer\n"
-                "CMAKE_CXX_FLAGS:STRING=-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer\n"
+                "MC_SANITIZER_COMPILE_OPTIONS:INTERNAL=-fsanitize=address,undefined;-fno-sanitize-recover=all;-fno-omit-frame-pointer\n"
+                "MC_SANITIZER_LINK_OPTIONS:INTERNAL=-fsanitize=address,undefined\n"
             )
             (root / "CMakeCache.txt").write_text(cache)
             commands = root / "compile_commands.json"
-            commands.write_text(json.dumps([{"file": "test.cpp", "command": "clang++ -c test.cpp -o test.o"}]))
+            instrumentation = ["-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-fno-omit-frame-pointer"]
+            commands.write_text(json.dumps([{
+                "file": "test.cpp", "arguments": ["clang++", *instrumentation, "-c", "test.cpp", "-o", "test.o"]
+            }]))
             self.assertEqual(verifier.verify_configuration_without_pch(root, "test"), 1)
             commands.write_text(json.dumps([{
-                "file": "test.cpp", "arguments": ["clang++", "-Xclang", "-include-pch", "-c", "test.cpp"],
+                "file": "test.cpp", "arguments": ["clang++", *instrumentation, "-Xclang", "-include-pch", "-c", "test.cpp"],
             }]))
-            with self.assertRaises(RuntimeError):
+            with self.assertRaisesRegex(RuntimeError, "PCH"):
                 verifier.verify_configuration_without_pch(root, "test")
             commands.write_text(json.dumps([{"file": "test.cpp", "command": "clang++ -c test.cpp"}]))
             for broken in (cache.replace("PRECOMPILE_HEADERS:BOOL=ON", "PRECOMPILE_HEADERS:BOOL=OFF"),
-                           cache.replace("-fsanitize=address,undefined ", "")):
+                           cache.replace("-fsanitize=address,undefined;", "")):
                 (root / "CMakeCache.txt").write_text(broken)
                 with self.assertRaises(RuntimeError):
                     verifier.verify_configuration_without_pch(root, "test")

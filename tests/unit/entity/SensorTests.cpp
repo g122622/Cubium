@@ -455,6 +455,23 @@ TEST(BrainActivityTest, DefaultActivity)
     // Activity should be set
 }
 
+// 回归用例：没有配置记忆要求的活动，switchTo 应当真正切过去，
+// 而不是退回 fallback（IDLE）。
+// 修复前 _hasRequiredMemories 对"无要求"返回 false，导致时间线上所有无要求的
+// 活动（WORK / MEET / REST）永远进不去，每次都退回 IDLE。
+TEST(BrainActivityTest, SwitchToActivatesActivityWithoutMemoryRequirements)
+{
+    memory::MemoryModuleTypes::initialize();
+
+    Brain<MockTestEntity> brain;
+    // ACK 不带任何记忆要求。
+    brain.registerActivity(
+        schedule::Activity::WORK, 0, std::vector<std::unique_ptr<task::Task<MockTestEntity>>>{}, {}, {});
+
+    brain.switchTo(schedule::Activity::WORK);
+    EXPECT_TRUE(brain.hasActivity(schedule::Activity::WORK)) << "无记忆要求的活动应当可以进入";
+}
+
 TEST(BrainActivityTest, HasActivity)
 {
     memory::MemoryModuleTypes::initialize();

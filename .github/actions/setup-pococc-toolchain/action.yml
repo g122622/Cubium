@@ -1,8 +1,8 @@
 name: Setup pococc Clang 22
 description: 为独立 pococc 实验安装工具链，可选安装 Cubium 系统依赖；不读写 Actions cache。
 inputs:
-  cubium-dependencies:
-    description: 是否安装 Cubium configure 所需的 X11、Vulkan 和 Wayland 开发包
+  client-dependencies:
+    description: 是否安装 客户端所需的 X11、Vulkan 和 Wayland 开发包
     required: true
 runs:
   using: composite
@@ -10,12 +10,12 @@ runs:
     - name: Install system tools
       shell: bash
       env:
-        CUBIUM_DEPENDENCIES: ${{ inputs.cubium-dependencies }}
+        CLIENT_DEPENDENCIES: ${{ inputs.client-dependencies }}
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y ninja-build ccache distcc pkg-config openssh-client openssh-server \
           lsb-release wget software-properties-common gnupg
-        if [ "$CUBIUM_DEPENDENCIES" = true ]; then
+        if [ "$CLIENT_DEPENDENCIES" = true ]; then
           sudo apt-get install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
             libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
         fi
