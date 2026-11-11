@@ -34,6 +34,10 @@
 
 namespace mc {
 
+namespace test {
+class TemplateLoaderTestAccessor;
+} // namespace test
+
 namespace resource {
 class IResourcePack;
 } // namespace resource
@@ -113,6 +117,10 @@ private:
      * @return 方块状态 ID
      */
     [[nodiscard]] static u32 _parseBedrockBlockStateId(const nbt::CompoundTag& paletteEntry);
+
+    // ????????????????????????? palette ?????
+    // ???? open_bit ? powered??????????????
+    friend class test::TemplateLoaderTestAccessor;
     [[nodiscard]] static BlockPos _readBlockPos(const nbt::ListTag& list);
     [[nodiscard]] static std::unique_ptr<nbt::CompoundTag> _cloneNbt(const nbt::CompoundTag* source) noexcept;
 
