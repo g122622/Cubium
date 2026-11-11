@@ -73,6 +73,8 @@ using mc::entity::ai::goal::constants::SPAWN_BABY_DELAY;
 //   - BreedTask      —— 未实例化，等动物实体接入 Brain
 //   - EatTask        —— 未实例化，且 shouldExecute 恒返 false，等饥饿系统
 //   - PlayDeadTask   —— 未实例化，等美西螈等接入 Brain
+//   - JumpTask       —— 未实例化（依赖 JUMP_COOLDOWN 记忆，目前没有实体写入该记忆）
+//   - KickTask       —— 未实例化（马等实体的踢击，这些实体仍走 Goal 系统）
 //
 // 因此本文件里"类存在 + 有测试"不等于"运行时生效"。要给某个实体启用这些任务，
 // 除了注册进它的 Brain，还要先补上各类文档注释中写明的前置依赖。
