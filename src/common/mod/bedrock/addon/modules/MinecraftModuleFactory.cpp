@@ -1724,14 +1724,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             if (normalized == "minecraft:color") {
-                // 对齐基岩 EntityColorComponent（componentId="minecraft:color"）：
-                // "Defines the entity's color. Only works on certain entities that have predefined color
-                // values (e.g. sheep, llama, shulker)"，value 为 PaletteColor 0-15（与 DyeColor 数值一致）。
+                // `minecraft:color` 只对自带预定义配色的实体有效（羊、羊驼、潜影贝），
+                // value 为 PaletteColor 0-15（与 DyeColor 数值一致）。
                 // 三个实体的枚举数值互不相同，下面各自换算成 DyeColor 数值后再暴露：
                 //   - 羊：getFleeceColor() 直接返回 DyeColor（0-15），原样使用；
                 //   - 羊驼：LlamaColor 是 0-3 的自有序号（Creamy/White/Brown/Gray），不是 PaletteColor；
                 //   - 潜影贝：ShulkerColor 也是自有序号且首项是 Purple=0（PaletteColor 的 Purple 是 10）。
-                // 非这三类返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                // 非这三类返 undefined（语义上等价于"该实体没有此组件"）。
                 if (dynamic_cast<mc::SheepEntity*>(ent) == nullptr && dynamic_cast<mc::LlamaEntity*>(ent) == nullptr &&
                     dynamic_cast<mc::ShulkerEntity*>(ent) == nullptr) {
                     return ctx.createUndefined();
