@@ -465,37 +465,26 @@ private:
      * 调用频率：只在 _updateActivity 的 20 tick 节流内调用，避免每 tick
      * 触发 switchTo（它会清空 m_activities 并清理 memoriesToForget）。
      *
-     * TODO(brain-activity-test): 本方法与 _updateActivity 的抢占行为**没有单元测试**。
-     *   曾经写过一个 ActiveEventActivityIsNotOverriddenByTimeline，但那个用例只断言
-     *   hasActivity(FIGHT) 仍为真，根本没经过 _updateActivity——把实现回退它照样通过，
-     *   属于同义反复，已删除。
-     *   要真正覆盖，需要一个能驱动时间线的夹具，配方如下（都在现有测试里能找到）：
-     *     1. Timeline 与属性：tests/unit/common/world/time/timeline/TimelineTest.cpp
-     *        里已有 ActivitySampler 辅助类，直接复用
-     *        `Timelines::VILLAGER_SCHEDULE()` 与
-     *        `attribute::EnvironmentAttributes::VILLAGER_ACTIVITY()`；该类的
-     *        sample() 通过 `applyTimeBased(Activity::IDLE, tick)` 取活动。
-     *     * 把它接进 Brain：`setTimeline(const Timeline*,
-     *        const EnvironmentAttribute<Activity>&)`，两个参数都要给。
-     *     3. 驱动：tick() 会调 _updateActivity，需要 IWorld*、实体实例与 IRandom&。
-     *        实测 **world 传 nullptr 是可行的**——_updateActivity 不碰 world，
-     *        _tickSensors / _tickTasks 在没有注册传感器与任务时也不会解引用它。
-     *     4. 断言点：注册一个带 ATTACK_TARGET 要求的 FIGHT，写入记忆后连续推进
-     *        gameTime 跨过多个 20 tick 窗口，断言 (a) FIGHT 一直保持激活、
-     *        (b) 期间没有发生 WORK/IDLE 之类的中间切换。
-     *        (b) 是关键——只断言 (a) 无法发现"来回切两次"的抖动。
+     * 测试：BrainActivityTest.EventActivitySurvivesMultipleUpdateWindows
+     *   （tests/unit/entity/SensorTests.cpp）覆盖了抢占与抖动行为。
+     *   它给 WORK 声明 memoriesToForget = {ATTACK_TARGET} 让抖动**可观测**：
+     *   一旦发生"先切 WORK 再切回 FIGHT"，ATTACK_TARGET 会被清掉，
+     *   FIGHT 的门槛随即失效，断言立刻报错。
+     *   若不这样设计，中间态在调用结束时已被覆盖，断言看不出差异——
+     *   那就会变成一个看似通过、实则什么都没测的用例（我写过两版才意识到）。
      *
-     *   另外两个实测踩到的坑（写测试前务必知道）：
-     *     - MockTestEntity（tests/unit/entity/SensorTests.cpp）原本只有 getBrain()，
-     *       而 Task::_hasRequiredMemories 调的是 owner->brain()。给实体加 brain()
-     *       访问器时会与同名的 Brain 成员变量冲突，需把成员改名为 m_brain。
+     *   另外两个实测踩到的坑：
+     *     - MockTestEntity 原本只有 getBrain()，而 Task::_hasRequiredMemories
+     *       调的是 owner->brain()；加 brain() 时会与同名 Brain 成员冲突，
+     *       需把成员改名 m_brain。
      *     - **本方法用 m_tasks 作为活动来源，因此"注册了 requirements 但一个 task
-     *       都没注册"的活动在这里是不可见的**——registerActivity 里
+     *       都没注册"的活动在这里不可见**——registerActivity 里
      *       `for (auto& task : tasks) m_tasks[priority][activity].insert(...)`
-     *       在 tasks 为空时根本不会创建该条目。测试里若用空任务列表注册 FIGHT，
-     *       无论记忆是否就绪都不会被选中。真实代码里每个活动都有任务，所以现状
-     *       不受影响；但这是个脆弱耦合，若要解除，应改为遍历 m_requiredMemoryStates
-     *       （代价是会丢掉 m_tasks 提供的优先级顺序，需要另行保存 activity→priority）。
+     *       在 tasks 为空时根本不会创建条目。真实代码里每个活动都有任务，现状不受
+     *       影响，但这是脆弱耦合；若要解除，应改为遍历 m_requiredMemoryStates
+     *       （代价是丢掉 m_tasks 提供的优先级顺序，需另行保存 activity→priority）。
+     *   已确认 world 传 nullptr 可行：_updateActivity 不碰 world，
+     *   无传感器/无任务时 _tickSensors/_tickTasks 也不解引用它。
      *
      * @return true 表示当前有事件活动在生效（已切换过去或本来就在跑），
      *         此时调用方不应再用时间线活动覆盖它。

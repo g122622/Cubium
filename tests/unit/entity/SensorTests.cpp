@@ -30,6 +30,8 @@
 #include "common/entity/ai/brain/sensor/Sensor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
+#include "common/world/time/timeline/Timelines.hpp"
 
 namespace mc {
 namespace entity {
@@ -50,16 +52,22 @@ namespace {
  */
 class MockTestEntity {
 public:
-    Brain<MockTestEntity> brain;
+    Brain<MockTestEntity> m_brain;
 
     Brain<MockTestEntity>& getBrain()
     {
-        return brain;
+        return m_brain;
+    }
+
+    /// Task::_hasRequiredMemories 等代码调用 owner->brain()。
+    Brain<MockTestEntity>& brain()
+    {
+        return m_brain;
     }
 
     const Brain<MockTestEntity>& getBrain() const
     {
-        return brain;
+        return m_brain;
     }
 };
 
@@ -474,6 +482,64 @@ TEST(BrainActivityTest, SwitchToActivatesActivityWithoutMemoryRequirements)
 
 // 回归用例：带记忆要求的"事件活动"在要求满足时应被选中。
 // 修复前 Brain 只做时间驱动切换，这类活动永远进不去。
+// 测试专用空任务：不执行任何动作，仅使活动在 m_tasks 里可被发现。
+// registerActivity 只在任务非空时才会创建 m_tasks[priority][activity] 条目，
+// 而 _tryEventActivity 正是以 m_tasks 为活动来源。
+class StubTask final : public task::Task<MockTestEntity> {
+public:
+    bool shouldExecute(IWorld* /*world*/, MockTestEntity* /*owner*/) override
+    {
+        return false;
+    }
+};
+
+// 回归用例：事件活动在跨多个 20 tick 窗口后仍保持激活，
+// 且期间没有被时间线活动插入。
+// 修复前 _updateActivity 先切时间线再切事件，每 20 tick 来回切两次。
+TEST(BrainActivityTest, EventActivitySurvivesMultipleUpdateWindows)
+{
+    memory::MemoryModuleTypes::initialize();
+
+    MockTestEntity entity;
+    auto& brain = entity.getBrain();
+    brain.setTimeline(
+        &world::timeline::Timelines::VILLAGER_SCHEDULE(), world::attribute::EnvironmentAttributes::VILLAGER_ACTIVITY());
+
+    // 关键设计：给 WORK 声明 memoriesToForget = {ATTACK_TARGET}。
+    // 这样一旦发生"先切 WORK 再切回 FIGHT"的抖动，
+    // switchTo(WORK) 会把 ATTACK_TARGET 清掉，于是 FIGHT 的门槛不再满足，
+    // 下一个窗口就回不去了——抖动因此可观测。
+    // 不加这个声明的话，中间态在调用结束时已被覆盖，
+    // 断言看不出任何差异（尝试过，会退化成同义反复）。
+    std::vector<std::unique_ptr<task::Task<MockTestEntity>>> fightTasks;
+    fightTasks.push_back(std::make_unique<StubTask>());
+    brain.registerActivity(schedule::Activity::FIGHT,
+        0,
+        std::move(fightTasks),
+        {{memory::MemoryModuleTypes::ATTACK_TARGET, memory::MemoryModuleStatus::VALUE_PRESENT}},
+        {});
+
+    std::vector<std::unique_ptr<task::Task<MockTestEntity>>> workTasks;
+    workTasks.push_back(std::make_unique<StubTask>());
+    brain.registerActivity(
+        schedule::Activity::WORK, 0, std::move(workTasks), {}, {memory::MemoryModuleTypes::ATTACK_TARGET});
+
+    brain.setMemory<EntityInstanceId>(memory::MemoryModuleTypes::ATTACK_TARGET, 11);
+
+    mc::math::Random rng(1);
+    // dayTime=2000 对应 WORK；每次推进 25 tick，跨过 5 个节流窗口。
+    for (i32 i = 1; i <= 5; ++i) {
+        brain.tick(nullptr, &entity, static_cast<i64>(i) * 25, 2000, rng);
+        EXPECT_TRUE(brain.hasActivity(schedule::Activity::FIGHT)) << "第 " << i << " 个窗口后 FIGHT 不应被时间线抢走";
+        EXPECT_FALSE(brain.hasActivity(schedule::Activity::WORK)) << "第 " << i << " 个窗口中不应出现 WORK 中间态";
+        EXPECT_TRUE(
+            brain.hasMemory(memory::MemoryModuleTypes::ATTACK_TARGET, memory::MemoryModuleStatus::VALUE_PRESENT))
+            << "第 " << i
+            << " 个窗口后 ATTACK_TARGET 不应被清掉"
+               "（被清掉就说明中间切过 WORK）";
+    }
+}
+
 TEST(BrainActivityTest, EventActivityTakesOverWhenRequirementsMet)
 {
     memory::MemoryModuleTypes::initialize();
