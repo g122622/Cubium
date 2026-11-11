@@ -250,7 +250,7 @@
 ### 11. 构造函数默认参数违反项目规范
 
 项目规范明确禁止给函数参数设默认值（“大量的默认值会导致数据流变得难以理解”）。
-本目录下仍有 16 处遗留，修改时请按子目录逐个处理：
+本目录下仍有 15 处遗留，修改时请按子目录逐个处理：
 
 | 子目录 | 处数 | 例如 |
 |---|---|---|
@@ -260,10 +260,9 @@
 | `goal/goals` | 3 | `MeleeAttackGoal(..., bool useLongMemory = false)` |
 | `brain/memory` | 1 | `Memory(const T& value, i64 ttl = ...)` |
 | `brain/task` | 1 | `Task(MemoryStateMap requiredMemoryState = {}, ...)` |
-| `controller` | 1 | `FlyingMovementController(..., i32 maxTurn = 90, ...)` |
 
 `brain/task/tasks/{action,movement,interact}` 下的 15 处已于
-`033a60556` / `fa54c564d` / `5b715d96d` 全部清理，可作为参考写法。
+`033a60556` / `fa54c564d` / `5b715d96d` / `424d5afe8` 全部清理，可作为参考写法。
 
 **去掉默认值时最容易出的错是“部分传参的调用点”**：它们只传了前靠前的参数，
 其余静默取默认值，去掉默认值时**不会报编译错误，行为会静默改变**。

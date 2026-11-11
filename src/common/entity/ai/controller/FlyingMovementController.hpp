@@ -52,7 +52,7 @@ public:
      * @param maxTurn 俯仰角每tick最大旋转度数
      * @param hoversInPlace 空闲时是否保持无重力悬停
      */
-    explicit FlyingMovementController(MobEntity* mob, i32 maxTurn = 90, bool hoversInPlace = false);
+    explicit FlyingMovementController(MobEntity* mob, i32 maxTurn, bool hoversInPlace);
 
     /**
      * @brief 刻更新
