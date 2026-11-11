@@ -438,16 +438,21 @@ private:
     }
 
     /**
-     * @brief 检查是否有活动所需的记忆
+     * @brief 检查活动所需的记忆是否都已满足
      *
-     * 如果活动没有配置记忆要求，返回 false
+     * 活动没有配置记忆要求时返回 **true**——"没有要求"意味着"总是可以进入"。
+     *
+     * 注意：这里曾经返回 false，而 switchTo() 正是据此决定是否切到目标活动、
+     * 否则退回 m_fallbackActivity（默认 IDLE）。两者叠加的后果是：
+     * 时间线上那些没有配置记忆要求的活动（WORK / MEET / REST 等）永远进不去，
+     * 每次切换都退回 IDLE，村民行为实际上退化成只有 IDLE。
      */
     [[nodiscard]] bool _hasRequiredMemories(const schedule::Activity& activity) const noexcept
     {
         auto it = m_requiredMemoryStates.find(activity);
         if (it == m_requiredMemoryStates.end()) {
-            // 活动没有记忆要求配置时返回 false
-            return false;
+            // 没有记忆要求 = 不设门槛，可以进入
+            return true;
         }
 
         for (const auto& [memType, status] : it->second) {
