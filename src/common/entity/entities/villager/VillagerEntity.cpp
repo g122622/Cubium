@@ -828,6 +828,14 @@ void VillagerEntity::initializeBrain()
     //   (b) 认定 Goal 版足够，删掉本 AVOID 活动注册。
     //   现在两边同时存在但只有 Goal 版生效，属于过渡态；事件调度接通后若再补传感器
     //   就会出现两套逻辑同时驱赶同一个村民，必须避免。
+    //
+    //   【选 (a) 前必须注意】已核实现有 `AvoidEntitySensor` 的判定是**通用的**
+    //   （`Sensors.hpp`：用 `IMob` 标记接口，"所有继承 MonsterEntity 的实体都视为需要避险"），
+    //   而本文件那 8 个 `AvoidEntityGoal` 是**按具体怪物逐个配置**的
+    //   （僵尸/劫毁兽/掠夺者/唤魔者/卫道士/恼鬼/幻术师/疣猪兽）。
+    //   所以直接换成 (a) 不是等价替换——村民会开始躲避**所有**怪物，
+    //   包括原版不躲的那些。走 (a) 需要先给 `AvoidEntitySensor` 加一个可配置的
+    //   实体筛选谓词（或新增一个村民专用传感器），再删 Goal。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(std::make_unique<FleeTask<VillagerEntity>>(1.0f, ai::goal::constants::AVOID_ESCAPE_RANGE),
