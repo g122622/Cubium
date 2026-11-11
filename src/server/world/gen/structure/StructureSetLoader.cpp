@@ -195,12 +195,9 @@ Result<std::unique_ptr<StructureSet>> StructureSetLoader::loadFromJson(
         }
 
         ResourceLocation structId(structEntry["structure"].get<std::string>());
-        i32 weight = 1;
-        if (structEntry.contains("weight") && structEntry["weight"].is_number_integer()) {
-            weight = structEntry["weight"].get<i32>();
-            if (weight <= 0) {
-                weight = 1;
-            }
+        i32 weight = util::json::getInt32Or(structEntry, "weight", 1);
+        if (weight <= 0) {
+            weight = 1;
         }
 
         entries.emplace_back(std::move(structId), weight);
@@ -251,20 +248,11 @@ std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseRandomS
     const nlohmann::json& placementObj)
 {
     // 解析必填参数
-    i64 salt = 0;
-    if (placementObj.contains("salt") && placementObj["salt"].is_number_integer()) {
-        salt = placementObj["salt"].get<i64>();
-    }
+    const i64 salt = util::json::getInt64Or(placementObj, "salt", 0);
 
-    i32 spacing = 1;
-    if (placementObj.contains("spacing") && placementObj["spacing"].is_number_integer()) {
-        spacing = placementObj["spacing"].get<i32>();
-    }
+    const i32 spacing = util::json::getInt32Or(placementObj, "spacing", 1);
 
-    i32 separation = 0;
-    if (placementObj.contains("separation") && placementObj["separation"].is_number_integer()) {
-        separation = placementObj["separation"].get<i32>();
-    }
+    const i32 separation = util::json::getInt32Or(placementObj, "separation", 0);
 
     // 解析分布类型
     placement::RandomSpreadType spreadType = placement::RandomSpreadType::Linear;
@@ -279,10 +267,7 @@ std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseRandomS
     }
 
     // 解析频率
-    f32 frequency = 1.0f;
-    if (placementObj.contains("frequency") && placementObj["frequency"].is_number()) {
-        frequency = placementObj["frequency"].get<f32>();
-    }
+    const f32 frequency = util::json::getFloat32Or(placementObj, "frequency", 1.0f);
 
     // 解析定位偏移
     math::Vector3i locateOffset(0, 0, 0);
@@ -290,7 +275,12 @@ std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseRandomS
         const auto& offset = placementObj["locate_offset"];
         if (offset.size() >= 3 && offset[0].is_number_integer() && offset[1].is_number_integer() &&
             offset[2].is_number_integer()) {
-            locateOffset = math::Vector3i(offset[0].get<i32>(), offset[1].get<i32>(), offset[2].get<i32>());
+            // 三个分量已确认是整数，越界时按 0 处理（本工厂无 Result 出口）
+            const auto readOffset = [](const nlohmann::json& array, std::size_t index) -> i32 {
+                const auto read = util::json::getInt32At(array, index);
+                return read.success() ? read.value() : 0;
+            };
+            locateOffset = math::Vector3i(readOffset(offset, 0), readOffset(offset, 1), readOffset(offset, 2));
         }
     }
 
@@ -304,20 +294,11 @@ std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseRandomS
 std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseConcentricRingsPlacement(
     const nlohmann::json& placementObj)
 {
-    i32 distance = 32;
-    if (placementObj.contains("distance") && placementObj["distance"].is_number_integer()) {
-        distance = placementObj["distance"].get<i32>();
-    }
+    const i32 distance = util::json::getInt32Or(placementObj, "distance", 32);
 
-    i32 spread = 3;
-    if (placementObj.contains("spread") && placementObj["spread"].is_number_integer()) {
-        spread = placementObj["spread"].get<i32>();
-    }
+    const i32 spread = util::json::getInt32Or(placementObj, "spread", 3);
 
-    i32 count = 128;
-    if (placementObj.contains("count") && placementObj["count"].is_number_integer()) {
-        count = placementObj["count"].get<i32>();
-    }
+    const i32 count = util::json::getInt32Or(placementObj, "count", 128);
 
     // 解析首选生物群系（标签引用，如 "#minecraft:stronghold_biased_to"）。
     // 标签由 BiomeTagLoader 从数据包 tags/worldgen/biome/*.json 填充（须先于本加载器执行）。
@@ -351,7 +332,7 @@ std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseConcent
 
     i64 salt = 0;
     if (placementObj.contains("salt") && placementObj["salt"].is_number_integer()) {
-        salt = placementObj["salt"].get<i64>();
+        salt = util::json::getInt64Or(placementObj, "salt", 0);
     }
 
     // 解析定位偏移
@@ -360,7 +341,11 @@ std::unique_ptr<placement::StructurePlacement> StructureSetLoader::_parseConcent
         const auto& offset = placementObj["locate_offset"];
         if (offset.size() >= 3 && offset[0].is_number_integer() && offset[1].is_number_integer() &&
             offset[2].is_number_integer()) {
-            locateOffset = math::Vector3i(offset[0].get<i32>(), offset[1].get<i32>(), offset[2].get<i32>());
+            const auto readOffset = [](const nlohmann::json& array, std::size_t index) -> i32 {
+                const auto read = util::json::getInt32At(array, index);
+                return read.success() ? read.value() : 0;
+            };
+            locateOffset = math::Vector3i(readOffset(offset, 0), readOffset(offset, 1), readOffset(offset, 2));
         }
     }
 
@@ -416,15 +401,12 @@ std::optional<placement::ExclusionZone> StructureSetLoader::_parseExclusionZone(
 
     ResourceLocation otherSetId(zone["other_set"].get<std::string>());
 
-    i32 chunkCount = 8;
-    if (zone.contains("chunk_count") && zone["chunk_count"].is_number_integer()) {
-        chunkCount = zone["chunk_count"].get<i32>();
-        // 限制搜索半径范围 1-16
-        if (chunkCount < 1) {
-            chunkCount = 1;
-        } else if (chunkCount > 16) {
-            chunkCount = 16;
-        }
+    i32 chunkCount = util::json::getInt32Or(zone, "chunk_count", 8);
+    // 限制搜索半径范围 1-16
+    if (chunkCount < 1) {
+        chunkCount = 1;
+    } else if (chunkCount > 16) {
+        chunkCount = 16;
     }
 
     return placement::ExclusionZone{std::move(otherSetId), chunkCount};
