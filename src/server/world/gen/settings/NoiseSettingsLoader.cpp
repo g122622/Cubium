@@ -28,6 +28,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/settings/NoiseSettingsRegistry.hpp"
 
@@ -83,14 +84,13 @@ Result<size_t> NoiseSettingsLoader::loadFromDataPackRepository(const resource::D
                 spdlog::warn("Failed to read noise_settings: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse noise_settings {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn(
+                    "Failed to parse noise_settings {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             auto settingsResult = DimensionSettings::fromJson(jsonObj, location);
             if (settingsResult.failed()) {
                 spdlog::warn(
@@ -129,14 +129,13 @@ Result<size_t> NoiseSettingsLoader::loadFromResourcePack(const resource::IResour
                 spdlog::warn("Failed to read noise_settings: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse noise_settings {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn(
+                    "Failed to parse noise_settings {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             auto settingsResult = DimensionSettings::fromJson(jsonObj, location);
             if (settingsResult.failed()) {
                 spdlog::warn(

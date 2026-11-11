@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
 
+#include "common/util/json/JsonRead.hpp"
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -34,6 +35,7 @@
 #include <system_error>
 #include <utility>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -77,21 +79,19 @@ Result<void> SettingsBase::load(const std::filesystem::path& path)
         return Error(ErrorCode::FileOpenFailed, "Failed to open settings file: " + path.string());
     }
 
-    try {
-        // 解析 JSON
-        nlohmann::json j;
-        file >> j;
-        file.close();
+    // 解析 JSON（非抛出：损坏的配置文件返回 FileCorrupted，而不是让 parse_error 逃逸）
+    auto jsonResult = util::json::parse(file);
+    file.close();
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse settings file: " + jsonResult.error().message());
+    }
 
+    try {
         // 加载设置
-        loadFromJson(j);
+        loadFromJson(jsonResult.value());
 
         spdlog::info("Settings loaded successfully from: {}", path.string());
         return Result<void>::ok();
-    }
-    catch (const nlohmann::json::parse_error& e) {
-        file.close();
-        return Error(ErrorCode::FileCorrupted, "Failed to parse settings file: " + std::string(e.what()));
     }
     catch (const std::exception& e) {
         file.close();

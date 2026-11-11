@@ -30,6 +30,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -142,9 +143,12 @@ static void resolveDamageTypeTagEntry(const DamageTypeRawTagEntry& entry,
  */
 static Result<DamageTypeRawTagData> parseDamageTypeJsonRaw(const std::string& json, const ResourceLocation& location)
 {
+    auto parsedJson = util::json::parse(json);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
     try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
-
         DamageTypeRawTagData rawData;
 
         // 解析 replace 字段（可选，默认 false）
@@ -187,9 +191,6 @@ static Result<DamageTypeRawTagData> parseDamageTypeJsonRaw(const std::string& js
         }
 
         return rawData;
-    }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
@@ -454,9 +455,12 @@ Result<size_t> DamageTypeTagLoader::loadFromResourcePack(const resource::IResour
 Result<std::unique_ptr<DamageTypeTag>> DamageTypeTagLoader::loadFromJson(
     const std::string& json, const ResourceLocation& location)
 {
+    auto parsedJson = util::json::parse(json);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
     try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
-
         // 解析 replace 字段（可选，默认 false）
         bool replace = false;
         if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
@@ -514,9 +518,6 @@ Result<std::unique_ptr<DamageTypeTag>> DamageTypeTagLoader::loadFromJson(
         }
 
         return tag;
-    }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());

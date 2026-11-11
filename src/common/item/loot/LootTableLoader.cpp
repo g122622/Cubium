@@ -32,6 +32,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/resource/repository/PackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -283,13 +284,12 @@ Result<std::string> LootTableLoader::loadJson(const std::string& id, const std::
     MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootTableLoader::loadJson", "id", id);
 
     // 解析 JSON
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(jsonString);
+    auto jsonResult = util::json::parse(jsonString);
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::ResourceParseError,
+            "JSON parse error for loot table '" + id + "': " + jsonResult.error().message());
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::ResourceParseError, "JSON parse error for loot table '" + id + "': " + e.what());
-    }
+    auto json = std::move(jsonResult).value();
 
     // 使用 LootSerializers 解析掉落表
     auto tableResult = LootTable::fromJson(jsonString);

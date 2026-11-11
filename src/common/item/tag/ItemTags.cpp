@@ -26,6 +26,7 @@
 #include "common/item/tag/ItemTag.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -36,6 +37,7 @@
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -560,14 +562,12 @@ Result<nlohmann::json> ItemTags::mergeTagVersions(
 
 Result<nlohmann::json> ItemTags::compileTagJson(const std::string& json, const ResourceLocation& location)
 {
-    nlohmann::json parsed;
-    try {
-        parsed = nlohmann::json::parse(json);
-    }
-    catch (const nlohmann::json::parse_error& error) {
+    auto parsedResult = util::json::parse(json);
+    if (parsedResult.failed()) {
         return Error(ErrorCode::InvalidData,
-            "Failed to parse item tag '" + location.toString() + "': " + std::string(error.what()));
+            "Failed to parse item tag '" + location.toString() + "': " + parsedResult.error().message());
     }
+    const nlohmann::json& parsed = parsedResult.value();
 
     if (!parsed.contains("values") || !parsed["values"].is_array()) {
         return Error(ErrorCode::InvalidData, "Item tag '" + location.toString() + "' is missing a 'values' array");

@@ -29,10 +29,12 @@
 #include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 
 #include "common/util/NumberParsing.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <exception>
 #include <fstream>
 #include <iterator>
+
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -168,9 +170,6 @@ Result<AddonManifest> AddonManifest::parse(const std::string& json)
         }
 
         return manifest;
-    }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("Parse error: ") + e.what());

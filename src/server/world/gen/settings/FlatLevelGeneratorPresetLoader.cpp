@@ -28,6 +28,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/world/gen/settings/FlatLevelGeneratorPresetRegistry.hpp"
 #include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 
@@ -84,14 +85,14 @@ Result<size_t> FlatLevelGeneratorPresetLoader::loadFromDataPackRepository(
                 spdlog::warn("Failed to read flat_level_generator_preset: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse flat_level_generator_preset {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse flat_level_generator_preset {}: {}",
+                    location.toString(),
+                    jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             auto settingsResult = FlatLevelGeneratorSettings::fromJson(jsonObj, location);
             if (settingsResult.failed()) {
                 spdlog::warn("Failed to load flat_level_generator_preset '{}': {}",
@@ -131,14 +132,14 @@ Result<size_t> FlatLevelGeneratorPresetLoader::loadFromResourcePack(const resour
                 spdlog::warn("Failed to read flat_level_generator_preset: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse flat_level_generator_preset {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse flat_level_generator_preset {}: {}",
+                    location.toString(),
+                    jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             auto settingsResult = FlatLevelGeneratorSettings::fromJson(jsonObj, location);
             if (settingsResult.failed()) {
                 spdlog::warn("Failed to load flat_level_generator_preset '{}': {}",

@@ -35,6 +35,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
 #include "server/world/gen/surface/VerticalAnchor.hpp"
 #include "server/world/gen/valueprovider/FloatProvider.hpp"
@@ -376,14 +377,12 @@ Result<size_t> ConfiguredCarverLoader::loadFromDataPackRepository(const resource
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse configured_carver {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse configured_carver {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (!parseResult.success()) {
@@ -429,14 +428,12 @@ Result<size_t> ConfiguredCarverLoader::loadFromResourcePack(const resource::IRes
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse configured_carver {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse configured_carver {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (!parseResult.success()) {

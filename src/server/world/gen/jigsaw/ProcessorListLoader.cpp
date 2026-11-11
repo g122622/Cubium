@@ -44,6 +44,7 @@
 #include "server/world/gen/valueprovider/IntProvider.hpp"
 #include "server/world/gen/valueprovider/IntProviderParser.hpp"
 
+#include "common/util/json/JsonRead.hpp"
 #include <cstddef>
 #include <exception>
 #include <memory>
@@ -53,6 +54,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <simdjson.h>
+
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -991,19 +993,19 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(s
         auto rawResult = limitResult.value().raw_json();
         if (rawResult.error() == simdjson::SUCCESS) {
             std::string_view rawJson = rawResult.value();
-            try {
-                nlohmann::json limitJson = nlohmann::json::parse(rawJson);
-                // POSITIVE_CODEC 要求 minValue >= 1
-                auto limitParseResult = valueprovider::IntProviderParser::parse(limitJson, 1);
-                if (limitParseResult.success()) {
-                    limitProvider = limitParseResult.value();
-                } else {
-                    spdlog::warn("capped processor: failed to parse limit IntProvider: {}, using default value 4",
-                        limitParseResult.error().message());
-                }
+            auto limitJsonParseResult = util::json::parse(rawJson);
+            if (limitJsonParseResult.failed()) {
+                return Error(
+                    ErrorCode::InvalidData, std::string("JSON parse error: ") + limitJsonParseResult.error().message());
             }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("capped processor: failed to reparse limit JSON: {}, using default value 4", e.what());
+            auto limitJson = std::move(limitJsonParseResult).value();
+            // POSITIVE_CODEC 要求 minValue >= 1
+            auto limitParseResult = valueprovider::IntProviderParser::parse(limitJson, 1);
+            if (limitParseResult.success()) {
+                limitProvider = limitParseResult.value();
+            } else {
+                spdlog::warn("capped processor: failed to parse limit IntProvider: {}, using default value 4",
+                    limitParseResult.error().message());
             }
         }
     }

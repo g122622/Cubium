@@ -30,6 +30,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/attribute/EnvironmentAttributeMap.hpp"
 #include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -565,14 +566,12 @@ Result<size_t> BiomeLoader::loadFromDataPackRepository(const resource::DataPackR
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse biome {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse biome {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (parseResult.success()) {
@@ -616,14 +615,12 @@ Result<size_t> BiomeLoader::loadFromResourcePack(const resource::IResourcePack& 
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse biome {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse biome {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (parseResult.success()) {

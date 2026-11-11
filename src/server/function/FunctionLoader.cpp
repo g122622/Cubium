@@ -27,6 +27,7 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/function/MacroFunction.hpp"
 #include "server/function/StringTemplate.hpp"
 #include <algorithm>
@@ -452,9 +453,12 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
 Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
     const ResourceLocation& tagId, const std::string& jsonContent)
 {
+    auto parsedJson = util::json::parse(jsonContent);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
     try {
-        nlohmann::json jsonObj = nlohmann::json::parse(jsonContent);
-
         TagData tagData;
         tagData.id = tagId;
 
@@ -503,9 +507,6 @@ Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
         }
 
         return tagData;
-    }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());

@@ -24,6 +24,7 @@
 #include "server/access/admission/WhitelistManager.hpp"
 #include "common/core/Result.hpp"
 
+#include "common/util/json/JsonRead.hpp"
 #include <cstddef>
 #include <exception>
 #include <filesystem>
@@ -35,6 +36,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -237,8 +239,11 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path)
             return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open whitelist file: {}", path.string()));
         }
 
-        nlohmann::json json;
-        file >> json;
+        auto jsonResult = util::json::parse(file);
+        if (jsonResult.failed()) {
+            return Error(ErrorCode::FileCorrupted, "Failed to parse whitelist file: " + jsonResult.error().message());
+        }
+        const nlohmann::json& json = jsonResult.value();
 
         if (!json.is_array()) {
             return Error(ErrorCode::FileCorrupted, "Whitelist file must be a JSON array");

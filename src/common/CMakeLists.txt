@@ -1386,6 +1386,9 @@ add_library(mc_common STATIC
     # 不抛异常的文本数值解析（from_chars 封装，取代 std::sto*）
     util/NumberParsing.cpp
 
+    # 不抛异常的 nlohmann-json 访问层（数据包/网络等外部输入的读取入口）
+    util/json/JsonRead.cpp
+
     # Property system
     util/property/EnumProperty.cpp
 

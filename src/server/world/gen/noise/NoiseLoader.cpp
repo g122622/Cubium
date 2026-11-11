@@ -28,6 +28,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/world/gen/noise/Noises.hpp"
 
 #include <cstddef>
@@ -92,14 +93,12 @@ Result<size_t> NoiseLoader::loadFromDataPackRepository(const resource::DataPackR
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse noise {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse noise {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, location);
             if (!parseResult.success()) {
@@ -143,14 +142,12 @@ Result<size_t> NoiseLoader::loadFromResourcePack(const resource::IResourcePack& 
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse noise {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse noise {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, location);
             if (!parseResult.success()) {

@@ -31,6 +31,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
@@ -165,12 +166,13 @@ Result<size_t> StructureSetLoader::loadFromResourcePack(const IResourcePack& pac
 Result<std::unique_ptr<StructureSet>> StructureSetLoader::loadFromJson(
     const std::string& json, const ResourceLocation& location)
 {
-    try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
-        return loadFromJson(jsonObj, location);
+    auto parsedJson = util::json::parse(json);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
+    auto jsonObj = std::move(parsedJson).value();
+    try {
+        return loadFromJson(jsonObj, location);
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());

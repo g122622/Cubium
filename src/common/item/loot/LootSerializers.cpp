@@ -111,6 +111,7 @@
 #include "common/item/loot/functions/SetWrittenBookPagesFunction.hpp"
 #include "common/item/loot/functions/ToggleTooltipsFunction.hpp"
 #include "common/item/potion/PotionRegistry.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include <algorithm>
@@ -124,6 +125,7 @@
 #include <utility>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -3134,12 +3136,13 @@ Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const nlohman
 
 Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const std::string& jsonStr)
 {
-    try {
-        nlohmann::json json = nlohmann::json::parse(jsonStr);
-        return parseLootTable(json);
+    auto jsonParseResult = util::json::parse(jsonStr);
+    if (jsonParseResult.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + jsonParseResult.error().message());
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
+    auto json = std::move(jsonParseResult).value();
+    try {
+        return parseLootTable(json);
     }
     catch (const nlohmann::json::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("JSON error: ") + e.what());

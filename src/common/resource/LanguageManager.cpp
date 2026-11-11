@@ -29,6 +29,7 @@
 #include "pack/IResourcePack.hpp"
 #include "repository/PackRepository.hpp"
 
+#include "common/util/json/JsonRead.hpp"
 #include <cctype>
 #include <cstddef>
 #include <exception>
@@ -38,6 +39,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc::resource {
@@ -156,9 +158,6 @@ Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
         }
 
         return count;
-    }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("Error parsing language JSON: ") + e.what());

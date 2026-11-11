@@ -27,6 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/world/gen/settings/WorldPreset.hpp"
 #include "server/world/gen/settings/WorldPresetRegistry.hpp"
 
@@ -82,14 +83,12 @@ Result<size_t> WorldPresetLoader::loadFromDataPackRepository(const resource::Dat
                 spdlog::warn("Failed to read world_preset: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse world_preset {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse world_preset {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             auto presetResult = WorldPreset::fromJson(jsonObj, location);
             if (presetResult.failed()) {
                 spdlog::warn(
@@ -128,14 +127,12 @@ Result<size_t> WorldPresetLoader::loadFromResourcePack(const resource::IResource
                 spdlog::warn("Failed to read world_preset: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse world_preset {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse world_preset {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             auto presetResult = WorldPreset::fromJson(jsonObj, location);
             if (presetResult.failed()) {
                 spdlog::warn(

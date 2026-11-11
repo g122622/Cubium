@@ -38,6 +38,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
@@ -506,14 +507,12 @@ Result<size_t> PlacedFeatureLoader::loadFromDataPackRepository(const resource::D
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (!parseResult.success()) {
@@ -559,14 +558,12 @@ Result<size_t> PlacedFeatureLoader::loadFromResourcePack(const resource::IResour
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (!parseResult.success()) {

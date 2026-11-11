@@ -29,6 +29,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/generation/density/DensityFunction.hpp"
 #include "server/world/gen/density/DensityFunctionRegistry.hpp"
 #include "server/world/gen/density/DensityFunctionTypeRegistry.hpp"
@@ -236,14 +237,13 @@ Result<size_t> DensityFunctionLoader::loadFromDataPackRepository(const resource:
                 spdlog::warn("Failed to read density_function: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse density_function {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn(
+                    "Failed to parse density_function {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             state.rawMap[location.toString()] = std::move(jsonObj);
         }
     }
@@ -292,14 +292,13 @@ Result<size_t> DensityFunctionLoader::loadFromResourcePack(const resource::IReso
                 spdlog::warn("Failed to read density_function: {}", resourcePath);
                 continue;
             }
-            json jsonObj;
-            try {
-                jsonObj = json::parse(readResult.value());
-            }
-            catch (const json::parse_error& e) {
-                spdlog::warn("Failed to parse density_function {}: {}", location.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn(
+                    "Failed to parse density_function {}: {}", location.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
             state.rawMap[location.toString()] = std::move(jsonObj);
         }
     }

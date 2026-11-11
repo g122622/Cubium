@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
@@ -40,6 +41,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -277,8 +279,11 @@ Result<void> OpListManager::load(const std::filesystem::path& path)
             return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open ops file: {}", path.string()));
         }
 
-        nlohmann::json json;
-        file >> json;
+        auto jsonResult = util::json::parse(file);
+        if (jsonResult.failed()) {
+            return Error(ErrorCode::FileCorrupted, "Failed to parse ops file: " + jsonResult.error().message());
+        }
+        const nlohmann::json& json = jsonResult.value();
 
         if (!json.is_array()) {
             return Error(ErrorCode::FileCorrupted, "Ops file must be a JSON array");

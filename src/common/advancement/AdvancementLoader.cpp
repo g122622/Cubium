@@ -30,6 +30,7 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <filesystem>
@@ -39,6 +40,7 @@
 #include <utility>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -168,14 +170,13 @@ Result<ResourceLocation> AdvancementLoader::loadFile(const std::string& filePath
         return Error(ErrorCode::FileOpenFailed, "Cannot open file: " + filePath);
     }
 
-    // 解析JSON
-    nlohmann::json json;
-    try {
-        file >> json;
+    // 解析JSON（非抛出：坏文件返回错误而不是让 parse_error 逃逸）
+    auto jsonResult = util::json::parse(file);
+    if (jsonResult.failed()) {
+        return Error(
+            ErrorCode::ResourceParseError, "JSON parse error in " + filePath + ": " + jsonResult.error().message());
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::ResourceParseError, "JSON parse error: " + std::string(e.what()));
-    }
+    const nlohmann::json& json = jsonResult.value();
 
     // 推导成就ID
     ResourceLocation id = pathToAdvancementId(filePath);
@@ -198,13 +199,11 @@ Result<ResourceLocation> AdvancementLoader::loadFile(const std::string& filePath
 Result<Advancement> AdvancementLoader::loadJson(const ResourceLocation& id, const std::string& jsonString)
 {
     // 解析JSON
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(jsonString);
+    auto jsonResult = util::json::parse(jsonString);
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::ResourceParseError, "JSON parse error: " + std::string(jsonResult.error().message()));
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::ResourceParseError, "JSON parse error: " + std::string(e.what()));
-    }
+    auto json = std::move(jsonResult).value();
 
     return loadJson(id, json);
 }

@@ -32,6 +32,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
@@ -172,9 +173,12 @@ Result<size_t> StructureDefinitionLoader::loadFromResourcePack(const IResourcePa
 
 Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, const ResourceLocation& location)
 {
+    auto parsedJson = util::json::parse(json);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
     try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
-
         auto def = std::make_unique<StructureDefinition>();
         def->id = location;
 
@@ -372,9 +376,6 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
         s_definitions.push_back(std::move(def));
 
         return Result<void>::ok();
-    }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, std::string("Failed to parse structure definition: ") + e.what());

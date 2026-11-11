@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/util/DateTimeUtils.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -39,6 +40,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -291,8 +293,12 @@ Result<void> BannedPlayerList::load(const std::filesystem::path& path)
                 ErrorCode::FileOpenFailed, fmt::format("Failed to open banned players file: {}", path.string()));
         }
 
-        nlohmann::json json;
-        file >> json;
+        auto jsonResult = util::json::parse(file);
+        if (jsonResult.failed()) {
+            return Error(
+                ErrorCode::FileCorrupted, "Failed to parse banned players file: " + jsonResult.error().message());
+        }
+        const nlohmann::json& json = jsonResult.value();
 
         if (!json.is_array()) {
             return Error(ErrorCode::FileCorrupted, "Banned players file must be a JSON array");

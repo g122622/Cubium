@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/TimeUtils.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -41,6 +42,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {
@@ -178,8 +180,12 @@ void SkinCache::_loadMetadata()
             return;
         }
 
-        nlohmann::json json;
-        file >> json;
+        auto jsonResult = util::json::parse(file);
+        if (jsonResult.failed()) {
+            spdlog::warn("SkinCache: failed to parse metadata file: {}", jsonResult.error().message());
+            return;
+        }
+        const nlohmann::json& json = jsonResult.value();
 
         if (!json.is_object()) {
             spdlog::warn("SkinCache: Metadata file is not a JSON object, ignoring");
