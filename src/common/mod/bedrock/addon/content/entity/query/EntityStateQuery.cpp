@@ -365,8 +365,17 @@ std::optional<MolangValue> EntityStateQuery::molangQuery(const mc::Entity& entit
         }
         return MolangValue(static_cast<f32>(count));
     }
-    // TODO: 继续接入 query.* 的其余查询（如 query.has_target、query.is_owner、
-    //   query.ground_speed、query.temperature 等），未实现时调用方按 0 处理并记 warn。
+    if (name == "query.has_target") {
+        // 只有 MobEntity 有攻击目标槽（attackTarget）。
+        // 注意不要去读 Brain 的 ATTACK_TARGET 记忆：项目里 Brain 只挂在
+        // Villager/Frog/Sniffer 上且没有统一的 Entity::brain() 访问器，
+        // 而这三类都是 MobEntity，它们的攻击目标同样反映在 attackTarget() 里。
+        const auto* mob = dynamic_cast<const mc::MobEntity*>(&entity);
+        return flag(mob != nullptr && mob->attackTarget() != nullptr);
+    }
+    // TODO: 继续接入 query.* 的其余查询（如 query.is_owner、query.ground_speed、
+    //   query.temperature 等），未实现时调用方按 0 处理并记 warn。
+    //   query.has_target 已接入（见上）。
     return std::nullopt;
 }
 
