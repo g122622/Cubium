@@ -824,6 +824,30 @@ void VillagerEntity::initializeBrain()
             std::make_unique<StrollTask<VillagerEntity>>(0.3f, 120)),
         {},
         {});
+
+    // PLAY 活动：幼年村民的作息（Timelines::VILLAGER_SCHEDULE 里由
+    // BABY_VILLAGER_ACTIVITY 属性轨道选出，在 3000 与 10000 tick 切到 PLAY）。
+    // 之前本实体从未注册这个活动，于是幼年村民在玩耍时段被切进一个零任务的
+    // 活动里——什么都不做。这里用与 REST/IDLE 相同的漫游+张望组合，
+    // 让幼年村民在玩耍时段四处走动、四下张望。
+    m_brain->registerActivity(ai::brain::schedule::Activity::PLAY,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::PLAY,
+        1,
+        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+            std::make_unique<StrollTask<VillagerEntity>>(0.5f, 60)),
+        {},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::PLAY,
+        2,
+        makeTasks(std::make_unique<LookAtEntityTask<VillagerEntity>>()),
+        {},
+        {});
 }
 
 void VillagerEntity::setProfession(VillagerProfession profession)
