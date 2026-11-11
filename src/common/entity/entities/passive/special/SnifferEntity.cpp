@@ -497,7 +497,7 @@ void SnifferEntity::registerGoals()
     // 调用父类方法注册基础动物 AI（基类当前为空实现，保留调用以兼容未来扩展）
     AnimalEntity::registerGoals();
 
-    // 嗅探兽 AI 目标优先级（参考 MC SnifferAi.makeBrain，但因项目无 Brain 系统改用 GoalSelector）：
+    // 嗅探兽 AI 目标优先级（参考 MC SnifferAi.makeBrain，但因本实体未接入 Brain（仅村民已接入）改用 GoalSelector）：
     //
     // 优先级 0: 游泳（最高优先级，防止溺水）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
@@ -543,8 +543,9 @@ void SnifferEntity::registerGoals()
     // 优先级 7: 随机看向
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
-    // 嗅探兽特有行为（对齐 MC SnifferAi.makeBrain 的 IDLE / SNIFF / DIG 活动，因项目无 Brain
-    // 系统改用 GoalSelector）。优先级顺序对应 vanilla 活动的行为顺序：
+    // 嗅探兽特有行为（对齐 MC SnifferAi.makeBrain 的 IDLE / SNIFF / DIG 活动；本实体未接入
+    // Brain——本项目 Brain 仅接入了村民 VillagerEntity——改用 GoalSelector）。
+    // 优先级顺序对应 vanilla 活动的行为顺序：
     //   DIG   : Digging / FinishedDigging
     //   SNIFF : Searching
     //   IDLE  : FeelingHappy → Scenting / Sniffing

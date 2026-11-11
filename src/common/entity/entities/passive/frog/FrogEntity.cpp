@@ -303,7 +303,7 @@ void FrogEntity::registerGoals()
     // 调用父类方法（基类当前为空实现，保留调用以兼容未来扩展）
     AnimalEntity::registerGoals();
 
-    // 青蛙 AI 优先级（参考 MC FrogAi.makeBrain，因项目无 Brain 系统改用 GoalSelector）：
+    // 青蛙 AI 优先级（参考 MC FrogAi.makeBrain，因本实体未接入 Brain（仅村民已接入）改用 GoalSelector）：
     //   突舌捕食（IDLE/SWIM 活动的 StartAttacking + TONGUE 活动的 ShootTongue）已以
     //   FrogAttackTargetGoal + FrogTongueGoal 等效实现。
     //   长跳（LONG_JUMP）由 FrogLongJumpGoal 等效实现；产卵（LAY_SPAWN → Frogspawn）

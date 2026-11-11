@@ -106,7 +106,7 @@ namespace sniffer {
  * 变得不可挖掘（canDig 为假）时结束，并清除嗅探目标（对齐 vanilla Searching.stop 擦除记忆）。
  *
  * 与 vanilla 的差异：vanilla 由 Brain 的 SNIFF 活动在 SNIFFER_SNIFFING_TARGET + WALK_TARGET
- * 同时存在且未恐慌时激活 Searching；本项目无 Brain，改以实体上的嗅探目标标记等效表达。
+ * 同时存在且未恐慌时激活 Searching；本实体未接入 Brain（仅村民已接入），改以实体上的嗅探目标标记等效表达。
  */
 class SnifferSearchGoal : public Goal {
 public:

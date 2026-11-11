@@ -60,8 +60,9 @@ class DamageSource;
  *
  *
  * @note 原版使用 Brain + MemoryModuleType（SNIFFER_SNIFFING_TARGET / SNIFFER_DIGGING /
- *       SNIFFER_HAPPY / SNIFF_COOLDOWN / SNIFFER_EXPLORED_POSITIONS）驱动状态机；本项目无 Brain
- *       系统，改以 GoalSelector 上的 SnifferSniffGoal（嗅探）→ SnifferSearchGoal（搜索）→
+ *       SNIFFER_HAPPY / SNIFF_COOLDOWN / SNIFFER_EXPLORED_POSITIONS）驱动状态机；本实体未接入
+ *       Brain（本项目 Brain 仅接入了村民 VillagerEntity），改以 GoalSelector 上的
+ *       SnifferSniffGoal（嗅探）→ SnifferSearchGoal（搜索）→
  *       SnifferDigGoal（挖掘）→ SnifferHappyGoal（开心）链式衔接，并以实体字段承载上述记忆语义
  *       （hasSniffingTarget / isHappy / isSniffCoolingDown / 已探索位置列表）。
  */
