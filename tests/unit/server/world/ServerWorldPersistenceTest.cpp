@@ -4,6 +4,7 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
@@ -122,6 +123,45 @@ TEST_F(ServerWorldPersistenceTest, CorruptStoredChunkFailsWithoutRegeneration)
     auto record = opened.value()->get(world::storage::cf::SECTIONS_OVERWORLD, key);
     ASSERT_TRUE(record.success());
     EXPECT_EQ(std::string(record.value().begin(), record.value().end()), "corrupted");
+}
+
+TEST_F(ServerWorldPersistenceTest, FailedUnloadSaveRetainsDirtyChunk)
+{
+    auto runtimeWorld = createWorld();
+    auto* manager = runtimeWorld->chunkManager();
+    manager->setSuppressAutoUnloadForBenchmark(true);
+    auto* chunk = manager->requestFullChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+    chunk->setDirty(true);
+    // 停止的执行器确定性拒绝保存任务，不需要破坏磁盘或注入生产故障开关。
+    util::UniversalWorkerPool stoppedIo(1, "RejectedUnloadSave", 4096);
+    m_storage.setIoWorkerPool(&stoppedIo);
+    manager->unloadChunkSync(0, 0);
+    manager->tick();
+    EXPECT_EQ(manager->tryToGetChunkInMem(0, 0), chunk);
+    EXPECT_TRUE(chunk->isDirty());
+    m_storage.setIoWorkerPool(nullptr);
+    runtimeWorld->shutdown();
+}
+
+TEST_F(ServerWorldPersistenceTest, UnloadRetainsChunkModifiedAfterSnapshot)
+{
+    auto runtimeWorld = createWorld();
+    auto* manager = runtimeWorld->chunkManager();
+    manager->setSuppressAutoUnloadForBenchmark(true);
+    auto* chunk = manager->requestFullChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+    chunk->setDirty(true);
+    manager->unloadChunkSync(0, 0);
+    // 保存已完成，卸载收尾尚未执行；模拟主线程继续修改区块。
+    chunk->setDirty(true);
+    manager->tick();
+    EXPECT_EQ(manager->tryToGetChunkInMem(0, 0), chunk);
+    EXPECT_TRUE(chunk->isDirty());
+    manager->unloadChunkSync(0, 0);
+    manager->tick();
+    EXPECT_FALSE(manager->hasChunkInMem(0, 0));
+    runtimeWorld->shutdown();
 }
 
 TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntities)

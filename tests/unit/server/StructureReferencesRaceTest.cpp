@@ -55,7 +55,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <future>
-#include <string_view>
 #include <thread>
 #include <vector>
 #include <gtest/gtest.h>
@@ -192,29 +191,12 @@ protected:
     bool m_structureSetsSuspended = false;
 };
 
-/// 本组区块调度压力用例默认跳过，设置 MC_RUN_CHUNK_RACE_TESTS=1 才运行。
-///
-/// TODO(chunk-scheduler-race): 这组用例仍会在区块调度器上复现一个已知并发死锁（0x50 UAF
-/// 修复后残留的调度竞态，与结构内容无关）。停滞时 `[stuck]` 转储的典型特征是：若干 holder
-/// 仍持有 generationTask 或等待者，而区域任务调度器 `pending=0 waiting=0`、worker 池空闲，
-/// 依赖图不再推进；表现为 watchdog abort（约 10-20% 概率）或 future 120s 超时。修复调度器
-/// 之前不把它作为稳定门禁，但用例完整保留，供修复与回归使用。
-bool _raceStressEnabled()
-{
-    const char* value = std::getenv("MC_RUN_CHUNK_RACE_TESTS");
-    return value != nullptr && std::string_view(value) != "0";
-}
-
 } // namespace
 
 // 单阶段：生成一个区块网格，触发大量并发的 STRUCTURE_STARTS/STRUCTURE_REFERENCES。
 // 不移动玩家，只验证纯并发生成是否崩溃。
 TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
 {
-    if (!_raceStressEnabled()) {
-        GTEST_SKIP() << "chunk scheduler stress test disabled by default; set MC_RUN_CHUNK_RACE_TESTS=1 to run";
-    }
-
     m_workerPool->start();
     ASSERT_TRUE(m_manager->initialize().success());
 
@@ -282,10 +264,6 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
 // 在遍历期被释放。
 TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50Repro)
 {
-    if (!_raceStressEnabled()) {
-        GTEST_SKIP() << "chunk scheduler stress test disabled by default; set MC_RUN_CHUNK_RACE_TESTS=1 to run";
-    }
-
     m_workerPool->start();
     ASSERT_TRUE(m_manager->initialize().success());
 
@@ -317,7 +295,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     FAIL() << "seed generation timed out at future index " << seedIndex;
                 }
             }
-            (void)f.get();
+            ASSERT_NE(f.get(), nullptr);
             ++seedIndex;
         }
     }
@@ -561,10 +539,6 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
 // 对齐用户报告的"跑图时崩溃"场景：视距调大后更容易触发。
 TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
 {
-    if (!_raceStressEnabled()) {
-        GTEST_SKIP() << "chunk scheduler stress test disabled by default; set MC_RUN_CHUNK_RACE_TESTS=1 to run";
-    }
-
     m_workerPool->start();
     ASSERT_TRUE(m_manager->initialize().success());
 

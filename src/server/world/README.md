@@ -62,8 +62,16 @@ world/
 票据降级要重新汇总目标，不能用“安全可卸载”作为取消需求的前提。显式请求按各自目标交付，
 共享邻居仅在最后一条有效依赖移除后停止推进。排队任务可发取消信号，但任务身份和邻居引用必须
 保留到执行器确认完成；已开始的生成阶段完整执行，再根据最新需求决定是否继续。延迟重调度只
-保存坐标，不能保存旧目标，也不能在旧任务尚未结束时复位取消令牌。任务身份用逐代唯一的
-`abortSignal` 令牌判定，不能用任务裸指针——区域调度器在回调前已释放任务体，地址可能被后继任务复用。
+保存坐标，不能保存旧目标，也不能在旧任务尚未结束时复位取消令牌。
+区域调度器保留任务体至回调结束，完成、取消和失败回调在任务仍存活时核对身份；
+取消请求只能置位令牌，禁止提前清除任务指针或释放邻居引用。
+
+### 依赖扫描与取消后的交付
+
+邻居从首次依赖扫描起保活，包括已经就绪的邻居；等待其余依赖期间不可卸载并重建它们。
+按实际登记集合释放保活，不能在完成时按坐标重新推算邻居。完成、取消、失败和需求撤销均须结清。
+区块已达到某请求的阶段时应立即交付，即使更高阶段仍有任务；取消确认后的重调度也必须交付
+已经就绪的请求，否则 worker 与区域任务均空闲时仍会遗留 future。生成失败须向所有上游请求传播。
 
 ### 卸载冷却与距离图回调
 
@@ -72,11 +80,11 @@ world/
 ### 区块异步生成架构（Moonrise 对齐）
 区块生成系统已对齐 Moonrise mod 架构，彻底消除跑图时的 "missing chunk in access window" / "chunk status below request" 错误。核心设计：
 
-- **`ChunkTaskScheduler`**（`ChunkTaskScheduler.hpp/cpp`）：调度核心。`schedule(x, z, targetStatus)` 一次只推进一步状态；`checkNeighbour` 验证邻居是否达到 `ChunkStep::getRequiredStatusAtRadius(distance)` 所需状态，未就绪则建立**双向依赖图**（`center.addBlockingNeighbour` / `neighbour.addWaitingNeighbour`）并挂起任务，**绝不返回低状态区块**；`onChunkGenComplete` 在任务完成时推进 `currentGenStatus`、释放邻居引用计数、通知等待的邻居重新调度。持有 `ReentrantAreaLock m_schedulingLockArea`（coordinateShift=6，对齐 Moonrise getChunkSystemLockShift()；每 section 覆盖 64×64 区块，使 2*maxAccessRadius 锁只触达 1~4 个 section），保证 检查→建依赖→创建任务→完成→通知 全流程原子。
+- **`ChunkTaskScheduler`**（`ChunkTaskScheduler.hpp/cpp`）：调度核心。`schedule(x, z, holder)` 一次只推进一步状态；`checkNeighbour` 验证邻居是否达到 `ChunkStep::getRequiredStatusAtRadius(distance)` 所需状态，未就绪则建立**双向依赖图**（`center.addBlockingNeighbour` / `neighbour.addWaitingNeighbour`）并挂起任务，**绝不返回低状态区块**；`onChunkGenComplete` 在任务完成时推进 `currentGenStatus`、释放邻居引用计数、通知等待的邻居重新调度。持有 `ReentrantAreaLock m_schedulingLockArea`（coordinateShift=6，对齐 Moonrise getChunkSystemLockShift()；每 section 覆盖 64×64 区块，使 2*maxAccessRadius 锁只触达 1~4 个 section），保证 检查→建依赖→创建任务→完成→通知 全流程原子。
 - **`SingleChunkLifecycleManager`**（NewChunkHolder 等价物）：持有**可变 `std::unique_ptr<ChunkPrimer> m_currentChunk`** + `m_currentGenStatus`（非不可变快照）。`getChunkIfPresentUnchecked(status)` 检查 `m_currentGenStatus.isAtLeast(status)` 后返回 `m_currentChunk`（同一累积 Primer）。`onChunkGenComplete(status)` 推进 `m_currentGenStatus`（primer 同一对象，无需重存）。
-- **`ChunkProgressionTask`**：单状态推进任务。`execute` 从 `StaticChunkCache2D<ChunkPrimer*>` 构建 `WorldGenRegion`（转换为 `vector<IChunk*>`，所有邻居已由 `checkNeighbour` 保证达到所需状态），调用 `_executeStepTask`，推进 primer 状态，FULL 完成时 `_finalizeGeneratedChunkSync` 转 `ChunkData` 存入内存缓存。
+- **`ChunkProgressionTask`**：单状态推进任务。`execute` 从 `StaticChunkCache2D<shared_ptr<SingleChunkLifecycleManager>>` 构建 `WorldGenRegion`（转换为 `vector<IChunk*>`，所有邻居已由 `checkNeighbour` 保证达到所需状态），调用 `_executeStepTask`，推进 primer 状态，FULL 完成时 `_finalizeGeneratedChunkSync` 转 `ChunkData` 存入内存缓存。
 - **`StaticChunkCache2D<T>`**（`StaticChunkCache2D.hpp`）：预分配二维缓存模板，构造时一次性填充 `(2*radius+1)²` 个条目，**不允许 nullptr**（loader 必须返回有效值）。替代旧的 `GenerationChunkCache`（增量填充、允许空洞），从根本上消除窗口内 nullptr。
-- **`ReentrantAreaLock`**（`common/util/concurrent/`）：按区块坐标的可重入区域锁，`lock(x,z,radius)` 覆盖 `[x±radius, z±radius]`，同线程重入仅限完全覆盖的子区域。`schedule` 持 `maxAccessRadius` 锁，`onChunkGenComplete` 持 `maxAccessRadius` 锁；解锁后重调度时持 `2*maxAccessRadius` 锁。
+- **`ReentrantAreaLock`**（`common/util/concurrent/`）：按区块坐标的可重入区域锁，`lock(x,z,radius)` 覆盖 `[x±radius, z±radius]`，同线程重入仅限完全覆盖的子区域。`schedule` 的外层入口持 `2*maxAccessRadius` 锁，`onChunkGenComplete` 持 `maxAccessRadius` 锁；解锁后重调度时持 `2*maxAccessRadius` 锁。
 - **`ChunkStep::getRequiredStatusAtRadius(radius)`**（`server/world/chunk/pipeline/ChunkStep.hpp`）：byRadius[] 查找表，对齐 Moonrise `ChunkStepMixin`。`schedule` 遍历 `[center±neighbourReadRadius]` 范围邻居，按 Chebyshev 距离查询每个邻居所需状态。
 - **世界区域依赖**（`scheduling/AreaTaskScheduler`）：各坐标维护任务顺序，全部坐标就绪后才提交通用计算池；生成、加载光照、运行时光照和区块序列化共用一个实例，不同世界互不阻塞。
 
@@ -102,8 +110,8 @@ world/
 
 - **候选入队**：票级越过加载阈值（`shouldLoad()==false`）、生成任务设置/清除、邻居引用计数 0↔1、依赖图增删等**状态变更点**都会经 `SingleChunkLifecycleManager` 的卸载状态观察者回调触发 `_updateUnloadCandidate`，满足「票级越阈 + `isSafeToUnload()` + 无玩家追踪 + 无在途保存」即进入候选队列。原「每 20 tick 全量扫描 + 30 秒延迟」已删除。
 - **每 tick 出队**：`_processChunkUnloads` 按保底批量 `max(50, 候选数×5%)` 取用（对齐 Moonrise `minChunkUnloadCount`/`minChunkUnloadFraction`）；该值是下限而非上限——小队列一次清空，大队列按保底量平滑推进。队列惰性移除：撤出候选只改成员集合，deque 中的残留键弹出时丢弃。
-- **三阶段卸载**：stage1（主线程捕获脏区块快照并置位「卸载在途」标记）→ stage2（ServerIO 异步落盘）→ stage3（`_finalizeUnloadAfterSave` 复检 `shouldLoad()`，持调度锁 `cancelGeneration` + `isSafeToUnload` 复检后移除 holder）。无脏数据的区块同样入队延后一个 tick 收尾，给出「玩家在相邻 tick 返回即中止卸载」的反悔窗口。
-- **失败退避**：stage3 发现仍不安全（邻居在用、依赖图未清）时注册 `UNLOAD_COOLDOWN` 票据把该区块按 Border 级钉住 100 tick，到期后票级升过阈值自然重评候选资格；不再每 tick 立即重试。
+- **三阶段卸载**：stage1（主线程捕获脏区块快照并置位「卸载在途」标记）→ stage2（ServerIO 异步落盘）→ stage3（`_finalizeUnloadAfterSave` 在调度锁内复核 holder 身份、加载需求和 `isSafeToUnload`，通过后才清理并移除 holder）。无脏数据的区块同样入队延后一个 tick 收尾，给出「玩家在相邻 tick 返回即中止卸载」的反悔窗口。
+- **失败退避**：stage3 发现仍不安全（邻居在用、依赖图未清）时注册 `UNLOAD_COOLDOWN` 票据把该区块按最弱生成级别保留 100 tick，到期后票级升过阈值自然重评候选资格；不再每 tick 立即重试。
 - **已删除**：`CHUNK_UNLOAD_DELAY_MS`（30 秒延迟）、`UNLOAD_CHECK_INTERVAL_TICKS`、`MAX_UNLOADS_PER_TICK`、以及此前不可启用的 `m_maxLoadedChunks` 软上限强制卸载（Moonrise 与原版均无全局已加载上限；限制内存应靠视距与加载/发送速率限制，而非强制卸载应当加载的区块）。
 
 ### 测试夹具必须注入存储线程池
@@ -119,6 +127,12 @@ world/
 存储层回传结果前已经补齐缺失高度图。`_onChunkLoadComplete` 保持区块对象与来源状态的原子发布，
 `onChunkLoaded` / `m_chunkLoadedCallback` 则经后处理队列延后到 `tick()`，避免在发布调用链中修改世界。
 完成交接仍保留重入守卫，禁止嵌套消费同一队列。
+
+### 卸载保存失败与快照后的修改
+
+保存结果必须随卸载完成项回传。保存失败时恢复脏标记、保留内存区块并退避重试；快照完成后
+区块再次变脏时应中止本次卸载，重新保存后才能移除。worker 也会读取的卸载门控标志必须使用原子访问。
+请求登记须与最终卸载共用调度区域锁，并在锁外推进期间保留 holder 共享所有权。
 
 ### 实体追踪器内存泄漏
 实体销毁后未从追踪器取消追踪会导致泄漏。`ServerWorld::destroyEntity()` 会自动处理追踪器状态更新（内部调 `entityTracker().untrackEntity()`）。如果直接调用 `entityManager().destroyEntity()`，需要手动调用 `entityTracker().untrackEntity()`。

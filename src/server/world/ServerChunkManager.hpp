@@ -1091,7 +1091,7 @@ private:
      * 在 _drainPendingUnloadFinishes 中出队调用。处理：
      * - 复检区块是否被重新请求（shouldLoad=true）：是则中止卸载，保留区块与 holder
      *   （区块数据已保存，若再次变脏会重新保存）。
-     * - 否则持调度锁 cancelGeneration + isSafeToUnload 复检 → 通过后 _notifyChunkUnload
+     * - 否则持调度锁先复核 holder 身份与 isSafeToUnload → 通过后清理并 _notifyChunkUnload
      *   （实体保存+移除/卸载发送/callback，仅触发一次）→ 移除 holder 与 m_chunks 条目、
      *   清理后处理去重标记。
      * - isSafeToUnload 为 false（保存期间邻居开始引用本 holder）：注册 UNLOAD_COOLDOWN
@@ -1102,11 +1102,13 @@ private:
      * @param z 区块 Z 坐标
      * @param dimension 维度
      * @param lifecycleHolder 发起时持有的 SCLM 共享指针
+     * @param saveSucceeded 快照是否保存成功；失败时保留区块并恢复脏标记
      */
     void _finalizeUnloadAfterSave(ChunkCoord x,
         ChunkCoord z,
         mc::DimensionId dimension,
-        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder);
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder,
+        bool saveSucceeded);
 
     /**
      * @brief 出队并执行异步卸载保存完成回调（仅主线程调用）
@@ -1254,12 +1256,12 @@ private:
      *   （不重新发起 loadChunkAsyncCallback），实现 SCM 层去重（对齐 Moonrise chunkTasks 合并）。
      * - _onChunkLoadComplete 通过 ownerLifecycle 实例一致性校验防止 SCLM 被 unload 重建后的误用，
      *   完成后遍历 attachedWaiters 推进其状态机。
-     * - unloadChunkSync 从 attachedWaiters 移除已卸载的 SCLM（owner 条目由 _onChunkLoadComplete 移除）。
+     * - unloadChunkSync 按身份移除 owner 条目或附加等待者，旧完成回调不会覆盖后继 holder 的加载。
      *
-     * 线程安全：由 m_pendingLoadTasksMutex 保护（_resolveChunkSourceSync 主线程写、
+     * 线程安全：由 m_pendingLoadTasksMutex 保护（_resolveChunkSourceSync 主线程或调度 worker 写、
      * _onChunkLoadComplete 主线程读写、unloadChunkSync 主线程读写）。
-     * 注：_onChunkLoadComplete 与 _drainPendingLoadCompletes 均在主线程 tick() 串行调用，
-     * 故追踪表的读写实际上单线程；abortSignal 由 SCLM 持有，unloadChunkSync→cancelActiveWork 置位。
+     * 注：存档完成仅在主线程推进；邻居存档解析可从调度 worker 发起，追踪表仍须互斥保护；abortSignal 由 SCLM
+     * 持有，unloadChunkSync→cancelActiveWork 置位。
      */
     std::mutex m_pendingLoadTasksMutex;
     std::unordered_map<u64, PendingLoadEntry> m_pendingLoadTasks;
@@ -1278,6 +1280,7 @@ private:
         ChunkCoord z = 0;
         mc::DimensionId dimension{};
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
+        bool saveSucceeded = true;
     };
 
     mutable std::mutex m_pendingUnloadFinishesMutex;
@@ -1352,12 +1355,12 @@ private:
     std::atomic<u64> m_lastGenerationActivityMs{0};
 
     /// halo 回收 armed 标志：生成空闲时置位，生成恢复即清零。
-    /// 置位期间生成 halo 区间（level ∈ (Border, Unloaded)）的持有者可被回收。
-    bool m_idleHaloReclaimArmed = false;
+    /// 置位期间生成 halo 区间（level ∈ (Border, Unloaded)）的持有者可被回收；worker 的候选观察者也会读取。
+    std::atomic<bool> m_idleHaloReclaimArmed{false};
 
     /// 基准模式下抑制自动卸载候选判定（见 setSuppressAutoUnloadForBenchmark）。
     /// 生产路径恒为 false；基准 Setup 置 true。
-    bool m_suppressAutoUnload = false;
+    std::atomic<bool> m_suppressAutoUnload{false};
 
     /**
      * @brief 卸载候选队列与成员集合
