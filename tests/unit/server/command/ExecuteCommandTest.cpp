@@ -40,6 +40,7 @@
 #include "server/command/commands/ExecuteCommand.hpp"
 #include "server/command/commands/HelpCommand.hpp"
 #include "server/command/commands/ListCommand.hpp"
+#include "server/command/data/DataAccessor.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 
@@ -343,6 +344,74 @@ TEST_F(ExecuteCommandTest, ExecuteIfScoreWithMissingObjectiveFails)
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
+}
+
+// ============================================================================
+// if|unless data 条件（当前实现 storage 变体）
+// ============================================================================
+
+namespace {
+
+/// 往命令存储的指定 id 写入一个 compound，供 if data 用例使用。
+void seedCommandStorage(mc::server::IServer& server, const std::string& id, mc::nbt::tags::compound_tag data)
+{
+    mc::ResourceLocation location(id);
+    mc::command::StorageDataAccessor accessor(&server.commandStorage(), location);
+    accessor.mergeData(data);
+}
+
+} // namespace
+
+// storage 里存在该路径 → 条件成立，嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteIfDataStorageHoldsWhenPathExists)
+{
+    mc::nbt::tags::compound_tag data;
+    data.put("hp", 20);
+    seedCommandStorage(m_server, "test:ifdata_hit", data);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if data storage test:ifdata_hit hp run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1) << "the path exists, so the nested command must run";
+}
+
+// storage 里没有该路径 → 条件不成立。
+TEST_F(ExecuteCommandTest, ExecuteIfDataStorageFailsWhenPathMissing)
+{
+    mc::nbt::tags::compound_tag data;
+    data.put("hp", 20);
+    seedCommandStorage(m_server, "test:ifdata_miss", data);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if data storage test:ifdata_miss nope run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0) << "the path does not exist, so the nested command must not run";
+}
+
+// 完全没写过的 storage id → 条件不成立（不能顺手创建空存储）。
+TEST_F(ExecuteCommandTest, ExecuteIfDataStorageUnknownIdFails)
+{
+    const auto result =
+        m_server.commandRegistry().execute("execute if data storage test:never_written hp run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+// block / entity 变体尚未实现，必须按不成立处理，不能误让嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteIfDataUnimplementedVariantsAreUnmet)
+{
+    const auto blockResult =
+        m_server.commandRegistry().execute("execute if data block 0 0 0 Items run help", m_console);
+    EXPECT_TRUE(blockResult.success());
+    EXPECT_EQ(blockResult.value(), 0);
+
+    const auto entityResult = m_server.commandRegistry().execute(
+        "execute if data entity @e[type=minecraft:pig,limit=1] CustomName run help", m_console);
+    EXPECT_TRUE(entityResult.success());
+    EXPECT_EQ(entityResult.value(), 0);
 }
 
 TEST_F(ExecuteCommandTest, UnsupportedConditionsNeverExecuteFollowingCommand)

@@ -96,6 +96,22 @@ private:
      */
     static bool _evaluateScoreCondition(
         const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 求值 `if data` 条件
+     *
+     * 判定 NBT 路径是否至少命中一个标签。三种数据源由解析期写入的 `executeDataConditionType`
+     * 区分（`block` / `entity` / `storage`）——`entity` 与 `storage` 共用参数名 `source`，
+     * 只看参数无法区分。
+     *
+     * 当前实现了 `storage`；`block` / `entity` 需要方块实体与实体的 NBT 视图，尚未接通，
+     * 一律返回 false。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateDataCondition(const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

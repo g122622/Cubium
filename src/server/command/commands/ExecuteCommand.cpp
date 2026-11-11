@@ -54,6 +54,7 @@
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/ExecuteBlocksCondition.hpp"
+#include "server/command/data/DataAccessor.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
@@ -200,6 +201,9 @@ inline constexpr const char* kScoreConditionOpKey = "executeScoreConditionOp";
 /// 上下文键：`if blocks` 用了哪种比较模式（`all`/`masked`）。理由同上。
 inline constexpr const char* kBlocksConditionModeKey = "executeBlocksConditionMode";
 
+/// 上下文键：`if data` 用的是哪个数据源（`block`/`entity`/`storage`）。理由同上。
+inline constexpr const char* kDataConditionTypeKey = "executeDataConditionType";
+
 /**
  * @brief 构建 if / unless 的条件子树（对齐原版 ExecuteCommand.Conditions.build）
  *
@@ -257,17 +261,20 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
     {
         auto dataNode = conditionLiteral("data");
 
-        auto blockNode = conditionLiteral("block");
+        auto blockNode =
+            std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>("block", kDataConditionTypeKey);
         auto sourcePos = conditionArg("sourcePos", BlockPosArgumentType::blockPos(), false);
         sourcePos->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
         blockNode->addChild(sourcePos);
 
-        auto entityNode = conditionLiteral("entity");
+        auto entityNode =
+            std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>("entity", kDataConditionTypeKey);
         auto source = conditionArg("source", EntityArgumentType::entity(), false);
         source->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
         entityNode->addChild(source);
 
-        auto storageNode = conditionLiteral("storage");
+        auto storageNode =
+            std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>("storage", kDataConditionTypeKey);
         auto storageId = conditionArg("source", ResourceLocationArgumentType::resourceLocation(), false);
         attachCommandSuggestions(storageId);
         storageId->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
@@ -1009,6 +1016,35 @@ bool ExecuteCommand::_evaluateScoreCondition(
     return false;
 }
 
+bool ExecuteCommand::_evaluateDataCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* server = target.server();
+    if (server == nullptr) {
+        return false;
+    }
+
+    const std::string dataType = context.getArgumentOr<std::string>(kDataConditionTypeKey, std::string());
+    // block / entity 变体需要方块实体与实体的 NBT 视图，尚未接通；不要猜。
+    if (dataType != "storage") {
+        return false;
+    }
+
+    const auto storageId = context.getArgumentOr<ResourceLocation>("source", ResourceLocation());
+    if (storageId.toString().empty()) {
+        return false;
+    }
+
+    const auto path = context.getArgumentOr<NbtPath>("path", NbtPath{});
+    // 数据源为空（或该 id 下还没有数据）时算"路径未命中"：不建空存储。
+    StorageDataAccessor accessor(&server->commandStorage(), storageId);
+    const auto data = accessor.getData();
+    if (data == nullptr) {
+        return false;
+    }
+    return !path.get(*data).empty();
+}
+
 bool ExecuteCommand::_evaluateBlockCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
@@ -1031,6 +1067,9 @@ bool ExecuteCommand::_evaluateBlockCondition(
         const auto entities = support::EntityResolver::resolve(
             target, context.getArgumentOr<EntitySelector>("entities", EntitySelector()));
         return !entities.empty() && entities.front() != nullptr;
+    } else if (context.hasArgument("path")) {
+        // data <block|entity|storage> ... <path>：路径是否至少命中一个标签
+        return _evaluateDataCondition(target, context);
     } else if (context.hasArgument("target")) {
         // score <target> <targetObjective> <op> <source> <sourceObjective> | matches <range>
         return _evaluateScoreCondition(target, context);
