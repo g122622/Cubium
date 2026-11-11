@@ -1658,10 +1658,14 @@ public:
      * @param targetDim 目标维度 ID
      * @param pos 目标坐标（世界绝对坐标）
      * @param rot 目标朝向（yaw/pitch）
-     * @return true 如果传送成功；基类默认 false（非玩家实体当前不支持跨维度）
+     * @return true 如果传送成功；基类默认 false
      *
-     * @todo 非玩家实体的跨维度传送（vanilla 矿车/掉落物等 /tp 跨维度也传送）暂未实现，
-     *       基类返回 false。后续如需支持，应在 ServerWorld 层实现通用实体迁移（同 changeDimension）。
+     * @note 基类对**非玩家实体**返回 false 是刻意的：这条虚函数走的是"玩家迁移"语义
+     *       （连接、区块票据、背包同步等副作用由 ServerPlayer 承担）。非玩家实体的跨维度
+     *       由世界层 `IWorld::transferEntityToDimension(Entity&, DimensionId)` 负责，
+     *       它明确拒绝玩家、对任意非玩家实体可用（会按传送门语义自行重算目标坐标）。
+     *       `/tp` 命令层已同时接了两条路径：玩家经本虚函数，非玩家经世界层迁移后再覆写坐标
+     *       （见 TeleportCommand 的 teleportPlayers / teleportNonPlayerEntities）。
      */
     virtual bool teleportToDimension(DimensionId targetDim, const Vector3d& pos, const Vector2f& rot)
     {
