@@ -79,7 +79,9 @@ struct AboveRootPlacement {
 /**
  * @brief 红树林树根放置配置（MC 1.21.11 MangroveRootPlacement）
  *
- * canGrowThrough / muddyRootsIn 为数据包标签（未解析到时为 nullptr，此时退化为仅接受空气/可替换方块）。
+ * canGrowThrough / muddyRootsIn 为数据包标签（未解析到时为 nullptr）。
+ * muddyRootsIn 来自数据包的方块列表或标签字符串，由 FeatureTypeRegistry 统一登记成运行时标签；
+ * 它为 nullptr 时不做泥根替换（没有内置方块兜底，避免数据包语义被代码覆盖）。
  */
 struct MangroveRootPlacement {
     const BlockTag* canGrowThrough = nullptr; ///< 树根可以穿过的方块标签（#mangrove_roots_can_grow_through）
